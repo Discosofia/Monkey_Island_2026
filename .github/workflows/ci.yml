@@ -9,7 +9,7 @@ jobs:
     name: Formato, lint y build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Instalar herramientas (versiones de rokit.toml)
         run: bash .github/scripts/install-tools.sh
@@ -22,5 +22,6 @@ jobs:
 
       - name: Build de los places (Rojo)
         run: |
+          mkdir -p build
           rojo build lobby.project.json --output build/lobby.rbxl
           rojo build island.project.json --output build/island.rbxl
