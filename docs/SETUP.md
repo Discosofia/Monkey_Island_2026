@@ -36,16 +36,22 @@ flowchart LR
 
 **Instalar Rokit:**
 
-- **Windows:** en https://github.com/rojo-rbx/rokit/releases descarga el `.zip` que termina en `windows-x86_64.zip`, descomprímelo, abre una terminal (PowerShell) en esa carpeta y ejecuta:
+- **Windows:** abre PowerShell y ejecuta el instalador oficial:
+  ```powershell
+  Invoke-RestMethod https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.ps1 | Invoke-Expression
   ```
-  ./rokit self-install
-  ```
+  Si falla, en https://github.com/rojo-rbx/rokit/releases descarga el `.zip` que termina en `windows-x86_64.zip`, descomprímelo y haz **doble clic en `rokit.exe`**: se instala solo.
 - **Mac:** abre la Terminal y ejecuta:
   ```
   curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
   ```
 
-Después **cierra y vuelve a abrir** la terminal y comprueba que funciona con `rokit --version`.
+Después **cierra por completo VS Code y GitHub Desktop** y vuelve a abrirlos. Si abres VS Code desde GitHub Desktop, hereda el PATH que tenía GitHub Desktop, así que hay que reiniciar los dos. Comprueba que funciona con `rokit --version`.
+
+> 💡 **Atajo en Windows** para usar Rokit en la terminal que ya tienes abierta, sin reiniciar nada:
+> ```powershell
+> $env:Path += ";$env:USERPROFILE\.rokit\bin"
+> ```
 
 ---
 
@@ -180,7 +186,7 @@ Hay un proyecto de Rojo para cada place:
 | Problema | Solución |
 |---|---|
 | `rojo` "no se reconoce como nombre de un cmdlet…" | Ejecuta `rokit --version`. **Si funciona**, falta el paso 3: ejecuta `rokit install` en la carpeta del proyecto. **Si tampoco se reconoce**, ve a la fila siguiente. |
-| `rokit` "no se reconoce como nombre de un cmdlet…" | Cierra VS Code **por completo** (todas las ventanas; reiniciar solo la terminal no basta) y ábrelo de nuevo. Si sigue igual, Rokit no quedó instalado: repite el paso 1 (en Windows: `.\rokit.exe self-install` dentro de la carpeta descomprimida) y vuelve a abrir VS Code. |
+| `rokit` "no se reconoce como nombre de un cmdlet…" | Rokit no está instalado o la terminal no lo ve. Repite el paso 1 y luego usa el atajo `$env:Path += ";$env:USERPROFILE\.rokit\bin"` en esa terminal. Para que quede fijo, cierra VS Code **y** GitHub Desktop y vuelve a abrirlos. |
 | `rojo serve` dice que la dirección o el puerto ya está en uso | Hay otro `rojo serve` abierto con el mismo puerto (por ejemplo, de otro proyecto). Ciérralo con `Ctrl+C` en su terminal. |
 | Rojo no conecta | Comprueba que `rojo serve` sigue abierto y que el puerto del plugin coincide (34872 Lobby, 34873 Isla). |
 | Studio ofrece conectar a **otro proyecto** (*"Project 'X' is serving at localhost:34872"*) | Es un `rojo serve` de otro proyecto tuyo que sigue abierto. Pulsa **Dismiss** (no conectes: metería el código de ese proyecto en este juego) y cierra esa terminal o páralo con `Ctrl+C`. Si no lo paras, `rojo serve lobby.project.json` fallará porque el puerto 34872 está ocupado. |
