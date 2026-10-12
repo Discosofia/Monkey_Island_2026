@@ -3,6 +3,6 @@
 # El CI lee este archivo para usar exactamente las mismas versiones.
 
 [tools]
-rojo = "rojo-rbx/rojo@7.6.1"
+rojo = "rojo-rbx/rojo@7.7.1"
 stylua = "JohnnyMorganz/StyLua@2.3.1"
 selene = "Kampfkarren/selene@0.30.0"

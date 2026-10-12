@@ -126,7 +126,7 @@ Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos
 
 **Claude:**
 - [x] Estructura del repo: 2 proyectos Rojo + código compartido
-- [x] `rokit.toml` (Rojo 7.6.1, StyLua 2.3.1, Selene 0.30.0)
+- [x] `rokit.toml` (Rojo 7.7.1, StyLua 2.3.1, Selene 0.30.0)
 - [x] CI en GitHub Actions: formato, lint y build en cada push
 - [x] Módulo `Config` central (duración del día, jefes, baliza, viajes…)
 - [x] Patrón *Services*/*Controllers* (`Loader`) y módulo `Remotes`

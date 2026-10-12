@@ -79,19 +79,21 @@ Si pregunta si confías en las herramientas (*trust*), responde que sí. Comprue
 rojo --version
 ```
 
-Debería mostrar `Rojo 7.6.1`.
+Debería mostrar `Rojo 7.7.1`.
 
 ---
 
 ## Paso 4: Instalar el plugin de Rojo en Studio
 
-En la misma terminal ejecuta:
+En la misma terminal, **dentro de la carpeta del proyecto**, ejecuta:
 
 ```
 rojo plugin install
 ```
 
-Abre (o reinicia) Roblox Studio. Debería aparecer un botón **Rojo** en la pestaña **Plugins**.
+Abre Roblox Studio, o ciérralo del todo y vuelve a abrirlo. Debería aparecer un botón **Rojo** en la pestaña **Plugins**.
+
+> ⚠️ El plugin de Studio y el `rojo` de la terminal deben ser de la **misma versión**. Este comando instala el plugin que corresponde a la versión del proyecto y sustituye cualquier otro (por ejemplo, el de otro proyecto). **Repítelo cada vez que cambie la versión de Rojo en `rokit.toml`.**
 
 ---
 
@@ -189,6 +191,7 @@ Hay un proyecto de Rojo para cada place:
 | `rokit` "no se reconoce como nombre de un cmdlet…" | Rokit no está instalado o la terminal no lo ve. Repite el paso 1 y luego usa el atajo `$env:Path += ";$env:USERPROFILE\.rokit\bin"` en esa terminal. Para que quede fijo, cierra VS Code **y** GitHub Desktop y vuelve a abrirlos. |
 | `rojo serve` falla con *"error binding to 127.0.0.1:34872"* / *"Solo se permite un uso de cada dirección de socket"* (os error 10048) | Hay otro `rojo serve` abierto con el mismo puerto (por ejemplo, de otro proyecto). Ciérralo con `Ctrl+C` en su terminal. Si no lo encuentras, en PowerShell mira quién usa el puerto con `Get-Process -Id (Get-NetTCPConnection -LocalPort 34872 -State Listen).OwningProcess`. Si el nombre es `rojo`, ciérralo con `Stop-Process -Id (Get-NetTCPConnection -LocalPort 34872 -State Listen).OwningProcess` (para la Isla, usa 34873). |
 | Rojo no conecta | Comprueba que `rojo serve` sigue abierto y que el puerto del plugin coincide (34872 Lobby, 34873 Isla). |
+| Al conectar sale *"ApiContext: attempt to index number with 'protocolVersion'"* u otro error de versión o protocolo | El plugin de Studio y el `rojo` de la terminal son de versiones distintas. En la carpeta del proyecto ejecuta `rokit install`, comprueba con `rojo --version` que coincide con `rokit.toml` y ejecuta `rojo plugin install`. Luego cierra Studio del todo y vuelve a abrirlo. |
 | Studio ofrece conectar a **otro proyecto** (*"Project 'X' is serving at localhost:34872"*) | Es un `rojo serve` de otro proyecto tuyo que sigue abierto. Pulsa **Dismiss** (no conectes: metería el código de ese proyecto en este juego) y cierra esa terminal o páralo con `Ctrl+C`. Si no lo paras, `rojo serve lobby.project.json` fallará porque el puerto 34872 está ocupado. |
 | *"Falta configurar el ID de…"* | No se completó el paso 6. |
 | El botón de viaje no hace nada en el juego publicado | Revisa que **ambos** places estén publicados con el código (paso 8) y que los IDs del paso 6 sean correctos. |

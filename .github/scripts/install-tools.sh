@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BIN_DIR="${TOOLS_BIN_DIR:-$HOME/.local/bin}"
 mkdir -p "$BIN_DIR"
 
-# Lee la versión de una herramienta en rokit.toml. Ej.: rojo = "rojo-rbx/rojo@7.6.1" -> 7.6.1
+# Lee la versión de una herramienta en rokit.toml. Ej.: rojo = "rojo-rbx/rojo@7.7.1" -> 7.7.1
 version_of() {
 	local version
 	version="$(sed -nE "s/^$1[[:space:]]*=[[:space:]]*\"[^@\"]+@([^\"]+)\".*/\1/p" "$ROOT/rokit.toml")"
