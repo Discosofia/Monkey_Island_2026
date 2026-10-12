@@ -97,7 +97,8 @@ monkey_island_2026/
 │  │  └─ client/Controllers/  # Interfaz y controles del Lobby
 │  └─ island/
 │     ├─ server/Services/     # Lógica del servidor de la Isla
-│     └─ client/Controllers/  # HUD y controles de la Isla
+│     ├─ client/Controllers/  # HUD y controles de la Isla
+│     └─ tools/               # → ServerStorage.Tools: MapBuilder (generador de la isla)
 ├─ lobby.project.json         # Proyecto Rojo del Lobby (puerto 34872)
 ├─ island.project.json        # Proyecto Rojo de la Isla (puerto 34873)
 ├─ sourcemap.project.json     # Solo para el autocompletado de VS Code
@@ -153,7 +154,8 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 | **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
 | **1.6** | Mesa de trabajo y recetas | Pendiente |
 
-- [ ] Isla pequeña provisional: Basecamp + un trozo de selva + un río *(tú; ver [MAPA.md](MAPA.md))*
+- [x] Generador de la isla provisional `MapBuilder`: terreno de todos los biomas, Basecamp con empalizada, recursos, guaridas y límites *(Claude)*
+- [ ] Generar la isla en Studio, probarla y retocarla *(tú; ver [MAPA.md](MAPA.md))*
 - [x] Ciclo día/noche configurable (10+7) con avisos de amanecer, atardecer y "anochece en 60 s" *(1.1)*
 - [x] Basecamp como zona segura: pieza `BasecampZone` + indicador en el HUD *(1.1)*
 - [x] Recolección: árboles, rocas y arbustos → madera, piedra, fibra (con regeneración) *(1.2)*

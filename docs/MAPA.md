@@ -1,8 +1,46 @@
 # Guía del mapa: cómo conectar tu isla con el código
 
-El mapa lo construyes tú en Roblox Studio (place **Isla**). El código encuentra las piezas importantes por su **nombre** o por un **atributo**. Esta guía dice qué tiene que tener el mapa para que todo funcione.
+El mapa vive en el place **Isla** de Roblox Studio. El código encuentra las piezas importantes por su **nombre** o por un **atributo**. Esta guía explica cómo **generar la isla provisional** y qué tiene que tener el mapa para que todo funcione.
 
 > 💡 Mientras el mapa no tenga estas piezas, el juego crea versiones **de prueba** automáticamente (una zona verde en el centro y árboles, rocas y arbustos alrededor), y lo avisa en la Salida.
+
+---
+
+## Generar la isla provisional (MapBuilder)
+
+El generador `MapBuilder` construye en un minuto la isla completa del GDD en versión *greybox*, lista para jugar y para retocar a mano.
+
+![Vista previa aproximada de la isla generada](img/mapa-vista-previa.png)
+
+*Vista previa aproximada, vista desde arriba con el norte (Z negativa) arriba. En Roblox el relieve fino cambia un poco, pero la distribución es la misma.*
+
+| En la imagen | Qué es |
+|---|---|
+| Círculo marrón en el centro | **Basecamp:** meseta plana con empalizada de 4 entradas, hoguera y 4 puntos de aparición. El cuadrado verde es la `BasecampZone`. |
+| Gris, noroeste | **Montañas.** La línea negra es la **cueva**: entrada en la falda que mira al Basecamp, túnel y sala al fondo. |
+| Oscuro, noreste | **Volcán** con cráter de lava. |
+| Azul | **Río:** nace al pie de las montañas, rodea el Basecamp por el sur y desemboca al sureste. |
+| Marrón junto a la desembocadura | **Manglar** (barro). |
+| Anillo claro | **Playas.** Más allá, el mar y un **muro invisible** (círculo blanco) para que nadie salga. |
+| Puntos verdes, claros y blancos | **Árboles, arbustos y rocas** (unos 290), fuera del Basecamp, la playa y el río. |
+| Cuadrados rosas | **Guaridas de los 4 jefes** (marcadores invisibles para la Fase 5). |
+
+### Cómo ejecutarlo
+
+1. **Guarda una copia** del place por si quieres volver atrás: **Archivo → Publicar en Roblox**. Luego podrás recuperarlo desde el historial de versiones.
+2. Abre la **Isla** en Studio, lanza `rojo serve island.project.json` y conecta Rojo (puerto **34873**). Comprueba que en **ServerStorage** aparece la carpeta `Tools` con `MapBuilder`.
+3. Sin pulsar Play, abre la **barra de comandos** (**Vista → Barra de comandos**), pega esto y pulsa Enter:
+   ```lua
+   require(game.ServerStorage.Tools.MapBuilder).build()
+   ```
+4. Espera alrededor de un minuto. La **Salida** muestra el progreso y termina con *"¡Isla lista!"*.
+5. Pulsa **Play** para probarla y, si te gusta, **Archivo → Publicar en Roblox**.
+
+**Opciones:**
+- `build({ seed = 7 })`: otro reparto aleatorio de colinas, costa y recursos.
+- `build({ islandRadius = 800 })`: una isla más grande. Por defecto el radio es 650 studs, unos 40 segundos a pie del centro a la playa.
+
+> ⚠️ **El generador borra y rehace todo:** el terreno, la carpeta `Workspace.Mapa`, la Baseplate y los SpawnLocation sueltos. Úsalo para la versión inicial. Si después retocas el terreno a mano (**Editor de terreno**) o colocas modelos dentro de `Mapa`, **no lo vuelvas a ejecutar** o perderás esos cambios. Pon tus modelos propios **fuera** de la carpeta `Mapa`, por ejemplo en `Workspace/Decoracion`.
 
 ---
 

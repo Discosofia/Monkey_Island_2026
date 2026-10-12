@@ -6,13 +6,14 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
+local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
 local InventoryService = require(script.Parent.InventoryService)
 
-local NODE_ATTRIBUTE = "ResourceNode"
 -- Margen extra (studs) sobre la distancia del aviso, por el retraso de la red.
 local DISTANCE_TOLERANCE = 4
 -- Nodos de prueba alrededor del Basecamp si el mapa no tiene ninguno.
@@ -117,7 +118,7 @@ local function harvest(state: NodeState, player: Player)
 end
 
 local function register(instance: Instance): boolean
-	local typeId = instance:GetAttribute(NODE_ATTRIBUTE)
+	local typeId = instance:GetAttribute(NodeModels.ATTRIBUTE)
 	local definition = if typeof(typeId) == "string" then ResourceNodes[typeId] else nil
 	if not definition then
 		warn(`[ResourceService] {instance:GetFullName()}: ResourceNode = "{typeId}" no es un tipo válido.`)
@@ -150,62 +151,6 @@ local function register(instance: Instance): boolean
 	return true
 end
 
-local function newPart(name: string, size: Vector3, color: Color3, shape: Enum.PartType, cframe: CFrame): Part
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Anchored = true
-	part.Shape = shape
-	part.Size = size
-	part.Color = color
-	part.Material = Enum.Material.SmoothPlastic
-	part.CFrame = cframe
-	return part
-end
-
--- Modelos provisionales (greybox) para probar sin mapa.
-local function buildTestNode(nodeType: string, ground: Vector3): Model
-	local model = Instance.new("Model")
-	model.Name = `Test{nodeType}`
-	local main: Part
-	if nodeType == "Tree" then
-		main = newPart(
-			"Trunk",
-			Vector3.new(2, 12, 2),
-			Color3.fromRGB(110, 75, 45),
-			Enum.PartType.Block,
-			CFrame.new(ground + Vector3.new(0, 6, 0))
-		)
-		local leaves = newPart(
-			"Leaves",
-			Vector3.new(9, 9, 9),
-			Color3.fromRGB(60, 150, 70),
-			Enum.PartType.Ball,
-			CFrame.new(ground + Vector3.new(0, 13, 0))
-		)
-		leaves.Parent = model
-	elseif nodeType == "Rock" then
-		main = newPart(
-			"Rock",
-			Vector3.new(6, 4, 5),
-			Color3.fromRGB(130, 130, 135),
-			Enum.PartType.Block,
-			CFrame.new(ground + Vector3.new(0, 2, 0)) * CFrame.Angles(0, math.rad(25), 0)
-		)
-	else
-		main = newPart(
-			"Bush",
-			Vector3.new(5, 5, 5),
-			Color3.fromRGB(80, 170, 60),
-			Enum.PartType.Ball,
-			CFrame.new(ground + Vector3.new(0, 2, 0))
-		)
-	end
-	main.Parent = model
-	model.PrimaryPart = main
-	model:SetAttribute(NODE_ATTRIBUTE, nodeType)
-	return model
-end
-
 local function groundAt(x: number, z: number): Vector3
 	local result = Workspace:Raycast(Vector3.new(x, 500, z), Vector3.new(0, -1000, 0))
 	return Vector3.new(x, if result then result.Position.Y else 0, z)
@@ -224,7 +169,7 @@ local function spawnTestNodes(): { Instance }
 		-- Alterna dos distancias para que no queden todos en una línea perfecta.
 		local radius = Config.Resources.TestNodeRingRadius + (if index % 2 == 0 then 15 else 0)
 		local ground = groundAt(center.X + math.cos(angle) * radius, center.Z + math.sin(angle) * radius)
-		local node = buildTestNode(nodeType, ground)
+		local node = NodeModels.build(nodeType, ground)
 		node.Parent = folder
 		table.insert(nodes, node)
 	end
@@ -238,7 +183,7 @@ function ResourceService:Start()
 
 	local found = {}
 	for _, instance in Workspace:GetDescendants() do
-		if instance:GetAttribute(NODE_ATTRIBUTE) ~= nil then
+		if instance:GetAttribute(NodeModels.ATTRIBUTE) ~= nil then
 			table.insert(found, instance)
 		end
 	end

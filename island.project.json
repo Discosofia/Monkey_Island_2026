@@ -16,6 +16,11 @@
         "$path": "src/island/server"
       }
     },
+    "ServerStorage": {
+      "Tools": {
+        "$path": "src/island/tools"
+      }
+    },
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
