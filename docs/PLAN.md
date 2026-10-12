@@ -123,7 +123,7 @@ Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos
 - [x] Crear la experiencia en Roblox con 2 places: **Lobby** (inicio) e **Isla**
 - [x] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores
 - [x] Sincronizar con Rojo y publicar ambos places
-- [ ] Probar el viaje Lobby ↔ Isla en el juego publicado *(pendiente: error 773, revisando los IDs)*
+- [ ] Probar el viaje Lobby ↔ Isla en el juego publicado *(pendiente: Roblox lo bloquea mientras la experiencia sea privada, "This game is not published (Unauthorized)")*
 
 **Claude:**
 - [x] Estructura del repo: 2 proyectos Rojo + código compartido
@@ -146,18 +146,19 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 
 | Entrega | Contenido | Estado |
 |---|---|---|
-| **1.1** | Ciclo día/noche + Basecamp como zona segura | ✅ Código listo, falta tu prueba |
-| **1.2** | Recolección + inventario + barra rápida | Pendiente |
-| **1.3** | Combate: machete, honda y esquiva | Pendiente |
+| **1.1** | Ciclo día/noche + Basecamp como zona segura | ✅ Probada en Studio |
+| **1.2** | Recolección (árboles, rocas, arbustos) + HUD de inventario | ✅ Código listo, falta tu prueba |
+| **1.3** | Barra rápida + combate: machete, honda y esquiva | Pendiente |
 | **1.4** | IA de monos v1: mono ardilla y aullador rojo, botín | Pendiente |
 | **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
 | **1.6** | Mesa de trabajo y recetas | Pendiente |
 
-- [ ] Isla pequeña provisional: Basecamp + un trozo de selva + un río *(tú)*
+- [ ] Isla pequeña provisional: Basecamp + un trozo de selva + un río *(tú; ver [MAPA.md](MAPA.md))*
 - [x] Ciclo día/noche configurable (10+7) con avisos de amanecer, atardecer y "anochece en 60 s" *(1.1)*
 - [x] Basecamp como zona segura: pieza `BasecampZone` + indicador en el HUD *(1.1)*
-- [ ] Recolección: árboles, rocas y arbustos → madera, piedra, fibra (con regeneración)
-- [ ] Inventario básico + barra rápida (táctil y teclado)
+- [x] Recolección: árboles, rocas y arbustos → madera, piedra, fibra (con regeneración) *(1.2)*
+- [x] Inventario básico: materiales en el HUD *(1.2)*
+- [ ] Barra rápida para herramientas y armas (táctil y teclado) *(1.3)*
 - [ ] Combate en 3ª persona: machete (cuerpo a cuerpo), honda (distancia) y esquiva, validados en el servidor
 - [ ] IA de monos v1 (máquina de estados) con **2 especies**: mono ardilla (grupo rápido) y aullador rojo (grito que llama refuerzos)
 - [ ] Tablas de botín basadas en datos
@@ -281,5 +282,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** confirmar los IDs de los places para que funcione el viaje Lobby ↔ Isla, y probar la entrega 1.1 en Studio.
-2. **Claude:** entrega 1.2 (recolección e inventario).
+1. **Tú:** hacer pública la experiencia para desbloquear el viaje Lobby ↔ Isla, y probar la entrega 1.2 en Studio.
+2. **Claude:** entrega 1.3 (barra rápida y combate).

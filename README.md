@@ -9,10 +9,11 @@ Naufragas en una isla tropical sin salida, antiguo santuario-laboratorio del **P
 - 📘 [Documento de Diseño (GDD)](docs/GDD.md): visión, mecánicas, bestiario, diagramas y decisiones.
 - 🗺️ [Plan de trabajo por fases](docs/PLAN.md): fases, tareas, arquitectura técnica y cronograma.
 - 🛠️ [Guía de instalación (SETUP)](docs/SETUP.md): cómo preparar Studio, Rojo y VS Code paso a paso.
+- 🏝️ [Guía del mapa](docs/MAPA.md): qué piezas y atributos necesita la isla para conectarse con el código.
 
 ## Estado
 
-**Fase 1, Bucle núcleo:** la entrega 1.1 (ciclo día/noche + Basecamp) está lista para probar. Ver el [plan](docs/PLAN.md#fase-1-prototipo-del-bucle-núcleo-sobrevivir-el-día-1-46-semanas).
+**Fase 1, Bucle núcleo:** entrega 1.1 (ciclo día/noche + Basecamp) probada; entrega 1.2 (recolección + inventario) lista para probar. Ver el [plan](docs/PLAN.md#fase-1-prototipo-del-bucle-núcleo-sobrevivir-el-día-1-46-semanas).
 
 ## Comandos rápidos
 

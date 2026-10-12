@@ -36,6 +36,15 @@ local Config = {
 		CheckIntervalSeconds = 0.5,
 	},
 
+	Resources = {
+		-- Distancia máxima (studs) para recolectar de un árbol, roca o arbusto.
+		HarvestDistance = 10,
+		-- Si el mapa no tiene puntos de recolección, se crean unos de prueba alrededor del Basecamp.
+		SpawnTestNodesIfNone = true,
+		TestNodeRingRadius = 100,
+		-- Tiempos y cantidades de cada tipo: ver Shared/Data/ResourceNodes.
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,
