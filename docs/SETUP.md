@@ -94,9 +94,13 @@ Abre (o reinicia) Roblox Studio. Debería aparecer un botón **Rojo** en la pest
 1. En Studio: **New → Baseplate**.
 2. **File → Publish to Roblox** → **Create new experience** → nombre: `Primal Banana Island`. Este primer place es el **Lobby** (el lugar de inicio).
 3. Crea el segundo place, la **Isla**:
-   - En Studio abre **View → Asset Manager → Places**, haz clic derecho y elige **Add New Place**.
-   - (También se puede hacer desde el [Creator Hub](https://create.roblox.com/dashboard/creations), en tu experiencia → **Places**. La interfaz de Roblox cambia a veces: si no ves la opción, avísame.)
-   - Cámbiale el nombre a `Isla`.
+   1. **Archivo → Nuevo** (o, en la pantalla de inicio, **Baseplate**) para abrir un baseplate nuevo.
+   2. **Archivo → Publicar en Roblox como…** (*Publish to Roblox As…*).
+   3. Elige la experiencia **Primal Banana Island**.
+   4. Elige la opción de **añadirlo como lugar nuevo** (*Add as a new place*). ⚠️ **No** elijas el lugar que ya existe: ese es el Lobby y lo sobrescribirías.
+   5. Ponle de nombre `Isla` y pulsa **Crear**.
+   - Alternativa: en el panel **Gestor de recursos** (*Asset Manager*) → **Proyecto** → **Primal Banana Island**, haz clic derecho y busca **agregar lugar nuevo** (*Add New Place*). La interfaz de Roblox cambia a menudo: si no ves ninguna de las dos opciones, mándame una captura.
+4. (Opcional) Para no confundirlos, cambia el nombre del primer place a `Lobby`. Studio le pone uno por defecto, como "Lugar de tu usuario".
 
 ---
 
@@ -177,6 +181,7 @@ Hay un proyecto de Rojo para cada place:
 |---|---|
 | `rokit` o `rojo` "no se reconoce como comando" | Cierra y vuelve a abrir VS Code o la terminal. Si sigue igual, repite el paso 1. |
 | Rojo no conecta | Comprueba que `rojo serve` sigue abierto y que el puerto del plugin coincide (34872 Lobby, 34873 Isla). |
+| Studio ofrece conectar a **otro proyecto** (*"Project 'X' is serving at localhost:34872"*) | Es un `rojo serve` de otro proyecto tuyo que sigue abierto. Pulsa **Dismiss** (no conectes: metería el código de ese proyecto en este juego) y cierra esa terminal o páralo con `Ctrl+C`. Si no lo paras, `rojo serve lobby.project.json` fallará porque el puerto 34872 está ocupado. |
 | *"Falta configurar el ID de…"* | No se completó el paso 6. |
 | El botón de viaje no hace nada en el juego publicado | Revisa que **ambos** places estén publicados con el código (paso 8) y que los IDs del paso 6 sean correctos. |
 | *"Infinite yield possible on ReplicatedStorage:WaitForChild("Remotes")"* | El código del servidor no se cargó. Revisa que la carpeta `Server` exista en ServerScriptService (paso 8). |
