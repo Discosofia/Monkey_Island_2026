@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    name: Formato, lint y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar herramientas (versiones de rokit.toml)
+        run: bash .github/scripts/install-tools.sh
+
+      - name: Formato (StyLua)
+        run: stylua --check src
+
+      - name: Lint (Selene)
+        run: selene src
+
+      - name: Build de los places (Rojo)
+        run: |
+          rojo build lobby.project.json --output build/lobby.rbxl
+          rojo build island.project.json --output build/island.rbxl

@@ -1,0 +1,16 @@
+# Archivos de places de Roblox (el mapa vive en Roblox, no en Git)
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+
+# Salidas de build y herramientas
+/build/
+sourcemap.json
+roblox.yml
+/Packages/
+/ServerPackages/
+
+# Sistema
+.DS_Store
+Thumbs.db

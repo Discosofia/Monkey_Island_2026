@@ -1,6 +1,6 @@
-# Plan de trabajo por fases
+# Primal Banana Island: plan de trabajo por fases
 
-> Basado en el [GDD v0.1](GDD.md).
+> Basado en el [GDD v0.2](GDD.md).
 > **Contexto:** una sola persona con experiencia básica en Studio y **5–15 h/semana**. Claude escribe el código en el repo.
 > **Principio:** cada fase termina con **algo jugable** y se prueba con gente real antes de pasar a la siguiente.
 
@@ -40,8 +40,8 @@ flowchart LR
 | **Roblox Studio** | Editor del juego, mapa y pruebas |
 | **VS Code + Luau LSP** | Editar código con autocompletado |
 | **Rojo** | Sincroniza el código del repo con Studio |
-| **Rokit** | Instala versiones fijas de Rojo, Wally, StyLua y Selene |
-| **Wally** | Gestor de paquetes de Roblox |
+| **Rokit** | Instala versiones fijas de las herramientas (`rokit.toml`) |
+| **Wally** | Gestor de paquetes de Roblox (se añade en la Fase 2, con ProfileStore) |
 | **StyLua / Selene** | Formato automático y detección de errores (en CI) |
 | **ProfileStore** | Guardado seguro de datos del jugador (moneda, XP, mascotas) |
 | **GitHub Actions** | Comprueba formato y lint en cada Pull Request |
@@ -80,27 +80,34 @@ flowchart LR
   IS <--> MS
 ```
 
-### Estructura del repositorio (objetivo)
+### Estructura del repositorio
 
 ```
 monkey_island_2026/
-├─ docs/                    # GDD, plan y guías
+├─ docs/                      # GDD, plan y guía de instalación (SETUP.md)
 ├─ src/
-│  ├─ shared/               # Código y datos compartidos (Config, especies, recetas, botín)
+│  ├─ shared/                 # → ReplicatedStorage.Shared (cliente y servidor)
+│  │  ├─ Config.luau          #   Configuración central y balance
+│  │  ├─ Remotes.luau         #   Todos los eventos de red
+│  │  ├─ Loader.luau          #   Carga Services/Controllers (Init → Start)
+│  │  └─ UI/                  #   Piezas de interfaz (botones, mensajes)
+│  ├─ serverShared/           # → ServerScriptService.ServerShared (solo servidor, ambos places)
 │  ├─ lobby/
-│  │  ├─ server/
-│  │  └─ client/
+│  │  ├─ server/Services/     # Lógica del servidor del Lobby
+│  │  └─ client/Controllers/  # Interfaz y controles del Lobby
 │  └─ island/
-│     ├─ server/
-│     └─ client/
-├─ assets/                  # Modelos exportados (.rbxm) de referencia
-├─ lobby.project.json       # Proyecto Rojo del Lobby
-├─ island.project.json      # Proyecto Rojo de la Isla
-├─ rokit.toml               # Versiones de herramientas
-├─ wally.toml               # Paquetes
-├─ selene.toml / stylua.toml
-└─ .github/workflows/       # CI
+│     ├─ server/Services/     # Lógica del servidor de la Isla
+│     └─ client/Controllers/  # HUD y controles de la Isla
+├─ lobby.project.json         # Proyecto Rojo del Lobby (puerto 34872)
+├─ island.project.json        # Proyecto Rojo de la Isla (puerto 34873)
+├─ sourcemap.project.json     # Solo para el autocompletado de VS Code
+├─ rokit.toml                 # Versiones de herramientas
+├─ selene.toml / stylua.toml  # Lint y formato
+├─ .vscode/                   # Extensiones y ajustes recomendados
+└─ .github/                   # CI: formato, lint y build en cada push
 ```
+
+Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos exportados de referencia).
 
 ---
 
@@ -110,19 +117,21 @@ monkey_island_2026/
 
 **Objetivo:** que puedas cambiar código en el repo y verlo en Studio, y viajar del Lobby a la Isla.
 
-**Tú:**
-- [ ] Instalar Roblox Studio, VS Code y Git (o GitHub Desktop) y clonar el repo
+**Tú** (sigue la guía [SETUP.md](SETUP.md)):
+- [ ] Instalar Roblox Studio, VS Code, GitHub Desktop y Rokit, y clonar el repo
+- [ ] Instalar las herramientas (`rokit install`) y el plugin de Rojo
 - [ ] Crear la experiencia en Roblox con 2 places: **Lobby** (inicio) e **Isla**
-- [ ] Instalar el plugin de Rojo en Studio
+- [ ] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores
+- [ ] Sincronizar con Rojo, publicar ambos places y probar el viaje Lobby ↔ Isla
 
 **Claude:**
-- [ ] Estructura del repo: 2 proyectos Rojo + código compartido
-- [ ] `rokit.toml` (Rojo, Wally, StyLua, Selene) y `wally.toml`
-- [ ] CI en GitHub Actions: formato y lint en cada PR
-- [ ] Módulo `Config` central (duración del día, tamaño de servidor…)
-- [ ] Patrón *Services*/*Controllers* y módulo `Remotes`
-- [ ] Botón de prueba "Ir a la Isla" (TeleportService)
-- [ ] Guía paso a paso en `docs/SETUP.md`, pensada para nivel básico
+- [x] Estructura del repo: 2 proyectos Rojo + código compartido
+- [x] `rokit.toml` (Rojo 7.6.1, StyLua 2.3.1, Selene 0.30.0)
+- [x] CI en GitHub Actions: formato, lint y build en cada push
+- [x] Módulo `Config` central (duración del día, jefes, baliza, viajes…)
+- [x] Patrón *Services*/*Controllers* (`Loader`) y módulo `Remotes`
+- [x] Botones de prueba "Ir a la Isla" y "Volver al Lobby" (TeleportService con reintentos y límite de peticiones)
+- [x] Guía paso a paso en `docs/SETUP.md`, pensada para nivel básico
 
 **Criterio de salida:** editas un número en `Config`, se ve en Studio y el botón del Lobby te lleva a la Isla publicada.
 
@@ -153,7 +162,8 @@ monkey_island_2026/
 - [ ] Construcción por cuadrícula (táctil y PC) con **núcleo compartido + parcelas personales** y permisos
 - [ ] Estaciones: hoguera, taller del curandero, forja de piedra
 - [ ] Monos ladrones (capuchinos) y miedo al fuego
-- [ ] 🟡 Asedio nocturno v1: oleadas hacia el Basecamp, muros, trampas y antorchas
+- [ ] Asedio nocturno v1: oleadas hacia el Basecamp, muros, trampas y antorchas
+- [ ] Fiebre del mono v1 (mordiscos → fiebre; antídoto básico)
 - [ ] Escalado de dificultad por día
 - [ ] Derrota del servidor → pantalla de resultados
 - [ ] **Guardado de datos** con ProfileStore: moneda, récord de días y XP de rol
@@ -193,6 +203,7 @@ monkey_island_2026/
 ### Fase 5: Jefes, huevo, mascotas y PvP (6–8 semanas)
 
 - [ ] 4 jefes de bioma con fases, patrones y botín especial (pieza de baliza garantizada)
+- [ ] Rotación de jefes: uno cada 2 días (días 2, 4, 6, 8…), y cada uno se queda hasta que lo derrotan o aparece el siguiente
 - [ ] Evento del huevo: aparición, aviso global, transporte, nido, incubación y eclosión
 - [ ] Mascotas persistentes: colección, rarezas, 1 activa, tipos de ayuda
 - [ ] PvP opt-in: tótem, indicador, espera para desactivar, cajas de suministro y recompensa por cabeza
@@ -204,7 +215,7 @@ monkey_island_2026/
 
 ### Fase 6: Rescate, pulido y lanzamiento (4–6 semanas)
 
-- [ ] Baliza de rescate + noche final "La Gran Tropa" → victoria
+- [ ] Baliza de rescate (se puede encender desde el día 8) + noche final "La Gran Tropa" → victoria
 - [ ] Clasificaciones (días sobrevividos, rescates)
 - [ ] Pulido de UI para móvil, sonido, música y efectos
 - [ ] Analítica (embudo del tutorial, retención, economía)
@@ -226,7 +237,7 @@ Estimación con **5–15 h/semana**: unos **7–10 meses** hasta el lanzamiento.
 
 ```mermaid
 gantt
-  title Monkey Island 2026: plan estimado
+  title Primal Banana Island: plan estimado
   dateFormat YYYY-MM-DD
   axisFormat %b %Y
   section Base
@@ -258,5 +269,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. Revisar las **preguntas abiertas** del [GDD §17](GDD.md#17-preguntas-abiertas).
-2. Empezar la **Fase 0**: Claude prepara la estructura del repo y `docs/SETUP.md`, y tú instalas las herramientas siguiendo esa guía.
+1. **Tú:** seguir [SETUP.md](SETUP.md) para completar tu parte de la Fase 0 y pasarme los IDs de los places.
+2. **Claude:** en cuanto el viaje Lobby ↔ Isla funcione, empezar la **Fase 1** con el ciclo día/noche y el Basecamp como zona segura.

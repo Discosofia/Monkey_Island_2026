@@ -1,0 +1,8 @@
+{
+  "luau-lsp.platform.type": "roblox",
+  "luau-lsp.sourcemap.rojoProjectFile": "sourcemap.project.json",
+  "[luau]": {
+    "editor.defaultFormatter": "JohnnyMorganz.stylua",
+    "editor.formatOnSave": true
+  }
+}

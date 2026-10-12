@@ -1,0 +1,32 @@
+{
+  "name": "PrimalBananaIsland-Tooling",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "ServerShared": {
+        "$path": "src/serverShared"
+      },
+      "LobbyServer": {
+        "$path": "src/lobby/server"
+      },
+      "IslandServer": {
+        "$path": "src/island/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "LobbyClient": {
+          "$path": "src/lobby/client"
+        },
+        "IslandClient": {
+          "$path": "src/island/client"
+        }
+      }
+    }
+  }
+}

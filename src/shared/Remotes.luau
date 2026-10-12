@@ -1,0 +1,39 @@
+--!strict
+-- Lista central de todos los eventos de red entre cliente y servidor.
+-- El servidor los crea al cargar este módulo; el cliente espera a que existan.
+-- Para añadir un evento nuevo, añade una línea a la tabla de abajo.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local FOLDER_NAME = "Remotes"
+
+local folder: Instance
+if RunService:IsServer() then
+	folder = Instance.new("Folder")
+	folder.Name = FOLDER_NAME
+	folder.Parent = ReplicatedStorage
+else
+	folder = ReplicatedStorage:WaitForChild(FOLDER_NAME)
+end
+
+local function remoteEvent(name: string): RemoteEvent
+	if RunService:IsServer() then
+		local remote = Instance.new("RemoteEvent")
+		remote.Name = name
+		remote.Parent = folder
+		return remote
+	end
+	return folder:WaitForChild(name) :: RemoteEvent
+end
+
+local Remotes = {
+	-- Cliente -> servidor (Lobby): el jugador quiere ir a la Isla.
+	RequestJoinIsland = remoteEvent("RequestJoinIsland"),
+	-- Cliente -> servidor (Isla): el jugador quiere volver al Lobby.
+	RequestReturnToLobby = remoteEvent("RequestReturnToLobby"),
+	-- Servidor -> cliente: mensaje corto para mostrar en pantalla.
+	Notify = remoteEvent("Notify"),
+}
+
+return Remotes

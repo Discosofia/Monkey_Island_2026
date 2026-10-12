@@ -1,0 +1,27 @@
+{
+  "name": "PrimalBananaIsland-Island",
+  "servePort": 34873,
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "ServerShared": {
+        "$path": "src/serverShared"
+      },
+      "Server": {
+        "$path": "src/island/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/island/client"
+        }
+      }
+    }
+  }
+}
