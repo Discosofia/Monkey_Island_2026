@@ -179,7 +179,9 @@ Hay un proyecto de Rojo para cada place:
 
 | Problema | Solución |
 |---|---|
-| `rokit` o `rojo` "no se reconoce como comando" | Cierra y vuelve a abrir VS Code o la terminal. Si sigue igual, repite el paso 1. |
+| `rojo` "no se reconoce como nombre de un cmdlet…" | Ejecuta `rokit --version`. **Si funciona**, falta el paso 3: ejecuta `rokit install` en la carpeta del proyecto. **Si tampoco se reconoce**, ve a la fila siguiente. |
+| `rokit` "no se reconoce como nombre de un cmdlet…" | Cierra VS Code **por completo** (todas las ventanas; reiniciar solo la terminal no basta) y ábrelo de nuevo. Si sigue igual, Rokit no quedó instalado: repite el paso 1 (en Windows: `.\rokit.exe self-install` dentro de la carpeta descomprimida) y vuelve a abrir VS Code. |
+| `rojo serve` dice que la dirección o el puerto ya está en uso | Hay otro `rojo serve` abierto con el mismo puerto (por ejemplo, de otro proyecto). Ciérralo con `Ctrl+C` en su terminal. |
 | Rojo no conecta | Comprueba que `rojo serve` sigue abierto y que el puerto del plugin coincide (34872 Lobby, 34873 Isla). |
 | Studio ofrece conectar a **otro proyecto** (*"Project 'X' is serving at localhost:34872"*) | Es un `rojo serve` de otro proyecto tuyo que sigue abierto. Pulsa **Dismiss** (no conectes: metería el código de ese proyecto en este juego) y cierra esa terminal o páralo con `Ctrl+C`. Si no lo paras, `rojo serve lobby.project.json` fallará porque el puerto 34872 está ocupado. |
 | *"Falta configurar el ID de…"* | No se completó el paso 6. |
