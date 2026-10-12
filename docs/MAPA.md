@@ -46,7 +46,10 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 
 **Opciones:**
 - `build({ seed = 7 })`: otro reparto aleatorio de colinas, costa y recursos.
-- `build({ islandRadius = 800 })`: una isla más grande. Por defecto el radio es 650 studs, unos 40 segundos a pie del centro a la playa.
+- `build({ islandRadius = 950 })`: una isla más grande. Por defecto el radio es 650 studs, unos 40 segundos a pie del centro a la playa; con 950 son unos 60 segundos.
+  - La vegetación y los recursos **escalan con el tamaño**, así que la densidad de la selva es la misma. Con 950 salen unos 800 árboles, 800 helechos, 100 palmeras y 600 recolectables, unas 8.000 piezas en total.
+  - La cueva se alarga para que la sala siga bajo la montaña.
+- Se pueden combinar: `build({ islandRadius = 950, seed = 7 })`.
 
 > ⚠️ **El generador borra y rehace todo:** el terreno, la carpeta `Workspace.Mapa`, la Baseplate y los SpawnLocation sueltos. Úsalo para la versión inicial. Si después retocas el terreno a mano (**Editor de terreno**) o colocas modelos dentro de `Mapa`, **no lo vuelvas a ejecutar** o perderás esos cambios. Pon tus modelos propios **fuera** de la carpeta `Mapa`, por ejemplo en `Workspace/Decoracion`.
 

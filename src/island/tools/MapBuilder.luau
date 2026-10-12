@@ -4,8 +4,8 @@
 --
 --   require(game.ServerStorage.Tools.MapBuilder).build()
 --
--- Opciones: build({ seed = 7 }) cambia el reparto aleatorio; build({ islandRadius = 800 })
--- hace la isla más grande.
+-- Opciones: build({ seed = 7 }) cambia el reparto aleatorio; build({ islandRadius = 950 })
+-- hace la isla más grande (vegetación, recursos y cueva escalan con el tamaño).
 --
 -- Por seguridad solo se ejecuta en el place de la Isla (Config.PlaceIds.Island). Para generar en
 -- otro place (por ejemplo una copia de pruebas), usa build({ force = true }).
@@ -67,6 +67,9 @@ local RIVER_BED = -4
 local OCEAN_MARGIN = 200 -- mar que se genera más allá de la costa
 local WALL_MARGIN = 100 -- distancia del muro invisible más allá de la costa más lejana
 
+-- Cantidades para una isla de radio DEFAULT_RADIUS. Con otro radio se escalan: por área en la
+-- selva (misma densidad) y por perímetro en la playa.
+local DEFAULT_RADIUS = 650
 local RESOURCE_COUNTS: { [string]: number } = { Tree = 140, Bush = 90, Rock = 60 }
 local JUNGLE_TREE_COUNT = 380
 local PALM_COUNT = 70
@@ -126,7 +129,8 @@ local function makeLayout(seed: number, radius: number): Layout
 		cave = {
 			entrance = mountainCenter - caveInward * mountainRadius * 0.75,
 			inward = caveInward,
-			tunnelLength = 140,
+			-- Más larga en islas grandes, para que la sala quede siempre bajo la montaña.
+			tunnelLength = 140 * radius / DEFAULT_RADIUS,
 		},
 	}
 end
@@ -596,6 +600,10 @@ local function isJungleSpot(surface: Surface, distanceFromCenter: number, cleara
 		and surface.material ~= Enum.Material.CrackedLava
 end
 
+local function byArea(count: number, layout: Layout): number
+	return math.round(count * (layout.radius / DEFAULT_RADIUS) ^ 2)
+end
+
 local function placeResources(layout: Layout, map: Instance)
 	local folder = Instance.new("Folder")
 	folder.Name = "Recursos"
@@ -603,7 +611,7 @@ local function placeResources(layout: Layout, map: Instance)
 
 	local rng = Random.new(layout.seed)
 	for nodeType, count in RESOURCE_COUNTS do
-		local placed = scatter(layout, map, rng, count, false, function(surface, distance)
+		local placed = scatter(layout, map, rng, byArea(count, layout), false, function(surface, distance)
 			if nodeType == "Rock" then
 				-- Las rocas valen también en las laderas de montañas y volcán.
 				return distance > BASECAMP_RADIUS + 45
@@ -717,20 +725,28 @@ local function placeVegetation(layout: Layout, map: Instance)
 	folder.Parent = map
 
 	local rng = Random.new(layout.seed + 2)
-	local trees = scatter(layout, map, rng, JUNGLE_TREE_COUNT, true, function(surface, distance)
+	local trees = scatter(layout, map, rng, byArea(JUNGLE_TREE_COUNT, layout), true, function(surface, distance)
 		return isJungleSpot(surface, distance, 15)
 	end, function(ground)
 		buildJungleTree(ground, rng, folder)
 	end)
-	local palms = scatter(layout, map, rng, PALM_COUNT, false, function(surface)
-		return surface.inland > BEACH_WIDTH * 0.15
-			and surface.inland < BEACH_WIDTH * 0.8
-			and surface.riverDistance > RIVER_CARVE + 4
-			and surface.relief < 15
-	end, function(ground)
-		buildPalm(ground, rng, folder)
-	end)
-	local ferns = scatter(layout, map, rng, FERN_COUNT, true, function(surface, distance)
+	local palms = scatter(
+		layout,
+		map,
+		rng,
+		math.round(PALM_COUNT * layout.radius / DEFAULT_RADIUS),
+		false,
+		function(surface)
+			return surface.inland > BEACH_WIDTH * 0.15
+				and surface.inland < BEACH_WIDTH * 0.8
+				and surface.riverDistance > RIVER_CARVE + 4
+				and surface.relief < 15
+		end,
+		function(ground)
+			buildPalm(ground, rng, folder)
+		end
+	)
+	local ferns = scatter(layout, map, rng, byArea(FERN_COUNT, layout), true, function(surface, distance)
 		return isJungleSpot(surface, distance, 8)
 	end, function(ground)
 		buildFern(ground, rng, folder)
@@ -837,7 +853,7 @@ function MapBuilder.build(options: Options?)
 	end
 
 	local seed = if options and options.seed then options.seed else 2026
-	local radius = if options and options.islandRadius then options.islandRadius else 650
+	local radius = if options and options.islandRadius then options.islandRadius else DEFAULT_RADIUS
 	local layout = makeLayout(seed, radius)
 	local startedAt = os.clock()
 	print(`[MapBuilder] Generando la isla (semilla {seed}, radio {radius})...`)
