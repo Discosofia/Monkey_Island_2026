@@ -52,6 +52,11 @@ function BasecampService.isInside(position: Vector3): boolean
 		and math.abs(localPosition.Z) <= halfSize.Z
 end
 
+-- Centro de la zona del Basecamp (a media altura de la pieza).
+function BasecampService.getCenter(): Vector3
+	return if zone then zone.Position else Config.Basecamp.DefaultZoneCenter
+end
+
 function BasecampService:Init()
 	zone = findOrCreateZone()
 end

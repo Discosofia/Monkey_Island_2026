@@ -15,4 +15,14 @@ function InventoryService.add(player: Player, itemId: string, amount: number)
 	player:SetAttribute(Inventory.attributeName(itemId), Inventory.count(player, itemId) + amount)
 end
 
+-- Quita "amount" del ítem si hay suficiente. Si no alcanza, no quita nada y devuelve false.
+function InventoryService.remove(player: Player, itemId: string, amount: number): boolean
+	local current = Inventory.count(player, itemId)
+	if current < amount then
+		return false
+	end
+	player:SetAttribute(Inventory.attributeName(itemId), current - amount)
+	return true
+end
+
 return InventoryService

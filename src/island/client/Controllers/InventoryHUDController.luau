@@ -1,5 +1,5 @@
 --!strict
--- Barra de inventario en la parte inferior: cantidad de cada material.
+-- Barra de inventario arriba a la izquierda: cantidad de cada material.
 -- Al conseguir algo, el número parpadea en amarillo.
 
 local Players = game:GetService("Players")
@@ -56,15 +56,16 @@ function InventoryHUDController:Start()
 
 	local bar = Instance.new("Frame")
 	bar.Name = "Bar"
-	bar.AnchorPoint = Vector2.new(0.5, 1)
-	bar.Position = UDim2.fromScale(0.5, 0.97)
-	bar.Size = UDim2.fromScale(0.4, 0.07)
+	-- Arriba a la izquierda: abajo está la barra rápida de Roblox (armas y herramientas).
+	bar.AnchorPoint = Vector2.new(0, 0)
+	bar.Position = UDim2.fromScale(0.02, 0.02)
+	bar.Size = UDim2.fromScale(0.28, 0.07)
 	bar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	bar.BackgroundTransparency = 0.35
 	bar.Parent = gui
 
 	local sizeLimit = Instance.new("UISizeConstraint")
-	sizeLimit.MaxSize = Vector2.new(420, 56)
+	sizeLimit.MaxSize = Vector2.new(320, 48)
 	sizeLimit.Parent = bar
 
 	local corner = Instance.new("UICorner")

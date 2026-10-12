@@ -45,6 +45,20 @@ local Config = {
 		-- Tiempos y cantidades de cada tipo: ver Shared/Data/ResourceNodes.
 	},
 
+	Combat = {
+		-- Solo se puede dañar a lo que tenga esta etiqueta (CollectionService): monos y muñecos.
+		EnemyTag = "Enemy",
+		-- Armas con las que aparece cada jugador (ver Shared/Data/Weapons).
+		StarterWeapons = { "Machete", "Honda" },
+		DodgeCooldownSeconds = 1.2,
+		DodgeSpeed = 55,
+		DodgeDurationSeconds = 0.2,
+		-- Tiempo de invulnerabilidad al esquivar.
+		DodgeInvulnerableSeconds = 0.35,
+		DummyHealth = 100,
+		DummyRespawnSeconds = 3,
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,

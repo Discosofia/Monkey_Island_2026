@@ -150,8 +150,8 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 | Entrega | Contenido | Estado |
 |---|---|---|
 | **1.1** | Ciclo día/noche + Basecamp como zona segura | ✅ Probada en Studio |
-| **1.2** | Recolección (árboles, rocas, arbustos) + HUD de inventario | ✅ Código listo, falta tu prueba |
-| **1.3** | Barra rápida + combate: machete, honda y esquiva | Pendiente |
+| **1.2** | Recolección (árboles, rocas, arbustos) + HUD de inventario | ✅ Probada |
+| **1.3** | Barra rápida + combate: machete, honda (gasta piedras) y esquiva, muñecos de práctica | ✅ Código listo, falta tu prueba |
 | **1.4** | IA de monos v1: mono ardilla y aullador rojo, botín | Pendiente |
 | **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
 | **1.6** | Mesa de trabajo y recetas | Pendiente |
@@ -162,8 +162,8 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 - [x] Basecamp como zona segura: pieza `BasecampZone` + indicador en el HUD *(1.1)*
 - [x] Recolección: árboles, rocas y arbustos → madera, piedra, fibra (con regeneración) *(1.2)*
 - [x] Inventario básico: materiales en el HUD *(1.2)*
-- [ ] Barra rápida para herramientas y armas (táctil y teclado) *(1.3)*
-- [ ] Combate en 3ª persona: machete (cuerpo a cuerpo), honda (distancia) y esquiva, validados en el servidor
+- [x] Barra rápida para herramientas y armas: la mochila nativa de Roblox (teclas 1–9, táctil y mando) *(1.3)*
+- [x] Combate en 3ª persona: machete (cuerpo a cuerpo), honda (distancia, gasta piedras, ayuda de puntería en móvil) y esquiva (Q / B / botón táctil), validados en el servidor *(1.3)*
 - [ ] IA de monos v1 (máquina de estados) con **2 especies**: mono ardilla (grupo rápido) y aullador rojo (grito que llama refuerzos)
 - [ ] Tablas de botín basadas en datos
 - [ ] Caído → reanimación → Espíritu → reaparición al amanecer
@@ -286,5 +286,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** volver a generar la isla con la versión mejorada de `MapBuilder`, recorrerla y publicarla.
-2. **Claude:** entrega 1.3 (barra rápida y combate).
+1. **Tú:** probar el combate (entrega 1.3) con los muñecos de práctica del Basecamp.
+2. **Claude:** entrega 1.4 (IA de monos v1: mono ardilla y aullador rojo, botín).
