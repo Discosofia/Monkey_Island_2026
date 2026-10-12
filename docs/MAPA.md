@@ -72,8 +72,8 @@ Cualquier **Model** o **Part** con este atributo se convierte en un punto de rec
 
 | Atributo | Tipo | Valor | Da |
 |---|---|---|---|
-| `ResourceNode` | string | `Tree` | 🪵 Madera |
-| `ResourceNode` | string | `Rock` | 🪨 Piedra |
+| `ResourceNode` | string | `Tree` | 🌲 Madera |
+| `ResourceNode` | string | `Rock` | ⛰️ Piedra |
 | `ResourceNode` | string | `Bush` | 🌿 Fibra |
 
 - En un **Model**, el aviso de recolección aparece sobre su `PrimaryPart` (o sobre su primera pieza si no tiene).
