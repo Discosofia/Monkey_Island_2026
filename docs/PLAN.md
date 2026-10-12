@@ -124,7 +124,9 @@ Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos
 - [x] Crear la experiencia en Roblox con 2 places: **Lobby** (inicio) e **Isla**
 - [x] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores
 - [x] Sincronizar con Rojo y publicar ambos places
-- [ ] Probar el viaje Lobby ↔ Isla en el juego publicado *(pendiente: Roblox lo bloquea mientras la experiencia sea privada, "This game is not published (Unauthorized)")*
+- [x] Probar el viaje Lobby ↔ Isla en el juego publicado *(hizo falta poner la experiencia en Público y publicar la Isla)*
+
+✅ **Fase 0 completada.**
 
 **Claude:**
 - [x] Estructura del repo: 2 proyectos Rojo + código compartido
@@ -154,7 +156,7 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 | **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
 | **1.6** | Mesa de trabajo y recetas | Pendiente |
 
-- [x] Generador de la isla provisional `MapBuilder`: terreno de todos los biomas, Basecamp con empalizada, recursos, guaridas y límites *(Claude)*
+- [x] Generador de la isla provisional `MapBuilder`: terreno con colinas en todos los biomas, selva densa, palmeras, volcán activo, Basecamp de 170 studs con empalizada de estacas, portones y antorchas, recursos, guaridas y límites *(Claude)*
 - [ ] Generar la isla en Studio, probarla y retocarla *(tú; ver [MAPA.md](MAPA.md))*
 - [x] Ciclo día/noche configurable (10+7) con avisos de amanecer, atardecer y "anochece en 60 s" *(1.1)*
 - [x] Basecamp como zona segura: pieza `BasecampZone` + indicador en el HUD *(1.1)*
@@ -284,5 +286,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** hacer pública la experiencia para desbloquear el viaje Lobby ↔ Isla, y probar la entrega 1.2 en Studio.
+1. **Tú:** volver a generar la isla con la versión mejorada de `MapBuilder`, recorrerla y publicarla.
 2. **Claude:** entrega 1.3 (barra rápida y combate).

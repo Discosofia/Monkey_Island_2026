@@ -16,13 +16,15 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 
 | En la imagen | Qué es |
 |---|---|
-| Círculo marrón en el centro | **Basecamp:** meseta plana con empalizada de 4 entradas, hoguera y 4 puntos de aparición. El cuadrado verde es la `BasecampZone`. |
+| Círculo marrón en el centro | **Basecamp** (170 studs de diámetro): meseta plana con empalizada de estacas con punta, 4 portones con dintel y antorchas, hoguera con bancos y 4 puntos de aparición. El cuadrado verde es la `BasecampZone`. |
+| Verde con sombras | **Selva** con colinas (hasta unos 35 studs) y manchas de hierba animada y hojarasca. Se aplana cerca de la playa, el río, el Basecamp y la entrada de la cueva. |
+| Puntos verde oscuro | **Árboles de selva decorativos** (~380, no se recolectan) y **helechos** (~380), agrupados en bosques con claros entre medias. |
 | Gris, noroeste | **Montañas.** La línea negra es la **cueva**: entrada en la falda que mira al Basecamp, túnel y sala al fondo. |
-| Oscuro, noreste | **Volcán** con cráter de lava. |
+| Oscuro, noreste | **Volcán activo:** lago de lava brillante, llamas, luz naranja, humo y chispas. |
 | Azul | **Río:** nace al pie de las montañas, rodea el Basecamp por el sur y desemboca al sureste. |
 | Marrón junto a la desembocadura | **Manglar** (barro). |
-| Anillo claro | **Playas.** Más allá, el mar y un **muro invisible** (círculo blanco) para que nadie salga. |
-| Puntos verdes, claros y blancos | **Árboles, arbustos y rocas** (unos 290), fuera del Basecamp, la playa y el río. |
+| Anillo claro con puntos amarillos | **Playas con palmeras** (~70). Más allá, el mar y un **muro invisible** (círculo blanco) para que nadie salga. |
+| Puntos claros y blancos | **Recolectables:** árboles, arbustos y rocas (~290), fuera del Basecamp, la playa y el río. |
 | Cuadrados rosas | **Guaridas de los 4 jefes** (marcadores invisibles para la Fase 5). |
 
 ### Cómo ejecutarlo
