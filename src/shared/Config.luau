@@ -52,7 +52,7 @@ local Config = {
 		StarterWeapons = { "Machete", "Honda" },
 		DodgeCooldownSeconds = 1.2,
 		DodgeSpeed = 55,
-		DodgeDurationSeconds = 0.2,
+		DodgeDurationSeconds = 0.15,
 		-- Tiempo de invulnerabilidad al esquivar.
 		DodgeInvulnerableSeconds = 0.35,
 		DummyHealth = 100,
