@@ -151,8 +151,8 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 |---|---|---|
 | **1.1** | Ciclo día/noche + Basecamp como zona segura | ✅ Probada en Studio |
 | **1.2** | Recolección (árboles, rocas, arbustos) + HUD de inventario | ✅ Probada |
-| **1.3** | Barra rápida + combate: machete, honda (gasta piedras) y esquiva, muñecos de práctica | ✅ Código listo, falta tu prueba |
-| **1.4** | IA de monos v1: mono ardilla y aullador rojo, botín | Pendiente |
+| **1.3** | Barra rápida + combate: machete, honda (gasta piedras) y esquiva, muñecos de práctica | ✅ Probada |
+| **1.4** | IA de monos v1: mono ardilla y aullador rojo (aullido y refuerzos), botín, reaparición al amanecer | ✅ Código listo, falta tu prueba |
 | **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
 | **1.6** | Mesa de trabajo y recetas | Pendiente |
 
@@ -164,8 +164,8 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 - [x] Inventario básico: materiales en el HUD *(1.2)*
 - [x] Barra rápida para herramientas y armas: la mochila nativa de Roblox (teclas 1–9, táctil y mando) *(1.3)*
 - [x] Combate en 3ª persona: machete (cuerpo a cuerpo), honda (distancia, gasta piedras, ayuda de puntería en móvil) y esquiva (Q / B / botón táctil), validados en el servidor *(1.3)*
-- [ ] IA de monos v1 (máquina de estados) con **2 especies**: mono ardilla (grupo rápido) y aullador rojo (grito que llama refuerzos)
-- [ ] Tablas de botín basadas en datos
+- [x] IA de monos v1 (máquina de estados) con **2 especies**: mono ardilla (grupo rápido) y aullador rojo (grito que llama refuerzos) *(1.4)*
+- [x] Tablas de botín basadas en datos (`Shared/Data/Monkeys.luau`) *(1.4)*
 - [ ] Caído → reanimación → Espíritu → reaparición al amanecer
 - [ ] Mesa de trabajo con 5–8 recetas
 
@@ -286,5 +286,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** probar el combate (entrega 1.3) con los muñecos de práctica del Basecamp.
-2. **Claude:** entrega 1.4 (IA de monos v1: mono ardilla y aullador rojo, botín).
+1. **Tú:** probar los monos (entrega 1.4) y actualizar el cuestionario de madurez del Creator Hub (ahora hay combate contra criaturas).
+2. **Claude:** entrega 1.5 (caído → reanimación → Espíritu → reaparición al amanecer).

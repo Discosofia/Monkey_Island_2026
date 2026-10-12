@@ -84,18 +84,38 @@ local function showHit(model: Model, amount: number)
 	Debris:AddItem(billboard, 0.7)
 end
 
-function CombatService.damage(model: Model, humanoid: Humanoid, amount: number)
+-- Daña a un enemigo. "attacker" queda apuntado para repartir el botín si lo derrota.
+function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, attacker: Player?)
+	if attacker then
+		model:SetAttribute("LastAttackerUserId", attacker.UserId)
+	end
 	humanoid:TakeDamage(amount)
 	showHit(model, amount)
 end
 
--- true mientras dura la invulnerabilidad de la esquiva. Lo usarán los ataques de los monos (Fase 1.4).
+-- true mientras dura la invulnerabilidad de la esquiva.
 function CombatService.isInvulnerable(player: Player): boolean
 	local untilTime = player:GetAttribute("InvulnerableUntil")
 	return typeof(untilTime) == "number" and Workspace:GetServerTimeNow() < untilTime
 end
 
-local function meleeAttack(character: Model, root: BasePart, weapon: Weapons.WeaponDefinition)
+-- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp o esquivando.
+-- Devuelve true si el golpe entró.
+function CombatService.damagePlayer(player: Player, amount: number): boolean
+	if CombatService.isInvulnerable(player) or player:GetAttribute("InBasecamp") == true then
+		return false
+	end
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if not (character and humanoid and humanoid.Health > 0) then
+		return false
+	end
+	humanoid:TakeDamage(amount)
+	showHit(character, amount)
+	return true
+end
+
+local function meleeAttack(player: Player, character: Model, root: BasePart, weapon: Weapons.WeaponDefinition)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
@@ -107,7 +127,7 @@ local function meleeAttack(character: Model, root: BasePart, weapon: Weapons.Wea
 		local model, humanoid = enemyFromPart(part)
 		if model and humanoid and not alreadyHit[model] then
 			alreadyHit[model] = true
-			CombatService.damage(model, humanoid, weapon.damage)
+			CombatService.damage(model, humanoid, weapon.damage, player)
 		end
 	end
 end
@@ -195,7 +215,7 @@ local function rangedAttack(
 		task.delay(travelSeconds, function()
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
-				CombatService.damage(hitModel, humanoid, weapon.damage)
+				CombatService.damage(hitModel, humanoid, weapon.damage, player)
 			end
 		end)
 	end
@@ -222,7 +242,7 @@ local function onUseWeapon(player: Player, aim: any)
 
 	if weapon.kind == "Melee" then
 		WeaponTools.playUse(tool)
-		meleeAttack(character, root, weapon)
+		meleeAttack(player, character, root, weapon)
 	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
 		WeaponTools.playUse(tool)
 		rangedAttack(player, character, root, weapon, aim.Unit)

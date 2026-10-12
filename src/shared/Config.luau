@@ -59,6 +59,24 @@ local Config = {
 		DummyRespawnSeconds = 3,
 	},
 
+	Monkeys = {
+		-- Cada cuánto "piensa" la IA de los monos.
+		ThinkIntervalSeconds = 0.25,
+		-- Sin jugadores a esta distancia, un mono no piensa (ahorra rendimiento).
+		SleepDistance = 300,
+		-- Los grupos aparecen en la selva entre estas distancias del centro del Basecamp.
+		SpawnMinDistance = 160,
+		SpawnMaxDistance = 800,
+		-- Aullido: alcance del aviso, espera hasta los refuerzos y cuáles llegan.
+		HowlRadius = 100,
+		HowlReinforcementSeconds = 6,
+		HowlReinforcementSpecies = "MonoArdilla",
+		HowlReinforcementCount = 2,
+		-- Segundos que tarda en desvanecerse un mono derrotado.
+		CorpseSeconds = 1.5,
+		-- Especies (vida, daño, botín…): ver Shared/Data/Monkeys.
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,

@@ -1,7 +1,7 @@
 --!strict
 -- Ciclo de día y noche de la partida (GDD §5.1).
 -- Lleva la cuenta de días, cambia de fase cuando se acaba el tiempo y avisa a los jugadores.
--- Fase 1.4+: el amanecer hará reaparecer a los monos y la noche traerá las especies nocturnas.
+-- Otros sistemas se enteran del cambio de fase con onPhaseStarted (por ejemplo, los monos).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -14,6 +14,12 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DayNightService = {}
 
 local skipRequested = false
+local phaseListeners: { (day: number, phase: MatchState.Phase) -> () } = {}
+
+-- Llama a "callback" al empezar cada fase (también la primera: día 1). Regístralo en Init.
+function DayNightService.onPhaseStarted(callback: (day: number, phase: MatchState.Phase) -> ())
+	table.insert(phaseListeners, callback)
+end
 
 local function phaseLength(phase: MatchState.Phase): number
 	if phase == "Day" then
@@ -68,6 +74,9 @@ function DayNightService:Start()
 			phaseEndsAt = endsAt,
 		})
 		announce(day, phase)
+		for _, listener in phaseListeners do
+			task.spawn(listener, day, phase)
+		end
 
 		waitForPhaseEnd(phase, endsAt)
 
