@@ -1,7 +1,12 @@
 --!strict
 -- Envía jugadores a otro place de la experiencia, con reintentos y mensajes claros.
 -- Lo usan los servidores del Lobby y de la Isla.
+--
+-- Al arrancar, pide a Roblox la lista de places de esta experiencia y la escribe en la Salida
+-- (en el juego publicado: consola F9 → pestaña Server). Así se puede comprobar que los IDs de
+-- Config.PlaceIds son correctos, y un ID equivocado da un aviso claro en vez del error 773.
 
+local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
@@ -11,11 +16,65 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local Teleporter = {}
 
+-- ID -> nombre de los places de esta experiencia. nil si Roblox aún no respondió o falló.
+local experiencePlaces: { [number]: string }? = nil
+
 local function notify(players: { Player }, message: string)
 	for _, player in players do
 		Remotes.Notify:FireClient(player, message)
 	end
 end
+
+local function fetchExperiencePlaces(): { [number]: string }?
+	local ok, result = pcall(function()
+		local places: { [number]: string } = {}
+		local pages = AssetService:GetGamePlacesAsync()
+		while true do
+			for _, place in pages:GetCurrentPage() do
+				places[place.PlaceId] = place.Name
+			end
+			if pages.IsFinished then
+				break
+			end
+			pages:AdvanceToNextPageAsync()
+		end
+		return places
+	end)
+	if not ok then
+		warn(`[Teleporter] No se pudo obtener la lista de places de la experiencia: {result}`)
+		return nil
+	end
+	return result
+end
+
+local function describePlaces(places: { [number]: string }): string
+	local lines = {}
+	for id, name in places do
+		table.insert(lines, `"{name}" = {id}`)
+	end
+	return table.concat(lines, ", ")
+end
+
+local function checkConfiguredPlaceIds(places: { [number]: string })
+	local configured: { [string]: number } = {
+		Lobby = Config.PlaceIds.Lobby,
+		Island = Config.PlaceIds.Island,
+	}
+	for key, id in configured do
+		if id ~= 0 and not places[id] then
+			warn(`[Teleporter] Config.PlaceIds.{key} = {id} NO es un place de esta experiencia.`)
+		end
+	end
+end
+
+task.spawn(function()
+	local places = fetchExperiencePlaces()
+	if places then
+		experiencePlaces = places
+		print(`[Teleporter] Places de esta experiencia: {describePlaces(places)}`)
+		checkConfiguredPlaceIds(places)
+	end
+end)
 
 -- Si el viaje falla después de empezar (por ejemplo, el servidor de destino no responde),
 -- se avisa al jugador para que lo intente de nuevo.
@@ -34,6 +93,13 @@ function Teleporter.send(players: { Player }, placeId: number, destinationName: 
 
 	if RunService:IsStudio() then
 		notify(players, `Los viajes no funcionan en Studio. Prueba {destinationName} en el juego publicado.`)
+		return false
+	end
+
+	local places = experiencePlaces
+	if places and not places[placeId] then
+		warn(`[Teleporter] {placeId} no es un place de esta experiencia. Places: {describePlaces(places)}`)
+		notify(players, `El ID de {destinationName} en Config no es de esta experiencia (ver consola F9).`)
 		return false
 	end
 
