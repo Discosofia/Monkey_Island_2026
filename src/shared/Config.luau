@@ -65,7 +65,7 @@ local Config = {
 		-- Sin jugadores a esta distancia, un mono no piensa (ahorra rendimiento).
 		SleepDistance = 300,
 		-- Los grupos aparecen en la selva entre estas distancias del centro del Basecamp.
-		SpawnMinDistance = 160,
+		SpawnMinDistance = 140,
 		SpawnMaxDistance = 800,
 		-- Aullido: alcance del aviso, espera hasta los refuerzos y cuáles llegan.
 		HowlRadius = 100,
