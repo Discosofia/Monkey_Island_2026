@@ -29,14 +29,20 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 
 ### Cómo ejecutarlo
 
-1. **Guarda una copia** del place por si quieres volver atrás: **Archivo → Publicar en Roblox**. Luego podrás recuperarlo desde el historial de versiones.
-2. Abre la **Isla** en Studio, lanza `rojo serve island.project.json` y conecta Rojo (puerto **34873**). Comprueba que en **ServerStorage** aparece la carpeta `Tools` con `MapBuilder`.
+1. **Abre la Isla correcta.** Es el paso más importante:
+   - En la pantalla de inicio de Studio, entra en **Primal Banana Island**. Se abre el Lobby, que es el lugar de inicio.
+   - En el **Gestor de recursos → Lugares en la experiencia**, haz **doble clic en "Isla"**.
+   - Comprueba **dos cosas** antes de seguir: en el Gestor de recursos el proyecto se llama **Primal Banana Island** y tiene **2 lugares**, y la Isla tiene el ID **84163809226177**.
+   - ⚠️ Si el proyecto se llama de otra forma (por ejemplo "Isla" con un solo lugar), estás en **otra experiencia**. Lo que publiques ahí no aparecerá en el juego.
+2. Lanza `rojo serve island.project.json` y conecta Rojo (puerto **34873**). Comprueba que en **ServerStorage** aparece la carpeta `Tools` con `MapBuilder`.
 3. Sin pulsar Play, haz clic en la **barra de comandos**: la barra larga de la parte de abajo de Studio que dice *"Ejecutar un comando con Ctrl↵…"*. Si no la ves, ábrela desde el menú **Ventana**. Pega esto y pulsa **Ctrl+Enter** (o el botón **▷ Ejecutar**):
    ```lua
    require(game.ServerStorage.Tools.MapBuilder).build()
    ```
-4. Espera alrededor de un minuto. La **Salida** muestra el progreso y termina con *"¡Isla lista!"*.
-5. Pulsa **Play** para probarla y, si te gusta, **Archivo → Publicar en Roblox**.
+   Si el place abierto no es la Isla del juego, el generador **no hace nada** y lo avisa en la Salida.
+4. Espera unos segundos. La **Salida** termina con *"¡Isla lista!"*.
+5. Pulsa **Play** para probarla. Si te gusta, **Archivo → Publicar en Roblox**. No uses "Publicar en Roblox como…": con esa opción es fácil crear una experiencia nueva sin querer.
+6. Para verla en el juego publicado, entra a un **servidor nuevo**. Los servidores que ya estaban abiertos siguen con la versión anterior.
 
 **Opciones:**
 - `build({ seed = 7 })`: otro reparto aleatorio de colinas, costa y recursos.

@@ -7,6 +7,9 @@
 -- Opciones: build({ seed = 7 }) cambia el reparto aleatorio; build({ islandRadius = 800 })
 -- hace la isla más grande.
 --
+-- Por seguridad solo se ejecuta en el place de la Isla (Config.PlaceIds.Island). Para generar en
+-- otro place (por ejemplo una copia de pruebas), usa build({ force = true }).
+--
 -- Crea el terreno (océano, playas, selva con colinas, Basecamp, río con manglar, montañas con
 -- cueva y volcán) y las piezas: BasecampZone, puntos de aparición, empalizada con portones,
 -- antorchas, hoguera, volcán activo, vegetación, puntos de recolección, marcadores de las
@@ -15,14 +18,17 @@
 -- ⚠️ Borra TODO el terreno, la carpeta Workspace.Mapa, la Baseplate y los SpawnLocation sueltos
 -- antes de generar. Si ya retocaste el terreno a mano, esos cambios se pierden.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
 
 export type Options = {
 	seed: number?,
 	islandRadius: number?,
+	force: boolean?, -- generar aunque el place abierto no sea la Isla de Config.PlaceIds
 }
 
 type Layout = {
@@ -821,11 +827,20 @@ local function clearPrevious()
 end
 
 function MapBuilder.build(options: Options?)
+	if game.PlaceId ~= Config.PlaceIds.Island and not (options and options.force) then
+		warn(
+			`[MapBuilder] No se generó nada: el place abierto ({game.PlaceId}) no es la Isla del juego `
+				.. `({Config.PlaceIds.Island}). Abre la Isla desde el Gestor de recursos de la experiencia `
+				.. "Primal Banana Island (ver docs/MAPA.md). Si de verdad quieres generar aquí, usa build({ force = true })."
+		)
+		return
+	end
+
 	local seed = if options and options.seed then options.seed else 2026
 	local radius = if options and options.islandRadius then options.islandRadius else 650
 	local layout = makeLayout(seed, radius)
 	local startedAt = os.clock()
-	print(`[MapBuilder] Generando la isla (semilla {seed}, radio {radius})... tarda alrededor de un minuto.`)
+	print(`[MapBuilder] Generando la isla (semilla {seed}, radio {radius})...`)
 
 	clearPrevious()
 	writeTerrain(layout)
