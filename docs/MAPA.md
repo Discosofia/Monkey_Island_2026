@@ -29,7 +29,7 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 
 1. **Guarda una copia** del place por si quieres volver atrás: **Archivo → Publicar en Roblox**. Luego podrás recuperarlo desde el historial de versiones.
 2. Abre la **Isla** en Studio, lanza `rojo serve island.project.json` y conecta Rojo (puerto **34873**). Comprueba que en **ServerStorage** aparece la carpeta `Tools` con `MapBuilder`.
-3. Sin pulsar Play, abre la **barra de comandos** (**Vista → Barra de comandos**), pega esto y pulsa Enter:
+3. Sin pulsar Play, haz clic en la **barra de comandos**: la barra larga de la parte de abajo de Studio que dice *"Ejecutar un comando con Ctrl↵…"*. Si no la ves, ábrela desde el menú **Ventana**. Pega esto y pulsa **Ctrl+Enter** (o el botón **▷ Ejecutar**):
    ```lua
    require(game.ServerStorage.Tools.MapBuilder).build()
    ```

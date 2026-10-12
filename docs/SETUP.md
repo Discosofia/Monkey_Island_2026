@@ -117,7 +117,7 @@ Abre Roblox Studio, o ciérralo del todo y vuelve a abrirlo. Debería aparecer u
 Cada place tiene un número de ID. El código lo necesita para viajar del Lobby a la Isla.
 
 1. Abre el place **Lobby** en Studio.
-2. En la **barra de comandos** (**View → Command Bar**) escribe y pulsa Enter:
+2. En la **barra de comandos** (la barra larga de la parte de abajo de Studio que dice *"Ejecutar un comando con Ctrl↵…"*; si no la ves, ábrela desde el menú **Ventana**) escribe esto y pulsa **Ctrl+Enter**:
    ```lua
    print(game.PlaceId)
    ```
