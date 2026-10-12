@@ -1,5 +1,5 @@
 --!strict
--- Tipos de puntos de recolección. El nombre de cada entrada (Tree, Rock, Bush) es el valor
+-- Tipos de puntos de recolección. El nombre de cada entrada (Tree, Rock, Bush, Fern) es el valor
 -- que hay que poner en el atributo "ResourceNode" de un modelo del mapa (ver docs/MAPA.md).
 
 export type NodeDefinition = {
@@ -30,6 +30,16 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		holdSeconds = 2.5,
 		uses = 3,
 		respawnSeconds = 150,
+	},
+	-- Helechos de la selva: menos fibra que un arbusto, pero hay muchos.
+	Fern = {
+		name = "Helecho",
+		actionText = "Recolectar",
+		itemId = "Fiber",
+		amount = 1,
+		holdSeconds = 1.8,
+		uses = 1,
+		respawnSeconds = 90,
 	},
 	Bush = {
 		name = "Arbusto",

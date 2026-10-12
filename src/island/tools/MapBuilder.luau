@@ -642,6 +642,11 @@ local function buildJungleTree(ground: Vector3, rng: Random, parent: Instance)
 		WOOD,
 		tree
 	)
+	-- Se tala como cualquier árbol. El aviso va en un punto invisible a la altura del jugador:
+	-- el centro del tronco queda demasiado alto para alcanzarlo.
+	local promptAnchor = newMarker("PromptAnchor", Vector3.one, (base * CFrame.new(0, 3, 0)).Position, tree)
+	tree.PrimaryPart = promptAnchor
+	tree:SetAttribute(NodeModels.ATTRIBUTE, "Tree")
 	local color = LEAF_COLORS[rng:NextInteger(1, #LEAF_COLORS)]
 	for _ = 1, 3 do
 		local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-2, 2), rng:NextNumber(-3, 3)) * scale
@@ -706,7 +711,7 @@ local function buildFern(ground: Vector3, rng: Random, parent: Instance)
 	local base = CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
 	local color = LEAF_COLORS[rng:NextInteger(1, #LEAF_COLORS)]
 	for i = 0, 2 do
-		decorative(
+		local blade = decorative(
 			newPart(
 				"Blade",
 				Vector3.new(0.2, 2.5, 3.5) * scale,
@@ -715,7 +720,10 @@ local function buildFern(ground: Vector3, rng: Random, parent: Instance)
 				fern
 			)
 		)
+		fern.PrimaryPart = fern.PrimaryPart or blade
 	end
+	-- Da fibra (ver Data/ResourceNodes, tipo Fern).
+	fern:SetAttribute(NodeModels.ATTRIBUTE, "Fern")
 	fern.Parent = parent
 end
 

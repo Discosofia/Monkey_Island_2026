@@ -18,7 +18,7 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 |---|---|
 | Círculo marrón en el centro | **Basecamp** (170 studs de diámetro): meseta plana con empalizada de estacas con punta, 4 portones con dintel y antorchas, hoguera con bancos y 4 puntos de aparición. El cuadrado verde es la `BasecampZone`. |
 | Verde con sombras | **Selva** con colinas (hasta unos 35 studs) y manchas de hierba animada y hojarasca. Se aplana cerca de la playa, el río, el Basecamp y la entrada de la cueva. |
-| Puntos verde oscuro | **Árboles de selva decorativos** (~380, no se recolectan) y **helechos** (~380), agrupados en bosques con claros entre medias. |
+| Puntos verde oscuro | **Árboles de selva** (~380, se talan y dan 🌲 madera) y **helechos** (~380, dan 🌿 fibra), agrupados en bosques con claros entre medias. |
 | Gris, noroeste | **Montañas.** La línea negra es la **cueva**: entrada en la falda que mira al Basecamp, túnel y sala al fondo. |
 | Oscuro, noreste | **Volcán activo:** lago de lava brillante, llamas, luz naranja, humo y chispas. |
 | Azul | **Río:** nace al pie de las montañas, rodea el Basecamp por el sur y desemboca al sureste. |
@@ -86,6 +86,7 @@ Cualquier **Model** o **Part** con este atributo se convierte en un punto de rec
 | `ResourceNode` | string | `Tree` | 🌲 Madera |
 | `ResourceNode` | string | `Rock` | ⛰️ Piedra |
 | `ResourceNode` | string | `Bush` | 🌿 Fibra |
+| `ResourceNode` | string | `Fern` | 🌿 Fibra (menos que un arbusto) |
 
 - En un **Model**, el aviso de recolección aparece sobre su `PrimaryPart` (o sobre su primera pieza si no tiene).
 - Pon los puntos **fuera** del Basecamp: dentro no debe haber recursos (GDD §10).
