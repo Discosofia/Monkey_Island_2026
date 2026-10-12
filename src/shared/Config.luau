@@ -8,8 +8,8 @@ local Config = {
 
 	-- IDs de los places de la experiencia. Cómo obtenerlos: docs/SETUP.md, paso 6.
 	PlaceIds = {
-		Lobby = 0,
-		Island = 0,
+		Lobby = 86360888108434, -- place "Primal Banana Island" (lugar de inicio)
+		Island = 84163809226177, -- place creado después ("chillyDuo's Place", renombrar a "Isla")
 	},
 
 	Match = {
