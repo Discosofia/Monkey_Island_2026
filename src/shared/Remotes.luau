@@ -40,6 +40,8 @@ local Remotes = {
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
 	Dodge = remoteEvent("Dodge"),
+	-- Cliente -> servidor (Isla): un Espíritu marca lo que apunta (Vector3 de dirección).
+	SpiritMark = remoteEvent("SpiritMark"),
 }
 
 return Remotes

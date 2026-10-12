@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local ACTION = "Dodge"
@@ -17,7 +18,7 @@ local lastDodgeAt = -math.huge
 
 local function dodge()
 	local now = os.clock()
-	if now - lastDodgeAt < Config.Combat.DodgeCooldownSeconds then
+	if now - lastDodgeAt < Config.Combat.DodgeCooldownSeconds or not LifeState.isAlive(Players.LocalPlayer) then
 		return
 	end
 	local character = Players.LocalPlayer.Character

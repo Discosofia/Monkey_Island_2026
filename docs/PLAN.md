@@ -152,8 +152,8 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 | **1.1** | Ciclo día/noche + Basecamp como zona segura | ✅ Probada en Studio |
 | **1.2** | Recolección (árboles, rocas, arbustos) + HUD de inventario | ✅ Probada |
 | **1.3** | Barra rápida + combate: machete, honda (gasta piedras) y esquiva, muñecos de práctica | ✅ Probada |
-| **1.4** | IA de monos v1: mono ardilla y aullador rojo (aullido y refuerzos), botín, reaparición al amanecer | ✅ Código listo, falta tu prueba |
-| **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
+| **1.4** | IA de monos v1: mono ardilla y aullador rojo (aullido y refuerzos), botín, reaparición al amanecer | ✅ Probada |
+| **1.5** | Caído → reanimación → Espíritu (mochila, marcas) → reaparición al amanecer | ✅ Código listo, falta tu prueba |
 | **1.6** | Mesa de trabajo y recetas | Pendiente |
 
 - [x] Generador de la isla provisional `MapBuilder`: terreno con colinas en todos los biomas, selva densa, palmeras, volcán activo, Basecamp de 170 studs con empalizada de estacas, portones y antorchas, recursos, guaridas y límites *(Claude)*
@@ -166,7 +166,7 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 - [x] Combate en 3ª persona: machete (cuerpo a cuerpo), honda (distancia, gasta piedras, ayuda de puntería en móvil) y esquiva (Q / B / botón táctil), validados en el servidor *(1.3)*
 - [x] IA de monos v1 (máquina de estados) con **2 especies**: mono ardilla (grupo rápido) y aullador rojo (grito que llama refuerzos) *(1.4)*
 - [x] Tablas de botín basadas en datos (`Shared/Data/Monkeys.luau`) *(1.4)*
-- [ ] Caído → reanimación → Espíritu → reaparición al amanecer
+- [x] Caído → reanimación → Espíritu → reaparición al amanecer *(1.5)*
 - [ ] Mesa de trabajo con 5–8 recetas
 
 **Criterio de salida:** 4–6 amigos juegan 30 min seguidos. Se anota qué fue divertido y qué no, y se ajusta antes de seguir.
@@ -286,5 +286,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** probar los monos (entrega 1.4) y actualizar el cuestionario de madurez del Creator Hub (ahora hay combate contra criaturas).
-2. **Claude:** entrega 1.5 (caído → reanimación → Espíritu → reaparición al amanecer).
+1. **Tú:** probar caído/reanimación/Espíritu (entrega 1.5), idealmente con un amigo o con el modo de prueba de 2 jugadores de Studio.
+2. **Claude:** entrega 1.6 (mesa de trabajo y recetas).

@@ -10,6 +10,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
 local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
 local InventoryService = require(script.Parent.InventoryService)
@@ -72,7 +73,7 @@ local function setVisible(instance: Instance, visible: boolean)
 end
 
 local function canHarvest(state: NodeState, player: Player): boolean
-	if state.usesLeft <= 0 then
+	if state.usesLeft <= 0 or not LifeState.isAlive(player) then
 		return false
 	end
 

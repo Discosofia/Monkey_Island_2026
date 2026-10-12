@@ -77,6 +77,22 @@ local Config = {
 		-- Especies (vida, daño, botín…): ver Shared/Data/Monkeys.
 	},
 
+	Life = {
+		-- Segundos caído antes de pasar a Espíritu si nadie te reanima.
+		DownedSeconds = 60,
+		CrawlSpeed = 4,
+		ReviveHoldSeconds = 4,
+		ReviveDistance = 8,
+		-- Vida con la que vuelves al ser reanimado (fracción de la máxima).
+		ReviveHealthFraction = 0.35,
+		-- Parte de cada material que se queda en la mochila al pasar a Espíritu.
+		DropFraction = 0.5,
+		-- Marcas de los Espíritus: duración, espera entre marcas y alcance.
+		SpiritMarkSeconds = 8,
+		SpiritMarkCooldownSeconds = 2,
+		SpiritMarkRange = 250,
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,

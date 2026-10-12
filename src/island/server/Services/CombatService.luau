@@ -13,9 +13,11 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local InventoryService = require(script.Parent.InventoryService)
+local LifeService = require(script.Parent.LifeService)
 local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
@@ -99,10 +101,12 @@ function CombatService.isInvulnerable(player: Player): boolean
 	return typeof(untilTime) == "number" and Workspace:GetServerTimeNow() < untilTime
 end
 
--- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp o esquivando.
+-- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp, esquivando,
+-- caído o como Espíritu. Un golpe mortal no mata: deja al jugador caído (LifeService).
 -- Devuelve true si el golpe entró.
 function CombatService.damagePlayer(player: Player, amount: number): boolean
-	if CombatService.isInvulnerable(player) or player:GetAttribute("InBasecamp") == true then
+	local safe = player:GetAttribute("InBasecamp") == true
+	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
 		return false
 	end
 	local character = player.Character
@@ -110,8 +114,12 @@ function CombatService.damagePlayer(player: Player, amount: number): boolean
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
-	humanoid:TakeDamage(amount)
 	showHit(character, amount)
+	if humanoid.Health - amount <= 0 then
+		LifeService.down(player)
+	else
+		humanoid:TakeDamage(amount)
+	end
 	return true
 end
 
@@ -222,6 +230,9 @@ local function rangedAttack(
 end
 
 local function onUseWeapon(player: Player, aim: any)
+	if not LifeState.isAlive(player) then
+		return
+	end
 	local character, root = livingCharacter(player)
 	if not (character and root) then
 		return

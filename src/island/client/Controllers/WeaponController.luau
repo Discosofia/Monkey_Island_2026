@@ -6,13 +6,12 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
 
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local Aim = require(script.Parent.Parent.Aim)
 
-local AIM_DISTANCE = 500
 -- Tajo estándar de Roblox, por si el personaje no trae el suyo en su script Animate.
 local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
 	[Enum.HumanoidRigType.R15] = "rbxassetid://522635514",
@@ -54,28 +53,6 @@ local function playSwing(character: Model, weapon: Weapons.WeaponDefinition)
 	end
 end
 
--- Con ratón: hacia el punto del mundo bajo el cursor. Sin ratón (móvil, mando): hacia donde
--- mira la cámara; el servidor ayuda a apuntar.
-local function aimDirection(character: Model): Vector3
-	local camera = Workspace.CurrentCamera
-	if UserInputService.MouseEnabled then
-		local mouse = UserInputService:GetMouseLocation()
-		local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
-		local params = RaycastParams.new()
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.FilterDescendantsInstances = { character }
-		local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, params)
-		local target = if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
-		local head = character:FindFirstChild("Head")
-		local origin = if head and head:IsA("BasePart") then head.Position else camera.CFrame.Position
-		local direction = target - origin
-		if direction.Magnitude > 0.1 then
-			return direction.Unit
-		end
-	end
-	return camera.CFrame.LookVector
-end
-
 local function hook(instance: Instance)
 	if not instance:IsA("Tool") or hooked[instance] or instance:GetAttribute("WeaponId") == nil then
 		return
@@ -85,13 +62,13 @@ local function hook(instance: Instance)
 	local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
 	instance.Activated:Connect(function()
 		local character = Players.LocalPlayer.Character
-		if not character then
+		if not character or not LifeState.isAlive(Players.LocalPlayer) then
 			return
 		end
 		if weapon and weapon.kind == "Melee" then
 			playSwing(character, weapon)
 		end
-		Remotes.UseWeapon:FireServer(aimDirection(character))
+		Remotes.UseWeapon:FireServer(Aim.direction(character))
 	end)
 end
 

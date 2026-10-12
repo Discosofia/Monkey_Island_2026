@@ -19,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -344,7 +345,8 @@ local function collectPlayers(): { PlayerInfo }
 		local character = player.Character
 		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then
+		-- Los caídos y los Espíritus no cuentan: los monos los dejan en paz.
+		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and LifeState.isAlive(player) then
 			table.insert(infos, {
 				player = player,
 				position = root.Position,
