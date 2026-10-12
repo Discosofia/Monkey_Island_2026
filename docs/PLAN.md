@@ -118,11 +118,12 @@ Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos
 **Objetivo:** que puedas cambiar código en el repo y verlo en Studio, y viajar del Lobby a la Isla.
 
 **Tú** (sigue la guía [SETUP.md](SETUP.md)):
-- [ ] Instalar Roblox Studio, VS Code, GitHub Desktop y Rokit, y clonar el repo
-- [ ] Instalar las herramientas (`rokit install`) y el plugin de Rojo
-- [ ] Crear la experiencia en Roblox con 2 places: **Lobby** (inicio) e **Isla**
-- [ ] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores
-- [ ] Sincronizar con Rojo, publicar ambos places y probar el viaje Lobby ↔ Isla
+- [x] Instalar Roblox Studio, VS Code, GitHub Desktop y Rokit, y clonar el repo
+- [x] Instalar las herramientas (`rokit install`) y el plugin de Rojo
+- [x] Crear la experiencia en Roblox con 2 places: **Lobby** (inicio) e **Isla**
+- [x] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores
+- [x] Sincronizar con Rojo y publicar ambos places
+- [ ] Probar el viaje Lobby ↔ Isla en el juego publicado *(pendiente: error 773, revisando los IDs)*
 
 **Claude:**
 - [x] Estructura del repo: 2 proyectos Rojo + código compartido
@@ -141,9 +142,20 @@ Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos
 
 **Objetivo:** responder a la pregunta más importante: **¿es divertido salir, recolectar, pelear y volver?** Se hace con arte provisional (*greybox*).
 
+Se entrega en partes pequeñas, cada una probable en Studio:
+
+| Entrega | Contenido | Estado |
+|---|---|---|
+| **1.1** | Ciclo día/noche + Basecamp como zona segura | ✅ Código listo, falta tu prueba |
+| **1.2** | Recolección + inventario + barra rápida | Pendiente |
+| **1.3** | Combate: machete, honda y esquiva | Pendiente |
+| **1.4** | IA de monos v1: mono ardilla y aullador rojo, botín | Pendiente |
+| **1.5** | Caído → reanimación → Espíritu → reaparición | Pendiente |
+| **1.6** | Mesa de trabajo y recetas | Pendiente |
+
 - [ ] Isla pequeña provisional: Basecamp + un trozo de selva + un río *(tú)*
-- [ ] Ciclo día/noche configurable (10+7) con eventos de amanecer y atardecer
-- [ ] Basecamp como zona segura
+- [x] Ciclo día/noche configurable (10+7) con avisos de amanecer, atardecer y "anochece en 60 s" *(1.1)*
+- [x] Basecamp como zona segura: pieza `BasecampZone` + indicador en el HUD *(1.1)*
 - [ ] Recolección: árboles, rocas y arbustos → madera, piedra, fibra (con regeneración)
 - [ ] Inventario básico + barra rápida (táctil y teclado)
 - [ ] Combate en 3ª persona: machete (cuerpo a cuerpo), honda (distancia) y esquiva, validados en el servidor
@@ -269,5 +281,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** seguir [SETUP.md](SETUP.md) para completar tu parte de la Fase 0 y pasarme los IDs de los places.
-2. **Claude:** en cuanto el viaje Lobby ↔ Isla funcione, empezar la **Fase 1** con el ciclo día/noche y el Basecamp como zona segura.
+1. **Tú:** confirmar los IDs de los places para que funcione el viaje Lobby ↔ Isla, y probar la entrega 1.1 en Studio.
+2. **Claude:** entrega 1.2 (recolección e inventario).

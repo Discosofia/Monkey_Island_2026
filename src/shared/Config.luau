@@ -17,11 +17,23 @@ local Config = {
 		MaxPlayers = 20,
 		DayLengthSeconds = 10 * 60,
 		NightLengthSeconds = 7 * 60,
+		-- Segundos antes de la noche en que se avisa a los jugadores para que vuelvan.
+		DuskWarningSeconds = 60,
 		-- Un jefe cada BossIntervalDays días, en este orden (GDD §8.2).
 		BossIntervalDays = 2,
 		BossRotation = { "OrangutanDelManglar", "ChimpanceCaudillo", "GorilaAlbino", "GorilaDeCeniza" },
 		-- Primer día en que se puede encender la baliza de rescate (GDD §5.3).
 		BeaconUnlockDay = 8,
+	},
+
+	Basecamp = {
+		-- Pieza de Workspace que marca el área del Basecamp (puede estar dentro de carpetas).
+		-- Si no existe, se crea una zona con el tamaño y centro de abajo.
+		ZonePartName = "BasecampZone",
+		DefaultZoneSize = Vector3.new(120, 60, 120),
+		DefaultZoneCenter = Vector3.new(0, 30, 0),
+		-- Cada cuánto se comprueba quién está dentro.
+		CheckIntervalSeconds = 0.5,
 	},
 
 	Teleport = {

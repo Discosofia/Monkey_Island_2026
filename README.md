@@ -12,7 +12,7 @@ Naufragas en una isla tropical sin salida, antiguo santuario-laboratorio del **P
 
 ## Estado
 
-**Fase 0, Fundaciones:** la estructura del código está lista. Falta la parte en Roblox Studio (ver [SETUP.md](docs/SETUP.md)).
+**Fase 1, Bucle núcleo:** la entrega 1.1 (ciclo día/noche + Basecamp) está lista para probar. Ver el [plan](docs/PLAN.md#fase-1-prototipo-del-bucle-núcleo-sobrevivir-el-día-1-46-semanas).
 
 ## Comandos rápidos
 

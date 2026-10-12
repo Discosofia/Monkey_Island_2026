@@ -23,7 +23,8 @@ local function getLabel(): TextLabel
 	local text = Instance.new("TextLabel")
 	text.Name = "Message"
 	text.AnchorPoint = Vector2.new(0.5, 0)
-	text.Position = UDim2.fromScale(0.5, 0.12)
+	-- Debajo del reloj y del indicador del Basecamp de la Isla.
+	text.Position = UDim2.fromScale(0.5, 0.15)
 	text.Size = UDim2.fromScale(0.7, 0.07)
 	text.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 	text.BackgroundTransparency = 0.2

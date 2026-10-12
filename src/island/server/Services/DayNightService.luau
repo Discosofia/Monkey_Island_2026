@@ -1,0 +1,83 @@
+--!strict
+-- Ciclo de día y noche de la partida (GDD §5.1).
+-- Lleva la cuenta de días, cambia de fase cuando se acaba el tiempo y avisa a los jugadores.
+-- Fase 1.4+: el amanecer hará reaparecer a los monos y la noche traerá las especies nocturnas.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+
+local DayNightService = {}
+
+local skipRequested = false
+
+local function phaseLength(phase: MatchState.Phase): number
+	if phase == "Day" then
+		return Config.Match.DayLengthSeconds
+	end
+	return Config.Match.NightLengthSeconds
+end
+
+local function announce(day: number, phase: MatchState.Phase)
+	if phase == "Night" then
+		Remotes.Notify:FireAllClients("🌙 Cae la noche. ¡Quédate cerca del Basecamp!")
+	elseif day == 1 then
+		Remotes.Notify:FireAllClients("☀️ Día 1: explora la isla y vuelve antes de la noche")
+	else
+		Remotes.Notify:FireAllClients(`☀️ Amanece: día {day}`)
+	end
+end
+
+-- Espera hasta que termine la fase (o hasta que se pida saltarla en Studio).
+local function waitForPhaseEnd(phase: MatchState.Phase, endsAt: number)
+	local warned = false
+	while Workspace:GetServerTimeNow() < endsAt and not skipRequested do
+		local remaining = endsAt - Workspace:GetServerTimeNow()
+		if phase == "Day" and not warned and remaining <= Config.Match.DuskWarningSeconds then
+			warned = true
+			Remotes.Notify:FireAllClients(
+				`🌅 Anochece en {Config.Match.DuskWarningSeconds} segundos. ¡Vuelve al Basecamp!`
+			)
+		end
+		task.wait(0.25)
+	end
+	skipRequested = false
+end
+
+function DayNightService:Start()
+	Remotes.DebugSkipPhase.OnServerEvent:Connect(function()
+		-- En el juego publicado se ignora: nadie puede saltarse la noche.
+		if RunService:IsStudio() then
+			skipRequested = true
+		end
+	end)
+
+	local day = 1
+	local phase: MatchState.Phase = "Day"
+	while true do
+		local startedAt = Workspace:GetServerTimeNow()
+		local endsAt = startedAt + phaseLength(phase)
+		MatchState.write({
+			day = day,
+			phase = phase,
+			phaseStartedAt = startedAt,
+			phaseEndsAt = endsAt,
+		})
+		announce(day, phase)
+
+		waitForPhaseEnd(phase, endsAt)
+
+		if phase == "Day" then
+			phase = "Night"
+		else
+			phase = "Day"
+			day += 1
+		end
+	end
+end
+
+return DayNightService

@@ -34,6 +34,8 @@ local Remotes = {
 	RequestReturnToLobby = remoteEvent("RequestReturnToLobby"),
 	-- Servidor -> cliente: mensaje corto para mostrar en pantalla.
 	Notify = remoteEvent("Notify"),
+	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
+	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 }
 
 return Remotes

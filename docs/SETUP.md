@@ -162,13 +162,14 @@ Hay un proyecto de Rojo para cada place:
 
 **En Studio (botón Play):**
 - **Lobby:** verás el título *Primal Banana Island* y el botón **Ir a la Isla**. Al pulsarlo aparecerá el mensaje *"Los viajes no funcionan en Studio…"*. Es normal: Roblox no permite viajar entre places desde Studio.
-- **Isla:** verás arriba a la izquierda los minutos de día y noche leídos de `Config`, y el botón **Volver al Lobby**.
+- **Isla:** verás arriba el reloj (*"Día 1 · ☀️ 10:00"*), el indicador *"🏕️ Basecamp: zona segura"* y el botón **Volver al Lobby**. Abajo a la izquierda, solo en Studio, el botón **⏩ Saltar fase** para probar la noche sin esperar.
+- **Salida (Output):** al arrancar, cada servidor escribe *"[Teleporter] Places de esta experiencia: …"* con el nombre y el ID real de cada place. Sirve para comprobar los IDs del paso 6.
 
 **En el juego publicado** (desde la web de Roblox o la app, entrando a tu experiencia):
 - Pulsa **Ir a la Isla**: deberías viajar a la Isla.
 - Pulsa **Volver al Lobby**: deberías volver.
 
-**Prueba de sincronización:** con Rojo conectado, cambia en `Config.luau` el valor `DayLengthSeconds = 10 * 60` por `12 * 60` y guarda. En la Isla, al darle a Play, el HUD dirá *"Día 12 min"*. Después vuelve a dejarlo en `10 * 60`.
+**Prueba de sincronización:** con Rojo conectado, cambia en `Config.luau` el valor `DayLengthSeconds = 10 * 60` por `12 * 60` y guarda. En la Isla, al darle a Play, el reloj empezará en *12:00*. Después vuelve a dejarlo en `10 * 60`.
 
 ✅ **Criterio de salida de la Fase 0:** todo lo anterior funciona.
 
@@ -195,4 +196,5 @@ Hay un proyecto de Rojo para cada place:
 | Studio ofrece conectar a **otro proyecto** (*"Project 'X' is serving at localhost:34872"*) | Es un `rojo serve` de otro proyecto tuyo que sigue abierto. Pulsa **Dismiss** (no conectes: metería el código de ese proyecto en este juego) y cierra esa terminal o páralo con `Ctrl+C`. Si no lo paras, `rojo serve lobby.project.json` fallará porque el puerto 34872 está ocupado. |
 | *"Falta configurar el ID de…"* | No se completó el paso 6. |
 | El botón de viaje no hace nada en el juego publicado | Revisa que **ambos** places estén publicados con el código (paso 8) y que los IDs del paso 6 sean correctos. |
+| *"Error en la teletransportación: se intentó teletransportarse a un lugar que está restringido (Código de error: 773)"* | Casi siempre es un **ID equivocado** en `Config.PlaceIds`, que apunta a un place que no es de esta experiencia. Busca en la Salida de Studio (o en la consola **F9** → pestaña **Server** del juego publicado) la línea *"[Teleporter] Places de esta experiencia"* y compara los IDs. Si son correctos, abre la Isla en Studio y vuelve a publicarla (**Archivo → Publicar en Roblox**). |
 | *"Infinite yield possible on ReplicatedStorage:WaitForChild("Remotes")"* | El código del servidor no se cargó. Revisa que la carpeta `Server` exista en ServerScriptService (paso 8). |
