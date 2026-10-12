@@ -1,8 +1,7 @@
-# Monkey Island 2026 — Documento de Diseño del Juego (GDD) v0.1
+# Primal Banana Island: Monkey Survival — Documento de Diseño del Juego (GDD) v0.2
 
-> **Estado:** borrador tras la entrevista inicial de diseño.
-> **Nombre:** "Monkey Island" es un **nombre de trabajo** (ver [§15 Nombre](#15-nombre-alternativas)).
-> Las secciones marcadas con 🟡 son **propuestas pendientes de confirmar**.
+> **Estado:** diseño base confirmado tras la entrevista (v0.2: todas las propuestas de la v0.1 confirmadas).
+> **Nombre:** **Primal Banana Island: Monkey Survival** (ver [§15](#15-nombre)). El repositorio conserva el nombre `monkey_island_2026`.
 
 ---
 
@@ -44,6 +43,14 @@
 | Mascotas | **Persistentes.** Cada participante del rescate del huevo recibe una tirada. Se coleccionan y se lleva 1 activa. |
 | Huevo | **Evento PvP opt-in.** El portador queda marcado y los jugadores con PvP activo pueden robárselo. |
 | Servidor | Máximo **20 jugadores**. Se puede entrar a una partida en curso si hay hueco. |
+| Asedio nocturno | **Sí.** El Basecamp es seguro **mientras resistan las defensas**. |
+| Fiebre del mono | **Sí.** Infección por mordiscos que cura el médico. |
+| Lore | **Santuario-laboratorio** abandonado (Proyecto PRIMAL). |
+| Jefes | **Uno cada 2 días**, rotando por los 4 biomas. |
+| Baliza de rescate | Se puede encender desde el **día 8**, cuando ya es posible tener las 4 piezas. |
+| Especies | Se añade la **marteja** (mono nocturno) a la categoría 1. |
+| PvP en playas | **Cajas de suministro** que llegan por mar = zonas de PvP. |
+| Nombre | **Primal Banana Island: Monkey Survival.** |
 
 ---
 
@@ -112,7 +119,7 @@ flowchart LR
 - **Amanecer:** los monos **reaparecen** (respawn diario), los Espíritus reviven en el Basecamp y el contador de días sube.
 - **Día:** especies diurnas. Es el momento de explorar y recolectar.
 - **Atardecer:** aviso un minuto antes de la noche para volver a la base.
-- **Noche:** especies nocturnas, menos visibilidad (antorchas) y, 🟡 si se confirma, **asedio al Basecamp**.
+- **Noche:** especies nocturnas, menos visibilidad (antorchas) y **asedio al Basecamp** (§10).
 
 ```mermaid
 stateDiagram-v2
@@ -141,7 +148,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 
 - **Derrota:** todos los jugadores del servidor están caídos o son Espíritus a la vez. Se muestran los resultados y se vuelve al lobby.
 - **Victoria (rescate):** se construye la **baliza de rescate** con piezas de los 4 jefes de bioma. Al encenderla empieza la **noche final** ("La Gran Tropa"). Si alguien sigue en pie al amanecer, llega el rescate.
-  - La baliza solo se puede encender desde el **día 5** (configurable).
+  - La baliza solo se puede encender desde el **día 8** (configurable). Como aparece un jefe cada 2 días (días 2, 4, 6 y 8), antes no se pueden tener las 4 piezas.
 - **Entrar a mitad de partida:** se permite mientras haya hueco y no esté en curso la noche final. Las recompensas dependen de la **contribución** mientras estuviste presente.
 
 ---
@@ -156,7 +163,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 | Hambre | Baja con el tiempo. Se recupera con carne cocinada y frutas. |
 | Sed | Baja más rápido. Se recupera con agua de río hervida, cocos o lluvia. |
 | Estamina | Se gasta al correr, esquivar y atacar fuerte. |
-| 🟡 Fiebre del mono | Sube con mordiscos de monos. A tope causa pérdida lenta de vida y visión borrosa. La cura el **médico** con antídotos. |
+| Fiebre del mono | Sube con mordiscos de monos. A tope causa pérdida lenta de vida y visión borrosa. La cura el **médico** con antídotos. |
 
 ### 6.2 Muerte: caído y Espíritu
 
@@ -203,7 +210,7 @@ flowchart TB
 |---|---|---|---|
 | **Basecamp** | Segura | Ninguno | Spawn, construcción y crafteo. |
 | **Selva** | Baja a media | Madera, fibra, frutas y plantas medicinales | La zona más grande. Monos de categoría baja. |
-| **Playas** | Media | Cocos, conchas, restos de naufragio (metal) | 🟡 Llegan **cajas de suministro** por el mar, que son zonas de PvP. |
+| **Playas** | Media | Cocos, conchas, restos de naufragio (metal) | Llegan **cajas de suministro** por el mar, que son zonas de PvP (§12). |
 | **Ríos y manglar** | Media a alta | Agua, arcilla, peces | Jefe: Orangután del Manglar. |
 | **Montañas** | Alta | Piedra, hierro y cristal | Jefe: Chimpancé Caudillo. |
 | **Cuevas** | Alta | Cristales y minerales raros | Oscuridad: se necesitan antorchas. Jefe: Gorila Albino. |
@@ -256,14 +263,14 @@ stateDiagram-v2
 | Mono maicero capuchino (grupos) | Día | Selva, cerca del Basecamp | **Ladrón:** roba un ítem y huye. Lanza piedras. | Lo robado, semillas, piedra pulida |
 | Tití del Chocó | Día | Selva densa | **Enjambre** de muchos individuos débiles y rápidos | Pelusa, diente diminuto |
 | Mono ardilla | Día | Selva, ríos | Grupos grandes y veloces que **rodean** | Pelaje dorado |
-| 🟡 Marteja (mono nocturno) | **Noche** | Selva | Solo de noche, con ojos brillantes. Ataca a quien **no lleva antorcha**. Es una especie colombiana real. | Bigotes de marteja |
+| Marteja (mono nocturno) | **Noche** | Selva | Solo de noche, con ojos brillantes. Ataca a quien **no lleva antorcha**. Es una especie colombiana real. | Bigotes de marteja |
 
 #### Categoría 2: dificultad media
 
 | Especie | Horario | Zona | Mecánica propia | Botín de ejemplo |
 |---|---|---|---|---|
 | Mandril | Día | Selva profunda | Tanque. Su **rugido intimidante** reduce el daño de los jugadores cercanos. | Colmillo de mandril, pelaje colorido |
-| Macaco | **Noche** | Alrededores del Basecamp | Inteligente: **abre cofres y desactiva trampas** simples | Pelaje gris, 🟡 tarjeta de laboratorio (lore) |
+| Macaco | **Noche** | Alrededores del Basecamp | Inteligente: **abre cofres y desactiva trampas** simples | Pelaje gris, tarjeta de laboratorio (lore) |
 | Gibón | Día | Copas de árboles, montañas | **Balanceo** muy rápido entre árboles y ataques en picada | Liana resistente, pelaje |
 | Babuino | **Noche** | Montañas bajas | Tropas grandes con **alfa**: matarlo dispersa la tropa | Colmillo grande, cuero |
 | Mono de cola larga | Día y noche | Playas y manglar | Nada y **roba comida**. Ronda las cajas de suministro. | Concha, pelaje |
@@ -280,12 +287,19 @@ stateDiagram-v2
 
 Son versiones **gigantes y con aspecto distinto** de las especies difíciles. Pegan más, tienen fases y sueltan botín especial. **Cada jefe suelta siempre una pieza de la baliza de rescate.**
 
-| Jefe | Bioma | Mecánicas | Botín especial |
-|---|---|---|---|
-| 🟡 **Gorila de Ceniza** | Volcán | Cargas, lluvia de rocas volcánicas. Se enfurece durante las erupciones. | Núcleo de magma (forja de nivel alto) |
-| 🟡 **Gorila Albino** | Cuevas | Pelea en la oscuridad: apaga antorchas y su rugido hace eco y aturde | Cristal de cueva |
-| 🟡 **Chimpancé Caudillo** | Montañas | Invoca tropas, lanza troncos y ataca desde posiciones elevadas | Corona del caudillo |
-| 🟡 **Orangután del Manglar** | Ríos | Atrapa jugadores en el agua y crece la marea en la arena | Perla del río |
+| Día de aparición | Jefe | Bioma | Mecánicas | Botín especial |
+|---|---|---|---|---|
+| 2, 10, 18… | **Orangután del Manglar** | Ríos | Atrapa jugadores en el agua y crece la marea en la arena | Perla del río |
+| 4, 12, 20… | **Chimpancé Caudillo** | Montañas | Invoca tropas, lanza troncos y ataca desde posiciones elevadas | Corona del caudillo |
+| 6, 14, 22… | **Gorila Albino** | Cuevas | Pelea en la oscuridad: apaga antorchas y su rugido hace eco y aturde | Cristal de cueva |
+| 8, 16, 24… | **Gorila de Ceniza** | Volcán | Cargas, lluvia de rocas volcánicas. Se enfurece durante las erupciones. | Núcleo de magma (forja de nivel alto) |
+
+**Reglas de aparición:**
+
+- Aparece **un jefe cada 2 días**, rotando por los biomas de menor a mayor dificultad. El orden y el intervalo son configurables.
+- El jefe se queda en su guarida **hasta que lo derrotan o hasta que aparece el siguiente**. Así el equipo tiene unos 2 días para prepararse.
+- Si un jefe se escapa, su pieza se puede conseguir en la **siguiente rotación** (8 días después).
+- Las piezas de baliza van al **núcleo compartido**: pertenecen al servidor, no a un jugador.
 
 ---
 
@@ -327,7 +341,11 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 - **Parcela personal:** una tienda o espacio pequeño para cofre, cama y estaciones propias. Solo la modifica su dueño.
 - **Construcción:** por **cuadrícula**, cómoda en móvil y en PC.
 - **Sin recursos dentro**, como en el diseño original: hay que salir a buscarlos.
-- 🟡 **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une a los 20 jugadores en un objetivo común cada noche.
+- **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une a los 20 jugadores en un objetivo común cada noche.
+  - Las oleadas crecen con el número de día y con el número de jugadores.
+  - Las defensas dañadas se reparan de día con recursos.
+  - Si los monos rompen el perímetro, atacan estructuras y jugadores dentro, pero **el nido y la baliza tienen su propia defensa**: es lo último que cae.
+  - La noche del encendido de la baliza es la **noche final** ("La Gran Tropa"), el asedio más fuerte de la partida.
 
 ---
 
@@ -358,7 +376,7 @@ sequenceDiagram
 
 - **Colección persistente.** Se equipa **1 mascota activa** desde el lobby.
 - **Tipos de ayuda:** combate, carga (+inventario), rastreo (detecta recursos y monos), curación y apoyo.
-- **Rarezas:** de común a legendaria. 🟡 Fauna tropical (tucán, guacamaya, tortuga, jaguarundí…) y criaturas "experimentales" legendarias del laboratorio (ver Lore).
+- **Rarezas:** de común a legendaria. Fauna tropical (tucán, guacamaya, tortuga, jaguarundí…) y criaturas "experimentales" legendarias del laboratorio (ver Lore).
 - **Importante:** los huevos **solo se consiguen jugando**, nunca con Robux. Así se evitan las normas de Roblox sobre objetos aleatorios de pago.
 
 ---
@@ -373,11 +391,18 @@ sequenceDiagram
 
 ---
 
-## 13. 🟡 Lore (propuesta)
+## 13. Lore
 
-Hace décadas, un millonario excéntrico construyó en la isla un **santuario-laboratorio privado** con primates de todo el mundo. Eso explica que convivan especies de América, África y Asia. Un experimento salió mal: los primates se volvieron agresivos y carnívoros, y algunos crecieron hasta tamaños imposibles (los jefes). El laboratorio quedó abandonado tras una erupción.
+Hace décadas, un millonario excéntrico construyó en la isla un **santuario-laboratorio privado** con primates de todo el mundo. Eso explica que convivan especies de América, África y Asia. Para alimentarlos plantó enormes cultivos de banano, y la isla acabó conocida como **Banana Island**.
+
+En secreto, el laboratorio desarrolló el **Proyecto PRIMAL**: un suero mezclado en bananas modificadas para hacer a los primates más fuertes e inteligentes. Salió mal. Los primates se volvieron agresivos y carnívoros, y los que comieron más **bananas primales** crecieron hasta tamaños imposibles (los jefes). El laboratorio quedó abandonado tras una erupción del volcán.
 
 Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio del laboratorio. Hay **notas, ruinas y tarjetas de acceso** repartidas por la isla, lo que da pie a **actualizaciones narrativas por temporadas**.
+
+**Ganchos de lore para el juego:**
+- Las **bananas primales** (brillantes) pueden ser un objeto raro: consumible con mejora temporal, ingrediente de crafteo o lo que "despierta" a los jefes.
+- Los **macacos** sueltan tarjetas de laboratorio que abren puertas de ruinas con botín y notas.
+- Las criaturas **experimentales** del laboratorio son las mascotas legendarias de los huevos.
 
 ---
 
@@ -391,20 +416,14 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 
 ---
 
-## 15. Nombre: alternativas
+## 15. Nombre
 
-"Monkey Island" es una franquicia conocida de LucasArts/Disney. Usarla supone riesgo de reclamo o de que Roblox retire el juego. Propuestas:
+**Primal Banana Island: Monkey Survival**
 
-| Nombre | Por qué |
-|---|---|
-| **Howler Isle** | Viene del mono aullador (*howler monkey*). Corto, en inglés (alcance global) y evoca las noches peligrosas. |
-| **Banana Fangs** | Mezcla humor y peligro. Muy memorable para el público joven de Roblox. |
-| **Primal Isle** | Directo y fácil de buscar. Algo genérico. |
-| **The Troop: Island Survival** | Hace referencia a las tropas de monos. Incluye la palabra clave "Survival". |
-| **Isla Primata** | En español, con identidad latina (las especies del Chocó). Menor alcance global. |
-| **Feral Canopy** | Evoca la selva salvaje. Suena más "premium" o serio. |
-
-**Recomendación:** **Howler Isle** o **Banana Fangs**, con un subtítulo con palabra clave para las búsquedas en Roblox (por ejemplo *"Howler Isle: Monkey Survival"*). Antes de decidir conviene buscar el nombre en Roblox y en registros de marcas.
+- **Primal Banana Island** es el título y conecta con el lore (Proyecto PRIMAL y las bananas primales).
+- **Monkey Survival** es el subtítulo con palabras clave, para que el juego aparezca en las búsquedas de Roblox.
+- Evita el riesgo de propiedad intelectual de "Monkey Island" (LucasArts/Disney).
+- **Pendiente antes de publicar:** buscar el nombre en Roblox (que no haya otro juego igual) y en registros de marcas.
 
 ---
 
@@ -415,7 +434,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 | **Alcance enorme** para una sola persona | Construir por fases, con un *vertical slice* jugable antes de producir contenido. Datos de configuración en lugar de código duplicado. |
 | **Rendimiento** (20 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y pruebas en móviles de gama baja. |
 | **Moderación** ("comen carne humana") | Sin sangre ni gore. Derrotas con animaciones estilizadas. La amenaza se transmite con lore y tono. Completar el cuestionario de madurez de contenido. |
-| **Propiedad intelectual** del nombre | Nombre propio antes de publicar (§15). |
+| **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Island* (§15). |
 | **Objetos aleatorios de pago** | Huevos solo por juego. Si algún día se venden, mostrar probabilidades según las normas de Roblox. |
 | **Exploits y trampas** | Servidor autoritativo: todo daño, botín y crafteo se valida en el servidor. |
 | **Griefing** | PvP opt-in, Basecamp seguro, permisos de construcción y núcleo protegido. |
@@ -424,11 +443,9 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 
 ## 17. Preguntas abiertas
 
-1. 🟡 ¿Confirmamos el **asedio nocturno** al Basecamp? Cambia la idea de "zona segura" a "segura mientras resistan las defensas".
-2. 🟡 ¿Incluimos la **fiebre del mono** como mecánica del médico?
-3. 🟡 ¿Adoptamos el **lore del santuario-laboratorio**?
-4. 🟡 ¿Te encaja el **mapeo de jefes por bioma** (§8.2)? ¿Cada cuántos días reaparecen?
-5. 🟡 ¿Añadimos la **marteja** (mono nocturno colombiano) a la categoría 1?
-6. 🟡 ¿**Cajas de suministro** en las playas como zonas de PvP?
-7. ¿**Nombre** final? (§15)
-8. ¿Desde qué día se puede encender la baliza? (propuesta: día 5)
+Las preguntas de la v0.1 están resueltas (ver §2). Quedan detalles para decidir con los playtests:
+
+1. ¿El orden de los jefes es **fijo** (de menor a mayor dificultad, propuesta actual) o **aleatorio** en cada partida?
+2. ¿Nombre final de la moneda? ("Ámbar" es provisional; ¿quizá **Bananas doradas**, por el nombre del juego?)
+3. ¿Qué hacen exactamente las **bananas primales**: mejora temporal, ingrediente o las dos cosas?
+4. Duraciones finales del día y de la noche (se empieza con 10+7 y se ajusta en la Fase 1).
