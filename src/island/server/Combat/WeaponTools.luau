@@ -2,7 +2,6 @@
 -- Construye las armas como Tools de Roblox (greybox): aparecen en la mochila nativa, que ya
 -- funciona como barra rápida en PC (teclas 1-9), móvil (casillas táctiles) y mando.
 
-local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
@@ -143,20 +142,13 @@ function WeaponTools.build(weaponId: string): Tool
 	return tool
 end
 
--- Sonido y animación de uso (visibles para todos los jugadores).
-function WeaponTools.playUse(tool: Tool, weapon: Weapons.WeaponDefinition)
+-- Sonido de uso, audible para todos. La animación del tajo la reproduce el cliente
+-- (WeaponController) para que responda al instante.
+function WeaponTools.playUse(tool: Tool)
 	local handle = tool:FindFirstChild("Handle")
 	local sound = if handle then handle:FindFirstChild("UseSound") else nil
 	if sound and sound:IsA("Sound") then
 		sound:Play()
-	end
-	if weapon.kind == "Melee" then
-		-- El script de animación estándar de Roblox reproduce el tajo al ver este valor.
-		local animation = Instance.new("StringValue")
-		animation.Name = "toolanim"
-		animation.Value = "Slash"
-		animation.Parent = tool
-		Debris:AddItem(animation, 1)
 	end
 end
 

@@ -221,10 +221,10 @@ local function onUseWeapon(player: Player, aim: any)
 	lastAttackAt[player] = now
 
 	if weapon.kind == "Melee" then
-		WeaponTools.playUse(tool, weapon)
+		WeaponTools.playUse(tool)
 		meleeAttack(character, root, weapon)
 	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
-		WeaponTools.playUse(tool, weapon)
+		WeaponTools.playUse(tool)
 		rangedAttack(player, character, root, weapon, aim.Unit)
 	end
 end

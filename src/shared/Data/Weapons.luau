@@ -10,6 +10,7 @@ export type WeaponDefinition = {
 	ammoItemId: string?, -- ítem que gasta cada disparo (ver Data/Items)
 	projectileSpeed: number?, -- studs por segundo
 	aimAssistDegrees: number?, -- ayuda de puntería: ángulo máximo para "enganchar" un enemigo
+	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
 }
 
 local Weapons: { [string]: WeaponDefinition } = {
@@ -19,6 +20,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		damage = 20,
 		cooldownSeconds = 0.6,
 		range = 8,
+		swingAnimationSpeed = 2,
 	},
 	Honda = {
 		name = "Honda",
