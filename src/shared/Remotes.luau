@@ -50,6 +50,10 @@ local Remotes = {
 	Eat = remoteEvent("Eat"),
 	-- Cliente -> servidor (Isla): beber del río (el servidor comprueba que haya agua cerca).
 	Drink = remoteEvent("Drink"),
+	-- Cliente -> servidor (Isla): construir una pieza (id, punto Vector3, giro 0-3).
+	Build = remoteEvent("Build"),
+	-- Cliente -> servidor (Isla): derribar una pieza propia (el Model de la estructura).
+	Demolish = remoteEvent("Demolish"),
 }
 
 return Remotes

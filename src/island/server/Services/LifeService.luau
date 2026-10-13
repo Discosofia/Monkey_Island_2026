@@ -166,7 +166,9 @@ local function respawnSpirit(player: Player)
 		clearVisuals(character)
 		setGhost(character, false)
 		humanoid.Health = humanoid.MaxHealth
-		character:PivotTo(spawnPoint())
+		-- Si tiene cama en su parcela (BuildingService), reaparece junto a ella.
+		local bed = player:GetAttribute("RespawnCFrame")
+		character:PivotTo(if typeof(bed) == "CFrame" then bed else spawnPoint())
 	end
 	player:SetAttribute("SpiritEndsAt", nil)
 	setState(player, "Alive")

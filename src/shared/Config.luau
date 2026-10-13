@@ -134,6 +134,28 @@ local Config = {
 		DodgeStaminaCost = 25,
 	},
 
+	Building = {
+		-- Cuadrícula (studs): las piezas se colocan en múltiplos de esto y giran de 90 en 90 grados.
+		GridSize = 4,
+		-- Distancia máxima del jugador al sitio donde construye o derriba.
+		Reach = 30,
+		-- Núcleo compartido: círculo alrededor del centro del Basecamp donde cualquiera construye.
+		CoreRadius = 40,
+		-- Parcelas personales: cuántas, a qué distancia del centro y de qué tamaño (cuadradas).
+		PlotCount = 20,
+		PlotRingRadius = 62,
+		PlotSize = 13,
+		-- Grados libres a cada lado de los 4 portones, para que las parcelas no tapen los caminos.
+		GateGapDegrees = 18,
+		-- Piezas como máximo por jugador, y parte del coste que se devuelve al derribar.
+		MaxStructuresPerPlayer = 60,
+		RefundFraction = 0.5,
+		-- Margen al comprobar si algo estorba: permite juntar muros en las esquinas.
+		OverlapShrink = 0.6,
+		BuildCooldownSeconds = 0.25,
+		-- Piezas: ver Shared/Data/Buildables.
+	},
+
 	Crafting = {
 		-- Atributo que marca una estación colocada a mano en el mapa ("CraftingStation" = "Workbench",
 		-- "Campfire"…; ver Data/Stations). Si falta la mesa, se crea una en el Basecamp, desplazada así

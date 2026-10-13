@@ -341,7 +341,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 - **Núcleo compartido:** nido, baliza, defensas perimetrales y estaciones grandes. Cualquiera puede aportar recursos, pero solo se puede **desmontar con votación o por el constructor original** (evita el sabotaje).
 - **Parcela personal:** una tienda o espacio pequeño para cofre, cama y estaciones propias. Solo la modifica su dueño.
-- **Construcción:** por **cuadrícula**, cómoda en móvil y en PC.
+- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella al volver de Espíritu). Cada jugador recibe una de 20 parcelas al entrar; al salir se libera y se derriba lo que tenía en ella.
 - **Sin recursos dentro**, como en el diseño original: hay que salir a buscarlos.
 - **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une a los 20 jugadores en un objetivo común cada noche.
   - Las oleadas crecen con el número de día y con el número de jugadores.
