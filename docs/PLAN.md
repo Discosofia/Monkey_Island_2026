@@ -193,7 +193,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 | **2.3** | Estaciones construibles: taller del curandero (ungüento, vendas, antídoto) y forja de piedra (machete afilado, lanza, garrote, armadura de hueso) | ✅ Código listo, falta tu prueba |
 | **2.4** | Capuchino ladrón (roba y huye; se recupera al derrotarlo) y miedo al fuego (antorchas) | ✅ Código listo, falta tu prueba |
 | **2.5** | Asedio nocturno v1: 3 oleadas por noche por los portones, rompen piezas, estacas como trampa, zona de perímetro | ✅ Código listo, falta tu prueba |
-| **2.6** | Fiebre del mono v1 y antídoto | Pendiente |
+| **2.6** | Fiebre del mono v1: mordiscos y carne cruda la suben, vista nublada, daño a 100, antídoto | ✅ Código listo, falta tu prueba |
 | **2.7** | Dificultad por día y derrota del servidor con pantalla de resultados | Pendiente |
 | **2.8** | Guardado de datos (ProfileStore) | Pendiente |
 
@@ -202,7 +202,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 - [x] Estaciones: hoguera, taller del curandero, forja de piedra *(2.1 y 2.3)*
 - [x] Monos ladrones (capuchinos) y miedo al fuego *(2.4)*
 - [x] Asedio nocturno v1: oleadas hacia el Basecamp, muros, trampas y antorchas *(2.5)*
-- [ ] Fiebre del mono v1 (mordiscos → fiebre; antídoto básico)
+- [x] Fiebre del mono v1 (mordiscos → fiebre; antídoto básico) *(2.6)*
 - [ ] Escalado de dificultad por día
 - [ ] Derrota del servidor → pantalla de resultados
 - [ ] **Guardado de datos** con ProfileStore: moneda, récord de días y XP de rol

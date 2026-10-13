@@ -8,6 +8,8 @@
 --   - Beber (Remotes.Drink): el servidor comprueba que haya agua del terreno cerca.
 --   - Al reaparecer tras ser Espíritu, hambre y sed suben al menos a Config.Survival.RespawnMinStat.
 -- La estamina es del cliente (Client/Stamina.luau): solo afecta a correr y esquivar.
+-- Fase 2.6: fiebre del mono ("Fever"). Baja sola muy despacio; a 100 quita vida. Al reaparecer como
+-- Espíritu se cura. Los mordiscos (CombatService) y la carne cruda la suben; el antídoto la quita.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -84,6 +86,22 @@ local function tick(player: Player)
 	warnLow(player, Survival.HUNGER, hunger, "🍖 Tienes hambre: come algo (C o el botón Comer)")
 	warnLow(player, Survival.THIRST, thirst, "💧 Tienes sed: bebe en el río (F o el botón Beber)")
 
+	-- Fiebre: baja despacio; a tope quita vida.
+	local fever = Survival.fever(player)
+	if fever > 0 then
+		Survival.addFever(player, -Config.Fever.DecayPerMinute * minutes)
+	end
+	if fever >= Survival.MAX then
+		starve(player, humanoid, Config.Fever.DamagePerSecondAtMax * TICK_SECONDS)
+	end
+	-- Aviso con fiebre alta (al bajar de 75 se rearma, igual que el de hambre).
+	warnLow(
+		player,
+		Survival.FEVER,
+		Survival.MAX - fever,
+		"🤒 Tienes fiebre del mono: busca un antídoto (taller del curandero)"
+	)
+
 	local empty = (if hunger <= 0 then 1 else 0) + (if thirst <= 0 then 1 else 0)
 	if empty > 0 then
 		starve(player, humanoid, Config.Survival.StarvationDamagePerSecond * TICK_SECONDS * empty)
@@ -115,6 +133,10 @@ local function onEat(player: Player)
 	if food and InventoryService.remove(player, itemId, 1) then
 		setStat(player, Survival.HUNGER, hunger + food.hunger)
 		setStat(player, Survival.THIRST, thirst + food.thirst)
+		if itemId == "Meat" then
+			Survival.addFever(player, Config.Fever.RawMeat)
+			Remotes.Notify:FireClient(player, "🤢 La carne cruda sube la fiebre: mejor asarla en la hoguera")
+		end
 	end
 end
 
@@ -137,6 +159,7 @@ local function onLifeStateChanged(player: Player)
 		local minimum = Config.Survival.RespawnMinStat
 		setStat(player, Survival.HUNGER, math.max(Survival.get(player, Survival.HUNGER), minimum))
 		setStat(player, Survival.THIRST, math.max(Survival.get(player, Survival.THIRST), minimum))
+		player:SetAttribute(Survival.FEVER, 0)
 	end
 	previousState[player] = state
 end

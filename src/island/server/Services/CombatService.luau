@@ -16,6 +16,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
@@ -123,6 +124,8 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
 	end
 	showHit(character, amount)
+	-- Cada mordisco sube la fiebre del mono (Fase 2.6).
+	Survival.addFever(player, Config.Fever.PerBite)
 	if humanoid.Health - amount <= 0 then
 		LifeService.down(player)
 	else

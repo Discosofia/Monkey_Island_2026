@@ -1,9 +1,11 @@
 --!strict
 -- Barras de supervivencia arriba a la izquierda (Fase 2.1): hambre, sed y estamina.
 -- Parpadean en rojo cuando bajan de Config.Survival.LowThreshold.
+-- Fase 2.6: barra de fiebre (solo si tienes) y vista nublada con fiebre alta.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -16,7 +18,7 @@ local BAR_HEIGHT = 16
 local ROW_HEIGHT = 24
 local LOW_COLOR = Color3.fromRGB(235, 70, 60)
 
-type Bar = { fill: Frame, color: Color3, read: () -> number }
+type Bar = { row: Frame, fill: Frame, color: Color3, read: () -> number, inverted: boolean? }
 
 local SurvivalHUDController = {}
 
@@ -50,7 +52,7 @@ local function newBar(parent: Instance, order: number, icon: string, color: Colo
 	fillCorner.CornerRadius = UDim.new(0, 6)
 	fillCorner.Parent = fill
 
-	return { fill = fill, color = color, read = read }
+	return { row = row, fill = fill, color = color, read = read }
 end
 
 function SurvivalHUDController:Start()
@@ -61,7 +63,7 @@ function SurvivalHUDController:Start()
 	column.Name = "Bars"
 	column.BackgroundTransparency = 1
 	column.Position = UDim2.fromOffset(12, 10)
-	column.Size = UDim2.fromOffset(BAR_WIDTH + 30, ROW_HEIGHT * 3 + 8)
+	column.Size = UDim2.fromOffset(BAR_WIDTH + 30, ROW_HEIGHT * 4 + 12)
 	column.Parent = gui
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -79,6 +81,17 @@ function SurvivalHUDController:Start()
 			return Stamina.get() / Stamina.MAX
 		end),
 	}
+	local feverBar = newBar(column, 4, "🤒", Color3.fromRGB(190, 90, 200), function()
+		return Survival.fever(player) / Survival.MAX
+	end)
+	feverBar.inverted = true
+	table.insert(bars, feverBar)
+
+	-- Vista nublada: nada por debajo de Config.Fever.SymptomsAt; al máximo con 100 de fiebre.
+	local blur = Instance.new("BlurEffect")
+	blur.Name = "FeverBlur"
+	blur.Size = 0
+	blur.Parent = Lighting
 
 	local low = Config.Survival.LowThreshold / Survival.MAX
 	RunService.RenderStepped:Connect(function()
@@ -88,8 +101,16 @@ function SurvivalHUDController:Start()
 			local value = math.clamp(bar.read(), 0, 1)
 			bar.fill.Size = UDim2.fromScale(value, 1)
 			bar.fill.Visible = value > 0
-			bar.fill.BackgroundColor3 = if value <= low and blinkOn then LOW_COLOR else bar.color
+			-- La fiebre es al revés: alarma cuando está alta, y solo se ve si tienes.
+			local alarm = if bar.inverted then value >= 1 - low else value <= low
+			bar.fill.BackgroundColor3 = if alarm and blinkOn then LOW_COLOR else bar.color
+			if bar.inverted then
+				bar.row.Visible = value > 0
+			end
 		end
+		local fever = Survival.fever(player)
+		local symptoms = math.clamp((fever - Config.Fever.SymptomsAt) / (Survival.MAX - Config.Fever.SymptomsAt), 0, 1)
+		blur.Size = symptoms * 12
 	end)
 end
 

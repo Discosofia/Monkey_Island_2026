@@ -165,7 +165,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 | Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. |
 
 A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
-| Fiebre del mono | Sube con mordiscos de monos. A tope causa pérdida lenta de vida y visión borrosa. La cura el **médico** con antídotos. |
+| Fiebre del mono | Sube con mordiscos de monos (+6) y con la carne cruda (+12). Desde 50 se nubla la vista; a 100 quita vida poco a poco. Baja sola muy despacio; el **antídoto** del taller del curandero la quita (el médico tendrá ventajas en la Fase 3). |
 
 ### 6.2 Muerte: caído y Espíritu
 

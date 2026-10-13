@@ -160,6 +160,17 @@ local Config = {
 		-- Piezas: ver Shared/Data/Buildables.
 	},
 
+	Fever = {
+		-- Fiebre del mono (GDD §6.1, Fase 2.6), de 0 a 100. La suben los mordiscos y la carne cruda.
+		PerBite = 6,
+		RawMeat = 12,
+		-- Baja sola muy despacio; el antídoto (taller del curandero) la quita de golpe.
+		DecayPerMinute = 2,
+		-- Desde aquí se nubla la vista; a 100 además quita vida.
+		SymptomsAt = 50,
+		DamagePerSecondAtMax = 0.5,
+	},
+
 	Siege = {
 		-- Asedio nocturno (GDD §10, Fase 2.5): oleadas de monos hacia el Basecamp cada noche.
 		FirstWaveDelaySeconds = 30,

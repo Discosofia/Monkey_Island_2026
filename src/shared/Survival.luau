@@ -13,11 +13,24 @@ local Survival = {}
 Survival.MAX = 100
 Survival.HUNGER = "Hunger"
 Survival.THIRST = "Thirst"
+-- Fiebre del mono (Fase 2.6): de 0 (sana) a 100. Al revés que hambre y sed, cuanto más, peor.
+Survival.FEVER = "Fever"
 
 -- Valor actual de "Hunger" o "Thirst". Si aún no existe (al entrar), cuenta como lleno.
 function Survival.get(player: Player, attribute: string): number
 	local value = player:GetAttribute(attribute)
 	return if typeof(value) == "number" then value else Survival.MAX
+end
+
+-- Fiebre actual (0 si no hay).
+function Survival.fever(player: Player): number
+	local value = player:GetAttribute(Survival.FEVER)
+	return if typeof(value) == "number" then value else 0
+end
+
+-- Sube (o baja, con un valor negativo) la fiebre. Solo el servidor debe llamarla.
+function Survival.addFever(player: Player, amount: number)
+	player:SetAttribute(Survival.FEVER, math.clamp(Survival.fever(player) + amount, 0, Survival.MAX))
 end
 
 -- La comida que más aprovecha el jugador ahora (lo que recupera sin pasarse de lleno), o nil si no
