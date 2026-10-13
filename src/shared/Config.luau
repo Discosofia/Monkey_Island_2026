@@ -261,6 +261,36 @@ local Config = {
 		RoleXpPerKill = 2,
 	},
 
+	PvP = {
+		-- PvP opt-in (GDD §12, Fase 5): espera para desactivarlo tras pedirlo en el tótem, y cuánto
+		-- dura el PvP obligatorio al abrir una caja de suministro o cargar el huevo.
+		DisableDelaySeconds = 180,
+		ForcedSeconds = 180,
+		-- Posición del tótem respecto al centro del Basecamp (si el mapa no tiene uno con el atributo
+		-- "PvPTotem").
+		TotemOffset = Vector3.new(0, 0, -32),
+	},
+
+	Supply = {
+		-- Cajas de suministro (Fase 5): llegan a una playa cada IntervalSeconds de día si no hay otra.
+		IntervalSeconds = 300,
+		FirstDelaySeconds = 120,
+		OpenHoldSeconds = 5,
+		ItemsPerCrate = 3,
+		-- Botín posible: { itemId, mín, máx, peso }.
+		Loot = {
+			{ itemId = "ShipMetal", min = 2, max = 4, weight = 5 },
+			{ itemId = "Bandage", min = 2, max = 3, weight = 4 },
+			{ itemId = "Ointment", min = 1, max = 2, weight = 2 },
+			{ itemId = "CookedMeat", min = 2, max = 4, weight = 4 },
+			{ itemId = "Stone", min = 10, max = 20, weight = 3 },
+			{ itemId = "Liana", min = 1, max = 3, weight = 2 },
+			{ itemId = "Leather", min = 1, max = 3, weight = 2 },
+			{ itemId = "Antidote", min = 1, max = 1, weight = 2 },
+			{ itemId = "LabCard", min = 1, max = 1, weight = 1 },
+		},
+	},
+
 	Abilities = {
 		-- Habilidades de los roles (Fase 3; tiempos de espera en Shared/Data/Roles).
 		AreaHealAmount = 30,

@@ -16,6 +16,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
@@ -159,6 +160,63 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 	return true
 end
 
+-- PvP opt-in (GDD §12, Fase 5): ambos con PvP activo y ninguno dentro del Basecamp.
+local function pvpReady(player: Player): boolean
+	return player:GetAttribute("PvP") == true and player:GetAttribute("InBasecamp") ~= true
+end
+
+local function playerFromPart(part: Instance): Player?
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		local owner = Players:GetPlayerFromCharacter(model)
+		if owner then
+			return owner
+		end
+		model = model:FindFirstAncestorOfClass("Model")
+	end
+	return nil
+end
+
+-- Daño de un jugador a otro. Si lo deja caído, cobra su recompensa por cabeza y sube la propia.
+function CombatService.damagePvP(attacker: Player, victim: Player, amount: number): boolean
+	if attacker == victim or not (pvpReady(attacker) and pvpReady(victim)) then
+		return false
+	end
+	if CombatService.isInvulnerable(victim) or not LifeState.isAlive(victim) then
+		return false
+	end
+	local character = victim.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if not (character and humanoid and humanoid.Health > 0) then
+		return false
+	end
+	local armorId = victim:GetAttribute("Armor")
+	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
+	if armor then
+		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
+	end
+	showHit(character, amount)
+	if humanoid.Health - amount > 0 then
+		humanoid:TakeDamage(amount)
+		return true
+	end
+	LifeService.down(victim)
+	local bounty = victim:GetAttribute("Bounty")
+	local collected = if typeof(bounty) == "number" then bounty else 0
+	local own = attacker:GetAttribute("Bounty")
+	attacker:SetAttribute("Bounty", (if typeof(own) == "number" then own else 0) + 1)
+	victim:SetAttribute("Bounty", 0)
+	if collected > 0 then
+		MatchStats.add(attacker, MatchStats.BOUNTIES, collected)
+		Remotes.Notify:FireAllClients(
+			`💰 {attacker.DisplayName} cobra la recompensa de {victim.DisplayName} ({collected})`
+		)
+	else
+		Remotes.Notify:FireClient(attacker, `⚔️ Has derribado a {victim.DisplayName}`)
+	end
+	return true
+end
+
 local function meleeAttack(player: Player, character: Model, root: BasePart, weapon: Weapons.WeaponDefinition)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -167,11 +225,17 @@ local function meleeAttack(player: Player, character: Model, root: BasePart, wea
 	local size = Vector3.new(MELEE_HITBOX.X, MELEE_HITBOX.Y, weapon.range)
 
 	local alreadyHit: { [Model]: boolean } = {}
+	local playersHit: { [Player]: boolean } = {}
 	for _, part in Workspace:GetPartBoundsInBox(box, size, params) do
 		local model, humanoid = enemyFromPart(part)
 		if model and humanoid and not alreadyHit[model] then
 			alreadyHit[model] = true
 			CombatService.damage(model, humanoid, weapon.damage, player)
+		end
+		local victim = playerFromPart(part)
+		if victim and not playersHit[victim] then
+			playersHit[victim] = true
+			CombatService.damagePvP(player, victim, weapon.damage)
 		end
 	end
 end
@@ -235,6 +299,15 @@ local function rangedAttack(
 		endPoint = if result then result.Position else origin + aim * weapon.range
 		if result then
 			targetModel = enemyFromPart(result.Instance)
+			-- Otro jugador con PvP: la piedra le da al llegar.
+			local victim = playerFromPart(result.Instance)
+			if victim then
+				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
+				local damage = math.round(weapon.damage * Progression.perk(player, "RangedDamage"))
+				task.delay(seconds, function()
+					CombatService.damagePvP(player, victim, damage)
+				end)
+			end
 		end
 	end
 
