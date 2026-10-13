@@ -130,7 +130,8 @@ local function fall(model: Model, awayFrom: Vector3, onDone: () -> ())
 		direction = Vector3.xAxis
 	end
 	-- Girar alrededor de (arriba × dirección) inclina la copa hacia "direction".
-	local axis = Vector3.yAxis:Cross(direction.Unit)
+	local unit = direction.Unit
+	local axis = Vector3.new(unit.Z, 0, -unit.X)
 
 	for _, part in partsOf(model) do
 		remember(part)
