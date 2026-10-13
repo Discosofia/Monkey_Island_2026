@@ -13,13 +13,17 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Sounds = require(ReplicatedStorage.Shared.Data.Sounds)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local BossService = require(script.Parent.BossService)
 local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
 local MatchService = require(script.Parent.MatchService)
+local RoleService = require(script.Parent.RoleService)
 local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
+local Hazards = require(script.Parent.Parent.Combat.Hazards)
 
 local DebugService = {}
 
@@ -65,12 +69,18 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	Egg = function()
 		EggService.spawnEgg()
 	end,
+	HatchNow = function(player)
+		if not EggService.hatchNow() then
+			Remotes.Notify:FireClient(player, "Primero lleva un huevo al nido")
+		end
+	end,
 	Crate = function()
 		SupplyService.spawnCrate()
 	end,
 	Pet = function(player)
 		local petId = PetRoll.roll(rng)
 		player:SetAttribute("ActivePet", petId)
+		RoleService.refreshPerks(player)
 		Remotes.Notify:FireClient(player, `🐾 Mascota de prueba: {Pets[petId].icon} {Pets[petId].name}`)
 	end,
 	Rain = function()
@@ -84,6 +94,41 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Eruption = function()
 		WeatherService.erupt()
+	end,
+	Lightning = function(player)
+		local character = player.Character
+		if character then
+			Hazards.lightning((character:GetPivot() * CFrame.new(0, 0, -14)).Position, 0, 5, 1.5)
+			ReplicatedStorage:SetAttribute("LightningAt", Workspace:GetServerTimeNow() + 1.5)
+		end
+	end,
+	LavaBomb = function(player)
+		local character = player.Character
+		if character then
+			local pivot = character:GetPivot()
+			local origin = (pivot * CFrame.new(0, 40, 60)).Position
+			for i = 1, 3 do
+				Hazards.lavaBomb((pivot * CFrame.new((i - 2) * 10, 0, -16)).Position, 0, 7, 1.4 + i * 0.4, origin)
+			end
+		end
+	end,
+	Sounds = function(player)
+		local keys = {}
+		for key in Sounds.Effects do
+			table.insert(keys, key)
+		end
+		table.sort(keys)
+		task.spawn(function()
+			for _, key in keys do
+				local character = player.Character
+				if not character then
+					return
+				end
+				Remotes.Notify:FireClient(player, `🔊 {key}`)
+				Sfx.play(key, character:GetPivot().Position)
+				task.wait(1.6)
+			end
+		end)
 	end,
 	Beacon = function(player)
 		for bossId in Bosses do

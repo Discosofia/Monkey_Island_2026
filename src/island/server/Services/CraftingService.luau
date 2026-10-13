@@ -25,6 +25,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
@@ -322,6 +323,10 @@ local function onCraft(player: Player, recipeId: any)
 		InventoryService.remove(player, cost.itemId, cost.amount)
 	end
 	grant(player, recipeId, recipe)
+	local character = player.Character
+	if character then
+		Sfx.play("Craft", character:GetPivot().Position)
+	end
 	local verb = if recipe.upgrades then "mejorado" else "fabricado"
 	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {recipe.name}`)
 end
@@ -372,6 +377,7 @@ local function onUseHeal(player: Player)
 		return
 	end
 	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + heal * Progression.perk(player, "HealPower"))
+	Sfx.play("Heal", humanoid.Parent or player)
 end
 
 function CraftingService:Start()

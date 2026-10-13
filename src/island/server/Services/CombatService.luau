@@ -13,6 +13,7 @@ local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -119,6 +120,7 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	end
 	humanoid:TakeDamage(amount)
 	showHit(model, amount)
+	Sfx.play("Hit", model.PrimaryPart or model)
 	for _, listener in damageListeners do
 		task.spawn(listener, model, attacker, amount)
 	end
@@ -153,8 +155,10 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 	-- Cada mordisco sube la fiebre del mono (Fase 2.6).
 	Survival.addFever(player, Config.Fever.PerBite)
 	if humanoid.Health - amount <= 0 then
+		Sfx.play("PlayerDown", character.PrimaryPart or character)
 		LifeService.down(player)
 	else
+		Sfx.play("PlayerHurt", character.PrimaryPart or character)
 		humanoid:TakeDamage(amount)
 	end
 	return true

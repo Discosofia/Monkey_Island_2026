@@ -20,6 +20,7 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -265,6 +266,7 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 		model:SetAttribute(Config.Crafting.StationAttribute, definition.station)
 	end
 	model.Parent = structureFolder()
+	Sfx.play("Build", cframe.Position)
 
 	if buildableId == "Bed" then
 		player:SetAttribute("RespawnCFrame", cframe * CFrame.new(0, 3, 0))
@@ -349,6 +351,7 @@ function BuildingService.damageStructure(model: Model, amount: number): boolean
 	end
 	local remaining = health - amount
 	if remaining <= 0 then
+		Sfx.play("StructureBreak", model:GetPivot().Position)
 		removeStructure(model)
 		return true
 	end

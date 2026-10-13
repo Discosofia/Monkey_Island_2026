@@ -28,11 +28,9 @@ local function applyHealth(player: Player, character: Model)
 	humanoid.Health = humanoid.MaxHealth
 end
 
-local function onPlayer(player: Player)
-	local profile = PlayerData.waitFor(player)
-	if not player.Parent then
-		return
-	end
+-- Calcula y publica las ventajas (rol, talentos, mejoras y mascota activa) como atributos "Perk_*".
+local function publishPerks(player: Player): { [string]: number }
+	local profile = PlayerData.get(player)
 	local roleId = Progression.validRole(if profile then profile.selectedRole else nil)
 	local petId = player:GetAttribute("ActivePet")
 	local perks = Progression.computePerks(
@@ -45,6 +43,27 @@ local function onPlayer(player: Player)
 		player:SetAttribute(`Perk_{name}`, value)
 	end
 	player:SetAttribute("Role", roleId)
+	return perks
+end
+
+-- Vuelve a calcular las ventajas a mitad de partida (p. ej. al nacer una mascota del huevo) y
+-- ajusta la vida máxima sin rellenar la vida actual.
+function RoleService.refreshPerks(player: Player)
+	publishPerks(player)
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if humanoid then
+		humanoid.MaxHealth = BASE_HEALTH + Progression.perk(player, "MaxHealth")
+	end
+end
+
+local function onPlayer(player: Player)
+	local profile = PlayerData.waitFor(player)
+	if not player.Parent then
+		return
+	end
+	local perks = publishPerks(player)
+	local roleId = Progression.validRole(if profile then profile.selectedRole else nil)
 
 	local kit = math.floor(perks.StartKit)
 	if kit > 0 then

@@ -191,19 +191,23 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para pr
 1. [ ] Con 🛠️ +50 de todo, construye un **Nido** en el núcleo con el martillo.
 2. [ ] Pulsa **🥚 Huevo**.
    ✅ "¡Ha aparecido un huevo misterioso hacia el …!" y bajo el reloj "🥚 Hay un huevo…".
-3. [ ] Encuéntralo: es una bola blanca que brilla. Mantén pulsado **"Recoger"**.
+3. [ ] Encuéntralo: es un **huevo ovalado** color crema con motas turquesa que brilla. Mantén pulsado **"Recoger"**.
    ✅ Lo llevas sobre la cabeza, vas **más lento**, tienes la etiqueta **⚔️ PvP** y los monos cercanos van a por ti.
 4. [ ] Deja que te tumben.
    ✅ El huevo **cae al suelo** y se puede volver a recoger.
 5. [ ] Llévalo al nido.
-   ✅ "¡El huevo está en el nido! Defendedlo 150 s", llegan monos y bajo el reloj sale la cuenta atrás.
-6. [ ] Espera a que eclosione.
-   ✅ "🐣 ¡Ha nacido tu mascota: …!". Con guardado, la verás en el Lobby (pestaña **Mascotas**).
+   ✅ "¡El huevo está en el nido! Defendedlo 150 s", el huevo queda **en el centro del nido, apoyado en la paja**, llegan monos y bajo el reloj sale la cuenta atrás.
+6. [ ] Espera a que eclosione (o pulsa **🐣 Eclosionar ya**).
+   ✅ La cáscara **revienta en pedazos** con un destello y "🐣 ¡Ha nacido tu mascota: … Ya te acompaña". La mascota **te sigue al instante** y sus ventajas ya cuentan. Si ya llevabas una más rara, se queda la tuya y la nueva te espera en el Lobby.
 
 ## 5.3 Mascotas
 
 1. [ ] **En el Lobby:** pestaña **Mascotas**; con 🛠️ **🥚 Mascota al azar** consigues una sin jugar. Pulsa **Llevar**.
-   ✅ Una bolita con su emoji te sigue flotando.
+   ✅ Te sigue su **modelo propio**, que se mueve a su manera:
+   - **Tucán** (pico naranja enorme) y **guacamaya** (roja con alas amarillas y azules): vuelan batiendo las alas.
+   - **Colibrí**: flota junto a tu hombro con las alas zumbando.
+   - **Rana dardo** (azul con manchas): va a saltos, más altos si corres.
+   - **Tortuga**, **perezoso** (con su hatillo de troncos), **jaguarundí**, **ocelote** (con manchas), **Mono X-7** (casco de cristal y depósito brillante) y **jaguar de cristal** (translúcido, con destellos): andan por el suelo moviendo las patas al correr, y los felinos mueven la cola.
 2. [ ] **En la Isla:** 🛠️ **🐾 Mascota al azar** pone una mascota de prueba.
    - **Combate** (jaguarundí, ocelote, X-7): ✅ los monos cercanos reciben daño cada 2 s.
    - **Rastreo** (tucán, guacamaya): ✅ cada 5 s ves contornos amarillos en los monos cercanos.
@@ -229,10 +233,10 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para pr
 
 1. [ ] Pulsa **🌧️ Lluvia** y sal del Basecamp.
    ✅ Caen gotas, el cielo se oscurece un poco y la **sed sube** sola.
-2. [ ] Pulsa **⛈️ Tormenta**.
-   ✅ Más lluvia y, cada ~20 s, un **rayo** con círculo de aviso y destello.
-3. [ ] Pulsa **🌋 Erupción** estando cerca del volcán.
-   ✅ Aviso, tono rojizo, y caen **bolas de lava** con círculo rojo de aviso durante 1 minuto.
+2. [ ] Pulsa **⛈️ Tormenta** (o **⚡ Rayo cerca de mí** para verlo enseguida; el de prueba no hace daño).
+   ✅ Más lluvia y, cada ~20 s, un círculo amarillo de aviso y luego un **rayo en zigzag** desde el cielo, con ramas y parpadeo, destello, chispas, **trueno** y el suelo chamuscado un rato.
+3. [ ] Pulsa **🌋 Erupción** estando cerca del volcán (o **☄️ Bombas de lava cerca de mí**).
+   ✅ Aviso, tono rojizo, y el cráter escupe **bombas de lava** que vuelan **en arco** con fuego, humo y estela; al caer revientan en chispas y dejan un **charco de lava ardiendo** unos segundos. Antes de cada una sale el círculo rojo de aviso.
 
 ## 6.1 Baliza y victoria
 
@@ -265,8 +269,16 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para pr
 
 ## 6.5 Sonido
 
-1. [ ] Cada aviso suena con un **"ping"** suave.
-2. [ ] Pon un ID de música en `src/shared/Data/Sounds.luau` (por ejemplo, en `Day`).
+1. [ ] Cada aviso suena con un **clic** suave.
+2. [ ] Pulsa **🔊 Probar todos los sonidos**: suenan uno a uno, con su nombre en pantalla.
+3. [ ] Juega un poco y escucha:
+   - **Armas:** el tajo al atacar, el disparo de la honda y el **golpe** al acertar.
+   - **Herramientas:** el hacha contra el árbol, el pico contra la roca, el **árbol al caer**, la roca al romperse y al recoger.
+   - **Animales:** los monos **chillan** al recibir un golpe, gritan al morir, el aullador aúlla, el mandril y el gorila rugen, el capuchino se ríe al robar; los jefes rugen al despertar, al enfurecerse y al morir; tu mascota ataca con un chillido.
+   - **Tú:** quejido al recibir daño, "oof" al caer, al reanimarte, al curarte, al comer y al beber.
+   - **Base:** al construir y cuando los monos destruyen una pieza; al fabricar.
+   > Roblox ya solo trae 11 sonidos de serie: los efectos usan esos con distintos tonos. Los de animales y algunos más son **provisionales**: para que suenen de verdad, pon IDs del Creator Store (ver [LANZAMIENTO.md](LANZAMIENTO.md), Sonido).
+4. [ ] Pon un ID de música en `src/shared/Data/Sounds.luau` (por ejemplo, en `Day`).
    ✅ Suena con fundido; cambia de noche, en el asedio y cerca de un jefe. **M** la silencia.
 
 ---

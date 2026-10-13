@@ -19,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
@@ -217,8 +218,20 @@ function BossService.spawn(bossId: string)
 	end
 	current = boss
 	humanoid.Died:Connect(function()
+		Sfx.play("BossRoar", root.Position)
 		onBossDied(boss)
 	end)
+	local lastHealth = humanoid.Health
+	local lastGruntAt = 0
+	humanoid.HealthChanged:Connect(function(health)
+		local clock = os.clock()
+		if health > 0 and health < lastHealth and clock - lastGruntAt > 1.2 then
+			lastGruntAt = clock
+			Sfx.play("BossHurt", root)
+		end
+		lastHealth = health
+	end)
+	Sfx.play("BossRoar", root)
 	announce(`👑 ¡{definition.name} ha despertado en {BIOME_NAMES[definition.biome] or definition.biome}!`)
 	publish()
 end
@@ -286,7 +299,12 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				local character = if victim then victim.Character else nil
 				local center = if character then character:GetPivot().Position else boss.root.Position
 				local spot = center + Vector3.new(rng:NextNumber(-7, 7), 0, rng:NextNumber(-7, 7))
-				Hazards.fallingRock(spot, math.round(boss.damage * 0.7), 6, color, 1.1 + index * 0.2)
+				if lava then
+					local origin = boss.root.Position + Vector3.new(0, 6, 0)
+					Hazards.lavaBomb(spot, math.round(boss.damage * 0.7), 6, 1.3 + index * 0.2, origin)
+				else
+					Hazards.fallingRock(spot, math.round(boss.damage * 0.7), 6, color, 1.1 + index * 0.2)
+				end
 			end
 		end,
 		charge = function(boss, _special, _target, targetRoot)
@@ -349,6 +367,7 @@ local function updatePhase(boss: ActiveBoss)
 	boss.humanoid.WalkSpeed = boss.definition.walkSpeed * (1 + 0.15 * (phase - 1))
 	boss.damage = math.round(boss.definition.damage * (1 + 0.2 * (phase - 1)))
 	bubble(boss, "😡")
+	Sfx.play("BossRoar", boss.root)
 	announce(`😡 ¡{boss.definition.name} se enfurece! (fase {phase}/3)`)
 	for _, listener in phaseListeners do
 		task.spawn(listener, boss.id, phase)

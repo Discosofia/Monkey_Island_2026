@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatService = require(script.Parent.CombatService)
 
 local PetService = {}
@@ -44,6 +45,7 @@ local function tick(player: Player)
 	if pet.attackDamage then
 		local enemy, enemyHumanoid = nearestEnemy(character:GetPivot().Position)
 		if enemy and enemyHumanoid then
+			Sfx.play("PetAttack", enemy.PrimaryPart or enemy)
 			CombatService.damage(enemy, enemyHumanoid, pet.attackDamage, player)
 		end
 	end

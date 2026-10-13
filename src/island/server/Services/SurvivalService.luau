@@ -19,6 +19,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
@@ -118,6 +119,11 @@ local function tick(player: Player)
 	end
 end
 
+local function soundSource(player: Player): Instance
+	local character = player.Character
+	return if character then character:FindFirstChild("HumanoidRootPart") or character else player
+end
+
 local function onEat(player: Player)
 	if not LifeState.isAlive(player) or not livingHumanoid(player) then
 		return
@@ -135,6 +141,7 @@ local function onEat(player: Player)
 	local food = Items[itemId].food
 	if food and InventoryService.remove(player, itemId, 1) then
 		setStat(player, Survival.HUNGER, hunger + food.hunger)
+		Sfx.play("Eat", soundSource(player))
 		setStat(player, Survival.THIRST, thirst + food.thirst)
 		if itemId == "Meat" then
 			Survival.addFever(player, Config.Fever.RawMeat)
@@ -153,6 +160,7 @@ local function onDrink(player: Player)
 		return
 	end
 	setStat(player, Survival.THIRST, Survival.get(player, Survival.THIRST) + Config.Survival.DrinkThirst)
+	Sfx.play("Drink", root)
 end
 
 -- Al pasar de Espíritu a vivo, hambre y sed no empiezan casi vacías.

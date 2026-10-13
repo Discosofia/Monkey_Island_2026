@@ -4,6 +4,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 
 local WOOD = Color3.fromRGB(110, 72, 40)
@@ -18,10 +19,6 @@ local FANG = Color3.fromRGB(235, 225, 195)
 local FUR = Color3.fromRGB(150, 70, 45)
 local DARK_BARK = Color3.fromRGB(75, 48, 28)
 local LIGHT_WOOD = Color3.fromRGB(175, 130, 80)
-local USE_SOUNDS = {
-	Melee = "rbxasset://sounds/swordslash.wav",
-	Ranged = "rbxasset://sounds/swordlunge.wav",
-}
 
 local WeaponTools = {}
 
@@ -265,12 +262,7 @@ function WeaponTools.build(weaponId: string): Tool
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)
 
-	local handle = builder(tool)
-	local sound = Instance.new("Sound")
-	sound.Name = "UseSound"
-	sound.SoundId = USE_SOUNDS[weapon.kind]
-	sound.Volume = 0.6
-	sound.Parent = handle
+	builder(tool)
 	return tool
 end
 
@@ -278,9 +270,10 @@ end
 -- (WeaponController) para que responda al instante.
 function WeaponTools.playUse(tool: Tool)
 	local handle = tool:FindFirstChild("Handle")
-	local sound = if handle then handle:FindFirstChild("UseSound") else nil
-	if sound and sound:IsA("Sound") then
-		sound:Play()
+	local weaponId = tool:GetAttribute("WeaponId")
+	local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
+	if handle and weapon then
+		Sfx.play(if weapon.kind == "Melee" then "Swing" else "Shoot", handle)
 	end
 end
 

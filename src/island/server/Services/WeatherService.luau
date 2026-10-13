@@ -3,7 +3,8 @@
 --   - Al empezar cada fase se sortea el clima (Config.Weather.Weights): despejado, lluvia o tormenta.
 --     La lluvia quita sed a quien está fuera del Basecamp; la tormenta además lanza rayos.
 --   - Erupción del volcán: a veces al azar, y siempre cuando el Gorila de Ceniza llega a su última
---     fase. Durante un minuto caen bombas de lava (con aviso en el suelo) alrededor del volcán.
+--     fase. Durante un minuto el cráter escupe bombas de lava en arco (con aviso en el suelo)
+--     alrededor del volcán.
 -- El cliente lo dibuja (WeatherController) leyendo ReplicatedStorage: "Weather" y "Eruption".
 
 local Players = game:GetService("Players")
@@ -69,6 +70,8 @@ function WeatherService.erupt()
 	if not center then
 		return
 	end
+	-- La guarida está en el fondo del cráter: las bombas salen por encima del borde.
+	local crater = center + Vector3.new(0, 40, 0)
 	erupting = true
 	ReplicatedStorage:SetAttribute("Eruption", true)
 	announce("🌋 ¡El volcán entra en erupción! Alejaos de sus laderas")
@@ -87,7 +90,7 @@ function WeatherService.erupt()
 					break
 				end
 			end
-			Hazards.fallingRock(target, Config.Weather.LavaBombDamage, 7, Color3.fromRGB(255, 110, 30), 1.3)
+			Hazards.lavaBomb(target, Config.Weather.LavaBombDamage, 7, 1.6, crater)
 			task.wait(Config.Weather.LavaBombEverySeconds)
 		end
 		erupting = false
@@ -140,7 +143,7 @@ local function lightning()
 	end
 	local spot = candidates[rng:NextInteger(1, #candidates)]
 		+ Vector3.new(rng:NextNumber(-15, 15), 0, rng:NextNumber(-15, 15))
-	Hazards.fallingRock(spot, Config.Weather.LightningDamage, 5, Color3.fromRGB(255, 255, 200), 1.5)
+	Hazards.lightning(spot, Config.Weather.LightningDamage, 5, 1.5)
 	ReplicatedStorage:SetAttribute("LightningAt", Workspace:GetServerTimeNow() + 1.5)
 end
 

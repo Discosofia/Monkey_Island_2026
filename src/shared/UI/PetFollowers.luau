@@ -64,17 +64,51 @@ function PetFollowers.start()
 		end
 	end)
 
-	-- Sigue al dueño: detrás y a un lado, flotando un poco.
+	-- Sigue al dueño, detrás y a un lado: las que andan o saltan van por el suelo, las que vuelan
+	-- un poco por encima, y todas mueven sus partes (PetModels.animate).
+	local groundParams = RaycastParams.new()
+	groundParams.FilterType = Enum.RaycastFilterType.Exclude
+	local function groundBelow(position: Vector3, fallback: number): number
+		local ignore: { Instance } = { folder }
+		for _, player in Players:GetPlayers() do
+			if player.Character then
+				table.insert(ignore, player.Character)
+			end
+		end
+		groundParams.FilterDescendantsInstances = ignore
+		local hit = Workspace:Raycast(position + Vector3.new(0, 4, 0), Vector3.new(0, -14, 0), groundParams)
+		return if hit then hit.Position.Y else fallback
+	end
+
 	RunService.RenderStepped:Connect(function(deltaTime: number)
-		local bob = math.sin(os.clock() * 3) * 0.3
+		local now = os.clock()
 		for player, follower in followers do
 			local character = player.Character
 			local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 			if root and root:IsA("BasePart") then
-				local goal = root.CFrame * CFrame.new(2.5, 0.5 + bob, 2.5)
-				local current = follower.model:GetPivot()
+				local model = follower.model
+				local motion = model:GetAttribute("Motion")
+				local height = model:GetAttribute("Height")
+				local velocity = root.AssemblyLinearVelocity
+				local moving = math.clamp(Vector3.new(velocity.X, 0, velocity.Z).Magnitude / 12, 0, 1)
+				local goal: CFrame
+				if motion == "Fly" then
+					goal = root.CFrame * CFrame.new(2.8, 2 + math.sin(now * 3) * 0.4, 2.2)
+				elseif motion == "Hover" then
+					goal = root.CFrame * CFrame.new(1.8, 1.2 + math.sin(now * 5) * 0.25, 1.2)
+				else
+					local beside = root.CFrame * CFrame.new(2.5, 0, 2.5)
+					local floor = groundBelow(beside.Position, root.Position.Y - 3)
+					local lift = if typeof(height) == "number" then height else 0.6
+					if motion == "Hop" then
+						lift += math.abs(math.sin(now * 6)) * (0.15 + moving * 0.8)
+					end
+					goal = beside.Rotation + Vector3.new(beside.X, floor + lift, beside.Z)
+				end
+				local current = model:GetPivot()
 				local alpha = math.clamp(deltaTime * 6, 0, 1)
-				follower.model:PivotTo(current:Lerp(goal, alpha))
+				model:PivotTo(current:Lerp(goal, alpha))
+				PetModels.animate(model, now, moving)
 			end
 		end
 	end)

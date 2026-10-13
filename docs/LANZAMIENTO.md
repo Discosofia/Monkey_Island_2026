@@ -19,6 +19,15 @@ Todo el código del lanzamiento está hecho. Lo que queda son **ajustes en el Cr
 3. Copia el ID de cada pista (botón derecho → *Copiar ID del recurso*) y pégalo en `src/shared/Data/Sounds.luau` con el formato `"rbxassetid://123456789"`.
 4. La tecla **M** silencia la música.
 
+### Efectos de sonido
+
+Los efectos están en `Effects`, en el mismo archivo. Roblox ya solo trae 11 sonidos de serie, así que de momento usan esos con distintos tonos: todo suena, pero los marcados como **Provisional** (sobre todo los animales) quedan mucho mejor con un audio de verdad. Para cambiar uno:
+
+1. En la **Caja de herramientas → Audio**, busca lo que sugiere el comentario: por ejemplo `monkey scream` (MonkeyHurt), `monkey chatter` (MonkeySteal), `gorilla roar` (BossRoar), `wood chop` (Chop), `pickaxe stone` (Mine), `tree falling` (TreeFall), `sword swing` (Swing), `slingshot` (Shoot), `thunder` (Thunder), `lava` o `explosion` (LavaImpact).
+2. Escúchalo y copia su ID (botón derecho → *Copiar ID del recurso*).
+3. Pega el ID en `id = "rbxassetid://123456789"` y pon `pitch = 1` (el tono distinto solo era para disimular los provisionales).
+4. En Studio, el botón **🔊 Probar todos los sonidos** del panel de pruebas los reproduce uno a uno.
+
 ## 3. Tienda cosmética (Robux)
 
 1. **Creator Hub → tu experiencia → Monetización → Pases → Crear pase**.

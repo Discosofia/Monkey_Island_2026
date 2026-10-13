@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
 local InventoryService = require(script.Parent.InventoryService)
@@ -169,6 +170,7 @@ local function collect(state: NodeState, player: Player, amount: number)
 	-- Material extra del recolector y sus talentos.
 	amount += math.floor(Progression.perk(player, "HarvestBonus"))
 	InventoryService.add(player, state.definition.itemId, amount)
+	Sfx.play("Pickup", state.anchor)
 	local extra = state.definition.extra
 	if extra and rng:NextNumber() < extra.chance then
 		InventoryService.add(player, extra.itemId, extra.amount)
@@ -187,6 +189,7 @@ local function collect(state: NodeState, player: Player, amount: number)
 	end
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	Sfx.play(if state.definition.falls then "TreeFall" else "RockBreak", state.anchor.Position)
 	if state.definition.falls and state.instance:IsA("Model") and root and root:IsA("BasePart") then
 		fall(state.instance, root.Position, function()
 			setVisible(state.instance, false)
@@ -285,6 +288,7 @@ function ResourceService.strike(player: Player, root: BasePart, tool: Weapons.To
 	end
 
 	state.lastStrikeAt = os.clock()
+	Sfx.play(if tool.kind == "Axe" then "Chop" else "Mine", state.anchor)
 	-- Potencia extra por talentos; "Recolección frenética" (recolector) la duplica.
 	local power = tool.power + Progression.perk(player, "ToolPower")
 	local frenzyUntil = player:GetAttribute("FrenzyUntil")

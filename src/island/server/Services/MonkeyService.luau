@@ -32,6 +32,7 @@ local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Building = require(ReplicatedStorage.Shared.Building)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local BasecampService = require(script.Parent.BasecampService)
@@ -224,6 +225,7 @@ local function onDied(monkey: Monkey)
 	end
 	monkeys[monkey.model] = nil
 	removeFromGroup(monkey)
+	Sfx.play("MonkeyDeath", monkey.root.Position)
 	-- La espera para recuperar un mono empieza con la primera baja.
 	local group = monkey.group
 	group.nextRegrowAt = math.max(group.nextRegrowAt, os.clock() + Config.Monkeys.GroupRegrowSeconds)
@@ -358,7 +360,16 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	humanoid.Died:Connect(function()
 		onDied(monkey)
 	end)
+	local lastHealth = humanoid.Health
+	local lastCryAt = 0
 	humanoid.HealthChanged:Connect(function(health)
+		-- Chillido al recibir un golpe (como mucho uno cada medio segundo).
+		local now = os.clock()
+		if health > 0 and health < lastHealth and now - lastCryAt > 0.5 then
+			lastCryAt = now
+			Sfx.play("MonkeyHurt", root)
+		end
+		lastHealth = health
 		onHurt(monkey, health)
 	end)
 	return monkey
@@ -452,6 +463,7 @@ end
 local function howl(monkey: Monkey, target: Player)
 	monkey.howled = true
 	showBubble(monkey, "¡AUUU!")
+	Sfx.play("MonkeyHowl", monkey.root)
 	Remotes.Notify:FireClient(target, "🐒 ¡Un aullador está llamando a la tropa!")
 	for _, other in monkeys do
 		local near = (other.root.Position - monkey.root.Position).Magnitude <= Config.Monkeys.HowlRadius
@@ -559,6 +571,7 @@ local function steal(monkey: Monkey, player: Player)
 	monkey.target = nil
 	local item = Items[itemId]
 	showBubble(monkey, `{item.icon} ¡JE JE!`)
+	Sfx.play("MonkeySteal", monkey.root)
 	Remotes.Notify:FireClient(
 		player,
 		`🐒 ¡Un capuchino te ha robado {amount} {item.icon} {item.name}! Atrápalo para recuperarlo`
@@ -570,6 +583,9 @@ function bite(monkey: Monkey, player: Player)
 	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
 	monkey.pounced = false
 	local landed = CombatService.damagePlayer(player, damage)
+	if landed then
+		Sfx.play("MonkeyAttack", monkey.root)
+	end
 	local grab = monkey.definition.grab
 	if landed and grab then
 		player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + grab)
@@ -587,6 +603,7 @@ function pounce(monkey: Monkey, target: Vector3, now: number)
 	monkey.pounced = true
 	monkey.root.AssemblyLinearVelocity = offset.Unit * 55 + Vector3.new(0, 35, 0)
 	showBubble(monkey, "¡IIIH!")
+	Sfx.play("MonkeyAttack", monkey.root)
 end
 
 -- Rugido del mandril: quien lo oye hace menos daño un rato.
@@ -597,6 +614,7 @@ function roar(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 	monkey.roarReadyAt = now + Config.Monkeys.RoarCooldownSeconds
 	showBubble(monkey, "¡GRRRAAH!")
+	Sfx.play("MonkeyRoar", monkey.root)
 	for _, info in infos do
 		if (info.position - monkey.root.Position).Magnitude <= settings.radius then
 			info.player:SetAttribute("IntimidatedUntil", Workspace:GetServerTimeNow() + settings.seconds)
@@ -646,6 +664,8 @@ function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 	monkey.stompReadyAt = now + settings.cooldownSeconds
 	showBubble(monkey, "💥 ¡PUM!")
+	Sfx.play("MonkeyRoar", monkey.root)
+	Sfx.play("RockImpact", monkey.root.Position)
 	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
 	for _, info in infos do
 		if not info.safe and (info.position - monkey.root.Position).Magnitude <= settings.radius then
