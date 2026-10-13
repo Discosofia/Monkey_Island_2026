@@ -371,6 +371,12 @@ local Config = {
 		MaxAttempts = 3,
 		RetryDelaySeconds = 2,
 	},
+
+	Lobby = {
+		-- Etiqueta (CollectionService) de las luces del barco que parpadean como averiadas
+		-- (las pone World/LobbyBuilder; las hace parpadear ShipLightsController en cada cliente).
+		BrokenLightTag = "LuzAveriada",
+	},
 }
 
 return Config

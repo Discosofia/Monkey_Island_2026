@@ -16,12 +16,15 @@
 -- puente de mando, chimenea y radar, contenedores en cubierta y grúa; la pasarela de subida; el
 -- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga, ancla con cadena,
 -- salvavidas y la bitácora del capitán; la lancha de rescate para zarpar (aviso "ZarparPrompt");
+-- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
+-- hace parpadear ShipLightsController en cada cliente);
 -- palmeras; la isla con el volcán en el horizonte; muros invisibles, el punto de aparición y la luz
 -- de atardecer.
 --
 -- ⚠️ Borra la carpeta Workspace.Naufragio, la Baseplate, los SpawnLocation sueltos y el terreno de la
 -- zona antes de construir.
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -33,7 +36,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 2
+local VERSION = 3
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -178,6 +181,12 @@ local function ball(
 ): Part
 	local part = newPart(name, Vector3.one * diameter, CFrame.new(position), color, material, parent)
 	part.Shape = Enum.PartType.Ball
+	return part
+end
+
+-- Luz del barco que parpadea como averiada (ShipLightsController).
+local function broken(part: BasePart): BasePart
+	CollectionService:AddTag(part, Config.Lobby.BrokenLightTag)
 	return part
 end
 
@@ -637,6 +646,9 @@ local function windows(model: Model, from: Vector3, along: Vector3, count: numbe
 			model
 		)
 		decor(pane)
+		if lit then
+			broken(pane)
+		end
 	end
 end
 
@@ -773,20 +785,22 @@ local function buildSuperstructure(model: Model)
 			{ z = 2.6, color = Color3.fromRGB(40, 255, 90) }, -- estribor
 		}
 	do
-		decor(
-			ball(
-				"LuzNavegacion",
-				0.5,
-				Vector3.new(mastX, roof + 5.5, navigation.z),
-				navigation.color,
-				Enum.Material.Neon,
-				model
+		broken(
+			decor(
+				ball(
+					"LuzNavegacion",
+					0.5,
+					Vector3.new(mastX, roof + 5.5, navigation.z),
+					navigation.color,
+					Enum.Material.Neon,
+					model
+				)
 			)
 		)
 	end
 	local topLight =
 		ball("LuzTope", 0.5, Vector3.new(mastX, roof + 7.2, 0), Color3.new(1, 1, 1), Enum.Material.Neon, model)
-	decor(topLight)
+	broken(decor(topLight))
 	light(topLight, Color3.fromRGB(255, 240, 220), 18, 1.5)
 
 	-- Pescante de la lancha, vacío: los cables cuelgan sueltos.
@@ -998,7 +1012,7 @@ local function buildCargo(model: Model)
 	)
 	local mastLight =
 		ball("LuzProa", 0.5, foremast + Vector3.new(0, 11.2, 0), Color3.new(1, 1, 1), Enum.Material.Neon, model)
-	decor(mastLight)
+	broken(decor(mastLight))
 end
 
 -- Caja de madera de la carga; algunas con el sello del Proyecto PRIMAL.
@@ -1080,8 +1094,54 @@ local function buildHold(model: Model)
 		Enum.Material.Neon,
 		model
 	)
-	decor(lamp)
+	broken(decor(lamp))
 	light(lamp, Color3.fromRGB(255, 150, 80), 16, 1.6)
+end
+
+-- Humo que sale de la bodega por el boquete del costado y por la cubierta hundida. Sale hacia
+-- donde mira "cframe" (su -Z); "size" es la boca por la que sale.
+local function smoke(model: Model, name: string, cframe: CFrame, size: Vector3, rate: number, spread: number)
+	local source = newPart(name, size, cframe, IRON, Enum.Material.Metal, model)
+	source.Transparency = 1
+	decor(source)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Humo"
+	emitter.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	emitter.Color = ColorSequence.new(Color3.fromRGB(60, 56, 54), Color3.fromRGB(125, 118, 112))
+	emitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 2.5),
+		NumberSequenceKeypoint.new(1, 14),
+	})
+	emitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.55),
+		NumberSequenceKeypoint.new(0.2, 0.35),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	emitter.Lifetime = NumberRange.new(6, 9)
+	emitter.Rate = rate
+	emitter.Speed = NumberRange.new(2, 4)
+	emitter.SpreadAngle = Vector2.new(spread, spread)
+	emitter.Acceleration = Vector3.new(1.2, 1.4, 0.6)
+	emitter.RotSpeed = NumberRange.new(-15, 15)
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.EmissionDirection = Enum.NormalId.Front
+	emitter.Parent = source
+end
+
+local function buildSmoke(model: Model)
+	-- Por el boquete: sale hacia la playa (+Z) y sube.
+	local breach = hullPoint(-2.4, 2.5, 1)
+	smoke(model, "HumoBoquete", CFrame.lookAt(breach, breach + Vector3.new(0, 1, 1.4)), Vector3.new(6, 3, 1), 5, 25)
+	-- Por la cubierta hundida, más lento y en columna.
+	local hatch = Vector3.new(-2.4, deckHeight(-2.4) - 1, -1)
+	smoke(
+		model,
+		"HumoCubierta",
+		CFrame.lookAt(hatch, hatch + Vector3.yAxis, Vector3.zAxis),
+		Vector3.new(4, 6, 1),
+		3,
+		12
+	)
 end
 
 -- Vacía de arena el interior del casco (el banco de arena se generó también por dentro).
@@ -1108,6 +1168,7 @@ local function buildShip(parent: Instance): Model
 	buildSuperstructure(model)
 	buildCargo(model)
 	buildHold(model)
+	buildSmoke(model)
 	local origin = newPart("Pivote", Vector3.one, CFrame.new(), IRON, Enum.Material.Metal, model)
 	origin.Transparency = 1
 	decor(origin)
@@ -1341,14 +1402,17 @@ local function buildCamp(parent: Instance)
 		decor(link)
 	end
 
-	-- Bitácora del capitán en un tablero clavado en la arena, con su lámpara de emergencia.
-	local boardAt = groundAt(-6, 30)
-	local boardFrame = CFrame.lookAt(boardAt + Vector3.new(0, 4.2, 0), boardAt + Vector3.new(4, 4.2, 14))
-	for _, dx in { -3, 3 } do
+	-- Bitácora del capitán: un tablero grande clavado en la arena, a la derecha de la llegada y de
+	-- cara a ella (con la isla detrás), con su lámpara de emergencia.
+	local boardAt = groundAt(30, -2)
+	local spawnAt = groundAt(4, 34)
+	local boardFrame =
+		CFrame.lookAt(boardAt + Vector3.new(0, 6.2, 0), Vector3.new(spawnAt.X, boardAt.Y + 6.2, spawnAt.Z))
+	for _, dx in { -6, 6 } do
 		newPart(
 			"PosteTablon",
-			Vector3.new(0.6, 6.5, 0.6),
-			boardFrame * CFrame.new(dx, -1, 0.2),
+			Vector3.new(0.9, 12, 0.9),
+			boardFrame * CFrame.new(dx, -0.7, 0.45),
 			DARK_WOOD,
 			Enum.Material.Wood,
 			camp
@@ -1356,7 +1420,7 @@ local function buildCamp(parent: Instance)
 	end
 	local board = newPart(
 		"BitacoraDelCapitan",
-		Vector3.new(7.5, 5, 0.4),
+		Vector3.new(14, 9, 0.5),
 		boardFrame,
 		Color3.fromRGB(205, 175, 125),
 		Enum.Material.WoodPlanks,
@@ -1365,14 +1429,14 @@ local function buildCamp(parent: Instance)
 	sign(board, Enum.NormalId.Front, LOG_TEXT, Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
 	local lamp = newPart(
 		"LamparaTablon",
-		Vector3.new(0.9, 0.5, 0.5),
-		boardFrame * CFrame.new(3.4, 2.8, -0.5),
+		Vector3.new(1.2, 0.6, 0.6),
+		boardFrame * CFrame.new(6.2, 5, -0.6),
 		LANTERN_LIGHT,
 		Enum.Material.Neon,
 		camp
 	)
 	decor(lamp)
-	light(lamp, LANTERN_LIGHT, 14, 1.5)
+	light(lamp, LANTERN_LIGHT, 22, 2)
 	-- Salvavidas del barco colgado de un poste junto a la llegada.
 	local ringPost = groundAt(10, 32)
 	newPart(
