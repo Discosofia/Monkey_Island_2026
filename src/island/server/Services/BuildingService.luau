@@ -239,6 +239,10 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 	model:SetAttribute("Zone", zone)
 	model:SetAttribute("Health", definition.health)
 	model:SetAttribute("MaxHealth", definition.health)
+	if definition.station then
+		-- CraftingService ve la pieza nueva en la carpeta y le pone su aviso.
+		model:SetAttribute(Config.Crafting.StationAttribute, definition.station)
+	end
 	model.Parent = structureFolder()
 
 	if buildableId == "Bed" then

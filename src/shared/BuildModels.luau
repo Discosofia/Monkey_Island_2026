@@ -124,6 +124,91 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			Enum.Material.Fabric
 		)
 	end,
+	-- Tienda de lona sobre postes, con una mesa baja y hierbas colgando.
+	HealerTent = function(model, size)
+		local bottom = -size.Y / 2
+		for _, x in { -1, 1 } do
+			for _, z in { -1, 1 } do
+				newPart(
+					model,
+					"Pole",
+					Vector3.new(0.4, size.Y - 0.5, 0.4),
+					CFrame.new(x * (size.X / 2 - 0.3), bottom + (size.Y - 0.5) / 2, z * (size.Z / 2 - 0.3)),
+					DARK_WOOD,
+					Enum.Material.Wood
+				)
+			end
+		end
+		for _, side in { -1, 1 } do
+			newPart(
+				model,
+				"Canvas",
+				Vector3.new(size.X + 0.4, 0.2, size.Z / 2 + 1),
+				CFrame.new(0, size.Y / 2 - 0.9, side * size.Z / 4) * CFrame.Angles(side * math.rad(-25), 0, 0),
+				Color3.fromRGB(215, 205, 175),
+				Enum.Material.Fabric
+			)
+		end
+		newPart(
+			model,
+			"Table",
+			Vector3.new(size.X - 2, 0.4, 2),
+			CFrame.new(0, bottom + 2.2, 0),
+			WOOD,
+			Enum.Material.Wood
+		)
+		for i = -1, 1 do
+			newPart(
+				model,
+				"Herbs",
+				Vector3.new(0.6, 1, 0.6),
+				CFrame.new(i * 2, size.Y / 2 - 2, 0),
+				Color3.fromRGB(80, 160, 70),
+				Enum.Material.Grass
+			)
+		end
+	end,
+	-- Horno de piedra con brasas y un yunque de roca al lado.
+	StoneForge = function(model, size)
+		local bottom = -size.Y / 2
+		newPart(
+			model,
+			"Furnace",
+			Vector3.new(size.X - 2, size.Y - 1, size.Z - 1.5),
+			CFrame.new(-1, bottom + (size.Y - 1) / 2, 0),
+			STONE_DARK,
+			Enum.Material.Cobblestone
+		)
+		local embers = newPart(
+			model,
+			"Embers",
+			Vector3.new(1.5, 1, size.Z - 2.5),
+			CFrame.new(size.X / 2 - 2.6, bottom + 1.2, 0),
+			Color3.fromRGB(255, 120, 40),
+			Enum.Material.Neon
+		)
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 140, 60)
+		light.Range = 16
+		light.Brightness = 2
+		light.Parent = embers
+		newPart(
+			model,
+			"Chimney",
+			Vector3.new(1.4, 2, 1.4),
+			CFrame.new(-1.5, size.Y / 2 - 0.5, 0),
+			STONE,
+			Enum.Material.Slate
+		)
+		newPart(
+			model,
+			"Anvil",
+			Vector3.new(1.2, 1.6, 2),
+			CFrame.new(size.X / 2 - 0.6, bottom + 0.8, size.Z / 2 - 1.2),
+			STONE,
+			Enum.Material.Slate
+		)
+	end,
 }
 
 -- Crea la pieza con su centro en el origen. Hay que moverla con PivotTo.

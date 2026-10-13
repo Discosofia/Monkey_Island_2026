@@ -76,6 +76,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		loot = {
 			{ itemId = "RedFur", chance = 0.7, min = 1, max = 1 },
 			{ itemId = "SmallFang", chance = 0.3, min = 1, max = 1 },
+			{ itemId = "Bone", chance = 0.4, min = 1, max = 1 },
 			{ itemId = "Meat", chance = 0.6, min = 1, max = 2 },
 		},
 	},

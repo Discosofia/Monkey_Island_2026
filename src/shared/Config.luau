@@ -166,8 +166,7 @@ local Config = {
 		-- Distancia máxima (studs) a una estación para abrirla y fabricar.
 		UseDistance = 10,
 		CraftCooldownSeconds = 0.4,
-		-- Vendas (Data/Recipes): vida que curan y espera entre una y otra.
-		BandageHeal = 30,
+		-- Espera entre dos curaciones (vendas, ungüentos, antídotos). Lo que cura cada una: Data/Items.
 		BandageCooldownSeconds = 3,
 		-- Recetas: ver Shared/Data/Recipes.
 	},

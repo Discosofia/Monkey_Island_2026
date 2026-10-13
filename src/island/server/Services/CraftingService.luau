@@ -7,7 +7,8 @@
 --   - El servidor valida cada fabricación: vivo, cerca de su estación, materiales y que no la tenga ya.
 --   - Las herramientas fabricadas van a StarterGear: no se pierden al reaparecer.
 --   - Una mejora (receta con "upgrades") sustituye a la herramienta vieja, también si está en la mano.
---   - También gestiona el chaleco (armadura) y el uso de las vendas.
+--   - Las estaciones construidas con el martillo (taller del curandero, forja) se activan al momento.
+--   - También gestiona la armadura y el uso de curaciones (vendas, ungüentos, antídotos).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,8 +16,10 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
+local Building = require(ReplicatedStorage.Shared.Building)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
+local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
@@ -187,6 +190,15 @@ local function addStation(stationId: string, instance: Instance)
 	table.insert(stations, { stationId = stationId, anchor = anchor })
 end
 
+-- Quita las estaciones de una pieza derribada o rota.
+local function removeStationsIn(instance: Instance)
+	for index = #stations, 1, -1 do
+		if stations[index].anchor:IsDescendantOf(instance) then
+			table.remove(stations, index)
+		end
+	end
+end
+
 local function hasStation(stationId: string): boolean
 	for _, station in stations do
 		if station.stationId == stationId then
@@ -219,8 +231,13 @@ local function wearArmor(player: Player, character: Model)
 		return
 	end
 	local torso = character:WaitForChild("UpperTorso", 5) or character:FindFirstChild("Torso")
-	if not (torso and torso:IsA("BasePart")) or character:FindFirstChild("ArmorPiece") then
+	if not (torso and torso:IsA("BasePart")) then
 		return
+	end
+	-- Una armadura nueva sustituye a la anterior.
+	local previous = character:FindFirstChild("ArmorPiece")
+	if previous then
+		previous:Destroy()
 	end
 	local piece = Instance.new("Part")
 	piece.Name = "ArmorPiece"
@@ -308,28 +325,57 @@ local function onCraft(player: Player, recipeId: any)
 	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {recipe.name}`)
 end
 
-local function onUseBandage(player: Player)
-	if not LifeState.isAlive(player) then
+-- La curación que mejor encaja: la más pequeña que cubre la vida que falta, o si ninguna llega,
+-- la más grande. Así no se gasta un ungüento para 5 puntos de vida.
+local function bestHealItem(player: Player, missing: number): string?
+	local bestId: string? = nil
+	local bestHeal = 0
+	for itemId, item in Items do
+		local heal = item.heal
+		if heal and Inventory.count(player, itemId) > 0 then
+			local covers = heal >= missing
+			local bestCovers = bestHeal >= missing
+			local better = if covers and bestCovers then heal < bestHeal else heal > bestHeal
+			if bestId == nil or better then
+				bestId = itemId
+				bestHeal = heal
+			end
+		end
+	end
+	return bestId
+end
+
+local function onUseHeal(player: Player)
+	if not LifeState.isAlive(player) or not canBandage(player) then
 		return
 	end
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	if not humanoid or humanoid.Health <= 0 or humanoid.Health >= humanoid.MaxHealth then
+	if not humanoid or humanoid.Health <= 0 then
 		return
 	end
-	if not canBandage(player) then
+	-- Con fiebre alta y un antídoto, el antídoto va primero (FeverService, entrega 2.6).
+	local fever = player:GetAttribute("Fever")
+	if typeof(fever) == "number" and fever > 0 and InventoryService.remove(player, "Antidote", 1) then
+		player:SetAttribute("Fever", 0)
+		Remotes.Notify:FireClient(player, "💉 La fiebre ha bajado")
 		return
 	end
-	if not InventoryService.remove(player, "Bandage", 1) then
-		Remotes.Notify:FireClient(player, `No tienes {Items.Bandage.name}s: fabrícalas en la mesa de trabajo`)
+	if humanoid.Health >= humanoid.MaxHealth then
 		return
 	end
-	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + Config.Crafting.BandageHeal)
+	local itemId = bestHealItem(player, humanoid.MaxHealth - humanoid.Health)
+	local heal = if itemId then Items[itemId].heal else nil
+	if not (itemId and heal) or not InventoryService.remove(player, itemId, 1) then
+		Remotes.Notify:FireClient(player, "No tienes con qué curarte: vendas o ungüentos")
+		return
+	end
+	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + heal)
 end
 
 function CraftingService:Start()
 	Remotes.Craft.OnServerEvent:Connect(onCraft)
-	Remotes.UseBandage.OnServerEvent:Connect(onUseBandage)
+	Remotes.UseBandage.OnServerEvent:Connect(onUseHeal)
 
 	for _, instance in Workspace:GetDescendants() do
 		local stationId = instance:GetAttribute(Config.Crafting.StationAttribute)
@@ -345,6 +391,18 @@ function CraftingService:Start()
 		addStation("Campfire", if mapCampfire then mapCampfire else buildCampfire())
 	end
 	print(`[CraftingService] {#stations} estaciones de crafteo listas.`)
+
+	-- Estaciones construidas durante la partida (BuildingService).
+	task.spawn(function()
+		local folder = Workspace:WaitForChild(Building.STRUCTURES_FOLDER)
+		folder.ChildAdded:Connect(function(child)
+			local stationId = child:GetAttribute(Config.Crafting.StationAttribute)
+			if typeof(stationId) == "string" then
+				addStation(stationId, child)
+			end
+		end)
+		folder.ChildRemoved:Connect(removeStationsIn)
+	end)
 
 	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function(character)

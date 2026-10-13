@@ -237,6 +237,9 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 }
 
+-- El machete afilado usa el mismo modelo que el machete.
+BUILDERS.SharpMachete = BUILDERS.Machete
+
 function WeaponTools.build(weaponId: string): Tool
 	local weapon = Weapons[weaponId]
 	local builder = BUILDERS[weaponId]

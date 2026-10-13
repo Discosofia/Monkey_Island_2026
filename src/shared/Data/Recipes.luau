@@ -65,11 +65,11 @@ local Recipes: { [string]: Recipe } = {
 		upgrades = "WoodenPick",
 	},
 	Spear = {
-		station = "Workbench",
+		station = "Forge",
 		name = "Lanza de colmillo",
 		icon = "🔱",
 		description = "Mucho alcance: golpea antes de que el mono te alcance.",
-		order = 5,
+		order = 41,
 		cost = {
 			{ itemId = "Wood", amount = 5 },
 			{ itemId = "Fiber", amount = 3 },
@@ -78,11 +78,11 @@ local Recipes: { [string]: Recipe } = {
 		weaponId = "Spear",
 	},
 	Club = {
-		station = "Workbench",
+		station = "Forge",
 		name = "Garrote con colmillos",
 		icon = "🏏",
 		description = "Lento pero muy fuerte.",
-		order = 6,
+		order = 42,
 		cost = {
 			{ itemId = "Wood", amount = 6 },
 			{ itemId = "SmallFang", amount = 3 },
@@ -123,6 +123,73 @@ local Recipes: { [string]: Recipe } = {
 		cost = { { itemId = "Meat", amount = 1 }, { itemId = "Banana", amount = 2 } },
 		itemId = "Skewer",
 		amount = 1,
+	},
+	-- Taller del curandero (Fase 2.3).
+	Ointment = {
+		station = "Healer",
+		name = "Ungüento",
+		icon = "🧴",
+		description = "Cura 70 de vida. Se usa con Curar (H).",
+		order = 30,
+		cost = {
+			{ itemId = "Fiber", amount = 2 },
+			{ itemId = "GoldenFur", amount = 1 },
+			{ itemId = "Banana", amount = 1 },
+		},
+		itemId = "Ointment",
+		amount = 1,
+	},
+	HealerBandages = {
+		station = "Healer",
+		name = "Vendas (×3)",
+		icon = "➕",
+		description = "Tres vendas por menos fibra que en la mesa.",
+		order = 31,
+		cost = { { itemId = "Fiber", amount = 6 } },
+		itemId = "Bandage",
+		amount = 3,
+	},
+	Antidote = {
+		station = "Healer",
+		name = "Antídoto",
+		icon = "💉",
+		description = "Cura la fiebre del mono. Se usa con Curar (H) cuando tienes fiebre.",
+		order = 32,
+		cost = {
+			{ itemId = "Fiber", amount = 2 },
+			{ itemId = "RedFur", amount = 1 },
+			{ itemId = "Coconut", amount = 1 },
+		},
+		itemId = "Antidote",
+		amount = 1,
+	},
+	-- Forja de piedra (Fase 2.3): equipo de hueso y colmillo.
+	SharpMachete = {
+		station = "Forge",
+		name = "Machete afilado",
+		icon = "🗡️",
+		description = "Mejora el machete: 28 de daño y algo más rápido.",
+		order = 40,
+		cost = {
+			{ itemId = "Stone", amount = 6 },
+			{ itemId = "Bone", amount = 2 },
+			{ itemId = "Wood", amount = 2 },
+		},
+		weaponId = "SharpMachete",
+		upgrades = "Machete",
+	},
+	BoneArmor = {
+		station = "Forge",
+		name = "Armadura de hueso",
+		icon = "🦴",
+		description = "Los monos te hacen un 40 % menos de daño. Sustituye al chaleco.",
+		order = 43,
+		cost = {
+			{ itemId = "Bone", amount = 6 },
+			{ itemId = "RedFur", amount = 4 },
+			{ itemId = "Fiber", amount = 4 },
+		},
+		armorId = "BoneArmor",
 	},
 }
 

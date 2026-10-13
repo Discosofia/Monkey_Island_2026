@@ -16,6 +16,13 @@ local Armor: { [string]: ArmorDefinition } = {
 		color = Color3.fromRGB(150, 70, 45),
 		material = Enum.Material.Fabric,
 	},
+	-- Fase 2.3 (forja de piedra).
+	BoneArmor = {
+		name = "Armadura de hueso",
+		damageReduction = 0.4,
+		color = Color3.fromRGB(225, 215, 190),
+		material = Enum.Material.Slate,
+	},
 }
 
 return Armor

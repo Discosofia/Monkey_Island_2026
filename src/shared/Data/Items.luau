@@ -3,6 +3,7 @@
 -- Fase 2.1: comida.
 -- "order" decide el orden en el HUD del inventario; "alwaysShow" lo muestra aunque tengas 0.
 -- "food" hace que se pueda comer (C, cruceta izquierda o el botón "Comer"): cuánto recupera.
+-- "heal" hace que se pueda usar para curarse (H, cruceta arriba o el botón "Curar"): vida que da.
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.
 
 export type ItemDefinition = {
@@ -11,6 +12,7 @@ export type ItemDefinition = {
 	order: number,
 	alwaysShow: boolean?,
 	food: FoodDefinition?,
+	heal: number?,
 }
 
 export type FoodDefinition = {
@@ -26,11 +28,15 @@ local Items: { [string]: ItemDefinition } = {
 	RedFur = { name = "Pelaje rojo", icon = "🐾", order = 5 },
 	GoldenFur = { name = "Pelaje dorado", icon = "✨", order = 6 },
 	SmallFang = { name = "Colmillo", icon = "🔺", order = 7 },
-	Bandage = { name = "Venda", icon = "➕", order = 8 },
+	Bandage = { name = "Venda", icon = "➕", order = 8, heal = 30 },
 	CookedMeat = { name = "Carne asada", icon = "🍖", order = 9, food = { hunger = 35, thirst = 0 } },
 	Banana = { name = "Plátano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
 	Skewer = { name = "Brocheta", icon = "🍢", order = 11, food = { hunger = 60, thirst = 5 } },
 	Coconut = { name = "Coco", icon = "🥥", order = 12, food = { hunger = 5, thirst = 25 } },
+	-- Fase 2.3: botín de hueso y productos del taller del curandero.
+	Bone = { name = "Hueso", icon = "🦴", order = 13 },
+	Ointment = { name = "Ungüento", icon = "🧴", order = 14, heal = 70 },
+	Antidote = { name = "Antídoto", icon = "💉", order = 15 },
 }
 
 return Items

@@ -44,7 +44,7 @@ local Remotes = {
 	SpiritMark = remoteEvent("SpiritMark"),
 	-- Cliente -> servidor (Isla): fabricar una receta en la mesa de trabajo (id de Data/Recipes).
 	Craft = remoteEvent("Craft"),
-	-- Cliente -> servidor (Isla): usar una venda para curarse.
+	-- Cliente -> servidor (Isla): curarse (el servidor elige venda, ungüento o antídoto).
 	UseBandage = remoteEvent("UseBandage"),
 	-- Cliente -> servidor (Isla): comer la mejor comida que lleve el jugador.
 	Eat = remoteEvent("Eat"),

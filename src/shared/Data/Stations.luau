@@ -11,6 +11,9 @@ export type StationDefinition = {
 local Stations: { [string]: StationDefinition } = {
 	Workbench = { name = "Mesa de trabajo", icon = "🔨", actionText = "Usar" },
 	Campfire = { name = "Hoguera", icon = "🔥", actionText = "Cocinar" },
+	-- Fase 2.3: se construyen con el martillo en el núcleo del Basecamp (Data/Buildables).
+	Healer = { name = "Taller del curandero", icon = "🌿", actionText = "Usar" },
+	Forge = { name = "Forja de piedra", icon = "⚒️", actionText = "Forjar" },
 }
 
 return Stations

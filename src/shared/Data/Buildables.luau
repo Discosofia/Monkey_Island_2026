@@ -16,6 +16,7 @@ export type Buildable = {
 	health: number,
 	zones: { Core: boolean?, Plot: boolean? },
 	maxPerPlayer: number?, -- límite de esta pieza por jugador (nil = sin límite propio)
+	station: string?, -- si es una estación de crafteo (Data/Stations), su id
 }
 
 local Buildables: { [string]: Buildable } = {
@@ -59,6 +60,33 @@ local Buildables: { [string]: Buildable } = {
 		health = 100,
 		zones = { Plot = true },
 		maxPerPlayer = 1,
+	},
+	-- Estaciones (Fase 2.3): se construyen en el núcleo y las usa todo el equipo.
+	HealerTent = {
+		name = "Taller del curandero",
+		icon = "🌿",
+		description = "Estación: ungüentos, vendas y antídotos.",
+		order = 5,
+		size = Vector3.new(8, 6, 6),
+		cost = {
+			{ itemId = "Wood", amount = 10 },
+			{ itemId = "Fiber", amount = 8 },
+			{ itemId = "RedFur", amount = 2 },
+		},
+		health = 300,
+		zones = { Core = true },
+		station = "Healer",
+	},
+	StoneForge = {
+		name = "Forja de piedra",
+		icon = "⚒️",
+		description = "Estación: equipo de hueso y colmillo.",
+		order = 6,
+		size = Vector3.new(6, 5, 6),
+		cost = { { itemId = "Stone", amount = 20 }, { itemId = "Wood", amount = 6 } },
+		health = 500,
+		zones = { Core = true },
+		station = "Forge",
 	},
 }
 

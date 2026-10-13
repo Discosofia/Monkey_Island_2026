@@ -31,6 +31,15 @@ local Weapons: { [string]: WeaponDefinition } = {
 		range = 8,
 		swingAnimationSpeed = 2,
 	},
+	-- Fase 2.3: mejora del machete en la forja de piedra.
+	SharpMachete = {
+		name = "Machete afilado",
+		kind = "Melee",
+		damage = 28,
+		cooldownSeconds = 0.55,
+		range = 8.5,
+		swingAnimationSpeed = 2,
+	},
 	Honda = {
 		name = "Honda",
 		kind = "Ranged",
