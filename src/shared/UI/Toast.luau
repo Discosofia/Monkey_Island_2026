@@ -2,6 +2,9 @@
 -- Muestra mensajes cortos en la parte superior de la pantalla (solo cliente).
 
 local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
+
+local Sounds = require(script.Parent.Parent.Data.Sounds)
 
 local DISPLAY_SECONDS = 4
 
@@ -54,10 +57,23 @@ local function getLabel(): TextLabel
 	return text
 end
 
+-- Un "ping" suave con cada aviso (Fase 6).
+local function playSound()
+	local sound = Instance.new("Sound")
+	sound.SoundId = Sounds.Notify
+	sound.Volume = Sounds.NotifyVolume
+	sound.Parent = SoundService
+	sound.Ended:Connect(function()
+		sound:Destroy()
+	end)
+	sound:Play()
+end
+
 function Toast.show(message: string)
 	local text = getLabel()
 	text.Text = message
 	text.Visible = true
+	playSound()
 
 	showCount += 1
 	local thisShow = showCount
