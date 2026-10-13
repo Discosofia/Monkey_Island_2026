@@ -7,10 +7,12 @@
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
 local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -26,7 +28,7 @@ local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
-local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Grupo", "Diario", "Ranking" }
+local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Estilo", "Grupo", "Diario", "Ranking" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -292,6 +294,37 @@ function LobbyUIController:Start()
 		end
 	end
 
+	-- Cosméticos de pago (Robux): solo aspecto, nunca ventaja.
+	local function renderStyle(data: Progression.ProgressData)
+		note(list, "🎨 Solo cambian tu aspecto. Uno equipado por tipo", 0)
+		for index, cosmeticId in
+			sortedKeys(Cosmetics, function(cosmetic)
+				return cosmetic.order
+			end)
+		do
+			local cosmetic = Cosmetics[cosmeticId]
+			local owned = player:GetAttribute(`Cosmetic_{cosmeticId}`) == true
+			local equipped = data.cosmetics[cosmetic.kind] == cosmeticId
+			local row = newRow(list, index)
+			row.title.Text = `{cosmetic.icon} {cosmetic.name}`
+			row.title.TextColor3 = cosmetic.color
+			row.detail.Text = cosmetic.description
+			if owned then
+				setButton(row.button, if equipped then "Quitar" else "Equipar", true)
+				row.button.MouseButton1Click:Connect(function()
+					Remotes.EquipCosmetic:FireServer(cosmeticId)
+				end)
+			elseif cosmetic.gamePassId == 0 then
+				setButton(row.button, "Próximamente", false)
+			else
+				setButton(row.button, "Comprar", true)
+				row.button.MouseButton1Click:Connect(function()
+					MarketplaceService:PromptGamePassPurchase(player, cosmetic.gamePassId)
+				end)
+			end
+		end
+	end
+
 	-- Clasificaciones globales (las publica LeaderboardService cada pocos minutos).
 	local function renderRanking()
 		local order = 0
@@ -383,6 +416,8 @@ function LobbyUIController:Start()
 			renderShop(data)
 		elseif currentTab == "Mascotas" then
 			renderPets(data)
+		elseif currentTab == "Estilo" then
+			renderStyle(data)
 		elseif currentTab == "Ranking" then
 			renderRanking()
 		elseif currentTab == "Diario" then

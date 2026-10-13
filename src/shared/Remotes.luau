@@ -76,6 +76,8 @@ local Remotes = {
 	SelectPet = remoteEvent("SelectPet"),
 	-- Cliente -> servidor (Isla): paso del tutorial alcanzado (número), para la analítica.
 	TutorialStep = remoteEvent("TutorialStep"),
+	-- Cliente -> servidor (Lobby e Isla): equipar o quitar un cosmético (id de Data/Cosmetics).
+	EquipCosmetic = remoteEvent("EquipCosmetic"),
 	-- Cliente -> servidor (Isla): el tutorial se ha completado.
 	TutorialDone = remoteEvent("TutorialDone"),
 }

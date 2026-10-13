@@ -33,6 +33,7 @@ export type Profile = {
 	bestiary: { [string]: number }, -- monos derrotados por especie (diario de campo, Fase 4)
 	activePet: string, -- mascota que lleva ("" = ninguna; Fase 5)
 	rescues: number, -- partidas ganadas con la baliza (Fase 6)
+	cosmetics: { [string]: string }, -- cosmético equipado por tipo (Trail, Title, Aura; Fase 6)
 }
 
 type Session = {
@@ -62,6 +63,7 @@ local function defaultProfile(): Profile
 		bestiary = {},
 		activePet = "",
 		rescues = 0,
+		cosmetics = {},
 	}
 end
 
@@ -114,6 +116,7 @@ local function publish(player: Player, profile: Profile)
 			tutorialDone = profile.tutorialDone,
 			bestiary = profile.bestiary,
 			pets = profile.pets,
+			cosmetics = profile.cosmetics,
 		})
 	)
 end

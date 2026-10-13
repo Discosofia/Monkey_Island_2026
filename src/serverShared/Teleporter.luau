@@ -84,7 +84,13 @@ TeleportService.TeleportInitFailed:Connect(function(player: Player, result: Enum
 end)
 
 -- Devuelve true si el viaje empezó. destinationName se usa en los mensajes al jugador.
-function Teleporter.send(players: { Player }, placeId: number, destinationName: string): boolean
+-- "options" (opcional) permite, por ejemplo, ir a un servidor reservado (servidores privados).
+function Teleporter.send(
+	players: { Player },
+	placeId: number,
+	destinationName: string,
+	options: TeleportOptions?
+): boolean
 	if placeId == 0 then
 		warn(`[Teleporter] Config.PlaceIds no tiene el ID de {destinationName}. Ver docs/SETUP.md.`)
 		notify(players, `Falta configurar el ID de {destinationName} (ver docs/SETUP.md).`)
@@ -106,7 +112,7 @@ function Teleporter.send(players: { Player }, placeId: number, destinationName: 
 	notify(players, `Viajando a {destinationName}...`)
 	for attempt = 1, Config.Teleport.MaxAttempts do
 		local ok, err = pcall(function()
-			TeleportService:TeleportAsync(placeId, players)
+			TeleportService:TeleportAsync(placeId, players, options)
 		end)
 		if ok then
 			return true

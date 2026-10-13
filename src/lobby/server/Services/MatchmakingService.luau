@@ -7,10 +7,13 @@
 --     que también se entra en partidas ya empezadas.
 --   - Antes de viajar se guarda el perfil (rol elegido, compras) para que la Isla lo lea.
 -- Para la interfaz se publican los atributos "PartyLeader" (UserId) y "PartyMembers" (nombres).
+-- Fase 6, servidores privados: si este Lobby es un servidor privado, todos sus jugadores van a la misma
+-- Isla reservada (nadie de fuera puede entrar en ella).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local TeleportService = game:GetService("TeleportService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -19,6 +22,28 @@ local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 
 local MatchmakingService = {}
+
+local reservedCode: string? = nil
+
+-- Opciones de viaje: en un Lobby privado, la Isla reservada para él (se crea la primera vez).
+local function travelOptions(): TeleportOptions?
+	if game.PrivateServerId == "" or game.PrivateServerOwnerId == 0 then
+		return nil
+	end
+	if not reservedCode then
+		local ok, code = pcall(function()
+			return (TeleportService:ReserveServer(Config.PlaceIds.Island))
+		end)
+		if not ok then
+			warn(`[Matchmaking] No se pudo reservar la Isla privada: {code}`)
+			return nil
+		end
+		reservedCode = code
+	end
+	local options = Instance.new("TeleportOptions")
+	options.ReservedServerAccessCode = reservedCode :: string
+	return options
+end
 
 -- Grupos por líder; y el líder de cada miembro.
 local parties: { [Player]: { Player } } = {}
@@ -164,7 +189,7 @@ local function onJoinIsland(player: Player)
 	while pending > 0 and os.clock() - started < 8 do
 		task.wait(0.1)
 	end
-	Teleporter.send(travellers, Config.PlaceIds.Island, "la Isla")
+	Teleporter.send(travellers, Config.PlaceIds.Island, "la Isla", travelOptions())
 end
 
 function MatchmakingService:Start()

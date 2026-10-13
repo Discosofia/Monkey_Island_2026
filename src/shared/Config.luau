@@ -360,6 +360,11 @@ local Config = {
 		LogSeconds = 120,
 	},
 
+	Cosmetics = {
+		-- En Studio, los cosméticos sin Game Pass (ID 0) se pueden probar gratis.
+		FreeInStudio = true,
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,
