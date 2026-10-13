@@ -105,7 +105,8 @@ local function refreshRow(player: Player, row: Row)
 	row.cost.Text = costText(player, row.recipe)
 	local owned = Crafting.isUnique(row.recipe) and Crafting.isOwned(player, row.recipeId)
 	local ready = not owned and Crafting.canAfford(player, row.recipe)
-	row.button.Text = if owned then "Ya la tienes" elseif ready then "Fabricar" else "Faltan"
+	local action = if row.recipe.upgrades then "Mejorar" else "Fabricar"
+	row.button.Text = if owned then "Ya la tienes" elseif ready then action else "Faltan"
 	row.button.BackgroundColor3 = if ready then READY_COLOR else BLOCKED_COLOR
 	row.button.TextColor3 = if ready then Color3.fromRGB(40, 25, 5) else Color3.fromRGB(200, 200, 200)
 	row.button.Active = ready

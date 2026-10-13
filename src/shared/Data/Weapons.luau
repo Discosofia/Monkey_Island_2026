@@ -12,8 +12,14 @@ export type WeaponDefinition = {
 	projectileSpeed: number?, -- studs por segundo
 	aimAssistDegrees: number?, -- ayuda de puntería: ángulo máximo para "enganchar" un enemigo
 	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
-	-- Recolección extra mientras la llevas (equipada o en la mochila): { Tree = 1 } = +1 madera por tala.
-	harvestBonus: { [string]: number }?,
+	-- Herramienta de recolección (hacha, pico): golpeando un árbol o una roca con ella equipada.
+	tool: ToolDefinition?,
+}
+
+export type ToolDefinition = {
+	kind: string, -- "Axe" o "Pick": qué recursos trabaja (ver Data/ResourceNodes)
+	power: number, -- progreso por golpe; más potencia = menos golpes por recolección
+	bonus: number, -- material extra en cada recolección
 }
 
 local Weapons: { [string]: WeaponDefinition } = {
@@ -35,6 +41,24 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectileSpeed = 140,
 		aimAssistDegrees = 12,
 	},
+	WoodenAxe = {
+		name = "Hacha de madera",
+		kind = "Melee",
+		damage = 10,
+		cooldownSeconds = 0.7,
+		range = 8,
+		swingAnimationSpeed = 2,
+		tool = { kind = "Axe", power = 1, bonus = 0 },
+	},
+	WoodenPick = {
+		name = "Pico de madera",
+		kind = "Melee",
+		damage = 9,
+		cooldownSeconds = 0.7,
+		range = 8,
+		swingAnimationSpeed = 2,
+		tool = { kind = "Pick", power = 1, bonus = 0 },
+	},
 	Torch = {
 		name = "Antorcha",
 		kind = "Melee",
@@ -50,7 +74,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		cooldownSeconds = 0.7,
 		range = 8,
 		swingAnimationSpeed = 2,
-		harvestBonus = { Tree = 1 },
+		tool = { kind = "Axe", power = 2, bonus = 1 },
 	},
 	StonePick = {
 		name = "Pico de piedra",
@@ -59,7 +83,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		cooldownSeconds = 0.7,
 		range = 8,
 		swingAnimationSpeed = 2,
-		harvestBonus = { Rock = 1 },
+		tool = { kind = "Pick", power = 2, bonus = 1 },
 	},
 	Spear = {
 		name = "Lanza de colmillo",

@@ -1,10 +1,12 @@
 --!strict
--- Caído → reanimación → Espíritu → reaparición al amanecer (GDD §6.2, Fase 1.5).
+-- Caído → reanimación → Espíritu → reaparición (GDD §6.2, Fase 1.5).
 --
 --   - Un golpe mortal no mata: el jugador queda Caído (se arrastra, no ataca ni recolecta).
 --   - Un aliado lo reanima manteniendo pulsado su aviso "Reanimar".
 --   - Si nadie llega a tiempo, deja una mochila con parte de sus materiales y pasa a Espíritu:
---     no recibe daño, puede marcar enemigos y recursos, y reaparece en el Basecamp al amanecer.
+--     no recibe daño y puede marcar enemigos y recursos.
+--   - El Espíritu reaparece en el Basecamp tras un tiempo que crece con cada caída del día
+--     (Config.Life.SpiritSeconds…), o al amanecer si llega antes.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -29,6 +31,10 @@ local LifeService = {}
 
 -- Cambia con cada caída: así un temporizador viejo no convierte en Espíritu a quien ya se levantó.
 local downedToken: { [Player]: number } = {}
+-- Igual para los Espíritus: una reaparición vieja no afecta a una muerte nueva.
+local spiritToken: { [Player]: number } = {}
+-- Veces que cada jugador ha pasado a Espíritu desde el último amanecer.
+local deathsToday: { [Player]: number } = {}
 local lastMarkAt: { [Player]: number } = {}
 local backpacks: Folder? = nil
 
@@ -150,6 +156,23 @@ local function dropBackpack(player: Player, position: Vector3)
 	end)
 end
 
+local function respawnSpirit(player: Player)
+	if LifeState.get(player) ~= "Spirit" then
+		return
+	end
+	spiritToken[player] = (spiritToken[player] or 0) + 1
+	local character, humanoid = characterParts(player)
+	if character and humanoid then
+		clearVisuals(character)
+		setGhost(character, false)
+		humanoid.Health = humanoid.MaxHealth
+		character:PivotTo(spawnPoint())
+	end
+	player:SetAttribute("SpiritEndsAt", nil)
+	setState(player, "Alive")
+	Remotes.Notify:FireClient(player, "☀️ Has vuelto a la vida en el Basecamp")
+end
+
 local function becomeSpirit(player: Player)
 	local character, humanoid, root = characterParts(player)
 	if not (character and humanoid and root) then
@@ -160,8 +183,24 @@ local function becomeSpirit(player: Player)
 	restoreMovement(humanoid)
 	humanoid.Health = humanoid.MaxHealth
 	setGhost(character, true)
+
+	local deaths = (deathsToday[player] or 0) + 1
+	deathsToday[player] = deaths
+	local seconds = math.min(
+		Config.Life.SpiritSeconds + (deaths - 1) * Config.Life.SpiritExtraSecondsPerDeath,
+		Config.Life.SpiritMaxSeconds
+	)
+	player:SetAttribute("SpiritEndsAt", Workspace:GetServerTimeNow() + seconds)
 	setState(player, "Spirit")
-	Remotes.Notify:FireClient(player, "👻 Eres un Espíritu. Reaparecerás al amanecer en el Basecamp.")
+	Remotes.Notify:FireClient(player, `👻 Eres un Espíritu. Reaparecerás en el Basecamp en {seconds} s.`)
+
+	local token = (spiritToken[player] or 0) + 1
+	spiritToken[player] = token
+	task.delay(seconds, function()
+		if spiritToken[player] == token then
+			respawnSpirit(player)
+		end
+	end)
 end
 
 local function revive(player: Player, rescuer: Player)
@@ -245,19 +284,11 @@ function LifeService.down(player: Player)
 	end)
 end
 
-local function respawnSpirits()
+-- Al amanecer reaparecen todos los Espíritus y se reinicia la cuenta de caídas del día.
+local function onDawn()
+	table.clear(deathsToday)
 	for _, player in Players:GetPlayers() do
-		if LifeState.get(player) == "Spirit" then
-			local character, humanoid = characterParts(player)
-			if character and humanoid then
-				clearVisuals(character)
-				setGhost(character, false)
-				humanoid.Health = humanoid.MaxHealth
-				character:PivotTo(spawnPoint())
-			end
-			setState(player, "Alive")
-			Remotes.Notify:FireClient(player, "☀️ Has vuelto a la vida en el Basecamp")
-		end
+		respawnSpirit(player)
 	end
 end
 
@@ -316,7 +347,7 @@ end
 function LifeService:Init()
 	DayNightService.onPhaseStarted(function(_day: number, phase: MatchState.Phase)
 		if phase == "Day" then
-			respawnSpirits()
+			onDawn()
 		end
 	end)
 end
@@ -341,6 +372,8 @@ function LifeService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		downedToken[player] = nil
+		spiritToken[player] = nil
+		deathsToday[player] = nil
 		lastMarkAt[player] = nil
 		-- Sus mochilas ya no las puede recoger nadie.
 		for _, bag in folder:GetChildren() do

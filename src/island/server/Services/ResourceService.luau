@@ -1,8 +1,11 @@
 --!strict
--- Puntos de recolección de la isla: árboles, rocas y arbustos (GDD §7, Fase 1.2).
--- Cualquier Model o Part del mapa con el atributo "ResourceNode" = "Tree" | "Rock" | "Bush"
--- se convierte en un punto de recolección (ver docs/MAPA.md). Se recolecta manteniendo pulsado
--- (E en PC, tocar en móvil). Tras varios usos se agota y reaparece pasado un tiempo.
+-- Puntos de recolección de la isla: árboles, rocas, arbustos y helechos (GDD §7).
+-- Cualquier Model o Part del mapa con el atributo "ResourceNode" = "Tree" | "Rock" | "Bush" | "Fern"
+-- se convierte en un punto de recolección (ver docs/MAPA.md). Dos formas (Data/ResourceNodes):
+--   - Árboles y rocas: se golpean con el hacha o el pico equipados (CombatService llama a strike).
+--     Una barra muestra el progreso; la herramienta mejor necesita menos golpes y da más.
+--   - Arbustos y helechos: se mantiene pulsado el aviso (E en PC, tocar en móvil).
+-- Tras varios usos el punto se agota y reaparece pasado un tiempo.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,17 +25,24 @@ local DISTANCE_TOLERANCE = 4
 local TEST_NODE_TYPES =
 	{ "Tree", "Rock", "Bush", "Tree", "Bush", "Tree", "Rock", "Bush", "Tree", "Rock", "Bush", "Tree" }
 
+-- Los golpes deben venir de delante del jugador (coseno del ángulo máximo, unos 70°).
+local FACING_DOT = 0.35
+
 type NodeState = {
 	instance: Instance,
-	typeId: string,
 	definition: ResourceNodes.NodeDefinition,
-	prompt: ProximityPrompt,
+	anchor: BasePart,
+	prompt: ProximityPrompt?,
 	usesLeft: number,
+	progress: number,
+	progressBar: BillboardGui?,
+	lastStrikeAt: number,
 }
 
 local ResourceService = {}
 
 local lastHarvestAt: { [Player]: number } = {}
+local toolNodes: { NodeState } = {}
 
 local function partsOf(instance: Instance): { BasePart }
 	local parts = {}
@@ -81,67 +91,140 @@ local function canHarvest(state: NodeState, player: Player): boolean
 
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-	local anchor = state.prompt.Parent
-	if not (root and root:IsA("BasePart") and anchor and anchor:IsA("BasePart")) then
+	if not (root and root:IsA("BasePart")) then
 		return false
 	end
-	local distance = (root.Position - anchor.Position).Magnitude
-	if distance > state.prompt.MaxActivationDistance + DISTANCE_TOLERANCE then
+	local distance = (root.Position - state.anchor.Position).Magnitude
+	if distance > Config.Resources.HarvestDistance + DISTANCE_TOLERANCE then
 		return false
 	end
 
 	-- Evita recolectar más rápido de lo que permite mantener pulsado (clientes modificados).
 	local now = os.clock()
 	local last = lastHarvestAt[player]
-	if last and now - last < state.definition.holdSeconds * 0.8 then
+	if last and now - last < (state.definition.holdSeconds or 0) * 0.8 then
 		return false
 	end
 	lastHarvestAt[player] = now
 	return true
 end
 
--- Extra por herramienta (hacha, pico…): la mejor que lleve, equipada o en la mochila.
-local function toolBonus(player: Player, typeId: string): number
-	local tools: { Instance } = {}
-	-- El personaje (herramienta equipada) y la mochila; cualquiera de los dos puede faltar.
-	for _, container: Instance? in { player.Character :: Instance?, player:FindFirstChildOfClass("Backpack") } do
-		if container then
-			for _, child in container:GetChildren() do
-				table.insert(tools, child)
-			end
-		end
-	end
-	local best = 0
-	for _, tool in tools do
-		local weaponId = if tool:IsA("Tool") then tool:GetAttribute("WeaponId") else nil
-		local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
-		local bonus = if weapon and weapon.harvestBonus then weapon.harvestBonus[typeId] else nil
-		if bonus and bonus > best then
-			best = bonus
-		end
-	end
-	return best
-end
-
-local function harvest(state: NodeState, player: Player)
-	if not canHarvest(state, player) then
-		return
-	end
-
-	local amount = state.definition.amount + toolBonus(player, state.typeId)
+-- Da el material y, si el punto se agota, lo oculta hasta que reaparece.
+local function collect(state: NodeState, player: Player, amount: number)
 	InventoryService.add(player, state.definition.itemId, amount)
 	state.usesLeft -= 1
 	if state.usesLeft > 0 then
 		return
 	end
 
-	state.prompt.Enabled = false
+	state.progress = 0
+	if state.prompt then
+		state.prompt.Enabled = false
+	end
+	if state.progressBar then
+		state.progressBar.Parent = nil
+	end
 	setVisible(state.instance, false)
 	task.delay(state.definition.respawnSeconds, function()
 		state.usesLeft = state.definition.uses
 		setVisible(state.instance, true)
-		state.prompt.Enabled = true
+		if state.prompt then
+			state.prompt.Enabled = true
+		end
 	end)
+end
+
+local function harvest(state: NodeState, player: Player)
+	if canHarvest(state, player) then
+		collect(state, player, state.definition.amount)
+	end
+end
+
+-- Barra de progreso sobre el árbol o la roca. Se oculta sola tras unos segundos sin golpes.
+local function newProgressBar(): BillboardGui
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "HarvestProgress"
+	billboard.Size = UDim2.fromOffset(110, 12)
+	billboard.StudsOffset = Vector3.new(0, 4, 0)
+	billboard.AlwaysOnTop = true
+	billboard.MaxDistance = 60
+	local back = Instance.new("Frame")
+	back.Name = "Back"
+	back.Size = UDim2.fromScale(1, 1)
+	back.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	back.BackgroundTransparency = 0.3
+	back.Parent = billboard
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.BackgroundColor3 = Color3.fromRGB(242, 178, 36)
+	fill.BorderSizePixel = 0
+	fill.Parent = back
+	return billboard
+end
+
+local function showProgress(state: NodeState)
+	local billboard = state.progressBar or newProgressBar()
+	state.progressBar = billboard
+	local fill = (billboard :: any).Back.Fill :: Frame
+	fill.Size = UDim2.fromScale(math.clamp(state.progress / (state.definition.toughness or 1), 0, 1), 1)
+	billboard.Parent = state.anchor
+
+	local strikeAt = state.lastStrikeAt
+	task.delay(Config.Resources.ProgressBarSeconds, function()
+		if state.lastStrikeAt == strikeAt then
+			billboard.Parent = nil
+		end
+	end)
+end
+
+-- Distancia horizontal desde una posición hasta la superficie de la pieza (0 si está encima).
+local function surfaceOffset(part: BasePart, position: Vector3): Vector3
+	local localPosition = part.CFrame:PointToObjectSpace(position)
+	local half = part.Size / 2
+	local closest = Vector3.new(
+		math.clamp(localPosition.X, -half.X, half.X),
+		math.clamp(localPosition.Y, -half.Y, half.Y),
+		math.clamp(localPosition.Z, -half.Z, half.Z)
+	)
+	local offset = part.CFrame:PointToWorldSpace(closest) - position
+	return Vector3.new(offset.X, 0, offset.Z)
+end
+
+-- Golpe con una herramienta equipada (hacha, pico). Lo llama CombatService al usar el arma.
+-- Trabaja el árbol o la roca más cercano que el jugador tenga delante y al alcance.
+function ResourceService.strike(player: Player, root: BasePart, tool: Weapons.ToolDefinition)
+	if not LifeState.isAlive(player) then
+		return
+	end
+	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
+	local best: NodeState? = nil
+	local bestDistance = Config.Resources.ToolReach
+	for _, state in toolNodes do
+		if state.definition.tool == tool.kind and state.usesLeft > 0 then
+			local offset = surfaceOffset(state.anchor, root.Position)
+			local distance = offset.Magnitude
+			local facing = distance < 1.5 or look:Dot(offset.Unit) >= FACING_DOT
+			if distance <= bestDistance and facing then
+				best = state
+				bestDistance = distance
+			end
+		end
+	end
+	local state = best
+	if not state then
+		return
+	end
+
+	state.lastStrikeAt = os.clock()
+	state.progress += tool.power
+	local toughness = state.definition.toughness or 1
+	if state.progress >= toughness then
+		state.progress -= toughness
+		collect(state, player, state.definition.amount + tool.bonus)
+	end
+	if state.usesLeft > 0 then
+		showProgress(state)
+	end
 end
 
 local function register(instance: Instance): boolean
@@ -157,22 +240,31 @@ local function register(instance: Instance): boolean
 		return false
 	end
 
+	local state: NodeState = {
+		instance = instance,
+		definition = definition,
+		anchor = anchor,
+		prompt = nil,
+		usesLeft = definition.uses,
+		progress = 0,
+		progressBar = nil,
+		lastStrikeAt = 0,
+	}
+	if definition.tool then
+		-- Árboles y rocas: sin aviso, se golpean con la herramienta.
+		table.insert(toolNodes, state)
+		return true
+	end
+
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "HarvestPrompt"
 	prompt.ActionText = definition.actionText
 	prompt.ObjectText = definition.name
-	prompt.HoldDuration = definition.holdSeconds
+	prompt.HoldDuration = definition.holdSeconds or 1
 	prompt.MaxActivationDistance = Config.Resources.HarvestDistance
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = anchor
-
-	local state: NodeState = {
-		instance = instance,
-		typeId = typeId :: string,
-		definition = definition,
-		prompt = prompt,
-		usesLeft = definition.uses,
-	}
+	state.prompt = prompt
 	prompt.Triggered:Connect(function(player: Player)
 		harvest(state, player)
 	end)

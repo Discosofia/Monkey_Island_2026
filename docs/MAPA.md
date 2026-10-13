@@ -88,7 +88,8 @@ Cualquier **Model** o **Part** con este atributo se convierte en un punto de rec
 | `ResourceNode` | string | `Bush` | 🌿 Fibra |
 | `ResourceNode` | string | `Fern` | 🌿 Fibra (menos que un arbusto) |
 
-- En un **Model**, el aviso de recolección aparece sobre su `PrimaryPart` (o sobre su primera pieza si no tiene).
+- **Árboles y rocas** se trabajan golpeándolos con el **hacha** o el **pico** equipados. Los **arbustos y helechos** se recogen con el aviso (E o tocar).
+- En un **Model**, el aviso y la barra de progreso aparecen sobre su `PrimaryPart` (o sobre su primera pieza si no tiene). El alcance del hacha y el pico se mide desde esa pieza: en un árbol grande, usa como `PrimaryPart` el tronco o una pieza invisible en su base.
 - Pon los puntos **fuera** del Basecamp: dentro no debe haber recursos (GDD §10).
 - Los tiempos, cantidades y usos se ajustan en `src/shared/Data/ResourceNodes.luau`.
 - Si el valor está mal escrito (por ejemplo `tree` en minúsculas), la Salida avisa: *"ResourceNode = … no es un tipo válido"*.

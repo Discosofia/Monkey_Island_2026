@@ -81,24 +81,26 @@ function LifeController:Start()
 		local state = LifeState.get(player)
 		setMarking(state == "Spirit")
 		banner.Visible = state ~= "Alive"
-		if state == "Spirit" then
-			banner.Text = "👻 Eres un Espíritu: reapareces al amanecer · F / Marcar para señalar enemigos"
-			banner.TextColor3 = Color3.fromRGB(170, 225, 255)
-		end
 	end
 	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(refresh)
 	refresh()
 
-	-- Cuenta atrás mientras está caído.
+	local function secondsUntil(attribute: string): number
+		local endsAt = player:GetAttribute(attribute)
+		return if typeof(endsAt) == "number" then math.max(0, math.ceil(endsAt - Workspace:GetServerTimeNow())) else 0
+	end
+
+	-- Cuenta atrás mientras está caído o es Espíritu.
 	task.spawn(function()
 		while gui.Parent do
-			if LifeState.get(player) == "Downed" then
-				local endsAt = player:GetAttribute("DownedEndsAt")
-				local remaining = if typeof(endsAt) == "number"
-					then math.max(0, math.ceil(endsAt - Workspace:GetServerTimeNow()))
-					else 0
-				banner.Text = `🆘 Has caído: un aliado puede reanimarte ({remaining} s)`
+			local state = LifeState.get(player)
+			if state == "Downed" then
+				banner.Text = `🆘 Has caído: un aliado puede reanimarte ({secondsUntil("DownedEndsAt")} s)`
 				banner.TextColor3 = Color3.fromRGB(255, 120, 110)
+			elseif state == "Spirit" then
+				banner.Text =
+					`👻 Eres un Espíritu: reapareces en {secondsUntil("SpiritEndsAt")} s · F / Marcar para señalar enemigos`
+				banner.TextColor3 = Color3.fromRGB(170, 225, 255)
 			end
 			task.wait(0.25)
 		end

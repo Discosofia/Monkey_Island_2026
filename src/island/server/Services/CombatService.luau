@@ -19,6 +19,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
+local ResourceService = require(script.Parent.ResourceService)
 local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
@@ -260,6 +261,10 @@ local function onUseWeapon(player: Player, aim: any)
 	if weapon.kind == "Melee" then
 		WeaponTools.playUse(tool)
 		meleeAttack(player, character, root, weapon)
+		-- El hacha y el pico, además de golpear enemigos, trabajan el árbol o la roca de delante.
+		if weapon.tool then
+			ResourceService.strike(player, root, weapon.tool)
+		end
 	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
 		WeaponTools.playUse(tool)
 		rangedAttack(player, character, root, weapon, aim.Unit)

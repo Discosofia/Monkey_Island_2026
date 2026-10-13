@@ -37,8 +37,12 @@ local Config = {
 	},
 
 	Resources = {
-		-- Distancia máxima (studs) para recolectar de un árbol, roca o arbusto.
+		-- Distancia máxima (studs) para recolectar de un arbusto o helecho (con el aviso E).
 		HarvestDistance = 10,
+		-- Alcance del hacha y el pico: distancia desde la superficie del árbol o la roca.
+		ToolReach = 5.5,
+		-- Segundos que se ve la barra de progreso tras el último golpe.
+		ProgressBarSeconds = 3,
 		-- Si el mapa no tiene puntos de recolección, se crean unos de prueba alrededor del Basecamp.
 		SpawnTestNodesIfNone = true,
 		TestNodeRingRadius = 100,
@@ -49,7 +53,7 @@ local Config = {
 		-- Solo se puede dañar a lo que tenga esta etiqueta (CollectionService): monos y muñecos.
 		EnemyTag = "Enemy",
 		-- Armas con las que aparece cada jugador (ver Shared/Data/Weapons).
-		StarterWeapons = { "Machete", "Honda" },
+		StarterWeapons = { "Machete", "Honda", "WoodenAxe", "WoodenPick" },
 		DodgeCooldownSeconds = 1.2,
 		DodgeSpeed = 55,
 		DodgeDurationSeconds = 0.15,
@@ -74,12 +78,21 @@ local Config = {
 		HowlReinforcementCount = 2,
 		-- Segundos que tarda en desvanecerse un mono derrotado.
 		CorpseSeconds = 1.5,
+		-- Los grupos con bajas recuperan un mono cada GroupRegrowSeconds mientras su especie esté
+		-- activa, siempre que no haya jugadores a menos de RegrowMinPlayerDistance de su zona.
+		GroupRegrowSeconds = 45,
+		RegrowMinPlayerDistance = 120,
 		-- Especies (vida, daño, botín…): ver Shared/Data/Monkeys.
 	},
 
 	Life = {
 		-- Segundos caído antes de pasar a Espíritu si nadie te reanima.
 		DownedSeconds = 60,
+		-- Tiempo como Espíritu antes de reaparecer en el Basecamp. Cada caída del mismo día suma
+		-- SpiritExtraSecondsPerDeath, hasta SpiritMaxSeconds. Al amanecer reaparecen todos.
+		SpiritSeconds = 45,
+		SpiritExtraSecondsPerDeath = 30,
+		SpiritMaxSeconds = 180,
 		CrawlSpeed = 4,
 		ReviveHoldSeconds = 4,
 		ReviveDistance = 8,

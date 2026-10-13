@@ -4,6 +4,7 @@
 --   weaponId → una herramienta o arma (ver Data/Weapons). Solo se fabrica una vez y no se pierde.
 --   itemId   → un ítem que se acumula en el inventario (ver Data/Items), "amount" unidades.
 --   armorId  → una armadura que se lleva puesta (ver Data/Armor). Solo se fabrica una vez.
+-- "upgrades" (opcional) es el arma que la receta sustituye: al fabricarla, la vieja desaparece.
 -- "cost" es una lista para que el orden de los materiales en pantalla no cambie.
 
 export type Cost = { itemId: string, amount: number }
@@ -18,6 +19,7 @@ export type Recipe = {
 	itemId: string?,
 	amount: number?,
 	armorId: string?,
+	upgrades: string?,
 }
 
 local Recipes: { [string]: Recipe } = {
@@ -41,18 +43,20 @@ local Recipes: { [string]: Recipe } = {
 	StoneAxe = {
 		name = "Hacha de piedra",
 		icon = "⚒️",
-		description = "Llevándola, cada tala da +1 madera. También sirve de arma.",
+		description = "Mejora el hacha de madera: tala el doble de rápido y da +1 madera.",
 		order = 3,
 		cost = { { itemId = "Wood", amount = 4 }, { itemId = "Stone", amount = 3 }, { itemId = "Fiber", amount = 2 } },
 		weaponId = "StoneAxe",
+		upgrades = "WoodenAxe",
 	},
 	StonePick = {
 		name = "Pico de piedra",
 		icon = "⛏️",
-		description = "Llevándolo, cada roca da +1 piedra. También sirve de arma.",
+		description = "Mejora el pico de madera: pica casi el doble de rápido y da +1 piedra.",
 		order = 4,
 		cost = { { itemId = "Wood", amount = 4 }, { itemId = "Stone", amount = 4 }, { itemId = "Fiber", amount = 2 } },
 		weaponId = "StonePick",
+		upgrades = "WoodenPick",
 	},
 	Spear = {
 		name = "Lanza de colmillo",

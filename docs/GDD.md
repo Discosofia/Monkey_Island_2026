@@ -29,7 +29,7 @@
 
 | Tema | Decisión |
 |---|---|
-| Muerte | **Caído + reanimación.** Si nadie te reanima, pasas a ser *Espíritu* y reapareces al amanecer perdiendo parte del inventario. |
+| Muerte | **Caído + reanimación.** Si nadie te reanima, pasas a ser *Espíritu* un rato (más largo con cada caída del día) y pierdes parte del inventario. |
 | Fin de partida | **Infinita + objetivo de rescate.** Se sobrevive el máximo de días posible, pero se puede **ganar** construyendo la baliza de rescate. |
 | PvP | **Opt-in en eventos y zonas.** El Basecamp es seguro. El PvP ocurre en cajas de suministro, el huevo y jefes disputados. |
 | Monetización | **Moneda del juego** para las mejoras. **Robux solo para cosméticos y comodidad.** Nada de pay-to-win. |
@@ -169,7 +169,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 
 1. **Caído (60 s):** te arrastras lento. Cualquier aliado puede reanimarte; el médico lo hace mucho más rápido.
 2. **Espíritu:** si se acaba el tiempo, dejas una **mochila** con parte de tu inventario en el sitio donde caíste (se puede recuperar). Como Espíritu puedes moverte y **marcar enemigos y recursos** para tu equipo, así que sigues aportando.
-3. **Amanecer:** reapareces en el Basecamp.
+3. **Reaparición:** vuelves al Basecamp tras **45 s** como Espíritu. Cada caída del mismo día suma 30 s más (máximo 3 min) y al amanecer reaparecen todos. Así morir pronto no te deja sin jugar, pero caer una y otra vez sí cuesta.
 
 ### 6.3 Roles
 
@@ -249,7 +249,7 @@ stateDiagram-v2
 
 - **Tropas:** muchas especies van en grupo con un **alfa**. Si muere el alfa, la tropa se dispersa.
 - **Miedo al fuego:** antorchas y hogueras ahuyentan a las especies de categoría baja y media.
-- **Respawn diario:** cada amanecer se regeneran las poblaciones, así que para farmear hay que esperar al día siguiente.
+- **Repoblación:** cada amanecer se llenan todos los grupos y, durante el día y la noche, un grupo con bajas recupera un mono cada 45 s si no hay jugadores cerca de su zona. La selva nunca se vacía, pero un grupo recién barrido tarda en volver.
 - **Rendimiento:** los monos lejos de cualquier jugador "duermen" (no calculan rutas) y hay un límite de monos activos por servidor.
 
 ### 8.2 Bestiario

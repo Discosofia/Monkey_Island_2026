@@ -5,6 +5,7 @@
 --   - El aviso "Usar" abre la pantalla de recetas en el cliente (CraftingController).
 --   - El servidor valida cada fabricación: vivo, cerca de una mesa, materiales y que no la tenga ya.
 --   - Las herramientas fabricadas van a StarterGear: no se pierden al reaparecer.
+--   - Una mejora (receta con "upgrades") sustituye a la herramienta vieja, también si está en la mano.
 --   - También gestiona el chaleco (armadura) y el uso de las vendas.
 
 local Players = game:GetService("Players")
@@ -163,14 +164,37 @@ local function wearArmor(player: Player, character: Model)
 	piece.Parent = character
 end
 
+-- Quita una herramienta de la mochila, la mano y StarterGear. Devuelve true si estaba equipada.
+local function removeWeapon(player: Player, weaponId: string): boolean
+	local wasEquipped = false
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	local starterGear = player:FindFirstChild("StarterGear")
+	for _, container in { player.Character :: Instance?, backpack, starterGear } do
+		if container then
+			for _, child in container:GetChildren() do
+				if child:IsA("Tool") and child:GetAttribute("WeaponId") == weaponId then
+					wasEquipped = wasEquipped or container == player.Character
+					child:Destroy()
+				end
+			end
+		end
+	end
+	return wasEquipped
+end
+
 local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 	if recipe.weaponId then
+		local wasEquipped = if recipe.upgrades then removeWeapon(player, recipe.upgrades) else false
 		local tool = WeaponTools.build(recipe.weaponId)
 		local starterGear = player:FindFirstChild("StarterGear")
 		if starterGear then
 			tool:Clone().Parent = starterGear
 		end
 		tool.Parent = player:FindFirstChildOfClass("Backpack")
+		local humanoid = if player.Character then player.Character:FindFirstChildOfClass("Humanoid") else nil
+		if wasEquipped and humanoid then
+			humanoid:EquipTool(tool)
+		end
 	elseif recipe.armorId then
 		player:SetAttribute("Armor", recipe.armorId)
 		if player.Character then
@@ -205,7 +229,8 @@ local function onCraft(player: Player, recipeId: any)
 		InventoryService.remove(player, cost.itemId, cost.amount)
 	end
 	grant(player, recipeId, recipe)
-	Remotes.Notify:FireClient(player, `Has fabricado: {recipe.icon} {recipe.name}`)
+	local verb = if recipe.upgrades then "mejorado" else "fabricado"
+	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {recipe.name}`)
 end
 
 local function onUseBandage(player: Player)

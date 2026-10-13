@@ -17,6 +17,7 @@ local FIBER = Color3.fromRGB(150, 135, 85)
 local FANG = Color3.fromRGB(235, 225, 195)
 local FUR = Color3.fromRGB(150, 70, 45)
 local DARK_BARK = Color3.fromRGB(75, 48, 28)
+local LIGHT_WOOD = Color3.fromRGB(175, 130, 80)
 local USE_SOUNDS = {
 	Melee = "rbxasset://sounds/swordslash.wav",
 	Ranged = "rbxasset://sounds/swordlunge.wav",
@@ -49,6 +50,41 @@ local function attach(handle: BasePart, piece: BasePart, offset: CFrame)
 	weld.Part1 = piece
 	weld.Parent = piece
 	piece.Parent = handle.Parent
+end
+
+-- Hacha: cabeza afilada atada a un mango; el filo mira hacia delante (-Z).
+local function buildAxe(tool: Tool, headColor: Color3, edgeColor: Color3, material: Enum.Material): BasePart
+	local shaft = newPiece("Handle", Vector3.new(0.3, 3, 0.3), WOOD, Enum.Material.Wood)
+	shaft.Parent = tool
+	attach(shaft, newPiece("Head", Vector3.new(0.35, 0.9, 0.9), headColor, material), CFrame.new(0, 1.15, -0.45))
+	attach(shaft, newPiece("Edge", Vector3.new(0.25, 1.1, 0.3), edgeColor, material), CFrame.new(0, 1.15, -0.95))
+	for _, y in { 0.95, 1.35 } do
+		attach(
+			shaft,
+			newPiece("Lashing", Vector3.new(0.4, 0.12, 0.4), FIBER, Enum.Material.Fabric),
+			CFrame.new(0, y, 0)
+		)
+	end
+	tool.Grip = CFrame.new(0, -1, 0)
+	return shaft
+end
+
+-- Pico: una pieza larga atravesada, con las dos puntas en cuña.
+local function buildPick(tool: Tool, headColor: Color3, pointColor: Color3, material: Enum.Material): BasePart
+	local shaft = newPiece("Handle", Vector3.new(0.3, 3, 0.3), WOOD, Enum.Material.Wood)
+	shaft.Parent = tool
+	attach(shaft, newPiece("Head", Vector3.new(0.35, 0.4, 1.6), headColor, material), CFrame.new(0, 1.3, 0))
+	for side = -1, 1, 2 do
+		-- La cuña se estrecha hacia su -Z local: se gira para que cada punta mire hacia fuera.
+		attach(
+			shaft,
+			newPiece("Point", Vector3.new(0.35, 0.4, 0.7), pointColor, material, "WedgePart"),
+			CFrame.new(0, 1.3, side * 1.15) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0)
+		)
+	end
+	attach(shaft, newPiece("Lashing", Vector3.new(0.4, 0.5, 0.4), FIBER, Enum.Material.Fabric), CFrame.new(0, 1.3, 0))
+	tool.Grip = CFrame.new(0, -1, 0)
+	return shaft
 end
 
 -- La pieza "Handle" apunta hacia delante (eje Y) al sujetarla; Grip marca dónde va la mano.
@@ -146,50 +182,17 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 		tool.Grip = CFrame.new(0, -0.6, 0)
 		return stick
 	end,
-	-- Hacha: piedra afilada atada a un mango; el filo mira hacia delante (-Z).
-	StoneAxe = function(tool)
-		local shaft = newPiece("Handle", Vector3.new(0.3, 3, 0.3), WOOD, Enum.Material.Wood)
-		shaft.Parent = tool
-		attach(
-			shaft,
-			newPiece("Head", Vector3.new(0.35, 0.9, 0.9), STONE, Enum.Material.Slate),
-			CFrame.new(0, 1.15, -0.45)
-		)
-		attach(
-			shaft,
-			newPiece("Edge", Vector3.new(0.25, 1.1, 0.3), STONE_DARK, Enum.Material.Slate),
-			CFrame.new(0, 1.15, -0.95)
-		)
-		for _, y in { 0.95, 1.35 } do
-			attach(
-				shaft,
-				newPiece("Lashing", Vector3.new(0.4, 0.12, 0.4), FIBER, Enum.Material.Fabric),
-				CFrame.new(0, y, 0)
-			)
-		end
-		tool.Grip = CFrame.new(0, -1, 0)
-		return shaft
+	WoodenAxe = function(tool)
+		return buildAxe(tool, LIGHT_WOOD, DARK_BARK, Enum.Material.Wood)
 	end,
-	-- Pico: una piedra larga atravesada, con las dos puntas en cuña.
+	StoneAxe = function(tool)
+		return buildAxe(tool, STONE, STONE_DARK, Enum.Material.Slate)
+	end,
+	WoodenPick = function(tool)
+		return buildPick(tool, LIGHT_WOOD, DARK_BARK, Enum.Material.Wood)
+	end,
 	StonePick = function(tool)
-		local shaft = newPiece("Handle", Vector3.new(0.3, 3, 0.3), WOOD, Enum.Material.Wood)
-		shaft.Parent = tool
-		attach(shaft, newPiece("Head", Vector3.new(0.35, 0.4, 1.6), STONE, Enum.Material.Slate), CFrame.new(0, 1.3, 0))
-		for side = -1, 1, 2 do
-			-- La cuña se estrecha hacia su -Z local: se gira para que cada punta mire hacia fuera.
-			attach(
-				shaft,
-				newPiece("Point", Vector3.new(0.35, 0.4, 0.7), STONE_DARK, Enum.Material.Slate, "WedgePart"),
-				CFrame.new(0, 1.3, side * 1.15) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0)
-			)
-		end
-		attach(
-			shaft,
-			newPiece("Lashing", Vector3.new(0.4, 0.5, 0.4), FIBER, Enum.Material.Fabric),
-			CFrame.new(0, 1.3, 0)
-		)
-		tool.Grip = CFrame.new(0, -1, 0)
-		return shaft
+		return buildPick(tool, STONE, STONE_DARK, Enum.Material.Slate)
 	end,
 	-- Lanza: asta larga con un colmillo atado en la punta.
 	Spear = function(tool)
@@ -242,8 +245,8 @@ function WeaponTools.build(weaponId: string): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = weapon.name
 	tool.ToolTip = `{weapon.name}: {weapon.damage} de daño`
-	if weapon.harvestBonus then
-		tool.ToolTip ..= " · recolectas más"
+	if weapon.tool then
+		tool.ToolTip ..= if weapon.tool.kind == "Axe" then " · golpea árboles" else " · golpea rocas"
 	end
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)

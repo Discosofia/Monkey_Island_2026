@@ -1,13 +1,19 @@
 --!strict
 -- Tipos de puntos de recolección. El nombre de cada entrada (Tree, Rock, Bush, Fern) es el valor
 -- que hay que poner en el atributo "ResourceNode" de un modelo del mapa (ver docs/MAPA.md).
+-- Dos formas de recolectar:
+--   - Con herramienta ("tool"): árboles y rocas. Se golpean con el hacha o el pico equipados;
+--     cada golpe suma la potencia de la herramienta y al llegar a "toughness" da el material.
+--   - Con aviso ("holdSeconds"): arbustos y helechos. Se mantiene pulsado E (o se toca en móvil).
 
 export type NodeDefinition = {
 	name: string, -- lo que ve el jugador sobre el aviso
 	actionText: string, -- verbo del aviso
 	itemId: string, -- ítem que da (ver Data/Items)
 	amount: number, -- cantidad por recolección
-	holdSeconds: number, -- tiempo que hay que mantener pulsado
+	tool: string?, -- tipo de herramienta necesaria ("Axe", "Pick"); ver Data/Weapons
+	toughness: number?, -- potencia de golpes necesaria por recolección (con herramienta)
+	holdSeconds: number?, -- tiempo que hay que mantener pulsado (sin herramienta)
 	uses: number, -- recolecciones antes de agotarse
 	respawnSeconds: number, -- tiempo hasta que reaparece tras agotarse
 }
@@ -18,7 +24,8 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		actionText = "Talar",
 		itemId = "Wood",
 		amount = 3,
-		holdSeconds = 2,
+		tool = "Axe",
+		toughness = 4,
 		uses = 3,
 		respawnSeconds = 120,
 	},
@@ -27,7 +34,8 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		actionText = "Picar",
 		itemId = "Stone",
 		amount = 2,
-		holdSeconds = 2.5,
+		tool = "Pick",
+		toughness = 5,
 		uses = 3,
 		respawnSeconds = 150,
 	},

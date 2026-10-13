@@ -8,6 +8,8 @@
 --   Return → vuelve a su zona si el jugador escapa, entra al Basecamp o se aleja demasiado.
 -- Los monos sin jugadores cerca "duermen" para ahorrar rendimiento.
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
+-- Además, un grupo con bajas recupera un mono cada cierto tiempo si no hay jugadores cerca de su
+-- zona (Config.Monkeys.GroupRegrowSeconds): la selva nunca se queda vacía.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -47,6 +49,7 @@ type Group = {
 	size: number,
 	temporary: boolean, -- refuerzos de un aullido: no se repueblan
 	members: { Monkey },
+	nextRegrowAt: number, -- os.clock() a partir del cual puede recuperar un mono
 }
 
 type Monkey = {
@@ -164,6 +167,9 @@ local function onDied(monkey: Monkey)
 	end
 	monkeys[monkey.model] = nil
 	removeFromGroup(monkey)
+	-- La espera para recuperar un mono empieza con la primera baja.
+	local group = monkey.group
+	group.nextRegrowAt = math.max(group.nextRegrowAt, os.clock() + Config.Monkeys.GroupRegrowSeconds)
 
 	local killerId = monkey.model:GetAttribute("LastAttackerUserId")
 	local killer = if typeof(killerId) == "number" then Players:GetPlayerByUserId(killerId) else nil
@@ -251,6 +257,7 @@ local function createGroups()
 					size = rng:NextInteger(definition.groupMin, definition.groupMax),
 					temporary = false,
 					members = {},
+					nextRegrowAt = 0,
 				})
 			end
 		end
@@ -298,6 +305,7 @@ local function spawnReinforcements(position: Vector3, target: Player)
 		size = Config.Monkeys.HowlReinforcementCount,
 		temporary = true,
 		members = {},
+		nextRegrowAt = math.huge,
 	}
 	table.insert(groups, group)
 	fillGroup(group)
@@ -486,12 +494,51 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 end
 
+local function anyPlayerNear(position: Vector3, distance: number): boolean
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if root and root:IsA("BasePart") and (root.Position - position).Magnitude < distance then
+			return true
+		end
+	end
+	return false
+end
+
+-- Cada grupo incompleto de una especie activa recupera un mono, lejos de la vista de los jugadores.
+local function regrowGroups()
+	local state = MatchState.read()
+	if not state then
+		return
+	end
+	local now = os.clock()
+	for _, group in groups do
+		local definition = Monkeys[group.speciesId]
+		local ready = not group.temporary and #group.members < group.size and now >= group.nextRegrowAt
+		if
+			ready
+			and isActive(definition, state.phase)
+			and not anyPlayerNear(group.home, Config.Monkeys.RegrowMinPlayerDistance)
+		then
+			spawnMonkey(group, group.home)
+			group.nextRegrowAt = now + Config.Monkeys.GroupRegrowSeconds
+		end
+	end
+end
+
 function MonkeyService:Init()
 	-- Solo registra el aviso; DayNightService lo llamará al empezar el día 1.
 	DayNightService.onPhaseStarted(onPhaseStarted)
 end
 
 function MonkeyService:Start()
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			regrowGroups()
+		end
+	end)
+
 	local elapsed = 0
 	RunService.Heartbeat:Connect(function(deltaTime)
 		elapsed += deltaTime

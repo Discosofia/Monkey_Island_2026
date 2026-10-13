@@ -171,6 +171,13 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 
 **Criterio de salida:** 4–6 amigos juegan 30 min seguidos. Se anota qué fue divertido y qué no, y se ajusta antes de seguir.
 
+**Ajustes tras la primera prueba (2 jugadores):**
+
+- [x] Cada jugador empieza con **hacha y pico de madera**. Árboles y rocas se trabajan **golpeándolos con la herramienta equipada** (la tecla E ya no tala ni pica). En la mesa de trabajo se **mejoran** a hacha y pico de piedra.
+- [x] Más monos (18 grupos de mono ardilla y 14 de aulladores) y **repoblación continua**: un grupo con bajas recupera un mono cada 45 s si no hay jugadores cerca.
+- [x] El Espíritu ya no espera al amanecer: reaparece a los **45 s**, +30 s por cada caída del mismo día (máximo 3 min).
+- [ ] Probar los ajustes *(tú)*
+
 ---
 
 ### Fase 2: Supervivencia y Basecamp (4–6 semanas)
