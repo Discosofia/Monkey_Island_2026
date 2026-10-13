@@ -74,6 +74,8 @@ local Remotes = {
 	UseAbility = remoteEvent("UseAbility"),
 	-- Cliente -> servidor (Lobby): llevar una mascota (id de Data/Pets, o "" para ninguna).
 	SelectPet = remoteEvent("SelectPet"),
+	-- Cliente -> servidor (Isla): paso del tutorial alcanzado (número), para la analítica.
+	TutorialStep = remoteEvent("TutorialStep"),
 	-- Cliente -> servidor (Isla): el tutorial se ha completado.
 	TutorialDone = remoteEvent("TutorialDone"),
 }

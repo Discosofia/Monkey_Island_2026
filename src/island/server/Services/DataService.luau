@@ -7,6 +7,8 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Analytics = require(ServerScriptService.ServerShared.Analytics)
+local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local MatchService = require(script.Parent.MatchService)
 local MonkeyService = require(script.Parent.MonkeyService)
@@ -29,6 +31,13 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	end)
 	PlayerData.saveNow(player)
 	Remotes.Notify:FireClient(player, `✨ +{summary.amber} de Ámbar guardado`)
+	local profile = PlayerData.get(player)
+	if profile then
+		Analytics.amber(player, "Source", summary.amber, profile.amber, "MatchReward")
+		Leaderboards.record(player.UserId, "BestDays", profile.bestDays)
+		Leaderboards.record(player.UserId, "Rescues", profile.rescues)
+	end
+	Analytics.event(player, if summary.result == "Victory" then "MatchVictory" else "MatchDefeat", summary.days)
 end
 
 -- Diario de campo (Fase 4): cuenta los monos derrotados por especie. La primera vez, se anuncia.

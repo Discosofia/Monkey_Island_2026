@@ -11,6 +11,7 @@ local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
+local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 
@@ -85,6 +86,7 @@ local function onBuyUpgrade(player: Player, upgradeId: any)
 		current.upgrades[upgradeId] = rank + 1
 	end)
 	PlayerData.saveNow(player)
+	Analytics.amber(player, "Sink", cost, profile.amber, upgradeId)
 	Remotes.Notify:FireClient(player, `Comprado: {upgrade.icon} {upgrade.name} (rango {rank + 1})`)
 end
 

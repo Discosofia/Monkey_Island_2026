@@ -112,6 +112,7 @@ function TutorialController:Start()
 			start[itemId] = Inventory.count(player, itemId)
 		end
 		text.Text = `Tutorial {index}/{#STEPS}: {step.text}`
+		Remotes.TutorialStep:FireServer(index)
 		while not finished and not step.done(player, start) do
 			task.wait(0.5)
 		end

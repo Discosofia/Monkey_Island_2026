@@ -6,6 +6,7 @@
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder).
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,7 +26,7 @@ local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
-local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Grupo", "Diario" }
+local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Grupo", "Diario", "Ranking" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -291,6 +292,36 @@ function LobbyUIController:Start()
 		end
 	end
 
+	-- Clasificaciones globales (las publica LeaderboardService cada pocos minutos).
+	local function renderRanking()
+		local order = 0
+		for _, board in
+			{
+				{ stat = "BestDays", title = "🏆 Más días sobrevividos" },
+				{ stat = "Rescues", title = "🚁 Más rescates" },
+			}
+		do
+			order += 1
+			note(list, board.title, order)
+			local raw = ReplicatedStorage:GetAttribute(`Leaderboard_{board.stat}`)
+			local ok, rows = pcall(function()
+				return if typeof(raw) == "string" then HttpService:JSONDecode(raw) else {}
+			end)
+			local entries = if ok and typeof(rows) == "table" then rows else {}
+			if #entries == 0 then
+				order += 1
+				note(list, "Aún no hay datos (se actualiza cada pocos minutos)", order)
+			end
+			for position, entry in entries do
+				order += 1
+				local label = Widgets.label(`{position}. {entry.name} — {entry.value}`, list)
+				label.LayoutOrder = order
+				label.Size = UDim2.new(1, -10, 0, 28)
+				label.TextXAlignment = Enum.TextXAlignment.Left
+			end
+		end
+	end
+
 	local function renderParty()
 		local membersText = player:GetAttribute("PartyMembers")
 		local leaderId = player:GetAttribute("PartyLeader")
@@ -352,6 +383,8 @@ function LobbyUIController:Start()
 			renderShop(data)
 		elseif currentTab == "Mascotas" then
 			renderPets(data)
+		elseif currentTab == "Ranking" then
+			renderRanking()
 		elseif currentTab == "Diario" then
 			Journal.fill(list, data.bestiary)
 		else

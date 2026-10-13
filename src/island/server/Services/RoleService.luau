@@ -12,6 +12,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local InventoryService = require(script.Parent.InventoryService)
 
@@ -66,7 +67,13 @@ local function onPlayer(player: Player)
 end
 
 function RoleService:Start()
+	Remotes.TutorialStep.OnServerEvent:Connect(function(player: Player, step: any)
+		if typeof(step) == "number" and step >= 1 and step <= 10 then
+			Analytics.tutorialStep(player, math.floor(step), `Paso {math.floor(step)}`)
+		end
+	end)
 	Remotes.TutorialDone.OnServerEvent:Connect(function(player: Player)
+		Analytics.tutorialStep(player, 99, "Completado")
 		player:SetAttribute("TutorialPending", nil)
 		PlayerData.update(player, function(profile)
 			profile.tutorialDone = true

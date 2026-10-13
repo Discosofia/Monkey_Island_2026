@@ -259,6 +259,9 @@ local Config = {
 		RetrySeconds = 2,
 		-- Un bloqueo más viejo que esto es de un servidor caído: se ignora.
 		LockTimeoutSeconds = 600,
+		-- Clasificaciones (Fase 6): prefijo de los OrderedDataStore y cada cuánto refresca el Lobby.
+		LeaderboardPrefix = "Ranking_v1_",
+		LeaderboardRefreshSeconds = 300,
 		-- XP de rol al terminar una partida: por día sobrevivido y por mono derrotado.
 		RoleXpPerDay = 20,
 		RoleXpPerKill = 2,
