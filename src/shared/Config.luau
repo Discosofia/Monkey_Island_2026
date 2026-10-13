@@ -149,6 +149,8 @@ local Config = {
 		PlotSize = 13,
 		-- Grados libres a cada lado de los 4 portones, para que las parcelas no tapen los caminos.
 		GateGapDegrees = 18,
+		-- Perímetro: hasta dónde se pueden poner defensas (la empalizada de MapBuilder está a 81).
+		PerimeterRadius = 92,
 		-- Piezas como máximo por jugador, y parte del coste que se devuelve al derribar.
 		MaxStructuresPerPlayer = 60,
 		RefundFraction = 0.5,
@@ -156,6 +158,30 @@ local Config = {
 		OverlapShrink = 0.6,
 		BuildCooldownSeconds = 0.25,
 		-- Piezas: ver Shared/Data/Buildables.
+	},
+
+	Siege = {
+		-- Asedio nocturno (GDD §10, Fase 2.5): oleadas de monos hacia el Basecamp cada noche.
+		FirstWaveDelaySeconds = 30,
+		WaveIntervalSeconds = 110,
+		WavesPerNight = 3,
+		-- Monos por oleada: base + por cada día pasado + por cada jugador, con un máximo.
+		BaseWaveSize = 4,
+		ExtraPerDay = 2,
+		ExtraPerPlayer = 1,
+		MaxWaveSize = 30,
+		-- Especie de las oleadas (ver Shared/Data/Monkeys).
+		Species = "AulladorRojo",
+		-- Distancia más allá del perímetro a la que aparecen, frente a los portones.
+		SpawnDistance = 45,
+		-- A qué distancia busca jugadores un mono del asedio y a qué distancia ataca una pieza.
+		PlayerAggroRange = 30,
+		StructureReach = 7,
+		-- Daño a las piezas: multiplicador sobre el daño de la especie.
+		StructureDamageMultiplier = 3,
+		-- Estacas: daño por segundo a los monos encima y desgaste de la trampa por golpe.
+		SpikeDamagePerSecond = 16,
+		SpikeWearPerHit = 6,
 	},
 
 	Crafting = {

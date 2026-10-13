@@ -9,6 +9,8 @@
 -- Los monos sin jugadores cerca "duermen" para ahorrar rendimiento.
 -- Fase 2.4: los capuchinos roban en vez de morder y huyen con lo robado (se recupera al derrotarlos).
 -- Las especies con "fearsFire" se apartan de antorchas y hogueras.
+-- Fase 2.5: los grupos de asedio (SiegeService) van hacia un portón y luego al centro del Basecamp;
+-- atacan las piezas que les cierran el paso y a los jugadores, también dentro del Basecamp.
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
 -- Además, un grupo con bajas recupera un mono cada cierto tiempo si no hay jugadores cerca de su
 -- zona (Config.Monkeys.GroupRegrowSeconds): la selva nunca se queda vacía.
@@ -30,6 +32,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Building = require(ReplicatedStorage.Shared.Building)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local BasecampService = require(script.Parent.BasecampService)
+local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -54,6 +57,8 @@ type Group = {
 	temporary: boolean, -- refuerzos de un aullido: no se repueblan
 	members: { Monkey },
 	nextRegrowAt: number, -- os.clock() a partir del cual puede recuperar un mono
+	siege: boolean?, -- grupo del asedio nocturno
+	gate: Vector3?, -- portón por el que entra el grupo de asedio
 }
 
 type Monkey = {
@@ -70,6 +75,7 @@ type Monkey = {
 	stuckSince: number?,
 	stolen: { itemId: string, amount: number }?,
 	scaredUntil: number,
+	passedGate: boolean,
 }
 
 type PlayerInfo = { player: Player, position: Vector3, safe: boolean }
@@ -232,6 +238,7 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		stuckSince = nil,
 		stolen = nil,
 		scaredUntil = 0,
+		passedGate = false,
 	}
 	monkeys[model] = monkey
 	table.insert(group.members, monkey)
@@ -581,6 +588,118 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 	end
 end
 
+-- Pieza construida más cercana al alcance, o nil.
+local function nearestStructure(position: Vector3, reach: number): Model?
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { BuildingService.getStructures() }
+	local best: Model? = nil
+	local bestDistance = math.huge
+	for _, part in Workspace:GetPartBoundsInRadius(position, reach, params) do
+		local model = part:FindFirstAncestorOfClass("Model")
+		while model and model.Parent ~= BuildingService.getStructures() do
+			model = model:FindFirstAncestorOfClass("Model")
+		end
+		if model then
+			local distance = (part.Position - position).Magnitude
+			if distance < bestDistance then
+				best = model
+				bestDistance = distance
+			end
+		end
+	end
+	return best
+end
+
+-- IA del asedio: portón → centro. Jugadores cerca: a por ellos. Una pieza cerca: la rompe.
+local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
+	local definition = monkey.definition
+	local position = monkey.root.Position
+	local humanoid = monkey.humanoid
+	local canAttack = now - monkey.lastAttackAt >= definition.attackCooldownSeconds
+
+	-- Jugador vivo más cercano (dentro o fuera del Basecamp).
+	local target: PlayerInfo? = nil
+	local targetDistance = Config.Siege.PlayerAggroRange
+	for _, info in infos do
+		local distance = (info.position - position).Magnitude
+		if distance <= targetDistance then
+			target = info
+			targetDistance = distance
+		end
+	end
+	if target then
+		if targetDistance <= definition.attackRange then
+			humanoid:MoveTo(position)
+			if canAttack then
+				monkey.lastAttackAt = now
+				CombatService.damagePlayer(target.player, definition.damage, true)
+			end
+		else
+			humanoid:MoveTo(target.position)
+			unstick(monkey, now)
+		end
+		return
+	end
+
+	local structure = nearestStructure(position, Config.Siege.StructureReach)
+	if structure then
+		humanoid:MoveTo(position)
+		if canAttack then
+			monkey.lastAttackAt = now
+			BuildingService.damageStructure(structure, definition.damage * Config.Siege.StructureDamageMultiplier)
+			showBubble(monkey, "💥")
+		end
+		return
+	end
+
+	local gate = monkey.group.gate
+	if gate and not monkey.passedGate and ((position - gate) * Vector3.new(1, 0, 1)).Magnitude <= 10 then
+		monkey.passedGate = true
+	end
+	local goal = if gate and not monkey.passedGate then gate else BasecampService.getCenter()
+	humanoid:MoveTo(goal)
+	unstick(monkey, now)
+end
+
+-- Lanza un grupo de asedio que aparece en "spawnPoint" y entra por "gatePoint".
+function MonkeyService.spawnSiegeGroup(speciesId: string, spawnPoint: Vector3, gatePoint: Vector3, count: number)
+	local group: Group = {
+		speciesId = speciesId,
+		home = spawnPoint,
+		size = count,
+		temporary = true,
+		members = {},
+		nextRegrowAt = math.huge,
+		siege = true,
+		gate = gatePoint,
+	}
+	table.insert(groups, group)
+	fillGroup(group)
+end
+
+-- Al amanecer: los monos del asedio que queden se retiran.
+function MonkeyService.endSiege()
+	for index = #groups, 1, -1 do
+		local group = groups[index]
+		if group.siege then
+			despawnGroup(group)
+			table.remove(groups, index)
+		end
+	end
+end
+
+-- Monos del asedio que siguen vivos.
+function MonkeyService.siegeAlive(): number
+	local count = 0
+	for _, monkey in monkeys do
+		if monkey.group.siege and monkey.humanoid.Health > 0 then
+			count += 1
+		end
+	end
+	return count
+end
+
 local function anyPlayerNear(position: Vector3, distance: number): boolean
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
@@ -638,7 +757,11 @@ function MonkeyService:Start()
 		local now = os.clock()
 		for _, monkey in monkeys do
 			if monkey.humanoid.Health > 0 then
-				think(monkey, infos, fires, now)
+				if monkey.group.siege then
+					siegeThink(monkey, infos, now)
+				else
+					think(monkey, infos, fires, now)
+				end
 			end
 		end
 	end)

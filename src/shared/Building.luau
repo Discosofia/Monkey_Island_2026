@@ -6,6 +6,8 @@
 --   - Núcleo compartido: un círculo de Config.Building.CoreRadius alrededor del centro.
 --   - Parcelas personales: Config.Building.PlotCount cuadrados en un anillo, dejando libres los
 --     caminos de los 4 portones. Cada jugador recibe una al entrar (atributo "PlotIndex").
+--   - Perímetro (Fase 2.5): el resto del Basecamp hasta Config.Building.PerimeterRadius, incluidos
+--     los portones. Ahí van las defensas: muros, estacas y antorchas.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -20,7 +22,7 @@ Building.CENTER_ATTRIBUTE = "BasecampCenter"
 -- Atributo del Player con el número de su parcela.
 Building.PLOT_ATTRIBUTE = "PlotIndex"
 
-export type Zone = "Core" | "Plot"
+export type Zone = "Core" | "Plot" | "Perimeter"
 
 -- Centro del Basecamp a ras de suelo, o nil si el servidor aún no lo ha publicado.
 function Building.center(): Vector3?
@@ -80,18 +82,40 @@ function Building.zoneFor(cframe: CFrame, size: Vector3, plotIndex: number?, cen
 		return "Core"
 	end
 
-	local plot = if plotIndex then Building.plots(center)[plotIndex] else nil
-	if not plot then
-		return nil
-	end
 	local half = Config.Building.PlotSize / 2
-	for _, corner in footprint do
+	local function inside(plot: CFrame, corner: Vector3): boolean
 		local localCorner = plot:PointToObjectSpace(Vector3.new(corner.X, plot.Position.Y, corner.Z))
-		if math.abs(localCorner.X) > half or math.abs(localCorner.Z) > half then
-			return nil
+		return math.abs(localCorner.X) <= half and math.abs(localCorner.Z) <= half
+	end
+
+	local plots = Building.plots(center)
+	local ownPlot = if plotIndex then plots[plotIndex] else nil
+	if ownPlot then
+		local allInside = true
+		for _, corner in footprint do
+			if not inside(ownPlot, corner) then
+				allInside = false
+				break
+			end
+		end
+		if allInside then
+			return "Plot"
 		end
 	end
-	return "Plot"
+
+	-- Perímetro: dentro del radio y sin pisar ninguna parcela.
+	for _, corner in footprint do
+		local offset = (corner - center) * Vector3.new(1, 0, 1)
+		if offset.Magnitude > Config.Building.PerimeterRadius then
+			return nil
+		end
+		for _, plot in plots do
+			if inside(plot, corner) then
+				return nil
+			end
+		end
+	end
+	return "Perimeter"
 end
 
 -- Suelo bajo (x, z), ignorando "ignore" (personajes, estructuras, la vista previa). nil si no hay.

@@ -44,6 +44,22 @@ local function createClock(gui: ScreenGui)
 	end)
 end
 
+-- Estado del asedio nocturno (Fase 2.5), debajo del indicador del Basecamp.
+local function createSiegeStatus(gui: ScreenGui)
+	local label = Widgets.label("", gui)
+	label.Name = "SiegeStatus"
+	label.AnchorPoint = Vector2.new(0.5, 0)
+	label.Position = UDim2.fromScale(0.5, 0.13)
+	label.Size = UDim2.fromScale(0.34, 0.035)
+	label.TextColor3 = Color3.fromRGB(255, 120, 90)
+	local function refresh()
+		local status = ReplicatedStorage:GetAttribute("SiegeStatus")
+		label.Text = if typeof(status) == "string" then status else ""
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("SiegeStatus"):Connect(refresh)
+	refresh()
+end
+
 local function createBasecampIndicator(gui: ScreenGui)
 	local player = Players.LocalPlayer
 	local indicator = Widgets.label("", gui)
@@ -98,6 +114,7 @@ function IslandHUDController:Start()
 
 	createClock(gui)
 	createBasecampIndicator(gui)
+	createSiegeStatus(gui)
 	createReturnButton(gui)
 
 	if RunService:IsStudio() then

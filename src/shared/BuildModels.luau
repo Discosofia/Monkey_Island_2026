@@ -124,6 +124,33 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			Enum.Material.Fabric
 		)
 	end,
+	-- Base de tierra con estacas inclinadas hacia fuera. No bloquea el paso: los monos la cruzan.
+	Spikes = function(model, size)
+		local bottom = -size.Y / 2
+		local base = newPart(
+			model,
+			"Base",
+			Vector3.new(size.X, 0.3, size.Z),
+			CFrame.new(0, bottom + 0.15, 0),
+			Color3.fromRGB(95, 70, 45),
+			Enum.Material.Ground
+		)
+		base.CanCollide = false
+		for i = 0, 4 do
+			for _, z in { -0.7, 0.7 } do
+				local stake = newPart(
+					model,
+					"Stake",
+					Vector3.new(0.35, size.Y + 0.6, 0.35),
+					CFrame.new(-size.X / 2 + 0.8 + i * (size.X - 1.6) / 4, 0.2, z)
+						* CFrame.Angles(math.rad(if z > 0 then 25 else -25), 0, 0),
+					DARK_WOOD,
+					Enum.Material.Wood
+				)
+				stake.CanCollide = false
+			end
+		end
+	end,
 	-- Tienda de lona sobre postes, con una mesa baja y hierbas colgando.
 	HealerTent = function(model, size)
 		local bottom = -size.Y / 2

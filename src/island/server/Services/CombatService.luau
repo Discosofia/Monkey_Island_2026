@@ -106,8 +106,9 @@ end
 -- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp, esquivando,
 -- caído o como Espíritu. La armadura reduce el daño (Data/Armor). Un golpe mortal no mata:
 -- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
-function CombatService.damagePlayer(player: Player, amount: number): boolean
-	local safe = player:GetAttribute("InBasecamp") == true
+-- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
+function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: boolean?): boolean
+	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
 		return false
 	end

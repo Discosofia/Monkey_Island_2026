@@ -344,7 +344,8 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 - **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella al volver de Espíritu). Cada jugador recibe una de 20 parcelas al entrar; al salir se libera y se derriba lo que tenía en ella.
 - **Sin recursos dentro**, como en el diseño original: hay que salir a buscarlos.
 - **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une a los 20 jugadores en un objetivo común cada noche.
-  - Las oleadas crecen con el número de día y con el número de jugadores.
+  - Las oleadas crecen con el número de día y con el número de jugadores. *(v1: 3 oleadas por noche, por uno o dos portones al azar; ajustes en `Config.Siege`.)*
+  - Las defensas se construyen en el **perímetro** (entre las parcelas y la empalizada, incluidos los portones): muros, **estacas** (hieren a los monos que las cruzan) y antorchas.
   - Las defensas dañadas se reparan de día con recursos.
   - Si los monos rompen el perímetro, atacan estructuras y jugadores dentro, pero **el nido y la baliza tienen su propia defensa**: es lo último que cae.
   - La noche del encendido de la baliza es la **noche final** ("La Gran Tropa"), el asedio más fuerte de la partida.

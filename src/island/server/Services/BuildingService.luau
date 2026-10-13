@@ -207,8 +207,17 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 	local cframe = Building.placement(point, groundY, rotation, definition.size)
 	local zone = Building.zoneFor(cframe, definition.size, plotIndexOf(player), center)
 	if not zone or not definition.zones[zone] then
-		local where = if definition.zones.Core then "el núcleo del Basecamp o tu parcela" else "tu parcela"
-		Remotes.Notify:FireClient(player, `{definition.name}: solo se puede construir en {where}`)
+		local places = {}
+		if definition.zones.Core then
+			table.insert(places, "el núcleo")
+		end
+		if definition.zones.Plot then
+			table.insert(places, "tu parcela")
+		end
+		if definition.zones.Perimeter then
+			table.insert(places, "el perímetro y los portones")
+		end
+		Remotes.Notify:FireClient(player, `{definition.name}: solo en {table.concat(places, ", ")}`)
 		return
 	end
 	if Building.isBlocked(cframe, definition.size, {}) then
