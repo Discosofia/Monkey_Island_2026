@@ -1,6 +1,7 @@
 --!strict
--- Escenario del Lobby: el naufragio de la «Esperanza» (GDD §13, lore). Los jugadores son náufragos:
--- el barco ha encallado en un banco de arena y, al norte, se ve la isla con su volcán humeante.
+-- Escenario del Lobby: el naufragio del carguero «Esperanza» (GDD §13, lore). Los jugadores son
+-- náufragos: el barco ha encallado en un banco de arena y, al norte, se ve la isla con su volcán
+-- humeante.
 --
 -- Lo construye solo el servidor del Lobby al arrancar si no existe Workspace.Naufragio
 -- (LobbyWorldService). Para dejarlo fijo en el place y retocarlo a mano, ejecútalo una vez en Studio,
@@ -11,10 +12,12 @@
 -- Por seguridad, desde la barra de comandos solo se ejecuta en el place del Lobby
 -- (Config.PlaceIds.Lobby). Para otro place usa build({ force = true }).
 --
--- Crea: mar y banco de arena (terreno), el barco encallado con boquete y bodega, rampa de subida,
--- mástil caído, campamento con hoguera y tienda hecha con la vela, cajas de la carga, el diario del
--- capitán, el bote para zarpar (aviso "ZarparPrompt"), palmeras, la isla con el volcán en el
--- horizonte, muros invisibles, el punto de aparición y la luz de atardecer.
+-- Crea: mar y banco de arena (terreno); el carguero encallado con boquete y bodega, castillo con
+-- puente de mando, chimenea y radar, contenedores en cubierta y grúa; la pasarela de subida; el
+-- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga, ancla con cadena,
+-- salvavidas y la bitácora del capitán; la lancha de rescate para zarpar (aviso "ZarparPrompt");
+-- palmeras; la isla con el volcán en el horizonte; muros invisibles, el punto de aparición y la luz
+-- de atardecer.
 --
 -- ⚠️ Borra la carpeta Workspace.Naufragio, la Baseplate, los SpawnLocation sueltos y el terreno de la
 -- zona antes de construir.
@@ -28,6 +31,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 export type Options = { force: boolean? }
 
 local FOLDER_NAME = "Naufragio"
+-- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
+-- reconstruyen solos al arrancar (LobbyWorldService).
+local VERSION = 2
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -43,7 +49,7 @@ local BOUNDARY_RADIUS = 165
 local ISLAND_CENTER = Vector3.new(520, 0, -700)
 local VOLCANO_PEAK = 230
 
--- Barco: eslora a lo largo de X local, de -38 (popa) a 38 (proa).
+-- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
 local SHIP_BEAM = 22
 local HULL_ROWS = 6
@@ -55,27 +61,38 @@ local SHIP_FRAME = CFrame.new(-36, 2.2, -24)
 	* CFrame.Angles(0, math.rad(-6), 0)
 	* CFrame.Angles(math.rad(11), 0, math.rad(4))
 
-local WOOD_TONES = {
-	Color3.fromRGB(96, 62, 34),
-	Color3.fromRGB(110, 72, 40),
-	Color3.fromRGB(84, 54, 30),
-	Color3.fromRGB(122, 82, 48),
+local HULL_NAVY = Color3.fromRGB(30, 50, 85)
+local HULL_RED = Color3.fromRGB(150, 40, 32)
+local BOOT_TOP = Color3.fromRGB(35, 35, 40)
+local STEEL_DECK = Color3.fromRGB(95, 105, 98)
+local WHITE_PAINT = Color3.fromRGB(232, 232, 226)
+local RAIL = Color3.fromRGB(235, 235, 230)
+local RUST = Color3.fromRGB(130, 70, 40)
+local GLASS = Color3.fromRGB(45, 65, 85)
+local CRANE_YELLOW = Color3.fromRGB(235, 175, 35)
+local RESCUE_ORANGE = Color3.fromRGB(240, 110, 30)
+local TARP = Color3.fromRGB(45, 95, 170)
+local ALUMINIUM = Color3.fromRGB(170, 175, 180)
+local CONTAINER_COLORS = {
+	Color3.fromRGB(200, 80, 40),
+	Color3.fromRGB(40, 90, 160),
+	Color3.fromRGB(50, 120, 70),
+	Color3.fromRGB(170, 40, 40),
+	Color3.fromRGB(220, 150, 40),
 }
 local DARK_WOOD = Color3.fromRGB(62, 40, 24)
-local DECK_WOOD = Color3.fromRGB(150, 110, 68)
-local SAIL = Color3.fromRGB(226, 212, 178)
 local IRON = Color3.fromRGB(55, 55, 60)
-local ROPE = Color3.fromRGB(170, 140, 90)
 local FIRE_LIGHT = Color3.fromRGB(255, 170, 90)
 local LANTERN_LIGHT = Color3.fromRGB(255, 200, 120)
 local LEAF = Color3.fromRGB(70, 150, 60)
 
-local LOG_TEXT = "DIARIO DEL CAPITÁN\n\n"
-	.. "La tormenta lanzó a la «Esperanza» contra el arrecife. No volverá a navegar.\n\n"
+local LOG_TEXT = "BITÁCORA DEL CAPITÁN\n\n"
+	.. "La tormenta empujó al carguero «Esperanza» contra el arrecife. El casco está abierto y los "
+	.. "motores, muertos.\n\n"
 	.. "Al norte se ve una isla con un volcán que humea día y noche. De allí llegan aullidos.\n\n"
-	.. "Entre la carga hay cajas con un sello que nadie supo explicar: PROYECTO PRIMAL.\n\n"
-	.. "Quien quiera salir de aquí, que tome el bote y reme hacia la isla. "
-	.. "Dicen que en el viejo laboratorio aún queda una radio."
+	.. "En la bodega llevábamos contenedores con un sello que nadie supo explicar: PROYECTO PRIMAL.\n\n"
+	.. "Nuestra radio no funciona. Quien quiera salir de aquí, que tome la lancha y vaya a la isla: "
+	.. "dicen que en el viejo laboratorio aún queda una radio."
 
 local LobbyBuilder = {}
 
@@ -173,8 +190,9 @@ local function light(parent: BasePart, color: Color3, range: number, brightness:
 	point.Parent = parent
 end
 
-local function woodTone(): Color3
-	return WOOD_TONES[rng:NextInteger(1, #WOOD_TONES)]
+-- Variación leve de un color para que las chapas no se vean todas iguales.
+local function tone(color: Color3): Color3
+	return color:Lerp(Color3.new(0, 0, 0), rng:NextNumber(0, 0.12))
 end
 
 -- Texto en una cara de una pieza.
@@ -372,16 +390,25 @@ local function buildIsland(parent: Instance)
 end
 
 ---------------------------------------------------------------------------------------------------
--- Barco
+-- Barco: el carguero «Esperanza»
 
+-- Cubierta plana salvo en la proa, que se levanta.
 local function sheer(x: number): number
-	return 1.8 * (x / SHIP_HALF_LENGTH) ^ 2
+	local t = x / SHIP_HALF_LENGTH
+	return if t > 0.5 then 3 * ((t - 0.5) / 0.5) ^ 2 else 0
 end
 
 local function halfBeam(x: number, row: number): number
 	local t = x / SHIP_HALF_LENGTH
-	local shape = if t > 0 then 1 - t ^ 2.4 else 1 - 0.32 * (-t) ^ 3
-	local depth = 0.5 + 0.5 * (row / HULL_ROWS) ^ 0.6
+	local shape = 1
+	local depth = 0.7 + 0.3 * (row / HULL_ROWS) ^ 0.5 -- pantoque redondeado
+	if t > 0.45 then
+		-- Proa afilada, más estrecha cuanto más cerca de la quilla.
+		shape = 1 - ((t - 0.45) / 0.55) ^ 1.8
+		depth = 0.45 + 0.55 * (row / HULL_ROWS) ^ 0.7
+	elseif t < -0.85 then
+		shape = 1 - 0.25 * ((-t - 0.85) / 0.15) ^ 2
+	end
 	return math.max(0.5, SHIP_BEAM / 2 * shape * depth)
 end
 
@@ -393,8 +420,18 @@ local function deckHeight(x: number): number
 	return HULL_ROWS * ROW_HEIGHT + sheer(x)
 end
 
--- Una tabla del casco entre dos filas y dos cortes de la eslora (en coordenadas del barco).
-local function plank(model: Model, side: number, row: number, x0: number, x1: number, color: Color3)
+-- Obra viva roja, franja negra en la flotación y obra muerta azul marino.
+local function hullColor(row: number): Color3
+	if row <= 1 then
+		return HULL_RED
+	elseif row == 2 then
+		return BOOT_TOP
+	end
+	return HULL_NAVY
+end
+
+-- Una chapa del casco entre dos filas y dos cortes de la eslora (en coordenadas del barco).
+local function plate(model: Model, side: number, row: number, x0: number, x1: number, color: Color3)
 	local a0, a1 = hullPoint(x0, row, side), hullPoint(x0, row + 1, side)
 	local b0, b1 = hullPoint(x1, row, side), hullPoint(x1, row + 1, side)
 	local center = (a0 + a1 + b0 + b1) / 4
@@ -404,11 +441,11 @@ local function plank(model: Model, side: number, row: number, x0: number, x1: nu
 	local yAxis = (up - zAxis * up:Dot(zAxis)).Unit
 	local xAxis = yAxis:Cross(zAxis)
 	newPart(
-		"Tabla",
-		Vector3.new(0.8, up.Magnitude + 0.25, along.Magnitude + 0.3),
+		"Chapa",
+		Vector3.new(0.7, up.Magnitude + 0.2, along.Magnitude + 0.2),
 		CFrame.fromMatrix(center, xAxis, yAxis, zAxis),
 		color,
-		Enum.Material.WoodPlanks,
+		Enum.Material.Metal,
 		model
 	)
 end
@@ -432,7 +469,7 @@ local function buildHull(model: Model)
 		for _, side in { -1, 1 } do
 			for row = 0, HULL_ROWS - 1 do
 				if not isHole(side, row, segment) then
-					plank(model, side, row, x0, x1, woodTone())
+					plate(model, side, row, x0, x1, tone(hullColor(row)))
 				end
 			end
 		end
@@ -442,74 +479,91 @@ local function buildHull(model: Model)
 			"Bodega",
 			Vector3.new(step + 0.2, 0.8, 2 * halfBeam(mid, 0.6)),
 			CFrame.new(mid, 0.6, 0),
-			DARK_WOOD,
-			Enum.Material.WoodPlanks,
+			Color3.fromRGB(60, 62, 66),
+			Enum.Material.DiamondPlate,
 			model
 		)
 	end
-	-- Astillas en el borde del boquete.
-	for _, stub in
+	-- Chapas reventadas hacia fuera en el borde del boquete.
+	for _, shard in
 		{
-			{ x = -9.5, row = 3.5, length = 3, tilt = 0.5 },
-			{ x = -4.75, row = 4.2, length = 2.4, tilt = -0.4 },
-			{ x = -14, row = 2.4, length = 2.2, tilt = 0.8 },
-			{ x = 0.5, row = 1.2, length = 2.6, tilt = -0.7 },
-			{ x = 5, row = 2.6, length = 2, tilt = 0.4 },
+			{ x = -9.5, row = 3.6, length = 3.2, tilt = 0.5 },
+			{ x = -4.75, row = 4.4, length = 2.6, tilt = -0.4 },
+			{ x = -14, row = 2.4, length = 2.4, tilt = 0.8 },
+			{ x = 0.5, row = 1.2, length = 2.8, tilt = -0.7 },
+			{ x = 5, row = 2.6, length = 2.2, tilt = 0.4 },
+			{ x = -2, row = 5, length = 2.4, tilt = 0.2 },
 		}
 	do
-		local point = hullPoint(stub.x, stub.row, 1)
+		local point = hullPoint(shard.x, shard.row, 1)
 		newPart(
-			"Astilla",
-			Vector3.new(0.6, 1.8, stub.length),
-			CFrame.new(point) * CFrame.Angles(stub.tilt, 0.3, 0),
-			woodTone(),
-			Enum.Material.WoodPlanks,
+			"ChapaRota",
+			Vector3.new(0.5, 2, shard.length),
+			CFrame.new(point + Vector3.new(0, 0, 0.6)) * CFrame.Angles(shard.tilt, 0.5, 0),
+			if shard.row > 2.5 then HULL_NAVY else HULL_RED,
+			Enum.Material.CorrodedMetal,
 			model
 		)
 	end
-	-- Quilla, roda en la proa y espejo de popa con el nombre.
+	-- Chorretones de óxido bajo la borda.
+	for _, x in { -30, -21, -13, 9, 17, 24 } do
+		local point = hullPoint(x, HULL_ROWS - 1.1, 1)
+		decor(
+			newPart(
+				"Oxido",
+				Vector3.new(0.6, rng:NextNumber(2.5, 4), 0.2),
+				CFrame.new(point + Vector3.new(0, 0, 0.45)),
+				RUST,
+				Enum.Material.CorrodedMetal,
+				model
+			)
+		)
+	end
+	-- Quilla, roda y espejo de popa.
 	newPart(
 		"Quilla",
 		Vector3.new(2 * SHIP_HALF_LENGTH, 1.2, 1.4),
 		CFrame.new(0, -0.3, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
+		HULL_RED,
+		Enum.Material.Metal,
 		model
 	)
-	local stemTop = Vector3.new(SHIP_HALF_LENGTH + 0.6, deckHeight(SHIP_HALF_LENGTH) + 1, 0)
-	cylinder("Roda", 1.4, Vector3.new(SHIP_HALF_LENGTH - 1, 0, 0), stemTop, DARK_WOOD, Enum.Material.Wood, model)
+	local stemTop = Vector3.new(SHIP_HALF_LENGTH + 0.4, deckHeight(SHIP_HALF_LENGTH) + 0.6, 0)
+	cylinder("Roda", 1.2, Vector3.new(SHIP_HALF_LENGTH - 1.5, 0, 0), stemTop, HULL_NAVY, Enum.Material.Metal, model)
 	for row = 0, HULL_ROWS - 1 do
 		local width = 2 * halfBeam(-SHIP_HALF_LENGTH, row + 0.5)
 		newPart(
 			"Espejo",
-			Vector3.new(0.8, ROW_HEIGHT + 0.2, width),
-			CFrame.new(-SHIP_HALF_LENGTH - 0.2, (row + 0.5) * ROW_HEIGHT + sheer(-SHIP_HALF_LENGTH) * 0.5, 0),
-			woodTone(),
-			Enum.Material.WoodPlanks,
+			Vector3.new(0.7, ROW_HEIGHT + 0.2, width),
+			CFrame.new(-SHIP_HALF_LENGTH - 0.2, (row + 0.5) * ROW_HEIGHT, 0),
+			tone(hullColor(row)),
+			Enum.Material.Metal,
 			model
 		)
 	end
-	local nameBoard = newPart(
+	-- Nombre pintado en la popa y en la proa (lado de la playa).
+	local sternName = newPart(
 		"Nombre",
-		Vector3.new(0.3, 2, 11),
-		CFrame.new(-SHIP_HALF_LENGTH - 0.8, deckHeight(-SHIP_HALF_LENGTH) - 2.2, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
+		Vector3.new(0.2, 2.6, 14),
+		CFrame.new(-SHIP_HALF_LENGTH - 0.65, deckHeight(-SHIP_HALF_LENGTH) - 2.6, 0),
+		HULL_NAVY,
+		Enum.Material.Metal,
 		model
 	)
-	sign(nameBoard, Enum.NormalId.Left, "ESPERANZA", Color3.fromRGB(235, 200, 120), Enum.Font.Fantasy)
-	-- El nombre también en la proa, del lado de la playa.
-	local bowPoint = hullPoint(26, 4.6, 1)
-	local bowNormal = Vector3.new(0, 0, 1)
-	local bowBoard = newPart(
+	sign(sternName, Enum.NormalId.Left, "ESPERANZA\nPANAMÁ", WHITE_PAINT, Enum.Font.GothamBlack)
+	-- En la proa sigue la curva del casco.
+	local bowFrom, bowTo = hullPoint(19, 4.7, 1), hullPoint(27, 4.7, 1)
+	local outward = (bowTo - bowFrom):Cross(Vector3.yAxis).Unit
+	local bowMid = (bowFrom + bowTo) / 2 + outward * 0.45
+	local bowName = newPart(
 		"NombreProa",
-		Vector3.new(9, 1.8, 0.3),
-		CFrame.lookAt(bowPoint + bowNormal * 0.5, bowPoint + bowNormal * 2) * CFrame.Angles(0, 0, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
+		Vector3.new((bowTo - bowFrom).Magnitude, 2, 0.2),
+		CFrame.lookAt(bowMid, bowMid + outward),
+		HULL_NAVY,
+		Enum.Material.Metal,
 		model
 	)
-	sign(bowBoard, Enum.NormalId.Front, "ESPERANZA", Color3.fromRGB(235, 200, 120), Enum.Font.Fantasy)
+	sign(bowName, Enum.NormalId.Front, "ESPERANZA", WHITE_PAINT, Enum.Font.GothamBlack)
 end
 
 local function buildDeck(model: Model)
@@ -520,14 +574,14 @@ local function buildDeck(model: Model)
 		local width = 2 * halfBeam(mid, HULL_ROWS) - 0.6
 		local y = deckHeight(mid) - 0.4
 		if segment == 7 then
-			-- Cubierta hundida sobre el boquete: tablas sueltas y torcidas.
+			-- Cubierta hundida sobre el boquete: planchas dobladas hacia la bodega.
 			for i = -1, 1 do
 				newPart(
-					"TablaRota",
-					Vector3.new(step * 0.9, 0.5, 2.2),
+					"PlanchaDoblada",
+					Vector3.new(step * 0.9, 0.4, 3),
 					CFrame.new(mid + i * 0.6, y - 1.5 - i * 0.6, -3 + i * 4) * CFrame.Angles(0.25 * i, 0.2 * i, 0.3),
-					DECK_WOOD,
-					Enum.Material.WoodPlanks,
+					STEEL_DECK,
+					Enum.Material.DiamondPlate,
 					model
 				)
 			end
@@ -536,24 +590,33 @@ local function buildDeck(model: Model)
 				"Cubierta",
 				Vector3.new(step + 0.2, 0.6, width),
 				CFrame.new(mid, y, 0),
-				DECK_WOOD,
-				Enum.Material.WoodPlanks,
+				STEEL_DECK,
+				Enum.Material.DiamondPlate,
 				model
 			)
 		end
-		-- Borda: postes y pasamanos, con un hueco en el costado de la rampa.
+		-- Barandilla de tubo con dos pasamanos; hueco en el costado de la pasarela.
 		for _, side in { -1, 1 } do
-			local gap = side == 1 and segment == 3
-			if not gap and segment > 2 then
-				local a = hullPoint(x0, HULL_ROWS, side) + Vector3.new(0, 1.6, 0)
-				local b = hullPoint(x0 + step, HULL_ROWS, side) + Vector3.new(0, 1.6, 0)
-				cylinder("Pasamanos", 0.5, a, b, DARK_WOOD, Enum.Material.Wood, model)
+			if not (side == 1 and segment == 3) then
+				local a = hullPoint(x0, HULL_ROWS, side)
+				local b = hullPoint(x0 + step, HULL_ROWS, side)
+				for _, height in { 0.9, 1.8 } do
+					cylinder(
+						"Barandilla",
+						0.22,
+						a + Vector3.new(0, height, 0),
+						b + Vector3.new(0, height, 0),
+						RAIL,
+						Enum.Material.Metal,
+						model
+					)
+				end
 				newPart(
-					"Poste",
-					Vector3.new(0.5, 2, 0.5),
-					CFrame.new(a - Vector3.new(0, 0.8, 0)),
-					DARK_WOOD,
-					Enum.Material.Wood,
+					"Candelero",
+					Vector3.new(0.25, 1.9, 0.25),
+					CFrame.new(a + Vector3.new(0, 0.95, 0)),
+					RAIL,
+					Enum.Material.Metal,
 					model
 				)
 			end
@@ -561,208 +624,384 @@ local function buildDeck(model: Model)
 	end
 end
 
--- Alcázar de popa: camarote del capitán con puerta y ventanas encendidas, timón y farol.
-local function buildStern(model: Model)
-	local front = -SHIP_HALF_LENGTH + 12
-	local floor = deckHeight(-SHIP_HALF_LENGTH + 6)
-	local width = 2 * halfBeam(-SHIP_HALF_LENGTH + 6, HULL_ROWS) - 0.4
-	local height = 5.5
-	for _, wall in
-		{
-			{ size = Vector3.new(0.8, height, width), at = Vector3.new(front, floor + height / 2, 0) },
-			{
-				size = Vector3.new(12, height, 0.8),
-				at = Vector3.new(front - 6, floor + height / 2, width / 2 - 0.4),
-			},
-			{
-				size = Vector3.new(12, height, 0.8),
-				at = Vector3.new(front - 6, floor + height / 2, -width / 2 + 0.4),
-			},
-		}
-	do
-		newPart("Camarote", wall.size, CFrame.new(wall.at), woodTone(), Enum.Material.WoodPlanks, model)
-	end
-	newPart(
-		"Alcazar",
-		Vector3.new(13, 0.6, width + 0.6),
-		CFrame.new(front - 6, floor + height + 0.3, 0),
-		DECK_WOOD,
-		Enum.Material.WoodPlanks,
-		model
-	)
-	newPart(
-		"Puerta",
-		Vector3.new(0.3, 3.8, 2.4),
-		CFrame.new(front + 0.5, floor + 1.9, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		model
-	)
-	for _, z in { -4.5, 4.5 } do
-		local window = newPart(
+-- Ventanas en una cara: algunas encendidas, otras oscuras.
+local function windows(model: Model, from: Vector3, along: Vector3, count: number, spacing: number, size: Vector3)
+	for i = 0, count - 1 do
+		local lit = rng:NextNumber() < 0.35
+		local pane = newPart(
 			"Ventana",
-			Vector3.new(0.3, 1.4, 1.6),
-			CFrame.new(front + 0.5, floor + 3, z),
-			Color3.fromRGB(255, 200, 110),
-			Enum.Material.Neon,
+			size,
+			CFrame.new(from + along * (i * spacing)),
+			if lit then Color3.fromRGB(255, 205, 120) else GLASS,
+			if lit then Enum.Material.Neon else Enum.Material.Glass,
 			model
 		)
-		decor(window)
+		decor(pane)
 	end
-	-- Escalera al alcázar.
+end
+
+-- Castillo de popa: tres pisos blancos con el puente de mando arriba, chimenea, mástil de radar,
+-- luces de navegación, escalera exterior y el pescante vacío de la lancha.
+local function buildSuperstructure(model: Model)
+	local floor = deckHeight(-30) - 0.1
+	local fullWidth = 2 * halfBeam(-30, HULL_ROWS)
+	local levels = {
+		{ x0 = -36.5, x1 = -24, width = fullWidth - 3, height = 3.4 },
+		{ x0 = -36, x1 = -25.5, width = fullWidth - 5, height = 3.4 },
+		{ x0 = -32, x1 = -26, width = fullWidth + 2, height = 3.6 },
+	}
+	local bottom = floor
+	for index, level in levels do
+		local length = level.x1 - level.x0
+		local centerX = (level.x0 + level.x1) / 2
+		newPart(
+			if index == 3 then "Puente" else "Castillo",
+			Vector3.new(length, level.height, level.width),
+			CFrame.new(centerX, bottom + level.height / 2, 0),
+			WHITE_PAINT,
+			Enum.Material.SmoothPlastic,
+			model
+		)
+		if index == 3 then
+			-- Cristalera corrida del puente y techo con visera.
+			decor(
+				newPart(
+					"Cristalera",
+					Vector3.new(0.2, 1.7, level.width - 1),
+					CFrame.new(level.x1 + 0.05, bottom + 2.2, 0),
+					GLASS,
+					Enum.Material.Glass,
+					model
+				)
+			)
+			newPart(
+				"TechoPuente",
+				Vector3.new(length + 1.2, 0.4, level.width + 0.4),
+				CFrame.new(centerX + 0.4, bottom + level.height + 0.2, 0),
+				WHITE_PAINT,
+				Enum.Material.SmoothPlastic,
+				model
+			)
+		else
+			local count = math.floor(level.width / 3)
+			windows(
+				model,
+				Vector3.new(level.x1 + 0.05, bottom + 2, -(count - 1) * 1.5),
+				Vector3.zAxis,
+				count,
+				3,
+				Vector3.new(0.2, 1.1, 1.4)
+			)
+		end
+		-- Ventanas del costado que mira a la playa.
+		local sideCount = math.floor(length / 2.6)
+		windows(
+			model,
+			Vector3.new(level.x0 + 1.4, bottom + 2, level.width / 2 + 0.05),
+			Vector3.xAxis,
+			sideCount,
+			2.6,
+			Vector3.new(1.3, 1.1, 0.2)
+		)
+		bottom += level.height
+	end
+	newPart(
+		"Puerta",
+		Vector3.new(0.2, 2.6, 1.4),
+		CFrame.new(-23.9, floor + 1.3, -4),
+		Color3.fromRGB(90, 95, 100),
+		Enum.Material.Metal,
+		model
+	)
+	-- Escalera exterior hasta el techo del primer piso.
 	for i = 0, 4 do
 		newPart(
 			"Escalon",
-			Vector3.new(1.2, 0.5, 3),
-			CFrame.new(front + 1 + (4 - i) * 1.1, floor + 0.6 + i * 1.1, -width / 2 + 2.5),
-			DECK_WOOD,
-			Enum.Material.WoodPlanks,
+			Vector3.new(1.6, 0.4, 1.3),
+			CFrame.new(-23.1, floor + 0.5 + i * 0.68, 2 + i * 1.3),
+			ALUMINIUM,
+			Enum.Material.DiamondPlate,
 			model
 		)
 	end
-	-- Timón: rueda con radios sobre un pedestal.
-	local wheelCenter = Vector3.new(front - 3, floor + height + 3.2, 0)
+
+	-- Chimenea detrás del puente: blanca, franja naranja y boca negra.
+	local funnelBase = floor + levels[1].height + levels[2].height
+	local funnelX = -34.6
 	newPart(
-		"Pedestal",
-		Vector3.new(1, 2.6, 1),
-		CFrame.new(wheelCenter - Vector3.new(0.8, 1.6, 0)),
-		DARK_WOOD,
-		Enum.Material.Wood,
+		"Chimenea",
+		Vector3.new(3, 6, 4),
+		CFrame.new(funnelX, funnelBase + 3, 0),
+		WHITE_PAINT,
+		Enum.Material.SmoothPlastic,
 		model
 	)
-	local rim =
-		newPart("Timon", Vector3.new(0.4, 4.4, 4.4), CFrame.new(wheelCenter), DARK_WOOD, Enum.Material.Wood, model)
-	rim.Shape = Enum.PartType.Cylinder
-	local hub = newPart(
-		"TimonCentro",
-		Vector3.new(0.6, 3.4, 3.4),
-		CFrame.new(wheelCenter),
-		DECK_WOOD,
-		Enum.Material.Wood,
+	newPart(
+		"FranjaChimenea",
+		Vector3.new(3.1, 1.4, 4.1),
+		CFrame.new(funnelX, funnelBase + 4, 0),
+		RESCUE_ORANGE,
+		Enum.Material.SmoothPlastic,
 		model
 	)
-	hub.Shape = Enum.PartType.Cylinder
-	for i = 0, 3 do
-		newPart(
-			"Radio",
-			Vector3.new(0.3, 5.6, 0.3),
-			CFrame.new(wheelCenter) * CFrame.Angles(i * math.pi / 4, 0, 0),
-			DARK_WOOD,
-			Enum.Material.Wood,
-			model
-		)
-	end
-	-- Farol de popa.
-	local post = Vector3.new(-SHIP_HALF_LENGTH + 0.8, floor + height + 0.6, 0)
 	newPart(
-		"PosteFarol",
-		Vector3.new(0.4, 3, 0.4),
-		CFrame.new(post + Vector3.new(0, 1.5, 0)),
+		"BocaChimenea",
+		Vector3.new(3.1, 0.8, 4.1),
+		CFrame.new(funnelX, funnelBase + 6.2, 0),
 		IRON,
 		Enum.Material.Metal,
 		model
 	)
-	local lantern = newPart(
-		"Farol",
-		Vector3.new(1.2, 1.6, 1.2),
-		CFrame.new(post + Vector3.new(0, 3.6, 0)),
-		LANTERN_LIGHT,
-		Enum.Material.Neon,
+
+	-- Mástil de radar sobre el puente, con la antena parada y luces de navegación.
+	local roof = bottom + 0.4
+	local mastX = -29
+	newPart("MastilRadar", Vector3.new(0.6, 7, 0.6), CFrame.new(mastX, roof + 3.5, 0), RAIL, Enum.Material.Metal, model)
+	newPart("Cruceta", Vector3.new(0.4, 0.4, 5), CFrame.new(mastX, roof + 5.5, 0), RAIL, Enum.Material.Metal, model)
+	newPart(
+		"Radar",
+		Vector3.new(0.5, 0.35, 4.5),
+		CFrame.new(mastX, roof + 7.3, 0) * CFrame.Angles(0, 0.6, 0),
+		Color3.fromRGB(40, 40, 45),
+		Enum.Material.Metal,
 		model
 	)
-	decor(lantern)
-	light(lantern, LANTERN_LIGHT, 22, 2)
-end
-
-local function sailStrips(model: Model, top: CFrame, width: number, length: number, ragged: boolean)
-	local strips = 6
-	for i = 0, strips - 1 do
-		local stripLength = if ragged then length * rng:NextNumber(0.45, 1) else length
-		local offset = (i + 0.5) / strips * width - width / 2
-		local strip = newPart(
-			"Vela",
-			Vector3.new(width / strips + 0.1, stripLength, 0.2),
-			top * CFrame.new(offset, -stripLength / 2, 0) * CFrame.Angles(rng:NextNumber(-0.08, 0.12), 0, 0),
-			SAIL,
-			Enum.Material.Fabric,
-			model
+	ball("Domo", 1.2, Vector3.new(mastX, roof + 6.2, 2.4), WHITE_PAINT, Enum.Material.SmoothPlastic, model)
+	for _, navigation in
+		{
+			{ z = -2.6, color = Color3.fromRGB(255, 40, 40) }, -- babor
+			{ z = 2.6, color = Color3.fromRGB(40, 255, 90) }, -- estribor
+		}
+	do
+		decor(
+			ball(
+				"LuzNavegacion",
+				0.5,
+				Vector3.new(mastX, roof + 5.5, navigation.z),
+				navigation.color,
+				Enum.Material.Neon,
+				model
+			)
 		)
-		decor(strip)
+	end
+	local topLight =
+		ball("LuzTope", 0.5, Vector3.new(mastX, roof + 7.2, 0), Color3.new(1, 1, 1), Enum.Material.Neon, model)
+	decor(topLight)
+	light(topLight, Color3.fromRGB(255, 240, 220), 18, 1.5)
+
+	-- Pescante de la lancha, vacío: los cables cuelgan sueltos.
+	local davitBase = floor + levels[1].height
+	for _, x in { -33.5, -27.5 } do
+		local post = Vector3.new(x, davitBase + 1.5, levels[1].width / 2 - 0.4)
+		newPart("Pescante", Vector3.new(0.5, 3, 0.5), CFrame.new(post), RESCUE_ORANGE, Enum.Material.Metal, model)
+		local arm = post + Vector3.new(0, 1.3, 1.6)
+		newPart("BrazoPescante", Vector3.new(0.5, 0.5, 3.6), CFrame.new(arm), RESCUE_ORANGE, Enum.Material.Metal, model)
+		decor(
+			cylinder(
+				"Cable",
+				0.12,
+				arm + Vector3.new(0, 0, 1.6),
+				arm + Vector3.new(0, -5, 1.8),
+				IRON,
+				Enum.Material.Metal,
+				model
+			)
+		)
 	end
 end
 
-local function buildMasts(model: Model)
-	-- Trinquete en pie, con verga y vela rasgada, cofa y obenques.
-	local foreX = 16
-	local foreBase = Vector3.new(foreX, deckHeight(foreX), 0)
-	local foreTop = foreBase + Vector3.new(0, 30, 0)
-	cylinder("Trinquete", 1.6, foreBase - Vector3.new(0, 6, 0), foreTop, DARK_WOOD, Enum.Material.Wood, model)
-	local yardHeight = foreBase + Vector3.new(0, 22, 0)
-	cylinder(
-		"Verga",
-		0.8,
-		yardHeight - Vector3.new(0, 0, 9),
-		yardHeight + Vector3.new(0, 0, 9),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		model
-	)
-	sailStrips(model, CFrame.new(yardHeight + Vector3.new(0.6, 0, 0)) * CFrame.Angles(0, math.pi / 2, 0), 16, 12, true)
-	local nest = newPart(
-		"Cofa",
-		Vector3.new(1, 4, 4),
-		CFrame.new(foreBase + Vector3.new(0, 26, 0)) * CFrame.Angles(0, 0, math.pi / 2),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		model
-	)
-	nest.Shape = Enum.PartType.Cylinder
+-- Contenedor de mercancías con nervios, puertas y, si se pide, un rótulo en el costado.
+local function container(
+	parent: Instance,
+	cframe: CFrame,
+	color: Color3,
+	label: string?,
+	labelFace: Enum.NormalId?,
+	doorsOpen: boolean?
+): Part
+	local size = Vector3.new(12, 5.2, 4.8)
+	local body = newPart("Contenedor", size, cframe, color, Enum.Material.Metal, parent)
+	local rib = color:Lerp(Color3.new(0, 0, 0), 0.25)
 	for _, side in { -1, 1 } do
-		for _, dx in { -3, 3 } do
-			local anchor = hullPoint(foreX + dx, HULL_ROWS, side) + Vector3.new(0, 1.5, 0)
-			decor(cylinder("Obenque", 0.15, anchor, foreTop - Vector3.new(0, 2, 0), ROPE, Enum.Material.Fabric, model))
+		for _, x in { -4.5, -1.5, 1.5, 4.5 } do
+			decor(
+				newPart(
+					"Nervio",
+					Vector3.new(0.35, size.Y - 0.4, 0.15),
+					cframe * CFrame.new(x, 0, side * (size.Z / 2 + 0.07)),
+					rib,
+					Enum.Material.Metal,
+					parent
+				)
+			)
+		end
+		decor(
+			newPart(
+				"Larguero",
+				Vector3.new(size.X, 0.3, 0.3),
+				cframe * CFrame.new(0, size.Y / 2 - 0.1, side * (size.Z / 2 - 0.1)),
+				rib,
+				Enum.Material.Metal,
+				parent
+			)
+		)
+	end
+	local doorEnd = cframe * CFrame.new(size.X / 2 + 0.08, 0, 0)
+	if doorsOpen then
+		decor(
+			newPart(
+				"Interior",
+				Vector3.new(0.1, size.Y - 0.5, size.Z - 0.5),
+				doorEnd,
+				Color3.fromRGB(25, 25, 25),
+				Enum.Material.Metal,
+				parent
+			)
+		)
+		for _, side in { -1, 1 } do
+			newPart(
+				"PuertaContenedor",
+				Vector3.new(0.15, size.Y - 0.3, size.Z / 2),
+				doorEnd * CFrame.new(size.Z / 4, 0, side * (size.Z / 2 + 0.05)) * CFrame.Angles(0, side * 1.4, 0),
+				rib,
+				Enum.Material.Metal,
+				parent
+			)
+		end
+	else
+		decor(
+			newPart("Puertas", Vector3.new(0.15, size.Y - 0.3, size.Z - 0.3), doorEnd, rib, Enum.Material.Metal, parent)
+		)
+		for _, z in { -0.8, 0.8 } do
+			decor(
+				newPart(
+					"Cierre",
+					Vector3.new(0.15, size.Y - 0.6, 0.12),
+					doorEnd * CFrame.new(0.1, 0, z),
+					ALUMINIUM,
+					Enum.Material.Metal,
+					parent
+				)
+			)
 		end
 	end
-	-- Bauprés.
-	local bow = Vector3.new(SHIP_HALF_LENGTH, deckHeight(SHIP_HALF_LENGTH) + 0.8, 0)
-	cylinder(
-		"Baupres",
-		1,
-		bow - Vector3.new(4, 0, 0),
-		bow + Vector3.new(12, 5, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		model
-	)
-	decor(cylinder("Estay", 0.15, bow + Vector3.new(11, 4.6, 0), foreTop, ROPE, Enum.Material.Fabric, model))
-
-	-- Palo mayor partido: queda un tocón astillado.
-	local mainX = -6
-	local mainBase = Vector3.new(mainX, deckHeight(mainX), 0)
-	cylinder(
-		"PaloMayor",
-		2,
-		mainBase - Vector3.new(0, 6, 0),
-		mainBase + Vector3.new(0, 9, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		model
-	)
-	for i = 0, 4 do
-		local angle = i * 2 * math.pi / 5
-		local wedge = Instance.new("WedgePart")
-		wedge.Name = "Astilla"
-		wedge.Size = Vector3.new(0.6, rng:NextNumber(1.2, 2.6), 0.8)
-		wedge.CFrame = CFrame.new(mainBase + Vector3.new(math.cos(angle) * 0.6, 9.6, math.sin(angle) * 0.6))
-			* CFrame.Angles(0, -angle, 0)
-		wedge.Color = DARK_WOOD
-		wedge.Material = Enum.Material.Wood
-		wedge.Anchored = true
-		wedge.Parent = model
+	if label and labelFace then
+		sign(body, labelFace, label, WHITE_PAINT, Enum.Font.GothamBlack)
 	end
+	return body
 end
 
--- Carga: cajas y barriles; algunas con el sello del Proyecto PRIMAL.
+local function containerColor(): Color3
+	return CONTAINER_COLORS[rng:NextInteger(1, #CONTAINER_COLORS)]
+end
+
+-- Contenedores en cubierta (uno a punto de caer por la borda) y una grúa amarilla.
+local function buildCargo(model: Model)
+	local tier1 = deckHeight(0) - 0.1 + 2.6
+	local tier2 = tier1 + 5.2
+	for _, bay in { -14, 9 } do
+		for _, z in { -6, 0, 6 } do
+			local stamped = bay == -14 and z == 6
+			container(
+				model,
+				CFrame.new(bay, tier1, z),
+				containerColor(),
+				if stamped then "PRIMAL" else nil,
+				if stamped then Enum.NormalId.Back else nil
+			)
+		end
+		container(model, CFrame.new(bay, tier2, -6), containerColor())
+	end
+	container(model, CFrame.new(-14, tier2, 0), containerColor())
+	-- El de arriba a estribor se ha deslizado hacia la playa.
+	container(
+		model,
+		CFrame.new(9, tier2 - 1, 7.8) * CFrame.Angles(0.3, 0.05, 0),
+		containerColor(),
+		"PRIMAL",
+		Enum.NormalId.Back
+	)
+
+	-- Grúa de cubierta con la pluma levantada y el gancho colgando.
+	local base = Vector3.new(21, deckHeight(21) - 0.1, -6)
+	local pedestal = newPart(
+		"PedestalGrua",
+		Vector3.new(5, 3, 3),
+		CFrame.new(base + Vector3.new(0, 2.5, 0)) * CFrame.Angles(0, 0, math.pi / 2),
+		CRANE_YELLOW,
+		Enum.Material.Metal,
+		model
+	)
+	pedestal.Shape = Enum.PartType.Cylinder
+	local cab = base + Vector3.new(0, 6.5, 0)
+	newPart("CabinaGrua", Vector3.new(4, 3, 3.5), CFrame.new(cab), CRANE_YELLOW, Enum.Material.Metal, model)
+	decor(
+		newPart(
+			"CristalGrua",
+			Vector3.new(0.2, 1.2, 2.4),
+			CFrame.new(cab + Vector3.new(2.05, 0.5, 0)),
+			GLASS,
+			Enum.Material.Glass,
+			model
+		)
+	)
+	local boomFrom = cab + Vector3.new(1.5, 1, 0)
+	local boomTo = Vector3.new(32, deckHeight(32) + 19, 4)
+	newPart(
+		"Pluma",
+		Vector3.new(1.1, 1.1, (boomTo - boomFrom).Magnitude),
+		CFrame.lookAt((boomFrom + boomTo) / 2, boomTo),
+		CRANE_YELLOW,
+		Enum.Material.Metal,
+		model
+	)
+	decor(cylinder("CableGrua", 0.12, boomTo, boomTo - Vector3.new(0, 9, 0), IRON, Enum.Material.Metal, model))
+	newPart(
+		"Gancho",
+		Vector3.new(0.8, 1.2, 0.8),
+		CFrame.new(boomTo - Vector3.new(0, 9.6, 0)),
+		IRON,
+		Enum.Material.Metal,
+		model
+	)
+
+	-- Proa: bolardos, molinete y mástil con luz.
+	for _, z in { -3.5, 3.5 } do
+		for _, dx in { 0, 1.4 } do
+			local bitt = newPart(
+				"Bolardo",
+				Vector3.new(1.2, 1, 1),
+				CFrame.new(29.5 + dx, deckHeight(29.5 + dx) + 0.2, z) * CFrame.Angles(0, 0, math.pi / 2),
+				IRON,
+				Enum.Material.Metal,
+				model
+			)
+			bitt.Shape = Enum.PartType.Cylinder
+		end
+	end
+	newPart(
+		"Molinete",
+		Vector3.new(2.4, 1.4, 4),
+		CFrame.new(33, deckHeight(33) + 0.4, 0),
+		IRON,
+		Enum.Material.Metal,
+		model
+	)
+	local foremast = Vector3.new(27, deckHeight(27), 0)
+	newPart(
+		"Trinquete",
+		Vector3.new(0.7, 11, 0.7),
+		CFrame.new(foremast + Vector3.new(0, 5.5, 0)),
+		CRANE_YELLOW,
+		Enum.Material.Metal,
+		model
+	)
+	local mastLight =
+		ball("LuzProa", 0.5, foremast + Vector3.new(0, 11.2, 0), Color3.new(1, 1, 1), Enum.Material.Neon, model)
+	decor(mastLight)
+end
+
+-- Caja de madera de la carga; algunas con el sello del Proyecto PRIMAL.
 local function crate(parent: Instance, cframe: CFrame, size: number, stamped: boolean)
 	local box =
 		newPart("Caja", Vector3.one * size, cframe, Color3.fromRGB(160, 120, 70), Enum.Material.WoodPlanks, parent)
@@ -790,19 +1029,20 @@ local function crate(parent: Instance, cframe: CFrame, size: number, stamped: bo
 	return box
 end
 
-local function barrel(parent: Instance, position: Vector3, lying: boolean)
+-- Bidón metálico de 200 litros, de pie o tumbado.
+local function drum(parent: Instance, position: Vector3, lying: boolean)
 	local cframe = if lying
-		then CFrame.new(position + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
+		then CFrame.new(position + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
 		else CFrame.new(position + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, 0, math.pi / 2)
-	local body =
-		newPart("Barril", Vector3.new(3.2, 2.4, 2.4), cframe, Color3.fromRGB(120, 80, 45), Enum.Material.Wood, parent)
+	local color = if rng:NextNumber() < 0.5 then Color3.fromRGB(40, 80, 150) else Color3.fromRGB(170, 45, 35)
+	local body = newPart("Bidon", Vector3.new(3.2, 2.2, 2.2), cframe, color, Enum.Material.Metal, parent)
 	body.Shape = Enum.PartType.Cylinder
-	for _, offset in { -1, 1 } do
+	for _, offset in { -0.6, 0.6 } do
 		local hoop = newPart(
 			"Aro",
-			Vector3.new(0.25, 2.5, 2.5),
+			Vector3.new(0.2, 2.3, 2.3),
 			cframe * CFrame.new(offset, 0, 0),
-			IRON,
+			color:Lerp(Color3.new(0, 0, 0), 0.3),
 			Enum.Material.Metal,
 			parent
 		)
@@ -815,31 +1055,33 @@ local function buildHold(model: Model)
 	crate(model, CFrame.new(-8, 2.4, 3) * CFrame.Angles(0, 0.3, 0), 3.4, true)
 	crate(model, CFrame.new(-11, 2.4, 0.5) * CFrame.Angles(0, -0.2, 0), 3.4, false)
 	crate(model, CFrame.new(-9.5, 5.6, 1.5) * CFrame.Angles(0, 0.6, 0.1), 3, false)
-	barrel(model, Vector3.new(-3, 0.9, 2), false)
-	barrel(model, Vector3.new(-1, 0.9, -1.5), true)
-	-- Racimos de bananas de la carga.
+	drum(model, Vector3.new(-3, 0.9, 2), false)
+	drum(model, Vector3.new(-1, 0.9, -1.5), true)
+	-- Bananas de la carga.
 	for i = 0, 5 do
 		local position = Vector3.new(-5 + (i % 3) * 0.9, 1.5, 4 + math.floor(i / 3) * 0.8)
-		local banana = newPart(
-			"Banana",
-			Vector3.new(1.4, 0.4, 0.4),
-			CFrame.new(position) * CFrame.Angles(0, i, 0.4),
-			Color3.fromRGB(240, 210, 60),
-			Enum.Material.SmoothPlastic,
-			model
+		decor(
+			newPart(
+				"Banana",
+				Vector3.new(1.4, 0.4, 0.4),
+				CFrame.new(position) * CFrame.Angles(0, i, 0.4),
+				Color3.fromRGB(240, 210, 60),
+				Enum.Material.SmoothPlastic,
+				model
+			)
 		)
-		decor(banana)
 	end
-	local lantern = newPart(
-		"FarolBodega",
-		Vector3.new(0.9, 1.2, 0.9),
-		CFrame.new(-6, 7, 0),
-		LANTERN_LIGHT,
+	-- Luz de emergencia de la bodega.
+	local lamp = newPart(
+		"LuzEmergencia",
+		Vector3.new(1.2, 0.6, 0.6),
+		CFrame.new(-6, 9, 0),
+		RESCUE_ORANGE,
 		Enum.Material.Neon,
 		model
 	)
-	decor(lantern)
-	light(lantern, LANTERN_LIGHT, 16, 1.6)
+	decor(lamp)
+	light(lamp, Color3.fromRGB(255, 150, 80), 16, 1.6)
 end
 
 -- Vacía de arena el interior del casco (el banco de arena se generó también por dentro).
@@ -863,10 +1105,10 @@ local function buildShip(parent: Instance): Model
 	model.Name = "Esperanza"
 	buildHull(model)
 	buildDeck(model)
-	buildStern(model)
-	buildMasts(model)
+	buildSuperstructure(model)
+	buildCargo(model)
 	buildHold(model)
-	local origin = newPart("Pivote", Vector3.one, CFrame.new(), DARK_WOOD, Enum.Material.Wood, model)
+	local origin = newPart("Pivote", Vector3.one, CFrame.new(), IRON, Enum.Material.Metal, model)
 	origin.Transparency = 1
 	decor(origin)
 	model.PrimaryPart = origin
@@ -924,10 +1166,33 @@ local function buildPalm(parent: Instance, ground: Vector3, lean: number, yaw: n
 	palm.Parent = parent
 end
 
+-- Salvavidas naranja y blanco (aro de tramos de cilindro) colgado de un poste.
+local function lifeRing(parent: Instance, center: CFrame)
+	local segments = 12
+	local radius = 1.6
+	for i = 0, segments - 1 do
+		local a0 = i * 2 * math.pi / segments
+		local a1 = (i + 1) * 2 * math.pi / segments
+		local p0 = (center * CFrame.new(math.cos(a0) * radius, math.sin(a0) * radius, 0)).Position
+		local p1 = (center * CFrame.new(math.cos(a1) * radius, math.sin(a1) * radius, 0)).Position
+		decor(
+			cylinder(
+				"Salvavidas",
+				0.7,
+				p0,
+				p1,
+				if math.floor(i / 3) % 2 == 0 then RESCUE_ORANGE else WHITE_PAINT,
+				Enum.Material.SmoothPlastic,
+				parent
+			)
+		)
+	end
+end
+
 local function buildCamp(parent: Instance)
 	local camp = Instance.new("Model")
 	camp.Name = "Campamento"
-	-- Hoguera.
+	-- Hoguera con leña de deriva.
 	local fireAt = groundAt(6, 10)
 	for i = 0, 7 do
 		local angle = i * math.pi / 4
@@ -960,12 +1225,12 @@ local function buildCamp(parent: Instance)
 	flame.Heat = 9
 	flame.Parent = embers
 	light(embers, FIRE_LIGHT, 30, 3)
-	-- Troncos para sentarse alrededor.
+	-- Troncos para sentarse y un bidón como mesa.
 	for i = 0, 2 do
 		local angle = i * 2 * math.pi / 3 + 0.5
 		local center = fireAt + Vector3.new(math.cos(angle) * 7, 0.8, math.sin(angle) * 7)
 		local tangent = Vector3.new(-math.sin(angle), 0, math.cos(angle))
-		local seat = cylinder(
+		cylinder(
 			"Banco",
 			1.6,
 			center - tangent * 2.5,
@@ -974,107 +1239,109 @@ local function buildCamp(parent: Instance)
 			Enum.Material.Wood,
 			camp
 		)
-		seat.CanCollide = true
 	end
+	drum(camp, fireAt + Vector3.new(-6.5, 0, 4), false)
 
-	-- Tienda hecha con una vela del barco, sobre dos postes y una cumbrera.
+	-- Tienda de lona azul sobre dos postes de aluminio.
 	local tentAt = groundAt(-14, 16)
 	local tentFrame = CFrame.new(tentAt) * CFrame.Angles(0, math.rad(20), 0)
 	for _, dx in { -5, 5 } do
 		newPart(
 			"PosteTienda",
-			Vector3.new(0.6, 7, 0.6),
+			Vector3.new(0.4, 7, 0.4),
 			tentFrame * CFrame.new(dx, 3.5, 0),
-			DARK_WOOD,
-			Enum.Material.Wood,
+			ALUMINIUM,
+			Enum.Material.Metal,
 			camp
 		)
 	end
-	newPart(
-		"Cumbrera",
-		Vector3.new(11, 0.6, 0.6),
-		tentFrame * CFrame.new(0, 6.8, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
+	cylinder(
+		"Cuerda",
+		0.2,
+		(tentFrame * CFrame.new(-5.2, 6.8, 0)).Position,
+		(tentFrame * CFrame.new(5.2, 6.8, 0)).Position,
+		Color3.fromRGB(200, 200, 190),
+		Enum.Material.Fabric,
 		camp
 	)
 	for _, side in { -1, 1 } do
 		decor(
 			newPart(
-				"VelaTienda",
-				Vector3.new(11.5, 0.25, 8.4),
+				"Lona",
+				Vector3.new(11.5, 0.2, 8.4),
 				tentFrame * CFrame.new(0, 3.6, side * 3.3) * CFrame.Angles(side * math.rad(-50), 0, 0),
-				SAIL,
+				TARP,
 				Enum.Material.Fabric,
 				camp
 			)
 		)
 	end
 	crate(camp, tentFrame * CFrame.new(-2, 1.3, 0), 2.6, false)
-	barrel(camp, (tentFrame * CFrame.new(2.5, 0, 0.5)).Position, false)
+	drum(camp, (tentFrame * CFrame.new(2.5, 0, 0.5)).Position, false)
 
-	-- Carga desperdigada por la playa.
-	crate(camp, CFrame.new(groundAt(-26, 6) + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, 0.5, 0.08), 3.2, true)
-	crate(camp, CFrame.new(groundAt(-30, 2) + Vector3.new(0, 1.4, 0)) * CFrame.Angles(0.1, -0.3, 0), 2.8, false)
-	crate(camp, CFrame.new(groundAt(20, -18) + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.9, 0.15), 2.4, false)
-	barrel(camp, groundAt(16, 4), true)
-	barrel(camp, groundAt(-20, -2), false)
-	barrel(camp, groundAt(30, -30), true)
-
-	-- Palo mayor caído en la arena, con su verga y la vela tendida.
-	local fallFrom = groundAt(-40, 4) + Vector3.new(0, 1, 0)
-	local fallTo = groundAt(-12, -6) + Vector3.new(0, 1, 0)
-	cylinder("PaloCaido", 2, fallFrom, fallTo, DARK_WOOD, Enum.Material.Wood, camp)
-	local yardMid = fallFrom:Lerp(fallTo, 0.6)
-	cylinder(
-		"VergaCaida",
-		0.8,
-		yardMid + Vector3.new(-3, 0.2, 8),
-		yardMid + Vector3.new(3, 0.2, -8),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		camp
+	-- Contenedores varados en la arena: uno volcado y medio enterrado, otro abierto con la carga
+	-- desparramada.
+	local tipped = groundAt(-20, -1)
+	container(
+		camp,
+		CFrame.new(tipped + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, 0.45, 0) * CFrame.Angles(math.rad(82), 0, 0),
+		CONTAINER_COLORS[2],
+		"PRIMAL",
+		Enum.NormalId.Front
 	)
-	for i = 0, 3 do
-		decor(
-			newPart(
-				"VelaCaida",
-				Vector3.new(6, 0.2, 4.2),
-				CFrame.new(groundAt(-22 + i * 2.5, 4 + i * 2) + Vector3.new(0, 0.3, 0))
-					* CFrame.Angles(rng:NextNumber(-0.1, 0.1), 0.4 + i * 0.2, rng:NextNumber(-0.12, 0.12)),
-				SAIL,
-				Enum.Material.Fabric,
-				camp
-			)
-		)
-	end
+	local openAt = groundAt(-36, 12)
+	local openFrame = CFrame.new(openAt + Vector3.new(0, 2.2, 0)) * CFrame.Angles(0, math.rad(-35), math.rad(-3))
+	container(camp, openFrame, CONTAINER_COLORS[1], nil, nil, true)
+	local mouth = openFrame * CFrame.new(9, 0, 0)
+	crate(camp, CFrame.new(groundAt(mouth.X, mouth.Z) + Vector3.new(0, 1.4, 0)) * CFrame.Angles(0, 0.5, 0.1), 2.8, true)
+	crate(
+		camp,
+		CFrame.new(groundAt(mouth.X + 3, mouth.Z + 2.5) + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0.2, -0.4, 0),
+		2.2,
+		false
+	)
+	drum(camp, groundAt(mouth.X - 1, mouth.Z + 4), true)
 
-	-- Ancla clavada en la arena junto a la proa.
+	-- Más carga por la playa.
+	crate(camp, CFrame.new(groundAt(20, -18) + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.9, 0.15), 2.4, false)
+	drum(camp, groundAt(16, 4), true)
+	drum(camp, groundAt(30, -30), true)
+
+	-- Ancla moderna (sin cepo) en la arena, unida a la proa por la cadena.
 	local anchorAt = groundAt(14, -40)
-	local anchorFrame = CFrame.new(anchorAt) * CFrame.Angles(0, 0.6, 0.35)
-	newPart("Ancla", Vector3.new(0.9, 9, 0.9), anchorFrame * CFrame.new(0, 3.5, 0), IRON, Enum.Material.Metal, camp)
-	newPart("Cepo", Vector3.new(0.7, 0.7, 6), anchorFrame * CFrame.new(0, 7.3, 0), IRON, Enum.Material.Metal, camp)
+	local anchorFrame = CFrame.new(anchorAt) * CFrame.Angles(0, 0.6, 0.3)
+	newPart("Caña", Vector3.new(0.9, 7, 0.9), anchorFrame * CFrame.new(0, 3, 0), IRON, Enum.Material.Metal, camp)
+	newPart("Corona", Vector3.new(1.6, 1, 3.2), anchorFrame * CFrame.new(0, 0, 0), IRON, Enum.Material.Metal, camp)
 	for _, side in { -1, 1 } do
 		newPart(
-			"Brazo",
-			Vector3.new(0.9, 0.9, 4),
-			anchorFrame * CFrame.new(0, 0.4, side * 1.4) * CFrame.Angles(side * math.rad(-40), 0, 0),
+			"Una",
+			Vector3.new(1.2, 3, 1),
+			anchorFrame * CFrame.new(0, 1.2, side * 1.6) * CFrame.Angles(side * math.rad(-25), 0, 0),
 			IRON,
 			Enum.Material.Metal,
 			camp
 		)
 	end
-	local ring = newPart(
-		"Argolla",
-		Vector3.new(0.4, 2.2, 2.2),
-		anchorFrame * CFrame.new(0, 8.6, 0),
-		IRON,
-		Enum.Material.Metal,
-		camp
-	)
-	ring.Shape = Enum.PartType.Cylinder
+	local shackle = (anchorFrame * CFrame.new(0, 6.8, 0)).Position
+	local hawse = SHIP_FRAME * (hullPoint(32, HULL_ROWS - 0.6, 1) + Vector3.new(0, 0, 0.6))
+	local links = 22
+	local function chainPoint(t: number): Vector3
+		return hawse:Lerp(shackle, t) - Vector3.new(0, math.sin(t * math.pi) * 3, 0)
+	end
+	for i = 0, links - 1 do
+		local link = cylinder(
+			"Cadena",
+			if i % 2 == 0 then 0.55 else 0.4,
+			chainPoint(i / links),
+			chainPoint((i + 1) / links),
+			IRON,
+			Enum.Material.Metal,
+			camp
+		)
+		decor(link)
+	end
 
-	-- Diario del capitán en un tablón clavado en la arena.
+	-- Bitácora del capitán en un tablero clavado en la arena, con su lámpara de emergencia.
 	local boardAt = groundAt(-6, 30)
 	local boardFrame = CFrame.lookAt(boardAt + Vector3.new(0, 4.2, 0), boardAt + Vector3.new(4, 4.2, 14))
 	for _, dx in { -3, 3 } do
@@ -1088,7 +1355,7 @@ local function buildCamp(parent: Instance)
 		)
 	end
 	local board = newPart(
-		"DiarioDelCapitan",
+		"BitacoraDelCapitan",
 		Vector3.new(7.5, 5, 0.4),
 		boardFrame,
 		Color3.fromRGB(205, 175, 125),
@@ -1097,111 +1364,175 @@ local function buildCamp(parent: Instance)
 	)
 	sign(board, Enum.NormalId.Front, LOG_TEXT, Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
 	local lamp = newPart(
-		"FarolTablon",
-		Vector3.new(0.8, 1, 0.8),
-		boardFrame * CFrame.new(3.4, 3, -0.6),
+		"LamparaTablon",
+		Vector3.new(0.9, 0.5, 0.5),
+		boardFrame * CFrame.new(3.4, 2.8, -0.5),
 		LANTERN_LIGHT,
 		Enum.Material.Neon,
 		camp
 	)
 	decor(lamp)
 	light(lamp, LANTERN_LIGHT, 14, 1.5)
+	-- Salvavidas del barco colgado de un poste junto a la llegada.
+	local ringPost = groundAt(10, 32)
+	newPart(
+		"PosteSalvavidas",
+		Vector3.new(0.5, 6, 0.5),
+		CFrame.new(ringPost + Vector3.new(0, 3, 0)),
+		DARK_WOOD,
+		Enum.Material.Wood,
+		camp
+	)
+	lifeRing(camp, CFrame.lookAt(ringPost + Vector3.new(0, 4.2, 0.6), ringPost + Vector3.new(0, 4.2, 10)))
 
 	camp.Parent = parent
 end
 
--- Bote salvavidas en la orilla, apuntando a la isla: con su aviso se viaja a la partida.
+-- Lancha neumática de rescate en la orilla, apuntando a la isla: con su aviso se viaja a la partida.
 local function buildLifeboat(parent: Instance)
 	local boat = Instance.new("Model")
-	boat.Name = "Bote"
-	local toIsland = (ISLAND_CENTER - Vector3.new(24, 0, -50)) * Vector3.new(1, 0, 1)
-	local at = Vector3.new(24, SEA_LEVEL + 0.4, -50)
-	local frame = CFrame.lookAt(at, at + toIsland.Unit) * CFrame.Angles(math.rad(-4), 0, math.rad(3))
-	local length, beam = 12, 5
-	newPart(
-		"Fondo",
-		Vector3.new(beam - 1.4, 0.5, length - 2),
-		frame * CFrame.new(0, 0.3, 0),
-		DARK_WOOD,
-		Enum.Material.WoodPlanks,
-		boat
-	)
+	boat.Name = "Lancha"
+	local at = Vector3.new(24, SEA_LEVEL + 0.2, -50)
+	local toIsland = (ISLAND_CENTER - at) * Vector3.new(1, 0, 1)
+	-- La proa (-Z local) mira a la isla.
+	local frame = CFrame.lookAt(at, at + toIsland.Unit) * CFrame.Angles(math.rad(3), 0, math.rad(2))
+	local function point(x: number, y: number, z: number): Vector3
+		return (frame * CFrame.new(x, y, z)).Position
+	end
+	-- Flotadores: rectos a los lados y cerrándose en la proa.
 	for _, side in { -1, 1 } do
-		newPart(
-			"Costado",
-			Vector3.new(0.5, 1.8, length - 1.5),
-			frame * CFrame.new(side * (beam / 2 - 0.4), 1.2, 0.3) * CFrame.Angles(0, 0, side * -0.2),
-			Color3.fromRGB(180, 70, 50),
-			Enum.Material.WoodPlanks,
+		cylinder(
+			"Flotador",
+			1.6,
+			point(side * 2.2, 0.9, 5.2),
+			point(side * 2.2, 0.9, -2.5),
+			RESCUE_ORANGE,
+			Enum.Material.Fabric,
 			boat
 		)
-		newPart(
-			"Proa",
-			Vector3.new(0.5, 1.8, 3.2),
-			frame * CFrame.new(side * 1.05, 1.2, -length / 2 + 0.6) * CFrame.Angles(0, side * -0.55, side * -0.2),
-			Color3.fromRGB(180, 70, 50),
-			Enum.Material.WoodPlanks,
+		cylinder(
+			"Flotador",
+			1.6,
+			point(side * 2.2, 0.9, -2.5),
+			point(0, 1.1, -6.2),
+			RESCUE_ORANGE,
+			Enum.Material.Fabric,
 			boat
 		)
-		-- Remos apoyados en las bordas.
+		ball("Tapa", 1.6, point(side * 2.2, 0.9, 5.2), RESCUE_ORANGE, Enum.Material.Fabric, boat)
+		-- Cabo de agarre a lo largo del flotador.
 		decor(
 			cylinder(
-				"Remo",
-				0.35,
-				(frame * CFrame.new(side * 1.2, 1.9, 1.5)).Position,
-				(frame * CFrame.new(side * 4.8, 0.6, 3.5)).Position,
-				Color3.fromRGB(190, 150, 95),
-				Enum.Material.Wood,
+				"Cabo",
+				0.15,
+				point(side * 2.9, 1.4, 4),
+				point(side * 2.9, 1.4, -2),
+				WHITE_PAINT,
+				Enum.Material.Fabric,
 				boat
 			)
 		)
 	end
+	ball("ProaLancha", 1.8, point(0, 1.1, -6.2), RESCUE_ORANGE, Enum.Material.Fabric, boat)
 	newPart(
-		"Popa",
-		Vector3.new(beam - 0.6, 1.8, 0.5),
-		frame * CFrame.new(0, 1.2, length / 2 - 0.5),
-		Color3.fromRGB(180, 70, 50),
-		Enum.Material.WoodPlanks,
-		boat
-	)
-	for _, z in { -1.5, 2 } do
-		newPart(
-			"Banco",
-			Vector3.new(beam - 1, 0.4, 1.2),
-			frame * CFrame.new(0, 1.4, z),
-			DECK_WOOD,
-			Enum.Material.WoodPlanks,
-			boat
-		)
-	end
-	local lanternPost = newPart(
-		"PosteFarol",
-		Vector3.new(0.3, 3, 0.3),
-		frame * CFrame.new(0, 2.6, -length / 2 + 1.6),
-		IRON,
+		"FondoLancha",
+		Vector3.new(3.6, 0.4, 10.5),
+		frame * CFrame.new(0, 0.4, -0.3),
+		Color3.fromRGB(70, 75, 80),
 		Enum.Material.Metal,
 		boat
 	)
-	local lantern = newPart(
-		"Farol",
-		Vector3.new(0.9, 1.1, 0.9),
-		lanternPost.CFrame * CFrame.new(0, 2, 0),
-		LANTERN_LIGHT,
-		Enum.Material.Neon,
+	newPart(
+		"Espejo",
+		Vector3.new(4.2, 1.6, 0.4),
+		frame * CFrame.new(0, 1, 5.4),
+		Color3.fromRGB(50, 50, 55),
+		Enum.Material.Metal,
 		boat
 	)
-	decor(lantern)
-	light(lantern, LANTERN_LIGHT, 18, 2)
+	-- Consola con parabrisas y volante.
+	newPart(
+		"Consola",
+		Vector3.new(1.4, 1.6, 1.1),
+		frame * CFrame.new(0, 1.4, 0.5),
+		WHITE_PAINT,
+		Enum.Material.SmoothPlastic,
+		boat
+	)
+	decor(
+		newPart(
+			"Parabrisas",
+			Vector3.new(1.4, 0.8, 0.1),
+			frame * CFrame.new(0, 2.6, 0.05) * CFrame.Angles(math.rad(-20), 0, 0),
+			GLASS,
+			Enum.Material.Glass,
+			boat
+		)
+	)
+	local wheel = newPart(
+		"Volante",
+		Vector3.new(0.15, 0.9, 0.9),
+		frame * CFrame.new(0, 2.3, 1.1) * CFrame.Angles(0, math.pi / 2, math.rad(30)),
+		Color3.fromRGB(30, 30, 30),
+		Enum.Material.SmoothPlastic,
+		boat
+	)
+	wheel.Shape = Enum.PartType.Cylinder
+	newPart(
+		"Asiento",
+		Vector3.new(2.4, 0.9, 1.2),
+		frame * CFrame.new(0, 1.05, 2.6),
+		Color3.fromRGB(40, 40, 45),
+		Enum.Material.Fabric,
+		boat
+	)
+	-- Motor fueraborda.
+	newPart(
+		"Motor",
+		Vector3.new(1.1, 1.6, 1.3),
+		frame * CFrame.new(0, 2.2, 6),
+		Color3.fromRGB(25, 25, 28),
+		Enum.Material.SmoothPlastic,
+		boat
+	)
+	newPart(
+		"FranjaMotor",
+		Vector3.new(1.15, 0.3, 1.35),
+		frame * CFrame.new(0, 2.4, 6),
+		RESCUE_ORANGE,
+		Enum.Material.SmoothPlastic,
+		boat
+	)
+	newPart(
+		"Pie",
+		Vector3.new(0.4, 2.2, 0.5),
+		frame * CFrame.new(0, 0.5, 6.1),
+		Color3.fromRGB(25, 25, 28),
+		Enum.Material.Metal,
+		boat
+	)
+	-- Luz de navegación en un mástil corto.
+	newPart(
+		"MastilLancha",
+		Vector3.new(0.2, 2.4, 0.2),
+		frame * CFrame.new(0, 3.2, 3.4),
+		ALUMINIUM,
+		Enum.Material.Metal,
+		boat
+	)
+	local lamp = ball("LuzLancha", 0.5, point(0, 4.5, 3.4), Color3.new(1, 1, 1), Enum.Material.Neon, boat)
+	decor(lamp)
+	light(lamp, LANTERN_LIGHT, 18, 2)
 
 	-- Aviso para zarpar (el Lobby lo trata como el botón "Ir a la Isla").
 	local promptAnchor =
-		newPart("Amarre", Vector3.new(2, 2, 2), frame * CFrame.new(0, 2, 2), DARK_WOOD, Enum.Material.Wood, boat)
+		newPart("Amarre", Vector3.new(2, 2, 2), frame * CFrame.new(0, 2, 1.5), DARK_WOOD, Enum.Material.Wood, boat)
 	promptAnchor.Transparency = 1
 	decor(promptAnchor)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ZarparPrompt"
 	prompt.ActionText = "Zarpar hacia la isla"
-	prompt.ObjectText = "Bote salvavidas"
+	prompt.ObjectText = "Lancha de rescate"
 	prompt.HoldDuration = 1
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
@@ -1226,11 +1557,11 @@ local function buildLifeboat(parent: Instance)
 		Enum.Material.WoodPlanks,
 		boat
 	)
-	sign(board, Enum.NormalId.Front, "⛵ A LA ISLA →", Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
+	sign(board, Enum.NormalId.Front, "🚤 A LA ISLA →", Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
 	boat.Parent = parent
 end
 
--- Rampa de tablas de la arena a la cubierta (por el hueco de la borda).
+-- Pasarela metálica de la arena a la cubierta (por el hueco de la barandilla).
 local function buildRamp(parent: Instance, ship: Model)
 	local shipFrame = ship:GetPivot()
 	local step = 2 * SHIP_HALF_LENGTH / HULL_SEGMENTS
@@ -1241,24 +1572,42 @@ local function buildRamp(parent: Instance, ship: Model)
 	local foot = groundAt(footXZ.X, footXZ.Z) + Vector3.new(0, 0.3, 0)
 	local length = (top - foot).Magnitude
 	local ramp = newPart(
-		"Rampa",
-		Vector3.new(4, 0.6, length + 1),
+		"Pasarela",
+		Vector3.new(4, 0.5, length + 1),
 		CFrame.lookAt((top + foot) / 2, top),
-		DECK_WOOD,
-		Enum.Material.WoodPlanks,
+		ALUMINIUM,
+		Enum.Material.DiamondPlate,
 		parent
 	)
-	for i = 1, math.floor(length / 2) do
+	for i = 1, math.floor(length / 1.5) do
 		decor(
 			newPart(
-				"Listón",
-				Vector3.new(4, 0.25, 0.3),
-				ramp.CFrame * CFrame.new(0, 0.4, length / 2 - i * 2),
-				DARK_WOOD,
-				Enum.Material.Wood,
+				"Peldaño",
+				Vector3.new(4, 0.2, 0.25),
+				ramp.CFrame * CFrame.new(0, 0.35, length / 2 - i * 1.5),
+				Color3.fromRGB(120, 125, 130),
+				Enum.Material.Metal,
 				parent
 			)
 		)
+	end
+	-- Pasamanos a los dos lados.
+	for _, side in { -1, 1 } do
+		local low = (ramp.CFrame * CFrame.new(side * 2, 1.6, length / 2)).Position
+		local high = (ramp.CFrame * CFrame.new(side * 2, 1.6, -length / 2)).Position
+		decor(cylinder("Pasamanos", 0.2, low, high, RAIL, Enum.Material.Metal, parent))
+		for _, z in { length / 2, 0, -length / 2 } do
+			decor(
+				newPart(
+					"PostePasarela",
+					Vector3.new(0.2, 1.6, 0.2),
+					ramp.CFrame * CFrame.new(side * 2, 0.8, z),
+					RAIL,
+					Enum.Material.Metal,
+					parent
+				)
+			)
+		end
 	end
 end
 
@@ -1368,8 +1717,10 @@ local function clearOld()
 	Workspace.Terrain:Clear()
 end
 
+-- true si el place ya tiene el escenario de esta versión.
 function LobbyBuilder.isBuilt(): boolean
-	return Workspace:FindFirstChild(FOLDER_NAME) ~= nil
+	local folder = Workspace:FindFirstChild(FOLDER_NAME)
+	return folder ~= nil and folder:GetAttribute("Version") == VERSION
 end
 
 function LobbyBuilder.build(options: Options?)
@@ -1385,6 +1736,7 @@ function LobbyBuilder.build(options: Options?)
 	clearOld()
 	local folder = Instance.new("Folder")
 	folder.Name = FOLDER_NAME
+	folder:SetAttribute("Version", VERSION)
 	buildTerrain()
 	local horizon = Instance.new("Folder")
 	horizon.Name = "IslaLejana"

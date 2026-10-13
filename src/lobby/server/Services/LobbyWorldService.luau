@@ -1,7 +1,7 @@
 --!strict
--- Escenario del Lobby (naufragio de la «Esperanza»). Si el place no lo tiene guardado (nadie ejecutó
--- World/LobbyBuilder en Studio), lo construye al arrancar el servidor para que el Lobby nunca sea
--- una placa vacía.
+-- Escenario del Lobby (naufragio del carguero «Esperanza»). Si el place no lo tiene guardado (nadie
+-- ejecutó World/LobbyBuilder en Studio) o tiene una versión anterior, lo construye al arrancar el
+-- servidor para que el Lobby nunca sea una placa vacía ni se quede desfasado.
 
 local LobbyBuilder = require(script.Parent.Parent.World.LobbyBuilder)
 

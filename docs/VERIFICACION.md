@@ -129,14 +129,14 @@ En el place **Lobby**, con ▶:
 En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](MAPA.md), Lobby):
 
 1. [ ] Apareces en la arena junto al naufragio, con luz de atardecer.
-   ✅ A la izquierda, la **«Esperanza»** encallada y escorada: casco de tablas con un **boquete** por el que se ve la bodega (cajas, barriles, bananas y un farol), el palo mayor partido y el trinquete con la vela rasgada. Al fondo, la **isla con el volcán humeando** y ríos de lava.
+   ✅ A la izquierda, el carguero **«Esperanza»** encallado y escorado: casco de acero azul y rojo con un **boquete** por el que se ve la bodega (cajas, bidones, bananas y una luz de emergencia), castillo blanco con puente de mando, chimenea y radar, contenedores de colores en cubierta (uno a punto de caer por la borda) y una grúa amarilla. Al fondo, la **isla con el volcán humeando** y ríos de lava.
 2. [ ] Pulsa **📜 Ocultar menú** (abajo a la izquierda) y pasea.
    ✅ El panel se pliega y vuelve con **📜 Abrir menú**.
-3. [ ] Sube por la **rampa de tablas** a la cubierta y entra por el boquete a la bodega.
-   ✅ Se puede andar por la cubierta, subir al alcázar de popa (timón, farol) y entrar en la bodega.
-4. [ ] Mira el campamento: hoguera con bancos, la tienda hecha con una vela, el palo caído, el ancla y el **Diario del capitán** (el tablón junto a la llegada).
-   ✅ El diario se lee y cuenta el lore (tormenta, la isla, el Proyecto PRIMAL, el bote).
-5. [ ] Ve al **bote** de la orilla (cartel "⛵ A LA ISLA →") y mantén **"Zarpar hacia la isla"**.
+3. [ ] Sube por la **pasarela metálica** a la cubierta y entra por el boquete a la bodega.
+   ✅ Se puede andar por la cubierta entre los contenedores, subir por la escalera exterior al techo del primer piso del castillo y entrar en la bodega.
+4. [ ] Mira el campamento: hoguera con bancos, tienda de lona azul, contenedores varados (uno abierto con cajas PRIMAL), el ancla con su cadena hasta la proa, el salvavidas y la **Bitácora del capitán** (el tablero junto a la llegada).
+   ✅ La bitácora se lee y cuenta el lore (tormenta, la isla, el Proyecto PRIMAL, la lancha).
+5. [ ] Ve a la **lancha de rescate** de la orilla (cartel "🚤 A LA ISLA →") y mantén **"Zarpar hacia la isla"**.
    ✅ Hace lo mismo que el botón **Ir a la Isla** (en Studio no viaja; publicado sí).
 6. [ ] Intenta alejarte nadando.
    ✅ Un muro invisible te frena a unos 160 studs.

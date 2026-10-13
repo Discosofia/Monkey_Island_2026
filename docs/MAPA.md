@@ -55,11 +55,11 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 
 ---
 
-## Lobby: el naufragio de la «Esperanza»
+## Lobby: el naufragio del carguero «Esperanza»
 
 El Lobby es el banco de arena donde encalló el barco de los náufragos, con la isla de la partida y su volcán en el horizonte (lore: GDD §13). Lo genera `LobbyBuilder`:
 
-- **Sin hacer nada**, el servidor del Lobby lo construye al arrancar si el place no lo tiene (`LobbyWorldService`). Así funciona aunque no lo hayas guardado.
+- **Sin hacer nada**, el servidor del Lobby lo construye al arrancar si el place no lo tiene o tiene una versión anterior (`LobbyWorldService`). Así funciona aunque no lo hayas guardado.
 - **Para dejarlo fijo en el place** (verlo sin pulsar Play y retocarlo a mano):
   1. Abre el place **Lobby** y conecta `rojo serve lobby.project.json` (puerto **34872**).
   2. Sin pulsar Play, en la **barra de comandos**:
@@ -70,15 +70,15 @@ El Lobby es el banco de arena donde encalló el barco de los náufragos, con la 
 
 | Qué | Dónde |
 |---|---|
-| Barco «Esperanza» encallado, con boquete, bodega, alcázar con timón, trinquete con vela rasgada y palo mayor partido | A la izquierda de la llegada |
-| Rampa de tablas a la cubierta | Costado del barco que da a la playa |
-| Campamento: hoguera con bancos, tienda hecha con una vela, palo caído, cajas del **Proyecto PRIMAL**, barriles y ancla | Centro de la playa |
-| **Diario del capitán** (el lore, en un tablón) | Junto a la llegada |
-| **Bote** con el aviso **"Zarpar hacia la isla"** (`ZarparPrompt`, igual que el botón Ir a la Isla) | Orilla norte, apuntando a la isla |
+| Carguero «Esperanza» encallado: casco de acero con boquete y bodega, castillo blanco con puente de mando, chimenea, radar y luces de navegación, contenedores en cubierta (uno a punto de caer) y grúa | A la izquierda de la llegada |
+| Pasarela metálica a la cubierta y escalera exterior al castillo | Costado del barco que da a la playa |
+| Campamento: hoguera con bancos, tienda de lona azul, contenedores varados (uno abierto con cajas del **Proyecto PRIMAL**), bidones, ancla con cadena hasta la proa y salvavidas | Centro de la playa |
+| **Bitácora del capitán** (el lore, en un tablero) | Junto a la llegada |
+| **Lancha de rescate** con el aviso **"Zarpar hacia la isla"** (`ZarparPrompt`, igual que el botón Ir a la Isla). En el barco queda su pescante vacío | Orilla norte, apuntando a la isla |
 | Isla con el volcán humeante y ríos de lava | Horizonte, al noreste |
 | Luz de atardecer (hora 17:36, atmósfera cálida, brillo y rayos de sol) | `Lighting` |
 
-> ⚠️ Volver a ejecutar `build()` **borra y rehace** la carpeta `Workspace.Naufragio`, la Baseplate, los SpawnLocation sueltos y **todo el terreno** del Lobby. Pon tus modelos propios fuera de `Naufragio`.
+> ⚠️ Volver a ejecutar `build()` (o que se reconstruya solo al cambiar de versión) **borra y rehace** la carpeta `Workspace.Naufragio`, la Baseplate, los SpawnLocation sueltos y **todo el terreno** del Lobby. Pon tus modelos propios fuera de `Naufragio`.
 
 ---
 
