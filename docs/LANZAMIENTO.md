@@ -45,8 +45,8 @@ Los efectos están en `Effects`, en el mismo archivo. Roblox ya solo trae 11 son
 |---|---|---|
 | Nombre | Configuración de la experiencia → Información básica | **Primal Banana Island: Monkey Survival** (si cambias el nombre, cámbialo también en `Config.GameName`) |
 | Descripción | Igual | Usa el pitch del GDD (§1) y menciona: 20 jugadores, roles, jefes, mascotas, PvP opcional |
-| Icono | Igual | 512×512, un mono enfadado + banana brillante, colores vivos, legible en pequeño |
-| Miniaturas | Igual | 3–5 capturas a 1920×1080: asedio nocturno, un jefe, el Basecamp construido, una mascota |
+| Icono | Igual | **Ya hecho:** [`art/portada/icono-512.png`](../art/portada/icono-512.png) (512×512) |
+| Miniaturas | Igual | **Portada ya hecha:** [`art/portada/portada-1920x1080.png`](../art/portada/portada-1920x1080.png), ponla la **primera**. Añade 2–4 capturas a 1920×1080: asedio nocturno, un jefe, el Basecamp construido, el naufragio del Lobby |
 | Género | Igual | Supervivencia |
 | Dispositivos | Igual | Ordenador, móvil, tableta (y consola si lo pruebas con mando) |
 | Cuestionario de madurez | Configuración → Cuestionario | ✅ Ya lo hiciste. Repásalo si añades contenido nuevo |
