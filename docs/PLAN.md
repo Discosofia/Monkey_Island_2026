@@ -235,12 +235,13 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 
 ### Fase 4: La isla completa y el bestiario (6–8 semanas)
 
-- [ ] Mapa completo: playas (límite), selva, ríos y manglar, montañas, cuevas y volcán *(tú, con kits low-poly del Creator Store)*
-- [ ] Todas las especies de categoría 1–3 con su mecánica propia, horario día/noche y respawn diario
-- [ ] Tropas con alfa, huida y comportamiento ladrón
-- [ ] **Bestiario/diario de campo** (UI) que se completa cazando
-- [ ] Armas, armaduras y recetas por nivel; rarezas de botín
-- [ ] **Optimización:** límite de monos activos, "sueño" de la IA, StreamingEnabled y pruebas en móvil de gama baja
+- [ ] Mapa completo: playas (límite), selva, ríos y manglar, montañas, cuevas y volcán *(tú, con kits low-poly del Creator Store; la isla generada por `MapBuilder` ya tiene todos los biomas)*
+- [x] Todas las especies de categoría 1–3 con su mecánica propia, horario día/noche y respawn diario *(12 especies en `Shared/Data/Monkeys.luau`, cada una en su zona)*
+- [x] Tropas con alfa, huida y comportamiento ladrón *(alfa con corona; si muere, la tropa huye)*
+- [x] **Bestiario/diario de campo** (UI) que se completa cazando *(J en la Isla y pestaña "Diario" en el Lobby)*
+- [x] Armas, armaduras y recetas por nivel; rarezas de botín *(nivel 3 en la forja; 5 rarezas con color)*
+- [x] **Optimización (código):** límite de monos activos, "sueño" de la IA y registro de rendimiento
+- [ ] **Optimización (tú):** activar StreamingEnabled y probar en móvil de gama baja *(ver [RENDIMIENTO.md](RENDIMIENTO.md))*
 
 **Criterio de salida:** un servidor de 20 jugadores estable en móvil, y cada bioma tiene una razón para visitarlo.
 

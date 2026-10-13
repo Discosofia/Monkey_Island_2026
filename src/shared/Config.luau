@@ -271,6 +271,11 @@ local Config = {
 		InviteSeconds = 60,
 	},
 
+	Performance = {
+		-- Cada cuántos segundos escribe PerformanceService su resumen en la Salida.
+		LogSeconds = 120,
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,

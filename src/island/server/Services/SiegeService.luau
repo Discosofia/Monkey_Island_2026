@@ -130,7 +130,10 @@ end
 
 -- Estacas: hieren a los enemigos encima y se desgastan con cada golpe.
 local function tickSpikes()
-	local structures = BuildingService.getStructures()
+	local structures = Workspace:FindFirstChild(Building.STRUCTURES_FOLDER)
+	if not structures then
+		return
+	end
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { structures }
