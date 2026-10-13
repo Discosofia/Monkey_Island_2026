@@ -9,9 +9,11 @@
 --   - Guarda cada Config.Data.AutosaveSeconds, al salir el jugador y al cerrarse el servidor.
 --   - Si DataStore falla (por ejemplo, en Studio sin "Enable Studio Access to API Services"), el
 --     jugador juega con datos temporales y se avisa en la Salida: no se pierde nada guardado.
--- Los valores que ve el cliente se copian a atributos del Player ("Amber", "BestDays").
+-- Los valores que ve el cliente se copian a atributos del Player ("Amber", "BestDays",
+-- "SelectedRole" y "Progress", un JSON con XP, talentos y mejoras; ver Shared/Progression).
 
 local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -26,6 +28,8 @@ export type Profile = {
 	talents: { [string]: number },
 	upgrades: { [string]: number },
 	pets: { [string]: number },
+	selectedRole: string,
+	tutorialDone: boolean,
 }
 
 type Session = {
@@ -50,6 +54,8 @@ local function defaultProfile(): Profile
 		talents = {},
 		upgrades = {},
 		pets = {},
+		selectedRole = "Recolector",
+		tutorialDone = false,
 	}
 end
 
@@ -88,6 +94,17 @@ end
 local function publish(player: Player, profile: Profile)
 	player:SetAttribute("Amber", profile.amber)
 	player:SetAttribute("BestDays", profile.bestDays)
+	player:SetAttribute("SelectedRole", profile.selectedRole)
+	player:SetAttribute(
+		"Progress",
+		HttpService:JSONEncode({
+			roleXp = profile.roleXp,
+			talents = profile.talents,
+			upgrades = profile.upgrades,
+			matches = profile.matches,
+			tutorialDone = profile.tutorialDone,
+		})
+	)
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).

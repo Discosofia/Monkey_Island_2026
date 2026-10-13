@@ -56,6 +56,24 @@ local Remotes = {
 	Demolish = remoteEvent("Demolish"),
 	-- Servidor -> cliente (Isla): la partida ha terminado; lleva el resumen para la pantalla final.
 	MatchEnded = remoteEvent("MatchEnded"),
+	-- Cliente -> servidor (Lobby): elegir rol (id de Data/Roles).
+	SelectRole = remoteEvent("SelectRole"),
+	-- Cliente -> servidor (Lobby): aprender un rango de talento (rol, talento).
+	LearnTalent = remoteEvent("LearnTalent"),
+	-- Cliente -> servidor (Lobby): comprar un rango de mejora con Ámbar (id de Data/Upgrades).
+	BuyUpgrade = remoteEvent("BuyUpgrade"),
+	-- Cliente -> servidor (Lobby): invitar a un jugador al grupo (UserId).
+	PartyInvite = remoteEvent("PartyInvite"),
+	-- Cliente -> servidor (Lobby): responder a una invitación (UserId del líder, aceptar).
+	PartyRespond = remoteEvent("PartyRespond"),
+	-- Cliente -> servidor (Lobby): salir del grupo.
+	PartyLeave = remoteEvent("PartyLeave"),
+	-- Servidor -> cliente (Lobby): invitación recibida (UserId y nombre del líder).
+	PartyInvited = remoteEvent("PartyInvited"),
+	-- Cliente -> servidor (Isla): usar la habilidad del rol.
+	UseAbility = remoteEvent("UseAbility"),
+	-- Cliente -> servidor (Isla): el tutorial se ha completado.
+	TutorialDone = remoteEvent("TutorialDone"),
 }
 
 return Remotes

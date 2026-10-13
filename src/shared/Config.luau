@@ -239,6 +239,12 @@ local Config = {
 		RoleXpPerKill = 2,
 	},
 
+	Party = {
+		-- Grupos del Lobby (Fase 3): tamaño máximo y segundos que vale una invitación.
+		MaxSize = 6,
+		InviteSeconds = 60,
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,
