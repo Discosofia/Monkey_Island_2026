@@ -160,9 +160,11 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 | Estadística | Función |
 |---|---|
 | Vida | Al llegar a 0 quedas **Caído**. |
-| Hambre | Baja con el tiempo. Se recupera con carne cocinada y frutas. |
-| Sed | Baja más rápido. Se recupera con agua de río hervida, cocos o lluvia. |
-| Estamina | Se gasta al correr, esquivar y atacar fuerte. |
+| Hambre | Baja con el tiempo (unos 20 min de lleno a vacío). Se recupera comiendo: carne cruda (poco), plátanos de los arbustos, carne asada y brochetas de la hoguera. |
+| Sed | Baja más rápido (unos 14 min). Se recupera bebiendo agua del río. *Más adelante: hervirla, cocos o lluvia.* |
+| Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. |
+
+A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
 | Fiebre del mono | Sube con mordiscos de monos. A tope causa pérdida lenta de vida y visión borrosa. La cura el **médico** con antídotos. |
 
 ### 6.2 Muerte: caído y Espíritu

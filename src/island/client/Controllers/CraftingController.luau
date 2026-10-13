@@ -1,5 +1,6 @@
 --!strict
--- Pantalla de la mesa de trabajo (Fase 1.6). Se abre con el aviso "Usar" de la mesa.
+-- Pantalla de las estaciones de crafteo (Fases 1.6 y 2.1). Se abre con el aviso de la mesa de trabajo
+-- ("Usar") o de la hoguera ("Cocinar") y muestra solo las recetas de esa estación.
 -- Muestra cada receta con lo que cuesta (en verde lo que tienes, en rojo lo que falta) y un botón
 -- para fabricarla. Se cierra con el botón ✕, con B en mando o al alejarte de la mesa.
 -- El servidor (CraftingService) decide si la fabricación vale.
@@ -18,9 +19,10 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
-local PROMPT_NAME = "WorkbenchPrompt"
+local PROMPT_NAME = "StationPrompt"
 local CLOSE_ACTION = "CloseWorkbench"
 -- Distancia extra sobre la de uso antes de cerrar la pantalla al alejarte.
 local CLOSE_MARGIN = 6
@@ -30,7 +32,7 @@ local MISSING_COLOR = "#ff8c78"
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
 
-type Row = { recipeId: string, recipe: Recipes.Recipe, cost: TextLabel, button: TextButton }
+type Row = { recipeId: string, recipe: Recipes.Recipe, frame: Frame, cost: TextLabel, button: TextButton }
 
 local CraftingController = {}
 
@@ -98,7 +100,7 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 		Remotes.Craft:FireServer(recipeId)
 	end)
 
-	return { recipeId = recipeId, recipe = recipe, cost = cost, button = button }
+	return { recipeId = recipeId, recipe = recipe, frame = frame, cost = cost, button = button }
 end
 
 local function refreshRow(player: Player, row: Row)
@@ -135,7 +137,7 @@ function CraftingController:Start()
 	sizeLimit.MaxSize = Vector2.new(640, 600)
 	sizeLimit.Parent = panel
 
-	local title = Widgets.label("🔨 Mesa de trabajo", panel)
+	local title = Widgets.label("", panel)
 	title.Position = UDim2.fromOffset(14, 8)
 	title.Size = UDim2.new(1, -80, 0, 36)
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -191,8 +193,20 @@ function CraftingController:Start()
 		end
 	end
 
-	local function open(anchor: BasePart)
+	local function open(anchor: BasePart, id: string)
+		local definition = Stations[id]
+		if not definition then
+			return
+		end
 		station = anchor
+		title.Text = `{definition.icon} {definition.name}`
+		local first: Row? = nil
+		for _, row in rows do
+			row.frame.Visible = row.recipe.station == id
+			if row.frame.Visible and not first then
+				first = row
+			end
+		end
 		panel.Visible = true
 		refresh()
 		-- B en mando cierra la pantalla (por encima de la esquiva mientras está abierta).
@@ -202,8 +216,8 @@ function CraftingController:Start()
 			end
 			return Enum.ContextActionResult.Sink
 		end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.ButtonB)
-		if UserInputService.GamepadEnabled then
-			GuiService.SelectedObject = rows[1].button
+		if UserInputService.GamepadEnabled and first then
+			GuiService.SelectedObject = first.button
 		end
 	end
 
@@ -211,8 +225,10 @@ function CraftingController:Start()
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		local anchor = prompt.Parent
-		if prompt.Name == PROMPT_NAME and anchor and anchor:IsA("BasePart") and LifeState.isAlive(player) then
-			open(anchor)
+		local id = prompt:GetAttribute("StationId")
+		local valid = prompt.Name == PROMPT_NAME and typeof(id) == "string"
+		if valid and anchor and anchor:IsA("BasePart") and LifeState.isAlive(player) then
+			open(anchor, id :: string)
 		end
 	end)
 

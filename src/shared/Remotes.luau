@@ -46,6 +46,10 @@ local Remotes = {
 	Craft = remoteEvent("Craft"),
 	-- Cliente -> servidor (Isla): usar una venda para curarse.
 	UseBandage = remoteEvent("UseBandage"),
+	-- Cliente -> servidor (Isla): comer la mejor comida que lleve el jugador.
+	Eat = remoteEvent("Eat"),
+	-- Cliente -> servidor (Isla): beber del río (el servidor comprueba que haya agua cerca).
+	Drink = remoteEvent("Drink"),
 }
 
 return Remotes

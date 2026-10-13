@@ -156,9 +156,16 @@ local function fall(model: Model, awayFrom: Vector3, onDone: () -> ())
 	tween:Play()
 end
 
--- Da el material y, si el punto se agota, lo oculta hasta que reaparece.
+local rng = Random.new()
+
+-- Da el material (y a veces un extra, como plátanos de los arbustos) y, si el punto se agota,
+-- lo oculta hasta que reaparece.
 local function collect(state: NodeState, player: Player, amount: number)
 	InventoryService.add(player, state.definition.itemId, amount)
+	local extra = state.definition.extra
+	if extra and rng:NextNumber() < extra.chance then
+		InventoryService.add(player, extra.itemId, extra.amount)
+	end
 	state.usesLeft -= 1
 	if state.usesLeft > 0 then
 		return

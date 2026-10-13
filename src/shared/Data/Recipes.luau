@@ -1,5 +1,6 @@
 --!strict
--- Recetas de la mesa de trabajo (GDD §9.3, Fase 1.6). Para balancear, cambia los números aquí.
+-- Recetas de las estaciones de crafteo (GDD §9.3; Fases 1.6 y 2.1). Para balancear, cambia los números.
+-- "station" es dónde se fabrica (ver Data/Stations): la mesa de trabajo o la hoguera.
 -- Cada receta da UNA de estas cosas:
 --   weaponId → una herramienta o arma (ver Data/Weapons). Solo se fabrica una vez y no se pierde.
 --   itemId   → un ítem que se acumula en el inventario (ver Data/Items), "amount" unidades.
@@ -10,6 +11,7 @@
 export type Cost = { itemId: string, amount: number }
 
 export type Recipe = {
+	station: string,
 	name: string,
 	icon: string, -- emoji anterior a 2020 (los nuevos salen como un cuadro vacío)
 	description: string,
@@ -24,6 +26,7 @@ export type Recipe = {
 
 local Recipes: { [string]: Recipe } = {
 	Torch = {
+		station = "Workbench",
 		name = "Antorcha",
 		icon = "🔥",
 		description = "Ilumina la selva de noche. Golpea flojo.",
@@ -32,6 +35,7 @@ local Recipes: { [string]: Recipe } = {
 		weaponId = "Torch",
 	},
 	Bandage = {
+		station = "Workbench",
 		name = "Venda",
 		icon = "➕",
 		description = "Cura 30 de vida. Úsala con H o el botón Curar.",
@@ -41,6 +45,7 @@ local Recipes: { [string]: Recipe } = {
 		amount = 1,
 	},
 	StoneAxe = {
+		station = "Workbench",
 		name = "Hacha de piedra",
 		icon = "⚒️",
 		description = "Mejora el hacha de madera: tala el doble de rápido y da +2 madera por árbol.",
@@ -50,6 +55,7 @@ local Recipes: { [string]: Recipe } = {
 		upgrades = "WoodenAxe",
 	},
 	StonePick = {
+		station = "Workbench",
 		name = "Pico de piedra",
 		icon = "⛏️",
 		description = "Mejora el pico de madera: pica casi el doble de rápido y da +1 piedra.",
@@ -59,6 +65,7 @@ local Recipes: { [string]: Recipe } = {
 		upgrades = "WoodenPick",
 	},
 	Spear = {
+		station = "Workbench",
 		name = "Lanza de colmillo",
 		icon = "🔱",
 		description = "Mucho alcance: golpea antes de que el mono te alcance.",
@@ -71,6 +78,7 @@ local Recipes: { [string]: Recipe } = {
 		weaponId = "Spear",
 	},
 	Club = {
+		station = "Workbench",
 		name = "Garrote con colmillos",
 		icon = "🏏",
 		description = "Lento pero muy fuerte.",
@@ -83,6 +91,7 @@ local Recipes: { [string]: Recipe } = {
 		weaponId = "Club",
 	},
 	FurVest = {
+		station = "Workbench",
 		name = "Chaleco de pelaje",
 		icon = "🛡️",
 		description = "Los monos te hacen un 25 % menos de daño.",
@@ -93,6 +102,27 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "GoldenFur", amount = 3 },
 		},
 		armorId = "FurVest",
+	},
+	-- Hoguera (Fase 2.1).
+	CookedMeat = {
+		station = "Campfire",
+		name = "Carne asada",
+		icon = "🍖",
+		description = "Mucho mejor que cruda: quita bastante hambre.",
+		order = 20,
+		cost = { { itemId = "Meat", amount = 1 } },
+		itemId = "CookedMeat",
+		amount = 1,
+	},
+	Skewer = {
+		station = "Campfire",
+		name = "Brocheta",
+		icon = "🍢",
+		description = "Carne y plátano: casi llena el hambre.",
+		order = 21,
+		cost = { { itemId = "Meat", amount = 1 }, { itemId = "Banana", amount = 2 } },
+		itemId = "Skewer",
+		amount = 1,
 	},
 }
 

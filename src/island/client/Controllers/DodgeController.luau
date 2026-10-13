@@ -1,6 +1,7 @@
 --!strict
 -- Esquiva: impulso rápido en la dirección en la que te mueves (o hacia atrás si estás quieto).
 -- Q en PC, B en mando y un botón táctil en móvil. El servidor da una invulnerabilidad breve.
+-- Cuesta estamina (Config.Survival.DodgeStaminaCost): sin estamina no se puede esquivar.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -9,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Stamina = require(script.Parent.Parent.Stamina)
 
 local ACTION = "Dodge"
 
@@ -28,7 +30,7 @@ local function dodge()
 	if not (humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and attachment) then
 		return
 	end
-	if not attachment:IsA("Attachment") then
+	if not attachment:IsA("Attachment") or not Stamina.tryConsume(Config.Survival.DodgeStaminaCost) then
 		return
 	end
 	lastDodgeAt = now

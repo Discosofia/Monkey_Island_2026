@@ -26,6 +26,14 @@
         "Client": {
           "$path": "src/island/client"
         }
+      },
+      "StarterCharacterScripts": {
+        "Health": {
+          "$path": "src/island/character/Health.server.luau"
+        }
+      },
+      "$properties": {
+        "EnableMouseLockOption": false
       }
     }
   }

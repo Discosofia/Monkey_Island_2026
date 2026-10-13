@@ -184,7 +184,20 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 
 ### Fase 2: Supervivencia y Basecamp (4–6 semanas)
 
-- [ ] Hambre, sed y estamina; cocinar en la hoguera; agua del río
+Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio:
+
+| Entrega | Contenido | Estado |
+|---|---|---|
+| **2.1** | Hambre, sed y estamina; correr; comer; cocinar en la hoguera; beber en el río | ✅ Código listo, falta tu prueba |
+| **2.2** | Construcción por cuadrícula: núcleo compartido + parcelas personales | Pendiente |
+| **2.3** | Estaciones: taller del curandero y forja de piedra | Pendiente |
+| **2.4** | Monos ladrones (capuchinos) y miedo al fuego | Pendiente |
+| **2.5** | Asedio nocturno v1: oleadas, muros, trampas y antorchas | Pendiente |
+| **2.6** | Fiebre del mono v1 y antídoto | Pendiente |
+| **2.7** | Dificultad por día y derrota del servidor con pantalla de resultados | Pendiente |
+| **2.8** | Guardado de datos (ProfileStore) | Pendiente |
+
+- [x] Hambre, sed y estamina; cocinar en la hoguera; agua del río *(2.1)*
 - [ ] Construcción por cuadrícula (táctil y PC) con **núcleo compartido + parcelas personales** y permisos
 - [ ] Estaciones: hoguera, taller del curandero, forja de piedra
 - [ ] Monos ladrones (capuchinos) y miedo al fuego

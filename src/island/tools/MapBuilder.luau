@@ -453,6 +453,8 @@ local function buildCampfire(parent: Instance)
 	addFire(mainLog, 8, 10)
 	addLight(mainLog, 50, 2.5)
 	campfire.PrimaryPart = mainLog
+	-- Estación de cocina (Data/Stations): CraftingService le pone el aviso "Cocinar".
+	campfire:SetAttribute("CraftingStation", "Campfire")
 end
 
 local function buildBasecamp(layout: Layout, parent: Instance)

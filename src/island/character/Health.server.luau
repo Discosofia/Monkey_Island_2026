@@ -1,0 +1,3 @@
+--!strict
+-- Sustituye al script "Health" que Roblox pone en cada personaje: así la vida NO se regenera sola.
+-- La regeneración la decide SurvivalService según el hambre y la sed (Fase 2.1).

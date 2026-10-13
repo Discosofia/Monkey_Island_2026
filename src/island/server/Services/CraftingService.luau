@@ -1,9 +1,10 @@
 --!strict
--- Mesa de trabajo y recetas (GDD §9.3, Fase 1.6).
---   - Busca en el mapa las mesas marcadas con el atributo "CraftingStation" = "Workbench".
---     Si no hay ninguna, crea una en el Basecamp (Config.Crafting.DefaultWorkbenchOffset).
---   - El aviso "Usar" abre la pantalla de recetas en el cliente (CraftingController).
---   - El servidor valida cada fabricación: vivo, cerca de una mesa, materiales y que no la tenga ya.
+-- Estaciones de crafteo y recetas (GDD §9.3; Fases 1.6 y 2.1): mesa de trabajo y hoguera.
+--   - Busca en el mapa las estaciones marcadas con el atributo "CraftingStation" (ver Data/Stations).
+--     Si falta la mesa, crea una en el Basecamp (Config.Crafting.DefaultWorkbenchOffset). Si falta la
+--     hoguera, usa el modelo "Hoguera" que genera MapBuilder o crea una sencilla.
+--   - El aviso de cada estación abre su pantalla de recetas en el cliente (CraftingController).
+--   - El servidor valida cada fabricación: vivo, cerca de su estación, materiales y que no la tenga ya.
 --   - Las herramientas fabricadas van a StarterGear: no se pierden al reaparecer.
 --   - Una mejora (receta con "upgrades") sustituye a la herramienta vieja, también si está en la mano.
 --   - También gestiona el chaleco (armadura) y el uso de las vendas.
@@ -20,13 +21,15 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
 local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
-local WORKBENCH = "Workbench"
-local PROMPT_NAME = "WorkbenchPrompt"
+local PROMPT_NAME = "StationPrompt"
+-- Nombre del modelo de hoguera que crea MapBuilder en mapas generados antes de la Fase 2.1.
+local MAP_CAMPFIRE_NAME = "Hoguera"
 -- Margen extra (studs) sobre la distancia de uso, por el retraso de la red.
 local DISTANCE_TOLERANCE = 4
 local WOOD = Color3.fromRGB(125, 85, 50)
@@ -34,7 +37,9 @@ local DARK_WOOD = Color3.fromRGB(85, 55, 32)
 
 local CraftingService = {}
 
-local stations: { BasePart } = {}
+type Station = { stationId: string, anchor: BasePart }
+
+local stations: { Station } = {}
 local canCraft = RequestCooldown.new(Config.Crafting.CraftCooldownSeconds)
 local canBandage = RequestCooldown.new(Config.Crafting.BandageCooldownSeconds)
 
@@ -52,12 +57,38 @@ local function newPart(name: string, size: Vector3, cframe: CFrame, color: Color
 	return part
 end
 
+-- Suelo del Basecamp desplazado "offset" respecto a su centro.
+local function groundNearCenter(offset: Vector3): Vector3
+	local center = BasecampService.getCenter()
+	local spot = center + offset
+	local hit = Workspace:Raycast(Vector3.new(spot.X, center.Y + 60, spot.Z), Vector3.new(0, -300, 0))
+	return if hit then hit.Position else Vector3.new(spot.X, 0, spot.Z)
+end
+
+-- Cartel flotante con el nombre de la estación.
+local function addSign(stationId: string, part: BasePart)
+	local station = Stations[stationId]
+	local sign = Instance.new("BillboardGui")
+	sign.Name = "Sign"
+	sign.Size = UDim2.fromOffset(200, 40)
+	sign.StudsOffset = Vector3.new(0, 4, 0)
+	sign.MaxDistance = 80
+	sign.Parent = part
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Text = `{station.icon} {station.name}`
+	label.TextColor3 = Color3.fromRGB(255, 220, 140)
+	label.TextStrokeTransparency = 0.3
+	label.Font = Enum.Font.BuilderSansBold
+	label.TextScaled = true
+	label.Parent = sign
+end
+
 -- Mesa de troncos con herramientas encima y un cartel flotante. Mira hacia el centro del Basecamp.
 local function buildWorkbench(): Model
 	local center = BasecampService.getCenter()
-	local spot = center + Config.Crafting.DefaultWorkbenchOffset
-	local hit = Workspace:Raycast(Vector3.new(spot.X, center.Y + 60, spot.Z), Vector3.new(0, -300, 0))
-	local ground = if hit then hit.Position else Vector3.new(spot.X, 0, spot.Z)
+	local ground = groundNearCenter(Config.Crafting.DefaultWorkbenchOffset)
 	local base = CFrame.lookAt(ground, Vector3.new(center.X, ground.Y, center.Z))
 
 	local model = Instance.new("Model")
@@ -78,24 +109,50 @@ local function buildWorkbench(): Model
 	fiber.Color = Color3.fromRGB(150, 135, 85)
 	fiber.Material = Enum.Material.Fabric
 	model.PrimaryPart = top
-	model:SetAttribute(Config.Crafting.StationAttribute, WORKBENCH)
+	model:SetAttribute(Config.Crafting.StationAttribute, "Workbench")
+	addSign("Workbench", top)
+	model.Parent = Workspace
+	return model
+end
 
-	local sign = Instance.new("BillboardGui")
-	sign.Name = "Sign"
-	sign.Size = UDim2.fromOffset(200, 40)
-	sign.StudsOffset = Vector3.new(0, 4, 0)
-	sign.MaxDistance = 80
-	sign.Parent = top
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Text = "🔨 Mesa de trabajo"
-	label.TextColor3 = Color3.fromRGB(255, 220, 140)
-	label.TextStrokeTransparency = 0.3
-	label.Font = Enum.Font.BuilderSansBold
-	label.TextScaled = true
-	label.Parent = sign
-
+-- Hoguera sencilla (troncos, piedras, fuego y luz) para mapas que no tengan una.
+local function buildCampfire(): Model
+	local ground = groundNearCenter(Config.Crafting.DefaultCampfireOffset)
+	local model = Instance.new("Model")
+	model.Name = MAP_CAMPFIRE_NAME
+	local first: Part? = nil
+	for i = 0, 3 do
+		local log = newPart(
+			"Log",
+			Vector3.new(6, 1.2, 1.2),
+			CFrame.new(ground + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, i * math.pi / 4, 0),
+			DARK_WOOD,
+			model
+		)
+		first = first or log
+	end
+	for i = 0, 7 do
+		local angle = i * math.pi / 4
+		local stone = newPart(
+			"Stone",
+			Vector3.new(1.4, 1, 1.4),
+			CFrame.new(ground + Vector3.new(math.cos(angle) * 4, 0.5, math.sin(angle) * 4)),
+			Color3.fromRGB(110, 110, 115),
+			model
+		)
+		stone.Material = Enum.Material.Slate
+	end
+	local main = first :: Part
+	local fire = Instance.new("Fire")
+	fire.Size = 7
+	fire.Heat = 9
+	fire.Parent = main
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 170, 90)
+	light.Range = 40
+	light.Brightness = 2
+	light.Parent = main
+	model.PrimaryPart = main
 	model.Parent = Workspace
 	return model
 end
@@ -110,26 +167,44 @@ local function anchorOf(instance: Instance): BasePart?
 	return instance:FindFirstChildWhichIsA("BasePart", true)
 end
 
-local function addPrompt(anchor: BasePart)
+-- El aviso lleva el atributo "StationId": el cliente sabe qué recetas mostrar.
+local function addStation(stationId: string, instance: Instance)
+	local anchor = anchorOf(instance)
+	local station = Stations[stationId]
+	if not (anchor and station) then
+		warn(`[CraftingService] {instance:GetFullName()}: estación "{stationId}" no válida o sin piezas.`)
+		return
+	end
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = PROMPT_NAME
-	prompt.ActionText = "Usar"
-	prompt.ObjectText = "Mesa de trabajo"
+	prompt.ActionText = station.actionText
+	prompt.ObjectText = station.name
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = Config.Crafting.UseDistance
 	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("StationId", stationId)
 	prompt.Parent = anchor
-	table.insert(stations, anchor)
+	table.insert(stations, { stationId = stationId, anchor = anchor })
 end
 
-local function isNearStation(player: Player): boolean
+local function hasStation(stationId: string): boolean
+	for _, station in stations do
+		if station.stationId == stationId then
+			return true
+		end
+	end
+	return false
+end
+
+local function isNearStation(player: Player, stationId: string): boolean
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	if not (root and root:IsA("BasePart")) then
 		return false
 	end
-	for _, anchor in stations do
-		if (anchor.Position - root.Position).Magnitude <= Config.Crafting.UseDistance + DISTANCE_TOLERANCE then
+	for _, station in stations do
+		local distance = (station.anchor.Position - root.Position).Magnitude
+		if station.stationId == stationId and distance <= Config.Crafting.UseDistance + DISTANCE_TOLERANCE then
 			return true
 		end
 	end
@@ -213,7 +288,7 @@ local function onCraft(player: Player, recipeId: any)
 	if not recipe or not canCraft(player) then
 		return
 	end
-	if not LifeState.isAlive(player) or not isNearStation(player) then
+	if not LifeState.isAlive(player) or not isNearStation(player, recipe.station) then
 		return
 	end
 	if Crafting.isUnique(recipe) and Crafting.isOwned(player, recipeId) then
@@ -257,20 +332,19 @@ function CraftingService:Start()
 	Remotes.UseBandage.OnServerEvent:Connect(onUseBandage)
 
 	for _, instance in Workspace:GetDescendants() do
-		if instance:GetAttribute(Config.Crafting.StationAttribute) == WORKBENCH then
-			local anchor = anchorOf(instance)
-			if anchor then
-				addPrompt(anchor)
-			end
+		local stationId = instance:GetAttribute(Config.Crafting.StationAttribute)
+		if typeof(stationId) == "string" then
+			addStation(stationId, instance)
 		end
 	end
-	if #stations == 0 then
-		local anchor = anchorOf(buildWorkbench())
-		if anchor then
-			addPrompt(anchor)
-		end
+	if not hasStation("Workbench") then
+		addStation("Workbench", buildWorkbench())
 	end
-	print(`[CraftingService] {#stations} mesa(s) de trabajo listas.`)
+	if not hasStation("Campfire") then
+		local mapCampfire = Workspace:FindFirstChild(MAP_CAMPFIRE_NAME, true)
+		addStation("Campfire", if mapCampfire then mapCampfire else buildCampfire())
+	end
+	print(`[CraftingService] {#stations} estaciones de crafteo listas.`)
 
 	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function(character)

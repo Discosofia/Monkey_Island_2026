@@ -17,6 +17,13 @@ export type NodeDefinition = {
 	uses: number, -- recolecciones antes de agotarse
 	respawnSeconds: number, -- tiempo hasta que reaparece tras agotarse
 	falls: boolean?, -- al agotarse cae hacia el lado contrario al jugador (árboles)
+	extra: ExtraDrop?, -- ítem adicional con cierta probabilidad en cada recolección
+}
+
+export type ExtraDrop = {
+	itemId: string,
+	chance: number, -- 0 a 1
+	amount: number,
 }
 
 local ResourceNodes: { [string]: NodeDefinition } = {
@@ -60,6 +67,7 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		holdSeconds = 1.8,
 		uses = 2,
 		respawnSeconds = 90,
+		extra = { itemId = "Banana", chance = 0.35, amount = 1 },
 	},
 }
 

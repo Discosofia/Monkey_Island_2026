@@ -106,12 +106,42 @@ local Config = {
 		SpiritMarkRange = 250,
 	},
 
+	Survival = {
+		-- Hambre y sed van de 100 (lleno) a 0. Cuánto bajan por minuto mientras estás vivo.
+		HungerPerMinute = 5, -- unos 20 min de lleno a vacío
+		ThirstPerMinute = 7, -- unos 14 min
+		-- Por debajo de esto sale un aviso y la estamina se recupera a la mitad.
+		LowThreshold = 25,
+		-- A 0 de hambre o de sed pierdes vida (por cada una que esté a 0). Puede dejarte caído.
+		StarvationDamagePerSecond = 1,
+		-- La vida solo se regenera con hambre y sed por encima de RegenMinStat y sin daño reciente.
+		RegenPerSecond = 1,
+		RegenMinStat = 50,
+		RegenDelayAfterDamage = 6,
+		-- Al reaparecer como Espíritu, hambre y sed suben al menos a esto.
+		RespawnMinStat = 50,
+		-- Beber del río: sed que recupera cada trago y distancia al agua.
+		DrinkThirst = 25,
+		DrinkReach = 6,
+		EatCooldownSeconds = 0.8,
+		DrinkCooldownSeconds = 0.8,
+		-- Estamina (0 a 100): correr la gasta y esquivar cuesta DodgeStaminaCost.
+		WalkSpeed = 16,
+		SprintSpeed = 24,
+		SprintStaminaPerSecond = 18,
+		StaminaRegenPerSecond = 20,
+		StaminaRegenDelay = 0.8,
+		DodgeStaminaCost = 25,
+	},
+
 	Crafting = {
-		-- Atributo que marca una mesa de trabajo colocada a mano en el mapa ("CraftingStation" = "Workbench").
-		-- Si no hay ninguna, se crea una en el Basecamp, desplazada así respecto a su centro.
+		-- Atributo que marca una estación colocada a mano en el mapa ("CraftingStation" = "Workbench",
+		-- "Campfire"…; ver Data/Stations). Si falta la mesa, se crea una en el Basecamp, desplazada así
+		-- respecto a su centro. Si falta la hoguera, se usa el modelo "Hoguera" del mapa o se crea una.
 		StationAttribute = "CraftingStation",
 		DefaultWorkbenchOffset = Vector3.new(-35, 0, 0),
-		-- Distancia máxima (studs) a la mesa para abrirla y fabricar.
+		DefaultCampfireOffset = Vector3.new(0, 0, 0),
+		-- Distancia máxima (studs) a una estación para abrirla y fabricar.
 		UseDistance = 10,
 		CraftCooldownSeconds = 0.4,
 		-- Vendas (Data/Recipes): vida que curan y espera entre una y otra.

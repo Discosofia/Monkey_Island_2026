@@ -106,7 +106,10 @@ Si quieres usar tu propia mesa (por ejemplo, un modelo de la Caja de herramienta
 
 | Atributo | Tipo | Valor |
 |---|---|---|
-| `CraftingStation` | string | `Workbench` |
+| `CraftingStation` | string | `Workbench` (mesa de trabajo) |
+| `CraftingStation` | string | `Campfire` (hoguera para cocinar, entrega 2.1) |
+
+La hoguera del Basecamp que crea `MapBuilder` ya sirve para cocinar: no hace falta regenerar la isla.
 
 - En un **Model**, el aviso "Usar" aparece sobre su `PrimaryPart` (o sobre su primera pieza si no tiene).
 - Las recetas se ajustan en `src/shared/Data/Recipes.luau`, y la posición de la mesa automática en `Config.Crafting`.
