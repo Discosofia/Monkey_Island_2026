@@ -31,6 +31,7 @@ export type Profile = {
 	selectedRole: string,
 	tutorialDone: boolean,
 	bestiary: { [string]: number }, -- monos derrotados por especie (diario de campo, Fase 4)
+	activePet: string, -- mascota que lleva ("" = ninguna; Fase 5)
 }
 
 type Session = {
@@ -58,6 +59,7 @@ local function defaultProfile(): Profile
 		selectedRole = "Recolector",
 		tutorialDone = false,
 		bestiary = {},
+		activePet = "",
 	}
 end
 
@@ -97,6 +99,9 @@ local function publish(player: Player, profile: Profile)
 	player:SetAttribute("Amber", profile.amber)
 	player:SetAttribute("BestDays", profile.bestDays)
 	player:SetAttribute("SelectedRole", profile.selectedRole)
+	-- Solo si la tiene de verdad en su colección.
+	local hasPet = profile.activePet ~= "" and (profile.pets[profile.activePet] or 0) > 0
+	player:SetAttribute("ActivePet", if hasPet then profile.activePet else nil)
 	player:SetAttribute(
 		"Progress",
 		HttpService:JSONEncode({
@@ -106,6 +111,7 @@ local function publish(player: Player, profile: Profile)
 			matches = profile.matches,
 			tutorialDone = profile.tutorialDone,
 			bestiary = profile.bestiary,
+			pets = profile.pets,
 		})
 	)
 end

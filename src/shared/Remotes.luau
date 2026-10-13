@@ -72,6 +72,8 @@ local Remotes = {
 	PartyInvited = remoteEvent("PartyInvited"),
 	-- Cliente -> servidor (Isla): usar la habilidad del rol.
 	UseAbility = remoteEvent("UseAbility"),
+	-- Cliente -> servidor (Lobby): llevar una mascota (id de Data/Pets, o "" para ninguna).
+	SelectPet = remoteEvent("SelectPet"),
 	-- Cliente -> servidor (Isla): el tutorial se ha completado.
 	TutorialDone = remoteEvent("TutorialDone"),
 }

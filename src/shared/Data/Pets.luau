@@ -1,0 +1,129 @@
+--!strict
+-- Mascotas (GDD §11, Fase 5). Solo salen de los huevos que se rescatan jugando (nunca con Robux).
+-- Se lleva 1 activa, elegida en el Lobby. Tipos de ayuda:
+--   Combate  ataca al mono más cercano a su dueño ("attackDamage" cada 2 s)
+--   Curación cura a su dueño ("healPerTick" cada 2 s)
+--   Rastreo  resalta para su dueño los monos cercanos cada pocos segundos
+--   Carga    más material al recolectar ("perks")
+--   Apoyo    ventajas pasivas ("perks", ver Data/Perks)
+
+export type Pet = {
+	name: string,
+	icon: string,
+	rarity: string, -- Data/Rarities
+	kind: string, -- Combate, Curación, Rastreo, Carga, Apoyo
+	description: string,
+	color: Color3,
+	size: number,
+	perks: { [string]: number }?,
+	attackDamage: number?,
+	healPerTick: number?,
+	tracks: boolean?,
+}
+
+local Pets: { [string]: Pet } = {
+	Tucan = {
+		name = "Tucán",
+		icon = "🐦",
+		rarity = "Common",
+		kind = "Rastreo",
+		description = "Señala a los monos cercanos cada pocos segundos.",
+		color = Color3.fromRGB(30, 30, 30),
+		size = 1,
+		tracks = true,
+	},
+	Tortuga = {
+		name = "Tortuga",
+		icon = "🐢",
+		rarity = "Common",
+		kind = "Apoyo",
+		description = "El hambre y la sed bajan un 10 % más despacio.",
+		color = Color3.fromRGB(90, 140, 70),
+		size = 1.2,
+		perks = { HungerRate = -0.1 },
+	},
+	Rana = {
+		name = "Rana dardo",
+		icon = "🐸",
+		rarity = "Common",
+		kind = "Curación",
+		description = "Te cura 1 punto de vida cada 2 segundos.",
+		color = Color3.fromRGB(60, 160, 230),
+		size = 0.8,
+		healPerTick = 1,
+	},
+	Guacamaya = {
+		name = "Guacamaya",
+		icon = "🦜",
+		rarity = "Uncommon",
+		kind = "Rastreo",
+		description = "Señala a los monos cercanos y te da +5 % de daño a distancia.",
+		color = Color3.fromRGB(230, 50, 40),
+		size = 1,
+		tracks = true,
+		perks = { RangedDamage = 0.05 },
+	},
+	Perezoso = {
+		name = "Perezoso",
+		icon = "💤",
+		rarity = "Uncommon",
+		kind = "Carga",
+		description = "+1 material en cada recolección.",
+		color = Color3.fromRGB(150, 120, 90),
+		size = 1.2,
+		perks = { HarvestBonus = 1 },
+	},
+	Jaguarundi = {
+		name = "Jaguarundí",
+		icon = "🐈",
+		rarity = "Rare",
+		kind = "Combate",
+		description = "Ataca al mono más cercano (8 de daño cada 2 s).",
+		color = Color3.fromRGB(80, 70, 65),
+		size = 1.3,
+		attackDamage = 8,
+	},
+	Colibri = {
+		name = "Colibrí",
+		icon = "🌺",
+		rarity = "Rare",
+		kind = "Apoyo",
+		description = "Correr gasta un 20 % menos de estamina.",
+		color = Color3.fromRGB(60, 200, 140),
+		size = 0.7,
+		perks = { SprintCost = -0.2 },
+	},
+	Ocelote = {
+		name = "Ocelote",
+		icon = "🐆",
+		rarity = "Epic",
+		kind = "Combate",
+		description = "Ataca al mono más cercano (14 de daño cada 2 s).",
+		color = Color3.fromRGB(220, 170, 80),
+		size = 1.4,
+		attackDamage = 14,
+	},
+	MonoX7 = {
+		name = "Mono experimental X-7",
+		icon = "🧪",
+		rarity = "Legendary",
+		kind = "Combate",
+		description = "Criatura del laboratorio: ataca (18 de daño) y te cura 1 de vida cada 2 s.",
+		color = Color3.fromRGB(120, 255, 200),
+		size = 1.3,
+		attackDamage = 18,
+		healPerTick = 1,
+	},
+	JaguarCristal = {
+		name = "Jaguar de cristal",
+		icon = "💠",
+		rarity = "Legendary",
+		kind = "Apoyo",
+		description = "Experimento del laboratorio: +20 de vida máxima y +10 % de daño a distancia.",
+		color = Color3.fromRGB(150, 220, 255),
+		size = 1.5,
+		perks = { MaxHealth = 20, RangedDamage = 0.1 },
+	},
+}
+
+return Pets

@@ -13,6 +13,8 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
@@ -23,7 +25,7 @@ local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
-local TABS = { "Rol", "Talentos", "Tienda", "Grupo", "Diario" }
+local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Grupo", "Diario" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -252,6 +254,43 @@ function LobbyUIController:Start()
 		end
 	end
 
+	-- Colección de mascotas: las que tienes se pueden llevar (1 activa); las demás salen como "???".
+	local function renderPets(data: Progression.ProgressData)
+		local active = player:GetAttribute("ActivePet")
+		note(list, "🥚 Las mascotas salen de los huevos que rescatáis en la isla", 0)
+		local ids = {}
+		for petId in Pets do
+			table.insert(ids, petId)
+		end
+		table.sort(ids, function(a, b)
+			local ra, rb = Rarities[Pets[a].rarity].order, Rarities[Pets[b].rarity].order
+			if ra ~= rb then
+				return ra < rb
+			end
+			return Pets[a].name < Pets[b].name
+		end)
+		for index, petId in ids do
+			local pet = Pets[petId]
+			local rarity = Rarities[pet.rarity]
+			local owned = data.pets[petId] or 0
+			local row = newRow(list, index)
+			row.title.TextColor3 = rarity.color
+			if owned > 0 then
+				row.title.Text = `{pet.icon} {pet.name} ×{owned} · {rarity.name}`
+				row.detail.Text = `{pet.kind}: {pet.description}`
+				local isActive = active == petId
+				setButton(row.button, if isActive then "Quitar" else "Llevar", true)
+				row.button.MouseButton1Click:Connect(function()
+					Remotes.SelectPet:FireServer(if isActive then "" else petId)
+				end)
+			else
+				row.title.Text = `❓ ??? · {rarity.name}`
+				row.detail.Text = "Aún no la tienes"
+				setButton(row.button, "—", false)
+			end
+		end
+	end
+
 	local function renderParty()
 		local membersText = player:GetAttribute("PartyMembers")
 		local leaderId = player:GetAttribute("PartyLeader")
@@ -311,6 +350,8 @@ function LobbyUIController:Start()
 			renderTalents(data)
 		elseif currentTab == "Tienda" then
 			renderShop(data)
+		elseif currentTab == "Mascotas" then
+			renderPets(data)
 		elseif currentTab == "Diario" then
 			Journal.fill(list, data.bestiary)
 		else

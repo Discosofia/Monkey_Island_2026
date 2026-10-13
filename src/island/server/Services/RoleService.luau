@@ -33,10 +33,12 @@ local function onPlayer(player: Player)
 		return
 	end
 	local roleId = Progression.validRole(if profile then profile.selectedRole else nil)
+	local petId = player:GetAttribute("ActivePet")
 	local perks = Progression.computePerks(
 		roleId,
 		if profile then profile.talents else {},
-		if profile then profile.upgrades else {}
+		if profile then profile.upgrades else {},
+		if typeof(petId) == "string" then petId else nil
 	)
 	for name, value in perks do
 		player:SetAttribute(`Perk_{name}`, value)

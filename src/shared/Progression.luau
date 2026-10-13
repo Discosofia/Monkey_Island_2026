@@ -9,6 +9,7 @@
 local HttpService = game:GetService("HttpService")
 
 local Perks = require(script.Parent.Data.Perks)
+local Pets = require(script.Parent.Data.Pets)
 local Roles = require(script.Parent.Data.Roles)
 local Talents = require(script.Parent.Data.Talents)
 local Upgrades = require(script.Parent.Data.Upgrades)
@@ -20,6 +21,7 @@ export type ProgressData = {
 	matches: number,
 	tutorialDone: boolean,
 	bestiary: { [string]: number },
+	pets: { [string]: number },
 }
 
 local Progression = {}
@@ -55,11 +57,12 @@ function Progression.validRole(roleId: any): string
 	return if typeof(roleId) == "string" and Roles[roleId] then roleId else Progression.DEFAULT_ROLE
 end
 
--- Ventajas de un rol con sus talentos y las mejoras de la tienda.
+-- Ventajas de un rol con sus talentos, las mejoras de la tienda y la mascota activa.
 function Progression.computePerks(
 	roleId: string,
 	talents: { [string]: number },
-	upgrades: { [string]: number }
+	upgrades: { [string]: number },
+	petId: string?
 ): { [string]: number }
 	local perks = table.clone(Perks)
 	local role = Roles[roleId]
@@ -74,6 +77,12 @@ function Progression.computePerks(
 	end
 	for upgradeId, upgrade in Upgrades do
 		perks[upgrade.perk] += upgrade.perRank * (upgrades[upgradeId] or 0)
+	end
+	local pet = if petId then Pets[petId] else nil
+	if pet and pet.perks then
+		for perk, value in pet.perks do
+			perks[perk] += value
+		end
 	end
 	return perks
 end
@@ -101,6 +110,7 @@ function Progression.read(player: Player): ProgressData
 		matches = if typeof(data.matches) == "number" then data.matches else 0,
 		tutorialDone = data.tutorialDone == true,
 		bestiary = if typeof(data.bestiary) == "table" then data.bestiary else {},
+		pets = if typeof(data.pets) == "table" then data.pets else {},
 	}
 end
 

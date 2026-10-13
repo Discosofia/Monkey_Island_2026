@@ -291,6 +291,14 @@ local Config = {
 		},
 	},
 
+	Pets = {
+		-- Probabilidad (peso) de cada rareza al eclosionar un huevo (Fase 5).
+		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 6, Legendary = 1 },
+		-- Cada cuánto actúan las mascotas de combate y curación, y su alcance de ataque.
+		TickSeconds = 2,
+		AttackRange = 25,
+	},
+
 	Abilities = {
 		-- Habilidades de los roles (Fase 3; tiempos de espera en Shared/Data/Roles).
 		AreaHealAmount = 30,
