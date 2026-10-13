@@ -6,6 +6,7 @@
 --     atacan también dentro del Basecamp. Las estacas hieren a los monos que las cruzan.
 --   - Al amanecer los que quedan se retiran.
 -- El estado se publica en ReplicatedStorage ("SiegeStatus") para el HUD.
+-- Fase 6: la noche tras encender la baliza ("FinalNight") es La Gran Tropa: más oleadas y más grandes.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -25,6 +26,8 @@ local DayNightService = require(script.Parent.DayNightService)
 local MonkeyService = require(script.Parent.MonkeyService)
 
 local STATUS_ATTRIBUTE = "SiegeStatus"
+
+local wavesTonight: () -> number
 local SPIKE_TICK_SECONDS = 0.5
 -- Portones en el mismo orden que los construye MapBuilder: este, sur, oeste y norte.
 local GATE_NAMES = { "el este", "el sur", "el oeste", "el norte" }
@@ -71,7 +74,8 @@ end
 local function launchWave(day: number, wave: number)
 	-- Centro a ras de suelo (BuildingService lo publica); si no, el de la zona.
 	local flatCenter = Building.center() or BasecampService.getCenter()
-	local total = waveSize(day)
+	local final = ReplicatedStorage:GetAttribute("FinalNight") == true
+	local total = math.round(waveSize(day) * (if final then Config.Siege.FinalNightSizeMultiplier else 1))
 	-- Uno o dos portones al azar; los monos se reparten entre ellos.
 	local first = rng:NextInteger(1, 4)
 	local gates = { first }
@@ -87,9 +91,12 @@ local function launchWave(day: number, wave: number)
 		MonkeyService.spawnSiegeGroup(pickSpecies(day), spawnPoint, gatePoint, count)
 		table.insert(names, GATE_NAMES[gate])
 	end
-	announce(
-		`🐒 ¡Asedio! Oleada {wave}/{Config.Siege.WavesPerNight}: {total} monos desde {table.concat(names, " y ")}`
-	)
+	announce(`🐒 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos desde {table.concat(names, " y ")}`)
+end
+
+function wavesTonight(): number
+	local final = ReplicatedStorage:GetAttribute("FinalNight") == true
+	return if final then Config.Siege.FinalNightWaves else Config.Siege.WavesPerNight
 end
 
 local function runNight(day: number)
@@ -97,12 +104,13 @@ local function runNight(day: number)
 	local token = nightToken
 	task.spawn(function()
 		task.wait(Config.Siege.FirstWaveDelaySeconds)
-		for wave = 1, Config.Siege.WavesPerNight do
+		local waves = wavesTonight()
+		for wave = 1, waves do
 			if nightToken ~= token then
 				return
 			end
 			launchWave(day, wave)
-			if wave < Config.Siege.WavesPerNight then
+			if wave < waves then
 				task.wait(Config.Siege.WaveIntervalSeconds)
 			end
 		end

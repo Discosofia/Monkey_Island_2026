@@ -117,6 +117,7 @@ function IslandHUDController:Start()
 	createBasecampIndicator(gui)
 	createStatusLine(gui, "SiegeStatus", 0.13, Color3.fromRGB(255, 120, 90))
 	createStatusLine(gui, "EggStatus", 0.24, Color3.fromRGB(150, 240, 255))
+	createStatusLine(gui, "BeaconStatus", 0.275, Color3.fromRGB(255, 150, 140))
 	createReturnButton(gui)
 
 	if RunService:IsStudio() then

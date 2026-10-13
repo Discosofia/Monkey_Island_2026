@@ -32,6 +32,7 @@ export type Profile = {
 	tutorialDone: boolean,
 	bestiary: { [string]: number }, -- monos derrotados por especie (diario de campo, Fase 4)
 	activePet: string, -- mascota que lleva ("" = ninguna; Fase 5)
+	rescues: number, -- partidas ganadas con la baliza (Fase 6)
 }
 
 type Session = {
@@ -60,6 +61,7 @@ local function defaultProfile(): Profile
 		tutorialDone = false,
 		bestiary = {},
 		activePet = "",
+		rescues = 0,
 	}
 end
 

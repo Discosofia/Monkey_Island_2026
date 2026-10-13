@@ -106,6 +106,23 @@ local Buildables: { [string]: Buildable } = {
 		zones = { Core = true },
 		maxPerServer = 1,
 	},
+	-- Fase 6: la baliza de rescate (la antigua radio del laboratorio). Con las 4 piezas de los jefes y
+	-- desde el día Config.Match.BeaconUnlockDay se enciende: esa noche llega La Gran Tropa.
+	Beacon = {
+		name = "Baliza de rescate",
+		icon = "📡",
+		description = "Constrúyela en el núcleo. Con las 4 piezas de los jefes, enciéndela para pedir rescate.",
+		order = 8,
+		size = Vector3.new(6, 12, 6),
+		cost = {
+			{ itemId = "Wood", amount = 20 },
+			{ itemId = "Stone", amount = 20 },
+			{ itemId = "ShipMetal", amount = 6 },
+		},
+		health = 2500,
+		zones = { Core = true },
+		maxPerServer = 1,
+	},
 	StoneForge = {
 		name = "Forja de piedra",
 		icon = "⚒️",

@@ -20,6 +20,9 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 		profile.amber += summary.amber
 		profile.bestDays = math.max(profile.bestDays, summary.days)
 		profile.matches += 1
+		if summary.result == "Victory" then
+			profile.rescues += 1
+		end
 		if typeof(role) == "string" then
 			profile.roleXp[role] = (profile.roleXp[role] or 0) + xp
 		end

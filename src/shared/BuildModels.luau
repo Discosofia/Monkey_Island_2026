@@ -175,6 +175,43 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			)
 		end
 	end,
+	-- Baliza: torre de metal con antena y una luz roja arriba.
+	Beacon = function(model, size)
+		local bottom = -size.Y / 2
+		newPart(
+			model,
+			"Base",
+			Vector3.new(size.X, 1.5, size.Z),
+			CFrame.new(0, bottom + 0.75, 0),
+			STONE_DARK,
+			Enum.Material.Concrete
+		)
+		newPart(
+			model,
+			"Tower",
+			Vector3.new(2, size.Y - 3, 2),
+			CFrame.new(0, bottom + 1.5 + (size.Y - 3) / 2, 0),
+			Color3.fromRGB(150, 150, 160),
+			Enum.Material.DiamondPlate
+		)
+		newPart(
+			model,
+			"Antenna",
+			Vector3.new(0.3, 3, 0.3),
+			CFrame.new(0, size.Y / 2 - 0.5, 0),
+			Color3.fromRGB(200, 200, 210),
+			Enum.Material.Metal
+		)
+		local lamp = newPart(
+			model,
+			"Lamp",
+			Vector3.new(1.2, 1.2, 1.2),
+			CFrame.new(0, size.Y / 2 - 2.2, 0),
+			Color3.fromRGB(120, 30, 30),
+			Enum.Material.Glass
+		)
+		lamp.Shape = Enum.PartType.Ball
+	end,
 	-- Tienda de lona sobre postes, con una mesa baja y hierbas colgando.
 	HealerTent = function(model, size)
 		local bottom = -size.Y / 2

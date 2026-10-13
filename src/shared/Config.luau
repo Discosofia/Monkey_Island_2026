@@ -218,6 +218,9 @@ local Config = {
 			{ day = 5, species = "Babuino" },
 			{ day = 7, species = "Gorila" },
 		},
+		-- La Gran Tropa (noche final tras encender la baliza, Fase 6).
+		FinalNightWaves = 5,
+		FinalNightSizeMultiplier = 2,
 		-- Hasta dónde busca estacas un macaco del asedio.
 		TrapSearchRadius = 30,
 		-- Distancia más allá del perímetro a la que aparecen, frente a los portones.
