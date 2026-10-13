@@ -68,19 +68,19 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 	corner.Parent = frame
 
 	local title = Widgets.label(`{recipe.icon} {recipe.name}`, frame)
-	title.Position = UDim2.new(0, 10, 0, 6)
+	title.Position = UDim2.fromOffset(10, 6)
 	title.Size = UDim2.new(0.66, -10, 0, 28)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 
 	local description = Widgets.label(recipe.description, frame)
-	description.Position = UDim2.new(0, 10, 0, 34)
+	description.Position = UDim2.fromOffset(10, 34)
 	description.Size = UDim2.new(0.66, -10, 0, 20)
 	description.TextXAlignment = Enum.TextXAlignment.Left
 	description.TextColor3 = Color3.fromRGB(210, 200, 185)
 	description.Font = Enum.Font.BuilderSans
 
 	local cost = Widgets.label("", frame)
-	cost.Position = UDim2.new(0, 10, 0, 56)
+	cost.Position = UDim2.fromOffset(10, 56)
 	cost.Size = UDim2.new(0.66, -10, 0, 24)
 	cost.TextXAlignment = Enum.TextXAlignment.Left
 	cost.RichText = true
@@ -135,7 +135,7 @@ function CraftingController:Start()
 	sizeLimit.Parent = panel
 
 	local title = Widgets.label("🔨 Mesa de trabajo", panel)
-	title.Position = UDim2.new(0, 14, 0, 8)
+	title.Position = UDim2.fromOffset(14, 8)
 	title.Size = UDim2.new(1, -80, 0, 36)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -150,7 +150,7 @@ function CraftingController:Start()
 
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "Recipes"
-	list.Position = UDim2.new(0, 8, 0, 52)
+	list.Position = UDim2.fromOffset(8, 52)
 	list.Size = UDim2.new(1, -16, 1, -60)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
