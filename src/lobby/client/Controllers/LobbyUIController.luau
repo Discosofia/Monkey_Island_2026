@@ -3,12 +3,15 @@
 --   - Cabecera con el Ámbar y el récord de días.
 --   - Pestañas: Rol (elegir médico, cazador o recolector), Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar) y Grupo (invitar a jugadores del Lobby para viajar juntos).
---   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder).
+--   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
+--     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
+--   - Botón para plegar el menú y pasear por el naufragio.
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -434,14 +437,14 @@ function LobbyUIController:Start()
 	end)
 	render()
 
-	-- Botón de viaje.
+	-- Botón de viaje (y el bote del naufragio, que hace lo mismo).
 	local joinButton = Widgets.button("Ir a la Isla", gui)
 	joinButton.Name = "JoinIslandButton"
 	joinButton.AnchorPoint = Vector2.new(0.5, 1)
 	joinButton.Position = UDim2.fromScale(0.5, 0.95)
 	joinButton.Size = UDim2.fromScale(0.3, 0.1)
 	local waiting = false
-	joinButton.Activated:Connect(function()
+	local function join()
 		if waiting then
 			return
 		end
@@ -453,6 +456,23 @@ function LobbyUIController:Start()
 			waiting = false
 			joinButton.Text = "Ir a la Isla"
 		end)
+	end
+	joinButton.Activated:Connect(join)
+	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
+		if prompt.Name == "ZarparPrompt" then
+			join()
+		end
+	end)
+
+	-- El menú se puede plegar para pasear por el naufragio.
+	local menuButton = Widgets.button("📜 Ocultar menú", gui)
+	menuButton.Name = "MenuToggle"
+	menuButton.AnchorPoint = Vector2.new(0, 1)
+	menuButton.Position = UDim2.fromScale(0.02, 0.95)
+	menuButton.Size = UDim2.fromScale(0.17, 0.07)
+	menuButton.Activated:Connect(function()
+		panel.Visible = not panel.Visible
+		menuButton.Text = if panel.Visible then "📜 Ocultar menú" else "📜 Abrir menú"
 	end)
 
 	-- Ventana de invitación.

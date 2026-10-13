@@ -124,6 +124,23 @@ En el place **Lobby**, con ▶:
 4. [ ] **Grupo** (con 2 jugadores): el jugador 1 invita al 2; al 2 le sale **"te invita a su grupo"** y pulsa Aceptar.
    ✅ Los dos ven **"👥 Grupo: …"**. El viaje en grupo solo se puede probar publicado (paso 6.4 final).
 
+## 3.5 Lobby del naufragio
+
+En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](MAPA.md), Lobby):
+
+1. [ ] Apareces en la arena junto al naufragio, con luz de atardecer.
+   ✅ A la izquierda, la **«Esperanza»** encallada y escorada: casco de tablas con un **boquete** por el que se ve la bodega (cajas, barriles, bananas y un farol), el palo mayor partido y el trinquete con la vela rasgada. Al fondo, la **isla con el volcán humeando** y ríos de lava.
+2. [ ] Pulsa **📜 Ocultar menú** (abajo a la izquierda) y pasea.
+   ✅ El panel se pliega y vuelve con **📜 Abrir menú**.
+3. [ ] Sube por la **rampa de tablas** a la cubierta y entra por el boquete a la bodega.
+   ✅ Se puede andar por la cubierta, subir al alcázar de popa (timón, farol) y entrar en la bodega.
+4. [ ] Mira el campamento: hoguera con bancos, la tienda hecha con una vela, el palo caído, el ancla y el **Diario del capitán** (el tablón junto a la llegada).
+   ✅ El diario se lee y cuenta el lore (tormenta, la isla, el Proyecto PRIMAL, el bote).
+5. [ ] Ve al **bote** de la orilla (cartel "⛵ A LA ISLA →") y mantén **"Zarpar hacia la isla"**.
+   ✅ Hace lo mismo que el botón **Ir a la Isla** (en Studio no viaja; publicado sí).
+6. [ ] Intenta alejarte nadando.
+   ✅ Un muro invisible te frena a unos 160 studs.
+
 ## 3.2 Roles en la Isla
 
 El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para probar cada rol: elígelo en el Lobby, para (■) y dale a ▶ en la Isla.

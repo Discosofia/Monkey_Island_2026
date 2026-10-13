@@ -55,6 +55,33 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 
 ---
 
+## Lobby: el naufragio de la «Esperanza»
+
+El Lobby es el banco de arena donde encalló el barco de los náufragos, con la isla de la partida y su volcán en el horizonte (lore: GDD §13). Lo genera `LobbyBuilder`:
+
+- **Sin hacer nada**, el servidor del Lobby lo construye al arrancar si el place no lo tiene (`LobbyWorldService`). Así funciona aunque no lo hayas guardado.
+- **Para dejarlo fijo en el place** (verlo sin pulsar Play y retocarlo a mano):
+  1. Abre el place **Lobby** y conecta `rojo serve lobby.project.json` (puerto **34872**).
+  2. Sin pulsar Play, en la **barra de comandos**:
+     ```lua
+     require(game.ServerScriptService.Server.World.LobbyBuilder).build()
+     ```
+  3. La Salida termina con *"¡Naufragio listo!"*. Publica con **Archivo → Publicar en Roblox**.
+
+| Qué | Dónde |
+|---|---|
+| Barco «Esperanza» encallado, con boquete, bodega, alcázar con timón, trinquete con vela rasgada y palo mayor partido | A la izquierda de la llegada |
+| Rampa de tablas a la cubierta | Costado del barco que da a la playa |
+| Campamento: hoguera con bancos, tienda hecha con una vela, palo caído, cajas del **Proyecto PRIMAL**, barriles y ancla | Centro de la playa |
+| **Diario del capitán** (el lore, en un tablón) | Junto a la llegada |
+| **Bote** con el aviso **"Zarpar hacia la isla"** (`ZarparPrompt`, igual que el botón Ir a la Isla) | Orilla norte, apuntando a la isla |
+| Isla con el volcán humeante y ríos de lava | Horizonte, al noreste |
+| Luz de atardecer (hora 17:36, atmósfera cálida, brillo y rayos de sol) | `Lighting` |
+
+> ⚠️ Volver a ejecutar `build()` **borra y rehace** la carpeta `Workspace.Naufragio`, la Baseplate, los SpawnLocation sueltos y **todo el terreno** del Lobby. Pon tus modelos propios fuera de `Naufragio`.
+
+---
+
 ## Cómo añadir un atributo en Studio
 
 1. Selecciona el objeto (Part o Model) en el **Explorador**.
