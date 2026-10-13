@@ -249,12 +249,20 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 
 ### Fase 5: Jefes, huevo, mascotas y PvP (6–8 semanas)
 
-- [ ] 4 jefes de bioma con fases, patrones y botín especial (pieza de baliza garantizada)
-- [ ] Rotación de jefes: uno cada 2 días (días 2, 4, 6, 8…), y cada uno se queda hasta que lo derrotan o aparece el siguiente
-- [ ] Evento del huevo: aparición, aviso global, transporte, nido, incubación y eclosión
-- [ ] Mascotas persistentes: colección, rarezas, 1 activa, tipos de ayuda
-- [ ] PvP opt-in: tótem, indicador, espera para desactivar, cajas de suministro y recompensa por cabeza
-- [ ] Clima y eventos: lluvia, tormenta y erupción del volcán
+| Entrega | Contenido | Estado |
+|---|---|---|
+| **5.1** | 4 jefes en sus guaridas, 3 fases, ataques especiales, pieza de baliza y botín legendario | ✅ Código listo, falta tu prueba |
+| **5.2** | Huevo misterioso: aviso, portador lento y con PvP, nido, incubación defendida y eclosión | ✅ Código listo, falta tu prueba |
+| **5.3** | Mascotas: 10, cinco rarezas, cinco tipos de ayuda, 1 activa desde el Lobby | ✅ Código listo, falta tu prueba |
+| **5.4** | PvP opt-in con tótem, indicador, recompensa por cabeza y cajas de suministro en las playas | ✅ Código listo, falta tu prueba |
+| **5.5** | Clima (lluvia, tormenta con rayos) y erupción del volcán | ✅ Código listo, falta tu prueba |
+
+- [x] 4 jefes de bioma con fases, patrones y botín especial (pieza de baliza garantizada)
+- [x] Rotación de jefes: uno cada 2 días (días 2, 4, 6, 8…), y cada uno se queda hasta que lo derrotan o aparece el siguiente
+- [x] Evento del huevo: aparición, aviso global, transporte, nido, incubación y eclosión
+- [x] Mascotas persistentes: colección, rarezas, 1 activa, tipos de ayuda
+- [x] PvP opt-in: tótem, indicador, espera para desactivar, cajas de suministro y recompensa por cabeza
+- [x] Clima y eventos: lluvia, tormenta y erupción del volcán
 
 **Criterio de salida:** las partidas generan **momentos memorables** (jefe, huevo, robo) que la gente quiere contar o grabar.
 

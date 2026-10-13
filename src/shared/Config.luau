@@ -309,6 +309,24 @@ local Config = {
 		DefenseWaves = 2,
 	},
 
+	Weather = {
+		-- Clima (Fase 5): al empezar cada fase se sortea uno (pesos) que dura entre MinSeconds y MaxSeconds.
+		Weights = { Clear = 60, Rain = 30, Storm = 10 },
+		MinSeconds = 120,
+		MaxSeconds = 240,
+		-- La lluvia quita sed a quien está fuera del Basecamp (por segundo; la tormenta, el doble).
+		RainThirstPerSecond = 0.3,
+		-- Tormenta: un rayo cada tantos segundos cerca de un jugador al azar (con aviso en el suelo).
+		LightningEverySeconds = 20,
+		LightningDamage = 15,
+		-- Erupción del volcán: probabilidad en cada fase, duración, ritmo de bombas de lava y alcance.
+		EruptionChance = 0.08,
+		EruptionSeconds = 60,
+		LavaBombEverySeconds = 0.7,
+		LavaBombDamage = 20,
+		EruptionRadius = 230,
+	},
+
 	Pets = {
 		-- Probabilidad (peso) de cada rareza al eclosionar un huevo (Fase 5).
 		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 6, Legendary = 1 },
