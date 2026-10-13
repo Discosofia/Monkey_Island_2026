@@ -69,6 +69,30 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			Enum.Material.Slate
 		)
 	end,
+	-- Barricada: tablones gruesos con tres refuerzos y travesaños.
+	GateBarricade = function(model, size)
+		newPart(model, "Planks", size, CFrame.new(), WOOD, Enum.Material.WoodPlanks)
+		for _, x in { -1, 0, 1 } do
+			newPart(
+				model,
+				"Brace",
+				Vector3.new(1, size.Y + 0.4, size.Z + 0.4),
+				CFrame.new(x * (size.X / 2 - 0.5), 0.2, 0),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+		end
+		for _, y in { -1, 1 } do
+			newPart(
+				model,
+				"Rail",
+				Vector3.new(size.X, 0.8, size.Z + 0.3),
+				CFrame.new(0, y * size.Y / 4, 0),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+		end
+	end,
 	StandingTorch = function(model, size)
 		local bottom = -size.Y / 2
 		newPart(

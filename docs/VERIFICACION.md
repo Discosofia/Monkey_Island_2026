@@ -72,7 +72,9 @@ Marca cada casilla al comprobarla.
 1. [ ] Con materiales (🛠️ **+50 de todo**), equipa el martillo y ve a uno de los **portones** de la empalizada.
 2. [ ] Pon **Estacas** justo en el hueco del portón.
    ✅ Solo se pueden poner en el **perímetro**: entre las parcelas y la empalizada, incluidos los portones.
-3. [ ] Pon un **Muro de piedra** detrás de las estacas.
+3. [ ] Cierra el portón: lo más fácil es la **🚧 Barricada de portón**, que mide justo el hueco entre los postes. Céntrala en el hueco y gírala con **R** hasta que quede alineada con la empalizada.
+   ✅ Se ve verde y, al colocarla, el portón queda cerrado del todo.
+   También puedes usar dos **muros** de 8 studs, pero dejan una rendija a cada lado.
 4. [ ] Pulsa **⏩ Saltar fase** para que sea de noche.
    ✅ Aviso **"Cae la noche: los monos asediarán el Basecamp…"**.
 5. [ ] Espera unos **30 segundos**.

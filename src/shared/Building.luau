@@ -118,13 +118,25 @@ function Building.zoneFor(cframe: CFrame, size: Vector3, plotIndex: number?, cen
 	return "Perimeter"
 end
 
--- Suelo bajo (x, z), ignorando "ignore" (personajes, estructuras, la vista previa). nil si no hay.
+-- Suelo bajo (x, z). Primero busca el terreno: así lo que hay por encima (el dintel de un portón,
+-- ramas, tejados) no cuenta como suelo. En un place de pruebas sin terreno usa cualquier pieza,
+-- ignorando "ignore" (personajes, estructuras, la vista previa). nil si no hay suelo.
 function Building.groundAt(x: number, z: number, fromY: number, ignore: { Instance }): number?
+	local origin = Vector3.new(x, fromY + 30, z)
+	local direction = Vector3.new(0, -120, 0)
+	local terrainOnly = RaycastParams.new()
+	terrainOnly.FilterType = Enum.RaycastFilterType.Include
+	terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
+	terrainOnly.IgnoreWater = true
+	local terrainHit = Workspace:Raycast(origin, direction, terrainOnly)
+	if terrainHit then
+		return terrainHit.Position.Y
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
 	params.IgnoreWater = true
-	local result = Workspace:Raycast(Vector3.new(x, fromY + 30, z), Vector3.new(0, -120, 0), params)
+	local result = Workspace:Raycast(origin, direction, params)
 	return if result then result.Position.Y else nil
 end
 

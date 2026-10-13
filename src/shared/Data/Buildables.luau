@@ -63,6 +63,21 @@ local Buildables: { [string]: Buildable } = {
 		zones = { Plot = true },
 		maxPerPlayer = 1,
 	},
+	-- Barricada del ancho exacto de un portón de la empalizada (19 studs entre postes): lo cierra de
+	-- una vez. Solo en el perímetro.
+	GateBarricade = {
+		name = "Barricada de portón",
+		icon = "🚧",
+		description = "Cierra un portón entero. Colócala centrada en el hueco (R para girarla).",
+		order = 2.5,
+		size = Vector3.new(18.4, 9, 1.6),
+		cost = {
+			{ itemId = "Wood", amount = 14 },
+			{ itemId = "Stone", amount = 8 },
+		},
+		health = 900,
+		zones = { Perimeter = true },
+	},
 	-- Trampa (Fase 2.5): hiere a los monos que pasan por encima y se desgasta con cada golpe.
 	Spikes = {
 		name = "Estacas",
