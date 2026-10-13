@@ -940,6 +940,16 @@ function MonkeyService.endSiege()
 	end
 end
 
+-- Los monos tranquilos cerca de "position" van a por "target" (el portador del huevo, Fase 5).
+function MonkeyService.alert(position: Vector3, radius: number, target: Player)
+	for _, monkey in monkeys do
+		local near = (monkey.root.Position - position).Magnitude <= radius
+		if near and monkey.state == "Idle" and not monkey.group.siege and not monkey.definition.thief then
+			chase(monkey, target)
+		end
+	end
+end
+
 -- Tropa que aparece en "position" y va a por "target" (refuerzos de un jefe, Fase 5).
 function MonkeyService.spawnAmbush(speciesId: string, position: Vector3, count: number, target: Player)
 	local group: Group = {

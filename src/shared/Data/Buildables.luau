@@ -18,6 +18,7 @@ export type Buildable = {
 	zones: { Core: boolean?, Plot: boolean?, Perimeter: boolean? },
 	maxPerPlayer: number?, -- límite de esta pieza por jugador (nil = sin límite propio)
 	station: string?, -- si es una estación de crafteo (Data/Stations), su id
+	maxPerServer: number?, -- límite para todo el servidor (nido, baliza)
 }
 
 local Buildables: { [string]: Buildable } = {
@@ -88,6 +89,22 @@ local Buildables: { [string]: Buildable } = {
 		health = 300,
 		zones = { Core = true },
 		station = "Healer",
+	},
+	-- Fase 5: el nido donde se incuban los huevos rescatados.
+	Nest = {
+		name = "Nido",
+		icon = "🥚",
+		description = "Lleva aquí el huevo misterioso y defiéndelo mientras se incuba.",
+		order = 7,
+		size = Vector3.new(7, 3, 7),
+		cost = {
+			{ itemId = "Wood", amount = 12 },
+			{ itemId = "Fiber", amount = 10 },
+			{ itemId = "GoldenFur", amount = 2 },
+		},
+		health = 600,
+		zones = { Core = true },
+		maxPerServer = 1,
 	},
 	StoneForge = {
 		name = "Forja de piedra",

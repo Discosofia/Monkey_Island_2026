@@ -228,6 +228,18 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 		Remotes.Notify:FireClient(player, `Has llegado al límite de {Config.Building.MaxStructuresPerPlayer} piezas`)
 		return
 	end
+	if definition.maxPerServer then
+		local count = 0
+		for _, model in structureFolder():GetChildren() do
+			if model:GetAttribute("BuildableId") == buildableId then
+				count += 1
+			end
+		end
+		if count >= definition.maxPerServer then
+			Remotes.Notify:FireClient(player, `Ya hay {definition.name} en el Basecamp`)
+			return
+		end
+	end
 	if definition.maxPerPlayer and ownedBy(player, buildableId) >= definition.maxPerPlayer then
 		Remotes.Notify:FireClient(player, `Solo puedes tener {definition.maxPerPlayer}: {definition.name}`)
 		return

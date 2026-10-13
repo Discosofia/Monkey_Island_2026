@@ -93,6 +93,11 @@ local function updateSprint(player: Player, deltaTime: number)
 		end
 	end
 	local speed = if sprinting then Config.Survival.SprintSpeed else Config.Survival.WalkSpeed
+	-- Con el huevo a cuestas (Fase 5) se va más lento; el recolector lo lleva mejor.
+	if player:GetAttribute("CarryingEgg") == true then
+		local gatherer = player:GetAttribute("Role") == "Recolector"
+		speed *= if gatherer then Config.Egg.GathererCarrySpeedMultiplier else Config.Egg.CarrySpeedMultiplier
+	end
 	-- Aturdido o agarrado (gorila, orangután; Fase 4): no se puede mover.
 	local stunnedUntil = player:GetAttribute("StunnedUntil")
 	if typeof(stunnedUntil) == "number" and Workspace:GetServerTimeNow() < stunnedUntil then

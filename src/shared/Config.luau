@@ -291,6 +291,24 @@ local Config = {
 		},
 	},
 
+	Egg = {
+		-- Huevo misterioso (GDD §11, Fase 5). De día, cada CheckSeconds hay Chance de que aparezca uno
+		-- (si no hay otro), entre MinDistance y MaxDistance del Basecamp.
+		CheckSeconds = 180,
+		Chance = 0.4,
+		MinDistance = 250,
+		MaxDistance = 700,
+		-- El portador va más lento (el recolector, menos) y atrae a los monos cercanos.
+		CarrySpeedMultiplier = 0.75,
+		GathererCarrySpeedMultiplier = 0.9,
+		AttractRadius = 80,
+		-- Quien esté a menos de esto del huevo mientras viaja cuenta como participante.
+		ParticipantRadius = 60,
+		-- Incubación en el nido: duración y oleadas que llegan a por él.
+		IncubationSeconds = 150,
+		DefenseWaves = 2,
+	},
+
 	Pets = {
 		-- Probabilidad (peso) de cada rareza al eclosionar un huevo (Fase 5).
 		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 6, Legendary = 1 },

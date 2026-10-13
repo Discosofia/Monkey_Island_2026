@@ -151,6 +151,30 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			end
 		end
 	end,
+	-- Nido: aro de ramas sobre una base de paja.
+	Nest = function(model, size)
+		local bottom = -size.Y / 2
+		newPart(
+			model,
+			"Straw",
+			Vector3.new(size.X - 1, 0.6, size.Z - 1),
+			CFrame.new(0, bottom + 0.3, 0),
+			Color3.fromRGB(210, 180, 110),
+			Enum.Material.Grass
+		)
+		for i = 0, 7 do
+			local angle = i * math.pi / 4
+			newPart(
+				model,
+				"Branch",
+				Vector3.new(size.X / 2.4, 1.2, 0.8),
+				CFrame.new(math.cos(angle) * (size.X / 2 - 0.6), bottom + 1.2, math.sin(angle) * (size.Z / 2 - 0.6))
+					* CFrame.Angles(0, -angle + math.pi / 2, 0),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+		end
+	end,
 	-- Tienda de lona sobre postes, con una mesa baja y hierbas colgando.
 	HealerTent = function(model, size)
 		local bottom = -size.Y / 2
