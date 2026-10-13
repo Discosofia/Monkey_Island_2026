@@ -225,6 +225,20 @@ local Config = {
 		-- Recetas: ver Shared/Data/Recipes.
 	},
 
+	Data = {
+		-- Guardado de datos (Fase 2.8). Cambiar StoreName empieza de cero (útil para pruebas).
+		StoreName = "PlayerData_v1",
+		AutosaveSeconds = 120,
+		-- Si otro servidor tiene los datos (p. ej. viajando entre places), reintentos y espera.
+		LoadAttempts = 6,
+		RetrySeconds = 2,
+		-- Un bloqueo más viejo que esto es de un servidor caído: se ignora.
+		LockTimeoutSeconds = 600,
+		-- XP de rol al terminar una partida: por día sobrevivido y por mono derrotado.
+		RoleXpPerDay = 20,
+		RoleXpPerKill = 2,
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,

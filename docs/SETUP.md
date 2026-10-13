@@ -198,3 +198,13 @@ Hay un proyecto de Rojo para cada place:
 | El botón de viaje no hace nada en el juego publicado | Revisa que **ambos** places estén publicados con el código (paso 8) y que los IDs del paso 6 sean correctos. |
 | *"Error en la teletransportación: se intentó teletransportarse a un lugar que está restringido (Código de error: 773)"* | Abre la consola **F9** → pestaña **Server** y busca el motivo. **"This game is not published (Unauthorized)"**: la experiencia es **privada** y Roblox no deja viajar entre sus places. En el [Creator Hub](https://create.roblox.com/dashboard/creations) completa el **cuestionario de madurez** de la experiencia y ponla **pública**. **Otro motivo:** busca la línea *"[Teleporter] Places de esta experiencia"* y comprueba que los IDs de `Config.PlaceIds` coinciden. |
 | *"Infinite yield possible on ReplicatedStorage:WaitForChild("Remotes")"* | El código del servidor no se cargó. Revisa que la carpeta `Server` exista en ServerScriptService (paso 8). |
+
+---
+
+## Guardado de datos (Fase 2.8)
+
+El juego guarda el Ámbar, el récord de días y la XP de cada jugador con **DataStore**.
+
+- **En el juego publicado** funciona sin hacer nada.
+- **En Studio**, para probarlo: *Archivo → Configuración del juego → Seguridad → Habilitar acceso de Studio a los servicios de API* (*Enable Studio Access to API Services*), en el place del **Lobby** y en el de la **Isla**. Sin eso, el juego funciona igual pero con datos temporales, y la Salida muestra *"[PlayerData] … juega con datos temporales"*.
+- Para empezar de cero en pruebas, cambia `Config.Data.StoreName` (por ejemplo a `PlayerData_v2`).

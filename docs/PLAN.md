@@ -195,7 +195,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 | **2.5** | Asedio nocturno v1: 3 oleadas por noche por los portones, rompen piezas, estacas como trampa, zona de perímetro | ✅ Código listo, falta tu prueba |
 | **2.6** | Fiebre del mono v1: mordiscos y carne cruda la suben, vista nublada, daño a 100, antídoto | ✅ Código listo, falta tu prueba |
 | **2.7** | Dificultad por día (vida y daño de los monos), derrota (todos caídos de noche), resultados y Ámbar | ✅ Código listo, falta tu prueba |
-| **2.8** | Guardado de datos (ProfileStore) | Pendiente |
+| **2.8** | Guardado de datos con bloqueo de sesión (módulo propio, como ProfileStore): Ámbar, récord, partidas, XP por rol | ✅ Código listo, falta tu prueba |
 
 - [x] Hambre, sed y estamina; cocinar en la hoguera; agua del río *(2.1)*
 - [x] Construcción por cuadrícula (táctil y PC) con **núcleo compartido + parcelas personales** y permisos *(2.2)*
@@ -205,7 +205,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 - [x] Fiebre del mono v1 (mordiscos → fiebre; antídoto básico) *(2.6)*
 - [x] Escalado de dificultad por día *(2.7)*
 - [x] Derrota del servidor → pantalla de resultados *(2.7)*
-- [ ] **Guardado de datos** con ProfileStore: moneda, récord de días y XP de rol
+- [x] **Guardado de datos** (módulo propio con bloqueo de sesión, como ProfileStore): moneda, récord de días y XP de rol *(2.8)*
 
 **Criterio de salida:** una partida dura 3 o más días con tensión creciente y el progreso se guarda entre sesiones.
 
