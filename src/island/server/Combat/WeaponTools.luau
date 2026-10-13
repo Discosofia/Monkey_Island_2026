@@ -16,6 +16,7 @@ local STONE_DARK = Color3.fromRGB(85, 85, 90)
 local FIBER = Color3.fromRGB(150, 135, 85)
 local FANG = Color3.fromRGB(235, 225, 195)
 local FUR = Color3.fromRGB(150, 70, 45)
+local DARK_BARK = Color3.fromRGB(75, 48, 28)
 local USE_SOUNDS = {
 	Melee = "rbxasset://sounds/swordslash.wav",
 	Ranged = "rbxasset://sounds/swordlunge.wav",
@@ -211,21 +212,24 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 	-- Garrote: mango fino y cabeza gruesa con colmillos clavados.
 	Club = function(tool)
-		local grip = newPiece("Handle", Vector3.new(0.35, 1.6, 0.35), WOOD, Enum.Material.Wood)
+		local grip = newPiece("Handle", Vector3.new(0.35, 2.4, 0.35), WOOD, Enum.Material.Wood)
 		grip.Parent = tool
-		local head = newPiece("Head", Vector3.new(0.9, 1.8, 0.9), WOOD, Enum.Material.Wood)
-		attach(grip, head, CFrame.new(0, 1.6, 0))
-		attach(grip, newPiece("Wrap", Vector3.new(0.4, 0.5, 0.4), FUR, Enum.Material.Fabric), CFrame.new(0, -0.3, 0))
-		for i = 0, 5 do
-			local angle = i * math.pi / 3
-			local y = if i % 2 == 0 then 1.3 else 2
-			attach(
-				grip,
-				newPiece("Fang", Vector3.new(0.18, 0.18, 0.5), FANG, Enum.Material.SmoothPlastic, "WedgePart"),
-				CFrame.new(0, y, 0) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.65)
-			)
+		local head = newPiece("Head", Vector3.new(0.9, 2.8, 0.9), WOOD, Enum.Material.Wood)
+		attach(grip, head, CFrame.new(0, 2.4, 0))
+		attach(grip, newPiece("Cap", Vector3.new(1, 0.3, 1), DARK_BARK, Enum.Material.Wood), CFrame.new(0, 3.85, 0))
+		attach(grip, newPiece("Wrap", Vector3.new(0.4, 0.9, 0.4), FUR, Enum.Material.Fabric), CFrame.new(0, -0.6, 0))
+		-- Tres anillos de colmillos, cada uno girado respecto al anterior.
+		for ring, y in { 1.6, 2.4, 3.2 } do
+			for i = 0, 5 do
+				local angle = i * math.pi / 3 + ring * math.pi / 6
+				attach(
+					grip,
+					newPiece("Fang", Vector3.new(0.18, 0.18, 0.5), FANG, Enum.Material.SmoothPlastic, "WedgePart"),
+					CFrame.new(0, y, 0) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.65)
+				)
+			end
 		end
-		tool.Grip = CFrame.new(0, -0.2, 0)
+		tool.Grip = CFrame.new(0, -0.6, 0)
 		return grip
 	end,
 }

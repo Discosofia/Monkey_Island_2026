@@ -154,7 +154,7 @@ Se entrega en partes pequeñas, cada una probable en Studio:
 | **1.3** | Barra rápida + combate: machete, honda (gasta piedras) y esquiva, muñecos de práctica | ✅ Probada |
 | **1.4** | IA de monos v1: mono ardilla y aullador rojo (aullido y refuerzos), botín, reaparición al amanecer | ✅ Probada |
 | **1.5** | Caído → reanimación → Espíritu (mochila, marcas) → reaparición al amanecer | ✅ Probada |
-| **1.6** | Mesa de trabajo con 7 recetas: antorcha, venda, hacha y pico de piedra, lanza, garrote y chaleco | ✅ Código listo, falta tu prueba |
+| **1.6** | Mesa de trabajo con 7 recetas: antorcha, venda, hacha y pico de piedra, lanza, garrote y chaleco | ✅ Probada |
 
 - [x] Generador de la isla provisional `MapBuilder`: terreno con colinas en todos los biomas, selva densa, palmeras, volcán activo, Basecamp de 170 studs con empalizada de estacas, portones y antorchas, recursos, guaridas y límites *(Claude)*
 - [ ] Generar la isla en Studio, probarla y retocarla *(tú; ver [MAPA.md](MAPA.md))*
@@ -286,6 +286,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** probar la mesa de trabajo y las recetas (entrega 1.6).
-2. **Tú:** prueba de salida de la Fase 1: jugar unos 30 min con 4–6 amigos y anotar qué fue divertido y qué no.
-3. **Claude:** ajustar lo que salga de esa prueba y empezar la Fase 2 (hambre, sed y estamina; construcción en el Basecamp).
+1. **Tú:** prueba de salida de la Fase 1: jugar unos 30 min con 4–6 amigos y anotar qué fue divertido y qué no.
+2. **Claude:** ajustar lo que salga de esa prueba y empezar la Fase 2 (hambre, sed y estamina; construcción en el Basecamp).

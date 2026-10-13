@@ -74,7 +74,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		kind = "Melee",
 		damage = 34,
 		cooldownSeconds = 1.1,
-		range = 8,
+		range = 10,
 		swingAnimationSpeed = 1.5,
 	},
 }
