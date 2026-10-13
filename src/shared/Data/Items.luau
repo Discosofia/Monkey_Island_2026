@@ -4,6 +4,7 @@
 -- "order" decide el orden en el HUD del inventario; "alwaysShow" lo muestra aunque tengas 0.
 -- "food" hace que se pueda comer (C, cruceta izquierda o el botón "Comer"): cuánto recupera.
 -- "heal" hace que se pueda usar para curarse (H, cruceta arriba o el botón "Curar"): vida que da.
+-- "rarity" (Data/Rarities) da color al nombre en el inventario y el diario; sin ella, Común.
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.
 
 export type ItemDefinition = {
@@ -13,6 +14,7 @@ export type ItemDefinition = {
 	alwaysShow: boolean?,
 	food: FoodDefinition?,
 	heal: number?,
+	rarity: string?,
 }
 
 export type FoodDefinition = {
@@ -26,8 +28,8 @@ local Items: { [string]: ItemDefinition } = {
 	Fiber = { name = "Fibra", icon = "🌿", order = 3, alwaysShow = true },
 	Meat = { name = "Carne cruda", icon = "🥩", order = 4, food = { hunger = 8, thirst = 0 } },
 	RedFur = { name = "Pelaje rojo", icon = "🐾", order = 5 },
-	GoldenFur = { name = "Pelaje dorado", icon = "✨", order = 6 },
-	SmallFang = { name = "Colmillo", icon = "🔺", order = 7 },
+	GoldenFur = { name = "Pelaje dorado", icon = "✨", order = 6, rarity = "Uncommon" },
+	SmallFang = { name = "Colmillo", icon = "🔺", order = 7, rarity = "Uncommon" },
 	Bandage = { name = "Venda", icon = "➕", order = 8, heal = 30 },
 	CookedMeat = { name = "Carne asada", icon = "🍖", order = 9, food = { hunger = 35, thirst = 0 } },
 	Banana = { name = "Plátano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
@@ -37,6 +39,20 @@ local Items: { [string]: ItemDefinition } = {
 	Bone = { name = "Hueso", icon = "🦴", order = 13 },
 	Ointment = { name = "Ungüento", icon = "🧴", order = 14, heal = 70 },
 	Antidote = { name = "Antídoto", icon = "💉", order = 15 },
+	-- Fase 4: botín de las nuevas especies.
+	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
+	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },
+	TinyTooth = { name = "Diente diminuto", icon = "▫️", order = 22 },
+	Whisker = { name = "Bigotes de marteja", icon = "〰️", order = 23, rarity = "Rare" },
+	MandrillFang = { name = "Colmillo de mandril", icon = "🔻", order = 24, rarity = "Rare" },
+	GreyFur = { name = "Pelaje gris", icon = "☁️", order = 25 },
+	LabCard = { name = "Tarjeta de laboratorio", icon = "💳", order = 26, rarity = "Epic" },
+	Leather = { name = "Cuero", icon = "👢", order = 27 },
+	BigFang = { name = "Colmillo grande", icon = "🔶", order = 28, rarity = "Uncommon" },
+	Shell = { name = "Concha", icon = "🐚", order = 29 },
+	ThickBone = { name = "Hueso grueso", icon = "🦴", order = 30, rarity = "Rare" },
+	OrangeFur = { name = "Pelaje naranja", icon = "🍊", order = 31, rarity = "Rare" },
+	SilverFur = { name = "Pelaje plateado", icon = "⚪", order = 32, rarity = "Epic" },
 }
 
 return Items

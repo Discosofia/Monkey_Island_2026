@@ -43,6 +43,7 @@ local function onLearnTalent(player: Player, roleId: any, talentId: any)
 		upgrades = profile.upgrades,
 		matches = profile.matches,
 		tutorialDone = profile.tutorialDone,
+		bestiary = profile.bestiary,
 	}
 	if rank >= talent.maxRank then
 		Remotes.Notify:FireClient(player, `{talent.name} ya está al máximo`)

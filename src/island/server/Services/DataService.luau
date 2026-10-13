@@ -9,6 +9,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local MatchService = require(script.Parent.MatchService)
+local MonkeyService = require(script.Parent.MonkeyService)
 
 local DataService = {}
 
@@ -27,8 +28,21 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	Remotes.Notify:FireClient(player, `✨ +{summary.amber} de Ámbar guardado`)
 end
 
+-- Diario de campo (Fase 4): cuenta los monos derrotados por especie. La primera vez, se anuncia.
+local function onKilled(player: Player, speciesId: string)
+	local first = false
+	PlayerData.update(player, function(profile)
+		first = (profile.bestiary[speciesId] or 0) == 0
+		profile.bestiary[speciesId] = (profile.bestiary[speciesId] or 0) + 1
+	end)
+	if first then
+		Remotes.Notify:FireClient(player, "📖 ¡Nueva especie en tu diario de campo! (J)")
+	end
+end
+
 function DataService:Init()
 	MatchService.onMatchEnded(onMatchEnded)
+	MonkeyService.onKilled(onKilled)
 end
 
 function DataService:Start()

@@ -237,8 +237,19 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 }
 
--- El machete afilado usa el mismo modelo que el machete.
+-- El machete afilado usa el mismo modelo que el machete; la honda de liana, el de la honda.
 BUILDERS.SharpMachete = BUILDERS.Machete
+BUILDERS.LianaSling = BUILDERS.Honda
+BUILDERS.BigFangClub = BUILDERS.Club
+-- Fase 4: hacha y pico de hueso.
+local BONE = Color3.fromRGB(230, 220, 195)
+local BONE_DARK = Color3.fromRGB(190, 175, 145)
+BUILDERS.BoneAxe = function(tool)
+	return buildAxe(tool, BONE, BONE_DARK, Enum.Material.SmoothPlastic)
+end
+BUILDERS.BonePick = function(tool)
+	return buildPick(tool, BONE, BONE_DARK, Enum.Material.SmoothPlastic)
+end
 
 function WeaponTools.build(weaponId: string): Tool
 	local weapon = Weapons[weaponId]

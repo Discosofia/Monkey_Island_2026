@@ -191,6 +191,76 @@ local Recipes: { [string]: Recipe } = {
 		},
 		armorId = "BoneArmor",
 	},
+	-- Forja de piedra, nivel 3 (Fase 4): botín de las especies de categoría 2 y 3.
+	LianaSling = {
+		station = "Forge",
+		name = "Honda de liana",
+		icon = "🌱",
+		description = "Mejora la honda: 20 de daño y más alcance.",
+		order = 50,
+		cost = {
+			{ itemId = "Liana", amount = 3 },
+			{ itemId = "Leather", amount = 2 },
+			{ itemId = "Wood", amount = 4 },
+		},
+		weaponId = "LianaSling",
+		upgrades = "Honda",
+	},
+	BoneAxe = {
+		station = "Forge",
+		name = "Hacha de hueso",
+		icon = "🦴",
+		description = "Mejora el hacha de piedra: tala aún más rápido y da +3 madera.",
+		order = 51,
+		cost = {
+			{ itemId = "ThickBone", amount = 2 },
+			{ itemId = "Leather", amount = 1 },
+			{ itemId = "Wood", amount = 4 },
+		},
+		weaponId = "BoneAxe",
+		upgrades = "StoneAxe",
+	},
+	BonePick = {
+		station = "Forge",
+		name = "Pico de hueso",
+		icon = "⛏️",
+		description = "Mejora el pico de piedra: pica más rápido y da +2 piedra.",
+		order = 52,
+		cost = {
+			{ itemId = "ThickBone", amount = 2 },
+			{ itemId = "Leather", amount = 1 },
+			{ itemId = "Stone", amount = 6 },
+		},
+		weaponId = "BonePick",
+		upgrades = "StonePick",
+	},
+	BigFangClub = {
+		station = "Forge",
+		name = "Garrote de colmillo grande",
+		icon = "🔶",
+		description = "Mejora el garrote: 46 de daño.",
+		order = 53,
+		cost = {
+			{ itemId = "BigFang", amount = 2 },
+			{ itemId = "MandrillFang", amount = 1 },
+			{ itemId = "Wood", amount = 6 },
+		},
+		weaponId = "BigFangClub",
+		upgrades = "Club",
+	},
+	SilverArmor = {
+		station = "Forge",
+		name = "Armadura de plata",
+		icon = "⚪",
+		description = "Los monos te hacen un 55 % menos de daño. Sustituye a la anterior.",
+		order = 54,
+		cost = {
+			{ itemId = "SilverFur", amount = 2 },
+			{ itemId = "Leather", amount = 4 },
+			{ itemId = "ThickBone", amount = 2 },
+		},
+		armorId = "SilverArmor",
+	},
 }
 
 return Recipes

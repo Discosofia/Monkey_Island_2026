@@ -96,6 +96,11 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	if attacker then
 		model:SetAttribute("LastAttackerUserId", attacker.UserId)
 	end
+	-- Intimidado por el rugido de un mandril (Fase 4): hace menos daño.
+	local intimidatedUntil = if attacker then attacker:GetAttribute("IntimidatedUntil") else nil
+	if typeof(intimidatedUntil) == "number" and Workspace:GetServerTimeNow() < intimidatedUntil then
+		amount = math.max(1, math.round(amount * Config.Combat.IntimidatedDamageMultiplier))
+	end
 	local markedUntil = model:GetAttribute("MarkedUntil")
 	local markBonus = model:GetAttribute("MarkBonus")
 	if

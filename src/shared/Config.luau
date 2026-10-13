@@ -68,6 +68,8 @@ local Config = {
 		-- Tiempo de invulnerabilidad al esquivar.
 		DodgeInvulnerableSeconds = 0.35,
 		DummyHealth = 100,
+		-- Daño que haces mientras te intimida un mandril (Fase 4).
+		IntimidatedDamageMultiplier = 0.7,
 		DummyRespawnSeconds = 3,
 	},
 
@@ -93,6 +95,14 @@ local Config = {
 		HowlReinforcementCount = 2,
 		-- Segundos que tarda en desvanecerse un mono derrotado.
 		CorpseSeconds = 1.5,
+		-- Fase 4: radio alrededor de la guarida de su bioma donde aparecen las especies de bioma,
+		-- límite de monos a la vez en el servidor (rendimiento) y alfas de las tropas.
+		BiomeRadius = 220,
+		MaxActive = 160,
+		AlphaHealthMultiplier = 2.5,
+		AlphaDamageMultiplier = 1.5,
+		PounceCooldownSeconds = 6,
+		RoarCooldownSeconds = 15,
 		-- Miedo al fuego: distancia a una antorcha u hoguera a la que las especies miedosas se apartan.
 		FireFearRadius = 10,
 		-- Los grupos con bajas recuperan un mono cada GroupRegrowSeconds mientras su especie esté
@@ -196,8 +206,16 @@ local Config = {
 		ExtraPerDay = 2,
 		ExtraPerPlayer = 1,
 		MaxWaveSize = 30,
-		-- Especie de las oleadas (ver Shared/Data/Monkeys).
-		Species = "AulladorRojo",
+		-- Especies de las oleadas por día de partida (ver Shared/Data/Monkeys): cada grupo elige al azar
+		-- entre las ya desbloqueadas.
+		SpeciesByDay = {
+			{ day = 1, species = "AulladorRojo" },
+			{ day = 3, species = "Macaco" },
+			{ day = 5, species = "Babuino" },
+			{ day = 7, species = "Gorila" },
+		},
+		-- Hasta dónde busca estacas un macaco del asedio.
+		TrapSearchRadius = 30,
 		-- Distancia más allá del perímetro a la que aparecen, frente a los portones.
 		SpawnDistance = 45,
 		-- A qué distancia busca jugadores un mono del asedio y a qué distancia ataca una pieza.

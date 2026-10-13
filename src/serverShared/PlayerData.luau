@@ -30,6 +30,7 @@ export type Profile = {
 	pets: { [string]: number },
 	selectedRole: string,
 	tutorialDone: boolean,
+	bestiary: { [string]: number }, -- monos derrotados por especie (diario de campo, Fase 4)
 }
 
 type Session = {
@@ -56,6 +57,7 @@ local function defaultProfile(): Profile
 		pets = {},
 		selectedRole = "Recolector",
 		tutorialDone = false,
+		bestiary = {},
 	}
 end
 
@@ -103,6 +105,7 @@ local function publish(player: Player, profile: Profile)
 			upgrades = profile.upgrades,
 			matches = profile.matches,
 			tutorialDone = profile.tutorialDone,
+			bestiary = profile.bestiary,
 		})
 	)
 end

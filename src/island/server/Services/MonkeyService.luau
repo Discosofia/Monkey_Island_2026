@@ -9,6 +9,8 @@
 -- Los monos sin jugadores cerca "duermen" para ahorrar rendimiento.
 -- Fase 2.4: los capuchinos roban en vez de morder y huyen con lo robado (se recupera al derrotarlos).
 -- Las especies con "fearsFire" se apartan de antorchas y hogueras.
+-- Fase 4: zonas por bioma, alfas (si mueren, la tropa huye), saltos, rugidos, piedras, agarres,
+-- golpes en área y un límite de monos activos (Config.Monkeys.MaxActive).
 -- Fase 2.5: los grupos de asedio (SiegeService) van hacia un portón y luego al centro del Basecamp;
 -- atacan las piezas que les cierran el paso y a los jugadores, también dentro del Basecamp.
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
@@ -60,6 +62,7 @@ type Group = {
 	nextRegrowAt: number, -- os.clock() a partir del cual puede recuperar un mono
 	siege: boolean?, -- grupo del asedio nocturno
 	gate: Vector3?, -- portón por el que entra el grupo de asedio
+	alpha: Monkey?, -- líder de la tropa (especies con "alpha")
 }
 
 type Monkey = {
@@ -78,13 +81,19 @@ type Monkey = {
 	stolen: { itemId: string, amount: number }?,
 	scaredUntil: number,
 	passedGate: boolean,
+	pounceReadyAt: number,
+	pounced: boolean, -- el siguiente golpe hace el doble
+	roarReadyAt: number,
+	throwReadyAt: number,
+	stompReadyAt: number,
 }
 
-type PlayerInfo = { player: Player, position: Vector3, safe: boolean }
+type PlayerInfo = { player: Player, position: Vector3, safe: boolean, hasTorch: boolean }
 
 local MonkeyService = {}
 
 local monkeys: { [Model]: Monkey } = {}
+local killListeners: { (player: Player, speciesId: string) -> () } = {}
 local groups: { Group } = {}
 local rng = Random.new()
 local folder: Folder? = nil
@@ -99,8 +108,9 @@ local function monkeyFolder(): Folder
 	return folder :: Folder
 end
 
--- Suelo de selva bajo un punto, o nil si ahí hay agua, playa, roca, un árbol…
-local function findGround(position: Vector3): Vector3?
+-- Suelo bajo un punto, o nil si ahí hay agua, un árbol, el Basecamp… "materials" dice qué terreno
+-- vale (nil = cualquiera menos agua y lava).
+local function findGround(position: Vector3, materials: { [Enum.Material]: boolean }?): Vector3?
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { monkeyFolder() }
@@ -108,7 +118,11 @@ local function findGround(position: Vector3): Vector3?
 	if not result then
 		return nil
 	end
-	local onTerrain = result.Instance == Workspace.Terrain and SPAWN_MATERIALS[result.Material] == true
+	local material = result.Material
+	local allowed = if materials
+		then materials[material] == true
+		else material ~= Enum.Material.Water and material ~= Enum.Material.CrackedLava
+	local onTerrain = result.Instance == Workspace.Terrain and allowed
 	-- En un place de pruebas sin terreno, vale la Baseplate.
 	local onBaseplate = result.Instance.Name == "Baseplate"
 	if not (onTerrain or onBaseplate) or BasecampService.isInside(result.Position) then
@@ -117,15 +131,44 @@ local function findGround(position: Vector3): Vector3?
 	return result.Position
 end
 
-local function randomHome(): Vector3?
+local BEACH_MATERIALS = { [Enum.Material.Sand] = true }
+
+-- Guarida de un bioma (MapBuilder la crea en GuaridasJefes), o nil si el mapa no la tiene.
+local function biomeAnchor(zone: string): Vector3?
+	local marker = Workspace:FindFirstChild(`Guarida_{zone}`, true)
+	return if marker and marker:IsA("BasePart") then marker.Position else nil
+end
+
+-- Busca dónde poner un grupo según la zona de su especie (ver Data/Monkeys).
+local function randomHome(definition: Monkeys.MonkeyDefinition): Vector3?
 	local center = BasecampService.getCenter()
-	for _ = 1, 60 do
+	local zone = definition.zone or "Selva"
+	local origin = center
+	local minDistance = Config.Monkeys.SpawnMinDistance
+	local maxDistance = Config.Monkeys.SpawnMaxDistance
+	local materials: { [Enum.Material]: boolean }? = SPAWN_MATERIALS
+	if zone == "Playa" then
+		minDistance, maxDistance, materials =
+			Config.Monkeys.SpawnMaxDistance * 0.6, Config.Monkeys.SpawnMaxDistance * 1.4, BEACH_MATERIALS
+	elseif zone == "Basecamp" then
+		minDistance, maxDistance = Config.Monkeys.SpawnMinDistance - 20, Config.Monkeys.SpawnMinDistance + 110
+	elseif zone ~= "Selva" then
+		local anchor = biomeAnchor(zone)
+		if anchor then
+			origin, minDistance, maxDistance, materials = anchor, 20, Config.Monkeys.BiomeRadius, nil
+		end
+	end
+	for _ = 1, 80 do
 		local angle = rng:NextNumber(0, 2 * math.pi)
-		local distance = rng:NextNumber(Config.Monkeys.SpawnMinDistance, Config.Monkeys.SpawnMaxDistance)
-		local ground = findGround(center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * distance)
+		local distance = rng:NextNumber(minDistance, maxDistance)
+		local ground = findGround(origin + Vector3.new(math.cos(angle), 0, math.sin(angle)) * distance, materials)
 		if ground then
 			return ground
 		end
+	end
+	-- Sin sitio en su zona (mapa de pruebas): cualquier selva.
+	if zone ~= "Selva" then
+		return randomHome(Monkeys.MonoArdilla)
 	end
 	return nil
 end
@@ -185,9 +228,22 @@ local function onDied(monkey: Monkey)
 	local group = monkey.group
 	group.nextRegrowAt = math.max(group.nextRegrowAt, os.clock() + Config.Monkeys.GroupRegrowSeconds)
 
+	-- Sin su alfa, la tropa huye.
+	if group.alpha == monkey then
+		group.alpha = nil
+		for _, member in group.members do
+			member.state = "Flee"
+			member.target = nil
+			showBubble(member, "😱")
+		end
+	end
+
 	local killerId = monkey.model:GetAttribute("LastAttackerUserId")
 	local killer = if typeof(killerId) == "number" then Players:GetPlayerByUserId(killerId) else nil
 	if killer then
+		for _, listener in killListeners do
+			task.spawn(listener, killer, monkey.model:GetAttribute("MonkeyType") :: string)
+		end
 		MatchStats.add(killer, MatchStats.KILLS)
 		giveLoot(killer, monkey.definition)
 		local stolen = monkey.stolen
@@ -210,12 +266,49 @@ local function onDied(monkey: Monkey)
 end
 
 local onHurt: (monkey: Monkey, health: number) -> ()
+local bite: (monkey: Monkey, player: Player) -> ()
+local pounce: (monkey: Monkey, target: Vector3, now: number) -> ()
+local roar: (monkey: Monkey, infos: { PlayerInfo }, now: number) -> ()
+local throwStone: (monkey: Monkey, info: PlayerInfo, now: number) -> ()
+local stomp: (monkey: Monkey, infos: { PlayerInfo }, now: number) -> ()
+
+local function activeCount(): number
+	local count = 0
+	for _ in monkeys do
+		count += 1
+	end
+	return count
+end
+
+-- El alfa: más vida y daño, y una corona sobre la cabeza.
+local function makeAlpha(monkey: Monkey)
+	monkey.group.alpha = monkey
+	monkey.humanoid.MaxHealth *= Config.Monkeys.AlphaHealthMultiplier
+	monkey.humanoid.Health = monkey.humanoid.MaxHealth
+	monkey.damage = math.round(monkey.damage * Config.Monkeys.AlphaDamageMultiplier)
+	monkey.model:SetAttribute("Alpha", true)
+	monkey.humanoid.DisplayName = `{monkey.definition.name} alfa`
+	local head = monkey.model:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		local crown = Instance.new("BillboardGui")
+		crown.Size = UDim2.fromOffset(40, 40)
+		crown.StudsOffset = Vector3.new(0, 2.6, 0)
+		crown.MaxDistance = 90
+		crown.Parent = head
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Text = "👑"
+		label.TextScaled = true
+		label.Parent = crown
+	end
+end
 
 local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	local definition = Monkeys[group.speciesId]
 	local offset = Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-8, 8))
-	local ground = findGround(near + offset) or findGround(near)
-	if not ground then
+	local ground = findGround(near + offset, nil) or findGround(near, nil)
+	if not ground or (not group.siege and activeCount() >= Config.Monkeys.MaxActive) then
 		return nil
 	end
 
@@ -251,9 +344,17 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		stolen = nil,
 		scaredUntil = 0,
 		passedGate = false,
+		pounceReadyAt = 0,
+		pounced = false,
+		roarReadyAt = 0,
+		throwReadyAt = 0,
+		stompReadyAt = 0,
 	}
 	monkeys[model] = monkey
 	table.insert(group.members, monkey)
+	if definition.alpha and not group.alpha then
+		makeAlpha(monkey)
+	end
 	humanoid.Died:Connect(function()
 		onDied(monkey)
 	end)
@@ -282,7 +383,7 @@ end
 local function createGroups()
 	for speciesId, definition in Monkeys do
 		for _ = 1, definition.groups do
-			local home = randomHome()
+			local home = randomHome(definition)
 			if home then
 				table.insert(groups, {
 					speciesId = speciesId,
@@ -388,10 +489,12 @@ local function collectPlayers(): { PlayerInfo }
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		-- Los caídos y los Espíritus no cuentan: los monos los dejan en paz.
 		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and LifeState.isAlive(player) then
+			local tool = character and character:FindFirstChildOfClass("Tool")
 			table.insert(infos, {
 				player = player,
 				position = root.Position,
 				safe = player:GetAttribute("InBasecamp") == true,
+				hasTorch = tool ~= nil and tool:GetAttribute("WeaponId") == "Torch",
 			})
 		end
 	end
@@ -407,13 +510,14 @@ local function findInfo(infos: { PlayerInfo }, player: Player): PlayerInfo?
 	return nil
 end
 
--- Jugador vulnerable (fuera del Basecamp) más cercano dentro de "range".
-local function nearestTarget(infos: { PlayerInfo }, position: Vector3, range: number): PlayerInfo?
+-- Jugador vulnerable (fuera del Basecamp) más cercano dentro de "range". "skipTorch": ignora a
+-- quien lleva una antorcha en la mano (marteja).
+local function nearestTarget(infos: { PlayerInfo }, position: Vector3, range: number, skipTorch: boolean?): PlayerInfo?
 	local best: PlayerInfo? = nil
 	local bestDistance = range
 	for _, info in infos do
 		local distance = (info.position - position).Magnitude
-		if not info.safe and distance <= bestDistance then
+		if not info.safe and distance <= bestDistance and not (skipTorch and info.hasTorch) then
 			best = info
 			bestDistance = distance
 		end
@@ -436,8 +540,9 @@ end
 -- Roba una cantidad de un material al azar de los que lleva el jugador y huye con él.
 local function steal(monkey: Monkey, player: Player)
 	local candidates = {}
-	for itemId in Items do
-		if Inventory.count(player, itemId) > 0 then
+	local foodOnly = monkey.definition.thiefFoodOnly == true
+	for itemId, item in Items do
+		if Inventory.count(player, itemId) > 0 and (not foodOnly or item.food ~= nil) then
 			table.insert(candidates, itemId)
 		end
 	end
@@ -458,6 +563,97 @@ local function steal(monkey: Monkey, player: Player)
 		player,
 		`🐒 ¡Un capuchino te ha robado {amount} {item.icon} {item.name}! Atrápalo para recuperarlo`
 	)
+end
+
+-- Mordisco normal. Tras un salto pega el doble; el orangután además inmoviliza.
+function bite(monkey: Monkey, player: Player)
+	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
+	monkey.pounced = false
+	local landed = CombatService.damagePlayer(player, damage)
+	local grab = monkey.definition.grab
+	if landed and grab then
+		player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + grab)
+		Remotes.Notify:FireClient(player, `🦧 ¡El {monkey.definition.name} te ha agarrado!`)
+	end
+end
+
+-- Salto hacia la presa (marimonda, gibón).
+function pounce(monkey: Monkey, target: Vector3, now: number)
+	local offset = (target - monkey.root.Position) * Vector3.new(1, 0, 1)
+	if offset.Magnitude < 0.1 then
+		return
+	end
+	monkey.pounceReadyAt = now + Config.Monkeys.PounceCooldownSeconds
+	monkey.pounced = true
+	monkey.root.AssemblyLinearVelocity = offset.Unit * 55 + Vector3.new(0, 35, 0)
+	showBubble(monkey, "¡IIIH!")
+end
+
+-- Rugido del mandril: quien lo oye hace menos daño un rato.
+function roar(monkey: Monkey, infos: { PlayerInfo }, now: number)
+	local settings = monkey.definition.roar
+	if not settings then
+		return
+	end
+	monkey.roarReadyAt = now + Config.Monkeys.RoarCooldownSeconds
+	showBubble(monkey, "¡GRRRAAH!")
+	for _, info in infos do
+		if (info.position - monkey.root.Position).Magnitude <= settings.radius then
+			info.player:SetAttribute("IntimidatedUntil", Workspace:GetServerTimeNow() + settings.seconds)
+			Remotes.Notify:FireClient(info.player, "😰 El rugido te intimida: haces menos daño unos segundos")
+		end
+	end
+end
+
+-- Piedra lanzada (chimpancé): vuela hasta donde estaba el jugador y daña si sigue cerca.
+function throwStone(monkey: Monkey, info: PlayerInfo, now: number)
+	local settings = monkey.definition.throws
+	if not settings then
+		return
+	end
+	monkey.throwReadyAt = now + settings.cooldownSeconds
+	local origin = monkey.root.Position + Vector3.new(0, 2, 0)
+	local target = info.position
+	local stone = Instance.new("Part")
+	stone.Name = "MonkeyStone"
+	stone.Shape = Enum.PartType.Ball
+	stone.Size = Vector3.one * 0.9
+	stone.Color = Color3.fromRGB(120, 115, 110)
+	stone.Anchored = true
+	stone.CanCollide = false
+	stone.CanQuery = false
+	stone.CanTouch = false
+	stone.Position = origin
+	stone.Parent = Workspace
+	local seconds = (target - origin).Magnitude / 70
+	TweenService:Create(stone, TweenInfo.new(seconds, Enum.EasingStyle.Linear), { Position = target }):Play()
+	Debris:AddItem(stone, seconds + 0.05)
+	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
+	task.delay(seconds, function()
+		local character = info.player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if root and root:IsA("BasePart") and (root.Position - target).Magnitude <= 5 then
+			CombatService.damagePlayer(info.player, damage)
+		end
+	end)
+end
+
+-- Golpe en el pecho del gorila: daña y aturde a todos los que estén cerca.
+function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
+	local settings = monkey.definition.stomp
+	if not settings then
+		return
+	end
+	monkey.stompReadyAt = now + settings.cooldownSeconds
+	showBubble(monkey, "💥 ¡PUM!")
+	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
+	for _, info in infos do
+		if not info.safe and (info.position - monkey.root.Position).Magnitude <= settings.radius then
+			if CombatService.damagePlayer(info.player, damage) then
+				info.player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + settings.stunSeconds)
+			end
+		end
+	end
 end
 
 -- Antorchas en la mano de los jugadores y antorchas de pie construidas.
@@ -533,11 +729,16 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 
 	if monkey.state == "Idle" then
 		-- Un ladrón con botín ya no busca pelea.
-		local found = if monkey.stolen then nil else nearestTarget(infos, position, definition.aggroRange)
+		local found = if monkey.stolen
+			then nil
+			else nearestTarget(infos, position, definition.aggroRange, definition.ignoresTorchBearers)
 		if found and (found.position - monkey.group.home).Magnitude <= definition.leashRange then
 			chase(monkey, found.player)
 			if definition.howl and not monkey.howled then
 				howl(monkey, found.player)
+			end
+			if definition.roar and now >= monkey.roarReadyAt then
+				roar(monkey, infos, now)
 			end
 			return
 		end
@@ -555,12 +756,16 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 			or info.safe
 			or tooFarFromHome
 			or (info.position - position).Magnitude > definition.aggroRange * 2
+			or (definition.ignoresTorchBearers and info.hasTorch)
 		then
 			monkey.state = "Return"
 			monkey.target = nil
 			return
 		end
 		local distance = (info.position - position).Magnitude
+		if definition.stomp and distance <= definition.stomp.radius * 0.6 and now >= monkey.stompReadyAt then
+			stomp(monkey, infos, now)
+		end
 		if distance <= definition.attackRange then
 			humanoid:MoveTo(position)
 			if now - monkey.lastAttackAt >= definition.attackCooldownSeconds then
@@ -568,12 +773,17 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 				if definition.thief then
 					steal(monkey, info.player)
 				else
-					CombatService.damagePlayer(info.player, monkey.damage)
+					bite(monkey, info.player)
 				end
 			end
 		else
 			humanoid:MoveTo(info.position)
 			unstick(monkey, now)
+			if definition.pounce and distance >= 8 and distance <= 18 and now >= monkey.pounceReadyAt then
+				pounce(monkey, info.position, now)
+			elseif definition.throws and distance <= definition.throws.range and now >= monkey.throwReadyAt then
+				throwStone(monkey, info, now)
+			end
 		end
 	elseif monkey.state == "Flee" then
 		local threat = nearestTarget(infos, position, definition.aggroRange * 1.5)
@@ -654,6 +864,35 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		return
 	end
 
+	-- Los que desarman trampas (macaco) van primero a por las estacas cercanas.
+	if definition.disarmsTraps then
+		local spikes: Model? = nil
+		local best = Config.Siege.TrapSearchRadius
+		for _, model in BuildingService.getStructures():GetChildren() do
+			if model:IsA("Model") and model:GetAttribute("BuildableId") == "Spikes" then
+				local distance = (model:GetPivot().Position - position).Magnitude
+				if distance < best then
+					spikes = model
+					best = distance
+				end
+			end
+		end
+		if spikes then
+			if best <= Config.Siege.StructureReach then
+				humanoid:MoveTo(position)
+				if canAttack then
+					monkey.lastAttackAt = now
+					BuildingService.damageStructure(spikes, monkey.damage * Config.Siege.StructureDamageMultiplier * 2)
+					showBubble(monkey, "🔧")
+				end
+			else
+				humanoid:MoveTo(spikes:GetPivot().Position)
+				unstick(monkey, now)
+			end
+			return
+		end
+	end
+
 	local structure = nearestStructure(position, Config.Siege.StructureReach)
 	if structure then
 		humanoid:MoveTo(position)
@@ -699,6 +938,11 @@ function MonkeyService.endSiege()
 			table.remove(groups, index)
 		end
 	end
+end
+
+-- Llama a "callback" cada vez que un jugador derrota a un mono (para el diario de campo).
+function MonkeyService.onKilled(callback: (player: Player, speciesId: string) -> ())
+	table.insert(killListeners, callback)
 end
 
 -- Monos del asedio que siguen vivos.

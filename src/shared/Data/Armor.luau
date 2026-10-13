@@ -23,6 +23,13 @@ local Armor: { [string]: ArmorDefinition } = {
 		color = Color3.fromRGB(225, 215, 190),
 		material = Enum.Material.Slate,
 	},
+	-- Fase 4 (forja de piedra, con pelaje plateado de gorila).
+	SilverArmor = {
+		name = "Armadura de plata",
+		damageReduction = 0.55,
+		color = Color3.fromRGB(200, 205, 215),
+		material = Enum.Material.Fabric,
+	},
 }
 
 return Armor

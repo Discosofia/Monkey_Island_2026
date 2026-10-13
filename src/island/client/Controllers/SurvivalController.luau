@@ -93,6 +93,11 @@ local function updateSprint(player: Player, deltaTime: number)
 		end
 	end
 	local speed = if sprinting then Config.Survival.SprintSpeed else Config.Survival.WalkSpeed
+	-- Aturdido o agarrado (gorila, orangután; Fase 4): no se puede mover.
+	local stunnedUntil = player:GetAttribute("StunnedUntil")
+	if typeof(stunnedUntil) == "number" and Workspace:GetServerTimeNow() < stunnedUntil then
+		speed = 0
+	end
 	if humanoid.WalkSpeed ~= speed then
 		humanoid.WalkSpeed = speed
 	end

@@ -16,6 +16,7 @@ local Building = require(ReplicatedStorage.Shared.Building)
 local Buildables = require(ReplicatedStorage.Shared.Data.Buildables)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
@@ -51,6 +52,17 @@ local function waveSize(day: number): number
 	return math.min(size, settings.MaxWaveSize)
 end
 
+-- Especie al azar entre las desbloqueadas para este día (Config.Siege.SpeciesByDay).
+local function pickSpecies(day: number): string
+	local unlocked = {}
+	for _, entry in Config.Siege.SpeciesByDay do
+		if day >= entry.day then
+			table.insert(unlocked, entry.species)
+		end
+	end
+	return if #unlocked > 0 then unlocked[rng:NextInteger(1, #unlocked)] else "AulladorRojo"
+end
+
 local function gateDirection(index: number): Vector3
 	local angle = (index - 1) * math.pi / 2
 	return Vector3.new(math.cos(angle), 0, math.sin(angle))
@@ -72,7 +84,7 @@ local function launchWave(day: number, wave: number)
 		local gatePoint = flatCenter + direction * (Config.Building.PerimeterRadius - 10)
 		local spawnPoint = flatCenter + direction * (Config.Building.PerimeterRadius + Config.Siege.SpawnDistance)
 		local count = if index == 1 then total - (#gates - 1) * (total // #gates) else total // #gates
-		MonkeyService.spawnSiegeGroup(Config.Siege.Species, spawnPoint, gatePoint, count)
+		MonkeyService.spawnSiegeGroup(pickSpecies(day), spawnPoint, gatePoint, count)
 		table.insert(names, GATE_NAMES[gate])
 	end
 	announce(
@@ -128,7 +140,15 @@ local function tickSpikes()
 			local hit: { [Model]: boolean } = {}
 			for _, part in Workspace:GetPartBoundsInBox(model:GetPivot(), size, params) do
 				local enemy = part:FindFirstAncestorOfClass("Model")
-				if enemy and not hit[enemy] and CollectionService:HasTag(enemy, Config.Combat.EnemyTag) then
+				local speciesId = if enemy then enemy:GetAttribute("MonkeyType") else nil
+				local species = if typeof(speciesId) == "string" then Monkeys[speciesId] else nil
+				local immune = species ~= nil and species.disarmsTraps == true
+				if
+					enemy
+					and not hit[enemy]
+					and not immune
+					and CollectionService:HasTag(enemy, Config.Combat.EnemyTag)
+				then
 					local humanoid = enemy:FindFirstChildOfClass("Humanoid")
 					if humanoid and humanoid.Health > 0 then
 						hit[enemy] = true

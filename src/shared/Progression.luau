@@ -4,7 +4,7 @@
 --
 -- El servidor publica en el Player:
 --   "Amber", "BestDays", "SelectedRole" y "Progress" (JSON con roleXp, talents, upgrades, matches,
---   tutorialDone). En la Isla, además, "Role" y "Perk_<nombre>" (RoleService).
+--   tutorialDone y bestiary). En la Isla, además, "Role" y "Perk_<nombre>" (RoleService).
 
 local HttpService = game:GetService("HttpService")
 
@@ -19,6 +19,7 @@ export type ProgressData = {
 	upgrades: { [string]: number },
 	matches: number,
 	tutorialDone: boolean,
+	bestiary: { [string]: number },
 }
 
 local Progression = {}
@@ -99,6 +100,7 @@ function Progression.read(player: Player): ProgressData
 		upgrades = if typeof(data.upgrades) == "table" then data.upgrades else {},
 		matches = if typeof(data.matches) == "number" then data.matches else 0,
 		tutorialDone = data.tutorialDone == true,
+		bestiary = if typeof(data.bestiary) == "table" then data.bestiary else {},
 	}
 end
 

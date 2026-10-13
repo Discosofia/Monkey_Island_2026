@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
@@ -22,7 +23,7 @@ local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
-local TABS = { "Rol", "Talentos", "Tienda", "Grupo" }
+local TABS = { "Rol", "Talentos", "Tienda", "Grupo", "Diario" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -167,7 +168,7 @@ function LobbyUIController:Start()
 	for index, name in TABS do
 		local button = Instance.new("TextButton")
 		button.LayoutOrder = index
-		button.Size = UDim2.new(0.25, -5, 1, 0)
+		button.Size = UDim2.new(1 / #TABS, -5, 1, 0)
 		button.Text = name
 		button.Font = Enum.Font.BuilderSansBold
 		button.TextScaled = true
@@ -310,6 +311,8 @@ function LobbyUIController:Start()
 			renderTalents(data)
 		elseif currentTab == "Tienda" then
 			renderShop(data)
+		elseif currentTab == "Diario" then
+			Journal.fill(list, data.bestiary)
 		else
 			renderParty()
 		end

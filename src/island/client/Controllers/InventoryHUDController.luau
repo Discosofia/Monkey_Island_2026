@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local ACTION = "ToggleMaterials"
@@ -124,6 +125,8 @@ function InventoryHUDController:Start()
 		row.LayoutOrder = item.order
 		row.Size = UDim2.new(1, 0, 0, ROW_HEIGHT)
 		row.TextXAlignment = Enum.TextXAlignment.Left
+		-- Color según la rareza (Fase 4).
+		row.TextColor3 = Rarities[item.rarity or "Common"].color
 
 		local shown = Inventory.count(player, itemId)
 		local function refresh()
