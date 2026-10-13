@@ -2,7 +2,7 @@
 -- Pantalla del jugador caído o Espíritu (GDD §6.2):
 --   - Aviso en el centro con la cuenta atrás o las instrucciones.
 --   - Oculta su propio aviso "Reanimar" (es para sus aliados).
---   - Como Espíritu, marca enemigos y recursos: F en PC, X en mando o el botón táctil "Marcar".
+--   - Como Espíritu, marca enemigos: F en PC, X en mando o el botón táctil "Marcar".
 --   - Desactiva "Reiniciar personaje" del menú de Roblox, que permitiría saltarse estos estados.
 
 local ContextActionService = game:GetService("ContextActionService")

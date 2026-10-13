@@ -43,7 +43,7 @@ local Recipes: { [string]: Recipe } = {
 	StoneAxe = {
 		name = "Hacha de piedra",
 		icon = "⚒️",
-		description = "Mejora el hacha de madera: tala el doble de rápido y da +1 madera.",
+		description = "Mejora el hacha de madera: tala el doble de rápido y da +2 madera por árbol.",
 		order = 3,
 		cost = { { itemId = "Wood", amount = 4 }, { itemId = "Stone", amount = 3 }, { itemId = "Fiber", amount = 2 } },
 		weaponId = "StoneAxe",

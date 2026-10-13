@@ -74,7 +74,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		cooldownSeconds = 0.7,
 		range = 8,
 		swingAnimationSpeed = 2,
-		tool = { kind = "Axe", power = 2, bonus = 1 },
+		tool = { kind = "Axe", power = 2, bonus = 2 },
 	},
 	StonePick = {
 		name = "Pico de piedra",

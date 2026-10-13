@@ -16,6 +16,7 @@ export type NodeDefinition = {
 	holdSeconds: number?, -- tiempo que hay que mantener pulsado (sin herramienta)
 	uses: number, -- recolecciones antes de agotarse
 	respawnSeconds: number, -- tiempo hasta que reaparece tras agotarse
+	falls: boolean?, -- al agotarse cae hacia el lado contrario al jugador (árboles)
 }
 
 local ResourceNodes: { [string]: NodeDefinition } = {
@@ -23,11 +24,13 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		name = "Árbol",
 		actionText = "Talar",
 		itemId = "Wood",
-		amount = 3,
+		-- Un árbol se tala de una vez: todos los golpes llenan una barra y cae.
+		amount = 6,
 		tool = "Axe",
-		toughness = 4,
-		uses = 3,
+		toughness = 8,
+		uses = 1,
 		respawnSeconds = 120,
+		falls = true,
 	},
 	Rock = {
 		name = "Roca",

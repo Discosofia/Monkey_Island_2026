@@ -10,6 +10,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -24,6 +25,10 @@ local DISTANCE_TOLERANCE = 4
 -- Nodos de prueba alrededor del Basecamp si el mapa no tiene ninguno.
 local TEST_NODE_TYPES =
 	{ "Tree", "Rock", "Bush", "Tree", "Bush", "Tree", "Rock", "Bush", "Tree", "Rock", "Bush", "Tree" }
+
+-- Caída de un árbol talado: duración y ángulo final.
+local FALL_SECONDS = 1.2
+local FALL_DEGREES = 85
 
 -- Los golpes deben venir de delante del jugador (coseno del ángulo máximo, unos 70°).
 local FACING_DOT = 0.35
@@ -67,13 +72,18 @@ local function anchorPartOf(instance: Instance): BasePart?
 	return instance:FindFirstChildWhichIsA("BasePart", true)
 end
 
--- Oculta o muestra un nodo agotado. La primera vez guarda cómo era cada pieza para restaurarla.
+-- Guarda cómo era la pieza la primera vez, para poder restaurarla al reaparecer.
+local function remember(part: BasePart)
+	if part:GetAttribute("OriginalTransparency") == nil then
+		part:SetAttribute("OriginalTransparency", part.Transparency)
+		part:SetAttribute("OriginalCanCollide", part.CanCollide)
+	end
+end
+
+-- Oculta o muestra un nodo agotado.
 local function setVisible(instance: Instance, visible: boolean)
 	for _, part in partsOf(instance) do
-		if part:GetAttribute("OriginalTransparency") == nil then
-			part:SetAttribute("OriginalTransparency", part.Transparency)
-			part:SetAttribute("OriginalCanCollide", part.CanCollide)
-		end
+		remember(part)
 		if visible then
 			part.Transparency = part:GetAttribute("OriginalTransparency") :: number
 			part.CanCollide = part:GetAttribute("OriginalCanCollide") :: boolean
@@ -109,6 +119,42 @@ local function canHarvest(state: NodeState, player: Player): boolean
 	return true
 end
 
+-- El árbol cae girando sobre su base, hacia el lado contrario a "awayFrom", y luego desaparece.
+-- Al terminar vuelve (invisible) a su sitio para reaparecer de pie.
+local function fall(model: Model, awayFrom: Vector3, onDone: () -> ())
+	local pivot = model:GetPivot()
+	local boxCFrame, boxSize = model:GetBoundingBox()
+	local ground = Vector3.new(pivot.Position.X, boxCFrame.Position.Y - boxSize.Y / 2, pivot.Position.Z)
+	local direction = (pivot.Position - awayFrom) * Vector3.new(1, 0, 1)
+	if direction.Magnitude < 0.1 then
+		direction = Vector3.xAxis
+	end
+	-- Girar alrededor de (arriba × dirección) inclina la copa hacia "direction".
+	local axis = Vector3.yAxis:Cross(direction.Unit)
+
+	for _, part in partsOf(model) do
+		remember(part)
+		part.CanCollide = false
+	end
+	local angle = Instance.new("NumberValue")
+	angle.Changed:Connect(function(degrees: number)
+		local rotation = CFrame.fromAxisAngle(axis, math.rad(degrees))
+		model:PivotTo(CFrame.new(ground) * rotation * CFrame.new(-ground) * pivot)
+	end)
+	local tween = TweenService:Create(
+		angle,
+		TweenInfo.new(FALL_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Value = FALL_DEGREES }
+	)
+	tween.Completed:Connect(function()
+		task.wait(0.4)
+		angle:Destroy()
+		onDone()
+		model:PivotTo(pivot)
+	end)
+	tween:Play()
+end
+
 -- Da el material y, si el punto se agota, lo oculta hasta que reaparece.
 local function collect(state: NodeState, player: Player, amount: number)
 	InventoryService.add(player, state.definition.itemId, amount)
@@ -124,7 +170,15 @@ local function collect(state: NodeState, player: Player, amount: number)
 	if state.progressBar then
 		state.progressBar.Parent = nil
 	end
-	setVisible(state.instance, false)
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	if state.definition.falls and state.instance:IsA("Model") and root and root:IsA("BasePart") then
+		fall(state.instance, root.Position, function()
+			setVisible(state.instance, false)
+		end)
+	else
+		setVisible(state.instance, false)
+	end
 	task.delay(state.definition.respawnSeconds, function()
 		state.usesLeft = state.definition.uses
 		setVisible(state.instance, true)

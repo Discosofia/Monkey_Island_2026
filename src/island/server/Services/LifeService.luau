@@ -4,7 +4,7 @@
 --   - Un golpe mortal no mata: el jugador queda Caído (se arrastra, no ataca ni recolecta).
 --   - Un aliado lo reanima manteniendo pulsado su aviso "Reanimar".
 --   - Si nadie llega a tiempo, deja una mochila con parte de sus materiales y pasa a Espíritu:
---     no recibe daño y puede marcar enemigos y recursos.
+--     no recibe daño y puede marcar enemigos para sus aliados.
 --   - El Espíritu reaparece en el Basecamp tras un tiempo que crece con cada caída del día
 --     (Config.Life.SpiritSeconds…), o al amanecer si llega antes.
 
@@ -292,7 +292,7 @@ local function onDawn()
 	end
 end
 
--- Marca de Espíritu: resalta para todos el enemigo o recurso al que apunta.
+-- Marca de Espíritu: resalta para todos el enemigo al que apunta (nada más: ni árboles ni rocas).
 local function onSpiritMark(player: Player, aim: any)
 	if LifeState.get(player) ~= "Spirit" or typeof(aim) ~= "Vector3" or aim.Magnitude < 0.5 then
 		return
@@ -316,14 +316,13 @@ local function onSpiritMark(player: Player, aim: any)
 		return
 	end
 
-	-- Sube por los modelos hasta encontrar un enemigo o un punto de recolección.
+	-- Sube por los modelos hasta encontrar un enemigo.
 	local model = result.Instance:FindFirstAncestorOfClass("Model")
 	while model do
-		local isEnemy = CollectionService:HasTag(model, Config.Combat.EnemyTag)
-		if isEnemy or model:GetAttribute("ResourceNode") ~= nil then
+		if CollectionService:HasTag(model, Config.Combat.EnemyTag) then
 			local highlight = Instance.new("Highlight")
 			highlight.FillTransparency = 1
-			highlight.OutlineColor = if isEnemy then Color3.fromRGB(255, 80, 60) else Color3.fromRGB(255, 220, 80)
+			highlight.OutlineColor = Color3.fromRGB(255, 80, 60)
 			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 			highlight.Parent = model
 			Debris:AddItem(highlight, Config.Life.SpiritMarkSeconds)

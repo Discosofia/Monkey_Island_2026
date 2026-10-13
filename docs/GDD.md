@@ -64,7 +64,7 @@ flowchart TD
   B --> P["Partida: ciclo día/noche"]
   P --> C{"¿Caído?"}
   C -->|"Un aliado te reanima"| P
-  C -->|"Se agota el tiempo"| E["Espíritu: marca enemigos y recursos"]
+  C -->|"Se agota el tiempo"| E["Espíritu: marca enemigos"]
   E -->|"Amanecer"| B
   P --> R{"¿Fin?"}
   R -->|"Todos caídos a la vez"| D["Derrota del servidor"]
@@ -168,7 +168,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 ### 6.2 Muerte: caído y Espíritu
 
 1. **Caído (60 s):** te arrastras lento. Cualquier aliado puede reanimarte; el médico lo hace mucho más rápido.
-2. **Espíritu:** si se acaba el tiempo, dejas una **mochila** con parte de tu inventario en el sitio donde caíste (se puede recuperar). Como Espíritu puedes moverte y **marcar enemigos y recursos** para tu equipo, así que sigues aportando.
+2. **Espíritu:** si se acaba el tiempo, dejas una **mochila** con parte de tu inventario en el sitio donde caíste (se puede recuperar). Como Espíritu puedes moverte y **marcar enemigos** para tu equipo, así que sigues aportando.
 3. **Reaparición:** vuelves al Basecamp tras **45 s** como Espíritu. Cada caída del mismo día suma 30 s más (máximo 3 min) y al amanecer reaparecen todos. Así morir pronto no te deja sin jugar, pero caer una y otra vez sí cuesta.
 
 ### 6.3 Roles
