@@ -32,6 +32,7 @@ local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
 local TICK_SECONDS = 0.2
@@ -55,6 +56,16 @@ type ActiveBoss = {
 	nextSpecialAt: number,
 	lastAttackAt: number,
 	contributors: { [Player]: boolean },
+}
+
+-- Animación de cada ataque especial (Data/MonkeyAnimations).
+local SPECIAL_ANIMATIONS: { [string]: MonkeyAnimator.Action } = {
+	stomp = "Stomp",
+	summon = "Howl",
+	rockRain = "Throw",
+	charge = "Pounce",
+	grab = "Attack",
+	extinguish = "Roar",
 }
 
 local BossService = {}
@@ -157,6 +168,7 @@ local function onBossDied(boss: ActiveBoss)
 		end
 	end
 	announce(`🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`)
+	MonkeyAnimator.die(boss.model)
 	boss.root.Anchored = true
 	for _, part in boss.model:GetDescendants() do
 		if part:IsA("BasePart") and part.Transparency < 1 then
@@ -197,6 +209,7 @@ function BossService.spawn(bossId: string)
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	root:SetNetworkOwner(nil)
 	CollectionService:AddTag(model, Config.Combat.EnemyTag)
+	MonkeyAnimator.attach(model)
 
 	local now = os.clock()
 	local boss: ActiveBoss = {
@@ -228,10 +241,12 @@ function BossService.spawn(bossId: string)
 		if health > 0 and health < lastHealth and clock - lastGruntAt > 1.2 then
 			lastGruntAt = clock
 			Sfx.play("BossHurt", root)
+			MonkeyAnimator.play(model, "Hurt")
 		end
 		lastHealth = health
 	end)
 	Sfx.play("BossRoar", root)
+	MonkeyAnimator.play(model, "Roar")
 	announce(`👑 ¡{definition.name} ha despertado en {BIOME_NAMES[definition.biome] or definition.biome}!`)
 	publish()
 end
@@ -368,6 +383,7 @@ local function updatePhase(boss: ActiveBoss)
 	boss.damage = math.round(boss.definition.damage * (1 + 0.2 * (phase - 1)))
 	bubble(boss, "😡")
 	Sfx.play("BossRoar", boss.root)
+	MonkeyAnimator.play(boss.model, "Roar")
 	announce(`😡 ¡{boss.definition.name} se enfurece! (fase {phase}/3)`)
 	for _, listener in phaseListeners do
 		task.spawn(listener, boss.id, phase)
@@ -393,6 +409,10 @@ local function tick(now: number)
 			if special.fromPhase <= boss.phase and now >= (boss.cooldowns[special.id] or 0) then
 				boss.cooldowns[special.id] = now + special.cooldownSeconds
 				boss.nextSpecialAt = now + 3
+				local animation = SPECIAL_ANIMATIONS[special.id]
+				if animation then
+					MonkeyAnimator.play(boss.model, animation)
+				end
 				SPECIALS[special.id](boss, special, target, targetRoot)
 				break
 			end
@@ -404,6 +424,7 @@ local function tick(now: number)
 		boss.humanoid:MoveTo(boss.root.Position)
 		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then
 			boss.lastAttackAt = now
+			MonkeyAnimator.play(boss.model, "Attack")
 			CombatService.damagePlayer(target, boss.damage)
 		end
 	else
