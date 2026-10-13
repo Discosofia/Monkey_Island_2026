@@ -78,6 +78,8 @@ local Config = {
 		HowlReinforcementCount = 2,
 		-- Segundos que tarda en desvanecerse un mono derrotado.
 		CorpseSeconds = 1.5,
+		-- Miedo al fuego: distancia a una antorcha u hoguera a la que las especies miedosas se apartan.
+		FireFearRadius = 10,
 		-- Los grupos con bajas recuperan un mono cada GroupRegrowSeconds mientras su especie esté
 		-- activa, siempre que no haya jugadores a menos de RegrowMinPlayerDistance de su zona.
 		GroupRegrowSeconds = 45,

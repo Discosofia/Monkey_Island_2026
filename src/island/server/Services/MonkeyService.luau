@@ -7,6 +7,8 @@
 --   Flee   → huye cuando le queda poca vida (si su especie huye).
 --   Return → vuelve a su zona si el jugador escapa, entra al Basecamp o se aleja demasiado.
 -- Los monos sin jugadores cerca "duermen" para ahorrar rendimiento.
+-- Fase 2.4: los capuchinos roban en vez de morder y huyen con lo robado (se recupera al derrotarlos).
+-- Las especies con "fearsFire" se apartan de antorchas y hogueras.
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
 -- Además, un grupo con bajas recupera un mono cada cierto tiempo si no hay jugadores cerca de su
 -- zona (Config.Monkeys.GroupRegrowSeconds): la selva nunca se queda vacía.
@@ -25,6 +27,8 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Building = require(ReplicatedStorage.Shared.Building)
+local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local BasecampService = require(script.Parent.BasecampService)
 local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
@@ -64,6 +68,8 @@ type Monkey = {
 	nextWanderAt: number,
 	howled: boolean,
 	stuckSince: number?,
+	stolen: { itemId: string, amount: number }?,
+	scaredUntil: number,
 }
 
 type PlayerInfo = { player: Player, position: Vector3, safe: boolean }
@@ -175,6 +181,12 @@ local function onDied(monkey: Monkey)
 	local killer = if typeof(killerId) == "number" then Players:GetPlayerByUserId(killerId) else nil
 	if killer then
 		giveLoot(killer, monkey.definition)
+		local stolen = monkey.stolen
+		if stolen then
+			InventoryService.add(killer, stolen.itemId, stolen.amount)
+			local item = Items[stolen.itemId]
+			Remotes.Notify:FireClient(killer, `Recuperas lo robado: {stolen.amount} {item.icon} {item.name}`)
+		end
 	end
 
 	-- El cuerpo se queda quieto y se desvanece.
@@ -218,6 +230,8 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		nextWanderAt = 0,
 		howled = false,
 		stuckSince = nil,
+		stolen = nil,
+		scaredUntil = 0,
 	}
 	monkeys[model] = monkey
 	table.insert(group.members, monkey)
@@ -400,7 +414,71 @@ local function unstick(monkey: Monkey, now: number)
 	end
 end
 
-local function think(monkey: Monkey, infos: { PlayerInfo }, now: number)
+-- Roba una cantidad de un material al azar de los que lleva el jugador y huye con él.
+local function steal(monkey: Monkey, player: Player)
+	local candidates = {}
+	for itemId in Items do
+		if Inventory.count(player, itemId) > 0 then
+			table.insert(candidates, itemId)
+		end
+	end
+	if #candidates == 0 then
+		return
+	end
+	local itemId = candidates[rng:NextInteger(1, #candidates)]
+	local amount = math.min(Inventory.count(player, itemId), monkey.definition.thief or 1)
+	if not InventoryService.remove(player, itemId, amount) then
+		return
+	end
+	monkey.stolen = { itemId = itemId, amount = amount }
+	monkey.state = "Flee"
+	monkey.target = nil
+	local item = Items[itemId]
+	showBubble(monkey, `{item.icon} ¡JE JE!`)
+	Remotes.Notify:FireClient(
+		player,
+		`🐒 ¡Un capuchino te ha robado {amount} {item.icon} {item.name}! Atrápalo para recuperarlo`
+	)
+end
+
+-- Antorchas en la mano de los jugadores y antorchas de pie construidas.
+local function collectFires(): { Vector3 }
+	local fires = {}
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local tool = if character then character:FindFirstChildOfClass("Tool") else nil
+		if tool and tool:GetAttribute("WeaponId") == "Torch" and character then
+			table.insert(fires, character:GetPivot().Position)
+		end
+	end
+	local structures = Workspace:FindFirstChild(Building.STRUCTURES_FOLDER)
+	for _, model in if structures then structures:GetChildren() else {} do
+		if model:IsA("Model") and model:GetAttribute("BuildableId") == "StandingTorch" then
+			table.insert(fires, model:GetPivot().Position)
+		end
+	end
+	return fires
+end
+
+-- Si hay fuego cerca, se aparta de él. Devuelve true si este turno lo dedica a apartarse.
+local function avoidFire(monkey: Monkey, fires: { Vector3 }, now: number): boolean
+	local position = monkey.root.Position
+	for _, fire in fires do
+		local away = (position - fire) * Vector3.new(1, 0, 1)
+		if away.Magnitude <= Config.Monkeys.FireFearRadius then
+			if now >= monkey.scaredUntil then
+				showBubble(monkey, "🔥 ¡IIH!")
+			end
+			monkey.scaredUntil = now + 1.5
+			local direction = if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis
+			monkey.humanoid:MoveTo(position + direction * 16)
+			return true
+		end
+	end
+	return now < monkey.scaredUntil
+end
+
+local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, now: number)
 	local definition = monkey.definition
 	local position = monkey.root.Position
 	local humanoid = monkey.humanoid
@@ -423,6 +501,10 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		monkey.target = nil
 	end
 
+	if definition.fearsFire and avoidFire(monkey, fires, now) then
+		return
+	end
+
 	-- Con poca vida, huye si hay un jugador cerca (solo las especies que huyen).
 	local fleeFraction = definition.fleeHealthFraction
 	local wounded = fleeFraction ~= nil and humanoid.Health < humanoid.MaxHealth * fleeFraction
@@ -431,7 +513,8 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 
 	if monkey.state == "Idle" then
-		local found = nearestTarget(infos, position, definition.aggroRange)
+		-- Un ladrón con botín ya no busca pelea.
+		local found = if monkey.stolen then nil else nearestTarget(infos, position, definition.aggroRange)
 		if found and (found.position - monkey.group.home).Magnitude <= definition.leashRange then
 			chase(monkey, found.player)
 			if definition.howl and not monkey.howled then
@@ -463,7 +546,11 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			humanoid:MoveTo(position)
 			if now - monkey.lastAttackAt >= definition.attackCooldownSeconds then
 				monkey.lastAttackAt = now
-				CombatService.damagePlayer(info.player, definition.damage)
+				if definition.thief then
+					steal(monkey, info.player)
+				else
+					CombatService.damagePlayer(info.player, definition.damage)
+				end
 			end
 		else
 			humanoid:MoveTo(info.position)
@@ -547,10 +634,11 @@ function MonkeyService:Start()
 		end
 		elapsed = 0
 		local infos = collectPlayers()
+		local fires = collectFires()
 		local now = os.clock()
 		for _, monkey in monkeys do
 			if monkey.humanoid.Health > 0 then
-				think(monkey, infos, now)
+				think(monkey, infos, fires, now)
 			end
 		end
 	end)

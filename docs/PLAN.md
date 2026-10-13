@@ -191,7 +191,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 | **2.1** | Hambre, sed y estamina; correr; comer; cocinar en la hoguera; beber en el río | ✅ Código listo, falta tu prueba |
 | **2.2** | Construcción por cuadrícula con martillo: núcleo compartido + 20 parcelas; muros, antorcha de pie y cama | ✅ Código listo, falta tu prueba |
 | **2.3** | Estaciones construibles: taller del curandero (ungüento, vendas, antídoto) y forja de piedra (machete afilado, lanza, garrote, armadura de hueso) | ✅ Código listo, falta tu prueba |
-| **2.4** | Monos ladrones (capuchinos) y miedo al fuego | Pendiente |
+| **2.4** | Capuchino ladrón (roba y huye; se recupera al derrotarlo) y miedo al fuego (antorchas) | ✅ Código listo, falta tu prueba |
 | **2.5** | Asedio nocturno v1: oleadas, muros, trampas y antorchas | Pendiente |
 | **2.6** | Fiebre del mono v1 y antídoto | Pendiente |
 | **2.7** | Dificultad por día y derrota del servidor con pantalla de resultados | Pendiente |
@@ -200,7 +200,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 - [x] Hambre, sed y estamina; cocinar en la hoguera; agua del río *(2.1)*
 - [x] Construcción por cuadrícula (táctil y PC) con **núcleo compartido + parcelas personales** y permisos *(2.2)*
 - [x] Estaciones: hoguera, taller del curandero, forja de piedra *(2.1 y 2.3)*
-- [ ] Monos ladrones (capuchinos) y miedo al fuego
+- [x] Monos ladrones (capuchinos) y miedo al fuego *(2.4)*
 - [ ] Asedio nocturno v1: oleadas hacia el Basecamp, muros, trampas y antorchas
 - [ ] Fiebre del mono v1 (mordiscos → fiebre; antídoto básico)
 - [ ] Escalado de dificultad por día
