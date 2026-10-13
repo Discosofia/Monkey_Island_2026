@@ -173,6 +173,8 @@ local function onBossDied(boss: ActiveBoss)
 	for _, part in boss.model:GetDescendants() do
 		if part:IsA("BasePart") and part.Transparency < 1 then
 			TweenService:Create(part, TweenInfo.new(2), { Transparency = 1 }):Play()
+		elseif part:IsA("ParticleEmitter") or part:IsA("Light") then
+			part.Enabled = false
 		end
 	end
 	Debris:AddItem(boss.model, 2.2)
@@ -201,7 +203,7 @@ function BossService.spawn(bossId: string)
 	look.faceColor = definition.faceColor
 	look.maxHealth = math.round(definition.maxHealth * healthMultiplier())
 	look.walkSpeed = definition.walkSpeed
-	local model = MonkeyModels.build(definition.baseSpecies, look, groundBelow(lair))
+	local model = MonkeyModels.build(definition.baseSpecies, look, groundBelow(lair), bossId)
 	model.Name = definition.name
 	model:SetAttribute("Boss", bossId)
 	model.Parent = Workspace

@@ -20,9 +20,11 @@ Girar una articulación en **X** la balancea adelante/atrás, en **Y** la gira a
 
 ### Modelos por especie
 
-Cada especie puede tener su propio modelo (constructores `BUILDERS` en `MonkeyModels.luau`); las que no tienen uno usan el **genérico** (cuerpo encorvado y erguido). Hoy tiene modelo propio:
+Cada especie tiene su propio modelo (constructores `BUILDERS` en `MonkeyModels.luau`); solo una especie nueva sin constructor usaría el **genérico** (cuerpo encorvado y erguido).
 
-- `MonoArdilla`: Saimiri a cuatro patas (los brazos son las patas delanteras).
+- **A cuatro patas, con cola** (los brazos son las patas delanteras): `MonoArdilla`, `AulladorRojo`, `CapuchinoLadron`, `Marimonda`, `Titi`, `Marteja`, `Mandril` (cola cortita), `Macaco`, `Babuino` y `ColaLarga`.
+- **Simios sin cola** apoyados en los nudillos: `Gorila`, `Chimpance` y `Orangutan`. Las animaciones que mueven `Tail` simplemente no les afectan. Los jefes usan estos modelos con sus colores y sus detalles propios (`BOSS_EXTRAS`: musgo, plumas y pinturas, cristales, grietas de lava).
+- **Gibón**: simio sin cola que anda **erguido** con los brazos en alto.
 
 Todos los modelos tienen las mismas piezas animables, así que una animación sirve para todos. Si una especie necesita una distinta (p. ej. un andar a cuatro patas solo para ella), ponla en `Overrides` con el id de esa especie.
 
@@ -35,7 +37,7 @@ Todos los modelos tienen las mismas piezas animables, así que una animación si
 local Monkeys = require(game.ReplicatedStorage.Shared.Data.Monkeys); local MonkeyModels = require(game.ServerScriptService.Server.Monkeys.MonkeyModels); local especie = "AulladorRojo"; local look = table.clone(Monkeys[especie]); look.scale = 1; local cam = workspace.CurrentCamera.CFrame; local rig = MonkeyModels.build(especie, look, cam.Position + cam.LookVector * 15 - Vector3.new(0, 2, 0)); rig.Name = "RigMono"; rig.PrimaryPart.Anchored = true; rig.Parent = workspace; game.Selection:Set({ rig })
 ```
 
-Aparece `RigMono` delante de la cámara, ya seleccionado y a **escala 1** (anima siempre con esta escala). Con `"AulladorRojo"` sale el modelo **genérico**; para animar sobre otro modelo, cambia el nombre de la especie al principio de la línea (p. ej. `"MonoArdilla"`). Si no lo ves, búscalo en el Explorador y pulsa **F**; si no está, mira los errores en la ventana **Salida**.
+Aparece `RigMono` delante de la cámara, ya seleccionado y a **escala 1** (anima siempre con esta escala). Para animar sobre otro modelo, cambia el nombre de la especie al principio de la línea (p. ej. `"MonoArdilla"`, `"Gorila"` o `"Gibon"`). Conviene revisar cada animación nueva en un mono a cuatro patas, en un simio y en el gibón. Si no lo ves, búscalo en el Explorador y pulsa **F**; si no está, mira los errores en la ventana **Salida**.
 
 ## Paso 2: abrir el editor
 
@@ -76,7 +78,7 @@ Reglas generales:
 - El golpe suena **en cuanto empieza** la animación, así que el momento fuerte (zarpazo, lanzamiento, golpe) debe llegar pronto: 0.15–0.25 s.
 - Bucle **solo** en `Idle`, `Walk` y `Run`.
 - **El `Torso` mueve el mono entero**: todo cuelga de él. Si lo inclinas, **compensa las piernas** con el giro contrario (Torso X 10° → cada pierna X −10°) para que los pies sigan en el suelo. En `Death` no hace falta: ahí se cae entero.
-- "Brazo adelante" en el modelo genérico es levantar el brazo; en el mono ardilla es adelantar la pata delantera. La misma animación sirve para los dos.
+- "Brazo adelante" en un mono a cuatro patas es adelantar la pata delantera; en el gibón, con los brazos en alto, es echarlos hacia delante. La misma animación sirve para todos.
 
 | Acción | Duración | Bucle | Poses (momento → pose) | Quién la usa |
 | --- | --- | --- | --- | --- |
