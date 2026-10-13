@@ -19,6 +19,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local InventoryService = require(script.Parent.InventoryService)
@@ -79,8 +80,10 @@ local function tick(player: Player)
 		return
 	end
 	local minutes = TICK_SECONDS / 60
-	local hunger = Survival.get(player, Survival.HUNGER) - Config.Survival.HungerPerMinute * minutes
-	local thirst = Survival.get(player, Survival.THIRST) - Config.Survival.ThirstPerMinute * minutes
+	-- "Estómago de hierro" (tienda) hace que bajen más despacio.
+	local rate = Progression.perk(player, "HungerRate")
+	local hunger = Survival.get(player, Survival.HUNGER) - Config.Survival.HungerPerMinute * minutes * rate
+	local thirst = Survival.get(player, Survival.THIRST) - Config.Survival.ThirstPerMinute * minutes * rate
 	setStat(player, Survival.HUNGER, hunger)
 	setStat(player, Survival.THIRST, thirst)
 	warnLow(player, Survival.HUNGER, hunger, "🍖 Tienes hambre: come algo (C o el botón Comer)")

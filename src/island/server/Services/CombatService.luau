@@ -15,6 +15,7 @@ local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
@@ -90,9 +91,19 @@ local function showHit(model: Model, amount: number)
 end
 
 -- Daña a un enemigo. "attacker" queda apuntado para repartir el botín si lo derrota.
+-- Los monos marcados por un cazador (Fase 3) reciben daño extra mientras dura la marca.
 function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, attacker: Player?)
 	if attacker then
 		model:SetAttribute("LastAttackerUserId", attacker.UserId)
+	end
+	local markedUntil = model:GetAttribute("MarkedUntil")
+	local markBonus = model:GetAttribute("MarkBonus")
+	if
+		typeof(markedUntil) == "number"
+		and Workspace:GetServerTimeNow() < markedUntil
+		and typeof(markBonus) == "number"
+	then
+		amount = math.round(amount * (1 + markBonus))
 	end
 	humanoid:TakeDamage(amount)
 	showHit(model, amount)
@@ -234,7 +245,9 @@ local function rangedAttack(
 		task.delay(travelSeconds, function()
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
-				CombatService.damage(hitModel, humanoid, weapon.damage, player)
+				-- "+daño a distancia" del cazador y sus talentos.
+				local damage = math.round(weapon.damage * Progression.perk(player, "RangedDamage"))
+				CombatService.damage(hitModel, humanoid, damage, player)
 			end
 		end)
 	end

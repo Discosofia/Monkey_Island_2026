@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 
 local Stamina = {}
@@ -30,9 +31,9 @@ function Stamina.tryConsume(amount: number): boolean
 	return true
 end
 
--- Gasto continuo (correr): baja hasta 0 como mucho.
+-- Gasto continuo (correr): baja hasta 0 como mucho. Las mejoras y talentos lo abaratan.
 function Stamina.drain(amount: number)
-	current = math.max(0, current - amount)
+	current = math.max(0, current - amount * Progression.perk(Players.LocalPlayer, "SprintCost"))
 	lastSpentAt = os.clock()
 end
 

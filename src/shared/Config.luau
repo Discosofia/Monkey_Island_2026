@@ -239,6 +239,14 @@ local Config = {
 		RoleXpPerKill = 2,
 	},
 
+	Abilities = {
+		-- Habilidades de los roles (Fase 3; tiempos de espera en Shared/Data/Roles).
+		AreaHealAmount = 30,
+		AreaHealRadius = 18,
+		MarkRadius = 70,
+		FrenzySeconds = 20,
+	},
+
 	Party = {
 		-- Grupos del Lobby (Fase 3): tamaño máximo y segundos que vale una invitación.
 		MaxSize = 6,

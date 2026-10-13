@@ -99,6 +99,14 @@ local function everyoneDown(): boolean
 end
 
 function MatchService:Start()
+	-- Quien entre en una partida ya terminada vuelve al Lobby.
+	Players.PlayerAdded:Connect(function(player)
+		if ended then
+			Remotes.Notify:FireClient(player, "Esta partida ha terminado: volviendo al Lobby")
+			task.wait(3)
+			Teleporter.send({ player }, Config.PlaceIds.Lobby, "el Lobby")
+		end
+	end)
 	local downSince: number? = nil
 	while not ended do
 		task.wait(1)

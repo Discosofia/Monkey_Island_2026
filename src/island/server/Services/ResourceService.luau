@@ -15,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
@@ -114,7 +115,9 @@ local function canHarvest(state: NodeState, player: Player): boolean
 	-- Evita recolectar más rápido de lo que permite mantener pulsado (clientes modificados).
 	local now = os.clock()
 	local last = lastHarvestAt[player]
-	if last and now - last < (state.definition.holdSeconds or 0) * 0.8 then
+	-- El recolector mantiene menos tiempo (su cliente acorta el aviso): se respeta aquí.
+	local holdSeconds = (state.definition.holdSeconds or 0) * Progression.perk(player, "HarvestSpeed")
+	if last and now - last < holdSeconds * 0.8 then
 		return false
 	end
 	lastHarvestAt[player] = now
@@ -163,6 +166,8 @@ local rng = Random.new()
 -- Da el material (y a veces un extra, como plátanos de los arbustos) y, si el punto se agota,
 -- lo oculta hasta que reaparece.
 local function collect(state: NodeState, player: Player, amount: number)
+	-- Material extra del recolector y sus talentos.
+	amount += math.floor(Progression.perk(player, "HarvestBonus"))
 	InventoryService.add(player, state.definition.itemId, amount)
 	local extra = state.definition.extra
 	if extra and rng:NextNumber() < extra.chance then
@@ -280,7 +285,13 @@ function ResourceService.strike(player: Player, root: BasePart, tool: Weapons.To
 	end
 
 	state.lastStrikeAt = os.clock()
-	state.progress += tool.power
+	-- Potencia extra por talentos; "Recolección frenética" (recolector) la duplica.
+	local power = tool.power + Progression.perk(player, "ToolPower")
+	local frenzyUntil = player:GetAttribute("FrenzyUntil")
+	if typeof(frenzyUntil) == "number" and Workspace:GetServerTimeNow() < frenzyUntil then
+		power *= 2
+	end
+	state.progress += power
 	local toughness = state.definition.toughness or 1
 	if state.progress >= toughness then
 		state.progress -= toughness

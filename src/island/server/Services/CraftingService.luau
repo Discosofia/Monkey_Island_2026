@@ -22,6 +22,7 @@ local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
@@ -370,7 +371,7 @@ local function onUseHeal(player: Player)
 		Remotes.Notify:FireClient(player, "No tienes con qué curarte: vendas o ungüentos")
 		return
 	end
-	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + heal)
+	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + heal * Progression.perk(player, "HealPower"))
 end
 
 function CraftingService:Start()

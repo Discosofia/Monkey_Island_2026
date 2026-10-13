@@ -213,12 +213,19 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 
 ### Fase 3: Lobby, roles y progresión (3–4 semanas)
 
-- [ ] Lobby: zona social, selector de rol, tienda de mejoras (Ámbar) y vitrina de mascotas
-- [ ] Roles v1: pasiva + habilidad activa de médico, cazador y recolector
-- [ ] Árbol de talentos v1 (3–5 talentos por rol)
-- [ ] Matchmaking: entrar con amigos al mismo servidor y unirse a partidas en curso con hueco
-- [ ] Recompensas al terminar la partida
-- [ ] **Tutorial de los primeros 5 minutos.** Es clave para retener jugadores en Roblox.
+| Entrega | Contenido | Estado |
+|---|---|---|
+| **3.1** | Lobby: cabecera con Ámbar y récord; pestañas Rol, Talentos, Tienda y Grupo | ✅ Código listo, falta tu prueba |
+| **3.2** | Roles en la Isla: ventajas pasivas y habilidad activa (G / R1 / "Habilidad") | ✅ Código listo, falta tu prueba |
+| **3.3** | Talentos (3 por rol, hasta 3 rangos) y tienda de mejoras con Ámbar | ✅ Código listo, falta tu prueba |
+| **3.4** | Grupos de amigos que viajan juntos; partidas en curso; recompensas y tutorial | ✅ Código listo, falta tu prueba |
+
+- [x] Lobby: selector de rol y tienda de mejoras (Ámbar) *(la zona social 3D y la vitrina de mascotas llegan con las mascotas, Fase 5)*
+- [x] Roles v1: pasiva + habilidad activa de médico, cazador y recolector
+- [x] Árbol de talentos v1 (3 talentos por rol)
+- [x] Matchmaking: grupos con amigos al mismo servidor; Roblox mete a los jugadores sueltos en partidas en curso con hueco (y quien entra en una partida terminada vuelve al Lobby)
+- [x] Recompensas al terminar la partida: Ámbar y XP del rol (2.7 y 2.8)
+- [x] **Tutorial de los primeros minutos** (5 pasos, se puede saltar, solo la primera vez)
 
 **Criterio de salida:** ciclo completo Lobby → Isla → resultados → Lobby, con progreso guardado.
 
@@ -308,5 +315,5 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** prueba de salida de la Fase 1: jugar unos 30 min con 4–6 amigos y anotar qué fue divertido y qué no.
-2. **Claude:** ajustar lo que salga de esa prueba y empezar la Fase 2 (hambre, sed y estamina; construcción en el Basecamp).
+1. **Tú:** probar las Fases 2 y 3 (lista de pruebas en el mensaje de entrega) con 2–6 amigos en el juego publicado.
+2. **Claude:** Fase 4 (bestiario, especies, tropas, rarezas y optimización).
