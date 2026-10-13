@@ -19,6 +19,7 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
 local DayNightService = require(script.Parent.DayNightService)
@@ -180,6 +181,7 @@ local function becomeSpirit(player: Player)
 	if not (character and humanoid and root) then
 		return
 	end
+	MatchStats.add(player, MatchStats.DEATHS)
 	dropBackpack(player, root.Position - Vector3.new(0, 2, 0))
 	clearVisuals(character)
 	restoreMovement(humanoid)
@@ -215,6 +217,7 @@ local function revive(player: Player, rescuer: Player)
 	restoreMovement(humanoid)
 	humanoid.Health = math.max(1, humanoid.MaxHealth * Config.Life.ReviveHealthFraction)
 	setState(player, "Alive")
+	MatchStats.add(rescuer, MatchStats.REVIVES)
 	Remotes.Notify:FireClient(player, `💚 {rescuer.DisplayName} te ha reanimado`)
 	Remotes.Notify:FireClient(rescuer, `💚 Has reanimado a {player.DisplayName}`)
 end

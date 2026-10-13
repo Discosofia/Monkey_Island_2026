@@ -24,6 +24,14 @@ local Config = {
 		BossRotation = { "OrangutanDelManglar", "ChimpanceCaudillo", "GorilaAlbino", "GorilaDeCeniza" },
 		-- Primer día en que se puede encender la baliza de rescate (GDD §5.3).
 		BeaconUnlockDay = 8,
+		-- Derrota (Fase 2.7): de noche, si todos los jugadores están caídos o son Espíritus durante
+		-- estos segundos seguidos. Después se ven los resultados y todos vuelven al Lobby.
+		DefeatGraceSeconds = 10,
+		ResultsSeconds = 30,
+		-- Ámbar (moneda, GDD §13) que gana cada jugador al terminar la partida.
+		AmberPerDay = 10,
+		AmberPerKill = 2,
+		AmberPerRevive = 5,
 	},
 
 	Basecamp = {
@@ -61,6 +69,13 @@ local Config = {
 		DodgeInvulnerableSeconds = 0.35,
 		DummyHealth = 100,
 		DummyRespawnSeconds = 3,
+	},
+
+	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
+	Difficulty = {
+		HealthPerDay = 0.12, -- +12 % de vida por cada día pasado
+		DamagePerDay = 0.08, -- +8 % de daño por cada día pasado
+		MaxMultiplier = 2.5,
 	},
 
 	Monkeys = {

@@ -27,6 +27,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Building = require(ReplicatedStorage.Shared.Building)
@@ -73,6 +74,7 @@ type Monkey = {
 	nextWanderAt: number,
 	howled: boolean,
 	stuckSince: number?,
+	damage: number, -- daño ya ajustado a la dificultad del día
 	stolen: { itemId: string, amount: number }?,
 	scaredUntil: number,
 	passedGate: boolean,
@@ -186,6 +188,7 @@ local function onDied(monkey: Monkey)
 	local killerId = monkey.model:GetAttribute("LastAttackerUserId")
 	local killer = if typeof(killerId) == "number" then Players:GetPlayerByUserId(killerId) else nil
 	if killer then
+		MatchStats.add(killer, MatchStats.KILLS)
 		giveLoot(killer, monkey.definition)
 		local stolen = monkey.stolen
 		if stolen then
@@ -220,6 +223,14 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	model.Parent = monkeyFolder()
 	local root = model.PrimaryPart :: BasePart
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	-- Dificultad por día (Fase 2.7): más vida y más daño cuanto más avanza la partida.
+	local state = MatchState.read()
+	local daysPassed = if state then state.day - 1 else 0
+	local settings = Config.Difficulty
+	local healthMultiplier = math.min(1 + daysPassed * settings.HealthPerDay, settings.MaxMultiplier)
+	local damageMultiplier = math.min(1 + daysPassed * settings.DamagePerDay, settings.MaxMultiplier)
+	humanoid.MaxHealth = math.round(definition.maxHealth * healthMultiplier)
+	humanoid.Health = humanoid.MaxHealth
 	-- El servidor controla su física: los clientes no pueden moverlos.
 	root:SetNetworkOwner(nil)
 	CollectionService:AddTag(model, Config.Combat.EnemyTag)
@@ -236,6 +247,7 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		nextWanderAt = 0,
 		howled = false,
 		stuckSince = nil,
+		damage = math.round(definition.damage * damageMultiplier),
 		stolen = nil,
 		scaredUntil = 0,
 		passedGate = false,
@@ -556,7 +568,7 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 				if definition.thief then
 					steal(monkey, info.player)
 				else
-					CombatService.damagePlayer(info.player, definition.damage)
+					CombatService.damagePlayer(info.player, monkey.damage)
 				end
 			end
 		else
@@ -633,7 +645,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			humanoid:MoveTo(position)
 			if canAttack then
 				monkey.lastAttackAt = now
-				CombatService.damagePlayer(target.player, definition.damage, true)
+				CombatService.damagePlayer(target.player, monkey.damage, true)
 			end
 		else
 			humanoid:MoveTo(target.position)
@@ -647,7 +659,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		humanoid:MoveTo(position)
 		if canAttack then
 			monkey.lastAttackAt = now
-			BuildingService.damageStructure(structure, definition.damage * Config.Siege.StructureDamageMultiplier)
+			BuildingService.damageStructure(structure, monkey.damage * Config.Siege.StructureDamageMultiplier)
 			showBubble(monkey, "💥")
 		end
 		return

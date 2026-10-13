@@ -54,6 +54,8 @@ local Remotes = {
 	Build = remoteEvent("Build"),
 	-- Cliente -> servidor (Isla): derribar una pieza propia (el Model de la estructura).
 	Demolish = remoteEvent("Demolish"),
+	-- Servidor -> cliente (Isla): la partida ha terminado; lleva el resumen para la pantalla final.
+	MatchEnded = remoteEvent("MatchEnded"),
 }
 
 return Remotes

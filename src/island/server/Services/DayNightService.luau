@@ -14,7 +14,14 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DayNightService = {}
 
 local skipRequested = false
+local stopped = false
 local phaseListeners: { (day: number, phase: MatchState.Phase) -> () } = {}
+
+-- Detiene el ciclo (fin de la partida, MatchService). La fase actual se queda congelada.
+function DayNightService.stop()
+	stopped = true
+	skipRequested = true
+end
 
 -- Llama a "callback" al empezar cada fase (también la primera: día 1). Regístralo en Init.
 function DayNightService.onPhaseStarted(callback: (day: number, phase: MatchState.Phase) -> ())
@@ -64,7 +71,7 @@ function DayNightService:Start()
 
 	local day = 1
 	local phase: MatchState.Phase = "Day"
-	while true do
+	while not stopped do
 		local startedAt = Workspace:GetServerTimeNow()
 		local endsAt = startedAt + phaseLength(phase)
 		MatchState.write({
@@ -79,6 +86,9 @@ function DayNightService:Start()
 		end
 
 		waitForPhaseEnd(phase, endsAt)
+		if stopped then
+			break
+		end
 
 		if phase == "Day" then
 			phase = "Night"

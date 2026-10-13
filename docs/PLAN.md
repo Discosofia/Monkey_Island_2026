@@ -194,7 +194,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 | **2.4** | Capuchino ladrón (roba y huye; se recupera al derrotarlo) y miedo al fuego (antorchas) | ✅ Código listo, falta tu prueba |
 | **2.5** | Asedio nocturno v1: 3 oleadas por noche por los portones, rompen piezas, estacas como trampa, zona de perímetro | ✅ Código listo, falta tu prueba |
 | **2.6** | Fiebre del mono v1: mordiscos y carne cruda la suben, vista nublada, daño a 100, antídoto | ✅ Código listo, falta tu prueba |
-| **2.7** | Dificultad por día y derrota del servidor con pantalla de resultados | Pendiente |
+| **2.7** | Dificultad por día (vida y daño de los monos), derrota (todos caídos de noche), resultados y Ámbar | ✅ Código listo, falta tu prueba |
 | **2.8** | Guardado de datos (ProfileStore) | Pendiente |
 
 - [x] Hambre, sed y estamina; cocinar en la hoguera; agua del río *(2.1)*
@@ -203,8 +203,8 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 - [x] Monos ladrones (capuchinos) y miedo al fuego *(2.4)*
 - [x] Asedio nocturno v1: oleadas hacia el Basecamp, muros, trampas y antorchas *(2.5)*
 - [x] Fiebre del mono v1 (mordiscos → fiebre; antídoto básico) *(2.6)*
-- [ ] Escalado de dificultad por día
-- [ ] Derrota del servidor → pantalla de resultados
+- [x] Escalado de dificultad por día *(2.7)*
+- [x] Derrota del servidor → pantalla de resultados *(2.7)*
 - [ ] **Guardado de datos** con ProfileStore: moneda, récord de días y XP de rol
 
 **Criterio de salida:** una partida dura 3 o más días con tensión creciente y el progreso se guarda entre sesiones.
