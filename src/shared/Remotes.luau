@@ -82,6 +82,8 @@ local Remotes = {
 	EquipCosmetic = remoteEvent("EquipCosmetic"),
 	-- Cliente -> servidor (Isla): el tutorial se ha completado.
 	TutorialDone = remoteEvent("TutorialDone"),
+	-- Servidor -> clientes (Isla): la mascota de un jugador ataca a un mono (Player, Model).
+	PetAttack = remoteEvent("PetAttack"),
 }
 
 return Remotes

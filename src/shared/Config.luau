@@ -339,6 +339,9 @@ local Config = {
 		-- Cada cuánto actúan las mascotas de combate y curación, y su alcance de ataque.
 		TickSeconds = 2,
 		AttackRange = 25,
+		-- Segundos desde que la mascota sale hacia el mono hasta que le golpea (el daño llega entonces,
+		-- a la vez que el golpe que dibujan los clientes en UI/PetFollowers).
+		StrikeDelaySeconds = 0.35,
 	},
 
 	Abilities = {

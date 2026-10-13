@@ -1,6 +1,8 @@
 --!strict
 -- Ayuda de las mascotas en la Isla (Fase 5). Cada Config.Pets.TickSeconds:
---   - Combate: daña al mono más cercano a su dueño (dentro de Config.Pets.AttackRange).
+--   - Combate: ataca al mono más cercano a su dueño (dentro de Config.Pets.AttackRange). Avisa a los
+--     clientes (Remotes.PetAttack) para que la mascota salte sobre él y el daño llega al golpe
+--     (Config.Pets.StrikeDelaySeconds).
 --   - Curación: cura a su dueño.
 -- Las ventajas pasivas (apoyo, carga) las suma RoleService; el rastreo lo hace el cliente.
 
@@ -11,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatService = require(script.Parent.CombatService)
 
@@ -44,9 +47,15 @@ local function tick(player: Player)
 	end
 	if pet.attackDamage then
 		local enemy, enemyHumanoid = nearestEnemy(character:GetPivot().Position)
+		local damage = pet.attackDamage
 		if enemy and enemyHumanoid then
-			Sfx.play("PetAttack", enemy.PrimaryPart or enemy)
-			CombatService.damage(enemy, enemyHumanoid, pet.attackDamage, player)
+			Remotes.PetAttack:FireAllClients(player, enemy)
+			task.delay(Config.Pets.StrikeDelaySeconds, function()
+				if enemy.Parent and enemyHumanoid.Health > 0 then
+					Sfx.play("PetAttack", enemy.PrimaryPart or enemy)
+					CombatService.damage(enemy, enemyHumanoid, damage, player)
+				end
+			end)
 		end
 	end
 	if pet.healPerTick and humanoid.Health > 0 and humanoid.Health < humanoid.MaxHealth then
