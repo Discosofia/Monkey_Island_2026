@@ -87,7 +87,7 @@ local Config = {
 
 	Life = {
 		-- Segundos caído antes de pasar a Espíritu si nadie te reanima.
-		DownedSeconds = 60,
+		DownedSeconds = 30,
 		-- Tiempo como Espíritu antes de reaparecer en el Basecamp. Cada caída del mismo día suma
 		-- SpiritExtraSecondsPerDeath, hasta SpiritMaxSeconds. Al amanecer reaparecen todos.
 		SpiritSeconds = 45,
