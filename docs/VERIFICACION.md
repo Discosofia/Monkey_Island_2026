@@ -70,7 +70,7 @@ Marca cada casilla al comprobarla.
 ## 2.5 Asedio nocturno
 
 1. [ ] Con materiales (🛠️ **+50 de todo**), equipa el martillo y ve a uno de los **portones** de la empalizada.
-2. [ ] Pon **Estacas** justo en el hueco del portón.
+2. [ ] Pon **Estacas** justo en el hueco del portón. Son cuadros de 4×4 que pinchan hacia todos los lados: no hace falta girarlos. Ponlos en fila (encajan en la cuadrícula) para cubrir el hueco.
    ✅ Solo se pueden poner en el **perímetro**: entre las parcelas y la empalizada, incluidos los portones.
 3. [ ] Cierra el portón: lo más fácil es la **🚧 Barricada de portón**, que mide justo el hueco entre los postes. Céntrala en el hueco y gírala con **R** hasta que quede alineada con la empalizada.
    ✅ Se ve verde y, al colocarla, el portón queda cerrado del todo.

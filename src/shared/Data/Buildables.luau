@@ -82,11 +82,12 @@ local Buildables: { [string]: Buildable } = {
 	Spikes = {
 		name = "Estacas",
 		icon = "🔺",
-		description = "Trampa: hiere a los monos que la cruzan. Ponla en los portones.",
+		description = "Trampa de 4×4 con puntas hacia todos los lados: da igual por dónde lleguen los monos. "
+			.. "Encajan en la cuadrícula: ponlas en fila para cubrir un portón.",
 		order = 4.5,
-		size = Vector3.new(8, 2, 3),
-		cost = { { itemId = "Wood", amount = 8 }, { itemId = "Stone", amount = 2 } },
-		health = 160,
+		size = Vector3.new(4, 2, 4),
+		cost = { { itemId = "Wood", amount = 4 }, { itemId = "Stone", amount = 1 } },
+		health = 100,
 		zones = { Perimeter = true },
 	},
 	-- Estaciones (Fase 2.3): se construyen en el núcleo y las usa todo el equipo.

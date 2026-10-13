@@ -148,7 +148,8 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			Enum.Material.Fabric
 		)
 	end,
-	-- Base de tierra con estacas inclinadas hacia fuera. No bloquea el paso: los monos la cruzan.
+	-- Erizo de estacas: base de tierra y 3×3 estacas, la del centro recta y las demás inclinadas hacia
+	-- fuera, así pincha igual venga el mono de donde venga. No bloquea el paso: los monos la cruzan.
 	Spikes = function(model, size)
 		local bottom = -size.Y / 2
 		local base = newPart(
@@ -160,14 +161,20 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			Enum.Material.Ground
 		)
 		base.CanCollide = false
-		for i = 0, 4 do
-			for _, z in { -0.7, 0.7 } do
+		local spacing = size.X / 3
+		for _, gx in { -1, 0, 1 } do
+			for _, gz in { -1, 0, 1 } do
+				local tilt = CFrame.new()
+				if gx ~= 0 or gz ~= 0 then
+					-- Girar sobre (arriba × dirección) inclina la punta hacia fuera del centro.
+					local axis = Vector3.new(gz, 0, -gx).Unit
+					tilt = CFrame.fromAxisAngle(axis, math.rad(28))
+				end
 				local stake = newPart(
 					model,
 					"Stake",
 					Vector3.new(0.35, size.Y + 0.6, 0.35),
-					CFrame.new(-size.X / 2 + 0.8 + i * (size.X - 1.6) / 4, 0.2, z)
-						* CFrame.Angles(math.rad(if z > 0 then 25 else -25), 0, 0),
+					CFrame.new(gx * spacing, 0.2, gz * spacing) * tilt,
 					DARK_WOOD,
 					Enum.Material.Wood
 				)
