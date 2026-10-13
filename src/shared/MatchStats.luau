@@ -8,6 +8,9 @@ local MatchStats = {}
 MatchStats.KILLS = "Stat_Kills"
 MatchStats.REVIVES = "Stat_Revives"
 MatchStats.DEATHS = "Stat_Deaths"
+MatchStats.BOSSES = "Stat_Bosses" -- jefes en los que participó (Fase 5)
+MatchStats.BOUNTIES = "Stat_Bounties" -- recompensas por cabeza cobradas en PvP (Fase 5)
+MatchStats.EGGS = "Stat_Eggs" -- huevos rescatados (Fase 5)
 
 function MatchStats.get(player: Player, stat: string): number
 	local value = player:GetAttribute(stat)

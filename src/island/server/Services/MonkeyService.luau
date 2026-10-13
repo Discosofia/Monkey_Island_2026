@@ -940,6 +940,23 @@ function MonkeyService.endSiege()
 	end
 end
 
+-- Tropa que aparece en "position" y va a por "target" (refuerzos de un jefe, Fase 5).
+function MonkeyService.spawnAmbush(speciesId: string, position: Vector3, count: number, target: Player)
+	local group: Group = {
+		speciesId = speciesId,
+		home = position,
+		size = count,
+		temporary = true,
+		members = {},
+		nextRegrowAt = math.huge,
+	}
+	table.insert(groups, group)
+	fillGroup(group)
+	for _, monkey in group.members do
+		chase(monkey, target)
+	end
+end
+
 -- Llama a "callback" cada vez que un jugador derrota a un mono (para el diario de campo).
 function MonkeyService.onKilled(callback: (player: Player, speciesId: string) -> ())
 	table.insert(killListeners, callback)

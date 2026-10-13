@@ -1,0 +1,431 @@
+--!strict
+-- Jefes de bioma (GDD §8.2, Fase 5).
+--   - Uno cada Config.Match.BossIntervalDays días (días 2, 4, 6, 8…), en el orden de
+--     Config.Match.BossRotation. Aparece en la guarida de su bioma y se queda hasta que lo derrotan o
+--     llega el siguiente.
+--   - Tres fases (al 66 % y al 33 % de vida): más rápido, más fuerte y con más ataques especiales.
+--   - Al derrotarlo: una pieza de la baliza para el servidor (Shared/Beacon) y su botín especial para
+--     cada jugador que le hizo daño.
+--   - El HUD lee su estado de ReplicatedStorage ("BossName", "BossHealth", "BossMaxHealth",
+--     "BossPhase", "BossPosition").
+
+local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local Beacon = require(ReplicatedStorage.Shared.Beacon)
+local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
+local Config = require(ReplicatedStorage.Shared.Config)
+local Items = require(ReplicatedStorage.Shared.Data.Items)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
+local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local BasecampService = require(script.Parent.BasecampService)
+local CombatService = require(script.Parent.CombatService)
+local DayNightService = require(script.Parent.DayNightService)
+local InventoryService = require(script.Parent.InventoryService)
+local MonkeyService = require(script.Parent.MonkeyService)
+local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
+
+local TICK_SECONDS = 0.2
+local BIOME_NAMES: { [string]: string } = {
+	Rios = "los ríos",
+	Montanas = "las montañas",
+	Cuevas = "las cuevas",
+	Volcan = "el volcán",
+}
+
+type ActiveBoss = {
+	id: string,
+	definition: Bosses.Boss,
+	model: Model,
+	humanoid: Humanoid,
+	root: BasePart,
+	lair: Vector3,
+	phase: number,
+	damage: number,
+	cooldowns: { [string]: number },
+	nextSpecialAt: number,
+	lastAttackAt: number,
+	contributors: { [Player]: boolean },
+}
+
+local BossService = {}
+
+local current: ActiveBoss? = nil
+local rng = Random.new()
+local phaseListeners: { (bossId: string, phase: number) -> () } = {}
+
+-- Llama a "callback" cuando un jefe cambia de fase (WeatherService: erupción del Gorila de Ceniza).
+function BossService.onPhaseChanged(callback: (bossId: string, phase: number) -> ())
+	table.insert(phaseListeners, callback)
+end
+
+local function announce(text: string)
+	for _, player in Players:GetPlayers() do
+		Remotes.Notify:FireClient(player, text)
+	end
+end
+
+local function bubble(boss: ActiveBoss, text: string)
+	local head = boss.model:FindFirstChild("Head")
+	if not (head and head:IsA("BasePart")) then
+		return
+	end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(160, 50)
+	billboard.StudsOffset = Vector3.new(0, 5, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = head
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(255, 120, 60)
+	label.TextStrokeTransparency = 0.2
+	label.Font = Enum.Font.BuilderSansBold
+	label.TextScaled = true
+	label.Parent = billboard
+	Debris:AddItem(billboard, 1.5)
+end
+
+local function publish()
+	local boss = current
+	if not boss then
+		for _, name in { "BossName", "BossHealth", "BossMaxHealth", "BossPhase", "BossPosition" } do
+			ReplicatedStorage:SetAttribute(name, nil)
+		end
+		return
+	end
+	ReplicatedStorage:SetAttribute("BossName", boss.definition.name)
+	ReplicatedStorage:SetAttribute("BossHealth", math.max(0, boss.humanoid.Health))
+	ReplicatedStorage:SetAttribute("BossMaxHealth", boss.humanoid.MaxHealth)
+	ReplicatedStorage:SetAttribute("BossPhase", boss.phase)
+	ReplicatedStorage:SetAttribute("BossPosition", boss.root.Position)
+end
+
+local function lairPosition(definition: Bosses.Boss): Vector3
+	local marker = Workspace:FindFirstChild(`Guarida_{definition.biome}`, true)
+	if marker and marker:IsA("BasePart") then
+		return marker.Position
+	end
+	-- Mapa sin guaridas (pruebas): lejos del Basecamp.
+	local angle = rng:NextNumber(0, 2 * math.pi)
+	return BasecampService.getCenter() + Vector3.new(math.cos(angle), 0, math.sin(angle)) * 300
+end
+
+local function groundBelow(position: Vector3): Vector3
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { Workspace.Terrain }
+	local result = Workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -300, 0), params)
+	return if result then result.Position else position
+end
+
+local function despawnCurrent(reason: string?)
+	local boss = current
+	if not boss then
+		return
+	end
+	current = nil
+	if reason then
+		announce(reason)
+	end
+	boss.model:Destroy()
+	publish()
+end
+
+local function onBossDied(boss: ActiveBoss)
+	if current ~= boss then
+		return
+	end
+	current = nil
+	Beacon.add(boss.id)
+	local item = Items[boss.definition.lootItemId]
+	for player in boss.contributors do
+		if player.Parent then
+			InventoryService.add(player, boss.definition.lootItemId, 1)
+			MatchStats.add(player, MatchStats.BOSSES)
+			Remotes.Notify:FireClient(player, `🏆 Botín del jefe: {item.icon} {item.name}`)
+		end
+	end
+	announce(`🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`)
+	boss.root.Anchored = true
+	for _, part in boss.model:GetDescendants() do
+		if part:IsA("BasePart") and part.Transparency < 1 then
+			TweenService:Create(part, TweenInfo.new(2), { Transparency = 1 }):Play()
+		end
+	end
+	Debris:AddItem(boss.model, 2.2)
+	publish()
+end
+
+-- Más jugadores, más vida: x0.8 con uno, +20 % por cada jugador más, hasta x3.
+local function healthMultiplier(): number
+	return math.clamp(0.6 + 0.2 * #Players:GetPlayers(), 0.8, 3)
+end
+
+function BossService.spawn(bossId: string)
+	local definition = Bosses[bossId]
+	local species = Monkeys[definition.baseSpecies]
+	if not (definition and species) then
+		warn(`[BossService] Jefe desconocido: {bossId}`)
+		return
+	end
+	despawnCurrent(nil)
+
+	local lair = lairPosition(definition)
+	local look = table.clone(species)
+	look.name = definition.name
+	look.scale = definition.scale
+	look.bodyColor = definition.bodyColor
+	look.faceColor = definition.faceColor
+	look.maxHealth = math.round(definition.maxHealth * healthMultiplier())
+	look.walkSpeed = definition.walkSpeed
+	local model = MonkeyModels.build(definition.baseSpecies, look, groundBelow(lair))
+	model.Name = definition.name
+	model:SetAttribute("Boss", bossId)
+	model.Parent = Workspace
+	local root = model.PrimaryPart :: BasePart
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	root:SetNetworkOwner(nil)
+	CollectionService:AddTag(model, Config.Combat.EnemyTag)
+
+	local now = os.clock()
+	local boss: ActiveBoss = {
+		id = bossId,
+		definition = definition,
+		model = model,
+		humanoid = humanoid,
+		root = root,
+		lair = lair,
+		phase = 1,
+		damage = definition.damage,
+		cooldowns = {},
+		nextSpecialAt = now + 4,
+		lastAttackAt = 0,
+		contributors = {},
+	}
+	for _, special in definition.specials do
+		boss.cooldowns[special.id] = now + rng:NextNumber(3, 6)
+	end
+	current = boss
+	humanoid.Died:Connect(function()
+		onBossDied(boss)
+	end)
+	announce(`👑 ¡{definition.name} ha despertado en {BIOME_NAMES[definition.biome] or definition.biome}!`)
+	publish()
+end
+
+local function nearestTarget(boss: ActiveBoss): (Player?, BasePart?)
+	local best: Player? = nil
+	local bestRoot: BasePart? = nil
+	local bestDistance = boss.definition.aggroRange
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if
+			root
+			and root:IsA("BasePart")
+			and LifeState.isAlive(player)
+			and player:GetAttribute("InBasecamp") ~= true
+			and (root.Position - boss.lair).Magnitude <= boss.definition.leashRange
+		then
+			local distance = (root.Position - boss.root.Position).Magnitude
+			if distance < bestDistance then
+				best = player
+				bestRoot = root
+				bestDistance = distance
+			end
+		end
+	end
+	return best, bestRoot
+end
+
+local function playersAround(position: Vector3, radius: number): { Player }
+	local list = {}
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if root and root:IsA("BasePart") and (root.Position - position).Magnitude <= radius then
+			table.insert(list, player)
+		end
+	end
+	return list
+end
+
+local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: Player, targetRoot: BasePart) -> () } =
+	{
+		stomp = function(boss)
+			bubble(boss, "💥 ¡PUM!")
+			Hazards.shockwave(boss.root.Position, 20, math.round(boss.damage * 0.8), 1.5, 0.9)
+		end,
+		summon = function(boss, special, target)
+			bubble(boss, "¡A MÍ, TROPA!")
+			local offset = Vector3.new(rng:NextNumber(-12, 12), 0, rng:NextNumber(-12, 12))
+			MonkeyService.spawnAmbush(
+				special.species or "AulladorRojo",
+				boss.root.Position + offset,
+				special.count or 3,
+				target
+			)
+		end,
+		rockRain = function(boss, special)
+			bubble(boss, "¡ROCAS!")
+			local lava = boss.definition.eruption == true
+			local color = if lava then Color3.fromRGB(255, 110, 30) else Color3.fromRGB(110, 105, 100)
+			local victims = playersAround(boss.root.Position, 60)
+			for index = 1, special.count or 5 do
+				local victim = victims[rng:NextInteger(1, math.max(1, #victims))]
+				local character = if victim then victim.Character else nil
+				local center = if character then character:GetPivot().Position else boss.root.Position
+				local spot = center + Vector3.new(rng:NextNumber(-7, 7), 0, rng:NextNumber(-7, 7))
+				Hazards.fallingRock(spot, math.round(boss.damage * 0.7), 6, color, 1.1 + index * 0.2)
+			end
+		end,
+		charge = function(boss, _special, _target, targetRoot)
+			bubble(boss, "¡!")
+			task.delay(0.6, function()
+				if current ~= boss then
+					return
+				end
+				local offset = (targetRoot.Position - boss.root.Position) * Vector3.new(1, 0, 1)
+				if offset.Magnitude < 1 then
+					return
+				end
+				boss.root.AssemblyLinearVelocity = offset.Unit * 90 + Vector3.new(0, 8, 0)
+				local hit: { [Player]: boolean } = {}
+				for _ = 1, 6 do
+					task.wait(0.1)
+					for _, player in playersAround(boss.root.Position, 9) do
+						if not hit[player] then
+							hit[player] = true
+							if CombatService.damagePlayer(player, boss.damage) then
+								player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 1)
+							end
+						end
+					end
+				end
+			end)
+		end,
+		grab = function(boss, _special, target, targetRoot)
+			if (targetRoot.Position - boss.root.Position).Magnitude > boss.definition.attackRange * 1.6 then
+				return
+			end
+			bubble(boss, "¡TE TENGO!")
+			if CombatService.damagePlayer(target, math.round(boss.damage * 0.6)) then
+				target:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 3)
+				Remotes.Notify:FireClient(target, "🦧 ¡El jefe te ha agarrado! Que te ayuden tus compañeros")
+			end
+		end,
+		extinguish = function(boss)
+			bubble(boss, "¡GRRROOOAAAR!")
+			for _, player in playersAround(boss.root.Position, 45) do
+				local character = player.Character
+				local tool = if character then character:FindFirstChildOfClass("Tool") else nil
+				local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+				if tool and humanoid and tool:GetAttribute("WeaponId") == "Torch" then
+					humanoid:UnequipTools()
+					Remotes.Notify:FireClient(player, "🌑 ¡El rugido ha apagado tu antorcha!")
+				end
+				player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 1)
+			end
+		end,
+	}
+
+local function updatePhase(boss: ActiveBoss)
+	local fraction = boss.humanoid.Health / boss.humanoid.MaxHealth
+	local phase = if fraction <= 0.33 then 3 elseif fraction <= 0.66 then 2 else 1
+	if phase <= boss.phase then
+		return
+	end
+	boss.phase = phase
+	boss.humanoid.WalkSpeed = boss.definition.walkSpeed * (1 + 0.15 * (phase - 1))
+	boss.damage = math.round(boss.definition.damage * (1 + 0.2 * (phase - 1)))
+	bubble(boss, "😡")
+	announce(`😡 ¡{boss.definition.name} se enfurece! (fase {phase}/3)`)
+	for _, listener in phaseListeners do
+		task.spawn(listener, boss.id, phase)
+	end
+end
+
+local function tick(now: number)
+	local boss = current
+	if not boss or boss.humanoid.Health <= 0 then
+		return
+	end
+	updatePhase(boss)
+	local target, targetRoot = nearestTarget(boss)
+	if not (target and targetRoot) then
+		if (boss.root.Position - boss.lair).Magnitude > 12 then
+			boss.humanoid:MoveTo(boss.lair)
+		end
+		return
+	end
+
+	if now >= boss.nextSpecialAt then
+		for _, special in boss.definition.specials do
+			if special.fromPhase <= boss.phase and now >= (boss.cooldowns[special.id] or 0) then
+				boss.cooldowns[special.id] = now + special.cooldownSeconds
+				boss.nextSpecialAt = now + 3
+				SPECIALS[special.id](boss, special, target, targetRoot)
+				break
+			end
+		end
+	end
+
+	local distance = (targetRoot.Position - boss.root.Position).Magnitude
+	if distance <= boss.definition.attackRange then
+		boss.humanoid:MoveTo(boss.root.Position)
+		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then
+			boss.lastAttackAt = now
+			CombatService.damagePlayer(target, boss.damage)
+		end
+	else
+		boss.humanoid:MoveTo(targetRoot.Position)
+	end
+end
+
+local function onPhaseStarted(day: number, phase: MatchState.Phase)
+	local interval = Config.Match.BossIntervalDays
+	if phase ~= "Day" or day % interval ~= 0 then
+		return
+	end
+	local rotation = Config.Match.BossRotation
+	local bossId = rotation[((day // interval) - 1) % #rotation + 1]
+	if current then
+		despawnCurrent(`🌫️ {current.definition.name} se retira a su guarida…`)
+	end
+	BossService.spawn(bossId)
+end
+
+function BossService:Init()
+	DayNightService.onPhaseStarted(onPhaseStarted)
+	CombatService.onEnemyDamaged(function(model, attacker)
+		local boss = current
+		if boss and attacker and model == boss.model then
+			boss.contributors[attacker] = true
+		end
+	end)
+end
+
+function BossService:Start()
+	local elapsed = 0
+	while true do
+		task.wait(TICK_SECONDS)
+		tick(os.clock())
+		elapsed += TICK_SECONDS
+		if elapsed >= 0.5 then
+			elapsed = 0
+			publish()
+		end
+	end
+end
+
+return BossService

@@ -53,6 +53,12 @@ local Items: { [string]: ItemDefinition } = {
 	ThickBone = { name = "Hueso grueso", icon = "🦴", order = 30, rarity = "Rare" },
 	OrangeFur = { name = "Pelaje naranja", icon = "🍊", order = 31, rarity = "Rare" },
 	SilverFur = { name = "Pelaje plateado", icon = "⚪", order = 32, rarity = "Epic" },
+	-- Fase 5: botín especial de los jefes.
+	RiverPearl = { name = "Perla del río", icon = "🔮", order = 40, rarity = "Legendary" },
+	ChieftainCrown = { name = "Corona del caudillo", icon = "👑", order = 41, rarity = "Legendary" },
+	CaveCrystal = { name = "Cristal de cueva", icon = "💎", order = 42, rarity = "Legendary" },
+	MagmaCore = { name = "Núcleo de magma", icon = "🌋", order = 43, rarity = "Legendary" },
+	ShipMetal = { name = "Metal de naufragio", icon = "⚙️", order = 44, rarity = "Uncommon" },
 }
 
 return Items

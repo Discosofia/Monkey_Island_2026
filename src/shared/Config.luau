@@ -32,6 +32,10 @@ local Config = {
 		AmberPerDay = 10,
 		AmberPerKill = 2,
 		AmberPerRevive = 5,
+		AmberPerBoss = 50, -- por cada jefe en el que participaste (Fase 5)
+		AmberPerBounty = 15, -- por cada recompensa PvP cobrada (Fase 5)
+		AmberPerEgg = 25, -- por cada huevo rescatado (Fase 5)
+		AmberForRescue = 200, -- victoria: rescatados (Fase 6)
 	},
 
 	Basecamp = {

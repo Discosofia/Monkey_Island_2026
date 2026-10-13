@@ -58,6 +58,7 @@ local function show(summary: { [string]: any })
 		{ text = `🐒 Monos derrotados: {summary.kills}`, height = 0.08, color = plain },
 		{ text = `💚 Aliados reanimados: {summary.revives}`, height = 0.08, color = plain },
 		{ text = `👻 Caídas: {summary.deaths}`, height = 0.08, color = plain },
+		{ text = `👑 Jefes: {summary.bosses or 0}`, height = 0.08, color = plain },
 		{ text = `✨ Ámbar ganado: {summary.amber}`, height = 0.1, color = Color3.fromRGB(255, 200, 80) },
 	}
 	for index, line in lines do

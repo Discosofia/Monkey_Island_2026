@@ -27,6 +27,7 @@ export type Summary = {
 	kills: number,
 	revives: number,
 	deaths: number,
+	bosses: number,
 	amber: number,
 }
 
@@ -47,14 +48,23 @@ end
 local function summaryFor(player: Player, result: Result, days: number): Summary
 	local kills = MatchStats.get(player, MatchStats.KILLS)
 	local revives = MatchStats.get(player, MatchStats.REVIVES)
+	local bosses = MatchStats.get(player, MatchStats.BOSSES)
 	local settings = Config.Match
+	local amber = days * settings.AmberPerDay
+		+ kills * settings.AmberPerKill
+		+ revives * settings.AmberPerRevive
+		+ bosses * settings.AmberPerBoss
+		+ MatchStats.get(player, MatchStats.BOUNTIES) * settings.AmberPerBounty
+		+ MatchStats.get(player, MatchStats.EGGS) * settings.AmberPerEgg
+		+ (if result == "Victory" then settings.AmberForRescue else 0)
 	return {
 		result = result,
 		days = days,
 		kills = kills,
 		revives = revives,
 		deaths = MatchStats.get(player, MatchStats.DEATHS),
-		amber = days * settings.AmberPerDay + kills * settings.AmberPerKill + revives * settings.AmberPerRevive,
+		bosses = bosses,
+		amber = amber,
 	}
 end
 

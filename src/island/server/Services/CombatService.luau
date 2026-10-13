@@ -30,6 +30,12 @@ local MELEE_HITBOX = Vector2.new(7, 6)
 local CombatService = {}
 
 local lastAttackAt: { [Player]: number } = {}
+local damageListeners: { (model: Model, attacker: Player?, amount: number) -> () } = {}
+
+-- Llama a "callback" cada vez que un enemigo recibe daño (BossService cuenta quién participa).
+function CombatService.onEnemyDamaged(callback: (model: Model, attacker: Player?, amount: number) -> ())
+	table.insert(damageListeners, callback)
+end
 local lastDodgeAt: { [Player]: number } = {}
 
 local function livingCharacter(player: Player): (Model?, BasePart?)
@@ -112,6 +118,9 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	end
 	humanoid:TakeDamage(amount)
 	showHit(model, amount)
+	for _, listener in damageListeners do
+		task.spawn(listener, model, attacker, amount)
+	end
 end
 
 -- true mientras dura la invulnerabilidad de la esquiva.

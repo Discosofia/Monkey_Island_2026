@@ -1,0 +1,132 @@
+--!strict
+-- Jefes de bioma (GDD §8.2 categoría 4, Fase 5). Versiones gigantes de las especies difíciles.
+-- Aparecen en su guarida (MapBuilder: GuaridasJefes/Guarida_<bioma>) según Config.Match.BossRotation,
+-- uno cada Config.Match.BossIntervalDays días, y se quedan hasta que los derrotan o llega el siguiente.
+-- Cada uno suelta siempre una pieza de la baliza de rescate (para el servidor) y su botín especial
+-- (para cada jugador que le hizo daño).
+--
+-- Ataques especiales ("specials"), que se desbloquean por fase (fase 2 al 66 % de vida, 3 al 33 %):
+--   stomp      golpe en área que daña y aturde
+--   summon     llama a una tropa de "species"
+--   rockRain   lluvia de rocas (o lava) sobre los jugadores cercanos, con aviso en el suelo
+--   charge     embestida hacia su objetivo
+--   grab       agarra a su objetivo (inmoviliza)
+--   extinguish rugido que apaga las antorchas de los jugadores cercanos
+
+export type Special = {
+	id: string,
+	fromPhase: number,
+	cooldownSeconds: number,
+	species: string?, -- summon
+	count: number?, -- summon / rockRain
+}
+
+export type Boss = {
+	name: string,
+	biome: string,
+	baseSpecies: string, -- especie de Data/Monkeys de la que toma el modelo
+	scale: number,
+	bodyColor: Color3,
+	faceColor: Color3,
+	maxHealth: number,
+	walkSpeed: number,
+	damage: number,
+	attackRange: number,
+	attackCooldownSeconds: number,
+	aggroRange: number,
+	leashRange: number,
+	specials: { Special },
+	lootItemId: string, -- botín especial para cada jugador que participó
+	eruption: boolean?, -- en su última fase provoca una erupción del volcán (WeatherService)
+}
+
+local Bosses: { [string]: Boss } = {
+	OrangutanDelManglar = {
+		name = "Orangután del Manglar",
+		biome = "Rios",
+		baseSpecies = "Orangutan",
+		scale = 3,
+		bodyColor = Color3.fromRGB(170, 70, 25),
+		faceColor = Color3.fromRGB(90, 60, 45),
+		maxHealth = 2400,
+		walkSpeed = 13,
+		damage = 24,
+		attackRange = 11,
+		attackCooldownSeconds = 1.8,
+		aggroRange = 90,
+		leashRange = 170,
+		specials = {
+			{ id = "grab", fromPhase = 1, cooldownSeconds = 9 },
+			{ id = "stomp", fromPhase = 2, cooldownSeconds = 11 },
+			{ id = "summon", fromPhase = 3, cooldownSeconds = 30, species = "Marimonda", count = 3 },
+		},
+		lootItemId = "RiverPearl",
+	},
+	ChimpanceCaudillo = {
+		name = "Chimpancé Caudillo",
+		biome = "Montanas",
+		baseSpecies = "Chimpance",
+		scale = 2.6,
+		bodyColor = Color3.fromRGB(20, 18, 16),
+		faceColor = Color3.fromRGB(200, 170, 140),
+		maxHealth = 2200,
+		walkSpeed = 18,
+		damage = 22,
+		attackRange = 10,
+		attackCooldownSeconds = 1.5,
+		aggroRange = 100,
+		leashRange = 180,
+		specials = {
+			{ id = "rockRain", fromPhase = 1, cooldownSeconds = 12, count = 5 },
+			{ id = "summon", fromPhase = 2, cooldownSeconds = 28, species = "Chimpance", count = 3 },
+			{ id = "charge", fromPhase = 3, cooldownSeconds = 9 },
+		},
+		lootItemId = "ChieftainCrown",
+	},
+	GorilaAlbino = {
+		name = "Gorila Albino",
+		biome = "Cuevas",
+		baseSpecies = "Gorila",
+		scale = 3,
+		bodyColor = Color3.fromRGB(235, 235, 240),
+		faceColor = Color3.fromRGB(150, 140, 140),
+		maxHealth = 3000,
+		walkSpeed = 15,
+		damage = 28,
+		attackRange = 11,
+		attackCooldownSeconds = 1.7,
+		aggroRange = 80,
+		leashRange = 150,
+		specials = {
+			{ id = "extinguish", fromPhase = 1, cooldownSeconds = 18 },
+			{ id = "stomp", fromPhase = 1, cooldownSeconds = 10 },
+			{ id = "charge", fromPhase = 2, cooldownSeconds = 10 },
+			{ id = "summon", fromPhase = 3, cooldownSeconds = 30, species = "Babuino", count = 3 },
+		},
+		lootItemId = "CaveCrystal",
+	},
+	GorilaDeCeniza = {
+		name = "Gorila de Ceniza",
+		biome = "Volcan",
+		baseSpecies = "Gorila",
+		scale = 3.2,
+		bodyColor = Color3.fromRGB(60, 55, 55),
+		faceColor = Color3.fromRGB(255, 110, 40),
+		maxHealth = 3600,
+		walkSpeed = 16,
+		damage = 32,
+		attackRange = 12,
+		attackCooldownSeconds = 1.6,
+		aggroRange = 100,
+		leashRange = 180,
+		specials = {
+			{ id = "charge", fromPhase = 1, cooldownSeconds = 9 },
+			{ id = "rockRain", fromPhase = 2, cooldownSeconds = 10, count = 7 },
+			{ id = "stomp", fromPhase = 2, cooldownSeconds = 12 },
+		},
+		lootItemId = "MagmaCore",
+		eruption = true,
+	},
+}
+
+return Bosses
