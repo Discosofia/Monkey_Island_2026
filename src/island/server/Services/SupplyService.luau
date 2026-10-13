@@ -85,7 +85,7 @@ local function onOpen(crate: Model, player: Player)
 	crate:Destroy()
 end
 
-local function spawnCrate()
+function SupplyService.spawnCrate()
 	local spot = beachSpot()
 	if not spot then
 		return
@@ -155,7 +155,7 @@ function SupplyService:Start()
 	while true do
 		local state = MatchState.read()
 		if state and state.phase == "Day" and not (activeCrate and activeCrate.Parent) then
-			spawnCrate()
+			SupplyService.spawnCrate()
 		end
 		task.wait(Config.Supply.IntervalSeconds)
 	end

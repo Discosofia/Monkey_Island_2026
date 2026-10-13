@@ -51,14 +51,16 @@ local function onLight(player: Player)
 		Remotes.Notify:FireClient(player, `📡 Faltan piezas de los jefes: {pieces}/{Beacon.total()}`)
 		return
 	end
-	if not state or state.day < Config.Match.BeaconUnlockDay then
+	-- En Studio, el panel de pruebas puede saltarse la espera del día 8 (DebugService).
+	local debugUnlocked = ReplicatedStorage:GetAttribute("DebugBeaconUnlocked") == true
+	if not debugUnlocked and (not state or state.day < Config.Match.BeaconUnlockDay) then
 		Remotes.Notify:FireClient(
 			player,
 			`📡 La baliza solo se puede encender desde el día {Config.Match.BeaconUnlockDay}`
 		)
 		return
 	end
-	if state.phase ~= "Day" then
+	if not state or state.phase ~= "Day" then
 		Remotes.Notify:FireClient(player, "📡 Enciéndela de día: esa misma noche llegará La Gran Tropa")
 		return
 	end

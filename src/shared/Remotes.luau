@@ -36,6 +36,8 @@ local Remotes = {
 	Notify = remoteEvent("Notify"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
+	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.
+	DebugCommand = remoteEvent("DebugCommand"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).

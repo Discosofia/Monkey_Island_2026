@@ -244,7 +244,7 @@ local function startIncubation(target: Model)
 	end
 end
 
-local function spawnEgg()
+function EggService.spawnEgg()
 	local center = BasecampService.getCenter()
 	for _ = 1, 60 do
 		local angle = rng:NextNumber(0, 2 * math.pi)
@@ -317,7 +317,7 @@ function EggService:Start()
 			task.wait(Config.Egg.CheckSeconds)
 			local match = MatchState.read()
 			if not egg and match and match.phase == "Day" and rng:NextNumber() < Config.Egg.Chance then
-				spawnEgg()
+				EggService.spawnEgg()
 			end
 		end
 	end)

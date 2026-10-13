@@ -1,0 +1,32 @@
+--!strict
+-- Órdenes del panel de pruebas (solo Studio): nombre interno y texto del botón, en el orden en que
+-- salen. El servidor de cada place (DebugService) decide qué hace cada una.
+
+export type Command = { id: string, label: string }
+
+local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
+	Island = {
+		{ id = "Materials", label = "🎒 +50 de todo" },
+		{ id = "Heal", label = "❤️ Curar y llenar" },
+		{ id = "Hungry", label = "🍖 Hambre y sed al 10" },
+		{ id = "Fever", label = "🤒 Fiebre a 90" },
+		{ id = "Boss", label = "👑 Siguiente jefe" },
+		{ id = "BossHurt", label = "💔 Jefe al 30 %" },
+		{ id = "Egg", label = "🥚 Huevo" },
+		{ id = "Crate", label = "📦 Caja de suministro" },
+		{ id = "Pet", label = "🐾 Mascota al azar" },
+		{ id = "Rain", label = "🌧️ Lluvia" },
+		{ id = "Storm", label = "⛈️ Tormenta" },
+		{ id = "Clear", label = "☀️ Despejado" },
+		{ id = "Eruption", label = "🌋 Erupción" },
+		{ id = "Beacon", label = "📡 4 piezas + baliza sin espera" },
+		{ id = "Defeat", label = "💀 Terminar: derrota" },
+	},
+	Lobby = {
+		{ id = "Amber", label = "✨ +500 Ámbar" },
+		{ id = "RoleXp", label = "⭐ +300 XP del rol" },
+		{ id = "Pet", label = "🥚 Mascota al azar" },
+	},
+}
+
+return DebugCommands
