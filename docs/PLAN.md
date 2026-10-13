@@ -270,13 +270,22 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 
 ### Fase 6: Rescate, pulido y lanzamiento (4–6 semanas)
 
-- [ ] Baliza de rescate (se puede encender desde el día 8) + noche final "La Gran Tropa" → victoria
-- [ ] Clasificaciones (días sobrevividos, rescates)
-- [ ] Pulido de UI para móvil, sonido, música y efectos
-- [ ] Analítica (embudo del tutorial, retención, economía)
-- [ ] Tienda cosmética (Robux), servidores privados
-- [ ] Nombre final, icono, miniaturas y cuestionario de madurez de contenido
-- [ ] Beta cerrada → **lanzamiento**
+| Entrega | Contenido | Estado |
+|---|---|---|
+| **6.1** | Baliza de rescate (4 piezas, desde el día 8) → La Gran Tropa → victoria | ✅ Código listo, falta tu prueba |
+| **6.2** | Clasificaciones globales (días y rescates) y pestaña "Ranking" | ✅ Código listo, falta tu prueba |
+| **6.3** | Analítica: embudo del tutorial, economía del Ámbar, victorias y derrotas | ✅ Código listo |
+| **6.4** | Tienda cosmética con Game Passes (pestaña "Estilo") y servidores privados | ✅ Código listo; faltan los pases *(tú)* |
+| **6.5** | Música configurable por situación y sonido de avisos | ✅ Código listo; faltan las pistas *(tú)* |
+| **6.6** | Guía de lanzamiento: [LANZAMIENTO.md](LANZAMIENTO.md) | ✅ |
+
+- [x] Baliza de rescate (se puede encender desde el día 8) + noche final "La Gran Tropa" → victoria
+- [x] Clasificaciones (días sobrevividos, rescates)
+- [x] Sonido y música *(código; los IDs de audio los eliges tú)*; pulido de UI para móvil *(revisar en la beta)*
+- [x] Analítica (embudo del tutorial, retención, economía)
+- [x] Tienda cosmética (Robux), servidores privados *(código; los pases los creas tú)*
+- [ ] Nombre final, icono, miniaturas *(tú; el cuestionario de madurez ya está hecho)*
+- [ ] Beta cerrada → **lanzamiento** *(tú; ver [LANZAMIENTO.md](LANZAMIENTO.md))*
 
 ---
 
@@ -324,5 +333,6 @@ gantt
 
 ## 6. Siguiente paso inmediato
 
-1. **Tú:** probar las Fases 2 y 3 (lista de pruebas en el mensaje de entrega) con 2–6 amigos en el juego publicado.
-2. **Claude:** Fase 4 (bestiario, especies, tropas, rarezas y optimización).
+1. **Tú:** verificar las Fases 2 a 6 en Studio y en el juego publicado (lista de pruebas en el mensaje de entrega).
+2. **Claude:** corregir lo que salga de esa verificación.
+3. **Tú:** pasos de [LANZAMIENTO.md](LANZAMIENTO.md): música, pases, página del juego, beta cerrada y lanzamiento.
