@@ -60,6 +60,8 @@ local SEA_FLOOR = -24
 local GROUND_LEVEL = 10
 local BEACH_WIDTH = 90
 local BASECAMP_RADIUS = 85
+-- Nombre de las palmeras: ResourceService también lo usa para hacer talables las de mapas antiguos.
+local PALM_NAME = "Palmera"
 local RIVER_HALF_WIDTH = 12
 local RIVER_BANK = 16
 local RIVER_CARVE = RIVER_HALF_WIDTH + RIVER_BANK
@@ -667,7 +669,7 @@ end
 
 local function buildPalm(ground: Vector3, rng: Random, parent: Instance)
 	local palm = Instance.new("Model")
-	palm.Name = "Palmera"
+	palm.Name = PALM_NAME
 	local scale = rng:NextNumber(0.9, 1.3)
 	local lean = math.rad(rng:NextNumber(5, 14))
 	-- Tronco en 3 tramos, cada uno un poco más inclinado.
@@ -703,6 +705,8 @@ local function buildPalm(ground: Vector3, rng: Random, parent: Instance)
 			newBall("Coconut", 1.2, frame * CFrame.new((i - 0.5) * 1.2, -0.8, 0.5), Color3.fromRGB(90, 60, 30), palm)
 		)
 	end
+	-- Se tala con el hacha y da madera y cocos (Data/ResourceNodes, tipo Palm).
+	NodeModels.makeHarvestable(palm, "Palm", ground)
 	palm.Parent = parent
 end
 

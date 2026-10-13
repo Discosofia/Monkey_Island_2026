@@ -20,15 +20,21 @@ function Survival.get(player: Player, attribute: string): number
 	return if typeof(value) == "number" then value else Survival.MAX
 end
 
--- La comida que más llena de las que lleva el jugador, o nil si no tiene ninguna.
+-- La comida que más aprovecha el jugador ahora (lo que recupera sin pasarse de lleno), o nil si no
+-- lleva ninguna. Así, con sed, "Comer" elige un coco antes que carne.
 function Survival.bestFood(player: Player): string?
+	local missingHunger = Survival.MAX - Survival.get(player, Survival.HUNGER)
+	local missingThirst = Survival.MAX - Survival.get(player, Survival.THIRST)
 	local bestId: string? = nil
-	local bestHunger = 0
+	local bestScore = -1
 	for itemId, item in Items do
 		local food = item.food
-		if food and food.hunger > bestHunger and Inventory.count(player, itemId) > 0 then
-			bestId = itemId
-			bestHunger = food.hunger
+		if food and Inventory.count(player, itemId) > 0 then
+			local score = math.min(food.hunger, missingHunger) + math.min(food.thirst, missingThirst)
+			if score > bestScore then
+				bestId = itemId
+				bestScore = score
+			end
 		end
 	end
 	return bestId

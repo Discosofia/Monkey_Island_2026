@@ -30,6 +30,7 @@ local Items: { [string]: ItemDefinition } = {
 	CookedMeat = { name = "Carne asada", icon = "🍖", order = 9, food = { hunger = 35, thirst = 0 } },
 	Banana = { name = "Plátano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
 	Skewer = { name = "Brocheta", icon = "🍢", order = 11, food = { hunger = 60, thirst = 5 } },
+	Coconut = { name = "Coco", icon = "🥥", order = 12, food = { hunger = 5, thirst = 25 } },
 }
 
 return Items

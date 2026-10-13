@@ -23,6 +23,8 @@ local InventoryService = require(script.Parent.InventoryService)
 -- Margen extra (studs) sobre la distancia del aviso, por el retraso de la red.
 local DISTANCE_TOLERANCE = 4
 -- Nodos de prueba alrededor del Basecamp si el mapa no tiene ninguno.
+-- Nombre de las palmeras que genera MapBuilder.
+local PALM_NAME = "Palmera"
 local TEST_NODE_TYPES =
 	{ "Tree", "Rock", "Bush", "Tree", "Bush", "Tree", "Rock", "Bush", "Tree", "Rock", "Bush", "Tree" }
 
@@ -358,10 +360,29 @@ local function spawnTestNodes(): { Instance }
 	return nodes
 end
 
+-- Las palmeras de islas generadas antes de que fueran talables: se les añade el atributo aquí.
+local function upgradeOldPalms()
+	for _, instance in Workspace:GetDescendants() do
+		if
+			instance:IsA("Model")
+			and instance.Name == PALM_NAME
+			and instance:GetAttribute(NodeModels.ATTRIBUTE) == nil
+		then
+			local trunk = instance:FindFirstChild("Trunk")
+			if trunk and trunk:IsA("BasePart") then
+				-- El primer tramo del tronco: su base está medio tramo por debajo de su centro.
+				local base = (trunk.CFrame * CFrame.new(0, -trunk.Size.Y / 2, 0)).Position
+				NodeModels.makeHarvestable(instance, "Palm", base)
+			end
+		end
+	end
+end
+
 function ResourceService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastHarvestAt[player] = nil
 	end)
+	upgradeOldPalms()
 
 	local found = {}
 	for _, instance in Workspace:GetDescendants() do

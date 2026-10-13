@@ -4,12 +4,14 @@
 --     Gasta estamina; al vaciarse vuelves a caminar.
 --   - Comer: C, cruceta izquierda o el botón "Comer" (aparece si llevas comida). El servidor elige
 --     la comida que más llena.
---   - Beber: F, X en mando o el botón "Beber" (aparece junto al agua).
+--   - Beber: junto al agua aparece un aviso "Beber" como los de recolectar (F en PC, X en mando,
+--     tocar en móvil). Es un aviso local que sigue al jugador mientras está cerca del agua.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
@@ -21,13 +23,40 @@ local Stamina = require(script.Parent.Parent.Stamina)
 
 local SPRINT_ACTION = "Sprint"
 local EAT_ACTION = "Eat"
-local DRINK_ACTION = "Drink"
-local WATER_CHECK_SECONDS = 0.5
+local WATER_CHECK_SECONDS = 0.4
 
 local SurvivalController = {}
 
 local sprintHeld = false -- Mayús mantenida
 local sprintToggled = false -- L3 o botón táctil
+
+-- Aviso "Beber": una pieza invisible solo de este cliente con un ProximityPrompt.
+local function createDrinkPrompt(): (BasePart, ProximityPrompt)
+	local anchor = Instance.new("Part")
+	anchor.Name = "DrinkPromptAnchor"
+	anchor.Size = Vector3.one
+	anchor.Transparency = 1
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "DrinkPrompt"
+	prompt.ActionText = "Beber"
+	prompt.ObjectText = "Agua"
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Enabled = false
+	prompt.Parent = anchor
+	prompt.Triggered:Connect(function()
+		Remotes.Drink:FireServer()
+	end)
+	return anchor, prompt
+end
 
 local function bindButton(action: string, title: string, enabled: boolean, handler: () -> (), ...: Enum.KeyCode)
 	if enabled then
@@ -106,22 +135,19 @@ function SurvivalController:Start()
 	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(refreshEat)
 	refreshEat()
 
-	-- "Beber" solo aparece cerca del agua.
-	local drinkBound = false
+	-- "Beber" solo aparece cerca del agua; el aviso acompaña al jugador a la altura del pecho.
+	local drinkAnchor, drinkPrompt = createDrinkPrompt()
+	drinkAnchor.Parent = Workspace
 	task.spawn(function()
 		while true do
 			local character = player.Character
 			local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-			local show = root ~= nil
-				and root:IsA("BasePart")
-				and LifeState.isAlive(player)
-				and Survival.isNearWater(root.Position)
-			if show ~= drinkBound then
-				drinkBound = show
-				bindButton(DRINK_ACTION, "Beber", show, function()
-					Remotes.Drink:FireServer()
-				end, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
+			local nearWater = false
+			if root and root:IsA("BasePart") and LifeState.isAlive(player) then
+				nearWater = Survival.isNearWater(root.Position)
+				drinkAnchor.Position = root.Position + root.CFrame.LookVector * 2
 			end
+			drinkPrompt.Enabled = nearWater
 			task.wait(WATER_CHECK_SECONDS)
 		end
 	end)

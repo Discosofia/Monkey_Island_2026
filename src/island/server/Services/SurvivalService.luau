@@ -102,8 +102,9 @@ local function onEat(player: Player)
 		return
 	end
 	local hunger = Survival.get(player, Survival.HUNGER)
-	if hunger >= Survival.MAX - 1 then
-		Remotes.Notify:FireClient(player, "No tienes hambre")
+	local thirst = Survival.get(player, Survival.THIRST)
+	if hunger >= Survival.MAX - 1 and thirst >= Survival.MAX - 1 then
+		Remotes.Notify:FireClient(player, "No tienes hambre ni sed")
 		return
 	end
 	local itemId = Survival.bestFood(player)
@@ -113,7 +114,7 @@ local function onEat(player: Player)
 	local food = Items[itemId].food
 	if food and InventoryService.remove(player, itemId, 1) then
 		setStat(player, Survival.HUNGER, hunger + food.hunger)
-		setStat(player, Survival.THIRST, Survival.get(player, Survival.THIRST) + food.thirst)
+		setStat(player, Survival.THIRST, thirst + food.thirst)
 	end
 end
 

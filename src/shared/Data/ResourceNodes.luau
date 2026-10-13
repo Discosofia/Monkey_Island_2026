@@ -39,6 +39,19 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		respawnSeconds = 120,
 		falls = true,
 	},
+	-- Palmeras de la playa: algo menos de madera, pero siempre dan cocos (quitan sed).
+	Palm = {
+		name = "Palmera",
+		actionText = "Talar",
+		itemId = "Wood",
+		amount = 4,
+		tool = "Axe",
+		toughness = 6,
+		uses = 1,
+		respawnSeconds = 150,
+		falls = true,
+		extra = { itemId = "Coconut", chance = 1, amount = 2 },
+	},
 	Rock = {
 		name = "Roca",
 		actionText = "Picar",
