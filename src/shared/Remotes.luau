@@ -42,6 +42,10 @@ local Remotes = {
 	Dodge = remoteEvent("Dodge"),
 	-- Cliente -> servidor (Isla): un Espíritu marca lo que apunta (Vector3 de dirección).
 	SpiritMark = remoteEvent("SpiritMark"),
+	-- Cliente -> servidor (Isla): fabricar una receta en la mesa de trabajo (id de Data/Recipes).
+	Craft = remoteEvent("Craft"),
+	-- Cliente -> servidor (Isla): usar una venda para curarse.
+	UseBandage = remoteEvent("UseBandage"),
 }
 
 return Remotes

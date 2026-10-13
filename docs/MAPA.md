@@ -94,3 +94,18 @@ Cualquier **Model** o **Part** con este atributo se convierte en un punto de rec
 - Si el valor está mal escrito (por ejemplo `tree` en minúsculas), la Salida avisa: *"ResourceNode = … no es un tipo válido"*.
 
 **Consejo:** busca árboles y rocas low-poly en la **Caja de herramientas** (Creator Store), ponles el atributo y duplícalos (`Ctrl+D`). El atributo se copia con ellos.
+
+---
+
+## Mesa de trabajo (entrega 1.6)
+
+No hace falta hacer nada: si el mapa no tiene ninguna mesa, el juego crea una en el Basecamp, al oeste de la hoguera.
+
+Si quieres usar tu propia mesa (por ejemplo, un modelo de la Caja de herramientas), ponle este atributo:
+
+| Atributo | Tipo | Valor |
+|---|---|---|
+| `CraftingStation` | string | `Workbench` |
+
+- En un **Model**, el aviso "Usar" aparece sobre su `PrimaryPart` (o sobre su primera pieza si no tiene).
+- Las recetas se ajustan en `src/shared/Data/Recipes.luau`, y la posición de la mesa automática en `Config.Crafting`.

@@ -1,7 +1,6 @@
 --!strict
 -- Inventario de cada jugador durante la partida. Solo el servidor lo cambia.
--- Fase 1.5: al pasar a Espíritu se dejará parte del inventario en una mochila.
--- Fase 1.6: el crafteo gastará materiales.
+-- Lo usan la recolección, el botín, la mochila del Espíritu (1.5) y el crafteo (1.6).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 

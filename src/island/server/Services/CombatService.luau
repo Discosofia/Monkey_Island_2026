@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
@@ -102,8 +103,8 @@ function CombatService.isInvulnerable(player: Player): boolean
 end
 
 -- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp, esquivando,
--- caído o como Espíritu. Un golpe mortal no mata: deja al jugador caído (LifeService).
--- Devuelve true si el golpe entró.
+-- caído o como Espíritu. La armadura reduce el daño (Data/Armor). Un golpe mortal no mata:
+-- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
 function CombatService.damagePlayer(player: Player, amount: number): boolean
 	local safe = player:GetAttribute("InBasecamp") == true
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
@@ -113,6 +114,11 @@ function CombatService.damagePlayer(player: Player, amount: number): boolean
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
+	end
+	local armorId = player:GetAttribute("Armor")
+	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
+	if armor then
+		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
 	end
 	showHit(character, amount)
 	if humanoid.Health - amount <= 0 then

@@ -93,6 +93,20 @@ local Config = {
 		SpiritMarkRange = 250,
 	},
 
+	Crafting = {
+		-- Atributo que marca una mesa de trabajo colocada a mano en el mapa ("CraftingStation" = "Workbench").
+		-- Si no hay ninguna, se crea una en el Basecamp, desplazada así respecto a su centro.
+		StationAttribute = "CraftingStation",
+		DefaultWorkbenchOffset = Vector3.new(-35, 0, 0),
+		-- Distancia máxima (studs) a la mesa para abrirla y fabricar.
+		UseDistance = 10,
+		CraftCooldownSeconds = 0.4,
+		-- Vendas (Data/Recipes): vida que curan y espera entre una y otra.
+		BandageHeal = 30,
+		BandageCooldownSeconds = 3,
+		-- Recetas: ver Shared/Data/Recipes.
+	},
+
 	Teleport = {
 		-- Segundos mínimos entre dos peticiones de viaje del mismo jugador.
 		CooldownSeconds = 5,

@@ -1,5 +1,5 @@
 --!strict
--- Construye las armas como Tools de Roblox (greybox): aparecen en la mochila nativa, que ya
+-- Construye las armas y herramientas como Tools de Roblox (greybox): aparecen en la mochila nativa, que ya
 -- funciona como barra rápida en PC (teclas 1-9), móvil (casillas táctiles) y mando.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +11,11 @@ local LEATHER = Color3.fromRGB(60, 40, 25)
 local STEEL = Color3.fromRGB(140, 146, 152)
 local STEEL_DARK = Color3.fromRGB(85, 90, 96)
 local STEEL_EDGE = Color3.fromRGB(215, 220, 226)
+local STONE = Color3.fromRGB(120, 120, 125)
+local STONE_DARK = Color3.fromRGB(85, 85, 90)
+local FIBER = Color3.fromRGB(150, 135, 85)
+local FANG = Color3.fromRGB(235, 225, 195)
+local FUR = Color3.fromRGB(150, 70, 45)
 local USE_SOUNDS = {
 	Melee = "rbxasset://sounds/swordslash.wav",
 	Ranged = "rbxasset://sounds/swordlunge.wav",
@@ -120,6 +125,109 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 		tool.Grip = CFrame.new(0, -0.4, 0)
 		return stem
 	end,
+	Torch = function(tool)
+		local stick = newPiece("Handle", Vector3.new(0.35, 2.6, 0.35), WOOD, Enum.Material.Wood)
+		stick.Parent = tool
+		local head = newPiece("Head", Vector3.new(0.6, 0.8, 0.6), LEATHER, Enum.Material.Fabric)
+		attach(stick, head, CFrame.new(0, 1.5, 0))
+		attach(stick, newPiece("Wrap", Vector3.new(0.45, 0.15, 0.45), FIBER, Enum.Material.Fabric), CFrame.new(0, 1, 0))
+		-- El fuego y la luz solo existen en el mundo mientras la llevas en la mano.
+		local fire = Instance.new("Fire")
+		fire.Size = 3
+		fire.Heat = 6
+		fire.Parent = head
+		local light = Instance.new("PointLight")
+		light.Range = 28
+		light.Brightness = 2
+		light.Color = Color3.fromRGB(255, 180, 90)
+		light.Shadows = true
+		light.Parent = head
+		tool.Grip = CFrame.new(0, -0.6, 0)
+		return stick
+	end,
+	-- Hacha: piedra afilada atada a un mango; el filo mira hacia delante (-Z).
+	StoneAxe = function(tool)
+		local shaft = newPiece("Handle", Vector3.new(0.3, 3, 0.3), WOOD, Enum.Material.Wood)
+		shaft.Parent = tool
+		attach(
+			shaft,
+			newPiece("Head", Vector3.new(0.35, 0.9, 0.9), STONE, Enum.Material.Slate),
+			CFrame.new(0, 1.15, -0.45)
+		)
+		attach(
+			shaft,
+			newPiece("Edge", Vector3.new(0.25, 1.1, 0.3), STONE_DARK, Enum.Material.Slate),
+			CFrame.new(0, 1.15, -0.95)
+		)
+		for _, y in { 0.95, 1.35 } do
+			attach(
+				shaft,
+				newPiece("Lashing", Vector3.new(0.4, 0.12, 0.4), FIBER, Enum.Material.Fabric),
+				CFrame.new(0, y, 0)
+			)
+		end
+		tool.Grip = CFrame.new(0, -1, 0)
+		return shaft
+	end,
+	-- Pico: una piedra larga atravesada, con las dos puntas en cuña.
+	StonePick = function(tool)
+		local shaft = newPiece("Handle", Vector3.new(0.3, 3, 0.3), WOOD, Enum.Material.Wood)
+		shaft.Parent = tool
+		attach(shaft, newPiece("Head", Vector3.new(0.35, 0.4, 1.6), STONE, Enum.Material.Slate), CFrame.new(0, 1.3, 0))
+		for side = -1, 1, 2 do
+			-- La cuña se estrecha hacia su -Z local: se gira para que cada punta mire hacia fuera.
+			attach(
+				shaft,
+				newPiece("Point", Vector3.new(0.35, 0.4, 0.7), STONE_DARK, Enum.Material.Slate, "WedgePart"),
+				CFrame.new(0, 1.3, side * 1.15) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0)
+			)
+		end
+		attach(
+			shaft,
+			newPiece("Lashing", Vector3.new(0.4, 0.5, 0.4), FIBER, Enum.Material.Fabric),
+			CFrame.new(0, 1.3, 0)
+		)
+		tool.Grip = CFrame.new(0, -1, 0)
+		return shaft
+	end,
+	-- Lanza: asta larga con un colmillo atado en la punta.
+	Spear = function(tool)
+		local shaft = newPiece("Handle", Vector3.new(0.25, 6, 0.25), WOOD, Enum.Material.Wood)
+		shaft.Parent = tool
+		attach(
+			shaft,
+			newPiece("Tip", Vector3.new(0.2, 0.45, 1), FANG, Enum.Material.SmoothPlastic, "WedgePart"),
+			-- Girada para que la parte fina de la cuña (su -Z) apunte hacia arriba.
+			CFrame.new(0, 3.5, 0) * CFrame.Angles(math.rad(90), 0, 0)
+		)
+		attach(
+			shaft,
+			newPiece("Lashing", Vector3.new(0.35, 0.4, 0.35), FIBER, Enum.Material.Fabric),
+			CFrame.new(0, 2.85, 0)
+		)
+		attach(shaft, newPiece("Fur", Vector3.new(0.4, 0.3, 0.4), FUR, Enum.Material.Fabric), CFrame.new(0, 2.5, 0))
+		tool.Grip = CFrame.new(0, -1.2, 0)
+		return shaft
+	end,
+	-- Garrote: mango fino y cabeza gruesa con colmillos clavados.
+	Club = function(tool)
+		local grip = newPiece("Handle", Vector3.new(0.35, 1.6, 0.35), WOOD, Enum.Material.Wood)
+		grip.Parent = tool
+		local head = newPiece("Head", Vector3.new(0.9, 1.8, 0.9), WOOD, Enum.Material.Wood)
+		attach(grip, head, CFrame.new(0, 1.6, 0))
+		attach(grip, newPiece("Wrap", Vector3.new(0.4, 0.5, 0.4), FUR, Enum.Material.Fabric), CFrame.new(0, -0.3, 0))
+		for i = 0, 5 do
+			local angle = i * math.pi / 3
+			local y = if i % 2 == 0 then 1.3 else 2
+			attach(
+				grip,
+				newPiece("Fang", Vector3.new(0.18, 0.18, 0.5), FANG, Enum.Material.SmoothPlastic, "WedgePart"),
+				CFrame.new(0, y, 0) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.65)
+			)
+		end
+		tool.Grip = CFrame.new(0, -0.2, 0)
+		return grip
+	end,
 }
 
 function WeaponTools.build(weaponId: string): Tool
@@ -130,6 +238,9 @@ function WeaponTools.build(weaponId: string): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = weapon.name
 	tool.ToolTip = `{weapon.name}: {weapon.damage} de daño`
+	if weapon.harvestBonus then
+		tool.ToolTip ..= " · recolectas más"
+	end
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)
 

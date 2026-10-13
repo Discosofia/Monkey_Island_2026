@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
+local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
 local InventoryService = require(script.Parent.InventoryService)
 
@@ -23,6 +24,7 @@ local TEST_NODE_TYPES =
 
 type NodeState = {
 	instance: Instance,
+	typeId: string,
 	definition: ResourceNodes.NodeDefinition,
 	prompt: ProximityPrompt,
 	usesLeft: number,
@@ -98,12 +100,36 @@ local function canHarvest(state: NodeState, player: Player): boolean
 	return true
 end
 
+-- Extra por herramienta (hacha, pico…): la mejor que lleve, equipada o en la mochila.
+local function toolBonus(player: Player, typeId: string): number
+	local tools: { Instance } = {}
+	-- El personaje (herramienta equipada) y la mochila; cualquiera de los dos puede faltar.
+	for _, container: Instance? in { player.Character :: Instance?, player:FindFirstChildOfClass("Backpack") } do
+		if container then
+			for _, child in container:GetChildren() do
+				table.insert(tools, child)
+			end
+		end
+	end
+	local best = 0
+	for _, tool in tools do
+		local weaponId = if tool:IsA("Tool") then tool:GetAttribute("WeaponId") else nil
+		local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
+		local bonus = if weapon and weapon.harvestBonus then weapon.harvestBonus[typeId] else nil
+		if bonus and bonus > best then
+			best = bonus
+		end
+	end
+	return best
+end
+
 local function harvest(state: NodeState, player: Player)
 	if not canHarvest(state, player) then
 		return
 	end
 
-	InventoryService.add(player, state.definition.itemId, state.definition.amount)
+	local amount = state.definition.amount + toolBonus(player, state.typeId)
+	InventoryService.add(player, state.definition.itemId, amount)
 	state.usesLeft -= 1
 	if state.usesLeft > 0 then
 		return
@@ -142,6 +168,7 @@ local function register(instance: Instance): boolean
 
 	local state: NodeState = {
 		instance = instance,
+		typeId = typeId :: string,
 		definition = definition,
 		prompt = prompt,
 		usesLeft = definition.uses,
