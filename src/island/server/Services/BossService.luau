@@ -7,7 +7,7 @@
 --   - Al derrotarlo: una pieza de la baliza para el servidor (Shared/Beacon) y su botín especial para
 --     cada jugador que le hizo daño.
 --   - El HUD lee su estado de ReplicatedStorage ("BossName", "BossHealth", "BossMaxHealth",
---     "BossPhase", "BossPosition").
+--     "BossPhase", "BossPosition"). La música lee "BossId" y "BossFighting" (está peleando).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -37,6 +37,8 @@ local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
 local TICK_SECONDS = 0.2
+-- Segundos que sigue "peleando" (y suena su tema) después de perder a su objetivo o del último golpe.
+local FIGHT_GRACE_SECONDS = 8
 local BIOME_NAMES: { [string]: string } = {
 	Rios = "los ríos",
 	Montanas = "las montañas",
@@ -56,6 +58,7 @@ type ActiveBoss = {
 	cooldowns: { [string]: number },
 	nextSpecialAt: number,
 	lastAttackAt: number,
+	fightingUntil: number, -- os.clock(); ver FIGHT_GRACE_SECONDS
 	contributors: { [Player]: boolean },
 }
 
@@ -111,16 +114,20 @@ end
 local function publish()
 	local boss = current
 	if not boss then
-		for _, name in { "BossName", "BossHealth", "BossMaxHealth", "BossPhase", "BossPosition" } do
+		for _, name in
+			{ "BossId", "BossName", "BossHealth", "BossMaxHealth", "BossPhase", "BossPosition", "BossFighting" }
+		do
 			ReplicatedStorage:SetAttribute(name, nil)
 		end
 		return
 	end
+	ReplicatedStorage:SetAttribute("BossId", boss.id)
 	ReplicatedStorage:SetAttribute("BossName", boss.definition.name)
 	ReplicatedStorage:SetAttribute("BossHealth", math.max(0, boss.humanoid.Health))
 	ReplicatedStorage:SetAttribute("BossMaxHealth", boss.humanoid.MaxHealth)
 	ReplicatedStorage:SetAttribute("BossPhase", boss.phase)
 	ReplicatedStorage:SetAttribute("BossPosition", boss.root.Position)
+	ReplicatedStorage:SetAttribute("BossFighting", os.clock() < boss.fightingUntil)
 end
 
 local function lairPosition(definition: Bosses.Boss): Vector3
@@ -227,6 +234,7 @@ function BossService.spawn(bossId: string)
 		cooldowns = {},
 		nextSpecialAt = now + 4,
 		lastAttackAt = 0,
+		fightingUntil = 0,
 		contributors = {},
 	}
 	for _, special in definition.specials do
@@ -428,6 +436,7 @@ local function tick(now: number)
 		end
 		return
 	end
+	boss.fightingUntil = now + FIGHT_GRACE_SECONDS
 
 	if now >= boss.nextSpecialAt then
 		for _, special in boss.definition.specials do
@@ -478,6 +487,7 @@ function BossService:Init()
 		local boss = current
 		if boss and attacker and model == boss.model then
 			boss.contributors[attacker] = true
+			boss.fightingUntil = os.clock() + FIGHT_GRACE_SECONDS
 		end
 	end)
 end

@@ -111,16 +111,24 @@ Effects.BossHurt = bossVoice(MonkeyVoices.Large.Hurt, 160)
 Effects.BossDeath = bossVoice(MonkeyVoices.Large.Death, 260)
 
 local Sounds = {
-	-- Música de fondo por situación (la Isla elige sola cuál toca). Basta con Lobby y Day: las
-	-- situaciones de la Isla que queden en "" usan la pista de Day.
+	-- Música de fondo por situación (la Isla elige sola cuál toca). Basta con Lobby y Day: la que
+	-- quede en "" usa la más parecida (FinalNight → Siege → Night → Day).
 	Music = {
 		Lobby = "rbxassetid://127164046914411",
-		Day = "rbxassetid://111965007272199", -- pista principal de la Isla
-		Night = "",
-		Siege = "", -- cuando los monos atacan el Basecamp
-		Boss = "", -- cerca de un jefe
-		FinalNight = "", -- La Gran Tropa
+		Day = "rbxassetid://108537342283944", -- pista principal de la Isla
+		Night = "rbxassetid://140472208029970", -- noche tranquila (sin monos atacando)
+		Siege = "rbxassetid://107447708451092", -- cuando los monos atacan el Basecamp
+		Boss = "", -- tema común de los jefes que no tengan uno propio en BossMusic
+		FinalNight = "rbxassetid://128802469389447", -- La Gran Tropa
 	},
+	-- Tema propio de cada jefe (id de Data/Bosses). Suena cuando el jefe está peleando y estás cerca.
+	-- Si queda en "", usa Music.Boss; si tampoco hay, sigue la música de la situación.
+	BossMusic = {
+		OrangutanDelManglar = "rbxassetid://102669914804895",
+		ChimpanceCaudillo = "rbxassetid://96506704725423",
+		GorilaAlbino = "rbxassetid://83706082419045",
+		GorilaDeCeniza = "rbxassetid://115935631696800",
+	} :: { [string]: string },
 	MusicVolume = 0.35, -- Lobby
 	IslandMusicVolume = 0.12,
 	-- Aviso de cada mensaje en pantalla.

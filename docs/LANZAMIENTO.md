@@ -15,8 +15,8 @@ Todo el código del lanzamiento está hecho. Lo que queda son **ajustes en el Cr
    - **Lobby y día:** algo tropical y tranquilo (marimbas, percusión suave).
    - **Noche:** ambiente tenso, selva nocturna.
    - **Asedio y La Gran Tropa:** tambores rápidos.
-   - **Jefe:** épica.
-3. Copia el ID de cada pista (botón derecho → *Copiar ID del recurso*) y pégalo en `src/shared/Data/Sounds.luau` con el formato `"rbxassetid://123456789"`. Basta con dos: `Lobby` y `Day` (la de la Isla); las situaciones que dejes en `""` usan la de `Day`.
+   - **Jefes:** épica. Cada jefe puede tener su tema en `BossMusic` (suena cuando el jefe pelea y estás cerca); los que queden en `""` usan `Music.Boss`.
+3. Copia el ID de cada pista (botón derecho → *Copiar ID del recurso*) y pégalo en `src/shared/Data/Sounds.luau` con el formato `"rbxassetid://123456789"`. Basta con dos: `Lobby` y `Day` (la de la Isla); las situaciones que dejes en `""` usan la más parecida (`FinalNight` → `Siege` → `Night` → `Day`; `Boss` → `Day`).
 4. La tecla **M** silencia la música.
 
 ### Efectos de sonido

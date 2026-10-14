@@ -25,8 +25,9 @@ local function fadeOut(sound: Sound)
 	tween:Play()
 end
 
--- Pone la pista "track" (clave de Sounds.Music). Si no tiene ID, se queda en silencio.
-function Music.play(track: string)
+-- Pone la pista "track" (clave de Sounds.Music, o cualquier nombre si se le pasa su "id"). Si no tiene
+-- ID, se queda en silencio.
+function Music.play(track: string, id: string?)
 	if track == currentTrack then
 		return
 	end
@@ -35,13 +36,13 @@ function Music.play(track: string)
 		fadeOut(current)
 		current = nil
 	end
-	local id = (Sounds.Music :: { [string]: string })[track]
-	if not id or id == "" then
+	local soundId = id or (Sounds.Music :: { [string]: string })[track]
+	if not soundId or soundId == "" then
 		return
 	end
 	local sound = Instance.new("Sound")
 	sound.Name = `Music_{track}`
-	sound.SoundId = id
+	sound.SoundId = soundId
 	sound.Looped = true
 	sound.Volume = 0
 	sound.Parent = SoundService
