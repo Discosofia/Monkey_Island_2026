@@ -160,7 +160,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 | Estadística | Función |
 |---|---|
 | Vida | Al llegar a 0 quedas **Caído**. |
-| Hambre | Baja con el tiempo (unos 20 min de lleno a vacío). Se recupera comiendo: carne cruda (poco), plátanos de los arbustos, carne asada y brochetas de la hoguera. |
+| Hambre | Baja con el tiempo (unos 20 min de lleno a vacío). Se recupera comiendo: carne cruda (poco), bananos de los arbustos y de los cultivos, plátanos (mejor asados), carne asada y brochetas de la hoguera. |
 | Sed | Baja más rápido (unos 14 min). Se recupera bebiendo agua del río. *Más adelante: hervirla, cocos o lluvia.* |
 | Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. |
 

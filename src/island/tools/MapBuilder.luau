@@ -12,7 +12,8 @@
 --
 -- Crea el terreno (océano, playas, selva con colinas, Basecamp, río con manglar, montañas con
 -- cueva y volcán) y las piezas: BasecampZone, puntos de aparición, empalizada con portones,
--- antorchas, hoguera, volcán activo, vegetación, puntos de recolección, marcadores de las
+-- antorchas, hoguera, volcán activo, vegetación (cinco variedades de árbol, palmeras y helechos),
+-- puntos de recolección, cultivos de banano y plátano, marcadores de las
 -- guaridas de los jefes y límites invisibles. Todo lo que no es terreno queda en Workspace.Mapa.
 --
 -- ⚠️ Borra TODO el terreno, la carpeta Workspace.Mapa, la Baseplate y los SpawnLocation sueltos
@@ -60,8 +61,6 @@ local SEA_FLOOR = -24
 local GROUND_LEVEL = 10
 local BEACH_WIDTH = 90
 local BASECAMP_RADIUS = 85
--- Nombre de las palmeras: ResourceService también lo usa para hacer talables las de mapas antiguos.
-local PALM_NAME = "Palmera"
 local RIVER_HALF_WIDTH = 12
 local RIVER_BANK = 16
 local RIVER_CARVE = RIVER_HALF_WIDTH + RIVER_BANK
@@ -76,6 +75,12 @@ local RESOURCE_COUNTS: { [string]: number } = { Tree = 140, Bush = 90, Rock = 60
 local JUNGLE_TREE_COUNT = 380
 local PALM_COUNT = 70
 local FERN_COUNT = 380
+-- Cultivos abandonados del santuario (GDD §13): grupos de matas en hileras.
+local PLANTATIONS: { { nodeType: string, count: number } } = {
+	{ nodeType = "BananaPlant", count = 12 },
+	{ nodeType = "PlantainPlant", count = 9 },
+}
+local PLANT_SPACING = 6.5
 
 local WOOD = Color3.fromRGB(110, 72, 40)
 local DARK_WOOD = Color3.fromRGB(85, 55, 30)
@@ -348,13 +353,6 @@ local function decorative(part: Part): Part
 	return part
 end
 
-local function newBall(name: string, diameter: number, cframe: CFrame, color: Color3, parent: Instance): Part
-	local part = newPart(name, Vector3.one, cframe, color, parent)
-	part.Shape = Enum.PartType.Ball
-	part.Size = Vector3.one * diameter
-	return part
-end
-
 -- Pieza invisible que solo sirve de referencia para el código.
 local function newMarker(name: string, size: Vector3, position: Vector3, parent: Instance): Part
 	local part = decorative(newPart(name, size, CFrame.new(position), Color3.new(1, 1, 1), parent))
@@ -433,15 +431,23 @@ local function buildCampfire(parent: Instance)
 		)
 		firstLog = firstLog or log
 	end
+	-- Piedras del círculo, cada una con su tamaño y giro para que no parezcan cubos alineados.
+	local stoneRng = Random.new(7)
 	for i = 0, 9 do
 		local angle = i * 2 * math.pi / 10
-		newPart(
+		local stone = newPart(
 			"Stone",
-			Vector3.new(1.6, 1.1, 1.6),
-			CFrame.new(center + Vector3.new(math.cos(angle) * 5, 0.5, math.sin(angle) * 5)),
-			Color3.fromRGB(110, 110, 115),
+			Vector3.new(stoneRng:NextNumber(1.4, 2), stoneRng:NextNumber(0.9, 1.3), stoneRng:NextNumber(1.3, 1.8)),
+			CFrame.new(center + Vector3.new(math.cos(angle) * 5, 0.4, math.sin(angle) * 5))
+				* CFrame.Angles(
+					stoneRng:NextNumber(-0.3, 0.3),
+					stoneRng:NextNumber(0, 2 * math.pi),
+					stoneRng:NextNumber(-0.3, 0.3)
+				),
+			Color3.fromRGB(110, 110, 115):Lerp(Color3.new(0, 0, 0), stoneRng:NextNumber(0, 0.15)),
 			campfire
 		)
+		stone.Material = Enum.Material.Rock
 	end
 	-- Bancos de tronco alrededor.
 	for i = 0, 3 do
@@ -633,83 +639,6 @@ local function placeResources(layout: Layout, map: Instance)
 	end
 end
 
-local function buildJungleTree(ground: Vector3, rng: Random, parent: Instance)
-	local tree = Instance.new("Model")
-	tree.Name = "ArbolSelva"
-	local scale = rng:NextNumber(0.9, 1.6)
-	local height = 16 * scale
-	local base = CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
-	newPart(
-		"Trunk",
-		Vector3.new(2.2, height, 2.2) * Vector3.new(scale, 1, scale),
-		base * CFrame.new(0, height / 2 - 1, 0),
-		WOOD,
-		tree
-	)
-	-- Se tala como cualquier árbol. El aviso va en un punto invisible a la altura del jugador:
-	-- el centro del tronco queda demasiado alto para alcanzarlo.
-	local promptAnchor = newMarker("PromptAnchor", Vector3.one, (base * CFrame.new(0, 3, 0)).Position, tree)
-	tree.PrimaryPart = promptAnchor
-	tree:SetAttribute(NodeModels.ATTRIBUTE, "Tree")
-	local color = LEAF_COLORS[rng:NextInteger(1, #LEAF_COLORS)]
-	for _ = 1, 3 do
-		local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-2, 2), rng:NextNumber(-3, 3)) * scale
-		decorative(
-			newBall(
-				"Leaves",
-				rng:NextNumber(8, 12) * scale,
-				base * CFrame.new(Vector3.new(0, height - 1, 0) + offset),
-				color,
-				tree
-			)
-		)
-	end
-	tree.Parent = parent
-end
-
-local function buildPalm(ground: Vector3, rng: Random, parent: Instance)
-	local palm = Instance.new("Model")
-	palm.Name = PALM_NAME
-	local scale = rng:NextNumber(0.9, 1.3)
-	local lean = math.rad(rng:NextNumber(5, 14))
-	-- Tronco en 3 tramos, cada uno un poco más inclinado.
-	local frame = CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
-	for _ = 1, 3 do
-		frame *= CFrame.Angles(lean, 0, 0)
-		local length = 6 * scale
-		newPart(
-			"Trunk",
-			Vector3.new(1.4 * scale, length, 1.4 * scale),
-			frame * CFrame.new(0, length / 2, 0),
-			Color3.fromRGB(150, 115, 70),
-			palm
-		)
-		frame *= CFrame.new(0, length, 0)
-	end
-	-- Hojas caídas en estrella y un par de cocos.
-	for i = 0, 5 do
-		local frond = newPart(
-			"Frond",
-			Vector3.new(1.6, 0.3, 8) * Vector3.new(scale, 1, scale),
-			frame
-				* CFrame.Angles(0, i * math.pi / 3, 0)
-				* CFrame.Angles(math.rad(-25), 0, 0)
-				* CFrame.new(0, 0, -4 * scale),
-			Color3.fromRGB(70, 150, 60),
-			palm
-		)
-		decorative(frond)
-	end
-	for i = 0, 1 do
-		decorative(
-			newBall("Coconut", 1.2, frame * CFrame.new((i - 0.5) * 1.2, -0.8, 0.5), Color3.fromRGB(90, 60, 30), palm)
-		)
-	end
-	-- Se tala con el hacha y da madera y cocos (Data/ResourceNodes, tipo Palm).
-	NodeModels.makeHarvestable(palm, "Palm", ground)
-	palm.Parent = parent
-end
-
 local function buildFern(ground: Vector3, rng: Random, parent: Instance)
 	local fern = Instance.new("Model")
 	fern.Name = "Helecho"
@@ -742,7 +671,7 @@ local function placeVegetation(layout: Layout, map: Instance)
 	local trees = scatter(layout, map, rng, byArea(JUNGLE_TREE_COUNT, layout), true, function(surface, distance)
 		return isJungleSpot(surface, distance, 15)
 	end, function(ground)
-		buildJungleTree(ground, rng, folder)
+		NodeModels.buildTree(ground, rng, rng:NextNumber(0.9, 1.6)).Parent = folder
 	end)
 	local palms = scatter(
 		layout,
@@ -757,7 +686,7 @@ local function placeVegetation(layout: Layout, map: Instance)
 				and surface.relief < 15
 		end,
 		function(ground)
-			buildPalm(ground, rng, folder)
+			NodeModels.buildPalm(ground, rng).Parent = folder
 		end
 	)
 	local ferns = scatter(layout, map, rng, byArea(FERN_COUNT, layout), true, function(surface, distance)
@@ -766,6 +695,44 @@ local function placeVegetation(layout: Layout, map: Instance)
 		buildFern(ground, rng, folder)
 	end)
 	print(`[MapBuilder] Vegetación: {trees} árboles, {palms} palmeras, {ferns} helechos`)
+end
+
+-- Cultivos de banano y plátano: cada uno es una cuadrícula de matas (2 hileras de 2 o 3) con
+-- huecos al azar, como un cultivo abandonado. Se cosechan con el aviso (Data/ResourceNodes).
+local function placePlantations(layout: Layout, map: Instance)
+	local folder = Instance.new("Folder")
+	folder.Name = "Cultivos"
+	folder.Parent = map
+
+	local rng = Random.new(layout.seed + 3)
+	local function fits(surface: Surface, distance: number): boolean
+		return isJungleSpot(surface, distance, 30)
+	end
+	for _, plantation in PLANTATIONS do
+		local plants = 0
+		local groves = scatter(layout, map, rng, byArea(plantation.count, layout), false, fits, function(center)
+			local frame = CFrame.new(center) * CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
+			local columns = rng:NextInteger(2, 3)
+			for row = 0, 1 do
+				for column = 0, columns - 1 do
+					local spot = frame
+						* Vector3.new(
+							(column - (columns - 1) / 2) * PLANT_SPACING + rng:NextNumber(-1.2, 1.2),
+							0,
+							(row - 0.5) * PLANT_SPACING + rng:NextNumber(-1.2, 1.2)
+						)
+					local surface = surfaceAt(layout, spot.X, spot.Z)
+					local distance = Vector2.new(spot.X, spot.Z).Magnitude
+					if rng:NextNumber() < 0.85 and fits(surface, distance) then
+						local ground = Vector3.new(spot.X, groundY(spot.X, spot.Z, surface.height, map), spot.Z)
+						NodeModels.buildMusa(plantation.nodeType, ground, rng).Parent = folder
+						plants += 1
+					end
+				end
+			end
+		end)
+		print(`[MapBuilder] {groves} cultivos de {plantation.nodeType} ({plants} matas)`)
+	end
 end
 
 -- Volcán activo: lago de lava brillante, llamas, luz, humo y chispas.
@@ -883,6 +850,7 @@ function MapBuilder.build(options: Options?)
 	buildLimits(layout, map)
 	buildVolcano(layout, map)
 	placeResources(layout, map)
+	placePlantations(layout, map)
 	placeVegetation(layout, map)
 	placeBossMarkers(layout, caveFloor, map)
 

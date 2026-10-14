@@ -32,13 +32,16 @@ local Items: { [string]: ItemDefinition } = {
 	SmallFang = { name = "Colmillo", icon = "🔺", order = 7, rarity = "Uncommon" },
 	Bandage = { name = "Venda", icon = "➕", order = 8, heal = 30 },
 	CookedMeat = { name = "Carne asada", icon = "🍖", order = 9, food = { hunger = 35, thirst = 0 } },
-	Banana = { name = "Plátano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
+	Banana = { name = "Banano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
 	Skewer = { name = "Brocheta", icon = "🍢", order = 11, food = { hunger = 60, thirst = 5 } },
 	Coconut = { name = "Coco", icon = "🥥", order = 12, food = { hunger = 5, thirst = 25 } },
 	-- Fase 2.3: botín de hueso y productos del taller del curandero.
 	Bone = { name = "Hueso", icon = "🦴", order = 13 },
 	Ointment = { name = "Ungüento", icon = "🧴", order = 14, heal = 70 },
 	Antidote = { name = "Antídoto", icon = "💉", order = 15 },
+	-- Matas de plátano de los cultivos: crudo alimenta poco, asado en la hoguera mucho más.
+	Plantain = { name = "Plátano", icon = "🥒", order = 16, food = { hunger = 6, thirst = 0 } },
+	RoastedPlantain = { name = "Plátano asado", icon = "🍠", order = 17, food = { hunger = 28, thirst = 0 } },
 	-- Fase 4: botín de las nuevas especies.
 	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
 	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },

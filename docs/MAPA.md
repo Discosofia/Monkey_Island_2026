@@ -18,13 +18,14 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 |---|---|
 | Círculo marrón en el centro | **Basecamp** (170 studs de diámetro): meseta plana con empalizada de estacas con punta, 4 portones con dintel y antorchas, hoguera con bancos y 4 puntos de aparición. El cuadrado verde es la `BasecampZone`. |
 | Verde con sombras | **Selva** con colinas (hasta unos 35 studs) y manchas de hierba animada y hojarasca. Se aplana cerca de la playa, el río, el Basecamp y la entrada de la cueva. |
-| Puntos verde oscuro | **Árboles de selva** (~380, se talan y dan 🌲 madera) y **helechos** (~380, dan 🌿 fibra), agrupados en bosques con claros entre medias. |
+| Puntos verde oscuro | **Árboles de selva** (~380, se talan y dan 🌲 madera) y **helechos** (~380, dan 🌿 fibra), agrupados en bosques con claros entre medias. Hay cinco variedades de árbol: **frondoso**, **ceiba** gigante con raíces en aleta y lianas, **mango** con frutos, **yarumo** de hojas plateadas y matas de **guadua**. |
+| (no sale en la imagen) | **Cultivos de banano y plátano** (~20): grupos de 3 a 6 matas en hileras por la selva. Se cosechan con el aviso: el racimo desaparece y vuelve a salir pasado un rato. |
 | Gris, noroeste | **Montañas.** La línea negra es la **cueva**: entrada en la falda que mira al Basecamp, túnel y sala al fondo. |
 | Oscuro, noreste | **Volcán activo:** lago de lava brillante, llamas, luz naranja, humo y chispas. |
 | Azul | **Río:** nace al pie de las montañas, rodea el Basecamp por el sur y desemboca al sureste. |
 | Marrón junto a la desembocadura | **Manglar** (barro). |
 | Anillo claro con puntos amarillos | **Playas con palmeras** (~70). Más allá, el mar y un **muro invisible** (círculo blanco) para que nadie salga. |
-| Puntos claros y blancos | **Recolectables:** árboles, arbustos y rocas (~290), fuera del Basecamp, la playa y el río. |
+| Puntos claros y blancos | **Recolectables:** árboles, arbustos y rocas irregulares (cantos rodados, lajas y peñascos; ~290), fuera del Basecamp, la playa y el río. |
 | Cuadrados rosas | **Guaridas de los 4 jefes** (marcadores invisibles para la Fase 5). |
 
 ### Cómo ejecutarlo
@@ -47,7 +48,7 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 **Opciones:**
 - `build({ seed = 7 })`: otro reparto aleatorio de colinas, costa y recursos.
 - `build({ islandRadius = 950 })`: una isla más grande. Por defecto el radio es 650 studs, unos 40 segundos a pie del centro a la playa; con 950 son unos 60 segundos.
-  - La vegetación y los recursos **escalan con el tamaño**, así que la densidad de la selva es la misma. Con 950 salen unos 800 árboles, 800 helechos, 100 palmeras y 600 recolectables, unas 8.000 piezas en total.
+  - La vegetación y los recursos **escalan con el tamaño**, así que la densidad de la selva es la misma. Con 950 salen unos 800 árboles, 800 helechos, 100 palmeras, 45 cultivos y 600 recolectables, unas 28.000 piezas en total (unas 13.000 con el radio de 650). Si en móvil va justo, activa el *streaming* (docs/RENDIMIENTO.md) o baja `JUNGLE_TREE_COUNT` en `MapBuilder`.
   - La cueva se alarga para que la sala siga bajo la montaña.
 - Se pueden combinar: `build({ islandRadius = 950, seed = 7 })`.
 
@@ -114,8 +115,12 @@ Cualquier **Model** o **Part** con este atributo se convierte en un punto de rec
 | `ResourceNode` | string | `Rock` | ⛰️ Piedra |
 | `ResourceNode` | string | `Bush` | 🌿 Fibra |
 | `ResourceNode` | string | `Fern` | 🌿 Fibra (menos que un arbusto) |
+| `ResourceNode` | string | `Palm` | 🌲 Madera y 🥥 cocos |
+| `ResourceNode` | string | `BananaPlant` | 🍌 Bananos (y a veces fibra) |
+| `ResourceNode` | string | `PlantainPlant` | 🥒 Plátanos (y a veces fibra); se asan en la hoguera |
 
-- **Árboles y rocas** se trabajan golpeándolos con el **hacha** o el **pico** equipados. Los **arbustos y helechos** se recogen con el aviso (E o tocar).
+- **Árboles y rocas** se trabajan golpeándolos con el **hacha** o el **pico** equipados. Los **arbustos, helechos y matas** se recogen con el aviso (E o tocar).
+- Si el modelo tiene una carpeta llamada `Cosecha`, al agotarse solo desaparece lo que hay dentro (por ejemplo, el racimo) y el resto se queda en su sitio.
 - En un **Model**, el aviso y la barra de progreso aparecen sobre su `PrimaryPart` (o sobre su primera pieza si no tiene). El alcance del hacha y el pico se mide desde esa pieza: en un árbol grande, usa como `PrimaryPart` el tronco o una pieza invisible en su base.
 - Pon los puntos **fuera** del Basecamp: dentro no debe haber recursos (GDD §10).
 - Los tiempos, cantidades y usos se ajustan en `src/shared/Data/ResourceNodes.luau`.

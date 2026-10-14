@@ -118,11 +118,21 @@ local Recipes: { [string]: Recipe } = {
 		station = "Campfire",
 		name = "Brocheta",
 		icon = "🍢",
-		description = "Carne y plátano: casi llena el hambre.",
+		description = "Carne y banano: casi llena el hambre.",
 		order = 21,
 		cost = { { itemId = "Meat", amount = 1 }, { itemId = "Banana", amount = 2 } },
 		itemId = "Skewer",
 		amount = 1,
+	},
+	RoastedPlantain = {
+		station = "Campfire",
+		name = "Plátano asado",
+		icon = "🍠",
+		description = "Dos plátanos de los cultivos, asados: quitan bastante hambre.",
+		order = 22,
+		cost = { { itemId = "Plantain", amount = 2 } },
+		itemId = "RoastedPlantain",
+		amount = 2,
 	},
 	-- Taller del curandero (Fase 2.3).
 	Ointment = {

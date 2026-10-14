@@ -1,10 +1,11 @@
 --!strict
--- Tipos de puntos de recolección. El nombre de cada entrada (Tree, Rock, Bush, Fern) es el valor
+-- Tipos de puntos de recolección. El nombre de cada entrada (Tree, Rock, Bush, Fern…) es el valor
 -- que hay que poner en el atributo "ResourceNode" de un modelo del mapa (ver docs/MAPA.md).
 -- Dos formas de recolectar:
 --   - Con herramienta ("tool"): árboles y rocas. Se golpean con el hacha o el pico equipados;
 --     cada golpe suma la potencia de la herramienta y al llegar a "toughness" da el material.
---   - Con aviso ("holdSeconds"): arbustos y helechos. Se mantiene pulsado E (o se toca en móvil).
+--   - Con aviso ("holdSeconds"): arbustos, helechos y matas de banano y plátano. Se mantiene
+--     pulsado E (o se toca en móvil).
 
 export type NodeDefinition = {
 	name: string, -- lo que ve el jugador sobre el aviso
@@ -81,6 +82,29 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		uses = 2,
 		respawnSeconds = 90,
 		extra = { itemId = "Banana", chance = 0.35, amount = 1 },
+	},
+	-- Matas de los cultivos abandonados (GDD §13). Al cosechar se llevan el racimo: la mata se queda
+	-- en pie y vuelve a dar pasado un tiempo. Las hojas dan algo de fibra.
+	BananaPlant = {
+		name = "Mata de banano",
+		actionText = "Cosechar",
+		itemId = "Banana",
+		amount = 3,
+		holdSeconds = 2,
+		uses = 1,
+		respawnSeconds = 180,
+		extra = { itemId = "Fiber", chance = 0.5, amount = 1 },
+	},
+	-- El plátano crudo alimenta poco: rinde de verdad asado en la hoguera (Data/Recipes).
+	PlantainPlant = {
+		name = "Mata de plátano",
+		actionText = "Cosechar",
+		itemId = "Plantain",
+		amount = 3,
+		holdSeconds = 2,
+		uses = 1,
+		respawnSeconds = 180,
+		extra = { itemId = "Fiber", chance = 0.5, amount = 1 },
 	},
 }
 

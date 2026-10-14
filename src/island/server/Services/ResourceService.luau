@@ -1,11 +1,12 @@
 --!strict
--- Puntos de recolección de la isla: árboles, rocas, arbustos y helechos (GDD §7).
--- Cualquier Model o Part del mapa con el atributo "ResourceNode" = "Tree" | "Rock" | "Bush" | "Fern"
--- se convierte en un punto de recolección (ver docs/MAPA.md). Dos formas (Data/ResourceNodes):
+-- Puntos de recolección de la isla: árboles, rocas, arbustos, helechos y matas de banano y
+-- plátano (GDD §7). Cualquier Model o Part del mapa con el atributo "ResourceNode" (un tipo de
+-- Data/ResourceNodes) se convierte en un punto de recolección (ver docs/MAPA.md). Dos formas:
 --   - Árboles y rocas: se golpean con el hacha o el pico equipados (CombatService llama a strike).
 --     Una barra muestra el progreso; la herramienta mejor necesita menos golpes y da más.
---   - Arbustos y helechos: se mantiene pulsado el aviso (E en PC, tocar en móvil).
--- Tras varios usos el punto se agota y reaparece pasado un tiempo.
+--   - Arbustos, helechos y matas: se mantiene pulsado el aviso (E en PC, tocar en móvil).
+-- Tras varios usos el punto se agota y reaparece pasado un tiempo. Si el modelo tiene una carpeta
+-- "Cosecha" (NodeModels.HARVEST_FOLDER), solo desaparece ella: la mata se queda sin su racimo.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,10 +26,22 @@ local InventoryService = require(script.Parent.InventoryService)
 -- Margen extra (studs) sobre la distancia del aviso, por el retraso de la red.
 local DISTANCE_TOLERANCE = 4
 -- Nodos de prueba alrededor del Basecamp si el mapa no tiene ninguno.
--- Nombre de las palmeras que genera MapBuilder.
-local PALM_NAME = "Palmera"
-local TEST_NODE_TYPES =
-	{ "Tree", "Rock", "Bush", "Tree", "Bush", "Tree", "Rock", "Bush", "Tree", "Rock", "Bush", "Tree" }
+local TEST_NODE_TYPES = {
+	"Tree",
+	"Rock",
+	"Bush",
+	"BananaPlant",
+	"Tree",
+	"Bush",
+	"Tree",
+	"Rock",
+	"PlantainPlant",
+	"Bush",
+	"Tree",
+	"Rock",
+	"Bush",
+	"Tree",
+}
 
 -- Caída de un árbol talado: duración y ángulo final.
 local FALL_SECONDS = 1.2
@@ -164,7 +177,12 @@ end
 
 local rng = Random.new()
 
--- Da el material (y a veces un extra, como plátanos de los arbustos) y, si el punto se agota,
+-- Lo que desaparece al agotarse: la cosecha (el racimo de una mata) si el modelo la tiene; si no, todo.
+local function depletedPartOf(instance: Instance): Instance
+	return instance:FindFirstChild(NodeModels.HARVEST_FOLDER) or instance
+end
+
+-- Da el material (y a veces un extra, como bananos de los arbustos) y, si el punto se agota,
 -- lo oculta hasta que reaparece.
 local function collect(state: NodeState, player: Player, amount: number)
 	-- Material extra del recolector y sus talentos.
@@ -190,16 +208,17 @@ local function collect(state: NodeState, player: Player, amount: number)
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	Sfx.play(if state.definition.falls then "TreeFall" else "RockBreak", state.anchor.Position)
+	local hidden = depletedPartOf(state.instance)
 	if state.definition.falls and state.instance:IsA("Model") and root and root:IsA("BasePart") then
 		fall(state.instance, root.Position, function()
-			setVisible(state.instance, false)
+			setVisible(hidden, false)
 		end)
 	else
-		setVisible(state.instance, false)
+		setVisible(hidden, false)
 	end
 	task.delay(state.definition.respawnSeconds, function()
 		state.usesLeft = state.definition.uses
-		setVisible(state.instance, true)
+		setVisible(hidden, true)
 		if state.prompt then
 			state.prompt.Enabled = true
 		end
@@ -380,7 +399,7 @@ local function upgradeOldPalms()
 	for _, instance in Workspace:GetDescendants() do
 		if
 			instance:IsA("Model")
-			and instance.Name == PALM_NAME
+			and instance.Name == NodeModels.PALM_NAME
 			and instance:GetAttribute(NodeModels.ATTRIBUTE) == nil
 		then
 			local trunk = instance:FindFirstChild("Trunk")
