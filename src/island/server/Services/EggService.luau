@@ -36,20 +36,30 @@ local RoleService = require(script.Parent.RoleService)
 
 local TICK_SECONDS = 0.5
 local DELIVERY_DISTANCE = 10
--- Medidas del huevo: un óvalo alto con la base más ancha (dos esferas estiradas) y motas.
-local EGG_SIZE = Vector3.new(2, 3, 2)
-local EGG_HALF_HEIGHT = 1.5
+-- Forma del huevo: perfil de revolución más ancho abajo que arriba (radio según la altura).
+-- Se construye con una fila de esferas a lo largo del eje, cada una la más grande que cabe dentro
+-- del perfil: juntas dan un contorno liso, sin las aristas que dejan dos óvalos cruzados.
+local EGG_HALF_HEIGHT = 1.65
+local EGG_RADIUS = 1.2
+local EGG_TAPER = 0.16 -- cuánto más estrecha es la punta de arriba que la base
+local EGG_SPHERES = 12
 local EGG_SHELL = Color3.fromRGB(240, 230, 200)
 local EGG_SPOTS = Color3.fromRGB(80, 170, 170)
+local EGG_SPOTS_DARK = Color3.fromRGB(45, 110, 120)
 local EGG_GLOW = Color3.fromRGB(150, 240, 255)
-local SPOT_COUNT = 9
+local SPOT_COUNT = 16
+-- Cuánto se hunde el huevo en el forro del nido (punto EggSeat de BuildModels).
+local NEST_SINK = 0.35
 
 type EggState = "Ground" | "Carried" | "Incubating"
 
 local EggService = {}
 
 local rng = Random.new()
+-- "egg" es la esfera central (lleva el aviso, la luz y la soldadura a la cabeza del portador);
+-- "eggModel" agrupa todas las piezas, para moverlas de sitio y resaltarlas juntas.
 local egg: BasePart? = nil
+local eggModel: Model? = nil
 local state: EggState = "Ground"
 local carrier: Player? = nil
 local participants: { [Player]: boolean } = {}
@@ -67,10 +77,11 @@ local function setStatus(text: string?)
 end
 
 local function clearEgg()
-	if egg then
-		egg:Destroy()
+	if eggModel then
+		eggModel:Destroy()
 	end
 	egg = nil
+	eggModel = nil
 	if carrier then
 		carrier:SetAttribute("CarryingEgg", nil)
 	end
@@ -93,10 +104,43 @@ end
 
 local pickUp: (player: Player) -> ()
 
-local function shellPart(name: string, size: Vector3, color: Color3): Part
+-- Radio del huevo a una altura (0 en el centro, ±EGG_HALF_HEIGHT en las puntas).
+local function eggRadius(height: number): number
+	local t = height / EGG_HALF_HEIGHT
+	if math.abs(t) >= 1 then
+		return 0
+	end
+	return EGG_RADIUS * math.sqrt(1 - t * t) * (1 - EGG_TAPER * t)
+end
+
+-- Esferas que rellenan el perfil: X = altura del centro, Y = radio. Se calculan una vez.
+local eggSpheres: { Vector2 }? = nil
+local function spheresOfEgg(): { Vector2 }
+	local cached = eggSpheres
+	if cached then
+		return cached
+	end
+	local spheres = {}
+	local first = -EGG_HALF_HEIGHT + 0.5
+	local step = 2 * (EGG_HALF_HEIGHT - 0.5) / (EGG_SPHERES - 1)
+	for i = 0, EGG_SPHERES - 1 do
+		local center = first + i * step
+		-- La esfera más grande con ese centro que no se sale del perfil.
+		local radius = math.huge
+		for sample = 0, 400 do
+			local height = -EGG_HALF_HEIGHT + sample * 2 * EGG_HALF_HEIGHT / 400
+			radius = math.min(radius, Vector2.new(height - center, eggRadius(height)).Magnitude)
+		end
+		table.insert(spheres, Vector2.new(center, radius))
+	end
+	eggSpheres = spheres
+	return spheres
+end
+
+-- Pieza del huevo: esfera (Ball) o, con "oval", un óvalo aplastado (para las motas).
+local function shellPart(name: string, size: Vector3, color: Color3, oval: boolean): Part
 	local part = Instance.new("Part")
 	part.Name = name
-	part.Size = size
 	part.Color = color
 	part.Material = Enum.Material.SmoothPlastic
 	part.CanCollide = false
@@ -104,48 +148,79 @@ local function shellPart(name: string, size: Vector3, color: Color3): Part
 	part.CanQuery = false
 	part.Massless = true
 	part.CastShadow = false
-	local mesh = Instance.new("SpecialMesh")
-	mesh.MeshType = Enum.MeshType.Sphere
-	mesh.Parent = part
+	if oval then
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere
+		mesh.Parent = part
+	else
+		part.Shape = Enum.PartType.Ball
+	end
+	part.Size = size
 	return part
 end
 
--- Pega una pieza decorativa al huevo (la soldadura va dentro de la pieza, así no se confunde con la
--- que lo une a la cabeza del portador).
-local function attach(shell: BasePart, piece: BasePart, offset: CFrame)
-	piece.CFrame = shell.CFrame * offset
+-- Pega una pieza al huevo (la soldadura va dentro de la pieza, así no se confunde con la que lo
+-- une a la cabeza del portador).
+local function attach(core: BasePart, model: Model, piece: BasePart, offset: CFrame)
+	piece.CFrame = core.CFrame * offset
 	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = shell
+	weld.Part0 = core
 	weld.Part1 = piece
 	weld.Parent = piece
-	piece.Parent = shell
+	piece.Parent = model
 end
 
 local function buildEgg(): BasePart
-	local main = shellPart("HuevoMisterioso", EGG_SIZE, EGG_SHELL)
-	main.Anchored = true
-	attach(main, shellPart("Base", Vector3.new(2.3, 2.1, 2.3), EGG_SHELL), CFrame.new(0, -0.42, 0))
-	-- Motas repartidas por la mitad de arriba (ángulo áureo), orientadas hacia fuera.
-	for i = 1, SPOT_COUNT do
-		local angle = i * 2.4
-		local height = -0.3 + (i / SPOT_COUNT) * 1.3
-		local radius = math.sqrt(1 - (height / EGG_HALF_HEIGHT) ^ 2) * EGG_SIZE.X / 2
-		local position = Vector3.new(math.cos(angle) * radius, height, math.sin(angle) * radius)
-		local normal = Vector3.new(position.X, height * 0.45, position.Z).Unit
-		local size = 0.22 + (i % 3) * 0.08
-		local spot = shellPart("Mota", Vector3.new(size * 1.3, size, 0.12), EGG_SPOTS)
-		attach(main, spot, CFrame.lookAt(position, position + normal))
+	local model = Instance.new("Model")
+	model.Name = "HuevoMisterioso"
+	eggModel = model
+
+	-- La esfera más cercana al centro es la pieza principal; las demás se le sueldan.
+	local spheres = spheresOfEgg()
+	local coreIndex = 1
+	for i, sphere in spheres do
+		if math.abs(sphere.X) < math.abs(spheres[coreIndex].X) then
+			coreIndex = i
+		end
 	end
+	local core = spheres[coreIndex]
+	local main = shellPart("Cascara", Vector3.one * core.Y * 2, EGG_SHELL, false)
+	main.Anchored = true
+	main.Parent = model
+	model.PrimaryPart = main
+	for i, sphere in spheres do
+		if i ~= coreIndex then
+			local shell = shellPart("Cascara", Vector3.one * sphere.Y * 2, EGG_SHELL, false)
+			attach(main, model, shell, CFrame.new(0, sphere.X - core.X, 0))
+		end
+	end
+
+	-- Motas por toda la cáscara (espiral con el ángulo áureo), pegadas a la superficie y con su
+	-- inclinación. Algo más grandes hacia la base.
+	for i = 1, SPOT_COUNT do
+		local height = EGG_HALF_HEIGHT * (0.85 - 1.65 * (i - 0.5) / SPOT_COUNT)
+		local angle = i * 2.39996
+		local slope = (eggRadius(height + 0.01) - eggRadius(height - 0.01)) / 0.02
+		local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
+		local position = outward * (eggRadius(height) - 0.02) + Vector3.new(0, height - core.X, 0)
+		local normal = (outward - Vector3.new(0, slope, 0)).Unit
+		local size = 0.22 + (i % 4) * 0.07 + (1 - height / EGG_HALF_HEIGHT) * 0.06
+		local color = if i % 3 == 0 then EGG_SPOTS_DARK else EGG_SPOTS
+		local spot = shellPart("Mota", Vector3.new(size * 1.35, size, 0.08), color, true)
+		attach(main, model, spot, CFrame.lookAt(position, position + normal) * CFrame.Angles(0, 0, angle))
+	end
+
 	local light = Instance.new("PointLight")
 	light.Color = EGG_GLOW
 	light.Range = 14
 	light.Brightness = 2
 	light.Parent = main
+	-- En el modelo, no en una pieza: así resalta el huevo entero con un solo contorno.
 	local highlight = Instance.new("Highlight")
 	highlight.FillTransparency = 0.75
 	highlight.FillColor = EGG_GLOW
 	highlight.OutlineColor = Color3.fromRGB(200, 250, 255)
-	highlight.Parent = main
+	highlight.Parent = model
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "EggPrompt"
 	prompt.ActionText = "Recoger (activa PvP)"
@@ -176,6 +251,12 @@ local function setPrompt(part: BasePart, enabled: boolean)
 	end
 end
 
+local function setEggParent(parent: Instance)
+	if eggModel then
+		eggModel.Parent = parent
+	end
+end
+
 -- Pone el huevo en el suelo con su aviso "Recoger".
 local function placeOnGround(position: Vector3)
 	local part = egg
@@ -187,7 +268,7 @@ local function placeOnGround(position: Vector3)
 	unweld(eggPart)
 	eggPart.Anchored = true
 	eggPart.CFrame = CFrame.new(position + Vector3.new(0, EGG_HALF_HEIGHT - 0.1, 0))
-	eggPart.Parent = Workspace
+	setEggParent(Workspace)
 	setPrompt(eggPart, true)
 	state = "Ground"
 end
@@ -210,7 +291,7 @@ function pickUp(player: Player)
 	weld.Part0 = head
 	weld.Part1 = part
 	weld.Parent = part
-	part.Parent = character
+	setEggParent(character)
 	PvPService.forceOn(player, 60, "llevas el huevo")
 	announce(`🥚 {player.DisplayName} lleva el huevo. ¡Escoltadlo hasta el nido!`)
 end
@@ -330,15 +411,22 @@ local function startIncubation(target: Model)
 	carrier = nil
 	state = "Incubating"
 	nest = target
-	-- Lo deja en el centro del nido, apoyado (un poco hundido) en la paja.
+	-- Lo deja en el hueco del nido (su punto "EggSeat"), un poco hundido en el forro de paja.
 	unweld(part)
 	setPrompt(part, false)
-	local bounds, size = target:GetBoundingBox()
-	local strawTop = bounds.Position.Y - size.Y / 2 + 0.6
+	local seat = target:FindFirstChild("EggSeat", true)
+	local bottom: Vector3
+	if seat and seat:IsA("BasePart") then
+		bottom = seat.Position
+	else
+		-- Nido sin ese punto: el centro de la caja, a 0,6 del fondo.
+		local bounds, size = target:GetBoundingBox()
+		bottom = bounds.Position - Vector3.new(0, size.Y / 2 - 0.6, 0)
+	end
 	part.Anchored = true
-	part.CFrame = CFrame.new(bounds.Position.X, strawTop + EGG_HALF_HEIGHT - 0.35, bounds.Position.Z)
+	part.CFrame = CFrame.new(bottom + Vector3.new(0, EGG_HALF_HEIGHT - NEST_SINK, 0))
 		* CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
-	part.Parent = Workspace
+	setEggParent(Workspace)
 	incubationEndsAt = os.clock() + Config.Egg.IncubationSeconds
 	announce(`🥚 ¡El huevo está en el nido! Defendedlo {Config.Egg.IncubationSeconds} s hasta que eclosione`)
 

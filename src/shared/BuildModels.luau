@@ -11,6 +11,8 @@ local DARK_WOOD = Color3.fromRGB(85, 55, 32)
 local STONE = Color3.fromRGB(125, 125, 130)
 local STONE_DARK = Color3.fromRGB(90, 90, 95)
 local FABRIC = Color3.fromRGB(205, 190, 150)
+local STRAW = Color3.fromRGB(220, 192, 125)
+local STRAW_DARK = Color3.fromRGB(170, 135, 80)
 
 local BuildModels = {}
 
@@ -33,6 +35,21 @@ local function newPart(
 	part.BottomSurface = Enum.SurfaceType.Smooth
 	part.Parent = model
 	return part
+end
+
+-- Pieza de adorno: no choca ni bloquea rayos.
+local function decor(part: Part): Part
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	return part
+end
+
+-- Convierte una pieza en un óvalo del tamaño de la pieza (las Ball solo pueden ser esferas).
+local function oval(part: Part)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = part
 end
 
 -- Las piezas se describen respecto al centro de la caja; "bottom" es la altura del suelo.
@@ -182,29 +199,127 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			end
 		end
 	end,
-	-- Nido: aro de ramas sobre una base de paja.
+	-- Nido: cuenco redondo de ramitas entrelazadas en dos vueltas, con forro de paja, plumas y
+	-- ramitas sueltas. El huevo se apoya en el punto invisible "EggSeat" (EggService).
 	Nest = function(model, size)
 		local bottom = -size.Y / 2
-		newPart(
-			model,
-			"Straw",
-			Vector3.new(size.X - 1, 0.6, size.Z - 1),
-			CFrame.new(0, bottom + 0.3, 0),
-			Color3.fromRGB(210, 180, 110),
-			Enum.Material.Grass
-		)
-		for i = 0, 7 do
-			local angle = i * math.pi / 4
+		local radius = size.X / 2 - 0.95 -- eje del aro de ramitas
+		local twigColors = { DARK_WOOD, WOOD, Color3.fromRGB(150, 115, 70) }
+
+		local mound = decor(
 			newPart(
 				model,
-				"Branch",
-				Vector3.new(size.X / 2.4, 1.2, 0.8),
-				CFrame.new(math.cos(angle) * (size.X / 2 - 0.6), bottom + 1.2, math.sin(angle) * (size.Z / 2 - 0.6))
-					* CFrame.Angles(0, -angle + math.pi / 2, 0),
-				DARK_WOOD,
-				Enum.Material.Wood
+				"Mound",
+				Vector3.new(size.X - 0.4, 1.4, size.Z - 0.4),
+				CFrame.new(0, bottom + 0.35, 0),
+				STRAW_DARK,
+				Enum.Material.SmoothPlastic
 			)
+		)
+		oval(mound)
+
+		-- Dos vueltas de ramitas tangentes al aro, inclinadas a un lado y a otro (como tejidas).
+		for layer = 0, 1 do
+			local count = 12
+			local layerRadius = radius - layer * 0.15
+			for i = 0, count - 1 do
+				local angle = (i + layer * 0.5) * 2 * math.pi / count
+				local position = Vector3.new(
+					math.cos(angle) * layerRadius,
+					bottom + 0.85 + layer * 0.5,
+					math.sin(angle) * layerRadius
+				)
+				local tangent = Vector3.new(-math.sin(angle), 0, math.cos(angle))
+				local twig = newPart(
+					model,
+					"Twig",
+					Vector3.new(2 * math.pi * layerRadius / count * 1.4, 0.55, 0.55),
+					CFrame.fromMatrix(position, tangent, Vector3.yAxis)
+						* CFrame.Angles(0, 0, (if (i + layer) % 2 == 0 then 1 else -1) * 0.16),
+					twigColors[(i + layer) % #twigColors + 1],
+					Enum.Material.Wood
+				)
+				twig.Shape = Enum.PartType.Cylinder
+			end
 		end
+
+		-- Paja asomando por el borde.
+		for i = 0, 7 do
+			local angle = (i + 0.25) * math.pi / 4
+			local tuft = decor(
+				newPart(
+					model,
+					"Tuft",
+					Vector3.new(1.1, 0.45, 0.7),
+					CFrame.new(math.cos(angle) * radius, bottom + 1.6, math.sin(angle) * radius)
+						* CFrame.Angles(0, -angle, 0.15),
+					STRAW,
+					Enum.Material.SmoothPlastic
+				)
+			)
+			oval(tuft)
+		end
+
+		-- Ramitas sueltas que salen del aro hacia fuera y hacia arriba.
+		for i = 0, 7 do
+			local angle = i * math.pi / 4 + 0.3
+			local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
+			local start = outward * (radius - 0.2) + Vector3.new(0, bottom + 1.1 + (i % 2) * 0.4, 0)
+			local direction = (outward + Vector3.new(0, 0.35 + (i % 3) * 0.2, 0)).Unit
+			local twig = decor(
+				newPart(
+					model,
+					"LooseTwig",
+					Vector3.new(1.6, 0.18, 0.18),
+					CFrame.lookAt(start + direction * 0.8, start + direction * 2) * CFrame.Angles(0, math.pi / 2, 0),
+					DARK_WOOD,
+					Enum.Material.Wood
+				)
+			)
+			twig.Shape = Enum.PartType.Cylinder
+		end
+
+		-- Forro: cuenco de paja clara dentro del aro, con unas plumas.
+		local lining = decor(
+			newPart(
+				model,
+				"Lining",
+				Vector3.new(radius * 2 - 0.6, 0.9, radius * 2 - 0.6),
+				CFrame.new(0, bottom + 0.75, 0),
+				STRAW,
+				Enum.Material.SmoothPlastic
+			)
+		)
+		oval(lining)
+		local liningTop = bottom + 0.75 + 0.45
+		for i = 0, 2 do
+			local angle = i * 2.1 + 0.6
+			local feather = decor(
+				newPart(
+					model,
+					"Feather",
+					Vector3.new(0.3, 0.05, 0.8),
+					CFrame.new(math.cos(angle) * 1.4, liningTop - 0.12, math.sin(angle) * 1.4)
+						* CFrame.Angles(0.15, angle, 0),
+					if i == 1 then Color3.fromRGB(150, 230, 240) else Color3.fromRGB(245, 245, 240),
+					Enum.Material.SmoothPlastic
+				)
+			)
+			oval(feather)
+		end
+
+		-- Donde se apoya la base del huevo: el centro del forro.
+		local seat = decor(
+			newPart(
+				model,
+				"EggSeat",
+				Vector3.one * 0.5,
+				CFrame.new(0, liningTop, 0),
+				STRAW,
+				Enum.Material.SmoothPlastic
+			)
+		)
+		seat.Transparency = 1
 	end,
 	-- Baliza: torre de metal con antena y una luz roja arriba.
 	Beacon = function(model, size)
