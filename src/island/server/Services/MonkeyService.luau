@@ -40,6 +40,7 @@ local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local Status = require(script.Parent.Parent.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
@@ -746,6 +747,22 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 		return
 	end
 
+	-- Habilidades de los roles (Combat/Status): aturdido no hace nada; ralentizado anda más despacio;
+	-- provocado por un guerrero va a por él.
+	if Status.isStunned(monkey.model) then
+		humanoid:MoveTo(position)
+		return
+	end
+	local speed = definition.walkSpeed * Status.speedFactor(monkey.model)
+	if humanoid.WalkSpeed ~= speed then
+		humanoid.WalkSpeed = speed
+	end
+	local taunter = Status.tauntTarget(monkey.model)
+	local nearHome = (position - monkey.group.home).Magnitude <= definition.leashRange
+	if taunter and monkey.target ~= taunter and nearHome and LifeState.isAlive(taunter) then
+		chase(monkey, taunter)
+	end
+
 	-- Nunca dentro del Basecamp.
 	if BasecampService.isInside(position) and monkey.state ~= "Return" then
 		monkey.state = "Return"
@@ -875,6 +892,14 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	local position = monkey.root.Position
 	local humanoid = monkey.humanoid
 	local canAttack = now - monkey.lastAttackAt >= definition.attackCooldownSeconds
+	if Status.isStunned(monkey.model) then
+		humanoid:MoveTo(position)
+		return
+	end
+	local speed = definition.walkSpeed * Status.speedFactor(monkey.model)
+	if humanoid.WalkSpeed ~= speed then
+		humanoid.WalkSpeed = speed
+	end
 
 	-- Jugador vivo más cercano (dentro o fuera del Basecamp).
 	local target: PlayerInfo? = nil

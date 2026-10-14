@@ -1,7 +1,7 @@
 --!strict
 -- Interfaz del Lobby (Fase 3):
 --   - Cabecera con el Ámbar y el récord de días.
---   - Pestañas: Rol (elegir médico, cazador o recolector), Talentos (del rol elegido), Tienda
+--   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar) y Grupo (invitar a jugadores del Lobby para viajar juntos).
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
@@ -202,7 +202,11 @@ function LobbyUIController:Start()
 			row.frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT + 22)
 			row.detail.Size = UDim2.new(0.68, -10, 0, 56)
 			row.title.Text = `{role.icon} {role.name} · nivel {Progression.level(xp)}`
-			row.detail.Text = `{role.passive}\nHabilidad: {role.ability.name}. {role.ability.description}`
+			local names = {}
+			for _, ability in role.abilities do
+				table.insert(names, if ability.ultimate then `definitiva: {ability.name}` else ability.name)
+			end
+			row.detail.Text = `{role.passive}\nHabilidades: {table.concat(names, " · ")}`
 			local isSelected = roleId == selected
 			setButton(row.button, if isSelected then "Elegido" else "Elegir", not isSelected)
 			row.button.MouseButton1Click:Connect(function()

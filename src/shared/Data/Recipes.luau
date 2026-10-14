@@ -44,6 +44,16 @@ local Recipes: { [string]: Recipe } = {
 		itemId = "Bandage",
 		amount = 1,
 	},
+	Arrows = {
+		station = "Workbench",
+		name = "Flechas",
+		icon = "🏹",
+		description = "5 flechas para el arco del cazador.",
+		order = 5,
+		cost = { { itemId = "Wood", amount = 1 }, { itemId = "Fiber", amount = 1 } },
+		itemId = "Arrow",
+		amount = 5,
+	},
 	StoneAxe = {
 		station = "Workbench",
 		name = "Hacha de piedra",

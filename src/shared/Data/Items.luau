@@ -42,6 +42,8 @@ local Items: { [string]: ItemDefinition } = {
 	-- Matas de plátano de los cultivos: crudo alimenta poco, asado en la hoguera mucho más.
 	Plantain = { name = "Plátano", icon = "🥒", order = 16, food = { hunger = 6, thirst = 0 } },
 	RoastedPlantain = { name = "Plátano asado", icon = "🍠", order = 17, food = { hunger = 28, thirst = 0 } },
+	-- Munición del arco del cazador (Data/Weapons).
+	Arrow = { name = "Flecha", icon = "🏹", order = 18 },
 	-- Fase 4: botín de las nuevas especies.
 	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
 	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },

@@ -1,6 +1,7 @@
 --!strict
 -- Armas y herramientas (GDD §6, Fases 1.3 y 1.6). Para balancear, cambia los números aquí.
--- Las iniciales están en Config.Combat.StarterWeapons; el resto se fabrica (Data/Recipes).
+-- Las iniciales dependen del rol (Data/Roles, más Config.Combat.StarterTools); el resto se fabrica
+-- (Data/Recipes).
 
 export type WeaponDefinition = {
 	name: string,
@@ -10,6 +11,8 @@ export type WeaponDefinition = {
 	range: number, -- studs
 	ammoItemId: string?, -- ítem que gasta cada disparo (ver Data/Items)
 	projectileSpeed: number?, -- studs por segundo
+	projectile: ("Stone" | "Arrow" | "Spell")?, -- cómo se ve lo que dispara (piedra por defecto)
+	spell: boolean?, -- hechizo: su daño sube con "SpellDamage" en vez de "RangedDamage"
 	aimAssistDegrees: number?, -- ayuda de puntería: ángulo máximo para "enganchar" un enemigo
 	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
 	-- Herramienta de recolección (hacha, pico): golpeando un árbol o una roca con ella equipada.
@@ -138,6 +141,37 @@ local Weapons: { [string]: WeaponDefinition } = {
 		cooldownSeconds = 0.8,
 		range = 12,
 		swingAnimationSpeed = 1.8,
+	},
+	-- Armas iniciales de los roles (Data/Roles).
+	StoneClub = {
+		name = "Garrote de piedra",
+		kind = "Melee",
+		damage = 30,
+		cooldownSeconds = 0.9,
+		range = 9,
+		swingAnimationSpeed = 1.6,
+	},
+	Bow = {
+		name = "Arco",
+		kind = "Ranged",
+		damage = 18,
+		cooldownSeconds = 0.8,
+		range = 130,
+		ammoItemId = "Arrow",
+		projectileSpeed = 200,
+		projectile = "Arrow",
+		aimAssistDegrees = 10,
+	},
+	MagicStaff = {
+		name = "Bastón mágico",
+		kind = "Ranged",
+		damage = 14,
+		cooldownSeconds = 0.9,
+		range = 100,
+		projectileSpeed = 120,
+		projectile = "Spell",
+		spell = true,
+		aimAssistDegrees = 12,
 	},
 	Club = {
 		name = "Garrote con colmillos",

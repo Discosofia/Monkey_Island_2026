@@ -32,6 +32,7 @@ local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local Status = require(script.Parent.Parent.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
@@ -381,7 +382,6 @@ local function updatePhase(boss: ActiveBoss)
 		return
 	end
 	boss.phase = phase
-	boss.humanoid.WalkSpeed = boss.definition.walkSpeed * (1 + 0.15 * (phase - 1))
 	boss.damage = math.round(boss.definition.damage * (1 + 0.2 * (phase - 1)))
 	bubble(boss, "😡")
 	Sfx.play("BossRoar", boss.root)
@@ -398,7 +398,30 @@ local function tick(now: number)
 		return
 	end
 	updatePhase(boss)
+	-- Habilidades de los roles (Combat/Status): aturdido no hace nada y ralentizado anda más despacio.
+	if Status.isStunned(boss.model) then
+		boss.humanoid:MoveTo(boss.root.Position)
+		return
+	end
+	local speed = boss.definition.walkSpeed * (1 + 0.15 * (boss.phase - 1)) * Status.speedFactor(boss.model)
+	if boss.humanoid.WalkSpeed ~= speed then
+		boss.humanoid.WalkSpeed = speed
+	end
 	local target, targetRoot = nearestTarget(boss)
+	-- Provocado por el "Grito de guerra" de un guerrero: va a por él aunque haya otro más cerca.
+	local taunter = Status.tauntTarget(boss.model)
+	local taunterRoot = if taunter and taunter.Character
+		then taunter.Character:FindFirstChild("HumanoidRootPart")
+		else nil
+	if
+		taunter
+		and taunterRoot
+		and taunterRoot:IsA("BasePart")
+		and LifeState.isAlive(taunter)
+		and taunter:GetAttribute("InBasecamp") ~= true
+	then
+		target, targetRoot = taunter, taunterRoot
+	end
 	if not (target and targetRoot) then
 		if (boss.root.Position - boss.lair).Magnitude > 12 then
 			boss.humanoid:MoveTo(boss.lair)

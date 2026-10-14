@@ -49,6 +49,34 @@ local Upgrades: { [string]: Upgrade } = {
 		perRank = -0.1,
 		costs = { 60, 120 },
 	},
+	-- Antes eran ventajas del recolector; ahora cualquier rol puede comprarlas.
+	QuickGather = {
+		name = "Manos ágiles",
+		icon = "🖐️",
+		description = "Recoges un 10 % más rápido por rango.",
+		order = 5,
+		perk = "HarvestSpeed",
+		perRank = -0.1,
+		costs = { 40, 80, 160 },
+	},
+	KeenEye = {
+		name = "Ojo para el botín",
+		icon = "👀",
+		description = "+1 material en cada recolección por rango.",
+		order = 6,
+		perk = "HarvestBonus",
+		perRank = 1,
+		costs = { 80, 200 },
+	},
+	StrongArms = {
+		name = "Brazos fuertes",
+		icon = "💪",
+		description = "El hacha y el pico avanzan más con cada golpe.",
+		order = 7,
+		perk = "ToolPower",
+		perRank = 0.34,
+		costs = { 50, 100, 200 },
+	},
 }
 
 return Upgrades

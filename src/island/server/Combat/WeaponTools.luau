@@ -234,6 +234,78 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 }
 
+-- Armas iniciales de los roles (Data/Roles).
+-- Garrote de piedra (guerrero): mango de madera con una piedra grande atada en la punta.
+BUILDERS.StoneClub = function(tool)
+	local grip = newPiece("Handle", Vector3.new(0.35, 2.6, 0.35), WOOD, Enum.Material.Wood)
+	grip.Parent = tool
+	attach(
+		grip,
+		newPiece("Head", Vector3.new(1, 1.3, 1), STONE, Enum.Material.Slate),
+		CFrame.new(0, 1.75, 0) * CFrame.Angles(0, math.rad(45), 0)
+	)
+	attach(
+		grip,
+		newPiece("Chip", Vector3.new(0.7, 0.6, 0.7), STONE_DARK, Enum.Material.Slate),
+		CFrame.new(0.15, 2.4, 0.1) * CFrame.Angles(math.rad(20), math.rad(30), 0)
+	)
+	attach(grip, newPiece("Lashing", Vector3.new(0.45, 0.3, 0.45), FIBER, Enum.Material.Fabric), CFrame.new(0, 1.05, 0))
+	attach(grip, newPiece("Wrap", Vector3.new(0.4, 0.9, 0.4), LEATHER, Enum.Material.Fabric), CFrame.new(0, -0.6, 0))
+	tool.Grip = CFrame.new(0, -0.7, 0)
+	return grip
+end
+
+-- Arco (cazador): las palas van a lo largo de Y y se curvan hacia el arquero (+Z), donde va la cuerda.
+BUILDERS.Bow = function(tool)
+	local grip = newPiece("Handle", Vector3.new(0.3, 0.9, 0.35), WOOD, Enum.Material.Wood)
+	grip.Parent = tool
+	attach(grip, newPiece("Wrap", Vector3.new(0.34, 0.6, 0.39), LEATHER, Enum.Material.Fabric), CFrame.new())
+	local tilt = math.rad(15)
+	for side = -1, 1, 2 do
+		attach(
+			grip,
+			newPiece("Limb", Vector3.new(0.22, 2, 0.3), LIGHT_WOOD, Enum.Material.Wood),
+			CFrame.new(0, side * 1.35, 0.26) * CFrame.Angles(side * tilt, 0, 0)
+		)
+	end
+	local tipY = 1.35 + math.cos(tilt)
+	local tipZ = 0.26 + math.sin(tilt)
+	attach(
+		grip,
+		newPiece("String", Vector3.new(0.05, tipY * 2, 0.05), Color3.fromRGB(235, 230, 215), Enum.Material.Fabric),
+		CFrame.new(0, 0, tipZ)
+	)
+	tool.Grip = CFrame.new()
+	return grip
+end
+
+-- Bastón mágico (mago): vara larga con un cristal brillante entre tres garras.
+BUILDERS.MagicStaff = function(tool)
+	local shaft = newPiece("Handle", Vector3.new(0.3, 4.6, 0.3), DARK_BARK, Enum.Material.Wood)
+	shaft.Parent = tool
+	local crystal = newPiece("Crystal", Vector3.one * 0.8, Color3.fromRGB(170, 110, 255), Enum.Material.Neon) :: Part
+	crystal.Shape = Enum.PartType.Ball
+	attach(shaft, crystal, CFrame.new(0, 2.75, 0))
+	local light = Instance.new("PointLight")
+	light.Color = crystal.Color
+	light.Range = 10
+	light.Brightness = 1.5
+	light.Parent = crystal
+	for index = 0, 2 do
+		attach(
+			shaft,
+			newPiece("Claw", Vector3.new(0.15, 0.7, 0.15), DARK_BARK, Enum.Material.Wood),
+			CFrame.new(0, 2.45, 0)
+				* CFrame.Angles(0, index * math.pi * 2 / 3, 0)
+				* CFrame.new(0, 0, -0.35)
+				* CFrame.Angles(math.rad(20), 0, 0) -- la punta se inclina hacia el cristal
+		)
+	end
+	attach(shaft, newPiece("Wrap", Vector3.new(0.36, 0.8, 0.36), FIBER, Enum.Material.Fabric), CFrame.new(0, -0.6, 0))
+	tool.Grip = CFrame.new(0, -0.6, 0)
+	return shaft
+end
+
 -- El machete afilado usa el mismo modelo que el machete; la honda de liana, el de la honda.
 BUILDERS.SharpMachete = BUILDERS.Machete
 BUILDERS.LianaSling = BUILDERS.Honda

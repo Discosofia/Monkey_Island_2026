@@ -7,7 +7,7 @@
 
 ## 1. Visión
 
-**Pitch:** *Naufragas en una isla tropical infestada de monos que comen carne humana. Con hasta 19 jugadores más, especialízate como médico, cazador o recolector, fortifica el Basecamp, sobrevive noches cada vez más feroces y derrota a los jefes de la isla para encender la baliza de rescate.*
+**Pitch:** *Naufragas en una isla tropical infestada de monos que comen carne humana. Con hasta 19 jugadores más, especialízate como guerrero, cazador, mago o médico, fortifica el Basecamp, sobrevive noches cada vez más feroces y derrota a los jefes de la isla para encender la baliza de rescate.*
 
 ### Pilares de diseño
 
@@ -177,13 +177,20 @@ A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo
 
 El rol se elige en el lobby y es **fijo durante la partida**. Cada rol tiene su propia **XP** que desbloquea talentos de forma permanente.
 
-| Rol | Pasiva | Habilidad activa | Ejemplos de talentos |
-|---|---|---|---|
-| **Médico** | Ve la vida de todos. Reanima 2× más rápido. | **Ungüento:** curación en área | Reanimar a corta distancia, antídotos mejorados, aura de regeneración en el Basecamp |
-| **Cazador** | Ve huellas y **marca** monos para el equipo. +daño a distancia. | **Trampa** de captura | Crítico contra monos marcados, señuelo de carne, trampas que aturden |
-| **Recolector** | +espacio de inventario, recolecta más rápido y ve recursos raros. | **Carga pesada:** el huevo y los cofres le ralentizan menos | Más botín por recurso, herramientas más duraderas, cofre portátil |
+Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el pico) y **4 habilidades**: 3 activas (**Z, X, C**) y una **definitiva** (**V**) con un tiempo de espera largo. Con mando se mantiene **R1** y se pulsa **A, B, X o Y**; en móvil son 4 botones junto al salto. Solo gastan tiempo de espera. Con el PvP activo también afectan a otros jugadores, con la mitad de daño y aturdimientos de la mitad de tiempo. Los números están en `Config.Abilities`.
 
-Las sinergias son intencionadas: el cazador **marca**, el recolector **transporta** y el médico **mantiene vivo** al grupo.
+| Rol | Pasiva | Armas iniciales | Activas (Z · X · C) | Definitiva (V) |
+|---|---|---|---|---|
+| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 8 s) | **Golpe sísmico:** 150 de daño en área y aturde 2 s |
+| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Trampa de lianas** (inmoviliza 3 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
+| 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
+| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Machete, honda | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 40) | **Tótem sanador:** cura a quien esté cerca durante 10 s |
+
+Los **talentos** (4 por rol) mejoran cada uno una habilidad: más duración, más daño, más proyectiles o más saltos. Las ventajas de recolección (recoger más rápido, +1 material, hacha y pico más fuertes) son **mejoras de la tienda** para cualquier rol.
+
+Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, el mago y el cazador los **castigan** en área y el médico **mantiene vivo** al grupo.
+
+*Cambio de octubre de 2026:* el Recolector se sustituyó por el Mago. Su XP pasó al Mago y los puntos de sus talentos quedaron libres para repartirlos de nuevo.
 
 ---
 
@@ -355,7 +362,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 ## 11. El huevo y las mascotas
 
 - **Aparición:** probabilidad baja cada cierto tiempo en un punto aleatorio de la isla. Hay un **aviso global** con ubicación aproximada.
-- **Transporte:** el portador va **más lento**, atrae monos y queda **marcado para PvP**. Los jugadores con PvP activo pueden robarle el huevo; el recolector lo carga mejor.
+- **Transporte:** el portador va **más lento**, atrae monos y queda **marcado para PvP**. Los jugadores con PvP activo pueden robarle el huevo; el guerrero lo carga mejor.
 - **Nido:** hay que tenerlo construido en el núcleo del Basecamp. La incubación dura unos minutos y hay que defenderla.
 - **Eclosión:** cada jugador que **participó** en el rescate recibe una **tirada de mascota persistente**.
 

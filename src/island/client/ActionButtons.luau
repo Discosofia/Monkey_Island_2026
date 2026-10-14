@@ -18,21 +18,25 @@ export type Handler = (actionName: string, state: Enum.UserInputState, input: In
 
 -- Casilla de cada acción: columna contando desde el salto hacia la izquierda y fila contando
 -- hacia arriba (0 = la fila justo encima del salto). Las más usadas, junto al pulgar.
+-- Las 4 habilidades del rol van en un bloque de 2 x 2 (la definitiva arriba a la izquierda).
 local SLOTS: { [string]: Vector2 } = {
 	Dodge = Vector2.new(0, 0),
 	Sprint = Vector2.new(1, 0),
-	UseAbility = Vector2.new(2, 0),
-	Eat = Vector2.new(3, 0),
-	UseHeal = Vector2.new(4, 0),
-	SpiritMark = Vector2.new(5, 0),
+	Ability1 = Vector2.new(2, 0),
+	Ability2 = Vector2.new(3, 0),
+	Eat = Vector2.new(4, 0),
+	UseHeal = Vector2.new(5, 0),
 	ToggleMaterials = Vector2.new(0, 1),
 	ToggleJournal = Vector2.new(1, 1),
-	BuildRotate = Vector2.new(2, 1),
-	BuildNext = Vector2.new(3, 1),
-	BuildDemolish = Vector2.new(4, 1),
+	Ability3 = Vector2.new(2, 1),
+	Ability4 = Vector2.new(3, 1),
+	SpiritMark = Vector2.new(4, 1),
+	BuildRotate = Vector2.new(0, 2),
+	BuildNext = Vector2.new(1, 2),
+	BuildDemolish = Vector2.new(2, 2),
 }
--- Acciones sin casilla fija: a partir de aquí, en la tercera fila.
-local EXTRA_ROW = 2
+-- Acciones sin casilla fija: a partir de aquí, en la cuarta fila.
+local EXTRA_ROW = 3
 local COLUMNS = 6
 
 local GAP = 6
@@ -196,6 +200,14 @@ function ActionButtons.bind(action: string, title: string, handler: Handler, ...
 	buttons[action] = button
 	button.Parent = screenGui
 	layout()
+end
+
+-- Cambia el texto de un botón táctil ya puesto (p. ej. la cuenta atrás de una habilidad).
+function ActionButtons.setTitle(action: string, title: string)
+	local button = buttons[action]
+	if button and button.Text ~= title then
+		button.Text = title
+	end
 end
 
 function ActionButtons.unbind(action: string)

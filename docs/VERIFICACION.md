@@ -22,7 +22,7 @@ Marca cada casilla al comprobarla.
 
 | Acción | Tecla |
 |---|---|
-| Elegir arma o herramienta | 1–5 (machete, honda, hacha, pico, martillo) |
+| Elegir arma o herramienta | 1–5 (las 2 armas del rol, hacha, pico, martillo) |
 | Usar arma o herramienta | Clic |
 | Esquivar | Q |
 | Correr | Mayús |
@@ -31,7 +31,7 @@ Marca cada casilla al comprobarla.
 | Beber | F (junto al agua) |
 | Bolsa | B |
 | Diario de campo | J |
-| Habilidad del rol | Z |
+| Habilidades del rol | Z, X, C y V (la definitiva) · mando: mantén R1 + A, B, X o Y |
 | Silenciar música | M |
 | Construir con el martillo | Clic coloca · R gira · T cambia de pieza · F quita |
 
@@ -115,8 +115,9 @@ Marca cada casilla al comprobarla.
 
 En el place **Lobby**, con ▶:
 
-1. [ ] Pestaña **Rol**: elige **Médico**.
+1. [ ] Pestaña **Rol**: salen **Guerrero, Cazador, Mago y Médico**, cada uno con su pasiva y sus 4 habilidades. Elige **Médico**.
    ✅ El botón pasa a "Elegido".
+   - Si tenías XP con el antiguo **Recolector**, ahora es del **Mago** y sus puntos de talento están libres.
 2. [ ] En 🛠️, pulsa **⭐ +300 XP del rol**. Pestaña **Talentos**.
    ✅ "3 puntos libres": aprende un rango de cualquier talento.
 3. [ ] En 🛠️, pulsa **✨ +500 Ámbar**. Pestaña **Tienda**: compra **Corazón fuerte** y **Kit de náufrago**.
@@ -143,22 +144,43 @@ En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](
 
 ## 3.2 Roles en la Isla
 
-El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para probar cada rol: elígelo en el Lobby, para (■) y dale a ▶ en la Isla.
+El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no volver al Lobby, en 🛠️ pulsa **🎭 Siguiente rol** (cambia rol, armas y habilidades) y **⚡ Habilidades listas** (quita los tiempos de espera). Busca un grupo de monos (o el muñeco de práctica) para probarlas.
 
-1. [ ] Al entrar sale **"⛑️ Juegas como Médico: …"** y bajo las barras **"Ungüento en área (Z): lista"**.
-2. [ ] **Médico:** pulsa **G** herido.
-   ✅ Onda verde, te curas y empieza la cuenta atrás de la habilidad.
-   - Con 2 jugadores ves la **vida del otro** sobre su cabeza.
-   - Reanimas más rápido: el aviso dura 2 s en vez de 4.
-3. [ ] **Cazador:** pulsa **G** cerca de monos.
-   ✅ Contorno rojo en los monos y "N presas marcadas". La honda les hace más daño.
-4. [ ] **Recolector:** los arbustos se recogen más rápido y dan +1. Pulsa **G** y tala un árbol.
-   ✅ "¡Recolección frenética!": el hacha avanza el doble.
+1. [ ] Al entrar sale **"⚔️ Juegas como Guerrero: …"** (o tu rol) y bajo las barras **4 casillas** (Z, X, C, V) que dicen "lista". La V tiene borde dorado.
+   - En la barra: las **2 armas del rol** en 1 y 2, el hacha en 3 y el pico en 4.
+   - En móvil: un bloque de 4 botones junto al salto, con la cuenta atrás al usarlos.
+   - Con mando: mantén **R1** y pulsa A, B, X o Y.
+2. [ ] **Guerrero** (Garrote de piedra):
+   - **Z Torbellino:** giras 2 s y los monos de alrededor reciben varios golpes.
+   - **X Embestida:** sales disparado hacia donde apuntas, dañas y empujas a los monos.
+   - **C Grito de guerra:** onda roja, "N monos van a por ti" y te muerden menos.
+   - **V Golpe sísmico:** onda de tierra, mucho daño y los monos se quedan quietos con contorno amarillo 2 s.
+3. [ ] **Cazador** (Arco, empiezas con 20 flechas; se fabrican en la mesa de trabajo):
+   - **Z Disparo múltiple:** 5 flechas en abanico, sin gastar flechas.
+   - **X Marcar presas:** contorno rojo en los monos y "N presas marcadas".
+   - **C Trampa de lianas:** aparece a tus pies; el mono que la pisa queda atrapado con contorno verde 3 s. Como mucho 2 trampas.
+   - **V Lluvia de proyectiles:** zona roja donde apuntas y caen flechas durante 4 s.
+4. [ ] **Mago** (Bastón mágico, dispara bolas moradas sin munición):
+   - **Z Bola de fuego:** bola en llamas que explota al impactar y daña alrededor.
+   - **X Nova de hielo:** onda azul; los monos cercanos se congelan (contorno azul) y luego andan más despacio.
+   - **C Parpadeo:** te teletransportas hacia delante; no atraviesa paredes ni te lleva al vacío.
+   - **V Rayo encadenado:** apunta a un mono y el rayo salta a los de alrededor. Sin mono a tiro: "No hay ningún mono a tiro" y no se gasta.
+   - Las esperas son un 15 % más cortas que las de Data/Roles.
+5. [ ] **Médico** (Machete y honda):
+   - **Z Ungüento en área:** onda verde y te curas (y a los aliados cercanos).
+   - **X Dardo curativo:** con 2 jugadores, dispara al otro herido y se cura.
+   - **C Escudo de hojas:** el aliado más cercano (o tú) brilla en verde y los mordiscos salen como 🛡️ hasta que se rompe.
+   - **V Tótem sanador:** tótem con luz verde que cura cada segundo durante 10 s.
+   - Con 2 jugadores ves la **vida del otro** sobre su cabeza y reanimas más rápido (el aviso dura 2 s en vez de 4).
+6. [ ] **Jefes:** contra un jefe (🛠️ 👑), el Golpe sísmico o la Nova le paran solo la mitad de tiempo y el Grito de guerra hace que vaya a por el guerrero.
+7. [ ] **PvP** (2 jugadores con PvP activo en el tótem): las habilidades de daño también os hieren, a la mitad.
 
 ## 3.3 Talentos y mejoras en la Isla
 
-1. [ ] Con **Corazón fuerte** comprado, al entrar a la Isla tienes **110** de vida máxima (se nota en la barra de vida de Roblox).
+1. [ ] Con **Corazón fuerte** comprado, al entrar a la Isla tienes **110** de vida máxima (se nota en la barra de vida de Roblox). El guerrero tiene 20 más (130).
 2. [ ] Con **Kit de náufrago**, empiezas con **5 de madera, piedra y fibra** (mira la Bolsa con B).
+3. [ ] Con un talento aprendido (p. ej. **Andanada** del cazador), la habilidad cambia: el Disparo múltiple lanza 6 flechas.
+4. [ ] Con **Manos ágiles** u **Ojo para el botín** (tienda), cualquier rol recoge más rápido o saca +1 material.
 
 ## 3.4 Tutorial
 

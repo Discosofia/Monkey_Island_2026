@@ -2,7 +2,8 @@
 -- Rol y ventajas de cada jugador en la Isla (Fase 3).
 --   - Lee el perfil guardado (PlayerData): rol elegido en el Lobby, talentos y mejoras de la tienda.
 --   - Publica "Role" y las ventajas como atributos "Perk_<nombre>" (Shared/Progression.perk).
---   - Aplica las que son de una vez: vida máxima extra y el kit de náufrago.
+--   - Aplica las que son de una vez: vida máxima extra, el kit de náufrago y los ítems del rol
+--     (las flechas del cazador). Las armas del rol las da CombatService.
 --   - Marca "TutorialPending" si el jugador aún no ha hecho el tutorial (TutorialController).
 
 local Players = game:GetService("Players")
@@ -22,6 +23,9 @@ local KIT_AMOUNT = 5
 
 local RoleService = {}
 
+-- Rol forzado a mitad de partida desde el panel de pruebas (no se guarda).
+local debugRoles: { [Player]: string } = {}
+
 local function applyHealth(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	humanoid.MaxHealth = BASE_HEALTH + Progression.perk(player, "MaxHealth")
@@ -31,7 +35,7 @@ end
 -- Calcula y publica las ventajas (rol, talentos, mejoras y mascota activa) como atributos "Perk_*".
 local function publishPerks(player: Player): { [string]: number }
 	local profile = PlayerData.get(player)
-	local roleId = Progression.validRole(if profile then profile.selectedRole else nil)
+	local roleId = Progression.validRole(debugRoles[player] or if profile then profile.selectedRole else nil)
 	local petId = player:GetAttribute("ActivePet")
 	local perks = Progression.computePerks(
 		roleId,
@@ -57,6 +61,12 @@ function RoleService.refreshPerks(player: Player)
 	end
 end
 
+local function giveRoleItems(player: Player, roleId: string)
+	for itemId, amount in Roles[roleId].items or {} do
+		InventoryService.add(player, itemId, amount)
+	end
+end
+
 local function onPlayer(player: Player)
 	local profile = PlayerData.waitFor(player)
 	if not player.Parent then
@@ -71,6 +81,7 @@ local function onPlayer(player: Player)
 			InventoryService.add(player, itemId, kit * KIT_AMOUNT)
 		end
 	end
+	giveRoleItems(player, roleId)
 	if profile and not profile.tutorialDone then
 		player:SetAttribute("TutorialPending", true)
 	end
@@ -83,6 +94,28 @@ local function onPlayer(player: Player)
 	end
 	local role = Roles[roleId]
 	Remotes.Notify:FireClient(player, `{role.icon} Juegas como {role.name}: {role.passive}`)
+end
+
+-- Panel de pruebas: pasa al siguiente rol sin volver al Lobby (armas, ventajas y habilidades).
+function RoleService.debugNextRole(player: Player)
+	local ids = {}
+	for roleId in Roles do
+		table.insert(ids, roleId)
+	end
+	table.sort(ids, function(a, b)
+		return Roles[a].order < Roles[b].order
+	end)
+	local current = player:GetAttribute("Role")
+	local index = table.find(ids, current) or 0
+	local roleId = ids[index % #ids + 1]
+	debugRoles[player] = roleId
+	RoleService.refreshPerks(player)
+	giveRoleItems(player, roleId)
+	for slot = 1, 4 do
+		player:SetAttribute(`AbilityReadyAt{slot}`, nil)
+	end
+	local role = Roles[roleId]
+	Remotes.Notify:FireClient(player, `{role.icon} Ahora juegas como {role.name}: {role.passive}`)
 end
 
 function RoleService:Start()
@@ -99,6 +132,9 @@ function RoleService:Start()
 		end)
 	end)
 	Players.PlayerAdded:Connect(onPlayer)
+	Players.PlayerRemoving:Connect(function(player)
+		debugRoles[player] = nil
+	end)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayer, player)
 	end

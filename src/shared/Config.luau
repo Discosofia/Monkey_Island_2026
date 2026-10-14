@@ -64,8 +64,8 @@ local Config = {
 	Combat = {
 		-- Solo se puede dañar a lo que tenga esta etiqueta (CollectionService): monos y muñecos.
 		EnemyTag = "Enemy",
-		-- Armas con las que aparece cada jugador (ver Shared/Data/Weapons).
-		StarterWeapons = { "Machete", "Honda", "WoodenAxe", "WoodenPick" },
+		-- Herramientas con las que aparece todo jugador, detrás de las armas de su rol (Data/Roles).
+		StarterTools = { "WoodenAxe", "WoodenPick" },
 		DodgeCooldownSeconds = 1.2,
 		DodgeSpeed = 55,
 		DodgeDurationSeconds = 0.15,
@@ -304,9 +304,9 @@ local Config = {
 		Chance = 0.4,
 		MinDistance = 250,
 		MaxDistance = 700,
-		-- El portador va más lento (el recolector, menos) y atrae a los monos cercanos.
+		-- El portador va más lento (el guerrero, menos) y atrae a los monos cercanos.
 		CarrySpeedMultiplier = 0.75,
-		GathererCarrySpeedMultiplier = 0.9,
+		WarriorCarrySpeedMultiplier = 0.9,
 		AttractRadius = 80,
 		-- Quien esté a menos de esto del huevo mientras viaja cuenta como participante.
 		ParticipantRadius = 60,
@@ -345,11 +345,71 @@ local Config = {
 	},
 
 	Abilities = {
-		-- Habilidades de los roles (Fase 3; tiempos de espera en Shared/Data/Roles).
+		-- Habilidades de los roles (Fase 3; nombres y tiempos de espera en Shared/Data/Roles).
+		-- Los daños se multiplican por la ventaja de daño del rol (MeleeDamage, RangedDamage o
+		-- SpellDamage) y los de cada talento (Data/Perks).
+		-- Contra otros jugadores (PvP activo) hacen este daño y los aturdimientos duran esto.
+		PvPDamageMultiplier = 0.5,
+		PvPControlMultiplier = 0.5,
+		-- Los jefes se resisten: aturdir, congelar o inmovilizar les dura esta fracción.
+		BossControlMultiplier = 0.5,
+
+		-- Guerrero.
+		WhirlwindDamage = 12, -- por golpe
+		WhirlwindInterval = 0.5, -- segundos entre golpes
+		WhirlwindRadius = 10,
+		ChargeDistance = 20,
+		ChargeSeconds = 0.35, -- lo que dura la carga
+		ChargeDamage = 35,
+		ChargeWidth = 6,
+		ChargeKnockback = 45,
+		WarCryRadius = 40,
+		WarCrySeconds = 8,
+		QuakeDamage = 150,
+		QuakeRadius = 16,
+
+		-- Cazador.
+		MultiShotDamage = 12, -- por proyectil
+		MultiShotSpreadDegrees = 40,
+		MultiShotRange = 100,
+		MarkRadius = 70,
+		TrapDamage = 20,
+		TrapRadius = 3.5,
+		TrapLifetime = 30,
+		TrapMaxActive = 2,
+		RainDamage = 20, -- por golpe
+		RainTicks = 8,
+		RainSeconds = 4,
+		RainRadius = 12,
+		RainMaxDistance = 60,
+
+		-- Mago.
+		FireballDamage = 45, -- al que recibe el impacto
+		FireballSplashDamage = 30, -- a los demás del radio
+		FireballSplashRadius = 8,
+		FireballSpeed = 90,
+		FireballRange = 100,
+		NovaDamage = 20,
+		NovaRadius = 14,
+		NovaSlowSeconds = 3, -- tras el congelado
+		NovaSlowFactor = 0.5, -- velocidad que les queda
+		ChainDamage = 120,
+		ChainFalloff = 0.75, -- cada salto hace esto del anterior
+		ChainRange = 60, -- alcance hasta el primer mono
+		ChainJumpRange = 20,
+
+		-- Médico.
 		AreaHealAmount = 30,
 		AreaHealRadius = 18,
-		MarkRadius = 70,
-		FrenzySeconds = 20,
+		DartHeal = 35,
+		DartDamage = 15,
+		DartRange = 80,
+		DartSpeed = 160,
+		ShieldSeconds = 10,
+		ShieldRange = 30, -- busca al aliado más cercano hasta esta distancia
+		TotemSeconds = 10,
+		TotemHealPerSecond = 6,
+		TotemRadius = 16,
 	},
 
 	Party = {

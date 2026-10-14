@@ -30,7 +30,7 @@ local Progression = {}
 local NO_TALENTS: { [string]: Talents.Talent } = {}
 
 Progression.XP_PER_LEVEL = 100
-Progression.DEFAULT_ROLE = "Recolector"
+Progression.DEFAULT_ROLE = "Guerrero"
 
 -- Nivel del rol: empieza en 1 y sube cada XP_PER_LEVEL de XP. Cada nivel por encima del 1 da un punto.
 function Progression.level(xp: number): number

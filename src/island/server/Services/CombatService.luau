@@ -1,8 +1,10 @@
 --!strict
--- Combate (GDD §6, Fase 1.3): machete (cuerpo a cuerpo), honda (a distancia, gasta piedras) y esquiva.
+-- Combate (GDD §6, Fase 1.3): armas cuerpo a cuerpo, a distancia (honda y arco, que gastan munición;
+-- bastón mágico, que no) y esquiva.
 -- El servidor decide todo: qué arma lleva el jugador, si el ataque está listo, a quién golpea y el daño.
--- Solo se puede dañar a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica),
--- nunca a otros jugadores: el PvP opt-in llega en la Fase 5.
+-- Se daña a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica) y, con el
+-- PvP opt-in activo en los dos (Fase 5), a otros jugadores.
+-- Cada jugador aparece con las armas de su rol (Data/Roles) y las herramientas comunes.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -17,6 +19,7 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
@@ -51,7 +54,7 @@ local function livingCharacter(player: Player): (Model?, BasePart?)
 end
 
 -- Si la pieza pertenece a un enemigo vivo, devuelve su modelo y su Humanoid.
-local function enemyFromPart(part: Instance): (Model?, Humanoid?)
+function CombatService.enemyFromPart(part: Instance): (Model?, Humanoid?)
 	local model = part:FindFirstAncestorOfClass("Model")
 	while model do
 		if CollectionService:HasTag(model, Config.Combat.EnemyTag) then
@@ -65,9 +68,10 @@ local function enemyFromPart(part: Instance): (Model?, Humanoid?)
 	end
 	return nil, nil
 end
+local enemyFromPart = CombatService.enemyFromPart
 
 -- Destello rojo y número de daño flotante sobre el objetivo.
-local function showHit(model: Model, amount: number)
+local function showHit(model: Model, amount: number, color: Color3?)
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = Color3.fromRGB(255, 60, 60)
 	highlight.FillTransparency = 0.4
@@ -87,8 +91,8 @@ local function showHit(model: Model, amount: number)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = `-{amount}`
-	label.TextColor3 = Color3.fromRGB(255, 220, 90)
+	label.Text = if amount > 0 then `-{amount}` else "🛡️"
+	label.TextColor3 = color or Color3.fromRGB(255, 220, 90)
 	label.TextStrokeTransparency = 0.3
 	label.Font = Enum.Font.BuilderSansBold
 	label.TextScaled = true
@@ -132,8 +136,38 @@ function CombatService.isInvulnerable(player: Player): boolean
 	return typeof(untilTime) == "number" and Workspace:GetServerTimeNow() < untilTime
 end
 
+-- Reduce el daño que recibe un jugador: armadura (Data/Armor), "Grito de guerra" del guerrero y
+-- "Escudo de hojas" del médico, que absorbe hasta romperse. Puede devolver 0 (todo absorbido).
+local function mitigate(player: Player, character: Model, amount: number): number
+	local armorId = player:GetAttribute("Armor")
+	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
+	if armor then
+		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
+	end
+	local now = Workspace:GetServerTimeNow()
+	local guardUntil = player:GetAttribute("GuardUntil")
+	local guard = player:GetAttribute("GuardReduction")
+	if typeof(guardUntil) == "number" and now < guardUntil and typeof(guard) == "number" then
+		amount = math.max(1, math.round(amount * (1 - math.clamp(guard, 0, 0.9))))
+	end
+	local shieldUntil = player:GetAttribute("ShieldUntil")
+	local shield = player:GetAttribute("ShieldHealth")
+	if typeof(shieldUntil) == "number" and now < shieldUntil and typeof(shield) == "number" and shield > 0 then
+		local absorbed = math.min(shield, amount)
+		amount -= absorbed
+		player:SetAttribute("ShieldHealth", shield - absorbed)
+		if shield - absorbed <= 0 then
+			local visual = character:FindFirstChild("LeafShield")
+			if visual then
+				visual:Destroy()
+			end
+		end
+	end
+	return amount
+end
+
 -- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp, esquivando,
--- caído o como Espíritu. La armadura reduce el daño (Data/Armor). Un golpe mortal no mata:
+-- caído o como Espíritu. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal no mata:
 -- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
 function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: boolean?): boolean
@@ -146,12 +180,11 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
-	local armorId = player:GetAttribute("Armor")
-	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
-	if armor then
-		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
-	end
+	amount = mitigate(player, character, amount)
 	showHit(character, amount)
+	if amount <= 0 then
+		return true
+	end
 	-- Cada mordisco sube la fiebre del mono (Fase 2.6).
 	Survival.addFever(player, Config.Fever.PerBite)
 	if humanoid.Health - amount <= 0 then
@@ -169,7 +202,16 @@ local function pvpReady(player: Player): boolean
 	return player:GetAttribute("PvP") == true and player:GetAttribute("InBasecamp") ~= true
 end
 
-local function playerFromPart(part: Instance): Player?
+-- true si "attacker" puede herir a "victim" en PvP ahora mismo.
+function CombatService.canHitPlayer(attacker: Player, victim: Player): boolean
+	return attacker ~= victim
+		and pvpReady(attacker)
+		and pvpReady(victim)
+		and LifeState.isAlive(victim)
+		and not CombatService.isInvulnerable(victim)
+end
+
+function CombatService.playerFromPart(part: Instance): Player?
 	local model = part:FindFirstAncestorOfClass("Model")
 	while model do
 		local owner = Players:GetPlayerFromCharacter(model)
@@ -180,6 +222,7 @@ local function playerFromPart(part: Instance): Player?
 	end
 	return nil
 end
+local playerFromPart = CombatService.playerFromPart
 
 -- Daño de un jugador a otro. Si lo deja caído, cobra su recompensa por cabeza y sube la propia.
 function CombatService.damagePvP(attacker: Player, victim: Player, amount: number): boolean
@@ -194,12 +237,11 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
-	local armorId = victim:GetAttribute("Armor")
-	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
-	if armor then
-		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
-	end
+	amount = mitigate(victim, character, amount)
 	showHit(character, amount)
+	if amount <= 0 then
+		return true
+	end
 	if humanoid.Health - amount > 0 then
 		humanoid:TakeDamage(amount)
 		return true
@@ -228,18 +270,20 @@ local function meleeAttack(player: Player, character: Model, root: BasePart, wea
 	local box = root.CFrame * CFrame.new(0, 0, -weapon.range / 2)
 	local size = Vector3.new(MELEE_HITBOX.X, MELEE_HITBOX.Y, weapon.range)
 
+	-- "+daño cuerpo a cuerpo" del guerrero.
+	local damage = math.round(weapon.damage * Progression.perk(player, "MeleeDamage"))
 	local alreadyHit: { [Model]: boolean } = {}
 	local playersHit: { [Player]: boolean } = {}
 	for _, part in Workspace:GetPartBoundsInBox(box, size, params) do
 		local model, humanoid = enemyFromPart(part)
 		if model and humanoid and not alreadyHit[model] then
 			alreadyHit[model] = true
-			CombatService.damage(model, humanoid, weapon.damage, player)
+			CombatService.damage(model, humanoid, damage, player)
 		end
 		local victim = playerFromPart(part)
 		if victim and not playersHit[victim] then
 			playersHit[victim] = true
-			CombatService.damagePvP(player, victim, weapon.damage)
+			CombatService.damagePvP(player, victim, damage)
 		end
 	end
 end
@@ -267,6 +311,51 @@ local function findAimTarget(origin: Vector3, aim: Vector3, weapon: Weapons.Weap
 	return bestModel, bestPart
 end
 
+-- Lo que se ve volar: piedra (honda), flecha (arco) o bola de energía (bastón y hechizos).
+-- Devuelve los segundos que tarda en llegar y la pieza.
+function CombatService.projectile(
+	style: string,
+	origin: Vector3,
+	endPoint: Vector3,
+	speed: number,
+	color: Color3?
+): (number, BasePart)
+	local piece = Instance.new("Part")
+	piece.Name = "Projectile"
+	piece.Anchored = true
+	piece.CanCollide = false
+	piece.CanQuery = false
+	piece.CanTouch = false
+	piece.CastShadow = false
+	if style == "Arrow" then
+		piece.Size = Vector3.new(0.15, 0.15, 2.2)
+		piece.Color = Color3.fromRGB(120, 85, 50)
+		piece.Material = Enum.Material.Wood
+	elseif style == "Spell" then
+		piece.Shape = Enum.PartType.Ball
+		piece.Size = Vector3.one * 0.9
+		piece.Color = color or Color3.fromRGB(170, 110, 255)
+		piece.Material = Enum.Material.Neon
+		local light = Instance.new("PointLight")
+		light.Color = piece.Color
+		light.Range = 8
+		light.Parent = piece
+	else
+		piece.Shape = Enum.PartType.Ball
+		piece.Size = Vector3.one * 0.6
+		piece.Color = Color3.fromRGB(130, 130, 135)
+	end
+	local offset = endPoint - origin
+	piece.CFrame = if offset.Magnitude > 0.01 then CFrame.lookAt(origin, endPoint) else CFrame.new(origin)
+	piece.Parent = Workspace
+	local travelSeconds = offset.Magnitude / speed
+	TweenService
+		:Create(piece, TweenInfo.new(travelSeconds, Enum.EasingStyle.Linear), { CFrame = piece.CFrame + offset })
+		:Play()
+	Debris:AddItem(piece, travelSeconds + 0.05)
+	return travelSeconds, piece
+end
+
 local function rangedAttack(
 	player: Player,
 	character: Model,
@@ -276,9 +365,12 @@ local function rangedAttack(
 )
 	local ammo = weapon.ammoItemId
 	if ammo and not InventoryService.remove(player, ammo, 1) then
-		Remotes.Notify:FireClient(player, `Necesitas {Items[ammo].name} para usar la {weapon.name}`)
+		Remotes.Notify:FireClient(player, `Necesitas {Items[ammo].name} para usar: {weapon.name}`)
 		return
 	end
+	-- "+daño a distancia" del cazador o "+daño de hechizos" del mago, con sus talentos.
+	local damage =
+		math.round(weapon.damage * Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage"))
 
 	local head = character:FindFirstChild("Head")
 	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
@@ -307,7 +399,6 @@ local function rangedAttack(
 			local victim = playerFromPart(result.Instance)
 			if victim then
 				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
-				local damage = math.round(weapon.damage * Progression.perk(player, "RangedDamage"))
 				task.delay(seconds, function()
 					CombatService.damagePvP(player, victim, damage)
 				end)
@@ -315,29 +406,15 @@ local function rangedAttack(
 		end
 	end
 
-	-- Piedra visible que vuela hasta el destino; el daño llega cuando impacta.
-	local stone = Instance.new("Part")
-	stone.Name = "HondaStone"
-	stone.Shape = Enum.PartType.Ball
-	stone.Size = Vector3.one * 0.6
-	stone.Color = Color3.fromRGB(130, 130, 135)
-	stone.Anchored = true
-	stone.CanCollide = false
-	stone.CanQuery = false
-	stone.CanTouch = false
-	stone.Position = origin
-	stone.Parent = Workspace
-	local travelSeconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
-	TweenService:Create(stone, TweenInfo.new(travelSeconds, Enum.EasingStyle.Linear), { Position = endPoint }):Play()
-	Debris:AddItem(stone, travelSeconds + 0.05)
+	-- Proyectil visible que vuela hasta el destino; el daño llega cuando impacta.
+	local travelSeconds =
+		CombatService.projectile(weapon.projectile or "Stone", origin, endPoint, weapon.projectileSpeed or 120)
 
 	local hitModel = targetModel
 	if hitModel then
 		task.delay(travelSeconds, function()
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
-				-- "+daño a distancia" del cazador y sus talentos.
-				local damage = math.round(weapon.damage * Progression.perk(player, "RangedDamage"))
 				CombatService.damage(hitModel, humanoid, damage, player)
 			end
 		end)
@@ -391,18 +468,51 @@ local function onDodge(player: Player)
 end
 
 -- Las armas iniciales van a StarterGear: Roblox las copia a la mochila en cada reaparición.
-local function giveStarterWeapons(player: Player)
+-- Primero las del rol (atributo "RoleWeapon") y detrás el hacha y el pico, así las teclas 3 y 4 son
+-- siempre las mismas. Si cambia el rol a mitad de partida (panel de pruebas), solo cambian las del rol.
+local function giveWeapons(player: Player, weaponIds: { string }, roleWeapon: boolean)
 	local starterGear = player:WaitForChild("StarterGear")
-	for _, weaponId in Config.Combat.StarterWeapons do
-		WeaponTools.build(weaponId).Parent = starterGear
-	end
-	-- Si el personaje ya apareció, esta vida también las recibe.
 	local backpack = player:FindFirstChildOfClass("Backpack")
-	if player.Character and backpack then
-		for _, tool in starterGear:GetChildren() do
+	for _, weaponId in weaponIds do
+		local tool = WeaponTools.build(weaponId)
+		if roleWeapon then
+			tool:SetAttribute("RoleWeapon", true)
+		end
+		tool.Parent = starterGear
+		-- Si el personaje ya apareció, esta vida también la recibe.
+		if player.Character and backpack then
 			tool:Clone().Parent = backpack
 		end
 	end
+end
+
+local function roleWeapons(player: Player): { string }
+	return Roles[Progression.validRole(player:GetAttribute("Role"))].weapons
+end
+
+local function giveStarterWeapons(player: Player)
+	-- El rol lo publica RoleService al cargar los datos guardados.
+	local deadline = os.clock() + 15
+	while player.Parent and player:GetAttribute("Role") == nil and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	if not player.Parent then
+		return
+	end
+	giveWeapons(player, roleWeapons(player), true)
+	giveWeapons(player, Config.Combat.StarterTools, false)
+	player:GetAttributeChangedSignal("Role"):Connect(function()
+		local containers: { Instance? } =
+			{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), player.Character }
+		for _, container in containers do
+			for _, child in if container then container:GetChildren() else {} do
+				if child:IsA("Tool") and child:GetAttribute("RoleWeapon") == true then
+					child:Destroy()
+				end
+			end
+		end
+		giveWeapons(player, roleWeapons(player), true)
+	end)
 end
 
 function CombatService:Start()

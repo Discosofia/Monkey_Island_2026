@@ -216,13 +216,14 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 | Entrega | Contenido | Estado |
 |---|---|---|
 | **3.1** | Lobby: cabecera con Ámbar y récord; pestañas Rol, Talentos, Tienda y Grupo | ✅ Código listo, falta tu prueba |
-| **3.2** | Roles en la Isla: ventajas pasivas y habilidad activa (G / R1 / "Habilidad") | ✅ Código listo, falta tu prueba |
-| **3.3** | Talentos (3 por rol, hasta 3 rangos) y tienda de mejoras con Ámbar | ✅ Código listo, falta tu prueba |
+| **3.2** | Roles en la Isla: guerrero, cazador, mago y médico; pasiva, armas propias y 4 habilidades (Z, X, C, V / R1 + A, B, X, Y / botones) | ✅ Código listo, falta tu prueba |
+| **3.3** | Talentos (4 por rol, uno por habilidad) y tienda de mejoras con Ámbar | ✅ Código listo, falta tu prueba |
 | **3.4** | Grupos de amigos que viajan juntos; partidas en curso; recompensas y tutorial | ✅ Código listo, falta tu prueba |
 
 - [x] Lobby: selector de rol y tienda de mejoras (Ámbar) *(la zona social 3D y la vitrina de mascotas llegan con las mascotas, Fase 5)*
 - [x] Roles v1: pasiva + habilidad activa de médico, cazador y recolector
 - [x] Árbol de talentos v1 (3 talentos por rol)
+- [x] **Roles v2:** nuevo **Guerrero**; el Recolector pasa a **Mago** (su XP se conserva); 3 habilidades activas + 1 definitiva por rol, armas iniciales por rol (garrote de piedra, arco con flechas, bastón mágico) y 4 talentos por rol; las ventajas de recolección pasan a la tienda
 - [x] Matchmaking: grupos con amigos al mismo servidor; Roblox mete a los jugadores sueltos en partidas en curso con hueco (y quien entra en una partida terminada vuelve al Lobby)
 - [x] Recompensas al terminar la partida: Ámbar y XP del rol (2.7 y 2.8)
 - [x] **Tutorial de los primeros minutos** (5 pasos, se puede saltar, solo la primera vez)

@@ -129,7 +129,7 @@ local function canHarvest(state: NodeState, player: Player): boolean
 	-- Evita recolectar más rápido de lo que permite mantener pulsado (clientes modificados).
 	local now = os.clock()
 	local last = lastHarvestAt[player]
-	-- El recolector mantiene menos tiempo (su cliente acorta el aviso): se respeta aquí.
+	-- Con la mejora "Manos ágiles" se mantiene menos tiempo (su cliente acorta el aviso): se respeta aquí.
 	local holdSeconds = (state.definition.holdSeconds or 0) * Progression.perk(player, "HarvestSpeed")
 	if last and now - last < holdSeconds * 0.8 then
 		return false
@@ -185,7 +185,7 @@ end
 -- Da el material (y a veces un extra, como bananos de los arbustos) y, si el punto se agota,
 -- lo oculta hasta que reaparece.
 local function collect(state: NodeState, player: Player, amount: number)
-	-- Material extra del recolector y sus talentos.
+	-- Material extra de las mejoras de la tienda y de la mascota.
 	amount += math.floor(Progression.perk(player, "HarvestBonus"))
 	InventoryService.add(player, state.definition.itemId, amount)
 	Sfx.play("Pickup", state.anchor)
@@ -308,12 +308,8 @@ function ResourceService.strike(player: Player, root: BasePart, tool: Weapons.To
 
 	state.lastStrikeAt = os.clock()
 	Sfx.play(if tool.kind == "Axe" then "Chop" else "Mine", state.anchor)
-	-- Potencia extra por talentos; "Recolección frenética" (recolector) la duplica.
+	-- Potencia extra por las mejoras de la tienda ("Brazos fuertes").
 	local power = tool.power + Progression.perk(player, "ToolPower")
-	local frenzyUntil = player:GetAttribute("FrenzyUntil")
-	if typeof(frenzyUntil) == "number" and Workspace:GetServerTimeNow() < frenzyUntil then
-		power *= 2
-	end
 	state.progress += power
 	local toughness = state.definition.toughness or 1
 	if state.progress >= toughness then

@@ -36,6 +36,14 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			InventoryService.add(player, itemId, 50)
 		end
 	end,
+	NextRole = function(player)
+		RoleService.debugNextRole(player)
+	end,
+	Abilities = function(player)
+		for slot = 1, 4 do
+			player:SetAttribute(`AbilityReadyAt{slot}`, nil)
+		end
+	end,
 	Heal = function(player)
 		local character = player.Character
 		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil

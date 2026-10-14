@@ -50,7 +50,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 1,
+		version = 2,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -58,7 +58,7 @@ local function defaultProfile(): Profile
 		talents = {},
 		upgrades = {},
 		pets = {},
-		selectedRole = "Recolector",
+		selectedRole = "Guerrero",
 		tutorialDone = false,
 		bestiary = {},
 		activePet = "",
@@ -67,16 +67,40 @@ local function defaultProfile(): Profile
 	}
 end
 
--- Rellena los campos que falten (datos de versiones anteriores).
+-- Versión 2: el Recolector pasa a ser el Mago. Su XP se suma a la del Mago y los puntos que tenía
+-- en talentos del Recolector quedan libres (esos talentos ya no existen).
+local function migrate(profile: Profile, fromVersion: number)
+	if fromVersion < 2 then
+		local gathererXp = profile.roleXp.Recolector
+		if gathererXp then
+			profile.roleXp.Mago = (profile.roleXp.Mago or 0) + gathererXp
+			profile.roleXp.Recolector = nil
+		end
+		for key in table.clone(profile.talents) do
+			if string.sub(key, 1, #"Recolector.") == "Recolector." then
+				profile.talents[key] = nil
+			end
+		end
+		if profile.selectedRole == "Recolector" then
+			profile.selectedRole = "Mago"
+		end
+	end
+	profile.version = defaultProfile().version
+end
+
+-- Rellena los campos que falten (datos de versiones anteriores) y los pone al día.
 local function reconcile(data: any): Profile
 	local profile = defaultProfile()
+	local fromVersion = 1
 	if typeof(data) == "table" then
 		for key, value in data do
 			if (profile :: any)[key] ~= nil and typeof(value) == typeof((profile :: any)[key]) then
 				(profile :: any)[key] = value
 			end
 		end
+		fromVersion = if typeof(data.version) == "number" then data.version else 1
 	end
+	migrate(profile, fromVersion)
 	return profile
 end
 

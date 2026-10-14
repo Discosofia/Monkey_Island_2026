@@ -7,6 +7,8 @@ export type Command = { id: string, label: string }
 local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 	Island = {
 		{ id = "Materials", label = "🎒 +50 de todo" },
+		{ id = "NextRole", label = "🎭 Siguiente rol" },
+		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar y llenar" },
 		{ id = "Hungry", label = "🍖 Hambre y sed al 10" },
 		{ id = "Fever", label = "🤒 Fiebre a 90" },
