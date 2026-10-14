@@ -8,9 +8,13 @@
 -- caída, nadar, agua, explosión, "oof", "ouch" y el clic del volumen). Los efectos de abajo los usan
 -- con distintos tonos para que el juego suene desde ya; los marcados con «Provisional» quedan mejor con
 -- un audio propio del Creator Store (busca el nombre que se sugiere y pega su ID en "id").
+--
+-- Variantes: en "id" puedes poner una lista de IDs y cada vez suena uno al azar (los "" se saltan):
+--   Hit = { id = { "rbxassetid://111", "rbxassetid://222", "rbxassetid://333" }, volume = 0.7, pitch = 1 },
+-- Con tus propias grabaciones pon pitch = 1 (el tono ya lo ajustaste al editarlas) y jitter ~0.05–0.1.
 
 export type Effect = {
-	id: string,
+	id: string | { string }, -- un ID o una lista de variantes
 	volume: number,
 	pitch: number, -- velocidad/tono (1 = normal)
 	jitter: number?, -- variación al azar del tono en cada golpe (0.1 = ±10 %)
@@ -28,11 +32,27 @@ local OOF = "rbxasset://sounds/oof.ogg"
 local OUCH = "rbxasset://sounds/ouch.ogg"
 local CLICK = "rbxasset://sounds/volume_slider.ogg"
 
+-- Lista de variantes a partir de los números de los audios subidos a Roblox.
+local function assets(...: number): { string }
+	local ids = {}
+	for _, assetId in { ... } do
+		table.insert(ids, `rbxassetid://{assetId}`)
+	end
+	return ids
+end
+
 local Effects: { [string]: Effect } = {
-	-- Armas
+	-- Armas. Cada arma elige su sonido de uso con "sound" en Data/Weapons; sin él, las de cuerpo a
+	-- cuerpo usan Swing y las de distancia Shoot (también los usan las habilidades de los roles).
 	Swing = { id = JUMP, volume = 0.35, pitch = 1.6, jitter = 0.1 }, -- Provisional: "sword swing whoosh"
 	Shoot = { id = SWIM, volume = 0.5, pitch = 1.8, jitter = 0.1 }, -- Provisional: "slingshot"
-	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta
+	SwingLight = { id = JUMP, volume = 0.3, pitch = 1.9, jitter = 0.1 }, -- machete, antorcha. Provisional: "blade swish"
+	SwingHeavy = { id = JUMP, volume = 0.5, pitch = 1.05, jitter = 0.08 }, -- garrotes y mazas. Provisional: "heavy swing whoosh"
+	SwingThrust = { id = JUMP, volume = 0.35, pitch = 1.4, jitter = 0.08 }, -- lanza. Provisional: "spear thrust"
+	ShootStone = { id = SWIM, volume = 0.5, pitch = 1.8, jitter = 0.1 }, -- hondas. Provisional: "slingshot"
+	ShootArrow = { id = SWIM, volume = 0.45, pitch = 2.4, jitter = 0.08 }, -- arcos. Provisional: "bow release"
+	ShootSpell = { id = GET_UP, volume = 0.5, pitch = 2, jitter = 0.1 }, -- bastones. Provisional: "magic cast"
+	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta a un mono o jefe (carne)
 	PlayerHurt = { id = OUCH, volume = 0.6, pitch = 1, jitter = 0.08 },
 	PlayerDown = { id = OOF, volume = 0.7, pitch = 0.9 },
 	Revive = { id = GET_UP, volume = 0.7, pitch = 1.1 },
@@ -50,12 +70,28 @@ local Effects: { [string]: Effect } = {
 	-- Construcción y estaciones
 	Build = { id = LAND, volume = 0.9, pitch = 0.8, jitter = 0.08 },
 	Repair = { id = FOOTSTEP, volume = 0.8, pitch = 0.9, jitter = 0.1 },
+	-- Golpe a una pieza construida (un mono que la ataca, las estacas al pincharle). Cada pieza elige
+	-- con "hitSound" en Data/Buildables; por defecto, madera.
+	StructureHit = { id = FOOTSTEP, volume = 0.8, pitch = 0.7, jitter = 0.1 }, -- Provisional: "wood impact"
+	StructureHitStone = { id = FOOTSTEP, volume = 0.8, pitch = 1.3, jitter = 0.1 }, -- Provisional: "stone impact"
 	StructureBreak = { id = BOOM, volume = 0.4, pitch = 0.7 },
 	Craft = { id = GET_UP, volume = 0.6, pitch = 1.3 },
 
 	-- Animales (las voces de los monos están en MonkeyVoices, más abajo)
-	MonkeySteal = { id = OUCH, volume = 0.5, pitch = 2.4 }, -- Provisional: "monkey chatter" (el ladrón se ríe)
-	PetAttack = { id = OUCH, volume = 0.35, pitch = 2.6, jitter = 0.1 },
+	-- El capuchino ladrón se ríe al robarte (mono steal 1-3).
+	MonkeySteal = {
+		id = assets(72053613594928, 72889728117222, 90077280374632),
+		volume = 0.65,
+		pitch = 1,
+		jitter = 0.06,
+	},
+	-- Tu mascota ataca (pet attack 1-4).
+	PetAttack = {
+		id = assets(129448246875134, 105072784917714, 126577775232138, 84211282254857),
+		volume = 0.5,
+		pitch = 1,
+		jitter = 0.08,
+	},
 
 	-- Clima, volcán y eventos
 	Thunder = { id = BOOM, volume = 1, pitch = 0.5, jitter = 0.1, range = 400 },
@@ -67,28 +103,87 @@ local Effects: { [string]: Effect } = {
 
 -- Voces de los monos por tamaño (cada especie elige su grupo con "voice" en Data/Monkeys). Cada grupo
 -- tiene cuatro: Attack (muerde o salta), Call (aúlla o ruge para llamar a la tropa), Hurt (recibe un
--- golpe) y Death (muere). Todas son provisionales: pega el ID de tu sonido y pon pitch = 1.
+-- golpe) y Death (muere). Son grabaciones propias (ya afinadas en Audacity, por eso pitch = 1) con
+-- varias tomas: cada vez suena una al azar. El número de cada toma está en su comentario.
 local MonkeyVoices: { [string]: { [string]: Effect } } = {
 	-- Tití, capuchino, mono ardilla y marteja: chillidos agudos y trinos.
 	Small = {
-		Attack = { id = OUCH, volume = 0.45, pitch = 2.6, jitter = 0.15 },
-		Call = { id = OUCH, volume = 0.6, pitch = 3, jitter = 0.1, range = 120 },
-		Hurt = { id = OUCH, volume = 0.5, pitch = 2.4, jitter = 0.12 },
-		Death = { id = OOF, volume = 0.6, pitch = 2.2, jitter = 0.1 },
+		Attack = {
+			id = assets(120818784564690, 97162650609963, 100889891543035),
+			volume = 0.6,
+			pitch = 1,
+			jitter = 0.08,
+		}, -- 1-3
+		Call = {
+			id = assets(92840853267309, 132638077007976, 127804153022844),
+			volume = 0.7,
+			pitch = 1,
+			jitter = 0.06,
+			range = 120,
+		}, -- 1-3
+		Hurt = {
+			id = assets(83206462911000, 94071359686291, 121789156418140, 119853628467210),
+			volume = 0.6,
+			pitch = 1,
+			jitter = 0.08,
+		}, -- damage 1-4
+		Death = {
+			id = assets(96263078454750, 107348634145517, 120413905689461, 127383166361393),
+			volume = 0.7,
+			pitch = 1,
+			jitter = 0.06,
+		}, -- 1-3 y la primera que subiste (sin número)
 	},
 	-- Cola larga, marimonda, gibón, aullador, macaco y babuino: gritos, ladridos y parloteo.
 	Medium = {
-		Attack = { id = OUCH, volume = 0.5, pitch = 2, jitter = 0.15 },
-		Call = { id = OOF, volume = 0.8, pitch = 0.75, range = 160 }, -- el aullador avisa a la tropa
-		Hurt = { id = OUCH, volume = 0.6, pitch = 1.8, jitter = 0.12 },
-		Death = { id = OOF, volume = 0.7, pitch = 1.5, jitter = 0.1 },
+		Attack = {
+			id = assets(101566051140325, 78666182840062, 129343390376286),
+			volume = 0.6,
+			pitch = 1,
+			jitter = 0.08,
+		}, -- 1-3
+		Call = {
+			id = assets(84612324755022, 73113198461767, 112267620291035),
+			volume = 0.8,
+			pitch = 1,
+			jitter = 0.05,
+			range = 160,
+		}, -- 1-3; el aullador avisa a la tropa
+		Hurt = {
+			id = assets(127218142406410, 126398772994173, 127695909714054),
+			volume = 0.65,
+			pitch = 1,
+			jitter = 0.08,
+		}, -- damage 1-3
+		Death = {
+			id = assets(132598995656891, 106334434884373, 78663149014123, 131254715857839),
+			volume = 0.75,
+			pitch = 1,
+			jitter = 0.06,
+		}, -- 1-4
 	},
 	-- Chimpancé, mandril, orangután y gorila: ululatos, gruñidos graves y rugidos.
 	Large = {
-		Attack = { id = OOF, volume = 0.6, pitch = 0.8, jitter = 0.1 },
-		Call = { id = BOOM, volume = 0.5, pitch = 0.45, range = 140 }, -- rugido del mandril y golpe del gorila
-		Hurt = { id = OOF, volume = 0.7, pitch = 0.9, jitter = 0.1 },
-		Death = { id = OOF, volume = 0.8, pitch = 0.65, range = 120 },
+		Attack = {
+			id = assets(95144095220328, 121761682490390, 79838978185801),
+			volume = 0.7,
+			pitch = 1,
+			jitter = 0.06,
+		}, -- 1-3
+		Call = { id = assets(117838908803383, 127164177577247), volume = 0.85, pitch = 1, jitter = 0.05, range = 140 }, -- 1-2
+		Hurt = {
+			id = assets(100911323277547, 83423545485614, 129547708669523),
+			volume = 0.75,
+			pitch = 1,
+			jitter = 0.06,
+		}, -- damage 1-3
+		Death = {
+			id = assets(139892111825679, 91154327046668, 103189610835600),
+			volume = 0.85,
+			pitch = 1,
+			jitter = 0.05,
+			range = 120,
+		}, -- 1-3
 	},
 }
 
@@ -98,8 +193,9 @@ for voice, effects in MonkeyVoices do
 	end
 end
 
--- Los jefes usan las voces de los grandes: más graves, más fuertes y desde más lejos.
-local BOSS_PITCH = 0.65
+-- Los jefes usan las voces de los grandes: más graves, más fuertes y desde más lejos. Las grabaciones
+-- de los grandes ya vienen graves, así que basta con bajarlas un poco (0.8 ≈ 4 semitonos).
+local BOSS_PITCH = 0.8
 
 local function bossVoice(effect: Effect, range: number): Effect
 	return { id = effect.id, volume = 0.9, pitch = effect.pitch * BOSS_PITCH, jitter = effect.jitter, range = range }

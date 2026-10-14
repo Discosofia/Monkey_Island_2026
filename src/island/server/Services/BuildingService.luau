@@ -343,6 +343,23 @@ function BuildingService.getStructures(): Folder
 	return structureFolder()
 end
 
+-- Sonido del golpe a una pieza, como mucho uno cada HIT_SOUND_INTERVAL por pieza: en el asedio
+-- varios monos (y las estacas) la golpean a la vez y saturarían el audio.
+local HIT_SOUND_INTERVAL = 0.3
+local lastHitSound: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
+
+local function playHitSound(model: Model)
+	local now = os.clock()
+	if now - (lastHitSound[model] or -math.huge) < HIT_SOUND_INTERVAL then
+		return
+	end
+	lastHitSound[model] = now
+	local buildableId = model:GetAttribute("BuildableId")
+	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
+	local key = if definition and definition.hitSound then definition.hitSound else "StructureHit"
+	Sfx.play(key, model:GetPivot().Position)
+end
+
 -- Daña una pieza; a 0 de vida se rompe. Devuelve true si se rompió.
 function BuildingService.damageStructure(model: Model, amount: number): boolean
 	local health = model:GetAttribute("Health")
@@ -356,6 +373,7 @@ function BuildingService.damageStructure(model: Model, amount: number): boolean
 		return true
 	end
 	model:SetAttribute("Health", remaining)
+	playHitSound(model)
 	return false
 end
 

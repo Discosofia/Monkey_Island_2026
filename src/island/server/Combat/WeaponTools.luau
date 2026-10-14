@@ -383,7 +383,7 @@ function WeaponTools.playUse(tool: Tool)
 	local weaponId = tool:GetAttribute("WeaponId")
 	local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
 	if handle and weapon then
-		Sfx.play(if weapon.kind == "Melee" then "Swing" else "Shoot", handle)
+		Sfx.play(weapon.sound or (if weapon.kind == "Melee" then "Swing" else "Shoot"), handle)
 	end
 end
 

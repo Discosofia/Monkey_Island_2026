@@ -3,6 +3,7 @@
 -- Desde el servidor se oyen en todos los clientes (el sonido se replica); desde un cliente, solo en él.
 --   Sfx.play("Chop", parte)      suena pegado a la parte (y la sigue si se mueve)
 --   Sfx.play("Thunder", posición) suena en ese punto del mundo
+-- Si el efecto tiene varias variantes en "id", cada vez suena una al azar.
 
 local Debris = game:GetService("Debris")
 local Workspace = game:GetService("Workspace")
@@ -16,9 +17,24 @@ local Sfx = {}
 
 local rng = Random.new()
 
+-- El ID que suena: el único, o uno al azar de la lista de variantes (saltando los vacíos).
+local function pickId(id: string | { string }): string?
+	if typeof(id) == "string" then
+		return if id ~= "" then id else nil
+	end
+	local options = {}
+	for _, option in id do
+		if option ~= "" then
+			table.insert(options, option)
+		end
+	end
+	return if #options > 0 then options[rng:NextInteger(1, #options)] else nil
+end
+
 function Sfx.play(key: string, at: Vector3 | Instance)
 	local effect = Sounds.Effects[key]
-	if not effect or effect.id == "" then
+	local soundId = if effect then pickId(effect.id) else nil
+	if not effect or not soundId then
 		return
 	end
 	local parent: Instance
@@ -34,7 +50,7 @@ function Sfx.play(key: string, at: Vector3 | Instance)
 	end
 	local sound = Instance.new("Sound")
 	sound.Name = `Sfx_{key}`
-	sound.SoundId = effect.id
+	sound.SoundId = soundId
 	sound.Volume = effect.volume
 	sound.PlaybackSpeed = effect.pitch * (1 + rng:NextNumber(-1, 1) * (effect.jitter or 0))
 	sound.RollOffMode = Enum.RollOffMode.InverseTapered

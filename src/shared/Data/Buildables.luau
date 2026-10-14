@@ -19,6 +19,8 @@ export type Buildable = {
 	maxPerPlayer: number?, -- límite de esta pieza por jugador (nil = sin límite propio)
 	station: string?, -- si es una estación de crafteo (Data/Stations), su id
 	maxPerServer: number?, -- límite para todo el servidor (nido, baliza)
+	-- Sonido cuando la golpean (clave de Data/Sounds.Effects); por defecto StructureHit (madera).
+	hitSound: string?,
 }
 
 local Buildables: { [string]: Buildable } = {
@@ -41,6 +43,7 @@ local Buildables: { [string]: Buildable } = {
 		cost = { { itemId = "Stone", amount = 6 }, { itemId = "Wood", amount = 2 } },
 		health = 450,
 		zones = { Core = true, Plot = true, Perimeter = true },
+		hitSound = "StructureHitStone",
 	},
 	StandingTorch = {
 		name = "Antorcha de pie",
@@ -138,6 +141,7 @@ local Buildables: { [string]: Buildable } = {
 		health = 2500,
 		zones = { Core = true },
 		maxPerServer = 1,
+		hitSound = "StructureHitStone",
 	},
 	StoneForge = {
 		name = "Forja de piedra",
@@ -149,6 +153,7 @@ local Buildables: { [string]: Buildable } = {
 		health = 500,
 		zones = { Core = true },
 		station = "Forge",
+		hitSound = "StructureHitStone",
 	},
 }
 
