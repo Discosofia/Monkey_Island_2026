@@ -102,6 +102,44 @@ local function groundAt(position: Vector3): Vector3?
 	return hit.Position
 end
 
+-- Altura del suelo (terreno o piezas) bajo el huevo: la más alta entre el centro y cuatro puntos
+-- de su contorno, para que en una ladera no quede medio enterrado. Ignora jugadores y el huevo.
+local function restingY(position: Vector3): number?
+	local ignore: { Instance } = {}
+	if eggModel then
+		table.insert(ignore, eggModel)
+	end
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(ignore, player.Character)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	local highest: number? = nil
+	for i = 0, 4 do
+		local angle = i * math.pi / 2
+		local offset = if i == 0
+			then Vector3.zero
+			else Vector3.new(math.cos(angle), 0, math.sin(angle)) * EGG_RADIUS * 0.8
+		local origin = position + offset + Vector3.new(0, 6, 0)
+		local hit = Workspace:Raycast(origin, Vector3.new(0, -400, 0), params)
+		if hit and (highest == nil or hit.Position.Y > highest) then
+			highest = hit.Position.Y
+		end
+	end
+	return highest
+end
+
+-- Mueve el huevo entero. Hay que hacerlo así (y no cambiando el CFrame de la esfera central): fuera
+-- del Workspace las soldaduras no arrastran a las demás piezas, que se quedaban en el origen del mapa.
+local function moveEgg(cframe: CFrame)
+	if eggModel then
+		eggModel:PivotTo(cframe)
+	end
+end
+
 local pickUp: (player: Player) -> ()
 
 -- Radio del huevo a una altura (0 en el centro, ±EGG_HALF_HEIGHT en las puntas).
@@ -213,11 +251,11 @@ local function buildEgg(): BasePart
 	local light = Instance.new("PointLight")
 	light.Color = EGG_GLOW
 	light.Range = 14
-	light.Brightness = 2
+	light.Brightness = 1.2
 	light.Parent = main
 	-- En el modelo, no en una pieza: así resalta el huevo entero con un solo contorno.
 	local highlight = Instance.new("Highlight")
-	highlight.FillTransparency = 0.75
+	highlight.FillTransparency = 0.88
 	highlight.FillColor = EGG_GLOW
 	highlight.OutlineColor = Color3.fromRGB(200, 250, 255)
 	highlight.Parent = model
@@ -257,7 +295,33 @@ local function setEggParent(parent: Instance)
 	end
 end
 
--- Pone el huevo en el suelo con su aviso "Recoger".
+-- Deja el huevo anclado en "cframe". Mientras alguien lo lleva, su cliente controla la física del
+-- huevo e ignora las posiciones que manda el servidor: si se ancla y se mueve a la vez, ese cliente
+-- lo deja congelado donde lo veía (sobre su cabeza). Así que primero el servidor recupera el control
+-- y lo ancla, y un momento después lo pone en su sitio definitivo, que ya llega a todos.
+local function settleEgg(part: BasePart, cframe: CFrame)
+	local wasCarried = not part.Anchored
+	if wasCarried then
+		pcall(function()
+			part:SetNetworkOwner(nil)
+		end)
+	end
+	part.Anchored = true
+	setEggParent(Workspace)
+	if not wasCarried then
+		moveEgg(cframe)
+		return
+	end
+	-- Un poco por encima ya en el servidor (para las distancias), y el sitio exacto un instante
+	-- después: como la posición cambia, se vuelve a enviar a los clientes.
+	moveEgg(cframe * CFrame.new(0, 0.05, 0))
+	task.wait(0.15)
+	if egg == part then
+		moveEgg(cframe)
+	end
+end
+
+-- Pone el huevo de pie sobre el suelo que haya bajo "position", con su aviso "Recoger".
 local function placeOnGround(position: Vector3)
 	local part = egg
 	if not part then
@@ -266,9 +330,8 @@ local function placeOnGround(position: Vector3)
 	end
 	local eggPart = part :: BasePart
 	unweld(eggPart)
-	eggPart.Anchored = true
-	eggPart.CFrame = CFrame.new(position + Vector3.new(0, EGG_HALF_HEIGHT - 0.1, 0))
-	setEggParent(Workspace)
+	local floor = restingY(position) or position.Y
+	settleEgg(eggPart, CFrame.new(position.X, floor + EGG_HALF_HEIGHT + 0.05, position.Z))
 	setPrompt(eggPart, true)
 	state = "Ground"
 end
@@ -285,8 +348,8 @@ function pickUp(player: Player)
 	participants[player] = true
 	player:SetAttribute("CarryingEgg", true)
 	setPrompt(part, false)
+	moveEgg(head.CFrame * CFrame.new(0, 0.5 + EGG_HALF_HEIGHT + 0.2, 0))
 	part.Anchored = false
-	part.CFrame = head.CFrame * CFrame.new(0, 0.5 + EGG_HALF_HEIGHT + 0.2, 0)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = head
 	weld.Part1 = part
@@ -304,9 +367,7 @@ local function drop(reason: string)
 	end
 	holder:SetAttribute("CarryingEgg", nil)
 	carrier = nil
-	local position = part.Position - Vector3.new(0, 5, 0)
-	local ground = groundAt(position) or position
-	placeOnGround(ground)
+	placeOnGround(part.Position)
 	announce(`🥚 {reason}: el huevo ha caído al suelo`)
 end
 
@@ -423,10 +484,11 @@ local function startIncubation(target: Model)
 		local bounds, size = target:GetBoundingBox()
 		bottom = bounds.Position - Vector3.new(0, size.Y / 2 - 0.6, 0)
 	end
-	part.Anchored = true
-	part.CFrame = CFrame.new(bottom + Vector3.new(0, EGG_HALF_HEIGHT - NEST_SINK, 0))
-		* CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
-	setEggParent(Workspace)
+	settleEgg(
+		part,
+		CFrame.new(bottom + Vector3.new(0, EGG_HALF_HEIGHT - NEST_SINK, 0))
+			* CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
+	)
 	incubationEndsAt = os.clock() + Config.Egg.IncubationSeconds
 	announce(`🥚 ¡El huevo está en el nido! Defendedlo {Config.Egg.IncubationSeconds} s hasta que eclosione`)
 
