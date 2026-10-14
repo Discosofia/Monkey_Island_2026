@@ -3,7 +3,6 @@
 -- Q en PC, B en mando y un botón táctil en móvil. El servidor da una invulnerabilidad breve.
 -- Cuesta estamina (Config.Survival.DodgeStaminaCost): sin estamina no se puede esquivar.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,6 +10,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stamina = require(script.Parent.Parent.Stamina)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local ACTION = "Dodge"
 
@@ -58,13 +58,12 @@ local function dodge()
 end
 
 function DodgeController:Start()
-	ContextActionService:BindAction(ACTION, function(_, state: Enum.UserInputState)
+	ActionButtons.bind(ACTION, "Esquivar", function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
 			dodge()
 		end
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.Q, Enum.KeyCode.ButtonB)
-	ContextActionService:SetTitle(ACTION, "Esquivar")
+	end, Enum.KeyCode.Q, Enum.KeyCode.ButtonB)
 end
 
 return DodgeController

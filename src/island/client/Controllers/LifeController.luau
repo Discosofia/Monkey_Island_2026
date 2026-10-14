@@ -5,7 +5,6 @@
 --   - Como Espíritu, marca enemigos: F en PC, X en mando o el botón táctil "Marcar".
 --   - Desactiva "Reiniciar personaje" del menú de Roblox, que permitiría saltarse estos estados.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
@@ -15,6 +14,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local Aim = require(script.Parent.Parent.Aim)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local MARK_ACTION = "SpiritMark"
 
@@ -47,16 +47,15 @@ end
 
 local function setMarking(enabled: boolean)
 	if enabled then
-		ContextActionService:BindAction(MARK_ACTION, function(_, state: Enum.UserInputState)
+		ActionButtons.bind(MARK_ACTION, "Marcar", function(_, state: Enum.UserInputState)
 			local character = Players.LocalPlayer.Character
 			if state == Enum.UserInputState.Begin and character then
 				Remotes.SpiritMark:FireServer(Aim.direction(character))
 			end
 			return Enum.ContextActionResult.Sink
-		end, true, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
-		ContextActionService:SetTitle(MARK_ACTION, "Marcar")
+		end, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
 	else
-		ContextActionService:UnbindAction(MARK_ACTION)
+		ActionButtons.unbind(MARK_ACTION)
 	end
 end
 

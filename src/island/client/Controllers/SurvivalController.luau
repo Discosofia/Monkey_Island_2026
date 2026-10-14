@@ -7,7 +7,6 @@
 --   - Beber: junto al agua aparece un aviso "Beber" como los de recolectar (F en PC, X en mando,
 --     tocar en móvil). Es un aviso local que sigue al jugador mientras está cerca del agua.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20,6 +19,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Stamina = require(script.Parent.Parent.Stamina)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local SPRINT_ACTION = "Sprint"
 local EAT_ACTION = "Eat"
@@ -60,15 +60,14 @@ end
 
 local function bindButton(action: string, title: string, enabled: boolean, handler: () -> (), ...: Enum.KeyCode)
 	if enabled then
-		ContextActionService:BindAction(action, function(_, state: Enum.UserInputState)
+		ActionButtons.bind(action, title, function(_, state: Enum.UserInputState)
 			if state == Enum.UserInputState.Begin then
 				handler()
 			end
 			return Enum.ContextActionResult.Sink
-		end, true, ...)
-		ContextActionService:SetTitle(action, title)
+		end, ...)
 	else
-		ContextActionService:UnbindAction(action)
+		ActionButtons.unbind(action)
 	end
 end
 
@@ -111,15 +110,14 @@ end
 function SurvivalController:Start()
 	local player = Players.LocalPlayer
 
-	ContextActionService:BindAction(SPRINT_ACTION, function(_, state: Enum.UserInputState, input: InputObject)
+	ActionButtons.bind(SPRINT_ACTION, "Correr", function(_, state: Enum.UserInputState, input: InputObject)
 		if input.KeyCode == Enum.KeyCode.LeftShift then
 			sprintHeld = state == Enum.UserInputState.Begin
 		elseif state == Enum.UserInputState.Begin then
 			sprintToggled = not sprintToggled
 		end
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
-	ContextActionService:SetTitle(SPRINT_ACTION, "Correr")
+	end, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
 
 	RunService.RenderStepped:Connect(function(deltaTime)
 		Stamina.update(deltaTime)

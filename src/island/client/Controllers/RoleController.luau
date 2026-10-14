@@ -5,7 +5,6 @@
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (recolector).
 --   - Médico: ve una barra de vida sobre la cabeza de cada aliado.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +15,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local ACTION = "UseAbility"
 -- Avisos cuyo tiempo de mantener depende de una ventaja del jugador.
@@ -106,13 +106,12 @@ function RoleController:Start()
 	label.Size = UDim2.fromOffset(260, 22)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 
-	ContextActionService:BindAction(ACTION, function(_, state: Enum.UserInputState)
+	ActionButtons.bind(ACTION, "Habilidad", function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin and LifeState.isAlive(player) then
 			Remotes.UseAbility:FireServer()
 		end
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.G, Enum.KeyCode.ButtonR1)
-	ContextActionService:SetTitle(ACTION, "Habilidad")
+	end, Enum.KeyCode.G, Enum.KeyCode.ButtonR1)
 
 	task.spawn(healthBars, player)
 	while true do

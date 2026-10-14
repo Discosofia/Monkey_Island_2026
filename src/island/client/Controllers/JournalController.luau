@@ -1,7 +1,6 @@
 --!strict
 -- Diario de campo en la Isla (Fase 4): J en PC, Select en mando o el botón táctil "Diario".
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -9,6 +8,7 @@ local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local ACTION = "ToggleJournal"
 
@@ -69,7 +69,7 @@ function JournalController:Start()
 		title.Text = `📖 Diario de campo · {discovered}/{total} especies (J para cerrar)`
 	end
 
-	ContextActionService:BindAction(ACTION, function(_, state: Enum.UserInputState)
+	ActionButtons.bind(ACTION, "Diario", function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
 			gui.Enabled = not gui.Enabled
 			if gui.Enabled then
@@ -77,8 +77,7 @@ function JournalController:Start()
 			end
 		end
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.J, Enum.KeyCode.ButtonSelect)
-	ContextActionService:SetTitle(ACTION, "Diario")
+	end, Enum.KeyCode.J, Enum.KeyCode.ButtonSelect)
 
 	player:GetAttributeChangedSignal("Progress"):Connect(function()
 		if gui.Enabled then

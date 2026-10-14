@@ -3,7 +3,6 @@
 -- El botón aparece si llevas algo para curarte (vendas, ungüentos o antídotos) y estás vivo.
 -- El servidor elige qué usar: el antídoto si tienes fiebre; si no, la curación que mejor encaje.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,6 +10,7 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local ACTION = "UseHeal"
 local ANTIDOTE_ID = "Antidote"
@@ -46,15 +46,14 @@ function HealController:Start()
 		end
 		bound = shouldBind
 		if shouldBind then
-			ContextActionService:BindAction(ACTION, function(_, state: Enum.UserInputState)
+			ActionButtons.bind(ACTION, "Curar", function(_, state: Enum.UserInputState)
 				if state == Enum.UserInputState.Begin then
 					Remotes.UseBandage:FireServer()
 				end
 				return Enum.ContextActionResult.Sink
-			end, true, Enum.KeyCode.H, Enum.KeyCode.DPadUp)
-			ContextActionService:SetTitle(ACTION, "Curar")
+			end, Enum.KeyCode.H, Enum.KeyCode.DPadUp)
 		else
-			ContextActionService:UnbindAction(ACTION)
+			ActionButtons.unbind(ACTION)
 		end
 	end
 

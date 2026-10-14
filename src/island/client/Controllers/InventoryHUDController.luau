@@ -3,7 +3,6 @@
 --   - Avisos breves a la derecha al ganar o gastar algo: "+3 🌲 Madera (12)".
 --   - Panel con todos los materiales: tecla B en PC, Y en mando o el botón táctil "Bolsa".
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,6 +10,7 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local ACTION = "ToggleMaterials"
 local GAIN_COLOR = Color3.fromRGB(150, 235, 130)
@@ -148,13 +148,12 @@ function InventoryHUDController:Start()
 		refresh()
 	end
 
-	ContextActionService:BindAction(ACTION, function(_, state: Enum.UserInputState)
+	ActionButtons.bind(ACTION, "Bolsa", function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
 			panel.Visible = not panel.Visible
 		end
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
-	ContextActionService:SetTitle(ACTION, "Bolsa")
+	end, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
 end
 
 return InventoryHUDController

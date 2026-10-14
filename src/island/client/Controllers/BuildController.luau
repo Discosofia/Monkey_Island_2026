@@ -7,7 +7,6 @@
 --     "Girar", "Pieza" y "Quitar" (cruceta derecha, L1 y cruceta abajo en mando).
 -- El servidor (BuildingService) vuelve a comprobarlo todo.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -23,6 +22,7 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 
 local ROTATE_ACTION = "BuildRotate"
 local NEXT_ACTION = "BuildNext"
@@ -248,19 +248,18 @@ function BuildController:Start()
 
 	local function bindControls(enabled: boolean)
 		if not enabled then
-			ContextActionService:UnbindAction(ROTATE_ACTION)
-			ContextActionService:UnbindAction(NEXT_ACTION)
-			ContextActionService:UnbindAction(DEMOLISH_ACTION)
+			ActionButtons.unbind(ROTATE_ACTION)
+			ActionButtons.unbind(NEXT_ACTION)
+			ActionButtons.unbind(DEMOLISH_ACTION)
 			return
 		end
 		local function bind(action: string, title: string, handler: () -> (), ...: Enum.KeyCode)
-			ContextActionService:BindAction(action, function(_, state: Enum.UserInputState)
+			ActionButtons.bind(action, title, function(_, state: Enum.UserInputState)
 				if state == Enum.UserInputState.Begin then
 					handler()
 				end
 				return Enum.ContextActionResult.Sink
-			end, true, ...)
-			ContextActionService:SetTitle(action, title)
+			end, ...)
 		end
 		bind(ROTATE_ACTION, "Girar", function()
 			rotation = (rotation + 1) % 4
