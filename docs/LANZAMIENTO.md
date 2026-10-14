@@ -16,17 +16,29 @@ Todo el código del lanzamiento está hecho. Lo que queda son **ajustes en el Cr
    - **Noche:** ambiente tenso, selva nocturna.
    - **Asedio y La Gran Tropa:** tambores rápidos.
    - **Jefe:** épica.
-3. Copia el ID de cada pista (botón derecho → *Copiar ID del recurso*) y pégalo en `src/shared/Data/Sounds.luau` con el formato `"rbxassetid://123456789"`.
+3. Copia el ID de cada pista (botón derecho → *Copiar ID del recurso*) y pégalo en `src/shared/Data/Sounds.luau` con el formato `"rbxassetid://123456789"`. Basta con dos: `Lobby` y `Day` (la de la Isla); las situaciones que dejes en `""` usan la de `Day`.
 4. La tecla **M** silencia la música.
 
 ### Efectos de sonido
 
 Los efectos están en `Effects`, en el mismo archivo. Roblox ya solo trae 11 sonidos de serie, así que de momento usan esos con distintos tonos: todo suena, pero los marcados como **Provisional** (sobre todo los animales) quedan mucho mejor con un audio de verdad. Para cambiar uno:
 
-1. En la **Caja de herramientas → Audio**, busca lo que sugiere el comentario: por ejemplo `monkey scream` (MonkeyHurt), `monkey chatter` (MonkeySteal), `gorilla roar` (BossRoar), `wood chop` (Chop), `pickaxe stone` (Mine), `tree falling` (TreeFall), `sword swing` (Swing), `slingshot` (Shoot), `thunder` (Thunder), `lava` o `explosion` (LavaImpact).
+1. En la **Caja de herramientas → Audio**, busca lo que sugiere el comentario: por ejemplo `monkey chatter` (MonkeySteal), `wood chop` (Chop), `pickaxe stone` (Mine), `tree falling` (TreeFall), `sword swing` (Swing), `slingshot` (Shoot), `thunder` (Thunder), `lava` o `explosion` (LavaImpact).
 2. Escúchalo y copia su ID (botón derecho → *Copiar ID del recurso*).
 3. Pega el ID en `id = "rbxassetid://123456789"` y pon `pitch = 1` (el tono distinto solo era para disimular los provisionales).
 4. En Studio, el botón **🔊 Probar todos los sonidos** del panel de pruebas los reproduce uno a uno.
+
+### Voces de los monos
+
+Las voces están en `MonkeyVoices`, en el mismo archivo, divididas por tamaño. Cada especie elige su grupo con `voice` en `src/shared/Data/Monkeys.luau`:
+
+| Grupo | Especies | Qué buscar |
+|---|---|---|
+| `Small` | Tití, capuchino, mono ardilla, marteja | `tamarin`, `squirrel monkey`, `monkey squeak` |
+| `Medium` | Cola larga, marimonda, gibón, aullador, macaco, babuino | `howler monkey`, `macaque`, `baboon`, `monkey scream` |
+| `Large` | Chimpancé, mandril, orangután, gorila | `chimpanzee`, `gorilla roar`, `ape grunt` |
+
+Cada grupo tiene cuatro sonidos: `Attack` (muerde o salta), `Call` (aúlla o ruge), `Hurt` (recibe un golpe) y `Death` (muere). Los jefes usan los de `Large` más graves (`BOSS_PITCH`), así que no hace falta subir sonidos aparte para ellos. En el botón de prueba aparecen como `MonkeySmallAttack`, `MonkeyLargeCall`, `BossRoar`…
 
 ## 3. Tienda cosmética (Robux)
 

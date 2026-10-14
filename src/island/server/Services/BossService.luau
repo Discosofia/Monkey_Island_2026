@@ -233,7 +233,7 @@ function BossService.spawn(bossId: string)
 	end
 	current = boss
 	humanoid.Died:Connect(function()
-		Sfx.play("BossRoar", root.Position)
+		Sfx.play("BossDeath", root.Position)
 		onBossDied(boss)
 	end)
 	local lastHealth = humanoid.Health
@@ -427,7 +427,9 @@ local function tick(now: number)
 		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then
 			boss.lastAttackAt = now
 			MonkeyAnimator.play(boss.model, "Attack")
-			CombatService.damagePlayer(target, boss.damage)
+			if CombatService.damagePlayer(target, boss.damage) then
+				Sfx.play("BossAttack", boss.root)
+			end
 		end
 	else
 		boss.humanoid:MoveTo(targetRoot.Position)

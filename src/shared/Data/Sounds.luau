@@ -53,15 +53,8 @@ local Effects: { [string]: Effect } = {
 	StructureBreak = { id = BOOM, volume = 0.4, pitch = 0.7 },
 	Craft = { id = GET_UP, volume = 0.6, pitch = 1.3 },
 
-	-- Animales (Provisional todos: busca "monkey scream", "monkey chatter", "gorilla roar"…)
-	MonkeyHurt = { id = OUCH, volume = 0.6, pitch = 1.9, jitter = 0.12 },
-	MonkeyDeath = { id = OOF, volume = 0.7, pitch = 1.7, jitter = 0.1 },
-	MonkeyAttack = { id = OUCH, volume = 0.5, pitch = 2.2, jitter = 0.15 },
-	MonkeyHowl = { id = OOF, volume = 0.8, pitch = 0.75, range = 160 }, -- el aullador avisa a la tropa
-	MonkeyRoar = { id = BOOM, volume = 0.5, pitch = 0.45, range = 140 }, -- rugido del alfa / gorila
-	MonkeySteal = { id = OUCH, volume = 0.5, pitch = 2.4 }, -- el ladrón se ríe y huye
-	BossRoar = { id = BOOM, volume = 0.9, pitch = 0.3, range = 260 },
-	BossHurt = { id = OOF, volume = 0.8, pitch = 0.6, jitter = 0.1, range = 160 },
+	-- Animales (las voces de los monos están en MonkeyVoices, más abajo)
+	MonkeySteal = { id = OUCH, volume = 0.5, pitch = 2.4 }, -- Provisional: "monkey chatter" (el ladrón se ríe)
 	PetAttack = { id = OUCH, volume = 0.35, pitch = 2.6, jitter = 0.1 },
 
 	-- Clima, volcán y eventos
@@ -72,17 +65,64 @@ local Effects: { [string]: Effect } = {
 	EggHatch = { id = GET_UP, volume = 0.9, pitch = 1.8, range = 120 },
 }
 
+-- Voces de los monos por tamaño (cada especie elige su grupo con "voice" en Data/Monkeys). Cada grupo
+-- tiene cuatro: Attack (muerde o salta), Call (aúlla o ruge para llamar a la tropa), Hurt (recibe un
+-- golpe) y Death (muere). Todas son provisionales: pega el ID de tu sonido y pon pitch = 1.
+local MonkeyVoices: { [string]: { [string]: Effect } } = {
+	-- Tití, capuchino, mono ardilla y marteja: chillidos agudos y trinos.
+	Small = {
+		Attack = { id = OUCH, volume = 0.45, pitch = 2.6, jitter = 0.15 },
+		Call = { id = OUCH, volume = 0.6, pitch = 3, jitter = 0.1, range = 120 },
+		Hurt = { id = OUCH, volume = 0.5, pitch = 2.4, jitter = 0.12 },
+		Death = { id = OOF, volume = 0.6, pitch = 2.2, jitter = 0.1 },
+	},
+	-- Cola larga, marimonda, gibón, aullador, macaco y babuino: gritos, ladridos y parloteo.
+	Medium = {
+		Attack = { id = OUCH, volume = 0.5, pitch = 2, jitter = 0.15 },
+		Call = { id = OOF, volume = 0.8, pitch = 0.75, range = 160 }, -- el aullador avisa a la tropa
+		Hurt = { id = OUCH, volume = 0.6, pitch = 1.8, jitter = 0.12 },
+		Death = { id = OOF, volume = 0.7, pitch = 1.5, jitter = 0.1 },
+	},
+	-- Chimpancé, mandril, orangután y gorila: ululatos, gruñidos graves y rugidos.
+	Large = {
+		Attack = { id = OOF, volume = 0.6, pitch = 0.8, jitter = 0.1 },
+		Call = { id = BOOM, volume = 0.5, pitch = 0.45, range = 140 }, -- rugido del mandril y golpe del gorila
+		Hurt = { id = OOF, volume = 0.7, pitch = 0.9, jitter = 0.1 },
+		Death = { id = OOF, volume = 0.8, pitch = 0.65, range = 120 },
+	},
+}
+
+for voice, effects in MonkeyVoices do
+	for action, effect in effects do
+		Effects[`Monkey{voice}{action}`] = effect
+	end
+end
+
+-- Los jefes usan las voces de los grandes: más graves, más fuertes y desde más lejos.
+local BOSS_PITCH = 0.65
+
+local function bossVoice(effect: Effect, range: number): Effect
+	return { id = effect.id, volume = 0.9, pitch = effect.pitch * BOSS_PITCH, jitter = effect.jitter, range = range }
+end
+
+Effects.BossAttack = bossVoice(MonkeyVoices.Large.Attack, 120)
+Effects.BossRoar = bossVoice(MonkeyVoices.Large.Call, 260)
+Effects.BossHurt = bossVoice(MonkeyVoices.Large.Hurt, 160)
+Effects.BossDeath = bossVoice(MonkeyVoices.Large.Death, 260)
+
 local Sounds = {
-	-- Música de fondo por situación (la Isla elige sola cuál toca).
+	-- Música de fondo por situación (la Isla elige sola cuál toca). Basta con Lobby y Day: las
+	-- situaciones de la Isla que queden en "" usan la pista de Day.
 	Music = {
-		Lobby = "",
-		Day = "",
+		Lobby = "rbxassetid://127164046914411",
+		Day = "rbxassetid://111965007272199", -- pista principal de la Isla
 		Night = "",
 		Siege = "", -- cuando los monos atacan el Basecamp
 		Boss = "", -- cerca de un jefe
 		FinalNight = "", -- La Gran Tropa
 	},
-	MusicVolume = 0.35,
+	MusicVolume = 0.35, -- Lobby
+	IslandMusicVolume = 0.12,
 	-- Aviso de cada mensaje en pantalla.
 	Notify = CLICK,
 	NotifyVolume = 0.4,

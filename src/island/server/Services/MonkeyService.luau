@@ -197,6 +197,11 @@ local function showBubble(monkey: Monkey, text: string)
 	Debris:AddItem(billboard, 1.5)
 end
 
+-- Voz del mono según su tamaño (Data/Sounds: MonkeyVoices): "Attack", "Call", "Hurt" o "Death".
+local function playVoice(monkey: Monkey, action: string, at: (Vector3 | Instance)?)
+	Sfx.play(`Monkey{monkey.definition.voice}{action}`, at or monkey.root)
+end
+
 local function giveLoot(player: Player, definition: Monkeys.MonkeyDefinition)
 	local gained = {}
 	for _, entry in definition.loot do
@@ -226,7 +231,7 @@ local function onDied(monkey: Monkey)
 	end
 	monkeys[monkey.model] = nil
 	removeFromGroup(monkey)
-	Sfx.play("MonkeyDeath", monkey.root.Position)
+	playVoice(monkey, "Death", monkey.root.Position)
 	-- La espera para recuperar un mono empieza con la primera baja.
 	local group = monkey.group
 	group.nextRegrowAt = math.max(group.nextRegrowAt, os.clock() + Config.Monkeys.GroupRegrowSeconds)
@@ -370,7 +375,7 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		local now = os.clock()
 		if health > 0 and health < lastHealth and now - lastCryAt > 0.5 then
 			lastCryAt = now
-			Sfx.play("MonkeyHurt", root)
+			playVoice(monkey, "Hurt")
 			MonkeyAnimator.play(model, "Hurt")
 		end
 		lastHealth = health
@@ -467,7 +472,7 @@ end
 local function howl(monkey: Monkey, target: Player)
 	monkey.howled = true
 	showBubble(monkey, "¡AUUU!")
-	Sfx.play("MonkeyHowl", monkey.root)
+	playVoice(monkey, "Call")
 	MonkeyAnimator.play(monkey.model, "Howl")
 	Remotes.Notify:FireClient(target, "🐒 ¡Un aullador está llamando a la tropa!")
 	for _, other in monkeys do
@@ -591,7 +596,7 @@ function bite(monkey: Monkey, player: Player)
 	MonkeyAnimator.play(monkey.model, "Attack")
 	local landed = CombatService.damagePlayer(player, damage)
 	if landed then
-		Sfx.play("MonkeyAttack", monkey.root)
+		playVoice(monkey, "Attack")
 	end
 	local grab = monkey.definition.grab
 	if landed and grab then
@@ -610,7 +615,7 @@ function pounce(monkey: Monkey, target: Vector3, now: number)
 	monkey.pounced = true
 	monkey.root.AssemblyLinearVelocity = offset.Unit * 55 + Vector3.new(0, 35, 0)
 	showBubble(monkey, "¡IIIH!")
-	Sfx.play("MonkeyAttack", monkey.root)
+	playVoice(monkey, "Attack")
 	MonkeyAnimator.play(monkey.model, "Pounce")
 end
 
@@ -622,7 +627,7 @@ function roar(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 	monkey.roarReadyAt = now + Config.Monkeys.RoarCooldownSeconds
 	showBubble(monkey, "¡GRRRAAH!")
-	Sfx.play("MonkeyRoar", monkey.root)
+	playVoice(monkey, "Call")
 	MonkeyAnimator.play(monkey.model, "Roar")
 	for _, info in infos do
 		if (info.position - monkey.root.Position).Magnitude <= settings.radius then
@@ -674,7 +679,7 @@ function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 	monkey.stompReadyAt = now + settings.cooldownSeconds
 	showBubble(monkey, "💥 ¡PUM!")
-	Sfx.play("MonkeyRoar", monkey.root)
+	playVoice(monkey, "Call")
 	Sfx.play("RockImpact", monkey.root.Position)
 	MonkeyAnimator.play(monkey.model, "Stomp")
 	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))

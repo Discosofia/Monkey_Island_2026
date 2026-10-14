@@ -1,6 +1,6 @@
 --!strict
--- Reproductor de música del cliente (Fase 6): cambia de pista con un fundido suave. La tecla M (o
--- el botón "Música" del menú) la silencia o la vuelve a activar.
+-- Reproductor de música del cliente (Fase 6): cambia de pista con un fundido suave. La tecla M la
+-- silencia o la vuelve a activar.
 
 local ContextActionService = game:GetService("ContextActionService")
 local SoundService = game:GetService("SoundService")
@@ -15,6 +15,7 @@ local Music = {}
 local current: Sound? = nil
 local currentTrack: string? = nil
 local muted = false
+local volume = Sounds.MusicVolume
 
 local function fadeOut(sound: Sound)
 	local tween = TweenService:Create(sound, TweenInfo.new(FADE_SECONDS), { Volume = 0 })
@@ -45,8 +46,13 @@ function Music.play(track: string)
 	sound.Volume = 0
 	sound.Parent = SoundService
 	sound:Play()
-	TweenService:Create(sound, TweenInfo.new(FADE_SECONDS), { Volume = if muted then 0 else Sounds.MusicVolume }):Play()
+	TweenService:Create(sound, TweenInfo.new(FADE_SECONDS), { Volume = if muted then 0 else volume }):Play()
 	current = sound
+end
+
+-- Volumen de este place (por defecto, Sounds.MusicVolume). Llamar antes de la primera pista.
+function Music.setVolume(newVolume: number)
+	volume = newVolume
 end
 
 -- Tecla M para silenciar.
@@ -55,7 +61,7 @@ function Music.bindMuteKey()
 		if state == Enum.UserInputState.Begin then
 			muted = not muted
 			if current then
-				current.Volume = if muted then 0 else Sounds.MusicVolume
+				current.Volume = if muted then 0 else volume
 			end
 		end
 		return Enum.ContextActionResult.Pass
