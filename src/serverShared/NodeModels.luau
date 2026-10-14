@@ -1,5 +1,5 @@
 --!strict
--- Modelos de los puntos de recolección: árboles (cinco variedades), palmeras, rocas irregulares,
+-- Modelos de los puntos de recolección: árboles (cinco variedades y el mangle), palmeras, rocas irregulares,
 -- matas de banano y plátano y arbustos. Los usan ResourceService (nodos de prueba) y MapBuilder
 -- (isla generada). Cuando tengas modelos definitivos, basta con ponerles el mismo atributo
 -- (ver docs/MAPA.md).
@@ -173,6 +173,40 @@ local function jitter(rng: Random, amount: number): Vector3
 	)
 end
 
+local function leafy(part: Part): Part
+	part.Material = Enum.Material.LeafyGrass
+	return decorative(part)
+end
+
+-- Mata de hojas de una copa: dos bloques con textura de hojas, girados al azar y cruzados, como
+-- las rocas. El contorno sale irregular y con facetas, no una bola perfecta. "size" es el tamaño
+-- aproximado de la mata; "tilt" cuánto se inclinan (poco en copas planas como la de la ceiba).
+local function foliage(parent: Instance, position: Vector3, size: Vector3, color: Color3, rng: Random, tilt: number)
+	leafy(
+		newPart(
+			"Leaves",
+			size * Vector3.new(0.8, 0.85, 0.8) * jitter(rng, 0.1),
+			CFrame.new(position) * randomTilt(rng, tilt),
+			color,
+			parent
+		)
+	)
+	local offset = Vector3.new(
+		rng:NextNumber(-0.2, 0.2) * size.X,
+		rng:NextNumber(0, 0.15) * size.Y,
+		rng:NextNumber(-0.2, 0.2) * size.Z
+	)
+	leafy(
+		newPart(
+			"Leaves",
+			size * Vector3.new(0.7, 0.7, 0.7) * jitter(rng, 0.12),
+			CFrame.new(position + offset) * randomTilt(rng, tilt * 1.3),
+			shade(color, rng, 0.12),
+			parent
+		)
+	)
+end
+
 -- Convierte un modelo decorativo (por ejemplo, una palmera) en punto de recolección del tipo dado.
 -- Pone un punto invisible a la altura del jugador sobre "base" (el pie del tronco): ahí se miden
 -- el alcance del hacha y la barra de progreso. "footprint" (opcional) es el ancho de ese punto:
@@ -229,15 +263,16 @@ local function buildBroadleaf(tree: Model, base: CFrame, rng: Random, s: number)
 			* CFrame.Angles(0, yaw, 0)
 			* CFrame.Angles(math.rad(rng:NextNumber(40, 60)), 0, 0)
 		local tip = limb("Branch", from, 5.5 * s, 0.9 * s, bark, tree)
-		newEllipsoid(
-			"Leaves",
+		foliage(
+			tree,
+			tip.Position + Vector3.new(0, s, 0),
 			Vector3.new(rng:NextNumber(7, 9), rng:NextNumber(4.5, 5.5), rng:NextNumber(7, 9)) * s,
-			CFrame.new(tip.Position + Vector3.new(0, s, 0)) * CFrame.Angles(0, yaw, 0),
 			shade(leaf, rng, 0.12),
-			tree
+			rng,
+			0.55
 		)
 	end
-	newEllipsoid("Leaves", Vector3.new(10, 6, 10) * s * jitter(rng, 0.1), top * CFrame.new(0, 1.5 * s, 0), leaf, tree)
+	foliage(tree, (top * CFrame.new(0, 1.5 * s, 0)).Position, Vector3.new(10, 6, 10) * s, leaf, rng, 0.45)
 	return 3 * s
 end
 
@@ -271,12 +306,13 @@ local function buildCeiba(tree: Model, base: CFrame, rng: Random, s: number): nu
 			* CFrame.Angles(0, yaw, 0)
 			* CFrame.Angles(math.rad(rng:NextNumber(62, 75)), 0, 0)
 		local tip = limb("Branch", from, 8 * s, 1.1 * s, bark, tree)
-		newEllipsoid(
-			"Leaves",
+		foliage(
+			tree,
+			tip.Position + Vector3.new(0, 1.2 * s, 0),
 			Vector3.new(rng:NextNumber(10, 12), rng:NextNumber(3, 4), rng:NextNumber(10, 12)) * s,
-			CFrame.new(tip.Position + Vector3.new(0, 1.2 * s, 0)) * CFrame.Angles(0, yaw, 0),
 			shade(leaf, rng, 0.1),
-			tree
+			rng,
+			0.15
 		)
 		if i < 2 then
 			local length = rng:NextNumber(7, 11) * s
@@ -291,7 +327,7 @@ local function buildCeiba(tree: Model, base: CFrame, rng: Random, s: number): nu
 			)
 		end
 	end
-	newEllipsoid("Leaves", Vector3.new(13, 4, 13) * s * jitter(rng, 0.1), top * CFrame.new(0, 2 * s, 0), leaf, tree)
+	foliage(tree, (top * CFrame.new(0, 2 * s, 0)).Position, Vector3.new(13, 4, 13) * s, leaf, rng, 0.12)
 	return lowerDiameter + buttressLength
 end
 
@@ -311,16 +347,17 @@ local function buildMango(tree: Model, base: CFrame, rng: Random, s: number): nu
 			bark,
 			tree
 		)
-		newEllipsoid(
-			"Leaves",
-			Vector3.new(7.5, 6, 7.5) * s * jitter(rng, 0.12),
-			CFrame.new(tip.Position + Vector3.new(0, s, 0)),
+		foliage(
+			tree,
+			tip.Position + Vector3.new(0, s, 0),
+			Vector3.new(7.5, 6, 7.5) * s,
 			shade(leaf, rng, 0.1),
-			tree
+			rng,
+			0.6
 		)
 	end
 	local crown = fork * CFrame.new(0, 5 * s, 0)
-	newEllipsoid("Leaves", Vector3.new(12, 8, 12) * s * jitter(rng, 0.08), crown, leaf, tree)
+	foliage(tree, crown.Position, Vector3.new(12, 8, 12) * s, leaf, rng, 0.4)
 
 	local mangoColors = { Color3.fromRGB(240, 170, 40), Color3.fromRGB(230, 110, 40), Color3.fromRGB(200, 190, 50) }
 	for i = 0, 5 do
@@ -364,7 +401,17 @@ local function buildYarumo(tree: Model, base: CFrame, rng: Random, s: number): n
 		)
 		-- Media vuelta: así el -Z del marco apunta hacia fuera, como la rama.
 		local umbrella = CFrame.new(tip.Position) * CFrame.Angles(0, yaw + math.pi, 0)
-		newEllipsoid("Leaves", Vector3.new(6.5, 0.8, 6.5) * s * jitter(rng, 0.1), umbrella, leaf, tree)
+		for k = 0, 2 do
+			leafy(
+				newPart(
+					"Leaf",
+					Vector3.new(1.5 * s, 0.2, rng:NextNumber(5.5, 6.8) * s),
+					umbrella * CFrame.Angles(0, k * math.pi / 3, 0) * CFrame.Angles(rng:NextNumber(-0.1, 0.1), 0, 0),
+					shade(leaf, rng, 0.08),
+					tree
+				)
+			)
+		end
 		-- Una hoja vieja que cuelga del borde, enseñando el envés plateado.
 		decorative(
 			newPart(
@@ -392,13 +439,19 @@ local function buildGuadua(tree: Model, base: CFrame, rng: Random, s: number): n
 			* CFrame.Angles(-math.rad(rng:NextNumber(4, 14)), 0, 0)
 		local top =
 			limb("Trunk", from, height, rng:NextNumber(0.7, 0.95) * math.sqrt(s), shade(cane, rng, 0.15), tree, true)
-		newEllipsoid(
-			"Leaves",
-			Vector3.new(3, 6.5, 3) * s * jitter(rng, 0.15),
-			top * CFrame.new(0, -1.5 * s, 0),
-			shade(leaf, rng, 0.12),
-			tree
-		)
+		-- Ramilletes de hojas: dos láminas cruzadas a lo largo de la punta de la caña.
+		local spray = top * CFrame.new(0, -1.5 * s, 0) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
+		for k = 0, 1 do
+			leafy(
+				newPart(
+					"Leaves",
+					Vector3.new(3, 6.5, 1.1) * s * jitter(rng, 0.15),
+					spray * CFrame.Angles(0, k * math.pi / 2, rng:NextNumber(-0.2, 0.2)),
+					shade(leaf, rng, 0.12),
+					tree
+				)
+			)
+		end
 	end
 	return 4 * s
 end
@@ -424,6 +477,83 @@ local function pickVariety(rng: Random): string
 		end
 	end
 	return TREE_VARIETIES[1].name
+end
+
+-- Cilindro de adorno entre dos puntos, un poco más largo para que las uniones no dejen huecos.
+local function rod(name: string, from: Vector3, to: Vector3, diameter: number, color: Color3, parent: Instance)
+	local length = (to - from).Magnitude + diameter * 0.5
+	local part = decorative(
+		newPart(
+			name,
+			Vector3.new(length, diameter, diameter),
+			CFrame.lookAt((from + to) / 2, to) * CFrame.Angles(0, math.pi / 2, 0),
+			color,
+			parent
+		)
+	)
+	part.Shape = Enum.PartType.Cylinder
+end
+
+-- Mangle (solo en el manglar, ver MapBuilder): el tronco nace en alto, sobre raíces zanco que
+-- salen en arco y se clavan en el barro; copa densa y ancha, y raíces aéreas que cuelgan de las
+-- ramas. Se tala como cualquier árbol (tipo Tree). Las raíces no chocan, para poder cruzarlo.
+function NodeModels.buildMangrove(ground: Vector3, rng: Random, scale: number): Model
+	local tree = Instance.new("Model")
+	tree.Name = "Mangle"
+	local s = scale
+	local bark = shade(Color3.fromRGB(115, 70, 55), rng, 0.12)
+	local rootColor = bark:Lerp(Color3.fromRGB(60, 45, 40), 0.3)
+	local leaf = shade(Color3.fromRGB(70, 140, 50), rng, 0.1)
+	local base = CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, TAU), 0)
+	local rootTop = rng:NextNumber(3, 4) * s
+
+	-- Raíces zanco: del tronco salen hacia fuera subiendo un poco (rodilla) y bajan al barro.
+	local reach = 0
+	local count = rng:NextInteger(6, 8)
+	for i = 0, count - 1 do
+		local angle = i * TAU / count + rng:NextNumber(-0.3, 0.3)
+		local out = Vector3.new(math.cos(angle), 0, math.sin(angle))
+		local start = ground + Vector3.new(0, rootTop - rng:NextNumber(0, 1.2) * s, 0) + out * 0.35 * s
+		local knee = start + out * rng:NextNumber(1, 1.6) * s + Vector3.new(0, rng:NextNumber(0.1, 0.5) * s, 0)
+		local footDistance = rng:NextNumber(2.6, 3.8) * s
+		local foot = ground + out * footDistance - Vector3.new(0, 0.4, 0)
+		rod("Root", start, knee, 0.32 * s, rootColor, tree)
+		rod("Root", knee, foot, 0.3 * s, rootColor, tree)
+		reach = math.max(reach, footDistance)
+	end
+
+	local trunkStart = base
+		* CFrame.new(0, rootTop - 0.5 * s, 0)
+		* CFrame.Angles(rng:NextNumber(-0.08, 0.08), 0, rng:NextNumber(-0.08, 0.08))
+	local trunkLength = rng:NextNumber(5.5, 7) * s
+	local top = limb("Trunk", trunkStart, trunkLength, 1 * s, bark, tree, true)
+
+	-- Ramas abiertas con matas de hojas; de dos de ellas cuelga una raíz aérea hasta el barro.
+	for i = 0, 3 do
+		local yaw = i * TAU / 4 + rng:NextNumber(-0.4, 0.4)
+		local from = trunkStart
+			* CFrame.new(0, rng:NextNumber(0.55, 0.9) * trunkLength, 0)
+			* CFrame.Angles(0, yaw, 0)
+			* CFrame.Angles(math.rad(rng:NextNumber(40, 60)), 0, 0)
+		local tip = limb("Branch", from, 3.2 * s, 0.4 * s, bark, tree)
+		foliage(
+			tree,
+			tip.Position + Vector3.new(0, 0.6 * s, 0),
+			Vector3.new(6, 3.5, 6) * s,
+			shade(leaf, rng, 0.1),
+			rng,
+			0.4
+		)
+		if i < 2 then
+			local hang = tip.Position - Vector3.new(0, 0.5 * s, 0)
+			rod("AerialRoot", hang, Vector3.new(hang.X, ground.Y - 0.3, hang.Z), 0.12 * s, rootColor, tree)
+		end
+	end
+	foliage(tree, top.Position + Vector3.new(0, 1.2 * s, 0), Vector3.new(7, 4, 7) * s, leaf, rng, 0.35)
+
+	-- Punto de tala que cubre la mitad interior de las raíces: el hacha alcanza desde su borde.
+	NodeModels.makeHarvestable(tree, "Tree", ground, reach)
+	return tree
 end
 
 -- Árbol talable (tipo Tree) de una variedad al azar, o la indicada en "variety".
@@ -750,18 +880,82 @@ function NodeModels.buildMusa(nodeType: string, ground: Vector3, rng: Random): M
 	return plant
 end
 
--- Arbusto: una bola de hojas.
+-- Helecho de la selva: roseta de 4 a 6 frondas que suben y se arquean hacia abajo, cada una en
+-- dos tramos (el de fuera más estrecho, como una hoja que se afina), y un cogollo enrollado en el
+-- centro. Da fibra (Data/ResourceNodes, tipo Fern).
+function NodeModels.buildFern(ground: Vector3, rng: Random): Model
+	local fern = Instance.new("Model")
+	fern.Name = "Helecho"
+	local s = rng:NextNumber(0.7, 1.3)
+	local color = shade(Color3.fromRGB(70, 150, 60), rng, 0.15)
+	local base = CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, TAU), 0)
+	local count = rng:NextInteger(4, 6)
+	for i = 0, count - 1 do
+		local rise = math.rad(rng:NextNumber(45, 65))
+		local length = rng:NextNumber(1.6, 2.2) * s
+		-- Angles(+x) levanta el -Z del marco: la fronda sale hacia fuera y hacia arriba.
+		local inner = base
+			* CFrame.new(0, 0.1, 0)
+			* CFrame.Angles(0, i * TAU / count + rng:NextNumber(-0.25, 0.25), 0)
+			* CFrame.Angles(rise, 0, 0)
+		leafy(newPart("Frond", Vector3.new(0.9 * s, 0.08, length), inner * CFrame.new(0, 0, -length / 2), color, fern))
+		local outer = inner * CFrame.new(0, 0, -length) * CFrame.Angles(-rise - math.rad(rng:NextNumber(30, 50)), 0, 0)
+		leafy(
+			newPart(
+				"Frond",
+				Vector3.new(0.6 * s, 0.07, length * 0.9),
+				outer * CFrame.new(0, 0, -length * 0.45),
+				shade(color, rng, 0.08),
+				fern
+			)
+		)
+	end
+	newBall(
+		"Fiddlehead",
+		0.35 * s,
+		base * CFrame.new(0, 0.45 * s, 0),
+		color:Lerp(Color3.fromRGB(160, 190, 80), 0.4),
+		fern
+	)
+	NodeModels.makeHarvestable(fern, "Fern", ground)
+	return fern
+end
+
+-- Arbusto: montículo de una mata grande y tres más pequeñas alrededor, con bayas rojas asomando
+-- entre las hojas. La mata grande choca y lleva el aviso; el resto es de adorno.
 local function buildBush(ground: Vector3, rng: Random, scale: number): Model
 	local bush = Instance.new("Model")
 	bush.Name = "Bush"
+	local color = shade(Color3.fromRGB(70, 150, 55), rng, 0.1)
+	local center = ground + Vector3.new(0, 1.4 * scale, 0)
 	local main = newPart(
 		"Bush",
-		Vector3.new(5, 5, 5) * scale,
-		CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, TAU), 0) * CFrame.new(0, 2 * scale, 0),
-		Color3.fromRGB(80, 170, 60),
+		Vector3.new(3.6, 3, 3.6) * scale * jitter(rng, 0.1),
+		CFrame.new(center) * randomTilt(rng, 0.45),
+		color,
 		bush
 	)
-	main.Shape = Enum.PartType.Ball
+	main.Material = Enum.Material.LeafyGrass
+	local start = rng:NextNumber(0, TAU)
+	for i = 1, 3 do
+		local angle = start + i * TAU / 3 + rng:NextNumber(-0.4, 0.4)
+		local offset = Vector3.new(math.cos(angle) * 1.5, rng:NextNumber(-0.4, 0.3), math.sin(angle) * 1.5) * scale
+		leafy(
+			newPart(
+				"Leaves",
+				Vector3.new(2.4, 2.1, 2.4) * scale * jitter(rng, 0.15),
+				CFrame.new(center + offset) * randomTilt(rng, 0.6),
+				shade(color, rng, 0.12),
+				bush
+			)
+		)
+	end
+	local berry = Color3.fromRGB(200, 40, 50)
+	for _ = 1, 5 do
+		local angle = rng:NextNumber(0, TAU)
+		local direction = Vector3.new(math.cos(angle), rng:NextNumber(0.1, 0.8), math.sin(angle)).Unit
+		newBall("Berry", 0.35, CFrame.new(center + direction * 1.6 * scale), shade(berry, rng, 0.15), bush)
+	end
 	bush.PrimaryPart = main
 	bush:SetAttribute(NodeModels.ATTRIBUTE, "Bush")
 	return bush

@@ -24,12 +24,24 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
+-- En Studio, require guarda el resultado de cada módulo durante toda la sesión: si el código cambia
+-- después (Rojo), la barra de comandos seguiría usando la versión vieja. Una copia recién clonada
+-- siempre se carga desde cero.
+local function freshRequire(module: ModuleScript): any
+	local copy = module:Clone()
+	copy.Parent = module.Parent
+	local result = require(copy) :: any
+	copy:Destroy()
+	return result
+end
+
+local NodeModels = freshRequire(ServerScriptService.ServerShared.NodeModels)
 
 export type Options = {
 	seed: number?,
 	islandRadius: number?,
 	force: boolean?, -- generar aunque el place abierto no sea la Isla de Config.PlaceIds
+	fresh: boolean?, -- interno: esta copia del módulo ya es la recién cargada
 }
 
 type Layout = {
@@ -71,21 +83,28 @@ local WALL_MARGIN = 100 -- distancia del muro invisible más allá de la costa m
 -- Cantidades para una isla de radio DEFAULT_RADIUS. Con otro radio se escalan: por área en la
 -- selva (misma densidad) y por perímetro en la playa.
 local DEFAULT_RADIUS = 650
-local RESOURCE_COUNTS: { [string]: number } = { Tree = 140, Bush = 90, Rock = 60 }
-local JUNGLE_TREE_COUNT = 380
-local PALM_COUNT = 70
-local FERN_COUNT = 380
+-- Las plantas se rebajaron un 30 % (2026-10): la isla se veía demasiado tupida y pesaba en móvil.
+local RESOURCE_COUNTS: { [string]: number } = { Tree = 98, Bush = 63, Rock = 60 }
+local JUNGLE_TREE_COUNT = 266
+local PALM_COUNT = 49
+local FERN_COUNT = 266
+-- Manglar: barro a menos de MANGROVE_WIDTH del río, desde la costa hasta MANGROVE_REACH × radio
+-- tierra adentro. Se duplicó su área (2026-10): antes 60 studs y 0,35.
+local MANGROVE_WIDTH = 85
+local MANGROVE_REACH = 0.5
+local MANGROVE_COUNT = 60
+local MANGROVE_SPREAD = MANGROVE_WIDTH -- distancia máxima al río a la que se buscan mangles
+local MANGROVE_SPACING = 7 -- distancia mínima entre dos mangles
 -- Cultivos abandonados del santuario (GDD §13): grupos de matas en hileras.
 local PLANTATIONS: { { nodeType: string, count: number } } = {
-	{ nodeType = "BananaPlant", count = 12 },
-	{ nodeType = "PlantainPlant", count = 9 },
+	{ nodeType = "BananaPlant", count = 8 },
+	{ nodeType = "PlantainPlant", count = 6 },
 }
 local PLANT_SPACING = 6.5
 
 local WOOD = Color3.fromRGB(110, 72, 40)
 local DARK_WOOD = Color3.fromRGB(85, 55, 30)
 local FIRE_LIGHT = Color3.fromRGB(255, 170, 90)
-local LEAF_COLORS = { Color3.fromRGB(45, 120, 55), Color3.fromRGB(60, 140, 60), Color3.fromRGB(35, 100, 45) }
 
 local MapBuilder = {}
 
@@ -238,11 +257,11 @@ local function surfaceAt(layout: Layout, x: number, z: number): Surface
 	end
 
 	-- Cauce del río (bajo el nivel del mar, así se llena de agua) y manglar cerca de la costa.
-	local nearCoast = inland < layout.radius * 0.35
+	local nearCoast = inland < layout.radius * MANGROVE_REACH
 	if riverDistance < RIVER_CARVE then
 		height = lerp(RIVER_BED, height, smoothstep(RIVER_HALF_WIDTH, RIVER_CARVE, riverDistance))
 		material = if nearCoast then Enum.Material.Mud else Enum.Material.Ground
-	elseif nearCoast and riverDistance < 60 and inland > BEACH_WIDTH * 0.7 then
+	elseif nearCoast and riverDistance < MANGROVE_WIDTH and inland > BEACH_WIDTH * 0.7 then
 		material = Enum.Material.Mud
 	end
 
@@ -608,6 +627,8 @@ local function isJungleSpot(surface: Surface, distanceFromCenter: number, cleara
 		and surface.caveDistance > 25
 		and surface.relief < 25
 		and surface.material ~= Enum.Material.CrackedLava
+		-- El barro del manglar es solo para los mangles.
+		and surface.material ~= Enum.Material.Mud
 end
 
 local function byArea(count: number, layout: Layout): number
@@ -639,27 +660,35 @@ local function placeResources(layout: Layout, map: Instance)
 	end
 end
 
-local function buildFern(ground: Vector3, rng: Random, parent: Instance)
-	local fern = Instance.new("Model")
-	fern.Name = "Helecho"
-	local scale = rng:NextNumber(0.7, 1.4)
-	local base = CFrame.new(ground) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
-	local color = LEAF_COLORS[rng:NextInteger(1, #LEAF_COLORS)]
-	for i = 0, 2 do
-		local blade = decorative(
-			newPart(
-				"Blade",
-				Vector3.new(0.2, 2.5, 3.5) * scale,
-				base * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.new(0, 1.1 * scale, 0),
-				color,
-				fern
-			)
-		)
-		fern.PrimaryPart = fern.PrimaryPart or blade
+-- Manglar: mangles solo en el barro de la desembocadura (ver surfaceAt), sin agua profunda y
+-- separados entre sí. Se buscan junto al tramo final del río, que es donde está ese barro.
+local function placeMangroves(layout: Layout, map: Instance, rng: Random, parent: Instance): number
+	local river = layout.river
+	local target = byArea(MANGROVE_COUNT, layout)
+	local spots: { Vector2 } = {}
+	local attempts = 0
+	while #spots < target and attempts < target * 40 do
+		attempts += 1
+		local segment = rng:NextInteger(#river - 3, #river - 1)
+		local a, b = river[segment], river[segment + 1]
+		local direction = (b - a).Unit
+		local point = a:Lerp(b, rng:NextNumber())
+			+ Vector2.new(-direction.Y, direction.X) * rng:NextNumber(-MANGROVE_SPREAD, MANGROVE_SPREAD)
+		local surface = surfaceAt(layout, point.X, point.Y)
+		local free = true
+		for _, other in spots do
+			if (other - point).Magnitude < MANGROVE_SPACING then
+				free = false
+				break
+			end
+		end
+		if free and surface.material == Enum.Material.Mud and surface.height > SEA_LEVEL - 3 then
+			local ground = Vector3.new(point.X, groundY(point.X, point.Y, surface.height, map), point.Y)
+			NodeModels.buildMangrove(ground, rng, rng:NextNumber(0.85, 1.3)).Parent = parent
+			table.insert(spots, point)
+		end
 	end
-	-- Da fibra (ver Data/ResourceNodes, tipo Fern).
-	fern:SetAttribute(NodeModels.ATTRIBUTE, "Fern")
-	fern.Parent = parent
+	return #spots
 end
 
 local function placeVegetation(layout: Layout, map: Instance)
@@ -692,9 +721,10 @@ local function placeVegetation(layout: Layout, map: Instance)
 	local ferns = scatter(layout, map, rng, byArea(FERN_COUNT, layout), true, function(surface, distance)
 		return isJungleSpot(surface, distance, 8)
 	end, function(ground)
-		buildFern(ground, rng, folder)
+		NodeModels.buildFern(ground, rng).Parent = folder
 	end)
-	print(`[MapBuilder] Vegetación: {trees} árboles, {palms} palmeras, {ferns} helechos`)
+	local mangroves = placeMangroves(layout, map, rng, folder)
+	print(`[MapBuilder] Vegetación: {trees} árboles, {palms} palmeras, {ferns} helechos, {mangroves} mangles`)
 end
 
 -- Cultivos de banano y plátano: cada uno es una cuadrícula de matas (2 hileras de 2 o 3) con
@@ -824,6 +854,15 @@ local function clearPrevious()
 end
 
 function MapBuilder.build(options: Options?)
+	-- Genera siempre con el código actual: carga una copia nueva de este módulo (y, con él, de
+	-- NodeModels) y le pasa el trabajo. Sin esto, tras un cambio había que reiniciar Studio.
+	if not (options and options.fresh) then
+		local settings: Options = if options then table.clone(options) else {}
+		settings.fresh = true
+		freshRequire(script).build(settings)
+		return
+	end
+
 	if game.PlaceId ~= Config.PlaceIds.Island and not (options and options.force) then
 		warn(
 			`[MapBuilder] No se generó nada: el place abierto ({game.PlaceId}) no es la Isla del juego `

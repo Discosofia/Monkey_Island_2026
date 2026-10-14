@@ -18,14 +18,14 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 |---|---|
 | Círculo marrón en el centro | **Basecamp** (170 studs de diámetro): meseta plana con empalizada de estacas con punta, 4 portones con dintel y antorchas, hoguera con bancos y 4 puntos de aparición. El cuadrado verde es la `BasecampZone`. |
 | Verde con sombras | **Selva** con colinas (hasta unos 35 studs) y manchas de hierba animada y hojarasca. Se aplana cerca de la playa, el río, el Basecamp y la entrada de la cueva. |
-| Puntos verde oscuro | **Árboles de selva** (~380, se talan y dan 🌲 madera) y **helechos** (~380, dan 🌿 fibra), agrupados en bosques con claros entre medias. Hay cinco variedades de árbol: **frondoso**, **ceiba** gigante con raíces en aleta y lianas, **mango** con frutos, **yarumo** de hojas plateadas y matas de **guadua**. |
-| (no sale en la imagen) | **Cultivos de banano y plátano** (~20): grupos de 3 a 6 matas en hileras por la selva. Se cosechan con el aviso: el racimo desaparece y vuelve a salir pasado un rato. |
+| Puntos verde oscuro | **Árboles de selva** (~265, se talan y dan 🌲 madera) y **helechos** (~265, dan 🌿 fibra), agrupados en bosques con claros entre medias. Hay cinco variedades de árbol: **frondoso**, **ceiba** gigante con raíces en aleta y lianas, **mango** con frutos, **yarumo** de hojas plateadas y matas de **guadua**. |
+| (no sale en la imagen) | **Cultivos de banano y plátano** (~14): grupos de 3 a 6 matas en hileras por la selva. Se cosechan con el aviso: el racimo desaparece y vuelve a salir pasado un rato. |
 | Gris, noroeste | **Montañas.** La línea negra es la **cueva**: entrada en la falda que mira al Basecamp, túnel y sala al fondo. |
 | Oscuro, noreste | **Volcán activo:** lago de lava brillante, llamas, luz naranja, humo y chispas. |
 | Azul | **Río:** nace al pie de las montañas, rodea el Basecamp por el sur y desemboca al sureste. |
-| Marrón junto a la desembocadura | **Manglar** (barro). |
-| Anillo claro con puntos amarillos | **Playas con palmeras** (~70). Más allá, el mar y un **muro invisible** (círculo blanco) para que nadie salga. |
-| Puntos claros y blancos | **Recolectables:** árboles, arbustos y rocas irregulares (cantos rodados, lajas y peñascos; ~290), fuera del Basecamp, la playa y el río. |
+| Marrón junto a la desembocadura | **Manglar** (barro, a ambos lados del tramo final del río) con ~60 **mangles**: árboles de raíces zanco que solo crecen ahí y se talan como los demás. |
+| Anillo claro con puntos amarillos | **Playas con palmeras** (~50). Más allá, el mar y un **muro invisible** (círculo blanco) para que nadie salga. |
+| Puntos claros y blancos | **Recolectables:** árboles, arbustos y rocas irregulares (cantos rodados, lajas y peñascos; ~220), fuera del Basecamp, la playa y el río. |
 | Cuadrados rosas | **Guaridas de los 4 jefes** (marcadores invisibles para la Fase 5). |
 
 ### Cómo ejecutarlo
@@ -48,7 +48,7 @@ El generador `MapBuilder` construye en un minuto la isla completa del GDD en ver
 **Opciones:**
 - `build({ seed = 7 })`: otro reparto aleatorio de colinas, costa y recursos.
 - `build({ islandRadius = 950 })`: una isla más grande. Por defecto el radio es 650 studs, unos 40 segundos a pie del centro a la playa; con 950 son unos 60 segundos.
-  - La vegetación y los recursos **escalan con el tamaño**, así que la densidad de la selva es la misma. Con 950 salen unos 800 árboles, 800 helechos, 100 palmeras, 45 cultivos y 600 recolectables, unas 28.000 piezas en total (unas 13.000 con el radio de 650). Si en móvil va justo, activa el *streaming* (docs/RENDIMIENTO.md) o baja `JUNGLE_TREE_COUNT` en `MapBuilder`.
+  - La vegetación y los recursos **escalan con el tamaño**, así que la densidad de la selva es la misma. Con 950 salen unos 570 árboles, 570 helechos, 70 palmeras, 30 cultivos y 470 recolectables, unas 34.000 piezas en total (unas 15.000 con el radio de 650). Si en móvil va justo, activa el *streaming* (docs/RENDIMIENTO.md) o baja `JUNGLE_TREE_COUNT` en `MapBuilder`.
   - La cueva se alarga para que la sala siga bajo la montaña.
 - Se pueden combinar: `build({ islandRadius = 950, seed = 7 })`.
 
