@@ -2,7 +2,7 @@
 -- Acciones de supervivencia del jugador local (Fase 2.1):
 --   - Correr: mantener Mayús en PC; L3 en mando o el botón táctil "Correr" lo activan y desactivan.
 --     Gasta estamina; al vaciarse vuelves a caminar.
---   - Comer: C, cruceta izquierda o el botón "Comer" (aparece si llevas comida). El servidor elige
+--   - Comer: G, cruceta izquierda o el botón "Comer" (aparece si llevas comida). El servidor elige
 --     la comida que más llena.
 --   - Beber: junto al agua aparece un aviso "Beber" como los de recolectar (F en PC, X en mando,
 --     tocar en móvil). Es un aviso local que sigue al jugador mientras está cerca del agua.
@@ -132,7 +132,7 @@ function SurvivalController:Start()
 			eatBound = show
 			bindButton(EAT_ACTION, "Comer", show, function()
 				Remotes.Eat:FireServer()
-			end, Enum.KeyCode.C, Enum.KeyCode.DPadLeft)
+			end, Enum.KeyCode.G, Enum.KeyCode.DPadLeft)
 		end
 	end
 	for itemId, item in Items do

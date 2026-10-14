@@ -136,7 +136,7 @@ function BuildController:Start()
 		local touch = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 		hint.Text = if touch
 			then "Toca para colocar · Girar · Pieza · Quitar"
-			else "Clic: colocar · R: girar · T: cambiar pieza · X: quitar una pieza tuya"
+			else "Clic: colocar · R: girar · T: cambiar pieza · F: quitar una pieza tuya"
 	end
 
 	local function clearGhost()
@@ -272,7 +272,7 @@ function BuildController:Start()
 			if aimedStructure then
 				Remotes.Demolish:FireServer(aimedStructure)
 			end
-		end, Enum.KeyCode.X, Enum.KeyCode.DPadDown)
+		end, Enum.KeyCode.F, Enum.KeyCode.DPadDown)
 	end
 
 	local renderConnection: RBXScriptConnection? = nil

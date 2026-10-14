@@ -1,6 +1,6 @@
 --!strict
 -- Roles (GDD §6.3, Fase 3). Se eligen en el Lobby y son fijos durante la partida.
--- "perks": ventajas pasivas (se suman a Data/Perks). "ability": habilidad activa (G, R1 o el botón
+-- "perks": ventajas pasivas (se suman a Data/Perks). "ability": habilidad activa (Z, R1 o el botón
 -- "Habilidad"), que gestiona AbilityService en la Isla.
 
 export type Role = {

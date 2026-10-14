@@ -2,7 +2,7 @@
 -- Ítems del juego. Fase 1.2: materiales básicos. Fase 1.4: botín de los monos. Fase 1.6: vendas.
 -- Fase 2.1: comida.
 -- "order" decide el orden en el HUD del inventario; "alwaysShow" lo muestra aunque tengas 0.
--- "food" hace que se pueda comer (C, cruceta izquierda o el botón "Comer"): cuánto recupera.
+-- "food" hace que se pueda comer (G, cruceta izquierda o el botón "Comer"): cuánto recupera.
 -- "heal" hace que se pueda usar para curarse (H, cruceta arriba o el botón "Curar"): vida que da.
 -- "rarity" (Data/Rarities) da color al nombre en el inventario y el diario; sin ella, Común.
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.

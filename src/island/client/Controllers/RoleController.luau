@@ -1,6 +1,6 @@
 --!strict
 -- Rol del jugador local en la Isla (Fase 3):
---   - Habilidad activa: G en PC, R1 en mando o el botón táctil "Habilidad". Un texto bajo las barras
+--   - Habilidad activa: Z en PC, R1 en mando o el botón táctil "Habilidad". Un texto bajo las barras
 --     de supervivencia dice cuál es y cuándo vuelve a estar lista.
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (recolector).
 --   - Médico: ve una barra de vida sobre la cabeza de cada aliado.
@@ -111,7 +111,7 @@ function RoleController:Start()
 			Remotes.UseAbility:FireServer()
 		end
 		return Enum.ContextActionResult.Sink
-	end, Enum.KeyCode.G, Enum.KeyCode.ButtonR1)
+	end, Enum.KeyCode.Z, Enum.KeyCode.ButtonR1)
 
 	task.spawn(healthBars, player)
 	while true do
@@ -121,7 +121,7 @@ function RoleController:Start()
 			local readyAt = player:GetAttribute("AbilityReadyAt")
 			local remaining = if typeof(readyAt) == "number" then readyAt - Workspace:GetServerTimeNow() else 0
 			local status = if remaining > 0 then `{math.ceil(remaining)} s` else "lista"
-			label.Text = `{role.icon} {role.ability.name} (G): {status}`
+			label.Text = `{role.icon} {role.ability.name} (Z): {status}`
 			label.TextColor3 = if remaining > 0 then Color3.fromRGB(180, 180, 180) else Color3.fromRGB(255, 220, 120)
 		end
 		task.wait(0.25)

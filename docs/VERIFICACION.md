@@ -26,14 +26,14 @@ Marca cada casilla al comprobarla.
 | Usar arma o herramienta | Clic |
 | Esquivar | Q |
 | Correr | Mayús |
-| Comer | C |
+| Comer | G |
 | Curar | H |
 | Beber | F (junto al agua) |
 | Bolsa | B |
 | Diario de campo | J |
-| Habilidad del rol | G |
+| Habilidad del rol | Z |
 | Silenciar música | M |
-| Construir con el martillo | Clic coloca · R gira · T cambia de pieza · X quita |
+| Construir con el martillo | Clic coloca · R gira · T cambia de pieza · F quita |
 
 ---
 
@@ -145,7 +145,7 @@ En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](
 
 El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para probar cada rol: elígelo en el Lobby, para (■) y dale a ▶ en la Isla.
 
-1. [ ] Al entrar sale **"⛑️ Juegas como Médico: …"** y bajo las barras **"Ungüento en área (G): lista"**.
+1. [ ] Al entrar sale **"⛑️ Juegas como Médico: …"** y bajo las barras **"Ungüento en área (Z): lista"**.
 2. [ ] **Médico:** pulsa **G** herido.
    ✅ Onda verde, te curas y empieza la cuenta atrás de la habilidad.
    - Con 2 jugadores ves la **vida del otro** sobre su cabeza.

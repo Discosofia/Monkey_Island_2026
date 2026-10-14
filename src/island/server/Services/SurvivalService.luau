@@ -87,7 +87,7 @@ local function tick(player: Player)
 	local thirst = Survival.get(player, Survival.THIRST) - Config.Survival.ThirstPerMinute * minutes * rate
 	setStat(player, Survival.HUNGER, hunger)
 	setStat(player, Survival.THIRST, thirst)
-	warnLow(player, Survival.HUNGER, hunger, "🍖 Tienes hambre: come algo (C o el botón Comer)")
+	warnLow(player, Survival.HUNGER, hunger, "🍖 Tienes hambre: come algo (G o el botón Comer)")
 	warnLow(player, Survival.THIRST, thirst, "💧 Tienes sed: bebe en el río (F o el botón Beber)")
 
 	-- Fiebre: baja despacio; a tope quita vida.
