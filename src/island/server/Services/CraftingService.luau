@@ -276,9 +276,38 @@ local function removeWeapon(player: Player, weaponId: string): boolean
 	return wasEquipped
 end
 
+-- Receta que fabrica cada arma, para seguir la cadena de mejoras.
+local recipeOfWeapon: { [string]: string } = {}
+for recipeId, recipe in Recipes do
+	if recipe.weaponId then
+		recipeOfWeapon[recipe.weaponId] = recipeId
+	end
+end
+
+-- Todas las armas que sustituye una mejora: la de "upgrades" y las anteriores de la cadena
+-- (hacha de hueso → de piedra → de madera). Así no se queda la de madera si se salta la de piedra.
+local function replacedBy(recipe: Recipes.Recipe): { string }
+	local replaced = {}
+	local weaponId = recipe.upgrades
+	while weaponId and not table.find(replaced, weaponId) do
+		table.insert(replaced, weaponId)
+		local previous = recipeOfWeapon[weaponId]
+		weaponId = if previous then Recipes[previous].upgrades else nil
+	end
+	return replaced
+end
+
 local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 	if recipe.weaponId then
-		local wasEquipped = if recipe.upgrades then removeWeapon(player, recipe.upgrades) else false
+		local wasEquipped = false
+		for _, weaponId in replacedBy(recipe) do
+			wasEquipped = removeWeapon(player, weaponId) or wasEquipped
+			-- Las recetas de las versiones viejas quedan como hechas: no tiene sentido volver atrás.
+			local previous = recipeOfWeapon[weaponId]
+			if previous then
+				player:SetAttribute(Crafting.ownedAttribute(previous), true)
+			end
+		end
 		local tool = WeaponTools.build(recipe.weaponId)
 		local starterGear = player:FindFirstChild("StarterGear")
 		if starterGear then
