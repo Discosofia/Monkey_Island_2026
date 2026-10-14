@@ -22,6 +22,11 @@ function Crafting.isOwned(player: Player, recipeId: string): boolean
 	return player:GetAttribute(PREFIX .. recipeId) == true
 end
 
+-- Las mejoras de un arma de rol solo son para ese rol (atributo "Role", lo publica RoleService).
+function Crafting.isForRole(player: Player, recipe: Recipes.Recipe): boolean
+	return recipe.role == nil or player:GetAttribute("Role") == recipe.role
+end
+
 function Crafting.canAfford(player: Player, recipe: Recipes.Recipe): boolean
 	for _, cost in recipe.cost do
 		if Inventory.count(player, cost.itemId) < cost.amount then

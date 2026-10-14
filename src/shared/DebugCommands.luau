@@ -26,6 +26,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "LavaBomb", label = "☄️ Bombas de lava cerca de mí" },
 		{ id = "Sounds", label = "🔊 Probar todos los sonidos" },
 		{ id = "Beacon", label = "📡 4 piezas + baliza sin espera" },
+		{ id = "GreatTroop", label = "🌕 La Gran Tropa ya" },
 		{ id = "Defeat", label = "💀 Terminar: derrota" },
 	},
 	Lobby = {

@@ -234,19 +234,25 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 }
 
--- Armas iniciales de los roles (Data/Roles).
+-- Armas iniciales de los roles (Data/Roles) y sus mejoras, que cambian colores y materiales.
 -- Garrote de piedra (guerrero): mango de madera con una piedra grande atada en la punta.
-BUILDERS.StoneClub = function(tool)
+local function buildStoneClub(
+	tool: Tool,
+	headColor: Color3,
+	chipColor: Color3,
+	material: Enum.Material,
+	headScale: number
+): BasePart
 	local grip = newPiece("Handle", Vector3.new(0.35, 2.6, 0.35), WOOD, Enum.Material.Wood)
 	grip.Parent = tool
 	attach(
 		grip,
-		newPiece("Head", Vector3.new(1, 1.3, 1), STONE, Enum.Material.Slate),
+		newPiece("Head", Vector3.new(1, 1.3, 1) * headScale, headColor, material),
 		CFrame.new(0, 1.75, 0) * CFrame.Angles(0, math.rad(45), 0)
 	)
 	attach(
 		grip,
-		newPiece("Chip", Vector3.new(0.7, 0.6, 0.7), STONE_DARK, Enum.Material.Slate),
+		newPiece("Chip", Vector3.new(0.7, 0.6, 0.7) * headScale, chipColor, material),
 		CFrame.new(0.15, 2.4, 0.1) * CFrame.Angles(math.rad(20), math.rad(30), 0)
 	)
 	attach(grip, newPiece("Lashing", Vector3.new(0.45, 0.3, 0.45), FIBER, Enum.Material.Fabric), CFrame.new(0, 1.05, 0))
@@ -256,15 +262,15 @@ BUILDERS.StoneClub = function(tool)
 end
 
 -- Arco (cazador): las palas van a lo largo de Y y se curvan hacia el arquero (+Z), donde va la cuerda.
-BUILDERS.Bow = function(tool)
+local function buildBow(tool: Tool, limbColor: Color3, wrapColor: Color3, limbMaterial: Enum.Material): BasePart
 	local grip = newPiece("Handle", Vector3.new(0.3, 0.9, 0.35), WOOD, Enum.Material.Wood)
 	grip.Parent = tool
-	attach(grip, newPiece("Wrap", Vector3.new(0.34, 0.6, 0.39), LEATHER, Enum.Material.Fabric), CFrame.new())
+	attach(grip, newPiece("Wrap", Vector3.new(0.34, 0.6, 0.39), wrapColor, Enum.Material.Fabric), CFrame.new())
 	local tilt = math.rad(15)
 	for side = -1, 1, 2 do
 		attach(
 			grip,
-			newPiece("Limb", Vector3.new(0.22, 2, 0.3), LIGHT_WOOD, Enum.Material.Wood),
+			newPiece("Limb", Vector3.new(0.22, 2, 0.3), limbColor, limbMaterial),
 			CFrame.new(0, side * 1.35, 0.26) * CFrame.Angles(side * tilt, 0, 0)
 		)
 	end
@@ -280,10 +286,10 @@ BUILDERS.Bow = function(tool)
 end
 
 -- Bastón mágico (mago): vara larga con un cristal brillante entre tres garras.
-BUILDERS.MagicStaff = function(tool)
-	local shaft = newPiece("Handle", Vector3.new(0.3, 4.6, 0.3), DARK_BARK, Enum.Material.Wood)
+local function buildStaff(tool: Tool, shaftColor: Color3, crystalColor: Color3, shaftMaterial: Enum.Material): BasePart
+	local shaft = newPiece("Handle", Vector3.new(0.3, 4.6, 0.3), shaftColor, shaftMaterial)
 	shaft.Parent = tool
-	local crystal = newPiece("Crystal", Vector3.one * 0.8, Color3.fromRGB(170, 110, 255), Enum.Material.Neon) :: Part
+	local crystal = newPiece("Crystal", Vector3.one * 0.8, crystalColor, Enum.Material.Neon) :: Part
 	crystal.Shape = Enum.PartType.Ball
 	attach(shaft, crystal, CFrame.new(0, 2.75, 0))
 	local light = Instance.new("PointLight")
@@ -294,7 +300,7 @@ BUILDERS.MagicStaff = function(tool)
 	for index = 0, 2 do
 		attach(
 			shaft,
-			newPiece("Claw", Vector3.new(0.15, 0.7, 0.15), DARK_BARK, Enum.Material.Wood),
+			newPiece("Claw", Vector3.new(0.15, 0.7, 0.15), shaftColor, shaftMaterial),
 			CFrame.new(0, 2.45, 0)
 				* CFrame.Angles(0, index * math.pi * 2 / 3, 0)
 				* CFrame.new(0, 0, -0.35)
@@ -306,13 +312,45 @@ BUILDERS.MagicStaff = function(tool)
 	return shaft
 end
 
+local BONE = Color3.fromRGB(230, 220, 195)
+local BONE_DARK = Color3.fromRGB(190, 175, 145)
+local GOLD = Color3.fromRGB(215, 170, 60)
+local SILVER = Color3.fromRGB(200, 205, 215)
+local LIANA_GREEN = Color3.fromRGB(70, 120, 50)
+
+BUILDERS.StoneClub = function(tool)
+	return buildStoneClub(tool, STONE, STONE_DARK, Enum.Material.Slate, 1)
+end
+BUILDERS.BoneMace = function(tool)
+	return buildStoneClub(tool, BONE, BONE_DARK, Enum.Material.SmoothPlastic, 1.15)
+end
+BUILDERS.ThickBoneMaul = function(tool)
+	return buildStoneClub(tool, BONE_DARK, FANG, Enum.Material.SmoothPlastic, 1.35)
+end
+BUILDERS.Bow = function(tool)
+	return buildBow(tool, LIGHT_WOOD, LEATHER, Enum.Material.Wood)
+end
+BUILDERS.ReinforcedBow = function(tool)
+	return buildBow(tool, BONE, LEATHER, Enum.Material.SmoothPlastic)
+end
+BUILDERS.LianaBow = function(tool)
+	return buildBow(tool, LIANA_GREEN, FIBER, Enum.Material.Wood)
+end
+BUILDERS.MagicStaff = function(tool)
+	return buildStaff(tool, DARK_BARK, Color3.fromRGB(170, 110, 255), Enum.Material.Wood)
+end
+BUILDERS.GoldenStaff = function(tool)
+	return buildStaff(tool, GOLD, Color3.fromRGB(255, 220, 110), Enum.Material.Metal)
+end
+BUILDERS.SilverStaff = function(tool)
+	return buildStaff(tool, SILVER, Color3.fromRGB(120, 220, 255), Enum.Material.Metal)
+end
+
 -- El machete afilado usa el mismo modelo que el machete; la honda de liana, el de la honda.
 BUILDERS.SharpMachete = BUILDERS.Machete
 BUILDERS.LianaSling = BUILDERS.Honda
 BUILDERS.BigFangClub = BUILDERS.Club
 -- Fase 4: hacha y pico de hueso.
-local BONE = Color3.fromRGB(230, 220, 195)
-local BONE_DARK = Color3.fromRGB(190, 175, 145)
 BUILDERS.BoneAxe = function(tool)
 	return buildAxe(tool, BONE, BONE_DARK, Enum.Material.SmoothPlastic)
 end

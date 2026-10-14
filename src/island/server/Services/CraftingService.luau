@@ -276,25 +276,38 @@ local function removeWeapon(player: Player, weaponId: string): boolean
 	return wasEquipped
 end
 
--- Receta que fabrica cada arma, para seguir la cadena de mejoras.
-local recipeOfWeapon: { [string]: string } = {}
+-- Receta que fabrica cada arma o armadura, para seguir la cadena de mejoras.
+local recipeOfGear: { [string]: string } = {}
 for recipeId, recipe in Recipes do
-	if recipe.weaponId then
-		recipeOfWeapon[recipe.weaponId] = recipeId
+	local gearId = recipe.weaponId or recipe.armorId
+	if gearId then
+		recipeOfGear[gearId] = recipeId
 	end
 end
 
--- Todas las armas que sustituye una mejora: la de "upgrades" y las anteriores de la cadena
--- (hacha de hueso → de piedra → de madera). Así no se queda la de madera si se salta la de piedra.
+-- Todo lo que sustituye una mejora: lo de "upgrades" y lo anterior de la cadena (hacha de hueso →
+-- de piedra → de madera; armadura de plata → de hueso → chaleco). Así no se queda la de madera si
+-- se salta la de piedra.
 local function replacedBy(recipe: Recipes.Recipe): { string }
 	local replaced = {}
-	local weaponId = recipe.upgrades
-	while weaponId and not table.find(replaced, weaponId) do
-		table.insert(replaced, weaponId)
-		local previous = recipeOfWeapon[weaponId]
-		weaponId = if previous then Recipes[previous].upgrades else nil
+	local gearId = recipe.upgrades
+	while gearId and not table.find(replaced, gearId) do
+		table.insert(replaced, gearId)
+		local previous = recipeOfGear[gearId]
+		gearId = if previous then Recipes[previous].upgrades else nil
 	end
 	return replaced
+end
+
+-- Las recetas de las versiones viejas quedan como hechas: no tiene sentido volver atrás (ni ponerse
+-- el chaleco encima de la armadura de plata).
+local function markReplacedOwned(player: Player, recipe: Recipes.Recipe)
+	for _, gearId in replacedBy(recipe) do
+		local previous = recipeOfGear[gearId]
+		if previous then
+			player:SetAttribute(Crafting.ownedAttribute(previous), true)
+		end
+	end
 end
 
 local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
@@ -302,13 +315,13 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 		local wasEquipped = false
 		for _, weaponId in replacedBy(recipe) do
 			wasEquipped = removeWeapon(player, weaponId) or wasEquipped
-			-- Las recetas de las versiones viejas quedan como hechas: no tiene sentido volver atrás.
-			local previous = recipeOfWeapon[weaponId]
-			if previous then
-				player:SetAttribute(Crafting.ownedAttribute(previous), true)
-			end
 		end
+		markReplacedOwned(player, recipe)
 		local tool = WeaponTools.build(recipe.weaponId)
+		-- La mejora de un arma de rol sigue siendo del rol: si cambia (panel de pruebas), se va con él.
+		if recipe.role then
+			tool:SetAttribute("RoleWeapon", true)
+		end
 		local starterGear = player:FindFirstChild("StarterGear")
 		if starterGear then
 			tool:Clone().Parent = starterGear
@@ -319,6 +332,7 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 			humanoid:EquipTool(tool)
 		end
 	elseif recipe.armorId then
+		markReplacedOwned(player, recipe)
 		player:SetAttribute("Armor", recipe.armorId)
 		if player.Character then
 			task.spawn(wearArmor, player, player.Character)
@@ -337,6 +351,9 @@ local function onCraft(player: Player, recipeId: any)
 		return
 	end
 	if not LifeState.isAlive(player) or not isNearStation(player, recipe.station) then
+		return
+	end
+	if not Crafting.isForRole(player, recipe) then
 		return
 	end
 	if Crafting.isUnique(recipe) and Crafting.isOwned(player, recipeId) then
@@ -443,6 +460,15 @@ function CraftingService:Start()
 	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function(character)
 			wearArmor(player, character)
+		end)
+		-- Si cambia el rol (panel de pruebas), sus armas vuelven a las de base: las mejoras de rol
+		-- dejan de contar como fabricadas.
+		player:GetAttributeChangedSignal("Role"):Connect(function()
+			for recipeId, recipe in Recipes do
+				if recipe.role then
+					player:SetAttribute(Crafting.ownedAttribute(recipeId), nil)
+				end
+			end
 		end)
 	end
 	Players.PlayerAdded:Connect(onPlayer)

@@ -5,7 +5,9 @@
 --   weaponId → una herramienta o arma (ver Data/Weapons). Solo se fabrica una vez y no se pierde.
 --   itemId   → un ítem que se acumula en el inventario (ver Data/Items), "amount" unidades.
 --   armorId  → una armadura que se lleva puesta (ver Data/Armor). Solo se fabrica una vez.
--- "upgrades" (opcional) es el arma que la receta sustituye: al fabricarla, la vieja desaparece.
+-- "upgrades" (opcional) es el arma o la armadura que la receta sustituye: al fabricarla, la vieja
+-- desaparece y ya no se puede volver a fabricar (tampoco lo anterior de la cadena).
+-- "role" (opcional): solo la ve y la fabrica ese rol (Data/Roles); son las mejoras de sus armas.
 -- "cost" es una lista para que el orden de los materiales en pantalla no cambie.
 
 export type Cost = { itemId: string, amount: number }
@@ -22,6 +24,7 @@ export type Recipe = {
 	amount: number?,
 	armorId: string?,
 	upgrades: string?,
+	role: string?,
 }
 
 local Recipes: { [string]: Recipe } = {
@@ -210,6 +213,7 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "Fiber", amount = 4 },
 		},
 		armorId = "BoneArmor",
+		upgrades = "FurVest",
 	},
 	-- Forja de piedra, nivel 3 (Fase 4): botín de las especies de categoría 2 y 3.
 	LianaSling = {
@@ -268,6 +272,98 @@ local Recipes: { [string]: Recipe } = {
 		weaponId = "BigFangClub",
 		upgrades = "Club",
 	},
+	-- Mejoras de las armas de rol (forja de piedra): un nivel con botín de categoría 1 y otro con el de
+	-- categoría 2 y 3. Solo salen en la lista del rol que lleva el arma.
+	BoneMace = {
+		station = "Forge",
+		name = "Maza de hueso",
+		icon = "🦴",
+		description = "Mejora el garrote de piedra: 40 de daño y golpea más rápido.",
+		order = 44,
+		cost = {
+			{ itemId = "Stone", amount = 6 },
+			{ itemId = "Bone", amount = 3 },
+			{ itemId = "RedFur", amount = 2 },
+		},
+		weaponId = "BoneMace",
+		upgrades = "StoneClub",
+		role = "Guerrero",
+	},
+	ThickBoneMaul = {
+		station = "Forge",
+		name = "Mazo de hueso grueso",
+		icon = "🔨",
+		description = "Mejora la maza de hueso: 55 de daño.",
+		order = 55,
+		cost = {
+			{ itemId = "ThickBone", amount = 2 },
+			{ itemId = "BigFang", amount = 2 },
+			{ itemId = "Stone", amount = 8 },
+		},
+		weaponId = "ThickBoneMaul",
+		upgrades = "BoneMace",
+		role = "Guerrero",
+	},
+	ReinforcedBow = {
+		station = "Forge",
+		name = "Arco reforzado",
+		icon = "🏹",
+		description = "Mejora el arco: 26 de daño, más alcance y flechas más rápidas.",
+		order = 45,
+		cost = {
+			{ itemId = "Wood", amount = 6 },
+			{ itemId = "Bone", amount = 2 },
+			{ itemId = "Fiber", amount = 4 },
+		},
+		weaponId = "ReinforcedBow",
+		upgrades = "Bow",
+		role = "Cazador",
+	},
+	LianaBow = {
+		station = "Forge",
+		name = "Arco de liana",
+		icon = "🌱",
+		description = "Mejora el arco reforzado: 36 de daño y aún más alcance.",
+		order = 56,
+		cost = {
+			{ itemId = "Liana", amount = 3 },
+			{ itemId = "ThickBone", amount = 1 },
+			{ itemId = "Leather", amount = 2 },
+		},
+		weaponId = "LianaBow",
+		upgrades = "ReinforcedBow",
+		role = "Cazador",
+	},
+	GoldenStaff = {
+		station = "Forge",
+		name = "Bastón dorado",
+		icon = "✨",
+		description = "Mejora el bastón mágico: 20 de daño y hechizos más rápidos.",
+		order = 46,
+		cost = {
+			{ itemId = "GoldenFur", amount = 3 },
+			{ itemId = "Bone", amount = 2 },
+			{ itemId = "Wood", amount = 4 },
+		},
+		weaponId = "GoldenStaff",
+		upgrades = "MagicStaff",
+		role = "Mago",
+	},
+	SilverStaff = {
+		station = "Forge",
+		name = "Bastón de plata",
+		icon = "🔮",
+		description = "Mejora el bastón dorado: 28 de daño y más alcance.",
+		order = 57,
+		cost = {
+			{ itemId = "Whisker", amount = 2 },
+			{ itemId = "MandrillFang", amount = 1 },
+			{ itemId = "Liana", amount = 2 },
+		},
+		weaponId = "SilverStaff",
+		upgrades = "GoldenStaff",
+		role = "Mago",
+	},
 	SilverArmor = {
 		station = "Forge",
 		name = "Armadura de plata",
@@ -280,6 +376,7 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "ThickBone", amount = 2 },
 		},
 		armorId = "SilverArmor",
+		upgrades = "BoneArmor",
 	},
 }
 

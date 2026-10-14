@@ -218,9 +218,17 @@ local Config = {
 			{ day = 5, species = "Babuino" },
 			{ day = 7, species = "Gorila" },
 		},
-		-- La Gran Tropa (noche final tras encender la baliza, Fase 6).
-		FinalNightWaves = 5,
-		FinalNightSizeMultiplier = 2,
+		-- La Gran Tropa (noche final tras encender la baliza, Fase 6): una oleada por especie de la lista.
+		-- La 1.ª trae solo la primera especie (tamaño normal del día × FinalNightSizeMultiplier); cada
+		-- oleada repite la anterior y suma FinalNightGrowth (20 %) más monos de la especie siguiente.
+		FinalNightSpecies = { "AulladorRojo", "Macaco", "Mandril", "Orangutan", "Gorila" },
+		FinalNightSizeMultiplier = 1.5,
+		FinalNightGrowth = 0.2,
+		-- Reparto en el tiempo: la 1.ª llega pronto, la última con FinalNightLastWaveSeconds de noche aún
+		-- por delante y el resto, a intervalos iguales entre ambas (nunca menos de FinalNightMinInterval).
+		FinalNightFirstWaveDelaySeconds = 15,
+		FinalNightLastWaveSeconds = 75,
+		FinalNightMinIntervalSeconds = 20,
 		-- Hasta dónde busca estacas un macaco del asedio.
 		TrapSearchRadius = 30,
 		-- Distancia más allá del perímetro a la que aparecen, frente a los portones.

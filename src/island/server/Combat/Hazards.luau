@@ -2,7 +2,7 @@
 -- Peligros de área con aviso previo en el suelo (Fase 5): rocas que caen, bombas de lava, rayos y
 -- ondas de choque. Los usan los jefes (BossService), la erupción del volcán y la tormenta
 -- (WeatherService). Siempre avisan antes con un círculo en el suelo, para que se puedan esquivar.
--- Respetan la zona segura del Basecamp.
+-- Hacen daño a quien esté dentro del círculo al caer, también en el Basecamp: el círculo ya avisa.
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -20,6 +20,8 @@ local BOLT_COLOR = Color3.fromRGB(215, 230, 255)
 local BOLT_GLOW = Color3.fromRGB(140, 170, 255)
 local LAVA_COLOR = Color3.fromRGB(255, 110, 30)
 local LAVA_FLIGHT_SECONDS = 1.1
+-- Margen en altura sobre el radio para contar a alguien dentro del círculo de un impacto.
+local VERTICAL_REACH = 8
 
 local Hazards = {}
 
@@ -117,26 +119,33 @@ local function marker(position: Vector3, radius: number, color: Color3, seconds:
 	Debris:AddItem(disk, seconds)
 end
 
--- Jugadores vivos fuera del Basecamp a menos de "radius" de "position".
+-- Jugadores dentro del círculo de "radius" alrededor de "position" (el punto del suelo). Se mide en
+-- horizontal, como se ve el círculo: el cuerpo está unos studs por encima del suelo y, midiendo en 3D,
+-- quien pisaba el borde quedaba fuera. En vertical vale un margen por si salta o está en una cuesta.
+-- Cuenta también a quien está en el Basecamp (ver la cabecera).
 local function playersNear(position: Vector3, radius: number): { Player }
 	local list = {}
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-		if root and root:IsA("BasePart") and (root.Position - position).Magnitude <= radius then
-			table.insert(list, player)
+		if root and root:IsA("BasePart") then
+			local offset = root.Position - position
+			local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+			if flat <= radius and math.abs(offset.Y) <= radius + VERTICAL_REACH then
+				table.insert(list, player)
+			end
 		end
 	end
 	return list
 end
 
--- Daña a quien esté dentro del círculo (con daño 0, de prueba, no hace nada).
+-- Daña a quien esté dentro del círculo.
 local function hurtNear(position: Vector3, radius: number, damage: number)
 	if damage <= 0 then
 		return
 	end
 	for _, player in playersNear(position, radius) do
-		CombatService.damagePlayer(player, damage)
+		CombatService.damagePlayer(player, damage, true)
 	end
 end
 
@@ -347,7 +356,7 @@ function Hazards.shockwave(position: Vector3, radius: number, damage: number, st
 	marker(ground, radius, Color3.fromRGB(255, 160, 40), warnSeconds)
 	task.delay(warnSeconds, function()
 		for _, player in playersNear(ground, radius) do
-			if CombatService.damagePlayer(player, damage) then
+			if CombatService.damagePlayer(player, damage, true) then
 				player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + stunSeconds)
 			end
 		end

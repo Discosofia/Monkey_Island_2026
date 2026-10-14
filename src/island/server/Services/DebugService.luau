@@ -21,6 +21,7 @@ local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
 local MatchService = require(script.Parent.MatchService)
 local RoleService = require(script.Parent.RoleService)
+local SiegeService = require(script.Parent.SiegeService)
 local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
@@ -106,7 +107,12 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	Lightning = function(player)
 		local character = player.Character
 		if character then
-			Hazards.lightning((character:GetPivot() * CFrame.new(0, 0, -14)).Position, 0, 5, 1.5)
+			Hazards.lightning(
+				(character:GetPivot() * CFrame.new(0, 0, -14)).Position,
+				Config.Weather.LightningDamage,
+				5,
+				1.5
+			)
 			ReplicatedStorage:SetAttribute("LightningAt", Workspace:GetServerTimeNow() + 1.5)
 		end
 	end,
@@ -116,9 +122,18 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			local pivot = character:GetPivot()
 			local origin = (pivot * CFrame.new(0, 40, 60)).Position
 			for i = 1, 3 do
-				Hazards.lavaBomb((pivot * CFrame.new((i - 2) * 10, 0, -16)).Position, 0, 7, 1.4 + i * 0.4, origin)
+				Hazards.lavaBomb(
+					(pivot * CFrame.new((i - 2) * 10, 0, -16)).Position,
+					Config.Weather.LavaBombDamage,
+					7,
+					1.4 + i * 0.4,
+					origin
+				)
 			end
 		end
+	end,
+	GreatTroop = function()
+		SiegeService.debugGreatTroop()
 	end,
 	Sounds = function(player)
 		local keys = {}

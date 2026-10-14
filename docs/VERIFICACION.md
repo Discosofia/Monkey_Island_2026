@@ -210,7 +210,12 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    ✅ Los materiales raros salen en **color** según su rareza (verde, azul, morado, dorado).
 5. [ ] En la **forja**, con 🛠️ +50 de todo: **Honda de liana, Hacha de hueso, Pico de hueso, Garrote de colmillo grande y Armadura de plata**.
    ✅ Cada mejora sustituye a la herramienta anterior.
-6. [ ] En la Salida, cada 2 minutos sale **"[Rendimiento] … streaming activado/DESACTIVADO"**.
+6. [ ] En la **forja**, con 🛠️ +50 de todo, mira las mejoras del arma de tu rol (cambia con **🎭 Siguiente rol**):
+   - Guerrero: **Maza de hueso → Mazo de hueso grueso** (sustituyen al garrote de piedra).
+   - Cazador: **Arco reforzado → Arco de liana** (sustituyen al arco).
+   - Mago: **Bastón dorado → Bastón de plata** (sustituyen al bastón mágico).
+   ✅ Solo salen las del rol que llevas; cada una cambia el modelo y el daño del arma.
+7. [ ] En la Salida, cada 2 minutos sale **"[Rendimiento] … streaming activado/DESACTIVADO"**.
 
 ## 5.1 Jefes
 
@@ -272,10 +277,12 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 
 1. [ ] Pulsa **🌧️ Lluvia** y sal del Basecamp.
    ✅ Caen gotas, el cielo se oscurece un poco y la **sed sube** sola.
-2. [ ] Pulsa **⛈️ Tormenta** (o **⚡ Rayo cerca de mí** para verlo enseguida; el de prueba no hace daño).
+2. [ ] Pulsa **⛈️ Tormenta** (o **⚡ Rayo cerca de mí** para verlo enseguida).
    ✅ Más lluvia y, cada ~20 s, un círculo amarillo de aviso y luego un **rayo en zigzag** desde el cielo, con ramas y parpadeo, destello, chispas, **trueno** y el suelo chamuscado un rato.
 3. [ ] Pulsa **🌋 Erupción** estando cerca del volcán (o **☄️ Bombas de lava cerca de mí**).
    ✅ Aviso, tono rojizo, y el cráter escupe **bombas de lava** que vuelan **en arco** con fuego, humo y estela; al caer revientan en chispas y dejan un **charco de lava ardiendo** unos segundos. Antes de cada una sale el círculo rojo de aviso.
+4. [ ] Ponte **dentro del círculo** de un rayo o de una bomba de lava (también vale dentro del Basecamp).
+   ✅ Te quita vida (15 el rayo, 20 la bomba); si sales del círculo antes del impacto, nada.
 
 ## 6.1 Baliza y victoria
 
@@ -284,7 +291,9 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 2. [ ] Pulsa **📡 4 piezas + baliza sin espera**. De **día**, mantén **"Encender baliza"** 3 s.
    ✅ La luz de arriba se pone **roja** y sale "¡… ha encendido la baliza!".
 3. [ ] Pulsa **⏩ Saltar fase** (noche).
-   ✅ "¡LA GRAN TROPA!": **5 oleadas** del doble de tamaño.
+   ✅ "¡LA GRAN TROPA!": **5 oleadas** antes del amanecer, cada una un 20 % mayor que la anterior:
+   1.ª aulladores; 2.ª + macacos; 3.ª + mandriles; 4.ª + orangutanes; 5.ª + gorilas.
+   Para probarla sin la baliza: **🌕 La Gran Tropa ya** (de noche empieza al momento; de día salta a la noche; al amanecer no hay rescate).
 4. [ ] Sigue en pie y pulsa **⏩ Saltar fase** (amanecer).
    ✅ "¡Llega el rescate!" y pantalla **"🚁 ¡Rescatados!"** con +200 de Ámbar.
 

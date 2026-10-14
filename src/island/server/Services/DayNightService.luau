@@ -28,6 +28,11 @@ function DayNightService.onPhaseStarted(callback: (day: number, phase: MatchStat
 	table.insert(phaseListeners, callback)
 end
 
+-- Termina la fase actual ya (panel de pruebas, p. ej. La Gran Tropa de prueba).
+function DayNightService.skipPhase()
+	skipRequested = true
+end
+
 local function phaseLength(phase: MatchState.Phase): number
 	if phase == "Day" then
 		return Config.Match.DayLengthSeconds
@@ -65,7 +70,7 @@ function DayNightService:Start()
 	Remotes.DebugSkipPhase.OnServerEvent:Connect(function()
 		-- En el juego publicado se ignora: nadie puede saltarse la noche.
 		if RunService:IsStudio() then
-			skipRequested = true
+			DayNightService.skipPhase()
 		end
 	end)
 

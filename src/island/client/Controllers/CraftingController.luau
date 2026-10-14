@@ -202,7 +202,7 @@ function CraftingController:Start()
 		title.Text = `{definition.icon} {definition.name}`
 		local first: Row? = nil
 		for _, row in rows do
-			row.frame.Visible = row.recipe.station == id
+			row.frame.Visible = row.recipe.station == id and Crafting.isForRole(player, row.recipe)
 			if row.frame.Visible and not first then
 				first = row
 			end

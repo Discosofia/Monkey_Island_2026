@@ -6,7 +6,9 @@
 --     atacan también dentro del Basecamp. Las estacas hieren a los monos que las cruzan.
 --   - Al amanecer los que quedan se retiran.
 -- El estado se publica en ReplicatedStorage ("SiegeStatus") para el HUD.
--- Fase 6: la noche tras encender la baliza ("FinalNight") es La Gran Tropa: más oleadas y más grandes.
+-- Fase 6: la noche tras encender la baliza ("FinalNight") es La Gran Tropa: una oleada por especie de
+-- Config.Siege.FinalNightSpecies, repartidas para que todas lleguen antes del amanecer. Cada oleada es
+-- un FinalNightGrowth más grande que la anterior y lo que crece es una especie nueva y más fuerte.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -27,7 +29,6 @@ local MonkeyService = require(script.Parent.MonkeyService)
 
 local STATUS_ATTRIBUTE = "SiegeStatus"
 
-local wavesTonight: () -> number
 local SPIKE_TICK_SECONDS = 0.5
 -- Portones en el mismo orden que los construye MapBuilder: este, sur, oeste y norte.
 local GATE_NAMES = { "el este", "el sur", "el oeste", "el norte" }
@@ -35,6 +36,7 @@ local GATE_NAMES = { "el este", "el sur", "el oeste", "el norte" }
 local SiegeService = {}
 
 local nightToken = 0
+local debugGreatTroop = false
 local rng = Random.new()
 
 local function setStatus(text: string)
@@ -71,11 +73,46 @@ local function gateDirection(index: number): Vector3
 	return Vector3.new(math.cos(angle), 0, math.sin(angle))
 end
 
+local function isFinalNight(): boolean
+	return ReplicatedStorage:GetAttribute("FinalNight") == true
+end
+
+local function wavesTonight(): number
+	return if isFinalNight() then #Config.Siege.FinalNightSpecies else Config.Siege.WavesPerNight
+end
+
+-- La Gran Tropa: la oleada "wave" trae lo mismo que la anterior más un FinalNightGrowth extra de una
+-- especie nueva y más fuerte (aulladores; + macacos; + mandriles; + orangutanes; + gorilas).
+local function finalWaveMix(day: number, wave: number): { { species: string, count: number } }
+	local settings = Config.Siege
+	local first = math.round(waveSize(day) * settings.FinalNightSizeMultiplier)
+	local mix = { { species = settings.FinalNightSpecies[1], count = first } }
+	local total = first
+	for index = 2, wave do
+		local extra = math.max(1, math.round(total * settings.FinalNightGrowth))
+		table.insert(mix, { species = settings.FinalNightSpecies[index], count = extra })
+		total += extra
+	end
+	return mix
+end
+
+-- Parte de "count" que va al portón "index" de "parts": el primero se lleva lo que sobre al dividir.
+local function share(count: number, parts: number, index: number): number
+	return if index == 1 then count - (parts - 1) * (count // parts) else count // parts
+end
+
 local function launchWave(day: number, wave: number)
 	-- Centro a ras de suelo (BuildingService lo publica); si no, el de la zona.
 	local flatCenter = Building.center() or BasecampService.getCenter()
-	local final = ReplicatedStorage:GetAttribute("FinalNight") == true
-	local total = math.round(waveSize(day) * (if final then Config.Siege.FinalNightSizeMultiplier else 1))
+	local mix = if isFinalNight() then finalWaveMix(day, wave) else nil
+	local total = 0
+	if mix then
+		for _, entry in mix do
+			total += entry.count
+		end
+	else
+		total = waveSize(day)
+	end
 	-- Uno o dos portones al azar; los monos se reparten entre ellos.
 	local first = rng:NextInteger(1, 4)
 	local gates = { first }
@@ -87,31 +124,67 @@ local function launchWave(day: number, wave: number)
 		local direction = gateDirection(gate)
 		local gatePoint = flatCenter + direction * (Config.Building.PerimeterRadius - 10)
 		local spawnPoint = flatCenter + direction * (Config.Building.PerimeterRadius + Config.Siege.SpawnDistance)
-		local count = if index == 1 then total - (#gates - 1) * (total // #gates) else total // #gates
-		MonkeyService.spawnSiegeGroup(pickSpecies(day), spawnPoint, gatePoint, count)
+		if mix then
+			-- Cada especie de la mezcla se reparte entre todos los portones.
+			for _, entry in mix do
+				local count = share(entry.count, #gates, index)
+				if count > 0 then
+					MonkeyService.spawnSiegeGroup(entry.species, spawnPoint, gatePoint, count)
+				end
+			end
+		else
+			MonkeyService.spawnSiegeGroup(pickSpecies(day), spawnPoint, gatePoint, share(total, #gates, index))
+		end
 		table.insert(names, GATE_NAMES[gate])
 	end
-	announce(`🐒 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos desde {table.concat(names, " y ")}`)
-end
-
-function wavesTonight(): number
-	local final = ReplicatedStorage:GetAttribute("FinalNight") == true
-	return if final then Config.Siege.FinalNightWaves else Config.Siege.WavesPerNight
+	local from = table.concat(names, " y ")
+	if mix then
+		local parts = {}
+		for _, entry in mix do
+			table.insert(parts, `{entry.count} {Monkeys[entry.species].name}`)
+		end
+		announce(
+			`🌕 ¡La Gran Tropa! Oleada {wave}/{wavesTonight()}: {total} monos desde {from} ({table.concat(
+				parts,
+				", "
+			)})`
+		)
+	else
+		announce(`🐒 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos desde {from}`)
+	end
 end
 
 local function runNight(day: number)
 	nightToken += 1
 	local token = nightToken
+	local currentWave = 0
 	task.spawn(function()
-		task.wait(Config.Siege.FirstWaveDelaySeconds)
+		-- Un respiro para que BeaconService marque antes "FinalNight" (los dos se enteran a la vez).
+		task.wait()
+		local settings = Config.Siege
 		local waves = wavesTonight()
+		local firstDelay = settings.FirstWaveDelaySeconds
+		local interval = settings.WaveIntervalSeconds
+		if isFinalNight() then
+			-- Todas las oleadas caben antes del amanecer y a la última le quedan FinalNightLastWaveSeconds
+			-- para pelear. Se mide con lo que queda de noche (el panel de pruebas puede empezarla tarde).
+			local state = MatchState.read()
+			local remaining = if state
+				then state.phaseEndsAt - Workspace:GetServerTimeNow()
+				else Config.Match.NightLengthSeconds
+			firstDelay = math.min(settings.FinalNightFirstWaveDelaySeconds, remaining * 0.05)
+			local spread = remaining - firstDelay - settings.FinalNightLastWaveSeconds
+			interval = math.max(settings.FinalNightMinIntervalSeconds, spread / math.max(waves - 1, 1))
+		end
+		task.wait(firstDelay)
 		for wave = 1, waves do
 			if nightToken ~= token then
 				return
 			end
+			currentWave = wave
 			launchWave(day, wave)
 			if wave < waves then
-				task.wait(Config.Siege.WaveIntervalSeconds)
+				task.wait(interval)
 			end
 		end
 	end)
@@ -119,7 +192,18 @@ local function runNight(day: number)
 	task.spawn(function()
 		while nightToken == token do
 			local alive = MonkeyService.siegeAlive()
-			setStatus(if alive > 0 then `⚔️ Asedio: {alive} monos atacan el Basecamp` else "🌙 Noche de asedio")
+			if isFinalNight() then
+				local wave = if currentWave > 0 then ` · oleada {currentWave}/{wavesTonight()}` else ""
+				setStatus(
+					if alive > 0
+						then `🌕 La Gran Tropa{wave}: {alive} monos atacan el Basecamp`
+						else `🌕 La Gran Tropa{wave}`
+				)
+			else
+				setStatus(
+					if alive > 0 then `⚔️ Asedio: {alive} monos atacan el Basecamp` else "🌙 Noche de asedio"
+				)
+			end
 			task.wait(1)
 		end
 	end)
@@ -127,12 +211,36 @@ end
 
 local function onPhaseStarted(day: number, phase: MatchState.Phase)
 	if phase == "Night" then
+		if debugGreatTroop then
+			ReplicatedStorage:SetAttribute("FinalNight", true)
+		end
 		announce("🌙 Cae la noche: los monos asediarán el Basecamp. ¡Cerrad los portones!")
 		runNight(day)
 	else
 		nightToken += 1
 		MonkeyService.endSiege()
 		setStatus("")
+		-- La Gran Tropa del panel de pruebas no enciende la baliza: al amanecer todo sigue como antes.
+		if debugGreatTroop then
+			debugGreatTroop = false
+			if ReplicatedStorage:GetAttribute("BeaconLit") ~= true then
+				ReplicatedStorage:SetAttribute("FinalNight", nil)
+			end
+		end
+	end
+end
+
+-- Panel de pruebas: La Gran Tropa ya. De noche empieza en este momento (repartida en lo que queda de
+-- noche); de día se salta al anochecer. No cuenta como encender la baliza: al amanecer no hay rescate.
+function SiegeService.debugGreatTroop()
+	debugGreatTroop = true
+	local state = MatchState.read()
+	if state and state.phase == "Night" then
+		ReplicatedStorage:SetAttribute("FinalNight", true)
+		announce("🌕 ¡LA GRAN TROPA! (prueba) Toda la isla viene a por el Basecamp")
+		runNight(state.day)
+	else
+		DayNightService.skipPhase()
 	end
 end
 
