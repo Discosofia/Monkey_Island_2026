@@ -13,16 +13,16 @@ local Perks: { [string]: number } = {
 	WhirlwindSeconds = 2, -- duración de "Torbellino"
 	ChargeDamage = 1, -- multiplica el daño de "Embestida"
 	WarCryReduction = 0.4, -- daño que se ahorra (fracción) durante "Grito de guerra"
-	QuakeStun = 2, -- segundos que aturde "Golpe sísmico"
+	QuakeStun = 2, -- segundos que aturde el "Pisotón"
 	-- Cazador.
 	MultiShotCount = 5, -- proyectiles de "Disparo múltiple"
-	MarkSeconds = 10, -- duración de "Marcar presas"
+	MarkSeconds = 6, -- duración de "Marcar presas"
 	MarkedBonus = 0.2, -- daño extra (fracción) que reciben los monos que marcas
-	TrapRoot = 3, -- segundos que sujeta el "Cepo"
+	TrapRoot = 1.8, -- segundos que sujeta el "Cepo"
 	RainDamage = 1, -- multiplica el daño de "Lluvia de proyectiles"
 	-- Mago.
 	FireballDamage = 1, -- multiplica el daño de "Bola de fuego"
-	NovaFreeze = 2, -- segundos que congela "Nova de hielo"
+	NovaFreeze = 1.2, -- segundos que congela "Nova de hielo"
 	BlinkDistance = 25, -- studs que avanza "Parpadeo"
 	ChainJumps = 4, -- saltos de "Rayo encadenado"
 	-- Médico.
@@ -30,7 +30,7 @@ local Perks: { [string]: number } = {
 	ReviveHealth = 0, -- vida extra (fracción) con la que se levanta quien reanimas
 	HealPower = 1, -- multiplica lo que curan tus vendas, ungüentos y habilidades
 	SeeHealth = 0, -- 1 = ves la vida de tus aliados sobre sus cabezas
-	ShieldAmount = 40, -- daño que absorbe el "Escudo de hojas"
+	ShieldAmount = 24, -- daño que absorbe el "Escudo de hojas"
 	-- Recolección (mejoras de la tienda y mascotas).
 	HarvestSpeed = 1, -- multiplica el tiempo de mantener los avisos de recolección
 	HarvestBonus = 0, -- material extra en cada recolección

@@ -9,6 +9,7 @@
 --     se dibujan aquí al momento con AbilityFxController; a los demás se los manda el servidor.
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (mejora de la tienda).
 --   - Médico: ve una barra de vida sobre la cabeza de cada aliado.
+--   - La casilla del siguiente paso del combo (Data/Combos) se resalta en azul.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -24,6 +25,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local AbilityFxController = require(script.Parent.AbilityFxController)
+local ComboController = require(script.Parent.ComboController)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 
@@ -299,9 +301,7 @@ function RoleController:Start()
 				end
 				return Enum.ContextActionResult.Sink
 			end, KEYS[slot])
-			local cell = hud[slot]
-			cell.name.Text = ability.short
-			cell.stroke.Color = if ability.ultimate then Color3.fromRGB(255, 200, 60) else Color3.fromRGB(200, 200, 200)
+			hud[slot].name.Text = ability.short
 		end
 	end
 	bindPad(player)
@@ -315,10 +315,18 @@ function RoleController:Start()
 			bindRole(role)
 		end
 		if role then
+			-- El siguiente paso del combo en marcha (ComboController) se resalta en azul.
+			local comboNext = ComboController.nextStep(player)
 			for slot, ability in role.abilities do
 				local remaining = readyIn(player, slot)
 				local cell = hud[slot]
 				local ready = remaining <= 0
+				local isNext = ability.id == comboNext
+				cell.stroke.Color = if isNext
+					then Color3.fromRGB(120, 230, 255)
+					elseif ability.ultimate then Color3.fromRGB(255, 200, 60)
+					else Color3.fromRGB(200, 200, 200)
+				cell.stroke.Thickness = if isNext then 3 else 2
 				cell.timer.Text = if ready then "lista" else `{math.ceil(remaining)} s`
 				cell.timer.TextColor3 = if ready then Color3.fromRGB(140, 240, 140) else Color3.fromRGB(180, 180, 180)
 				cell.frame.BackgroundTransparency = if ready then 0.35 else 0.6

@@ -14,6 +14,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "Fever", label = "🤒 Fiebre a 90" },
 		{ id = "Boss", label = "👑 Siguiente jefe" },
 		{ id = "BossHurt", label = "💔 Jefe al 30 %" },
+		{ id = "Mandrill", label = "🐒 Mandril aquí" },
+		{ id = "AlwaysCrit", label = "🎯 Críticos al 100 % (sí/no)" },
 		{ id = "Egg", label = "🥚 Huevo" },
 		{ id = "HatchNow", label = "🐣 Eclosionar ya (huevo en el nido)" },
 		{ id = "Crate", label = "📦 Caja de suministro" },

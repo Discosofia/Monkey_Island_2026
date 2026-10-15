@@ -2,7 +2,7 @@
 -- Habilidades de los roles (Fase 3): 3 activas y una definitiva por rol (Data/Roles), con sus números
 -- en Config.Abilities. El cliente (RoleController) pide usar la del hueco 1-4 con la dirección en la
 -- que apunta; aquí se comprueba el tiempo de espera y se aplica todo.
---   - Guerrero: Torbellino, Embestida, Grito de guerra y Golpe sísmico.
+--   - Guerrero: Torbellino, Embestida, Grito de guerra y Pisotón (id "Quake").
 --   - Cazador: Disparo múltiple, Marcar presas, Cepo y Lluvia de proyectiles.
 --   - Mago: Bola de fuego, Nova de hielo, Parpadeo y Rayo encadenado.
 --   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas y Tótem sanador.
@@ -11,6 +11,9 @@
 -- salvo el Cepo, que es una pieza del mundo. Con PvP activo en los dos, las habilidades también
 -- afectan a otros jugadores, con menos daño y aturdimientos más cortos. Los estados de los monos están en Combat/Status.
 -- El cliente ve cuándo vuelve a estar lista cada una con el atributo "AbilityReadyAt<hueco>".
+-- Combos (Data/Combos, ComboService): la primera habilidad del combo marca lo que toca; las
+-- siguientes, enlazadas a tiempo, hacen críticos seguros contra los marcados y el remate un efecto
+-- extra. Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -24,11 +27,14 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Survival = require(ReplicatedStorage.Shared.Survival)
+local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local Status = require(script.Parent.Parent.Combat.Status)
 
 local SETTINGS = Config.Abilities
+local COMBO = Config.Combo
 -- Velocidad (studs/s) de las flechas del Disparo múltiple.
 local ARROW_SPEED = 200
 -- Radio de las mandíbulas del cepo y cuánto se cierran (casi 90°: quedan de pie, una contra otra).
@@ -119,15 +125,30 @@ local function targetFromPart(attacker: Player, part: Instance): Target?
 	return if victim then playerTarget(attacker, victim) else nil
 end
 
--- Daña a un objetivo; a los jugadores, menos.
-local function hurt(attacker: Player, target: Target, amount: number)
+-- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos. Es crítico seguro si la
+-- habilidad está enlazada en el combo y el objetivo lleva su marca; si no, con la probabilidad del arma.
+local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
 	end
 	if target.player then
-		CombatService.damagePvP(attacker, target.player, math.max(1, math.round(amount * SETTINGS.PvPDamageMultiplier)))
+		CombatService.damagePvP(
+			attacker,
+			target.player,
+			math.max(1, math.round(amount * SETTINGS.PvPDamageMultiplier)),
+			CombatService.rollPlayerCrit(attacker)
+		)
 	else
-		CombatService.damage(target.model, target.humanoid, math.max(1, math.round(amount)), attacker)
+		local crit = ComboService.isComboHit(attacker, target.model, abilityId)
+			or CombatService.rollPlayerCrit(attacker)
+		CombatService.damage(target.model, target.humanoid, math.max(1, math.round(amount)), attacker, { crit = crit })
+	end
+end
+
+-- La primera habilidad del combo tocó a un enemigo (no a otro jugador en PvP): lo marca.
+local function comboOpener(player: Player, abilityId: string, target: Target)
+	if not target.player then
+		ComboService.opener(player, abilityId, target.model)
 	end
 end
 
@@ -148,13 +169,15 @@ local function control(target: Target, seconds: number, look: ("Stun" | "Freeze"
 	end
 end
 
-local function heal(player: Player, amount: number): boolean
+-- El médico ("healer") cura a "player" con "abilityId". Puede ser crítica (Shared/Crit) y lo es seguro
+-- si es el remate de su combo. Devuelve false si no se le puede curar (caído, Espíritu…).
+local function heal(healer: Player, player: Player, amount: number, abilityId: string): boolean
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (humanoid and humanoid.Health > 0 and LifeState.isAlive(player)) then
 		return false
 	end
-	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + amount)
+	CombatService.heal(player, amount, healer, { canCrit = true, crit = ComboService.isPayoff(healer, abilityId) })
 	return true
 end
 
@@ -217,7 +240,7 @@ local function whirlwind(player: Player, character: Model, root: BasePart): bool
 			end
 			Sfx.play("Swing", root)
 			for _, target in targetsAround(player, root.Position, SETTINGS.WhirlwindRadius) do
-				hurt(player, target, damage)
+				hurt(player, target, damage, "Whirlwind")
 			end
 			task.wait(SETTINGS.WhirlwindInterval)
 		end
@@ -240,7 +263,8 @@ local function charge(player: Player, character: Model, root: BasePart, aim: Vec
 			for _, target in targetsAround(player, root.Position, SETTINGS.ChargeWidth) do
 				if not hit[target.model] then
 					hit[target.model] = true
-					hurt(player, target, damage)
+					hurt(player, target, damage, "Charge")
+					comboOpener(player, "Charge", target)
 					if not target.player and not Status.isBoss(target.model) then
 						target.root.AssemblyLinearVelocity = direction * SETTINGS.ChargeKnockback
 							+ Vector3.new(0, 20, 0)
@@ -278,8 +302,10 @@ local function quake(player: Player, character: Model, root: BasePart): boolean
 	local stun = Progression.perk(player, "QuakeStun")
 	local ground = groundBelow(root.Position, { character })
 	for _, target in targetsAround(player, root.Position, SETTINGS.QuakeRadius) do
-		hurt(player, target, damage)
-		control(target, stun, "Stun")
+		-- Remate del combo del guerrero: los desequilibrados se quedan aturdidos más tiempo.
+		local finisher = ComboService.isComboHit(player, target.model, "Quake")
+		hurt(player, target, damage, "Quake")
+		control(target, if finisher then stun + COMBO.QuakeExtraStun else stun, "Stun")
 	end
 	Sfx.play("RockImpact", root)
 	AbilityFx.all("Quake", ground, SETTINGS.QuakeRadius)
@@ -302,7 +328,7 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 		table.insert(endPoints, endPoint)
 		local target = if result then targetFromPart(player, result.Instance) else nil
 		if target then
-			task.delay((endPoint - origin).Magnitude / ARROW_SPEED, hurt, player, target, damage)
+			task.delay((endPoint - origin).Magnitude / ARROW_SPEED, hurt, player, target, damage, "MultiShot")
 		end
 	end
 	AbilityFx.all("MultiShot", origin, endPoints, ARROW_SPEED)
@@ -453,8 +479,9 @@ local function trap(player: Player, character: Model, root: BasePart): boolean
 		while model.Parent and os.clock() < expires and player.Parent do
 			local victim = targetsAround(player, position, SETTINGS.TrapRadius + 1)[1]
 			if victim then
-				hurt(player, victim, damage)
+				hurt(player, victim, damage, "Trap")
 				control(victim, seconds, "Root")
+				comboOpener(player, "Trap", victim)
 				-- El cepo salta a los pies del mono y se cierra de golpe; se queda cerrado mientras le sujeta.
 				local feet = groundBelow(victim.root.Position, { victim.model, character })
 				local origin = CFrame.lookAt(feet, feet + facing)
@@ -492,7 +519,7 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 		for _ = 1, SETTINGS.RainTicks do
 			task.wait(0.2)
 			for _, target in targetsAround(player, center, SETTINGS.RainRadius) do
-				hurt(player, target, damage)
+				hurt(player, target, damage, "ArrowRain")
 			end
 			task.wait(math.max(0, interval - 0.2))
 		end
@@ -508,16 +535,25 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 	local endPoint, result = castShot(character, origin, aim, SETTINGS.FireballRange, 1.5)
 	local direct = if result then targetFromPart(player, result.Instance) else nil
 	local seconds = (endPoint - origin).Magnitude / SETTINGS.FireballSpeed
-	AbilityFx.all("Fireball", origin, endPoint, SETTINGS.FireballSpeed, SETTINGS.FireballSplashRadius)
+	-- Remate del combo del mago: rompe el hielo con una explosión más grande.
+	local finisher = ComboService.isPayoff(player, "Fireball")
+	local radius = SETTINGS.FireballSplashRadius * (if finisher then 1 + COMBO.FireballSplashBonus else 1)
+	AbilityFx.all("Fireball", origin, endPoint, SETTINGS.FireballSpeed, radius)
 	Sfx.play("Shoot", root)
 	task.delay(seconds, function()
 		Sfx.play("LavaImpact", endPoint)
-		if direct then
-			hurt(player, direct, SETTINGS.FireballDamage * scale)
+		local function strike(target: Target, amount: number)
+			if finisher and ComboService.isMarkedBy(target.model, player) then
+				AbilityFx.all("IceShatter", target.root.Position)
+			end
+			hurt(player, target, amount, "Fireball")
 		end
-		for _, target in targetsAround(player, endPoint, SETTINGS.FireballSplashRadius) do
+		if direct then
+			strike(direct, SETTINGS.FireballDamage * scale)
+		end
+		for _, target in targetsAround(player, endPoint, radius) do
 			if not (direct and target.model == direct.model) then
-				hurt(player, target, SETTINGS.FireballSplashDamage * scale)
+				strike(target, SETTINGS.FireballSplashDamage * scale)
 			end
 		end
 	end)
@@ -528,8 +564,9 @@ local function frostNova(player: Player, _character: Model, root: BasePart): boo
 	local damage = SETTINGS.NovaDamage * Progression.perk(player, "SpellDamage")
 	local freeze = Progression.perk(player, "NovaFreeze")
 	for _, target in targetsAround(player, root.Position, SETTINGS.NovaRadius) do
-		hurt(player, target, damage)
+		hurt(player, target, damage, "FrostNova")
 		control(target, freeze, "Freeze")
+		comboOpener(player, "FrostNova", target)
 		if not target.player then
 			Status.slow(target.model, freeze + SETTINGS.NovaSlowSeconds, SETTINGS.NovaSlowFactor)
 		end
@@ -574,7 +611,7 @@ local function chainLightning(player: Player, character: Model, root: BasePart, 
 			end
 			hit[target.model] = true
 			AbilityFx.all("Lightning", from, target.root.Position, target.model)
-			hurt(player, target, damage)
+			hurt(player, target, damage, "ChainLightning")
 			damage *= SETTINGS.ChainFalloff
 			from = target.root.Position
 			-- Siguiente: el más cercano que aún no ha recibido el rayo.
@@ -598,6 +635,8 @@ end
 
 local function areaHeal(player: Player, _character: Model, root: BasePart): boolean
 	local amount = SETTINGS.AreaHealAmount * Progression.perk(player, "HealPower")
+	-- Remate del combo del médico: curaciones críticas seguras (heal) y baja la fiebre.
+	local finisher = ComboService.isPayoff(player, "AreaHeal")
 	local healed = 0
 	for _, other in Players:GetPlayers() do
 		local character = other.Character
@@ -605,13 +644,21 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 		local near = otherRoot
 			and otherRoot:IsA("BasePart")
 			and (otherRoot.Position - root.Position).Magnitude <= SETTINGS.AreaHealRadius
-		if near and heal(other, amount) then
+		if near and heal(player, other, amount, "AreaHeal") then
 			healed += 1
+			if finisher then
+				Survival.addFever(other, -COMBO.SalveFeverCure)
+			end
 		end
 	end
 	AbilityFx.all("AreaHeal", root.Position, SETTINGS.AreaHealRadius)
 	Sfx.play("Heal", root)
-	Remotes.Notify:FireClient(player, `⛑️ Has curado a {healed} jugador(es)`)
+	Remotes.Notify:FireClient(
+		player,
+		if finisher
+			then `⛑️ ¡Cura de urgencia! Has curado a {healed} jugador(es) y les has bajado la fiebre`
+			else `⛑️ Has curado a {healed} jugador(es)`
+	)
 	return true
 end
 
@@ -627,45 +674,59 @@ local function healingDart(player: Player, character: Model, root: BasePart, aim
 	local ally = CombatService.playerFromPart(result.Instance)
 	local enemy = if ally then nil else targetFromPart(player, result.Instance)
 	task.delay(seconds, function()
-		if ally and heal(ally, SETTINGS.DartHeal * Progression.perk(player, "HealPower")) then
+		if ally and heal(player, ally, SETTINGS.DartHeal * Progression.perk(player, "HealPower"), "HealingDart") then
 			local allyCharacter = ally.Character
 			local allyRoot = if allyCharacter then allyCharacter:FindFirstChild("HumanoidRootPart") else nil
 			if allyRoot and allyRoot:IsA("BasePart") then
 				AbilityFx.all("HealBurst", allyRoot.Position)
 				Sfx.play("Heal", allyRoot)
 			end
+			-- Primer paso del combo del médico: el aliado queda "revitalizado".
+			if allyCharacter then
+				ComboService.opener(player, "HealingDart", allyCharacter)
+			end
 			Remotes.Notify:FireClient(player, `⛑️ Dardo curativo a {ally.DisplayName}`)
 		elseif enemy then
-			hurt(player, enemy, SETTINGS.DartDamage)
+			hurt(player, enemy, SETTINGS.DartDamage, "HealingDart")
+			comboOpener(player, "HealingDart", enemy)
 		end
 	end)
 	return true
 end
 
-local function leafShield(player: Player, character: Model, root: BasePart): boolean
-	-- El aliado vivo más cercano; si no hay ninguno al alcance, el propio médico.
+-- A quién va el Escudo de hojas: con el combo enlazado, al aliado que revitalizó el dardo; si no, al
+-- aliado vivo más cercano; si no hay ninguno al alcance, al propio médico. Devuelve también si es el
+-- revitalizado (absorbe más).
+local function shieldTarget(player: Player, character: Model, root: BasePart): (Player, Model, boolean)
+	local linked = ComboService.isPayoff(player, "LeafShield")
 	local chosen = player
 	local chosenCharacter = character
 	local bestDistance = SETTINGS.ShieldRange
 	for _, other in Players:GetPlayers() do
 		local otherCharacter = other.Character
 		local otherRoot = if otherCharacter then otherCharacter:FindFirstChild("HumanoidRootPart") else nil
-		if
-			other ~= player
-			and otherCharacter
-			and otherRoot
-			and otherRoot:IsA("BasePart")
-			and LifeState.isAlive(other)
-		then
+		if otherCharacter and otherRoot and otherRoot:IsA("BasePart") and LifeState.isAlive(other) then
 			local distance = (otherRoot.Position - root.Position).Magnitude
-			if distance <= bestDistance then
+			local revitalized = linked and ComboService.isMarkedBy(otherCharacter, player)
+			if revitalized and distance <= SETTINGS.ShieldRange then
+				return other, otherCharacter, true
+			end
+			if other ~= player and distance <= bestDistance then
 				chosen = other
 				chosenCharacter = otherCharacter
 				bestDistance = distance
 			end
 		end
 	end
+	return chosen, chosenCharacter, false
+end
+
+local function leafShield(player: Player, character: Model, root: BasePart): boolean
+	local chosen, chosenCharacter, revitalized = shieldTarget(player, character, root)
 	local amount = Progression.perk(player, "ShieldAmount")
+	if revitalized then
+		amount = math.round(amount * (1 + COMBO.ShieldBonus))
+	end
 	chosen:SetAttribute("ShieldHealth", amount)
 	chosen:SetAttribute("ShieldUntil", now() + SETTINGS.ShieldSeconds)
 	-- La burbuja sale de esos atributos en cada cliente; aquí, el destello al ponerla.
@@ -697,7 +758,7 @@ local function healingTotem(player: Player, character: Model, root: BasePart): b
 					and otherRoot:IsA("BasePart")
 					and (otherRoot.Position - position).Magnitude <= SETTINGS.TotemRadius
 				then
-					heal(other, amount)
+					heal(player, other, amount, "HealingTotem")
 				end
 			end
 		end
@@ -748,8 +809,15 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 		return
 	end
 	local handler = HANDLERS[ability.id]
-	if handler and handler(player, character, root, aim.Unit, { from, to }) then
-		local cooldown = ability.cooldownSeconds * Progression.perk(player, "CooldownRate")
+	if not handler then
+		return
+	end
+	-- Antes de aplicarla: si es el siguiente paso del combo, sus golpes ya cuentan como enlazados.
+	ComboService.onAbilityUsed(player, ability.id)
+	if handler(player, character, root, aim.Unit, { from, to }) then
+		local cooldown = ability.cooldownSeconds
+			* Progression.perk(player, "CooldownRate")
+			* ComboService.cooldownFactor(player)
 		player:SetAttribute(`AbilityReadyAt{slot}`, now() + cooldown)
 	end
 end

@@ -77,6 +77,50 @@ local Config = {
 		DummyRespawnSeconds = 3,
 	},
 
+	-- Golpes críticos (Shared/Crit): hacen más daño o curan más y su número sale más grande.
+	Crit = {
+		Multiplier = 1.5, -- daño o curación de un crítico
+		-- Probabilidad de los monos según su categoría (Data/Monkeys, "tier"); la 1 nunca.
+		MonkeyTierChance = { [2] = 0.15, [3] = 0.20 } :: { [number]: number },
+		-- Probabilidad de los jefes en cada fase (la 3 es la furia).
+		BossPhaseChance = { 0.25, 0.25, 0.28 },
+		-- Las armas tienen la suya ("critChance" en Data/Weapons); sin ella, esta.
+		DefaultWeaponChance = 0.05,
+		PetChance = 0.10, -- golpes y curaciones de las mascotas
+		-- Curación crítica del médico: base + la del arma y, si el aliado tiene menos de
+		-- SaveThreshold de vida (fracción), una "salvada" con SaveBonusChance más.
+		HealBaseChance = 0.10,
+		SaveThreshold = 0.35,
+		SaveBonusChance = 0.30,
+	},
+
+	-- Números flotantes de combate (CombatTextController).
+	CombatText = {
+		CritTextScale = 1.25, -- tamaño del número de un crítico
+		PetTextScale = 0.7, -- tamaño de los de la mascota (los del jugador predominan)
+		AllyTextScale = 0.7, -- daño que hacen los aliados (tenue)
+		AllyMaxDistance = 60, -- studs: el daño de aliados más lejanos no se dibuja
+		Slots = 4, -- números por columna
+		LifetimeSeconds = 1.6,
+		MergeSeconds = 0.1, -- golpes al mismo objetivo en este tiempo se suman en un número
+	},
+
+	-- Combos de 3 habilidades por rol (Data/Combos, ComboService).
+	Combo = {
+		StepWindowSeconds = 5, -- tiempo máximo entre un paso y el siguiente
+		-- Tras enlazar un paso, sus golpes contra los marcados son críticos durante este tiempo
+		-- (cubre la Lluvia, el Torbellino y lo que tarda en llegar un proyectil).
+		PayoffSeconds = 6,
+		UltRefundSeconds = 10, -- cada paso enlazado acerca la definitiva (V) esto
+		MaxStreak = 5,
+		StreakCooldownBonus = 0.08, -- por cada nivel de racha por encima de x1, recargas más rápidas
+		StreakSeconds = 8, -- la racha se pierde tras este tiempo sin hacer daño ni curar
+		ShieldBonus = 0.5, -- Escudo de hojas al aliado revitalizado: absorbe esto más
+		SalveFeverCure = 15, -- el Ungüento que cierra el combo del médico baja la fiebre esto
+		FireballSplashBonus = 0.5, -- la Bola de fuego que rompe el hielo salpica más lejos
+		QuakeExtraStun = 0.5, -- el Pisotón que cierra el combo aturde más a los marcados
+	},
+
 	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
 	Difficulty = {
 		HealthPerDay = 0.12, -- +12 % de vida por cada día pasado
@@ -360,26 +404,30 @@ local Config = {
 		-- Los jefes se resisten: aturdir, congelar o inmovilizar les dura esta fracción.
 		BossControlMultiplier = 0.5,
 
+		-- Octubre de 2026: las activas (Z, X, C) se recargan un 40 % antes (Data/Roles) y sus daños,
+		-- curaciones, escudos y duraciones bajan un 40 %; se usan más a menudo con el mismo daño por
+		-- segundo y los combos (Data/Combos) ponen el extra. Las definitivas (V) no cambian.
+
 		-- Guerrero.
-		WhirlwindDamage = 12, -- por golpe
+		WhirlwindDamage = 7, -- por golpe
 		WhirlwindInterval = 0.5, -- segundos entre golpes
 		WhirlwindRadius = 10,
 		ChargeDistance = 20,
 		ChargeSeconds = 0.35, -- lo que dura la carga
-		ChargeDamage = 35,
+		ChargeDamage = 21,
 		ChargeWidth = 6,
 		ChargeKnockback = 45,
 		WarCryRadius = 40,
-		WarCrySeconds = 8,
+		WarCrySeconds = 5,
 		QuakeDamage = 150,
 		QuakeRadius = 16,
 
 		-- Cazador.
-		MultiShotDamage = 12, -- por proyectil
+		MultiShotDamage = 7, -- por proyectil
 		MultiShotSpreadDegrees = 40,
 		MultiShotRange = 100,
 		MarkRadius = 70,
-		TrapDamage = 20,
+		TrapDamage = 12,
 		TrapRadius = 3.5,
 		TrapLifetime = 30,
 		TrapMaxActive = 2,
@@ -390,14 +438,14 @@ local Config = {
 		RainMaxDistance = 60,
 
 		-- Mago.
-		FireballDamage = 45, -- al que recibe el impacto
-		FireballSplashDamage = 30, -- a los demás del radio
+		FireballDamage = 27, -- al que recibe el impacto
+		FireballSplashDamage = 18, -- a los demás del radio
 		FireballSplashRadius = 8,
 		FireballSpeed = 90,
 		FireballRange = 100,
-		NovaDamage = 20,
+		NovaDamage = 12,
 		NovaRadius = 14,
-		NovaSlowSeconds = 3, -- tras el congelado
+		NovaSlowSeconds = 1.8, -- tras el congelado
 		NovaSlowFactor = 0.5, -- velocidad que les queda
 		ChainDamage = 120,
 		ChainFalloff = 0.75, -- cada salto hace esto del anterior
@@ -405,13 +453,13 @@ local Config = {
 		ChainJumpRange = 20,
 
 		-- Médico.
-		AreaHealAmount = 30,
+		AreaHealAmount = 18,
 		AreaHealRadius = 18,
-		DartHeal = 35,
-		DartDamage = 15,
+		DartHeal = 21,
+		DartDamage = 9,
 		DartRange = 80,
 		DartSpeed = 160,
-		ShieldSeconds = 10,
+		ShieldSeconds = 6,
 		ShieldRange = 30, -- busca al aliado más cercano hasta esta distancia
 		TotemSeconds = 10,
 		TotemHealPerSecond = 6,

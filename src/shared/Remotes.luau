@@ -34,6 +34,11 @@ local Remotes = {
 	RequestReturnToLobby = remoteEvent("RequestReturnToLobby"),
 	-- Servidor -> cliente: mensaje corto para mostrar en pantalla.
 	Notify = remoteEvent("Notify"),
+	-- Cliente -> servidor (Lobby e Isla): guardar los ajustes del jugador (tabla, ver Shared/Settings).
+	SaveSettings = remoteEvent("SaveSettings"),
+	-- Servidor -> clientes (Isla): lote de números de combate (Combat/CombatText). Cada uno:
+	-- { target = modelo, amount, kind = "Taken"|"Heal"|"Dealt"|"Absorbed", crit, by = UserId?, pet }.
+	CombatText = remoteEvent("CombatText"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.

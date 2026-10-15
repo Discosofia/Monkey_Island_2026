@@ -181,16 +181,53 @@ Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el p
 
 | Rol | Pasiva | Armas iniciales | Activas (Z · X · C) | Definitiva (V) |
 |---|---|---|---|---|
-| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 8 s) | **Golpe sísmico:** 150 de daño en área y aturde 2 s |
-| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (atrapa 3 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
-| 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
-| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Machete, honda | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 40) | **Tótem sanador:** cura a quien esté cerca durante 10 s |
+| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 5 s) | **Pisotón:** 150 de daño en área y aturde 2 s |
+| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (atrapa unos 2 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
+| 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 1,2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
+| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Machete, honda | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 24) | **Tótem sanador:** cura a quien esté cerca durante 10 s |
 
 Los **talentos** (4 por rol) mejoran cada uno una habilidad: más duración, más daño, más proyectiles o más saltos. Las ventajas de recolección (recoger más rápido, +1 material, hacha y pico más fuertes) son **mejoras de la tienda** para cualquier rol.
 
 Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, el mago y el cazador los **castigan** en área y el médico **mantiene vivo** al grupo.
 
 *Cambio de octubre de 2026:* el Recolector se sustituyó por el Mago. Su XP pasó al Mago y los puntos de sus talentos quedaron libres para repartirlos de nuevo.
+
+*Cambio de octubre de 2026 (ritmo):* las activas (Z, X, C) se recargan un **40 % antes** y sus daños, curaciones, escudos y duraciones bajan un **40 %**: el daño por segundo es el mismo, pero se usan casi el doble y se enlazan en **combos** (§6.4). Las definitivas no cambian. "Golpe sísmico" pasa a llamarse **Pisotón**.
+
+| Rol | Recargas Z · X · C (antes → ahora) |
+|---|---|
+| Guerrero | Torbellino 12 → 7 s · Embestida 10 → 6 s · Grito 25 → 15 s |
+| Cazador | Disparo múltiple 8 → 5 s · Marcar 30 → 18 s · Cepo 15 → 9 s |
+| Mago | Bola de fuego 10 → 6 s · Nova 18 → 11 s · Parpadeo 12 → 7 s |
+| Médico | Ungüento 40 → 24 s · Dardo 10 → 6 s · Escudo 20 → 12 s |
+
+### 6.4 Críticos, combos y números de combate
+
+**Críticos** (`Config.Crit`, `Shared/Crit`): hacen **×1,5** y su número sale un **25 % más grande**, con "!" y un temblor.
+
+| Quién | Probabilidad |
+|---|---|
+| Armas del jugador | 5 % el arma básica, 10 % la primera mejora de la forja, 15 % la segunda (`critChance` en `Data/Weapons`). Las habilidades usan la del arma de la mano o, si no es un arma, la de la mejor que lleves. |
+| Curaciones del médico | 10 % + la del arma; +30 % si el aliado tiene menos del 35 % de vida ("salvada"). Vendas, ungüentos y reanimar nunca. |
+| Mascotas | 10 % en sus golpes y curaciones. |
+| Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
+| Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
+
+**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 5 s como mucho entre una y otra. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros** a los marcados y el remate tiene un efecto extra. Cada paso enlazado acerca la definitiva **10 s**.
+
+| Rol | Combo | Pasos | Remate |
+|---|---|---|---|
+| Cazador | Presa acorralada | Cepo ⛓️ → Disparo múltiple → Lluvia (V) | Críticos de la Lluvia a los atrapados |
+| Mago | Fuego y hielo | Nova ❄️ → Parpadeo → Bola de fuego | Rompe el hielo: críticos y explosión un 50 % más grande |
+| Guerrero | Terremoto | Embestida 💫 → Torbellino → Pisotón (V) | Críticos y +0,5 s de aturdimiento |
+| Médico | Cura de urgencia | Dardo 💚 → Escudo (+50 % al revitalizado) → Ungüento | Curaciones críticas seguras y −15 de fiebre |
+
+**Racha:** cada combo completo seguido la sube (x1 … x5); desde x2, las recargas son un 8 % más rápidas por nivel. Se pierde tras 8 s sin hacer daño ni curar. En los combos que rematan con la definitiva, si la V no va a estar lista, el medio combo también sube la racha.
+
+**Números de combate** (cada cliente los dibuja; `CombatTextController`): columnas de 4 números; el nuevo entra abajo y empuja a los anteriores, que suben y se desvanecen.
+- **Rojo a la izquierda:** daño que recibes. **Verde a la derecha:** curaciones. **Amarillo sobre el enemigo:** daño que haces.
+- Lo de la **mascota** sale al 70 % del tamaño; el daño de los **aliados**, al 70 % y tenue (solo cerca).
+- En **Ajustes** (⚙️ en la Isla, pestaña en el Lobby) cada jugador elige dónde salen sus números: **junto a la cabeza**, en una **columna del alto del jugador** o **fijos en la pantalla**; y ve su personaje con un ejemplo, el daño y el crítico de su arma, sus habilidades, su combo y su mascota.
 
 ---
 

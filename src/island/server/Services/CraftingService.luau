@@ -30,6 +30,7 @@ local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
+local CombatText = require(script.Parent.Parent.Combat.CombatText)
 local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
 local PROMPT_NAME = "StationPrompt"
@@ -422,7 +423,10 @@ local function onUseHeal(player: Player)
 		Remotes.Notify:FireClient(player, "No tienes con qué curarte: vendas o ungüentos")
 		return
 	end
-	humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + heal * Progression.perk(player, "HealPower"))
+	-- Vendas y ungüentos nunca son críticos.
+	local before = humanoid.Health
+	humanoid.Health = math.min(humanoid.MaxHealth, before + heal * Progression.perk(player, "HealPower"))
+	CombatText.heal(player, humanoid.Health - before, false, player)
 	Sfx.play("Heal", humanoid.Parent or player)
 end
 

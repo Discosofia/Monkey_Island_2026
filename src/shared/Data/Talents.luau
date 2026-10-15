@@ -41,7 +41,7 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		Aftershock = {
 			name = "Réplica",
-			description = "El Golpe sísmico aturde 0,5 s más por rango.",
+			description = "El Pisotón aturde 0,5 s más por rango.",
 			order = 4,
 			perk = "QuakeStun",
 			perRank = 0.5,
@@ -59,18 +59,18 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		Tracker = {
 			name = "Rastreador",
-			description = "Las marcas duran 4 s más por rango.",
+			description = "Las marcas duran 2,5 s más por rango.",
 			order = 2,
 			perk = "MarkSeconds",
-			perRank = 4,
+			perRank = 2.5,
 			maxRank = 3,
 		},
 		StrongVines = {
 			name = "Muelles fuertes",
-			description = "El cepo sujeta 1 s más por rango.",
+			description = "El cepo sujeta 0,6 s más por rango.",
 			order = 3,
 			perk = "TrapRoot",
-			perRank = 1,
+			perRank = 0.6,
 			maxRank = 2,
 		},
 		Downpour = {
@@ -93,10 +93,10 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		DeepFrost = {
 			name = "Escarcha",
-			description = "La Nova de hielo congela 0,5 s más por rango.",
+			description = "La Nova de hielo congela 0,3 s más por rango.",
 			order = 2,
 			perk = "NovaFreeze",
-			perRank = 0.5,
+			perRank = 0.3,
 			maxRank = 3,
 		},
 		LongStep = {
@@ -143,10 +143,10 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		ThickLeaves = {
 			name = "Hojas gruesas",
-			description = "El Escudo de hojas absorbe 10 de daño más por rango.",
+			description = "El Escudo de hojas absorbe 6 de daño más por rango.",
 			order = 4,
 			perk = "ShieldAmount",
-			perRank = 10,
+			perRank = 6,
 			maxRank = 3,
 		},
 	},

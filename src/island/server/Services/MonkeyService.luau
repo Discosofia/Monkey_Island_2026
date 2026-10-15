@@ -589,7 +589,7 @@ function bite(monkey: Monkey, player: Player)
 	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
 	monkey.pounced = false
 	MonkeyAnimator.play(monkey.model, "Attack")
-	local landed = CombatService.damagePlayer(player, damage)
+	local landed = CombatService.damagePlayer(player, damage, false, monkey.model)
 	if landed then
 		playVoice(monkey, "Attack")
 	end
@@ -661,7 +661,7 @@ function throwStone(monkey: Monkey, info: PlayerInfo, now: number)
 		local character = info.player.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		if root and root:IsA("BasePart") and (root.Position - target).Magnitude <= 5 then
-			CombatService.damagePlayer(info.player, damage)
+			CombatService.damagePlayer(info.player, damage, false, monkey.model)
 		end
 	end)
 end
@@ -680,7 +680,7 @@ function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
 	for _, info in infos do
 		if not info.safe and (info.position - monkey.root.Position).Magnitude <= settings.radius then
-			if CombatService.damagePlayer(info.player, damage) then
+			if CombatService.damagePlayer(info.player, damage, false, monkey.model) then
 				info.player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + settings.stunSeconds)
 			end
 		end
@@ -910,7 +910,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			humanoid:MoveTo(position)
 			if canAttack then
 				monkey.lastAttackAt = now
-				CombatService.damagePlayer(target.player, monkey.damage, true)
+				CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model)
 			end
 		else
 			humanoid:MoveTo(target.position)

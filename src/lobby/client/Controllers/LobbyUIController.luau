@@ -2,7 +2,8 @@
 -- Interfaz del Lobby (Fase 3):
 --   - Cabecera con el Ámbar y el récord de días.
 --   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Talentos (del rol elegido), Tienda
---     (mejoras con Ámbar) y Grupo (invitar a jugadores del Lobby para viajar juntos).
+--     (mejoras con Ámbar), Grupo (invitar a jugadores del Lobby para viajar juntos) y Ajustes (tu
+--     personaje, tus números de combate y dónde salen los números; UI/SettingsPanel).
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
 --   - Botón para plegar el menú y pasear por el naufragio.
@@ -23,6 +24,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
@@ -34,7 +36,7 @@ local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
-local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Estilo", "Grupo", "Diario", "Ranking" }
+local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -453,12 +455,20 @@ function LobbyUIController:Start()
 			renderRanking()
 		elseif currentTab == "Diario" then
 			Journal.fill(list, data.bestiary)
+		elseif currentTab == "Ajustes" then
+			SettingsPanel.build(list, "Lobby")
 		else
 			renderParty()
 		end
 	end
 
-	player.AttributeChanged:Connect(render)
+	player.AttributeChanged:Connect(function(attribute)
+		-- El panel de Ajustes se actualiza solo al cambiar una opción (no hace falta rehacerlo).
+		if attribute == "Settings" and currentTab == "Ajustes" then
+			return
+		end
+		render()
+	end)
 	Players.PlayerAdded:Connect(render)
 	Players.PlayerRemoving:Connect(function()
 		task.defer(render)

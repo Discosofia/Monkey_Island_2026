@@ -1,5 +1,6 @@
 --!strict
--- HUD de la Isla: reloj de día/noche, indicador del Basecamp y botón para volver al Lobby.
+-- HUD de la Isla: reloj de día/noche, indicador del Basecamp, botón para volver al Lobby y botón ⚙️
+-- de Ajustes (disposición de los números de combate, tus números de daño y crítico…).
 -- En Studio también muestra un botón para saltar de fase y probar la noche sin esperar.
 -- Fase 1.2+: vida, inventario y barra rápida.
 
@@ -11,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local SAFE_COLOR = Color3.fromRGB(120, 230, 140)
@@ -86,7 +88,7 @@ local function createBasecampIndicator(gui: ScreenGui)
 	refresh()
 end
 
-local function createReturnButton(gui: ScreenGui)
+local function createReturnButton(gui: ScreenGui): TextButton
 	local returnButton = Widgets.button("Volver al Lobby", gui)
 	returnButton.Name = "ReturnToLobbyButton"
 	returnButton.AnchorPoint = Vector2.new(1, 0)
@@ -107,6 +109,100 @@ local function createReturnButton(gui: ScreenGui)
 			returnButton.Text = "Volver al Lobby"
 		end)
 	end)
+	return returnButton
+end
+
+-- Botón ⚙️ bajo "Volver al Lobby": abre los Ajustes (UI/SettingsPanel) en una ventana. Se construye
+-- cada vez que se abre, para que enseñe el arma y las ventajas de ese momento.
+local function createSettingsButton(gui: ScreenGui, returnButton: TextButton)
+	local gear = Instance.new("TextButton")
+	gear.Name = "SettingsButton"
+	gear.AnchorPoint = Vector2.new(1, 0)
+	gear.Size = UDim2.fromOffset(52, 52)
+	gear.BackgroundColor3 = Color3.fromRGB(40, 34, 28)
+	gear.BackgroundTransparency = 0.2
+	gear.Text = "⚙️"
+	gear.TextScaled = true
+	gear.Parent = gui
+	local gearCorner = Instance.new("UICorner")
+	gearCorner.CornerRadius = UDim.new(0, 12)
+	gearCorner.Parent = gear
+	-- Justo debajo del botón de volver (su alto depende de la pantalla).
+	local function place()
+		gear.Position = UDim2.new(0.98, 0, 0.02, returnButton.AbsoluteSize.Y + 6)
+	end
+	returnButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+	place()
+
+	-- La ventana va en su propia pantalla, por encima de los botones táctiles (5), la mesa de
+	-- fabricación (5) y el diario (6), y por debajo de los avisos (10).
+	local windowGui = Widgets.screen("SettingsUI", gui.Parent :: Instance)
+	windowGui.DisplayOrder = 8
+	local window = Instance.new("Frame")
+	window.Name = "SettingsWindow"
+	window.AnchorPoint = Vector2.new(0.5, 0.5)
+	window.Position = UDim2.fromScale(0.5, 0.5)
+	window.Size = UDim2.fromScale(0.8, 0.86)
+	window.BackgroundColor3 = Color3.fromRGB(25, 20, 15)
+	window.BackgroundTransparency = 0.05
+	window.Visible = false
+	window.Parent = windowGui
+	local windowCorner = Instance.new("UICorner")
+	windowCorner.CornerRadius = UDim.new(0, 14)
+	windowCorner.Parent = window
+	local limit = Instance.new("UISizeConstraint")
+	limit.MaxSize = Vector2.new(720, 900)
+	limit.Parent = window
+
+	local title = Widgets.label("⚙️ Ajustes", window)
+	title.Position = UDim2.fromOffset(14, 8)
+	title.Size = UDim2.new(1, -80, 0, 34)
+	title.TextXAlignment = Enum.TextXAlignment.Left
+
+	local close = Instance.new("TextButton")
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.new(1, -8, 0, 8)
+	close.Size = UDim2.fromOffset(44, 44)
+	close.BackgroundColor3 = Color3.fromRGB(150, 60, 50)
+	close.TextColor3 = Color3.new(1, 1, 1)
+	close.Font = Enum.Font.BuilderSansBold
+	close.TextScaled = true
+	close.Text = "✕"
+	close.Parent = window
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 10)
+	closeCorner.Parent = close
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Position = UDim2.fromOffset(10, 58)
+	scroll.Size = UDim2.new(1, -20, 1, -68)
+	scroll.BackgroundTransparency = 1
+	scroll.BorderSizePixel = 0
+	scroll.ScrollBarThickness = 6
+	scroll.CanvasSize = UDim2.new()
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	scroll.Parent = window
+	local layout = Instance.new("UIListLayout")
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = scroll
+
+	local panel: Frame? = nil
+	local function setOpen(open: boolean)
+		window.Visible = open
+		if panel then
+			panel:Destroy()
+			panel = nil
+		end
+		if open then
+			panel = SettingsPanel.build(scroll, "Island")
+		end
+	end
+	gear.Activated:Connect(function()
+		setOpen(not window.Visible)
+	end)
+	close.Activated:Connect(function()
+		setOpen(false)
+	end)
 end
 
 function IslandHUDController:Start()
@@ -118,7 +214,7 @@ function IslandHUDController:Start()
 	createStatusLine(gui, "SiegeStatus", 0.13, Color3.fromRGB(255, 120, 90))
 	createStatusLine(gui, "EggStatus", 0.24, Color3.fromRGB(150, 240, 255))
 	createStatusLine(gui, "BeaconStatus", 0.275, Color3.fromRGB(255, 150, 140))
-	createReturnButton(gui)
+	createSettingsButton(gui, createReturnButton(gui))
 
 	if RunService:IsStudio() then
 		local skipButton = Widgets.button("⏩ Saltar fase (Studio)", gui)

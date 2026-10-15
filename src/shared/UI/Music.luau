@@ -1,11 +1,13 @@
 --!strict
 -- Reproductor de música del cliente (Fase 6): cambia de pista con un fundido suave. La tecla M la
--- silencia o la vuelve a activar.
+-- silencia o la vuelve a activar; es el mismo ajuste "Música" del panel de Ajustes (Shared/Settings),
+-- así que se guarda en el perfil.
 
 local ContextActionService = game:GetService("ContextActionService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
+local Settings = require(script.Parent.Parent.Settings)
 local Sounds = require(script.Parent.Parent.Data.Sounds)
 
 local FADE_SECONDS = 2
@@ -56,14 +58,22 @@ function Music.setVolume(newVolume: number)
 	volume = newVolume
 end
 
--- Tecla M para silenciar.
+local function setMuted(value: boolean)
+	muted = value
+	if current then
+		current.Volume = if muted then 0 else volume
+	end
+end
+
+-- Tecla M para silenciar; sigue también el ajuste "Música" del panel de Ajustes.
 function Music.bindMuteKey()
+	setMuted(not Settings.get().music)
+	Settings.onChanged(function(values)
+		setMuted(not values.music)
+	end)
 	ContextActionService:BindAction("ToggleMusic", function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
-			muted = not muted
-			if current then
-				current.Volume = if muted then 0 else volume
-			end
+			Settings.set("music", muted)
 		end
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.M)

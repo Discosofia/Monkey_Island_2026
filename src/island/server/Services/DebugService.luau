@@ -20,6 +20,7 @@ local BossService = require(script.Parent.BossService)
 local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
 local MatchService = require(script.Parent.MatchService)
+local MonkeyService = require(script.Parent.MonkeyService)
 local RoleService = require(script.Parent.RoleService)
 local SiegeService = require(script.Parent.SiegeService)
 local SupplyService = require(script.Parent.SupplyService)
@@ -74,6 +75,19 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 				humanoid.Health = humanoid.MaxHealth * 0.3
 			end
 		end
+	end,
+	-- Un mono de categoría 2 que va a por ti: para ver sus críticos (números rojos más grandes).
+	Mandrill = function(player)
+		local character = player.Character
+		if character then
+			MonkeyService.spawnAmbush("Mandril", (character:GetPivot() * CFrame.new(0, 0, -20)).Position, 1, player)
+		end
+	end,
+	-- Todo golpe y curación es crítico (Shared/Crit), para ver los números grandes al momento.
+	AlwaysCrit = function(player)
+		local enabled = Workspace:GetAttribute("DebugAlwaysCrit") ~= true
+		Workspace:SetAttribute("DebugAlwaysCrit", enabled)
+		Remotes.Notify:FireClient(player, if enabled then "🎯 Críticos al 100 %" else "🎯 Críticos normales")
 	end,
 	Egg = function()
 		EggService.spawnEgg()

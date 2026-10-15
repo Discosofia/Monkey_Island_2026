@@ -154,11 +154,11 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - **Z Torbellino:** giras 2 s entre estelas de viento en círculo y los monos de alrededor reciben varios golpes.
    - **X Embestida:** sales disparado hacia donde apuntas dejando un rastro rojo, dañas y empujas a los monos.
    - **C Grito de guerra:** el personaje echa la cabeza atrás y abre los brazos gritando, brilla en rojo (luego un brillo rojo suave mientras dura) y salen ondas rojas; "N monos van a por ti" y te muerden menos.
-   - **V Golpe sísmico:** el suelo se agrieta desde tus pies, saltan piedras, sale polvo y tiembla la cámara; mucho daño y los monos se quedan quietos con contorno amarillo 2 s.
+   - **V Pisotón:** el suelo se agrieta desde tus pies, saltan piedras, sale polvo y tiembla la cámara; mucho daño y los monos se quedan quietos con contorno amarillo 2 s.
 3. [ ] **Cazador** (Arco, empiezas con 20 flechas; se fabrican en la mesa de trabajo):
    - **Z Disparo múltiple:** 5 flechas verdes en abanico con estela verde, sin gastar flechas.
    - **X Marcar presas:** onda roja, contorno rojo y una diana (círculo, círculo interior y cruz) girando sobre cada mono marcado, y "N presas marcadas".
-   - **C Cepo:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, salta a sus pies y se cierra de golpe, y el mono queda atrapado 3 s con un brillo verde suave que aparece y se va. Como mucho 2 cepos.
+   - **C Cepo:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, salta a sus pies y se cierra de golpe, y el mono queda atrapado unos 2 s con un brillo verde suave que aparece y se va. Como mucho 2 cepos.
    - **V Lluvia de proyectiles:** zona roja donde apuntas con una nube gris encima, de la que caen flechas durante 4 s (se quedan clavadas un momento).
 4. [ ] **Mago** (Bastón mágico, dispara bolas moradas sin munición):
    - **Z Bola de fuego:** bola roja en llamas que va recta, con tres bolitas que giran a su alrededor dejando una espiral; explota al impactar y daña alrededor.
@@ -172,7 +172,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - **C Escudo de hojas:** destello amarillo y una burbuja verde con hojas girando alrededor del aliado más cercano (o de ti); los mordiscos salen como 🛡️ y, al romperse, la burbuja estalla.
    - **V Tótem sanador:** sale del suelo un tótem de madera tallada (caras, alas pintadas al estilo navajo) con una gema verde brillante arriba, sobre un suelo verde con hojas; cada segundo una onda verde cura durante 10 s.
    - Con 2 jugadores ves la **vida del otro** sobre su cabeza y reanimas más rápido (el aviso dura 2 s en vez de 4).
-6. [ ] **Jefes:** contra un jefe (🛠️ 👑), el Golpe sísmico o la Nova le paran solo la mitad de tiempo y el Grito de guerra hace que vaya a por el guerrero.
+6. [ ] **Jefes:** contra un jefe (🛠️ 👑), el Pisotón o la Nova le paran solo la mitad de tiempo y el Grito de guerra hace que vaya a por el guerrero.
 7. [ ] **PvP** (2 jugadores con PvP activo en el tótem): las habilidades de daño también os hieren, a la mitad.
 
 ## 3.3 Talentos y mejoras en la Isla
@@ -328,6 +328,28 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    > Roblox ya solo trae 11 sonidos de serie: los efectos usan esos con distintos tonos. Los de animales y algunos más son **provisionales**: para que suenen de verdad, pon IDs del Creator Store (ver [LANZAMIENTO.md](LANZAMIENTO.md), Sonido).
 4. [ ] Pon un ID de música en `src/shared/Data/Sounds.luau` (por ejemplo, en `Day`).
    ✅ Suena con fundido; cambia de noche, en el asedio y cerca de un jefe. **M** la silencia.
+
+## 6.6 Números de combate, críticos y combos
+
+1. [ ] Pega al **muñeco de práctica** con el arma: salen números **amarillos** sobre su cabeza, en una columna de 4 que sube y se desvanece.
+2. [ ] Pulsa **🎯 Críticos al 100 %** y vuelve a pegar: los números salen un **25 % más grandes**, con "!" y un temblor. Púlsalo otra vez para volver a lo normal.
+3. [ ] **Torbellino** contra el muñeco: los golpes muy seguidos se suman en un número.
+4. [ ] Pulsa **🐒 Mandril aquí**: sus mordiscos salen en **rojo a la izquierda de tu cabeza**; algunos (≈15 %) son críticos y más grandes. Con el **Escudo de hojas** sale 🛡️.
+5. [ ] **Curaciones:** come o usa una venda (o sé médico): salen en **verde a la derecha**. Las vendas nunca son críticas.
+6. [ ] **Mascotas:** con **🐾 Mascota al azar** (una de combate o de curación), sus números salen **más pequeños** que los tuyos.
+7. [ ] **⚙️ Ajustes** (bajo "Volver al Lobby"):
+   - Ves tu personaje girando, con tu mascota al lado, y números de ejemplo.
+   - Cambia entre **Junto a la cabeza**, **Columna del alto del jugador** y **Fijos en la pantalla**: el ejemplo y los números de verdad cambian al momento.
+   - El panel dice el daño y el crítico de tu arma (Machete 5 %; tras forjar el Machete afilado, 10 %) y coincide con el número amarillo normal contra el muñeco.
+   - Vuelve al Lobby: en la pestaña **Ajustes** sigue la disposición elegida.
+8. [ ] **Recargas nuevas:** Z, X y C tardan lo de la tabla del GDD §6.3 (el mago, un 15 % menos).
+9. [ ] **Combos** (con monos cerca; 🐒 Mandril aquí sirve). Al usar el primer paso sobre un mono, sale su icono encima (⛓️ ❄️ 💫 o 💚 en el aliado), un recuadro "Combo 1/3" bajo las habilidades y la casilla del siguiente paso se resalta en azul:
+   - **Cazador:** Cepo (que lo pise un mono) → Disparo múltiple → Lluvia.
+   - **Mago:** Nova → Parpadeo → Bola de fuego (el hielo estalla en esquirlas).
+   - **Guerrero:** Embestida → Torbellino → Pisotón.
+   - **Médico:** Dardo a un aliado (o a un mono) → Escudo → Ungüento.
+   ✅ Los pasos 2 y 3 hacen críticos a los marcados, la V baja 10 s por paso, sale "¡COMBO!" con un aro dorado y la racha sube (x2…). Tras 8 s sin pegar ni curar, la racha se pierde. Con más de 5 s entre pasos, el combo vuelve a empezar.
+10. [ ] Con **2 jugadores**: el daño que hace el otro se ve más pequeño y tenue; su daño recibido no se ve. En Ajustes, "Daño de los aliados: No" lo quita.
 
 ---
 

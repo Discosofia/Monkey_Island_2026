@@ -4,7 +4,7 @@
 -- cada fotograma se ven fluidas y no cargan la red. Es solo lo que se ve: el daño y los estados los
 -- pone el servidor.
 --   - Guerrero: estelas de viento en círculo (Torbellino), rastro rojo (Embestida), pose de grito con
---     brillo rojo (Grito de guerra) y suelo agrietado con piedras que saltan (Golpe sísmico).
+--     brillo rojo (Grito de guerra) y suelo agrietado con piedras que saltan (Pisotón).
 --   - Cazador: flechas verdes con estela (Disparo múltiple), diana sobre las presas marcadas, brillo
 --     verde suave en el mono atrapado (el Cepo lo pone el servidor) y nube que suelta la
 --     Lluvia de proyectiles.
@@ -15,7 +15,9 @@
 -- Los movimientos del propio jugador (Embestida, Torbellino y Parpadeo) los dibuja RoleController al
 -- momento con AbilityFxController.play; el servidor se los manda solo a los demás.
 -- La diana de las presas y la burbuja del escudo no llegan por el evento: salen de los atributos
--- "MarkedUntil" de los monos y "ShieldHealth"/"ShieldUntil" de los jugadores.
+-- "MarkedUntil" de los monos y "ShieldHealth"/"ShieldUntil" de los jugadores; los iconos de las marcas
+-- de combo, de "ComboMarkBy"/"ComboMarkUntil" (Data/Combos). Al cerrar un combo: aro dorado en el
+-- jugador y, en el del mago, el hielo que estalla.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -25,6 +27,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
@@ -1789,6 +1792,112 @@ local function totem(position: Vector3, facing: Vector3, radius: number, seconds
 	end)
 end
 
+-- ===================================== Combos =====================================
+
+-- La Bola de fuego que cierra el combo del mago rompe el hielo: esquirlas, destellos y vapor.
+local function iceShatter(position: Vector3)
+	for _ = 1, 14 do
+		local shard = piece(
+			"IceShard",
+			Vector3.one * rng:NextNumber(0.3, 0.8),
+			Color3.fromRGB(190, 230, 255),
+			Enum.Material.Ice,
+			0.15
+		)
+		shard.CFrame =
+			CFrame.new(position + Vector3.new(rng:NextNumber(-1, 1), rng:NextNumber(0, 2), rng:NextNumber(-1, 1)))
+		fling(
+			shard,
+			Vector3.new(rng:NextNumber(-16, 16), rng:NextNumber(12, 26), rng:NextNumber(-16, 16)),
+			Vector3.new(rng:NextNumber(-8, 8), rng:NextNumber(-8, 8), rng:NextNumber(-8, 8)),
+			0.9
+		)
+	end
+	burst(position, SPARKLE_TEXTURE, Color3.fromRGB(210, 240, 255), 20, 1, 12, 0.6)
+	burst(position, SMOKE_TEXTURE, Color3.fromRGB(235, 245, 255), 8, 2.5, 4, 0.9)
+	flash(position, Color3.fromRGB(170, 220, 255), 16, 4, 0.4)
+end
+
+-- ¡Combo completo!: aro dorado a los pies y chispas; más grande cuanto mayor es la racha.
+local function comboComplete(character: Model?, streak: number?)
+	local root = rootOf(character)
+	if not root then
+		return
+	end
+	local level = math.clamp(if typeof(streak) == "number" then streak else 1, 1, 5)
+	local gold = Color3.fromRGB(255, 205, 70)
+	local feet = root.Position - Vector3.new(0, 2.8, 0)
+	ring(feet, 1, 6 + level * 2, 0.6, gold, 0.5, 0.2)
+	burst(root.Position, SPARKLE_TEXTURE, gold, 14 + level * 6, 1, 10 + level * 2, 0.6)
+	flash(root.Position, gold, 14, 3 + level, 0.5)
+end
+
+-- Icono sobre lo que marcó el primer paso de TU combo (atributos "ComboMarkBy"/"ComboMarkUntil",
+-- ComboService): así ves a quién rematar. Los demás jugadores no lo ven.
+local function watchComboMarks()
+	local player = Players.LocalPlayer
+	local icons: { [Instance]: BillboardGui } = {}
+	local function check(target: Instance, now: number, icon: string)
+		local untilTime = target:GetAttribute("ComboMarkUntil")
+		local marked = target:GetAttribute("ComboMarkBy") == player.UserId
+			and typeof(untilTime) == "number"
+			and now < untilTime
+		local gui = icons[target]
+		if marked and not gui then
+			local head = target:FindFirstChild("Head")
+			local adornee = if head and head:IsA("BasePart") then head else rootOf(target)
+			if adornee then
+				local newGui = Instance.new("BillboardGui")
+				newGui.Name = "ComboMark"
+				newGui.Adornee = adornee
+				newGui.AlwaysOnTop = true
+				newGui.LightInfluence = 0
+				newGui.MaxDistance = 200
+				newGui.Size = UDim2.fromOffset(34, 34)
+				newGui.StudsOffset = Vector3.new(0, adornee.Size.Y / 2 + 0.6, 0)
+				newGui.SizeOffset = Vector2.new(0, -0.6)
+				newGui.Parent = folder
+				local label = Instance.new("TextLabel")
+				label.BackgroundTransparency = 1
+				label.Size = UDim2.fromScale(1, 1)
+				label.TextScaled = true
+				label.Text = icon
+				label.Parent = newGui
+				local scale = Instance.new("UIScale")
+				scale.Scale = 2
+				scale.Parent = label
+				TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+				icons[target] = newGui
+			end
+		elseif not marked and gui then
+			gui:Destroy()
+			icons[target] = nil
+		end
+	end
+	while true do
+		local roleId = player:GetAttribute("Role")
+		local combo = if typeof(roleId) == "string" then Combos[roleId] else nil
+		local now = Workspace:GetServerTimeNow()
+		if combo then
+			for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
+				check(enemy, now, combo.icon)
+			end
+			for _, other in Players:GetPlayers() do
+				if other.Character then
+					check(other.Character, now, combo.icon)
+				end
+			end
+		end
+		for target, gui in icons do
+			if not target.Parent or not combo then
+				gui:Destroy()
+				icons[target] = nil
+			end
+		end
+		task.wait(0.2)
+	end
+end
+
 -- ===================================== Despacho =====================================
 
 -- Cada efecto con los datos que manda el servidor (Combat/AbilityFx).
@@ -1811,6 +1920,8 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Dart = dart, -- (origen, llegada, velocidad)
 	ShieldGlare = shieldGlare, -- (personaje)
 	Totem = totem, -- (posición, hacia dónde mira el médico, radio, segundos)
+	IceShatter = iceShatter, -- (posición): la Bola de fuego del combo rompe el hielo
+	ComboComplete = comboComplete, -- (personaje, racha)
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.
@@ -1835,6 +1946,7 @@ function AbilityFxController:Start()
 	end)
 	task.spawn(watchMarks)
 	task.spawn(watchShields)
+	task.spawn(watchComboMarks)
 end
 
 return AbilityFxController

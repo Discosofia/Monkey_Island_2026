@@ -25,6 +25,7 @@ local Survival = require(ReplicatedStorage.Shared.Survival)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
+local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
 local TICK_SECONDS = 1
 
@@ -65,6 +66,7 @@ end
 
 -- Hambre o sed a 0 quitan vida. Igual que el daño de los monos, no mata: deja caído.
 local function starve(player: Player, humanoid: Humanoid, amount: number)
+	CombatText.taken(player, amount)
 	if humanoid.Health - amount <= 0 then
 		LifeService.down(player)
 	else

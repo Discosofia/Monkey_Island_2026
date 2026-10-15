@@ -15,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Crit = require(ReplicatedStorage.Shared.Crit)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
@@ -24,9 +25,11 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local ComboService = require(script.Parent.ComboService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
 local ResourceService = require(script.Parent.ResourceService)
+local CombatText = require(script.Parent.Parent.Combat.CombatText)
 local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
@@ -70,41 +73,33 @@ function CombatService.enemyFromPart(part: Instance): (Model?, Humanoid?)
 end
 local enemyFromPart = CombatService.enemyFromPart
 
--- Destello rojo y número de daño flotante sobre el objetivo.
-local function showHit(model: Model, amount: number, color: Color3?)
+-- Destello rojo sobre el objetivo. Los números flotantes los dibuja cada cliente (Combat/CombatText).
+local function flash(model: Model)
 	local highlight = Instance.new("Highlight")
 	highlight.FillColor = Color3.fromRGB(255, 60, 60)
 	highlight.FillTransparency = 0.4
 	highlight.OutlineTransparency = 1
 	highlight.Parent = model
 	Debris:AddItem(highlight, 0.15)
+end
 
-	local anchor = model:FindFirstChild("Head") or model.PrimaryPart
-	if not (anchor and anchor:IsA("BasePart")) then
-		return
-	end
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(80, 36)
-	billboard.StudsOffset = Vector3.new(math.random(-10, 10) / 10, 2.5, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = anchor
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Text = if amount > 0 then `-{amount}` else "🛡️"
-	label.TextColor3 = color or Color3.fromRGB(255, 220, 90)
-	label.TextStrokeTransparency = 0.3
-	label.Font = Enum.Font.BuilderSansBold
-	label.TextScaled = true
-	label.Parent = billboard
-	TweenService:Create(billboard, TweenInfo.new(0.7), { StudsOffset = billboard.StudsOffset + Vector3.new(0, 2, 0) })
-		:Play()
-	Debris:AddItem(billboard, 0.7)
+export type HitOptions = {
+	crit: boolean?, -- golpe crítico: ×Config.Crit.Multiplier y número más grande
+	pet: boolean?, -- lo hizo la mascota del atacante (su número sale más pequeño)
+}
+
+local NO_HIT_OPTIONS: HitOptions = {}
+
+-- Tira el crítico de una habilidad de "player": con la probabilidad de su arma (Shared/Crit).
+function CombatService.rollPlayerCrit(player: Player): boolean
+	local _, chance = Crit.playerWeapon(player)
+	return Crit.roll(chance)
 end
 
 -- Daña a un enemigo. "attacker" queda apuntado para repartir el botín si lo derrota.
 -- Los monos marcados por un cazador (Fase 3) reciben daño extra mientras dura la marca.
-function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, attacker: Player?)
+function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, attacker: Player?, options: HitOptions?)
+	local hit = options or NO_HIT_OPTIONS
 	if attacker then
 		model:SetAttribute("LastAttackerUserId", attacker.UserId)
 	end
@@ -122,8 +117,15 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	then
 		amount = math.round(amount * (1 + markBonus))
 	end
+	if hit.crit then
+		amount = math.round(amount * Crit.MULTIPLIER)
+	end
 	humanoid:TakeDamage(amount)
-	showHit(model, amount)
+	flash(model)
+	CombatText.dealt(model, amount, hit.crit, attacker, hit.pet)
+	if attacker and not hit.pet then
+		ComboService.onActivity(attacker)
+	end
 	Sfx.play("Hit", model.PrimaryPart or model)
 	for _, listener in damageListeners do
 		task.spawn(listener, model, attacker, amount)
@@ -165,7 +167,9 @@ end
 -- caído o como Espíritu. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal no mata:
 -- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
-function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: boolean?): boolean
+-- "source": el mono o jefe que pega; según su categoría o fase puede hacer un crítico (Shared/Crit).
+-- Sin él (rayos, lava, rocas…) nunca lo es.
+function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: boolean?, source: Instance?): boolean
 	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
 		return false
@@ -175,11 +179,17 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
+	local crit = Crit.roll(Crit.sourceChance(source))
+	if crit then
+		amount = math.round(amount * Crit.MULTIPLIER)
+	end
 	amount = mitigate(player, amount)
-	showHit(character, amount)
+	flash(character)
 	if amount <= 0 then
+		CombatText.absorbed(player)
 		return true
 	end
+	CombatText.taken(player, amount, crit)
 	-- Cada mordisco sube la fiebre del mono (Fase 2.6).
 	Survival.addFever(player, Config.Fever.PerBite)
 	if humanoid.Health - amount <= 0 then
@@ -190,6 +200,50 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 		humanoid:TakeDamage(amount)
 	end
 	return true
+end
+
+export type HealOptions = {
+	pet: boolean?, -- la curación es de la mascota de "healer" (Config.Crit.PetChance)
+	canCrit: boolean?, -- puede ser crítica (las vendas y la reanimación no)
+	crit: boolean?, -- crítica segura (el remate del combo del médico)
+}
+
+local NO_HEAL_OPTIONS: HealOptions = {}
+
+-- Cura a un jugador vivo y enseña el número verde. "healer": quién cura (el médico, o el propio
+-- jugador con su mascota). Las críticas curan ×Config.Crit.Multiplier; las del médico lo son más a
+-- menudo si el aliado tiene poca vida (Shared/Crit). Devuelve lo que ha curado de verdad.
+function CombatService.heal(player: Player, amount: number, healer: Player?, options: HealOptions?): number
+	local heal = options or NO_HEAL_OPTIONS
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if not (humanoid and humanoid.Health > 0 and LifeState.isAlive(player)) then
+		return 0
+	end
+	local crit = heal.crit == true
+	if not crit and heal.canCrit then
+		local chance = 0
+		if heal.pet then
+			chance = Config.Crit.PetChance
+		elseif healer then
+			local _, weaponChance = Crit.playerWeapon(healer)
+			chance = Crit.healChance(weaponChance, humanoid.Health / humanoid.MaxHealth)
+		end
+		crit = Crit.roll(chance)
+	end
+	if crit then
+		amount *= Crit.MULTIPLIER
+	end
+	local before = humanoid.Health
+	humanoid.Health = math.min(humanoid.MaxHealth, before + amount)
+	local healed = humanoid.Health - before
+	if healed >= 0.5 then
+		CombatText.heal(player, healed, crit, healer, heal.pet)
+	end
+	if healer and not heal.pet then
+		ComboService.onActivity(healer)
+	end
+	return healed
 end
 
 -- PvP opt-in (GDD §12, Fase 5): ambos con PvP activo y ninguno dentro del Basecamp.
@@ -220,7 +274,8 @@ end
 local playerFromPart = CombatService.playerFromPart
 
 -- Daño de un jugador a otro. Si lo deja caído, cobra su recompensa PvP y sube la propia.
-function CombatService.damagePvP(attacker: Player, victim: Player, amount: number): boolean
+-- "crit": golpe crítico (lo tira quien llama, con el arma del atacante).
+function CombatService.damagePvP(attacker: Player, victim: Player, amount: number, crit: boolean?): boolean
 	if attacker == victim or not (pvpReady(attacker) and pvpReady(victim)) then
 		return false
 	end
@@ -232,11 +287,17 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
+	if crit then
+		amount = math.round(amount * Crit.MULTIPLIER)
+	end
 	amount = mitigate(victim, amount)
-	showHit(character, amount)
+	flash(character)
+	ComboService.onActivity(attacker)
 	if amount <= 0 then
+		CombatText.absorbed(victim, attacker)
 		return true
 	end
+	CombatText.taken(victim, amount, crit, attacker)
 	if humanoid.Health - amount > 0 then
 		humanoid:TakeDamage(amount)
 		return true
@@ -258,7 +319,13 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 	return true
 end
 
-local function meleeAttack(player: Player, character: Model, root: BasePart, weapon: Weapons.WeaponDefinition)
+local function meleeAttack(
+	player: Player,
+	character: Model,
+	root: BasePart,
+	weapon: Weapons.WeaponDefinition,
+	critChance: number
+)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
@@ -273,12 +340,12 @@ local function meleeAttack(player: Player, character: Model, root: BasePart, wea
 		local model, humanoid = enemyFromPart(part)
 		if model and humanoid and not alreadyHit[model] then
 			alreadyHit[model] = true
-			CombatService.damage(model, humanoid, damage, player)
+			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance) })
 		end
 		local victim = playerFromPart(part)
 		if victim and not playersHit[victim] then
 			playersHit[victim] = true
-			CombatService.damagePvP(player, victim, damage)
+			CombatService.damagePvP(player, victim, damage, Crit.roll(critChance))
 		end
 	end
 end
@@ -356,7 +423,8 @@ local function rangedAttack(
 	character: Model,
 	root: BasePart,
 	weapon: Weapons.WeaponDefinition,
-	aim: Vector3
+	aim: Vector3,
+	critChance: number
 )
 	local ammo = weapon.ammoItemId
 	if ammo and not InventoryService.remove(player, ammo, 1) then
@@ -366,6 +434,7 @@ local function rangedAttack(
 	-- "+daño a distancia" del cazador o "+daño de hechizos" del mago, con sus talentos.
 	local damage =
 		math.round(weapon.damage * Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage"))
+	local crit = Crit.roll(critChance)
 
 	local head = character:FindFirstChild("Head")
 	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
@@ -395,7 +464,7 @@ local function rangedAttack(
 			if victim then
 				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
 				task.delay(seconds, function()
-					CombatService.damagePvP(player, victim, damage)
+					CombatService.damagePvP(player, victim, damage, crit)
 				end)
 			end
 		end
@@ -410,7 +479,7 @@ local function rangedAttack(
 		task.delay(travelSeconds, function()
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
-				CombatService.damage(hitModel, humanoid, damage, player)
+				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit })
 			end
 		end)
 	end
@@ -440,14 +509,14 @@ local function onUseWeapon(player: Player, aim: any)
 
 	if weapon.kind == "Melee" then
 		WeaponTools.playUse(tool)
-		meleeAttack(player, character, root, weapon)
+		meleeAttack(player, character, root, weapon, Crit.weaponChance(weaponId :: string))
 		-- El hacha y el pico, además de golpear enemigos, trabajan el árbol o la roca de delante.
 		if weapon.tool then
 			ResourceService.strike(player, root, weapon.tool)
 		end
 	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
 		WeaponTools.playUse(tool)
-		rangedAttack(player, character, root, weapon, aim.Unit)
+		rangedAttack(player, character, root, weapon, aim.Unit, Crit.weaponChance(weaponId :: string))
 	end
 end
 

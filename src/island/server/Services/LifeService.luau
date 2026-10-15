@@ -26,6 +26,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
 local SPIRIT_TRANSPARENCY = 0.65
 local VISUALS = { "RevivePrompt", "DownedBillboard", "DownedHighlight", "SpiritHighlight" }
@@ -219,8 +220,10 @@ local function revive(player: Player, rescuer: Player)
 	restoreMovement(humanoid)
 	-- "Segundo aliento" (talento del médico) levanta con más vida.
 	local fraction = math.min(1, Config.Life.ReviveHealthFraction + Progression.perk(rescuer, "ReviveHealth"))
+	local before = humanoid.Health
 	humanoid.Health = math.max(1, humanoid.MaxHealth * fraction)
 	setState(player, "Alive")
+	CombatText.heal(player, humanoid.Health - before, false, rescuer)
 	Sfx.play("Revive", character.PrimaryPart or character)
 	MatchStats.add(rescuer, MatchStats.REVIVES)
 	Remotes.Notify:FireClient(player, `💚 {rescuer.DisplayName} te ha reanimado`)

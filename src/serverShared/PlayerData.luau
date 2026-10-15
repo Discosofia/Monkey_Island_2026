@@ -10,7 +10,9 @@
 --   - Si DataStore falla (por ejemplo, en Studio sin "Enable Studio Access to API Services"), el
 --     jugador juega con datos temporales y se avisa en la Salida: no se pierde nada guardado.
 -- Los valores que ve el cliente se copian a atributos del Player ("Amber", "BestDays",
--- "SelectedRole" y "Progress", un JSON con XP, talentos y mejoras; ver Shared/Progression).
+-- "SelectedRole" y "Progress", un JSON con XP, talentos y mejoras; ver Shared/Progression), y
+-- "Settings", un JSON con los ajustes del jugador (Shared/Settings), que el cliente cambia con
+-- Remotes.SaveSettings.
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -18,6 +20,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Settings = require(ReplicatedStorage.Shared.Settings)
 
 export type Profile = {
 	version: number,
@@ -34,6 +38,7 @@ export type Profile = {
 	activePet: string, -- mascota que lleva ("" = ninguna; Fase 5)
 	rescues: number, -- partidas ganadas con la baliza (Fase 6)
 	cosmetics: { [string]: string }, -- cosmético equipado por tipo (Trail, Title, Aura; Fase 6)
+	settings: { [string]: any }, -- ajustes del jugador (Shared/Settings)
 }
 
 type Session = {
@@ -64,6 +69,7 @@ local function defaultProfile(): Profile
 		activePet = "",
 		rescues = 0,
 		cosmetics = {},
+		settings = Settings.defaults() :: any,
 	}
 end
 
@@ -143,6 +149,7 @@ local function publish(player: Player, profile: Profile)
 			cosmetics = profile.cosmetics,
 		})
 	)
+	player:SetAttribute("Settings", HttpService:JSONEncode(Settings.sanitize(profile.settings)))
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).
@@ -266,6 +273,12 @@ end
 
 -- Arranca la carga, el guardado automático y el guardado al cerrar. Llamar una vez por servidor.
 function PlayerData.start()
+	Remotes.SaveSettings.OnServerEvent:Connect(function(player, raw)
+		local values = Settings.sanitize(raw)
+		PlayerData.update(player, function(profile)
+			profile.settings = values :: any
+		end)
+	end)
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)

@@ -206,6 +206,7 @@ function BossService.spawn(bossId: string)
 	local model = MonkeyModels.build(definition.baseSpecies, look, groundBelow(lair), bossId)
 	model.Name = definition.name
 	model:SetAttribute("Boss", bossId)
+	model:SetAttribute("BossPhase", 1)
 	model.Parent = Workspace
 	local root = model.PrimaryPart :: BasePart
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -342,7 +343,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 					for _, player in playersAround(boss.root.Position, 9) do
 						if not hit[player] then
 							hit[player] = true
-							if CombatService.damagePlayer(player, boss.damage) then
+							if CombatService.damagePlayer(player, boss.damage, false, boss.model) then
 								player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 1)
 							end
 						end
@@ -355,7 +356,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				return
 			end
 			bubble(boss, "¡TE TENGO!")
-			if CombatService.damagePlayer(target, math.round(boss.damage * 0.6)) then
+			if CombatService.damagePlayer(target, math.round(boss.damage * 0.6), false, boss.model) then
 				target:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 3)
 				Remotes.Notify:FireClient(target, "🦧 ¡El jefe te ha agarrado! Que te ayuden tus compañeros")
 			end
@@ -382,6 +383,8 @@ local function updatePhase(boss: ActiveBoss)
 		return
 	end
 	boss.phase = phase
+	-- Su probabilidad de crítico depende de la fase (Shared/Crit).
+	boss.model:SetAttribute("BossPhase", phase)
 	boss.damage = math.round(boss.definition.damage * (1 + 0.2 * (phase - 1)))
 	bubble(boss, "😡")
 	Sfx.play("BossRoar", boss.root)
@@ -451,7 +454,7 @@ local function tick(now: number)
 		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then
 			boss.lastAttackAt = now
 			MonkeyAnimator.play(boss.model, "Attack")
-			if CombatService.damagePlayer(target, boss.damage) then
+			if CombatService.damagePlayer(target, boss.damage, false, boss.model) then
 				Sfx.play("BossAttack", boss.root)
 			end
 		end
