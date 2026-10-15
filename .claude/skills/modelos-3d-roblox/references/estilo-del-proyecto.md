@@ -56,6 +56,12 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   las busca por nombre. Posiciones respecto a la raíz y a escala 1, con el suelo en `GROUND = -1.9`.
   Los jefes reutilizan el constructor de su especie: lo que solo debe tener el jefe va detrás de
   `if rig.boss` (más pelo, nudillos) o en `BOSS_EXTRAS[bossId]` (adornos propios: tocados, collares).
+  Un mismo cuerpo sirve a especies y jefes de colores muy distintos si los tonos secundarios salen
+  de `bodyColor`/`faceColor` con `Lerp` (el pecho del gorila es `fur:Lerp(skin, 0.4)`) en vez de
+  ser constantes. Si un jefe necesita otro tono, recolorea esa pieza por nombre en su `BOSS_EXTRAS`.
+  **Al cambiar el cuerpo de una especie, revisa todos sus jefes:** los adornos de `BOSS_EXTRAS`
+  van en coordenadas fijas sobre la superficie del cuerpo viejo, y si el cuerpo crece quedan
+  enterrados (le pasó a las grietas de lava del Gorila de Ceniza).
   Para verlo en la vista previa, construye el jefe como lo hace `BossService`:
 
   ```lua
@@ -79,6 +85,20 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 - Las **Ball** solo son esferas. Para un **elipsoide** (copas, frutos, barrigas): `Part` + `SpecialMesh`
   con `MeshType = Sphere` y la `Size` que quieras (`newEllipsoid` en NodeModels, forma "Oval" en PetModels).
 - **Púas, colmillos, orejas puntiagudas:** dos `WedgePart` espalda con espalda (`spike` en ArmorModels).
+- **Cristales y puntas en una sola pieza:** `CornerWedgePart` (forma `"Spike"` de `piece` en
+  MonkeyModels), alargada en Y y orientada con
+  `CFrame.lookAt(c, c + dir) * CFrame.Angles(-math.pi / 2, 0, 0)` para que su Y siga a `dir`. Se ve
+  en punta desde cualquier lado. Una `WedgePart` sola parece una tabla plana, y una pirámide fina
+  parece una espina: dale una base ancha (ancho ≈ 40 % del largo). Para cristales, `Glass` con
+  `Transparency` 0,3; `Neon` solo en el núcleo que brilla. Colocarlos con una función
+  `crystal(anchor, from, to, length, width)` deja cada cristal en una línea; con una tabla de
+  campos, stylua parte cada entrada en siete líneas.
+- **Caras con expresión:** para una cara de **furia**, cejas finas (alto ≈ 0,18) giradas unos 0,6 rad
+  en Z con `side` (el lado de dentro más bajo, en V), ojos como óvalos aplastados con la misma
+  inclinación, y boca abierta oscura con colmillos (`Spike` girada `math.pi` en X para que apunte
+  abajo). Unas cejas gruesas y redondas, aunque estén inclinadas, dan cara de **preocupado**. No
+  pongas bolitas negras cerca de los ojos (orificios de la nariz): se leen como un segundo par de
+  ojos.
 - **Ramas, troncos y cadenas:** encadena tramos de cilindro; cada tramo devuelve el marco de su extremo
   (`limb` en NodeModels).
 - **Simetría:** usa `for side = -1, 1, 2 do ... end` y multiplica X por `side`. Ahorra la mitad del código
@@ -122,6 +142,9 @@ Materiales habituales: `SmoothPlastic` (por defecto), `Fabric` (pelaje, telas), 
 `Slate` / `Rock` (piedra), `Grass`, `Sand`, `Metal`, `Neon` solo para brillos (ojos que brillan,
 magia). Un modelo con 3–6 colores se lee mejor que uno con quince.
 
+Una `PointLight` con mucho alcance (más de ~20 studs ya escalada) tiñe todo el modelo y el suelo
+de su color: para un brillo rojo en el pecho, alcance 6 y brillo 1 a escala 1 bastan.
+
 **Con la luz de Studio los tonos claros se ven más claros** de lo que parecen en el RGB. Una piel
 de 190, 160, 135 sale casi blanca en la captura. Para una piel marrón rosada como la de un
 chimpancé, ve a valores de 165, 125, 105. Compara siempre la captura con la referencia, no el número.
@@ -149,9 +172,16 @@ Los monos y los jefes tienen un tamaño estándar por categoría, con sus excepc
 `Data/Monkeys` o `Data/Bosses` (no a escala 1) y, si se sale de la franja, ajusta `scale` antes
 que el modelo.
 
+Si el cuerpo de una especie crece, crece también su jefe y puede salirse de la franja: vuelve a
+medir la especie y todos sus jefes, y ajusta su `scale`. Un jefe más grande también necesita más
+`attackRange` en `Data/Bosses`, porque se mide de raíz a raíz y la cara queda más lejos de la raíz
+(la cara del gorila está a unos 2,8 × `scale` studs). Si el usuario pide un jefe más grande que la
+franja a propósito, apúntalo en las excepciones del GDD.
+
 El tamaño que devuelve `Preview.show` incluye los adornos. Un tocado de plumas sube al Chimpancé
-Caudillo de 8,5 a 11,5 studs. Mide también el cuerpo sin los adornos (recorre las piezas y descarta
-las de nombre `Feather` y la `HumanoidRootPart`). Si el modelo se pasa de alto solo por un adorno,
+Caudillo de 8,5 a 11,5 studs. Mide también el cuerpo sin los adornos: saca un momento esas piezas del
+modelo (`part.Parent = nil`), mide con `GetBoundingBox()` y vuelve a meterlas. Sumar las esquinas de
+cada pieza da de más con los óvalos girados. Si el modelo se pasa de alto solo por un adorno,
 apúntalo en la lista de "Se pasan de alto a propósito" del GDD. Cuando cambies el alto de una
 especie, actualiza también la columna "Ahora" de esa tabla.
 

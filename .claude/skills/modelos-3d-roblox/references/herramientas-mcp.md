@@ -68,6 +68,16 @@ límites de uso: tras usarlas, búscalo con `search_game_tree` o en `Workspace` 
   vale también para los **datos**: si cambias un color o un `scale` en `Data/Monkeys` o
   `Data/Bosses`, cárgalos con `freshRequire` y pásaselos tú al constructor. Con un `require` normal
   verías los valores viejos aunque el constructor sí esté actualizado.
+- Para no mandar `vista_previa.luau` entero en cada vuelta, la primera vez termina el script con
+  `_G.Preview = Preview` y en las siguientes usa `local Preview = _G.Preview`: `_G` se conserva entre
+  llamadas mientras Studio no se cierre. Al terminar, `_G.Preview = nil`.
+- Si Studio se reinicia, cambia el `studio_id` (vuelve a llamar a `list_roblox_studios`) y el plugin
+  de Rojo **no se reconecta solo**: los servidores siguen activos (34872 Lobby, 34873 Isla), pero hay
+  que pulsar *Connect* en el plugin. Con `script_grep` de una línea nueva lo notas; pídeselo al
+  usuario en vez de pegar el código en los scripts del place.
+- Para probar algo de juego (por ejemplo una orden del panel de pruebas) sin Rojo ni botones: Play
+  con `start_stop_play` y `execute_luau` con `datamodel_type = "Server"`, pegando la función. En Play
+  no hay datamodel `Edit`: para tocar la vista previa, para el juego antes.
 - Antes de cargar el módulo, comprueba que Rojo ya sincronizó el cambio: `script_grep` de una línea
   nueva, o dentro del mismo `execute_luau`,
   `assert(Preview.find(ruta).Source:find("texto nuevo"), "Rojo aún no ha sincronizado")`.

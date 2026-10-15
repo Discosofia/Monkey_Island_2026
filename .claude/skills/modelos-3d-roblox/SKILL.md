@@ -131,7 +131,8 @@ Para comparar dos versiones, muéstralas a la vez con
 
 Cuando lo enseñes, di qué cambiaste en cada vuelta y qué no has conseguido. El usuario lo verá en su
 Studio: deja la cámara apuntando al modelo con `Preview.look` para que lo encuentre (la zona de
-vista previa está lejos del mapa, en `Workspace._VistaPrevia`).
+vista previa está lejos del mapa, en `Workspace._VistaPrevia`). La vista previa se queda montada
+hasta que el usuario apruebe el resultado (§5).
 
 ## 5. Integrar y cerrar
 
@@ -145,10 +146,20 @@ vista previa está lejos del mapa, en `Workspace._VistaPrevia`).
 2. `stylua src` y `selene src` sin errores (el CI los pasa).
 3. Una última vista previa con el módulo real (no con el código pegado) para confirmar que lo que
    quedó en el repo es lo que viste.
-4. `Preview.clear()` para borrar `Workspace._VistaPrevia`: no la dejes en el place del usuario.
-5. Si tocaste algo del place (no del repo), recuerda al usuario que guarde y publique.
-6. Resume: qué modelo, dónde está el código, tamaño, número de piezas, y cómo verlo en juego (por
-   ejemplo, el expositor de armas del panel de pruebas para las armas).
+4. **Deja esa vista previa montada para que el usuario la apruebe.** No borres
+   `Workspace._VistaPrevia` al terminar: deja el modelo final (y, si sirve, el de antes o las otras
+   variantes al lado con `keep = true`) y la cámara de Studio apuntando a él con `Preview.look`, en
+   el ángulo que mejor lo enseña (normalmente `tresCuartos`), para que lo vea en su Studio sin
+   buscarlo. Termina el turno pidiéndole que lo revise y diga si lo aprueba o qué cambiar.
+5. Solo cuando el usuario lo apruebe (o pida quitarla), `Preview.clear()` para borrar
+   `Workspace._VistaPrevia`: no se puede quedar para siempre en el place. Si pide cambios, vuelve
+   al ciclo de revisión sobre esa misma vista previa.
+6. Si tocaste algo del place (no del repo), recuerda al usuario que guarde y publique (sin la zona
+   de vista previa, una vez aprobado).
+7. Resume: qué modelo, dónde está el código, tamaño, número de piezas, que la vista previa está
+   montada esperando su aprobación, y cómo verlo en juego: el expositor de armas del panel de
+   pruebas para las armas, el expositor de monos y jefes para los monos (todas las especies por
+   categoría y los jefes detrás, con su alto encima: sirve para comparar tamaños en el mapa real).
 
 ## Editar un modelo existente
 
@@ -167,3 +178,7 @@ vista previa está lejos del mapa, en `Workspace._VistaPrevia`).
   módulo del que depende, recárgalo también o reinicia Studio) o Rojo desconectado.
 - El modelo sale en otro sitio o girado → revisa el pivote (`GetPivot`) y que el frente sea -Z.
 - `execute_luau` da error → léelo entero; casi siempre es una ruta mal escrita en `Preview.find`.
+- Todo sale teñido (rosa, naranja) → la luz de la escena del place o una `PointLight` con mucho
+  alcance en el modelo. Juzga los colores comparando entre modelos, no en absoluto.
+- Editar archivos del repo con Python en Windows → ábrelos con `newline=''`. En modo texto los
+  reescribe con CRLF y `git diff` marca el archivo entero como cambiado.
