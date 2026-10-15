@@ -171,9 +171,16 @@ Materiales habituales: `SmoothPlastic` (por defecto), `Fabric` (pelaje, telas), 
 magia). Un modelo con 3–6 colores se lee mejor que uno con quince. Para el pelo, `Fabric` da
 un aspecto de peluche que encaja con el estilo cartoon (el Mono X-7).
 
-Para un aura o una nube de energía, un `ParticleEmitter` pequeño en el cuerpo (unas 6 por segundo,
-`LightEmission = 1`, tamaño escalado con el modelo) se ve mejor que muchas piezas `Neon`
-flotando. En las capturas del X-7 en modo edición no se distinguían: compruébalo en Play.
+Para un aura o una nube de energía, un `ParticleEmitter` en el cuerpo se ve mejor que muchas
+piezas `Neon` flotando. Lo que aprendimos con el Mono X-7, cuyas chispas no se veían en juego:
+- Por defecto salen de **dentro** de la pieza: si es un óvalo tapado por pelo, brazos o casco, se
+  quedan escondidas. Usa `Shape = Sphere`, `ShapeStyle = Surface`, `ShapeInOut = Outward` y una
+  velocidad que las saque (1,5–2,5 con `Drag` 2).
+- Con `LightEmission = 1` y la luz del día salen casi blancas. Con 0,4, `Brightness` 2 y
+  `LightInfluence` 0 conservan el color.
+- Tamaño de unos 0,5 × `rig.scale` en su punto más alto, unas 14 por segundo y `ZOffset` 1.
+- En modo edición no se simulan solas: para verlas en una captura, llama a `emitter:Emit(20)` en
+  el mismo `execute_luau` que monta la vista previa.
 
 Una `PointLight` con mucho alcance (más de ~20 studs ya escalada) tiñe todo el modelo y el suelo
 de su color: para un brillo rojo en el pecho, alcance 6 y brillo 1 a escala 1 bastan.

@@ -1070,19 +1070,38 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			end
 		end
 
-		-- Aura de energía: chispas azules que salen del cuerpo (la nube eléctrica de la foto).
+		-- Aura de energía: chispas azules que salen del cuerpo (la nube eléctrica de la foto). Salen
+		-- de la superficie hacia fuera y deprisa: desde dentro del óvalo, lentas, se quedaban
+		-- escondidas bajo el pelo y no se veían. Con LightEmission 1 de día salían casi blancas: con
+		-- 0,4 y algo de Brightness conservan el azul. Un segundo foco en la mochila, como la foto.
 		local body = rig.model:FindFirstChild("Body")
-		if body then
+		local pack = rig.model:FindFirstChild("Pack")
+		if body and pack then
 			local aura = Instance.new("ParticleEmitter")
-			aura.Color = ColorSequence.new(color)
-			aura.LightEmission = 1
-			aura.Rate = 6
-			aura.Lifetime = NumberRange.new(0.5, 0.9)
-			aura.Speed = NumberRange.new(0.6, 1.2)
-			aura.SpreadAngle = Vector2.new(180, 180)
-			aura.Size = NumberSequence.new(0.18 * rig.scale, 0)
-			aura.Transparency = NumberSequence.new(0.2, 1)
+			aura.Color = ColorSequence.new(color:Lerp(WHITE, 0.35), color)
+			aura.LightEmission = 0.4
+			aura.LightInfluence = 0
+			aura.Brightness = 2
+			aura.Rate = 14
+			aura.Lifetime = NumberRange.new(0.6, 1.1)
+			aura.Speed = NumberRange.new(1.5, 2.5)
+			aura.Drag = 2
+			aura.Shape = Enum.ParticleEmitterShape.Sphere
+			aura.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+			aura.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+			aura.Rotation = NumberRange.new(0, 360)
+			aura.RotSpeed = NumberRange.new(-180, 180)
+			aura.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.1 * rig.scale),
+				NumberSequenceKeypoint.new(0.2, 0.5 * rig.scale),
+				NumberSequenceKeypoint.new(1, 0),
+			})
+			aura.Transparency = NumberSequence.new(0, 1)
+			aura.ZOffset = 1
 			aura.Parent = body
+			local packAura = aura:Clone()
+			packAura.Rate = 8
+			packAura.Parent = pack
 		end
 
 		-- Calvas cosidas en el pelo (de la piel enferma de la foto, en versión de dibujo).
