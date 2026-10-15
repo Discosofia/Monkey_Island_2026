@@ -11,6 +11,7 @@ local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -32,6 +33,7 @@ local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
 local ArmorModels = require(script.Parent.Parent.Combat.ArmorModels)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
 local DebugService = {}
 
@@ -68,6 +70,24 @@ local SHOWCASE_ORDER = {
 	"ShamanBlowgun",
 }
 local SHOWCASE_RADIUS = 11
+
+-- Cartel con el nombre encima de un modelo del expositor, a "height" studs del suelo.
+local function showcaseLabel(anchor: BasePart, text: string, height: number)
+	local label = Instance.new("BillboardGui")
+	label.Size = UDim2.fromOffset(170, 26)
+	label.StudsOffsetWorldSpace = Vector3.new(0, height, 0)
+	label.MaxDistance = 150
+	label.Parent = anchor
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.fromScale(1, 1)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Font = Enum.Font.BuilderSansBold
+	textLabel.TextScaled = true
+	textLabel.TextColor3 = Color3.new(1, 1, 1)
+	textLabel.TextStrokeTransparency = 0.3
+	textLabel.Text = text
+	textLabel.Parent = label
+end
 
 -- Todas las armas en círculo alrededor del jugador, de pie, de perfil (el filo a un lado) y con su
 -- nombre encima, para revisar los modelos de WeaponTools. Pulsar otra vez las quita.
@@ -108,24 +128,110 @@ local function weaponShowcase(player: Player)
 		-- De perfil: su -X mira al jugador, así el filo (-Z) queda a un lado.
 		model:PivotTo(CFrame.lookAt(position, facing) * CFrame.Angles(0, -math.rad(90), 0))
 
-		local label = Instance.new("BillboardGui")
-		label.Size = UDim2.fromOffset(140, 26)
-		label.StudsOffsetWorldSpace = Vector3.new(0, 3.6, 0)
-		label.Parent = handle
-		local text = Instance.new("TextLabel")
-		text.Size = UDim2.fromScale(1, 1)
-		text.BackgroundTransparency = 1
-		text.Font = Enum.Font.BuilderSansBold
-		text.TextScaled = true
-		text.TextColor3 = Color3.new(1, 1, 1)
-		text.TextStrokeTransparency = 0.3
-		text.Text = model.Name
-		text.Parent = label
+		showcaseLabel(handle, model.Name, 3.6)
 
 		model.Parent = folder
 		tool:Destroy()
 	end
 	folder.Parent = Workspace
+end
+
+local MONKEY_ROW_START = 12 -- de la primera fila (categoría 1) al jugador
+local MONKEY_ROW_STEP = 9 -- entre una fila de monos y la siguiente
+local BOSS_ROW_EXTRA = 6 -- los jefes, más grandes, un poco más separados de la última fila
+local MONKEY_GAP = 3
+
+-- Todos los monos en filas delante del jugador, como en una foto de grupo: una fila por categoría
+-- (los pequeños delante) y los jefes al fondo. Quietos en su postura de reposo, mirándolo,
+-- apoyados en el suelo y con su nombre y su alto encima, para revisar los modelos de
+-- Monkeys/MonkeyModels. Pulsar otra vez los quita.
+local function monkeyShowcase(player: Player)
+	local existing = Workspace:FindFirstChild("DebugMonkeyShowcase")
+	if existing then
+		existing:Destroy()
+		return
+	end
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local species = {}
+	for speciesId in Monkeys do
+		table.insert(species, speciesId)
+	end
+	table.sort(species, function(a, b)
+		if Monkeys[a].tier ~= Monkeys[b].tier then
+			return Monkeys[a].tier < Monkeys[b].tier
+		end
+		return Monkeys[a].name < Monkeys[b].name
+	end)
+	local rows: { { distance: number, models: { Model } } } = {}
+	local tierRows: { [number]: { distance: number, models: { Model } } } = {}
+	for _, speciesId in species do
+		local tier = Monkeys[speciesId].tier
+		local row = tierRows[tier]
+		if not row then
+			row = { distance = MONKEY_ROW_START + #rows * MONKEY_ROW_STEP, models = {} }
+			tierRows[tier] = row
+			table.insert(rows, row)
+		end
+		table.insert(row.models, MonkeyModels.build(speciesId, Monkeys[speciesId], Vector3.zero))
+	end
+	-- Los jefes, en el orden en que salen en la partida y montados como en BossService.
+	local bossRow = { distance = MONKEY_ROW_START + #rows * MONKEY_ROW_STEP + BOSS_ROW_EXTRA, models = {} }
+	table.insert(rows, bossRow)
+	for _, bossId in Config.Match.BossRotation do
+		local boss = Bosses[bossId]
+		local look = table.clone(Monkeys[boss.baseSpecies])
+		look.name, look.scale = boss.name, boss.scale
+		look.bodyColor, look.faceColor = boss.bodyColor, boss.faceColor
+		table.insert(bossRow.models, MonkeyModels.build(boss.baseSpecies, look, Vector3.zero, bossId))
+	end
+
+	local folder = Instance.new("Folder")
+	folder.Name = "DebugMonkeyShowcase"
+	folder.Parent = Workspace
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { folder, character }
+
+	local pivot = character:GetPivot()
+	local forward = (pivot.LookVector * Vector3.new(1, 0, 1)).Unit
+	local right = forward:Cross(Vector3.yAxis)
+	for _, row in rows do
+		local sizes = {}
+		local total = 0
+		for index, model in row.models do
+			local _, size = model:GetBoundingBox()
+			sizes[index] = size
+			total += size.X + MONKEY_GAP
+		end
+		local offset = -total / 2
+		for index, model in row.models do
+			local size = sizes[index]
+			local spot = pivot.Position + forward * row.distance + right * (offset + size.X / 2)
+			offset += size.X + MONKEY_GAP
+			local hit = Workspace:Raycast(spot + Vector3.new(0, 60, 0), Vector3.new(0, -200, 0), params)
+			local ground = if hit then hit.Position else Vector3.new(spot.X, pivot.Position.Y - 3, spot.Z)
+			-- Se construyeron con el suelo en Y = 0: la raíz queda a la misma altura sobre el suelo real,
+			-- y la cara (-Z) mira al jugador.
+			local root = model.PrimaryPart :: BasePart
+			local rootPosition = ground + Vector3.new(0, root.Position.Y, 0)
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+				end
+			end
+			model:PivotTo(CFrame.lookAt(rootPosition, rootPosition - forward))
+			showcaseLabel(
+				root,
+				`{model.Name} · {string.format("%.1f", size.Y)} studs`,
+				size.Y - (rootPosition.Y - ground.Y) + 1.5
+			)
+			model.Parent = folder
+		end
+	end
 end
 
 -- Armaduras por las que va pasando "Siguiente armadura" (nil = ninguna).
@@ -183,6 +289,7 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		end
 	end,
 	WeaponShowcase = weaponShowcase,
+	MonkeyShowcase = monkeyShowcase,
 	NextArmor = nextArmor,
 	Hungry = function(player)
 		player:SetAttribute(Survival.HUNGER, 10)
