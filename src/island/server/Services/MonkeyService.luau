@@ -67,6 +67,7 @@ type Group = {
 	siege: boolean?, -- grupo del asedio nocturno
 	gate: Vector3?, -- portón por el que entra el grupo de asedio
 	alpha: Monkey?, -- líder de la tropa (especies con "alpha")
+	ignoreCap: boolean?, -- no cuenta el límite de monos a la vez (los del panel de pruebas)
 }
 
 type Monkey = {
@@ -204,18 +205,12 @@ local function playVoice(monkey: Monkey, action: string, at: (Vector3 | Instance
 	Sfx.play(`Monkey{monkey.definition.voice}{action}`, at or monkey.root)
 end
 
+-- El botín sale junto al personaje de quien lo derrotó (InventoryService.collect).
 local function giveLoot(player: Player, definition: Monkeys.MonkeyDefinition)
-	local gained = {}
 	for _, entry in definition.loot do
-		if rng:NextNumber() < entry.chance then
-			local amount = rng:NextInteger(entry.min, entry.max)
-			InventoryService.add(player, entry.itemId, amount)
-			local item = Items[entry.itemId]
-			table.insert(gained, `+{amount} {item.icon} {item.name}`)
+		if rng:NextNumber() < entry.chance * Config.Monkeys.LootChanceMultiplier then
+			InventoryService.collect(player, entry.itemId, rng:NextInteger(entry.min, entry.max))
 		end
-	end
-	if #gained > 0 then
-		Remotes.Notify:FireClient(player, `{definition.name}: {table.concat(gained, ", ")}`)
 	end
 end
 
@@ -258,7 +253,7 @@ local function onDied(monkey: Monkey)
 		giveLoot(killer, monkey.definition)
 		local stolen = monkey.stolen
 		if stolen then
-			InventoryService.add(killer, stolen.itemId, stolen.amount)
+			InventoryService.collect(killer, stolen.itemId, stolen.amount)
 			local item = Items[stolen.itemId]
 			Remotes.Notify:FireClient(killer, `Recuperas lo robado: {stolen.amount} {item.icon} {item.name}`)
 		end
@@ -312,7 +307,7 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	local definition = Monkeys[group.speciesId]
 	local offset = Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-8, 8))
 	local ground = findGround(near + offset, nil) or findGround(near, nil)
-	if not ground or (not group.siege and activeCount() >= Config.Monkeys.MaxActive) then
+	if not ground or (not group.siege and not group.ignoreCap and activeCount() >= Config.Monkeys.MaxActive) then
 		return nil
 	end
 
@@ -395,6 +390,12 @@ local function despawnGroup(group: Group)
 	table.clear(group.members)
 end
 
+-- Tamaño de una tropa nueva: el de su especie por Config.Monkeys.GroupSizeMultiplier.
+local function groupSize(definition: Monkeys.MonkeyDefinition): number
+	local size = rng:NextInteger(definition.groupMin, definition.groupMax)
+	return math.max(1, math.round(size * Config.Monkeys.GroupSizeMultiplier))
+end
+
 local function createGroups()
 	for speciesId, definition in Monkeys do
 		for _ = 1, definition.groups do
@@ -403,7 +404,7 @@ local function createGroups()
 				table.insert(groups, {
 					speciesId = speciesId,
 					home = home,
-					size = rng:NextInteger(definition.groupMin, definition.groupMax),
+					size = groupSize(definition),
 					temporary = false,
 					members = {},
 					nextRegrowAt = 0,
@@ -1007,8 +1008,16 @@ function MonkeyService.alert(position: Vector3, radius: number, target: Player)
 	end
 end
 
--- Tropa que aparece en "position" y va a por "target" (refuerzos de un jefe, Fase 5).
-function MonkeyService.spawnAmbush(speciesId: string, position: Vector3, count: number, target: Player)
+-- Tropa que aparece en "position" y va a por "target" (refuerzos de un jefe, Fase 5). Devuelve
+-- cuántos monos han aparecido: ninguno si ahí no se puede (dentro del Basecamp, sobre agua o sobre
+-- una pieza) o, salvo con "ignoreCap", si ya hay el máximo de monos a la vez.
+function MonkeyService.spawnAmbush(
+	speciesId: string,
+	position: Vector3,
+	count: number,
+	target: Player,
+	ignoreCap: boolean?
+): number
 	local group: Group = {
 		speciesId = speciesId,
 		home = position,
@@ -1016,12 +1025,17 @@ function MonkeyService.spawnAmbush(speciesId: string, position: Vector3, count: 
 		temporary = true,
 		members = {},
 		nextRegrowAt = math.huge,
+		ignoreCap = ignoreCap,
 	}
-	table.insert(groups, group)
 	fillGroup(group)
+	if #group.members == 0 then
+		return 0
+	end
+	table.insert(groups, group)
 	for _, monkey in group.members do
 		chase(monkey, target)
 	end
+	return #group.members
 end
 
 -- Llama a "callback" cada vez que un jugador derrota a un mono (para el diario de campo).

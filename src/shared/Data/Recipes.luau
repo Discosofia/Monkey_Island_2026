@@ -9,6 +9,7 @@
 -- desaparece y ya no se puede volver a fabricar (tampoco lo anterior de la cadena).
 -- "role" (opcional): solo la ve y la fabrica ese rol (Data/Roles); son las mejoras de sus armas.
 -- "cost" es una lista para que el orden de los materiales en pantalla no cambie.
+-- En "description", "{damage}" se cambia por el daño del arma (con Config.Combat.PlayerDamageMultiplier).
 
 export type Cost = { itemId: string, amount: number }
 
@@ -191,7 +192,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Machete afilado",
 		icon = "🗡️",
-		description = "Mejora el machete: 28 de daño y algo más rápido.",
+		description = "Mejora el machete: {damage} de daño y algo más rápido.",
 		order = 40,
 		cost = {
 			{ itemId = "Stone", amount = 6 },
@@ -220,7 +221,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Honda de liana",
 		icon = "🌱",
-		description = "Mejora la honda: 20 de daño y más alcance.",
+		description = "Mejora la honda: {damage} de daño y más alcance.",
 		order = 50,
 		cost = {
 			{ itemId = "Liana", amount = 3 },
@@ -262,7 +263,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Garrote de colmillo grande",
 		icon = "🔶",
-		description = "Mejora el garrote: 46 de daño.",
+		description = "Mejora el garrote: {damage} de daño.",
 		order = 53,
 		cost = {
 			{ itemId = "BigFang", amount = 2 },
@@ -278,7 +279,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Maza de hueso",
 		icon = "🦴",
-		description = "Mejora el garrote de piedra: 40 de daño y golpea más rápido.",
+		description = "Mejora el garrote de piedra: {damage} de daño y golpea más rápido.",
 		order = 44,
 		cost = {
 			{ itemId = "Stone", amount = 6 },
@@ -293,7 +294,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Mazo de hueso grueso",
 		icon = "🔨",
-		description = "Mejora la maza de hueso: 55 de daño.",
+		description = "Mejora la maza de hueso: {damage} de daño.",
 		order = 55,
 		cost = {
 			{ itemId = "ThickBone", amount = 2 },
@@ -308,7 +309,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Arco reforzado",
 		icon = "🏹",
-		description = "Mejora el arco: 26 de daño, más alcance y flechas más rápidas.",
+		description = "Mejora el arco: {damage} de daño, más alcance y flechas más rápidas.",
 		order = 45,
 		cost = {
 			{ itemId = "Wood", amount = 6 },
@@ -323,7 +324,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Arco de liana",
 		icon = "🌱",
-		description = "Mejora el arco reforzado: 36 de daño y aún más alcance.",
+		description = "Mejora el arco reforzado: {damage} de daño y aún más alcance.",
 		order = 56,
 		cost = {
 			{ itemId = "Liana", amount = 3 },
@@ -338,7 +339,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Bastón dorado",
 		icon = "✨",
-		description = "Mejora el bastón mágico: 20 de daño y hechizos más rápidos.",
+		description = "Mejora el bastón mágico: {damage} de daño y hechizos más rápidos.",
 		order = 46,
 		cost = {
 			{ itemId = "GoldenFur", amount = 3 },
@@ -353,7 +354,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Bastón de plata",
 		icon = "🔮",
-		description = "Mejora el bastón dorado: 28 de daño y más alcance.",
+		description = "Mejora el bastón dorado: {damage} de daño y más alcance.",
 		order = 57,
 		cost = {
 			{ itemId = "Whisker", amount = 2 },
@@ -363,6 +364,36 @@ local Recipes: { [string]: Recipe } = {
 		weaponId = "SilverStaff",
 		upgrades = "GoldenStaff",
 		role = "Mago",
+	},
+	BoneBlowgun = {
+		station = "Forge",
+		name = "Cerbatana de hueso",
+		icon = "🦴",
+		description = "Mejora la cerbatana: {damage} de daño, más alcance y cura más con cada acierto.",
+		order = 47,
+		cost = {
+			{ itemId = "Wood", amount = 4 },
+			{ itemId = "Bone", amount = 3 },
+			{ itemId = "Fiber", amount = 3 },
+		},
+		weaponId = "BoneBlowgun",
+		upgrades = "Blowgun",
+		role = "Medico",
+	},
+	ShamanBlowgun = {
+		station = "Forge",
+		name = "Cerbatana del chamán",
+		icon = "🍃",
+		description = "Mejora la cerbatana de hueso: {damage} de daño y cura aún más con cada acierto.",
+		order = 58,
+		cost = {
+			{ itemId = "Liana", amount = 2 },
+			{ itemId = "Shell", amount = 3 },
+			{ itemId = "ThickBone", amount = 1 },
+		},
+		weaponId = "ShamanBlowgun",
+		upgrades = "BoneBlowgun",
+		role = "Medico",
 	},
 	SilverArmor = {
 		station = "Forge",

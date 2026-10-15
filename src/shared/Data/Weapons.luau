@@ -14,8 +14,11 @@ export type WeaponDefinition = {
 	range: number, -- studs
 	ammoItemId: string?, -- ítem que gasta cada disparo (ver Data/Items)
 	projectileSpeed: number?, -- studs por segundo
-	projectile: ("Stone" | "Arrow" | "Spell")?, -- cómo se ve lo que dispara (piedra por defecto)
+	projectile: ("Stone" | "Arrow" | "Spell" | "Dart")?, -- cómo se ve lo que dispara (piedra por defecto)
 	spell: boolean?, -- hechizo: su daño sube con "SpellDamage" en vez de "RangedDamage"
+	-- Armas del médico: cada disparo que acierta a un enemigo cura esto al aliado más herido cerca
+	-- (o al propio médico), a menos de Config.Combat.WeaponHealRadius.
+	healOnHit: number?,
 	aimAssistDegrees: number?, -- ayuda de puntería: ángulo máximo para "enganchar" un enemigo
 	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
 	-- Sonido al usarla (clave de Data/Sounds.Effects); sin él, Swing (cuerpo a cuerpo) o Shoot (distancia).
@@ -192,6 +195,19 @@ local Weapons: { [string]: WeaponDefinition } = {
 		spell = true,
 		aimAssistDegrees = 12,
 	},
+	-- Médico: dispara dardos de savia, sin munición.
+	Blowgun = {
+		name = "Cerbatana",
+		kind = "Ranged",
+		sound = "ShootDart",
+		damage = 12,
+		cooldownSeconds = 0.7,
+		range = 110,
+		projectileSpeed = 170,
+		projectile = "Dart",
+		aimAssistDegrees = 12,
+		healOnHit = 2,
+	},
 	Club = {
 		name = "Garrote con colmillos",
 		kind = "Melee",
@@ -248,6 +264,32 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectileSpeed = 250,
 		projectile = "Arrow",
 		aimAssistDegrees = 10,
+	},
+	BoneBlowgun = {
+		name = "Cerbatana de hueso",
+		kind = "Ranged",
+		sound = "ShootDart",
+		damage = 18,
+		critChance = 0.10,
+		cooldownSeconds = 0.65,
+		range = 125,
+		projectileSpeed = 190,
+		projectile = "Dart",
+		aimAssistDegrees = 12,
+		healOnHit = 3,
+	},
+	ShamanBlowgun = {
+		name = "Cerbatana del chamán",
+		kind = "Ranged",
+		sound = "ShootDart",
+		damage = 25,
+		critChance = 0.15,
+		cooldownSeconds = 0.6,
+		range = 140,
+		projectileSpeed = 210,
+		projectile = "Dart",
+		aimAssistDegrees = 12,
+		healOnHit = 5,
 	},
 	GoldenStaff = {
 		name = "Bastón dorado",

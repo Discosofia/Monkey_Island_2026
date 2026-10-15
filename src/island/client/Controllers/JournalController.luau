@@ -5,7 +5,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
-local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
@@ -54,10 +53,7 @@ function JournalController:Start()
 	layout.Padding = UDim.new(0, 6)
 	layout.Parent = list
 
-	local total = 0
-	for _ in Monkeys do
-		total += 1
-	end
+	local total = Journal.total()
 
 	local function refresh()
 		for _, child in list:GetChildren() do
@@ -66,7 +62,7 @@ function JournalController:Start()
 			end
 		end
 		local discovered = Journal.fill(list, Progression.read(player).bestiary)
-		title.Text = `📖 Diario de campo · {discovered}/{total} especies (J para cerrar)`
+		title.Text = `📖 Diario de campo · {discovered}/{total} especies y jefes (J para cerrar)`
 	end
 
 	ActionButtons.bind(ACTION, "Diario", function(_, state: Enum.UserInputState)

@@ -4,8 +4,9 @@
 --   1. La primera prepara: deja una marca en lo que toca (el cepo atrapa, el hielo congela…).
 --   2. La segunda enlaza: contra los marcados sus golpes son críticos seguros.
 --   3. La tercera remata: críticos seguros contra los marcados y un efecto extra ("finisher").
--- Cada paso enlazado acerca la definitiva (V) y cada combo completo seguido sube la racha, que
--- acelera las recargas (ComboService). "steps" son ids de Data/Roles.
+-- Ningún combo usa la definitiva (V): con sus 90 s de recarga casi nunca se podría cerrar. Cada paso
+-- enlazado la acerca y cada combo completo seguido sube la racha, que acelera las recargas
+-- (ComboService). "steps" son ids de Data/Roles.
 
 export type Combo = {
 	name: string,
@@ -18,10 +19,10 @@ export type Combo = {
 local Combos: { [string]: Combo } = {
 	Cazador = {
 		name = "Presa acorralada",
-		steps = { "Trap", "MultiShot", "ArrowRain" },
+		steps = { "Trap", "MarkPrey", "MultiShot" },
 		mark = "Atrapado",
 		icon = "⛓️",
-		finisher = "La Lluvia hace críticos a los atrapados.",
+		finisher = "Marcar vuelve a sujetar a los atrapados y el Disparo múltiple lanza 2 proyectiles más.",
 	},
 	Mago = {
 		name = "Fuego y hielo",
@@ -31,11 +32,11 @@ local Combos: { [string]: Combo } = {
 		finisher = "La Bola de fuego rompe el hielo: críticos y explosión más grande.",
 	},
 	Guerrero = {
-		name = "Terremoto",
-		steps = { "Charge", "Whirlwind", "Quake" },
+		name = "Remolino de acero",
+		steps = { "Charge", "WarCry", "Whirlwind" },
 		mark = "Desequilibrado",
 		icon = "💫",
-		finisher = "El Pisotón hace críticos y aturde más a los desequilibrados.",
+		finisher = "El Grito aturde a los desequilibrados y el Torbellino gira 1 s más.",
 	},
 	Medico = {
 		name = "Cura de urgencia",

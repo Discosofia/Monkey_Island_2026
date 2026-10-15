@@ -182,9 +182,11 @@ Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el p
 | Rol | Pasiva | Armas iniciales | Activas (Z · X · C) | Definitiva (V) |
 |---|---|---|---|---|
 | ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 5 s) | **Pisotón:** 150 de daño en área y aturde 2 s |
-| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (atrapa unos 2 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
+| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (cuando un mono lo pisa, atrapa unos 2 s a todos los que estén a 8 studs) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
 | 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 1,2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
-| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Machete, honda | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 24) | **Tótem sanador:** cura a quien esté cerca durante 10 s |
+| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Cerbatana (sin munición; cada dardo que acierta cura un poco al aliado más herido cerca), machete | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 24) | **Tótem sanador:** se planta donde apuntas (hasta 40 studs) y cura a quien esté cerca durante 10 s |
+
+**Armas de rol y sus mejoras** (forja de piedra; solo las ve su rol): garrote de piedra → maza de hueso → mazo de hueso grueso (guerrero); arco → arco reforzado → arco de liana (cazador); bastón mágico → bastón dorado → bastón de plata (mago); cerbatana → cerbatana de hueso → cerbatana del chamán (médico: 12 → 18 → 25 de daño base y +2 → +3 → +5 de curación por acierto, a menos de 40 studs).
 
 Los **talentos** (4 por rol) mejoran cada uno una habilidad: más duración, más daño, más proyectiles o más saltos. Las ventajas de recolección (recoger más rápido, +1 material, hacha y pico más fuertes) son **mejoras de la tienda** para cualquier rol.
 
@@ -201,9 +203,11 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Mago | Bola de fuego 10 → 6 s · Nova 18 → 11 s · Parpadeo 12 → 7 s |
 | Médico | Ungüento 40 → 24 s · Dardo 10 → 6 s · Escudo 20 → 12 s |
 
+*Armas a distancia (animación):* con una honda, un arco, un bastón o una cerbatana en la mano, el brazo derecho cuelga junto al cuerpo; al disparar, el personaje hace el movimiento de su arma (estirar la goma, tensar y soltar la cuerda, alzar y lanzar el bastón con un destello, llevarse la cerbatana a la boca y soplar). Son animaciones de Roblox (R15) que genera `ServerStorage.Tools.WeaponAnimationBuilder` y se publican con sus ids en `Data/WeaponAnimations`.
+
 ### 6.4 Críticos, combos y números de combate
 
-**Críticos** (`Config.Crit`, `Shared/Crit`): hacen **×1,5** y su número sale un **25 % más grande**, con "!" y un temblor.
+**Críticos** (`Config.Crit`, `Shared/Crit`): hacen **×1,35** (+35 %) y su número sale un **25 % más grande**, con "!" y un temblor.
 
 | Quién | Probabilidad |
 |---|---|
@@ -213,20 +217,23 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
 | Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
 
-**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 5 s como mucho entre una y otra. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros** a los marcados y el remate tiene un efecto extra. Cada paso enlazado acerca la definitiva **10 s**.
+**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 6 s como mucho entre una y otra. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros** a los marcados y el remate tiene un efecto extra. Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**.
 
 | Rol | Combo | Pasos | Remate |
 |---|---|---|---|
-| Cazador | Presa acorralada | Cepo ⛓️ → Disparo múltiple → Lluvia (V) | Críticos de la Lluvia a los atrapados |
+| Cazador | Presa acorralada | Cepo ⛓️ → Marcar presas (vuelve a sujetar 1,5 s a los atrapados) → Disparo múltiple | Críticos y 2 proyectiles más |
 | Mago | Fuego y hielo | Nova ❄️ → Parpadeo → Bola de fuego | Rompe el hielo: críticos y explosión un 50 % más grande |
-| Guerrero | Terremoto | Embestida 💫 → Torbellino → Pisotón (V) | Críticos y +0,5 s de aturdimiento |
+| Guerrero | Remolino de acero | Embestida 💫 → Grito (aturde 1 s a los desequilibrados) → Torbellino | Críticos y 1 s más de giro |
 | Médico | Cura de urgencia | Dardo 💚 → Escudo (+50 % al revitalizado) → Ungüento | Curaciones críticas seguras y −15 de fiebre |
 
-**Racha:** cada combo completo seguido la sube (x1 … x5); desde x2, las recargas son un 8 % más rápidas por nivel. Se pierde tras 8 s sin hacer daño ni curar. En los combos que rematan con la definitiva, si la V no va a estar lista, el medio combo también sube la racha.
+**Racha:** cada combo completo seguido la sube (x1 … x5); desde x2, las recargas son un 8 % más rápidas por nivel. Se pierde tras 8 s sin hacer daño ni curar.
 
-**Números de combate** (cada cliente los dibuja; `CombatTextController`): columnas de 4 números; el nuevo entra abajo y empuja a los anteriores, que suben y se desvanecen.
+*Daño de los jugadores:* todo lo que hacen con armas y habilidades a monos, jefes y muñecos va ×0,7 (`Config.Combat.PlayerDamageMultiplier`); el PvP y las mascotas no cambian. La forja, las armas y los Ajustes enseñan el daño ya reducido.
+
+**Números de combate** (cada cliente los dibuja; `CombatTextController`): columnas de 4 números; el nuevo entra abajo y empuja a los anteriores, que suben y se desvanecen. Duran 2,8 s; lo recogido, 4,5 s.
 - **Rojo a la izquierda:** daño que recibes. **Verde a la derecha:** curaciones. **Amarillo sobre el enemigo:** daño que haces.
 - Lo de la **mascota** sale al 70 % del tamaño; el daño de los **aliados**, al 70 % y tenue (solo cerca).
+- **Lo que recoges** (recolección, botín de monos y jefes, cajas, tu mochila de Espíritu) sale igual, en una columna propia **a la derecha, debajo de las curaciones**: "+2 🌲 Madera" con el color de su rareza. Lo mismo recogido seguido suma en la misma línea. Se puede quitar en Ajustes.
 - En **Ajustes** (⚙️ en la Isla, pestaña en el Lobby) cada jugador elige dónde salen sus números: **junto a la cabeza**, en una **columna del alto del jugador** o **fijos en la pantalla**; y ve su personaje con un ejemplo, el daño y el crítico de su arma, sus habilidades, su combo y su mascota.
 
 ---
@@ -299,6 +306,10 @@ stateDiagram-v2
 - **Rendimiento:** los monos lejos de cualquier jugador "duermen" (no calculan rutas) y hay un límite de monos activos por servidor.
 
 ### 8.2 Bestiario
+
+El **diario de campo** (J en la Isla, pestaña "Diario" en el Lobby) recoge las especies y, debajo, los **jefes** (§8.2, categoría 4): cada uno sale con "???" hasta que lo derrotas (o, en un jefe, hasta que le haces daño y cae), y entonces con su descripción, zona o guarida, botín y cuántas veces.
+
+*Ajuste de octubre de 2026 (combos):* las tropas son un **50 % más grandes** (`Config.Monkeys.GroupSizeMultiplier`), los grupos diezmados se recuperan cada **25 s** (antes 45) y caben hasta **220** monos a la vez (antes 160), para que siempre haya con quién enlazar combos. A cambio, cada mono suelta botín con la **mitad de probabilidad** (`LootChanceMultiplier`).
 
 #### Categoría 1: dificultad baja
 

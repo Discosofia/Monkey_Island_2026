@@ -8,6 +8,7 @@
 --       "Screen" fijos en la pantalla, a izquierda y derecha del centro
 --   - showNumbers: números de combate sí/no.
 --   - allyNumbers: el daño que hacen los aliados (tenue) sí/no.
+--   - showLoot: lo que recoges ("+2 🌲 Madera") junto a tu personaje sí/no (sale donde textLayout).
 --   - showCombo: el indicador de combos y racha sí/no.
 --   - music: música sí/no (la tecla M también la silencia).
 
@@ -22,6 +23,7 @@ export type Values = {
 	textLayout: Layout,
 	showNumbers: boolean,
 	allyNumbers: boolean,
+	showLoot: boolean,
 	showCombo: boolean,
 	music: boolean,
 }
@@ -36,7 +38,14 @@ Settings.LAYOUT_NAMES = {
 } :: { [string]: string }
 
 function Settings.defaults(): Values
-	return { textLayout = "Head", showNumbers = true, allyNumbers = true, showCombo = true, music = true }
+	return {
+		textLayout = "Head",
+		showNumbers = true,
+		allyNumbers = true,
+		showLoot = true,
+		showCombo = true,
+		music = true,
+	}
 end
 
 -- Valida lo que llega del cliente o del DataStore: lo que no sea válido queda por defecto.
@@ -48,7 +57,7 @@ function Settings.sanitize(raw: any): Values
 	if typeof(raw.textLayout) == "string" and table.find(Settings.LAYOUTS, raw.textLayout) then
 		values.textLayout = raw.textLayout :: Layout
 	end
-	for _, key in { "showNumbers", "allyNumbers", "showCombo", "music" } do
+	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music" } do
 		if typeof(raw[key]) == "boolean" then
 			(values :: any)[key] = raw[key]
 		end

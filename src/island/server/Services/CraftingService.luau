@@ -27,11 +27,12 @@ local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
+local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
+local ArmorModels = require(script.Parent.Parent.Combat.ArmorModels)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
-local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
 local PROMPT_NAME = "StationPrompt"
 -- Nombre del modelo de hoguera que crea MapBuilder en mapas generados antes de la Fase 2.1.
@@ -227,36 +228,17 @@ local function isNearStation(player: Player, stationId: string): boolean
 end
 
 -- Chaleco: una pieza soldada al torso (R15 o R6). Se vuelve a poner en cada reaparición.
+-- Viste la armadura del jugador (Combat/ArmorModels); una nueva sustituye a la anterior.
 local function wearArmor(player: Player, character: Model)
 	local armorId = player:GetAttribute("Armor")
-	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
-	if not armor then
+	if typeof(armorId) ~= "string" or not Armor[armorId] then
 		return
 	end
-	local torso = character:WaitForChild("UpperTorso", 5) or character:FindFirstChild("Torso")
-	if not (torso and torso:IsA("BasePart")) then
+	-- Espera al torso (R15 o R6) antes de vestir.
+	if not (character:WaitForChild("UpperTorso", 5) or character:FindFirstChild("Torso")) then
 		return
 	end
-	-- Una armadura nueva sustituye a la anterior.
-	local previous = character:FindFirstChild("ArmorPiece")
-	if previous then
-		previous:Destroy()
-	end
-	local piece = Instance.new("Part")
-	piece.Name = "ArmorPiece"
-	piece.Size = torso.Size + Vector3.new(0.2, -0.1, 0.25)
-	piece.CFrame = torso.CFrame
-	piece.Color = armor.color
-	piece.Material = armor.material
-	piece.CanCollide = false
-	piece.CanQuery = false
-	piece.CanTouch = false
-	piece.Massless = true
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = torso
-	weld.Part1 = piece
-	weld.Parent = piece
-	piece.Parent = character
+	ArmorModels.wear(character, armorId)
 end
 
 -- Quita una herramienta de la mochila, la mano y StarterGear. Devuelve true si estaba equipada.

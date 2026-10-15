@@ -39,6 +39,9 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): lote de números de combate (Combat/CombatText). Cada uno:
 	-- { target = modelo, amount, kind = "Taken"|"Heal"|"Dealt"|"Absorbed", crit, by = UserId?, pet }.
 	CombatText = remoteEvent("CombatText"),
+	-- Servidor -> cliente (Isla): has recogido algo (itemId, cantidad). Lo dibuja CombatTextController
+	-- en la columna de lo recogido, como los números de combate.
+	Loot = remoteEvent("Loot"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.

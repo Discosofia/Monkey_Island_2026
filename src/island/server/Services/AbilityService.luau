@@ -65,12 +65,16 @@ local function headOf(character: Model, root: BasePart): Vector3
 	return if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
 end
 
-local function groundBelow(position: Vector3, ignore: { Instance }): Vector3
+-- El suelo bajo "position" y su inclinación (la normal; hacia arriba si no hay suelo).
+local function groundBelow(position: Vector3, ignore: { Instance }): (Vector3, Vector3)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
 	local result = Workspace:Raycast(position + Vector3.new(0, 4, 0), Vector3.new(0, -200, 0), params)
-	return if result then result.Position else position
+	if result then
+		return result.Position, result.Normal
+	end
+	return position, Vector3.yAxis
 end
 
 local function enemyTarget(model: Instance): Target?
@@ -110,6 +114,20 @@ local function targetsAround(attacker: Player, center: Vector3, radius: number):
 	for _, other in Players:GetPlayers() do
 		local target = playerTarget(attacker, other)
 		if target and (target.root.Position - center).Magnitude <= radius then
+			table.insert(found, target)
+		end
+	end
+	return found
+end
+
+-- Como targetsAround, pero midiendo en horizontal y con "height" de margen hacia arriba y hacia
+-- abajo: para lo que está en el suelo (el cepo). En una ladera, la distancia en 3D deja fuera a los
+-- que están encima pero más arriba o más abajo, y el centro de un mono está a varios studs del suelo.
+local function targetsOnGround(attacker: Player, center: Vector3, radius: number, height: number): { Target }
+	local found: { Target } = {}
+	for _, target in targetsAround(attacker, center, radius + height) do
+		local offset = target.root.Position - center
+		if Vector3.new(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) <= height then
 			table.insert(found, target)
 		end
 	end
@@ -230,6 +248,10 @@ end
 
 local function whirlwind(player: Player, character: Model, root: BasePart): boolean
 	local seconds = Progression.perk(player, "WhirlwindSeconds")
+	-- Remate del combo del guerrero: gira más rato (y hace críticos a los desequilibrados, en hurt).
+	if ComboService.isPayoff(player, "Whirlwind") then
+		seconds += COMBO.WhirlwindExtraSeconds
+	end
 	local damage = SETTINGS.WhirlwindDamage * Progression.perk(player, "MeleeDamage")
 	local hits = math.max(1, math.round(seconds / SETTINGS.WhirlwindInterval))
 	AbilityFx.others(player, "Whirlwind", character, seconds)
@@ -280,10 +302,15 @@ end
 local function warCry(player: Player, character: Model, root: BasePart): boolean
 	local seconds = SETTINGS.WarCrySeconds
 	local taunted = 0
+	-- Enlazado en el combo, el grito aturde a los desequilibrados por la Embestida.
+	local linked = ComboService.isPayoff(player, "WarCry")
 	for _, target in targetsAround(player, root.Position, SETTINGS.WarCryRadius) do
 		if not target.player then
 			Status.taunt(target.model, player, seconds)
 			taunted += 1
+			if linked and ComboService.isMarkedBy(target.model, player) then
+				control(target, COMBO.WarCryStun, "Stun")
+			end
 		end
 	end
 	player:SetAttribute("GuardUntil", now() + seconds)
@@ -302,10 +329,8 @@ local function quake(player: Player, character: Model, root: BasePart): boolean
 	local stun = Progression.perk(player, "QuakeStun")
 	local ground = groundBelow(root.Position, { character })
 	for _, target in targetsAround(player, root.Position, SETTINGS.QuakeRadius) do
-		-- Remate del combo del guerrero: los desequilibrados se quedan aturdidos más tiempo.
-		local finisher = ComboService.isComboHit(player, target.model, "Quake")
 		hurt(player, target, damage, "Quake")
-		control(target, if finisher then stun + COMBO.QuakeExtraStun else stun, "Stun")
+		control(target, stun, "Stun")
 	end
 	Sfx.play("RockImpact", root)
 	AbilityFx.all("Quake", ground, SETTINGS.QuakeRadius)
@@ -316,6 +341,10 @@ end
 
 local function multiShot(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local count = math.max(1, math.floor(Progression.perk(player, "MultiShotCount")))
+	-- Remate del combo del cazador: más proyectiles (y críticos a los atrapados, en hurt).
+	if ComboService.isPayoff(player, "MultiShot") then
+		count += COMBO.MultiShotExtraArrows
+	end
 	local damage = SETTINGS.MultiShotDamage * Progression.perk(player, "RangedDamage")
 	local origin = headOf(character, root)
 	local spread = math.rad(SETTINGS.MultiShotSpreadDegrees)
@@ -340,10 +369,16 @@ local function markPrey(player: Player, _character: Model, root: BasePart): bool
 	local bonus = Progression.perk(player, "MarkedBonus")
 	local untilTime = now() + seconds
 	local marked = 0
+	-- Enlazado en el combo, vuelve a sujetar a los atrapados por el cepo.
+	local linked = ComboService.isPayoff(player, "MarkPrey")
 	for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
 		if enemy:IsA("Model") then
 			local distance = (enemy:GetPivot().Position - root.Position).Magnitude
 			if distance <= SETTINGS.MarkRadius then
+				local target = if linked and ComboService.isMarkedBy(enemy, player) then enemyTarget(enemy) else nil
+				if target then
+					control(target, COMBO.MarkPreyRoot, "Root")
+				end
 				enemy:SetAttribute("MarkedUntil", untilTime)
 				enemy:SetAttribute("MarkBonus", bonus)
 				local highlight = Instance.new("Highlight")
@@ -464,10 +499,16 @@ local function trap(player: Player, character: Model, root: BasePart): boolean
 			oldest:Destroy()
 		end
 	end
-	local position = groundBelow(root.Position, { character })
+	-- Apoyado en el suelo siguiendo su inclinación (en una ladera no se entierra ni flota).
+	local position, normal = groundBelow(root.Position, { character })
 	local facing = flat(root.CFrame.LookVector)
+	local along = facing - normal * facing:Dot(normal)
+	if along.Magnitude < 0.01 then
+		along = normal:Cross(Vector3.xAxis)
+	end
+	local origin = CFrame.lookAt(position, position + along.Unit, normal)
 	local model, plate, pose = bearTrap()
-	pose(CFrame.lookAt(position, position + facing), 0)
+	pose(origin, 0)
 	model.Parent = Workspace
 	table.insert(own, model)
 	Sfx.play("Build", root)
@@ -477,14 +518,15 @@ local function trap(player: Player, character: Model, root: BasePart): boolean
 	task.spawn(function()
 		local expires = os.clock() + SETTINGS.TrapLifetime
 		while model.Parent and os.clock() < expires and player.Parent do
-			local victim = targetsAround(player, position, SETTINGS.TrapRadius + 1)[1]
-			if victim then
-				hurt(player, victim, damage, "Trap")
-				control(victim, seconds, "Root")
-				comboOpener(player, "Trap", victim)
-				-- El cepo salta a los pies del mono y se cierra de golpe; se queda cerrado mientras le sujeta.
-				local feet = groundBelow(victim.root.Position, { victim.model, character })
-				local origin = CFrame.lookAt(feet, feet + facing)
+			if targetsOnGround(player, position, SETTINGS.TrapRadius + 1, SETTINGS.TrapHeight)[1] then
+				-- Salta cuando lo pisa un mono y atrapa a todos los que estén en su radio de captura.
+				AbilityFx.all("TrapSnap", position, SETTINGS.TrapCatchRadius)
+				for _, victim in targetsOnGround(player, position, SETTINGS.TrapCatchRadius, SETTINGS.TrapHeight) do
+					hurt(player, victim, damage, "Trap")
+					control(victim, seconds, "Root")
+					comboOpener(player, "Trap", victim)
+				end
+				-- Se cierra de golpe donde está y se queda cerrado mientras los sujeta.
 				for step = 1, 3 do
 					pose(origin, TRAP_CLOSED_ANGLE * step / 3)
 					task.wait()
@@ -741,9 +783,16 @@ local function leafShield(player: Player, character: Model, root: BasePart): boo
 	return true
 end
 
-local function healingTotem(player: Player, character: Model, root: BasePart): boolean
-	local position = groundBelow(root.Position, { character })
-	AbilityFx.all("Totem", position, root.CFrame.LookVector, SETTINGS.TotemRadius, SETTINGS.TotemSeconds)
+-- El tótem se planta donde apunta el médico (el cursor; en móvil y mando, hacia donde mira la
+-- cámara), como mucho a TotemMaxDistance: más lejos, se queda a esa distancia en esa dirección.
+local function healingTotem(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local origin = headOf(character, root)
+	local endPoint = castShot(character, origin, aim, SETTINGS.TotemMaxDistance, 0.5)
+	local position = groundBelow(endPoint, { character })
+	-- Mira hacia el médico, como si lo hubiera plantado de frente.
+	local facing = Vector3.new(root.Position.X - position.X, 0, root.Position.Z - position.Z)
+	local lookVector = if facing.Magnitude > 0.1 then -facing.Unit else root.CFrame.LookVector
+	AbilityFx.all("Totem", position, lookVector, SETTINGS.TotemRadius, SETTINGS.TotemSeconds)
 	Sfx.play("Build", root)
 
 	local amount = SETTINGS.TotemHealPerSecond * Progression.perk(player, "HealPower")

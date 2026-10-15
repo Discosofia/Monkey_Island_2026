@@ -30,6 +30,7 @@ local Workspace = game:GetService("Workspace")
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
@@ -138,8 +139,12 @@ local function animate(seconds: number, step: (alpha: number, deltaTime: number)
 		local alpha = math.min(elapsed / seconds, 1)
 		local ok, message = pcall(step, alpha, deltaTime)
 		if not ok then
+			-- Aunque falle, se deja todo como estaba (articulaciones, marcas de "en curso").
 			connection:Disconnect()
 			warn(`AbilityFx: {message}`)
+			if done then
+				pcall(done)
+			end
 		elseif alpha >= 1 then
 			connection:Disconnect()
 			if done then
@@ -530,6 +535,68 @@ local function charge(character: Model?, seconds: number)
 	Debris:AddItem(bottom, seconds + 1)
 end
 
+-- Articulación del personaje que se puede girar desde aquí para hacer una pose. Vale para las
+-- articulaciones clásicas (Motor6D: se gira su C0) y para las nuevas de Roblox (AnimationConstraint:
+-- se gira su Attachment0); si hay varias activas con ese nombre, se giran todas. "set" aplica un giro
+-- (en el espacio de la pieza a la que va) sobre su posición original y "reset" la devuelve.
+type PoseJoint = { set: (rotation: CFrame) -> (), reset: () -> () }
+
+local function poseJoint(character: Model, name: string): PoseJoint?
+	type Target = { apply: (frame: CFrame) -> (), original: CFrame }
+	local targets: { Target } = {}
+	for _, candidate in character:GetDescendants() do
+		if candidate.Name ~= name then
+			continue
+		end
+		if candidate:IsA("Motor6D") and candidate.Enabled and candidate.Part0 and candidate.Part1 then
+			local motor = candidate
+			table.insert(targets, {
+				original = motor.C0,
+				apply = function(frame: CFrame)
+					motor.C0 = frame
+				end,
+			})
+		elseif candidate:IsA("AnimationConstraint") and (candidate :: any).Enabled then
+			local attachment = (candidate :: any).Attachment0 :: Attachment?
+			if attachment then
+				table.insert(targets, {
+					original = attachment.CFrame,
+					apply = function(frame: CFrame)
+						attachment.CFrame = frame
+					end,
+				})
+			end
+		end
+	end
+	if #targets == 0 then
+		return nil
+	end
+	return {
+		set = function(rotation: CFrame)
+			for _, target in targets do
+				target.apply(CFrame.new(target.original.Position) * rotation * target.original.Rotation)
+			end
+		end,
+		reset = function()
+			for _, target in targets do
+				target.apply(target.original)
+			end
+		end,
+	}
+end
+
+local warnedNoJoints = false
+
+-- Avisa una vez (solo en Studio) si un personaje no tiene articulaciones que se puedan girar.
+local function warnNoJoints(character: Model)
+	if RunService:IsStudio() and not warnedNoJoints then
+		warnedNoJoints = true
+		warn(
+			`AbilityFx: {character.Name} no tiene articulaciones R15 que se puedan girar (Motor6D ni AnimationConstraint)`
+		)
+	end
+end
+
 -- Ángulos de la pose de grito (en el espacio de la pieza a la que va cada articulación): la cabeza y
 -- el pecho hacia atrás y los brazos abiertos con los antebrazos hacia arriba. Vale para R15 y R6.
 local SCREAM_POSE: { [string]: Vector3 } = {
@@ -551,15 +618,16 @@ local function scream(character: Model)
 	if screaming[character] then
 		return
 	end
-	type Joint = { motor: Motor6D, original: CFrame, angles: Vector3 }
+	type Joint = { joint: PoseJoint, angles: Vector3 }
 	local joints: { Joint } = {}
 	for name, angles in SCREAM_POSE do
-		local motor = character:FindFirstChild(name, true)
-		if motor and motor:IsA("Motor6D") then
-			table.insert(joints, { motor = motor, original = motor.C0, angles = angles })
+		local joint = poseJoint(character, name)
+		if joint then
+			table.insert(joints, { joint = joint, angles = angles })
 		end
 	end
 	if #joints == 0 then
+		warnNoJoints(character)
 		return
 	end
 	screaming[character] = true
@@ -571,17 +639,74 @@ local function scream(character: Model)
 			else 1
 		weight = math.sin(weight * math.pi / 2)
 		local tremble = math.sin(time * 70) * 0.05 * weight
-		for _, joint in joints do
-			local angles = joint.angles * weight
-			local rotation = CFrame.Angles(angles.X + tremble, angles.Y, angles.Z + tremble * 0.5)
-			joint.motor.C0 = CFrame.new(joint.original.Position) * rotation * joint.original.Rotation
+		for _, entry in joints do
+			local angles = entry.angles * weight
+			entry.joint.set(CFrame.Angles(angles.X + tremble, angles.Y, angles.Z + tremble * 0.5))
 		end
 	end, function()
-		for _, joint in joints do
-			joint.motor.C0 = joint.original
+		for _, entry in joints do
+			entry.joint.reset()
 		end
 		screaming[character] = nil
 	end)
+end
+
+-- ===================================== Disparos =====================================
+-- El movimiento al disparar un arma a distancia es una animación (WeaponController, Shared/Data/
+-- WeaponAnimations). Aquí solo van sus efectos: la bocanada de la cerbatana y el destello del
+-- bastón, cuando llega el golpe del disparo ("fxDelay"). Lo lanza el propio cliente al disparar y
+-- los demás cuando se lo dice el servidor (CombatService).
+
+-- Bocanada de aire que sale de la boca hacia delante (cerbatana).
+local function puffCloud(character: Model)
+	local head = character:FindFirstChild("Head")
+	if not (head and head:IsA("BasePart")) then
+		return
+	end
+	local cloud = ball("Puff", 0.25, Color3.fromRGB(235, 245, 235), Enum.Material.SmoothPlastic, 0.4)
+	cloud.CFrame = head.CFrame * CFrame.new(0.1, -0.2, -0.75)
+	cloud.Parent = folder
+	TweenService:Create(cloud, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.one * 0.8,
+		Transparency = 1,
+		CFrame = cloud.CFrame * CFrame.new(0, 0, -0.5),
+	}):Play()
+	Debris:AddItem(cloud, 0.35)
+end
+
+-- Destello del cristal del bastón al lanzar el hechizo (pieza "Crystal" de Shared/WeaponTools).
+local function crystalFlash(character: Model)
+	local tool = character:FindFirstChildOfClass("Tool")
+	local crystal = if tool then tool:FindFirstChild("Crystal") else nil
+	if not (crystal and crystal:IsA("BasePart")) then
+		return
+	end
+	local glint = ball("CastFlash", 0.4, crystal.Color, Enum.Material.Neon, 0.15)
+	glint.CFrame = crystal.CFrame
+	glint.Parent = folder
+	TweenService:Create(glint, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.one * 1.8,
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(glint, 0.3)
+end
+
+local SHOT_FX: { [string]: (character: Model) -> () } = {
+	Dart = puffCloud,
+	Spell = crystalFlash,
+}
+
+local function weaponShotFx(character: Model?, projectile: string?)
+	local key = projectile or "Stone"
+	local effect = SHOT_FX[key]
+	if not (effect and character) then
+		return
+	end
+	local data = WeaponAnimations[key]
+	task.wait(if data then data.fxDelay or 0 else 0)
+	if character.Parent then
+		effect(character)
+	end
 end
 
 -- Grito de guerra: pose de grito, brillo rojo fuerte que se queda suave mientras dura y ondas rojas.
@@ -741,6 +866,12 @@ local function multiShot(origin: Vector3, endPoints: { Vector3 }, speed: number)
 end
 
 -- Marcar presas: onda roja desde el cazador (las dianas salen solas, ver watchMarks).
+-- El cepo salta: un anillo naranja se abre por el suelo hasta su radio de captura (los que quedan
+-- dentro, atrapados).
+local function trapSnap(center: Vector3, radius: number)
+	ring(center + Vector3.new(0, 0.3, 0), 1, radius, 0.35, Color3.fromRGB(230, 140, 60), 0.5, 0.35)
+end
+
 local function markPrey(center: Vector3, radius: number)
 	ring(center - Vector3.new(0, 2, 0), 2, radius, 0.8, Color3.fromRGB(255, 70, 50), 0.6, 0.3)
 	burst(center, SPARKLE_TEXTURE, Color3.fromRGB(255, 90, 60), 12, 1, 10, 0.5)
@@ -1908,6 +2039,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Quake = quake, -- (centro en el suelo, radio)
 	MultiShot = multiShot, -- (origen, { puntos de llegada }, velocidad)
 	MarkPrey = markPrey, -- (centro, radio)
+	TrapSnap = trapSnap, -- (centro en el suelo, radio de captura)
 	Rooted = rooted, -- (modelo, segundos)
 	ArrowRain = arrowRain, -- (centro en el suelo, radio, segundos)
 	Fireball = fireball, -- (origen, llegada, velocidad, radio de la explosión)
@@ -1922,6 +2054,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Totem = totem, -- (posición, hacia dónde mira el médico, radio, segundos)
 	IceShatter = iceShatter, -- (posición): la Bola de fuego del combo rompe el hielo
 	ComboComplete = comboComplete, -- (personaje, racha)
+	WeaponShotFx = weaponShotFx, -- (personaje, proyectil): bocanada o destello al disparar un arma a distancia
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

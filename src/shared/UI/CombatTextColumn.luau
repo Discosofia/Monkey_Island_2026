@@ -2,6 +2,8 @@
 -- Columna de números de combate (Config.CombatText): el número nuevo entra abajo con un "pop" y
 -- empuja hacia arriba a los anteriores, que se van desvaneciendo; caben Slots (4) y cada uno dura
 -- LifetimeSeconds. Los críticos entran más grandes y con un temblor.
+-- También la usa la columna de lo que recoges (con sus propios huecos y duración): una línea con la
+-- misma "key" que la más nueva la sustituye en su sitio ("+1 Madera" → "+3 Madera").
 -- Va dentro de cualquier marco ("container"): un BillboardGui sobre una cabeza, una columna del alto
 -- del personaje o un marco fijo en la pantalla. La usan CombatTextController y la vista previa del
 -- panel de Ajustes (UI/SettingsPanel).
@@ -27,11 +29,23 @@ export type Style = {
 	crit: boolean?,
 	scale: number?, -- tamaño (1 = el del jugador; la mascota y los aliados, menos)
 	dim: number?, -- 0-1: más tenue (los aliados)
+	key: string?, -- si la línea más nueva tiene la misma, se cambia su texto en vez de añadir otra
+}
+export type Options = {
+	slots: number?, -- por defecto Config.CombatText.Slots
+	lifetime: number?, -- por defecto Config.CombatText.LifetimeSeconds
 }
 
 -- "generation" sube cada vez que se reutiliza la etiqueta (pool): así el temporizador de un número
 -- viejo no borra al nuevo.
-type Entry = { label: TextLabel, scale: UIScale, dim: number, expired: boolean, generation: number }
+type Entry = {
+	label: TextLabel,
+	scale: UIScale,
+	dim: number,
+	expired: boolean,
+	generation: number,
+	key: string?,
+}
 
 export type Column = {
 	push: (self: Column, text: string, style: Style) -> (),
@@ -51,10 +65,11 @@ local ANCHOR_X: { [string]: number } = { Left = 0, Right = 1, Center = 0.5 }
 
 -- Una columna dentro de "container". "align": hacia dónde se pegan los números (la columna de la
 -- izquierda de la cabeza se alinea a la derecha, para quedar junto a ella).
-function CombatTextColumn.new(container: GuiObject, align: Align): Column
+function CombatTextColumn.new(container: GuiObject, align: Align, options: Options?): Column
 	local entries: { Entry } = {}
 	local pool: { Entry } = {}
-	local slots = SETTINGS.Slots
+	local slots = options and options.slots or SETTINGS.Slots
+	local lifetime = options and options.lifetime or SETTINGS.LifetimeSeconds
 	local anchorX = ANCHOR_X[align]
 	local destroyed = false
 
@@ -131,8 +146,28 @@ function CombatTextColumn.new(container: GuiObject, align: Align): Column
 
 	local column = {} :: Column
 
+	-- Borra "entry" al acabar su tiempo, salvo que se haya reutilizado o renovado antes.
+	local function expireLater(entry: Entry)
+		local generation = entry.generation
+		task.delay(lifetime, function()
+			if entry.generation == generation then
+				remove(entry)
+			end
+		end)
+	end
+
 	function column.push(_self: Column, text: string, style: Style)
 		if destroyed then
+			return
+		end
+		local newest = entries[1]
+		if style.key and newest and newest.key == style.key and not newest.expired then
+			-- La misma cosa otra vez: se cambia el texto en su sitio con un "pop" suave.
+			newest.generation += 1
+			newest.label.Text = text
+			newest.scale.Scale = 1.2
+			TweenService:Create(newest.scale, POP, { Scale = 1 }):Play()
+			expireLater(newest)
 			return
 		end
 		local entry = table.remove(pool) or newEntry()
@@ -140,7 +175,7 @@ function CombatTextColumn.new(container: GuiObject, align: Align): Column
 		local size = (style.scale or 1) * (if crit then SETTINGS.CritTextScale else 1)
 		entry.expired = false
 		entry.generation += 1
-		local generation = entry.generation
+		entry.key = style.key
 		entry.dim = style.dim or 0
 		local label = entry.label
 		label.Text = if crit then `{text}!` else text
@@ -170,11 +205,7 @@ function CombatTextColumn.new(container: GuiObject, align: Align): Column
 			remove(entries[#entries])
 		end
 		layout()
-		task.delay(SETTINGS.LifetimeSeconds, function()
-			if entry.generation == generation then
-				remove(entry)
-			end
-		end)
+		expireLater(entry)
 	end
 
 	function column.isIdle(_self: Column): boolean

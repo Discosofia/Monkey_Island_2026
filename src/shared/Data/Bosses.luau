@@ -23,6 +23,7 @@ export type Special = {
 
 export type Boss = {
 	name: string,
+	description: string, -- lo que cuenta el diario de campo (UI/Journal)
 	biome: string,
 	baseSpecies: string, -- especie de Data/Monkeys de la que toma el modelo
 	scale: number,
@@ -43,6 +44,7 @@ export type Boss = {
 local Bosses: { [string]: Boss } = {
 	OrangutanDelManglar = {
 		name = "Orangután del Manglar",
+		description = "El señor del manglar. Agarra a quien se acerca, pisa con fuerza y, cuando está herido, llama a las marimondas.",
 		biome = "Rios",
 		baseSpecies = "Orangutan",
 		scale = 3,
@@ -64,6 +66,7 @@ local Bosses: { [string]: Boss } = {
 	},
 	ChimpanceCaudillo = {
 		name = "Chimpancé Caudillo",
+		description = "Manda en las montañas: hace llover rocas, llama a su tropa de chimpancés y, furioso, embiste.",
 		biome = "Montanas",
 		baseSpecies = "Chimpance",
 		scale = 2.6,
@@ -85,6 +88,7 @@ local Bosses: { [string]: Boss } = {
 	},
 	GorilaAlbino = {
 		name = "Gorila Albino",
+		description = "Vive en las cuevas. Su rugido apaga las antorchas; pisa, embiste y llama a los babuinos.",
 		biome = "Cuevas",
 		baseSpecies = "Gorila",
 		scale = 3,
@@ -107,6 +111,7 @@ local Bosses: { [string]: Boss } = {
 	},
 	GorilaDeCeniza = {
 		name = "Gorila de Ceniza",
+		description = "El guardián del volcán. Embiste, hace llover lava y en su furia despierta la erupción.",
 		biome = "Volcan",
 		baseSpecies = "Gorila",
 		scale = 3.2,

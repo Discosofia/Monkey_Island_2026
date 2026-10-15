@@ -93,7 +93,7 @@ local Roles: { [string]: Role } = {
 				id = "Trap",
 				name = "Cepo",
 				short = "Cepo",
-				description = "Deja un cepo a tus pies que atrapa al primer mono que lo pisa.",
+				description = "Deja un cepo a tus pies; cuando un mono lo pisa, atrapa a todos los que tiene alrededor.",
 				cooldownSeconds = 9,
 			},
 			{
@@ -151,7 +151,7 @@ local Roles: { [string]: Role } = {
 		order = 4,
 		passive = "Reanima el doble de rápido y ve la vida de sus aliados.",
 		perks = { ReviveSpeed = -0.5, SeeHealth = 1 },
-		weapons = { "Machete", "Honda" },
+		weapons = { "Blowgun", "Machete" },
 		abilities = {
 			{
 				id = "AreaHeal",
@@ -178,7 +178,7 @@ local Roles: { [string]: Role } = {
 				id = "HealingTotem",
 				name = "Tótem sanador",
 				short = "Tótem",
-				description = "Plantas un tótem que cura poco a poco a quien esté cerca.",
+				description = "Plantas un tótem donde apuntas que cura poco a poco a quien esté cerca.",
 				cooldownSeconds = 90,
 				ultimate = true,
 			},

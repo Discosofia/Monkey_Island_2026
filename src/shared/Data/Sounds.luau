@@ -52,6 +52,7 @@ local Effects: { [string]: Effect } = {
 	ShootStone = { id = SWIM, volume = 0.5, pitch = 1.8, jitter = 0.1 }, -- hondas. Provisional: "slingshot"
 	ShootArrow = { id = SWIM, volume = 0.45, pitch = 2.4, jitter = 0.08 }, -- arcos. Provisional: "bow release"
 	ShootSpell = { id = GET_UP, volume = 0.5, pitch = 2, jitter = 0.1 }, -- bastones. Provisional: "magic cast"
+	ShootDart = { id = SWIM, volume = 0.4, pitch = 2.9, jitter = 0.08 }, -- cerbatanas. Provisional: "blowgun puff"
 	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta a un mono o jefe (carne)
 	PlayerHurt = { id = OUCH, volume = 0.6, pitch = 1, jitter = 0.08 },
 	PlayerDown = { id = OOF, volume = 0.7, pitch = 0.9 },

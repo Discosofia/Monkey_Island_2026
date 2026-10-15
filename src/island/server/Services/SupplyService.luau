@@ -10,7 +10,6 @@ local Workspace = game:GetService("Workspace")
 
 local Compass = require(ReplicatedStorage.Shared.Compass)
 local Config = require(ReplicatedStorage.Shared.Config)
-local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -74,13 +73,9 @@ local function onOpen(crate: Model, player: Player)
 	end
 	activeCrate = nil
 	PvPService.forceOn(player, Config.PvP.ForcedSeconds, "has abierto una caja de suministro")
-	local gained = {}
 	for _, entry in rollLoot() do
-		InventoryService.add(player, entry.itemId, entry.amount)
-		local item = Items[entry.itemId]
-		table.insert(gained, `{entry.amount} {item.icon} {item.name}`)
+		InventoryService.collect(player, entry.itemId, entry.amount)
 	end
-	Remotes.Notify:FireClient(player, `📦 Caja: {table.concat(gained, ", ")}`)
 	announce(`📦 {player.DisplayName} ha abierto la caja de suministro`)
 	crate:Destroy()
 end

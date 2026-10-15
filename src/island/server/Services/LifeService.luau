@@ -154,7 +154,7 @@ local function dropBackpack(player: Player, position: Vector3)
 			return
 		end
 		for itemId, amount in contents do
-			InventoryService.add(player, itemId, amount)
+			InventoryService.collect(player, itemId, amount)
 		end
 		bag:Destroy()
 	end)
@@ -228,6 +228,27 @@ local function revive(player: Player, rescuer: Player)
 	MatchStats.add(rescuer, MatchStats.REVIVES)
 	Remotes.Notify:FireClient(player, `💚 {rescuer.DisplayName} te ha reanimado`)
 	Remotes.Notify:FireClient(rescuer, `💚 Has reanimado a {player.DisplayName}`)
+end
+
+-- Panel de pruebas (DebugService): el Caído o el Espíritu vuelve a la vida al momento, donde está y
+-- con toda la vida. Devuelve false si ya estaba vivo.
+function LifeService.debugRevive(player: Player): boolean
+	local state = LifeState.get(player)
+	local character, humanoid = characterParts(player)
+	if not (character and humanoid) or (state ~= "Downed" and state ~= "Spirit") then
+		return false
+	end
+	-- Anula el paso a Espíritu y la reaparición pendientes.
+	downedToken[player] = (downedToken[player] or 0) + 1
+	spiritToken[player] = (spiritToken[player] or 0) + 1
+	clearVisuals(character)
+	setGhost(character, false)
+	restoreMovement(humanoid)
+	humanoid.Health = humanoid.MaxHealth
+	player:SetAttribute("SpiritEndsAt", nil)
+	setState(player, "Alive")
+	Sfx.play("Revive", character.PrimaryPart or character)
+	return true
 end
 
 -- Llamado por CombatService ante un golpe mortal.

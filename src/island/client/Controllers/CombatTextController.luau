@@ -9,12 +9,17 @@
 --   - Lo de tu mascota sale más pequeño (Config.CombatText.PetTextScale) y el daño de los aliados más
 --     pequeño y tenue (si está activado y cerca). El médico ve, tenues, sus curaciones a los aliados.
 --   - Los críticos salen un 25 % más grandes, con "!" y un temblor (UI/CombatTextColumn).
+--   - Lo que recoges (Remotes.Loot): "+2 🌲 Madera" con el color de su rareza, en una columna a la
+--     derecha justo debajo de la de curación (en las tres disposiciones). Lo mismo recogido seguido
+--     suma en la misma línea (Config.CombatText.LootMergeSeconds).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Items = require(ReplicatedStorage.Shared.Data.Items)
+local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 local CombatTextColumn = require(ReplicatedStorage.Shared.UI.CombatTextColumn)
@@ -36,6 +41,11 @@ local HEAD_COLUMN = Vector2.new(110, 4 * 30)
 -- Columna del alto del personaje (studs) y su separación del centro del cuerpo.
 local BODY_COLUMN = Vector2.new(3, 5.4)
 local BODY_SIDE_OFFSET = 2.6
+-- Columna de lo recogido: ancho y alto de cada línea en píxeles (antes de ajustarlo a la pantalla).
+local LOOT_WIDTH = 210
+local LOOT_LINE = 26
+-- Separación en píxeles entre la columna de curación y la de lo recogido, debajo.
+local LOOT_GAP = 6
 -- Las columnas de otros objetivos sin números se borran tras este tiempo.
 local IDLE_SECONDS = 3
 -- Como mucho tantas columnas sobre enemigos y aliados a la vez (se recicla la más vieja).
@@ -51,8 +61,11 @@ local CombatTextController = {}
 
 local player = Players.LocalPlayer
 local screenGui: ScreenGui
--- Columnas propias (lo que recibes): una a cada lado, según la disposición elegida.
+-- Columnas propias (lo que recibes): una a cada lado, según la disposición elegida, y "Loot" (lo que
+-- recoges) debajo de la de la derecha.
 local ownColumns: { [string]: CombatTextColumn.Column } = {}
+-- Lo último recogido, para sumar en la misma línea lo que llega seguido.
+local lastLoot: { itemId: string, total: number, at: number }? = nil
 local ownInstances: { Instance } = {}
 -- Columnas sobre enemigos y aliados (siempre sobre su cabeza).
 local worldColumns: { [Instance]: WorldColumn } = {}
@@ -111,6 +124,19 @@ local function clearOwn()
 		instance:Destroy()
 	end
 	table.clear(ownInstances)
+	lastLoot = nil
+end
+
+local function lootColumn(frame: GuiObject): CombatTextColumn.Column
+	return CombatTextColumn.new(frame, "Left", {
+		slots = SETTINGS.LootSlots,
+		lifetime = SETTINGS.LootLifetimeSeconds,
+	})
+end
+
+-- Tamaño en píxeles de la columna de lo recogido.
+local function lootSize(scale: number): Vector2
+	return Vector2.new(LOOT_WIDTH * scale, SETTINGS.LootSlots * LOOT_LINE * scale)
 end
 
 local function buildOwn()
@@ -130,6 +156,15 @@ local function buildOwn()
 			table.insert(ownInstances, frame)
 			ownColumns[side] = CombatTextColumn.new(frame, alignFor(side))
 		end
+		local size = lootSize(scale)
+		local loot = Instance.new("Frame")
+		loot.Name = "LootText"
+		loot.BackgroundTransparency = 1
+		loot.Position = UDim2.new(0.56, 0, 0.42, (4 * 36 / 2 + LOOT_GAP) * scale)
+		loot.Size = UDim2.fromOffset(size.X, size.Y)
+		loot.Parent = screenGui
+		table.insert(ownInstances, loot)
+		ownColumns.Loot = lootColumn(loot)
 		return
 	end
 	if not character then
@@ -147,6 +182,14 @@ local function buildOwn()
 			table.insert(ownInstances, gui)
 			ownColumns[side] = CombatTextColumn.new(frameIn(gui), alignFor(side))
 		end
+		-- Lo recogido, bajo el pie de la columna de curación, hacia fuera.
+		local size = lootSize(uiScale())
+		local loot = billboard("LootText", root)
+		loot.Size = UDim2.fromOffset(size.X, size.Y)
+		loot.StudsOffset = Vector3.new(BODY_SIDE_OFFSET - BODY_COLUMN.X / 2, -0.2 - BODY_COLUMN.Y / 2, 0)
+		loot.SizeOffset = Vector2.new(0.5, -0.5 - LOOT_GAP / size.Y)
+		table.insert(ownInstances, loot)
+		ownColumns.Loot = lootColumn(frameIn(loot))
 		return
 	end
 	-- "Head": columnas cortas con tamaño en píxeles, pegadas a cada lado de la cabeza.
@@ -164,6 +207,15 @@ local function buildOwn()
 		table.insert(ownInstances, gui)
 		ownColumns[side] = CombatTextColumn.new(frameIn(gui), alignFor(side))
 	end
+	-- Lo recogido, justo debajo de la columna de curación (todo en píxeles: no se solapan a ninguna
+	-- distancia). Esa columna baja 0.15 de su alto por debajo del centro de la cabeza.
+	local size = lootSize(scale)
+	local loot = billboard("LootText", head)
+	loot.Size = UDim2.fromOffset(size.X, size.Y)
+	loot.StudsOffset = Vector3.new(1, 0, 0)
+	loot.SizeOffset = Vector2.new(0.5, (-0.15 * HEAD_COLUMN.Y * scale - LOOT_GAP * scale) / size.Y - 0.5)
+	table.insert(ownInstances, loot)
+	ownColumns.Loot = lootColumn(frameIn(loot))
 end
 
 -- ===================================== Columnas sobre otros =====================================
@@ -299,6 +351,23 @@ local function show(entry: any)
 	end
 end
 
+-- "+2 🌲 Madera" en la columna de lo recogido; lo mismo recogido seguido suma en la misma línea.
+local function showLoot(itemId: any, amount: any)
+	local item = if typeof(itemId) == "string" then Items[itemId] else nil
+	local column = ownColumns.Loot
+	if not (item and column and typeof(amount) == "number" and amount > 0) or not Settings.get().showLoot then
+		return
+	end
+	local now = os.clock()
+	local total = amount
+	if lastLoot and lastLoot.itemId == itemId and now - lastLoot.at <= SETTINGS.LootMergeSeconds then
+		total += lastLoot.total
+	end
+	lastLoot = { itemId = itemId, total = total, at = now }
+	local rarity = Rarities[item.rarity or "Common"] or Rarities.Common
+	column:push(`+{total} {item.icon} {item.name}`, { color = rarity.color, key = itemId })
+end
+
 function CombatTextController:Start()
 	screenGui = Widgets.screen("CombatText", player:WaitForChild("PlayerGui"))
 	screenGui.IgnoreGuiInset = true
@@ -324,6 +393,8 @@ function CombatTextController:Start()
 			show(entry)
 		end
 	end)
+
+	Remotes.Loot.OnClientEvent:Connect(showLoot)
 
 	-- Limpieza de las columnas sobre otros que ya no se usan.
 	while true do

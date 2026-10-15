@@ -77,8 +77,14 @@ local BossService = {}
 local current: ActiveBoss? = nil
 local rng = Random.new()
 local phaseListeners: { (bossId: string, phase: number) -> () } = {}
+local defeatListeners: { (player: Player, bossId: string) -> () } = {}
 
 -- Llama a "callback" cuando un jefe cambia de fase (WeatherService: erupción del Gorila de Ceniza).
+-- Avisa cuando cae un jefe a cada jugador que le hizo daño (DataService: diario de campo).
+function BossService.onDefeated(callback: (player: Player, bossId: string) -> ())
+	table.insert(defeatListeners, callback)
+end
+
 function BossService.onPhaseChanged(callback: (bossId: string, phase: number) -> ())
 	table.insert(phaseListeners, callback)
 end
@@ -170,9 +176,12 @@ local function onBossDied(boss: ActiveBoss)
 	local item = Items[boss.definition.lootItemId]
 	for player in boss.contributors do
 		if player.Parent then
-			InventoryService.add(player, boss.definition.lootItemId, 1)
+			InventoryService.collect(player, boss.definition.lootItemId, 1)
 			MatchStats.add(player, MatchStats.BOSSES)
 			Remotes.Notify:FireClient(player, `🏆 Botín del jefe: {item.icon} {item.name}`)
+			for _, listener in defeatListeners do
+				task.spawn(listener, player, boss.id)
+			end
 		end
 	end
 	announce(`🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`)

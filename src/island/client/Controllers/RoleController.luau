@@ -213,6 +213,10 @@ local function useAbility(player: Player, slot: number)
 		AbilityFxController.play("Blink", from, to)
 	elseif ability.id == "Whirlwind" then
 		local seconds = Progression.perk(player, "WhirlwindSeconds")
+		-- Si cierra el combo del guerrero, gira más rato (lo mismo que decide AbilityService).
+		if ComboController.nextStep(player) == "Whirlwind" then
+			seconds += Config.Combo.WhirlwindExtraSeconds
+		end
 		spin(humanoid, root, seconds)
 		AbilityFxController.play("Whirlwind", character, seconds)
 	end

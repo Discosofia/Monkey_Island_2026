@@ -1,7 +1,8 @@
 --!strict
 -- Panel de Ajustes (Lobby: pestaña "Ajustes"; Isla: botón ⚙️). De arriba abajo:
---   1. Tu personaje: tu avatar girando (con tu mascota al lado) y números de ejemplo en la disposición
---      elegida, para ver cómo quedará cada opción antes de elegirla (UI/CombatTextColumn).
+--   1. Tu personaje: tu avatar girando con su armadura y su arma en la mano (con tu mascota al lado) y
+--      números de ejemplo en la disposición elegida, para ver cómo quedará cada opción antes de
+--      elegirla (UI/CombatTextColumn).
 --   2. Tus números de combate: el arma que cuenta, su daño (con las ventajas del rol y los talentos)
 --      y su probabilidad de crítico (Shared/Crit, los mismos números con que juega el servidor), el
 --      daño o la curación de tus 4 habilidades, tu combo y lo que aporta tu mascota.
@@ -15,6 +16,7 @@ local RunService = game:GetService("RunService")
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
+local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Perks = require(ReplicatedStorage.Shared.Data.Perks)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
@@ -23,6 +25,7 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local CombatTextColumn = require(script.Parent.CombatTextColumn)
 local Widgets = require(script.Parent.Widgets)
 
@@ -183,6 +186,9 @@ local function abilityLine(ability: Roles.Ability, perk: PerkGetter): string
 		return ability.name
 	end
 	local amount = (Config.Abilities :: any)[info.amount] :: number
+	if not info.heal then
+		amount *= Config.Combat.PlayerDamageMultiplier
+	end
 	for _, name in info.perks do
 		amount *= perk(name)
 	end
@@ -201,7 +207,7 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	local weaponId, chance = weaponOf(player, context)
 	local weapon = if weaponId then Weapons[weaponId] else nil
 	if weapon then
-		local damage = math.round(weapon.damage * perk(weaponPerk(weapon)))
+		local damage = math.round(weapon.damage * perk(weaponPerk(weapon)) * Config.Combat.PlayerDamageMultiplier)
 		text(
 			parent,
 			`⚔️ <b>{weapon.name}</b>: {damage} de daño · <font color="#ffdc5a">{Crit.percent(chance)} de crítico</font> (+{critPercent} de daño)`,
@@ -275,8 +281,61 @@ end
 
 type Preview = { setLayout: (layout: Settings.Layout) -> (), stop: () -> () }
 
--- Copia del personaje para la vista previa (sin scripts ni herramientas).
-local function avatarCopy(player: Player): Model?
+-- Sube el brazo derecho de la copia hacia delante (como al empuñar) y le pone en la mano el arma,
+-- colocada igual que la coloca Roblox al equiparla (RightGripAttachment y tool.Grip).
+local function holdWeapon(copy: Model, weaponId: string)
+	local root = copy:FindFirstChild("HumanoidRootPart")
+	local hand = copy:FindFirstChild("RightHand") or copy:FindFirstChild("Right Arm")
+	local grip = if hand then hand:FindFirstChild("RightGripAttachment") else nil
+	local upper = copy:FindFirstChild("RightUpperArm") or copy:FindFirstChild("Right Arm")
+	if
+		not (
+			root
+			and root:IsA("BasePart")
+			and hand
+			and hand:IsA("BasePart")
+			and grip
+			and grip:IsA("Attachment")
+			and upper
+			and upper:IsA("BasePart")
+		)
+	then
+		return
+	end
+	-- Brazo hacia delante: sus piezas giran 90° alrededor del hombro, en los ejes del personaje.
+	local rig = upper:FindFirstChild("RightShoulderRigAttachment") or upper:FindFirstChild("RightShoulderAttachment")
+	local shoulder = if rig and rig:IsA("Attachment")
+		then rig.WorldPosition
+		else (upper.CFrame * CFrame.new(0, upper.Size.Y / 2 - 0.5, 0)).Position
+	local pivot = CFrame.new(shoulder) * root.CFrame.Rotation
+	local raise = pivot * CFrame.Angles(math.rad(90), 0, 0) * pivot:Inverse()
+	for _, name in { "RightUpperArm", "RightLowerArm", "RightHand", "Right Arm" } do
+		local part = copy:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			part.CFrame = raise * part.CFrame
+		end
+	end
+
+	local tool = WeaponTools.build(weaponId)
+	local weapon = Instance.new("Model")
+	weapon.Name = "Weapon"
+	for _, child in tool:GetChildren() do
+		if child:IsA("BasePart") then
+			child.Parent = weapon
+		end
+	end
+	local handle = weapon:FindFirstChild("Handle")
+	if handle and handle:IsA("BasePart") then
+		weapon.PrimaryPart = handle
+		weapon:PivotTo(hand.CFrame * grip.CFrame * tool.Grip:Inverse())
+		weapon.Parent = copy
+	end
+	tool:Destroy()
+end
+
+-- Copia del personaje para la vista previa (sin scripts), con su armadura y su arma: la que lleva en
+-- la mano o, si no lleva ninguna, la de sus números de combate (weaponOf).
+local function avatarCopy(player: Player, context: Context): Model?
 	local character = player.Character
 	if not character then
 		return nil
@@ -289,8 +348,14 @@ local function avatarCopy(player: Player): Model?
 		return nil
 	end
 	for _, child in copy:GetDescendants() do
-		if child:IsA("BaseScript") or child:IsA("Tool") or child:IsA("Sound") or child:IsA("BillboardGui") then
+		if child:IsA("BaseScript") or child:IsA("Sound") or child:IsA("BillboardGui") then
 			child:Destroy()
+		end
+	end
+	if not copy:FindFirstChildOfClass("Tool") then
+		local weaponId = weaponOf(player, context)
+		if weaponId then
+			holdWeapon(copy, weaponId)
 		end
 	end
 	local humanoid = copy:FindFirstChildOfClass("Humanoid")
@@ -306,23 +371,29 @@ local function avatarCopy(player: Player): Model?
 end
 
 -- Dónde salen las columnas de ejemplo en cada disposición (dentro del recuadro de la vista previa).
-local PREVIEW_RECTS: { [string]: { left: { UDim2 }, right: { UDim2 } } } = {
+-- "loot": lo que recoges, debajo de la columna de la derecha.
+local PREVIEW_RECTS: { [string]: { left: { UDim2 }, right: { UDim2 }, loot: { UDim2 } } } = {
 	-- { AnchorPoint como UDim2 (X, Y en Scale), Position, Size }
 	Head = {
 		left = { UDim2.fromScale(1, 0), UDim2.new(0.5, -26, 0, 4), UDim2.new(0, 96, 0.36, 0) },
 		right = { UDim2.fromScale(0, 0), UDim2.new(0.5, 26, 0, 4), UDim2.new(0, 96, 0.36, 0) },
+		loot = { UDim2.fromScale(0, 0), UDim2.new(0.5, 26, 0.38, 0), UDim2.new(0, 150, 0.32, 0) },
 	},
 	Column = {
 		left = { UDim2.fromScale(1, 0), UDim2.new(0.5, -46, 0.08, 0), UDim2.new(0, 96, 0.88, 0) },
-		right = { UDim2.fromScale(0, 0), UDim2.new(0.5, 46, 0.08, 0), UDim2.new(0, 96, 0.88, 0) },
+		right = { UDim2.fromScale(0, 0), UDim2.new(0.5, 46, 0.08, 0), UDim2.new(0, 96, 0.6, 0) },
+		loot = { UDim2.fromScale(0, 0), UDim2.new(0.5, 46, 0.68, 0), UDim2.new(0, 150, 0.3, 0) },
 	},
 	Screen = {
 		left = { UDim2.fromScale(0, 0.5), UDim2.fromScale(0.03, 0.5), UDim2.fromScale(0.26, 0.6) },
-		right = { UDim2.fromScale(1, 0.5), UDim2.fromScale(0.97, 0.5), UDim2.fromScale(0.26, 0.6) },
+		right = { UDim2.fromScale(1, 0.5), UDim2.fromScale(0.97, 0.4), UDim2.fromScale(0.26, 0.5) },
+		loot = { UDim2.fromScale(1, 0), UDim2.fromScale(0.97, 0.67), UDim2.fromScale(0.3, 0.3) },
 	},
 }
+-- Lo que se "recoge" en la vista previa (se repite el primero para que se vea cómo suma).
+local PREVIEW_LOOT = { "Wood", "Wood", "Wood", "Banana", "Fiber", "Fiber" }
 
-local function buildPreview(parent: Frame, player: Player): Preview
+local function buildPreview(parent: Frame, player: Player, context: Context): Preview
 	local holder = Instance.new("Frame")
 	holder.LayoutOrder = 1
 	holder.Size = UDim2.new(1, 0, 0, PREVIEW_HEIGHT)
@@ -343,7 +414,7 @@ local function buildPreview(parent: Frame, player: Player): Preview
 	camera.Parent = viewport
 	viewport.CurrentCamera = camera
 
-	local avatar = avatarCopy(player)
+	local avatar = avatarCopy(player, context)
 	local center = Vector3.zero
 	local baseY = 0
 	if avatar then
@@ -383,12 +454,17 @@ local function buildPreview(parent: Frame, player: Player): Preview
 	overlay.Parent = holder
 	local frames: { [string]: Frame } = {}
 	local columns: { [string]: CombatTextColumn.Column } = {}
-	for _, side in { "left", "right" } do
+	for _, side in { "left", "right", "loot" } do
 		local frame = Instance.new("Frame")
 		frame.BackgroundTransparency = 1
 		frame.Parent = overlay
 		frames[side] = frame
-		columns[side] = CombatTextColumn.new(frame, if side == "left" then "Right" else "Left")
+		columns[side] = if side == "loot"
+			then CombatTextColumn.new(frame, "Left", {
+				slots = Config.CombatText.LootSlots,
+				lifetime = Config.CombatText.LootLifetimeSeconds,
+			})
+			else CombatTextColumn.new(frame, if side == "left" then "Right" else "Left")
 	end
 	local screenHint = Widgets.label("pantalla", overlay)
 	screenHint.AnchorPoint = Vector2.new(0.5, 1)
@@ -408,13 +484,23 @@ local function buildPreview(parent: Frame, player: Player): Preview
 		screenHint.Text = if layout == "Screen" then "↔ fijos en la pantalla" else ""
 	end
 
-	-- Números de ejemplo: daño recibido, curaciones y, si la mascota cura, las suyas (más pequeñas).
+	-- Números de ejemplo: daño recibido, curaciones y, si la mascota cura, las suyas (más pequeñas);
+	-- y lo recogido, si está activado.
 	local running = true
 	local pet = if petId then Pets[petId] else nil
 	task.spawn(function()
 		local tick = 0
+		local lootIndex, lootTotal, lastItem = 0, 0, ""
 		while running and holder.Parent do
 			tick += 1
+			if tick % 2 == 0 and Settings.get().showLoot then
+				lootIndex = lootIndex % #PREVIEW_LOOT + 1
+				local itemId = PREVIEW_LOOT[lootIndex]
+				lootTotal = if itemId == lastItem then lootTotal + 1 else 1
+				lastItem = itemId
+				local item = Items[itemId]
+				columns.loot:push(`+{lootTotal} {item.icon} {item.name}`, { color = TEXT_COLOR, key = itemId })
+			end
 			local crit = math.random() < 0.25
 			if tick % 2 == 1 then
 				local amount = math.random(6, 18)
@@ -466,13 +552,19 @@ end
 local TOGGLES = {
 	{ key = "showNumbers", label = "Números de daño y curación" },
 	{ key = "allyNumbers", label = "Daño de los aliados (tenue)" },
+	{ key = "showLoot", label = "Lo que recoges (+2 🌲 Madera)" },
 	{ key = "showCombo", label = "Combos y racha" },
 	{ key = "music", label = "Música (tecla M)" },
 }
 
 local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, "📍 Dónde salen tus números", 1)
-	text(parent, "Rojo a la izquierda: daño que recibes. Verde a la derecha: curaciones.", 2, SOFT_COLOR)
+	text(
+		parent,
+		"Rojo a la izquierda: daño que recibes. Verde a la derecha: curaciones; debajo, lo que recoges.",
+		2,
+		SOFT_COLOR
+	)
 	local row = Instance.new("Frame")
 	row.LayoutOrder = 3
 	row.BackgroundTransparency = 1
@@ -541,7 +633,7 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	layout.Padding = UDim.new(0, 8)
 	layout.Parent = root
 
-	local preview = buildPreview(root, player)
+	local preview = buildPreview(root, player, context)
 	fillStats(section(root, 2), player, context)
 	local refreshOptions = buildOptions(section(root, 3))
 

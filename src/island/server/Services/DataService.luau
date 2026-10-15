@@ -10,6 +10,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local BossService = require(script.Parent.BossService)
 local MatchService = require(script.Parent.MatchService)
 local MonkeyService = require(script.Parent.MonkeyService)
 
@@ -40,21 +41,31 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	Analytics.event(player, if summary.result == "Victory" then "MatchVictory" else "MatchDefeat", summary.days)
 end
 
--- Diario de campo (Fase 4): cuenta los monos derrotados por especie. La primera vez, se anuncia.
-local function onKilled(player: Player, speciesId: string)
+-- Diario de campo (Fase 4): cuenta los monos derrotados por especie y los jefes por id (los dos en
+-- "bestiary"). La primera vez, se anuncia.
+local function recordDefeat(player: Player, id: string, message: string)
 	local first = false
 	PlayerData.update(player, function(profile)
-		first = (profile.bestiary[speciesId] or 0) == 0
-		profile.bestiary[speciesId] = (profile.bestiary[speciesId] or 0) + 1
+		first = (profile.bestiary[id] or 0) == 0
+		profile.bestiary[id] = (profile.bestiary[id] or 0) + 1
 	end)
 	if first then
-		Remotes.Notify:FireClient(player, "📖 ¡Nueva especie en tu diario de campo! (J)")
+		Remotes.Notify:FireClient(player, message)
 	end
+end
+
+local function onKilled(player: Player, speciesId: string)
+	recordDefeat(player, speciesId, "📖 ¡Nueva especie en tu diario de campo! (J)")
+end
+
+local function onBossDefeated(player: Player, bossId: string)
+	recordDefeat(player, bossId, "📖 ¡Nuevo jefe en tu diario de campo! (J)")
 end
 
 function DataService:Init()
 	MatchService.onMatchEnded(onMatchEnded)
 	MonkeyService.onKilled(onKilled)
+	BossService.onDefeated(onBossDefeated)
 end
 
 function DataService:Start()

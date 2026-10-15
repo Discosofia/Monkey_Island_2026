@@ -2,7 +2,8 @@
 -- Pantalla de las estaciones de crafteo (Fases 1.6 y 2.1). Se abre con el aviso de la mesa de trabajo
 -- ("Usar") o de la hoguera ("Cocinar") y muestra solo las recetas de esa estación.
 -- Muestra cada receta con lo que cuesta (en verde lo que tienes, en rojo lo que falta) y un botón
--- para fabricarla. Se cierra con el botón ✕, con B en mando o al alejarte de la mesa.
+-- para fabricarla. Las armas (no el hacha ni el pico) terminan la descripción con su probabilidad de
+-- crítico (Shared/Crit); las mejoras, de cuánto a cuánto sube: "🎯 Crítico 10 → 15 %". Se cierra con el botón ✕, con B en mando o al alejarte de la mesa.
 -- El servidor (CraftingService) decide si la fabricación vale.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -14,12 +15,14 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
+local Crit = require(ReplicatedStorage.Shared.Crit)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
+local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local PROMPT_NAME = "StationPrompt"
@@ -29,6 +32,7 @@ local CLOSE_MARGIN = 6
 local ROW_HEIGHT = 86
 local HAVE_COLOR = "#a0f08c"
 local MISSING_COLOR = "#ff8c78"
+local CRIT_COLOR = "#ffdc5a"
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
 
@@ -57,6 +61,30 @@ local function costText(player: Player, recipe: Recipes.Recipe): string
 	return table.concat(parts, "   ")
 end
 
+-- " · 🎯 Crítico 15 %" (o "10 → 15 %" si mejora otra arma) para las armas; "" para lo demás.
+local function critText(recipe: Recipes.Recipe): string
+	local weapon = if recipe.weaponId then Weapons[recipe.weaponId] else nil
+	if not weapon or weapon.tool then
+		return ""
+	end
+	local chance = math.round(Crit.weaponChance(recipe.weaponId) * 100)
+	local previous = if recipe.upgrades and Weapons[recipe.upgrades]
+		then math.round(Crit.weaponChance(recipe.upgrades) * 100)
+		else nil
+	local value = if previous and previous ~= chance then `{previous} → {chance} %` else `{chance} %`
+	return ` · <font color="{CRIT_COLOR}">🎯 Crítico {value}</font>`
+end
+
+-- La descripción con "{damage}" cambiado por el daño del arma que da la receta.
+local function descriptionOf(recipe: Recipes.Recipe): string
+	local weapon = if recipe.weaponId then Weapons[recipe.weaponId] else nil
+	if not weapon then
+		return recipe.description
+	end
+	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
+	return (string.gsub(recipe.description, "{damage}", tostring(damage)))
+end
+
 local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance): Row
 	local frame = Instance.new("Frame")
 	frame.Name = recipeId
@@ -74,7 +102,8 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 	title.Size = UDim2.new(0.66, -10, 0, 28)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 
-	local description = Widgets.label(recipe.description, frame)
+	local description = Widgets.label(`{descriptionOf(recipe)}{critText(recipe)}`, frame)
+	description.RichText = true
 	description.Position = UDim2.fromOffset(10, 34)
 	description.Size = UDim2.new(0.66, -10, 0, 20)
 	description.TextXAlignment = Enum.TextXAlignment.Left

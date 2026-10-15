@@ -187,11 +187,11 @@ end
 local function collect(state: NodeState, player: Player, amount: number)
 	-- Material extra de las mejoras de la tienda y de la mascota.
 	amount += math.floor(Progression.perk(player, "HarvestBonus"))
-	InventoryService.add(player, state.definition.itemId, amount)
+	InventoryService.collect(player, state.definition.itemId, amount)
 	Sfx.play("Pickup", state.anchor)
 	local extra = state.definition.extra
 	if extra and rng:NextNumber() < extra.chance then
-		InventoryService.add(player, extra.itemId, extra.amount)
+		InventoryService.collect(player, extra.itemId, extra.amount)
 	end
 	state.usesLeft -= 1
 	if state.usesLeft > 0 then

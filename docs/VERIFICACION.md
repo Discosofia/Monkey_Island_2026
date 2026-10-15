@@ -158,7 +158,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 3. [ ] **Cazador** (Arco, empiezas con 20 flechas; se fabrican en la mesa de trabajo):
    - **Z Disparo múltiple:** 5 flechas verdes en abanico con estela verde, sin gastar flechas.
    - **X Marcar presas:** onda roja, contorno rojo y una diana (círculo, círculo interior y cruz) girando sobre cada mono marcado, y "N presas marcadas".
-   - **C Cepo:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, salta a sus pies y se cierra de golpe, y el mono queda atrapado unos 2 s con un brillo verde suave que aparece y se va. Como mucho 2 cepos.
+   - **C Cepo:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, se cierra de golpe y **todos los monos a menos de 8 studs** (prueba con 🐒 Mandril aquí varias veces) quedan atrapados unos 2 s, cada uno con su ⛓️ de combo; un anillo naranja muestra el área. Pon otro **en una ladera**: queda apoyado siguiendo la pendiente (ni enterrado ni flotando) y atrapa también a los monos que están encima pero más arriba o más abajo con un brillo verde suave que aparece y se va. Como mucho 2 cepos.
    - **V Lluvia de proyectiles:** zona roja donde apuntas con una nube gris encima, de la que caen flechas durante 4 s (se quedan clavadas un momento).
 4. [ ] **Mago** (Bastón mágico, dispara bolas moradas sin munición):
    - **Z Bola de fuego:** bola roja en llamas que va recta, con tres bolitas que giran a su alrededor dejando una espiral; explota al impactar y daña alrededor.
@@ -166,11 +166,11 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - **C Parpadeo:** donde estabas queda un punto negro que se encoge y apareces con una chispa; no atraviesa paredes ni te lleva al vacío.
    - **V Rayo encadenado:** apunta a un mono y un rayo brillante salta a los de alrededor; al apagarse deja una sombra oscura que se desvanece y los monos alcanzados echan humo. Sin mono a tiro: "No hay ningún mono a tiro" y no se gasta.
    - Las esperas son un 15 % más cortas que las de Data/Roles.
-5. [ ] **Médico** (Machete y honda):
+5. [ ] **Médico** (Cerbatana y machete):
    - **Z Ungüento en área:** salen hojas verdes girando en círculo y una onda verde; te curas (y a los aliados cercanos).
    - **X Dardo curativo:** dardo amarillo con cola roja; con 2 jugadores, dispara al otro herido y se cura (hojitas verdes).
    - **C Escudo de hojas:** destello amarillo y una burbuja verde con hojas girando alrededor del aliado más cercano (o de ti); los mordiscos salen como 🛡️ y, al romperse, la burbuja estalla.
-   - **V Tótem sanador:** sale del suelo un tótem de madera tallada (caras, alas pintadas al estilo navajo) con una gema verde brillante arriba, sobre un suelo verde con hojas; cada segundo una onda verde cura durante 10 s.
+   - **V Tótem sanador:** sale del suelo un tótem de madera tallada (caras, alas pintadas al estilo navajo) con una gema verde brillante arriba, sobre un suelo verde con hojas; cada segundo una onda verde cura durante 10 s. Sale **donde apunta el cursor**; si apuntas más lejos de 40 studs, a 40 studs en esa dirección, siempre sobre el suelo.
    - Con 2 jugadores ves la **vida del otro** sobre su cabeza y reanimas más rápido (el aviso dura 2 s en vez de 4).
 6. [ ] **Jefes:** contra un jefe (🛠️ 👑), el Pisotón o la Nova le paran solo la mitad de tiempo y el Grito de guerra hace que vaya a por el guerrero.
 7. [ ] **PvP** (2 jugadores con PvP activo en el tótem): las habilidades de daño también os hieren, a la mitad.
@@ -205,7 +205,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 2. [ ] Mandriles, babuinos y chimpancés llevan un **👑 alfa**: derrótalo.
    ✅ El resto huye ("😱").
 3. [ ] Pulsa **J**.
-   ✅ Diario de campo: las especies que derrotaste salen con descripción y botín; las demás, "???".
+   ✅ Diario de campo: las especies que derrotaste salen con descripción y botín; las demás, "???". Debajo, **👑 Jefes**: los 4 jefes, con "???" hasta que ayudas a derrotar uno; entonces sale su guarida, descripción, botín y "derrotado: 1" (y el aviso "📖 ¡Nuevo jefe en tu diario de campo!"). El título cuenta especies y jefes.
 4. [ ] Pulsa **B**.
    ✅ Los materiales raros salen en **color** según su rareza (verde, azul, morado, dorado).
 5. [ ] En la **forja**, con 🛠️ +50 de todo: **Honda de liana, Hacha de hueso, Pico de hueso, Garrote de colmillo grande y Armadura de plata**.
@@ -214,6 +214,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - Guerrero: **Maza de hueso → Mazo de hueso grueso** (sustituyen al garrote de piedra).
    - Cazador: **Arco reforzado → Arco de liana** (sustituyen al arco).
    - Mago: **Bastón dorado → Bastón de plata** (sustituyen al bastón mágico).
+   - Médico: **Cerbatana de hueso → Cerbatana del chamán** (sustituyen a la cerbatana).
    ✅ Solo salen las del rol que llevas; cada una cambia el modelo y el daño del arma.
 7. [ ] En la Salida, cada 2 minutos sale **"[Rendimiento] … streaming activado/DESACTIVADO"**.
 
@@ -271,7 +272,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 5. [ ] Pulsa **📦 Caja de suministro**.
    ✅ "¡Ha llegado una caja… a la playa del …!" y una **columna de luz dorada** en la playa.
 6. [ ] Ábrela (mantén 5 s).
-   ✅ PvP activado a la fuerza y botín: metal de naufragio, vendas, comida…
+   ✅ PvP activado a la fuerza y botín (junto a tu personaje, a la derecha): metal de naufragio, vendas, comida…
 
 ## 5.5 Clima y erupción
 
@@ -344,12 +345,27 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - Vuelve al Lobby: en la pestaña **Ajustes** sigue la disposición elegida.
 8. [ ] **Recargas nuevas:** Z, X y C tardan lo de la tabla del GDD §6.3 (el mago, un 15 % menos).
 9. [ ] **Combos** (con monos cerca; 🐒 Mandril aquí sirve). Al usar el primer paso sobre un mono, sale su icono encima (⛓️ ❄️ 💫 o 💚 en el aliado), un recuadro "Combo 1/3" bajo las habilidades y la casilla del siguiente paso se resalta en azul:
-   - **Cazador:** Cepo (que lo pise un mono) → Disparo múltiple → Lluvia.
+   - **Cazador:** Cepo (que lo pise un mono) → Marcar presas (el atrapado se queda sujeto otra vez) → Disparo múltiple (2 proyectiles más).
    - **Mago:** Nova → Parpadeo → Bola de fuego (el hielo estalla en esquirlas).
-   - **Guerrero:** Embestida → Torbellino → Pisotón.
+   - **Guerrero:** Embestida → Grito (los desequilibrados se quedan aturdidos 1 s) → Torbellino (gira 1 s más).
    - **Médico:** Dardo a un aliado (o a un mono) → Escudo → Ungüento.
-   ✅ Los pasos 2 y 3 hacen críticos a los marcados, la V baja 10 s por paso, sale "¡COMBO!" con un aro dorado y la racha sube (x2…). Tras 8 s sin pegar ni curar, la racha se pierde. Con más de 5 s entre pasos, el combo vuelve a empezar.
+   ✅ Los pasos 2 y 3 hacen críticos a los marcados, la V baja 10 s por paso, sale "¡COMBO!" con un aro dorado y la racha sube (x2…). Tras 8 s sin pegar ni curar, la racha se pierde. Con más de 6 s entre pasos, el combo vuelve a empezar.
 10. [ ] Con **2 jugadores**: el daño que hace el otro se ve más pequeño y tenue; su daño recibido no se ve. En Ajustes, "Daño de los aliados: No" lo quita.
+11. [ ] **Lo que recoges:** golpea un árbol varias veces seguidas.
+   ✅ Sale "+1 🌲 Madera" a la derecha, **debajo de la columna de curación**, y sube a "+2", "+3"… en la misma línea. Mata un mono: su botín sale igual (sin aviso arriba). En las tres disposiciones no se pisa con las curaciones; en Ajustes, "Lo que recoges: No" lo quita.
+12. [ ] Abre la **Forja de piedra** (o la mesa de trabajo): cada arma termina su descripción con "🎯 Crítico 10 %" en amarillo; las mejoras dicen de cuánto a cuánto sube ("🎯 Crítico 10 → 15 %"). El hacha y el pico no lo llevan.
+13. [ ] Deja que te tumbe el 🐒 Mandril y pulsa **💚 Revivir**: te levantas al momento con toda la vida, donde estabas. Igual siendo Espíritu (vuelves a verte normal). Vivo, solo avisa.
+14. [ ] Pulsa **🗡️ Expositor de armas**: las 23 armas salen en círculo a tu alrededor, de perfil y con su nombre. Cada mejora se ve más grande o mejor que la anterior y lleva sus materiales (piedra, hueso, colmillos, liana, oro, plata). Empuña algunas (hacha, arco, bastón, honda): la mano queda en la empuñadura y el filo o la punta miran hacia delante. Pulsa otra vez para quitarlas.
+15. [ ] Pulsa **🛡️ Siguiente armadura** varias veces: chaleco de pelaje (rojo, abierto por delante, ribete dorado y cordones) → armadura de hueso (costillas y hombreras de hueso con púas) → armadura de plata (manto plateado, placas de hueso en cruz y medallón) → sin armadura. Ninguna atraviesa los brazos ni la cabeza de forma rara.
+16. [ ] Abre **⚙️ Ajustes**: tu personaje sale con la armadura puesta y el arma en la mano (la que empuñas o, con las manos vacías, la de tus números de combate, con el brazo levantado). En el Lobby, el arma inicial del rol.
+17. [ ] Como **médico** (🎭 Siguiente rol): empiezas con la **Cerbatana** (y el machete). Dispara dardos verdes sin gastar munición. Con un aliado herido cerca (o tú mismo herido), cada dardo que acierta a un mono le cura (+2; +3 con la de hueso y +5 con la del chamán, en verde). Al disparar, el médico se lleva la cerbatana a la boca (el brazo izquierdo la sujeta), sopla con una bocanada de aire y vuelve a su postura.
+18. [ ] **Animaciones de armas a distancia** (R15; Shared/Data/WeaponAnimations):
+   - En Studio, **sin pulsar Play**, en la barra de comandos: `require(game.ServerStorage.Tools.WeaponAnimationBuilder).build()`.
+     ✅ Sale "[WeaponAnimationBuilder] Listo" y en ReplicatedStorage aparece **WeaponAnimations** con Hold, Stone, Arrow, Spell y Dart.
+   - Play: con el **arco** en la mano, el brazo derecho cuelga junto al cuerpo **sin temblar**; al disparar sube, apunta, suelta y vuelve. Al andar, las piernas se mueven normal. Igual con la **honda**, el **bastón** (destello del cristal) y la **cerbatana** (bocanada). Disparando seguido no se corta ningún movimiento. Con un arma cuerpo a cuerpo, el brazo va hacia delante como siempre.
+   - Publicar: clic derecho en cada secuencia de ReplicatedStorage.WeaponAnimations > **Save to Roblox** (con el mismo dueño que el juego) y pegar cada id en `src/shared/Data/WeaponAnimations.luau`. Repetir la prueba.
+   - Con 2 jugadores (Test > Clients and Servers), el otro ve la animación, la bocanada y el destello.
+19. [ ] Con **🎯 Críticos al 100 %**, los números amarillos son un **35 %** mayores que los normales (un 14 pasa a 19); en Ajustes pone "(+35 % de daño)".
 
 ---
 

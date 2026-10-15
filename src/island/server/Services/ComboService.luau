@@ -6,8 +6,7 @@
 --     (ComboService.onAbilityUsed, antes de aplicar la habilidad). Durante PayoffSeconds sus golpes
 --     contra los marcados son críticos seguros (isComboHit) y el remate hace su efecto extra
 --     (isPayoff). Cada paso enlazado que no sea la propia definitiva le quita UltRefundSeconds.
---   - Racha: cada combo completo la sube (x1 → x5); en los que rematan con la definitiva, también el
---     medio combo si la definitiva no va a estar lista a tiempo. Desde x2, las recargas son StreakCooldownBonus
+--   - Racha: cada combo completo la sube (x1 → x5). Desde x2, las recargas son StreakCooldownBonus
 --     más rápidas por nivel. Se pierde tras StreakSeconds sin hacer daño ni curar (onActivity).
 -- El cliente lo ve en los atributos del jugador "ComboStep" (0-3), "ComboStepUntil", "ComboStreak" y
 -- "ComboStreakUntil" (hora del servidor); la marca, en "ComboMarkBy"/"ComboMarkUntil" del modelo.
@@ -144,17 +143,6 @@ local function bumpStreak(player: Player, state: State)
 	publishStreak(player, state)
 end
 
--- true si la definitiva del rol no estará lista a tiempo para cerrar el combo.
-local function ultimateTooFar(player: Player, roleId: string): boolean
-	for slot, ability in Roles[roleId].abilities do
-		if ability.ultimate then
-			local readyAt = player:GetAttribute(`AbilityReadyAt{slot}`)
-			return typeof(readyAt) == "number" and readyAt > now() + SETTINGS.StepWindowSeconds
-		end
-	end
-	return false
-end
-
 local function complete(player: Player, state: State, combo: Combos.Combo)
 	local time = now()
 	bumpStreak(player, state)
@@ -195,12 +183,6 @@ function ComboService.onAbilityUsed(player: Player, abilityId: string): number?
 		complete(player, state, combo)
 	else
 		publishStep(player, index, time + SETTINGS.StepWindowSeconds)
-		-- Combos que rematan con la definitiva (cazador, guerrero): si no va a estar lista, el medio
-		-- combo también sube la racha.
-		local finisherId = combo.steps[#combo.steps]
-		if index == #combo.steps - 1 and isUltimate(roleId, finisherId) and ultimateTooFar(player, roleId) then
-			bumpStreak(player, state)
-		end
 	end
 	return index
 end

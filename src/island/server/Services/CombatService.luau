@@ -25,12 +25,13 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local ComboService = require(script.Parent.ComboService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
 local ResourceService = require(script.Parent.ResourceService)
+local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
-local WeaponTools = require(script.Parent.Parent.Combat.WeaponTools)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
 local MELEE_HITBOX = Vector2.new(7, 6)
@@ -102,6 +103,9 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	local hit = options or NO_HIT_OPTIONS
 	if attacker then
 		model:SetAttribute("LastAttackerUserId", attacker.UserId)
+		if not hit.pet then
+			amount = math.max(1, math.round(amount * Config.Combat.PlayerDamageMultiplier))
+		end
 	end
 	-- Intimidado por el rugido de un mandril (Fase 4): hace menos daño.
 	local intimidatedUntil = if attacker then attacker:GetAttribute("IntimidatedUntil") else nil
@@ -373,7 +377,8 @@ local function findAimTarget(origin: Vector3, aim: Vector3, weapon: Weapons.Weap
 	return bestModel, bestPart
 end
 
--- Lo que se ve volar: piedra (honda), flecha (arco) o bola de energía (bastón y hechizos).
+-- Lo que se ve volar: piedra (honda), flecha (arco), dardo de savia (cerbatana) o bola de energía
+-- (bastón y hechizos).
 -- Devuelve los segundos que tarda en llegar y la pieza.
 function CombatService.projectile(
 	style: string,
@@ -393,6 +398,10 @@ function CombatService.projectile(
 		piece.Size = Vector3.new(0.15, 0.15, 2.2)
 		piece.Color = Color3.fromRGB(120, 85, 50)
 		piece.Material = Enum.Material.Wood
+	elseif style == "Dart" then
+		piece.Size = Vector3.new(0.1, 0.1, 0.9)
+		piece.Color = Color3.fromRGB(150, 225, 120)
+		piece.Material = Enum.Material.Neon
 	elseif style == "Spell" then
 		piece.Shape = Enum.PartType.Ball
 		piece.Size = Vector3.one * 0.9
@@ -418,6 +427,35 @@ function CombatService.projectile(
 	return travelSeconds, piece
 end
 
+-- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico).
+local function healWoundedAlly(healer: Player, amount: number)
+	local _, healerRoot = livingCharacter(healer)
+	if not healerRoot then
+		return
+	end
+	local best: Player? = nil
+	local bestFraction = 1
+	for _, ally in Players:GetPlayers() do
+		local character, root = livingCharacter(ally)
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		if
+			humanoid
+			and root
+			and LifeState.isAlive(ally)
+			and (root.Position - healerRoot.Position).Magnitude <= Config.Combat.WeaponHealRadius
+		then
+			local fraction = humanoid.Health / humanoid.MaxHealth
+			if fraction < bestFraction then
+				best = ally
+				bestFraction = fraction
+			end
+		end
+	end
+	if best then
+		CombatService.heal(best, amount, healer)
+	end
+end
+
 local function rangedAttack(
 	player: Player,
 	character: Model,
@@ -435,6 +473,9 @@ local function rangedAttack(
 	local damage =
 		math.round(weapon.damage * Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage"))
 	local crit = Crit.roll(critChance)
+	-- La animación del disparo se ve sola (es del personaje); la bocanada o el destello, a los demás
+	-- (el que dispara ya los ha lanzado en su cliente).
+	AbilityFx.others(player, "WeaponShotFx", character, weapon.projectile or "Stone")
 
 	local head = character:FindFirstChild("Head")
 	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
@@ -480,6 +521,9 @@ local function rangedAttack(
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
 				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit })
+				if weapon.healOnHit then
+					healWoundedAlly(player, weapon.healOnHit)
+				end
 			end
 		end)
 	end

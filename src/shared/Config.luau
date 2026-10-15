@@ -74,12 +74,17 @@ local Config = {
 		DummyHealth = 100,
 		-- Daño que haces mientras te intimida un mandril (Fase 4).
 		IntimidatedDamageMultiplier = 0.7,
+		-- Daño de los jugadores (armas y habilidades) a monos, jefes y muñecos. No toca el PvP ni las
+		-- mascotas. Lo que enseñan la forja, las armas y los Ajustes ya lo lleva aplicado.
+		PlayerDamageMultiplier = 0.7,
+		-- Cerbatanas del médico ("healOnHit" en Data/Weapons): a qué distancia busca al aliado herido.
+		WeaponHealRadius = 40,
 		DummyRespawnSeconds = 3,
 	},
 
 	-- Golpes críticos (Shared/Crit): hacen más daño o curan más y su número sale más grande.
 	Crit = {
-		Multiplier = 1.5, -- daño o curación de un crítico
+		Multiplier = 1.35, -- daño o curación de un crítico (+35 %)
 		-- Probabilidad de los monos según su categoría (Data/Monkeys, "tier"); la 1 nunca.
 		MonkeyTierChance = { [2] = 0.15, [3] = 0.20 } :: { [number]: number },
 		-- Probabilidad de los jefes en cada fase (la 3 es la furia).
@@ -101,15 +106,19 @@ local Config = {
 		AllyTextScale = 0.7, -- daño que hacen los aliados (tenue)
 		AllyMaxDistance = 60, -- studs: el daño de aliados más lejanos no se dibuja
 		Slots = 4, -- números por columna
-		LifetimeSeconds = 1.6,
+		LifetimeSeconds = 2.8,
 		MergeSeconds = 0.1, -- golpes al mismo objetivo en este tiempo se suman en un número
+		-- Lo que recoges ("+2 🌲 Madera"), en su propia columna a la derecha del personaje.
+		LootSlots = 4,
+		LootLifetimeSeconds = 4.5,
+		LootMergeSeconds = 3, -- lo mismo recogido en este tiempo suma en la misma línea (< Lifetime)
 	},
 
 	-- Combos de 3 habilidades por rol (Data/Combos, ComboService).
 	Combo = {
-		StepWindowSeconds = 5, -- tiempo máximo entre un paso y el siguiente
+		StepWindowSeconds = 6, -- tiempo máximo entre un paso y el siguiente
 		-- Tras enlazar un paso, sus golpes contra los marcados son críticos durante este tiempo
-		-- (cubre la Lluvia, el Torbellino y lo que tarda en llegar un proyectil).
+		-- (cubre el Torbellino, el cepo que salta y lo que tarda en llegar un proyectil).
 		PayoffSeconds = 6,
 		UltRefundSeconds = 10, -- cada paso enlazado acerca la definitiva (V) esto
 		MaxStreak = 5,
@@ -118,7 +127,10 @@ local Config = {
 		ShieldBonus = 0.5, -- Escudo de hojas al aliado revitalizado: absorbe esto más
 		SalveFeverCure = 15, -- el Ungüento que cierra el combo del médico baja la fiebre esto
 		FireballSplashBonus = 0.5, -- la Bola de fuego que rompe el hielo salpica más lejos
-		QuakeExtraStun = 0.5, -- el Pisotón que cierra el combo aturde más a los marcados
+		WarCryStun = 1, -- el Grito enlazado del guerrero aturde a los desequilibrados (s)
+		WhirlwindExtraSeconds = 1, -- el Torbellino que cierra el combo del guerrero gira más
+		MarkPreyRoot = 1.5, -- Marcar presas enlazado vuelve a sujetar a los atrapados (s)
+		MultiShotExtraArrows = 2, -- el Disparo múltiple que cierra el combo del cazador
 	},
 
 	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
@@ -144,7 +156,7 @@ local Config = {
 		-- Fase 4: radio alrededor de la guarida de su bioma donde aparecen las especies de bioma,
 		-- límite de monos a la vez en el servidor (rendimiento) y alfas de las tropas.
 		BiomeRadius = 220,
-		MaxActive = 160,
+		MaxActive = 220,
 		AlphaHealthMultiplier = 2.5,
 		AlphaDamageMultiplier = 1.5,
 		PounceCooldownSeconds = 6,
@@ -153,8 +165,13 @@ local Config = {
 		FireFearRadius = 10,
 		-- Los grupos con bajas recuperan un mono cada GroupRegrowSeconds mientras su especie esté
 		-- activa, siempre que no haya jugadores a menos de RegrowMinPlayerDistance de su zona.
-		GroupRegrowSeconds = 45,
+		GroupRegrowSeconds = 25,
 		RegrowMinPlayerDistance = 120,
+		-- Tropas más grandes (sobre groupMin/groupMax de cada especie): más monos juntos con los que
+		-- enlazar combos.
+		GroupSizeMultiplier = 1.5,
+		-- Probabilidad de cada botín de Data/Monkeys ("chance") multiplicada por esto.
+		LootChanceMultiplier = 0.5,
 		-- Especies (vida, daño, botín…): ver Shared/Data/Monkeys.
 	},
 
@@ -428,7 +445,9 @@ local Config = {
 		MultiShotRange = 100,
 		MarkRadius = 70,
 		TrapDamage = 12,
-		TrapRadius = 3.5,
+		TrapRadius = 3.5, -- salta cuando un mono lo pisa (a esta distancia)
+		TrapCatchRadius = 8, -- y atrapa a todos los que estén a esta distancia (en horizontal)
+		TrapHeight = 7, -- cuánto más arriba o más abajo pueden estar (laderas, monos grandes)
 		TrapLifetime = 30,
 		TrapMaxActive = 2,
 		RainDamage = 20, -- por golpe
@@ -464,6 +483,7 @@ local Config = {
 		TotemSeconds = 10,
 		TotemHealPerSecond = 6,
 		TotemRadius = 16,
+		TotemMaxDistance = 40, -- se planta donde apuntas, como mucho a esta distancia
 	},
 
 	Party = {
