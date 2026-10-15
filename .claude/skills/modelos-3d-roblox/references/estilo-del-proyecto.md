@@ -50,6 +50,13 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   tamaño. -Z es el pecho, +Z la espalda, +Y los hombros. Piezas `Massless`, sin colisión.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
+  Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),
+  junta todas en una lista y registra cada una con la **misma bisagra**: así se mueven como una
+  sola. `capsule(rig, name, from, to, width, color)` hace un óvalo de pelo entre dos puntos (brazos,
+  muslos) y `UPRIGHT` pone de pie un cilindro. `PetModels` lee `Data.Pets` con un `require`
+  normal, que en Studio queda en caché: para ver en la vista previa un `color` o un `size` nuevos,
+  cámbialos también en la tabla en caché (`require(game.ReplicatedStorage.Shared.Data.Pets).MonoX7.size = 1.15`)
+  antes de llamar a `freshRequire` sobre `PetModels`.
 - **Monos (MonkeyModels):** articulados (RootJoint, Neck, Shoulders, Hips, TailJoint). Las animaciones se
   enlazan por el **nombre** de las piezas: no renombres piezas animables. Las piezas decorativas
   (cara, barba, pelo, adornos) se pueden renombrar o quitar, pero antes comprueba con grep que nadie
@@ -99,6 +106,22 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   abajo). Unas cejas gruesas y redondas, aunque estén inclinadas, dan cara de **preocupado**. No
   pongas bolitas negras cerca de los ojos (orificios de la nariz): se leen como un segundo par de
   ojos.
+- **Casco con la cara al aire** (escafandras, cascos de buzo): una `Ball` para el casco, un disco
+  (`Cylinder` mirando a -Z) algo más ancho que la abertura para el aro, y delante un óvalo de pelo y
+  el óvalo de la cara asomando por delante del disco. Comprueba que el pelo sobresale del disco
+  en todo el borde: si quedan en el mismo plano, hay z-fighting. Remaches del aro con un bucle de
+  ángulos.
+- **Placas y letreros sobre una esfera** (`SurfaceGui` en una pieza `Block` puesta con
+  `CFrame.lookAt(centro + normal * radio, ...)`): no los pongas encima de una cresta u otra pieza
+  que cruce la esfera, porque la atraviesa y tapa el texto. Llévalos a un lado de la cresta.
+- **Tubos anillados** (mangueras, cables gruesos): bolas en una curva de Bézier cuadrática
+  (`from:Lerp(control, t):Lerp(control:Lerp(to, t), t)`), alternando una gruesa y otra fina de
+  otro tono. Unas 14 por tubo bastan para que se lea como una manguera.
+- **Óxido y manchas sobre metal:** óvalos todos del mismo tamaño parecen lunares (o una vaca).
+  Haz cada mancha con dos óvalos solapados de dos tonos, girados y de tamaños distintos.
+- **Calvas, cicatrices y costuras de caricatura:** un óvalo rosado con 2–3 puntadas finas oscuras
+  que lo cruzan y una a lo largo. Si va en una extremidad que se mueve, añade sus piezas a la
+  lista de la extremidad para que se muevan con ella.
 - **Ramas, troncos y cadenas:** encadena tramos de cilindro; cada tramo devuelve el marco de su extremo
   (`limb` en NodeModels).
 - **Simetría:** usa `for side = -1, 1, 2 do ... end` y multiplica X por `side`. Ahorra la mitad del código
@@ -140,7 +163,12 @@ Reutiliza las que ya existan antes de inventar otras casi iguales. Ejemplos del 
 
 Materiales habituales: `SmoothPlastic` (por defecto), `Fabric` (pelaje, telas), `Wood` / `WoodPlanks`,
 `Slate` / `Rock` (piedra), `Grass`, `Sand`, `Metal`, `Neon` solo para brillos (ojos que brillan,
-magia). Un modelo con 3–6 colores se lee mejor que uno con quince.
+magia). Un modelo con 3–6 colores se lee mejor que uno con quince. Para el pelo, `Fabric` da
+un aspecto de peluche que encaja con el estilo cartoon (el Mono X-7).
+
+Para un aura o una nube de energía, un `ParticleEmitter` pequeño en el cuerpo (unas 6 por segundo,
+`LightEmission = 1`, tamaño escalado con el modelo) se ve mejor que muchas piezas `Neon`
+flotando. En las capturas del X-7 en modo edición no se distinguían: compruébalo en Play.
 
 Una `PointLight` con mucho alcance (más de ~20 studs ya escalada) tiñe todo el modelo y el suelo
 de su color: para un brillo rojo en el pecho, alcance 6 y brillo 1 a escala 1 bastan.
@@ -159,7 +187,7 @@ chimpancé, ve a valores de 165, 125, 105. Compara siempre la captura con la ref
 | Puerta | 7 de alto, 4 de ancho |
 | Pared de una planta | 10–12 de alto |
 | Arma de una mano | 3–4 de largo |
-| Mascota pequeña | 1,5–3 de alto |
+| Mascota | 2–4,5 de alto con adornos (el Mono X-7 mide 3,9 con la antena) |
 | Mono de categoría 1 / 2 / 3 | 1,3–3 / 2,4–4 / 3,4–5,5 de alto |
 | Jefe | 9–11 de alto (unos dos personajes) |
 | Árbol de la isla | 15–35 de alto |
@@ -193,11 +221,18 @@ orientativo de piezas por modelo:
 | Tipo | Piezas |
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
-| Arma, armadura, mascota | 15–40 |
+| Arma, armadura | 15–40 |
+| Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |
 | Construible | 5–20 |
 | Pieza única de decorado (barco, templo) | hasta unos cientos |
+
+Las mascotas tienen un presupuesto alto a propósito: van siempre al lado del jugador, se ven de
+cerca y el usuario quiere que el detalle se lea muy definido (remaches, costuras, anillos de un
+tubo, nudillos). Aun así, cada cliente mueve todas las mascotas del servidor con `PivotTo` en cada
+fotograma (`UI/PetFollowers`), y las piezas registradas con `joint` se recolocan una a una: deja
+las articuladas en unas 60 como mucho y gasta el resto en detalle fijo.
 
 Además:
 - Lo decorativo (hojas, frutos, detalles, todo lo que no se pisa) va con `CanCollide`, `CanTouch` y

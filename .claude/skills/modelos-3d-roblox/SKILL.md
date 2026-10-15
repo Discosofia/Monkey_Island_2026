@@ -107,12 +107,22 @@ Repite hasta que esté bien (y como mucho unas 5 vueltas antes de enseñárselo 
    return Preview.show(model)
    ```
    Devuelve tamaño, piezas y cámaras (`frente`, `lado`, `detras`, `tresCuartos`, `arriba`).
+   Para no mandar el script entero en cada vuelta, la primera vez termina con `_G.Preview = Preview`
+   antes de tu llamada; en las siguientes basta `local Preview = _G.Preview` (dura hasta que se
+   cierra Studio).
 3. **Capturar** con `screen_capture` usando esas cámaras: como mínimo `frente`, `lado` y
    `tresCuartos`; `arriba` si la planta importa (casas, alfombras). Si la herramienta no acepta
    cámara, mueve la cámara con `Preview.look(position, lookAt)` en un `execute_luau` antes de capturar.
    **Una captura por llamada, nunca varias en paralelo**: el usuario ha rechazado capturas lanzadas
    en paralelo. Para los detalles (cara, adornos), acerca la cámara en vez de fiarte de la vista
    general: a esa distancia una barba suelta o unos ojos saltones no se notan.
+   Con modelos pequeños (mascotas de 2–4 studs) las cámaras de `Preview.show` quedan lejos: pon la
+   cámara a mano a unos 6 studs del centro. El maniquí está a +X del modelo y tapa la vista de
+   lado desde ese lado: captura el perfil desde -X.
+   Si el modelo tiene partes animadas, prueba también la pose de máximo giro: en el mismo
+   `execute_luau` que lo construye, llama a la función de animar del módulo (por ejemplo
+   `PetModels.animate(model, math.pi / 2 / speed, 1)`) y captura. Tiene que ser la misma copia del
+   módulo que hizo `build`, porque cada `freshRequire` tiene su propia tabla de articulaciones.
 4. **Criticar** cada captura con esta lista, comparando con la ficha y la referencia:
    - ¿Se reconoce qué es solo por la silueta?
    - ¿Proporciones y tamaño correctos frente al maniquí de 5 studs?
@@ -182,3 +192,8 @@ hasta que el usuario apruebe el resultado (§5).
   alcance en el modelo. Juzga los colores comparando entre modelos, no en absoluto.
 - Editar archivos del repo con Python en Windows → ábrelos con `newline=''`. En modo texto los
   reescribe con CRLF y `git diff` marca el archivo entero como cambiado.
+- Un reemplazo de texto con Python falla después de pasar `stylua` → stylua ha partido la llamada en
+  varias líneas (un argumento por línea). Busca solo el trozo que cambia (`Vector3.new(0.26, 0.2,
+  0.05),`), no la llamada entera.
+- Hay dos Studios abiertos → `list_roblox_studios` los nombra por el place. Comprueba el estado del
+  que vas a usar; si está en Play, pide al usuario que pare.
