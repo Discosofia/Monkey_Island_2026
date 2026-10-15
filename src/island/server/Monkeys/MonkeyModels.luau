@@ -23,7 +23,8 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 -- "boss": lo construye un jefe; algunas especies le dan más detalle.
 type Rig = { model: Model, root: BasePart, scale: number, boss: boolean }
 
-type Shape = "Block" | "Ball" | "Oval" | "Cylinder"
+-- "Spike": pirámide (CornerWedgePart) con la punta sobre la esquina -X +Z de arriba; sirve para cristales.
+type Shape = "Block" | "Ball" | "Oval" | "Cylinder" | "Spike"
 
 local MonkeyModels = {}
 
@@ -33,18 +34,31 @@ local GROUND = -1.9 -- altura del suelo respecto a la raíz, a escala 1
 
 local templates: { [string]: Model } = {}
 
-local function piece(rig: Rig, name: string, shape: Shape, size: Vector3, color: Color3, material: Enum.Material?): Part
-	local part = Instance.new("Part")
-	part.Name = name
-	if shape == "Ball" then
-		part.Shape = Enum.PartType.Ball
-	elseif shape == "Cylinder" then
-		part.Shape = Enum.PartType.Cylinder
-	elseif shape == "Oval" then
-		local mesh = Instance.new("SpecialMesh")
-		mesh.MeshType = Enum.MeshType.Sphere
-		mesh.Parent = part
+local function piece(
+	rig: Rig,
+	name: string,
+	shape: Shape,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material?
+): BasePart
+	local part: BasePart
+	if shape == "Spike" then
+		part = Instance.new("CornerWedgePart")
+	else
+		local block = Instance.new("Part")
+		if shape == "Ball" then
+			block.Shape = Enum.PartType.Ball
+		elseif shape == "Cylinder" then
+			block.Shape = Enum.PartType.Cylinder
+		elseif shape == "Oval" then
+			local mesh = Instance.new("SpecialMesh")
+			mesh.MeshType = Enum.MeshType.Sphere
+			mesh.Parent = block
+		end
+		part = block
 	end
+	part.Name = name
 	part.Size = size * rig.scale
 	part.Color = color
 	part.Material = material or Enum.Material.SmoothPlastic
@@ -278,38 +292,140 @@ local function darker(color: Color3, amount: number): Color3
 	return color:Lerp(Color3.new(0, 0, 0), amount)
 end
 
--- Gorila (lomo plateado): enorme, hombros anchos y altos, brazos larguísimos y piernas cortas.
--- Cabeza con cresta, cejas muy marcadas y cara negra. bodyColor = pelo, faceColor = piel.
+-- Gorila: una mole a cuatro patas. Hombros enormes y más altos que la cabeza, pecho ancho con los
+-- pectorales marcados, brazos larguísimos con antebrazos gruesos y peludos, piernas cortas y
+-- recias; cabeza con la cresta alta, cejas muy pesadas, nariz ancha y manos y pies grandes.
+-- El mismo cuerpo sirve oscuro (Gorila, Gorila de Ceniza) y blanco (Gorila Albino): los tonos del
+-- lomo y del pecho salen de los colores de Data. Los jefes (rig.boss) llevan dedos, pectorales,
+-- nariz y mechones en las mejillas. bodyColor = pelo, faceColor = piel.
 local function gorilla(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local skin = definition.faceColor
-	local tilt = CFrame.Angles(math.rad(18), 0, 0)
-	local torso = piece(rig, "Torso", "Oval", Vector3.new(2, 1.7, 2.6), fur)
-	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, -0.05, 0.3) * tilt, Vector3.new(0, -0.05, 0.3))
-	glue(rig, torso, piece(rig, "Shoulders", "Oval", Vector3.new(2.4, 1.5, 1.5), fur), CFrame.new(0, 0.3, -0.75))
+	-- Pelo un poco más claro y largo en los antebrazos y los muslos, como en la foto.
+	local shag = fur:Lerp(Color3.new(1, 1, 1), 0.08)
+	-- El pecho es casi piel: en los oscuros sale gris oscuro, en el albino rosado.
+	local chest = fur:Lerp(skin, 0.4)
+	local paws = darker(skin, 0.08)
+	local tilt = CFrame.Angles(math.rad(20), 0, 0)
+	local armX = 1.15 -- separación de los brazos: marca el ancho del gorila
+
+	local torso = piece(rig, "Torso", "Oval", Vector3.new(2.1, 1.85, 2.5), fur)
+	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, -0.05, 0.4) * tilt, Vector3.new(0, -0.05, 0.4))
+	feature(rig, torso, "Shoulders", Vector3.new(2.75, 1.75, 1.7), fur, CFrame.new(0, 0.42, -0.65))
 	-- El lomo plateado de los machos adultos.
 	local silver = fur:Lerp(Color3.fromRGB(215, 215, 220), 0.5)
-	glue(rig, torso, piece(rig, "Saddle", "Oval", Vector3.new(1.7, 0.55, 1.5), silver), CFrame.new(0, 0.5, 0.55) * tilt)
+	feature(rig, torso, "Saddle", Vector3.new(1.8, 0.6, 1.6), silver, CFrame.new(0, 0.62, 0.6) * tilt)
+	feature(rig, torso, "Chest", Vector3.new(1.75, 1.25, 0.7), chest, CFrame.new(0, -0.05, -1.32))
 
-	local head = piece(rig, "Head", "Ball", Vector3.one * 1.2, fur)
-	joint(rig, torso, head, "Neck", CFrame.new(0, 0.45, -1.75), Vector3.new(0, 0.4, -1.25))
-	glue(rig, head, piece(rig, "Crest", "Oval", Vector3.new(0.75, 0.9, 1), fur), CFrame.new(0, 0.95, -1.65))
-	glue(rig, head, piece(rig, "Face", "Oval", Vector3.new(0.95, 0.9, 0.4), skin), CFrame.new(0, 0.38, -2.22))
-	glue(rig, head, piece(rig, "Brow", "Oval", Vector3.new(1, 0.25, 0.4), darker(skin, 0.3)), CFrame.new(0, 0.68, -2.3))
-	glue(rig, head, piece(rig, "Muzzle", "Oval", Vector3.new(0.6, 0.4, 0.35), skin), CFrame.new(0, 0.2, -2.38))
-	eyes(rig, head, 0.2, 0.55, -2.4, 0.14)
+	local head = piece(rig, "Head", "Ball", Vector3.one * 1.25, fur)
+	joint(rig, torso, head, "Neck", CFrame.new(0, 0.5, -1.85), Vector3.new(0, 0.45, -1.3))
+	-- La cresta: la cabeza acaba en punta hacia arriba y atrás.
+	feature(
+		rig,
+		head,
+		"Crest",
+		Vector3.new(0.85, 1.15, 1.15),
+		fur,
+		CFrame.new(0, 1.05, -1.7) * CFrame.Angles(0.35, 0, 0)
+	)
+	feature(rig, head, "Face", Vector3.new(1.05, 1.1, 0.45), skin, CFrame.new(0, 0.48, -2.36))
+	feature(rig, head, "Muzzle", Vector3.new(0.8, 0.52, 0.5), skin, CFrame.new(0, 0.18, -2.55))
+	feature(rig, head, "Nose", Vector3.new(0.46, 0.22, 0.2), darker(skin, 0.35), CFrame.new(0, 0.38, -2.78))
+	if rig.boss then
+		-- Cara de furia: cejas en V con el entrecejo hundido, ojos entornados y en diagonal (el
+		-- lagrimal más bajo) y la boca abierta en un gruñido, enseñando los colmillos.
+		for side = -1, 1, 2 do
+			local slant = CFrame.Angles(0, 0, side * 0.35)
+			-- Cada ceja es una cresta fina que baja hacia el centro hasta tocar el ojo.
+			feature(
+				rig,
+				head,
+				"Brow",
+				Vector3.new(0.62, 0.18, 0.42),
+				darker(skin, 0.3),
+				CFrame.new(side * 0.26, 0.69, -2.48) * CFrame.Angles(0, 0, side * 0.6)
+			)
+			feature(
+				rig,
+				head,
+				"Eye",
+				Vector3.new(0.2, 0.08, 0.08),
+				EYE_COLOR,
+				CFrame.new(side * 0.23, 0.58, -2.6) * slant
+			)
+			-- Colmillo: pirámide con la punta hacia abajo.
+			glue(
+				rig,
+				head,
+				piece(rig, "Fang", "Spike", Vector3.new(0.1, 0.22, 0.1), EYE_WHITE),
+				CFrame.new(side * 0.16, 0.03, -2.82) * CFrame.Angles(math.pi, 0, 0)
+			)
+		end
+		feature(rig, head, "Mouth", Vector3.new(0.56, 0.24, 0.12), darker(skin, 0.7), CFrame.new(0, 0.05, -2.76))
+	else
+		feature(rig, head, "Brow", Vector3.new(1.05, 0.3, 0.42), darker(skin, 0.2), CFrame.new(0, 0.76, -2.42))
+		eyes(rig, head, 0.22, 0.6, -2.58, 0.11)
+	end
 	for side = -1, 1, 2 do
-		glue(rig, head, piece(rig, "Ear", "Ball", Vector3.one * 0.28, skin), CFrame.new(side * 0.6, 0.5, -1.75))
+		feature(rig, head, "Ear", Vector3.new(0.12, 0.3, 0.26), skin, CFrame.new(side * 0.62, 0.52, -1.85))
 	end
 
-	groundLimbs(
-		rig,
-		torso,
-		fur,
-		darker(skin, 0.15),
-		{ size = Vector3.new(0.8, 2.3, 0.85), x = 1.05, z = -1.05 },
-		{ size = Vector3.new(0.8, 1.55, 0.85), x = 0.75, z = 1.15 }
-	)
+	-- Brazos larguísimos apoyados en las manos, algo abiertos, con el antebrazo más grueso que el brazo.
+	for side = -1, 1, 2 do
+		local x = side * armX
+		local arm = piece(rig, `{sideName(side)} Arm`, "Oval", Vector3.new(0.95, 2.5, 1), fur)
+		joint(
+			rig,
+			torso,
+			arm,
+			`{sideName(side)} Shoulder`,
+			CFrame.new(x, GROUND + 1.25, -1.15),
+			Vector3.new(x, 0.1, -1.15)
+		)
+		feature(rig, arm, "Forearm", Vector3.new(1.08, 1.35, 1.2), shag, CFrame.new(x, GROUND + 0.95, -1.2))
+		feature(rig, arm, "Hand", Vector3.new(0.98, 0.36, 1.25), paws, CFrame.new(x, GROUND + 0.16, -1.4))
+
+		local legX = side * 0.85
+		local leg = piece(rig, `{sideName(side)} Leg`, "Oval", Vector3.new(0.95, 1.6, 1), fur)
+		joint(
+			rig,
+			torso,
+			leg,
+			`{sideName(side)} Hip`,
+			CFrame.new(legX, GROUND + 0.8, 1.25),
+			Vector3.new(legX, -0.6, 1.25)
+		)
+		feature(rig, leg, "Thigh", Vector3.new(1.1, 1.3, 1.3), shag, CFrame.new(legX, -0.95, 1.3))
+		feature(rig, leg, "Foot", Vector3.new(0.9, 0.32, 1.35), paws, CFrame.new(legX, GROUND + 0.15, 1))
+	end
+
+	if not rig.boss then
+		return
+	end
+	-- Detalle extra del jefe: pectorales, mechones en las mejillas y dedos en las manos.
+	for side = -1, 1, 2 do
+		local x = side * armX
+		feature(rig, torso, "Pec", Vector3.new(0.85, 0.75, 0.4), chest, CFrame.new(side * 0.42, 0.1, -1.62))
+		feature(
+			rig,
+			head,
+			"Cheek",
+			Vector3.new(0.35, 0.7, 0.55),
+			shag,
+			CFrame.new(side * 0.55, 0.3, -2.15) * CFrame.Angles(0, 0, side * 0.3)
+		)
+		local arm = partNamed(rig, `{sideName(side)} Arm`)
+		for finger = -1.5, 1.5 do
+			feature(
+				rig,
+				arm,
+				"Finger",
+				Vector3.new(0.27, 0.27, 0.42),
+				paws,
+				CFrame.new(x + finger * 0.24, GROUND + 0.14, -1.85)
+			)
+		end
+	end
 end
 
 -- Chimpancé: pelo negro, largo y mojado que cuelga en mechones de los hombros, los brazos y los
@@ -1191,27 +1307,67 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 		)
 	end,
 
-	-- Gorila Albino: ojos rojizos que brillan en la oscuridad y cristales de cueva en el lomo.
+	-- Gorila Albino: cristales de rubí que le brotan del cuerpo, en racimos sobre los dos hombros (el
+	-- derecho más grande), en el lomo y en los brazos, y uno en el pecho con el corazón encendido;
+	-- chispas rojas que se desprenden.
 	GorilaAlbino = function(rig)
-		glowEyes(rig, Color3.fromRGB(235, 80, 90))
+		local ruby = Color3.fromRGB(205, 25, 45)
+		local core = Color3.fromRGB(255, 70, 70)
 		local torso = partNamed(rig, "Torso")
-		local crystal = Color3.fromRGB(120, 220, 255)
-		for index, spot in
-			{
-				CFrame.new(0.5, 0.95, -0.2) * CFrame.Angles(0.3, 0, -0.4),
-				CFrame.new(-0.5, 0.95, -0.15) * CFrame.Angles(0.2, 0, 0.5),
-				CFrame.new(0, 1.05, 0.3) * CFrame.Angles(-0.2, 0.4, 0),
-				CFrame.new(0.35, 0.75, 0.95) * CFrame.Angles(-0.4, 0, -0.3),
-				CFrame.new(-0.35, 0.75, 0.95) * CFrame.Angles(-0.4, 0, 0.3),
-			}
-		do
-			local size = Vector3.new(0.3, 1.1 - index * 0.08, 0.3)
-			local shard = piece(rig, "Crystal", "Block", size, crystal, Enum.Material.Neon)
-			glue(rig, torso, shard, spot)
-			if index == 3 then
-				glow(rig, shard, crystal, 9, 1.5)
-			end
+		local rightArm = partNamed(rig, "Right Arm")
+		local leftArm = partNamed(rig, "Left Arm")
+		-- Cada cristal es una pirámide alargada: se ve como una punta de prisma desde cualquier lado.
+		-- "from" es donde nace (en la superficie) y "to" la dirección en la que crece.
+		local function crystal(anchor: BasePart, from: Vector3, to: Vector3, length: number, width: number)
+			local direction = to.Unit
+			local center = from + direction * (length / 2 - 0.15)
+			-- Eje Y de la pieza a lo largo de la dirección del cristal.
+			local frame = CFrame.lookAt(center, center + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+			local part = piece(rig, "Crystal", "Spike", Vector3.new(width, length, width), ruby, Enum.Material.Glass)
+			part.Transparency = 0.3
+			part.CastShadow = false
+			glue(rig, anchor, part, frame)
 		end
+		-- Hombro derecho: el racimo grande, abierto hacia arriba y hacia fuera.
+		crystal(torso, Vector3.new(0.95, 1.0, -0.7), Vector3.new(0.35, 1, 0.15), 1.6, 0.65)
+		crystal(torso, Vector3.new(1.05, 0.9, -0.55), Vector3.new(0.75, 1, 0.1), 1.25, 0.54)
+		crystal(torso, Vector3.new(0.7, 1.1, -0.4), Vector3.new(0.1, 1, 0.4), 1.05, 0.5)
+		crystal(torso, Vector3.new(1.2, 0.7, -0.8), Vector3.new(1, 0.6, -0.2), 0.9, 0.47)
+		crystal(torso, Vector3.new(0.9, 1.0, -1.0), Vector3.new(0.4, 1, -0.45), 0.8, 0.43)
+		-- Hombro izquierdo.
+		crystal(torso, Vector3.new(-1.0, 1.0, -0.6), Vector3.new(-0.4, 1, 0.1), 1.35, 0.58)
+		crystal(torso, Vector3.new(-1.1, 0.85, -0.75), Vector3.new(-0.9, 0.8, 0), 1, 0.49)
+		crystal(torso, Vector3.new(-0.75, 1.1, -0.35), Vector3.new(-0.2, 1, 0.45), 0.8, 0.43)
+		-- Lomo.
+		crystal(torso, Vector3.new(0.4, 0.95, 0.55), Vector3.new(0.2, 1, 0.6), 0.9, 0.47)
+		crystal(torso, Vector3.new(-0.35, 0.85, 0.95), Vector3.new(-0.3, 1, 0.7), 0.7, 0.4)
+		-- Pecho, alrededor del corazón.
+		crystal(torso, Vector3.new(-0.3, -0.35, -1.7), Vector3.new(-0.3, 0.6, -1), 0.9, 0.47)
+		crystal(torso, Vector3.new(-0.2, -0.45, -1.7), Vector3.new(0.5, 0.2, -1), 0.75, 0.4)
+		crystal(torso, Vector3.new(-0.4, -0.5, -1.65), Vector3.new(-0.8, -0.3, -1), 0.65, 0.36)
+		-- Brazos.
+		crystal(rightArm, Vector3.new(1.45, 0.1, -1.05), Vector3.new(1, 0.7, 0.2), 1, 0.5)
+		crystal(rightArm, Vector3.new(1.65, -0.7, -1.2), Vector3.new(1, 0.5, -0.3), 0.85, 0.45)
+		crystal(leftArm, Vector3.new(-1.7, -0.8, -1.2), Vector3.new(-1, 0.4, -0.2), 0.65, 0.4)
+
+		-- El corazón del pecho: el único que brilla de verdad y el que da la luz roja.
+		local heart = piece(rig, "CrystalCore", "Ball", Vector3.one * 0.42, core, Enum.Material.Neon)
+		glue(rig, torso, heart, CFrame.new(-0.3, -0.42, -1.72))
+		glow(rig, heart, ruby, 6, 1)
+
+		local s = rig.scale
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Name = "Chispas"
+		sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		sparks.Color = ColorSequence.new(Color3.fromRGB(255, 80, 90), Color3.fromRGB(190, 20, 40))
+		sparks.LightEmission = 0.6
+		sparks.Size = NumberSequence.new(0.1 * s, 0)
+		sparks.Lifetime = NumberRange.new(1, 1.8)
+		sparks.Rate = 6
+		sparks.Speed = NumberRange.new(0.5 * s, 1.2 * s)
+		sparks.SpreadAngle = Vector2.new(60, 60)
+		sparks.Acceleration = Vector3.new(0, -0.5 * s, 0)
+		sparks.Parent = torso
 	end,
 
 	-- Gorila de Ceniza: grietas de lava en el cuerpo, ojos de fuego, ascuas y humo.
@@ -1219,13 +1375,22 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 		local lava = Color3.fromRGB(255, 110, 30)
 		glowEyes(rig, Color3.fromRGB(255, 170, 60))
 		local torso = partNamed(rig, "Torso")
+		-- El pecho es roca apagada, no del naranja de la cara: así la lava de las grietas destaca.
+		local charcoal = Color3.fromRGB(45, 40, 40)
+		for _, child in rig.model:GetChildren() do
+			if child:IsA("BasePart") and (child.Name == "Chest" or child.Name == "Pec") then
+				child.Color = charcoal
+			end
+		end
+		-- Grietas sobre los hombros, el lomo y el pecho.
 		for _, crack in
 			{
-				CFrame.new(0.4, 0.95, -0.3) * CFrame.Angles(0, 0.5, 0),
-				CFrame.new(-0.35, 0.95, 0.25) * CFrame.Angles(0, -0.4, 0),
-				CFrame.new(0.1, 0.85, 0.9) * CFrame.Angles(0.3, 1.2, 0),
-				CFrame.new(-0.7, 0.55, -0.6) * CFrame.Angles(0, -0.9, 0.5),
-				CFrame.new(0.75, 0.5, -0.55) * CFrame.Angles(0, 0.9, -0.5),
+				CFrame.new(0.45, 1.2, -0.5) * CFrame.Angles(0, 0.5, 0),
+				CFrame.new(-0.4, 1.2, -0.75) * CFrame.Angles(0, -0.4, 0),
+				CFrame.new(0.1, 1.02, 0.65) * CFrame.Angles(0.3, 1.2, 0),
+				CFrame.new(-1.2, 0.75, -0.75) * CFrame.Angles(0, -0.9, 0.6),
+				CFrame.new(1.2, 0.7, -0.7) * CFrame.Angles(0, 0.9, -0.6),
+				CFrame.new(0.25, -0.15, -1.88) * CFrame.Angles(math.rad(90), 0, 0.4),
 			}
 		do
 			glue(
@@ -1240,7 +1405,7 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 				rig,
 				partNamed(rig, `{sideName(side)} Arm`),
 				piece(rig, "LavaCrack", "Oval", Vector3.new(0.08, 0.9, 0.12), lava, Enum.Material.Neon),
-				CFrame.new(side * 1.44, -0.6, -1.05) * CFrame.Angles(0.3, 0, 0)
+				CFrame.new(side * 1.68, -0.75, -1.15) * CFrame.Angles(0.3, 0, side * 0.1)
 			)
 		end
 		glow(rig, torso, lava, 12, 2)

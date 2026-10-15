@@ -418,7 +418,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 140,
 		stomp = { radius = 14, damage = 12, stunSeconds = 1.5, cooldownSeconds = 8 },
 		voice = "Large",
-		scale = 1.6,
+		scale = 1.45,
 		bodyColor = Color3.fromRGB(45, 45, 50),
 		faceColor = Color3.fromRGB(70, 65, 65),
 		loot = {
