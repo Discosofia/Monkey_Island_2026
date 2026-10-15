@@ -366,10 +366,10 @@ El tamaño dice de un vistazo lo peligroso que es un mono: cuanto más alto, má
 |---|---|---|---|---|
 | 1 · baja | 1,3–3 | de la rodilla a la cintura | 0,45–1 | Tití 1,3 · Capuchino 1,8 · Mono ardilla 2 · Marteja 2 · Aullador 2,7 |
 | 2 · media | 2,4–4 | de la cintura al pecho | 0,85–1,25 | Cola larga 2,4 · Macaco 2,7 · Babuino 3 · Mandril 3,6 |
-| 3 · difícil | 3,4–5,5 | como un jugador | 1,15–1,6 | Chimpancé 3,4 · Orangután 4,9 · Gorila 5,3 |
-| 4 · jefe | 9–11 | unos dos jugadores | 2,6–3,2 (de 1,9 a 2,3 veces el de su especie) | Caudillo 9,2 · Albino 10,3 · Manglar 10,5 · Ceniza 10,6 |
+| 3 · difícil | 3,4–5,5 | como un jugador | 1,15–1,6 | Chimpancé 3,5 · Orangután 4,9 · Gorila 5,3 |
+| 4 · jefe | 9–11 | unos dos jugadores | 2,6–3,2 (de 1,9 a 2,3 veces el de su especie) | Caudillo 11,5 · Albino 10,3 · Manglar 10,5 · Ceniza 10,6 |
 
-- **Se pasan de alto a propósito:** la **Marimonda** (3,6, por la cola en S levantada) y el **Gibón** (4,2, por los brazos en alto). Para ellos cuenta el alto del cuerpo, no el de la cola o los brazos.
+- **Se pasan de alto a propósito:** la **Marimonda** (3,6, por la cola en S levantada), el **Gibón** (4,2, por los brazos en alto) y el **Chimpancé Caudillo** (11,5 con el tocado de plumas; 8,5 de cuerpo). Para ellos cuenta el alto del cuerpo, no el de la cola, los brazos o el tocado.
 - **Ancho y fondo:** los jefes miden hasta unos 10 studs de ancho y 14 de fondo. Las guaridas y la cámara están pensadas para eso, así que un jefe más grande necesita revisar su guarida.
 - **Piezas:** unas 15–30 por mono normal (hay muchos a la vez) y hasta 60 por jefe (solo hay uno).
 

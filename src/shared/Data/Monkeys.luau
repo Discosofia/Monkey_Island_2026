@@ -366,7 +366,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		voice = "Large",
 		scale = 1.15,
 		bodyColor = Color3.fromRGB(30, 28, 26),
-		faceColor = Color3.fromRGB(190, 160, 135),
+		faceColor = Color3.fromRGB(165, 125, 105),
 		loot = {
 			{ itemId = "ThickBone", chance = 0.4, min = 1, max = 1 },
 			{ itemId = "BlackFur", chance = 0.7, min = 1, max = 2 },
