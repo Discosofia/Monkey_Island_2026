@@ -15,7 +15,7 @@ herramienta no responde como se describe aquí, fíate de su esquema y de lo que
 | `list_roblox_studios` | Da el `studio_id` que piden **todas** las demás. Llámala primero. Si hay varios Studios abiertos, elige el del place correcto (Isla o Lobby) y pregunta si no está claro. |
 | `get_studio_state` | Si Studio está en Play o en edición. Para construir hay que estar en edición (Stop). |
 | `execute_luau` | Ejecuta Luau en Studio y devuelve el resultado o el error. Usa `datamodel_type = "Edit"` para construir y revisar modelos. Devuelve lo que haga `return` (mejor una cadena o JSON). |
-| `screen_capture` | Captura la vista de Studio y te la devuelve como imagen. Acepta posición de cámara y punto al que mirar: usa las cámaras que devuelve `vista_previa.luau`. |
+| `screen_capture` | Captura la vista de Studio y te la devuelve como imagen. Acepta posición de cámara y punto al que mirar: usa las cámaras que devuelve `vista_previa.luau`. **Una por llamada**: no lances varias en paralelo (el usuario las ha rechazado). Las líneas blancas finas que salen en los modelos articulados son las articulaciones (Motor6D y soldaduras) que Studio dibuja, no piezas: ignóralas. Si hay algo seleccionado y su recuadro estorba, vacía la selección con `game.Selection:Set({})` en el `execute_luau` anterior. |
 | `inspect_instance` | Propiedades, atributos e hijos de una instancia. Útil para un vistazo rápido; para un modelo entero usa `volcar_modelo.luau`. |
 | `search_game_tree` | Busca instancias en el árbol del place (por ruta, tipo o palabras). Para encontrar un modelo que el usuario nombra sin dar la ruta. |
 | `script_grep` / `script_read` | Lee los scripts **tal como están en Studio**. Sirve para comprobar que Rojo ya sincronizó un cambio. No edites scripts sincronizados por Rojo desde aquí: se editan en el repo. |
@@ -64,7 +64,13 @@ límites de uso: tras usarlas, búscalo con `search_game_tree` o en `Workspace` 
   ```
 
 - `require` en Studio guarda el primer resultado de cada módulo toda la sesión. Usa
-  `Preview.freshRequire` de `vista_previa.luau` para cargar la versión recién sincronizada.
+  `Preview.freshRequire` de `vista_previa.luau` para cargar la versión recién sincronizada. Esto
+  vale también para los **datos**: si cambias un color o un `scale` en `Data/Monkeys` o
+  `Data/Bosses`, cárgalos con `freshRequire` y pásaselos tú al constructor. Con un `require` normal
+  verías los valores viejos aunque el constructor sí esté actualizado.
+- Antes de cargar el módulo, comprueba que Rojo ya sincronizó el cambio: `script_grep` de una línea
+  nueva, o dentro del mismo `execute_luau`,
+  `assert(Preview.find(ruta).Source:find("texto nuevo"), "Rojo aún no ha sincronizado")`.
 
 ## Puesta en marcha (si las herramientas no aparecen)
 

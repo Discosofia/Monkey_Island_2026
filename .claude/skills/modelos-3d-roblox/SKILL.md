@@ -58,6 +58,12 @@ qué rasgos la hacen reconocible frente a lo que es solo ruido. El objetivo es u
 fiel en silueta y color al estilo de la isla, no una copia pieza a pieza de algo realista. Si solo
 se ve un lado, deduce los demás con sentido común y dilo.
 
+La **pose** de la foto no manda si el modelo está articulado y animado: un mono sentado en la foto se
+queda a cuatro patas en el juego, porque las animaciones de andar, atacar y lanzar parten de esa
+postura. Toma de la imagen la silueta, los colores y los rasgos, no la pose, y díselo al usuario.
+Por lo mismo, un accesorio que en la foto cuelga de la mano (un collar, una bolsa) atraviesa el
+suelo en un mono que se apoya en los nudillos: llévalo al cuello, al pecho o a la espalda.
+
 Si falta algo que cambia el resultado (¿es para un jugador o para un jefe gigante?, ¿sustituye a un
 modelo que ya existe?), pregunta. Lo demás (colores exactos, número de detalles) decídelo tú y
 menciónalo.
@@ -104,15 +110,20 @@ Repite hasta que esté bien (y como mucho unas 5 vueltas antes de enseñárselo 
 3. **Capturar** con `screen_capture` usando esas cámaras: como mínimo `frente`, `lado` y
    `tresCuartos`; `arriba` si la planta importa (casas, alfombras). Si la herramienta no acepta
    cámara, mueve la cámara con `Preview.look(position, lookAt)` en un `execute_luau` antes de capturar.
+   **Una captura por llamada, nunca varias en paralelo**: el usuario ha rechazado capturas lanzadas
+   en paralelo. Para los detalles (cara, adornos), acerca la cámara en vez de fiarte de la vista
+   general: a esa distancia una barba suelta o unos ojos saltones no se notan.
 4. **Criticar** cada captura con esta lista, comparando con la ficha y la referencia:
    - ¿Se reconoce qué es solo por la silueta?
    - ¿Proporciones y tamaño correctos frente al maniquí de 5 studs?
    - ¿Mira hacia donde debe (frente a -Z)?
    - ¿Piezas flotando, rendijas que deberían estar cerradas, piezas que atraviesan donde se ve?
    - ¿Z-fighting (caras coplanarias que parpadean)?
-   - ¿Colores fieles a la referencia y coherentes con la paleta del juego?
+   - ¿Colores fieles a la referencia y coherentes con la paleta del juego? Con la luz de Studio los
+     tonos claros se ven más claros todavía (`estilo-del-proyecto.md` §4).
    - ¿Simetría donde debe haberla?
-   - ¿Piezas dentro del presupuesto?
+   - ¿Piezas dentro del presupuesto? Mira el número que devuelve `Preview.show` en cada vuelta: los
+     adornos repetidos en bucle (plumas, cuentas) lo disparan sin que se note.
 5. **Corregir** lo que falle, empezando por lo más gordo (silueta y proporciones antes que detalles).
 
 Para comparar dos versiones, muéstralas a la vez con
@@ -127,6 +138,10 @@ vista previa está lejos del mapa, en `Workspace._VistaPrevia`).
 1. El constructor final en el módulo del repo, conectado a los datos (`Data/...`) si es un objeto
    nuevo. Si el modelo cambia el nombre de piezas que usan animaciones u otros sistemas, busca con
    grep quién las usa antes de tocarlas.
+   Si cambias valores en `Data/...` (colores, `scale`), comprueba con `git diff` que solo cambió la
+   entrada que querías: un `sed` por valor también cambia otras especies que compartan ese color.
+   Si cambia el alto de un mono o de un jefe, actualiza la tabla de tamaños del GDD
+   (`estilo-del-proyecto.md` §5).
 2. `stylua src` y `selene src` sin errores (el CI los pasa).
 3. Una última vista previa con el módulo real (no con el código pegado) para confirmar que lo que
    quedó en el repo es lo que viste.

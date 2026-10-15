@@ -51,7 +51,23 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
 - **Monos (MonkeyModels):** articulados (RootJoint, Neck, Shoulders, Hips, TailJoint). Las animaciones se
-  enlazan por el **nombre** de las piezas: no renombres piezas animables.
+  enlazan por el **nombre** de las piezas: no renombres piezas animables. Las piezas decorativas
+  (cara, barba, pelo, adornos) se pueden renombrar o quitar, pero antes comprueba con grep que nadie
+  las busca por nombre. Posiciones respecto a la raíz y a escala 1, con el suelo en `GROUND = -1.9`.
+  Los jefes reutilizan el constructor de su especie: lo que solo debe tener el jefe va detrás de
+  `if rig.boss` (más pelo, nudillos) o en `BOSS_EXTRAS[bossId]` (adornos propios: tocados, collares).
+  Para verlo en la vista previa, construye el jefe como lo hace `BossService`:
+
+  ```lua
+  local MM = Preview.freshRequire("ServerScriptService.Server.Monkeys.MonkeyModels")
+  local Monkeys = Preview.freshRequire("ReplicatedStorage.Shared.Data.Monkeys")
+  local Bosses = Preview.freshRequire("ReplicatedStorage.Shared.Data.Bosses")
+  local boss = Bosses.ChimpanceCaudillo
+  local look = table.clone(Monkeys[boss.baseSpecies])
+  look.name, look.scale = boss.name, boss.scale
+  look.bodyColor, look.faceColor = boss.bodyColor, boss.faceColor
+  return Preview.show(MM.build(boss.baseSpecies, look, Vector3.zero, "ChimpanceCaudillo"))
+  ```
 - **Construibles (BuildModels):** pieza invisible `Bounds` del tamaño de la pieza; es la `PrimaryPart` y el
   centro, así que se colocan con `PivotTo`.
 - **Nodos (NodeModels):** se construyen sobre un punto del suelo (`ground`) y crecen hacia +Y.
@@ -73,6 +89,14 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 - Las piezas se pueden solapar sin miedo; lo que se nota son las **rendijas** entre piezas que deberían
   tocarse y el **z-fighting** (dos caras en el mismo plano con colores distintos, parpadean). Separa
   esas caras al menos 0,02–0,05 studs o haz una un poco más grande.
+- **Signo de las inclinaciones:** `CFrame.Angles(math.rad(a), 0, 0)` con `a` positivo lleva la parte de
+  arriba de la pieza hacia +Z (atrás) y la de abajo hacia -Z (delante). Una barba, un flequillo o
+  una pluma que debe apuntar hacia abajo y adelante va con ángulo **positivo**. Con el signo al
+  revés, la pieza queda como un disco plano despegado de la cara.
+- **Abanicos y arcos** (tocados de plumas, cuentas en una banda, collares en U): reparte las piezas
+  con un bucle sobre un ángulo o un parámetro `t` en vez de colocarlas a mano, y deja el número de
+  piezas en una variable (`local count = 9`), porque es lo primero que hay que recortar si te pasas
+  del presupuesto.
 
 ## 4. Paleta y materiales
 
@@ -98,6 +122,10 @@ Materiales habituales: `SmoothPlastic` (por defecto), `Fabric` (pelaje, telas), 
 `Slate` / `Rock` (piedra), `Grass`, `Sand`, `Metal`, `Neon` solo para brillos (ojos que brillan,
 magia). Un modelo con 3–6 colores se lee mejor que uno con quince.
 
+**Con la luz de Studio los tonos claros se ven más claros** de lo que parecen en el RGB. Una piel
+de 190, 160, 135 sale casi blanca en la captura. Para una piel marrón rosada como la de un
+chimpancé, ve a valores de 165, 125, 105. Compara siempre la captura con la referencia, no el número.
+
 ## 5. Escala
 
 1 stud ≈ 28 cm. Referencias para no fallar el tamaño:
@@ -121,6 +149,12 @@ Los monos y los jefes tienen un tamaño estándar por categoría, con sus excepc
 `Data/Monkeys` o `Data/Bosses` (no a escala 1) y, si se sale de la franja, ajusta `scale` antes
 que el modelo.
 
+El tamaño que devuelve `Preview.show` incluye los adornos. Un tocado de plumas sube al Chimpancé
+Caudillo de 8,5 a 11,5 studs. Mide también el cuerpo sin los adornos (recorre las piezas y descarta
+las de nombre `Feather` y la `HumanoidRootPart`). Si el modelo se pasa de alto solo por un adorno,
+apúntalo en la lista de "Se pasan de alto a propósito" del GDD. Cuando cambies el alto de una
+especie, actualiza también la columna "Ahora" de esa tabla.
+
 ## 6. Rendimiento
 
 La isla se juega en móviles de gama baja con *streaming* (ver `docs/RENDIMIENTO.md`). Presupuesto
@@ -130,7 +164,8 @@ orientativo de piezas por modelo:
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
 | Arma, armadura, mascota | 15–40 |
-| Mono o jefe | 25–60 |
+| Mono normal (hay muchos a la vez) | 15–30 |
+| Jefe (solo hay uno) | hasta 60 |
 | Construible | 5–20 |
 | Pieza única de decorado (barco, templo) | hasta unos cientos |
 
