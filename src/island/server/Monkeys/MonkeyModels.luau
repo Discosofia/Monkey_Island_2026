@@ -9,7 +9,8 @@
 -- Lo demás (cara, ojos, orejas, manos…) va soldado a una de ellas y se mueve con ella.
 -- Las animaciones se enlazan por el nombre de las piezas: si cambias un nombre, rehaz las animaciones.
 -- Cada especie tiene su propio constructor (BUILDERS); una especie nueva sin él usa el genérico.
--- Los simios (gorila, chimpancé, orangután, gibón) no tienen cola. Los jefes añaden sus detalles (BOSS_EXTRAS).
+-- Los simios (gorila, chimpancé, orangután, gibón) no tienen cola. Los jefes añaden sus detalles (BOSS_EXTRAS),
+-- y algunas especies se construyen con más detalle cuando son un jefe (rig.boss).
 -- Cada especie se construye una vez como plantilla y los monos son copias (MonkeyModels.spawn).
 -- El Humanoid lo mueve como a un personaje.
 
@@ -19,13 +20,15 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 
 -- Las posiciones de los constructores son respecto a la raíz, a escala 1, con la cara hacia -Z.
 -- La raíz está a rootHeight sobre el suelo: con escala 1, el suelo queda en Y = -1.9.
-type Rig = { model: Model, root: BasePart, scale: number }
+-- "boss": lo construye un jefe; algunas especies le dan más detalle.
+type Rig = { model: Model, root: BasePart, scale: number, boss: boolean }
 
 type Shape = "Block" | "Ball" | "Oval" | "Cylinder"
 
 local MonkeyModels = {}
 
 local EYE_COLOR = Color3.fromRGB(20, 15, 10)
+local EYE_WHITE = Color3.fromRGB(245, 240, 225)
 local GROUND = -1.9 -- altura del suelo respecto a la raíz, a escala 1
 
 local templates: { [string]: Model } = {}
@@ -81,6 +84,23 @@ end
 
 local function sideName(side: number): string
 	return if side == 1 then "Right" else "Left"
+end
+
+-- Pieza de la cara o del cuerpo pegada a "anchor", en coordenadas del modelo.
+local function feature(
+	rig: Rig,
+	anchor: BasePart,
+	name: string,
+	size: Vector3,
+	color: Color3,
+	at: CFrame,
+	material: Enum.Material?
+)
+	glue(rig, anchor, piece(rig, name, "Oval", size, color, material), at)
+end
+
+local function partNamed(rig: Rig, name: string): BasePart
+	return rig.model:FindFirstChild(name) :: BasePart
 end
 
 -- Mono genérico: cuerpo encorvado, cabeza adelantada.
@@ -338,55 +358,150 @@ local function chimpanzee(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	)
 end
 
--- Orangután: pelo largo y rojizo, brazos larguísimos con flecos de pelo, piernas cortas, barriga
--- y, en la cara, las grandes almohadillas de las mejillas y el saco de la garganta de los machos.
+-- Orangután, de caricatura: cabeza grande con las almohadillas de las mejillas en forma de corazón
+-- alrededor de la cara, ojos grandes, hocico claro y el saco de la garganta; hombros anchos, barriga
+-- clara, brazos larguísimos apoyados en los puños con flecos de pelo y piernas cortas.
+-- Los jefes (rig.boss) llevan más detalle (mechones, nudillos, antebrazos gruesos, más pelo
+-- colgando) y el ceño fruncido; los normales, menos piezas y una cara más amable.
 -- bodyColor = pelo, faceColor = piel.
 local function orangutan(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local skin = definition.faceColor
+	local shag = fur:Lerp(Color3.new(1, 1, 1), 0.12)
+	local underFur = darker(fur, 0.18)
+	local paws = darker(skin, 0.1)
 	local tilt = CFrame.Angles(math.rad(25), 0, 0)
-	local torso = piece(rig, "Torso", "Oval", Vector3.new(1.75, 1.65, 2), fur)
+
+	local torso = piece(rig, "Torso", "Oval", Vector3.new(1.85, 1.7, 2), fur)
 	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, 0.05, 0.3) * tilt, Vector3.new(0, 0.05, 0.3))
-	glue(
+	feature(rig, torso, "Shoulders", Vector3.new(2.3, 1.2, 1.25), fur, CFrame.new(0, 0.45, -0.35))
+	feature(
 		rig,
 		torso,
-		piece(rig, "Belly", "Oval", Vector3.new(1.5, 1.2, 1.4), darker(fur, 0.15)),
-		CFrame.new(0, -0.35, 0.45) * tilt
+		"Belly",
+		Vector3.new(1.35, 1.2, 1.2),
+		fur:Lerp(Color3.fromRGB(240, 200, 150), 0.35),
+		CFrame.new(0, -0.35, -0.3) * tilt
 	)
-	local shag = fur:Lerp(Color3.new(1, 1, 1), 0.08)
-	glue(rig, torso, piece(rig, "Shag", "Oval", Vector3.new(1.95, 0.7, 2.1), shag), CFrame.new(0, 0.62, 0.25) * tilt)
 
-	local head = piece(rig, "Head", "Ball", Vector3.one * 1, fur)
-	joint(rig, torso, head, "Neck", CFrame.new(0, 0.7, -1.15), Vector3.new(0, 0.5, -0.7))
-	glue(rig, head, piece(rig, "Crown", "Oval", Vector3.new(0.95, 0.55, 0.95), fur), CFrame.new(0, 1.05, -1.05))
-	glue(
-		rig,
-		head,
-		piece(rig, "Flanges", "Oval", Vector3.new(2, 1.35, 0.25), darker(skin, 0.2)),
-		CFrame.new(0, 0.68, -1.5)
-	)
-	glue(rig, head, piece(rig, "Face", "Oval", Vector3.new(0.75, 0.9, 0.35), skin), CFrame.new(0, 0.68, -1.68))
-	local lip = skin:Lerp(Color3.new(1, 1, 1), 0.15)
-	glue(rig, head, piece(rig, "Muzzle", "Oval", Vector3.new(0.5, 0.35, 0.3), lip), CFrame.new(0, 0.42, -1.82))
-	glue(rig, head, piece(rig, "ThroatSac", "Oval", Vector3.new(0.95, 0.75, 0.75), skin), CFrame.new(0, 0.15, -1.4))
-	eyes(rig, head, 0.14, 0.85, -1.84, 0.11)
-
-	groundLimbs(
-		rig,
-		torso,
-		fur,
-		skin,
-		{ size = Vector3.new(0.58, 2.45, 0.62), x = 1, z = -0.7 },
-		{ size = Vector3.new(0.52, 1.35, 0.56), x = 0.62, z = 1 }
-	)
-	-- Flecos de pelo largo colgando de los brazos.
+	local head = piece(rig, "Head", "Ball", Vector3.one * 1.2, fur)
+	joint(rig, torso, head, "Neck", CFrame.new(0, 0.75, -1.15), Vector3.new(0, 0.5, -0.7))
+	-- Las almohadillas: dos óvalos solapados e inclinados forman un cojín en forma de corazón.
 	for side = -1, 1, 2 do
-		local arm = rig.model:FindFirstChild(`{sideName(side)} Arm`) :: BasePart
+		feature(
+			rig,
+			head,
+			"Flange",
+			Vector3.new(1.05, 1.3, 0.5),
+			skin:Lerp(fur, 0.5),
+			CFrame.new(side * 0.45, 0.78, -1.42) * CFrame.Angles(0, side * 0.3, side * -0.3)
+		)
+	end
+	feature(rig, head, "Face", Vector3.new(0.9, 1.05, 0.45), skin, CFrame.new(0, 0.8, -1.62))
+	feature(rig, head, "ThroatSac", Vector3.new(1.15, 0.9, 0.85), skin, CFrame.new(0, 0.12, -1.42))
+	local lip = skin:Lerp(Color3.new(1, 1, 1), 0.25)
+	feature(rig, head, "Muzzle", Vector3.new(0.8, 0.52, 0.48), lip, CFrame.new(0, 0.48, -1.84))
+	feature(rig, head, "Mouth", Vector3.new(0.56, 0.08, 0.14), EYE_COLOR, CFrame.new(0, 0.39, -2.05))
+	-- Cejas: fruncidas (las puntas de dentro más bajas) en el jefe; en los demás, altas y con las
+	-- puntas de dentro un poco levantadas, que dan cara de curiosidad en vez de enfado.
+	local frown = if rig.boss then 0.3 else -0.12
+	for side = -1, 1, 2 do
 		glue(
 			rig,
+			head,
+			piece(rig, "EyeWhite", "Ball", Vector3.one * 0.34, EYE_WHITE),
+			CFrame.new(side * 0.2, 0.95, -1.78)
+		)
+		glue(rig, head, piece(rig, "Eye", "Ball", Vector3.one * 0.17, EYE_COLOR), CFrame.new(side * 0.19, 0.94, -1.92))
+		feature(
+			rig,
+			head,
+			"Brow",
+			Vector3.new(0.46, 0.15, 0.25),
+			darker(skin, 0.35),
+			CFrame.new(side * 0.21, if rig.boss then 1.15 else 1.22, -1.85) * CFrame.Angles(0, 0, side * frown)
+		)
+	end
+
+	for side = -1, 1, 2 do
+		local x = side * 1
+		local arm = piece(rig, `{sideName(side)} Arm`, "Oval", Vector3.new(0.62, 2.45, 0.66), fur)
+		joint(
+			rig,
+			torso,
 			arm,
-			piece(rig, "ArmHair", "Oval", Vector3.new(0.3, 1.6, 0.7), fur),
-			CFrame.new(side * 1.28, -0.45, -0.65)
+			`{sideName(side)} Shoulder`,
+			CFrame.new(x, GROUND + 1.225, -0.7),
+			Vector3.new(x, 0.26, -0.7)
+		)
+		feature(rig, arm, "Hand", Vector3.new(0.85, 0.4, 1), paws, CFrame.new(x, GROUND + 0.17, -0.82))
+		feature(
+			rig,
+			arm,
+			"ArmHair",
+			Vector3.new(0.3, 1.6, 0.7),
+			shag,
+			CFrame.new(side * 1.24, -0.3, -0.62) * CFrame.Angles(0, 0, side * 0.12)
+		)
+
+		local legX = side * 0.62
+		local leg = piece(rig, `{sideName(side)} Leg`, "Oval", Vector3.new(0.6, 1.35, 0.64), fur)
+		joint(rig, torso, leg, `{sideName(side)} Hip`, CFrame.new(legX, GROUND + 0.675, 1), Vector3.new(legX, -0.81, 1))
+		feature(rig, leg, "Foot", Vector3.new(0.75, 0.3, 1.05), paws, CFrame.new(legX, GROUND + 0.13, 0.85))
+	end
+
+	if not rig.boss then
+		return
+	end
+	-- Detalle extra del jefe: se ve de cerca y cuesta piezas, así que solo hay uno a la vez.
+	feature(rig, torso, "Shag", Vector3.new(1.55, 0.5, 1.7), shag, CFrame.new(0, 0.82, 0.35) * tilt)
+	for _, x in { -0.22, 0, 0.22 } do
+		feature(
+			rig,
+			head,
+			"Tuft",
+			Vector3.new(0.28, 0.5, 0.32),
+			shag,
+			CFrame.new(x, 1.33 - math.abs(x) * 0.3, -1.12) * CFrame.Angles(0, 0, -x * 1.8)
+		)
+	end
+	for side = -1, 1, 2 do
+		local x = side * 1
+		glue(
+			rig,
+			head,
+			piece(rig, "Nostril", "Ball", Vector3.one * 0.09, EYE_COLOR),
+			CFrame.new(side * 0.09, 0.63, -2.07)
+		)
+		for _, z in { 0.05, 0.75 } do
+			feature(
+				rig,
+				torso,
+				"SideHair",
+				Vector3.new(0.38, 0.95, 0.75),
+				underFur,
+				CFrame.new(side * 0.85, -0.45, z) * CFrame.Angles(0, 0, side * 0.2)
+			)
+		end
+
+		local arm = partNamed(rig, `{sideName(side)} Arm`)
+		feature(rig, arm, "Forearm", Vector3.new(0.8, 1.15, 0.85), fur, CFrame.new(x, -0.95, -0.72))
+		feature(rig, arm, "ArmHair", Vector3.new(0.4, 1.2, 0.45), underFur, CFrame.new(x, -0.35, -0.3))
+		for knuckle = -1, 1 do
+			glue(
+				rig,
+				arm,
+				piece(rig, "Knuckle", "Ball", Vector3.one * 0.25, skin),
+				CFrame.new(x + knuckle * 0.23, GROUND + 0.27, -1.22)
+			)
+		end
+		feature(
+			rig,
+			partNamed(rig, `{sideName(side)} Leg`),
+			"ThighHair",
+			Vector3.new(0.42, 0.85, 0.7),
+			underFur,
+			CFrame.new(side * 0.75, -0.75, 1)
 		)
 	end
 end
@@ -459,19 +574,6 @@ local function tailedMonkey(rig: Rig, spec: BodySpec): (BasePart, BasePart)
 	groundLimbs(rig, torso, spec.fur, spec.paws, spec.arm, spec.leg)
 	tail(rig, torso, spec.tail, spec.fur)
 	return torso, head
-end
-
--- Pieza de la cara o del cuerpo pegada a "anchor", en coordenadas del modelo.
-local function feature(
-	rig: Rig,
-	anchor: BasePart,
-	name: string,
-	size: Vector3,
-	color: Color3,
-	at: CFrame,
-	material: Enum.Material?
-)
-	glue(rig, anchor, piece(rig, name, "Oval", size, color, material), at)
 end
 
 -- Aullador rojo: robusto y rojizo, cara oscura y una gran barba sobre la garganta (su caja de
@@ -887,10 +989,6 @@ local BUILDERS: { [string]: (rig: Rig, definition: Monkeys.MonkeyDefinition) -> 
 ---------------------------------------------------------------------------------------------------
 -- Detalles de los jefes, sobre el modelo de su especie base y en sus mismas coordenadas.
 
-local function partNamed(rig: Rig, name: string): BasePart
-	return rig.model:FindFirstChild(name) :: BasePart
-end
-
 local function glowEyes(rig: Rig, color: Color3)
 	for _, child in rig.model:GetChildren() do
 		if child:IsA("BasePart") and child.Name == "Eye" then
@@ -909,26 +1007,42 @@ local function glow(rig: Rig, part: BasePart, color: Color3, range: number, brig
 end
 
 local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
-	-- Orangután del Manglar: musgo en el lomo y en la cabeza y una liana cruzada.
+	-- Orangután del Manglar: musgo en el lomo y en la cabeza, musgo colgando de los brazos (como el
+	-- de las ramas del manglar) y una liana con hojas cruzada en el pecho.
 	OrangutanDelManglar = function(rig)
 		local moss = Color3.fromRGB(85, 120, 50)
 		local torso = partNamed(rig, "Torso")
 		local head = partNamed(rig, "Head")
 		for _, patch in
 			{
-				{ anchor = torso, size = Vector3.new(1, 0.35, 1.1), at = CFrame.new(0.45, 1, 0) },
-				{ anchor = torso, size = Vector3.new(0.8, 0.3, 0.9), at = CFrame.new(-0.5, 0.85, 0.65) },
-				{ anchor = head, size = Vector3.new(0.55, 0.2, 0.55), at = CFrame.new(0.1, 1.3, -1) },
+				{ anchor = torso, size = Vector3.new(1, 0.35, 1.1), at = CFrame.new(0.45, 1.08, -0.2) },
+				{ anchor = torso, size = Vector3.new(0.85, 0.3, 0.95), at = CFrame.new(-0.45, 0.98, 0.6) },
+				{ anchor = head, size = Vector3.new(0.55, 0.2, 0.55), at = CFrame.new(-0.28, 1.28, -0.98) },
 			}
 		do
 			glue(rig, patch.anchor, piece(rig, "Moss", "Oval", patch.size, moss, Enum.Material.Grass), patch.at)
 		end
-		glue(
-			rig,
-			torso,
-			piece(rig, "Vine", "Oval", Vector3.new(0.14, 0.14, 2.8), Color3.fromRGB(60, 95, 40)),
-			CFrame.new(0, 0.9, 0.2) * CFrame.Angles(math.rad(25), math.rad(35), 0)
-		)
+		for side = -1, 1, 2 do
+			glue(
+				rig,
+				partNamed(rig, `{sideName(side)} Arm`),
+				piece(rig, "Moss", "Oval", Vector3.new(0.22, 1, 0.3), moss, Enum.Material.Grass),
+				CFrame.new(side * 1.3, -0.55, -0.95) * CFrame.Angles(0, 0, side * 0.1)
+			)
+		end
+		-- La liana va del hombro derecho a la cadera izquierda, por delante de la barriga.
+		local sash = CFrame.new(0, 0.3, -0.85) * CFrame.Angles(0, 0, math.rad(-40))
+		feature(rig, torso, "Vine", Vector3.new(0.22, 2.5, 0.22), Color3.fromRGB(70, 110, 40), sash)
+		for index, offset in { -0.75, 0.15, 0.85 } do
+			feature(
+				rig,
+				torso,
+				"Leaf",
+				Vector3.new(0.3, 0.07, 0.45),
+				Color3.fromRGB(60, 140, 60),
+				sash * CFrame.new(0.12, offset, -0.12) * CFrame.Angles(math.rad(-70), math.rad(index * 60 - 120), 0)
+			)
+		end
 	end,
 
 	-- Chimpancé Caudillo: cinta roja con plumas, pinturas de guerra y collar de colmillos.
@@ -1088,7 +1202,7 @@ function MonkeyModels.build(
 	root.Parent = model
 	model.PrimaryPart = root
 
-	local rig: Rig = { model = model, root = root, scale = s }
+	local rig: Rig = { model = model, root = root, scale = s, boss = bossId ~= nil }
 	local builder = BUILDERS[speciesId] or genericMonkey
 	builder(rig, definition)
 	local extras = if bossId then BOSS_EXTRAS[bossId] else nil
