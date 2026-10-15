@@ -25,7 +25,7 @@ local function active(model: Model, attribute: string): boolean
 	return typeof(untilTime) == "number" and now() < untilTime
 end
 
--- Contorno de color mientras dura un estado (azul el congelado, verde las lianas...).
+-- Contorno de color mientras dura un estado.
 local function outline(model: Model, name: string, color: Color3, seconds: number)
 	local old = model:FindFirstChild(name)
 	if old then
@@ -45,8 +45,10 @@ function Status.isBoss(model: Model): boolean
 	return model:GetAttribute("Boss") ~= nil
 end
 
--- Aturde (o congela, o inmoviliza: "look" elige el color del contorno).
-function Status.stun(model: Model, seconds: number, look: ("Stun" | "Freeze" | "Root")?)
+-- Aturde (o congela, o inmoviliza). Aturdido lleva un contorno amarillo; el bloque de hielo del
+-- congelado y el brillo verde del inmovilizado los dibuja cada cliente (AbilityFxController).
+-- Devuelve los segundos que dura de verdad (los jefes se resisten).
+function Status.stun(model: Model, seconds: number, look: ("Stun" | "Freeze" | "Root")?): number
 	if Status.isBoss(model) then
 		seconds *= Config.Abilities.BossControlMultiplier
 	end
@@ -55,16 +57,15 @@ function Status.stun(model: Model, seconds: number, look: ("Stun" | "Freeze" | "
 	if typeof(current) ~= "number" or current < untilTime then
 		model:SetAttribute("StunnedUntil", untilTime)
 	end
-	local color = if look == "Freeze"
-		then Color3.fromRGB(140, 210, 255)
-		elseif look == "Root" then Color3.fromRGB(90, 200, 70)
-		else Color3.fromRGB(255, 230, 90)
-	outline(model, "StatusOutline", color, seconds)
+	if look ~= "Freeze" and look ~= "Root" then
+		outline(model, "StatusOutline", Color3.fromRGB(255, 230, 90), seconds)
+	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model.PrimaryPart
 	if humanoid and root then
 		humanoid:MoveTo(root.Position)
 	end
+	return seconds
 end
 
 function Status.slow(model: Model, seconds: number, factor: number)

@@ -87,6 +87,9 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): "¡puf!" de humo al derrotar un mono, un jefe o un muñeco
 	-- (posición Vector3, tamaño en studs). Cada cliente dibuja las partículas (PoofController).
 	Poof = remoteEvent("Poof"),
+	-- Servidor -> clientes (Isla): efecto visual de una habilidad de rol (tipo y sus datos; ver
+	-- AbilityFxController). El daño lo pone el servidor; esto es solo lo que se ve.
+	AbilityFx = remoteEvent("AbilityFx"),
 }
 
 return Remotes

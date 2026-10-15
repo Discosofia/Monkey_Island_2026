@@ -138,7 +138,7 @@ end
 
 -- Reduce el daño que recibe un jugador: armadura (Data/Armor), "Grito de guerra" del guerrero y
 -- "Escudo de hojas" del médico, que absorbe hasta romperse. Puede devolver 0 (todo absorbido).
-local function mitigate(player: Player, character: Model, amount: number): number
+local function mitigate(player: Player, amount: number): number
 	local armorId = player:GetAttribute("Armor")
 	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
 	if armor then
@@ -155,13 +155,8 @@ local function mitigate(player: Player, character: Model, amount: number): numbe
 	if typeof(shieldUntil) == "number" and now < shieldUntil and typeof(shield) == "number" and shield > 0 then
 		local absorbed = math.min(shield, amount)
 		amount -= absorbed
+		-- Al llegar a 0, la burbuja estalla en los clientes (AbilityFxController).
 		player:SetAttribute("ShieldHealth", shield - absorbed)
-		if shield - absorbed <= 0 then
-			local visual = character:FindFirstChild("LeafShield")
-			if visual then
-				visual:Destroy()
-			end
-		end
 	end
 	return amount
 end
@@ -180,7 +175,7 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
-	amount = mitigate(player, character, amount)
+	amount = mitigate(player, amount)
 	showHit(character, amount)
 	if amount <= 0 then
 		return true
@@ -237,7 +232,7 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
-	amount = mitigate(victim, character, amount)
+	amount = mitigate(victim, amount)
 	showHit(character, amount)
 	if amount <= 0 then
 		return true

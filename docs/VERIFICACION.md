@@ -151,26 +151,26 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - En móvil: un bloque de 4 botones junto al salto, con la cuenta atrás al usarlos.
    - Con mando: mantén **R1** y pulsa A, B, X o Y.
 2. [ ] **Guerrero** (Garrote de piedra):
-   - **Z Torbellino:** giras 2 s y los monos de alrededor reciben varios golpes.
-   - **X Embestida:** sales disparado hacia donde apuntas, dañas y empujas a los monos.
-   - **C Grito de guerra:** onda roja, "N monos van a por ti" y te muerden menos.
-   - **V Golpe sísmico:** onda de tierra, mucho daño y los monos se quedan quietos con contorno amarillo 2 s.
+   - **Z Torbellino:** giras 2 s entre estelas de viento en círculo y los monos de alrededor reciben varios golpes.
+   - **X Embestida:** sales disparado hacia donde apuntas dejando un rastro rojo, dañas y empujas a los monos.
+   - **C Grito de guerra:** el personaje echa la cabeza atrás y abre los brazos gritando, brilla en rojo (luego un brillo rojo suave mientras dura) y salen ondas rojas; "N monos van a por ti" y te muerden menos.
+   - **V Golpe sísmico:** el suelo se agrieta desde tus pies, saltan piedras, sale polvo y tiembla la cámara; mucho daño y los monos se quedan quietos con contorno amarillo 2 s.
 3. [ ] **Cazador** (Arco, empiezas con 20 flechas; se fabrican en la mesa de trabajo):
-   - **Z Disparo múltiple:** 5 flechas en abanico, sin gastar flechas.
-   - **X Marcar presas:** contorno rojo en los monos y "N presas marcadas".
-   - **C Trampa de lianas:** aparece a tus pies; el mono que la pisa queda atrapado con contorno verde 3 s. Como mucho 2 trampas.
-   - **V Lluvia de proyectiles:** zona roja donde apuntas y caen flechas durante 4 s.
+   - **Z Disparo múltiple:** 5 flechas verdes en abanico con estela verde, sin gastar flechas.
+   - **X Marcar presas:** onda roja, contorno rojo y una diana (círculo, círculo interior y cruz) girando sobre cada mono marcado, y "N presas marcadas".
+   - **C Trampa de lianas:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, salta a sus pies y se cierra de golpe, y el mono queda atrapado 3 s con un brillo verde suave que aparece y se va. Como mucho 2 trampas.
+   - **V Lluvia de proyectiles:** zona roja donde apuntas con una nube gris encima, de la que caen flechas durante 4 s (se quedan clavadas un momento).
 4. [ ] **Mago** (Bastón mágico, dispara bolas moradas sin munición):
-   - **Z Bola de fuego:** bola en llamas que explota al impactar y daña alrededor.
-   - **X Nova de hielo:** onda azul; los monos cercanos se congelan (contorno azul) y luego andan más despacio.
-   - **C Parpadeo:** te teletransportas hacia delante; no atraviesa paredes ni te lleva al vacío.
-   - **V Rayo encadenado:** apunta a un mono y el rayo salta a los de alrededor. Sin mono a tiro: "No hay ningún mono a tiro" y no se gasta.
+   - **Z Bola de fuego:** bola roja en llamas que va recta, con tres bolitas que giran a su alrededor dejando una espiral; explota al impactar y daña alrededor.
+   - **X Nova de hielo:** aros helados y pinchos de hielo en el suelo; los monos cercanos quedan dentro de un bloque de hielo que se rompe en trozos al acabar, y luego andan más despacio.
+   - **C Parpadeo:** donde estabas queda un punto negro que se encoge y apareces con una chispa; no atraviesa paredes ni te lleva al vacío.
+   - **V Rayo encadenado:** apunta a un mono y un rayo brillante salta a los de alrededor; al apagarse deja una sombra oscura que se desvanece y los monos alcanzados echan humo. Sin mono a tiro: "No hay ningún mono a tiro" y no se gasta.
    - Las esperas son un 15 % más cortas que las de Data/Roles.
 5. [ ] **Médico** (Machete y honda):
-   - **Z Ungüento en área:** onda verde y te curas (y a los aliados cercanos).
-   - **X Dardo curativo:** con 2 jugadores, dispara al otro herido y se cura.
-   - **C Escudo de hojas:** el aliado más cercano (o tú) brilla en verde y los mordiscos salen como 🛡️ hasta que se rompe.
-   - **V Tótem sanador:** tótem con luz verde que cura cada segundo durante 10 s.
+   - **Z Ungüento en área:** salen hojas verdes girando en círculo y una onda verde; te curas (y a los aliados cercanos).
+   - **X Dardo curativo:** dardo amarillo con cola roja; con 2 jugadores, dispara al otro herido y se cura (hojitas verdes).
+   - **C Escudo de hojas:** destello amarillo y una burbuja verde con hojas girando alrededor del aliado más cercano (o de ti); los mordiscos salen como 🛡️ y, al romperse, la burbuja estalla.
+   - **V Tótem sanador:** sale del suelo un tótem de madera tallada (caras, alas pintadas al estilo navajo) con una gema verde brillante arriba, sobre un suelo verde con hojas; cada segundo una onda verde cura durante 10 s.
    - Con 2 jugadores ves la **vida del otro** sobre su cabeza y reanimas más rápido (el aviso dura 2 s en vez de 4).
 6. [ ] **Jefes:** contra un jefe (🛠️ 👑), el Golpe sísmico o la Nova le paran solo la mitad de tiempo y el Grito de guerra hace que vaya a por el guerrero.
 7. [ ] **PvP** (2 jugadores con PvP activo en el tótem): las habilidades de daño también os hieren, a la mitad.

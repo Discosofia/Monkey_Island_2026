@@ -5,7 +5,8 @@
 --     una casilla por habilidad dice cuándo vuelve a estar lista.
 --   - Los movimientos los hace este cliente (es quien mueve al personaje): la Embestida empuja hacia
 --     delante, el Parpadeo teletransporta y el Torbellino hace girar al guerrero. El resto lo aplica
---     el servidor (AbilityService).
+--     el servidor (AbilityService). Sus efectos (rastro rojo, estelas de viento, punto negro y chispa)
+--     se dibujan aquí al momento con AbilityFxController; a los demás se los manda el servidor.
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (mejora de la tienda).
 --   - Médico: ve una barra de vida sobre la cabeza de cada aliado.
 
@@ -22,6 +23,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local AbilityFxController = require(script.Parent.AbilityFxController)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 
@@ -195,17 +197,25 @@ local function useAbility(player: Player, slot: number)
 		return
 	end
 	local aim = Aim.direction(character)
+	-- Desde dónde y hasta dónde va el Parpadeo, para que los demás vean su efecto.
+	local from, to = nil, nil
 	if ability.id == "Charge" then
 		charge(root, flat(aim))
+		AbilityFxController.play("Charge", character, Config.Abilities.ChargeSeconds)
 	elseif ability.id == "Blink" then
+		from = root.Position
 		if not blink(character, root, flat(aim), Progression.perk(player, "BlinkDistance")) then
 			return
 		end
+		to = root.Position
+		AbilityFxController.play("Blink", from, to)
 	elseif ability.id == "Whirlwind" then
-		spin(humanoid, root, Progression.perk(player, "WhirlwindSeconds"))
+		local seconds = Progression.perk(player, "WhirlwindSeconds")
+		spin(humanoid, root, seconds)
+		AbilityFxController.play("Whirlwind", character, seconds)
 	end
 	lastSentAt[slot] = os.clock()
-	Remotes.UseAbility:FireServer(slot, aim)
+	Remotes.UseAbility:FireServer(slot, aim, from, to)
 end
 
 -- Casillas de las habilidades bajo las barras de supervivencia.
