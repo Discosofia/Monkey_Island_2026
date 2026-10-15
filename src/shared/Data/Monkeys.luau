@@ -94,8 +94,8 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		fearsFire = true,
 		voice = "Medium",
 		scale = 1,
-		bodyColor = Color3.fromRGB(150, 55, 30),
-		faceColor = Color3.fromRGB(60, 35, 25),
+		bodyColor = Color3.fromRGB(185, 75, 30),
+		faceColor = Color3.fromRGB(45, 32, 28),
 		loot = {
 			{ itemId = "RedFur", chance = 0.7, min = 1, max = 1 },
 			{ itemId = "SmallFang", chance = 0.3, min = 1, max = 1 },
@@ -124,8 +124,8 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		fearsFire = true,
 		voice = "Small",
 		scale = 0.65,
-		bodyColor = Color3.fromRGB(95, 70, 50),
-		faceColor = Color3.fromRGB(240, 225, 195),
+		bodyColor = Color3.fromRGB(32, 28, 26),
+		faceColor = Color3.fromRGB(232, 212, 165),
 		loot = {
 			{ itemId = "Banana", chance = 0.5, min = 1, max = 2 },
 			{ itemId = "Meat", chance = 0.4, min = 1, max = 1 },
@@ -177,7 +177,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 120,
 		fearsFire = true,
 		voice = "Small",
-		scale = 0.45,
+		scale = 0.5,
 		bodyColor = Color3.fromRGB(150, 120, 90),
 		faceColor = Color3.fromRGB(245, 240, 230),
 		loot = {
@@ -229,7 +229,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		roar = { radius = 25, seconds = 6 },
 		voice = "Large",
 		scale = 1.25,
-		bodyColor = Color3.fromRGB(90, 85, 60),
+		bodyColor = Color3.fromRGB(78, 76, 64),
 		faceColor = Color3.fromRGB(200, 60, 60),
 		loot = {
 			{ itemId = "MandrillFang", chance = 0.35, min = 1, max = 1 },
@@ -256,7 +256,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		disarmsTraps = true,
 		voice = "Medium",
 		scale = 1,
-		bodyColor = Color3.fromRGB(140, 135, 125),
+		bodyColor = Color3.fromRGB(140, 116, 88),
 		faceColor = Color3.fromRGB(220, 160, 150),
 		loot = {
 			{ itemId = "GreyFur", chance = 0.7, min = 1, max = 1 },
@@ -336,9 +336,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		thief = 2,
 		thiefFoodOnly = true,
 		voice = "Medium",
-		scale = 0.85,
-		bodyColor = Color3.fromRGB(165, 140, 105),
-		faceColor = Color3.fromRGB(235, 215, 185),
+		scale = 0.9,
+		bodyColor = Color3.fromRGB(140, 128, 110),
+		faceColor = Color3.fromRGB(205, 200, 190),
 		loot = {
 			{ itemId = "Shell", chance = 0.7, min = 1, max = 2 },
 			{ itemId = "Coconut", chance = 0.4, min = 1, max = 1 },

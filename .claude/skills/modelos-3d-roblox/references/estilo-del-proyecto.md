@@ -137,6 +137,15 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 - Las piezas se pueden solapar sin miedo; lo que se nota son las **rendijas** entre piezas que deberían
   tocarse y el **z-fighting** (dos caras en el mismo plano con colores distintos, parpadean). Separa
   esas caras al menos 0,02–0,05 studs o haz una un poco más grande.
+- **Rasgos sobre una cabeza esférica** (monos con cola de `MonkeyModels`): un óvalo plano delante
+  de la cabeza se despega por los bordes y parece un plato o una visera. `headPatch` lo coloca en la
+  dirección de la normal y por dentro es un óvalo hondo hundido en la cabeza (size.Z = lo que
+  sobresale): cara, cejas, rayas, crestas. Para gorros y coronillas, `hairCap`: una bola algo menor
+  que la cabeza desplazada hacia arriba asoma solo por ese lado y sigue su forma (un óvalo encima
+  parece una boina). Los ojos (`sphereEyes`) llevan `out` = lo que sobresale la cara, o quedan
+  enterrados debajo de ella.
+- **Extremidades y colas por tramos** (`capsule`): cada óvalo sobresale 0,6 × su ancho por cada
+  punta. Con menos solape, las articulaciones se estrechan y parecen cuentas de un collar.
 - **Signo de las inclinaciones:** `CFrame.Angles(math.rad(a), 0, 0)` con `a` positivo lleva la parte de
   arriba de la pieza hacia +Z (atrás) y la de abajo hacia -Z (delante). Una barba, un flequillo o
   una pluma que debe apuntar hacia abajo y adelante va con ángulo **positivo**. Con el signo al
@@ -224,6 +233,10 @@ modelo (`part.Parent = nil`), mide con `GetBoundingBox()` y vuelve a meterlas. S
 cada pieza da de más con los óvalos girados. Si el modelo se pasa de alto solo por un adorno,
 apúntalo en la lista de "Se pasan de alto a propósito" del GDD. Cuando cambies el alto de una
 especie, actualiza también la columna "Ahora" de esa tabla.
+
+En los monos, el tamaño de `Preview.show` incluye además la raíz invisible (`HumanoidRootPart`, que
+llega a 2,9 × `scale` del suelo): en los monos bajos (el Tití, el Capuchino) es la raíz y no el
+cuerpo lo que marca el alto. Sácala igual que los adornos antes de medir.
 
 ## 6. Rendimiento
 

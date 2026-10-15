@@ -159,129 +159,6 @@ local function genericMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	)
 end
 
--- Mono ardilla (Saimiri): pequeño y esbelto, a cuatro patas. Gorro oscuro, cara blanca con hocico
--- negro, espalda gris oliva, brazos y piernas dorados y una cola muy larga con la punta negra.
--- Colores de Data/Monkeys: bodyColor = extremidades, faceColor = cara.
-local SAIMIRI_BACK = Color3.fromRGB(128, 122, 82)
-local SAIMIRI_BELLY = Color3.fromRGB(238, 222, 170)
-local SAIMIRI_DARK = Color3.fromRGB(38, 34, 30)
-
-local function squirrelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local limbs = definition.bodyColor
-	local face = definition.faceColor
-
-	-- Cuerpo horizontal y vientre claro.
-	local torso = piece(rig, "Torso", "Oval", Vector3.new(1.05, 0.95, 2), SAIMIRI_BACK)
-	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, -0.35, 0.15), Vector3.new(0, -0.35, 0.15))
-	glue(rig, torso, piece(rig, "Belly", "Oval", Vector3.new(0.85, 0.6, 1.6), SAIMIRI_BELLY), CFrame.new(0, -0.6, 0.1))
-
-	-- Cabeza redonda y blanca con el gorro oscuro encima, ojos grandes y hocico negro.
-	local head = piece(rig, "Head", "Ball", Vector3.one * 1.15, face)
-	joint(rig, torso, head, "Neck", CFrame.new(0, 0.3, -1.15), Vector3.new(0, -0.05, -0.75))
-	glue(rig, head, piece(rig, "Cap", "Oval", Vector3.new(1.2, 0.75, 1.15), SAIMIRI_DARK), CFrame.new(0, 0.55, -1.03))
-	glue(rig, head, piece(rig, "Muzzle", "Oval", Vector3.new(0.5, 0.38, 0.4), SAIMIRI_DARK), CFrame.new(0, 0.1, -1.65))
-
-	for side = -1, 1, 2 do
-		glue(rig, head, piece(rig, "Eye", "Ball", Vector3.one * 0.22, EYE_COLOR), CFrame.new(side * 0.2, 0.42, -1.66))
-		glue(
-			rig,
-			head,
-			piece(rig, "Ear", "Oval", Vector3.new(0.12, 0.38, 0.3), face),
-			CFrame.new(side * 0.6, 0.35, -1.05)
-		)
-
-		-- Patas delanteras (los brazos) y traseras, más largas, con manos y pies.
-		local arm = piece(rig, `{sideName(side)} Arm`, "Oval", Vector3.new(0.3, 1.4, 0.32), limbs)
-		joint(
-			rig,
-			torso,
-			arm,
-			`{sideName(side)} Shoulder`,
-			CFrame.new(side * 0.38, -1.2, -0.55),
-			Vector3.new(side * 0.38, -0.55, -0.55)
-		)
-		glue(
-			rig,
-			arm,
-			piece(rig, "Hand", "Oval", Vector3.new(0.34, 0.16, 0.42), limbs),
-			CFrame.new(side * 0.38, -1.85, -0.62)
-		)
-
-		local leg = piece(rig, `{sideName(side)} Leg`, "Oval", Vector3.new(0.38, 1.35, 0.4), limbs)
-		joint(
-			rig,
-			torso,
-			leg,
-			`{sideName(side)} Hip`,
-			CFrame.new(side * 0.4, -1.2, 0.75),
-			Vector3.new(side * 0.4, -0.6, 0.75)
-		)
-		glue(
-			rig,
-			leg,
-			piece(rig, "Thigh", "Oval", Vector3.new(0.45, 0.75, 0.65), SAIMIRI_BACK),
-			CFrame.new(side * 0.4, -0.75, 0.72)
-		)
-		glue(
-			rig,
-			leg,
-			piece(rig, "Foot", "Oval", Vector3.new(0.38, 0.16, 0.55), limbs),
-			CFrame.new(side * 0.4, -1.84, 0.65)
-		)
-	end
-
-	-- Cola larga que cae hacia atrás y termina en una punta negra enroscada hacia arriba.
-	local tail = piece(rig, "Tail", "Oval", Vector3.new(0.18, 0.18, 3), SAIMIRI_BACK)
-	joint(
-		rig,
-		torso,
-		tail,
-		"TailJoint",
-		CFrame.new(0, -0.49, 2.55) * CFrame.Angles(math.rad(15), 0, 0),
-		Vector3.new(0, -0.1, 1.1)
-	)
-	glue(
-		rig,
-		tail,
-		piece(rig, "TailTip", "Oval", Vector3.new(0.22, 0.22, 1), SAIMIRI_DARK),
-		CFrame.new(0, -0.6, 4.28) * CFrame.Angles(math.rad(-45), 0, 0)
-	)
-end
-
--- Extremidades de los monos a cuatro patas (los simios se apoyan en los nudillos): brazos y piernas
--- que llegan al suelo, con manos y pies del color de la piel. "x" y "z" sitúan cada extremidad; size.Y es su largo.
-type Limb = { size: Vector3, x: number, z: number }
-
-local function groundLimbs(rig: Rig, torso: BasePart, fur: Color3, skin: Color3, arm: Limb, leg: Limb)
-	for side = -1, 1, 2 do
-		for _, limb in
-			{
-				{ spec = arm, part = "Arm", joint = "Shoulder", paw = "Hand", pawLength = 1.15 },
-				{ spec = leg, part = "Leg", joint = "Hip", paw = "Foot", pawLength = 1.4 },
-			}
-		do
-			local size = limb.spec.size
-			local x = side * limb.spec.x
-			local z = limb.spec.z
-			local part = piece(rig, `{sideName(side)} {limb.part}`, "Oval", size, fur)
-			joint(
-				rig,
-				torso,
-				part,
-				`{sideName(side)} {limb.joint}`,
-				CFrame.new(x, GROUND + size.Y / 2, z),
-				Vector3.new(x, GROUND + size.Y - size.X * 0.5, z)
-			)
-			glue(
-				rig,
-				part,
-				piece(rig, limb.paw, "Oval", Vector3.new(size.X, 0.3, size.Z * limb.pawLength), skin),
-				CFrame.new(x, GROUND + 0.13, z - 0.1)
-			)
-		end
-	end
-end
-
 local function eyes(rig: Rig, head: BasePart, spread: number, y: number, z: number, diameter: number)
 	for side = -1, 1, 2 do
 		glue(rig, head, piece(rig, "Eye", "Ball", Vector3.one * diameter, EYE_COLOR), CFrame.new(side * spread, y, z))
@@ -700,18 +577,189 @@ local function orangutan(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	end
 end
 
--- Monos con cola a cuatro patas: cuerpo, cabeza, extremidades hasta el suelo y la cola, que cae
--- con "droop" grados (negativo: levantada) y puede doblarse al final ("curl" grados; positivo: hacia
--- arriba). Devuelve el torso y la cabeza para añadir los rasgos de cada especie.
-type TailSpec = {
-	base: Vector3,
-	length: number,
-	thickness: number,
-	droop: number,
-	color: Color3?,
-	curl: { length: number, angle: number, color: Color3? }?,
+-- Óvalo estirado entre dos puntos (tramos de brazos, piernas y cola). Devuelve la pieza y su marco
+-- para articularla (joint) o pegarla (glue). Sobresale 0,6 × ancho por cada punta para que los
+-- tramos se solapen en la articulación y no se vean como cuentas de un collar.
+local function capsule(
+	rig: Rig,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: number,
+	color: Color3
+): (BasePart, CFrame)
+	local direction = to - from
+	-- Con un tramo casi vertical, lookAt necesita otra referencia de "arriba".
+	local up = if math.abs(direction.Unit.Y) > 0.9 then Vector3.new(0, 0, -1) else Vector3.yAxis
+	local part = piece(rig, name, "Oval", Vector3.new(width, width, direction.Magnitude + width * 1.2), color)
+	return part, CFrame.lookAt((from + to) / 2, to, up)
+end
+
+local function glueCapsule(
+	rig: Rig,
+	anchor: BasePart,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: number,
+	color: Color3
+)
+	local part, at = capsule(rig, name, from, to, width, color)
+	glue(rig, anchor, part, at)
+end
+
+-- Cabeza esférica de los monos con cola: los rasgos se colocan sobre su superficie para que queden
+-- pegados a ella y no flotando delante.
+type Sphere = { center: Vector3, radius: number }
+
+-- Mancha pegada a la cabeza en la dirección "direction" (cara, cejas, rayas, hocico). size.Z es lo que
+-- sobresale en el centro: por dentro es un óvalo hondo hundido en la cabeza, para que los bordes sigan
+-- la curva en vez de despegarse como un plato. size.Y va hacia arriba (o hacia delante, en la
+-- coronilla); "spin" la gira sobre sí misma.
+local function headPatch(
+	rig: Rig,
+	head: BasePart,
+	sphere: Sphere,
+	name: string,
+	size: Vector3,
+	color: Color3,
+	direction: Vector3,
+	spin: number?
+)
+	local normal = direction.Unit
+	local depth = size.Z + math.max(size.X, size.Y) * 0.6
+	local at = sphere.center + normal * (sphere.radius + size.Z - depth / 2)
+	local up = if math.abs(normal.Y) > 0.9 then Vector3.new(0, 0, -1) else Vector3.yAxis
+	feature(
+		rig,
+		head,
+		name,
+		Vector3.new(size.X, size.Y, depth),
+		color,
+		CFrame.lookAt(at, at + normal, up) * CFrame.Angles(0, 0, spin or 0)
+	)
+end
+
+-- Casquete de pelo (gorros, coronillas): una bola algo menor que la cabeza, desplazada hacia
+-- "toward", asoma solo por ese lado siguiendo la forma de la cabeza. "reach" va de 0 (cubre media
+-- cabeza) a 1 (nada); 0,5 deja solo la coronilla.
+local function hairCap(
+	rig: Rig,
+	head: BasePart,
+	sphere: Sphere,
+	name: string,
+	color: Color3,
+	toward: Vector3,
+	reach: number
+)
+	local offset = sphere.radius * 0.4
+	local diameter = (sphere.radius - offset * reach) * 2
+	glue(
+		rig,
+		head,
+		piece(rig, name, "Ball", Vector3.one * diameter, color),
+		CFrame.new(sphere.center + toward.Unit * offset)
+	)
+end
+
+-- Ojos sobre la cabeza: "spread" los abre a los lados y "lift" los sube (proporciones de la dirección);
+-- "out" los adelanta, para que asomen sobre una cara (headPatch) que sobresale de la cabeza.
+local function sphereEyes(
+	rig: Rig,
+	head: BasePart,
+	sphere: Sphere,
+	spread: number,
+	lift: number,
+	diameter: number,
+	out: number,
+	color: Color3?
+)
+	for side = -1, 1, 2 do
+		local direction = Vector3.new(side * spread, lift, -1).Unit
+		glue(
+			rig,
+			head,
+			piece(rig, "Eye", "Ball", Vector3.one * diameter, color or EYE_COLOR),
+			CFrame.new(sphere.center + direction * (sphere.radius + out - diameter * 0.15))
+		)
+	end
+end
+
+-- Extremidades de los monos con cola, a cuatro patas. El brazo baja recto hasta la mano con el codo
+-- un poco atrás; la pierna se dobla con la rodilla hacia delante ("bend") y el talón levantado detrás,
+-- como en las fotos. La pieza articulada es el brazo o el muslo; antebrazo, espinilla, mano y pie van
+-- pegados. "x", "y" y "z" son el hombro o la cadera; "upper" y "lower", los colores de cada tramo.
+type Limb = {
+	x: number,
+	y: number,
+	z: number,
+	width: number,
+	upper: Color3?,
+	lower: Color3?,
+	bend: number?,
 }
 
+local function fourLimbs(rig: Rig, torso: BasePart, fur: Color3, paws: Color3, arm: Limb, leg: Limb)
+	for side = -1, 1, 2 do
+		local name = sideName(side)
+
+		local shoulder = Vector3.new(side * arm.x, arm.y, arm.z)
+		local wrist = Vector3.new(side * arm.x, GROUND + 0.18, arm.z - 0.1)
+		local elbow = shoulder:Lerp(wrist, 0.5) + Vector3.new(0, 0, 0.12)
+		local upperArm, armAt = capsule(rig, `{name} Arm`, shoulder, elbow, arm.width, arm.upper or fur)
+		joint(rig, torso, upperArm, `{name} Shoulder`, armAt, shoulder)
+		glueCapsule(rig, upperArm, "Forearm", elbow, wrist, arm.width * 0.9, arm.lower or arm.upper or fur)
+		feature(
+			rig,
+			upperArm,
+			"Hand",
+			Vector3.new(arm.width * 1.1, 0.2, arm.width * 1.5),
+			paws,
+			CFrame.new(wrist.X, GROUND + 0.1, wrist.Z - arm.width * 0.3)
+		)
+
+		local hip = Vector3.new(side * leg.x, leg.y, leg.z)
+		local ankle = Vector3.new(side * leg.x, GROUND + 0.18, leg.z + 0.2)
+		local knee = Vector3.new(side * leg.x, (hip.Y + ankle.Y) / 2, leg.z - (leg.bend or 0.35))
+		local thigh, legAt = capsule(rig, `{name} Leg`, hip, knee, leg.width, leg.upper or fur)
+		joint(rig, torso, thigh, `{name} Hip`, legAt, hip)
+		glueCapsule(rig, thigh, "Shin", knee, ankle, leg.width * 0.75, leg.lower or leg.upper or fur)
+		feature(
+			rig,
+			thigh,
+			"Foot",
+			Vector3.new(leg.width * 0.8, 0.2, leg.width * 1.9),
+			paws,
+			CFrame.new(ankle.X, GROUND + 0.1, ankle.Z - leg.width * 0.7)
+		)
+	end
+end
+
+-- Cola por tramos que pasan por "points"; el primero es la base, donde se articula. El primer tramo
+-- es la pieza "Tail" y los demás van pegados a él, cada uno algo más fino. Desde el tramo "tipFrom"
+-- (por defecto, el último) toma el color "tipColor".
+type TailSpec = { points: { Vector3 }, width: number, color: Color3?, tipColor: Color3?, tipFrom: number? }
+
+local function tail(rig: Rig, torso: BasePart, spec: TailSpec, fur: Color3)
+	local points = spec.points
+	local tipFrom = spec.tipFrom or #points - 1
+	local first: BasePart? = nil
+	for index = 1, #points - 1 do
+		local color = if spec.tipColor and index >= tipFrom then spec.tipColor else spec.color or fur
+		local width = spec.width * (1 - 0.1 * (index - 1))
+		local part, at =
+			capsule(rig, if first then "TailTip" else "Tail", points[index], points[index + 1], width, color)
+		if first then
+			glue(rig, first, part, at)
+		else
+			joint(rig, torso, part, "TailJoint", at, points[1])
+			first = part
+		end
+	end
+end
+
+-- Monos con cola a cuatro patas: cuerpo (tilt positivo: el pecho más alto que la grupa), cabeza,
+-- extremidades y cola. Devuelve el torso, la cabeza y su esfera para añadir los rasgos de cada especie.
 type BodySpec = {
 	fur: Color3,
 	paws: Color3,
@@ -723,35 +771,7 @@ type BodySpec = {
 	tail: TailSpec,
 }
 
-local function tail(rig: Rig, torso: BasePart, spec: TailSpec, fur: Color3)
-	local color = spec.color or fur
-	local droop = math.rad(spec.droop)
-	local direction = Vector3.new(0, -math.sin(droop), math.cos(droop))
-	local thickness = Vector3.new(spec.thickness, spec.thickness, 0)
-	local part = piece(rig, "Tail", "Oval", thickness + Vector3.new(0, 0, spec.length), color)
-	joint(
-		rig,
-		torso,
-		part,
-		"TailJoint",
-		CFrame.new(spec.base + direction * spec.length / 2) * CFrame.Angles(droop, 0, 0),
-		spec.base
-	)
-	local curl = spec.curl
-	if curl then
-		local bend = droop - math.rad(curl.angle)
-		local bendDirection = Vector3.new(0, -math.sin(bend), math.cos(bend))
-		local start = spec.base + direction * (spec.length - spec.thickness)
-		glue(
-			rig,
-			part,
-			piece(rig, "TailTip", "Oval", thickness + Vector3.new(0, 0, curl.length), curl.color or color),
-			CFrame.new(start + bendDirection * curl.length / 2) * CFrame.Angles(bend, 0, 0)
-		)
-	end
-end
-
-local function tailedMonkey(rig: Rig, spec: BodySpec): (BasePart, BasePart)
+local function tailedMonkey(rig: Rig, spec: BodySpec): (BasePart, BasePart, Sphere)
 	local body = spec.torso
 	local torso = piece(rig, "Torso", "Oval", body.size, spec.fur)
 	joint(
@@ -764,402 +784,516 @@ local function tailedMonkey(rig: Rig, spec: BodySpec): (BasePart, BasePart)
 	)
 	local headSpec = spec.head
 	local head = piece(rig, "Head", "Ball", Vector3.one * headSpec.diameter, headSpec.color or spec.fur)
-	joint(rig, torso, head, "Neck", CFrame.new(0, headSpec.y, headSpec.z), spec.neck)
-	groundLimbs(rig, torso, spec.fur, spec.paws, spec.arm, spec.leg)
+	local center = Vector3.new(0, headSpec.y, headSpec.z)
+	joint(rig, torso, head, "Neck", CFrame.new(center), spec.neck)
+	fourLimbs(rig, torso, spec.fur, spec.paws, spec.arm, spec.leg)
 	tail(rig, torso, spec.tail, spec.fur)
-	return torso, head
+	return torso, head, { center = center, radius = headSpec.diameter / 2 }
 end
 
--- Aullador rojo: robusto y rojizo, cara oscura y una gran barba sobre la garganta (su caja de
--- resonancia). Cola prensil con la punta colgando.
+-- Mono ardilla (Saimiri): pequeño y esbelto, con la espalda arqueada. Cabeza blanca con el gorro gris
+-- oscuro que baja por la nuca, ojos grandes y hocico negro; lomo gris oliva y vientre claro;
+-- antebrazos, espinillas, manos y pies dorados; cola larga que cuelga, con la punta negra.
+-- Colores de Data/Monkeys: bodyColor = extremidades, faceColor = cara.
+local SAIMIRI_BACK = Color3.fromRGB(128, 122, 82)
+local SAIMIRI_BELLY = Color3.fromRGB(238, 222, 170)
+local SAIMIRI_CAP = Color3.fromRGB(100, 98, 85)
+local SAIMIRI_DARK = Color3.fromRGB(38, 34, 30)
+
+local function squirrelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
+	local limbs = definition.bodyColor
+	local face = definition.faceColor
+	local torso, head, sphere = tailedMonkey(rig, {
+		fur = SAIMIRI_BACK,
+		paws = limbs,
+		torso = { size = Vector3.new(0.95, 0.85, 1.85), y = -0.3, z = 0.25, tilt = -6 },
+		head = { diameter = 1.05, y = 0.1, z = -1.05, color = face },
+		neck = Vector3.new(0, -0.2, -0.7),
+		arm = { x = 0.36, y = -0.5, z = -0.5, width = 0.3, lower = limbs },
+		leg = { x = 0.38, y = -0.45, z = 0.9, width = 0.42, lower = limbs },
+		tail = {
+			points = {
+				Vector3.new(0, -0.2, 1.1),
+				Vector3.new(0, -0.5, 2.1),
+				Vector3.new(0, -1.05, 2.8),
+				Vector3.new(0, -0.95, 3.45),
+			},
+			width = 0.22,
+			tipColor = SAIMIRI_DARK,
+		},
+	})
+	feature(
+		rig,
+		torso,
+		"Belly",
+		Vector3.new(0.75, 0.5, 1.4),
+		SAIMIRI_BELLY,
+		CFrame.new(0, -0.55, 0.2) * CFrame.Angles(math.rad(-6), 0, 0)
+	)
+	hairCap(rig, head, sphere, "Cap", SAIMIRI_CAP, Vector3.new(0, 1, 0.7), 0.25)
+	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.42, 0.34, 0.16), SAIMIRI_DARK, Vector3.new(0, -0.35, -1))
+	sphereEyes(rig, head, sphere, 0.38, 0.2, 0.2, 0)
+	for side = -1, 1, 2 do
+		feature(rig, head, "Ear", Vector3.new(0.12, 0.34, 0.28), face, CFrame.new(side * 0.55, 0.15, -0.95))
+	end
+end
+
+-- Aullador rojo: lomo naranja rojizo y la cabeza, la barba y las patas granates; cara negra y desnuda
+-- con una gran barba sobre la garganta (su caja de resonancia). Va encorvado, con la cabeza más baja
+-- que los hombros, y la cola prensil sale recta hacia atrás y cae al final.
 local function howler(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local skin = definition.faceColor
-	local torso, head = tailedMonkey(rig, {
+	local maroon = fur:Lerp(Color3.fromRGB(90, 20, 15), 0.5)
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
 		paws = skin,
-		torso = { size = Vector3.new(1.3, 1.2, 2.2), y = -0.3, z = 0.2, tilt = 8 },
-		head = { diameter = 1, y = 0.25, z = -1.25 },
-		neck = Vector3.new(0, -0.05, -0.8),
-		arm = { size = Vector3.new(0.32, 1.45, 0.36), x = 0.5, z = -0.55 },
-		leg = { size = Vector3.new(0.36, 1.4, 0.4), x = 0.45, z = 0.95 },
+		torso = { size = Vector3.new(1.3, 1.15, 2.2), y = -0.2, z = 0.25, tilt = -4 },
+		head = { diameter = 0.95, y = -0.05, z = -1.35, color = maroon },
+		neck = Vector3.new(0, -0.2, -0.85),
+		arm = { x = 0.52, y = -0.4, z = -0.6, width = 0.38, lower = maroon },
+		leg = { x = 0.48, y = -0.35, z = 0.95, width = 0.48, lower = maroon },
 		tail = {
-			base = Vector3.new(0, -0.1, 1.25),
-			length = 2.6,
-			thickness = 0.22,
-			droop = 20,
-			curl = { length = 0.8, angle = -70 },
+			points = {
+				Vector3.new(0, 0, 1.25),
+				Vector3.new(0, 0, 2.4),
+				Vector3.new(0, -0.4, 3.2),
+				Vector3.new(0, -1.1, 3.5),
+			},
+			width = 0.28,
+			tipColor = maroon,
 		},
 	})
-	feature(rig, head, "Face", Vector3.new(0.7, 0.7, 0.35), skin, CFrame.new(0, 0.2, -1.62))
-	feature(rig, head, "Muzzle", Vector3.new(0.5, 0.4, 0.35), skin, CFrame.new(0, 0.02, -1.72))
-	feature(rig, head, "Beard", Vector3.new(0.75, 0.6, 0.6), darker(fur, 0.25), CFrame.new(0, -0.25, -1.45))
-	eyes(rig, head, 0.15, 0.32, -1.76, 0.11)
-	feature(rig, torso, "Shoulders", Vector3.new(1.35, 0.9, 1), fur, CFrame.new(0, -0.1, -0.5))
+	feature(rig, torso, "Shoulders", Vector3.new(1.4, 1.05, 1.3), fur, CFrame.new(0, -0.05, -0.4))
+	feature(rig, head, "Beard", Vector3.new(0.85, 0.75, 0.75), darker(maroon, 0.15), CFrame.new(0, -0.4, -1.45))
+	headPatch(rig, head, sphere, "Brow", Vector3.new(0.7, 0.2, 0.05), darker(maroon, 0.25), Vector3.new(0, 0.45, -1))
+	headPatch(rig, head, sphere, "Face", Vector3.new(0.62, 0.62, 0.07), skin, Vector3.new(0, -0.05, -1))
+	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.48, 0.36, 0.16), skin, Vector3.new(0, -0.4, -1))
+	sphereEyes(rig, head, sphere, 0.3, 0.2, 0.1, 0.07)
 end
 
--- Capuchino de cara blanca: cuerpo oscuro, cara, pecho y hombros claros, gorro negro y cara rosada.
--- Cola prensil con la punta enroscada hacia abajo.
+-- Capuchino de cara blanca: cuerpo, patas y cola negros; cabeza, hombros y pecho crema, con el gorro
+-- negro en la coronilla y la cara rosada. La cola cae al final con la punta enroscada hacia dentro.
 local function capuchin(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local cream = definition.faceColor
-	local skin = Color3.fromRGB(225, 170, 150)
-	local torso, head = tailedMonkey(rig, {
+	local skin = Color3.fromRGB(210, 150, 130)
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
 		paws = darker(fur, 0.3),
-		torso = { size = Vector3.new(1, 0.95, 1.8), y = -0.35, z = 0.15, tilt = 6 },
-		head = { diameter = 1, y = 0.25, z = -1.15, color = cream },
-		neck = Vector3.new(0, -0.05, -0.75),
-		arm = { size = Vector3.new(0.28, 1.4, 0.3), x = 0.4, z = -0.5 },
-		leg = { size = Vector3.new(0.32, 1.35, 0.34), x = 0.4, z = 0.8 },
+		torso = { size = Vector3.new(1, 0.95, 1.8), y = -0.3, z = 0.2, tilt = 4 },
+		head = { diameter = 1, y = 0.2, z = -1.15, color = cream },
+		neck = Vector3.new(0, -0.15, -0.75),
+		arm = { x = 0.38, y = -0.5, z = -0.5, width = 0.28 },
+		leg = { x = 0.38, y = -0.45, z = 0.8, width = 0.38 },
 		tail = {
-			base = Vector3.new(0, -0.15, 1),
-			length = 2.2,
-			thickness = 0.2,
-			droop = -15,
-			curl = { length = 0.7, angle = -100 },
+			points = {
+				Vector3.new(0, -0.15, 1),
+				Vector3.new(0, -0.05, 2),
+				Vector3.new(0, -0.45, 2.8),
+				Vector3.new(0, -0.95, 2.9),
+			},
+			width = 0.22,
 		},
 	})
-	feature(rig, torso, "Chest", Vector3.new(1.05, 0.8, 0.9), cream, CFrame.new(0, -0.15, -0.55))
-	feature(rig, head, "Cap", Vector3.new(1.02, 0.5, 0.95), Color3.fromRGB(30, 25, 22), CFrame.new(0, 0.58, -1.02))
-	feature(rig, head, "Face", Vector3.new(0.55, 0.6, 0.25), skin, CFrame.new(0, 0.18, -1.6))
-	feature(
+	feature(rig, torso, "Mantle", Vector3.new(1.2, 0.85, 0.6), cream, CFrame.new(0, -0.2, -0.7))
+	hairCap(rig, head, sphere, "Cap", fur, Vector3.new(0, 1, 0.2), 0.5)
+	headPatch(rig, head, sphere, "Face", Vector3.new(0.55, 0.6, 0.07), skin, Vector3.new(0, -0.15, -1))
+	headPatch(
 		rig,
 		head,
+		sphere,
 		"Muzzle",
-		Vector3.new(0.38, 0.28, 0.25),
+		Vector3.new(0.36, 0.26, 0.16),
 		skin:Lerp(Color3.new(1, 1, 1), 0.2),
-		CFrame.new(0, 0.02, -1.7)
+		Vector3.new(0, -0.45, -1)
 	)
-	eyes(rig, head, 0.13, 0.28, -1.72, 0.12)
+	sphereEyes(rig, head, sphere, 0.27, 0.05, 0.12, 0.07)
 	for side = -1, 1, 2 do
 		glue(rig, head, piece(rig, "Ear", "Ball", Vector3.one * 0.22, cream), CFrame.new(side * 0.48, 0.25, -1.1))
 	end
 end
 
--- Marimonda (mono araña): negra, con brazos y piernas larguísimos y finos, barriga y una cola
--- prensil muy larga levantada en forma de S.
+-- Marimonda (mono araña del Chocó): toda negra, cabeza pequeña con la cara oscura y la barbilla
+-- más clara, barriga redonda, brazos y piernas larguísimos y finos y una cola muy larga levantada
+-- en forma de S, con la punta doblada hacia delante.
 local function spiderMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local skin = definition.faceColor
-	local torso, head = tailedMonkey(rig, {
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
 		paws = skin,
-		torso = { size = Vector3.new(0.95, 0.95, 1.6), y = -0.05, z = 0.15, tilt = 15 },
-		head = { diameter = 0.85, y = 0.5, z = -0.95 },
+		torso = { size = Vector3.new(1, 1, 1.6), y = 0, z = 0.15, tilt = 18 },
+		head = { diameter = 0.8, y = 0.55, z = -0.95 },
 		neck = Vector3.new(0, 0.25, -0.6),
-		arm = { size = Vector3.new(0.22, 2.2, 0.24), x = 0.45, z = -0.45 },
-		leg = { size = Vector3.new(0.24, 1.95, 0.26), x = 0.4, z = 0.7 },
+		arm = { x = 0.3, y = -0.05, z = -0.35, width = 0.25 },
+		leg = { x = 0.3, y = -0.35, z = 0.6, width = 0.3 },
 		tail = {
-			base = Vector3.new(0, 0.1, 0.9),
-			length = 3.4,
-			thickness = 0.15,
-			droop = -35,
-			curl = { length = 0.9, angle = -110 },
+			points = {
+				Vector3.new(0, 0, 0.85),
+				Vector3.new(0, 0.7, 1.45),
+				Vector3.new(0, 1.6, 1.65),
+				Vector3.new(0, 2.05, 1.3),
+				Vector3.new(0, 1.85, 0.95),
+			},
+			width = 0.26,
 		},
 	})
-	feature(rig, torso, "Belly", Vector3.new(0.85, 0.75, 1), darker(fur, 0.2), CFrame.new(0, -0.3, 0.25))
-	feature(rig, head, "Face", Vector3.new(0.55, 0.55, 0.25), skin, CFrame.new(0, 0.45, -1.32))
-	feature(rig, head, "Muzzle", Vector3.new(0.35, 0.25, 0.22), skin, CFrame.new(0, 0.32, -1.42))
-	eyes(rig, head, 0.12, 0.54, -1.44, 0.1)
+	feature(
+		rig,
+		torso,
+		"Belly",
+		Vector3.new(0.8, 0.75, 0.95),
+		fur:Lerp(Color3.new(1, 1, 1), 0.06),
+		CFrame.new(0, -0.3, 0.25)
+	)
+	headPatch(rig, head, sphere, "Face", Vector3.new(0.48, 0.5, 0.07), skin, Vector3.new(0, -0.05, -1))
+	headPatch(
+		rig,
+		head,
+		sphere,
+		"Muzzle",
+		Vector3.new(0.3, 0.22, 0.16),
+		skin:Lerp(Color3.new(1, 1, 1), 0.15),
+		Vector3.new(0, -0.45, -1)
+	)
+	sphereEyes(rig, head, sphere, 0.3, 0.1, 0.09, 0.07)
 end
 
--- Tití del Chocó (tamarino de Geoffroy): diminuto, cabeza oscura con una cresta blanca en forma de
--- cuña, nuca rojiza, garganta y pecho blancos, lomo moteado y cola larga que cuelga.
+-- Tití del Chocó (tamarino de Geoffroy): diminuto. Cara gris oscura con una cresta blanca en cuña
+-- sobre la frente, nuca rojiza, garganta, pecho y brazos blancos, lomo oscuro con rayas pardas y
+-- cola oscura que cuelga.
 local function tamarin(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local white = definition.faceColor
+	local back = darker(fur, 0.5)
+	local face = Color3.fromRGB(55, 52, 52)
 	local dark = Color3.fromRGB(40, 35, 30)
-	local torso, head = tailedMonkey(rig, {
-		fur = fur,
+	local body = Vector3.new(0.95, 0.85, 1.5)
+	local torso, head, sphere = tailedMonkey(rig, {
+		fur = back,
 		paws = dark,
-		torso = { size = Vector3.new(0.95, 0.85, 1.5), y = -0.45, z = 0.15, tilt = 5 },
-		head = { diameter = 1, y = 0.15, z = -1, color = dark },
+		torso = { size = body, y = -0.35, z = 0.15, tilt = 5 },
+		head = { diameter = 0.9, y = 0.2, z = -1, color = face },
 		neck = Vector3.new(0, -0.2, -0.6),
-		arm = { size = Vector3.new(0.25, 1.25, 0.27), x = 0.38, z = -0.45 },
-		leg = { size = Vector3.new(0.28, 1.25, 0.3), x = 0.38, z = 0.7 },
+		arm = { x = 0.36, y = -0.5, z = -0.45, width = 0.26, upper = white },
+		leg = { x = 0.36, y = -0.45, z = 0.7, width = 0.36, upper = fur, lower = dark },
 		tail = {
-			base = Vector3.new(0, -0.3, 0.9),
-			length = 2.6,
-			thickness = 0.16,
-			droop = 30,
-			curl = { length = 0.6, angle = -20, color = dark },
+			points = {
+				Vector3.new(0, -0.25, 0.85),
+				Vector3.new(0, -0.6, 1.8),
+				Vector3.new(0, -1.2, 2.4),
+				Vector3.new(0, -1.4, 2.9),
+			},
+			width = 0.18,
 		},
 	})
-	feature(rig, torso, "Mottle", Vector3.new(0.7, 0.25, 0.9), darker(fur, 0.45), CFrame.new(0, -0.05, 0.3))
-	feature(rig, torso, "Chest", Vector3.new(0.8, 0.6, 0.8), white, CFrame.new(0, -0.55, -0.35))
-	feature(rig, head, "Crest", Vector3.new(0.35, 0.55, 0.9), white, CFrame.new(0, 0.6, -1))
-	feature(rig, head, "Nape", Vector3.new(0.8, 0.6, 0.5), Color3.fromRGB(170, 80, 40), CFrame.new(0, 0.15, -0.6))
-	feature(rig, head, "Throat", Vector3.new(0.6, 0.45, 0.4), white, CFrame.new(0, -0.2, -1.25))
-	for side = -1, 1, 2 do
-		glue(
+	-- Rayas pardas de través: anillos algo más anchos que el lomo en ese punto, que solo asoman por
+	-- encima y por los lados.
+	for _, offset in { 0.15, 0.5 } do
+		local ring = math.sqrt(1 - (offset / (body.Z / 2)) ^ 2) + 0.07
+		feature(
 			rig,
-			head,
-			piece(rig, "Eye", "Ball", Vector3.one * 0.16, Color3.fromRGB(120, 70, 30)),
-			CFrame.new(side * 0.17, 0.22, -1.47)
+			torso,
+			"Stripe",
+			Vector3.new(body.X * ring, body.Y * ring, 0.3),
+			fur,
+			CFrame.new(0, -0.35 - offset * math.sin(math.rad(5)), 0.15 + offset) * CFrame.Angles(math.rad(5), 0, 0)
 		)
+	end
+	feature(rig, torso, "Chest", Vector3.new(0.8, 0.65, 0.6), white, CFrame.new(0, -0.45, -0.4))
+	headPatch(rig, head, sphere, "Crest", Vector3.new(0.24, 0.65, 0.06), white, Vector3.new(0, 1, -0.6))
+	feature(rig, head, "Nape", Vector3.new(0.8, 0.6, 0.55), Color3.fromRGB(170, 80, 40), CFrame.new(0, 0.2, -0.6))
+	feature(rig, head, "Throat", Vector3.new(0.6, 0.45, 0.4), white, CFrame.new(0, -0.15, -1.2))
+	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.32, 0.24, 0.16), darker(face, 0.3), Vector3.new(0, -0.35, -1))
+	sphereEyes(rig, head, sphere, 0.38, 0.12, 0.15, 0, Color3.fromRGB(120, 70, 30))
+	for side = -1, 1, 2 do
+		feature(rig, head, "Ear", Vector3.new(0.1, 0.25, 0.2), dark, CFrame.new(side * 0.45, 0.35, -0.95))
 	end
 end
 
--- Marteja (mono nocturno): cabeza redonda con una máscara clara, rayas oscuras y unos ojos enormes
--- que brillan en la oscuridad; pecho anaranjado y cola peluda con la punta negra.
+-- Marteja (mono nocturno): cabeza redonda con unos ojos enormes que brillan en la oscuridad, manchas
+-- blancas encima y tres rayas oscuras (una en medio y una a cada lado); pelo gris pardo, pecho
+-- anaranjado y una cola gruesa con la punta negra.
 local function nightMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local pale = definition.faceColor
 	local stripe = Color3.fromRGB(45, 38, 32)
-	local torso, head = tailedMonkey(rig, {
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
-		paws = darker(fur, 0.3),
-		torso = { size = Vector3.new(1, 0.95, 1.7), y = -0.35, z = 0.15, tilt = 6 },
-		head = { diameter = 1, y = 0.25, z = -1.1 },
-		neck = Vector3.new(0, -0.1, -0.7),
-		arm = { size = Vector3.new(0.28, 1.4, 0.3), x = 0.4, z = -0.5 },
-		leg = { size = Vector3.new(0.32, 1.4, 0.34), x = 0.4, z = 0.8 },
+		paws = darker(fur, 0.35),
+		torso = { size = Vector3.new(1, 0.95, 1.7), y = -0.3, z = 0.2, tilt = 4 },
+		head = { diameter = 1.05, y = 0.2, z = -1.1 },
+		neck = Vector3.new(0, -0.15, -0.7),
+		arm = { x = 0.38, y = -0.5, z = -0.5, width = 0.28 },
+		leg = { x = 0.38, y = -0.45, z = 0.8, width = 0.4, lower = fur:Lerp(Color3.fromRGB(150, 150, 150), 0.3) },
 		tail = {
-			base = Vector3.new(0, -0.15, 1),
-			length = 2.6,
-			thickness = 0.3,
-			droop = 25,
-			curl = { length = 0.8, angle = -10, color = stripe },
+			points = {
+				Vector3.new(0, -0.15, 1.05),
+				Vector3.new(0, -0.5, 2),
+				Vector3.new(0, -1.1, 2.7),
+				Vector3.new(0, -1.35, 3.2),
+			},
+			width = 0.28,
+			tipColor = stripe,
 		},
 	})
 	feature(
 		rig,
 		torso,
 		"Chest",
-		Vector3.new(0.85, 0.6, 0.9),
+		Vector3.new(0.85, 0.6, 0.85),
 		Color3.fromRGB(215, 160, 100),
 		CFrame.new(0, -0.55, -0.35)
 	)
-	feature(rig, head, "Face", Vector3.new(0.75, 0.65, 0.28), pale, CFrame.new(0, 0.25, -1.5))
-	feature(rig, head, "Stripe", Vector3.new(0.08, 0.4, 0.06), stripe, CFrame.new(0, 0.42, -1.66))
+	headPatch(
+		rig,
+		head,
+		sphere,
+		"Muzzle",
+		Vector3.new(0.36, 0.26, 0.16),
+		Color3.fromRGB(70, 60, 55),
+		Vector3.new(0, -0.3, -1)
+	)
+	headPatch(rig, head, sphere, "Stripe", Vector3.new(0.09, 0.5, 0.04), stripe, Vector3.new(0, 0.6, -1))
 	for side = -1, 1, 2 do
-		feature(
+		headPatch(
 			rig,
 			head,
-			"Stripe",
-			Vector3.new(0.08, 0.35, 0.06),
-			stripe,
-			CFrame.new(side * 0.33, 0.38, -1.6) * CFrame.Angles(0, side * math.rad(30), side * math.rad(-20))
+			sphere,
+			"Patch",
+			Vector3.new(0.3, 0.16, 0.05),
+			pale,
+			Vector3.new(side * 0.38, 0.45, -1),
+			side * -0.3
 		)
+		headPatch(
+			rig,
+			head,
+			sphere,
+			"Stripe",
+			Vector3.new(0.08, 0.45, 0.04),
+			stripe,
+			Vector3.new(side * 0.75, 0.35, -1),
+			side * 0.2
+		)
+		-- Ojos que brillan, con la pupila delante.
+		local direction = Vector3.new(side * 0.35, 0.05, -1).Unit
+		local eye = sphere.center + direction * (sphere.radius - 0.08)
 		glue(
 			rig,
 			head,
 			piece(rig, "Eye", "Ball", Vector3.one * 0.3, Color3.fromRGB(255, 170, 60), Enum.Material.Neon),
-			CFrame.new(side * 0.18, 0.28, -1.62)
+			CFrame.new(eye)
 		)
-		glue(
-			rig,
-			head,
-			piece(rig, "Pupil", "Ball", Vector3.one * 0.14, EYE_COLOR),
-			CFrame.new(side * 0.18, 0.28, -1.74)
-		)
+		glue(rig, head, piece(rig, "Pupil", "Ball", Vector3.one * 0.15, EYE_COLOR), CFrame.new(eye + direction * 0.09))
 	end
-	feature(rig, head, "Muzzle", Vector3.new(0.3, 0.2, 0.2), stripe, CFrame.new(0, 0.06, -1.66))
 end
 
--- Mandril: grande y musculoso, hocico largo con la nariz roja y las mejillas azules, barba
--- amarilla, trasero de colores y una cola muy corta.
+-- Mandril: grande y oscuro, con la cabeza en punta, cejas pesadas, el hocico largo con las crestas
+-- azules a los lados y la nariz roja, barba y collar amarillentos, trasero de colores y una cola
+-- cortísima.
 local function mandrill(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local red = definition.faceColor
-	local blue = Color3.fromRGB(60, 110, 200)
-	local torso, head = tailedMonkey(rig, {
+	local blue = Color3.fromRGB(150, 185, 225)
+	local cream = Color3.fromRGB(215, 190, 120)
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
 		paws = Color3.fromRGB(50, 45, 40),
 		torso = { size = Vector3.new(1.5, 1.35, 2.3), y = -0.1, z = 0.25, tilt = 14 },
-		head = { diameter = 1.1, y = 0.4, z = -1.35 },
-		neck = Vector3.new(0, 0.2, -0.85),
-		arm = { size = Vector3.new(0.48, 1.95, 0.52), x = 0.7, z = -0.75 },
-		leg = { size = Vector3.new(0.5, 1.6, 0.55), x = 0.55, z = 1.05 },
-		tail = { base = Vector3.new(0, 0, 1.4), length = 0.5, thickness = 0.2, droop = -20 },
+		head = { diameter = 1.1, y = 0.45, z = -1.4 },
+		neck = Vector3.new(0, 0.2, -0.9),
+		arm = { x = 0.68, y = -0.25, z = -0.75, width = 0.5 },
+		leg = { x = 0.55, y = -0.25, z = 1.05, width = 0.58 },
+		tail = { points = { Vector3.new(0, 0, 1.4), Vector3.new(0, 0.25, 1.8) }, width = 0.2 },
 	})
 	feature(rig, torso, "Shoulders", Vector3.new(1.7, 1.2, 1.2), fur, CFrame.new(0, 0.15, -0.6))
-	feature(rig, torso, "Rump", Vector3.new(0.9, 0.8, 0.35), Color3.fromRGB(120, 90, 200), CFrame.new(0, -0.35, 1.45))
-	feature(rig, head, "Snout", Vector3.new(0.6, 0.55, 0.95), blue, CFrame.new(0, 0.25, -1.95))
-	feature(rig, head, "NoseRidge", Vector3.new(0.22, 0.2, 0.95), red, CFrame.new(0, 0.48, -1.98))
-	feature(rig, head, "Nose", Vector3.new(0.3, 0.22, 0.15), red, CFrame.new(0, 0.42, -2.42))
-	feature(rig, head, "Beard", Vector3.new(0.8, 0.45, 0.6), Color3.fromRGB(220, 190, 90), CFrame.new(0, 0, -1.75))
-	feature(rig, head, "Brow", Vector3.new(0.8, 0.22, 0.3), darker(fur, 0.3), CFrame.new(0, 0.75, -1.75))
+	feature(rig, torso, "Collar", Vector3.new(1.4, 0.7, 0.9), cream, CFrame.new(0, 0.3, -0.95))
+	feature(rig, torso, "Rump", Vector3.new(0.85, 0.75, 0.3), Color3.fromRGB(120, 90, 200), CFrame.new(0, -0.35, 1.45))
+	feature(rig, head, "Crest", Vector3.new(0.6, 0.45, 0.7), fur, CFrame.new(0, 0.85, -1.35))
+	headPatch(rig, head, sphere, "Brow", Vector3.new(0.85, 0.24, 0.1), darker(fur, 0.35), Vector3.new(0, 0.45, -1))
+	feature(rig, head, "NoseRidge", Vector3.new(0.2, 0.2, 0.95), red, CFrame.new(0, 0.63, -2.03))
+	feature(rig, head, "Nose", Vector3.new(0.34, 0.26, 0.2), red, CFrame.new(0, 0.5, -2.5))
+	feature(
+		rig,
+		head,
+		"Beard",
+		Vector3.new(0.75, 0.42, 0.6),
+		cream:Lerp(Color3.new(1, 1, 1), 0.2),
+		CFrame.new(0, 0.05, -1.9)
+	)
 	for side = -1, 1, 2 do
-		glue(
+		feature(
 			rig,
 			head,
-			piece(rig, "Eye", "Ball", Vector3.one * 0.12, Color3.fromRGB(170, 110, 40)),
-			CFrame.new(side * 0.2, 0.62, -1.83)
+			"Ridge",
+			Vector3.new(0.28, 0.5, 0.95),
+			blue,
+			CFrame.new(side * 0.17, 0.42, -2) * CFrame.Angles(0, side * 0.08, 0)
 		)
 	end
+	sphereEyes(rig, head, sphere, 0.33, 0.25, 0.12, 0, Color3.fromRGB(170, 110, 40))
 end
 
--- Macaco (rhesus): pelo pardo grisáceo, cuartos traseros anaranjados, cara y orejas rosadas, cejas
--- marcadas y cola mediana.
+-- Macaco (rhesus): pelo pardo grisáceo con los cuartos traseros y las piernas anaranjados, cara y
+-- orejas rosadas enmarcadas por pelo más claro, cejas marcadas y cola mediana.
 local function macaque(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local skin = definition.faceColor
-	local torso, head = tailedMonkey(rig, {
+	local orange = Color3.fromRGB(180, 110, 60)
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
 		paws = darker(skin, 0.15),
 		torso = { size = Vector3.new(1.2, 1.1, 2), y = -0.25, z = 0.2, tilt = 8 },
-		head = { diameter = 0.95, y = 0.3, z = -1.2 },
-		neck = Vector3.new(0, 0, -0.8),
-		arm = { size = Vector3.new(0.32, 1.55, 0.35), x = 0.5, z = -0.6 },
-		leg = { size = Vector3.new(0.36, 1.5, 0.4), x = 0.45, z = 0.95 },
-		tail = { base = Vector3.new(0, -0.05, 1.15), length = 1.2, thickness = 0.2, droop = 30 },
+		head = { diameter = 0.95, y = 0.25, z = -1.25 },
+		neck = Vector3.new(0, -0.05, -0.85),
+		arm = { x = 0.5, y = -0.4, z = -0.6, width = 0.34 },
+		leg = { x = 0.48, y = -0.35, z = 0.95, width = 0.46, upper = orange },
+		tail = {
+			points = { Vector3.new(0, -0.05, 1.2), Vector3.new(0, -0.25, 1.9), Vector3.new(0, -0.75, 2.3) },
+			width = 0.22,
+			color = orange,
+		},
 	})
 	feature(
 		rig,
 		torso,
 		"Haunches",
-		Vector3.new(1.15, 0.9, 1),
-		Color3.fromRGB(175, 125, 85),
+		Vector3.new(1.15, 0.95, 1),
+		orange,
 		CFrame.new(0, -0.25, 0.85) * CFrame.Angles(math.rad(8), 0, 0)
 	)
-	feature(rig, head, "Face", Vector3.new(0.62, 0.6, 0.3), skin, CFrame.new(0, 0.27, -1.58))
-	feature(rig, head, "Muzzle", Vector3.new(0.42, 0.32, 0.3), skin, CFrame.new(0, 0.1, -1.7))
-	feature(rig, head, "Brow", Vector3.new(0.62, 0.15, 0.22), fur, CFrame.new(0, 0.46, -1.65))
-	eyes(rig, head, 0.15, 0.35, -1.72, 0.11)
+	feature(
+		rig,
+		head,
+		"Ruff",
+		Vector3.new(0.95, 0.7, 0.5),
+		fur:Lerp(Color3.new(1, 1, 1), 0.15),
+		CFrame.new(0, 0.1, -1.45)
+	)
+	headPatch(rig, head, sphere, "Face", Vector3.new(0.62, 0.62, 0.07), skin, Vector3.new(0, -0.05, -1))
+	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.42, 0.3, 0.16), skin, Vector3.new(0, -0.4, -1))
+	headPatch(rig, head, sphere, "Brow", Vector3.new(0.6, 0.15, 0.1), darker(fur, 0.15), Vector3.new(0, 0.4, -1))
+	sphereEyes(rig, head, sphere, 0.3, 0.15, 0.1, 0.07)
 	for side = -1, 1, 2 do
-		feature(rig, head, "Ear", Vector3.new(0.1, 0.28, 0.22), skin, CFrame.new(side * 0.48, 0.35, -1.15))
+		feature(rig, head, "Ear", Vector3.new(0.1, 0.28, 0.22), skin, CFrame.new(side * 0.47, 0.32, -1.2))
 	end
 end
 
--- Babuino: hocico largo como de perro, melena sobre los hombros (más grande en el alfa), callos
--- rosados en el trasero y la cola "rota": sube y luego cae.
+-- Babuino (oliva): patas largas y la espalda que baja hacia la grupa; melena sobre el cuello y los
+-- hombros, mejillas peludas, hocico largo como de perro con la cara gris oscura y los ojos hundidos
+-- bajo la ceja, callos rosados en el trasero y la cola "rota": sube y luego cae.
 local function baboon(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local skin = definition.faceColor
-	local torso, head = tailedMonkey(rig, {
+	local mane = fur:Lerp(Color3.new(1, 1, 1), 0.1)
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
-		paws = skin,
-		torso = { size = Vector3.new(1.35, 1.2, 2.2), y = -0.15, z = 0.25, tilt = 12 },
-		head = { diameter = 0.95, y = 0.35, z = -1.3 },
-		neck = Vector3.new(0, 0.1, -0.85),
-		arm = { size = Vector3.new(0.4, 1.85, 0.44), x = 0.62, z = -0.75 },
-		leg = { size = Vector3.new(0.42, 1.6, 0.46), x = 0.5, z = 1 },
+		paws = darker(skin, 0.1),
+		torso = { size = Vector3.new(1.25, 1.15, 2.2), y = 0, z = 0.25, tilt = 12 },
+		head = { diameter = 0.95, y = 0.5, z = -1.35 },
+		neck = Vector3.new(0, 0.2, -0.9),
+		arm = { x = 0.58, y = -0.1, z = -0.75, width = 0.4 },
+		leg = { x = 0.5, y = -0.2, z = 1, width = 0.5, bend = 0.3 },
 		tail = {
-			base = Vector3.new(0, 0.05, 1.3),
-			length = 0.7,
-			thickness = 0.2,
-			droop = -45,
-			curl = { length = 1.4, angle = -120 },
+			points = {
+				Vector3.new(0, 0.15, 1.3),
+				Vector3.new(0, 0.65, 1.75),
+				Vector3.new(0, 0.5, 2.2),
+				Vector3.new(0, -0.5, 2.4),
+			},
+			width = 0.24,
 		},
 	})
-	feature(
-		rig,
-		torso,
-		"Mane",
-		Vector3.new(1.6, 1.3, 1.3),
-		fur:Lerp(Color3.new(1, 1, 1), 0.1),
-		CFrame.new(0, 0.2, -0.55)
-	)
-	feature(
-		rig,
-		torso,
-		"Callus",
-		Vector3.new(0.7, 0.55, 0.25),
-		Color3.fromRGB(200, 110, 110),
-		CFrame.new(0, -0.5, 1.35)
-	)
-	feature(rig, head, "Muzzle", Vector3.new(0.5, 0.45, 0.95), skin, CFrame.new(0, 0.18, -1.85))
-	feature(rig, head, "Nose", Vector3.new(0.3, 0.22, 0.12), darker(skin, 0.3), CFrame.new(0, 0.25, -2.3))
-	feature(rig, head, "Brow", Vector3.new(0.7, 0.18, 0.3), darker(skin, 0.2), CFrame.new(0, 0.55, -1.68))
+	feature(rig, torso, "Mane", Vector3.new(1.5, 1.25, 1.2), mane, CFrame.new(0, 0.2, -0.6))
+	feature(rig, torso, "Callus", Vector3.new(0.6, 0.5, 0.25), Color3.fromRGB(200, 110, 110), CFrame.new(0, -0.45, 1.4))
+	feature(rig, head, "Muzzle", Vector3.new(0.48, 0.45, 0.95), skin, CFrame.new(0, 0.32, -1.9))
+	feature(rig, head, "Nose", Vector3.new(0.32, 0.25, 0.12), darker(skin, 0.3), CFrame.new(0, 0.38, -2.37))
+	headPatch(rig, head, sphere, "Brow", Vector3.new(0.7, 0.2, 0.1), darker(skin, 0.2), Vector3.new(0, 0.45, -1))
 	for side = -1, 1, 2 do
-		glue(
-			rig,
-			head,
-			piece(rig, "Eye", "Ball", Vector3.one * 0.11, Color3.fromRGB(150, 100, 40)),
-			CFrame.new(side * 0.16, 0.45, -1.75)
-		)
-		glue(rig, head, piece(rig, "Ear", "Ball", Vector3.one * 0.2, skin), CFrame.new(side * 0.45, 0.45, -1.2))
+		feature(rig, head, "Cheek", Vector3.new(0.3, 0.6, 0.5), mane, CFrame.new(side * 0.42, 0.45, -1.5))
 	end
+	sphereEyes(rig, head, sphere, 0.33, 0.2, 0.11, 0, Color3.fromRGB(150, 100, 40))
 end
 
--- Mono de cola larga (macaco cangrejero): pardo grisáceo, patillas claras alrededor de la cara,
--- una cresta en la coronilla y una cola larguísima.
+-- Mono de cola larga (macaco cangrejero): pardo grisáceo con el vientre claro, patillas grises que se
+-- abren en abanico alrededor de la cara, cara rosada grisácea, un copete en punta en la coronilla y
+-- una cola larguísima que cuelga.
 local function longTailedMacaque(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local pale = definition.faceColor
-	local skin = Color3.fromRGB(200, 160, 140)
-	local _, head = tailedMonkey(rig, {
+	local skin = Color3.fromRGB(190, 150, 135)
+	local torso, head, sphere = tailedMonkey(rig, {
 		fur = fur,
-		paws = skin,
+		paws = darker(skin, 0.2),
 		torso = { size = Vector3.new(1.1, 1, 1.9), y = -0.3, z = 0.2, tilt = 6 },
 		head = { diameter = 0.9, y = 0.22, z = -1.15 },
-		neck = Vector3.new(0, -0.05, -0.75),
-		arm = { size = Vector3.new(0.3, 1.5, 0.33), x = 0.45, z = -0.55 },
-		leg = { size = Vector3.new(0.34, 1.45, 0.37), x = 0.42, z = 0.9 },
+		neck = Vector3.new(0, -0.1, -0.75),
+		arm = { x = 0.42, y = -0.45, z = -0.55, width = 0.3 },
+		leg = { x = 0.4, y = -0.4, z = 0.9, width = 0.42 },
 		tail = {
-			base = Vector3.new(0, -0.1, 1.1),
-			length = 3.2,
-			thickness = 0.17,
-			droop = 22,
-			curl = { length = 0.7, angle = 40 },
+			points = {
+				Vector3.new(0, -0.1, 1.1),
+				Vector3.new(0, -0.35, 2.2),
+				Vector3.new(0, -0.85, 3.1),
+				Vector3.new(0, -1.55, 3.6),
+			},
+			width = 0.19,
+			color = fur:Lerp(pale, 0.2),
 		},
 	})
-	feature(rig, head, "Whiskers", Vector3.new(0.95, 0.55, 0.35), pale, CFrame.new(0, 0.12, -1.45))
-	feature(rig, head, "Face", Vector3.new(0.55, 0.55, 0.28), skin, CFrame.new(0, 0.2, -1.5))
-	feature(rig, head, "Muzzle", Vector3.new(0.35, 0.25, 0.25), skin, CFrame.new(0, 0.05, -1.62))
-	feature(rig, head, "Crest", Vector3.new(0.25, 0.35, 0.5), fur, CFrame.new(0, 0.7, -1.1))
-	eyes(rig, head, 0.13, 0.28, -1.63, 0.1)
+	feature(rig, torso, "Belly", Vector3.new(0.85, 0.6, 1.3), fur:Lerp(pale, 0.5), CFrame.new(0, -0.55, 0.1))
+	-- Patillas pegadas a los lados de la cabeza, peinadas hacia atrás y abajo, enmarcando la cara.
+	for side = -1, 1, 2 do
+		headPatch(
+			rig,
+			head,
+			sphere,
+			"Whiskers",
+			Vector3.new(0.26, 0.42, 0.06),
+			fur:Lerp(pale, 0.6),
+			Vector3.new(side * 0.55, -0.35, -0.8),
+			side * 0.3
+		)
+	end
+	headPatch(rig, head, sphere, "Face", Vector3.new(0.52, 0.55, 0.07), skin, Vector3.new(0, 0, -1))
+	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.34, 0.26, 0.16), skin, Vector3.new(0, -0.35, -1))
+	headPatch(rig, head, sphere, "Crest", Vector3.new(0.24, 0.5, 0.08), fur, Vector3.new(0, 1, 0.15))
+	sphereEyes(rig, head, sphere, 0.3, 0.15, 0.1, 0.07)
 end
 
--- Gibón: simio sin cola que en el suelo anda erguido, con los larguísimos brazos en alto para
--- equilibrarse. Pelo oscuro, cara negra rodeada de un anillo claro y manos claras.
+-- Gibón (de manos blancas): simio sin cola que en el suelo anda erguido, con los larguísimos brazos en
+-- alto y algo doblados para equilibrarse y las piernas flexionadas. Pelo oscuro, cara negra rodeada
+-- de un anillo claro, y manos y pies claros.
 local function gibbon(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	local fur = definition.bodyColor
 	local pale = definition.faceColor
-	local torso = piece(rig, "Torso", "Oval", Vector3.new(1, 1.5, 0.8), fur)
+	local torso = piece(rig, "Torso", "Oval", Vector3.new(1, 1.45, 0.8), fur)
 	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, -0.05, 0), Vector3.new(0, -0.05, 0))
 	local head = piece(rig, "Head", "Ball", Vector3.one * 0.85, fur)
-	joint(rig, torso, head, "Neck", CFrame.new(0, 1.05, -0.05), Vector3.new(0, 0.7, 0))
-	feature(rig, head, "FaceRing", Vector3.new(0.68, 0.72, 0.2), pale, CFrame.new(0, 1.02, -0.38))
-	feature(rig, head, "Face", Vector3.new(0.5, 0.55, 0.25), Color3.fromRGB(25, 22, 20), CFrame.new(0, 1.02, -0.42))
+	joint(rig, torso, head, "Neck", CFrame.new(0, 1, -0.05), Vector3.new(0, 0.7, 0))
+	feature(rig, head, "FaceRing", Vector3.new(0.66, 0.7, 0.2), pale, CFrame.new(0, 0.98, -0.38))
+	feature(rig, head, "Face", Vector3.new(0.48, 0.52, 0.25), Color3.fromRGB(25, 22, 20), CFrame.new(0, 0.98, -0.42))
+	eyes(rig, head, 0.11, 1.06, -0.53, 0.1)
 	for side = -1, 1, 2 do
-		glue(
-			rig,
-			head,
-			piece(rig, "Eye", "Ball", Vector3.one * 0.1, Color3.fromRGB(110, 70, 40)),
-			CFrame.new(side * 0.11, 1.1, -0.53)
-		)
-		-- Brazos en alto, abiertos 40° desde la vertical, con las manos claras.
+		local name = sideName(side)
+		-- Brazos en alto, abiertos desde el hombro y con el codo doblado hacia fuera.
 		local shoulder = Vector3.new(side * 0.5, 0.5, 0)
-		local angle = -side * math.rad(40)
-		local up = Vector3.new(-math.sin(angle), math.cos(angle), 0)
-		local arm = piece(rig, `{sideName(side)} Arm`, "Oval", Vector3.new(0.24, 2.4, 0.26), fur)
-		joint(
-			rig,
-			torso,
-			arm,
-			`{sideName(side)} Shoulder`,
-			CFrame.new(shoulder + up * 1.08) * CFrame.Angles(0, 0, angle),
-			shoulder
-		)
-		feature(
-			rig,
-			arm,
-			"Hand",
-			Vector3.new(0.28, 0.4, 0.32),
-			pale,
-			CFrame.new(shoulder + up * 2.3) * CFrame.Angles(0, 0, angle)
-		)
+		local elbow = shoulder + Vector3.new(side * 0.8, 0.8, 0.05)
+		local wrist = elbow + Vector3.new(side * 0.3, 0.95, -0.05)
+		local arm, armAt = capsule(rig, `{name} Arm`, shoulder, elbow, 0.26, fur)
+		joint(rig, torso, arm, `{name} Shoulder`, armAt, shoulder)
+		glueCapsule(rig, arm, "Forearm", elbow, wrist, 0.22, fur)
+		glueCapsule(rig, arm, "Hand", wrist, wrist + Vector3.new(side * 0.05, 0.25, 0), 0.24, pale)
 
-		local leg = piece(rig, `{sideName(side)} Leg`, "Oval", Vector3.new(0.32, 1.3, 0.34), fur)
-		joint(
-			rig,
-			torso,
-			leg,
-			`{sideName(side)} Hip`,
-			CFrame.new(side * 0.3, GROUND + 0.65, 0.05),
-			Vector3.new(side * 0.3, -0.75, 0.05)
-		)
-		feature(
-			rig,
-			leg,
-			"Foot",
-			Vector3.new(0.3, 0.2, 0.55),
-			darker(fur, 0.2),
-			CFrame.new(side * 0.3, GROUND + 0.1, -0.12)
-		)
+		local hip = Vector3.new(side * 0.3, -0.6, 0.05)
+		local knee = Vector3.new(side * 0.36, -1.15, -0.25)
+		local ankle = Vector3.new(side * 0.32, GROUND + 0.15, 0.1)
+		local leg, legAt = capsule(rig, `{name} Leg`, hip, knee, 0.36, fur)
+		joint(rig, torso, leg, `{name} Hip`, legAt, hip)
+		glueCapsule(rig, leg, "Shin", knee, ankle, 0.28, fur)
+		feature(rig, leg, "Foot", Vector3.new(0.3, 0.2, 0.6), pale, CFrame.new(ankle.X, GROUND + 0.1, -0.12))
 	end
 end
 
