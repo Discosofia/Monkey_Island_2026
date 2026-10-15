@@ -116,7 +116,8 @@ function MonkeyAnimator.play(model: Model, action: Action)
 	end
 end
 
--- Al morir: corta todo y reproduce Death (si la hay).
+-- Al ser derrotado: corta todo. No reproduce Death: el mono desaparece con un "¡puf!" (Combat/Poof)
+-- en vez de caerse muerto, para que la violencia sea de caricatura (cuestionario de madurez).
 function MonkeyAnimator.die(model: Model)
 	local rig = rigs[model]
 	if not rig then
@@ -126,7 +127,6 @@ function MonkeyAnimator.die(model: Model)
 		playing:Stop(0.1)
 	end
 	rig.locomotion = nil
-	MonkeyAnimator.play(model, "Death")
 end
 
 return MonkeyAnimator

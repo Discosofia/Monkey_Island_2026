@@ -1,6 +1,6 @@
 --!strict
 -- Muñecos de práctica en el Basecamp para probar el combate hasta que lleguen los monos (Fase 1.4).
--- Tienen la etiqueta de enemigo, así que las armas les hacen daño. Al romperse, reaparecen.
+-- Tienen la etiqueta de enemigo, así que las armas les hacen daño. Al romperse hacen "¡puf!" y reaparecen.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,6 +8,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local BasecampService = require(script.Parent.BasecampService)
+local Poof = require(script.Parent.Parent.Combat.Poof)
 
 -- Posiciones respecto al centro del Basecamp: al este de la hoguera, mirando hacia ella.
 local DUMMY_OFFSETS = { Vector3.new(45, 0, -10), Vector3.new(45, 0, 0), Vector3.new(45, 0, 10) }
@@ -63,8 +64,8 @@ local function spawnDummy(ground: Vector3, lookAt: Vector3)
 			return
 		end
 		respawning = true
+		Poof.vanish(model)
 		task.delay(Config.Combat.DummyRespawnSeconds, function()
-			model:Destroy()
 			spawnDummy(ground, lookAt)
 		end)
 	end)

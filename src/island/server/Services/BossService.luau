@@ -13,7 +13,6 @@ local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
@@ -32,6 +31,7 @@ local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local Poof = require(script.Parent.Parent.Combat.Poof)
 local Status = require(script.Parent.Parent.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
@@ -177,15 +177,7 @@ local function onBossDied(boss: ActiveBoss)
 	end
 	announce(`🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`)
 	MonkeyAnimator.die(boss.model)
-	boss.root.Anchored = true
-	for _, part in boss.model:GetDescendants() do
-		if part:IsA("BasePart") and part.Transparency < 1 then
-			TweenService:Create(part, TweenInfo.new(2), { Transparency = 1 }):Play()
-		elseif part:IsA("ParticleEmitter") or part:IsA("Light") then
-			part.Enabled = false
-		end
-	end
-	Debris:AddItem(boss.model, 2.2)
+	Poof.vanish(boss.model)
 	publish()
 end
 

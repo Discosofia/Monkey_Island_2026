@@ -99,12 +99,15 @@ local Effects: { [string]: Effect } = {
 	LavaImpact = { id = BOOM, volume = 0.8, pitch = 0.8, jitter = 0.1, range = 160 },
 	RockImpact = { id = LAND, volume = 1, pitch = 0.5, jitter = 0.1, range = 120 },
 	EggHatch = { id = GET_UP, volume = 0.9, pitch = 1.8, range = 120 },
+	-- "¡Puf!" de humo al derrotar un mono, un jefe o un muñeco (Combat/Poof).
+	Poof = { id = GET_UP, volume = 0.6, pitch = 2.2, jitter = 0.1, range = 120 }, -- Provisional: "cartoon poof"
 }
 
 -- Voces de los monos por tamaño (cada especie elige su grupo con "voice" en Data/Monkeys). Cada grupo
 -- tiene cuatro: Attack (muerde o salta), Call (aúlla o ruge para llamar a la tropa), Hurt (recibe un
--- golpe) y Death (muere). Son grabaciones propias (ya afinadas en Audacity, por eso pitch = 1) con
--- varias tomas: cada vez suena una al azar. El número de cada toma está en su comentario.
+-- golpe) y Death (ya no suena: al derrotarlos suena Hurt y el "¡puf!", violencia de caricatura). Son
+-- grabaciones propias (ya afinadas en Audacity, por eso pitch = 1) con varias tomas: cada vez suena una
+-- al azar. El número de cada toma está en su comentario.
 local MonkeyVoices: { [string]: { [string]: Effect } } = {
 	-- Tití, capuchino, mono ardilla y marteja: chillidos agudos y trinos.
 	Small = {
@@ -204,7 +207,8 @@ end
 Effects.BossAttack = bossVoice(MonkeyVoices.Large.Attack, 120)
 Effects.BossRoar = bossVoice(MonkeyVoices.Large.Call, 260)
 Effects.BossHurt = bossVoice(MonkeyVoices.Large.Hurt, 160)
-Effects.BossDeath = bossVoice(MonkeyVoices.Large.Death, 260)
+-- Derrota del jefe: un quejido grave (no el grito de muerte) antes del "¡puf!".
+Effects.BossDeath = bossVoice(MonkeyVoices.Large.Hurt, 260)
 
 local Sounds = {
 	-- Música de fondo por situación (la Isla elige sola cuál toca). Basta con Lobby y Day: la que

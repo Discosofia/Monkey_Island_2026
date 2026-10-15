@@ -94,7 +94,7 @@ Reglas generales:
 | `Steal` | 0.5 s | No | 0 → reposo · 0.15 → `Right Arm` adelante 70°, `Head` adelante · 0.3 → `Right Arm` vuelve hacia el pecho (X 20°), `Head` ladeada pícara (Z 15°) · 0.5 → reposo | Capuchino ladrón |
 | `Howl` | 1.2 s | No | 0 → reposo · 0.25 → `Head` muy arriba (X 40°), `Torso` atrás 10°, `Tail` arriba · 0.5 / 0.8 → `Head` se balancea (Y ±6°) · 1.2 → reposo | Aullador rojo; el jefe pide refuerzos |
 
-Orden recomendado: `Idle`, `Attack`, `Hurt` y `Death` primero (se ven en todos los monos), luego `Run` y, al final, las especiales.
+Orden recomendado: `Idle`, `Attack` y `Hurt` primero (se ven en todos los monos), luego `Run` y, al final, las especiales.
 
 ## Paso 4: guardar, publicar y sacar el ID
 
@@ -130,7 +130,7 @@ Default = {
 | `Steal` | El capuchino roba |
 | `Howl` | El aullador llama a la tropa; el jefe pide refuerzos |
 | `Hurt` | Al recibir un golpe |
-| `Death` | Al morir, antes de desvanecerse |
+| `Death` | Sin uso: los monos derrotados desaparecen con un "¡puf!" (Combat/Poof) para que la violencia sea de caricatura |
 
 Para probarla: **Probar** (▶) y acércate a un mono. Si no se mueve, mira la ventana **Salida**: un aviso tipo *Failed to load animation* suele significar que se publicó con otro dueño que el del juego.
 

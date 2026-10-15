@@ -40,6 +40,7 @@ local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local Poof = require(script.Parent.Parent.Combat.Poof)
 local Status = require(script.Parent.Parent.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
@@ -198,7 +199,7 @@ local function showBubble(monkey: Monkey, text: string)
 	Debris:AddItem(billboard, 1.5)
 end
 
--- Voz del mono según su tamaño (Data/Sounds: MonkeyVoices): "Attack", "Call", "Hurt" o "Death".
+-- Voz del mono según su tamaño (Data/Sounds: MonkeyVoices): "Attack", "Call" o "Hurt".
 local function playVoice(monkey: Monkey, action: string, at: (Vector3 | Instance)?)
 	Sfx.play(`Monkey{monkey.definition.voice}{action}`, at or monkey.root)
 end
@@ -232,7 +233,7 @@ local function onDied(monkey: Monkey)
 	end
 	monkeys[monkey.model] = nil
 	removeFromGroup(monkey)
-	playVoice(monkey, "Death", monkey.root.Position)
+	playVoice(monkey, "Hurt", monkey.root.Position)
 	-- La espera para recuperar un mono empieza con la primera baja.
 	local group = monkey.group
 	group.nextRegrowAt = math.max(group.nextRegrowAt, os.clock() + Config.Monkeys.GroupRegrowSeconds)
@@ -263,16 +264,9 @@ local function onDied(monkey: Monkey)
 		end
 	end
 
-	-- El cuerpo se queda quieto y se desvanece.
+	-- "¡Puf!" de caricatura: el mono desaparece en una nube de humo con estrellas (sin caerse muerto).
 	MonkeyAnimator.die(monkey.model)
-	monkey.root.Anchored = true
-	local fade = TweenInfo.new(Config.Monkeys.CorpseSeconds)
-	for _, part in monkey.model:GetDescendants() do
-		if part:IsA("BasePart") and part.Transparency < 1 then
-			TweenService:Create(part, fade, { Transparency = 1 }):Play()
-		end
-	end
-	Debris:AddItem(monkey.model, Config.Monkeys.CorpseSeconds + 0.1)
+	Poof.vanish(monkey.model)
 end
 
 local onHurt: (monkey: Monkey, health: number) -> ()

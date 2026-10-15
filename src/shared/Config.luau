@@ -97,8 +97,6 @@ local Config = {
 		HowlReinforcementSeconds = 6,
 		HowlReinforcementSpecies = "MonoArdilla",
 		HowlReinforcementCount = 2,
-		-- Segundos que tarda en desvanecerse un mono derrotado.
-		CorpseSeconds = 1.5,
 		-- Fase 4: radio alrededor de la guarida de su bioma donde aparecen las especies de bioma,
 		-- límite de monos a la vez en el servidor (rendimiento) y alfas de las tropas.
 		BiomeRadius = 220,
@@ -447,6 +445,24 @@ local Config = {
 		-- Etiqueta (CollectionService) de las luces del barco que parpadean como averiadas
 		-- (las pone World/LobbyBuilder; las hace parpadear ShipLightsController en cada cliente).
 		BrokenLightTag = "LuzAveriada",
+	},
+
+	Social = {
+		-- Invitar amigos, favoritos y notificaciones (para que llegue más gente; docs/LANZAMIENTO.md §9).
+		InviteMessage = "¡Ven a sobrevivir conmigo en la isla de los monos!",
+		-- Al llegar al Lobby con estas partidas jugadas se pide marcar el juego como favorito (si no
+		-- lo es ya). Solo se pide una cosa por visita al Lobby y unos segundos después de llegar.
+		FavoritePromptMatches = { 1, 3, 6, 10 },
+		-- Desde esta partida se ofrece activar las notificaciones (Roblox solo lo muestra una vez cada
+		-- 30 días, a mayores de 13 años y si aún no las tiene activadas).
+		NotificationPromptMinMatches = 2,
+		PromptDelaySeconds = 6,
+		-- Aviso a tus amigos cuando entras al Lobby. Es el "Asset ID" de la cadena de notificación
+		-- (Creator Hub → tu experiencia → Interacción → Notificaciones). Texto sugerido:
+		-- "{userId-friend} está jugando {experienceName}. ¡Únete a su tropa!". "" = desactivado.
+		FriendJoinedMessageId = "f6089cdc-feb4-484f-9bcc-29c06b14d736",
+		FriendNotifyMax = 25, -- amigos avisados como mucho cada vez
+		FriendNotifyCooldownSeconds = 6 * 3600, -- por jugador: no avisa otra vez al volver de la Isla
 	},
 }
 

@@ -7,7 +7,7 @@
 
 ## 1. Visión
 
-**Pitch:** *Naufragas en una isla tropical infestada de monos que comen carne humana. Con hasta 19 jugadores más, especialízate como guerrero, cazador, mago o médico, fortifica el Basecamp, sobrevive noches cada vez más feroces y derrota a los jefes de la isla para encender la baliza de rescate.*
+**Pitch:** *Naufragas en una isla tropical llena de monos salvajes y traviesos que te roban la comida. Con hasta 19 jugadores más, especialízate como guerrero, cazador, mago o médico, fortifica el Basecamp, sobrevive noches cada vez más feroces y derrota a los jefes de la isla para encender la baliza de rescate.*
 
 ### Pilares de diseño
 
@@ -397,7 +397,7 @@ sequenceDiagram
 - **Activar PvP:** en un tótem del Basecamp. Los jugadores con PvP activo llevan un **indicador visible** y solo pueden atacar a otros jugadores con PvP activo.
 - **Desactivar PvP:** hay una espera (por ejemplo 3 minutos) para evitar abusos.
 - **Activación automática:** al **cargar el huevo** o al abrir una **caja de suministro** disputada.
-- **Recompensa por cabeza:** quien acumula derribos PvP tiene una recompensa visible para los demás jugadores con PvP activo.
+- **Recompensa PvP:** quien acumula derribos PvP tiene una recompensa visible para los demás jugadores con PvP activo.
 
 ---
 
@@ -443,7 +443,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 |---|---|
 | **Alcance enorme** para una sola persona | Construir por fases, con un *vertical slice* jugable antes de producir contenido. Datos de configuración en lugar de código duplicado. |
 | **Rendimiento** (20 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y pruebas en móviles de gama baja. |
-| **Moderación** ("comen carne humana") | Sin sangre ni gore. Derrotas con animaciones estilizadas. La amenaza se transmite con lore y tono. Completar el cuestionario de madurez de contenido. |
+| **Moderación y edades** (llegar a menores de 16: Roblox Kids y Select) | Sin sangre ni gore. Los monos derrotados desaparecen con un "¡puf!" de humo y estrellas, sin animación ni grito de muerte (violencia leve, de caricatura). Cuestionario de madurez completo y requisitos de [LANZAMIENTO.md §9](LANZAMIENTO.md#9-menores-de-16-roblox-kids-y-select). |
 | **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Island* (§15). |
 | **Objetos aleatorios de pago** | Huevos solo por juego. Si algún día se venden, mostrar probabilidades según las normas de Roblox. |
 | **Exploits y trampas** | Servidor autoritativo: todo daño, botín y crafteo se valida en el servidor. |

@@ -6,6 +6,7 @@
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
 --   - Botón para plegar el menú y pasear por el naufragio.
+--   - Botón "Invitar amigos" (invitación de Roblox a tus amigos para que vengan a este Lobby).
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
 local HttpService = game:GetService("HttpService")
@@ -13,6 +14,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SocialService = game:GetService("SocialService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
@@ -23,6 +25,7 @@ local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
+local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
@@ -109,6 +112,20 @@ local function note(list: Instance, text: string, order: number)
 	label.LayoutOrder = order
 	label.Size = UDim2.new(1, -10, 0, 34)
 	label.TextColor3 = Color3.fromRGB(255, 220, 150)
+end
+
+-- Abre la ventana de Roblox para invitar a tus amigos a este servidor del Lobby.
+local function inviteFriends(player: Player)
+	local ok, canInvite = pcall(function()
+		return SocialService:CanSendGameInviteAsync(player)
+	end)
+	if not (ok and canInvite) then
+		Toast.show("No puedes enviar invitaciones desde esta cuenta o dispositivo")
+		return
+	end
+	local options = Instance.new("ExperienceInviteOptions")
+	options.PromptMessage = Config.Social.InviteMessage
+	SocialService:PromptGameInvite(player, options)
 end
 
 function LobbyUIController:Start()
@@ -374,7 +391,14 @@ function LobbyUIController:Start()
 				else "Invita a otros jugadores para viajar juntos a la misma isla",
 			0
 		)
-		local order = 1
+		local inviteRow = newRow(list, 1)
+		inviteRow.title.Text = "📨 Invitar amigos"
+		inviteRow.detail.Text = "Envía una invitación a tus amigos de Roblox para que vengan a este Lobby."
+		setButton(inviteRow.button, "Invitar", true)
+		inviteRow.button.MouseButton1Click:Connect(function()
+			inviteFriends(player)
+		end)
+		local order = 2
 		if inParty then
 			local row = newRow(list, order)
 			row.title.Text = if isLeader then "Eres el líder" else "Viajáis cuando el líder pulse Ir a la Isla"
@@ -477,6 +501,17 @@ function LobbyUIController:Start()
 	menuButton.Activated:Connect(function()
 		panel.Visible = not panel.Visible
 		menuButton.Text = if panel.Visible then "📜 Ocultar menú" else "📜 Abrir menú"
+	end)
+
+	-- Invitar amigos de Roblox (también está en la pestaña Grupo). Encima del botón del menú: abajo a
+	-- la derecha está el botón de saltar en móvil.
+	local inviteButton = Widgets.button("📨 Invitar amigos", gui)
+	inviteButton.Name = "InviteFriends"
+	inviteButton.AnchorPoint = Vector2.new(0, 1)
+	inviteButton.Position = UDim2.fromScale(0.02, 0.87)
+	inviteButton.Size = UDim2.fromScale(0.17, 0.07)
+	inviteButton.Activated:Connect(function()
+		inviteFriends(player)
 	end)
 
 	-- Ventana de invitación.

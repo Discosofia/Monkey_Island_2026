@@ -84,6 +84,9 @@ local Remotes = {
 	TutorialDone = remoteEvent("TutorialDone"),
 	-- Servidor -> clientes (Isla): la mascota de un jugador ataca a un mono (Player, Model).
 	PetAttack = remoteEvent("PetAttack"),
+	-- Servidor -> clientes (Isla): "¡puf!" de humo al derrotar un mono, un jefe o un muñeco
+	-- (posición Vector3, tamaño en studs). Cada cliente dibuja las partículas (PoofController).
+	Poof = remoteEvent("Poof"),
 }
 
 return Remotes

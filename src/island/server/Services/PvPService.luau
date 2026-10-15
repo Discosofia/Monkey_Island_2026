@@ -2,7 +2,7 @@
 -- PvP opt-in (GDD §12, Fase 5).
 --   - Se activa en el tótem del Basecamp. Desactivarlo tarda Config.PvP.DisableDelaySeconds.
 --   - Solo se pelea entre jugadores con PvP activo y fuera del Basecamp (CombatService.damagePvP).
---   - Indicador sobre la cabeza ("⚔️ PvP") con la recompensa por cabeza: cada derribo PvP la sube y
+--   - Indicador sobre la cabeza ("⚔️ PvP") con la recompensa PvP: cada derribo PvP la sube y
 --     quien te derriba la cobra (Ámbar al final de la partida).
 --   - Abrir una caja de suministro o cargar el huevo lo activa a la fuerza un rato (forceOn).
 

@@ -224,7 +224,7 @@ function CombatService.playerFromPart(part: Instance): Player?
 end
 local playerFromPart = CombatService.playerFromPart
 
--- Daño de un jugador a otro. Si lo deja caído, cobra su recompensa por cabeza y sube la propia.
+-- Daño de un jugador a otro. Si lo deja caído, cobra su recompensa PvP y sube la propia.
 function CombatService.damagePvP(attacker: Player, victim: Player, amount: number): boolean
 	if attacker == victim or not (pvpReady(attacker) and pvpReady(victim)) then
 		return false
