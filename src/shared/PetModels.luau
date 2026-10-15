@@ -29,6 +29,8 @@ type Rig = { model: Model, scale: number, joints: { Joint } }
 local WHITE = Color3.fromRGB(245, 245, 238)
 local BLACK = Color3.fromRGB(22, 22, 26)
 local CREAM = Color3.fromRGB(235, 215, 175)
+-- Gira un cilindro (eje X) para ponerlo de pie.
+local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2)
 
 local rigs: { [Model]: { Joint } } = {}
 
@@ -130,25 +132,17 @@ local function eyes(rig: Rig, center: Vector3, spread: number, diameter: number,
 	end
 end
 
--- Cilindro entre dos puntos (tubos, picos finos).
-local function rod(
-	rig: Rig,
-	name: string,
-	from: Vector3,
-	to: Vector3,
-	diameter: number,
-	color: Color3,
-	material: Enum.Material?
-): BasePart
-	local length = (to - from).Magnitude
+-- Óvalo alargado entre dos puntos (brazos, muslos): sus extremos redondos tapan las juntas.
+local function capsule(rig: Rig, name: string, from: Vector3, to: Vector3, width: number, color: Color3): BasePart
+	local length = (to - from).Magnitude + width * 0.5
 	return piece(
 		rig,
 		name,
-		"Cylinder",
-		Vector3.new(length, diameter, diameter),
-		CFrame.lookAt((from + to) / 2, to) * CFrame.Angles(0, math.pi / 2, 0),
+		"Oval",
+		Vector3.new(width, width, length),
+		CFrame.lookAt((from + to) / 2, to),
 		color,
-		material
+		Enum.Material.Fabric
 	)
 end
 
@@ -817,37 +811,167 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		return "Walk"
 	end,
 
-	-- Mono X-7: monito del laboratorio con casco de cristal, antena y depósito brillante a la espalda.
+	-- Mono X-7: chimpancé del laboratorio, de pelo azul eléctrico con calvas cosidas, agachado sobre
+	-- los nudillos. Casco de astronauta oxidado con la cara al aire, antena de espiral que brilla y
+	-- tubos anillados que van de las sienes a la mochila del suero.
 	MonoX7 = function(rig, color)
-		local fur = Color3.fromRGB(110, 120, 130)
-		local skin = Color3.fromRGB(220, 190, 160)
-		local metal = Color3.fromRGB(70, 75, 85)
-		piece(rig, "Body", "Oval", Vector3.new(0.9, 1.1, 0.8), CFrame.new(0, 0, 0), fur)
+		local fur = Color3.fromRGB(35, 115, 215)
+		local furLight = fur:Lerp(Color3.fromRGB(150, 220, 255), 0.45)
+		local furDark = fur:Lerp(BLACK, 0.3)
+		local skin = Color3.fromRGB(165, 125, 105)
+		local skinDark = skin:Lerp(BLACK, 0.4)
+		local hands = Color3.fromRGB(85, 72, 78)
+		local scar = Color3.fromRGB(200, 125, 125)
+		local stitch = Color3.fromRGB(70, 30, 40)
+		local shell = Color3.fromRGB(200, 185, 152)
+		local rust = Color3.fromRGB(175, 90, 40)
+		local copper = Color3.fromRGB(185, 115, 65)
+		local metal = Color3.fromRGB(95, 100, 112)
+		local hose = Color3.fromRGB(60, 64, 74)
+
+		-- Tronco inclinado hacia delante: "back" es el marco del tronco (su +Z es la espalda).
+		local lean = -0.55
+		local back = CFrame.new(0, 0.05, 0) * CFrame.Angles(lean, 0, 0)
+		piece(rig, "Body", "Oval", Vector3.new(1.15, 1.25, 1.0), back, fur, Enum.Material.Fabric)
+		piece(rig, "Hips", "Oval", Vector3.new(1.0, 0.85, 0.9), CFrame.new(0, -0.3, 0.4), fur, Enum.Material.Fabric)
+		piece(rig, "Belly", "Oval", Vector3.new(0.75, 0.85, 0.3), back * CFrame.new(0, -0.1, -0.38), furLight)
+
+		-- Cabeza grande de caricatura dentro del casco; la cara asoma por la abertura delantera.
+		local head = Vector3.new(0, 1.0, -0.5)
+		piece(rig, "Helmet", "Ball", Vector3.one * 1.36, CFrame.new(head), shell)
+		local facing = CFrame.Angles(0, math.pi / 2, 0)
 		piece(
 			rig,
-			"Belly",
-			"Oval",
-			Vector3.new(0.6, 0.75, 0.25),
-			CFrame.new(0, -0.05, -0.33),
-			Color3.fromRGB(200, 200, 190)
+			"VisorRim",
+			"Cylinder",
+			Vector3.new(0.14, 1.1, 1.1),
+			CFrame.new(head + Vector3.new(0, 0, -0.5)) * facing,
+			copper
 		)
-		piece(rig, "Head", "Ball", Vector3.one * 0.85, CFrame.new(0, 0.85, 0), fur)
-		piece(rig, "Face", "Oval", Vector3.new(0.6, 0.5, 0.25), CFrame.new(0, 0.8, -0.33), skin)
-		eyes(rig, Vector3.new(0, 0.9, -0.43), 0.15, 0.16, color, true)
-		piece(rig, "Mouth", "Oval", Vector3.new(0.2, 0.04, 0.04), CFrame.new(0, 0.66, -0.44), skin:Lerp(BLACK, 0.5))
-		-- Placa con su número en el pecho y tubos del depósito a los hombros.
+		piece(
+			rig,
+			"FaceFur",
+			"Oval",
+			Vector3.new(0.96, 0.92, 0.36),
+			CFrame.new(head + Vector3.new(0, -0.02, -0.56)),
+			fur,
+			Enum.Material.Fabric
+		)
+		piece(rig, "Face", "Oval", Vector3.new(0.74, 0.72, 0.3), CFrame.new(head + Vector3.new(0, -0.06, -0.66)), skin)
+		-- Cejas con el lado de dentro más alto: cara de susto, como el mono de la foto.
+		for _, side in { -1, 1 } do
+			piece(
+				rig,
+				"Brow",
+				"Oval",
+				Vector3.new(0.32, 0.13, 0.18),
+				CFrame.new(head + Vector3.new(side * 0.16, 0.2, -0.78)) * CFrame.Angles(0, 0, -side * 0.15),
+				skinDark:Lerp(skin, 0.4)
+			)
+		end
+		piece(
+			rig,
+			"Muzzle",
+			"Oval",
+			Vector3.new(0.5, 0.36, 0.34),
+			CFrame.new(head + Vector3.new(0, -0.23, -0.79)),
+			skin:Lerp(WHITE, 0.12)
+		)
+		piece(
+			rig,
+			"Mouth",
+			"Oval",
+			Vector3.new(0.18, 0.1, 0.06),
+			CFrame.new(head + Vector3.new(0, -0.32, -0.95)),
+			stitch
+		)
+		eyes(rig, head + Vector3.new(0, 0.04, -0.77), 0.16, 0.22, color)
+		for _, side in { -1, 1 } do
+			piece(
+				rig,
+				"Nostril",
+				"Oval",
+				Vector3.new(0.07, 0.035, 0.03),
+				CFrame.new(head + Vector3.new(side * 0.05, -0.15, -0.955)),
+				skinDark
+			)
+		end
+		-- Remaches del aro de la abertura.
+		local rivets = 8
+		for i = 1, rivets do
+			local angle = (i - 0.5) * 2 * math.pi / rivets
+			local position = head + Vector3.new(math.cos(angle) * 0.51, math.sin(angle) * 0.51, -0.575)
+			piece(rig, "Rivet", "Ball", Vector3.one * 0.07, CFrame.new(position), metal)
+		end
+
+		-- Casco: cresta de delante atrás, cuello de cobre, discos en las sienes y manchas de óxido.
+		piece(rig, "Crest", "Cylinder", Vector3.new(0.14, 1.42, 1.42), CFrame.new(head), shell:Lerp(metal, 0.35))
+		piece(
+			rig,
+			"Collar",
+			"Cylinder",
+			Vector3.new(0.18, 1.0, 1.0),
+			CFrame.new(head + Vector3.new(0, -0.6, 0.05)) * UPRIGHT,
+			copper
+		)
+		for _, side in { -1, 1 } do
+			local temple = head + Vector3.new(side * 0.66, -0.05, 0.08)
+			piece(rig, "EarDisc", "Cylinder", Vector3.new(0.14, 0.44, 0.44), CFrame.new(temple), metal)
+			piece(
+				rig,
+				"EarRing",
+				"Cylinder",
+				Vector3.new(0.16, 0.3, 0.3),
+				CFrame.new(temple + Vector3.new(side * 0.02, 0, 0)),
+				copper
+			)
+			piece(
+				rig,
+				"EarKnob",
+				"Ball",
+				Vector3.one * 0.14,
+				CFrame.new(temple + Vector3.new(side * 0.08, 0, 0)),
+				metal
+			)
+		end
+		-- Óxido: cada mancha son dos óvalos girados y desplazados, para que no parezcan lunares.
+		-- Óxido: cada mancha son dos óvalos girados y desplazados, de tamaños distintos, para que no
+		-- parezcan lunares.
+		for i, spot in
+			{
+				{ Vector3.new(0.6, 0.5, -0.3), 1.2 },
+				{ Vector3.new(-0.6, 0.3, 0.45), 0.8 },
+				{ Vector3.new(0.55, -0.35, 0.5), 1.0 },
+				{ Vector3.new(0, 0.35, 0.95), 1.35 },
+				{ Vector3.new(-0.55, -0.45, -0.25), 0.7 },
+			}
+		do
+			local normal = spot[1].Unit
+			local center = head + normal * 0.675
+			local frame = CFrame.lookAt(center, center + normal) * CFrame.Angles(0, 0, i * 1.3)
+			piece(rig, "Rust", "Oval", Vector3.new(0.36 * spot[2], 0.2 * spot[2], 0.05), frame, rust)
+			piece(
+				rig,
+				"Rust",
+				"Oval",
+				Vector3.new(0.2 * spot[2], 0.15 * spot[2], 0.05),
+				frame * CFrame.new(0.14 * spot[2], -0.06 * spot[2], -0.006),
+				rust:Lerp(shell, 0.4)
+			)
+		end
+		-- Placa con su número en la frente, a un lado de la cresta.
+		local badgeNormal = Vector3.new(0.4, 0.72, -0.56).Unit
 		local badge = piece(
 			rig,
 			"Badge",
 			"Block",
-			Vector3.new(0.26, 0.12, 0.04),
-			CFrame.new(0, 0.2, -0.43),
-			color,
-			Enum.Material.Neon
+			Vector3.new(0.34, 0.15, 0.04),
+			CFrame.lookAt(head + badgeNormal * 0.69, head + badgeNormal * 2),
+			metal
 		)
 		local label = Instance.new("SurfaceGui")
 		label.Face = Enum.NormalId.Front
-		label.CanvasSize = Vector2.new(52, 24)
+		label.CanvasSize = Vector2.new(68, 30)
 		label.LightInfluence = 0
 		label.Parent = badge
 		local text = Instance.new("TextLabel")
@@ -856,121 +980,294 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		text.Text = "X-7"
 		text.TextScaled = true
 		text.Font = Enum.Font.BuilderSansBold
-		text.TextColor3 = BLACK
+		text.TextColor3 = color
 		text.Parent = label
-		for _, side in { -1, 1 } do
-			piece(
-				rig,
-				"Nostril",
-				"Ball",
-				Vector3.one * 0.05,
-				CFrame.new(side * 0.05, 0.78, -0.455),
-				skin:Lerp(BLACK, 0.5)
-			)
-			piece(rig, "Bolt", "Ball", Vector3.one * 0.12, CFrame.new(side * 0.42, 0.4, 0), metal, Enum.Material.Metal)
-			rod(
-				rig,
-				"Tube",
-				Vector3.new(side * 0.12, 0.45, 0.5),
-				Vector3.new(side * 0.32, 0.42, 0.2),
-				0.07,
-				color,
-				Enum.Material.Neon
+
+		-- Antena: base, espiral de anillos que se estrecha y punta que brilla; se balancea un poco.
+		local top = head + Vector3.new(0, 0.66, 0)
+		local antenna: { BasePart } = {
+			piece(rig, "AntennaBase", "Cylinder", Vector3.new(0.14, 0.34, 0.34), CFrame.new(top) * UPRIGHT, copper),
+		}
+		local rings = 5
+		for i = 1, rings do
+			local width = 0.3 - (i - 1) * 0.05
+			local ringColor = if i % 2 == 1 then shell:Lerp(metal, 0.3) else metal
+			table.insert(
+				antenna,
+				piece(
+					rig,
+					"AntennaRing",
+					"Cylinder",
+					Vector3.new(0.1, width, width),
+					CFrame.new(top + Vector3.new(0, 0.04 + i * 0.08, 0)) * UPRIGHT,
+					ringColor
+				)
 			)
 		end
-		local helmet = piece(
+		local tip = piece(
 			rig,
-			"Helmet",
+			"AntennaTip",
 			"Ball",
-			Vector3.one * 1.2,
-			CFrame.new(0, 0.9, 0),
-			Color3.fromRGB(180, 230, 255),
-			Enum.Material.Glass
-		)
-		helmet.Transparency = 0.65
-		piece(
-			rig,
-			"Collar",
-			"Cylinder",
-			Vector3.new(0.15, 0.85, 0.85),
-			CFrame.new(0, 0.4, 0) * CFrame.Angles(0, 0, math.pi / 2),
-			metal,
-			Enum.Material.Metal
-		)
-		piece(
-			rig,
-			"Antenna",
-			"Cylinder",
-			Vector3.new(0.5, 0.06, 0.06),
-			CFrame.new(0, 1.75, 0) * CFrame.Angles(0, 0, math.pi / 2),
-			metal,
-			Enum.Material.Metal
-		)
-		piece(rig, "AntennaTip", "Ball", Vector3.one * 0.16, CFrame.new(0, 2.02, 0), color, Enum.Material.Neon)
-		local tank = piece(
-			rig,
-			"Tank",
-			"Cylinder",
-			Vector3.new(0.8, 0.38, 0.38),
-			CFrame.new(0, 0.1, 0.5) * CFrame.Angles(0, 0, math.pi / 2),
-			Color3.fromRGB(200, 240, 255),
-			Enum.Material.Glass
-		)
-		tank.Transparency = 0.5
-		piece(
-			rig,
-			"Serum",
-			"Cylinder",
-			Vector3.new(0.65, 0.26, 0.26),
-			CFrame.new(0, 0.05, 0.5) * CFrame.Angles(0, 0, math.pi / 2),
+			Vector3.one * 0.2,
+			CFrame.new(top + Vector3.new(0, 0.58, 0)),
 			color,
 			Enum.Material.Neon
 		)
-		for _, side in { -1, 1 } do
-			piece(rig, "Ear", "Ball", Vector3.one * 0.3, CFrame.new(side * 0.43, 0.9, 0), skin)
-			local arm = piece(
+		table.insert(antenna, tip)
+		table.insert(
+			antenna,
+			piece(
 				rig,
-				"Arm",
-				"Oval",
-				Vector3.new(0.28, 0.9, 0.28),
-				CFrame.new(side * 0.55, -0.05, 0) * CFrame.Angles(0, 0, side * 0.15),
-				fur
+				"AntennaGlow",
+				"Ball",
+				Vector3.one * 0.32,
+				CFrame.new(top + Vector3.new(0, 0.58, 0)),
+				color,
+				Enum.Material.Neon
 			)
-			local hand = piece(rig, "Hand", "Ball", Vector3.one * 0.26, CFrame.new(side * 0.62, -0.52, 0), skin)
-			for _, part in { arm, hand } do
-				joint(
+		)
+		antenna[#antenna].Transparency = 0.6
+		for _, part in antenna do
+			joint(rig, part, CFrame.new(top), Vector3.zAxis, 0.08, 3, 0, false)
+		end
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Range = 5
+		light.Brightness = 1
+		light.Parent = tip
+
+		-- Mochila con el vial de suero y tubos anillados desde los discos de las sienes.
+		piece(rig, "Pack", "Block", Vector3.new(0.62, 0.62, 0.3), back * CFrame.new(0, 0.1, 0.6), metal)
+		local vialFrame = back * CFrame.new(0, 0.1, 0.8) * UPRIGHT
+		local vial = piece(
+			rig,
+			"Vial",
+			"Cylinder",
+			Vector3.new(0.5, 0.28, 0.28),
+			vialFrame,
+			Color3.fromRGB(200, 240, 255),
+			Enum.Material.Glass
+		)
+		vial.Transparency = 0.5
+		local serum = piece(rig, "Serum", "Cylinder", Vector3.new(0.42, 0.2, 0.2), vialFrame, color, Enum.Material.Neon)
+		for _, y in { -0.27, 0.27 } do
+			piece(rig, "VialCap", "Cylinder", Vector3.new(0.08, 0.32, 0.32), vialFrame * CFrame.new(y, 0, 0), copper)
+		end
+		local glow = Instance.new("PointLight")
+		glow.Color = color
+		glow.Range = 6
+		glow.Brightness = 1
+		glow.Parent = serum
+		-- Cada tubo es una curva de bolas alternas, gruesas y finas, que parece un tubo anillado.
+		local segments = 14
+		for _, side in { -1, 1 } do
+			local from = head + Vector3.new(side * 0.62, -0.2, 0.22)
+			local to = (back * CFrame.new(side * 0.36, 0.2, 0.6)).Position
+			local control = Vector3.new(side * 1.05, 0.75, 0.55)
+			for i = 0, segments do
+				local t = i / segments
+				local position = from:Lerp(control, t):Lerp(control:Lerp(to, t), t)
+				local thick = i % 2 == 0
+				piece(
 					rig,
-					part,
-					CFrame.new(side * 0.5, 0.35, 0),
-					Vector3.xAxis,
-					0.6,
-					8,
-					if side < 0 then 0 else math.pi,
-					true
-				)
-			end
-			local leg = piece(rig, "Leg", "Oval", Vector3.new(0.32, 0.5, 0.35), CFrame.new(side * 0.25, -0.65, 0), fur)
-			local foot =
-				piece(rig, "Foot", "Oval", Vector3.new(0.3, 0.14, 0.42), CFrame.new(side * 0.25, -0.92, -0.06), skin)
-			for _, part in { leg, foot } do
-				joint(
-					rig,
-					part,
-					CFrame.new(side * 0.25, -0.45, 0),
-					Vector3.xAxis,
-					0.6,
-					8,
-					if side < 0 then math.pi else 0,
-					true
+					"Hose",
+					"Ball",
+					Vector3.one * (if thick then 0.17 else 0.14),
+					CFrame.new(position),
+					if thick then metal else hose
 				)
 			end
 		end
-		tail(rig, fur, Vector3.new(0, -0.25, 0.35), Vector3.new(0.18, 0.18, 1.1), 0.9, 0.6)
-		local glow = Instance.new("PointLight")
-		glow.Color = color
-		glow.Range = 8
-		glow.Brightness = 1.2
-		glow.Parent = helmet
+		-- Chispas de energía que saltan junto a la mochila.
+		for _, side in { -1, 1 } do
+			local spark = back * CFrame.new(side * 0.45, 0.45, 0.55)
+			for k = 0, 2 do
+				local bolt = piece(
+					rig,
+					"Spark",
+					"Block",
+					Vector3.new(0.04, 0.18, 0.04),
+					spark
+						* CFrame.new(side * k * 0.06, k * 0.14, 0)
+						* CFrame.Angles(0, 0, side * (if k % 2 == 0 then 0.6 else -0.6)),
+					color,
+					Enum.Material.Neon
+				)
+				bolt.Transparency = 0.15
+			end
+		end
+
+		-- Aura de energía: chispas azules que salen del cuerpo (la nube eléctrica de la foto).
+		local body = rig.model:FindFirstChild("Body")
+		if body then
+			local aura = Instance.new("ParticleEmitter")
+			aura.Color = ColorSequence.new(color)
+			aura.LightEmission = 1
+			aura.Rate = 6
+			aura.Lifetime = NumberRange.new(0.5, 0.9)
+			aura.Speed = NumberRange.new(0.6, 1.2)
+			aura.SpreadAngle = Vector2.new(180, 180)
+			aura.Size = NumberSequence.new(0.18 * rig.scale, 0)
+			aura.Transparency = NumberSequence.new(0.2, 1)
+			aura.Parent = body
+		end
+
+		-- Calvas cosidas en el pelo (de la piel enferma de la foto, en versión de dibujo).
+		local function scarPatch(position: Vector3, normal: Vector3, size: Vector3, stitches: number): { BasePart }
+			local frame = CFrame.lookAt(position, position + normal.Unit)
+			local parts = { piece(rig, "Scar", "Oval", size, frame, scar) }
+			for k = 1, stitches do
+				local x = (k - (stitches + 1) / 2) * size.X / (stitches + 1)
+				table.insert(
+					parts,
+					piece(
+						rig,
+						"Stitch",
+						"Block",
+						Vector3.new(0.025, size.Y * 1.1, 0.03),
+						frame * CFrame.new(x, 0, -size.Z / 2),
+						stitch
+					)
+				)
+			end
+			table.insert(
+				parts,
+				piece(
+					rig,
+					"Stitch",
+					"Block",
+					Vector3.new(size.X * 0.8, 0.025, 0.03),
+					frame * CFrame.new(0, 0, -size.Z / 2),
+					stitch
+				)
+			)
+			return parts
+		end
+		scarPatch(
+			(back * CFrame.new(0.3, 0.25, -0.42)).Position,
+			back.LookVector + Vector3.new(0.4, 0, 0),
+			Vector3.new(0.34, 0.26, 0.05),
+			3
+		)
+		scarPatch(
+			(back * CFrame.new(-0.52, -0.15, 0.1)).Position,
+			Vector3.new(-1, 0, 0.2),
+			Vector3.new(0.36, 0.28, 0.05),
+			3
+		)
+		scarPatch(Vector3.new(0.32, -0.05, 0.75), Vector3.new(0.5, 0.2, 1), Vector3.new(0.3, 0.24, 0.05), 3)
+
+		-- Brazos largos que llegan al suelo delante (anda sobre los nudillos) y patas flexionadas.
+		for _, side in { -1, 1 } do
+			local shoulder = Vector3.new(side * 0.58, 0.32, -0.35)
+			local elbow = Vector3.new(side * 0.76, -0.35, -0.6)
+			local wrist = Vector3.new(side * 0.72, -0.82, -0.78)
+			local arm: { BasePart } = {
+				piece(rig, "Shoulder", "Ball", Vector3.one * 0.5, CFrame.new(shoulder), fur, Enum.Material.Fabric),
+				capsule(rig, "UpperArm", shoulder, elbow, 0.36, fur),
+				piece(rig, "Elbow", "Ball", Vector3.one * 0.36, CFrame.new(elbow), fur, Enum.Material.Fabric),
+				piece(
+					rig,
+					"ElbowTuft",
+					"Oval",
+					Vector3.new(0.2, 0.32, 0.18),
+					CFrame.new(elbow + Vector3.new(side * 0.08, 0.02, 0.17)) * CFrame.Angles(0.6, 0, 0),
+					furDark
+				),
+				capsule(rig, "Forearm", elbow, wrist, 0.38, fur),
+				piece(rig, "Hand", "Oval", Vector3.new(0.36, 0.22, 0.42), CFrame.new(side * 0.72, -0.9, -0.86), hands),
+				piece(
+					rig,
+					"Thumb",
+					"Oval",
+					Vector3.new(0.1, 0.1, 0.18),
+					CFrame.new(side * 0.56, -0.93, -0.92) * CFrame.Angles(0, side * 0.5, 0),
+					hands
+				),
+			}
+			for k = -1, 1 do
+				table.insert(
+					arm,
+					piece(
+						rig,
+						"Knuckle",
+						"Ball",
+						Vector3.one * 0.13,
+						CFrame.new(side * 0.74 + k * 0.1, -0.93, -1.05),
+						hands
+					)
+				)
+			end
+			if side == 1 then
+				local onArm = elbow:Lerp(wrist, 0.45) + Vector3.new(0.17, 0, -0.03)
+				for _, part in scarPatch(onArm, Vector3.new(1, 0, -0.2), Vector3.new(0.22, 0.3, 0.05), 2) do
+					table.insert(arm, part)
+				end
+			end
+			for _, part in arm do
+				joint(rig, part, CFrame.new(shoulder), Vector3.xAxis, 0.35, 8, if side < 0 then 0 else math.pi, true)
+			end
+
+			local hip = Vector3.new(side * 0.4, -0.35, 0.45)
+			local knee = Vector3.new(side * 0.64, -0.3, 0.02)
+			local ankle = Vector3.new(side * 0.56, -0.82, 0.32)
+			local leg: { BasePart } = {
+				capsule(rig, "Thigh", hip, knee, 0.44, fur),
+				piece(rig, "Knee", "Ball", Vector3.one * 0.38, CFrame.new(knee), fur, Enum.Material.Fabric),
+				capsule(rig, "Shin", knee, ankle, 0.34, fur),
+				piece(rig, "Foot", "Oval", Vector3.new(0.3, 0.14, 0.52), CFrame.new(side * 0.56, -0.93, 0.18), hands),
+			}
+			for k = 0, 2 do
+				table.insert(
+					leg,
+					piece(
+						rig,
+						"Toe",
+						"Ball",
+						Vector3.one * 0.12,
+						CFrame.new(side * (0.62 - k * 0.09), -0.94, -0.1),
+						hands
+					)
+				)
+			end
+			table.insert(
+				leg,
+				piece(
+					rig,
+					"BigToe",
+					"Oval",
+					Vector3.new(0.12, 0.11, 0.2),
+					CFrame.new(side * 0.4, -0.94, 0.0) * CFrame.Angles(0, -side * 0.5, 0),
+					hands
+				)
+			)
+			if side == -1 then
+				local onThigh = hip:Lerp(knee, 0.5) + Vector3.new(-0.2, 0.08, 0)
+				for _, part in scarPatch(onThigh, Vector3.new(-1, 0.4, 0), Vector3.new(0.3, 0.24, 0.05), 3) do
+					table.insert(leg, part)
+				end
+			end
+			for _, part in leg do
+				joint(rig, part, CFrame.new(hip), Vector3.xAxis, 0.35, 8, if side < 0 then math.pi else 0, true)
+			end
+			-- Mechones de pelo erizado en hombros y caderas (le dan el aire de bicho de laboratorio).
+			piece(
+				rig,
+				"Tuft",
+				"Oval",
+				Vector3.new(0.22, 0.34, 0.2),
+				CFrame.new(side * 0.55, 0.6, -0.15) * CFrame.Angles(0.3, 0, -side * 0.5),
+				furDark
+			)
+			piece(
+				rig,
+				"Tuft",
+				"Oval",
+				Vector3.new(0.22, 0.3, 0.2),
+				CFrame.new(side * 0.42, 0.05, 0.75) * CFrame.Angles(0.6, 0, -side * 0.4),
+				furDark
+			)
+		end
 		return "Walk"
 	end,
 
