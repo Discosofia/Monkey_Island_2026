@@ -26,7 +26,7 @@ export type Boss = {
 	description: string, -- lo que cuenta el diario de campo (UI/Journal)
 	biome: string,
 	baseSpecies: string, -- especie de Data/Monkeys de la que toma el modelo
-	scale: number,
+	scale: number, -- 2,6–3,2: de 9 a 11 studs de alto (GDD §8.2 "Tamaño estándar")
 	bodyColor: Color3,
 	faceColor: Color3,
 	maxHealth: number,

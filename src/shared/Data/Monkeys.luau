@@ -42,7 +42,7 @@ export type MonkeyDefinition = {
 	stomp: { radius: number, damage: number, stunSeconds: number, cooldownSeconds: number }?, -- golpe en área
 	disarmsTraps: boolean?, -- en el asedio, va primero a por las estacas y no le hacen daño
 	voice: "Small" | "Medium" | "Large", -- grupo de sonidos por tamaño (Data/Sounds: MonkeyVoices)
-	scale: number,
+	scale: number, -- tamaño del modelo; franja de alto por categoría en GDD §8.2 "Tamaño estándar"
 	bodyColor: Color3,
 	faceColor: Color3,
 	loot: { LootEntry },
