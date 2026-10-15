@@ -18,7 +18,7 @@ juego para que lo nuevo encaje con el código que las usa.
 | Monos y jefes | KeyframeSequence publicada | Hechas a mano en el Animation Editor (en el place: `ServerStorage.RBX_ANIMSAVES.RigMono`) | `src/shared/Data/MonkeyAnimations.luau` | `src/island/server/Monkeys/MonkeyAnimator.luau` (servidor) |
 | Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/island/client/Controllers/WeaponController.luau` (cliente) |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
-| Mascotas | Por código, cada fotograma (senos) | `src/shared/PetModels.luau` (`joint(...)` en cada constructor) | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate` |
+| Mascotas (Lobby e Isla) | Por código, cada fotograma (senos) | `src/shared/PetModels.luau` (`joint(...)` en cada constructor) | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate`; lo arrancan los `PetController` de los dos places |
 | Poses de habilidades (grito de guerra) | Por código, girando articulaciones | `src/island/client/Controllers/AbilityFxController.luau` (`poseJoint`) | — | `AbilityFxController` |
 
 ## 2. Monos y jefes
@@ -100,7 +100,9 @@ proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prior
 `sin(tiempo * velocidad + fase) * amplitud` en **radianes**, multiplicado por cuánto anda el dueño
 (0–1) si `gait` es `true`. Una extremidad de varias piezas se registra con la misma bisagra en cada
 pieza. `PetFollowers` llama a `PetModels.animate(model, reloj, moving)` cada fotograma (con
-`moving = 1` al atacar).
+`moving = 1` al atacar). El mismo código corre en el **Lobby** y en la **Isla** (cada uno tiene su
+`PetController` que llama a `PetFollowers.start()`): un cambio afecta a los dos, y se puede revisar
+en el Studio que esté abierto en modo edición.
 - Para cambiar el movimiento, cambia esos números en el constructor (más rápido = `velocidad`,
   más amplio = `amplitud`, a destiempo = `fase`).
 - Para verlo, `Anim.showCode` construye una mascota por instante (no vale clonar: `animate` solo
