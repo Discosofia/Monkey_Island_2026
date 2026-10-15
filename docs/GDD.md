@@ -182,7 +182,7 @@ Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el p
 | Rol | Pasiva | Armas iniciales | Activas (Z · X · C) | Definitiva (V) |
 |---|---|---|---|---|
 | ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 8 s) | **Golpe sísmico:** 150 de daño en área y aturde 2 s |
-| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Trampa de lianas** (inmoviliza 3 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
+| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (atrapa 3 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
 | 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
 | ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Machete, honda | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 40) | **Tótem sanador:** cura a quien esté cerca durante 10 s |
 

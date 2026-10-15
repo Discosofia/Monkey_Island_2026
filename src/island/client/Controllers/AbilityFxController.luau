@@ -6,7 +6,7 @@
 --   - Guerrero: estelas de viento en círculo (Torbellino), rastro rojo (Embestida), pose de grito con
 --     brillo rojo (Grito de guerra) y suelo agrietado con piedras que saltan (Golpe sísmico).
 --   - Cazador: flechas verdes con estela (Disparo múltiple), diana sobre las presas marcadas, brillo
---     verde suave en el mono atrapado (el cepo de la Trampa lo pone el servidor) y nube que suelta la
+--     verde suave en el mono atrapado (el Cepo lo pone el servidor) y nube que suelta la
 --     Lluvia de proyectiles.
 --   - Mago: bola de fuego roja con bolitas en espiral, monos congelados en bloques de hielo, punto
 --     negro y chispa del Parpadeo y rayo que deja una sombra y humo en los monos alcanzados.

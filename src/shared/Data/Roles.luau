@@ -91,9 +91,9 @@ local Roles: { [string]: Role } = {
 			},
 			{
 				id = "Trap",
-				name = "Trampa de lianas",
-				short = "Trampa",
-				description = "Deja una trampa a tus pies que inmoviliza al primer mono que la pisa.",
+				name = "Cepo",
+				short = "Cepo",
+				description = "Deja un cepo a tus pies que atrapa al primer mono que lo pisa.",
 				cooldownSeconds = 15,
 			},
 			{

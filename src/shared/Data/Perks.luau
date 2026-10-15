@@ -18,7 +18,7 @@ local Perks: { [string]: number } = {
 	MultiShotCount = 5, -- proyectiles de "Disparo múltiple"
 	MarkSeconds = 10, -- duración de "Marcar presas"
 	MarkedBonus = 0.2, -- daño extra (fracción) que reciben los monos que marcas
-	TrapRoot = 3, -- segundos que inmoviliza la "Trampa de lianas"
+	TrapRoot = 3, -- segundos que sujeta el "Cepo"
 	RainDamage = 1, -- multiplica el daño de "Lluvia de proyectiles"
 	-- Mago.
 	FireballDamage = 1, -- multiplica el daño de "Bola de fuego"

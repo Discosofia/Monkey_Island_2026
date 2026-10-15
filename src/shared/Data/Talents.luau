@@ -66,8 +66,8 @@ local Talents: { [string]: { [string]: Talent } } = {
 			maxRank = 3,
 		},
 		StrongVines = {
-			name = "Lianas fuertes",
-			description = "La trampa inmoviliza 1 s más por rango.",
+			name = "Muelles fuertes",
+			description = "El cepo sujeta 1 s más por rango.",
 			order = 3,
 			perk = "TrapRoot",
 			perRank = 1,

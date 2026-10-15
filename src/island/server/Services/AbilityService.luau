@@ -3,13 +3,13 @@
 -- en Config.Abilities. El cliente (RoleController) pide usar la del hueco 1-4 con la dirección en la
 -- que apunta; aquí se comprueba el tiempo de espera y se aplica todo.
 --   - Guerrero: Torbellino, Embestida, Grito de guerra y Golpe sísmico.
---   - Cazador: Disparo múltiple, Marcar presas, Trampa de lianas y Lluvia de proyectiles.
+--   - Cazador: Disparo múltiple, Marcar presas, Cepo y Lluvia de proyectiles.
 --   - Mago: Bola de fuego, Nova de hielo, Parpadeo y Rayo encadenado.
 --   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas y Tótem sanador.
 -- Los movimientos (Embestida y Parpadeo) los hace el cliente, que es quien mueve a su personaje; el
 -- servidor pone el daño. Lo que se ve lo dibuja cada cliente (Combat/AbilityFx y AbilityFxController),
--- salvo el cepo de la Trampa, que es una pieza del mundo. Con PvP activo en los dos, las habilidades también afectan a otros jugadores,
--- con menos daño y aturdimientos más cortos. Los estados de los monos están en Combat/Status.
+-- salvo el Cepo, que es una pieza del mundo. Con PvP activo en los dos, las habilidades también
+-- afectan a otros jugadores, con menos daño y aturdimientos más cortos. Los estados de los monos están en Combat/Status.
 -- El cliente ve cuándo vuelve a estar lista cada una con el atributo "AbilityReadyAt<hueco>".
 
 local CollectionService = game:GetService("CollectionService")
@@ -352,7 +352,7 @@ local function trapPart(name: string, size: Vector3, color: Color3, shape: Enum.
 	return part
 end
 
--- Cepo de la Trampa: dos mandíbulas en semicírculo con dientes, muelles, placa, cadena y estaca.
+-- Cepo del cazador: dos mandíbulas en semicírculo con dientes, muelles, placa, cadena y estaca.
 -- Devuelve el modelo, la placa (para el sonido) y "pose", que lo coloca en "origin" con las
 -- mandíbulas levantadas "angle" radianes (0 abierto, TRAP_CLOSED_ANGLE cerrado).
 local function bearTrap(): (Model, BasePart, (origin: CFrame, angle: number) -> ())

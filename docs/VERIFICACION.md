@@ -158,7 +158,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 3. [ ] **Cazador** (Arco, empiezas con 20 flechas; se fabrican en la mesa de trabajo):
    - **Z Disparo múltiple:** 5 flechas verdes en abanico con estela verde, sin gastar flechas.
    - **X Marcar presas:** onda roja, contorno rojo y una diana (círculo, círculo interior y cruz) girando sobre cada mono marcado, y "N presas marcadas".
-   - **C Trampa de lianas:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, salta a sus pies y se cierra de golpe, y el mono queda atrapado 3 s con un brillo verde suave que aparece y se va. Como mucho 2 trampas.
+   - **C Cepo:** aparece un cepo de metal oxidado a tus pies; cuando un mono lo pisa, salta a sus pies y se cierra de golpe, y el mono queda atrapado 3 s con un brillo verde suave que aparece y se va. Como mucho 2 cepos.
    - **V Lluvia de proyectiles:** zona roja donde apuntas con una nube gris encima, de la que caen flechas durante 4 s (se quedan clavadas un momento).
 4. [ ] **Mago** (Bastón mágico, dispara bolas moradas sin munición):
    - **Z Bola de fuego:** bola roja en llamas que va recta, con tres bolitas que giran a su alrededor dejando una espiral; explota al impactar y daña alrededor.
