@@ -111,6 +111,11 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   el óvalo de la cara asomando por delante del disco. Comprueba que el pelo sobresale del disco
   en todo el borde: si quedan en el mismo plano, hay z-fighting. Remaches del aro con un bucle de
   ángulos.
+  **Visor de espejo** (cara oculta, como el Mono X-7): en lugar de pelo y cara, una cúpula
+  (`Oval`) que sobresale del aro, color oscuro azulado (25, 35, 55) con `Reflectance` 0,6: refleja
+  el cielo y queda como un cromado de dibujo. Añade uno o dos brillos blancos pegados a la cúpula
+  (punto de la superficie del elipsoide y su normal, girados en diagonal). Un visor dorado de
+  astronauta (200, 150, 60) con reflejo salió blanquecino y verdoso, peor que el oscuro.
 - **Placas y letreros sobre una esfera** (`SurfaceGui` en una pieza `Block` puesta con
   `CFrame.lookAt(centro + normal * radio, ...)`): no los pongas encima de una cresta u otra pieza
   que cruce la esfera, porque la atraviesa y tapa el texto. Llévalos a un lado de la cresta.

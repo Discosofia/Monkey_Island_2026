@@ -812,14 +812,12 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	end,
 
 	-- Mono X-7: chimpancé del laboratorio, de pelo azul eléctrico con calvas cosidas, agachado sobre
-	-- los nudillos. Casco de astronauta oxidado con la cara al aire, antena de espiral que brilla y
+	-- los nudillos. Casco de astronauta oxidado con visor de espejo, antena de espiral que brilla y
 	-- tubos anillados que van de las sienes a la mochila del suero.
 	MonoX7 = function(rig, color)
 		local fur = Color3.fromRGB(35, 115, 215)
 		local furLight = fur:Lerp(Color3.fromRGB(150, 220, 255), 0.45)
 		local furDark = fur:Lerp(BLACK, 0.3)
-		local skin = Color3.fromRGB(165, 125, 105)
-		local skinDark = skin:Lerp(BLACK, 0.4)
 		local hands = Color3.fromRGB(85, 72, 78)
 		local scar = Color3.fromRGB(200, 125, 125)
 		local stitch = Color3.fromRGB(70, 30, 40)
@@ -836,7 +834,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		piece(rig, "Hips", "Oval", Vector3.new(1.0, 0.85, 0.9), CFrame.new(0, -0.3, 0.4), fur, Enum.Material.Fabric)
 		piece(rig, "Belly", "Oval", Vector3.new(0.75, 0.85, 0.3), back * CFrame.new(0, -0.1, -0.38), furLight)
 
-		-- Cabeza grande de caricatura dentro del casco; la cara asoma por la abertura delantera.
+		-- Casco grande de caricatura; la cara no se ve: la tapa un visor de espejo.
 		local head = Vector3.new(0, 1.0, -0.5)
 		piece(rig, "Helmet", "Ball", Vector3.one * 1.36, CFrame.new(head), shell)
 		local facing = CFrame.Angles(0, math.pi / 2, 0)
@@ -848,53 +846,28 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			CFrame.new(head + Vector3.new(0, 0, -0.5)) * facing,
 			copper
 		)
-		piece(
-			rig,
-			"FaceFur",
-			"Oval",
-			Vector3.new(0.96, 0.92, 0.36),
-			CFrame.new(head + Vector3.new(0, -0.02, -0.56)),
-			fur,
-			Enum.Material.Fabric
-		)
-		piece(rig, "Face", "Oval", Vector3.new(0.74, 0.72, 0.3), CFrame.new(head + Vector3.new(0, -0.06, -0.66)), skin)
-		-- Cejas con el lado de dentro más alto: cara de susto, como el mono de la foto.
-		for _, side in { -1, 1 } do
-			piece(
+		-- Visor: cúpula que sobresale del aro, oscura y con reflejo de espejo, y un brillo blanco en
+		-- diagonal arriba a un lado, como en los cascos de dibujos animados.
+		local visorCenter = head + Vector3.new(0, 0, -0.56)
+		local visorSize = Vector3.new(0.98, 0.94, 0.44)
+		local visor = piece(rig, "Visor", "Oval", visorSize, CFrame.new(visorCenter), Color3.fromRGB(25, 35, 55))
+		visor.Reflectance = 0.6
+		for _, shine in { { -0.22, 0.17, Vector3.new(0.09, 0.3, 0.04) }, { -0.05, 0.3, Vector3.new(0.07, 0.07, 0.04) } } do
+			-- Punto de la superficie de la cúpula y su normal (elipsoide de semiejes visorSize / 2).
+			local axes = visorSize / 2
+			local x, y = shine[1], shine[2]
+			local z = -axes.Z * math.sqrt(1 - (x / axes.X) ^ 2 - (y / axes.Y) ^ 2)
+			local normal = Vector3.new(x / axes.X ^ 2, y / axes.Y ^ 2, z / axes.Z ^ 2).Unit
+			local position = visorCenter + Vector3.new(x, y, z) + normal * 0.01
+			local glint = piece(
 				rig,
-				"Brow",
+				"VisorShine",
 				"Oval",
-				Vector3.new(0.32, 0.13, 0.18),
-				CFrame.new(head + Vector3.new(side * 0.16, 0.2, -0.78)) * CFrame.Angles(0, 0, -side * 0.15),
-				skinDark:Lerp(skin, 0.4)
+				shine[3],
+				CFrame.lookAt(position, position + normal) * CFrame.Angles(0, 0, -0.6),
+				WHITE
 			)
-		end
-		piece(
-			rig,
-			"Muzzle",
-			"Oval",
-			Vector3.new(0.5, 0.36, 0.34),
-			CFrame.new(head + Vector3.new(0, -0.23, -0.79)),
-			skin:Lerp(WHITE, 0.12)
-		)
-		piece(
-			rig,
-			"Mouth",
-			"Oval",
-			Vector3.new(0.18, 0.1, 0.06),
-			CFrame.new(head + Vector3.new(0, -0.32, -0.95)),
-			stitch
-		)
-		eyes(rig, head + Vector3.new(0, 0.04, -0.77), 0.16, 0.22, color)
-		for _, side in { -1, 1 } do
-			piece(
-				rig,
-				"Nostril",
-				"Oval",
-				Vector3.new(0.07, 0.035, 0.03),
-				CFrame.new(head + Vector3.new(side * 0.05, -0.15, -0.955)),
-				skinDark
-			)
+			glint.Transparency = 0.15
 		end
 		-- Remaches del aro de la abertura.
 		local rivets = 8
