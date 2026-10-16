@@ -1,11 +1,11 @@
 --!strict
 -- Indicador de combos y racha (Data/Combos, ComboService):
---   - Bajo las casillas de las habilidades: el nombre del combo, sus 3 pasos (los hechos se rellenan
---     y el siguiente brilla), una barra con el tiempo que queda para enlazar y la racha (x2…x5) con
---     su barra de tiempo.
---   - "¡COMBO!" grande en el centro al cerrarlo.
--- Lee los atributos del jugador "ComboStep", "ComboStepUntil", "ComboStreak" y "ComboStreakUntil".
--- Se oculta con el ajuste "Combos" (Shared/Settings).
+--   - Bajo las casillas de las habilidades: el nombre del combo en marcha (cada rol tiene dos), sus 3
+--     pasos (los hechos se rellenan y el siguiente brilla; si lo abrió una conexión, el paso 1 lleva
+--     "🔗"), una barra con el tiempo que queda para enlazar y la racha (x2…x5) con su barra de tiempo.
+--   - "¡COMBO!" grande en el centro al cerrarlo, o "¡CONEXIÓN!" si se cerró tras otro combo.
+-- Lee los atributos del jugador "ComboIndex", "ComboStep", "ComboStepUntil", "ComboConnected",
+-- "ComboChain", "ComboStreak" y "ComboStreakUntil". Se oculta con el ajuste "Combos" (Shared/Settings).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -43,10 +43,19 @@ local function shortName(roleId: string, abilityId: string): string
 	return abilityId
 end
 
+-- El combo en marcha del jugador (o el último que tuvo), o nil.
+local function currentCombo(player: Player): Combos.Combo?
+	local roleId = player:GetAttribute("Role")
+	local combos = if typeof(roleId) == "string" then Combos[roleId] else nil
+	if not combos then
+		return nil
+	end
+	return combos[number(player, "ComboIndex")] or combos[1]
+end
+
 -- El siguiente paso del combo del jugador (id de la habilidad), o nil si no hay combo en marcha.
 function ComboController.nextStep(player: Player): string?
-	local roleId = player:GetAttribute("Role")
-	local combo = if typeof(roleId) == "string" then Combos[roleId] else nil
+	local combo = currentCombo(player)
 	local step = number(player, "ComboStep")
 	if not combo or step <= 0 or step >= #combo.steps then
 		return nil
@@ -81,7 +90,7 @@ function ComboController:Start()
 	local panel = Instance.new("Frame")
 	panel.Name = "Combo"
 	panel.Position = UDim2.fromOffset(12, 170)
-	panel.Size = UDim2.fromOffset(4 * 66 - 6, 62)
+	panel.Size = UDim2.fromOffset(5 * 66 - 6, 62)
 	panel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 	panel.BackgroundTransparency = 0.4
 	panel.Visible = false
@@ -138,8 +147,10 @@ function ComboController:Start()
 	local popScale = Instance.new("UIScale")
 	popScale.Parent = pop
 
-	local function showPop(streak: number)
-		pop.Text = if streak >= 2 then `¡COMBO! · racha x{streak}` else "¡COMBO!"
+	-- "chain": combos seguidos cerrados por conexiones (0 si este se empezó a mano).
+	local function showPop(streak: number, chain: number)
+		local headline = if chain >= 1 then `¡CONEXIÓN! {chain + 1} seguidos` else "¡COMBO!"
+		pop.Text = if streak >= 2 then `{headline} · racha x{streak}` else headline
 		pop.TextTransparency = 0
 		pop.TextStrokeTransparency = 0.3
 		popScale.Scale = 1.8
@@ -151,17 +162,16 @@ function ComboController:Start()
 	local lastStep = 0
 	player:GetAttributeChangedSignal("ComboStep"):Connect(function()
 		local step = number(player, "ComboStep")
-		local roleId = player:GetAttribute("Role")
-		local combo = if typeof(roleId) == "string" then Combos[roleId] else nil
+		local combo = currentCombo(player)
 		if combo and step >= #combo.steps and lastStep < step and Settings.get().showCombo then
-			showPop(number(player, "ComboStreak"))
+			showPop(number(player, "ComboStreak"), number(player, "ComboChain"))
 		end
 		lastStep = step
 	end)
 
 	RunService.RenderStepped:Connect(function()
 		local roleId = player:GetAttribute("Role")
-		local combo = if typeof(roleId) == "string" then Combos[roleId] else nil
+		local combo = currentCombo(player)
 		if not (combo and Settings.get().showCombo) then
 			panel.Visible = false
 			return
@@ -175,10 +185,13 @@ function ComboController:Start()
 
 		title.Text = if step > 0 and step < #combo.steps then `{combo.name} {step}/{#combo.steps}` else combo.name
 		streakLabel.Text = if streak > 0 then `x{streak}` else ""
+		local connected = player:GetAttribute("ComboConnected") == true
 		for index, pill in pills do
 			local done = index <= step
 			local isNext = index == step + 1 and step > 0 and step < #combo.steps
-			pill.label.Text = shortName(roleId :: string, combo.steps[index])
+			local name = shortName(roleId :: string, combo.steps[index])
+			-- El paso 1 que se ha saltado la conexión.
+			pill.label.Text = if index == 1 and connected and step > 0 then `🔗 {name}` else name
 			pill.frame.BackgroundColor3 = if done then DONE_COLOR else IDLE_COLOR
 			pill.label.TextColor3 = if done then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
 			-- El siguiente paso parpadea suave.

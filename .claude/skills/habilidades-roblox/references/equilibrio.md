@@ -94,7 +94,7 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 
 | Límite | Valor | Por qué |
 |---|---|---|
-| Recarga de una activa (Z, X, C) | 4–25 s | por debajo es otro ataque básico; por encima se olvida y no entra en combos (ventana de 6 s) |
+| Recarga de una activa (Z, X, C, R) | 4–25 s | por debajo es otro ataque básico; por encima se olvida y no entra en combos (ventana de 6 s) |
 | Recarga de una definitiva (V) | 60–120 s | una o dos por pelea larga; la definitiva es un momento |
 | Activa: segundos de arma por uso | 0,5–4 | por debajo no se nota; por encima el arma deja de importar |
 | Definitiva: segundos de arma | 12–30 | las tres actuales están en 18–24 |
@@ -115,6 +115,19 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
 Para comparar las propuestas. Vuelve a sacarla con la calculadora si cambian los números del juego.
+
+**16 de octubre de 2026, cuarta activa (R), segundo combo y conexiones** (la tabla de abajo es la de
+antes, para ver de dónde venimos):
+
+| Rol | Nueva activa (seg. de arma) | DPS 60 s, 1 obj (combos) | DPS 60 s, grupo (sin → con combos) | Combos en 60 s (🔗 conectados) | Combo en 180 s (grupo / 1 obj) | Control del rol |
+|---|---|---|---|---|---|---|
+| Guerrero | Rompehuesos 1,42 | 33,9 | 47,8 → 58,6 | 12 (11) | +29 % / +12 % | 17 % |
+| Cazador | Flecha perforante 1,39 | 33,0 | 41,5 → 51,3 | 10 (9) | +31 % / +17 % | 30 % |
+| Mago | Meteoro 3,75 | 27,3 | 36,3 → 50,2 | 15 (14) | +34 % / +15 % | 13 % |
+| Médico | Polvo somnífero 0,73 (duerme 21 % con remate; no a jefes) | 11,2 | cura 14,6 → 20,7/s al equipo | 10 (9) | | 21 % |
+
+Equipo de 4 roles sobre un jefe: 30 % (justo en el límite; el sueño no cuenta). Jefes con 4 jugadores:
+108 / 124 / 146 / 172 s (Orangután, Chimpancé, Gorila Albino, Gorila de Ceniza).
 Incluye el retoque de combos y jefes del 16 de octubre de 2026 y el Grito de guerra (12 s / 4 s), Marcar presas (15 s / 5 s) y el Ungüento (15 s / 11) con la ventana del combo que espera al paso siguiente (la
 simulación de combos ya no deja de usar sueltas las habilidades del combo mientras espera un paso).
 
@@ -157,6 +170,12 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 6. **Sin probar en Play**: el recálculo de la vida del jefe cuando entra o sale un segundo jugador
    (por MCP solo hay uno; hace falta Test → Clientes y servidores con 2).
 7. **Golpes máximos el día 20**: gibón, mandril, chimpancé y gorila pasan de 60 de 100 sin armadura.
+
+8. **Con talentos al máximo y la cuarta activa**: el control del equipo sobre un jefe llega al 42 % y
+   enlazar combos da +36–39 % (límite 35 %); el resto de alertas con talentos ya estaban (punto 3).
+9. **La racha con conexiones**: en la simulación se queda en x5; un jugador real que espera a que se
+   recargue el paso 2 (Marcar 15 s, Nova 9 s) sin pegar con el arma la pierde a los 8 s. Mirar en la
+   telemetría `ComboBestStreak` antes de tocarla.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

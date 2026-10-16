@@ -111,7 +111,7 @@ function RoleService.debugNextRole(player: Player)
 	debugRoles[player] = roleId
 	RoleService.refreshPerks(player)
 	giveRoleItems(player, roleId)
-	for slot = 1, 4 do
+	for slot = 1, 5 do -- los huecos de Data/Roles (4 activas y la definitiva)
 		player:SetAttribute(`AbilityReadyAt{slot}`, nil)
 	end
 	local role = Roles[roleId]

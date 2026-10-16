@@ -6,7 +6,7 @@
 --      UI/ComicBurst).
 --   2. Tus números de combate: el arma que cuenta, su daño (con las ventajas del rol y los talentos)
 --      y su probabilidad de crítico (Shared/Crit, los mismos números con que juega el servidor), el
---      daño o la curación de tus 4 habilidades, tu combo y lo que aporta tu mascota.
+--      daño o la curación de tus 5 habilidades, tus dos combos y lo que aporta tu mascota.
 --      En la Isla cuenta el arma de la mano o la mejor de la mochila; en el Lobby, la inicial del rol.
 --   3. Opciones: disposición de los números, ajustes sí/no y efectos de cómic (Shared/Settings, se
 --      guardan en el perfil).
@@ -64,6 +64,10 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 	AreaHeal = { amount = "AreaHealAmount", perks = { "HealPower" }, heal = true },
 	HealingDart = { amount = "DartHeal", perks = { "HealPower" }, heal = true },
 	HealingTotem = { amount = "TotemHealPerSecond", perks = { "HealPower" }, heal = true, note = "por segundo" },
+	Smash = { amount = "SmashDamage", perks = { "MeleeDamage", "SmashDamage" } },
+	PiercingShot = { amount = "PierceDamage", perks = { "RangedDamage", "PierceDamage" }, note = "por mono" },
+	Meteor = { amount = "MeteorDamage", perks = { "SpellDamage" } },
+	SleepPowder = { amount = "PowderDamage", perks = {}, note = "y duerme" },
 }
 
 local SettingsPanel = {}
@@ -241,8 +245,9 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	end
 	text(parent, `✨ Habilidades (crítico {Crit.percent(chance)}): {table.concat(lines, " · ")}`, 5)
 
-	local combo = Combos[roleId]
-	if combo then
+	local combos = Combos[roleId] or {}
+	local comboLines = {}
+	for _, combo in combos do
 		local names = {}
 		for _, stepId in combo.steps do
 			for _, ability in role.abilities do
@@ -252,12 +257,19 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 			end
 		end
 		local extra = if combo.damageBonus then ` con +{math.round(combo.damageBonus * 100)} % de daño` else ""
-		text(
-			parent,
-			`🔗 Combo «{combo.name}»: {table.concat(names, " → ")}. Los pasos 2 y 3 hacen críticos seguros{extra} a lo que lleva {combo.icon}. {combo.finisher}`,
-			6,
-			SOFT_COLOR
+		table.insert(
+			comboLines,
+			`🔗 Combo «{combo.name}»: {table.concat(names, " → ")}. Los pasos 2 y 3 hacen críticos seguros{extra} a lo que lleva {combo.icon}. {combo.finisher}`
 		)
+	end
+	if #combos >= 2 then
+		table.insert(
+			comboLines,
+			"⛓️ Conexión: al cerrar un combo, el otro queda abierto; sigue con su paso 2 sin hacer el 1."
+		)
+	end
+	if #comboLines > 0 then
+		text(parent, table.concat(comboLines, "\n"), 6, SOFT_COLOR)
 	end
 
 	local petId = activePet(player)

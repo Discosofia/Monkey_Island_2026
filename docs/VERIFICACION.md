@@ -31,7 +31,7 @@ Marca cada casilla al comprobarla.
 | Beber | F (junto al agua) |
 | Bolsa | B |
 | Diario de campo | J |
-| Habilidades del rol | Z, X, C y V (la definitiva) · mando: mantén R1 + A, B, X o Y |
+| Habilidades del rol | Z, X, C, R y V (la definitiva) · mando: mantén R1 + A, B, X, Y o L1 |
 | Silenciar música | M |
 | Construir con el martillo | Clic coloca · R gira · T cambia de pieza · F quita |
 
@@ -146,9 +146,10 @@ En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](
 
 El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no volver al Lobby, en 🛠️ pulsa **🎭 Siguiente rol** (cambia rol, armas y habilidades) y **⚡ Habilidades listas** (quita los tiempos de espera). Busca un grupo de monos (o el muñeco de práctica) para probarlas.
 
-1. [ ] Al entrar sale **"⚔️ Juegas como Guerrero: …"** (o tu rol) y bajo las barras **4 casillas** (Z, X, C, V) que dicen "lista". La V tiene borde dorado.
+1. [ ] Al entrar sale **"⚔️ Juegas como Guerrero: …"** (o tu rol) y bajo las barras **5 casillas** (Z, X, C, R, V) que dicen "lista". La V tiene borde dorado.
    - En la barra: las **2 armas del rol** en 1 y 2, el hacha en 3 y el pico en 4.
-   - En móvil: un bloque de 4 botones junto al salto, con la cuenta atrás al usarlos.
+   - En móvil: un bloque de 5 botones junto al salto, con la cuenta atrás al usarlos.
+   - **Combos y conexiones:** cierra un combo (p. ej. guerrero: Embestida → Grito → Torbellino) y sigue con el paso 2 del otro (Embestida → Rompehuesos) sin hacer su paso 1: sale "¡CONEXIÓN! 2 seguidos" y el paso saltado lleva "🔗".
    - Con mando: mantén **R1** y pulsa A, B, X o Y.
 2. [ ] **Guerrero** (Garrote de piedra):
    - **Z Torbellino:** giras 2 s entre estelas de viento en círculo y los monos de alrededor reciben varios golpes.

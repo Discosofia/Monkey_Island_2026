@@ -1,10 +1,12 @@
 --!strict
 -- Rol del jugador local en la Isla (Fase 3):
---   - 4 habilidades (Data/Roles): Z, X y C las activas y V la definitiva. Con mando, mantén R1 y pulsa
---     A, B, X o Y. En móvil, un bloque de 4 botones junto al salto. Bajo las barras de supervivencia,
---     una casilla por habilidad dice cuándo vuelve a estar lista.
+--   - 5 habilidades (Data/Roles): Z, X, C y R las activas y V la definitiva. Con mando, mantén R1 y
+--     pulsa A, B, X, Y o L1. En móvil, un bloque de 5 botones junto al salto. Bajo las barras de
+--     supervivencia, una casilla por habilidad (en el orden Z X C R V) dice cuándo vuelve a estar lista.
+--     La R no es la E porque la E es la de los avisos (recoger, reanimar, fabricar…).
 --   - Los movimientos los hace este cliente (es quien mueve al personaje): la Embestida empuja hacia
---     delante, el Parpadeo teletransporta y el Torbellino hace girar al guerrero. El resto lo aplica
+--     delante, el Parpadeo teletransporta, el Torbellino hace girar al guerrero y el Rompehuesos lo
+--     vuelve hacia donde apuntas. El resto lo aplica
 --     el servidor (AbilityService). Sus efectos (rastro rojo, estelas de viento, punto negro y chispa)
 --     se dibujan aquí al momento con AbilityFxController; a los demás se los manda el servidor.
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (mejora de la tienda).
@@ -30,10 +32,19 @@ local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
-local KEYS = { Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V }
-local KEY_NAMES = { "Z", "X", "C", "V" }
--- Con mando: mantener R1 cambia A, B, X e Y por las 4 habilidades.
-local PAD_BUTTONS = { Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY }
+-- Una por hueco de Data/Roles (el 4 es la definitiva; el 5, la cuarta activa).
+local KEYS = { Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V, Enum.KeyCode.R }
+local KEY_NAMES = { "Z", "X", "C", "V", "R" }
+-- Orden de las casillas: las activas seguidas y la definitiva al final (Z X C R V).
+local HUD_ORDER = { 1, 2, 3, 5, 4 }
+-- Con mando: mantener R1 cambia A, B, X, Y y L1 por las 5 habilidades.
+local PAD_BUTTONS = {
+	Enum.KeyCode.ButtonA,
+	Enum.KeyCode.ButtonB,
+	Enum.KeyCode.ButtonX,
+	Enum.KeyCode.ButtonY,
+	Enum.KeyCode.ButtonL1,
+}
 local PAD_MODIFIER = "AbilityModifier"
 local PAD_ACTION = "AbilityPad"
 -- Avisos cuyo tiempo de mantener depende de una ventaja del jugador.
@@ -223,6 +234,10 @@ local function useAbility(player: Player, slot: number)
 		end
 		spin(humanoid, root, seconds)
 		AbilityFxController.play("Whirlwind", character, seconds)
+	elseif ability.id == "Smash" then
+		-- El golpe va al cono de delante: se vuelve hacia donde apunta.
+		local facing = flat(aim)
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + facing)
 	end
 	-- Gesto del cuerpo (pisotón, lanzar, agacharse…), si la habilidad tiene (Data/PlayerAnimations).
 	BodyAnimations.playAbility(ability.id)
@@ -237,17 +252,18 @@ local function buildHud(player: Player): { { frame: Frame, name: TextLabel, time
 	row.Name = "Abilities"
 	row.BackgroundTransparency = 1
 	row.Position = UDim2.fromOffset(12, 118)
-	row.Size = UDim2.fromOffset(4 * 66, 46)
+	row.Size = UDim2.fromOffset(#KEYS * 66, 46)
 	row.Parent = gui
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.Padding = UDim.new(0, 6)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = row
 
 	local slots = {}
-	for slot = 1, 4 do
+	for slot = 1, #KEYS do
 		local frame = Instance.new("Frame")
-		frame.LayoutOrder = slot
+		frame.LayoutOrder = HUD_ORDER[slot]
 		frame.Size = UDim2.fromOffset(60, 46)
 		frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 		frame.BackgroundTransparency = 0.35

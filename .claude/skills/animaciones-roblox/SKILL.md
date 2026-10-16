@@ -24,6 +24,11 @@ El script no se ejecuta en tu terminal: lee el archivo y manda su contenido con 
 llamadas siguientes basta con `local Anim = _G.Anim` (dura hasta que se cierra Studio). Si cambias
 el archivo, vuelve a mandarlo entero.
 
+Con Rojo conectado (place de la Isla) es más rápido no pegarlo: copia el archivo con `return Anim`
+al final a `src/island/tools/_AnimTemporal.luau`, espera a que Rojo lo lleve a
+`ServerStorage.Tools`, cárgalo con una copia (`local c = m:Clone(); c.Parent = m.Parent;
+_G.Anim = require(c); c:Destroy()`) y **borra el archivo** en cuanto esté en `_G` (no lo subas).
+
 Para el estilo de los modelos, la paleta y la puesta en marcha del MCP, mira la skill hermana
 `.claude/skills/modelos-3d-roblox` (sobre todo `references/herramientas-mcp.md`).
 
@@ -227,5 +232,11 @@ la animación es la misma a efectos prácticos.
 - **Una función de un módulo de `ServerStorage.Tools` falla con `attempt to index nil`** → con
   `freshRequire`, el código corre en una copia que ya no tiene padre: toma `script.Parent` al
   cargar el módulo, no dentro de la función.
+- **`PlayerAnimationBuilder.build()` da "Requested module experienced an error while loading"** →
+  `build()` se vuelve a cargar desde su propio `script`; si lo llamas en una copia que ya has
+  destruido (lo que hace `Anim.freshRequire`), esa recarga falla. Clona el módulo, déjalo con padre,
+  llama a `require(copia).build({ fresh = true })` y destruye la copia después.
+- **Un golpe con arma** (gestos de habilidades del guerrero) no se lee en el maniquí sin arma:
+  suéldale una (referencia §3, "Ver el arma en la tira") y mide dónde queda su punta.
 - **Las capturas salen teñidas o sin rótulos** → los `BillboardGui` no salen en `screen_capture`;
   los rótulos de `show` son `SurfaceGui` sobre una pieza por eso.

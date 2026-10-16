@@ -1,19 +1,20 @@
 --!strict
--- Habilidades de los roles (Fase 3): 3 activas y una definitiva por rol (Data/Roles), con sus números
--- en Config.Abilities. El cliente (RoleController) pide usar la del hueco 1-4 con la dirección en la
+-- Habilidades de los roles (Fase 3): 4 activas y una definitiva por rol (Data/Roles), con sus números
+-- en Config.Abilities. El cliente (RoleController) pide usar la del hueco 1-5 con la dirección en la
 -- que apunta; aquí se comprueba el tiempo de espera y se aplica todo.
---   - Guerrero: Torbellino, Embestida, Grito de guerra y Pisotón (id "Quake").
---   - Cazador: Disparo múltiple, Marcar presas, Cepo y Lluvia de proyectiles.
---   - Mago: Bola de fuego, Nova de hielo, Parpadeo y Rayo encadenado.
---   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas y Tótem sanador.
+--   - Guerrero: Torbellino, Embestida, Grito de guerra, Pisotón (id "Quake") y Rompehuesos ("Smash").
+--   - Cazador: Disparo múltiple, Marcar presas, Cepo, Lluvia de proyectiles y Flecha perforante.
+--   - Mago: Bola de fuego, Nova de hielo, Parpadeo, Rayo encadenado y Meteoro.
+--   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas, Tótem sanador y Polvo somnífero.
 -- Los movimientos (Embestida y Parpadeo) los hace el cliente, que es quien mueve a su personaje; el
 -- servidor pone el daño. Lo que se ve lo dibuja cada cliente (Combat/AbilityFx y AbilityFxController),
 -- salvo el Cepo, que es una pieza del mundo. Con PvP activo en los dos, las habilidades también
 -- afectan a otros jugadores, con menos daño y aturdimientos más cortos. Los estados de los monos están en Combat/Status.
 -- El cliente ve cuándo vuelve a estar lista cada una con el atributo "AbilityReadyAt<hueco>".
--- Combos (Data/Combos, ComboService): la primera habilidad del combo marca lo que toca; las
--- siguientes, enlazadas a tiempo, hacen críticos seguros con daño extra contra los marcados y el
--- remate un efecto extra. Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
+-- Combos (Data/Combos, ComboService), dos por rol: la primera habilidad de cada combo marca lo que
+-- toca; las siguientes, enlazadas a tiempo, hacen críticos seguros con daño extra contra los marcados y
+-- el remate un efecto extra. Lo que golpea un remate que conecta con el otro combo queda marcado para
+-- ese (ComboService.touch). Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -161,8 +162,9 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 	else
 		local comboHit = ComboService.isComboHit(attacker, target.model, abilityId)
 		if comboHit then
-			amount *= 1 + ComboService.linkedDamageBonus(attacker)
+			amount *= 1 + ComboService.linkedDamageBonus(attacker, abilityId)
 		end
+		ComboService.touch(attacker, abilityId, target.model)
 		local crit = comboHit or CombatService.rollPlayerCrit(attacker)
 		CombatService.damage(
 			target.model,
@@ -181,9 +183,9 @@ local function comboOpener(player: Player, abilityId: string, target: Target)
 	end
 end
 
--- Aturde, congela o inmoviliza. A un jugador lo deja quieto (atributo "StunnedUntil"), menos tiempo.
--- Congelado e inmovilizado se ven en los clientes (bloque de hielo y brillo verde).
-local function control(target: Target, seconds: number, look: ("Stun" | "Freeze" | "Root")?)
+-- Aturde, congela, inmoviliza o duerme. A un jugador lo deja quieto (atributo "StunnedUntil"), menos
+-- tiempo. Congelado, inmovilizado y dormido se ven en los clientes (bloque de hielo, brillo verde, "Zzz").
+local function control(target: Target, seconds: number, look: ("Stun" | "Freeze" | "Root" | "Sleep")?)
 	local duration = seconds
 	if target.player then
 		duration *= SETTINGS.PvPControlMultiplier
@@ -197,6 +199,8 @@ local function control(target: Target, seconds: number, look: ("Stun" | "Freeze"
 		AbilityFx.all("Frozen", target.model, duration)
 	elseif look == "Root" then
 		AbilityFx.all("Rooted", target.model, duration)
+	elseif look == "Sleep" then
+		AbilityFx.all("Asleep", target.model, duration)
 	end
 end
 
@@ -214,6 +218,9 @@ local function heal(healer: Player, player: Player, amount: number, abilityId: s
 		healer,
 		{ canCrit = true, crit = ComboService.isPayoff(healer, abilityId), source = abilityId }
 	)
+	if character then
+		ComboService.touch(healer, abilityId, character)
+	end
 	return true
 end
 
@@ -329,6 +336,8 @@ local function warCry(player: Player, character: Model, root: BasePart): boolean
 			if linked and ComboService.isMarkedBy(target.model, player) then
 				control(target, COMBO.WarCryStun, "Stun")
 			end
+			-- Primer paso de "Martillo y yunque": los provocados quedan marcados.
+			comboOpener(player, "WarCry", target)
 		end
 	end
 	player:SetAttribute("GuardUntil", now() + seconds)
@@ -352,6 +361,35 @@ local function quake(player: Player, character: Model, root: BasePart): boolean
 	end
 	Sfx.play("RockImpact", root)
 	AbilityFx.all("Quake", ground, SETTINGS.QuakeRadius)
+	return true
+end
+
+-- Rompehuesos: golpe pesado a los monos del cono de delante (el cliente gira al guerrero hacia donde
+-- apunta). Como remate de "Martillo y yunque", a todos los de alrededor.
+local function smash(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local damage = SETTINGS.SmashDamage
+		* Progression.perk(player, "MeleeDamage")
+		* Progression.perk(player, "SmashDamage")
+	local around = ComboService.isPayoff(player, "Smash")
+	local facing = flat(aim)
+	local minDot = math.cos(math.rad(SETTINGS.SmashAngle / 2))
+	local ground = groundBelow(root.Position, { character })
+	AbilityFx.all("Smash", ground, facing, SETTINGS.SmashRange, if around then 360 else SETTINGS.SmashAngle)
+	-- El golpe llega cuando el arma baja (el gesto tarda un poco).
+	task.delay(0.25, function()
+		if not (root.Parent and LifeState.isAlive(player)) then
+			return
+		end
+		Sfx.play("RockImpact", root)
+		for _, target in targetsAround(player, root.Position, SETTINGS.SmashRange) do
+			local offset = target.root.Position - root.Position
+			local inFront = flat(offset):Dot(facing) >= minDot or offset.Magnitude < 2
+			if around or inFront then
+				hurt(player, target, damage, "Smash")
+				control(target, SETTINGS.SmashStun, "Stun")
+			end
+		end
+	end)
 	return true
 end
 
@@ -393,9 +431,13 @@ local function markPrey(player: Player, _character: Model, root: BasePart): bool
 		if enemy:IsA("Model") then
 			local distance = (enemy:GetPivot().Position - root.Position).Magnitude
 			if distance <= SETTINGS.MarkRadius then
-				local target = if linked and ComboService.isMarkedBy(enemy, player) then enemyTarget(enemy) else nil
-				if target then
+				local target = enemyTarget(enemy)
+				if target and linked and ComboService.isMarkedBy(enemy, player) then
 					control(target, COMBO.MarkPreyRoot, "Root")
+				end
+				-- Primer paso de "Tiro de gracia": las presas quedan señaladas.
+				if target then
+					comboOpener(player, "MarkPrey", target)
 				end
 				enemy:SetAttribute("MarkedUntil", untilTime)
 				enemy:SetAttribute("MarkBonus", bonus)
@@ -587,6 +629,58 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 	return true
 end
 
+-- Hasta dónde llega una flecha que atraviesa monos y jugadores: solo la para el terreno o el decorado.
+local function pierceEnd(character: Model, origin: Vector3, direction: Vector3, range: number): Vector3
+	local ignore: { Instance } = { character }
+	for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
+		table.insert(ignore, enemy)
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(ignore, other.Character)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	local result = Workspace:Raycast(origin, direction * range, params)
+	return if result then result.Position else origin + direction * range
+end
+
+-- Flecha perforante: atraviesa a todos los que encuentra en línea recta, a cada uno cuando le llega.
+-- Como remate de "Tiro de gracia", dispara más en un abanico estrecho.
+local function piercingShot(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local damage = SETTINGS.PierceDamage
+		* Progression.perk(player, "RangedDamage")
+		* Progression.perk(player, "PierceDamage")
+	local count = 1
+	if ComboService.isPayoff(player, "PiercingShot") then
+		count += COMBO.PierceExtraArrows
+	end
+	local origin = headOf(character, root)
+	local spread = math.rad(COMBO.PierceSpreadDegrees)
+	local endPoints = {}
+	for index = 1, count do
+		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
+		local direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim)
+		local endPoint = pierceEnd(character, origin, direction, SETTINGS.PierceRange)
+		local length = (endPoint - origin).Magnitude
+		table.insert(endPoints, endPoint)
+		for _, target in targetsAround(player, origin, length + 3) do
+			local offset = target.root.Position - origin
+			local along = offset:Dot(direction)
+			local apart = (offset - direction * along).Magnitude
+			-- Con margen para el cuerpo del mono (su centro está a un par de studs de su borde).
+			if along > 0 and along <= length + 1 and apart <= SETTINGS.PierceWidth + 2 then
+				task.delay(along / SETTINGS.PierceSpeed, hurt, player, target, damage, "PiercingShot")
+			end
+		end
+	end
+	Sfx.play("Shoot", root)
+	AbilityFx.all("PiercingShot", origin, endPoints, SETTINGS.PierceSpeed)
+	return true
+end
+
 -- ===================================== Mago =====================================
 
 local function fireball(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
@@ -607,6 +701,8 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 				AbilityFx.all("IceShatter", target.root.Position)
 			end
 			hurt(player, target, amount, "Fireball")
+			-- Primer paso de "Lluvia de estrellas": lo que quema queda chamuscado.
+			comboOpener(player, "Fireball", target)
 		end
 		if direct then
 			strike(direct, SETTINGS.FireballDamage * scale)
@@ -686,6 +782,36 @@ local function chainLightning(player: Player, character: Model, root: BasePart, 
 			end
 			current = nextTarget
 			task.wait(0.08)
+		end
+	end)
+	return true
+end
+
+-- Meteoro: una roca ardiente cae donde apunta el mago tras un aviso en el suelo. Como remate de
+-- "Lluvia de estrellas", deja el suelo ardiendo unos segundos.
+local function meteor(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local origin = headOf(character, root)
+	local endPoint = castShot(character, origin, aim, SETTINGS.MeteorMaxDistance, 0.5)
+	local center = groundBelow(endPoint, { character })
+	local scale = Progression.perk(player, "SpellDamage")
+	local slow = Progression.perk(player, "MeteorSlow")
+	local burnTicks = if ComboService.isPayoff(player, "Meteor") then COMBO.MeteorBurnTicks else 0
+	AbilityFx.all("Meteor", center, SETTINGS.MeteorRadius, SETTINGS.MeteorDelay, burnTicks)
+	Sfx.play("LavaLaunch", root)
+	task.spawn(function()
+		task.wait(SETTINGS.MeteorDelay)
+		Sfx.play("LavaImpact", center)
+		for _, target in targetsAround(player, center, SETTINGS.MeteorRadius) do
+			hurt(player, target, SETTINGS.MeteorDamage * scale, "Meteor")
+			if slow > 0 and not target.player then
+				Status.slow(target.model, slow, SETTINGS.NovaSlowFactor)
+			end
+		end
+		for _ = 1, burnTicks do
+			task.wait(1)
+			for _, target in targetsAround(player, center, SETTINGS.MeteorRadius) do
+				hurt(player, target, COMBO.MeteorBurnDamage * scale, "Meteor")
+			end
 		end
 	end)
 	return true
@@ -789,6 +915,8 @@ local function leafShield(player: Player, character: Model, root: BasePart): boo
 	end
 	chosen:SetAttribute("ShieldHealth", amount)
 	chosen:SetAttribute("ShieldUntil", now() + SETTINGS.ShieldSeconds)
+	-- Primer paso de "Nana de la selva": el protegido queda arropado.
+	ComboService.opener(player, "LeafShield", chosenCharacter)
 	-- La burbuja sale de esos atributos en cada cliente; aquí, el destello al ponerla.
 	AbilityFx.all("ShieldGlare", chosenCharacter)
 	Sfx.play("Heal", root)
@@ -834,23 +962,76 @@ local function healingTotem(player: Player, character: Model, root: BasePart, ai
 	return true
 end
 
+-- Polvo somnífero: una nube donde apunta el médico. A los monos les entra sueño (van lentos) y luego
+-- se duermen; los jefes no se duermen. Como remate de "Nana de la selva", duermen más y la nube cura a
+-- los aliados que estén dentro.
+local function sleepPowder(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local origin = headOf(character, root)
+	local endPoint = castShot(character, origin, aim, SETTINGS.PowderMaxDistance, 0.5)
+	local center = groundBelow(endPoint, { character })
+	local finisher = ComboService.isPayoff(player, "SleepPowder")
+	local sleep = Progression.perk(player, "PowderSleep") + (if finisher then COMBO.PowderExtraSleep else 0)
+	local drowsy = SETTINGS.PowderDrowsySeconds
+	AbilityFx.all("SleepPowder", origin, center, SETTINGS.PowderRadius, drowsy + sleep)
+	Sfx.play("Shoot", root)
+	task.spawn(function()
+		-- Lo que tarda el puñado de polvo en llegar.
+		task.wait(0.5)
+		local sleepers: { Target } = {}
+		for _, target in targetsAround(player, center, SETTINGS.PowderRadius) do
+			hurt(player, target, SETTINGS.PowderDamage, "SleepPowder")
+			if target.player then
+				table.insert(sleepers, target)
+			elseif not Status.isBoss(target.model) then
+				Status.slow(target.model, drowsy, SETTINGS.PowderSlowFactor)
+				table.insert(sleepers, target)
+			end
+		end
+		if finisher then
+			local amount = COMBO.PowderHeal * Progression.perk(player, "HealPower")
+			for _, other in Players:GetPlayers() do
+				local otherCharacter = other.Character
+				local otherRoot = if otherCharacter then otherCharacter:FindFirstChild("HumanoidRootPart") else nil
+				if
+					otherRoot
+					and otherRoot:IsA("BasePart")
+					and (otherRoot.Position - center).Magnitude <= SETTINGS.PowderRadius
+				then
+					heal(player, other, amount, "SleepPowder")
+				end
+			end
+		end
+		task.wait(drowsy)
+		for _, target in sleepers do
+			if target.humanoid.Health > 0 and target.model.Parent then
+				control(target, sleep, "Sleep")
+			end
+		end
+	end)
+	return true
+end
+
 local HANDLERS: { [string]: Handler } = {
 	Whirlwind = whirlwind,
 	Charge = charge,
 	WarCry = warCry,
 	Quake = quake,
+	Smash = smash,
 	MultiShot = multiShot,
 	MarkPrey = markPrey,
 	Trap = trap,
 	ArrowRain = arrowRain,
+	PiercingShot = piercingShot,
 	Fireball = fireball,
 	FrostNova = frostNova,
 	Blink = blink,
 	ChainLightning = chainLightning,
+	Meteor = meteor,
 	AreaHeal = areaHeal,
 	HealingDart = healingDart,
 	LeafShield = leafShield,
 	HealingTotem = healingTotem,
+	SleepPowder = sleepPowder,
 }
 
 -- "from" y "to": dónde empezó y acabó el Parpadeo en el cliente (solo para su efecto).

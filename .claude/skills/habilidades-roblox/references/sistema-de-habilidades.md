@@ -7,8 +7,8 @@ y corrige esta página.
 
 | Quién | Datos (números) | Lógica (servidor) | Lo que se ve (cliente) |
 |---|---|---|---|
-| Jugador (4 por rol: Z, X, C y la definitiva V) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/island/server/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
-| Combos (3 habilidades en orden por rol) | `Data/Combos.luau`, `Config.Combo` | `Services/ComboService.luau` | `ComboController` (indicador y racha), iconos de marca en `AbilityFxController` |
+| Jugador (5 por rol: Z, X, C, R y la definitiva V; la R es el hueco 5) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/island/server/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
+| Combos (2 por rol, de 3 habilidades en orden, que se conectan) | `Data/Combos.luau`, `Config.Combo` | `Services/ComboService.luau` | `ComboController` (indicador y racha), iconos de marca en `AbilityFxController` |
 | Críticos | `Config.Crit`, `critChance` en `Data/Weapons` | `src/shared/Crit.luau` (funciones puras), los tira `CombatService` | `CombatTextController`, `ComicFxController` |
 | Estados de enemigos (aturdido, lento, provocado) | `Config.Abilities.BossControlMultiplier` | `src/island/server/Combat/Status.luau` | contornos (servidor) y hielo/brillo verde (`AbilityFxController`) |
 | Monos (ataques especiales) | campos de `Data/Monkeys.luau` (`pounce`, `roar`, `throws`, `grab`, `stomp`, `howl`, `thief`…), `Config.Monkeys`, `Config.Difficulty` | `Services/MonkeyService.luau` (`think`, `bite`, `pounce`, `roar`, `throwStone`, `stomp`, `howl`, `steal`) | `MonkeyAnimator` + `Data/MonkeyAnimations`, burbujas de texto |
@@ -88,6 +88,19 @@ si es mortal, `LifeService.down`.
 
 ### 2.5 Combos (`Data/Combos`, `ComboService`, `Config.Combo`)
 
+- Dos combos por rol (`Data/Combos[rol]` es una lista). Cada uno empieza con una habilidad distinta y
+  la que se usa primero decide cuál está en marcha (`ComboIndex`). Una habilidad que es paso 1 de un
+  combo y paso 2 o 3 del otro (Grito, Marcar, Bola de fuego, Escudo) enlaza el combo en marcha si toca
+  y, si no, abre el suyo.
+- **Conexión** (`complete`): al cerrar un combo, el otro queda en su paso 1 con las marcas alargadas y
+  lo que golpee o cure el remate se marca (`ComboService.touch`, desde `hurt` y `heal`). Un combo
+  cerrado así sube la racha `ConnectStreakBonus` más; `ComboChain` cuenta los seguidos y
+  `ComboConnected` dice si el combo en marcha vino de una conexión. El "¡COMBO!" (paso 3) se ve
+  1,5 s (`displayUntil`) y luego se publica el paso 1 del siguiente.
+- Los remates de los segundos combos (la habilidad nueva de cada rol) usan `isPayoff` como los otros;
+  `payoffs` guarda una hora por habilidad, así un paso nuevo no corta el remate anterior (el Torbellino
+  sigue girando con críticos aunque ya hayas enlazado la Embestida del otro combo).
+
 - Paso 1 (prepara): el handler llama a `comboOpener`/`ComboService.opener` cuando **toca** algo;
   lo marca (`ComboMarkBy`/`ComboMarkUntil`) y empieza el combo.
 - Pasos 2 y 3: usar la siguiente antes de `StepWindowSeconds` (6 s) la enlaza. Si la siguiente aún
@@ -96,11 +109,11 @@ si es mortal, `LifeService.down`.
   `PayoffSeconds` sus golpes contra los marcados son críticos seguros y hacen `damageBonus` de su
   combo más de daño (`isComboHit` + `linkedDamageBonus`, en `AbilityService.hurt`), y el handler
   puede dar un extra con `ComboService.isPayoff(player, id)` (más flechas, más giro, radio…).
-  `damageBonus` va por rol (+25 % guerrero y mago, +50 % cazador) porque cada combo se cierra con
-  distinta frecuencia y su remate pega distinto.
+  `damageBonus` va por combo (+25 % guerrero, +10 % cazador, nada el mago) porque cada rol cierra
+  combos con distinta frecuencia y su remate pega distinto (`linkedDamageBonus(player, id)`).
 - Cada paso enlazado que no sea la definitiva le quita `UltRefundSeconds` (10 s) a la recarga de la
   V, como mucho `UltRefundMaxSeconds` (20 s) por recarga (`State.ultRefunded`, vuelve a 0 al usar la
-  V): sin tope, el rol con los pasos más baratos (el mago) la lanzaba casi el triple. Cada combo completo sube la racha (x1…x5): desde x2, recargas un `StreakCooldownBonus` (8 %)
+  V): sin tope, el rol con los pasos más baratos (el mago) la lanzaba casi el triple. Cada combo completo sube la racha (x1…x5): desde x2, recargas un `StreakCooldownBonus` (4 %; era 8 % con un combo por rol)
   más rápidas por nivel; se pierde tras `StreakSeconds` sin dañar ni curar.
 - Ningún combo usa la definitiva. El cliente predice el remate con `ComboController.nextStep`
   (el Torbellino gira más en el propio cliente).
@@ -202,9 +215,12 @@ del Basecamp (`TrainingDummyService`).
 
 Los números exactos y sus medidas salen de la calculadora (`src/island/tools/Equilibrio.luau`, sección 1).
 
-| Rol | Z | X | C | V (definitiva) | Combo (pasos) |
-|---|---|---|---|---|---|
-| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 12 s | Pisotón 90 s | Embestida → Grito → Torbellino |
-| Cazador | Disparo múltiple 5 s | Marcar presas 15 s | Cepo 9 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple |
-| Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Rayo encadenado 90 s | Nova → Parpadeo → Bola de fuego |
-| Médico | Ungüento 15 s | Dardo curativo 6 s | Escudo de hojas 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento |
+| Rol | Z | X | C | R | V (definitiva) | Combos (pasos) |
+|---|---|---|---|---|---|---|
+| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 12 s | Rompehuesos 8 s | Pisotón 90 s | Embestida → Grito → Torbellino · Grito → Embestida → Rompehuesos |
+| Cazador | Disparo múltiple 5 s | Marcar presas 15 s | Cepo 9 s | Flecha perforante 8 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple · Marcar → Cepo → Flecha perforante |
+| Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Meteoro 10 s | Rayo encadenado 90 s | Nova → Parpadeo → Bola de fuego · Bola de fuego → Nova → Meteoro |
+| Médico | Ungüento 15 s | Dardo curativo 6 s | Escudo de hojas 12 s | Polvo somnífero 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento · Escudo → Dardo → Polvo somnífero |
+
+Dormir (`control(…, "Sleep")`, `Status.stun` con aspecto "Sleep" y efecto "Asleep") es un aturdimiento
+que se ve con "💤"; el Polvo somnífero no se lo aplica a los jefes.

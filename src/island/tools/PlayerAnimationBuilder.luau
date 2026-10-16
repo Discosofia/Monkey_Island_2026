@@ -172,6 +172,29 @@ local function chargePose(t: number, marker: string?): { [string]: any }
 	}
 end
 
+-- Rompehuesos: golpe de dos manos con el arma hacia delante, agachado en zancada con la derecha
+-- delante. AbilityService hace el daño a los 0,25 s: el arma toca el suelo ~4 studs por delante.
+local function smashImpact(t: number, torso: number, head: number, arm: number, marker: string?): { [string]: any }
+	return {
+		t = t,
+		marcador = marker,
+		LowerTorso = { -10, 0, 0, 0, -0.55, 0 },
+		UpperTorso = { torso, -5, 0 },
+		Head = { head, 0, 0 },
+		RightUpperArm = { arm, 0, -25 },
+		RightLowerArm = { 5, 0, 0 },
+		RightHand = { -20, 0, 0 },
+		LeftUpperArm = { arm, 0, 25 },
+		LeftLowerArm = { 5, 0, 0 },
+		RightUpperLeg = { 65, 0, 0 },
+		RightLowerLeg = { -75, 0, 0 },
+		RightFoot = { 20, 0, 0 },
+		LeftUpperLeg = { -10, 0, 0 },
+		LeftLowerLeg = { -45, 0, 0 },
+		LeftFoot = { 35, 0, 0 },
+	}
+end
+
 -- Torbellino: agachado y con las piernas abiertas, el tronco girado con el brazo del arma (derecho)
 -- por delante abriendo el barrido y el otro detrás, como un tajo circular (con los brazos rectos en
 -- cruz parecía la pose en T de Roblox). "open" abre un poco más el giro: vaivén del bucle.
@@ -348,6 +371,33 @@ local SPECS: { [string]: any } = {
 			chargePose(0.06, "Carga"),
 			chargePose(0.35),
 			{ t = 0.55, reposo = true },
+		},
+	},
+	-- Rompehuesos: carga con el arma detrás de la cabeza (0,13 s; mano 1,1 por detrás), golpe al suelo a
+	-- 0,25 s y aguanta agachado antes de levantarse. Medido en Studio: pies a −0,13 como mucho.
+	Smash = {
+		name = "Smash",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.13,
+				direction = "In", -- acelera hacia el golpe
+				LowerTorso = { 5, 0, 0 },
+				UpperTorso = { 15, 10, 0 },
+				Head = { -10, 0, 0 },
+				RightUpperArm = { 165, 0, -10 },
+				RightLowerArm = { 40, 0, 0 },
+				LeftUpperArm = { 160, 0, 10 },
+				LeftLowerArm = { 40, 0, 0 },
+				RightUpperLeg = { 15, 0, 0 },
+				RightLowerLeg = { -20, 0, 0 },
+				LeftUpperLeg = { -5, 0, 0 },
+			},
+			smashImpact(0.25, -45, 30, 60, "Golpe"),
+			smashImpact(0.42, -38, 25, 62),
+			{ t = 0.75, reposo = true },
 		},
 	},
 	Whirlwind = {

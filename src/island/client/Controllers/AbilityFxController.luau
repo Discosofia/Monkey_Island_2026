@@ -4,14 +4,17 @@
 -- cada fotograma se ven fluidas y no cargan la red. Es solo lo que se ve: el daño y los estados los
 -- pone el servidor.
 --   - Guerrero: estelas de viento en círculo (Torbellino), rastro rojo (Embestida), pose de grito con
---     brillo rojo (Grito de guerra) y suelo agrietado con piedras que saltan (Pisotón).
+--     brillo rojo (Grito de guerra), suelo agrietado con piedras que saltan (Pisotón) y grietas en
+--     abanico (Rompehuesos).
 --   - Cazador: flechas verdes con estela (Disparo múltiple), diana sobre las presas marcadas, brillo
---     verde suave en el mono atrapado (el Cepo lo pone el servidor) y nube que suelta la
---     Lluvia de proyectiles.
+--     verde suave en el mono atrapado (el Cepo lo pone el servidor), nube que suelta la
+--     Lluvia de proyectiles y flecha dorada que atraviesa (Flecha perforante).
 --   - Mago: bola de fuego roja con bolitas en espiral, monos congelados en bloques de hielo, punto
---     negro y chispa del Parpadeo y rayo que deja una sombra y humo en los monos alcanzados.
+--     negro y chispa del Parpadeo, rayo que deja una sombra y humo en los monos alcanzados y roca
+--     ardiente que cae del cielo sobre un aviso rojo (Meteoro).
 --   - Médico: hojas que salen en círculo (Ungüento), dardo amarillo con cola roja, burbuja de escudo
---     con destello amarillo y tótem navajo de madera con gema verde sobre un suelo de hojas.
+--     con destello amarillo, tótem navajo de madera con gema verde sobre un suelo de hojas y nube lila
+--     con "💤" sobre los monos dormidos (Polvo somnífero).
 -- Los movimientos del propio jugador (Embestida, Torbellino y Parpadeo) los dibuja RoleController al
 -- momento con AbilityFxController.play; el servidor se los manda solo a los demás.
 -- La diana de las presas y la burbuja del escudo no llegan por el evento: salen de los atributos
@@ -851,6 +854,49 @@ local function quake(center: Vector3, radius: number)
 	shake(ground, radius * 2.5, 1, 0.6)
 end
 
+-- Rompehuesos: grietas en abanico delante del guerrero (alrededor si es el remate del combo), piedras
+-- que saltan y polvo. Llega con el golpe, un momento después del gesto.
+local function smash(ground: Vector3, facing: Vector3, range: number, degrees: number)
+	task.wait(0.25)
+	local params = groundParams()
+	local crackColor = Color3.fromRGB(28, 20, 14)
+	local rockColor = Color3.fromRGB(120, 95, 70)
+	local cracks: { BasePart } = {}
+	local full = degrees >= 360
+	local count = if full then 10 else math.max(3, math.round(degrees / 20))
+	local half = math.rad(degrees) / 2
+	local base = math.atan2(facing.Z, facing.X)
+	for index = 1, count do
+		local angle = if full then index / count * 2 * math.pi else base - half + (index - 0.5) / count * 2 * half
+		local direction = Vector3.new(math.cos(angle), 0, math.sin(angle))
+		local from = groundAt(ground + direction * 1.2, params)
+		local tip = groundAt(ground + direction * range * rng:NextNumber(0.7, 1), params)
+		local crack = piece(
+			"Crack",
+			Vector3.new(rng:NextNumber(0.35, 0.6), 0.12, (tip - from).Magnitude),
+			crackColor,
+			Enum.Material.Slate
+		)
+		crack.CFrame = CFrame.lookAt((from + tip) / 2, tip) + Vector3.new(0, 0.08, 0)
+		crack.Parent = folder
+		table.insert(cracks, crack)
+		for _ = 1, 2 do
+			local size = rng:NextNumber(0.3, 0.7)
+			local rock = piece("Debris", Vector3.new(size, size * 0.8, size), rockColor, Enum.Material.Slate)
+			rock.CFrame = CFrame.new(ground + direction * rng:NextNumber(1, range * 0.8) + Vector3.new(0, 0.3, 0))
+			local velocity = direction * rng:NextNumber(4, 10) + Vector3.new(0, rng:NextNumber(14, 26), 0)
+			fling(rock, velocity, Vector3.new(rng:NextNumber(-8, 8), rng:NextNumber(-8, 8), 0), 0.9)
+		end
+	end
+	fadeAway(cracks, 0.8, 1.2)
+	local dustAt = if full then ground else ground + facing * range * 0.5
+	burst(dustAt + Vector3.new(0, 1, 0), SMOKE_TEXTURE, Color3.fromRGB(165, 140, 105), 16, 3, range * 0.8, 1.2)
+	if full then
+		ring(ground + Vector3.new(0, 0.3, 0), 1, range, 0.4, Color3.fromRGB(200, 160, 110), 0.6, 0.3)
+	end
+	shake(ground, range * 2.5, 0.7, 0.35)
+end
+
 -- ===================================== Cazador =====================================
 
 -- Disparo múltiple: flechas verdes brillantes con estela verde.
@@ -1078,6 +1124,26 @@ local function arrowRain(center: Vector3, radius: number, seconds: number)
 		end
 		fadeAway(puffs, 0.8)
 	end)
+end
+
+-- Flecha perforante: flecha dorada más grande, con una estela blanca larga, que no se para en los monos.
+local function piercingShot(origin: Vector3, endPoints: { Vector3 }, speed: number)
+	local gold = Color3.fromRGB(255, 205, 80)
+	for _, endPoint in endPoints do
+		local body = arrow(gold, Color3.fromRGB(255, 250, 220), Color3.fromRGB(255, 240, 200), Enum.Material.Neon)
+		body.Size = Vector3.new(0.2, 0.2, 3.2)
+		trail(
+			body,
+			Vector3.new(0, 0, 1.4),
+			ColorSequence.new(Color3.fromRGB(255, 255, 240), Color3.fromRGB(255, 190, 60)),
+			0.6,
+			0.5
+		)
+		fly(body, origin, endPoint, speed, nil, function()
+			retire(body, 0.6)
+			burst(endPoint, SPARKLE_TEXTURE, gold, 10, 0.8, 8, 0.5)
+		end)
+	end
 end
 
 -- ===================================== Mago =====================================
@@ -1412,6 +1478,80 @@ local function lightning(from: Vector3, to: Vector3, target: Model?)
 	if target then
 		smoke(target)
 	end
+end
+
+-- Meteoro: aviso rojo en el suelo mientras cae del cielo una roca ardiente; al llegar, explosión de
+-- fuego y suelo agrietado. Con "burnTicks" (remate del combo), el suelo arde ese número de segundos.
+local function meteor(center: Vector3, radius: number, delay: number, burnTicks: number)
+	local warning = disc(center + Vector3.new(0, 0.1, 0), radius, Color3.fromRGB(255, 70, 30), Enum.Material.Neon, 1)
+	warning.Parent = folder
+	TweenService:Create(warning, TweenInfo.new(delay, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Transparency = 0.45,
+	}):Play()
+
+	local sky = center + Vector3.new(rng:NextNumber(-14, 14), 70, rng:NextNumber(-14, 14))
+	local rock = ball("Meteor", 3, Color3.fromRGB(70, 35, 25), Enum.Material.Slate)
+	local fire = Instance.new("Fire")
+	fire.Color = Color3.fromRGB(255, 90, 30)
+	fire.SecondaryColor = Color3.fromRGB(255, 200, 70)
+	fire.Size = 7
+	fire.Heat = 9
+	fire.Parent = rock
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 110, 40)
+	light.Range = 18
+	light.Brightness = 3
+	light.Parent = rock
+	trail(rock, Vector3.zero, ColorSequence.new(Color3.fromRGB(255, 220, 120), Color3.fromRGB(255, 60, 20)), 0.5, 2.5)
+	fly(rock, sky, center, (center - sky).Magnitude / math.max(delay, 0.1), nil, function()
+		retire(rock, 0.5)
+		warning:Destroy()
+		quake(center, radius)
+		swell(center, 1, radius * 2, Color3.fromRGB(255, 110, 30), 0.15, 0.4)
+		local flames = emitter(
+			FIRE_TEXTURE,
+			ColorSequence.new(Color3.fromRGB(255, 210, 90), Color3.fromRGB(255, 50, 20)),
+			NumberSequence.new(4, 0),
+			radius * 2,
+			0.7
+		)
+		flames.LightEmission = 1
+		flames.Parent = anchorAt(center, 1.5)
+		flames:Emit(40)
+		flash(center, Color3.fromRGB(255, 120, 40), radius * 3, 7, 0.6)
+		if burnTicks > 0 then
+			local scorch = disc(
+				center + Vector3.new(0, 0.12, 0),
+				radius * 0.8,
+				Color3.fromRGB(40, 20, 12),
+				Enum.Material.Slate,
+				0.55
+			)
+			scorch.Parent = folder
+			-- Llamas pequeñas repartidas por la zona mientras arde.
+			for index = 1, 7 do
+				local angle = index / 7 * 2 * math.pi
+				local spot = center
+					+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * rng:NextNumber(0.2, 0.8)
+				local embers = emitter(
+					FIRE_TEXTURE,
+					ColorSequence.new(Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 60, 20)),
+					NumberSequence.new(2, 0),
+					3,
+					0.9
+				)
+				embers.LightEmission = 1
+				embers.EmissionDirection = Enum.NormalId.Top
+				embers.SpreadAngle = Vector2.new(20, 20)
+				embers.Rate = 8
+				embers.Parent = anchorAt(spot + Vector3.new(0, 0.3, 0), burnTicks + 1.5)
+				task.delay(burnTicks, function()
+					embers.Enabled = false
+				end)
+			end
+			fadeAway({ scorch }, 0.8, burnTicks)
+		end
+	end)
 end
 
 -- ===================================== Médico =====================================
@@ -1930,6 +2070,63 @@ local function totem(position: Vector3, facing: Vector3, radius: number, seconds
 	end)
 end
 
+-- Polvo somnífero: un puñado de polvo lila vuela hasta el punto y suelta una nube que dura "seconds".
+local function sleepPowder(origin: Vector3, center: Vector3, radius: number, seconds: number)
+	local lilac = Color3.fromRGB(205, 150, 255)
+	local pouch = ball("Powder", 0.7, lilac)
+	trail(pouch, Vector3.zero, ColorSequence.new(Color3.fromRGB(240, 210, 255), lilac), 0.4, 0.5)
+	local landing = center + Vector3.new(0, 1, 0)
+	fly(pouch, origin, landing, (landing - origin).Magnitude / 0.5, nil, function()
+		retire(pouch, 0.4)
+		ring(center + Vector3.new(0, 0.3, 0), 1, radius, 0.5, lilac, 0.6, 0.3)
+		burst(landing, SPARKLE_TEXTURE, Color3.fromRGB(255, 220, 255), 20, 1, radius, 0.8)
+		local cloud = emitter(
+			SMOKE_TEXTURE,
+			ColorSequence.new(Color3.fromRGB(220, 180, 255), Color3.fromRGB(170, 120, 230)),
+			NumberSequence.new(radius * 0.5, radius * 0.8),
+			radius * 0.4,
+			2
+		)
+		cloud.Transparency = NumberSequence.new(0.55, 1)
+		cloud.SpreadAngle = Vector2.new(180, 15)
+		cloud.Acceleration = Vector3.new(0, 0.5, 0)
+		cloud.Rate = 6
+		cloud.Parent = anchorAt(center + Vector3.new(0, 1.5, 0), seconds + 2.5)
+		cloud:Emit(8)
+		task.delay(seconds, function()
+			cloud.Enabled = false
+		end)
+	end)
+end
+
+-- Dormido: "💤" que sube y baja sobre la cabeza del mono mientras duerme.
+local function asleep(model: Model?, seconds: number)
+	local root = rootOf(model)
+	if not (model and root) then
+		return
+	end
+	local head = model:FindFirstChild("Head")
+	local adornee = if head and head:IsA("BasePart") then head else root
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Asleep"
+	gui.Adornee = adornee
+	gui.AlwaysOnTop = true
+	gui.LightInfluence = 0
+	gui.MaxDistance = 150
+	gui.Size = UDim2.fromOffset(40, 40)
+	gui.StudsOffset = Vector3.new(0.8, adornee.Size.Y / 2 + 1.4, 0)
+	gui.Parent = folder
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.TextScaled = true
+	label.Text = "💤"
+	label.Parent = gui
+	local bob = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+	TweenService:Create(gui, bob, { StudsOffset = gui.StudsOffset + Vector3.new(0, 0.6, 0) }):Play()
+	Debris:AddItem(gui, seconds)
+end
+
 -- ===================================== Combos =====================================
 
 -- La Bola de fuego que cierra el combo del mago rompe el hielo: esquirlas, destellos y vapor.
@@ -2010,11 +2207,19 @@ local function watchComboMarks()
 		elseif not marked and gui then
 			gui:Destroy()
 			icons[target] = nil
+		elseif gui then
+			-- Tras una conexión la marca pasa al otro combo: cambia su icono.
+			local label = gui:FindFirstChildOfClass("TextLabel")
+			if label and label.Text ~= icon then
+				label.Text = icon
+			end
 		end
 	end
 	while true do
 		local roleId = player:GetAttribute("Role")
-		local combo = if typeof(roleId) == "string" then Combos[roleId] else nil
+		local combos = if typeof(roleId) == "string" then Combos[roleId] else nil
+		local index = player:GetAttribute("ComboIndex")
+		local combo = if combos then combos[if typeof(index) == "number" then index else 1] or combos[1] else nil
 		local now = Workspace:GetServerTimeNow()
 		if combo then
 			for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
@@ -2044,7 +2249,9 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Charge = charge, -- (personaje, segundos)
 	WarCry = warCry, -- (personaje, segundos)
 	Quake = quake, -- (centro en el suelo, radio)
+	Smash = smash, -- (suelo a los pies, hacia dónde mira, alcance, grados del cono; 360 = alrededor)
 	MultiShot = multiShot, -- (origen, { puntos de llegada }, velocidad)
+	PiercingShot = piercingShot, -- (origen, { puntos de llegada }, velocidad)
 	MarkPrey = markPrey, -- (centro, radio)
 	TrapSnap = trapSnap, -- (centro en el suelo, radio de captura)
 	Rooted = rooted, -- (modelo, segundos)
@@ -2054,11 +2261,14 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Frozen = frozen, -- (modelo, segundos)
 	Blink = blink, -- (desde, hasta)
 	Lightning = lightning, -- (desde, hasta, modelo alcanzado)
+	Meteor = meteor, -- (centro en el suelo, radio, segundos hasta el impacto, segundos que arde el suelo)
 	AreaHeal = areaHeal, -- (centro, radio)
 	HealBurst = healBurst, -- (posición)
 	Dart = dart, -- (origen, llegada, velocidad)
 	ShieldGlare = shieldGlare, -- (personaje)
 	Totem = totem, -- (posición, hacia dónde mira el médico, radio, segundos)
+	SleepPowder = sleepPowder, -- (origen, centro en el suelo, radio, segundos que dura la nube)
+	Asleep = asleep, -- (modelo, segundos)
 	IceShatter = iceShatter, -- (posición): la Bola de fuego del combo rompe el hielo
 	ComboComplete = comboComplete, -- (personaje, racha)
 	WeaponShotFx = weaponShotFx, -- (personaje, proyectil): bocanada o destello al disparar un arma a distancia

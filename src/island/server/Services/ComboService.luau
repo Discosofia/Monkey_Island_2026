@@ -1,17 +1,23 @@
 --!strict
--- Combos de 3 habilidades y racha (Data/Combos, Config.Combo).
+-- Combos de 3 habilidades, conexiones y racha (Data/Combos, Config.Combo). Cada rol tiene dos combos.
 --   - Paso 1 (prepara): cuando la habilidad toca a alguien (el cepo atrapa, el hielo congela, la
---     embestida golpea, el dardo alcanza) lo marca y empieza el combo (ComboService.opener).
---   - Pasos 2 y 3: usar la siguiente del combo antes de StepWindowSeconds la enlaza
+--     embestida golpea, el dardo alcanza) lo marca y empieza su combo (ComboService.opener). Cada combo
+--     del rol empieza con una habilidad distinta: la que usas primero decide cuál está en marcha.
+--   - Pasos 2 y 3: usar la siguiente del combo en marcha antes de StepWindowSeconds la enlaza
 --     (ComboService.onAbilityUsed, antes de aplicar la habilidad). Si la siguiente aún se está
 --     recargando, el plazo cuenta desde que esté lista (stepDeadline). Durante PayoffSeconds sus golpes
---     contra los marcados son críticos seguros con el daño extra del combo (isComboHit,
+--     contra los marcados son críticos seguros con el daño extra de su combo (isComboHit,
 --     linkedDamageBonus) y el remate hace su efecto extra (isPayoff). Cada paso enlazado que no sea la
 --     propia definitiva le quita UltRefundSeconds, como mucho UltRefundMaxSeconds por recarga.
+--   - Conexión: al cerrar un combo, el otro queda abierto en su paso 1 (complete): lo marcado sigue
+--     marcado, lo que golpea el remate se marca (touch) y se sigue directamente por su paso 2. Así se
+--     encadenan A → B → A… y cada combo cerrado así sube la racha ConnectStreakBonus más.
 --   - Racha: cada combo completo la sube (x1 → x5). Desde x2, las recargas son StreakCooldownBonus
 --     más rápidas por nivel. Se pierde tras StreakSeconds sin hacer daño ni curar (onActivity).
--- El cliente lo ve en los atributos del jugador "ComboStep" (0-3), "ComboStepUntil", "ComboStreak" y
--- "ComboStreakUntil" (hora del servidor); la marca, en "ComboMarkBy"/"ComboMarkUntil" del modelo.
+-- El cliente lo ve en los atributos del jugador "ComboIndex" (qué combo de Data/Combos), "ComboStep"
+-- (0-3), "ComboStepUntil", "ComboConnected" (lo abrió una conexión), "ComboChain" (combos cerrados
+-- seguidos por conexiones), "ComboStreak" y "ComboStreakUntil" (hora del servidor); la marca, en
+-- "ComboMarkBy"/"ComboMarkUntil" del modelo.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,10 +34,14 @@ local SETTINGS = Config.Combo
 local COMPLETE_DISPLAY_SECONDS = 1.5
 
 type State = {
+	combo: number, -- índice del combo en marcha en Data/Combos[rol] (0 = ninguno)
 	step: number, -- último paso conseguido (0 = sin combo)
 	stepUntil: number, -- hasta cuándo se puede enlazar el siguiente
-	payoff: string?, -- habilidad enlazada cuyos golpes son críticos contra los marcados
-	payoffUntil: number,
+	connected: boolean, -- el combo en marcha lo abrió el remate del anterior
+	chain: number, -- combos seguidos cerrados por conexiones
+	bridge: string?, -- remate que acaba de conectar: lo que golpea se marca para el combo siguiente
+	displayUntil: number, -- hasta cuándo se ve "¡COMBO!" (ComboStep = 3) del combo que se acaba de cerrar
+	payoffs: { [string]: number }, -- habilidad enlazada → hasta cuándo sus golpes cuentan como de combo
 	streak: number,
 	streakUntil: number,
 	marked: { Instance },
@@ -50,10 +60,14 @@ local function stateOf(player: Player): State
 	local state = states[player]
 	if not state then
 		state = {
+			combo = 0,
 			step = 0,
 			stepUntil = 0,
-			payoff = nil,
-			payoffUntil = 0,
+			connected = false,
+			chain = 0,
+			bridge = nil,
+			displayUntil = 0,
+			payoffs = {},
 			streak = 0,
 			streakUntil = 0,
 			marked = {},
@@ -64,13 +78,21 @@ local function stateOf(player: Player): State
 	return state
 end
 
--- El combo del rol del jugador.
-function ComboService.comboOf(player: Player): Combos.Combo?
+-- Los combos del rol del jugador (vacío si no tiene rol).
+function ComboService.combosOf(player: Player): { Combos.Combo }
 	local roleId = player:GetAttribute("Role")
-	return if typeof(roleId) == "string" then Combos[roleId] else nil
+	return if typeof(roleId) == "string" then Combos[roleId] or {} else {}
 end
 
-local function publishStep(player: Player, step: number, untilTime: number)
+-- El combo en marcha del jugador, o nil.
+local function activeCombo(player: Player, state: State): Combos.Combo?
+	return ComboService.combosOf(player)[state.combo]
+end
+
+local function publishStep(player: Player, state: State, step: number, untilTime: number)
+	player:SetAttribute("ComboIndex", state.combo)
+	player:SetAttribute("ComboChain", state.chain)
+	player:SetAttribute("ComboConnected", state.connected)
 	player:SetAttribute("ComboStep", step)
 	player:SetAttribute("ComboStepUntil", untilTime)
 end
@@ -130,28 +152,46 @@ function ComboService.isMarkedBy(target: Instance, player: Player): boolean
 	return target:GetAttribute("ComboMarkBy") == player.UserId and typeof(untilTime) == "number" and now() < untilTime
 end
 
--- La habilidad del primer paso tocó a "target": lo marca y empieza (o renueva) el combo.
+-- La habilidad del primer paso de un combo tocó a "target": lo marca y empieza (o renueva) ese combo.
 function ComboService.opener(player: Player, abilityId: string, target: Instance)
-	local combo = ComboService.comboOf(player)
-	if not (combo and combo.steps[1] == abilityId) then
+	local index = nil
+	for candidate, combo in ComboService.combosOf(player) do
+		if combo.steps[1] == abilityId then
+			index = candidate
+			break
+		end
+	end
+	if not index then
 		return
 	end
 	local state = stateOf(player)
 	local time = now()
-	-- Un cepo que salta a mitad de combo marca, pero no lo vuelve a empezar.
+	-- A mitad de un combo (un cepo que salta, un Grito enlazado que también abre el otro) marca para el
+	-- combo en marcha, pero no lo cambia ni lo vuelve a empezar.
 	if state.step >= 2 and time <= state.stepUntil then
 		mark(player, state, target, state.stepUntil)
 		return
 	end
+	local combo = ComboService.combosOf(player)[index]
 	-- Lo que toca el paso 1 sigue marcado mientras se pueda enlazar el 2.
 	local deadline = stepDeadline(player, combo, 2, time)
-	if state.step == 1 and time <= state.stepUntil then
+	local renewing = state.combo == index and state.step == 1 and time <= state.stepUntil
+	if renewing then
 		deadline = math.max(deadline, state.stepUntil)
+	else
+		-- Un combo nuevo empezado a mano: se acaba la cadena de conexiones.
+		state.connected = false
+		state.chain = 0
 	end
 	mark(player, state, target, deadline)
+	state.combo = index
 	state.step = 1
 	state.stepUntil = deadline
-	publishStep(player, 1, deadline)
+	-- El remate que conecta puede ser también el paso 1 del otro combo (la Bola de fuego del mago): no
+	-- tapa el "¡COMBO!"; el paso 1 se publica al acabar el aviso (complete).
+	if not (renewing and time < state.displayUntil) then
+		publishStep(player, state, 1, deadline)
+	end
 end
 
 -- Acerca la definitiva del rol, sin pasar de UltRefundMaxSeconds en cada recarga: así acelera lo
@@ -184,32 +224,56 @@ local function isUltimate(roleId: string, abilityId: string): boolean
 	return false
 end
 
--- Sube la racha (o la empieza en x1 si ya se había perdido).
-local function bumpStreak(player: Player, state: State)
+-- Sube la racha "levels" niveles (o la empieza en x1 si ya se había perdido).
+local function bumpStreak(player: Player, state: State, levels: number)
 	local time = now()
-	state.streak = if time < state.streakUntil then math.min(SETTINGS.MaxStreak, state.streak + 1) else 1
+	state.streak = if time < state.streakUntil then math.min(SETTINGS.MaxStreak, state.streak + levels) else 1
 	state.streakUntil = time + SETTINGS.StreakSeconds
 	publishStreak(player, state)
 end
 
-local function complete(player: Player, state: State, combo: Combos.Combo)
+-- Cierra el combo en marcha con "abilityId" y deja abierto el siguiente del rol (la conexión).
+local function complete(player: Player, state: State, combo: Combos.Combo, abilityId: string)
 	local time = now()
-	bumpStreak(player, state)
+	if state.connected then
+		state.chain += 1
+	end
+	bumpStreak(player, state, 1 + (if state.connected then SETTINGS.ConnectStreakBonus else 0))
 	TelemetryService.comboCompleted(player, state.streak)
-	state.step = 0
-	publishStep(player, #combo.steps, time + COMPLETE_DISPLAY_SECONDS)
+	-- Se ve "¡COMBO!" (o "¡CONEXIÓN!") con el combo que se ha cerrado…
+	state.displayUntil = time + COMPLETE_DISPLAY_SECONDS
+	publishStep(player, state, #combo.steps, state.displayUntil)
 	local character = player.Character
 	if character then
 		AbilityFx.all("ComboComplete", character, state.streak)
 	end
+	local combos = ComboService.combosOf(player)
+	if #combos < 2 then
+		state.combo = 0
+		state.step = 0
+		return
+	end
+	-- …y el siguiente queda abierto en su paso 1 cuando acaba el aviso.
+	local nextIndex = state.combo % #combos + 1
+	local deadline = math.max(stepDeadline(player, combos[nextIndex], 2, time), time + COMPLETE_DISPLAY_SECONDS)
+	state.combo = nextIndex
+	state.step = 1
+	state.stepUntil = deadline
+	state.connected = true
+	state.bridge = abilityId
+	extendMarks(player, state, deadline)
+	task.delay(COMPLETE_DISPLAY_SECONDS, function()
+		if states[player] == state and state.combo == nextIndex and state.step == 1 then
+			publishStep(player, state, 1, state.stepUntil)
+		end
+	end)
 end
 
--- Llamar justo antes de aplicar una habilidad: si es el siguiente paso del combo, lo enlaza.
+-- Llamar justo antes de aplicar una habilidad: si es el siguiente paso del combo en marcha, lo enlaza.
 -- Devuelve el paso conseguido (2 o 3) o nil.
 function ComboService.onAbilityUsed(player: Player, abilityId: string): number?
-	local combo = ComboService.comboOf(player)
 	local roleId = player:GetAttribute("Role")
-	if not (combo and typeof(roleId) == "string" and Roles[roleId]) then
+	if not (typeof(roleId) == "string" and Roles[roleId]) then
 		return nil
 	end
 	local state = stateOf(player)
@@ -217,35 +281,47 @@ function ComboService.onAbilityUsed(player: Player, abilityId: string): number?
 	if isUltimate(roleId, abilityId) then
 		state.ultRefunded = 0
 	end
-	local index = table.find(combo.steps, abilityId)
-	if not index or index == 1 then
+	local combo = activeCombo(player, state)
+	local time = now()
+	if not combo or state.step < 1 or time > state.stepUntil then
 		return nil
 	end
-	local time = now()
-	if state.step ~= index - 1 or time > state.stepUntil then
+	local index = state.step + 1
+	if combo.steps[index] ~= abilityId then
 		return nil
 	end
 	local deadline = stepDeadline(player, combo, index + 1, time)
 	state.step = index
 	state.stepUntil = deadline
-	state.payoff = abilityId
-	state.payoffUntil = time + SETTINGS.PayoffSeconds
+	state.bridge = nil
+	state.payoffs[abilityId] = time + SETTINGS.PayoffSeconds
 	extendMarks(player, state, math.max(deadline, time + SETTINGS.PayoffSeconds))
 	if not isUltimate(roleId, abilityId) then
 		refundUltimate(player, state, roleId)
 	end
 	if index >= #combo.steps then
-		complete(player, state, combo)
+		complete(player, state, combo, abilityId)
 	else
-		publishStep(player, index, deadline)
+		publishStep(player, state, index, deadline)
 	end
 	return index
+end
+
+-- Un golpe o una curación de "abilityId" alcanzó a "target". Si es el remate que acaba de conectar,
+-- lo marca para el combo que ha quedado abierto (AbilityService.hurt y heal).
+function ComboService.touch(player: Player, abilityId: string, target: Instance)
+	local state = states[player]
+	if not (state and state.bridge == abilityId and state.step == 1 and now() <= state.stepUntil) then
+		return
+	end
+	mark(player, state, target, state.stepUntil)
 end
 
 -- true durante el efecto de "abilityId" enlazada en el combo (radio extra, curaciones críticas…).
 function ComboService.isPayoff(player: Player, abilityId: string): boolean
 	local state = states[player]
-	return state ~= nil and state.payoff == abilityId and now() < state.payoffUntil
+	local untilTime = if state then state.payoffs[abilityId] else nil
+	return untilTime ~= nil and now() < untilTime
 end
 
 -- true si este golpe de "abilityId" contra "target" debe ser crítico por el combo.
@@ -253,10 +329,17 @@ function ComboService.isComboHit(player: Player, target: Instance, abilityId: st
 	return ComboService.isPayoff(player, abilityId) and ComboService.isMarkedBy(target, player)
 end
 
--- Daño extra (fracción) de los golpes de combo de "player" ("damageBonus" de su combo en Data/Combos).
-function ComboService.linkedDamageBonus(player: Player): number
-	local combo = ComboService.comboOf(player)
-	return if combo then combo.damageBonus or 0 else 0
+-- Daño extra (fracción) de los golpes de combo de "abilityId" ("damageBonus" del combo en el que se
+-- enlazó en Data/Combos).
+function ComboService.linkedDamageBonus(player: Player, abilityId: string): number
+	local best = 0
+	for _, combo in ComboService.combosOf(player) do
+		local index = table.find(combo.steps, abilityId)
+		if index and index > 1 then
+			best = math.max(best, combo.damageBonus or 0)
+		end
+	end
+	return best
 end
 
 -- El jugador ha hecho daño o ha curado: la racha sigue viva.
@@ -290,7 +373,11 @@ end
 
 local function reset(player: Player)
 	states[player] = nil
-	publishStep(player, 0, 0)
+	player:SetAttribute("ComboIndex", 0)
+	player:SetAttribute("ComboChain", 0)
+	player:SetAttribute("ComboConnected", false)
+	player:SetAttribute("ComboStep", 0)
+	player:SetAttribute("ComboStepUntil", 0)
 	player:SetAttribute("ComboStreak", 0)
 	player:SetAttribute("ComboStreakUntil", 0)
 end

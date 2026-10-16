@@ -16,7 +16,7 @@ golpe).
 | Piezas comunes: `screen`, `label`, `button` | `src/shared/UI/Widgets.luau` | — | ambos |
 | Reloj, indicador del Basecamp, líneas de estado (asedio, huevo, baliza), "Volver al Lobby", ⚙️ y ventana de Ajustes, "Saltar fase" | `src/island/client/Controllers/IslandHUDController.luau` | `IslandHUD`, `SettingsUI` | Isla |
 | Barras de hambre, sed, estamina y fiebre | `src/island/client/Controllers/SurvivalHUDController.luau` | `SurvivalHUD` | Isla |
-| Casillas de habilidades Z X C V | `src/island/client/Controllers/RoleController.luau` (`buildHud`) | `RoleHUD` | Isla |
+| Casillas de habilidades Z X C R V | `src/island/client/Controllers/RoleController.luau` (`buildHud`) | `RoleHUD` | Isla |
 | Panel de combos y "¡COMBO!" | `src/island/client/Controllers/ComboController.luau` | `ComboHUD` | Isla |
 | Números de daño, curación, críticos y lo recogido | `src/island/client/Controllers/CombatTextController.luau` + `src/shared/UI/CombatTextColumn.luau` | `CombatText` | Isla |
 | Bolsa (B): ventana centrada con casillas por secciones | `src/island/client/Controllers/InventoryHUDController.luau` | `InventoryHUD` | Isla |
@@ -63,7 +63,7 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Baliza | 255, 150, 140 | línea de estado |
 | Oro / combo / daño que haces | 255, 205, 70 · 255, 220, 90 (crítico 255, 185, 30) | combos, números |
 | Siguiente paso del combo | 120, 230, 255 | combos |
-| Tecla de habilidad | 255, 220, 120 | casillas Z X C V |
+| Tecla de habilidad | 255, 220, 120 | casillas Z X C R V |
 | Jefe | título 255, 200, 120; barra 220, 50, 40 sobre 30, 20, 20 | `BossHUD` |
 | Barras de supervivencia | hambre 230, 150, 70 · sed 80, 170, 240 · estamina 240, 220, 80 · fiebre 190, 90, 200 | `SurvivalHUD` |
 | Cómic: golpe | estrella 255, 235, 140 · letra blanca con borde 230, 90, 30 | `ComicBurst` |
@@ -126,7 +126,7 @@ Reglas que salen de ahí:
 | -1 | `CombatText` (debajo de todo; IgnoreGuiInset) |
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
-| 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C V y las barras) |
+| 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
 | 6 | `JournalHUD` |
 | 8 | `SettingsUI` |
 | 10 | `Toasts` |

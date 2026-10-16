@@ -10,6 +10,7 @@ export type Key =
 	"Quake"
 	| "WarCry"
 	| "Charge"
+	| "Smash"
 	| "Whirlwind"
 	| "DodgeRoll"
 	| "DodgeBack"
@@ -37,6 +38,7 @@ local PlayerAnimations = {
 		-- misma pose girando las articulaciones por código, que tiembla si lleva un arma en la mano.
 		WarCry = { id = "rbxassetid://127375051692539", priority = Enum.AnimationPriority.Action3 },
 		Charge = { id = "rbxassetid://106518569968843", priority = Enum.AnimationPriority.Action3 }, -- embestida con el hombro por delante
+		Smash = { id = "rbxassetid://117133122045501", priority = Enum.AnimationPriority.Action3 }, -- rompehuesos: golpe de dos manos al suelo (0,25 s)
 		-- Esquiva (DodgeController): voltereta hacia delante si te mueves hacia donde miras; salto
 		-- atrás si estás quieto o vas hacia atrás.
 		DodgeRoll = { id = "rbxassetid://137704861516961", priority = Enum.AnimationPriority.Action3 },
@@ -71,6 +73,10 @@ local PlayerAnimations = {
 		HealingDart = "CastForward",
 		LeafShield = "CastArea",
 		HealingTotem = "Place",
+		Smash = "Smash",
+		PiercingShot = "CastForward",
+		Meteor = "CastArea",
+		SleepPowder = "CastForward",
 	} :: { [string]: Key },
 }
 

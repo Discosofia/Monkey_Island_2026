@@ -143,7 +143,7 @@ local Config = {
 		MaxDistance = 200, -- studs
 	},
 
-	-- Combos de 3 habilidades por rol (Data/Combos, ComboService).
+	-- Dos combos de 3 habilidades por rol, que se conectan (Data/Combos, ComboService).
 	Combo = {
 		-- Tiempo máximo entre un paso y el siguiente. Si el siguiente aún se está recargando, cuenta
 		-- desde que esté listo: el combo no se pierde por haber usado antes una de sus habilidades.
@@ -154,8 +154,12 @@ local Config = {
 		UltRefundSeconds = 10, -- cada paso enlazado acerca la definitiva (V) esto…
 		UltRefundMaxSeconds = 20, -- …y como mucho esto por cada recarga de la definitiva
 		MaxStreak = 5,
-		StreakCooldownBonus = 0.08, -- por cada nivel de racha por encima de x1, recargas más rápidas
+		-- Por cada nivel de racha por encima de x1, recargas más rápidas. Era 0.08 con un combo por
+		-- rol; con dos y las conexiones la racha se queda en x5 casi siempre y enlazar valía +50 %.
+		StreakCooldownBonus = 0.04,
 		StreakSeconds = 8, -- la racha se pierde tras este tiempo sin hacer daño ni curar
+		-- Un combo cerrado tras una conexión (empezado por el remate del otro) sube la racha esto más.
+		ConnectStreakBonus = 1,
 		ShieldBonus = 0.5, -- Escudo de hojas al aliado revitalizado: absorbe esto más
 		SalveFeverCure = 9, -- el Ungüento que cierra el combo del médico baja la fiebre esto
 		FireballSplashBonus = 0.25, -- la Bola de fuego que rompe el hielo salpica más lejos
@@ -163,6 +167,13 @@ local Config = {
 		WhirlwindExtraSeconds = 1, -- el Torbellino que cierra el combo del guerrero gira más
 		MarkPreyRoot = 1.5, -- Marcar presas enlazado vuelve a sujetar a los atrapados (s)
 		MultiShotExtraArrows = 2, -- el Disparo múltiple que cierra el combo del cazador
+		-- Segundos combos (remate con la habilidad nueva de cada rol).
+		PierceExtraArrows = 2, -- la Flecha perforante que cierra "Tiro de gracia" dispara estas más…
+		PierceSpreadDegrees = 10, -- …en un abanico así de ancho
+		MeteorBurnTicks = 3, -- el Meteoro que cierra "Lluvia de estrellas" deja el suelo ardiendo (1 golpe/s)
+		MeteorBurnDamage = 6, -- por golpe, en el radio del Meteoro
+		PowderExtraSleep = 1, -- el Polvo somnífero que cierra "Nana de la selva" duerme esto más (s)…
+		PowderHeal = 10, -- …y cura esto a los aliados que estén en la nube
 	},
 
 	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
@@ -478,6 +489,10 @@ local Config = {
 		WarCrySeconds = 4, -- provoca y protege (con 12 s de recarga, un tercio del tiempo)
 		QuakeDamage = 150,
 		QuakeRadius = 16,
+		SmashDamage = 24, -- Rompehuesos, a cada mono del cono de delante
+		SmashRange = 9,
+		SmashAngle = 100, -- grados del cono (enlazado como remate, golpea alrededor)
+		SmashStun = 0.5, -- los tumba un momento (corto: el control del equipo sobre los jefes)
 
 		-- Cazador.
 		MultiShotDamage = 7, -- por proyectil
@@ -495,6 +510,10 @@ local Config = {
 		RainSeconds = 4,
 		RainRadius = 12,
 		RainMaxDistance = 60,
+		PierceDamage = 16, -- Flecha perforante, a cada mono que atraviesa
+		PierceRange = 90,
+		PierceWidth = 1.5, -- radio de la línea que atraviesa
+		PierceSpeed = 220, -- studs/s
 
 		-- Mago.
 		FireballDamage = 27, -- al que recibe el impacto
@@ -510,6 +529,10 @@ local Config = {
 		ChainFalloff = 0.75, -- cada salto hace esto del anterior
 		ChainRange = 60, -- alcance hasta el primer mono
 		ChainJumpRange = 20,
+		MeteorDamage = 24, -- Meteoro, a cada mono del radio
+		MeteorRadius = 9,
+		MeteorDelay = 0.8, -- segundos entre el aviso en el suelo y el impacto (da tiempo a verlo caer)
+		MeteorMaxDistance = 60, -- cae donde apuntas, como mucho a esta distancia
 
 		-- Médico.
 		AreaHealAmount = 11, -- a cada aliado del radio (cada 15 s)
@@ -524,6 +547,11 @@ local Config = {
 		TotemHealPerSecond = 6,
 		TotemRadius = 16,
 		TotemMaxDistance = 40, -- se planta donde apuntas, como mucho a esta distancia
+		PowderDamage = 5, -- Polvo somnífero, a cada mono de la nube
+		PowderRadius = 9,
+		PowderMaxDistance = 40, -- la nube cae donde apuntas, como mucho a esta distancia
+		PowderDrowsySeconds = 1, -- primero les entra sueño (van lentos)…
+		PowderSlowFactor = 0.5, -- …a esta velocidad, y luego se duermen (Data/Perks "PowderSleep")
 	},
 
 	Party = {

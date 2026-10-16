@@ -161,7 +161,8 @@ end
 --   objetivos   { fijo = n } · { radio = r } (estimado por tipicosEnRadio) · { abanico = flechas }
 --               · { radio = r, menos = 1 } (el área sin el impactado)
 --   bloqueo     segundos que no se puede atacar con el arma (giros, cargas)
---   control     { segundos, objetivos, tipo = "Stun" | "Freeze" | "Root" }
+--   control     { segundos, objetivos, tipo = "Stun" | "Freeze" | "Root" | "Sleep", jefes? }
+--               (jefes = false: no afecta a los jefes, no cuenta en el control del equipo sobre un jefe)
 --   lento       { segundos, factor, objetivos }
 --   provoca     { segundos, objetivos }
 --   vulnerable  { valor, segundos, objetivos } (los marcados reciben "valor" más de daño)
@@ -175,7 +176,7 @@ type Ficha = {
 	familia: string,
 	golpes: { Golpe }?,
 	bloqueo: number?,
-	control: { segundos: number, objetivos: Objetivos, tipo: string }?,
+	control: { segundos: number, objetivos: Objetivos, tipo: string, jefes: boolean? }?,
 	lento: { segundos: number, factor: number, objetivos: Objetivos }?,
 	provoca: { segundos: number, objetivos: Objetivos }?,
 	vulnerable: { valor: number, segundos: number, objetivos: Objetivos }?,
@@ -234,6 +235,22 @@ local MODELOS: { [string]: Modelo } = {
 			control = { segundos = perk("QuakeStun"), objetivos = { radio = A.QuakeRadius }, tipo = "Stun" },
 		}
 	end,
+	Smash = function(A, perk, remate)
+		-- Al cono de delante entran ~2 de un grupo; como remate golpea alrededor.
+		local objetivos = if remate then { radio = A.SmashRange } else { fijo = 2 }
+		return {
+			familia = "Daño frontal + control",
+			golpes = {
+				{
+					cantidad = A.SmashDamage * perk("MeleeDamage") * perk("SmashDamage"),
+					en = 0.25,
+					objetivos = objetivos,
+				},
+			},
+			control = { segundos = A.SmashStun, objetivos = objetivos, tipo = "Stun" },
+			bloqueo = 0.4,
+		}
+	end,
 	-- Cazador.
 	MultiShot = function(A, perk, remate, combo)
 		local flechas = math.floor(perk("MultiShotCount")) + (if remate then combo.MultiShotExtraArrows else 0)
@@ -279,6 +296,18 @@ local MODELOS: { [string]: Modelo } = {
 		end
 		return { familia = "Daño en área continuo", golpes = golpes, nota = "supone que no salen de la zona" }
 	end,
+	PiercingShot = function(A, perk, remate, combo)
+		-- Cada flecha atraviesa a ~2 de un grupo en línea; contra uno solo, todas le dan.
+		local golpes = {}
+		for _ = 1, 1 + (if remate then combo.PierceExtraArrows else 0) do
+			table.insert(golpes, {
+				cantidad = A.PierceDamage * perk("RangedDamage") * perk("PierceDamage"),
+				en = 0.3,
+				objetivos = { fijo = 2 },
+			})
+		end
+		return { familia = "Daño en línea (atraviesa)", golpes = golpes }
+	end,
 	-- Mago.
 	Fireball = function(A, perk, remate, combo)
 		local escala = perk("SpellDamage") * perk("FireballDamage")
@@ -320,6 +349,28 @@ local MODELOS: { [string]: Modelo } = {
 		end
 		return { familia = "Daño en cadena", golpes = golpes }
 	end,
+	Meteor = function(A, perk, remate, combo)
+		local escala = perk("SpellDamage")
+		local golpes = {
+			{ cantidad = A.MeteorDamage * escala, en = A.MeteorDelay, objetivos = { radio = A.MeteorRadius } },
+		}
+		-- Remate: el suelo arde (un golpe por segundo).
+		for i = 1, if remate then combo.MeteorBurnTicks else 0 do
+			table.insert(golpes, {
+				cantidad = combo.MeteorBurnDamage * escala,
+				en = A.MeteorDelay + i,
+				objetivos = { radio = A.MeteorRadius },
+			})
+		end
+		local lento = perk("MeteorSlow")
+		return {
+			familia = "Daño en área retardado",
+			golpes = golpes,
+			lento = if lento > 0
+				then { segundos = lento, factor = A.NovaSlowFactor, objetivos = { radio = A.MeteorRadius } }
+				else nil,
+		}
+	end,
 	-- Médico.
 	AreaHeal = function(A, perk, remate)
 		return {
@@ -328,15 +379,38 @@ local MODELOS: { [string]: Modelo } = {
 			critSeguro = remate,
 		}
 	end,
-	HealingDart = function(A, perk)
+	HealingDart = function(A, perk, remate)
 		return {
 			familia = "Curación a distancia",
 			cura = { cantidad = A.DartHeal * perk("HealPower"), objetivos = { fijo = 1 } },
+			critSeguro = remate, -- enlazado (paso 2 de "Nana de la selva"), crítico seguro (heal)
 		}
 	end,
 	LeafShield = function(A, perk, remate, combo)
 		local cantidad = perk("ShieldAmount") * (if remate then 1 + combo.ShieldBonus else 1)
 		return { familia = "Escudo", escudo = { cantidad = cantidad, segundos = A.ShieldSeconds } }
+	end,
+	SleepPowder = function(A, perk, remate, combo)
+		return {
+			familia = "Control en área",
+			golpes = { { cantidad = A.PowderDamage, en = 0.5, objetivos = { radio = A.PowderRadius } } },
+			lento = {
+				segundos = A.PowderDrowsySeconds,
+				factor = A.PowderSlowFactor,
+				objetivos = { radio = A.PowderRadius },
+			},
+			-- Los jefes no se duermen.
+			control = {
+				segundos = perk("PowderSleep") + (if remate then combo.PowderExtraSleep else 0),
+				objetivos = { radio = A.PowderRadius },
+				tipo = "Sleep",
+				jefes = false,
+			},
+			cura = if remate
+				then { cantidad = combo.PowderHeal * perk("HealPower"), objetivos = { fijo = 2 } }
+				else nil,
+			critSeguro = remate,
+		}
 	end,
 	HealingTotem = function(A, perk)
 		return {
@@ -512,6 +586,7 @@ local function main(copia: Instance): string
 
 	type Resumen = { dpsGrupo: number, dpsUno: number, combos: number, curaPorSegundo: number }
 	local controlRol: { [string]: number } = {}
+	local controlRolJefe: { [string]: number } = {} -- sin lo que no afecta a los jefes
 
 	if OPCIONES.secciones.fichas then
 		linea(`## 1. Fichas (grupo de {OPCIONES.grupo}, talentos: {OPCIONES.talentos})`)
@@ -532,7 +607,7 @@ local function main(copia: Instance): string
 					"| Habilidad | Recarga | Familia | Daño 1 obj | Daño grupo | DPS grupo | Seg. arma | Pico 2 s | Control | Cura | Otros |"
 				)
 				linea("|---|---|---|---|---|---|---|---|---|---|---|")
-				local controlTotal = 0
+				local controlTotal, controlJefe = 0, 0
 				for _, ability in Roles[roleId].abilities do
 					local ficha = fichaDe(ability, perk, false)
 					if ficha then
@@ -551,6 +626,12 @@ local function main(copia: Instance): string
 							then fichaRemate.control.segundos / recarga
 							else 0
 						controlTotal += math.max(control, controlRemate)
+						local fichaControl = if fichaRemate and fichaRemate.control
+							then fichaRemate.control
+							else ficha.control
+						if not (fichaControl and fichaControl.jefes == false) then
+							controlJefe += math.max(control, controlRemate)
+						end
 						local otros = {}
 						if ficha.movilidad then
 							table.insert(otros, `{n(ficha.movilidad)} studs`)
@@ -645,6 +726,7 @@ local function main(copia: Instance): string
 					end
 				end
 				controlRol[roleId] = controlTotal
+				controlRolJefe[roleId] = controlJefe
 				linea(`Control de todo el rol (con remates): {pct(controlTotal)} del tiempo por mono.`)
 				if controlTotal > LIMITES.controlPorRol then
 					alerta(
@@ -657,7 +739,7 @@ local function main(copia: Instance): string
 		end
 		-- Todo el equipo contra un jefe (se resisten: BossControlMultiplier).
 		local equipo = 0
-		for _, valor in controlRol do
+		for _, valor in controlRolJefe do
 			equipo += valor
 		end
 		equipo *= A.BossControlMultiplier
@@ -677,8 +759,10 @@ local function main(copia: Instance): string
 
 	-- ===================================== 2. Simulación =====================================
 	-- Un jugador sin moverse que pega con el arma del rol cuando no lanza habilidades. Contra el grupo,
-	-- los monos no mueren (se mide el daño, no las muertes). "combos": enlaza el combo cuando puede
-	-- empezarlo y, mientras espera, lanza las del combo que vayan a estar listas otra vez a tiempo.
+	-- los monos no mueren (se mide el daño, no las muertes). "combos": empieza el combo que pueda
+	-- (todos sus pasos listos a tiempo), lo enlaza, y al cerrarlo sigue por el otro combo del rol desde
+	-- su paso 2 (la conexión, como ComboService.complete). Mientras espera un paso, lanza las
+	-- habilidades de los combos que vayan a estar listas otra vez a tiempo.
 
 	type Sim = {
 		total: number,
@@ -686,6 +770,7 @@ local function main(copia: Instance): string
 		habilidades: number,
 		cura: number,
 		combos: number,
+		conexiones: number,
 		curva: { [number]: number },
 	}
 	local CORTES = { 2, 5, 10, 30, 60 }
@@ -702,7 +787,7 @@ local function main(copia: Instance): string
 		local arma = armaDe(roleId, perk, armaForzada)
 		local critico = 1 + arma.critico * (CRIT - 1)
 		local abilities = Roles[roleId].abilities
-		local combo = if conCombos then Combos[roleId] else nil
+		local combos: { any } = if conCombos then Combos[roleId] or {} else {}
 		local huecoDe: { [string]: number } = {}
 		for hueco, ability in abilities do
 			huecoDe[ability.id] = hueco
@@ -711,9 +796,11 @@ local function main(copia: Instance): string
 		for hueco in abilities do
 			listo[hueco] = 0
 		end
-		local pendientes: { { en: number, cantidad: number, criticoSeguro: number } } = {}
-		local resultado: Sim = { total = 0, arma = 0, habilidades = 0, cura = 0, combos = 0, curva = {} }
-		local paso, pasoHasta, racha = 0, -math.huge, 0
+		local pendientes: { { en: number, cantidad: number, criticoSeguro: number, bonus: number } } = {}
+		local resultado: Sim =
+			{ total = 0, arma = 0, habilidades = 0, cura = 0, combos = 0, conexiones = 0, curva = {} }
+		-- activo: índice del combo en marcha en "combos" (0 = ninguno); conectado: empezó por la conexión.
+		local activo, paso, pasoHasta, racha, conectado = 0, 0, -math.huge, 0, false
 		local devuelto = 0 -- segundos que los combos han quitado ya a la recarga de la definitiva en curso
 		local vulnerableHasta, vulnerableValor = -1, 0
 		local armaLista, bloqueoHasta = 0, 0
@@ -724,16 +811,17 @@ local function main(copia: Instance): string
 			return if racha >= 2 then 1 - COMBO.StreakCooldownBonus * (racha - 1) else 1
 		end
 
-		-- Como ComboService.stepDeadline: la ventana del paso "k" cuenta desde que esté listo.
-		local function plazo(k: number): number
+		-- Como ComboService.stepDeadline: la ventana del paso "k" del combo "c" cuenta desde que esté listo.
+		local function plazo(c: number, k: number): number
+			local combo = combos[c]
 			local hueco = if combo then huecoDe[combo.steps[k] or ""] else nil
 			local desde = if hueco then math.max(t, listo[hueco]) else t
 			return desde + COMBO.StepWindowSeconds
 		end
 
-		local function aplicar(cantidad: number, aCritico: number, deHabilidad: boolean)
+		local function aplicar(cantidad: number, aCritico: number, deHabilidad: boolean, bonus: number)
 			-- aCritico: parte del daño (0-1) que es golpe de combo (crítico seguro y "damageBonus" del combo).
-			local enlace = CRIT * (1 + (if combo then combo.damageBonus or 0 else 0))
+			local enlace = CRIT * (1 + bonus)
 			local mult = PDM * (aCritico * enlace + (1 - aCritico) * critico)
 			if t < vulnerableHasta then
 				mult *= 1 + vulnerableValor
@@ -751,13 +839,16 @@ local function main(copia: Instance): string
 			local ability = abilities[hueco]
 			local id = ability.id
 			local enlazado = false
+			local bonus = 0
+			local combo = combos[activo]
 			local indice = if combo then table.find(combo.steps, id) else nil
 			if ability.ultimate then
 				devuelto = 0
 			end
 			if combo and indice and indice > 1 and paso == indice - 1 and t <= pasoHasta then
 				enlazado = true
-				paso, pasoHasta = indice, plazo(indice + 1)
+				bonus = combo.damageBonus or 0
+				paso, pasoHasta = indice, plazo(activo, indice + 1)
 				if not ability.ultimate then
 					-- Como ComboService.refundUltimate: con tope por recarga (UltRefundMaxSeconds).
 					local margen = if COMBO.UltRefundMaxSeconds then COMBO.UltRefundMaxSeconds - devuelto else math.huge
@@ -770,13 +861,32 @@ local function main(copia: Instance): string
 					end
 				end
 				if indice >= #combo.steps then
-					racha = math.min(COMBO.MaxStreak, racha + 1)
+					local extra = if conectado then COMBO.ConnectStreakBonus or 0 else 0
+					racha = math.min(COMBO.MaxStreak, racha + 1 + extra)
 					resultado.combos += 1
-					paso = 0
+					if conectado then
+						resultado.conexiones += 1
+					end
+					-- Conexión (ComboService.complete): el remate deja abierto el otro combo en su paso 1.
+					if #combos >= 2 then
+						activo = activo % #combos + 1
+						paso, pasoHasta, conectado = 1, plazo(activo, 2), true
+					else
+						activo, paso = 0, 0
+					end
 				end
-			elseif combo and indice == 1 and not (paso >= 2 and t <= pasoHasta) then
-				-- Como ComboService.opener: a mitad de combo marca, pero no lo vuelve a empezar.
-				paso, pasoHasta = 1, plazo(2)
+			else
+				-- Como ComboService.opener: a mitad de combo marca, pero no empieza otro.
+				local enMarcha = activo > 0 and paso >= 2 and t <= pasoHasta
+				for c, otro in combos do
+					if otro.steps[1] == id and not enMarcha then
+						local renueva = c == activo and paso == 1 and t <= pasoHasta
+						conectado = renueva and conectado
+						activo, paso = c, 1
+						pasoHasta = math.max(plazo(c, 2), if renueva then pasoHasta else -math.huge)
+						break
+					end
+				end
 			end
 			local ficha = fichaDe(ability, perk, enlazado)
 			listo[hueco] = t + recargaDe(ability, perk) * factorRacha()
@@ -790,10 +900,12 @@ local function main(copia: Instance): string
 				if grupo >= (golpe.minObjetivos or 1) then
 					local cuantos = resolver(golpe.objetivos, grupo)
 					local seguro = if enlazado and cuantos > 0 then math.min(1, marcados / cuantos) else 0
-					table.insert(
-						pendientes,
-						{ en = t + golpe.en, cantidad = golpe.cantidad * cuantos, criticoSeguro = seguro }
-					)
+					table.insert(pendientes, {
+						en = t + golpe.en,
+						cantidad = golpe.cantidad * cuantos,
+						criticoSeguro = seguro,
+						bonus = bonus,
+					})
 				end
 			end
 			if ficha.vulnerable then
@@ -810,7 +922,7 @@ local function main(copia: Instance): string
 		end
 
 		local function elegir(): number?
-			if not combo then
+			if #combos == 0 then
 				for hueco in abilities do
 					if t >= listo[hueco] then
 						return hueco
@@ -819,39 +931,51 @@ local function main(copia: Instance): string
 				return nil
 			end
 			local enCombo: { [number]: boolean } = {}
-			for _, id in combo.steps do
-				if huecoDe[id] then
-					enCombo[huecoDe[id]] = true
-				end
-			end
-			-- Siguiente paso del combo en marcha.
-			if paso >= 1 and t <= pasoHasta then
-				local siguiente = huecoDe[combo.steps[paso + 1]]
-				if siguiente and t >= listo[siguiente] then
-					return siguiente
-				end
-			else
-				paso = 0
-				-- ¿Se puede empezar? El paso k tiene que estar listo antes de que se cierre su ventana.
-				local puede = true
-				for k, id in combo.steps do
-					local hueco = huecoDe[id]
-					if not hueco or listo[hueco] > t + (k - 1) * (COMBO.StepWindowSeconds - 0.5) then
-						puede = false
+			for _, combo in combos do
+				for _, id in combo.steps do
+					if huecoDe[id] then
+						enCombo[huecoDe[id]] = true
 					end
 				end
-				if puede then
-					return huecoDe[combo.steps[1]]
-				end
 			end
-			-- Cuándo hará falta otra vez cada habilidad del combo: sin combo en marcha, cuando estén
-			-- listos todos sus pasos; esperando un paso, cuando estén listos los que faltan.
+			-- Cuándo hará falta otra vez cada habilidad de los combos: esperando un paso, cuando estén
+			-- listos los que faltan; sin combo en marcha, cuando lo esté el primer combo que se pueda hacer.
 			local inicio = t
-			local esperado = if paso >= 1 then huecoDe[combo.steps[paso + 1]] else nil
-			for k, id in combo.steps do
-				local hueco = huecoDe[id]
-				if hueco and k > paso then
-					inicio = math.max(inicio, listo[hueco])
+			local esperado: number? = nil
+			if activo > 0 and paso >= 1 and t <= pasoHasta then
+				-- Siguiente paso del combo en marcha.
+				local combo = combos[activo]
+				esperado = huecoDe[combo.steps[paso + 1]]
+				if esperado and t >= listo[esperado] then
+					return esperado
+				end
+				for k, id in combo.steps do
+					local hueco = huecoDe[id]
+					if hueco and k > paso then
+						inicio = math.max(inicio, listo[hueco])
+					end
+				end
+			else
+				activo, paso, conectado = 0, 0, false
+				-- ¿Se puede empezar alguno? El paso k tiene que estar listo antes de que se cierre su ventana.
+				inicio = math.huge
+				for _, combo in combos do
+					local puede, listoCombo = true, t
+					for k, id in combo.steps do
+						local hueco = huecoDe[id]
+						if not hueco then
+							puede, listoCombo = false, math.huge
+						else
+							if listo[hueco] > t + (k - 1) * (COMBO.StepWindowSeconds - 0.5) then
+								puede = false
+							end
+							listoCombo = math.max(listoCombo, listo[hueco])
+						end
+					end
+					if puede then
+						return huecoDe[combo.steps[1]]
+					end
+					inicio = math.min(inicio, listoCombo)
 				end
 			end
 			for hueco, ability in abilities do
@@ -874,7 +998,7 @@ local function main(copia: Instance): string
 			while i <= #pendientes do
 				local evento = pendientes[i]
 				if evento.en <= t then
-					aplicar(evento.cantidad, evento.criticoSeguro, true)
+					aplicar(evento.cantidad, evento.criticoSeguro, true, evento.bonus)
 					table.remove(pendientes, i)
 				else
 					i += 1
@@ -886,7 +1010,7 @@ local function main(copia: Instance): string
 					lanzar(hueco)
 				elseif t >= armaLista then
 					armaLista = t + Weapons[arma.id].cooldownSeconds
-					aplicar(arma.golpe, 0, false)
+					aplicar(arma.golpe, 0, false, 0)
 					resultado.cura += arma.cura * Weapons[arma.id].cooldownSeconds
 				end
 			end
@@ -915,7 +1039,9 @@ local function main(copia: Instance): string
 
 	if OPCIONES.secciones.simulacion then
 		linea(`## 2. Daño en el tiempo ({OPCIONES.segundos} s, todo listo al empezar)`)
-		linea('Daño acumulado real contra monos. "Sin combos": pulsa lo que esté listo. "Combos": enlaza el combo.')
+		linea(
+			'Daño acumulado real contra monos. "Sin combos": pulsa lo que esté listo. "Combos": enlaza los combos (🔗 = cerrados por una conexión).'
+		)
 		linea("| Rol | Escenario | Jugador | 2 s | 5 s | 10 s | 30 s | 60 s | DPS | % habilidades | Combos | Cura/s |")
 		linea("|---|---|---|---|---|---|---|---|---|---|---|---|")
 		local totalesGrupo: { [string]: number } = {}
@@ -934,9 +1060,10 @@ local function main(copia: Instance): string
 								0
 							)} | {n(c[5], 0)} | {n(c[10], 0)} | {n(c[30], 0)} | {n(c[60], 0)} | {n(
 								sim.total / OPCIONES.segundos
-							)} | {pct(sim.habilidades / math.max(1, sim.total))} | {sim.combos} | {n(
-								sim.cura / OPCIONES.segundos
-							)} |`
+							)} | {pct(sim.habilidades / math.max(1, sim.total))} | {sim.combos}{if sim.conexiones
+									> 0
+								then ` ({sim.conexiones} 🔗)`
+								else ""} | {n(sim.cura / OPCIONES.segundos)} |`
 						)
 					end
 					if grupo > 1 and Combos[roleId] and roleId ~= "Medico" then

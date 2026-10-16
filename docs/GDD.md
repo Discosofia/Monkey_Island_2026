@@ -177,18 +177,18 @@ A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo
 
 El rol se elige en el lobby y es **fijo durante la partida**. Cada rol tiene su propia **XP** que desbloquea talentos de forma permanente.
 
-Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el pico) y **4 habilidades**: 3 activas (**Z, X, C**) y una **definitiva** (**V**) con un tiempo de espera largo. Con mando se mantiene **R1** y se pulsa **A, B, X o Y**; en móvil son 4 botones junto al salto. Solo gastan tiempo de espera. Con el PvP activo también afectan a otros jugadores, con la mitad de daño y aturdimientos de la mitad de tiempo. Los números están en `Config.Abilities`.
+Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el pico) y **5 habilidades**: 4 activas (**Z, X, C, R**) y una **definitiva** (**V**) con un tiempo de espera largo. Con mando se mantiene **R1** y se pulsa **A, B, X, Y o L1**; en móvil son 5 botones junto al salto. La cuarta activa va en la **R** y no en la E porque la E es la tecla de los avisos (recoger, reanimar, fabricar…). Solo gastan tiempo de espera. Con el PvP activo también afectan a otros jugadores, con la mitad de daño y aturdimientos de la mitad de tiempo. Los números están en `Config.Abilities`.
 
-| Rol | Pasiva | Armas iniciales | Activas (Z · X · C) | Definitiva (V) |
+| Rol | Pasiva | Armas iniciales | Activas (Z · X · C · R) | Definitiva (V) |
 |---|---|---|---|---|
-| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 4 s) | **Pisotón:** 150 de daño en área y aturde 2 s |
-| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (cuando un mono lo pisa, atrapa unos 2 s a todos los que estén a 8 studs) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
-| 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 1,2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
-| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Cerbatana (sin munición; cada dardo que acierta cura un poco al aliado más herido cerca), machete | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 24) | **Tótem sanador:** se planta donde apuntas (hasta 40 studs) y cura a quien esté cerca durante 10 s |
+| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 4 s) · **Rompehuesos** (golpe de 24 al cono de delante que tumba 0,5 s; 8 s) | **Pisotón:** 150 de daño en área y aturde 2 s |
+| 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (cuando un mono lo pisa, atrapa unos 2 s a todos los que estén a 8 studs) · **Flecha perforante** (16 a cada mono que atraviesa en línea; 8 s) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
+| 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 1,2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) · **Meteoro** (cae donde apuntas tras 0,8 s de aviso: 24 en 9 studs; 10 s) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
+| ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Cerbatana (sin munición; cada dardo que acierta cura un poco al aliado más herido cerca), machete | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 24) · **Polvo somnífero** (nube donde apuntas: 1 s de sueño lento y luego duermen 1,5 s; los jefes no se duermen; 12 s) | **Tótem sanador:** se planta donde apuntas (hasta 40 studs) y cura a quien esté cerca durante 10 s |
 
 **Armas de rol y sus mejoras** (forja de piedra; solo las ve su rol): garrote de piedra → maza de hueso → mazo de hueso grueso (guerrero); arco → arco reforzado → arco de liana (cazador); bastón mágico → bastón dorado → bastón de plata (mago); cerbatana → cerbatana de hueso → cerbatana del chamán (médico: 12 → 18 → 25 de daño base y +2 → +3 → +5 de curación por acierto, a menos de 40 studs).
 
-Los **talentos** (4 por rol) mejoran cada uno una habilidad: más duración, más daño, más proyectiles o más saltos. Las ventajas de recolección (recoger más rápido, +1 material, hacha y pico más fuertes) son **mejoras de la tienda** para cualquier rol.
+Los **talentos** (5 por rol) mejoran cada uno una habilidad: más duración, más daño, más proyectiles o más saltos. Los de las cuartas activas: **Mazazo** (+20 % de daño del Rompehuesos por rango), **Punta de obsidiana** (+20 % de la Flecha perforante), **Polvo de estrellas** (el Meteoro ralentiza 1 s por rango; con más daño valía demasiado) y **Sueño profundo** (+0,3 s de sueño). Las ventajas de recolección (recoger más rápido, +1 material, hacha y pico más fuertes) son **mejoras de la tienda** para cualquier rol.
 
 Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, el mago y el cazador los **castigan** en área y el médico **mantiene vivo** al grupo.
 
@@ -217,7 +217,9 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
 | Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
 
-**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 6 s como mucho entre una y otra (si la siguiente aún se está recargando, los 6 s cuentan desde que esté lista). La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+25 % el guerrero y el mago, +50 % el cazador) y el remate tiene un efecto extra. Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**, como mucho **20 s por recarga**.
+**Combos** (`Data/Combos`, `ComboService`): cada rol tiene **dos**, de tres habilidades **en orden**, con 6 s como mucho entre una y otra (si la siguiente aún se está recargando, los 6 s cuentan desde que esté lista). Cada combo empieza con una habilidad distinta: **la que usas primero decide cuál está en marcha**. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+25 % el guerrero, +10 % el cazador, nada el mago) y el remate tiene un efecto extra.
+
+**Conexiones:** al cerrar un combo, el otro queda **abierto en su paso 1**: lo marcado sigue marcado, lo que golpea el remate se marca y se sigue directamente por su **paso 2** (A → B → A…). Cada combo cerrado tras una conexión sube la racha **un nivel más** y sale "¡CONEXIÓN! N seguidos"; en el indicador, el paso saltado lleva "🔗". Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**, como mucho **20 s por recarga**.
 
 *Cambio de octubre de 2026 (valor de los combos):* antes casi todo el premio era acercar la definitiva sin límite, y el mago, que cierra un combo cada ~9 s, la lanzaba casi el triple. Ahora la devolución tiene tope, el daño extra va por rol y la explosión del remate del mago es un 25 % más grande (antes 50 %). Enlazar da +20–30 % de daño en una pelea larga contra un grupo a los tres roles de daño (medido con `ServerStorage.Tools.Equilibrio`).
 
@@ -227,11 +229,19 @@ El hueco entre combos lo marca la recarga más larga de sus pasos. Pasaba lo mis
 | Rol | Combo | Pasos | Remate |
 |---|---|---|---|
 | Cazador | Presa acorralada | Cepo ⛓️ → Marcar presas (vuelve a sujetar 1,5 s a los atrapados) → Disparo múltiple | Críticos y 2 proyectiles más |
+| Cazador | Tiro de gracia | Marcar presas 🎯 → Cepo → Flecha perforante | 3 flechas perforantes en abanico |
 | Mago | Fuego y hielo | Nova ❄️ → Parpadeo → Bola de fuego | Rompe el hielo: críticos y explosión un 25 % más grande |
+| Mago | Lluvia de estrellas | Bola de fuego 🔥 → Nova → Meteoro | El suelo arde 3 s (6 por segundo) |
 | Guerrero | Remolino de acero | Embestida 💫 → Grito (aturde 1 s a los desequilibrados) → Torbellino | Críticos y 1 s más de giro |
+| Guerrero | Martillo y yunque | Grito 🔨 → Embestida → Rompehuesos | Golpea a todo lo de alrededor, no solo delante |
 | Médico | Cura de urgencia | Dardo 💚 → Escudo (+50 % al revitalizado) → Ungüento | Curaciones críticas seguras y −9 de fiebre |
+| Médico | Nana de la selva | Escudo 🍃 → Dardo (cura crítica) → Polvo somnífero | Duermen 1 s más y la nube cura 10 a los aliados que estén dentro |
 
-**Racha:** cada combo completo seguido la sube (x1 … x5); desde x2, las recargas son un 8 % más rápidas por nivel. Se pierde tras 8 s sin hacer daño ni curar.
+Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. guerrero: Grito → Torbellino → Embestida → Rompehuesos → Grito…), un combo cada dos habilidades.
+
+**Racha:** cada combo completo seguido la sube (x1 … x5; un nivel más si vino de una conexión); desde x2, las recargas son un 4 % más rápidas por nivel. Se pierde tras 8 s sin hacer daño ni curar.
+
+*Cambio de octubre de 2026 (cuarta activa, segundo combo y conexiones):* con las conexiones se cierran 2–3 veces más combos y la racha se quedaba en x5: enlazar valía +50–78 % de daño en grupo (el límite es +35 %). Por eso la racha pasa del 8 % al 4 % por nivel y el daño extra de los golpes enlazados baja (guerrero +25 %, cazador 50 → 10 %, mago 25 → 0 %: casi todos sus golpes de habilidad ya son críticos seguros). Queda en +29 % guerrero, +31 % cazador y +34 % mago; con una habilidad más, los roles hacen ~25 % más de daño con combos que antes y los jefes duran un 10 % menos (101–212 s), dentro de 90–240 s.
 
 *Daño de los jugadores:* todo lo que hacen con armas y habilidades a monos, jefes y muñecos va ×0,7 (`Config.Combat.PlayerDamageMultiplier`); el PvP y las mascotas no cambian. La forja, las armas y los Ajustes enseñan el daño ya reducido.
 

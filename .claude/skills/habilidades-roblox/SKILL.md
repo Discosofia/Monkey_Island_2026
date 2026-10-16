@@ -52,7 +52,7 @@ los números no están medidos.
 
 Antes de tocar nada, escribe en la conversación una ficha breve:
 
-- **Quién**: rol y hueco (Z/X/C activa o V definitiva), especie de mono, jefe y fase, o mascota.
+- **Quién**: rol y hueco (Z/X/C/R activa o V definitiva), especie de mono, jefe y fase, o mascota.
   Si sustituye a otra, cuál.
 - **Fantasía y función**: qué siente el jugador al usarla y qué problema del rol resuelve (agrupar,
   castigar en área, rematar a uno, escapar, sostener, controlar). Su **familia**: daño a uno, daño en
@@ -262,6 +262,13 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   (`ComboService.stepDeadline`). Hoy: mago ~9 s, guerrero 12 s (Grito), cazador 15 s (Marcar) y
   médico 15 s (Ungüento). Para acortarlo sin cambiar el equilibrio, baja la recarga y el efecto en
   la misma proporción (y lo que escale con él: el talento de duración, el remate).
+- Con dos combos que se conectan, cada habilidad del bucle va enlazada casi siempre: el premio del
+  combo deja de venir del `damageBonus` y pasa a los críticos seguros y a la racha, que se queda en
+  x5. Para medir cuánto pesa cada cosa, pon a 0 `damageBonus`, `StreakCooldownBonus` y
+  `UltRefundSeconds` de uno en uno. En Play, al probar una conexión, pega con el arma mientras
+  esperas un paso largo o la racha se pierde a los 8 s y parece un fallo.
+- Al probar por MCP no lances una habilidad justo después de mover al personaje con `PivotTo` desde
+  el cliente: el servidor aún lo ve donde estaba (el cepo se queda en el sitio viejo). Espera ~0,5 s.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
   extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final.
 

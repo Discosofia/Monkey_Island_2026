@@ -1,7 +1,7 @@
 --!strict
 -- Talentos por rol (GDD §6.3, Fase 3). Se aprenden en el Lobby con puntos de talento, que se ganan
 -- con la XP de ese rol (Shared/Progression). Cada rango suma "perRank" a la ventaja "perk".
--- Cada talento mejora una de las 4 habilidades del rol (el del médico, además, su pasiva).
+-- Cada talento mejora una de las 5 habilidades del rol (los del médico, también su pasiva).
 -- Si se quita un talento, los puntos que tuviera gastados vuelven a quedar libres solos.
 
 export type Talent = {
@@ -47,6 +47,14 @@ local Talents: { [string]: { [string]: Talent } } = {
 			perRank = 0.5,
 			maxRank = 3,
 		},
+		Crusher = {
+			name = "Mazazo",
+			description = "+20 % de daño del Rompehuesos por rango.",
+			order = 5,
+			perk = "SmashDamage",
+			perRank = 0.2,
+			maxRank = 3,
+		},
 	},
 	Cazador = {
 		Volley = {
@@ -78,6 +86,14 @@ local Talents: { [string]: { [string]: Talent } } = {
 			description = "+20 % de daño de la Lluvia de proyectiles por rango.",
 			order = 4,
 			perk = "RainDamage",
+			perRank = 0.2,
+			maxRank = 3,
+		},
+		Obsidian = {
+			name = "Punta de obsidiana",
+			description = "+20 % de daño de la Flecha perforante por rango.",
+			order = 5,
+			perk = "PierceDamage",
 			perRank = 0.2,
 			maxRank = 3,
 		},
@@ -115,6 +131,15 @@ local Talents: { [string]: { [string]: Talent } } = {
 			perRank = 1,
 			maxRank = 3,
 		},
+		-- Ralentiza en vez de dañar más: con +20 % por rango el Meteoro valía 6 s de bastón.
+		Stardust = {
+			name = "Polvo de estrellas",
+			description = "El Meteoro ralentiza 1 s a los monos que alcanza por rango.",
+			order = 5,
+			perk = "MeteorSlow",
+			perRank = 1,
+			maxRank = 3,
+		},
 	},
 	Medico = {
 		QuickHands = {
@@ -147,6 +172,14 @@ local Talents: { [string]: { [string]: Talent } } = {
 			order = 4,
 			perk = "ShieldAmount",
 			perRank = 6,
+			maxRank = 3,
+		},
+		DeepSleep = {
+			name = "Sueño profundo",
+			description = "El Polvo somnífero duerme 0,3 s más por rango.",
+			order = 5,
+			perk = "PowderSleep",
+			perRank = 0.3,
 			maxRank = 3,
 		},
 	},

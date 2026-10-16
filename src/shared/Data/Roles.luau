@@ -3,8 +3,9 @@
 --   - "perks": ventajas pasivas (se suman a Data/Perks).
 --   - "weapons": armas con las que aparece (además del hacha y el pico, Config.Combat.StarterTools).
 --   - "items": ítems con los que empieza la partida (las flechas del cazador).
---   - "abilities": 3 activas y la definitiva, en el orden de sus teclas (Z, X, C, V; con mando,
---     R1 + A, B, X, Y). Las gestiona AbilityService y sus números están en Config.Abilities.
+--   - "abilities": 4 activas y la definitiva, en el orden de sus huecos: Z, X, C, la definitiva V y la
+--     cuarta activa R (con mando, R1 + A, B, X, Y y L1). La R va al final para que los huecos 1-4 sigan
+--     siendo los de siempre. Las gestiona AbilityService y sus números están en Config.Abilities.
 
 export type Ability = {
 	id: string,
@@ -64,6 +65,13 @@ local Roles: { [string]: Role } = {
 				cooldownSeconds = 90,
 				ultimate = true,
 			},
+			{
+				id = "Smash",
+				name = "Rompehuesos",
+				short = "Rompe",
+				description = "Un golpe brutal hacia delante que daña y tumba un momento a los monos.",
+				cooldownSeconds = 8,
+			},
 		},
 	},
 	Cazador = {
@@ -104,6 +112,13 @@ local Roles: { [string]: Role } = {
 				cooldownSeconds = 90,
 				ultimate = true,
 			},
+			{
+				id = "PiercingShot",
+				name = "Flecha perforante",
+				short = "Perforante",
+				description = "Una flecha recta que atraviesa a todos los monos que encuentra en línea.",
+				cooldownSeconds = 8,
+			},
 		},
 	},
 	Mago = {
@@ -143,6 +158,13 @@ local Roles: { [string]: Role } = {
 				cooldownSeconds = 90,
 				ultimate = true,
 			},
+			{
+				id = "Meteor",
+				name = "Meteoro",
+				short = "Meteoro",
+				description = "Una roca ardiente cae del cielo donde apuntas y daña a todos los de alrededor.",
+				cooldownSeconds = 10,
+			},
 		},
 	},
 	Medico = {
@@ -181,6 +203,13 @@ local Roles: { [string]: Role } = {
 				description = "Plantas un tótem donde apuntas que cura poco a poco a quien esté cerca.",
 				cooldownSeconds = 90,
 				ultimate = true,
+			},
+			{
+				id = "SleepPowder",
+				name = "Polvo somnífero",
+				short = "Somnífero",
+				description = "Lanzas una nube donde apuntas: a los monos les entra sueño y se duermen un momento (los jefes, no).",
+				cooldownSeconds = 12,
 			},
 		},
 	},

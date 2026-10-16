@@ -140,7 +140,7 @@ proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prior
 
 `PlayerAnimationBuilder` genera desde specs (mismo formato que `MonkeyAnimationBuilder`, con
 `MonkeyAnimationBuilder.sequence(spec, PARENT_R15)`) los gestos de `Data/PlayerAnimations`:
-`Quake`, `WarCry`, `Charge`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3),
+`Quake`, `WarCry`, `Charge`, `Smash` (golpe de dos manos al suelo a 0,25 s), `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3),
 `Whirlwind` (Action3, en bucle mientras `RoleController` hace girar al guerrero), `DodgeRoll` y
 `DodgeBack` (la esquiva elige según vaya hacia donde mira o no), `Hammer` (construir y quitar
 piezas), `Craft` (fabricar y cocinar, solo si el botón está activo) y `Crawl`, `Revive` (Action4, en
@@ -163,7 +163,12 @@ cada habilidad de `Data/Roles`.
   abajo (las esquinas de la cabeza sobresalen). Roblox interpola por el camino corto: más de 180°
   entre dos fotogramas gira al revés. Ver `ROLL` en `PlayerAnimationBuilder`.
 - Las acciones se aplican al instante en el servidor: el momento fuerte llega pronto (el pisotón
-  pisa a 0,2 s). Los gestos que solo mueven tronco y brazos dejan las piernas andando.
+  pisa a 0,2 s; el Rompehuesos golpea a 0,25 s porque `AbilityService` retrasa su daño eso).
+- **Ver el arma en la tira**: el maniquí no lleva arma y un golpe sin ella no se lee. Suelda una
+  pieza larga a `RightHand` con `C0 = RightGripAttachment.CFrame * CFrame.new(0, 1.2, 0)` (el mango
+  va a lo largo de la Y de esa articulación, como `tool.Grip` en `WeaponTools`) y una bola en la
+  punta: así se mide si el arma llega al suelo. Ojo al leer el perfil: el maniquí mira a la
+  izquierda de la captura. Los gestos que solo mueven tronco y brazos dejan las piernas andando.
 
 ## 4. Animaciones por código
 
