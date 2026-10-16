@@ -163,15 +163,18 @@ local function blink(character: Model, root: BasePart, direction: Vector3, dista
 	return true
 end
 
--- Torbellino: el personaje gira sobre sí mismo mientras dura.
+-- Torbellino: el personaje gira sobre sí mismo mientras dura, agachado y con los brazos abiertos
+-- (animación "Whirlwind" en bucle, Data/PlayerAnimations).
 local function spin(humanoid: Humanoid, root: BasePart, seconds: number)
 	humanoid.AutoRotate = false
+	BodyAnimations.play("Whirlwind")
 	local finish = os.clock() + seconds
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function(deltaTime)
 		if os.clock() >= finish or not root.Parent then
 			connection:Disconnect()
 			humanoid.AutoRotate = true
+			BodyAnimations.stop("Whirlwind")
 			return
 		end
 		root.CFrame *= CFrame.Angles(0, deltaTime * math.rad(900), 0)

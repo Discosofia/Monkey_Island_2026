@@ -149,6 +149,50 @@ local function warCryKeyframes(): { { [string]: any } }
 	return frames
 end
 
+-- Embestida: echado adelante, el hombro derecho por delante con el brazo cruzado y zancada larga.
+-- AbilityService empuja al momento: la pose entra en 0,06 s y dura lo que la carga (0,35 s).
+local function chargePose(t: number, marker: string?): { [string]: any }
+	return {
+		t = t,
+		marcador = marker,
+		LowerTorso = { -25, 0, 0, 0, -0.3, 0 },
+		UpperTorso = { -10, 20, 0 },
+		Head = { 30, -15, 0 },
+		RightUpperArm = { 60, 0, -30 },
+		RightLowerArm = { 90, 0, 0 },
+		LeftUpperArm = { -40, 0, 0 },
+		LeftLowerArm = { 30, 0, 0 },
+		RightUpperLeg = { 60, 0, 0 },
+		RightLowerLeg = { -50, 0, 0 },
+		RightFoot = { 15, 0, 0 },
+		LeftUpperLeg = { -5, 0, 0 },
+		LeftLowerLeg = { -30, 0, 0 },
+		LeftFoot = { 30, 0, 0 },
+	}
+end
+
+-- Torbellino: agachado, piernas abiertas y brazos extendidos a los lados (el arma, en la derecha,
+-- barre alrededor mientras gira). "open" sube un poco los brazos: vaivén del bucle.
+local function whirlPose(t: number, open: boolean): { [string]: any }
+	local arm = if open then 88 else 80
+	return {
+		t = t,
+		LowerTorso = { 0, 0, 0, 0, -0.25, 0 },
+		UpperTorso = { if open then -8 else -4, 0, 0 },
+		Head = { if open then 5 else 0, 0, 0 },
+		RightUpperArm = { 10, 0, arm },
+		RightLowerArm = { 0, 0, 5 },
+		LeftUpperArm = { 10, 0, -arm },
+		LeftLowerArm = { 0, 0, -5 },
+		RightUpperLeg = { 30, 0, 12 },
+		RightLowerLeg = { -55, 0, 0 },
+		RightFoot = { 25, 0, -12 },
+		LeftUpperLeg = { 30, 0, -12 },
+		LeftLowerLeg = { -55, 0, 0 },
+		LeftFoot = { 25, 0, 12 },
+	}
+end
+
 -- Comer o beber: mano a la boca (el giro en Y lleva el antebrazo al centro de la cara).
 local function mouthPose(t: number, near: boolean, head: number, marker: string?): { [string]: any }
 	return {
@@ -209,6 +253,24 @@ local SPECS: { [string]: any } = {
 		easing = "Cubic",
 		direction = "InOut",
 		keyframes = warCryKeyframes(),
+	},
+	Charge = {
+		name = "Charge",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			chargePose(0.06, "Carga"),
+			chargePose(0.35),
+			{ t = 0.55, reposo = true },
+		},
+	},
+	Whirlwind = {
+		name = "Whirlwind",
+		loop = true,
+		easing = "Cubic",
+		direction = "InOut",
+		keyframes = { whirlPose(0, true), whirlPose(0.25, false), whirlPose(0.5, true) },
 	},
 	-- Lanza con la mano derecha al frente (bola de fuego, rayo, dardo, marcar presa). Solo el tronco
 	-- y los brazos: si anda, las piernas siguen andando.

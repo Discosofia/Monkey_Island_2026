@@ -6,12 +6,23 @@
 -- publicado de cada una. Mientras un id esté vacío, en Studio se usa la secuencia generada
 -- (ReplicatedStorage.PlayerAnimations); en el juego publicado, esa animación no se reproduce.
 
-export type Key = "Quake" | "WarCry" | "CastForward" | "CastArea" | "Place" | "Consume" | "Bandage" | "Crawl" | "Revive"
+export type Key =
+	"Quake"
+	| "WarCry"
+	| "Charge"
+	| "Whirlwind"
+	| "CastForward"
+	| "CastArea"
+	| "Place"
+	| "Consume"
+	| "Bandage"
+	| "Crawl"
+	| "Revive"
 
 export type PlayerAnimation = {
 	id: string,
 	priority: Enum.AnimationPriority,
-	looped: boolean?, -- en bucle hasta que el código la para (Crawl, Revive)
+	looped: boolean?, -- en bucle hasta que el código la para (Crawl, Revive, Whirlwind)
 }
 
 local PlayerAnimations = {
@@ -21,6 +32,9 @@ local PlayerAnimations = {
 		-- Grito de guerra. Mientras no exista (id vacío fuera de Studio), AbilityFxController hace la
 		-- misma pose girando las articulaciones por código, que tiembla si lleva un arma en la mano.
 		WarCry = { id = "", priority = Enum.AnimationPriority.Action3 },
+		Charge = { id = "", priority = Enum.AnimationPriority.Action3 }, -- embestida con el hombro por delante
+		-- Torbellino: agachado y con los brazos abiertos, en bucle mientras RoleController lo hace girar.
+		Whirlwind = { id = "", priority = Enum.AnimationPriority.Action3, looped = true },
 		CastForward = { id = "", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente
 		CastArea = { id = "", priority = Enum.AnimationPriority.Action3 }, -- brazos arriba y abiertos abajo
 		Place = { id = "", priority = Enum.AnimationPriority.Action3 }, -- se agacha a dejar algo en el suelo
@@ -30,11 +44,12 @@ local PlayerAnimations = {
 		Revive = { id = "", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
 	} :: { [Key]: PlayerAnimation },
 
-	-- Gesto de cada habilidad de Data/Roles (las que mueven al personaje por sí mismas, como la
-	-- Embestida, el Torbellino o el Parpadeo, no llevan).
+	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para
+	-- RoleController. El Parpadeo no lleva (teletransporta).
 	Abilities = {
 		Quake = "Quake",
 		WarCry = "WarCry",
+		Charge = "Charge",
 		MultiShot = "CastForward",
 		MarkPrey = "CastForward",
 		Trap = "Place",

@@ -140,7 +140,8 @@ proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prior
 
 `PlayerAnimationBuilder` genera desde specs (mismo formato que `MonkeyAnimationBuilder`, con
 `MonkeyAnimationBuilder.sequence(spec, PARENT_R15)`) los gestos de `Data/PlayerAnimations`:
-`Quake`, `WarCry`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3) y `Crawl`, `Revive`
+`Quake`, `WarCry`, `Charge`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3),
+`Whirlwind` (Action3, en bucle mientras `RoleController` hace girar al guerrero) y `Crawl`, `Revive`
 (Action4, en bucle). `build()` los deja en `ReplicatedStorage.PlayerAnimations` y, como las armas,
 en Studio se usan mientras el id esté vacío. `Data/PlayerAnimations.Abilities` dice qué gesto lleva
 cada habilidad de `Data/Roles`.
