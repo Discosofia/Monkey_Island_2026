@@ -100,14 +100,14 @@ Abre Roblox Studio, o ciérralo del todo y vuelve a abrirlo. Debería aparecer u
 ## Paso 5: Crear la experiencia con sus 2 places
 
 1. En Studio: **New → Baseplate**.
-2. **File → Publish to Roblox** → **Create new experience** → nombre: `Primal Banana Island`. Este primer place es el **Lobby** (el lugar de inicio).
+2. **File → Publish to Roblox** → **Create new experience** → nombre: `Primal Banana Islands`. Este primer place es el **Lobby** (el lugar de inicio).
 3. Crea el segundo place, la **Isla**:
    1. **Archivo → Nuevo** (o, en la pantalla de inicio, **Baseplate**) para abrir un baseplate nuevo.
    2. **Archivo → Publicar en Roblox como…** (*Publish to Roblox As…*).
-   3. Elige la experiencia **Primal Banana Island**.
+   3. Elige la experiencia **Primal Banana Islands**.
    4. Elige la opción de **añadirlo como lugar nuevo** (*Add as a new place*). ⚠️ **No** elijas el lugar que ya existe: ese es el Lobby y lo sobrescribirías.
    5. Ponle de nombre `Isla` y pulsa **Crear**.
-   - Alternativa: en el panel **Gestor de recursos** (*Asset Manager*) → **Proyecto** → **Primal Banana Island**, haz clic derecho y busca **agregar lugar nuevo** (*Add New Place*). La interfaz de Roblox cambia a menudo: si no ves ninguna de las dos opciones, mándame una captura.
+   - Alternativa: en el panel **Gestor de recursos** (*Asset Manager*) → **Proyecto** → **Primal Banana Islands**, haz clic derecho y busca **agregar lugar nuevo** (*Add New Place*). La interfaz de Roblox cambia a menudo: si no ves ninguna de las dos opciones, mándame una captura.
 4. (Opcional) Para no confundirlos, cambia el nombre del primer place a `Lobby`. Studio le pone uno por defecto, como "Lugar de tu usuario".
 
 ---
@@ -161,7 +161,7 @@ Hay un proyecto de Rojo para cada place:
 ## Paso 9: Probar
 
 **En Studio (botón Play):**
-- **Lobby:** verás el título *Primal Banana Island* y el botón **Ir a la Isla**. Al pulsarlo aparecerá el mensaje *"Los viajes no funcionan en Studio…"*. Es normal: Roblox no permite viajar entre places desde Studio.
+- **Lobby:** verás el título *Primal Banana Islands* y el botón **Ir a la Isla**. Al pulsarlo aparecerá el mensaje *"Los viajes no funcionan en Studio…"*. Es normal: Roblox no permite viajar entre places desde Studio.
 - **Isla:** verás arriba el reloj (*"Día 1 · ☀️ 10:00"*), el indicador *"🏕️ Basecamp: zona segura"* y el botón **Volver al Lobby**. Abajo a la izquierda, solo en Studio, el botón **⏩ Saltar fase** para probar la noche sin esperar.
 - **Salida (Output):** al arrancar, cada servidor escribe *"[Teleporter] Places de esta experiencia: …"* con el nombre y el ID real de cada place. Sirve para comprobar los IDs del paso 6.
 

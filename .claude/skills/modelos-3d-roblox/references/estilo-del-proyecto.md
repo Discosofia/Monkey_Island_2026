@@ -1,4 +1,4 @@
-# Estilo de los modelos de Primal Banana Island
+# Estilo de los modelos de Primal Banana Islands
 
 Lee esto antes de escribir o cambiar un constructor de modelos del repo. Resume cómo están hechos los
 que ya existen para que lo nuevo no desentone ni rompa a quien los usa.

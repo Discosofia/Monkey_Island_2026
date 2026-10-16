@@ -1,4 +1,4 @@
-# Estilo de la interfaz de Primal Banana Island
+# Estilo de la interfaz de Primal Banana Islands
 
 Lo que ya usa el juego, sacado del código (octubre de 2026). Es la referencia para que lo nuevo
 encaje con lo que hay. Si cambias algo de esta lista en el código (un color, una capa, un sitio),

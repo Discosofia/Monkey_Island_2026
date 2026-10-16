@@ -1,4 +1,4 @@
-# Primal Banana Island: plan de trabajo por fases
+# Primal Banana Islands: plan de trabajo por fases
 
 > Basado en el [GDD v0.2](GDD.md).
 > **Contexto:** una sola persona con experiencia básica en Studio y **5–15 h/semana**. Claude escribe el código en el repo.
@@ -302,7 +302,7 @@ Estimación con **5–15 h/semana**: unos **7–10 meses** hasta el lanzamiento.
 
 ```mermaid
 gantt
-  title Primal Banana Island: plan estimado
+  title Primal Banana Islands: plan estimado
   dateFormat YYYY-MM-DD
   axisFormat %b %Y
   section Base

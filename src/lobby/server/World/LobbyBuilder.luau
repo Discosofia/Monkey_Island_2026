@@ -18,8 +18,9 @@
 -- salvavidas y la bitácora del capitán; la lancha de rescate para zarpar (aviso "ZarparPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
--- palmeras; la isla con el volcán en el horizonte; muros invisibles, el punto de aparición y la luz
--- de atardecer.
+-- palmeras; la isla con el volcán en el horizonte; las otras cuatro islas del archipiélago, aún
+-- cerradas (Isla Calavera, Ciudad Perdida, Isla de las Dunas y Picos de la Niebla, GDD §7.1); muros
+-- invisibles, el punto de aparición y la luz de atardecer.
 --
 -- ⚠️ Borra la carpeta Workspace.Naufragio, la Baseplate, los SpawnLocation sueltos y el terreno de la
 -- zona antes de construir.
@@ -36,7 +37,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 3
+local VERSION = 4
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -51,6 +52,14 @@ local BOUNDARY_RADIUS = 165
 -- Isla del horizonte (la de la partida) y su volcán.
 local ISLAND_CENTER = Vector3.new(520, 0, -700)
 local VOLCANO_PEAK = 230
+
+-- Las otras islas del archipiélago, aún cerradas: solo se ven desde el Lobby, cada una a una
+-- distancia distinta (de la más cercana a la más lejana: Calavera, Ciudad Perdida, Dunas, Picos).
+local SKULL_CENTER = Vector3.new(-330, 0, 400)
+local RUINS_CENTER = Vector3.new(-430, 0, -420)
+local DUNES_CENTER = Vector3.new(820, 0, 470)
+local DUNES_RADIUS = 270
+local PEAKS_CENTER = Vector3.new(-150, 0, -1300)
 
 -- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
@@ -93,6 +102,9 @@ local LOG_TEXT = "BITÁCORA DEL CAPITÁN\n\n"
 	.. "La tormenta empujó al carguero «Esperanza» contra el arrecife. El casco está abierto y los "
 	.. "motores, muertos.\n\n"
 	.. "Al norte se ve una isla con un volcán que humea día y noche. De allí llegan aullidos.\n\n"
+	.. "No es la única: alrededor hay más islas. Una ciudad en ruinas tragada por la selva, un "
+	.. "desierto de dunas, una roca con forma de calavera y unos picos entre la niebla. Con esta "
+	.. "lancha solo llegamos a la del volcán.\n\n"
 	.. "En la bodega llevábamos contenedores con un sello que nadie supo explicar: PROYECTO PRIMAL.\n\n"
 	.. "Nuestra radio no funciona. Quien quiera salir de aquí, que tome la lancha y vaya a la isla: "
 	.. "dicen que en el viejo laboratorio aún queda una radio."
@@ -235,9 +247,9 @@ end
 local function buildTerrain()
 	local terrain = Workspace.Terrain
 	local bottom = SEA_FLOOR - 8
-	-- Mar: de la orilla hasta más allá de la isla del horizonte, por bloques.
-	local seaMin = Vector2.new(-700, -1100)
-	local seaMax = Vector2.new(1100, 500)
+	-- Mar: de la orilla hasta más allá de las islas del horizonte, por bloques.
+	local seaMin = Vector2.new(-1100, -1800)
+	local seaMax = Vector2.new(1300, 1000)
 	local chunk = 400
 	for x = seaMin.X, seaMax.X - 1, chunk do
 		for z = seaMin.Y, seaMax.Y - 1, chunk do
@@ -1675,6 +1687,753 @@ local function buildRamp(parent: Instance, ship: Model)
 	end
 end
 
+---------------------------------------------------------------------------------------------------
+-- Archipiélago: las otras islas, cerradas por ahora. Nadie llega a ellas, así que todo es decorado
+-- sin colisión y de piezas grandes, para que su silueta se lea desde el banco de arena.
+
+local CONCRETE = Color3.fromRGB(150, 148, 140)
+local CONCRETE_DARK = Color3.fromRGB(40, 44, 42)
+local JUNGLE_LEAVES = {
+	Color3.fromRGB(46, 105, 45),
+	Color3.fromRGB(62, 128, 50),
+	Color3.fromRGB(36, 86, 40),
+}
+local TRUNK = Color3.fromRGB(85, 62, 40)
+local SANDSTONE = Color3.fromRGB(205, 140, 85)
+local CACTUS = Color3.fromRGB(70, 120, 60)
+local SKULL_STONE = Color3.fromRGB(178, 168, 150)
+local LIMESTONE = Color3.fromRGB(125, 128, 116)
+local SKULL_DARK = Color3.fromRGB(18, 14, 14)
+local BONE = Color3.fromRGB(215, 205, 175)
+local EYE_GLOW = Color3.fromRGB(255, 140, 40)
+local WATERFALL = Color3.fromRGB(215, 235, 250)
+
+local function leafColor(): Color3
+	return JUNGLE_LEAVES[rng:NextInteger(1, #JUNGLE_LEAVES)]
+end
+
+-- Dirección horizontal de "from" hacia el Lobby (el origen).
+local function towardLobby(from: Vector3): Vector3
+	return ((Vector3.zero - from) * Vector3.new(1, 0, 1)).Unit
+end
+
+-- Desvío lateral de la capa "t" de un monte con "wobble" (para que no sea un cono perfecto).
+local function mountDrift(center: Vector3, t: number, wobble: number): Vector3
+	return Vector3.new(math.noise(t * 3, center.X / 97, 0.5), 0, math.noise(t * 3, center.Z / 97, 7.5)) * wobble
+end
+
+-- Monte de terreno por capas, del fondo del mar a la altura "top": el radio pasa de "baseRadius" a
+-- "topRadius" con la curva "curve" (como el volcán). Devuelve el centro de la cima.
+local function terrainMount(
+	center: Vector3,
+	baseRadius: number,
+	topRadius: number,
+	top: number,
+	curve: number,
+	materialAt: (t: number) -> Enum.Material,
+	wobble: number?
+): Vector3
+	local steps = math.max(8, math.ceil((top - SEA_FLOOR) / 6))
+	local layerHeight = (top - SEA_FLOOR) / steps
+	for i = 0, steps - 1 do
+		local t = i / steps
+		local radius = topRadius + (baseRadius - topRadius) * (1 - t) ^ curve
+		local drift = if wobble then mountDrift(center, t, wobble) else Vector3.zero
+		Workspace.Terrain:FillCylinder(
+			CFrame.new(center.X + drift.X, SEA_FLOOR + (i + 0.5) * layerHeight, center.Z + drift.Z),
+			layerHeight + 1,
+			radius,
+			materialAt(t)
+		)
+	end
+	local drift = if wobble then mountDrift(center, 1, wobble) else Vector3.zero
+	return Vector3.new(center.X + drift.X, top, center.Z + drift.Z)
+end
+
+-- Altura de un terrainMount sin "wobble" a "r" studs de su centro.
+local function mountHeight(r: number, baseRadius: number, topRadius: number, top: number, curve: number): number
+	local k = math.clamp((r - topRadius) / (baseRadius - topRadius), 0, 1)
+	return SEA_FLOOR + (1 - k ^ (1 / curve)) * (top - SEA_FLOOR)
+end
+
+-- Bloque estirado entre dos puntos: ancho en X y grueso en Y (con Y hacia "up").
+local function beam(
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: number,
+	thickness: number,
+	up: Vector3,
+	color: Color3,
+	material: Enum.Material,
+	parent: Instance
+): BasePart
+	return decor(
+		newPart(
+			name,
+			Vector3.new(width, thickness, (to - from).Magnitude),
+			CFrame.lookAt((from + to) / 2, to, up),
+			color,
+			material,
+			parent
+		)
+	)
+end
+
+-- Árbol de selva visto de lejos: tronco y copa de tres bolas.
+local function jungleTree(parent: Instance, ground: Vector3, height: number)
+	local crown = ground + Vector3.new(0, height * 0.8, 0)
+	decor(cylinder("Tronco", height / 9, ground - Vector3.new(0, 2, 0), crown, TRUNK, Enum.Material.Wood, parent))
+	for _ = 1, 3 do
+		local offset = Vector3.new(rng:NextNumber(-1, 1), rng:NextNumber(-0.2, 0.4), rng:NextNumber(-1, 1))
+		decor(
+			ball(
+				"Copa",
+				height * rng:NextNumber(0.45, 0.65),
+				crown + offset * height * 0.22,
+				leafColor(),
+				Enum.Material.Grass,
+				parent
+			)
+		)
+	end
+end
+
+-- Lianas que cuelgan de un borde: "frame" en el borde, -Z hacia fuera y X a lo largo de él.
+local function vines(parent: Instance, frame: CFrame, along: number, count: number, maxLength: number)
+	for _ = 1, count do
+		local length = rng:NextNumber(0.3, 1) * maxLength
+		decor(
+			newPart(
+				"Liana",
+				Vector3.new(rng:NextNumber(1.5, 3), length, 1),
+				frame * CFrame.new(rng:NextNumber(-0.45, 0.45) * along, -length / 2, -0.6),
+				leafColor(),
+				Enum.Material.Grass,
+				parent
+			)
+		)
+	end
+end
+
+-- Edificio en ruinas tragado por la selva: bandas oscuras de ventanas (algunas ya cubiertas de
+-- hojas), la cima rota con hierros asomando, lianas por las fachadas y matas en la azotea. "frame"
+-- es el centro de la base y puede ir inclinado.
+local function ruinedTower(parent: Instance, frame: CFrame, size: Vector3)
+	local width, height, depth = size.X, size.Y, size.Z
+	decor(
+		newPart(
+			"Bloque",
+			size,
+			frame * CFrame.new(0, height / 2 - 4, 0),
+			tone(CONCRETE),
+			Enum.Material.Concrete,
+			parent
+		)
+	)
+	local roof = height - 4
+	local function face(index: number): (CFrame, number)
+		local along = if index % 2 == 0 then width else depth
+		local out = (if index % 2 == 0 then depth else width) / 2
+		return frame * CFrame.Angles(0, index * math.pi / 2, 0) * CFrame.new(0, 0, -out), along
+	end
+	for y = 7, roof - 6, 7 do
+		for index = 0, 3 do
+			local faceFrame, along = face(index)
+			local overgrown = rng:NextNumber() < 0.4
+			decor(
+				newPart(
+					"Ventanas",
+					Vector3.new(along - 3, 3, 0.8),
+					faceFrame * CFrame.new(0, y - 4, 0),
+					if overgrown then leafColor() else CONCRETE_DARK,
+					if overgrown then Enum.Material.Grass else Enum.Material.Slate,
+					parent
+				)
+			)
+		end
+	end
+	-- Cima rota: trozos de muro de alturas distintas y varillas de hierro.
+	for _ = 1, 4 do
+		local w = rng:NextNumber(0.2, 0.45) * width
+		local d = rng:NextNumber(0.2, 0.45) * depth
+		local h = rng:NextNumber(3, 12)
+		decor(
+			newPart(
+				"Escombro",
+				Vector3.new(w, h, d),
+				frame
+					* CFrame.new(
+						rng:NextNumber(-1, 1) * (width - w) / 2,
+						roof + h / 2,
+						rng:NextNumber(-1, 1) * (depth - d) / 2
+					)
+					* CFrame.Angles(rng:NextNumber(-0.15, 0.15), 0, rng:NextNumber(-0.15, 0.15)),
+				tone(CONCRETE),
+				Enum.Material.Concrete,
+				parent
+			)
+		)
+	end
+	for _ = 1, 3 do
+		local x = rng:NextNumber(-0.45, 0.45) * width
+		local z = rng:NextNumber(-0.45, 0.45) * depth
+		decor(
+			cylinder(
+				"Hierro",
+				1.4,
+				(frame * CFrame.new(x, roof, z)).Position,
+				(frame * CFrame.new(x + rng:NextNumber(-4, 4), roof + rng:NextNumber(8, 16), z + rng:NextNumber(-4, 4))).Position,
+				RUST,
+				Enum.Material.CorrodedMetal,
+				parent
+			)
+		)
+	end
+	for _ = 1, 2 do
+		decor(
+			ball(
+				"Mata",
+				math.min(width, depth) * rng:NextNumber(0.35, 0.55),
+				(frame * CFrame.new(rng:NextNumber(-0.3, 0.3) * width, roof, rng:NextNumber(-0.3, 0.3) * depth)).Position,
+				leafColor(),
+				Enum.Material.Grass,
+				parent
+			)
+		)
+	end
+	-- Lianas y matas de musgo agarradas a las fachadas.
+	for index = 0, 3 do
+		local faceFrame, along = face(index)
+		vines(parent, faceFrame * CFrame.new(0, roof, 0), along, rng:NextInteger(2, 4), height * 0.8)
+		for _ = 1, 2 do
+			decor(
+				ball(
+					"Musgo",
+					math.min(width, depth) * rng:NextNumber(0.3, 0.5),
+					(faceFrame * CFrame.new(rng:NextNumber(-0.4, 0.4) * along, rng:NextNumber(0.1, 0.9) * roof, 0)).Position,
+					leafColor(),
+					Enum.Material.Grass,
+					parent
+				)
+			)
+		end
+	end
+end
+
+-- Isla de la Ciudad Perdida: rascacielos rotos, inclinados o tumbados, y un paso elevado partido,
+-- todo comido por la selva.
+local function buildRuinsIsland(parent: Instance)
+	local island = Instance.new("Model")
+	island.Name = "CiudadPerdida"
+	local center = RUINS_CENTER
+	local plateau = 12
+	terrainMount(center, 230, 165, plateau, 2.2, function(t)
+		return if t < 0.75 then Enum.Material.Sand else Enum.Material.LeafyGrass
+	end)
+	local hill = { center = center + Vector3.new(-95, 0, -70), base = 120, top = 25, height = 58, curve = 1.5 }
+	terrainMount(hill.center, hill.base, hill.top, hill.height, hill.curve, function()
+		return Enum.Material.LeafyGrass
+	end)
+
+	local front = towardLobby(center)
+	local side = Vector3.new(-front.Z, 0, front.X)
+	local ground = center + Vector3.new(0, plateau, 0)
+	for _, tower in
+		{
+			{ x = 20, z = 10, size = Vector3.new(26, 92, 22), yaw = 0.3, tiltX = 0.02, tiltZ = 0.1 },
+			{ x = -30, z = -20, size = Vector3.new(30, 118, 30), yaw = 0.1, tiltX = -0.05, tiltZ = 0 },
+			{ x = 55, z = -35, size = Vector3.new(22, 74, 22), yaw = 0.8, tiltX = 0, tiltZ = -0.24 },
+			{ x = -70, z = 40, size = Vector3.new(34, 56, 26), yaw = 0.5, tiltX = 0.04, tiltZ = 0.03 },
+			{ x = 10, z = 70, size = Vector3.new(20, 46, 20), yaw = 1.2, tiltX = 0.08, tiltZ = 0 },
+			{ x = -5, z = -75, size = Vector3.new(24, 80, 24), yaw = 0.6, tiltX = 0, tiltZ = 0.05 },
+			-- Tumbado entre los árboles.
+			{ x = 75, z = 45, size = Vector3.new(18, 64, 18), yaw = 2.3, tiltX = 1.4, tiltZ = 0 },
+		}
+	do
+		local base = ground + Vector3.new(tower.x, if tower.tiltX > 1 then tower.size.Z / 2 - 2 else 0, tower.z)
+		ruinedTower(
+			island,
+			CFrame.new(base) * CFrame.Angles(0, tower.yaw, 0) * CFrame.Angles(tower.tiltX, 0, tower.tiltZ),
+			tower.size
+		)
+	end
+
+	-- Paso elevado de autopista en la orilla, partido: un tramo vuela sobre el vacío y el otro se
+	-- ha caído con un extremo en el suelo.
+	local road = ground + front * 128
+	local deckY = Vector3.new(0, 34, 0)
+	for _, s in { -70, -30, 30 } do
+		decor(
+			newPart(
+				"Pilar",
+				Vector3.new(6, 36, 6),
+				CFrame.new(road + side * s + Vector3.new(0, 16, 0)),
+				tone(CONCRETE),
+				Enum.Material.Concrete,
+				island
+			)
+		)
+	end
+	beam(
+		"Calzada",
+		road + side * -84 + deckY,
+		road + side * -10 + deckY,
+		3,
+		14,
+		front,
+		CONCRETE,
+		Enum.Material.Concrete,
+		island
+	)
+	beam(
+		"CalzadaCaida",
+		road + side * 6 + Vector3.new(0, 1, 0),
+		road + side * 34 + deckY,
+		3,
+		14,
+		front,
+		CONCRETE,
+		Enum.Material.Concrete,
+		island
+	)
+	vines(island, CFrame.lookAt(road + side * -47 + deckY, road + side * -47 + deckY + front), 70, 5, 26)
+
+	-- Selva espesa con algunos árboles gigantes que llegan a media altura de las torres.
+	for i = 1, 75 do
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local r = 155 * math.sqrt(rng:NextNumber())
+		local height = if i <= 6 then rng:NextNumber(48, 60) else rng:NextNumber(18, 34)
+		jungleTree(island, ground + Vector3.new(math.cos(angle) * r, 0, math.sin(angle) * r), height)
+	end
+	for _ = 1, 40 do
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local r = 160 * math.sqrt(rng:NextNumber())
+		decor(
+			ball(
+				"Matorral",
+				rng:NextNumber(8, 16),
+				ground + Vector3.new(math.cos(angle) * r, 1, math.sin(angle) * r),
+				leafColor(),
+				Enum.Material.Grass,
+				island
+			)
+		)
+	end
+	for _ = 1, 8 do
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local r = rng:NextNumber(0, 70)
+		local y = mountHeight(r, hill.base, hill.top, hill.height, hill.curve)
+		jungleTree(
+			island,
+			hill.center + Vector3.new(math.cos(angle) * r, y - 1, math.sin(angle) * r),
+			rng:NextNumber(24, 38)
+		)
+	end
+	island.Parent = parent
+end
+
+-- Altura de la arena de la Isla de las Dunas en (x, z): crestas de duna en diagonal que se apagan
+-- hacia la orilla.
+local function duneHeight(x: number, z: number): number
+	local dx, dz = x - DUNES_CENTER.X, z - DUNES_CENTER.Z
+	local r = math.sqrt(dx * dx + dz * dz) / DUNES_RADIUS
+	local crest = 1 - math.abs(math.sin((dx * 0.8 + dz * 0.6) / 38 + math.sin(dz / 57) * 1.4))
+	local land = 8 + 26 * crest ^ 2 + 6 * math.sin(dx / 83) * math.cos(dz / 67)
+	return land + (SEA_FLOOR - 2 - land) * smoothstep(0.6, 1.05, r)
+end
+
+-- Saguaro con dos brazos.
+local function cactus(parent: Instance, ground: Vector3, height: number)
+	local width = height / 6
+	local top = ground + Vector3.new(0, height, 0)
+	decor(cylinder("Cactus", width, ground - Vector3.new(0, 2, 0), top, CACTUS, Enum.Material.Grass, parent))
+	decor(ball("Punta", width, top, CACTUS, Enum.Material.Grass, parent))
+	local yaw = rng:NextNumber(0, 2 * math.pi)
+	for _, armSide in { -1, 1 } do
+		local out = Vector3.new(math.cos(yaw), 0, math.sin(yaw)) * armSide
+		local start = ground + Vector3.new(0, height * rng:NextNumber(0.35, 0.55), 0)
+		local elbow = start + out * height * 0.22
+		local tip = elbow + Vector3.new(0, height * rng:NextNumber(0.25, 0.4), 0)
+		decor(cylinder("Brazo", width * 0.75, start, elbow, CACTUS, Enum.Material.Grass, parent))
+		decor(ball("Codo", width * 0.75, elbow, CACTUS, Enum.Material.Grass, parent))
+		decor(cylinder("Brazo", width * 0.75, elbow, tip, CACTUS, Enum.Material.Grass, parent))
+		decor(ball("Punta", width * 0.75, tip, CACTUS, Enum.Material.Grass, parent))
+	end
+end
+
+-- Isla de las Dunas: desierto de dunas con mesetas de arenisca a franjas, un arco de roca,
+-- obeliscos medio enterrados, cactus y arena que vuela.
+local function buildDunesIsland(parent: Instance)
+	local island = Instance.new("Model")
+	island.Name = "Dunas"
+	local center = DUNES_CENTER
+	local terrain = Workspace.Terrain
+	local step = 8
+	local reach = DUNES_RADIUS * 1.05
+	for x = center.X - reach, center.X + reach, step do
+		for z = center.Z - reach, center.Z + reach, step do
+			local top = duneHeight(x, z)
+			if top > SEA_FLOOR then
+				terrain:FillBlock(
+					CFrame.new(x, (SEA_FLOOR + top) / 2, z),
+					Vector3.new(step, top - SEA_FLOOR, step),
+					Enum.Material.Sand
+				)
+			end
+		end
+	end
+
+	local front = towardLobby(center)
+	local side = Vector3.new(-front.Z, 0, front.X)
+	-- Mesetas al fondo (lejos del Lobby), con franjas de roca más oscura.
+	for _, mesa in
+		{
+			{ back = 110, across = -40, radius = 60, top = 96 },
+			{ back = 160, across = 80, radius = 44, top = 70 },
+			{ back = 40, across = -150, radius = 48, top = 120 },
+		}
+	do
+		terrainMount(
+			center - front * mesa.back + side * mesa.across,
+			mesa.radius * 1.25,
+			mesa.radius,
+			mesa.top,
+			1,
+			function(t)
+				return if (t * 7) % 1 < 0.2 then Enum.Material.Ground else Enum.Material.Sandstone
+			end
+		)
+	end
+
+	-- Arco de roca en la orilla, de cara al Lobby: bolas de arenisca a lo largo de medio óvalo,
+	-- más gruesas en las patas que arriba.
+	local archFoot = center + front * 150 + side * 70
+	archFoot = Vector3.new(archFoot.X, math.max(duneHeight(archFoot.X, archFoot.Z), 0) - 6, archFoot.Z)
+	local archFrame = CFrame.lookAt(archFoot, archFoot + front)
+	local archRadius = 30
+	local segments = 24
+	for i = 0, segments do
+		local angle = math.pi * i / segments
+		local point = archFrame * CFrame.new(math.cos(angle) * archRadius, math.sin(angle) * archRadius * 1.5, 0)
+		terrain:FillBall(
+			point.Position,
+			7 + 3 * math.abs(math.cos(angle)) + rng:NextNumber(0, 2),
+			Enum.Material.Sandstone
+		)
+	end
+
+	-- Obeliscos: uno de pie, torcido y medio enterrado, y otro caído y partido.
+	local obelisk = center + front * 90 - side * 60
+	obelisk = Vector3.new(obelisk.X, duneHeight(obelisk.X, obelisk.Z), obelisk.Z)
+	decor(
+		newPart(
+			"Obelisco",
+			Vector3.new(9, 64, 9),
+			CFrame.new(obelisk) * CFrame.Angles(0.18, 0.5, -0.12) * CFrame.new(0, 20, 0),
+			SANDSTONE,
+			Enum.Material.Sandstone,
+			island
+		)
+	)
+	local fallen = center + front * 60 + side * 10
+	fallen = Vector3.new(fallen.X, duneHeight(fallen.X, fallen.Z) + 2, fallen.Z)
+	beam(
+		"ObeliscoCaido",
+		fallen,
+		fallen + side * 34 + Vector3.new(0, 4, 0),
+		8,
+		8,
+		Vector3.yAxis,
+		SANDSTONE,
+		Enum.Material.Sandstone,
+		island
+	)
+	beam(
+		"ObeliscoCaido",
+		fallen + side * 38 + Vector3.new(0, 2, 6),
+		fallen + side * 56 + Vector3.new(0, -2, 8),
+		8,
+		8,
+		Vector3.yAxis,
+		SANDSTONE,
+		Enum.Material.Sandstone,
+		island
+	)
+
+	for _, spot in { -120, -80, -20, 30, 110, 140 } do
+		local at = center + front * rng:NextNumber(150, 190) + side * spot
+		local ground = Vector3.new(at.X, duneHeight(at.X, at.Z), at.Z)
+		if ground.Y > 1 then
+			cactus(island, ground, rng:NextNumber(16, 26))
+		end
+	end
+
+	-- Arena que vuela sobre la isla.
+	local dustArea = newPart(
+		"Polvareda",
+		Vector3.new(DUNES_RADIUS * 1.8, 30, DUNES_RADIUS * 1.8),
+		CFrame.new(center + Vector3.new(0, 40, 0)),
+		SANDSTONE,
+		Enum.Material.SmoothPlastic,
+		island
+	)
+	dustArea.Transparency = 1
+	decor(dustArea)
+	local dust = Instance.new("ParticleEmitter")
+	dust.Name = "Arena"
+	dust.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	dust.Shape = Enum.ParticleEmitterShape.Box
+	dust.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	dust.Color = ColorSequence.new(Color3.fromRGB(230, 185, 130))
+	dust.Size = NumberSequence.new(40, 80)
+	dust.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.3, 0.75),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	dust.Lifetime = NumberRange.new(10, 14)
+	dust.Rate = 4
+	dust.Speed = NumberRange.new(0)
+	dust.Acceleration = side * 2
+	dust.RotSpeed = NumberRange.new(-8, 8)
+	dust.Parent = dustArea
+	island.Parent = parent
+end
+
+-- Isla Calavera: una roca enorme con forma de cráneo de mono que mira al Lobby, con los ojos
+-- encendidos, colmillos, una escalera hasta la boca y dos antorchas.
+local function buildSkullIsland(parent: Instance)
+	local island = Instance.new("Model")
+	island.Name = "Calavera"
+	local center = SKULL_CENTER
+	local plateau = 18
+	terrainMount(center, 170, 70, plateau, 1.6, function(t)
+		return if t < 0.6 then Enum.Material.Sand elseif t < 0.85 then Enum.Material.Rock else Enum.Material.LeafyGrass
+	end)
+	local front = towardLobby(center)
+	local side = Vector3.new(-front.Z, 0, front.X)
+	local hills = {}
+	for _, across in { -85, 85 } do
+		local hill = { center = center + side * across - front * 25, base = 85, top = 20, height = 52, curve = 1.4 }
+		terrainMount(hill.center, hill.base, hill.top, hill.height, hill.curve, function()
+			return Enum.Material.LeafyGrass
+		end)
+		table.insert(hills, hill)
+	end
+
+	local base = center + Vector3.new(0, plateau, 0) - front * 10
+	local skull = CFrame.lookAt(base, base + front)
+	local function at(x: number, y: number, z: number): CFrame
+		return skull * CFrame.new(x, y, z)
+	end
+	local function stone(name: string, size: Vector3, cframe: CFrame): Part
+		local part = newPart(name, size, cframe, tone(SKULL_STONE), Enum.Material.Slate, island)
+		decor(part)
+		return part
+	end
+	local function rock(name: string, diameter: number, x: number, y: number, z: number): BasePart
+		return decor(ball(name, diameter, at(x, y, z).Position, tone(SKULL_STONE), Enum.Material.Slate, island))
+	end
+	rock("Craneo", 96, 0, 80, 14)
+	-- Hocico redondo que sobresale, barbilla y pómulos.
+	rock("Hocico", 54, 0, 30, -30)
+	rock("Barbilla", 36, 0, 8, -36)
+	for _, x in { -36, 36 } do
+		rock("Pomulo", 28, x, 44, -14)
+	end
+	for _, x in { -19, 19 } do
+		-- Ceja: barra redondeada, más baja por dentro (ceño fruncido).
+		local brow =
+			stone("Ceja", Vector3.new(44, 16, 16), at(x, 66, -34) * CFrame.Angles(0, 0, math.rad(x > 0 and 12 or -12)))
+		brow.Shape = Enum.PartType.Cylinder
+		-- Cuenca hundida bajo la ceja, con el ojo encendido al fondo.
+		local socket = newPart(
+			"Cuenca",
+			Vector3.new(4, 28, 28),
+			at(x, 51, -22) * CFrame.Angles(0, math.pi / 2, 0),
+			SKULL_DARK,
+			Enum.Material.Slate,
+			island
+		)
+		socket.Shape = Enum.PartType.Cylinder
+		decor(socket)
+		local eye = decor(ball("Ojo", 7, at(x, 51, -25).Position, EYE_GLOW, Enum.Material.Neon, island))
+		light(eye, EYE_GLOW, 50, 4)
+		decor(ball("Nariz", 6, at(x * 0.27, 46, -50).Position, SKULL_DARK, Enum.Material.Slate, island))
+	end
+	-- Boca abierta, dientes y colmillos.
+	decor(newPart("Boca", Vector3.new(28, 11, 6), at(0, 19, -54), SKULL_DARK, Enum.Material.Slate, island))
+	for x = -9, 9, 6 do
+		decor(newPart("Diente", Vector3.new(4, 6, 3), at(x, 23, -57.5), BONE, Enum.Material.Limestone, island))
+	end
+	for _, x in { -12, 12 } do
+		decor(
+			newPart(
+				"Colmillo",
+				Vector3.new(5, 15, 4),
+				at(x, 19, -57.5) * CFrame.Angles(0, 0, math.rad(x > 0 and 6 or -6)),
+				BONE,
+				Enum.Material.Limestone,
+				island
+			)
+		)
+	end
+	-- Musgo y lianas por la cabeza.
+	for _, spot in { Vector3.new(-14, 124, 18), Vector3.new(20, 120, 30), Vector3.new(32, 104, -4) } do
+		decor(
+			ball(
+				"Musgo",
+				rng:NextNumber(20, 30),
+				at(spot.X, spot.Y, spot.Z).Position,
+				leafColor(),
+				Enum.Material.Grass,
+				island
+			)
+		)
+	end
+	vines(island, at(0, 60, -42), 76, 7, 22)
+	-- Escalera hasta la boca y antorchas.
+	for i = 0, 6 do
+		stone("Escalon", Vector3.new(22, 2, 5), at(0, 13 - i * 2, -60 - i * 4.5))
+	end
+	for _, x in { -16, 16 } do
+		local post = stone("Antorcha", Vector3.new(2, 12, 2), at(x, 5, -80))
+		local fire = Instance.new("Fire")
+		fire.Size = 8
+		fire.Heat = 10
+		fire.Parent = post
+		light(post, FIRE_LIGHT, 30, 3)
+	end
+
+	for _ = 1, 20 do
+		local hill = hills[rng:NextInteger(1, #hills)]
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local r = rng:NextNumber(0, 55)
+		local y = mountHeight(r, hill.base, hill.top, hill.height, hill.curve)
+		jungleTree(
+			island,
+			hill.center + Vector3.new(math.cos(angle) * r, y - 1, math.sin(angle) * r),
+			rng:NextNumber(20, 34)
+		)
+	end
+	for _, spot in { -50, -38, 40, 55 } do
+		buildPalm(island, base + front * 45 + side * spot - Vector3.new(0, 1, 0), 0.15, rng:NextNumber(0, 6))
+	end
+	island.Parent = parent
+end
+
+-- Picos de la Niebla: agujas de roca caliza con selva en lo alto, una cascada y bandas de niebla.
+-- Es la isla más lejana: casi solo se ve su silueta.
+local function buildPeaksIsland(parent: Instance)
+	local island = Instance.new("Model")
+	island.Name = "PicosDeLaNiebla"
+	local center = PEAKS_CENTER
+	-- Solo estas agujas usan caliza: gris de roca en vez del crema de serie.
+	Workspace.Terrain:SetMaterialColor(Enum.Material.Limestone, LIMESTONE)
+	terrainMount(center, 270, 200, 4, 2, function(t)
+		return if t < 0.8 then Enum.Material.Sand else Enum.Material.LeafyGrass
+	end)
+	local front = towardLobby(center)
+	local mainTop: Vector3? = nil
+	local mainRadius = 0
+	for index, peak in
+		{
+			{ x = 0, z = 0, radius = 52, top = 320 },
+			{ x = -110, z = 40, radius = 40, top = 230 },
+			{ x = 95, z = 55, radius = 38, top = 250 },
+			{ x = -60, z = -90, radius = 45, top = 280 },
+			{ x = 150, z = -40, radius = 30, top = 170 },
+			{ x = -190, z = -30, radius = 32, top = 150 },
+			{ x = 45, z = 140, radius = 28, top = 140 },
+			{ x = 60, z = -120, radius = 36, top = 210 },
+			{ x = -150, z = 120, radius = 26, top = 120 },
+		}
+	do
+		local grassFrom = 1 - 10 / (peak.top - SEA_FLOOR)
+		local top = terrainMount(
+			center + Vector3.new(peak.x, 0, peak.z),
+			peak.radius * 1.25,
+			peak.radius * 0.75,
+			peak.top,
+			1,
+			function(t)
+				-- Repisas con plantas a distintas alturas de la pared.
+				local ledge = t > 0.15 and math.noise(t * 9, peak.x / 50, peak.z / 50) > 0.3
+				return if t > grassFrom or ledge then Enum.Material.LeafyGrass else Enum.Material.Limestone
+			end,
+			peak.radius * 0.6
+		)
+		Workspace.Terrain:FillBall(
+			top - Vector3.new(0, peak.radius * 0.2, 0),
+			peak.radius * 0.7,
+			Enum.Material.LeafyGrass
+		)
+		for _ = 1, 3 do
+			local offset = Vector3.new(rng:NextNumber(-1, 1), 0, rng:NextNumber(-1, 1)) * peak.radius * 0.35
+			jungleTree(island, top + offset + Vector3.new(0, peak.radius * 0.4, 0), rng:NextNumber(18, 28))
+		end
+		if index == 1 then
+			mainTop = top
+			mainRadius = peak.radius
+		end
+	end
+
+	-- Cascada por la cara que mira al Lobby, con espuma abajo.
+	if mainTop then
+		local from = mainTop + front * mainRadius * 0.85 - Vector3.new(0, 30, 0)
+		local to = Vector3.new(from.X, 0, from.Z) + front * mainRadius * 0.55
+		local fall = beam("Cascada", from, to, 10, 1.5, front, WATERFALL, Enum.Material.SmoothPlastic, island)
+		fall.Transparency = 0.2
+		local foam = decor(ball("Espuma", 14, to, WATERFALL, Enum.Material.SmoothPlastic, island))
+		foam.Transparency = 1
+		local spray = Instance.new("ParticleEmitter")
+		spray.Name = "Espuma"
+		spray.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		spray.Color = ColorSequence.new(Color3.new(1, 1, 1))
+		spray.Size = NumberSequence.new(12, 30)
+		spray.Transparency = NumberSequence.new(0.4, 1)
+		spray.Lifetime = NumberRange.new(3, 5)
+		spray.Rate = 6
+		spray.Speed = NumberRange.new(4, 8)
+		spray.SpreadAngle = Vector2.new(60, 60)
+		spray.Parent = foam
+	end
+
+	-- Bandas de niebla entre las agujas.
+	for _, height in { 70, 165 } do
+		local band = newPart(
+			"Niebla",
+			Vector3.new(420, 20, 420),
+			CFrame.new(center + Vector3.new(0, height, 0)),
+			Color3.new(1, 1, 1),
+			Enum.Material.SmoothPlastic,
+			island
+		)
+		band.Transparency = 1
+		decor(band)
+		local mist = Instance.new("ParticleEmitter")
+		mist.Name = "Niebla"
+		mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		mist.Shape = Enum.ParticleEmitterShape.Box
+		mist.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+		mist.Color = ColorSequence.new(Color3.fromRGB(240, 235, 235))
+		mist.Size = NumberSequence.new(60, 110)
+		mist.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.4, 0.55),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		mist.Lifetime = NumberRange.new(16, 22)
+		mist.Rate = 3
+		mist.Speed = NumberRange.new(0)
+		mist.Acceleration = Vector3.new(1.5, 0, 0)
+		mist.RotSpeed = NumberRange.new(-5, 5)
+		mist.Parent = band
+	end
+	island.Parent = parent
+end
+
 local function buildBoundary(parent: Instance)
 	local walls = Instance.new("Folder")
 	walls.Name = "Limites"
@@ -1806,6 +2565,13 @@ function LobbyBuilder.build(options: Options?)
 	horizon.Name = "IslaLejana"
 	buildIsland(horizon)
 	horizon.Parent = folder
+	local archipelago = Instance.new("Folder")
+	archipelago.Name = "Archipielago"
+	buildSkullIsland(archipelago)
+	buildRuinsIsland(archipelago)
+	buildDunesIsland(archipelago)
+	buildPeaksIsland(archipelago)
+	archipelago.Parent = folder
 	carveHull()
 	local ship = buildShip(folder)
 	buildRamp(folder, ship)

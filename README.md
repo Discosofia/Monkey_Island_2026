@@ -1,4 +1,4 @@
-# Primal Banana Island: Monkey Survival 🍌🐒🏝️
+# Primal Banana Islands: Monkey Survival 🍌🐒🏝️
 
 Juego de supervivencia **PvE + PvP opt-in** para **Roblox** (móvil + PC), para hasta **20 jugadores** por servidor.
 

@@ -524,10 +524,10 @@
 <text class="logo" x="0" y="252" font-size="158" text-anchor="middle" textLength="690" lengthAdjust="spacingAndGlyphs" fill="#fff2b0" stroke="#fff2b0" stroke-width="9.5" stroke-linejoin="round">BANANA</text>
 <text class="logo" x="0" y="252" font-size="158" text-anchor="middle" textLength="690" lengthAdjust="spacingAndGlyphs" fill="url(#g112)">BANANA</text>
 <text class="logo" x="0" y="252" font-size="158" text-anchor="middle" textLength="690" lengthAdjust="spacingAndGlyphs" fill="url(#g114)">BANANA</text>
-<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="500" lengthAdjust="spacingAndGlyphs" fill="#1e0604" stroke="#1e0604" stroke-width="24.400000000000002" stroke-linejoin="round" transform="translate(0,11)">ISLAND</text>
-<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="500" lengthAdjust="spacingAndGlyphs" fill="#3a1404" stroke="#3a1404" stroke-width="24.400000000000002" stroke-linejoin="round">ISLAND</text>
-<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="500" lengthAdjust="spacingAndGlyphs" fill="#fff2b0" stroke="#fff2b0" stroke-width="7.3" stroke-linejoin="round">ISLAND</text>
-<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="500" lengthAdjust="spacingAndGlyphs" fill="url(#g112)">ISLAND</text>
-<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="500" lengthAdjust="spacingAndGlyphs" fill="url(#g115)">ISLAND</text>
+<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="580" lengthAdjust="spacingAndGlyphs" fill="#1e0604" stroke="#1e0604" stroke-width="24.400000000000002" stroke-linejoin="round" transform="translate(0,11)">ISLANDS</text>
+<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="580" lengthAdjust="spacingAndGlyphs" fill="#3a1404" stroke="#3a1404" stroke-width="24.400000000000002" stroke-linejoin="round">ISLANDS</text>
+<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="580" lengthAdjust="spacingAndGlyphs" fill="#fff2b0" stroke="#fff2b0" stroke-width="7.3" stroke-linejoin="round">ISLANDS</text>
+<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="580" lengthAdjust="spacingAndGlyphs" fill="url(#g112)">ISLANDS</text>
+<text class="logo" x="0" y="372" font-size="122" text-anchor="middle" textLength="580" lengthAdjust="spacingAndGlyphs" fill="url(#g115)">ISLANDS</text>
 </g>
 </svg>

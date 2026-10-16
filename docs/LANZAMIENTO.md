@@ -55,7 +55,7 @@ Cada grupo tiene cuatro sonidos: `Attack` (muerde o salta), `Call` (aúlla o rug
 
 | Qué | Dónde | Recomendación |
 |---|---|---|
-| Nombre | Configuración de la experiencia → Información básica | **Primal Banana Island: Monkey Survival** (si cambias el nombre, cámbialo también en `Config.GameName`) |
+| Nombre | Configuración de la experiencia → Información básica | **Primal Banana Islands: Monkey Survival** (si cambias el nombre, cámbialo también en `Config.GameName`). **Pendiente:** el juego pasó a llamarse así en plural (antes *Primal Banana Island*); cambia aquí el nombre de la experiencia y el del place del Lobby |
 | Descripción | Igual | Usa el pitch del GDD (§1), **sin** "comen carne humana" ni nada de gore, y menciona: 20 jugadores, roles, jefes, mascotas, PvP opcional |
 | Icono | Igual | **Ya hecho:** [`art/portada/icono-512.png`](../art/portada/icono-512.png) (512×512) |
 | Miniaturas | Igual | **Portada ya hecha:** [`art/portada/portada-1920x1080.png`](../art/portada/portada-1920x1080.png), ponla la **primera**. Añade 2–4 capturas a 1920×1080: asedio nocturno, un jefe, el Basecamp construido, el naufragio del Lobby |

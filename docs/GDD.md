@@ -1,7 +1,7 @@
-# Primal Banana Island: Monkey Survival — Documento de Diseño del Juego (GDD) v0.2
+# Primal Banana Islands: Monkey Survival — Documento de Diseño del Juego (GDD) v0.2
 
 > **Estado:** diseño base confirmado tras la entrevista (v0.2: todas las propuestas de la v0.1 confirmadas).
-> **Nombre:** **Primal Banana Island: Monkey Survival** (ver [§15](#15-nombre)). El repositorio conserva el nombre `monkey_island_2026`.
+> **Nombre:** **Primal Banana Islands: Monkey Survival** (ver [§15](#15-nombre)). El repositorio conserva el nombre `monkey_island_2026`.
 
 ---
 
@@ -50,7 +50,7 @@
 | Baliza de rescate | Se puede encender desde el **día 8**, cuando ya es posible tener las 4 piezas. |
 | Especies | Se añade la **marteja** (mono nocturno) a la categoría 1. |
 | PvP en playas | **Cajas de suministro** que llegan por mar = zonas de PvP. |
-| Nombre | **Primal Banana Island: Monkey Survival.** |
+| Nombre | **Primal Banana Islands: Monkey Survival.** |
 
 ---
 
@@ -284,6 +284,21 @@ flowchart TB
 | **Cuevas** | Alta | Cristales y minerales raros | Oscuridad: se necesitan antorchas. Jefe: Gorila Albino. |
 | **Volcán** | Muy alta | Obsidiana, azufre y núcleos de magma | Erupciones periódicas. Jefe: Gorila de Ceniza. |
 
+### 7.1 El archipiélago
+
+El juego es un **archipiélago de seis islas**. Al principio solo se juega en una (la del volcán, la de esta sección); las demás **solo se ven desde el Lobby**, alrededor del banco de arena del naufragio y a distancias distintas, como promesa de contenido futuro:
+
+| Isla | Dónde (desde el Lobby) | Cómo se ve | Estado |
+|---|---|---|---|
+| **Lobby** (banco de arena del naufragio) | Centro | El carguero «Esperanza» encallado y el campamento | Lobby |
+| **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable** |
+| **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | Cerrada |
+| **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | Cerrada |
+| **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | Cerrada |
+| **Picos de la Niebla** | Norte, ~1.300 studs (la más lejana) | Agujas de roca caliza con selva en la cima, cascada y bandas de niebla | Cerrada |
+
+Las islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significará crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de elegir destino.
+
 ---
 
 ## 8. Los monos
@@ -487,6 +502,8 @@ Hace décadas, un millonario excéntrico construyó en la isla un **santuario-la
 
 En secreto, el laboratorio desarrolló el **Proyecto PRIMAL**: un suero mezclado en bananas modificadas para hacer a los primates más fuertes e inteligentes. Salió mal. Los primates se volvieron agresivos y carnívoros, y los que comieron más **bananas primales** crecieron hasta tamaños imposibles (los jefes). El laboratorio quedó abandonado tras una erupción del volcán.
 
+La isla es solo una de las **Banana Islands**, un archipiélago que el Proyecto PRIMAL usó entero: desde el naufragio se ven una ciudad tragada por la selva, un desierto de dunas, una roca con forma de calavera y unos picos entre la niebla (§7.1). Cada isla abierta en el futuro trae su bioma, sus monos y su parte de la historia.
+
 Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio del laboratorio. Hay **notas, ruinas y tarjetas de acceso** repartidas por la isla, lo que da pie a **actualizaciones narrativas por temporadas**.
 
 **Ganchos de lore para el juego:**
@@ -508,9 +525,9 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 
 ## 15. Nombre
 
-**Primal Banana Island: Monkey Survival**
+**Primal Banana Islands: Monkey Survival**
 
-- **Primal Banana Island** es el título y conecta con el lore (Proyecto PRIMAL y las bananas primales).
+- **Primal Banana Islands** es el título y conecta con el lore (Proyecto PRIMAL y las bananas primales). Va en plural porque el juego es un archipiélago (§7.1): se empieza con una isla y se abren más con las actualizaciones. Antes se llamaba *Primal Banana Island*.
 - **Monkey Survival** es el subtítulo con palabras clave, para que el juego aparezca en las búsquedas de Roblox.
 - Evita el riesgo de propiedad intelectual de "Monkey Island" (LucasArts/Disney).
 - **Pendiente antes de publicar:** buscar el nombre en Roblox (que no haya otro juego igual) y en registros de marcas.
@@ -524,7 +541,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 | **Alcance enorme** para una sola persona | Construir por fases, con un *vertical slice* jugable antes de producir contenido. Datos de configuración en lugar de código duplicado. |
 | **Rendimiento** (20 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y pruebas en móviles de gama baja. |
 | **Moderación y edades** (llegar a menores de 16: Roblox Kids y Select) | Sin sangre ni gore. Los monos derrotados desaparecen con un "¡puf!" de humo y estrellas, sin animación ni grito de muerte (violencia leve, de caricatura). Cuestionario de madurez completo y requisitos de [LANZAMIENTO.md §9](LANZAMIENTO.md#9-menores-de-16-roblox-kids-y-select). |
-| **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Island* (§15). |
+| **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Islands* (§15). |
 | **Objetos aleatorios de pago** | Huevos solo por juego. Si algún día se venden, mostrar probabilidades según las normas de Roblox. |
 | **Exploits y trampas** | Servidor autoritativo: todo daño, botín y crafteo se valida en el servidor. |
 | **Griefing** | PvP opt-in, Basecamp seguro, permisos de construcción y núcleo protegido. |

@@ -19,6 +19,8 @@ Con *streaming*, cada móvil solo carga la parte de la isla que tiene cerca. Es 
 
 El registro `[Rendimiento]` dice *"streaming activado"* cuando está bien.
 
+**En el Lobby, al revés: StreamingEnabled desactivado.** Roblox lo activa de serie en los places nuevos, pero el Lobby es ligero y con *streaming* las islas del archipiélago que se ven en el horizonte (a 500-1.300 studs) no llegarían a los móviles. Abre el Lobby, desmarca **StreamingEnabled** en Workspace y publica. Si sigue activado, la Salida del servidor del Lobby lo avisa (`[LobbyWorldService]`).
+
 ## Paso 2: probar en móvil
 
 En Studio, pestaña **Test → Device** (o el selector de dispositivo de la barra superior) para ver la interfaz en tamaños de móvil. Pero la prueba que cuenta es en un **móvil real** con el juego publicado:

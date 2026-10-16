@@ -867,7 +867,7 @@ function MapBuilder.build(options: Options?)
 		warn(
 			`[MapBuilder] No se generó nada: el place abierto ({game.PlaceId}) no es la Isla del juego `
 				.. `({Config.PlaceIds.Island}). Abre la Isla desde el Gestor de recursos de la experiencia `
-				.. "Primal Banana Island (ver docs/MAPA.md). Si de verdad quieres generar aquí, usa build({ force = true })."
+				.. "Primal Banana Islands (ver docs/MAPA.md). Si de verdad quieres generar aquí, usa build({ force = true })."
 		)
 		return
 	end

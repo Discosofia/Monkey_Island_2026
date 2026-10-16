@@ -1,4 +1,4 @@
-# Sistemas de animación de Primal Banana Island
+# Sistemas de animación de Primal Banana Islands
 
 Lee esto antes de crear o cambiar una animación. Resume cómo se reproducen hoy las animaciones del
 juego para que lo nuevo encaje con el código que las usa.

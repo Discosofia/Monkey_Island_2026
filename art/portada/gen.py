@@ -1,4 +1,4 @@
-"""Generator for the "Primal Banana Island" cover art.
+"""Generator for the "Primal Banana Islands" cover art.
 
 Writes portada.svg (1920x1080) and icono.svg (512x512). All shapes are
 hand-authored vectors; the only embedded asset is a subset of the Inter Display
@@ -945,7 +945,7 @@ def title(cx, top, scale=1.0, sub=True, bunch=True):
         out.append(banana_bunch(380, 46, .74, -24))
     out.append(logo_text('PRIMAL', 0, 108, 122, yel, inner='#fff2b0', tl=500))
     out.append(logo_text('BANANA', 0, 252, 158, yel, inner='#fff2b0', tl=690))
-    out.append(logo_text('ISLAND', 0, 372, 122, yel, inner='#fff2b0', tl=500))
+    out.append(logo_text('ISLANDS', 0, 372, 122, yel, inner='#fff2b0', tl=580))
     if sub:
         out.append(f'<path d="M -300 400 L 300 400 L 286 470 L -286 470 Z" fill="#5a1a0c" stroke="#1e0604" stroke-width="7" stroke-linejoin="round"/>')
         out.append(f'<path d="M -292 408 L 292 408" stroke="#a8401a" stroke-width="4"/>')

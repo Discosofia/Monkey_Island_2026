@@ -3,12 +3,12 @@
 -- Para balancear o ajustar el juego, cambia los números aquí: la lógica los lee de este módulo.
 
 local Config = {
-	GameName = "Primal Banana Island",
+	GameName = "Primal Banana Islands",
 	Subtitle = "Monkey Survival",
 
 	-- IDs de los places de la experiencia. Cómo obtenerlos: docs/SETUP.md, paso 6.
 	PlaceIds = {
-		Lobby = 86360888108434, -- place "Primal Banana Island" (lugar de inicio)
+		Lobby = 86360888108434, -- place "Primal Banana Islands" (lugar de inicio)
 		Island = 84163809226177, -- place creado después ("chillyDuo's Place", renombrar a "Isla")
 	},
 
