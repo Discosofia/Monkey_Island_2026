@@ -22,6 +22,7 @@ type Joint = {
 	speed: number,
 	phase: number,
 	gait: boolean, -- solo se mueve mientras el dueño anda
+	bias: number, -- se suma al seno: con bias = amplitude, el giro va de 0 a 2 * amplitude (nunca al revés)
 }
 
 type Rig = { model: Model, scale: number, joints: { Joint } }
@@ -79,7 +80,8 @@ local function piece(
 	return part
 end
 
--- Hace que una pieza gire alrededor de una bisagra (en coordenadas del modelo, sin escalar).
+-- Hace que una pieza gire alrededor de una bisagra (en coordenadas del modelo, sin escalar). El giro
+-- es sin(t * speed + phase) * amplitude (+ bias, opcional, para que solo vaya hacia un lado).
 local function joint(
 	rig: Rig,
 	part: BasePart,
@@ -88,7 +90,8 @@ local function joint(
 	amplitude: number,
 	speed: number,
 	phase: number,
-	gait: boolean
+	gait: boolean,
+	bias: number?
 )
 	local hingeFrame = scaled(rig, hinge)
 	table.insert(rig.joints, {
@@ -100,6 +103,7 @@ local function joint(
 		speed = speed,
 		phase = phase,
 		gait = gait,
+		bias = bias or 0,
 	})
 end
 
@@ -612,15 +616,16 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			local frontLeg =
 				piece(rig, "FrontLeg", "Oval", Vector3.new(0.2, 0.45, 0.2), CFrame.new(side * 0.35, -0.25, -0.42), dark)
 			-- Patalea al compás de los saltos (PetFollowers: |sin(reloj * 6)|): en el aire estira las
-			-- traseras hacia abajo y atrás y adelanta las delanteras; al caer las recoge. Solo al andar.
+			-- traseras hacia abajo y atrás y adelanta las delanteras; al caer vuelven a su sitio (con
+			-- bias = amplitud no pasan al otro lado: subían por detrás como una aleta). Solo al andar.
 			local hip = CFrame.new(side * 0.35, -0.2, -0.05)
-			joint(rig, backLeg, hip, Vector3.xAxis, 0.4, 12, -math.pi / 2, true)
-			joint(rig, foot, hip, Vector3.xAxis, 0.4, 12, -math.pi / 2, true)
+			joint(rig, backLeg, hip, Vector3.xAxis, 0.22, 12, -math.pi / 2, true, 0.22)
+			joint(rig, foot, hip, Vector3.xAxis, 0.22, 12, -math.pi / 2, true, 0.22)
 			local shoulder = CFrame.new(side * 0.35, -0.05, -0.42)
-			joint(rig, frontLeg, shoulder, Vector3.xAxis, 0.5, 12, -math.pi / 2, true)
+			joint(rig, frontLeg, shoulder, Vector3.xAxis, 0.25, 12, -math.pi / 2, true, 0.25)
 			for _, toe in rig.model:GetChildren() do
 				if toe.Name == "Toe" and toe:IsA("BasePart") and math.sign(toe.Position.X) == side then
-					joint(rig, toe, shoulder, Vector3.xAxis, 0.5, 12, -math.pi / 2, true)
+					joint(rig, toe, shoulder, Vector3.xAxis, 0.25, 12, -math.pi / 2, true, 0.25)
 				end
 			end
 		end
@@ -1397,7 +1402,7 @@ function PetModels.animate(model: Model, time: number, moving: number)
 	local pivot = model:GetPivot()
 	for _, item in joints do
 		local factor = if item.gait then moving else 1
-		local angle = math.sin(time * item.speed + item.phase) * item.amplitude * factor
+		local angle = (math.sin(time * item.speed + item.phase) * item.amplitude + item.bias) * factor
 		item.part.CFrame = pivot * item.hinge * CFrame.fromAxisAngle(item.axis, angle) * item.offset
 	end
 end

@@ -184,6 +184,9 @@ en el Studio que esté abierto en modo edición.
   mueve (la antena del X-7), pon la bisagra nueva sobre ella para que no se despegue.
 - La rana salta con `|sin(reloj * 6)|` en `PetFollowers`; sus patas usan velocidad 12 y fase −π/2
   para patalear en el aire. Los dos usan el mismo reloj (`follower.clock`).
+- **Un seno va igual de lejos hacia los dos lados**: si una pata baja en el aire, sube lo mismo al
+  caer (en la rana parecía una aleta levantada). Para que solo vaya hacia un lado, pasa a `joint` el
+  último parámetro `bias` = amplitud: el giro va de 0 a 2 × amplitud.
 - Para verlo, `Anim.showCode` construye una mascota por instante (no vale clonar: `animate` solo
   mueve las que construyó esa copia del módulo):
   ```lua
