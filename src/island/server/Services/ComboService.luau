@@ -4,8 +4,9 @@
 --     embestida golpea, el dardo alcanza) lo marca y empieza el combo (ComboService.opener).
 --   - Pasos 2 y 3: usar la siguiente del combo antes de StepWindowSeconds la enlaza
 --     (ComboService.onAbilityUsed, antes de aplicar la habilidad). Durante PayoffSeconds sus golpes
---     contra los marcados son críticos seguros (isComboHit) y el remate hace su efecto extra
---     (isPayoff). Cada paso enlazado que no sea la propia definitiva le quita UltRefundSeconds.
+--     contra los marcados son críticos seguros con el daño extra del combo (isComboHit,
+--     linkedDamageBonus) y el remate hace su efecto extra (isPayoff). Cada paso enlazado que no sea la
+--     propia definitiva le quita UltRefundSeconds, como mucho UltRefundMaxSeconds por recarga.
 --   - Racha: cada combo completo la sube (x1 → x5). Desde x2, las recargas son StreakCooldownBonus
 --     más rápidas por nivel. Se pierde tras StreakSeconds sin hacer daño ni curar (onActivity).
 -- El cliente lo ve en los atributos del jugador "ComboStep" (0-3), "ComboStepUntil", "ComboStreak" y
@@ -32,6 +33,7 @@ type State = {
 	streak: number,
 	streakUntil: number,
 	marked: { Instance },
+	ultRefunded: number, -- segundos quitados ya a la recarga de la definitiva en curso
 }
 
 local ComboService = {}
@@ -45,7 +47,16 @@ end
 local function stateOf(player: Player): State
 	local state = states[player]
 	if not state then
-		state = { step = 0, stepAt = 0, payoff = nil, payoffUntil = 0, streak = 0, streakUntil = 0, marked = {} }
+		state = {
+			step = 0,
+			stepAt = 0,
+			payoff = nil,
+			payoffUntil = 0,
+			streak = 0,
+			streakUntil = 0,
+			marked = {},
+			ultRefunded = 0,
+		}
 		states[player] = state
 	end
 	return state
@@ -114,13 +125,22 @@ function ComboService.opener(player: Player, abilityId: string, target: Instance
 	publishStep(player, 1, time + SETTINGS.StepWindowSeconds)
 end
 
--- Acerca la definitiva del rol.
-local function refundUltimate(player: Player, roleId: string)
+-- Acerca la definitiva del rol, sin pasar de UltRefundMaxSeconds en cada recarga: así acelera lo
+-- mismo a todos los roles, tengan los pasos del combo recargas cortas o largas.
+local function refundUltimate(player: Player, state: State, roleId: string)
 	for slot, ability in Roles[roleId].abilities do
 		if ability.ultimate then
 			local readyAt = player:GetAttribute(`AbilityReadyAt{slot}`)
 			if typeof(readyAt) == "number" and readyAt > now() then
-				player:SetAttribute(`AbilityReadyAt{slot}`, math.max(now(), readyAt - SETTINGS.UltRefundSeconds))
+				local refund = math.min(
+					SETTINGS.UltRefundSeconds,
+					SETTINGS.UltRefundMaxSeconds - state.ultRefunded,
+					readyAt - now()
+				)
+				if refund > 0 then
+					state.ultRefunded += refund
+					player:SetAttribute(`AbilityReadyAt{slot}`, readyAt - refund)
+				end
 			end
 		end
 	end
@@ -162,11 +182,15 @@ function ComboService.onAbilityUsed(player: Player, abilityId: string): number?
 	if not (combo and typeof(roleId) == "string" and Roles[roleId]) then
 		return nil
 	end
+	local state = stateOf(player)
+	-- Empieza otra recarga de la definitiva: se puede volver a acercar.
+	if isUltimate(roleId, abilityId) then
+		state.ultRefunded = 0
+	end
 	local index = table.find(combo.steps, abilityId)
 	if not index or index == 1 then
 		return nil
 	end
-	local state = stateOf(player)
 	local time = now()
 	if state.step ~= index - 1 or time - state.stepAt > SETTINGS.StepWindowSeconds then
 		return nil
@@ -177,7 +201,7 @@ function ComboService.onAbilityUsed(player: Player, abilityId: string): number?
 	state.payoffUntil = time + SETTINGS.PayoffSeconds
 	extendMarks(player, state, time + math.max(SETTINGS.StepWindowSeconds, SETTINGS.PayoffSeconds))
 	if not isUltimate(roleId, abilityId) then
-		refundUltimate(player, roleId)
+		refundUltimate(player, state, roleId)
 	end
 	if index >= #combo.steps then
 		complete(player, state, combo)
@@ -196,6 +220,12 @@ end
 -- true si este golpe de "abilityId" contra "target" debe ser crítico por el combo.
 function ComboService.isComboHit(player: Player, target: Instance, abilityId: string): boolean
 	return ComboService.isPayoff(player, abilityId) and ComboService.isMarkedBy(target, player)
+end
+
+-- Daño extra (fracción) de los golpes de combo de "player" ("damageBonus" de su combo en Data/Combos).
+function ComboService.linkedDamageBonus(player: Player): number
+	local combo = ComboService.comboOf(player)
+	return if combo then combo.damageBonus or 0 else 0
 end
 
 -- El jugador ha hecho daño o ha curado: la racha sigue viva.

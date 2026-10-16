@@ -217,12 +217,14 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
 | Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
 
-**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 6 s como mucho entre una y otra. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros** a los marcados y el remate tiene un efecto extra. Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**.
+**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 6 s como mucho entre una y otra. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+25 % el guerrero y el mago, +50 % el cazador) y el remate tiene un efecto extra. Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**, como mucho **20 s por recarga**.
+
+*Cambio de octubre de 2026 (valor de los combos):* antes casi todo el premio era acercar la definitiva sin límite, y el mago, que cierra un combo cada ~9 s, la lanzaba casi el triple. Ahora la devolución tiene tope, el daño extra va por rol y la explosión del remate del mago es un 25 % más grande (antes 50 %). Enlazar da +20–30 % de daño en una pelea larga contra un grupo a los tres roles de daño (medido con `ServerStorage.Tools.Equilibrio`).
 
 | Rol | Combo | Pasos | Remate |
 |---|---|---|---|
 | Cazador | Presa acorralada | Cepo ⛓️ → Marcar presas (vuelve a sujetar 1,5 s a los atrapados) → Disparo múltiple | Críticos y 2 proyectiles más |
-| Mago | Fuego y hielo | Nova ❄️ → Parpadeo → Bola de fuego | Rompe el hielo: críticos y explosión un 50 % más grande |
+| Mago | Fuego y hielo | Nova ❄️ → Parpadeo → Bola de fuego | Rompe el hielo: críticos y explosión un 25 % más grande |
 | Guerrero | Remolino de acero | Embestida 💫 → Grito (aturde 1 s a los desequilibrados) → Torbellino | Críticos y 1 s más de giro |
 | Médico | Cura de urgencia | Dardo 💚 → Escudo (+50 % al revitalizado) → Ungüento | Curaciones críticas seguras y −15 de fiebre |
 
@@ -355,6 +357,7 @@ Son versiones **gigantes y con aspecto distinto** de las especies difíciles. Pe
 
 - Aparece **un jefe cada 2 días**, rotando por los biomas de menor a mayor dificultad. El orden y el intervalo son configurables.
 - El jefe se queda en su guarida **hasta que lo derrotan o hasta que aparece el siguiente**. Así el equipo tiene unos 2 días para prepararse.
+- **Vida según quién pelea** (`Config.Bosses`): cuenta a los jugadores vivos que están en su zona (fuera del Basecamp). Con uno tiene su vida base y cada jugador más le suma un 75 %; al entrar o salir alguien se recalcula sin cambiar el % que le queda. Así dura parecido con 1, 4 o 20 jugadores: con 4, unos **2 minutos** el Orangután y **3 minutos** el Gorila de Ceniza (con las armas de la forja que se suelen tener ese día), tiempo para ver sus tres fases.
 - Si un jefe se escapa, su pieza se puede conseguir en la **siguiente rotación** (8 días después).
 - Las piezas de baliza van al **núcleo compartido**: pertenecen al servidor, no a un jugador.
 

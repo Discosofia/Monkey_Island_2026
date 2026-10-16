@@ -251,9 +251,10 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 				end
 			end
 		end
+		local extra = if combo.damageBonus then ` con +{math.round(combo.damageBonus * 100)} % de daño` else ""
 		text(
 			parent,
-			`🔗 Combo «{combo.name}»: {table.concat(names, " → ")}. Los pasos 2 y 3 hacen críticos seguros a lo que lleva {combo.icon}. {combo.finisher}`,
+			`🔗 Combo «{combo.name}»: {table.concat(names, " → ")}. Los pasos 2 y 3 hacen críticos seguros{extra} a lo que lleva {combo.icon}. {combo.finisher}`,
 			6,
 			SOFT_COLOR
 		)

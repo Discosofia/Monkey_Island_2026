@@ -4,6 +4,8 @@
 --     Config.Match.BossRotation. Aparece en la guarida de su bioma y se queda hasta que lo derrotan o
 --     llega el siguiente.
 --   - Tres fases (al 66 % y al 33 % de vida): más rápido, más fuerte y con más ataques especiales.
+--   - Su vida depende de los jugadores que pelean con él (Config.Bosses): vivos, fuera del Basecamp y
+--     en su zona. Se recalcula cuando entra o sale alguien sin cambiar el % que le queda.
 --   - Al derrotarlo: una pieza de la baliza para el servidor (Shared/Beacon) y su botín especial para
 --     cada jugador que le hizo daño.
 --   - El HUD lee su estado de ReplicatedStorage ("BossName", "BossHealth", "BossMaxHealth",
@@ -66,6 +68,7 @@ type ActiveBoss = {
 	channelUntil: number, -- os.clock() hasta el que se queda quieto invocando (Special.channelFromPhase)
 	fightingUntil: number, -- os.clock(); ver FIGHT_GRACE_SECONDS
 	contributors: { [Player]: boolean },
+	fighters: number, -- jugadores peleando con los que está calculada su vida (rescaleHealth)
 }
 
 -- Animación de cada ataque especial (Data/MonkeyAnimations).
@@ -196,9 +199,55 @@ local function onBossDied(boss: ActiveBoss)
 	publish()
 end
 
--- Más jugadores, más vida: x0.8 con uno, +20 % por cada jugador más, hasta x3.
-local function healthMultiplier(): number
-	return math.clamp(0.6 + 0.2 * #Players:GetPlayers(), 0.8, 3)
+-- Más jugadores peleando, más vida (Config.Bosses): ×HealthBase con uno y +HealthPerExtraPlayer por
+-- cada uno más, hasta MaxHealthMultiplier.
+local function healthMultiplier(fighters: number): number
+	local settings = Config.Bosses
+	return math.min(
+		settings.MaxHealthMultiplier,
+		settings.HealthBase + settings.HealthPerExtraPlayer * (math.max(1, fighters) - 1)
+	)
+end
+
+-- Jugadores que pelean con el jefe: vivos, fuera del Basecamp y en su zona (a menos de leashRange de
+-- su guarida, la misma zona en la que los persigue). Al menos 1.
+local function countFighters(boss: ActiveBoss): number
+	local count = 0
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if
+			root
+			and root:IsA("BasePart")
+			and LifeState.isAlive(player)
+			and player:GetAttribute("InBasecamp") ~= true
+			and (root.Position - boss.lair).Magnitude <= boss.definition.leashRange
+		then
+			count += 1
+		end
+	end
+	return math.max(1, count)
+end
+
+-- Ajusta la vida máxima a los que pelean sin cambiar el % que le queda (las fases van por %). Se pone
+-- primero el valor que no se sale del máximo vigente para que la vida no se recorte por el camino.
+local function rescaleHealth(boss: ActiveBoss)
+	local fighters = countFighters(boss)
+	local humanoid = boss.humanoid
+	if fighters == boss.fighters or humanoid.Health <= 0 then
+		return
+	end
+	boss.fighters = fighters
+	local fraction = humanoid.Health / humanoid.MaxHealth
+	local maxHealth = math.round(boss.definition.maxHealth * healthMultiplier(fighters))
+	local health = math.max(1, fraction * maxHealth)
+	if maxHealth < humanoid.MaxHealth then
+		humanoid.Health = health
+		humanoid.MaxHealth = maxHealth
+	else
+		humanoid.MaxHealth = maxHealth
+		humanoid.Health = health
+	end
 end
 
 function BossService.spawn(bossId: string)
@@ -216,7 +265,7 @@ function BossService.spawn(bossId: string)
 	look.scale = definition.scale
 	look.bodyColor = definition.bodyColor
 	look.faceColor = definition.faceColor
-	look.maxHealth = math.round(definition.maxHealth * healthMultiplier())
+	look.maxHealth = math.round(definition.maxHealth * healthMultiplier(1))
 	look.walkSpeed = definition.walkSpeed
 	local model = MonkeyModels.build(definition.baseSpecies, look, groundBelow(lair), bossId)
 	model.Name = definition.name
@@ -245,6 +294,7 @@ function BossService.spawn(bossId: string)
 		channelUntil = 0,
 		fightingUntil = 0,
 		contributors = {},
+		fighters = 1,
 	}
 	for _, special in definition.specials do
 		boss.cooldowns[special.id] = now + rng:NextNumber(3, 6)
@@ -254,16 +304,19 @@ function BossService.spawn(bossId: string)
 		Sfx.play("BossDeath", root.Position)
 		onBossDied(boss)
 	end)
-	local lastHealth = humanoid.Health
+	-- Se queja al perder vida. Se compara el % (no la vida) para que no lo haga cuando rescaleHealth
+	-- le baja el máximo porque alguien se va.
+	local lastFraction = 1
 	local lastGruntAt = 0
 	humanoid.HealthChanged:Connect(function(health)
 		local clock = os.clock()
-		if health > 0 and health < lastHealth and clock - lastGruntAt > 1.2 then
+		local fraction = health / humanoid.MaxHealth
+		if health > 0 and fraction < lastFraction - 0.001 and clock - lastGruntAt > 1.2 then
 			lastGruntAt = clock
 			Sfx.play("BossHurt", root)
 			MonkeyAnimator.play(model, "Hurt")
 		end
-		lastHealth = health
+		lastFraction = fraction
 	end)
 	Sfx.play("BossRoar", root)
 	MonkeyAnimator.play(model, "Roar")
@@ -423,6 +476,7 @@ local function tick(now: number)
 	if not boss or boss.humanoid.Health <= 0 then
 		return
 	end
+	rescaleHealth(boss)
 	updatePhase(boss)
 	-- Habilidades de los roles (Combat/Status): aturdido no hace nada y ralentizado anda más despacio.
 	if Status.isStunned(boss.model) then

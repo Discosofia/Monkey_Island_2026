@@ -38,6 +38,17 @@ local Config = {
 		AmberForRescue = 200, -- victoria: rescatados (Fase 6)
 	},
 
+	-- Jefes (Data/Bosses, BossService). Su vida ("maxHealth" en Data/Bosses, la de un jugador solo) se
+	-- multiplica según los jugadores que pelean con él: vivos, fuera del Basecamp y a menos de su
+	-- "leashRange" de la guarida. Con uno ×HealthBase y cada uno más +HealthPerExtraPlayer, así un
+	-- jefe dura parecido con 1, 4 o 20 jugadores (con más, algo menos). Objetivo con 4 jugadores
+	-- (octubre de 2026, medido con ServerStorage.Tools.Equilibrio): 2 min el primero y 3 min el último.
+	Bosses = {
+		HealthBase = 1,
+		HealthPerExtraPlayer = 0.75,
+		MaxHealthMultiplier = 16,
+	},
+
 	Basecamp = {
 		-- Pieza de Workspace que marca el área del Basecamp (puede estar dentro de carpetas).
 		-- Si no existe, se crea una zona con el tamaño y centro de abajo.
@@ -134,13 +145,14 @@ local Config = {
 		-- Tras enlazar un paso, sus golpes contra los marcados son críticos durante este tiempo
 		-- (cubre el Torbellino, el cepo que salta y lo que tarda en llegar un proyectil).
 		PayoffSeconds = 6,
-		UltRefundSeconds = 10, -- cada paso enlazado acerca la definitiva (V) esto
+		UltRefundSeconds = 10, -- cada paso enlazado acerca la definitiva (V) esto…
+		UltRefundMaxSeconds = 20, -- …y como mucho esto por cada recarga de la definitiva
 		MaxStreak = 5,
 		StreakCooldownBonus = 0.08, -- por cada nivel de racha por encima de x1, recargas más rápidas
 		StreakSeconds = 8, -- la racha se pierde tras este tiempo sin hacer daño ni curar
 		ShieldBonus = 0.5, -- Escudo de hojas al aliado revitalizado: absorbe esto más
 		SalveFeverCure = 15, -- el Ungüento que cierra el combo del médico baja la fiebre esto
-		FireballSplashBonus = 0.5, -- la Bola de fuego que rompe el hielo salpica más lejos
+		FireballSplashBonus = 0.25, -- la Bola de fuego que rompe el hielo salpica más lejos
 		WarCryStun = 1, -- el Grito enlazado del guerrero aturde a los desequilibrados (s)
 		WhirlwindExtraSeconds = 1, -- el Torbellino que cierra el combo del guerrero gira más
 		MarkPreyRoot = 1.5, -- Marcar presas enlazado vuelve a sujetar a los atrapados (s)

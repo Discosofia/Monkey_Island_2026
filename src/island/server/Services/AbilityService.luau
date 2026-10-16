@@ -12,8 +12,8 @@
 -- afectan a otros jugadores, con menos daño y aturdimientos más cortos. Los estados de los monos están en Combat/Status.
 -- El cliente ve cuándo vuelve a estar lista cada una con el atributo "AbilityReadyAt<hueco>".
 -- Combos (Data/Combos, ComboService): la primera habilidad del combo marca lo que toca; las
--- siguientes, enlazadas a tiempo, hacen críticos seguros contra los marcados y el remate un efecto
--- extra. Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
+-- siguientes, enlazadas a tiempo, hacen críticos seguros con daño extra contra los marcados y el
+-- remate un efecto extra. Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -143,8 +143,9 @@ local function targetFromPart(attacker: Player, part: Instance): Target?
 	return if victim then playerTarget(attacker, victim) else nil
 end
 
--- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos. Es crítico seguro si la
--- habilidad está enlazada en el combo y el objetivo lleva su marca; si no, con la probabilidad del arma.
+-- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos. Si la habilidad está
+-- enlazada en el combo y el objetivo lleva su marca, es crítico seguro y hace el daño extra del combo
+-- (Data/Combos "damageBonus"); si no, es crítico con la probabilidad del arma.
 local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
@@ -157,8 +158,11 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 			CombatService.rollPlayerCrit(attacker)
 		)
 	else
-		local crit = ComboService.isComboHit(attacker, target.model, abilityId)
-			or CombatService.rollPlayerCrit(attacker)
+		local comboHit = ComboService.isComboHit(attacker, target.model, abilityId)
+		if comboHit then
+			amount *= 1 + ComboService.linkedDamageBonus(attacker)
+		end
+		local crit = comboHit or CombatService.rollPlayerCrit(attacker)
 		CombatService.damage(target.model, target.humanoid, math.max(1, math.round(amount)), attacker, { crit = crit })
 	end
 end
