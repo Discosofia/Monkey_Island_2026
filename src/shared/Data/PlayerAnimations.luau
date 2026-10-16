@@ -20,6 +20,8 @@ export type Key =
 	| "Bandage"
 	| "Crawl"
 	| "Revive"
+	| "Hammer"
+	| "Craft"
 
 export type PlayerAnimation = {
 	id: string,
@@ -46,6 +48,8 @@ local PlayerAnimations = {
 		Place = { id = "", priority = Enum.AnimationPriority.Action3 }, -- se agacha a dejar algo en el suelo
 		Consume = { id = "", priority = Enum.AnimationPriority.Action3 }, -- mano a la boca (comer, beber)
 		Bandage = { id = "", priority = Enum.AnimationPriority.Action3 }, -- se venda el antebrazo
+		Hammer = { id = "", priority = Enum.AnimationPriority.Action3 }, -- dos martillazos (construir, quitar)
+		Craft = { id = "", priority = Enum.AnimationPriority.Action3 }, -- manos trabajando (fabricar, cocinar)
 		Crawl = { id = "", priority = Enum.AnimationPriority.Action4, looped = true }, -- caído, se arrastra
 		Revive = { id = "", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
 	} :: { [Key]: PlayerAnimation },

@@ -23,6 +23,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local ROTATE_ACTION = "BuildRotate"
 local NEXT_ACTION = "BuildNext"
@@ -270,6 +271,7 @@ function BuildController:Start()
 		end, Enum.KeyCode.T, Enum.KeyCode.ButtonL1)
 		bind(DEMOLISH_ACTION, "Quitar", function()
 			if aimedStructure then
+				BodyAnimations.play("Hammer")
 				Remotes.Demolish:FireServer(aimedStructure)
 			end
 		end, Enum.KeyCode.F, Enum.KeyCode.DPadDown)
@@ -304,6 +306,7 @@ function BuildController:Start()
 		renderConnection = RunService.RenderStepped:Connect(update)
 		activatedConnection = tool.Activated:Connect(function()
 			if placement and placementValid then
+				BodyAnimations.play("Hammer")
 				Remotes.Build:FireServer(ids[selected], placement.Position, rotation)
 			end
 		end)

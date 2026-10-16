@@ -247,6 +247,35 @@ local function backHopLanding(t: number, lean: number, marker: string?): { [stri
 	}, 35, -60, 25)
 end
 
+-- Martillazo (construir y quitar piezas): el martillo va en la mano derecha. Sube por encima de la
+-- cabeza y golpea delante, a la altura de la cintura.
+local function hammerPose(t: number, raised: boolean, marker: string?): { [string]: any }
+	return {
+		t = t,
+		marcador = marker,
+		RightUpperArm = if raised then { 150, 0, 10 } else { 45, 0, 5 },
+		RightLowerArm = { if raised then 45 else 10, 0, 0 },
+		UpperTorso = if raised then { 6, -10, 0 } else { -12, 8, 0 },
+		Head = if raised then { -10, 8, 0 } else { -20, -5, 0 },
+		LeftUpperArm = { if raised then 25 else 30, 0, -10 },
+		LeftLowerArm = { if raised then 30 else 35, 0, 0 },
+	}
+end
+
+-- Trabajar con las manos (fabricar en la mesa, cocinar en la hoguera): las dos delante, a la altura
+-- de una mesa, alternándose, mirando lo que hace.
+local function workPose(t: number, rightUp: boolean): { [string]: any }
+	return {
+		t = t,
+		UpperTorso = { -12, 0, 0 },
+		Head = { -25, 0, 0 },
+		RightUpperArm = { if rightUp then 55 else 40, 0, -15 },
+		RightLowerArm = { if rightUp then 70 else 45, 0, 0 },
+		LeftUpperArm = { if rightUp then 40 else 55, 0, 15 },
+		LeftLowerArm = { if rightUp then 45 else 70, 0, 0 },
+	}
+end
+
 -- Comer o beber: mano a la boca (el giro en Y lleva el antebrazo al centro de la cara).
 local function mouthPose(t: number, near: boolean, head: number, marker: string?): { [string]: any }
 	return {
@@ -356,6 +385,33 @@ local SPECS: { [string]: any } = {
 			},
 			backHopLanding(0.3, -5),
 			{ t = 0.5, reposo = true },
+		},
+	},
+	Hammer = {
+		name = "Hammer",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			hammerPose(0.1, true),
+			hammerPose(0.2, false, "Golpe"),
+			hammerPose(0.32, true),
+			hammerPose(0.42, false, "Golpe2"),
+			{ t = 0.62, reposo = true },
+		},
+	},
+	Craft = {
+		name = "Craft",
+		easing = "Cubic",
+		direction = "InOut",
+		keyframes = {
+			{ t = 0, reposo = true },
+			workPose(0.12, true),
+			workPose(0.26, false),
+			workPose(0.4, true),
+			workPose(0.54, false),
+			workPose(0.66, true),
+			{ t = 0.9, reposo = true },
 		},
 	},
 	-- Lanza con la mano derecha al frente (bola de fuego, rayo, dardo, marcar presa). Solo el tronco

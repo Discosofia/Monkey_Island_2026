@@ -24,6 +24,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local PROMPT_NAME = "StationPrompt"
 local CLOSE_ACTION = "CloseWorkbench"
@@ -126,6 +127,10 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 		sizeLimit:Destroy()
 	end
 	button.MouseButton1Click:Connect(function()
+		-- Activo solo si se puede fabricar (refreshRow): entonces se pone a trabajar con las manos.
+		if button.Active then
+			BodyAnimations.play("Craft")
+		end
 		Remotes.Craft:FireServer(recipeId)
 	end)
 
