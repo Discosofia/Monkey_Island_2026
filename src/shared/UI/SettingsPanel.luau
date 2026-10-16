@@ -1,13 +1,15 @@
 --!strict
 -- Panel de Ajustes (Lobby: pestaña "Ajustes"; Isla: botón ⚙️). De arriba abajo:
---   1. Tu personaje: tu avatar girando con su armadura y su arma en la mano (con tu mascota al lado) y
---      números de ejemplo en la disposición elegida, para ver cómo quedará cada opción antes de
---      elegirla (UI/CombatTextColumn).
+--   1. Tu personaje: tu avatar girando con su armadura y su arma en la mano (con tu mascota al lado),
+--      números de ejemplo en la disposición elegida y, de vez en cuando, un estallido de cómic del
+--      tamaño elegido, para ver cómo quedará cada opción antes de elegirla (UI/CombatTextColumn,
+--      UI/ComicBurst).
 --   2. Tus números de combate: el arma que cuenta, su daño (con las ventajas del rol y los talentos)
 --      y su probabilidad de crítico (Shared/Crit, los mismos números con que juega el servidor), el
 --      daño o la curación de tus 4 habilidades, tu combo y lo que aporta tu mascota.
 --      En la Isla cuenta el arma de la mano o la mejor de la mochila; en el Lobby, la inicial del rol.
---   3. Opciones: disposición de los números y ajustes sí/no (Shared/Settings, se guardan en el perfil).
+--   3. Opciones: disposición de los números, ajustes sí/no y efectos de cómic (Shared/Settings, se
+--      guardan en el perfil).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,6 +29,7 @@ local Settings = require(ReplicatedStorage.Shared.Settings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local CombatTextColumn = require(script.Parent.CombatTextColumn)
+local ComicBurst = require(script.Parent.ComicBurst)
 local Widgets = require(script.Parent.Widgets)
 
 export type Context = "Island" | "Lobby"
@@ -39,6 +42,10 @@ local RED = Color3.fromRGB(255, 70, 70)
 local GREEN = Color3.fromRGB(90, 230, 110)
 local YELLOW = Color3.fromRGB(255, 220, 90)
 local PREVIEW_HEIGHT = 240
+-- Los estallidos de ejemplo, más pequeños que en la partida (el recuadro es bajo).
+local PREVIEW_COMIC_SCALE = 0.6
+-- Orden en que la vista previa enseña los estallidos.
+local COMIC_SAMPLES: { ComicBurst.Kind } = { "Crit", "Hit", "Hurt", "KO" }
 -- Mejor probabilidad de crítico que dan las armas de la forja (Data/Weapons).
 local BEST_FORGE_CHANCE = 0.15
 
@@ -279,7 +286,11 @@ end
 
 -- ===================================== Vista previa =====================================
 
-type Preview = { setLayout: (layout: Settings.Layout) -> (), stop: () -> () }
+type Preview = {
+	setLayout: (layout: Settings.Layout) -> (),
+	showComic: (kind: ComicBurst.Kind?) -> (),
+	stop: () -> (),
+}
 
 -- Sube el brazo derecho de la copia hacia delante (como al empuñar) y le pone en la mano el arma,
 -- colocada igual que la coloca Roblox al equiparla (RightGripAttachment y tool.Grip).
@@ -484,6 +495,38 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 		screenHint.Text = if layout == "Screen" then "↔ fijos en la pantalla" else ""
 	end
 
+	-- Un estallido de cómic sobre el pecho del avatar, del tamaño elegido. Sin "kind", el siguiente
+	-- de COMIC_SAMPLES (sin el golpe normal si solo se ven los fuertes).
+	local comicIndex = 0
+	local function showComic(kind: ComicBurst.Kind?)
+		local values = Settings.get()
+		if not values.comicFx or not holder.Parent then
+			return
+		end
+		local chosen: ComicBurst.Kind = kind or COMIC_SAMPLES[1]
+		if not kind then
+			for _ = 1, #COMIC_SAMPLES do
+				comicIndex = comicIndex % #COMIC_SAMPLES + 1
+				chosen = COMIC_SAMPLES[comicIndex]
+				if not (chosen == "Hit" and values.comicLevel == "Strong") then
+					break
+				end
+			end
+		end
+		local comic = Config.ComicFx
+		local pixels = math.round(comic.Pixels[chosen] * PREVIEW_COMIC_SCALE * (comic.SizeScale[values.comicSize] or 1))
+		local frame = Instance.new("Frame")
+		frame.BackgroundTransparency = 1
+		frame.AnchorPoint = Vector2.new(0.5, 0.5)
+		frame.Position = UDim2.fromScale(0.5, 0.6)
+		frame.Size = UDim2.fromOffset(pixels, pixels)
+		frame.Parent = overlay
+		local life = ComicBurst.play(frame, chosen, ComicBurst.word(chosen), pixels)
+		task.delay(life + 0.05, function()
+			frame:Destroy()
+		end)
+	end
+
 	-- Números de ejemplo: daño recibido, curaciones y, si la mascota cura, las suyas (más pequeñas);
 	-- y lo recogido, si está activado.
 	local running = true
@@ -520,6 +563,9 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 			elseif pet and pet.attackDamage and tick % 3 == 0 then
 				columns.left:push(`{pet.attackDamage}`, { color = YELLOW, scale = Config.CombatText.PetTextScale })
 			end
+			if tick % 3 == 0 then
+				showComic()
+			end
 			task.wait(0.7)
 		end
 	end)
@@ -537,6 +583,7 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 
 	return {
 		setLayout = setLayout,
+		showComic = showComic,
 		stop = function()
 			running = false
 			connection:Disconnect()
@@ -557,6 +604,60 @@ local TOGGLES = {
 	{ key = "music", label = "Música (tecla M)" },
 }
 
+-- Fila de botones para elegir uno de "choices" en el ajuste "key". Devuelve cómo repintarla.
+local function choiceRow(
+	parent: Instance,
+	order: number,
+	key: string,
+	choices: { string },
+	names: { [string]: string }
+): (values: Settings.Values) -> ()
+	local row = Instance.new("Frame")
+	row.LayoutOrder = order
+	row.BackgroundTransparency = 1
+	row.Size = UDim2.new(1, 0, 0, 46)
+	row.Parent = parent
+	local rowLayout = Instance.new("UIListLayout")
+	rowLayout.FillDirection = Enum.FillDirection.Horizontal
+	rowLayout.Padding = UDim.new(0, 6)
+	rowLayout.Parent = row
+	local buttons: { [string]: TextButton } = {}
+	for index, choice in choices do
+		local option = button(row, names[choice])
+		option.LayoutOrder = index
+		option.Size = UDim2.new(1 / #choices, -4, 1, 0)
+		option.Activated:Connect(function()
+			Settings.set(key, choice)
+		end)
+		buttons[choice] = option
+	end
+	return function(values: Settings.Values)
+		for choice, option in buttons do
+			paint(option, (values :: any)[key] == choice)
+		end
+	end
+end
+
+-- Línea con un texto a la izquierda y un interruptor Sí/No a la derecha para el ajuste "key".
+local function toggleLine(parent: Instance, order: number, key: string, label: string): TextButton
+	local line = Instance.new("Frame")
+	line.LayoutOrder = order
+	line.BackgroundTransparency = 1
+	line.Size = UDim2.new(1, 0, 0, 40)
+	line.Parent = parent
+	local name = text(line, label, 1)
+	name.AutomaticSize = Enum.AutomaticSize.None
+	name.Size = UDim2.fromScale(0.65, 1)
+	local switch = button(line, "")
+	switch.AnchorPoint = Vector2.new(1, 0.5)
+	switch.Position = UDim2.fromScale(1, 0.5)
+	switch.Size = UDim2.new(0.3, 0, 0, 36)
+	switch.Activated:Connect(function()
+		Settings.set(key, not (Settings.get() :: any)[key])
+	end)
+	return switch
+end
+
 local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, "📍 Dónde salen tus números", 1)
 	text(
@@ -565,51 +666,31 @@ local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 		2,
 		SOFT_COLOR
 	)
-	local row = Instance.new("Frame")
-	row.LayoutOrder = 3
-	row.BackgroundTransparency = 1
-	row.Size = UDim2.new(1, 0, 0, 46)
-	row.Parent = parent
-	local rowLayout = Instance.new("UIListLayout")
-	rowLayout.FillDirection = Enum.FillDirection.Horizontal
-	rowLayout.Padding = UDim.new(0, 6)
-	rowLayout.Parent = row
-	local layoutButtons: { [string]: TextButton } = {}
-	for index, layout in Settings.LAYOUTS do
-		local option = button(row, Settings.LAYOUT_NAMES[layout])
-		option.LayoutOrder = index
-		option.Size = UDim2.new(1 / #Settings.LAYOUTS, -4, 1, 0)
-		option.Activated:Connect(function()
-			Settings.set("textLayout", layout)
-		end)
-		layoutButtons[layout] = option
-	end
+	local refreshLayout = choiceRow(parent, 3, "textLayout", Settings.LAYOUTS, Settings.LAYOUT_NAMES)
 
 	heading(parent, "⚙️ Opciones", 4)
 	local toggleButtons: { [string]: TextButton } = {}
 	for index, toggle in TOGGLES do
-		local line = Instance.new("Frame")
-		line.LayoutOrder = 4 + index
-		line.BackgroundTransparency = 1
-		line.Size = UDim2.new(1, 0, 0, 40)
-		line.Parent = parent
-		local name = text(line, toggle.label, 1)
-		name.AutomaticSize = Enum.AutomaticSize.None
-		name.Size = UDim2.fromScale(0.65, 1)
-		local switch = button(line, "")
-		switch.AnchorPoint = Vector2.new(1, 0.5)
-		switch.Position = UDim2.fromScale(1, 0.5)
-		switch.Size = UDim2.new(0.3, 0, 0, 36)
-		switch.Activated:Connect(function()
-			Settings.set(toggle.key, not (Settings.get() :: any)[toggle.key])
-		end)
-		toggleButtons[toggle.key] = switch
+		toggleButtons[toggle.key] = toggleLine(parent, 4 + index, toggle.key, toggle.label)
 	end
 
+	heading(parent, "💥 Efectos de cómic", 20)
+	text(
+		parent,
+		"Estallidos al golpear (BAM!), en los críticos (POW!), al derribar (K.O.!) y cuando te pegan fuerte (OUCH!).",
+		21,
+		SOFT_COLOR
+	)
+	toggleButtons.comicFx = toggleLine(parent, 22, "comicFx", "Efectos de cómic")
+	text(parent, "Cuáles: todos, o solo críticos, K.O. y golpes fuertes que recibes", 23, SOFT_COLOR)
+	local refreshLevel = choiceRow(parent, 24, "comicLevel", Settings.COMIC_LEVELS, Settings.COMIC_LEVEL_NAMES)
+	text(parent, "Tamaño", 25, SOFT_COLOR)
+	local refreshSize = choiceRow(parent, 26, "comicSize", Settings.COMIC_SIZES, Settings.COMIC_SIZE_NAMES)
+
 	return function(values: Settings.Values)
-		for layout, option in layoutButtons do
-			paint(option, values.textLayout == layout)
-		end
+		refreshLayout(values)
+		refreshLevel(values)
+		refreshSize(values)
 		for key, switch in toggleButtons do
 			local on = (values :: any)[key] == true
 			switch.Text = if on then "Sí" else "No"
@@ -637,9 +718,16 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	fillStats(section(root, 2), player, context)
 	local refreshOptions = buildOptions(section(root, 3))
 
+	-- Al cambiar algo de los efectos de cómic se enseña uno al momento (un crítico, que siempre sale).
+	local shownComic = ""
 	local function apply(values: Settings.Values)
 		preview.setLayout(values.textLayout)
 		refreshOptions(values)
+		local comic = `{values.comicFx}/{values.comicLevel}/{values.comicSize}`
+		if shownComic ~= "" and comic ~= shownComic then
+			preview.showComic("Crit")
+		end
+		shownComic = comic
 	end
 	apply(Settings.get())
 	local connection = Settings.onChanged(apply)

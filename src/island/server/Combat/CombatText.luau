@@ -8,6 +8,7 @@
 --   - "Absorbed": un golpe que el Escudo de hojas paró entero (🛡️).
 -- Se mandan en lotes cada Config.CombatText.MergeSeconds; los golpes iguales (mismo objetivo, tipo,
 -- autor y crítico) de un lote se suman en un número: el abanico de flechas, la Lluvia…
+-- "ko" marca el daño que derribó al enemigo (el "K.O.!" de ComicFxController).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,7 +18,15 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 export type Kind = "Taken" | "Heal" | "Dealt" | "Absorbed"
-type Entry = { target: Instance, amount: number, kind: Kind, crit: boolean, by: number?, pet: boolean? }
+type Entry = {
+	target: Instance,
+	amount: number,
+	kind: Kind,
+	crit: boolean,
+	by: number?,
+	pet: boolean?,
+	ko: boolean?,
+}
 
 local CombatText = {}
 
@@ -43,12 +52,21 @@ local function flush()
 	end
 end
 
-local function add(target: Instance?, amount: number, kind: Kind, crit: boolean?, by: Player?, pet: boolean?)
+local function add(
+	target: Instance?,
+	amount: number,
+	kind: Kind,
+	crit: boolean?,
+	by: Player?,
+	pet: boolean?,
+	ko: boolean?
+)
 	if not target or (amount <= 0 and kind ~= "Absorbed") then
 		return
 	end
 	local byId = if by then by.UserId else nil
 	local isCrit = crit == true
+	local isKo = if ko then true else nil
 	for _, entry in pending do
 		if
 			entry.target == target
@@ -58,10 +76,14 @@ local function add(target: Instance?, amount: number, kind: Kind, crit: boolean?
 			and entry.pet == pet
 		then
 			entry.amount += amount
+			entry.ko = entry.ko or isKo
 			return
 		end
 	end
-	table.insert(pending, { target = target, amount = amount, kind = kind, crit = isCrit, by = byId, pet = pet })
+	table.insert(
+		pending,
+		{ target = target, amount = amount, kind = kind, crit = isCrit, by = byId, pet = pet, ko = isKo }
+	)
 	if not connected then
 		connected = true
 		RunService.Heartbeat:Connect(function()
@@ -83,9 +105,10 @@ function CombatText.heal(player: Player, amount: number, crit: boolean?, by: Pla
 	add(player.Character, amount, "Heal", crit, by, pet)
 end
 
--- Daño a un enemigo ("model"). "by": el jugador que lo hizo (o el dueño de la mascota).
-function CombatText.dealt(model: Model, amount: number, crit: boolean?, by: Player?, pet: boolean?)
-	add(model, amount, "Dealt", crit, by, pet)
+-- Daño a un enemigo ("model"). "by": el jugador que lo hizo (o el dueño de la mascota). "ko": este
+-- golpe lo ha derribado.
+function CombatText.dealt(model: Model, amount: number, crit: boolean?, by: Player?, pet: boolean?, ko: boolean?)
+	add(model, amount, "Dealt", crit, by, pet, ko)
 end
 
 -- Golpe parado entero por el escudo.

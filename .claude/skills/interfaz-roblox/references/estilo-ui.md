@@ -33,6 +33,7 @@ golpe).
 | Panel de pruebas (solo Studio) | `src/shared/UI/DebugPanel.luau` | `DebugPanel` | ambos |
 | Todo el Lobby (título, pestañas, unirse, invitar) | `src/lobby/client/Controllers/LobbyUIController.luau` | `LobbyUI` | Lobby |
 | Efectos en pantalla de habilidades (destellos, estrellas) | `src/island/client/Controllers/AbilityFxController.luau` | varios | Isla |
+| Estallidos de cómic del combate (BAM! POW! K.O.! OUCH!) | `src/island/client/Controllers/ComicFxController.luau` + `src/shared/UI/ComicBurst.luau` (dibujo, también en la vista previa de Ajustes) | `BillboardGui` "ComicFx" | Isla |
 | Carteles sobre cosas del mapa ("Parcela libre", "Tótem PvP", nombres de monos, títulos cosméticos) | `BillboardGui` creados en el servidor: `BuildingService`, `PvPService`, `MonkeyService`, `BossService`, `CosmeticsServer`… | — | Isla |
 
 Todos los HUD se crean por código al arrancar (no hay nada hecho a mano en `StarterGui`), así que
@@ -65,6 +66,10 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Tecla de habilidad | 255, 220, 120 | casillas Z X C V |
 | Jefe | título 255, 200, 120; barra 220, 50, 40 sobre 30, 20, 20 | `BossHUD` |
 | Barras de supervivencia | hambre 230, 150, 70 · sed 80, 170, 240 · estamina 240, 220, 80 · fiebre 190, 90, 200 | `SurvivalHUD` |
+| Cómic: golpe | estrella 255, 235, 140 · letra blanca con borde 230, 90, 30 | `ComicBurst` |
+| Cómic: crítico | estrella 255, 140, 30 y 255, 215, 40 · rayos 255, 240, 170 · letra 255, 230, 40 con borde 220, 40, 30 | `ComicBurst` |
+| Cómic: K.O. | estrella 220, 40, 30 y 255, 185, 30 · letra blanca con borde 200, 30, 20 | `ComicBurst` |
+| Cómic: recibir | estrella 235, 70, 60 y 255, 215, 205 · letra blanca con borde 170, 20, 20 | `ComicBurst` |
 | Rarezas | común 225, 225, 225 · poco común 120, 220, 120 · raro 90, 160, 255 · épico 200, 110, 255 · legendario 255, 180, 50 | `Data/Rarities.luau` (úsalo, no copies los valores) |
 
 Reglas que salen de ahí:
@@ -80,6 +85,8 @@ Reglas que salen de ahí:
 
 - Fuente: **BuilderSansBold** para casi todo (`Widgets`), **BuilderSans** para descripciones largas
   y **BuilderSansExtraBold** para los números de combate. No metas otras fuentes sin preguntar.
+  Única excepción aprobada: **Bangers** (`Enum.Font.Bangers`) en las palabras de los estallidos de
+  cómic (`ComicBurst`), con borde de color, borde negro y sombra; no la uses en el HUD.
 - Tamaño: casi todo usa `TextScaled = true` dentro de una caja con tamaño en escala o en píxeles.
   Con `TextScaled` el tamaño depende de la caja y del largo del texto: un texto que cambia ("Día 1"
   vs "Día 12 · 🌙 10:00") puede encoger. Para textos que varían mucho, añade un
@@ -111,6 +118,7 @@ Reglas que salen de ahí:
 | DisplayOrder | Pantalla |
 |---|---|
 | -1 | `CombatText` (debajo de todo; IgnoreGuiInset) |
+| — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `LifeHUD`, `InventoryHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
 | 5 | `ActionButtons`, `CraftingHUD` |
 | 6 | `JournalHUD` |
@@ -181,5 +189,7 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
 Cuando haya varias formas razonables de colocar o mostrar algo, el usuario quiere que sean
 **opciones del jugador** en Ajustes, no una elección suya: `Shared/Settings.luau` (valores, defectos y
 `sanitize`), `Shared/UI/SettingsPanel.luau` (la fila del panel) y el código que lo dibuja leyendo
-`Settings.get()` y `Settings.onChanged`. Ejemplo ya hecho: `textLayout` ("Head", "Column",
-"Screen") para los números de combate.
+`Settings.get()` y `Settings.onChanged`. Ejemplos ya hechos: `textLayout` ("Head", "Column",
+"Screen") para los números de combate y `comicFx` / `comicLevel` / `comicSize` para los estallidos de
+cómic. En el panel, `choiceRow` (fila de botones para elegir uno) y `toggleLine` (Sí/No) son las
+piezas para añadir una opción nueva.

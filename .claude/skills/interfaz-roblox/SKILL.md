@@ -215,5 +215,17 @@ práctica del Basecamp. Los avisos de estado se fuerzan igual ("👑 Siguiente j
 - Un botón no responde en el móvil → otra pieza con `Active = true` o un `ScreenGui` con más
   `DisplayOrder` lo tapa (aunque sea transparente).
 - `execute_luau` en `Client` dice que no hay datamodel → Studio no está en Play.
+- Un `require` desde `execute_luau` da **otra copia** del módulo, no la del juego: parchear
+  `ComicBurst.play` no cambia lo que dibuja el controlador, `require(Shared.Remotes)` en el servidor
+  crea una segunda carpeta `Remotes` con remotos que nadie escucha, y lo que la copia de `CombatText`
+  deja para enviar por lotes nunca sale. Para simular un golpe, dispara el `RemoteEvent` que ya
+  existe (`ReplicatedStorage.Remotes.CombatText:FireAllClients({...})`) antes de requerir nada.
+- Un efecto que dura medio segundo ya no está cuando llega la siguiente llamada del MCP: regístralo
+  con `PlayerGui.ChildAdded` (o clónalo a los 0.2 s para que quede quieto) antes de provocarlo.
+- `screen_capture` da timeout o `ViewportSize` es 1 x 1 → la ventana de Studio está minimizada o el
+  visor está oculto; pide al usuario que la deje a la vista.
+- Los efectos de cómic (`ComicFx`) son estallidos del mundo con el dibujo en `art/ui/comic/gen.py`
+  (un atlas de 1024 en blanco y negro que se tiñe); para retocar formas, cambia el script, súbelo de
+  nuevo (con permiso) y actualiza `ATLAS` en `ComicBurst.luau`.
 - Editar archivos del repo con Python en Windows → ábrelos con `newline=''`, o `git diff` marcará el
   archivo entero como cambiado.

@@ -11,6 +11,10 @@
 --   - showLoot: lo que recoges ("+2 🌲 Madera") junto a tu personaje sí/no (sale donde textLayout).
 --   - showCombo: el indicador de combos y racha sí/no.
 --   - music: música sí/no (la tecla M también la silencia).
+--   - comicFx: estallidos de cómic en combate ("POW!", ComicFxController) sí/no.
+--   - comicLevel: "All" (también los golpes normales) o "Strong" (solo críticos, K.O. y golpes fuertes
+--     que recibes).
+--   - comicSize: "Small", "Normal" o "Large" (Config.ComicFx.SizeScale).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -19,6 +23,8 @@ local RunService = game:GetService("RunService")
 local Remotes = require(script.Parent.Remotes)
 
 export type Layout = "Head" | "Column" | "Screen"
+export type ComicLevel = "All" | "Strong"
+export type ComicSize = "Small" | "Normal" | "Large"
 export type Values = {
 	textLayout: Layout,
 	showNumbers: boolean,
@@ -26,6 +32,9 @@ export type Values = {
 	showLoot: boolean,
 	showCombo: boolean,
 	music: boolean,
+	comicFx: boolean,
+	comicLevel: ComicLevel,
+	comicSize: ComicSize,
 }
 
 local Settings = {}
@@ -36,6 +45,17 @@ Settings.LAYOUT_NAMES = {
 	Column = "Columna del alto del jugador",
 	Screen = "Fijos en la pantalla",
 } :: { [string]: string }
+Settings.COMIC_LEVELS = { "All", "Strong" } :: { ComicLevel }
+Settings.COMIC_LEVEL_NAMES = {
+	All = "Todo",
+	Strong = "Solo lo fuerte",
+} :: { [string]: string }
+Settings.COMIC_SIZES = { "Small", "Normal", "Large" } :: { ComicSize }
+Settings.COMIC_SIZE_NAMES = {
+	Small = "Pequeños",
+	Normal = "Normales",
+	Large = "Grandes",
+} :: { [string]: string }
 
 function Settings.defaults(): Values
 	return {
@@ -45,6 +65,9 @@ function Settings.defaults(): Values
 		showLoot = true,
 		showCombo = true,
 		music = true,
+		comicFx = true,
+		comicLevel = "All",
+		comicSize = "Normal",
 	}
 end
 
@@ -57,7 +80,13 @@ function Settings.sanitize(raw: any): Values
 	if typeof(raw.textLayout) == "string" and table.find(Settings.LAYOUTS, raw.textLayout) then
 		values.textLayout = raw.textLayout :: Layout
 	end
-	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music" } do
+	if typeof(raw.comicLevel) == "string" and table.find(Settings.COMIC_LEVELS, raw.comicLevel) then
+		values.comicLevel = raw.comicLevel :: ComicLevel
+	end
+	if typeof(raw.comicSize) == "string" and table.find(Settings.COMIC_SIZES, raw.comicSize) then
+		values.comicSize = raw.comicSize :: ComicSize
+	end
+	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music", "comicFx" } do
 		if typeof(raw[key]) == "boolean" then
 			(values :: any)[key] = raw[key]
 		end

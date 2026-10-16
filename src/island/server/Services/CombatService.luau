@@ -124,9 +124,10 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	if hit.crit then
 		amount = math.round(amount * Crit.MULTIPLIER)
 	end
+	local alive = humanoid.Health > 0
 	humanoid:TakeDamage(amount)
 	flash(model)
-	CombatText.dealt(model, amount, hit.crit, attacker, hit.pet)
+	CombatText.dealt(model, amount, hit.crit, attacker, hit.pet, alive and humanoid.Health <= 0)
 	if attacker and not hit.pet then
 		ComboService.onActivity(attacker)
 	end

@@ -114,6 +114,20 @@ local Config = {
 		LootMergeSeconds = 3, -- lo mismo recogido en este tiempo suma en la misma línea (< Lifetime)
 	},
 
+	-- Estallidos de cómic del combate ("BAM!", "POW!", "K.O.!", "OUCH!"): ComicFxController.
+	ComicFx = {
+		-- Lado en píxeles en una pantalla de 720 px de alto (se escala con el alto de la pantalla).
+		Pixels = { Hit = 84, Crit = 150, KO = 190, Hurt = 120 } :: { [string]: number },
+		MinScreenScale = 0.6, -- en un teléfono no bajan de esto (no se usa la escala de los números)
+		SizeScale = { Small = 0.75, Normal = 1, Large = 1.3 } :: { [string]: number }, -- ajuste "comicSize"
+		HitCooldownSeconds = 0.3, -- como mucho un estallido de golpe normal por enemigo en este tiempo
+		CritCooldownSeconds = 0.12, -- y uno de crítico
+		HurtCooldownSeconds = 0.25,
+		HurtFraction = 0.1, -- lo que recibes sale si te quita al menos esto de tu vida máxima (o es crítico)
+		MaxActive = 10, -- estallidos a la vez como mucho
+		MaxDistance = 200, -- studs
+	},
+
 	-- Combos de 3 habilidades por rol (Data/Combos, ComboService).
 	Combo = {
 		StepWindowSeconds = 6, -- tiempo máximo entre un paso y el siguiente
