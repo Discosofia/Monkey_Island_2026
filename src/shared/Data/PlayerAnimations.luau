@@ -32,26 +32,26 @@ export type PlayerAnimation = {
 local PlayerAnimations = {
 	-- Por encima de sujetar el arma (Hold, Action) y de los disparos (Action2).
 	Animations = {
-		Quake = { id = "", priority = Enum.AnimationPriority.Action3 }, -- pisotón del guerrero
+		Quake = { id = "rbxassetid://123577573211433", priority = Enum.AnimationPriority.Action3 }, -- pisotón del guerrero
 		-- Grito de guerra. Mientras no exista (id vacío fuera de Studio), AbilityFxController hace la
 		-- misma pose girando las articulaciones por código, que tiembla si lleva un arma en la mano.
-		WarCry = { id = "", priority = Enum.AnimationPriority.Action3 },
-		Charge = { id = "", priority = Enum.AnimationPriority.Action3 }, -- embestida con el hombro por delante
+		WarCry = { id = "rbxassetid://127375051692539", priority = Enum.AnimationPriority.Action3 },
+		Charge = { id = "rbxassetid://106518569968843", priority = Enum.AnimationPriority.Action3 }, -- embestida con el hombro por delante
 		-- Esquiva (DodgeController): voltereta hacia delante si te mueves hacia donde miras; salto
 		-- atrás si estás quieto o vas hacia atrás.
-		DodgeRoll = { id = "", priority = Enum.AnimationPriority.Action3 },
-		DodgeBack = { id = "", priority = Enum.AnimationPriority.Action3 },
+		DodgeRoll = { id = "rbxassetid://137704861516961", priority = Enum.AnimationPriority.Action3 },
+		DodgeBack = { id = "rbxassetid://80943980651716", priority = Enum.AnimationPriority.Action3 },
 		-- Torbellino: agachado y con los brazos abiertos, en bucle mientras RoleController lo hace girar.
-		Whirlwind = { id = "", priority = Enum.AnimationPriority.Action3, looped = true },
-		CastForward = { id = "", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente
-		CastArea = { id = "", priority = Enum.AnimationPriority.Action3 }, -- brazos arriba y abiertos abajo
-		Place = { id = "", priority = Enum.AnimationPriority.Action3 }, -- se agacha a dejar algo en el suelo
-		Consume = { id = "", priority = Enum.AnimationPriority.Action3 }, -- mano a la boca (comer, beber)
-		Bandage = { id = "", priority = Enum.AnimationPriority.Action3 }, -- se venda el antebrazo
-		Hammer = { id = "", priority = Enum.AnimationPriority.Action3 }, -- dos martillazos (construir, quitar)
-		Craft = { id = "", priority = Enum.AnimationPriority.Action3 }, -- manos trabajando (fabricar, cocinar)
-		Crawl = { id = "", priority = Enum.AnimationPriority.Action4, looped = true }, -- caído, se arrastra
-		Revive = { id = "", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
+		Whirlwind = { id = "rbxassetid://86446930487394", priority = Enum.AnimationPriority.Action3, looped = true },
+		CastForward = { id = "rbxassetid://140190769864612", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente
+		CastArea = { id = "rbxassetid://106681770579969", priority = Enum.AnimationPriority.Action3 }, -- brazos arriba y abiertos abajo
+		Place = { id = "rbxassetid://118305114446106", priority = Enum.AnimationPriority.Action3 }, -- se agacha a dejar algo en el suelo
+		Consume = { id = "rbxassetid://106673766007156", priority = Enum.AnimationPriority.Action3 }, -- mano a la boca (comer, beber)
+		Bandage = { id = "rbxassetid://130660240768152", priority = Enum.AnimationPriority.Action3 }, -- se venda el antebrazo
+		Hammer = { id = "rbxassetid://92131567033850", priority = Enum.AnimationPriority.Action3 }, -- dos martillazos (construir, quitar)
+		Craft = { id = "rbxassetid://71536295123191", priority = Enum.AnimationPriority.Action3 }, -- manos trabajando (fabricar, cocinar)
+		Crawl = { id = "rbxassetid://120906840673143", priority = Enum.AnimationPriority.Action4, looped = true }, -- caído, se arrastra
+		Revive = { id = "rbxassetid://109653278143351", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para

@@ -47,30 +47,88 @@ local MonkeyAnimations = {
 	Overrides = {
 		-- Monos pequeños (categoría 1), lote MonosPequenos: <Especie>_Walk, _Run y _Attack. Ojo: van a su
 		-- walkSpeed (casi todos ≥ RunThreshold), así que lo normal es verlos correr; Walk sale ralentizados.
-		MonoArdilla = { Walk = "", Run = "", Attack = "" },
-		AulladorRojo = { Walk = "", Run = "", Attack = "" },
-		CapuchinoLadron = { Walk = "", Run = "", Attack = "" },
-		Marimonda = { Walk = "", Run = "", Attack = "" },
-		Titi = { Walk = "", Run = "", Attack = "" },
-		Marteja = { Walk = "", Run = "", Attack = "" },
+		MonoArdilla = {
+			Walk = "rbxassetid://91102553322630",
+			Run = "rbxassetid://87863631331872",
+			Attack = "rbxassetid://125201088242496",
+		},
+		AulladorRojo = {
+			Walk = "rbxassetid://80807531679641",
+			Run = "rbxassetid://71610806838671",
+			Attack = "rbxassetid://125119051376171",
+		},
+		CapuchinoLadron = {
+			Walk = "rbxassetid://72915708375912",
+			Run = "rbxassetid://91922807351935",
+			Attack = "rbxassetid://138188397454577",
+		},
+		Marimonda = {
+			Walk = "rbxassetid://137647552205837",
+			Run = "rbxassetid://101449187641065",
+			Attack = "rbxassetid://116091204837404",
+		},
+		Titi = {
+			Walk = "rbxassetid://133691696023716",
+			Run = "rbxassetid://75327254205792",
+			Attack = "rbxassetid://74189177700526",
+		},
+		Marteja = {
+			Walk = "rbxassetid://76763024197386",
+			Run = "rbxassetid://82499778433196",
+			Attack = "rbxassetid://80408054113937",
+		},
 		-- Medianos y grandes (categorías 2 y 3), lote MonosMedianosYGrandes. Los jefes heredan los de su
 		-- especie base (Gorila → Albino y Ceniza, Chimpance → Caudillo, Orangutan → Manglar).
-		Mandril = { Walk = "", Run = "", Attack = "" },
-		Macaco = { Walk = "", Run = "", Attack = "" },
-		Gibon = { Walk = "", Run = "", Attack = "", Pounce = "" }, -- Pounce: Gibon_Pounce
-		Babuino = { Walk = "", Run = "", Attack = "" },
-		ColaLarga = { Walk = "", Run = "", Attack = "" },
-		Chimpance = { Walk = "", Run = "", Attack = "" },
-		Orangutan = { Walk = "", Run = "", Attack = "" },
-		Gorila = { Walk = "", Run = "", Attack = "", Stomp = "" }, -- Stomp: Gorila_Stomp
+		Mandril = {
+			Walk = "rbxassetid://111988503860734",
+			Run = "rbxassetid://81221277660692",
+			Attack = "rbxassetid://117557680089674",
+		},
+		Macaco = {
+			Walk = "rbxassetid://129344763516346",
+			Run = "rbxassetid://123770699892259",
+			Attack = "rbxassetid://140291103715623",
+		},
+		Gibon = {
+			Walk = "rbxassetid://73477224137795",
+			Run = "rbxassetid://134119982512185",
+			Attack = "rbxassetid://132032416048407",
+			Pounce = "rbxassetid://139733028365821", -- Gibon_Pounce
+		},
+		Babuino = {
+			Walk = "rbxassetid://75905017386485",
+			Run = "rbxassetid://137179308161694",
+			Attack = "rbxassetid://93290458726609",
+		},
+		ColaLarga = {
+			Walk = "rbxassetid://82543144862763",
+			Run = "rbxassetid://81237357559620",
+			Attack = "rbxassetid://89150966421456",
+		},
+		Chimpance = {
+			Walk = "rbxassetid://93106510234819",
+			Run = "rbxassetid://87517143704615",
+			Attack = "rbxassetid://82994969619082",
+		},
+		Orangutan = {
+			Walk = "rbxassetid://98631430463147",
+			Run = "rbxassetid://131353002163202",
+			Attack = "rbxassetid://80946064091284",
+		},
+		Gorila = {
+			Walk = "rbxassetid://78875181494332",
+			Run = "rbxassetid://114813484955697",
+			Attack = "rbxassetid://71774470299136",
+			Stomp = "rbxassetid://81890039402783", -- Gorila_Stomp
+		},
 		-- Jefes con pisotón: hacen el daño a 0,9 s (BossService), como el pisotón de fase 2 del de Ceniza.
 		-- Va el mismo id que Cenizo_Stomp2 (encaja en los rigs del gorila y del orangután).
-		GorilaAlbino = { Stomp = "" }, -- Cenizo_Stomp2
-		OrangutanDelManglar = { Stomp = "" }, -- Cenizo_Stomp2
+		GorilaAlbino = { Stomp = "rbxassetid://119579840176466" }, -- Cenizo_Stomp2
+		OrangutanDelManglar = { Stomp = "rbxassetid://119579840176466" }, -- Cenizo_Stomp2
 		-- Fase 1 del Gorila de Ceniza, lote GorilaDeCeniza (Cenizo_*).
 		GorilaDeCeniza = {
-			Walk = "", -- Cenizo_Walk1: andar pesado sobre los nudillos
-			Attack = "", -- Cenizo_Attack1: puñetazo bajo que se extiende y se recoge bajando
+			Walk = "rbxassetid://96699914862411", -- Cenizo_Walk1: andar pesado sobre los nudillos
+			Attack = "rbxassetid://85047826967078", -- Cenizo_Attack1: puñetazo bajo que se extiende y se recoge bajando
 		},
 	} :: { [string]: AnimationSet },
 
@@ -79,15 +137,15 @@ local MonkeyAnimations = {
 	Phases = {
 		GorilaDeCeniza = {
 			[2] = {
-				Walk = "", -- Cenizo_Walk2: zancada más larga y cabeza baja
-				Attack = "", -- Cenizo_Attack2: puñetazo bajo con el cuerpo detrás
-				Stomp = "", -- Cenizo_Stomp2: pisotón como el del guerrero (impacto a 0,9 s, con la onda)
+				Walk = "rbxassetid://95704746421249", -- Cenizo_Walk2: zancada más larga y cabeza baja
+				Attack = "rbxassetid://93854315716288", -- Cenizo_Attack2: puñetazo bajo con el cuerpo detrás
+				Stomp = "rbxassetid://119579840176466", -- Cenizo_Stomp2: pisotón como el del guerrero (impacto a 0,9 s, con la onda)
 			},
 			[3] = {
-				Walk = "", -- Cenizo_Walk3: furioso, cabeza baja y brazos abiertos
-				Attack = "", -- Cenizo_Attack3: dos puñetazos bajos seguidos
-				Stomp = "", -- Cenizo_Stomp3: se alza más y remata con un segundo golpe de puños
-				Invoke = "", -- Cenizo_Invoke3: brazos en alto llamando a la lava
+				Walk = "rbxassetid://117386466514250", -- Cenizo_Walk3: furioso, cabeza baja y brazos abiertos
+				Attack = "rbxassetid://130822284171133", -- Cenizo_Attack3: dos puñetazos bajos seguidos
+				Stomp = "rbxassetid://70992010578345", -- Cenizo_Stomp3: se alza más y remata con un segundo golpe de puños
+				Invoke = "rbxassetid://71207683733658", -- Cenizo_Invoke3: brazos en alto llamando a la lava
 			},
 		},
 	} :: { [string]: PhaseSet },
