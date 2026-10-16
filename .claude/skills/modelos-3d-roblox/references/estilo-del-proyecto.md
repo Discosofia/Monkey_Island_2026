@@ -46,8 +46,19 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 
 - **Armas (WeaponTools):** respecto a la pieza `Handle`, +Y va de la mano hacia la punta y -Z es hacia
   donde golpea (el filo). `tool.Grip` marca dónde va la mano. El `Handle` suele ser invisible.
-- **Armaduras (ArmorModels):** todo soldado al torso (`UpperTorso` en R15, `Torso` en R6) y ajustado a su
-  tamaño. -Z es el pecho, +Z la espalda, +Y los hombros. Piezas `Massless`, sin colisión.
+- **Armaduras (ArmorModels):** cada pieza soldada a la parte del cuerpo que cubre (`body.torso`,
+  `body.waist`, `body.upperArm[side]`, `body.lowerArm[side]`, `body.upperLeg[side]`) y medida desde su
+  `size`, para que se mueva con ella al andar o golpear y valga para cualquier avatar. En R6 se usa
+  el trozo equivalente del brazo, la pierna o el torso. Respecto a cada parte, -Z es el frente,
+  +Z la espalda y +Y arriba. Piezas `Massless`, sin colisión. **La espalda es lo que más se ve**
+  (la cámara va detrás del jugador): cada armadura lleva ahí su motivo más llamativo (huella de
+  mano, calavera con huesos cruzados, cabeza de gorila de ojos rojos), no un panel liso. Nada en la cabeza: chocaría con el
+  pelo y los sombreros del avatar. Lo que cuelga por delante de las caderas va en el muslo
+  (faldones), no en la cintura, o la pierna lo atraviesa al andar. Para probarla en Studio, crea
+  un R15 con `Players:CreateHumanoidModelFromDescription(Instance.new("HumanoidDescription"),
+  Enum.HumanoidRigType.R15)`, quítale el `BodyColors` (pisa los colores que le pongas) y llama a
+  `ArmorModels.wear(rig, id)`. Sus articulaciones son `AnimationConstraint` (sin `C0`), así que
+  en edición no se pueden posar.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),
@@ -185,6 +196,23 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 - **Patas de felino:** un óvalo por pata parece un palillo. Dos tramos con músculo (tríceps, muslo,
   gemelo) y el corvejón hacia atrás en las de detrás.
 - **Uñas y dedos** de patas gordas (tortuga): a un 28 % del ancho del pie; más grandes parecen bolas.
+- **Colmillos, mechones y flecos** con `fang` (ArmorModels): la punta de una `CornerWedgePart` queda
+  sobre una esquina, no en el centro. Girada `math.pi` en Z para que apunte abajo, su base ocupa de
+  `at.X - ancho` a `at.X` y de `at.Z - ancho` a `at.Z`: suma medio ancho en X para centrarla y pon
+  `at.Z` en la cara de fuera de lo que cuelga, o se queda escondida dentro del peto o la capa.
+- **Cejas sobre una cara o un cráneo:** un óvalo oscuro ancho encima de los ojos parece una boina,
+  y uno claro que sobresale, la visera de una gorra. Dos cejas finas inclinadas en V (más bajas por
+  dentro) tapando un poco el borde de arriba de los ojos dan cara de furia.
+- **Nariz de gorila:** un óvalo pequeño con dos orificios juntos en el centro parece un hocico de
+  cerdo. Hazla ancha y plana (0,44 × 0,17 del ancho de la cara) con los orificios separados abajo.
+- **Emblemas grandes sobre una capa o un peto:** un solo óvalo claro sobre un fondo oscuro parece un
+  huevo o un plato. O baja el contraste (dos grises: se lee como brillo del pelo) o conviértelo en
+  algo reconocible (una cara, una calavera, una huella de mano).
+- **Láminas de una hombrera:** bloques muy inclinados y separados parecen un abanico de tablas;
+  óvalos (`Oval`, alto ≈ 0,28) apilados con poco desplazamiento parecen una concha por capas.
+- **Mantos y cuellos de pelaje sobre el torso:** un bloque que baja por delante tapa todo lo del
+  pecho (placas, medallón). Llévalo hacia la espalda y cierra el borde de delante con un óvalo de
+  pelaje bajo la barbilla.
 
 ## 4. Paleta y materiales
 
@@ -287,7 +315,8 @@ orientativo de piezas por modelo:
 | Tipo | Piezas |
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
-| Arma, armadura | 15–40 |
+| Arma | 15–40 |
+| Armadura (cada rango más detallado que el anterior; hoy 52 / 75 / 101) | 40–105 |
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |

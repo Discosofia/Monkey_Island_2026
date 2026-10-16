@@ -227,7 +227,8 @@ local function isNearStation(player: Player, stationId: string): boolean
 	return false
 end
 
--- Chaleco: una pieza soldada al torso (R15 o R6). Se vuelve a poner en cada reaparición.
+-- Piezas soldadas al torso, la cintura, los brazos y los muslos (R15 o R6). Se vuelve a poner en
+-- cada reaparición.
 -- Viste la armadura del jugador (Combat/ArmorModels); una nueva sustituye a la anterior.
 local function wearArmor(player: Player, character: Model)
 	local armorId = player:GetAttribute("Armor")

@@ -1,7 +1,7 @@
 --!strict
 -- Armaduras (Fase 1.6). Se fabrican en la mesa de trabajo (Data/Recipes) y se llevan puestas.
 -- El jugador guarda la que lleva en el atributo "Armor".
--- Su modelo (piezas sobre el torso) está en island/server/Combat/ArmorModels; "color" y "material"
+-- Su modelo (piezas sobre el torso, los brazos y los muslos) está en island/server/Combat/ArmorModels; "color" y "material"
 -- son su color principal, para la interfaz.
 
 export type ArmorDefinition = {

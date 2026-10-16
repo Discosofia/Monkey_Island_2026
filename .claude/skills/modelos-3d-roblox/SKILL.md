@@ -194,6 +194,13 @@ hasta que el usuario apruebe el resultado (§5).
   alcance en el modelo. Juzga los colores comparando entre modelos, no en absoluto.
 - Editar archivos del repo con Python en Windows → ábrelos con `newline=''`. En modo texto los
   reescribe con CRLF y `git diff` marca el archivo entero como cambiado.
+- La captura no cambia tras un `execute_luau` → `screen_capture` a veces devuelve el fotograma de
+  antes. Comprueba con `execute_luau` que el cambio está (cuenta piezas, busca un texto en
+  `.Source`) y vuelve a capturar moviendo un poco la cámara.
+- Un script de Python con acentos dentro de un heredoc de bash falla ("unexpected EOF") → escríbelo
+  en un archivo del scratchpad con Write y ejecútalo con `python archivo.py`.
+- El usuario pinta encima de una captura (ojos rojos en una capa, círculos en unas hombreras) →
+  es un boceto de lo que quiere, no algo que ya esté en el place. Compruébalo y dilo al contestar.
 - Un reemplazo de texto con Python falla después de pasar `stylua` → stylua ha partido la llamada en
   varias líneas (un argumento por línea). Busca solo el trozo que cambia (`Vector3.new(0.26, 0.2,
   0.05),`), no la llamada entera.
