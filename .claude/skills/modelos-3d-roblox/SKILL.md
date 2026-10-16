@@ -133,7 +133,9 @@ Repite hasta que esté bien (y como mucho unas 5 vueltas antes de enseñárselo 
      tonos claros se ven más claros todavía (`estilo-del-proyecto.md` §4).
    - ¿Simetría donde debe haberla?
    - ¿Piezas dentro del presupuesto? Mira el número que devuelve `Preview.show` en cada vuelta: los
-     adornos repetidos en bucle (plumas, cuentas) lo disparan sin que se note.
+     adornos repetidos en bucle (plumas, cuentas) lo disparan sin que se note. En las mascotas,
+     cuenta también las articuladas: guarda el `CFrame` de cada pieza, llama a
+     `PetModels.animate(model, 1.3, 1)` y cuenta las que cambiaron.
 5. **Corregir** lo que falle, empezando por lo más gordo (silueta y proporciones antes que detalles).
 
 Para comparar dos versiones, muéstralas a la vez con

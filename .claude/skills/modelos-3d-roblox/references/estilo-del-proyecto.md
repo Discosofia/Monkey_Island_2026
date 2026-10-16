@@ -57,6 +57,16 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   normal, que en Studio queda en caché: para ver en la vista previa un `color` o un `size` nuevos,
   cámbialos también en la tabla en caché (`require(game.ReplicatedStorage.Shared.Data.Pets).MonoX7.size = 1.15`)
   antes de llamar a `freshRequire` sobre `PetModels`.
+  Otras ayudas de `PetModels`: `capsule(..., material?)` (sin material es `Fabric`: una rana con
+  patas de tela parece de peluche), `surfacePoint(frame, semi, direction)` (punto de un óvalo y su
+  normal, para pegar placas, manchas y escamas), `blotch` (mancha de dos tonos), `feather`,
+  `featheredWing`, `tailFan`, `birdEye` (aves), `cat` (felinos) y la forma `"Spike"` para cristales.
+  Para medir un tamaño de cabeza o de casco sin rehacer números, mide todo lo que va en ella desde
+  su centro con un factor (`onHead(offset)` y `hk` en el Mono X-7).
+  **Articulación encadenada** (rodilla, codo): registra el tramo de arriba con `joint` (devuelve la
+  articulación) y el de abajo con `joint(..., bias, parent)` y bisagra en la rodilla. Para que se
+  doble hacia atrás solo mientras la pata avanza en el aire: `amplitude` y `bias` negativos e iguales
+  (-0,3) y `phase` = la de la pata + π/2.
 - **Monos (MonkeyModels):** articulados (RootJoint, Neck, Shoulders, Hips, TailJoint). Las animaciones se
   enlazan por el **nombre** de las piezas: no renombres piezas animables. Las piezas decorativas
   (cara, barba, pelo, adornos) se pueden renombrar o quitar, pero antes comprueba con grep que nadie
@@ -154,6 +164,27 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   con un bucle sobre un ángulo o un parámetro `t` en vez de colocarlas a mano, y deja el número de
   piezas en una variable (`local count = 9`), porque es lo primero que hay que recortar si te pasas
   del presupuesto.
+- **Pegar cosas a un óvalo largo** (rosetas en un felino de 2 studs de largo): `surfacePoint` con una
+  *dirección* como `(1, y, z)` aplasta todo hacia el centro y las manchas se amontonan en un parche.
+  Pasa el *punto* que quieres (x calculada para que quede en la superficie a esa y y z) y deja que lo
+  proyecte. Las ancas y paletillas tapan el cuerpo: lo que va ahí se pega a su propio óvalo.
+- **Parches en una cabeza redonda** (piel del ojo, mejillas): un óvalo plano se despega por los
+  bordes y parece una moneda. Hazlo hondo (size.Z ≈ 0,2) y hundido, como `headPatch` de los monos.
+  Dos parches concéntricos de colores distintos parecen una diana: solápalos desplazados.
+- **Rayas largas sobre un lomo curvo:** un óvalo recto de 1,2 studs flota sobre los extremos. Hazla a
+  trozos cortos, cada uno en su punto de la superficie.
+- **Rosetas de felino:** contorno negro con el centro tostado oscuro y grande (74 % × 60 %); con el
+  centro claro y pequeño parecen donuts.
+- **Ojos de ave** (`birdEye`): anillo de piel, ojo, pupila, dos brillos y párpado. Mide la pupila y
+  los brillos desde el centro del ojo y déjalos fuera de su bola, o se entierran y el ojo sale sin
+  pupila. El párpado del color de la piel le da expresión. En una rana, un párpado encima del ojo
+  parece un gorro: sobra.
+- **Alas de plumas sueltas:** remeras anchas (26 % del largo del ala) y muy solapadas, o parecen una
+  mano con dedos. Por capas (brazo liso, escamas pequeñas, cobertoras mayores, álula, remeras con
+  su cañón claro) se lee como un ala de verdad; las cobertoras como óvalos grandes parecen tortitas.
+- **Patas de felino:** un óvalo por pata parece un palillo. Dos tramos con músculo (tríceps, muslo,
+  gemelo) y el corvejón hacia atrás en las de detrás.
+- **Uñas y dedos** de patas gordas (tortuga): a un 28 % del ancho del pie; más grandes parecen bolas.
 
 ## 4. Paleta y materiales
 
@@ -179,6 +210,16 @@ Materiales habituales: `SmoothPlastic` (por defecto), `Fabric` (pelaje, telas), 
 `Slate` / `Rock` (piedra), `Grass`, `Sand`, `Metal`, `Neon` solo para brillos (ojos que brillan,
 magia). Un modelo con 3–6 colores se lee mejor que uno con quince. Para el pelo, `Fabric` da
 un aspecto de peluche que encaja con el estilo cartoon (el Mono X-7).
+
+Cuando el usuario pide "texturas", se hacen con materiales (no con imágenes subidas):
+- `Fabric`: pelo y plumas.
+- `Wood` en placas verdes (el caparazón de la tortuga): la veta parece los anillos de crecimiento.
+- `Glacier` con `Transparency` 0,15 para un animal de cristal o hielo: tiene facetas. Con `Glass`
+  parecía un globo y se veían por dentro todas las piezas solapadas. `Glass` sí va bien en cristales
+  sueltos (`"Spike"`) con un núcleo `Neon`.
+- `Grass` para musgo; `Metal` con `Reflectance` 0,15 para plumas tornasoladas (colibrí);
+  `Reflectance` 0,12 en `SmoothPlastic` para piel mojada (rana). Más de 0,3 en un ojo refleja el
+  horizonte como una canica.
 
 Para un aura o una nube de energía, un `ParticleEmitter` en el cuerpo se ve mejor que muchas
 piezas `Neon` flotando. Lo que aprendimos con el Mono X-7, cuyas chispas no se veían en juego:
@@ -256,8 +297,12 @@ orientativo de piezas por modelo:
 Las mascotas tienen un presupuesto alto a propósito: van siempre al lado del jugador, se ven de
 cerca y el usuario quiere que el detalle se lea muy definido (remaches, costuras, anillos de un
 tubo, nudillos). Aun así, cada cliente mueve todas las mascotas del servidor con `PivotTo` en cada
-fotograma (`UI/PetFollowers`), y las piezas registradas con `joint` se recolocan una a una: deja
-las articuladas en unas 60 como mucho y gasta el resto en detalle fijo.
+fotograma (`UI/PetFollowers`) y recoloca las piezas registradas con `joint`. `PetModels.animate`
+las mueve todas juntas con `workspace:BulkMoveTo` (1,5 µs por pieza frente a 3,7 µs una a una):
+con eso caben unas 110 articuladas por mascota (un ave con alas de plumas sueltas) y las 10
+mascotas a la vez se animan en ~1,4 ms por fotograma en un PC. No pases de ahí; lo que no se mueve
+va como detalle fijo. Una articulación encadenada (rodilla, codo) se registra con
+`joint(..., parent)` pasando la articulación de arriba.
 
 Además:
 - Lo decorativo (hojas, frutos, detalles, todo lo que no se pisa) va con `CanCollide`, `CanTouch` y
