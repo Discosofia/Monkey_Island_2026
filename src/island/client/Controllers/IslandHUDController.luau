@@ -1,12 +1,14 @@
 --!strict
--- HUD de la Isla: reloj de día/noche, indicador del Basecamp, botón para volver al Lobby y botón ⚙️
--- de Ajustes (disposición de los números de combate, tus números de daño y crítico…).
+-- HUD de la Isla: reloj de día/noche e indicador del Basecamp (arriba a la derecha), botón para volver
+-- al Lobby y botón ⚙️ de Ajustes (abajo a la derecha; en pantallas táctiles, bajo el reloj, porque
+-- abajo a la derecha están el salto y los botones de acción).
 -- En Studio también muestra un botón para saltar de fase y probar la noche sin esperar.
 -- Fase 1.2+: vida, inventario y barra rápida.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -33,9 +35,10 @@ end
 local function createClock(gui: ScreenGui)
 	local clock = Widgets.label("", gui)
 	clock.Name = "Clock"
-	clock.AnchorPoint = Vector2.new(0.5, 0)
-	clock.Position = UDim2.fromScale(0.5, 0.02)
+	clock.AnchorPoint = Vector2.new(1, 0)
+	clock.Position = UDim2.fromScale(0.98, 0.02)
 	clock.Size = UDim2.fromScale(0.3, 0.06)
+	clock.TextXAlignment = Enum.TextXAlignment.Right
 
 	task.spawn(function()
 		while clock.Parent do
@@ -46,7 +49,7 @@ local function createClock(gui: ScreenGui)
 	end)
 end
 
--- Línea de estado bajo el indicador del Basecamp, leída de un atributo de ReplicatedStorage:
+-- Línea de estado arriba en el centro, leída de un atributo de ReplicatedStorage:
 -- el asedio nocturno (Fase 2.5) y el huevo (Fase 5).
 local function createStatusLine(gui: ScreenGui, attribute: string, y: number, color: Color3)
 	local label = Widgets.label("", gui)
@@ -67,9 +70,10 @@ local function createBasecampIndicator(gui: ScreenGui)
 	local player = Players.LocalPlayer
 	local indicator = Widgets.label("", gui)
 	indicator.Name = "BasecampIndicator"
-	indicator.AnchorPoint = Vector2.new(0.5, 0)
-	indicator.Position = UDim2.fromScale(0.5, 0.085)
+	indicator.AnchorPoint = Vector2.new(1, 0)
+	indicator.Position = UDim2.fromScale(0.98, 0.085)
 	indicator.Size = UDim2.fromScale(0.3, 0.04)
+	indicator.TextXAlignment = Enum.TextXAlignment.Right
 
 	local function refresh()
 		local inBasecamp = player:GetAttribute("InBasecamp")
@@ -91,9 +95,15 @@ end
 local function createReturnButton(gui: ScreenGui): TextButton
 	local returnButton = Widgets.button("Volver al Lobby", gui)
 	returnButton.Name = "ReturnToLobbyButton"
-	returnButton.AnchorPoint = Vector2.new(1, 0)
-	returnButton.Position = UDim2.fromScale(0.98, 0.02)
 	returnButton.Size = UDim2.fromScale(0.22, 0.08)
+	if UserInputService.TouchEnabled then
+		-- Justo debajo del indicador del Basecamp (0.085 + 0.04).
+		returnButton.AnchorPoint = Vector2.new(1, 0)
+		returnButton.Position = UDim2.new(0.98, 0, 0.125, 8)
+	else
+		returnButton.AnchorPoint = Vector2.new(1, 1)
+		returnButton.Position = UDim2.fromScale(0.98, 0.98)
+	end
 
 	local waiting = false
 	returnButton.Activated:Connect(function()
@@ -112,12 +122,12 @@ local function createReturnButton(gui: ScreenGui): TextButton
 	return returnButton
 end
 
--- Botón ⚙️ bajo "Volver al Lobby": abre los Ajustes (UI/SettingsPanel) en una ventana. Se construye
--- cada vez que se abre, para que enseñe el arma y las ventajas de ese momento.
+-- Botón ⚙️ a la izquierda de "Volver al Lobby": abre los Ajustes (UI/SettingsPanel) en una ventana. Se
+-- construye cada vez que se abre, para que enseñe el arma y las ventajas de ese momento.
 local function createSettingsButton(gui: ScreenGui, returnButton: TextButton)
 	local gear = Instance.new("TextButton")
 	gear.Name = "SettingsButton"
-	gear.AnchorPoint = Vector2.new(1, 0)
+	gear.AnchorPoint = Vector2.new(1, 0.5)
 	gear.Size = UDim2.fromOffset(52, 52)
 	gear.BackgroundColor3 = Color3.fromRGB(40, 34, 28)
 	gear.BackgroundTransparency = 0.2
@@ -127,10 +137,13 @@ local function createSettingsButton(gui: ScreenGui, returnButton: TextButton)
 	local gearCorner = Instance.new("UICorner")
 	gearCorner.CornerRadius = UDim.new(0, 12)
 	gearCorner.Parent = gear
-	-- Justo debajo del botón de volver (su alto depende de la pantalla).
+	-- Pegado a la izquierda del botón de volver y centrado en su alto, esté donde esté (su sitio y su
+	-- tamaño dependen de la pantalla y de si es táctil).
 	local function place()
-		gear.Position = UDim2.new(0.98, 0, 0.02, returnButton.AbsoluteSize.Y + 6)
+		local position, size = returnButton.AbsolutePosition, returnButton.AbsoluteSize
+		gear.Position = UDim2.fromOffset(position.X - 6, position.Y + size.Y / 2)
 	end
+	returnButton:GetPropertyChangedSignal("AbsolutePosition"):Connect(place)
 	returnButton:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	place()
 
