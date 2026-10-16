@@ -1,0 +1,204 @@
+# Cómo funcionan las habilidades del juego
+
+Estado del repo en octubre de 2026. Si algo de aquí no coincide con el código, manda el código: léelo
+y corrige esta página.
+
+## 1. Mapa: quién tiene habilidades y dónde viven
+
+| Quién | Datos (números) | Lógica (servidor) | Lo que se ve (cliente) |
+|---|---|---|---|
+| Jugador (4 por rol: Z, X, C y la definitiva V) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/island/server/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
+| Combos (3 habilidades en orden por rol) | `Data/Combos.luau`, `Config.Combo` | `Services/ComboService.luau` | `ComboController` (indicador y racha), iconos de marca en `AbilityFxController` |
+| Críticos | `Config.Crit`, `critChance` en `Data/Weapons` | `src/shared/Crit.luau` (funciones puras), los tira `CombatService` | `CombatTextController`, `ComicFxController` |
+| Estados de enemigos (aturdido, lento, provocado) | `Config.Abilities.BossControlMultiplier` | `src/island/server/Combat/Status.luau` | contornos (servidor) y hielo/brillo verde (`AbilityFxController`) |
+| Monos (ataques especiales) | campos de `Data/Monkeys.luau` (`pounce`, `roar`, `throws`, `grab`, `stomp`, `howl`, `thief`…), `Config.Monkeys`, `Config.Difficulty` | `Services/MonkeyService.luau` (`think`, `bite`, `pounce`, `roar`, `throwStone`, `stomp`, `howl`, `steal`) | `MonkeyAnimator` + `Data/MonkeyAnimations`, burbujas de texto |
+| Jefes (especiales por fase) | `Data/Bosses.luau` (`specials`) | `Services/BossService.luau` (`SPECIALS`, `tick`, `updatePhase`) y peligros de `Combat/Hazards.luau` | marcas de aviso en el suelo (Hazards), `AbilityFx` "Quake", animaciones |
+| Mascotas | `Data/Pets.luau` (`attackDamage`, `healPerTick`, `tracks`, `perks`), `Config.Pets` | `Services/PetService.luau` (cada 2 s) | `src/shared/UI/PetFollowers.luau` (salto al mono), rastreo en el cliente |
+
+Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, puntería, desde, hasta),
+`AbilityFx` (servidor → clientes: tipo de efecto y datos), `PetAttack`.
+
+## 2. Habilidades del jugador
+
+### 2.1 Recorrido de un uso
+
+1. **Cliente** (`RoleController.useAbility`): comprueba rol, vida, `AbilityReadyAt<hueco>` y que no
+   se mandó hace menos de 0,5 s. Calcula la puntería (`Aim.direction`). Las de **movimiento** las
+   hace el propio cliente, que es quien mueve a su personaje: `Charge` (empuje), `Blink`
+   (teletransporte, manda `from`/`to`) y `Whirlwind` (giro). Pone el gesto con
+   `BodyAnimations.playAbility(id)` y manda `Remotes.UseAbility:FireServer(slot, aim, from, to)`.
+2. **Servidor** (`AbilityService.onUseAbility`): valida tipos, rol, vida, `LifeState.isAlive` y la
+   recarga (con 0,25 s de margen por la red). Llama a `ComboService.onAbilityUsed` **antes** del
+   handler (así el handler ya sabe si va enlazado) y luego a `HANDLERS[id](player, character, root,
+   aim, { from, to })`.
+3. El handler devuelve `true` si la habilidad se usó. **Si devuelve `false` no gasta recarga** (el
+   Rayo encadenado sin mono a tiro).
+4. Recarga = `cooldownSeconds × Perk CooldownRate × ComboService.cooldownFactor` → atributo
+   `AbilityReadyAt<hueco>` (hora del servidor). El cliente pinta la casilla con él.
+
+### 2.2 Piezas comunes de `AbilityService`
+
+| Función | Para qué |
+|---|---|
+| `targetsAround(attacker, centro, radio)` | enemigos vivos con la etiqueta `Enemy` y jugadores con PvP en una esfera |
+| `targetsOnGround(attacker, centro, radio, alto)` | igual pero en horizontal (cosas en el suelo, laderas) |
+| `bestInCone(attacker, character, origen, puntería, alcance, grados)` | el mejor alineado y sin obstáculos |
+| `castShot(character, origen, dirección, alcance, radio)` | disparo recto con `Spherecast`: punto final y a qué dio |
+| `targetFromPart`, `enemyTarget`, `playerTarget` | de una pieza a un `Target` |
+| `groundBelow(posición, ignorar)` | suelo y su normal (para apoyar cosas) |
+| `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`PvPDamageMultiplier`; crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
+| `control(target, segundos, "Stun" \| "Freeze" \| "Root")` | aturde/congela/inmoviliza (jugadores con PvP: ×`PvPControlMultiplier`) |
+| `heal(healer, player, cantidad, abilityId)` | curación con críticos (seguro si es el remate) |
+| `comboOpener(player, abilityId, target)` | marca el objetivo si es el paso 1 del combo |
+
+Los proyectiles con viaje (Bola de fuego, Dardo, flechas) aplican el daño con `task.delay` al
+tiempo de vuelo, a la vez que el efecto que dibujan los clientes.
+
+### 2.3 Orden de los multiplicadores de daño (jugador → mono)
+
+1. Número de `Config.Abilities` × ventajas (`MeleeDamage`, `RangedDamage` o `SpellDamage` del rol,
+   más la del talento de esa habilidad) y, si toca, extras del remate del combo.
+2. `hurt`: redondeo; contra jugadores ×0,5 y crítico del arma; contra monos, crítico = combo seguro
+   **o** tirada del arma.
+3. `CombatService.damage`: ×`Config.Combat.PlayerDamageMultiplier` (0,7; no a mascotas) →
+   intimidado por un mandril ×0,7 → marcado por un cazador ×(1 + `MarkBonus`) → crítico
+   ×`Config.Crit.Multiplier` (1,35) → `TakeDamage`, número flotante, `ComboService.onActivity`,
+   oyentes (`BossService` apunta participantes).
+
+Daño a un jugador (`CombatService.damagePlayer`): no en el Basecamp, esquivando ni caído → crítico
+del mono/jefe (`Crit.sourceChance`) → `mitigate`: armadura (`Data/Armor`) → Grito de guerra
+(`GuardUntil`/`GuardReduction`) → Escudo de hojas (`ShieldHealth`, absorbe) → fiebre por mordisco →
+si es mortal, `LifeService.down`.
+
+### 2.4 Estados
+
+- **Enemigos** (`Combat/Status`): `StunnedUntil` (aturdir, congelar e inmovilizar son lo mismo para
+  la IA: ni anda ni ataca; cambia solo cómo se ve), `SlowedUntil` + `SlowFactor`, `TauntedBy` +
+  `TauntedUntil`. Los jefes se quedan la fracción `BossControlMultiplier` (0,5). **No hay
+  rendimientos decrecientes**: un aturdimiento nuevo solo alarga si acaba más tarde. Los leen
+  `MonkeyService.think`/`siegeThink` y `BossService.tick` en cada vuelta.
+- **Marca del cazador**: `MarkedUntil` + `MarkBonus` en el modelo (+ `Highlight`).
+- **Jugadores**: `StunnedUntil` solo pone `WalkSpeed` a 0 en `SurvivalController` (puede atacar,
+  usar habilidades y esquivar). Se **sobrescribe** en cada aplicación. `IntimidatedUntil` (rugido),
+  `GuardUntil` (grito), `ShieldUntil`/`ShieldHealth` (escudo), `InvulnerableUntil` (esquiva).
+
+### 2.5 Combos (`Data/Combos`, `ComboService`, `Config.Combo`)
+
+- Paso 1 (prepara): el handler llama a `comboOpener`/`ComboService.opener` cuando **toca** algo;
+  lo marca (`ComboMarkBy`/`ComboMarkUntil`) y empieza el combo.
+- Pasos 2 y 3: usar la siguiente antes de `StepWindowSeconds` (6 s) la enlaza. Durante
+  `PayoffSeconds` sus golpes contra los marcados son críticos seguros y hacen `damageBonus` de su
+  combo más de daño (`isComboHit` + `linkedDamageBonus`, en `AbilityService.hurt`), y el handler
+  puede dar un extra con `ComboService.isPayoff(player, id)` (más flechas, más giro, radio…).
+  `damageBonus` va por rol (+25 % guerrero y mago, +50 % cazador) porque cada combo se cierra con
+  distinta frecuencia y su remate pega distinto.
+- Cada paso enlazado que no sea la definitiva le quita `UltRefundSeconds` (10 s) a la recarga de la
+  V, como mucho `UltRefundMaxSeconds` (20 s) por recarga (`State.ultRefunded`, vuelve a 0 al usar la
+  V): sin tope, el rol con los pasos más baratos (el mago) la lanzaba casi el triple. Cada combo completo sube la racha (x1…x5): desde x2, recargas un `StreakCooldownBonus` (8 %)
+  más rápidas por nivel; se pierde tras `StreakSeconds` sin dañar ni curar.
+- Ningún combo usa la definitiva. El cliente predice el remate con `ComboController.nextStep`
+  (el Torbellino gira más en el propio cliente).
+
+### 2.6 Críticos (`Shared/Crit`)
+
+Habilidades del jugador: la probabilidad del arma de la mano o, si no es un arma, la de la mejor que
+lleve (5 % básica, 10 % y 15 % con las mejoras de la forja). Curaciones del médico: 10 % + la del
+arma + 30 % si el aliado tiene menos del 35 % de vida. Mascotas 10 %. Monos de categoría 2/3: 15/20 %.
+Jefes 25 % (28 % en furia). Panel de pruebas: "Críticos al 100 %".
+
+### 2.7 Lo que se ve y se oye
+
+- Efectos: `AbilityFx.all(tipo, …)` (todos) o `AbilityFx.others(player, tipo, …)` (los demás; el
+  propio cliente ya lo dibujó). Cada tipo es una función en la tabla `EFFECTS` de
+  `AbilityFxController`, con un comentario de qué datos recibe. Lo que dura (diana de marca,
+  burbuja de escudo, iconos de combo) sale de **atributos** que vigila el cliente, no del evento.
+- Gesto del cuerpo: `Data/PlayerAnimations.Abilities[id] = "CastForward" | "CastArea" | "Place" |
+  "Quake" | "WarCry" | "Charge"…`. Un gesto nuevo se hace con la skill `animaciones-roblox`.
+- Sonido: `Sfx.play(nombre, dónde)` con claves de `Data/Sounds`.
+- Avisos: `Remotes.Notify:FireClient(player, texto)`.
+
+### 2.8 Interfaz y textos
+
+- Casillas bajo las barras y botones táctiles: `short` de `Data/Roles` (cabe ~9 letras).
+- Lobby (`LobbyUIController`): lista los nombres por rol con `passive`.
+- Ajustes → vista previa (`src/shared/UI/SettingsPanel.luau`, tabla `ABILITY_INFO`): qué número de
+  `Config.Abilities` enseña cada habilidad y qué ventajas lo multiplican.
+- Documento de diseño: `docs/GDD.md` §6.3 (tabla de roles y recargas) y §6.4 (críticos y combos).
+
+### 2.9 Progresión que toca a las habilidades
+
+- `Data/Perks`: valor por defecto de cada ventaja (p. ej. `WhirlwindSeconds = 2`, `ChainJumps = 4`).
+- `Data/Talents`: 4 por rol, uno por habilidad (el del médico también su pasiva); `perRank` ×
+  `maxRank` (3 rangos casi siempre).
+- `Data/Upgrades` (tienda) y `Data/Pets.perks` también suman ventajas. `Progression.computePerks`
+  lo suma todo y `RoleService` lo publica como atributos `Perk_<nombre>`; se leen con
+  `Progression.perk(player, nombre)`.
+
+### 2.10 Probar en Studio
+
+Panel de pruebas (solo Studio, `Shared/DebugCommands`): "🎭 Siguiente rol", "⚡ Habilidades listas",
+"🎯 Críticos al 100 % (sí/no)", "🐒 Mandril aquí", "👑 Siguiente jefe", "💔 Jefe al 30 %",
+"🐾 Siguiente mascota", "❤️ Curar y llenar". Muñecos de práctica (100 de vida) al este de la hoguera
+del Basecamp (`TrainingDummyService`).
+
+## 3. Monos
+
+- Cada especie activa sus ataques con campos de `Data/Monkeys` (el tipo `MonkeyDefinition` lista
+  todos). Los tiempos de espera viven en el estado de cada mono (`pounceReadyAt`, `roarReadyAt`,
+  `throwReadyAt`, `stompReadyAt`) y algunos en `Config.Monkeys` (`PounceCooldownSeconds`,
+  `RoarCooldownSeconds`).
+- `think` (estado `Chase`): pisotón si el objetivo está a menos de `radio × 0,6`; mordisco a
+  `attackRange` cada `attackCooldownSeconds` (o robo si es ladrón; el agarre va en el mordisco);
+  fuera de alcance, salto entre 8 y 18 studs o piedra a `throws.range`. Aullido y rugido al
+  detectarte (estado `Idle`). El asedio (`siegeThink`) no usa especiales.
+- Escalado: `Config.Difficulty` sube vida (+12 %/día) y daño (+8 %/día) hasta ×2,5; los alfas
+  ×2,5 de vida y ×1,5 de daño. Los especiales escalan con `monkey.damage / definition.damage`.
+- Cada especial: burbuja (`showBubble`), voz (`playVoice`), animación (`MonkeyAnimator.play`) y,
+  si hace daño, `CombatService.damagePlayer(player, daño, false, monkey.model)` (para que pueda ser
+  crítico según la categoría).
+- Un especial nuevo: campo opcional en `MonkeyDefinition` + datos de la especie + función en
+  `MonkeyService` + su llamada en `think` + campo de espera en el tipo `Monkey` (y su valor inicial
+  en `spawnMonkey`) + animación si hace falta + `description` (diario de campo) + `docs/GDD.md` §8.2.
+
+## 4. Jefes
+
+- `Data/Bosses.specials`: `{ id, fromPhase, cooldownSeconds, species?, count?, channelFromPhase?,
+  channelSeconds? }`. Cada `id` es una función de la tabla `SPECIALS` de `BossService` y una
+  animación de `SPECIAL_ANIMATIONS`.
+- Programación (`tick`): como mucho un especial cada 3 s (`nextSpecialAt`); cada uno empieza con
+  3–6 s de espera aleatoria; se lanza **el primero de la lista** que esté listo y desbloqueado, así
+  que **el orden de la lista es la prioridad**. Con `channelFromPhase` se queda quieto invocando
+  (solo si su objetivo no está cuerpo a cuerpo) y un aturdimiento lo interrumpe.
+- Fases al 66 % y 33 % de vida: daño +20 % por fase, velocidad +15 %, crítico 25 → 28 %.
+- Daño de los especiales como fracción de `boss.damage`: pisotón 0,8 (+1,5 s), rocas/lava 0,7 cada
+  una, agarre 0,6 (+3 s), embestida 1,0 (+1 s).
+- Avisos: todo lo que cae del cielo o sale del suelo usa `Combat/Hazards` (`shockwave`,
+  `fallingRock`, `lavaBomb`, `lightning`) con una marca en el suelo durante `warnSeconds`; la
+  embestida espera 0,6 s con "¡!".
+- Vida: `maxHealth` de `Data/Bosses` es la de un jugador solo; `Config.Bosses` la multiplica por
+  ×(`HealthBase` + `HealthPerExtraPlayer` × (jugadores − 1)), con los jugadores **que pelean**
+  (`countFighters`: vivos, fuera del Basecamp y a menos de `leashRange` de la guarida).
+  `rescaleHealth` la recalcula en cada vuelta de `tick` cuando cambia ese número, sin cambiar el %
+  (las fases van por %). Con 0,75 por jugador el jefe dura casi lo mismo con 1, 4 o 20. El daño
+  del jefe no sube con los días.
+
+## 5. Mascotas
+
+- `PetService`, cada `Config.Pets.TickSeconds` (2 s): las de combate atacan al mono más cercano a
+  su dueño a menos de `AttackRange` (25); el cliente las hace saltar (`PetAttack`) y el daño llega a
+  los `StrikeDelaySeconds`. Las de curación curan a su dueño. **No pasan por
+  `PlayerDamageMultiplier`**; críticos al 10 %; sus números salen más pequeños.
+- Rastreo: en el cliente. Apoyo y carga: `perks`, que suma `Progression.computePerks`.
+- Un tipo de ayuda nuevo necesita su rama en `PetService.tick` (o en el cliente si es visual) y su
+  texto en `description`.
+
+## 6. Catálogo actual (sin talentos)
+
+Los números exactos y sus medidas salen de la calculadora (`src/island/tools/Equilibrio.luau`, sección 1).
+
+| Rol | Z | X | C | V (definitiva) | Combo (pasos) |
+|---|---|---|---|---|---|
+| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 15 s | Pisotón 90 s | Embestida → Grito → Torbellino |
+| Cazador | Disparo múltiple 5 s | Marcar presas 18 s | Cepo 9 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple |
+| Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Rayo encadenado 90 s | Nova → Parpadeo → Bola de fuego |
+| Médico | Ungüento 24 s | Dardo curativo 6 s | Escudo de hojas 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento |
