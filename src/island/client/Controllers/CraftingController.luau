@@ -3,7 +3,7 @@
 -- ("Usar") o de la hoguera ("Cocinar") y muestra solo las recetas de esa estación.
 -- Muestra cada receta con lo que cuesta (en verde lo que tienes, en rojo lo que falta) y un botón
 -- para fabricarla. Las armas (no el hacha ni el pico) terminan la descripción con su probabilidad de
--- crítico (Shared/Crit); las mejoras, de cuánto a cuánto sube: "🎯 Crítico 10 → 15 %". Se cierra con el botón ✕, con B en mando o al alejarte de la mesa.
+-- crítico (Shared/Crit); las mejoras, de cuánto a cuánto sube: "🎯 Crítico 10 → 15 %". Se cierra con el botón X, con B en mando o al alejarte de la mesa.
 -- El servidor (CraftingService) decide si la fabricación vale.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -176,7 +176,9 @@ function CraftingController:Start()
 	title.Size = UDim2.new(1, -80, 0, 36)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 
-	local closeButton = Widgets.button("✕", panel)
+	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
+	local closeButton = Widgets.button("X", panel)
+	closeButton.Font = Enum.Font.BuilderSansExtraBold
 	closeButton.AnchorPoint = Vector2.new(1, 0)
 	closeButton.Position = UDim2.new(1, -8, 0, 6)
 	closeButton.Size = UDim2.fromOffset(48, 40)

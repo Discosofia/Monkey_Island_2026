@@ -5,6 +5,8 @@
 -- "food" hace que se pueda comer (G, cruceta izquierda o el botón "Comer"): cuánto recupera.
 -- "heal" hace que se pueda usar para curarse (H, cruceta arriba o el botón "Curar"): vida que da.
 -- "rarity" (Data/Rarities) da color al nombre en el inventario y el diario; sin ella, Común.
+-- "group" pone el objeto en otra sección de la Bolsa ("Materials", "Food", "Healing", "Loot",
+-- "Treasure"); sin él, la decide lo que hace (comida, curación, siempre visible o botín).
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.
 
 export type ItemDefinition = {
@@ -15,6 +17,7 @@ export type ItemDefinition = {
 	food: FoodDefinition?,
 	heal: number?,
 	rarity: string?,
+	group: string?,
 }
 
 export type FoodDefinition = {
@@ -38,12 +41,12 @@ local Items: { [string]: ItemDefinition } = {
 	-- Fase 2.3: botín de hueso y productos del taller del curandero.
 	Bone = { name = "Hueso", icon = "🦴", order = 13 },
 	Ointment = { name = "Ungüento", icon = "🧴", order = 14, heal = 70 },
-	Antidote = { name = "Antídoto", icon = "💉", order = 15 },
+	Antidote = { name = "Antídoto", icon = "💉", order = 15, group = "Healing" },
 	-- Matas de plátano de los cultivos: crudo alimenta poco, asado en la hoguera mucho más.
 	Plantain = { name = "Plátano", icon = "🥒", order = 16, food = { hunger = 6, thirst = 0 } },
 	RoastedPlantain = { name = "Plátano asado", icon = "🍠", order = 17, food = { hunger = 28, thirst = 0 } },
 	-- Munición del arco del cazador (Data/Weapons).
-	Arrow = { name = "Flecha", icon = "🏹", order = 18 },
+	Arrow = { name = "Flecha", icon = "🏹", order = 18, group = "Materials" },
 	-- Fase 4: botín de las nuevas especies.
 	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
 	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },
@@ -59,11 +62,17 @@ local Items: { [string]: ItemDefinition } = {
 	OrangeFur = { name = "Pelaje naranja", icon = "🍊", order = 31, rarity = "Rare" },
 	SilverFur = { name = "Pelaje plateado", icon = "⚪", order = 32, rarity = "Epic" },
 	-- Fase 5: botín especial de los jefes.
-	RiverPearl = { name = "Perla del río", icon = "🔮", order = 40, rarity = "Legendary" },
-	ChieftainCrown = { name = "Corona del caudillo", icon = "👑", order = 41, rarity = "Legendary" },
-	CaveCrystal = { name = "Cristal de cueva", icon = "💎", order = 42, rarity = "Legendary" },
-	MagmaCore = { name = "Núcleo de magma", icon = "🌋", order = 43, rarity = "Legendary" },
-	ShipMetal = { name = "Metal de naufragio", icon = "⚙️", order = 44, rarity = "Uncommon" },
+	RiverPearl = { name = "Perla del río", icon = "🔮", order = 40, rarity = "Legendary", group = "Treasure" },
+	ChieftainCrown = {
+		name = "Corona del caudillo",
+		icon = "👑",
+		order = 41,
+		rarity = "Legendary",
+		group = "Treasure",
+	},
+	CaveCrystal = { name = "Cristal de cueva", icon = "💎", order = 42, rarity = "Legendary", group = "Treasure" },
+	MagmaCore = { name = "Núcleo de magma", icon = "🌋", order = 43, rarity = "Legendary", group = "Treasure" },
+	ShipMetal = { name = "Metal de naufragio", icon = "⚙️", order = 44, rarity = "Uncommon", group = "Treasure" },
 }
 
 return Items

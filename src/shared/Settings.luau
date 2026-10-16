@@ -6,6 +6,7 @@
 --       "Head"   junto a la cabeza (columnas cortas a izquierda y derecha)
 --       "Column" en una columna del alto del personaje, a cada lado
 --       "Screen" fijos en la pantalla, a izquierda y derecha del centro
+--   - numberFont: letra de los números de combate: "Comic" (Bangers, como POW!) o "Classic".
 --   - showNumbers: números de combate sí/no.
 --   - allyNumbers: el daño que hacen los aliados (tenue) sí/no.
 --   - showLoot: lo que recoges ("+2 🌲 Madera") junto a tu personaje sí/no (sale donde textLayout).
@@ -25,8 +26,10 @@ local Remotes = require(script.Parent.Remotes)
 export type Layout = "Head" | "Column" | "Screen"
 export type ComicLevel = "All" | "Strong"
 export type ComicSize = "Small" | "Normal" | "Large"
+export type NumberFont = "Comic" | "Classic"
 export type Values = {
 	textLayout: Layout,
+	numberFont: NumberFont,
 	showNumbers: boolean,
 	allyNumbers: boolean,
 	showLoot: boolean,
@@ -45,6 +48,11 @@ Settings.LAYOUT_NAMES = {
 	Column = "Columna del alto del jugador",
 	Screen = "Fijos en la pantalla",
 } :: { [string]: string }
+Settings.NUMBER_FONTS = { "Comic", "Classic" } :: { NumberFont }
+Settings.NUMBER_FONT_NAMES = {
+	Comic = "¡Cómic!",
+	Classic = "Clásica",
+} :: { [string]: string }
 Settings.COMIC_LEVELS = { "All", "Strong" } :: { ComicLevel }
 Settings.COMIC_LEVEL_NAMES = {
 	All = "Todo",
@@ -60,6 +68,7 @@ Settings.COMIC_SIZE_NAMES = {
 function Settings.defaults(): Values
 	return {
 		textLayout = "Head",
+		numberFont = "Comic",
 		showNumbers = true,
 		allyNumbers = true,
 		showLoot = true,
@@ -79,6 +88,9 @@ function Settings.sanitize(raw: any): Values
 	end
 	if typeof(raw.textLayout) == "string" and table.find(Settings.LAYOUTS, raw.textLayout) then
 		values.textLayout = raw.textLayout :: Layout
+	end
+	if typeof(raw.numberFont) == "string" and table.find(Settings.NUMBER_FONTS, raw.numberFont) then
+		values.numberFont = raw.numberFont :: NumberFont
 	end
 	if typeof(raw.comicLevel) == "string" and table.find(Settings.COMIC_LEVELS, raw.comicLevel) then
 		values.comicLevel = raw.comicLevel :: ComicLevel

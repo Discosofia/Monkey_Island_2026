@@ -669,7 +669,13 @@ local function buildLayoutChoice(parent: Frame): (values: Settings.Values) -> ()
 		2,
 		SOFT_COLOR
 	)
-	return choiceRow(parent, 3, "textLayout", Settings.LAYOUTS, Settings.LAYOUT_NAMES)
+	local refreshLayout = choiceRow(parent, 3, "textLayout", Settings.LAYOUTS, Settings.LAYOUT_NAMES)
+	text(parent, "Letra de los números", 4, SOFT_COLOR)
+	local refreshFont = choiceRow(parent, 5, "numberFont", Settings.NUMBER_FONTS, Settings.NUMBER_FONT_NAMES)
+	return function(values: Settings.Values)
+		refreshLayout(values)
+		refreshFont(values)
+	end
 end
 
 local function buildOptions(parent: Frame): (values: Settings.Values) -> ()

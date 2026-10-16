@@ -2,6 +2,11 @@
 -- Columna de números de combate (Config.CombatText): el número nuevo entra abajo con un "pop" y
 -- empuja hacia arriba a los anteriores, que se van desvaneciendo; caben Slots (4) y cada uno dura
 -- LifetimeSeconds. Los críticos entran más grandes y con un temblor.
+-- Con la letra "Comic" (Ajustes, numberFont) los números van en Bangers, como los estallidos de
+-- ComicBurst: brillo de arriba abajo (claro arriba), borde negro según su tamaño y algo torcidos.
+-- La letra "Classic" es la de antes (BuilderSansExtraBold con borde).
+-- Lo que lleva emoji (el escudo, lo recogido "+3 🌲 Madera") va sin brillo, de un solo color: el
+-- gradiente también tiñe el emoji. El borde negro sí lo rodea, como una pegatina.
 -- También la usa la columna de lo que recoges (con sus propios huecos y duración): una línea con la
 -- misma "key" que la más nueva la sustituye en su sitio ("+1 Madera" → "+3 Madera").
 -- Va dentro de cualquier marco ("container"): un BillboardGui sobre una cabeza, una columna del alto
@@ -12,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Settings = require(ReplicatedStorage.Shared.Settings)
 
 local SETTINGS = Config.CombatText
 -- Alto del número normal respecto al hueco (el crítico, ×CritTextScale, lo llena).
@@ -22,6 +28,18 @@ local MOVE = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out
 local POP = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local SHAKE = TweenInfo.new(0.3, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
 local FADE = TweenInfo.new(0.25)
+local BANGERS = Font.fromEnum(Enum.Font.Bangers)
+local CLASSIC = Font.fromEnum(Enum.Font.BuilderSansExtraBold)
+local BLACK = Color3.new(0, 0, 0)
+local WHITE = Color3.new(1, 1, 1)
+local CLASSIC_EDGE = Color3.fromRGB(25, 15, 10)
+-- Bangers es estrecha y deja mucho aire arriba y abajo: a igual caja se ve más pequeña que la
+-- clásica, así que su caja crece (y puede pisar un poco la del vecino, como en un cómic).
+local COMIC_SCALE = 1.45
+-- Giro al azar de la letra de cómic (grados); el crítico gira más y tiembla. Las líneas con "key"
+-- (lo recogido) son anchas: torcidas de más pisarían a la de al lado.
+local COMIC_TILT = 6
+local LINE_TILT = 2
 
 export type Align = "Left" | "Right" | "Center"
 export type Style = {
@@ -40,6 +58,7 @@ export type Options = {
 -- viejo no borra al nuevo.
 type Entry = {
 	label: TextLabel,
+	gradient: UIGradient,
 	scale: UIScale,
 	dim: number,
 	expired: boolean,
@@ -81,16 +100,49 @@ function CombatTextColumn.new(container: GuiObject, align: Align, options: Optio
 	local function newEntry(): Entry
 		local label = Instance.new("TextLabel")
 		label.BackgroundTransparency = 1
-		label.Font = Enum.Font.BuilderSansExtraBold
+		label.FontFace = CLASSIC
 		label.TextScaled = true
 		label.TextXAlignment = ALIGNMENT[align]
 		label.AnchorPoint = Vector2.new(anchorX, 1)
 		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(25, 15, 10)
+		stroke.Color = CLASSIC_EDGE
+		stroke.LineJoinMode = Enum.LineJoinMode.Round
 		stroke.Parent = label
 		local scale = Instance.new("UIScale")
 		scale.Parent = label
-		return { label = label, scale = scale, dim = 0, expired = false, generation = 0 }
+		-- El brillo de la letra de cómic: tiñe la letra blanca (el borde negro sigue negro).
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = 90
+		gradient.Enabled = false
+		gradient.Parent = label
+		return { label = label, gradient = gradient, scale = scale, dim = 0, expired = false, generation = 0 }
+	end
+
+	-- Viste la etiqueta con la letra de cómic o la normal. "pixels": su alto en pantalla.
+	local function dress(entry: Entry, text: string, color: Color3, crit: boolean, comic: boolean, pixels: number)
+		local label, gradient = entry.label, entry.gradient
+		local stroke = label:FindFirstChildOfClass("UIStroke") :: UIStroke
+		label.Text = text
+		-- Un emoji (empieza por un byte 240-244) no se tiñe: el texto va de un color.
+		local emoji = string.find(text, "[\240-\244]") ~= nil
+		gradient.Enabled = comic and not emoji
+		if not comic then
+			label.FontFace = CLASSIC
+			label.TextColor3 = color
+			stroke.Color = CLASSIC_EDGE
+			stroke.Thickness = if crit then 3 else 2
+			return
+		end
+		label.FontFace = BANGERS
+		label.TextColor3 = if emoji then color else WHITE
+		stroke.Color = BLACK
+		-- Borde según el tamaño: Bangers es fina y un borde fijo se come los números pequeños.
+		stroke.Thickness = math.clamp(pixels * (if crit then 0.09 else 0.075), 1.5, 5)
+		gradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, color:Lerp(WHITE, if crit then 0.75 else 0.5)),
+			ColorSequenceKeypoint.new(0.5, color),
+			ColorSequenceKeypoint.new(1, color:Lerp(BLACK, 0.12)),
+		})
 	end
 
 	local function release(entry: Entry)
@@ -178,26 +230,29 @@ function CombatTextColumn.new(container: GuiObject, align: Align, options: Optio
 		entry.key = style.key
 		entry.dim = style.dim or 0
 		local label = entry.label
-		label.Text = if crit then `{text}!` else text
-		label.TextColor3 = style.color
-		label.Size = UDim2.fromScale(1, BASE_HEIGHT * size / slots)
+		local comic = Settings.get().numberFont == "Comic"
+		local height = BASE_HEIGHT * size / slots * (if comic then COMIC_SCALE else 1)
+		dress(entry, if crit then `{text}!` else text, style.color, crit, comic, container.AbsoluteSize.Y * height)
+		label.Size = UDim2.fromScale(1, height)
 		label.Position = UDim2.fromScale(anchorX, 1)
 		label.TextTransparency = entry.dim
-		label.Rotation = 0
 		label.ZIndex = if crit then 3 else 2
 		local stroke = label:FindFirstChildOfClass("UIStroke")
 		if stroke then
-			stroke.Thickness = if crit then 3 else 2
 			stroke.Transparency = math.min(1, entry.dim + 0.15)
 		end
 		label.Parent = container
 
-		-- Entra con un "pop"; el crítico, más fuerte y con un temblor.
-		entry.scale.Scale = if crit then 1.7 else 1.35
+		-- Entra con un "pop"; el crítico, más fuerte y con un temblor. La letra de cómic se queda algo
+		-- torcida, como las onomatopeyas.
+		local maxTilt = if style.key then LINE_TILT else COMIC_TILT
+		local tilt = if comic then math.random(-maxTilt, maxTilt) else 0
+		label.Rotation = tilt
+		entry.scale.Scale = if crit then (if comic then 1.9 else 1.7) else (if comic then 1.45 else 1.35)
 		TweenService:Create(entry.scale, POP, { Scale = 1 }):Play()
 		if crit then
-			label.Rotation = if math.random() < 0.5 then -8 else 8
-			TweenService:Create(label, SHAKE, { Rotation = 0 }):Play()
+			label.Rotation = tilt + (if math.random() < 0.5 then -12 else 12)
+			TweenService:Create(label, SHAKE, { Rotation = tilt }):Play()
 		end
 
 		table.insert(entries, 1, entry)

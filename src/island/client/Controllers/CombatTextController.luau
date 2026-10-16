@@ -9,6 +9,8 @@
 --   - Lo de tu mascota sale más pequeño (Config.CombatText.PetTextScale) y el daño de los aliados más
 --     pequeño y tenue (si está activado y cerca). El médico ve, tenues, sus curaciones a los aliados.
 --   - Los críticos salen un 25 % más grandes, con "!" y un temblor (UI/CombatTextColumn).
+--   - La letra la elige el jugador (Settings.numberFont): de cómic (Bangers, como "POW!") o la clásica;
+--     vale para los números y para lo recogido.
 --   - Lo que recoges (Remotes.Loot): "+2 🌲 Madera" con el color de su rareza, en una columna a la
 --     derecha justo debajo de la de curación (en las tres disposiciones). Lo mismo recogido seguido
 --     suma en la misma línea (Config.CombatText.LootMergeSeconds).

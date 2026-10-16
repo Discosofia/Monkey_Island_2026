@@ -178,9 +178,10 @@ local function createSettingsButton(gui: ScreenGui, returnButton: TextButton)
 	close.Size = UDim2.fromOffset(44, 44)
 	close.BackgroundColor3 = Color3.fromRGB(150, 60, 50)
 	close.TextColor3 = Color3.new(1, 1, 1)
-	close.Font = Enum.Font.BuilderSansBold
+	close.Font = Enum.Font.BuilderSansExtraBold
 	close.TextScaled = true
-	close.Text = "✕"
+	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
+	close.Text = "X"
 	close.Parent = window
 	local closeCorner = Instance.new("UICorner")
 	closeCorner.CornerRadius = UDim.new(0, 10)

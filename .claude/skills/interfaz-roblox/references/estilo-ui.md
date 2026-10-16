@@ -19,7 +19,7 @@ golpe).
 | Casillas de habilidades Z X C V | `src/island/client/Controllers/RoleController.luau` (`buildHud`) | `RoleHUD` | Isla |
 | Panel de combos y "¡COMBO!" | `src/island/client/Controllers/ComboController.luau` | `ComboHUD` | Isla |
 | Números de daño, curación, críticos y lo recogido | `src/island/client/Controllers/CombatTextController.luau` + `src/shared/UI/CombatTextColumn.luau` | `CombatText` | Isla |
-| Panel de materiales (B) | `src/island/client/Controllers/InventoryHUDController.luau` | `InventoryHUD` | Isla |
+| Bolsa (B): ventana centrada con casillas por secciones | `src/island/client/Controllers/InventoryHUDController.luau` | `InventoryHUD` | Isla |
 | Barra de vida del jefe | `src/island/client/Controllers/BossHUDController.luau` | `BossHUD` | Isla |
 | Cartel de caído / espíritu | `src/island/client/Controllers/LifeController.luau` | `LifeHUD` | Isla |
 | Mesa de fabricación | `src/island/client/Controllers/CraftingController.luau` | `CraftingHUD` | Isla |
@@ -54,7 +54,7 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Fondo de botón cuadrado (⚙️) | 40, 34, 28 al 0.2 | `SettingsButton` |
 | Paneles translúcidos del HUD | 20–25, 20–25, 20–25 al 0.25–0.35 | barras, materiales, habilidades, combos, avisos |
 | Botón secundario (Studio, deshabilitado) | 90, 90, 110 / 90, 90, 90 | "Saltar fase", recetas bloqueadas |
-| Cerrar ✕ | 150, 60, 50 | ventana de Ajustes |
+| Cerrar X | 150, 60, 50 | ventanas de Ajustes y Bolsa |
 | Seguro / válido / curación | 120, 230, 140 · 90, 230, 110 | Basecamp, construcción válida, curación |
 | Peligro / aviso | 255, 170, 60 | fuera del Basecamp |
 | Error / daño / no válido | 235, 70, 60 · 255, 70, 70 · 240, 70, 60 | barra baja, daño recibido, construcción no válida |
@@ -84,9 +84,15 @@ Reglas que salen de ahí:
 ## 3. Tipografía
 
 - Fuente: **BuilderSansBold** para casi todo (`Widgets`), **BuilderSans** para descripciones largas
-  y **BuilderSansExtraBold** para los números de combate. No metas otras fuentes sin preguntar.
-  Única excepción aprobada: **Bangers** (`Enum.Font.Bangers`) en las palabras de los estallidos de
-  cómic (`ComicBurst`), con borde de color, borde negro y sombra; no la uses en el HUD.
+  y **BuilderSansExtraBold** para los números de combate con la letra "Clásica". No metas otras
+  fuentes sin preguntar. Única excepción aprobada: **Bangers** (`Enum.Font.Bangers`) en las palabras
+  de los estallidos de cómic (`ComicBurst`) y en los números de combate con la letra "¡Cómic!" (la de
+  por defecto, ajuste `numberFont`: brillo con `UIGradient`, borde negro proporcional al tamaño y
+  caja ×1.45, porque Bangers dibuja la cifra más pequeña que su caja), también en lo recogido
+  ("+3 🌲 Madera"); no la uses en el resto del HUD. Un `UIGradient` **tiñe también los emojis**: lo
+  que lleva emoji va de un solo color, sin brillo.
+- BuilderSans **no tiene el signo ✕** (sale una caja vacía): para cerrar usa "X" en
+  BuilderSansExtraBold.
 - Tamaño: casi todo usa `TextScaled = true` dentro de una caja con tamaño en escala o en píxeles.
   Con `TextScaled` el tamaño depende de la caja y del largo del texto: un texto que cambia ("Día 1"
   vs "Día 12 · 🌙 10:00") puede encoger. Para textos que varían mucho, añade un
@@ -106,7 +112,7 @@ Reglas que salen de ahí:
   botones cuadrados de icono, 44–52 px. Nada pulsable por debajo de **44 px** en móvil.
 - Ventanas: centradas (`AnchorPoint 0.5, 0.5`), tamaño en escala con `UISizeConstraint` de mínimo
   ~320 x 240 y máximo ~640–720 de ancho; título arriba a la izquierda en (14, 8) con 34–36 px de
-  alto; ✕ arriba a la derecha de 44–48 px; contenido en un `ScrollingFrame` desde y = 52–58 con
+  alto; X de cerrar arriba a la derecha de 44–48 px; contenido en un `ScrollingFrame` desde y = 52–58 con
   `UIListLayout` (relleno 4–6 px) y `AutomaticCanvasSize = Y`.
 - Separación desde el borde de la pantalla: **12 px** (columna de la izquierda) o **2 %** de la
   pantalla (`0.02` / `0.98`) en lo que usa escala. No mezcles las dos en un mismo borde.
@@ -119,8 +125,8 @@ Reglas que salen de ahí:
 |---|---|
 | -1 | `CombatText` (debajo de todo; IgnoreGuiInset) |
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
-| 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `LifeHUD`, `InventoryHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
-| 5 | `ActionButtons`, `CraftingHUD` |
+| 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
+| 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C V y las barras) |
 | 6 | `JournalHUD` |
 | 8 | `SettingsUI` |
 | 10 | `Toasts` |
@@ -146,7 +152,7 @@ son las del código; en otro tamaño de pantalla cambian los píxeles, no el sit
 │ [Z][X][C][V] (12,118)   huevo (0.24) · baliza (0.275)                         │
 │ combos (12,170)         ¡COMBO! (0.3) · caído/espíritu (0.32)                 │
 │                                                                    construcción│
-│ materiales (0.02,0.5)    daño ◀ (0.44,0.42)  ▶ curación (0.56)     (derecha,   │
+│ Bolsa (centro, B)        daño ◀ (0.44,0.42)  ▶ curación (0.56)     (derecha,   │
 │                                              lo recogido debajo     centro)   │
 │                                                                               │
 │ [🛠️ Pruebas] (0.02,0.9)                         PC: [⚙️][Volver al Lobby]     │
@@ -190,6 +196,6 @@ Cuando haya varias formas razonables de colocar o mostrar algo, el usuario quier
 **opciones del jugador** en Ajustes, no una elección suya: `Shared/Settings.luau` (valores, defectos y
 `sanitize`), `Shared/UI/SettingsPanel.luau` (la fila del panel) y el código que lo dibuja leyendo
 `Settings.get()` y `Settings.onChanged`. Ejemplos ya hechos: `textLayout` ("Head", "Column",
-"Screen") para los números de combate y `comicFx` / `comicLevel` / `comicSize` para los estallidos de
+"Screen") y `numberFont` ("Comic", "Classic") para los números de combate y `comicFx` / `comicLevel` / `comicSize` para los estallidos de
 cómic. En el panel, `choiceRow` (fila de botones para elegir uno) y `toggleLine` (Sí/No) son las
 piezas para añadir una opción nueva.
