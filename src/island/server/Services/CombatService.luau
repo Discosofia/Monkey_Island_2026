@@ -180,13 +180,14 @@ end
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
 -- "source": el mono o jefe que pega; según su categoría o fase puede hacer un crítico (Shared/Crit).
 -- Sin él (rayos, lava, rocas…) nunca lo es. "cause": quién lo lanza si no hay "source", para la
--- telemetría de caídas (Combat/Hazards).
+-- telemetría de caídas (Combat/Hazards). "bite": es un mordisco de mono y sube la fiebre del mono.
 function CombatService.damagePlayer(
 	player: Player,
 	amount: number,
 	ignoreSafe: boolean?,
 	source: Instance?,
-	cause: string?
+	cause: string?,
+	bite: boolean?
 ): boolean
 	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
@@ -208,8 +209,10 @@ function CombatService.damagePlayer(
 		return true
 	end
 	CombatText.taken(player, amount, crit)
-	-- Cada mordisco sube la fiebre del mono (Fase 2.6).
-	Survival.addFever(player, Config.Fever.PerBite)
+	-- Los mordiscos suben la fiebre del mono (Fase 2.6) según lo que quitan de la vida máxima.
+	if bite then
+		Survival.addFever(player, Config.Fever.PerHealthBar * amount / math.max(1, humanoid.MaxHealth))
+	end
 	if humanoid.Health - amount <= 0 then
 		Sfx.play("PlayerDown", character.PrimaryPart or character)
 		LifeService.down(player, cause or TelemetryService.causeOf(source))

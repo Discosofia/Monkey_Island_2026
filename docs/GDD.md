@@ -165,7 +165,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 | Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. |
 
 A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
-| Fiebre del mono | Sube con mordiscos de monos (+6) y con la carne cruda (+12). Desde 50 se nubla la vista; a 100 quita vida poco a poco. Baja sola muy despacio; el **antídoto** del taller del curandero la quita (el médico tendrá ventajas en la Fase 3). |
+| Fiebre del mono | Sube con los **mordiscos** de los monos según el daño que entra tras la armadura (+20 por cada barra de vida entera perdida a mordiscos; un mono básico, +1) y con la carne cruda (+12). Piedras, pisotones, jefes y peligros no la suben. Desde 60, tinte morado y **oleadas** cortas de vista borrosa (cada 16 s a 60, cada 7 s a 100); entre oleadas se ve bien. A 100 además quita vida poco a poco. Baja sola 4 por minuto (15 por minuto descansando en el Basecamp); el **antídoto** del taller del curandero la quita de golpe y el remate del combo del médico la baja 15. Ritmo buscado: síntomas tras unos 10 minutos de pelea continua sin curarse. |
 
 ### 6.2 Muerte: caído y Espíritu
 

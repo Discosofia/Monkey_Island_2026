@@ -591,7 +591,7 @@ function bite(monkey: Monkey, player: Player)
 	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
 	monkey.pounced = false
 	MonkeyAnimator.play(monkey.model, "Attack")
-	local landed = CombatService.damagePlayer(player, damage, false, monkey.model)
+	local landed = CombatService.damagePlayer(player, damage, false, monkey.model, nil, true)
 	if landed then
 		playVoice(monkey, "Attack")
 	end
@@ -911,7 +911,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			humanoid:MoveTo(position)
 			if canAttack then
 				monkey.lastAttackAt = now
-				CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model)
+				CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model, nil, true)
 			end
 		else
 			humanoid:MoveTo(target.position)

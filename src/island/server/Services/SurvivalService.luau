@@ -92,21 +92,27 @@ local function tick(player: Player)
 	warnLow(player, Survival.HUNGER, hunger, "🍖 Tienes hambre: come algo (G o el botón Comer)")
 	warnLow(player, Survival.THIRST, thirst, "💧 Tienes sed: bebe en el río (F o el botón Beber)")
 
-	-- Fiebre: baja despacio; a tope quita vida.
+	-- Fiebre: baja sola (más rápido descansando en el Basecamp); a tope quita vida.
 	local fever = Survival.fever(player)
 	if fever > 0 then
-		Survival.addFever(player, -Config.Fever.DecayPerMinute * minutes)
+		local resting = player:GetAttribute("InBasecamp") == true
+		local decay = if resting then Config.Fever.BasecampDecayPerMinute else Config.Fever.DecayPerMinute
+		Survival.addFever(player, -decay * minutes)
 	end
 	if fever >= Survival.MAX then
 		starve(player, humanoid, Config.Fever.DamagePerSecondAtMax * TICK_SECONDS)
 	end
-	-- Aviso con fiebre alta (al bajar de 75 se rearma, igual que el de hambre).
-	warnLow(
-		player,
-		Survival.FEVER,
-		Survival.MAX - fever,
-		"🤒 Tienes fiebre del mono: busca un antídoto (taller del curandero)"
-	)
+	-- Aviso al empezar los síntomas (se rearma 10 puntos por debajo, para no repetirlo en el borde).
+	local flags = warned[player]
+	if flags and fever >= Config.Fever.SymptomsAt and not flags[Survival.FEVER] then
+		flags[Survival.FEVER] = true
+		Remotes.Notify:FireClient(
+			player,
+			"🤒 Tienes fiebre del mono: un antídoto (taller del curandero) la quita; descansar en el campamento la baja"
+		)
+	elseif flags and fever < Config.Fever.SymptomsAt - 10 then
+		flags[Survival.FEVER] = false
+	end
 
 	local empty = (if hunger <= 0 then 1 else 0) + (if thirst <= 0 then 1 else 0)
 	if empty > 0 then

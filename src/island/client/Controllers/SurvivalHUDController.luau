@@ -87,13 +87,23 @@ function SurvivalHUDController:Start()
 	feverBar.inverted = true
 	table.insert(bars, feverBar)
 
-	-- Vista nublada: nada por debajo de Config.Fever.SymptomsAt; al máximo con 100 de fiebre.
+	-- Síntomas: nada por debajo de Config.Fever.SymptomsAt. Por encima, un tinte morado suave y
+	-- oleadas cortas de vista borrosa, más seguidas y fuertes cuanto más fiebre. Entre oleadas se ve bien.
+	local fever = Config.Fever
 	local blur = Instance.new("BlurEffect")
 	blur.Name = "FeverBlur"
 	blur.Size = 0
 	blur.Parent = Lighting
+	local tint = Instance.new("ColorCorrectionEffect")
+	tint.Name = "FeverTint"
+	tint.Parent = Lighting
+	local white = Color3.new(1, 1, 1)
+	local feverColor = Color3.fromRGB(225, 200, 255)
+	local waveStartedAt = -math.huge
+	local nextWaveAt: number? = nil
 
 	local low = Config.Survival.LowThreshold / Survival.MAX
+	local feverAlarm = fever.SymptomsAt / Survival.MAX
 	RunService.RenderStepped:Connect(function()
 		-- Parpadeo: medio segundo encendido, medio apagado.
 		local blinkOn = os.clock() % 1 < 0.5
@@ -101,16 +111,35 @@ function SurvivalHUDController:Start()
 			local value = math.clamp(bar.read(), 0, 1)
 			bar.fill.Size = UDim2.fromScale(value, 1)
 			bar.fill.Visible = value > 0
-			-- La fiebre es al revés: alarma cuando está alta, y solo se ve si tienes.
-			local alarm = if bar.inverted then value >= 1 - low else value <= low
+			-- La fiebre es al revés: alarma con síntomas, y solo se ve si tienes.
+			local alarm = if bar.inverted then value >= feverAlarm else value <= low
 			bar.fill.BackgroundColor3 = if alarm and blinkOn then LOW_COLOR else bar.color
 			if bar.inverted then
 				bar.row.Visible = value > 0
 			end
 		end
-		local fever = Survival.fever(player)
-		local symptoms = math.clamp((fever - Config.Fever.SymptomsAt) / (Survival.MAX - Config.Fever.SymptomsAt), 0, 1)
-		blur.Size = symptoms * 12
+		local value = Survival.fever(player)
+		if value < fever.SymptomsAt then
+			blur.Size = 0
+			tint.TintColor = white
+			tint.Saturation = 0
+			nextWaveAt = nil
+			return
+		end
+		local symptoms = math.clamp((value - fever.SymptomsAt) / (Survival.MAX - fever.SymptomsAt), 0, 1)
+		local now = os.clock()
+		-- La primera oleada llega al empezar los síntomas, para que se note el cambio.
+		if not nextWaveAt or now >= nextWaveAt then
+			waveStartedAt = now
+			local every = fever.WaveEverySeconds
+			nextWaveAt = now + every.atSymptoms + (every.atMax - every.atSymptoms) * symptoms
+		end
+		local progress = (now - waveStartedAt) / fever.WaveSeconds
+		local wave = if progress < 1 then math.sin(progress * math.pi) else 0
+		local peak = fever.WaveBlur.atSymptoms + (fever.WaveBlur.atMax - fever.WaveBlur.atSymptoms) * symptoms
+		blur.Size = wave * peak
+		tint.TintColor = white:Lerp(feverColor, 0.4 + 0.3 * symptoms + 0.3 * wave)
+		tint.Saturation = -0.1 - 0.15 * symptoms
 	end)
 end
 

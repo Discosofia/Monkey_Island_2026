@@ -280,12 +280,20 @@ local Config = {
 
 	Fever = {
 		-- Fiebre del mono (GDD §6.1, Fase 2.6), de 0 a 100. La suben los mordiscos y la carne cruda.
-		PerBite = 6,
+		-- Solo los mordiscos (no piedras, pisotones, jefes ni peligros) y según el daño que entra tras
+		-- la armadura: perder una barra de vida entera a mordiscos suma esto. Un mono básico, +1.
+		PerHealthBar = 20,
 		RawMeat = 12,
-		-- Baja sola muy despacio; el antídoto (taller del curandero) la quita de golpe.
-		DecayPerMinute = 2,
-		-- Desde aquí se nubla la vista; a 100 además quita vida.
-		SymptomsAt = 50,
+		-- Baja sola (más rápido descansando en el Basecamp); el antídoto (taller del curandero) la
+		-- quita de golpe.
+		DecayPerMinute = 4,
+		BasecampDecayPerMinute = 15,
+		-- Desde aquí llegan oleadas de vista borrosa (cortas y espaciadas; más seguidas y fuertes
+		-- cuanto más fiebre) y un tinte morado suave; a 100 además quita vida.
+		SymptomsAt = 60,
+		WaveEverySeconds = { atSymptoms = 16, atMax = 7 },
+		WaveSeconds = 2.5,
+		WaveBlur = { atSymptoms = 3, atMax = 8 },
 		DamagePerSecondAtMax = 0.5,
 	},
 
