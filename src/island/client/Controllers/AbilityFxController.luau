@@ -598,17 +598,18 @@ local function warnNoJoints(character: Model)
 	end
 end
 
--- Ángulos de la pose de grito (en el espacio de la pieza a la que va cada articulación): la cabeza y
--- el pecho hacia atrás y los brazos abiertos con los antebrazos hacia arriba. Vale para R15 y R6.
+-- Ángulos de la pose de grito (en el espacio de la pieza a la que va cada articulación): brazos en
+-- alto en V y la cabeza y el pecho muy atrás, la misma pose que la animación "WarCry"
+-- (PlayerAnimationBuilder). Vale para R15 y R6.
 local SCREAM_POSE: { [string]: Vector3 } = {
-	Neck = Vector3.new(math.rad(28), 0, 0),
-	Waist = Vector3.new(math.rad(14), 0, 0),
-	LeftShoulder = Vector3.new(0, 0, math.rad(-80)),
-	RightShoulder = Vector3.new(0, 0, math.rad(80)),
-	["Left Shoulder"] = Vector3.new(0, 0, math.rad(-80)),
-	["Right Shoulder"] = Vector3.new(0, 0, math.rad(80)),
-	LeftElbow = Vector3.new(0, 0, math.rad(-60)),
-	RightElbow = Vector3.new(0, 0, math.rad(60)),
+	Neck = Vector3.new(math.rad(38), 0, 0),
+	Waist = Vector3.new(math.rad(18), 0, 0),
+	LeftShoulder = Vector3.new(math.rad(15), 0, math.rad(-130)),
+	RightShoulder = Vector3.new(math.rad(15), 0, math.rad(130)),
+	["Left Shoulder"] = Vector3.new(math.rad(15), 0, math.rad(-130)),
+	["Right Shoulder"] = Vector3.new(math.rad(15), 0, math.rad(130)),
+	LeftElbow = Vector3.new(0, 0, math.rad(-20)),
+	RightElbow = Vector3.new(0, 0, math.rad(20)),
 }
 local SCREAM_SECONDS = 1.1
 local screaming: { [Model]: boolean } = {}

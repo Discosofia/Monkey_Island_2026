@@ -119,17 +119,18 @@ local function bandagePose(t: number, around: boolean): { [string]: any }
 	}
 end
 
--- Grito de guerra: cabeza y pecho atrás, brazos abiertos con los antebrazos arriba (la misma pose
--- que hacía AbilityFxController por código, medida igual). "tremble" -1/0/1 la hace temblar.
+-- Grito de guerra: brazos en alto en V, cabeza muy atrás y pecho fuera, gritando al cielo (con los
+-- brazos en cruz y los antebrazos arriba parecía encogerse de hombros). "tremble" -1/0/1 la hace
+-- temblar. AbilityFxController (SCREAM_POSE) hace la misma pose por código mientras no se publique.
 local function warCryPose(t: number, tremble: number): { [string]: any }
 	return {
 		t = t,
-		Head = { 28 + 3 * tremble, 0, 0 },
-		UpperTorso = { 14 + 2 * tremble, 0, 0 },
-		RightUpperArm = { 0, 0, 80 + 3 * tremble },
-		LeftUpperArm = { 0, 0, -80 - 3 * tremble },
-		RightLowerArm = { 0, 0, 60 },
-		LeftLowerArm = { 0, 0, -60 },
+		Head = { 38 + 3 * tremble, 0, 0 },
+		UpperTorso = { 18 + 2 * tremble, 0, 0 },
+		RightUpperArm = { 15, 0, 130 + 3 * tremble },
+		LeftUpperArm = { 15, 0, -130 - 3 * tremble },
+		RightLowerArm = { 0, 0, 20 },
+		LeftLowerArm = { 0, 0, -20 },
 	}
 end
 
@@ -171,19 +172,19 @@ local function chargePose(t: number, marker: string?): { [string]: any }
 	}
 end
 
--- Torbellino: agachado, piernas abiertas y brazos extendidos a los lados (el arma, en la derecha,
--- barre alrededor mientras gira). "open" sube un poco los brazos: vaivén del bucle.
+-- Torbellino: agachado y con las piernas abiertas, el tronco girado con el brazo del arma (derecho)
+-- por delante abriendo el barrido y el otro detrás, como un tajo circular (con los brazos rectos en
+-- cruz parecía la pose en T de Roblox). "open" abre un poco más el giro: vaivén del bucle.
 local function whirlPose(t: number, open: boolean): { [string]: any }
-	local arm = if open then 88 else 80
 	return {
 		t = t,
 		LowerTorso = { 0, 0, 0, 0, -0.25, 0 },
-		UpperTorso = { if open then -8 else -4, 0, 0 },
-		Head = { if open then 5 else 0, 0, 0 },
-		RightUpperArm = { 10, 0, arm },
-		RightLowerArm = { 0, 0, 5 },
-		LeftUpperArm = { 10, 0, -arm },
-		LeftLowerArm = { 0, 0, -5 },
+		UpperTorso = { -8, if open then 28 else 22, 0 },
+		Head = { 5, if open then -20 else -15, 0 },
+		RightUpperArm = { if open then 40 else 34, 0, 72 },
+		RightLowerArm = { 15, 0, 0 },
+		LeftUpperArm = { -25, 0, if open then -75 else -68 },
+		LeftLowerArm = { 10, 0, 0 },
 		RightUpperLeg = { 30, 0, 12 },
 		RightLowerLeg = { -55, 0, 0 },
 		RightFoot = { 25, 0, -12 },
