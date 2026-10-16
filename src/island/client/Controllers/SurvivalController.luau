@@ -20,6 +20,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Stamina = require(script.Parent.Parent.Stamina)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local SPRINT_ACTION = "Sprint"
 local EAT_ACTION = "Eat"
@@ -53,6 +54,7 @@ local function createDrinkPrompt(): (BasePart, ProximityPrompt)
 	prompt.Enabled = false
 	prompt.Parent = anchor
 	prompt.Triggered:Connect(function()
+		BodyAnimations.play("Consume")
 		Remotes.Drink:FireServer()
 	end)
 	return anchor, prompt
@@ -131,6 +133,7 @@ function SurvivalController:Start()
 		if show ~= eatBound then
 			eatBound = show
 			bindButton(EAT_ACTION, "Comer", show, function()
+				BodyAnimations.play("Consume")
 				Remotes.Eat:FireServer()
 			end, Enum.KeyCode.G, Enum.KeyCode.DPadLeft)
 		end

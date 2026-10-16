@@ -6,15 +6,19 @@
 --   - Desactiva "Reiniciar personaje" del menú de Roblox, que permitiría saltarse estos estados.
 
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local Aim = require(script.Parent.Parent.Aim)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local MARK_ACTION = "SpiritMark"
 
@@ -80,9 +84,48 @@ function LifeController:Start()
 		local state = LifeState.get(player)
 		setMarking(state == "Spirit")
 		banner.Visible = state ~= "Alive"
+		-- Caído: tumbado, se arrastra (Data/PlayerAnimations "Crawl").
+		if state == "Downed" then
+			if not BodyAnimations.isPlaying("Crawl") then
+				BodyAnimations.play("Crawl", 0)
+			end
+		else
+			BodyAnimations.stop("Crawl")
+		end
 	end
 	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(refresh)
 	refresh()
+
+	-- Arrastrándose, brazos y piernas van al ritmo al que se mueve; quieto, se queda tumbado.
+	RunService.Heartbeat:Connect(function()
+		if not BodyAnimations.isPlaying("Crawl") then
+			return
+		end
+		local character = player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if root and root:IsA("BasePart") then
+			local velocity = root.AssemblyLinearVelocity
+			local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+			BodyAnimations.setSpeed("Crawl", math.clamp(speed / Config.Life.CrawlSpeed, 0, 1.5))
+		end
+	end)
+
+	-- Reanimar a un aliado: de rodillas mientras se mantiene pulsado su aviso.
+	ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+		if prompt.Name == "RevivePrompt" then
+			BodyAnimations.play("Revive")
+		end
+	end)
+	ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt)
+		if prompt.Name == "RevivePrompt" then
+			BodyAnimations.stop("Revive")
+		end
+	end)
+	ProximityPromptService.PromptTriggered:Connect(function(prompt)
+		if prompt.Name == "RevivePrompt" then
+			BodyAnimations.stop("Revive")
+		end
+	end)
 
 	local function secondsUntil(attribute: string): number
 		local endsAt = player:GetAttribute(attribute)

@@ -28,6 +28,7 @@ local AbilityFxController = require(script.Parent.AbilityFxController)
 local ComboController = require(script.Parent.ComboController)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local KEYS = { Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V }
 local KEY_NAMES = { "Z", "X", "C", "V" }
@@ -220,6 +221,8 @@ local function useAbility(player: Player, slot: number)
 		spin(humanoid, root, seconds)
 		AbilityFxController.play("Whirlwind", character, seconds)
 	end
+	-- Gesto del cuerpo (pisotón, lanzar, agacharse…), si la habilidad tiene (Data/PlayerAnimations).
+	BodyAnimations.playAbility(ability.id)
 	lastSentAt[slot] = os.clock()
 	Remotes.UseAbility:FireServer(slot, aim, from, to)
 end

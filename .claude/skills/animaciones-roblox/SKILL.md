@@ -85,6 +85,8 @@ local SPEC = {
 - Cada pose es `{ x, y, z }` en grados: los de `CFrame.Angles`, en el espacio de la pieza de la
   que cuelga. Con desplazamiento: `{ x, y, z, px, py, pz }` en studs (evítalo en los monos: no se
   escala con la especie). Para el easing de una sola pose: `{ 80, 0, 0, easing = "Bounce" }`.
+- **Un fotograma vacío no mantiene la pose**: no tiene poses, así que Roblox interpola entre sus
+  vecinos como si no estuviera. Para una pausa, repite la pose entera en los dos fotogramas.
 - `reposo = true` pone a 0 todas las piezas animadas que ese fotograma no nombra. **Sin `reposo`,
   una pieza que no aparece no tiene pose** en ese fotograma y Roblox la interpola entre los de
   alrededor (útil para que la cabeza siga su camino mientras el brazo hace otra cosa).

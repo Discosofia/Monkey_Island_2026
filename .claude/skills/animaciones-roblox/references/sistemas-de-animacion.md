@@ -17,6 +17,7 @@ juego para que lo nuevo encaje con el código que las usa.
 |---|---|---|---|---|
 | Monos y jefes | KeyframeSequence publicada | Hechas a mano en el Animation Editor (en el place: `ServerStorage.RBX_ANIMSAVES.RigMono`) | `src/shared/Data/MonkeyAnimations.luau` | `src/island/server/Monkeys/MonkeyAnimator.luau` (servidor) |
 | Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/island/client/Controllers/WeaponController.luau` (cliente) |
+| Cuerpo del jugador sin armas (gestos de habilidades, comer, beber, curarse, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/island/client/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `SurvivalController`, `HealController` y `LifeController` |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
 | Mascotas (Lobby e Isla) | Por código, cada fotograma (senos) | `src/shared/PetModels.luau` (`joint(...)` en cada constructor) | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate`; lo arrancan los `PetController` de los dos places |
 | Poses de habilidades (grito de guerra) | Por código, girando articulaciones | `src/island/client/Controllers/AbilityFxController.luau` (`poseJoint`) | — | `AbilityFxController` |
@@ -134,6 +135,25 @@ proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prior
   ese id temporalmente (díselo; no lo dejes vacío al cerrar).
 - Tras publicar, el id nuevo va en `Data/WeaponAnimations` (con el mismo `fxDelay` si el golpe no
   se movió).
+
+### Cuerpo del jugador sin armas
+
+`PlayerAnimationBuilder` genera desde specs (mismo formato que `MonkeyAnimationBuilder`, con
+`MonkeyAnimationBuilder.sequence(spec, PARENT_R15)`) los gestos de `Data/PlayerAnimations`:
+`Quake`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3) y `Crawl`, `Revive`
+(Action4, en bucle). `build()` los deja en `ReplicatedStorage.PlayerAnimations` y, como las armas,
+en Studio se usan mientras el id esté vacío. `Data/PlayerAnimations.Abilities` dice qué gesto lleva
+cada habilidad de `Data/Roles`.
+- **En el jugador sí valen los desplazamientos** (`{ x, y, z, px, py, pz }`): todos los personajes
+  miden lo mismo. Agacharse, arrodillarse o tumbarse baja `LowerTorso` (el suelo queda 3,19 studs
+  bajo la raíz; tumbado, −1,55 con X −80).
+- **Signos en el R15**: brazo o muslo hacia delante con X+; el codo se dobla con X+ y la rodilla
+  con X−; el torso se inclina hacia delante con X−. Con el codo doblado, abrir el hombro en Z apenas
+  mueve la mano: para llevarla al centro (a la boca) gira el brazo en Y (+ en el derecho).
+- **Medir**: `Anim.measure(Anim.playerRig("R15"), ks)` da manos, espinillas y pies respecto al
+  suelo y dónde quedan la mano derecha y la cabeza (alto, delante y a qué lado).
+- Las acciones se aplican al instante en el servidor: el momento fuerte llega pronto (el pisotón
+  pisa a 0,2 s). Los gestos que solo mueven tronco y brazos dejan las piernas andando.
 
 ## 4. Animaciones por código
 

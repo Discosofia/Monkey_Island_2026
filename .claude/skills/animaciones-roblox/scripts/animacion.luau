@@ -776,9 +776,23 @@ end
 
 local LIMB_GROUPS = { "Torso", "Head", "Right Arm", "Left Arm", "Right Leg", "Left Leg", "Tail" }
 
+-- En el R15 del jugador cada pieza va por su cuenta: se miden manos, pies, espinillas (rodillas en
+-- el suelo) y la cabeza.
+local R15_GROUPS = { "LowerTorso", "Head", "RightHand", "LeftHand", "RightLowerLeg", "LeftLowerLeg", "RightFoot", "LeftFoot" }
+
 -- Pieza articulada (de LIMB_GROUPS) a la que va pegada cada pieza visible, siguiendo las
 -- WeldConstraint de MonkeyModels (antebrazo → brazo, pie → muslo, punta de la cola → cola…).
 local function limbGroups(rig: Model): { [string]: { BasePart } }
+	if rig:FindFirstChild("LowerTorso") then
+		local groups: { [string]: { BasePart } } = {}
+		for _, name in R15_GROUPS do
+			local part = rig:FindFirstChild(name)
+			if part and part:IsA("BasePart") then
+				groups[name] = { part }
+			end
+		end
+		return groups
+	end
 	local owner: { [BasePart]: BasePart } = {}
 	for _, weld in rig:GetDescendants() do
 		if weld:IsA("WeldConstraint") and weld.Part0 and weld.Part1 then
@@ -805,7 +819,8 @@ end
 -- respecto al suelo en reposo (negativo = se hunde; un brazo a 1,2 está levantado), la altura de la
 -- punta de la cola y la altura y el avance de la cabeza. Devuelve texto, una línea por instante.
 -- Abreviaturas: BD/BI brazo derecho/izquierdo, PD/PI pierna. Torso, cabeza y cola solo salen si
--- tocan el suelo.
+-- tocan el suelo. Con el R15 del jugador: MD/MI manos, ED/EI espinillas, PD/PI pies, y dónde
+-- quedan la mano derecha y la cabeza.
 function Anim.measure(rig: Model, source: any, times: { number }?): string
 	local copy = rig:Clone()
 	copy:PivotTo(CFrame.new(ORIGIN + Vector3.new(0, 200, 400)))
@@ -836,13 +851,25 @@ function Anim.measure(rig: Model, source: any, times: { number }?): string
 			end
 		end
 	end
-	local short = { ["Right Arm"] = "BD", ["Left Arm"] = "BI", ["Right Leg"] = "PD", ["Left Leg"] = "PI" }
+	local short = {
+		["Right Arm"] = "BD",
+		["Left Arm"] = "BI",
+		["Right Leg"] = "PD",
+		["Left Leg"] = "PI",
+		RightHand = "MD",
+		LeftHand = "MI",
+		RightLowerLeg = "ED",
+		LeftLowerLeg = "EI",
+		RightFoot = "PD",
+		LeftFoot = "PI",
+	}
+	local order = if copy:FindFirstChild("LowerTorso") then R15_GROUPS else LIMB_GROUPS
 	local rows = {}
 	for _, time in list :: { number } do
 		Anim.poseAt(copy, time)
 		local result = lows()
 		local entries = {}
-		for _, group in LIMB_GROUPS do
+		for _, group in order do
 			local value = result[group]
 			if value then
 				value -= floorY
@@ -857,6 +884,11 @@ function Anim.measure(rig: Model, source: any, times: { number }?): string
 		if tailTip then
 			local tip = root.CFrame:PointToObjectSpace(tailTip.Position)
 			table.insert(entries, string.format("cola(alto %.1f, atrás %.1f)", tip.Y - base, tip.Z))
+		end
+		local hand = copy:FindFirstChild("RightHand") :: BasePart?
+		if hand then
+			local at = root.CFrame:PointToObjectSpace(hand.Position)
+			table.insert(entries, string.format("manoD(alto %.1f, delante %.1f, lado %.1f)", at.Y - base, -at.Z, at.X))
 		end
 		local head = copy:FindFirstChild("Head") :: BasePart?
 		if head then

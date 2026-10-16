@@ -11,6 +11,7 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local ACTION = "UseHeal"
 local ANTIDOTE_ID = "Antidote"
@@ -48,6 +49,7 @@ function HealController:Start()
 		if shouldBind then
 			ActionButtons.bind(ACTION, "Curar", function(_, state: Enum.UserInputState)
 				if state == Enum.UserInputState.Begin then
+					BodyAnimations.play("Bandage")
 					Remotes.UseBandage:FireServer()
 				end
 				return Enum.ContextActionResult.Sink

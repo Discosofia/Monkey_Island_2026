@@ -63,13 +63,13 @@ local RESERVED: { [string]: boolean } = { t = true, reposo = true, marcador = tr
 local MonkeyAnimationBuilder = {}
 
 -- Piezas que anima un spec (las que aparecen en algún fotograma).
-local function animatedParts(spec: Spec): { string }
+local function animatedParts(spec: Spec, parents: { [string]: string }): { string }
 	local seen: { [string]: boolean } = {}
 	local list: { string } = {}
 	for _, frame in spec.keyframes do
 		for key, value in frame do
 			if not RESERVED[key] and type(value) == "table" and not seen[key] then
-				assert(PARENT[key], `[MonkeyAnimationBuilder] {spec.name}: "{key}" no es una pieza del rig`)
+				assert(parents[key], `[MonkeyAnimationBuilder] {spec.name}: "{key}" no es una pieza del rig`)
 				seen[key] = true
 				table.insert(list, key)
 			end
@@ -81,8 +81,12 @@ end
 
 -- Convierte un spec en KeyframeSequence. Las poses que solo dan la jerarquía (la raíz, el torso sin
 -- animar) llevan peso 0: no tocan esa articulación (así las piernas siguen andando bajo un Attack).
-function MonkeyAnimationBuilder.sequence(spec: Spec): KeyframeSequence
-	local parts = animatedParts(spec)
+-- "parents" es la jerarquía del rig (por defecto, la de los monos; PlayerAnimationBuilder pasa la
+-- del R15). Una pose { x, y, z, px, py, pz } lleva además un desplazamiento en studs: solo para el
+-- jugador, que mide siempre lo mismo (en los monos no se escalaría con la especie).
+function MonkeyAnimationBuilder.sequence(spec: Spec, parents: { [string]: string }?): KeyframeSequence
+	local hierarchy = parents or PARENT
+	local parts = animatedParts(spec, hierarchy)
 	local sequence = Instance.new("KeyframeSequence")
 	sequence.Name = spec.name
 	sequence.Loop = spec.loop == true
@@ -100,7 +104,7 @@ function MonkeyAnimationBuilder.sequence(spec: Spec): KeyframeSequence
 			pose.Name = name
 			pose.Weight = 0
 			poses[name] = pose
-			local parentName = PARENT[name]
+			local parentName = hierarchy[name]
 			if parentName then
 				poseOf(parentName):AddSubPose(pose)
 			else
@@ -116,7 +120,8 @@ function MonkeyAnimationBuilder.sequence(spec: Spec): KeyframeSequence
 			local pose = poseOf(name)
 			pose.Weight = 1
 			if value then
-				pose.CFrame = CFrame.Angles(math.rad(value[1] or 0), math.rad(value[2] or 0), math.rad(value[3] or 0))
+				pose.CFrame = CFrame.new(value[4] or 0, value[5] or 0, value[6] or 0)
+					* CFrame.Angles(math.rad(value[1] or 0), math.rad(value[2] or 0), math.rad(value[3] or 0))
 			end
 			pose.EasingStyle = (Enum.PoseEasingStyle :: any)[frame.easing or spec.easing or "Linear"]
 			pose.EasingDirection = (Enum.PoseEasingDirection :: any)[frame.direction or spec.direction or "In"]
