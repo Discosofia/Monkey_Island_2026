@@ -218,6 +218,12 @@ la animación es la misma a efectos prácticos.
 - **`"Tail" no es una pieza articulada del rig`** → los simios (gorila, chimpancé, orangután) y el
   gibón no tienen cola: quítala de sus specs.
 - **`screen_capture` da timeout** → ver §3, paso 3: ventana al frente o `Anim.measure`.
+- **Probar en Play**: `start_stop_play` y `execute_luau` con `datamodel_type = "Client"` sirven para
+  comprobar que una animación carga y suena (`require` del módulo del cliente desde
+  `PlayerScripts`). Las teclas de `user_keyboard_input` no llegan si la ventana de Studio no tiene
+  el foco (W no mueve al personaje), y un script de prueba no puede lanzar una acción de
+  `ContextActionService` (`CallFunction` pide permisos de Roblox): lo que dependa de pulsar una
+  tecla lo prueba el usuario. Para la partida al terminar.
 - **Una función de un módulo de `ServerStorage.Tools` falla con `attempt to index nil`** → con
   `freshRequire`, el código corre en una copia que ya no tiene padre: toma `script.Parent` al
   cargar el módulo, no dentro de la función.

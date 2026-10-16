@@ -11,6 +11,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stamina = require(script.Parent.Parent.Stamina)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local ACTION = "Dodge"
 
@@ -40,6 +41,9 @@ local function dodge()
 		direction = -root.CFrame.LookVector
 	end
 	direction = Vector3.new(direction.X, 0, direction.Z).Unit
+	-- Voltereta si va hacia donde mira (al andar casi siempre); si no, salto atrás.
+	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
+	BodyAnimations.play(if direction:Dot(look) > 0.3 then "DodgeRoll" else "DodgeBack")
 
 	-- Empuje horizontal durante un instante; la gravedad sigue actuando.
 	local push = Instance.new("LinearVelocity")

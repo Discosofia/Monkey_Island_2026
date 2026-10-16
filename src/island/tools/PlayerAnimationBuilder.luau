@@ -193,6 +193,60 @@ local function whirlPose(t: number, open: boolean): { [string]: any }
 	}
 end
 
+-- Voltereta: el cuerpo encogido da una vuelta entera rodando sobre su centro, no sobre la cadera
+-- (que es donde gira LowerTorso): si no, boca abajo la cabeza se hundiría 2 studs. Cada fotograma
+-- gira 45° y desplaza LowerTorso para que el centro de la bola (medido en Studio: 1,06 por delante
+-- y 0,6 por encima de la cadera) quede a "altura" del suelo:
+--   desplazamiento = (0, -2,19 + altura, -0,9) - giro(ángulo) * (0, 0,6, -1,06)
+-- Con giros de 90° entre fotogramas, el giro va en arco y el desplazamiento en recta y la cabeza se
+-- hunde entre ellos. Medida: el cuerpo va entre 0 y 0,8 sobre el suelo en toda la vuelta.
+local ROLL: { { number } } = { -- { tiempo, ángulo, desplazamiento Y, desplazamiento Z }
+	{ 0.05, -30, -0.13, 0.32 },
+	{ 0.089, -75, 0.53, -0.05 },
+	{ 0.128, -120, 1.18, -0.91 },
+	{ 0.166, -165, 0.86, -1.77 },
+	{ 0.205, -210, -0.2, -2.12 },
+	{ 0.244, -255, -1.26, -1.75 },
+	{ 0.283, -300, -1.66, -0.89 },
+	{ 0.321, -345, -1.24, -0.03 },
+	{ 0.36, -360, -0.84, 0.16 },
+}
+
+local function rollKeyframes(): { { [string]: any } }
+	local frames: { { [string]: any } } = { { t = 0, reposo = true } }
+	for index, step in ROLL do
+		table.insert(frames, {
+			t = step[1],
+			marcador = if index == 1 then "Esquiva" else nil,
+			LowerTorso = { step[2], 0, 0, 0, step[3], step[4] },
+			UpperTorso = { -50, 0, 0 },
+			Head = { -35, 0, 0 },
+			RightUpperArm = { 70, 0, -10 },
+			LeftUpperArm = { 70, 0, 10 },
+			RightLowerArm = { 90, 0, 0 },
+			LeftLowerArm = { 90, 0, 0 },
+			RightUpperLeg = { 115, 0, 0 },
+			LeftUpperLeg = { 115, 0, 0 },
+			RightLowerLeg = { -135, 0, 0 },
+			LeftLowerLeg = { -135, 0, 0 },
+		})
+	end
+	table.insert(frames, { t = 0.52, reposo = true })
+	return frames
+end
+
+-- Salto atrás: se agacha, se echa atrás en el aire con los brazos delante y cae flexionado.
+local function backHopLanding(t: number, lean: number, marker: string?): { [string]: any }
+	return legs({
+		t = t,
+		marcador = marker,
+		LowerTorso = { lean, 0, 0, 0, if marker then -0.35 else -0.3, 0 },
+		UpperTorso = { if marker then -15 else -10, 0, 0 },
+		RightUpperArm = { if marker then 20 else 40, 0, if marker then 10 else 20 },
+		LeftUpperArm = { if marker then 20 else 40, 0, if marker then -10 else -20 },
+	}, 35, -60, 25)
+end
+
 -- Comer o beber: mano a la boca (el giro en Y lleva el antebrazo al centro de la cara).
 local function mouthPose(t: number, near: boolean, head: number, marker: string?): { [string]: any }
 	return {
@@ -271,6 +325,38 @@ local SPECS: { [string]: any } = {
 		easing = "Cubic",
 		direction = "InOut",
 		keyframes = { whirlPose(0, true), whirlPose(0.25, false), whirlPose(0.5, true) },
+	},
+	-- Voltereta de la esquiva (el empuje dura 0,15 s y la invulnerabilidad 0,35 s).
+	DodgeRoll = {
+		name = "DodgeRoll",
+		easing = "Linear",
+		direction = "In",
+		keyframes = rollKeyframes(),
+	},
+	DodgeBack = {
+		name = "DodgeBack",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			backHopLanding(0.06, 0, "Esquiva"),
+			{
+				t = 0.16,
+				LowerTorso = { 15, 0, 0, 0, 0.3, 0 },
+				UpperTorso = { 5, 0, 0 },
+				Head = { -15, 0, 0 },
+				RightUpperLeg = { 30, 0, 0 },
+				LeftUpperLeg = { 20, 0, 0 },
+				RightLowerLeg = { -20, 0, 0 },
+				LeftLowerLeg = { -35, 0, 0 },
+				RightUpperArm = { 70, 0, 25 },
+				LeftUpperArm = { 70, 0, -25 },
+				RightLowerArm = { 20, 0, 0 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			backHopLanding(0.3, -5),
+			{ t = 0.5, reposo = true },
+		},
 	},
 	-- Lanza con la mano derecha al frente (bola de fuego, rayo, dardo, marcar presa). Solo el tronco
 	-- y los brazos: si anda, las piernas siguen andando.

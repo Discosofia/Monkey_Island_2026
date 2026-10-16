@@ -11,6 +11,8 @@ export type Key =
 	| "WarCry"
 	| "Charge"
 	| "Whirlwind"
+	| "DodgeRoll"
+	| "DodgeBack"
 	| "CastForward"
 	| "CastArea"
 	| "Place"
@@ -33,6 +35,10 @@ local PlayerAnimations = {
 		-- misma pose girando las articulaciones por código, que tiembla si lleva un arma en la mano.
 		WarCry = { id = "", priority = Enum.AnimationPriority.Action3 },
 		Charge = { id = "", priority = Enum.AnimationPriority.Action3 }, -- embestida con el hombro por delante
+		-- Esquiva (DodgeController): voltereta hacia delante si te mueves hacia donde miras; salto
+		-- atrás si estás quieto o vas hacia atrás.
+		DodgeRoll = { id = "", priority = Enum.AnimationPriority.Action3 },
+		DodgeBack = { id = "", priority = Enum.AnimationPriority.Action3 },
 		-- Torbellino: agachado y con los brazos abiertos, en bucle mientras RoleController lo hace girar.
 		Whirlwind = { id = "", priority = Enum.AnimationPriority.Action3, looped = true },
 		CastForward = { id = "", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente

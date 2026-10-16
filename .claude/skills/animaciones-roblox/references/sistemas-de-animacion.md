@@ -141,8 +141,9 @@ proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prior
 `PlayerAnimationBuilder` genera desde specs (mismo formato que `MonkeyAnimationBuilder`, con
 `MonkeyAnimationBuilder.sequence(spec, PARENT_R15)`) los gestos de `Data/PlayerAnimations`:
 `Quake`, `WarCry`, `Charge`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3),
-`Whirlwind` (Action3, en bucle mientras `RoleController` hace girar al guerrero) y `Crawl`, `Revive`
-(Action4, en bucle). `build()` los deja en `ReplicatedStorage.PlayerAnimations` y, como las armas,
+`Whirlwind` (Action3, en bucle mientras `RoleController` hace girar al guerrero), `DodgeRoll` y
+`DodgeBack` (la esquiva elige según vaya hacia donde mira o no) y `Crawl`, `Revive` (Action4, en
+bucle). `build()` los deja en `ReplicatedStorage.PlayerAnimations` y, como las armas,
 en Studio se usan mientras el id esté vacío. `Data/PlayerAnimations.Abilities` dice qué gesto lleva
 cada habilidad de `Data/Roles`.
 - **En el jugador sí valen los desplazamientos** (`{ x, y, z, px, py, pz }`): todos los personajes
@@ -153,6 +154,13 @@ cada habilidad de `Data/Roles`.
   mueve la mano: para llevarla al centro (a la boca) gira el brazo en Y (+ en el derecho).
 - **Medir**: `Anim.measure(Anim.playerRig("R15"), ks)` da manos, espinillas y pies respecto al
   suelo y dónde quedan la mano derecha y la cabeza (alto, delante y a qué lado).
+- **Vueltas enteras (voltereta)**: `LowerTorso` gira sobre la cadera, así que un giro de 360° tal
+  cual mete la cabeza 2 studs bajo el suelo al ir boca abajo. Para que ruede sobre el centro del
+  cuerpo encogido, mide ese centro `c` (en el espacio de la articulación Root) y en cada fotograma
+  desplaza `p = centroDeseado − giro(ángulo) · c`. Pon un fotograma cada 45° (con 90°, el giro va en
+  arco y el desplazamiento en recta, y entre fotogramas se hunde) y sube un poco la bola al ir boca
+  abajo (las esquinas de la cabeza sobresalen). Roblox interpola por el camino corto: más de 180°
+  entre dos fotogramas gira al revés. Ver `ROLL` en `PlayerAnimationBuilder`.
 - Las acciones se aplican al instante en el servidor: el momento fuerte llega pronto (el pisotón
   pisa a 0,2 s). Los gestos que solo mueven tronco y brazos dejan las piernas andando.
 
