@@ -658,7 +658,9 @@ local function toggleLine(parent: Instance, order: number, key: string, label: s
 	return switch
 end
 
-local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
+-- Va arriba del todo, encima de la vista previa: es lo que más se cambia y la vista previa enseña
+-- al momento cómo queda.
+local function buildLayoutChoice(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, "📍 Dónde salen tus números", 1)
 	text(
 		parent,
@@ -666,8 +668,10 @@ local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 		2,
 		SOFT_COLOR
 	)
-	local refreshLayout = choiceRow(parent, 3, "textLayout", Settings.LAYOUTS, Settings.LAYOUT_NAMES)
+	return choiceRow(parent, 3, "textLayout", Settings.LAYOUTS, Settings.LAYOUT_NAMES)
+end
 
+local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, "⚙️ Opciones", 4)
 	local toggleButtons: { [string]: TextButton } = {}
 	for index, toggle in TOGGLES do
@@ -688,7 +692,6 @@ local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 	local refreshSize = choiceRow(parent, 26, "comicSize", Settings.COMIC_SIZES, Settings.COMIC_SIZE_NAMES)
 
 	return function(values: Settings.Values)
-		refreshLayout(values)
 		refreshLevel(values)
 		refreshSize(values)
 		for key, switch in toggleButtons do
@@ -714,6 +717,7 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	layout.Padding = UDim.new(0, 8)
 	layout.Parent = root
 
+	local refreshLayout = buildLayoutChoice(section(root, 0))
 	local preview = buildPreview(root, player, context)
 	fillStats(section(root, 2), player, context)
 	local refreshOptions = buildOptions(section(root, 3))
@@ -722,6 +726,7 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	local shownComic = ""
 	local function apply(values: Settings.Values)
 		preview.setLayout(values.textLayout)
+		refreshLayout(values)
 		refreshOptions(values)
 		local comic = `{values.comicFx}/{values.comicLevel}/{values.comicSize}`
 		if shownComic ~= "" and comic ~= shownComic then
