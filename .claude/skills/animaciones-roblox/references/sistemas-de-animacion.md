@@ -20,7 +20,7 @@ juego para que lo nuevo encaje con el código que las usa.
 | Cuerpo del jugador sin armas (gestos de habilidades, comer, beber, curarse, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/island/client/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `SurvivalController`, `HealController` y `LifeController` |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
 | Mascotas (Lobby e Isla) | Por código, cada fotograma (senos) | `src/shared/PetModels.luau` (`joint(...)` en cada constructor) | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate`; lo arrancan los `PetController` de los dos places |
-| Poses de habilidades (grito de guerra) | Por código, girando articulaciones | `src/island/client/Controllers/AbilityFxController.luau` (`poseJoint`) | — | `AbilityFxController` |
+| Pose del grito de guerra, de respaldo | Por código, girando articulaciones (solo si la animación `WarCry` no existe) | `src/island/client/Controllers/AbilityFxController.luau` (`scream`, `poseJoint`) | — | `AbilityFxController` |
 
 ## 2. Monos y jefes
 
@@ -140,7 +140,7 @@ proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prior
 
 `PlayerAnimationBuilder` genera desde specs (mismo formato que `MonkeyAnimationBuilder`, con
 `MonkeyAnimationBuilder.sequence(spec, PARENT_R15)`) los gestos de `Data/PlayerAnimations`:
-`Quake`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3) y `Crawl`, `Revive`
+`Quake`, `WarCry`, `CastForward`, `CastArea`, `Place`, `Consume`, `Bandage` (Action3) y `Crawl`, `Revive`
 (Action4, en bucle). `build()` los deja en `ReplicatedStorage.PlayerAnimations` y, como las armas,
 en Studio se usan mientras el id esté vacío. `Data/PlayerAnimations.Abilities` dice qué gesto lleva
 cada habilidad de `Data/Roles`.
@@ -187,11 +187,15 @@ en el Studio que esté abierto en modo edición.
   Reparte los instantes en un periodo: `2π / velocidad` segundos. Las mascotas son pequeñas: para
   ver el detalle usa la cámara de cada fotograma.
 
-**Poses de habilidades (`AbilityFxController`).** El grito de guerra gira articulaciones por código
+**Poses por código (`AbilityFxController`).** El grito de guerra giraba articulaciones por código
 (`Motor6D.C0` o el `Attachment0` de los `AnimationConstraint`). Eso solo funciona en articulaciones
 que ninguna animación esté moviendo: con un arma en la mano, Roblox reproduce `toolnone` sobre el
 brazo y el brazo **tiembla**. Las poses del brazo que sujeta un arma (o de cualquier articulación
-animada) tienen que ser KeyframeSequence, como los disparos de `WeaponAnimationBuilder`.
+animada) tienen que ser KeyframeSequence, como los disparos de `WeaponAnimationBuilder`. Por eso el
+grito es ahora la animación `WarCry` (`PlayerAnimationBuilder`, la misma pose medida igual) y la
+pose por código queda de respaldo mientras la animación no exista: `BodyAnimations.has("WarCry")`
+da lo mismo en todos los clientes y decide cuál se usa. **Nunca las dos a la vez**: el giro del
+`C0` y el de la animación se suman y la pose saldría el doble de exagerada.
 
 ## 5. Piezas del R15
 

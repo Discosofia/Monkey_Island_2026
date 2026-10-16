@@ -84,6 +84,12 @@ local function track(key: PlayerAnimations.Key): AnimationTrack?
 	return loaded
 end
 
+-- true si "key" se puede reproducir (tiene id publicado o, en Studio, secuencia generada). Da lo
+-- mismo en todos los clientes: AbilityFxController lo usa para no duplicar la pose del grito.
+function BodyAnimations.has(key: PlayerAnimations.Key): boolean
+	return animationId(key) ~= nil
+end
+
 -- Reproduce "key" desde el principio. Las de bucle (Crawl, Revive) siguen hasta stop().
 function BodyAnimations.play(key: PlayerAnimations.Key, speed: number?)
 	local loaded = track(key)

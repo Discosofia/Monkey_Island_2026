@@ -31,6 +31,7 @@ local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
+local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
@@ -710,12 +711,17 @@ local function weaponShotFx(character: Model?, projectile: string?)
 end
 
 -- Grito de guerra: pose de grito, brillo rojo fuerte que se queda suave mientras dura y ondas rojas.
+-- La pose es la animación "WarCry" (Data/PlayerAnimations), que reproduce el cliente del guerrero y
+-- ven todos; solo si aún no existe se hace aquí por código (scream), que tiembla con un arma en la
+-- mano. Nunca las dos: se sumarían.
 local function warCry(character: Model?, seconds: number)
 	local root = rootOf(character)
 	if not (character and root) then
 		return
 	end
-	scream(character)
+	if not BodyAnimations.has("WarCry") then
+		scream(character)
+	end
 	local old = character:FindFirstChild("WarCryGlow")
 	if old then
 		old:Destroy()

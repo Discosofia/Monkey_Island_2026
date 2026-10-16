@@ -6,7 +6,7 @@
 -- publicado de cada una. Mientras un id esté vacío, en Studio se usa la secuencia generada
 -- (ReplicatedStorage.PlayerAnimations); en el juego publicado, esa animación no se reproduce.
 
-export type Key = "Quake" | "CastForward" | "CastArea" | "Place" | "Consume" | "Bandage" | "Crawl" | "Revive"
+export type Key = "Quake" | "WarCry" | "CastForward" | "CastArea" | "Place" | "Consume" | "Bandage" | "Crawl" | "Revive"
 
 export type PlayerAnimation = {
 	id: string,
@@ -18,6 +18,9 @@ local PlayerAnimations = {
 	-- Por encima de sujetar el arma (Hold, Action) y de los disparos (Action2).
 	Animations = {
 		Quake = { id = "", priority = Enum.AnimationPriority.Action3 }, -- pisotón del guerrero
+		-- Grito de guerra. Mientras no exista (id vacío fuera de Studio), AbilityFxController hace la
+		-- misma pose girando las articulaciones por código, que tiembla si lleva un arma en la mano.
+		WarCry = { id = "", priority = Enum.AnimationPriority.Action3 },
 		CastForward = { id = "", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente
 		CastArea = { id = "", priority = Enum.AnimationPriority.Action3 }, -- brazos arriba y abiertos abajo
 		Place = { id = "", priority = Enum.AnimationPriority.Action3 }, -- se agacha a dejar algo en el suelo
@@ -28,10 +31,10 @@ local PlayerAnimations = {
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles (las que mueven al personaje por sí mismas, como la
-	-- Embestida, el Torbellino o el Parpadeo, no llevan; el Grito de guerra tiene su pose en
-	-- AbilityFxController).
+	-- Embestida, el Torbellino o el Parpadeo, no llevan).
 	Abilities = {
 		Quake = "Quake",
+		WarCry = "WarCry",
 		MultiShot = "CastForward",
 		MarkPrey = "CastForward",
 		Trap = "Place",

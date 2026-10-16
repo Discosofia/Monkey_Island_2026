@@ -119,6 +119,36 @@ local function bandagePose(t: number, around: boolean): { [string]: any }
 	}
 end
 
+-- Grito de guerra: cabeza y pecho atrás, brazos abiertos con los antebrazos arriba (la misma pose
+-- que hacía AbilityFxController por código, medida igual). "tremble" -1/0/1 la hace temblar.
+local function warCryPose(t: number, tremble: number): { [string]: any }
+	return {
+		t = t,
+		Head = { 28 + 3 * tremble, 0, 0 },
+		UpperTorso = { 14 + 2 * tremble, 0, 0 },
+		RightUpperArm = { 0, 0, 80 + 3 * tremble },
+		LeftUpperArm = { 0, 0, -80 - 3 * tremble },
+		RightLowerArm = { 0, 0, 60 },
+		LeftLowerArm = { 0, 0, -60 },
+	}
+end
+
+local function warCryKeyframes(): { { [string]: any } }
+	local frames: { { [string]: any } } = { { t = 0, reposo = true } }
+	local first = warCryPose(0.12, 0)
+	first.marcador = "Grito"
+	table.insert(frames, first)
+	-- Temblor de unos 15 golpes por segundo mientras grita.
+	local tremble, t = 1, 0.18
+	while t < 0.82 do
+		table.insert(frames, warCryPose(t, tremble))
+		tremble, t = -tremble, t + 0.065
+	end
+	table.insert(frames, warCryPose(0.85, 0))
+	table.insert(frames, { t = 1.1, reposo = true })
+	return frames
+end
+
 -- Comer o beber: mano a la boca (el giro en Y lleva el antebrazo al centro de la cara).
 local function mouthPose(t: number, near: boolean, head: number, marker: string?): { [string]: any }
 	return {
@@ -172,6 +202,13 @@ local SPECS: { [string]: any } = {
 			}, 40, -62, 30),
 			{ t = 0.75, reposo = true },
 		},
+	},
+	-- Grito de guerra (dura lo que la pose que hacía AbilityFxController, 1,1 s).
+	WarCry = {
+		name = "WarCry",
+		easing = "Cubic",
+		direction = "InOut",
+		keyframes = warCryKeyframes(),
 	},
 	-- Lanza con la mano derecha al frente (bola de fuego, rayo, dardo, marcar presa). Solo el tronco
 	-- y los brazos: si anda, las piernas siguen andando.
