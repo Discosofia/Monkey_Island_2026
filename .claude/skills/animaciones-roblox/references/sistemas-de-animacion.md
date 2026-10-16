@@ -19,7 +19,7 @@ juego para que lo nuevo encaje con el código que las usa.
 | Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/island/client/Controllers/WeaponController.luau` (cliente) |
 | Cuerpo del jugador sin armas (gestos de habilidades, esquivar, comer, beber, curarse, construir, fabricar, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/island/client/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `DodgeController`, `SurvivalController`, `HealController`, `BuildController`, `CraftingController` y `LifeController` |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
-| Mascotas (Lobby e Isla) | Por código, cada fotograma (senos) | `src/shared/PetModels.luau` (`joint(...)` en cada constructor) | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate`; lo arrancan los `PetController` de los dos places |
+| Mascotas (Lobby e Isla) | Por código, cada fotograma: senos (`joint`) y, encima, clips con fotogramas clave (`CLIPS`) | `src/shared/PetModels.luau` | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate` y decide qué clip suena; lo arrancan los `PetController` de los dos places |
 | Pose del grito de guerra, de respaldo | Por código, girando articulaciones (solo si la animación `WarCry` no existe) | `src/island/client/Controllers/AbilityFxController.luau` (`scream`, `poseJoint`) | — | `AbilityFxController` |
 
 ## 2. Monos y jefes
@@ -182,7 +182,22 @@ en el Studio que esté abierto en modo edición.
   constructor: articula todas las piezas cuyo centro (sin escalar) cumple el filtro y que no se
   movían ya. Cada pieza solo admite **una** articulación (`animate` no las suma): si una pieza ya se
   mueve (la antena del X-7), pon la bisagra nueva sobre ella para que no se despegue.
-- La rana salta con `|sin(reloj * 6)|` en `PetFollowers`; sus patas usan velocidad 12 y fase −π/2
+- **Clips** (`CLIPS` en `PetModels`): posturas con fotogramas clave que se suman a los senos, por
+  familia (`rig.family`: `Cat`, `X7`, `Bird`) y por mascota (`CLIPS.Ocelote`). Mueven **huesos**
+  (`joint(...).bone`, o el último parámetro de `swingRegion`): en el felino `Body` (la mascota entera,
+  alrededor de `around`, con desplazamiento), `Head`, `Tail` (cola encadenada por tramos: girar
+  todos lo mismo la enrosca y las ondas la recorren con retraso), `FL`/`FR`/`BL`/`BR` y sus tramos de
+  abajo `FL2`…; en el X-7 `ArmL`/`ArmR`/`LegL`/`LegR`/`Head`; en las aves `WingL`/`WingR`. Giros en
+  grados con `CFrame.fromEulerAnglesYXZ` (primero gira a un lado, luego cabecea). Un fotograma puede
+  llevar `gait` (cuánto andan las patas), `amp` (factor del seno de un hueso: 0 lo para) y `waves`
+  (`{ x = 7, speed = 16 }`, ondas que se suman). Nombres que usa `PetFollowers`: `Idle…` (rutinas de
+  reposo al azar con el dueño quieto; `IdleRub` además da la vuelta a sus piernas), `Attack` (0,85 s,
+  golpe a 0,35 s), `Run` (galope cuando el dueño esprinta, con el reloj de las zancadas) y `Glide`
+  (aves planeando). Se ven con `PetModels.animate(model, t, 0, { { clip = "IdleGroom", time = t,
+  weight = 1 } }, t)` dentro de `Anim.showCode`.
+- Las patas que andan (`gait`) usan el reloj de las zancadas (`stride`), que va al paso del dueño o
+  de lo que se mueve la propia mascota.
+- La rana salta con `|sin(zancadas * 6)|` en `PetFollowers`; sus patas usan velocidad 12 y fase −π/2
   para patalear en el aire. Los dos usan el mismo reloj (`follower.clock`).
 - **Un seno va igual de lejos hacia los dos lados**: si una pata baja en el aire, sube lo mismo al
   caer (en la rana parecía una aleta levantada). Para que solo vaya hacia un lado, pasa a `joint` el

@@ -25,9 +25,42 @@ type Joint = {
 	gait: boolean, -- solo se mueve mientras el dueño anda
 	bias: number, -- se suma al seno: con bias = amplitude, el giro va de 0 a 2 * amplitude (nunca al revés)
 	parent: Joint?, -- articulación encadenada (rodilla, codo): primero gira con la de arriba
+	bone: string?, -- nombre con el que la mueven los clips (ver CLIPS): "Head", "Tail", "FL", "WingL"…
+	lag: number, -- puesto en una cadena (la cola): las ondas de los clips le llegan con este retraso
+	world: CFrame, -- giro de este fotograma respecto al pivote (lo usan las que cuelgan de ella)
 }
 
-type Rig = { model: Model, scale: number, joints: { Joint } }
+-- Clips: posturas con fotogramas clave que se suman a los senos de las articulaciones (sentarse,
+-- tumbarse, el ataque de cada mascota). Cada fotograma da, en grados, el giro de cada hueso sobre su
+-- bisagra ({ x, y, z }, con CFrame.fromEulerAnglesYXZ); "Body" mueve la mascota entera alrededor de "around"
+-- ({ x, y, z, px, py, pz }, desplazamiento en studs sin escalar). Un hueso que no aparece en un
+-- fotograma está en reposo en él. Además:
+--   gait   cuánto andan las patas (0 a 1) en vez de lo que anda el dueño (andar alrededor de él)
+--   amp    { [hueso] = factor } de su seno de siempre (0 = quieto: las patas mientras salta)
+--   waves  { [hueso] = { x?, y?, z?, px?, py?, pz?, speed = rad/s, phase = rad, lag = rad } }: ondas
+--          que se suman a la pose (lamerse, la cola que barre el suelo); en una cadena, cada tramo
+--          la recibe "lag" radianes más tarde, y la cola ondula
+--   linear el tramo que sale de este fotograma va a velocidad constante (por defecto, suave)
+type Key = { [string]: any }
+export type Clip = { length: number, loop: boolean?, around: Vector3?, keys: { Key } }
+-- Un clip sonando: su nombre, su tiempo y su peso (0 a 1, para entrar y salir sin saltos).
+export type Layer = { clip: string, time: number, weight: number }
+
+type Rig = {
+	model: Model,
+	scale: number,
+	joints: { Joint },
+	family: string?, -- familia de clips (CLIPS)
+	dims: { [string]: any }?, -- medidas que necesitan sus clips
+}
+type Animated = {
+	joints: { Joint },
+	statics: { BasePart },
+	rest: { CFrame }, -- de cada pieza fija, respecto al pivote
+	clips: { [string]: Clip },
+	scale: number,
+	bodyMoved: boolean,
+}
 
 local WHITE = Color3.fromRGB(245, 245, 238)
 local BLACK = Color3.fromRGB(22, 22, 26)
@@ -35,7 +68,7 @@ local CREAM = Color3.fromRGB(235, 215, 175)
 -- Gira un cilindro (eje X) para ponerlo de pie.
 local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2)
 
-local rigs: { [Model]: { Joint } } = {}
+local rigs: { [Model]: Animated } = {}
 
 local PetModels = {}
 
@@ -111,6 +144,8 @@ local function joint(
 		gait = gait,
 		bias = bias or 0,
 		parent = parent,
+		lag = 0,
+		world = CFrame.identity,
 	}
 	table.insert(rig.joints, item)
 	return item
@@ -118,7 +153,8 @@ end
 
 -- Articula sobre "hinge" todas las piezas ya creadas cuyo centro (sin escalar) cumple "inside" y que
 -- no se mueven ya por su cuenta: la cabeza entera con sus ojos, bigotes y orejas, o la cola con sus
--- plumas. Llamar al final del constructor, cuando ya están todas las piezas.
+-- plumas. Llamar al final del constructor, cuando ya están todas las piezas. Devuelve sus
+-- articulaciones (para darles un hueso).
 local function swingRegion(
 	rig: Rig,
 	hinge: Vector3,
@@ -127,17 +163,22 @@ local function swingRegion(
 	speed: number,
 	phase: number,
 	gait: boolean,
-	inside: (position: Vector3) -> boolean
-)
+	inside: (position: Vector3) -> boolean,
+	bone: string?
+): { Joint }
 	local moving: { [BasePart]: boolean } = {}
 	for _, item in rig.joints do
 		moving[item.part] = true
 	end
+	local added: { Joint } = {}
 	for _, part in rig.model:GetChildren() do
 		if part:IsA("BasePart") and part.Name ~= "Root" and not moving[part] and inside(part.Position / rig.scale) then
-			joint(rig, part, CFrame.new(hinge), axis, amplitude, speed, phase, gait)
+			local item = joint(rig, part, CFrame.new(hinge), axis, amplitude, speed, phase, gait)
+			item.bone = bone
+			table.insert(added, item)
 		end
 	end
+	return added
 end
 
 -- Óvalo alargado entre dos puntos (brazos, muslos): sus extremos redondos tapan las juntas. De
@@ -262,8 +303,10 @@ local function legs(
 	end
 end
 
--- Cola larga por tramos sobre una curva (de "base" a "to", tirando hacia "control") que se mueve de
--- lado a lado. Opcional: anillos de otro color ("bands") y punta ("tip").
+-- Cola larga por tramos sobre una curva (de "base" a "to", tirando hacia "control") que ondula de
+-- lado a lado: cada tramo gira sobre el final del anterior (hueso "Tail", encadenado), así que los
+-- clips la enroscan girando todos los tramos lo mismo. Opcional: anillos de otro color ("bands") y
+-- punta ("tip").
 local function tail(
 	rig: Rig,
 	color: Color3,
@@ -276,28 +319,41 @@ local function tail(
 	bands: Color3?,
 	material: Enum.Material?
 )
-	local hinge = CFrame.new(base)
 	local segments = 5
 	local function at(t: number): Vector3
 		return base:Lerp(control, t):Lerp(control:Lerp(to, t), t)
 	end
-	local parts: { BasePart } = {}
+	-- Piezas de cada tramo (los anillos y la punta van con el tramo en el que caen).
+	local parts: { { BasePart } } = {}
 	for i = 1, segments do
 		local from, next = at((i - 1) / segments), at(i / segments)
 		local thickness = width * (1 - (i - 1) * 0.08)
-		table.insert(parts, capsule(rig, "Tail", from, next, thickness, color, material))
+		parts[i] = { capsule(rig, "Tail", from, next, thickness, color, material) }
+	end
+	local function segmentOf(t: number): { BasePart }
+		return parts[math.clamp(math.floor(t * segments) + 1, 1, segments)]
 	end
 	if bands then
 		for _, t in { 0.55, 0.72, 0.88 } do
 			local from, next = at(t - 0.025), at(t + 0.025)
-			table.insert(parts, capsule(rig, "TailBand", from, next, width * (1.08 - t * 0.4), bands, material))
+			table.insert(segmentOf(t), capsule(rig, "TailBand", from, next, width * (1.08 - t * 0.4), bands, material))
 		end
 	end
 	if tip then
-		table.insert(parts, capsule(rig, "TailTip", at(0.94), to, width * 0.72, tip, material))
+		table.insert(parts[segments], capsule(rig, "TailTip", at(0.94), to, width * 0.72, tip, material))
 	end
-	for _, part in parts do
-		joint(rig, part, hinge, Vector3.yAxis, wag, 5, 0, false)
+	local previous: Joint? = nil
+	for i = 1, segments do
+		local hinge = CFrame.new(at((i - 1) / segments))
+		local last: Joint? = nil
+		for _, part in parts[i] do
+			-- Cada tramo mueve una parte del meneo y un poco más tarde que el anterior: ondula.
+			local item = joint(rig, part, hinge, Vector3.yAxis, wag * 0.3, 5, -(i - 1) * 0.55, false, nil, previous)
+			item.bone = "Tail"
+			item.lag = i - 1
+			last = item
+		end
+		previous = last
 	end
 end
 
@@ -538,6 +594,8 @@ local function cat(rig: Rig, coat: Color3, options: CatOptions)
 	local top = bodyY - 0.1
 	local span = top - ground
 	local phases = { 0, math.pi, math.pi, 0 }
+	-- Huesos de los clips: F/B delante o detrás, L/R izquierda (-X) o derecha; con "2", el tramo de abajo.
+	local bones = { "FL", "FR", "BL", "BR" }
 	for i, spot in { { -1, true }, { 1, true }, { -1, false }, { 1, false } } do
 		local side: number, isFront: boolean = spot[1], spot[2]
 		local x = side * 0.29
@@ -619,9 +677,12 @@ local function cat(rig: Rig, coat: Color3, options: CatOptions)
 		local thigh: Joint? = nil
 		for _, part in upper do
 			thigh = joint(rig, part, CFrame.new(hip), Vector3.xAxis, 0.45, 9, phases[i], true)
+			thigh.bone = bones[i]
 		end
 		for _, part in lower do
-			joint(rig, part, CFrame.new(knee), Vector3.xAxis, -0.3, 9, phases[i] + math.pi / 2, true, -0.3, thigh)
+			local item =
+				joint(rig, part, CFrame.new(knee), Vector3.xAxis, -0.3, 9, phases[i] + math.pi / 2, true, -0.3, thigh)
+			item.bone = bones[i] .. "2"
 		end
 	end
 	local tailBase = Vector3.new(0, bodyY + 0.2, length / 2 - 0.1)
@@ -745,7 +806,20 @@ local function cat(rig: Rig, coat: Color3, options: CatOptions)
 	local neckZ = -length / 2 + 0.15
 	swingRegion(rig, Vector3.new(0, 0.4, neckZ), Vector3.yAxis, 0.25, 0.9, 0, false, function(position)
 		return position.Z < neckZ - 0.05 and position.Y > bodyY + 0.12
-	end)
+	end, "Head")
+	rig.family = "Cat"
+	rig.dims = {
+		length = length,
+		legHeight = legHeight,
+		bodyY = bodyY,
+		ground = ground,
+		-- Cadera de atrás y hombros (el centro, entre las dos patas), y centro del cuerpo.
+		hips = Vector3.new(0, top + 0.05, length * 0.31),
+		shoulders = Vector3.new(0, top, -length * 0.31),
+		center = Vector3.new(0, bodyY, 0),
+		-- Lo más bajo de las ancas en reposo: hasta ahí puede bajar la cadera al sentarse.
+		haunch = bodyY + 0.04 - 0.4,
+	}
 end
 
 local BIRD_HEAD = Vector3.new(0, 0.68, -0.42)
@@ -885,7 +959,10 @@ local function featheredWing(rig: Rig, side: number, hinge: Vector3, style: Wing
 		add(feather(rig, "Flight", root, direction, length, span * 0.26, featherColor, tip, shaft))
 	end
 	for _, part in parts do
-		joint(rig, part, CFrame.new(hinge), Vector3.zAxis, style.amplitude * side, style.speed, 0, false)
+		joint(rig, part, CFrame.new(hinge), Vector3.zAxis, style.amplitude * side, style.speed, 0, false).bone = if side
+				< 0
+			then "WingL"
+			else "WingR"
 	end
 end
 
@@ -1153,6 +1230,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			return color
 		end, gloss)
 		birdMotion(rig, Vector3.new(0, 0.45, -0.25), 0.4, Vector3.new(0, -0.15, 0.35))
+		rig.family = "Bird"
 		return "Fly"
 	end,
 
@@ -1552,6 +1630,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			return if index == 1 or index == 5 then blue else color
 		end, blue)
 		birdMotion(rig, Vector3.new(0, 0.45, -0.25), 0.4, Vector3.new(0, -0.15, 0.35))
+		rig.family = "Bird"
 		return "Fly"
 	end,
 
@@ -2114,11 +2193,10 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 
 		-- El casco mira a un lado y a otro, con todo lo que lleva pegado (también los remaches de
 		-- abajo; el cuello de cobre no, que es redondo y girarlo no se nota). La antena se registra
-		-- después: se balancea por su cuenta y su bisagra está sobre el mismo eje, así que no se
-		-- despega del casco.
-		swingRegion(rig, head, Vector3.yAxis, 0.3, 0.7, 0, false, function(position)
+		-- después: se balancea por su cuenta colgada del casco, así que lo sigue en los clips.
+		local helmet = swingRegion(rig, head, Vector3.yAxis, 0.3, 0.7, 0, false, function(position)
 			return (position - head).Magnitude < 0.8 * hk and position.Y > head.Y - 0.55 * hk
-		end)
+		end, "Head")
 
 		-- Antena: base, espiral de anillos que se estrecha y punta que brilla; se balancea un poco.
 		local top = onHead(Vector3.new(0, 0.66, 0))
@@ -2166,7 +2244,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		)
 		antenna[#antenna].Transparency = 0.6
 		for _, part in antenna do
-			joint(rig, part, CFrame.new(top), Vector3.zAxis, 0.08, 3, 0, false)
+			joint(rig, part, CFrame.new(top), Vector3.zAxis, 0.08, 3, 0, false, nil, helmet[1])
 		end
 		local light = Instance.new("PointLight")
 		light.Color = color
@@ -2362,7 +2440,10 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				end
 			end
 			for _, part in arm do
-				joint(rig, part, CFrame.new(shoulder), Vector3.xAxis, 0.35, 8, if side < 0 then 0 else math.pi, true)
+				joint(rig, part, CFrame.new(shoulder), Vector3.xAxis, 0.35, 8, if side < 0 then 0 else math.pi, true).bone = if side
+						< 0
+					then "ArmL"
+					else "ArmR"
 			end
 
 			local hip = Vector3.new(side * 0.4, -0.35, 0.45)
@@ -2405,7 +2486,10 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				end
 			end
 			for _, part in leg do
-				joint(rig, part, CFrame.new(hip), Vector3.xAxis, 0.35, 8, if side < 0 then math.pi else 0, true)
+				joint(rig, part, CFrame.new(hip), Vector3.xAxis, 0.35, 8, if side < 0 then math.pi else 0, true).bone = if side
+						< 0
+					then "LegL"
+					else "LegR"
 			end
 			-- Mechones de pelo erizado en hombros y caderas (le dan el aire de bicho de laboratorio).
 			piece(
@@ -2425,6 +2509,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				furDark
 			)
 		end
+		rig.family = "X7"
 		return "Walk"
 	end,
 
@@ -2473,7 +2558,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		-- Cristal en la frente: gira con la cabeza (lo recoge el cuello del felino al final).
 		local brow = crystal(Vector3.new(0, 0.86, -1.42), Vector3.new(0, 1, -0.55), 0.3, 0.14)
 		for _, part in brow do
-			joint(rig, part, CFrame.new(0, 0.4, -0.9), Vector3.yAxis, 0.25, 0.9, 0, false)
+			joint(rig, part, CFrame.new(0, 0.4, -0.9), Vector3.yAxis, 0.25, 0.9, 0, false).bone = "Head"
 		end
 		-- Corazón de luz en el pecho, que se ve a través del cristal.
 		local heart =
@@ -2493,6 +2578,504 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	end,
 }
 
+-- ===== Clips =====
+
+-- Patas con su seno de andar apagado (mientras el clip las coloca a mano).
+local CAT_LEGS_STILL = { FL = 0, FR = 0, BL = 0, BR = 0, FL2 = 0, FR2 = 0, BL2 = 0, BR2 = 0 }
+
+-- Copia "base" y le añade o cambia lo de "extra" (para componer fotogramas a partir de una postura).
+local function with(base: Key, extra: Key): Key
+	local key = table.clone(base)
+	for name, value in extra do
+		key[name] = value
+	end
+	return key
+end
+
+-- Clips de cada familia (y de cada mascota, que se suman a los de su familia), hechos a partir de
+-- las medidas del rig ("dims"). Los nombres que empiezan por "Idle" son rutinas de reposo:
+-- PetFollowers elige una al azar cuando el dueño lleva un rato quieto. "Attack" dura lo que el
+-- ataque de PetFollowers y golpea en Config.Pets.StrikeDelaySeconds (0,35 s). "Run" suena con el
+-- reloj de las zancadas cuando el dueño corre. "Glide" (aves): alas quietas y abiertas, planeando.
+local CLIPS: { [string]: (dims: { [string]: any }) -> { [string]: Clip } } = {}
+
+CLIPS.Cat = function(d)
+	-- Sentado: el cuerpo gira sobre la cadera de atrás y baja hasta apoyar las ancas; el ángulo es el
+	-- que deja las patas de delante rectas y en el suelo.
+	local drop = d.haunch - d.ground
+	local reach = (d.hips - d.shoulders).Magnitude
+	local s = math.deg(math.asin(math.min(0.9, (drop + 0.04) / reach)))
+	drop -= 0.1
+	local SIT: Key = {
+		Body = { s, 0, 0, 0, -drop, 0 },
+		FL = { -s, 0, 0 },
+		FR = { -s, 0, 0 },
+		BL = { 70 - s, 0, -6 },
+		BR = { 70 - s, 0, 6 },
+		BL2 = { -120, 0, 0 },
+		BR2 = { -120, 0, 0 },
+		Head = { -s, 0, 0 },
+		Tail = { -5, 18, 0 },
+	}
+	local lick = { x = 7, speed = 16 }
+	local pawToMouth: Key = {
+		FR = { 75 - s, 0, -12 },
+		FR2 = { 70, 0, 0 },
+		Head = { -s - 30, -22, 0 },
+		waves = { Head = lick, FR2 = { x = 6, speed = 16, phase = 1 } },
+	}
+	local faceWash: Key = {
+		FR = { 125 - s, 0, -10 },
+		FR2 = { 15, 0, 0 },
+		Head = { 10 - s, -20, 28 },
+		waves = { FR = { x = 14, speed = 7 }, Head = { z = 8, speed = 7 } },
+	}
+	-- Pata de atrás izquierda arriba: se ladea sobre el anca derecha y estira la pata hacia el
+	-- cielo; la cabeza baja hacia el muslo.
+	local legUp: Key = {
+		Body = { s + 8, 0, -32, 0, 0.2 - drop, 0 },
+		FL = { -s - 8, 0, 25 },
+		FR = { -s - 8, 0, 30 },
+		BL = { 140 - s, 0, -35 },
+		BL2 = { 20, 0, 0 },
+		BR = { 70 - s, 0, 30 },
+		Head = { -75, 105, 0 },
+		Tail = { -6, 18, 0 },
+		waves = { Head = { x = 8, speed = 15 } },
+	}
+
+	-- Tumbado como una esfinge: barriga en el suelo, manos delante y patas de atrás recogidas.
+	local lieDrop = d.bodyY - 0.44 - d.ground
+	local LIE: Key = {
+		Body = { 0, 0, 0, 0, -lieDrop, 0 },
+		FL = { 72, 0, 0 },
+		FR = { 72, 0, 0 },
+		FL2 = { 12, 0, 0 },
+		FR2 = { 12, 0, 0 },
+		BL = { 80, 0, -8 },
+		BR = { 80, 0, 8 },
+		BL2 = { -150, 0, 0 },
+		BR2 = { -150, 0, 0 },
+		Head = { 6, 0, 0 },
+		Tail = { 10, 12, 0 },
+	}
+	local function swish(amplitude: number, speed: number): { [string]: any }
+		return { Tail = { y = amplitude, speed = speed, lag = 0.6 } }
+	end
+	-- De lado y panza arriba (rueda sobre el centro del cuerpo).
+	local sideDrop = d.bodyY - d.ground - 0.5
+	local SIDE: Key = {
+		Body = { 0, 0, 90, 0, -sideDrop, 0 },
+		FL = { 25, 0, 0 },
+		FR = { 35, 0, 0 },
+		BL = { 20, 0, 0 },
+		BR = { 30, 0, 0 },
+		Head = { 0, 0, -30 },
+		Tail = { 0, 14, 0 },
+	}
+	local bellyDrop = d.bodyY - d.ground - 0.72
+	local BELLY: Key = {
+		Body = { 0, 0, 180, 0, -bellyDrop, 0 },
+		FL = { 45, 0, 0 },
+		FR = { 45, 0, 0 },
+		FL2 = { -80, 0, 0 },
+		FR2 = { -80, 0, 0 },
+		BL = { 30, 0, 0 },
+		BR = { 30, 0, 0 },
+		BL2 = { -45, 0, 0 },
+		BR2 = { -45, 0, 0 },
+		Head = { -25, 0, -70 },
+		Tail = { 0, 12, 0 },
+	}
+	local play = {
+		FL = { x = 30, speed = 8 },
+		FR = { x = 30, speed = 8, phase = math.pi },
+		FL2 = { x = 25, speed = 8, phase = 1 },
+		FR2 = { x = 25, speed = 8, phase = math.pi + 1 },
+		BL = { x = 20, speed = 10 },
+		BR = { x = 20, speed = 10, phase = math.pi },
+		Body = { z = 10, speed = 2.5 },
+		Head = { z = 12, speed = 2.5 },
+		Tail = { y = 10, speed = 3 },
+	}
+
+	-- Agazapado: patas dobladas, barriga casi en el suelo y cola baja.
+	local CROUCH: Key = {
+		Body = { -3, 0, 0, 0, -0.4, 0 },
+		FL = { -40, 0, 0 },
+		FR = { -40, 0, 0 },
+		FL2 = { 65, 0, 0 },
+		FR2 = { 65, 0, 0 },
+		BL = { 45, 0, 0 },
+		BR = { 45, 0, 0 },
+		BL2 = { -75, 0, 0 },
+		BR2 = { -75, 0, 0 },
+		Head = { -12, 0, 0 },
+		Tail = { 8, 0, 0 },
+	}
+	local function crouchAt(z: number, extra: Key): Key
+		return with(with(CROUCH, { Body = { -3, 0, 0, 0, -0.4, z } }), extra)
+	end
+	local wiggle = {
+		Body = { y = 5, speed = 20 },
+		BL = { x = 10, speed = 20 },
+		BR = { x = 10, speed = 20, phase = math.pi },
+		Tail = { y = 15, speed = 10 },
+	}
+	local pin: Key = {
+		Body = { 8, 0, 0, 0, -0.15, -2.3 },
+		FL = { 35, 0, 0 },
+		FR = { 35, 0, 0 },
+		FL2 = { -20, 0, 0 },
+		FR2 = { -20, 0, 0 },
+		BL = { 30, 0, 0 },
+		BR = { 30, 0, 0 },
+		BL2 = { -50, 0, 0 },
+		BR2 = { -50, 0, 0 },
+		Head = { -30, 0, 0 },
+		waves = {
+			FL = { x = 20, speed = 12 },
+			FR = { x = 20, speed = 12, phase = math.pi },
+			Head = { y = 10, speed = 12 },
+		},
+	}
+
+	-- Arrimado al dueño: se inclina hacia la izquierda (donde está él) con la cabeza y la cola tiesa.
+	local RUB: Key = {
+		gait = 0.4,
+		Body = { 0, 0, 12 },
+		Head = { 0, 25, 20 },
+		Tail = { -14, 0, 0 },
+		waves = {
+			Body = { z = 5, speed = 3 },
+			Head = { z = 10, speed = 3 },
+			Tail = { y = 4, speed = 7 },
+		},
+	}
+
+	return {
+		-- Se sienta, se lame la mano derecha, se lava la cara con ella y luego levanta la pata de
+		-- atrás y se la lame.
+		IdleGroom = {
+			length = 9.6,
+			around = d.hips,
+			keys = {
+				{ t = 0 },
+				with(SIT, { t = 0.9 }),
+				with(with(SIT, pawToMouth), { t = 1.5 }),
+				with(with(SIT, pawToMouth), { t = 3.8 }),
+				with(with(SIT, faceWash), { t = 4.3 }),
+				with(with(SIT, faceWash), { t = 5.6 }),
+				with(SIT, { t = 6.2 }),
+				with(with(SIT, legUp), { t = 6.9 }),
+				with(with(SIT, legUp), { t = 8.6 }),
+				with(SIT, { t = 9 }),
+				{ t = 9.6 },
+			},
+		},
+		-- Da una vuelta alrededor de las piernas del dueño (la vuelta la hace PetFollowers)
+		-- arrimándole el costado.
+		IdleRub = {
+			length = 6.5,
+			around = d.center,
+			keys = {
+				{ t = 0, gait = 0.4 },
+				with(RUB, { t = 0.6 }),
+				with(RUB, { t = 5.9 }),
+				{ t = 6.5, gait = 0.4 },
+			},
+		},
+		-- Se tumba, barre el suelo con la cola, apoya la cabeza un rato y se levanta.
+		IdleLie = {
+			length = 11,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				with(LIE, { t = 1.2, waves = swish(9, 2.2) }),
+				with(LIE, { t = 4.2, waves = swish(9, 2.2) }),
+				with(LIE, { t = 5, Head = { -16, 0, 6 }, waves = swish(6, 1.6) }),
+				with(LIE, { t = 7.6, Head = { -16, 0, 6 }, waves = swish(6, 1.6) }),
+				with(LIE, { t = 8.3, waves = swish(11, 2.6) }),
+				with(LIE, { t = 10.2, waves = swish(11, 2.6) }),
+				{ t = 11 },
+			},
+		},
+		-- Se agazapa, avanza despacio, menea el trasero, salta sobre una presa imaginaria, la
+		-- aplasta con las manos y vuelve a su sitio.
+		IdleStalk = {
+			length = 8.4,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				crouchAt(0, { t = 0.7, gait = 0.25, linear = true }),
+				crouchAt(-0.7, { t = 3, gait = 0.25 }),
+				crouchAt(-0.7, { t = 3.15, gait = 0, waves = wiggle }),
+				crouchAt(-0.7, { t = 3.85, waves = wiggle }),
+				crouchAt(-0.7, { t = 4, Body = { -3, 0, 0, 0, -0.48, -0.7 } }),
+				{
+					t = 4.22,
+					Body = { -12, 0, 0, 0, 0.55, -1.7 },
+					FL = { 95, 0, 0 },
+					FR = { 95, 0, 0 },
+					FL2 = { -5, 0, 0 },
+					FR2 = { -5, 0, 0 },
+					BL = { -50, 0, 0 },
+					BR = { -50, 0, 0 },
+					BL2 = { 10, 0, 0 },
+					BR2 = { 10, 0, 0 },
+					Head = { 10, 0, 0 },
+					Tail = { -4, 0, 0 },
+				},
+				with(pin, { t = 4.45 }),
+				with(pin, { t = 5.4 }),
+				{ t = 5.8, Body = { 0, 0, 0, 0, 0, -2.3 } },
+				{ t = 6.3, gait = 0.5, Body = { 0, 180, 0, 0, 0, -2.3 }, linear = true },
+				{ t = 7.6, gait = 0.5, Body = { 0, 180, 0, 0, 0, 0 } },
+				{ t = 8.1, gait = 0.3, Body = { 0, 0, 0, 0, 0, 0 } },
+				{ t = 8.4 },
+			},
+		},
+		-- Se tumba, se pone panza arriba y juega a dar zarpazos al aire y patadas de bicicleta.
+		IdleBelly = {
+			length = 8.6,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				with(LIE, { t = 0.8 }),
+				with(SIDE, { t = 1.4 }),
+				with(BELLY, { t = 2, waves = { Tail = play.Tail } }),
+				with(BELLY, { t = 2.4, waves = play }),
+				with(BELLY, { t = 6.8, waves = play }),
+				with(SIDE, { t = 7.3 }),
+				with(LIE, { t = 7.9 }),
+				{ t = 8.6 },
+			},
+		},
+		-- Galope a saltos: manos juntas y patas juntas, el lomo se balancea y la cola va estirada.
+		Run = {
+			length = 2 * math.pi / 9,
+			loop = true,
+			around = d.center,
+			keys = {
+				{
+					t = 0,
+					amp = CAT_LEGS_STILL,
+					FL2 = { -25, 0, 0 },
+					FR2 = { -25, 0, 0 },
+					BL2 = { -30, 0, 0 },
+					BR2 = { -30, 0, 0 },
+					Head = { -6, 0, 0 },
+					Tail = { -6, 0, 0 },
+					waves = {
+						FL = { x = 55, speed = 9 },
+						FR = { x = 55, speed = 9, phase = 0.35 },
+						BL = { x = 45, speed = 9, phase = math.pi },
+						BR = { x = 45, speed = 9, phase = math.pi + 0.35 },
+						FL2 = { x = 25, speed = 9, phase = -math.pi / 2 },
+						FR2 = { x = 25, speed = 9, phase = 0.35 - math.pi / 2 },
+						BL2 = { x = 30, speed = 9, phase = math.pi / 2 },
+						BR2 = { x = 30, speed = 9, phase = 0.35 + math.pi / 2 },
+						Body = { x = 5, py = 0.12, speed = 9, phase = math.pi / 2 },
+						Tail = { x = 4, speed = 9 },
+					},
+				},
+			},
+		},
+	}
+end
+
+-- Jaguarundí: se alza sobre las patas de atrás y da dos zarpazos, primero con la derecha.
+CLIPS.Jaguarundi = function(d)
+	local still = CAT_LEGS_STILL
+	return {
+		Attack = {
+			length = 0.85,
+			around = d.hips,
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.16,
+					amp = still,
+					Body = { 48, 0, 0, 0, 0.1, 0 },
+					FL = { 20, 0, 0 },
+					FR = { 50, 0, 0 },
+					BL = { -48, 0, 0 },
+					BR = { -48, 0, 0 },
+					Head = { -30, 0, 0 },
+					Tail = { -6, 0, 0 },
+				},
+				{
+					t = 0.28,
+					amp = still,
+					Body = { 55, 0, 0, 0, 0.15, 0 },
+					FL = { 30, 0, 0 },
+					FR = { 120, 0, -10 },
+					FR2 = { 50, 0, 0 },
+					BL = { -55, 0, 0 },
+					BR = { -55, 0, 0 },
+					Head = { -32, 0, 0 },
+					Tail = { -6, 0, 0 },
+				},
+				{
+					t = 0.37,
+					amp = still,
+					Body = { 30, 0, 0, 0, 0.05, -0.3 },
+					FL = { 40, 0, 0 },
+					FR = { 15, 0, 20 },
+					FR2 = { -15, 0, 0 },
+					BL = { -30, 0, 0 },
+					BR = { -30, 0, 0 },
+					Head = { -15, -10, 0 },
+				},
+				{
+					t = 0.47,
+					amp = still,
+					Body = { 42, 0, 0, 0, 0.1, -0.3 },
+					FL = { 120, 0, 10 },
+					FL2 = { 50, 0, 0 },
+					FR = { 40, 0, 0 },
+					BL = { -42, 0, 0 },
+					BR = { -42, 0, 0 },
+					Head = { -25, 0, 0 },
+				},
+				{
+					t = 0.56,
+					amp = still,
+					Body = { 28, 0, 0, 0, 0.05, -0.35 },
+					FL = { 15, 0, -20 },
+					FL2 = { -15, 0, 0 },
+					FR = { 30, 0, 0 },
+					BL = { -28, 0, 0 },
+					BR = { -28, 0, 0 },
+					Head = { -12, 10, 0 },
+				},
+				{ t = 0.72, Body = { 0, 0, 0, 0, 0, -0.2 } },
+				{ t = 0.85 },
+			},
+		},
+	}
+end
+
+-- Ocelote: se agazapa, salta con las manos por delante, cae sobre el mono y lo muerde sacudiendo
+-- la cabeza.
+CLIPS.Ocelote = function(d)
+	local still = CAT_LEGS_STILL
+	local bite: Key = {
+		amp = still,
+		Body = { 14, 0, 0, 0, 0.05, -0.7 },
+		FL = { 45, 0, 0 },
+		FR = { 45, 0, 0 },
+		FL2 = { -35, 0, 0 },
+		FR2 = { -35, 0, 0 },
+		BL = { 25, 0, 0 },
+		BR = { 25, 0, 0 },
+		BL2 = { -40, 0, 0 },
+		BR2 = { -40, 0, 0 },
+		Head = { -40, 0, 0 },
+		waves = { Head = { y = 25, z = 8, speed = 34 }, Body = { z = 5, speed = 34 } },
+	}
+	return {
+		Attack = {
+			length = 0.85,
+			around = d.hips,
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.2,
+					amp = still,
+					Body = { -8, 0, 0, 0, -0.3, 0.15 },
+					FL = { -35, 0, 0 },
+					FR = { -35, 0, 0 },
+					FL2 = { 60, 0, 0 },
+					FR2 = { 60, 0, 0 },
+					BL = { 45, 0, 0 },
+					BR = { 45, 0, 0 },
+					BL2 = { -80, 0, 0 },
+					BR2 = { -80, 0, 0 },
+					Head = { -5, 0, 0 },
+					Tail = { -8, 0, 0 },
+				},
+				{
+					t = 0.33,
+					amp = still,
+					Body = { -14, 0, 0, 0, 0.5, -0.5 },
+					FL = { 95, 0, -8 },
+					FR = { 95, 0, 8 },
+					FL2 = { -10, 0, 0 },
+					FR2 = { -10, 0, 0 },
+					BL = { -55, 0, 0 },
+					BR = { -55, 0, 0 },
+					BL2 = { 15, 0, 0 },
+					BR2 = { 15, 0, 0 },
+					Head = { 18, 0, 0 },
+					Tail = { -4, 0, 0 },
+				},
+				with(bite, { t = 0.42 }),
+				with(bite, { t = 0.62 }),
+				{ t = 0.85 },
+			},
+		},
+	}
+end
+
+-- Mono X-7: salta con los dos puños en alto y los estrella delante (martillazo).
+CLIPS.X7 = function()
+	local still = { ArmL = 0, ArmR = 0, LegL = 0, LegR = 0 }
+	local slam: Key = {
+		amp = still,
+		Body = { -22, 0, 0, 0, 0, -0.6 },
+		ArmL = { 25, 0, 5 },
+		ArmR = { 25, 0, -5 },
+		LegL = { 25, 0, 0 },
+		LegR = { 25, 0, 0 },
+		Head = { -10, 0, 0 },
+		waves = { Body = { z = 3, speed = 40 } },
+	}
+	return {
+		Attack = {
+			length = 0.85,
+			around = Vector3.new(0, -0.35, 0.45),
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.14,
+					amp = still,
+					Body = { -12, 0, 0, 0, -0.15, 0 },
+					ArmL = { -35, 0, 0 },
+					ArmR = { -35, 0, 0 },
+					LegL = { 20, 0, 0 },
+					LegR = { 20, 0, 0 },
+					Head = { 8, 0, 0 },
+				},
+				{
+					t = 0.27,
+					amp = still,
+					Body = { 20, 0, 0, 0, 0.6, -0.3 },
+					ArmL = { 175, 0, 15 },
+					ArmR = { 175, 0, -15 },
+					LegL = { -15, 0, 0 },
+					LegR = { -15, 0, 0 },
+					Head = { 15, 0, 0 },
+				},
+				with(slam, { t = 0.36 }),
+				with(slam, { t = 0.55 }),
+				{ t = 0.85 },
+			},
+		},
+	}
+end
+
+-- Aves: planean con las alas quietas, un poco levantadas.
+CLIPS.Bird = function()
+	return {
+		Glide = {
+			length = 1,
+			loop = true,
+			keys = { { t = 0, amp = { WingL = 0, WingR = 0 }, WingL = { 0, 0, -6 }, WingR = { 0, 0, 6 } } },
+		},
+	}
+end
+
 function PetModels.build(petId: string): Model?
 	local pet = Pets[petId]
 	local builder = builders[petId]
@@ -2509,38 +3092,234 @@ function PetModels.build(petId: string): Model?
 	local box, size = model:GetBoundingBox()
 	model:SetAttribute("Motion", motion)
 	model:SetAttribute("Height", -(box.Position.Y - size.Y / 2))
-	rigs[model] = rig.joints
+	-- Clips de su familia y los suyos propios.
+	local clips: { [string]: Clip } = {}
+	local dims = rig.dims or {}
+	for _, source in { if rig.family then CLIPS[rig.family] else nil, CLIPS[petId] } do
+		for name, clip in source(dims) do
+			clips[name] = clip
+		end
+	end
+	-- Piezas fijas: solo se mueven cuando un clip mueve el cuerpo entero.
+	local moving: { [BasePart]: boolean } = {}
+	for _, item in rig.joints do
+		moving[item.part] = true
+	end
+	local statics: { BasePart } = {}
+	local rest: { CFrame } = {}
+	for _, part in model:GetChildren() do
+		if part:IsA("BasePart") and part ~= root and not moving[part] then
+			table.insert(statics, part)
+			table.insert(rest, part.CFrame)
+		end
+	end
+	rigs[model] = {
+		joints = rig.joints,
+		statics = statics,
+		rest = rest,
+		clips = clips,
+		scale = rig.scale,
+		bodyMoved = false,
+	}
 	model.Destroying:Connect(function()
 		rigs[model] = nil
 	end)
 	return model
 end
 
--- Giro de una articulación respecto a su bisagra en este instante.
-local function swing(item: Joint, time: number, moving: number): CFrame
-	local factor = if item.gait then moving else 1
-	local angle = (math.sin(time * item.speed + item.phase) * item.amplitude + item.bias) * factor
-	return item.hinge * CFrame.fromAxisAngle(item.axis, angle) * item.hinge:Inverse()
+-- Clips que tiene una mascota y lo que dura cada uno.
+function PetModels.clips(model: Model): { [string]: number }
+	local animated = rigs[model]
+	local result = {}
+	if animated then
+		for name, clip in animated.clips do
+			result[name] = clip.length
+		end
+	end
+	return result
 end
 
--- Mueve las partes animadas según el tiempo; "moving" (0 a 1) indica cuánto anda el dueño. Todas a
--- la vez con BulkMoveTo: con un centenar de piezas articuladas por mascota (alas de plumas sueltas,
--- patas de dos tramos) es mucho más barato que cambiar el CFrame de cada una.
-function PetModels.animate(model: Model, time: number, moving: number)
-	local joints = rigs[model]
-	if not joints then
+local ZERO6 = { 0, 0, 0, 0, 0, 0 }
+local WAVE_AXES = { "x", "y", "z", "px", "py", "pz" }
+
+local function lerp(a: number, b: number, t: number): number
+	return a + (b - a) * t
+end
+
+-- Lo que suman los clips en un instante, ya con su peso: giro de cada hueso (grados; "Body" lleva
+-- además el desplazamiento), ondas, ritmo de las patas y factor de los senos de cada hueso.
+type Wave = { bone: string, amplitude: { number }, speed: number, phase: number, lag: number, time: number }
+type Mix = {
+	bones: { [string]: { number } },
+	waves: { Wave },
+	gait: number?,
+	gaitWeight: number,
+	amp: { [string]: number },
+}
+
+local function addClip(mix: Mix, clip: Clip, time: number, weight: number)
+	local keys = clip.keys
+	local t = if clip.loop then time % clip.length else math.clamp(time, 0, clip.length)
+	local index = 1
+	for i, key in keys do
+		if key.t <= t then
+			index = i
+		end
+	end
+	local a = keys[index]
+	local b = keys[index + 1] or a
+	local alpha = if b.t > a.t then (t - a.t) / (b.t - a.t) else 0
+	local s = if a.linear then alpha else alpha * alpha * (3 - 2 * alpha)
+
+	local seen: { [string]: boolean } = {}
+	for _, key in { a, b } do
+		for name, value in key do
+			if type(value) == "table" and name ~= "amp" and name ~= "waves" and not seen[name] then
+				seen[name] = true
+				local from = a[name] or ZERO6
+				local to = b[name] or ZERO6
+				local total = mix.bones[name] or { 0, 0, 0, 0, 0, 0 }
+				for c = 1, 6 do
+					total[c] += lerp(from[c] or 0, to[c] or 0, s) * weight
+				end
+				mix.bones[name] = total
+			end
+		end
+	end
+
+	local wavesA, wavesB = a.waves or {}, b.waves or {}
+	local waveSeen: { [string]: boolean } = {}
+	for _, list in { wavesA, wavesB } do
+		for bone in list do
+			if not waveSeen[bone] then
+				waveSeen[bone] = true
+				local wa, wb = wavesA[bone], wavesB[bone]
+				local shape = wa or wb
+				local amplitude = table.create(6, 0)
+				for c, axis in WAVE_AXES do
+					local from = if wa then wa[axis] or 0 else 0
+					local to = if wb then wb[axis] or 0 else 0
+					amplitude[c] = lerp(from, to, s) * weight
+				end
+				table.insert(mix.waves, {
+					bone = bone,
+					amplitude = amplitude,
+					speed = shape.speed or 1,
+					phase = shape.phase or 0,
+					lag = shape.lag or 0.7,
+					time = time,
+				})
+			end
+		end
+	end
+
+	if a.gait or b.gait then
+		mix.gait = lerp(a.gait or b.gait, b.gait or a.gait, s)
+		mix.gaitWeight = weight
+	end
+
+	local ampA, ampB = a.amp or {}, b.amp or {}
+	local ampSeen: { [string]: boolean } = {}
+	for _, list in { ampA, ampB } do
+		for bone in list do
+			if not ampSeen[bone] then
+				ampSeen[bone] = true
+				local value = lerp(ampA[bone] or 1, ampB[bone] or 1, s)
+				mix.amp[bone] = (mix.amp[bone] or 1) * lerp(1, value, weight)
+			end
+		end
+	end
+end
+
+-- Giro de un hueso en este instante (pose más ondas), con el retraso de su puesto en la cadena.
+local function boneAngles(mix: Mix, bone: string, lag: number): { number }?
+	local base = mix.bones[bone]
+	local result: { number }? = if base then table.clone(base) else nil
+	for _, wave in mix.waves do
+		if wave.bone == bone then
+			local total = result or { 0, 0, 0, 0, 0, 0 }
+			local value = math.sin(wave.time * wave.speed + wave.phase - lag * wave.lag)
+			for c = 1, 6 do
+				total[c] += wave.amplitude[c] * value
+			end
+			result = total
+		end
+	end
+	return result
+end
+
+-- Primero gira a un lado (Y), luego cabecea (X) ya girado y luego se ladea (Z): una cabeza que mira
+-- a la izquierda y abajo no se tuerce.
+local function rotation(angles: { number }): CFrame
+	return CFrame.fromEulerAnglesYXZ(math.rad(angles[1]), math.rad(angles[2]), math.rad(angles[3]))
+end
+
+-- Mueve las partes animadas según el tiempo; "moving" (0 a 1) indica cuánto anda el dueño.
+-- "layers": clips que suenan encima (ver Layer). "stride": reloj de las patas que andan (por
+-- defecto, "time"), que va más deprisa cuando el dueño corre. Todas a la vez con BulkMoveTo: con un
+-- centenar de piezas articuladas por mascota (alas de plumas sueltas, patas de dos tramos) es mucho
+-- más barato que cambiar el CFrame de cada una.
+function PetModels.animate(model: Model, time: number, moving: number, layers: { Layer }?, stride: number?)
+	local animated = rigs[model]
+	if not animated then
 		return
 	end
-	local pivot = model:GetPivot()
-	local parts = table.create(#joints)
-	local frames = table.create(#joints)
-	for i, item in joints do
-		local frame = swing(item, time, moving) * item.hinge * item.offset
-		if item.parent then
-			frame = swing(item.parent, time, moving) * frame
+	local mix: Mix = { bones = {}, waves = {}, gait = nil, gaitWeight = 0, amp = {} }
+	local around = Vector3.zero
+	for _, layer in layers or {} do
+		local clip = animated.clips[layer.clip]
+		if clip and layer.weight > 0 then
+			addClip(mix, clip, layer.time, layer.weight)
+			around = clip.around or around
 		end
+	end
+	if mix.gait then
+		moving = lerp(moving, mix.gait, mix.gaitWeight)
+	end
+	local scale = animated.scale
+	local strideTime = stride or time
+
+	-- El cuerpo entero: todo lo demás cuelga de él.
+	local body = CFrame.identity
+	local bodyAngles = boneAngles(mix, "Body", 0)
+	if bodyAngles then
+		local center = around * scale
+		body = CFrame.new(Vector3.new(bodyAngles[4], bodyAngles[5], bodyAngles[6]) * scale)
+			* CFrame.new(center)
+			* rotation(bodyAngles)
+			* CFrame.new(-center)
+	end
+
+	local pivot = model:GetPivot()
+	local joints = animated.joints
+	-- Las piezas fijas se mueven mientras un clip mueve el cuerpo, y una vez más al acabar (para
+	-- devolverlas a su sitio).
+	local moveStatics = bodyAngles ~= nil or animated.bodyMoved
+	animated.bodyMoved = bodyAngles ~= nil
+	local count = #joints + (if moveStatics then #animated.statics else 0)
+	local parts = table.create(count)
+	local frames = table.create(count)
+	for i, item in joints do
+		local bone = item.bone
+		local factor = (if item.gait then moving else 1) * (if bone then mix.amp[bone] or 1 else 1)
+		local clock = if item.gait then strideTime else time
+		local angle = (math.sin(clock * item.speed + item.phase) * item.amplitude + item.bias) * factor
+		local turn = CFrame.fromAxisAngle(item.axis, angle)
+		local angles = if bone then boneAngles(mix, bone, item.lag) else nil
+		if angles then
+			turn = rotation(angles) * turn
+		end
+		local parent = item.parent
+		item.world = (if parent then parent.world else body) * item.hinge * turn * item.hinge:Inverse()
 		parts[i] = item.part
-		frames[i] = pivot * frame
+		frames[i] = pivot * item.world * item.hinge * item.offset
+	end
+	if moveStatics then
+		local offset = #joints
+		for i, part in animated.statics do
+			parts[offset + i] = part
+			frames[offset + i] = pivot * body * animated.rest[i]
+		end
 	end
 	if model:IsDescendantOf(workspace) then
 		workspace:BulkMoveTo(parts, frames, Enum.BulkMoveMode.FireCFrameChanged)
