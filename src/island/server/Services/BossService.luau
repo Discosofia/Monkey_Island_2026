@@ -25,6 +25,7 @@ local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local BasecampService = require(script.Parent.BasecampService)
 local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
@@ -39,6 +40,10 @@ local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 local TICK_SECONDS = 0.2
 -- Segundos que sigue "peleando" (y suena su tema) después de perder a su objetivo o del último golpe.
 local FIGHT_GRACE_SECONDS = 8
+-- El pisotón aterriza a la vez que la onda de choque (Hazards.shockwave): grietas y piedras como el
+-- Pisotón del guerrero (AbilityFxController "Quake").
+local STOMP_RADIUS = 20
+local STOMP_IMPACT_SECONDS = 0.9
 local BIOME_NAMES: { [string]: string } = {
 	Rios = "los ríos",
 	Montanas = "las montañas",
@@ -58,6 +63,7 @@ type ActiveBoss = {
 	cooldowns: { [string]: number },
 	nextSpecialAt: number,
 	lastAttackAt: number,
+	channelUntil: number, -- os.clock() hasta el que se queda quieto invocando (Special.channelFromPhase)
 	fightingUntil: number, -- os.clock(); ver FIGHT_GRACE_SECONDS
 	contributors: { [Player]: boolean },
 }
@@ -236,6 +242,7 @@ function BossService.spawn(bossId: string)
 		cooldowns = {},
 		nextSpecialAt = now + 4,
 		lastAttackAt = 0,
+		channelUntil = 0,
 		fightingUntil = 0,
 		contributors = {},
 	}
@@ -305,7 +312,14 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 	{
 		stomp = function(boss)
 			bubble(boss, "💥 ¡PUM!")
-			Hazards.shockwave(boss.root.Position, 20, math.round(boss.damage * 0.8), 1.5, 0.9)
+			local position = boss.root.Position
+			Hazards.shockwave(position, STOMP_RADIUS, math.round(boss.damage * 0.8), 1.5, STOMP_IMPACT_SECONDS)
+			task.delay(STOMP_IMPACT_SECONDS, function()
+				if current == boss then
+					Sfx.play("RockImpact", position)
+					AbilityFx.all("Quake", groundBelow(position), STOMP_RADIUS)
+				end
+			end)
 		end,
 		summon = function(boss, special, target)
 			bubble(boss, "¡A MÍ, TROPA!")
@@ -412,8 +426,20 @@ local function tick(now: number)
 	updatePhase(boss)
 	-- Habilidades de los roles (Combat/Status): aturdido no hace nada y ralentizado anda más despacio.
 	if Status.isStunned(boss.model) then
+		if boss.channelUntil > now then
+			boss.channelUntil = 0
+			MonkeyAnimator.stop(boss.model, "Invoke")
+		end
 		boss.humanoid:MoveTo(boss.root.Position)
 		return
+	end
+	-- Invocando: quieto, sin golpear, hasta que acaba.
+	if boss.channelUntil > now then
+		boss.humanoid:MoveTo(boss.root.Position)
+		return
+	elseif boss.channelUntil > 0 then
+		boss.channelUntil = 0
+		MonkeyAnimator.stop(boss.model, "Invoke")
 	end
 	local speed = boss.definition.walkSpeed * (1 + 0.15 * (boss.phase - 1)) * Status.speedFactor(boss.model)
 	if boss.humanoid.WalkSpeed ~= speed then
@@ -442,22 +468,33 @@ local function tick(now: number)
 	end
 	boss.fightingUntil = now + FIGHT_GRACE_SECONDS
 
+	local distance = (targetRoot.Position - boss.root.Position).Magnitude
 	if now >= boss.nextSpecialAt then
 		for _, special in boss.definition.specials do
-			if special.fromPhase <= boss.phase and now >= (boss.cooldowns[special.id] or 0) then
+			local channel = special.channelFromPhase ~= nil and boss.phase >= special.channelFromPhase
+			-- La invocación no se lanza en plena pelea cuerpo a cuerpo: espera a que haya distancia.
+			local ready = not (channel and distance <= boss.definition.attackRange)
+			if ready and special.fromPhase <= boss.phase and now >= (boss.cooldowns[special.id] or 0) then
 				boss.cooldowns[special.id] = now + special.cooldownSeconds
 				boss.nextSpecialAt = now + 3
-				local animation = SPECIAL_ANIMATIONS[special.id]
+				local animation = if channel then "Invoke" else SPECIAL_ANIMATIONS[special.id]
 				if animation then
 					MonkeyAnimator.play(boss.model, animation)
 				end
+				if channel then
+					boss.channelUntil = now + (special.channelSeconds or 2)
+					boss.nextSpecialAt = boss.channelUntil + 2
+					boss.humanoid:MoveTo(boss.root.Position)
+				end
 				SPECIALS[special.id](boss, special, target, targetRoot)
+				if channel then
+					return
+				end
 				break
 			end
 		end
 	end
 
-	local distance = (targetRoot.Position - boss.root.Position).Magnitude
 	if distance <= boss.definition.attackRange then
 		boss.humanoid:MoveTo(boss.root.Position)
 		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then

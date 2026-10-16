@@ -3,6 +3,8 @@
 -- Animator del Humanoid las replica solo a los clientes.
 --   - Idle, Walk y Run cambian solas según la velocidad del mono.
 --   - Las acciones (Attack, Roar…) las lanza MonkeyService / BossService con MonkeyAnimator.play.
+--   - Los jefes cambian de animaciones al cambiar de fase (atributo "BossPhase", ver
+--     MonkeyAnimations.Phases).
 -- Las que no tienen ID todavía se ignoran sin error. Las pistas se cargan la primera vez que se usan.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,9 +18,12 @@ type Rig = {
 	ids: { [string]: string }, -- acción → ID ya resuelto (especie/jefe o Default)
 	tracks: { [string]: AnimationTrack },
 	locomotion: AnimationTrack?, -- Idle, Walk o Run, la que suena ahora
+	speed: number, -- la última velocidad (para volver a elegir Idle/Walk/Run al cambiar de fase)
 }
 
 local LOOPED: { [string]: boolean } = { Idle = true, Walk = true, Run = true }
+-- Acciones en bucle (con prioridad de acción) que para quien las lanza con MonkeyAnimator.stop.
+local LOOPED_ACTIONS: { [string]: boolean } = { Invoke = true }
 
 local MonkeyAnimator = {}
 
@@ -27,12 +32,24 @@ local animations: { [string]: Animation } = {}
 
 local function resolveIds(model: Model): { [string]: string }
 	local ids: { [string]: string } = table.clone(MonkeyAnimations.Default)
-	-- La especie primero y el jefe encima, que es más concreto.
+	local function apply(overrides: MonkeyAnimations.AnimationSet?)
+		for action, id in overrides or {} do
+			if id ~= "" then
+				ids[action] = id
+			end
+		end
+	end
+	-- La especie primero, el jefe encima (es más concreto) y luego cada fase que ya alcanzó.
 	for _, attribute in { "MonkeyType", "Boss" } do
 		local key = model:GetAttribute(attribute)
-		local overrides = if typeof(key) == "string" then MonkeyAnimations.Overrides[key] else nil
-		for action, id in overrides or {} do
-			ids[action] = id
+		apply(if typeof(key) == "string" then MonkeyAnimations.Overrides[key] else nil)
+	end
+	local boss = model:GetAttribute("Boss")
+	local phases = if typeof(boss) == "string" then MonkeyAnimations.Phases[boss] else nil
+	local phase = model:GetAttribute("BossPhase")
+	if phases and typeof(phase) == "number" then
+		for index = 2, phase do
+			apply(phases[index])
 		end
 	end
 	return ids
@@ -54,7 +71,7 @@ local function track(rig: Rig, action: Action): AnimationTrack?
 		animations[id] = animation
 	end
 	local newTrack = rig.animator:LoadAnimation(animation)
-	newTrack.Looped = LOOPED[action] == true
+	newTrack.Looped = LOOPED[action] == true or LOOPED_ACTIONS[action] == true
 	newTrack.Priority = if action == "Idle"
 		then Enum.AnimationPriority.Idle
 		elseif LOOPED[action] then Enum.AnimationPriority.Movement
@@ -65,6 +82,7 @@ local function track(rig: Rig, action: Action): AnimationTrack?
 end
 
 local function setLocomotion(rig: Rig, speed: number)
+	rig.speed = speed
 	local action: Action = "Idle"
 	local reference = MonkeyAnimations.WalkReferenceSpeed
 	if speed > 0.5 then
@@ -94,12 +112,30 @@ function MonkeyAnimator.attach(model: Model)
 	if not (humanoid and animator) then
 		return
 	end
-	local rig: Rig = { animator = animator, ids = resolveIds(model), tracks = {}, locomotion = nil }
+	local rig: Rig = { animator = animator, ids = resolveIds(model), tracks = {}, locomotion = nil, speed = 0 }
 	rigs[model] = rig
 	setLocomotion(rig, 0)
 	humanoid.Running:Connect(function(speed)
 		if humanoid.Health > 0 then
 			setLocomotion(rig, speed)
+		end
+	end)
+	-- Nueva fase del jefe: las pistas cuyo ID cambia se descargan y se vuelven a cargar al usarlas.
+	model:GetAttributeChangedSignal("BossPhase"):Connect(function()
+		local ids = resolveIds(model)
+		for action, loaded in rig.tracks do
+			if ids[action] ~= rig.ids[action] then
+				if loaded == rig.locomotion then
+					rig.locomotion = nil
+				end
+				loaded:Stop(0.2)
+				loaded:Destroy()
+				rig.tracks[action] = nil
+			end
+		end
+		rig.ids = ids
+		if humanoid.Health > 0 then
+			setLocomotion(rig, rig.speed)
 		end
 	end)
 	model.Destroying:Connect(function()
@@ -112,7 +148,17 @@ function MonkeyAnimator.play(model: Model, action: Action)
 	local rig = rigs[model]
 	local actionTrack = if rig then track(rig, action) else nil
 	if actionTrack then
-		actionTrack:Play(0.1)
+		-- Las de bucle (Invoke) entran despacio: pasan del reposo a los brazos en alto.
+		actionTrack:Play(if LOOPED_ACTIONS[action] then 0.3 else 0.1)
+	end
+end
+
+-- Para una acción en bucle (Invoke) o una que hay que cortar.
+function MonkeyAnimator.stop(model: Model, action: Action)
+	local rig = rigs[model]
+	local playing = if rig then rig.tracks[action] else nil
+	if playing then
+		playing:Stop(0.25)
 	end
 end
 

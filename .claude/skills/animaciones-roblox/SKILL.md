@@ -92,6 +92,10 @@ local SPEC = {
   de debajo (Walk) sigue moviéndolas.
 - **El easing de una pose rige el tramo que sale de ella** hacia el fotograma siguiente
   (comprobado en Studio). `Constant` salta enseguida a la pose siguiente.
+- Easings que existen en las poses: `Linear`, `Constant`, `Cubic`, `Elastic`, `Bounce` y `CubicV2`
+  (no hay `Sine` ni `Quad`: `build` falla). Para un fotograma entero, pon `easing`/`direction` en el
+  fotograma, no en cada pose: así las poses siguen siendo listas `{ x, y, z }` y el spec se puede
+  copiar tal cual a `MonkeyAnimationBuilder`.
 - `marcador` añade un `KeyframeMarker` (las armas usan "Disparo" para sacar el efecto).
 
 **Signos** (con las articulaciones alineadas con el modelo, como las de los monos y el R15):
@@ -121,7 +125,10 @@ Repite hasta que esté bien (y como mucho unas 5 vueltas antes de enseñárselo 
    los más comunes, solo se ven de lado), `under` para la animación que suena debajo en el juego,
    `keep = true` + `offset = Vector3.new(0, 0, 30)` para poner otra versión al lado.
 3. **Capturar** con `screen_capture` y la cámara `tira`. **Una captura por llamada**, nunca varias
-   en paralelo (el usuario las ha rechazado). Para un detalle (la mano en el golpe, la cara), usa
+   en paralelo (el usuario las ha rechazado). Si da *timeout* aunque `execute_luau` responda, la
+   ventana de Studio suele estar minimizada o tapada: pídele al usuario que la traiga al frente y,
+   si sigue sin ir, no te quedes parado: mide con `Anim.measure(rig, ks)` (abajo) y di claramente
+   que no la has visto. Para un detalle (la mano en el golpe, la cara), usa
    la cámara de ese fotograma o `Anim.showOne(rig, ks, 0.22)`. Mira al menos el perfil; añade el
    frente si hay giros en Y o Z (torsiones, brazos abiertos). Las líneas verdes o blancas finas son
    las articulaciones que dibuja Studio: ignóralas.
@@ -135,6 +142,14 @@ Repite hasta que esté bien (y como mucho unas 5 vueltas antes de enseñárselo 
      se revisa al menos en dos especies distintas.
    - ¿Los ángulos son creíbles? Un hombro a más de ~160° o un cuello a más de ~45° se rompen.
 5. **Corregir** lo más gordo primero (sentido y tiempos antes que matices de easing).
+
+**Medir sin ver.** `Anim.measure(rig, ks, times?)` da, por instante, lo más bajo de cada extremidad
+(con el antebrazo, la mano, la espinilla y el pie que lleva pegados) respecto al suelo en reposo, la
+altura de la punta de la cola y dónde queda la cabeza. Sirve para lo que la tira enseña peor:
+- Pies o nudillos que se clavan: negativo. Hasta −0,15 a escala 1 no se nota; más, corrígelo.
+- Si el golpe llega lejos y a qué altura: un brazo a 0,7 va "bajo", a 1,6 va a la altura de la cara.
+- Si la cola roza el suelo: sale "Tail" con un valor negativo.
+Los valores son a escala 1: en un jefe a escala 3,6, −0,3 son más de 1 stud.
 
 Entre fotogramas clave no hay copia: si sospechas de un tramo (un brazo que atraviesa el cuerpo al
 pasar de atrás adelante), pide instantes intermedios con `times`.
@@ -154,9 +169,11 @@ pasar de atrás adelante), pide instantes intermedios con `times`.
 4. **Enlazar**: pega el id en `src/shared/Data/MonkeyAnimations.luau` (`Default` u `Overrides`) o
    en `src/shared/Data/WeaponAnimations.luau`. Si cambias código (`WeaponAnimationBuilder`,
    `PetModels`), `stylua src` y `selene src` sin errores.
-5. **La fuente queda en git**: guarda el spec final junto al código que lo genera (ver
-   `sistemas-de-animacion.md` §2 para monos; las armas ya viven en `WeaponAnimationBuilder`). Sin
-   eso, la próxima vez habrá que reconstruirla bajándola del id.
+5. **La fuente queda en git**: el spec final de un mono o un jefe va en
+   `src/island/tools/MonkeyAnimationSpecs/<lote>.luau` (un módulo por lote; la clave es el nombre de
+   la animación) y `MonkeyAnimationBuilder.build("<lote>")` lo deja en `RBX_ANIMSAVES.<lote>`. El
+   texto de `Anim.dump` se pega tal cual (ver el formato arriba). Las armas viven en
+   `WeaponAnimationBuilder`. Sin esto, la próxima vez habrá que reconstruirla bajándola del id.
 6. **Deja la tira montada para que el usuario la apruebe**, con la cámara de Studio apuntando a ella
    (`show` ya la deja así). Cuando la apruebe (o pida quitarla), `Anim.clear()` y `_G.Anim = nil`.
 7. Recuerda que hay que **guardar el place** si cambió algo fuera de la vista previa
@@ -196,5 +213,11 @@ la animación es la misma a efectos prácticos.
   AnimationTracks (referencia §4).
 - **El modelo flota o se hunde en todos los fotogramas** → el `suelo` se mide respecto al reposo:
   si pasa en todos, es la animación de debajo (`under`) o una traslación del `Torso`.
+- **`"Tail" no es una pieza articulada del rig`** → los simios (gorila, chimpancé, orangután) y el
+  gibón no tienen cola: quítala de sus specs.
+- **`screen_capture` da timeout** → ver §3, paso 3: ventana al frente o `Anim.measure`.
+- **Una función de un módulo de `ServerStorage.Tools` falla con `attempt to index nil`** → con
+  `freshRequire`, el código corre en una copia que ya no tiene padre: toma `script.Parent` al
+  cargar el módulo, no dentro de la función.
 - **Las capturas salen teñidas o sin rótulos** → los `BillboardGui` no salen en `screen_capture`;
   los rótulos de `show` son `SurfaceGui` sobre una pieza por eso.

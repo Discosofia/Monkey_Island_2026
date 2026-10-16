@@ -772,6 +772,103 @@ function Anim.showOne(rig: Model, source: any, time: number, options: any?): str
 	return Anim.show(rig, source, opts)
 end
 
+-- ===== Medir sin ver =====
+
+local LIMB_GROUPS = { "Torso", "Head", "Right Arm", "Left Arm", "Right Leg", "Left Leg", "Tail" }
+
+-- Pieza articulada (de LIMB_GROUPS) a la que va pegada cada pieza visible, siguiendo las
+-- WeldConstraint de MonkeyModels (antebrazo → brazo, pie → muslo, punta de la cola → cola…).
+local function limbGroups(rig: Model): { [string]: { BasePart } }
+	local owner: { [BasePart]: BasePart } = {}
+	for _, weld in rig:GetDescendants() do
+		if weld:IsA("WeldConstraint") and weld.Part0 and weld.Part1 then
+			owner[weld.Part1] = weld.Part0
+		end
+	end
+	local groups: { [string]: { BasePart } } = {}
+	for _, part in visibleParts(rig) do
+		if part ~= rig.PrimaryPart then
+			local current, guard = part, 0
+			while owner[current] and not table.find(LIMB_GROUPS, current.Name) and guard < 10 do
+				current, guard = owner[current], guard + 1
+			end
+			local group = if table.find(LIMB_GROUPS, current.Name) then current.Name else "Torso"
+			groups[group] = groups[group] or {}
+			table.insert(groups[group], part)
+		end
+	end
+	return groups
+end
+
+-- Mide una animación de mono por números, sin capturas (cuando screen_capture no responde o para
+-- afinar): en cada instante (por defecto, los fotogramas clave), lo más bajo de cada extremidad
+-- respecto al suelo en reposo (negativo = se hunde; un brazo a 1,2 está levantado), la altura de la
+-- punta de la cola y la altura y el avance de la cabeza. Devuelve texto, una línea por instante.
+-- Abreviaturas: BD/BI brazo derecho/izquierdo, PD/PI pierna. Torso, cabeza y cola solo salen si
+-- tocan el suelo.
+function Anim.measure(rig: Model, source: any, times: { number }?): string
+	local copy = rig:Clone()
+	copy:PivotTo(CFrame.new(ORIGIN + Vector3.new(0, 200, 400)))
+	copy.Parent = Workspace
+	local groups = limbGroups(copy)
+	local function lows(): ({ [string]: number }, number)
+		local result, all = {}, math.huge
+		for group, parts in groups do
+			result[group] = lowestPoint(parts)
+			all = math.min(all, result[group])
+		end
+		return result, all
+	end
+	local _, floorY = lows()
+	local tailTip = copy:FindFirstChild("TailTip", true) :: BasePart?
+	local root = copy.PrimaryPart :: BasePart
+	local track = Anim.load(copy, source)
+	local list = times
+	if not list then
+		list = {}
+		if typeof(source) == "Instance" then
+			for _, keyframe in sortedKeyframes(source) do
+				table.insert(list, keyframe.Time)
+			end
+		else
+			for i = 0, 5 do
+				table.insert(list, round(track.Length * i / 5))
+			end
+		end
+	end
+	local short = { ["Right Arm"] = "BD", ["Left Arm"] = "BI", ["Right Leg"] = "PD", ["Left Leg"] = "PI" }
+	local rows = {}
+	for _, time in list :: { number } do
+		Anim.poseAt(copy, time)
+		local result = lows()
+		local entries = {}
+		for _, group in LIMB_GROUPS do
+			local value = result[group]
+			if value then
+				value -= floorY
+				if short[group] then
+					table.insert(entries, string.format("%s %.2f", short[group], value))
+				elseif value < 0.02 then
+					table.insert(entries, string.format("%s %.2f", group, value))
+				end
+			end
+		end
+		local base = floorY - root.Position.Y
+		if tailTip then
+			local tip = root.CFrame:PointToObjectSpace(tailTip.Position)
+			table.insert(entries, string.format("cola(alto %.1f, atrás %.1f)", tip.Y - base, tip.Z))
+		end
+		local head = copy:FindFirstChild("Head") :: BasePart?
+		if head then
+			local at = root.CFrame:PointToObjectSpace(head.Position)
+			table.insert(entries, string.format("cabeza(alto %.1f, delante %.1f)", at.Y - base, -at.Z))
+		end
+		table.insert(rows, string.format("t=%.2f ", time) .. table.concat(entries, " "))
+	end
+	copy:Destroy()
+	return table.concat(rows, "\n")
+end
+
 -- Mueve la cámara de Studio.
 function Anim.look(position: { number }, lookAt: { number })
 	Workspace.CurrentCamera.CFrame =

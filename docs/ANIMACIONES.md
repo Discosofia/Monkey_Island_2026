@@ -105,6 +105,8 @@ Orden recomendado: `Idle`, `Attack` y `Hurt` primero (se ven en todos los monos)
    - **Caja de herramientas** → **Inventario** → **Animaciones** → clic derecho → **Copiar ID de recurso**; o
    - create.roblox.com → **Creaciones** → **Artículos de desarrollo** → **Animaciones**: el número de la dirección de la página.
 
+> **Animaciones generadas por código.** Las propias de cada especie y del Gorila de Ceniza no se hacen a mano: están escritas en `src/island/tools/MonkeyAnimationSpecs/` y se generan en Studio (modo edición) con `require(game.ServerStorage.Tools.MonkeyAnimationBuilder).build()`, que las deja en `ServerStorage.RBX_ANIMSAVES` (carpetas `MonosPequenos`, `MonosMedianosYGrandes` y `GorilaDeCeniza`). Desde ahí se publican igual que en este paso, y su id va en el hueco de `MonkeyAnimations.luau` que lleva su nombre (`Titi_Run`, `Cenizo_Attack2`…).
+
 ## Paso 5: conectarla al juego
 
 Pega el ID en `src/shared/Data/MonkeyAnimations.luau`:
@@ -117,7 +119,8 @@ Default = {
 ```
 
 - `Default` vale para todos los monos y jefes.
-- `Overrides` cambia una animación solo para una especie (id de `Data/Monkeys`) o un jefe (id de `Data/Bosses`). Ejemplo: `GorilaAlbino = { Walk = "rbxassetid://…" }`.
+- `Overrides` cambia una animación solo para una especie (id de `Data/Monkeys`) o un jefe (id de `Data/Bosses`). Ejemplo: `GorilaAlbino = { Walk = "rbxassetid://…" }`. Un id vacío se ignora y se queda la de debajo.
+- `Phases` cambia las de un jefe según su fase (2 al 66 % de vida, 3 al 33 %), encima de `Overrides`. La fase 3 hereda lo de la 2 que no cambie. Ejemplo: `GorilaDeCeniza = { [2] = { Walk = "…" }, [3] = { Invoke = "…" } }`.
 
 | Acción | Cuándo suena |
 | --- | --- |
@@ -129,6 +132,7 @@ Default = {
 | `Stomp` | Golpe en el pecho del gorila; onda del jefe |
 | `Steal` | El capuchino roba |
 | `Howl` | El aullador llama a la tropa; el jefe pide refuerzos |
+| `Invoke` | En bucle, hasta que el jefe la para: el Gorila de Ceniza en fase 3 invoca la lluvia de lava quieto y con los brazos en alto (`channelFromPhase` en `Data/Bosses`) |
 | `Hurt` | Al recibir un golpe |
 | `Death` | Sin uso: los monos derrotados desaparecen con un "¡puf!" (Combat/Poof) para que la violencia sea de caricatura |
 

@@ -19,6 +19,10 @@ export type Special = {
 	cooldownSeconds: number,
 	species: string?, -- summon
 	count: number?, -- summon / rockRain
+	-- Desde esta fase lo lanza quieto, invocando con los brazos en alto (animación Invoke) durante
+	-- channelSeconds, y solo cuando su objetivo no está a su alcance cuerpo a cuerpo.
+	channelFromPhase: number?,
+	channelSeconds: number?,
 }
 
 export type Boss = {
@@ -127,7 +131,14 @@ local Bosses: { [string]: Boss } = {
 		leashRange = 180,
 		specials = {
 			{ id = "charge", fromPhase = 1, cooldownSeconds = 9 },
-			{ id = "rockRain", fromPhase = 2, cooldownSeconds = 10, count = 7 },
+			{
+				id = "rockRain",
+				fromPhase = 2,
+				cooldownSeconds = 10,
+				count = 7,
+				channelFromPhase = 3,
+				channelSeconds = 2.4,
+			},
 			{ id = "stomp", fromPhase = 2, cooldownSeconds = 12 },
 		},
 		lootItemId = "MagmaCore",

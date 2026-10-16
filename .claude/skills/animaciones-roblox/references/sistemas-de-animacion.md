@@ -52,17 +52,53 @@ a 3,2 de escala y los desplazamientos en studs no se escalan: usa rotaciones.
   piernas andando debajo (revísalo con `under` = el id de `Walk`).
 - `Death` no se usa: el mono desaparece con un "¡puf!".
 - Ids: `Default` para todos; `Overrides[especie o jefe]` para cambiar solo esa (el jefe va encima
-  de la especie). Una vacía no se reproduce.
+  de la especie) y `Phases[jefe]` según su fase (ver abajo). Una vacía en `Default` no se
+  reproduce; una vacía en `Overrides` o `Phases` se ignora y se queda la de debajo.
 - **No hay animación de prueba en Studio**: a diferencia de las armas, `MonkeyAnimator` solo usa
   ids publicados. Para ver una animación de mono sin publicar, usa la tira. Si el usuario quiere
   probarla en Play antes de publicarla, propón añadir el mismo mecanismo que `WeaponController`
   (`KeyframeSequenceProvider:RegisterKeyframeSequence` cuando el id está vacío y se está en Studio).
 
-**Fuente en git.** Las de los monos se hicieron a mano y su fuente es el id publicado (se puede
-bajar con `Anim.download`). Cuando crees o cambies una, la primera vez propón al usuario guardar
-los specs en el repo, por ejemplo en `src/island/tools/MonkeyAnimationBuilder.luau` con el mismo
-esquema que `WeaponAnimationBuilder` (una tabla de specs y un `build()` que deja las
-KeyframeSequence en el place para publicarlas). No lo crees sin preguntar.
+**Fuente en git.** Las primeras (las de `Default`) se hicieron a mano y su fuente es el id
+publicado (se bajan con `Anim.download`). Las propias de cada especie y del Gorila de Ceniza están
+como specs en `src/island/tools/MonkeyAnimationSpecs/` (un módulo por lote: `MonosPequenos`,
+`MonosMedianosYGrandes`, `GorilaDeCeniza`), y `MonkeyAnimationBuilder.build("<lote>")` las deja en
+`ServerStorage.RBX_ANIMSAVES.<lote>` para publicarlas. El nombre de cada animación
+(`Titi_Run`, `Cenizo_Attack2`) es el que lleva su hueco en `Data/MonkeyAnimations`. Una animación
+nueva o retocada va a su lote; si es de un grupo nuevo, crea otro módulo.
+
+**Fases de los jefes.** `MonkeyAnimations.Phases[jefe][2 | 3]` cambia animaciones según la fase
+(66 % y 33 % de vida), encima de `Overrides`, y la 3 hereda lo de la 2. `MonkeyAnimator` las cambia
+al cambiar el atributo `BossPhase`. Un id vacío en `Overrides` o `Phases` se ignora: se puede dejar
+el hueco antes de publicar. Los jefes heredan además los `Overrides` de su especie base (atributo
+`MonkeyType`): lo que se haga al gorila le llega al Gorila Albino y al de Ceniza.
+
+**Acciones en bucle.** `Invoke` se reproduce en bucle con prioridad de acción hasta que el código la
+para con `MonkeyAnimator.stop` (la invocación de lava del Gorila de Ceniza en fase 3; `BossService`
+la lanza quieto y fuera del cuerpo a cuerpo, ver `channelFromPhase` en `Data/Bosses`). Entran con un
+fundido de 0,3 s en vez de 0,1.
+
+**Velocidades.** Los monos van siempre a su `walkSpeed` y casi todos superan `RunThreshold` (16):
+en cuanto una especie tiene `Run`, es lo que más se ve, y `Walk` solo sale cuando la ralentizan. El
+aullador (15), el mandril (15), el orangután (12) y el gorila (15) andan. `Run` se acelera con
+`velocidad / 20`; `Walk`, con `velocidad / 10`.
+
+### Lo que se sabe de cada rig (medido con `Anim.measure`)
+
+- **Cuadrúpedos con cola** (casi todos los pequeños y medianos): brazos y piernas cuelgan
+  verticales de hombro y cadera hasta el suelo. Andar en diagonal con brazos ±25° y piernas ±22°
+  apenas hunde nada; galope a brincos ±40–50° vale. La cola sale hacia atrás: **X negativo la
+  levanta** y X positivo la baja (la del tití y la de la marteja rozan el suelo enseguida).
+- **Simios** (gorila, chimpancé, orangután, y los jefes que salen de ellos): sin cola. Los pies y
+  los nudillos sobresalen hacia atrás, así que **una pata o un brazo que va hacia atrás se clava**
+  (−0,3 con −20°). Que recorran hacia atrás la mitad que hacia delante.
+- **Gibón**: de pie, con los brazos en alto y abiertos. Con un brazo que apunta arriba los signos
+  se invierten: **X negativo lo echa hacia delante**. Sin cola.
+- **Torso**: gira sobre su centro, con los hombros por delante y las caderas por detrás. Levantar el
+  pecho (X+) baja las caderas y hunde los pies; bajar el pecho (X−) los hace flotar. Para alzarse
+  (pisotón, invocación), las piernas tienen que ir unos 40–50° adelantadas respecto al suelo.
+- **Desplazamientos**: `MonkeyModels` escala el tamaño de cada pieza, no el modelo, así que una
+  traslación en studs no crece con la especie ni con el jefe. Todo con rotaciones.
 
 ## 3. Personaje del jugador con armas
 
@@ -105,6 +141,13 @@ pieza. `PetFollowers` llama a `PetModels.animate(model, reloj, moving)` cada fot
 en el Studio que esté abierto en modo edición.
 - Para cambiar el movimiento, cambia esos números en el constructor (más rápido = `velocidad`,
   más amplio = `amplitud`, a destiempo = `fase`).
+- Para mover un grupo de piezas sueltas (la cabeza con ojos, orejas y bigotes; la cola con sus
+  plumas) usa `swingRegion(rig, bisagra, eje, amplitud, velocidad, fase, gait, filtro)` al final del
+  constructor: articula todas las piezas cuyo centro (sin escalar) cumple el filtro y que no se
+  movían ya. Cada pieza solo admite **una** articulación (`animate` no las suma): si una pieza ya se
+  mueve (la antena del X-7), pon la bisagra nueva sobre ella para que no se despegue.
+- La rana salta con `|sin(reloj * 6)|` en `PetFollowers`; sus patas usan velocidad 12 y fase −π/2
+  para patalear en el aire. Los dos usan el mismo reloj (`follower.clock`).
 - Para verlo, `Anim.showCode` construye una mascota por instante (no vale clonar: `animate` solo
   mueve las que construyó esa copia del módulo):
   ```lua

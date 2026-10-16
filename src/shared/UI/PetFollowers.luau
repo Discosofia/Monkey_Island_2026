@@ -155,7 +155,10 @@ function PetFollowers.start()
 				else
 					local beside = root.CFrame * CFrame.new(2.5, 0, 2.5)
 					local floor = groundBelow(beside.Position, root.Position.Y - 3)
-					local hop = if motion == "Hop" then math.abs(math.sin(now * 6)) * (0.15 + moving * 0.8) else 0
+					-- Con el mismo reloj que PetModels.animate, para que la rana patalee al compás.
+					local hop = if motion == "Hop"
+						then math.abs(math.sin(follower.clock * 6)) * (0.15 + moving * 0.8)
+						else 0
 					goal = beside.Rotation + Vector3.new(beside.X, floor + lift + hop, beside.Z)
 				end
 				local current = model:GetPivot()

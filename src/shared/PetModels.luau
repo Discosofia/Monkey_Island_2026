@@ -103,6 +103,30 @@ local function joint(
 	})
 end
 
+-- Articula sobre "hinge" todas las piezas ya creadas cuyo centro (sin escalar) cumple "inside" y que
+-- no se mueven ya por su cuenta: la cabeza entera con sus ojos, bigotes y orejas, o la cola con sus
+-- plumas. Llamar al final del constructor, cuando ya están todas las piezas.
+local function swingRegion(
+	rig: Rig,
+	hinge: Vector3,
+	axis: Vector3,
+	amplitude: number,
+	speed: number,
+	phase: number,
+	gait: boolean,
+	inside: (position: Vector3) -> boolean
+)
+	local moving: { [BasePart]: boolean } = {}
+	for _, item in rig.joints do
+		moving[item.part] = true
+	end
+	for _, part in rig.model:GetChildren() do
+		if part:IsA("BasePart") and part.Name ~= "Root" and not moving[part] and inside(part.Position / rig.scale) then
+			joint(rig, part, CFrame.new(hinge), axis, amplitude, speed, phase, gait)
+		end
+	end
+end
+
 local function eyes(rig: Rig, center: Vector3, spread: number, diameter: number, iris: Color3?, glow: boolean?)
 	for _, side in { -1, 1 } do
 		local position = center + Vector3.new(side * spread, 0, 0)
@@ -338,6 +362,10 @@ local function cat(rig: Rig, coat: Color3, options: CatOptions)
 			end
 		end
 	end
+	-- La cabeza (con cuello, orejas, bigotes y ojos) mira despacio a un lado y a otro.
+	swingRegion(rig, Vector3.new(0, 0.4, -0.9), Vector3.yAxis, 0.25, 0.9, 0, false, function(position)
+		return position.Z < -0.95 and position.Y > 0.1
+	end)
 end
 
 local BIRD_HEAD = Vector3.new(0, 0.68, -0.42)
@@ -349,6 +377,17 @@ local function bird(rig: Rig, color: Color3, feet: Color3)
 	for _, side in { -1, 1 } do
 		piece(rig, "Foot", "Oval", Vector3.new(0.16, 0.1, 0.3), CFrame.new(side * 0.18, -0.56, -0.05), feet)
 	end
+end
+
+-- Al final de cada ave: la cabeza cabecea y la cola sube y baja en vuelo. "neck" y "rump" son las
+-- bisagras; la cabeza es lo que queda por encima de "headAbove" y por delante del cuello.
+local function birdMotion(rig: Rig, neck: Vector3, headAbove: number, rump: Vector3)
+	swingRegion(rig, neck, Vector3.xAxis, 0.1, 3, 0, false, function(position)
+		return position.Y > headAbove and position.Z < neck.Z
+	end)
+	swingRegion(rig, rump, Vector3.xAxis, 0.15, 6, 1, false, function(position)
+		return position.Z > rump.Z and position.Y < -0.1
+	end)
 end
 
 -- Parche de piel o plumas alrededor del ojo, pegado a la cabeza de ave (detrás del ojo).
@@ -439,6 +478,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			CFrame.new(0, -0.45, 0.45),
 			Color3.fromRGB(220, 40, 30)
 		)
+		birdMotion(rig, Vector3.new(0, 0.45, -0.25), 0.4, Vector3.new(0, -0.15, 0.35))
 		return "Fly"
 	end,
 
@@ -553,7 +593,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			for k = -1, 1 do
 				piece(rig, "Toe", "Ball", Vector3.one * 0.09, CFrame.new(side * 0.35 + k * 0.07, -0.46, -0.5), dark)
 			end
-			piece(
+			local foot = piece(
 				rig,
 				"Foot",
 				"Oval",
@@ -561,7 +601,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				CFrame.new(side * 0.62, -0.4, 0.62) * CFrame.Angles(0, side * 0.5, 0),
 				dark
 			)
-			piece(
+			local backLeg = piece(
 				rig,
 				"BackLeg",
 				"Oval",
@@ -569,7 +609,20 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				CFrame.new(side * 0.5, -0.25, 0.3) * CFrame.Angles(0, side * 0.35, 0),
 				dark
 			)
-			piece(rig, "FrontLeg", "Oval", Vector3.new(0.2, 0.45, 0.2), CFrame.new(side * 0.35, -0.25, -0.42), dark)
+			local frontLeg =
+				piece(rig, "FrontLeg", "Oval", Vector3.new(0.2, 0.45, 0.2), CFrame.new(side * 0.35, -0.25, -0.42), dark)
+			-- Patalea al compás de los saltos (PetFollowers: |sin(reloj * 6)|): en el aire estira las
+			-- traseras hacia abajo y atrás y adelanta las delanteras; al caer las recoge. Solo al andar.
+			local hip = CFrame.new(side * 0.35, -0.2, -0.05)
+			joint(rig, backLeg, hip, Vector3.xAxis, 0.4, 12, -math.pi / 2, true)
+			joint(rig, foot, hip, Vector3.xAxis, 0.4, 12, -math.pi / 2, true)
+			local shoulder = CFrame.new(side * 0.35, -0.05, -0.42)
+			joint(rig, frontLeg, shoulder, Vector3.xAxis, 0.5, 12, -math.pi / 2, true)
+			for _, toe in rig.model:GetChildren() do
+				if toe.Name == "Toe" and toe:IsA("BasePart") and math.sign(toe.Position.X) == side then
+					joint(rig, toe, shoulder, Vector3.xAxis, 0.5, 12, -math.pi / 2, true)
+				end
+			end
 		end
 		piece(rig, "Mouth", "Oval", Vector3.new(0.55, 0.05, 0.2), CFrame.new(0, 0.05, -0.58), BLACK)
 		return "Hop"
@@ -641,6 +694,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			CFrame.new(0, -0.62, 1.65) * CFrame.Angles(0.35, 0, 0),
 			blue
 		)
+		birdMotion(rig, Vector3.new(0, 0.45, -0.25), 0.4, Vector3.new(0, -0.15, 0.35))
 		return "Fly"
 	end,
 
@@ -732,6 +786,10 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			CREAM,
 			Enum.Material.Fabric
 		)
+		-- Ladea la cabeza muy despacio, como buen perezoso.
+		swingRegion(rig, Vector3.new(0, 0.6, -0.1), Vector3.zAxis, 0.15, 0.6, 0, false, function(position)
+			return position.Y > 0.6 and position.Z < 0
+		end)
 		return "Walk"
 	end,
 
@@ -802,6 +860,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			CFrame.new(0, -0.35, 0.55) * CFrame.Angles(0.6, 0, 0),
 			color:Lerp(BLACK, 0.4)
 		)
+		birdMotion(rig, Vector3.new(0, 0.3, -0.2), 0.3, Vector3.new(0, -0.1, 0.3))
 		return "Hover"
 	end,
 
@@ -1260,6 +1319,11 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				furDark
 			)
 		end
+		-- El casco mira a un lado y a otro. El eje pasa por la antena (que ya se mueve sola) para que
+		-- no se despegue del casco.
+		swingRegion(rig, Vector3.new(0, 0.9, -0.5), Vector3.yAxis, 0.3, 0.7, 0, false, function(position)
+			return position.Y > 0.85 and position.Z < -0.2
+		end)
 		return "Walk"
 	end,
 
