@@ -20,7 +20,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "Egg", label = "🥚 Huevo" },
 		{ id = "HatchNow", label = "🐣 Eclosionar ya (huevo en el nido)" },
 		{ id = "Crate", label = "📦 Caja de suministro" },
-		{ id = "Pet", label = "🐾 Mascota al azar" },
+		{ id = "Pet", label = "🐾 Siguiente mascota" },
 		{ id = "Rain", label = "🌧️ Lluvia" },
 		{ id = "Storm", label = "⛈️ Tormenta" },
 		{ id = "Clear", label = "☀️ Despejado" },
@@ -38,7 +38,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 		{ id = "RoleXp", label = "⭐ +300 XP del rol" },
-		{ id = "Pet", label = "🥚 Mascota al azar" },
+		{ id = "Pet", label = "🐾 Siguiente mascota" },
 	},
 }
 

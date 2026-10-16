@@ -13,8 +13,6 @@ local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 
 local DebugService = {}
 
-local rng = Random.new()
-
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	Amber = function(player)
 		PlayerData.update(player, function(profile)
@@ -27,12 +25,20 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			profile.roleXp[role] = (profile.roleXp[role] or 0) + 300
 		end)
 	end,
+	-- Pasa a la siguiente mascota y la lleva puesta (se la da si no la tenía).
 	Pet = function(player)
-		local petId = PetRoll.roll(rng)
-		PlayerData.update(player, function(profile)
-			profile.pets[petId] = (profile.pets[petId] or 0) + 1
+		local profile = PlayerData.get(player)
+		if not profile then
+			return
+		end
+		local petId = PetRoll.after(if profile.activePet ~= "" then profile.activePet else nil)
+		PlayerData.update(player, function(current)
+			if (current.pets[petId] or 0) <= 0 then
+				current.pets[petId] = 1
+			end
+			current.activePet = petId
 		end)
-		Remotes.Notify:FireClient(player, `🐣 Mascota de prueba: {Pets[petId].icon} {Pets[petId].name}`)
+		Remotes.Notify:FireClient(player, `🐾 Mascota de prueba: {Pets[petId].icon} {Pets[petId].name}`)
 	end,
 }
 

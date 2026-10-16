@@ -37,7 +37,6 @@ local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
 local DebugService = {}
 
-local rng = Random.new()
 local nextBoss = 1
 
 -- Orden del expositor: cada arma seguida de sus mejoras; las que falten van al final.
@@ -354,7 +353,8 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		SupplyService.spawnCrate()
 	end,
 	Pet = function(player)
-		local petId = PetRoll.roll(rng)
+		local current = player:GetAttribute("ActivePet")
+		local petId = PetRoll.after(if typeof(current) == "string" then current else nil)
 		player:SetAttribute("ActivePet", petId)
 		RoleService.refreshPerks(player)
 		Remotes.Notify:FireClient(player, `🐾 Mascota de prueba: {Pets[petId].icon} {Pets[petId].name}`)
