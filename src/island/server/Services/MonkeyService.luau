@@ -585,7 +585,8 @@ local function steal(monkey: Monkey, player: Player)
 	)
 end
 
--- Mordisco normal. Tras un salto pega el doble; el orangután además inmoviliza.
+-- Mordisco normal. Tras un salto pega el doble; el orangután además inmoviliza (no si te acaba de
+-- soltar: Status.holdPlayer).
 function bite(monkey: Monkey, player: Player)
 	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
 	monkey.pounced = false
@@ -595,8 +596,7 @@ function bite(monkey: Monkey, player: Player)
 		playVoice(monkey, "Attack")
 	end
 	local grab = monkey.definition.grab
-	if landed and grab then
-		player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + grab)
+	if landed and grab and Status.holdPlayer(player, grab, monkey.group.speciesId) then
 		Remotes.Notify:FireClient(player, `🦧 ¡El {monkey.definition.name} te ha agarrado!`)
 	end
 end
@@ -682,7 +682,7 @@ function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	for _, info in infos do
 		if not info.safe and (info.position - monkey.root.Position).Magnitude <= settings.radius then
 			if CombatService.damagePlayer(info.player, damage, false, monkey.model) then
-				info.player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + settings.stunSeconds)
+				Status.holdPlayer(info.player, settings.stunSeconds, monkey.group.speciesId)
 			end
 		end
 	end

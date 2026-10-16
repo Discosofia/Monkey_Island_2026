@@ -91,6 +91,10 @@ local Config = {
 		-- Cerbatanas del médico ("healOnHit" en Data/Weapons): a qué distancia busca al aliado herido.
 		WeaponHealRadius = 40,
 		DummyRespawnSeconds = 3,
+		-- Al soltarte de un agarre o un aturdimiento (monos, jefes, PvP), segundos en los que no te
+		-- pueden volver a dejar quieto (Combat/Status.holdPlayer). Con 2, un orangután te tiene
+		-- quieto como mucho el 46 % del tiempo y te da ~3 s para apartarte.
+		PlayerControlImmunitySeconds = 2,
 	},
 
 	-- Golpes críticos (Shared/Crit): hacen más daño o curan más y su número sale más grande.

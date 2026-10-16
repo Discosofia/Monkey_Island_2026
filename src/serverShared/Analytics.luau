@@ -43,10 +43,28 @@ function Analytics.amber(player: Player, flow: "Source" | "Sink", amount: number
 	end)
 end
 
--- Evento propio con un valor (p. ej. "MatchDefeat" con los días sobrevividos).
-function Analytics.event(player: Player, name: string, value: number?)
+local FIELD_KEYS = {
+	Enum.AnalyticsCustomFieldKeys.CustomField01.Name,
+	Enum.AnalyticsCustomFieldKeys.CustomField02.Name,
+	Enum.AnalyticsCustomFieldKeys.CustomField03.Name,
+}
+
+-- Evento propio con un valor (p. ej. "MatchDefeat" con los días sobrevividos). "fields": hasta 3
+-- textos para desglosarlo en el panel (p. ej. { "Mago", "Fireball" }); Roblox admite como mucho
+-- 8000 combinaciones distintas por evento, así que nada de ids de jugador ni números sueltos.
+function Analytics.event(player: Player, name: string, value: number?, fields: { string }?)
 	safely("event", function()
-		AnalyticsService:LogCustomEvent(player, name, value or 1)
+		if fields and #fields > 0 then
+			local customFields = {}
+			for index, field in fields do
+				if FIELD_KEYS[index] then
+					customFields[FIELD_KEYS[index]] = field
+				end
+			end
+			AnalyticsService:LogCustomEvent(player, name, value or 1, customFields)
+		else
+			AnalyticsService:LogCustomEvent(player, name, value or 1)
+		end
 	end)
 end
 

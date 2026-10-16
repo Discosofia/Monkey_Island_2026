@@ -1126,9 +1126,13 @@ local function main(copia: Instance): string
 
 	if OPCIONES.secciones.enemigos then
 		local hueso = Armor.BoneArmor and Armor.BoneArmor.damageReduction or 0
+		local inmunidad = Config.Combat.PlayerControlImmunitySeconds or 0
 		linea("## 4. Amenaza de monos y jefes (vida base del jugador: 100)")
 		linea(
 			"Golpe máx. = el más fuerte posible (salto ×2, alfa, crítico). DPS con crítico esperado. Caído en = s hasta 100 de daño."
+		)
+		linea(
+			`Te deja quieto = si todos sus golpes entran; tras soltarte, {inmunidad} s en los que no te pueden volver a sujetar.`
 		)
 		linea("| Mono | Cat. | Día | DPS | Golpe máx. | Caído en | Con hueso | Especial | Te deja quieto |")
 		linea("|---|---|---|---|---|---|---|---|---|")
@@ -1155,7 +1159,11 @@ local function main(copia: Instance): string
 					local especial = {}
 					local quieto = 0
 					if mono.grab then
-						quieto = mono.grab / mono.attackCooldownSeconds
+						-- Tras soltarte no te puede volver a agarrar hasta su primer golpe pasada la
+						-- inmunidad (Status.holdPlayer).
+						local ciclo = math.ceil((mono.grab + inmunidad) / mono.attackCooldownSeconds - 1e-6)
+							* mono.attackCooldownSeconds
+						quieto = mono.grab / ciclo
 						table.insert(especial, `agarre {mono.grab} s`)
 					end
 					if mono.stomp then
@@ -1164,7 +1172,11 @@ local function main(copia: Instance): string
 							especial,
 							`pisotón {n(mono.stomp.damage * escala)} + {mono.stomp.stunSeconds} s cada {mono.stomp.cooldownSeconds} s`
 						)
-						quieto = math.max(quieto, mono.stomp.stunSeconds / mono.stomp.cooldownSeconds)
+						quieto = math.max(
+							quieto,
+							mono.stomp.stunSeconds
+								/ math.max(mono.stomp.cooldownSeconds, mono.stomp.stunSeconds + inmunidad)
+						)
 						dps += mono.stomp.damage * escala / mono.stomp.cooldownSeconds
 					end
 					if mono.throws then
@@ -1198,9 +1210,7 @@ local function main(copia: Instance): string
 						)
 					end
 					if quieto >= LIMITES.bloqueoEnemigo and dia == OPCIONES.dias[1] then
-						alerta(
-							`{mono.name}: puede dejarte sin moverte el {pct(math.min(1, quieto))} del tiempo (el agarre dura más que su ataque)`
-						)
+						alerta(`{mono.name}: puede dejarte sin moverte el {pct(math.min(1, quieto))} del tiempo`)
 					end
 				end
 			end

@@ -3,6 +3,8 @@
 -- ondas de choque. Los usan los jefes (BossService), la erupción del volcán y la tormenta
 -- (WeatherService). Siempre avisan antes con un círculo en el suelo, para que se puedan esquivar.
 -- Hacen daño a quien esté dentro del círculo al caer, también en el Basecamp: el círculo ya avisa.
+-- "cause" (opcional, al final): quién lo lanza, para la telemetría (p. ej. "Jefe Orangutan"); sin
+-- él cuenta como "Peligro".
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -13,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatService = require(script.Parent.Parent.Services.CombatService)
+local Status = require(script.Parent.Status)
 
 local SPARKS_TEXTURE = "rbxasset://textures/particles/fire_sparks_main.dds"
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
@@ -140,17 +143,24 @@ local function playersNear(position: Vector3, radius: number): { Player }
 end
 
 -- Daña a quien esté dentro del círculo.
-local function hurtNear(position: Vector3, radius: number, damage: number)
+local function hurtNear(position: Vector3, radius: number, damage: number, cause: string?)
 	if damage <= 0 then
 		return
 	end
 	for _, player in playersNear(position, radius) do
-		CombatService.damagePlayer(player, damage, true)
+		CombatService.damagePlayer(player, damage, true, nil, cause)
 	end
 end
 
 -- Una roca cae en "position" tras "warnSeconds" de aviso.
-function Hazards.fallingRock(position: Vector3, damage: number, radius: number, color: Color3, warnSeconds: number)
+function Hazards.fallingRock(
+	position: Vector3,
+	damage: number,
+	radius: number,
+	color: Color3,
+	warnSeconds: number,
+	cause: string?
+)
 	local ground = groundAt(position)
 	marker(ground, radius, Color3.fromRGB(255, 60, 40), warnSeconds + 0.4)
 	task.delay(warnSeconds, function()
@@ -173,13 +183,13 @@ function Hazards.fallingRock(position: Vector3, damage: number, radius: number, 
 		task.wait(0.4)
 		Sfx.play("RockImpact", ground)
 		burst(ground + Vector3.new(0, 1, 0), SMOKE_TEXTURE, Color3.fromRGB(140, 125, 105), 14, 14, 1.2)
-		hurtNear(ground, radius, damage)
+		hurtNear(ground, radius, damage, cause)
 	end)
 end
 
 -- Rayo de la tormenta: tras el aviso cae un rayo en zigzag con ramas, un destello y chispas, y deja
 -- el suelo chamuscado.
-function Hazards.lightning(position: Vector3, damage: number, radius: number, warnSeconds: number)
+function Hazards.lightning(position: Vector3, damage: number, radius: number, warnSeconds: number, cause: string?)
 	local ground = groundAt(position)
 	marker(ground, radius, Color3.fromRGB(255, 240, 120), warnSeconds + 0.2)
 	task.delay(warnSeconds, function()
@@ -247,7 +257,7 @@ function Hazards.lightning(position: Vector3, damage: number, radius: number, wa
 		flash(ground + Vector3.new(0, 1, 0), BOLT_COLOR, radius * 2.2, 0.35)
 		burst(ground + Vector3.new(0, 0.5, 0), SPARKS_TEXTURE, Color3.fromRGB(255, 240, 160), 40, 30, 0.7)
 		scorch(ground, radius * 0.8, Color3.fromRGB(25, 22, 20), Enum.Material.Slate, 6)
-		hurtNear(ground, radius, damage)
+		hurtNear(ground, radius, damage, cause)
 
 		-- Parpadeo: encendido, apagado, encendido y se desvanece.
 		task.spawn(function()
@@ -274,7 +284,14 @@ end
 
 -- Bomba de lava: sale de "origin" (el cráter o el jefe) en arco, dejando estela de fuego y humo, y
 -- revienta en "position" al acabar el aviso, dejando un charco de lava unos segundos.
-function Hazards.lavaBomb(position: Vector3, damage: number, radius: number, warnSeconds: number, origin: Vector3?)
+function Hazards.lavaBomb(
+	position: Vector3,
+	damage: number,
+	radius: number,
+	warnSeconds: number,
+	origin: Vector3?,
+	cause: string?
+)
 	local ground = groundAt(position)
 	marker(ground, radius, Color3.fromRGB(255, 60, 40), warnSeconds + 0.3)
 	local start = origin or (ground + Vector3.new(rng:NextNumber(-30, 30), 80, rng:NextNumber(-30, 30)))
@@ -346,18 +363,25 @@ function Hazards.lavaBomb(position: Vector3, damage: number, radius: number, war
 		task.delay(2.5, function()
 			poolFire.Enabled = false
 		end)
-		hurtNear(ground, radius, damage)
+		hurtNear(ground, radius, damage, cause)
 	end)
 end
 
 -- Onda de choque alrededor de "position": daña y aturde a quien siga dentro tras el aviso.
-function Hazards.shockwave(position: Vector3, radius: number, damage: number, stunSeconds: number, warnSeconds: number)
+function Hazards.shockwave(
+	position: Vector3,
+	radius: number,
+	damage: number,
+	stunSeconds: number,
+	warnSeconds: number,
+	cause: string?
+)
 	local ground = groundAt(position)
 	marker(ground, radius, Color3.fromRGB(255, 160, 40), warnSeconds)
 	task.delay(warnSeconds, function()
 		for _, player in playersNear(ground, radius) do
-			if CombatService.damagePlayer(player, damage, true) then
-				player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + stunSeconds)
+			if CombatService.damagePlayer(player, damage, true, nil, cause) then
+				Status.holdPlayer(player, stunSeconds, cause or "Peligro")
 			end
 		end
 	end)

@@ -68,7 +68,7 @@ end
 local function starve(player: Player, humanoid: Humanoid, amount: number)
 	CombatText.taken(player, amount)
 	if humanoid.Health - amount <= 0 then
-		LifeService.down(player)
+		LifeService.down(player, "Hambre")
 	else
 		humanoid:TakeDamage(amount)
 	end

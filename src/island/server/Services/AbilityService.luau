@@ -32,6 +32,7 @@ local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local Status = require(script.Parent.Parent.Combat.Status)
+local TelemetryService = require(script.Parent.TelemetryService)
 
 local SETTINGS = Config.Abilities
 local COMBO = Config.Combo
@@ -163,7 +164,13 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 			amount *= 1 + ComboService.linkedDamageBonus(attacker)
 		end
 		local crit = comboHit or CombatService.rollPlayerCrit(attacker)
-		CombatService.damage(target.model, target.humanoid, math.max(1, math.round(amount)), attacker, { crit = crit })
+		CombatService.damage(
+			target.model,
+			target.humanoid,
+			math.max(1, math.round(amount)),
+			attacker,
+			{ crit = crit, source = abilityId }
+		)
 	end
 end
 
@@ -180,7 +187,9 @@ local function control(target: Target, seconds: number, look: ("Stun" | "Freeze"
 	local duration = seconds
 	if target.player then
 		duration *= SETTINGS.PvPControlMultiplier
-		target.player:SetAttribute("StunnedUntil", now() + duration)
+		if not Status.holdPlayer(target.player, duration, "PvP") then
+			return
+		end
 	else
 		duration = Status.stun(target.model, seconds, look)
 	end
@@ -199,7 +208,12 @@ local function heal(healer: Player, player: Player, amount: number, abilityId: s
 	if not (humanoid and humanoid.Health > 0 and LifeState.isAlive(player)) then
 		return false
 	end
-	CombatService.heal(player, amount, healer, { canCrit = true, crit = ComboService.isPayoff(healer, abilityId) })
+	CombatService.heal(
+		player,
+		amount,
+		healer,
+		{ canCrit = true, crit = ComboService.isPayoff(healer, abilityId), source = abilityId }
+	)
 	return true
 end
 
@@ -866,8 +880,9 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 		return
 	end
 	-- Antes de aplicarla: si es el siguiente paso del combo, sus golpes ya cuentan como enlazados.
-	ComboService.onAbilityUsed(player, ability.id)
+	local linkedStep = ComboService.onAbilityUsed(player, ability.id)
 	if handler(player, character, root, aim.Unit, { from, to }) then
+		TelemetryService.abilityUsed(player, ability.id, linkedStep)
 		local cooldown = ability.cooldownSeconds
 			* Progression.perk(player, "CooldownRate")
 			* ComboService.cooldownFactor(player)

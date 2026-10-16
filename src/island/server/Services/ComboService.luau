@@ -20,6 +20,7 @@ local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
+local TelemetryService = require(script.Parent.TelemetryService)
 
 local SETTINGS = Config.Combo
 -- Segundos que se ve "¡COMBO!" (ComboStep = 3) antes de volver a empezar.
@@ -166,6 +167,7 @@ end
 local function complete(player: Player, state: State, combo: Combos.Combo)
 	local time = now()
 	bumpStreak(player, state)
+	TelemetryService.comboCompleted(player, state.streak)
 	state.step = 0
 	publishStep(player, #combo.steps, time + COMPLETE_DISPLAY_SECONDS)
 	local character = player.Character

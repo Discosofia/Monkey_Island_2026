@@ -26,6 +26,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local TelemetryService = require(script.Parent.TelemetryService)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
 local SPIRIT_TRANSPARENCY = 0.65
@@ -251,12 +252,14 @@ function LifeService.debugRevive(player: Player): boolean
 	return true
 end
 
--- Llamado por CombatService ante un golpe mortal.
-function LifeService.down(player: Player)
+-- Llamado por CombatService ante un golpe mortal. "cause": qué le ha tumbado, para la telemetría
+-- (TelemetryService.causeOf, "PvP", "Hambre").
+function LifeService.down(player: Player, cause: string)
 	local character, humanoid, root = characterParts(player)
 	if not (character and humanoid and root) or not LifeState.isAlive(player) then
 		return
 	end
+	TelemetryService.downed(player, cause)
 	humanoid.Health = 1
 	humanoid:UnequipTools()
 	humanoid:SetAttribute("NormalWalkSpeed", humanoid.WalkSpeed)

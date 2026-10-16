@@ -33,6 +33,7 @@ local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MonkeyService = require(script.Parent.MonkeyService)
+local TelemetryService = require(script.Parent.TelemetryService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
 local Poof = require(script.Parent.Parent.Combat.Poof)
 local Status = require(script.Parent.Parent.Combat.Status)
@@ -69,6 +70,7 @@ type ActiveBoss = {
 	fightingUntil: number, -- os.clock(); ver FIGHT_GRACE_SECONDS
 	contributors: { [Player]: boolean },
 	fighters: number, -- jugadores peleando con los que está calculada su vida (rescaleHealth)
+	firstHitAt: number?, -- os.clock() del primer golpe de un jugador (telemetría de duración)
 }
 
 -- Animación de cada ataque especial (Data/MonkeyAnimations).
@@ -183,7 +185,12 @@ local function onBossDied(boss: ActiveBoss)
 	current = nil
 	Beacon.add(boss.id)
 	local item = Items[boss.definition.lootItemId]
+	local reported = false
 	for player in boss.contributors do
+		if player.Parent and not reported then
+			reported = true
+			TelemetryService.bossDefeated(player, boss.id, os.clock() - (boss.firstHitAt or os.clock()), boss.fighters)
+		end
 		if player.Parent then
 			InventoryService.collect(player, boss.definition.lootItemId, 1)
 			MatchStats.add(player, MatchStats.BOSSES)
@@ -366,7 +373,14 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 		stomp = function(boss)
 			bubble(boss, "💥 ¡PUM!")
 			local position = boss.root.Position
-			Hazards.shockwave(position, STOMP_RADIUS, math.round(boss.damage * 0.8), 1.5, STOMP_IMPACT_SECONDS)
+			Hazards.shockwave(
+				position,
+				STOMP_RADIUS,
+				math.round(boss.damage * 0.8),
+				1.5,
+				STOMP_IMPACT_SECONDS,
+				`Jefe {boss.id}`
+			)
 			task.delay(STOMP_IMPACT_SECONDS, function()
 				if current == boss then
 					Sfx.play("RockImpact", position)
@@ -396,9 +410,23 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				local spot = center + Vector3.new(rng:NextNumber(-7, 7), 0, rng:NextNumber(-7, 7))
 				if lava then
 					local origin = boss.root.Position + Vector3.new(0, 6, 0)
-					Hazards.lavaBomb(spot, math.round(boss.damage * 0.7), 6, 1.3 + index * 0.2, origin)
+					Hazards.lavaBomb(
+						spot,
+						math.round(boss.damage * 0.7),
+						6,
+						1.3 + index * 0.2,
+						origin,
+						`Jefe {boss.id}`
+					)
 				else
-					Hazards.fallingRock(spot, math.round(boss.damage * 0.7), 6, color, 1.1 + index * 0.2)
+					Hazards.fallingRock(
+						spot,
+						math.round(boss.damage * 0.7),
+						6,
+						color,
+						1.1 + index * 0.2,
+						`Jefe {boss.id}`
+					)
 				end
 			end
 		end,
@@ -420,7 +448,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 						if not hit[player] then
 							hit[player] = true
 							if CombatService.damagePlayer(player, boss.damage, false, boss.model) then
-								player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 1)
+								Status.holdPlayer(player, 1, `Jefe {boss.id}`)
 							end
 						end
 					end
@@ -432,8 +460,10 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				return
 			end
 			bubble(boss, "¡TE TENGO!")
-			if CombatService.damagePlayer(target, math.round(boss.damage * 0.6), false, boss.model) then
-				target:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 3)
+			if
+				CombatService.damagePlayer(target, math.round(boss.damage * 0.6), false, boss.model)
+				and Status.holdPlayer(target, 3, `Jefe {boss.id}`)
+			then
 				Remotes.Notify:FireClient(target, "🦧 ¡El jefe te ha agarrado! Que te ayuden tus compañeros")
 			end
 		end,
@@ -447,7 +477,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 					humanoid:UnequipTools()
 					Remotes.Notify:FireClient(player, "🌑 ¡El rugido ha apagado tu antorcha!")
 				end
-				player:SetAttribute("StunnedUntil", Workspace:GetServerTimeNow() + 1)
+				Status.holdPlayer(player, 1, `Jefe {boss.id}`)
 			end
 		end,
 	}
@@ -583,6 +613,7 @@ function BossService:Init()
 		if boss and attacker and model == boss.model then
 			boss.contributors[attacker] = true
 			boss.fightingUntil = os.clock() + FIGHT_GRACE_SECONDS
+			boss.firstHitAt = boss.firstHitAt or os.clock()
 		end
 	end)
 end

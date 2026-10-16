@@ -221,6 +221,10 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   mascota activa también les pega cada 2 s: no confundas sus golpes con los tuyos.
 - **Apunta desde la cabeza**: los disparos de habilidad (`castShot`) salen de `Head`, así que la
   puntería es `(objetivo − cabeza).Unit`, no desde `HumanoidRootPart`.
+- **Mono concreto sin comando**: el panel solo crea mandriles; para otra especie busca en el
+  servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
+  a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y
+  `HealthChanged` durante 20 s. Ojo: vienen también sus compañeros de grupo.
 - **Lo que no se puede probar**: con un solo jugador no cambia nada que dependa de cuántos hay (la
   vida de los jefes, curaciones a aliados, PvP). Pide al usuario Test → Clientes y servidores con 2.
 
@@ -235,6 +239,16 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   (`UltRefundMaxSeconds`).
 - Para la duración de los jefes mide con las armas de la forja que se tienen **ese día**
   (`armasPorDia`): con las básicas salen el doble de largos de lo que serán.
+- Un control sobre el jugador que dura más que la cadencia de quien lo pone (el agarre del
+  orangután, 2,5 s cada 1,8 s) es un bloqueo total si cada golpe lo renueva. No se arregla bajando
+  números de una especie, sino con la regla común `Status.holdPlayer` (no se alarga mientras dura +
+  inmunidad al soltarte), que también cubre a dos monos turnándose. Todo control nuevo sobre
+  jugadores pasa por ella; su bloqueo real es `duración ÷ (ceil((duración + inmunidad) ÷ cadencia) ×
+  cadencia)`, y en Play sale algo más alto (~+5 puntos) porque la cadencia real varía.
+- Telemetría (`TelemetryService`): contar en el servidor y mandar los totales al final de la
+  partida, no un evento por uso; Roblox limita los eventos por minuto, admite 3 campos de texto por
+  evento y 8000 combinaciones de valores, así que los campos son ids (rol, habilidad, especie), nunca
+  números ni jugadores. Una habilidad o un mono nuevos no necesitan código de telemetría.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
   extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final.
 

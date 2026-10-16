@@ -30,6 +30,7 @@ local ComboService = require(script.Parent.ComboService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
 local ResourceService = require(script.Parent.ResourceService)
+local TelemetryService = require(script.Parent.TelemetryService)
 local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
@@ -87,6 +88,7 @@ end
 export type HitOptions = {
 	crit: boolean?, -- golpe crítico: ×Config.Crit.Multiplier y número más grande
 	pet: boolean?, -- lo hizo la mascota del atacante (su número sale más pequeño)
+	source: string?, -- con qué (id de habilidad o de arma), para la telemetría
 }
 
 local NO_HIT_OPTIONS: HitOptions = {}
@@ -125,6 +127,10 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 		amount = math.round(amount * Crit.MULTIPLIER)
 	end
 	local alive = humanoid.Health > 0
+	if attacker then
+		local source = if hit.pet then "Mascota" else hit.source or "Otro"
+		TelemetryService.damageDealt(attacker, source, math.min(amount, math.max(0, humanoid.Health)))
+	end
 	humanoid:TakeDamage(amount)
 	flash(model)
 	CombatText.dealt(model, amount, hit.crit, attacker, hit.pet, alive and humanoid.Health <= 0)
@@ -173,8 +179,15 @@ end
 -- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
 -- "source": el mono o jefe que pega; según su categoría o fase puede hacer un crítico (Shared/Crit).
--- Sin él (rayos, lava, rocas…) nunca lo es.
-function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: boolean?, source: Instance?): boolean
+-- Sin él (rayos, lava, rocas…) nunca lo es. "cause": quién lo lanza si no hay "source", para la
+-- telemetría de caídas (Combat/Hazards).
+function CombatService.damagePlayer(
+	player: Player,
+	amount: number,
+	ignoreSafe: boolean?,
+	source: Instance?,
+	cause: string?
+): boolean
 	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
 		return false
@@ -199,7 +212,7 @@ function CombatService.damagePlayer(player: Player, amount: number, ignoreSafe: 
 	Survival.addFever(player, Config.Fever.PerBite)
 	if humanoid.Health - amount <= 0 then
 		Sfx.play("PlayerDown", character.PrimaryPart or character)
-		LifeService.down(player)
+		LifeService.down(player, cause or TelemetryService.causeOf(source))
 	else
 		Sfx.play("PlayerHurt", character.PrimaryPart or character)
 		humanoid:TakeDamage(amount)
@@ -211,6 +224,7 @@ export type HealOptions = {
 	pet: boolean?, -- la curación es de la mascota de "healer" (Config.Crit.PetChance)
 	canCrit: boolean?, -- puede ser crítica (las vendas y la reanimación no)
 	crit: boolean?, -- crítica segura (el remate del combo del médico)
+	source: string?, -- con qué (id de habilidad o de arma), para la telemetría
 }
 
 local NO_HEAL_OPTIONS: HealOptions = {}
@@ -247,6 +261,11 @@ function CombatService.heal(player: Player, amount: number, healer: Player?, opt
 	end
 	if healer and not heal.pet then
 		ComboService.onActivity(healer)
+	end
+	-- Solo las de combate (habilidades, cerbatanas y mascotas), no vendas ni reanimaciones.
+	local source = if heal.pet then "Mascota" else heal.source
+	if healer and source then
+		TelemetryService.healed(healer, source, healed)
 	end
 	return healed
 end
@@ -307,7 +326,7 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 		humanoid:TakeDamage(amount)
 		return true
 	end
-	LifeService.down(victim)
+	LifeService.down(victim, "PvP")
 	local bounty = victim:GetAttribute("Bounty")
 	local collected = if typeof(bounty) == "number" then bounty else 0
 	local own = attacker:GetAttribute("Bounty")
@@ -328,6 +347,7 @@ local function meleeAttack(
 	player: Player,
 	character: Model,
 	root: BasePart,
+	weaponId: string,
 	weapon: Weapons.WeaponDefinition,
 	critChance: number
 )
@@ -345,7 +365,7 @@ local function meleeAttack(
 		local model, humanoid = enemyFromPart(part)
 		if model and humanoid and not alreadyHit[model] then
 			alreadyHit[model] = true
-			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance) })
+			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance), source = weaponId })
 		end
 		local victim = playerFromPart(part)
 		if victim and not playersHit[victim] then
@@ -429,7 +449,7 @@ function CombatService.projectile(
 end
 
 -- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico).
-local function healWoundedAlly(healer: Player, amount: number)
+local function healWoundedAlly(healer: Player, amount: number, weaponId: string)
 	local _, healerRoot = livingCharacter(healer)
 	if not healerRoot then
 		return
@@ -453,7 +473,7 @@ local function healWoundedAlly(healer: Player, amount: number)
 		end
 	end
 	if best then
-		CombatService.heal(best, amount, healer)
+		CombatService.heal(best, amount, healer, { source = weaponId })
 	end
 end
 
@@ -461,6 +481,7 @@ local function rangedAttack(
 	player: Player,
 	character: Model,
 	root: BasePart,
+	weaponId: string,
 	weapon: Weapons.WeaponDefinition,
 	aim: Vector3,
 	critChance: number
@@ -521,9 +542,9 @@ local function rangedAttack(
 		task.delay(travelSeconds, function()
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
-				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit })
+				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit, source = weaponId })
 				if weapon.healOnHit then
-					healWoundedAlly(player, weapon.healOnHit)
+					healWoundedAlly(player, weapon.healOnHit, weaponId)
 				end
 			end
 		end)
@@ -554,14 +575,22 @@ local function onUseWeapon(player: Player, aim: any)
 
 	if weapon.kind == "Melee" then
 		WeaponTools.playUse(tool)
-		meleeAttack(player, character, root, weapon, Crit.weaponChance(weaponId :: string))
+		meleeAttack(player, character, root, weaponId :: string, weapon, Crit.weaponChance(weaponId :: string))
 		-- El hacha y el pico, además de golpear enemigos, trabajan el árbol o la roca de delante.
 		if weapon.tool then
 			ResourceService.strike(player, root, weapon.tool)
 		end
 	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
 		WeaponTools.playUse(tool)
-		rangedAttack(player, character, root, weapon, aim.Unit, Crit.weaponChance(weaponId :: string))
+		rangedAttack(
+			player,
+			character,
+			root,
+			weaponId :: string,
+			weapon,
+			aim.Unit,
+			Crit.weaponChance(weaponId :: string)
+		)
 	end
 end
 

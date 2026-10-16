@@ -14,6 +14,7 @@ y corrige esta página.
 | Monos (ataques especiales) | campos de `Data/Monkeys.luau` (`pounce`, `roar`, `throws`, `grab`, `stomp`, `howl`, `thief`…), `Config.Monkeys`, `Config.Difficulty` | `Services/MonkeyService.luau` (`think`, `bite`, `pounce`, `roar`, `throwStone`, `stomp`, `howl`, `steal`) | `MonkeyAnimator` + `Data/MonkeyAnimations`, burbujas de texto |
 | Jefes (especiales por fase) | `Data/Bosses.luau` (`specials`) | `Services/BossService.luau` (`SPECIALS`, `tick`, `updatePhase`) y peligros de `Combat/Hazards.luau` | marcas de aviso en el suelo (Hazards), `AbilityFx` "Quake", animaciones |
 | Mascotas | `Data/Pets.luau` (`attackDamage`, `healPerTick`, `tracks`, `perks`), `Config.Pets` | `Services/PetService.luau` (cada 2 s) | `src/shared/UI/PetFollowers.luau` (salto al mono), rastreo en el cliente |
+| Telemetría (usos, combos, daño y curación por fuente, tiempo quieto, caídas, jefes) | | `Services/TelemetryService.luau` → `ServerShared/Analytics` | Creator Hub → Analítica |
 
 Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, puntería, desde, hasta),
 `AbilityFx` (servidor → clientes: tipo de efecto y datos), `PetAttack`.
@@ -79,7 +80,10 @@ si es mortal, `LifeService.down`.
   `MonkeyService.think`/`siegeThink` y `BossService.tick` en cada vuelta.
 - **Marca del cazador**: `MarkedUntil` + `MarkBonus` en el modelo (+ `Highlight`).
 - **Jugadores**: `StunnedUntil` solo pone `WalkSpeed` a 0 en `SurvivalController` (puede atacar,
-  usar habilidades y esquivar). Se **sobrescribe** en cada aplicación. `IntimidatedUntil` (rugido),
+  usar habilidades y esquivar). Se pone **siempre** con `Status.holdPlayer(player, segundos, causa)`:
+  mientras dura otro no lo alarga y al acabar hay `Config.Combat.PlayerControlImmunitySeconds` (2 s)
+  de inmunidad (`ControlImmuneUntil`). Devuelve false si no ha sujetado (para no avisar de un agarre
+  que no ha entrado). `IntimidatedUntil` (rugido),
   `GuardUntil` (grito), `ShieldUntil`/`ShieldHealth` (escudo), `InvulnerableUntil` (esquiva).
 
 ### 2.5 Combos (`Data/Combos`, `ComboService`, `Config.Combo`)

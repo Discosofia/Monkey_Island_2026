@@ -6,6 +6,7 @@
 --     Los jefes se resisten (Config.Abilities.BossControlMultiplier).
 --   - Ralentizado ("SlowedUntil" y "SlowFactor"): anda más despacio.
 --   - Provocado ("TauntedBy" y "TauntedUntil"): va a por el jugador que le provocó.
+-- También deja quietos a los jugadores (holdPlayer), con su propia regla para no encadenarlo.
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -13,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local TelemetryService = require(script.Parent.Parent.Services.TelemetryService)
 
 local Status = {}
 
@@ -66,6 +68,24 @@ function Status.stun(model: Model, seconds: number, look: ("Stun" | "Freeze" | "
 		humanoid:MoveTo(root.Position)
 	end
 	return seconds
+end
+
+-- Deja quieto a un jugador (agarre del orangután, pisotones, embestidas, control en PvP): no anda,
+-- pero puede pegar, usar habilidades y esquivar (SurvivalController). Para que nadie le tenga
+-- sujeto siempre (un orangután que pega más a menudo de lo que dura su agarre, dos gorilas
+-- turnándose…), mientras está quieto otro control no lo alarga y, al soltarse, tiene
+-- Config.Combat.PlayerControlImmunitySeconds en los que no se le puede volver a sujetar.
+-- "cause" es para la telemetría (TelemetryService.causeOf). Devuelve true si le ha sujetado.
+function Status.holdPlayer(player: Player, seconds: number, cause: string): boolean
+	local time = now()
+	local immuneUntil = player:GetAttribute("ControlImmuneUntil")
+	if seconds <= 0 or (typeof(immuneUntil) == "number" and time < immuneUntil) then
+		return false
+	end
+	player:SetAttribute("StunnedUntil", time + seconds)
+	player:SetAttribute("ControlImmuneUntil", time + seconds + Config.Combat.PlayerControlImmunitySeconds)
+	TelemetryService.held(player, seconds, cause)
+	return true
 end
 
 function Status.slow(model: Model, seconds: number, factor: number)

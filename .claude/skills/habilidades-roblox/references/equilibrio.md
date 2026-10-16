@@ -42,8 +42,10 @@ para matar** y en segundos, no en puntos sueltos.
 **Control de masas.** Los juegos grandes limitan el control encadenado: rendimientos decrecientes que
 acaban en inmunidad (WoW, contados **por criatura**, compartidos por todo el grupo), o resistencia que
 sube con cada segundo de control y baja sola (Diablo III 1.0.5), y jefes inmunes o con "armadura de
-control". Aquí los jefes solo se quedan la mitad y **no hay rendimientos decrecientes**, así que el
-límite se pone en el tiempo de uso del control.
+control". Aquí los jefes solo se quedan la mitad y **no hay rendimientos decrecientes** sobre los
+enemigos, así que el límite se pone en el tiempo de uso del control. Sobre los **jugadores** sí hay
+una regla (`Status.holdPlayer`): un control no se alarga mientras dura y al acabar hay 2 s de
+inmunidad (`Config.Combat.PlayerControlImmunitySeconds`).
 
 **Daño explosivo frente a aguante.** Riot rebajó el daño de *League of Legends* porque los combates
 eran tan rápidos que se perdía claridad y margen de reacción, y bajó a la vez la curación porque
@@ -77,7 +79,7 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Tiempo para matar | vida del mono (con la dificultad del día) ÷ DPS de 1 objetivo × actividad | golpes/segundos para matar |
 | Duración de un jefe | vida × `Config.Bosses` ÷ (jugadores × DPS medio de los 4 roles × actividad), con las mejoras de la forja que se suelen tener el día en que aparece (`armasPorDia`) | que dé tiempo a ver sus fases |
 | Golpe máx. enemigo | el golpe más fuerte posible de un mono o jefe (salto, alfa, crítico) | que nada te tumbe de un golpe |
-| Te deja quieto | fracción del tiempo que un mono solo te inmoviliza | bloqueo |
+| Te deja quieto | fracción del tiempo que un mono solo te inmoviliza si todos sus golpes entran, con la inmunidad tras soltarte | bloqueo |
 | % del arma (mascotas) | DPS de la mascota ÷ DPS medio de las armas de rol | que la mascota ayude sin jugar por ti |
 
 Supuestos (los que más cambian el resultado): monos repartidos (un radio 10 alcanza 2,5 de media,
@@ -133,32 +135,32 @@ forja desde el día 3 y 25,3 con la 2.ª desde el día 6):
 | Gorila de Ceniza | 8 | 5600 | 222 s | 180 s | 169 s |
 
 Monos: el día 1 nadie pega más de 28 de una vez (chimpancé alfa con crítico); el día 20 la
-categoría 2–3 llega a 61–71. Tiempo para matar con combos (100 % de actividad): mono ardilla ~1 s,
+categoría 2–3 llega a 61–71. Te dejan quieto: orangután 46 % (agarre 2,5 s; antes de la inmunidad,
+100 %), gorila 19 %. Tiempo para matar con combos (100 % de actividad): mono ardilla ~1 s,
 mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: Jaguarundí 22 %, Ocelote
 38 %, Mono X-7 48 % del DPS medio de un arma de rol.
 
 ## 5. Hallazgos pendientes (para decidir, no aplicados)
 
-1. **El orangután puede inmovilizarte siempre**: su agarre (2,5 s) dura más que su ataque (1,8 s).
-   El jugador aún puede pegar, usar habilidades y esquivar, pero no huir andando. `StunnedUntil` del
-   jugador se sobrescribe en cada golpe.
-2. **Sin rendimientos decrecientes de control.** Hoy está en límites (equipo de 4 sobre un jefe:
+1. **Sin rendimientos decrecientes de control sobre los enemigos.** Hoy está en límites (equipo de 4 sobre un jefe:
    25 %), pero con talentos al máximo sube al 37 % y el Cazador llega al 42 % por mono.
-3. **El Mono X-7 (legendario)** hace el 48 % del DPS medio de un arma de rol, y como las mascotas no
+2. **El Mono X-7 (legendario)** hace el 48 % del DPS medio de un arma de rol, y como las mascotas no
    pasan por el ×0,7, es casi lo mismo que la cerbatana del médico.
-4. **Con talentos al máximo** la Lluvia de proyectiles vale 39 s de arma y la Bola de fuego supera el
+3. **Con talentos al máximo** la Lluvia de proyectiles vale 39 s de arma y la Bola de fuego supera el
    80 % del DPS del bastón; el médico cura 36/s al equipo.
-5. **El cazador hace poco daño propio** con sus activas (Múltiple y Cepo ~1 s de arma); su aporte es
+4. **El cazador hace poco daño propio** con sus activas (Múltiple y Cepo ~1 s de arma); su aporte es
    Marcar (+20 % al daño de **todo el equipo** el 33 % del tiempo), que la calculadora no suma al
    daño del cazador. Por lo mismo, su combo apenas suma daño en peleas cortas (+3 % en 60 s): vale
    por volver a sujetar a los atrapados. Tenlo en cuenta antes de "arreglarlo".
-6. **El daño de los jefes no sube con los días** (sí su vida, con los jugadores que pelean).
-7. **Sin probar en Play**: el recálculo de la vida del jefe cuando entra o sale un segundo jugador
+5. **El daño de los jefes no sube con los días** (sí su vida, con los jugadores que pelean).
+6. **Sin probar en Play**: el recálculo de la vida del jefe cuando entra o sale un segundo jugador
    (por MCP solo hay uno; hace falta Test → Clientes y servidores con 2).
-8. **No hay telemetría de habilidades.** `ServerShared/Analytics` solo registra tutorial, Ámbar y
-   resultado de partida. Ver §7.
+7. **Golpes máximos el día 20**: gibón, mandril, chimpancé y gorila pasan de 60 de 100 sin armadura.
 
-Resueltos el 16 de octubre de 2026: el combo valía casi solo por acercar la definitiva sin tope (el
+Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
+2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un
+jugador pasa por `Status.holdPlayer` (no se alarga mientras dura y deja 2 s de inmunidad) y se queda
+en el 46 %, ~50 % medido en Play. Ya hay telemetría de habilidades (§7). También ese día: el combo valía casi solo por acercar la definitiva sin tope (el
 mago la lanzaba casi el triple, +60 %; ahora tope de 20 s por recarga y daño extra por rol en
 `Data/Combos`) y los jefes caían en 39–57 s con 4 jugadores y contaban a todo el servidor (ahora
 cuentan a los que pelean, `Config.Bosses`, y duran 2–3 min).
@@ -180,13 +182,25 @@ Cambia **una cosa cada vez**, en pasos del 10–20 %, y mira el informe antes y 
 | Un mono es injusto | aviso más largo, menos daño por golpe, más tiempo entre especiales | más vida sin más avisos |
 | Jefe demasiado corto | más vida o más fases con inmunidad breve al cambiar de fase | más daño del jefe |
 
-## 7. Telemetría recomendada
+## 7. Telemetría
 
-La calculadora es teoría; los jugadores dicen la verdad. Con `Analytics.event(player, nombre, valor)`
-(`src/serverShared/Analytics.luau`) se podrían registrar, por rol: usos de cada habilidad, combos
-cerrados y racha máxima, daño por fuente al final de la partida, caídas por tipo de mono o especial de
-jefe y duración de cada jefe. Con eso se ve qué habilidades se ignoran, qué enemigos matan más y si
-el combo lo hace la mayoría o unos pocos. Es un cambio de código: proponlo, no lo hagas sin pedirlo.
+La calculadora es teoría; los jugadores dicen la verdad. `Services/TelemetryService` cuenta durante
+la partida y lo manda junto al terminarla (o al salir el jugador) con `Analytics.event(player,
+nombre, valor, campos)`, en el Creator Hub → Analítica → Eventos propios. La lista de eventos y sus
+campos está en la cabecera del servicio. Cómo leerlo frente a la calculadora:
+
+| Pregunta | Eventos | Compara con |
+|---|---|---|
+| ¿Qué habilidad se ignora? | `AbilityUses` ÷ `MinutesPlayed`, por rol | usos posibles por minuto (60 ÷ recarga) |
+| ¿Se hacen combos? | `AbilityLinked` ÷ `AbilityUses`, `ComboCompleted`, `ComboBestStreak` | sección 2 (combo en 180 s) |
+| ¿Cuánto aporta cada cosa? | `DamageBySource` y `HealingBySource` por rol y fuente | "segundos de arma" y la curva de la sección 2 |
+| ¿Qué tumba a la gente? | `PlayerDowned` por causa y día | golpe máximo y "caído en" de la sección 4 |
+| ¿Te tienen quieto? | `TimeHeld` por causa ÷ `MinutesPlayed` | "te deja quieto" de la sección 4 |
+| ¿Cuánto dura un jefe? | `BossDefeated` (segundos, por jefe y jugadores) | duración de la sección 3 (90–240 s) |
+
+Para una habilidad nueva no hay que tocar nada: sus usos y su daño salen solos por su id (si hace
+daño con `hurt` y cura con `heal`). Un mono o jefe nuevo sale por su especie o `Jefe <id>`; un
+peligro nuevo, con su último argumento `cause`.
 
 ## Fuentes
 

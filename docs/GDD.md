@@ -306,6 +306,7 @@ stateDiagram-v2
 - **Miedo al fuego:** antorchas y hogueras ahuyentan a las especies de categoría baja y media.
 - **Repoblación:** cada amanecer se llenan todos los grupos y, durante el día y la noche, un grupo con bajas recupera un mono cada 45 s si no hay jugadores cerca de su zona. La selva nunca se vacía, pero un grupo recién barrido tarda en volver.
 - **Rendimiento:** los monos lejos de cualquier jugador "duermen" (no calculan rutas) y hay un límite de monos activos por servidor.
+- **Nadie te sujeta siempre:** agarres, pisotones y embestidas (de monos, jefes y en PvP) te dejan quieto un rato, pero mientras estás quieto otro no lo alarga y, al soltarte, durante `Config.Combat.PlayerControlImmunitySeconds` (2 s) no te pueden volver a sujetar. Así un orangután te tiene quieto como mucho la mitad del tiempo y siempre hay un hueco para huir.
 
 ### 8.2 Bestiario
 
@@ -339,7 +340,7 @@ El **diario de campo** (J en la Isla, pestaña "Diario" en el Lobby) recoge las 
 | Especie | Horario | Zona | Mecánica propia | Botín de ejemplo |
 |---|---|---|---|---|
 | Chimpancé | Día | Montañas, selva profunda | **Emboscadas coordinadas**: lanza piedras y usa palos | Hueso grueso, pelaje negro |
-| Orangután | Día | Manglar, árboles altos | Lento, pero su **agarre inmoviliza** y un compañero tiene que liberarte | Pelaje naranja, fibra resistente |
+| Orangután | Día | Manglar, árboles altos | Lento, pero su **agarre te inmoviliza** 2,5 s (puedes pegar, usar habilidades y esquivar, no andar); al soltarte tienes 2 s para apartarte | Pelaje naranja, fibra resistente |
 | Gorila | Día y noche | Montañas, volcán | Tanque: **carga** y golpe de pecho que **aturde en área** | Pelaje plateado, hueso de gorila |
 
 #### Categoría 4: jefes (uno por bioma)
