@@ -277,13 +277,14 @@ local function workPose(t: number, rightUp: boolean): { [string]: any }
 	}
 end
 
--- Comer o beber: mano a la boca (el giro en Y lleva el antebrazo al centro de la cara).
+-- Comer o beber: mano a la boca. El codo alto la sube a la altura de la boca y el giro en Y lleva el
+-- antebrazo al centro de la cara (revisado a ojo: con el codo bajo se quedaba en el pecho).
 local function mouthPose(t: number, near: boolean, head: number, marker: string?): { [string]: any }
 	return {
 		t = t,
 		marcador = marker,
-		RightUpperArm = if near then { 30, 65, -20 } else { 28, 60, -18 },
-		RightLowerArm = { if near then 125 else 105, 0, 0 },
+		RightUpperArm = if near then { 60, 75, -10 } else { 50, 65, -10 },
+		RightLowerArm = { if near then 135 else 110, 0, 0 },
 		Head = { head, 0, 0 },
 	}
 end
@@ -544,10 +545,10 @@ local SPECS: { [string]: any } = {
 		direction = "InOut",
 		keyframes = {
 			{ t = 0, reposo = true },
-			mouthPose(0.15, true, 8, "Boca"),
-			mouthPose(0.3, false, 3),
-			mouthPose(0.45, true, 10),
-			mouthPose(0.6, true, 10),
+			mouthPose(0.15, true, 4, "Boca"),
+			mouthPose(0.3, false, 0),
+			mouthPose(0.45, true, 6),
+			mouthPose(0.6, true, 6),
 			{ t = 0.85, reposo = true },
 		},
 	},
