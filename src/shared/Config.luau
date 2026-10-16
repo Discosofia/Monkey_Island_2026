@@ -145,7 +145,9 @@ local Config = {
 
 	-- Combos de 3 habilidades por rol (Data/Combos, ComboService).
 	Combo = {
-		StepWindowSeconds = 6, -- tiempo máximo entre un paso y el siguiente
+		-- Tiempo máximo entre un paso y el siguiente. Si el siguiente aún se está recargando, cuenta
+		-- desde que esté listo: el combo no se pierde por haber usado antes una de sus habilidades.
+		StepWindowSeconds = 6,
 		-- Tras enlazar un paso, sus golpes contra los marcados son críticos durante este tiempo
 		-- (cubre el Torbellino, el cepo que salta y lo que tarda en llegar un proyectil).
 		PayoffSeconds = 6,
@@ -155,7 +157,7 @@ local Config = {
 		StreakCooldownBonus = 0.08, -- por cada nivel de racha por encima de x1, recargas más rápidas
 		StreakSeconds = 8, -- la racha se pierde tras este tiempo sin hacer daño ni curar
 		ShieldBonus = 0.5, -- Escudo de hojas al aliado revitalizado: absorbe esto más
-		SalveFeverCure = 15, -- el Ungüento que cierra el combo del médico baja la fiebre esto
+		SalveFeverCure = 9, -- el Ungüento que cierra el combo del médico baja la fiebre esto
 		FireballSplashBonus = 0.25, -- la Bola de fuego que rompe el hielo salpica más lejos
 		WarCryStun = 1, -- el Grito enlazado del guerrero aturde a los desequilibrados (s)
 		WhirlwindExtraSeconds = 1, -- el Torbellino que cierra el combo del guerrero gira más
@@ -473,7 +475,7 @@ local Config = {
 		ChargeWidth = 6,
 		ChargeKnockback = 45,
 		WarCryRadius = 40,
-		WarCrySeconds = 5,
+		WarCrySeconds = 4, -- provoca y protege (con 12 s de recarga, un tercio del tiempo)
 		QuakeDamage = 150,
 		QuakeRadius = 16,
 
@@ -510,7 +512,7 @@ local Config = {
 		ChainJumpRange = 20,
 
 		-- Médico.
-		AreaHealAmount = 18,
+		AreaHealAmount = 11, -- a cada aliado del radio (cada 15 s)
 		AreaHealRadius = 18,
 		DartHeal = 21,
 		DartDamage = 9,

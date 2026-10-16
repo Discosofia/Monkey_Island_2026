@@ -90,7 +90,9 @@ si es mortal, `LifeService.down`.
 
 - Paso 1 (prepara): el handler llama a `comboOpener`/`ComboService.opener` cuando **toca** algo;
   lo marca (`ComboMarkBy`/`ComboMarkUntil`) y empieza el combo.
-- Pasos 2 y 3: usar la siguiente antes de `StepWindowSeconds` (6 s) la enlaza. Durante
+- Pasos 2 y 3: usar la siguiente antes de `StepWindowSeconds` (6 s) la enlaza. Si la siguiente aún
+  se está recargando, los 6 s cuentan desde que esté lista (`stepDeadline`, con `AbilityReadyAt<hueco>`;
+  la marca dura lo mismo): el combo no se pierde por haber usado antes suelta una de sus habilidades. Durante
   `PayoffSeconds` sus golpes contra los marcados son críticos seguros y hacen `damageBonus` de su
   combo más de daño (`isComboHit` + `linkedDamageBonus`, en `AbilityService.hurt`), y el handler
   puede dar un extra con `ComboService.isPayoff(player, id)` (más flechas, más giro, radio…).
@@ -202,7 +204,7 @@ Los números exactos y sus medidas salen de la calculadora (`src/island/tools/Eq
 
 | Rol | Z | X | C | V (definitiva) | Combo (pasos) |
 |---|---|---|---|---|---|
-| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 15 s | Pisotón 90 s | Embestida → Grito → Torbellino |
-| Cazador | Disparo múltiple 5 s | Marcar presas 18 s | Cepo 9 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple |
+| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 12 s | Pisotón 90 s | Embestida → Grito → Torbellino |
+| Cazador | Disparo múltiple 5 s | Marcar presas 15 s | Cepo 9 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple |
 | Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Rayo encadenado 90 s | Nova → Parpadeo → Bola de fuego |
-| Médico | Ungüento 24 s | Dardo curativo 6 s | Escudo de hojas 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento |
+| Médico | Ungüento 15 s | Dardo curativo 6 s | Escudo de hojas 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento |

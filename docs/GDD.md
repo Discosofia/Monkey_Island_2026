@@ -165,7 +165,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 | Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. |
 
 A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
-| Fiebre del mono | Sube con los **mordiscos** de los monos según el daño que entra tras la armadura (+20 por cada barra de vida entera perdida a mordiscos; un mono básico, +1) y con la carne cruda (+12). Piedras, pisotones, jefes y peligros no la suben. Desde 60, tinte morado y **oleadas** cortas de vista borrosa (cada 16 s a 60, cada 7 s a 100); entre oleadas se ve bien. A 100 además quita vida poco a poco. Baja sola 4 por minuto (15 por minuto descansando en el Basecamp); el **antídoto** del taller del curandero la quita de golpe y el remate del combo del médico la baja 15. Ritmo buscado: síntomas tras unos 10 minutos de pelea continua sin curarse. |
+| Fiebre del mono | Sube con los **mordiscos** de los monos según el daño que entra tras la armadura (+20 por cada barra de vida entera perdida a mordiscos; un mono básico, +1) y con la carne cruda (+12). Piedras, pisotones, jefes y peligros no la suben. Desde 60, tinte morado y **oleadas** cortas de vista borrosa (cada 16 s a 60, cada 7 s a 100); entre oleadas se ve bien. A 100 además quita vida poco a poco. Baja sola 4 por minuto (15 por minuto descansando en el Basecamp); el **antídoto** del taller del curandero la quita de golpe y el remate del combo del médico la baja 9. Ritmo buscado: síntomas tras unos 10 minutos de pelea continua sin curarse. |
 
 ### 6.2 Muerte: caído y Espíritu
 
@@ -181,7 +181,7 @@ Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el p
 
 | Rol | Pasiva | Armas iniciales | Activas (Z · X · C) | Definitiva (V) |
 |---|---|---|---|---|
-| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 5 s) | **Pisotón:** 150 de daño en área y aturde 2 s |
+| ⚔️ **Guerrero** | +25 % daño cuerpo a cuerpo, +20 de vida. Lleva mejor el huevo. | Garrote de piedra, honda | **Torbellino** (golpes alrededor 2 s) · **Embestida** (carga de 20 studs que empuja) · **Grito de guerra** (atrae a los monos y −40 % de daño 4 s) | **Pisotón:** 150 de daño en área y aturde 2 s |
 | 🏹 **Cazador** | +25 % daño a distancia. | Arco (gasta flechas), machete | **Disparo múltiple** (abanico de 5) · **Marcar presas** · **Cepo** (cuando un mono lo pisa, atrapa unos 2 s a todos los que estén a 8 studs) | **Lluvia de proyectiles:** zona con 160 de daño en 4 s |
 | 🔮 **Mago** | +25 % daño de hechizos, habilidades un 15 % más rápidas. | Bastón mágico (sin munición), machete | **Bola de fuego** (explota en área) · **Nova de hielo** (congela 1,2 s y ralentiza) · **Parpadeo** (teletransporte de 25 studs) | **Rayo encadenado:** salta entre 5 monos, −25 % por salto |
 | ⛑️ **Médico** | Ve la vida de todos. Reanima 2× más rápido. | Cerbatana (sin munición; cada dardo que acierta cura un poco al aliado más herido cerca), machete | **Ungüento en área** · **Dardo curativo** (cura a distancia) · **Escudo de hojas** (absorbe 24) | **Tótem sanador:** se planta donde apuntas (hasta 40 studs) y cura a quien esté cerca durante 10 s |
@@ -198,10 +198,10 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 
 | Rol | Recargas Z · X · C (antes → ahora) |
 |---|---|
-| Guerrero | Torbellino 12 → 7 s · Embestida 10 → 6 s · Grito 25 → 15 s |
-| Cazador | Disparo múltiple 8 → 5 s · Marcar 30 → 18 s · Cepo 15 → 9 s |
+| Guerrero | Torbellino 12 → 7 s · Embestida 10 → 6 s · Grito 25 → 15 s (→ 12 s, ver §6.4) |
+| Cazador | Disparo múltiple 8 → 5 s · Marcar 30 → 18 s (→ 15 s, ver §6.4) · Cepo 15 → 9 s |
 | Mago | Bola de fuego 10 → 6 s · Nova 18 → 11 s · Parpadeo 12 → 7 s |
-| Médico | Ungüento 40 → 24 s · Dardo 10 → 6 s · Escudo 20 → 12 s |
+| Médico | Ungüento 40 → 24 s (→ 15 s, ver §6.4) · Dardo 10 → 6 s · Escudo 20 → 12 s |
 
 *Armas a distancia (animación):* con una honda, un arco, un bastón o una cerbatana en la mano, el brazo derecho cuelga junto al cuerpo; al disparar, el personaje hace el movimiento de su arma (estirar la goma, tensar y soltar la cuerda, alzar y lanzar el bastón con un destello, llevarse la cerbatana a la boca y soplar). Son animaciones de Roblox (R15) que genera `ServerStorage.Tools.WeaponAnimationBuilder` y se publican con sus ids en `Data/WeaponAnimations`.
 
@@ -217,16 +217,19 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
 | Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
 
-**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 6 s como mucho entre una y otra. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+25 % el guerrero y el mago, +50 % el cazador) y el remate tiene un efecto extra. Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**, como mucho **20 s por recarga**.
+**Combos** (`Data/Combos`, `ComboService`): tres habilidades **en orden**, con 6 s como mucho entre una y otra (si la siguiente aún se está recargando, los 6 s cuentan desde que esté lista). La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+25 % el guerrero y el mago, +50 % el cazador) y el remate tiene un efecto extra. Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**, como mucho **20 s por recarga**.
 
 *Cambio de octubre de 2026 (valor de los combos):* antes casi todo el premio era acercar la definitiva sin límite, y el mago, que cierra un combo cada ~9 s, la lanzaba casi el triple. Ahora la devolución tiene tope, el daño extra va por rol y la explosión del remate del mago es un 25 % más grande (antes 50 %). Enlazar da +20–30 % de daño en una pelea larga contra un grupo a los tres roles de daño (medido con `ServerStorage.Tools.Equilibrio`).
+
+*Cambio de octubre de 2026 (enlazar combos seguidos):* al guerrero le costaba encadenar un combo tras otro. La Embestida (6 s) se recargaba mucho antes que el Grito (15 s): si la usabas suelta, el combo nuevo empezaba sin Grito disponible y se perdía, y cuando el Grito volvía la Embestida estaba otra vez recargándose. Ahora la ventana espera a que el paso siguiente esté listo (vale para todos los roles) y el Grito se recarga en **12 s** con **4 s** de protección (el mismo tercio del tiempo protegido que antes): un combo completo cada 12 s en vez de cada 15 s. Enlazar le da al guerrero +30 % de daño en grupo en 180 s (el límite es 35 %).
+El hueco entre combos lo marca la recarga más larga de sus pasos. Pasaba lo mismo, más acusado, con el cazador (Marcar presas, 18 s) y el médico (Ungüento, 24 s): ahora los dos pasos se recargan en **15 s**, con su efecto en la misma proporción para que den lo mismo por segundo. Marcar dura 5 s (el talento Rastreador, +2 s por rango) y el Ungüento cura 11 a cada aliado; su remate baja la fiebre 9 (al hacerse más a menudo, por minuto baja lo mismo que antes). Hueco entre combos: mago ~9 s, guerrero 12 s, cazador y médico 15 s; con racha, menos.
 
 | Rol | Combo | Pasos | Remate |
 |---|---|---|---|
 | Cazador | Presa acorralada | Cepo ⛓️ → Marcar presas (vuelve a sujetar 1,5 s a los atrapados) → Disparo múltiple | Críticos y 2 proyectiles más |
 | Mago | Fuego y hielo | Nova ❄️ → Parpadeo → Bola de fuego | Rompe el hielo: críticos y explosión un 25 % más grande |
 | Guerrero | Remolino de acero | Embestida 💫 → Grito (aturde 1 s a los desequilibrados) → Torbellino | Críticos y 1 s más de giro |
-| Médico | Cura de urgencia | Dardo 💚 → Escudo (+50 % al revitalizado) → Ungüento | Curaciones críticas seguras y −15 de fiebre |
+| Médico | Cura de urgencia | Dardo 💚 → Escudo (+50 % al revitalizado) → Ungüento | Curaciones críticas seguras y −9 de fiebre |
 
 **Racha:** cada combo completo seguido la sube (x1 … x5); desde x2, las recargas son un 8 % más rápidas por nivel. Se pierde tras 8 s sin hacer daño ni curar.
 

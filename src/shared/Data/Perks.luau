@@ -16,7 +16,7 @@ local Perks: { [string]: number } = {
 	QuakeStun = 2, -- segundos que aturde el "Pisotón"
 	-- Cazador.
 	MultiShotCount = 5, -- proyectiles de "Disparo múltiple"
-	MarkSeconds = 6, -- duración de "Marcar presas"
+	MarkSeconds = 5, -- duración de "Marcar presas" (con 15 s de recarga, un tercio del tiempo)
 	MarkedBonus = 0.2, -- daño extra (fracción) que reciben los monos que marcas
 	TrapRoot = 1.8, -- segundos que sujeta el "Cepo"
 	RainDamage = 1, -- multiplica el daño de "Lluvia de proyectiles"

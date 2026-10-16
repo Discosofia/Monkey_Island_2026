@@ -3,7 +3,8 @@
 --   - Paso 1 (prepara): cuando la habilidad toca a alguien (el cepo atrapa, el hielo congela, la
 --     embestida golpea, el dardo alcanza) lo marca y empieza el combo (ComboService.opener).
 --   - Pasos 2 y 3: usar la siguiente del combo antes de StepWindowSeconds la enlaza
---     (ComboService.onAbilityUsed, antes de aplicar la habilidad). Durante PayoffSeconds sus golpes
+--     (ComboService.onAbilityUsed, antes de aplicar la habilidad). Si la siguiente aún se está
+--     recargando, el plazo cuenta desde que esté lista (stepDeadline). Durante PayoffSeconds sus golpes
 --     contra los marcados son críticos seguros con el daño extra del combo (isComboHit,
 --     linkedDamageBonus) y el remate hace su efecto extra (isPayoff). Cada paso enlazado que no sea la
 --     propia definitiva le quita UltRefundSeconds, como mucho UltRefundMaxSeconds por recarga.
@@ -28,7 +29,7 @@ local COMPLETE_DISPLAY_SECONDS = 1.5
 
 type State = {
 	step: number, -- último paso conseguido (0 = sin combo)
-	stepAt: number,
+	stepUntil: number, -- hasta cuándo se puede enlazar el siguiente
 	payoff: string?, -- habilidad enlazada cuyos golpes son críticos contra los marcados
 	payoffUntil: number,
 	streak: number,
@@ -50,7 +51,7 @@ local function stateOf(player: Player): State
 	if not state then
 		state = {
 			step = 0,
-			stepAt = 0,
+			stepUntil = 0,
 			payoff = nil,
 			payoffUntil = 0,
 			streak = 0,
@@ -102,6 +103,27 @@ local function extendMarks(player: Player, state: State, untilTime: number)
 	state.marked = kept
 end
 
+-- Hasta cuándo se puede enlazar el paso "nextIndex" del combo: StepWindowSeconds desde ahora o, si esa
+-- habilidad aún se está recargando, desde que esté lista. Sin esto el guerrero perdía el combo si había
+-- usado la Embestida (6 s) mientras el Grito (12 s) seguía recargándose.
+local function stepDeadline(player: Player, combo: Combos.Combo, nextIndex: number, time: number): number
+	local deadline = time + SETTINGS.StepWindowSeconds
+	local roleId = player:GetAttribute("Role")
+	local nextId = combo.steps[nextIndex]
+	if typeof(roleId) ~= "string" or not (Roles[roleId] and nextId) then
+		return deadline
+	end
+	for slot, ability in Roles[roleId].abilities do
+		if ability.id == nextId then
+			local readyAt = player:GetAttribute(`AbilityReadyAt{slot}`)
+			if typeof(readyAt) == "number" then
+				deadline = math.max(deadline, readyAt + SETTINGS.StepWindowSeconds)
+			end
+		end
+	end
+	return deadline
+end
+
 -- true si "target" lleva la marca de combo de "player".
 function ComboService.isMarkedBy(target: Instance, player: Player): boolean
 	local untilTime = target:GetAttribute("ComboMarkUntil")
@@ -116,14 +138,20 @@ function ComboService.opener(player: Player, abilityId: string, target: Instance
 	end
 	local state = stateOf(player)
 	local time = now()
-	mark(player, state, target, time + SETTINGS.StepWindowSeconds)
 	-- Un cepo que salta a mitad de combo marca, pero no lo vuelve a empezar.
-	if state.step >= 2 and time - state.stepAt <= SETTINGS.StepWindowSeconds then
+	if state.step >= 2 and time <= state.stepUntil then
+		mark(player, state, target, state.stepUntil)
 		return
 	end
+	-- Lo que toca el paso 1 sigue marcado mientras se pueda enlazar el 2.
+	local deadline = stepDeadline(player, combo, 2, time)
+	if state.step == 1 and time <= state.stepUntil then
+		deadline = math.max(deadline, state.stepUntil)
+	end
+	mark(player, state, target, deadline)
 	state.step = 1
-	state.stepAt = time
-	publishStep(player, 1, time + SETTINGS.StepWindowSeconds)
+	state.stepUntil = deadline
+	publishStep(player, 1, deadline)
 end
 
 -- Acerca la definitiva del rol, sin pasar de UltRefundMaxSeconds en cada recarga: así acelera lo
@@ -194,21 +222,22 @@ function ComboService.onAbilityUsed(player: Player, abilityId: string): number?
 		return nil
 	end
 	local time = now()
-	if state.step ~= index - 1 or time - state.stepAt > SETTINGS.StepWindowSeconds then
+	if state.step ~= index - 1 or time > state.stepUntil then
 		return nil
 	end
+	local deadline = stepDeadline(player, combo, index + 1, time)
 	state.step = index
-	state.stepAt = time
+	state.stepUntil = deadline
 	state.payoff = abilityId
 	state.payoffUntil = time + SETTINGS.PayoffSeconds
-	extendMarks(player, state, time + math.max(SETTINGS.StepWindowSeconds, SETTINGS.PayoffSeconds))
+	extendMarks(player, state, math.max(deadline, time + SETTINGS.PayoffSeconds))
 	if not isUltimate(roleId, abilityId) then
 		refundUltimate(player, state, roleId)
 	end
 	if index >= #combo.steps then
 		complete(player, state, combo)
 	else
-		publishStep(player, index, time + SETTINGS.StepWindowSeconds)
+		publishStep(player, index, deadline)
 	end
 	return index
 end

@@ -225,6 +225,12 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
   a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y
   `HealthChanged` durante 20 s. Ojo: vienen también sus compañeros de grupo.
+- **Habilidades que mueven al jugador** (`Charge`, `Blink`, `Whirlwind`): el movimiento lo hace
+  `RoleController`, así que con `UseAbility:FireServer` a pelo el personaje no se mueve. Ponlo antes
+  con `PivotTo` a 3 studs del muñeco para que el servidor lo encuentre al pasar.
+- **Combos**: registra `ComboStep`, `ComboStepUntil − ahora`, `ComboStreak` y `AbilityReadyAt<n>` tras
+  cada paso. Para probar la ventana, usa primero suelta la habilidad larga del paso 2, abre con el paso 1
+  y espera más de 6 s antes de enlazar.
 - **Lo que no se puede probar**: con un solo jugador no cambia nada que dependa de cuántos hay (la
   vida de los jefes, curaciones a aliados, PvP). Pide al usuario Test → Clientes y servidores con 2.
 
@@ -249,6 +255,13 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   partida, no un evento por uso; Roblox limita los eventos por minuto, admite 3 campos de texto por
   evento y 8000 combinaciones de valores, así que los campos son ids (rol, habilidad, especie), nunca
   números ni jugadores. Una habilidad o un mono nuevos no necesitan código de telemetría.
+- La simulación de combos juega perfecto: solo abre un combo cuando todos sus pasos van a estar listos.
+  Un jugador real usa suelta la habilidad corta del paso 1 y luego no tiene el paso 2. Mira siempre
+  el **hueco entre combos** (la recarga más larga de sus pasos, ×0,92 por nivel de racha) y si el
+  paso 1 recarga mucho antes que el 2: por eso la ventana espera a que el paso siguiente esté listo
+  (`ComboService.stepDeadline`). Hoy: mago ~9 s, guerrero 12 s (Grito), cazador 15 s (Marcar) y
+  médico 15 s (Ungüento). Para acortarlo sin cambiar el equilibrio, baja la recarga y el efecto en
+  la misma proporción (y lo que escale con él: el talento de duración, el remate).
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
   extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final.
 

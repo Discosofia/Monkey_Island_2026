@@ -54,7 +54,7 @@ local Roles: { [string]: Role } = {
 				name = "Grito de guerra",
 				short = "Grito",
 				description = "Los monos cercanos van a por ti y recibes un 40 % menos de daño.",
-				cooldownSeconds = 15,
+				cooldownSeconds = 12,
 			},
 			{
 				id = "Quake",
@@ -87,7 +87,7 @@ local Roles: { [string]: Role } = {
 				name = "Marcar presas",
 				short = "Marcar",
 				description = "Señala a los monos cercanos: el equipo los ve y les hace más daño.",
-				cooldownSeconds = 18,
+				cooldownSeconds = 15,
 			},
 			{
 				id = "Trap",
@@ -158,7 +158,7 @@ local Roles: { [string]: Role } = {
 				name = "Ungüento en área",
 				short = "Ungüento",
 				description = "Cura a los aliados cercanos (y a ti).",
-				cooldownSeconds = 24,
+				cooldownSeconds = 15,
 			},
 			{
 				id = "HealingDart",

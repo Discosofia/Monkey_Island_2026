@@ -115,14 +115,15 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
 Para comparar las propuestas. Vuelve a sacarla con la calculadora si cambian los números del juego.
-Incluye el retoque de combos y jefes del 16 de octubre de 2026.
+Incluye el retoque de combos y jefes del 16 de octubre de 2026 y el Grito de guerra (12 s / 4 s), Marcar presas (15 s / 5 s) y el Ungüento (15 s / 11) con la ventana del combo que espera al paso siguiente (la
+simulación de combos ya no deja de usar sueltas las habilidades del combo mientras espera un paso).
 
 | Rol | Arma (DPS real) | Activas: segundos de arma por uso | Definitiva | DPS 60 s, 1 obj (combos) | DPS 60 s, grupo (sin → con combos) | Combo en 180 s (grupo / 1 obj) | Control del rol |
 |---|---|---|---|---|---|---|---|
-| Guerrero | Garrote 30,1 | Torbellino 2,07 · Embestida 1,24 · Grito 0 | Pisotón 17,8 | 30,9 | 44,6 → 48,2 | +28 % / +13 % | 9 % |
-| Cazador | Arco 20,5 | Múltiple 1,07 · Marcar 0 · Cepo 1,04 | Lluvia 24,4 | 27,4 | 38,0 → 39,1 | +21 % / +7 % | 28 % |
+| Guerrero | Garrote 30,1 | Torbellino 2,07 · Embestida 1,24 · Grito 0 | Pisotón 17,8 | 29,6 | 43,7 → 47,7 | +30 % / +10 % | 11 % |
+| Cazador | Arco 20,5 | Múltiple 1,07 · Marcar 0 · Cepo 1,04 | Lluvia 24,4 | 27,6 | 37,3 → 40,1 | +28 % / +11 % | 30 % |
 | Mago | Bastón 14,2 | Fuego 2,81 · Nova 2,62 · Parpadeo 0 | Rayo 20,5 | 22,9 | 30,3 → 38,0 | +29 % / +13 % | 13 % |
-| Médico | Cerbatana 12,2 | curación: Ungüento 72 (3/s), Dardo 21 (3,5/s), Escudo 24 (2/s) | Tótem 240 | 11,1 | cura 15,3 → 21,8/s al equipo | | 0 % |
+| Médico | Cerbatana 12,2 | curación: Ungüento 44 (2,9/s), Dardo 21 (3,5/s), Escudo 24 (2/s) | Tótem 240 | 11,3 | cura 14,6 → 18,0/s al equipo | | 0 % |
 
 Jefes (60 % de actividad; DPS por jugador 13,9 con las armas básicas, 18,9 con la 1.ª mejora de la
 forja desde el día 3 y 25,3 con la 2.ª desde el día 6):
@@ -143,7 +144,7 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 ## 5. Hallazgos pendientes (para decidir, no aplicados)
 
 1. **Sin rendimientos decrecientes de control sobre los enemigos.** Hoy está en límites (equipo de 4 sobre un jefe:
-   25 %), pero con talentos al máximo sube al 37 % y el Cazador llega al 42 % por mono.
+   25 %), pero con talentos al máximo sube al 39 % y el Cazador llega al 43 % por mono.
 2. **El Mono X-7 (legendario)** hace el 48 % del DPS medio de un arma de rol, y como las mascotas no
    pasan por el ×0,7, es casi lo mismo que la cerbatana del médico.
 3. **Con talentos al máximo** la Lluvia de proyectiles vale 39 s de arma y la Bola de fuego supera el

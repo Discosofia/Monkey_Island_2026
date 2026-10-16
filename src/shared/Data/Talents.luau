@@ -59,10 +59,10 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		Tracker = {
 			name = "Rastreador",
-			description = "Las marcas duran 2,5 s más por rango.",
+			description = "Las marcas duran 2 s más por rango.",
 			order = 2,
 			perk = "MarkSeconds",
-			perRank = 2.5,
+			perRank = 2,
 			maxRank = 3,
 		},
 		StrongVines = {

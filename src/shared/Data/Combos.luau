@@ -1,6 +1,6 @@
 --!strict
 -- Combos de los roles (octubre de 2026). Tres habilidades en orden, con Config.Combo.StepWindowSeconds
--- como mucho entre una y la siguiente:
+-- como mucho entre una y la siguiente (desde que la siguiente esté lista, si aún se recargaba):
 --   1. La primera prepara: deja una marca en lo que toca (el cepo atrapa, el hielo congela…).
 --   2. La segunda enlaza: contra los marcados sus golpes son críticos seguros y hacen "damageBonus"
 --      más de daño.

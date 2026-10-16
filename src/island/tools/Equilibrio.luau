@@ -713,7 +713,7 @@ local function main(copia: Instance): string
 		end
 		local pendientes: { { en: number, cantidad: number, criticoSeguro: number } } = {}
 		local resultado: Sim = { total = 0, arma = 0, habilidades = 0, cura = 0, combos = 0, curva = {} }
-		local paso, pasoEn, racha = 0, -math.huge, 0
+		local paso, pasoHasta, racha = 0, -math.huge, 0
 		local devuelto = 0 -- segundos que los combos han quitado ya a la recarga de la definitiva en curso
 		local vulnerableHasta, vulnerableValor = -1, 0
 		local armaLista, bloqueoHasta = 0, 0
@@ -722,6 +722,13 @@ local function main(copia: Instance): string
 
 		local function factorRacha(): number
 			return if racha >= 2 then 1 - COMBO.StreakCooldownBonus * (racha - 1) else 1
+		end
+
+		-- Como ComboService.stepDeadline: la ventana del paso "k" cuenta desde que esté listo.
+		local function plazo(k: number): number
+			local hueco = if combo then huecoDe[combo.steps[k] or ""] else nil
+			local desde = if hueco then math.max(t, listo[hueco]) else t
+			return desde + COMBO.StepWindowSeconds
 		end
 
 		local function aplicar(cantidad: number, aCritico: number, deHabilidad: boolean)
@@ -748,9 +755,9 @@ local function main(copia: Instance): string
 			if ability.ultimate then
 				devuelto = 0
 			end
-			if combo and indice and indice > 1 and paso == indice - 1 and t - pasoEn <= COMBO.StepWindowSeconds then
+			if combo and indice and indice > 1 and paso == indice - 1 and t <= pasoHasta then
 				enlazado = true
-				paso, pasoEn = indice, t
+				paso, pasoHasta = indice, plazo(indice + 1)
 				if not ability.ultimate then
 					-- Como ComboService.refundUltimate: con tope por recarga (UltRefundMaxSeconds).
 					local margen = if COMBO.UltRefundMaxSeconds then COMBO.UltRefundMaxSeconds - devuelto else math.huge
@@ -767,8 +774,9 @@ local function main(copia: Instance): string
 					resultado.combos += 1
 					paso = 0
 				end
-			elseif combo and indice == 1 then
-				paso, pasoEn = 1, t
+			elseif combo and indice == 1 and not (paso >= 2 and t <= pasoHasta) then
+				-- Como ComboService.opener: a mitad de combo marca, pero no lo vuelve a empezar.
+				paso, pasoHasta = 1, plazo(2)
 			end
 			local ficha = fichaDe(ability, perk, enlazado)
 			listo[hueco] = t + recargaDe(ability, perk) * factorRacha()
@@ -817,7 +825,7 @@ local function main(copia: Instance): string
 				end
 			end
 			-- Siguiente paso del combo en marcha.
-			if paso >= 1 and t - pasoEn <= COMBO.StepWindowSeconds then
+			if paso >= 1 and t <= pasoHasta then
 				local siguiente = huecoDe[combo.steps[paso + 1]]
 				if siguiente and t >= listo[siguiente] then
 					return siguiente
@@ -836,18 +844,24 @@ local function main(copia: Instance): string
 					return huecoDe[combo.steps[1]]
 				end
 			end
-			-- Próximo inicio de combo: cuando estén listos todos sus pasos.
+			-- Cuándo hará falta otra vez cada habilidad del combo: sin combo en marcha, cuando estén
+			-- listos todos sus pasos; esperando un paso, cuando estén listos los que faltan.
 			local inicio = t
-			for hueco in enCombo do
-				inicio = math.max(inicio, listo[hueco])
+			local esperado = if paso >= 1 then huecoDe[combo.steps[paso + 1]] else nil
+			for k, id in combo.steps do
+				local hueco = huecoDe[id]
+				if hueco and k > paso then
+					inicio = math.max(inicio, listo[hueco])
+				end
 			end
 			for hueco, ability in abilities do
 				if t >= listo[hueco] then
 					if not enCombo[hueco] then
 						return hueco
 					end
-					-- Del combo, pero estará lista otra vez antes de que el combo pueda empezar.
-					if paso == 0 and t + recargaDe(ability, perk) * factorRacha() <= inicio then
+					-- Del combo, pero estará lista otra vez antes de que haga falta (usarla suelta no
+					-- rompe el combo en marcha: ComboService solo mira el paso siguiente).
+					if hueco ~= esperado and t + recargaDe(ability, perk) * factorRacha() <= inicio then
 						return hueco
 					end
 				end
