@@ -57,12 +57,16 @@ local MonkeyAnimations = {
 		-- especie base (Gorila → Albino y Ceniza, Chimpance → Caudillo, Orangutan → Manglar).
 		Mandril = { Walk = "", Run = "", Attack = "" },
 		Macaco = { Walk = "", Run = "", Attack = "" },
-		Gibon = { Walk = "", Run = "", Attack = "" },
+		Gibon = { Walk = "", Run = "", Attack = "", Pounce = "" }, -- Pounce: Gibon_Pounce
 		Babuino = { Walk = "", Run = "", Attack = "" },
 		ColaLarga = { Walk = "", Run = "", Attack = "" },
 		Chimpance = { Walk = "", Run = "", Attack = "" },
 		Orangutan = { Walk = "", Run = "", Attack = "" },
-		Gorila = { Walk = "", Run = "", Attack = "" },
+		Gorila = { Walk = "", Run = "", Attack = "", Stomp = "" }, -- Stomp: Gorila_Stomp
+		-- Jefes con pisotón: hacen el daño a 0,9 s (BossService), como el pisotón de fase 2 del de Ceniza.
+		-- Va el mismo id que Cenizo_Stomp2 (encaja en los rigs del gorila y del orangután).
+		GorilaAlbino = { Stomp = "" }, -- Cenizo_Stomp2
+		OrangutanDelManglar = { Stomp = "" }, -- Cenizo_Stomp2
 		-- Fase 1 del Gorila de Ceniza, lote GorilaDeCeniza (Cenizo_*).
 		GorilaDeCeniza = {
 			Walk = "", -- Cenizo_Walk1: andar pesado sobre los nudillos

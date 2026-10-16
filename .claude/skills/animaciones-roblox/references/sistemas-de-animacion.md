@@ -93,7 +93,13 @@ aullador (15), el mandril (15), el orangután (12) y el gorila (15) andan. `Run`
   los nudillos sobresalen hacia atrás, así que **una pata o un brazo que va hacia atrás se clava**
   (−0,3 con −20°). Que recorran hacia atrás la mitad que hacia delante.
 - **Gibón**: de pie, con los brazos en alto y abiertos. Con un brazo que apunta arriba los signos
-  se invierten: **X negativo lo echa hacia delante**. Sin cola.
+  se invierten: **X negativo lo echa hacia delante**. Sin cola. Por eso las acciones comunes que
+  echan los brazos adelante (el `Pounce` de `Default`) le salen al revés: tiene `Gibon_Pounce`.
+- **Cuándo hace daño cada acción**: el golpe de la animación tiene que coincidir con el del código,
+  y no siempre es al empezar. `MonkeyService` hace el daño del pisotón del gorila al instante
+  (`Gorila_Stomp` golpea a 0,14 s); `BossService` lo hace a 0,9 s (`STOMP_IMPACT_SECONDS`,
+  `Cenizo_Stomp2`, que comparten los tres jefes con pisotón). Míralo en el servicio antes de fijar
+  los tiempos.
 - **Torso**: gira sobre su centro, con los hombros por delante y las caderas por detrás. Levantar el
   pecho (X+) baja las caderas y hunde los pies; bajar el pecho (X−) los hace flotar. Para alzarse
   (pisotón, invocación), las piernas tienen que ir unos 40–50° adelantadas respecto al suelo.

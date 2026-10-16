@@ -1,6 +1,7 @@
 --!strict
--- Andar, correr y atacar propios de los monos de categorías 2 y 3 (MonkeyAnimations.Overrides). Los
--- jefes heredan los de su especie base. Ver MonkeyAnimationBuilder para el formato.
+-- Andar, correr y atacar propios de los monos de categorías 2 y 3 (MonkeyAnimations.Overrides), y
+-- las especiales que el Default no resolvía (Gibon_Pounce, Gorila_Stomp). Los jefes heredan los de
+-- su especie base. Ver MonkeyAnimationBuilder para el formato.
 --   - Simios (nudillos): brazos y piernas recorren hacia atrás la mitad que hacia delante; si no,
 --     pies y nudillos se clavan en el suelo.
 --   - Gibón: de pie y con los brazos en alto, así que X negativo los echa hacia delante.
@@ -895,6 +896,105 @@ return {
 			},
 			{ t = 0.48, ["Right Arm"] = { 16, 0, 0 } },
 			{ t = 0.6, reposo = true },
+		},
+	},
+	-- El salto en picado del gibón. El Pounce común echa los brazos adelante con X+, y al gibón (brazos
+	-- en alto) se los mandaba hacia atrás.
+	Gibon_Pounce = {
+		name = "Gibon_Pounce",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.12,
+				Torso = { 8, 0, 0 },
+				Head = { -8, 0, 0 },
+				["Right Arm"] = { 25, 0, 10 },
+				["Left Arm"] = { 25, 0, -10 },
+				["Right Leg"] = { 20, 0, 0 },
+				["Left Leg"] = { 20, 0, 0 },
+			},
+			{
+				t = 0.25,
+				Torso = { -30, 0, 0 },
+				Head = { 20, 0, 0 },
+				["Right Arm"] = { -75, 0, -20 },
+				["Left Arm"] = { -75, 0, 20 },
+				["Right Leg"] = { -20, 0, 0 },
+				["Left Leg"] = { -20, 0, 0 },
+				marcador = "Salto",
+			},
+			{
+				t = 0.45,
+				Torso = { -30, 0, 0 },
+				Head = { 20, 0, 0 },
+				["Right Arm"] = { -80, 0, -20 },
+				["Left Arm"] = { -80, 0, 20 },
+				["Right Leg"] = { -25, 0, 0 },
+				["Left Leg"] = { -25, 0, 0 },
+			},
+			{ t = 0.6, reposo = true },
+		},
+	},
+	-- Pisotón del gorila. MonkeyService hace el daño al empezar, así que el golpe llega pronto (0,14 s)
+	-- y remata con un segundo golpe de puños. Los brazos son rígidos (sin codo): no llegan al pecho.
+	Gorila_Stomp = {
+		name = "Gorila_Stomp",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.06,
+				direction = "In",
+				Torso = { 8, 0, 0 },
+				Head = { -4, 0, 0 },
+				["Right Arm"] = { 110, 0, 12 },
+				["Left Arm"] = { 110, 0, -12 },
+				["Right Leg"] = { 20, 0, 0 },
+				["Left Leg"] = { 20, 0, 0 },
+			},
+			{
+				t = 0.14,
+				Torso = { -5, 0, 0 },
+				Head = { -12, 0, 0 },
+				["Right Arm"] = { 34, 0, 6 },
+				["Left Arm"] = { 34, 0, -6 },
+				["Right Leg"] = { 5, 0, 0 },
+				["Left Leg"] = { 5, 0, 0 },
+				marcador = "Golpe",
+			},
+			{
+				t = 0.3,
+				direction = "In",
+				Torso = { 8, 0, 0 },
+				Head = { -2, 0, 0 },
+				["Right Arm"] = { 115, 0, 12 },
+				["Left Arm"] = { 115, 0, -12 },
+				["Right Leg"] = { 20, 0, 0 },
+				["Left Leg"] = { 20, 0, 0 },
+			},
+			{
+				t = 0.42,
+				Torso = { -5, 0, 0 },
+				Head = { -12, 0, 0 },
+				["Right Arm"] = { 34, 0, 6 },
+				["Left Arm"] = { 34, 0, -6 },
+				["Right Leg"] = { 5, 0, 0 },
+				["Left Leg"] = { 5, 0, 0 },
+				marcador = "Golpe2",
+			},
+			{
+				t = 0.55,
+				Torso = { -3, 0, 2 },
+				Head = { -5, 0, 5 },
+				["Right Arm"] = { 22, 0, 6 },
+				["Left Arm"] = { 22, 0, -6 },
+				["Right Leg"] = { 3, 0, 0 },
+				["Left Leg"] = { 3, 0, 0 },
+			},
+			{ t = 0.8, reposo = true },
 		},
 	},
 }

@@ -4,6 +4,7 @@
 -- (fase 1) y MonkeyAnimations.Phases (2 y 3). Ver MonkeyAnimationBuilder para el formato.
 --   - Golpe: puño bajo que se extiende al frente y se recoge bajando su inclinación.
 --   - Pisotón: el impacto ("Impacto", 0,9 s) coincide con la onda de BossService (STOMP_IMPACT_SECONDS).
+--     Cenizo_Stomp2 sirve también al Gorila Albino y al Orangután del Manglar (mismo id en Overrides).
 --   - Invoke3: en bucle; BossService la para al acabar la invocación (Bosses: channelFromPhase).
 
 return {
