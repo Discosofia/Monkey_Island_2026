@@ -5,20 +5,25 @@
 --   - Las acciones (Attack, Roar…) las lanza MonkeyService / BossService con MonkeyAnimator.play.
 --   - Los jefes cambian de animaciones al cambiar de fase (atributo "BossPhase", ver
 --     MonkeyAnimations.Phases).
+--   - Si el modelo tiene expresiones de la cara (spec.faces de un mono voxel), mientras suena una
+--     acción se ve la suya (el grito del aullador al llamar a la tropa) y al acabar vuelve la normal.
 -- Las que no tienen ID todavía se ignoran sin error. Las pistas se cargan la primera vez que se usan.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MonkeyAnimations = require(ReplicatedStorage.Shared.Data.MonkeyAnimations)
+local MonkeyModels = require(script.Parent.MonkeyModels)
 
 export type Action = MonkeyAnimations.Action
 
 type Rig = {
+	model: Model,
 	animator: Animator,
 	ids: { [string]: string }, -- acción → ID ya resuelto (especie/jefe o Default)
 	tracks: { [string]: AnimationTrack },
 	locomotion: AnimationTrack?, -- Idle, Walk o Run, la que suena ahora
 	speed: number, -- la última velocidad (para volver a elegir Idle/Walk/Run al cambiar de fase)
+	faces: boolean, -- tiene expresiones de la cara que cambian con la acción
 }
 
 local LOOPED: { [string]: boolean } = { Idle = true, Walk = true, Run = true }
@@ -55,6 +60,17 @@ local function resolveIds(model: Model): { [string]: string }
 	return ids
 end
 
+-- Pone la expresión de la acción que suena (si alguna tiene) o la normal.
+local function refreshFace(rig: Rig)
+	local playing: { string } = {}
+	for action, loaded in rig.tracks do
+		if loaded.IsPlaying and not LOOPED[action] then
+			table.insert(playing, action)
+		end
+	end
+	MonkeyModels.showFace(rig.model, playing)
+end
+
 local function track(rig: Rig, action: Action): AnimationTrack?
 	local loaded = rig.tracks[action]
 	if loaded then
@@ -78,6 +94,11 @@ local function track(rig: Rig, action: Action): AnimationTrack?
 		elseif action == "Death" then Enum.AnimationPriority.Action4
 		else Enum.AnimationPriority.Action
 	rig.tracks[action] = newTrack
+	if rig.faces and not LOOPED[action] then
+		newTrack.Stopped:Connect(function()
+			refreshFace(rig)
+		end)
+	end
 	return newTrack
 end
 
@@ -112,7 +133,15 @@ function MonkeyAnimator.attach(model: Model)
 	if not (humanoid and animator) then
 		return
 	end
-	local rig: Rig = { animator = animator, ids = resolveIds(model), tracks = {}, locomotion = nil, speed = 0 }
+	local rig: Rig = {
+		model = model,
+		animator = animator,
+		ids = resolveIds(model),
+		tracks = {},
+		locomotion = nil,
+		speed = 0,
+		faces = MonkeyModels.showFace(model, {}),
+	}
 	rigs[model] = rig
 	setLocomotion(rig, 0)
 	humanoid.Running:Connect(function(speed)
@@ -150,6 +179,9 @@ function MonkeyAnimator.play(model: Model, action: Action)
 	if actionTrack then
 		-- Las de bucle (Invoke) entran despacio: pasan del reposo a los brazos en alto.
 		actionTrack:Play(if LOOPED_ACTIONS[action] then 0.3 else 0.1)
+		if rig and rig.faces then
+			refreshFace(rig)
+		end
 	end
 end
 

@@ -9,8 +9,9 @@
 -- Lo demás (cara, ojos, orejas, manos…) va soldado a una de ellas y se mueve con ella.
 -- Las animaciones se enlazan por el nombre de las piezas: si cambias un nombre, rehaz las animaciones.
 -- Cada especie tiene su propio constructor (BUILDERS); una especie nueva sin él usa el genérico.
--- Las especies en estilo voxel (VOXEL_SPECS: gorila, tití, mono ardilla, capuchino) ya no tienen
--- constructor redondo: su cuerpo y sus pivotes están en VoxelSpecs/<Especie>.
+-- Las especies en estilo voxel (VOXEL_SPECS: gorila, tití, mono ardilla, capuchino, aullador,
+-- marimonda, marteja y cola larga) ya no tienen constructor redondo: su cuerpo, sus pivotes y sus
+-- expresiones de la cara están en VoxelSpecs/<Especie>.
 -- Los simios (gorila, chimpancé, orangután, gibón) no tienen cola. Los jefes añaden sus detalles (BOSS_EXTRAS),
 -- y algunas especies se construyen con más detalle cuando son un jefe (rig.boss).
 -- Cada especie se construye una vez como plantilla y los monos son copias (MonkeyModels.spawn).
@@ -646,164 +647,6 @@ local function tailedMonkey(rig: Rig, spec: BodySpec): (BasePart, BasePart, Sphe
 	return torso, head, { center = center, radius = headSpec.diameter / 2 }
 end
 
--- Aullador rojo: lomo naranja rojizo y la cabeza, la barba y las patas granates; cara negra y desnuda
--- con una gran barba sobre la garganta (su caja de resonancia). Va encorvado, con la cabeza más baja
--- que los hombros, y la cola prensil sale recta hacia atrás y cae al final.
-local function howler(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local fur = definition.bodyColor
-	local skin = definition.faceColor
-	local maroon = fur:Lerp(Color3.fromRGB(90, 20, 15), 0.5)
-	local torso, head, sphere = tailedMonkey(rig, {
-		fur = fur,
-		paws = skin,
-		torso = { size = Vector3.new(1.3, 1.15, 2.2), y = -0.2, z = 0.25, tilt = -4 },
-		head = { diameter = 0.95, y = -0.05, z = -1.35, color = maroon },
-		neck = Vector3.new(0, -0.2, -0.85),
-		arm = { x = 0.52, y = -0.4, z = -0.6, width = 0.38, lower = maroon },
-		leg = { x = 0.48, y = -0.35, z = 0.95, width = 0.48, lower = maroon },
-		tail = {
-			points = {
-				Vector3.new(0, 0, 1.25),
-				Vector3.new(0, 0, 2.4),
-				Vector3.new(0, -0.4, 3.2),
-				Vector3.new(0, -1.1, 3.5),
-			},
-			width = 0.28,
-			tipColor = maroon,
-		},
-	})
-	feature(rig, torso, "Shoulders", Vector3.new(1.4, 1.05, 1.3), fur, CFrame.new(0, -0.05, -0.4))
-	feature(rig, head, "Beard", Vector3.new(0.85, 0.75, 0.75), darker(maroon, 0.15), CFrame.new(0, -0.4, -1.45))
-	headPatch(rig, head, sphere, "Brow", Vector3.new(0.7, 0.2, 0.05), darker(maroon, 0.25), Vector3.new(0, 0.45, -1))
-	headPatch(rig, head, sphere, "Face", Vector3.new(0.62, 0.62, 0.07), skin, Vector3.new(0, -0.05, -1))
-	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.48, 0.36, 0.16), skin, Vector3.new(0, -0.4, -1))
-	sphereEyes(rig, head, sphere, 0.3, 0.2, 0.1, 0.07)
-end
-
--- Marimonda (mono araña del Chocó): toda negra, cabeza pequeña con la cara oscura y la barbilla
--- más clara, barriga redonda, brazos y piernas larguísimos y finos y una cola muy larga levantada
--- en forma de S, con la punta doblada hacia delante.
-local function spiderMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local fur = definition.bodyColor
-	local skin = definition.faceColor
-	local torso, head, sphere = tailedMonkey(rig, {
-		fur = fur,
-		paws = skin,
-		torso = { size = Vector3.new(1, 1, 1.6), y = 0, z = 0.15, tilt = 18 },
-		head = { diameter = 0.8, y = 0.55, z = -0.95 },
-		neck = Vector3.new(0, 0.25, -0.6),
-		arm = { x = 0.3, y = -0.05, z = -0.35, width = 0.25 },
-		leg = { x = 0.3, y = -0.35, z = 0.6, width = 0.3 },
-		tail = {
-			points = {
-				Vector3.new(0, 0, 0.85),
-				Vector3.new(0, 0.7, 1.45),
-				Vector3.new(0, 1.6, 1.65),
-				Vector3.new(0, 2.05, 1.3),
-				Vector3.new(0, 1.85, 0.95),
-			},
-			width = 0.26,
-		},
-	})
-	feature(
-		rig,
-		torso,
-		"Belly",
-		Vector3.new(0.8, 0.75, 0.95),
-		fur:Lerp(Color3.new(1, 1, 1), 0.06),
-		CFrame.new(0, -0.3, 0.25)
-	)
-	headPatch(rig, head, sphere, "Face", Vector3.new(0.48, 0.5, 0.07), skin, Vector3.new(0, -0.05, -1))
-	headPatch(
-		rig,
-		head,
-		sphere,
-		"Muzzle",
-		Vector3.new(0.3, 0.22, 0.16),
-		skin:Lerp(Color3.new(1, 1, 1), 0.15),
-		Vector3.new(0, -0.45, -1)
-	)
-	sphereEyes(rig, head, sphere, 0.3, 0.1, 0.09, 0.07)
-end
-
--- Marteja (mono nocturno): cabeza redonda con unos ojos enormes que brillan en la oscuridad, manchas
--- blancas encima y tres rayas oscuras (una en medio y una a cada lado); pelo gris pardo, pecho
--- anaranjado y una cola gruesa con la punta negra.
-local function nightMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local fur = definition.bodyColor
-	local pale = definition.faceColor
-	local stripe = Color3.fromRGB(45, 38, 32)
-	local torso, head, sphere = tailedMonkey(rig, {
-		fur = fur,
-		paws = darker(fur, 0.35),
-		torso = { size = Vector3.new(1, 0.95, 1.7), y = -0.3, z = 0.2, tilt = 4 },
-		head = { diameter = 1.05, y = 0.2, z = -1.1 },
-		neck = Vector3.new(0, -0.15, -0.7),
-		arm = { x = 0.38, y = -0.5, z = -0.5, width = 0.28 },
-		leg = { x = 0.38, y = -0.45, z = 0.8, width = 0.4, lower = fur:Lerp(Color3.fromRGB(150, 150, 150), 0.3) },
-		tail = {
-			points = {
-				Vector3.new(0, -0.15, 1.05),
-				Vector3.new(0, -0.5, 2),
-				Vector3.new(0, -1.1, 2.7),
-				Vector3.new(0, -1.35, 3.2),
-			},
-			width = 0.28,
-			tipColor = stripe,
-		},
-	})
-	feature(
-		rig,
-		torso,
-		"Chest",
-		Vector3.new(0.85, 0.6, 0.85),
-		Color3.fromRGB(215, 160, 100),
-		CFrame.new(0, -0.55, -0.35)
-	)
-	headPatch(
-		rig,
-		head,
-		sphere,
-		"Muzzle",
-		Vector3.new(0.36, 0.26, 0.16),
-		Color3.fromRGB(70, 60, 55),
-		Vector3.new(0, -0.3, -1)
-	)
-	headPatch(rig, head, sphere, "Stripe", Vector3.new(0.09, 0.5, 0.04), stripe, Vector3.new(0, 0.6, -1))
-	for side = -1, 1, 2 do
-		headPatch(
-			rig,
-			head,
-			sphere,
-			"Patch",
-			Vector3.new(0.3, 0.16, 0.05),
-			pale,
-			Vector3.new(side * 0.38, 0.45, -1),
-			side * -0.3
-		)
-		headPatch(
-			rig,
-			head,
-			sphere,
-			"Stripe",
-			Vector3.new(0.08, 0.45, 0.04),
-			stripe,
-			Vector3.new(side * 0.75, 0.35, -1),
-			side * 0.2
-		)
-		-- Ojos que brillan, con la pupila delante.
-		local direction = Vector3.new(side * 0.35, 0.05, -1).Unit
-		local eye = sphere.center + direction * (sphere.radius - 0.08)
-		glue(
-			rig,
-			head,
-			piece(rig, "Eye", "Ball", Vector3.one * 0.3, Color3.fromRGB(255, 170, 60), Enum.Material.Neon),
-			CFrame.new(eye)
-		)
-		glue(rig, head, piece(rig, "Pupil", "Ball", Vector3.one * 0.15, EYE_COLOR), CFrame.new(eye + direction * 0.09))
-	end
-end
-
 -- Mandril: grande y oscuro, con la cabeza en punta, cejas pesadas, el hocico largo con las crestas
 -- azules a los lados y la nariz roja, barba y collar amarillentos, trasero de colores y una cola
 -- cortísima.
@@ -931,52 +774,6 @@ local function baboon(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	sphereEyes(rig, head, sphere, 0.33, 0.2, 0.11, 0, Color3.fromRGB(150, 100, 40))
 end
 
--- Mono de cola larga (macaco cangrejero): pardo grisáceo con el vientre claro, patillas grises que se
--- abren en abanico alrededor de la cara, cara rosada grisácea, un copete en punta en la coronilla y
--- una cola larguísima que cuelga.
-local function longTailedMacaque(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local fur = definition.bodyColor
-	local pale = definition.faceColor
-	local skin = Color3.fromRGB(190, 150, 135)
-	local torso, head, sphere = tailedMonkey(rig, {
-		fur = fur,
-		paws = darker(skin, 0.2),
-		torso = { size = Vector3.new(1.1, 1, 1.9), y = -0.3, z = 0.2, tilt = 6 },
-		head = { diameter = 0.9, y = 0.22, z = -1.15 },
-		neck = Vector3.new(0, -0.1, -0.75),
-		arm = { x = 0.42, y = -0.45, z = -0.55, width = 0.3 },
-		leg = { x = 0.4, y = -0.4, z = 0.9, width = 0.42 },
-		tail = {
-			points = {
-				Vector3.new(0, -0.1, 1.1),
-				Vector3.new(0, -0.35, 2.2),
-				Vector3.new(0, -0.85, 3.1),
-				Vector3.new(0, -1.55, 3.6),
-			},
-			width = 0.19,
-			color = fur:Lerp(pale, 0.2),
-		},
-	})
-	feature(rig, torso, "Belly", Vector3.new(0.85, 0.6, 1.3), fur:Lerp(pale, 0.5), CFrame.new(0, -0.55, 0.1))
-	-- Patillas pegadas a los lados de la cabeza, peinadas hacia atrás y abajo, enmarcando la cara.
-	for side = -1, 1, 2 do
-		headPatch(
-			rig,
-			head,
-			sphere,
-			"Whiskers",
-			Vector3.new(0.26, 0.42, 0.06),
-			fur:Lerp(pale, 0.6),
-			Vector3.new(side * 0.55, -0.35, -0.8),
-			side * 0.3
-		)
-	end
-	headPatch(rig, head, sphere, "Face", Vector3.new(0.52, 0.55, 0.07), skin, Vector3.new(0, 0, -1))
-	headPatch(rig, head, sphere, "Muzzle", Vector3.new(0.34, 0.26, 0.16), skin, Vector3.new(0, -0.35, -1))
-	headPatch(rig, head, sphere, "Crest", Vector3.new(0.24, 0.5, 0.08), fur, Vector3.new(0, 1, 0.15))
-	sphereEyes(rig, head, sphere, 0.3, 0.15, 0.1, 0.07)
-end
-
 -- Gibón (de manos blancas): simio sin cola que en el suelo anda erguido, con los larguísimos brazos en
 -- alto y algo doblados para equilibrarse y las piernas flexionadas. Pelo oscuro, cara negra rodeada
 -- de un anillo claro, y manos y pies claros.
@@ -1052,7 +849,18 @@ type VoxelBoss = {
 	add: { [string]: { { any } } }?,
 	groups: { VoxelExtra }?,
 }
-export type VoxelSpec = { unit: number, parts: { VoxelPart }, bosses: { [string]: VoxelBoss }? }
+-- Expresión de la cara: cajas que se unen en una pieza soldada a la cabeza. La "Normal" es la de
+-- siempre; las demás se ven mientras suena una de sus "actions" (ver showFace y MonkeyAnimator).
+type VoxelFace = { name: string, actions: { string }?, boxes: { { any } } }
+-- "glowEyes": las cajas "Eye" (sueltas, de VOXEL_LOOSE) son de neón, como los ojos de la marteja.
+-- "faces": expresiones según la acción (el grito del aullador al llamar a la tropa).
+export type VoxelSpec = {
+	unit: number,
+	parts: { VoxelPart },
+	bosses: { [string]: VoxelBoss }?,
+	glowEyes: boolean?,
+	faces: { VoxelFace }?,
+}
 
 -- Los tonos del spec, sacados de los colores de Data (bodyColor = pelo, faceColor = piel).
 local function voxelTones(definition: Monkeys.MonkeyDefinition): { [string]: Color3 }
@@ -1131,6 +939,29 @@ local function showPhase(model: Model, phase: number)
 	end
 end
 
+-- Muestra la expresión de la cara (atributo "Face", ver spec.faces) de una de las acciones que suenan
+-- ("actions"); si ninguna tiene expresión propia, la "Normal". Devuelve si el modelo tiene expresiones.
+local function showFace(model: Model, actions: { string }): boolean
+	local faces: { BasePart } = {}
+	local wanted = "Normal"
+	for _, part in model:GetChildren() do
+		local face = part:GetAttribute("Face")
+		if part:IsA("BasePart") and typeof(face) == "string" then
+			table.insert(faces, part)
+			local faceActions = string.split(tostring(part:GetAttribute("FaceActions") or ""), " ")
+			for _, action in actions do
+				if table.find(faceActions, action) then
+					wanted = face
+				end
+			end
+		end
+	end
+	for _, part in faces do
+		part.Transparency = if part:GetAttribute("Face") == wanted then 0 else 1
+	end
+	return #faces > 0
+end
+
 local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec: VoxelSpec, bossId: string?)
 	local tones = voxelTones(definition)
 	local function toneOf(value: any): Color3?
@@ -1169,7 +1000,8 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 				local color = toneOf(box[7]) :: Color3
 				local name = if main == nil then prefix .. part.name else (box[8] :: string?) or "Voxel"
 				for _, mirrorX in if box[9] then { 1, -1 } else { 1 } do
-					local block = piece(rig, name, "Block", size, color)
+					local glows = spec.glowEyes and name == "Eye"
+					local block = piece(rig, name, "Block", size, color, if glows then Enum.Material.Neon else nil)
 					place(rig, block, CFrame.new(at(x * flip * mirrorX, y, z)))
 					if main == nil then
 						main = block
@@ -1189,10 +1021,12 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 		end
 	end
 
-	-- Adornos del jefe: cada grupo, unido en una pieza de su material y soldado a su parte.
-	for _, extra in boss.groups or {} do
+	-- Cada grupo (adorno de un jefe o expresión de la cara), unido en una pieza de su material y
+	-- soldado a su parte. Devuelve las piezas (dos si va a los dos lados).
+	local function buildGroup(extra: VoxelExtra): { BasePart }
 		local material = (Enum.Material :: any)[extra.material or "SmoothPlastic"] :: Enum.Material
 		local groupColor = extra.color or tones[extra.tone or "fur"]
+		local groups: { BasePart } = {}
 		for _, side in if extra.mirror then { 1, -1 } else { 0 } do
 			local flip = if side == -1 then -1 else 1
 			local blocks: { BasePart } = {}
@@ -1215,6 +1049,23 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 			local first = table.remove(blocks, 1) :: BasePart
 			local group = mergeBoxes(first, blocks)
 			weld(anchor, group)
+			table.insert(groups, group)
+		end
+		return groups
+	end
+
+	-- Expresiones de la cara: solo se ve la "Normal" hasta que una acción pide otra (showFace).
+	for _, face in spec.faces or {} do
+		for _, group in buildGroup({ anchor = "Head", name = "Expression", boxes = face.boxes }) do
+			group:SetAttribute("Face", face.name)
+			group:SetAttribute("FaceActions", table.concat(face.actions or {}, " "))
+		end
+	end
+	showFace(rig.model, {})
+
+	-- Adornos del jefe.
+	for _, extra in boss.groups or {} do
+		for _, group in buildGroup(extra) do
 			if extra.phase then
 				group:SetAttribute("Phase", extra.phase)
 				group:SetAttribute("BaseTransparency", group.Transparency)
@@ -1224,6 +1075,7 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 	showPhase(rig.model, 1)
 end
 MonkeyModels.showPhase = showPhase
+MonkeyModels.showFace = showFace
 
 -- Especies con modelo voxel en el juego.
 local VOXEL_SPECS: { [string]: VoxelSpec } = {
@@ -1231,6 +1083,10 @@ local VOXEL_SPECS: { [string]: VoxelSpec } = {
 	Titi = require(script.Parent.VoxelSpecs.Titi) :: any,
 	MonoArdilla = require(script.Parent.VoxelSpecs.MonoArdilla) :: any,
 	CapuchinoLadron = require(script.Parent.VoxelSpecs.CapuchinoLadron) :: any,
+	AulladorRojo = require(script.Parent.VoxelSpecs.AulladorRojo) :: any,
+	Marimonda = require(script.Parent.VoxelSpecs.Marimonda) :: any,
+	Marteja = require(script.Parent.VoxelSpecs.Marteja) :: any,
+	ColaLarga = require(script.Parent.VoxelSpecs.ColaLarga) :: any,
 }
 -- Jefes que ya usan el cuerpo voxel de su especie, con sus adornos en bloques. Los demás siguen con
 -- el modelo de antes hasta que tengan sus detalles. La vista previa los activa en su copia del módulo
@@ -1244,14 +1100,10 @@ MonkeyModels.voxelSpecs = VOXEL_SPECS
 MonkeyModels.voxelBosses = VOXEL_BOSSES
 
 local BUILDERS: { [string]: (rig: Rig, definition: Monkeys.MonkeyDefinition) -> () } = {
-	AulladorRojo = howler,
-	Marimonda = spiderMonkey,
-	Marteja = nightMonkey,
 	Mandril = mandrill,
 	Macaco = macaque,
 	Gibon = gibbon,
 	Babuino = baboon,
-	ColaLarga = longTailedMacaque,
 	Chimpance = chimpanzee,
 	Orangutan = orangutan,
 }

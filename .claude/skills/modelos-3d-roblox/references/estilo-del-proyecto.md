@@ -488,7 +488,7 @@ return {
   - Las cajas pueden solaparse sin miedo, igual que las primitivas. Cuida que dos caras visibles de
     tono distinto no queden en el mismo plano.
 - `SmoothPlastic` siempre: las aristas limpias son el estilo (nada de `Fabric`).
-- **Monos pequeños** (Tití, Mono ardilla, Capuchino): `unit = 0,1` y el cuerpo dibujado alrededor
+- **Monos pequeños** (Tití, Mono ardilla, Capuchino, Marteja, Cola larga, Marimonda, Aullador): `unit = 0,1` y el cuerpo dibujado alrededor
   de los pivotes del modelo redondo (pásalos a celdas: `(x / 0,1, (y + 1,9) / 0,1, z / 0,1)`); el
   alto del GDD se ajusta con `scale` en Data, no con `unit`. Sus animaciones solo giran
   articulaciones, así que con los mismos pivotes valen sin rehacerlas. Colas en fila de bloques y
@@ -499,6 +499,15 @@ return {
   bloques grises translúcidos alrededor, que no se iban ni con `Transparency = 1`. En una especie
   sin jefe, nombra esas cajas de otra forma (`Pupil`, `Bib`) para que entren en la unión. La unión
   diminuta sí se dibuja bien (agrandarla antes de unir no cambió nada).
+  - **Ojos de neón** (`glowEyes = true` en el spec, como la marteja): las cajas `Eye` quedan sueltas y
+    de `Neon`. Dales al menos 2 celdas de fondo, hundidas en la cara: con 1,2 (0,07 studs a su
+    escala) salían verdes. Una pupila de 0,2 celdas delante del ojo salía como un bloque verde
+    translúcido: sin pupila se lee mejor.
+  - **Bloque gris translúcido entre dos piezas sueltas** en edición: es el dibujo de las
+    `WeldConstraint` que hace Studio (sigue aunque la desactives). No sale en el juego. Para verlo
+    limpio en la vista previa, cambia cada una por un `Weld` con `C0 = Part0.CFrame:Inverse() *
+    Part1.CFrame`. No las borres: sin soldadura, las piezas sueltas (ojos, expresiones) se quedan
+    donde estaban cuando una animación mueve la cabeza, y parece que la cara no está.
 - Para revisar modelos pequeños, cámara a ~8 studs con `FieldOfView = 20` (teleobjetivo): de cerca
   con el campo de visión normal se deforman y no se ve lo mismo que en juego.
 
@@ -587,6 +596,21 @@ El tiempo de unir se paga una vez por servidor:
 - los monos normales salen de una plantilla por especie (`MonkeyModels.spawn`);
 - los jefes, de una por jefe (`MonkeyModels.spawnBoss`, que pone en cada copia la vida y la
   velocidad de esa aparición).
+
+**Expresiones por acción** (monos normales; la primera, el grito del aullador al llamar a la tropa):
+`faces = { { name = "Normal", boxes }, { name = "Grito", actions = { "Howl" }, boxes } }` en el spec.
+- Cada expresión se une en una pieza `Expression` soldada a la cabeza, con los atributos `Face` y
+  `FaceActions`. Lo que cambia entre expresiones (cejas, ojos, boca, colmillos) va ahí y no en la
+  unión de la cabeza; lo fijo (cara, nariz, mandíbula, barba) sigue en la cabeza.
+- `MonkeyModels.showFace(model, acciones)` enseña la de una acción que suena, o la `Normal`.
+  `MonkeyAnimator` la llama al lanzar una acción con `play` y cuando su pista se para, así que basta
+  con que la acción tenga animación. Cuesta una pieza más por expresión.
+- Para probarlo en edición: `MonkeyAnimator.attach` (con `freshRequire`) en la copia de la vista
+  previa, `play(model, "Howl")`, pausa la pista a mitad y mira `Transparency` de las `Expression`;
+  luego avanza con `animator:StepAnimations(0.1)` hasta que pare y comprueba que vuelve la `Normal`.
+  Una pista recién cargada a veces no pinta la pose al primer `StepAnimations`: vuelve a poner
+  `TimePosition` y repite. Mira la expresión en la pose de la acción y desde una cámara algo elevada:
+  en el aullido la cabeza sube unos 45° y una boca pequeña quedaba de escorzo y no se leía.
 
 **Expresiones por fase del combate** (cara distinta en cada fase, en el atributo `BossPhase` del
 modelo, de 1 a 3). Las piezas de una expresión que cambia no pueden ir dentro de la unión de la

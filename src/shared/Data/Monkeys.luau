@@ -93,9 +93,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		howl = true,
 		fearsFire = true,
 		voice = "Medium",
-		scale = 1,
-		bodyColor = Color3.fromRGB(185, 75, 30),
-		faceColor = Color3.fromRGB(45, 32, 28),
+		scale = 0.63,
+		bodyColor = Color3.fromRGB(185, 75, 30), -- rojo anaranjado (VoxelSpecs/AulladorRojo)
+		faceColor = Color3.fromRGB(45, 32, 28), -- cara y barba pardo oscuro
 		loot = {
 			{ itemId = "RedFur", chance = 0.7, min = 1, max = 1 },
 			{ itemId = "SmallFang", chance = 0.3, min = 1, max = 1 },
@@ -151,9 +151,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		pounce = true,
 		fearsFire = true,
 		voice = "Medium",
-		scale = 0.9,
-		bodyColor = Color3.fromRGB(35, 30, 28),
-		faceColor = Color3.fromRGB(70, 55, 45),
+		scale = 0.58,
+		bodyColor = Color3.fromRGB(35, 30, 28), -- negro (VoxelSpecs/Marimonda)
+		faceColor = Color3.fromRGB(70, 55, 45), -- cara y vientre pardos
 		loot = {
 			{ itemId = "BlackFur", chance = 0.7, min = 1, max = 1 },
 			{ itemId = "Liana", chance = 0.25, min = 1, max = 1 },
@@ -201,9 +201,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 140,
 		ignoresTorchBearers = true,
 		voice = "Small",
-		scale = 0.75,
-		bodyColor = Color3.fromRGB(110, 95, 80),
-		faceColor = Color3.fromRGB(230, 220, 190),
+		scale = 0.58,
+		bodyColor = Color3.fromRGB(128, 124, 118), -- gris (VoxelSpecs/Marteja)
+		faceColor = Color3.fromRGB(230, 220, 190), -- cara blanca
 		loot = {
 			{ itemId = "Whisker", chance = 0.3, min = 1, max = 1 },
 			{ itemId = "Meat", chance = 0.5, min = 1, max = 1 },
@@ -336,9 +336,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		thief = 2,
 		thiefFoodOnly = true,
 		voice = "Medium",
-		scale = 0.9,
-		bodyColor = Color3.fromRGB(140, 128, 110),
-		faceColor = Color3.fromRGB(205, 200, 190),
+		scale = 0.6,
+		bodyColor = Color3.fromRGB(140, 128, 110), -- gris pardo (VoxelSpecs/ColaLarga)
+		faceColor = Color3.fromRGB(205, 200, 190), -- claro del vientre
 		loot = {
 			{ itemId = "Shell", chance = 0.7, min = 1, max = 2 },
 			{ itemId = "Coconut", chance = 0.4, min = 1, max = 1 },
