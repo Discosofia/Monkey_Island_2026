@@ -15,7 +15,8 @@
 -- Crea: mar y banco de arena (terreno); el carguero encallado con boquete y bodega, castillo con
 -- puente de mando, chimenea y radar, contenedores en cubierta y grúa; la pasarela de subida; el
 -- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga, ancla con cadena,
--- salvavidas y la bitácora del capitán; la lancha de rescate para zarpar (aviso "ZarparPrompt");
+-- salvavidas; tres carteles en la arena (los roles, con el aviso "RolesPrompt", la bitácora del
+-- capitán y el ranking); la lancha de rescate para zarpar (aviso "ZarparPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
 -- palmeras; la isla con el volcán en el horizonte; las otras cuatro islas del archipiélago, aún
@@ -37,7 +38,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 4
+local VERSION = 5
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -60,6 +61,15 @@ local RUINS_CENTER = Vector3.new(-430, 0, -420)
 local DUNES_CENTER = Vector3.new(820, 0, 470)
 local DUNES_RADIUS = 270
 local PEAKS_CENTER = Vector3.new(-150, 0, -1300)
+
+-- Carteles de la playa (x, z): los roles junto a la proa, mirando a la plaza (entre la hoguera y la
+-- orilla), y al otro lado el ranking, tras la roca, con la bitácora a continuación, siguiendo la
+-- misma hilera y de cara al barco.
+local PLAZA = Vector2.new(17, 10)
+local LOG_BOARD_AT = Vector2.new(42.9, -6)
+local LOG_BOARD_FACING = Vector2.new(-0.98, 0.18)
+local ROLE_BOARD_AT = Vector2.new(5, -14)
+local RANKING_BOARD_AT = Vector2.new(43, 15)
 
 -- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
@@ -97,9 +107,13 @@ local IRON = Color3.fromRGB(55, 55, 60)
 local FIRE_LIGHT = Color3.fromRGB(255, 170, 90)
 local LANTERN_LIGHT = Color3.fromRGB(255, 200, 120)
 local LEAF = Color3.fromRGB(70, 150, 60)
+local PLANK = Color3.fromRGB(205, 175, 125)
+local INK = Color3.fromRGB(45, 30, 15)
+local BOARD_CARD = Color3.fromRGB(45, 38, 30)
+-- Oro, plata y bronce para los tres primeros del ranking.
+local RANK_COLORS = { Color3.fromRGB(255, 215, 90), Color3.fromRGB(215, 220, 230), Color3.fromRGB(225, 150, 90) }
 
-local LOG_TEXT = "BITÁCORA DEL CAPITÁN\n\n"
-	.. "La tormenta empujó al carguero «Esperanza» contra el arrecife. El casco está abierto y los "
+local LOG_TEXT = "La tormenta empujó al carguero «Esperanza» contra el arrecife. El casco está abierto y los "
 	.. "motores, muertos.\n\n"
 	.. "Al norte se ve una isla con un volcán que humea día y noche. De allí llegan aullidos.\n\n"
 	.. "No es la única: alrededor hay más islas. Una ciudad en ruinas tragada por la selva, un "
@@ -471,6 +485,55 @@ local function plate(model: Model, side: number, row: number, x0: number, x1: nu
 	)
 end
 
+-- Marco de una pieza plana pegada al costado de la playa (+Z) entre dos cortes de la eslora y dos
+-- filas (en coordenadas del barco), y su tamaño. Sigue la cuerda del casco y se separa lo justo
+-- para que ninguna chapa la atraviese. La cara Front mira hacia fuera.
+local function hullBoard(
+	xFrom: number,
+	xTo: number,
+	rowFrom: number,
+	rowTo: number,
+	thickness: number
+): (CFrame, Vector2)
+	-- Se mide sobre las chapas (planas y algo más grandes que su hueco), no sobre la curva: donde
+	-- empieza la proa el ancho da un pequeño salto y la chapa no coincide con ella.
+	local step = 2 * SHIP_HALF_LENGTH / HULL_SEGMENTS
+	-- Punto del plano de la chapa del tramo de segmentX y la fila de rowBand.
+	local function platePoint(x: number, row: number, segmentX: number, rowBand: number): Vector3
+		local segment = math.clamp(math.floor((segmentX + SHIP_HALF_LENGTH) / step), 0, HULL_SEGMENTS - 1)
+		local band = math.clamp(math.floor(rowBand), 0, HULL_ROWS - 1)
+		local x0 = -SHIP_HALF_LENGTH + segment * step
+		local u, v = (x - x0) / step, row - band
+		local low = hullPoint(x0, band, 1):Lerp(hullPoint(x0 + step, band, 1), u)
+		local high = hullPoint(x0, band + 1, 1):Lerp(hullPoint(x0 + step, band + 1, 1), u)
+		return low:Lerp(high, v)
+	end
+	local inset = 0.01
+	local a0 = platePoint(xFrom, rowFrom, xFrom + inset, rowFrom + inset)
+	local a1 = platePoint(xFrom, rowTo, xFrom + inset, rowTo - inset)
+	local b0 = platePoint(xTo, rowFrom, xTo - inset, rowFrom + inset)
+	local b1 = platePoint(xTo, rowTo, xTo - inset, rowTo - inset)
+	local center = (a0 + a1 + b0 + b1) / 4
+	local along = ((b0 + b1) / 2 - (a0 + a1) / 2)
+	local rise = ((a1 + b1) / 2 - (a0 + b0) / 2)
+	local up = (rise - along.Unit * rise:Dot(along.Unit)).Unit
+	local outward = along.Unit:Cross(up)
+	local clearance = 0
+	for i = 0, 10 do
+		local x = xFrom + (xTo - xFrom) * i / 10
+		for j = 0, 4 do
+			local row = rowFrom + (rowTo - rowFrom) * j / 4
+			for _, dx in { -0.15, 0.15 } do
+				for _, dr in { -0.1, 0.1 } do
+					clearance = math.max(clearance, (platePoint(x, row, x + dx, row + dr) - center):Dot(outward))
+				end
+			end
+		end
+	end
+	local position = center + outward * (clearance + 0.4 + thickness / 2)
+	return CFrame.lookAt(position, position + outward, up), Vector2.new(along.Magnitude, rise:Dot(up))
+end
+
 local function isHole(side: number, row: number, segment: number): boolean
 	-- Boquete en el costado que mira a la playa (+Z): deja ver la bodega.
 	if side ~= 1 then
@@ -526,8 +589,8 @@ local function buildHull(model: Model)
 			model
 		)
 	end
-	-- Chorretones de óxido bajo la borda.
-	for _, x in { -30, -21, -13, 9, 17, 24 } do
+	-- Chorretones de óxido bajo la borda (hacia popa: delante están el nombre y los tablones).
+	for _, x in { -30, -21, -13 } do
 		local point = hullPoint(x, HULL_ROWS - 1.1, 1)
 		decor(
 			newPart(
@@ -572,19 +635,248 @@ local function buildHull(model: Model)
 		model
 	)
 	sign(sternName, Enum.NormalId.Left, "ESPERANZA\nPANAMÁ", WHITE_PAINT, Enum.Font.GothamBlack)
-	-- En la proa sigue la curva del casco.
-	local bowFrom, bowTo = hullPoint(19, 4.7, 1), hullPoint(27, 4.7, 1)
-	local outward = (bowTo - bowFrom):Cross(Vector3.yAxis).Unit
-	local bowMid = (bowFrom + bowTo) / 2 + outward * 0.45
-	local bowName = newPart(
-		"NombreProa",
-		Vector3.new((bowTo - bowFrom).Magnitude, 2, 0.2),
-		CFrame.lookAt(bowMid, bowMid + outward),
-		HULL_NAVY,
-		Enum.Material.Metal,
+	-- En la proa, una letra por pieza: cada una sigue su tramo de la curva del casco (una placa
+	-- recta entera quedaba atravesada por las chapas del centro y no se leía).
+	local letters = "ESPERANZA"
+	local spacing = 1.05
+	for i = 1, #letters do
+		local x0 = 16.6 + (i - 1) * spacing
+		local frame, size = hullBoard(x0, x0 + spacing, 4.08, 4.92, 0.1)
+		local letter =
+			newPart("NombreProa", Vector3.new(size.X, size.Y, 0.1), frame, HULL_NAVY, Enum.Material.Metal, model)
+		letter.Transparency = 1
+		decor(letter)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 1
+		gui.Parent = letter
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Text = string.sub(letters, i, i)
+		label.TextColor3 = WHITE_PAINT
+		label.Font = Enum.Font.GothamBlack
+		-- Tamaño fijo (no TextScaled): con cajas iguales, cada letra saldría de un tamaño distinto.
+		label.TextSize = 58
+		label.Parent = gui
+	end
+end
+
+-- Texto grande con borde (títulos de los carteles).
+local function headline(part: BasePart, text: string, color: Color3)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0 -- siempre legible, también de noche
+	gui.Parent = part
+	local label = Instance.new("TextLabel")
+	label.Position = UDim2.fromScale(0.05, 0.1)
+	label.Size = UDim2.fromScale(0.9, 0.8)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = color
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = INK
+	stroke.Thickness = 3
+	stroke.Parent = label
+end
+
+-- Cartel grande sobre dos postes clavados en la arena en (x, z), de cara a la plaza o hacia "facing":
+-- marco de madera oscura, cabecera con el título y un farol en lo alto de cada poste. Devuelve el
+-- tablón, donde va el contenido.
+local function standingBoard(
+	parent: Instance,
+	name: string,
+	at: Vector2,
+	width: number,
+	height: number,
+	title: string,
+	facing: Vector2?
+): Part
+	local ground = groundAt(at.X, at.Y)
+	local bottom = 4.5 -- del suelo al borde de abajo del tablón
+	local center = ground + Vector3.new(0, bottom + height / 2, 0)
+	local target = if facing
+		then center + Vector3.new(facing.X, 0, facing.Y)
+		else Vector3.new(PLAZA.X, center.Y, PLAZA.Y)
+	local frame = CFrame.lookAt(center, target)
+
+	local model = Instance.new("Model")
+	model.Name = name
+	local board = newPart(name, Vector3.new(width, height, 0.4), frame, PLANK, Enum.Material.WoodPlanks, model)
+	-- Largueros arriba y abajo, un poco por delante del tablón.
+	for _, side in { -1, 1 } do
+		newPart(
+			"Larguero",
+			Vector3.new(width + 0.4, 0.5, 0.7),
+			frame * CFrame.new(0, side * (height / 2 + 0.25), -0.1),
+			DARK_WOOD,
+			Enum.Material.Wood,
+			model
+		)
+	end
+	-- Postes de suelo (enterrados un estudio) hasta por encima de la cabecera, con su farol.
+	local postTop = height / 2 + 3
+	local postBottom = -(height / 2 + bottom + 1)
+	for _, side in { -1, 1 } do
+		local x = side * (width / 2 + 0.75)
+		newPart(
+			"PosteCartel",
+			Vector3.new(1.1, postTop - postBottom, 1.1),
+			frame * CFrame.new(x, (postTop + postBottom) / 2, 0.1),
+			DARK_WOOD,
+			Enum.Material.Wood,
+			model
+		)
+		newPart(
+			"Tapa",
+			Vector3.new(1.5, 0.3, 1.5),
+			frame * CFrame.new(x, postTop + 0.15, 0.1),
+			IRON,
+			Enum.Material.Metal,
+			model
+		)
+		local lamp = newPart(
+			"Farol",
+			Vector3.new(0.8, 1, 0.8),
+			frame * CFrame.new(x, postTop + 0.8, 0.1),
+			LANTERN_LIGHT,
+			Enum.Material.Neon,
+			model
+		)
+		decor(lamp)
+		-- Luz floja: con el atardecer, una más fuerte quema el cartel y no se lee.
+		light(lamp, LANTERN_LIGHT, 8, 0.6)
+	end
+	-- Cabecera roja con el título, clavada entre los postes por encima del tablón.
+	local header = newPart(
+		"Cabecera",
+		Vector3.new(width * 0.62, 2.2, 0.5),
+		frame * CFrame.new(0, height / 2 + 1.6, -0.15),
+		HULL_RED,
+		Enum.Material.WoodPlanks,
 		model
 	)
-	sign(bowName, Enum.NormalId.Front, "ESPERANZA", WHITE_PAINT, Enum.Font.GothamBlack)
+	headline(header, title, Color3.fromRGB(255, 215, 90))
+	model.Parent = parent
+	return board
+end
+
+-- Carteles de la playa: los roles junto a la proa (lo dibuja RoleBoardController en cada cliente; con
+-- su aviso se abre el menú) y, al otro lado de la playa, el ranking tras la roca (lo rellena
+-- LeaderboardService) con la bitácora del capitán a continuación.
+local function buildBoards(parent: Instance)
+	-- La bitácora cuenta la historia del naufragio en un panel oscuro, como el del ranking.
+	local log = standingBoard(
+		parent,
+		"BitacoraDelCapitan",
+		LOG_BOARD_AT,
+		14,
+		8.5,
+		"📜 BITÁCORA DEL CAPITÁN",
+		LOG_BOARD_FACING
+	)
+	local logGui = Instance.new("SurfaceGui")
+	logGui.Face = Enum.NormalId.Front
+	logGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	logGui.PixelsPerStud = 40
+	logGui.LightInfluence = 0 -- siempre legible, también de noche
+	logGui.Parent = log
+	local page = Instance.new("TextLabel")
+	page.Position = UDim2.fromScale(0.03, 0.05)
+	page.Size = UDim2.fromScale(0.94, 0.9)
+	page.BackgroundColor3 = BOARD_CARD
+	page.BackgroundTransparency = 0.1
+	page.Text = LOG_TEXT
+	page.TextColor3 = Color3.fromRGB(235, 225, 205)
+	page.Font = Enum.Font.BuilderSansMedium
+	page.TextScaled = true
+	page.TextWrapped = true
+	page.TextXAlignment = Enum.TextXAlignment.Left
+	page.TextYAlignment = Enum.TextYAlignment.Top
+	page.Parent = logGui
+	local pageCorner = Instance.new("UICorner")
+	pageCorner.CornerRadius = UDim.new(0.04, 0)
+	pageCorner.Parent = page
+	local pagePadding = Instance.new("UIPadding")
+	pagePadding.PaddingLeft = UDim.new(0.03, 0)
+	pagePadding.PaddingRight = UDim.new(0.03, 0)
+	pagePadding.PaddingTop = UDim.new(0.04, 0)
+	pagePadding.PaddingBottom = UDim.new(0.04, 0)
+	pagePadding.Parent = page
+
+	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 14, 7.5, "🏆 RANKING")
+	CollectionService:AddTag(ranking, Config.Lobby.RankingBoardTag)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0 -- siempre legible, también de noche
+	gui.Parent = ranking
+	local function text(value: string, list: Instance, position: UDim2, size: UDim2): TextLabel
+		local label = Instance.new("TextLabel")
+		label.Position = position
+		label.Size = size
+		label.BackgroundTransparency = 1
+		label.Text = value
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Font = Enum.Font.BuilderSansBold
+		label.TextScaled = true
+		label.Parent = list
+		-- Tope común: así los dos encabezados y todas las líneas salen del mismo tamaño aunque
+		-- unos textos sean más largos que otros.
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 23
+		limit.Parent = label
+		return label
+	end
+	for column, board in
+		{
+			{ stat = "BestDays", title = "📅 Más días sobrevividos" },
+			{ stat = "Rescues", title = "🚁 Más rescates" },
+		}
+	do
+		local list = Instance.new("Frame")
+		list.Name = board.stat
+		list.BackgroundColor3 = BOARD_CARD
+		list.BackgroundTransparency = 0.1
+		list.Position = UDim2.fromScale(0.03 + (column - 1) * 0.485, 0.06)
+		list.Size = UDim2.fromScale(0.455, 0.88)
+		list.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.06, 0)
+		corner.Parent = list
+		local header = text(board.title, list, UDim2.fromScale(0.05, 0.03), UDim2.fromScale(0.9, 0.17))
+		header.TextColor3 = Color3.fromRGB(255, 215, 90)
+		for position = 1, Config.Lobby.RankingBoardSize do
+			local line = text(
+				if position == 1 then "Aún no hay datos" else "",
+				list,
+				UDim2.fromScale(0.07, 0.07 + position * 0.165),
+				UDim2.fromScale(0.86, 0.14)
+			)
+			line.Name = tostring(position)
+			line.TextXAlignment = Enum.TextXAlignment.Left
+			line.TextColor3 = RANK_COLORS[position] or line.TextColor3
+		end
+	end
+
+	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, "ELIGE TU ROL")
+	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "RolesPrompt"
+	prompt.ActionText = "Elegir rol"
+	prompt.ObjectText = "Roles"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 13
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = roles
 end
 
 local function buildDeck(model: Model)
@@ -1414,41 +1706,6 @@ local function buildCamp(parent: Instance)
 		decor(link)
 	end
 
-	-- Bitácora del capitán: un tablero grande clavado en la arena, a la derecha de la llegada y de
-	-- cara a ella (con la isla detrás), con su lámpara de emergencia.
-	local boardAt = groundAt(30, -2)
-	local spawnAt = groundAt(4, 34)
-	local boardFrame =
-		CFrame.lookAt(boardAt + Vector3.new(0, 6.2, 0), Vector3.new(spawnAt.X, boardAt.Y + 6.2, spawnAt.Z))
-	for _, dx in { -6, 6 } do
-		newPart(
-			"PosteTablon",
-			Vector3.new(0.9, 12, 0.9),
-			boardFrame * CFrame.new(dx, -0.7, 0.45),
-			DARK_WOOD,
-			Enum.Material.Wood,
-			camp
-		)
-	end
-	local board = newPart(
-		"BitacoraDelCapitan",
-		Vector3.new(14, 9, 0.5),
-		boardFrame,
-		Color3.fromRGB(205, 175, 125),
-		Enum.Material.WoodPlanks,
-		camp
-	)
-	sign(board, Enum.NormalId.Front, LOG_TEXT, Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
-	local lamp = newPart(
-		"LamparaTablon",
-		Vector3.new(1.2, 0.6, 0.6),
-		boardFrame * CFrame.new(6.2, 5, -0.6),
-		LANTERN_LIGHT,
-		Enum.Material.Neon,
-		camp
-	)
-	decor(lamp)
-	light(lamp, LANTERN_LIGHT, 22, 2)
 	-- Salvavidas del barco colgado de un poste junto a la llegada.
 	local ringPost = groundAt(10, 32)
 	newPart(
@@ -2576,10 +2833,11 @@ function LobbyBuilder.build(options: Options?)
 	local ship = buildShip(folder)
 	buildRamp(folder, ship)
 	buildCamp(folder)
+	buildBoards(folder)
 	buildLifeboat(folder)
 	for _, palm in
 		{
-			{ x = 40, z = 22, lean = 0.12, yaw = 0.4 },
+			{ x = 39, z = 27, lean = 0.12, yaw = 0.4 }, -- apartada del cartel del ranking
 			{ x = 46, z = 6, lean = 0.18, yaw = 1.9 },
 			{ x = -58, z = 26, lean = 0.1, yaw = 3.4 },
 			{ x = -70, z = 10, lean = 0.2, yaw = 2.2 },

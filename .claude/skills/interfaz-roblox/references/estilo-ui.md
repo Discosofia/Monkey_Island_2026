@@ -54,7 +54,7 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Fondo de botón cuadrado (⚙️) | 40, 34, 28 al 0.2 | `SettingsButton` |
 | Paneles translúcidos del HUD | 20–25, 20–25, 20–25 al 0.25–0.35 | barras, materiales, habilidades, combos, avisos |
 | Botón secundario (Studio, deshabilitado) | 90, 90, 110 / 90, 90, 90 | "Saltar fase", recetas bloqueadas |
-| Cerrar X | 150, 60, 50 | ventanas de Ajustes y Bolsa |
+| Cerrar X | 150, 60, 50 | ventanas de Ajustes y Bolsa, menú del Lobby |
 | Seguro / válido / curación | 120, 230, 140 · 90, 230, 110 | Basecamp, construcción válida, curación |
 | Peligro / aviso | 255, 170, 60 | fuera del Basecamp |
 | Error / daño / no válido | 235, 70, 60 · 255, 70, 70 · 240, 70, 60 | barra baja, daño recibido, construcción no válida |

@@ -6,7 +6,8 @@
 --     personaje, tus números de combate y dónde salen los números; UI/SettingsPanel).
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
---   - Botón para plegar el menú y pasear por el naufragio.
+--   - Botón para plegar el menú y pasear por el naufragio, y X de cerrar en el menú. El menú empieza
+--     plegado; el cartel de roles de la playa ("RolesPrompt", tecla E) lo abre en la pestaña Rol.
 --   - Botón "Invitar amigos" (invitación de Roblox a tus amigos para que vengan a este Lobby).
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
@@ -36,6 +37,7 @@ local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
+local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
 local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
@@ -157,6 +159,8 @@ function LobbyUIController:Start()
 	panel.Size = UDim2.fromScale(0.64, 0.6)
 	panel.BackgroundColor3 = PANEL_COLOR
 	panel.BackgroundTransparency = 0.1
+	-- Empieza plegado para ver el naufragio al llegar; se abre con el botón o con el tablón de roles.
+	panel.Visible = false
 	panel.Parent = gui
 	corner(panel, 14)
 	local sizeLimit = Instance.new("UISizeConstraint")
@@ -167,7 +171,8 @@ function LobbyUIController:Start()
 	local tabBar = Instance.new("Frame")
 	tabBar.BackgroundTransparency = 1
 	tabBar.Position = UDim2.fromOffset(8, 8)
-	tabBar.Size = UDim2.new(1, -16, 0, 40)
+	-- Deja sitio a la X de cerrar, arriba a la derecha.
+	tabBar.Size = UDim2.new(1, -66, 0, 40)
 	tabBar.Parent = panel
 	local tabLayout = Instance.new("UIListLayout")
 	tabLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -496,21 +501,49 @@ function LobbyUIController:Start()
 		end)
 	end
 	joinButton.Activated:Connect(join)
-	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
-		if prompt.Name == "ZarparPrompt" then
-			join()
-		end
-	end)
 
 	-- El menú se puede plegar para pasear por el naufragio.
-	local menuButton = Widgets.button("📜 Ocultar menú", gui)
+	local menuButton = Widgets.button("📜 Abrir menú", gui)
 	menuButton.Name = "MenuToggle"
 	menuButton.AnchorPoint = Vector2.new(0, 1)
 	menuButton.Position = UDim2.fromScale(0.02, 0.95)
 	menuButton.Size = UDim2.fromScale(0.17, 0.07)
+	local function setMenuOpen(open: boolean, tab: string?)
+		panel.Visible = open
+		menuButton.Text = if open then "📜 Ocultar menú" else "📜 Abrir menú"
+		if tab then
+			currentTab = tab
+			render()
+		end
+	end
 	menuButton.Activated:Connect(function()
-		panel.Visible = not panel.Visible
-		menuButton.Text = if panel.Visible then "📜 Ocultar menú" else "📜 Abrir menú"
+		setMenuOpen(not panel.Visible)
+	end)
+
+	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
+	local closeButton = Widgets.button("X", panel)
+	closeButton.Name = "Close"
+	closeButton.Font = Enum.Font.BuilderSansExtraBold
+	closeButton.AnchorPoint = Vector2.new(1, 0)
+	closeButton.Position = UDim2.new(1, -8, 0, 6)
+	closeButton.Size = UDim2.fromOffset(44, 44)
+	closeButton.BackgroundColor3 = CLOSE_COLOR
+	closeButton.TextColor3 = Color3.new(1, 1, 1)
+	local closeLimit = closeButton:FindFirstChildOfClass("UISizeConstraint")
+	if closeLimit then
+		closeLimit.MinSize = Vector2.new(44, 44)
+	end
+	closeButton.Activated:Connect(function()
+		setMenuOpen(false)
+	end)
+
+	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
+		if prompt.Name == "ZarparPrompt" then
+			join()
+		elseif prompt.Name == "RolesPrompt" then
+			-- Tablón de roles de la proa (World/LobbyBuilder).
+			setMenuOpen(true, "Rol")
+		end
 	end)
 
 	-- Invitar amigos de Roblox (también está en la pestaña Grupo). Encima del botón del menú: abajo a

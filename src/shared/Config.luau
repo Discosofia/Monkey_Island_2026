@@ -581,6 +581,12 @@ local Config = {
 		-- Etiqueta (CollectionService) de las luces del barco que parpadean como averiadas
 		-- (las pone World/LobbyBuilder; las hace parpadear ShipLightsController en cada cliente).
 		BrokenLightTag = "LuzAveriada",
+		-- Tablones colgados del casco (los pone World/LobbyBuilder): el del ranking lo rellena
+		-- LeaderboardService con los RankingBoardSize primeros de cada clasificación, y el de los
+		-- roles lo dibuja RoleBoardController en cada cliente (tu nivel y tu rol elegido).
+		RankingBoardTag = "TablaRanking",
+		RankingBoardSize = 5,
+		RoleBoardTag = "TablaRoles",
 	},
 
 	Social = {
