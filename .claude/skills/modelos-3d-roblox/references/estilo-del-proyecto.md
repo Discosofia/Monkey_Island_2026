@@ -163,9 +163,9 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
 - **Rasgos sobre una cabeza esférica** (monos con cola de `MonkeyModels`): un óvalo plano delante
   de la cabeza se despega por los bordes y parece un plato o una visera. `headPatch` lo coloca en la
   dirección de la normal y por dentro es un óvalo hondo hundido en la cabeza (size.Z = lo que
-  sobresale): cara, cejas, rayas, crestas. Para gorros y coronillas, `hairCap`: una bola algo menor
-  que la cabeza desplazada hacia arriba asoma solo por ese lado y sigue su forma (un óvalo encima
-  parece una boina). Los ojos (`sphereEyes`) llevan `out` = lo que sobresale la cara, o quedan
+  sobresale): cara, cejas, rayas, crestas. Para gorros y coronillas, una bola algo menor que la
+  cabeza desplazada hacia arriba asoma solo por ese lado y sigue su forma (un óvalo encima parece
+  una boina; la ayuda `hairCap` se borró con los monos que pasaron a voxel). Los ojos (`sphereEyes`) llevan `out` = lo que sobresale la cara, o quedan
   enterrados debajo de ella.
 - **Extremidades y colas por tramos** (`capsule`): cada óvalo sobresale 0,6 × su ancho por cada
   punta. Con menos solape, las articulaciones se estrechan y parecen cuentas de un collar.
@@ -412,7 +412,9 @@ return {
   necesita otro tono, añádelo ahí, sacado de esos dos colores con `Lerp`: así sus jefes recolorean
   solos.
 - Pivotes: copia los del constructor viejo de la especie (hombro, cadera, cuello) para que sus
-  animaciones sigan valiendo sin rehacerlas.
+  animaciones sigan valiendo sin rehacerlas. Las especies ya en voxel no tienen constructor
+  redondo (se borró al aprobarlas): sus pivotes están en su spec, y los viejos, en el historial de
+  git (`git log -S "local function tamarin"`).
 - `unit`: elígela para que el animal tenga su tamaño real frente al jugador (§5) con el `scale` que
   ya tiene en Data. Así sus jefes quedan como dice el GDD §8.2 y no hay que tocar su `attackRange`.
   El gorila usa 0,18: hombros a 4,2–4,4 studs (≈1,5 m) y 5,2 de alto. Comprueba siempre la tabla
@@ -486,6 +488,19 @@ return {
   - Las cajas pueden solaparse sin miedo, igual que las primitivas. Cuida que dos caras visibles de
     tono distinto no queden en el mismo plano.
 - `SmoothPlastic` siempre: las aristas limpias son el estilo (nada de `Fabric`).
+- **Monos pequeños** (Tití, Mono ardilla, Capuchino): `unit = 0,1` y el cuerpo dibujado alrededor
+  de los pivotes del modelo redondo (pásalos a celdas: `(x / 0,1, (y + 1,9) / 0,1, z / 0,1)`); el
+  alto del GDD se ajusta con `scale` en Data, no con `unit`. Sus animaciones solo giran
+  articulaciones, así que con los mismos pivotes valen sin rehacerlas. Colas en fila de bloques y
+  dedos con `VoxelSpecs/Shapes` (`tail`, `fingers`). Las patas parecían zancos con el tronco de 7
+  celdas: bájalo por abajo (9) sin tocar el hombro.
+- **Nada de piezas sueltas de menos de ~0,05 studs.** Con una celda de 0,05 studs, los ojos sueltos
+  (`Eye`, de `VOXEL_LOOSE`) medían 0,01 de fondo y Studio los dibujaba como cubos negros enormes y
+  bloques grises translúcidos alrededor, que no se iban ni con `Transparency = 1`. En una especie
+  sin jefe, nombra esas cajas de otra forma (`Pupil`, `Bib`) para que entren en la unión. La unión
+  diminuta sí se dibuja bien (agrandarla antes de unir no cambió nada).
+- Para revisar modelos pequeños, cámara a ~8 studs con `FieldOfView = 20` (teleobjetivo): de cerca
+  con el campo de visión normal se deforman y no se ve lo mismo que en juego.
 
 ### Mascotas voxel (felinos)
 
@@ -630,3 +645,12 @@ funcione en el servidor y lo que pesa enviar a los jugadores la de un jefe de 50
   ancla solo `HumanoidRootPart`, carga la pista con el `Animator` del modelo, `Play(0)`,
   `AdjustSpeed(0)`, pon `TimePosition` y llama a `animator:StepAnimations(0)`. Tres copias en fila
   (andar, golpe y pisotón en su punto más fuerte) se revisan en una sola captura.
+- **Al aprobarlo:** borra el constructor redondo de la especie, su entrada en `BUILDERS` y lo que
+  solo usaba él (ayudas como `hairCap`, las ramas `if not rig.voxel` de sus jefes en
+  `BOSS_EXTRAS`); `selene` avisa de las ayudas que quedan sin usar. Antes, comprueba en
+  `Data/Bosses` (`baseSpecies`) que todos sus jefes estén en `VOXEL_BOSSES`: sin constructor
+  redondo, un jefe que no esté ahí saldría con el cuerpo del mono genérico.
+- **Para probar sus jefes en la vista previa** carga también el spec con `freshRequire` y ponlo en
+  `MM.voxelSpecs.<Especie>`: el `require` interno de MonkeyModels puede devolver una copia vieja
+  del spec en caché, y el jefe sale sin sus grupos (sin cristales ni caras por fase) aunque el
+  código esté bien.

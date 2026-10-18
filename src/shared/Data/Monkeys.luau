@@ -67,9 +67,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		fleeHealthFraction = 0.3,
 		fearsFire = true,
 		voice = "Small",
-		scale = 0.7,
-		bodyColor = Color3.fromRGB(222, 165, 55), -- extremidades doradas (modelo propio: MonkeyModels)
-		faceColor = Color3.fromRGB(242, 238, 225), -- cara blanca
+		scale = 0.6,
+		bodyColor = Color3.fromRGB(222, 165, 55), -- extremidades y montura ocres (VoxelSpecs/MonoArdilla)
+		faceColor = Color3.fromRGB(242, 238, 225), -- máscara blanca
 		loot = {
 			{ itemId = "GoldenFur", chance = 0.6, min = 1, max = 1 },
 			{ itemId = "Meat", chance = 0.5, min = 1, max = 1 },
@@ -123,9 +123,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		thief = 3,
 		fearsFire = true,
 		voice = "Small",
-		scale = 0.65,
-		bodyColor = Color3.fromRGB(32, 28, 26),
-		faceColor = Color3.fromRGB(232, 212, 165),
+		scale = 0.61,
+		bodyColor = Color3.fromRGB(75, 42, 32), -- marrón chocolate (VoxelSpecs/CapuchinoLadron)
+		faceColor = Color3.fromRGB(232, 212, 165), -- capa crema
 		loot = {
 			{ itemId = "Banana", chance = 0.5, min = 1, max = 2 },
 			{ itemId = "Meat", chance = 0.4, min = 1, max = 1 },
@@ -177,9 +177,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 120,
 		fearsFire = true,
 		voice = "Small",
-		scale = 0.5,
-		bodyColor = Color3.fromRGB(150, 120, 90),
-		faceColor = Color3.fromRGB(245, 240, 230),
+		scale = 0.55,
+		bodyColor = Color3.fromRGB(80, 55, 42), -- pardo oscuro (VoxelSpecs/Titi)
+		faceColor = Color3.fromRGB(245, 240, 230), -- cresta blanca
 		loot = {
 			{ itemId = "TinyTooth", chance = 0.5, min = 1, max = 1 },
 		},

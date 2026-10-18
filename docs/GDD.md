@@ -396,7 +396,7 @@ El tamaño dice de un vistazo lo peligroso que es un mono: cuanto más alto, má
 
 | Categoría | Alto | Frente a un jugador | `scale` habitual | Ahora (alto en studs) |
 |---|---|---|---|---|
-| 1 · baja | 1,3–3 | de la rodilla a la cintura | 0,45–1 | Tití 1,4 · Capuchino 1,8 · Mono ardilla 1,9 · Marteja 2 · Aullador 2,5 |
+| 1 · baja | 1,3–3 | de la rodilla a la cintura | 0,45–1 | Tití 1,4 · Mono ardilla 1,5 · Capuchino 1,6 (voxel) · Marteja 2 · Aullador 2,5 |
 | 2 · media | 2,4–4 | de la cintura al pecho | 0,85–1,25 | Cola larga 2,5 · Macaco 2,7 · Babuino 3,3 · Mandril 3,9 |
 | 3 · difícil | 3,4–5,5 | como un jugador | 1,15–1,6 | Chimpancé 3,5 · Orangután 4,9 · Gorila 5,2 (voxel, hombros 4,2) |
 | 4 · jefe | 9–11 | unos dos jugadores | 2,6–3,2 (de 1,9 a 2,3 veces el de su especie) | Caudillo 11,5 · Albino 10,8 · Manglar 10,5 · Ceniza 13,4 |
@@ -426,10 +426,10 @@ al modelar cada animal.
 
 | Mono | Alto real en postura | Real (studs) | **Alto en juego** | Antes |
 |---|---|---|---|---|
-| Tití del Chocó | ~0,13 m | 0,4 | **1,4** | 1,4 |
-| Mono ardilla | ~0,18 m | 0,55 | **1,5** | 1,9 |
+| Tití del Chocó | ~0,13 m | 0,4 | **1,4** (hecho) | 1,4 |
+| Mono ardilla | ~0,18 m | 0,55 | **1,5** (hecho) | 1,9 |
 | Marteja | ~0,2 m | 0,6 | **1,5** | 2 |
-| Capuchino ladrón | ~0,25 m | 0,75 | **1,6** | 1,8 |
+| Capuchino ladrón | ~0,25 m | 0,75 | **1,6** (hecho) | 1,8 |
 | Mono de cola larga | ~0,25 m | 0,75 | **1,6** | 2,5 |
 | Marimonda del Chocó | ~0,3 m | 0,9 | **1,65** (más con la cola en S) | 3,7 |
 | Macaco | ~0,35 m | 1,05 | **1,75** | 2,7 |
