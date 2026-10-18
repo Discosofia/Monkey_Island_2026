@@ -419,11 +419,45 @@ return {
   del GDD **y su lista de excepciones** antes de cambiar `unit`. Con 0,15 el gorila parecía estar
   bien, pero medía 1 stud menos que el de antes, y el Gorila de Ceniza perdió los 13,4 studs que
   tiene a propósito.
-- **Adornos de los jefes** (`bosses = { [bossId] = { grupos } }` en el mismo spec): cada grupo es
-  `{ anchor, name, color, material, transparency?, mirror?, boxes }`. Las cajas son
-  `{ x, y, z, ancho, alto, fondo, simétrica? }`. Cada grupo se une en **una** pieza de su material
-  (la unión copia material, transparencia y sombra de su primera caja), así que no mezcles cristal
-  y neón en un grupo. Con `mirror`, el grupo va a `Right <anchor>` y a `Left <anchor>`.
+- **Jefes** (`bosses = { [bossId] = { remove?, add?, groups? } }` en el spec de su especie, tipo
+  `VoxelBoss`):
+  - `remove`: nombres de cajas del cuerpo base que el jefe quita. Por ejemplo `Brow`, `Eye` y
+    `Mouth`, porque su cara va por fases.
+  - `add = { [parte] = { cajas } }`: cajas que se suman a una parte, como los músculos. Se unen con
+    ella, así que no añaden piezas. En las partes con `mirror` van del lado derecho.
+  - `groups`: adornos, con la forma
+    `{ anchor, name, color? | tone?, material?, transparency?, mirror?, phase?, boxes }`.
+    - Las cajas tienen el mismo formato que las de las partes. Su tono es opcional; sin él usan el
+      `color` o el `tone` del grupo, y `tone` sirve para que el adorno salga del color de cada jefe.
+    - Cada grupo se une en **una** pieza de su material: la unión copia material, transparencia y
+      sombra de su primera caja. No mezcles cristal y neón en un grupo.
+    - Con `mirror`, el grupo va a `Right <anchor>` y a `Left <anchor>`.
+    - Con `phase = n`, el grupo solo se ve en esa fase del combate. `showPhase` muestra la fase más
+      alta que tenga piezas y no pase de la actual, y `spawnBoss` lo llama al cambiar `BossPhase`.
+      Así salen las caras por fase (`phaseFaces` del gorila: seria, gruñido y rugido) y lo que se
+      enciende en la fase 3 (venas de rubí, más lava). Si una pieza la busca otro sistema por
+      nombre, dale ese nombre al grupo: los ojos de cada fase se llaman `Eye` para que `glowEyes`
+      los encienda.
+  - `tones = { [clave] = Color3 }`: cambia tonos de la especie solo para ese jefe. El Gorila de
+    Ceniza lleva `silver` gris ceniza oscuro: con el tono de siempre, el lomo salía casi blanco sobre
+    un cuerpo casi negro.
+  - El tono de una caja puede ser también un `Color3` fijo, para colores propios del jefe que no
+    salen de sus colores de Data (abdominales carbón, manchas de ceniza).
+  - **Moteado** (`mottle(semilla, cuántas, colores, caras)` en el spec del gorila): manchas planas
+    de 0,1 celdas de grueso, de tamaños y colores al azar con semilla fija, sobre las caras visibles
+    de una parte. Van en `add`, dentro de la unión, así que no cuestan piezas.
+    - Pon caras **delante** (bíceps, antebrazo, hombro): sin ellas, de frente no se veía el moteado.
+    - Mezcla tonos más oscuros y más claros que la base, para que se vean sobre el pelo y sobre el
+      lomo.
+    - Una `PointLight` de mucho alcance (43 studs a escala de jefe) teñía todo de naranja y tapaba
+      el moteado. Con alcance 5 ilumina el suelo de alrededor y no tiñe el cuerpo.
+  - Para juntar cajas de varias fuentes en `add`, `combine(BOSS_MUSCLES, CENIZA_MUSCLES, CENIZA_ASH)`.
+    Para rasgos de más en cada fase, `phaseFaces(glow, { [fase] = { cajas } })`.
+  - Lecciones de las caras:
+    - Las cejas de furia van en **tono oscuro**: del color del pelo, en el Albino no se leían.
+    - Una boca abierta con los dientes en fila **parece una sonrisa**. El gruñido es boca cerrada
+      con dos colmillos hacia abajo y arrugas en el hocico.
+    - Placas de 2,5 celdas sobre un jefe parecían botones: hazlas de 3,5–4.
   Las funciones de `BOSS_EXTRAS` miran `rig.voxel`:
   - con el cuerpo voxel solo ponen los efectos (luz, partículas, ojos encendidos, recolores);
   - con el cuerpo viejo ponen además sus adornos redondos.
@@ -505,8 +539,19 @@ cabeza:
 - solo el de la fase actual es visible; los demás con `Transparency = 1`;
 - se cambian al cambiar `BossPhase`, como hace `MonkeyAnimator` con las animaciones.
 
-Lo que no cambia entre fases (colmillos, arrugas fijas) va dentro de la unión. Este mecanismo
-todavía no está hecho: se hace con los detalles del primer jefe.
+Lo que no cambia entre fases (colmillos, arrugas fijas) va dentro de la unión. Está hecho con
+grupos `phase` y `showPhase` (ver "Jefes" en §8). Lo usan el Gorila Albino y el de Ceniza, y está
+probado en Play: cambia en el servidor y el jugador lo ve.
+- BossService sube `BossPhase` desde su bucle (`tick` → `updatePhase`): fase 2 con ≤ 66 % de vida y
+  fase 3 con ≤ 33 %. Solo sube: si quitas mucha vida de golpe, salta de la 1 a la 3.
+- **Para probarlo desde MCP en Play:** `require` de BossService da una copia aparte, sin su bucle en
+  marcha.
+  - Con `BS.spawn(id)` el jefe aparece, pero bajarle la vida no cambia la fase.
+  - Arranca el bucle en la copia con `task.spawn(function() BS:Start() end)` y entonces sí cambia.
+  - Para un jefe aún no activado, pon antes `require(MonkeyModels).voxelBosses[id] = true`, en la
+    misma copia que usará esa BossService.
+  - Mira lo visible por el atributo `Phase` y `Transparency < 1`, en el servidor y también con
+    `datamodel_type = "Client"`. Acerca antes el jefe al jugador, porque la isla solo carga cerca.
 
 Las cifras absolutas exageran: mover con `PivotTo` desde Luau cuesta más que la animación real. Lo
 que vale es la proporción. Falta confirmarlo en un móvil real y en Play en la Isla: que la unión

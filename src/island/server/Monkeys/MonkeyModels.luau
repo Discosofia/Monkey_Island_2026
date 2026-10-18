@@ -1314,7 +1314,8 @@ end
 -- sus cajas se unen en una sola pieza (ver mergeBoxes), salvo las de VOXEL_LOOSE, que van soldadas
 -- aparte porque otros sistemas las buscan por nombre. Una caja es
 -- { x, y, z, ancho, alto, fondo, tono, nombre?, simétrica? } en celdas de spec.unit studs, con y
--- medida desde el suelo. "simétrica" añade su reflejo en -X; una parte con "mirror" se describe del
+-- medida desde el suelo; el tono es una clave de voxelTones o un Color3 fijo (el moteado de ceniza).
+-- "simétrica" añade su reflejo en -X; una parte con "mirror" se describe del
 -- lado derecho y sale también la izquierda ("Right Arm" / "Left Arm").
 
 type VoxelPart = {
@@ -1326,16 +1327,29 @@ type VoxelPart = {
 	boxes: { { any } },
 }
 -- Adorno de un jefe: bloques de un mismo material pegados a "anchor" y unidos en una pieza "name".
+-- Las cajas son como las de las partes; sin tono, usan "color" (o el tono "tone") del grupo. Con
+-- "phase", el grupo solo se ve en esa fase del combate (expresiones de la cara, venas que se encienden).
 type VoxelExtra = {
 	anchor: string,
 	name: string,
-	color: Color3,
-	material: string,
+	color: Color3?,
+	tone: string?,
+	material: string?,
 	transparency: number?,
 	mirror: boolean?,
+	phase: number?,
 	boxes: { { any } },
 }
-export type VoxelSpec = { unit: number, parts: { VoxelPart }, bosses: { [string]: { VoxelExtra } }? }
+-- Lo que un jefe cambia del cuerpo de su especie: "remove" quita las cajas con esos nombres (la cara
+-- que va por fases), "add" añade cajas a una parte (músculos: se unen con ella, sin piezas de más) y
+-- "groups" son sus adornos. "tones" cambia tonos de voxelTones solo para este jefe (el lomo de ceniza).
+type VoxelBoss = {
+	tones: { [string]: Color3 }?,
+	remove: { string }?,
+	add: { [string]: { { any } } }?,
+	groups: { VoxelExtra }?,
+}
+export type VoxelSpec = { unit: number, parts: { VoxelPart }, bosses: { [string]: VoxelBoss }? }
 
 -- Los tonos del spec, sacados de los colores de Data (bodyColor = pelo, faceColor = piel).
 local function voxelTones(definition: Monkeys.MonkeyDefinition): { [string]: Color3 }
@@ -1351,6 +1365,7 @@ local function voxelTones(definition: Monkeys.MonkeyDefinition): { [string]: Col
 		dark = darker(skin, 0.45),
 		mouth = darker(skin, 0.7),
 		eye = skin:Lerp(Color3.new(1, 1, 1), 0.55),
+		teeth = EYE_WHITE,
 	}
 end
 
@@ -1395,23 +1410,60 @@ local function mergeBoxes(main: BasePart, boxes: { BasePart }): BasePart
 	return union
 end
 
+-- Muestra las piezas de la fase "phase" del combate (atributo "Phase", ver VoxelExtra) y esconde las
+-- de las demás. Si el jefe no tiene nada para esa fase, se queda con lo de la anterior que sí tenga.
+local function showPhase(model: Model, phase: number)
+	local shown = 0
+	for _, part in model:GetDescendants() do
+		local partPhase = part:GetAttribute("Phase")
+		if typeof(partPhase) == "number" and partPhase <= phase and partPhase > shown then
+			shown = partPhase
+		end
+	end
+	for _, part in model:GetDescendants() do
+		local partPhase = part:GetAttribute("Phase")
+		if part:IsA("BasePart") and partPhase then
+			part.Transparency = if partPhase == shown then part:GetAttribute("BaseTransparency") :: number else 1
+		end
+	end
+end
+
 local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec: VoxelSpec, bossId: string?)
 	local tones = voxelTones(definition)
+	local function toneOf(value: any): Color3?
+		return if typeof(value) == "Color3" then value elseif value then tones[value] else nil
+	end
 	local unit = spec.unit
 	local function at(x: number, y: number, z: number): Vector3
 		return Vector3.new(x * unit, y * unit + GROUND, z * unit)
 	end
+	local boss: VoxelBoss = if bossId and spec.bosses then spec.bosses[bossId] or {} else {}
+	for name, color in boss.tones or {} do
+		tones[name] = color
+	end
+	local removed: { [string]: boolean } = {}
+	for _, name in boss.remove or {} do
+		removed[name] = true
+	end
 	for _, part in spec.parts do
+		local boxes = table.clone(part.boxes)
+		local added = if boss.add then boss.add[part.name] else nil
+		if added then
+			table.move(added, 1, #added, #boxes + 1, boxes)
+		end
 		for _, side in if part.mirror then { 1, -1 } else { 0 } do
 			local prefix = if side == 0 then "" else `{sideName(side)} `
 			local flip = if side == -1 then -1 else 1
 			local main: BasePart? = nil
 			local merged: { BasePart } = {}
 			local loose: { BasePart } = {}
-			for _, box in part.boxes do
+			for index, box in boxes do
+				if index > 1 and removed[box[8] :: string] then
+					continue
+				end
 				local x, y, z = box[1] :: number, box[2] :: number, box[3] :: number
 				local size = Vector3.new(box[4] :: number, box[5] :: number, box[6] :: number) * unit
-				local color = tones[box[7] :: string]
+				local color = toneOf(box[7]) :: Color3
 				local name = if main == nil then prefix .. part.name else (box[8] :: string?) or "Voxel"
 				for _, mirrorX in if box[9] then { 1, -1 } else { 1 } do
 					local block = piece(rig, name, "Block", size, color)
@@ -1435,16 +1487,17 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 	end
 
 	-- Adornos del jefe: cada grupo, unido en una pieza de su material y soldado a su parte.
-	local extras = if bossId and spec.bosses then spec.bosses[bossId] else nil
-	for _, extra in extras or {} do
-		local material = (Enum.Material :: any)[extra.material] :: Enum.Material
+	for _, extra in boss.groups or {} do
+		local material = (Enum.Material :: any)[extra.material or "SmoothPlastic"] :: Enum.Material
+		local groupColor = extra.color or tones[extra.tone or "fur"]
 		for _, side in if extra.mirror then { 1, -1 } else { 0 } do
 			local flip = if side == -1 then -1 else 1
 			local blocks: { BasePart } = {}
 			for _, box in extra.boxes do
 				local size = Vector3.new(box[4] :: number, box[5] :: number, box[6] :: number) * unit
-				for _, mirrorX in if box[7] then { 1, -1 } else { 1 } do
-					local block = piece(rig, extra.name, "Block", size, extra.color, material)
+				local color = toneOf(box[7]) or groupColor
+				for _, mirrorX in if box[9] then { 1, -1 } else { 1 } do
+					local block = piece(rig, extra.name, "Block", size, color, material)
 					block.Transparency = extra.transparency or 0
 					block.CastShadow = false
 					place(
@@ -1457,10 +1510,17 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 			end
 			local anchor = partNamed(rig, if side == 0 then extra.anchor else `{sideName(side)} {extra.anchor}`)
 			local first = table.remove(blocks, 1) :: BasePart
-			weld(anchor, mergeBoxes(first, blocks))
+			local group = mergeBoxes(first, blocks)
+			weld(anchor, group)
+			if extra.phase then
+				group:SetAttribute("Phase", extra.phase)
+				group:SetAttribute("BaseTransparency", group.Transparency)
+			end
 		end
 	end
+	showPhase(rig.model, 1)
 end
+MonkeyModels.showPhase = showPhase
 
 -- Especies con modelo voxel en el juego.
 local VOXEL_SPECS: { [string]: VoxelSpec } = {
@@ -1469,7 +1529,10 @@ local VOXEL_SPECS: { [string]: VoxelSpec } = {
 -- Jefes que ya usan el cuerpo voxel de su especie, con sus adornos en bloques. Los demás siguen con
 -- el modelo de antes hasta que tengan sus detalles. La vista previa los activa en su copia del módulo
 -- (MM.voxelBosses.GorilaAlbino = true) para probarlos.
-local VOXEL_BOSSES: { [string]: boolean } = {}
+local VOXEL_BOSSES: { [string]: boolean } = {
+	GorilaAlbino = true,
+	GorilaDeCeniza = true,
+}
 MonkeyModels.voxelSpecs = VOXEL_SPECS
 MonkeyModels.voxelBosses = VOXEL_BOSSES
 
@@ -1729,7 +1792,9 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 				)
 			end
 		end
-		glow(rig, torso, lava, 12, 2)
+		-- Alcance corto: con 12 (43 studs a su escala) teñía todo el cuerpo de naranja y tapaba el
+		-- moteado de ceniza. Así ilumina el suelo de alrededor.
+		glow(rig, torso, lava, 5, 2)
 
 		local s = rig.scale
 		local embers = Instance.new("ParticleEmitter")
@@ -1847,6 +1912,10 @@ function MonkeyModels.spawnBoss(
 	humanoid.Health = look.maxHealth
 	humanoid.WalkSpeed = look.walkSpeed
 	model:PivotTo(CFrame.new(ground + Vector3.new(0, MonkeyModels.rootHeight(look.scale), 0)))
+	-- Cambia la cara (y lo demás que va por fases) cuando BossService cambia de fase.
+	model:GetAttributeChangedSignal("BossPhase"):Connect(function()
+		MonkeyModels.showPhase(model, model:GetAttribute("BossPhase") :: number? or 1)
+	end)
 	return model
 end
 

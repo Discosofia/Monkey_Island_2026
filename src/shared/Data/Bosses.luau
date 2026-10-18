@@ -120,7 +120,8 @@ local Bosses: { [string]: Boss } = {
 		baseSpecies = "Gorila",
 		-- Un 25 % más grande que el Gorila Albino (2,9): el jefe más imponente de la isla.
 		scale = 3.625,
-		bodyColor = Color3.fromRGB(60, 55, 55),
+		-- Casi negro: el moteado gris de ceniza de su modelo voxel destaca encima.
+		bodyColor = Color3.fromRGB(42, 38, 38),
 		faceColor = Color3.fromRGB(255, 110, 40),
 		maxHealth = 5600,
 		walkSpeed = 16,
