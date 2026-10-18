@@ -487,8 +487,33 @@ return {
     escalones se siguen viendo desde el lado y desde arriba. Revisa siempre la vista de espaldas.
   - Las cajas pueden solaparse sin miedo, igual que las primitivas. Cuida que dos caras visibles de
     tono distinto no queden en el mismo plano.
+- Lo que en los monos medianos (Mandril, Babuino, Gibón) funcionó y lo que no:
+  - **Manchas cuadradas sueltas** en un costado parecían ventanas. El moteado del lomo se lee como
+    vetas largas a lo largo del cuerpo, poco más oscuras que la base, y el borde de un pelaje de otro
+    color que acaba en puntas sobre el de debajo.
+  - Una **melena** que cubría hombros y lomo parecía una mochila, y en capas iguales, correas. Lo que
+    se lee es un collar: joroba del color del cuerpo arriba, y la melena por los lados, por delante y
+    bajo la barbilla, cada capa más ancha y más corta por detrás que la de encima.
+  - Paneles planos de color a los lados de la cabeza (mejillas peludas) parecían orejeras.
+  - Un hocico ancho tapaba los ojos y sus orificios claros se leían como ojos. Hocico más estrecho
+    que la ceja, ojos por fuera de él y orificios casi del color del hocico.
+  - El gibón con el torso recto y los brazos pegados parecía un bloque: cintura más estrecha que el
+    pecho y brazos separados, delgados y pardos del codo abajo.
+  - Mechones oscuros verticales sobre las capas de la melena formaban una rejilla, como una caja de
+    madera: las capas alternas, una algo más oscura que otra, ya se leen como pelo.
+  - Músculos en bloques (bíceps, antebrazo, muslo, gemelo, anca): sobresalen 0,5 celdas y con un
+    tono a solo ~8 % del de la base. Más claros parecían rodilleras, y un anca corta en el costado,
+    una ventana: hazla llegar hasta el final de la grupa.
+  - El trasero de colores del mandril: un cuadrado dentro de otro parecía una diana, y en franjas, una
+    bandera. Mancha azul con las esquinas en escalón y el rojo solo arriba, junto a la cola.
+  - Cara de ataque (spec.faces, acciones Attack y Roar): boca abierta de color rojo oscuro bajo la
+    nariz, con dos colmillos largos arriba y dos cortos abajo, y cejas en V. En el babuino, además,
+    los párpados claros a la vista, que es su gesto de amenaza.
+  - Studio aclara mucho los tonos medios: el gris oliva (125, 125, 105) del babuino salía casi
+    blanco y el ocre del macaco, amarillo. Elige el color un 20–30 % más oscuro que el de la foto.
 - `SmoothPlastic` siempre: las aristas limpias son el estilo (nada de `Fabric`).
-- **Monos pequeños** (Tití, Mono ardilla, Capuchino, Marteja, Cola larga, Marimonda, Aullador): `unit = 0,1` y el cuerpo dibujado alrededor
+- **Monos pequeños y medianos** (Tití, Mono ardilla, Capuchino, Marteja, Cola larga, Marimonda, Aullador,
+  Macaco, Mandril, Babuino, Gibón): `unit = 0,1` y el cuerpo dibujado alrededor
   de los pivotes del modelo redondo (pásalos a celdas: `(x / 0,1, (y + 1,9) / 0,1, z / 0,1)`); el
   alto del GDD se ajusta con `scale` en Data, no con `unit`. Sus animaciones solo giran
   articulaciones, así que con los mismos pivotes valen sin rehacerlas. Colas en fila de bloques y

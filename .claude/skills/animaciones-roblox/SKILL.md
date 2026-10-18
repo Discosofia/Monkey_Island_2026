@@ -213,6 +213,14 @@ la animación es la misma a efectos prácticos.
   hasta 8 s. Si falla con un id publicado, suele ser de otro dueño o no es una animación.
 - **"X no es una pieza articulada"** → nombre mal escrito o rig equivocado (los monos usan
   `Right Arm`, el R15 `RightUpperArm`). `Anim.hierarchy(rig)` lista las piezas.
+- **`Anim.monkeyRig` sale con el cuerpo viejo de una especie voxel** → el `require` interno de
+  MonkeyModels guarda la primera copia de `VoxelSpecs/<Especie>` que cargó en la sesión. Construye el
+  rig tú: `MM.voxelSpecs[id] = Anim.freshRequire(spec)`, `MM.build` con `scale = 1`, ponlo en
+  Workspace y pásalo a `Anim.placeRig`.
+- **La tira enseña la cara normal en un golpe** → las expresiones por acción (`spec.faces`) las cambia
+  MonkeyAnimator al sonar la acción, no `Anim.show`. En la tira, pon `Transparency` según el atributo
+  `Face` de cada pieza; para comprobar el cambio de verdad, `MonkeyAnimator.attach` + `play` en una
+  copia y `animator:StepAnimations`.
 - **No veo un cambio del repo** → caché de `require` en Studio: `Anim.freshRequire`, o Rojo
   desconectado (comprueba con `script_grep` una línea nueva).
 - **El brazo del jugador tiembla con un arma en la mano** → algo gira la articulación por código

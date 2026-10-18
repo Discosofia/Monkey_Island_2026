@@ -4,7 +4,8 @@
 -- su especie base. Ver MonkeyAnimationBuilder para el formato.
 --   - Simios (nudillos): brazos y piernas recorren hacia atrás la mitad que hacia delante; si no,
 --     pies y nudillos se clavan en el suelo.
---   - Gibón: de pie y con los brazos en alto, así que X negativo los echa hacia delante.
+--   - Gibón: de pie y con los brazos colgando hasta el suelo (modelo voxel), así que X positivo los
+--     echa hacia delante, como a las piernas.
 
 return {
 	Mandril_Walk = {
@@ -472,27 +473,27 @@ return {
 			{
 				t = 0,
 				Head = { 0, 6, -5 },
-				["Left Arm"] = { -10, 0, 6 },
+				["Left Arm"] = { 10, 0, 6 },
 				["Left Leg"] = { -25, 0, 0 },
-				["Right Arm"] = { 10, 0, 6 },
+				["Right Arm"] = { -10, 0, 6 },
 				["Right Leg"] = { 25, 0, 0 },
 				Torso = { 0, -6, 5 },
 			},
 			{
 				t = 0.35,
 				Head = { 0, -6, 5 },
-				["Left Arm"] = { 10, 0, -6 },
+				["Left Arm"] = { -10, 0, -6 },
 				["Left Leg"] = { 25, 0, 0 },
-				["Right Arm"] = { -10, 0, -6 },
+				["Right Arm"] = { 10, 0, -6 },
 				["Right Leg"] = { -25, 0, 0 },
 				Torso = { 0, 6, -5 },
 			},
 			{
 				t = 0.7,
 				Head = { 0, 6, -5 },
-				["Left Arm"] = { -10, 0, 6 },
+				["Left Arm"] = { 10, 0, 6 },
 				["Left Leg"] = { -25, 0, 0 },
-				["Right Arm"] = { 10, 0, 6 },
+				["Right Arm"] = { -10, 0, 6 },
 				["Right Leg"] = { 25, 0, 0 },
 				Torso = { 0, -6, 5 },
 			},
@@ -543,21 +544,23 @@ return {
 		direction = "Out",
 		keyframes = {
 			{ t = 0, reposo = true },
+			-- Brazos atrás y abiertos para coger impulso.
 			{
 				t = 0.1,
 				Head = { -8, 0, 0 },
-				["Left Arm"] = { 30, 0, -10 },
+				["Left Arm"] = { -35, 0, -10 },
 				["Left Leg"] = { -10, 0, 0 },
-				["Right Arm"] = { 30, 0, 10 },
+				["Right Arm"] = { -35, 0, 10 },
 				["Right Leg"] = { -10, 0, 0 },
 				Torso = { 10, 0, 0 },
 			},
+			-- Zarpazo con los dos brazos hacia delante, cerrándose.
 			{
 				t = 0.2,
 				Head = { 12, 0, 0 },
-				["Left Arm"] = { -120, 0, 15 },
+				["Left Arm"] = { 95, 0, 15 },
 				["Left Leg"] = { 18, 0, 0 },
-				["Right Arm"] = { -120, 0, -15 },
+				["Right Arm"] = { 95, 0, -15 },
 				["Right Leg"] = { 18, 0, 0 },
 				Torso = { -18, 0, 0 },
 				marcador = "Golpe",
@@ -565,9 +568,9 @@ return {
 			{
 				t = 0.32,
 				Head = { 4, 0, 0 },
-				["Left Arm"] = { -60, 0, 5 },
+				["Left Arm"] = { 50, 0, 5 },
 				["Left Leg"] = { 6, 0, 0 },
-				["Right Arm"] = { -60, 0, -5 },
+				["Right Arm"] = { 50, 0, -5 },
 				["Right Leg"] = { 6, 0, 0 },
 				Torso = { -6, 0, 0 },
 			},
@@ -906,21 +909,23 @@ return {
 		direction = "Out",
 		keyframes = {
 			{ t = 0, reposo = true },
+			-- Se agacha con los brazos atrás.
 			{
 				t = 0.12,
 				Torso = { 8, 0, 0 },
 				Head = { -8, 0, 0 },
-				["Right Arm"] = { 25, 0, 10 },
-				["Left Arm"] = { 25, 0, -10 },
+				["Right Arm"] = { -30, 0, 10 },
+				["Left Arm"] = { -30, 0, -10 },
 				["Right Leg"] = { 20, 0, 0 },
 				["Left Leg"] = { 20, 0, 0 },
 			},
+			-- En el aire, con los brazos estirados hacia la presa.
 			{
 				t = 0.25,
 				Torso = { -30, 0, 0 },
 				Head = { 20, 0, 0 },
-				["Right Arm"] = { -75, 0, -20 },
-				["Left Arm"] = { -75, 0, 20 },
+				["Right Arm"] = { 105, 0, -20 },
+				["Left Arm"] = { 105, 0, 20 },
 				["Right Leg"] = { -20, 0, 0 },
 				["Left Leg"] = { -20, 0, 0 },
 				marcador = "Salto",
@@ -929,8 +934,8 @@ return {
 				t = 0.45,
 				Torso = { -30, 0, 0 },
 				Head = { 20, 0, 0 },
-				["Right Arm"] = { -80, 0, -20 },
-				["Left Arm"] = { -80, 0, 20 },
+				["Right Arm"] = { 110, 0, -20 },
+				["Left Arm"] = { 110, 0, 20 },
 				["Right Leg"] = { -25, 0, 0 },
 				["Left Leg"] = { -25, 0, 0 },
 			},

@@ -228,9 +228,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		alpha = true,
 		roar = { radius = 25, seconds = 6 },
 		voice = "Large",
-		scale = 1.25,
-		bodyColor = Color3.fromRGB(78, 76, 64),
-		faceColor = Color3.fromRGB(200, 60, 60),
+		scale = 0.65,
+		bodyColor = Color3.fromRGB(100, 88, 74), -- pardo de los costados (VoxelSpecs/Mandril)
+		faceColor = Color3.fromRGB(200, 60, 60), -- rojo de la nariz
 		loot = {
 			{ itemId = "MandrillFang", chance = 0.35, min = 1, max = 1 },
 			{ itemId = "Leather", chance = 0.6, min = 1, max = 2 },
@@ -255,9 +255,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 120,
 		disarmsTraps = true,
 		voice = "Medium",
-		scale = 1,
-		bodyColor = Color3.fromRGB(140, 116, 88),
-		faceColor = Color3.fromRGB(220, 160, 150),
+		scale = 0.65,
+		bodyColor = Color3.fromRGB(182, 115, 58), -- pardo anaranjado (VoxelSpecs/Macaco)
+		faceColor = Color3.fromRGB(220, 160, 150), -- cara rosada
 		loot = {
 			{ itemId = "GreyFur", chance = 0.7, min = 1, max = 1 },
 			{ itemId = "LabCard", chance = 0.05, min = 1, max = 1 },
@@ -282,9 +282,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 150,
 		pounce = true,
 		voice = "Medium",
-		scale = 0.95,
-		bodyColor = Color3.fromRGB(60, 50, 45),
-		faceColor = Color3.fromRGB(230, 225, 215),
+		scale = 0.71,
+		bodyColor = Color3.fromRGB(40, 32, 30), -- casi negro (VoxelSpecs/Gibon)
+		faceColor = Color3.fromRGB(230, 225, 215), -- anillo blanco de la cara
 		loot = {
 			{ itemId = "Liana", chance = 0.5, min = 1, max = 2 },
 			{ itemId = "BlackFur", chance = 0.4, min = 1, max = 1 },
@@ -308,9 +308,9 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 140,
 		alpha = true,
 		voice = "Medium",
-		scale = 1.1,
-		bodyColor = Color3.fromRGB(150, 125, 85),
-		faceColor = Color3.fromRGB(80, 60, 55),
+		scale = 0.74,
+		bodyColor = Color3.fromRGB(90, 92, 76), -- gris oliva (VoxelSpecs/Babuino)
+		faceColor = Color3.fromRGB(40, 40, 42), -- hocico negro
 		loot = {
 			{ itemId = "BigFang", chance = 0.4, min = 1, max = 1 },
 			{ itemId = "Leather", chance = 0.6, min = 1, max = 1 },

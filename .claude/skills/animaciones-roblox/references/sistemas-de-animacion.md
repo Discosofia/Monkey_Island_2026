@@ -93,9 +93,10 @@ aullador (15), el mandril (15), el orangután (12) y el gorila (15) andan. `Run`
 - **Simios** (gorila, chimpancé, orangután, y los jefes que salen de ellos): sin cola. Los pies y
   los nudillos sobresalen hacia atrás, así que **una pata o un brazo que va hacia atrás se clava**
   (−0,3 con −20°). Que recorran hacia atrás la mitad que hacia delante.
-- **Gibón**: de pie, con los brazos en alto y abiertos. Con un brazo que apunta arriba los signos
-  se invierten: **X negativo lo echa hacia delante**. Sin cola. Por eso las acciones comunes que
-  echan los brazos adelante (el `Pounce` de `Default`) le salen al revés: tiene `Gibon_Pounce`.
+- **Gibón**: de pie, con los brazos larguísimos colgando hasta casi el suelo (modelo voxel, desde el
+  18-10-2026; antes los tenía en alto y X negativo los echaba adelante). Ahora X positivo los echa
+  hacia delante, como en los demás. Sin cola. Tiene `Gibon_Walk`, `Gibon_Attack` y `Gibon_Pounce`
+  propios en `MonkeyAnimationSpecs/MonosMedianosYGrandes`.
 - **Cuándo hace daño cada acción**: el golpe de la animación tiene que coincidir con el del código,
   y no siempre es al empezar. `MonkeyService` hace el daño del pisotón del gorila al instante
   (`Gorila_Stomp` golpea a 0,14 s); `BossService` lo hace a 0,9 s (`STOMP_IMPACT_SECONDS`,
