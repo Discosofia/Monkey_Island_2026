@@ -37,6 +37,8 @@ local RUB_TURN = 0.9
 -- Aves: vuelta sobre el dueño quieto (radio, altura, rad/s) y ciclo de batir y planear (segundos).
 local ORBIT_RADIUS, ORBIT_HEIGHT, ORBIT_TURN = 3.5, 2.6, 0.8
 local FLAP_SECONDS, GLIDE_SECONDS = 2, 1.2
+-- Cuerpo doblado al girar (felinos): radianes de curva por cada radián/s de giro, y el máximo.
+local BEND_PER_TURN, BEND_MAX = 0.12, 0.45
 
 local PetFollowers = {}
 
@@ -61,6 +63,7 @@ type Follower = {
 	orbit: number?, -- ángulo de la vuelta sobre el dueño (aves); nil si no la está dando
 	hoverAt: Vector3?, -- punto alrededor del dueño en el que revolotea (colibrí)
 	hoverUntil: number,
+	bend: number, -- cuánto dobla el cuerpo hacia la curva al girar (radianes, + a la izquierda)
 }
 
 local function smoothstep(edge0: number, edge1: number, x: number): number
@@ -115,6 +118,7 @@ function PetFollowers.start()
 					orbit = nil,
 					hoverAt = nil,
 					hoverUntil = 0,
+					bend = 0,
 				}
 			end
 		end
@@ -352,6 +356,14 @@ function PetFollowers.start()
 				local moving = if attack then 1 else math.clamp(speed / 12, 0, 1)
 				local cadence = if attack then 2.2 else math.clamp(speed / 14, 0.7, 1.7)
 				follower.stride += deltaTime * cadence
+
+				-- Lo que gira en este fotograma (en Y, + a la izquierda): los felinos doblan el cuerpo
+				-- hacia la curva. Con tope y suavizado, para que un giro brusco no lo parta.
+				local before = current.LookVector * Vector3.new(1, 0, 1)
+				local after = nextPivot.LookVector * Vector3.new(1, 0, 1)
+				local turnRate = math.atan2(before:Cross(after).Y, before:Dot(after)) / math.max(deltaTime, 1 / 240)
+				local bendGoal = math.clamp(turnRate * BEND_PER_TURN, -BEND_MAX, BEND_MAX)
+				follower.bend += (bendGoal - follower.bend) * math.clamp(deltaTime * 8, 0, 1)
 				follower.clock += deltaTime * (if attack then 2.2 elseif motion == "Fly" then 1 + moving * 0.4 else 1)
 
 				-- Clips: ataque, rutina de reposo, galope y planeo.
@@ -383,7 +395,7 @@ function PetFollowers.start()
 						table.insert(layers, { clip = "Glide", time = now, weight = follower.glide })
 					end
 				end
-				PetModels.animate(model, follower.clock, moving, layers, follower.stride)
+				PetModels.animate(model, follower.clock, moving, layers, follower.stride, follower.bend)
 			end
 		end
 	end)

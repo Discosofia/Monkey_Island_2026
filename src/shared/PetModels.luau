@@ -28,6 +28,7 @@ type Joint = {
 	bone: string?, -- nombre con el que la mueven los clips (ver CLIPS): "Head", "Tail", "FL", "WingL"…
 	lag: number, -- puesto en una cadena (la cola): las ondas de los clips le llegan con este retraso
 	world: CFrame, -- giro de este fotograma respecto al pivote (lo usan las que cuelgan de ella)
+	bend: number, -- cuánto gira en Y con el giro de la mascota ("bend" de animate): la cadera y la cabeza
 }
 
 -- Clips: posturas con fotogramas clave que se suman a los senos de las articulaciones (sentarse,
@@ -52,6 +53,9 @@ type Rig = {
 	joints: { Joint },
 	family: string?, -- familia de clips (CLIPS)
 	dims: { [string]: any }?, -- medidas que necesitan sus clips
+	-- Piezas fijas de la cadera (manchas, vientre) que giran sobre la cintura ("hinge", sin escalar) con
+	-- el giro de la mascota, "factor" veces. No son articulaciones: solo se mueven mientras gira.
+	bend: { hinge: CFrame, factor: number, parts: { BasePart } }?,
 }
 type Animated = {
 	joints: { Joint },
@@ -60,6 +64,8 @@ type Animated = {
 	clips: { [string]: Clip },
 	scale: number,
 	bodyMoved: boolean,
+	bend: { hinge: CFrame, factor: number, parts: { BasePart }, rest: { CFrame } }?,
+	bendMoved: boolean,
 }
 
 local WHITE = Color3.fromRGB(245, 245, 238)
@@ -146,6 +152,7 @@ local function joint(
 		parent = parent,
 		lag = 0,
 		world = CFrame.identity,
+		bend = 0,
 	}
 	table.insert(rig.joints, item)
 	return item
@@ -820,6 +827,718 @@ local function cat(rig: Rig, coat: Color3, options: CatOptions)
 		-- Lo más bajo de las ancas en reposo: hasta ahí puede bajar la cadera al sentarse.
 		haunch = bodyY + 0.04 - 0.4,
 	}
+end
+
+-- Studs por celda de los felinos voxel a escala 1: el cuerpo (18 celdas) mide lo que el del felino
+-- redondo (2 studs), así los desplazamientos de sus clips siguen valiendo.
+local VOXEL = 0.11
+
+-- Felino en estilo voxel (bloques grandes, como la referencia del ocelote en docs/img): cuerpo de
+-- caja con el vientre claro, paletillas y ancas en bloque, cabeza cúbica con hocico cuadrado, orejas
+-- oscuras, patas en columna con dedos marcados y cola recta por tramos. Mismos huesos y medidas
+-- ("dims") que "cat", así que usa los mismos clips. Medidas en celdas, con el suelo en y = 0.
+local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
+	local crystal = options.crystal == true
+	local slim = options.slim == true
+	local spots = options.spots
+	local material = if crystal then Enum.Material.Glacier else Enum.Material.SmoothPlastic
+	local light = coat:Lerp(WHITE, 0.45)
+	local pale = coat:Lerp(WHITE, 0.22)
+	local belly = if spots and not crystal then coat:Lerp(WHITE, 0.78) else coat:Lerp(WHITE, 0.18)
+	local dark = coat:Lerp(BLACK, 0.55)
+	local legH = if slim then 5.5 else 7
+	local bodyH = if slim then 5 else 6
+	local bodyW = if slim then 5 else 6
+	local bodyL = if slim then 20 else 18
+	local bottom = legH
+	local top = legH + bodyH
+	local centerY = legH + bodyH / 2
+
+	-- Celdas (suelo en 0) a coordenadas del modelo (centro del cuerpo en 0).
+	local function at(p: Vector3): Vector3
+		return (p - Vector3.new(0, centerY, 0)) * VOXEL
+	end
+	local function box(list: { BasePart }?, name: string, center: Vector3, size: Vector3, color: Color3): BasePart
+		local part = piece(rig, name, "Block", size * VOXEL, CFrame.new(at(center)), color, material)
+		if list then
+			table.insert(list, part)
+		end
+		return part
+	end
+	-- Placa fina pegada a una cara (manchas, ojos, rayas): "center" está en la cara, "u" y "v" son sus
+	-- ejes y "lift" lo que sobresale (para apilar el ojo, la pupila…).
+	local function flat(
+		list: { BasePart }?,
+		name: string,
+		center: Vector3,
+		normal: Vector3,
+		u: Vector3,
+		size: Vector2,
+		color: Color3,
+		lift: number?
+	): BasePart
+		local v = normal:Cross(u)
+		local position = at(center + normal * (lift or 0.05))
+		local part = piece(
+			rig,
+			name,
+			"Block",
+			Vector3.new(size.X, size.Y, 0.14) * VOXEL,
+			CFrame.fromMatrix(position, u, v),
+			color,
+			if crystal and color == spots then Enum.Material.Neon else material
+		)
+		if list then
+			table.insert(list, part)
+		end
+		return part
+	end
+	-- Motas en una cara, como las de la referencia: una rejilla de huecos de "step" celdas con una
+	-- mancha al azar (cuadro, barra, L o parche tostado claro) en cada hueco que toque. Semilla fija:
+	-- todas las mascotas iguales salen con las mismas manchas.
+	local rng = Random.new(13)
+	local function speckle(
+		list: { BasePart }?,
+		center: Vector3,
+		normal: Vector3,
+		u: Vector3,
+		size: Vector2,
+		step: number,
+		chance: number
+	)
+		if not spots then
+			return
+		end
+		-- El de cristal lleva menos: sus manchas brillan y además tiene los cristales.
+		local odds = if crystal then chance * 0.6 else chance
+		local v = normal:Cross(u)
+		local nu, nv = math.max(1, math.floor(size.X / step)), math.max(1, math.floor(size.Y / step))
+		for i = 1, nu do
+			for j = 1, nv do
+				if rng:NextNumber() < odds then
+					local cu = (i - (nu + 1) / 2) * size.X / nu + rng:NextNumber(-0.3, 0.3)
+					local cv = (j - (nv + 1) / 2) * size.Y / nv + rng:NextNumber(-0.3, 0.3)
+					local p = center + u * cu + v * cv
+					local kind = rng:NextInteger(1, 7)
+					if kind <= 2 then
+						flat(list, "Spot", p, normal, u, Vector2.new(0.9, 0.9), spots)
+					elseif kind == 3 then
+						flat(list, "Spot", p, normal, u, Vector2.new(1.5, 0.6), spots)
+					elseif kind == 4 then
+						flat(list, "Spot", p, normal, u, Vector2.new(0.6, 1.4), spots)
+					elseif kind <= 6 then
+						-- L: barra y una pata en un extremo, girada al azar.
+						local flip = if rng:NextNumber() < 0.5 then -1 else 1
+						flat(list, "Spot", p, normal, u, Vector2.new(1.4, 0.6), spots)
+						flat(list, "Spot", p + u * flip * 0.4 + v * 0.5, normal, u, Vector2.new(0.6, 1.1), spots)
+					elseif not crystal then
+						flat(list, "Patch", p, normal, u, Vector2.new(1.3, 1), pale)
+					end
+				end
+			end
+		end
+	end
+
+	-- Tronco en dos bloques: el pecho, que manda el rumbo, y la cadera, algo más estrecha y recogida
+	-- por abajo, que gira sobre la cintura al girar la mascota ("bend" de animate): la cadera y la cola
+	-- se abren hacia dentro de la curva y la cabeza mira hacia ella, y el cuerpo se dobla en C como el
+	-- de un felino de verdad. Las patas de atrás y la cola cuelgan de la cadera. La cadera entra un
+	-- poco en el pecho para que no se abra una rendija al doblarse.
+	local waist = 0.4
+	local hipW = bodyW - 0.4
+	local frontEnd = waist + 0.6
+	box(
+		nil,
+		"Body",
+		Vector3.new(0, centerY, (-bodyL / 2 + frontEnd) / 2),
+		Vector3.new(bodyW, bodyH, bodyL / 2 + frontEnd),
+		coat
+	)
+	local hipStart = waist - 1.2
+	local hips = box(
+		nil,
+		"Hips",
+		Vector3.new(0, (bottom + 0.4 + top) / 2, (hipStart + bodyL / 2) / 2),
+		Vector3.new(hipW, bodyH - 0.4, bodyL / 2 - hipStart),
+		coat
+	)
+	local waistHinge = CFrame.new(at(Vector3.new(0, centerY, waist)))
+	local spine = joint(rig, hips, waistHinge, Vector3.yAxis, 0, 1, 0, false)
+	spine.bend = -0.8
+	-- Lo que va pegado a la cadera y no se mueve por su cuenta: gira con ella solo mientras se dobla.
+	local hipParts: { BasePart } = {}
+	rig.bend = { hinge = waistHinge, factor = -0.8, parts = hipParts }
+
+	-- Franja baja de los costados y pecho claros, en los dos bloques.
+	box(
+		nil,
+		"Belly",
+		Vector3.new(0, bottom + 0.7, (-5.5 + waist) / 2),
+		Vector3.new(bodyW + 0.1, 1.4, waist + 5.5),
+		belly
+	)
+	box(
+		hipParts,
+		"Belly",
+		Vector3.new(0, bottom + 1, (waist + 4.5) / 2),
+		Vector3.new(hipW + 0.1, 1.2, 4.5 - waist),
+		belly
+	)
+	box(nil, "Chest", Vector3.new(0, bottom + 1.5, -bodyL / 2 + 0.1), Vector3.new(bodyW - 2.2, 2.6, 0.4), belly)
+	-- Pecho hondo detrás de las manos: la cintura queda recogida hacia las ancas, como un felino atlético.
+	box(nil, "Ribcage", Vector3.new(0, bottom - 0.5, -bodyL / 2 + 5.5), Vector3.new(bodyW - 1, 1.2, 4.6), belly)
+	-- Manchas del lomo y de los costados, cada una en su bloque.
+	local backFrom, backTo = -6.75, bodyL / 2 - 0.75
+	speckle(
+		nil,
+		Vector3.new(0, top, (backFrom + waist + 0.4) / 2),
+		Vector3.yAxis,
+		Vector3.zAxis,
+		Vector2.new(waist + 0.4 - backFrom, bodyW - 1),
+		1.9,
+		0.85
+	)
+	speckle(
+		hipParts,
+		Vector3.new(0, top, (waist + 0.8 + backTo) / 2),
+		Vector3.yAxis,
+		Vector3.zAxis,
+		Vector2.new(backTo - waist - 0.8, hipW - 1),
+		1.9,
+		0.85
+	)
+	for _, side in { -1, 1 } do
+		speckle(
+			nil,
+			Vector3.new(side * bodyW / 2, centerY + 0.7, (-4.5 + waist + 0.4) / 2),
+			Vector3.xAxis * side,
+			Vector3.zAxis,
+			Vector2.new(waist + 4.9, bodyH - 1.8),
+			1.6,
+			0.95
+		)
+		speckle(
+			hipParts,
+			Vector3.new(side * hipW / 2, (bottom + 1.8 + top - 0.2) / 2, (waist + 0.8 + 4) / 2),
+			Vector3.xAxis * side,
+			Vector3.zAxis,
+			Vector2.new(3.2 - waist, top - bottom - 2),
+			1.6,
+			0.95
+		)
+	end
+
+	-- Cabeza: caja con el hocico cuadrado delante y la mandíbula clara.
+	local s = if slim then 0.8 else 1
+	local headParts: { BasePart } = {}
+	local headSize = Vector3.new(7, 5.5, 5.5) * s
+	local head = Vector3.new(0, top + 0.5 * s, -bodyL / 2 - 2.5 * s)
+	local front = head.Z - headSize.Z / 2
+	local crown = head.Y + headSize.Y / 2
+	local chin = head.Y - headSize.Y / 2
+	box(headParts, "Head", head, headSize, coat)
+	-- Cuello grueso: un bloque detrás de la cabeza que asoma sobre el lomo entre las paletillas.
+	local nape = Vector3.new(0, top + 0.35, head.Z + headSize.Z / 2 + 1.3)
+	box(headParts, "Nape", nape, Vector3.new(bodyW - 2.6, 1.1, 3.2), coat)
+	-- Hocico y mandíbula claros en el ocelote; en el jaguarundí, la cara casi del color del cuerpo.
+	local muzzleColor = if spots then light else coat:Lerp(WHITE, 0.15)
+	box(
+		headParts,
+		"Jaw",
+		Vector3.new(0, chin + 0.8 * s, head.Z - 0.5 * s),
+		Vector3.new(headSize.X + 0.1, 1.6 * s, headSize.Z - 0.9 * s),
+		muzzleColor
+	)
+	local muzzle = Vector3.new(0, chin + 1.2 * s, front - 0.9)
+	local muzzleSize = Vector3.new(4 * s, 2.6 * s, 2)
+	box(headParts, "Muzzle", muzzle, muzzleSize, muzzleColor)
+	local snout = muzzle.Z - muzzleSize.Z / 2
+	box(
+		headParts,
+		"Chin",
+		Vector3.new(0, chin - 0.1, snout + 1.1),
+		Vector3.new(2.6 * s, 0.7, 1.6),
+		if crystal then light else belly
+	)
+	-- Nariz en la esquina de arriba del hocico (se ve de frente y desde arriba) y boca debajo.
+	local noseColor = if crystal
+		then spots or coat
+		elseif spots then Color3.fromRGB(105, 50, 45)
+		else coat:Lerp(BLACK, 0.6)
+	box(
+		headParts,
+		"Nose",
+		Vector3.new(0, muzzle.Y + muzzleSize.Y / 2 - 0.3 * s, snout + 0.4),
+		Vector3.new(1.6 * s, 0.7 * s, 1.1),
+		noseColor
+	)
+	flat(
+		headParts,
+		"Mouth",
+		Vector3.new(0, muzzle.Y - 0.5 * s, snout),
+		-Vector3.zAxis,
+		Vector3.xAxis,
+		Vector2.new(1.8 * s, 0.24),
+		dark
+	)
+	-- Ojos en la cara de delante: parche claro debajo, ojo, pupila en rendija y raya oscura encima.
+	local stripe = spots or dark
+	for _, side in { -1, 1 } do
+		local eye = Vector3.new(side * 1.75 * s, head.Y + 0.55 * s, front)
+		flat(
+			headParts,
+			"EyeMark",
+			eye + Vector3.new(0, -0.6 * s, 0),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(1.6 * s, 0.7 * s),
+			if crystal then light else belly
+		)
+		flat(headParts, "Eye", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(1.5 * s, 0.8 * s), options.eyeColor, 0.1).Material = if crystal
+			then Enum.Material.Neon
+			else Enum.Material.SmoothPlastic
+		flat(
+			headParts,
+			"Pupil",
+			eye,
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(0.35 * s, 0.8 * s),
+			if crystal then Color3.fromRGB(20, 60, 120) else BLACK,
+			0.16
+		)
+		flat(
+			headParts,
+			"EyeLine",
+			eye + Vector3.new(side * 0.15, 0.6 * s, 0),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(1.8 * s, 0.32 * s),
+			if crystal then dark else BLACK
+		)
+		-- Rayas de la mejilla, del rabillo del ojo hacia atrás.
+		if spots then
+			local cheek = Vector3.new(side * headSize.X / 2, head.Y, front)
+			flat(
+				headParts,
+				"CheekStripe",
+				cheek + Vector3.new(0, 0.1 * s, 1.9 * s),
+				Vector3.xAxis * side,
+				Vector3.zAxis,
+				Vector2.new(2.8 * s, 0.45 * s),
+				stripe
+			)
+			flat(
+				headParts,
+				"CheekStripe",
+				cheek + Vector3.new(0, -0.9 * s, 1.6 * s),
+				Vector3.xAxis * side,
+				Vector3.zAxis,
+				Vector2.new(2 * s, 0.4 * s),
+				stripe
+			)
+		end
+		-- Orejas: bloques oscuros (claras por dentro) con la mancha blanca detrás del ocelote.
+		local earSize = if options.roundEars then Vector3.new(1.6, 1.3, 1) * s else Vector3.new(2, 1.8, 1.2) * s
+		local ear = Vector3.new(side * (headSize.X / 2 - 1.1 * s), crown + earSize.Y / 2, head.Z + 0.6 * s)
+		box(headParts, "Ear", ear, earSize, if spots and not crystal then dark:Lerp(BLACK, 0.4) else coat)
+		flat(
+			headParts,
+			"InnerEar",
+			ear - Vector3.new(0, 0.15 * s, earSize.Z / 2),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(earSize.X * 0.45, earSize.Y * 0.45),
+			if crystal then spots or light else pale
+		)
+		if spots and not crystal then
+			flat(
+				headParts,
+				"EarSpot",
+				ear + Vector3.new(0, -0.1, earSize.Z / 2),
+				Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(0.9, 0.8),
+				WHITE
+			)
+		end
+	end
+	if spots then
+		-- Dos rayas paralelas desde la frente por encima de la cabeza hasta la nuca.
+		for _, x in { -0.65 * s, 0.65 * s } do
+			local rise = crown - (head.Y + 1.3 * s)
+			flat(
+				headParts,
+				"HeadStripe",
+				Vector3.new(x, crown - rise / 2, front),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(0.45, rise),
+				stripe
+			)
+			flat(
+				headParts,
+				"HeadStripe",
+				Vector3.new(x, crown, head.Z),
+				Vector3.yAxis,
+				Vector3.zAxis,
+				Vector2.new(headSize.Z, 0.45),
+				stripe
+			)
+			flat(
+				headParts,
+				"NeckStripe",
+				Vector3.new(x, nape.Y + 0.55, nape.Z),
+				Vector3.yAxis,
+				Vector3.zAxis,
+				Vector2.new(3, 0.45),
+				stripe
+			)
+		end
+	end
+
+	-- Patas en columna de dos tramos (hombro o anca con el de arriba) y pie claro con dos rendijas entre
+	-- los dedos. El tramo de abajo cuelga del de arriba y se dobla al avanzar, como en "cat".
+	local knee = legH * 0.5
+	local hipY = centerY
+	local paw = coat:Lerp(WHITE, if spots then 0.32 else 0.12)
+	-- Tono algo más oscuro para los músculos que abultan: marca la sombra entre ellos.
+	local muscle = coat:Lerp(BLACK, 0.12)
+	local phases = { 0, math.pi, math.pi, 0 }
+	local bones = { "FL", "FR", "BL", "BR" }
+	local zFront, zBack = -(bodyL / 2 - 2.5), bodyL / 2 - 2.5
+	for i, spot in { { -1, true }, { 1, true }, { -1, false }, { 1, false } } do
+		local side: number, isFront: boolean = spot[1], spot[2]
+		local width = if isFront then 2.5 else 2.7
+		local x = side * (bodyW / 2 - 1.3)
+		local z = if isFront then zFront else zBack
+		local outward = Vector3.xAxis * side
+		local upper: { BasePart } = {}
+		local lower: { BasePart } = {}
+		-- Paletilla o anca: bloque que sobresale un poco del costado.
+		-- Hombro (deltoides) con el omóplato encima, más estrecho y algo más claro, que asoma sobre el
+		-- lomo; detrás, el anca hasta el lomo con el glúteo y el muslo abultando hacia fuera en un tono
+		-- más oscuro. Con un solo color, los bloques parecían tablones: los escalones de tono son los que
+		-- dejan leer el músculo.
+		local mass: Vector3
+		local massSize: Vector3
+		local face: Vector3
+		local faceSize: Vector2
+		if isFront then
+			massSize = Vector3.new(2.5, bodyH - 1.6, 4)
+			mass = Vector3.new(side * (bodyW / 2 - 1), bottom + 0.4 + massSize.Y / 2, z - 0.3)
+			box(upper, "Shoulder", mass, massSize, coat)
+			local blade = mass.Y + massSize.Y / 2 - 0.5
+			box(
+				upper,
+				"Scapula",
+				Vector3.new(side * (bodyW / 2 - 1.5), (blade + top + 0.45) / 2, z - 0.1),
+				Vector3.new(2, top + 0.45 - blade, 2.6),
+				coat:Lerp(WHITE, 0.08)
+			)
+			face, faceSize = mass, Vector2.new(massSize.Z - 0.6, massSize.Y - 0.8)
+		else
+			massSize = Vector3.new(2.6, top - bottom + 0.45, 4.6)
+			mass = Vector3.new(side * (bodyW / 2 - 1), (bottom - 0.2 + top + 0.25) / 2, z + 0.3)
+			box(upper, "Haunch", mass, massSize, coat)
+			box(
+				upper,
+				"Glute",
+				Vector3.new(side * (bodyW / 2 + 0.45), bottom + 1.3, z + 0.5),
+				Vector3.new(0.7, 3.4, 3.6),
+				muscle
+			)
+			-- Las manchas del anca, por encima del glúteo.
+			local low = bottom + 3
+			face = Vector3.new(mass.X, (low + top + 0.25) / 2, mass.Z)
+			faceSize = Vector2.new(massSize.Z - 0.6, top + 0.25 - low - 0.6)
+		end
+		speckle(upper, face + outward * massSize.X / 2, outward, Vector3.zAxis, faceSize, 1.6, 0.8)
+		if not isFront then
+			-- Las ancas por detrás, que es lo que más se ve mientras sigue al dueño.
+			speckle(
+				upper,
+				mass + Vector3.zAxis * massSize.Z / 2,
+				Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(massSize.X - 0.6, massSize.Y - 1),
+				1.3,
+				0.7
+			)
+		end
+		-- Tramo de arriba grueso, con el muslo de atrás abultando por detrás en las patas de atrás; el
+		-- de abajo más fino, con el antebrazo o el gemelo arriba: la muñeca se estrecha.
+		local upperTop = bottom + 1
+		local thick = width + (if isFront then 0.4 else 0.5)
+		box(
+			upper,
+			if isFront then "UpperArm" else "Thigh",
+			Vector3.new(x, (knee + upperTop) / 2, z),
+			Vector3.new(thick, upperTop - knee, thick),
+			coat
+		)
+		if not isFront then
+			box(
+				upper,
+				"Hamstring",
+				Vector3.new(x, bottom - 0.4, z + thick / 2 + 0.3),
+				Vector3.new(width, 2.6, 1.2),
+				muscle
+			)
+		end
+		-- Manchas en lo que asoma del tramo de arriba, por fuera.
+		speckle(
+			upper,
+			Vector3.new(x, (knee + bottom) / 2 - 0.2, z) + outward * thick / 2,
+			outward,
+			Vector3.zAxis,
+			Vector2.new(thick - 0.9, bottom - knee - 0.8),
+			1.3,
+			0.6
+		)
+		local shin = width - 0.6
+		box(
+			lower,
+			if isFront then "Forearm" else "Shin",
+			Vector3.new(x, (1.2 + knee + 0.3) / 2, z),
+			Vector3.new(shin, knee + 0.3 - 1.2, shin),
+			coat
+		)
+		if isFront then
+			box(lower, "ForearmMuscle", Vector3.new(x, knee - 0.4, z - 0.1), Vector3.new(width, 1.6, width), coat)
+		else
+			box(
+				lower,
+				"Calf",
+				Vector3.new(x, knee - 0.5, z + shin / 2 + 0.35),
+				Vector3.new(width - 0.4, 1.8, 1),
+				muscle
+			)
+		end
+		speckle(
+			lower,
+			Vector3.new(x + side * shin / 2, knee / 2, z),
+			outward,
+			Vector3.zAxis,
+			Vector2.new(shin - 0.5, knee - 2.4),
+			1.2,
+			0.7
+		)
+		local pawCenter = Vector3.new(x, 0.65, z - 0.5)
+		local pawSize = Vector3.new(width + 0.5, 1.3, 3.4)
+		box(lower, "Paw", pawCenter, pawSize, paw)
+		for _, toe in { -1, 1 } do
+			-- Rendija oscura que cruza la punta del pie por delante y por arriba.
+			box(
+				lower,
+				"Toe",
+				pawCenter + Vector3.new(toe * pawSize.X / 6, 0.15, -pawSize.Z / 2 + 0.6),
+				Vector3.new(0.2, pawSize.Y - 0.2, 1.3),
+				dark
+			)
+		end
+		local thigh: Joint? = nil
+		for _, part in upper do
+			thigh = joint(
+				rig,
+				part,
+				CFrame.new(at(Vector3.new(x, hipY, z))),
+				Vector3.xAxis,
+				0.45,
+				9,
+				phases[i],
+				true,
+				nil,
+				if isFront then nil else spine
+			)
+			thigh.bone = bones[i]
+		end
+		for _, part in lower do
+			local item = joint(
+				rig,
+				part,
+				CFrame.new(at(Vector3.new(x, knee, z))),
+				Vector3.xAxis,
+				-0.3,
+				9,
+				phases[i] + math.pi / 2,
+				true,
+				-0.3,
+				thigh
+			)
+			item.bone = bones[i] .. "2"
+		end
+	end
+
+	-- Cola recta por tramos que sube un poco y se estira: anillos oscuros y punta oscura (ocelote).
+	local tailWidth = if slim then 2 else 1.8
+	local rises = if slim then { 0.3, 0.12, 0, -0.08, -0.12 } else { 0.6, 0.4, 0.22, 0.1 }
+	local segment = if slim then 3 else 2.8
+	local from = Vector3.new(0, top - 1, bodyL / 2 - 0.5)
+	local previous: Joint? = spine
+	for i, rise in rises do
+		local direction = Vector3.new(0, rise, 1).Unit
+		local to = from + direction * segment
+		local frame = CFrame.lookAt(at((from + to) / 2), at(to))
+		local parts = {
+			piece(
+				rig,
+				"Tail",
+				"Block",
+				Vector3.new(tailWidth, tailWidth, segment + 0.6) * VOXEL,
+				frame,
+				coat,
+				material
+			),
+		}
+		local band = if crystal then nil else spots
+		if band and i > 1 then
+			table.insert(
+				parts,
+				piece(
+					rig,
+					"TailBand",
+					"Block",
+					Vector3.new(tailWidth + 0.2, tailWidth + 0.2, 0.8) * VOXEL,
+					frame,
+					band,
+					material
+				)
+			)
+		end
+		if i == #rises then
+			local tip = frame * CFrame.new(0, 0, -(segment / 2 + 0.05) * VOXEL)
+			local tipPart = piece(
+				rig,
+				"TailTip",
+				"Block",
+				Vector3.new(tailWidth + 0.1, tailWidth + 0.1, 1.1) * VOXEL,
+				tip,
+				if spots then spots else coat:Lerp(BLACK, 0.15),
+				if crystal then Enum.Material.Neon else material
+			)
+			table.insert(parts, tipPart)
+		end
+		local last: Joint? = nil
+		for _, part in parts do
+			local item = joint(
+				rig,
+				part,
+				CFrame.new(at(from)),
+				Vector3.yAxis,
+				0.5 * 0.3,
+				5,
+				-(i - 1) * 0.55,
+				false,
+				nil,
+				previous
+			)
+			item.bone = "Tail"
+			item.lag = i - 1
+			last = item
+		end
+		previous = last
+		from = to
+	end
+
+	if crystal then
+		for _, part in rig.model:GetChildren() do
+			if part:IsA("BasePart") and part.Material == material then
+				part.Transparency = 0.15
+			end
+		end
+	end
+	-- La cabeza mira despacio a un lado y a otro, girando sobre la nuca.
+	local neck = CFrame.new(at(Vector3.new(0, top - 1, -bodyL / 2 + 1.5)))
+	for _, part in headParts do
+		local item = joint(rig, part, neck, Vector3.yAxis, 0.25, 0.9, 0, false)
+		item.bone = "Head"
+		-- Mira hacia donde gira.
+		item.bend = 0.5
+	end
+	rig.family = "Cat"
+	rig.dims = {
+		length = bodyL * VOXEL,
+		legHeight = legH * VOXEL,
+		bodyY = 0,
+		ground = at(Vector3.zero).Y,
+		hips = at(Vector3.new(0, hipY, zBack)),
+		shoulders = at(Vector3.new(0, hipY, zFront)),
+		center = Vector3.zero,
+		haunch = at(Vector3.new(0, bottom - 0.2, 0)).Y,
+		-- Medio alto y medio ancho del cuerpo, para tumbarlo y ponerlo panza arriba sin que se hunda.
+		halfHeight = bodyH / 2 * VOXEL,
+		halfWidth = (bodyW / 2 + 0.3) * VOXEL,
+	}
+end
+
+-- Cristales del Jaguar de cristal voxel: bloques de vidrio escalonados que se estrechan hacia la
+-- punta, con un núcleo que brilla dentro, en el lomo, los hombros y la frente (este gira con la
+-- cabeza). Medidas en studs a escala 1, sobre el cuerpo de voxelCat.
+local function voxelCrystals(rig: Rig, color: Color3, glow: Color3)
+	local function crystal(base: Vector3, tilt: Vector3, height: number, width: number): { BasePart }
+		local frame = CFrame.new(base) * CFrame.Angles(tilt.X, tilt.Y, tilt.Z)
+		local parts = {}
+		for step, size in { Vector3.new(1, 0.5, 1), Vector3.new(0.62, 0.42, 0.62), Vector3.new(0.3, 0.3, 0.3) } do
+			local y = ({ 0.25, 0.68, 0.93 })[step]
+			local shell = piece(
+				rig,
+				"Crystal",
+				"Block",
+				Vector3.new(size.X * width, size.Y * height, size.Z * width),
+				frame * CFrame.new(0, y * height, 0),
+				color:Lerp(glow, 0.55),
+				Enum.Material.Glass
+			)
+			shell.Transparency = 0.2
+			table.insert(parts, shell)
+		end
+		table.insert(
+			parts,
+			piece(
+				rig,
+				"CrystalCore",
+				"Block",
+				Vector3.new(width * 0.3, height * 0.75, width * 0.3),
+				frame * CFrame.new(0, height * 0.38, 0),
+				glow,
+				Enum.Material.Neon
+			)
+		)
+		-- Los de detrás de la cintura se doblan con la cadera.
+		local bend = rig.bend
+		if bend and base.Z > 0.05 then
+			for _, part in parts do
+				table.insert(bend.parts, part)
+			end
+		end
+		return parts
+	end
+	-- Lomo, de delante atrás y cada vez más bajos, alternando un poco de lado.
+	crystal(Vector3.new(0.06, 0.3, -0.5), Vector3.new(-0.15, 0, -0.12), 0.62, 0.24)
+	crystal(Vector3.new(-0.08, 0.3, -0.08), Vector3.new(0.1, 0, 0.2), 0.5, 0.22)
+	crystal(Vector3.new(0.05, 0.3, 0.35), Vector3.new(0.2, 0, -0.15), 0.42, 0.2)
+	crystal(Vector3.new(-0.03, 0.3, 0.72), Vector3.new(0.3, 0, 0.1), 0.3, 0.16)
+	for _, side in { -1, 1 } do
+		crystal(Vector3.new(side * 0.34, 0.15, -0.72), Vector3.new(0, 0, -side * 0.7), 0.34, 0.16)
+	end
+	-- En la frente, inclinado hacia delante: gira con la cabeza (bisagra de la nuca de voxelCat).
+	for _, part in crystal(Vector3.new(0, 0.66, -1.42), Vector3.new(-0.5, 0, 0), 0.28, 0.16) do
+		local item = joint(rig, part, CFrame.new(0, 0.22, -0.825), Vector3.yAxis, 0.25, 0.9, 0, false)
+		item.bone = "Head"
+		item.bend = 0.5
+	end
+end
+
+-- Felinos en estilo voxel (voxelCat, aprobado el 18-10-2026) o redondos (cat, el modelo de antes).
+PetModels.voxelCats = true
+
+local function felid(rig: Rig, coat: Color3, options: CatOptions)
+	if PetModels.voxelCats then
+		voxelCat(rig, coat, options)
+	else
+		cat(rig, coat, options)
+	end
 end
 
 local BIRD_HEAD = Vector3.new(0, 0.68, -0.42)
@@ -1907,7 +2626,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 
 	-- Jaguarundí: felino esbelto, liso y oscuro.
 	Jaguarundi = function(rig, color)
-		cat(rig, color, { eyeColor = Color3.fromRGB(200, 170, 40), earSize = 0.24, roundEars = true, slim = true })
+		felid(rig, color, { eyeColor = Color3.fromRGB(200, 170, 40), earSize = 0.24, roundEars = true, slim = true })
 		return "Walk"
 	end,
 
@@ -2037,7 +2756,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 
 	-- Ocelote: felino dorado con manchas negras.
 	Ocelote = function(rig, color)
-		cat(rig, color, { spots = BLACK, eyeColor = Color3.fromRGB(120, 200, 60), earSize = 0.38 })
+		felid(rig, color, { spots = BLACK, eyeColor = Color3.fromRGB(120, 200, 60), earSize = 0.38 })
 		return "Walk"
 	end,
 
@@ -2523,42 +3242,46 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			eyeColor = Color3.fromRGB(120, 235, 255),
 			earSize = 0.36,
 		}
-		cat(rig, color, options)
-		-- Cada cristal es una pirámide alargada de vidrio con un núcleo que brilla dentro: se ve en
-		-- punta desde cualquier lado. "from" es donde nace y "direction" hacia dónde crece.
-		local function crystal(from: Vector3, direction: Vector3, length: number, width: number): { BasePart }
-			local unit = direction.Unit
-			local center = from + unit * (length / 2 - 0.06)
-			local frame = CFrame.lookAt(center, center + unit) * CFrame.Angles(-math.pi / 2, 0, 0)
-			local shell =
-				piece(rig, "Crystal", "Spike", Vector3.new(width, length, width), frame, color, Enum.Material.Glass)
-			shell.Transparency = 0.3
-			local core = piece(
-				rig,
-				"CrystalCore",
-				"Spike",
-				Vector3.new(width * 0.45, length * 0.7, width * 0.45),
-				frame * CFrame.new(-width * 0.12, -length * 0.1, width * 0.12),
-				glow,
-				Enum.Material.Neon
-			)
-			return { shell, core }
-		end
-		-- Racimos del lomo (de delante atrás, cada vez más bajos) y de los hombros.
-		crystal(Vector3.new(0.05, 0.38, -0.5), Vector3.new(0.1, 1, -0.15), 0.62, 0.24)
-		crystal(Vector3.new(-0.1, 0.36, -0.42), Vector3.new(-0.5, 1, 0.1), 0.42, 0.18)
-		crystal(Vector3.new(0, 0.4, -0.05), Vector3.new(0.2, 1, 0.25), 0.55, 0.22)
-		crystal(Vector3.new(-0.08, 0.38, 0.05), Vector3.new(-0.45, 1, 0.3), 0.36, 0.16)
-		crystal(Vector3.new(0.02, 0.37, 0.4), Vector3.new(0.05, 1, 0.4), 0.44, 0.2)
-		crystal(Vector3.new(0.05, 0.34, 0.72), Vector3.new(0.35, 1, 0.5), 0.3, 0.15)
-		for _, side in { -1, 1 } do
-			crystal(Vector3.new(side * 0.42, 0.2, -0.68), Vector3.new(side, 0.9, -0.2), 0.38, 0.17)
-			crystal(Vector3.new(side * 0.44, 0.08, -0.58), Vector3.new(side, 0.4, 0.2), 0.26, 0.13)
-		end
-		-- Cristal en la frente: gira con la cabeza (lo recoge el cuello del felino al final).
-		local brow = crystal(Vector3.new(0, 0.86, -1.42), Vector3.new(0, 1, -0.55), 0.3, 0.14)
-		for _, part in brow do
-			joint(rig, part, CFrame.new(0, 0.4, -0.9), Vector3.yAxis, 0.25, 0.9, 0, false).bone = "Head"
+		felid(rig, color, options)
+		if PetModels.voxelCats then
+			voxelCrystals(rig, color, glow)
+		else
+			-- Cada cristal es una pirámide alargada de vidrio con un núcleo que brilla dentro: se ve en
+			-- punta desde cualquier lado. "from" es donde nace y "direction" hacia dónde crece.
+			local function crystal(from: Vector3, direction: Vector3, length: number, width: number): { BasePart }
+				local unit = direction.Unit
+				local center = from + unit * (length / 2 - 0.06)
+				local frame = CFrame.lookAt(center, center + unit) * CFrame.Angles(-math.pi / 2, 0, 0)
+				local shell =
+					piece(rig, "Crystal", "Spike", Vector3.new(width, length, width), frame, color, Enum.Material.Glass)
+				shell.Transparency = 0.3
+				local core = piece(
+					rig,
+					"CrystalCore",
+					"Spike",
+					Vector3.new(width * 0.45, length * 0.7, width * 0.45),
+					frame * CFrame.new(-width * 0.12, -length * 0.1, width * 0.12),
+					glow,
+					Enum.Material.Neon
+				)
+				return { shell, core }
+			end
+			-- Racimos del lomo (de delante atrás, cada vez más bajos) y de los hombros.
+			crystal(Vector3.new(0.05, 0.38, -0.5), Vector3.new(0.1, 1, -0.15), 0.62, 0.24)
+			crystal(Vector3.new(-0.1, 0.36, -0.42), Vector3.new(-0.5, 1, 0.1), 0.42, 0.18)
+			crystal(Vector3.new(0, 0.4, -0.05), Vector3.new(0.2, 1, 0.25), 0.55, 0.22)
+			crystal(Vector3.new(-0.08, 0.38, 0.05), Vector3.new(-0.45, 1, 0.3), 0.36, 0.16)
+			crystal(Vector3.new(0.02, 0.37, 0.4), Vector3.new(0.05, 1, 0.4), 0.44, 0.2)
+			crystal(Vector3.new(0.05, 0.34, 0.72), Vector3.new(0.35, 1, 0.5), 0.3, 0.15)
+			for _, side in { -1, 1 } do
+				crystal(Vector3.new(side * 0.42, 0.2, -0.68), Vector3.new(side, 0.9, -0.2), 0.38, 0.17)
+				crystal(Vector3.new(side * 0.44, 0.08, -0.58), Vector3.new(side, 0.4, 0.2), 0.26, 0.13)
+			end
+			-- Cristal en la frente: gira con la cabeza (lo recoge el cuello del felino al final).
+			local brow = crystal(Vector3.new(0, 0.86, -1.42), Vector3.new(0, 1, -0.55), 0.3, 0.14)
+			for _, part in brow do
+				joint(rig, part, CFrame.new(0, 0.4, -0.9), Vector3.yAxis, 0.25, 0.9, 0, false).bone = "Head"
+			end
 		end
 		-- Corazón de luz en el pecho, que se ve a través del cristal.
 		local heart =
@@ -2645,7 +3368,7 @@ CLIPS.Cat = function(d)
 	}
 
 	-- Tumbado como una esfinge: barriga en el suelo, manos delante y patas de atrás recogidas.
-	local lieDrop = d.bodyY - 0.44 - d.ground
+	local lieDrop = d.bodyY - (d.halfHeight or 0.44) - d.ground
 	local LIE: Key = {
 		Body = { 0, 0, 0, 0, -lieDrop, 0 },
 		FL = { 72, 0, 0 },
@@ -2663,7 +3386,7 @@ CLIPS.Cat = function(d)
 		return { Tail = { y = amplitude, speed = speed, lag = 0.6 } }
 	end
 	-- De lado y panza arriba (rueda sobre el centro del cuerpo).
-	local sideDrop = d.bodyY - d.ground - 0.5
+	local sideDrop = d.bodyY - d.ground - (d.halfWidth or 0.5)
 	local SIDE: Key = {
 		Body = { 0, 0, 90, 0, -sideDrop, 0 },
 		FL = { 25, 0, 0 },
@@ -2673,7 +3396,7 @@ CLIPS.Cat = function(d)
 		Head = { 0, 0, -30 },
 		Tail = { 0, 14, 0 },
 	}
-	local bellyDrop = d.bodyY - d.ground - 0.72
+	local bellyDrop = d.bodyY - d.ground - (d.halfHeight or 0.42) - 0.3
 	local BELLY: Key = {
 		Body = { 0, 0, 180, 0, -bellyDrop, 0 },
 		FL = { 45, 0, 0 },
@@ -3105,6 +3828,21 @@ function PetModels.build(petId: string): Model?
 	for _, item in rig.joints do
 		moving[item.part] = true
 	end
+	-- Piezas de la cadera que se doblan al girar: aparte de las fijas.
+	local bend = nil
+	if rig.bend then
+		local bendRest = {}
+		for i, part in rig.bend.parts do
+			moving[part] = true
+			bendRest[i] = part.CFrame
+		end
+		bend = {
+			hinge = scaled(rig, rig.bend.hinge),
+			factor = rig.bend.factor,
+			parts = rig.bend.parts,
+			rest = bendRest,
+		}
+	end
 	local statics: { BasePart } = {}
 	local rest: { CFrame } = {}
 	for _, part in model:GetChildren() do
@@ -3120,6 +3858,8 @@ function PetModels.build(petId: string): Model?
 		clips = clips,
 		scale = rig.scale,
 		bodyMoved = false,
+		bend = bend,
+		bendMoved = false,
 	}
 	model.Destroying:Connect(function()
 		rigs[model] = nil
@@ -3258,8 +3998,17 @@ end
 -- "layers": clips que suenan encima (ver Layer). "stride": reloj de las patas que andan (por
 -- defecto, "time"), que va más deprisa cuando el dueño corre. Todas a la vez con BulkMoveTo: con un
 -- centenar de piezas articuladas por mascota (alas de plumas sueltas, patas de dos tramos) es mucho
--- más barato que cambiar el CFrame de cada una.
-function PetModels.animate(model: Model, time: number, moving: number, layers: { Layer }?, stride: number?)
+-- más barato que cambiar el CFrame de cada una. "bend" (radianes, + a la izquierda) es cuánto está
+-- girando la mascota: las que lo tienen doblan el cuerpo hacia la curva (cadera y cabeza de los
+-- felinos voxel).
+function PetModels.animate(
+	model: Model,
+	time: number,
+	moving: number,
+	layers: { Layer }?,
+	stride: number?,
+	bend: number?
+)
 	local animated = rigs[model]
 	if not animated then
 		return
@@ -3296,7 +4045,15 @@ function PetModels.animate(model: Model, time: number, moving: number, layers: {
 	-- devolverlas a su sitio).
 	local moveStatics = bodyAngles ~= nil or animated.bodyMoved
 	animated.bodyMoved = bodyAngles ~= nil
-	local count = #joints + (if moveStatics then #animated.statics else 0)
+	-- La cadera fija se mueve mientras gira o mientras se mueve el cuerpo, y una vez más al acabar.
+	local bendAngle = bend or 0
+	local bendRig = animated.bend
+	local bending = math.abs(bendAngle) > 0.002
+	local moveBend = bendRig ~= nil and (bending or animated.bendMoved or moveStatics)
+	animated.bendMoved = bending
+	local count = #joints
+		+ (if moveStatics then #animated.statics else 0)
+		+ (if moveBend and bendRig then #bendRig.parts else 0)
 	local parts = table.create(count)
 	local frames = table.create(count)
 	for i, item in joints do
@@ -3309,6 +4066,9 @@ function PetModels.animate(model: Model, time: number, moving: number, layers: {
 		if angles then
 			turn = rotation(angles) * turn
 		end
+		if item.bend ~= 0 and bendAngle ~= 0 then
+			turn = CFrame.Angles(0, bendAngle * item.bend, 0) * turn
+		end
 		local parent = item.parent
 		item.world = (if parent then parent.world else body) * item.hinge * turn * item.hinge:Inverse()
 		parts[i] = item.part
@@ -3319,6 +4079,18 @@ function PetModels.animate(model: Model, time: number, moving: number, layers: {
 		for i, part in animated.statics do
 			parts[offset + i] = part
 			frames[offset + i] = pivot * body * animated.rest[i]
+		end
+	end
+	if moveBend and bendRig then
+		local frame = pivot
+			* body
+			* bendRig.hinge
+			* CFrame.Angles(0, bendAngle * bendRig.factor, 0)
+			* bendRig.hinge:Inverse()
+		local offset = #parts
+		for i, part in bendRig.parts do
+			parts[offset + i] = part
+			frames[offset + i] = frame * bendRig.rest[i]
 		end
 	end
 	if model:IsDescendantOf(workspace) then

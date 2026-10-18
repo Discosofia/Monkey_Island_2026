@@ -487,6 +487,47 @@ return {
     tono distinto no queden en el mismo plano.
 - `SmoothPlastic` siempre: las aristas limpias son el estilo (nada de `Fabric`).
 
+### Mascotas voxel (felinos)
+
+Las mascotas no usan specs ni uniones: `voxelCat` en PetModels coloca cajas sueltas (las construye
+cada cliente y son pocas a la vez) medidas en celdas de `VOXEL = 0,11` studs, con el suelo en 0.
+Mantiene los huesos y los `dims` de `cat`, así que valen los mismos clips (sentarse, tumbarse, el
+salto del ocelote). Va detrás de `PetModels.voxelCats` (activo desde el 18-10-2026; `false` vuelve a los redondos). Lo aprendido:
+- **Manchas** (`speckle`): una rejilla de huecos de ~1,6 celdas por cara con una mancha al azar
+  (cuadro 0,9, barra 1,5 × 0,6, L, parche tostado), semilla fija. Con huecos de 2,3 salían tres
+  manchas por costado; pon también en paletillas, ancas (por detrás) y patas, como la referencia.
+- Una nariz en bloque con una raya vertical debajo parecía un buzón: nariz ancha en la esquina de
+  arriba del hocico y la boca como una raya aparte.
+- Hocico y patas claros solo en los felinos con manchas: en el jaguarundí parecían bozal y calcetines.
+- Cristales: tres bloques de vidrio escalonados con núcleo `Neon`; con el color del cuerpo se
+  perdían contra el cielo, mézclalo con el del brillo (`color:Lerp(glow, 0.55)`).
+- **Musculatura en bloques:** con un solo color, paletilla y anca grandes parecían tablones (y en
+  el jaguarundí, más bajo, sobresalían del lomo). Lo que se lee es el escalón de tono y de
+  silueta: hombro con un omóplato más estrecho y algo más claro (+8 % de blanco) que asoma sobre el
+  lomo, anca a ras del lomo con un glúteo más oscuro (-12 %) que abulta hacia fuera (desde atrás
+  las caderas se ven más anchas que la cintura), tramo de arriba de la pata más grueso y el de abajo
+  más fino con un bloque de antebrazo o gemelo arriba, pecho hondo y un cuello que asoma tras la
+  cabeza. Mide la altura de lo que asoma desde `top` y `bottom`, no en celdas fijas, o no vale
+  para el cuerpo esbelto.
+- **Tronco que se dobla al girar:** pecho (fijo, manda el rumbo) y cadera (`Hips`, 0,4 celdas más
+  estrecha y recogida por abajo, metida 1,2 celdas en el pecho para que no se abra rendija). La
+  cadera es una articulación con `bend = -0,8` sobre la cintura, y de ella cuelgan las patas de
+  atrás y la cola (`parent`); la cabeza lleva `bend = 0,5`. `PetFollowers` mide el giro de la
+  mascota en cada fotograma y lo pasa a `PetModels.animate(..., bend)` (+ a la izquierda, con tope
+  0,45 rad). Lo pegado a la cadera que no se mueve solo (vientre, manchas, cristales de atrás) va
+  en `rig.bend.parts`: se mueve únicamente mientras gira, así no suma articuladas al andar recto.
+  Signo: + es girar a la izquierda; la cadera va hacia dentro de la curva (-X) y la cabeza mira
+  hacia ella. Compruébalo con números, no a ojo: construye, `animate(m, 0, 0, nil, nil, 0.45)` y
+  mira que `Hips.Position.X` salga negativo.
+- **Probar una mascota en Play** (con MCP): en el servidor,
+  `Players:GetPlayers()[1]:SetAttribute("ActivePet", id)`. En el cliente aparece en
+  `workspace.Mascotas`; para ver cómo gira, mueve al personaje en círculo con `Humanoid:MoveTo` y mide
+  el giro de `Hips` respecto a `PrimaryPart` (el ocelote llegó a 0,32 rad). `screen_capture` en Play
+  enseña la vista del jugador.
+- Pesa sobre todo lo articulado: el ocelote lleva 144 piezas y 105 articuladas (límite ~110). Si
+  sube, recorta manchas en las patas antes que en el lomo (el tríceps detrás del brazo apenas se
+  veía y se quitó por eso).
+
 ### Presupuesto: bloques de diseño frente a piezas en juego
 
 Lo que cuesta en cada fotograma son las **piezas que se mueven**, no los bloques que se ven. Prueba

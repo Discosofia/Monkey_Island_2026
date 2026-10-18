@@ -79,7 +79,7 @@ local Pets: { [string]: Pet } = {
 		rarity = "Rare",
 		kind = "Combate",
 		description = "Ataca al mono más cercano (8 de daño cada 2 s).",
-		color = Color3.fromRGB(80, 70, 65),
+		color = Color3.fromRGB(155, 65, 30),
 		size = 1.3,
 		attackDamage = 8,
 	},
@@ -99,8 +99,8 @@ local Pets: { [string]: Pet } = {
 		rarity = "Epic",
 		kind = "Combate",
 		description = "Ataca al mono más cercano (14 de daño cada 2 s).",
-		color = Color3.fromRGB(220, 170, 80),
-		size = 1.4,
+		color = Color3.fromRGB(205, 145, 55),
+		size = 1.1,
 		attackDamage = 14,
 	},
 	MonoX7 = {
@@ -121,7 +121,7 @@ local Pets: { [string]: Pet } = {
 		kind = "Apoyo",
 		description = "Experimento del laboratorio: +20 de vida máxima y +10 % de daño a distancia.",
 		color = Color3.fromRGB(150, 220, 255),
-		size = 1.5,
+		size = 1.25,
 		perks = { MaxHealth = 20, RangedDamage = 0.1 },
 	},
 }
