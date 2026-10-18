@@ -90,10 +90,10 @@ local MonkeyAnimations = {
 			Attack = "rbxassetid://140291103715623",
 		},
 		Gibon = {
-			Walk = "rbxassetid://73477224137795",
+			Walk = "rbxassetid://106321641330575",
 			Run = "rbxassetid://134119982512185",
-			Attack = "rbxassetid://132032416048407",
-			Pounce = "rbxassetid://139733028365821", -- Gibon_Pounce
+			Attack = "rbxassetid://88726827708091",
+			Pounce = "rbxassetid://96284638591803", -- Gibon_Pounce
 		},
 		Babuino = {
 			Walk = "rbxassetid://75905017386485",
