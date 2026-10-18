@@ -14,6 +14,7 @@
 -- Cada especie se construye una vez como plantilla y los monos son copias (MonkeyModels.spawn).
 -- El Humanoid lo mueve como a un personaje.
 
+local GeometryService = game:GetService("GeometryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
@@ -21,7 +22,8 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 -- Las posiciones de los constructores son respecto a la raíz, a escala 1, con la cara hacia -Z.
 -- La raíz está a rootHeight sobre el suelo: con escala 1, el suelo queda en Y = -1.9.
 -- "boss": lo construye un jefe; algunas especies le dan más detalle.
-type Rig = { model: Model, root: BasePart, scale: number, boss: boolean }
+-- "voxel": el cuerpo es de bloques (voxelMonkey) y los adornos del jefe vienen en bloques en su spec.
+type Rig = { model: Model, root: BasePart, scale: number, boss: boolean, voxel: boolean }
 
 -- "Spike": pirámide (CornerWedgePart) con la punta sobre la esquina -X +Z de arriba; sirve para cristales.
 type Shape = "Block" | "Ball" | "Oval" | "Cylinder" | "Spike"
@@ -33,6 +35,7 @@ local EYE_WHITE = Color3.fromRGB(245, 240, 225)
 local GROUND = -1.9 -- altura del suelo respecto a la raíz, a escala 1
 
 local templates: { [string]: Model } = {}
+local bossTemplates: { [string]: Model } = {}
 
 local function piece(
 	rig: Rig,
@@ -72,11 +75,9 @@ local function place(rig: Rig, part: BasePart, rest: CFrame)
 	part.CFrame = rig.root.CFrame * CFrame.new(rest.Position * rig.scale) * rest.Rotation
 end
 
--- Articula "part1" (que queda en "rest") a "part0" (ya colocada). Gira sobre "pivot" (hombro,
--- cadera…) con los ejes del modelo: girar en X balancea adelante/atrás, en Y gira a los lados y en Z
--- inclina de costado.
-local function joint(rig: Rig, part0: BasePart, part1: BasePart, name: string, rest: CFrame, pivot: Vector3)
-	place(rig, part1, rest)
+-- Articula "part1" a "part0", las dos ya colocadas. Gira sobre "pivot" (hombro, cadera…) con los
+-- ejes del modelo: girar en X balancea adelante/atrás, en Y gira a los lados y en Z inclina de costado.
+local function attach(rig: Rig, part0: BasePart, part1: BasePart, name: string, pivot: Vector3)
 	local pivotFrame = rig.root.CFrame * CFrame.new(pivot * rig.scale)
 	local motor = Instance.new("Motor6D")
 	motor.Name = name
@@ -87,13 +88,23 @@ local function joint(rig: Rig, part0: BasePart, part1: BasePart, name: string, r
 	motor.Parent = part0
 end
 
+-- Como attach, dejando antes "part1" en "rest".
+local function joint(rig: Rig, part0: BasePart, part1: BasePart, name: string, rest: CFrame, pivot: Vector3)
+	place(rig, part1, rest)
+	attach(rig, part0, part1, name, pivot)
+end
+
+local function weld(anchor: BasePart, part: BasePart)
+	local constraint = Instance.new("WeldConstraint")
+	constraint.Part0 = anchor
+	constraint.Part1 = part
+	constraint.Parent = part
+end
+
 -- Pieza decorativa que sigue a "anchor" sin moverse por su cuenta.
 local function glue(rig: Rig, anchor: BasePart, part: BasePart, rest: CFrame)
 	place(rig, part, rest)
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = anchor
-	weld.Part1 = part
-	weld.Parent = part
+	weld(anchor, part)
 end
 
 local function sideName(side: number): string
@@ -1297,6 +1308,171 @@ local function gibbon(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	end
 end
 
+---------------------------------------------------------------------------------------------------
+-- Estilo voxel (en pruebas): cajas alineadas a una rejilla, leídas de un spec de VoxelSpecs/<Especie>.
+-- Cada parte del spec es una pieza animable con el nombre de siempre (Torso, Head, Right Arm…): todas
+-- sus cajas se unen en una sola pieza (ver mergeBoxes), salvo las de VOXEL_LOOSE, que van soldadas
+-- aparte porque otros sistemas las buscan por nombre. Una caja es
+-- { x, y, z, ancho, alto, fondo, tono, nombre?, simétrica? } en celdas de spec.unit studs, con y
+-- medida desde el suelo. "simétrica" añade su reflejo en -X; una parte con "mirror" se describe del
+-- lado derecho y sale también la izquierda ("Right Arm" / "Left Arm").
+
+type VoxelPart = {
+	name: string,
+	joint: string,
+	parent: string?,
+	pivot: { number }?,
+	mirror: boolean?,
+	boxes: { { any } },
+}
+-- Adorno de un jefe: bloques de un mismo material pegados a "anchor" y unidos en una pieza "name".
+type VoxelExtra = {
+	anchor: string,
+	name: string,
+	color: Color3,
+	material: string,
+	transparency: number?,
+	mirror: boolean?,
+	boxes: { { any } },
+}
+export type VoxelSpec = { unit: number, parts: { VoxelPart }, bosses: { [string]: { VoxelExtra } }? }
+
+-- Los tonos del spec, sacados de los colores de Data (bodyColor = pelo, faceColor = piel).
+local function voxelTones(definition: Monkeys.MonkeyDefinition): { [string]: Color3 }
+	local fur = definition.bodyColor
+	local skin = definition.faceColor
+	return {
+		fur = fur,
+		shag = fur:Lerp(Color3.new(1, 1, 1), 0.08),
+		chest = fur:Lerp(skin, 0.4),
+		silver = fur:Lerp(Color3.fromRGB(215, 215, 220), 0.5),
+		skin = skin,
+		paws = darker(skin, 0.08),
+		dark = darker(skin, 0.45),
+		mouth = darker(skin, 0.7),
+		eye = skin:Lerp(Color3.new(1, 1, 1), 0.55),
+	}
+end
+
+-- Cajas que no se unen: glowEyes enciende los "Eye" y el Gorila de Ceniza recolorea "Chest" y "Pec".
+local VOXEL_LOOSE: { [string]: boolean } = { Eye = true, Chest = true, Pec = true }
+
+-- Une "boxes" a "main" en una sola pieza con el nombre de "main". Lo que cuesta en cada fotograma
+-- son las piezas que se mueven, no los bloques: con 160 gorilas de 120 bloques sueltos un PC bajaba
+-- a ~8 FPS y unidos por extremidad (8 piezas por mono) iba a 60. Unir tarda ~100 ms por mono, pero
+-- los monos normales se copian de una plantilla. Si la unión falla, las cajas quedan soldadas.
+local function mergeBoxes(main: BasePart, boxes: { BasePart }): BasePart
+	if #boxes == 0 then
+		return main
+	end
+	local ok, result = pcall(function()
+		return GeometryService:UnionAsync(main, boxes, {
+			CollisionFidelity = Enum.CollisionFidelity.Box,
+			RenderFidelity = Enum.RenderFidelity.Automatic,
+			SplitApart = false,
+		})
+	end)
+	local union = if ok then result[1] else nil
+	if not union then
+		warn(`[MonkeyModels] No se pudieron unir las cajas de {main.Name}: {result}`)
+		for _, box in boxes do
+			weld(main, box)
+		end
+		return main
+	end
+	union.Name = main.Name
+	union.UsePartColor = false -- conserva el color de cada caja
+	union.Material = main.Material
+	union.Transparency = main.Transparency
+	union.CastShadow = main.CastShadow
+	union.CanCollide = false
+	union.Massless = true
+	union.Parent = main.Parent
+	main:Destroy()
+	for _, box in boxes do
+		box:Destroy()
+	end
+	return union
+end
+
+local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec: VoxelSpec, bossId: string?)
+	local tones = voxelTones(definition)
+	local unit = spec.unit
+	local function at(x: number, y: number, z: number): Vector3
+		return Vector3.new(x * unit, y * unit + GROUND, z * unit)
+	end
+	for _, part in spec.parts do
+		for _, side in if part.mirror then { 1, -1 } else { 0 } do
+			local prefix = if side == 0 then "" else `{sideName(side)} `
+			local flip = if side == -1 then -1 else 1
+			local main: BasePart? = nil
+			local merged: { BasePart } = {}
+			local loose: { BasePart } = {}
+			for _, box in part.boxes do
+				local x, y, z = box[1] :: number, box[2] :: number, box[3] :: number
+				local size = Vector3.new(box[4] :: number, box[5] :: number, box[6] :: number) * unit
+				local color = tones[box[7] :: string]
+				local name = if main == nil then prefix .. part.name else (box[8] :: string?) or "Voxel"
+				for _, mirrorX in if box[9] then { 1, -1 } else { 1 } do
+					local block = piece(rig, name, "Block", size, color)
+					place(rig, block, CFrame.new(at(x * flip * mirrorX, y, z)))
+					if main == nil then
+						main = block
+					else
+						table.insert(if VOXEL_LOOSE[name] then loose else merged, block)
+					end
+				end
+			end
+			local animated = mergeBoxes(main :: BasePart, merged)
+			local parentPart = if part.parent then partNamed(rig, part.parent) else rig.root
+			local pivot = part.pivot
+			local pivotAt = if pivot then at(pivot[1] * flip, pivot[2], pivot[3]) else Vector3.zero
+			attach(rig, parentPart, animated, prefix .. part.joint, pivotAt)
+			for _, block in loose do
+				weld(animated, block)
+			end
+		end
+	end
+
+	-- Adornos del jefe: cada grupo, unido en una pieza de su material y soldado a su parte.
+	local extras = if bossId and spec.bosses then spec.bosses[bossId] else nil
+	for _, extra in extras or {} do
+		local material = (Enum.Material :: any)[extra.material] :: Enum.Material
+		for _, side in if extra.mirror then { 1, -1 } else { 0 } do
+			local flip = if side == -1 then -1 else 1
+			local blocks: { BasePart } = {}
+			for _, box in extra.boxes do
+				local size = Vector3.new(box[4] :: number, box[5] :: number, box[6] :: number) * unit
+				for _, mirrorX in if box[7] then { 1, -1 } else { 1 } do
+					local block = piece(rig, extra.name, "Block", size, extra.color, material)
+					block.Transparency = extra.transparency or 0
+					block.CastShadow = false
+					place(
+						rig,
+						block,
+						CFrame.new(at((box[1] :: number) * flip * mirrorX, box[2] :: number, box[3] :: number))
+					)
+					table.insert(blocks, block)
+				end
+			end
+			local anchor = partNamed(rig, if side == 0 then extra.anchor else `{sideName(side)} {extra.anchor}`)
+			local first = table.remove(blocks, 1) :: BasePart
+			weld(anchor, mergeBoxes(first, blocks))
+		end
+	end
+end
+
+-- Especies con modelo voxel en el juego.
+local VOXEL_SPECS: { [string]: VoxelSpec } = {
+	Gorila = require(script.Parent.VoxelSpecs.Gorila) :: any,
+}
+-- Jefes que ya usan el cuerpo voxel de su especie, con sus adornos en bloques. Los demás siguen con
+-- el modelo de antes hasta que tengan sus detalles. La vista previa los activa en su copia del módulo
+-- (MM.voxelBosses.GorilaAlbino = true) para probarlos.
+local VOXEL_BOSSES: { [string]: boolean } = {}
+MonkeyModels.voxelSpecs = VOXEL_SPECS
+MonkeyModels.voxelBosses = VOXEL_BOSSES
+
 local BUILDERS: { [string]: (rig: Rig, definition: Monkeys.MonkeyDefinition) -> () } = {
 	MonoArdilla = squirrelMonkey,
 	AulladorRojo = howler,
@@ -1332,6 +1508,51 @@ local function glow(rig: Rig, part: BasePart, color: Color3, range: number, brig
 	light.Range = math.min(range * rig.scale, 60)
 	light.Brightness = brightness
 	light.Parent = part
+end
+
+-- Cristales en punta del Gorila Albino sobre el cuerpo redondo (con el cuerpo voxel van en bloques
+-- en su spec).
+local function roundCrystals(rig: Rig, ruby: Color3)
+	local torso = partNamed(rig, "Torso")
+	local rightArm = partNamed(rig, "Right Arm")
+	local leftArm = partNamed(rig, "Left Arm")
+	-- Cada cristal es una pirámide alargada: se ve como una punta de prisma desde cualquier lado.
+	-- "from" es donde nace (en la superficie) y "to" la dirección en la que crece.
+	local function crystal(anchor: BasePart, from: Vector3, to: Vector3, length: number, width: number)
+		local direction = to.Unit
+		local center = from + direction * (length / 2 - 0.15)
+		-- Eje Y de la pieza a lo largo de la dirección del cristal.
+		local frame = CFrame.lookAt(center, center + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+		local part = piece(rig, "Crystal", "Spike", Vector3.new(width, length, width), ruby, Enum.Material.Glass)
+		part.Transparency = 0.3
+		part.CastShadow = false
+		glue(rig, anchor, part, frame)
+	end
+	-- Hombro derecho: el racimo grande, abierto hacia arriba y hacia fuera.
+	crystal(torso, Vector3.new(0.95, 1.0, -0.7), Vector3.new(0.35, 1, 0.15), 1.6, 0.65)
+	crystal(torso, Vector3.new(1.05, 0.9, -0.55), Vector3.new(0.75, 1, 0.1), 1.25, 0.54)
+	crystal(torso, Vector3.new(0.7, 1.1, -0.4), Vector3.new(0.1, 1, 0.4), 1.05, 0.5)
+	crystal(torso, Vector3.new(1.2, 0.7, -0.8), Vector3.new(1, 0.6, -0.2), 0.9, 0.47)
+	crystal(torso, Vector3.new(0.9, 1.0, -1.0), Vector3.new(0.4, 1, -0.45), 0.8, 0.43)
+	-- Hombro izquierdo.
+	crystal(torso, Vector3.new(-1.0, 1.0, -0.6), Vector3.new(-0.4, 1, 0.1), 1.35, 0.58)
+	crystal(torso, Vector3.new(-1.1, 0.85, -0.75), Vector3.new(-0.9, 0.8, 0), 1, 0.49)
+	crystal(torso, Vector3.new(-0.75, 1.1, -0.35), Vector3.new(-0.2, 1, 0.45), 0.8, 0.43)
+	-- Lomo.
+	crystal(torso, Vector3.new(0.4, 0.95, 0.55), Vector3.new(0.2, 1, 0.6), 0.9, 0.47)
+	crystal(torso, Vector3.new(-0.35, 0.85, 0.95), Vector3.new(-0.3, 1, 0.7), 0.7, 0.4)
+	-- Pecho, alrededor del corazón.
+	crystal(torso, Vector3.new(-0.3, -0.35, -1.7), Vector3.new(-0.3, 0.6, -1), 0.9, 0.47)
+	crystal(torso, Vector3.new(-0.2, -0.45, -1.7), Vector3.new(0.5, 0.2, -1), 0.75, 0.4)
+	crystal(torso, Vector3.new(-0.4, -0.5, -1.65), Vector3.new(-0.8, -0.3, -1), 0.65, 0.36)
+	-- Brazos.
+	crystal(rightArm, Vector3.new(1.45, 0.1, -1.05), Vector3.new(1, 0.7, 0.2), 1, 0.5)
+	crystal(rightArm, Vector3.new(1.65, -0.7, -1.2), Vector3.new(1, 0.5, -0.3), 0.85, 0.45)
+	crystal(leftArm, Vector3.new(-1.7, -0.8, -1.2), Vector3.new(-1, 0.4, -0.2), 0.65, 0.4)
+
+	-- El corazón del pecho: el único que brilla de verdad y el que da la luz roja.
+	local heart = piece(rig, "CrystalCore", "Ball", Vector3.one * 0.42, Color3.fromRGB(255, 70, 70), Enum.Material.Neon)
+	glue(rig, torso, heart, CFrame.new(-0.3, -0.42, -1.72))
 end
 
 local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
@@ -1443,51 +1664,15 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 
 	-- Gorila Albino: cristales de rubí que le brotan del cuerpo, en racimos sobre los dos hombros (el
 	-- derecho más grande), en el lomo y en los brazos, y uno en el pecho con el corazón encendido;
-	-- chispas rojas que se desprenden.
+	-- chispas rojas que se desprenden. Con el cuerpo voxel, los cristales y el corazón vienen en bloques
+	-- en su spec y aquí solo se añaden la luz y las chispas.
 	GorilaAlbino = function(rig)
 		local ruby = Color3.fromRGB(205, 25, 45)
-		local core = Color3.fromRGB(255, 70, 70)
 		local torso = partNamed(rig, "Torso")
-		local rightArm = partNamed(rig, "Right Arm")
-		local leftArm = partNamed(rig, "Left Arm")
-		-- Cada cristal es una pirámide alargada: se ve como una punta de prisma desde cualquier lado.
-		-- "from" es donde nace (en la superficie) y "to" la dirección en la que crece.
-		local function crystal(anchor: BasePart, from: Vector3, to: Vector3, length: number, width: number)
-			local direction = to.Unit
-			local center = from + direction * (length / 2 - 0.15)
-			-- Eje Y de la pieza a lo largo de la dirección del cristal.
-			local frame = CFrame.lookAt(center, center + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
-			local part = piece(rig, "Crystal", "Spike", Vector3.new(width, length, width), ruby, Enum.Material.Glass)
-			part.Transparency = 0.3
-			part.CastShadow = false
-			glue(rig, anchor, part, frame)
+		if not rig.voxel then
+			roundCrystals(rig, ruby)
 		end
-		-- Hombro derecho: el racimo grande, abierto hacia arriba y hacia fuera.
-		crystal(torso, Vector3.new(0.95, 1.0, -0.7), Vector3.new(0.35, 1, 0.15), 1.6, 0.65)
-		crystal(torso, Vector3.new(1.05, 0.9, -0.55), Vector3.new(0.75, 1, 0.1), 1.25, 0.54)
-		crystal(torso, Vector3.new(0.7, 1.1, -0.4), Vector3.new(0.1, 1, 0.4), 1.05, 0.5)
-		crystal(torso, Vector3.new(1.2, 0.7, -0.8), Vector3.new(1, 0.6, -0.2), 0.9, 0.47)
-		crystal(torso, Vector3.new(0.9, 1.0, -1.0), Vector3.new(0.4, 1, -0.45), 0.8, 0.43)
-		-- Hombro izquierdo.
-		crystal(torso, Vector3.new(-1.0, 1.0, -0.6), Vector3.new(-0.4, 1, 0.1), 1.35, 0.58)
-		crystal(torso, Vector3.new(-1.1, 0.85, -0.75), Vector3.new(-0.9, 0.8, 0), 1, 0.49)
-		crystal(torso, Vector3.new(-0.75, 1.1, -0.35), Vector3.new(-0.2, 1, 0.45), 0.8, 0.43)
-		-- Lomo.
-		crystal(torso, Vector3.new(0.4, 0.95, 0.55), Vector3.new(0.2, 1, 0.6), 0.9, 0.47)
-		crystal(torso, Vector3.new(-0.35, 0.85, 0.95), Vector3.new(-0.3, 1, 0.7), 0.7, 0.4)
-		-- Pecho, alrededor del corazón.
-		crystal(torso, Vector3.new(-0.3, -0.35, -1.7), Vector3.new(-0.3, 0.6, -1), 0.9, 0.47)
-		crystal(torso, Vector3.new(-0.2, -0.45, -1.7), Vector3.new(0.5, 0.2, -1), 0.75, 0.4)
-		crystal(torso, Vector3.new(-0.4, -0.5, -1.65), Vector3.new(-0.8, -0.3, -1), 0.65, 0.36)
-		-- Brazos.
-		crystal(rightArm, Vector3.new(1.45, 0.1, -1.05), Vector3.new(1, 0.7, 0.2), 1, 0.5)
-		crystal(rightArm, Vector3.new(1.65, -0.7, -1.2), Vector3.new(1, 0.5, -0.3), 0.85, 0.45)
-		crystal(leftArm, Vector3.new(-1.7, -0.8, -1.2), Vector3.new(-1, 0.4, -0.2), 0.65, 0.4)
-
-		-- El corazón del pecho: el único que brilla de verdad y el que da la luz roja.
-		local heart = piece(rig, "CrystalCore", "Ball", Vector3.one * 0.42, core, Enum.Material.Neon)
-		glue(rig, torso, heart, CFrame.new(-0.3, -0.42, -1.72))
-		glow(rig, heart, ruby, 6, 1)
+		glow(rig, partNamed(rig, "CrystalCore"), ruby, 6, 1)
 
 		local s = rig.scale
 		local sparks = Instance.new("ParticleEmitter")
@@ -1516,31 +1701,33 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 				child.Color = charcoal
 			end
 		end
-		-- Grietas sobre los hombros, el lomo y el pecho.
-		for _, crack in
-			{
-				CFrame.new(0.45, 1.2, -0.5) * CFrame.Angles(0, 0.5, 0),
-				CFrame.new(-0.4, 1.2, -0.75) * CFrame.Angles(0, -0.4, 0),
-				CFrame.new(0.1, 1.02, 0.65) * CFrame.Angles(0.3, 1.2, 0),
-				CFrame.new(-1.2, 0.75, -0.75) * CFrame.Angles(0, -0.9, 0.6),
-				CFrame.new(1.2, 0.7, -0.7) * CFrame.Angles(0, 0.9, -0.6),
-				CFrame.new(0.25, -0.15, -1.88) * CFrame.Angles(math.rad(90), 0, 0.4),
-			}
-		do
-			glue(
-				rig,
-				torso,
-				piece(rig, "LavaCrack", "Oval", Vector3.new(0.12, 0.08, 1), lava, Enum.Material.Neon),
-				crack
-			)
-		end
-		for side = -1, 1, 2 do
-			glue(
-				rig,
-				partNamed(rig, `{sideName(side)} Arm`),
-				piece(rig, "LavaCrack", "Oval", Vector3.new(0.08, 0.9, 0.12), lava, Enum.Material.Neon),
-				CFrame.new(side * 1.68, -0.75, -1.15) * CFrame.Angles(0.3, 0, side * 0.1)
-			)
+		-- Grietas sobre los hombros, el lomo y el pecho (con el cuerpo voxel vienen en bloques en su spec).
+		if not rig.voxel then
+			for _, crack in
+				{
+					CFrame.new(0.45, 1.2, -0.5) * CFrame.Angles(0, 0.5, 0),
+					CFrame.new(-0.4, 1.2, -0.75) * CFrame.Angles(0, -0.4, 0),
+					CFrame.new(0.1, 1.02, 0.65) * CFrame.Angles(0.3, 1.2, 0),
+					CFrame.new(-1.2, 0.75, -0.75) * CFrame.Angles(0, -0.9, 0.6),
+					CFrame.new(1.2, 0.7, -0.7) * CFrame.Angles(0, 0.9, -0.6),
+					CFrame.new(0.25, -0.15, -1.88) * CFrame.Angles(math.rad(90), 0, 0.4),
+				}
+			do
+				glue(
+					rig,
+					torso,
+					piece(rig, "LavaCrack", "Oval", Vector3.new(0.12, 0.08, 1), lava, Enum.Material.Neon),
+					crack
+				)
+			end
+			for side = -1, 1, 2 do
+				glue(
+					rig,
+					partNamed(rig, `{sideName(side)} Arm`),
+					piece(rig, "LavaCrack", "Oval", Vector3.new(0.08, 0.9, 0.12), lava, Enum.Material.Neon),
+					CFrame.new(side * 1.68, -0.75, -1.15) * CFrame.Angles(0.3, 0, side * 0.1)
+				)
+			end
 		end
 		glow(rig, torso, lava, 12, 2)
 
@@ -1598,9 +1785,14 @@ function MonkeyModels.build(
 	root.Parent = model
 	model.PrimaryPart = root
 
-	local rig: Rig = { model = model, root = root, scale = s, boss = bossId ~= nil }
-	local builder = BUILDERS[speciesId] or genericMonkey
-	builder(rig, definition)
+	local voxelSpec = if bossId and not VOXEL_BOSSES[bossId] then nil else VOXEL_SPECS[speciesId]
+	local rig: Rig = { model = model, root = root, scale = s, boss = bossId ~= nil, voxel = voxelSpec ~= nil }
+	if voxelSpec then
+		voxelMonkey(rig, definition, voxelSpec, bossId)
+	else
+		local builder = BUILDERS[speciesId] or genericMonkey
+		builder(rig, definition)
+	end
 	local extras = if bossId then BOSS_EXTRAS[bossId] else nil
 	if extras then
 		extras(rig)
@@ -1631,6 +1823,30 @@ function MonkeyModels.spawn(speciesId: string, definition: Monkeys.MonkeyDefinit
 	end
 	local model = template:Clone()
 	model:PivotTo(CFrame.new(ground + Vector3.new(0, MonkeyModels.rootHeight(definition.scale), 0)))
+	return model
+end
+
+-- Un jefe en "ground", copiado de su plantilla: unir sus bloques tarda (~0,5 ms por bloque; 500
+-- bloques, ~270 ms), así que se construye una vez por servidor. "look" es su aspecto (como en build);
+-- la vida y la velocidad cambian en cada aparición, así que se ponen en la copia.
+function MonkeyModels.spawnBoss(
+	speciesId: string,
+	look: Monkeys.MonkeyDefinition,
+	ground: Vector3,
+	bossId: string
+): Model
+	local template = bossTemplates[bossId]
+	if not template then
+		template = MonkeyModels.build(speciesId, look, Vector3.zero, bossId)
+		bossTemplates[bossId] = template
+	end
+	local model = template:Clone()
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.DisplayName = look.name
+	humanoid.MaxHealth = look.maxHealth
+	humanoid.Health = look.maxHealth
+	humanoid.WalkSpeed = look.walkSpeed
+	model:PivotTo(CFrame.new(ground + Vector3.new(0, MonkeyModels.rootHeight(look.scale), 0)))
 	return model
 end
 

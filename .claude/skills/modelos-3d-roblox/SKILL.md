@@ -1,6 +1,6 @@
 ---
 name: modelos-3d-roblox
-description: Crea y edita modelos 3D de Roblox (piezas, armas, armaduras, mascotas, monos, árboles, rocas, construibles, decorado, edificios, vehículos) a partir de una descripción o de una imagen de referencia, viéndolos en Roblox Studio a través de su MCP (execute_luau y screen_capture) para revisar y corregir hasta que se parezcan a lo pedido. Úsala siempre que el usuario pida hacer, rehacer, mejorar, remodelar o retocar la forma, el tamaño, los colores o los detalles de cualquier objeto visible del juego ("hazme un hacha de piedra", "que la palmera se parezca a esta foto", "el gorila tiene los brazos muy cortos", "crea una cabaña", "modelo 3D", "mesh", "greybox", "low-poly"), aunque no diga "modelo 3D" ni mencione Studio. No es para animaciones (eso es la skill animaciones-roblox), interfaces ni efectos de partículas.
+description: Crea y edita modelos 3D de Roblox (piezas, armas, armaduras, mascotas, monos, árboles, rocas, construibles, decorado, edificios, vehículos) a partir de una descripción o de una imagen de referencia, viéndolos en Roblox Studio a través de su MCP (execute_luau y screen_capture) para revisar y corregir hasta que se parezcan a lo pedido. Úsala siempre que el usuario pida hacer, rehacer, mejorar, remodelar o retocar la forma, el tamaño, los colores o los detalles de cualquier objeto visible del juego ("hazme un hacha de piedra", "que la palmera se parezca a esta foto", "el gorila tiene los brazos muy cortos", "crea una cabaña", "modelo 3D", "mesh", "greybox", "low-poly", "voxel", "estilo de bloques", "retro"), o pregunte cómo modelar (Studio o Blender), aunque no diga "modelo 3D" ni mencione Studio. No es para animaciones (eso es la skill animaciones-roblox), interfaces ni efectos de partículas.
 ---
 
 # Modelos 3D en Roblox Studio
@@ -73,11 +73,19 @@ menciónalo.
 | Técnica | Cuándo | Resultado |
 |---|---|---|
 | **Primitivas por código** (por defecto) | Casi siempre: es el estilo del juego, queda en git y se ajusta con números. | Constructor Luau en el módulo del repo. |
+| **Voxel (spec de cajas)** | Animales en estilo de bloques grandes / juguete de bloques / retro (mid-res voxel), o cuando el usuario lo pida. Es la técnica más barata en tokens. | Archivo de datos `VoxelSpecs/<Especie>.luau` que lee un constructor genérico. Ver `estilo-del-proyecto.md` §8. |
 | **`generate_procedural_model` como borrador** | Objetos grandes o complejos, o cuando hay imagen de referencia y quieres un punto de partida. | Lo vuelcas con `volcar_modelo.luau`, lo limpias y lo traduces a un constructor. Nunca se queda tal cual. |
 | **`generate_mesh` / Creator Store** | Formas orgánicas o realistas que con primitivas no salen, y solo si el usuario lo acepta tras explicarle las pegas. | Malla guardada en el place; el código la clona. |
 | **Retoque en el place** | Modelos que ya están en el place y no vienen del repo (decorado, cosas de la Caja de herramientas). | Cambios con `execute_luau` y registro de deshacer. |
 
 Detalles de cada herramienta y advertencias en `references/herramientas-mcp.md`.
+
+**Blender (MCP `mcp__blender__*`) no es la vía normal.** Para el estilo del juego (primitivas o
+voxel) cuesta unas dos veces más tokens: hay que iterar en Blender y volver a revisar en Studio. El
+paso a Roblox es manual (3D Importer, sin HTTP), las mallas no quedan en git y hay que volver a
+articular cada extremidad. Úsalo solo para hornear en mallas un modelo que se pase mucho del
+presupuesto de piezas, y avisa antes al usuario. Sus generadores con IA (Hunyuan3D, Hyper3D, Tripo)
+están apagados.
 
 ## 3. Construir por capas
 

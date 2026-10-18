@@ -12,6 +12,7 @@ que ya existen para que lo nuevo no desentone ni rompa a quien los usa.
 5. Escala
 6. Rendimiento
 7. Modelos que viven en el place, no en el repo
+8. Estilo voxel (bloques grandes)
 
 ## 1. Dónde vive cada tipo de modelo
 
@@ -24,6 +25,7 @@ tipo que ya existe va en su módulo, con un constructor más y su entrada en los
 | Armaduras puestas | `src/island/server/Combat/ArmorModels.luau` | `ArmorModels.wear(character, armorId)` | `src/shared/Data/Armor.luau` |
 | Mascotas | `src/shared/PetModels.luau` | `PetModels.build(petId)` | `src/shared/Data/Pets.luau` |
 | Monos y jefes (articulados) | `src/island/server/Monkeys/MonkeyModels.luau` | `MonkeyModels.build(...)` | `src/shared/Data/Monkeys.luau`, `Bosses.luau` |
+| Monos en estilo voxel | `src/island/server/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
 | Árboles, palmeras, rocas, matas | `src/serverShared/NodeModels.luau` | `NodeModels.build(nodeType, ground, rng)` | `src/shared/Data/ResourceNodes.luau` |
 | Piezas construibles | `src/shared/BuildModels.luau` | `BuildModels.build(buildableId)` | `src/shared/Data/Buildables.luau` |
 | Escenario del Lobby | `src/lobby/server/World/LobbyBuilder.luau` | `LobbyBuilder.build()` | — |
@@ -269,7 +271,22 @@ chimpancé, ve a valores de 165, 125, 105. Compara siempre la captura con la ref
 
 ## 5. Escala
 
-1 stud ≈ 28 cm. Referencias para no fallar el tamaño:
+**Proporción frente al jugador: 1 m real ≈ 3 studs.** El avatar R15 estándar mide 5,3–5,5 studs de
+los pies a la coronilla y representa a una persona de 1,75 m. Úsala para los animales: un gorila
+macho a cuatro patas tiene los hombros a ~1,5 m, así que van a ~4,4 studs, a la altura de los del
+jugador. Las medidas de `docs/MONOS.md` y `docs/MASCOTAS.md` son de largo del cuerpo (o de alto de
+pie en los simios), no la altura a cuatro patas: conviértelas pensando en la postura del juego. (El
+"1 stud = 28 cm" de la física de Roblox no sirve para esto: con él, un jugador mediría 1,4 m.)
+
+**Animales voxel: tamaño real con mínimo** (decidido por el usuario; tabla de objetivos en el GDD
+§8.2, "Tamaño real con mínimo"):
+- Si el tamaño real en studs queda por debajo del umbral, se usa `mínimo + real / 2`. Monos:
+  umbral 2,4 y mínimo 1,2. Mascotas: umbral 3 y mínimo 1,5. Así el orden de tamaños se mantiene y
+  nada queda diminuto.
+- Ajusta `unit` del spec (o `scale` en Data) hasta llegar al alto de la tabla.
+- Si el animal acaba distinto de la tabla, actualiza su fila del GDD.
+
+Referencias para no fallar el tamaño:
 
 | Cosa | Studs |
 |---|---|
@@ -320,6 +337,7 @@ orientativo de piezas por modelo:
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |
+| Mono voxel (§8), bloques de diseño | hasta ~150 (unidos en ≤ 10 piezas en juego); jefe hasta 500 (techo 1.000) |
 | Construible | 5–20 |
 | Pieza única de decorado (barco, templo) | hasta unos cientos |
 
@@ -347,3 +365,182 @@ El mapa, el terreno y los modelos colocados a mano se guardan en el place de Rob
 - Para que un modelo del place sea un punto de recolección, una mesa de trabajo, etc., se le pone un
   atributo (ver `docs/MAPA.md`), no se toca el código.
 - Recuerda al usuario que **guarde y publique** el place: si cierra Studio sin guardar, se pierde.
+
+## 8. Estilo voxel (bloques grandes)
+
+Estilo de juguete de bloques o videojuego retro, de resolución media: cajas grandes alineadas a una
+rejilla, siluetas en escalones y 3–5 tonos planos. La referencia es el gorila de bloques que pasó el
+usuario. El primero fue el Gorila (`VoxelSpecs/Gorila.luau`).
+- **Especie:** usa el voxel en cuanto su spec está en `VOXEL_SPECS` de MonkeyModels.
+- **Jefes:** siguen con el modelo de antes hasta que se añaden a `VOXEL_BOSSES`, porque cada uno
+  necesita sus detalles y adornos en bloques. Para probar uno sin activarlo, en la vista previa:
+  `MM.voxelBosses.<bossId> = true`.
+
+**Por qué así y no en Blender:** cada caja es una línea de números, así que iterar es cambiar datos
+y no código, y se ve en Studio en la misma llamada. Se conservan el rig, las animaciones y el
+recolor de los jefes. Ver la nota sobre Blender en `SKILL.md` §2.
+
+### Formato del spec
+
+Un ModuleScript por especie que devuelve `{ unit, parts }`:
+
+```lua
+return {
+	unit = 0.18, -- studs por celda a escala 1: cambiarlo escala todo el animal
+	parts = {
+		{ name = "Torso", joint = "RootJoint", boxes = { ... } }, -- sin pivot: gira sobre la raíz
+		{ name = "Head", joint = "Neck", parent = "Torso", pivot = { 0, 13, -8 }, boxes = { ... } },
+		{ name = "Arm", joint = "Shoulder", parent = "Torso", mirror = true, pivot = { 7.5, 14, -6 }, boxes = { ... } },
+	},
+}
+```
+
+- Caja: `{ x, y, z, ancho, alto, fondo, tono, nombre?, simétrica? }` en celdas. x y z son el centro
+  (frente a -Z), y es el centro **medido desde el suelo** (el constructor suma `GROUND`).
+- Todas las cajas de una parte se **unen en una sola pieza** (`mergeBoxes`, con
+  `GeometryService:UnionAsync`) con el nombre de siempre (`Torso`, `Head`, `Right Arm`…). Esa pieza
+  es la que se articula. Los nombres de las demás cajas solo sirven para leer el spec, salvo los de
+  `VOXEL_LOOSE` (`Eye`, que `glowEyes` enciende, y `Chest`/`Pec`, que el Gorila de Ceniza
+  recolorea): esas no se unen y van soldadas aparte. Si un jefe nuevo busca otra pieza por nombre,
+  añádela a `VOXEL_LOOSE`, o desaparecerá dentro de la unión. **Nunca uses el nombre de una pieza
+  animable** en una caja: las animaciones y `partNamed` cogerían la que no es.
+- `mirror = true`: la parte se describe del lado derecho (+X) y sale también la izquierda,
+  reflejada (`Right Arm` / `Left Arm`, `Right Shoulder` / `Left Shoulder`). `simétrica` (noveno
+  campo) hace lo mismo con una caja suelta (ojos, orejas, orificios de la nariz).
+- Tonos (`voxelTones`, salen de `bodyColor` = pelo y `faceColor` = piel): `fur`, `shag`
+  (pelo algo más claro), `chest`, `silver`, `skin`, `paws`, `dark`, `mouth`, `eye`. Si una especie
+  necesita otro tono, añádelo ahí, sacado de esos dos colores con `Lerp`: así sus jefes recolorean
+  solos.
+- Pivotes: copia los del constructor viejo de la especie (hombro, cadera, cuello) para que sus
+  animaciones sigan valiendo sin rehacerlas.
+- `unit`: elígela para que el animal tenga su tamaño real frente al jugador (§5) con el `scale` que
+  ya tiene en Data. Así sus jefes quedan como dice el GDD §8.2 y no hay que tocar su `attackRange`.
+  El gorila usa 0,18: hombros a 4,2–4,4 studs (≈1,5 m) y 5,2 de alto. Comprueba siempre la tabla
+  del GDD **y su lista de excepciones** antes de cambiar `unit`. Con 0,15 el gorila parecía estar
+  bien, pero medía 1 stud menos que el de antes, y el Gorila de Ceniza perdió los 13,4 studs que
+  tiene a propósito.
+- **Adornos de los jefes** (`bosses = { [bossId] = { grupos } }` en el mismo spec): cada grupo es
+  `{ anchor, name, color, material, transparency?, mirror?, boxes }`. Las cajas son
+  `{ x, y, z, ancho, alto, fondo, simétrica? }`. Cada grupo se une en **una** pieza de su material
+  (la unión copia material, transparencia y sombra de su primera caja), así que no mezcles cristal
+  y neón en un grupo. Con `mirror`, el grupo va a `Right <anchor>` y a `Left <anchor>`.
+  Las funciones de `BOSS_EXTRAS` miran `rig.voxel`:
+  - con el cuerpo voxel solo ponen los efectos (luz, partículas, ojos encendidos, recolores);
+  - con el cuerpo viejo ponen además sus adornos redondos.
+
+  Para formas que se repiten, pon una función de ayuda local en el spec. `crystal(x, y, z, s,
+  forward?)` del gorila da tres bloques en escalera que se estrechan; las grietas de lava son filas
+  de celdas de neón de 0,2 de grueso, pegadas a la cara (+0,05).
+
+### Cómo se dibuja un animal voxel
+
+- **Masas grandes primero.** El torso del gorila son 4–5 cajas. Un escalonado (cresta, lomo que baja
+  a la grupa) son 3 cajas apiladas que se van estrechando, no un voxel por celda.
+- **Rasgos de 1 celda o menos** pegados a la cara: ojos 1 × 0,6, orificios 0,6 × 0,6, boca
+  2,6 × 0,3. Sobresalen 0,05–0,2 celdas de la cara para que no haya z-fighting. Sin pupilas: la
+  referencia lleva ojos claros lisos, y así caben en el presupuesto.
+- **Dedos**: 3 cajas de 1,2 de ancho separadas 1,5 delante de la mano. La rendija de 0,3 se lee
+  como dedos.
+- **Masa del hombro** (`Deltoid`): una caja encima de cada brazo, como parte del brazo, que
+  sobresale de los hombros del torso. Sin ella la parte de arriba es una losa plana.
+- Lo que en el gorila funcionó y lo que no:
+  - El lomo plateado de **una sola caja parecía un cubo pegado** en la espalda. En tres escalones
+    que bajan hacia la grupa se lee como en la referencia.
+  - Escalones de anchos distintos, vistos desde atrás, parecían **los cajones de una cómoda**. Los
+    tres igual de anchos y el último bajando hasta las patas: desde atrás se ve un solo panel y los
+    escalones se siguen viendo desde el lado y desde arriba. Revisa siempre la vista de espaldas.
+  - Las cajas pueden solaparse sin miedo, igual que las primitivas. Cuida que dos caras visibles de
+    tono distinto no queden en el mismo plano.
+- `SmoothPlastic` siempre: las aristas limpias son el estilo (nada de `Fabric`).
+
+### Presupuesto: bloques de diseño frente a piezas en juego
+
+Lo que cuesta en cada fotograma son las **piezas que se mueven**, no los bloques que se ven. Prueba
+en Studio (PC, modo edición, 160 gorilas moviéndose a la vez, el máximo de monos activos):
+
+| Versión | Piezas por mono | Triángulos | Fotograma medio |
+|---|---|---|---|
+| 40 bloques sueltos | 41 | 492 | 32,6 ms |
+| 120 bloques sueltos | 119 | 1.428 | 124,5 ms (~8 FPS) |
+| 120 bloques unidos por extremidad | 8 | 1.092 | 17,1 ms (~60 FPS) |
+
+Con la unión por extremidad:
+- **Mono normal:** hasta ~150 bloques de diseño; ≤ 10 piezas en juego (una por extremidad más las
+  sueltas de `VOXEL_LOOSE`).
+- **Jefe:** hasta **500 bloques**. Techo de 1.000 solo para un jefe especial, y avisando antes al
+  usuario. En juego, ~15 piezas (extremidades, un grupo por material de adorno y las sueltas).
+- **Triángulos:** vigílalos, porque sí crecen con el detalle (~12,5 por bloque).
+
+Mide las dos cosas en cada vuelta: los bloques del spec y las piezas del modelo ya unido.
+
+Coste de un jefe según sus bloques (gorila jefe a escala 3,6, 6 uniones, ninguna falló):
+
+| Bloques | Tiempo de unión | Triángulos |
+|---|---|---|
+| 100 | 99 ms | 1.672 |
+| 250 | 167 ms | 3.864 |
+| 500 | 267 ms | 6.888 |
+| 1.000 | 533 ms | 12.518 |
+
+Con 500 bloques un jefe tiene lo que un avatar con varios accesorios. Suele haber un jefe en
+pantalla como mucho. Con 1.000 ya es mucho para un móvil de gama baja si coincide con muchos
+monos. Reparto orientativo de los 500:
+
+| Para qué | Bloques |
+|---|---|
+| Cara y expresiones (cejas, ceño, colmillos, arrugas) | 40–80 |
+| Musculatura (pectorales, bíceps, antebrazos, espalda en escalones) | 100–150 |
+| Adornos (cristales, lava, tocados, collares) | 150–250 |
+| Cuerpo base | el resto |
+
+El tiempo de unir se paga una vez por servidor:
+- los monos normales salen de una plantilla por especie (`MonkeyModels.spawn`);
+- los jefes, de una por jefe (`MonkeyModels.spawnBoss`, que pone en cada copia la vida y la
+  velocidad de esa aparición).
+
+**Expresiones por fase del combate** (cara distinta en cada fase, en el atributo `BossPhase` del
+modelo, de 1 a 3). Las piezas de una expresión que cambia no pueden ir dentro de la unión de la
+cabeza:
+- van en grupos sueltos, uno por fase, soldados a `Head`;
+- solo el de la fase actual es visible; los demás con `Transparency = 1`;
+- se cambian al cambiar `BossPhase`, como hace `MonkeyAnimator` con las animaciones.
+
+Lo que no cambia entre fases (colmillos, arrugas fijas) va dentro de la unión. Este mecanismo
+todavía no está hecho: se hace con los detalles del primer jefe.
+
+Las cifras absolutas exageran: mover con `PivotTo` desde Luau cuesta más que la animación real. Lo
+que vale es la proporción. Falta confirmarlo en un móvil real y en Play en la Isla: que la unión
+funcione en el servidor y lo que pesa enviar a los jugadores la de un jefe de 500 bloques.
+
+### Ciclo de revisión barato en tokens
+
+- Si Rojo y la Isla están conectados: `Preview.freshRequire` de MonkeyModels y cambia
+  `MM.voxelSpecs.<Especie>` por el spec recién cargado con `freshRequire`, porque el `require`
+  interno del spec queda en caché. Para un jefe aún no activado, añade
+  `MM.voxelBosses.<bossId> = true`.
+- Si no (por ejemplo, solo está abierto el Lobby): la primera llamada pega una versión mínima de
+  `Preview` y una función `Preview.voxel(spec, fur, skin, scale)` que solo coloca cajas ancladas,
+  sin articulaciones ni unión, y las guarda en `_G`. Para ver cómo queda unido, agrupa las cajas por
+  zona y únelas con `GeometryService:UnionAsync(primera, resto, { SplitApart = false })` y
+  `UsePartColor = false`: en el gorila se veía igual que suelto, con todos sus colores. Las siguientes solo mandan el spec (`_G.GorilaSpec`)
+  o los cambios a sus cajas. No pegues MonkeyModels entero: son 65 KB.
+- Captura cerca (unos 10 studs del centro): las cámaras de `Preview.show` quedan lejos para un
+  modelo de 5 studs. La luz del Lobby (atardecer) tiñe todo de rosa: juzga ahí la forma, y los
+  colores en la Isla.
+- Para enseñárselo al usuario en **una sola captura**: tres copias en fila, como en la referencia.
+  Vistas desde delante (-Z): espalda a la izquierda (+X, girada π), 3/4 en el centro (girada
+  -40°) y frente a la derecha (-X). Quita el maniquí. La cámara va a unos 19 studs delante, algo
+  por encima.
+- `screen_capture` da "Request timeout" si la pantalla del PC está bloqueada (el usuario trabaja en
+  remoto): no reintentes en bucle, avisa y espera.
+
+### Al activarlo en una especie
+
+- **Adornos de sus jefes:** los de `BOSS_EXTRAS` van en coordenadas del cuerpo redondo viejo y
+  sobre el voxel quedan enterrados o flotando. Pásalos a bloques en la sección `bosses` del spec y
+  deja en la función solo los efectos.
+- **Alto:** mide la especie y sus jefes con su `scale` (franja del GDD §8.2).
+- **Animación:** prueba una de verdad en edición. Con todas las piezas ancladas no se mueve nada:
+  ancla solo `HumanoidRootPart`, carga la pista con el `Animator` del modelo, `Play(0)`,
+  `AdjustSpeed(0)`, pon `TimePosition` y llama a `animator:StepAnimations(0)`. Tres copias en fila
+  (andar, golpe y pisotón en su punto más fuerte) se revisan en una sola captura.

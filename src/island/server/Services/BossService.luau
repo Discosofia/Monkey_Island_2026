@@ -274,7 +274,7 @@ function BossService.spawn(bossId: string)
 	look.faceColor = definition.faceColor
 	look.maxHealth = math.round(definition.maxHealth * healthMultiplier(1))
 	look.walkSpeed = definition.walkSpeed
-	local model = MonkeyModels.build(definition.baseSpecies, look, groundBelow(lair), bossId)
+	local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, groundBelow(lair), bossId)
 	model.Name = definition.name
 	model:SetAttribute("Boss", bossId)
 	model:SetAttribute("BossPhase", 1)
