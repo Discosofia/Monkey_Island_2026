@@ -33,7 +33,7 @@ export type MonkeyDefinition = {
 	thief: number?, -- en vez de morder, roba hasta esta cantidad de un material y huye con él
 	thiefFoodOnly: boolean?, -- solo roba comida
 	fearsFire: boolean?, -- se aparta de antorchas (en la mano o de pie) y hogueras
-	ignoresTorchBearers: boolean?, -- no ataca a quien lleva una antorcha en la mano
+	ignoresTorchBearers: boolean?, -- no ataca a quien lleva la antorcha encendida (de noche, TorchService)
 	pounce: boolean?, -- salta sobre su presa desde lejos; el primer golpe tras el salto hace el doble
 	alpha: boolean?, -- el grupo tiene un alfa (más vida y daño); si muere, la tropa huye
 	roar: { radius: number, seconds: number }?, -- rugido: quien lo oye hace menos daño un rato

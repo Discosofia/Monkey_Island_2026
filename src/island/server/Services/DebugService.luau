@@ -53,7 +53,6 @@ local SHOWCASE_ORDER = {
 	"WoodenPick",
 	"StonePick",
 	"BonePick",
-	"Torch",
 	"Spear",
 	"Club",
 	"BigFangClub",

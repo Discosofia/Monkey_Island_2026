@@ -239,7 +239,10 @@ local Config = {
 		PounceCooldownSeconds = 6,
 		RoarCooldownSeconds = 15,
 		-- Miedo al fuego: distancia a una antorcha u hoguera a la que las especies miedosas se apartan.
+		-- La antorcha del jugador (TorchService) solo cuenta encendida: de noche, y no durante
+		-- TorchRoarOutSeconds tras el rugido de un jefe que la apaga.
 		FireFearRadius = 10,
+		TorchRoarOutSeconds = 8,
 		-- Los grupos con bajas recuperan un mono cada GroupRegrowSeconds mientras su especie esté
 		-- activa, siempre que no haya jugadores a menos de RegrowMinPlayerDistance de su zona.
 		GroupRegrowSeconds = 25,

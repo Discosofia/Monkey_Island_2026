@@ -136,15 +136,6 @@ local Weapons: { [string]: WeaponDefinition } = {
 		swingAnimationSpeed = 2.2,
 		tool = { kind = "Sickle", power = 1, bonus = 0 },
 	},
-	Torch = {
-		name = "Antorcha",
-		kind = "Melee",
-		sound = "SwingLight",
-		damage = 8,
-		cooldownSeconds = 0.6,
-		range = 7,
-		swingAnimationSpeed = 2,
-	},
 	StoneAxe = {
 		name = "Hacha de piedra",
 		kind = "Melee",

@@ -28,9 +28,10 @@ function Crafting.ownedAttribute(recipeId: string): string
 	return PREFIX .. recipeId
 end
 
--- Las herramientas y armaduras solo se fabrican una vez; los ítems (vendas) se acumulan.
+-- Las herramientas, las armaduras y la antorcha solo se fabrican una vez; los ítems (vendas) se
+-- acumulan.
 function Crafting.isUnique(recipe: Recipes.Recipe): boolean
-	return recipe.weaponId ~= nil or recipe.armorId ~= nil
+	return recipe.weaponId ~= nil or recipe.armorId ~= nil or recipe.offhand ~= nil
 end
 
 function Crafting.isOwned(player: Player, recipeId: string): boolean

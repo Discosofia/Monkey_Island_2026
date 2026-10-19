@@ -34,6 +34,7 @@ local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local TelemetryService = require(script.Parent.TelemetryService)
+local TorchService = require(script.Parent.TorchService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
 local Poof = require(script.Parent.Parent.Combat.Poof)
 local Status = require(script.Parent.Parent.Combat.Status)
@@ -470,11 +471,8 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 		extinguish = function(boss)
 			bubble(boss, "¡GRRROOOAAAR!")
 			for _, player in playersAround(boss.root.Position, 45) do
-				local character = player.Character
-				local tool = if character then character:FindFirstChildOfClass("Tool") else nil
-				local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-				if tool and humanoid and tool:GetAttribute("WeaponId") == "Torch" then
-					humanoid:UnequipTools()
+				-- La antorcha de la mano izquierda se apaga un rato (TorchService).
+				if TorchService.douse(player, Config.Monkeys.TorchRoarOutSeconds) then
 					Remotes.Notify:FireClient(player, "🌑 ¡El rugido ha apagado tu antorcha!")
 				end
 				Status.holdPlayer(player, 1, `Jefe {boss.id}`)

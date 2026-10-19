@@ -5,6 +5,8 @@
 --   weaponId → una herramienta o arma (ver Data/Weapons). Solo se fabrica una vez y no se pierde.
 --   itemId   → un ítem que se acumula en el inventario (ver Data/Items), "amount" unidades.
 --   armorId  → una armadura que se lleva puesta (ver Data/Armor). Solo se fabrica una vez.
+--   offhand  → algo que se lleva siempre en la mano izquierda sin equiparlo: "Torch", la antorcha
+--              (TorchService). Solo se fabrica una vez.
 -- "upgrades" (opcional) es el arma o la armadura que la receta sustituye: al fabricarla, la vieja
 -- desaparece y ya no se puede volver a fabricar (tampoco lo anterior de la cadena).
 -- "role" (opcional): solo la ve y la fabrica ese rol (Data/Roles); son las mejoras de sus armas.
@@ -24,6 +26,7 @@ export type Recipe = {
 	itemId: string?,
 	amount: number?,
 	armorId: string?,
+	offhand: string?,
 	upgrades: string?,
 	role: string?,
 }
@@ -33,10 +36,10 @@ local Recipes: { [string]: Recipe } = {
 		station = "Workbench",
 		name = "Antorcha",
 		icon = "🔥",
-		description = "Ilumina la selva de noche. Golpea flojo.",
+		description = "Va siempre en tu mano izquierda: de noche se enciende, ilumina y asusta a los monos.",
 		order = 1,
 		cost = { { itemId = "Wood", amount = 2 }, { itemId = "Fiber", amount = 1 } },
-		weaponId = "Torch",
+		offhand = "Torch",
 	},
 	Bandage = {
 		station = "Workbench",

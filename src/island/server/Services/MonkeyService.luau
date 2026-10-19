@@ -716,12 +716,12 @@ local function collectPlayers(): { PlayerInfo }
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		-- Los caídos y los Espíritus no cuentan: los monos los dejan en paz.
 		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and LifeState.isAlive(player) then
-			local tool = character and character:FindFirstChildOfClass("Tool")
 			table.insert(infos, {
 				player = player,
 				position = root.Position,
 				safe = player:GetAttribute("InBasecamp") == true,
-				hasTorch = tool ~= nil and tool:GetAttribute("WeaponId") == "Torch",
+				-- Antorcha encendida en la mano izquierda (TorchService).
+				hasTorch = player:GetAttribute("TorchLit") == true,
 			})
 		end
 	end
@@ -900,13 +900,12 @@ function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 end
 
--- Antorchas en la mano de los jugadores y antorchas de pie construidas.
+-- Antorchas encendidas en la mano de los jugadores (TorchService) y antorchas de pie construidas.
 local function collectFires(): { Vector3 }
 	local fires = {}
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
-		local tool = if character then character:FindFirstChildOfClass("Tool") else nil
-		if tool and tool:GetAttribute("WeaponId") == "Torch" and character then
+		if character and player:GetAttribute("TorchLit") == true then
 			table.insert(fires, character:GetPivot().Position)
 		end
 	end

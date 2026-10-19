@@ -94,8 +94,9 @@ local function attach(handle: BasePart, piece: BasePart, offset: CFrame)
 	piece.Parent = handle.Parent
 end
 
--- "Handle" invisible: solo marca dónde va la mano y sostiene las piezas.
-local function hiddenHandle(tool: Tool, size: Vector3): BasePart
+-- "Handle" invisible: solo marca dónde va la mano y sostiene las piezas. "tool" es la Tool (o el
+-- Model de la antorcha, que no es una herramienta) donde se meten.
+local function hiddenHandle(tool: Instance, size: Vector3): BasePart
 	local handle = newPiece("Handle", size, WOOD, SMOOTH)
 	handle.Transparency = 1
 	handle.Parent = tool
@@ -390,8 +391,16 @@ end
 
 -- ===================================== Antorcha y lanza =====================================
 
-local function buildTorch(tool: Tool): BasePart
-	local handle = hiddenHandle(tool, Vector3.new(0.35, 2.6, 0.35))
+-- Antorcha: no es una herramienta. Una vez fabricada se lleva siempre en la mano izquierda
+-- (TorchService), así que se monta en un Model con su "Handle" como PrimaryPart. La mano la agarra
+-- por TORCH_GRIP; el fuego y la luz los enciende y apaga TorchService (empiezan apagados).
+WeaponTools.TORCH_GRIP = CFrame.new(0, -0.6, 0)
+
+function WeaponTools.buildTorch(): Model
+	local model = Instance.new("Model")
+	model.Name = "Antorcha"
+	local handle = hiddenHandle(model, Vector3.new(0.35, 2.6, 0.35))
+	model.PrimaryPart = handle
 	rod(handle, "Stick", 2.6, 0.3, WOOD, WOOD_MATERIAL, CFrame.new())
 	rod(handle, "Wrap", 0.6, 0.36, LEATHER, FABRIC, CFrame.new(0, -0.6, 0))
 	-- Cabeza de trapo empapado, atada con cuerda y quemada por arriba.
@@ -400,19 +409,26 @@ local function buildTorch(tool: Tool): BasePart
 		rod(handle, "Rope", 0.12, 0.6, FIBER, FABRIC, CFrame.new(0, y, 0))
 	end
 	ball(handle, "Charred", 0.5, Color3.fromRGB(40, 30, 25), FABRIC, CFrame.new(0, 1.92, 0))
-	-- El fuego y la luz solo existen en el mundo mientras la llevas en la mano.
 	local fire = Instance.new("Fire")
 	fire.Size = 3
 	fire.Heat = 6
+	fire.Enabled = false
 	fire.Parent = head
 	local light = Instance.new("PointLight")
 	light.Range = 28
 	light.Brightness = 2
 	light.Color = Color3.fromRGB(255, 180, 90)
 	light.Shadows = true
+	light.Enabled = false
 	light.Parent = head
-	tool.Grip = CFrame.new(0, -0.6, 0)
-	return handle
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.CanQuery = false
+			descendant.CanTouch = false
+			descendant.CastShadow = false
+		end
+	end
+	return model
 end
 
 -- Lanza: asta larga con un colmillo atado en la punta, un mechón de pelaje y contera de piedra.
@@ -1093,7 +1109,6 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	LianaSling = function(tool)
 		return buildSling(tool, { size = 1.15, wood = DARK_BARK, band = LIANA_GREEN, bandWidth = 0.1, liana = true })
 	end,
-	Torch = buildTorch,
 	Spear = buildSpear,
 	WoodenAxe = buildWoodenAxe,
 	StoneAxe = buildStoneAxe,
