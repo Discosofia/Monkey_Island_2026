@@ -22,7 +22,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		kind = "Trail",
 		description = "Dejas un rastro dorado al moverte.",
 		order = 1,
-		gamePassId = 0,
+		gamePassId = 2040772314,
 		color = Color3.fromRGB(255, 205, 70),
 	},
 	JungleTrail = {
@@ -31,7 +31,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		kind = "Trail",
 		description = "Un rastro verde de hojas.",
 		order = 2,
-		gamePassId = 0,
+		gamePassId = 2038168760,
 		color = Color3.fromRGB(90, 210, 90),
 	},
 	TitleKing = {
@@ -40,7 +40,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		kind = "Title",
 		description = "Muestra «Rey de la selva» sobre tu cabeza.",
 		order = 3,
-		gamePassId = 0,
+		gamePassId = 2036836741,
 		color = Color3.fromRGB(255, 215, 90),
 		title = "👑 Rey de la selva",
 	},
@@ -50,7 +50,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		kind = "Aura",
 		description = "Brillitos amarillos a tu alrededor.",
 		order = 4,
-		gamePassId = 0,
+		gamePassId = 2037898785,
 		color = Color3.fromRGB(255, 235, 90),
 	},
 }
