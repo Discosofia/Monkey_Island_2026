@@ -93,3 +93,45 @@
 * **[garras/pezuñas/manos]:** garras de bloques en posición de agarre
 * **[Descripción de la cola u otro apéndice]:** Su cola, de longitud media y forma cuadrada, está hecha de bloques negros que caen en vertical.
 * **[Tamaño y peso]:** 45 - 65 cm / 500 - 850 g
+
+---
+
+### **20. Beagle**
+
+* **[Nombre del Animal]:** beagle
+* **[Color principal y secundario]:** tricolor: manto negro sobre el lomo, canela en la cabeza, las orejas, los hombros y los muslos, y blanco en el hocico, el pecho, las patas y la punta de la cola,
+* **[Descripción de la forma del cuerpo]:** Su cuerpo de sabueso es compacto y robusto, de lomo recto y pecho hondo, con el manto negro como una silla de montar de bloques sobre el lomo.
+* **[Color de la cara/hocico]:** canela, con una lista blanca entre los ojos, el hocico blanco y la nariz negra,
+* **[Rasgos clave]:** unas orejas largas, anchas y caídas que le llegan más abajo del hocico, ojos grandes y castaños de mirada dulce y un hocico cuadrado de olfateador,
+* **[Patas/Brazos]:** Patas cortas, rectas y fuertes, blancas por debajo
+* **[garras/pezuñas/manos]:** patas redondas con dedos de bloques
+* **[Descripción de la cola u otro apéndice]:** Su cola, de longitud media, va alta y algo curvada hacia arriba, negra con la punta blanca bien visible (la "bandera" del sabueso, que se ve de espaldas).
+* **[Tamaño y peso]:** 33 - 41 cm de cruz / 9 - 11 kg
+
+---
+
+### **21. Labrador**
+
+* **[Nombre del Animal]:** labrador retriever
+* **[Color principal y secundario]:** amarillo claro (crema dorado), algo más pálido en el pecho y el vientre,
+* **[Descripción de la forma del cuerpo]:** Su cuerpo de perro cobrador es robusto y ancho, de pecho fuerte y lomo recto, con el pelo corto y denso modelado en bloques lisos.
+* **[Color de la cara/hocico]:** amarillo, con el hocico algo más claro y la nariz marrón oscura,
+* **[Rasgos clave]:** una cabeza ancha con el hocico corto y fuerte, orejas medianas caídas pegadas a la cara, ojos castaños amables y la boca entreabierta con la lengua fuera,
+* **[Patas/Brazos]:** Patas rectas y musculosas, de largo medio
+* **[garras/pezuñas/manos]:** patas redondas y compactas (de nadador) con dedos de bloques
+* **[Descripción de la cola u otro apéndice]:** Su cola es gruesa en la base y se afina hacia la punta, redonda como la de una nutria, y la lleva recta o un poco levantada.
+* **[Tamaño y peso]:** 55 - 62 cm de cruz / 25 - 36 kg
+
+---
+
+### **22. Pointer inglés**
+
+* **[Nombre del Animal]:** pointer inglés
+* **[Color principal y secundario]:** blanco con grandes manchas negras (o hígado oscuro) en la cabeza, el lomo y la grupa, y un moteado fino del mismo color en las patas y el cuerpo,
+* **[Descripción de la forma del cuerpo]:** Su cuerpo de perro de muestra es esbelto y atlético, de pecho hondo, cintura estrecha y patas largas, hecho para correr; se reconoce por su postura "de muestra": quieto, con el hocico y la cola en línea hacia la presa y una pata delantera levantada.
+* **[Color de la cara/hocico]:** negro (o hígado), con una lista blanca en la frente,
+* **[Rasgos clave]:** una cabeza alargada con el hocico largo y recto, el perfil ligeramente cóncavo, orejas finas caídas y mirada atenta,
+* **[Patas/Brazos]:** Patas largas, finas y rectas, blancas y moteadas
+* **[garras/pezuñas/manos]:** patas ovaladas con dedos de bloques
+* **[Descripción de la cola u otro apéndice]:** Su cola, de longitud media, gruesa en la base y fina en la punta, se lleva recta hacia atrás, en línea con el lomo (la marca la apunta con todo el cuerpo).
+* **[Tamaño y peso]:** 53 - 64 cm de cruz / 20 - 30 kg

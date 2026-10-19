@@ -35,6 +35,8 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
+local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
@@ -286,9 +288,13 @@ end
 
 -- El botín sale junto al personaje de quien lo recibe (InventoryService.collect). Cada unidad va
 -- al azar a uno de los que pelearon (lootSharers): en solitario, todo para quien lo derrotó.
+-- Quien lleve una mascota que trae botín (ventaja LootBonus, el labrador) puede llevarse además uno
+-- de los objetos que han caído, aunque no le haya tocado; si no ha caído nada, no hay nada que traer.
 local function giveLoot(sharers: { Player }, definition: Monkeys.MonkeyDefinition)
+	local dropped: { string } = {}
 	for _, entry in definition.loot do
 		if rng:NextNumber() < entry.chance * Config.Monkeys.LootChanceMultiplier then
+			table.insert(dropped, entry.itemId)
 			local shares: { [Player]: number } = {}
 			for _ = 1, rng:NextInteger(entry.min, entry.max) do
 				local player = sharers[rng:NextInteger(1, #sharers)]
@@ -297,6 +303,16 @@ local function giveLoot(sharers: { Player }, definition: Monkeys.MonkeyDefinitio
 			for player, amount in shares do
 				InventoryService.collect(player, entry.itemId, amount)
 			end
+		end
+	end
+	if #dropped == 0 then
+		return
+	end
+	for _, player in sharers do
+		if rng:NextNumber() < Progression.perk(player, "LootBonus") then
+			local petId = player:GetAttribute("ActivePet")
+			local pet = if typeof(petId) == "string" then Pets[petId] else nil
+			InventoryService.collect(player, dropped[rng:NextInteger(1, #dropped)], 1, if pet then pet.icon else nil)
 		end
 	end
 end

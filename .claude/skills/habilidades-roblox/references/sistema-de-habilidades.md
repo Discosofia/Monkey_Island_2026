@@ -219,7 +219,19 @@ del Basecamp (`TrainingDummyService`).
   su dueño a menos de `AttackRange` (25); el cliente las hace saltar (`PetAttack`) y el daño llega a
   los `StrikeDelaySeconds`. Las de curación curan a su dueño. **No pasan por
   `PlayerDamageMultiplier`**; críticos al 10 %; sus números salen más pequeños.
-- Rastreo: en el cliente. Apoyo y carga: `perks`, que suma `Progression.computePerks`.
+- Rastreo: en el cliente (`UI/PetFollowers`). Las que olfatean (`sniffsEggs`, el beagle) señalan
+  además el huevo del suelo a menos de `EggSniffRadius`: huellas hacia él y su distancia; su sitio lo
+  publica `EggService` en `ReplicatedStorage` ("EggPosition"), porque con el streaming el cliente puede
+  no tenerlo cargado.
+- Marca (`marks`, el pointer): en `PetService.tick` marca al mono más cercano (`nearestEnemy`) con la
+  misma marca que "Marcar presas" (`MarkedUntil`/`MarkBonus`, que suma `CombatService.damage` a todo el
+  que le pega) y `MarkSource = "Pet"`; `MarkBonus` 0,15 durante `MarkSeconds`, ×`MarkBossMultiplier` a
+  los jefes. No toca una marca mayor activa y `markPrey` siempre escribe la suya encima (borrando
+  `MarkSource`). Los clientes dibujan la diana roja o, con `MarkSource = "Pet"`, una huella naranja
+  (`AbilityFxController.watchMarks`).
+- Apoyo y carga: `perks`, que suma `Progression.computePerks`. `LootBonus` (el labrador) lo tira
+  `MonkeyService.giveLoot` por cada jugador del reparto: +1 de un objeto de los que han caído, con el
+  icono de su mascota en la línea del botín.
 - Un tipo de ayuda nuevo necesita su rama en `PetService.tick` (o en el cliente si es visual) y su
   texto en `description`.
 

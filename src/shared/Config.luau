@@ -550,6 +550,15 @@ local Config = {
 		-- (UI/PetFollowers; el panel de Ajustes enseña los mismos números).
 		TrackSeconds = 5,
 		TrackRadius = 60,
+		-- Las que olfatean (el beagle), al mismo ritmo, señalan el huevo misterioso si está en el suelo
+		-- a menos de EggSniffRadius studs: unas huellas hacia él y su distancia encima (UI/PetFollowers).
+		EggSniffRadius = 300,
+		-- Las que marcan (el pointer) marcan en cada tick al mono más cercano a su dueño (dentro de
+		-- AttackRange) durante MarkSeconds: todo el que le pega hace MarkBonus más de daño (los jefes se
+		-- resisten: × MarkBossMultiplier). No rebajan una marca mayor ("Marcar presas" del cazador).
+		MarkBonus = 0.15,
+		MarkSeconds = 3,
+		MarkBossMultiplier = 0.5,
 	},
 
 	Abilities = {

@@ -48,6 +48,9 @@ local OPCIONES_BASE = {
 	-- Mejoras de las armas de rol de la forja (Data/Recipes, "upgrades") que se suelen tener desde ese
 	-- día: 1 con botín de categoría 1, 2 con el de categoría 2 y 3. Para medir los jefes de cada día.
 	armasPorDia = { [1] = 0, [3] = 1, [6] = 2 } :: { [number]: number },
+	-- Marca de las mascotas (sección 5): fracción del daño del equipo que va al mono marcado (el más
+	-- cercano al dueño); el resto se reparte entre los demás monos del grupo.
+	focoMarca = 0.5,
 	jugadoresJefe = { 1, 4, 8, 20 }, -- tamaños de equipo para la duración de los jefes
 	especies = { "MonoArdilla", "AulladorRojo", "Mandril", "Chimpance", "Gorila" },
 	soloRol = nil :: string?, -- "Mago" para ver solo ese rol en las secciones 1 y 2
@@ -91,6 +94,9 @@ local LIMITES = {
 	golpeJefe = 65, -- golpe más fuerte de un jefe en furia, con crítico, sin armadura
 	bloqueoEnemigo = 0.6, -- fracción del tiempo que un solo mono te deja sin moverte
 	mascotaVsArma = 0.4, -- DPS de una mascota frente al DPS medio de las armas de rol
+	-- Con la marca de una mascota sobre un jefe, "Marcar presas" del cazador sigue sumando al menos
+	-- esta fracción de lo que suma sin ella.
+	marcaMascotaPresas = 0.5,
 	jefeSegundos = { 90, 240 }, -- duración de un jefe con OPCIONES.aliados jugadores
 	jefeSoloSegundos = 360, -- y con un jugador solo, como mucho
 	curacionPorSegundo = 8, -- curación sostenida del médico a un aliado (de 100 de vida)
@@ -1518,6 +1524,25 @@ local function main(copia: Instance): string
 		table.sort(ids, function(a, b)
 			return (orden[Pets[a].rarity] or 9) < (orden[Pets[b].rarity] or 9)
 		end)
+		-- Marca de las mascotas que señalan a un mono ("marks", el pointer): no hace daño, pero todo el que
+		-- le pega hace Config.Pets.MarkBonus más mientras dura (PetService la renueva en cada tick). Se mide
+		-- como DPS equivalente: con su dueño solo (con su arma) y con el equipo (OPCIONES.aliados, que
+		-- meten al marcado OPCIONES.focoMarca de su daño). Sobre un jefe (× MarkBossMultiplier) se mira lo
+		-- que le deja a "Marcar presas" del cazador: las dos marcas no se suman (gana la mayor), así que
+		-- con la mascota en el equipo la del cazador solo añade la diferencia mientras dura.
+		local P = Config.Pets
+		local cobertura = if P.MarkSeconds then math.min(1, P.MarkSeconds / P.TickSeconds) else 0
+		local marcaMedia = (P.MarkBonus or 0) * cobertura
+		local cazador = perksDe("Cazador")
+		local presasBonus, presasCobertura = 0, 0
+		for _, habilidad in Roles.Cazador.abilities do
+			if habilidad.id == "MarkPrey" then
+				presasBonus = cazador("MarkedBonus")
+				presasCobertura = math.min(1, cazador("MarkSeconds") / recargaDe(habilidad, cazador))
+			end
+		end
+		local marcarPresas = presasBonus * presasCobertura
+		local notas = {}
 		for _, id in ids do
 			local mascota = Pets[id]
 			-- No pasan por PlayerDamageMultiplier (CombatService: "pet").
@@ -1527,18 +1552,57 @@ local function main(copia: Instance): string
 			for perk, valor in mascota.perks or {} do
 				table.insert(ventajas, `{perk} {if valor > 0 then "+" else ""}{n(valor, 2)}`)
 			end
+			local dpsMostrado = if dps > 0 then n(dps) else "-"
+			local pctMostrado = if dps > 0 then pct(dps / dpsArmas) else "-"
+			local medido = dps
+			if mascota.marks then
+				local solo = marcaMedia * dpsArmas
+				local equipo = solo * OPCIONES.aliados * OPCIONES.focoMarca
+				local jefe = (P.MarkBonus or 0) * (P.MarkBossMultiplier or 1)
+				local presasConMascota = presasCobertura * math.max(0, presasBonus - jefe * cobertura)
+				medido = math.max(dps, solo, equipo)
+				-- Solo · con el equipo.
+				dpsMostrado = `≈{n(solo)} · {n(equipo)}`
+				pctMostrado = `{pct(solo / dpsArmas)} · {pct(equipo / dpsArmas)}`
+				table.insert(ventajas, `marca +{pct(P.MarkBonus)} el {pct(cobertura)} del tiempo`)
+				table.insert(
+					notas,
+					`- {mascota.name}: marca +{pct(P.MarkBonus)} durante {P.MarkSeconds} s cada {P.TickSeconds} s. Equivale a ≈{n(
+						solo
+					)} DPS con su dueño solo ({pct(solo / dpsArmas)} del arma) y ≈{n(equipo)} con {OPCIONES.aliados} jugadores que meten al marcado el {pct(
+						OPCIONES.focoMarca
+					)} de su daño ({pct(equipo / dpsArmas)}). A un jefe: +{n(jefe * cobertura * 100, 1)} % del daño del equipo; "Marcar presas" del cazador suma +{n(
+						marcarPresas * 100,
+						1
+					)} % sola y +{n(presasConMascota * 100, 1)} % con esta mascota en el equipo.`
+				)
+				if marcarPresas > 0 and presasConMascota < LIMITES.marcaMascotaPresas * marcarPresas then
+					alerta(
+						`{mascota.name}: con su marca en un jefe, "Marcar presas" del cazador solo suma +{n(
+							presasConMascota * 100,
+							1
+						)} % (sola, +{n(marcarPresas * 100, 1)} %; mín. el {pct(LIMITES.marcaMascotaPresas)})`
+					)
+				end
+			end
 			linea(
-				`| {mascota.name} | {mascota.rarity} | {mascota.kind} | {if dps > 0 then n(dps) else "-"} | {if dps
+				`| {mascota.name} | {mascota.rarity} | {mascota.kind} | {dpsMostrado} | {pctMostrado} | {if cura
 						> 0
-					then pct(dps / dpsArmas)
-					else "-"} | {if cura > 0 then n(cura, 2) else "-"} | {table.concat(ventajas, ", ")} |`
+					then n(cura, 2)
+					else "-"} | {table.concat(ventajas, ", ")} |`
 			)
-			if dps > LIMITES.mascotaVsArma * dpsArmas then
+			if medido > LIMITES.mascotaVsArma * dpsArmas then
 				alerta(
-					`{mascota.name}: su DPS ({n(dps)}) es el {pct(dps / dpsArmas)} del de un arma de rol (máx. {pct(
+					`{mascota.name}: su DPS ({n(medido)}) es el {pct(medido / dpsArmas)} del de un arma de rol (máx. {pct(
 						LIMITES.mascotaVsArma
 					)})`
 				)
+			end
+		end
+		if #notas > 0 then
+			linea("")
+			for _, nota in notas do
+				linea(nota)
 			end
 		end
 		linea("")

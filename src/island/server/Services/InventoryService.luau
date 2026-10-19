@@ -16,13 +16,14 @@ function InventoryService.add(player: Player, itemId: string, amount: number)
 end
 
 -- Como "add", y además el jugador ve "+N icono nombre" junto a su personaje (la recolección y el
--- botín; lo fabricado, el kit del rol o lo devuelto al desmontar no se enseñan así).
-function InventoryService.collect(player: Player, itemId: string, amount: number)
+-- botín; lo fabricado, el kit del rol o lo devuelto al desmontar no se enseñan así). "by": icono de
+-- quien se lo trae (su mascota), que sale al lado en una línea aparte.
+function InventoryService.collect(player: Player, itemId: string, amount: number, by: string?)
 	if amount <= 0 then
 		return
 	end
 	InventoryService.add(player, itemId, amount)
-	Remotes.Loot:FireClient(player, itemId, amount)
+	Remotes.Loot:FireClient(player, itemId, amount, by)
 end
 
 -- Quita "amount" del ítem si hay suficiente. Si no alcanza, no quita nada y devuelve false.

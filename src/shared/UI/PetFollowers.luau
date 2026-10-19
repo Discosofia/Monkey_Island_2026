@@ -1,7 +1,8 @@
 --!strict
 -- Mascotas que siguen a su dueño (Fase 5), en el Lobby y en la Isla. Cada cliente dibuja las de todos
 -- los jugadores (atributo "ActivePet"), así se mueven suaves sin cargar al servidor. Las de rastreo,
--- además, resaltan a su dueño los monos cercanos cada pocos segundos. Las de combate, cuando el
+-- además, resaltan a su dueño los monos cercanos cada pocos segundos, y las que olfatean (el beagle)
+-- le señalan el huevo misterioso del suelo: huellas hacia él y su distancia. Las de combate, cuando el
 -- servidor avisa de un ataque (Remotes.PetAttack), corren hasta el mono, hacen su ataque (el clip
 -- "Attack" de PetModels, o un salto genérico) justo cuando llega el daño
 -- (Config.Pets.StrikeDelaySeconds) y vuelven con su dueño.
@@ -15,7 +16,9 @@
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(script.Parent.Parent.Config)
@@ -25,6 +28,13 @@ local Remotes = require(script.Parent.Parent.Remotes)
 
 local TRACK_EVERY = Config.Pets.TrackSeconds
 local TRACK_RADIUS = Config.Pets.TrackRadius
+-- Olfato (huevo): huellas que salen delante del dueño hacia el huevo (cuántas, la primera a cuántos
+-- studs, la separación y lo que se apartan a cada lado), cuánto se ven y su color. Más cerca de
+-- SNIFF_NEAR studs no hace falta: el huevo ya brilla.
+local SNIFF_PRINTS, SNIFF_FIRST, SNIFF_STEP, SNIFF_SIDE = 6, 3, 2.4, 0.45
+local SNIFF_SHOW = 3
+local SNIFF_NEAR = 12
+local SNIFF_COLOR = Color3.fromRGB(255, 190, 80)
 -- Duración total de un ataque (ir, golpear y empezar a volver).
 local ATTACK_SECONDS = 0.85
 -- Segundos con el dueño quieto antes de la primera rutina de reposo, y pausa entre una y otra.
@@ -400,13 +410,123 @@ function PetFollowers.start()
 		end
 	end)
 
-	-- Rastreo: resalta los monos cercanos al dueño (solo él los ve).
+	-- Olfato: una huella (almohadilla y tres dedos, en bloques) en el suelo bajo "position", mirando a
+	-- "forward", que aparece a los "delay" segundos y se borra sola.
+	local sniffParams = RaycastParams.new()
+	sniffParams.FilterType = Enum.RaycastFilterType.Exclude
+	sniffParams.RespectCanCollide = true
+	local PAW_PIECES = {
+		{ offset = Vector3.zero, size = Vector3.new(0.8, 0.06, 0.7) },
+		{ offset = Vector3.new(-0.34, 0, -0.55), size = Vector3.new(0.26, 0.06, 0.3) },
+		{ offset = Vector3.new(0, 0, -0.66), size = Vector3.new(0.26, 0.06, 0.3) },
+		{ offset = Vector3.new(0.34, 0, -0.55), size = Vector3.new(0.26, 0.06, 0.3) },
+	}
+	local function pawPrint(position: Vector3, forward: Vector3, delay: number)
+		local ignore: { Instance } = { folder }
+		for _, player in Players:GetPlayers() do
+			if player.Character then
+				table.insert(ignore, player.Character)
+			end
+		end
+		sniffParams.FilterDescendantsInstances = ignore
+		local hit = Workspace:Raycast(position + Vector3.new(0, 6, 0), Vector3.new(0, -16, 0), sniffParams)
+		local right = if hit then forward:Cross(hit.Normal) else Vector3.zero
+		if not hit or right.Magnitude < 0.05 then
+			return
+		end
+		local frame = CFrame.fromMatrix(hit.Position + hit.Normal * 0.03, right.Unit, hit.Normal)
+		local appear = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, delay)
+		local fade =
+			TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, delay + SNIFF_SHOW - 0.8)
+		for _, spec in PAW_PIECES do
+			local part = Instance.new("Part")
+			part.Name = "Huella"
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
+			part.Material = Enum.Material.Neon
+			part.Color = SNIFF_COLOR
+			part.Transparency = 1
+			part.Size = spec.size
+			part.CFrame = frame * CFrame.new(spec.offset)
+			part.Parent = folder
+			TweenService:Create(part, appear, { Transparency = 0.2 }):Play()
+			TweenService:Create(part, fade, { Transparency = 1 }):Play()
+			Debris:AddItem(part, delay + SNIFF_SHOW + 0.1)
+		end
+	end
+
+	-- Olfato: la distancia encima del huevo, a través de todo (solo la ve el dueño).
+	local function eggDistance(position: Vector3, distance: number)
+		local anchor = Instance.new("Part")
+		anchor.Name = "OlfatoHuevo"
+		anchor.Anchored = true
+		anchor.CanCollide = false
+		anchor.CanQuery = false
+		anchor.CanTouch = false
+		anchor.Transparency = 1
+		anchor.Size = Vector3.one * 0.2
+		anchor.Position = position + Vector3.new(0, 3.2, 0)
+		anchor.Parent = folder
+		local gui = Instance.new("BillboardGui")
+		gui.AlwaysOnTop = true
+		gui.LightInfluence = 0
+		gui.Size = UDim2.fromOffset(170, 34)
+		gui.Adornee = anchor
+		gui.Parent = anchor
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Font = Enum.Font.BuilderSansBold
+		label.TextScaled = true
+		label.TextColor3 = Color3.fromRGB(255, 225, 150)
+		label.Text = `🐾 🥚 {math.round(distance)} studs`
+		label.Parent = gui
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2
+		stroke.Color = Color3.fromRGB(45, 30, 10)
+		stroke.Parent = label
+		local fade = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, SNIFF_SHOW - 0.6)
+		TweenService:Create(label, fade, { TextTransparency = 1 }):Play()
+		TweenService:Create(stroke, fade, { Transparency = 1 }):Play()
+		Debris:AddItem(anchor, SNIFF_SHOW + 0.1)
+	end
+
+	-- Olfato: si el huevo espera en el suelo a menos de Config.Pets.EggSniffRadius, sus huellas y su
+	-- distancia. Su sitio lo publica el servidor ("EggPosition"): aquí puede no estar cargado.
+	local function sniffEgg(character: Model)
+		local egg = ReplicatedStorage:GetAttribute("EggPosition")
+		if typeof(egg) ~= "Vector3" then
+			return
+		end
+		local feet = character:GetPivot().Position
+		local flat = (egg - feet) * Vector3.new(1, 0, 1)
+		local distance = flat.Magnitude
+		if distance > Config.Pets.EggSniffRadius or distance < SNIFF_NEAR then
+			return
+		end
+		eggDistance(egg, (egg - feet).Magnitude)
+		local forward = flat.Unit
+		local side = forward:Cross(Vector3.yAxis)
+		for i = 1, SNIFF_PRINTS do
+			local along = SNIFF_FIRST + (i - 1) * SNIFF_STEP
+			local offset = side * SNIFF_SIDE * (if i % 2 == 0 then 1 else -1)
+			pawPrint(feet + forward * along + offset, forward, (i - 1) * 0.15)
+		end
+	end
+
+	-- Rastreo: resalta los monos cercanos al dueño (solo él los ve); el olfato, además, el huevo.
 	task.spawn(function()
 		while true do
 			task.wait(TRACK_EVERY)
 			local petId = localPlayer:GetAttribute("ActivePet")
 			local pet = if typeof(petId) == "string" then Pets[petId] else nil
 			local character = localPlayer.Character
+			if pet and pet.sniffsEggs and character then
+				sniffEgg(character)
+			end
 			if pet and pet.tracks and character then
 				local position = character:GetPivot().Position
 				for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do

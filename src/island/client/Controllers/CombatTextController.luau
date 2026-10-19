@@ -13,7 +13,8 @@
 --     vale para los números y para lo recogido.
 --   - Lo que recoges (Remotes.Loot): "+2 🌲 Madera" con el color de su rareza, en una columna a la
 --     derecha justo debajo de la de curación (en las tres disposiciones). Lo mismo recogido seguido
---     suma en la misma línea (Config.CombatText.LootMergeSeconds).
+--     suma en la misma línea (Config.CombatText.LootMergeSeconds). Lo que trae la mascota (el
+--     labrador) va en su línea, con su icono al final: "+1 🦴 Hueso 🦮".
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -355,10 +356,17 @@ local function show(entry: any)
 end
 
 -- "+2 🌲 Madera" en la columna de lo recogido; lo mismo recogido seguido suma en la misma línea.
-local function showLoot(itemId: any, amount: any)
+local function showLoot(itemId: any, amount: any, by: any)
 	local item = if typeof(itemId) == "string" then Items[itemId] else nil
 	local column = ownColumns.Loot
 	if not (item and column and typeof(amount) == "number" and amount > 0) or not Settings.get().showLoot then
+		return
+	end
+	local rarity = Rarities[item.rarity or "Common"] or Rarities.Common
+	-- Lo que trae la mascota (el labrador), aparte y con su icono: así se ve que es suyo.
+	if typeof(by) == "string" then
+		lastLoot = nil
+		column:push(`+{amount} {item.icon} {item.name} {by}`, { color = rarity.color })
 		return
 	end
 	local now = os.clock()
@@ -367,7 +375,6 @@ local function showLoot(itemId: any, amount: any)
 		total += lastLoot.total
 	end
 	lastLoot = { itemId = itemId, total = total, at = now }
-	local rarity = Rarities[item.rarity or "Common"] or Rarities.Common
 	column:push(`+{total} {item.icon} {item.name}`, { color = rarity.color, key = itemId })
 end
 

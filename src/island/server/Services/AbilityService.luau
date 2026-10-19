@@ -480,6 +480,8 @@ local function markPrey(player: Player, _character: Model, root: BasePart): bool
 				end
 				enemy:SetAttribute("MarkedUntil", untilTime)
 				enemy:SetAttribute("MarkBonus", bonus)
+				-- Pisa la marca de una mascota (PetService): la suya es mayor y se ve como diana.
+				enemy:SetAttribute("MarkSource", nil)
 				local highlight = Instance.new("Highlight")
 				highlight.Name = "PreyMark"
 				highlight.FillTransparency = 1

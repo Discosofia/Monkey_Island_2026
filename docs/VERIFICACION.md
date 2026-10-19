@@ -259,6 +259,11 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - **Rastreo** (tucán, guacamaya): ✅ cada 5 s ves contornos amarillos en los monos cercanos.
    - **Curación** (rana): ✅ recuperas vida sola.
    - Las de apoyo y carga dan sus ventajas cuando se llevan desde el Lobby.
+3. [ ] **Sabuesos** (con 🐾 **Siguiente mascota** hasta cada uno; de momento tienen un modelo provisional, el de un felino con el color de su raza):
+   - **Beagle** (común, rastreo): con un 🥚 **Huevo** en el suelo a menos de 300 studs, cada 5 s salen **huellas naranjas** delante de ti hacia el huevo y, encima del huevo, "🐾 🥚 152 studs". Más lejos de 300 o a menos de 12, nada. También resalta los monos como el tucán.
+   - **Labrador** (raro, carga): al derrotar monos, de vez en cuando (un 30 % de las veces que sueltan algo) sale una línea aparte con un objeto más y el icono de tu mascota: "+1 🦴 Hueso 🦮".
+   - **Pointer inglés** (épico, marca): el mono (o muñeco) más cercano a menos de 25 studs lleva una **huella naranja** encima y recibe un 15 % más de daño de todos (el garrote de piedra: 27 → 31). Con el cazador, "Marcar presas" pone su diana roja encima (20 %) y, al acabarse, vuelve la huella. A un jefe, la mitad (+7,5 %).
+   - ⚙️ Ajustes: la línea de la mascota explica cada perro con sus números.
 
 ## 5.4 PvP y cajas de suministro
 

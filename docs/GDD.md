@@ -565,8 +565,8 @@ sequenceDiagram
 ### Mascotas
 
 - **Colección persistente.** Se equipa **1 mascota activa** desde el lobby.
-- **Tipos de ayuda:** combate, carga (+inventario), rastreo (detecta recursos y monos), curación y apoyo.
-- **Rarezas:** de común a legendaria. Fauna tropical (tucán, guacamaya, tortuga, jaguarundí…) y criaturas "experimentales" legendarias del laboratorio (ver Lore).
+- **Tipos de ayuda:** combate, carga (más material o más botín), rastreo (detecta monos; el beagle también huele el huevo), marca (señala al mono más cercano: todos le hacen más daño), curación y apoyo.
+- **Rarezas:** de común a legendaria. Fauna tropical (tucán, guacamaya, tortuga, jaguarundí…), tres sabuesos (beagle, labrador y pointer inglés) y criaturas "experimentales" legendarias del laboratorio (ver Lore).
 - **Importante:** los huevos **solo se consiguen jugando**, nunca con Robux. Así se evitan las normas de Roblox sobre objetos aleatorios de pago.
 
 ---

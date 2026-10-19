@@ -8,7 +8,8 @@
 --   5. Al eclosionar, cada participante (quien lo llevó o estuvo cerca durante el viaje, y quien esté
 --      en el Basecamp al nacer) recibe una mascota persistente (Shared/PetRoll), que le acompaña ya en
 --      esta partida salvo que lleve otra más rara.
--- El estado se publica en ReplicatedStorage ("EggStatus") para el HUD.
+-- El estado se publica en ReplicatedStorage ("EggStatus") para el HUD y, mientras el huevo espera en el
+-- suelo, su sitio ("EggPosition") para las mascotas que lo olfatean (el beagle, UI/PetFollowers).
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -74,6 +75,13 @@ end
 
 local function setStatus(text: string?)
 	ReplicatedStorage:SetAttribute("EggStatus", text)
+end
+
+-- El cliente puede no tener cargado el huevo si está lejos (la Isla carga por zonas): por eso su
+-- sitio va en un atributo, no se busca el modelo.
+local function publishPosition()
+	local part = egg
+	ReplicatedStorage:SetAttribute("EggPosition", if part and state == "Ground" then part.Position else nil)
 end
 
 local function clearEgg()
@@ -600,6 +608,7 @@ function EggService:Start()
 	while true do
 		task.wait(TICK_SECONDS)
 		tick()
+		publishPosition()
 	end
 end
 

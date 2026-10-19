@@ -4,6 +4,9 @@
 --     clientes (Remotes.PetAttack) para que la mascota salte sobre él y el daño llega al golpe
 --     (Config.Pets.StrikeDelaySeconds).
 --   - Curación: cura a su dueño.
+--   - Marca: marca al mono más cercano a su dueño (la misma marca que "Marcar presas" del cazador,
+--     atributos "MarkedUntil"/"MarkBonus", con "MarkSource" = "Pet" para que los clientes dibujen una
+--     huella en vez de la diana). Todo el que le pega hace más daño (CombatService.damage).
 -- Sus golpes y curaciones pueden ser críticos (Config.Crit.PetChance) y sus números salen más pequeños
 -- que los del jugador (CombatTextController).
 -- Las ventajas pasivas (apoyo, carga) las suma RoleService; el rastreo lo hace el cliente.
@@ -11,6 +14,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
@@ -19,6 +23,7 @@ local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatService = require(script.Parent.CombatService)
+local Status = require(script.Parent.Parent.Combat.Status)
 
 local PetService = {}
 
@@ -38,6 +43,29 @@ local function nearestEnemy(position: Vector3): (Model?, Humanoid?)
 		end
 	end
 	return best, bestHumanoid
+end
+
+-- Marca de la mascota sobre "enemy": la renueva sin acortarla y no toca una marca mayor que dure aún
+-- (la del cazador, que se escribe encima de esta al lanzarla).
+local function petMark(enemy: Model)
+	local bonus = Config.Pets.MarkBonus
+	if Status.isBoss(enemy) then
+		bonus *= Config.Pets.MarkBossMultiplier
+	end
+	local now = Workspace:GetServerTimeNow()
+	local untilTime = enemy:GetAttribute("MarkedUntil")
+	local current = enemy:GetAttribute("MarkBonus")
+	local active = typeof(untilTime) == "number" and now < untilTime
+	if active and typeof(current) == "number" and current > bonus then
+		return
+	end
+	local newUntil = now + Config.Pets.MarkSeconds
+	if active and enemy:GetAttribute("MarkSource") == "Pet" then
+		newUntil = math.max(newUntil, untilTime :: number)
+	end
+	enemy:SetAttribute("MarkedUntil", newUntil)
+	enemy:SetAttribute("MarkBonus", bonus)
+	enemy:SetAttribute("MarkSource", "Pet")
 end
 
 local function tick(player: Player)
@@ -65,6 +93,12 @@ local function tick(player: Player)
 					)
 				end
 			end)
+		end
+	end
+	if pet.marks then
+		local enemy = nearestEnemy(character:GetPivot().Position)
+		if enemy then
+			petMark(enemy)
 		end
 	end
 	if pet.healPerTick and humanoid.Health > 0 and humanoid.Health < humanoid.MaxHealth then

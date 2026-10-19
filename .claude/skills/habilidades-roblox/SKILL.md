@@ -267,6 +267,15 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   x5. Para medir cuánto pesa cada cosa, pon a 0 `damageBonus`, `StreakCooldownBonus` y
   `UltRefundSeconds` de uno en uno. En Play, al probar una conexión, pega con el arma mientras
   esperas un paso largo o la racha se pierde a los 8 s y parece un fallo.
+- **Mascota de prueba**: el comando "Pet" pone `ActivePet` y recalcula las ventajas, pero cualquier
+  `PlayerData.update` (al derrotar un mono, por ejemplo) vuelve a publicar la mascota guardada sin
+  recalcularlas. Para lo que lee `ActivePet` en ese momento (el icono del botín del labrador) sale la
+  guardada; las ventajas (`Perk_*`) siguen siendo las de la de prueba.
+- **Las capturas no enseñan los BillboardGui que crean los scripts del cliente** (la diana, la huella
+  del pointer, el cartel del olfato), aunque existan y caigan dentro de la pantalla; sí los del servidor
+  ("Parcela libre", los nombres) y las ScreenGui. Compruébalos por instancias (`workspace.AbilityFx`,
+  `Adornee`, `WorldToViewportPoint`) y pide al usuario que los mire. Los creados o clonados desde el MCP
+  tampoco se pintan.
 - Al probar por MCP no lances una habilidad justo después de mover al personaje con `PivotTo` desde
   el cliente: el servidor aún lo ve donde estaba (el cepo se queda en el sitio viejo). Espera ~0,5 s.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que

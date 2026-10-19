@@ -1467,6 +1467,26 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		return "Walk"
 	end,
 
+	-- Perros: provisionales (un felino con el color de cada raza) hasta que tengan su modelo voxel.
+	Beagle = function(rig, color)
+		felid(rig, color, { eyeColor = Color3.fromRGB(70, 40, 20), earSize = 0.3, roundEars = true })
+		return "Walk"
+	end,
+	Labrador = function(rig, color)
+		felid(rig, color, { eyeColor = Color3.fromRGB(90, 55, 25), earSize = 0.26, roundEars = true })
+		return "Walk"
+	end,
+	Pointer = function(rig, color)
+		felid(rig, color, {
+			spots = Color3.fromRGB(50, 38, 34),
+			eyeColor = Color3.fromRGB(110, 70, 30),
+			earSize = 0.26,
+			roundEars = true,
+			slim = true,
+		})
+		return "Walk"
+	end,
+
 	-- Jaguar de cristal: felino de hielo cristalino con manchas que brillan por dentro, racimos de
 	-- cristales en el lomo y los hombros, un cristal en la frente y un corazón que late de luz.
 	JaguarCristal = function(rig, color)

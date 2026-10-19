@@ -81,6 +81,7 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Golpe máx. enemigo | el golpe más fuerte posible de un mono o jefe (salto, alfa, crítico) | que nada te tumbe de un golpe |
 | Te deja quieto | fracción del tiempo que un mono solo te inmoviliza si todos sus golpes entran, con la inmunidad tras soltarte | bloqueo |
 | % del arma (mascotas) | DPS de la mascota ÷ DPS medio de las armas de rol | que la mascota ayude sin jugar por ti |
+| Marca (mascotas) | `MarkBonus` × el DPS del arma del dueño solo y del equipo (`aliados` × `focoMarca`, la parte de su daño que va al marcado); a un jefe, lo que le deja a "Marcar presas" | que el pointer ayude al grupo sin quitarle su papel al cazador |
 
 Supuestos (los que más cambian el resultado): monos repartidos (un radio 10 alcanza 2,5 de media,
 un radio 14 3,5, más de 14, 4,5); del abanico de flechas entran 2 en un solo mono y el 70 % en un
@@ -111,6 +112,7 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Golpe más fuerte de un jefe en furia | ≤ 65 | dos golpes seguidos deben poder esquivarse o curarse |
 | Un mono te deja quieto | < 60 % del tiempo | si no, es un bloqueo sin salida |
 | Mascota de combate | ≤ 40 % del DPS de un arma de rol | ayuda, no juega por ti (y salen de huevos aleatorios) |
+| Marca de una mascota | con su dueño solo y con el equipo, ≤ 40 % del DPS de un arma de rol (como las de combate); sobre un jefe, "Marcar presas" sigue sumando ≥ 50 % de lo que suma sin ella | las dos marcas no se suman (gana la mayor): si la de la mascota tapa la del cazador, "Marcar presas" deja de valer |
 | Duración de un jefe (4 jugadores, 60 % de actividad) | 90–240 s | que dé tiempo a ver sus 3 fases; objetivo 2 min el primero y 3 min el último |
 | Un jefe con un jugador solo | ≤ 360 s | solo es más difícil, pero no eterno |
 | Curación sostenida del médico | ≤ 8 por segundo por aliado | un grupo de monos tiene que seguir siendo peligroso |
@@ -118,6 +120,16 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
 Para comparar las propuestas. Vuelve a sacarla con la calculadora si cambian los números del juego.
+
+**19 de octubre de 2026, sabuesos** (Grupo 14). El pointer inglés (épico) marca en cada tick (2 s) al
+mono más cercano a su dueño durante 3 s: +15 % de daño de todos (a los jefes, ×0,5). Equivale a 3,1
+DPS con su dueño solo (15 % del arma; el Ocelote, el otro épico, 35 %) y 6,2 con 4 jugadores que meten
+al marcado la mitad de su daño (30 %): el Ocelote es la mascota de quien juega solo y el pointer, la
+del grupo. A un jefe da +7,5 % del daño del equipo; "Marcar presas" suma +6,7 % sola y +4,2 % con el
+pointer en el equipo (+14,7 % y +9,2 % con talentos). Medido en Play: el garrote de piedra pasa de 27
+a 31 contra el marcado. El beagle (común) rastrea y huele el huevo; el labrador (raro, `LootBonus`
+0,3) trae un objeto más en el 30 % de las muertes que sueltan algo (~14 extras en 50 muertes en Play).
+Ninguno cambia los roles ni los jefes.
 
 **19 de octubre de 2026, médico en combate** (cerbatanas con veneno, pasiva con +15 de vida y Savia
 protectora, remates que envenenan y exponen). Guerrero, Cazador y Mago no cambian:

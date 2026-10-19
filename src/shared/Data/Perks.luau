@@ -36,10 +36,11 @@ local Perks: { [string]: number } = {
 	ShieldAmount = 24, -- daño que absorbe el "Escudo de hojas"
 	SapShield = 0, -- escudo que gana al curar a un aliado ("Savia protectora", pasiva del médico)
 	PowderSleep = 1.5, -- segundos que duerme el "Polvo somnífero"
-	-- Recolección (mejoras de la tienda y mascotas).
+	-- Recolección y botín (mejoras de la tienda y mascotas).
 	HarvestSpeed = 1, -- multiplica el tiempo de mantener los avisos de recolección
 	HarvestBonus = 0, -- material extra en cada recolección
 	ToolPower = 0, -- potencia extra por golpe del hacha y el pico
+	LootBonus = 0, -- probabilidad de un objeto más del botín de cada mono derrotado (el labrador)
 	-- Supervivencia.
 	MaxHealth = 0, -- vida máxima extra
 	HungerRate = 1, -- multiplica lo rápido que bajan el hambre y la sed

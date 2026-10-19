@@ -20,7 +20,8 @@
 -- momento con AbilityFxController.play; el servidor se los manda solo a los demás.
 -- La diana de las presas, el vapor del veneno y la burbuja del escudo no llegan por el evento: salen de
 -- los atributos "MarkedUntil" y "PoisonedUntil" de los monos y "ShieldHealth"/"ShieldUntil" de los
--- jugadores; los iconos de las marcas
+-- jugadores (si la marca es de una mascota, "MarkSource" = "Pet", el pointer: una huella naranja sobre
+-- la cabeza en vez de la diana); los iconos de las marcas
 -- de combo, de "ComboMarkBy"/"ComboMarkUntil" (Data/Combos). Al cerrar un combo: aro dorado en el
 -- jugador y, en el del mago, el hielo que estalla.
 
@@ -984,13 +985,59 @@ local function reticle(model: Model): (BillboardGui?, Frame?)
 	return gui, spinner
 end
 
--- Pone y quita las dianas según el atributo "MarkedUntil" de cada enemigo (lo pone AbilityService).
+-- Marca de una mascota (el pointer, PetService): una huella naranja (almohadilla y cuatro dedos) que
+-- flota sobre la cabeza del mono, más pequeña que la diana del cazador para no confundirlas.
+local function pawMark(model: Model): BillboardGui?
+	local root = rootOf(model)
+	if not root then
+		return nil
+	end
+	local box, extents = model:GetBoundingBox()
+	local orange = Color3.fromRGB(255, 150, 45)
+	local dark = Color3.fromRGB(70, 35, 10)
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "PetMark"
+	gui.Adornee = root
+	gui.AlwaysOnTop = true
+	gui.LightInfluence = 0
+	gui.MaxDistance = 300
+	-- Encima de la cabeza (lo más alto del modelo), medido desde el centro de su pieza raíz.
+	gui.StudsOffsetWorldSpace = Vector3.new(0, box.Position.Y + extents.Y / 2 + 1.4 - root.Position.Y, 0)
+	gui.Size = UDim2.fromScale(0.5, 0.5)
+	gui.Parent = folder
+	TweenService:Create(gui, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Size = UDim2.fromScale(2.2, 2.2) }):Play()
+	local function blob(position: UDim2, size: UDim2)
+		local frame = Instance.new("Frame")
+		frame.AnchorPoint = Vector2.new(0.5, 0.5)
+		frame.Position = position
+		frame.Size = size
+		frame.BackgroundColor3 = orange
+		frame.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = frame
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = dark
+		stroke.Thickness = 2
+		stroke.Parent = frame
+	end
+	blob(UDim2.fromScale(0.5, 0.7), UDim2.fromScale(0.52, 0.42))
+	for _, toe in { { 0.17, 0.42 }, { 0.38, 0.22 }, { 0.62, 0.22 }, { 0.83, 0.42 } } do
+		blob(UDim2.fromScale(toe[1], toe[2]), UDim2.fromScale(0.2, 0.24))
+	end
+	return gui
+end
+
+-- Pone y quita las dianas según el atributo "MarkedUntil" de cada enemigo (lo ponen AbilityService y,
+-- con "MarkSource" = "Pet", PetService): la diana que gira o la huella de la mascota.
 local function watchMarks()
-	type Mark = { gui: BillboardGui, spinner: Frame }
+	type Mark = { gui: BillboardGui, spinner: Frame?, pet: boolean }
 	local marks: { [Model]: Mark } = {}
 	RunService.RenderStepped:Connect(function(deltaTime)
 		for _, mark in marks do
-			mark.spinner.Rotation += deltaTime * 40
+			if mark.spinner then
+				mark.spinner.Rotation += deltaTime * 40
+			end
 		end
 	end)
 	while true do
@@ -999,15 +1046,26 @@ local function watchMarks()
 			if enemy:IsA("Model") then
 				local untilTime = enemy:GetAttribute("MarkedUntil")
 				local marked = typeof(untilTime) == "number" and now < untilTime
+				local pet = enemy:GetAttribute("MarkSource") == "Pet"
 				local mark = marks[enemy]
-				if marked and not mark then
-					local gui, spinner = reticle(enemy)
-					if gui and spinner then
-						marks[enemy] = { gui = gui, spinner = spinner }
-					end
-				elseif not marked and mark then
+				-- La del cazador pisa a la de la mascota (y al revés cuando la suya se acaba).
+				if mark and (not marked or mark.pet ~= pet) then
 					mark.gui:Destroy()
 					marks[enemy] = nil
+					mark = nil
+				end
+				if marked and not mark then
+					if pet then
+						local gui = pawMark(enemy)
+						if gui then
+							marks[enemy] = { gui = gui, pet = true }
+						end
+					else
+						local gui, spinner = reticle(enemy)
+						if gui and spinner then
+							marks[enemy] = { gui = gui, spinner = spinner, pet = false }
+						end
+					end
 				end
 			end
 		end

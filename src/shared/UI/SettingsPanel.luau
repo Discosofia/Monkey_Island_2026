@@ -218,6 +218,9 @@ local PERK_TEXT: { [string]: (value: number) -> string } = {
 	ToolPower = function(value)
 		return `+{math.round(value)} de potencia del hacha y el pico`
 	end,
+	LootBonus = function(value)
+		return `un {math.round(value * 100)} % de un objeto más del botín de cada mono`
+	end,
 }
 
 local SettingsPanel = {}
@@ -454,6 +457,17 @@ local function petHelp(pet: Pets.Pet): string
 		table.insert(
 			help,
 			`resalta los monos a menos de {Config.Pets.TrackRadius} studs cada {Config.Pets.TrackSeconds} s`
+		)
+	end
+	if pet.sniffsEggs then
+		table.insert(help, `huele el huevo a menos de {Config.Pets.EggSniffRadius} studs y te deja huellas hacia él`)
+	end
+	if pet.marks then
+		table.insert(
+			help,
+			`marca al mono más cercano: todos le hacen {signedPercent(Config.Pets.MarkBonus)} de daño (a los jefes, +{decimal(
+				Config.Pets.MarkBonus * Config.Pets.MarkBossMultiplier * 100
+			)} %)`
 		)
 	end
 	local names = {}

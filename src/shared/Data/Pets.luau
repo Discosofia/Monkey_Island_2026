@@ -3,15 +3,17 @@
 -- Se lleva 1 activa, elegida en el Lobby. Tipos de ayuda:
 --   Combate  ataca al mono más cercano a su dueño ("attackDamage" cada 2 s)
 --   Curación cura a su dueño ("healPerTick" cada 2 s)
---   Rastreo  resalta para su dueño los monos cercanos cada pocos segundos
---   Carga    más material al recolectar ("perks")
+--   Rastreo  resalta para su dueño los monos cercanos cada pocos segundos ("tracks"); las que
+--            olfatean ("sniffsEggs"), además, el huevo misterioso del suelo
+--   Carga    más material al recolectar o del botín ("perks")
+--   Marca    señala al mono más cercano: todo el que le pega hace más daño ("marks", Config.Pets)
 --   Apoyo    ventajas pasivas ("perks", ver Data/Perks)
 
 export type Pet = {
 	name: string,
 	icon: string,
 	rarity: string, -- Data/Rarities
-	kind: string, -- Combate, Curación, Rastreo, Carga, Apoyo
+	kind: string, -- Combate, Curación, Rastreo, Carga, Marca, Apoyo
 	description: string,
 	color: Color3,
 	size: number,
@@ -19,6 +21,8 @@ export type Pet = {
 	attackDamage: number?,
 	healPerTick: number?,
 	tracks: boolean?,
+	sniffsEggs: boolean?,
+	marks: boolean?,
 }
 
 local Pets: { [string]: Pet } = {
@@ -51,6 +55,17 @@ local Pets: { [string]: Pet } = {
 		color = Color3.fromRGB(25, 90, 215),
 		size = 0.585,
 		healPerTick = 1,
+	},
+	Beagle = {
+		name = "Beagle",
+		icon = "🐶",
+		rarity = "Common",
+		kind = "Rastreo",
+		description = "Señala a los monos cercanos y olfatea el huevo misterioso: huellas hacia él y su distancia.",
+		color = Color3.fromRGB(190, 120, 55),
+		size = 1,
+		tracks = true,
+		sniffsEggs = true,
 	},
 	Guacamaya = {
 		name = "Guacamaya",
@@ -93,6 +108,16 @@ local Pets: { [string]: Pet } = {
 		size = 0.8,
 		perks = { SprintCost = -0.2 },
 	},
+	Labrador = {
+		name = "Labrador",
+		icon = "🦮",
+		rarity = "Rare",
+		kind = "Carga",
+		description = "Te trae más botín: un 30 % de un objeto más por cada mono derrotado que suelte algo.",
+		color = Color3.fromRGB(225, 190, 130),
+		size = 1.2,
+		perks = { LootBonus = 0.3 },
+	},
 	Ocelote = {
 		name = "Ocelote",
 		icon = "🐆",
@@ -102,6 +127,16 @@ local Pets: { [string]: Pet } = {
 		color = Color3.fromRGB(205, 145, 55),
 		size = 1.1,
 		attackDamage = 14,
+	},
+	Pointer = {
+		name = "Pointer inglés",
+		icon = "🐕",
+		rarity = "Epic",
+		kind = "Marca",
+		description = "Marca al mono más cercano: todo el que le pega hace un 15 % más de daño (los jefes, la mitad).",
+		color = Color3.fromRGB(240, 235, 225),
+		size = 1.15,
+		marks = true,
 	},
 	MonoX7 = {
 		name = "Mono experimental X-7",
