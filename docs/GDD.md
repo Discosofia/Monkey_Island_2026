@@ -443,15 +443,19 @@ al modelar cada animal.
 
 | Mascota | Alto real en postura | Real (studs) | **Alto en juego** |
 |---|---|---|---|
-| Rana dardo | ~0,04 m | 0,12 | **1,55** |
-| Colibrí | ~0,1 m (con las alas) | 0,3 | **1,65** |
-| Tucán | ~0,35 m posado | 1,05 | **2** |
+| Rana dardo | ~0,04 m | 0,12 | **0,53** (hecho; 1,1 de largo, por debajo del mínimo a propósito) |
+| Colibrí | ~0,1 m (con las alas) | 0,3 | **1,4** (hecho; 2,1 de punta a punta de las alas) |
+| Tucán | ~0,35 m posado | 1,05 | **2** (hecho) |
 | Jaguarundí | ~0,35 m de hombros | 1,05 | **2** (hecho) |
 | Tortuga verde | ~0,4 m de caparazón | 1,2 | **2,1** |
 | Ocelote | ~0,45 m de hombros | 1,35 | **2,2** (hecho) |
 | Papagayo (Guacamaya) | ~0,45 m posado | 1,35 | **2,2** |
 | Perezoso | ~0,5 m sentado | 1,5 | **2,25** |
 | Jaguar de cristal | ~0,7 m de hombros (jaguar) | 2,1 | **2,6** con los cristales (hecho) |
+
+Las mascotas pequeñas se ordenan por su **lado más largo**, no solo por el alto: la rana, plana, salía
+la más grande con 1,55 de alto. Orden decidido por el usuario (18-10-2026): rana < colibrí < tucán. La
+rana mide un 25 % menos que el mínimo de 1,5 studs, a propósito.
 
 Consecuencias que hay que revisar al pasar cada uno a voxel:
 - Casi todos los monos bajan de tamaño. El orden de peligro se mantiene (los pequeños de la

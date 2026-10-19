@@ -577,6 +577,36 @@ salto del ocelote). Va detrás de `PetModels.voxelCats` (activo desde el 18-10-2
   sube, recorta manchas en las patas antes que en el lomo (el tríceps detrás del brazo apenas se
   veía y se quitó por eso).
 
+### Mascotas voxel (aves y rana)
+
+Tucán, Colibrí y Rana (aprobados el 18-10-2026) tienen constructor voxel en `voxelBuilders` de
+PetModels, que manda sobre `builders`; sus constructores redondos se borraron. Cajas sueltas en celdas de
+`CELL = 0,1` studs con el suelo en y = 0, colocadas con `voxelKit(rig, origen)`:
+- `box` (caja alineada), `beam` (caja de un punto a otro: colas y plumas) y `swing` (articula una
+  lista de piezas con una sola bisagra, con hueso opcional).
+- `voxelWing(v, side, hinge, steps, amplitud, velocidad)`: ala abierta en escalones descrita del
+  lado derecho; bate en Z con los huesos `WingL`/`WingR`, así que valen los clips `Bird` (planeo).
+- Mismos movimientos que los redondos: las aves cabecean y menean la cola, y la rana patalea al
+  compás de los saltos (`gait` y `bias` = amplitud). El alto se ajusta con `size` en Data.
+
+Lo aprendido:
+- El tucán vuela: alas **abiertas** aunque la referencia las tenga plegadas. De espaldas era una
+  losa negra: un manto en dos escalones de negro azulado lo arregla.
+- Cola en abanico del colibrí: plumas de 1,1 celdas separadas parecían dedos; con 1,7 y menos
+  abiertas se solapan y se leen como la referencia.
+- Dos paneles de color en el lomo del colibrí parecían una **mochila**: una franja del ancho del
+  lomo se lee como plumaje.
+- Studio aclara los verdes y azules: el verde (60, 200, 140) salía menta y el azul de la rana
+  (60, 160, 230), cian. Van a (35, 160, 65) y (25, 90, 215).
+- Rana: las motas de los costados de atrás quedaban tapadas por los muslos en Z; súbelas por encima.
+- **Tamaño de las mascotas pequeñas: compara el lado más largo, no solo el alto.** Con el alto del
+  GDD (1,55) la rana, plana, medía 3,4 × 3,2 studs y era la mayor de las tres. El usuario quiere el
+  orden real (rana < colibrí < tucán) aunque la rana baje del mínimo: queda en 1,1 × 0,53 × 1,1
+  (`size` 0,585), el colibrí en 1,4 de alto y 2,1 con las alas (0,8) y el tucán en 2 (0,88).
+- Para enseñar tamaños, pon al lado un avatar R15 de verdad
+  (`Players:CreateHumanoidModelFromDescription`, anclado) y captura de frente desde unos 20 studs
+  con `FieldOfView` 25: de cerca, la perspectiva agranda al avatar y engaña.
+
 ### Presupuesto: bloques de diseño frente a piezas en juego
 
 Lo que cuesta en cada fotograma son las **piezas que se mueven**, no los bloques que se ven. Prueba

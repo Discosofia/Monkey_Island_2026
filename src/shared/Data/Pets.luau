@@ -29,7 +29,7 @@ local Pets: { [string]: Pet } = {
 		kind = "Rastreo",
 		description = "Señala a los monos cercanos cada pocos segundos.",
 		color = Color3.fromRGB(30, 30, 30),
-		size = 1,
+		size = 0.88,
 		tracks = true,
 	},
 	Tortuga = {
@@ -48,8 +48,8 @@ local Pets: { [string]: Pet } = {
 		rarity = "Common",
 		kind = "Curación",
 		description = "Te cura 1 punto de vida cada 2 segundos.",
-		color = Color3.fromRGB(60, 160, 230),
-		size = 0.8,
+		color = Color3.fromRGB(25, 90, 215),
+		size = 0.585,
 		healPerTick = 1,
 	},
 	Guacamaya = {
@@ -89,8 +89,8 @@ local Pets: { [string]: Pet } = {
 		rarity = "Rare",
 		kind = "Apoyo",
 		description = "Correr gasta un 20 % menos de estamina.",
-		color = Color3.fromRGB(60, 200, 140),
-		size = 0.7,
+		color = Color3.fromRGB(35, 160, 65),
+		size = 0.8,
 		perks = { SprintCost = -0.2 },
 	},
 	Ocelote = {
