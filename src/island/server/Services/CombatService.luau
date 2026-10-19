@@ -41,10 +41,17 @@ local CombatService = {}
 
 local lastAttackAt: { [Player]: number } = {}
 local damageListeners: { (model: Model, attacker: Player?, amount: number) -> () } = {}
+local healListeners: { (player: Player, healer: Player, amount: number) -> () } = {}
 
 -- Llama a "callback" cada vez que un enemigo recibe daño (BossService cuenta quién participa).
 function CombatService.onEnemyDamaged(callback: (model: Model, attacker: Player?, amount: number) -> ())
 	table.insert(damageListeners, callback)
+end
+
+-- Llama a "callback" cada vez que alguien cura de verdad a otro jugador (MonkeyService reparte el
+-- botín también con el médico de quien pelea). No cuenta curarse a uno mismo ni las mascotas.
+function CombatService.onPlayerHealed(callback: (player: Player, healer: Player, amount: number) -> ())
+	table.insert(healListeners, callback)
 end
 local lastDodgeAt: { [Player]: number } = {}
 
@@ -269,6 +276,11 @@ function CombatService.heal(player: Player, amount: number, healer: Player?, opt
 	local source = if heal.pet then "Mascota" else heal.source
 	if healer and source then
 		TelemetryService.healed(healer, source, healed)
+	end
+	if healer and healer ~= player and not heal.pet and healed > 0 then
+		for _, listener in healListeners do
+			task.spawn(listener, player, healer, healed)
+		end
 	end
 	return healed
 end

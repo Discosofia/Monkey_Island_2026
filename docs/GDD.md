@@ -342,6 +342,8 @@ El **diario de campo** (J en la Isla, pestaña "Diario" en el Lobby) recoge las 
 
 *Ajuste de octubre de 2026 (combos):* las tropas son un **50 % más grandes** (`Config.Monkeys.GroupSizeMultiplier`), los grupos diezmados se recuperan cada **25 s** (antes 45) y caben hasta **220** monos a la vez (antes 160), para que siempre haya con quién enlazar combos. *(18-10-2026: las tropas solo existen cerca de los jugadores y el límite, 200, cuenta solo esas; ver `docs/RENDIMIENTO.md`.)* A cambio, cada mono suelta botín con la **mitad de probabilidad** (`LootChanceMultiplier`).
 
+*Botín compartido (18-10-2026):* el botín de un mono se **reparte al azar, unidad a unidad, entre todos los que pelearon contra él**: quienes le golpearon en los últimos **30 s** (`Config.Monkeys.LootShareSeconds`), los **médicos que curaron a alguno de ellos** en ese tiempo y siempre quien lo derrotó. Para recibir hay que estar vivo (no caído ni Espíritu), salvo quien lo derrota. Lo robado por un capuchino y la baja (diario, estadísticas) siguen siendo de quien lo derrota.
+
 #### Categoría 1: dificultad baja
 
 | Especie | Horario | Zona | Mecánica propia | Botín de ejemplo |

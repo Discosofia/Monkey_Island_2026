@@ -229,6 +229,10 @@ local Config = {
 		GroupSizeMultiplier = 1.5,
 		-- Probabilidad de cada botín de Data/Monkeys ("chance") multiplicada por esto.
 		LootChanceMultiplier = 0.5,
+		-- Botín compartido: al morir un mono, cada unidad de su botín va al azar a uno de los que
+		-- pelearon contra él: quienes le golpearon en los últimos LootShareSeconds y los médicos que
+		-- curaron a alguno de ellos en ese tiempo.
+		LootShareSeconds = 30,
 		-- Especies (vida, daño, botín…): ver Shared/Data/Monkeys.
 	},
 

@@ -98,6 +98,7 @@ type Monkey = {
 	roarReadyAt: number,
 	throwReadyAt: number,
 	stompReadyAt: number,
+	fighters: { [Player]: number }, -- quién le ha golpeado y cuándo (os.clock), para el botín
 }
 
 type PlayerInfo = { player: Player, position: Vector3, safe: boolean, hasTorch: boolean }
@@ -106,6 +107,8 @@ local MonkeyService = {}
 
 local monkeys: { [Model]: Monkey } = {}
 local killListeners: { (player: Player, speciesId: string) -> () } = {}
+-- Médicos que han curado a cada jugador y cuándo (os.clock): comparten el botín de sus peleas.
+local healedBy: { [Player]: { [Player]: number } } = {}
 local groups: { Group } = {}
 local rng = Random.new()
 local folder: Folder? = nil
@@ -214,11 +217,45 @@ local function playVoice(monkey: Monkey, action: string, at: (Vector3 | Instance
 	Sfx.play(`Monkey{monkey.definition.voice}{action}`, at or monkey.root)
 end
 
--- El botín sale junto al personaje de quien lo derrotó (InventoryService.collect).
-local function giveLoot(player: Player, definition: Monkeys.MonkeyDefinition)
+-- Quienes pelearon contra el mono (Config.Monkeys.LootShareSeconds): los que le golpearon, los
+-- médicos que curaron a alguno de ellos y siempre quien lo derrotó. Solo jugadores vivos en el server.
+local function lootSharers(monkey: Monkey, killer: Player): { Player }
+	local since = os.clock() - Config.Monkeys.LootShareSeconds
+	local set: { [Player]: boolean } = { [killer] = true }
+	for player, at in monkey.fighters do
+		if at >= since then
+			set[player] = true
+		end
+	end
+	for player in table.clone(set) do
+		for healer, at in healedBy[player] or {} do
+			if at >= since then
+				set[healer] = true
+			end
+		end
+	end
+	local list = {}
+	for player in set do
+		if player.Parent == Players and (player == killer or LifeState.isAlive(player)) then
+			table.insert(list, player)
+		end
+	end
+	return list
+end
+
+-- El botín sale junto al personaje de quien lo recibe (InventoryService.collect). Cada unidad va
+-- al azar a uno de los que pelearon (lootSharers): en solitario, todo para quien lo derrotó.
+local function giveLoot(sharers: { Player }, definition: Monkeys.MonkeyDefinition)
 	for _, entry in definition.loot do
 		if rng:NextNumber() < entry.chance * Config.Monkeys.LootChanceMultiplier then
-			InventoryService.collect(player, entry.itemId, rng:NextInteger(entry.min, entry.max))
+			local shares: { [Player]: number } = {}
+			for _ = 1, rng:NextInteger(entry.min, entry.max) do
+				local player = sharers[rng:NextInteger(1, #sharers)]
+				shares[player] = (shares[player] or 0) + 1
+			end
+			for player, amount in shares do
+				InventoryService.collect(player, entry.itemId, amount)
+			end
 		end
 	end
 end
@@ -259,7 +296,7 @@ local function onDied(monkey: Monkey)
 			task.spawn(listener, killer, monkey.model:GetAttribute("MonkeyType") :: string)
 		end
 		MatchStats.add(killer, MatchStats.KILLS)
-		giveLoot(killer, monkey.definition)
+		giveLoot(lootSharers(monkey, killer), monkey.definition)
 		local stolen = monkey.stolen
 		if stolen then
 			InventoryService.collect(killer, stolen.itemId, stolen.amount)
@@ -360,6 +397,7 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		roarReadyAt = 0,
 		throwReadyAt = 0,
 		stompReadyAt = 0,
+		fighters = {},
 	}
 	monkeys[model] = monkey
 	table.insert(group.members, monkey)
@@ -1198,6 +1236,31 @@ end
 function MonkeyService:Init()
 	-- Solo registra el aviso; DayNightService lo llamará al empezar el día 1.
 	DayNightService.onPhaseStarted(onPhaseStarted)
+
+	-- Botín compartido (lootSharers): quién golpea a cada mono y quién cura a quién.
+	CombatService.onEnemyDamaged(function(model, attacker)
+		local monkey = monkeys[model]
+		if monkey and attacker then
+			monkey.fighters[attacker] = os.clock()
+		end
+	end)
+	CombatService.onPlayerHealed(function(player, healer)
+		local healers = healedBy[player]
+		if not healers then
+			healers = {}
+			healedBy[player] = healers
+		end
+		healers[healer] = os.clock()
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		healedBy[player] = nil
+		for _, healers in healedBy do
+			healers[player] = nil
+		end
+		for _, monkey in monkeys do
+			monkey.fighters[player] = nil
+		end
+	end)
 end
 
 function MonkeyService:Start()
