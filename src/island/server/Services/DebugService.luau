@@ -340,8 +340,11 @@ end
 
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	Materials = function(player)
-		for itemId in Items do
-			InventoryService.add(player, itemId, 50)
+		for itemId, item in Items do
+			-- El equipo (la antorcha) se fabrica: no se reparte de 50 en 50.
+			if not item.keep then
+				InventoryService.add(player, itemId, 50)
+			end
 		end
 	end,
 	NextRole = function(player)

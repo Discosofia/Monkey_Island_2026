@@ -6,7 +6,9 @@
 -- "heal" hace que se pueda usar para curarse (H, cruceta arriba o el botón "Curar"): vida que da.
 -- "rarity" (Data/Rarities) da color al nombre en el inventario y el diario; sin ella, Común.
 -- "group" pone el objeto en otra sección de la Bolsa ("Materials", "Food", "Healing", "Loot",
--- "Treasure"); sin él, la decide lo que hace (comida, curación, siempre visible o botín).
+-- "Treasure", "Gear"); sin él, la decide lo que hace (comida, curación, siempre visible o botín).
+-- "keep": no se pierde nunca (ni lo roban los monos ni se queda en la mochila al caer): el equipo.
+-- "note": para qué sirve, en el detalle de la Bolsa.
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.
 
 export type ItemDefinition = {
@@ -18,6 +20,8 @@ export type ItemDefinition = {
 	heal: number?,
 	rarity: string?,
 	group: string?,
+	keep: boolean?,
+	note: string?,
 }
 
 export type FoodDefinition = {
@@ -50,6 +54,16 @@ local Items: { [string]: ItemDefinition } = {
 	Arrow = { name = "Flecha", icon = "🏹", order = 18, group = "Materials" },
 	-- Taller del curandero: cura entre la venda y el ungüento.
 	SuperBandage = { name = "Super venda", icon = "🩹", order = 19, heal = 50 },
+	-- Equipo: la antorcha fabricada (receta "Torch"). De día se guarda aquí; de noche va encendida
+	-- en la mano izquierda (TorchService).
+	Torch = {
+		name = "Antorcha",
+		icon = "🔥",
+		order = 45,
+		group = "Gear",
+		keep = true,
+		note = "De noche se enciende sola en tu mano izquierda",
+	},
 	-- Fase 4: botín de las nuevas especies.
 	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
 	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },

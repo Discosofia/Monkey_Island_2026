@@ -315,6 +315,9 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 		if player.Character then
 			task.spawn(wearArmor, player, player.Character)
 		end
+	elseif recipe.offhand then
+		-- La antorcha va a la Bolsa; de noche TorchService la pone en la mano izquierda.
+		InventoryService.add(player, recipe.offhand, 1)
 	elseif recipe.itemId then
 		InventoryService.add(player, recipe.itemId, recipe.amount or 1)
 	end

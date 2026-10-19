@@ -1,10 +1,10 @@
 --!strict
--- Antorcha en la otra mano. Una vez fabricada (receta "Torch", Shared/Crafting) se lleva siempre en
--- la mano izquierda, sin ocupar hueco ni equiparla: la derecha sigue con el arma. Se vuelve a poner
--- en cada reaparición.
---   - Encendida de noche y apagada de día. También se apaga mientras el jugador está caído y
---     durante Config.Monkeys.TorchRoarOutSeconds tras el rugido de un jefe ("TorchOutUntil",
---     BossService).
+-- Antorcha (receta "Torch"). Es un objeto de equipo de la Bolsa ("Torch" en Data/Items, no se roba ni
+-- se pierde al caer): de día se queda guardada y no se ve; al caer la noche aparece sola, encendida,
+-- en la mano izquierda, sin ocupar hueco ni equiparla, y la derecha sigue con el arma. Al amanecer
+-- vuelve a la Bolsa. De noche también se vuelve a poner en cada reaparición.
+--   - De noche se apaga mientras el jugador está caído y durante Config.Monkeys.TorchRoarOutSeconds
+--     tras el rugido de un jefe ("TorchOutUntil", BossService).
 --   - Publica "TorchLit" (true/false) en el Player: MonkeyService la usa para el miedo al fuego y
 --     para las especies que no atacan a quien lleva una antorcha.
 
@@ -12,12 +12,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
-local Crafting = require(ReplicatedStorage.Shared.Crafting)
+local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 
-local TORCH_RECIPE = "Torch"
+local TORCH_ITEM = "Torch"
 local TORCH_NAME = "AntorchaEnMano"
 local LIT_ATTRIBUTE = "TorchLit"
 local OUT_ATTRIBUTE = "TorchOutUntil"
@@ -27,6 +28,9 @@ local CHECK_SECONDS = 0.5
 local HAND_OFFSET = CFrame.new(0, -0.25, -0.05) * CFrame.Angles(math.rad(-55), 0, 0)
 
 local TorchService = {}
+
+-- Si era de noche en la última comprobación de cada jugador: para avisar solo al anochecer.
+local wasNight: { [Player]: boolean } = {}
 
 local function handOf(character: Model): BasePart?
 	local hand = character:FindFirstChild("LeftHand") or character:FindFirstChild("Left Arm")
@@ -74,18 +78,24 @@ end
 
 local function update(player: Player, night: boolean)
 	local character = player.Character
-	local owned = Crafting.isOwned(player, TORCH_RECIPE)
+	local owned = Inventory.count(player, TORCH_ITEM) > 0
 	local found = if character then character:FindFirstChild(TORCH_NAME) else nil
 	local torch: Model? = if found and found:IsA("Model") then found else nil
-	if owned and character and not torch then
+	-- En la mano solo de noche; de día vuelve a la Bolsa.
+	local inHand = owned and night
+	if inHand and character and not torch then
 		torch = attach(character)
-	elseif not owned and torch then
+	elseif not inHand and torch then
 		torch:Destroy()
 		torch = nil
 	end
+	if inHand and not wasNight[player] then
+		Remotes.Notify:FireClient(player, "🔥 Cae la noche: tu antorcha se enciende en tu mano izquierda")
+	end
+	wasNight[player] = night
 	local outUntil = player:GetAttribute(OUT_ATTRIBUTE)
 	local out = typeof(outUntil) == "number" and Workspace:GetServerTimeNow() < outUntil
-	local lit = torch ~= nil and night and LifeState.isAlive(player) and not out
+	local lit = torch ~= nil and LifeState.isAlive(player) and not out
 	if torch then
 		setFlame(torch, lit)
 	end
@@ -103,6 +113,9 @@ function TorchService.douse(player: Player, seconds: number): boolean
 end
 
 function TorchService:Start()
+	Players.PlayerRemoving:Connect(function(player)
+		wasNight[player] = nil
+	end)
 	while true do
 		local night = isNight()
 		for _, player in Players:GetPlayers() do

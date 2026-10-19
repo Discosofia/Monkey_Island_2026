@@ -769,7 +769,8 @@ local function steal(monkey: Monkey, player: Player)
 	local candidates = {}
 	local foodOnly = monkey.definition.thiefFoodOnly == true
 	for itemId, item in Items do
-		if Inventory.count(player, itemId) > 0 and (not foodOnly or item.food ~= nil) then
+		-- El equipo ("keep", la antorcha) no se roba.
+		if Inventory.count(player, itemId) > 0 and not item.keep and (not foodOnly or item.food ~= nil) then
 			table.insert(candidates, itemId)
 		end
 	end

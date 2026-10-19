@@ -121,8 +121,9 @@ end
 local function dropBackpack(player: Player, position: Vector3)
 	local contents: { [string]: number } = {}
 	local total = 0
-	for itemId in Items do
-		local amount = math.floor(Inventory.count(player, itemId) * Config.Life.DropFraction)
+	for itemId, item in Items do
+		-- El equipo ("keep", la antorcha) no se pierde.
+		local amount = if item.keep then 0 else math.floor(Inventory.count(player, itemId) * Config.Life.DropFraction)
 		if amount > 0 and InventoryService.remove(player, itemId, amount) then
 			contents[itemId] = amount
 			total += amount

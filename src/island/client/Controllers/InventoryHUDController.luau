@@ -2,7 +2,7 @@
 -- Materiales y botín del jugador (la mochila de Roblox solo muestra herramientas):
 --   - Panel "Bolsa": tecla B en PC, Y en mando o el botón táctil "Bolsa".
 --   - Casillas en cuadrícula (icono, cantidad y nombre corto), agrupadas por secciones (Materiales,
---     Comida, Curación, Botín, Tesoros) y con el borde del color de su rareza. Con mucho botín la
+--     Comida, Curación, Botín, Tesoros, Equipo) y con el borde del color de su rareza. Con mucho botín la
 --     cuadrícula se desplaza en vez de salirse de la pantalla.
 --   - Abajo, el detalle del objeto bajo el ratón (o el último tocado): nombre entero, rareza y para
 --     qué sirve.
@@ -48,6 +48,7 @@ local GROUPS = {
 	{ id = "Healing", title = "➕ Curación" },
 	{ id = "Loot", title = "🐾 Botín" },
 	{ id = "Treasure", title = "👑 Tesoros de jefe" },
+	{ id = "Gear", title = "🧰 Equipo" },
 }
 
 local InventoryHUDController = {}
@@ -89,6 +90,9 @@ local function describe(item: Items.ItemDefinition, count: number): string
 	end
 	if item.heal then
 		table.insert(parts, `Curar (H): +{item.heal} ❤️`)
+	end
+	if item.note then
+		table.insert(parts, item.note)
 	end
 	return table.concat(parts, " · ")
 end
