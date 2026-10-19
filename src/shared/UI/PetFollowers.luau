@@ -376,7 +376,7 @@ function PetFollowers.start()
 				follower.bend += (bendGoal - follower.bend) * math.clamp(deltaTime * 8, 0, 1)
 				follower.clock += deltaTime * (if attack then 2.2 elseif motion == "Fly" then 1 + moving * 0.4 else 1)
 
-				-- Clips: ataque, rutina de reposo, galope y planeo.
+				-- Clips: ataque, rutina de reposo, galope, andar y planeo.
 				local layers: { PetModels.Layer } = {}
 				if attack and clips.Attack then
 					table.insert(layers, { clip = "Attack", time = now - attack.startedAt, weight = 1 })
@@ -394,6 +394,13 @@ function PetFollowers.start()
 					follower.run += (running - follower.run) * math.clamp(deltaTime * 5, 0, 1)
 					if follower.run > 0.01 then
 						table.insert(layers, { clip = "Run", time = follower.stride, weight = follower.run })
+					end
+				end
+				if clips.Walk then
+					-- Andar (perros): el bote del cuerpo, la cabeza y las orejas mientras anda y no galopa.
+					local walking = if attack or idle then 0 else moving * (1 - follower.run)
+					if walking > 0.01 then
+						table.insert(layers, { clip = "Walk", time = follower.stride, weight = walking })
 					end
 				end
 				if clips.Glide then

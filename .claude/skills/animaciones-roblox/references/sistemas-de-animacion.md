@@ -203,6 +203,26 @@ en el Studio que esté abierto en modo edición.
   weight = 1 } }, t)` dentro de `Anim.showCode`.
 - Las patas que andan (`gait`) usan el reloj de las zancadas (`stride`), que va al paso del dueño o
   de lo que se mueve la propia mascota.
+- **Perros** (`CLIPS.Dog` y `CLIPS.Beagle`/`Labrador`/`Pointer`, 19-10-2026): huesos del felino más
+  `EarL`/`EarR` (X negativo echa la oreja atrás; Z la abre: negativo la izquierda, positivo la
+  derecha). `Walk` es un clip que `PetFollowers` suma mientras anda y no galopa (peso
+  `moving × (1 − run)`, con el reloj de las zancadas): el bote del cuerpo y la cabeza, y las orejas.
+  Rutinas: `IdleSit` los tres y una propia cada uno (`IdleShow`, `IdleSide`, `IdlePoint`).
+  Lo aprendido:
+  - **Sentarse con patas largas**: la fórmula del felino (ángulo fijo por la altura del anca) dejaba
+    al pointer casi de pie y con la grupa y las patas de atrás hundidas 0,4–0,6. El ángulo sale de
+    dos condiciones: las manos siguen en el suelo (`drop = alcance × sen s`) y la esquina de la grupa
+    (`dims.rump`) lo toca; el muslo va adelante hasta que la rodilla casi roza el suelo
+    (`acos((alto de la cadera − 0,08) / largo del muslo)`) y el tramo de abajo, tumbado atrás.
+  - **Cola por tramos**: los giros en X de cada tramo se suman (el tercero gira tres veces), y el
+    cuerpo inclinado la mueve también. Un ángulo fijo clavaba la cola en el suelo o la dejaba en
+    diagonal: el de sentarse se busca por bisección (punta justo sobre el suelo, con `dims.tail`).
+    De lado, el giro en Y de la cola la sube y la baja: poca amplitud y la pose algo levantada.
+  - **Un hueso que lleva un bloque grande** (el anca o el hombro van con la pata) se despega del
+    cuerpo como una tabla si se gira mucho en una pose quieta: muslo a −10° en la exposición del
+    beagle (con −20 salía) y brazo a 44° en la muestra del pointer (con 58 asomaba el hombro).
+  - Las rutinas se comprueban en Play sin verlas: el `UpVector` de `Hips` respecto al pivote dice si
+    está de lado (X), sentado (Z) o de pie.
 - La rana salta con `|sin(zancadas * 6)|` en `PetFollowers`; sus patas usan velocidad 12 y fase −π/2
   para patalear en el aire. Los dos usan el mismo reloj (`follower.clock`).
 - **Un seno va igual de lejos hacia los dos lados**: si una pata baja en el aire, sube lo mismo al

@@ -1980,6 +1980,11 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 	-- Cola por tramos desde la grupa; menea de lado a lado girando sobre el eje perpendicular a su
 	-- primer tramo (así también menea la cola alta del beagle, que con el eje vertical solo giraría).
 	local from = Vector3.new(0, top - 0.7, bodyL / 2 - 0.3)
+	local tailBase = from
+	local tailRises: { number } = {}
+	for i, heading in o.tail do
+		tailRises[i] = math.asin(heading.Unit.Y)
+	end
 	local wag = o.tail[1].Unit:Cross(Vector3.xAxis).Unit
 	local tailWidth = o.tailWidth
 	local previous: Joint? = spine
@@ -2036,8 +2041,15 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 		shoulders = at(Vector3.new(0, hipY, zFront)),
 		center = Vector3.zero,
 		haunch = at(Vector3.new(0, hipBottom - 0.3, 0)).Y,
-		halfHeight = bodyH / 2 * VOXEL,
-		halfWidth = (bodyW / 2 + 0.3) * VOXEL,
+		-- Para sentarse: la esquina de abajo y atrás de la grupa (la que toca el suelo) y la rodilla.
+		rump = at(Vector3.new(0, hipBottom - 0.3, bodyL / 2)),
+		knee = at(Vector3.new(0, knee, 0)).Y,
+		-- Del centro del cuerpo a la quilla (para tumbarse sin hundirse) y al costado, con las alforjas
+		-- si las lleva (para ponerse de lado).
+		halfHeight = (bodyH / 2 + 1.1) * VOXEL,
+		halfWidth = (bodyW / 2 + (if o.pack then 1.3 else 0.3)) * VOXEL,
+		-- La cola: dónde nace, cuánto sube cada tramo (radianes sobre la horizontal) y su largo.
+		tail = { base = at(tailBase), rises = tailRises, segment = o.tailSegment * VOXEL },
 	}
 end
 
@@ -3735,9 +3747,276 @@ CLIPS.Cat = function(d)
 	}
 end
 
--- Perros: de momento, el galope del felino (sus clips propios llegan con sus animaciones).
+-- Patas y orejas de los perros con su seno apagado (mientras el clip las coloca a mano).
+local DOG_STILL = with(CAT_LEGS_STILL, { EarL = 0, EarR = 0 })
+
+-- Perros (beagle, labrador y pointer): andar (encima del trote de las patas), galope, sentarse y su
+-- pose propia (CLIPS.Beagle, CLIPS.Labrador, CLIPS.Pointer). Orejas: X negativo las echa atrás y Z
+-- las abre hacia fuera (negativo en la izquierda, positivo en la derecha).
 CLIPS.Dog = function(d)
-	return { Run = CLIPS.Cat(d).Run }
+	-- Sentado: el cuerpo gira sobre la cadera de atrás y baja lo justo para que las manos sigan en el
+	-- suelo (rectas) y la esquina de la grupa lo toque. Con la fórmula del felino, los perros, de patas
+	-- largas, quedaban casi de pie y con la grupa y las patas de atrás hundidas.
+	local reach = (d.hips - d.shoulders).Magnitude
+	local height = d.hips.Y - d.ground
+	local back, below = d.rump.Z - d.hips.Z, d.hips.Y - d.rump.Y
+	local angle = math.asin(math.min(1, height / math.sqrt((reach + back) ^ 2 + below ^ 2)))
+		- math.atan2(below, reach + back)
+	local drop = reach * math.sin(angle)
+	local s = math.deg(angle)
+	-- Patas de atrás: el muslo adelante hasta que la rodilla casi roza el suelo y el tramo de abajo
+	-- tumbado hacia atrás, un poco inclinado hacia abajo (el pie en el suelo).
+	local pivot = height - drop
+	local thigh = math.deg(math.acos(math.clamp((pivot - 0.08) / (d.hips.Y - d.knee), -1, 1)))
+	-- La cola cae hasta el suelo detrás y barre de lado a lado. Cada tramo suma el giro del anterior
+	-- (los giros en X se suman) y el cuerpo inclinado la baja, así que el ángulo se busca: el que deja
+	-- la punta justo sobre el suelo (con uno fijo, la del labrador y la del pointer se clavaban).
+	local tailShape = d.tail
+	local tailBase = tailShape.base - d.hips
+	local baseY = d.hips.Y - drop + tailBase.Y * math.cos(angle) - tailBase.Z * math.sin(angle)
+	local function tipAbove(bend: number): number
+		local y = baseY
+		for k, rise in tailShape.rises do
+			y += tailShape.segment * math.sin(rise - angle - k * bend)
+		end
+		return y - d.ground - 0.03
+	end
+	local low, high = math.rad(-30), math.rad(30)
+	for _ = 1, 24 do
+		local middle = (low + high) / 2
+		if tipAbove(middle) > 0 then
+			low = middle
+		else
+			high = middle
+		end
+	end
+	local sitTail = { math.deg(low), 0, 0 }
+	local sweep = { y = 14, speed = 6, lag = 0.5 }
+	local SIT: Key = {
+		amp = { Tail = 0 },
+		Body = { s, 0, 0, 0, -drop, 0 },
+		FL = { -s, 0, 0 },
+		FR = { -s, 0, 0 },
+		BL = { thigh - s, 0, -8 },
+		BR = { thigh - s, 0, 8 },
+		BL2 = { -85 - thigh, 0, 0 },
+		BR2 = { -85 - thigh, 0, 0 },
+		Head = { 6 - s, 0, 0 },
+		Tail = sitTail,
+		waves = { Tail = sweep },
+	}
+	local function sitWith(extra: Key): Key
+		return with(SIT, extra)
+	end
+	return {
+		-- Trote: el cuerpo bota dos veces por zancada, la cabeza cabecea y las orejas rebotan (suena
+		-- con el reloj de las zancadas, encima del seno de las patas).
+		Walk = {
+			length = 2 * math.pi / 9,
+			loop = true,
+			around = d.center,
+			keys = {
+				{
+					t = 0,
+					waves = {
+						Body = { x = 1.5, py = 0.035, speed = 18 },
+						Head = { x = 3, speed = 18, phase = 0.8 },
+						EarL = { x = 9, z = -5, speed = 18, phase = 1.4 },
+						EarR = { x = 9, z = 5, speed = 18, phase = 1.4 },
+					},
+				},
+			},
+		},
+		-- Galope: manos juntas y patas juntas, el lomo se estira y se encoge, la cabeza baja y
+		-- adelantada y las orejas hacia atrás, aleteando.
+		Run = {
+			length = 2 * math.pi / 9,
+			loop = true,
+			around = d.center,
+			keys = {
+				{
+					t = 0,
+					amp = DOG_STILL,
+					-- Algo más alto: con las patas recogidas, en el punto bajo del bote se hundía 0,2.
+					Body = { 0, 0, 0, 0, 0.06, 0 },
+					FL2 = { -25, 0, 0 },
+					FR2 = { -25, 0, 0 },
+					BL2 = { -30, 0, 0 },
+					BR2 = { -30, 0, 0 },
+					Head = { -10, 0, 0 },
+					Tail = { -4, 0, 0 },
+					EarL = { -40, 0, -12 },
+					EarR = { -40, 0, 12 },
+					waves = {
+						FL = { x = 55, speed = 9 },
+						FR = { x = 55, speed = 9, phase = 0.35 },
+						BL = { x = 50, speed = 9, phase = math.pi },
+						BR = { x = 50, speed = 9, phase = math.pi + 0.35 },
+						FL2 = { x = 28, speed = 9, phase = -math.pi / 2 },
+						FR2 = { x = 28, speed = 9, phase = 0.35 - math.pi / 2 },
+						BL2 = { x = 32, speed = 9, phase = math.pi / 2 },
+						BR2 = { x = 32, speed = 9, phase = 0.35 + math.pi / 2 },
+						Body = { x = 6, py = 0.12, speed = 9, phase = math.pi / 2 },
+						Head = { x = 5, speed = 9, phase = math.pi / 2 + 0.5 },
+						EarL = { x = 16, speed = 9, phase = 1 },
+						EarR = { x = 16, speed = 9, phase = 1 },
+						Tail = { x = 5, speed = 9 },
+					},
+				},
+			},
+		},
+		-- Se sienta, ladea la cabeza (el gesto de perro que escucha), mira a un lado y a otro barriendo
+		-- el suelo con la cola y se levanta.
+		IdleSit = {
+			length = 10,
+			around = d.hips,
+			keys = {
+				{ t = 0 },
+				sitWith({ t = 0.9 }),
+				sitWith({ t = 2.2 }),
+				sitWith({ t = 2.6, Head = { 8 - s, 0, 20 }, EarL = { 0, 0, -12 }, EarR = { 0, 0, 4 } }),
+				sitWith({ t = 3.7, Head = { 8 - s, 0, 20 }, EarL = { 0, 0, -12 }, EarR = { 0, 0, 4 } }),
+				sitWith({ t = 4.2 }),
+				sitWith({ t = 5, Head = { 4 - s, 35, 0 } }),
+				sitWith({ t = 6, Head = { 4 - s, 35, 0 } }),
+				sitWith({ t = 6.8, Head = { 4 - s, -35, 0 } }),
+				sitWith({ t = 7.8, Head = { 4 - s, -35, 0 } }),
+				sitWith({ t = 8.5 }),
+				sitWith({ t = 9.2 }),
+				{ t = 10 },
+			},
+		},
+	}
+end
+
+-- Beagle: posición de exposición. Manos rectas, patas de atrás estiradas hacia atrás, el pecho
+-- adelante, la cabeza alta y la cola tiesa hacia arriba; se queda quieto, solo respira.
+CLIPS.Beagle = function(d)
+	local SHOW: Key = {
+		amp = with(DOG_STILL, { Tail = 0, Head = 0 }),
+		Body = { 2, 0, 0, 0, 0, -0.06 },
+		FL = { -2, 0, 0 },
+		FR = { -2, 0, 0 },
+		-- Con el muslo más atrás, el anca (que va con él) se despegaba del cuerpo como una tabla.
+		BL = { -10, 0, -3 },
+		BR = { -10, 0, 3 },
+		BL2 = { 4, 0, 0 },
+		BR2 = { 4, 0, 0 },
+		Head = { 8, 0, 0 },
+		Tail = { -8, 0, 0 },
+		EarL = { 4, 0, 0 },
+		EarR = { 4, 0, 0 },
+		waves = { Body = { py = 0.015, speed = 3 } },
+	}
+	return {
+		IdleShow = {
+			length = 7,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				with(SHOW, { t = 0.8 }),
+				with(SHOW, { t = 3.4 }),
+				with(SHOW, { t = 3.9, Head = { 8, 18, 0 } }),
+				with(SHOW, { t = 5.2, Head = { 8, 18, 0 } }),
+				with(SHOW, { t = 5.7 }),
+				with(SHOW, { t = 6.3 }),
+				{ t = 7 },
+			},
+		},
+	}
+end
+
+-- Labrador: se tumba, rueda sobre el costado con las patas estiradas y la cabeza en el suelo, golpea
+-- el suelo con la cola, levanta la cabeza para mirar a su dueño y se vuelve a levantar.
+CLIPS.Labrador = function(d)
+	local lieDrop = d.bodyY - d.halfHeight - d.ground
+	local LIE: Key = {
+		amp = DOG_STILL,
+		Body = { 0, 0, 0, 0, -lieDrop, 0 },
+		FL = { 72, 0, 0 },
+		FR = { 72, 0, 0 },
+		FL2 = { 12, 0, 0 },
+		FR2 = { 12, 0, 0 },
+		BL = { 80, 0, -8 },
+		BR = { 80, 0, 8 },
+		BL2 = { -150, 0, 0 },
+		BR2 = { -150, 0, 0 },
+		Head = { 4, 0, 0 },
+	}
+	local sideDrop = d.bodyY - d.ground - d.halfWidth
+	local SIDE: Key = {
+		amp = with(DOG_STILL, { Head = 0 }),
+		Body = { 0, 0, 90, 0, -sideDrop, 0 },
+		FL = { 30, 0, 0 },
+		FR = { 40, 0, 0 },
+		FL2 = { -10, 0, 0 },
+		FR2 = { -15, 0, 0 },
+		BL = { 15, 0, 0 },
+		BR = { 25, 0, 0 },
+		BL2 = { -15, 0, 0 },
+		BR2 = { -20, 0, 0 },
+		Head = { -6, 0, -40 },
+		-- De lado, el giro en Y de la cola la sube y la baja: golpea el suelo. Cada tramo suma el suyo,
+		-- así que poco (con 14 la punta acababa vertical) y con la pose algo levantada para no hundirla.
+		Tail = { 0, 5, 0 },
+		EarL = { 0, 0, -30 },
+		EarR = { 0, 0, 20 },
+		waves = { Body = { py = 0.012, speed = 2.4 }, Tail = { y = 5, speed = 7, lag = 0.4 } },
+	}
+	return {
+		IdleSide = {
+			length = 12,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				with(LIE, { t = 1 }),
+				with(LIE, { t = 1.5 }),
+				with(SIDE, { t = 2.3 }),
+				with(SIDE, { t = 5.4 }),
+				with(SIDE, { t = 6, Head = { -6, 0, -12 } }),
+				with(SIDE, { t = 7.2, Head = { -6, 0, -12 } }),
+				with(SIDE, { t = 7.8 }),
+				with(SIDE, { t = 9.6 }),
+				with(LIE, { t = 10.4 }),
+				with(LIE, { t = 11 }),
+				{ t = 12 },
+			},
+		},
+	}
+end
+
+-- Pointer: la muestra. Se congela de golpe con la mano izquierda levantada y doblada, el hocico al
+-- frente en línea con el lomo, las orejas atentas y la cola recta hacia atrás; luego se relaja.
+CLIPS.Pointer = function(d)
+	local POINT: Key = {
+		amp = with(DOG_STILL, { Tail = 0, Head = 0 }),
+		Body = { -4, 0, 0, 0, -0.04, -0.06 },
+		-- Brazo adelante y la mano colgando hacia atrás: más arriba, el hombro (que va con la pata) asomaba.
+		FL = { 44, 0, 4 },
+		FL2 = { -100, 0, 0 },
+		FR = { 4, 0, 0 },
+		BL = { 0, 0, 0 },
+		BR = { 0, 0, 0 },
+		Head = { -4, 0, 0 },
+		-- Recta, en línea con el lomo: cada tramo suma su giro y el cuerpo inclinado la levanta, así que
+		-- se baja un poco (con -6 subía en diagonal).
+		Tail = { 3, 0, 0 },
+		EarL = { 10, 0, -6 },
+		EarR = { 10, 0, 6 },
+	}
+	return {
+		IdlePoint = {
+			length = 7,
+			around = d.center,
+			keys = {
+				{ t = 0 },
+				with(POINT, { t = 0.45 }),
+				with(POINT, { t = 5.6, waves = { Body = { py = 0.008, speed = 3 } } }),
+				with(POINT, { t = 6.1 }),
+				{ t = 7 },
+			},
+		},
+	}
 end
 
 -- Jaguarundí: se alza sobre las patas de atrás y da dos zarpazos, primero con la derecha.

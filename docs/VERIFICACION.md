@@ -254,7 +254,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - **Colibrí**: flota junto a tu hombro con las alas zumbando.
    - **Rana dardo** (azul con manchas): va a saltos, más altos si corres.
    - **Tortuga**, **perezoso** (con su hatillo de troncos), **jaguarundí**, **ocelote** (con manchas), **Mono X-7** (casco de cristal y depósito brillante) y **jaguar de cristal** (translúcido, con destellos): andan por el suelo moviendo las patas al correr, y los felinos mueven la cola.
-   - **Beagle** (tricolor, con la cola alta negra y la punta blanca), **labrador** (dorado, con la lengua fuera y alforjas verdes) y **pointer inglés** (blanco con la cabeza negra, manchas y moteado): van al trote, menean la cola y las orejas aletean.
+   - **Beagle** (tricolor, con la cola alta negra y la punta blanca), **labrador** (dorado, con la lengua fuera y alforjas verdes) y **pointer inglés** (blanco con la cabeza negra, manchas y moteado): van al trote botando un poco, con las orejas rebotando, y si corres galopan con las orejas hacia atrás. Quieto unos segundos, se sientan (ladean la cabeza, miran a los lados y barren el suelo con la cola) o hacen su pose: el beagle se pone en **exposición** (cabeza alta y la cola tiesa), el labrador se **tumba de lado** golpeando el suelo con la cola y el pointer hace la **muestra** (quieto, con una mano levantada y la cola recta).
 2. [ ] **En la Isla:** 🛠️ **🐾 Mascota al azar** pone una mascota de prueba.
    - **Combate** (jaguarundí, ocelote, X-7): ✅ los monos cercanos reciben daño cada 2 s.
    - **Rastreo** (tucán, guacamaya): ✅ cada 5 s ves contornos amarillos en los monos cercanos.
