@@ -198,9 +198,18 @@ local Config = {
 		WakeDistance = 350,
 		DormantDistance = 450,
 		PopulationCheckSeconds = 1,
-		-- Los grupos aparecen en la selva entre estas distancias del centro del Basecamp.
+		-- Los grupos aparecen en la selva entre estas distancias del centro del Basecamp (la isla mide
+		-- 950: con 800, la franja de selva de fuera, ~1/5 de toda, se quedaba sin monos), y los de
+		-- playa entre las de Beach.
 		SpawnMinDistance = 140,
-		SpawnMaxDistance = 800,
+		SpawnMaxDistance = 920,
+		BeachMinDistance = 480,
+		BeachMaxDistance = 1120,
+		-- Cada tropa nueva prueba tantos sitios al azar y se queda con el más alejado de las que ya
+		-- hay (de su mismo turno, día o noche): así se reparten sin dejar claros vacíos. Simulado en
+		-- el mapa (19-10-2026): el punto de selva más lejos de una tropa de día pasa de ~380 a ~210
+		-- studs, y el 90 % queda a menos de ~130 (antes ~200).
+		HomeCandidates = 10,
 		-- Aullido: alcance del aviso, espera hasta los refuerzos y cuáles llegan.
 		HowlRadius = 100,
 		HowlReinforcementSeconds = 6,

@@ -154,8 +154,8 @@ local function biomeAnchor(zone: string): Vector3?
 	return if marker and marker:IsA("BasePart") then marker.Position else nil
 end
 
--- Busca dónde poner un grupo según la zona de su especie (ver Data/Monkeys).
-local function randomHome(definition: Monkeys.MonkeyDefinition): Vector3?
+-- Un sitio al azar en la zona de su especie (ver Data/Monkeys), o nil si no hay.
+local function randomSpot(definition: Monkeys.MonkeyDefinition): Vector3?
 	local center = BasecampService.getCenter()
 	local zone = definition.zone or "Selva"
 	local origin = center
@@ -164,7 +164,7 @@ local function randomHome(definition: Monkeys.MonkeyDefinition): Vector3?
 	local materials: { [Enum.Material]: boolean }? = SPAWN_MATERIALS
 	if zone == "Playa" then
 		minDistance, maxDistance, materials =
-			Config.Monkeys.SpawnMaxDistance * 0.6, Config.Monkeys.SpawnMaxDistance * 1.4, BEACH_MATERIALS
+			Config.Monkeys.BeachMinDistance, Config.Monkeys.BeachMaxDistance, BEACH_MATERIALS
 	elseif zone == "Basecamp" then
 		minDistance, maxDistance = Config.Monkeys.SpawnMinDistance - 20, Config.Monkeys.SpawnMinDistance + 110
 	elseif zone ~= "Selva" then
@@ -185,9 +185,38 @@ local function randomHome(definition: Monkeys.MonkeyDefinition): Vector3?
 	end
 	-- Sin sitio en su zona (mapa de pruebas): cualquier selva.
 	if zone ~= "Selva" then
-		return randomHome(Monkeys.MonoArdilla)
+		return randomSpot(Monkeys.MonoArdilla)
 	end
 	return nil
+end
+
+-- Si dos especies llegan a estar en el mapa a la vez (de día, de noche o las dos).
+local function sharePhase(a: Monkeys.MonkeyDefinition, b: Monkeys.MonkeyDefinition): boolean
+	return a.activeAt == "Both" or b.activeAt == "Both" or a.activeAt == b.activeAt
+end
+
+-- Zona de una tropa nueva: de Config.Monkeys.HomeCandidates sitios al azar, el más alejado de las
+-- tropas de su mismo turno. Al azar sin más, unas caían juntas y quedaban claros grandes sin monos.
+local function newHome(definition: Monkeys.MonkeyDefinition): Vector3?
+	local best: Vector3? = nil
+	local bestDistance = -1
+	for _ = 1, Config.Monkeys.HomeCandidates do
+		local spot = randomSpot(definition)
+		if not spot then
+			break
+		end
+		local nearest = math.huge
+		for _, group in groups do
+			if sharePhase(definition, Monkeys[group.speciesId]) then
+				local offset = group.home - spot
+				nearest = math.min(nearest, Vector3.new(offset.X, 0, offset.Z).Magnitude)
+			end
+		end
+		if nearest > bestDistance then
+			best, bestDistance = spot, nearest
+		end
+	end
+	return best
 end
 
 local function showBubble(monkey: Monkey, text: string)
@@ -452,7 +481,7 @@ end
 local function createGroups()
 	for speciesId, definition in Monkeys do
 		for _ = 1, definition.groups do
-			local home = randomHome(definition)
+			local home = newHome(definition)
 			if home then
 				table.insert(groups, {
 					speciesId = speciesId,
