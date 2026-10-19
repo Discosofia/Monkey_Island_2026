@@ -1,7 +1,8 @@
 --!strict
 -- Curarse (Fases 1.6 y 2.3): H en PC, cruceta arriba en mando o el botón táctil "Curar".
 -- El botón aparece si llevas algo para curarte (vendas, ungüentos o antídotos) y estás vivo.
--- El servidor elige qué usar: el antídoto si tienes fiebre; si no, la curación que mejor encaje.
+-- El servidor elige qué usar (CraftingService): con poca vida, la curación que mejor encaje aunque
+-- tengas fiebre; con la vida bien y fiebre alta, el antídoto.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

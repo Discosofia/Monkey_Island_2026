@@ -187,6 +187,20 @@ local Recipes: { [string]: Recipe } = {
 		itemId = "Antidote",
 		amount = 1,
 	},
+	SuperBandage = {
+		station = "Healer",
+		name = "Super venda",
+		icon = "🩹",
+		description = "Cura 50 de vida. Se usa con Curar (H).",
+		order = 33,
+		cost = {
+			{ itemId = "Fiber", amount = 3 },
+			{ itemId = "Plantain", amount = 2 },
+			{ itemId = "Shell", amount = 1 },
+		},
+		itemId = "SuperBandage",
+		amount = 1,
+	},
 	-- Forja de piedra (Fase 2.3): equipo de hueso y colmillo.
 	SharpMachete = {
 		station = "Forge",

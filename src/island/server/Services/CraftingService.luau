@@ -27,6 +27,7 @@ local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
+local Survival = require(ReplicatedStorage.Shared.Survival)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
@@ -381,6 +382,29 @@ local function bestHealItem(player: Player, missing: number): string?
 	return bestId
 end
 
+local function useAntidote(player: Player)
+	if InventoryService.remove(player, "Antidote", 1) then
+		player:SetAttribute(Survival.FEVER, 0)
+		Remotes.Notify:FireClient(player, "💉 La fiebre ha bajado")
+	end
+end
+
+local function useHealItem(player: Player, humanoid: Humanoid, itemId: string)
+	local heal = Items[itemId].heal
+	if not heal or not InventoryService.remove(player, itemId, 1) then
+		return
+	end
+	-- Vendas y ungüentos nunca son críticos.
+	local before = humanoid.Health
+	humanoid.Health = math.min(humanoid.MaxHealth, before + heal * Progression.perk(player, "HealPower"))
+	CombatText.heal(player, humanoid.Health - before, false, player)
+	Sfx.play("Heal", humanoid.Parent or player)
+end
+
+-- Curar (H) elige qué usar. La vida va primero: por debajo de Config.Survival.HealFirstBelow se usa
+-- una venda o un ungüento aunque haya fiebre, para no caer por quitarse la fiebre. Con la vida bien,
+-- la fiebre con síntomas (Config.Fever.SymptomsAt) se quita con el antídoto; si no, se cura la vida
+-- que falte y, con la vida llena, el antídoto quita la fiebre que quede.
 local function onUseHeal(player: Player)
 	if not LifeState.isAlive(player) or not canBandage(player) then
 		return
@@ -390,27 +414,19 @@ local function onUseHeal(player: Player)
 	if not humanoid or humanoid.Health <= 0 then
 		return
 	end
-	-- Con fiebre alta y un antídoto, el antídoto va primero (FeverService, entrega 2.6).
-	local fever = player:GetAttribute("Fever")
-	if typeof(fever) == "number" and fever > 0 and InventoryService.remove(player, "Antidote", 1) then
-		player:SetAttribute("Fever", 0)
-		Remotes.Notify:FireClient(player, "💉 La fiebre ha bajado")
-		return
-	end
-	if humanoid.Health >= humanoid.MaxHealth then
-		return
-	end
-	local itemId = bestHealItem(player, humanoid.MaxHealth - humanoid.Health)
-	local heal = if itemId then Items[itemId].heal else nil
-	if not (itemId and heal) or not InventoryService.remove(player, itemId, 1) then
+	local missing = humanoid.MaxHealth - humanoid.Health
+	local healId = if missing > 0 then bestHealItem(player, missing) else nil
+	local fever = Survival.fever(player)
+	local hasAntidote = fever > 0 and Inventory.count(player, "Antidote") > 0
+	local lowHealth = humanoid.Health < humanoid.MaxHealth * Config.Survival.HealFirstBelow
+	local feverFirst = hasAntidote and fever >= Config.Fever.SymptomsAt
+	if healId and (lowHealth or not feverFirst) then
+		useHealItem(player, humanoid, healId)
+	elseif hasAntidote then
+		useAntidote(player)
+	elseif missing > 0 then
 		Remotes.Notify:FireClient(player, "No tienes con qué curarte: vendas o ungüentos")
-		return
 	end
-	-- Vendas y ungüentos nunca son críticos.
-	local before = humanoid.Health
-	humanoid.Health = math.min(humanoid.MaxHealth, before + heal * Progression.perk(player, "HealPower"))
-	CombatText.heal(player, humanoid.Health - before, false, player)
-	Sfx.play("Heal", humanoid.Parent or player)
 end
 
 function CraftingService:Start()

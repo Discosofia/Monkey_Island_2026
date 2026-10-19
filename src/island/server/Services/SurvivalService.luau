@@ -151,7 +151,7 @@ local function onEat(player: Player)
 		setStat(player, Survival.HUNGER, hunger + food.hunger)
 		Sfx.play("Eat", soundSource(player))
 		setStat(player, Survival.THIRST, thirst + food.thirst)
-		if itemId == "Meat" then
+		if food.raw then
 			Survival.addFever(player, Config.Fever.RawMeat)
 			Remotes.Notify:FireClient(player, "🤢 La carne cruda sube la fiebre: mejor asarla en la hoguera")
 		end

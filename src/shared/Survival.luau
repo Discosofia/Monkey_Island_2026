@@ -34,19 +34,31 @@ function Survival.addFever(player: Player, amount: number)
 end
 
 -- La comida que más aprovecha el jugador ahora (lo que recupera sin pasarse de lleno), o nil si no
--- lleva ninguna. Así, con sed, "Comer" elige un coco antes que carne.
+-- lleva ninguna. Así, con sed, "Comer" elige un coco antes que carne. A igual provecho, la que menos
+-- se desperdicia. La cruda ("raw", sube la fiebre) solo si no lleva otra.
 function Survival.bestFood(player: Player): string?
 	local missingHunger = Survival.MAX - Survival.get(player, Survival.HUNGER)
 	local missingThirst = Survival.MAX - Survival.get(player, Survival.THIRST)
 	local bestId: string? = nil
+	local bestRaw = true
 	local bestScore = -1
+	local bestWaste = math.huge
 	for itemId, item in Items do
 		local food = item.food
 		if food and Inventory.count(player, itemId) > 0 then
+			local raw = food.raw == true
 			local score = math.min(food.hunger, missingHunger) + math.min(food.thirst, missingThirst)
-			if score > bestScore then
+			local waste = food.hunger + food.thirst - score
+			local better = if bestId == nil
+				then true
+				elseif raw ~= bestRaw then not raw
+				elseif score ~= bestScore then score > bestScore
+				else waste < bestWaste
+			if better then
 				bestId = itemId
+				bestRaw = raw
 				bestScore = score
+				bestWaste = waste
 			end
 		end
 	end

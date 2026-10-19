@@ -23,13 +23,14 @@ export type ItemDefinition = {
 export type FoodDefinition = {
 	hunger: number,
 	thirst: number,
+	raw: boolean?, -- cruda: sube la fiebre (Config.Fever.RawMeat) y "Comer" la deja para el final
 }
 
 local Items: { [string]: ItemDefinition } = {
 	Wood = { name = "Madera", icon = "🌲", order = 1, alwaysShow = true },
 	Stone = { name = "Piedra", icon = "⛰️", order = 2, alwaysShow = true },
 	Fiber = { name = "Fibra", icon = "🌿", order = 3, alwaysShow = true },
-	Meat = { name = "Carne cruda", icon = "🥩", order = 4, food = { hunger = 8, thirst = 0 } },
+	Meat = { name = "Carne cruda", icon = "🥩", order = 4, food = { hunger = 8, thirst = 0, raw = true } },
 	RedFur = { name = "Pelaje rojo", icon = "🐾", order = 5 },
 	GoldenFur = { name = "Pelaje dorado", icon = "✨", order = 6, rarity = "Uncommon" },
 	SmallFang = { name = "Colmillo", icon = "🔺", order = 7, rarity = "Uncommon" },
@@ -47,6 +48,8 @@ local Items: { [string]: ItemDefinition } = {
 	RoastedPlantain = { name = "Plátano asado", icon = "🍠", order = 17, food = { hunger = 28, thirst = 0 } },
 	-- Munición del arco del cazador (Data/Weapons).
 	Arrow = { name = "Flecha", icon = "🏹", order = 18, group = "Materials" },
+	-- Taller del curandero: cura entre la venda y el ungüento.
+	SuperBandage = { name = "Super venda", icon = "🩹", order = 19, heal = 50 },
 	-- Fase 4: botín de las nuevas especies.
 	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
 	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },

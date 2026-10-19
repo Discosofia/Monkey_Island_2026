@@ -285,6 +285,9 @@ local Config = {
 		DrinkReach = 6,
 		EatCooldownSeconds = 0.8,
 		DrinkCooldownSeconds = 0.8,
+		-- Curar (H): por debajo de esta fracción de vida, una venda o un ungüento van antes que el
+		-- antídoto aunque tengas fiebre (CraftingService).
+		HealFirstBelow = 0.6,
 		-- Estamina (0 a 100): correr la gasta y esquivar cuesta DodgeStaminaCost.
 		WalkSpeed = 16,
 		SprintSpeed = 24,
