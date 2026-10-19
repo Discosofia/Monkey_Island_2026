@@ -12,8 +12,10 @@ local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
+local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Sounds = require(ReplicatedStorage.Shared.Data.Sounds)
@@ -138,11 +140,73 @@ end
 local MONKEY_ROW_START = 12 -- de la primera fila (categoría 1) al jugador
 local MONKEY_ROW_STEP = 9 -- entre una fila de monos y la siguiente
 local BOSS_ROW_EXTRA = 6 -- los jefes, más grandes, un poco más separados de la última fila
+local BOSS_ROW_STEP = 19 -- entre las filas de jefes (el Gorila de Ceniza mide 17,5 de fondo)
+local BOSS_PHASES = 3 -- fases del combate (BossService: 2 al 66 % de vida, 3 al 33 %)
 local MONKEY_GAP = 3
+local PET_ROW_DISTANCE = 8
+local PET_GAP = 2
 
--- Todos los monos en filas delante del jugador, como en una foto de grupo: una fila por categoría
--- (los pequeños delante) y los jefes al fondo. Quietos en su postura de reposo, mirándolo,
--- apoyados en el suelo y con su nombre y su alto encima, para revisar los modelos de
+type ShowcaseItem = { model: Model, label: string }
+type ShowcaseRow = { distance: number, gap: number, items: { ShowcaseItem } }
+
+-- Coloca las filas delante del jugador, como en una foto de grupo: cada modelo apoyado en el suelo,
+-- mirándolo (su cara, -Z, hacia él), quieto y con su cartel y su alto encima.
+local function placeRows(folder: Folder, character: Model, rows: { ShowcaseRow })
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { folder, character }
+
+	local pivot = character:GetPivot()
+	local forward = (pivot.LookVector * Vector3.new(1, 0, 1)).Unit
+	local right = forward:Cross(Vector3.yAxis)
+	for _, row in rows do
+		local sizes = {}
+		local total = 0
+		for index, item in row.items do
+			local _, size = item.model:GetBoundingBox()
+			sizes[index] = size
+			total += size.X + row.gap
+		end
+		local offset = -total / 2
+		for index, item in row.items do
+			local model = item.model
+			local size = sizes[index]
+			local spot = pivot.Position + forward * row.distance + right * (offset + size.X / 2)
+			offset += size.X + row.gap
+			local hit = Workspace:Raycast(spot + Vector3.new(0, 60, 0), Vector3.new(0, -200, 0), params)
+			local ground = if hit then hit.Position else Vector3.new(spot.X, pivot.Position.Y - 3, spot.Z)
+			-- Lo que hay entre el pivote y la parte de abajo del modelo: así queda apoyado en el suelo real.
+			local box = model:GetBoundingBox()
+			local lift = model:GetPivot().Position.Y - (box.Position.Y - size.Y / 2)
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+				end
+			end
+			local at = ground + Vector3.new(0, lift, 0)
+			model:PivotTo(CFrame.lookAt(at, at - forward))
+			-- El alto, solo de lo que se ve: sin la raíz invisible ni las piezas de otras fases del jefe.
+			local bottom, top = math.huge, -math.huge
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") and part.Transparency < 1 then
+					bottom = math.min(bottom, part.ExtentsCFrame.Position.Y - part.ExtentsSize.Y / 2)
+					top = math.max(top, part.ExtentsCFrame.Position.Y + part.ExtentsSize.Y / 2)
+				end
+			end
+			-- El pivote es la raíz (PrimaryPart) en los monos y en las mascotas.
+			showcaseLabel(
+				model.PrimaryPart :: BasePart,
+				`{item.label} · {string.format("%.1f", top - bottom)} studs`,
+				top - at.Y + 1.5
+			)
+			model.Parent = folder
+		end
+	end
+end
+
+-- Todos los monos en filas delante del jugador: una fila por categoría (los pequeños delante) y, al
+-- fondo, cada jefe en su fila con sus tres fases del combate de izquierda a derecha (su cara y lo que
+-- cambia del cuerpo en cada una, ver MonkeyModels.showPhase). Para revisar los modelos de
 -- Monkeys/MonkeyModels. Pulsar otra vez los quita.
 local function monkeyShowcase(player: Player)
 	local existing = Workspace:FindFirstChild("DebugMonkeyShowcase")
@@ -165,72 +229,82 @@ local function monkeyShowcase(player: Player)
 		end
 		return Monkeys[a].name < Monkeys[b].name
 	end)
-	local rows: { { distance: number, models: { Model } } } = {}
-	local tierRows: { [number]: { distance: number, models: { Model } } } = {}
+	local rows: { ShowcaseRow } = {}
+	local tierRows: { [number]: ShowcaseRow } = {}
 	for _, speciesId in species do
 		local tier = Monkeys[speciesId].tier
 		local row = tierRows[tier]
 		if not row then
-			row = { distance = MONKEY_ROW_START + #rows * MONKEY_ROW_STEP, models = {} }
+			row = { distance = MONKEY_ROW_START + #rows * MONKEY_ROW_STEP, gap = MONKEY_GAP, items = {} }
 			tierRows[tier] = row
 			table.insert(rows, row)
 		end
-		table.insert(row.models, MonkeyModels.build(speciesId, Monkeys[speciesId], Vector3.zero))
+		local definition = Monkeys[speciesId]
+		table.insert(row.items, {
+			model = MonkeyModels.build(speciesId, definition, Vector3.zero),
+			label = definition.name,
+		})
 	end
-	-- Los jefes, en el orden en que salen en la partida y montados como en BossService.
-	local bossRow = { distance = MONKEY_ROW_START + #rows * MONKEY_ROW_STEP + BOSS_ROW_EXTRA, models = {} }
-	table.insert(rows, bossRow)
-	for _, bossId in Config.Match.BossRotation do
+	-- Los jefes, en el orden en que salen en la partida y montados como en BossService; la fase 1, a la
+	-- izquierda vista por el jugador.
+	local firstBossRow = MONKEY_ROW_START + #rows * MONKEY_ROW_STEP + BOSS_ROW_EXTRA
+	for index, bossId in Config.Match.BossRotation do
 		local boss = Bosses[bossId]
 		local look = table.clone(Monkeys[boss.baseSpecies])
 		look.name, look.scale = boss.name, boss.scale
 		look.bodyColor, look.faceColor = boss.bodyColor, boss.faceColor
-		table.insert(bossRow.models, MonkeyModels.build(boss.baseSpecies, look, Vector3.zero, bossId))
+		local row: ShowcaseRow = { distance = firstBossRow + (index - 1) * BOSS_ROW_STEP, gap = MONKEY_GAP, items = {} }
+		for phase = 1, BOSS_PHASES do
+			local model = MonkeyModels.build(boss.baseSpecies, look, Vector3.zero, bossId)
+			MonkeyModels.showPhase(model, phase)
+			table.insert(row.items, { model = model, label = `{boss.name} · fase {phase}` })
+		end
+		table.insert(rows, row)
 	end
 
 	local folder = Instance.new("Folder")
 	folder.Name = "DebugMonkeyShowcase"
 	folder.Parent = Workspace
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { folder, character }
+	placeRows(folder, character, rows)
+end
 
-	local pivot = character:GetPivot()
-	local forward = (pivot.LookVector * Vector3.new(1, 0, 1)).Unit
-	local right = forward:Cross(Vector3.yAxis)
-	for _, row in rows do
-		local sizes = {}
-		local total = 0
-		for index, model in row.models do
-			local _, size = model:GetBoundingBox()
-			sizes[index] = size
-			total += size.X + MONKEY_GAP
+-- Todas las mascotas en fila delante del jugador, de la más común a la legendaria, quietas, mirándolo
+-- y con su nombre, su rareza y su alto encima, para revisar los modelos de PetModels. Pulsar otra vez
+-- las quita.
+local function petShowcase(player: Player)
+	local existing = Workspace:FindFirstChild("DebugPetShowcase")
+	if existing then
+		existing:Destroy()
+		return
+	end
+	local character = player.Character
+	if not character then
+		return
+	end
+	local ids = {}
+	for petId in Pets do
+		table.insert(ids, petId)
+	end
+	table.sort(ids, function(a, b)
+		local orderA, orderB = Rarities[Pets[a].rarity].order, Rarities[Pets[b].rarity].order
+		if orderA ~= orderB then
+			return orderA < orderB
 		end
-		local offset = -total / 2
-		for index, model in row.models do
-			local size = sizes[index]
-			local spot = pivot.Position + forward * row.distance + right * (offset + size.X / 2)
-			offset += size.X + MONKEY_GAP
-			local hit = Workspace:Raycast(spot + Vector3.new(0, 60, 0), Vector3.new(0, -200, 0), params)
-			local ground = if hit then hit.Position else Vector3.new(spot.X, pivot.Position.Y - 3, spot.Z)
-			-- Se construyeron con el suelo en Y = 0: la raíz queda a la misma altura sobre el suelo real,
-			-- y la cara (-Z) mira al jugador.
-			local root = model.PrimaryPart :: BasePart
-			local rootPosition = ground + Vector3.new(0, root.Position.Y, 0)
-			for _, part in model:GetDescendants() do
-				if part:IsA("BasePart") then
-					part.Anchored = true
-				end
-			end
-			model:PivotTo(CFrame.lookAt(rootPosition, rootPosition - forward))
-			showcaseLabel(
-				root,
-				`{model.Name} · {string.format("%.1f", size.Y)} studs`,
-				size.Y - (rootPosition.Y - ground.Y) + 1.5
-			)
-			model.Parent = folder
+		return Pets[a].name < Pets[b].name
+	end)
+	local row: ShowcaseRow = { distance = PET_ROW_DISTANCE, gap = PET_GAP, items = {} }
+	for _, petId in ids do
+		local model = PetModels.build(petId)
+		if model then
+			local pet = Pets[petId]
+			table.insert(row.items, { model = model, label = `{pet.icon} {pet.name} ({Rarities[pet.rarity].name})` })
 		end
 	end
+
+	local folder = Instance.new("Folder")
+	folder.Name = "DebugPetShowcase"
+	folder.Parent = Workspace
+	placeRows(folder, character, { row })
 end
 
 -- Armaduras por las que va pasando "Siguiente armadura" (nil = ninguna).
@@ -289,6 +363,7 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	WeaponShowcase = weaponShowcase,
 	MonkeyShowcase = monkeyShowcase,
+	PetShowcase = petShowcase,
 	NextArmor = nextArmor,
 	Hungry = function(player)
 		player:SetAttribute(Survival.HUNGER, 10)

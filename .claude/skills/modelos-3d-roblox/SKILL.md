@@ -183,7 +183,8 @@ hasta que el usuario apruebe el resultado (§5).
 7. Resume: qué modelo, dónde está el código, tamaño, número de piezas, que la vista previa está
    montada esperando su aprobación, y cómo verlo en juego: el expositor de armas del panel de
    pruebas para las armas, el expositor de monos y jefes para los monos (todas las especies por
-   categoría y los jefes detrás, con su alto encima: sirve para comparar tamaños en el mapa real).
+   categoría y detrás cada jefe en su fila con sus tres fases, con el alto de lo visible encima:
+   sirve para comparar tamaños en el mapa real) y el expositor de mascotas para las mascotas.
 
 ## Editar un modelo existente
 
