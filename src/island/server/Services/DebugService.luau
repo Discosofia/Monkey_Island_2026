@@ -365,10 +365,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		player:SetAttribute(Survival.THIRST, Survival.MAX)
 		player:SetAttribute(Survival.FEVER, 0)
 	end,
-	-- Caído o Espíritu: de vuelta a la vida ya, sin esperar a un aliado ni a la reaparición.
+	-- Caído: de vuelta a la vida ya, sin esperar a un aliado ni a la reaparición.
 	Revive = function(player)
 		if not LifeService.debugRevive(player) then
-			Remotes.Notify:FireClient(player, "💚 Ya estás vivo: sirve cuando estás Caído o eres Espíritu")
+			Remotes.Notify:FireClient(player, "💚 Ya estás vivo: sirve cuando estás Caído")
 		end
 	end,
 	WeaponShowcase = weaponShowcase,

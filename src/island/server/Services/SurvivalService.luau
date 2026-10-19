@@ -6,10 +6,10 @@
 --     regeneración de Roblox está desactivado: ver src/island/character/Health.server.luau).
 --   - Comer (Remotes.Eat): el servidor elige la comida que más llena de las que lleva el jugador.
 --   - Beber (Remotes.Drink): el servidor comprueba que haya agua del terreno cerca.
---   - Al reaparecer tras ser Espíritu, hambre y sed suben al menos a Config.Survival.RespawnMinStat.
+--   - Al reaparecer sin que te reanimen, hambre y sed suben al menos a Config.Survival.RespawnMinStat.
 -- La estamina es del cliente (Client/Stamina.luau): solo afecta a correr y esquivar.
--- Fase 2.6: fiebre del mono ("Fever"). Baja sola muy despacio; a 100 quita vida. Al reaparecer como
--- Espíritu se cura. Los mordiscos (CombatService) y la carne cruda la suben; el antídoto la quita.
+-- Fase 2.6: fiebre del mono ("Fever"). Baja sola muy despacio; a 100 quita vida. Al reaparecer sin
+-- que te reanimen se cura. Los mordiscos (CombatService) y la carne cruda la suben; el antídoto la quita.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,7 +34,6 @@ local SurvivalService = {}
 local canEat = RequestCooldown.new(Config.Survival.EatCooldownSeconds)
 local canDrink = RequestCooldown.new(Config.Survival.DrinkCooldownSeconds)
 local lastDamagedAt: { [Player]: number } = {}
-local previousState: { [Player]: LifeState.State } = {}
 -- Avisos de hambre o sed baja ya mostrados (para no repetirlos cada segundo).
 local warned: { [Player]: { [string]: boolean } } = {}
 
@@ -171,16 +170,13 @@ local function onDrink(player: Player)
 	Sfx.play("Drink", root)
 end
 
--- Al pasar de Espíritu a vivo, hambre y sed no empiezan casi vacías.
-local function onLifeStateChanged(player: Player)
-	local state: LifeState.State = LifeState.get(player)
-	if previousState[player] == "Spirit" and state == "Alive" then
-		local minimum = Config.Survival.RespawnMinStat
-		setStat(player, Survival.HUNGER, math.max(Survival.get(player, Survival.HUNGER), minimum))
-		setStat(player, Survival.THIRST, math.max(Survival.get(player, Survival.THIRST), minimum))
-		player:SetAttribute(Survival.FEVER, 0)
-	end
-	previousState[player] = state
+-- Al reaparecer sin que le reanimen (LifeService), hambre y sed no empiezan casi vacías y la fiebre
+-- se cura.
+local function onRespawned(player: Player)
+	local minimum = Config.Survival.RespawnMinStat
+	setStat(player, Survival.HUNGER, math.max(Survival.get(player, Survival.HUNGER), minimum))
+	setStat(player, Survival.THIRST, math.max(Survival.get(player, Survival.THIRST), minimum))
+	player:SetAttribute(Survival.FEVER, 0)
 end
 
 local function onCharacterAdded(player: Player, character: Model)
@@ -198,16 +194,16 @@ local function onPlayer(player: Player)
 	setStat(player, Survival.HUNGER, Survival.MAX)
 	setStat(player, Survival.THIRST, Survival.MAX)
 	warned[player] = {}
-	previousState[player] = LifeState.get(player)
-	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(function()
-		onLifeStateChanged(player)
-	end)
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
 	if player.Character then
 		task.spawn(onCharacterAdded, player, player.Character)
 	end
+end
+
+function SurvivalService:Init()
+	LifeService.onRespawned(onRespawned)
 end
 
 function SurvivalService:Start()
@@ -220,7 +216,6 @@ function SurvivalService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastDamagedAt[player] = nil
-		previousState[player] = nil
 		warned[player] = nil
 	end)
 

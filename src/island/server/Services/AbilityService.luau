@@ -205,7 +205,7 @@ local function control(target: Target, seconds: number, look: ("Stun" | "Freeze"
 end
 
 -- El médico ("healer") cura a "player" con "abilityId". Puede ser crítica (Shared/Crit) y lo es seguro
--- si es el remate de su combo. Devuelve false si no se le puede curar (caído, Espíritu…).
+-- si es el remate de su combo. Devuelve false si no se le puede curar (caído…).
 local function heal(healer: Player, player: Player, amount: number, abilityId: string): boolean
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil

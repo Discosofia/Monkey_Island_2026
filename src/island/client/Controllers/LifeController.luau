@@ -1,8 +1,9 @@
 --!strict
--- Pantalla del jugador caído o Espíritu (GDD §6.2):
---   - Aviso en el centro con la cuenta atrás o las instrucciones.
+-- Pantalla del jugador caído (GDD §6.2):
+--   - Aviso en el centro con la cuenta atrás hasta reaparecer si nadie le reanima.
+--   - "Rendirse": mantener pulsado F en PC, X en mando o el botón táctil "Rendirse"
+--     (Config.Life.SurrenderHoldSeconds) para reaparecer ya, sin esperar la cuenta atrás.
 --   - Oculta su propio aviso "Reanimar" (es para sus aliados).
---   - Como Espíritu, marca enemigos: F en PC, X en mando o el botón táctil "Marcar".
 --   - Desactiva "Reiniciar personaje" del menú de Roblox, que permitiría saltarse estos estados.
 
 local Players = game:GetService("Players")
@@ -10,19 +11,22 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local Aim = require(script.Parent.Parent.Aim)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 
-local MARK_ACTION = "SpiritMark"
+local SURRENDER_ACTION = "Surrender"
 
 local LifeController = {}
+
+-- Desde cuándo mantiene pulsado "Rendirse" (os.clock), o nil si no lo pulsa.
+local holdingSince: number? = nil
 
 local function disableResetButton()
 	-- SetCore puede fallar si el menú aún no ha cargado: se reintenta unos segundos.
@@ -49,17 +53,19 @@ local function hideOwnRevivePrompt(character: Model)
 	character.DescendantAdded:Connect(check)
 end
 
-local function setMarking(enabled: boolean)
+local function setSurrender(enabled: boolean)
+	holdingSince = nil
 	if enabled then
-		ActionButtons.bind(MARK_ACTION, "Marcar", function(_, state: Enum.UserInputState)
-			local character = Players.LocalPlayer.Character
-			if state == Enum.UserInputState.Begin and character then
-				Remotes.SpiritMark:FireServer(Aim.direction(character))
+		ActionButtons.bind(SURRENDER_ACTION, "Rendirse", function(_, state: Enum.UserInputState)
+			if state == Enum.UserInputState.Begin then
+				holdingSince = os.clock()
+			elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+				holdingSince = nil
 			end
 			return Enum.ContextActionResult.Sink
 		end, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
 	else
-		ActionButtons.unbind(MARK_ACTION)
+		ActionButtons.unbind(SURRENDER_ACTION)
 	end
 end
 
@@ -78,14 +84,15 @@ function LifeController:Start()
 	banner.AnchorPoint = Vector2.new(0.5, 0.5)
 	banner.Position = UDim2.fromScale(0.5, 0.32)
 	banner.Size = UDim2.fromScale(0.7, 0.06)
+	banner.TextColor3 = Color3.fromRGB(255, 120, 110)
 	banner.Visible = false
 
 	local function refresh()
-		local state = LifeState.get(player)
-		setMarking(state == "Spirit")
-		banner.Visible = state ~= "Alive"
+		local downed = LifeState.get(player) == "Downed"
+		setSurrender(downed)
+		banner.Visible = downed
 		-- Caído: tumbado, se arrastra (Data/PlayerAnimations "Crawl").
-		if state == "Downed" then
+		if downed then
 			if not BodyAnimations.isPlaying("Crawl") then
 				BodyAnimations.play("Crawl", 0)
 			end
@@ -132,19 +139,27 @@ function LifeController:Start()
 		return if typeof(endsAt) == "number" then math.max(0, math.ceil(endsAt - Workspace:GetServerTimeNow())) else 0
 	end
 
-	-- Cuenta atrás mientras está caído o es Espíritu.
+	-- Cuenta atrás mientras está caído y "Rendirse": al mantenerlo lo bastante, pide reaparecer.
 	task.spawn(function()
 		while gui.Parent do
-			local state = LifeState.get(player)
-			if state == "Downed" then
-				banner.Text = `🆘 Has caído: un aliado puede reanimarte ({secondsUntil("DownedEndsAt")} s)`
-				banner.TextColor3 = Color3.fromRGB(255, 120, 110)
-			elseif state == "Spirit" then
-				banner.Text =
-					`👻 Eres un Espíritu: reapareces en {secondsUntil("SpiritEndsAt")} s · F / Marcar para señalar enemigos`
-				banner.TextColor3 = Color3.fromRGB(170, 225, 255)
+			if LifeState.get(player) == "Downed" then
+				local key = if UserInputService.TouchEnabled then "Rendirse" else "F"
+				local since = holdingSince
+				if since then
+					local held = os.clock() - since
+					if held >= Config.Life.SurrenderHoldSeconds then
+						holdingSince = nil
+						Remotes.Surrender:FireServer()
+					end
+					local left = math.max(0, Config.Life.SurrenderHoldSeconds - held)
+					banner.Text =
+						`🏳️ Rindiéndote… suelta para seguir esperando ({string.format("%.1f", left)} s)`
+				else
+					banner.Text =
+						`🆘 Has caído: un aliado puede reanimarte ({secondsUntil("DownedEndsAt")} s) · mantén {key} para rendirte`
+				end
 			end
-			task.wait(0.25)
+			task.wait(0.1)
 		end
 	end)
 end

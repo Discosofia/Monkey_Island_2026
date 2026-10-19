@@ -24,7 +24,7 @@ local Config = {
 		BossRotation = { "OrangutanDelManglar", "ChimpanceCaudillo", "GorilaAlbino", "GorilaDeCeniza" },
 		-- Primer día en que se puede encender la baliza de rescate (GDD §5.3).
 		BeaconUnlockDay = 8,
-		-- Derrota (Fase 2.7): de noche, si todos los jugadores están caídos o son Espíritus durante
+		-- Derrota (Fase 2.7): de noche, si todos los jugadores están caídos a la vez durante
 		-- estos segundos seguidos. Después se ven los resultados y todos vuelven al Lobby.
 		DefeatGraceSeconds = 10,
 		ResultsSeconds = 30,
@@ -260,24 +260,19 @@ local Config = {
 	},
 
 	Life = {
-		-- Segundos caído antes de pasar a Espíritu si nadie te reanima.
-		DownedSeconds = 30,
-		-- Tiempo como Espíritu antes de reaparecer en el Basecamp. Cada caída del mismo día suma
-		-- SpiritExtraSecondsPerDeath, hasta SpiritMaxSeconds. Al amanecer reaparecen todos.
-		SpiritSeconds = 45,
-		SpiritExtraSecondsPerDeath = 30,
-		SpiritMaxSeconds = 180,
+		-- Segundos caído antes de reaparecer (en tu cama o en el Basecamp) si nadie te reanima.
+		DownedSeconds = 60,
+		-- "Rendirse": el caído mantiene pulsado el botón SurrenderHoldSeconds para reaparecer ya. No
+		-- vale nada más caer: hace falta llevar al menos SurrenderAfterSeconds caído.
+		SurrenderHoldSeconds = 1.5,
+		SurrenderAfterSeconds = 3,
 		CrawlSpeed = 4,
 		ReviveHoldSeconds = 4,
 		ReviveDistance = 8,
 		-- Vida con la que vuelves al ser reanimado (fracción de la máxima).
 		ReviveHealthFraction = 0.35,
-		-- Parte de cada material que se queda en la mochila al pasar a Espíritu.
+		-- Parte de cada material que se queda en la mochila al reaparecer sin que te reanimen.
 		DropFraction = 0.5,
-		-- Marcas de los Espíritus: duración, espera entre marcas y alcance.
-		SpiritMarkSeconds = 8,
-		SpiritMarkCooldownSeconds = 2,
-		SpiritMarkRange = 250,
 	},
 
 	Survival = {
@@ -292,7 +287,7 @@ local Config = {
 		RegenPerSecond = 1,
 		RegenMinStat = 50,
 		RegenDelayAfterDamage = 6,
-		-- Al reaparecer como Espíritu, hambre y sed suben al menos a esto.
+		-- Al reaparecer sin que te reanimen, hambre y sed suben al menos a esto.
 		RespawnMinStat = 50,
 		-- Beber del río: sed que recupera cada trago y distancia al agua.
 		DrinkThirst = 25,

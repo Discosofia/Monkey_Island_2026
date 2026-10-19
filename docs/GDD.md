@@ -29,7 +29,7 @@
 
 | Tema | Decisión |
 |---|---|
-| Muerte | **Caído + reanimación.** Si nadie te reanima, pasas a ser *Espíritu* un rato (más largo con cada caída del día) y pierdes parte del inventario. |
+| Muerte | **Caído + reanimación.** Si nadie te reanima en 1 minuto (o te rindes), reapareces en tu cama o en el Basecamp y pierdes parte del inventario, que queda en una mochila donde caíste. |
 | Fin de partida | **Infinita + objetivo de rescate.** Se sobrevive el máximo de días posible, pero se puede **ganar** construyendo la baliza de rescate. |
 | PvP | **Opt-in en eventos y zonas.** El Basecamp es seguro. El PvP ocurre en cajas de suministro, el huevo y jefes disputados. |
 | Monetización | **Moneda del juego** para las mejoras. **Robux solo para cosméticos y comodidad.** Nada de pay-to-win. |
@@ -64,8 +64,7 @@ flowchart TD
   B --> P["Partida: ciclo día/noche"]
   P --> C{"¿Caído?"}
   C -->|"Un aliado te reanima"| P
-  C -->|"Se agota el tiempo"| E["Espíritu: marca enemigos"]
-  E -->|"Amanecer"| B
+  C -->|"Se agota el tiempo o te rindes"| B
   P --> R{"¿Fin?"}
   R -->|"Todos caídos a la vez"| D["Derrota del servidor"]
   R -->|"Baliza encendida + noche final superada"| V["Victoria: rescate"]
@@ -116,7 +115,7 @@ flowchart LR
 ### 5.1 Ciclo día/noche
 
 - Duración **configurable** (`Config.DayLength`, `Config.NightLength`). Valor inicial: **10 min de día + 7 min de noche**.
-- **Amanecer:** los monos **reaparecen** (respawn diario), los Espíritus reviven en el Basecamp y el contador de días sube.
+- **Amanecer:** los monos **reaparecen** (respawn diario), y el contador de días sube.
 - **Día:** especies diurnas. Es el momento de explorar y recolectar.
 - **Atardecer:** aviso un minuto antes de la noche para volver a la base.
 - **Noche:** especies nocturnas, menos visibilidad (antorchas) y **asedio al Basecamp** (§10).
@@ -130,7 +129,7 @@ stateDiagram-v2
   state "Derrota" as Derrota
   state "Victoria" as Victoria
   [*] --> Amanecer
-  Amanecer --> Dia: respawn de monos y de Espíritus
+  Amanecer --> Dia: respawn de monos
   Dia --> Atardecer: aviso de 1 minuto
   Atardecer --> Noche
   Noche --> Amanecer: día +1, sube la dificultad
@@ -146,7 +145,7 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 
 ### 5.3 Condiciones de fin
 
-- **Derrota:** todos los jugadores del servidor están caídos o son Espíritus a la vez. Se muestran los resultados y se vuelve al lobby.
+- **Derrota:** todos los jugadores del servidor están caídos a la vez (10 s seguidos de noche). Se muestran los resultados y se vuelve al lobby.
 - **Victoria (rescate):** se construye la **baliza de rescate** con piezas de los 4 jefes de bioma. Al encenderla empieza la **noche final** ("La Gran Tropa"). Si alguien sigue en pie al amanecer, llega el rescate.
   - La baliza solo se puede encender desde el **día 8** (configurable). Como aparece un jefe cada 2 días (días 2, 4, 6 y 8), antes no se pueden tener las 4 piezas.
 - **Entrar a mitad de partida:** se permite mientras haya hueco y no esté en curso la noche final. Las recompensas dependen de la **contribución** mientras estuviste presente.
@@ -167,11 +166,11 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
 | Fiebre del mono | Sube con los **mordiscos** de los monos según el daño que entra tras la armadura (+20 por cada barra de vida entera perdida a mordiscos; un mono básico, +1) y con la carne cruda (+12). Piedras, pisotones, jefes y peligros no la suben. Desde 60, tinte morado y **oleadas** cortas de vista borrosa (cada 16 s a 60, cada 7 s a 100); entre oleadas se ve bien. A 100 además quita vida poco a poco. Baja sola 4 por minuto (15 por minuto descansando en el Basecamp); el **antídoto** del taller del curandero la quita de golpe y el remate del combo del médico la baja 9. Ritmo buscado: síntomas tras unos 10 minutos de pelea continua sin curarse. |
 
-### 6.2 Muerte: caído y Espíritu
+### 6.2 Muerte: caído y reaparición
 
-1. **Caído (30 s):** te arrastras lento. Cualquier aliado puede reanimarte; el médico lo hace mucho más rápido.
-2. **Espíritu:** si se acaba el tiempo, dejas una **mochila** con parte de tu inventario en el sitio donde caíste (se puede recuperar). Como Espíritu puedes moverte y **marcar enemigos** para tu equipo, así que sigues aportando.
-3. **Reaparición:** vuelves al Basecamp tras **45 s** como Espíritu. Cada caída del mismo día suma 30 s más (máximo 3 min) y al amanecer reaparecen todos. Así morir pronto no te deja sin jugar, pero caer una y otra vez sí cuesta.
+1. **Caído (1 minuto):** te arrastras lento. Cualquier aliado puede reanimarte; el médico lo hace mucho más rápido.
+2. **Rendirse:** si nadie va a llegar (jugando solo, por ejemplo), mantén pulsado **Rendirse** (F, X en mando o el botón táctil) para no esperar el minuto entero. Vale a partir de los 3 s de caer.
+3. **Reaparición:** si se acaba el tiempo o te rindes, dejas una **mochila** con la mitad de cada material en el sitio donde caíste (solo tú puedes recuperarla; el equipo, como la antorcha, no se pierde) y reapareces al momento en tu cama o en el Basecamp, con toda la vida. *(Antes había una fase de Espíritu de 45 s a 3 min; se quitó el 19-10-2026.)*
 
 ### 6.3 Roles
 
@@ -248,7 +247,7 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 **Números de combate** (cada cliente los dibuja; `CombatTextController`): columnas de 4 números; el nuevo entra abajo y empuja a los anteriores, que suben y se desvanecen. Duran 2,8 s; lo recogido, 4,5 s.
 - **Rojo a la izquierda:** daño que recibes. **Verde a la derecha:** curaciones. **Amarillo sobre el enemigo:** daño que haces.
 - Lo de la **mascota** sale al 70 % del tamaño; el daño de los **aliados**, al 70 % y tenue (solo cerca).
-- **Lo que recoges** (recolección, botín de monos y jefes, cajas, tu mochila de Espíritu) sale igual, en una columna propia **a la derecha, debajo de las curaciones**: "+2 🌲 Madera" con el color de su rareza. Lo mismo recogido seguido suma en la misma línea. Se puede quitar en Ajustes.
+- **Lo que recoges** (recolección, botín de monos y jefes, cajas, tu mochila al caer) sale igual, en una columna propia **a la derecha, debajo de las curaciones**: "+2 🌲 Madera" con el color de su rareza. Lo mismo recogido seguido suma en la misma línea. Se puede quitar en Ajustes.
 - En **Ajustes** (⚙️ en la Isla, pestaña en el Lobby) cada jugador elige dónde salen sus números: **junto a la cabeza**, en una **columna del alto del jugador** o **fijos en la pantalla**; y ve su personaje con un ejemplo, el daño y el crítico de su arma, sus habilidades, su combo y su mascota.
 
 ---
@@ -342,7 +341,7 @@ El **diario de campo** (J en la Isla, pestaña "Diario" en el Lobby) recoge las 
 
 *Ajuste de octubre de 2026 (combos):* las tropas son un **50 % más grandes** (`Config.Monkeys.GroupSizeMultiplier`), los grupos diezmados se recuperan cada **25 s** (antes 45) y caben hasta **220** monos a la vez (antes 160), para que siempre haya con quién enlazar combos. *(18-10-2026: las tropas solo existen cerca de los jugadores y el límite, 200, cuenta solo esas; ver `docs/RENDIMIENTO.md`.)* A cambio, cada mono suelta botín con la **mitad de probabilidad** (`LootChanceMultiplier`).
 
-*Botín compartido (18-10-2026):* el botín de un mono se **reparte al azar, unidad a unidad, entre todos los que pelearon contra él**: quienes le golpearon en los últimos **30 s** (`Config.Monkeys.LootShareSeconds`), los **médicos que curaron a alguno de ellos** en ese tiempo y siempre quien lo derrotó. Para recibir hay que estar vivo (no caído ni Espíritu), salvo quien lo derrota. Lo robado por un capuchino y la baja (diario, estadísticas) siguen siendo de quien lo derrota.
+*Botín compartido (18-10-2026):* el botín de un mono se **reparte al azar, unidad a unidad, entre todos los que pelearon contra él**: quienes le golpearon en los últimos **30 s** (`Config.Monkeys.LootShareSeconds`), los **médicos que curaron a alguno de ellos** en ese tiempo y siempre quien lo derrotó. Para recibir hay que estar vivo (no caído), salvo quien lo derrota. Lo robado por un capuchino y la baja (diario, estadísticas) siguen siendo de quien lo derrota.
 
 #### Categoría 1: dificultad baja
 
@@ -527,7 +526,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 - **Núcleo compartido:** nido, baliza, defensas perimetrales y estaciones grandes. Cualquiera puede aportar recursos, pero solo se puede **desmontar con votación o por el constructor original** (evita el sabotaje).
 - **Parcela personal:** una tienda o espacio pequeño para cofre, cama y estaciones propias. Solo la modifica su dueño.
-- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella al volver de Espíritu). Cada jugador recibe una de 20 parcelas al entrar; al salir se libera y se derriba lo que tenía en ella.
+- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella si caes y no te reaniman). Cada jugador recibe una de 20 parcelas al entrar; al salir se libera y se derriba lo que tenía en ella.
 - **Sin recursos dentro**, como en el diseño original: hay que salir a buscarlos.
 - **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une a los 20 jugadores en un objetivo común cada noche.
   - Las oleadas crecen con el número de día y con el número de jugadores. *(v1: 3 oleadas por noche, por uno o dos portones al azar; ajustes en `Config.Siege`.)*

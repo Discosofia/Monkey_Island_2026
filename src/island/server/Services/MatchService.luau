@@ -1,6 +1,6 @@
 --!strict
 -- Fin de la partida (GDD §5.3, Fase 2.7).
---   - Derrota: de noche, si todos los jugadores están caídos o son Espíritus a la vez durante
+--   - Derrota: de noche, si todos los jugadores están caídos a la vez durante
 --     Config.Match.DefeatGraceSeconds seguidos.
 --   - Al terminar: se para el ciclo de día y noche, cada jugador ve su resumen (días, monos,
 --     reanimaciones, caídas y Ámbar ganado) y a los Config.Match.ResultsSeconds todos vuelven al Lobby.

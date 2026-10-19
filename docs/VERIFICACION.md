@@ -101,7 +101,7 @@ Marca cada casilla al comprobarla.
    ✅ Pantalla de resultados: "El Basecamp ha caído", días, monos, reanimaciones, caídas, jefes y **Ámbar ganado**, con una cuenta atrás.
    ⚠️ En Studio el viaje al Lobby falla (es normal: los viajes solo funcionan publicados). Para seguir probando, para (■) y vuelve a darle a ▶.
 2. [ ] **Derrota real (opcional):** de noche, solo, deja que te tumben y no te levantes.
-   ✅ A los **10 s** de estar caído o como Espíritu de noche, la partida termina.
+   ✅ A los **10 s** de estar caído de noche, la partida termina.
 
 ## 2.8 Guardado de datos
 
@@ -355,7 +355,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 11. [ ] **Lo que recoges:** golpea un árbol varias veces seguidas.
    ✅ Sale "+1 🌲 Madera" a la derecha, **debajo de la columna de curación**, y sube a "+2", "+3"… en la misma línea. Mata un mono: su botín sale igual (sin aviso arriba). En las tres disposiciones no se pisa con las curaciones; en Ajustes, "Lo que recoges: No" lo quita.
 12. [ ] Abre la **Forja de piedra** (o la mesa de trabajo): cada arma termina su descripción con "🎯 Crítico 10 %" en amarillo; las mejoras dicen de cuánto a cuánto sube ("🎯 Crítico 10 → 15 %"). El hacha y el pico no lo llevan.
-13. [ ] Deja que te tumbe el 🐒 Mandril y pulsa **💚 Revivir**: te levantas al momento con toda la vida, donde estabas. Igual siendo Espíritu (vuelves a verte normal). Vivo, solo avisa.
+13. [ ] Deja que te tumbe el 🐒 Mandril y pulsa **💚 Revivir**: te levantas al momento con toda la vida, donde estabas. Vivo, solo avisa.
 14. [ ] Pulsa **🗡️ Expositor de armas**: las 23 armas salen en círculo a tu alrededor, de perfil y con su nombre. Cada mejora se ve más grande o mejor que la anterior y lleva sus materiales (piedra, hueso, colmillos, liana, oro, plata). Empuña algunas (hacha, arco, bastón, honda): la mano queda en la empuñadura y el filo o la punta miran hacia delante. Pulsa otra vez para quitarlas.
 15. [ ] Pulsa **🛡️ Siguiente armadura** varias veces: chaleco de pelaje (rojo, abierto por delante, ribete dorado y cordones) → armadura de hueso (costillas y hombreras de hueso con púas) → armadura de plata (manto plateado, placas de hueso en cruz y medallón) → sin armadura. Ninguna atraviesa los brazos ni la cabeza de forma rara.
 16. [ ] Abre **⚙️ Ajustes**: tu personaje sale con la armadura puesta y el arma en la mano (la que empuñas o, con las manos vacías, la de tus números de combate, con el brazo levantado). En el Lobby, el arma inicial del rol.

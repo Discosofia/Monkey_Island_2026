@@ -1,15 +1,13 @@
 --!strict
--- Caído → reanimación → Espíritu → reaparición (GDD §6.2, Fase 1.5).
+-- Caído → reanimación o reaparición (GDD §6.2, Fase 1.5).
 --
 --   - Un golpe mortal no mata: el jugador queda Caído (se arrastra, no ataca ni recolecta).
 --   - Un aliado lo reanima manteniendo pulsado su aviso "Reanimar".
---   - Si nadie llega a tiempo, deja una mochila con parte de sus materiales y pasa a Espíritu:
---     no recibe daño y puede marcar enemigos para sus aliados.
---   - El Espíritu reaparece en el Basecamp tras un tiempo que crece con cada caída del día
---     (Config.Life.SpiritSeconds…), o al amanecer si llega antes.
+--   - Si nadie llega a tiempo (Config.Life.DownedSeconds), o si el propio caído se rinde
+--     (Remotes.Surrender, a partir de Config.Life.SurrenderAfterSeconds), deja una mochila con parte
+--     de sus materiales donde cayó y reaparece al momento en su cama o en el Basecamp, con toda la
+--     vida. Ya no hay fase de Espíritu.
 
-local CollectionService = game:GetService("CollectionService")
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -19,29 +17,30 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
-local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
-local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
-local SPIRIT_TRANSPARENCY = 0.65
-local VISUALS = { "RevivePrompt", "DownedBillboard", "DownedHighlight", "SpiritHighlight" }
+local VISUALS = { "RevivePrompt", "DownedBillboard", "DownedHighlight" }
 
 local LifeService = {}
 
--- Cambia con cada caída: así un temporizador viejo no convierte en Espíritu a quien ya se levantó.
+-- Cambia con cada caída: así un temporizador viejo no hace reaparecer a quien ya se levantó.
 local downedToken: { [Player]: number } = {}
--- Igual para los Espíritus: una reaparición vieja no afecta a una muerte nueva.
-local spiritToken: { [Player]: number } = {}
--- Veces que cada jugador ha pasado a Espíritu desde el último amanecer.
-local deathsToday: { [Player]: number } = {}
-local lastMarkAt: { [Player]: number } = {}
+-- Cuándo cayó cada jugador (os.clock), para no dejarle rendirse nada más caer.
+local downedAt: { [Player]: number } = {}
+local respawnListeners: { (player: Player) -> () } = {}
 local backpacks: Folder? = nil
+
+-- Llama a "callback" cada vez que un caído reaparece sin que lo reanimen (SurvivalService le sube el
+-- hambre y la sed y le quita la fiebre). Regístralo en Init.
+function LifeService.onRespawned(callback: (player: Player) -> ())
+	table.insert(respawnListeners, callback)
+end
 
 local function characterParts(player: Player): (Model?, Humanoid?, BasePart?)
 	local character = player.Character
@@ -74,33 +73,6 @@ local function restoreMovement(humanoid: Humanoid)
 	humanoid.WalkSpeed = if typeof(walkSpeed) == "number" then walkSpeed else 16
 	humanoid.JumpHeight = if typeof(jumpHeight) == "number" then jumpHeight else 7.2
 	humanoid.JumpPower = if typeof(jumpPower) == "number" then jumpPower else 50
-end
-
-local function setGhost(character: Model, ghost: boolean)
-	for _, descendant in character:GetDescendants() do
-		if (descendant:IsA("BasePart") and descendant.Name ~= "HumanoidRootPart") or descendant:IsA("Decal") then
-			local part = descendant :: any
-			if ghost then
-				if part:GetAttribute("NormalTransparency") == nil then
-					part:SetAttribute("NormalTransparency", part.Transparency)
-				end
-				part.Transparency = math.max(part.Transparency, SPIRIT_TRANSPARENCY)
-			else
-				local normal = part:GetAttribute("NormalTransparency")
-				if typeof(normal) == "number" then
-					part.Transparency = normal
-				end
-			end
-		end
-	end
-	if ghost then
-		local highlight = Instance.new("Highlight")
-		highlight.Name = "SpiritHighlight"
-		highlight.FillColor = Color3.fromRGB(140, 220, 255)
-		highlight.FillTransparency = 0.6
-		highlight.OutlineColor = Color3.fromRGB(200, 240, 255)
-		highlight.Parent = character
-	end
 end
 
 local function spawnPoint(): CFrame
@@ -162,54 +134,35 @@ local function dropBackpack(player: Player, position: Vector3)
 	end)
 end
 
-local function respawnSpirit(player: Player)
-	if LifeState.get(player) ~= "Spirit" then
-		return
-	end
-	spiritToken[player] = (spiritToken[player] or 0) + 1
-	local character, humanoid = characterParts(player)
-	if character and humanoid then
-		clearVisuals(character)
-		setGhost(character, false)
-		humanoid.Health = humanoid.MaxHealth
-		-- Si tiene cama en su parcela (BuildingService), reaparece junto a ella.
-		local bed = player:GetAttribute("RespawnCFrame")
-		character:PivotTo(if typeof(bed) == "CFrame" then bed else spawnPoint())
-	end
-	player:SetAttribute("SpiritEndsAt", nil)
-	setState(player, "Alive")
-	Remotes.Notify:FireClient(player, "☀️ Has vuelto a la vida en el Basecamp")
-end
-
-local function becomeSpirit(player: Player)
+-- Nadie lo ha reanimado (o se ha rendido): deja la mochila donde cayó y reaparece al momento en su
+-- cama o en el Basecamp, con toda la vida.
+local function respawnDowned(player: Player, surrendered: boolean)
 	local character, humanoid, root = characterParts(player)
-	if not (character and humanoid and root) then
+	if not (character and humanoid and root) or LifeState.get(player) ~= "Downed" then
 		return
 	end
+	downedToken[player] = (downedToken[player] or 0) + 1
+	downedAt[player] = nil
 	MatchStats.add(player, MatchStats.DEATHS)
 	dropBackpack(player, root.Position - Vector3.new(0, 2, 0))
 	clearVisuals(character)
 	restoreMovement(humanoid)
 	humanoid.Health = humanoid.MaxHealth
-	setGhost(character, true)
-
-	local deaths = (deathsToday[player] or 0) + 1
-	deathsToday[player] = deaths
-	local seconds = math.min(
-		Config.Life.SpiritSeconds + (deaths - 1) * Config.Life.SpiritExtraSecondsPerDeath,
-		Config.Life.SpiritMaxSeconds
+	-- Si tiene cama en su parcela (BuildingService), reaparece junto a ella.
+	local bed = player:GetAttribute("RespawnCFrame")
+	character:PivotTo(if typeof(bed) == "CFrame" then bed else spawnPoint())
+	player:SetAttribute("DownedEndsAt", nil)
+	setState(player, "Alive")
+	for _, listener in respawnListeners do
+		task.spawn(listener, player)
+	end
+	local where = if typeof(bed) == "CFrame" then "en tu cama" else "en el Basecamp"
+	Remotes.Notify:FireClient(
+		player,
+		if surrendered
+			then `🏳️ Te has rendido: reapareces {where}. Tu mochila se ha quedado donde caíste`
+			else `☠️ Nadie te reanimó a tiempo: reapareces {where}. Tu mochila se ha quedado donde caíste`
 	)
-	player:SetAttribute("SpiritEndsAt", Workspace:GetServerTimeNow() + seconds)
-	setState(player, "Spirit")
-	Remotes.Notify:FireClient(player, `👻 Eres un Espíritu. Reaparecerás en el Basecamp en {seconds} s.`)
-
-	local token = (spiritToken[player] or 0) + 1
-	spiritToken[player] = token
-	task.delay(seconds, function()
-		if spiritToken[player] == token then
-			respawnSpirit(player)
-		end
-	end)
 end
 
 local function revive(player: Player, rescuer: Player)
@@ -218,12 +171,14 @@ local function revive(player: Player, rescuer: Player)
 		return
 	end
 	downedToken[player] = (downedToken[player] or 0) + 1
+	downedAt[player] = nil
 	clearVisuals(character)
 	restoreMovement(humanoid)
 	-- "Segundo aliento" (talento del médico) levanta con más vida.
 	local fraction = math.min(1, Config.Life.ReviveHealthFraction + Progression.perk(rescuer, "ReviveHealth"))
 	local before = humanoid.Health
 	humanoid.Health = math.max(1, humanoid.MaxHealth * fraction)
+	player:SetAttribute("DownedEndsAt", nil)
 	setState(player, "Alive")
 	CombatText.heal(player, humanoid.Health - before, false, rescuer)
 	Sfx.play("Revive", character.PrimaryPart or character)
@@ -232,22 +187,20 @@ local function revive(player: Player, rescuer: Player)
 	Remotes.Notify:FireClient(rescuer, `💚 Has reanimado a {player.DisplayName}`)
 end
 
--- Panel de pruebas (DebugService): el Caído o el Espíritu vuelve a la vida al momento, donde está y
--- con toda la vida. Devuelve false si ya estaba vivo.
+-- Panel de pruebas (DebugService): el caído vuelve a la vida al momento, donde está y con toda la
+-- vida. Devuelve false si ya estaba vivo.
 function LifeService.debugRevive(player: Player): boolean
-	local state = LifeState.get(player)
 	local character, humanoid = characterParts(player)
-	if not (character and humanoid) or (state ~= "Downed" and state ~= "Spirit") then
+	if not (character and humanoid) or LifeState.get(player) ~= "Downed" then
 		return false
 	end
-	-- Anula el paso a Espíritu y la reaparición pendientes.
+	-- Anula la reaparición pendiente.
 	downedToken[player] = (downedToken[player] or 0) + 1
-	spiritToken[player] = (spiritToken[player] or 0) + 1
+	downedAt[player] = nil
 	clearVisuals(character)
-	setGhost(character, false)
 	restoreMovement(humanoid)
 	humanoid.Health = humanoid.MaxHealth
-	player:SetAttribute("SpiritEndsAt", nil)
+	player:SetAttribute("DownedEndsAt", nil)
 	setState(player, "Alive")
 	Sfx.play("Revive", character.PrimaryPart or character)
 	return true
@@ -270,6 +223,7 @@ function LifeService.down(player: Player, cause: string)
 	humanoid.JumpHeight = 0
 	humanoid.JumpPower = 0
 	player:SetAttribute("DownedEndsAt", Workspace:GetServerTimeNow() + Config.Life.DownedSeconds)
+	downedAt[player] = os.clock()
 	setState(player, "Downed")
 
 	local highlight = Instance.new("Highlight")
@@ -316,77 +270,32 @@ function LifeService.down(player: Player, cause: string)
 	local token = (downedToken[player] or 0) + 1
 	downedToken[player] = token
 	task.delay(Config.Life.DownedSeconds, function()
-		if downedToken[player] == token and LifeState.get(player) == "Downed" then
-			becomeSpirit(player)
+		if downedToken[player] == token then
+			respawnDowned(player, false)
 		end
 	end)
 end
 
--- Al amanecer reaparecen todos los Espíritus y se reinicia la cuenta de caídas del día.
-local function onDawn()
-	table.clear(deathsToday)
-	for _, player in Players:GetPlayers() do
-		respawnSpirit(player)
+-- El caído se rinde (mantener pulsado "Rendirse", LifeController): reaparece ya, con la mochila.
+local function onSurrender(player: Player)
+	local since = downedAt[player]
+	if LifeState.get(player) ~= "Downed" or not since then
+		return
 	end
+	if os.clock() - since < Config.Life.SurrenderAfterSeconds then
+		return
+	end
+	respawnDowned(player, true)
 end
 
--- Marca de Espíritu: resalta para todos el enemigo al que apunta (nada más: ni árboles ni rocas).
-local function onSpiritMark(player: Player, aim: any)
-	if LifeState.get(player) ~= "Spirit" or typeof(aim) ~= "Vector3" or aim.Magnitude < 0.5 then
-		return
-	end
-	local now = os.clock()
-	if now - (lastMarkAt[player] or -math.huge) < Config.Life.SpiritMarkCooldownSeconds then
-		return
-	end
-	lastMarkAt[player] = now
-
-	local character = player.Character
-	local head = if character then character:FindFirstChild("Head") else nil
-	if not (character and head and head:IsA("BasePart")) then
-		return
-	end
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-	local result = Workspace:Raycast(head.Position, aim.Unit * Config.Life.SpiritMarkRange, params)
-	if not result then
-		return
-	end
-
-	-- Sube por los modelos hasta encontrar un enemigo.
-	local model = result.Instance:FindFirstAncestorOfClass("Model")
-	while model do
-		if CollectionService:HasTag(model, Config.Combat.EnemyTag) then
-			local highlight = Instance.new("Highlight")
-			highlight.FillTransparency = 1
-			highlight.OutlineColor = Color3.fromRGB(255, 80, 60)
-			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-			highlight.Parent = model
-			Debris:AddItem(highlight, Config.Life.SpiritMarkSeconds)
-			return
-		end
-		model = model:FindFirstAncestorOfClass("Model")
-	end
-end
-
-local function onCharacterAdded(player: Player, character: Model)
-	-- Si el personaje se recrea (por ejemplo, al caer al vacío), conserva el estado de Espíritu.
-	local state = LifeState.get(player)
-	if state == "Downed" then
+local function onCharacterAdded(player: Player)
+	-- Si el personaje se recrea (por ejemplo, al caer al vacío), vuelve vivo.
+	if LifeState.get(player) == "Downed" then
+		downedToken[player] = (downedToken[player] or 0) + 1
+		downedAt[player] = nil
+		player:SetAttribute("DownedEndsAt", nil)
 		setState(player, "Alive")
-	elseif state == "Spirit" then
-		character:WaitForChild("HumanoidRootPart")
-		setGhost(character, true)
 	end
-end
-
-function LifeService:Init()
-	DayNightService.onPhaseStarted(function(_day: number, phase: MatchState.Phase)
-		if phase == "Day" then
-			onDawn()
-		end
-	end)
 end
 
 function LifeService:Start()
@@ -395,12 +304,12 @@ function LifeService:Start()
 	folder.Parent = Workspace
 	backpacks = folder
 
-	Remotes.SpiritMark.OnServerEvent:Connect(onSpiritMark)
+	Remotes.Surrender.OnServerEvent:Connect(onSurrender)
 
 	local function onPlayer(player: Player)
 		setState(player, "Alive")
-		player.CharacterAdded:Connect(function(character)
-			onCharacterAdded(player, character)
+		player.CharacterAdded:Connect(function()
+			onCharacterAdded(player)
 		end)
 	end
 	Players.PlayerAdded:Connect(onPlayer)
@@ -409,9 +318,7 @@ function LifeService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		downedToken[player] = nil
-		spiritToken[player] = nil
-		deathsToday[player] = nil
-		lastMarkAt[player] = nil
+		downedAt[player] = nil
 		-- Sus mochilas ya no las puede recoger nadie.
 		for _, bag in folder:GetChildren() do
 			if bag:GetAttribute("OwnerUserId") == player.UserId then

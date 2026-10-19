@@ -1,6 +1,6 @@
 --!strict
 -- Estadísticas de la partida de cada jugador (Fase 2.7), guardadas como atributos del Player:
--- monos derrotados, aliados reanimados y veces que ha pasado a Espíritu. Las muestra la pantalla
+-- monos derrotados, aliados reanimados y veces que ha caído sin que le reanimen. Las muestra la pantalla
 -- de resultados y sirven para calcular el Ámbar.
 
 local MatchStats = {}

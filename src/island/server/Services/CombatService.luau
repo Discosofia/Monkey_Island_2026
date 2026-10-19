@@ -182,7 +182,7 @@ local function mitigate(player: Player, amount: number): number
 end
 
 -- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp, esquivando,
--- caído o como Espíritu. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal no mata:
+-- o caído. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal no mata:
 -- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
 -- "source": el mono o jefe que pega; según su categoría o fase puede hacer un crítico (Shared/Crit).

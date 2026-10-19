@@ -50,8 +50,8 @@ local Remotes = {
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
 	Dodge = remoteEvent("Dodge"),
-	-- Cliente -> servidor (Isla): un Espíritu marca lo que apunta (Vector3 de dirección).
-	SpiritMark = remoteEvent("SpiritMark"),
+	-- Cliente -> servidor (Isla): el caído se rinde y reaparece ya (mantener pulsado "Rendirse").
+	Surrender = remoteEvent("Surrender"),
 	-- Cliente -> servidor (Isla): fabricar una receta en la mesa de trabajo (id de Data/Recipes).
 	Craft = remoteEvent("Craft"),
 	-- Cliente -> servidor (Isla): curarse (el servidor elige venda, ungüento o antídoto).

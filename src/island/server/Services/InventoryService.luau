@@ -1,6 +1,6 @@
 --!strict
 -- Inventario de cada jugador durante la partida. Solo el servidor lo cambia.
--- Lo usan la recolección, el botín, la mochila del Espíritu (1.5) y el crafteo (1.6).
+-- Lo usan la recolección, el botín, la mochila al caer (1.5) y el crafteo (1.6).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 

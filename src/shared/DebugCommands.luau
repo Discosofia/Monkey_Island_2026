@@ -10,7 +10,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "NextRole", label = "🎭 Siguiente rol" },
 		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar y llenar" },
-		{ id = "Revive", label = "💚 Revivir (Caído o Espíritu)" },
+		{ id = "Revive", label = "💚 Revivir (Caído)" },
 		{ id = "Hungry", label = "🍖 Hambre y sed al 10" },
 		{ id = "Fever", label = "🤒 Fiebre a 90" },
 		{ id = "Boss", label = "👑 Siguiente jefe" },

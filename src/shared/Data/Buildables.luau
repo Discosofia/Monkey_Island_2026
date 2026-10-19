@@ -62,7 +62,7 @@ local Buildables: { [string]: Buildable } = {
 	Bed = {
 		name = "Cama",
 		icon = "🛏️",
-		description = "Solo en tu parcela. Al volver de Espíritu reapareces aquí.",
+		description = "Solo en tu parcela. Si caes y no te reaniman, reapareces aquí.",
 		order = 4,
 		size = Vector3.new(4, 1.6, 7),
 		cost = { { itemId = "Wood", amount = 6 }, { itemId = "Fiber", amount = 4 } },

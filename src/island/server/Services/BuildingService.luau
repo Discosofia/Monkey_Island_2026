@@ -4,7 +4,7 @@
 --   - Núcleo compartido: cualquiera construye; parcela personal: solo su dueño.
 --   - Cada jugador recibe una parcela libre al entrar; al salir se libera y se derriba lo que tenía.
 --   - Derribar: solo tus piezas; se devuelve parte del coste (Config.Building.RefundFraction).
---   - La cama marca dónde reapareces al volver de Espíritu (atributo "RespawnCFrame").
+--   - La cama marca dónde reapareces si caes y no te reaniman (atributo "RespawnCFrame").
 -- El servidor valida todo: zona, distancia, materiales, límites y que nada estorbe.
 
 local Players = game:GetService("Players")
@@ -270,7 +270,7 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 
 	if buildableId == "Bed" then
 		player:SetAttribute("RespawnCFrame", cframe * CFrame.new(0, 3, 0))
-		Remotes.Notify:FireClient(player, "🛏️ Al volver de Espíritu reaparecerás en tu cama")
+		Remotes.Notify:FireClient(player, "🛏️ Si caes y no te reaniman, reaparecerás en tu cama")
 	end
 end
 

@@ -714,7 +714,7 @@ local function collectPlayers(): { PlayerInfo }
 		local character = player.Character
 		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-		-- Los caídos y los Espíritus no cuentan: los monos los dejan en paz.
+		-- Los caídos no cuentan: los monos los dejan en paz.
 		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and LifeState.isAlive(player) then
 			table.insert(infos, {
 				player = player,
