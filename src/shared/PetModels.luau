@@ -1454,6 +1454,593 @@ local function felid(rig: Rig, coat: Color3, options: CatOptions)
 	end
 end
 
+-- Medidas de cada raza de perro voxel (celdas de VOXEL, como los felinos) y sus colores por zona.
+type DogPatch = { center: Vector3, size: Vector3, hips: boolean? }
+type DogOptions = {
+	legH: number, -- alto de las patas
+	legW: number, -- grosor de las patas de delante (las de atrás, algo más)
+	bodyH: number,
+	bodyW: number,
+	bodyL: number,
+	tuck: number, -- cuánto sube la barriga en la cadera (cintura recogida)
+	skull: Vector3, -- la cabeza sin el hocico
+	snout: Vector3, -- el hocico (su largo en Z)
+	neck: number, -- cuánto sube el centro de la cabeza sobre el lomo
+	ear: Vector3, -- oreja caída: grosor, largo hacia abajo y ancho
+	tail: { Vector3 }, -- dirección de cada tramo de la cola, de la base a la punta (Z = hacia atrás)
+	tailSegment: number,
+	tailWidth: number,
+	tailTaper: number, -- lo que adelgaza cada tramo (la cola de nutria del labrador es gruesa en la base)
+	eye: Color3,
+	nose: Color3,
+	-- Colores por zona; sin ellos, los del pelaje: manto del lomo, cabeza y cuello, orejas, hocico,
+	-- lista de la frente, pecho y vientre, tramo de abajo de las patas, cola y punta de la cola.
+	saddle: Color3?,
+	head: Color3?,
+	ears: Color3?,
+	muzzle: Color3?,
+	blaze: Color3?,
+	chest: Color3?,
+	legs: Color3?,
+	tailColor: Color3?,
+	tailTip: Color3?,
+	-- Manchas grandes (pointer): cajas que asoman del cuerpo, en celdas; "hips" si van en la cadera.
+	patches: ((top: number, bottom: number) -> { DogPatch })?,
+	patchColor: Color3?,
+	ticking: Color3?, -- moteado fino (pointer)
+	collar: Color3?,
+	tongue: boolean?,
+	pack: Color3?, -- alforjas de perro a los lados del lomo (labrador: la mascota que trae botín)
+}
+
+-- Perro en estilo voxel (Grupo 15; fotos en docs/img). Mismos huesos y medidas ("dims") que los
+-- felinos voxel: pecho que manda el rumbo y cadera que se dobla al girar, patas de dos tramos, cola por
+-- tramos y cabeza que gira sobre la nuca; además, las orejas caídas, que van con la cabeza y aletean al
+-- trote (huesos "EarL" y "EarR"). Frente al felino: patas más largas, pecho hondo con quilla y la
+-- cintura recogida, cuello que sube y lleva la cabeza por encima del lomo, hocico largo con la trufa
+-- delante y corvejón en las patas de atrás (el tramo de abajo va más atrás que el muslo). Medidas en
+-- celdas, con el suelo en y = 0.
+local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
+	local material = Enum.Material.SmoothPlastic
+	local legH, bodyH, bodyW, bodyL = o.legH, o.bodyH, o.bodyW, o.bodyL
+	local bottom = legH
+	local top = legH + bodyH
+	local centerY = legH + bodyH / 2
+	local headColor = o.head or coat
+	local chest = o.chest or coat:Lerp(WHITE, 0.2)
+	local legColor = o.legs or coat
+	local dark = headColor:Lerp(BLACK, 0.6)
+	-- Escalones de tono de los músculos (aprendido en los felinos): hombro apenas más claro (con un +8 %
+	-- parecía un tablón pegado al costado) y muslo más oscuro.
+	local shoulderColor = coat:Lerp(WHITE, 0.04)
+	local muscle = coat:Lerp(BLACK, 0.12)
+
+	local function at(p: Vector3): Vector3
+		return (p - Vector3.new(0, centerY, 0)) * VOXEL
+	end
+	local function box(list: { BasePart }?, name: string, center: Vector3, size: Vector3, color: Color3): BasePart
+		local part = piece(rig, name, "Block", size * VOXEL, CFrame.new(at(center)), color, material)
+		if list then
+			table.insert(list, part)
+		end
+		return part
+	end
+	-- Placa fina pegada a una cara (ojos, lista, moteado): "center" está en la cara, "u" es su eje
+	-- horizontal y "lift" lo que sobresale.
+	local function flat(
+		list: { BasePart }?,
+		name: string,
+		center: Vector3,
+		normal: Vector3,
+		u: Vector3,
+		size: Vector2,
+		color: Color3,
+		lift: number?
+	): BasePart
+		local v = normal:Cross(u)
+		local part = piece(
+			rig,
+			name,
+			"Block",
+			Vector3.new(size.X, size.Y, 0.14) * VOXEL,
+			CFrame.fromMatrix(at(center + normal * (lift or 0.05)), u, v),
+			color,
+			material
+		)
+		if list then
+			table.insert(list, part)
+		end
+		return part
+	end
+	-- Moteado fino del pointer: una rejilla de huecos de "step" celdas con una mota al azar en los que
+	-- toque. Semilla fija: todos los pointer salen con las mismas motas.
+	local rng = Random.new(29)
+	local function ticking(
+		list: { BasePart }?,
+		center: Vector3,
+		normal: Vector3,
+		u: Vector3,
+		size: Vector2,
+		step: number
+	)
+		local color = o.ticking
+		if not color then
+			return
+		end
+		local v = normal:Cross(u)
+		local nu, nv = math.max(1, math.floor(size.X / step)), math.max(1, math.floor(size.Y / step))
+		for i = 1, nu do
+			for j = 1, nv do
+				if rng:NextNumber() < 0.6 then
+					local cu = (i - (nu + 1) / 2) * size.X / nu + rng:NextNumber(-0.4, 0.4)
+					local cv = (j - (nv + 1) / 2) * size.Y / nv + rng:NextNumber(-0.4, 0.4)
+					local dot = rng:NextNumber(0.35, 0.6)
+					flat(list, "Tick", center + u * cu + v * cv, normal, u, Vector2.new(dot, dot), color)
+				end
+			end
+		end
+	end
+
+	-- Tronco: el pecho, que manda el rumbo, y la cadera, más estrecha y recogida por abajo, que gira
+	-- sobre la cintura al girar (como el felino). Bajo el pecho, la quilla: el pecho hondo del perro.
+	local waist = 0.4
+	local hipW = bodyW - 0.4
+	local chestFront = -bodyL / 2
+	local frontEnd = waist + 0.6
+	box(
+		nil,
+		"Body",
+		Vector3.new(0, centerY, (chestFront + frontEnd) / 2),
+		Vector3.new(bodyW, bodyH, frontEnd - chestFront),
+		coat
+	)
+	local hipStart = waist - 1.2
+	local hipBottom = bottom + o.tuck
+	local hips = box(
+		nil,
+		"Hips",
+		Vector3.new(0, (hipBottom + top) / 2, (hipStart + bodyL / 2) / 2),
+		Vector3.new(hipW, top - hipBottom, bodyL / 2 - hipStart),
+		coat
+	)
+	local waistHinge = CFrame.new(at(Vector3.new(0, centerY, waist)))
+	local spine = joint(rig, hips, waistHinge, Vector3.yAxis, 0, 1, 0, false)
+	spine.bend = -0.8
+	local hipParts: { BasePart } = {}
+	rig.bend = { hinge = waistHinge, factor = -0.8, parts = hipParts }
+
+	local keelLength = bodyL * 0.34
+	box(
+		nil,
+		"Keel",
+		Vector3.new(0, bottom - 0.5, chestFront + 1.2 + keelLength / 2),
+		Vector3.new(bodyW - 1.4, 1.2, keelLength),
+		chest
+	)
+	box(
+		nil,
+		"Belly",
+		Vector3.new(0, bottom + 0.6, (chestFront + 0.6 + frontEnd) / 2),
+		Vector3.new(bodyW + 0.1, 1.2, frontEnd - chestFront - 0.6),
+		chest
+	)
+	box(
+		hipParts,
+		"Belly",
+		Vector3.new(0, hipBottom + 0.45, (hipStart + bodyL / 2 - 3.2) / 2),
+		Vector3.new(hipW + 0.1, 0.9, bodyL / 2 - 3.2 - hipStart),
+		chest
+	)
+	box(
+		nil,
+		"Chest",
+		Vector3.new(0, bottom + bodyH * 0.32, chestFront - 0.1),
+		Vector3.new(bodyW - 2.4, bodyH * 0.6, 0.4),
+		chest
+	)
+
+	-- Manto negro del lomo (beagle): de detrás de los hombros hasta la cola, por arriba y por los costados.
+	if o.saddle then
+		local depth = bodyH * 0.6
+		local y = top - depth / 2 + 0.06
+		local from = chestFront + 3.4
+		box(
+			nil,
+			"Saddle",
+			Vector3.new(0, y, (from + frontEnd) / 2),
+			Vector3.new(bodyW + 0.12, depth, frontEnd - from),
+			o.saddle
+		)
+		local to = bodyL / 2 - 0.4
+		box(
+			hipParts,
+			"Saddle",
+			Vector3.new(0, y, (hipStart + to) / 2),
+			Vector3.new(hipW + 0.12, depth, to - hipStart),
+			o.saddle
+		)
+	end
+	if o.patches then
+		for _, mark in o.patches(top, bottom) do
+			box(if mark.hips then hipParts else nil, "Patch", mark.center, mark.size, o.patchColor or BLACK)
+		end
+	end
+	-- Alforjas: panel encima del lomo, detrás de la cruz, y una bolsa a cada lado con su tapa más
+	-- oscura y una correa vertical con la hebilla abajo (así se leen como bolsas, no como una cara);
+	-- la cincha rodea el pecho por detrás de las patas de delante.
+	if o.pack then
+		local strap = Color3.fromRGB(95, 65, 40)
+		local buckle = Color3.fromRGB(235, 190, 60)
+		local packFrom, packTo = chestFront + 4.2, frontEnd - 0.2
+		local packZ = (packFrom + packTo) / 2
+		local packL = packTo - packFrom
+		box(nil, "PackTop", Vector3.new(0, top + 0.25, packZ), Vector3.new(bodyW - 0.6, 0.6, packL), o.pack)
+		box(nil, "Girth", Vector3.new(0, centerY, packFrom - 0.2), Vector3.new(bodyW + 0.2, bodyH + 0.2, 0.7), strap)
+		for _, side in { -1, 1 } do
+			local x = side * (bodyW / 2 + 0.65)
+			local pouchH = bodyH * 0.55
+			local pouchY = top - 0.4 - pouchH / 2
+			box(nil, "Pouch", Vector3.new(x, pouchY, packZ), Vector3.new(1.3, pouchH, packL - 0.4), o.pack)
+			box(
+				nil,
+				"PouchFlap",
+				Vector3.new(x + side * 0.08, top - 0.6, packZ),
+				Vector3.new(1.3, 0.9, packL - 0.2),
+				o.pack:Lerp(BLACK, 0.25)
+			)
+			box(nil, "PouchStrap", Vector3.new(x + side * 0.7, pouchY, packZ), Vector3.new(0.12, pouchH, 0.6), strap)
+			box(
+				nil,
+				"PouchBuckle",
+				Vector3.new(x + side * 0.75, pouchY - pouchH / 2 + 0.7, packZ),
+				Vector3.new(0.14, 0.6, 0.8),
+				buckle
+			)
+		end
+	end
+	for _, side in { -1, 1 } do
+		ticking(
+			nil,
+			Vector3.new(side * bodyW / 2, bottom + 1.9, (chestFront + 3 + frontEnd) / 2),
+			Vector3.xAxis * side,
+			Vector3.zAxis,
+			Vector2.new(frontEnd - chestFront - 4, 2.6),
+			1.25
+		)
+	end
+
+	-- Cuello que sube desde la cruz y cabeza por delante del pecho, más alta que el lomo.
+	local headParts: { BasePart } = {}
+	local skull = o.skull
+	local head = Vector3.new(0, top + o.neck, chestFront - skull.Z / 2 + 1.4)
+	local crown = head.Y + skull.Y / 2
+	local skullFront = head.Z - skull.Z / 2
+	local neckW = math.min(bodyW - 1.6, skull.X - 0.6)
+	local neckZ = chestFront + 1.1
+	local neckDepth = 3.4
+	box(
+		headParts,
+		"Neck",
+		Vector3.new(0, (top - 0.6 + head.Y) / 2, neckZ),
+		Vector3.new(neckW, head.Y - top + 0.6, neckDepth),
+		headColor
+	)
+	-- Garganta del color del pecho, por delante del cuello.
+	box(
+		headParts,
+		"Throat",
+		Vector3.new(0, (top - 0.4 + head.Y - 1) / 2, neckZ - neckDepth / 2 + 0.3),
+		Vector3.new(neckW - 0.8, head.Y - 1 - top + 0.4, 0.8),
+		chest
+	)
+	local skullPart = box(headParts, "Head", head, skull, headColor)
+	local snout = o.snout
+	local muzzleColor = o.muzzle or headColor:Lerp(WHITE, 0.12)
+	local snoutCenter = Vector3.new(0, head.Y - skull.Y / 2 + snout.Y / 2 + 0.3, skullFront - snout.Z / 2 + 0.3)
+	local snoutTop = snoutCenter.Y + snout.Y / 2
+	local snoutBottom = snoutCenter.Y - snout.Y / 2
+	local snoutFront = snoutCenter.Z - snout.Z / 2
+	box(headParts, "Muzzle", snoutCenter, snout, muzzleColor)
+	-- Mandíbula: un poco más estrecha y corta, asoma por debajo (los belfos).
+	box(
+		headParts,
+		"Jaw",
+		Vector3.new(0, snoutBottom - 0.35, snoutCenter.Z + 0.4),
+		Vector3.new(snout.X - 0.5, 0.8, snout.Z - 0.8),
+		muzzleColor:Lerp(BLACK, 0.06)
+	)
+	box(headParts, "Nose", Vector3.new(0, snoutTop - 0.45, snoutFront - 0.2), Vector3.new(1.8, 1, 0.8), o.nose)
+	for _, side in { -1, 1 } do
+		flat(
+			headParts,
+			"Mouth",
+			Vector3.new(side * snout.X / 2, snoutBottom + 0.55, snoutCenter.Z - 0.3),
+			Vector3.xAxis * side,
+			Vector3.zAxis,
+			Vector2.new(snout.Z - 1.2, 0.22),
+			dark
+		)
+	end
+	if o.tongue then
+		box(
+			headParts,
+			"Tongue",
+			Vector3.new(0, snoutBottom - 0.75, snoutFront + 1.1),
+			Vector3.new(1.2, 0.9, 1),
+			Color3.fromRGB(225, 105, 115)
+		)
+	end
+	if o.blaze then
+		-- Lista blanca: sube por la frente desde el hocico y sigue por encima del hocico hasta la trufa.
+		flat(
+			headParts,
+			"Blaze",
+			Vector3.new(0, (snoutTop + crown - 0.6) / 2, skullFront),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(1.1, crown - 0.6 - snoutTop),
+			o.blaze
+		)
+		flat(
+			headParts,
+			"Blaze",
+			Vector3.new(0, snoutTop, (skullFront + snoutFront + 0.6) / 2),
+			Vector3.yAxis,
+			Vector3.xAxis,
+			Vector2.new(1.1, skullFront - snoutFront - 0.6),
+			o.blaze
+		)
+	end
+	-- Ojos en la cara de delante, por encima del hocico: castaño, pupila y un brillo arriba por fuera.
+	for _, side in { -1, 1 } do
+		local eye = Vector3.new(side * (skull.X / 2 - 1.25), snoutTop + 0.75, skullFront)
+		flat(headParts, "Eye", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(1.1, 1), o.eye, 0.08)
+		flat(headParts, "Pupil", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(0.75, 0.8), BLACK, 0.13)
+		flat(
+			headParts,
+			"Glint",
+			eye + Vector3.new(side * 0.25, 0.25, 0),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(0.28, 0.28),
+			WHITE,
+			0.18
+		)
+	end
+	if o.collar then
+		local collarY = top + (head.Y - skull.Y / 2 - top) * 0.35
+		box(
+			headParts,
+			"Collar",
+			Vector3.new(0, collarY, neckZ),
+			Vector3.new(neckW + 0.4, 0.9, neckDepth + 0.4),
+			o.collar
+		)
+		box(
+			headParts,
+			"CollarTag",
+			Vector3.new(0, collarY - 0.75, neckZ - neckDepth / 2 - 0.3),
+			Vector3.new(0.7, 0.8, 0.3),
+			Color3.fromRGB(235, 190, 60)
+		)
+	end
+	-- La cabeza (con cuello, collar y cara) mira despacio a un lado y a otro, girando sobre la nuca.
+	local neckHinge = CFrame.new(at(Vector3.new(0, top - 0.6, neckZ)))
+	local skullJoint: Joint? = nil
+	for _, part in headParts do
+		local item = joint(rig, part, neckHinge, Vector3.yAxis, 0.2, 0.9, 0, false)
+		item.bone = "Head"
+		item.bend = 0.5
+		if part == skullPart then
+			skullJoint = item
+		end
+	end
+	-- Orejas caídas a los lados del cráneo, colgando desde arriba: van con la cabeza y aletean un poco
+	-- al andar.
+	local ear = o.ear
+	for _, side in { -1, 1 } do
+		local x = side * (skull.X / 2 + ear.X / 2 - 0.05)
+		local earTop = crown - 0.35
+		local earZ = head.Z + skull.Z / 2 - ear.Z / 2 - 0.5
+		local part = box(nil, "Ear", Vector3.new(x, earTop - ear.Y / 2, earZ), ear, o.ears or headColor)
+		local item = joint(
+			rig,
+			part,
+			CFrame.new(at(Vector3.new(x, earTop, earZ))),
+			Vector3.zAxis,
+			0.08 * side,
+			9,
+			0,
+			true,
+			nil,
+			skullJoint
+		)
+		item.bone = if side < 0 then "EarL" else "EarR"
+	end
+
+	-- Patas de dos tramos. Delante, hombro (algo más claro, asoma por el costado) y columna recta;
+	-- detrás, anca y muslo más oscuro que abulta por detrás, y el tramo de abajo retrasado: el corvejón.
+	local knee = legH * 0.5
+	local hipY = centerY
+	local phases = { 0, math.pi, math.pi, 0 }
+	local bones = { "FL", "FR", "BL", "BR" }
+	local zFront, zBack = chestFront + 2.6, bodyL / 2 - 2.4
+	local paw = legColor:Lerp(WHITE, 0.08)
+	for i, spot in { { -1, true }, { 1, true }, { -1, false }, { 1, false } } do
+		local side: number, isFront: boolean = spot[1], spot[2]
+		local width = if isFront then o.legW else o.legW + 0.2
+		local x = side * (bodyW / 2 - 1.2)
+		local z = if isFront then zFront else zBack
+		local outward = Vector3.xAxis * side
+		local upper: { BasePart } = {}
+		local lower: { BasePart } = {}
+		local upperTop = bottom + 1
+		local lowZ = z
+		if isFront then
+			box(
+				upper,
+				"Shoulder",
+				Vector3.new(side * (bodyW / 2 - 0.85), bottom + bodyH * 0.42, z - 0.2),
+				Vector3.new(2, bodyH * 0.66, 3.4),
+				shoulderColor
+			)
+			box(
+				upper,
+				"UpperArm",
+				Vector3.new(x, (knee + upperTop) / 2, z),
+				Vector3.new(width + 0.2, upperTop - knee, width + 0.2),
+				coat
+			)
+		else
+			box(
+				upper,
+				"Haunch",
+				Vector3.new(side * (bodyW / 2 - 1), (hipBottom - 0.3 + top - 0.4) / 2, z + 0.2),
+				Vector3.new(2.4, top - hipBottom - 0.1, 4.4),
+				coat
+			)
+			box(
+				upper,
+				"Thigh",
+				Vector3.new(x, (knee + upperTop) / 2, z - 0.2),
+				Vector3.new(width + 0.4, upperTop - knee, width + 1.2),
+				muscle
+			)
+			lowZ = z + 0.9
+		end
+		local shin = width - 0.4
+		box(
+			lower,
+			if isFront then "Forearm" else "Shin",
+			Vector3.new(x, (knee + 0.3 + 1.1) / 2, lowZ),
+			Vector3.new(shin, knee + 0.3 - 1.1, shin),
+			legColor
+		)
+		ticking(
+			upper,
+			Vector3.new(x, (knee + bottom) / 2, z) + outward * (width + 0.3) / 2,
+			outward,
+			Vector3.zAxis,
+			Vector2.new(width, bottom - knee - 0.6),
+			1.1
+		)
+		ticking(
+			lower,
+			Vector3.new(x, knee / 2 + 0.6, lowZ) + outward * shin / 2,
+			outward,
+			Vector3.zAxis,
+			Vector2.new(shin - 0.3, knee - 1.6),
+			1.1
+		)
+		local pawCenter = Vector3.new(x, 0.6, lowZ - 0.6)
+		local pawSize = Vector3.new(width + 0.3, 1.2, 2.8)
+		box(lower, "Paw", pawCenter, pawSize, paw)
+		for _, toe in { -1, 1 } do
+			box(
+				lower,
+				"Toe",
+				pawCenter + Vector3.new(toe * pawSize.X / 6, 0.15, -pawSize.Z / 2 + 0.55),
+				Vector3.new(0.2, pawSize.Y - 0.2, 1.2),
+				paw:Lerp(BLACK, 0.5)
+			)
+		end
+		local thigh: Joint? = nil
+		for _, part in upper do
+			thigh = joint(
+				rig,
+				part,
+				CFrame.new(at(Vector3.new(x, hipY, z))),
+				Vector3.xAxis,
+				0.45,
+				9,
+				phases[i],
+				true,
+				nil,
+				if isFront then nil else spine
+			)
+			thigh.bone = bones[i]
+		end
+		for _, part in lower do
+			local item = joint(
+				rig,
+				part,
+				CFrame.new(at(Vector3.new(x, knee, z))),
+				Vector3.xAxis,
+				-0.3,
+				9,
+				phases[i] + math.pi / 2,
+				true,
+				-0.3,
+				thigh
+			)
+			item.bone = bones[i] .. "2"
+		end
+	end
+
+	-- Cola por tramos desde la grupa; menea de lado a lado girando sobre el eje perpendicular a su
+	-- primer tramo (así también menea la cola alta del beagle, que con el eje vertical solo giraría).
+	local from = Vector3.new(0, top - 0.7, bodyL / 2 - 0.3)
+	local wag = o.tail[1].Unit:Cross(Vector3.xAxis).Unit
+	local tailWidth = o.tailWidth
+	local previous: Joint? = spine
+	for i, heading in o.tail do
+		local direction = heading.Unit
+		local to = from + direction * o.tailSegment
+		local frame = CFrame.lookAt(at((from + to) / 2), at(to))
+		local last = i == #o.tail
+		local parts = {
+			piece(
+				rig,
+				"Tail",
+				"Block",
+				Vector3.new(tailWidth, tailWidth, o.tailSegment + 0.5) * VOXEL,
+				frame,
+				o.tailColor or coat,
+				material
+			),
+		}
+		if last and o.tailTip then
+			local tip = frame * CFrame.new(0, 0, -(o.tailSegment / 2) * VOXEL)
+			table.insert(
+				parts,
+				piece(
+					rig,
+					"TailTip",
+					"Block",
+					Vector3.new(tailWidth + 0.1, tailWidth + 0.1, 1.8) * VOXEL,
+					tip,
+					o.tailTip,
+					material
+				)
+			)
+		end
+		local link: Joint? = nil
+		for _, part in parts do
+			local item = joint(rig, part, CFrame.new(at(from)), wag, 0.18, 6, -(i - 1) * 0.55, false, nil, previous)
+			item.bone = "Tail"
+			item.lag = i - 1
+			link = item
+		end
+		previous = link
+		from = to
+		tailWidth = math.max(0.8, tailWidth - o.tailTaper)
+	end
+
+	rig.family = "Dog"
+	rig.dims = {
+		length = bodyL * VOXEL,
+		legHeight = legH * VOXEL,
+		bodyY = 0,
+		ground = at(Vector3.zero).Y,
+		hips = at(Vector3.new(0, hipY, zBack)),
+		shoulders = at(Vector3.new(0, hipY, zFront)),
+		center = Vector3.zero,
+		haunch = at(Vector3.new(0, hipBottom - 0.3, 0)).Y,
+		halfHeight = bodyH / 2 * VOXEL,
+		halfWidth = (bodyW / 2 + 0.3) * VOXEL,
+	}
+end
+
 local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	-- Jaguarundí: felino esbelto, liso y oscuro.
 	Jaguarundi = function(rig, color)
@@ -1467,22 +2054,112 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		return "Walk"
 	end,
 
-	-- Perros: provisionales (un felino con el color de cada raza) hasta que tengan su modelo voxel.
+	-- Beagle (docs/img/beagle-*.webp): compacto y de patas cortas, tricolor (canela, manto negro en el
+	-- lomo y blanco en el hocico, la lista, el pecho y las patas), orejas largas caídas y la cola alta
+	-- en bandera, negra con la punta blanca: lo que más se ve de espaldas.
 	Beagle = function(rig, color)
-		felid(rig, color, { eyeColor = Color3.fromRGB(70, 40, 20), earSize = 0.3, roundEars = true })
+		local white = Color3.fromRGB(240, 236, 228)
+		local black = Color3.fromRGB(32, 28, 28)
+		voxelDog(rig, color, {
+			legH = 5.5,
+			legW = 2.1,
+			bodyH = 6,
+			bodyW = 5.6,
+			bodyL = 15,
+			tuck = 0.8,
+			skull = Vector3.new(5.2, 4.8, 4.8),
+			snout = Vector3.new(3, 2.6, 3.2),
+			neck = 3.4,
+			ear = Vector3.new(0.8, 5.2, 2.6),
+			tail = { Vector3.new(0, 1.4, 1), Vector3.new(0, 3, 0.7), Vector3.new(0, 3, 0) },
+			tailSegment = 2.4,
+			tailWidth = 1.5,
+			tailTaper = 0.1,
+			eye = Color3.fromRGB(70, 40, 20),
+			nose = BLACK,
+			saddle = black,
+			ears = color:Lerp(BLACK, 0.18),
+			muzzle = white,
+			blaze = white,
+			chest = white,
+			legs = white,
+			tailColor = black,
+			tailTip = white,
+			collar = Color3.fromRGB(200, 35, 35),
+		})
 		return "Walk"
 	end,
+
+	-- Labrador (docs/img/*labrador*.webp): robusto y ancho, amarillo claro con el pecho más pálido,
+	-- cabeza ancha de hocico corto y fuerte, orejas medianas caídas, la lengua fuera y la cola de
+	-- nutria (gruesa en la base y fina en la punta), recta hacia atrás.
 	Labrador = function(rig, color)
-		felid(rig, color, { eyeColor = Color3.fromRGB(90, 55, 25), earSize = 0.26, roundEars = true })
+		voxelDog(rig, color, {
+			legH = 6.5,
+			legW = 2.6,
+			bodyH = 7,
+			bodyW = 7,
+			bodyL = 17,
+			tuck = 0.6,
+			skull = Vector3.new(6.2, 5.4, 5.4),
+			snout = Vector3.new(3.8, 2.8, 3.2),
+			neck = 3.6,
+			ear = Vector3.new(0.8, 3.2, 2.6),
+			tail = { Vector3.new(0, 0.3, 1), Vector3.new(0, 0.05, 1), Vector3.new(0, -0.1, 1) },
+			tailSegment = 2.1,
+			tailWidth = 2.4,
+			tailTaper = 0.5,
+			eye = Color3.fromRGB(80, 50, 25),
+			nose = Color3.fromRGB(85, 55, 45),
+			ears = color:Lerp(Color3.fromRGB(150, 95, 45), 0.25),
+			chest = color:Lerp(WHITE, 0.12),
+			collar = Color3.fromRGB(40, 40, 45),
+			tongue = true,
+			pack = Color3.fromRGB(60, 110, 60),
+		})
 		return "Walk"
 	end,
+
+	-- Pointer inglés (docs/img/pointer*.webp): esbelto, de patas largas, pecho hondo y cintura muy
+	-- recogida, blanco con la cabeza y las orejas negras y una lista blanca, manchas negras en el lomo
+	-- y la grupa, moteado fino y la cola en línea con el lomo.
 	Pointer = function(rig, color)
-		felid(rig, color, {
-			spots = Color3.fromRGB(50, 38, 34),
-			eyeColor = Color3.fromRGB(110, 70, 30),
-			earSize = 0.26,
-			roundEars = true,
-			slim = true,
+		local black = Color3.fromRGB(35, 30, 30)
+		voxelDog(rig, color, {
+			legH = 8,
+			legW = 1.8,
+			bodyH = 5.6,
+			bodyW = 5,
+			bodyL = 17,
+			tuck = 1.4,
+			skull = Vector3.new(3.9, 3.9, 4.2),
+			snout = Vector3.new(2.5, 2.2, 4.4),
+			neck = 4.6,
+			ear = Vector3.new(0.6, 3.3, 1.8),
+			tail = { Vector3.new(0, 0.25, 1), Vector3.new(0, 0.1, 1), Vector3.new(0, 0.05, 1) },
+			tailSegment = 2.6,
+			tailWidth = 1.5,
+			tailTaper = 0.3,
+			-- Casi negro: un iris castaño sobre la cabeza negra, con la lista entre los ojos, parecía unas gafas.
+			eye = Color3.fromRGB(48, 32, 22),
+			nose = Color3.fromRGB(40, 32, 30),
+			head = black,
+			ears = black,
+			muzzle = black,
+			blaze = color,
+			chest = color,
+			legs = color,
+			patches = function(top)
+				return {
+					-- Mancha grande del lomo, de la cruz a la cintura, que baja por los costados.
+					{ center = Vector3.new(0, top - 1.4, -2.2), size = Vector3.new(5.12, 2.9, 6.4) },
+					-- La de la grupa, alrededor de la base de la cola (se ve de espaldas).
+					{ center = Vector3.new(0, top - 1.5, 6.4), size = Vector3.new(4.72, 3.1, 4.4), hips = true },
+				}
+			end,
+			patchColor = black,
+			ticking = black,
+			collar = Color3.fromRGB(95, 60, 35),
 		})
 		return "Walk"
 	end,
@@ -3049,6 +3726,11 @@ CLIPS.Cat = function(d)
 			},
 		},
 	}
+end
+
+-- Perros: de momento, el galope del felino (sus clips propios llegan con sus animaciones).
+CLIPS.Dog = function(d)
+	return { Run = CLIPS.Cat(d).Run }
 end
 
 -- Jaguarundí: se alza sobre las patas de atrás y da dos zarpazos, primero con la derecha.

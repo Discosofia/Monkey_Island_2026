@@ -668,6 +668,30 @@ Lo aprendido:
   (`Players:CreateHumanoidModelFromDescription`, anclado) y captura de frente desde unos 20 studs
   con `FieldOfView` 25: de cerca, la perspectiva agranda al avatar y engaña.
 
+### Mascotas voxel (perros)
+
+Beagle, labrador y pointer inglés (Grupo 15, 19-10-2026): `voxelDog(rig, coat, options)` en
+PetModels, con las celdas (`VOXEL = 0,11`), los huesos y los `dims` de `voxelCat` (pecho fijo y cadera
+`Hips` que se dobla, patas de dos tramos, cola por tramos y cabeza con `bend`), más orejas caídas
+articuladas (`EarL`/`EarR`, colgadas de la articulación del cráneo, aletean al trote) y familia de
+clips propia (`CLIPS.Dog`). Cada raza es una tabla de medidas y colores por zona (manto, cabeza,
+orejas, hocico, lista, pecho, patas, cola y punta, manchas, moteado, collar, alforjas). Lo aprendido:
+- **Perro frente a felino**: patas más largas, quilla bajo el pecho y la cadera recogida por abajo
+  (`tuck`), cuello que sube y deja la cabeza por encima del lomo, hocico largo con la trufa arriba
+  delante y el tramo de abajo de las patas de atrás retrasado (se lee el corvejón).
+- Una **placa del pecho** grande, de casi todo el frente, parecía un delantal: pequeña y baja.
+- El **hombro un 8 % más claro** era un tablón pegado al costado: +4 %.
+- **Ojos en una cabeza negra** (pointer): el iris castaño y la lista blanca entre los ojos parecían
+  unas gafas. Iris casi negro y fino alrededor de una pupila grande; el brillo blanco basta para ver
+  el ojo.
+- **Moteado** en una sola fila parecía una hilera de botones: dos filas y desplazamientos al azar.
+- **Cola alta** (beagle): con el meneo sobre el eje vertical solo giraba sobre sí misma. El eje es
+  el perpendicular al primer tramo (`tail[1]:Cross(X)`); vale para las colas bajas también.
+- **Espalda**: el labrador liso era una losa pálida. Las alforjas verdes (bolsas a los lados con la
+  correa vertical y la hebilla abajo, panel encima y cincha) le dan espalda y cuentan que es la
+  mascota de carga. El beagle ya la tiene con su bandera blanca, y el pointer con la mancha de la
+  grupa, que asoma por detrás.
+
 ### Mascotas voxel (tortuga, guacamaya, perezoso y Mono X-7)
 
 Mismo kit (`voxelKit`, `CELL = 0,1`) en `voxelBuilders`. Aprobados el 18-10-2026; sus constructores
