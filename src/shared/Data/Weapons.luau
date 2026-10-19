@@ -23,12 +23,13 @@ export type WeaponDefinition = {
 	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
 	-- Sonido al usarla (clave de Data/Sounds.Effects); sin él, Swing (cuerpo a cuerpo) o Shoot (distancia).
 	sound: string?,
-	-- Herramienta de recolección (hacha, pico): golpeando un árbol o una roca con ella equipada.
+	-- Herramienta de recolección (hacha, pico, hoz): golpeando un árbol o una roca con ella equipada; la
+	-- hoz corta de un golpe los helechos y arbustos que tienes delante (ResourceService).
 	tool: ToolDefinition?,
 }
 
 export type ToolDefinition = {
-	kind: string, -- "Axe" o "Pick": qué recursos trabaja (ver Data/ResourceNodes)
+	kind: string, -- "Axe", "Pick" o "Sickle": qué recursos trabaja (ver Data/ResourceNodes)
 	power: number, -- progreso por golpe; más potencia = menos golpes por recolección
 	bonus: number, -- material extra en cada recolección
 }
@@ -123,6 +124,17 @@ local Weapons: { [string]: WeaponDefinition } = {
 		cooldownSeconds = 1.1,
 		range = 10,
 		swingAnimationSpeed = 1.5,
+	},
+	-- Hoz (mesa de trabajo): cada tajo corta los helechos y arbustos de delante, sin mantener E.
+	Sickle = {
+		name = "Hoz",
+		kind = "Melee",
+		sound = "SwingLight",
+		damage = 10,
+		cooldownSeconds = 0.5,
+		range = 7,
+		swingAnimationSpeed = 2.2,
+		tool = { kind = "Sickle", power = 1, bonus = 0 },
 	},
 	Torch = {
 		name = "Antorcha",

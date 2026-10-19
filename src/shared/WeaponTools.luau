@@ -578,6 +578,73 @@ local function buildBonePick(tool: Tool): BasePart
 	return handle
 end
 
+-- ===================================== Hoz =====================================
+
+-- Hoja de la hoz: un arco en el plano YZ del mango. Sale de la punta del mango, sube un poco, va
+-- hacia delante (-Z) y baja hasta acabar mirando otra vez hacia la mano. El ángulo se mide desde
+-- arriba girando hacia delante; el lomo (lado de fuera) va a SICKLE_RADIUS del centro y el filo
+-- es el lado de dentro.
+local SICKLE_CENTER = Vector3.new(0, 0.78, -1.03)
+local SICKLE_RADIUS = 1.1
+local SICKLE_FROM = math.rad(-70)
+local SICKLE_TO = math.rad(115)
+local SICKLE_SEGMENTS = 12
+
+-- Punto del arco de la hoz a "angle" y a "radius" del centro.
+local function sickleArc(angle: number, radius: number): Vector3
+	return SICKLE_CENTER + Vector3.new(0, math.cos(angle), -math.sin(angle)) * radius
+end
+
+-- Hoz: mango corto de madera con empuñadura de cuero y hoja de pedernal en media luna, atada con
+-- fibra a la punta. Ancha junto al mango y fina hacia la punta, con el filo de dentro más claro.
+local function buildSickle(tool: Tool): BasePart
+	local handle = hiddenHandle(tool, Vector3.new(0.35, 2.4, 0.35))
+	rod(handle, "Shaft", 2.4, 0.3, WOOD, WOOD_MATERIAL, CFrame.new())
+	rod(handle, "Wrap", 0.8, 0.36, LEATHER, FABRIC, CFrame.new(0, -0.55, 0))
+	rod(handle, "Butt", 0.16, 0.38, DARK_BARK, WOOD_MATERIAL, CFrame.new(0, -1.15, 0))
+	tool.Grip = CFrame.new(0, -0.55, 0)
+
+	local step = (SICKLE_TO - SICKLE_FROM) / SICKLE_SEGMENTS
+	local length = step * SICKLE_RADIUS + 0.06 -- un poco de solape entre tramos
+	local tipWidth = 0.14
+	for index = 1, SICKLE_SEGMENTS do
+		local angle = SICKLE_FROM + step * (index - 0.5)
+		local width = 0.44 - (0.44 - tipWidth) * (index - 1) / (SICKLE_SEGMENTS - 1)
+		-- La Y de cada tramo sigue el arco y su Z apunta hacia fuera.
+		local tangent = Vector3.new(0, -math.sin(angle), -math.cos(angle))
+		local blade = CFrame.fromMatrix(sickleArc(angle, SICKLE_RADIUS - width / 2), Vector3.xAxis, tangent)
+		block(handle, "Blade", Vector3.new(0.12, length, width), STONE, STONE_MATERIAL, blade)
+		local edgeAt = CFrame.fromMatrix(sickleArc(angle, SICKLE_RADIUS - width - 0.01), Vector3.xAxis, tangent)
+		block(handle, "Edge", Vector3.new(0.07, length, 0.09), STONE_LIGHT, STONE_MATERIAL, edgeAt)
+	end
+	local tipTangent = Vector3.new(0, -math.sin(SICKLE_TO), -math.cos(SICKLE_TO))
+	local tipBase = sickleArc(SICKLE_TO, SICKLE_RADIUS - tipWidth / 2)
+	tooth(
+		handle,
+		"Tip",
+		0.36,
+		0.12,
+		tipWidth,
+		STONE_LIGHT,
+		STONE_MATERIAL,
+		CFrame.fromMatrix(tipBase + tipTangent * 0.16, Vector3.xAxis, tipTangent)
+	)
+
+	-- Atadura en cruz donde la hoja se une al mango, y el nudo de arriba.
+	for _, tilt in { 0.5, -0.5 } do
+		block(
+			handle,
+			"Lashing",
+			Vector3.new(0.4, 0.1, 0.62),
+			FIBER,
+			FABRIC,
+			CFrame.new(0, 1.02, -0.12) * CFrame.Angles(tilt, 0, 0)
+		)
+	end
+	ball(handle, "Knot", 0.34, WOOD, WOOD_MATERIAL, CFrame.new(0, 1.22, 0))
+	return handle
+end
+
 -- ===================================== Garrotes y mazas =====================================
 
 type FangClubStyle = {
@@ -1034,6 +1101,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	WoodenPick = buildWoodenPick,
 	StonePick = buildStonePick,
 	BonePick = buildBonePick,
+	Sickle = buildSickle,
 	Club = function(tool)
 		return buildFangClub(tool, {
 			size = 1,
@@ -1266,7 +1334,11 @@ function WeaponTools.build(weaponId: string): Tool
 	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
 	tool.ToolTip = `{weapon.name}: {damage} de daño`
 	if weapon.tool then
-		tool.ToolTip ..= if weapon.tool.kind == "Axe" then " · golpea árboles" else " · golpea rocas"
+		local kind = weapon.tool.kind
+		tool.ToolTip ..= if kind == "Axe"
+			then " · golpea árboles"
+			elseif kind == "Sickle" then " · corta helechos y arbustos"
+			else " · golpea rocas"
 	end
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)

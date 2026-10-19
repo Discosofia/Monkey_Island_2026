@@ -64,6 +64,10 @@ local Config = {
 		HarvestDistance = 10,
 		-- Alcance del hacha y el pico: distancia desde la superficie del árbol o la roca.
 		ToolReach = 5.5,
+		-- Hoz: corta los helechos y arbustos a menos de SickleReach studs que tienes delante (coseno del
+		-- ángulo máximo con la mirada: 0.3 ≈ 70° a cada lado).
+		SickleReach = 7,
+		SickleArcDot = 0.3,
 		-- Segundos que se ve la barra de progreso tras el último golpe.
 		ProgressBarSeconds = 3,
 		-- Si el mapa no tiene puntos de recolección, se crean unos de prueba alrededor del Basecamp.

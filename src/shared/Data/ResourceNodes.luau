@@ -5,7 +5,8 @@
 --   - Con herramienta ("tool"): árboles y rocas. Se golpean con el hacha o el pico equipados;
 --     cada golpe suma la potencia de la herramienta y al llegar a "toughness" da el material.
 --   - Con aviso ("holdSeconds"): arbustos, helechos y matas de banano y plátano. Se mantiene
---     pulsado E (o se toca en móvil).
+--     pulsado E (o se toca en móvil). Los que llevan "sickle" (helechos y arbustos) también se
+--     cortan de un tajo con la hoz equipada, sin mantener E.
 
 export type NodeDefinition = {
 	name: string, -- lo que ve el jugador sobre el aviso
@@ -15,6 +16,7 @@ export type NodeDefinition = {
 	tool: string?, -- tipo de herramienta necesaria ("Axe", "Pick"); ver Data/Weapons
 	toughness: number?, -- potencia de golpes necesaria por recolección (con herramienta)
 	holdSeconds: number?, -- tiempo que hay que mantener pulsado (sin herramienta)
+	sickle: boolean?, -- la hoz lo corta de un tajo (además del aviso con E)
 	uses: number, -- recolecciones antes de agotarse
 	respawnSeconds: number, -- tiempo hasta que reaparece tras agotarse
 	falls: boolean?, -- al agotarse cae hacia el lado contrario al jugador (árboles)
@@ -70,6 +72,7 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		itemId = "Fiber",
 		amount = 1,
 		holdSeconds = 1.8,
+		sickle = true,
 		uses = 1,
 		respawnSeconds = 90,
 	},
@@ -79,6 +82,7 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		itemId = "Fiber",
 		amount = 2,
 		holdSeconds = 1.8,
+		sickle = true,
 		uses = 2,
 		respawnSeconds = 90,
 		extra = { itemId = "Banana", chance = 0.35, amount = 1 },

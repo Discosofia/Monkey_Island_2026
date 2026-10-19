@@ -65,6 +65,8 @@ local ResourceService = {}
 
 local lastHarvestAt: { [Player]: number } = {}
 local toolNodes: { NodeState } = {}
+-- Helechos y arbustos que la hoz corta de un tajo ("sickle" en Data/ResourceNodes).
+local sickleNodes: { NodeState } = {}
 
 local function partsOf(instance: Instance): { BasePart }
 	local parts = {}
@@ -281,10 +283,32 @@ local function surfaceOffset(part: BasePart, position: Vector3): Vector3
 	return Vector3.new(offset.X, 0, offset.Z)
 end
 
--- Golpe con una herramienta equipada (hacha, pico). Lo llama CombatService al usar el arma.
--- Trabaja el árbol o la roca más cercano que el jugador tenga delante y al alcance.
+-- Tajo de hoz: corta de una vez todos los helechos y arbustos que el jugador tiene delante, a menos
+-- de Config.Resources.SickleReach. Sin mantener E; el ritmo lo marca la espera del arma.
+local function sweep(player: Player, root: BasePart)
+	local settings = Config.Resources
+	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
+	for _, state in sickleNodes do
+		if state.usesLeft > 0 then
+			local offset = surfaceOffset(state.anchor, root.Position)
+			local distance = offset.Magnitude
+			local facing = distance < 1.5 or look:Dot(offset.Unit) >= settings.SickleArcDot
+			if distance <= settings.SickleReach and facing then
+				collect(state, player, state.definition.amount)
+			end
+		end
+	end
+end
+
+-- Golpe con una herramienta equipada (hacha, pico, hoz). Lo llama CombatService al usar el arma.
+-- El hacha y el pico trabajan el árbol o la roca más cercano que el jugador tenga delante y al
+-- alcance; la hoz corta los helechos y arbustos de delante (sweep).
 function ResourceService.strike(player: Player, root: BasePart, tool: Weapons.ToolDefinition)
 	if not LifeState.isAlive(player) then
+		return
+	end
+	if tool.kind == "Sickle" then
+		sweep(player, root)
 		return
 	end
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
@@ -362,6 +386,9 @@ local function register(instance: Instance): boolean
 	prompt.Triggered:Connect(function(player: Player)
 		harvest(state, player)
 	end)
+	if definition.sickle then
+		table.insert(sickleNodes, state)
+	end
 	return true
 end
 

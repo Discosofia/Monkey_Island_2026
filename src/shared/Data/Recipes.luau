@@ -48,6 +48,15 @@ local Recipes: { [string]: Recipe } = {
 		itemId = "Bandage",
 		amount = 1,
 	},
+	Sickle = {
+		station = "Workbench",
+		name = "Hoz",
+		icon = "🌾",
+		description = "Corta de un tajo los helechos y arbustos que tienes delante: fibra sin mantener E.",
+		order = 6,
+		cost = { { itemId = "Wood", amount = 3 }, { itemId = "Stone", amount = 2 }, { itemId = "Fiber", amount = 1 } },
+		weaponId = "Sickle",
+	},
 	Arrows = {
 		station = "Workbench",
 		name = "Flechas",
