@@ -7,6 +7,7 @@
 --   - El servidor valida cada fabricación: vivo, cerca de su estación, materiales y que no la tenga ya.
 --   - Las herramientas fabricadas van a StarterGear: no se pierden al reaparecer.
 --   - Una mejora (receta con "upgrades") sustituye a la herramienta vieja, también si está en la mano.
+--     No se saltan niveles: hace falta tener la anterior (Crafting.missingPrerequisite).
 --   - Las estaciones construidas con el martillo (taller del curandero, forja) se activan al momento.
 --   - También gestiona la armadura y el uso de curaciones (vendas, ungüentos, antídotos).
 
@@ -261,18 +262,10 @@ local function removeWeapon(player: Player, weaponId: string): boolean
 	return wasEquipped
 end
 
--- Receta que fabrica cada arma o armadura, para seguir la cadena de mejoras.
-local recipeOfGear: { [string]: string } = {}
-for recipeId, recipe in Recipes do
-	local gearId = recipe.weaponId or recipe.armorId
-	if gearId then
-		recipeOfGear[gearId] = recipeId
-	end
-end
+local recipeOfGear = Crafting.recipeOfGear
 
 -- Todo lo que sustituye una mejora: lo de "upgrades" y lo anterior de la cadena (hacha de hueso →
--- de piedra → de madera; armadura de plata → de hueso → chaleco). Así no se queda la de madera si
--- se salta la de piedra.
+-- de piedra → de madera; armadura de plata → de hueso → chaleco).
 local function replacedBy(recipe: Recipes.Recipe): { string }
 	local replaced = {}
 	local gearId = recipe.upgrades
@@ -343,6 +336,12 @@ local function onCraft(player: Player, recipeId: any)
 	end
 	if Crafting.isUnique(recipe) and Crafting.isOwned(player, recipeId) then
 		Remotes.Notify:FireClient(player, `Ya tienes: {recipe.name}`)
+		return
+	end
+	-- Las mejoras no se saltan: hace falta la anterior de la cadena.
+	local missing = Crafting.missingPrerequisite(player, recipe)
+	if missing then
+		Remotes.Notify:FireClient(player, `🔒 Primero fabrica: {missing}`)
 		return
 	end
 	if not Crafting.canAfford(player, recipe) then

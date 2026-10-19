@@ -4,6 +4,8 @@
 -- Muestra cada receta con lo que cuesta (en verde lo que tienes, en rojo lo que falta) y un botón
 -- para fabricarla. Las armas (no el hacha ni el pico) terminan la descripción con su probabilidad de
 -- crítico (Shared/Crit); las mejoras, de cuánto a cuánto sube: "🎯 Crítico 10 → 15 %". Se cierra con el botón X, con B en mando o al alejarte de la mesa.
+-- Una mejora sin la anterior sale bloqueada ("🔒 Primero fabrica: …"); las de un equipo que el
+-- jugador nunca tendrá (el machete afilado para el guerrero) no salen (Shared/Crafting).
 -- El servidor (CraftingService) decide si la fabricación vale.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -138,11 +140,15 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 end
 
 local function refreshRow(player: Player, row: Row)
-	row.cost.Text = costText(player, row.recipe)
 	local owned = Crafting.isUnique(row.recipe) and Crafting.isOwned(player, row.recipeId)
-	local ready = not owned and Crafting.canAfford(player, row.recipe)
+	-- Las mejoras no se saltan: hasta tener la anterior, en vez del coste se dice cuál falta.
+	local missing = if owned then nil else Crafting.missingPrerequisite(player, row.recipe)
+	row.cost.Text = if missing
+		then `<font color="{MISSING_COLOR}">🔒 Primero fabrica: {missing}</font>`
+		else costText(player, row.recipe)
+	local ready = not owned and not missing and Crafting.canAfford(player, row.recipe)
 	local action = if row.recipe.upgrades then "Mejorar" else "Fabricar"
-	row.button.Text = if owned then "Ya la tienes" elseif ready then action else "Faltan"
+	row.button.Text = if owned then "Ya la tienes" elseif missing then "Bloqueada" elseif ready then action else "Faltan"
 	row.button.BackgroundColor3 = if ready then READY_COLOR else BLOCKED_COLOR
 	row.button.TextColor3 = if ready then Color3.fromRGB(40, 25, 5) else Color3.fromRGB(200, 200, 200)
 	row.button.Active = ready
@@ -238,7 +244,10 @@ function CraftingController:Start()
 		title.Text = `{definition.icon} {definition.name}`
 		local first: Row? = nil
 		for _, row in rows do
-			row.frame.Visible = row.recipe.station == id and Crafting.isForRole(player, row.recipe)
+			-- Sin las de otro rol ni las mejoras de un equipo que este jugador nunca tendrá.
+			row.frame.Visible = row.recipe.station == id
+				and Crafting.isForRole(player, row.recipe)
+				and not Crafting.isUnreachable(player, row.recipe)
 			if row.frame.Visible and not first then
 				first = row
 			end
