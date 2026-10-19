@@ -16,7 +16,7 @@ export type ArmorDefinition = {
 local Armor: { [string]: ArmorDefinition } = {
 	FurVest = {
 		name = "Chaleco de pelaje",
-		roleNames = { Cazador = "Capa de rastreador", Mago = "Manto de amuletos" },
+		roleNames = { Cazador = "Capa de rastreador", Mago = "Manto de amuletos", Medico = "Bandolera de curandero" },
 		damageReduction = 0.25,
 		color = Color3.fromRGB(150, 70, 45),
 		material = Enum.Material.Fabric,
@@ -24,7 +24,7 @@ local Armor: { [string]: ArmorDefinition } = {
 	-- Fase 2.3 (forja de piedra).
 	BoneArmor = {
 		name = "Armadura de hueso",
-		roleNames = { Cazador = "Armadura de cazador", Mago = "Túnica de runas" },
+		roleNames = { Cazador = "Armadura de cazador", Mago = "Túnica de runas", Medico = "Peto de curandero" },
 		damageReduction = 0.4,
 		color = Color3.fromRGB(225, 215, 190),
 		material = Enum.Material.Slate,
@@ -32,7 +32,7 @@ local Armor: { [string]: ArmorDefinition } = {
 	-- Fase 4 (forja de piedra, con pelaje plateado de gorila).
 	SilverArmor = {
 		name = "Armadura de plata",
-		roleNames = { Cazador = "Manto de cazador plateado", Mago = "Manto de cristal" },
+		roleNames = { Cazador = "Manto de cazador plateado", Mago = "Manto de cristal", Medico = "Manto de sanador" },
 		damageReduction = 0.55,
 		color = Color3.fromRGB(200, 205, 215),
 		material = Enum.Material.Fabric,

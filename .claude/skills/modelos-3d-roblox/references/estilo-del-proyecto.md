@@ -70,7 +70,10 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   una capa del mismo color (la capucha plateada) se pierde: oscurécelo. Las del mago usan `hoop`
   (aros de tramos: atrapasueños, círculos de runas de `Neon`) y `crystal` (funda de `Glass`
   translúcida sobre un núcleo de neón): una corona de cristales en mitad de la espalda parece una
-  estrella; alta y con cristales largos asoma por encima de los hombros y se lee de lejos.
+  estrella; alta y con cristales largos asoma por encima de los hombros y se lee de lejos. Las del
+  médico usan `flask` (panza de `Glass` con la poción dentro: con transparencia 0,4 el frasco salía
+  blanco; con 0,65 se ve el verde) y `backTotem` (el Tótem sanador en pequeño, con `scale`). El lino
+  claro (222, 212, 182) salía azulado con la luz de Studio: tostado (196, 170, 125) se ve como lino.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),
@@ -342,7 +345,7 @@ orientativo de piezas por modelo:
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
 | Arma | 15–40 |
-| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101, cazador 56 / 83 / 90, mago 56 / 73 / 88) | 40–105 |
+| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101, cazador 56 / 83 / 90, mago 56 / 73 / 88, médico 55 / 72 / 86) | 40–105 |
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |

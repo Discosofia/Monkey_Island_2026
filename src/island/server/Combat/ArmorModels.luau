@@ -5,8 +5,8 @@
 -- medidas salen del tamaño de esa parte, así quedan bien en cualquier avatar. En R6, que no tiene
 -- antebrazos ni cintura, se usa el trozo correspondiente del brazo, la pierna o el torso.
 -- Respecto a cada parte: -Z es el frente, +Z la espalda, +Y arriba.
--- Cada rol tiene las suyas (mismos números y recetas; nombres por rol en Data/Armor "roleNames"); el
--- rol que aún no tiene las propias lleva las del guerrero. Cada rango es más vistoso y detallado que
+-- Cada rol tiene las suyas (mismos números y recetas; nombres por rol en Data/Armor "roleNames"); un
+-- rol nuevo sin las propias llevaría las del guerrero. Cada rango es más vistoso y detallado que
 -- el anterior. La espalda es lo que el jugador ve todo el rato (la cámara va detrás), así que cada una
 -- lleva ahí su motivo más llamativo.
 -- Guerrero:
@@ -50,6 +50,16 @@
 --     de cristal, broche y cadena de plata con cristales, hombros de pelaje con cristales y puños
 --     plateados. Detrás, una corona de cristales que sale de un disco de plata rodeado de runas y
 --     asoma por encima de los hombros.
+-- Médico (de curandero: lino, hierbas y frascos; lo que brilla, en verde, el color de las curaciones):
+--   - Bandolera de curandero: túnica de lino con una bandolera de cuero cruzada, por delante y por
+--     detrás, con bolsitas de las que asoman hojas; mortero en la cadera, vendas en los antebrazos y
+--     hojas atadas a los brazos. Detrás, un manojo de hierbas atado a la bandolera.
+--   - Peto de curandero: peto de hueso blanco con una cruz de hojas y una flor en el centro, hombreras
+--     de hueso con hojas, cinturón con rollos de venda y bolsas en los muslos. Detrás, una mochila de
+--     cuero en un bastidor de madera con frascos de poción encima y a los lados y hierbas asomando.
+--   - Manto de sanador: manto y capa de pelaje plateado, bandolera con frascos que brillan, broche
+--     con una gema verde y hojas en los hombros. Detrás, un tótem sanador pequeño (como el de la
+--     definitiva) con su gema verde brillando por encima de los hombros, entre hojas y frascos.
 
 local Armor = require(game:GetService("ReplicatedStorage").Shared.Data.Armor)
 
@@ -96,6 +106,20 @@ local GOURD = Color3.fromRGB(195, 150, 70)
 local STONE = Color3.fromRGB(120, 120, 125)
 local RUNE = Color3.fromRGB(95, 215, 255)
 local CRYSTAL = Color3.fromRGB(150, 225, 255)
+-- Lino algo tostado: más claro, con la luz de Studio salía azulado.
+local LINEN = Color3.fromRGB(196, 170, 125)
+local FLASK_GLASS = Color3.fromRGB(205, 235, 228)
+local POTION = Color3.fromRGB(85, 185, 95)
+local HEAL_GLOW = Color3.fromRGB(120, 255, 150)
+local CORK = Color3.fromRGB(150, 110, 70)
+local FLOWER = Color3.fromRGB(215, 70, 60)
+-- Los del Tótem sanador de la definitiva (AbilityFxController).
+local TOTEM_WOOD = Color3.fromRGB(128, 84, 46)
+local TOTEM_WOOD_LIGHT = Color3.fromRGB(156, 108, 62)
+local TURQUOISE = Color3.fromRGB(48, 178, 168)
+local PAINT_RED = Color3.fromRGB(178, 48, 38)
+local PAINT_BLACK = Color3.fromRGB(25, 22, 20)
+local PAINT_WHITE = Color3.fromRGB(240, 232, 214)
 
 local FABRIC = Enum.Material.Fabric
 local SMOOTH = Enum.Material.SmoothPlastic
@@ -1609,11 +1633,386 @@ local function crystalMantle(body: Body)
 	end
 end
 
+-- ===================================== Médico =====================================
+
+-- Frasco de pociones de "size" con la base en "at": panza de cristal con el líquido dentro, cuello y
+-- tapón de corcho. "glow": el líquido brilla.
+local function flask(make: Builder, at: CFrame, size: number, glow: boolean)
+	-- Cristal muy transparente: si no, la poción no se ve y el frasco sale blanco.
+	local belly = make.ball(size, FLASK_GLASS, GLASS, at * CFrame.new(0, size / 2, 0))
+	belly.Transparency = 0.65
+	make.ball(
+		size * 0.78,
+		if glow then HEAL_GLOW else POTION,
+		if glow then NEON else SMOOTH,
+		at * CFrame.new(0, size * 0.46, 0)
+	)
+	local neck = make.rod(size * 0.4, size * 0.34, FLASK_GLASS, GLASS, at * CFrame.new(0, size * 1.05, 0) * UPRIGHT)
+	neck.Transparency = 0.65
+	make.rod(size * 0.2, size * 0.38, CORK, WOOD, at * CFrame.new(0, size * 1.3, 0) * UPRIGHT)
+end
+
+-- Bolsita de cuero con su solapa y una hoja asomando, en "at" (mirando a su -Z).
+local function herbPouch(make: Builder, at: CFrame, herb: Color3)
+	make.block(Vector3.new(0.28, 0.26, 0.14), HUNTER_LEATHER, LEATHER_MATERIAL, at)
+	make.block(Vector3.new(0.32, 0.1, 0.18), LEATHER_DARK, LEATHER_MATERIAL, at * CFrame.new(0, 0.12, 0))
+	leaf(make, 0.34, herb, at * CFrame.new(0.06, 0.26, 0.02) * CFrame.Angles(0, math.pi, -0.3))
+end
+
+-- Tótem sanador pequeño para la espalda, como el de la definitiva del médico: dos caras talladas
+-- mirando hacia atrás (+Z de "at", que es su base), alas del pájaro del trueno y una gema verde que
+-- brilla arriba. A escala 1 mide 1,5 studs de alto.
+local function backTotem(make: Builder, at: CFrame, scale: number)
+	local function block(
+		size: Vector3,
+		color: Color3,
+		material: Enum.Material,
+		x: number,
+		y: number,
+		z: number,
+		tilt: number?
+	)
+		make.block(
+			size * scale,
+			color,
+			material,
+			at * CFrame.new(x * scale, y * scale, z * scale) * CFrame.Angles(0, 0, tilt or 0)
+		)
+	end
+	block(Vector3.new(0.46, 0.56, 0.38), TOTEM_WOOD, WOOD, 0, 0.28, 0)
+	block(Vector3.new(0.5, 0.08, 0.42), TURQUOISE, SMOOTH, 0, 0.04, 0)
+	block(Vector3.new(0.5, 0.08, 0.42), PAINT_RED, SMOOTH, 0, 0.6, 0)
+	-- Primera cara: ojos grandes y boca roja.
+	for side = -1, 1, 2 do
+		block(Vector3.new(0.13, 0.09, 0.03), PAINT_WHITE, SMOOTH, side * 0.11, 0.38, 0.2)
+		block(Vector3.new(0.06, 0.06, 0.03), PAINT_BLACK, SMOOTH, side * 0.11, 0.38, 0.215)
+	end
+	block(Vector3.new(0.26, 0.07, 0.03), PAINT_RED, SMOOTH, 0, 0.2, 0.2)
+	-- Segunda cara, más clara: ojos en rombo; arriba, las alas abiertas con la punta pintada.
+	block(Vector3.new(0.42, 0.5, 0.36), TOTEM_WOOD_LIGHT, WOOD, 0, 0.89, 0)
+	for side = -1, 1, 2 do
+		block(Vector3.new(0.12, 0.12, 0.03), PAINT_WHITE, SMOOTH, side * 0.1, 0.96, 0.19, math.rad(45))
+		block(Vector3.new(0.06, 0.06, 0.03), PAINT_BLACK, SMOOTH, side * 0.1, 0.96, 0.205, math.rad(45))
+		block(Vector3.new(0.36, 0.12, 0.08), TURQUOISE, SMOOTH, side * 0.36, 1.1, 0, side * math.rad(20))
+		block(Vector3.new(0.12, 0.13, 0.09), PAINT_RED, SMOOTH, side * 0.51, 1.155, 0, side * math.rad(20))
+	end
+	-- La gema en su copa.
+	block(Vector3.new(0.26, 0.1, 0.26), TOTEM_WOOD, WOOD, 0, 1.19, 0)
+	make.ball(0.28 * scale, HEAL_GLOW, NEON, at * CFrame.new(0, 1.36 * scale, 0))
+end
+
+local function healerBandolier(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.06)
+	local back = depth / 2 + 0.06
+	-- Túnica de lino claro.
+	make.block(Vector3.new(width + 0.1, height * 0.94, depth + 0.12), LINEN, FABRIC, CFrame.new(0, -height * 0.02, 0))
+	-- Bandolera de cuero del hombro izquierdo a la cadera derecha, por delante y por detrás, con
+	-- bolsitas de las que asoman hojas.
+	local from = Vector3.new(-width * 0.3, height / 2 - 0.02, 0)
+	local to = Vector3.new(width * 0.4, -height / 2 + 0.12, 0)
+	for _, z in { front - 0.03, back + 0.03 } do
+		strap(make, Vector3.new(from.X, from.Y, z), Vector3.new(to.X, to.Y, z), 0.16, LEATHER, LEATHER_MATERIAL)
+	end
+	for index, t in { 0.25, 0.5, 0.75 } do
+		local at = from:Lerp(to, t)
+		herbPouch(make, CFrame.new(at.X, at.Y - 0.1, front - 0.1), if index == 2 then LEAF_DARK else LEAF)
+	end
+	for _, t in { 0.22, 0.78 } do
+		local at = from:Lerp(to, t)
+		herbPouch(make, CFrame.new(at.X, at.Y - 0.1, back + 0.1) * CFrame.Angles(0, math.pi, 0), LEAF_DARK)
+	end
+	-- Detrás (lo que el jugador ve siempre): un manojo de hierbas abierto en abanico hacia arriba,
+	-- atado a la bandolera en mitad de la espalda.
+	local knot = from:Lerp(to, 0.5)
+	local tie = CFrame.new(knot.X, knot.Y, back + 0.12)
+	local herbs = 7
+	for index = 0, herbs - 1 do
+		local angle = -0.95 + index * 1.9 / (herbs - 1)
+		local length = 1.05 - math.abs(angle) * 0.3
+		leaf(
+			make,
+			length,
+			if index % 2 == 0 then LEAF else LEAF_LIGHT,
+			tie * CFrame.Angles(0, 0, -angle) * CFrame.new(0, length / 2 + 0.05, 0.01 * (index % 2))
+		)
+	end
+	for index = -1, 1 do
+		make.block(
+			Vector3.new(0.04, 0.42, 0.04),
+			LEAF_DARK,
+			SMOOTH,
+			tie * CFrame.Angles(0, 0, index * 0.25) * CFrame.new(0, -0.2, 0.03)
+		)
+	end
+	make.ball(0.22, FIBER, FABRIC, tie * CFrame.new(0, 0, 0.04))
+
+	-- Cinturón de fibra con un mortero de piedra y su mano de hueso en la cadera derecha.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.07)
+	waist.block(Vector3.new(hipWidth + 0.12, 0.14, hipDepth + 0.12), FIBER, FABRIC, CFrame.new(0, 0.08, 0))
+	local mortar = CFrame.new(-hipWidth * 0.32, -0.16, beltFront - 0.14)
+	waist.rod(0.24, 0.36, STONE, SLATE, mortar * UPRIGHT)
+	waist.rod(0.04, 0.27, SKULL_HOLE, SMOOTH, mortar * CFrame.new(0, 0.11, 0) * UPRIGHT)
+	waist.rod(0.38, 0.08, BONE, SMOOTH, mortar * CFrame.new(0.06, 0.22, 0) * CFrame.Angles(0, 0, math.rad(70)))
+
+	for side = -1, 1, 2 do
+		-- Vendas de lino en los antebrazos y una hoja atada en cada brazo.
+		local forearm = body.lowerArm[side]
+		band(forearm, -forearm.size.Y * 0.18, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
+		band(forearm, -forearm.size.Y * 0.36, 0.12, 0.06, PAINT_WHITE, FABRIC, -0.12)
+		local arm = body.upperArm[side]
+		band(arm, -arm.size.Y * 0.1, 0.1, 0.08, FIBER, FABRIC)
+		leaf(
+			arm,
+			0.42,
+			LEAF,
+			CFrame.new(side * (arm.size.X / 2 + 0.05), -arm.size.Y * 0.1, 0)
+				* CFrame.Angles(0, side * math.rad(90), 0)
+				* CFrame.Angles(0, 0, math.pi + side * 0.4)
+		)
+	end
+end
+
+local function healerPlastron(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.06)
+	local back = depth / 2 + 0.06
+	make.block(Vector3.new(width + 0.1, height * 0.94, depth + 0.12), LINEN, FABRIC, CFrame.new(0, -height * 0.02, 0))
+	-- Peto de hueso blanco sobre un borde más oscuro, sujeto con correas por encima de los hombros.
+	local plate = CFrame.new(0, height * 0.06, front - 0.06)
+	make.block(Vector3.new(width * 0.9, height * 0.78, 0.1), BONE_DARK, SMOOTH, plate)
+	make.block(Vector3.new(width * 0.84, height * 0.72, 0.1), THICK_BONE, SMOOTH, plate * CFrame.new(0, 0.01, -0.04))
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.18, 0.08, depth + 0.24),
+			LEATHER,
+			LEATHER_MATERIAL,
+			CFrame.new(side * width * 0.3, height / 2 + 0.02, 0)
+		)
+	end
+	-- Cruz de hojas con una flor roja en el centro.
+	local cross = plate * CFrame.new(0, height * 0.04, -0.1)
+	for index = 0, 3 do
+		leaf(
+			make,
+			0.42,
+			if index % 2 == 0 then LEAF else LEAF_DARK,
+			cross * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.25, 0) * CFrame.Angles(0, math.pi, 0)
+		)
+	end
+	make.ball(0.18, FLOWER, SMOOTH, cross * CFrame.new(0, 0, -0.04))
+	-- Detrás (lo que el jugador ve siempre): mochila de cuero en un bastidor de madera, con frascos de
+	-- poción encima y a los lados y hierbas asomando por detrás de los frascos.
+	local pack = CFrame.new(0, -height * 0.04, back + 0.26)
+	make.block(Vector3.new(width * 0.62, height * 0.62, 0.42), HUNTER_LEATHER, LEATHER_MATERIAL, pack)
+	make.block(
+		Vector3.new(width * 0.64, height * 0.2, 0.46),
+		HUNTER_LEATHER_DARK,
+		LEATHER_MATERIAL,
+		pack * CFrame.new(0, height * 0.22, 0.01)
+	)
+	make.block(Vector3.new(0.16, 0.14, 0.06), BONE, SMOOTH, pack * CFrame.new(0, height * 0.12, 0.24))
+	for side = -1, 1, 2 do
+		make.rod(
+			height * 0.86,
+			0.08,
+			BARK,
+			WOOD,
+			pack * CFrame.new(side * width * 0.34, height * 0.04, -0.12) * UPRIGHT
+		)
+	end
+	for _, y in { height * 0.4, -height * 0.32 } do
+		make.rod(width * 0.76, 0.07, BARK, WOOD, pack * CFrame.new(0, y, -0.12))
+	end
+	local top = pack * CFrame.new(0, height * 0.32, 0)
+	for index = -1, 1 do
+		leaf(
+			make,
+			0.5,
+			if index == 0 then LEAF_LIGHT else LEAF,
+			top * CFrame.new(index * 0.2, 0.22, -0.12) * CFrame.Angles(0, 0, -index * 0.4)
+		)
+	end
+	for index, x in { -0.32, 0, 0.32 } do
+		flask(make, top * CFrame.new(x * width * 0.5, 0, 0.04), if index == 2 then 0.36 else 0.3, false)
+	end
+	for side = -1, 1, 2 do
+		flask(make, pack * CFrame.new(side * (width * 0.31 + 0.13), -height * 0.16, 0.06), 0.28, false)
+	end
+
+	-- Cinturón de cuero con dos rollos de venda.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.08)
+	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), LEATHER, LEATHER_MATERIAL, CFrame.new(0, 0.06, 0))
+	for _, x in { -0.32, 0.32 } do
+		waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(x * hipWidth, -0.06, beltFront - 0.1) * UPRIGHT)
+	end
+
+	for side = -1, 1, 2 do
+		-- Hombrera de hueso con dos hojas por debajo.
+		local arm = body.upperArm[side]
+		local as = arm.size
+		local top2 = as.Y / 2
+		for index, tilt in { -0.35, 0.35 } do
+			leaf(
+				arm,
+				0.46,
+				if index == 1 then LEAF else LEAF_DARK,
+				CFrame.new(side * (as.X / 2 + 0.03), top2 - 0.22, tilt * 0.6)
+					* CFrame.Angles(0, side * math.rad(90), 0)
+					* CFrame.Angles(0, 0, math.pi + tilt)
+			)
+		end
+		arm.oval(
+			Vector3.new(as.X * 1.08, 0.3, as.Z * 1.12),
+			THICK_BONE,
+			SMOOTH,
+			CFrame.new(side * 0.06, top2 + 0.02, 0)
+		)
+		arm.oval(
+			Vector3.new(as.X * 0.9, 0.24, as.Z * 0.96),
+			BONE_DARK,
+			SMOOTH,
+			CFrame.new(side * 0.16, top2 - 0.14, 0) * CFrame.Angles(0, 0, -side * 0.35)
+		)
+		-- Vendas en el antebrazo.
+		local forearm = body.lowerArm[side]
+		band(forearm, -forearm.size.Y * 0.18, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
+		band(forearm, -forearm.size.Y * 0.36, 0.12, 0.06, PAINT_WHITE, FABRIC, -0.12)
+		-- Bolsa de cuero atada al muslo.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		band(leg, ls.Y * 0.2, 0.1, 0.06, LEATHER_DARK, LEATHER_MATERIAL)
+		local bag = CFrame.new(side * (ls.X / 2 + 0.06), ls.Y * 0.08, 0)
+		leg.block(Vector3.new(0.14, 0.34, 0.42), HUNTER_LEATHER, LEATHER_MATERIAL, bag)
+		leg.block(Vector3.new(0.18, 0.12, 0.46), LEATHER_DARK, LEATHER_MATERIAL, bag * CFrame.new(0, 0.14, 0))
+	end
+end
+
+local function silverHealer(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2
+	make.block(Vector3.new(width + 0.12, height * 0.94, depth + 0.16), LINEN, FABRIC, CFrame.new(0, -height * 0.02, 0))
+	-- Manto de pelaje plateado sobre los hombros y capa por la espalda con flecos.
+	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+	for side = -1, 1, 2 do
+		make.ball(0.6, SILVER_FUR, FABRIC, CFrame.new(side * (width / 2 + 0.06), height / 2 - 0.1, 0))
+	end
+	local capeHeight = height * 1.08
+	local capeY = height / 2 - capeHeight / 2 - 0.02
+	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
+	local capeBottom = capeY - capeHeight / 2
+	local tufts = 5
+	for index = 0, tufts - 1 do
+		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
+		make.fang(
+			if index % 2 == 0 then 0.34 else 0.26,
+			0.28,
+			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+			FABRIC,
+			CFrame.new(x + 0.14, capeBottom + 0.04, back + 0.34) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	-- Detrás (lo que el jugador ve siempre): tótem sanador pequeño atado a la capa, con su gema verde
+	-- brillando por encima de los hombros, hojas en la base y un frasco brillante a cada lado.
+	local totemBase = CFrame.new(0, -height * 0.3, back + 0.42)
+	-- (A escala 1 se quedaba bajo los hombros.)
+	local totemScale = 1.25
+	backTotem(make, totemBase, totemScale)
+	make.block(
+		Vector3.new(0.56, 0.1, 0.46) * totemScale,
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		totemBase * CFrame.new(0, 0.7 * totemScale, 0)
+	)
+	for index, angle in { -1.1, -0.45, 0.45, 1.1 } do
+		leaf(
+			make,
+			0.6,
+			if index % 2 == 0 then LEAF_DARK else LEAF,
+			totemBase * CFrame.new(0, 0.12, -0.1) * CFrame.Angles(0, 0, -angle) * CFrame.new(0, 0.32, 0)
+		)
+	end
+	for side = -1, 1, 2 do
+		local cord = CFrame.new(side * width * 0.36, height * 0.22, back + 0.26)
+		make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, cord)
+		flask(make, cord * CFrame.new(0, -0.62, 0.02), 0.26, true)
+	end
+	-- Bandolera del hombro derecho a la cadera izquierda con tres frascos que brillan colgando.
+	local from = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.03)
+	local to = Vector3.new(-width * 0.4, -height / 2 + 0.12, front - 0.03)
+	strap(make, from, to, 0.16, LEATHER_DARK, LEATHER_MATERIAL)
+	for _, t in { 0.3, 0.52, 0.74 } do
+		local at = from:Lerp(to, t)
+		flask(make, CFrame.new(at.X, at.Y - 0.32, at.Z - 0.1), 0.22, true)
+	end
+	-- Broche de plata con una gema verde que cierra el manto.
+	local brooch = CFrame.new(-width * 0.22, height / 2 - 0.16, front - 0.1)
+	local rim = make.rod(0.06, 0.32, SILVER, METAL, brooch * FACING)
+	rim.Reflectance = 0.35
+	make.ball(0.18, HEAL_GLOW, NEON, brooch * CFrame.new(0, 0, -0.05))
+
+	-- Cinturón oscuro con hebilla de plata y un rollo de venda.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.09)
+	waist.block(
+		Vector3.new(hipWidth + 0.16, 0.22, hipDepth + 0.18),
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, 0.06, 0)
+	)
+	local buckle = waist.block(Vector3.new(0.34, 0.26, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
+	buckle.Reflectance = 0.35
+	waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(hipWidth * 0.32, -0.06, beltFront - 0.1) * UPRIGHT)
+
+	for side = -1, 1, 2 do
+		-- Hombros de pelaje plateado con dos hojas por debajo.
+		local arm = body.upperArm[side]
+		local as = arm.size
+		local top = as.Y / 2
+		for index, tilt in { -0.35, 0.35 } do
+			leaf(
+				arm,
+				0.5,
+				if index == 1 then LEAF else LEAF_DARK,
+				CFrame.new(side * (as.X / 2 + 0.04), top - 0.3, tilt * 0.6)
+					* CFrame.Angles(0, side * math.rad(90), 0)
+					* CFrame.Angles(0, 0, math.pi + tilt)
+			)
+		end
+		arm.oval(Vector3.new(as.X * 1.3, 0.55, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.02, 0))
+		-- Venda y puño de pelaje plateado en el antebrazo.
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, fs.Y * 0.05, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
+		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
+		-- Faldón de pelaje plateado en el muslo con una hoja.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
+		leaf(
+			leg,
+			0.46,
+			LEAF,
+			flap * CFrame.new(side * 0.1, -0.05, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
+		)
+	end
+end
+
 -- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
 local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
-	FurVest = { Guerrero = furVest, Cazador = trackerCape, Mago = amuletMantle },
-	BoneArmor = { Guerrero = boneArmor, Cazador = hunterLeather, Mago = runeTunic },
-	SilverArmor = { Guerrero = silverArmor, Cazador = silverHunter, Mago = crystalMantle },
+	FurVest = { Guerrero = furVest, Cazador = trackerCape, Mago = amuletMantle, Medico = healerBandolier },
+	BoneArmor = { Guerrero = boneArmor, Cazador = hunterLeather, Mago = runeTunic, Medico = healerPlastron },
+	SilverArmor = { Guerrero = silverArmor, Cazador = silverHunter, Mago = crystalMantle, Medico = silverHealer },
 }
 
 -- Viste a "character" con la armadura "armorId" en la versión de su rol "roleId" (sustituye a la que
