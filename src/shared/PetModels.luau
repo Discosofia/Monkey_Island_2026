@@ -70,9 +70,6 @@ type Animated = {
 
 local WHITE = Color3.fromRGB(245, 245, 238)
 local BLACK = Color3.fromRGB(22, 22, 26)
-local CREAM = Color3.fromRGB(235, 215, 175)
--- Gira un cilindro (eje X) para ponerlo de pie.
-local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2)
 
 local rigs: { [Model]: Animated } = {}
 
@@ -224,90 +221,6 @@ local function surfacePoint(frame: CFrame, semi: Vector3, direction: Vector3): (
 	local point = d / math.sqrt((d.X / semi.X) ^ 2 + (d.Y / semi.Y) ^ 2 + (d.Z / semi.Z) ^ 2)
 	local normal = Vector3.new(point.X / semi.X ^ 2, point.Y / semi.Y ^ 2, point.Z / semi.Z ^ 2).Unit
 	return frame * point, frame:VectorToWorldSpace(normal)
-end
-
--- Mancha de dos tonos pegada a un cuerpo: un óvalo y otro menor desplazado y girado encima. Así no
--- parecen lunares todos iguales.
-local function blotch(
-	rig: Rig,
-	name: string,
-	position: Vector3,
-	normal: Vector3,
-	size: Vector2,
-	spin: number,
-	color: Color3,
-	inner: Color3
-): { BasePart }
-	local up = if math.abs(normal.Unit.Y) > 0.95 then Vector3.zAxis else Vector3.yAxis
-	local frame = CFrame.lookAt(position, position + normal, up) * CFrame.Angles(0, 0, spin)
-	return {
-		piece(rig, name, "Oval", Vector3.new(size.X, size.Y, 0.05), frame, color),
-		piece(
-			rig,
-			name,
-			"Oval",
-			Vector3.new(size.X * 0.55, size.Y * 0.7, 0.05),
-			frame * CFrame.new(size.X * 0.22, -size.Y * 0.1, -0.008),
-			inner
-		),
-	}
-end
-
--- Cuatro patas (delante izquierda/derecha, detrás izquierda/derecha) que andan en diagonal, cada
--- una con su pie (del color "paw", o del de la pata) y, si se pide, tres dedos o uñas ("toes").
-local function legs(
-	rig: Rig,
-	color: Color3,
-	front: number,
-	back: number,
-	spread: number,
-	y: number,
-	size: Vector3,
-	paw: Color3?,
-	toes: Color3?
-)
-	local positions = {
-		Vector3.new(-spread, y, front),
-		Vector3.new(spread, y, front),
-		Vector3.new(-spread, y, back),
-		Vector3.new(spread, y, back),
-	}
-	local phases = { 0, math.pi, math.pi, 0 }
-	for i, position in positions do
-		local hinge = CFrame.new(position + Vector3.new(0, size.Y / 2, 0))
-		local leg = piece(rig, "Leg", "Oval", size, CFrame.new(position), color)
-		joint(rig, leg, hinge, Vector3.xAxis, 0.55, 9, phases[i], true)
-		local foot = piece(
-			rig,
-			"Paw",
-			"Oval",
-			Vector3.new(size.X * 1.25, size.Y * 0.32, size.Z * 1.45),
-			CFrame.new(position + Vector3.new(0, -size.Y * 0.4, -size.Z * 0.2)),
-			paw or color
-		)
-		joint(rig, foot, hinge, Vector3.xAxis, 0.55, 9, phases[i], true)
-		if toes then
-			local pawSize = foot.Size / rig.scale
-			for k = -1, 1 do
-				local toe = piece(
-					rig,
-					"Toe",
-					"Ball",
-					Vector3.one * pawSize.X * 0.28,
-					CFrame.new(
-						position
-							+ Vector3.new(
-								k * pawSize.X * 0.3,
-								-size.Y * 0.42,
-								-size.Z * 0.2 - pawSize.Z * 0.4 + math.abs(k) * 0.03
-							)
-					),
-					toes
-				)
-				joint(rig, toe, hinge, Vector3.xAxis, 0.55, 9, phases[i], true)
-			end
-		end
-	end
 end
 
 -- Cola larga por tramos sobre una curva (de "base" a "to", tirando hacia "control") que ondula de
@@ -1541,845 +1454,7 @@ local function felid(rig: Rig, coat: Color3, options: CatOptions)
 	end
 end
 
-local BIRD_HEAD = Vector3.new(0, 0.68, -0.42)
-
--- Pluma suelta: óvalo plano que sale de "root" en la dirección "direction" (horizontal o casi).
--- Opcional: punta de otro color ("tip") en el último tercio y el cañón ("shaft"), una raya fina a lo
--- largo. Devuelve sus piezas para articularlas.
-local function feather(
-	rig: Rig,
-	name: string,
-	root: Vector3,
-	direction: Vector3,
-	length: number,
-	width: number,
-	color: Color3,
-	tip: Color3?,
-	shaft: Color3?
-): { BasePart }
-	local unit = direction.Unit
-	local center = root + unit * length / 2
-	local frame = CFrame.lookAt(center, center + unit)
-	local parts = { piece(rig, name, "Oval", Vector3.new(width, 0.05, length), frame, color, Enum.Material.Fabric) }
-	if tip then
-		table.insert(
-			parts,
-			piece(
-				rig,
-				name .. "Tip",
-				"Oval",
-				Vector3.new(width * 0.85, 0.055, length * 0.4),
-				frame * CFrame.new(0, 0, -length * 0.3),
-				tip,
-				Enum.Material.Fabric
-			)
-		)
-	end
-	if shaft then
-		-- Un poco más gruesa que la pluma: asoma por arriba y por abajo, que se ve al batir.
-		table.insert(
-			parts,
-			piece(
-				rig,
-				name .. "Shaft",
-				"Oval",
-				Vector3.new(math.min(0.03, width * 0.12), 0.064, length * 0.9),
-				frame,
-				shaft
-			)
-		)
-	end
-	return parts
-end
-
-type WingStyle = {
-	span: number, -- largo del ala abierta, desde la bisagra
-	chord: number, -- fondo de las cobertoras
-	coverts: Color3, -- plumas pequeñas del borde de delante
-	middle: Color3, -- cobertoras mayores, que tapan el arranque de las remeras
-	middleTip: Color3?, -- punta de las cobertoras mayores
-	flight: { Color3 }, -- remeras, de dentro (junto al cuerpo) a fuera
-	tip: Color3?, -- punta de las remeras
-	amplitude: number,
-	speed: number,
-}
-
--- Ala abierta de plumas sueltas, por capas como un ala de verdad: el brazo (borde de delante liso),
--- una fila de cobertoras pequeñas como escamas, otra de cobertoras mayores, la álula en la muñeca y
--- un abanico de remeras con su cañón, que van de apuntar atrás (las de dentro) a apuntar hacia
--- fuera (las de la punta). Todo bate con la misma bisagra, como una sola pieza.
-local function featheredWing(rig: Rig, side: number, hinge: Vector3, style: WingStyle)
-	local span, chord = style.span, style.chord
-	local fabric = Enum.Material.Fabric
-	local parts: { BasePart } = {
-		piece(
-			rig,
-			"WingArm",
-			"Oval",
-			Vector3.new(span * 0.8, 0.13, chord * 0.55),
-			CFrame.new(hinge + Vector3.new(side * span * 0.36, 0.03, -chord * 0.08)),
-			style.coverts,
-			fabric
-		),
-	}
-	local function add(list: { BasePart })
-		for _, part in list do
-			table.insert(parts, part)
-		end
-	end
-	-- Cobertoras pequeñas: escamas de dos tonos en fila sobre el brazo.
-	local lesser = 5
-	for k = 1, lesser do
-		table.insert(
-			parts,
-			piece(
-				rig,
-				"LesserCovert",
-				"Oval",
-				Vector3.new(span * 0.17, 0.07, chord * 0.36),
-				CFrame.new(hinge + Vector3.new(side * span * (0.06 + 0.14 * (k - 1)), 0.075, chord * 0.08)),
-				if k % 2 == 0 then style.coverts else style.coverts:Lerp(WHITE, 0.1),
-				fabric
-			)
-		)
-	end
-	-- Cobertoras mayores: plumas cortas que tapan el arranque de las remeras.
-	local greater = 6
-	for k = 1, greater do
-		local t = (k - 1) / (greater - 1)
-		local angle = math.rad(84 - 62 * t)
-		local root = hinge + Vector3.new(side * span * (0.08 + 0.55 * t), 0.005 - 0.004 * k, chord * 0.02)
-		local direction = Vector3.new(side * math.cos(angle), -0.03, math.sin(angle))
-		add(feather(rig, "GreaterCovert", root, direction, chord * 0.8, span * 0.2, style.middle, style.middleTip))
-	end
-	-- Álula: plumita en la muñeca que apunta hacia fuera y adelante.
-	add(
-		feather(
-			rig,
-			"Alula",
-			hinge + Vector3.new(side * span * 0.66, 0.06, -chord * 0.2),
-			Vector3.new(side, 0.02, -0.12),
-			span * 0.18,
-			span * 0.08,
-			style.coverts
-		)
-	)
-	-- Remeras anchas y muy solapadas: si se separan, el ala parece una mano con dedos. Solo las de
-	-- fuera llevan la punta de otro color: las de dentro quedan tapadas.
-	local count = #style.flight
-	for i, featherColor in style.flight do
-		local t = (i - 1) / (count - 1)
-		local angle = math.rad(82 - 70 * t)
-		local root = hinge + Vector3.new(side * span * (0.12 + 0.62 * t), -0.035 - 0.008 * i, chord * 0.1)
-		local direction = Vector3.new(side * math.cos(angle), -0.04, math.sin(angle))
-		local length = span * (0.55 + 0.2 * t)
-		local tip = if t >= 0.5 then style.tip else nil
-		local shaft = featherColor:Lerp(WHITE, 0.4)
-		add(feather(rig, "Flight", root, direction, length, span * 0.26, featherColor, tip, shaft))
-	end
-	for _, part in parts do
-		joint(rig, part, CFrame.new(hinge), Vector3.zAxis, style.amplitude * side, style.speed, 0, false).bone = if side
-				< 0
-			then "WingL"
-			else "WingR"
-	end
-end
-
--- Cola en abanico: "count" plumas desde "base" hacia atrás y algo hacia abajo ("droop", en
--- radianes), abiertas "spread" radianes en total. La del centro es la más larga.
-local function tailFan(
-	rig: Rig,
-	base: Vector3,
-	count: number,
-	length: number,
-	width: number,
-	spread: number,
-	droop: number,
-	color: (index: number) -> Color3,
-	tip: Color3?
-)
-	for i = 1, count do
-		local t = if count > 1 then (i - 1) / (count - 1) - 0.5 else 0
-		local angle = t * spread
-		local direction = Vector3.new(math.sin(angle), -math.sin(droop), math.cos(angle))
-		local root = base + Vector3.new(t * width * 0.6, 0.01 * math.abs(t), 0)
-		feather(rig, "TailFeather", root, direction, length * (1 - math.abs(t) * 0.35), width, color(i), tip)
-	end
-end
-
--- Cuerpo y cabeza de ave con plumaje de tela, y patas recogidas de dos dedos delante y dos detrás.
-local function bird(rig: Rig, color: Color3, feet: Color3)
-	local fabric = Enum.Material.Fabric
-	piece(rig, "Body", "Oval", Vector3.new(0.85, 1.05, 1.25), CFrame.Angles(0.35, 0, 0), color, fabric)
-	-- Plumas del lomo y de los flancos, un tono más oscuro, solapadas como escamas.
-	local shade = color:Lerp(BLACK, 0.18)
-	piece(
-		rig,
-		"Mantle",
-		"Oval",
-		Vector3.new(0.7, 0.5, 0.7),
-		CFrame.new(0, 0.28, 0.22) * CFrame.Angles(0.5, 0, 0),
-		shade,
-		fabric
-	)
-	for _, side in { -1, 1 } do
-		piece(
-			rig,
-			"Flank",
-			"Oval",
-			Vector3.new(0.3, 0.6, 0.75),
-			CFrame.new(side * 0.32, -0.12, 0.12) * CFrame.Angles(0.35, 0, side * 0.15),
-			shade,
-			fabric
-		)
-	end
-	piece(rig, "Head", "Ball", Vector3.one * 0.72, CFrame.new(BIRD_HEAD), color, fabric)
-	for _, side in { -1, 1 } do
-		local ankle = Vector3.new(side * 0.18, -0.5, -0.02)
-		piece(rig, "Leg", "Cylinder", Vector3.new(0.16, 0.09, 0.09), CFrame.new(ankle) * UPRIGHT, feet)
-		for _, toe in { { side * -0.05, -0.18 }, { side * 0.06, -0.17 }, { side * -0.03, 0.14 }, { side * 0.05, 0.13 } } do
-			local tipPoint = ankle + Vector3.new(toe[1], -0.08, toe[2])
-			piece(
-				rig,
-				"Toe",
-				"Oval",
-				Vector3.new(0.06, 0.06, 0.2),
-				CFrame.lookAt((ankle + tipPoint) / 2, tipPoint),
-				feet
-			)
-			piece(rig, "Claw", "Ball", Vector3.one * 0.045, CFrame.new(tipPoint), BLACK)
-		end
-	end
-end
-
--- Al final de cada ave: la cabeza cabecea y la cola sube y baja en vuelo. "neck" y "rump" son las
--- bisagras; la cabeza es lo que queda por encima de "headAbove" y por delante del cuello.
-local function birdMotion(rig: Rig, neck: Vector3, headAbove: number, rump: Vector3)
-	swingRegion(rig, neck, Vector3.xAxis, 0.1, 3, 0, false, function(position)
-		return position.Y > headAbove and position.Z < neck.Z
-	end)
-	swingRegion(rig, rump, Vector3.xAxis, 0.15, 6, 1, false, function(position)
-		return position.Z > rump.Z and position.Y < -0.1
-	end)
-end
-
--- Ojo de ave pegado a la cabeza (centro "head", radio "radius") en la dirección "direction": anillo
--- de piel, ojo del color del iris, pupila, dos brillos y un párpado de arriba que le da expresión.
-local function birdEye(
-	rig: Rig,
-	head: Vector3,
-	radius: number,
-	direction: Vector3,
-	size: number,
-	iris: Color3,
-	ring: Color3,
-	lid: Color3
-)
-	local normal = direction.Unit
-	local center = head + normal * radius
-	local frame = CFrame.lookAt(center, center + normal)
-	piece(rig, "EyeRing", "Oval", Vector3.new(size * 1.55, size * 1.45, 0.07), frame, ring)
-	-- Medido desde el centro del ojo ("eye", que asoma del anillo): la pupila y los brillos tienen que
-	-- quedar por fuera de la bola del ojo, o se entierran y el ojo sale sin pupila.
-	local eye = frame * CFrame.new(0, 0, -0.02)
-	piece(rig, "Eye", "Ball", Vector3.one * size, eye, iris)
-	piece(
-		rig,
-		"Pupil",
-		"Oval",
-		Vector3.new(size * 0.5, size * 0.5, size * 0.2),
-		eye * CFrame.new(0, 0, -size * 0.46),
-		BLACK
-	)
-	piece(
-		rig,
-		"Glint",
-		"Ball",
-		Vector3.one * size * 0.18,
-		eye * CFrame.new(-size * 0.14, size * 0.15, -size * 0.5),
-		WHITE,
-		Enum.Material.Neon
-	)
-	piece(
-		rig,
-		"Glint",
-		"Ball",
-		Vector3.one * size * 0.09,
-		eye * CFrame.new(size * 0.13, -size * 0.1, -size * 0.5),
-		WHITE,
-		Enum.Material.Neon
-	)
-	piece(
-		rig,
-		"Eyelid",
-		"Oval",
-		Vector3.new(size * 1.15, size * 0.45, size * 0.8),
-		eye * CFrame.new(0, size * 0.38, -size * 0.18) * CFrame.Angles(-0.25, 0, 0),
-		lid
-	)
-end
-
 local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
-	-- Tortuga: caparazón alto de placas con anillos de crecimiento, borde de placas, peto amarillo,
-	-- musgo y una florecita encima; cabeza con pico, párpados y rayas amarillas, y patas con uñas.
-	Tortuga = function(rig, color)
-		local skin = Color3.fromRGB(150, 170, 100)
-		local skinDark = skin:Lerp(BLACK, 0.3)
-		local stripe = Color3.fromRGB(235, 210, 90)
-		local plate = color:Lerp(Color3.fromRGB(200, 180, 90), 0.35)
-		local ring = color:Lerp(BLACK, 0.3)
-		local seam = color:Lerp(BLACK, 0.5)
-		local shellFrame = CFrame.new(0, 0.15, 0)
-		local shellSemi = Vector3.new(0.85, 0.55, 1.0)
-		piece(rig, "Shell", "Oval", shellSemi * 2, shellFrame, seam)
-		piece(rig, "Rim", "Oval", Vector3.new(1.95, 0.3, 2.25), CFrame.new(0, -0.15, 0), ring)
-		piece(
-			rig,
-			"Plastron",
-			"Oval",
-			Vector3.new(1.55, 0.28, 1.85),
-			CFrame.new(0, -0.27, 0),
-			Color3.fromRGB(215, 190, 110)
-		)
-
-		-- Placa del caparazón: plancha grande y, encima, el anillo de crecimiento y el centro, de tonos
-		-- cercanos. Con material de madera, la veta parece las líneas de crecimiento. Entre placa y
-		-- placa asoma el caparazón oscuro, que hace de junta.
-		local function scute(direction: Vector3, size: Vector2)
-			local position, normal = surfacePoint(shellFrame, shellSemi, direction)
-			local up = if math.abs(normal.Y) > 0.7 then Vector3.zAxis else Vector3.yAxis
-			local frame = CFrame.lookAt(position, position + normal, up)
-			local wood = Enum.Material.Wood
-			piece(rig, "Scute", "Oval", Vector3.new(size.X, size.Y, 0.14), frame, plate:Lerp(BLACK, 0.1), wood)
-			piece(
-				rig,
-				"ScuteRing",
-				"Oval",
-				Vector3.new(size.X * 0.75, size.Y * 0.75, 0.14),
-				frame * CFrame.new(0, 0, -0.012),
-				plate,
-				wood
-			)
-			piece(
-				rig,
-				"ScuteCenter",
-				"Oval",
-				Vector3.new(size.X * 0.42, size.Y * 0.42, 0.14),
-				frame * CFrame.new(0, 0, -0.024),
-				plate:Lerp(WHITE, 0.12),
-				wood
-			)
-		end
-		-- Fila del lomo (de delante atrás) y una fila grande en cada costado.
-		for _, angle in { -58, -29, 0, 29, 58 } do
-			local a = math.rad(angle)
-			scute(Vector3.new(0, math.cos(a), math.sin(a) * 1.4), Vector2.new(0.62, 0.5))
-		end
-		for _, side in { -1, 1 } do
-			for _, z in { -0.75, -0.25, 0.25, 0.75 } do
-				scute(Vector3.new(side, 0.12, z * 1.3), Vector2.new(0.6, 0.72))
-			end
-		end
-		-- Placas del borde del caparazón, alrededor de todo el contorno, de dos tonos alternos.
-		local marginals = 16
-		for i = 0, marginals - 1 do
-			local angle = (i + 0.5) * 2 * math.pi / marginals
-			local position = Vector3.new(math.cos(angle) * 0.93, -0.1, math.sin(angle) * 1.08)
-			patch(
-				rig,
-				"EdgePlate",
-				Vector3.new(0.34, 0.2, 0.12),
-				position,
-				position * Vector3.new(1, 0, 1),
-				if i % 2 == 0 then plate:Lerp(BLACK, 0.12) else plate:Lerp(BLACK, 0.25)
-			)
-		end
-		-- Musgo y una florecita sobre el caparazón.
-		local moss = Color3.fromRGB(85, 135, 55)
-		for _, spot in
-			{
-				{ Vector3.new(0.35, 1, 0.45), Vector2.new(0.42, 0.3) },
-				{ Vector3.new(-0.45, 1, -0.2), Vector2.new(0.3, 0.24) },
-			}
-		do
-			local position, normal = surfacePoint(shellFrame, shellSemi, spot[1])
-			piece(
-				rig,
-				"Moss",
-				"Oval",
-				Vector3.new(spot[2].X, 0.1, spot[2].Y),
-				CFrame.lookAt(position + normal * 0.03, position + normal * 0.03 + Vector3.zAxis, normal),
-				moss,
-				Enum.Material.Grass
-			)
-		end
-		local stemBase = surfacePoint(shellFrame, shellSemi, Vector3.new(0.35, 1, 0.45))
-		local bloom = stemBase + Vector3.new(0, 0.24, 0)
-		piece(
-			rig,
-			"Stem",
-			"Cylinder",
-			Vector3.new(0.24, 0.035, 0.035),
-			CFrame.new(stemBase + Vector3.new(0, 0.12, 0)) * UPRIGHT,
-			moss
-		)
-		for k = 0, 4 do
-			local angle = k * 2 * math.pi / 5
-			piece(
-				rig,
-				"Petal",
-				"Oval",
-				Vector3.new(0.09, 0.03, 0.14),
-				CFrame.new(bloom) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.07) * CFrame.Angles(0.3, 0, 0),
-				Color3.fromRGB(255, 120, 160)
-			)
-		end
-		piece(rig, "Bloom", "Ball", Vector3.one * 0.07, CFrame.new(bloom + Vector3.new(0, 0.02, 0)), stripe)
-
-		-- Cabeza con cuello arrugado, pico, ojos con párpado y rayas amarillas: todo gira junto,
-		-- mirando a los lados.
-		piece(rig, "Neck", "Oval", Vector3.new(0.4, 0.38, 0.62), CFrame.new(0, 0, -1.0), skin)
-		for _, z in { -0.92, -1.06 } do
-			piece(rig, "Wrinkle", "Oval", Vector3.new(0.42, 0.39, 0.04), CFrame.new(0, 0, z), skinDark)
-		end
-		piece(rig, "Head", "Oval", Vector3.new(0.56, 0.5, 0.7), CFrame.new(0, 0.07, -1.32), skin)
-		piece(rig, "Beak", "Oval", Vector3.new(0.36, 0.26, 0.22), CFrame.new(0, -0.0, -1.6), Color3.fromRGB(90, 85, 50))
-		piece(rig, "Mouth", "Oval", Vector3.new(0.38, 0.025, 0.24), CFrame.new(0, -0.04, -1.56), BLACK)
-		for _, side in { -1, 1 } do
-			piece(rig, "Nostril", "Ball", Vector3.one * 0.035, CFrame.new(side * 0.05, 0.1, -1.66), BLACK)
-			local eye = Vector3.new(side * 0.2, 0.15, -1.5)
-			piece(rig, "Eye", "Ball", Vector3.one * 0.15, CFrame.new(eye), BLACK)
-			piece(
-				rig,
-				"Glint",
-				"Ball",
-				Vector3.one * 0.05,
-				CFrame.new(eye + Vector3.new(side * 0.01, 0.035, -0.06)),
-				WHITE,
-				Enum.Material.Neon
-			)
-			piece(
-				rig,
-				"Eyelid",
-				"Oval",
-				Vector3.new(0.18, 0.08, 0.17),
-				CFrame.new(eye + Vector3.new(0, 0.06, 0.005)) * CFrame.Angles(0, 0, -side * 0.15),
-				skinDark
-			)
-			-- Rayas amarillas en la mejilla, detrás del ojo, pegadas a la cabeza.
-			for k = 0, 1 do
-				local position, normal = surfacePoint(
-					CFrame.new(0, 0.07, -1.32),
-					Vector3.new(0.28, 0.25, 0.35),
-					Vector3.new(side, 0.05 - k * 0.4, 0.25)
-				)
-				piece(
-					rig,
-					"Stripe",
-					"Oval",
-					Vector3.new(0.34, 0.045, 0.03),
-					CFrame.lookAt(position, position + normal) * CFrame.Angles(0, 0, side * 0.12),
-					stripe
-				)
-			end
-		end
-		-- Escamas oscuras en lo alto de la cabeza.
-		for _, position in { Vector3.new(0, 0.32, -1.3), Vector3.new(0.1, 0.3, -1.15), Vector3.new(-0.1, 0.3, -1.15) } do
-			patch(rig, "HeadScale", Vector3.new(0.12, 0.1, 0.04), position, Vector3.new(position.X, 1, 0), skinDark)
-		end
-		legs(rig, skin, -0.75, 0.75, 0.72, -0.35, Vector3.new(0.45, 0.45, 0.55), skinDark, Color3.fromRGB(120, 110, 70))
-		piece(
-			rig,
-			"TailTip",
-			"Wedge",
-			Vector3.new(0.2, 0.2, 0.35),
-			CFrame.new(0, -0.15, 1.2) * CFrame.Angles(0, math.pi, 0),
-			skin
-		)
-		-- Las placas del borde de delante quedan por debajo (Y = -0,1) y no giran con la cabeza.
-		swingRegion(rig, Vector3.new(0, 0, -0.85), Vector3.yAxis, 0.3, 1.5, 0, false, function(position)
-			return position.Z < -0.8 and position.Y > -0.08
-		end)
-		return "Walk"
-	end,
-
-	-- Guacamaya roja: cara blanca con hileras de plumitas rojas, pico ganchudo claro con la mandíbula
-	-- de abajo negra, alas rojas, amarillas y azules, y cola muy larga roja con las puntas azules.
-	Guacamaya = function(rig, color)
-		local fabric = Enum.Material.Fabric
-		local blue = Color3.fromRGB(40, 90, 220)
-		local deepBlue = Color3.fromRGB(30, 55, 160)
-		local yellow = Color3.fromRGB(250, 200, 40)
-		local green = Color3.fromRGB(60, 170, 80)
-		local horn = Color3.fromRGB(235, 225, 210)
-		bird(rig, color, Color3.fromRGB(70, 70, 75))
-		for _, side in { -1, 1 } do
-			-- Cara de piel blanca; las plumitas rojas van en hileras sobre su cara de delante.
-			local normal = Vector3.new(side * 0.72, -0.08, -0.69).Unit
-			local frame = CFrame.lookAt(BIRD_HEAD + normal * 0.34, BIRD_HEAD + normal)
-			local half = Vector3.new(0.19, 0.17, 0.045)
-			piece(rig, "Face", "Oval", half * 2, frame, WHITE)
-			-- Tres hileras finas que se abren hacia atrás, como en las guacamayas de verdad.
-			for row = -1, 1 do
-				piece(
-					rig,
-					"FaceLine",
-					"Oval",
-					Vector3.new(0.24, 0.028, 0.02),
-					frame
-						* CFrame.new(side * 0.02, row * 0.065 - 0.03, -half.Z + 0.006)
-						* CFrame.Angles(0, 0, side * row * 0.18),
-					color:Lerp(BLACK, 0.2)
-				)
-			end
-			-- Mancha negra en la base del pico, a cada lado.
-			piece(rig, "BeakPatch", "Oval", Vector3.new(0.06, 0.14, 0.18), CFrame.new(side * 0.11, 0.58, -0.76), BLACK)
-		end
-		-- Ojo de iris claro (amarillento) sobre la piel blanca, con anillo gris y párpado blanco.
-		for _, side in { -1, 1 } do
-			local look = Vector3.new(side * 0.7, 0.28, -0.66)
-			birdEye(
-				rig,
-				BIRD_HEAD,
-				0.385,
-				look,
-				0.15,
-				Color3.fromRGB(250, 225, 140),
-				Color3.fromRGB(215, 215, 205),
-				WHITE
-			)
-		end
-		-- Plumas rojas de la frente que montan sobre la base del pico, la cera clara con los orificios
-		-- de la nariz y la lengua oscura entre las dos mandíbulas.
-		piece(
-			rig,
-			"Forehead",
-			"Oval",
-			Vector3.new(0.3, 0.16, 0.24),
-			CFrame.new(0, 0.86, -0.66) * CFrame.Angles(0.35, 0, 0),
-			color:Lerp(Color3.fromRGB(255, 120, 60), 0.15),
-			fabric
-		)
-		piece(
-			rig,
-			"Cere",
-			"Oval",
-			Vector3.new(0.17, 0.07, 0.12),
-			CFrame.new(0, 0.8, -0.71),
-			Color3.fromRGB(225, 215, 205)
-		)
-		for _, side in { -1, 1 } do
-			piece(rig, "Nostril", "Ball", Vector3.one * 0.035, CFrame.new(side * 0.04, 0.825, -0.73), BLACK)
-		end
-		piece(rig, "Tongue", "Ball", Vector3.one * 0.09, CFrame.new(0, 0.54, -0.86), Color3.fromRGB(45, 40, 45))
-
-		-- Pico ganchudo: base clara, gancho que baja curvado con la punta oscura y mandíbula negra.
-		piece(rig, "Beak", "Oval", Vector3.new(0.26, 0.3, 0.3), CFrame.new(0, 0.65, -0.78), horn)
-		local hookFrom, hookTo = Vector3.new(0, 0.68, -0.88), Vector3.new(0, 0.42, -0.93)
-		piece(
-			rig,
-			"BeakHook",
-			"Oval",
-			Vector3.new(0.17, 0.15, 0.36),
-			CFrame.lookAt((hookFrom + hookTo) / 2, hookTo),
-			horn
-		)
-		piece(rig, "BeakTip", "Ball", Vector3.one * 0.08, CFrame.new(0, 0.43, -0.92), Color3.fromRGB(60, 58, 60))
-		piece(rig, "LowerBeak", "Oval", Vector3.new(0.22, 0.2, 0.24), CFrame.new(0, 0.5, -0.76), BLACK)
-
-		for _, side in { -1, 1 } do
-			featheredWing(rig, side, Vector3.new(side * 0.35, 0.22, 0.08), {
-				span = 1.25,
-				chord = 0.65,
-				coverts = color,
-				middle = yellow,
-				middleTip = green,
-				flight = { blue, blue, blue, blue, blue, blue },
-				tip = deepBlue,
-				amplitude = 0.7,
-				speed = 12,
-			})
-		end
-		piece(rig, "Rump", "Oval", Vector3.new(0.4, 0.2, 0.34), CFrame.new(0, -0.15, 0.58), color, fabric)
-		tailFan(rig, Vector3.new(0, -0.3, 0.6), 5, 1.7, 0.17, 0.4, 0.4, function(index)
-			return if index == 1 or index == 5 then blue else color
-		end, blue)
-		birdMotion(rig, Vector3.new(0, 0.45, -0.25), 0.4, Vector3.new(0, -0.15, 0.35))
-		rig.family = "Bird"
-		return "Fly"
-	end,
-
-	-- Perezoso de tres dedos: pelo largo y desgreñado con manchas de alga, cara clara con antifaz
-	-- oscuro y sonrisa, brazos largos con tres garras curvas y un hatillo de troncos a la espalda.
-	Perezoso = function(rig, color)
-		local fabric = Enum.Material.Fabric
-		local dark = Color3.fromRGB(60, 40, 30)
-		local shag = color:Lerp(BLACK, 0.18)
-		local pale = color:Lerp(WHITE, 0.3)
-		local claw = Color3.fromRGB(215, 200, 165)
-		local clawTip = Color3.fromRGB(110, 90, 70)
-		piece(rig, "Body", "Oval", Vector3.new(1.3, 1.4, 1.1), CFrame.identity, color, fabric)
-		piece(rig, "Belly", "Oval", Vector3.new(0.9, 1.0, 0.3), CFrame.new(0, -0.05, -0.45), pale, fabric)
-		-- Mechones colgando por el cuerpo, alternando tonos: el pelo desgreñado del perezoso.
-		for i, spot in
-			{
-				{ Vector3.new(0.62, 0.1, -0.05), -0.3 },
-				{ Vector3.new(0.58, -0.3, 0.15), -0.2 },
-				{ Vector3.new(-0.62, 0.05, 0.05), 0.3 },
-				{ Vector3.new(-0.56, -0.35, -0.1), 0.2 },
-				{ Vector3.new(0.35, -0.6, 0.25), -0.1 },
-				{ Vector3.new(-0.3, -0.62, 0.3), 0.1 },
-				{ Vector3.new(0.3, 0.4, 0.42), 0 },
-				{ Vector3.new(-0.32, 0.3, 0.45), 0 },
-				{ Vector3.new(0.4, -0.25, -0.38), -0.2 },
-				{ Vector3.new(-0.4, -0.3, -0.36), 0.2 },
-			}
-		do
-			piece(
-				rig,
-				"Shag",
-				"Oval",
-				Vector3.new(0.26, 0.5, 0.2),
-				CFrame.new(spot[1]) * CFrame.Angles(0, 0, spot[2]),
-				if i % 2 == 0 then shag else color:Lerp(WHITE, 0.08),
-				fabric
-			)
-		end
-		-- Manchas de alga verdosa en el pelo, como los perezosos de verdad.
-		local algae = color:Lerp(Color3.fromRGB(110, 150, 80), 0.55)
-		for i, direction in
-			{
-				Vector3.new(0.8, 0.4, 0.3),
-				Vector3.new(-0.7, 0.1, 0.5),
-				Vector3.new(0.5, -0.5, 0.6),
-				Vector3.new(-0.6, 0.55, -0.1),
-			}
-		do
-			local position, normal = surfacePoint(CFrame.identity, Vector3.new(0.65, 0.7, 0.55), direction)
-			blotch(
-				rig,
-				"Algae",
-				position,
-				normal,
-				Vector2.new(0.42, 0.3),
-				i * 1.1,
-				algae,
-				algae:Lerp(Color3.fromRGB(90, 140, 60), 0.4)
-			)
-		end
-
-		-- Cabeza: gorro de pelo más oscuro, cara clara hundida en la cabeza (no es un plato pegado),
-		-- antifaz que va de los ojos hacia atrás, nariz con orificios y sonrisa.
-		local head = Vector3.new(0, 0.85, -0.25)
-		piece(rig, "Head", "Ball", Vector3.one * 0.95, CFrame.new(head), color, fabric)
-		piece(rig, "HairCap", "Ball", Vector3.one * 0.9, CFrame.new(head + Vector3.new(0, 0.1, 0.06)), shag, fabric)
-		local faceFrame = CFrame.new(head + Vector3.new(0, -0.03, -0.29))
-		local faceSemi = Vector3.new(0.37, 0.31, 0.25)
-		piece(rig, "Face", "Oval", faceSemi * 2, faceFrame, CREAM, fabric)
-		for _, side in { -1, 1 } do
-			local position, normal = surfacePoint(faceFrame, faceSemi, Vector3.new(side * 0.55, 0.25, -0.8))
-			local maskFrame = CFrame.lookAt(position, position + normal) * CFrame.Angles(0, 0, side * 0.3)
-			piece(
-				rig,
-				"Mask",
-				"Oval",
-				Vector3.new(0.4, 0.15, 0.08),
-				maskFrame * CFrame.new(side * 0.06, 0, 0),
-				dark,
-				fabric
-			)
-			piece(rig, "Eye", "Ball", Vector3.one * 0.11, maskFrame * CFrame.new(0, 0.01, -0.04), BLACK)
-			piece(
-				rig,
-				"Glint",
-				"Ball",
-				Vector3.one * 0.035,
-				maskFrame * CFrame.new(side * 0.015, 0.035, -0.09),
-				WHITE,
-				Enum.Material.Neon
-			)
-			piece(rig, "Nostril", "Ball", Vector3.one * 0.04, CFrame.new(side * 0.045, 0.765, -0.868), BLACK)
-			-- Media sonrisa: dos tramos que suben hacia las comisuras.
-			piece(
-				rig,
-				"Smile",
-				"Oval",
-				Vector3.new(0.15, 0.035, 0.04),
-				CFrame.new(side * 0.065, 0.655, -0.765) * CFrame.Angles(0, -side * 0.35, side * 0.4),
-				dark
-			)
-		end
-		piece(rig, "Nose", "Oval", Vector3.new(0.2, 0.13, 0.1), CFrame.new(0, 0.77, -0.82), dark)
-		-- Pelo revuelto en la coronilla.
-		for _, position in
-			{
-				Vector3.new(0, 1.33, -0.2),
-				Vector3.new(0.2, 1.28, -0.1),
-				Vector3.new(-0.2, 1.28, -0.1),
-				Vector3.new(0.1, 1.3, 0.08),
-				Vector3.new(-0.12, 1.31, 0.06),
-			}
-		do
-			piece(
-				rig,
-				"Tuft",
-				"Oval",
-				Vector3.new(0.24, 0.26, 0.24),
-				CFrame.new(position) * CFrame.Angles(0.3, 0, position.X * 2),
-				shag,
-				fabric
-			)
-		end
-
-		-- Brazos largos con un mechón en el antebrazo y mano de tres garras curvas (de dos tramos:
-		-- bajan y se doblan hacia delante). Se balancean al andar.
-		for _, side in { -1, 1 } do
-			local shoulder = Vector3.new(side * 0.6, 0.42, -0.25)
-			local elbow = Vector3.new(side * 0.82, -0.12, -0.38)
-			local wrist = Vector3.new(side * 0.8, -0.55, -0.45)
-			local arm: { BasePart } = {
-				piece(rig, "Shoulder", "Ball", Vector3.one * 0.42, CFrame.new(shoulder), color, fabric),
-				capsule(rig, "UpperArm", shoulder, elbow, 0.32, color),
-				capsule(rig, "Forearm", elbow, wrist, 0.3, color),
-				piece(
-					rig,
-					"ArmShag",
-					"Oval",
-					Vector3.new(0.18, 0.42, 0.18),
-					CFrame.new(elbow + Vector3.new(side * 0.1, -0.15, 0.1)) * CFrame.Angles(0.3, 0, side * 0.2),
-					shag,
-					fabric
-				),
-				piece(
-					rig,
-					"Hand",
-					"Oval",
-					Vector3.new(0.3, 0.22, 0.3),
-					CFrame.new(wrist + Vector3.new(0, -0.1, -0.02)),
-					dark,
-					fabric
-				),
-			}
-			for k = -1, 1 do
-				local base = wrist + Vector3.new(k * 0.085, -0.17, -0.06)
-				local bend = base + Vector3.new(0, -0.22, -0.04)
-				local tip = bend + Vector3.new(0, -0.03, -0.14)
-				table.insert(arm, capsule(rig, "Claw", base, bend, 0.055, claw, Enum.Material.SmoothPlastic))
-				table.insert(arm, capsule(rig, "ClawTip", bend, tip, 0.045, clawTip, Enum.Material.SmoothPlastic))
-			end
-			local armPhase = if side < 0 then 0 else math.pi
-			for _, part in arm do
-				joint(rig, part, CFrame.new(shoulder), Vector3.xAxis, 0.5, 4, armPhase, true)
-			end
-
-			local hip = Vector3.new(side * 0.35, -0.45, 0)
-			local leg: { BasePart } = {
-				piece(
-					rig,
-					"Leg",
-					"Oval",
-					Vector3.new(0.38, 0.55, 0.4),
-					CFrame.new(side * 0.35, -0.72, 0),
-					color,
-					fabric
-				),
-				piece(
-					rig,
-					"Foot",
-					"Oval",
-					Vector3.new(0.3, 0.14, 0.38),
-					CFrame.new(side * 0.36, -0.98, -0.08),
-					dark,
-					fabric
-				),
-			}
-			for k = -1, 1 do
-				local base = Vector3.new(side * 0.36 + k * 0.08, -0.99, -0.24)
-				table.insert(
-					leg,
-					capsule(
-						rig,
-						"Claw",
-						base,
-						base + Vector3.new(0, -0.02, -0.16),
-						0.05,
-						claw,
-						Enum.Material.SmoothPlastic
-					)
-				)
-			end
-			for _, part in leg do
-				joint(rig, part, CFrame.new(hip), Vector3.xAxis, 0.4, 4, if side < 0 then math.pi else 0, true)
-			end
-		end
-
-		-- Hatillo de tres troncos con vetas y anillos en las puntas, atado con cuerda y tirantes que
-		-- pasan por los hombros, y un brote de hojas.
-		local wood = Color3.fromRGB(120, 85, 50)
-		local cut = Color3.fromRGB(205, 160, 105)
-		for _, position in { Vector3.new(0, 0.05, 0.7), Vector3.new(0, 0.42, 0.7), Vector3.new(0, 0.24, 1.0) } do
-			piece(rig, "Log", "Cylinder", Vector3.new(1.5, 0.36, 0.36), CFrame.new(position), wood, Enum.Material.Wood)
-			for _, side in { -1, 1 } do
-				local face = position + Vector3.new(side * 0.75, 0, 0)
-				piece(rig, "LogEnd", "Cylinder", Vector3.new(0.02, 0.3, 0.3), CFrame.new(face), cut, Enum.Material.Wood)
-				piece(
-					rig,
-					"LogRing",
-					"Cylinder",
-					Vector3.new(0.025, 0.16, 0.16),
-					CFrame.new(face),
-					cut:Lerp(wood, 0.5),
-					Enum.Material.Wood
-				)
-			end
-		end
-		for _, x in { -0.42, 0.42 } do
-			piece(rig, "Rope", "Oval", Vector3.new(0.1, 0.9, 0.78), CFrame.new(x, 0.24, 0.84), CREAM, fabric)
-		end
-		for _, side in { -1, 1 } do
-			local from = Vector3.new(side * 0.42, 0.55, 0.62)
-			local to = Vector3.new(side * 0.4, 0.1, -0.52)
-			local over = Vector3.new(side * 0.42, 0.72, -0.05)
-			piece(
-				rig,
-				"Strap",
-				"Oval",
-				Vector3.new(0.1, 0.06, (over - from).Magnitude + 0.1),
-				CFrame.lookAt((from + over) / 2, over),
-				CREAM,
-				fabric
-			)
-			piece(
-				rig,
-				"Strap",
-				"Oval",
-				Vector3.new(0.1, 0.06, (to - over).Magnitude + 0.1),
-				CFrame.lookAt((over + to) / 2, to),
-				CREAM,
-				fabric
-			)
-		end
-		local leafColor = Color3.fromRGB(70, 150, 60)
-		for _, side in { -1, 1 } do
-			piece(
-				rig,
-				"Leaf",
-				"Oval",
-				Vector3.new(0.16, 0.03, 0.34),
-				CFrame.new(0.5, 0.72, 0.75)
-					* CFrame.Angles(0, side * 0.6, 0)
-					* CFrame.new(0, 0, -0.12)
-					* CFrame.Angles(0.5, 0, 0),
-				leafColor
-			)
-		end
-		-- Ladea la cabeza muy despacio, como buen perezoso.
-		swingRegion(rig, Vector3.new(0, 0.6, -0.1), Vector3.zAxis, 0.15, 0.6, 0, false, function(position)
-			return position.Y > 0.6 and position.Z < 0.1 and math.abs(position.X) < 0.5
-		end)
-		return "Walk"
-	end,
-
 	-- Jaguarundí: felino esbelto, liso y oscuro.
 	Jaguarundi = function(rig, color)
 		felid(rig, color, { eyeColor = Color3.fromRGB(200, 170, 40), earSize = 0.24, roundEars = true, slim = true })
@@ -2389,478 +1464,6 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	-- Ocelote: felino dorado con manchas negras.
 	Ocelote = function(rig, color)
 		felid(rig, color, { spots = BLACK, eyeColor = Color3.fromRGB(120, 200, 60), earSize = 0.38 })
-		return "Walk"
-	end,
-
-	-- Mono X-7: chimpancé del laboratorio, de pelo azul eléctrico con calvas cosidas, agachado sobre
-	-- los nudillos. Casco de astronauta oxidado con visor de espejo, antena de espiral que brilla y
-	-- tubos anillados que van de las sienes a la mochila del suero.
-	MonoX7 = function(rig, color)
-		local fur = Color3.fromRGB(35, 115, 215)
-		local furLight = fur:Lerp(Color3.fromRGB(150, 220, 255), 0.45)
-		local furDark = fur:Lerp(BLACK, 0.3)
-		local hands = Color3.fromRGB(85, 72, 78)
-		local scar = Color3.fromRGB(200, 125, 125)
-		local stitch = Color3.fromRGB(70, 30, 40)
-		local shell = Color3.fromRGB(200, 185, 152)
-		local rust = Color3.fromRGB(175, 90, 40)
-		local copper = Color3.fromRGB(185, 115, 65)
-		local metal = Color3.fromRGB(95, 100, 112)
-		local hose = Color3.fromRGB(60, 64, 74)
-
-		-- Tronco inclinado hacia delante: "back" es el marco del tronco (su +Z es la espalda).
-		local lean = -0.55
-		local back = CFrame.new(0, 0.05, 0) * CFrame.Angles(lean, 0, 0)
-		piece(rig, "Body", "Oval", Vector3.new(1.15, 1.25, 1.0), back, fur, Enum.Material.Fabric)
-		piece(rig, "Hips", "Oval", Vector3.new(1.0, 0.85, 0.9), CFrame.new(0, -0.3, 0.4), fur, Enum.Material.Fabric)
-		piece(rig, "Belly", "Oval", Vector3.new(0.75, 0.85, 0.3), back * CFrame.new(0, -0.1, -0.38), furLight)
-
-		-- Casco de caricatura; la cara no se ve: la tapa un visor de espejo. Todo lo del casco se mide
-		-- desde "head" con onHead y se multiplica por "hk": cambiando hk crece o encoge entero.
-		local hk = 0.78
-		local head = Vector3.new(0, 0.86, -0.5)
-		local function onHead(offset: Vector3): Vector3
-			return head + offset * hk
-		end
-		piece(rig, "Helmet", "Ball", Vector3.one * 1.36 * hk, CFrame.new(head), shell)
-		local facing = CFrame.Angles(0, math.pi / 2, 0)
-		piece(
-			rig,
-			"VisorRim",
-			"Cylinder",
-			Vector3.new(0.14, 1.1, 1.1) * hk,
-			CFrame.new(onHead(Vector3.new(0, 0, -0.5))) * facing,
-			copper
-		)
-		-- Visor: cúpula que sobresale del aro, oscura y con reflejo de espejo, y un brillo blanco en
-		-- diagonal arriba a un lado, como en los cascos de dibujos animados.
-		local visorCenter = onHead(Vector3.new(0, 0, -0.56))
-		local visorSize = Vector3.new(0.98, 0.94, 0.44) * hk
-		local visor = piece(rig, "Visor", "Oval", visorSize, CFrame.new(visorCenter), Color3.fromRGB(25, 35, 55))
-		visor.Reflectance = 0.6
-		for _, shine in { { -0.22, 0.17, Vector3.new(0.09, 0.3, 0.04) }, { -0.05, 0.3, Vector3.new(0.07, 0.07, 0.04) } } do
-			-- Punto de la superficie de la cúpula y su normal (elipsoide de semiejes visorSize / 2).
-			local axes = visorSize / 2
-			local x, y = shine[1] * hk, shine[2] * hk
-			local z = -axes.Z * math.sqrt(1 - (x / axes.X) ^ 2 - (y / axes.Y) ^ 2)
-			local normal = Vector3.new(x / axes.X ^ 2, y / axes.Y ^ 2, z / axes.Z ^ 2).Unit
-			local position = visorCenter + Vector3.new(x, y, z) + normal * 0.01
-			local glint = piece(
-				rig,
-				"VisorShine",
-				"Oval",
-				shine[3] * Vector3.new(hk, hk, 1),
-				CFrame.lookAt(position, position + normal) * CFrame.Angles(0, 0, -0.6),
-				WHITE
-			)
-			glint.Transparency = 0.15
-		end
-		-- Remaches del aro de la abertura.
-		local rivets = 8
-		for i = 1, rivets do
-			local angle = (i - 0.5) * 2 * math.pi / rivets
-			local position = onHead(Vector3.new(math.cos(angle) * 0.51, math.sin(angle) * 0.51, -0.575))
-			piece(rig, "Rivet", "Ball", Vector3.one * 0.07 * hk, CFrame.new(position), metal)
-		end
-
-		-- Casco: cresta de delante atrás, cuello de cobre, discos en las sienes y manchas de óxido.
-		piece(rig, "Crest", "Cylinder", Vector3.new(0.14, 1.42, 1.42) * hk, CFrame.new(head), shell:Lerp(metal, 0.35))
-		piece(
-			rig,
-			"Collar",
-			"Cylinder",
-			Vector3.new(0.18, 1.0, 1.0) * hk,
-			CFrame.new(onHead(Vector3.new(0, -0.6, 0.05))) * UPRIGHT,
-			copper
-		)
-		for _, side in { -1, 1 } do
-			local temple = onHead(Vector3.new(side * 0.66, -0.05, 0.08))
-			piece(rig, "EarDisc", "Cylinder", Vector3.new(0.14, 0.44, 0.44) * hk, CFrame.new(temple), metal)
-			piece(
-				rig,
-				"EarRing",
-				"Cylinder",
-				Vector3.new(0.16, 0.3, 0.3) * hk,
-				CFrame.new(temple + Vector3.new(side * 0.02, 0, 0) * hk),
-				copper
-			)
-			piece(
-				rig,
-				"EarKnob",
-				"Ball",
-				Vector3.one * 0.14 * hk,
-				CFrame.new(temple + Vector3.new(side * 0.08, 0, 0) * hk),
-				metal
-			)
-		end
-		-- Óxido: cada mancha son dos óvalos girados y desplazados, de tamaños distintos, para que no
-		-- parezcan lunares.
-		for i, spot in
-			{
-				{ Vector3.new(0.6, 0.5, -0.3), 1.2 },
-				{ Vector3.new(-0.6, 0.3, 0.45), 0.8 },
-				{ Vector3.new(0.55, -0.35, 0.5), 1.0 },
-				{ Vector3.new(0, 0.35, 0.95), 1.35 },
-				{ Vector3.new(-0.55, -0.45, -0.25), 0.7 },
-			}
-		do
-			local normal = spot[1].Unit
-			local center = onHead(normal * 0.675)
-			local frame = CFrame.lookAt(center, center + normal) * CFrame.Angles(0, 0, i * 1.3)
-			local k = spot[2] * hk
-			piece(rig, "Rust", "Oval", Vector3.new(0.36 * k, 0.2 * k, 0.05), frame, rust)
-			piece(
-				rig,
-				"Rust",
-				"Oval",
-				Vector3.new(0.2 * k, 0.15 * k, 0.05),
-				frame * CFrame.new(0.14 * k, -0.06 * k, -0.006),
-				rust:Lerp(shell, 0.4)
-			)
-		end
-		-- Placa con su número en la frente, a un lado de la cresta.
-		local badgeNormal = Vector3.new(0.4, 0.72, -0.56).Unit
-		local badge = piece(
-			rig,
-			"Badge",
-			"Block",
-			Vector3.new(0.34 * hk, 0.15 * hk, 0.04),
-			CFrame.lookAt(onHead(badgeNormal * 0.69), onHead(badgeNormal * 2)),
-			metal
-		)
-		local label = Instance.new("SurfaceGui")
-		label.Face = Enum.NormalId.Front
-		label.CanvasSize = Vector2.new(68, 30)
-		label.LightInfluence = 0
-		label.Parent = badge
-		local text = Instance.new("TextLabel")
-		text.Size = UDim2.fromScale(1, 1)
-		text.BackgroundTransparency = 1
-		text.Text = "X-7"
-		text.TextScaled = true
-		text.Font = Enum.Font.BuilderSansBold
-		text.TextColor3 = color
-		text.Parent = label
-
-		-- El casco mira a un lado y a otro, con todo lo que lleva pegado (también los remaches de
-		-- abajo; el cuello de cobre no, que es redondo y girarlo no se nota). La antena se registra
-		-- después: se balancea por su cuenta colgada del casco, así que lo sigue en los clips.
-		local helmet = swingRegion(rig, head, Vector3.yAxis, 0.3, 0.7, 0, false, function(position)
-			return (position - head).Magnitude < 0.8 * hk and position.Y > head.Y - 0.55 * hk
-		end, "Head")
-
-		-- Antena: base, espiral de anillos que se estrecha y punta que brilla; se balancea un poco.
-		local top = onHead(Vector3.new(0, 0.66, 0))
-		local antenna: { BasePart } = {
-			piece(
-				rig,
-				"AntennaBase",
-				"Cylinder",
-				Vector3.new(0.14, 0.34, 0.34) * hk,
-				CFrame.new(top) * UPRIGHT,
-				copper
-			),
-		}
-		local rings = 5
-		for i = 1, rings do
-			local width = (0.3 - (i - 1) * 0.05) * hk
-			local ringColor = if i % 2 == 1 then shell:Lerp(metal, 0.3) else metal
-			table.insert(
-				antenna,
-				piece(
-					rig,
-					"AntennaRing",
-					"Cylinder",
-					Vector3.new(0.1 * hk, width, width),
-					CFrame.new(top + Vector3.new(0, 0.04 + i * 0.08, 0) * hk) * UPRIGHT,
-					ringColor
-				)
-			)
-		end
-		local tipPosition = top + Vector3.new(0, 0.58, 0) * hk
-		local tip =
-			piece(rig, "AntennaTip", "Ball", Vector3.one * 0.2 * hk, CFrame.new(tipPosition), color, Enum.Material.Neon)
-		table.insert(antenna, tip)
-		table.insert(
-			antenna,
-			piece(
-				rig,
-				"AntennaGlow",
-				"Ball",
-				Vector3.one * 0.32 * hk,
-				CFrame.new(tipPosition),
-				color,
-				Enum.Material.Neon
-			)
-		)
-		antenna[#antenna].Transparency = 0.6
-		for _, part in antenna do
-			joint(rig, part, CFrame.new(top), Vector3.zAxis, 0.08, 3, 0, false, nil, helmet[1])
-		end
-		local light = Instance.new("PointLight")
-		light.Color = color
-		light.Range = 5
-		light.Brightness = 1
-		light.Parent = tip
-
-		-- Mochila con el vial de suero y tubos anillados desde los discos de las sienes.
-		piece(rig, "Pack", "Block", Vector3.new(0.62, 0.62, 0.3), back * CFrame.new(0, 0.1, 0.6), metal)
-		local vialFrame = back * CFrame.new(0, 0.1, 0.8) * UPRIGHT
-		local vial = piece(
-			rig,
-			"Vial",
-			"Cylinder",
-			Vector3.new(0.5, 0.28, 0.28),
-			vialFrame,
-			Color3.fromRGB(200, 240, 255),
-			Enum.Material.Glass
-		)
-		vial.Transparency = 0.5
-		local serum = piece(rig, "Serum", "Cylinder", Vector3.new(0.42, 0.2, 0.2), vialFrame, color, Enum.Material.Neon)
-		for _, y in { -0.27, 0.27 } do
-			piece(rig, "VialCap", "Cylinder", Vector3.new(0.08, 0.32, 0.32), vialFrame * CFrame.new(y, 0, 0), copper)
-		end
-		local glow = Instance.new("PointLight")
-		glow.Color = color
-		glow.Range = 6
-		glow.Brightness = 1
-		glow.Parent = serum
-		-- Cada tubo es una curva de bolas alternas, gruesas y finas, que parece un tubo anillado.
-		local segments = 14
-		for _, side in { -1, 1 } do
-			local from = onHead(Vector3.new(side * 0.62, -0.2, 0.22))
-			local to = (back * CFrame.new(side * 0.36, 0.2, 0.6)).Position
-			local control = Vector3.new(side * 1.05, 0.75, 0.55)
-			for i = 0, segments do
-				local t = i / segments
-				local position = from:Lerp(control, t):Lerp(control:Lerp(to, t), t)
-				local thick = i % 2 == 0
-				piece(
-					rig,
-					"Hose",
-					"Ball",
-					Vector3.one * (if thick then 0.17 else 0.14),
-					CFrame.new(position),
-					if thick then metal else hose
-				)
-			end
-		end
-		-- Chispas de energía que saltan junto a la mochila.
-		for _, side in { -1, 1 } do
-			local spark = back * CFrame.new(side * 0.45, 0.45, 0.55)
-			for k = 0, 2 do
-				local bolt = piece(
-					rig,
-					"Spark",
-					"Block",
-					Vector3.new(0.04, 0.18, 0.04),
-					spark
-						* CFrame.new(side * k * 0.06, k * 0.14, 0)
-						* CFrame.Angles(0, 0, side * (if k % 2 == 0 then 0.6 else -0.6)),
-					color,
-					Enum.Material.Neon
-				)
-				bolt.Transparency = 0.15
-			end
-		end
-
-		-- Aura de energía: chispas azules que salen del cuerpo (la nube eléctrica de la foto). Salen
-		-- de la superficie hacia fuera y deprisa: desde dentro del óvalo, lentas, se quedaban
-		-- escondidas bajo el pelo y no se veían. Con LightEmission 1 de día salían casi blancas: con
-		-- 0,4 y algo de Brightness conservan el azul. Un segundo foco en la mochila, como la foto.
-		local body = rig.model:FindFirstChild("Body")
-		local pack = rig.model:FindFirstChild("Pack")
-		if body and pack then
-			local aura = Instance.new("ParticleEmitter")
-			aura.Color = ColorSequence.new(color:Lerp(WHITE, 0.35), color)
-			aura.LightEmission = 0.4
-			aura.LightInfluence = 0
-			aura.Brightness = 2
-			aura.Rate = 14
-			aura.Lifetime = NumberRange.new(0.6, 1.1)
-			aura.Speed = NumberRange.new(1.5, 2.5)
-			aura.Drag = 2
-			aura.Shape = Enum.ParticleEmitterShape.Sphere
-			aura.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
-			aura.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
-			aura.Rotation = NumberRange.new(0, 360)
-			aura.RotSpeed = NumberRange.new(-180, 180)
-			aura.Size = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.1 * rig.scale),
-				NumberSequenceKeypoint.new(0.2, 0.5 * rig.scale),
-				NumberSequenceKeypoint.new(1, 0),
-			})
-			aura.Transparency = NumberSequence.new(0, 1)
-			aura.ZOffset = 1
-			aura.Parent = body
-			local packAura = aura:Clone()
-			packAura.Rate = 8
-			packAura.Parent = pack
-		end
-
-		-- Calvas cosidas en el pelo (de la piel enferma de la foto, en versión de dibujo).
-		local function scarPatch(position: Vector3, normal: Vector3, size: Vector3, stitches: number): { BasePart }
-			local frame = CFrame.lookAt(position, position + normal.Unit)
-			local parts = { piece(rig, "Scar", "Oval", size, frame, scar) }
-			for k = 1, stitches do
-				local x = (k - (stitches + 1) / 2) * size.X / (stitches + 1)
-				table.insert(
-					parts,
-					piece(
-						rig,
-						"Stitch",
-						"Block",
-						Vector3.new(0.025, size.Y * 1.1, 0.03),
-						frame * CFrame.new(x, 0, -size.Z / 2),
-						stitch
-					)
-				)
-			end
-			table.insert(
-				parts,
-				piece(
-					rig,
-					"Stitch",
-					"Block",
-					Vector3.new(size.X * 0.8, 0.025, 0.03),
-					frame * CFrame.new(0, 0, -size.Z / 2),
-					stitch
-				)
-			)
-			return parts
-		end
-		scarPatch(
-			(back * CFrame.new(0.3, 0.25, -0.42)).Position,
-			back.LookVector + Vector3.new(0.4, 0, 0),
-			Vector3.new(0.34, 0.26, 0.05),
-			3
-		)
-		scarPatch(
-			(back * CFrame.new(-0.52, -0.15, 0.1)).Position,
-			Vector3.new(-1, 0, 0.2),
-			Vector3.new(0.36, 0.28, 0.05),
-			3
-		)
-		scarPatch(Vector3.new(0.32, -0.05, 0.75), Vector3.new(0.5, 0.2, 1), Vector3.new(0.3, 0.24, 0.05), 3)
-
-		-- Brazos largos que llegan al suelo delante (anda sobre los nudillos) y patas flexionadas.
-		for _, side in { -1, 1 } do
-			local shoulder = Vector3.new(side * 0.58, 0.32, -0.35)
-			local elbow = Vector3.new(side * 0.76, -0.35, -0.6)
-			local wrist = Vector3.new(side * 0.72, -0.82, -0.78)
-			local arm: { BasePart } = {
-				piece(rig, "Shoulder", "Ball", Vector3.one * 0.5, CFrame.new(shoulder), fur, Enum.Material.Fabric),
-				capsule(rig, "UpperArm", shoulder, elbow, 0.36, fur),
-				piece(rig, "Elbow", "Ball", Vector3.one * 0.36, CFrame.new(elbow), fur, Enum.Material.Fabric),
-				piece(
-					rig,
-					"ElbowTuft",
-					"Oval",
-					Vector3.new(0.2, 0.32, 0.18),
-					CFrame.new(elbow + Vector3.new(side * 0.08, 0.02, 0.17)) * CFrame.Angles(0.6, 0, 0),
-					furDark
-				),
-				capsule(rig, "Forearm", elbow, wrist, 0.38, fur),
-				piece(rig, "Hand", "Oval", Vector3.new(0.36, 0.22, 0.42), CFrame.new(side * 0.72, -0.9, -0.86), hands),
-				piece(
-					rig,
-					"Thumb",
-					"Oval",
-					Vector3.new(0.1, 0.1, 0.18),
-					CFrame.new(side * 0.56, -0.93, -0.92) * CFrame.Angles(0, side * 0.5, 0),
-					hands
-				),
-			}
-			for k = -1, 1 do
-				table.insert(
-					arm,
-					piece(
-						rig,
-						"Knuckle",
-						"Ball",
-						Vector3.one * 0.13,
-						CFrame.new(side * 0.74 + k * 0.1, -0.93, -1.05),
-						hands
-					)
-				)
-			end
-			if side == 1 then
-				local onArm = elbow:Lerp(wrist, 0.45) + Vector3.new(0.17, 0, -0.03)
-				for _, part in scarPatch(onArm, Vector3.new(1, 0, -0.2), Vector3.new(0.22, 0.3, 0.05), 2) do
-					table.insert(arm, part)
-				end
-			end
-			for _, part in arm do
-				joint(rig, part, CFrame.new(shoulder), Vector3.xAxis, 0.35, 8, if side < 0 then 0 else math.pi, true).bone = if side
-						< 0
-					then "ArmL"
-					else "ArmR"
-			end
-
-			local hip = Vector3.new(side * 0.4, -0.35, 0.45)
-			local knee = Vector3.new(side * 0.64, -0.3, 0.02)
-			local ankle = Vector3.new(side * 0.56, -0.82, 0.32)
-			local leg: { BasePart } = {
-				capsule(rig, "Thigh", hip, knee, 0.44, fur),
-				piece(rig, "Knee", "Ball", Vector3.one * 0.38, CFrame.new(knee), fur, Enum.Material.Fabric),
-				capsule(rig, "Shin", knee, ankle, 0.34, fur),
-				piece(rig, "Foot", "Oval", Vector3.new(0.3, 0.14, 0.52), CFrame.new(side * 0.56, -0.93, 0.18), hands),
-			}
-			for k = 0, 2 do
-				table.insert(
-					leg,
-					piece(
-						rig,
-						"Toe",
-						"Ball",
-						Vector3.one * 0.12,
-						CFrame.new(side * (0.62 - k * 0.09), -0.94, -0.1),
-						hands
-					)
-				)
-			end
-			table.insert(
-				leg,
-				piece(
-					rig,
-					"BigToe",
-					"Oval",
-					Vector3.new(0.12, 0.11, 0.2),
-					CFrame.new(side * 0.4, -0.94, 0.0) * CFrame.Angles(0, -side * 0.5, 0),
-					hands
-				)
-			)
-			if side == -1 then
-				local onThigh = hip:Lerp(knee, 0.5) + Vector3.new(-0.2, 0.08, 0)
-				for _, part in scarPatch(onThigh, Vector3.new(-1, 0.4, 0), Vector3.new(0.3, 0.24, 0.05), 3) do
-					table.insert(leg, part)
-				end
-			end
-			for _, part in leg do
-				joint(rig, part, CFrame.new(hip), Vector3.xAxis, 0.35, 8, if side < 0 then math.pi else 0, true).bone = if side
-						< 0
-					then "LegL"
-					else "LegR"
-			end
-			-- Mechones de pelo erizado en hombros y caderas (le dan el aire de bicho de laboratorio).
-			piece(
-				rig,
-				"Tuft",
-				"Oval",
-				Vector3.new(0.22, 0.34, 0.2),
-				CFrame.new(side * 0.55, 0.6, -0.15) * CFrame.Angles(0.3, 0, -side * 0.5),
-				furDark
-			)
-			piece(
-				rig,
-				"Tuft",
-				"Oval",
-				Vector3.new(0.22, 0.3, 0.2),
-				CFrame.new(side * 0.42, 0.05, 0.75) * CFrame.Angles(0.6, 0, -side * 0.4),
-				furDark
-			)
-		end
-		rig.family = "X7"
 		return "Walk"
 	end,
 
@@ -3304,6 +1907,821 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			v.swing(front, Vector3.new(side * 3.6, 3.8, -3.6), Vector3.xAxis, 0.25, 12, -math.pi / 2, true, 0.25)
 		end
 		return "Hop"
+	end,
+
+	-- Tortuga verde voxel (docs/img/Tortuga verde.jfif): caparazón ancho y bajo en capas que se
+	-- estrechan hacia arriba, con placas verde oliva, amarillas y marrones y el borde marrón oscuro;
+	-- cabeza que asoma con escamas amarillas, aletas de delante largas en escalones y las de atrás
+	-- cortas. Rema con las aletas al andar.
+	Tortuga = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 4, 0))
+		local box = v.box
+		local skin = Color3.fromRGB(55, 110, 40)
+		local skinDark = skin:Lerp(BLACK, 0.25)
+		local scale = Color3.fromRGB(170, 155, 45)
+		local olive = color:Lerp(Color3.fromRGB(110, 115, 25), 0.6)
+		local yellow = Color3.fromRGB(150, 140, 40)
+		local brown = Color3.fromRGB(110, 72, 35)
+		local rim = Color3.fromRGB(85, 55, 30)
+		local plastron = Color3.fromRGB(170, 155, 70)
+
+		-- Caparazón: el peto abajo y cuatro capas, cada una en tres cajas (ancha, media y larga) para
+		-- que la planta sea un óvalo en escalones. Cada capa de un tono: de lado se leen las bandas.
+		box(nil, "Plastron", Vector3.new(0, 1.6, 0.5), Vector3.new(12, 1.2, 18), plastron)
+		for _, layer in
+			{
+				{ 2.9, 1.4, Vector3.new(16, 0, 18), Vector3.new(13, 0, 21), Vector3.new(9, 0, 23), rim },
+				{ 4.2, 1.2, Vector3.new(15, 0, 17), Vector3.new(12, 0, 20), Vector3.new(8, 0, 21.6), olive },
+				{ 5.4, 1.2, Vector3.new(13, 0, 15), Vector3.new(10, 0, 18), Vector3.new(6, 0, 19), brown },
+				{ 6.5, 1, Vector3.new(10, 0, 12), Vector3.new(7, 0, 15), Vector3.new(4, 0, 16), olive },
+			}
+		do
+			for k = 3, 5 do
+				box(nil, "Shell", Vector3.new(0, layer[1], 0.5), layer[k] + Vector3.new(0, layer[2], 0), layer[6])
+			end
+		end
+		box(nil, "Shell", Vector3.new(0, 7.4, 0.5), Vector3.new(6, 0.8, 9), olive:Lerp(yellow, 0.3))
+		-- Placas de colores pegadas encima de cada capa: { x, y, z, ancho, fondo, color }.
+		for _, plate in
+			{
+				{ 0, 7.85, -2.5, 3.5, 2.4, yellow },
+				{ 0, 7.85, 1, 4, 2.2, brown },
+				{ 0, 7.85, 3.6, 3, 1.6, yellow },
+				{ 4, 7.05, -3, 1.8, 3, brown },
+				{ 4.2, 7.05, 2.4, 1.6, 3, yellow },
+				{ 2.4, 7.05, -6.4, 2.6, 1.2, yellow },
+				{ 0, 7.05, 7, 3, 1.2, brown },
+				{ 5.6, 6.05, -1, 1.2, 3, yellow },
+				{ 5.5, 6.05, 4, 1.2, 2.4, brown },
+				{ 3.4, 6.05, -8.2, 2.4, 1, brown },
+				{ 2.6, 6.05, 8.6, 2, 1, yellow },
+				{ 6.9, 4.85, 0, 1, 3, brown },
+				{ 6.8, 4.85, -5, 1, 2, yellow },
+				{ 6.5, 4.85, 5.2, 1, 2.4, yellow },
+			}
+		do
+			for _, side in if plate[1] == 0 then { 1 } else { -1, 1 } do
+				box(
+					nil,
+					"Plate",
+					Vector3.new(plate[1] * side, plate[2], plate[3]),
+					Vector3.new(plate[4], 0.2, plate[5]),
+					plate[6]
+				)
+			end
+		end
+
+		-- Cabeza que asoma con el cuello, el hocico romo en escalón, la boca en raya y escamas amarillas.
+		local head: { BasePart } = {}
+		box(head, "Neck", Vector3.new(0, 3.4, -11), Vector3.new(4, 2.8, 3), skin)
+		box(head, "Head", Vector3.new(0, 4, -14), Vector3.new(5, 3.8, 4.6), skin)
+		box(head, "Snout", Vector3.new(0, 3.6, -16.8), Vector3.new(4, 2.8, 1.2), skin)
+		box(head, "Mouth", Vector3.new(0, 3, -16.3), Vector3.new(4.1, 0.25, 2.3), skinDark:Lerp(BLACK, 0.4))
+		for _, side in { -1, 1 } do
+			box(head, "Eye", Vector3.new(side * 2.55, 4.6, -15), Vector3.new(0.2, 1, 1), Color3.fromRGB(45, 20, 20))
+			box(head, "Glint", Vector3.new(side * 2.62, 4.85, -15.25), Vector3.new(0.1, 0.35, 0.35), WHITE)
+			box(head, "Nostril", Vector3.new(side * 0.8, 4.4, -17.45), Vector3.new(0.4, 0.4, 0.1), skinDark)
+			for _, spot in { { 3.6, -13 }, { 5, -12.6 }, { 3.4, -14.3 }, { 5.3, -13.9 } } do
+				box(head, "Scale", Vector3.new(side * 2.55, spot[1], spot[2]), Vector3.new(0.2, 0.8, 0.8), scale)
+			end
+		end
+		for _, spot in { { -1, -13 }, { 1, -13.4 }, { 0, -14.6 }, { -1.3, -15.4 }, { 1.2, -15.7 }, { 0, -12.1 } } do
+			box(head, "Scale", Vector3.new(spot[1], 5.95, spot[2]), Vector3.new(0.8, 0.2, 0.8), scale)
+		end
+		v.swing(head, Vector3.new(0, 3.5, -10), Vector3.yAxis, 0.3, 1.5, 0, false, nil, "Head")
+
+		-- Aletas: las de delante, largas, en cuatro escalones que bajan hacia la punta, con escamas
+		-- amarillas; las de atrás, cortas. Reman hacia atrás las dos a la vez (giro en Y).
+		for _, side in { -1, 1 } do
+			local front: { BasePart } = {}
+			box(front, "Flipper", Vector3.new(side * 8, 2.2, -6.5), Vector3.new(4, 1.2, 4), skin)
+			box(front, "Flipper", Vector3.new(side * 11, 1.6, -5.5), Vector3.new(3.6, 1, 3.4), skin)
+			box(front, "Flipper", Vector3.new(side * 13.6, 1, -4.2), Vector3.new(2.6, 0.9, 2.8), skin)
+			box(front, "Flipper", Vector3.new(side * 15.6, 0.5, -2.8), Vector3.new(1.8, 0.8, 2), skin)
+			box(front, "FlipperEdge", Vector3.new(side * 9.4, 1.75, -4.3), Vector3.new(5, 0.9, 0.6), skinDark)
+			for _, spot in { { 7.4, 2.85, -7.2 }, { 9.2, 2.85, -5.6 }, { 11.4, 2.15, -6 }, { 13.4, 1.5, -4.6 } } do
+				box(front, "Scale", Vector3.new(side * spot[1], spot[2], spot[3]), Vector3.new(0.8, 0.2, 0.8), scale)
+			end
+			v.swing(front, Vector3.new(side * 6, 2.4, -6), Vector3.yAxis, 0.3 * side, 5, 0, true)
+
+			local back: { BasePart } = {}
+			box(back, "Flipper", Vector3.new(side * 5.5, 1.2, 10.8), Vector3.new(3, 1, 3), skin)
+			box(back, "Flipper", Vector3.new(side * 6.8, 0.7, 12.6), Vector3.new(2.6, 0.8, 2.6), skin)
+			box(back, "Scale", Vector3.new(side * 5.5, 1.8, 10.6), Vector3.new(0.8, 0.2, 0.8), scale)
+			v.swing(back, Vector3.new(side * 4.5, 1.6, 9.5), Vector3.yAxis, -0.25 * side, 5, math.pi, true)
+		end
+		-- Colita cónica de dos bloques.
+		box(nil, "Tail", Vector3.new(0, 1.8, 12), Vector3.new(1.4, 1, 2), skin)
+		box(nil, "Tail", Vector3.new(0, 1.4, 13.3), Vector3.new(0.8, 0.6, 1), skin)
+		return "Walk"
+	end,
+
+	-- Guacamaya roja voxel (docs/img/Guacamaya.jfif): esbelta y alargada, roja, con la cara blanca y el
+	-- ojo negro, pico enorme y ganchudo blanco con la mandíbula negra, alas largas rojas con la banda
+	-- amarilla y las remeras azules, y cola larguísima y en punta, roja en el centro y azul por los
+	-- lados. Vuela, así que lleva las alas abiertas en escalones, como el tucán.
+	Guacamaya = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 12, 0))
+		local box = v.box
+		local deep = color:Lerp(BLACK, 0.15)
+		local yellow = Color3.fromRGB(245, 195, 30)
+		local green = Color3.fromRGB(70, 150, 60)
+		local blue = Color3.fromRGB(30, 85, 210)
+		local deepBlue = Color3.fromRGB(25, 50, 150)
+		local horn = Color3.fromRGB(235, 228, 215)
+		local feet = Color3.fromRGB(125, 112, 112)
+
+		-- Patas: dos dedos delante (con una rendija) y dos detrás, para trepar.
+		for _, side in { -1, 1 } do
+			local x = side * 1.5
+			box(nil, "Leg", Vector3.new(x, 2.9, 0.6), Vector3.new(1.2, 3.8, 1.2), feet)
+			box(nil, "Toe", Vector3.new(x, 0.4, -0.5), Vector3.new(1.8, 0.8, 2.8), feet)
+			box(nil, "ToeGap", Vector3.new(x, 0.45, -1.4), Vector3.new(0.2, 0.75, 1.1), feet:Lerp(BLACK, 0.5))
+			box(nil, "Toe", Vector3.new(x, 0.4, 1.8), Vector3.new(1.6, 0.8, 1.6), feet)
+			box(nil, "Claw", Vector3.new(x, 0.3, -2.05), Vector3.new(1.8, 0.6, 0.3), Color3.fromRGB(50, 45, 45))
+		end
+
+		-- Cuerpo alto y estrecho en cuatro bloques que se estrechan hacia el cuello, y lomo en dos
+		-- escalones (de espaldas no es una losa). Un panel más oscuro en el pecho parecía un delantal.
+		box(nil, "Belly", Vector3.new(0, 7.2, 0.8), Vector3.new(6.4, 5.6, 6.6), color)
+		box(nil, "Body", Vector3.new(0, 12.6, 0), Vector3.new(7, 5.6, 6.6), color)
+		box(nil, "Shoulders", Vector3.new(0, 16.8, 0), Vector3.new(6.2, 3, 6.4), color)
+		box(nil, "Neck", Vector3.new(0, 19.4, -0.4), Vector3.new(5.2, 2.6, 5.4), color)
+		box(nil, "Mantle", Vector3.new(0, 14, 3.45), Vector3.new(5.4, 6, 0.4), deep)
+		box(nil, "Mantle", Vector3.new(0, 9.4, 4.25), Vector3.new(4, 2.6, 0.4), deep:Lerp(BLACK, 0.12))
+
+		-- Cabeza: bloque rojo y cara blanca a los lados con el ojo negro y su brillo (una hilera de
+		-- plumitas rojas bajo el ojo parecía una boca).
+		local head: { BasePart } = {}
+		local up = Vector3.new(0, 2.6, 0)
+		box(head, "Head", Vector3.new(0, 19, -0.6) + up, Vector3.new(6.2, 5.6, 6.2), color)
+		box(
+			head,
+			"Crown",
+			Vector3.new(0, 22.2, -0.4) + up,
+			Vector3.new(5.2, 0.8, 5),
+			color:Lerp(Color3.fromRGB(255, 110, 40), 0.2)
+		)
+		for _, side in { -1, 1 } do
+			box(head, "Face", Vector3.new(side * 3.15, 18.4, -2.3) + up, Vector3.new(0.3, 3.8, 3.6), WHITE)
+			box(head, "FaceFront", Vector3.new(side * 2, 17.6, -3.75) + up, Vector3.new(2.2, 2.4, 0.3), WHITE)
+			box(head, "Eye", Vector3.new(side * 3.35, 19.4, -2.1) + up, Vector3.new(0.2, 1.3, 1.3), BLACK)
+			box(head, "Glint", Vector3.new(side * 3.47, 19.7, -2.35) + up, Vector3.new(0.1, 0.45, 0.45), WHITE)
+		end
+		-- Pico enorme: mandíbula de arriba clara en tres escalones que bajan en gancho con la punta
+		-- oscura, y la de abajo negra, más ancha que el gancho para que se vea de frente.
+		box(head, "BeakBase", Vector3.new(0, 19.2, -4.3) + up, Vector3.new(4, 3.6, 1.6), horn)
+		box(head, "Beak", Vector3.new(0, 19, -5.9) + up, Vector3.new(3.4, 3.2, 2), horn)
+		box(head, "BeakHook", Vector3.new(0, 16.9, -6.7) + up, Vector3.new(2.6, 2.4, 1.6), horn)
+		box(head, "BeakTip", Vector3.new(0, 15.4, -6.6) + up, Vector3.new(1.6, 1, 1.2), Color3.fromRGB(60, 58, 62))
+		box(head, "LowerBeak", Vector3.new(0, 16.3, -4.8) + up, Vector3.new(3.8, 2.4, 2.8), BLACK)
+		v.swing(head, Vector3.new(0, 18.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false)
+
+		-- Alas largas abiertas: brazo rojo, banda amarilla con el borde verde y remeras azules que se
+		-- oscurecen hacia la punta.
+		for _, side in { -1, 1 } do
+			voxelWing(v, side, Vector3.new(side * 3.4, 15.6, 0.2), {
+				{ center = Vector3.new(3, 0.1, -0.4), size = Vector3.new(6.9, 1.6, 4.2), color = color },
+				{ center = Vector3.new(8.4, 0.05, -0.2), size = Vector3.new(4.5, 1.4, 3.4), color = color },
+				{ center = Vector3.new(5.4, 0, 2.6), size = Vector3.new(9.3, 1.2, 2), color = yellow },
+				{ center = Vector3.new(5.4, -0.1, 3.9), size = Vector3.new(8.4, 1, 0.8), color = green },
+				{ center = Vector3.new(12.9, -0.1, 1.2), size = Vector3.new(4.8, 1, 4.4), color = blue },
+				{ center = Vector3.new(4.5, -0.3, 5.3), size = Vector3.new(6.9, 0.8, 2.2), color = blue },
+				{ center = Vector3.new(10.2, -0.3, 4.8), size = Vector3.new(5.4, 0.8, 3), color = blue },
+				{ center = Vector3.new(15.3, -0.3, 3.8), size = Vector3.new(4.2, 0.7, 3.4), color = deepBlue },
+				{ center = Vector3.new(17.85, -0.3, 2.4), size = Vector3.new(2.1, 0.6, 2), color = deepBlue },
+			}, 0.7, 12)
+		end
+
+		-- Cola larguísima y en punta: cobertoras rojas, la pluma del centro roja con la punta azul y
+		-- dos azules más cortas a los lados.
+		local tailParts: { BasePart } = {}
+		v.beam(tailParts, "TailCovert", Vector3.new(0, 9.4, 3.4), Vector3.new(0, 6.2, 8), Vector2.new(4.6, 1.4), color)
+		v.beam(tailParts, "Tail", Vector3.new(0, 7.6, 4), Vector3.new(0, 1.2, 18), Vector2.new(2.4, 1), color)
+		v.beam(tailParts, "TailTip", Vector3.new(0, 1.6, 17.2), Vector3.new(0, 0.4, 21), Vector2.new(1.6, 0.9), blue)
+		for _, side in { -1, 1 } do
+			v.beam(
+				tailParts,
+				"TailSide",
+				Vector3.new(side * 1.5, 7.4, 4.2),
+				Vector3.new(side * 1.9, 2.6, 13.4),
+				Vector2.new(1.8, 0.9),
+				blue
+			)
+		end
+		v.swing(tailParts, Vector3.new(0, 7.6, 3.6), Vector3.xAxis, 0.15, 6, 1, false)
+		rig.family = "Bird"
+		return "Fly"
+	end,
+
+	-- Perezoso voxel (docs/img/Perezoso.jfif): a cuatro patas, con los brazos de delante muy largos
+	-- y las garras claras en gancho; pelo gris pardo desgreñado en escalones con una mancha clara en
+	-- el lomo, cara crema con el antifaz oscuro y una sonrisa permanente.
+	Perezoso = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 10, 0))
+		local box = v.box
+		local fur = color:Lerp(Color3.fromRGB(85, 80, 76), 0.75)
+		local shag = fur:Lerp(BLACK, 0.15)
+		local light = fur:Lerp(WHITE, 0.25)
+		-- Los brazos inclinados reciben más luz por arriba y salían casi blancos: un poco más oscuros.
+		local limb = fur:Lerp(BLACK, 0.15)
+		local face = Color3.fromRGB(215, 195, 160)
+		local dark = Color3.fromRGB(55, 42, 35)
+		local claw = Color3.fromRGB(215, 205, 175)
+		local clawTip = claw:Lerp(dark, 0.35)
+
+		-- Tronco: el pecho más alto que la grupa (los brazos son más largos que las patas), con
+		-- escalones de pelo encima y la mancha clara del lomo en rombo.
+		box(nil, "Body", Vector3.new(0, 13.5, -2), Vector3.new(10, 7, 7), fur)
+		box(nil, "Rump", Vector3.new(0, 12, 4.5), Vector3.new(9.6, 6.6, 6.5), fur)
+		box(nil, "Shag", Vector3.new(0, 17.4, -1.2), Vector3.new(8, 0.8, 7.2), shag)
+		box(nil, "Shag", Vector3.new(0, 15.7, 4.4), Vector3.new(7.6, 0.8, 6), shag)
+		box(nil, "BackPatch", Vector3.new(0, 17.9, -0.8), Vector3.new(2.6, 0.2, 5), light)
+		box(nil, "BackPatch", Vector3.new(0, 17.9, -1), Vector3.new(4.4, 0.2, 2.6), light)
+		box(nil, "BackPatch", Vector3.new(0, 16.2, 3.4), Vector3.new(2.4, 0.2, 2.4), light)
+		-- Flecos de pelo que cuelgan por los costados y la grupa, alternando tonos.
+		for i, z in { -4.5, -2, 0.5, 3, 5.6 } do
+			for _, side in { -1, 1 } do
+				local x = if z < 1 then 5.15 else 4.95
+				box(
+					nil,
+					"Fringe",
+					Vector3.new(side * x, if z < 1 then 10.2 else 8.8, z),
+					Vector3.new(0.4, 2.4, 2),
+					if i % 2 == 0 then shag else light:Lerp(fur, 0.5)
+				)
+				box(
+					nil,
+					"Streak",
+					Vector3.new(side * x, if z < 1 then 14.6 else 13.4, z + 0.5),
+					Vector3.new(0.3, 1, 2.6),
+					shag
+				)
+			end
+		end
+		box(nil, "Fringe", Vector3.new(0, 10, 7.95), Vector3.new(6, 2.4, 0.4), shag)
+		box(nil, "Stub", Vector3.new(0, 12.4, 8), Vector3.new(1.6, 1.4, 0.6), shag)
+
+		-- Mochila de carga (es la mascota de Carga): saco de lona con la solapa de cuero y sus
+		-- hebillas, bolsillos, la manta enrollada y dos troncos atados encima, un racimo de plátanos
+		-- colgando de un lado y una cantimplora del otro, y los tirantes por los hombros.
+		local canvas = Color3.fromRGB(125, 100, 60)
+		local pocket = canvas:Lerp(BLACK, 0.15)
+		local leather = Color3.fromRGB(90, 55, 30)
+		local brass = Color3.fromRGB(175, 150, 80)
+		local wood = Color3.fromRGB(115, 80, 45)
+		local cut = Color3.fromRGB(200, 160, 105)
+		box(nil, "Pack", Vector3.new(0, 19.8, 1.6), Vector3.new(6.6, 4, 5.4), canvas)
+		box(nil, "Pack", Vector3.new(0, 17, 3.6), Vector3.new(6.2, 1.8, 2.4), canvas)
+		box(nil, "PackFlap", Vector3.new(0, 21.95, 1.4), Vector3.new(6.8, 0.3, 5), leather)
+		box(nil, "PackFlap", Vector3.new(0, 20.8, 4.45), Vector3.new(6.8, 2.4, 0.3), leather)
+		box(nil, "PackPocket", Vector3.new(0, 18.2, 4.55), Vector3.new(4.4, 2.2, 0.5), pocket)
+		for _, side in { -1, 1 } do
+			-- Correas verticales de la solapa con la hebilla abajo: dos hebillas a la misma altura sobre
+			-- el bolsillo parecían una cara.
+			box(nil, "FlapStrap", Vector3.new(side * 1.8, 19.4, 4.9), Vector3.new(0.6, 3.6, 0.2), leather)
+			box(nil, "Buckle", Vector3.new(side * 1.8, 17.9, 5.05), Vector3.new(0.8, 0.6, 0.15), brass)
+			box(nil, "PackPocket", Vector3.new(side * 3.45, 19.2, 2.4), Vector3.new(0.4, 2.6, 2.2), pocket)
+			box(nil, "Strap", Vector3.new(side * 3.6, 17.95, -3.4), Vector3.new(1, 0.3, 4.8), leather)
+			box(nil, "Strap", Vector3.new(side * 3.6, 14.4, -5.65), Vector3.new(1, 6.8, 0.3), leather)
+		end
+		-- Manta roja enrollada delante, con dos ataduras.
+		box(nil, "Bedroll", Vector3.new(0, 22.9, -0.2), Vector3.new(7.6, 1.8, 1.8), Color3.fromRGB(150, 60, 45))
+		for _, x in { -2.4, 2.4 } do
+			box(nil, "Tie", Vector3.new(x, 22.9, -0.2), Vector3.new(0.4, 1.9, 1.9), leather)
+		end
+		-- Dos troncos de través detrás, con el corte claro y su anillo, atados con cuerda.
+		for _, z in { 2.3, 3.8 } do
+			box(nil, "Log", Vector3.new(0, 22.8, z), Vector3.new(8.8, 1.4, 1.4), wood)
+			for _, side in { -1, 1 } do
+				box(nil, "LogEnd", Vector3.new(side * 4.45, 22.8, z), Vector3.new(0.1, 1.2, 1.2), cut)
+				box(nil, "LogRing", Vector3.new(side * 4.5, 22.8, z), Vector3.new(0.1, 0.5, 0.5), cut:Lerp(wood, 0.5))
+			end
+		end
+		for _, x in { -1.5, 1.5 } do
+			box(nil, "Rope", Vector3.new(x, 22.8, 3.05), Vector3.new(0.4, 1.6, 3.2), Color3.fromRGB(150, 135, 85))
+		end
+		-- Racimo de plátanos colgando a la derecha y cantimplora a la izquierda.
+		box(nil, "BananaStem", Vector3.new(3.9, 20.5, -0.1), Vector3.new(0.4, 0.6, 0.4), Color3.fromRGB(70, 90, 40))
+		for k = -1, 1 do
+			local z = -0.1 + k * 0.55
+			box(nil, "Banana", Vector3.new(3.95, 19.3, z), Vector3.new(0.6, 1.8, 0.5), Color3.fromRGB(240, 200, 50))
+			box(nil, "BananaTip", Vector3.new(3.95, 18.25, z), Vector3.new(0.4, 0.3, 0.4), Color3.fromRGB(70, 50, 30))
+		end
+		box(nil, "Canteen", Vector3.new(-3.9, 19.3, 0), Vector3.new(0.6, 1.8, 1.6), Color3.fromRGB(95, 120, 90))
+		box(nil, "CanteenCap", Vector3.new(-3.9, 20.35, 0), Vector3.new(0.4, 0.3, 0.4), cut)
+
+		-- Cabeza pequeña con la cara crema, el antifaz que va de los ojos hacia atrás, nariz oscura y
+		-- sonrisa. Ladea despacio, como buen perezoso.
+		local head: { BasePart } = {}
+		box(head, "Head", Vector3.new(0, 12.6, -7.5), Vector3.new(7, 6.4, 4.4), fur)
+		box(head, "HairCap", Vector3.new(0, 15.9, -7.3), Vector3.new(6.2, 0.8, 4), shag)
+		box(head, "Face", Vector3.new(0, 12.2, -9.85), Vector3.new(5.6, 4.8, 0.4), face)
+		box(head, "Fringe", Vector3.new(0, 14.75, -9.9), Vector3.new(6.4, 0.8, 0.6), fur)
+		for _, side in { -1, 1 } do
+			box(head, "Mask", Vector3.new(side * 1.7, 12.9, -10.1), Vector3.new(2.2, 1.1, 0.2), dark)
+			box(head, "Mask", Vector3.new(side * 3.6, 12.9, -8.6), Vector3.new(0.2, 1.1, 2.6), dark)
+			box(head, "Eye", Vector3.new(side * 1.6, 12.9, -10.25), Vector3.new(0.9, 0.8, 0.1), BLACK)
+			box(head, "Glint", Vector3.new(side * 1.4, 13.1, -10.32), Vector3.new(0.3, 0.3, 0.05), WHITE)
+			box(head, "Smile", Vector3.new(side * 1.25, 10.75, -10.1), Vector3.new(0.4, 0.6, 0.2), dark)
+		end
+		box(head, "Nose", Vector3.new(0, 11.6, -10.2), Vector3.new(1.6, 1, 0.3), dark)
+		box(head, "Smile", Vector3.new(0, 10.5, -10.1), Vector3.new(2.2, 0.3, 0.2), dark)
+		v.swing(head, Vector3.new(0, 12.6, -5.5), Vector3.zAxis, 0.15, 0.6, 0, false, nil, "Head")
+
+		-- Garra en gancho: un bloque hacia delante y la punta que baja.
+		local function hook(list: { BasePart }, base: Vector3, length: number)
+			box(list, "Claw", base + Vector3.new(0, 0, -length / 2), Vector3.new(0.6, 0.6, length), claw)
+			box(list, "ClawTip", base + Vector3.new(0, -0.6, -length + 0.3), Vector3.new(0.6, 1.2, 0.6), clawTip)
+		end
+		for _, side in { -1, 1 } do
+			-- Brazo largo que baja hacia delante hasta la mano, con un mechón en el codo.
+			local arm: { BasePart } = {}
+			v.beam(
+				arm,
+				"UpperArm",
+				Vector3.new(side * 5.6, 14.5, -3),
+				Vector3.new(side * 6, 7.5, -8),
+				Vector2.new(3.2, 3.2),
+				limb
+			)
+			v.beam(
+				arm,
+				"Forearm",
+				Vector3.new(side * 6, 7.8, -8),
+				Vector3.new(side * 6.1, 1.6, -12.6),
+				Vector2.new(3, 3),
+				limb
+			)
+			box(arm, "ElbowShag", Vector3.new(side * 6.2, 7.8, -7.2), Vector3.new(3.2, 2.6, 3), shag)
+			box(arm, "Hand", Vector3.new(side * 6.1, 1.1, -13), Vector3.new(2.8, 1.6, 2.8), shag)
+			for k = -1, 1 do
+				hook(arm, Vector3.new(side * 6.1 + k * 0.85, 1.2, -14.2), 2)
+			end
+			v.swing(arm, Vector3.new(side * 5.4, 14, -3), Vector3.xAxis, 0.5, 4, if side < 0 then 0 else math.pi, true)
+
+			-- Pata de atrás más corta, con tres garras.
+			local leg: { BasePart } = {}
+			box(leg, "Thigh", Vector3.new(side * 4.8, 8.6, 5.4), Vector3.new(3, 4.4, 3.8), fur)
+			box(leg, "Shin", Vector3.new(side * 5, 4.2, 5.2), Vector3.new(2.6, 5, 2.6), fur)
+			box(leg, "Foot", Vector3.new(side * 5, 1, 4.6), Vector3.new(2.6, 1.6, 3), dark)
+			for k = -1, 1 do
+				hook(leg, Vector3.new(side * 5 + k * 0.8, 1.1, 3.2), 1.4)
+			end
+			v.swing(leg, Vector3.new(side * 4, 10, 5.5), Vector3.xAxis, 0.4, 4, if side < 0 then math.pi else 0, true)
+		end
+		return "Walk"
+	end,
+
+	-- Mono X-7 voxel: la mascota legendaria, con más capas de detalle que las demás. Chimpancé del
+	-- laboratorio de pelo azul eléctrico, encorvado sobre los nudillos (pecho alto, grupa baja y
+	-- brazos largos), con musculatura en bloques y cicatrices cosidas. Casco de buzo oxidado con
+	-- visor de espejo en cúpula, remaches y discos en las sienes; antena de anillos con la punta que
+	-- brilla; mochila con el vial de suero encendido y "X-7" en la espalda (lo que más ve el
+	-- jugador), mangueras anilladas y grilletes del laboratorio con su luz.
+	MonoX7 = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 10, 0))
+		local box = v.box
+		local fur = Color3.fromRGB(30, 95, 195)
+		local furLight = fur:Lerp(Color3.fromRGB(130, 205, 255), 0.4)
+		local furDark = fur:Lerp(BLACK, 0.3)
+		local muscle = fur:Lerp(WHITE, 0.16)
+		local hands = Color3.fromRGB(80, 68, 76)
+		local scar = Color3.fromRGB(195, 120, 120)
+		local stitch = Color3.fromRGB(70, 30, 40)
+		local shell = Color3.fromRGB(195, 180, 148)
+		local rust = Color3.fromRGB(170, 85, 38)
+		local copper = Color3.fromRGB(185, 115, 65)
+		local metal = Color3.fromRGB(95, 100, 112)
+		local hose = Color3.fromRGB(55, 58, 68)
+		local visorColor = Color3.fromRGB(20, 30, 60)
+		local crest = shell:Lerp(metal, 0.35)
+
+		local function neon(part: BasePart, transparency: number?): BasePart
+			part.Material = Enum.Material.Neon
+			part.Transparency = transparency or 0
+			return part
+		end
+		-- Cicatriz cosida en una cara de lado (X = "x"): tira rosada a lo largo, la costura oscura
+		-- encima y tres puntadas que la cruzan y asoman por arriba y por abajo. Un parche ancho con
+		-- rayas parecía una ventana con barrotes.
+		local function scarStrip(list: { BasePart }?, center: Vector3, length: number)
+			local out = Vector3.new(math.sign(center.X) * 0.12, 0, 0)
+			box(list, "Scar", center, Vector3.new(0.2, 1, length), scar)
+			box(list, "Stitch", center + out, Vector3.new(0.1, 0.2, length * 0.85), stitch)
+			for k = -1, 1 do
+				box(
+					list,
+					"Stitch",
+					center + out + Vector3.new(0, 0, k * length * 0.3),
+					Vector3.new(0.1, 1.4, 0.25),
+					stitch
+				)
+			end
+		end
+
+		-- Tronco encorvado y musculoso en escalones: pecho ancho y alto delante, lomo y grupa que bajan
+		-- hacia atrás (cintura más estrecha que el pecho) y la joroba de los hombros con los trapecios
+		-- que suben hacia el casco. Los músculos sobresalen 0,3–0,6 celdas con un tono ~10 % más claro
+		-- y una raya oscura que los separa: más claros parecían rodilleras.
+		local shadow = fur:Lerp(BLACK, 0.18)
+		box(nil, "Body", Vector3.new(0, 13, -3), Vector3.new(12.6, 8, 6), fur)
+		box(nil, "Hump", Vector3.new(0, 17.6, -2), Vector3.new(9.4, 1.2, 5), fur)
+		box(nil, "Hump", Vector3.new(0, 18.6, -1.5), Vector3.new(6, 0.8, 3.6), furDark)
+		box(nil, "Back", Vector3.new(0, 11.5, 2), Vector3.new(10, 7, 5), fur)
+		box(nil, "Rump", Vector3.new(0, 9.5, 5.5), Vector3.new(9.4, 6, 4), fur)
+		box(nil, "Belly", Vector3.new(0, 7.6, -3.4), Vector3.new(7, 2.4, 4.6), fur)
+		for _, side in { -1, 1 } do
+			-- Trapecios en dos escalones, del hombro al cuello.
+			box(nil, "Trap", Vector3.new(side * 3.6, 18.6, -3.4), Vector3.new(3.8, 1.8, 3.8), muscle)
+			box(nil, "Trap", Vector3.new(side * 2.4, 19.5, -2.6), Vector3.new(2, 0.8, 2.4), muscle)
+			-- Pectorales grandes con su sombra debajo y el surco del esternón entre los dos.
+			box(nil, "Pec", Vector3.new(side * 2.8, 11.4, -6.25), Vector3.new(4.6, 3.6, 0.5), furLight)
+			box(nil, "PecShadow", Vector3.new(side * 2.8, 9.5, -6.2), Vector3.new(4.4, 0.3, 0.4), shadow)
+			-- Abdominales en dos filas en la barriga.
+			for _, y in { 8.25, 7.1 } do
+				box(nil, "Abs", Vector3.new(side * 1.05, y, -5.8), Vector3.new(1.7, 0.95, 0.4), muscle)
+			end
+			-- Serrato en el costado del pecho (dos dedos de músculo) y dorsales que abren la espalda en V.
+			for _, y in { 11.6, 10.3 } do
+				box(nil, "Serratus", Vector3.new(side * 6.45, y, -4.4), Vector3.new(0.3, 0.9, 1.8), muscle)
+			end
+			box(nil, "Lat", Vector3.new(side * 5.5, 12.4, 1.6), Vector3.new(1, 4.4, 4.4), muscle)
+			-- Lumbares a los lados de la columna y glúteos más oscuros, como en los felinos.
+			box(nil, "Erector", Vector3.new(side * 1.4, 12.7, 6.6), Vector3.new(1.6, 0.4, 1.6), muscle)
+			box(nil, "Glute", Vector3.new(side * 2.4, 9.8, 7.6), Vector3.new(3.8, 4.2, 0.3), fur:Lerp(BLACK, 0.12))
+			-- Mechones erizados en los hombros, la grupa y el borde de abajo del pecho.
+			box(nil, "Tuft", Vector3.new(side * 4.8, 18.6, -3), Vector3.new(1.4, 1.2, 1.4), furDark)
+			box(nil, "Tuft", Vector3.new(side * 3.4, 13, 7), Vector3.new(1.6, 1, 1.2), furDark)
+			box(nil, "Tuft", Vector3.new(side * 4.8, 8.6, -4.2), Vector3.new(1.4, 1.2, 1.6), furDark)
+		end
+		box(nil, "Sternum", Vector3.new(0, 11.4, -6.3), Vector3.new(0.3, 3.4, 0.4), shadow)
+		box(nil, "Abs", Vector3.new(0, 7.7, -5.85), Vector3.new(0.3, 2.2, 0.4), shadow)
+		-- Cresta de pelo erizado por la columna, entre el casco y la mochila.
+		box(nil, "Spine", Vector3.new(0, 19.3, -0.8), Vector3.new(1, 0.8, 1), furDark)
+		box(nil, "Spine", Vector3.new(0, 18.6, 0.2), Vector3.new(1, 0.8, 1), furDark)
+		-- Fleco de pelo oscuro abajo en la grupa: de espaldas no es un panel liso.
+		for _, x in { -3, 0, 3 } do
+			box(nil, "Fringe", Vector3.new(x, 7.2, 7.6), Vector3.new(2.4, 1.6, 0.4), furDark)
+		end
+		scarStrip(nil, Vector3.new(-6.4, 13.4, -2.4), 3)
+		scarStrip(nil, Vector3.new(6.1, 12.4, 1.6), 2.6)
+		scarStrip(nil, Vector3.new(-4.75, 9.4, 6.2), 2.2)
+
+		-- Casco: bola en escalones (seis cajas), cresta de delante atrás, aro de cobre con el visor de
+		-- espejo en cúpula de tres escalones y sus brillos, remaches, discos en las sienes, cuello de
+		-- cobre y óxido en dos tonos. Todo mira a los lados con el hueso "Head".
+		local helmet: { BasePart } = {}
+		local hc = Vector3.new(0, 17.4, -8.5)
+		local r = 4.8
+		for _, size in
+			{
+				Vector3.new(2 * r, 1.46 * r, 1.46 * r),
+				Vector3.new(1.46 * r, 2 * r, 1.46 * r),
+				Vector3.new(1.46 * r, 1.46 * r, 2 * r),
+				Vector3.new(1.8 * r, 1.8 * r, 1.1 * r),
+				Vector3.new(1.8 * r, 1.1 * r, 1.8 * r),
+				Vector3.new(1.1 * r, 1.8 * r, 1.8 * r),
+			}
+		do
+			box(helmet, "Helmet", hc, size, shell)
+		end
+		local front = hc.Z - r
+		box(helmet, "Crest", hc + Vector3.new(0, r + 0.15, 0), Vector3.new(1.2, 0.3, 6.6), crest)
+		box(helmet, "Crest", Vector3.new(0, hc.Y, hc.Z + r + 0.15), Vector3.new(1.2, 5.6, 0.3), crest)
+		box(helmet, "VisorRim", Vector3.new(0, hc.Y, front - 0.15), Vector3.new(6.6, 6.4, 0.5), copper)
+		for _, step in { { 5.4, 5, 0.6, 0.4 }, { 4.2, 3.8, 0.4, 0.8 } } do
+			local layer = box(
+				helmet,
+				"Visor",
+				Vector3.new(0, hc.Y, front - step[4]),
+				Vector3.new(step[1], step[2], step[3]),
+				visorColor
+			)
+			layer.Reflectance = 0.1
+		end
+		-- Detrás del cristal se ven brillar los ojos del mono: sin ellos parecía un robot con una
+		-- pantalla. Brillos en diagonal arriba a la izquierda y uno pequeño abajo: { x, y, lado }.
+		for _, side in { -1, 1 } do
+			neon(
+				box(
+					helmet,
+					"VisorEye",
+					Vector3.new(side * 1.1, hc.Y + 0.1, front - 1.05),
+					Vector3.new(1, 0.7, 0.1),
+					color
+				),
+				0.2
+			)
+		end
+		for _, glint in { { -1.6, 1.3, 0.5 }, { -1, 1.55, 0.35 }, { 1.6, -1.3, 0.35 } } do
+			local shine = box(
+				helmet,
+				"VisorShine",
+				Vector3.new(glint[1], hc.Y + glint[2], front - 1.05),
+				Vector3.new(glint[3], glint[3], 0.1),
+				WHITE
+			)
+			shine.Transparency = 0.15
+		end
+		for _, rivet in
+			{ { -3, 2.9 }, { 0, 2.9 }, { 3, 2.9 }, { -3, 0 }, { 3, 0 }, { -3, -2.9 }, { 0, -2.9 }, { 3, -2.9 } }
+		do
+			box(helmet, "Rivet", Vector3.new(rivet[1], hc.Y + rivet[2], front - 0.5), Vector3.new(0.5, 0.5, 0.2), metal)
+		end
+		for _, side in { -1, 1 } do
+			local z = hc.Z + 0.4
+			box(helmet, "EarDisc", Vector3.new(side * (r + 0.2), hc.Y, z), Vector3.new(0.4, 3, 3), metal)
+			box(helmet, "EarRing", Vector3.new(side * (r + 0.5), hc.Y, z), Vector3.new(0.3, 2.2, 2.2), copper)
+			box(helmet, "EarKnob", Vector3.new(side * (r + 0.75), hc.Y, z), Vector3.new(0.4, 1, 1), metal)
+		end
+		box(helmet, "Collar", hc - Vector3.new(0, r - 0.2, -0.3), Vector3.new(7.6, 1, 7.6), copper)
+		-- Óxido: { centro, tamaño } de la mancha grande; la pequeña, más clara, va desplazada encima.
+		for _, spot in
+			{
+				{ Vector3.new(-1.8, 22.3, -7), Vector3.new(2.2, 0.2, 1.6) },
+				{ Vector3.new(2, 22.3, -10), Vector3.new(1.4, 0.2, 1.2) },
+				{ Vector3.new(4.9, 19.2, -6.6), Vector3.new(0.2, 1.6, 2.2) },
+				{ Vector3.new(-4.9, 15.2, -10.4), Vector3.new(0.2, 1.2, 1.8) },
+				{ Vector3.new(-2, 18.6, -3.6), Vector3.new(2.2, 1.4, 0.2) },
+				{ Vector3.new(1.9, 15.2, -3.6), Vector3.new(1.2, 1, 0.2) },
+			}
+		do
+			local center, size = spot[1], spot[2]
+			box(helmet, "Rust", center, size, rust)
+			local out = Vector3.new(
+				if size.X < 0.5 then math.sign(center.X) * 0.05 else size.X * 0.2,
+				if size.Y < 0.5 then 0.05 else -size.Y * 0.15,
+				if size.Z < 0.5 then 0.05 else size.Z * 0.2
+			)
+			box(
+				helmet,
+				"Rust",
+				center + out,
+				(size * Vector3.new(0.55, 0.6, 0.55)):Max(Vector3.one * 0.2),
+				rust:Lerp(shell, 0.4)
+			)
+		end
+		local helmetJoints: { Joint } = {}
+		for _, part in helmet do
+			local item = joint(rig, part, CFrame.new(v.at(hc)), Vector3.yAxis, 0.3, 0.7, 0, false)
+			item.bone = "Head"
+			table.insert(helmetJoints, item)
+		end
+
+		-- Antena: base de cobre, varilla con anillos que se estrechan y punta que brilla con su halo.
+		-- Cuelga del casco y se balancea por su cuenta.
+		local top = hc.Y + r + 0.3
+		local antenna: { BasePart } = {}
+		box(antenna, "AntennaBase", Vector3.new(0, top + 0.3, hc.Z), Vector3.new(2, 0.6, 2), copper)
+		box(antenna, "AntennaRod", Vector3.new(0, top + 2.5, hc.Z), Vector3.new(0.6, 4.2, 0.6), metal)
+		for i = 1, 4 do
+			local width = 1.9 - i * 0.28
+			box(
+				antenna,
+				"AntennaRing",
+				Vector3.new(0, top + 0.5 + i * 0.85, hc.Z),
+				Vector3.new(width, 0.45, width),
+				if i % 2 == 1 then crest else metal
+			)
+		end
+		local tipAt = Vector3.new(0, top + 5, hc.Z)
+		local tip = neon(box(antenna, "AntennaTip", tipAt, Vector3.new(1.4, 1.4, 1.4), color))
+		neon(box(antenna, "AntennaGlow", tipAt, Vector3.new(2.2, 2.2, 2.2), color), 0.6)
+		for _, part in antenna do
+			joint(
+				rig,
+				part,
+				CFrame.new(v.at(Vector3.new(0, top, hc.Z))),
+				Vector3.zAxis,
+				0.08,
+				3,
+				0,
+				false,
+				nil,
+				helmetJoints[1]
+			)
+		end
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Range = 5
+		light.Brightness = 1
+		light.Parent = tip
+
+		-- Mochila sobre el lomo: caja de metal con su panel, la placa "X-7" a la espalda, rejilla,
+		-- pilotos, tornillos, franja de peligro arriba, depósitos con su nivel encendido a los lados,
+		-- tirantes por los hombros con hebilla y encima el vial de suero entre dos tapas de cobre.
+		local pack = box(nil, "Pack", Vector3.new(0, 15.2, 4.2), Vector3.new(6.6, 5, 3.2), metal)
+		box(nil, "PackPanel", Vector3.new(0, 15, 5.85), Vector3.new(5.6, 4.2, 0.1), metal:Lerp(BLACK, 0.25))
+		box(nil, "Badge", Vector3.new(0, 15.6, 5.95), Vector3.new(5, 2.3, 0.2), Color3.fromRGB(30, 32, 40))
+		-- "X-7" en píxeles de neón sobre la placa (un texto en SurfaceGui dejaba de dibujarse a la
+		-- distancia de juego). Se lee desde atrás, con +X a la derecha.
+		local glyphs = {
+			"X.X.....777",
+			"X.X.......7",
+			".X..XX...7.",
+			"X.X.....7..",
+			"X.X.....7..",
+		}
+		for row, line in glyphs do
+			for col = 1, #line do
+				if string.sub(line, col, col) ~= "." then
+					local at = Vector3.new((col - 0.5) * 0.4 - 2.2, 15.6 + 1 - (row - 0.5) * 0.4, 6.1)
+					neon(box(nil, "BadgePixel", at, Vector3.new(0.4, 0.4, 0.1), color))
+				end
+			end
+		end
+		neon(
+			box(nil, "PackLight", Vector3.new(-2, 13.6, 5.95), Vector3.new(0.6, 0.6, 0.2), Color3.fromRGB(90, 255, 120))
+		)
+		neon(box(nil, "PackLight", Vector3.new(2, 13.6, 5.95), Vector3.new(0.6, 0.6, 0.2), Color3.fromRGB(255, 70, 60)))
+		for _, y in { 13.85, 13.35 } do
+			box(nil, "Vent", Vector3.new(0, y, 5.95), Vector3.new(2.4, 0.25, 0.2), Color3.fromRGB(25, 27, 32))
+		end
+		for _, corner in { { -3, 12.95 }, { 3, 12.95 }, { -3, 17.45 }, { 3, 17.45 } } do
+			box(nil, "Bolt", Vector3.new(corner[1], corner[2], 5.9), Vector3.new(0.4, 0.4, 0.2), copper)
+		end
+		-- Franja de peligro en el borde de arriba, amarilla y negra.
+		local stripes = 8
+		for i = 1, stripes do
+			local stripe = if i % 2 == 1 then Color3.fromRGB(230, 190, 40) else Color3.fromRGB(25, 25, 28)
+			box(
+				nil,
+				"Hazard",
+				Vector3.new(-3.15 + (i - 0.5) * 0.7875, 17.55, 5.75),
+				Vector3.new(0.79, 0.3, 0.2),
+				stripe
+			)
+		end
+		for _, side in { -1, 1 } do
+			box(nil, "Tank", Vector3.new(side * 3.8, 15.2, 4.2), Vector3.new(1, 4, 1.6), metal:Lerp(WHITE, 0.15))
+			box(nil, "TankCap", Vector3.new(side * 3.8, 17.35, 4.2), Vector3.new(0.7, 0.3, 0.7), copper)
+			neon(box(nil, "TankLevel", Vector3.new(side * 4.32, 14.8, 4.2), Vector3.new(0.1, 2.4, 0.4), color), 0.1)
+			box(nil, "Strap", Vector3.new(side * 4.2, 19.4, -3.8), Vector3.new(1, 0.2, 6), hose)
+			box(nil, "Strap", Vector3.new(side * 4.2, 14.8, -6.65), Vector3.new(1, 9, 0.3), hose)
+			box(nil, "StrapBuckle", Vector3.new(side * 4.2, 12.4, -6.85), Vector3.new(1.2, 0.8, 0.2), copper)
+		end
+		box(nil, "VialCap", Vector3.new(0, 18, 4.2), Vector3.new(2.4, 0.6, 2.4), copper)
+		box(nil, "VialCap", Vector3.new(0, 21.2, 4.2), Vector3.new(2.4, 0.6, 2.4), copper)
+		local vial = box(nil, "Vial", Vector3.new(0, 19.6, 4.2), Vector3.new(2, 2.6, 2), Color3.fromRGB(200, 240, 255))
+		vial.Material = Enum.Material.Glass
+		vial.Transparency = 0.5
+		local serum = neon(box(nil, "Serum", Vector3.new(0, 19.4, 4.2), Vector3.new(1.3, 2.2, 1.3), color))
+		local glow = Instance.new("PointLight")
+		glow.Color = color
+		glow.Range = 6
+		glow.Brightness = 1
+		glow.Parent = serum
+		-- Chispas en zigzag a los lados del vial.
+		for _, side in { -1, 1 } do
+			for k = 0, 2 do
+				local spark = box(
+					nil,
+					"Spark",
+					Vector3.new(side * (1.9 + (k % 2) * 0.5), 19 + k * 0.8, 4.2),
+					Vector3.new(0.3, 0.9, 0.3),
+					color:Lerp(WHITE, 0.3)
+				)
+				neon(spark, 0.15)
+			end
+		end
+		-- Mangueras anilladas de los discos de las sienes a los lados de la mochila: tramos alternos
+		-- gruesos de metal y finos de goma sobre una curva.
+		local segments = 12
+		for _, side in { -1, 1 } do
+			local from = Vector3.new(side * 5.4, 15.8, -7.6)
+			local control = Vector3.new(side * 7.8, 19.4, -1)
+			local to = Vector3.new(side * 3.6, 15.6, 3.4)
+			local function at(t: number): Vector3
+				return from:Lerp(control, t):Lerp(control:Lerp(to, t), t)
+			end
+			for i = 1, segments do
+				local thick = i % 2 == 1
+				local width = if thick then 1.1 else 0.85
+				v.beam(
+					nil,
+					"Hose",
+					at((i - 1) / segments),
+					at(i / segments),
+					Vector2.new(width, width),
+					if thick then metal else hose
+				)
+			end
+		end
+
+		for _, side in { -1, 1 } do
+			-- Brazo largo y musculoso hasta los nudillos: hombro con sus tres cabezas, bíceps con el
+			-- pico, tríceps detrás, la vena de suero que brilla, antebrazo de Popeye con su músculo,
+			-- pelo que cuelga detrás, grillete del laboratorio con su luz, mano con tres nudillos y el
+			-- pulgar. Cicatriz en el brazo derecho.
+			local x = side * 7.9
+			local arm: { BasePart } = {}
+			box(arm, "Deltoid", Vector3.new(side * 7, 15.2, -3.4), Vector3.new(4.6, 4.2, 4.8), fur)
+			box(arm, "DeltoidTop", Vector3.new(side * 7, 17.45, -3.4), Vector3.new(3.4, 0.3, 3.6), muscle)
+			box(arm, "FrontDelt", Vector3.new(side * 7.1, 15.4, -6.05), Vector3.new(3.2, 2.8, 0.5), muscle)
+			box(arm, "RearDelt", Vector3.new(side * 7.1, 15.2, -0.75), Vector3.new(3.2, 2.6, 0.5), muscle)
+			box(arm, "UpperArm", Vector3.new(side * 7.4, 10.6, -5), Vector3.new(3.6, 5.6, 3.8), fur)
+			box(arm, "Biceps", Vector3.new(side * 7.4, 11.1, -7.15), Vector3.new(3, 3.4, 0.6), muscle)
+			box(
+				arm,
+				"BicepsPeak",
+				Vector3.new(side * 7.4, 11.3, -7.55),
+				Vector3.new(1.8, 1.8, 0.3),
+				muscle:Lerp(WHITE, 0.06)
+			)
+			box(arm, "Triceps", Vector3.new(side * 7.4, 11, -2.8), Vector3.new(2.8, 3.6, 0.6), muscle)
+			neon(box(arm, "Vein", Vector3.new(side * 9.25, 11.2, -5), Vector3.new(0.15, 2.4, 0.3), color), 0.2)
+			neon(box(arm, "Vein", Vector3.new(side * 9.25, 10.1, -5.5), Vector3.new(0.15, 0.3, 1.2), color), 0.2)
+			box(arm, "Forearm", Vector3.new(x, 5, -7.2), Vector3.new(4.6, 5.8, 4.6), fur)
+			box(arm, "ForearmTop", Vector3.new(x, 6.4, -9.65), Vector3.new(3, 2.2, 0.3), muscle)
+			box(arm, "ForearmOuter", Vector3.new(x + side * 2.45, 6.2, -7.2), Vector3.new(0.3, 2.6, 2.8), muscle)
+			box(arm, "ArmShag", Vector3.new(side * 8.1, 5.4, -4.7), Vector3.new(2.6, 3.4, 0.8), furDark)
+			box(arm, "Cuff", Vector3.new(x, 2.8, -7.3), Vector3.new(5, 1.1, 5), metal)
+			neon(box(arm, "CuffLight", Vector3.new(x + side * 2.55, 2.8, -7.3), Vector3.new(0.2, 0.5, 0.9), color))
+			box(arm, "Hand", Vector3.new(x, 1, -8), Vector3.new(3.8, 2, 4.4), hands)
+			for k = -1, 1 do
+				box(arm, "Knuckle", Vector3.new(x + k * 1.25, 0.6, -10.6), Vector3.new(1.1, 1.2, 1), hands)
+			end
+			box(arm, "Thumb", Vector3.new(side * 5.6, 0.5, -9.3), Vector3.new(0.9, 0.9, 1.6), hands)
+			if side == 1 then
+				scarStrip(arm, Vector3.new(9.3, 8.6, -5), 2.4)
+			end
+			for _, part in arm do
+				local item = joint(
+					rig,
+					part,
+					CFrame.new(v.at(Vector3.new(side * 6, 14, -3.5))),
+					Vector3.xAxis,
+					0.35,
+					8,
+					if side < 0 then 0 else math.pi,
+					true
+				)
+				item.bone = if side < 0 then "ArmL" else "ArmR"
+			end
+
+			-- Pata flexionada: muslo hacia delante con el cuádriceps, espinilla con el gemelo por fuera y
+			-- el pelo detrás, pie con tres dedos y el gordo hacia dentro. Cicatriz en el muslo izquierdo.
+			local leg: { BasePart } = {}
+			box(leg, "Thigh", Vector3.new(side * 5.5, 7.6, 3.6), Vector3.new(3.8, 4.2, 5.2), fur)
+			box(leg, "ThighTop", Vector3.new(side * 5.6, 9.85, 2.4), Vector3.new(2.6, 0.4, 3), muscle)
+			box(leg, "Quad", Vector3.new(side * 5.5, 7.8, 0.85), Vector3.new(3, 3, 0.5), muscle)
+			box(leg, "Shin", Vector3.new(side * 5.6, 3.6, 3.2), Vector3.new(3, 4.4, 3), fur)
+			box(leg, "Calf", Vector3.new(side * 7.25, 4, 3.2), Vector3.new(0.4, 2.4, 2.2), muscle)
+			box(leg, "LegShag", Vector3.new(side * 5.6, 4.4, 4.85), Vector3.new(2.2, 2.6, 0.4), furDark)
+			box(leg, "Foot", Vector3.new(side * 5.6, 0.6, 2.6), Vector3.new(3, 1.2, 4.6), hands)
+			for k = -1, 1 do
+				box(leg, "Toe", Vector3.new(side * 5.6 + k * 1, 0.5, -0.2), Vector3.new(0.9, 1, 0.9), hands)
+			end
+			box(leg, "BigToe", Vector3.new(side * 3.7, 0.5, 1.4), Vector3.new(0.9, 0.9, 1.4), hands)
+			if side == -1 then
+				scarStrip(leg, Vector3.new(-7.5, 7.6, 3.6), 3)
+			end
+			for _, part in leg do
+				local item = joint(
+					rig,
+					part,
+					CFrame.new(v.at(Vector3.new(side * 4, 8, 5.5))),
+					Vector3.xAxis,
+					0.35,
+					8,
+					if side < 0 then math.pi else 0,
+					true
+				)
+				item.bone = if side < 0 then "LegL" else "LegR"
+			end
+		end
+
+		-- Aura de energía: chispas azules que salen de la superficie del cuerpo y de la mochila. Desde
+		-- dentro y lentas quedaban escondidas; con LightEmission 1 de día salían casi blancas.
+		local body = rig.model:FindFirstChild("Body") :: BasePart
+		local aura = Instance.new("ParticleEmitter")
+		aura.Color = ColorSequence.new(color:Lerp(WHITE, 0.35), color)
+		aura.LightEmission = 0.4
+		aura.LightInfluence = 0
+		aura.Brightness = 2
+		aura.Rate = 14
+		aura.Lifetime = NumberRange.new(0.6, 1.1)
+		aura.Speed = NumberRange.new(1.5, 2.5)
+		aura.Drag = 2
+		aura.Shape = Enum.ParticleEmitterShape.Sphere
+		aura.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+		aura.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+		aura.Rotation = NumberRange.new(0, 360)
+		aura.RotSpeed = NumberRange.new(-180, 180)
+		aura.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.1 * rig.scale),
+			NumberSequenceKeypoint.new(0.2, 0.5 * rig.scale),
+			NumberSequenceKeypoint.new(1, 0),
+		})
+		aura.Transparency = NumberSequence.new(0, 1)
+		aura.ZOffset = 1
+		aura.Parent = body
+		local packAura = aura:Clone()
+		packAura.Rate = 8
+		packAura.Parent = pack
+		rig.family = "X7"
+		return "Walk"
 	end,
 }
 
@@ -3763,7 +3181,7 @@ CLIPS.X7 = function()
 	return {
 		Attack = {
 			length = 0.85,
-			around = Vector3.new(0, -0.35, 0.45),
+			around = Vector3.new(0, -0.2, 0.55),
 			keys = {
 				{ t = 0 },
 				{

@@ -170,7 +170,11 @@ hasta que el usuario apruebe el resultado (§5).
    `Workspace._VistaPrevia` al terminar: deja el modelo final (y, si sirve, el de antes o las otras
    variantes al lado con `keep = true`) y la cámara de Studio apuntando a él con `Preview.look`, en
    el ángulo que mejor lo enseña (normalmente `tresCuartos`), para que lo vea en su Studio sin
-   buscarlo. Termina el turno pidiéndole que lo revise y diga si lo aprueba o qué cambiar.
+   buscarlo. **Siempre con el maniquí al lado** (o un avatar R15 de verdad, ver
+   `estilo-del-proyecto.md` §8 "Mascotas voxel (aves y rana)"), dentro del encuadre de la cámara:
+   el usuario revisa ahí la relación de tamaño. No uses `dummy = false` en la vista final, aunque
+   lo quitaras para las capturas de trabajo. Termina el turno pidiéndole que lo revise y diga si
+   lo aprueba o qué cambiar.
 5. Solo cuando el usuario lo apruebe (o pida quitarla), `Preview.clear()` para borrar
    `Workspace._VistaPrevia`: no se puede quedar para siempre en el place. Si pide cambios, vuelve
    al ciclo de revisión sobre esa misma vista previa.

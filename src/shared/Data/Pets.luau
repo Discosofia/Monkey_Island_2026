@@ -39,7 +39,7 @@ local Pets: { [string]: Pet } = {
 		kind = "Apoyo",
 		description = "El hambre y la sed bajan un 10 % más despacio.",
 		color = Color3.fromRGB(90, 140, 70),
-		size = 1.2,
+		size = 1.14,
 		perks = { HungerRate = -0.1 },
 	},
 	Rana = {
@@ -59,7 +59,7 @@ local Pets: { [string]: Pet } = {
 		kind = "Rastreo",
 		description = "Señala a los monos cercanos y te da +5 % de daño a distancia.",
 		color = Color3.fromRGB(230, 50, 40),
-		size = 1,
+		size = 0.78,
 		tracks = true,
 		perks = { RangedDamage = 0.05 },
 	},

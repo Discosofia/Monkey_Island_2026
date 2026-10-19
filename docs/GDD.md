@@ -447,11 +447,12 @@ al modelar cada animal.
 | Colibrí | ~0,1 m (con las alas) | 0,3 | **1,4** (hecho; 2,1 de punta a punta de las alas) |
 | Tucán | ~0,35 m posado | 1,05 | **2** (hecho) |
 | Jaguarundí | ~0,35 m de hombros | 1,05 | **2** (hecho) |
-| Tortuga verde | ~0,4 m de caparazón | 1,2 | **2,1** |
+| Tortuga verde | ~1 m de largo (0,25 m de alto) | 3 de largo | **0,9** (hecho; 3,6 de largo y 3,8 con las aletas: el usuario la quiso un 20 % más grande que el real) |
 | Ocelote | ~0,45 m de hombros | 1,35 | **2,2** (hecho) |
-| Papagayo (Guacamaya) | ~0,45 m posado | 1,35 | **2,2** |
-| Perezoso | ~0,5 m sentado | 1,5 | **2,25** |
+| Papagayo (Guacamaya) | ~0,45 m posado | 1,35 | **2** (hecho; esbelta, 3,5 de punta a punta de las alas) |
+| Perezoso | ~0,5 m a cuatro patas | 1,5 | **2,2** (hecho; 2,9 con la mochila de carga y 2,9 de largo) |
 | Jaguar de cristal | ~0,7 m de hombros (jaguar) | 2,1 | **2,6** con los cristales (hecho) |
+| Mono X-7 | ~0,9 m (chimpancé) | 2,7 | **2,6** (hecho; 3,3 con la antena) |
 
 Las mascotas pequeñas se ordenan por su **lado más largo**, no solo por el alto: la rana, plana, salía
 la más grande con 1,55 de alto. Orden decidido por el usuario (18-10-2026): rana < colibrí < tucán. La

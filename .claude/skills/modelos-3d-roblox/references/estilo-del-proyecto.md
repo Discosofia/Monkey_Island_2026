@@ -65,17 +65,15 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),
   junta todas en una lista y registra cada una con la **misma bisagra**: así se mueven como una
-  sola. `capsule(rig, name, from, to, width, color)` hace un óvalo de pelo entre dos puntos (brazos,
-  muslos) y `UPRIGHT` pone de pie un cilindro. `PetModels` lee `Data.Pets` con un `require`
+  sola. `PetModels` lee `Data.Pets` con un `require`
   normal, que en Studio queda en caché: para ver en la vista previa un `color` o un `size` nuevos,
   cámbialos también en la tabla en caché (`require(game.ReplicatedStorage.Shared.Data.Pets).MonoX7.size = 1.15`)
   antes de llamar a `freshRequire` sobre `PetModels`.
-  Otras ayudas de `PetModels`: `capsule(..., material?)` (sin material es `Fabric`: una rana con
-  patas de tela parece de peluche), `surfacePoint(frame, semi, direction)` (punto de un óvalo y su
-  normal, para pegar placas, manchas y escamas), `blotch` (mancha de dos tonos), `feather`,
-  `featheredWing`, `tailFan`, `birdEye` (aves), `cat` (felinos) y la forma `"Spike"` para cristales.
-  Para medir un tamaño de cabeza o de casco sin rehacer números, mide todo lo que va en ella desde
-  su centro con un factor (`onHead(offset)` y `hk` en el Mono X-7).
+  Todas las mascotas están ya en voxel (§8): `voxelKit` (`box`, `beam`, `swing`) y `voxelWing` en
+  `voxelBuilders`, y `voxelCat` para los felinos. Quedan como ayudas redondas `cat` (los felinos de
+  antes, detrás de `PetModels.voxelCats = false`), `capsule`, `surfacePoint` y la forma `"Spike"`.
+  Las de las aves y mascotas redondas (`bird`, `featheredWing`, `tailFan`, `birdEye`, `blotch`,
+  `legs`) se borraron al aprobar las voxel (18-10-2026); están en el historial de git.
   **Articulación encadenada** (rodilla, codo): registra el tramo de arriba con `joint` (devuelve la
   articulación) y el de abajo con `joint(..., bias, parent)` y bisagra en la rodilla. Para que se
   doble hacia atrás solo mientras la pata avanza en el aire: `amplitude` y `bias` negativos e iguales
@@ -134,7 +132,7 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   el óvalo de la cara asomando por delante del disco. Comprueba que el pelo sobresale del disco
   en todo el borde: si quedan en el mismo plano, hay z-fighting. Remaches del aro con un bucle de
   ángulos.
-  **Visor de espejo** (cara oculta, como el Mono X-7): en lugar de pelo y cara, una cúpula
+  **Visor de espejo** (cara oculta, como el Mono X-7 redondo; en voxel ver §8): en lugar de pelo y cara, una cúpula
   (`Oval`) que sobresale del aro, color oscuro azulado (25, 35, 55) con `Reflectance` 0,6: refleja
   el cielo y queda como un cromado de dibujo. Añade uno o dos brillos blancos pegados a la cúpula
   (punto de la superficie del elipsoide y su normal, girados en diagonal). Un visor dorado de
@@ -188,7 +186,7 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   trozos cortos, cada uno en su punto de la superficie.
 - **Rosetas de felino:** contorno negro con el centro tostado oscuro y grande (74 % × 60 %); con el
   centro claro y pequeño parecen donuts.
-- **Ojos de ave** (`birdEye`): anillo de piel, ojo, pupila, dos brillos y párpado. Mide la pupila y
+- **Ojos de ave** (`birdEye`, borrada con las aves redondas): anillo de piel, ojo, pupila, dos brillos y párpado. Mide la pupila y
   los brillos desde el centro del ojo y déjalos fuera de su bola, o se entierran y el ojo sale sin
   pupila. El párpado del color de la piel le da expresión. En una rana, un párpado encima del ojo
   parece un gorro: sobra.
@@ -239,7 +237,8 @@ Reutiliza las que ya existan antes de inventar otras casi iguales. Ejemplos del 
 Materiales habituales: `SmoothPlastic` (por defecto), `Fabric` (pelaje, telas), `Wood` / `WoodPlanks`,
 `Slate` / `Rock` (piedra), `Grass`, `Sand`, `Metal`, `Neon` solo para brillos (ojos que brillan,
 magia). Un modelo con 3–6 colores se lee mejor que uno con quince. Para el pelo, `Fabric` da
-un aspecto de peluche que encaja con el estilo cartoon (el Mono X-7).
+un aspecto de peluche que encaja con el estilo cartoon (el Mono X-7 redondo; en voxel, siempre
+`SmoothPlastic`).
 
 Cuando el usuario pide "texturas", se hacen con materiales (no con imágenes subidas):
 - `Fabric`: pelo y plumas.
@@ -294,7 +293,7 @@ Referencias para no fallar el tamaño:
 | Puerta | 7 de alto, 4 de ancho |
 | Pared de una planta | 10–12 de alto |
 | Arma de una mano | 3–4 de largo |
-| Mascota | 2–4,5 de alto con adornos (el Mono X-7 mide 3,9 con la antena) |
+| Mascota | 0,5–3,3 de alto (GDD §8.2; el Mono X-7 mide 3,3 con la antena) |
 | Mono de categoría 1 / 2 / 3 | 1,3–3 / 2,4–4 / 3,4–5,5 de alto |
 | Jefe | 9–11 de alto (unos dos personajes) |
 | Árbol de la isla | 15–35 de alto |
@@ -606,6 +605,44 @@ Lo aprendido:
 - Para enseñar tamaños, pon al lado un avatar R15 de verdad
   (`Players:CreateHumanoidModelFromDescription`, anclado) y captura de frente desde unos 20 studs
   con `FieldOfView` 25: de cerca, la perspectiva agranda al avatar y engaña.
+
+### Mascotas voxel (tortuga, guacamaya, perezoso y Mono X-7)
+
+Mismo kit (`voxelKit`, `CELL = 0,1`) en `voxelBuilders`. Aprobados el 18-10-2026; sus constructores
+redondos se borraron (en `builders` solo quedan los felinos). Lo aprendido:
+- **Tortuga:** el caparazón son capas de tres cajas (ancha, media, larga) que se estrechan hacia
+  arriba, cada capa de un tono (de lado se leen las bandas de la referencia), con placas de 0,2 de
+  grueso encima. Mide por el lado más largo (3 studs de largo, 0,76 de alto). Rema con las aletas
+  en Y, las dos de delante a la vez.
+- **Guacamaya:** un panel más oscuro en el pecho parecía un delantal, y una hilera de plumitas rojas
+  bajo el ojo, una boca: cuerpo de un solo rojo y cara blanca lisa con el ojo. La mandíbula negra
+  más ancha que el gancho del pico, o de frente no se ve. Alargada (cuello, cuerpo y patas más
+  altos, cola más larga) y con alas un 50 % más largas, a petición del usuario. Ojo: alargar el
+  cuerpo sube el alto, así que "un 20 % más pequeña" en `size` acabó solo un 10 % más baja; dilo.
+- **Perezoso:** a cuatro patas, como la vista de 3/4 de la referencia. Las extremidades inclinadas
+  con `beam` reciben más luz por arriba y salen casi blancas: un 15 % más oscuras que el cuerpo.
+- **Mono X-7** (la legendaria, con más detalle que las demás):
+  - Un casco de tres cajas en cruz con un visor plano parecía **una tele**, y el mono, un robot.
+    Lo arreglan el casco en bola de seis cajas (`(2r, 1,46r, 1,46r)` y `(1,8r, 1,8r, 1,1r)` en las
+    tres orientaciones), el visor en cúpula de dos escalones y, sobre todo, **dos ojos de neón**
+    detrás del cristal: se ve que dentro hay una criatura.
+  - El visor con `Reflectance` 0,4–0,6 en bloques planos refleja el cielo y sale gris claro: 0,1
+    con azul marino (20, 30, 60) y brillos blancos.
+  - Calvas cosidas en parche con rayas verticales parecían **ventanas con barrotes**: tira rosada
+    alargada (1 de alto) con la costura a lo largo y tres puntadas que asoman por arriba y abajo.
+  - Postura de chimpancé: pecho alto delante, lomo y grupa que bajan, joroba de hombros, y el casco
+    adelantado entre los hombros.
+  - La placa "X-7" va en la mochila, a la espalda (lo que ve el jugador). Un texto en `SurfaceGui`
+    dejaba de dibujarse a la distancia de juego: va en píxeles de neón (0,4 celdas) con una rejilla
+    de texto en el código. Visto desde atrás, +X queda a la **derecha**: la columna 1 va en -X.
+  - "Más musculoso" (pedido del usuario): más volumen en hombros (tres cabezas del deltoides),
+    brazos (bíceps con pico, tríceps, antebrazo grueso), trapecios hasta el casco, dorsales en V,
+    pectorales con su sombra, abdominales, serrato y glúteos. Tono de músculo +16 % de blanco y
+    rayas oscuras (-18 %) que los separan. Venas de suero de neón en los brazos. Quedó en 265
+    piezas y 125 articuladas: se pasa del tope de ~110 a propósito (mascota legendaria, una por
+    jugador).
+- **Mochila de carga del perezoso:** dos hebillas a la misma altura sobre un bolsillo parecían una
+  cara (ojos y boca). Correas verticales con la hebilla abajo se leen como mochila.
 
 ### Presupuesto: bloques de diseño frente a piezas en juego
 
