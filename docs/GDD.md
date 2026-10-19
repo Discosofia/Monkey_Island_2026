@@ -478,7 +478,7 @@ de ataque:
 | Beagle | ~0,5 m con la cabeza (0,37 de cruz) | 1,5 | **2,2** con la cola en bandera (hecho; 2,06 sin ella) |
 | Perezoso | ~0,5 m a cuatro patas | 1,5 | **2,2** (hecho; 2,9 con la mochila de carga y 2,9 de largo) |
 | Jaguar de cristal | ~0,7 m de hombros (jaguar) | 2,1 | **2,6** con los cristales (hecho) |
-| Labrador | ~0,75 m con la cabeza (0,58 de cruz) | 2,25 | **2,6** (hecho; 4 de largo, con las alforjas) |
+| Labrador | ~0,75 m con la cabeza (0,58 de cruz) | 2,25 | **2,6** (hecho; 4,6 de largo con la cola, y alforjas) |
 | Pointer inglés | ~0,85 m con la cabeza (0,6 de cruz) | 2,55 | **2,7** (hecho; 4,3 de largo) |
 | Mono X-7 | ~0,9 m (chimpancé) | 2,7 | **2,6** (hecho; 3,3 con la antena) |
 

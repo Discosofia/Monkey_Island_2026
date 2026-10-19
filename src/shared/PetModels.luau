@@ -2105,10 +2105,17 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			snout = Vector3.new(3.8, 2.8, 3.2),
 			neck = 3.6,
 			ear = Vector3.new(0.8, 3.2, 2.6),
-			tail = { Vector3.new(0, 0.3, 1), Vector3.new(0, 0.05, 1), Vector3.new(0, -0.1, 1) },
-			tailSegment = 2.1,
+			-- Cola de nutria: unos 2/3 del cuerpo, gruesa en la base y adelgazando poco a poco (más fina
+			-- parecía una cuerda; más corta, un muñón).
+			tail = {
+				Vector3.new(0, 0.25, 1),
+				Vector3.new(0, 0.08, 1),
+				Vector3.new(0, -0.02, 1),
+				Vector3.new(0, 0.05, 1),
+			},
+			tailSegment = 2.6,
 			tailWidth = 2.4,
-			tailTaper = 0.5,
+			tailTaper = 0.35,
 			eye = Color3.fromRGB(80, 50, 25),
 			nose = Color3.fromRGB(85, 55, 45),
 			ears = color:Lerp(Color3.fromRGB(150, 95, 45), 0.25),
