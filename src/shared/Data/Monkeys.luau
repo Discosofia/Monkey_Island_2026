@@ -364,7 +364,7 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		alpha = true,
 		throws = { range = 40, damage = 10, cooldownSeconds = 3 },
 		voice = "Large",
-		scale = 1.15,
+		scale = 0.84,
 		bodyColor = Color3.fromRGB(30, 28, 26),
 		faceColor = Color3.fromRGB(165, 125, 105),
 		loot = {
@@ -391,8 +391,8 @@ local Monkeys: { [string]: MonkeyDefinition } = {
 		leashRange = 120,
 		grab = 2.5,
 		voice = "Large",
-		scale = 1.4,
-		bodyColor = Color3.fromRGB(190, 90, 35),
+		scale = 0.845,
+		bodyColor = Color3.fromRGB(165, 75, 30), -- Studio aclara el naranja: más oscuro que el de la foto
 		faceColor = Color3.fromRGB(110, 75, 55),
 		loot = {
 			{ itemId = "OrangeFur", chance = 0.5, min = 1, max = 1 },

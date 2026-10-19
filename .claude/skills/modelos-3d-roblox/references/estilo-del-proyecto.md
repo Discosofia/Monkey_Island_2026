@@ -510,6 +510,31 @@ return {
     los párpados claros a la vista, que es su gesto de amenaza.
   - Studio aclara mucho los tonos medios: el gris oliva (125, 125, 105) del babuino salía casi
     blanco y el ocre del macaco, amarillo. Elige el color un 20–30 % más oscuro que el de la foto.
+- Lo que en los simios grandes (Chimpancé, Orangután y sus jefes) funcionó y lo que no:
+  - Con los pivotes del modelo redondo y el tronco horizontal, de lado **parecían una mesa** (o un
+    perro). Lo arregla el pecho alto delante (hasta la joroba) y la cabeza dibujada 1,5 celdas por
+    encima del cuello, sin mover los pivotes: las animaciones siguen valiendo.
+  - Las patas traseras rectas desde la cadera parecían zancos: grupa y lomo bajados por abajo y la
+    rodilla adelantada en un escalón.
+  - Patillas canosas planas a los lados de la cara del Caudillo parecían **orejeras**: solo la barba.
+  - Un panel canoso en la cara de atrás de la grupa y un parche de musgo en el mismo sitio parecían
+    **ventanas** desde atrás. Lo canoso y el musgo, encima del lomo.
+  - Plumas en escalera de 1,3 celdas con la punta negra: de lejos, puntos sueltos. De 1,7 y con la
+    punta del mismo color aclarado se leen como abanico.
+  - El naranja del orangután (190, 90, 35) salía naranja chillón: (165, 75, 30).
+  - Un jefe con entrada en `bosses` del spec no lleva las expresiones por acción de la especie
+    (`faces`): su cara va por fases.
+- **Fases del combate con cambios en el cuerpo** (Caudillo y Manglar): `showPhase` enseña solo los
+  grupos de la fase más alta que tenga piezas, así que lo que sigue en la fase 3 (la pintura de
+  guerra, el barro) va repetido en un grupo de fase 2 y otro de fase 3. Lo que debe verse siempre,
+  sin `phase`. Un adorno que cambia (el tocado entero, roto en la 3) va en un grupo por fase. Monta
+  las tres fases en fila (`showPhase(copia, n)`) y revisa cada una de frente y de espaldas.
+  - El pelo erizado en púas finas con la punta canosa parecía clavijas; en mechones negros gruesos de
+    tres bloques que suben hacia atrás se lee como una cresta.
+  - El saco de la garganta hinchado de un solo bloque ancho parecía un cajón delante del pecho, y una
+    raya oscura encima, una segunda boca: en tres escalones, sin rayas y algo más claro que la cara.
+  - Raíces en fila de bloques de 1,4 celdas parecían un alambre: de 2–2,2 y de un marrón claro.
+  - Hongos de neón de 1 celda no se veían a escala de jefe: de 1,3–2.
 - `SmoothPlastic` siempre: las aristas limpias son el estilo (nada de `Fabric`).
 - **Monos pequeños y medianos** (Tití, Mono ardilla, Capuchino, Marteja, Cola larga, Marimonda, Aullador,
   Macaco, Mandril, Babuino, Gibón): `unit = 0,1` y el cuerpo dibujado alrededor

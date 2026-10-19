@@ -10,8 +10,8 @@
 -- Las animaciones se enlazan por el nombre de las piezas: si cambias un nombre, rehaz las animaciones.
 -- Cada especie tiene su propio constructor (BUILDERS); una especie nueva sin él usa el genérico.
 -- Las especies en estilo voxel (VOXEL_SPECS: gorila, tití, mono ardilla, capuchino, aullador,
--- marimonda, marteja, cola larga, macaco, mandril, babuino y gibón) ya no tienen
--- constructor redondo: su cuerpo, sus pivotes y sus expresiones de la cara están en
+-- marimonda, marteja, cola larga, macaco, mandril, babuino, gibón, chimpancé y orangután) ya no
+-- tienen constructor redondo: su cuerpo, sus pivotes y sus expresiones de la cara están en
 -- VoxelSpecs/<Especie>.
 -- Los simios (gorila, chimpancé, orangután, gibón) no tienen cola. Los jefes añaden sus detalles (BOSS_EXTRAS),
 -- y algunas especies se construyen con más detalle cuando son un jefe (rig.boss).
@@ -115,19 +115,6 @@ local function sideName(side: number): string
 	return if side == 1 then "Right" else "Left"
 end
 
--- Pieza de la cara o del cuerpo pegada a "anchor", en coordenadas del modelo.
-local function feature(
-	rig: Rig,
-	anchor: BasePart,
-	name: string,
-	size: Vector3,
-	color: Color3,
-	at: CFrame,
-	material: Enum.Material?
-)
-	glue(rig, anchor, piece(rig, name, "Oval", size, color, material), at)
-end
-
 local function partNamed(rig: Rig, name: string): BasePart
 	return rig.model:FindFirstChild(name) :: BasePart
 end
@@ -174,286 +161,8 @@ local function genericMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition)
 	)
 end
 
-local function eyes(rig: Rig, head: BasePart, spread: number, y: number, z: number, diameter: number)
-	for side = -1, 1, 2 do
-		glue(rig, head, piece(rig, "Eye", "Ball", Vector3.one * diameter, EYE_COLOR), CFrame.new(side * spread, y, z))
-	end
-end
-
 local function darker(color: Color3, amount: number): Color3
 	return color:Lerp(Color3.new(0, 0, 0), amount)
-end
-
--- Chimpancé: pelo negro, largo y mojado que cuelga en mechones de los hombros, los brazos y los
--- flancos; cara clara con el hocico salido, cejas marcadas, orejas grandes, patillas canosas y la
--- barba blanca de la barbilla; manos y pies grandes y oscuros, apoyados en los nudillos.
--- Los jefes (rig.boss) llevan más pelo colgando, nudillos y nariz; el tocado va en BOSS_EXTRAS.
--- bodyColor = pelo, faceColor = piel.
-local CHIMP_BEARD = Color3.fromRGB(205, 200, 190)
-
-local function chimpanzee(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local fur = definition.bodyColor
-	local skin = definition.faceColor
-	-- Mechones con un brillo más claro, como el pelo mojado de la foto.
-	local shag = fur:Lerp(Color3.fromRGB(120, 115, 110), 0.25)
-	local paws = darker(skin, 0.62)
-	local tilt = CFrame.Angles(math.rad(20), 0, 0)
-
-	local torso = piece(rig, "Torso", "Oval", Vector3.new(1.55, 1.4, 2.1), fur)
-	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, -0.05, 0.35) * tilt, Vector3.new(0, -0.05, 0.35))
-	feature(rig, torso, "Shoulders", Vector3.new(2, 1.25, 1.2), fur, CFrame.new(0, 0.3, -0.45))
-
-	local head = piece(rig, "Head", "Ball", Vector3.one * 1.05, fur)
-	joint(rig, torso, head, "Neck", CFrame.new(0, 0.62, -1.3), Vector3.new(0, 0.4, -0.85))
-	feature(rig, head, "Face", Vector3.new(0.82, 0.85, 0.45), skin, CFrame.new(0, 0.6, -1.68))
-	feature(
-		rig,
-		head,
-		"Muzzle",
-		Vector3.new(0.64, 0.46, 0.46),
-		skin:Lerp(Color3.new(1, 1, 1), 0.08),
-		CFrame.new(0, 0.38, -1.86)
-	)
-	feature(rig, head, "Mouth", Vector3.new(0.42, 0.06, 0.1), darker(skin, 0.55), CFrame.new(0, 0.3, -2.07))
-	feature(rig, head, "Brow", Vector3.new(0.88, 0.2, 0.34), darker(skin, 0.25), CFrame.new(0, 0.82, -1.82))
-	-- La barba blanca sale de debajo del hocico y apunta hacia abajo y adelante (más larga en el jefe).
-	local beardLength = if rig.boss then 0.5 else 0.38
-	feature(
-		rig,
-		head,
-		"Beard",
-		Vector3.new(0.46, beardLength, 0.32),
-		CHIMP_BEARD,
-		CFrame.new(0, 0.32 - beardLength / 2, -1.8) * CFrame.Angles(math.rad(20), 0, 0)
-	)
-	eyes(rig, head, 0.17, 0.66, -1.88, 0.12)
-	for side = -1, 1, 2 do
-		feature(rig, head, "Ear", Vector3.new(0.14, 0.48, 0.4), skin, CFrame.new(side * 0.56, 0.64, -1.26))
-		-- Patillas canosas que enmarcan la cara.
-		feature(
-			rig,
-			head,
-			"Sideburn",
-			Vector3.new(0.26, 0.55, 0.4),
-			fur:Lerp(CHIMP_BEARD, 0.35),
-			CFrame.new(side * 0.42, 0.42, -1.58) * CFrame.Angles(0, 0, side * -0.35)
-		)
-	end
-
-	-- Brazos largos y gruesos apoyados en los nudillos, con el pelo colgando por detrás.
-	for side = -1, 1, 2 do
-		local x = side * 0.92
-		local arm = piece(rig, `{sideName(side)} Arm`, "Oval", Vector3.new(0.62, 2.1, 0.66), fur)
-		joint(
-			rig,
-			torso,
-			arm,
-			`{sideName(side)} Shoulder`,
-			CFrame.new(x, GROUND + 1.05, -0.75),
-			Vector3.new(x, -0.16, -0.75)
-		)
-		feature(rig, arm, "Hand", Vector3.new(0.72, 0.32, 0.88), paws, CFrame.new(x, GROUND + 0.14, -0.86))
-		feature(
-			rig,
-			arm,
-			"ArmHair",
-			Vector3.new(0.32, 1.15, 0.55),
-			shag,
-			CFrame.new(side * 1.15, -0.15, -0.55) * CFrame.Angles(0, 0, side * 0.12)
-		)
-
-		local legX = side * 0.6
-		local leg = piece(rig, `{sideName(side)} Leg`, "Oval", Vector3.new(0.62, 1.45, 0.66), fur)
-		joint(
-			rig,
-			torso,
-			leg,
-			`{sideName(side)} Hip`,
-			CFrame.new(legX, GROUND + 0.725, 1.1),
-			Vector3.new(legX, -0.8, 1.1)
-		)
-		feature(rig, leg, "Foot", Vector3.new(0.72, 0.3, 1.02), paws, CFrame.new(legX, GROUND + 0.13, 0.95))
-	end
-
-	if not rig.boss then
-		return
-	end
-	-- Detalle extra del jefe: más pelo mojado colgando, nudillos y nariz.
-	feature(rig, torso, "Mane", Vector3.new(1.7, 0.55, 1.5), shag, CFrame.new(0, 0.82, 0.1) * tilt)
-	for side = -1, 1, 2 do
-		local x = side * 0.92
-		glue(
-			rig,
-			head,
-			piece(rig, "Nostril", "Ball", Vector3.one * 0.08, EYE_COLOR),
-			CFrame.new(side * 0.08, 0.5, -2.08)
-		)
-		feature(
-			rig,
-			torso,
-			"SideHair",
-			Vector3.new(0.34, 0.9, 1.1),
-			shag,
-			CFrame.new(side * 0.82, -0.4, 0.3) * CFrame.Angles(0, 0, side * 0.2)
-		)
-		local arm = partNamed(rig, `{sideName(side)} Arm`)
-		for knuckle = -1, 1 do
-			glue(
-				rig,
-				arm,
-				piece(rig, "Knuckle", "Ball", Vector3.one * 0.22, paws),
-				CFrame.new(x + knuckle * 0.2, GROUND + 0.24, -1.24)
-			)
-		end
-	end
-end
-
--- Orangután, de caricatura: cabeza grande con las almohadillas de las mejillas en forma de corazón
--- alrededor de la cara, ojos grandes, hocico claro y el saco de la garganta; hombros anchos, barriga
--- clara, brazos larguísimos apoyados en los puños con flecos de pelo y piernas cortas.
--- Los jefes (rig.boss) llevan más detalle (mechones, nudillos, antebrazos gruesos, más pelo
--- colgando) y el ceño fruncido; los normales, menos piezas y una cara más amable.
--- bodyColor = pelo, faceColor = piel.
-local function orangutan(rig: Rig, definition: Monkeys.MonkeyDefinition)
-	local fur = definition.bodyColor
-	local skin = definition.faceColor
-	local shag = fur:Lerp(Color3.new(1, 1, 1), 0.12)
-	local underFur = darker(fur, 0.18)
-	local paws = darker(skin, 0.1)
-	local tilt = CFrame.Angles(math.rad(25), 0, 0)
-
-	local torso = piece(rig, "Torso", "Oval", Vector3.new(1.85, 1.7, 2), fur)
-	joint(rig, rig.root, torso, "RootJoint", CFrame.new(0, 0.05, 0.3) * tilt, Vector3.new(0, 0.05, 0.3))
-	feature(rig, torso, "Shoulders", Vector3.new(2.3, 1.2, 1.25), fur, CFrame.new(0, 0.45, -0.35))
-	feature(
-		rig,
-		torso,
-		"Belly",
-		Vector3.new(1.35, 1.2, 1.2),
-		fur:Lerp(Color3.fromRGB(240, 200, 150), 0.35),
-		CFrame.new(0, -0.35, -0.3) * tilt
-	)
-
-	local head = piece(rig, "Head", "Ball", Vector3.one * 1.2, fur)
-	joint(rig, torso, head, "Neck", CFrame.new(0, 0.75, -1.15), Vector3.new(0, 0.5, -0.7))
-	-- Las almohadillas: dos óvalos solapados e inclinados forman un cojín en forma de corazón.
-	for side = -1, 1, 2 do
-		feature(
-			rig,
-			head,
-			"Flange",
-			Vector3.new(1.05, 1.3, 0.5),
-			skin:Lerp(fur, 0.5),
-			CFrame.new(side * 0.45, 0.78, -1.42) * CFrame.Angles(0, side * 0.3, side * -0.3)
-		)
-	end
-	feature(rig, head, "Face", Vector3.new(0.9, 1.05, 0.45), skin, CFrame.new(0, 0.8, -1.62))
-	feature(rig, head, "ThroatSac", Vector3.new(1.15, 0.9, 0.85), skin, CFrame.new(0, 0.12, -1.42))
-	local lip = skin:Lerp(Color3.new(1, 1, 1), 0.25)
-	feature(rig, head, "Muzzle", Vector3.new(0.8, 0.52, 0.48), lip, CFrame.new(0, 0.48, -1.84))
-	feature(rig, head, "Mouth", Vector3.new(0.56, 0.08, 0.14), EYE_COLOR, CFrame.new(0, 0.39, -2.05))
-	-- Cejas: fruncidas (las puntas de dentro más bajas) en el jefe; en los demás, altas y con las
-	-- puntas de dentro un poco levantadas, que dan cara de curiosidad en vez de enfado.
-	local frown = if rig.boss then 0.3 else -0.12
-	for side = -1, 1, 2 do
-		glue(
-			rig,
-			head,
-			piece(rig, "EyeWhite", "Ball", Vector3.one * 0.34, EYE_WHITE),
-			CFrame.new(side * 0.2, 0.95, -1.78)
-		)
-		glue(rig, head, piece(rig, "Eye", "Ball", Vector3.one * 0.17, EYE_COLOR), CFrame.new(side * 0.19, 0.94, -1.92))
-		feature(
-			rig,
-			head,
-			"Brow",
-			Vector3.new(0.46, 0.15, 0.25),
-			darker(skin, 0.35),
-			CFrame.new(side * 0.21, if rig.boss then 1.15 else 1.22, -1.85) * CFrame.Angles(0, 0, side * frown)
-		)
-	end
-
-	for side = -1, 1, 2 do
-		local x = side * 1
-		local arm = piece(rig, `{sideName(side)} Arm`, "Oval", Vector3.new(0.62, 2.45, 0.66), fur)
-		joint(
-			rig,
-			torso,
-			arm,
-			`{sideName(side)} Shoulder`,
-			CFrame.new(x, GROUND + 1.225, -0.7),
-			Vector3.new(x, 0.26, -0.7)
-		)
-		feature(rig, arm, "Hand", Vector3.new(0.85, 0.4, 1), paws, CFrame.new(x, GROUND + 0.17, -0.82))
-		feature(
-			rig,
-			arm,
-			"ArmHair",
-			Vector3.new(0.3, 1.6, 0.7),
-			shag,
-			CFrame.new(side * 1.24, -0.3, -0.62) * CFrame.Angles(0, 0, side * 0.12)
-		)
-
-		local legX = side * 0.62
-		local leg = piece(rig, `{sideName(side)} Leg`, "Oval", Vector3.new(0.6, 1.35, 0.64), fur)
-		joint(rig, torso, leg, `{sideName(side)} Hip`, CFrame.new(legX, GROUND + 0.675, 1), Vector3.new(legX, -0.81, 1))
-		feature(rig, leg, "Foot", Vector3.new(0.75, 0.3, 1.05), paws, CFrame.new(legX, GROUND + 0.13, 0.85))
-	end
-
-	if not rig.boss then
-		return
-	end
-	-- Detalle extra del jefe: se ve de cerca y cuesta piezas, así que solo hay uno a la vez.
-	feature(rig, torso, "Shag", Vector3.new(1.55, 0.5, 1.7), shag, CFrame.new(0, 0.82, 0.35) * tilt)
-	for _, x in { -0.22, 0, 0.22 } do
-		feature(
-			rig,
-			head,
-			"Tuft",
-			Vector3.new(0.28, 0.5, 0.32),
-			shag,
-			CFrame.new(x, 1.33 - math.abs(x) * 0.3, -1.12) * CFrame.Angles(0, 0, -x * 1.8)
-		)
-	end
-	for side = -1, 1, 2 do
-		local x = side * 1
-		glue(
-			rig,
-			head,
-			piece(rig, "Nostril", "Ball", Vector3.one * 0.09, EYE_COLOR),
-			CFrame.new(side * 0.09, 0.63, -2.07)
-		)
-		for _, z in { 0.05, 0.75 } do
-			feature(
-				rig,
-				torso,
-				"SideHair",
-				Vector3.new(0.38, 0.95, 0.75),
-				underFur,
-				CFrame.new(side * 0.85, -0.45, z) * CFrame.Angles(0, 0, side * 0.2)
-			)
-		end
-
-		local arm = partNamed(rig, `{sideName(side)} Arm`)
-		feature(rig, arm, "Forearm", Vector3.new(0.8, 1.15, 0.85), fur, CFrame.new(x, -0.95, -0.72))
-		feature(rig, arm, "ArmHair", Vector3.new(0.4, 1.2, 0.45), underFur, CFrame.new(x, -0.35, -0.3))
-		for knuckle = -1, 1 do
-			glue(
-				rig,
-				arm,
-				piece(rig, "Knuckle", "Ball", Vector3.one * 0.25, skin),
-				CFrame.new(x + knuckle * 0.23, GROUND + 0.27, -1.22)
-			)
-		end
-		feature(
-			rig,
-			partNamed(rig, `{sideName(side)} Leg`),
-			"ThighHair",
-			Vector3.new(0.42, 0.85, 0.7),
-			underFur,
-			CFrame.new(side * 0.75, -0.75, 1)
-		)
-	end
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -525,6 +234,8 @@ local function voxelTones(definition: Monkeys.MonkeyDefinition): { [string]: Col
 		mouth = darker(skin, 0.7),
 		eye = skin:Lerp(Color3.new(1, 1, 1), 0.55),
 		teeth = EYE_WHITE,
+		shade = darker(fur, 0.12), -- vetas de pelo más oscuras (orangután)
+		deep = darker(skin, 0.25), -- almohadillas de las mejillas (orangután)
 	}
 end
 
@@ -702,8 +413,10 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 		return groups
 	end
 
-	-- Expresiones de la cara: solo se ve la "Normal" hasta que una acción pide otra (showFace).
-	for _, face in spec.faces or {} do
+	-- Expresiones de la cara: solo se ve la "Normal" hasta que una acción pide otra (showFace). Los
+	-- jefes con entrada en el spec ponen su propia cara por fases y no llevan las de la especie.
+	local bossFaces = bossId ~= nil and spec.bosses ~= nil and spec.bosses[bossId] ~= nil
+	for _, face in if bossFaces then {} else spec.faces or {} do
 		for _, group in buildGroup({ anchor = "Head", name = "Expression", boxes = face.boxes }) do
 			group:SetAttribute("Face", face.name)
 			group:SetAttribute("FaceActions", table.concat(face.actions or {}, " "))
@@ -739,6 +452,8 @@ local VOXEL_SPECS: { [string]: VoxelSpec } = {
 	Mandril = require(script.Parent.VoxelSpecs.Mandril) :: any,
 	Babuino = require(script.Parent.VoxelSpecs.Babuino) :: any,
 	Gibon = require(script.Parent.VoxelSpecs.Gibon) :: any,
+	Chimpance = require(script.Parent.VoxelSpecs.Chimpance) :: any,
+	Orangutan = require(script.Parent.VoxelSpecs.Orangutan) :: any,
 }
 -- Jefes que ya usan el cuerpo voxel de su especie, con sus adornos en bloques. Los demás siguen con
 -- el modelo de antes hasta que tengan sus detalles. La vista previa los activa en su copia del módulo
@@ -747,14 +462,13 @@ local VOXEL_SPECS: { [string]: VoxelSpec } = {
 local VOXEL_BOSSES: { [string]: boolean } = {
 	GorilaAlbino = true,
 	GorilaDeCeniza = true,
+	ChimpanceCaudillo = true,
+	OrangutanDelManglar = true,
 }
 MonkeyModels.voxelSpecs = VOXEL_SPECS
 MonkeyModels.voxelBosses = VOXEL_BOSSES
 
-local BUILDERS: { [string]: (rig: Rig, definition: Monkeys.MonkeyDefinition) -> () } = {
-	Chimpance = chimpanzee,
-	Orangutan = orangutan,
-}
+local BUILDERS: { [string]: (rig: Rig, definition: Monkeys.MonkeyDefinition) -> () } = {}
 
 ---------------------------------------------------------------------------------------------------
 -- Detalles de los jefes, sobre el modelo de su especie base y en sus mismas coordenadas.
@@ -777,112 +491,6 @@ local function glow(rig: Rig, part: BasePart, color: Color3, range: number, brig
 end
 
 local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
-	-- Orangután del Manglar: musgo en el lomo y en la cabeza, musgo colgando de los brazos (como el
-	-- de las ramas del manglar) y una liana con hojas cruzada en el pecho.
-	OrangutanDelManglar = function(rig)
-		local moss = Color3.fromRGB(85, 120, 50)
-		local torso = partNamed(rig, "Torso")
-		local head = partNamed(rig, "Head")
-		for _, patch in
-			{
-				{ anchor = torso, size = Vector3.new(1, 0.35, 1.1), at = CFrame.new(0.45, 1.08, -0.2) },
-				{ anchor = torso, size = Vector3.new(0.85, 0.3, 0.95), at = CFrame.new(-0.45, 0.98, 0.6) },
-				{ anchor = head, size = Vector3.new(0.55, 0.2, 0.55), at = CFrame.new(-0.28, 1.28, -0.98) },
-			}
-		do
-			glue(rig, patch.anchor, piece(rig, "Moss", "Oval", patch.size, moss, Enum.Material.Grass), patch.at)
-		end
-		for side = -1, 1, 2 do
-			glue(
-				rig,
-				partNamed(rig, `{sideName(side)} Arm`),
-				piece(rig, "Moss", "Oval", Vector3.new(0.22, 1, 0.3), moss, Enum.Material.Grass),
-				CFrame.new(side * 1.3, -0.55, -0.95) * CFrame.Angles(0, 0, side * 0.1)
-			)
-		end
-		-- La liana va del hombro derecho a la cadera izquierda, por delante de la barriga.
-		local sash = CFrame.new(0, 0.3, -0.85) * CFrame.Angles(0, 0, math.rad(-40))
-		feature(rig, torso, "Vine", Vector3.new(0.22, 2.5, 0.22), Color3.fromRGB(70, 110, 40), sash)
-		for index, offset in { -0.75, 0.15, 0.85 } do
-			feature(
-				rig,
-				torso,
-				"Leaf",
-				Vector3.new(0.3, 0.07, 0.45),
-				Color3.fromRGB(60, 140, 60),
-				sash * CFrame.new(0.12, offset, -0.12) * CFrame.Angles(math.rad(-70), math.rad(index * 60 - 120), 0)
-			)
-		end
-	end,
-
-	-- Chimpancé Caudillo: tocado en abanico de plumas azules, doradas, rojas y naranjas sobre una
-	-- banda de cuentas en la frente, y un collar de cuentas de madera con una nuez colgando en el pecho.
-	ChimpanceCaudillo = function(rig)
-		local head = partNamed(rig, "Head")
-		local torso = partNamed(rig, "Torso")
-		local wood = Color3.fromRGB(150, 92, 50)
-		local band = CFrame.new(0, 0.9, -1.3)
-		glue(
-			rig,
-			head,
-			piece(rig, "Headband", "Cylinder", Vector3.new(0.2, 1.04, 1.04), wood, Enum.Material.Wood),
-			band * CFrame.Angles(0, 0, math.rad(90))
-		)
-		-- Cuentas claras y de colores en el frente de la banda.
-		local beads = { Color3.fromRGB(235, 225, 200), Color3.fromRGB(60, 120, 200), Color3.fromRGB(200, 50, 40) }
-		for index = -2, 2 do
-			local angle = index * 0.38
-			glue(
-				rig,
-				head,
-				piece(rig, "Bead", "Ball", Vector3.one * 0.15, beads[math.abs(index) % 3 + 1]),
-				band * CFrame.new(math.sin(angle) * 0.54, 0, -math.cos(angle) * 0.54)
-			)
-		end
-		-- Las plumas salen de la banda y se abren hacia arriba y a los lados, como un abanico.
-		local feathers = {
-			Color3.fromRGB(45, 105, 200),
-			Color3.fromRGB(240, 190, 60),
-			Color3.fromRGB(215, 50, 40),
-			Color3.fromRGB(240, 130, 45),
-			Color3.fromRGB(90, 170, 225),
-		}
-		local count = 9
-		for index = 1, count do
-			local angle = math.rad(-80 + (index - 1) * 160 / (count - 1))
-			local length = 1.25 - math.abs(angle) * 0.25
-			local direction = Vector3.new(math.sin(angle), math.cos(angle), 0.25).Unit
-			glue(
-				rig,
-				head,
-				piece(rig, "Feather", "Oval", Vector3.new(0.1, length, 0.3), feathers[(index - 1) % #feathers + 1]),
-				CFrame.new(Vector3.new(0, 0.95, -1.15) + direction * (0.3 + length / 2))
-					* CFrame.Angles(math.rad(-14), 0, -angle)
-			)
-		end
-
-		-- Collar: cuentas de madera en U por delante del pecho y la nuez colgando del centro.
-		local necklace = 7
-		for index = 1, necklace do
-			local t = (index - 1) / (necklace - 1) * 2 - 1
-			glue(
-				rig,
-				torso,
-				piece(rig, "Bead", "Ball", Vector3.one * 0.2, if index % 2 == 0 then darker(wood, 0.25) else wood),
-				CFrame.new(t * 0.6, 0.15 - (1 - t * t) * 0.45, -1.02 - (1 - t * t) * 0.12)
-			)
-		end
-		feature(
-			rig,
-			torso,
-			"Nut",
-			Vector3.new(0.3, 0.42, 0.28),
-			Color3.fromRGB(125, 80, 45),
-			CFrame.new(0, -0.55, -1.18),
-			Enum.Material.Wood
-		)
-	end,
-
 	-- Gorila Albino: cristales de rubí en racimos sobre los hombros, el lomo y los brazos, y el corazón
 	-- encendido en el pecho (en bloques, en su spec); aquí solo se añaden la luz y las chispas rojas.
 	GorilaAlbino = function(rig)
