@@ -1,6 +1,7 @@
 --!strict
 -- Asedio nocturno v1 (GDD §10, Fase 2.5).
---   - Cada noche llegan Config.Siege.WavesPerNight oleadas de monos por uno o dos portones al azar.
+--   - Cada noche llegan Config.Siege.WavesPerNight oleadas de monos, repartidas entre los 4 portones.
+--     Dentro, cada mono se abre hacia un lado y va a su hueco alrededor de la hoguera (MonkeyService).
 --   - El tamaño crece con el día y con el número de jugadores (Config.Siege).
 --   - Los monos rompen las piezas que les cierran el paso (muros, portones…) y, si entran,
 --     atacan también dentro del Basecamp. Las estacas no cierran el paso: los monos las cruzan y
@@ -32,8 +33,6 @@ local STATUS_ATTRIBUTE = "SiegeStatus"
 
 -- Corto para no perderse a un mono rápido que cruza la estaca entre dos comprobaciones.
 local SPIKE_TICK_SECONDS = 0.25
--- Portones en el mismo orden que los construye MapBuilder: este, sur, oeste y norte.
-local GATE_NAMES = { "el este", "el sur", "el oeste", "el norte" }
 
 local SiegeService = {}
 
@@ -117,13 +116,13 @@ local function launchWave(day: number, wave: number)
 	else
 		total = waveSize(day)
 	end
-	-- Uno o dos portones al azar; los monos se reparten entre ellos.
+	-- Por los 4 portones a la vez: la oleada se reparte entre todos (empezando por uno al azar, que
+	-- se lleva lo que sobre al dividir). Dentro, cada mono se abre hacia un lado (MonkeyService).
 	local first = rng:NextInteger(1, 4)
-	local gates = { first }
-	if total >= 8 and rng:NextNumber() < 0.5 then
-		table.insert(gates, (first + rng:NextInteger(0, 2)) % 4 + 1)
+	local gates = {}
+	for offset = 0, 3 do
+		table.insert(gates, (first + offset - 1) % 4 + 1)
 	end
-	local names = {}
 	for index, gate in gates do
 		local direction = gateDirection(gate)
 		local gatePoint = flatCenter + direction * (Config.Building.PerimeterRadius - 10)
@@ -137,11 +136,13 @@ local function launchWave(day: number, wave: number)
 				end
 			end
 		else
-			MonkeyService.spawnSiegeGroup(pickSpecies(day), spawnPoint, gatePoint, share(total, #gates, index))
+			local count = share(total, #gates, index)
+			if count > 0 then
+				MonkeyService.spawnSiegeGroup(pickSpecies(day), spawnPoint, gatePoint, count)
+			end
 		end
-		table.insert(names, GATE_NAMES[gate])
 	end
-	local from = table.concat(names, " y ")
+	local from = "los 4 portones"
 	if mix then
 		local parts = {}
 		for _, entry in mix do

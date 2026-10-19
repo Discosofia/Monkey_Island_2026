@@ -23,6 +23,8 @@ export type Buildable = {
 	hitSound: string?,
 	-- No cierra el paso: los monos del asedio la cruzan en vez de pararse a romperla (las estacas).
 	walkable: boolean?,
+	-- Se va hundiendo en el suelo al perder vida: se ve cuánto le queda (las estacas).
+	sinkOnWear: boolean?,
 }
 
 local Buildables: { [string]: Buildable } = {
@@ -95,6 +97,7 @@ local Buildables: { [string]: Buildable } = {
 		health = 100,
 		zones = { Perimeter = true },
 		walkable = true,
+		sinkOnWear = true,
 	},
 	-- Estaciones (Fase 2.3): se construyen en el núcleo y las usa todo el equipo.
 	HealerTent = {

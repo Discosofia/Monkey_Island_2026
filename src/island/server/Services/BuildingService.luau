@@ -374,6 +374,19 @@ function BuildingService.damageStructure(model: Model, amount: number): boolean
 	end
 	model:SetAttribute("Health", remaining)
 	playHitSound(model)
+	-- Las que se desgastan a la vista (estacas) se van hundiendo: se ve cuánto les queda.
+	local buildableId = model:GetAttribute("BuildableId")
+	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
+	if definition and definition.sinkOnWear then
+		local basePivot = model:GetAttribute("BasePivot")
+		if typeof(basePivot) ~= "CFrame" then
+			basePivot = model:GetPivot()
+			model:SetAttribute("BasePivot", basePivot)
+		end
+		local maxHealth = model:GetAttribute("MaxHealth")
+		local worn = 1 - remaining / (if typeof(maxHealth) == "number" then maxHealth else definition.health)
+		model:PivotTo((basePivot :: CFrame) * CFrame.new(0, -worn * definition.size.Y * 0.7, 0))
+	end
 	return false
 end
 

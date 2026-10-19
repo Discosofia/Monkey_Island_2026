@@ -376,8 +376,27 @@ local Config = {
 		FinalNightFirstWaveDelaySeconds = 15,
 		FinalNightLastWaveSeconds = 75,
 		FinalNightMinIntervalSeconds = 20,
-		-- Hasta dónde busca estacas un macaco del asedio.
+		-- Hasta dónde busca estacas un macaco del asedio. Va a por ellas antes que a por los jugadores,
+		-- salvo que tenga uno al alcance de su golpe. Cada golpe le quita SpikeDisarmPerHit de vida a la
+		-- estaca (de 100): unos 5 golpes, y se la ve hundirse (Buildables "sinkOnWear").
 		TrapSearchRadius = 30,
+		SpikeDisarmPerHit = 20,
+		-- Cada mono del asedio hace su propio recorrido (MonkeyService): entra por su portón, se abre
+		-- hacia un lado (hasta SpreadWidth studs, SpreadDepth studs más adentro) y acaba en su hueco
+		-- alrededor de la hoguera (entre CampRingMin y CampRingMax studs del centro, girado hasta
+		-- CampRingSpreadDegrees hacia el lado por el que se abrió). Así cruzan las estacas por sitios
+		-- distintos y no se amontonan. Cada punto cuenta como alcanzado a WaypointReach studs.
+		SpreadDepth = 15,
+		SpreadWidth = 30,
+		CampRingMin = 14,
+		CampRingMax = 24,
+		CampRingSpreadDegrees = 60,
+		WaypointReach = 6,
+		-- Si un mono del asedio lleva DetourAfterSeconds sin avanzar 3 studs (algo le tapa el paso,
+		-- como el tótem), rodea hacia un lado DetourDistance studs durante DetourSeconds.
+		DetourAfterSeconds = 2,
+		DetourDistance = 10,
+		DetourSeconds = 1.5,
 		-- Distancia más allá del perímetro a la que aparecen, frente a los portones.
 		SpawnDistance = 45,
 		-- A qué distancia busca jugadores un mono del asedio y a qué distancia ataca una pieza.

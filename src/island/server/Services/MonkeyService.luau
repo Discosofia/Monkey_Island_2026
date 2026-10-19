@@ -11,8 +11,9 @@
 -- Las especies con "fearsFire" se apartan de antorchas y hogueras.
 -- Fase 4: zonas por bioma, alfas (si mueren, la tropa huye), saltos, rugidos, piedras, agarres,
 -- golpes en área y un límite de monos activos (Config.Monkeys.MaxActive).
--- Fase 2.5: los grupos de asedio (SiegeService) van hacia un portón y luego al centro del Basecamp;
--- atacan las piezas que les cierran el paso y a los jugadores, también dentro del Basecamp.
+-- Fase 2.5: los grupos de asedio (SiegeService) entran por un portón; dentro, cada mono se abre hacia
+-- un lado y va a su hueco alrededor de la hoguera (newSiegePath). Atacan las piezas que les cierran
+-- el paso y a los jugadores, también dentro del Basecamp; los macacos desarman las estacas primero.
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
 -- Además, un grupo con bajas recupera un mono cada cierto tiempo si no hay jugadores cerca de su
 -- zona (Config.Monkeys.GroupRegrowSeconds): la selva nunca se queda vacía.
@@ -58,6 +59,8 @@ local SPAWN_MATERIALS: { [Enum.Material]: boolean } = {
 }
 local WANDER_RADIUS = 20
 local HOME_REACHED_DISTANCE = 8
+-- Para medir distancias en horizontal.
+local FLAT = Vector3.new(1, 0, 1)
 
 type State = "Idle" | "Chase" | "Flee" | "Return"
 
@@ -93,7 +96,14 @@ type Monkey = {
 	damage: number, -- daño ya ajustado a la dificultad del día
 	stolen: { itemId: string, amount: number }?,
 	scaredUntil: number,
-	passedGate: boolean,
+	-- Asedio: su recorrido (portón → abierto a un lado → su hueco junto a la hoguera), el punto al
+	-- que va y el rodeo si algo le tapa el paso (siegeUnstick).
+	siegePath: { Vector3 }?,
+	siegeStep: number,
+	checkpoint: Vector3?,
+	checkpointAt: number,
+	detour: Vector3?,
+	detourUntil: number,
 	pounceReadyAt: number,
 	pounced: boolean, -- el siguiente golpe hace el doble
 	roarReadyAt: number,
@@ -380,6 +390,31 @@ local function makeAlpha(monkey: Monkey)
 	end
 end
 
+-- Recorrido de un mono del asedio (Config.Siege): entra por el portón de su grupo, se abre hacia un
+-- lado al azar y acaba en su hueco alrededor de la hoguera, a ras de suelo y del mismo lado. Cada
+-- uno el suyo: cruzan las estacas por sitios distintos y no se amontonan en el mismo punto.
+local function newSiegePath(group: Group): { Vector3 }?
+	local gate = group.gate
+	if not gate then
+		return nil
+	end
+	local settings = Config.Siege
+	local center = Building.center() or BasecampService.getCenter()
+	local inward = (center - gate) * FLAT
+	if inward.Magnitude < 1 then
+		return { gate }
+	end
+	inward = inward.Unit
+	local side = Vector3.new(-inward.Z, 0, inward.X)
+	local lateral = rng:NextNumber(-1, 1)
+	local spread = gate + inward * settings.SpreadDepth + side * lateral * settings.SpreadWidth
+	-- Girar el ángulo del portón hacia "-lateral" lleva el hueco hacia el mismo lado que "side".
+	local angle = math.atan2(-inward.Z, -inward.X) - lateral * math.rad(settings.CampRingSpreadDegrees)
+	local radius = rng:NextNumber(settings.CampRingMin, settings.CampRingMax)
+	local slot = Vector3.new(center.X + math.cos(angle) * radius, center.Y, center.Z + math.sin(angle) * radius)
+	return { gate, spread, slot }
+end
+
 local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	local definition = Monkeys[group.speciesId]
 	local offset = Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-8, 8))
@@ -421,7 +456,12 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		damage = math.round(definition.damage * damageMultiplier),
 		stolen = nil,
 		scaredUntil = 0,
-		passedGate = false,
+		siegePath = if group.siege then newSiegePath(group) else nil,
+		siegeStep = 1,
+		checkpoint = nil,
+		checkpointAt = 0,
+		detour = nil,
+		detourUntil = 0,
 		pounceReadyAt = 0,
 		pounced = false,
 		roarReadyAt = 0,
@@ -1061,7 +1101,29 @@ local function nearestStructure(position: Vector3, reach: number): Model?
 	return best
 end
 
--- IA del asedio: portón → centro. Jugadores cerca: a por ellos. Una pieza cerca: la rompe.
+-- Asedio: si en Config.Siege.DetourAfterSeconds no ha avanzado ni 3 studs hacia "goal" (algo le
+-- tapa el paso, como el tótem o una mesa), rodea hacia un lado un momento. Además salta (unstick).
+local function siegeUnstick(monkey: Monkey, goal: Vector3, now: number)
+	unstick(monkey, now)
+	local settings = Config.Siege
+	local position = monkey.root.Position
+	local checkpoint = monkey.checkpoint
+	if not checkpoint or ((position - checkpoint) * FLAT).Magnitude > 3 then
+		monkey.checkpoint = position
+		monkey.checkpointAt = now
+	elseif now - monkey.checkpointAt > settings.DetourAfterSeconds and now >= monkey.detourUntil then
+		local toGoal = (goal - position) * FLAT
+		if toGoal.Magnitude > 0.1 then
+			local side = Vector3.new(-toGoal.Z, 0, toGoal.X).Unit * (if rng:NextNumber() < 0.5 then -1 else 1)
+			monkey.detour = position + side * settings.DetourDistance + toGoal.Unit * 2
+			monkey.detourUntil = now + settings.DetourSeconds
+		end
+		monkey.checkpointAt = now
+	end
+end
+
+-- IA del asedio: su recorrido (portón → abierto a un lado → su hueco junto a la hoguera). Jugadores
+-- cerca: a por ellos. Una pieza que le cierra el paso: la rompe. Los macacos desarman las estacas.
 local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	local definition = monkey.definition
 	local position = monkey.root.Position
@@ -1086,21 +1148,18 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			targetDistance = distance
 		end
 	end
-	if target then
-		if targetDistance <= definition.attackRange then
-			humanoid:MoveTo(position)
-			if canAttack then
-				monkey.lastAttackAt = now
-				CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model, nil, true)
-			end
-		else
-			humanoid:MoveTo(target.position)
-			unstick(monkey, now)
+	local inReach = target ~= nil and targetDistance <= definition.attackRange
+	if target and inReach then
+		humanoid:MoveTo(position)
+		if canAttack then
+			monkey.lastAttackAt = now
+			CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model, nil, true)
 		end
 		return
 	end
 
-	-- Los que desarman trampas (macaco) van primero a por las estacas cercanas.
+	-- Los que desarman trampas (macaco) van a por las estacas cercanas antes que a por los jugadores
+	-- (salvo que tengan uno al alcance del golpe, arriba).
 	if definition.disarmsTraps then
 		local spikes: Model? = nil
 		local best = Config.Siege.TrapSearchRadius
@@ -1118,7 +1177,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 				humanoid:MoveTo(position)
 				if canAttack then
 					monkey.lastAttackAt = now
-					BuildingService.damageStructure(spikes, monkey.damage * Config.Siege.StructureDamageMultiplier * 2)
+					BuildingService.damageStructure(spikes, Config.Siege.SpikeDisarmPerHit)
 					MonkeyAnimator.play(monkey.model, "Attack")
 					showBubble(monkey, "🔧")
 				end
@@ -1128,6 +1187,12 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			end
 			return
 		end
+	end
+
+	if target then
+		humanoid:MoveTo(target.position)
+		unstick(monkey, now)
+		return
 	end
 
 	local structure = nearestStructure(position, Config.Siege.StructureReach)
@@ -1142,13 +1207,23 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		return
 	end
 
-	local gate = monkey.group.gate
-	if gate and not monkey.passedGate and ((position - gate) * Vector3.new(1, 0, 1)).Magnitude <= 10 then
-		monkey.passedGate = true
+	-- Su recorrido, punto a punto. En su hueco junto a la hoguera se queda esperando.
+	local path = monkey.siegePath
+	local reach = Config.Siege.WaypointReach
+	local goal = BasecampService.getCenter()
+	if path then
+		while monkey.siegeStep < #path and ((position - path[monkey.siegeStep]) * FLAT).Magnitude <= reach do
+			monkey.siegeStep += 1
+		end
+		goal = path[monkey.siegeStep]
+		if monkey.siegeStep == #path and ((position - goal) * FLAT).Magnitude <= reach then
+			humanoid:MoveTo(position)
+			return
+		end
 	end
-	local goal = if gate and not monkey.passedGate then gate else BasecampService.getCenter()
-	humanoid:MoveTo(goal)
-	unstick(monkey, now)
+	local detour = monkey.detour
+	humanoid:MoveTo(if detour and now < monkey.detourUntil then detour else goal)
+	siegeUnstick(monkey, goal, now)
 end
 
 -- Lanza un grupo de asedio que aparece en "spawnPoint" y entra por "gatePoint".
