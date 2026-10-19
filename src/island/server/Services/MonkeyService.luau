@@ -37,6 +37,7 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Building = require(ReplicatedStorage.Shared.Building)
 local Buildables = require(ReplicatedStorage.Shared.Data.Buildables)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
@@ -719,7 +720,8 @@ local function collectPlayers(): { PlayerInfo }
 			table.insert(infos, {
 				player = player,
 				position = root.Position,
-				safe = player:GetAttribute("InBasecamp") == true,
+				-- Con el campamento caído (Shared/Basecamp), dentro tampoco se está a salvo.
+				safe = player:GetAttribute("InBasecamp") == true and not Basecamp.isFallen(),
 				-- Antorcha encendida en la mano izquierda (TorchService).
 				hasTorch = player:GetAttribute("TorchLit") == true,
 			})
@@ -1207,7 +1209,8 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		return
 	end
 
-	-- Su recorrido, punto a punto. En su hueco junto a la hoguera se queda esperando.
+	-- Su recorrido, punto a punto. En su hueco junto a la hoguera ataca al campamento (su vida está en
+	-- BasecampService); cuando ha caído, se queda esperando a que pase alguien.
 	local path = monkey.siegePath
 	local reach = Config.Siege.WaypointReach
 	local goal = BasecampService.getCenter()
@@ -1218,6 +1221,14 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		goal = path[monkey.siegeStep]
 		if monkey.siegeStep == #path and ((position - goal) * FLAT).Magnitude <= reach then
 			humanoid:MoveTo(position)
+			if canAttack and monkey.damage > 0 and not Basecamp.isFallen() then
+				monkey.lastAttackAt = now
+				-- Mirando a la hoguera.
+				local center = BasecampService.getCenter()
+				monkey.root.CFrame = CFrame.lookAt(position, Vector3.new(center.X, position.Y, center.Z))
+				BasecampService.damage(monkey.damage * Config.Basecamp.MonkeyDamageMultiplier)
+				MonkeyAnimator.play(monkey.model, "Attack")
+			end
 			return
 		end
 	end

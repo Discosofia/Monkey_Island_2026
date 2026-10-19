@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
+local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
@@ -196,7 +197,8 @@ function CombatService.damagePlayer(
 	cause: string?,
 	bite: boolean?
 ): boolean
-	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe
+	-- Con el campamento caído (Shared/Basecamp) no hay zona segura.
+	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe and not Basecamp.isFallen()
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
 		return false
 	end

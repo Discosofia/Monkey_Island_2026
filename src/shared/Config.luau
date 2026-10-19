@@ -57,6 +57,14 @@ local Config = {
 		DefaultZoneCenter = Vector3.new(0, 30, 0),
 		-- Cada cuánto se comprueba quién está dentro.
 		CheckIntervalSeconds = 0.5,
+		-- Vida del campamento (BasecampService, Shared/Basecamp). Los monos del asedio que llegan a su
+		-- hueco junto a la hoguera le quitan MonkeyDamageMultiplier × su daño en cada golpe. A 0 cae:
+		-- deja de ser zona segura y las estaciones no funcionan. De día se regenera RegenPerSecond y
+		-- vuelve a estar en pie al pasar de RecoverFraction de su vida.
+		MaxHealth = 2000,
+		MonkeyDamageMultiplier = 0.25,
+		RegenPerSecond = 4,
+		RecoverFraction = 0.5,
 	},
 
 	Resources = {

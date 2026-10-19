@@ -487,6 +487,9 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	GreatTroop = function()
 		SiegeService.debugGreatTroop()
 	end,
+	BasecampHurt = function()
+		BasecampService.debugSetHealth(0.1)
+	end,
 	Sounds = function(player)
 		local keys = {}
 		for key in Sounds.Effects do

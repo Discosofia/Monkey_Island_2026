@@ -1,5 +1,6 @@
 --!strict
--- HUD de la Isla: reloj de día/noche e indicador del Basecamp (arriba a la derecha), botón para volver
+-- HUD de la Isla: reloj de día/noche e indicador del Basecamp (arriba a la derecha), vida del
+-- campamento (arriba en el centro, de noche o si está dañado), botón para volver
 -- al Lobby y botón ⚙️ de Ajustes (abajo a la derecha; en pantallas táctiles, bajo el reloj, porque
 -- abajo a la derecha están el salto y los botones de acción).
 -- En Studio también muestra un botón para saltar de fase y probar la noche sin esperar.
@@ -11,6 +12,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -19,6 +21,8 @@ local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local SAFE_COLOR = Color3.fromRGB(120, 230, 140)
 local DANGER_COLOR = Color3.fromRGB(255, 170, 60)
+local FALLEN_COLOR = Color3.fromRGB(235, 70, 60)
+local HEALTHY_COLOR = Color3.fromRGB(90, 230, 110)
 
 local IslandHUDController = {}
 
@@ -79,6 +83,9 @@ local function createBasecampIndicator(gui: ScreenGui)
 		local inBasecamp = player:GetAttribute("InBasecamp")
 		if inBasecamp == nil then
 			indicator.Text = ""
+		elseif inBasecamp and Basecamp.isFallen() then
+			indicator.Text = "🔥 Basecamp caído: no es zona segura"
+			indicator.TextColor3 = FALLEN_COLOR
 		elseif inBasecamp then
 			indicator.Text = "🏕️ Basecamp: zona segura"
 			indicator.TextColor3 = SAFE_COLOR
@@ -89,7 +96,66 @@ local function createBasecampIndicator(gui: ScreenGui)
 	end
 
 	player:GetAttributeChangedSignal("InBasecamp"):Connect(refresh)
+	ReplicatedStorage:GetAttributeChangedSignal(Basecamp.FALLEN):Connect(refresh)
 	refresh()
+end
+
+-- Vida del campamento (Shared/Basecamp) arriba en el centro, en la franja libre entre las barras de
+-- la izquierda y el reloj (encima de la línea del asedio, a 0.13). Se ve de noche, si no está
+-- entero o si ha caído.
+local function createBasecampHealth(gui: ScreenGui)
+	local frame = Instance.new("Frame")
+	frame.Name = "BasecampHealth"
+	frame.AnchorPoint = Vector2.new(0.5, 0)
+	frame.Position = UDim2.fromScale(0.5, 0.02)
+	frame.Size = UDim2.fromOffset(240, 30)
+	frame.BackgroundTransparency = 1
+	frame.Visible = false
+	frame.Parent = gui
+
+	local label = Widgets.label("", frame)
+	label.Size = UDim2.new(1, 0, 0, 18)
+
+	local back = Instance.new("Frame")
+	back.Position = UDim2.fromOffset(0, 20)
+	back.Size = UDim2.new(1, 0, 0, 10)
+	back.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	back.BackgroundTransparency = 0.35
+	back.BorderSizePixel = 0
+	back.Parent = frame
+	local backCorner = Instance.new("UICorner")
+	backCorner.CornerRadius = UDim.new(0, 6)
+	backCorner.Parent = back
+	local fill = Instance.new("Frame")
+	fill.BorderSizePixel = 0
+	fill.Parent = back
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(0, 6)
+	fillCorner.Parent = fill
+
+	task.spawn(function()
+		while frame.Parent do
+			local health, maxHealth = Basecamp.health()
+			local state = MatchState.read()
+			if health and maxHealth then
+				local fraction = math.clamp(health / maxHealth, 0, 1)
+				local fallen = Basecamp.isFallen()
+				local night = state ~= nil and state.phase == "Night"
+				frame.Visible = night or fallen or fraction < 1
+				-- Corto para que se lea en un teléfono; el indicador de la derecha ya dice que no es zona segura.
+				label.Text = if fallen then "🔥 ¡Campamento caído!" else `🏕️ Campamento {health}/{maxHealth}`
+				label.TextColor3 = if fallen then FALLEN_COLOR else Color3.new(1, 1, 1)
+				fill.Size = UDim2.fromScale(fraction, 1)
+				fill.BackgroundColor3 = if fallen or fraction < 0.25
+					then FALLEN_COLOR
+					elseif fraction < 0.5 then DANGER_COLOR
+					else HEALTHY_COLOR
+			else
+				frame.Visible = false
+			end
+			task.wait(0.25)
+		end
+	end)
 end
 
 local function createReturnButton(gui: ScreenGui): TextButton
@@ -225,6 +291,7 @@ function IslandHUDController:Start()
 
 	createClock(gui)
 	createBasecampIndicator(gui)
+	createBasecampHealth(gui)
 	createStatusLine(gui, "SiegeStatus", 0.13, Color3.fromRGB(255, 120, 90))
 	createStatusLine(gui, "EggStatus", 0.24, Color3.fromRGB(150, 240, 255))
 	createStatusLine(gui, "BeaconStatus", 0.275, Color3.fromRGB(255, 150, 140))

@@ -14,7 +14,7 @@ golpe).
 | Qué | Archivo | ScreenGui | Place |
 |---|---|---|---|
 | Piezas comunes: `screen`, `label`, `button` | `src/shared/UI/Widgets.luau` | — | ambos |
-| Reloj, indicador del Basecamp, líneas de estado (asedio, huevo, baliza), "Volver al Lobby", ⚙️ y ventana de Ajustes, "Saltar fase" | `src/island/client/Controllers/IslandHUDController.luau` | `IslandHUD`, `SettingsUI` | Isla |
+| Reloj, indicador del Basecamp, vida del campamento, líneas de estado (asedio, huevo, baliza), "Volver al Lobby", ⚙️ y ventana de Ajustes, "Saltar fase" | `src/island/client/Controllers/IslandHUDController.luau` | `IslandHUD`, `SettingsUI` | Isla |
 | Barras de hambre, sed, estamina y fiebre | `src/island/client/Controllers/SurvivalHUDController.luau` | `SurvivalHUD` | Isla |
 | Casillas de habilidades Z X C R V | `src/island/client/Controllers/RoleController.luau` (`buildHud`) | `RoleHUD` | Isla |
 | Panel de combos y "¡COMBO!" | `src/island/client/Controllers/ComboController.luau` | `ComboHUD` | Isla |
@@ -35,7 +35,7 @@ golpe).
 | Todo el Lobby (título, pestañas, unirse, invitar) | `src/lobby/client/Controllers/LobbyUIController.luau` | `LobbyUI` | Lobby |
 | Efectos en pantalla de habilidades (destellos, estrellas) | `src/island/client/Controllers/AbilityFxController.luau` | varios | Isla |
 | Estallidos de cómic del combate (BAM! POW! K.O.! OUCH!) | `src/island/client/Controllers/ComicFxController.luau` + `src/shared/UI/ComicBurst.luau` (dibujo, también en la vista previa de Ajustes) | `BillboardGui` "ComicFx" | Isla |
-| Carteles sobre cosas del mapa ("Parcela libre", "Tótem PvP", nombres de monos, títulos cosméticos) | `BillboardGui` creados en el servidor: `BuildingService`, `PvPService`, `MonkeyService`, `BossService`, `CosmeticsServer`… | — | Isla |
+| Carteles sobre cosas del mapa ("Parcela libre", "Tótem PvP", nombres de monos, títulos cosméticos, vida del campamento sobre la hoguera) | `BillboardGui` creados en el servidor: `BuildingService`, `PvPService`, `MonkeyService`, `BossService`, `CosmeticsServer`, `BasecampService`… | — | Isla |
 
 Todos los HUD se crean por código al arrancar (no hay nada hecho a mano en `StarterGui`), así que
 cualquier cambio va al repo. Para encontrar dónde se crea algo que el usuario nombra por su texto,
@@ -177,8 +177,11 @@ Zonas que están **siempre ocupadas** aunque en PC parezcan libres:
   que ser breve (menos de 1 s) o muy transparente.
 
 La columna central de arriba (de 0.13 a 0.32) ya está muy llena: asedio, avisos, jefe, tutorial,
-huevo, baliza, combo y caído. Algo nuevo no debería ir ahí sin quitar o agrupar otra cosa. La franja
-de 0.02 a 0.13 del centro quedó libre al llevar el reloj y el Basecamp a la derecha.
+huevo, baliza, combo y caído. Algo nuevo no debería ir ahí sin quitar o agrupar otra cosa. En la
+franja de 0.02 a 0.13 del centro va la vida del campamento (`BasecampHealth`, 240 x 30 px a 0.02,
+solo de noche, dañado o caído); en un teléfono acaba a unos 37 px de la línea del asedio, así que
+no cabe nada más debajo. Sus textos son cortos a propósito: con más de ~25 caracteres bajan de
+11 px en un teléfono.
 
 El panel de construcción (10 piezas de 54 px, centrado a la derecha) mide unos 600 px: en PC roza el
 indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfono no cabe entero.

@@ -34,6 +34,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "NextArmor", label = "🛡️ Siguiente armadura" },
 		{ id = "Beacon", label = "📡 4 piezas + baliza sin espera" },
 		{ id = "GreatTroop", label = "🌕 La Gran Tropa ya" },
+		{ id = "BasecampHurt", label = "🏕️ Campamento al 10 %" },
 		{ id = "Defeat", label = "💀 Terminar: derrota" },
 	},
 	Lobby = {

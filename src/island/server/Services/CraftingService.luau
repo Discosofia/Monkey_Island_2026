@@ -17,6 +17,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
+local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Building = require(ReplicatedStorage.Shared.Building)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
@@ -335,6 +336,14 @@ local function onCraft(player: Player, recipeId: any)
 		return
 	end
 	if not Crafting.isForRole(player, recipe) then
+		return
+	end
+	-- Con el campamento caído las estaciones no funcionan hasta que se recupere de día.
+	if Basecamp.isFallen() then
+		Remotes.Notify:FireClient(
+			player,
+			"🔥 El campamento ha caído: las estaciones no funcionan hasta que se recupere"
+		)
 		return
 	end
 	if Crafting.isUnique(recipe) and Crafting.isOwned(player, recipeId) then
