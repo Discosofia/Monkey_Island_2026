@@ -62,10 +62,27 @@ local function isStarterGear(player: Player, gearId: string): boolean
 	return role ~= nil and table.find(role.weapons, gearId) ~= nil
 end
 
-local function gearName(gearId: string): string
+-- Nombre de la armadura "armorId" con el aspecto del rol "roleId" (Data/Armor "roleNames").
+function Crafting.armorName(armorId: string, roleId: any): string
+	local armor = Armor[armorId]
+	if not armor then
+		return armorId
+	end
+	local roleName = if armor.roleNames and typeof(roleId) == "string" then armor.roleNames[roleId] else nil
+	return roleName or armor.name
+end
+
+-- Nombre de una receta para este jugador: el de su armadura con el aspecto de su rol.
+function Crafting.recipeName(player: Player, recipe: Recipes.Recipe): string
+	return if recipe.armorId then Crafting.armorName(recipe.armorId, player:GetAttribute("Role")) else recipe.name
+end
+
+local function gearName(player: Player, gearId: string): string
 	local weapon = Weapons[gearId]
-	local armor = Armor[gearId]
-	return if weapon then weapon.name elseif armor then armor.name else gearId
+	if weapon then
+		return weapon.name
+	end
+	return if Armor[gearId] then Crafting.armorName(gearId, player:GetAttribute("Role")) else gearId
 end
 
 -- Lo que le falta para fabricar una mejora: el nombre del equipo anterior de la cadena (el hacha de
@@ -79,7 +96,7 @@ function Crafting.missingPrerequisite(player: Player, recipe: Recipes.Recipe): s
 	if previous and Crafting.isOwned(player, previous) then
 		return nil
 	end
-	return gearName(gearId)
+	return gearName(player, gearId)
 end
 
 -- true si este jugador nunca podrá fabricar la mejora: la cadena empieza en un equipo que no tiene

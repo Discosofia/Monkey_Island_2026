@@ -5,8 +5,11 @@
 -- medidas salen del tamaño de esa parte, así quedan bien en cualquier avatar. En R6, que no tiene
 -- antebrazos ni cintura, se usa el trozo correspondiente del brazo, la pierna o el torso.
 -- Respecto a cada parte: -Z es el frente, +Z la espalda, +Y arriba.
--- Cada rango es más vistoso y detallado que el anterior. La espalda es lo que el jugador ve todo el
--- rato (la cámara va detrás), así que cada una lleva ahí su motivo más llamativo:
+-- Cada rol tiene las suyas (mismos números y recetas; nombres por rol en Data/Armor "roleNames"); el
+-- rol que aún no tiene las propias lleva las del guerrero. Cada rango es más vistoso y detallado que
+-- el anterior. La espalda es lo que el jugador ve todo el rato (la cámara va detrás), así que cada una
+-- lleva ahí su motivo más llamativo.
+-- Guerrero:
 --   - Chaleco de pelaje: chaleco rojo de mono aullador con ribete y cuello de pelaje dorado,
 --     cordones de fibra, collar de colmillos, cinturón de cuerda con zurrón y un plátano de amuleto,
 --     brazaletes de pelaje dorado y muñecas vendadas con fibra. Detrás, la huella de una mano de
@@ -20,6 +23,21 @@
 --     que destella, hombreras de láminas de hueso con tres cráneos de mono en abanico, brazales con
 --     puño de pelaje y faldones de pelaje y hueso. Detrás, capa oscura de gorila con flecos y la
 --     cabeza de un gorila plateado furioso de ojos rojos que brillan.
+-- Cazador (ligeras, de cuero con camuflaje de hojas; detrás, la capucha bajada y el carcaj con las
+-- flechas asomando por encima del hombro derecho, el de la mano que tira):
+--   - Capa de rastreador: jubón de cuero claro, esclavina de pelaje pardo con hojas cosidas, correa
+--     del carcaj cruzada, brazal en el antebrazo del arco y cinturón de fibra con zurrón y cuchillo.
+--     Detrás, un abanico de hojas bajo la capucha y el carcaj de corteza con tres flechas de plumas
+--     blancas.
+--   - Armadura de cazador: jubón de cuero oscuro con botones de hueso, hombrera de láminas de hueso
+--     en el hombro izquierdo y un manojo de hojas en el derecho, correa con colmillos de trofeo,
+--     brazal con tablillas de hueso y hojas colgando de los muslos. Detrás, un manto de hojas de tres
+--     verdes y el carcaj de cuero con aros de hueso, un colmillo colgando y cinco flechas de plumas
+--     rojas y blancas.
+--   - Manto de cazador plateado: capa de pelaje plateado con hojas oscuras de camuflaje y flecos,
+--     capucha de pelaje con orejas, broche de plata en forma de hoja, correas cruzadas con remaches,
+--     hombros de pelaje con garras de hueso, brazales con puño de pelaje y faldones plateados. Detrás,
+--     el carcaj de cuero oscuro con aros de plata y siete flechas de plumas plateadas y negras.
 
 local Armor = require(game:GetService("ReplicatedStorage").Shared.Data.Armor)
 
@@ -42,14 +60,31 @@ local GORILLA_EYE = Color3.fromRGB(235, 45, 30)
 local SILVER = Color3.fromRGB(200, 205, 215)
 local BANANA = Color3.fromRGB(240, 200, 60)
 local BANANA_TIP = Color3.fromRGB(85, 60, 30)
+local HUNTER_LEATHER = Color3.fromRGB(128, 90, 56)
+local HUNTER_LEATHER_DARK = Color3.fromRGB(90, 62, 40)
+local FUR_BROWN = Color3.fromRGB(112, 80, 52)
+local LEAF = Color3.fromRGB(62, 132, 56)
+local LEAF_DARK = Color3.fromRGB(40, 100, 46)
+local BARK = Color3.fromRGB(96, 66, 40)
+local ARROW_SHAFT = Color3.fromRGB(165, 125, 80)
+local FEATHER_WHITE = Color3.fromRGB(236, 232, 222)
+local FEATHER_GREY = Color3.fromRGB(150, 150, 150)
+local FEATHER_RED = Color3.fromRGB(185, 55, 40)
+local LEAF_LIGHT = Color3.fromRGB(110, 160, 70)
+local LEAF_SHADOW = Color3.fromRGB(32, 72, 52)
 
 local FABRIC = Enum.Material.Fabric
 local SMOOTH = Enum.Material.SmoothPlastic
 local LEATHER_MATERIAL = Enum.Material.Leather
 local METAL = Enum.Material.Metal
+local WOOD = Enum.Material.Wood
 
 -- Y así a lo largo de Z (discos que miran al frente).
 local FACING = CFrame.Angles(0, math.rad(90), 0)
+-- Y así a lo largo de Y (los cilindros tienen el eje en X): tubos de pie.
+local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
+-- Rol que pone su armadura a quien aún no tiene la suya.
+local DEFAULT_ROLE = "Guerrero"
 
 local ArmorModels = {}
 
@@ -720,17 +755,485 @@ local function silverArmor(body: Body)
 	end
 end
 
-local BUILDERS: { [string]: (body: Body) -> () } = {
-	FurVest = furVest,
-	BoneArmor = boneArmor,
-	SilverArmor = silverArmor,
+-- ===================================== Cazador =====================================
+
+-- Hoja de camuflaje: óvalo estrecho de "length" de largo en el plano XY de "at", con la punta hacia su
+-- +Y y el nervio central más oscuro por fuera (+Z de "at"); sin nervio parece un lunar.
+local function leaf(make: Builder, length: number, color: Color3, at: CFrame)
+	make.oval(Vector3.new(length * 0.42, length, 0.05), color, SMOOTH, at)
+	make.block(
+		Vector3.new(0.03, length * 0.8, 0.03),
+		color:Lerp(Color3.new(0, 0, 0), 0.35),
+		SMOOTH,
+		at * CFrame.new(0, 0, 0.03)
+	)
+end
+
+type QuiverStyle = {
+	length: number,
+	radius: number,
+	color: Color3,
+	material: Enum.Material,
+	rim: Color3,
+	rimMaterial: Enum.Material,
+	arrows: number,
+	feathers: { Color3 },
 }
 
--- Viste a "character" con la armadura "armorId" (sustituye a la que llevara). Devuelve el modelo, o
--- nil si no hay torso o la armadura no existe.
-function ArmorModels.wear(character: Model, armorId: string): Model?
+-- Carcaj con el eje a lo largo de la +Y de "at" (el centro del tubo): tubo, aro en la boca y en el
+-- fondo, y las flechas asomando por la boca con sus plumas, un poco abiertas en abanico. Devuelve el
+-- marco de la boca.
+local function quiver(make: Builder, at: CFrame, style: QuiverStyle): CFrame
+	local length, radius = style.length, style.radius
+	make.rod(length, radius * 2, style.color, style.material, at * UPRIGHT)
+	local mouth = at * CFrame.new(0, length / 2, 0)
+	make.rod(0.12, radius * 2 + 0.06, style.rim, style.rimMaterial, mouth * CFrame.new(0, -0.05, 0) * UPRIGHT)
+	make.rod(0.1, radius * 2 + 0.04, style.rim, style.rimMaterial, at * CFrame.new(0, -length / 2 + 0.06, 0) * UPRIGHT)
+	local count = style.arrows
+	for index = 1, count do
+		local angle = (index - 1) / count * math.pi * 2
+		local spot = if count == 1
+			then Vector3.zero
+			else Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * 0.55
+		local stick = 0.4 + (index % 2) * 0.12
+		local arrowAt = mouth * CFrame.new(spot) * CFrame.Angles(spot.Z * 0.8, 0, -spot.X * 0.8)
+		make.rod(stick + 0.2, 0.06, ARROW_SHAFT, WOOD, arrowAt * CFrame.new(0, (stick - 0.2) / 2, 0) * UPRIGHT)
+		local feather = style.feathers[(index - 1) % #style.feathers + 1]
+		for vane = 0, 1 do
+			make.block(
+				Vector3.new(0.03, 0.3, 0.17),
+				feather,
+				SMOOTH,
+				arrowAt * CFrame.new(0, stick - 0.13, 0) * CFrame.Angles(0, vane * math.pi / 2, 0)
+			)
+		end
+	end
+	return mouth
+end
+
+-- Abanico de "count" hojas solapadas que salen de la nuca y caen por la espalda, de "length" de largo,
+-- abiertas "spread" radianes a cada lado de la vertical, con los colores de "colors" alternados y a
+-- "out" studs por detrás de la espalda (más si van sobre una capa).
+local function leafFan(make: Builder, count: number, length: number, spread: number, colors: { Color3 }, out: number)
+	local height, depth = make.size.Y, make.size.Z
+	-- Salen de debajo de la capucha (loweredHood), que tapa su arranque.
+	local neck = Vector3.new(0, height / 2 - 0.3, depth / 2 + out)
+	for index = 0, count - 1 do
+		local angle = -spread + index * 2 * spread / (count - 1)
+		-- Las del centro, más largas; una de cada dos un poco por fuera (sin caras en el mismo plano).
+		local size = length * (1 - 0.18 * math.abs(angle) / spread)
+		local direction = Vector3.new(math.sin(angle), -math.cos(angle), 0)
+		local center = neck + direction * (size / 2 + 0.05) + Vector3.new(0, 0, 0.02 + (index % 2) * 0.03)
+		leaf(make, size, colors[index % #colors + 1], CFrame.new(center) * CFrame.Angles(0, 0, math.pi + angle))
+	end
+end
+
+-- Capucha bajada a la espalda, bajo la nuca: el pliegue, su abertura oscura y la punta colgando.
+-- Devuelve el marco del pliegue.
+local function loweredHood(make: Builder, color: Color3, lining: Color3, material: Enum.Material): CFrame
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	-- Más alto que ancho, con la abertura arriba: ancho y plano parece el ala de un sombrero.
+	local fold = CFrame.new(0, height / 2 - 0.2, depth / 2 + 0.2)
+	make.oval(Vector3.new(width * 0.52, 0.72, 0.44), color, material, fold)
+	make.oval(Vector3.new(width * 0.38, 0.14, 0.26), lining, material, fold * CFrame.new(0, 0.31, -0.05))
+	make.fang(0.4, 0.28, color, material, fold * CFrame.new(0.14, -0.3, 0.2) * CFrame.Angles(0, 0, math.pi))
+	return fold
+end
+
+-- El carcaj va en diagonal por la espalda, con la boca junto al hombro derecho (+X), a "out" studs
+-- de la espalda (más si va sobre una capa). Devuelve el marco de su centro.
+local function backQuiver(make: Builder, style: QuiverStyle, out: number): CFrame
+	local depth = make.size.Z
+	local at = CFrame.new(0.16, -0.04, depth / 2 + style.radius + out) * CFrame.Angles(0, 0, -0.42)
+	quiver(make, at, style)
+	return at
+end
+
+-- Correa del carcaj por delante: del hombro derecho a la cadera izquierda.
+local function quiverStrap(make: Builder, front: number, thickness: number, color: Color3, material: Enum.Material)
+	local width, height = make.size.X, make.size.Y
+	strap(
+		make,
+		Vector3.new(width * 0.3, height / 2 - 0.02, front),
+		Vector3.new(-width * 0.4, -height / 2 + 0.12, front),
+		thickness,
+		color,
+		material
+	)
+end
+
+local function trackerCape(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.07)
+	-- Jubón de cuero claro, ceñido.
+	make.block(
+		Vector3.new(width + 0.1, height * 0.92, depth + 0.12),
+		HUNTER_LEATHER,
+		LEATHER_MATERIAL,
+		CFrame.new(0, -height * 0.02, 0)
+	)
+	-- Esclavina corta de pelaje pardo sobre los hombros.
+	make.block(Vector3.new(width + 0.24, 0.32, depth + 0.3), FUR_BROWN, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.02))
+	for side = -1, 1, 2 do
+		make.ball(0.5, FUR_BROWN, FABRIC, CFrame.new(side * (width / 2 + 0.02), height / 2 - 0.08, 0))
+		-- Hojas cosidas por delante, a los lados del cuello.
+		leaf(
+			make,
+			0.42,
+			LEAF,
+			CFrame.new(side * width * 0.3, height / 2 - 0.16, front - 0.1) * CFrame.Angles(0, 0, side * 0.5)
+		)
+		leaf(
+			make,
+			0.36,
+			LEAF_DARK,
+			CFrame.new(side * width * 0.43, height / 2 - 0.2, front - 0.09) * CFrame.Angles(0, 0, side * 1.1)
+		)
+	end
+	-- Detrás, un abanico de hojas que cae de la nuca por la espalda, bajo la capucha.
+	leafFan(make, 9, 1.15, 1.3, { LEAF, LEAF_DARK }, 0.1)
+	loweredHood(make, HUNTER_LEATHER, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	backQuiver(make, {
+		length = 1.6,
+		radius = 0.22,
+		color = BARK,
+		material = WOOD,
+		rim = FIBER,
+		rimMaterial = FABRIC,
+		arrows = 3,
+		feathers = { FEATHER_WHITE, FEATHER_GREY },
+	}, 0.2)
+	quiverStrap(make, front - 0.04, 0.12, FIBER, FABRIC)
+	-- Cordones de fibra cerrando el jubón.
+	for _, laceY in { -height * 0.12, -height * 0.32 } do
+		make.block(Vector3.new(0.3, 0.05, 0.04), FIBER, FABRIC, CFrame.new(0, laceY, front - 0.02))
+	end
+
+	-- Cinturón de fibra con zurrón a la derecha y cuchillo de hueso en su funda a la izquierda.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltY = waist.size.Y * 0.1
+	local beltFront = -(hipDepth / 2 + 0.07)
+	waist.block(Vector3.new(hipWidth + 0.12, 0.14, hipDepth + 0.12), FIBER, FABRIC, CFrame.new(0, beltY, 0))
+	local pouch = CFrame.new(hipWidth * 0.3, beltY - 0.16, beltFront - 0.06)
+	waist.block(Vector3.new(0.36, 0.32, 0.14), HUNTER_LEATHER_DARK, LEATHER_MATERIAL, pouch)
+	waist.block(Vector3.new(0.4, 0.12, 0.18), HUNTER_LEATHER, LEATHER_MATERIAL, pouch * CFrame.new(0, 0.12, -0.01))
+	local sheath = CFrame.new(-hipWidth * 0.36, beltY - 0.2, beltFront - 0.03) * CFrame.Angles(0, 0, -0.25)
+	waist.block(Vector3.new(0.14, 0.42, 0.08), HUNTER_LEATHER_DARK, LEATHER_MATERIAL, sheath)
+	waist.block(Vector3.new(0.1, 0.2, 0.1), BONE, SMOOTH, sheath * CFrame.new(0, 0.3, 0))
+
+	-- Brazal de cuero en el antebrazo del arco (el derecho) y muñeca vendada en el otro.
+	local bowArm = body.lowerArm[1]
+	band(bowArm, -bowArm.size.Y * 0.08, bowArm.size.Y * 0.5, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	band(bowArm, bowArm.size.Y * 0.1, 0.06, 0.12, FIBER, FABRIC)
+	local drawArm = body.lowerArm[-1]
+	band(drawArm, -drawArm.size.Y * 0.36, 0.12, 0.06, FIBER, FABRIC, 0.12)
+end
+
+-- Hombrera de láminas de hueso (la del arco no la lleva: tensaría la cuerda contra ella).
+local function bonePauldron(arm: Builder, side: number)
+	local as = arm.size
+	local top = as.Y / 2
+	for index = 0, 2 do
+		arm.oval(
+			Vector3.new(as.X * 1.05 - index * 0.1, 0.24, as.Z * 1.15 - index * 0.1),
+			if index == 1 then BONE_DARK else BONE,
+			SMOOTH,
+			CFrame.new(side * (0.06 + index * 0.09), top + 0.08 - index * 0.2, 0)
+				* CFrame.Angles(0, 0, -side * (0.2 + index * 0.2))
+		)
+	end
+	band(arm, top - 0.5, 0.12, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+end
+
+local function hunterLeather(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	-- Jubón de cuero oscuro con tres botones de hueso (palitos atravesados) en el centro.
+	make.block(
+		Vector3.new(width + 0.12, height * 0.92, depth + 0.14),
+		HUNTER_LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, -height * 0.02, 0)
+	)
+	make.block(
+		Vector3.new(0.06, height * 0.8, 0.04),
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, -height * 0.04, front)
+	)
+	for _, y in { 0.22, 0, -0.22 } do
+		make.rod(0.32, 0.08, BONE, SMOOTH, CFrame.new(0, height * y, front - 0.04))
+	end
+	-- Cuello de cuero claro.
+	make.block(
+		Vector3.new(width * 0.7, 0.2, depth + 0.24),
+		HUNTER_LEATHER,
+		LEATHER_MATERIAL,
+		CFrame.new(0, height / 2 - 0.04, 0)
+	)
+	-- Correa del carcaj con tres colmillos de trofeo colgando.
+	quiverStrap(make, front - 0.06, 0.14, LEATHER, LEATHER_MATERIAL)
+	for index = 1, 3 do
+		local t = 0.25 + index * 0.13
+		local x = width * 0.3 + (-width * 0.7) * t
+		local y = (height / 2 - 0.02) + (-height + 0.14) * t
+		make.fang(0.26, 0.1, BONE, SMOOTH, CFrame.new(x + 0.05, y - 0.04, front - 0.09) * CFrame.Angles(0, 0, math.pi))
+	end
+	-- Detrás, un manto de hojas de tres verdes, la capucha y el carcaj de cuero con aros de hueso.
+	leafFan(make, 11, 1.3, 1.4, { LEAF, LEAF_DARK, LEAF_LIGHT }, 0.1)
+	loweredHood(make, HUNTER_LEATHER, LEATHER_DARK, LEATHER_MATERIAL)
+	local quiverAt = backQuiver(make, {
+		length = 1.7,
+		radius = 0.24,
+		-- Claro, de hueso: de lejos es lo que lo distingue de la capa de rastreador.
+		color = BONE_DARK,
+		material = SMOOTH,
+		rim = LEATHER_DARK,
+		rimMaterial = LEATHER_MATERIAL,
+		arrows = 5,
+		feathers = { FEATHER_RED, FEATHER_WHITE },
+	}, 0.22)
+	-- Un colmillo grande atado al carcaj, colgando de su costado.
+	make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, quiverAt * CFrame.new(-0.28, 0.25, 0.05))
+	make.fang(0.36, 0.14, BONE, SMOOTH, quiverAt * CFrame.new(-0.21, 0.12, 0.14) * CFrame.Angles(0, 0, math.pi))
+
+	-- Cinturón de cuero con hebilla de hueso, zurrón y cuchillo.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.08)
+	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), LEATHER, LEATHER_MATERIAL, CFrame.new(0, 0.06, 0))
+	waist.block(Vector3.new(0.3, 0.24, 0.08), BONE, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.02))
+	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
+	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER, LEATHER_MATERIAL, pouch)
+	waist.block(
+		Vector3.new(0.42, 0.12, 0.18),
+		HUNTER_LEATHER_DARK,
+		LEATHER_MATERIAL,
+		pouch * CFrame.new(0, 0.13, -0.01)
+	)
+	local sheath = CFrame.new(-hipWidth * 0.36, -0.14, beltFront - 0.03) * CFrame.Angles(0, 0, -0.25)
+	waist.block(Vector3.new(0.14, 0.44, 0.08), LEATHER, LEATHER_MATERIAL, sheath)
+	waist.block(Vector3.new(0.1, 0.22, 0.1), BONE, SMOOTH, sheath * CFrame.new(0, 0.32, 0))
+
+	-- Hombrera de hueso en el hombro izquierdo; en el derecho, un manojo de hojas.
+	bonePauldron(body.upperArm[-1], -1)
+	local right = body.upperArm[1]
+	for index, tilt in { -0.5, 0, 0.5 } do
+		leaf(
+			right,
+			0.5,
+			if index == 2 then LEAF_DARK else LEAF,
+			CFrame.new(right.size.X * 0.3, right.size.Y / 2 - 0.05, tilt * 0.6)
+				* CFrame.Angles(0, math.rad(90), 0)
+				* CFrame.Angles(0, 0, math.pi * 0.9 + tilt)
+		)
+	end
+	-- Brazal de cuero con dos tablillas de hueso en el antebrazo del arco; guante en el otro.
+	local bowArm = body.lowerArm[1]
+	local fs = bowArm.size
+	band(bowArm, -fs.Y * 0.06, fs.Y * 0.55, 0.08, LEATHER, LEATHER_MATERIAL)
+	for _, z in { -0.2, 0.2 } do
+		bowArm.block(
+			Vector3.new(0.08, fs.Y * 0.5, 0.16),
+			BONE,
+			SMOOTH,
+			CFrame.new(fs.X / 2 + 0.07, -fs.Y * 0.06, z * fs.Z)
+		)
+	end
+	band(body.lowerArm[-1], -fs.Y * 0.38, 0.2, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	-- Hojas colgando por delante de los muslos (en el muslo: en la cintura, la pierna las atraviesa).
+	for side = -1, 1, 2 do
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		for index, x in { -0.18, 0.18 } do
+			leaf(
+				leg,
+				0.6,
+				if index == 1 then LEAF else LEAF_DARK,
+				CFrame.new(side * 0.06 + x * ls.X, ls.Y / 2 - 0.36, -(ls.Z / 2 + 0.05 + index * 0.02))
+					* CFrame.Angles(0, 0, math.pi + x)
+			)
+		end
+	end
+end
+
+local function silverHunter(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2
+	-- Jubón de cuero oscuro con dos correas cruzadas y remaches de plata.
+	make.block(
+		Vector3.new(width + 0.12, height * 0.92, depth + 0.14),
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, -height * 0.02, 0)
+	)
+	quiverStrap(make, front - 0.04, 0.14, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	strap(
+		make,
+		Vector3.new(-width * 0.3, height / 2 - 0.02, front - 0.02),
+		Vector3.new(width * 0.4, -height / 2 + 0.12, front - 0.02),
+		0.14,
+		HUNTER_LEATHER_DARK,
+		LEATHER_MATERIAL
+	)
+	for _, at in
+		{
+			Vector3.new(0.03, -height * 0.02, 0),
+			Vector3.new(-width * 0.33, -height * 0.36, 0),
+			Vector3.new(width * 0.33, -height * 0.36, 0),
+		}
+	do
+		local rivet = make.ball(0.13, SILVER, METAL, CFrame.new(at.X, at.Y, front - 0.1))
+		rivet.Reflectance = 0.25
+	end
+	-- Manto de pelaje plateado sobre los hombros y capa que baja por la espalda hasta la cintura, con
+	-- flecos en punta y hojas oscuras de camuflaje encima.
+	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+	for side = -1, 1, 2 do
+		make.ball(0.6, SILVER_FUR, FABRIC, CFrame.new(side * (width / 2 + 0.06), height / 2 - 0.1, 0))
+	end
+	local capeHeight = height * 1.08
+	local capeY = height / 2 - capeHeight / 2 - 0.02
+	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
+	local tufts = 5
+	for index = 0, tufts - 1 do
+		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
+		make.fang(
+			if index % 2 == 0 then 0.36 else 0.26,
+			0.3,
+			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+			FABRIC,
+			CFrame.new(x + 0.15, capeY - capeHeight / 2 + 0.04, back + 0.36) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	leafFan(make, 9, 1.25, 1.3, { LEAF_SHADOW, LEAF_DARK }, 0.25)
+	-- Capucha de pelaje plateado con dos orejas, como la piel de un animal.
+	-- (Más oscura que la capa: del mismo plateado no se distingue.)
+	local hood = loweredHood(make, SILVER_FUR_DARK, GORILLA_FUR, FABRIC)
+	for side = -1, 1, 2 do
+		make.fang(
+			0.34,
+			0.22,
+			GORILLA_FUR,
+			FABRIC,
+			hood * CFrame.new(side * 0.26 - 0.11, 0.24, 0.2) * CFrame.Angles(0, 0, -side * 0.3)
+		)
+	end
+	-- Broche de plata en forma de hoja cerrando el manto bajo el cuello.
+	local brooch = CFrame.new(0, height / 2 - 0.18, front - 0.12)
+	local disc = make.rod(0.06, 0.34, SILVER, METAL, brooch * FACING)
+	disc.Reflectance = 0.35
+	local leafPin = make.oval(
+		Vector3.new(0.14, 0.32, 0.05),
+		SILVER,
+		METAL,
+		brooch * CFrame.new(0, 0, -0.05) * CFrame.Angles(0, 0, 0.6)
+	)
+	leafPin.Reflectance = 0.35
+	-- Carcaj de cuero oscuro con aros de plata y siete flechas de plumas plateadas y negras.
+	local quiverAt = backQuiver(make, {
+		length = 1.8,
+		radius = 0.26,
+		color = LEATHER_DARK,
+		material = LEATHER_MATERIAL,
+		rim = SILVER,
+		rimMaterial = METAL,
+		arrows = 7,
+		feathers = { SILVER_FUR, GORILLA_FACE },
+	}, 0.32)
+	local midBand = make.rod(0.1, 0.58, SILVER, METAL, quiverAt * UPRIGHT)
+	midBand.Reflectance = 0.25
+	for side = -1, 1, 2 do
+		make.fang(
+			0.3,
+			0.12,
+			THICK_BONE,
+			SMOOTH,
+			quiverAt * CFrame.new(side * 0.2 - 0.06, -0.1, 0.2) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+
+	-- Cinturón ancho con hebilla de plata y zurrón.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.09)
+	waist.block(
+		Vector3.new(hipWidth + 0.16, 0.24, hipDepth + 0.18),
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, 0.06, 0)
+	)
+	local buckle = waist.block(Vector3.new(0.36, 0.28, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
+	buckle.Reflectance = 0.35
+	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
+	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER_DARK, LEATHER_MATERIAL, pouch)
+	waist.block(Vector3.new(0.42, 0.14, 0.18), SILVER_FUR, FABRIC, pouch * CFrame.new(0, 0.13, -0.01))
+
+	for side = -1, 1, 2 do
+		-- Hombros de pelaje plateado con dos garras de hueso hacia fuera.
+		local arm = body.upperArm[side]
+		local as = arm.size
+		local top = as.Y / 2
+		arm.oval(Vector3.new(as.X * 1.3, 0.55, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.02, 0))
+		-- Desde lo alto del pelaje: más adentro quedan enterradas en él.
+		for _, z in { -0.2, 0.2 } do
+			arm.fang(
+				0.42,
+				0.16,
+				THICK_BONE,
+				SMOOTH,
+				CFrame.new(side * (as.X * 0.55) - 0.08, top + 0.22, z * as.Z + 0.08) * CFrame.Angles(0, 0, -side * 0.7)
+			)
+		end
+		-- Brazal de cuero con puño de pelaje plateado; el del arco, con placa de hueso y dos remaches.
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, 0.04, fs.Y * 0.55, 0.08, LEATHER_DARK, LEATHER_MATERIAL)
+		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
+		if side == 1 then
+			forearm.block(
+				Vector3.new(0.12, fs.Y * 0.55, fs.Z * 0.7),
+				THICK_BONE,
+				SMOOTH,
+				CFrame.new(fs.X / 2 + 0.08, 0.04, 0)
+			)
+			for _, y in { 0.16, -0.16 } do
+				local rivet = forearm.ball(0.12, SILVER, METAL, CFrame.new(fs.X / 2 + 0.15, 0.04 + y * fs.Y, 0))
+				rivet.Reflectance = 0.25
+			end
+		end
+		-- Faldón de pelaje plateado en el muslo con una hoja oscura encima.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
+		leaf(
+			leg,
+			0.48,
+			LEAF_SHADOW,
+			flap * CFrame.new(side * 0.1, -0.05, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
+		)
+	end
+end
+
+-- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
+local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
+	FurVest = { Guerrero = furVest, Cazador = trackerCape },
+	BoneArmor = { Guerrero = boneArmor, Cazador = hunterLeather },
+	SilverArmor = { Guerrero = silverArmor, Cazador = silverHunter },
+}
+
+-- Viste a "character" con la armadura "armorId" en la versión de su rol "roleId" (sustituye a la que
+-- llevara). Devuelve el modelo, o nil si no hay torso o la armadura no existe.
+function ArmorModels.wear(character: Model, armorId: string, roleId: string?): Model?
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-	local build = BUILDERS[armorId]
+	local byRole = BUILDERS[armorId]
+	local build = if byRole then byRole[roleId or DEFAULT_ROLE] or byRole[DEFAULT_ROLE] else nil
 	if not (torso and torso:IsA("BasePart") and build and Armor[armorId]) then
 		return nil
 	end

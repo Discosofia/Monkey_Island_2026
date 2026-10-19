@@ -59,8 +59,15 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   (faldones), no en la cintura, o la pierna lo atraviesa al andar. Para probarla en Studio, crea
   un R15 con `Players:CreateHumanoidModelFromDescription(Instance.new("HumanoidDescription"),
   Enum.HumanoidRigType.R15)`, quítale el `BodyColors` (pisa los colores que le pongas) y llama a
-  `ArmorModels.wear(rig, id)`. Sus articulaciones son `AnimationConstraint` (sin `C0`), así que
+  `ArmorModels.wear(rig, id, rol)`. Sus articulaciones son `AnimationConstraint` (sin `C0`), así que
   en edición no se pueden posar.
+  **Por rol** (octubre de 2026): `BUILDERS[armorId][rol]`, con las del guerrero de reserva para el
+  rol que aún no tiene las suyas, y su nombre en `Data/Armor` "roleNames". Las del cazador comparten
+  ayudas (`leaf` con nervio, `leafFan`, `loweredHood`, `quiver`/`backQuiver`): las hojas sueltas y
+  repartidas parecían lunares, y un abanico solapado que sale de debajo de la capucha se lee como
+  camuflaje. Cada nivel se distingue de lejos por el color dominante de la espalda (carcaj pardo,
+  carcaj de hueso claro sobre cuero oscuro, capa plateada con carcaj negro); lo que va encima de
+  una capa del mismo color (la capucha plateada) se pierde: oscurécelo.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),
@@ -332,7 +339,7 @@ orientativo de piezas por modelo:
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
 | Arma | 15–40 |
-| Armadura (cada rango más detallado que el anterior; hoy 52 / 75 / 101) | 40–105 |
+| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101, cazador 56 / 83 / 90) | 40–105 |
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |

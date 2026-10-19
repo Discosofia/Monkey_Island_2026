@@ -245,7 +245,7 @@ local function wearArmor(player: Player, character: Model)
 	if not (character:WaitForChild("UpperTorso", 5) or character:FindFirstChild("Torso")) then
 		return
 	end
-	ArmorModels.wear(character, armorId)
+	ArmorModels.wear(character, armorId, player:GetAttribute("Role"))
 end
 
 -- Quita una herramienta de la mochila, la mano y StarterGear. Devuelve true si estaba equipada.
@@ -373,7 +373,7 @@ local function onCraft(player: Player, recipeId: any)
 		Sfx.play("Craft", character:GetPivot().Position)
 	end
 	local verb = if recipe.upgrades then "mejorado" else "fabricado"
-	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {recipe.name}`)
+	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {Crafting.recipeName(player, recipe)}`)
 end
 
 -- La curación que mejor encaja: la más pequeña que cubre la vida que falta, o si ninguna llega,
@@ -553,12 +553,15 @@ function CraftingService:Start()
 			wearArmor(player, character)
 		end)
 		-- Si cambia el rol (panel de pruebas), sus armas vuelven a las de base: las mejoras de rol
-		-- dejan de contar como fabricadas.
+		-- dejan de contar como fabricadas. La armadura pasa a la del aspecto del rol nuevo.
 		player:GetAttributeChangedSignal("Role"):Connect(function()
 			for recipeId, recipe in Recipes do
 				if recipe.role then
 					player:SetAttribute(Crafting.ownedAttribute(recipeId), nil)
 				end
+			end
+			if player.Character then
+				task.spawn(wearArmor, player, player.Character)
 			end
 		end)
 	end

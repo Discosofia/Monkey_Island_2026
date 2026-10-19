@@ -6,10 +6,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
-local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
@@ -328,14 +328,17 @@ local function nextArmor(player: Player)
 		return
 	end
 	if armorId then
-		ArmorModels.wear(character, armorId)
+		ArmorModels.wear(character, armorId, player:GetAttribute("Role"))
 	else
 		local piece = character:FindFirstChild("ArmorPiece")
 		if piece then
 			piece:Destroy()
 		end
 	end
-	Remotes.Notify:FireClient(player, `🛡️ {if armorId then Armor[armorId].name else "Sin armadura"}`)
+	Remotes.Notify:FireClient(
+		player,
+		`🛡️ {if armorId then Crafting.armorName(armorId, player:GetAttribute("Role")) else "Sin armadura"}`
+	)
 end
 
 local COMMANDS: { [string]: (player: Player) -> () } = {

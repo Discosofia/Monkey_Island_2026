@@ -39,7 +39,14 @@ local CRIT_COLOR = "#ffdc5a"
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
 
-type Row = { recipeId: string, recipe: Recipes.Recipe, frame: Frame, cost: TextLabel, button: TextButton }
+type Row = {
+	recipeId: string,
+	recipe: Recipes.Recipe,
+	frame: Frame,
+	title: TextLabel,
+	cost: TextLabel,
+	button: TextButton,
+}
 
 local CraftingController = {}
 
@@ -139,10 +146,12 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 		Remotes.Craft:FireServer(recipeId)
 	end)
 
-	return { recipeId = recipeId, recipe = recipe, frame = frame, cost = cost, button = button }
+	return { recipeId = recipeId, recipe = recipe, frame = frame, title = title, cost = cost, button = button }
 end
 
 local function refreshRow(player: Player, row: Row)
+	-- Las armaduras se llaman distinto según el rol (Data/Armor "roleNames").
+	row.title.Text = `{row.recipe.icon} {Crafting.recipeName(player, row.recipe)}`
 	local owned = Crafting.isUnique(row.recipe) and Crafting.isOwned(player, row.recipeId)
 	-- Las mejoras no se saltan: hasta tener la anterior, en vez del coste se dice cuál falta.
 	local missing = if owned then nil else Crafting.missingPrerequisite(player, row.recipe)

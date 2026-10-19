@@ -189,6 +189,8 @@ Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el p
 
 Los **talentos** (5 por rol) mejoran cada uno una habilidad: más duración, más daño, más proyectiles o más saltos. Los de las cuartas activas: **Mazazo** (+20 % de daño del Rompehuesos por rango), **Punta de obsidiana** (+20 % de la Flecha perforante), **Polvo de estrellas** (el Meteoro ralentiza 1 s por rango; con más daño valía demasiado) y **Sueño profundo** (+0,3 s de sueño). Las ventajas de recolección (recoger más rápido, +1 material, hacha y pico más fuertes) son **mejoras de la tienda** para cualquier rol.
 
+**Armaduras por rol** (octubre de 2026): las tres armaduras (chaleco de pelaje 25 %, hueso 40 %, plata 55 %) tienen los mismos números y recetas para todos, pero cada rol las lleva con su propio aspecto y nombre (`Data/Armor` "roleNames", modelos en `Combat/ArmorModels`); el rol que aún no tiene las suyas lleva las del guerrero. Cazador: **capa de rastreador** (jubón de cuero claro y esclavina parda con un abanico de hojas en la espalda), **armadura de cazador** (cuero oscuro con botones y hombrera de hueso, manto de hojas y carcaj de hueso con flechas de plumas rojas) y **manto de cazador plateado** (capa de pelaje plateado con hojas oscuras, capucha con orejas, garras de hueso en los hombros y carcaj negro con aros de plata). Todas con la capucha bajada y el carcaj cruzado a la espalda.
+
 Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, el mago y el cazador los **castigan** en área y el médico **mantiene vivo** al grupo.
 
 *Cambio de octubre de 2026:* el Recolector se sustituyó por el Mago. Su XP pasó al Mago y los puntos de sus talentos quedaron libres para repartirlos de nuevo.
