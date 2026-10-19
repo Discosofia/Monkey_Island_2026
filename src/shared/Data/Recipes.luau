@@ -395,7 +395,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Cerbatana de hueso",
 		icon = "🦴",
-		description = "Mejora la cerbatana: {damage} de daño, más alcance y cura más con cada acierto.",
+		description = "Mejora la cerbatana: {damage} de daño, veneno de {poison} por segundo, más alcance y cura más con cada acierto.",
 		order = 47,
 		cost = {
 			{ itemId = "Wood", amount = 4 },
@@ -410,7 +410,7 @@ local Recipes: { [string]: Recipe } = {
 		station = "Forge",
 		name = "Cerbatana del chamán",
 		icon = "🍃",
-		description = "Mejora la cerbatana de hueso: {damage} de daño y cura aún más con cada acierto.",
+		description = "Mejora la cerbatana de hueso: {damage} de daño, veneno de {poison} por segundo y cura aún más con cada acierto.",
 		order = 58,
 		cost = {
 			{ itemId = "Liana", amount = 2 },

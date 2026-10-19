@@ -6,6 +6,8 @@
 --     Los jefes se resisten (Config.Abilities.BossControlMultiplier).
 --   - Ralentizado ("SlowedUntil" y "SlowFactor"): anda más despacio.
 --   - Provocado ("TauntedBy" y "TauntedUntil"): va a por el jugador que le provocó.
+--   - Envenenado ("PoisonedUntil"): pierde vida cada Config.Abilities.PoisonTickSeconds (poison).
+--   - Expuesto ("ExposedUntil" y "ExposedBonus"): recibe más daño (CombatService.damage).
 -- También deja quietos a los jugadores (holdPlayer), con su propia regla para no encadenarlo.
 
 local Debris = game:GetService("Debris")
@@ -96,6 +98,66 @@ end
 function Status.taunt(model: Model, player: Player, seconds: number)
 	model:SetAttribute("TauntedBy", player.UserId)
 	model:SetAttribute("TauntedUntil", now() + seconds)
+end
+
+-- Los dormidos del remate de "Nana de la selva": reciben "bonus" (fracción) más de daño. El "+30 %"
+-- sobre el "💤" lo dibuja cada cliente (AbilityFxController).
+function Status.expose(model: Model, bonus: number, seconds: number)
+	model:SetAttribute("ExposedUntil", now() + seconds)
+	model:SetAttribute("ExposedBonus", bonus)
+end
+
+type PoisonDamage = (model: Model, humanoid: Humanoid, amount: number, attacker: Player?, source: string) -> ()
+type Poison = { dps: number, attacker: Player?, source: string }
+
+-- Quién aplica cada golpe del veneno: CombatService lo registra al empezar (así este módulo no
+-- depende de CombatService, que sí depende de él para los dardos).
+local poisonDamage: PoisonDamage? = nil
+local poisoned: { [Model]: Poison } = {}
+
+function Status.setPoisonDamage(callback: PoisonDamage)
+	poisonDamage = callback
+end
+
+-- Envenena a un enemigo: "dps" de daño por segundo durante "seconds", en golpes cada
+-- Config.Abilities.PoisonTickSeconds a nombre de "attacker" (botín, racha, telemetría con "source").
+-- No se acumula: uno igual o más fuerte lo renueva (y pasa a ser de quien lo puso); uno más flojo no
+-- hace nada mientras dure el otro. Lo usan las cerbatanas del médico y el remate de "Cura de
+-- urgencia"; las burbujas moradas salen del atributo "PoisonedUntil" en cada cliente.
+function Status.poison(model: Model, dps: number, seconds: number, attacker: Player?, source: string)
+	if dps <= 0 or seconds <= 0 then
+		return
+	end
+	local current = poisoned[model]
+	if current and current.dps > dps and active(model, "PoisonedUntil") then
+		return
+	end
+	model:SetAttribute("PoisonedUntil", now() + seconds)
+	poisoned[model] = { dps = dps, attacker = attacker, source = source }
+	if current then
+		-- Ya hay un goteo en marcha: sigue con el veneno nuevo.
+		return
+	end
+	task.spawn(function()
+		local tick = Config.Abilities.PoisonTickSeconds
+		while true do
+			task.wait(tick)
+			local poison = poisoned[model]
+			local humanoid = model:FindFirstChildOfClass("Humanoid")
+			local untilTime = model:GetAttribute("PoisonedUntil")
+			-- Con un poco de margen: el último golpe cae justo cuando se acaba.
+			local still = typeof(untilTime) == "number" and now() <= untilTime + 0.1
+			if not (poison and still and model.Parent and humanoid and humanoid.Health > 0) then
+				break
+			end
+			if poisonDamage then
+				poisonDamage(model, humanoid, poison.dps * tick, poison.attacker, poison.source)
+			end
+		end
+		poisoned[model] = nil
+		-- Si ha caído antes de que se acabe, que no siga burbujeando.
+		model:SetAttribute("PoisonedUntil", nil)
+	end)
 end
 
 function Status.isStunned(model: Model): boolean

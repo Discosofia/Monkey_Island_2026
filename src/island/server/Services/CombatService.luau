@@ -1,6 +1,6 @@
 --!strict
 -- Combate (GDD §6, Fase 1.3): armas cuerpo a cuerpo, a distancia (honda y arco, que gastan munición;
--- bastón mágico, que no) y esquiva.
+-- bastón mágico y cerbatanas, que no; los dardos de las cerbatanas envenenan) y esquiva.
 -- El servidor decide todo: qué arma lleva el jugador, si el ataque está listo, a quién golpea y el daño.
 -- Se daña a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica) y, con el
 -- PvP opt-in activo en los dos (Fase 5), a otros jugadores.
@@ -34,6 +34,7 @@ local ResourceService = require(script.Parent.ResourceService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
+local Status = require(script.Parent.Parent.Combat.Status)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
 local MELEE_HITBOX = Vector2.new(7, 6)
@@ -96,10 +97,21 @@ end
 export type HitOptions = {
 	crit: boolean?, -- golpe crítico: ×Config.Crit.Multiplier y número más grande
 	pet: boolean?, -- lo hizo la mascota del atacante (su número sale más pequeño)
+	poison: boolean?, -- un golpe del veneno (Combat/Status.poison): número morado, sin destello ni sonido
 	source: string?, -- con qué (id de habilidad o de arma), para la telemetría
 }
 
 local NO_HIT_OPTIONS: HitOptions = {}
+
+-- Fracción de daño extra mientras dura un estado de "model" que la guarda en "bonusAttribute".
+local function bonusWhile(model: Model, untilAttribute: string, bonusAttribute: string): number
+	local untilTime = model:GetAttribute(untilAttribute)
+	local bonus = model:GetAttribute(bonusAttribute)
+	if typeof(untilTime) == "number" and Workspace:GetServerTimeNow() < untilTime and typeof(bonus) == "number" then
+		return bonus
+	end
+	return 0
+end
 
 -- Tira el crítico de una habilidad de "player": con la probabilidad de su arma (Shared/Crit).
 function CombatService.rollPlayerCrit(player: Player): boolean
@@ -108,7 +120,8 @@ function CombatService.rollPlayerCrit(player: Player): boolean
 end
 
 -- Daña a un enemigo. "attacker" queda apuntado para repartir el botín si lo derrota.
--- Los monos marcados por un cazador (Fase 3) reciben daño extra mientras dura la marca.
+-- Los monos marcados por un cazador (Fase 3) reciben daño extra mientras dura la marca, y los
+-- expuestos (Combat/Status.expose: dormidos por la "Nana de la selva" del médico), también.
 function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, attacker: Player?, options: HitOptions?)
 	local hit = options or NO_HIT_OPTIONS
 	if attacker then
@@ -122,14 +135,13 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	if typeof(intimidatedUntil) == "number" and Workspace:GetServerTimeNow() < intimidatedUntil then
 		amount = math.max(1, math.round(amount * Config.Combat.IntimidatedDamageMultiplier))
 	end
-	local markedUntil = model:GetAttribute("MarkedUntil")
-	local markBonus = model:GetAttribute("MarkBonus")
-	if
-		typeof(markedUntil) == "number"
-		and Workspace:GetServerTimeNow() < markedUntil
-		and typeof(markBonus) == "number"
-	then
+	local markBonus = bonusWhile(model, "MarkedUntil", "MarkBonus")
+	if markBonus ~= 0 then
 		amount = math.round(amount * (1 + markBonus))
+	end
+	local exposedBonus = bonusWhile(model, "ExposedUntil", "ExposedBonus")
+	if exposedBonus ~= 0 then
+		amount = math.round(amount * (1 + exposedBonus))
 	end
 	if hit.crit then
 		amount = math.round(amount * Crit.MULTIPLIER)
@@ -140,12 +152,17 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 		TelemetryService.damageDealt(attacker, source, math.min(amount, math.max(0, humanoid.Health)))
 	end
 	humanoid:TakeDamage(amount)
-	flash(model)
-	CombatText.dealt(model, amount, hit.crit, attacker, hit.pet, alive and humanoid.Health <= 0)
+	local ko = alive and humanoid.Health <= 0
+	if hit.poison then
+		CombatText.poison(model, amount, attacker, ko)
+	else
+		flash(model)
+		CombatText.dealt(model, amount, hit.crit, attacker, hit.pet, ko)
+		Sfx.play("Hit", model.PrimaryPart or model)
+	end
 	if attacker and not hit.pet then
 		ComboService.onActivity(attacker)
 	end
-	Sfx.play("Hit", model.PrimaryPart or model)
 	for _, listener in damageListeners do
 		task.spawn(listener, model, attacker, amount)
 	end
@@ -534,9 +551,9 @@ local function rangedAttack(
 		Remotes.Notify:FireClient(player, `Necesitas {Items[ammo].name} para usar: {weapon.name}`)
 		return
 	end
-	-- "+daño a distancia" del cazador o "+daño de hechizos" del mago, con sus talentos.
-	local damage =
-		math.round(weapon.damage * Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage"))
+	-- "+daño a distancia" del cazador o "+daño de hechizos" del mago, con sus talentos (también el veneno).
+	local scale = Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage")
+	local damage = math.round(weapon.damage * scale)
 	local crit = Crit.roll(critChance)
 	-- La animación del disparo se ve sola (es del personaje); la bocanada o el destello, a los demás
 	-- (el que dispara ya los ha lanzado en su cliente).
@@ -586,6 +603,10 @@ local function rangedAttack(
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
 				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit, source = weaponId })
+				local poison = weapon.poison
+				if poison and humanoid.Health > 0 then
+					Status.poison(hitModel, poison.dps * scale, poison.seconds, player, weaponId)
+				end
 				if weapon.healOnHit then
 					healWoundedAlly(player, weapon.healOnHit, weaponId)
 				end
@@ -697,6 +718,10 @@ local function giveStarterWeapons(player: Player)
 end
 
 function CombatService:Start()
+	-- Cada golpe del veneno es daño de quien lo puso, sin crítico.
+	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
+		CombatService.damage(model, humanoid, amount, attacker, { poison = true, source = source })
+	end)
 	Remotes.UseWeapon.OnServerEvent:Connect(onUseWeapon)
 	Remotes.Dodge.OnServerEvent:Connect(onDodge)
 

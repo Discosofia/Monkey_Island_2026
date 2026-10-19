@@ -85,7 +85,10 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 Supuestos (los que más cambian el resultado): monos repartidos (un radio 10 alcanza 2,5 de media,
 un radio 14 3,5, más de 14, 4,5); del abanico de flechas entran 2 en un solo mono y el 70 % en un
 grupo; el cepo salta a los 2 s; los monos no salen de la lluvia; 0,3 s sin pegar al lanzar; la
-simulación pega el 100 % del tiempo y la sección 3 el 60 % (`actividad`). Cámbialos en `OPCIONES`
+simulación pega el 100 % del tiempo y la sección 3 el 60 % (`actividad`). El veneno de las cerbatanas
+cuenta en el DPS del arma, sin críticos y redondeado como en el juego, en el mono al que dispara (si el
+médico reparte los dardos envenena a más, hasta 5 con su cadencia); el de una habilidad (`veneno` en la
+ficha) no se suma al de la cerbatana en ese mono: gana el más fuerte. Cámbialos en `OPCIONES`
 si una pregunta concreta lo necesita.
 
 ## 3. Límites
@@ -115,6 +118,23 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
 Para comparar las propuestas. Vuelve a sacarla con la calculadora si cambian los números del juego.
+
+**19 de octubre de 2026, médico en combate** (cerbatanas con veneno, pasiva con +15 de vida y Savia
+protectora, remates que envenenan y exponen). Guerrero, Cazador y Mago no cambian:
+
+| Médico | Antes | Ahora |
+|---|---|---|
+| Cerbatana (DPS real; básica · hueso · chamán) | 12,2 · 20,1 · 30,7 | 18,2 · 24 · 33 (veneno real 4 · 5 · 6 por segundo) |
+| DPS 60 s, 1 obj (combos), básica · mejora 1 · mejora 2 | 11,2 · 21,3 · 31,4 | 18,4 · 23,7 · 32,4 |
+| Frente a la media de Guerrero, Cazador y Mago (1 obj) | 36 % · 54 % · 63 % | 59 % · 60 % · 65 % |
+| DPS 60 s, grupo (sin → con combos) | 11,9 → 11,8 | 18,1 → 24,3 (el remate de "Cura de urgencia" envenena a todo el grupo) |
+| Polvo somnífero (segundos de arma) | 0,73 | 0,8 (daño 5 → 8: con la cerbatana nueva se quedaba en 0,49) |
+| Tiempo para matar un mandril el día 1 | 20,8 s | 12,7 s |
+
+Curación igual (14,6 → 20,7/s al equipo; 34,4/s con talentos al máximo, hallazgo 3). Jefes con 4
+jugadores: 101 / 118 / 141 / 167 s. El Mono X-7 baja al 45 % del DPS medio de un arma de rol (sube la
+media). La Savia protectora (10 cada 8 s como mucho, ~1,2/s) y el +30 % de los dormidos de la Nana
+(lo aprovecha todo el equipo) no se suman al daño ni a la curación del médico.
 
 **16 de octubre de 2026, cuarta activa (R), segundo combo y conexiones** (la tabla de abajo es la de
 antes, para ver de dónde venimos):
@@ -158,8 +178,8 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 
 1. **Sin rendimientos decrecientes de control sobre los enemigos.** Hoy está en límites (equipo de 4 sobre un jefe:
    25 %), pero con talentos al máximo sube al 39 % y el Cazador llega al 43 % por mono.
-2. **El Mono X-7 (legendario)** hace el 48 % del DPS medio de un arma de rol, y como las mascotas no
-   pasan por el ×0,7, es casi lo mismo que la cerbatana del médico.
+2. **El Mono X-7 (legendario)** hace el 45 % del DPS medio de un arma de rol (48 % antes de las
+   cerbatanas con veneno del 19-10-2026); las mascotas no pasan por el ×0,7.
 3. **Con talentos al máximo** la Lluvia de proyectiles vale 39 s de arma y la Bola de fuego supera el
    80 % del DPS del bastón; el médico cura 36/s al equipo.
 4. **El cazador hace poco daño propio** con sus activas (Múltiple y Cepo ~1 s de arma); su aporte es

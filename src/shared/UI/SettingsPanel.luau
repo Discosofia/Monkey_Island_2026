@@ -218,10 +218,14 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	local weaponId, chance = weaponOf(player, context)
 	local weapon = if weaponId then Weapons[weaponId] else nil
 	if weapon then
-		local damage = math.round(weapon.damage * perk(weaponPerk(weapon)) * Config.Combat.PlayerDamageMultiplier)
+		local scale = perk(weaponPerk(weapon)) * Config.Combat.PlayerDamageMultiplier
+		local damage = math.round(weapon.damage * scale)
+		local poison = if weapon.poison
+			then ` · <font color="#be6eff">veneno {math.round(weapon.poison.dps * scale)}/s durante {weapon.poison.seconds} s</font>`
+			else ""
 		text(
 			parent,
-			`⚔️ <b>{weapon.name}</b>: {damage} de daño · <font color="#ffdc5a">{Crit.percent(chance)} de crítico</font> (+{critPercent} de daño)`,
+			`⚔️ <b>{weapon.name}</b>: {damage} de daño{poison} · <font color="#ffdc5a">{Crit.percent(chance)} de crítico</font> (+{critPercent} de daño)`,
 			2
 		)
 		if chance < BEST_FORGE_CHANCE then

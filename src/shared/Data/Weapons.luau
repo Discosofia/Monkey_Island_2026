@@ -17,8 +17,11 @@ export type WeaponDefinition = {
 	projectile: ("Stone" | "Arrow" | "Spell" | "Dart")?, -- cómo se ve lo que dispara (piedra por defecto)
 	spell: boolean?, -- hechizo: su daño sube con "SpellDamage" en vez de "RangedDamage"
 	-- Armas del médico: cada disparo que acierta a un enemigo cura esto al aliado más herido cerca
-	-- (o al propio médico), a menos de Config.Combat.WeaponHealRadius.
+	-- (o al propio médico), a menos de Config.Combat.WeaponHealRadius…
 	healOnHit: number?,
+	-- …y le envenena (Combat/Status.poison): "dps" de daño por segundo (con la misma ventaja de daño que
+	-- el arma) durante "seconds". No se acumula: cada acierto lo renueva.
+	poison: PoisonDefinition?,
 	aimAssistDegrees: number?, -- ayuda de puntería: ángulo máximo para "enganchar" un enemigo
 	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
 	-- Sonido al usarla (clave de Data/Sounds.Effects); sin él, Swing (cuerpo a cuerpo) o Shoot (distancia).
@@ -26,6 +29,11 @@ export type WeaponDefinition = {
 	-- Herramienta de recolección (hacha, pico, hoz): golpeando un árbol o una roca con ella equipada; la
 	-- hoz corta de un golpe los helechos y arbustos que tienes delante (ResourceService).
 	tool: ToolDefinition?,
+}
+
+export type PoisonDefinition = {
+	dps: number,
+	seconds: number,
 }
 
 export type ToolDefinition = {
@@ -198,18 +206,21 @@ local Weapons: { [string]: WeaponDefinition } = {
 		spell = true,
 		aimAssistDegrees = 12,
 	},
-	-- Médico: dispara dardos de savia, sin munición.
+	-- Médico: dispara dardos de savia, sin munición, que envenenan. Casi todo el daño del médico es el
+	-- de su cerbatana (medido con la calculadora ServerStorage.Tools.Equilibrio: ~60 % del de un rol de
+	-- daño contra un mono, también con las mejoras de la forja).
 	Blowgun = {
 		name = "Cerbatana",
 		kind = "Ranged",
 		sound = "ShootDart",
-		damage = 12,
+		damage = 14,
 		cooldownSeconds = 0.7,
 		range = 110,
 		projectileSpeed = 170,
 		projectile = "Dart",
 		aimAssistDegrees = 12,
 		healOnHit = 2,
+		poison = { dps = 5, seconds = 4 },
 	},
 	Club = {
 		name = "Garrote con colmillos",
@@ -272,7 +283,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		name = "Cerbatana de hueso",
 		kind = "Ranged",
 		sound = "ShootDart",
-		damage = 18,
+		damage = 17,
 		critChance = 0.10,
 		cooldownSeconds = 0.65,
 		range = 125,
@@ -280,12 +291,13 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		aimAssistDegrees = 12,
 		healOnHit = 3,
+		poison = { dps = 7, seconds = 4 },
 	},
 	ShamanBlowgun = {
 		name = "Cerbatana del chamán",
 		kind = "Ranged",
 		sound = "ShootDart",
-		damage = 25,
+		damage = 22,
 		critChance = 0.15,
 		cooldownSeconds = 0.6,
 		range = 140,
@@ -293,6 +305,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		aimAssistDegrees = 12,
 		healOnHit = 5,
+		poison = { dps = 9, seconds = 4 },
 	},
 	GoldenStaff = {
 		name = "Bastón dorado",

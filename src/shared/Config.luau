@@ -180,7 +180,9 @@ local Config = {
 		-- Un combo cerrado tras una conexión (empezado por el remate del otro) sube la racha esto más.
 		ConnectStreakBonus = 1,
 		ShieldBonus = 0.5, -- Escudo de hojas al aliado revitalizado: absorbe esto más
-		SalveFeverCure = 9, -- el Ungüento que cierra el combo del médico baja la fiebre esto
+		SalveFeverCure = 9, -- el Ungüento que cierra "Cura de urgencia" baja la fiebre esto…
+		SalvePoisonDps = 6, -- …y envenena a los monos de su radio con este daño por segundo…
+		SalvePoisonSeconds = 5, -- …durante esto
 		FireballSplashBonus = 0.25, -- la Bola de fuego que rompe el hielo salpica más lejos
 		WarCryStun = 1, -- el Grito enlazado del guerrero aturde a los desequilibrados (s)
 		WhirlwindExtraSeconds = 1, -- el Torbellino que cierra el combo del guerrero gira más
@@ -192,7 +194,8 @@ local Config = {
 		MeteorBurnTicks = 3, -- el Meteoro que cierra "Lluvia de estrellas" deja el suelo ardiendo (1 golpe/s)
 		MeteorBurnDamage = 6, -- por golpe, en el radio del Meteoro
 		PowderExtraSleep = 1, -- el Polvo somnífero que cierra "Nana de la selva" duerme esto más (s)…
-		PowderHeal = 10, -- …y cura esto a los aliados que estén en la nube
+		PowderHeal = 10, -- …cura esto a los aliados que estén en la nube…
+		PowderExposed = 0.3, -- …y los dormidos reciben esto más de daño (fracción) hasta despertar
 	},
 
 	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
@@ -546,6 +549,8 @@ local Config = {
 		PvPControlMultiplier = 0.5,
 		-- Los jefes se resisten: aturdir, congelar o inmovilizar les dura esta fracción.
 		BossControlMultiplier = 0.5,
+		-- Veneno (Combat/Status.poison: cerbatanas y remate de "Cura de urgencia"): un golpe cada tanto.
+		PoisonTickSeconds = 1,
 
 		-- Octubre de 2026: las activas (Z, X, C) se recargan un 40 % antes (Data/Roles) y sus daños,
 		-- curaciones, escudos y duraciones bajan un 40 %; se usan más a menudo con el mismo daño por
@@ -618,11 +623,15 @@ local Config = {
 		DartSpeed = 160,
 		ShieldSeconds = 6,
 		ShieldRange = 30, -- busca al aliado más cercano hasta esta distancia
+		-- "Savia protectora" (pasiva del médico, Data/Perks "SapShield"): al curar a un aliado gana un
+		-- escudo que dura esto, como mucho uno cada SapShieldCooldown segundos.
+		SapShieldSeconds = 5,
+		SapShieldCooldown = 8,
 		TotemSeconds = 10,
 		TotemHealPerSecond = 6,
 		TotemRadius = 16,
 		TotemMaxDistance = 40, -- se planta donde apuntas, como mucho a esta distancia
-		PowderDamage = 5, -- Polvo somnífero, a cada mono de la nube
+		PowderDamage = 8, -- Polvo somnífero, a cada mono de la nube
 		PowderRadius = 9,
 		PowderMaxDistance = 40, -- la nube cae donde apuntas, como mucho a esta distancia
 		PowderDrowsySeconds = 1, -- primero les entra sueño (van lentos)…

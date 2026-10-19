@@ -34,6 +34,7 @@ local Perks: { [string]: number } = {
 	HealPower = 1, -- multiplica lo que curan tus vendas, ungüentos y habilidades
 	SeeHealth = 0, -- 1 = ves la vida de tus aliados sobre sus cabezas
 	ShieldAmount = 24, -- daño que absorbe el "Escudo de hojas"
+	SapShield = 0, -- escudo que gana al curar a un aliado ("Savia protectora", pasiva del médico)
 	PowderSleep = 1.5, -- segundos que duerme el "Polvo somnífero"
 	-- Recolección (mejoras de la tienda y mascotas).
 	HarvestSpeed = 1, -- multiplica el tiempo de mantener los avisos de recolección

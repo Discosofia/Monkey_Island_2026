@@ -5,7 +5,8 @@
 --   - Guerrero: Torbellino, Embestida, Grito de guerra, Pisotón (id "Quake") y Rompehuesos ("Smash").
 --   - Cazador: Disparo múltiple, Marcar presas, Cepo, Lluvia de proyectiles y Flecha perforante.
 --   - Mago: Bola de fuego, Nova de hielo, Parpadeo, Rayo encadenado y Meteoro.
---   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas, Tótem sanador y Polvo somnífero.
+--   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas, Tótem sanador y Polvo somnífero. Su
+--     pasiva "Savia protectora" también va aquí: al curar a un aliado gana un escudo pequeño.
 -- Los movimientos (Embestida y Parpadeo) los hace el cliente, que es quien mueve a su personaje; el
 -- servidor pone el daño. Lo que se ve lo dibuja cada cliente (Combat/AbilityFx y AbilityFxController),
 -- salvo el Cepo, que es una pieza del mundo. Con PvP activo en los dos, las habilidades también
@@ -52,6 +53,8 @@ type Handler = (player: Player, character: Model, root: BasePart, aim: Vector3, 
 local AbilityService = {}
 
 local traps: { [Player]: { Model } } = {}
+-- Cuándo puede volver a ganar el escudo de la Savia protectora cada médico.
+local sapReadyAt: { [Player]: number } = {}
 
 local function now(): number
 	return Workspace:GetServerTimeNow()
@@ -890,7 +893,8 @@ end
 
 local function areaHeal(player: Player, _character: Model, root: BasePart): boolean
 	local amount = SETTINGS.AreaHealAmount * Progression.perk(player, "HealPower")
-	-- Remate del combo del médico: curaciones críticas seguras (heal) y baja la fiebre.
+	-- Remate de "Cura de urgencia": curaciones críticas seguras (heal), baja la fiebre y envenena a los
+	-- monos del radio.
 	local finisher = ComboService.isPayoff(player, "AreaHeal")
 	local healed = 0
 	for _, other in Players:GetPlayers() do
@@ -906,12 +910,21 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 			end
 		end
 	end
+	local poisoned = 0
+	if finisher then
+		for _, target in targetsAround(player, root.Position, SETTINGS.AreaHealRadius) do
+			if not target.player then
+				Status.poison(target.model, COMBO.SalvePoisonDps, COMBO.SalvePoisonSeconds, player, "AreaHeal")
+				poisoned += 1
+			end
+		end
+	end
 	AbilityFx.all("AreaHeal", root.Position, SETTINGS.AreaHealRadius)
 	Sfx.play("Heal", root)
 	Remotes.Notify:FireClient(
 		player,
 		if finisher
-			then `⛑️ ¡Cura de urgencia! Has curado a {healed} jugador(es) y les has bajado la fiebre`
+			then `⛑️ ¡Cura de urgencia! Has curado a {healed} jugador(es), les has bajado la fiebre y has envenenado a {poisoned} mono(s)`
 			else `⛑️ Has curado a {healed} jugador(es)`
 	)
 	return true
@@ -1039,8 +1052,8 @@ local function healingTotem(player: Player, character: Model, root: BasePart, ai
 end
 
 -- Polvo somnífero: una nube donde apunta el médico. A los monos les entra sueño (van lentos) y luego
--- se duermen; los jefes no se duermen. Como remate de "Nana de la selva", duermen más y la nube cura a
--- los aliados que estén dentro.
+-- se duermen; los jefes no se duermen. Como remate de "Nana de la selva", duermen más, la nube cura a
+-- los aliados que estén dentro y los dormidos reciben más daño hasta despertar (Status.expose).
 local function sleepPowder(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
 	local endPoint = castShot(character, origin, aim, SETTINGS.PowderMaxDistance, 0.5)
@@ -1080,11 +1093,40 @@ local function sleepPowder(player: Player, character: Model, root: BasePart, aim
 		task.wait(drowsy)
 		for _, target in sleepers do
 			if target.humanoid.Health > 0 and target.model.Parent then
+				-- Antes de dormirlo: el "💤" del cliente lee si está expuesto.
+				if finisher and not target.player then
+					Status.expose(target.model, COMBO.PowderExposed, sleep)
+				end
 				control(target, sleep, "Sleep")
 			end
 		end
 	end)
 	return true
+end
+
+-- "Savia protectora" (pasiva del médico, ventaja "SapShield"): cuando "healer" cura a un aliado, gana
+-- un escudo pequeño, como mucho uno cada SapShieldCooldown. No pisa un escudo mayor (el de hojas).
+local function sapShield(healer: Player)
+	local amount = Progression.perk(healer, "SapShield")
+	local time = now()
+	if amount <= 0 or time < (sapReadyAt[healer] or 0) or not LifeState.isAlive(healer) then
+		return
+	end
+	local character = healer.Character
+	local shieldUntil = healer:GetAttribute("ShieldUntil")
+	local shield = healer:GetAttribute("ShieldHealth")
+	local stronger = typeof(shieldUntil) == "number"
+		and time < shieldUntil
+		and typeof(shield) == "number"
+		and shield >= amount
+	if not character or stronger then
+		return
+	end
+	sapReadyAt[healer] = time + SETTINGS.SapShieldCooldown
+	healer:SetAttribute("ShieldHealth", amount)
+	healer:SetAttribute("ShieldUntil", time + SETTINGS.SapShieldSeconds)
+	-- La burbuja sale de esos atributos en cada cliente; aquí, el destello al ponerla.
+	AbilityFx.all("ShieldGlare", character)
 end
 
 local HANDLERS: { [string]: Handler } = {
@@ -1149,11 +1191,15 @@ end
 
 function AbilityService:Start()
 	Remotes.UseAbility.OnServerEvent:Connect(onUseAbility)
+	CombatService.onPlayerHealed(function(_ally, healer)
+		sapShield(healer)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		for _, model in traps[player] or {} do
 			model:Destroy()
 		end
 		traps[player] = nil
+		sapReadyAt[player] = nil
 	end)
 end
 

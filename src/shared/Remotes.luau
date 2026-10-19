@@ -37,7 +37,7 @@ local Remotes = {
 	-- Cliente -> servidor (Lobby e Isla): guardar los ajustes del jugador (tabla, ver Shared/Settings).
 	SaveSettings = remoteEvent("SaveSettings"),
 	-- Servidor -> clientes (Isla): lote de números de combate (Combat/CombatText). Cada uno:
-	-- { target = modelo, amount, kind = "Taken"|"Heal"|"Dealt"|"Absorbed", crit, by = UserId?, pet }.
+	-- { target = modelo, amount, kind = "Taken"|"Heal"|"Dealt"|"Poison"|"Absorbed", crit, by = UserId?, pet }.
 	CombatText = remoteEvent("CombatText"),
 	-- Servidor -> cliente (Isla): has recogido algo (itemId, cantidad). Lo dibuja CombatTextController
 	-- en la columna de lo recogido, como los números de combate.

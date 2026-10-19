@@ -177,8 +177,9 @@ local Roles: { [string]: Role } = {
 		name = "Médico",
 		icon = "⛑️",
 		order = 4,
-		passive = "Reanima el doble de rápido y ve la vida de sus aliados.",
-		perks = { ReviveSpeed = -0.5, SeeHealth = 1 },
+		passive = "+15 de vida máxima, reanima el doble de rápido y ve la vida de sus aliados. Al curarlos gana un escudo de savia.",
+		-- "SapShield": escudo de la Savia protectora (Config.Abilities.SapShieldSeconds y SapShieldCooldown).
+		perks = { ReviveSpeed = -0.5, SeeHealth = 1, MaxHealth = 15, SapShield = 10 },
 		weapons = { "Blowgun", "Machete" },
 		abilities = {
 			{

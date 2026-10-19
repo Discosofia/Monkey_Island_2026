@@ -5,6 +5,7 @@
 --   - "Taken": daño que recibe un jugador (rojo, a la izquierda de su cabeza).
 --   - "Heal": curación de un jugador (verde, a la derecha).
 --   - "Dealt": daño a un enemigo (amarillo, sobre su cabeza).
+--   - "Poison": lo que le quita el veneno (morado, en la misma columna).
 --   - "Absorbed": un golpe que el Escudo de hojas paró entero (🛡️).
 -- Se mandan en lotes cada Config.CombatText.MergeSeconds; los golpes iguales (mismo objetivo, tipo,
 -- autor y crítico) de un lote se suman en un número: el abanico de flechas, la Lluvia…
@@ -17,7 +18,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
-export type Kind = "Taken" | "Heal" | "Dealt" | "Absorbed"
+export type Kind = "Taken" | "Heal" | "Dealt" | "Poison" | "Absorbed"
 type Entry = {
 	target: Instance,
 	amount: number,
@@ -109,6 +110,11 @@ end
 -- golpe lo ha derribado.
 function CombatText.dealt(model: Model, amount: number, crit: boolean?, by: Player?, pet: boolean?, ko: boolean?)
 	add(model, amount, "Dealt", crit, by, pet, ko)
+end
+
+-- Golpe del veneno a un enemigo (Combat/Status.poison). "by": quien lo envenenó.
+function CombatText.poison(model: Model, amount: number, by: Player?, ko: boolean?)
+	add(model, amount, "Poison", false, by, nil, ko)
 end
 
 -- Golpe parado entero por el escudo.

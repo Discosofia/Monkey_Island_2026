@@ -78,14 +78,17 @@ local function critText(recipe: Recipes.Recipe): string
 	return ` · <font color="{CRIT_COLOR}">🎯 Crítico {value}</font>`
 end
 
--- La descripción con "{damage}" cambiado por el daño del arma que da la receta.
+-- La descripción con "{damage}" cambiado por el daño del arma que da la receta y "{poison}" por el de
+-- su veneno cada segundo.
 local function descriptionOf(recipe: Recipes.Recipe): string
 	local weapon = if recipe.weaponId then Weapons[recipe.weaponId] else nil
 	if not weapon then
 		return recipe.description
 	end
 	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
-	return (string.gsub(recipe.description, "{damage}", tostring(damage)))
+	local poison = if weapon.poison then math.round(weapon.poison.dps * Config.Combat.PlayerDamageMultiplier) else 0
+	local text = string.gsub(recipe.description, "{damage}", tostring(damage))
+	return (string.gsub(text, "{poison}", tostring(poison)))
 end
 
 local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance): Row

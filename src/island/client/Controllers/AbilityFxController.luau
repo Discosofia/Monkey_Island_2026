@@ -13,12 +13,14 @@
 --     negro y chispa del Parpadeo, rayo que deja una sombra y humo en los monos alcanzados y roca
 --     ardiente que cae del cielo sobre un aviso rojo (Meteoro).
 --   - Médico: hojas que salen en círculo (Ungüento), dardo amarillo con cola roja, burbuja de escudo
---     con destello amarillo, tótem navajo de madera con gema verde sobre un suelo de hojas y nube lila
---     con "💤" sobre los monos dormidos (Polvo somnífero).
+--     con destello amarillo, tótem navajo de madera con gema verde sobre un suelo de hojas, nube lila
+--     con "💤" sobre los monos dormidos (Polvo somnífero; "+30 %" si están expuestos) y vapor morado
+--     sobre los envenenados (cerbatanas y "Cura de urgencia").
 -- Los movimientos del propio jugador (Embestida, Torbellino y Parpadeo) los dibuja RoleController al
 -- momento con AbilityFxController.play; el servidor se los manda solo a los demás.
--- La diana de las presas y la burbuja del escudo no llegan por el evento: salen de los atributos
--- "MarkedUntil" de los monos y "ShieldHealth"/"ShieldUntil" de los jugadores; los iconos de las marcas
+-- La diana de las presas, el vapor del veneno y la burbuja del escudo no llegan por el evento: salen de
+-- los atributos "MarkedUntil" y "PoisonedUntil" de los monos y "ShieldHealth"/"ShieldUntil" de los
+-- jugadores; los iconos de las marcas
 -- de combo, de "ComboMarkBy"/"ComboMarkUntil" (Data/Combos). Al cerrar un combo: aro dorado en el
 -- jugador y, en el del mago, el hielo que estalla.
 
@@ -2122,9 +2124,95 @@ local function asleep(model: Model?, seconds: number)
 	label.TextScaled = true
 	label.Text = "💤"
 	label.Parent = gui
+	-- Remate de "Nana de la selva" (Combat/Status.expose): cuánto daño más recibe mientras duerme.
+	local exposedUntil = model:GetAttribute("ExposedUntil")
+	local bonus = model:GetAttribute("ExposedBonus")
+	if
+		typeof(exposedUntil) == "number"
+		and Workspace:GetServerTimeNow() < exposedUntil
+		and typeof(bonus) == "number"
+	then
+		gui.Size = UDim2.fromOffset(56, 58)
+		label.Size = UDim2.fromScale(1, 0.7)
+		local extra = Instance.new("TextLabel")
+		extra.BackgroundTransparency = 1
+		extra.Position = UDim2.fromScale(0, 0.68)
+		extra.Size = UDim2.fromScale(1, 0.32)
+		extra.Font = Enum.Font.BuilderSansBold
+		extra.TextScaled = true
+		extra.TextColor3 = Color3.fromRGB(255, 150, 60)
+		extra.TextStrokeTransparency = 0.3
+		extra.Text = `+{math.round(bonus * 100)} %`
+		extra.Parent = gui
+	end
 	local bob = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 	TweenService:Create(gui, bob, { StudsOffset = gui.StudsOffset + Vector3.new(0, 0.6, 0) }):Play()
 	Debris:AddItem(gui, seconds)
+end
+
+-- Vapor morado que sube de los monos envenenados mientras dura el atributo "PoisonedUntil" (lo pone
+-- Combat/Status.poison).
+local function watchPoison()
+	local fumes: { [Model]: Attachment } = {}
+	while true do
+		local now = Workspace:GetServerTimeNow()
+		for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
+			if enemy:IsA("Model") then
+				local untilTime = enemy:GetAttribute("PoisonedUntil")
+				local poisoned = typeof(untilTime) == "number" and now < untilTime
+				local current = fumes[enemy]
+				local root = rootOf(enemy)
+				if poisoned and not current and root then
+					-- Desde lo alto del cuerpo: desde el centro, el propio cuerpo lo tapa.
+					local attachment = Instance.new("Attachment")
+					attachment.Name = "PoisonFumes"
+					attachment.Position = Vector3.new(0, root.Size.Y / 2 + 0.3, 0)
+					attachment.Parent = root
+					local vapor = emitter(
+						SMOKE_TEXTURE,
+						ColorSequence.new(Color3.fromRGB(155, 70, 255), Color3.fromRGB(100, 40, 190)),
+						NumberSequence.new(1, 2.6),
+						3,
+						1.4
+					)
+					vapor.EmissionDirection = Enum.NormalId.Top
+					vapor.SpreadAngle = Vector2.new(50, 50)
+					vapor.Acceleration = Vector3.new(0, 3, 0)
+					-- Casi opaco al salir: sobre la arena, un humo claro no se ve.
+					vapor.Transparency = NumberSequence.new({
+						NumberSequenceKeypoint.new(0, 0.05),
+						NumberSequenceKeypoint.new(0.5, 0.35),
+						NumberSequenceKeypoint.new(1, 1),
+					})
+					vapor.LightEmission = 0.15
+					vapor.Drag = 1.5
+					vapor.Rate = 12
+					vapor.Parent = attachment
+					local drops = emitter(
+						SPARKLE_TEXTURE,
+						ColorSequence.new(Color3.fromRGB(185, 120, 255)),
+						NumberSequence.new(0.6, 0),
+						3,
+						0.8
+					)
+					drops.LightEmission = 1
+					drops.Rate = 6
+					drops.Parent = attachment
+					fumes[enemy] = attachment
+				elseif not poisoned and current then
+					current:Destroy()
+					fumes[enemy] = nil
+				end
+			end
+		end
+		for enemy, attachment in fumes do
+			if not enemy.Parent then
+				attachment:Destroy()
+				fumes[enemy] = nil
+			end
+		end
+		task.wait(0.2)
+	end
 end
 
 -- ===================================== Combos =====================================
@@ -2295,6 +2383,7 @@ function AbilityFxController:Start()
 		end
 	end)
 	task.spawn(watchMarks)
+	task.spawn(watchPoison)
 	task.spawn(watchShields)
 	task.spawn(watchComboMarks)
 end

@@ -5,7 +5,7 @@
 --       "Head"   columnas cortas junto a la cabeza, del mismo tamaño en pantalla a cualquier distancia
 --       "Column" columnas del alto del personaje, a cada lado del cuerpo
 --       "Screen" columnas fijas en la pantalla, a izquierda y derecha del centro
---   - El daño que haces: amarillo, en una columna sobre la cabeza del enemigo.
+--   - El daño que haces: amarillo, en una columna sobre la cabeza del enemigo; el de tu veneno, morado.
 --   - Lo de tu mascota sale más pequeño (Config.CombatText.PetTextScale) y el daño de los aliados más
 --     pequeño y tenue (si está activado y cerca). El médico ve, tenues, sus curaciones a los aliados.
 --   - Los críticos salen un 25 % más grandes, con "!" y un temblor (UI/CombatTextColumn).
@@ -36,6 +36,7 @@ local COLORS = {
 	HealCrit = Color3.fromRGB(50, 255, 110),
 	Dealt = Color3.fromRGB(255, 220, 90),
 	DealtCrit = Color3.fromRGB(255, 185, 30),
+	Poison = Color3.fromRGB(190, 110, 255),
 	Absorbed = Color3.fromRGB(200, 215, 230),
 }
 -- Tamaño en píxeles de una columna junto a una cabeza (antes de ajustarlo a la pantalla).
@@ -330,7 +331,7 @@ local function show(entry: any)
 			-- Lo que reciben los demás no se dibuja (no llenar la pantalla con 20 jugadores).
 			return
 		end
-	elseif kind ~= "Dealt" then
+	elseif kind ~= "Dealt" and kind ~= "Poison" then
 		return
 	end
 

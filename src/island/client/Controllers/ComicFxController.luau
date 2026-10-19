@@ -5,7 +5,8 @@
 --   - "Hit": tus golpes normales ("BAM!", "PEW!" con armas a distancia, "ZAP!" con hechizos), como
 --     mucho uno por enemigo cada Config.ComicFx.HitCooldownSeconds.
 --   - "Crit": tus críticos ("POW!").
---   - "KO": el golpe tuyo que derriba al enemigo ("K.O.!"; el servidor lo marca con "ko").
+--   - "KO": el golpe tuyo que derriba al enemigo ("K.O.!"; el servidor lo marca con "ko"), también el
+--     de tu veneno (sus golpes de cada segundo no hacen nada más).
 --   - "Hurt": lo que te quita al menos HurtFraction de tu vida máxima o es crítico ("OUCH!").
 -- Solo lo tuyo: ni lo de tu mascota ni lo de los aliados. Se ajusta en Ajustes (Shared/Settings):
 -- comicFx (sí/no), comicLevel ("All" o "Strong": sin los golpes normales) y comicSize.
@@ -165,7 +166,9 @@ local function onBatch(batch: any)
 		end
 		-- Lo tuyo (no lo de tu mascota) a un enemigo o, en PvP, a otro jugador.
 		local pvp = entry.kind == "Taken" and Players:GetPlayerFromCharacter(target) ~= nil
-		if entry.by ~= player.UserId or entry.pet == true or not (entry.kind == "Dealt" or pvp) then
+		-- Del veneno (cada segundo) solo el golpe que lo derriba.
+		local poisonKo = entry.kind == "Poison" and entry.ko == true
+		if entry.by ~= player.UserId or entry.pet == true or not (entry.kind == "Dealt" or pvp or poisonKo) then
 			continue
 		end
 		local kind: ComicBurst.Kind = if entry.ko == true then "KO" elseif crit then "Crit" else "Hit"

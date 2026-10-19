@@ -1348,6 +1348,9 @@ function WeaponTools.build(weaponId: string): Tool
 	tool.Name = weapon.name
 	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
 	tool.ToolTip = `{weapon.name}: {damage} de daño`
+	if weapon.poison then
+		tool.ToolTip ..= ` · veneno {math.round(weapon.poison.dps * Config.Combat.PlayerDamageMultiplier)}/s`
+	end
 	if weapon.tool then
 		local kind = weapon.tool.kind
 		tool.ToolTip ..= if kind == "Axe"

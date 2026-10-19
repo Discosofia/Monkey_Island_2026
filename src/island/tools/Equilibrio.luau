@@ -165,7 +165,9 @@ end
 --               (jefes = false: no afecta a los jefes, no cuenta en el control del equipo sobre un jefe)
 --   lento       { segundos, factor, objetivos }
 --   provoca     { segundos, objetivos }
---   vulnerable  { valor, segundos, objetivos } (los marcados reciben "valor" más de daño)
+--   vulnerable  { valor, segundos, objetivos, en? } (los marcados reciben "valor" más de daño desde "en")
+--   veneno      { dps, segundos, objetivos } (Combat/Status.poison: no se suma al de la cerbatana, gana el
+--               más fuerte)
 --   mitiga      { valor, segundos } (el lanzador recibe "valor" menos de daño)
 --   cura        { cantidad, objetivos (aliados), ticks?, cada? } · escudo { cantidad, segundos }
 --   movilidad   studs · critSeguro: el remate hace críticos seguros (curaciones)
@@ -179,7 +181,8 @@ type Ficha = {
 	control: { segundos: number, objetivos: Objetivos, tipo: string, jefes: boolean? }?,
 	lento: { segundos: number, factor: number, objetivos: Objetivos }?,
 	provoca: { segundos: number, objetivos: Objetivos }?,
-	vulnerable: { valor: number, segundos: number, objetivos: Objetivos }?,
+	vulnerable: { valor: number, segundos: number, objetivos: Objetivos, en: number? }?,
+	veneno: { dps: number, segundos: number, objetivos: Objetivos }?,
 	mitiga: { valor: number, segundos: number }?,
 	cura: { cantidad: number, objetivos: Objetivos, ticks: number?, cada: number? }?,
 	escudo: { cantidad: number, segundos: number }?,
@@ -372,11 +375,19 @@ local MODELOS: { [string]: Modelo } = {
 		}
 	end,
 	-- Médico.
-	AreaHeal = function(A, perk, remate)
+	AreaHeal = function(A, perk, remate, combo)
 		return {
 			familia = "Curación en área",
 			cura = { cantidad = A.AreaHealAmount * perk("HealPower"), objetivos = { radio = A.AreaHealRadius } },
 			critSeguro = remate,
+			-- Remate de "Cura de urgencia": envenena a los monos del radio.
+			veneno = if remate and combo.SalvePoisonDps
+				then {
+					dps = combo.SalvePoisonDps,
+					segundos = combo.SalvePoisonSeconds,
+					objetivos = { radio = A.AreaHealRadius },
+				}
+				else nil,
 		}
 	end,
 	HealingDart = function(A, perk, remate)
@@ -391,6 +402,7 @@ local MODELOS: { [string]: Modelo } = {
 		return { familia = "Escudo", escudo = { cantidad = cantidad, segundos = A.ShieldSeconds } }
 	end,
 	SleepPowder = function(A, perk, remate, combo)
+		local duerme = perk("PowderSleep") + (if remate then combo.PowderExtraSleep else 0)
 		return {
 			familia = "Control en área",
 			golpes = { { cantidad = A.PowderDamage, en = 0.5, objetivos = { radio = A.PowderRadius } } },
@@ -401,11 +413,20 @@ local MODELOS: { [string]: Modelo } = {
 			},
 			-- Los jefes no se duermen.
 			control = {
-				segundos = perk("PowderSleep") + (if remate then combo.PowderExtraSleep else 0),
+				segundos = duerme,
 				objetivos = { radio = A.PowderRadius },
 				tipo = "Sleep",
 				jefes = false,
 			},
+			-- Remate de "Nana de la selva": los dormidos reciben más daño hasta despertar.
+			vulnerable = if remate and combo.PowderExposed
+				then {
+					valor = combo.PowderExposed,
+					segundos = duerme,
+					objetivos = { radio = A.PowderRadius },
+					en = 0.5 + A.PowderDrowsySeconds,
+				}
+				else nil,
 			cura = if remate
 				then { cantidad = combo.PowderHeal * perk("HealPower"), objetivos = { fijo = 2 } }
 				else nil,
@@ -498,8 +519,29 @@ local function main(copia: Instance): string
 		end
 	end
 
+	-- Daño real por segundo de un veneno de "dps" (Combat/Status.poison): cada golpe pasa por
+	-- PlayerDamageMultiplier y se redondea, sin críticos.
+	local function venenoReal(dps: number): number
+		if dps <= 0 then
+			return 0
+		end
+		local tick = A.PoisonTickSeconds or 1
+		return math.max(1, math.round(dps * tick * PDM)) / tick
+	end
+
 	-- Arma del rol: id, daño por golpe con la ventaja del rol (como CombatService), DPS base y real.
-	type Arma = { id: string, golpe: number, dpsBase: number, dpsReal: number, critico: number, cura: number }
+	-- "veneno": daño real por segundo del veneno de las cerbatanas (Data/Weapons "poison") en el mono al
+	-- que dispara; cuenta en los DPS del arma.
+	type Arma = {
+		id: string,
+		golpe: number,
+		dpsBase: number,
+		dpsReal: number,
+		critico: number,
+		cura: number,
+		veneno: number,
+		venenoSegundos: number,
+	}
 	-- "forzada": id de un arma para esta medida (las mejoras de la forja, sección 3).
 	local function armaDe(roleId: string, perk: Perk, forzada: string?): Arma
 		local id = forzada or OPCIONES.armas[roleId] or Roles[roleId].weapons[1]
@@ -510,14 +552,17 @@ local function main(copia: Instance): string
 			else "RangedDamage"
 		local golpe = math.round(arma.damage * perk(ventaja))
 		local critico = OPCIONES.critico or arma.critChance or Config.Crit.DefaultWeaponChance
-		local dpsBase = golpe / arma.cooldownSeconds
+		local veneno = if arma.poison then arma.poison.dps * perk(ventaja) else 0
+		local dpsGolpes = golpe / arma.cooldownSeconds
 		return {
 			id = id,
 			golpe = golpe,
-			dpsBase = dpsBase,
-			dpsReal = dpsBase * PDM * (1 + critico * (CRIT - 1)),
+			dpsBase = dpsGolpes + veneno,
+			dpsReal = dpsGolpes * PDM * (1 + critico * (CRIT - 1)) + venenoReal(veneno),
 			critico = critico,
 			cura = (arma.healOnHit or 0) / arma.cooldownSeconds,
+			veneno = venenoReal(veneno),
+			venenoSegundos = if arma.poison then arma.poison.seconds else 0,
 		}
 	end
 
@@ -554,12 +599,16 @@ local function main(copia: Instance): string
 	end
 
 	-- Daño base (antes de PDM y críticos) de un uso contra "grupo" monos.
+	-- (El veneno, entero, como si no hubiera otro: la simulación sí descuenta el de la cerbatana.)
 	local function danoDeUso(ficha: Ficha, grupo: number): number
 		local total = 0
 		for _, golpe in ficha.golpes or {} do
 			if grupo >= (golpe.minObjetivos or 1) then
 				total += golpe.cantidad * resolver(golpe.objetivos, grupo)
 			end
+		end
+		if ficha.veneno then
+			total += ficha.veneno.dps * ficha.veneno.segundos * resolver(ficha.veneno.objetivos, grupo)
 		end
 		return total
 	end
@@ -570,6 +619,12 @@ local function main(copia: Instance): string
 			if golpe.en <= ventana and grupo >= (golpe.minObjetivos or 1) then
 				total += golpe.cantidad * resolver(golpe.objetivos, grupo)
 			end
+		end
+		if ficha.veneno then
+			total += ficha.veneno.dps * math.min(ficha.veneno.segundos, ventana) * resolver(
+				ficha.veneno.objetivos,
+				grupo
+			)
 		end
 		return total
 	end
@@ -598,11 +653,22 @@ local function main(copia: Instance): string
 				local arma = armaDe(roleId, perk)
 				local factor = PDM * (1 + arma.critico * (CRIT - 1))
 				linea("")
+				local veneno = if arma.veneno > 0
+					then ` + veneno {n(arma.veneno)}/s real {n(arma.venenoSegundos)} s`
+					else ""
 				linea(
-					`### {Roles[roleId].icon} {roleId}: arma {arma.id} ({arma.golpe} por golpe, DPS real {n(
+					`### {Roles[roleId].icon} {roleId}: arma {arma.id} ({arma.golpe} por golpe{veneno}, DPS real {n(
 						arma.dpsReal
-					)}, crítico {pct(arma.critico)})`
+					)}, crítico {pct(arma.critico)}) · vida {100 + perk("MaxHealth")}`
 				)
+				local savia = perk("SapShield")
+				if savia > 0 then
+					linea(
+						`Savia protectora: escudo de {n(savia)} durante {n(A.SapShieldSeconds)} s al curar a un aliado, cada {n(
+							A.SapShieldCooldown
+						)} s como mucho ({n(savia / A.SapShieldCooldown)}/s si cura sin parar).`
+					)
+				end
 				linea(
 					"| Habilidad | Recarga | Familia | Daño 1 obj | Daño grupo | DPS grupo | Seg. arma | Pico 2 s | Control | Cura | Otros |"
 				)
@@ -802,7 +868,11 @@ local function main(copia: Instance): string
 		-- activo: índice del combo en marcha en "combos" (0 = ninguno); conectado: empezó por la conexión.
 		local activo, paso, pasoHasta, racha, conectado = 0, 0, -math.huge, 0, false
 		local devuelto = 0 -- segundos que los combos han quitado ya a la recarga de la definitiva en curso
-		local vulnerableHasta, vulnerableValor = -1, 0
+		local vulnerableDesde, vulnerableHasta, vulnerableValor = -1, -1, 0
+		-- Veneno: el de la cerbatana en el mono al que dispara y el de una habilidad en "venenoCuantos"
+		-- monos (uno de ellos, ese mismo). No se suman: en el mismo mono gana el más fuerte.
+		local venenoArmaHasta = -1
+		local venenoHasta, venenoDps, venenoCuantos = -1, 0, 0
 		local armaLista, bloqueoHasta = 0, 0
 		local t, dt = 0, 0.05
 		local corte = 1
@@ -823,7 +893,7 @@ local function main(copia: Instance): string
 			-- aCritico: parte del daño (0-1) que es golpe de combo (crítico seguro y "damageBonus" del combo).
 			local enlace = CRIT * (1 + bonus)
 			local mult = PDM * (aCritico * enlace + (1 - aCritico) * critico)
-			if t < vulnerableHasta then
+			if t >= vulnerableDesde and t < vulnerableHasta then
 				mult *= 1 + vulnerableValor
 			end
 			local dano = cantidad * mult
@@ -833,6 +903,20 @@ local function main(copia: Instance): string
 			else
 				resultado.arma += dano
 			end
+		end
+
+		-- Lo que gotean los venenos en "dt" (ya en daño real: venenoReal).
+		local function gotear()
+			local delArma = if t < venenoArmaHasta then arma.veneno else 0
+			local deHabilidad = 0
+			if t < venenoHasta and venenoCuantos > 0 then
+				-- En el mono de la cerbatana solo cuenta lo que el de la habilidad tiene de más.
+				deHabilidad = math.max(0, venenoDps - delArma) + venenoDps * (venenoCuantos - 1)
+			end
+			local mult = if t >= vulnerableDesde and t < vulnerableHasta then 1 + vulnerableValor else 1
+			resultado.total += (delArma + deHabilidad) * mult * dt
+			resultado.arma += delArma * mult * dt
+			resultado.habilidades += deHabilidad * mult * dt
 		end
 
 		local function lanzar(hueco: number)
@@ -909,8 +993,16 @@ local function main(copia: Instance): string
 				end
 			end
 			if ficha.vulnerable then
-				vulnerableHasta = t + ficha.vulnerable.segundos
-				vulnerableValor = ficha.vulnerable.valor
+				-- Solo en los que alcanza: con un área pequeña, parte del grupo se queda fuera.
+				local cuantos = resolver(ficha.vulnerable.objetivos, grupo)
+				vulnerableDesde = t + (ficha.vulnerable.en or 0)
+				vulnerableHasta = vulnerableDesde + ficha.vulnerable.segundos
+				vulnerableValor = ficha.vulnerable.valor * math.min(1, cuantos / grupo)
+			end
+			if ficha.veneno then
+				venenoHasta = t + ficha.veneno.segundos
+				venenoDps = venenoReal(ficha.veneno.dps)
+				venenoCuantos = resolver(ficha.veneno.objetivos, grupo)
 			end
 			local cura = curaDeUso(ficha)
 			if cura > 0 then
@@ -1012,8 +1104,12 @@ local function main(copia: Instance): string
 					armaLista = t + Weapons[arma.id].cooldownSeconds
 					aplicar(arma.golpe, 0, false, 0)
 					resultado.cura += arma.cura * Weapons[arma.id].cooldownSeconds
+					if arma.veneno > 0 then
+						venenoArmaHasta = t + arma.venenoSegundos
+					end
 				end
 			end
+			gotear()
 			if CORTES[corte] and t >= CORTES[corte] - 1e-6 then
 				resultado.curva[CORTES[corte]] = resultado.total
 				corte += 1

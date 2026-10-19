@@ -86,14 +86,14 @@ local Combos: { [string]: { Combo } } = {
 			steps = { "HealingDart", "LeafShield", "AreaHeal" },
 			mark = "Revitalizado",
 			icon = "💚",
-			finisher = "El Ungüento cura con críticos seguros y baja la fiebre.",
+			finisher = "El Ungüento cura con críticos seguros, baja la fiebre y envenena a los monos de alrededor.",
 		},
 		{
 			name = "Nana de la selva",
 			steps = { "LeafShield", "HealingDart", "SleepPowder" },
 			mark = "Arropado",
 			icon = "🍃",
-			finisher = "El Polvo somnífero duerme más tiempo y cura a los aliados que estén en la nube.",
+			finisher = "El Polvo somnífero duerme más tiempo, cura a los aliados de la nube y los dormidos reciben un 30 % más de daño hasta despertar.",
 		},
 	},
 }

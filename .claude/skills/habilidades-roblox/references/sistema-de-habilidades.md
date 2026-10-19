@@ -62,9 +62,10 @@ tiempo de vuelo, a la vez que el efecto que dibujan los clientes.
 2. `hurt`: redondeo; contra jugadores ×0,5 y crítico del arma; contra monos, crítico = combo seguro
    **o** tirada del arma.
 3. `CombatService.damage`: ×`Config.Combat.PlayerDamageMultiplier` (0,7; no a mascotas) →
-   intimidado por un mandril ×0,7 → marcado por un cazador ×(1 + `MarkBonus`) → crítico
-   ×`Config.Crit.Multiplier` (1,35) → `TakeDamage`, número flotante, `ComboService.onActivity`,
-   oyentes (`BossService` apunta participantes).
+   intimidado por un mandril ×0,7 → marcado por un cazador ×(1 + `MarkBonus`) → expuesto (dormido
+   por la Nana del médico) ×(1 + `ExposedBonus`) → crítico ×`Config.Crit.Multiplier` (1,35) →
+   `TakeDamage`, número flotante (morado si es veneno), `ComboService.onActivity`, oyentes
+   (`BossService` apunta participantes).
 
 Daño a un jugador (`CombatService.damagePlayer`): no en el Basecamp, esquivando ni caído → crítico
 del mono/jefe (`Crit.sourceChance`) → `mitigate`: armadura (`Data/Armor`) → Grito de guerra
@@ -79,6 +80,16 @@ si es mortal, `LifeService.down`.
   rendimientos decrecientes**: un aturdimiento nuevo solo alarga si acaba más tarde. Los leen
   `MonkeyService.think`/`siegeThink` y `BossService.tick` en cada vuelta.
 - **Marca del cazador**: `MarkedUntil` + `MarkBonus` en el modelo (+ `Highlight`).
+- **Veneno** (`Status.poison(modelo, dps, segundos, atacante, fuente)`): un golpe cada
+  `Config.Abilities.PoisonTickSeconds` (1 s) por `CombatService.damage` con `poison = true` (número
+  morado, sin destello ni sonido, sin crítico; cuenta para la racha y el botín de quien lo puso). No
+  se acumula: uno igual o más fuerte lo renueva y uno más flojo no hace nada mientras dure. El cliente
+  dibuja vapor morado con el atributo `PoisonedUntil`. Lo usan las cerbatanas (`poison` en
+  `Data/Weapons`, con la ventaja de daño del arma) y el remate de "Cura de urgencia"; los dardos
+  venenosos del médico (Grupo 11) también deben pasar por aquí. Status no depende de CombatService:
+  CombatService le da la función de daño al empezar (`Status.setPoisonDamage`).
+- **Expuesto** (`Status.expose(modelo, bonus, segundos)`): `ExposedUntil` + `ExposedBonus`, recibe más
+  daño. Lo pone el remate de "Nana de la selva" a los dormidos; el "💤" lleva debajo "+30 %".
 - **Jugadores**: `StunnedUntil` solo pone `WalkSpeed` a 0 en `SurvivalController` (puede atacar,
   usar habilidades y esquivar). Se pone **siempre** con `Status.holdPlayer(player, segundos, causa)`:
   mientras dura otro no lo alarga y al acabar hay `Config.Combat.PlayerControlImmunitySeconds` (2 s)
@@ -221,6 +232,11 @@ Los números exactos y sus medidas salen de la calculadora (`src/island/tools/Eq
 | Cazador | Disparo múltiple 5 s | Marcar presas 15 s | Cepo 9 s | Flecha perforante 8 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple · Marcar → Cepo → Flecha perforante |
 | Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Meteoro 10 s | Rayo encadenado 90 s | Nova → Parpadeo → Bola de fuego · Bola de fuego → Nova → Meteoro |
 | Médico | Ungüento 15 s | Dardo curativo 6 s | Escudo de hojas 12 s | Polvo somnífero 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento · Escudo → Dardo → Polvo somnífero |
+
+Pasiva del médico: +15 de vida máxima y "Savia protectora" (ventaja `SapShield`, en
+`AbilityService` con `CombatService.onPlayerHealed`): al curar a otro jugador gana un escudo de 10
+durante `SapShieldSeconds`, como mucho uno cada `SapShieldCooldown`; no pisa un escudo mayor. Con un
+solo jugador no se puede probar (no hay a quién curar).
 
 Dormir (`control(…, "Sleep")`, `Status.stun` con aspecto "Sleep" y efecto "Asleep") es un aturdimiento
 que se ve con "💤"; el Polvo somnífero no se lo aplica a los jefes.
