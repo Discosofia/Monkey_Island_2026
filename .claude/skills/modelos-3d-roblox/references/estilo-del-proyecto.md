@@ -467,6 +467,30 @@ return {
   forward?)` del gorila da tres bloques en escalera que se estrechan; las grietas de lava son filas
   de celdas de neón de 0,2 de grueso, pegadas a la cara (+0,05).
 
+- **Alfas** (`alpha = { tones?, recolor?, remove?, add?, faces? }` en el spec, tipo `VoxelAlpha`):
+  el líder de la tropa de las especies con `alpha` en Data. `MonkeyModels.spawn(..., alpha)` lo
+  construye a `scale × Config.Monkeys.AlphaScale` desde su propia plantilla (los colores van dentro
+  de las uniones). `tones`, `remove` y `add` funcionan como en un jefe. `recolor = { { de, a } }`
+  cambia colores fijos del spec (las constantes `MANE`, `BLUE`…), también en las caras, y
+  `faces = { Normal = { cajas } }` sustituye las cajas de una expresión de la especie. Para verlo en
+  la vista previa: `MM.build(id, def, pos, nil, true)`. Lo que aprendimos:
+  - Un filtro genérico de saturación y contraste no se notaba: el usuario quería **dimorfismo
+    sexual**, colores nuevos de macho dominante (capa plateada del babuino, granate del orangután).
+  - Cara "algo más agresiva sin ser de ataque": las cejas en V de la de ataque con la boca cerrada
+    y los ojos entornados. En un tono casi negro: en `dark` salían pardo claro y no se leían; y
+    finas (0,65 celdas), o parecían gafas de sol. En el gorila, el lado de dentro de la ceja tiene
+    que bajar sobre la cara: encima del pelo negro no se veía.
+  - Las puntas de los colmillos con la boca cerrada parecían **dientes de conejo** en simios
+    (chimpancé, orangután, gorila); en el babuino y el mandril, con hocico largo, sí se leen.
+  - Una barba clara bajo la barbilla parecía una servilleta, y una naranja sobre el pecho oscuro,
+    un babero: barba pequeña y del color del pelo o canosa.
+  - Lo canoso del lomo en tiras finas encima parecía tapas desde atrás: capas de lado a lado,
+    con el escalón entre lomo y grupa también canoso. Un parche plateado en el muslo, una pegatina.
+  - Los grises claros salen blancos: capa del babuino (145, 143, 136), lomo del gorila (175, 175, 183).
+  - `freshRequire` de MonkeyModels no recarga los specs: carga cada uno y ponlo en
+    `MM.voxelSpecs.<Especie>`, o medirás con un spec viejo (al agrandar el chimpancé y el orangután,
+    el alto salió un 5 % más bajo de lo real).
+
 ### Cómo se dibuja un animal voxel
 
 - **Masas grandes primero.** El torso del gorila son 4–5 cajas. Un escalonado (cresta, lomo que baja

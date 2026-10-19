@@ -340,7 +340,7 @@ stateDiagram-v2
 
 El **diario de campo** (J en la Isla, pestaña "Diario" en el Lobby) recoge las especies y, debajo, los **jefes** (§8.2, categoría 4): cada uno sale con "???" hasta que lo derrotas (o, en un jefe, hasta que le haces daño y cae), y entonces con su descripción, zona o guarida, botín y cuántas veces.
 
-*Ajuste de octubre de 2026 (combos):* las tropas son un **50 % más grandes** (`Config.Monkeys.GroupSizeMultiplier`), los grupos diezmados se recuperan cada **25 s** (antes 45) y caben hasta **220** monos a la vez (antes 160), para que siempre haya con quién enlazar combos. A cambio, cada mono suelta botín con la **mitad de probabilidad** (`LootChanceMultiplier`).
+*Ajuste de octubre de 2026 (combos):* las tropas son un **50 % más grandes** (`Config.Monkeys.GroupSizeMultiplier`), los grupos diezmados se recuperan cada **25 s** (antes 45) y caben hasta **220** monos a la vez (antes 160), para que siempre haya con quién enlazar combos. *(18-10-2026: las tropas solo existen cerca de los jugadores y el límite, 200, cuenta solo esas; ver `docs/RENDIMIENTO.md`.)* A cambio, cada mono suelta botín con la **mitad de probabilidad** (`LootChanceMultiplier`).
 
 #### Categoría 1: dificultad baja
 
@@ -397,8 +397,8 @@ El tamaño dice de un vistazo lo peligroso que es un mono: cuanto más alto, má
 | Categoría | Alto | Frente a un jugador | `scale` habitual | Ahora (alto en studs) |
 |---|---|---|---|---|
 | 1 · baja | 1,3–3 | de la rodilla a la cintura | 0,45–1 | Tití 1,4 · Mono ardilla 1,5 · Marteja 1,5 · Capuchino 1,6 · Cola larga 1,6 · Marimonda 1,65 · Aullador 1,75 (voxel) |
-| 2 · media | 2,4–4 | de la cintura al pecho | 0,85–1,25 | Macaco 1,75 · Mandril 2 · Babuino 2,2 · Gibón 2,4 (voxel) |
-| 3 · difícil | 3,4–5,5 | como un jugador | 1,15–1,6 | Chimpancé 2,7 · Orangután 3 · Gorila 5,2 (voxel, hombros 4,2) |
+| 2 · media | 2,4–4 | de la cintura al pecho | 0,85–1,25 | Macaco 1,75 · Gibón 2,4 · Mandril 2,9 · Babuino 3,4 (voxel) |
+| 3 · difícil | 3,4–5,5 | como un jugador | 1,15–1,6 | Chimpancé 4,2 · Orangután 5 · Gorila 6 (voxel, hombros 4,8) |
 | 4 · jefe | 9–11 | unos dos jugadores | 2,6–3,2 (de 1,9 a 2,3 veces el de su especie) | Caudillo 12,3 · Albino 10,8 · Manglar 10,8 · Ceniza 13,4 |
 
 - **Se pasan de alto a propósito:** la **Marimonda** (2,4 con la cola en S levantada; 1,65 de cuerpo), el **Chimpancé Caudillo** (12,3 con el tocado de plumas; 9 de cuerpo) el **Gorila Albino** (12,7 de alto y 13,6 de ancho con los cristales de los hombros y los brazos; 10,8 x 9,8 de cuerpo) y el **Gorila de Ceniza**, que es un 25 % más grande que el Albino para ser el jefe más imponente (13,4 de alto, 12,8 de ancho y 17,5 de fondo; `scale` 3,625, 2,5 veces el de su especie). Su guarida está al aire libre, en el centro del volcán, y tiene más alcance de ataque (14) para llegar a los jugadores que tiene delante del hocico. Para ellos cuenta el alto del cuerpo, no el de la cola, los brazos o el tocado.
@@ -424,6 +424,28 @@ los modelos de antes.
 Los altos reales en postura son estimaciones a partir de las medidas de los documentos; se ajustan
 al modelar cada animal.
 
+**Simios y monos grandes agrandados (18-10-2026):** a cuatro patas a su tamaño real se quedaban
+cortos junto al jugador, así que el Mandril, el Babuino, el Chimpancé, el Orangután y el Gorila son
+más grandes que su tamaño real, en este orden de mayor a menor: Gorila 6, Orangután 5, Chimpancé 4,2,
+Babuino 3,4 y Mandril 2,9 (con `scale` en `Data/Monkeys`). El Gorila (6) se pasa de la franja de la
+categoría 3 a propósito. Sus jefes no cambian (tienen su propio `scale` en `Data/Bosses`).
+
+**Alfas:** estas cinco especies llevan alfa (`alpha` en `Data/Monkeys`): el primero de cada tropa.
+Es un 15 % más grande (`Config.Monkeys.AlphaScale`), más vida y más daño, y lleva su corona. Tiene
+el aspecto de los machos dominantes de su especie (dimorfismo sexual; `alpha` en el spec voxel de
+cada especie), con la cara normal algo más agresiva (ceño en V y ojos entornados) sin llegar a la
+de ataque:
+
+- **Mandril:** todos los colores mucho más vivos (nariz roja, crestas azul eléctrico, barba dorada
+  más larga, lomo dorado, trasero violeta y rojo).
+- **Babuino:** capa plateada como la del babuino sagrado, callosidades rojas y las puntas de los
+  colmillos asomando.
+- **Chimpancé:** negro intenso con el lomo canoso, barba canosa, cara más oscura y más músculo.
+- **Orangután:** pelo castaño granate en vez de naranja, almohadillas más anchas, barba y melenas
+  largas colgando de los brazos.
+- **Gorila:** cuerpo negro intenso con el lomo plateado más claro, la cresta más alta (por eso el
+  alfa mide 7,2 en vez de 6,9) y más músculo.
+
 | Mono | Alto real en postura | Real (studs) | **Alto en juego** | Antes |
 |---|---|---|---|---|
 | Tití del Chocó | ~0,13 m | 0,4 | **1,4** (hecho) | 1,4 |
@@ -434,12 +456,12 @@ al modelar cada animal.
 | Marimonda del Chocó | ~0,3 m | 0,9 | **1,65** (hecho; 2,4 con la cola en S) | 3,7 |
 | Macaco | ~0,35 m | 1,05 | **1,75** (hecho) | 2,7 |
 | Mono aullador rojo | ~0,35 m | 1,05 | **1,75** (hecho) | 2,5 |
-| Mandril | ~0,55 m | 1,65 | **2** (hecho) | 3,9 |
-| Babuino | ~0,65 m | 1,95 | **2,2** (hecho) | 3,3 |
+| Mandril | ~0,55 m | 1,65 | **2,9** (agrandado; alfa 3,3) | 2 |
+| Babuino | ~0,65 m | 1,95 | **3,4** (agrandado; alfa 3,9) | 2,2 |
 | Gibón | ~0,8 m (erguido) | 2,4 | **2,4** (hecho; brazos colgando) | 4,4 |
-| Chimpancé | ~0,9 m | 2,7 | **2,7** (hecho) | 3,5 |
-| Orangután | ~1 m | 3 | **3** (hecho) | 4,9 |
-| Gorila | ~1,5 m de hombros | 5,2 con la cresta | **5,2** (hecho) | 5,4 |
+| Chimpancé | ~0,9 m | 2,7 | **4,2** (agrandado; alfa 4,8) | 2,7 |
+| Orangután | ~1 m | 3 | **5** (agrandado; alfa 5,75) | 3 |
+| Gorila | ~1,5 m de hombros | 5,2 con la cresta | **6** (agrandado; alfa 7,2 con su cresta) | 5,2 |
 
 | Mascota | Alto real en postura | Real (studs) | **Alto en juego** |
 |---|---|---|---|

@@ -18,6 +18,7 @@ local Shapes = require(script.Parent.Shapes)
 
 local EYE = Color3.fromRGB(15, 10, 8)
 local MOUTH_OPEN = Color3.fromRGB(110, 35, 35)
+local ALPHA_BROW = Color3.fromRGB(58, 38, 30) -- el ceño del alfa; en "dark" no se leía sobre la cara
 
 local function join(...: { any }): { any }
 	local all = {}
@@ -315,6 +316,38 @@ return {
 				{ 0, 24.8, -16.65, 3.8, 1.8, 0.1, MOUTH_OPEN, "Mouth" },
 				{ 1.2, 25.4, -16.7, 0.5, 0.7, 0.1, "teeth", "Fang", true },
 				{ 0.9, 24.15, -16.7, 0.45, 0.5, 0.1, "teeth", "Fang", true },
+			},
+		},
+	},
+	-- El alfa: macho de mejillas anchas, con el pelo largo castaño granate (en vez de naranja), las
+	-- almohadillas más anchas, barba bajo el saco de la garganta y melenas largas colgando de los
+	-- brazos; la cara normal, algo más agresiva: las cejas en V de la de ataque, casi negras, y los
+	-- ojos entornados, con la boca cerrada (las puntas de los colmillos parecían dientes de conejo).
+	alpha = {
+		tones = {
+			fur = Color3.fromRGB(120, 42, 22),
+			shag = Color3.fromRGB(140, 52, 26),
+			shade = Color3.fromRGB(88, 28, 15),
+		},
+		add = {
+			Head = {
+				{ 0, 29, -13.6, 17.4, 6.4, 1.4, "deep", "Flange" },
+				-- Del color del pelo: más clara, parecía un babero.
+				{ 0, 20.4, -13, 5, 1.6, 3, "fur", "Beard" },
+				{ 0, 19.1, -13.4, 2.6, 1.2, 2, "fur", "Beard" },
+			},
+			Arm = {
+				{ 12.9, 11.5, -6.6, 0.6, 13, 2.8, "shag", "Hair" },
+				{ 10.5, 12.5, -4.9, 2.6, 10, 0.6, "shag", "Hair" },
+			},
+		},
+		faces = {
+			Normal = {
+				-- Finas: con el alto de las de ataque parecían unas gafas de sol.
+				{ 0.8, 30.85, -15.1, 1.6, 0.65, 0.6, ALPHA_BROW, "Brow", true },
+				{ 2.3, 31.35, -15, 1.6, 0.65, 0.5, ALPHA_BROW, "Brow", true },
+				{ 1.6, 30, -14.9, 1.1, 0.5, 0.2, EYE, "Pupil", true },
+				{ 0, 25.1, -16.65, 3.8, 0.3, 0.1, "mouth", "Mouth" },
 			},
 		},
 	},

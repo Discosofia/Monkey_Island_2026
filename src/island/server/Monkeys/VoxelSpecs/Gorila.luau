@@ -352,6 +352,30 @@ return {
 			},
 		},
 	},
+	-- El alfa: espalda plateada de verdad, con el cuerpo negro intenso y el plateado más claro (un
+	-- parche plateado en el muslo parecía una pegatina), la cresta más alta y más músculo; la ceja recta pasa a un ceño
+	-- un poco en V sobre los ojos (las puntas de los colmillos parecían dientes de conejo).
+	alpha = {
+		tones = {
+			fur = Color3.fromRGB(26, 26, 30),
+			shag = Color3.fromRGB(38, 38, 43),
+			silver = Color3.fromRGB(175, 175, 183), -- más claro salía blanco
+		},
+		remove = { "Brow" },
+		add = {
+			Torso = {
+				{ 0, 17.5, -4.5, 9, 1, 5, "fur", "Trapezius" },
+				{ 0, 16.5, 1.5, 8, 1, 4, "silver", "Lats" },
+			},
+			Head = {
+				{ 0, 20.4, -8.6, 1.4, 1, 2.4, "fur", "Crest" },
+				-- No se llaman "Brow": "remove" las quitaría también. El lado de dentro baja sobre la cara
+				-- y tapa la parte de arriba de los ojos; más arriba quedaba sobre el pelo negro y no se veía.
+				{ 2, 14.4, -14.6, 2.2, 0.9, 1.5, "dark", "Scowl", true },
+				{ 0.75, 14.05, -14.75, 1.5, 0.9, 1.6, "dark", "Scowl", true },
+			},
+		},
+	},
 	-- Lo que cada jefe cambia del cuerpo del gorila (ver VoxelBoss en MonkeyModels): quita la cara
 	-- normal (va por fases), añade músculos a las partes y pone sus adornos en grupos de un material.
 	bosses = {

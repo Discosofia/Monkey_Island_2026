@@ -206,4 +206,38 @@ return {
 			},
 		},
 	},
+	-- El alfa: como los machos dominantes, todos sus colores mucho más vivos (nariz roja encendida,
+	-- crestas azul eléctrico, barba dorada más larga, lomo más dorado y trasero violeta y rojo), y la
+	-- cara normal algo más agresiva: cejas un poco en V, ojos entornados y las puntas de los colmillos
+	-- asomando con la boca cerrada.
+	alpha = {
+		tones = { skin = Color3.fromRGB(235, 25, 35) },
+		recolor = {
+			{ BLUE, Color3.fromRGB(15, 175, 255) },
+			{ BLUE_DARK, Color3.fromRGB(10, 95, 210) },
+			{ YELLOW, Color3.fromRGB(255, 200, 15) },
+			{ OLIVE, Color3.fromRGB(150, 130, 25) },
+			{ OLIVE_LIGHT, Color3.fromRGB(175, 150, 30) },
+			{ OLIVE_DARK, Color3.fromRGB(115, 95, 20) },
+			{ RUMP_BLUE, Color3.fromRGB(130, 70, 235) },
+			{ RUMP_RED, Color3.fromRGB(245, 35, 75) },
+		},
+		add = {
+			Head = {
+				{ 0, 15, -20.6, 2.6, 1.4, 2.4, YELLOW, "Beard" },
+			},
+			Torso = {
+				{ 0, 18.6, 15.6, 3, 1.6, 0.4, RUMP_RED, "Rump" },
+			},
+		},
+		faces = {
+			Normal = {
+				{ 3.3, 25.75, -17.95, 3.4, 1.1, 1.1, GREY_DARK, "Brow", true },
+				{ 1.1, 25.45, -18.05, 1.6, 1.2, 1.3, GREY_DARK, "Brow", true },
+				{ 3, 24.15, -17.6, 1.2, 0.55, 0.2, EYE, "Pupil", true },
+				{ 0, 19.8, -21.8, 4.4, 1.2, 5, WHITE, "Lip" },
+				{ 1.3, 18.95, -24.1, 0.5, 0.7, 0.3, FANG, "Fang", true },
+			},
+		},
+	},
 }

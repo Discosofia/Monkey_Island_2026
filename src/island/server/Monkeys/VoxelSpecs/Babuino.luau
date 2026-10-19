@@ -199,4 +199,37 @@ return {
 			},
 		},
 	},
+	-- El alfa: capa plateada como la de los machos de babuino sagrado (la melena parda pasa a gris
+	-- plata, más larga por los costados y bajo la barbilla), callosidades rojas más grandes, y la cara
+	-- normal algo más agresiva: cejas oscuras un poco en V, ojos entornados y las puntas de los
+	-- colmillos asomando con la boca cerrada.
+	alpha = {
+		recolor = {
+			-- Studio aclara los grises: con (172, 170, 162) la capa salía blanca.
+			{ MANE, Color3.fromRGB(145, 143, 136) },
+			{ MANE_MID, Color3.fromRGB(126, 124, 118) },
+			{ MANE_DARK, Color3.fromRGB(100, 98, 93) },
+			{ CALLUS, Color3.fromRGB(215, 65, 80) },
+		},
+		add = {
+			Torso = {
+				{ 7.3, 17.6, -6.2, 0.6, 2, 1.8, MANE_DARK, "Mane", true },
+				{ 7.3, 17.9, -3.4, 0.6, 1.6, 1.6, MANE_DARK, "Mane", true },
+				{ 0, 16.2, -9.4, 4.4, 2.4, 1.6, MANE, "Mane" },
+				{ 1.3, 16.3, 15.05, 2.4, 3.2, 0.4, CALLUS, "Callus", true },
+			},
+			Arm = {
+				{ 8.25, 13.6, -7.5, 0.5, 1.8, 1.4, MANE_DARK, "Mane" },
+			},
+		},
+		faces = {
+			Normal = {
+				{ 3.3, 26.45, -17.05, 3.2, 1.2, 1.3, BROW_DARK, "Brow", true },
+				{ 1, 26.1, -17.2, 1.6, 1.3, 1.5, BROW_DARK, "Brow", true },
+				{ 2.9, 24.85, -16.6, 1.2, 0.5, 0.2, EYE, "Pupil", true },
+				{ 0, 20.3, -20, 3.4, 1.2, 6, JAW, "Jaw" },
+				{ 1.3, 20.2, -23.1, 0.5, 1, 0.5, FANG, "Fang", true },
+			},
+		},
+	},
 }

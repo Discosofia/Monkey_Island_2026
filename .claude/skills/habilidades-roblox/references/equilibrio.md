@@ -176,6 +176,10 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 9. **La racha con conexiones**: en la simulación se queda en x5; un jugador real que espera a que se
    recargue el paso 2 (Marcar 15 s, Nova 9 s) sin pegar con el arma la pierde a los 8 s. Mirar en la
    telemetría `ComboBestStreak` antes de tocarla.
+10. **Alfas del orangután y el gorila** (18-10-2026, pedido del usuario): sus tropas son de 1–3, así
+   que casi cada encuentro trae un alfa (×2,5 de vida y ×1,5 de daño: gorila alfa 800 de vida y 30
+   de daño, orangután alfa 550). Los cinco simios con alfa también son más grandes (GDD §8.2). Sin
+   medir con la calculadora.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

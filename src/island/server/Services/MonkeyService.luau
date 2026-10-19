@@ -16,6 +16,9 @@
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
 -- Además, un grupo con bajas recupera un mono cada cierto tiempo si no hay jugadores cerca de su
 -- zona (Config.Monkeys.GroupRegrowSeconds): la selva nunca se queda vacía.
+-- Las tropas solo existen cerca de los jugadores (updatePopulation): lejos se guardan como un
+-- número y aparecen cuando alguien se acerca, así hay monos por toda la isla y el límite de monos
+-- a la vez (MaxActive) solo cuenta los que hay alrededor de algún jugador.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -63,6 +66,10 @@ type Group = {
 	size: number,
 	temporary: boolean, -- refuerzos de un aullido: no se repueblan
 	members: { Monkey },
+	-- Las tropas lejos de los jugadores no existen: se guardan como cuántos monos tienen ("stored")
+	-- y aparecen al acercarse alguien (updatePopulation). "awake": sus monos están en el mapa.
+	awake: boolean,
+	stored: number,
 	nextRegrowAt: number, -- os.clock() a partir del cual puede recuperar un mono
 	siege: boolean?, -- grupo del asedio nocturno
 	gate: Vector3?, -- portón por el que entra el grupo de asedio
@@ -165,7 +172,9 @@ local function randomHome(definition: Monkeys.MonkeyDefinition): Vector3?
 	end
 	for _ = 1, 80 do
 		local angle = rng:NextNumber(0, 2 * math.pi)
-		local distance = rng:NextNumber(minDistance, maxDistance)
+		-- Repartidas por superficie: con la distancia al azar sin más, se amontonaban cerca del
+		-- Basecamp (125 monos a su alrededor) y las orillas de la isla se quedaban casi vacías.
+		local distance = math.sqrt(rng:NextNumber(minDistance ^ 2, maxDistance ^ 2))
 		local ground = findGround(origin + Vector3.new(math.cos(angle), 0, math.sin(angle)) * distance, materials)
 		if ground then
 			return ground
@@ -279,7 +288,8 @@ local function activeCount(): number
 	return count
 end
 
--- El alfa: más vida y daño, y una corona sobre la cabeza.
+-- El alfa: más vida y daño, y una corona sobre la cabeza (el modelo más grande y de colores más
+-- marcados lo pone MonkeyModels.spawn).
 local function makeAlpha(monkey: Monkey)
 	monkey.group.alpha = monkey
 	monkey.humanoid.MaxHealth *= Config.Monkeys.AlphaHealthMultiplier
@@ -311,7 +321,9 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 		return nil
 	end
 
-	local model = MonkeyModels.spawn(group.speciesId, definition, ground)
+	-- El primero de una tropa con alfa es el alfa: se decide antes porque tiene su propio modelo.
+	local isAlpha = definition.alpha == true and not group.alpha
+	local model = MonkeyModels.spawn(group.speciesId, definition, ground, isAlpha)
 	model.Parent = monkeyFolder()
 	local root = model.PrimaryPart :: BasePart
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -352,7 +364,7 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	monkeys[model] = monkey
 	table.insert(group.members, monkey)
 	MonkeyAnimator.attach(model)
-	if definition.alpha and not group.alpha then
+	if isAlpha then
 		makeAlpha(monkey)
 	end
 	humanoid.Died:Connect(function()
@@ -388,6 +400,9 @@ local function despawnGroup(group: Group)
 		monkey.model:Destroy()
 	end
 	table.clear(group.members)
+	-- Al volver a aparecer, el primero vuelve a ser el alfa (antes se quedaba apuntando al alfa
+	-- borrado y la tropa reaparecía sin alfa).
+	group.alpha = nil
 end
 
 -- Tamaño de una tropa nueva: el de su especie por Config.Monkeys.GroupSizeMultiplier.
@@ -407,6 +422,8 @@ local function createGroups()
 					size = groupSize(definition),
 					temporary = false,
 					members = {},
+					awake = false,
+					stored = 0,
 					nextRegrowAt = 0,
 				})
 			end
@@ -419,6 +436,84 @@ local function isActive(definition: Monkeys.MonkeyDefinition, phase: MatchState.
 	return definition.activeAt == "Both" or definition.activeAt == phase
 end
 
+-- Dónde están los jugadores con personaje (también los del Basecamp: las tropas de alrededor tienen
+-- que estar ahí cuando salgan).
+local function playerPositions(): { Vector3 }
+	local positions = {}
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if root and root:IsA("BasePart") then
+			table.insert(positions, root.Position)
+		end
+	end
+	return positions
+end
+
+local function nearestDistance(positions: { Vector3 }, point: Vector3): number
+	local nearest = math.huge
+	for _, position in positions do
+		nearest = math.min(nearest, (position - point).Magnitude)
+	end
+	return nearest
+end
+
+-- Guarda las tropas que se han quedado sin jugadores alrededor (ni de su zona ni de ninguno de sus
+-- monos, que pueden haberse ido persiguiendo a alguien) y despierta las que tienen a alguien cerca,
+-- las más cercanas primero por si se llega al límite de monos a la vez. No mira si pelean: a más de
+-- SleepDistance un mono deja de pensar y se quedaría "persiguiendo" para siempre. Un ladrón con lo
+-- robado sigue en el mapa para que el jugador pueda volver a recuperarlo.
+local function updatePopulation()
+	local state = MatchState.read()
+	if not state then
+		return
+	end
+	local positions = playerPositions()
+	local waking: { { group: Group, distance: number } } = {}
+	for _, group in groups do
+		if group.temporary then
+			continue
+		end
+		local distance = nearestDistance(positions, group.home)
+		if group.awake and distance > Config.Monkeys.DormantDistance then
+			local busy = false
+			for _, monkey in group.members do
+				local seen = nearestDistance(positions, monkey.root.Position) <= Config.Monkeys.DormantDistance
+				if seen or monkey.stolen then
+					busy = true
+					break
+				end
+			end
+			if not busy then
+				group.stored += #group.members
+				despawnGroup(group)
+				group.awake = false
+			end
+		elseif
+			group.stored > 0
+			and distance <= Config.Monkeys.WakeDistance
+			and isActive(Monkeys[group.speciesId], state.phase)
+			-- Lo que faltaba en una tropa ya despierta (por el límite) no aparece delante del jugador.
+			and (not group.awake or distance > Config.Monkeys.RegrowMinPlayerDistance)
+		then
+			table.insert(waking, { group = group, distance = distance })
+		end
+	end
+	table.sort(waking, function(a, b)
+		return a.distance < b.distance
+	end)
+	for _, entry in waking do
+		local group = entry.group
+		group.awake = true
+		while group.stored > 0 and spawnMonkey(group, group.home) do
+			group.stored -= 1
+		end
+		if activeCount() >= Config.Monkeys.MaxActive then
+			break
+		end
+	end
+end
+
 local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 	if #groups == 0 then
 		createGroups()
@@ -427,13 +522,17 @@ local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 		local definition = Monkeys[group.speciesId]
 		if not isActive(definition, phase) then
 			despawnGroup(group)
+			group.awake = false
+			group.stored = 0
 		elseif phase == "Day" or definition.activeAt == phase then
-			-- Las especies de día y "Both" se repueblan al amanecer; las nocturnas, al anochecer.
+			-- Las especies de día y "Both" se repueblan al amanecer; las nocturnas, al anochecer. Lo que
+			-- falta queda guardado y aparece cuando haya alguien cerca (updatePopulation).
 			if not group.temporary then
-				fillGroup(group)
+				group.stored = group.size - #group.members
 			end
 		end
 	end
+	updatePopulation()
 	-- Los grupos de refuerzo vacíos ya no hacen falta.
 	for index = #groups, 1, -1 do
 		if groups[index].temporary and #groups[index].members == 0 then
@@ -455,6 +554,8 @@ local function spawnReinforcements(position: Vector3, target: Player)
 		size = Config.Monkeys.HowlReinforcementCount,
 		temporary = true,
 		members = {},
+		awake = true,
+		stored = 0,
 		nextRegrowAt = math.huge,
 	}
 	table.insert(groups, group)
@@ -979,6 +1080,8 @@ function MonkeyService.spawnSiegeGroup(speciesId: string, spawnPoint: Vector3, g
 		size = count,
 		temporary = true,
 		members = {},
+		awake = true,
+		stored = 0,
 		nextRegrowAt = math.huge,
 		siege = true,
 		gate = gatePoint,
@@ -1024,6 +1127,8 @@ function MonkeyService.spawnAmbush(
 		size = count,
 		temporary = true,
 		members = {},
+		awake = true,
+		stored = 0,
 		nextRegrowAt = math.huge,
 		ignoreCap = ignoreCap,
 	}
@@ -1066,6 +1171,7 @@ local function anyPlayerNear(position: Vector3, distance: number): boolean
 end
 
 -- Cada grupo incompleto de una especie activa recupera un mono, lejos de la vista de los jugadores.
+-- Si la tropa está guardada, solo suma uno a los que aparecerán cuando alguien se acerque.
 local function regrowGroups()
 	local state = MatchState.read()
 	if not state then
@@ -1074,12 +1180,15 @@ local function regrowGroups()
 	local now = os.clock()
 	for _, group in groups do
 		local definition = Monkeys[group.speciesId]
-		local ready = not group.temporary and #group.members < group.size and now >= group.nextRegrowAt
-		if
-			ready
-			and isActive(definition, state.phase)
-			and not anyPlayerNear(group.home, Config.Monkeys.RegrowMinPlayerDistance)
-		then
+		local missing = #group.members + group.stored < group.size
+		local ready = not group.temporary and missing and now >= group.nextRegrowAt
+		if not (ready and isActive(definition, state.phase)) then
+			continue
+		end
+		if not group.awake then
+			group.stored += 1
+			group.nextRegrowAt = now + Config.Monkeys.GroupRegrowSeconds
+		elseif not anyPlayerNear(group.home, Config.Monkeys.RegrowMinPlayerDistance) then
 			spawnMonkey(group, group.home)
 			group.nextRegrowAt = now + Config.Monkeys.GroupRegrowSeconds
 		end
@@ -1096,6 +1205,12 @@ function MonkeyService:Start()
 		while true do
 			task.wait(5)
 			regrowGroups()
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(Config.Monkeys.PopulationCheckSeconds)
+			updatePopulation()
 		end
 	end)
 

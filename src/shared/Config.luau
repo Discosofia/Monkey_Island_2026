@@ -188,6 +188,16 @@ local Config = {
 		ThinkIntervalSeconds = 0.25,
 		-- Sin jugadores a esta distancia, un mono no piensa (ahorra rendimiento).
 		SleepDistance = 300,
+		-- Las tropas solo existen cerca de los jugadores: lejos se guardan como un número (los monos que
+		-- tiene) y aparecen cuando alguien se acerca a su zona a menos de WakeDistance; se vuelven a
+		-- guardar sin nadie a menos de DormantDistance y si ninguno está peleando. Así hay monos por
+		-- toda la isla sin que existan todos a la vez (medido en Studio, 18-10-2026: un mono guardado
+		-- no cuesta nada; uno despierto, ~14 µs de física en reposo y ~45 µs persiguiendo; el cliente
+		-- baja de 60 FPS con más de ~75 monos alrededor). Con la densidad de ahora, cada jugador
+		-- tiene ~50-70 monos a menos de 350 studs.
+		WakeDistance = 350,
+		DormantDistance = 450,
+		PopulationCheckSeconds = 1,
 		-- Los grupos aparecen en la selva entre estas distancias del centro del Basecamp.
 		SpawnMinDistance = 140,
 		SpawnMaxDistance = 800,
@@ -198,10 +208,14 @@ local Config = {
 		HowlReinforcementCount = 2,
 		-- Fase 4: radio alrededor de la guarida de su bioma donde aparecen las especies de bioma,
 		-- límite de monos a la vez en el servidor (rendimiento) y alfas de las tropas.
+		-- El límite solo cuenta los monos que existen (cerca de algún jugador); si se llega, aparecen
+		-- primero las tropas más cercanas a un jugador. Con 200 persiguiendo a la vez, la física del
+		-- servidor llegó a 9 ms por fotograma (con picos de 35 ms).
 		BiomeRadius = 220,
-		MaxActive = 220,
+		MaxActive = 200,
 		AlphaHealthMultiplier = 2.5,
 		AlphaDamageMultiplier = 1.5,
+		AlphaScale = 1.15, -- el alfa es un 15 % más grande que los de su especie (y de colores más marcados)
 		PounceCooldownSeconds = 6,
 		RoarCooldownSeconds = 15,
 		-- Miedo al fuego: distancia a una antorcha u hoguera a la que las especies miedosas se apartan.

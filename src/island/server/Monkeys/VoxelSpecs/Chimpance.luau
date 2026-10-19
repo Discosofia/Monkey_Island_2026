@@ -20,6 +20,7 @@ local EYE = Color3.fromRGB(15, 10, 8)
 local MOUTH_OPEN = Color3.fromRGB(120, 35, 40)
 local LIP = Color3.fromRGB(150, 100, 90)
 local BROW = Color3.fromRGB(135, 98, 82)
+local ALPHA_BROW = Color3.fromRGB(38, 26, 22)
 
 local function join(...: { any }): { any }
 	local all = {}
@@ -335,6 +336,46 @@ return {
 				{ 1.1, 23.1, -20, 0.45, 0.6, 0.1, "teeth", "Fang", true },
 				{ 0.8, 22.05, -20, 0.4, 0.45, 0.1, "teeth", "Fang", true },
 				{ 0, 25.2, -19.95, 2.4, 0.2, 0.1, "dark", "Wrinkle" },
+			},
+		},
+	},
+	-- El alfa: macho dominante maduro, negro intenso con el lomo canoso (encima, no en la cara de atrás
+	-- de la grupa: ahí parecía una ventana), barba canosa, cara más oscura y más músculo; la
+	-- cara normal, algo más agresiva: cejas en V y ojos entornados.
+	alpha = {
+		tones = {
+			fur = Color3.fromRGB(20, 19, 18),
+			silver = Color3.fromRGB(112, 110, 107), -- canoso; más claro, desde atrás parecían tapas blancas
+			skin = Color3.fromRGB(105, 72, 60), -- con (130, 92, 76) no se veía más oscura que la normal
+		},
+		add = {
+			Torso = {
+				{ 0, 29.4, -3.5, 9, 0.6, 4.5, "fur", "Trapezius" },
+				{ 2.6, 22.3, -8.85, 4.4, 3, 0.4, GREY, "Pectoral", true },
+				-- Lomo y grupa canosos de lado a lado, con el escalón entre ellos: desde atrás se lee como
+				-- una sola zona canosa (unas tiras finas encima parecían tapas).
+				{ 0, 25.2, 5, 14.2, 0.4, 7.2, "silver", "Saddle" },
+				{ 0, 23, 8.6, 14.2, 4.4, 0.4, "silver", "Saddle" },
+				{ 0, 21.2, 11, 12.2, 0.4, 6.2, "silver", "Saddle" },
+			},
+			Arm = {
+				{ 11.2, 13.5, -7.5, 0.6, 4, 3, "fur", "Biceps" },
+				{ 9.2, 13.5, -9.6, 3, 4, 0.6, "fur", "Biceps" },
+			},
+			-- Mechón canoso en la barbilla (más grande y claro parecía una servilleta).
+			Head = {
+				{ 0, 21.2, -18.4, 3, 1.2, 1.6, "silver", "Beard" },
+			},
+		},
+		-- Las cejas en V de la de ataque, con la boca cerrada (las puntas de los colmillos, en el
+		-- chimpancé, parecían dientes de conejo).
+		faces = {
+			Normal = {
+				-- Casi negras: en el tono "dark" de la cara salían pardo claro y el ceño no se leía.
+				{ 0.9, 28.2, -17.85, 1.8, 1.1, 1.5, ALPHA_BROW, "Brow", true },
+				{ 2.6, 28.8, -17.75, 1.8, 1.1, 1.3, ALPHA_BROW, "Brow", true },
+				{ 1.5, 27.4, -17.6, 1.1, 0.5, 0.2, EYE, "Pupil", true },
+				{ 0, 22.8, -19.95, 3.2, 0.3, 0.1, "mouth", "Mouth" },
 			},
 		},
 	},

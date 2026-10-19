@@ -204,7 +204,8 @@ local function placeRows(folder: Folder, character: Model, rows: { ShowcaseRow }
 	end
 end
 
--- Todos los monos en filas delante del jugador: una fila por categoría (los pequeños delante) y, al
+-- Todos los monos en filas delante del jugador: una fila por categoría (los pequeños delante, cada
+-- especie con alfa seguida de su alfa) y, al
 -- fondo, cada jefe en su fila con sus tres fases del combate de izquierda a derecha (su cara y lo que
 -- cambia del cuerpo en cada una, ver MonkeyModels.showPhase). Para revisar los modelos de
 -- Monkeys/MonkeyModels. Pulsar otra vez los quita.
@@ -244,6 +245,13 @@ local function monkeyShowcase(player: Player)
 			model = MonkeyModels.build(speciesId, definition, Vector3.zero),
 			label = definition.name,
 		})
+		-- Las especies con alfa lo enseñan al lado: más grande y de colores más marcados.
+		if definition.alpha then
+			table.insert(row.items, {
+				model = MonkeyModels.build(speciesId, definition, Vector3.zero, nil, true),
+				label = `{definition.name} alfa`,
+			})
+		end
 	end
 	-- Los jefes, en el orden en que salen en la partida y montados como en BossService; la fase 1, a la
 	-- izquierda vista por el jugador.

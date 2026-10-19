@@ -21,13 +21,16 @@
 local GeometryService = game:GetService("GeometryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 
 -- Las posiciones de los constructores son respecto a la raíz, a escala 1, con la cara hacia -Z.
 -- La raíz está a rootHeight sobre el suelo: con escala 1, el suelo queda en Y = -1.9.
 -- "boss": lo construye un jefe; algunas especies le dan más detalle.
 -- "voxel": el cuerpo es de bloques (voxelMonkey) y los adornos del jefe vienen en bloques en su spec.
-type Rig = { model: Model, root: BasePart, scale: number, boss: boolean, voxel: boolean }
+-- "alpha": el líder de la tropa; más grande (scale ya lo incluye) y con su aspecto de macho dominante
+-- ("alpha" en el spec voxel de su especie).
+type Rig = { model: Model, root: BasePart, scale: number, boss: boolean, voxel: boolean, alpha: boolean }
 
 -- "Spike": pirámide (CornerWedgePart) con la punta sobre la esquina -X +Z de arriba; sirve para cristales.
 type Shape = "Block" | "Ball" | "Oval" | "Cylinder" | "Spike"
@@ -209,12 +212,24 @@ type VoxelBoss = {
 -- Expresión de la cara: cajas que se unen en una pieza soldada a la cabeza. La "Normal" es la de
 -- siempre; las demás se ven mientras suena una de sus "actions" (ver showFace y MonkeyAnimator).
 type VoxelFace = { name: string, actions: { string }?, boxes: { { any } } }
+-- El alfa de la tropa, con el dimorfismo de los machos dominantes (la capa plateada del babuino, el
+-- lomo plateado del gorila): "tones", "remove" y "add" son como los de un jefe, "recolor" cambia
+-- colores fijos del spec ({ de, a }) en el cuerpo y las caras, y "faces" cambia las cajas de las
+-- expresiones de la especie por su nombre (la Normal, algo más agresiva).
+type VoxelAlpha = {
+	tones: { [string]: Color3 }?,
+	recolor: { { Color3 } }?,
+	remove: { string }?,
+	add: { [string]: { { any } } }?,
+	faces: { [string]: { { any } } }?,
+}
 -- "glowEyes": las cajas "Eye" (sueltas, de VOXEL_LOOSE) son de neón, como los ojos de la marteja.
 -- "faces": expresiones según la acción (el grito del aullador al llamar a la tropa).
 export type VoxelSpec = {
 	unit: number,
 	parts: { VoxelPart },
 	bosses: { [string]: VoxelBoss }?,
+	alpha: VoxelAlpha?,
 	glowEyes: boolean?,
 	faces: { VoxelFace }?,
 }
@@ -323,14 +338,26 @@ end
 
 local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec: VoxelSpec, bossId: string?)
 	local tones = voxelTones(definition)
+	local alpha: VoxelAlpha = if rig.alpha and spec.alpha then spec.alpha else {}
+	local recolor = alpha.recolor or {}
 	local function toneOf(value: any): Color3?
-		return if typeof(value) == "Color3" then value elseif value then tones[value] else nil
+		local color = if typeof(value) == "Color3" then value elseif value then tones[value] else nil
+		for _, pair in recolor do
+			if color == pair[1] then
+				return pair[2]
+			end
+		end
+		return color
 	end
 	local unit = spec.unit
 	local function at(x: number, y: number, z: number): Vector3
 		return Vector3.new(x * unit, y * unit + GROUND, z * unit)
 	end
-	local boss: VoxelBoss = if bossId and spec.bosses then spec.bosses[bossId] or {} else {}
+	-- El alfa cambia el cuerpo como un jefe (tonos, cajas que quita y que añade), sin adornos.
+	local boss: VoxelBoss = if bossId and spec.bosses
+		then spec.bosses[bossId] or {}
+		elseif rig.alpha then { tones = alpha.tones, remove = alpha.remove, add = alpha.add }
+		else {}
 	for name, color in boss.tones or {} do
 		tones[name] = color
 	end
@@ -417,7 +444,8 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 	-- jefes con entrada en el spec ponen su propia cara por fases y no llevan las de la especie.
 	local bossFaces = bossId ~= nil and spec.bosses ~= nil and spec.bosses[bossId] ~= nil
 	for _, face in if bossFaces then {} else spec.faces or {} do
-		for _, group in buildGroup({ anchor = "Head", name = "Expression", boxes = face.boxes }) do
+		local boxes = if alpha.faces and alpha.faces[face.name] then alpha.faces[face.name] else face.boxes
+		for _, group in buildGroup({ anchor = "Head", name = "Expression", boxes = boxes }) do
 			group:SetAttribute("Face", face.name)
 			group:SetAttribute("FaceActions", table.concat(face.actions or {}, " "))
 		end
@@ -561,15 +589,23 @@ function MonkeyModels.rootHeight(scale: number): number
 	return 1.9 * scale
 end
 
+-- Escala con la que se construye un mono: la de su especie, y más si es el alfa de la tropa.
+function MonkeyModels.scaleOf(definition: Monkeys.MonkeyDefinition, alpha: boolean?): number
+	return definition.scale * (if alpha then Config.Monkeys.AlphaScale else 1)
+end
+
 -- Construye un mono nuevo. "ground" es el punto del suelo donde aparece. Los jefes lo usan con su
 -- propio aspecto y su id ("bossId", para sus detalles); los monos normales salen de MonkeyModels.spawn.
+-- "alpha": el líder de la tropa (especies con "alpha" en Data/Monkeys), más grande y de colores más marcados.
 function MonkeyModels.build(
 	speciesId: string,
 	definition: Monkeys.MonkeyDefinition,
 	ground: Vector3,
-	bossId: string?
+	bossId: string?,
+	alpha: boolean?
 ): Model
-	local s = definition.scale
+	local isAlpha = alpha == true and bossId == nil
+	local s = MonkeyModels.scaleOf(definition, isAlpha)
 	local model = Instance.new("Model")
 	model.Name = definition.name
 	model:SetAttribute("MonkeyType", speciesId)
@@ -584,7 +620,8 @@ function MonkeyModels.build(
 	model.PrimaryPart = root
 
 	local voxelSpec = if bossId and not VOXEL_BOSSES[bossId] then nil else VOXEL_SPECS[speciesId]
-	local rig: Rig = { model = model, root = root, scale = s, boss = bossId ~= nil, voxel = voxelSpec ~= nil }
+	local rig: Rig =
+		{ model = model, root = root, scale = s, boss = bossId ~= nil, voxel = voxelSpec ~= nil, alpha = isAlpha }
 	if voxelSpec then
 		voxelMonkey(rig, definition, voxelSpec, bossId)
 	else
@@ -613,14 +650,22 @@ function MonkeyModels.build(
 end
 
 -- Un mono de la especie en "ground", copiado de su plantilla (más barato que construirlo pieza a pieza).
-function MonkeyModels.spawn(speciesId: string, definition: Monkeys.MonkeyDefinition, ground: Vector3): Model
-	local template = templates[speciesId]
+-- El alfa tiene su propia plantilla: sus colores van dentro de las uniones y no se pueden cambiar después.
+function MonkeyModels.spawn(
+	speciesId: string,
+	definition: Monkeys.MonkeyDefinition,
+	ground: Vector3,
+	alpha: boolean?
+): Model
+	local key = if alpha then `{speciesId}Alpha` else speciesId
+	local template = templates[key]
 	if not template then
-		template = MonkeyModels.build(speciesId, definition, Vector3.zero)
-		templates[speciesId] = template
+		template = MonkeyModels.build(speciesId, definition, Vector3.zero, nil, alpha)
+		templates[key] = template
 	end
 	local model = template:Clone()
-	model:PivotTo(CFrame.new(ground + Vector3.new(0, MonkeyModels.rootHeight(definition.scale), 0)))
+	local height = MonkeyModels.rootHeight(MonkeyModels.scaleOf(definition, alpha))
+	model:PivotTo(CFrame.new(ground + Vector3.new(0, height, 0)))
 	return model
 end
 
