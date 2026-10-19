@@ -38,6 +38,18 @@
 --     capucha de pelaje con orejas, broche de plata en forma de hoja, correas cruzadas con remaches,
 --     hombros de pelaje con garras de hueso, brazales con puño de pelaje y faldones plateados. Detrás,
 --     el carcaj de cuero oscuro con aros de plata y siete flechas de plumas plateadas y negras.
+-- Mago (de chamán: tela y amuletos que pasan a runas y cristales que brillan en azul; el morado es
+-- del veneno y el verde, de las curaciones):
+--   - Manto de amuletos: túnica teñida de morado bajo un poncho de fibra con franjas y flecos, collar
+--     de cuentas con un amuleto de piedra, faja con una calabaza y pulseras de cuentas. Detrás, un
+--     atrapasueños con tres plumas.
+--   - Túnica de runas: túnica añil con ribetes dorados, una runa que brilla en el pecho, cráneos de
+--     mono de ojos brillantes en las hombreras, faja con piedras rúnicas y brazales con runas.
+--     Detrás, un círculo de runas de neón con un triángulo dentro y dos talismanes colgando.
+--   - Manto de cristal: túnica añil oscura bajo una capa de pelaje plateado con cuello alto y flecos
+--     de cristal, broche y cadena de plata con cristales, hombros de pelaje con cristales y puños
+--     plateados. Detrás, una corona de cristales que sale de un disco de plata rodeado de runas y
+--     asoma por encima de los hombros.
 
 local Armor = require(game:GetService("ReplicatedStorage").Shared.Data.Armor)
 
@@ -72,12 +84,27 @@ local FEATHER_GREY = Color3.fromRGB(150, 150, 150)
 local FEATHER_RED = Color3.fromRGB(185, 55, 40)
 local LEAF_LIGHT = Color3.fromRGB(110, 160, 70)
 local LEAF_SHADOW = Color3.fromRGB(32, 72, 52)
+local DYE_PURPLE = Color3.fromRGB(118, 72, 148)
+-- Fibra tejida del poncho, más clara que la de los cordones (FIBER): en grande salía verde oliva.
+local WOVEN_FIBER = Color3.fromRGB(196, 165, 108)
+local MAGE_INDIGO = Color3.fromRGB(64, 54, 112)
+local MAGE_INDIGO_DARK = Color3.fromRGB(42, 36, 80)
+local GOLD_TRIM = Color3.fromRGB(215, 175, 75)
+local BEAD_RED = Color3.fromRGB(185, 60, 45)
+local BEAD_TEAL = Color3.fromRGB(55, 160, 165)
+local GOURD = Color3.fromRGB(195, 150, 70)
+local STONE = Color3.fromRGB(120, 120, 125)
+local RUNE = Color3.fromRGB(95, 215, 255)
+local CRYSTAL = Color3.fromRGB(150, 225, 255)
 
 local FABRIC = Enum.Material.Fabric
 local SMOOTH = Enum.Material.SmoothPlastic
 local LEATHER_MATERIAL = Enum.Material.Leather
 local METAL = Enum.Material.Metal
 local WOOD = Enum.Material.Wood
+local NEON = Enum.Material.Neon
+local GLASS = Enum.Material.Glass
+local SLATE = Enum.Material.Slate
 
 -- Y así a lo largo de Z (discos que miran al frente).
 local FACING = CFrame.Angles(0, math.rad(90), 0)
@@ -1221,11 +1248,372 @@ local function silverHunter(body: Body)
 	end
 end
 
+-- ===================================== Mago =====================================
+
+-- Aro de "count" tramos de radio "radius" en el plano XY de "at" (mirando a su Z): el del atrapasueños
+-- y los círculos de runas.
+local function hoop(
+	make: Builder,
+	at: CFrame,
+	radius: number,
+	count: number,
+	thickness: number,
+	color: Color3,
+	material: Enum.Material
+)
+	local length = 2 * math.pi * radius / count * 1.08
+	for index = 0, count - 1 do
+		make.block(
+			Vector3.new(length, thickness, thickness),
+			color,
+			material,
+			at * CFrame.Angles(0, 0, index / count * 2 * math.pi) * CFrame.new(0, radius, 0)
+		)
+	end
+end
+
+-- Cristal de "length" que sale de "base" hacia "direction" (respecto a la parte del cuerpo): funda de
+-- cristal translúcido con un núcleo de neón que brilla dentro.
+local function crystal(make: Builder, base: Vector3, direction: Vector3, length: number, width: number)
+	local at = CFrame.lookAt(base, base + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+	local shell = make.fang(length, width, CRYSTAL, GLASS, at)
+	shell.Transparency = 0.3
+	make.fang(length * 0.72, width * 0.5, RUNE, NEON, at * CFrame.new(width * 0.25, 0, -width * 0.25))
+end
+
+-- Atrapasueños de "radius" en el plano XY de "at" (mirando a su +Z, hacia atrás): aro de madera, tela
+-- de fibra en estrella con una cuenta en el centro y tres plumas colgando de unos cordones con cuentas.
+local function dreamcatcher(make: Builder, at: CFrame, radius: number)
+	hoop(make, at, radius, 10, 0.09, BARK, WOOD)
+	for index = 0, 2 do
+		make.block(Vector3.new(radius * 2, 0.03, 0.03), FIBER, FABRIC, at * CFrame.Angles(0, 0, index * math.pi / 3))
+	end
+	make.ball(0.15, BEAD_TEAL, SMOOTH, at * CFrame.new(0, 0, 0.03))
+	for index = -1, 1 do
+		local x = index * radius * 0.6
+		local bottom = -math.sqrt(radius * radius - x * x)
+		make.block(Vector3.new(0.03, 0.28, 0.03), FIBER, FABRIC, at * CFrame.new(x, bottom - 0.14, 0))
+		make.ball(0.11, if index == 0 then BEAD_RED else BEAD_TEAL, SMOOTH, at * CFrame.new(x, bottom - 0.3, 0))
+		make.oval(
+			Vector3.new(0.14, 0.46, 0.04),
+			FEATHER_WHITE,
+			SMOOTH,
+			at * CFrame.new(x, bottom - 0.58, 0) * CFrame.Angles(0, 0, index * 0.15)
+		)
+	end
+end
+
+local function amuletMantle(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	-- Túnica teñida de morado y, encima, el manto de fibra tejida que cae de los hombros como un poncho.
+	make.block(
+		Vector3.new(width + 0.08, height * 0.95, depth + 0.1),
+		DYE_PURPLE,
+		FABRIC,
+		CFrame.new(0, -height * 0.02, 0)
+	)
+	local ponchoHeight = height * 0.82
+	local ponchoY = height / 2 + 0.05 - ponchoHeight / 2
+	local ponchoBottom = ponchoY - ponchoHeight / 2
+	local front = -(depth + 0.26) / 2
+	local back = (depth + 0.26) / 2
+	make.block(Vector3.new(width + 0.26, ponchoHeight, depth + 0.26), WOVEN_FIBER, FABRIC, CFrame.new(0, ponchoY, 0))
+	-- Dos franjas teñidas cerca del borde.
+	for index, y in { 0.1, 0.26 } do
+		make.block(
+			Vector3.new(width + 0.3, 0.09, depth + 0.3),
+			if index == 1 then DYE_PURPLE else BEAD_RED,
+			FABRIC,
+			CFrame.new(0, ponchoBottom + y, 0)
+		)
+	end
+	-- Flecos de fibra en el borde, delante y detrás.
+	local tassels = 5
+	for index = 0, tassels - 1 do
+		local x = -width * 0.42 + index * width * 0.84 / (tassels - 1)
+		for _, z in { front + 0.12, back + 0.02 } do
+			make.fang(
+				0.24,
+				0.12,
+				FIBER,
+				FABRIC,
+				CFrame.new(x + 0.06, ponchoBottom + 0.02, z) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
+	end
+	-- Collar de cuentas en U con un amuleto de piedra teñido en el centro.
+	local beads = 7
+	for index = 0, beads - 1 do
+		local t = index / (beads - 1)
+		make.ball(
+			0.13,
+			if index % 2 == 0 then BEAD_RED else BEAD_TEAL,
+			SMOOTH,
+			CFrame.new((t - 0.5) * width * 0.48, height / 2 - 0.08 - math.sin(math.pi * t) * 0.34, front - 0.06)
+		)
+	end
+	local amulet = CFrame.new(0, height / 2 - 0.56, front - 0.08)
+	make.rod(0.07, 0.36, STONE, SLATE, amulet * FACING)
+	make.rod(0.05, 0.2, DYE_PURPLE, SMOOTH, amulet * CFrame.new(0, 0, -0.04) * FACING)
+	-- Detrás (lo que el jugador ve siempre): un atrapasueños grande.
+	dreamcatcher(make, CFrame.new(0, height * 0.12, back + 0.04), 0.5)
+
+	-- Faja morada con el nudo a un lado y una calabaza de pociones colgando.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.08)
+	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), DYE_PURPLE, FABRIC, CFrame.new(0, 0.08, 0))
+	waist.ball(0.22, DYE_PURPLE, FABRIC, CFrame.new(-hipWidth * 0.32, 0.08, beltFront - 0.03))
+	waist.block(
+		Vector3.new(0.12, 0.34, 0.06),
+		DYE_PURPLE,
+		FABRIC,
+		CFrame.new(-hipWidth * 0.32, -0.16, beltFront - 0.04) * CFrame.Angles(0, 0, 0.15)
+	)
+	local gourd = CFrame.new(hipWidth * 0.32, -0.2, beltFront - 0.12)
+	waist.ball(0.34, GOURD, SMOOTH, gourd)
+	waist.rod(0.18, 0.12, GOURD, SMOOTH, gourd * CFrame.new(0, 0.22, 0) * UPRIGHT)
+	waist.block(Vector3.new(0.04, 0.2, 0.04), FIBER, FABRIC, gourd * CFrame.new(0, 0.36, 0))
+
+	-- Pulseras de cuentas.
+	for side = -1, 1, 2 do
+		local forearm = body.lowerArm[side]
+		band(forearm, -forearm.size.Y * 0.3, 0.12, 0.08, if side == 1 then BEAD_TEAL else BEAD_RED, SMOOTH)
+		band(forearm, -forearm.size.Y * 0.42, 0.08, 0.06, FIBER, FABRIC)
+	end
+end
+
+-- Cráneo de mono con los ojos encendidos (las hombreras de la túnica de runas).
+local function runeSkull(make: Builder, at: CFrame, scale: number)
+	monkeySkull(make, at, scale)
+	for eye = -1, 1, 2 do
+		make.ball(0.12 * scale, RUNE, NEON, at * CFrame.new(eye * 0.15 * scale, -0.03 * scale, -0.37 * scale))
+	end
+end
+
+local function runeTunic(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2 + 0.08
+	-- Túnica añil con cuello y tira dorados.
+	make.block(
+		Vector3.new(width + 0.12, height * 0.94, depth + 0.16),
+		MAGE_INDIGO,
+		FABRIC,
+		CFrame.new(0, -height * 0.02, 0)
+	)
+	make.block(Vector3.new(width * 0.7, 0.18, depth + 0.24), GOLD_TRIM, FABRIC, CFrame.new(0, height / 2 - 0.04, 0))
+	make.block(Vector3.new(0.14, height * 0.8, 0.04), GOLD_TRIM, FABRIC, CFrame.new(0, -height * 0.08, front))
+	-- Runa del pecho: triángulo de neón con un punto dentro, a los dos lados de la tira.
+	local chest = CFrame.new(width * 0.26, height * 0.16, front - 0.02)
+	for index = 0, 2 do
+		local angle = index * 2 * math.pi / 3
+		make.block(
+			Vector3.new(0.34, 0.05, 0.04),
+			RUNE,
+			NEON,
+			chest * CFrame.Angles(0, 0, angle) * CFrame.new(0, -0.1, 0)
+		)
+	end
+	make.ball(0.08, RUNE, NEON, chest)
+	-- Detrás (lo que el jugador ve siempre): círculo de runas de neón con marcas en cruz y un
+	-- triángulo con un rombo en el centro.
+	local seal = CFrame.new(0, height * 0.08, back + 0.02)
+	hoop(make, seal, 0.52, 12, 0.07, RUNE, NEON)
+	for index = 0, 3 do
+		make.block(
+			Vector3.new(0.06, 0.18, 0.05),
+			RUNE,
+			NEON,
+			seal * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.68, 0)
+		)
+	end
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(0.72, 0.06, 0.05),
+			RUNE,
+			NEON,
+			seal * CFrame.Angles(0, 0, index * 2 * math.pi / 3) * CFrame.new(0, -0.2, 0)
+		)
+	end
+	make.block(Vector3.new(0.16, 0.16, 0.05), RUNE, NEON, seal * CFrame.Angles(0, 0, math.pi / 4))
+	-- Dos talismanes de piedra rúnica colgando de los hombros por detrás y el ribete dorado del bajo.
+	for side = -1, 1, 2 do
+		local cord = CFrame.new(side * width * 0.4, height / 2 - 0.3, back + 0.03)
+		make.block(Vector3.new(0.04, 0.5, 0.04), FIBER, FABRIC, cord)
+		make.block(Vector3.new(0.2, 0.26, 0.08), STONE, SLATE, cord * CFrame.new(0, -0.36, 0.02))
+		make.block(Vector3.new(0.05, 0.16, 0.03), RUNE, NEON, cord * CFrame.new(0, -0.36, 0.07))
+	end
+	make.block(
+		Vector3.new(width + 0.16, 0.1, depth + 0.2),
+		GOLD_TRIM,
+		FABRIC,
+		CFrame.new(0, -height * 0.02 - height * 0.47 + 0.05, 0)
+	)
+
+	-- Faja dorada con tres piedras rúnicas colgando.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.08)
+	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), GOLD_TRIM, FABRIC, CFrame.new(0, 0.06, 0))
+	for _, x in { -0.3, 0, 0.3 } do
+		local stone = CFrame.new(x * hipWidth, -0.16, beltFront - 0.04)
+		waist.block(Vector3.new(0.2, 0.24, 0.08), STONE, SLATE, stone)
+		waist.block(Vector3.new(0.05, 0.14, 0.03), RUNE, NEON, stone * CFrame.new(0, 0, -0.05))
+	end
+
+	for side = -1, 1, 2 do
+		-- Hombrera: cráneo de mono de ojos encendidos sobre un paño añil.
+		local arm = body.upperArm[side]
+		local top = arm.size.Y / 2
+		arm.oval(
+			Vector3.new(arm.size.X * 1.05, 0.34, arm.size.Z * 1.05),
+			MAGE_INDIGO_DARK,
+			FABRIC,
+			CFrame.new(side * 0.06, top, 0)
+		)
+		runeSkull(arm, CFrame.new(side * arm.size.X * 0.2, top + 0.2, 0) * CFrame.Angles(0, -side * math.rad(30), 0), 1)
+		-- Brazal añil con una runa que brilla.
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, -fs.Y * 0.05, fs.Y * 0.5, 0.08, MAGE_INDIGO_DARK, FABRIC)
+		band(forearm, -fs.Y * 0.05, 0.06, 0.12, RUNE, NEON)
+		band(forearm, -fs.Y * 0.38, 0.1, 0.1, GOLD_TRIM, FABRIC)
+		-- Faldón añil con ribete dorado en el muslo.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.05)) * CFrame.Angles(0.1, 0, 0)
+		leg.block(Vector3.new(ls.X * 0.86, ls.Y * 0.42, 0.08), MAGE_INDIGO, FABRIC, flap)
+		leg.block(Vector3.new(ls.X * 0.86 + 0.04, 0.08, 0.1), GOLD_TRIM, FABRIC, flap * CFrame.new(0, -ls.Y * 0.21, 0))
+	end
+end
+
+local function crystalMantle(body: Body)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2
+	-- Túnica añil oscura con una tira de plata.
+	make.block(
+		Vector3.new(width + 0.12, height * 0.94, depth + 0.16),
+		MAGE_INDIGO_DARK,
+		FABRIC,
+		CFrame.new(0, -height * 0.02, 0)
+	)
+	local trim = make.block(Vector3.new(0.14, height * 0.8, 0.04), SILVER, METAL, CFrame.new(0, -height * 0.08, front))
+	trim.Reflectance = 0.25
+	-- Manto de pelaje plateado sobre los hombros, cuello alto por detrás y capa hasta la cintura.
+	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+	for side = -1, 1, 2 do
+		make.ball(0.6, SILVER_FUR, FABRIC, CFrame.new(side * (width / 2 + 0.06), height / 2 - 0.1, 0))
+	end
+	make.oval(
+		Vector3.new(width * 0.72, 0.62, 0.34),
+		SILVER_FUR,
+		FABRIC,
+		CFrame.new(0, height / 2 + 0.16, depth / 2 + 0.1)
+	)
+	local capeHeight = height * 1.08
+	local capeY = height / 2 - capeHeight / 2 - 0.02
+	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
+	-- Flecos de pelaje en el borde de la capa, con tres cristales pequeños colgando entre ellos.
+	local capeBottom = capeY - capeHeight / 2
+	local tufts = 5
+	for index = 0, tufts - 1 do
+		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
+		make.fang(
+			if index % 2 == 0 then 0.34 else 0.26,
+			0.28,
+			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+			FABRIC,
+			CFrame.new(x + 0.14, capeBottom + 0.04, back + 0.34) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	for _, x in { -0.38, -0.19, 0, 0.19, 0.38 } do
+		crystal(make, Vector3.new(x * width, capeBottom + 0.06, back + 0.3), Vector3.new(0, -1, 0), 0.4, 0.16)
+	end
+	-- Detrás (lo que el jugador ve siempre): disco de plata rodeado de runas del que sale una corona de
+	-- cristales hacia arriba, que asoma por encima de los hombros por detrás de la cabeza.
+	-- (Alto en la espalda y con cristales largos: si no, se queda en una estrella en mitad de la capa.)
+	local seal = CFrame.new(0, height * 0.26, back + 0.24)
+	local disc = make.rod(0.08, 0.5, SILVER, METAL, seal * FACING)
+	disc.Reflectance = 0.35
+	hoop(make, seal * CFrame.new(0, 0, -0.02), 0.5, 12, 0.06, RUNE, NEON)
+	-- Marcas de runa por debajo del círculo (por arriba las tapan los cristales).
+	for index = -2, 2 do
+		make.block(
+			Vector3.new(0.06, 0.18, 0.05),
+			RUNE,
+			NEON,
+			seal * CFrame.Angles(0, 0, math.pi + index * 0.42) * CFrame.new(0, 0.66, -0.02)
+		)
+	end
+	local crystals = 7
+	for index = 0, crystals - 1 do
+		local angle = math.rad(-70 + index * 140 / (crystals - 1))
+		local direction = Vector3.new(math.sin(angle), math.cos(angle), 0.12)
+		local length = 1.5 - math.abs(angle) * 0.55
+		crystal(make, seal.Position + direction * 0.14 + Vector3.new(0, 0, 0.06), direction, length, 0.34)
+	end
+	-- Cadena de plata cruzada con dos cristales colgando y, arriba, el broche de cristal.
+	strap(
+		make,
+		Vector3.new(-width * 0.38, height / 2 - 0.1, front - 0.05),
+		Vector3.new(width * 0.38, -height * 0.18, front - 0.05),
+		0.07,
+		SILVER,
+		METAL
+	)
+	for _, t in { 0.35, 0.7 } do
+		local x = -width * 0.38 + width * 0.76 * t
+		local y = (height / 2 - 0.1) + (-height * 0.18 - (height / 2 - 0.1)) * t
+		crystal(make, Vector3.new(x, y - 0.03, front - 0.09), Vector3.new(0, -1, -0.1), 0.26, 0.12)
+	end
+	local brooch = CFrame.new(0, height / 2 - 0.2, front - 0.1)
+	local rim = make.rod(0.06, 0.34, SILVER, METAL, brooch * FACING)
+	rim.Reflectance = 0.35
+	crystal(make, brooch.Position + Vector3.new(0, -0.08, -0.06), Vector3.new(0, 1, -0.3), 0.32, 0.16)
+
+	-- Faja oscura con hebilla de plata y un cristal colgando.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.09)
+	waist.block(Vector3.new(hipWidth + 0.16, 0.22, hipDepth + 0.18), MAGE_INDIGO, FABRIC, CFrame.new(0, 0.06, 0))
+	local buckle = waist.block(Vector3.new(0.34, 0.28, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
+	buckle.Reflectance = 0.35
+	crystal(waist, Vector3.new(0, -0.08, beltFront - 0.06), Vector3.new(0, -1, 0), 0.34, 0.16)
+
+	for side = -1, 1, 2 do
+		-- Hombros de pelaje plateado con dos cristales hacia fuera.
+		local arm = body.upperArm[side]
+		local as = arm.size
+		local top = as.Y / 2
+		arm.oval(Vector3.new(as.X * 1.3, 0.55, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.02, 0))
+		for _, z in { -0.2, 0.2 } do
+			crystal(arm, Vector3.new(side * as.X * 0.5, top + 0.18, z * as.Z), Vector3.new(side * 0.7, 1, z), 0.5, 0.2)
+		end
+		-- Brazal añil con puño de pelaje plateado y un cristal por fuera.
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, 0.04, fs.Y * 0.5, 0.08, MAGE_INDIGO, FABRIC)
+		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
+		crystal(forearm, Vector3.new(side * (fs.X / 2 + 0.04), 0.06, 0), Vector3.new(side, 0.6, 0), 0.32, 0.16)
+		-- Faldón de pelaje plateado en el muslo con una runa.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
+		leg.block(Vector3.new(0.06, ls.Y * 0.26, 0.04), RUNE, NEON, flap * CFrame.new(0, 0, -0.07))
+	end
+end
+
 -- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
 local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
-	FurVest = { Guerrero = furVest, Cazador = trackerCape },
-	BoneArmor = { Guerrero = boneArmor, Cazador = hunterLeather },
-	SilverArmor = { Guerrero = silverArmor, Cazador = silverHunter },
+	FurVest = { Guerrero = furVest, Cazador = trackerCape, Mago = amuletMantle },
+	BoneArmor = { Guerrero = boneArmor, Cazador = hunterLeather, Mago = runeTunic },
+	SilverArmor = { Guerrero = silverArmor, Cazador = silverHunter, Mago = crystalMantle },
 }
 
 -- Viste a "character" con la armadura "armorId" en la versión de su rol "roleId" (sustituye a la que

@@ -67,7 +67,10 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   repartidas parecían lunares, y un abanico solapado que sale de debajo de la capucha se lee como
   camuflaje. Cada nivel se distingue de lejos por el color dominante de la espalda (carcaj pardo,
   carcaj de hueso claro sobre cuero oscuro, capa plateada con carcaj negro); lo que va encima de
-  una capa del mismo color (la capucha plateada) se pierde: oscurécelo.
+  una capa del mismo color (la capucha plateada) se pierde: oscurécelo. Las del mago usan `hoop`
+  (aros de tramos: atrapasueños, círculos de runas de `Neon`) y `crystal` (funda de `Glass`
+  translúcida sobre un núcleo de neón): una corona de cristales en mitad de la espalda parece una
+  estrella; alta y con cristales largos asoma por encima de los hombros y se lee de lejos.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),
@@ -339,7 +342,7 @@ orientativo de piezas por modelo:
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
 | Arma | 15–40 |
-| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101, cazador 56 / 83 / 90) | 40–105 |
+| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101, cazador 56 / 83 / 90, mago 56 / 73 / 88) | 40–105 |
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |
