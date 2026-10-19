@@ -23,8 +23,8 @@ local PetModels = require(script.Parent.Parent.PetModels)
 local Pets = require(script.Parent.Parent.Data.Pets)
 local Remotes = require(script.Parent.Parent.Remotes)
 
-local TRACK_EVERY = 5
-local TRACK_RADIUS = 60
+local TRACK_EVERY = Config.Pets.TrackSeconds
+local TRACK_RADIUS = Config.Pets.TrackRadius
 -- Duración total de un ataque (ir, golpear y empezar a volver).
 local ATTACK_SECONDS = 0.85
 -- Segundos con el dueño quieto antes de la primera rutina de reposo, y pausa entre una y otra.

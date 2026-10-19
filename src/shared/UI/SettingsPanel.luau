@@ -4,10 +4,12 @@
 --      números de ejemplo en la disposición elegida y, de vez en cuando, un estallido de cómic del
 --      tamaño elegido, para ver cómo quedará cada opción antes de elegirla (UI/CombatTextColumn,
 --      UI/ComicBurst).
---   2. Tus números de combate: el arma que cuenta, su daño (con las ventajas del rol y los talentos)
---      y su probabilidad de crítico (Shared/Crit, los mismos números con que juega el servidor), el
---      daño o la curación de tus 5 habilidades, tus dos combos y lo que aporta tu mascota.
---      En la Isla cuenta el arma de la mano o la mejor de la mochila; en el Lobby, la inicial del rol.
+--   2. Tus números de combate, con las ventajas del rol, los talentos, las mejoras y la mascota:
+--      el arma que cuenta en una línea (daño, veneno y crítico, con Shared/Crit: los mismos números con
+--      que juega el servidor), una casilla por habilidad (tecla, nombre corto y su número), una línea
+--      por combo ("A → B → C · remate") y lo que hace tu mascota, con sus números.
+--      En la Isla cuenta el arma de la mano o la mejor de la mochila, y la sección se rehace al
+--      cambiar el arma, el rol, la mascota o una ventaja; en el Lobby, la inicial del rol.
 --   3. Opciones: disposición de los números, ajustes sí/no y efectos de cómic (Shared/Settings, se
 --      guardan en el perfil).
 
@@ -48,26 +50,174 @@ local PREVIEW_COMIC_SCALE = 0.6
 local COMIC_SAMPLES: { ComicBurst.Kind } = { "Crit", "Hit", "Hurt", "KO" }
 -- Mejor probabilidad de crítico que dan las armas de la forja (Data/Weapons).
 local BEST_FORGE_CHANCE = 0.15
+-- Colores de los números en el texto enriquecido: veneno (morado, nunca verde), crítico y lo secundario.
+local POISON_HEX = "#be6eff"
+local CRIT_HEX = "#ffdc5a"
+local SOFT_HEX = "#c8beaf"
+local KEY_HEX = "#ffdc78"
+-- Teclas de los huecos de habilidad, en el orden de Data/Roles, y el orden en que se ven: el de las
+-- casillas del HUD (Z X C R V, la definitiva al final). Los dos, como en RoleController.
+local ABILITY_KEYS = { "Z", "X", "C", "V", "R" }
+local ABILITY_ORDER = { 1, 2, 3, 5, 4 }
+-- Casillas de habilidades: 5 en fila si caben con este ancho cada una; si no, 3 por fila.
+local CELL_MIN_WIDTH = 104
+local CELL_HEIGHT = 70
+local CELL_GAP = 6
+local CELL_COLOR = Color3.fromRGB(25, 20, 15)
 
--- Qué número de Config.Abilities enseña cada habilidad y qué ventajas (Data/Perks) lo multiplican.
-type AbilityInfo = { amount: string, perks: { string }, heal: boolean?, note: string? }
+type PerkGetter = (name: string) -> number
+
+-- Lo que enseña la casilla de cada habilidad:
+--   - Daño o curación ("amount"): el número de Config.Abilities multiplicado por las ventajas
+--     ("perks", Data/Perks) que lo suben (el daño, también por Config.Combat.PlayerDamageMultiplier).
+--   - Si no hace daño ni cura, "effect" da el número (una ventaja: el escudo, el salto del Parpadeo…).
+--   - "note" es la línea pequeña de debajo (puede leer ventajas: los segundos que aturde…).
+type AbilityInfo = {
+	amount: string?,
+	perks: { string }?,
+	heal: boolean?,
+	effect: ((perk: PerkGetter) -> string)?,
+	note: ((perk: PerkGetter) -> string)?,
+}
+
+-- 1.8 → "1,8"; 2 → "2".
+local function decimal(value: number): string
+	local rounded = math.round(value * 10) / 10
+	local result = if rounded % 1 == 0 then tostring(math.round(rounded)) else string.format("%.1f", rounded)
+	return (result:gsub("%.", ","))
+end
+
+-- 0.05 → "+5 %"; -0.2 → "−20 %".
+local function signedPercent(value: number): string
+	return `{if value < 0 then "−" else "+"}{math.round(math.abs(value) * 100)} %`
+end
+
+local function fixed(note: string): (perk: PerkGetter) -> string
+	return function()
+		return note
+	end
+end
+
 local ABILITY_INFO: { [string]: AbilityInfo } = {
-	Whirlwind = { amount = "WhirlwindDamage", perks = { "MeleeDamage" }, note = "por golpe" },
-	Charge = { amount = "ChargeDamage", perks = { "MeleeDamage", "ChargeDamage" } },
-	Quake = { amount = "QuakeDamage", perks = { "MeleeDamage" } },
-	MultiShot = { amount = "MultiShotDamage", perks = { "RangedDamage" }, note = "por flecha" },
-	Trap = { amount = "TrapDamage", perks = { "RangedDamage" } },
-	ArrowRain = { amount = "RainDamage", perks = { "RangedDamage", "RainDamage" }, note = "por golpe" },
-	Fireball = { amount = "FireballDamage", perks = { "SpellDamage", "FireballDamage" } },
-	FrostNova = { amount = "NovaDamage", perks = { "SpellDamage" } },
-	ChainLightning = { amount = "ChainDamage", perks = { "SpellDamage" } },
-	AreaHeal = { amount = "AreaHealAmount", perks = { "HealPower" }, heal = true },
-	HealingDart = { amount = "DartHeal", perks = { "HealPower" }, heal = true },
-	HealingTotem = { amount = "TotemHealPerSecond", perks = { "HealPower" }, heal = true, note = "por segundo" },
-	Smash = { amount = "SmashDamage", perks = { "MeleeDamage", "SmashDamage" } },
-	PiercingShot = { amount = "PierceDamage", perks = { "RangedDamage", "PierceDamage" }, note = "por mono" },
-	Meteor = { amount = "MeteorDamage", perks = { "SpellDamage" } },
-	SleepPowder = { amount = "PowderDamage", perks = {}, note = "y duerme" },
+	-- Guerrero.
+	Whirlwind = { amount = "WhirlwindDamage", perks = { "MeleeDamage" }, note = fixed("por golpe") },
+	Charge = { amount = "ChargeDamage", perks = { "MeleeDamage", "ChargeDamage" }, note = fixed("y empuja") },
+	WarCry = {
+		effect = function(perk)
+			return signedPercent(-perk("WarCryReduction"))
+		end,
+		note = fixed("de daño recibido"),
+	},
+	Quake = {
+		amount = "QuakeDamage",
+		perks = { "MeleeDamage" },
+		note = function(perk)
+			return `aturde {decimal(perk("QuakeStun"))} s`
+		end,
+	},
+	Smash = { amount = "SmashDamage", perks = { "MeleeDamage", "SmashDamage" }, note = fixed("por mono") },
+	-- Cazador.
+	MultiShot = {
+		amount = "MultiShotDamage",
+		perks = { "RangedDamage" },
+		note = function(perk)
+			return `×{math.round(perk("MultiShotCount"))} proyectiles`
+		end,
+	},
+	MarkPrey = {
+		effect = function(perk)
+			return signedPercent(perk("MarkedBonus"))
+		end,
+		note = function(perk)
+			return `de daño, {decimal(perk("MarkSeconds"))} s`
+		end,
+	},
+	Trap = {
+		amount = "TrapDamage",
+		perks = { "RangedDamage" },
+		note = function(perk)
+			return `sujeta {decimal(perk("TrapRoot"))} s`
+		end,
+	},
+	ArrowRain = { amount = "RainDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed("por golpe") },
+	PiercingShot = { amount = "PierceDamage", perks = { "RangedDamage", "PierceDamage" }, note = fixed("por mono") },
+	-- Mago.
+	Fireball = { amount = "FireballDamage", perks = { "SpellDamage", "FireballDamage" }, note = fixed("y salpica") },
+	FrostNova = {
+		amount = "NovaDamage",
+		perks = { "SpellDamage" },
+		note = function(perk)
+			return `congela {decimal(perk("NovaFreeze"))} s`
+		end,
+	},
+	Blink = {
+		effect = function(perk)
+			return `{math.round(perk("BlinkDistance"))}`
+		end,
+		note = fixed("studs de salto"),
+	},
+	ChainLightning = {
+		amount = "ChainDamage",
+		perks = { "SpellDamage" },
+		note = function(perk)
+			return `y {math.round(perk("ChainJumps"))} saltos`
+		end,
+	},
+	Meteor = { amount = "MeteorDamage", perks = { "SpellDamage" }, note = fixed("por mono") },
+	-- Médico.
+	AreaHeal = { amount = "AreaHealAmount", perks = { "HealPower" }, heal = true, note = fixed("a cada aliado") },
+	HealingDart = { amount = "DartHeal", perks = { "HealPower" }, heal = true, note = fixed("al aliado") },
+	LeafShield = {
+		effect = function(perk)
+			return `{math.round(perk("ShieldAmount"))}`
+		end,
+		note = fixed("de escudo"),
+	},
+	HealingTotem = { amount = "TotemHealPerSecond", perks = { "HealPower" }, heal = true, note = fixed("por segundo") },
+	SleepPowder = {
+		amount = "PowderDamage",
+		perks = {},
+		note = function(perk)
+			return `y duerme {decimal(perk("PowderSleep"))} s`
+		end,
+	},
+}
+
+-- Las ventajas de una mascota ("perks" de Data/Pets, lo que suman a Data/Perks) en palabras.
+local PERK_TEXT: { [string]: (value: number) -> string } = {
+	MeleeDamage = function(value)
+		return `{signedPercent(value)} de daño cuerpo a cuerpo`
+	end,
+	RangedDamage = function(value)
+		return `{signedPercent(value)} de daño a distancia`
+	end,
+	SpellDamage = function(value)
+		return `{signedPercent(value)} de daño de hechizos`
+	end,
+	HealPower = function(value)
+		return `{signedPercent(value)} de curación`
+	end,
+	CooldownRate = function(value)
+		return `{signedPercent(value)} de recarga de habilidades`
+	end,
+	MaxHealth = function(value)
+		return `+{math.round(value)} de vida máxima`
+	end,
+	HungerRate = function(value)
+		return `el hambre y la sed bajan un {math.round(math.abs(value) * 100)} % más despacio`
+	end,
+	SprintCost = function(value)
+		return `correr gasta un {math.round(math.abs(value) * 100)} % menos de estamina`
+	end,
+	HarvestBonus = function(value)
+		return `+{math.round(value)} material en cada recolección`
+	end,
+	HarvestSpeed = function(value)
+		return `recolectas un {math.round(math.abs(value) * 100)} % más rápido`
+	end,
+	ToolPower = function(value)
+		return `+{math.round(value)} de potencia del hacha y el pico`
+	end,
 }
 
 local SettingsPanel = {}
@@ -148,8 +298,6 @@ end
 
 -- ===================================== Números del jugador =====================================
 
-type PerkGetter = (name: string) -> number
-
 local function roleOf(player: Player, context: Context): string
 	return Progression.validRole(player:GetAttribute(if context == "Island" then "Role" else "SelectedRole"))
 end
@@ -160,6 +308,7 @@ local function activePet(player: Player): string?
 end
 
 -- Ventajas del jugador: en la Isla, las publicadas; en el Lobby, las de su rol, talentos y mejoras.
+-- En los dos casos ya llevan sumadas las de la mascota activa (Progression.computePerks).
 local function perkGetter(player: Player, context: Context): PerkGetter
 	if context == "Island" then
 		return function(name: string): number
@@ -189,23 +338,140 @@ local function weaponPerk(weapon: Weapons.WeaponDefinition): string
 	return if weapon.spell then "SpellDamage" else "RangedDamage"
 end
 
-local function abilityLine(ability: Roles.Ability, perk: PerkGetter): string
+-- Número grande de la casilla de una habilidad y su color: daño (amarillo, como los números del
+-- daño que haces), curación (verde, con "+") o efecto (blanco).
+local function abilityValue(ability: Roles.Ability, perk: PerkGetter): (string, Color3)
 	local info = ABILITY_INFO[ability.id]
-	if ability.id == "LeafShield" then
-		return `{ability.name}: escudo de {math.round(perk("ShieldAmount"))}`
-	elseif not info then
-		return ability.name
+	if not info then
+		return "", TEXT_COLOR
+	elseif info.effect then
+		return info.effect(perk), TEXT_COLOR
 	end
 	local amount = (Config.Abilities :: any)[info.amount] :: number
 	if not info.heal then
 		amount *= Config.Combat.PlayerDamageMultiplier
 	end
-	for _, name in info.perks do
+	for _, name in info.perks or {} do
 		amount *= perk(name)
 	end
-	local verb = if info.heal then "cura" else "daño"
-	local note = if info.note then ` {info.note}` else ""
-	return `{ability.name}: {verb} {math.round(amount)}{note}`
+	if info.heal then
+		return `+{math.round(amount)}`, GREEN
+	end
+	return `{math.round(amount)}`, YELLOW
+end
+
+local function cellLabel(parent: Instance, order: number, size: number, font: Enum.Font, color: Color3): TextLabel
+	local label = Instance.new("TextLabel")
+	label.LayoutOrder = order
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.new(1, 0, 0, size + 2)
+	label.Font = font
+	label.TextSize = size
+	label.RichText = true
+	label.TextTruncate = Enum.TextTruncate.AtEnd
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextColor3 = color
+	label.Parent = parent
+	return label
+end
+
+-- Cuadrícula de las 5 habilidades: tecla y nombre corto (los de las casillas del HUD), el número y
+-- una nota. Fondo oscuro de ventana, sin borde dorado: se lee como información, no como botón.
+local function abilityGrid(parent: Instance, order: number, role: Roles.Role, perk: PerkGetter)
+	local grid = Instance.new("Frame")
+	grid.LayoutOrder = order
+	grid.BackgroundTransparency = 1
+	grid.Size = UDim2.fromScale(1, 0)
+	grid.AutomaticSize = Enum.AutomaticSize.Y
+	grid.Parent = parent
+	local layout = Instance.new("UIGridLayout")
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.CellPadding = UDim2.fromOffset(CELL_GAP, CELL_GAP)
+	layout.Parent = grid
+	-- 5 en fila si caben (Ajustes de la Isla y el Lobby en PC); en una ventana estrecha, 3 y 2.
+	local function fit()
+		local columns = if grid.AbsoluteSize.X >= 5 * CELL_MIN_WIDTH + 4 * CELL_GAP then 5 else 3
+		-- El desfase de UDim es entero: redondeado hacia arriba para que la última casilla quepa.
+		layout.CellSize = UDim2.new(1 / columns, -math.ceil(CELL_GAP * (columns - 1) / columns), 0, CELL_HEIGHT)
+	end
+	grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	fit()
+
+	for index, ability in role.abilities do
+		local cell = Instance.new("Frame")
+		cell.Name = ability.id
+		cell.LayoutOrder = ABILITY_ORDER[index] or index
+		cell.BackgroundColor3 = CELL_COLOR
+		cell.BackgroundTransparency = 0.25
+		cell.Parent = grid
+		corner(cell, 8)
+		local padding = Instance.new("UIPadding")
+		padding.PaddingTop = UDim.new(0, 5)
+		padding.PaddingLeft = UDim.new(0, 8)
+		padding.PaddingRight = UDim.new(0, 6)
+		padding.Parent = cell
+		local stack = Instance.new("UIListLayout")
+		stack.SortOrder = Enum.SortOrder.LayoutOrder
+		stack.Parent = cell
+
+		local title = cellLabel(cell, 1, 15, Enum.Font.BuilderSans, TEXT_COLOR)
+		title.Text = `<font color="{KEY_HEX}"><b>{ABILITY_KEYS[index] or ""}</b></font> {ability.short}`
+		local value, color = abilityValue(ability, perk)
+		local number = cellLabel(cell, 2, 22, Enum.Font.BuilderSansBold, color)
+		number.Text = value
+		local info = ABILITY_INFO[ability.id]
+		local note = cellLabel(cell, 3, 13, Enum.Font.BuilderSans, SOFT_COLOR)
+		note.Text = if info and info.note then info.note(perk) else ""
+	end
+end
+
+-- "A → B → C · remate" con los nombres cortos de las habilidades (los de las casillas).
+local function comboLine(combo: Combos.Combo, role: Roles.Role): string
+	local names = {}
+	for _, stepId in combo.steps do
+		for _, ability in role.abilities do
+			if ability.id == stepId then
+				table.insert(names, ability.short)
+			end
+		end
+	end
+	return `{combo.icon} <b>{combo.name}</b>: {table.concat(names, " → ")} · <font color="{SOFT_HEX}">{combo.short}</font>`
+end
+
+-- Lo que hace la mascota, con sus números: ataque y curación, rastreo y sus ventajas (Data/Perks, ya
+-- sumadas a tus números de arriba).
+local function petHelp(pet: Pets.Pet): string
+	local help = {}
+	local seconds = Config.Pets.TickSeconds
+	if pet.attackDamage and pet.healPerTick then
+		table.insert(help, `{pet.attackDamage} de daño y +{pet.healPerTick} de vida cada {seconds} s`)
+	elseif pet.attackDamage then
+		table.insert(help, `{pet.attackDamage} de daño al mono más cercano cada {seconds} s`)
+	elseif pet.healPerTick then
+		table.insert(help, `+{pet.healPerTick} de vida cada {seconds} s`)
+	end
+	if pet.tracks then
+		table.insert(
+			help,
+			`resalta los monos a menos de {Config.Pets.TrackRadius} studs cada {Config.Pets.TrackSeconds} s`
+		)
+	end
+	local names = {}
+	for name in pet.perks or {} do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	for _, name in names do
+		local describe = PERK_TEXT[name]
+		if describe then
+			table.insert(help, describe((pet.perks :: { [string]: number })[name]))
+		end
+	end
+	if pet.attackDamage or pet.healPerTick then
+		table.insert(help, `<font color="{CRIT_HEX}">{Crit.percent(Config.Crit.PetChance)} de crítico</font>`)
+	end
+	-- Una ayuda que el panel aún no sabe contar: la descripción de Data/Pets.
+	return if #help > 0 then table.concat(help, " · ") else pet.description
 end
 
 local function fillStats(parent: Frame, player: Player, context: Context)
@@ -215,89 +481,123 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	local critPercent = Crit.percent(Crit.MULTIPLIER - 1)
 	heading(parent, `{role.icon} Tus números de combate ({role.name})`, 1)
 
+	-- Arma: una línea con el daño (y el veneno de las cerbatanas) y el crítico.
 	local weaponId, chance = weaponOf(player, context)
 	local weapon = if weaponId then Weapons[weaponId] else nil
 	if weapon then
 		local scale = perk(weaponPerk(weapon)) * Config.Combat.PlayerDamageMultiplier
 		local damage = math.round(weapon.damage * scale)
 		local poison = if weapon.poison
-			then ` · <font color="#be6eff">veneno {math.round(weapon.poison.dps * scale)}/s durante {weapon.poison.seconds} s</font>`
+			then ` + <font color="{POISON_HEX}">veneno {math.round(weapon.poison.dps * scale)}/s ({decimal(
+				weapon.poison.seconds
+			)} s)</font>`
+			else ""
+		local forge = if chance < BEST_FORGE_CHANCE
+			then ` <font color="{SOFT_HEX}">(forja: hasta {Crit.percent(BEST_FORGE_CHANCE)})</font>`
 			else ""
 		text(
 			parent,
-			`⚔️ <b>{weapon.name}</b>: {damage} de daño{poison} · <font color="#ffdc5a">{Crit.percent(chance)} de crítico</font> (+{critPercent} de daño)`,
+			`⚔️ <b>{weapon.name}</b>: {damage} de daño{poison} · <font color="{CRIT_HEX}">{Crit.percent(chance)} de crítico</font> (+{critPercent}){forge}`,
 			2
 		)
-		if chance < BEST_FORGE_CHANCE then
-			text(
-				parent,
-				`⬆️ Las mejoras de la forja suben el crítico de tus armas hasta un {Crit.percent(BEST_FORGE_CHANCE)}.`,
-				3,
-				SOFT_COLOR
-			)
-		end
 	end
 	if roleId == "Medico" then
 		local normal = Crit.percent(Crit.healChance(chance, 1))
 		local save = Crit.percent(Crit.healChance(chance, 0))
 		local threshold = Crit.percent(Config.Crit.SaveThreshold)
-		text(parent, `💚 Curación crítica: {normal}; {save} si el aliado tiene menos del {threshold} de vida`, 4)
+		text(parent, `💚 Curas críticas: {normal}; {save} si el aliado tiene menos del {threshold} de vida`, 3)
 	end
-	local lines = {}
-	for _, ability in role.abilities do
-		table.insert(lines, abilityLine(ability, perk))
-	end
-	text(parent, `✨ Habilidades (crítico {Crit.percent(chance)}): {table.concat(lines, " · ")}`, 5)
+
+	text(parent, `✨ Habilidades · {Crit.percent(chance)} de crítico`, 4, SOFT_COLOR)
+	abilityGrid(parent, 5, role, perk)
 
 	local combos = Combos[roleId] or {}
-	local comboLines = {}
-	for _, combo in combos do
-		local names = {}
-		for _, stepId in combo.steps do
-			for _, ability in role.abilities do
-				if ability.id == stepId then
-					table.insert(names, ability.name)
-				end
-			end
-		end
-		local extra = if combo.damageBonus then ` con +{math.round(combo.damageBonus * 100)} % de daño` else ""
-		table.insert(
-			comboLines,
-			`🔗 Combo «{combo.name}»: {table.concat(names, " → ")}. Los pasos 2 y 3 hacen críticos seguros{extra} a lo que lleva {combo.icon}. {combo.finisher}`
-		)
+	for index, combo in combos do
+		text(parent, comboLine(combo, role), 5 + index)
 	end
-	if #combos >= 2 then
-		table.insert(
-			comboLines,
-			"⛓️ Conexión: al cerrar un combo, el otro queda abierto; sigue con su paso 2 sin hacer el 1."
-		)
-	end
-	if #comboLines > 0 then
-		text(parent, table.concat(comboLines, "\n"), 6, SOFT_COLOR)
+	if #combos > 0 then
+		local bonus = combos[1].damageBonus
+		local extra = if bonus then ` y +{math.round(bonus * 100)} %` else ""
+		local connect = if #combos >= 2 then " Cerrar uno abre el paso 2 del otro." else ""
+		text(parent, `🔗 Pasos 2 y 3: crítico seguro{extra} a lo marcado.{connect}`, 9, SOFT_COLOR)
 	end
 
 	local petId = activePet(player)
 	local pet = if petId then Pets[petId] else nil
 	if pet then
 		local rarity = Rarities[pet.rarity]
-		local help = {}
-		local seconds = Config.Pets.TickSeconds
-		if pet.attackDamage then
-			table.insert(help, `{pet.attackDamage} de daño cada {seconds} s`)
-		end
-		if pet.healPerTick then
-			table.insert(help, `cura {pet.healPerTick} cada {seconds} s`)
-		end
-		local helpText = if #help > 0
-			then table.concat(help, " y ")
-			else "te ayuda de otra forma (carga, rastreo o apoyo)"
 		text(
 			parent,
-			`🐾 {pet.icon} <b>{pet.name}</b> ({rarity.name}): {helpText} · {Crit.percent(Config.Crit.PetChance)} de crítico`,
-			7
+			`🐾 {pet.icon} <b>{pet.name}</b> <font color="#{rarity.color:ToHex()}">({rarity.name})</font>: {petHelp(
+				pet
+			)}`,
+			10
 		)
 	else
-		text(parent, "🐾 Sin mascota: los huevos de la isla te dan una.", 7, SOFT_COLOR)
+		text(parent, "🐾 Sin mascota: los huevos de la isla te dan una.", 10, SOFT_COLOR)
+	end
+end
+
+-- En la Isla la ventana se queda abierta mientras juegas: los números se rehacen al cambiar el rol, la
+-- mascota, una ventaja o el arma (la de la mano o las de la mochila). Devuelve cómo dejar de mirar.
+-- En el Lobby no hace falta: LobbyUIController rehace la pestaña entera con cada cambio de atributo.
+local function watchStats(player: Player, refresh: () -> ()): () -> ()
+	local queued = false
+	local function queue()
+		if queued then
+			return
+		end
+		queued = true
+		-- Equipar un arma la saca de la mochila y la pone en el personaje: un solo repintado.
+		task.defer(function()
+			queued = false
+			refresh()
+		end)
+	end
+	local function onTool(child: Instance)
+		if child:IsA("Tool") then
+			queue()
+		end
+	end
+	local holders: { RBXScriptConnection } = {}
+	local function watchHolders()
+		for _, connection in holders do
+			connection:Disconnect()
+		end
+		table.clear(holders)
+		for _, holder in { player.Character, player:FindFirstChildOfClass("Backpack") } :: { Instance? } do
+			if holder then
+				table.insert(holders, holder.ChildAdded:Connect(onTool))
+				table.insert(holders, holder.ChildRemoved:Connect(onTool))
+			end
+		end
+	end
+	watchHolders()
+	local connections = {
+		player.AttributeChanged:Connect(function(name: string)
+			if name == "Role" or name == "ActivePet" or name:sub(1, 5) == "Perk_" then
+				queue()
+			end
+		end),
+		-- Al reaparecer cambian el personaje y la mochila.
+		player.ChildAdded:Connect(function(child)
+			if child:IsA("Backpack") then
+				watchHolders()
+				queue()
+			end
+		end),
+		player.CharacterAdded:Connect(function()
+			watchHolders()
+			queue()
+		end),
+	}
+	return function()
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+		for _, connection in holders do
+			connection:Disconnect()
+		end
 	end
 end
 
@@ -742,7 +1042,17 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 
 	local refreshLayout = buildLayoutChoice(section(root, 0))
 	local preview = buildPreview(root, player, context)
-	fillStats(section(root, 2), player, context)
+	local stats = section(root, 2)
+	local function refreshStats()
+		for _, child in stats:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		fillStats(stats, player, context)
+	end
+	refreshStats()
+	local stopWatching = if context == "Island" then watchStats(player, refreshStats) else nil
 	local refreshOptions = buildOptions(section(root, 3))
 
 	-- Al cambiar algo de los efectos de cómic se enseña uno al momento (un crítico, que siempre sale).
@@ -762,6 +1072,9 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	root.Destroying:Connect(function()
 		connection:Disconnect()
 		preview.stop()
+		if stopWatching then
+			stopWatching()
+		end
 	end)
 	return root
 end

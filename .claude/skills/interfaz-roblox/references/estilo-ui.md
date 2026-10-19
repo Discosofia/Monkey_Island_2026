@@ -29,7 +29,7 @@ golpe).
 | Tutorial | `src/island/client/Controllers/TutorialController.luau` | `Tutorial` | Isla |
 | Resultados de la partida | `src/island/client/Controllers/ResultsController.luau` | `Results` | Isla |
 | Botones táctiles (Esquivar, Correr, habilidades…) | `src/island/client/ActionButtons.luau` | `ActionButtons` | Isla |
-| Contenido de Ajustes (con vista previa del personaje) | `src/shared/UI/SettingsPanel.luau` + `src/shared/Settings.luau` | — | ambos |
+| Contenido de Ajustes (vista previa del personaje, tus números de combate y opciones) | `src/shared/UI/SettingsPanel.luau` + `src/shared/Settings.luau` | — | ambos |
 | Avisos cortos arriba | `src/shared/UI/Toast.luau` | `Toasts` | ambos |
 | Panel de pruebas (solo Studio) | `src/shared/UI/DebugPanel.luau` | `DebugPanel` | ambos |
 | Todo el Lobby (título, pestañas, unirse, invitar) | `src/lobby/client/Controllers/LobbyUIController.luau` | `LobbyUI` | Lobby |
@@ -52,6 +52,7 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Fondo de ventana (madera oscura) | 25, 20, 15 con transparencia 0.05–0.15 | Ajustes, fabricación, tutorial |
 | Fondo de ventana de resultados | 30, 24, 18 sobre velo 10, 8, 6 al 0.25 | `Results` |
 | Fondo de fila / tarjeta | 45, 38, 30 | recetas, construcción |
+| Casilla de información dentro de una tarjeta (no se pulsa) | 25, 20, 15 al 0.25, esquinas de 8 px | casillas de habilidades de "Tus números de combate" (Ajustes) |
 | Fondo de botón cuadrado (⚙️) | 40, 34, 28 al 0.2 | `SettingsButton` |
 | Paneles translúcidos del HUD | 20–25, 20–25, 20–25 al 0.25–0.35 | barras, materiales, habilidades, combos, avisos |
 | Botón secundario (Studio, deshabilitado) | 90, 90, 110 / 90, 90, 90 | "Saltar fase", recetas bloqueadas |

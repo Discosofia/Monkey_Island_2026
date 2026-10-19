@@ -546,6 +546,10 @@ local Config = {
 		-- Segundos desde que la mascota sale hacia el mono hasta que le golpea (el daño llega entonces,
 		-- a la vez que el golpe que dibujan los clientes en UI/PetFollowers).
 		StrikeDelaySeconds = 0.35,
+		-- Las de rastreo resaltan a su dueño los monos a menos de TrackRadius studs cada TrackSeconds
+		-- (UI/PetFollowers; el panel de Ajustes enseña los mismos números).
+		TrackSeconds = 5,
+		TrackRadius = 60,
 	},
 
 	Abilities = {

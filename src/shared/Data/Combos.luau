@@ -24,6 +24,7 @@ export type Combo = {
 	mark: string, -- nombre de la marca que deja el primer paso
 	icon: string, -- se ve sobre lo marcado (solo quien hizo la marca)
 	finisher: string, -- qué hace de más el remate (para el jugador)
+	short: string, -- el remate en pocas palabras (una línea por combo en el panel de Ajustes)
 	damageBonus: number?, -- daño extra (fracción) de los golpes enlazados contra lo marcado
 }
 
@@ -35,6 +36,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Atrapado",
 			icon = "⛓️",
 			finisher = "Marcar vuelve a sujetar a los atrapados y el Disparo múltiple lanza 2 proyectiles más.",
+			short = "vuelve a sujetar y +2 proyectiles",
 			damageBonus = 0.1,
 		},
 		{
@@ -43,6 +45,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Señalado",
 			icon = "🎯",
 			finisher = "La Flecha perforante dispara 2 flechas más en abanico.",
+			short = "+2 flechas en abanico",
 			damageBonus = 0.1,
 		},
 	},
@@ -53,6 +56,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Quebradizo",
 			icon = "❄️",
 			finisher = "La Bola de fuego rompe el hielo: críticos y explosión más grande.",
+			short = "rompe el hielo: explosión mayor",
 		},
 		{
 			name = "Lluvia de estrellas",
@@ -60,6 +64,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Chamuscado",
 			icon = "🔥",
 			finisher = "El Meteoro deja el suelo ardiendo unos segundos.",
+			short = "deja el suelo ardiendo",
 		},
 	},
 	Guerrero = {
@@ -69,6 +74,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Desequilibrado",
 			icon = "💫",
 			finisher = "El Grito aturde a los desequilibrados y el Torbellino gira 1 s más.",
+			short = "aturde y gira 1 s más",
 			damageBonus = 0.25,
 		},
 		{
@@ -77,6 +83,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Provocado",
 			icon = "🔨",
 			finisher = "El Rompehuesos golpea a todo lo que tienes alrededor, no solo delante.",
+			short = "golpea a tu alrededor",
 			damageBonus = 0.25,
 		},
 	},
@@ -87,6 +94,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Revitalizado",
 			icon = "💚",
 			finisher = "El Ungüento cura con críticos seguros, baja la fiebre y envenena a los monos de alrededor.",
+			short = "baja la fiebre y envenena",
 		},
 		{
 			name = "Nana de la selva",
@@ -94,6 +102,7 @@ local Combos: { [string]: { Combo } } = {
 			mark = "Arropado",
 			icon = "🍃",
 			finisher = "El Polvo somnífero duerme más tiempo, cura a los aliados de la nube y los dormidos reciben un 30 % más de daño hasta despertar.",
+			short = "cura y los dormidos reciben +30 %",
 		},
 	},
 }
