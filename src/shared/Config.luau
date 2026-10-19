@@ -385,8 +385,17 @@ local Config = {
 		StructureReach = 7,
 		-- Daño a las piezas: multiplicador sobre el daño de la especie.
 		StructureDamageMultiplier = 3,
-		-- Estacas: daño por segundo a los monos encima y desgaste de la trampa por golpe.
+		-- Estacas (SiegeService): los monos las cruzan (no se paran a romperlas). Al pisarlas reciben
+		-- un pinchazo que desgasta la trampa (como mucho uno cada SpikeHitCooldownSeconds por mono,
+		-- aunque pise varias); mientras siguen encima, daño por segundo y van a SpikeSlowFactor de su
+		-- velocidad. La zona que pincha es la pieza más SpikeReachMargin studs por cada lado.
+		-- Una fila: un aullador (60 de vida) pierde ~30 al cruzarla.
+		SpikeHitDamage = 15,
+		SpikeHitCooldownSeconds = 1,
 		SpikeDamagePerSecond = 16,
+		SpikeSlowFactor = 0.5,
+		SpikeSlowSeconds = 1,
+		SpikeReachMargin = 1,
 		SpikeWearPerHit = 6,
 	},
 

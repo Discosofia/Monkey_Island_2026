@@ -37,6 +37,7 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Building = require(ReplicatedStorage.Shared.Building)
+local Buildables = require(ReplicatedStorage.Shared.Data.Buildables)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
@@ -747,9 +748,12 @@ local function steal(monkey: Monkey, player: Player)
 	showBubble(monkey, `{item.icon} ¡JE JE!`)
 	Sfx.play("MonkeySteal", monkey.root)
 	MonkeyAnimator.play(monkey.model, "Steal")
+	-- El nombre de su especie, en minúscula ("capuchino ladrón", "mono de cola larga").
+	local name = monkey.definition.name
+	local species = string.lower(string.sub(name, 1, 1)) .. string.sub(name, 2)
 	Remotes.Notify:FireClient(
 		player,
-		`🐒 ¡Un capuchino te ha robado {amount} {item.icon} {item.name}! Atrápalo para recuperarlo`
+		`🐒 ¡Un {species} te ha robado {amount} {item.icon} {item.name}! Atrápalo para recuperarlo`
 	)
 end
 
@@ -1026,7 +1030,15 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 	end
 end
 
--- Pieza construida más cercana al alcance, o nil.
+-- true si la pieza no cierra el paso ("walkable" en Data/Buildables, como las estacas).
+local function isWalkable(model: Model): boolean
+	local buildableId = model:GetAttribute("BuildableId")
+	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
+	return definition ~= nil and definition.walkable == true
+end
+
+-- Pieza construida más cercana al alcance que cierra el paso, o nil. Las transitables (estacas) no
+-- cuentan: el mono las cruza en vez de pararse a romperlas.
 local function nearestStructure(position: Vector3, reach: number): Model?
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
@@ -1038,7 +1050,7 @@ local function nearestStructure(position: Vector3, reach: number): Model?
 		while model and model.Parent ~= BuildingService.getStructures() do
 			model = model:FindFirstAncestorOfClass("Model")
 		end
-		if model then
+		if model and not isWalkable(model) then
 			local distance = (part.Position - position).Magnitude
 			if distance < bestDistance then
 				best = model

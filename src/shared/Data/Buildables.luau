@@ -21,6 +21,8 @@ export type Buildable = {
 	maxPerServer: number?, -- límite para todo el servidor (nido, baliza)
 	-- Sonido cuando la golpean (clave de Data/Sounds.Effects); por defecto StructureHit (madera).
 	hitSound: string?,
+	-- No cierra el paso: los monos del asedio la cruzan en vez de pararse a romperla (las estacas).
+	walkable: boolean?,
 }
 
 local Buildables: { [string]: Buildable } = {
@@ -92,6 +94,7 @@ local Buildables: { [string]: Buildable } = {
 		cost = { { itemId = "Wood", amount = 4 }, { itemId = "Stone", amount = 1 } },
 		health = 100,
 		zones = { Perimeter = true },
+		walkable = true,
 	},
 	-- Estaciones (Fase 2.3): se construyen en el núcleo y las usa todo el equipo.
 	HealerTent = {

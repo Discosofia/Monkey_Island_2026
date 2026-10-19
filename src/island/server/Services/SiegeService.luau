@@ -2,15 +2,15 @@
 -- Asedio nocturno v1 (GDD §10, Fase 2.5).
 --   - Cada noche llegan Config.Siege.WavesPerNight oleadas de monos por uno o dos portones al azar.
 --   - El tamaño crece con el día y con el número de jugadores (Config.Siege).
---   - Los monos rompen las piezas que les cierran el paso (muros, estacas…) y, si entran,
---     atacan también dentro del Basecamp. Las estacas hieren a los monos que las cruzan.
+--   - Los monos rompen las piezas que les cierran el paso (muros, portones…) y, si entran,
+--     atacan también dentro del Basecamp. Las estacas no cierran el paso: los monos las cruzan y
+--     se pinchan (salvo el macaco, que las desarma).
 --   - Al amanecer los que quedan se retiran.
 -- El estado se publica en ReplicatedStorage ("SiegeStatus") para el HUD.
 -- Fase 6: la noche tras encender la baliza ("FinalNight") es La Gran Tropa: una oleada por especie de
 -- Config.Siege.FinalNightSpecies, repartidas para que todas lleguen antes del amanecer. Cada oleada es
 -- un FinalNightGrowth más grande que la anterior y lo que crece es una especie nueva y más fuerte.
 
-local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -26,10 +26,12 @@ local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(script.Parent.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local MonkeyService = require(script.Parent.MonkeyService)
+local Status = require(script.Parent.Parent.Combat.Status)
 
 local STATUS_ATTRIBUTE = "SiegeStatus"
 
-local SPIKE_TICK_SECONDS = 0.5
+-- Corto para no perderse a un mono rápido que cruza la estaca entre dos comprobaciones.
+local SPIKE_TICK_SECONDS = 0.25
 -- Portones en el mismo orden que los construye MapBuilder: este, sur, oeste y norte.
 local GATE_NAMES = { "el este", "el sur", "el oeste", "el norte" }
 
@@ -38,6 +40,8 @@ local SiegeService = {}
 local nightToken = 0
 local debugGreatTroop = false
 local rng = Random.new()
+-- Último pinchazo de estaca a cada mono (os.clock): como mucho uno cada SpikeHitCooldownSeconds.
+local lastPinch: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 
 local function setStatus(text: string)
 	ReplicatedStorage:SetAttribute(STATUS_ATTRIBUTE, text)
@@ -244,40 +248,50 @@ function SiegeService.debugGreatTroop()
 	end
 end
 
--- Estacas: hieren a los enemigos encima y se desgastan con cada golpe.
+-- Los que desarman trampas (el macaco) no se pinchan.
+local function disarmsTraps(enemy: Model): boolean
+	local speciesId = enemy:GetAttribute("MonkeyType")
+	local species = if typeof(speciesId) == "string" then Monkeys[speciesId] else nil
+	return species ~= nil and species.disarmsTraps == true
+end
+
+-- Estacas: el mono que las pisa recibe un pinchazo (que las desgasta), daño mientras sigue encima y
+-- va más lento (Config.Siege.Spike*).
 local function tickSpikes()
 	local structures = Workspace:FindFirstChild(Building.STRUCTURES_FOLDER)
 	if not structures then
 		return
 	end
+	local settings = Config.Siege
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { structures }
-	local size = Buildables.Spikes.size + Vector3.new(0, 4, 0)
+	local margin = settings.SpikeReachMargin * 2
+	local size = Buildables.Spikes.size + Vector3.new(margin, 4, margin)
+	local clock = os.clock()
+	-- Cada mono cuenta una vez por comprobación aunque pise varias estacas a la vez.
+	local seen: { [Model]: boolean } = {}
 	for _, model in structures:GetChildren() do
 		if model:IsA("Model") and model:GetAttribute("BuildableId") == "Spikes" then
-			local hit: { [Model]: boolean } = {}
 			for _, part in Workspace:GetPartBoundsInBox(model:GetPivot(), size, params) do
-				local enemy = part:FindFirstAncestorOfClass("Model")
-				local speciesId = if enemy then enemy:GetAttribute("MonkeyType") else nil
-				local species = if typeof(speciesId) == "string" then Monkeys[speciesId] else nil
-				local immune = species ~= nil and species.disarmsTraps == true
-				if
-					enemy
-					and not hit[enemy]
-					and not immune
-					and CollectionService:HasTag(enemy, Config.Combat.EnemyTag)
-				then
-					local humanoid = enemy:FindFirstChildOfClass("Humanoid")
-					if humanoid and humanoid.Health > 0 then
-						hit[enemy] = true
-						CombatService.damage(enemy, humanoid, Config.Siege.SpikeDamagePerSecond * SPIKE_TICK_SECONDS)
+				local enemy, humanoid = CombatService.enemyFromPart(part)
+				if enemy and humanoid and not seen[enemy] and not disarmsTraps(enemy) then
+					seen[enemy] = true
+					local damage = settings.SpikeDamagePerSecond * SPIKE_TICK_SECONDS
+					local fresh = clock - (lastPinch[enemy] or -math.huge) >= settings.SpikeHitCooldownSeconds
+					if fresh then
+						lastPinch[enemy] = clock
+						damage += settings.SpikeHitDamage
 					end
-				end
-			end
-			for _ in hit do
-				if BuildingService.damageStructure(model, Config.Siege.SpikeWearPerHit) then
-					break
+					-- Sin rebajar una ralentización más fuerte (la nova del mago).
+					if Status.speedFactor(enemy) > settings.SpikeSlowFactor then
+						Status.slow(enemy, settings.SpikeSlowSeconds, settings.SpikeSlowFactor)
+					end
+					CombatService.damage(enemy, humanoid, damage)
+					-- Cada pinchazo la desgasta; si se rompe, ya no pincha a nadie más.
+					if fresh and BuildingService.damageStructure(model, settings.SpikeWearPerHit) then
+						break
+					end
 				end
 			end
 		end
