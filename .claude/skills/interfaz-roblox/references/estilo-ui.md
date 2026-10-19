@@ -21,6 +21,7 @@ golpe).
 | Números de daño, curación, críticos y lo recogido | `src/island/client/Controllers/CombatTextController.luau` + `src/shared/UI/CombatTextColumn.luau` | `CombatText` | Isla |
 | Bolsa (B): ventana centrada con casillas por secciones | `src/island/client/Controllers/InventoryHUDController.luau` | `InventoryHUD` | Isla |
 | Barra de vida del jefe | `src/island/client/Controllers/BossHUDController.luau` | `BossHUD` | Isla |
+| Contador de munición (arco, honda) con la barrita del carcaj | `src/island/client/Controllers/AmmoHUDController.luau` | `AmmoHUD` | Isla |
 | Cartel de caído / espíritu | `src/island/client/Controllers/LifeController.luau` | `LifeHUD` | Isla |
 | Mesa de fabricación | `src/island/client/Controllers/CraftingController.luau` | `CraftingHUD` | Isla |
 | Panel de construcción | `src/island/client/Controllers/BuildController.luau` | `BuildHUD` | Isla |
@@ -125,7 +126,7 @@ Reglas que salen de ahí:
 |---|---|
 | -1 | `CombatText` (debajo de todo; IgnoreGuiInset) |
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
-| 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
+| 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
 | 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
 | 6 | `JournalHUD` |
 | 8 | `SettingsUI` |
@@ -155,6 +156,7 @@ son las del código; en otro tamaño de pantalla cambian los píxeles, no el sit
 │ Bolsa (centro, B)        daño ◀ (0.44,0.42)  ▶ curación (0.56)     (derecha,   │
 │                                              lo recogido debajo     centro)   │
 │                                                                               │
+│                              [🏹 23] munición (0.5, 1 −76 px, 92x40)          │
 │ [🛠️ Pruebas] (0.02,0.9)                         PC: [⚙️][Volver al Lobby]     │
 │ [⏩ Saltar fase] (0.02,0.98)  [barra de objetos]     (0.98, 0.98) · móvil: salto │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -165,7 +167,10 @@ Zonas que están **siempre ocupadas** aunque en PC parezcan libres:
   `ActionButtons` (hasta 6 columnas x 3–4 filas). En PC está vacío, por eso en las capturas de PC
   parece un buen sitio; en un teléfono no lo es.
 - **Abajo a la izquierda en móvil**: el joystick (la mitad inferior del 40 % izquierdo).
-- **Abajo en el centro**: la barra de objetos de Roblox (las armas y herramientas 1–5).
+- **Abajo en el centro**: la barra de objetos de Roblox (las armas y herramientas 1–5) y, justo
+  encima, el contador de munición (`AmmoHUD`, solo con arco u honda en la mano). En un teléfono
+  apaisado ese hueco, entre el joystick y los botones de acción, mide unos 130 px de ancho: no cabe
+  nada más ahí.
 - **Arriba a la izquierda, 58 px**: los botones de Roblox (menú, chat, …). Las capturas de
   `screen_capture` **no los muestran**, pero están.
 - **El centro**: es la partida. Los números de combate viven en 0.42–0.56; lo que salga ahí tiene

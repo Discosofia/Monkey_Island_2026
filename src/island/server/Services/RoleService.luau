@@ -4,12 +4,16 @@
 --   - Publica "Role" y las ventajas como atributos "Perk_<nombre>" (Shared/Progression.perk).
 --   - Aplica las que son de una vez: vida máxima extra, el kit de náufrago y los ítems del rol
 --     (las flechas del cazador). Las armas del rol las da CombatService.
+--   - Rellena lo que el rol recupera solo ("refill" en Data/Roles: el carcaj del cazador).
 --   - Marca "TutorialPending" si el jugador aún no ha hecho el tutorial (TutorialController).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local Workspace = game:GetService("Workspace")
 
+local Inventory = require(ReplicatedStorage.Shared.Inventory)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
@@ -20,11 +24,43 @@ local InventoryService = require(script.Parent.InventoryService)
 local BASE_HEALTH = 100
 local KIT_ITEMS = { "Wood", "Stone", "Fiber" }
 local KIT_AMOUNT = 5
+-- Cada cuánto se revisa lo que se rellena solo (el carcaj).
+local REFILL_TICK_SECONDS = 0.5
+local REFILL_AT = "RefillAt"
 
 local RoleService = {}
 
 -- Rol forzado a mitad de partida desde el panel de pruebas (no se guarda).
 local debugRoles: { [Player]: string } = {}
+-- Segundos acumulados hacia el siguiente ítem que se rellena solo, por jugador.
+local refillProgress: { [Player]: number } = {}
+
+-- Carcaj del cazador ("refill" en Data/Roles): mientras está vivo y le quedan menos de "cap", suma
+-- 1 cada "seconds". Con el carcaj lleno (o caído) el tiempo no se acumula. Publica en "RefillAt"
+-- (hora del servidor) cuándo llega la siguiente, para la barrita del contador (AmmoHUDController).
+local function refillTick(elapsed: number)
+	for _, player in Players:GetPlayers() do
+		local roleId = player:GetAttribute("Role")
+		local role = if typeof(roleId) == "string" then Roles[roleId] else nil
+		local refill = if role then role.refill else nil
+		if refill and LifeState.isAlive(player) and Inventory.count(player, refill.itemId) < refill.cap then
+			local before = refillProgress[player]
+			local progress = (before or 0) + elapsed
+			local added = progress >= refill.seconds
+			if added then
+				progress -= refill.seconds
+				InventoryService.add(player, refill.itemId, 1)
+			end
+			refillProgress[player] = progress
+			if before == nil or added then
+				player:SetAttribute(REFILL_AT, Workspace:GetServerTimeNow() + refill.seconds - progress)
+			end
+		elseif refillProgress[player] ~= nil then
+			refillProgress[player] = nil
+			player:SetAttribute(REFILL_AT, nil)
+		end
+	end
+end
 
 local function applyHealth(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
@@ -134,10 +170,20 @@ function RoleService:Start()
 	Players.PlayerAdded:Connect(onPlayer)
 	Players.PlayerRemoving:Connect(function(player)
 		debugRoles[player] = nil
+		refillProgress[player] = nil
 	end)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayer, player)
 	end
+	task.spawn(function()
+		local last = os.clock()
+		while true do
+			task.wait(REFILL_TICK_SECONDS)
+			local now = os.clock()
+			refillTick(now - last)
+			last = now
+		end
+	end)
 end
 
 return RoleService

@@ -3,6 +3,8 @@
 --   - "perks": ventajas pasivas (se suman a Data/Perks).
 --   - "weapons": armas con las que aparece (además del hacha y el pico, Config.Combat.StarterTools).
 --   - "items": ítems con los que empieza la partida (las flechas del cazador).
+--   - "refill": un ítem que se rellena solo (el carcaj del cazador): +1 cada "seconds" mientras tenga
+--     menos de "cap". Lo fabricado puede pasar del tope. Lo hace RoleService.
 --   - "abilities": 4 activas y la definitiva, en el orden de sus huecos: Z, X, C, la definitiva V y la
 --     cuarta activa R (con mando, R1 + A, B, X, Y y L1). La R va al final para que los huecos 1-4 sigan
 --     siendo los de siempre. Las gestiona AbilityService y sus números están en Config.Abilities.
@@ -16,6 +18,8 @@ export type Ability = {
 	ultimate: boolean?,
 }
 
+export type Refill = { itemId: string, seconds: number, cap: number }
+
 export type Role = {
 	name: string,
 	icon: string,
@@ -24,6 +28,7 @@ export type Role = {
 	perks: { [string]: number },
 	weapons: { string },
 	items: { [string]: number }?,
+	refill: Refill?,
 	abilities: { Ability },
 }
 
@@ -78,10 +83,11 @@ local Roles: { [string]: Role } = {
 		name = "Cazador",
 		icon = "🏹",
 		order = 2,
-		passive = "+25 % de daño a distancia.",
+		passive = "+25 % de daño a distancia. Su carcaj recupera 1 flecha cada 3 s (hasta 30).",
 		perks = { RangedDamage = 0.25 },
 		weapons = { "Bow", "Machete" },
-		items = { Arrow = 20 },
+		items = { Arrow = 40 },
+		refill = { itemId = "Arrow", seconds = 3, cap = 30 },
 		abilities = {
 			{
 				id = "MultiShot",
