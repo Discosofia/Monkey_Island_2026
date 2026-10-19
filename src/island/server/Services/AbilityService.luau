@@ -243,6 +243,7 @@ local function castShot(
 end
 
 -- El objetivo mejor alineado con la puntería, dentro de un cono, al alcance y sin nada en medio.
+-- De cerca el cono es más ancho y solo cuenta en horizontal (CombatService.aimDeviation).
 local function bestInCone(
 	attacker: Player,
 	character: Model,
@@ -254,19 +255,45 @@ local function bestInCone(
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local best: Target? = nil
-	local bestAngle = math.rad(degrees)
+	local bestAngle = math.huge
 	for _, target in targetsAround(attacker, origin, range) do
-		local offset = target.root.Position - origin
-		local angle = math.acos(math.clamp(offset.Unit:Dot(aim), -1, 1))
-		if angle <= bestAngle then
+		local angle = CombatService.aimDeviation(origin, aim, target.root.Position, degrees)
+		if angle and angle < bestAngle then
 			params.FilterDescendantsInstances = { character, target.model }
-			if not Workspace:Raycast(origin, offset, params) then
+			if not Workspace:Raycast(origin, target.root.Position - origin, params) then
 				best = target
 				bestAngle = angle
 			end
 		end
 	end
 	return best
+end
+
+-- El objetivo que el jugador tiene delante a corta distancia (Config.Combat.CloseAimRange), o nil.
+-- Para los disparos que irían rectos por encima de un mono pequeño pegado al jugador.
+local function closeTarget(attacker: Player, character: Model, origin: Vector3, aim: Vector3): Target?
+	local settings = Config.Combat
+	return bestInCone(attacker, character, origin, aim, settings.CloseAimRange + settings.CloseAimHeight, 0)
+end
+
+-- La puntería de un disparo recto de "range": la misma si alcanza a alguien o no hay objetivo
+-- cercano ("close", de closeTarget); si no, hacia él.
+local function closeAim(
+	attacker: Player,
+	character: Model,
+	origin: Vector3,
+	aim: Vector3,
+	range: number,
+	close: Target?
+): Vector3
+	if not close then
+		return aim
+	end
+	local _, result = castShot(character, origin, aim, range, 1)
+	if result and targetFromPart(attacker, result.Instance) then
+		return aim
+	end
+	return (close.root.Position - origin).Unit
 end
 
 -- ===================================== Guerrero =====================================
@@ -404,14 +431,23 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 	local damage = SETTINGS.MultiShotDamage * Progression.perk(player, "RangedDamage")
 	local origin = headOf(character, root)
 	local spread = math.rad(SETTINGS.MultiShotSpreadDegrees)
+	-- De cerca, el abanico se centra en el mono que tienes delante y la flecha del centro le da
+	-- aunque esté pegado (un Spherecast no ve lo que ya toca al salir).
+	local close = closeTarget(player, character, origin, aim)
+	aim = closeAim(player, character, origin, aim, SETTINGS.MultiShotRange, close)
+	local center = math.ceil(count / 2)
 	Sfx.play("Shoot", root)
 	local endPoints = {}
 	for index = 1, count do
 		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
 		local direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim)
 		local endPoint, result = castShot(character, origin, direction, SETTINGS.MultiShotRange, 1)
-		table.insert(endPoints, endPoint)
 		local target = if result then targetFromPart(player, result.Instance) else nil
+		if not target and close and index == center then
+			target = close
+			endPoint = close.root.Position
+		end
+		table.insert(endPoints, endPoint)
 		if target then
 			task.delay((endPoint - origin).Magnitude / ARROW_SPEED, hurt, player, target, damage, "MultiShot")
 		end
@@ -647,6 +683,31 @@ local function pierceEnd(character: Model, origin: Vector3, direction: Vector3, 
 	return if result then result.Position else origin + direction * range
 end
 
+type PierceHit = { target: Target, along: number }
+
+-- Lo que atraviesa una flecha perforante en "direction": dónde acaba y a quién alcanza, con la
+-- distancia a la que está cada uno.
+local function pierceLine(
+	player: Player,
+	character: Model,
+	origin: Vector3,
+	direction: Vector3
+): (Vector3, { PierceHit })
+	local endPoint = pierceEnd(character, origin, direction, SETTINGS.PierceRange)
+	local length = (endPoint - origin).Magnitude
+	local hits: { PierceHit } = {}
+	for _, target in targetsAround(player, origin, length + 3) do
+		local offset = target.root.Position - origin
+		local along = offset:Dot(direction)
+		local apart = (offset - direction * along).Magnitude
+		-- Con margen para el cuerpo del mono (su centro está a un par de studs de su borde).
+		if along > 0 and along <= length + 1 and apart <= SETTINGS.PierceWidth + 2 then
+			table.insert(hits, { target = target, along = along })
+		end
+	end
+	return endPoint, hits
+end
+
 -- Flecha perforante: atraviesa a todos los que encuentra en línea recta, a cada uno cuando le llega.
 -- Como remate de "Tiro de gracia", dispara más en un abanico estrecho.
 local function piercingShot(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
@@ -658,22 +719,23 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 		count += COMBO.PierceExtraArrows
 	end
 	local origin = headOf(character, root)
+	-- De cerca, si la flecha recta no atravesaría a nadie, va hacia el mono que tienes delante.
+	local _, straightHits = pierceLine(player, character, origin, aim)
+	if #straightHits == 0 then
+		local close = closeTarget(player, character, origin, aim)
+		if close then
+			aim = (close.root.Position - origin).Unit
+		end
+	end
 	local spread = math.rad(COMBO.PierceSpreadDegrees)
 	local endPoints = {}
 	for index = 1, count do
 		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
 		local direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim)
-		local endPoint = pierceEnd(character, origin, direction, SETTINGS.PierceRange)
-		local length = (endPoint - origin).Magnitude
+		local endPoint, hits = pierceLine(player, character, origin, direction)
 		table.insert(endPoints, endPoint)
-		for _, target in targetsAround(player, origin, length + 3) do
-			local offset = target.root.Position - origin
-			local along = offset:Dot(direction)
-			local apart = (offset - direction * along).Magnitude
-			-- Con margen para el cuerpo del mono (su centro está a un par de studs de su borde).
-			if along > 0 and along <= length + 1 and apart <= SETTINGS.PierceWidth + 2 then
-				task.delay(along / SETTINGS.PierceSpeed, hurt, player, target, damage, "PiercingShot")
-			end
+		for _, hit in hits do
+			task.delay(hit.along / SETTINGS.PierceSpeed, hurt, player, hit.target, damage, "PiercingShot")
 		end
 	end
 	Sfx.play("Shoot", root)
@@ -688,6 +750,13 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 	local origin = headOf(character, root)
 	local endPoint, result = castShot(character, origin, aim, SETTINGS.FireballRange, 1.5)
 	local direct = if result then targetFromPart(player, result.Instance) else nil
+	-- De cerca, la bola que pasaría por encima de un mono pequeño (o no lo vería por estar pegado) le da.
+	if not direct then
+		direct = closeTarget(player, character, origin, aim)
+		if direct then
+			endPoint = direct.root.Position
+		end
+	end
 	local seconds = (endPoint - origin).Magnitude / SETTINGS.FireballSpeed
 	-- Remate del combo del mago: rompe el hielo con una explosión más grande.
 	local finisher = ComboService.isPayoff(player, "Fireball")
@@ -851,14 +920,21 @@ end
 local function healingDart(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
 	local endPoint, result = castShot(character, origin, aim, SETTINGS.DartRange, 1.5)
+	local ally = if result then CombatService.playerFromPart(result.Instance) else nil
+	local enemy = if result and not ally then targetFromPart(player, result.Instance) else nil
+	-- De cerca, el dardo que pasaría por encima de un mono pequeño le da.
+	if not (ally or enemy) then
+		enemy = closeTarget(player, character, origin, aim)
+		if enemy then
+			endPoint = enemy.root.Position
+		end
+	end
 	local seconds = (endPoint - origin).Magnitude / SETTINGS.DartSpeed
 	AbilityFx.all("Dart", origin, endPoint, SETTINGS.DartSpeed)
 	Sfx.play("Shoot", root)
-	if not result then
+	if not (ally or enemy) then
 		return true
 	end
-	local ally = CombatService.playerFromPart(result.Instance)
-	local enemy = if ally then nil else targetFromPart(player, result.Instance)
 	task.delay(seconds, function()
 		if ally and heal(player, ally, SETTINGS.DartHeal * Progression.perk(player, "HealPower"), "HealingDart") then
 			local allyCharacter = ally.Character

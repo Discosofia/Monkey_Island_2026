@@ -90,6 +90,13 @@ local Config = {
 		PlayerDamageMultiplier = 0.7,
 		-- Cerbatanas del médico ("healOnHit" en Data/Weapons): a qué distancia busca al aliado herido.
 		WeaponHealRadius = 40,
+		-- Puntería a corta distancia (CombatService.aimDeviation): la cámara mira por encima del hombro
+		-- y, de cerca, un mono pequeño queda muy por debajo de la línea de tiro. A menos de
+		-- CloseAimRange (en horizontal) y CloseAimHeight (en vertical) solo cuenta la dirección en
+		-- horizontal, con un cono de al menos CloseAimDegrees.
+		CloseAimRange = 18,
+		CloseAimHeight = 8,
+		CloseAimDegrees = 30,
 		DummyRespawnSeconds = 3,
 		-- Al soltarte de un agarre o un aturdimiento (monos, jefes, PvP), segundos en los que no te
 		-- pueden volver a dejar quieto (Combat/Status.holdPlayer). Con 2, un orangután te tiene

@@ -390,19 +390,45 @@ local function meleeAttack(
 	end
 end
 
+-- Cuánto se desvía "point" de la puntería "aim" desde "origin" (en radianes), o nil si queda fuera
+-- del cono de "degrees". La cámara mira por encima del hombro: de cerca, un mono pequeño queda muy por
+-- debajo de la línea de tiro aunque el jugador lo tenga delante. Por eso, a corta distancia
+-- (Config.Combat.CloseAimRange y CloseAimHeight) solo cuenta la dirección en horizontal, con un cono
+-- de al menos CloseAimDegrees.
+function CombatService.aimDeviation(origin: Vector3, aim: Vector3, point: Vector3, degrees: number): number?
+	local settings = Config.Combat
+	local offset = point - origin
+	local flatOffset = Vector3.new(offset.X, 0, offset.Z)
+	local flatAim = Vector3.new(aim.X, 0, aim.Z)
+	local close = flatOffset.Magnitude <= settings.CloseAimRange and math.abs(offset.Y) <= settings.CloseAimHeight
+	local angle: number
+	local limit = math.rad(degrees)
+	if close and flatAim.Magnitude > 0.1 then
+		angle = if flatOffset.Magnitude > 0.1
+			then math.acos(math.clamp(flatOffset.Unit:Dot(flatAim.Unit), -1, 1))
+			else 0
+		limit = math.max(limit, math.rad(settings.CloseAimDegrees))
+	elseif offset.Magnitude > 0.01 then
+		angle = math.acos(math.clamp(offset.Unit:Dot(aim.Unit), -1, 1))
+	else
+		angle = 0
+	end
+	return if angle <= limit then angle else nil
+end
+
 -- Ayuda de puntería: el enemigo vivo más alineado con la dirección de apuntado, dentro del alcance.
 local function findAimTarget(origin: Vector3, aim: Vector3, weapon: Weapons.WeaponDefinition): (Model?, BasePart?)
 	local bestModel: Model? = nil
 	local bestPart: BasePart? = nil
-	local bestAngle = math.rad(weapon.aimAssistDegrees or 0)
+	local bestAngle = math.huge
 	for _, instance in CollectionService:GetTagged(Config.Combat.EnemyTag) do
 		local humanoid = instance:FindFirstChildOfClass("Humanoid")
 		local part = if instance:IsA("Model") then instance.PrimaryPart else nil
 		if humanoid and humanoid.Health > 0 and part then
 			local offset = part.Position - origin
 			if offset.Magnitude <= weapon.range and offset.Magnitude > 0 then
-				local angle = math.acos(math.clamp(offset.Unit:Dot(aim), -1, 1))
-				if angle <= bestAngle then
+				local angle = CombatService.aimDeviation(origin, aim, part.Position, weapon.aimAssistDegrees or 0)
+				if angle and angle < bestAngle then
 					bestAngle = angle
 					bestModel = instance :: Model
 					bestPart = part
