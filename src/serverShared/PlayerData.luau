@@ -45,6 +45,8 @@ type Session = {
 	profile: Profile,
 	saveable: boolean, -- false si no se pudo cargar de DataStore (datos temporales)
 	dirty: boolean,
+	-- Mascota activa publicada la última vez ("ActivePet"); false hasta la primera publicación.
+	publishedPet: string? | false,
 }
 
 local PlayerData = {}
@@ -129,13 +131,20 @@ local function keyFor(player: Player): string
 	return `u_{player.UserId}`
 end
 
-local function publish(player: Player, profile: Profile)
+local function publish(player: Player, session: Session)
+	local profile = session.profile
 	player:SetAttribute("Amber", profile.amber)
 	player:SetAttribute("BestDays", profile.bestDays)
 	player:SetAttribute("SelectedRole", profile.selectedRole)
-	-- Solo si la tiene de verdad en su colección.
+	-- Solo si la tiene de verdad en su colección, y solo cuando cambia la guardada: así no pisa una
+	-- mascota puesta solo para esta partida (la de prueba del panel, DebugService) cada vez que se
+	-- actualiza otra cosa del perfil (el diario de campo al derrotar un mono, por ejemplo).
 	local hasPet = profile.activePet ~= "" and (profile.pets[profile.activePet] or 0) > 0
-	player:SetAttribute("ActivePet", if hasPet then profile.activePet else nil)
+	local petId = if hasPet then profile.activePet else nil
+	if session.publishedPet == false or session.publishedPet ~= petId then
+		session.publishedPet = petId
+		player:SetAttribute("ActivePet", petId)
+	end
 	player:SetAttribute(
 		"Progress",
 		HttpService:JSONEncode({
@@ -230,9 +239,10 @@ local function onPlayerAdded(player: Player)
 		profile = profile or defaultProfile(),
 		saveable = not failed and profile ~= nil,
 		dirty = false,
+		publishedPet = false,
 	}
 	sessions[player] = session
-	publish(player, session.profile)
+	publish(player, session)
 	loadedSignal:Fire(player)
 end
 
@@ -263,7 +273,7 @@ function PlayerData.update(player: Player, change: (profile: Profile) -> ())
 	end
 	change(session.profile)
 	session.dirty = true
-	publish(player, session.profile)
+	publish(player, session)
 end
 
 -- Guarda ya (por ejemplo, antes de un viaje). Puede tardar: llámala desde un hilo propio.
