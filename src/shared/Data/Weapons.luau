@@ -20,7 +20,9 @@ export type WeaponDefinition = {
 	-- (o al propio médico), a menos de Config.Combat.WeaponHealRadius…
 	healOnHit: number?,
 	-- …y le envenena (Combat/Status.poison): "dps" de daño por segundo (con la misma ventaja de daño que
-	-- el arma) durante "seconds". No se acumula: cada acierto lo renueva.
+	-- el arma) durante "seconds". No se acumula: cada acierto lo renueva. "boostItemId": munición
+	-- opcional (los dardos venenosos): mientras quede, cada disparo gasta una y el veneno se multiplica
+	-- por su "poisonMultiplier" (Data/Items).
 	poison: PoisonDefinition?,
 	aimAssistDegrees: number?, -- ayuda de puntería: ángulo máximo para "enganchar" un enemigo
 	swingAnimationSpeed: number?, -- velocidad del tajo (1 = la animación normal de Roblox)
@@ -34,6 +36,7 @@ export type WeaponDefinition = {
 export type PoisonDefinition = {
 	dps: number,
 	seconds: number,
+	boostItemId: string?,
 }
 
 export type ToolDefinition = {
@@ -220,7 +223,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		aimAssistDegrees = 12,
 		healOnHit = 2,
-		poison = { dps = 5, seconds = 4 },
+		poison = { dps = 5, seconds = 4, boostItemId = "VenomDart" },
 	},
 	Club = {
 		name = "Garrote con colmillos",
@@ -291,7 +294,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		aimAssistDegrees = 12,
 		healOnHit = 3,
-		poison = { dps = 7, seconds = 4 },
+		poison = { dps = 7, seconds = 4, boostItemId = "VenomDart" },
 	},
 	ShamanBlowgun = {
 		name = "Cerbatana del chamán",
@@ -305,7 +308,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		aimAssistDegrees = 12,
 		healOnHit = 5,
-		poison = { dps = 9, seconds = 4 },
+		poison = { dps = 9, seconds = 4, boostItemId = "VenomDart" },
 	},
 	GoldenStaff = {
 		name = "Bastón dorado",

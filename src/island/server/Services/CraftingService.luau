@@ -9,7 +9,8 @@
 --   - Una mejora (receta con "upgrades") sustituye a la herramienta vieja, también si está en la mano.
 --     No se saltan niveles: hace falta tener la anterior (Crafting.missingPrerequisite).
 --   - Las estaciones construidas con el martillo (taller del curandero, forja) se activan al momento.
---   - También gestiona la armadura y el uso de curaciones (vendas, ungüentos, antídotos).
+--   - También gestiona la armadura y el uso de curaciones (vendas, ungüentos, antídotos y la
+--     cataplasma de grupo del médico).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -33,7 +34,9 @@ local Survival = require(ReplicatedStorage.Shared.Survival)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BasecampService = require(script.Parent.BasecampService)
+local CombatService = require(script.Parent.CombatService)
 local InventoryService = require(script.Parent.InventoryService)
+local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
 local ArmorModels = require(script.Parent.Parent.Combat.ArmorModels)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
@@ -412,10 +415,72 @@ local function useHealItem(player: Player, humanoid: Humanoid, itemId: string)
 	Sfx.play("Heal", humanoid.Parent or player)
 end
 
--- Curar (H) elige qué usar. La vida va primero: por debajo de Config.Survival.HealFirstBelow se usa
--- una venda o un ungüento aunque haya fiebre, para no caer por quitarse la fiebre. Con la vida bien,
--- la fiebre con síntomas (Config.Fever.SymptomsAt) se quita con el antídoto; si no, se cura la vida
--- que falte y, con la vida llena, el antídoto quita la fiebre que quede.
+-- Una curación de grupo ("groupHeal", la cataplasma del médico) que lleve "player", o nil.
+local function groupHealItem(player: Player): string?
+	for itemId, item in Items do
+		if item.groupHeal and Inventory.count(player, itemId) > 0 then
+			return itemId
+		end
+	end
+	return nil
+end
+
+-- Aliados vivos (sin contar a "player") a menos de Config.Crafting.PoulticeRadius de "center".
+local function alliesAround(player: Player, center: Vector3): { Player }
+	local found = {}
+	for _, other in Players:GetPlayers() do
+		local character = other.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if
+			other ~= player
+			and LifeState.isAlive(other)
+			and root
+			and root:IsA("BasePart")
+			and (root.Position - center).Magnitude <= Config.Crafting.PoulticeRadius
+		then
+			table.insert(found, other)
+		end
+	end
+	return found
+end
+
+local function isWounded(player: Player): boolean
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	return humanoid ~= nil
+		and humanoid.Health > 0
+		and humanoid.MaxHealth - humanoid.Health >= Config.Crafting.PoulticeWoundedMissing
+end
+
+-- Cataplasma de grupo: cura a "player" y a los aliados de alrededor. Cuenta como curación del médico
+-- (botín compartido, Savia protectora), pero, como las vendas, nunca es crítica.
+local function usePoultice(player: Player, root: BasePart, itemId: string)
+	local heal = Items[itemId].groupHeal
+	if not heal or not InventoryService.remove(player, itemId, 1) then
+		return
+	end
+	local amount = heal * Progression.perk(player, "HealPower")
+	CombatService.heal(player, amount, player)
+	local healed = 0
+	for _, ally in alliesAround(player, root.Position) do
+		if CombatService.heal(ally, amount, player) > 0 then
+			healed += 1
+		end
+	end
+	AbilityFx.all("AreaHeal", root.Position, Config.Crafting.PoulticeRadius)
+	Sfx.play("Heal", root)
+	Remotes.Notify:FireClient(
+		player,
+		`{Items[itemId].icon} Cataplasma: te has curado y has curado a {healed} aliado(s)`
+	)
+end
+
+-- Curar (H) elige qué usar. Con aliados heridos cerca, la cataplasma de grupo va antes que nada. Luego
+-- la vida: por debajo de Config.Survival.HealFirstBelow se usa una venda o un ungüento aunque haya
+-- fiebre, para no caer por quitarse la fiebre. Con la vida bien, la fiebre con síntomas
+-- (Config.Fever.SymptomsAt) se quita con el antídoto; si no, se cura la vida que falte y, con la vida
+-- llena, el antídoto quita la fiebre que quede. Sin otra cosa para la vida, la cataplasma cura solo
+-- a quien la usa.
 local function onUseHeal(player: Player)
 	if not LifeState.isAlive(player) or not canBandage(player) then
 		return
@@ -424,6 +489,16 @@ local function onUseHeal(player: Player)
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not humanoid or humanoid.Health <= 0 then
 		return
+	end
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local poulticeId = groupHealItem(player)
+	if poulticeId and root and root:IsA("BasePart") then
+		for _, ally in alliesAround(player, root.Position) do
+			if isWounded(ally) then
+				usePoultice(player, root, poulticeId)
+				return
+			end
+		end
 	end
 	local missing = humanoid.MaxHealth - humanoid.Health
 	local healId = if missing > 0 then bestHealItem(player, missing) else nil
@@ -435,6 +510,8 @@ local function onUseHeal(player: Player)
 		useHealItem(player, humanoid, healId)
 	elseif hasAntidote then
 		useAntidote(player)
+	elseif missing > 0 and poulticeId and root and root:IsA("BasePart") then
+		usePoultice(player, root, poulticeId)
 	elseif missing > 0 then
 		Remotes.Notify:FireClient(player, "No tienes con qué curarte: vendas o ungüentos")
 	end

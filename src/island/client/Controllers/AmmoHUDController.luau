@@ -1,7 +1,8 @@
 --!strict
 -- Contador de munición: abajo en el centro, encima de la barra de objetos de Roblox. Solo se ve con un
 -- arma a distancia que gasta munición en la mano ("ammoItemId" en Data/Weapons: arco → flechas,
--- honda → piedras): el icono del ítem y cuántos quedan, en rojo si no queda ninguno.
+-- honda → piedras): el icono del ítem y cuántos quedan, en rojo si no queda ninguno. La munición
+-- opcional de las cerbatanas (los dardos venenosos, "boostItemId") solo se ve mientras quede.
 -- Si el rol rellena esa munición solo (el carcaj del cazador, "refill" en Data/Roles), una barrita
 -- debajo enseña cuánto falta para la siguiente. El servidor publica cuándo llega en el atributo
 -- "RefillAt" (hora del servidor, RoleService); sin él, el carcaj está lleno y la barrita no se ve.
@@ -66,8 +67,9 @@ function AmmoHUDController:Start()
 	fill.BorderSizePixel = 0
 	fill.Parent = back
 
-	-- Ítem de munición del arma de la mano (nil si no gasta munición o no hay arma).
+	-- Ítem de munición del arma de la mano (nil si no gasta munición o no hay arma) y si es opcional.
 	local ammoId: string? = nil
+	local optional = false
 	local countConnection: RBXScriptConnection? = nil
 
 	local function refreshCount()
@@ -78,9 +80,10 @@ function AmmoHUDController:Start()
 		local count = Inventory.count(player, itemId)
 		label.Text = `{Items[itemId].icon} {count}`
 		label.TextColor3 = if count > 0 then TEXT_COLOR else EMPTY_COLOR
+		panel.Visible = count > 0 or not optional
 	end
 
-	local function setAmmo(itemId: string?)
+	local function setAmmo(itemId: string?, isOptional: boolean)
 		if itemId == ammoId then
 			return
 		end
@@ -89,6 +92,7 @@ function AmmoHUDController:Start()
 			countConnection = nil
 		end
 		ammoId = itemId
+		optional = isOptional
 		panel.Visible = itemId ~= nil
 		if itemId then
 			countConnection = player:GetAttributeChangedSignal(Inventory.attributeName(itemId)):Connect(refreshCount)
@@ -101,7 +105,12 @@ function AmmoHUDController:Start()
 		local tool = if character then character:FindFirstChildOfClass("Tool") else nil
 		local weaponId = if tool then tool:GetAttribute("WeaponId") else nil
 		local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
-		setAmmo(if weapon then weapon.ammoItemId else nil)
+		local boost = if weapon and weapon.poison then weapon.poison.boostItemId else nil
+		if weapon and weapon.ammoItemId then
+			setAmmo(weapon.ammoItemId, false)
+		else
+			setAmmo(boost, true)
+		end
 	end
 
 	local function onCharacter(character: Model)

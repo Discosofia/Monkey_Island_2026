@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -69,6 +70,14 @@ local function adjustPrompt(player: Player, prompt: ProximityPrompt)
 		prompt:SetAttribute("BaseHold", base)
 	end
 	prompt.HoldDuration = (base :: number) * Progression.perk(player, perk)
+	-- Con un kit de reanimación (del médico) basta con pulsar; el servidor lo gasta (LifeService).
+	if prompt.Name == "RevivePrompt" then
+		local kit = Inventory.count(player, "ReviveKit") > 0
+		if kit then
+			prompt.HoldDuration = Config.Life.ReviveKitHoldSeconds
+		end
+		prompt.ActionText = if kit then "Reanimar con kit" else "Reanimar"
+	end
 end
 
 -- Barras de vida de los aliados (solo el médico).

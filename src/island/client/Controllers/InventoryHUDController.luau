@@ -91,6 +91,9 @@ local function describe(item: Items.ItemDefinition, count: number): string
 	if item.heal then
 		table.insert(parts, `Curar (H): +{item.heal} ❤️`)
 	end
+	if item.groupHeal then
+		table.insert(parts, `Curar (H): +{item.groupHeal} ❤️ a ti y a los aliados cercanos`)
+	end
 	if item.note then
 		table.insert(parts, item.note)
 	end

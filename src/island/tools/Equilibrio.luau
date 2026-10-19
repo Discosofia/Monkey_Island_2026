@@ -31,6 +31,9 @@ local OPCIONES_BASE = {
 	talentos = "ninguno", -- "ninguno" o "max" (todos los talentos del rol al máximo)
 	armas = {} :: { [string]: string }, -- [rol] = id de Data/Weapons; sin él, la primera del rol
 	critico = nil :: number?, -- probabilidad de crítico de las armas (nil = la del arma)
+	-- true: las cerbatanas disparan su munición opcional (dardos venenosos, "boostItemId"), que
+	-- multiplica su veneno por "poisonMultiplier" (Data/Items).
+	dardosVenenosos = false,
 	grupo = 4, -- monos en el escenario de grupo
 	aliados = 4, -- jugadores del equipo (curaciones en área y vida de los jefes)
 	segundos = 60, -- duración de la simulación
@@ -461,6 +464,7 @@ local function main(copia: Instance): string
 	local Bosses = require(Data.Bosses) :: any
 	local Pets = require(Data.Pets) :: any
 	local Armor = require(Data.Armor) :: any
+	local Items = require(Data.Items) :: any
 	local Recipes = require(Data.Recipes) :: any
 	local Progression = require(copia.Progression) :: any
 
@@ -553,6 +557,10 @@ local function main(copia: Instance): string
 		local golpe = math.round(arma.damage * perk(ventaja))
 		local critico = OPCIONES.critico or arma.critChance or Config.Crit.DefaultWeaponChance
 		local veneno = if arma.poison then arma.poison.dps * perk(ventaja) else 0
+		local refuerzo = if arma.poison then arma.poison.boostItemId else nil
+		if OPCIONES.dardosVenenosos and refuerzo then
+			veneno *= Items[refuerzo].poisonMultiplier or 1
+		end
 		local dpsGolpes = golpe / arma.cooldownSeconds
 		return {
 			id = id,

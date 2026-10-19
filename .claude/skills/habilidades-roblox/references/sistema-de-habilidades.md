@@ -85,8 +85,9 @@ si es mortal, `LifeService.down`.
   morado, sin destello ni sonido, sin crítico; cuenta para la racha y el botín de quien lo puso). No
   se acumula: uno igual o más fuerte lo renueva y uno más flojo no hace nada mientras dure. El cliente
   dibuja vapor morado con el atributo `PoisonedUntil`. Lo usan las cerbatanas (`poison` en
-  `Data/Weapons`, con la ventaja de daño del arma) y el remate de "Cura de urgencia"; los dardos
-  venenosos del médico (Grupo 11) también deben pasar por aquí. Status no depende de CombatService:
+  `Data/Weapons`, con la ventaja de daño del arma) y el remate de "Cura de urgencia". Los dardos
+  venenosos del médico son munición opcional (`boostItemId` del veneno de la cerbatana): mientras
+  queden, cada disparo gasta uno y el veneno se multiplica por su `poisonMultiplier` (Data/Items). Status no depende de CombatService:
   CombatService le da la función de daño al empezar (`Status.setPoisonDamage`).
 - **Expuesto** (`Status.expose(modelo, bonus, segundos)`): `ExposedUntil` + `ExposedBonus`, recibe más
   daño. Lo pone el remate de "Nana de la selva" a los dormidos; el "💤" lleva debajo "+30 %".

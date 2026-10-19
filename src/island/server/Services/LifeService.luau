@@ -2,7 +2,8 @@
 -- Caído → reanimación o reaparición (GDD §6.2, Fase 1.5).
 --
 --   - Un golpe mortal no mata: el jugador queda Caído (se arrastra, no ataca ni recolecta).
---   - Un aliado lo reanima manteniendo pulsado su aviso "Reanimar".
+--   - Un aliado lo reanima manteniendo pulsado su aviso "Reanimar". Con un kit de reanimación (del
+--     médico) se gasta uno: basta con pulsar (RoleController) y se levanta con más vida.
 --   - Si nadie llega a tiempo (Config.Life.DownedSeconds), o si el propio caído se rinde
 --     (Remotes.Surrender, a partir de Config.Life.SurrenderAfterSeconds), deja una mochila con parte
 --     de sus materiales donde cayó y reaparece al momento en su cama o en el Basecamp, con toda la
@@ -26,6 +27,8 @@ local TelemetryService = require(script.Parent.TelemetryService)
 local CombatText = require(script.Parent.Parent.Combat.CombatText)
 
 local VISUALS = { "RevivePrompt", "DownedBillboard", "DownedHighlight" }
+-- Ítem que se gasta al reanimar y levanta al momento con más vida (Config.Life.ReviveKit*).
+local REVIVE_KIT = "ReviveKit"
 
 local LifeService = {}
 
@@ -174,8 +177,10 @@ local function revive(player: Player, rescuer: Player)
 	downedAt[player] = nil
 	clearVisuals(character)
 	restoreMovement(humanoid)
-	-- "Segundo aliento" (talento del médico) levanta con más vida.
-	local fraction = math.min(1, Config.Life.ReviveHealthFraction + Progression.perk(rescuer, "ReviveHealth"))
+	-- El kit de reanimación y "Segundo aliento" (talento del médico) levantan con más vida.
+	local kit = InventoryService.remove(rescuer, REVIVE_KIT, 1)
+	local base = if kit then Config.Life.ReviveKitHealthFraction else Config.Life.ReviveHealthFraction
+	local fraction = math.min(1, base + Progression.perk(rescuer, "ReviveHealth"))
 	local before = humanoid.Health
 	humanoid.Health = math.max(1, humanoid.MaxHealth * fraction)
 	player:SetAttribute("DownedEndsAt", nil)
@@ -184,7 +189,12 @@ local function revive(player: Player, rescuer: Player)
 	Sfx.play("Revive", character.PrimaryPart or character)
 	MatchStats.add(rescuer, MatchStats.REVIVES)
 	Remotes.Notify:FireClient(player, `💚 {rescuer.DisplayName} te ha reanimado`)
-	Remotes.Notify:FireClient(rescuer, `💚 Has reanimado a {player.DisplayName}`)
+	Remotes.Notify:FireClient(
+		rescuer,
+		if kit
+			then `🧰 Has reanimado a {player.DisplayName} con un kit ({Inventory.count(rescuer, REVIVE_KIT)} más)`
+			else `💚 Has reanimado a {player.DisplayName}`
+	)
 end
 
 -- Panel de pruebas (DebugService): el caído vuelve a la vida al momento, donde está y con toda la

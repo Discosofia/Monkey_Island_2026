@@ -554,6 +554,13 @@ local function rangedAttack(
 	-- "+daño a distancia" del cazador o "+daño de hechizos" del mago, con sus talentos (también el veneno).
 	local scale = Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage")
 	local damage = math.round(weapon.damage * scale)
+	-- Dardos venenosos del médico: munición opcional; mientras queden, cada disparo gasta uno.
+	local poison = weapon.poison
+	local poisonDps = if poison then poison.dps * scale else 0
+	local boost = if poison then poison.boostItemId else nil
+	if boost and InventoryService.remove(player, boost, 1) then
+		poisonDps *= Items[boost].poisonMultiplier or 1
+	end
 	local crit = Crit.roll(critChance)
 	-- La animación del disparo se ve sola (es del personaje); la bocanada o el destello, a los demás
 	-- (el que dispara ya los ha lanzado en su cliente).
@@ -603,9 +610,8 @@ local function rangedAttack(
 			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 then
 				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit, source = weaponId })
-				local poison = weapon.poison
 				if poison and humanoid.Health > 0 then
-					Status.poison(hitModel, poison.dps * scale, poison.seconds, player, weaponId)
+					Status.poison(hitModel, poisonDps, poison.seconds, player, weaponId)
 				end
 				if weapon.healOnHit then
 					healWoundedAlly(player, weapon.healOnHit, weaponId)

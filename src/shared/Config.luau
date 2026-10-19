@@ -282,6 +282,10 @@ local Config = {
 		ReviveDistance = 8,
 		-- Vida con la que vuelves al ser reanimado (fracción de la máxima).
 		ReviveHealthFraction = 0.35,
+		-- Con un kit de reanimación (Data/Items "ReviveKit", del médico) se gasta uno: se mantiene esto
+		-- (0 = al pulsar) y el reanimado vuelve con esta fracción de su vida.
+		ReviveKitHoldSeconds = 0,
+		ReviveKitHealthFraction = 0.7,
 		-- Parte de cada material que se queda en la mochila al reaparecer sin que te reanimen.
 		DropFraction = 0.5,
 	},
@@ -443,6 +447,10 @@ local Config = {
 		CraftCooldownSeconds = 0.4,
 		-- Espera entre dos curaciones (vendas, ungüentos, antídotos). Lo que cura cada una: Data/Items.
 		BandageCooldownSeconds = 3,
+		-- Cataplasma de grupo ("groupHeal" en Data/Items): a quién alcanza y desde cuánta vida perdida
+		-- cuenta un aliado como herido (entonces Curar la usa antes que nada).
+		PoulticeRadius = 20,
+		PoulticeWoundedMissing = 10,
 		-- Recetas: ver Shared/Data/Recipes.
 	},
 

@@ -4,6 +4,10 @@
 -- "order" decide el orden en el HUD del inventario; "alwaysShow" lo muestra aunque tengas 0.
 -- "food" hace que se pueda comer (G, cruceta izquierda o el botón "Comer"): cuánto recupera.
 -- "heal" hace que se pueda usar para curarse (H, cruceta arriba o el botón "Curar"): vida que da.
+-- "groupHeal": lo mismo, pero cura a la vez al que lo usa y a los aliados cercanos
+-- (Config.Crafting.PoulticeRadius); con aliados heridos cerca, Curar lo usa antes que nada.
+-- "poisonMultiplier": munición opcional de las cerbatanas ("boostItemId" en Data/Weapons): mientras
+-- quede, cada disparo gasta una y su veneno se multiplica por esto.
 -- "rarity" (Data/Rarities) da color al nombre en el inventario y el diario; sin ella, Común.
 -- "group" pone el objeto en otra sección de la Bolsa ("Materials", "Food", "Healing", "Loot",
 -- "Treasure", "Gear"); sin él, la decide lo que hace (comida, curación, siempre visible o botín).
@@ -18,6 +22,8 @@ export type ItemDefinition = {
 	alwaysShow: boolean?,
 	food: FoodDefinition?,
 	heal: number?,
+	groupHeal: number?,
+	poisonMultiplier: number?,
 	rarity: string?,
 	group: string?,
 	keep: boolean?,
@@ -54,6 +60,23 @@ local Items: { [string]: ItemDefinition } = {
 	Arrow = { name = "Flecha", icon = "🏹", order = 18, group = "Materials" },
 	-- Taller del curandero: cura entre la venda y el ungüento.
 	SuperBandage = { name = "Super venda", icon = "🩹", order = 19, heal = 50 },
+	-- Taller del curandero, solo para el médico (Data/Recipes "role").
+	ReviveKit = {
+		name = "Kit de reanimación",
+		icon = "🧰",
+		order = 33,
+		group = "Healing",
+		note = "Al reanimar a un aliado se gasta: lo levantas al momento y con más vida",
+	},
+	GroupPoultice = { name = "Cataplasma de grupo", icon = "🥣", order = 34, group = "Healing", groupHeal = 35 },
+	VenomDart = {
+		name = "Dardo venenoso",
+		icon = "🐸",
+		order = 35,
+		group = "Materials",
+		poisonMultiplier = 1.6,
+		note = "La cerbatana los dispara solos mientras queden: su veneno pega más",
+	},
 	-- Equipo: la antorcha fabricada (receta "Torch"). De día se guarda aquí; de noche va encendida
 	-- en la mano izquierda (TorchService).
 	Torch = {

@@ -514,7 +514,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 |---|---|
 | Mesa de trabajo | Herramientas y armas básicas, antorchas |
 | Hoguera y cocina | Comida cocinada, agua hervida |
-| Taller del curandero | Vendas, ungüentos y antídotos (bonus para el médico) |
+| Taller del curandero | Vendas, super vendas, ungüentos y antídotos. Solo el médico: **kit de reanimación** (3 fibra, 1 pelaje dorado, 1 hueso: al reanimar se gasta, basta con pulsar y el aliado vuelve con el 70 % de su vida), **cataplasma de grupo** (4 fibra, 2 plátanos, 1 pelaje rojo: con Curar cura 35 a ti y a los aliados a 20 studs; va primero si alguno ha perdido 10 o más) y **dardos venenosos** ×20 (2 fibra, 1 diente diminuto: munición opcional de la cerbatana; mientras queden, cada disparo gasta uno y el veneno pega ×1,6, con su contador "🐸" encima de la barra) |
 | Forja de piedra | Armas y armaduras de hueso y metal |
 | Forja volcánica | Equipo de obsidiana y magma (requiere núcleo de magma) |
 | Nido | Incubar huevos |

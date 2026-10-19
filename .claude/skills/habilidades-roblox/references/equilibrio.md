@@ -131,6 +131,8 @@ protectora, remates que envenenan y exponen). Guerrero, Cazador y Mago no cambia
 | Polvo somnífero (segundos de arma) | 0,73 | 0,8 (daño 5 → 8: con la cerbatana nueva se quedaba en 0,49) |
 | Tiempo para matar un mandril el día 1 | 20,8 s | 12,7 s |
 
+Con los dardos venenosos del taller (munición opcional, veneno ×1,6; opción `dardosVenenosos` de la
+calculadora) sube a 20,5 · 26,8 · 36,6 contra un mono (65 % · 68 % · 74 %) mientras le queden.
 Curación igual (14,6 → 20,7/s al equipo; 34,4/s con talentos al máximo, hallazgo 3). Jefes con 4
 jugadores: 101 / 118 / 141 / 167 s. El Mono X-7 baja al 45 % del DPS medio de un arma de rol (sube la
 media). La Savia protectora (10 cada 8 s como mucho, ~1,2/s) y el +30 % de los dormidos de la Nana

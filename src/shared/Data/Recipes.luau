@@ -9,7 +9,8 @@
 --              "Torch", la antorcha, de noche (TorchService). Solo se fabrica una vez.
 -- "upgrades" (opcional) es el arma o la armadura que la receta sustituye: al fabricarla, la vieja
 -- desaparece y ya no se puede volver a fabricar (tampoco lo anterior de la cadena).
--- "role" (opcional): solo la ve y la fabrica ese rol (Data/Roles); son las mejoras de sus armas.
+-- "role" (opcional): solo la ve y la fabrica ese rol (Data/Roles): las mejoras de sus armas y los
+-- objetos del médico del taller del curandero.
 -- "cost" es una lista para que el orden de los materiales en pantalla no cambie.
 -- En "description", "{damage}" se cambia por el daño del arma (con Config.Combat.PlayerDamageMultiplier).
 
@@ -212,6 +213,51 @@ local Recipes: { [string]: Recipe } = {
 		},
 		itemId = "SuperBandage",
 		amount = 1,
+	},
+	-- Solo para el médico.
+	ReviveKit = {
+		station = "Healer",
+		name = "Kit de reanimación",
+		icon = "🧰",
+		description = "Al reanimar a un aliado se gasta: lo levantas al momento y con el 70 % de su vida.",
+		order = 34,
+		cost = {
+			{ itemId = "Fiber", amount = 3 },
+			{ itemId = "GoldenFur", amount = 1 },
+			{ itemId = "Bone", amount = 1 },
+		},
+		itemId = "ReviveKit",
+		amount = 1,
+		role = "Medico",
+	},
+	GroupPoultice = {
+		station = "Healer",
+		name = "Cataplasma de grupo",
+		icon = "🥣",
+		description = "Con Curar (H) cura 35 a ti y a los aliados cercanos. Va primero si hay alguno herido.",
+		order = 35,
+		cost = {
+			{ itemId = "Fiber", amount = 4 },
+			{ itemId = "Plantain", amount = 2 },
+			{ itemId = "RedFur", amount = 1 },
+		},
+		itemId = "GroupPoultice",
+		amount = 1,
+		role = "Medico",
+	},
+	VenomDarts = {
+		station = "Healer",
+		name = "Dardos venenosos (×20)",
+		icon = "🐸",
+		description = "Munición de la cerbatana: mientras te queden, cada disparo gasta uno y envenena más.",
+		order = 36,
+		cost = {
+			{ itemId = "Fiber", amount = 2 },
+			{ itemId = "TinyTooth", amount = 1 },
+		},
+		itemId = "VenomDart",
+		amount = 20,
+		role = "Medico",
 	},
 	-- Forja de piedra (Fase 2.3): equipo de hueso y colmillo.
 	SharpMachete = {
