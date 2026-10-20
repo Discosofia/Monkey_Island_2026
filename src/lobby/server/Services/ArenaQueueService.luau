@@ -12,6 +12,9 @@
 --     formato y su equipo en TeleportData; ArenaMatchService y TeamService los leen al llegar).
 -- El estado se ve en el atributo "ArenaQueue" del jugador (JSON: formato y desde cuándo). Salir de la
 -- cola: Remotes.ArenaQueueLeave, o irse del Lobby (cualquiera del grupo).
+-- Cada COUNT_SECONDS cuenta cuántos jugadores esperan en cada formato (todos los servidores) y lo
+-- publica en ReplicatedStorage ("ArenaQueueCounts", JSON por formato) para el cartel de la Isla de
+-- dunas (ArenaBoardController).
 
 local HttpService = game:GetService("HttpService")
 local MemoryStoreService = game:GetService("MemoryStoreService")
@@ -30,6 +33,8 @@ local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local MatchmakingService = require(script.Parent.MatchmakingService)
 
 local SETTINGS = Config.Arena.Queue
+-- Cada cuánto se cuentan los jugadores en la cola de cada formato (una lectura por formato).
+local COUNT_SECONDS = 10
 
 type Ticket = {
 	key: string,
@@ -262,7 +267,34 @@ local function checkMatches()
 	end
 end
 
+-- Jugadores esperando en cada formato, de todos los servidores (suma el tamaño de cada ticket). Si
+-- no se puede leer un formato, no se publica (el cartel enseña "—").
+local function publishCounts()
+	local counts: { [string]: number } = {}
+	for format = Config.Arena.MinFormat, Config.Arena.MaxFormat do
+		local ok, entries = pcall(function()
+			return queueOf(format):GetRangeAsync(Enum.SortDirection.Ascending, 100)
+		end)
+		if not ok or typeof(entries) ~= "table" then
+			return
+		end
+		local players = 0
+		for _, entry in entries do
+			local value = entry.value
+			players += if typeof(value) == "table" and typeof(value.size) == "number" then value.size else 1
+		end
+		counts[tostring(format)] = players
+	end
+	ReplicatedStorage:SetAttribute("ArenaQueueCounts", HttpService:JSONEncode(counts))
+end
+
 function ArenaQueueService:Start()
+	task.spawn(function()
+		while true do
+			publishCounts()
+			task.wait(COUNT_SECONDS)
+		end
+	end)
 	Remotes.ArenaQueueJoin.OnServerEvent:Connect(onJoin)
 	Remotes.ArenaQueueLeave.OnServerEvent:Connect(onLeave)
 	-- Si alguien del grupo se va del Lobby, el ticket se cancela (el grupo ya no es el mismo).

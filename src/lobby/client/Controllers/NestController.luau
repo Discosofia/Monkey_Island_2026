@@ -1,12 +1,12 @@
 --!strict
 -- Nido de huevos del Lobby (bucle de retención, octubre de 2026), en cada cliente:
---   - Dibuja sobre el nido de la playa (etiqueta Config.Lobby.NestTag, punto "EggSeat") el huevo que
---     el jugador tiene incubando, con el color de su rareza, y encima un cartel con lo que le falta.
---     Cada jugador ve el suyo: los demás no lo ven.
+--   - Dibuja sobre el nido de la plaza (etiqueta Config.Lobby.NestTag, punto "EggSeat") el huevo que
+--     el jugador tiene incubando, con el color de su rareza. Cada jugador ve el suyo: los demás no lo
+--     ven. Lo que le falta lo enseña el cartel de las mascotas de detrás (PetBoardController).
 --   - Listo para abrir, el huevo se tambalea y brilla más, y el aviso del nido dice "Abrir el huevo".
 --   - Al nacer la mascota (Remotes.EggHatched) hace la ceremonia: el huevo tiembla cada vez más
 --     fuerte, estalla y sale la mascota girando con su nombre y su rareza.
--- Lo que se decide (poner, descartar, abrir) está en la pestaña Mascotas (LobbyUIController).
+-- Lo que se decide (poner, descartar, abrir) está en la ventana del nido (LobbyUIController).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -30,8 +30,6 @@ local EGG_SCALE = 1.5
 local EGG_SINK = 0.5
 local CEREMONY_SHAKE_SECONDS = 1.6
 local REVEAL_SECONDS = 4
-local SUBTEXT_COLOR = Color3.fromRGB(230, 220, 200)
-local READY_COLOR = Color3.fromRGB(242, 178, 36)
 
 local NestController = {}
 
@@ -70,35 +68,6 @@ local function eggRest(seat: BasePart): CFrame
 	return CFrame.new(seat.Position + Vector3.new(0, EggModel.HALF_HEIGHT * EGG_SCALE - EGG_SINK, 0))
 end
 
--- Cartel sobre el nido: título (rareza o "Nido vacío") y lo que falta. Se crea una vez.
-type Sign = { gui: BillboardGui, title: TextLabel, detail: TextLabel }
-local sign: Sign? = nil
-
-local function getSign(seat: BasePart): Sign
-	local current = sign
-	if current and current.gui.Parent then
-		return current
-	end
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "NestSign"
-	gui.Adornee = seat
-	gui.Size = UDim2.fromOffset(240, 70)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, EggModel.HALF_HEIGHT * 2 * EGG_SCALE + 1.6, 0)
-	gui.MaxDistance = 90
-	gui.AlwaysOnTop = false
-	gui.LightInfluence = 0
-	gui.Parent = player:WaitForChild("PlayerGui")
-	local title = Widgets.label("", gui)
-	title.Size = UDim2.fromScale(1, 0.5)
-	local detail = Widgets.label("", gui)
-	detail.Position = UDim2.fromScale(0, 0.5)
-	detail.Size = UDim2.fromScale(1, 0.42)
-	detail.TextColor3 = SUBTEXT_COLOR
-	local created: Sign = { gui = gui, title = title, detail = detail }
-	sign = created
-	return created
-end
-
 local function setPrompt(nest: Model, text: string)
 	local prompt = nest:FindFirstChild("NidoPrompt", true)
 	if prompt and prompt:IsA("ProximityPrompt") then
@@ -128,41 +97,21 @@ local function placeEgg(seat: BasePart, rarity: string)
 	eggRarity = rarity
 end
 
--- Cada fotograma: el cartel, el aviso y el tambaleo del huevo.
+-- Cada fotograma: el aviso y el tambaleo del huevo.
 local function refresh(time: number)
 	local nest, seat = findNest()
 	if not (nest and seat) or ceremony then
 		return
 	end
-	local data = eggs
-	local nestEgg = data.nest
-	local board = getSign(seat)
+	local nestEgg = eggs.nest
 	if not nestEgg then
 		clearEgg()
-		board.title.Text = "🥚 Nido vacío"
-		board.title.TextColor3 = Color3.new(1, 1, 1)
-		local stored = #data.bag + #data.pending
-		board.detail.Text = if stored > 0
-			then `Tienes {stored} huevo{if stored == 1 then "" else "s"}: ponlo a incubar`
-			else `Consigue huevos en la {Config.PlaceNames.IslandShort}`
 		setPrompt(nest, "Ver el nido")
 		return
 	end
 	placeEgg(seat, nestEgg.rarity)
-	local rarity = Rarities[nestEgg.rarity]
-	local now = EggIncubation.now()
-	local ready = EggIncubation.isReady(nestEgg, now)
-	board.title.Text = `🥚 Huevo {rarity.name}`
-	board.title.TextColor3 = rarity.color
-	if ready then
-		board.detail.Text = "🐣 ¡Listo para abrir!"
-		board.detail.TextColor3 = READY_COLOR
-		setPrompt(nest, "Abrir el huevo")
-	else
-		board.detail.Text = `⏳ {EggIncubation.formatTime(EggIncubation.remaining(nestEgg, now))}`
-		board.detail.TextColor3 = SUBTEXT_COLOR
-		setPrompt(nest, "Ver el nido")
-	end
+	local ready = EggIncubation.isReady(nestEgg, EggIncubation.now())
+	setPrompt(nest, if ready then "Abrir el huevo" else "Ver el nido")
 	local model = eggModel
 	if model then
 		-- Listo: se tambalea como si fuera a romperse. Incubando: casi quieto.
@@ -205,9 +154,6 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean)
 		return
 	end
 	ceremony = true
-	-- El cartel se esconde mientras dura: al acabar ya dirá cómo queda el nido.
-	local board = getSign(seat)
-	board.gui.Enabled = false
 	placeEgg(seat, rarity)
 	local model = eggModel
 	-- El huevo tiembla cada vez más fuerte y estalla.
@@ -244,7 +190,6 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean)
 		end
 		pet:Destroy()
 	end
-	board.gui.Enabled = true
 	ceremony = false
 end
 
