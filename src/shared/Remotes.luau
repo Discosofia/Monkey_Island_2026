@@ -68,6 +68,8 @@ local Remotes = {
 	MatchEnded = remoteEvent("MatchEnded"),
 	-- Cliente -> servidor (Lobby): elegir rol (id de Data/Roles).
 	SelectRole = remoteEvent("SelectRole"),
+	-- Cliente -> servidor (Lobby): la guía de la primera vez está hecha (LobbyGuideController).
+	LobbyGuideDone = remoteEvent("LobbyGuideDone"),
 	-- Cliente -> servidor (Lobby): aprender un rango de talento (rol, talento).
 	LearnTalent = remoteEvent("LearnTalent"),
 	-- Cliente -> servidor (Lobby): comprar un rango de mejora con Ámbar (id de Data/Upgrades).

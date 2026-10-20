@@ -50,6 +50,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Supplies", label = "🎒 Provisiones de prueba" },
 		{ id = "NextDay", label = "📅 Día siguiente (calendario)" },
 		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
+		{ id = "Guide", label = "🧭 Repetir la guía" },
 	},
 	Dunas = {
 		{ id = "Solo", label = "🧪 Empezar ya (aunque falte el otro equipo)" },

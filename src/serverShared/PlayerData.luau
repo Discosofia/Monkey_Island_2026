@@ -50,6 +50,8 @@ export type Profile = {
 	-- Arena de Dunas (versión 4, octubre de 2026): equipamiento comprado y puesto por rol,
 	-- estadísticas y Ámbar ganado hoy en la arena (Shared/Arena).
 	arena: { [string]: any },
+	-- Guía de la primera vez en el Lobby hecha (roles y nido, LobbyGuideController; 20-10-2026).
+	lobbyGuideDone: boolean,
 }
 
 type Session = {
@@ -89,6 +91,7 @@ local function defaultProfile(): Profile
 		supplies = {},
 		earnedCosmetics = {},
 		arena = {},
+		lobbyGuideDone = false,
 	}
 end
 
@@ -187,6 +190,7 @@ local function publish(player: Player, session: Session)
 	)
 	-- Arena de Dunas: lo comprado y lo puesto (ServerShared/ArenaShop), estadísticas y Ámbar de hoy.
 	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
+	player:SetAttribute("LobbyGuideDone", profile.lobbyGuideDone)
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).

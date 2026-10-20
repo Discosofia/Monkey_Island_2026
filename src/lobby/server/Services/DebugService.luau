@@ -22,6 +22,11 @@ local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 local debugEggIndex = 0
 
 local COMMANDS: { [string]: (player: Player) -> () } = {
+	Guide = function(player)
+		PlayerData.update(player, function(profile)
+			profile.lobbyGuideDone = false
+		end)
+	end,
 	Amber = function(player)
 		PlayerData.update(player, function(profile)
 			profile.amber += 500
