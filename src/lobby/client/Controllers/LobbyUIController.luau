@@ -1,29 +1,36 @@
 --!strict
--- Interfaz del Lobby (Fase 3):
---   - Cabecera con el Ámbar y el récord de días.
---   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Arena (la arena PvP de Dunas: formato
---     1v1…5v5 y cola, tus números y el equipo de la arena de cada rol), Talentos (del rol elegido), Tienda
---     (mejoras con Ámbar), Mascotas (arriba el nido de huevos: el que se incuba, la mochila, los
---     pendientes y qué puede salir; debajo la colección), Misiones (el calendario de 7 días, las
---     misiones del día y lo que te llevas a la próxima partida), Grupo (invitar a jugadores del Lobby
---     para viajar juntos) y Ajustes (tu personaje, tus números de combate y dónde salen los números;
---     UI/SettingsPanel).
+-- Interfaz del Lobby:
+--   - Arriba, la pastilla con el Ámbar y el récord de días (en la franja de la barra de Roblox). El
+--     título del juego sale al llegar y se va a los pocos segundos.
+--   - Ventanas de las estaciones de la plaza: se abren con el aviso de su cartel o del nido
+--     (STATION_PROMPTS, World/LobbyBuilder) y se cierran solas al alejarse:
+--       Rol (cartel "ELIGE TU ROL": guerrero, cazador, mago o médico, y un atajo a sus talentos),
+--       Arena (cartel de la Isla de dunas y su velero: formato 1v1…5v5 y cola, tus números y el equipo
+--       de la arena de cada rol), Mascotas (el nido: el huevo que se incuba, la mochila, los
+--       pendientes y qué puede salir; al lado, la colección) y Ranking (las cuatro clasificaciones).
+--   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido), Tienda
+--     (mejoras con Ámbar), Misiones (el calendario de 7 días, las misiones del día y lo que te llevas
+--     a la próxima partida), Estilo, Grupo (invitar a jugadores del Lobby para viajar juntos), Diario
+--     y Ajustes (UI/SettingsPanel). Un punto rojo avisa de lo pendiente (puntos de talento libres,
+--     premio del calendario). En PC va en columna a la izquierda; en táctil o en una pantalla baja, en
+--     fila en la franja de la barra de Roblox.
 --   - Botón "Ir a la Isla de monos" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
---   - Botón para plegar el menú y pasear por el naufragio, y X de cerrar en el menú. El menú empieza
---     plegado; el cartel de roles de la playa ("RolesPrompt", tecla E) lo abre en la pestaña Rol, y
---     el nido de huevos ("NidoPrompt") en la pestaña Mascotas, y el velero de las Dunas
---     ("ZarparDunasPrompt") en la pestaña Arena.
---   - Botón "Invitar amigos" (invitación de Roblox a tus amigos para que vengan a este Lobby).
+--   - Botón "Invitar amigos" (invitación de Roblox a tus amigos para que vengan a este Lobby), debajo
+--     de la barra del menú.
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
+local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local SocialService = game:GetService("SocialService")
 local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
@@ -48,7 +55,9 @@ local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
 local CalendarStrip = require(ReplicatedStorage.Shared.UI.CalendarStrip)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
-local ROW_HEIGHT = 78
+-- Alto de una fila (título y una línea de detalle): lo justo para que la Tienda o las Misiones quepan
+-- sin desplazarse en un PC.
+local ROW_HEIGHT = 68
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
@@ -66,10 +75,84 @@ local ISLAND = Config.PlaceNames.IslandShort
 local JOIN_TEXT = `🍌 Ir a la {ISLAND} 🐒`
 -- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
 local DISCARD_CONFIRM_SECONDS = 3
-local TABS =
-	{ "Rol", "Arena", "Talentos", "Tienda", "Mascotas", "Misiones", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
--- Pestaña Arena: en pantallas de menos alto que esto, el equipo de la arena va compacto.
-local ARENA_COMPACT_BELOW = 500
+-- Pantallas de menos alto que esto (un teléfono apaisado): la arena y las mascotas, compactas.
+local COMPACT_BELOW = 500
+-- Ventanas. Las de las estaciones (Rol, Arena, Mascotas, Ranking) se abren con su aviso; las del menú,
+-- con su botón de la barra (MENU, en ese orden). "wide": más ancha, para las que van en columnas.
+-- "spread": listas largas (compartidas con la Isla) que en PC se reparten en columnas si no caben.
+type WindowDef = { icon: string, title: string, wide: boolean?, spread: boolean? }
+local WINDOWS: { [string]: WindowDef } = {
+	Rol = { icon = "⚔️", title = "Elige tu rol" },
+	Arena = { icon = "", title = Config.PlaceNames.Dunas },
+	Mascotas = { icon = "🥚", title = "Nido y mascotas", wide = true },
+	Ranking = { icon = "🏆", title = "Ranking", wide = true },
+	Talentos = { icon = "🌟", title = "Talentos" },
+	Tienda = { icon = "🛒", title = "Tienda" },
+	Misiones = { icon = "🎯", title = "Misiones" },
+	Estilo = { icon = "🎨", title = "Estilo" },
+	Grupo = { icon = "👥", title = "Grupo" },
+	Diario = { icon = "📖", title = "Diario", wide = true, spread = true },
+	Ajustes = { icon = "⚙️", title = "Ajustes", wide = true, spread = true },
+}
+local MENU = { "Talentos", "Tienda", "Misiones", "Estilo", "Grupo", "Diario", "Ajustes" }
+-- Avisos de las estaciones de la plaza (World/LobbyBuilder) y la ventana que abre cada uno.
+local STATION_PROMPTS: { [string]: string } = {
+	RolesPrompt = "Rol",
+	NidoPrompt = "Mascotas",
+	ArenaPrompt = "Arena",
+	ZarparDunasPrompt = "Arena",
+	RankingPrompt = "Ranking",
+}
+-- La ventana de una estación se cierra sola a estos studs más allá del alcance de su aviso.
+local STATION_CLOSE_MARGIN = 6
+-- Ventana: ancho (fracción de la pantalla) y topes en píxeles; arriba van el título y la X, y el
+-- contenido empieza en LIST_TOP. Su alto se ajusta a lo que tiene dentro (sin desplazarse en PC).
+local WINDOW_WIDTH = 0.64
+local WIDE_WIDTH = 0.9
+local WINDOW_MAX_WIDTH = 700
+local WIDE_MAX_WIDTH = 940
+local WINDOW_TOP = 8
+local LIST_TOP = 56
+-- Barra del menú en columna (PC): debajo de las casillas de las habilidades (RoleHUD, de 118 a 164 px)
+-- y de los combos (ComboHUD, de 170 a 232 px). Botones con el icono y su nombre debajo.
+local BAR_TOP = 244
+local BAR_BUTTON = Vector2.new(60, 52)
+local BAR_GAP = 4
+local INVITE_HEIGHT = 48
+-- Barra en fila (táctil o pantalla baja): solo iconos, en la franja de la barra de Roblox.
+local BAR_ROW_BUTTON = 44
+local SQUARE_COLOR = Color3.fromRGB(40, 34, 28)
+local BADGE_COLOR = Color3.fromRGB(235, 70, 60)
+-- El título grande se va a los pocos segundos de llegar (o al abrir una ventana).
+local TITLE_SECONDS = 5
+-- Ranking: las cuatro clasificaciones (LeaderboardService) en dos bloques, y cuántos puestos.
+local RANKING_GROUPS = {
+	{
+		title = "🐒 Supervivencia",
+		boards = {
+			{ stat = "BestDays", title = "📅 Más días" },
+			{ stat = "Rescues", title = "🚁 Más rescates" },
+		},
+	},
+	{
+		title = "🎖️ Arena",
+		boards = {
+			{ stat = "ArenaWins", title = "🏆 Más victorias" },
+			{ stat = "ArenaCaptures", title = "🚩 Más banderas" },
+		},
+	},
+}
+local RANKING_SIZE = 10
+local RANKING_LINE = 24
+local MEDALS = { "🥇", "🥈", "🥉" }
+-- Listas largas ("spread"): ventana aún más ancha, columnas como mucho y hueco entre ellas.
+local SPREAD_MAX_WIDTH = 1240
+local MAX_COLUMNS = 4
+local COLUMN_GAP = 10
+-- Margen a cada lado de la ventana para no tapar la barra del menú en columna (12 + 60 + 12 px).
+local BAR_ROOM = 84
+-- Mascotas: alto de cada tarjeta de la colección.
+local PET_CARD_HEIGHT = 112
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -102,13 +185,13 @@ local function newRow(parent: Instance, order: number): Row
 	corner(frame, 10)
 
 	local title = Widgets.label("", frame)
-	title.Position = UDim2.fromOffset(10, 6)
-	title.Size = UDim2.new(0.68, -10, 0, 30)
+	title.Position = UDim2.fromOffset(10, 5)
+	title.Size = UDim2.new(0.68, -10, 0, 28)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 
 	local detail = Widgets.label("", frame)
-	detail.Position = UDim2.fromOffset(10, 38)
-	detail.Size = UDim2.new(0.68, -10, 0, 34)
+	detail.Position = UDim2.fromOffset(10, 34)
+	detail.Size = UDim2.new(0.68, -10, 0, 28)
 	detail.TextXAlignment = Enum.TextXAlignment.Left
 	detail.TextYAlignment = Enum.TextYAlignment.Top
 	detail.TextWrapped = true
@@ -167,6 +250,8 @@ function LobbyUIController:Start()
 	local player = Players.LocalPlayer
 	local gui = Widgets.screen("LobbyUI", player:WaitForChild("PlayerGui"))
 
+	local playerGui = player:WaitForChild("PlayerGui")
+
 	local title = Widgets.label(Config.GameName, gui)
 	title.AnchorPoint = Vector2.new(0.5, 0)
 	title.Position = UDim2.fromScale(0.5, 0.02)
@@ -178,41 +263,78 @@ function LobbyUIController:Start()
 	subtitle.Size = UDim2.fromScale(0.5, 0.04)
 	subtitle.TextColor3 = READY_COLOR
 
-	local header = Widgets.label("", gui)
-	header.AnchorPoint = Vector2.new(0.5, 0)
-	header.Position = UDim2.fromScale(0.5, 0.145)
-	header.Size = UDim2.fromScale(0.7, 0.04)
+	-- El título del juego se funde y se va: solo hace falta al llegar.
+	local titleGone = false
+	local function hideTitle()
+		if titleGone then
+			return
+		end
+		titleGone = true
+		local fade = TweenInfo.new(0.6)
+		for _, label in { title, subtitle } do
+			TweenService:Create(label, fade, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+		end
+		task.delay(0.7, function()
+			title.Visible = false
+			subtitle.Visible = false
+		end)
+	end
+	task.delay(TITLE_SECONDS, hideTitle)
 
-	-- Panel con pestañas.
+	-- Pastilla con el Ámbar y el récord: siempre a la vista (la Tienda y el equipo de la arena se pagan
+	-- con Ámbar). La coloca placeHud, en la franja de la barra de Roblox.
+	local pill = Instance.new("Frame")
+	pill.Name = "AmberPill"
+	pill.BackgroundColor3 = PANEL_COLOR
+	pill.BackgroundTransparency = 0.25
+	pill.Parent = gui
+	corner(pill, 14)
+	local header = Widgets.label("", pill)
+	header.Name = "Header"
+	header.Position = UDim2.fromOffset(12, 4)
+	header.Size = UDim2.new(1, -24, 1, -8)
+	local headerLimit = Instance.new("UITextSizeConstraint")
+	headerLimit.MaxTextSize = 22
+	headerLimit.Parent = header
+	local function refreshHeader()
+		local amber = player:GetAttribute("Amber")
+		local best = player:GetAttribute("BestDays")
+		local amberText = if typeof(amber) == "number" then tostring(amber) else "…"
+		local bestText = if typeof(best) == "number" then tostring(best) else "0"
+		header.Text = `✨ {amberText} de Ámbar   🏆 Récord: {bestText} días`
+	end
+	refreshHeader()
+
+	-- Ventana: una sola a la vez, con su título y la X; el contenido lo pone su función de dibujo.
 	local panel = Instance.new("Frame")
+	panel.Name = "Window"
 	panel.AnchorPoint = Vector2.new(0.5, 0)
-	panel.Position = UDim2.fromScale(0.5, 0.2)
-	panel.Size = UDim2.fromScale(0.64, 0.6)
+	panel.Position = UDim2.new(0.5, 0, 0, WINDOW_TOP)
+	panel.Size = UDim2.new(WINDOW_WIDTH, 0, 0, 300)
 	panel.BackgroundColor3 = PANEL_COLOR
 	panel.BackgroundTransparency = 0.1
-	-- Empieza plegado para ver el naufragio al llegar; se abre con el botón o con el tablón de roles.
+	-- Empieza cerrada para ver la plaza al llegar.
 	panel.Visible = false
 	panel.Parent = gui
 	corner(panel, 14)
 	local sizeLimit = Instance.new("UISizeConstraint")
-	sizeLimit.MinSize = Vector2.new(320, 240)
-	sizeLimit.MaxSize = Vector2.new(700, 520)
+	sizeLimit.MinSize = Vector2.new(320, 120)
+	sizeLimit.MaxSize = Vector2.new(WINDOW_MAX_WIDTH, math.huge)
 	sizeLimit.Parent = panel
 
-	local tabBar = Instance.new("Frame")
-	tabBar.BackgroundTransparency = 1
-	tabBar.Position = UDim2.fromOffset(8, 8)
+	local windowTitle = Widgets.label("", panel)
+	windowTitle.Name = "Title"
+	windowTitle.Position = UDim2.fromOffset(14, 8)
 	-- Deja sitio a la X de cerrar, arriba a la derecha.
-	tabBar.Size = UDim2.new(1, -66, 0, 40)
-	tabBar.Parent = panel
-	local tabLayout = Instance.new("UIListLayout")
-	tabLayout.FillDirection = Enum.FillDirection.Horizontal
-	tabLayout.Padding = UDim.new(0, 6)
-	tabLayout.Parent = tabBar
+	windowTitle.Size = UDim2.new(1, -80, 0, 36)
+	windowTitle.TextXAlignment = Enum.TextXAlignment.Left
+	local windowTitleLimit = Instance.new("UITextSizeConstraint")
+	windowTitleLimit.MaxTextSize = 26
+	windowTitleLimit.Parent = windowTitle
 
 	local list = Instance.new("ScrollingFrame")
-	list.Position = UDim2.fromOffset(8, 56)
-	list.Size = UDim2.new(1, -16, 1, -64)
+	list.Position = UDim2.fromOffset(8, LIST_TOP)
+	list.Size = UDim2.new(1, -16, 1, -LIST_TOP - 8)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 6
@@ -224,41 +346,28 @@ function LobbyUIController:Start()
 	listLayout.Padding = UDim.new(0, 6)
 	listLayout.Parent = list
 
-	local currentTab = "Rol"
-	local tabButtons: { [string]: TextButton } = {}
+	-- Ventana abierta (nil = ninguna) y, si es de una estación, el aviso que la abrió (para cerrarla al
+	-- alejarse).
+	local currentWindow: string? = nil
+	local windowPrompt: ProximityPrompt? = nil
+	-- Sube con cada dibujo: lo que se hace un instante después (repartir en columnas) mira que siga
+	-- siendo el mismo.
+	local renderCount = 0
+	-- Barra del menú en fila (táctil o pantalla baja) en vez de en columna; lo decide placeHud.
+	local rowMode = false
 	local render: () -> ()
-	local setMenuOpen: (open: boolean, tab: string?) -> ()
-	-- Fila del huevo del nido de la pestaña Mascotas, que se actualiza cada segundo (tiempo y barra).
+	local openWindow: (id: string?, prompt: ProximityPrompt?) -> ()
+	-- Fila del huevo del nido de la ventana Mascotas, que se actualiza cada segundo (tiempo y barra).
 	type NestRow = { title: TextLabel, detail: TextLabel, fill: Frame, ready: boolean }
 	local nestRow: NestRow? = nil
-	-- Cuenta atrás del siguiente premio del calendario en la pestaña Misiones (cada segundo).
+	-- Cuenta atrás del siguiente premio del calendario en la ventana Misiones (cada segundo).
 	local calendarCountdown: TextButton? = nil
-	-- Pestaña Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
+	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
 	-- dice cuánto llevas en la cola (se actualiza cada segundo).
 	local arenaFormat = 1
 	local arenaRole: string? = nil
 	local arenaSlot: string? = nil
 	local arenaQueueLine: TextLabel? = nil
-
-	for index, name in TABS do
-		local button = Instance.new("TextButton")
-		button.LayoutOrder = index
-		button.Size = UDim2.new(1 / #TABS, -5, 1, 0)
-		button.Text = name
-		button.Font = Enum.Font.BuilderSansBold
-		button.TextScaled = true
-		button.Parent = tabBar
-		corner(button, 8)
-		-- Tope común: con TextScaled, "Rol" salía enorme y "Mascotas" diminuto.
-		local tabTextLimit = Instance.new("UITextSizeConstraint")
-		tabTextLimit.MaxTextSize = 16
-		tabTextLimit.Parent = button
-		button.MouseButton1Click:Connect(function()
-			currentTab = name
-			render()
-		end)
-		tabButtons[name] = button
-	end
 
 	local function renderRoles(data: Progression.ProgressData)
 		local selected = Progression.validRole(player:GetAttribute("SelectedRole"))
@@ -271,7 +380,7 @@ function LobbyUIController:Start()
 			local xp = data.roleXp[roleId] or 0
 			local row = newRow(list, index)
 			row.frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT + 22)
-			row.detail.Size = UDim2.new(0.68, -10, 0, 56)
+			row.detail.Size = UDim2.new(0.68, -10, 0, 52)
 			row.title.Text = `{role.icon} {role.name} · nivel {Progression.level(xp)}`
 			local names = {}
 			for _, ability in role.abilities do
@@ -284,6 +393,22 @@ function LobbyUIController:Start()
 				Remotes.SelectRole:FireServer(roleId)
 			end)
 		end
+		-- Atajo a los talentos del rol elegido (también están en la barra del menú).
+		local role = Roles[selected]
+		local points = Progression.freePoints(selected, data)
+		local talents = newRow(list, 10)
+		talents.frame.Size = UDim2.new(1, -10, 0, 64)
+		talents.title.Text = `🌟 Talentos de {role.name}`
+		talents.detail.Position = UDim2.fromOffset(10, 34)
+		talents.detail.Size = UDim2.new(0.68, -10, 0, 24)
+		talents.detail.Text = if points > 0
+			then `Tienes {points} punto(s) libre(s) para aprender`
+			else "Mejora tu rol con los puntos que ganas al subir de nivel"
+		setButton(talents.button, "Ver talentos", true)
+		talents.button.Size = UDim2.new(0.3, -10, 0, 44)
+		talents.button.MouseButton1Click:Connect(function()
+			openWindow("Talentos")
+		end)
 	end
 
 	local function renderTalents(data: Progression.ProgressData)
@@ -344,10 +469,10 @@ function LobbyUIController:Start()
 	end
 
 	-- Fila con dos botones: el principal (dorado, a la derecha) y "Descartar" a su izquierda.
-	local function twoButtonRow(order: number): (Row, TextButton)
-		local row = newRow(list, order)
-		row.title.Size = UDim2.new(0.46, -10, 0, 30)
-		row.detail.Size = UDim2.new(0.46, -10, 0, 34)
+	local function twoButtonRow(parent: Instance, order: number): (Row, TextButton)
+		local row = newRow(parent, order)
+		row.title.Size = UDim2.new(0.46, -10, 0, 28)
+		row.detail.Size = UDim2.new(0.46, -10, 0, 28)
 		row.button.Size = UDim2.new(0.25, -10, 0, 50)
 		local second = Widgets.button("", row.frame)
 		second.AnchorPoint = Vector2.new(1, 0.5)
@@ -385,14 +510,14 @@ function LobbyUIController:Start()
 		end
 	end
 
-	-- Nido de huevos, arriba de la pestaña Mascotas (órdenes negativos: antes que la colección).
-	local function renderNest()
+	-- Nido de huevos, en la columna izquierda de la ventana Mascotas.
+	local function renderNest(parent: Instance)
 		local eggs = readEggs()
 		nestRow = nil
-		note(list, "🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)", -100)
+		note(parent, "🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)", -100)
 
 		local nestEgg = eggs.nest
-		local row = newRow(list, -99)
+		local row = newRow(parent, -99)
 		if nestEgg then
 			local rarity = Rarities[nestEgg.rarity]
 			row.title.TextColor3 = rarity.color
@@ -412,8 +537,8 @@ function LobbyUIController:Start()
 			setButton(row.button, if ready then "🐣 Abrir" else "Incubando", ready)
 			if ready then
 				row.button.MouseButton1Click:Connect(function()
-					-- Se cierra el menú para ver la ceremonia en el nido.
-					setMenuOpen(false)
+					-- Se cierra la ventana para ver la ceremonia en el nido.
+					openWindow(nil)
 					Remotes.HatchEgg:FireServer()
 				end)
 			end
@@ -426,7 +551,7 @@ function LobbyUIController:Start()
 				local owned = (data.pets[petId] or 0) > 0
 				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
 			end
-			local options = newRow(list, -98)
+			local options = newRow(parent, -98)
 			options.title.Text = `Puede salir ({rarity.name}):`
 			options.title.TextColor3 = rarity.color
 			options.detail.Text = table.concat(names, " · ")
@@ -444,7 +569,7 @@ function LobbyUIController:Start()
 		local function eggRows(source: "bag" | "pending", stored: { EggIncubation.StoredEgg }, firstOrder: number)
 			for index, egg in stored do
 				local rarity = Rarities[egg.rarity]
-				local eggRow, discard = twoButtonRow(firstOrder + index)
+				local eggRow, discard = twoButtonRow(parent, firstOrder + index)
 				eggRow.title.Text = `🥚 Huevo {rarity.name}`
 				eggRow.title.TextColor3 = rarity.color
 				eggRow.detail.Text =
@@ -473,10 +598,10 @@ function LobbyUIController:Start()
 				end)
 			end
 		end
-		note(list, `🎒 Mochila de huevos ({#eggs.bag}/{Config.Egg.BagSize}): esperan sin avanzar`, -90)
+		note(parent, `🎒 Mochila de huevos ({#eggs.bag}/{Config.Egg.BagSize}): esperan sin avanzar`, -90)
 		eggRows("bag", eggs.bag, -90)
 		for slot = #eggs.bag + 1, Config.Egg.BagSize do
-			local empty = newRow(list, -90 + slot)
+			local empty = newRow(parent, -90 + slot)
 			empty.frame.Size = UDim2.new(1, -10, 0, 40)
 			empty.title.Text = "Casilla libre"
 			empty.title.TextColor3 = Color3.fromRGB(160, 150, 135)
@@ -484,7 +609,7 @@ function LobbyUIController:Start()
 			empty.button.Visible = false
 		end
 		if #eggs.pending > 0 then
-			note(list, "⚠️ Mochila llena: estos huevos esperan a que decidas", -80)
+			note(parent, "⚠️ Mochila llena: estos huevos esperan a que decidas", -80)
 			eggRows("pending", eggs.pending, -80)
 		end
 	end
@@ -560,11 +685,56 @@ function LobbyUIController:Start()
 		supplies.button.Visible = false
 	end
 
-	-- Colección de mascotas: las que tienes se pueden llevar (1 activa); las demás salen como "???".
+	-- Columna de la ventana (crece con lo que lleva dentro).
+	local function pane(parent: Instance, order: number, width: UDim): Frame
+		local frame = Instance.new("Frame")
+		frame.LayoutOrder = order
+		frame.BackgroundTransparency = 1
+		frame.Size = UDim2.new(width, UDim.new(0, 0))
+		frame.AutomaticSize = Enum.AutomaticSize.Y
+		frame.Parent = parent
+		local layout = Instance.new("UIListLayout")
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Padding = UDim.new(0, 6)
+		layout.Parent = frame
+		return frame
+	end
+
+	-- Ventana Mascotas: a la izquierda el nido y la mochila; a la derecha la colección en tarjetas (las
+	-- que tienes se pueden llevar, 1 activa; las demás salen como "???"). En un teléfono, una debajo de
+	-- la otra.
 	local function renderPets(data: Progression.ProgressData)
+		local compact = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
+		local holder = Instance.new("Frame")
+		holder.LayoutOrder = 1
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.new(1, -10, 0, 0)
+		holder.AutomaticSize = Enum.AutomaticSize.Y
+		holder.Parent = list
+		local holderLayout = Instance.new("UIListLayout")
+		holderLayout.FillDirection = if compact then Enum.FillDirection.Vertical else Enum.FillDirection.Horizontal
+		holderLayout.Padding = UDim.new(0, 10)
+		holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		holderLayout.Parent = holder
+		local nestPane = pane(holder, 1, if compact then UDim.new(1, 0) else UDim.new(0.47, -5))
+		local petsPane = pane(holder, 2, if compact then UDim.new(1, 0) else UDim.new(0.53, -5))
+
+		renderNest(nestPane)
 		local active = player:GetAttribute("ActivePet")
-		renderNest()
-		note(list, "🐾 Tu colección: las mascotas nacen de los huevos del nido", 0)
+		note(petsPane, "🐾 Tu colección: las mascotas nacen de los huevos del nido", 0)
+		local grid = Instance.new("Frame")
+		grid.LayoutOrder = 1
+		grid.BackgroundTransparency = 1
+		grid.Size = UDim2.new(1, -10, 0, 0)
+		grid.AutomaticSize = Enum.AutomaticSize.Y
+		grid.Parent = petsPane
+		local gridLayout = Instance.new("UIGridLayout")
+		local columns = if compact then 2 else 3
+		gridLayout.CellSize = UDim2.new(1 / columns, -6, 0, PET_CARD_HEIGHT)
+		gridLayout.CellPadding = UDim2.fromOffset(6, 6)
+		gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		gridLayout.Parent = grid
+
 		local ids = {}
 		for petId in Pets do
 			table.insert(ids, petId)
@@ -580,20 +750,59 @@ function LobbyUIController:Start()
 			local pet = Pets[petId]
 			local rarity = Rarities[pet.rarity]
 			local owned = data.pets[petId] or 0
-			local row = newRow(list, index)
-			row.title.TextColor3 = rarity.color
+			local isActive = active == petId
+			local card = Instance.new("Frame")
+			card.LayoutOrder = index
+			card.BackgroundColor3 = ROW_COLOR
+			card.BackgroundTransparency = 0.15
+			card.Parent = grid
+			corner(card, 10)
+			local stroke = Instance.new("UIStroke")
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			stroke.Color = READY_COLOR
+			stroke.Thickness = 2
+			stroke.Enabled = isActive
+			stroke.Parent = card
+			local name = Widgets.label(
+				if owned > 0 then `{pet.icon} {pet.name}{if owned > 1 then " ×" .. owned else ""}` else "❓ ???",
+				card
+			)
+			name.Position = UDim2.fromOffset(6, 4)
+			name.Size = UDim2.new(1, -12, 0, 22)
+			name.TextColor3 = rarity.color
+			local nameLimit = Instance.new("UITextSizeConstraint")
+			nameLimit.MaxTextSize = 18
+			nameLimit.Parent = name
+			local detail = Widgets.label(
+				if owned > 0
+					then `{rarity.name} · {pet.kind}\n{pet.description}`
+					else `{rarity.name}\nAún no la tienes`,
+				card
+			)
+			detail.Position = UDim2.fromOffset(6, 28)
+			detail.Size = UDim2.new(1, -12, 0, 42)
+			detail.Font = Enum.Font.BuilderSans
+			detail.TextWrapped = true
+			detail.TextYAlignment = Enum.TextYAlignment.Top
+			detail.TextColor3 = Color3.fromRGB(215, 205, 190)
+			local detailLimit = Instance.new("UITextSizeConstraint")
+			detailLimit.MaxTextSize = 13
+			detailLimit.Parent = detail
+			local button = Widgets.button("", card)
+			button.AnchorPoint = Vector2.new(0.5, 1)
+			button.Position = UDim2.new(0.5, 0, 1, -6)
+			button.Size = UDim2.new(1, -12, 0, 34)
+			local limit = button:FindFirstChildOfClass("UISizeConstraint")
+			if limit then
+				limit:Destroy()
+			end
 			if owned > 0 then
-				row.title.Text = `{pet.icon} {pet.name} ×{owned} · {rarity.name}`
-				row.detail.Text = `{pet.kind}: {pet.description}`
-				local isActive = active == petId
-				setButton(row.button, if isActive then "Quitar" else "Llevar", true)
-				row.button.MouseButton1Click:Connect(function()
+				setButton(button, if isActive then "Quitar" else "Llevar", true)
+				button.MouseButton1Click:Connect(function()
 					Remotes.SelectPet:FireServer(if isActive then "" else petId)
 				end)
 			else
-				row.title.Text = `❓ ??? · {rarity.name}`
-				row.detail.Text = "Aún no la tienes"
-				setButton(row.button, "—", false)
+				setButton(button, "—", false)
 			end
 		end
 	end
@@ -632,34 +841,97 @@ function LobbyUIController:Start()
 		end
 	end
 
-	-- Clasificaciones globales (las publica LeaderboardService cada pocos minutos).
+	-- Clasificaciones globales (las publica LeaderboardService cada pocos minutos): dos bloques,
+	-- supervivencia y arena, con dos columnas cada uno, y abajo tu número en cada una. El puesto exacto
+	-- fuera del top no se sabe (OrderedDataStore no lo da): se enseña tu valor.
 	local function renderRanking()
-		local order = 0
-		for _, board in
-			{
-				{ stat = "BestDays", title = "🏆 Más días sobrevividos" },
-				{ stat = "Rescues", title = "🚁 Más rescates" },
-			}
-		do
-			order += 1
-			note(list, board.title, order)
-			local raw = ReplicatedStorage:GetAttribute(`Leaderboard_{board.stat}`)
-			local ok, rows = pcall(function()
-				return if typeof(raw) == "string" then HttpService:JSONDecode(raw) else {}
-			end)
-			local entries = if ok and typeof(rows) == "table" then rows else {}
-			if #entries == 0 then
-				order += 1
-				note(list, "Aún no hay datos (se actualiza cada pocos minutos)", order)
-			end
-			for position, entry in entries do
-				order += 1
-				local label = Widgets.label(`{position}. {entry.name} — {entry.value}`, list)
-				label.LayoutOrder = order
-				label.Size = UDim2.new(1, -10, 0, 28)
-				label.TextXAlignment = Enum.TextXAlignment.Left
+		local arenaRaw = player:GetAttribute("Arena")
+		local okArena, arenaData = pcall(function()
+			return if typeof(arenaRaw) == "string" then HttpService:JSONDecode(arenaRaw) else {}
+		end)
+		local arenaStats = if okArena
+				and typeof(arenaData) == "table"
+				and typeof(arenaData.stats) == "table"
+			then arenaData.stats
+			else {}
+		local mine: { [string]: any } = {
+			BestDays = player:GetAttribute("BestDays"),
+			Rescues = player:GetAttribute("Rescues"),
+			ArenaWins = arenaStats.wins,
+			ArenaCaptures = arenaStats.captures,
+		}
+		local columnHeight = 26 + RANKING_SIZE * RANKING_LINE + 30
+		local holder = Instance.new("Frame")
+		holder.LayoutOrder = 1
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.new(1, -10, 0, 34 + columnHeight + 8)
+		holder.Parent = list
+		local holderLayout = Instance.new("UIListLayout")
+		holderLayout.FillDirection = Enum.FillDirection.Horizontal
+		holderLayout.Padding = UDim.new(0, 10)
+		holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		holderLayout.Parent = holder
+		for groupIndex, group in RANKING_GROUPS do
+			local block = Instance.new("Frame")
+			block.LayoutOrder = groupIndex
+			block.Size = UDim2.new(0.5, -5, 1, 0)
+			block.BackgroundColor3 = ROW_COLOR
+			block.BackgroundTransparency = 0.15
+			block.Parent = holder
+			corner(block, 10)
+			local blockTitle = Widgets.label(group.title, block)
+			blockTitle.Position = UDim2.fromOffset(8, 4)
+			blockTitle.Size = UDim2.new(1, -16, 0, 28)
+			blockTitle.TextColor3 = READY_COLOR
+			for column, board in group.boards do
+				local frame = Instance.new("Frame")
+				frame.BackgroundTransparency = 1
+				frame.Position = UDim2.new((column - 1) * 0.5, 8, 0, 34)
+				frame.Size = UDim2.new(0.5, -12, 0, columnHeight)
+				frame.Parent = block
+				local boardTitle = Widgets.label(board.title, frame)
+				boardTitle.Size = UDim2.new(1, 0, 0, 22)
+				boardTitle.TextXAlignment = Enum.TextXAlignment.Left
+				boardTitle.TextColor3 = Color3.fromRGB(255, 220, 150)
+				local raw = ReplicatedStorage:GetAttribute(`Leaderboard_{board.stat}`)
+				local ok, rows = pcall(function()
+					return if typeof(raw) == "string" then HttpService:JSONDecode(raw) else {}
+				end)
+				local entries = if ok and typeof(rows) == "table" then rows else {}
+				for position = 1, RANKING_SIZE do
+					local entry = entries[position]
+					local place = MEDALS[position] or `{position}.`
+					local line = Widgets.label(
+						if entry
+							then `{place} {entry.name} — {entry.value}`
+							elseif position == 1 then "Aún no hay datos"
+							else "",
+						frame
+					)
+					line.Position = UDim2.fromOffset(0, 26 + (position - 1) * RANKING_LINE)
+					line.Size = UDim2.new(1, 0, 0, RANKING_LINE - 2)
+					line.TextXAlignment = Enum.TextXAlignment.Left
+					line.Font = Enum.Font.BuilderSans
+					if entry and entry.name == player.Name then
+						line.TextColor3 = READY_COLOR
+						line.Font = Enum.Font.BuilderSansBold
+					end
+					local lineLimit = Instance.new("UITextSizeConstraint")
+					lineLimit.MaxTextSize = 17
+					lineLimit.Parent = line
+				end
+				local value = mine[board.stat]
+				local you = Widgets.label(`Tú: {if typeof(value) == "number" then value else 0}`, frame)
+				you.Position = UDim2.new(0, 0, 1, -26)
+				you.Size = UDim2.new(1, 0, 0, 24)
+				you.TextXAlignment = Enum.TextXAlignment.Left
+				you.TextColor3 = READY_COLOR
+				local youLimit = Instance.new("UITextSizeConstraint")
+				youLimit.MaxTextSize = 18
+				youLimit.Parent = you
 			end
 		end
+		note(list, "Se actualiza cada pocos minutos", 2)
 	end
 
 	local function renderParty()
@@ -817,7 +1089,7 @@ function LobbyUIController:Start()
 			or Progression.validRole(player:GetAttribute("SelectedRole"))
 		arenaRole = roleId
 		-- Tarjetas con la ventaja de cada rol en combate, las mismas que en Dunas.
-		local compact = Workspace.CurrentCamera.ViewportSize.Y < ARENA_COMPACT_BELOW
+		local compact = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
 		local roleCards = ArenaRoleCards.new(list, 3, 44, compact, function(id)
 			arenaRole = id
 			render()
@@ -842,52 +1114,433 @@ function LobbyUIController:Start()
 		picker.update()
 	end
 
-	function render()
-		for name, button in tabButtons do
-			local active = name == currentTab
-			button.BackgroundColor3 = if active then READY_COLOR else ROW_COLOR
-			button.TextColor3 = if active then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+	-- Reparte lo que hay dentro de "source" (por su orden) en las columnas justas para que quepa en
+	-- "room" píxeles de alto, llenando cada una hasta su parte del total. Los altos se miden ya con el
+	-- ancho de la columna (un texto estrecho ocupa más líneas), así que se espera a que Roblox los
+	-- calcule; si entretanto se vuelve a dibujar la ventana, lo deja.
+	local function spreadColumns(source: Instance, room: number, thisRender: number)
+		local layout = source:FindFirstChildOfClass("UIListLayout")
+		if not layout then
+			return
 		end
-		local amber = player:GetAttribute("Amber")
-		local best = player:GetAttribute("BestDays")
-		local amberText = if typeof(amber) == "number" then tostring(amber) else "…"
-		local bestText = if typeof(best) == "number" then tostring(best) else "0"
-		header.Text = `✨ Ámbar: {amberText}   🏆 Récord: {bestText} días`
+		local gap = layout.Padding.Offset
+		local items: { GuiObject } = {}
+		for _, child in source:GetChildren() do
+			if child:IsA("GuiObject") then
+				table.insert(items, child)
+			end
+		end
+		table.sort(items, function(a, b)
+			return a.LayoutOrder < b.LayoutOrder
+		end)
+		local panes: { Frame } = {}
+		for index = 1, MAX_COLUMNS do
+			local column = Instance.new("Frame")
+			column.Name = `Column{index}`
+			column.LayoutOrder = index
+			column.BackgroundTransparency = 1
+			column.AutomaticSize = Enum.AutomaticSize.Y
+			local columnLayout = Instance.new("UIListLayout")
+			columnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			columnLayout.Padding = layout.Padding
+			columnLayout.Parent = column
+			panes[index] = column
+		end
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		layout.Padding = UDim.new(0, COLUMN_GAP)
+		local count = 2
+		local heights: { number } = {}
+		local total = 0
+		-- Cuántas columnas hacen falta, en orden, si ninguna pasa de "limit" (reparto voraz).
+		local function columnsFor(limit: number): number
+			local used, filled = 1, 0
+			for _, height in heights do
+				if filled > 0 and filled + height > limit then
+					used += 1
+					filled = 0
+				end
+				filled += height
+			end
+			return used
+		end
+		while true do
+			-- Todo en la primera columna, con el ancho que tendrá, para medirlo.
+			for index, column in panes do
+				column.Size = UDim2.new(1 / count, -COLUMN_GAP, 0, 0)
+				column.Parent = if index <= count then source else nil
+			end
+			for _, item in items do
+				item.Parent = panes[1]
+			end
+			RunService.Heartbeat:Wait()
+			if thisRender ~= renderCount then
+				return
+			end
+			total = 0
+			for index, item in items do
+				heights[index] = item.AbsoluteSize.Y + gap
+				total += heights[index]
+			end
+			if columnsFor(room) <= count or count >= MAX_COLUMNS then
+				break
+			end
+			count += 1
+		end
+		-- El alto de columna más bajo con el que todo cabe en "count" columnas (búsqueda binaria).
+		local low, high = 0, total
+		for _, height in heights do
+			low = math.max(low, height)
+		end
+		while high - low > 1 do
+			local middle = (low + high) / 2
+			if columnsFor(middle) <= count then
+				high = middle
+			else
+				low = middle
+			end
+		end
+		local index, filled = 1, 0
+		for position, item in items do
+			local height = heights[position]
+			if filled > 0 and filled + height > high and index < count then
+				index += 1
+				filled = 0
+			end
+			item.Parent = panes[index]
+			filled += height
+		end
+	end
 
+	function render()
+		local id = currentWindow
+		if not id then
+			return
+		end
+		local window = WINDOWS[id]
+		windowTitle.Text = if window.icon ~= "" then `{window.icon} {window.title}` else window.title
+		panel.Size =
+			UDim2.new(if window.wide then WIDE_WIDTH else WINDOW_WIDTH, 0, panel.Size.Y.Scale, panel.Size.Y.Offset)
+		local maxWidth = if window.spread
+			then SPREAD_MAX_WIDTH
+			elseif window.wide then WIDE_MAX_WIDTH
+			else WINDOW_MAX_WIDTH
+		if not rowMode then
+			maxWidth = math.min(maxWidth, gui.AbsoluteSize.X - 2 * BAR_ROOM)
+		end
+		sizeLimit.MaxSize = Vector2.new(maxWidth, math.huge)
+
+		renderCount += 1
+		local thisRender = renderCount
 		clearRows(list)
+		listLayout.FillDirection = Enum.FillDirection.Vertical
+		listLayout.Padding = UDim.new(0, 6)
 		nestRow = nil
 		calendarCountdown = nil
 		arenaQueueLine = nil
 		local data = Progression.read(player)
-		if currentTab == "Rol" then
+		if id == "Rol" then
 			renderRoles(data)
-		elseif currentTab == "Arena" then
+		elseif id == "Arena" then
 			renderArena()
-		elseif currentTab == "Talentos" then
+		elseif id == "Talentos" then
 			renderTalents(data)
-		elseif currentTab == "Tienda" then
+		elseif id == "Tienda" then
 			renderShop(data)
-		elseif currentTab == "Mascotas" then
+		elseif id == "Mascotas" then
 			renderPets(data)
-		elseif currentTab == "Misiones" then
+		elseif id == "Misiones" then
 			renderMissions()
-		elseif currentTab == "Estilo" then
+		elseif id == "Estilo" then
 			renderStyle(data)
-		elseif currentTab == "Ranking" then
+		elseif id == "Ranking" then
 			renderRanking()
-		elseif currentTab == "Diario" then
+		elseif id == "Diario" then
 			Journal.fill(list, data.bestiary)
-		elseif currentTab == "Ajustes" then
+		elseif id == "Ajustes" then
 			SettingsPanel.build(list, "Lobby")
 		else
 			renderParty()
 		end
+
+		-- Una lista larga que no cabe en un PC se reparte en columnas cuando ya tiene su alto (un
+		-- instante después: los altos automáticos aún no están calculados).
+		if window.spread and Workspace.CurrentCamera.ViewportSize.Y >= COMPACT_BELOW then
+			task.defer(function()
+				RunService.Heartbeat:Wait()
+				if thisRender ~= renderCount then
+					return
+				end
+				local room = gui.AbsoluteSize.Y - 12 - WINDOW_TOP - LIST_TOP - 10
+				if listLayout.AbsoluteContentSize.Y > room then
+					-- Ajustes es un solo marco con sus apartados dentro: se reparten los apartados.
+					local settings = list:FindFirstChild("SettingsPanel")
+					spreadColumns(settings or list, room, thisRender)
+				end
+			end)
+		end
 	end
 
-	-- El tiempo del huevo del nido corre solo: se actualiza cada segundo mientras se ve.
+	-- Botón de viaje (y el bote del naufragio, que hace lo mismo): encima de la barra de objetos de
+	-- Roblox, que abajo en el centro lleva las armas del rol para probarlas en la plaza. Con una ventana
+	-- abierta se esconde, con la barra de objetos, para dejarle a la ventana todo el alto (placeJoin).
+	local joinButton = Widgets.button(JOIN_TEXT, gui)
+	joinButton.Name = "JoinIslandButton"
+	joinButton.AnchorPoint = Vector2.new(0.5, 1)
+	joinButton.Size = UDim2.fromScale(0.3, 0.1)
+	local waiting = false
+	local function join()
+		if waiting then
+			return
+		end
+		waiting = true
+		joinButton.Text = "Viajando..."
+		Remotes.RequestJoinIsland:FireServer()
+		-- Si el viaje no ocurre (por ejemplo en Studio), el botón vuelve a estar disponible.
+		task.delay(Config.Teleport.CooldownSeconds + 4, function()
+			waiting = false
+			joinButton.Text = JOIN_TEXT
+		end)
+	end
+	joinButton.Activated:Connect(join)
+
+	-- Provisiones guardadas (calendario, misiones): encima del botón de viaje, que es cuando se usan.
+	-- Por píxeles y no en escala: el botón mide de 48 a 80 px de alto según la pantalla. Con una ventana
+	-- abierta se esconden (quedarían debajo de ella).
+	local suppliesLabel = Widgets.label("", gui)
+	suppliesLabel.Name = "SuppliesLine"
+	suppliesLabel.AnchorPoint = Vector2.new(0.5, 1)
+	suppliesLabel.Size = UDim2.new(0.5, 0, 0, 26)
+	suppliesLabel.TextColor3 = Color3.fromRGB(230, 220, 200)
+	local suppliesText = ""
+	local function refreshSupplies()
+		local raw = player:GetAttribute("Retention")
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
+		end)
+		local items = Rewards.sanitizeItems(if ok and typeof(decoded) == "table" then decoded.supplies else nil)
+		local text = Rewards.describeItems(items)
+		suppliesText = if text ~= "" then `🎒 Te llevas a la {ISLAND}: {text}` else ""
+		suppliesLabel.Text = suppliesText
+		suppliesLabel.Visible = suppliesText ~= "" and not panel.Visible
+	end
+	player:GetAttributeChangedSignal("Retention"):Connect(refreshSupplies)
+	refreshSupplies()
+
+	-- Barra del menú: un botón por ventana de MENU, con un punto rojo si hay algo pendiente.
+	local bar = Instance.new("Frame")
+	bar.Name = "MenuBar"
+	bar.BackgroundTransparency = 1
+	bar.Parent = gui
+	local barLayout = Instance.new("UIListLayout")
+	barLayout.Padding = UDim.new(0, BAR_GAP)
+	barLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	barLayout.Parent = bar
+	type BarButton = { button: TextButton, icon: TextLabel, name: TextLabel, badge: Frame }
+	local barButtons: { [string]: BarButton } = {}
+	for index, id in MENU do
+		local window = WINDOWS[id]
+		local button = Instance.new("TextButton")
+		button.Name = id
+		button.LayoutOrder = index
+		button.Text = ""
+		button.BackgroundColor3 = SQUARE_COLOR
+		button.BackgroundTransparency = 0.2
+		button.AutoButtonColor = true
+		button.Parent = bar
+		corner(button, 12)
+		local icon = Widgets.label(window.icon, button)
+		icon.Name = "Icon"
+		local name = Widgets.label(id, button)
+		name.Name = "Label"
+		name.Position = UDim2.new(0, 2, 0.6, 0)
+		name.Size = UDim2.new(1, -4, 0.34, 0)
+		local nameLimit = Instance.new("UITextSizeConstraint")
+		nameLimit.MaxTextSize = 13
+		nameLimit.Parent = name
+		local badge = Instance.new("Frame")
+		badge.Name = "Badge"
+		badge.AnchorPoint = Vector2.new(0.5, 0.5)
+		badge.Position = UDim2.new(1, -6, 0, 6)
+		badge.Size = UDim2.fromOffset(14, 14)
+		badge.BackgroundColor3 = BADGE_COLOR
+		badge.Visible = false
+		badge.Parent = button
+		corner(badge, 7)
+		local badgeStroke = Instance.new("UIStroke")
+		badgeStroke.Color = Color3.new(1, 1, 1)
+		badgeStroke.Thickness = 1.5
+		badgeStroke.Parent = badge
+		button.Activated:Connect(function()
+			openWindow(if currentWindow == id then nil else id)
+		end)
+		barButtons[id] = { button = button, icon = icon, name = name, badge = badge }
+	end
+
+	-- Puntos rojos: puntos de talento libres en el rol elegido y premio del calendario por cobrar.
+	local function refreshBadges()
+		local data = Progression.read(player)
+		local roleId = Progression.validRole(player:GetAttribute("SelectedRole"))
+		barButtons.Talentos.badge.Visible = Progression.freePoints(roleId, data) > 0
+		local login = Daily.loginState(readRetention().login)
+		barButtons.Misiones.badge.Visible = Daily.canClaim(login, EggIncubation.now())
+	end
+	refreshBadges()
+
+	-- Invitar amigos de Roblox (también está en la ventana Grupo): debajo de la barra del menú.
+	local inviteButton = Widgets.button("📨 Invitar amigos", gui)
+	inviteButton.Name = "InviteFriends"
+	local inviteLimit = inviteButton:FindFirstChildOfClass("UISizeConstraint")
+	inviteButton.Activated:Connect(function()
+		inviteFriends(player)
+	end)
+
+	-- Coloca la barra, el botón de invitar y la pastilla del Ámbar. En PC, la barra en columna a la
+	-- izquierda y la pastilla en el centro de la franja de la barra de Roblox. En táctil (a la
+	-- izquierda está el joystick) o si no cabe la columna, todo en esa franja: la pastilla a la
+	-- izquierda, tras los botones de Roblox, y a la derecha la barra en fila, solo con iconos, y el
+	-- botón de invitar como un icono más.
+	local function placeHud()
+		local inset = GuiService:GetGuiInset().Y
+		local band = -inset / 2
+		local columnHeight = #MENU * (BAR_BUTTON.Y + BAR_GAP) - BAR_GAP
+		rowMode = UserInputService.TouchEnabled or gui.AbsoluteSize.Y < BAR_TOP + columnHeight + 8 + INVITE_HEIGHT + 12
+		for _, item in barButtons do
+			item.name.Visible = not rowMode
+			item.icon.Position = if rowMode then UDim2.fromScale(0.1, 0.1) else UDim2.new(0, 4, 0.06, 0)
+			item.icon.Size = if rowMode then UDim2.fromScale(0.8, 0.8) else UDim2.new(1, -8, 0.52, 0)
+			item.button.Size = if rowMode
+				then UDim2.fromOffset(BAR_ROW_BUTTON, BAR_ROW_BUTTON)
+				else UDim2.fromOffset(BAR_BUTTON.X, BAR_BUTTON.Y)
+		end
+		if rowMode then
+			local rowWidth = #MENU * (BAR_ROW_BUTTON + BAR_GAP) - BAR_GAP
+			barLayout.FillDirection = Enum.FillDirection.Horizontal
+			bar.AnchorPoint = Vector2.new(1, 0.5)
+			bar.Position = UDim2.new(1, -12, 0, band)
+			bar.Size = UDim2.fromOffset(rowWidth, BAR_ROW_BUTTON)
+			inviteButton.Text = "📨"
+			if inviteLimit then
+				inviteLimit.MinSize = Vector2.new(BAR_ROW_BUTTON, BAR_ROW_BUTTON)
+			end
+			inviteButton.AnchorPoint = Vector2.new(1, 0.5)
+			inviteButton.Position = UDim2.new(1, -12 - rowWidth - BAR_GAP * 2, 0, band)
+			inviteButton.Size = UDim2.fromOffset(BAR_ROW_BUTTON, BAR_ROW_BUTTON)
+			-- La pastilla, entre los botones de Roblox y el de invitar.
+			local left = GuiService.TopbarInset.Min.X + 8
+			local right = gui.AbsoluteSize.X - 12 - rowWidth - BAR_GAP * 2 - BAR_ROW_BUTTON - 8
+			pill.AnchorPoint = Vector2.new(0, 0.5)
+			pill.Position = UDim2.fromOffset(left, band)
+			pill.Size = UDim2.fromOffset(math.clamp(right - left, 160, 300), 32)
+		else
+			barLayout.FillDirection = Enum.FillDirection.Vertical
+			bar.AnchorPoint = Vector2.zero
+			bar.Position = UDim2.fromOffset(12, BAR_TOP)
+			bar.Size = UDim2.fromOffset(BAR_BUTTON.X, columnHeight)
+			inviteButton.Text = "📨 Invitar amigos"
+			if inviteLimit then
+				inviteLimit.MinSize = Vector2.new(160, INVITE_HEIGHT)
+			end
+			inviteButton.AnchorPoint = Vector2.zero
+			inviteButton.Position = UDim2.fromOffset(12, BAR_TOP + columnHeight + 8)
+			inviteButton.Size = UDim2.fromOffset(200, INVITE_HEIGHT)
+			pill.AnchorPoint = Vector2.new(0.5, 0.5)
+			pill.Position = UDim2.new(0.5, 0, 0, band)
+			pill.Size = UDim2.fromOffset(340, 34)
+		end
+	end
+
+	-- El botón de viaje, las provisiones y el de invitar: solo sin ventana abierta (una ventana ancha
+	-- llega hasta el de invitar; invitar también está en la ventana Grupo).
+	local function placeJoin()
+		local open = panel.Visible
+		inviteButton.Visible = not open
+		local bottom = UDim2.new(0.5, 0, 1, -HOTBAR_CLEARANCE)
+		joinButton.Position = bottom
+		joinButton.Visible = not open
+		suppliesLabel.Position = bottom + UDim2.fromOffset(0, -86)
+		suppliesLabel.Visible = suppliesText ~= "" and not open
+	end
+
+	-- El alto de la ventana, el justo para lo que tiene dentro, sin pasar del borde de abajo.
+	local function fitWindow()
+		if not panel.Visible then
+			return
+		end
+		local bottom = gui.AbsoluteSize.Y - 12
+		local needed = LIST_TOP + listLayout.AbsoluteContentSize.Y + 10
+		local height = math.max(120, math.min(needed, bottom - WINDOW_TOP))
+		panel.Size = UDim2.new(panel.Size.X.Scale, 0, 0, height)
+	end
+	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fitWindow)
+
+	-- Las casillas de habilidades y de combos (CombatClient: RoleHUD y ComboHUD, arriba a la izquierda)
+	-- quedan debajo de la ventana en un teléfono: se esconden mientras está abierta.
+	local function showCombatHud(screen: Instance)
+		if screen:IsA("ScreenGui") and COMBAT_HUDS[screen.Name] then
+			screen.Enabled = not panel.Visible
+		end
+	end
+	playerGui.ChildAdded:Connect(showCombatHud)
+
+	function openWindow(id: string?, prompt: ProximityPrompt?)
+		currentWindow = id
+		windowPrompt = if id then prompt else nil
+		local open = id ~= nil
+		panel.Visible = open
+		for _, screen in playerGui:GetChildren() do
+			showCombatHud(screen)
+		end
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, not open)
+		placeJoin()
+		for barId, item in barButtons do
+			local active = barId == id
+			item.button.BackgroundColor3 = if active then READY_COLOR else SQUARE_COLOR
+			item.button.BackgroundTransparency = if active then 0 else 0.2
+			item.name.TextColor3 = if active then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+		end
+		if open then
+			hideTitle()
+			render()
+			task.defer(fitWindow)
+		end
+	end
+
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		placeHud()
+		placeJoin()
+		fitWindow()
+	end)
+	placeHud()
+	-- Empieza sin ventana (coloca el botón de viaje y la línea de provisiones).
+	openWindow(nil)
+
+	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
+	local closeButton = Widgets.button("X", panel)
+	closeButton.Name = "Close"
+	closeButton.Font = Enum.Font.BuilderSansExtraBold
+	closeButton.AnchorPoint = Vector2.new(1, 0)
+	closeButton.Position = UDim2.new(1, -8, 0, 6)
+	closeButton.Size = UDim2.fromOffset(44, 44)
+	closeButton.BackgroundColor3 = CLOSE_COLOR
+	closeButton.TextColor3 = Color3.new(1, 1, 1)
+	local closeLimit = closeButton:FindFirstChildOfClass("UISizeConstraint")
+	if closeLimit then
+		closeLimit.MinSize = Vector2.new(44, 44)
+	end
+	closeButton.Activated:Connect(function()
+		openWindow(nil)
+	end)
+
+	-- El tiempo del huevo del nido corre solo: se actualiza cada segundo mientras se ve. Cada pocos
+	-- segundos se miran también los puntos rojos (el premio del calendario llega con el cambio de día).
 	task.spawn(function()
+		local ticks = 0
 		while true do
 			task.wait(1)
+			ticks += 1
+			if ticks % 5 == 0 then
+				refreshBadges()
+			end
 			if nestRow and panel.Visible then
 				local nestEgg = readEggs().nest
 				if nestEgg then
@@ -913,9 +1566,41 @@ function LobbyUIController:Start()
 		end
 	end)
 
+	-- La ventana de una estación se cierra sola al alejarse de su cartel o del nido.
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			local prompt = windowPrompt
+			if not prompt then
+				continue
+			end
+			local character = player.Character
+			local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+			local anchor = prompt.Parent
+			local at = if anchor and anchor:IsA("BasePart")
+				then anchor.Position
+				elseif anchor and anchor:IsA("Attachment") then anchor.WorldPosition
+				else nil
+			-- Sin sitio (el cartel ya no está) o lejos de él.
+			local far = at ~= nil
+				and root ~= nil
+				and root:IsA("BasePart")
+				and (root.Position - at).Magnitude > prompt.MaxActivationDistance + STATION_CLOSE_MARGIN
+			if at == nil or far then
+				openWindow(nil)
+			end
+		end
+	end)
+
 	player.AttributeChanged:Connect(function(attribute)
+		if attribute == "Amber" or attribute == "BestDays" then
+			refreshHeader()
+		end
+		if attribute == "Progress" or attribute == "SelectedRole" or attribute == "Retention" then
+			refreshBadges()
+		end
 		-- El panel de Ajustes se actualiza solo al cambiar una opción (no hace falta rehacerlo).
-		if attribute == "Settings" and currentTab == "Ajustes" then
+		if attribute == "Settings" and currentWindow == "Ajustes" then
 			return
 		end
 		render()
@@ -924,129 +1609,16 @@ function LobbyUIController:Start()
 	Players.PlayerRemoving:Connect(function()
 		task.defer(render)
 	end)
-	render()
-
-	-- Botón de viaje (y el bote del naufragio, que hace lo mismo). Con el menú plegado va encima de la
-	-- barra de objetos de Roblox, que abajo en el centro lleva las armas del rol para probarlas en la
-	-- plaza; con el menú abierto la barra se esconde y el botón baja a su sitio, para no tapar el menú
-	-- en un teléfono (setMenuOpen).
-	local joinButton = Widgets.button(JOIN_TEXT, gui)
-	joinButton.Name = "JoinIslandButton"
-	joinButton.AnchorPoint = Vector2.new(0.5, 1)
-	joinButton.Size = UDim2.fromScale(0.3, 0.1)
-	local waiting = false
-	local function join()
-		if waiting then
-			return
-		end
-		waiting = true
-		joinButton.Text = "Viajando..."
-		Remotes.RequestJoinIsland:FireServer()
-		-- Si el viaje no ocurre (por ejemplo en Studio), el botón vuelve a estar disponible.
-		task.delay(Config.Teleport.CooldownSeconds + 4, function()
-			waiting = false
-			joinButton.Text = JOIN_TEXT
-		end)
-	end
-	joinButton.Activated:Connect(join)
-
-	-- Provisiones guardadas (calendario, misiones): encima del botón de viaje, que es cuando se usan.
-	-- Por píxeles y no en escala: el botón mide de 48 a 80 px de alto según la pantalla.
-	local suppliesLabel = Widgets.label("", gui)
-	suppliesLabel.Name = "SuppliesLine"
-	suppliesLabel.AnchorPoint = Vector2.new(0.5, 1)
-	suppliesLabel.Size = UDim2.new(0.5, 0, 0, 26)
-	suppliesLabel.TextColor3 = Color3.fromRGB(230, 220, 200)
-	local function refreshSupplies()
-		local raw = player:GetAttribute("Retention")
-		local ok, decoded = pcall(function()
-			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
-		end)
-		local items = Rewards.sanitizeItems(if ok and typeof(decoded) == "table" then decoded.supplies else nil)
-		local text = Rewards.describeItems(items)
-		suppliesLabel.Text = if text ~= "" then `🎒 Te llevas a la {ISLAND}: {text}` else ""
-		suppliesLabel.Visible = text ~= ""
-	end
-	player:GetAttributeChangedSignal("Retention"):Connect(refreshSupplies)
-	refreshSupplies()
-
-	-- El menú se puede plegar para pasear por el naufragio.
-	local menuButton = Widgets.button("📜 Abrir menú", gui)
-	menuButton.Name = "MenuToggle"
-	menuButton.AnchorPoint = Vector2.new(0, 1)
-	menuButton.Position = UDim2.fromScale(0.02, 0.95)
-	menuButton.Size = UDim2.fromScale(0.17, 0.07)
-	-- Las casillas de habilidades y de combos (CombatClient: RoleHUD y ComboHUD, arriba a la izquierda)
-	-- quedan debajo del menú abierto: se esconden mientras está abierto.
-	local playerGui = player:WaitForChild("PlayerGui")
-	local function showCombatHud(screen: Instance)
-		if screen:IsA("ScreenGui") and COMBAT_HUDS[screen.Name] then
-			screen.Enabled = not panel.Visible
-		end
-	end
-	playerGui.ChildAdded:Connect(showCombatHud)
-	function setMenuOpen(open: boolean, tab: string?)
-		panel.Visible = open
-		menuButton.Text = if open then "📜 Ocultar menú" else "📜 Abrir menú"
-		for _, screen in playerGui:GetChildren() do
-			showCombatHud(screen)
-		end
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, not open)
-		local bottom = if open then UDim2.fromScale(0.5, 0.95) else UDim2.new(0.5, 0, 1, -HOTBAR_CLEARANCE)
-		joinButton.Position = bottom
-		suppliesLabel.Position = bottom + UDim2.fromOffset(0, -86)
-		if tab then
-			currentTab = tab
-			render()
-		end
-	end
-	menuButton.Activated:Connect(function()
-		setMenuOpen(not panel.Visible)
-	end)
-	-- El menú empieza plegado (coloca el botón de viaje y la línea de provisiones).
-	setMenuOpen(false)
-
-	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
-	local closeButton = Widgets.button("X", panel)
-	closeButton.Name = "Close"
-	closeButton.Font = Enum.Font.BuilderSansExtraBold
-	closeButton.AnchorPoint = Vector2.new(1, 0)
-	closeButton.Position = UDim2.new(1, -8, 0, 6)
-	closeButton.Size = UDim2.fromOffset(44, 44)
-	closeButton.BackgroundColor3 = CLOSE_COLOR
-	closeButton.TextColor3 = Color3.new(1, 1, 1)
-	local closeLimit = closeButton:FindFirstChildOfClass("UISizeConstraint")
-	if closeLimit then
-		closeLimit.MinSize = Vector2.new(44, 44)
-	end
-	closeButton.Activated:Connect(function()
-		setMenuOpen(false)
-	end)
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		if prompt.Name == "ZarparPrompt" then
 			join()
-		elseif prompt.Name == "RolesPrompt" then
-			-- Tablón de roles de la proa (World/LobbyBuilder).
-			setMenuOpen(true, "Rol")
-		elseif prompt.Name == "NidoPrompt" then
-			-- Nido de huevos de la playa (World/LobbyBuilder; el huevo lo dibuja NestController).
-			setMenuOpen(true, "Mascotas")
-		elseif prompt.Name == "ZarparDunasPrompt" then
-			-- Velero del embarcadero de las Dunas (World/LobbyBuilder): formato y cola de la arena.
-			setMenuOpen(true, "Arena")
+			return
 		end
-	end)
-
-	-- Invitar amigos de Roblox (también está en la pestaña Grupo). Encima del botón del menú: abajo a
-	-- la derecha está el botón de saltar en móvil.
-	local inviteButton = Widgets.button("📨 Invitar amigos", gui)
-	inviteButton.Name = "InviteFriends"
-	inviteButton.AnchorPoint = Vector2.new(0, 1)
-	inviteButton.Position = UDim2.fromScale(0.02, 0.87)
-	inviteButton.Size = UDim2.fromScale(0.17, 0.07)
-	inviteButton.Activated:Connect(function()
-		inviteFriends(player)
+		local id = STATION_PROMPTS[prompt.Name]
+		if id then
+			openWindow(id, prompt)
+		end
 	end)
 
 	-- Ventana de invitación.

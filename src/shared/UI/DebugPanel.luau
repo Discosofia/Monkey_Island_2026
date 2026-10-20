@@ -18,14 +18,18 @@ function DebugPanel.start(place: "Island" | "Lobby" | "Dunas")
 	local gui = Widgets.screen("DebugPanel", Players.LocalPlayer:WaitForChild("PlayerGui"))
 	gui.DisplayOrder = 20
 
+	-- Abajo a la izquierda; en el Lobby, abajo a la derecha (a la izquierda van la barra del menú y
+	-- "Invitar amigos").
+	local side = if place == "Lobby" then 0.98 else 0.02
+	local anchorX = if place == "Lobby" then 1 else 0
 	local toggle = Widgets.button("🛠️ Pruebas", gui)
-	toggle.AnchorPoint = Vector2.new(0, 1)
-	toggle.Position = UDim2.fromScale(0.02, if place == "Island" then 0.9 else 0.98)
+	toggle.AnchorPoint = Vector2.new(anchorX, 1)
+	toggle.Position = UDim2.fromScale(side, if place == "Island" then 0.9 else 0.98)
 	toggle.Size = UDim2.fromScale(0.14, 0.06)
 
 	local list = Instance.new("ScrollingFrame")
-	list.AnchorPoint = Vector2.new(0, 1)
-	list.Position = UDim2.fromScale(0.02, if place == "Island" then 0.83 else 0.91)
+	list.AnchorPoint = Vector2.new(anchorX, 1)
+	list.Position = UDim2.fromScale(side, if place == "Island" then 0.83 else 0.91)
 	list.Size = UDim2.fromScale(0.22, 0.55)
 	list.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	list.BackgroundTransparency = 0.2

@@ -57,11 +57,13 @@ function Journal.total(): number
 	return #Journal.sortedSpecies() + #Journal.sortedBosses()
 end
 
--- Una fila del diario: título y, si ya lo conoces, el detalle debajo.
+-- Una fila del diario: título y, si ya lo conoces, el detalle debajo. La fila crece con el detalle (en
+-- una columna estrecha, como el Diario del Lobby repartido en columnas, ocupa más líneas).
 local function addRow(list: Instance, order: number, titleText: string, detailText: string?)
 	local row = Instance.new("Frame")
 	row.LayoutOrder = order
-	row.Size = UDim2.new(1, -10, 0, if detailText then 104 else 46)
+	row.Size = UDim2.new(1, -10, 0, if detailText then 0 else 46)
+	row.AutomaticSize = if detailText then Enum.AutomaticSize.Y else Enum.AutomaticSize.None
 	row.BackgroundColor3 = Color3.fromRGB(45, 38, 30)
 	row.BackgroundTransparency = 0.15
 	row.Parent = list
@@ -84,8 +86,12 @@ local function addRow(list: Instance, order: number, titleText: string, detailTe
 		detail.TextXAlignment = Enum.TextXAlignment.Left
 		detail.TextYAlignment = Enum.TextYAlignment.Top
 		detail.Position = UDim2.fromOffset(10, 38)
-		detail.Size = UDim2.new(1, -20, 0, 62)
+		detail.Size = UDim2.new(1, -20, 0, 0)
+		detail.AutomaticSize = Enum.AutomaticSize.Y
 		detail.Text = detailText
+		local padding = Instance.new("UIPadding")
+		padding.PaddingBottom = UDim.new(0, 8)
+		padding.Parent = row
 	end
 end
 

@@ -154,6 +154,8 @@ local function publish(player: Player, session: Session)
 	local profile = session.profile
 	player:SetAttribute("Amber", profile.amber)
 	player:SetAttribute("BestDays", profile.bestDays)
+	-- Rescates (partidas ganadas): el cliente del Lobby lo enseña en la ventana del ranking.
+	player:SetAttribute("Rescues", profile.rescues)
 	player:SetAttribute("SelectedRole", profile.selectedRole)
 	-- Solo si la tiene de verdad en su colección, y solo cuando cambia la guardada: así no pisa una
 	-- mascota puesta solo para esta partida (la de prueba del panel, DebugService) cada vez que se

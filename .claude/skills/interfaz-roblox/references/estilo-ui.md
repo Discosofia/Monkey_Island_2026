@@ -32,7 +32,8 @@ golpe).
 | Contenido de Ajustes (vista previa del personaje, tus números de combate y opciones) | `src/shared/UI/SettingsPanel.luau` + `src/shared/Settings.luau` | — | ambos |
 | Avisos cortos arriba | `src/shared/UI/Toast.luau` | `Toasts` | ambos |
 | Panel de pruebas (solo Studio) | `src/shared/UI/DebugPanel.luau` | `DebugPanel` | ambos |
-| Todo el Lobby (título, pestañas, unirse, invitar) | `src/lobby/client/Controllers/LobbyUIController.luau` | `LobbyUI` | Lobby |
+| Todo el Lobby: título (se funde a los 5 s), pastilla del Ámbar en la franja de la barra de Roblox, ventanas de las estaciones de la plaza (Rol, Arena, Mascotas, Ranking: las abre el aviso de su cartel o del nido y se cierran solas al alejarse) y del menú, barra del menú (columna a la izquierda bajo los combos en PC; fila de iconos en la franja de la barra de Roblox en táctil o pantalla baja), "Ir a la Isla de monos", "Invitar amigos" | `src/lobby/client/Controllers/LobbyUIController.luau` | `LobbyUI` | Lobby |
+| Tarjetas de rol de la arena (icono, nombre y ventaja en combate) | `src/shared/UI/ArenaRoleCards.luau` | — | Lobby y Dunas |
 | Arena de Dunas: marcador con reloj y estado de las banderas (arriba a la derecha, **dentro de la franja de la barra de Roblox**: `GuiService.TopbarInset`, en un ScreenGui `ArenaScore` con IgnoreGuiInset), línea de la fase (arriba en el centro, a 6 px bajo la barra), barras de vida y estamina (12, 10), "Reapareces en N" (centro, 0.4) | `src/dunas/client/Controllers/ArenaHUDController.luau` | `ArenaHUD`, `ArenaScore` | Dunas |
 | Arena de Dunas: ventana "Antes de la batalla" (equipo, rol, equipo de la arena con `Shared/UI/ArenaGearPicker`, ¡Listo!) colgada a 40 px, bajo la línea de la fase; su alto se ajusta al contenido (el usuario quiere verlo todo sin desplazarse en PC) y en pantallas de menos de 500 px de alto usa filas de 44 px y se parte en dos columnas (izquierda: equipos, roles 2 × 2, ¡Listo!; derecha: el equipamiento en cuadrícula de 3 × 3 con una barra que explica la opción tocada y su botón); cabe en 844 × 390 sin desplazarse. Plegada deja "🛡️ Equipo y rol" en ese sitio | `src/dunas/client/Controllers/ArenaLobbyController.luau` | `ArenaLobby` (DisplayOrder 6) | Dunas |
 | Efectos en pantalla de habilidades (destellos, estrellas) | `src/combatClient/Controllers/AbilityFxController.luau` | varios | Isla |
@@ -195,18 +196,23 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
   partir de la posición y el tamaño reales del botón: si mueves el botón, el ⚙️ lo sigue solo.
 - `ReturnToLobbyButton` está abajo a la derecha en PC y, con `UserInputService.TouchEnabled`, bajo el
   indicador del Basecamp (0.125 + 8 px). Si cambias el reloj o el indicador de alto, revisa ese 0.125.
-- `DebugPanel` (Pruebas) se coloca a 0.9 en la Isla para dejar sitio a "Saltar fase" (0.98).
+- `DebugPanel` (Pruebas) se coloca a 0.9 en la Isla para dejar sitio a "Saltar fase" (0.98), y en el
+  Lobby abajo a la derecha (a la izquierda van la barra del menú y "Invitar amigos").
 - `ActionButtons` copia `IgnoreGuiInset` y `ScreenInsets` de la `TouchGui` de Roblox para alinearse
   con el salto. `maqueta_ui.luau` repite sus cuentas: si cambian, cámbialas también allí.
 - La vista previa de Ajustes (`SettingsPanel`, `PREVIEW_RECTS`) dibuja las tres disposiciones de los
   números de combate: si cambias dónde salen, cámbiala también.
-- **Lobby** (desde el 20-10-2026 carga el combate compartido para probar el rol en la plaza): con el
-  menú plegado, `JoinIslandButton` y la línea de provisiones van a 112 px del borde de abajo
-  (`HOTBAR_CLEARANCE`), encima de la barra de objetos de Roblox con las armas del rol (en PC su
-  borde de arriba queda a unos 100 px del de abajo: con 76 se tapaban, captura del usuario). Con el menú
-  abierto (`setMenuOpen`) la barra se esconde (`SetCoreGuiEnabled(Backpack)`), el botón baja a 0.95
-  para no pisar el panel en un teléfono y se esconden `RoleHUD` y `ComboHUD`, que quedan debajo del
-  panel.
+- **Lobby** (desde el 20-10-2026 carga el combate compartido para probar el rol en la plaza):
+  `JoinIslandButton` y la línea de provisiones van a 112 px del borde de abajo (`HOTBAR_CLEARANCE`),
+  encima de la barra de objetos de Roblox con las armas del rol (en PC su borde de arriba queda a unos
+  100 px del de abajo: con 76 se tapaban, captura del usuario). La barra del menú en columna empieza
+  en `BAR_TOP` (244 px), debajo de las casillas de habilidades (`RoleHUD`, 118–164) y de los combos
+  (`ComboHUD`, 170–232): si cambian de alto, revisa `BAR_TOP`; "Invitar amigos" va 8 px debajo de la
+  barra. Con una ventana abierta (`openWindow`) se esconden la barra de objetos
+  (`SetCoreGuiEnabled(Backpack)`), el botón de viaje, las provisiones, "Invitar amigos", `RoleHUD` y
+  `ComboHUD`, y la ventana se ajusta a su contenido hasta 12 px del borde de abajo. Las ventanas no
+  tapan la barra del menú en columna (`BAR_ROOM` a cada lado). Las listas largas compartidas con la
+  Isla (Diario, Ajustes) se reparten en PC en 2–4 columnas (`spreadColumns`) para verse sin desplazarse.
 
 ## 8. Ajustes del jugador
 
