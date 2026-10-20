@@ -42,7 +42,7 @@
 | Roles | **Fijo por partida** (se elige en el lobby) + **árbol de talentos** que progresa entre partidas. |
 | Mascotas | **Persistentes.** Cada participante del rescate del huevo recibe una tirada. Se coleccionan y se lleva 1 activa. |
 | Huevo | **Evento PvP opt-in.** El portador queda marcado y los jugadores con PvP activo pueden robárselo. |
-| Servidor | Máximo **5 jugadores**: una partida es para **un grupo de amigos** (hasta 5, que viajan juntos desde el Lobby). Si sobran plazas, se puede entrar a una partida en curso. *(Cambio del 20-10-2026: al principio eran 20 jugadores que no se conocían; ahora el juego está pensado para jugar con tus amigos.)* |
+| Servidor | **Lobby hasta 20**, **Isla de monos hasta 5** y **Isla de dunas hasta 10** (5v5); se configura en Roblox por place ([SETUP.md](SETUP.md) paso 7). Una partida de la Isla de monos es para **un grupo de amigos** (hasta 5, que viajan juntos desde el Lobby). Si sobran plazas, se puede entrar a una partida en curso. *(Cambio del 20-10-2026: al principio eran 20 jugadores que no se conocían; ahora el juego está pensado para jugar con tus amigos.)* |
 | Asedio nocturno | **Sí.** El Basecamp es seguro **mientras resistan las defensas**. |
 | Fiebre del mono | **Sí.** Infección por mordiscos que cura el médico. |
 | Lore | **Santuario-laboratorio** abandonado (Proyecto PRIMAL). |

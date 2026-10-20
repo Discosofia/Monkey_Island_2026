@@ -134,9 +134,17 @@ Cada place tiene un número de ID. El código lo necesita para viajar del Lobby 
 
 ---
 
-## Paso 7: Tamaño del servidor de la Isla (5 jugadores)
+## Paso 7: Tamaño del servidor de cada place
 
-En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → **🍌Isla de monos🐒(survival)** → configuración del place, y pon el **tamaño del servidor (Server Size / Max Players)** en **5**: una partida es para un grupo de amigos (hasta 5, el tamaño máximo de un grupo del Lobby, `Config.Party.MaxSize`). *(Hasta el 20-10-2026 eran 20.)*
+Cada place tiene su propio tamaño de servidor y lo decide Roblox, no el código. En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → el place → **Configurar**, y pon el **tamaño del servidor (Max Players)**. También se puede desde Studio, con ese place abierto: **Game Settings** → **Places**.
+
+| Place | Max Players | Por qué |
+|---|---|---|
+| Lobby | **20** | Es donde se juntan los jugadores y se forman los grupos. |
+| 🍌Isla de monos🐒(survival) | **5** | Una partida es para un grupo de amigos (hasta 5, el tamaño máximo de un grupo del Lobby, `Config.Party.MaxSize`). *(Hasta el 20-10-2026 eran 20.)* |
+| 🎖️Isla de dunas☠️(PvP) | **10** | Para el 5v5 (`Config.Arena.MaxFormat`). Cada partida va a un servidor reservado, que también tiene este tamaño como máximo. |
+
+`Config.Match.MaxPlayers` solo lo apunta (ningún código lo usa): si cambias un tamaño, cámbialo aquí y en Roblox.
 
 ---
 

@@ -30,8 +30,9 @@ local Config = {
 	},
 
 	Match = {
-		-- El tamaño real del servidor se configura en Roblox (docs/SETUP.md, paso 7). Una partida es para
-		-- un grupo de amigos (desde el 20-10-2026; antes 20 jugadores).
+		-- Tamaño del servidor de la Isla de monos. Lo decide Roblox por place (docs/SETUP.md, paso 7:
+		-- Lobby 20, Isla de monos 5, Isla de dunas 10); aquí solo se apunta. Una partida es para un
+		-- grupo de amigos (desde el 20-10-2026; antes 20 jugadores).
 		MaxPlayers = 5,
 		DayLengthSeconds = 10 * 60,
 		NightLengthSeconds = 7 * 60,
