@@ -359,6 +359,32 @@ Tercer place: captura la bandera por equipos, de 1v1 a 5v5, con equipamiento pro
 
 ---
 
+### Fase 9: Pase de temporada, misiones v2, mitad de partida y cosméticos (octubre de 2026)
+
+Basado en [Sistema de recompensas y retencion.txt](Sistema%20de%20recompensas%20y%20retencion.txt), [battle_pass_30_days.pdf](battle_pass_30_days.pdf), la guía de Roblox para pases de temporada y la entrevista del 20-10-2026. Plan: `C:\Users\jose\.claude\plans\serialized-soaring-biscuit.md`. Cada grupo es un commit y una sesión propia; la economía se mide con la skill `economia-retencion` (calculadora `src/island/tools/Economia.luau`).
+
+Reglas de la entrevista: la premium del pase es **solo cosmética** (Developer Product de 399 R$ por temporada; pack +10 niveles 799; nivel 79); el Ámbar, el tiempo de huevo, las provisiones y los huevos solo salen de la pista gratis y del nivel **ganado jugando**; temporada de 30 días y 30 niveles que se completa con ~20–24 días activos, ×2 de XP la última semana y 7 días de descanso; el calendario de 7 días se queda; "Superviviente de la Isla" sigue siendo solo para quien gana. Temporada 1: "El Despertar del Volcán".
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **G1** | Skill `economia-retencion` y calculadora de la economía (línea base: misiones al 100 % en la primera hora, el habitual gasta el 15 % de su Ámbar, equipo de nivel 3 el día 1) | — | ✅ Medido en Studio |
+| **G2** | Fundaciones: perfil v5, compras con recibo (`ProcessReceipt` en los 3 places) y catálogo de cosméticos ampliado | — | ⏳ |
+| **G3** | Pase de temporada: XP (Isla, Dunas, misiones, +10 % con amigos), pistas gratis y premium, compras, estación en la plaza y ventana | — | ⏳ |
+| **G4** | Misiones v2: fácil/media/difícil, semanales, un cambio gratis al día, eventos nuevos y rastreador en móvil | — | ⏳ |
+| **G5** | Equipo ligado a los jefes: el nivel 3 pide el botín del jefe del día 4; Forja volcánica, obsidiana y nivel 4 | — | ⏳ |
+| **G6** | Contratos de expedición por partida, compartidos por el grupo | — | ⏳ |
+| **G7** | Eventos de mitad de partida: lluvia tóxica, macacos saboteadores, erupción con cajas militares | — | ⏳ |
+| **G8** | Preparar la Gran Tropa: defensas nuevas que el asedio ataca de verdad | — | ⏳ |
+| **G9** | Cosméticos visibles: trajes por rol, skins de arma y de mascota, marcos, emotes y ventana Armario | — | ⏳ |
+| **G10** | Tiendas de cosméticos en Ámbar (rotación diaria) y Robux (rotación semanal) | — | ⏳ |
+| **G11** | Contenido de la Temporada 1 (G11a trajes y armas, G11b mascotas, marcos y efectos, G11c emotes) | — | ⏳ |
+| **G12** | Calibración final con la calculadora y documentación (GDD, VERIFICACION, LANZAMIENTO) | — | ⏳ |
+
+- [ ] Crear en el Creator Hub los Developer Products (pase, pack, nivel, cosméticos sueltos) y poner sus ids (G2/G3/G10)
+- [ ] Antes de publicar: **publicar los tres places a la vez** (perfil v5)
+
+---
+
 ## 4. Cronograma estimado
 
 Estimación con **5–15 h/semana**: unos **7–10 meses** hasta el lanzamiento. El diagrama usa el escenario medio.
