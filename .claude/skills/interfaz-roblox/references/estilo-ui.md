@@ -213,6 +213,11 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
   `ComboHUD`, y la ventana se ajusta a su contenido hasta 12 px del borde de abajo. Las ventanas no
   tapan la barra del menú en columna (`BAR_ROOM` a cada lado). Las listas largas compartidas con la
   Isla (Diario, Ajustes) se reparten en PC en 2–4 columnas (`spreadColumns`) para verse sin desplazarse.
+  En una pantalla de menos de 500 px de alto (`compactUi`, un teléfono) la ventana ocupa todo el ancho
+  y el alto libres, las filas miden 52 px con textos con tope (título 16, detalle 12, botón 15) y
+  cualquier ventana que no quepa se reparte en columnas de al menos 280 px; Arena, Mascotas y Ranking
+  se colocan solas en dos columnas. Con una ventana abierta también se esconden `ActionButtons` y la
+  `TouchGui` de Roblox (joystick y salto), que en el teléfono la tapaban.
 
 ## 8. Ajustes del jugador
 

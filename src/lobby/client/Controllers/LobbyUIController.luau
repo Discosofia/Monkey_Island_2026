@@ -58,6 +58,10 @@ local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 -- Alto de una fila (título y una línea de detalle): lo justo para que la Tienda o las Misiones quepan
 -- sin desplazarse en un PC.
 local ROW_HEIGHT = 68
+-- En una pantalla baja (un teléfono apaisado) todo más apretado para que quepa más: filas más bajas
+-- y textos con tope. Lo decide cada dibujo (render) con la pantalla de ese momento.
+local ROW_HEIGHT_COMPACT = 52
+local compactUi = false
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
@@ -68,8 +72,9 @@ local EGG_BAR_COLOR = Color3.fromRGB(150, 240, 255)
 -- Píxeles que se deja libres abajo en el centro para la barra de objetos de Roblox (las armas del
 -- rol): en PC su borde de arriba queda a unos 100 px del de abajo de la pantalla.
 local HOTBAR_CLEARANCE = 112
--- Pantallas del combate compartido que tapa el menú abierto.
-local COMBAT_HUDS = { RoleHUD = true, ComboHUD = true }
+-- Pantallas que tapa una ventana abierta: las del combate compartido (casillas de habilidades, combos
+-- y los botones táctiles de las habilidades) y los controles táctiles de Roblox (joystick y salto).
+local COMBAT_HUDS = { RoleHUD = true, ComboHUD = true, ActionButtons = true, TouchGui = true }
 -- Nombre de la Isla en las frases y texto del botón de viaje.
 local ISLAND = Config.PlaceNames.IslandShort
 local JOIN_TEXT = `🍌 Ir a la {ISLAND} 🐒`
@@ -80,12 +85,13 @@ local COMPACT_BELOW = 500
 -- Ventanas. Las de las estaciones (Rol, Arena, Mascotas, Ranking) se abren con su aviso; las del menú,
 -- con su botón de la barra (MENU, en ese orden). "wide": más ancha, para las que van en columnas.
 -- "spread": listas largas (compartidas con la Isla) que en PC se reparten en columnas si no caben.
-type WindowDef = { icon: string, title: string, wide: boolean?, spread: boolean? }
+-- "own": se colocan ellas mismas en columnas (no se reparten).
+type WindowDef = { icon: string, title: string, wide: boolean?, spread: boolean?, own: boolean? }
 local WINDOWS: { [string]: WindowDef } = {
 	Rol = { icon = "⚔️", title = "Elige tu rol" },
-	Arena = { icon = "", title = Config.PlaceNames.Dunas },
-	Mascotas = { icon = "🥚", title = "Nido y mascotas", wide = true },
-	Ranking = { icon = "🏆", title = "Ranking", wide = true },
+	Arena = { icon = "", title = Config.PlaceNames.Dunas, own = true },
+	Mascotas = { icon = "🥚", title = "Nido y mascotas", wide = true, own = true },
+	Ranking = { icon = "🏆", title = "Ranking", wide = true, own = true },
 	Talentos = { icon = "🌟", title = "Talentos" },
 	Tienda = { icon = "🛒", title = "Tienda" },
 	Misiones = { icon = "🎯", title = "Misiones" },
@@ -113,6 +119,10 @@ local WINDOW_MAX_WIDTH = 700
 local WIDE_MAX_WIDTH = 940
 local WINDOW_TOP = 8
 local LIST_TOP = 56
+-- En una pantalla baja la ventana ocupa todo el ancho y el alto libres, con la cabecera más baja.
+local WINDOW_TOP_COMPACT = 4
+local LIST_TOP_COMPACT = 44
+local WINDOW_MARGIN_COMPACT = 12
 -- Barra del menú en columna (PC): debajo de las casillas de las habilidades (RoleHUD, de 118 a 164 px)
 -- y de los combos (ComboHUD, de 170 a 232 px). Botones con el icono y su nombre debajo.
 local BAR_TOP = 244
@@ -144,15 +154,19 @@ local RANKING_GROUPS = {
 }
 local RANKING_SIZE = 10
 local RANKING_LINE = 24
+local RANKING_LINE_COMPACT = 16
 local MEDALS = { "🥇", "🥈", "🥉" }
 -- Listas largas ("spread"): ventana aún más ancha, columnas como mucho y hueco entre ellas.
 local SPREAD_MAX_WIDTH = 1240
 local MAX_COLUMNS = 4
+-- Ninguna columna más estrecha que esto (en un teléfono, como mucho dos).
+local MIN_COLUMN_WIDTH = 280
 local COLUMN_GAP = 10
 -- Margen a cada lado de la ventana para no tapar la barra del menú en columna (12 + 60 + 12 px).
 local BAR_ROOM = 84
 -- Mascotas: alto de cada tarjeta de la colección.
 local PET_CARD_HEIGHT = 112
+local PET_CARD_HEIGHT_COMPACT = 70
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -175,23 +189,30 @@ local function sortedKeys<T>(map: { [string]: T }, order: (T) -> number): { stri
 	return keys
 end
 
+-- Tope del tamaño de un texto con TextScaled.
+local function textCap(object: GuiObject, max: number)
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MaxTextSize = max
+	limit.Parent = object
+end
+
 local function newRow(parent: Instance, order: number): Row
 	local frame = Instance.new("Frame")
 	frame.LayoutOrder = order
-	frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT)
+	frame.Size = UDim2.new(1, -10, 0, if compactUi then ROW_HEIGHT_COMPACT else ROW_HEIGHT)
 	frame.BackgroundColor3 = ROW_COLOR
 	frame.BackgroundTransparency = 0.15
 	frame.Parent = parent
 	corner(frame, 10)
 
 	local title = Widgets.label("", frame)
-	title.Position = UDim2.fromOffset(10, 5)
-	title.Size = UDim2.new(0.68, -10, 0, 28)
+	title.Position = UDim2.fromOffset(10, if compactUi then 3 else 5)
+	title.Size = UDim2.new(0.68, -10, 0, if compactUi then 22 else 28)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 
 	local detail = Widgets.label("", frame)
-	detail.Position = UDim2.fromOffset(10, 34)
-	detail.Size = UDim2.new(0.68, -10, 0, 28)
+	detail.Position = UDim2.fromOffset(10, if compactUi then 26 else 34)
+	detail.Size = UDim2.new(0.68, -10, 0, if compactUi then 22 else 28)
 	detail.TextXAlignment = Enum.TextXAlignment.Left
 	detail.TextYAlignment = Enum.TextYAlignment.Top
 	detail.TextWrapped = true
@@ -201,10 +222,15 @@ local function newRow(parent: Instance, order: number): Row
 	local button = Widgets.button("", frame)
 	button.AnchorPoint = Vector2.new(1, 0.5)
 	button.Position = UDim2.new(1, -10, 0.5, 0)
-	button.Size = UDim2.new(0.3, -10, 0, 50)
+	button.Size = UDim2.new(0.3, -10, 0, if compactUi then 36 else 50)
 	local limit = button:FindFirstChildOfClass("UISizeConstraint")
 	if limit then
 		limit:Destroy()
+	end
+	if compactUi then
+		textCap(title, 16)
+		textCap(detail, 12)
+		textCap(button, 15)
 	end
 	return { frame = frame, title = title, detail = detail, button = button }
 end
@@ -228,8 +254,11 @@ end
 local function note(list: Instance, text: string, order: number)
 	local label = Widgets.label(text, list)
 	label.LayoutOrder = order
-	label.Size = UDim2.new(1, -10, 0, 34)
+	label.Size = UDim2.new(1, -10, 0, if compactUi then 22 else 34)
 	label.TextColor3 = Color3.fromRGB(255, 220, 150)
+	if compactUi then
+		textCap(label, 14)
+	end
 end
 
 -- Abre la ventana de Roblox para invitar a tus amigos a este servidor del Lobby.
@@ -251,6 +280,8 @@ function LobbyUIController:Start()
 	local gui = Widgets.screen("LobbyUI", player:WaitForChild("PlayerGui"))
 
 	local playerGui = player:WaitForChild("PlayerGui")
+	-- Barra del menú en fila (táctil o pantalla baja) en vez de en columna; lo decide placeHud.
+	local rowMode = false
 
 	local title = Widgets.label(Config.GameName, gui)
 	title.AnchorPoint = Vector2.new(0.5, 0)
@@ -301,7 +332,9 @@ function LobbyUIController:Start()
 		local best = player:GetAttribute("BestDays")
 		local amberText = if typeof(amber) == "number" then tostring(amber) else "…"
 		local bestText = if typeof(best) == "number" then tostring(best) else "0"
-		header.Text = `✨ {amberText} de Ámbar   🏆 Récord: {bestText} días`
+		header.Text = if rowMode
+			then `✨ {amberText}   🏆 {bestText} días`
+			else `✨ {amberText} de Ámbar   🏆 Récord: {bestText} días`
 	end
 	refreshHeader()
 
@@ -332,6 +365,20 @@ function LobbyUIController:Start()
 	windowTitleLimit.MaxTextSize = 26
 	windowTitleLimit.Parent = windowTitle
 
+	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
+	local closeButton = Widgets.button("X", panel)
+	closeButton.Name = "Close"
+	closeButton.Font = Enum.Font.BuilderSansExtraBold
+	closeButton.AnchorPoint = Vector2.new(1, 0)
+	closeButton.Position = UDim2.new(1, -8, 0, 6)
+	closeButton.Size = UDim2.fromOffset(44, 44)
+	closeButton.BackgroundColor3 = CLOSE_COLOR
+	closeButton.TextColor3 = Color3.new(1, 1, 1)
+	local closeLimit = closeButton:FindFirstChildOfClass("UISizeConstraint")
+	if closeLimit then
+		closeLimit.MinSize = Vector2.new(44, 44)
+	end
+
 	local list = Instance.new("ScrollingFrame")
 	list.Position = UDim2.fromOffset(8, LIST_TOP)
 	list.Size = UDim2.new(1, -16, 1, -LIST_TOP - 8)
@@ -353,8 +400,10 @@ function LobbyUIController:Start()
 	-- Sube con cada dibujo: lo que se hace un instante después (repartir en columnas) mira que siga
 	-- siendo el mismo.
 	local renderCount = 0
-	-- Barra del menú en fila (táctil o pantalla baja) en vez de en columna; lo decide placeHud.
-	local rowMode = false
+	-- Lo que deja libre la ventana abajo (en una pantalla baja, casi nada).
+	local function windowBottomMargin(): number
+		return if compactUi then 4 else 12
+	end
 	local render: () -> ()
 	local openWindow: (id: string?, prompt: ProximityPrompt?) -> ()
 	-- Fila del huevo del nido de la ventana Mascotas, que se actualiza cada segundo (tiempo y barra).
@@ -379,8 +428,17 @@ function LobbyUIController:Start()
 			local role = Roles[roleId]
 			local xp = data.roleXp[roleId] or 0
 			local row = newRow(list, index)
-			row.frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT + 22)
-			row.detail.Size = UDim2.new(0.68, -10, 0, 52)
+			-- Más alta: la pasiva y las habilidades ocupan varias líneas. En una pantalla baja, con el
+			-- botón más estrecho, para que el texto no encoja hasta no leerse.
+			if compactUi then
+				row.frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT_COMPACT + 34)
+				row.detail.Size = UDim2.new(0.72, -10, 0, 56)
+				row.title.Size = UDim2.new(0.72, -10, 0, 22)
+				row.button.Size = UDim2.new(0.26, -10, 0, 36)
+			else
+				row.frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT + 22)
+				row.detail.Size = UDim2.new(0.68, -10, 0, 52)
+			end
 			row.title.Text = `{role.icon} {role.name} · nivel {Progression.level(xp)}`
 			local names = {}
 			for _, ability in role.abilities do
@@ -397,15 +455,11 @@ function LobbyUIController:Start()
 		local role = Roles[selected]
 		local points = Progression.freePoints(selected, data)
 		local talents = newRow(list, 10)
-		talents.frame.Size = UDim2.new(1, -10, 0, 64)
 		talents.title.Text = `🌟 Talentos de {role.name}`
-		talents.detail.Position = UDim2.fromOffset(10, 34)
-		talents.detail.Size = UDim2.new(0.68, -10, 0, 24)
 		talents.detail.Text = if points > 0
 			then `Tienes {points} punto(s) libre(s) para aprender`
 			else "Mejora tu rol con los puntos que ganas al subir de nivel"
 		setButton(talents.button, "Ver talentos", true)
-		talents.button.Size = UDim2.new(0.3, -10, 0, 44)
 		talents.button.MouseButton1Click:Connect(function()
 			openWindow("Talentos")
 		end)
@@ -471,18 +525,22 @@ function LobbyUIController:Start()
 	-- Fila con dos botones: el principal (dorado, a la derecha) y "Descartar" a su izquierda.
 	local function twoButtonRow(parent: Instance, order: number): (Row, TextButton)
 		local row = newRow(parent, order)
-		row.title.Size = UDim2.new(0.46, -10, 0, 28)
-		row.detail.Size = UDim2.new(0.46, -10, 0, 28)
-		row.button.Size = UDim2.new(0.25, -10, 0, 50)
+		local buttonHeight = if compactUi then 36 else 50
+		row.title.Size = UDim2.new(0.46, -10, 0, row.title.Size.Y.Offset)
+		row.detail.Size = UDim2.new(0.46, -10, 0, row.detail.Size.Y.Offset)
+		row.button.Size = UDim2.new(0.25, -10, 0, buttonHeight)
 		local second = Widgets.button("", row.frame)
 		second.AnchorPoint = Vector2.new(1, 0.5)
 		second.Position = UDim2.new(0.75, -10, 0.5, 0)
-		second.Size = UDim2.new(0.27, -10, 0, 50)
+		second.Size = UDim2.new(0.27, -10, 0, buttonHeight)
 		second.BackgroundColor3 = CLOSE_COLOR
 		second.TextColor3 = Color3.new(1, 1, 1)
 		local limit = second:FindFirstChildOfClass("UISizeConstraint")
 		if limit then
 			limit:Destroy()
+		end
+		if compactUi then
+			textCap(second, 14)
 		end
 		return row, second
 	end
@@ -521,8 +579,10 @@ function LobbyUIController:Start()
 		if nestEgg then
 			local rarity = Rarities[nestEgg.rarity]
 			row.title.TextColor3 = rarity.color
+			-- Más alta que una fila normal: la barra va debajo del detalle, sin taparlo.
+			row.frame.Size = UDim2.new(1, -10, 0, row.frame.Size.Y.Offset + 12)
 			local track = Instance.new("Frame")
-			track.Position = UDim2.new(0, 10, 1, -12)
+			track.Position = UDim2.new(0, 10, 1, -10)
 			track.Size = UDim2.new(0.68, -10, 0, 6)
 			track.BackgroundColor3 = Color3.fromRGB(25, 20, 15)
 			track.Parent = row.frame
@@ -555,7 +615,7 @@ function LobbyUIController:Start()
 			options.title.Text = `Puede salir ({rarity.name}):`
 			options.title.TextColor3 = rarity.color
 			options.detail.Text = table.concat(names, " · ")
-			options.detail.Size = UDim2.new(1, -20, 0, 34)
+			options.detail.Size = UDim2.new(1, -20, 0, options.detail.Size.Y.Offset)
 			options.button.Visible = false
 		else
 			row.title.Text = "🥚 Nido vacío"
@@ -602,7 +662,7 @@ function LobbyUIController:Start()
 		eggRows("bag", eggs.bag, -90)
 		for slot = #eggs.bag + 1, Config.Egg.BagSize do
 			local empty = newRow(parent, -90 + slot)
-			empty.frame.Size = UDim2.new(1, -10, 0, 40)
+			empty.frame.Size = UDim2.new(1, -10, 0, if compactUi then 30 else 40)
 			empty.title.Text = "Casilla libre"
 			empty.title.TextColor3 = Color3.fromRGB(160, 150, 135)
 			empty.detail.Visible = false
@@ -704,7 +764,7 @@ function LobbyUIController:Start()
 	-- que tienes se pueden llevar, 1 activa; las demás salen como "???"). En un teléfono, una debajo de
 	-- la otra.
 	local function renderPets(data: Progression.ProgressData)
-		local compact = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
+		local compact = compactUi
 		local holder = Instance.new("Frame")
 		holder.LayoutOrder = 1
 		holder.BackgroundTransparency = 1
@@ -712,12 +772,12 @@ function LobbyUIController:Start()
 		holder.AutomaticSize = Enum.AutomaticSize.Y
 		holder.Parent = list
 		local holderLayout = Instance.new("UIListLayout")
-		holderLayout.FillDirection = if compact then Enum.FillDirection.Vertical else Enum.FillDirection.Horizontal
+		holderLayout.FillDirection = Enum.FillDirection.Horizontal
 		holderLayout.Padding = UDim.new(0, 10)
 		holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
 		holderLayout.Parent = holder
-		local nestPane = pane(holder, 1, if compact then UDim.new(1, 0) else UDim.new(0.47, -5))
-		local petsPane = pane(holder, 2, if compact then UDim.new(1, 0) else UDim.new(0.53, -5))
+		local nestPane = pane(holder, 1, UDim.new(0.47, -5))
+		local petsPane = pane(holder, 2, UDim.new(0.53, -5))
 
 		renderNest(nestPane)
 		local active = player:GetAttribute("ActivePet")
@@ -729,8 +789,10 @@ function LobbyUIController:Start()
 		grid.AutomaticSize = Enum.AutomaticSize.Y
 		grid.Parent = petsPane
 		local gridLayout = Instance.new("UIGridLayout")
-		local columns = if compact then 2 else 3
-		gridLayout.CellSize = UDim2.new(1 / columns, -6, 0, PET_CARD_HEIGHT)
+		-- En una pantalla baja, tres columnas de tarjetas sin la descripción (no cabría legible).
+		local columns = 3
+		gridLayout.CellSize =
+			UDim2.new(1 / columns, -6, 0, if compact then PET_CARD_HEIGHT_COMPACT else PET_CARD_HEIGHT)
 		gridLayout.CellPadding = UDim2.fromOffset(6, 6)
 		gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 		gridLayout.Parent = grid
@@ -767,31 +829,30 @@ function LobbyUIController:Start()
 				if owned > 0 then `{pet.icon} {pet.name}{if owned > 1 then " ×" .. owned else ""}` else "❓ ???",
 				card
 			)
-			name.Position = UDim2.fromOffset(6, 4)
-			name.Size = UDim2.new(1, -12, 0, 22)
+			name.Position = UDim2.fromOffset(6, if compact then 3 else 4)
+			name.Size = UDim2.new(1, -12, 0, if compact then 18 else 22)
 			name.TextColor3 = rarity.color
-			local nameLimit = Instance.new("UITextSizeConstraint")
-			nameLimit.MaxTextSize = 18
-			nameLimit.Parent = name
+			textCap(name, if compact then 15 else 18)
 			local detail = Widgets.label(
 				if owned > 0
-					then `{rarity.name} · {pet.kind}\n{pet.description}`
-					else `{rarity.name}\nAún no la tienes`,
+					then `{rarity.name} · {pet.kind}{if compact then "" else "\n" .. pet.description}`
+					else `{rarity.name}{if compact then "" else "\nAún no la tienes"}`,
 				card
 			)
-			detail.Position = UDim2.fromOffset(6, 28)
-			detail.Size = UDim2.new(1, -12, 0, 42)
+			detail.Position = UDim2.fromOffset(6, if compact then 21 else 28)
+			detail.Size = UDim2.new(1, -12, 0, if compact then 14 else 42)
 			detail.Font = Enum.Font.BuilderSans
 			detail.TextWrapped = true
 			detail.TextYAlignment = Enum.TextYAlignment.Top
 			detail.TextColor3 = Color3.fromRGB(215, 205, 190)
-			local detailLimit = Instance.new("UITextSizeConstraint")
-			detailLimit.MaxTextSize = 13
-			detailLimit.Parent = detail
+			textCap(detail, if compact then 11 else 13)
 			local button = Widgets.button("", card)
 			button.AnchorPoint = Vector2.new(0.5, 1)
-			button.Position = UDim2.new(0.5, 0, 1, -6)
-			button.Size = UDim2.new(1, -12, 0, 34)
+			button.Position = UDim2.new(0.5, 0, 1, if compact then -4 else -6)
+			button.Size = UDim2.new(1, -12, 0, if compact then 28 else 34)
+			if compact then
+				textCap(button, 14)
+			end
 			local limit = button:FindFirstChildOfClass("UISizeConstraint")
 			if limit then
 				limit:Destroy()
@@ -860,11 +921,12 @@ function LobbyUIController:Start()
 			ArenaWins = arenaStats.wins,
 			ArenaCaptures = arenaStats.captures,
 		}
-		local columnHeight = 26 + RANKING_SIZE * RANKING_LINE + 30
+		local lineHeight = if compactUi then RANKING_LINE_COMPACT else RANKING_LINE
+		local columnHeight = 24 + RANKING_SIZE * lineHeight + 26
 		local holder = Instance.new("Frame")
 		holder.LayoutOrder = 1
 		holder.BackgroundTransparency = 1
-		holder.Size = UDim2.new(1, -10, 0, 34 + columnHeight + 8)
+		holder.Size = UDim2.new(1, -10, 0, 30 + columnHeight + 6)
 		holder.Parent = list
 		local holderLayout = Instance.new("UIListLayout")
 		holderLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -880,17 +942,17 @@ function LobbyUIController:Start()
 			block.Parent = holder
 			corner(block, 10)
 			local blockTitle = Widgets.label(group.title, block)
-			blockTitle.Position = UDim2.fromOffset(8, 4)
-			blockTitle.Size = UDim2.new(1, -16, 0, 28)
+			blockTitle.Position = UDim2.fromOffset(8, 3)
+			blockTitle.Size = UDim2.new(1, -16, 0, 24)
 			blockTitle.TextColor3 = READY_COLOR
 			for column, board in group.boards do
 				local frame = Instance.new("Frame")
 				frame.BackgroundTransparency = 1
-				frame.Position = UDim2.new((column - 1) * 0.5, 8, 0, 34)
+				frame.Position = UDim2.new((column - 1) * 0.5, 8, 0, 30)
 				frame.Size = UDim2.new(0.5, -12, 0, columnHeight)
 				frame.Parent = block
 				local boardTitle = Widgets.label(board.title, frame)
-				boardTitle.Size = UDim2.new(1, 0, 0, 22)
+				boardTitle.Size = UDim2.new(1, 0, 0, 20)
 				boardTitle.TextXAlignment = Enum.TextXAlignment.Left
 				boardTitle.TextColor3 = Color3.fromRGB(255, 220, 150)
 				local raw = ReplicatedStorage:GetAttribute(`Leaderboard_{board.stat}`)
@@ -908,22 +970,20 @@ function LobbyUIController:Start()
 							else "",
 						frame
 					)
-					line.Position = UDim2.fromOffset(0, 26 + (position - 1) * RANKING_LINE)
-					line.Size = UDim2.new(1, 0, 0, RANKING_LINE - 2)
+					line.Position = UDim2.fromOffset(0, 24 + (position - 1) * lineHeight)
+					line.Size = UDim2.new(1, 0, 0, lineHeight - 2)
 					line.TextXAlignment = Enum.TextXAlignment.Left
 					line.Font = Enum.Font.BuilderSans
 					if entry and entry.name == player.Name then
 						line.TextColor3 = READY_COLOR
 						line.Font = Enum.Font.BuilderSansBold
 					end
-					local lineLimit = Instance.new("UITextSizeConstraint")
-					lineLimit.MaxTextSize = 17
-					lineLimit.Parent = line
+					textCap(line, if compactUi then 13 else 17)
 				end
 				local value = mine[board.stat]
 				local you = Widgets.label(`Tú: {if typeof(value) == "number" then value else 0}`, frame)
-				you.Position = UDim2.new(0, 0, 1, -26)
-				you.Size = UDim2.new(1, 0, 0, 24)
+				you.Position = UDim2.new(0, 0, 1, -24)
+				you.Size = UDim2.new(1, 0, 0, 22)
 				you.TextXAlignment = Enum.TextXAlignment.Left
 				you.TextColor3 = READY_COLOR
 				local youLimit = Instance.new("UITextSizeConstraint")
@@ -1006,13 +1066,34 @@ function LobbyUIController:Start()
 		local arena = readJson("Arena") or {}
 		local leaderId = player:GetAttribute("PartyLeader")
 		local follower = typeof(leaderId) == "number" and leaderId ~= player.UserId
+		local compact = compactUi
 
-		-- Formatos y "Buscar partida".
+		-- En una pantalla baja, dos columnas para verlo todo a la vez (como en Dunas): a la izquierda
+		-- formato, cola, tus números y los roles; a la derecha el equipo.
+		local left: Instance = list
+		local right: Instance = list
+		if compact then
+			local holder = Instance.new("Frame")
+			holder.LayoutOrder = 1
+			holder.BackgroundTransparency = 1
+			holder.Size = UDim2.new(1, -10, 0, 0)
+			holder.AutomaticSize = Enum.AutomaticSize.Y
+			holder.Parent = list
+			local holderLayout = Instance.new("UIListLayout")
+			holderLayout.FillDirection = Enum.FillDirection.Horizontal
+			holderLayout.Padding = UDim.new(0, 10)
+			holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			holderLayout.Parent = holder
+			left = pane(holder, 1, UDim.new(0.44, -5))
+			right = pane(holder, 2, UDim.new(0.56, -5))
+		end
+
+		-- Formatos y "Buscar partida" (en compacto, el botón en su propia fila).
 		local formatRow = Instance.new("Frame")
 		formatRow.LayoutOrder = 1
-		formatRow.Size = UDim2.new(1, -10, 0, 50)
+		formatRow.Size = UDim2.new(1, if compact then 0 else -10, 0, if compact then 36 else 50)
 		formatRow.BackgroundTransparency = 1
-		formatRow.Parent = list
+		formatRow.Parent = left
 		local formatLayout = Instance.new("UIListLayout")
 		formatLayout.FillDirection = Enum.FillDirection.Horizontal
 		formatLayout.Padding = UDim.new(0, 6)
@@ -1022,7 +1103,7 @@ function LobbyUIController:Start()
 		for format = Config.Arena.MinFormat, Config.Arena.MaxFormat do
 			local button = Instance.new("TextButton")
 			button.LayoutOrder = format
-			button.Size = UDim2.new(0.1, -6, 1, 0)
+			button.Size = UDim2.new(if compact then 0.2 else 0.1, -6, 1, 0)
 			button.Text = `{format}v{format}`
 			button.Font = Enum.Font.BuilderSansBold
 			button.TextScaled = true
@@ -1039,9 +1120,12 @@ function LobbyUIController:Start()
 				end
 			end)
 		end
-		local search = Widgets.button("", formatRow)
-		search.LayoutOrder = 99
-		search.Size = UDim2.new(0.5, -6, 1, 0)
+		local search = Widgets.button("", if compact then left else formatRow)
+		search.LayoutOrder = if compact then 2 else 99
+		search.Size = if compact then UDim2.new(1, 0, 0, 40) else UDim2.new(0.5, -6, 1, 0)
+		if compact then
+			textCap(search, 18)
+		end
 		local searchLimit = search:FindFirstChildOfClass("UISizeConstraint")
 		if searchLimit then
 			searchLimit:Destroy()
@@ -1066,10 +1150,11 @@ function LobbyUIController:Start()
 		end)
 
 		-- En la cola: cuánto llevas. Si no: tus números de la arena y el Ámbar de hoy.
-		local status = Widgets.label("", list)
-		status.LayoutOrder = 2
-		status.Size = UDim2.new(1, -10, 0, 24)
+		local status = Widgets.label("", left)
+		status.LayoutOrder = 3
+		status.Size = UDim2.new(1, if compact then 0 else -10, 0, if compact then 30 else 24)
 		status.TextColor3 = Color3.fromRGB(255, 220, 150)
+		status.TextWrapped = true
 		if queue then
 			status.Text = queueText(queue)
 			arenaQueueLine = status
@@ -1089,18 +1174,17 @@ function LobbyUIController:Start()
 			or Progression.validRole(player:GetAttribute("SelectedRole"))
 		arenaRole = roleId
 		-- Tarjetas con la ventaja de cada rol en combate, las mismas que en Dunas.
-		local compact = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
-		local roleCards = ArenaRoleCards.new(list, 3, 44, compact, function(id)
+		local roleCards = ArenaRoleCards.new(left, 4, if compact then 40 else 44, compact, function(id)
 			arenaRole = id
 			render()
 		end)
-		roleCards.frame.Size = UDim2.new(1, -10, 0, roleCards.frame.Size.Y.Offset)
+		roleCards.frame.Size = UDim2.new(1, if compact then 0 else -10, 0, roleCards.frame.Size.Y.Offset)
 		roleCards.update(roleId)
 
 		-- Equipo de la arena de ese rol.
 		local picker = ArenaGearPicker.new(
-			list,
-			4,
+			right,
+			5,
 			function(): string
 				return arenaRole or roleId
 			end,
@@ -1124,6 +1208,10 @@ function LobbyUIController:Start()
 			return
 		end
 		local gap = layout.Padding.Offset
+		local maxColumns = math.clamp(math.floor(list.AbsoluteSize.X / MIN_COLUMN_WIDTH), 1, MAX_COLUMNS)
+		if maxColumns < 2 then
+			return
+		end
 		local items: { GuiObject } = {}
 		for _, child in source:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -1134,7 +1222,7 @@ function LobbyUIController:Start()
 			return a.LayoutOrder < b.LayoutOrder
 		end)
 		local panes: { Frame } = {}
-		for index = 1, MAX_COLUMNS do
+		for index = 1, maxColumns do
 			local column = Instance.new("Frame")
 			column.Name = `Column{index}`
 			column.LayoutOrder = index
@@ -1181,7 +1269,7 @@ function LobbyUIController:Start()
 				heights[index] = item.AbsoluteSize.Y + gap
 				total += heights[index]
 			end
-			if columnsFor(room) <= count or count >= MAX_COLUMNS then
+			if columnsFor(room) <= count or count >= maxColumns then
 				break
 			end
 			count += 1
@@ -1217,14 +1305,28 @@ function LobbyUIController:Start()
 			return
 		end
 		local window = WINDOWS[id]
+		compactUi = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
 		windowTitle.Text = if window.icon ~= "" then `{window.icon} {window.title}` else window.title
-		panel.Size =
-			UDim2.new(if window.wide then WIDE_WIDTH else WINDOW_WIDTH, 0, panel.Size.Y.Scale, panel.Size.Y.Offset)
+		-- En una pantalla baja, todo el ancho y el alto libres; si no, centrada con su ancho.
+		local top = if compactUi then WINDOW_TOP_COMPACT else WINDOW_TOP
+		local listTop = if compactUi then LIST_TOP_COMPACT else LIST_TOP
+		panel.Position = UDim2.new(0.5, 0, 0, top)
+		windowTitle.Position = UDim2.fromOffset(14, if compactUi then 6 else 8)
+		windowTitle.Size = UDim2.new(1, -80, 0, if compactUi then 30 else 36)
+		windowTitleLimit.MaxTextSize = if compactUi then 20 else 26
+		closeButton.Size = if compactUi then UDim2.fromOffset(38, 38) else UDim2.fromOffset(44, 44)
+		closeButton.Position = UDim2.new(1, -8, 0, if compactUi then 3 else 6)
+		list.Position = UDim2.fromOffset(8, listTop)
+		list.Size = UDim2.new(1, -16, 1, -listTop - 8)
+		local widthScale = if compactUi then 1 elseif window.wide then WIDE_WIDTH else WINDOW_WIDTH
+		panel.Size = UDim2.new(widthScale, 0, panel.Size.Y.Scale, panel.Size.Y.Offset)
 		local maxWidth = if window.spread
 			then SPREAD_MAX_WIDTH
 			elseif window.wide then WIDE_MAX_WIDTH
 			else WINDOW_MAX_WIDTH
-		if not rowMode then
+		if compactUi then
+			maxWidth = gui.AbsoluteSize.X - 2 * WINDOW_MARGIN_COMPACT
+		elseif not rowMode then
 			maxWidth = math.min(maxWidth, gui.AbsoluteSize.X - 2 * BAR_ROOM)
 		end
 		sizeLimit.MaxSize = Vector2.new(maxWidth, math.huge)
@@ -1262,15 +1364,16 @@ function LobbyUIController:Start()
 			renderParty()
 		end
 
-		-- Una lista larga que no cabe en un PC se reparte en columnas cuando ya tiene su alto (un
-		-- instante después: los altos automáticos aún no están calculados).
-		if window.spread and Workspace.CurrentCamera.ViewportSize.Y >= COMPACT_BELOW then
+		-- Una ventana que no cabe en la pantalla se reparte en columnas cuando ya tiene su alto (un
+		-- instante después: los altos automáticos aún no están calculados). Las que se colocan solas
+		-- ("own") no.
+		if not window.own then
 			task.defer(function()
 				RunService.Heartbeat:Wait()
 				if thisRender ~= renderCount then
 					return
 				end
-				local room = gui.AbsoluteSize.Y - 12 - WINDOW_TOP - LIST_TOP - 10
+				local room = gui.AbsoluteSize.Y - windowBottomMargin() - top - listTop - 10
 				if listLayout.AbsoluteContentSize.Y > room then
 					-- Ajustes es un solo marco con sus apartados dentro: se reparten los apartados.
 					local settings = list:FindFirstChild("SettingsPanel")
@@ -1466,9 +1569,9 @@ function LobbyUIController:Start()
 		if not panel.Visible then
 			return
 		end
-		local bottom = gui.AbsoluteSize.Y - 12
-		local needed = LIST_TOP + listLayout.AbsoluteContentSize.Y + 10
-		local height = math.max(120, math.min(needed, bottom - WINDOW_TOP))
+		local bottom = gui.AbsoluteSize.Y - windowBottomMargin()
+		local needed = list.Position.Y.Offset + listLayout.AbsoluteContentSize.Y + 10
+		local height = math.max(120, math.min(needed, bottom - panel.Position.Y.Offset))
 		panel.Size = UDim2.new(panel.Size.X.Scale, 0, 0, height)
 	end
 	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fitWindow)
@@ -1505,28 +1608,22 @@ function LobbyUIController:Start()
 		end
 	end
 
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	local function relayout()
 		placeHud()
+		refreshHeader()
 		placeJoin()
-		fitWindow()
-	end)
+		render()
+		task.defer(fitWindow)
+	end
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(relayout)
+	-- La franja libre de la barra de Roblox puede cambiar después de empezar (en el teléfono llega
+	-- tarde): la pastilla se coloca tras sus botones.
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeHud)
 	placeHud()
+	refreshHeader()
 	-- Empieza sin ventana (coloca el botón de viaje y la línea de provisiones).
 	openWindow(nil)
 
-	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
-	local closeButton = Widgets.button("X", panel)
-	closeButton.Name = "Close"
-	closeButton.Font = Enum.Font.BuilderSansExtraBold
-	closeButton.AnchorPoint = Vector2.new(1, 0)
-	closeButton.Position = UDim2.new(1, -8, 0, 6)
-	closeButton.Size = UDim2.fromOffset(44, 44)
-	closeButton.BackgroundColor3 = CLOSE_COLOR
-	closeButton.TextColor3 = Color3.new(1, 1, 1)
-	local closeLimit = closeButton:FindFirstChildOfClass("UISizeConstraint")
-	if closeLimit then
-		closeLimit.MinSize = Vector2.new(44, 44)
-	end
 	closeButton.Activated:Connect(function()
 		openWindow(nil)
 	end)
