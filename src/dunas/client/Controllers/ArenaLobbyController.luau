@@ -5,9 +5,9 @@
 -- lo que tiene dentro, así se ve todo sin desplazarse; solo si aun así no cabe en la pantalla se
 -- desplaza.
 --   - Equipo: Jaguar o Quetzal, con cuántos hay de cuántos caben (Remotes.ArenaPickTeam).
---   - Rol: los cuatro, con su ventaja en combate debajo del nombre ("edge" en Data/Roles); el tuyo,
---     marcado en dorado; los que ya están completos en tu equipo, apagados
---     (Shared/Arena.roleAllowed; Remotes.ArenaPickRole).
+--   - Rol: los cuatro, con su ventaja en combate debajo del nombre (Shared/UI/ArenaRoleCards, las
+--     mismas tarjetas que la arena del Lobby); el tuyo, marcado en dorado; los que ya están completos
+--     en tu equipo, apagados (Shared/Arena.roleAllowed; Remotes.ArenaPickRole).
 --   - Equipo de la arena de tu rol: arma, armadura y amuleto, para ponerlo o comprarlo con Ámbar
 --     (Shared/UI/ArenaGearPicker). En una pantalla baja (un teléfono) la ventana se ensancha y se
 --     parte en dos columnas para verlo todo sin desplazarse: a la izquierda equipos, roles (2 × 2),
@@ -23,8 +23,8 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
+local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local WINDOW_COLOR = Color3.fromRGB(25, 20, 15)
@@ -32,7 +32,6 @@ local CARD_COLOR = Color3.fromRGB(45, 38, 30)
 local SQUARE_COLOR = Color3.fromRGB(40, 34, 28)
 local GOLD = Color3.fromRGB(242, 178, 36)
 local SECONDARY_TEXT = Color3.fromRGB(210, 200, 185)
-local DISABLED_COLOR = Color3.fromRGB(90, 90, 90)
 local ROW_HEIGHT = 50
 -- En pantallas de poco alto (un teléfono apaisado), filas y huecos más bajos para que quepa todo.
 local COMPACT_BELOW = 500
@@ -47,10 +46,6 @@ local COMPACT_LEFT_SHARE = 0.4
 -- Tope del texto de las casillas: con TextScaled, cada nombre saldría de un tamaño ("Mago" enorme,
 -- "Guerrero" pequeño); así salen todos iguales.
 local TEAM_TEXT_MAX = 24
-local ROLE_TEXT_MAX = 20
-local ROLE_EDGE_TEXT_MAX = 13
--- La fila de los roles es más alta: debajo del nombre va su ventaja.
-local ROLE_ROW_EXTRA = 24
 -- La ventana y el botón para reabrirla van debajo de la línea de la fase (ArenaHUDController, que
 -- acaba a 34 px), para no tapar la cuenta atrás. El marcador está arriba a la derecha, en la barra de
 -- Roblox.
@@ -114,17 +109,6 @@ local function card(parent: Instance, order: number, widthScale: number, maxText
 	stroke.Enabled = false
 	stroke.Parent = button
 	return button, stroke
-end
-
-local function rolesInOrder(): { string }
-	local ids = {}
-	for roleId in Roles do
-		table.insert(ids, roleId)
-	end
-	table.sort(ids, function(a, b)
-		return Roles[a].order < Roles[b].order
-	end)
-	return ids
 end
 
 function ArenaLobbyController:Start()
@@ -240,41 +224,10 @@ function ArenaLobbyController:Start()
 		teamCards[teamId] = { button = button, stroke = stroke }
 	end
 
-	-- Roles: en una fila de cuatro; en el teléfono, en 2 × 2.
-	local roleHeight = rowHeight + ROLE_ROW_EXTRA
-	local roleRow = row(leftPane, 2, if compact then roleHeight * 2 + 6 else roleHeight)
-	if compact then
-		(roleRow:FindFirstChildOfClass("UIListLayout") :: UIListLayout):Destroy()
-		local grid = Instance.new("UIGridLayout")
-		grid.CellSize = UDim2.new(0.5, -3, 0, roleHeight)
-		grid.CellPadding = UDim2.fromOffset(6, 6)
-		grid.SortOrder = Enum.SortOrder.LayoutOrder
-		grid.Parent = roleRow
-	end
-	type RoleCard = { button: TextButton, stroke: UIStroke, name: TextLabel, edge: TextLabel }
-	local roleCards: { [string]: RoleCard } = {}
-	for index, roleId in rolesInOrder() do
-		local button, stroke = card(roleRow, index, 0.25, ROLE_TEXT_MAX)
-		local role = Roles[roleId]
-		button.Text = ""
-		local name = Widgets.label(`{role.icon} {role.name}`, button)
-		name.Size = UDim2.fromScale(1, 0.45)
-		local nameLimit = Instance.new("UITextSizeConstraint")
-		nameLimit.MaxTextSize = ROLE_TEXT_MAX
-		nameLimit.Parent = name
-		local edge = Widgets.label(role.edge, button)
-		edge.Font = Enum.Font.BuilderSans
-		edge.TextColor3 = SECONDARY_TEXT
-		edge.Position = UDim2.fromScale(0, 0.45)
-		edge.Size = UDim2.fromScale(1, 0.55)
-		local edgeLimit = Instance.new("UITextSizeConstraint")
-		edgeLimit.MaxTextSize = ROLE_EDGE_TEXT_MAX
-		edgeLimit.Parent = edge
-		button.Activated:Connect(function()
-			Remotes.ArenaPickRole:FireServer(roleId)
-		end)
-		roleCards[roleId] = { button = button, stroke = stroke, name = name, edge = edge }
-	end
+	-- Roles: en una fila de cuatro; en el teléfono, en 2 × 2 (con su ventaja debajo del nombre).
+	local roleCards = ArenaRoleCards.new(leftPane, 2, rowHeight, compact, function(roleId)
+		Remotes.ArenaPickRole:FireServer(roleId)
+	end)
 
 	-- Equipo de la arena del rol que llevas.
 	local gear = ArenaGearPicker.new(rightPane, 3, function(): string
@@ -337,13 +290,9 @@ function ArenaLobbyController:Start()
 			item.stroke.Enabled = myTeam == teamId
 		end
 		local myRole = player:GetAttribute("Role")
-		for roleId, item in roleCards do
-			local allowed = myTeam == nil or myRole == roleId or Arena.roleAllowed(player, myTeam, roleId)
-			item.stroke.Enabled = myRole == roleId
-			item.button.BackgroundColor3 = if allowed then CARD_COLOR else DISABLED_COLOR
-			item.name.TextTransparency = if allowed then 0 else 0.5
-			item.edge.TextTransparency = if allowed then 0 else 0.5
-		end
+		roleCards.update(if typeof(myRole) == "string" then myRole else nil, function(roleId)
+			return myTeam == nil or myRole == roleId or Arena.roleAllowed(player, myTeam, roleId)
+		end)
 		gear.update()
 
 		local isReady = player:GetAttribute("ArenaReady") == true

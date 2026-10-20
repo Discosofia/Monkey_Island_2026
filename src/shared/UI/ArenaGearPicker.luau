@@ -124,7 +124,8 @@ local function actionButton(
 	else
 		local cost = if item then item.cost else 0
 		local affordable = amber >= cost
-		action.Text = `✨ {cost}`
+		-- "Comprar" con el precio: el ✨ solo apenas se ve sobre el dorado.
+		action.Text = `Comprar · {cost}`
 		action.BackgroundColor3 = if affordable then GOLD else SECONDARY_BUTTON
 		action.TextColor3 = if affordable then DARK_TEXT else Color3.new(1, 1, 1)
 		action.Activated:Connect(function()

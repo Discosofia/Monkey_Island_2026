@@ -27,6 +27,7 @@ local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
+local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
@@ -815,44 +816,16 @@ function LobbyUIController:Start()
 			or (if typeof(arena.role) == "string" and Roles[arena.role] then arena.role else nil)
 			or Progression.validRole(player:GetAttribute("SelectedRole"))
 		arenaRole = roleId
-		local roleRow = Instance.new("Frame")
-		roleRow.LayoutOrder = 3
-		roleRow.Size = UDim2.new(1, -10, 0, 44)
-		roleRow.BackgroundTransparency = 1
-		roleRow.Parent = list
-		local roleLayout = Instance.new("UIListLayout")
-		roleLayout.FillDirection = Enum.FillDirection.Horizontal
-		roleLayout.Padding = UDim.new(0, 6)
-		roleLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		roleLayout.Parent = roleRow
-		for index, id in
-			sortedKeys(Roles, function(role)
-				return role.order
-			end)
-		do
-			local role = Roles[id]
-			local button = Instance.new("TextButton")
-			button.LayoutOrder = index
-			button.Size = UDim2.new(0.25, -6, 1, 0)
-			button.Text = `{role.icon} {role.name}`
-			button.Font = Enum.Font.BuilderSansBold
-			button.TextScaled = true
-			local chosen = id == roleId
-			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
-			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
-			button.Parent = roleRow
-			corner(button, 8)
-			local limit = Instance.new("UITextSizeConstraint")
-			limit.MaxTextSize = 20
-			limit.Parent = button
-			button.MouseButton1Click:Connect(function()
-				arenaRole = id
-				render()
-			end)
-		end
+		-- Tarjetas con la ventaja de cada rol en combate, las mismas que en Dunas.
+		local compact = Workspace.CurrentCamera.ViewportSize.Y < ARENA_COMPACT_BELOW
+		local roleCards = ArenaRoleCards.new(list, 3, 44, compact, function(id)
+			arenaRole = id
+			render()
+		end)
+		roleCards.frame.Size = UDim2.new(1, -10, 0, roleCards.frame.Size.Y.Offset)
+		roleCards.update(roleId)
 
 		-- Equipo de la arena de ese rol.
-		local compact = Workspace.CurrentCamera.ViewportSize.Y < ARENA_COMPACT_BELOW
 		local picker = ArenaGearPicker.new(
 			list,
 			4,
