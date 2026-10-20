@@ -19,6 +19,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "AlwaysCrit", label = "🎯 Críticos al 100 % (sí/no)" },
 		{ id = "Egg", label = "🥚 Huevo (rareza siguiente)" },
 		{ id = "HatchNow", label = "🐣 Terminar la defensa del huevo (en el nido)" },
+		{ id = "GrantEgg", label = "🥚 Huevo guardado (al nido del Lobby o la mochila)" },
 		{ id = "Crate", label = "📦 Caja de suministro" },
 		{ id = "Pet", label = "🐾 Siguiente mascota" },
 		{ id = "Rain", label = "🌧️ Lluvia" },
@@ -36,6 +37,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "GreatTroop", label = "🌕 La Gran Tropa ya" },
 		{ id = "BasecampHurt", label = "🏕️ Campamento al 10 %" },
 		{ id = "Defeat", label = "💀 Terminar: derrota" },
+		{ id = "Victory", label = "🚁 Terminar: victoria (rescate)" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

@@ -5,7 +5,9 @@
 --   - Al terminar: se para el ciclo de día y noche, cada jugador ve su resumen (días, monos,
 --     reanimaciones, caídas y Ámbar ganado) y a los Config.Match.ResultsSeconds todos vuelven al Lobby.
 --   - Otros servicios (el guardado de datos, 2.8) se enteran con MatchService.onMatchEnded.
--- La victoria (baliza de rescate) llega en la Fase 5.
+--   - Victoria (la baliza, BeaconService): si el jugador tiene un huevo incubando en el nido del Lobby,
+--     le toca una tirada que le quita horas o lo deja listo (ServerShared/Eggs); el resultado va en su
+--     resumen ("eggRoll") y la pantalla de resultados lo enseña con una ruleta.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +18,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local DayNightService = require(script.Parent.DayNightService)
 
@@ -29,6 +32,7 @@ export type Summary = {
 	deaths: number,
 	bosses: number,
 	amber: number,
+	eggRoll: Eggs.RescueOutcome?,
 }
 
 local MatchService = {}
@@ -65,6 +69,7 @@ local function summaryFor(player: Player, result: Result, days: number): Summary
 		deaths = MatchStats.get(player, MatchStats.DEATHS),
 		bosses = bosses,
 		amber = amber,
+		eggRoll = if result == "Victory" then Eggs.rescueRoll(player) else nil,
 	}
 end
 

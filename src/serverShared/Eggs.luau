@@ -145,6 +145,29 @@ function Eggs.addFreeTime(player: Player, seconds: number): number
 	end) or 0
 end
 
+-- Resultado de la tirada del rescate: lo que salió en la ruleta y lo que de verdad se le quitó al
+-- huevo (puede ser menos por el tope de lo ganado jugando, o lo que faltaba si salió la eclosión).
+export type RescueOutcome = { rarity: string, hatch: boolean, rolledSeconds: number, appliedSeconds: number }
+
+-- Tirada al ganar una partida (Config.Egg.RescueRoll). nil si no hay huevo en el nido o ya está listo.
+function Eggs.rescueRoll(player: Player): RescueOutcome?
+	local roll = EggIncubation.rollRescue(rng)
+	return edit(player, function(data): RescueOutcome?
+		local nest = data.nest
+		local time = now()
+		if not nest or EggIncubation.isReady(nest, time) then
+			return nil
+		end
+		if roll.hatch then
+			local left = EggIncubation.remaining(nest, time)
+			nest.ready = true
+			return { rarity = nest.rarity, hatch = true, rolledSeconds = 0, appliedSeconds = left }
+		end
+		local applied = EggIncubation.addPlayTime(nest, roll.seconds, time)
+		return { rarity = nest.rarity, hatch = false, rolledSeconds = roll.seconds, appliedSeconds = applied }
+	end)
+end
+
 -- Deja listo ya el huevo del nido (eclosión inmediata del rescate). false si no hay huevo.
 function Eggs.makeReady(player: Player): boolean
 	return edit(player, function(data): boolean

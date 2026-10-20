@@ -1,15 +1,64 @@
 --!strict
 -- Pantalla de resultados al terminar la partida (Fase 2.7): días sobrevividos, tus estadísticas,
 -- el Ámbar ganado y un botón para volver ya al Lobby (si no, el servidor os envía a todos).
+-- Al ganar con un huevo incubando en el nido del Lobby, una ruleta enseña su tirada del rescate
+-- ("eggRoll" del resumen, MatchService): las horas que le quita o la eclosión inmediata.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
+local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
+-- Cian del huevo (como su línea de estado en el HUD).
+local EGG_COLOR = Color3.fromRGB(150, 240, 255)
+-- Ruleta: cuántas veces cambia antes de pararse y cuánto se frena en cada cambio.
+local ROULETTE_STEPS = 20
+local ROULETTE_FIRST_DELAY = 0.05
+local ROULETTE_SLOWDOWN = 1.17
+
 local ResultsController = {}
+
+local function rollText(hatch: boolean, seconds: number): string
+	return if hatch then "🐣 ¡Eclosión!" else `⏩ −{seconds // 3600} h`
+end
+
+-- La ruleta pasa por todos los premios posibles, se frena y se para en el que tocó. Luego dice qué
+-- le ha pasado al huevo (con el tope de lo que se acelera jugando, puede ser menos de lo que salió).
+local function playRoulette(wheel: TextLabel, detail: TextLabel, roll: { [string]: any })
+	local options = {}
+	for _, option in Config.Egg.RescueRoll do
+		table.insert(options, rollText(option.hatch, option.hours * 3600))
+	end
+	local final = rollText(roll.hatch == true, tonumber(roll.rolledSeconds) or 0)
+	local delay = ROULETTE_FIRST_DELAY
+	for step = 1, ROULETTE_STEPS do
+		wheel.Text = `🥚 Tirada del rescate: {options[step % #options + 1]}`
+		task.wait(delay)
+		delay *= ROULETTE_SLOWDOWN
+	end
+	wheel.Text = `🥚 Tirada del rescate: {final}`
+	local scale = Instance.new("UIScale")
+	scale.Scale = 1.35
+	scale.Parent = wheel
+	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+
+	local rarity = Rarities[roll.rarity]
+	local name = if rarity then rarity.name else ""
+	local applied = tonumber(roll.appliedSeconds) or 0
+	if roll.hatch then
+		detail.Text = `¡Tu huevo {name} está listo! Ábrelo en el nido del Lobby`
+	elseif applied < (tonumber(roll.rolledSeconds) or 0) then
+		detail.Text =
+			`Tu huevo {name}: −{EggIncubation.formatTime(applied)} (llegó al tope de lo que se acelera jugando)`
+	else
+		detail.Text = `Tu huevo {name} del nido: −{EggIncubation.formatTime(applied)}`
+	end
+end
 
 local function show(summary: { [string]: any })
 	local player = Players.LocalPlayer
@@ -26,7 +75,11 @@ local function show(summary: { [string]: any })
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromScale(0.6, 0.7)
+	-- Con la tirada del huevo hay dos líneas más: la ventana crece y lo demás encoge un poco.
+	local roll = if typeof(summary.eggRoll) == "table" then summary.eggRoll else nil
+	local panelHeight = if roll then 0.86 else 0.7
+	local fit = 0.7 / panelHeight
+	panel.Size = UDim2.fromScale(0.6, panelHeight)
 	panel.BackgroundColor3 = Color3.fromRGB(30, 24, 18)
 	panel.Parent = gui
 	local corner = Instance.new("UICorner")
@@ -34,12 +87,12 @@ local function show(summary: { [string]: any })
 	corner.Parent = panel
 	local sizeLimit = Instance.new("UISizeConstraint")
 	sizeLimit.MinSize = Vector2.new(300, 280)
-	sizeLimit.MaxSize = Vector2.new(560, 480)
+	sizeLimit.MaxSize = Vector2.new(560, 480 / fit)
 	sizeLimit.Parent = panel
 	local layout = Instance.new("UIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0.02, 0)
+	layout.Padding = UDim.new(0.02 * fit, 0)
 	layout.Parent = panel
 	local padding = Instance.new("UIPadding")
 	padding.PaddingTop = UDim.new(0.05, 0)
@@ -64,21 +117,34 @@ local function show(summary: { [string]: any })
 	for index, line in lines do
 		local label = Widgets.label(line.text, panel)
 		label.LayoutOrder = index
-		label.Size = UDim2.fromScale(0.9, line.height)
+		label.Size = UDim2.fromScale(0.9, line.height * fit)
 		label.TextColor3 = line.color
+	end
+	local order = #lines
+	if roll then
+		local wheel = Widgets.label("🥚 Tirada del rescate", panel)
+		wheel.LayoutOrder = order + 1
+		wheel.Size = UDim2.fromScale(0.9, 0.1 * fit)
+		wheel.TextColor3 = EGG_COLOR
+		local detail = Widgets.label("", panel)
+		detail.LayoutOrder = order + 2
+		detail.Size = UDim2.fromScale(0.9, 0.06 * fit)
+		detail.TextColor3 = plain
+		order += 2
+		task.spawn(playRoulette, wheel, detail, roll)
 	end
 
 	local button = Widgets.button("Volver al Lobby", panel)
-	button.LayoutOrder = #lines + 1
-	button.Size = UDim2.fromScale(0.6, 0.13)
+	button.LayoutOrder = order + 1
+	button.Size = UDim2.fromScale(0.6, 0.13 * fit)
 	button.MouseButton1Click:Connect(function()
 		button.Text = "Viajando…"
 		Remotes.RequestReturnToLobby:FireServer()
 	end)
 
 	local countdown = Widgets.label("", panel)
-	countdown.LayoutOrder = #lines + 2
-	countdown.Size = UDim2.fromScale(0.9, 0.06)
+	countdown.LayoutOrder = order + 2
+	countdown.Size = UDim2.fromScale(0.9, 0.06 * fit)
 	countdown.TextColor3 = Color3.fromRGB(180, 170, 160)
 	task.spawn(function()
 		for remaining = Config.Match.ResultsSeconds, 0, -1 do

@@ -4,6 +4,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
@@ -24,6 +25,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
+local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
@@ -440,6 +442,12 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			Remotes.Notify:FireClient(player, "Ya hay un huevo en camino o en el nido")
 		end
 	end,
+	-- Un huevo guardado sin hacer el evento, para probar el nido del Lobby desde aquí (días, rescate).
+	GrantEgg = function(player)
+		debugEggIndex = debugEggIndex % #DEBUG_EGG_RARITIES + 1
+		local rarity = DEBUG_EGG_RARITIES[debugEggIndex]
+		Remotes.Notify:FireClient(player, `🥚 Huevo de prueba ({rarity}): {Eggs.grant(player, rarity) or "?"}`)
+	end,
 	HatchNow = function(player)
 		if not EggService.hatchNow() then
 			Remotes.Notify:FireClient(player, "Primero lleva un huevo al nido")
@@ -528,6 +536,9 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Defeat = function()
 		MatchService.endMatch("Defeat")
+	end,
+	Victory = function()
+		MatchService.endMatch("Victory")
 	end,
 }
 
