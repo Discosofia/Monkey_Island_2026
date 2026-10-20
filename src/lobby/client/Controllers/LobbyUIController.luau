@@ -133,6 +133,9 @@ local INVITE_HEIGHT = 48
 local BAR_ROW_BUTTON = 44
 local SQUARE_COLOR = Color3.fromRGB(40, 34, 28)
 local BADGE_COLOR = Color3.fromRGB(235, 70, 60)
+-- Aura que palpita alrededor de lo que conviene pulsar ahora (el atajo a los talentos): del rojo del
+-- punto de aviso de la barra, se ensancha y se apaga en bucle.
+local AURA_PULSE = TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 -- El título grande se va a los pocos segundos de llegar (o al abrir una ventana).
 local TITLE_SECONDS = 5
 -- Ranking: las cuatro clasificaciones (LeaderboardService) en dos bloques, y cuántos puestos.
@@ -233,6 +236,17 @@ local function newRow(parent: Instance, order: number): Row
 		textCap(button, 15)
 	end
 	return { frame = frame, title = title, detail = detail, button = button }
+end
+
+-- Aura roja que palpita en el borde de "object" (se para sola al destruirlo).
+local function pulseAura(object: GuiObject, thickness: number)
+	local aura = Instance.new("UIStroke")
+	aura.Name = "Aura"
+	aura.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	aura.Color = BADGE_COLOR
+	aura.Thickness = thickness
+	aura.Parent = object
+	TweenService:Create(aura, AURA_PULSE, { Thickness = thickness * 2.5, Transparency = 0.7 }):Play()
 end
 
 local function setButton(button: TextButton, text: string, enabled: boolean)
@@ -400,6 +414,9 @@ function LobbyUIController:Start()
 	-- Sube con cada dibujo: lo que se hace un instante después (repartir en columnas) mira que siga
 	-- siendo el mismo.
 	local renderCount = 0
+	-- Se ha elegido un rol con la ventana de roles abierta (enciende el aura del atajo a los talentos
+	-- hasta cerrarla).
+	local rolePicked = false
 	-- Lo que deja libre la ventana abajo (en una pantalla baja, casi nada).
 	local function windowBottomMargin(): number
 		return if compactUi then 4 else 12
@@ -449,6 +466,8 @@ function LobbyUIController:Start()
 			setButton(row.button, if isSelected then "Elegido" else "Elegir", not isSelected)
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.SelectRole:FireServer(roleId)
+				-- Al cambiar de rol, el atajo a sus talentos se ilumina para invitar a mirarlos.
+				rolePicked = true
 			end)
 		end
 		-- Atajo a los talentos del rol elegido (también están en la barra del menú).
@@ -459,10 +478,15 @@ function LobbyUIController:Start()
 		talents.detail.Text = if points > 0
 			then `Tienes {points} punto(s) libre(s) para aprender`
 			else "Mejora tu rol con los puntos que ganas al subir de nivel"
-		setButton(talents.button, "Ver talentos", true)
+		setButton(talents.button, if points > 0 then `Ver talentos ({points})` else "Ver talentos", true)
 		talents.button.MouseButton1Click:Connect(function()
 			openWindow("Talentos")
 		end)
+		-- Con puntos por gastar, o recién elegido el rol, el atajo palpita con un aura roja.
+		if points > 0 or rolePicked then
+			pulseAura(talents.frame, 2)
+			pulseAura(talents.button, 2)
+		end
 	end
 
 	local function renderTalents(data: Progression.ProgressData)
@@ -1586,6 +1610,9 @@ function LobbyUIController:Start()
 	playerGui.ChildAdded:Connect(showCombatHud)
 
 	function openWindow(id: string?, prompt: ProximityPrompt?)
+		if id ~= "Rol" then
+			rolePicked = false
+		end
 		currentWindow = id
 		windowPrompt = if id then prompt else nil
 		local open = id ~= nil

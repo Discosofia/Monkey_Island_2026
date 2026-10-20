@@ -60,6 +60,7 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Paneles translúcidos del HUD | 20–25, 20–25, 20–25 al 0.25–0.35 | barras, materiales, habilidades, combos, avisos |
 | Botón secundario (Studio, deshabilitado) | 90, 90, 110 / 90, 90, 90 | "Saltar fase", recetas bloqueadas |
 | Cerrar X | 150, 60, 50 | ventanas de Ajustes y Bolsa, menú del Lobby |
+| Aviso pendiente (punto rojo, aura que palpita) | 235, 70, 60 | punto rojo de los iconos de la barra del Lobby, aura del atajo a los talentos (`pulseAura`) |
 | Seguro / válido / curación | 120, 230, 140 · 90, 230, 110 | Basecamp, construcción válida, curación |
 | Peligro / aviso | 255, 170, 60 | fuera del Basecamp |
 | Error / daño / no válido | 235, 70, 60 · 255, 70, 70 · 240, 70, 60 | barra baja, daño recibido, construcción no válida |
@@ -121,6 +122,18 @@ Reglas que salen de ahí:
   `UIListLayout` (relleno 4–6 px) y `AutomaticCanvasSize = Y`.
 - Separación desde el borde de la pantalla: **12 px** (columna de la izquierda) o **2 %** de la
   pantalla (`0.02` / `0.98`) en lo que usa escala. No mezcles las dos en un mismo borde.
+- **Invitar a pulsar algo** (lo que el jugador debería mirar ahora: talentos por gastar tras elegir
+  rol): un **aura roja que palpita**, `UIStroke` de 235, 70, 60 cuyo grosor se multiplica por 2,5 y
+  se apaga en bucle (`TweenInfo` 0,7 s, Sine, repetición -1, de ida y vuelta), en la fila y en su
+  botón (`pulseAura` de `LobbyUIController`). Va con el mismo rojo que el punto de aviso de la barra,
+  para que el jugador relacione los dos. El usuario lo pidió así (20-10-2026): el botón dorado solo
+  no destacaba entre los demás botones dorados.
+- **Ventanas que aprovechan la pantalla** (el usuario lo pide): en PC se ajustan a su contenido sin
+  desplazarse y, si no caben, se reparten en columnas; en un teléfono (menos de 500 px de alto)
+  ocupan todo el ancho y el alto libres con filas y textos más pequeños (tope de 16/12/15 px para
+  título/detalle/botón) y también se reparten en columnas de al menos 280 px. Con una ventana abierta
+  se esconde lo que la tapa en el teléfono: los botones táctiles de combate (`ActionButtons`) y la
+  `TouchGui` de Roblox (joystick y salto).
 - Animaciones de interfaz: `TweenService` con un "pop" de escala (`UIScale` 1.35 → 1, el crítico
   1.7 → 1 con un giro de ±8°) y fundidos de transparencia. Cortas: 0.15–0.4 s.
 

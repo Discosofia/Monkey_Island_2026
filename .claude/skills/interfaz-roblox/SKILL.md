@@ -204,6 +204,28 @@ práctica del Basecamp. Los avisos de estado se fuerzan igual ("👑 Siguiente j
 
 ## Si algo no cuadra
 
+- **Emulador de dispositivos y `user_mouse_input`**: con el emulador activo, los clics por
+  `instance_path` o por coordenadas aciertan cerca del centro pero fallan en los botones de los
+  extremos (el visor del emulador está escalado dentro de la ventana de Studio). No es un fallo del
+  juego: compruébalo con `PlayerGui:GetGuiObjectsAtPosition(x, y)` (en coordenadas de la interfaz,
+  negativas dentro de la franja de la barra de Roblox) y pide al usuario que lo pulse él. Con el
+  emulador, `screen_capture` sale reducida (unos 0,75).
+- **Abrir una ventana que abre un `ProximityPrompt`** (las estaciones del Lobby): coloca al personaje
+  delante desde `Server` (`PivotTo` a unos 7 studs, en el lado al que mira el cartel, no detrás) y, en
+  `Client`, `prompt:InputHoldBegin()` y `InputHoldEnd()`. Solo funciona si el aviso está a la vista
+  (dentro de su `MaxActivationDistance`).
+- **Medir si una ventana necesita desplazarse**: deja en `Client` un bucle que guarde en `_G` el
+  `AbsoluteContentSize` del `UIListLayout`, el `AbsoluteCanvasSize` y el `AbsoluteWindowSize` del
+  `ScrollingFrame` por título de ventana, abre las ventanas una tras otra con `user_mouse_input` y
+  léelo al final; es más rápido que una captura por ventana.
+- **`GuiService.TopbarInset` llega tarde en el teléfono**: lo que se coloque tras los botones de
+  Roblox tiene que escuchar `GetPropertyChangedSignal("TopbarInset")`, o queda debajo de ellos.
+- **Altos automáticos**: justo después de crear un `Frame` con `AutomaticSize`, su `AbsoluteSize`
+  aún no está calculado; espera un `RunService.Heartbeat:Wait()` antes de medirlo (repartir en
+  columnas, ajustar una ventana).
+- **Si el usuario está en Play** (lo ves con `get_studio_state` sin haberlo arrancado tú), no lo
+  pares para probar tu cambio: dile que lo reinicie él o pídele permiso.
+
 - "No veo el cambio" en Play → Rojo desconectado o Studio sin sincronizar; compruébalo con
   `script_grep`. En la maqueta → caché de `require` (usa `UI.freshRequire`; los `require` internos
   del módulo siguen en caché).
