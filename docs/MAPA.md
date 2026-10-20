@@ -71,9 +71,9 @@ El Lobby es el banco de arena donde encalló el barco de los náufragos, con la 
 
 | Qué | Dónde |
 |---|---|
-| **Plaza**: círculo de arena libre (centro en (10, −3), radio de unos 40 studs) donde se juntan los jugadores, con la hoguera y sus bancos, la llegada y el **nido de huevos** | Centro del banco de arena |
+| **Plaza**: círculo de arena libre (centro en (10, −3), radio de unos 40 studs) donde se juntan los jugadores, con la hoguera y sus bancos, la llegada y el **nido de huevos** (delante del cartel de las mascotas, en (−10, −24)) | Centro del banco de arena |
 | **Muñecos de práctica** (3, los del Basecamp; `LobbyDummyService`) para probar las armas y habilidades del rol | Borde oeste de la plaza |
-| Carteles en el borde de la plaza, mirando a su centro: **Bitácora del capitán** (el lore), **Elige tu rol**, **Ranking** y **🎖️ Isla de dunas ☠️** (ranking de la arena) | De arriba a la derecha, en ese orden |
+| Carteles en el borde de la plaza, mirando a su centro: **🐾 Mascotas** (el huevo del nido de cada jugador; tapa el nombre de la proa), **Bitácora del capitán** (el lore), **Elige tu rol**, **Ranking** (supervivencia y arena) y **🎖️Isla de dunas☠️(PvP)** (tu estado en la arena y la cola). Roles, ranking, Dunas y el nido son estaciones: su aviso abre su ventana y tienen un icono flotante encima | De arriba a la izquierda a la derecha, en ese orden |
 | Carguero «Esperanza» encallado: casco de acero con boquete y bodega, castillo blanco con puente de mando, chimenea, radar y luces de navegación, contenedores en cubierta (uno a punto de caer) y grúa | Arriba a la izquierda, fuera de la plaza, con la proa al noreste |
 | Pasarela metálica a la cubierta y escalera exterior al castillo | Costado del barco que da a la plaza |
 | Ancla con cadena hasta la proa | Detrás de la bitácora |

@@ -116,12 +116,12 @@ Marca cada casilla al comprobarla.
 
 En el place **Lobby**, con ▶:
 
-1. [ ] Pestaña **Rol**: salen **Guerrero, Cazador, Mago y Médico**, cada uno con su pasiva y sus 4 habilidades. Elige **Médico**.
+1. [ ] Ve al cartel **Elige tu rol** y pulsa **E**: salen **Guerrero, Cazador, Mago y Médico**, cada uno con su pasiva y sus habilidades. Elige **Médico**.
    ✅ El botón pasa a "Elegido".
    - Si tenías XP con el antiguo **Recolector**, ahora es del **Mago** y sus puntos de talento están libres.
-2. [ ] En 🛠️, pulsa **⭐ +300 XP del rol**. Pestaña **Talentos**.
+2. [ ] En 🛠️, pulsa **⭐ +300 XP del rol**. Icono **🌟 Talentos** de la barra (o "Ver talentos" en la ventana de roles, que palpita en rojo).
    ✅ "3 puntos libres": aprende un rango de cualquier talento.
-3. [ ] En 🛠️, pulsa **✨ +500 Ámbar**. Pestaña **Tienda**: compra **Corazón fuerte** y **Kit de náufrago**.
+3. [ ] En 🛠️, pulsa **✨ +500 Ámbar**. Icono **🛒 Tienda**: compra **Corazón fuerte** y **Kit de náufrago**.
    ✅ El Ámbar baja y sube el rango (1/3).
 4. [ ] **Grupo** (con 2 jugadores): el jugador 1 invita al 2; al 2 le sale **"te invita a su grupo"** y pulsa Aceptar.
    ✅ Los dos ven **"👥 Grupo: …"**. El viaje en grupo solo se puede probar publicado (paso 6.4 final).
@@ -131,9 +131,9 @@ En el place **Lobby**, con ▶:
 En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](MAPA.md), Lobby):
 
 1. [ ] Apareces en el borde sur de la **plaza**, un óvalo de arena libre, con luz de atardecer.
-   ✅ Dentro solo están la hoguera, el nido de huevos y tres muñecos de práctica (a la izquierda). Los carteles hacen de borde y miran al centro: arriba la **Bitácora del capitán**, arriba a la derecha **Elige tu rol**, a la derecha el **Ranking** y debajo el de la **🎖️ Isla de dunas ☠️**. Arriba a la izquierda, fuera de la plaza, el carguero **«Esperanza»** encallado y escorado: casco de acero azul y rojo con un **boquete** por el que se ve la bodega (cajas, bidones, bananas y una luz de emergencia), castillo blanco con puente de mando, chimenea y radar, contenedores de colores en cubierta (uno a punto de caer por la borda) y una grúa amarilla. Al fondo, la **isla con el volcán humeando** y ríos de lava.
-2. [ ] Pulsa **📜 Ocultar menú** (abajo a la izquierda) y pasea.
-   ✅ El panel se pliega y vuelve con **📜 Abrir menú**.
+   ✅ Dentro solo están la hoguera, el nido de huevos y tres muñecos de práctica (a la izquierda). Los carteles hacen de borde y miran al centro: arriba a la izquierda **🐾 Mascotas** (con el nido delante), arriba la **Bitácora del capitán**, arriba a la derecha **Elige tu rol**, a la derecha el **Ranking** y debajo el de la **🎖️Isla de dunas☠️(PvP)**. Arriba a la izquierda, fuera de la plaza, el carguero **«Esperanza»** encallado y escorado: casco de acero azul y rojo con un **boquete** por el que se ve la bodega (cajas, bidones, bananas y una luz de emergencia), castillo blanco con puente de mando, chimenea y radar, contenedores de colores en cubierta (uno a punto de caer por la borda) y una grúa amarilla. Al fondo, la **isla con el volcán humeando** y ríos de lava.
+2. [ ] Mira la interfaz al llegar.
+   ✅ El título se va a los 5 s; arriba queda la pastilla del Ámbar. A la izquierda, la barra de iconos (Talentos, Tienda, Misiones, Estilo, Grupo, Diario, Ajustes) y "Invitar amigos" debajo. No hay ventana abierta. Lo comprueba entero la sección 9.
 3. [ ] Sube por la **pasarela metálica** a la cubierta y entra por el boquete a la bodega.
    ✅ Se puede andar por la cubierta entre los contenedores, subir por la escalera exterior al techo del primer piso del castillo y entrar en la bodega.
 4. [ ] Mira el campamento, abajo a la izquierda fuera de la plaza: tienda de lona azul, contenedores varados (uno abierto con cajas PRIMAL), cajas y bidones. Detrás de la bitácora, el ancla con su cadena hasta la proa.
@@ -142,7 +142,7 @@ En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](
    ✅ Hace lo mismo que el botón **🍌 Ir a la Isla de monos 🐒** (en Studio no viaja; publicado sí). El velero del embarcadero, al pie del cartel de la arena, dice **"Zarpar a la Isla de dunas"**.
 6. [ ] Intenta alejarte nadando.
    ✅ Un muro invisible te frena a unos 160 studs.
-7. [ ] **Probar el rol en la plaza.** Con el menú plegado, saca un arma con 1 o 2 y usa las habilidades (Z X C R V) contra los muñecos.
+7. [ ] **Probar el rol en la plaza.** Sin ventanas abiertas, saca un arma con 1 o 2 y usa las habilidades (Z X C R V) contra los muñecos.
    ✅ Arriba a la izquierda salen las casillas de las habilidades y de los combos (se esconden con el menú abierto). Los muñecos reciben daño con números, estados y combos, y reaparecen al romperse. La barra de objetos de Roblox sale abajo en el centro, con el botón **🍌 Ir a la Isla de monos 🐒** justo encima; con el menú abierto la barra se esconde y el botón baja.
 8. [ ] Cambia de rol en el cartel **Elige tu rol**.
    ✅ Cambian al momento las armas, las casillas y las habilidades, y salen listas.
@@ -255,7 +255,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 
 ## 5.3 Mascotas
 
-1. [ ] **En el Lobby:** pestaña **Mascotas**; con 🛠️ **🥚 Mascota al azar** consigues una sin jugar. Pulsa **Llevar**.
+1. [ ] **En el Lobby:** acércate al **nido** y pulsa E (ventana del nido y la colección); con 🛠️ **🥚 Mascota al azar** consigues una sin jugar. Pulsa **Llevar**.
    ✅ Te sigue su **modelo propio**, que se mueve a su manera:
    - **Tucán** (pico naranja enorme) y **guacamaya** (roja con alas amarillas y azules): vuelan batiendo las alas.
    - **Colibrí**: flota junto a tu hombro con las alas zumbando.
@@ -315,7 +315,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 ## 6.2 Clasificaciones
 
 1. [ ] Necesita datos guardados. En el **juego publicado**, juega una partida hasta perder o ganar.
-2. [ ] En el Lobby, pestaña **Ranking**.
+2. [ ] En el Lobby, cartel **Ranking** (pulsa E).
    ✅ Se actualiza cada **5 minutos**: "1. TuNombre — N días".
 
 ## 6.3 Analítica
@@ -325,7 +325,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 
 ## 6.4 Estilo (cosméticos) y servidores privados
 
-1. [ ] En el Lobby (Studio), pestaña **Estilo**. En Studio los cosméticos sin pase son gratis para probar: **Equipar** la Estela dorada, el Título y el Aura.
+1. [ ] En el Lobby (Studio), icono **🎨 Estilo**. En Studio los cosméticos sin pase son gratis para probar: **Equipar** la Estela dorada, el Título y el Aura.
    ✅ Se ven en tu personaje en el Lobby y en la Isla. El **Título: Superviviente de la Isla** sale con "Gana una partida" (ni en Studio es gratis; ver 7.6).
 2. [ ] En el juego publicado, sin pases creados, salen como **"Próximamente"** (normal; ver [LANZAMIENTO.md](LANZAMIENTO.md)).
 3. [ ] **Servidores privados** y **grupos viajando juntos**: solo en el juego publicado, tras activar los servidores privados en el Creator Hub.
@@ -356,7 +356,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - Ves tu personaje girando, con tu mascota al lado, y números de ejemplo.
    - Cambia entre **Junto a la cabeza**, **Columna del alto del jugador** y **Fijos en la pantalla**: el ejemplo y los números de verdad cambian al momento.
    - El panel dice el daño y el crítico de tu arma (Machete 5 %; tras forjar el Machete afilado, 10 %) y coincide con el número amarillo normal contra el muñeco.
-   - Vuelve al Lobby: en la pestaña **Ajustes** sigue la disposición elegida.
+   - Vuelve al Lobby: en **⚙️ Ajustes** sigue la disposición elegida.
 8. [ ] **Recargas nuevas:** Z, X y C tardan lo de la tabla del GDD §6.3 (el mago, un 15 % menos).
 9. [ ] **Combos** (con monos cerca; 🐒 Mandril aquí sirve). Al usar el primer paso sobre un mono, sale su icono encima (⛓️ ❄️ 💫 o 💚 en el aliado), un recuadro "Combo 1/3" bajo las habilidades y la casilla del siguiente paso se resalta en azul:
    - **Cazador:** Cepo (que lo pise un mono) → Marcar presas (el atrapado se queda sujeto otra vez) → Disparo múltiple (2 proyectiles más).
@@ -389,15 +389,15 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
 ### 7.1 Nido del Lobby
 
 1. [ ] Pulsa **🥚 Huevo (rareza siguiente)** cinco veces.
-   ✅ El primero entra en el **nido de la playa** (a la derecha de la llegada), tres van a la mochila y el quinto queda **pendiente**. Sobre el nido ves **tu** huevo con su color y "⏳ 7 h 59 min".
+   ✅ El primero entra en el **nido de la plaza** (delante del cartel 🐾 Mascotas), tres van a la mochila y el quinto queda **pendiente**. En el nido ves **tu** huevo con su color; el cartel dice "⏳ 7 h 59 min", la mochila 3/3 y "⚠️ 1 esperando sitio".
 2. [ ] Acércate al nido y pulsa **E**.
-   ✅ Se abre la pestaña **Mascotas** con el nido arriba: el huevo con su barra ("jugando le has quitado 0 s de 4 h 00 min"), **Puede salir** (las mascotas de esa rareza, ✅ las que ya tienes), la **mochila 3/3** y "⚠️ Mochila llena" con el pendiente.
+   ✅ Se abre la ventana del nido, con la colección a la derecha y a la izquierda el nido: el huevo con su barra ("jugando le has quitado 0 s de 4 h 00 min"), **Puede salir** (las mascotas de esa rareza, ✅ las que ya tienes), la **mochila 3/3** y "⚠️ Mochila llena" con el pendiente.
 3. [ ] **Descartar** un huevo de la mochila (pide una segunda pulsación, "¿Seguro?").
    ✅ +Ámbar según su rareza y el pendiente sube a la mochila.
 4. [ ] **⏩ Reloj +1 h**.
-   ✅ El cartel del nido y la barra restan una hora.
+   ✅ El cartel de las mascotas y la barra restan una hora.
 5. [ ] **🐣 Huevo del nido listo** y pulsa **🐣 Abrir**.
-   ✅ El menú se cierra, el huevo **tiembla cada vez más**, estalla y sube la mascota girando con "🐣 ¡Ha nacido …!". Si es más rara que la tuya, te acompaña. El nido queda vacío y puedes poner otro (**Al nido**).
+   ✅ La ventana se cierra, el huevo **tiembla cada vez más**, estalla y sube la mascota girando con "🐣 ¡Ha nacido …!". Si es más rara que la tuya, te acompaña. El nido queda vacío y puedes poner otro (**Al nido**).
 
 ### 7.2 Aceleración jugando
 
@@ -421,7 +421,7 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
    ✅ Sale la ventana **📅 Premio diario · día N de 7**: días 1–4 arriba, 5–7 abajo (el 7 doble y dorado), el de hoy con borde dorado y lo que da.
 2. [ ] **Cobrar**.
    ✅ "🎉 ¡Día N cobrado! …", la casilla pasa a ✅ y la ventana se cierra sola a los 5 s.
-3. [ ] Pestaña **Misiones**.
+3. [ ] Icono **🎯 Misiones**.
    ✅ El calendario, "Mañana, día N+1" con la cuenta atrás ("En 19 h 29 min") y tus provisiones.
 4. [ ] Repite **📅 Día siguiente** + **Cobrar** hasta el día 7.
    ✅ El 3 y el 6 quitan tiempo al huevo del nido (sin huevo, dan Ámbar); el 7 da un **huevo raro o mejor** y 500 de Ámbar; después vuelve al día 1.
@@ -434,13 +434,13 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
    ✅ El contador sube en pocos segundos y al cumplirla "🎯 ¡Misión cumplida! … 60 ✨ Ámbar · ⏩ −20 min a tu huevo …"; la línea pasa a ✅.
 3. [ ] **🎯 Cumplir las misiones del día**.
    ✅ Las demás se cumplen con su aviso y su premio.
-4. [ ] En el Lobby, pestaña **Misiones**, cambia de rol en **Rol**.
+4. [ ] En el Lobby, icono **🎯 Misiones**; cambia de rol en el cartel **Elige tu rol**.
    ✅ Solo cambia la misión del rol (salvo que ya estuviera cumplida). Con **📅 Día siguiente**, salen 3 nuevas.
 
 ### 7.6 Título "Superviviente de la Isla"
 
 1. [ ] Gana una partida **de verdad** (baliza → La Gran Tropa → amanecer; 6.1). La victoria del panel no lo da.
-   ✅ En los resultados: "🏝️ ¡Nuevo título: Superviviente de la Isla!". En el Lobby, pestaña **Estilo**, se puede **Equipar** y se ve en naranja sobre la cabeza.
+   ✅ En los resultados: "🏝️ ¡Nuevo título: Superviviente de la Isla!". En el Lobby, icono **🎨 Estilo**, se puede **Equipar** y se ve en naranja sobre la cabeza.
 2. [ ] Para ver solo cómo queda: **🏝️ Título Superviviente (sí/no)** en el Lobby (y otra vez para quitarlo).
 
 ---
@@ -489,7 +489,7 @@ Abre el place **Isla de Dunas** en Studio y conecta Rojo al puerto **34874**. Si
 Antes: guarda los places del Lobby y de Dunas y **publica los tres a la vez** (perfil v4).
 
 1. [ ] En el Lobby, toca el velero **Zarpar a las Dunas**.
-   ✅ Se abre la pestaña **Arena** con formato, cola y equipamiento por rol.
+   ✅ Se abre la ventana de la arena con formato, cola y equipamiento por rol (también con el cartel de la Isla de dunas).
 2. [ ] Con 2 cuentas, entrad en la cola de 1v1.
    ✅ Os juntan y viajáis al mismo servidor de Dunas, cada uno en un equipo.
 3. [ ] Con un grupo de 2, entrad en la cola de 2v2 (y otros 2 en otra cuenta o grupo).
@@ -500,6 +500,25 @@ Antes: guarda los places del Lobby y de Dunas y **publica los tres a la vez** (p
    ✅ Sin rival, se cancela y vuelves al Lobby.
 
 ---
+
+## 9. Menú del Lobby por estaciones (20-10-2026)
+
+En el place **Lobby**, con ▶. Para el móvil, elige un teléfono en *Prueba → Dispositivo* antes del ▶.
+
+1. [ ] **Guía de la primera vez** (si ya la hiciste, en 🛠️ pulsa **🧭 Repetir la guía**).
+   ✅ Un aviso arriba y un rastro dorado desde tus pies hasta **Elige tu rol**, con su icono más grande y con aro rojo. Al usar el cartel, el rastro va al **nido**. Al usar el nido: "✅ ¡Listo!" y no vuelve a salir al volver a entrar.
+2. [ ] **Iconos de las estaciones**: ⚔️ sobre los roles, 🏆 sobre el ranking, 🎖️ sobre la Isla de dunas y 🥚 sobre el nido.
+   ✅ Se ven desde lejos y suben y bajan. "!" en ⚔️ con puntos de talento libres y en 🥚 con el huevo listo o con huevos y el nido vacío; "⏳" en 🎖️ buscando partida.
+3. [ ] Acércate a un cartel con aviso o al nido.
+   ✅ Un contorno dorado lo rodea mientras el aviso está a la vista.
+4. [ ] Usa el aviso de cada estación.
+   ✅ Roles → ventana de roles (con "Ver talentos" palpitando en rojo si hay puntos); nido → nido y colección; cartel de la Isla de dunas y su velero → la arena; ranking → las cuatro clasificaciones con "Tú". Al alejarte, la ventana se cierra sola.
+5. [ ] Barra de iconos: abre cada una (y otra vez para cerrarla).
+   ✅ En PC ninguna necesita desplazarse (Diario y Ajustes en columnas). Punto rojo en Talentos con puntos libres y en Misiones con el premio del calendario por cobrar. Con una ventana abierta no están el botón de viaje ni "Invitar amigos".
+6. [ ] **Móvil**: la barra va en fila arriba a la derecha con 📨 para invitar, y la pastilla del Ámbar tras los botones de Roblox.
+   ✅ Las ventanas ocupan toda la pantalla y se reparten en columnas; la arena en dos columnas. Con una ventana abierta no se ven el joystick, el salto ni los botones de combate.
+7. [ ] Mira los carteles.
+   ✅ **🐾 Mascotas**: tu huevo con su tiempo y barra, qué puede salir, la mochila y quién te acompaña. **🎖️Isla de dunas☠️(PvP)**: tus victorias y banderas, el Ámbar de hoy y los jugadores en cola por formato. **Ranking**: supervivencia y arena, solo nombres (sin los jugadores de prueba de Studio).
 
 ## Cuando termines
 

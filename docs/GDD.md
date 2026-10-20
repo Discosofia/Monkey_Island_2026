@@ -78,6 +78,17 @@ flowchart TD
 
 **Probar el rol en el Lobby (20-10-2026).** En la plaza del Lobby cada jugador lleva las armas y las 5 habilidades de su rol elegido, con sus talentos, mejoras y mascota, y las prueba contra tres muñecos de práctica (los del Basecamp) antes de zarpar a la Isla de monos o a la Isla de dunas. Nunca afectan a otros jugadores: no les hacen daño, ni los curan, ni los protegen, ni les ponen estados (las curaciones y escudos solo van a uno mismo), y practicar no cuenta para las misiones del día. Lo deciden las reglas del combate del Lobby (`LobbyCombatRules`).
 
+**Menú del Lobby por estaciones (20-10-2026).** El menú tenía 11 pestañas y estaba saturado. Ahora lo que tiene un sitio en la plaza se usa allí: el jugador se acerca, pulsa el aviso (E o tocar) y se abre una **ventana propia** con solo eso, que se cierra sola al alejarse.
+
+| Estación (en la plaza) | Qué abre |
+|---|---|
+| Cartel **Elige tu rol** | Los cuatro roles y un atajo a los talentos del rol elegido, que palpita con un aura roja si hay puntos por gastar o se acaba de cambiar de rol |
+| **Nido de huevos**, delante del cartel **🐾 Mascotas** | El nido, la mochila, los pendientes y la colección. El cartel enseña el huevo que se incuba, la mochila y la mascota que te acompaña; se interactúa con el nido |
+| Cartel **🎖️Isla de dunas☠️(PvP)** (y su velero) | La arena: formato, cola y equipamiento por rol. El cartel enseña tus números, el Ámbar de hoy y cuántos esperan en cada formato |
+| Cartel **🏆 Ranking** | Las cuatro clasificaciones (días, rescates, victorias y banderas en la arena), con el top 10 y tu número. El cartel enseña el top 5 en dos bloques, supervivencia y arena |
+
+El resto (Talentos, Tienda, Misiones, Estilo, Grupo, Diario y Ajustes) va en una **barra de iconos**: en columna a la izquierda en PC y en fila arriba en el móvil, con un **punto rojo** cuando hay algo pendiente (talentos por gastar, premio del calendario). Arriba, una pastilla con el Ámbar y el récord; el título del juego se va a los pocos segundos. Las ventanas se ajustan a su contenido para verlo todo sin desplazarse (las listas largas, en columnas). Para que se encuentren las estaciones: un **icono flotante** sobre cada una con "!" cuando hay algo para ti, un **contorno dorado** al acercarse y una **guía la primera vez** (un rastro dorado al cartel de roles y después al nido).
+
 ---
 
 ## 4. Bucles de juego
@@ -117,7 +128,7 @@ flowchart LR
 
 El núcleo son los **huevos y las mascotas** (§11): el huevo se gana en la isla, se incuba con horas reales en el nido del lobby y jugar lo acelera. Alrededor van tres cosas que dan un motivo para volver cada día:
 
-- **Calendario de 7 días:** basta con entrar al lobby para cobrar el premio del día (una ventana al llegar y la pestaña **Misiones**). **Faltar un día no lo reinicia**: al volver se cobra el siguiente. Tras el día 7 vuelve al 1. El día cambia a las **00:00 UTC**.
+- **Calendario de 7 días:** basta con entrar al lobby para cobrar el premio del día (una ventana al llegar y la ventana **Misiones** del menú). **Faltar un día no lo reinicia**: al volver se cobra el siguiente. Tras el día 7 vuelve al 1. El día cambia a las **00:00 UTC**.
 
   | Día | Premio |
   |---|---|
@@ -129,7 +140,7 @@ El núcleo son los **huevos y las mascotas** (§11): el huevo se gana en la isla
   | 6 | Kit de reanimación + 2 super vendas + 2 h para el huevo |
   | 7 | **Huevo raro o mejor** (raro 13 · épico 6 · legendario 1) + 500 de Ámbar |
 
-- **Misiones diarias:** cada día tocan **3: dos generales y una del rol elegido** (si cambias de rol, cambia esa, salvo que ya estuviera cumplida). Generales: derrotar 15 monos, superar 1 noche, recolectar 40 recursos, ayudar a salvar 1 huevo, fabricar 3 objetos o construir 3 piezas. De rol: cerrar combos, hacer daño o usar habilidades del rol. Solo cosas que se pueden hacer **jugando solo** (nada de reanimar o curar aliados) y el daño al muñeco de práctica no cuenta. Premio: 60 de Ámbar y −20 min para el huevo (las generales) o 100 y −30 min (la del rol). En la isla se ven en un rastreador bajo los combos (solo en PC: en el móvil esa zona es la del joystick) y en el lobby en la pestaña Misiones.
+- **Misiones diarias:** cada día tocan **3: dos generales y una del rol elegido** (si cambias de rol, cambia esa, salvo que ya estuviera cumplida). Generales: derrotar 15 monos, superar 1 noche, recolectar 40 recursos, ayudar a salvar 1 huevo, fabricar 3 objetos o construir 3 piezas. De rol: cerrar combos, hacer daño o usar habilidades del rol. Solo cosas que se pueden hacer **jugando solo** (nada de reanimar o curar aliados) y el daño al muñeco de práctica no cuenta. Premio: 60 de Ámbar y −20 min para el huevo (las generales) o 100 y −30 min (la del rol). En la isla se ven en un rastreador bajo los combos (solo en PC: en el móvil esa zona es la del joystick) y en el lobby en la ventana Misiones del menú.
 - **Provisiones de partida:** el inventario de la isla no se guarda entre partidas, así que los objetos del calendario y las misiones se guardan en el perfil y **llegan a la mochila al empezar la siguiente partida**. En el lobby se ven encima de "Ir a la Isla".
 - **Título "Superviviente de la Isla":** gratis, sin Game Pass, **solo para quien gana una partida** (rescate con la baliza). Se anuncia en los resultados y se equipa en Estilo.
 
@@ -277,7 +288,7 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 - **Rojo a la izquierda:** daño que recibes. **Verde a la derecha:** curaciones. **Amarillo sobre el enemigo:** daño que haces.
 - Lo de la **mascota** sale al 70 % del tamaño; el daño de los **aliados**, al 70 % y tenue (solo cerca).
 - **Lo que recoges** (recolección, botín de monos y jefes, cajas, tu mochila al caer) sale igual, en una columna propia **a la derecha, debajo de las curaciones**: "+2 🌲 Madera" con el color de su rareza. Lo mismo recogido seguido suma en la misma línea. Se puede quitar en Ajustes.
-- En **Ajustes** (⚙️ en la Isla, pestaña en el Lobby) cada jugador elige dónde salen sus números: **junto a la cabeza**, en una **columna del alto del jugador** o **fijos en la pantalla**; y ve su personaje con un ejemplo, el daño y el crítico de su arma, sus habilidades, su combo y su mascota.
+- En **Ajustes** (⚙️ en la Isla, icono del menú en el Lobby) cada jugador elige dónde salen sus números: **junto a la cabeza**, en una **columna del alto del jugador** o **fijos en la pantalla**; y ve su personaje con un ejemplo, el daño y el crítico de su arma, sus habilidades, su combo y su mascota.
 
 ---
 
@@ -318,7 +329,7 @@ El juego es un **archipiélago de seis islas**. Se juega en dos: la del volcán 
 
 | Isla | Dónde (desde el Lobby) | Cómo se ve | Estado |
 |---|---|---|---|
-| **Lobby** (banco de arena del naufragio) | Centro | Una plaza ovalada libre con la hoguera, el nido y los muñecos de práctica, rodeada por los carteles (bitácora, roles, ranking y arena); el carguero «Esperanza» encallado arriba a la izquierda y el campamento abajo a la izquierda | Lobby |
+| **Lobby** (banco de arena del naufragio) | Centro | Una plaza ovalada libre con la hoguera, el nido y los muñecos de práctica, rodeada por los carteles (mascotas, bitácora, roles, ranking y arena); el carguero «Esperanza» encallado arriba a la izquierda y el campamento abajo a la izquierda | Lobby |
 | **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable**: place **🍌Isla de monos🐒(survival)** |
 | **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | Cerrada |
 | **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | Cerrada |
@@ -366,7 +377,7 @@ stateDiagram-v2
 
 ### 8.2 Bestiario
 
-El **diario de campo** (J en la Isla, pestaña "Diario" en el Lobby) recoge las especies y, debajo, los **jefes** (§8.2, categoría 4): cada uno sale con "???" hasta que lo derrotas (o, en un jefe, hasta que le haces daño y cae), y entonces con su descripción, zona o guarida, botín y cuántas veces.
+El **diario de campo** (J en la Isla, icono "Diario" del menú en el Lobby) recoge las especies y, debajo, los **jefes** (§8.2, categoría 4): cada uno sale con "???" hasta que lo derrotas (o, en un jefe, hasta que le haces daño y cae), y entonces con su descripción, zona o guarida, botín y cuántas veces.
 
 *Ajuste de octubre de 2026 (combos):* las tropas son un **50 % más grandes** (`Config.Monkeys.GroupSizeMultiplier`), los grupos diezmados se recuperan cada **25 s** (antes 45) y caben hasta **220** monos a la vez (antes 160), para que siempre haya con quién enlazar combos. *(18-10-2026: las tropas solo existen cerca de los jugadores y el límite, 200, cuenta solo esas; ver `docs/RENDIMIENTO.md`.)* A cambio, cada mono suelta botín con la **mitad de probabilidad** (`LootChanceMultiplier`).
 
@@ -578,7 +589,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 ### El nido del lobby
 
-- En la plaza del Lobby, delante del cartel de roles y del ranking. **Cada jugador ve en él su propio huevo** con lo que le falta; al tocarlo se abre la pestaña Mascotas con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza.
+- En la plaza del Lobby, delante del cartel **🐾 Mascotas** (a la izquierda de la bitácora). **Cada jugador ve en el nido su propio huevo**, y en el cartel lo que le falta, qué puede salir, su mochila y la mascota que le acompaña; al tocar el nido se abre su ventana con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza, y al lado la colección.
 - **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
 - **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
 - **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
@@ -627,7 +638,7 @@ Hay dos formas de pelear contra otros jugadores: en la Isla, solo si los dos lo 
 
 La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una arena de **captura la bandera** entre dos equipos, **Jaguar 🐆** y **Quetzal 🦜**, de **1v1 a 5v5**, en unas ruinas mayas dentro de un cañón del desierto. Es el sitio donde se gasta Ámbar en equipamiento que solo cuenta en la arena, y abre la primera isla del archipiélago que se veía desde el Lobby. Decidido en la entrevista del 20-10-2026.
 
-**Cómo se entra.** Desde el Lobby, en el embarcadero propio con el velero **"Zarpar a la Isla de dunas"** (al pie del cartel de la arena) o en la pestaña **Arena** del menú. Se elige formato y se entra en una **cola entre servidores** (MemoryStore), solo o en grupo: el grupo llega al mismo equipo y nunca se separa. Al juntarse las plazas de una partida se reserva un servidor de Dunas y viajan todos. No hay reemplazo de los que se van.
+**Cómo se entra.** Desde el Lobby, en el embarcadero propio con el velero **"Zarpar a la Isla de dunas"** (al pie del cartel de la arena) o en el propio cartel **🎖️Isla de dunas☠️(PvP)** de la plaza. Se elige formato y se entra en una **cola entre servidores** (MemoryStore), solo o en grupo: el grupo llega al mismo equipo y nunca se separa. Al juntarse las plazas de una partida se reserva un servidor de Dunas y viajan todos. No hay reemplazo de los que se van.
 
 **Antes de la partida.** Cada jugador elige al llegar su **base** (con un tope de N por equipo), su **rol** y su equipamiento, y pulsa **Listo**. Si están todos listos, 10 s de cuenta atrás; si no, la partida arranca igual a los **60 s** de llegar el primero. Si un equipo sigue vacío, se cancela y vuelven todos al Lobby. Hasta que empieza, las puertas de las bases están cerradas.
 
@@ -646,9 +657,9 @@ La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una ar
 - Las curaciones y los escudos solo llegan a los aliados. El veneno, la ralentización, el sueño, las marcas y los combos funcionan contra los rivales.
 - De la Isla solo llegan los **cosméticos** y la **mascota de adorno** (sin ayuda). Los talentos, las mejoras y la forja no cuentan: todos empiezan igual.
 
-**Equipamiento.** Cada rol tiene tres ranuras, **arma, armadura y amuleto**. En cada una se lleva lo básico (gratis) o una de **dos variantes** que se compran con Ámbar (24 en total, `Data/ArenaGear`). Son **horizontales**: cambian cómo juegas el rol a cambio de algo, nunca son mejores sin más. Por ejemplo, la *Maza de hueso grueso* hace que Rompehuesos pegue un 40 % más y tarde un 40 % más en recargarse, y el *Peto de escamas de ámbar* hace que el Grito proteja también a los aliados. Precios: arma 200, armadura 150 y amuleto 100 de Ámbar. La tienda está en la base y en la pestaña Arena del Lobby, con el mismo inventario.
+**Equipamiento.** Cada rol tiene tres ranuras, **arma, armadura y amuleto**. En cada una se lleva lo básico (gratis) o una de **dos variantes** que se compran con Ámbar (24 en total, `Data/ArenaGear`). Son **horizontales**: cambian cómo juegas el rol a cambio de algo, nunca son mejores sin más. Por ejemplo, la *Maza de hueso grueso* hace que Rompehuesos pegue un 40 % más y tarde un 40 % más en recargarse, y el *Peto de escamas de ámbar* hace que el Grito proteja también a los aliados. Precios: arma 200, armadura 150 y amuleto 100 de Ámbar. La tienda está en la base y en la ventana de la arena del Lobby, con el mismo inventario.
 
-**Ámbar y ranking.** Al terminar: victoria 60, empate 30 y derrota 20, más 15 por captura y 2 por baja (como mucho 20 por bajas). Hay un **tope diario de 400** para que la arena no sea la forma más rápida de ganar Ámbar. Se guardan victorias, derrotas, capturas y bajas, y en el Lobby hay un cartel propio de la arena (**victorias y banderas capturadas**) con la forma de los otros carteles de ranking.
+**Ámbar y ranking.** Al terminar: victoria 60, empate 30 y derrota 20, más 15 por captura y 2 por baja (como mucho 20 por bajas). Hay un **tope diario de 400** para que la arena no sea la forma más rápida de ganar Ámbar. Se guardan victorias, derrotas, capturas y bajas, y en el Lobby el cartel del **Ranking** tiene un bloque de la arena (**victorias y banderas capturadas**); el cartel de la Isla de dunas enseña tus números y la cola.
 
 **El mapa** (`src/dunas/server/World/ArenaBuilder`). Mide 400 × 200 studs:
 
