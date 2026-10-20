@@ -12,6 +12,8 @@
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (mejora de la tienda).
 --   - Médico: ve una barra de vida sobre la cabeza de cada aliado.
 --   - La casilla del siguiente paso del combo (Data/Combos) se resalta en azul.
+--   - Con el atributo "MovementLocked" (en la arena, quien lleva la bandera rival) no se pueden usar
+--     la Embestida ni el Parpadeo.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -26,6 +28,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 local ComboController = require(script.Parent.ComboController)
@@ -220,6 +223,10 @@ local function useAbility(player: Player, slot: number)
 		return
 	end
 	if os.clock() - (lastSentAt[slot] or -math.huge) < 0.5 then
+		return
+	end
+	if (ability.id == "Charge" or ability.id == "Blink") and player:GetAttribute("MovementLocked") == true then
+		Toast.show(`🚩 Con la bandera no puedes usar {ability.name}`)
 		return
 	end
 	local aim = Aim.direction(character)

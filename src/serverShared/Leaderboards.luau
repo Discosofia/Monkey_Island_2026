@@ -13,6 +13,8 @@ export type Entry = { userId: number, value: number }
 local Leaderboards = {}
 
 Leaderboards.STATS = { "BestDays", "Rescues" }
+-- Los de la arena de Dunas (ArenaRewardService): victorias y banderas capturadas en total.
+Leaderboards.ARENA_STATS = { "ArenaWins", "ArenaCaptures" }
 
 local stores: { [string]: OrderedDataStore } = {}
 

@@ -117,6 +117,11 @@ local Remotes = {
 	ArenaPickTeam = remoteEvent("ArenaPickTeam"),
 	ArenaPickRole = remoteEvent("ArenaPickRole"),
 	ArenaReady = remoteEvent("ArenaReady"),
+	-- Servidor -> cliente (Dunas): resultados de la partida para ese jugador (ArenaRewardService):
+	-- ganador, su Ámbar, el tope diario y los números de cada jugador.
+	ArenaResults = remoteEvent("ArenaResults"),
+	-- Cliente -> servidor (Dunas): volver al Lobby (desde los resultados).
+	ArenaLeave = remoteEvent("ArenaLeave"),
 }
 
 return Remotes

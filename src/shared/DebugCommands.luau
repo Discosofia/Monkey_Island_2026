@@ -55,6 +55,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Solo", label = "🧪 Empezar ya (aunque falte el otro equipo)" },
 		{ id = "Format", label = "👥 Siguiente formato (1v1…5v5)" },
 		{ id = "SkipPhase", label = "⏩ Saltar a la siguiente fase" },
+		{ id = "GoEnemyFlag", label = "🚩 Ir a la bandera rival" },
+		{ id = "GoHome", label = "🏠 Volver a mi pedestal" },
 		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },

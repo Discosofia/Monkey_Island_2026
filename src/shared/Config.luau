@@ -509,8 +509,27 @@ local Config = {
 		-- Al caer se reaparece en la base tras estos segundos (más si llevaba la bandera).
 		RespawnSeconds = 5,
 		CarrierRespawnSeconds = 8,
-		-- Quien lleva la bandera rival anda a esta fracción de su velocidad.
+		-- Banderas (FlagService). Quien lleva la rival anda a esta fracción de su velocidad y no puede
+		-- usar Parpadeo ni Embestida. Una bandera en el suelo vuelve sola a su base tras
+		-- FlagReturnSeconds (o al momento si la toca alguien de su equipo).
 		CarrierSpeedMultiplier = 0.85,
+		FlagReturnSeconds = 15,
+		-- Distancia (studs) a la que se coge o se devuelve una bandera, y a la que hay que llevar la
+		-- rival del pedestal propio para capturarla.
+		FlagTouchRadius = 4.5,
+		CaptureRadius = 7,
+		-- Ámbar al terminar una partida (ArenaRewardService): por resultado, por captura y por baja
+		-- (las bajas, con tope por partida), con un tope diario para que la arena no sea la forma más
+		-- rápida de conseguir Ámbar. Quien se va antes de acabar no cobra.
+		Amber = {
+			Win = 60,
+			Tie = 30,
+			Loss = 20,
+			PerCapture = 15,
+			PerKill = 2,
+			MaxFromKills = 20,
+			DailyCap = 400,
+		},
 		-- La vida se recupera sola tras RegenDelaySeconds sin recibir daño.
 		RegenDelaySeconds = 6,
 		RegenPerSecond = 4,

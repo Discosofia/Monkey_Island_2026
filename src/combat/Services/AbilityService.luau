@@ -45,6 +45,9 @@ local TRAP_JAW_RADIUS = 1.5
 local TRAP_CLOSED_ANGLE = math.rad(84)
 -- Lo más lejos del personaje que se acepta el "desde/hasta" del Parpadeo que manda el cliente.
 local BLINK_POINT_SLACK = 15
+-- Habilidades que mueven al personaje: no se pueden usar con el atributo "MovementLocked" (en la
+-- arena, quien lleva la bandera rival). El cliente (RoleController) tampoco las lanza.
+local MOVEMENT_ABILITIES = { Charge = true, Blink = true }
 
 -- Algo a lo que una habilidad puede dañar: un enemigo o un jugador rival (CombatService.canHitPlayer).
 type Target = { model: Model, humanoid: Humanoid, root: BasePart, player: Player? }
@@ -1184,6 +1187,9 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 	end
 	local handler = HANDLERS[ability.id]
 	if not handler then
+		return
+	end
+	if MOVEMENT_ABILITIES[ability.id] and player:GetAttribute("MovementLocked") == true then
 		return
 	end
 	-- Antes de aplicarla: si es el siguiente paso del combo, sus golpes ya cuentan como enlazados.

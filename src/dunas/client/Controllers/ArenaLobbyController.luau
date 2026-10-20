@@ -30,8 +30,9 @@ local ROW_HEIGHT = 50
 local TEAM_TEXT_MAX = 24
 local ROLE_TEXT_MAX = 20
 -- La ventana y el botón para reabrirla van debajo del marcador y de la línea de la fase
--- (ArenaHUDController: 10 + 44 + 6 + 28), para no tapar la cuenta atrás.
-local REOPEN_TOP = 96
+-- (ArenaHUDController: marcador, fila de las banderas y línea de la fase, que acaba a 110 px), para
+-- no tapar la cuenta atrás.
+local REOPEN_TOP = 116
 
 local ArenaLobbyController = {}
 

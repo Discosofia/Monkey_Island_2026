@@ -27,10 +27,17 @@ local RespawnService = {}
 local lastHurtAt: { [Player]: number } = {}
 local pending: { [Player]: thread } = {}
 local knockOutListeners: { (victim: Player, attacker: Player?) -> () } = {}
+local diedListeners: { (player: Player, position: Vector3) -> () } = {}
 
--- Llama a "callback" cuando un jugador cae (FlagService suelta la bandera que llevaba).
+-- Llama a "callback" cuando un rival derriba a un jugador (golpe mortal en combate).
 function RespawnService.onKnockedOut(callback: (victim: Player, attacker: Player?) -> ())
 	table.insert(knockOutListeners, callback)
+end
+
+-- Llama a "callback" cada vez que un jugador se queda sin vida, por lo que sea (también al caerse del
+-- mapa), con dónde estaba: FlagService suelta ahí la bandera que llevaba.
+function RespawnService.onDied(callback: (player: Player, position: Vector3) -> ())
+	table.insert(diedListeners, callback)
 end
 
 local function addStat(player: Player, attribute: string)
@@ -116,6 +123,9 @@ local function onCharacter(player: Player, character: Model)
 		end
 		if not pending[player] then
 			scheduleRespawn(player, carrying)
+		end
+		for _, listener in diedListeners do
+			task.spawn(listener, player, root.Position)
 		end
 	end)
 end

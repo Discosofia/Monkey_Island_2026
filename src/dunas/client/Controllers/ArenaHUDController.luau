@@ -1,7 +1,9 @@
 --!strict
 -- HUD de la arena de Dunas (estado en Shared/Arena):
---   - Arriba en el centro: marcador "🐆 0 · 8:00 · 0 🦜" con el color de cada equipo y, debajo, la
---     línea de la fase (elige equipo, cuenta atrás, muerte súbita, ganador).
+--   - Arriba en el centro: marcador "🐆 0 · 8:00 · 0 🦜" con el color de cada equipo; bajo cada
+--     casilla, dónde está la bandera de ese equipo (🏠 en casa, 🏃 robada, ⏳ segundos para volver
+--     sola) y, debajo, la línea de la fase (elige equipo, cuenta atrás, llevas la bandera, os la han
+--     robado, muerte súbita, ganador).
 --   - Arriba a la izquierda (12, 10): barras de vida y estamina, como las de la Isla. Debajo quedan
 --     las casillas de habilidades (RoleHUD, en 12, 118).
 --   - En el centro, solo mientras se espera para reaparecer: "Reapareces en 4".
@@ -24,6 +26,9 @@ local STAMINA_COLOR = Color3.fromRGB(240, 220, 80)
 local LOW_COLOR = Color3.fromRGB(235, 70, 60)
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local SCORE_SIZE = Vector2.new(300, 44)
+local FLAG_ROW_HEIGHT = 20
+-- Debajo del marcador y de la fila de las banderas. ArenaLobbyController cuelga su ventana debajo.
+local PHASE_TOP = 10 + 44 + 4 + 20 + 4
 
 local ArenaHUDController = {}
 
@@ -83,10 +88,36 @@ local function clock(seconds: number): string
 	return string.format("%d:%02d", whole // 60, whole % 60)
 end
 
+local function flagState(teamId: string): string
+	local state = ReplicatedStorage:GetAttribute(`ArenaFlag_{teamId}`)
+	return if typeof(state) == "string" then state else "Home"
+end
+
+-- Dónde está la bandera de "teamId", en corto (cabe bajo su casilla del marcador).
+local function flagText(teamId: string): string
+	local state = flagState(teamId)
+	if state == "Carried" then
+		return "🏃 ¡Robada!"
+	elseif state == "Dropped" then
+		local returnAt = ReplicatedStorage:GetAttribute(`ArenaFlagReturnAt_{teamId}`)
+		local left = if typeof(returnAt) == "number" then returnAt - Workspace:GetServerTimeNow() else 0
+		return `⏳ En el suelo {math.max(0, math.ceil(left))}`
+	end
+	return "🏠 En casa"
+end
+
 -- Texto de la línea de la fase (debajo del marcador).
 local function phaseText(player: Player): string
 	local phase = Arena.phase()
 	local left = Arena.secondsLeft()
+	local myTeam = Arena.teamOf(player)
+	if Arena.inBattle() then
+		if player:GetAttribute("CarryingFlag") ~= nil then
+			return "🚩 ¡Llevas la bandera! Llévala a tu pedestal"
+		elseif myTeam and flagState(myTeam) == "Carried" then
+			return "⚠️ ¡Os han robado la bandera! Recuperadla"
+		end
+	end
 	if phase == "Waiting" then
 		if not Arena.teamOf(player) then
 			return "Elige tu equipo"
@@ -129,10 +160,25 @@ function ArenaHUDController:Start()
 	timer.Position = UDim2.fromScale(0.5, 0.5)
 	timer.Size = UDim2.fromScale(0.34, 0.7)
 
+	-- Estado de cada bandera, bajo su casilla del marcador.
+	local flagLabels: { [string]: TextLabel } = {}
+	for _, teamId in Arena.TEAM_IDS do
+		local anchorX = if teamId == "Jaguar" then 0 else 1
+		local label = Widgets.label("", gui)
+		label.Name = `Flag{teamId}`
+		label.AnchorPoint = Vector2.new(anchorX, 0)
+		local offset = (SCORE_SIZE.X / 2) * (if anchorX == 0 then -1 else 1)
+		label.Position = UDim2.new(0.5, offset, 0, 10 + SCORE_SIZE.Y + 4)
+		label.Size = UDim2.fromOffset(SCORE_SIZE.X * 0.45, FLAG_ROW_HEIGHT)
+		label.TextXAlignment = if anchorX == 0 then Enum.TextXAlignment.Left else Enum.TextXAlignment.Right
+		label.TextStrokeTransparency = 0.3
+		flagLabels[teamId] = label
+	end
+
 	local phaseLine = Widgets.label("", gui)
 	phaseLine.Name = "Phase"
 	phaseLine.AnchorPoint = Vector2.new(0.5, 0)
-	phaseLine.Position = UDim2.new(0.5, 0, 0, 10 + SCORE_SIZE.Y + 6)
+	phaseLine.Position = UDim2.new(0.5, 0, 0, PHASE_TOP)
 	phaseLine.Size = UDim2.fromOffset(420, 28)
 	phaseLine.TextStrokeTransparency = 0.3
 
@@ -170,6 +216,15 @@ function ArenaHUDController:Start()
 			elseif phase == "SuddenDeath" then "⚡"
 			else "—"
 		phaseLine.Text = phaseText(player)
+		for teamId, label in flagLabels do
+			label.Visible = Arena.inBattle()
+			label.Text = flagText(teamId)
+			local state = flagState(teamId)
+			label.TextColor3 = if state == "Carried"
+				then Color3.fromRGB(255, 170, 60)
+				elseif state == "Dropped" then Color3.fromRGB(255, 220, 120)
+				else Color3.new(1, 1, 1)
+		end
 
 		local humanoid = if player.Character then player.Character:FindFirstChildOfClass("Humanoid") else nil
 		local health = if humanoid and humanoid.MaxHealth > 0 then humanoid.Health / humanoid.MaxHealth else 0

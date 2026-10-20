@@ -7,9 +7,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
+local ArenaWorldService = require(script.Parent.ArenaWorldService)
 
 local DUMMY_HEALTH = 300
 
@@ -69,7 +71,26 @@ local function toggleDummy(player: Player)
 	dummy = model
 end
 
+-- Lleva al jugador junto al pedestal de "teamId" (para probar las banderas sin cruzar la arena).
+local function goToStand(player: Player, teamId: string?)
+	local character = player.Character
+	if not (character and teamId) then
+		return
+	end
+	local stand = ArenaWorldService.base(teamId):FindFirstChild("FlagStand") :: BasePart
+	-- Hacia el centro de la arena, a unos pasos del pedestal.
+	local side = if stand.Position.X < 0 then 1 else -1
+	character:PivotTo(CFrame.new(stand.Position + Vector3.new(side * 6, 4, 0)))
+end
+
 local COMMANDS: { [string]: (player: Player) -> () } = {
+	GoEnemyFlag = function(player)
+		local teamId = Arena.teamOf(player)
+		goToStand(player, if teamId then Arena.otherTeam(teamId) else nil)
+	end,
+	GoHome = function(player)
+		goToStand(player, Arena.teamOf(player))
+	end,
 	Solo = function()
 		ArenaMatchService.debugSolo()
 	end,

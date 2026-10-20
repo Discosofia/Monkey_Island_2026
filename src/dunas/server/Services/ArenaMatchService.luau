@@ -22,6 +22,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
 local RespawnService = require(script.Parent.RespawnService)
@@ -150,7 +151,11 @@ local function cancel()
 	Remotes.Notify:FireAllClients("No ha llegado el otro equipo: volvéis al Lobby")
 	setPhase("Results", Config.Arena.ResultsSeconds)
 	task.delay(3, function()
-		Teleporter.send(Players:GetPlayers(), Config.PlaceIds.Lobby, "el Lobby")
+		local players = Players:GetPlayers()
+		for _, player in players do
+			PlayerData.saveNow(player)
+		end
+		Teleporter.send(players, Config.PlaceIds.Lobby, "el Lobby")
 	end)
 end
 
