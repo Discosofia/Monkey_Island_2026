@@ -26,6 +26,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Perks = require(ReplicatedStorage.Shared.Data.Perks)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
@@ -153,17 +154,28 @@ end
 
 -- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos. Si la habilidad está
 -- enlazada en el combo y el objetivo lleva su marca, es crítico seguro y hace el daño extra del combo
--- (Data/Combos "damageBonus"); si no, es crítico con la probabilidad del arma.
+-- (Data/Combos "damageBonus"); si no, es crítico con la probabilidad del arma. Contra jugadores, el
+-- combo solo cuenta con CombatRules.pvpStatus (la arena).
 local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
 	end
 	if target.player then
+		local rules = CombatRules.get()
+		local crit = false
+		if rules.pvpStatus then
+			local comboHit = ComboService.isComboHit(attacker, target.model, abilityId)
+			if comboHit then
+				amount *= 1 + ComboService.linkedDamageBonus(attacker, abilityId)
+			end
+			ComboService.touch(attacker, abilityId, target.model)
+			crit = comboHit
+		end
 		CombatService.damagePvP(
 			attacker,
 			target.player,
-			math.max(1, math.round(amount * CombatRules.get().pvpDamageMultiplier)),
-			CombatService.rollPlayerCrit(attacker)
+			math.max(1, math.round(amount * rules.pvpDamageMultiplier)),
+			crit or CombatService.rollPlayerCrit(attacker)
 		)
 	else
 		local comboHit = ComboService.isComboHit(attacker, target.model, abilityId)
@@ -182,11 +194,25 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 	end
 end
 
--- La primera habilidad del combo tocó a un enemigo (no a otro jugador en PvP): lo marca.
+-- La primera habilidad del combo tocó a un enemigo: lo marca. A otro jugador, solo con
+-- CombatRules.pvpStatus (la arena).
 local function comboOpener(player: Player, abilityId: string, target: Target)
-	if not target.player then
+	if not target.player or CombatRules.get().pvpStatus then
 		ComboService.opener(player, abilityId, target.model)
 	end
+end
+
+-- Ralentiza al objetivo (Status.slow). A un jugador, solo con CombatRules.pvpStatus y menos rato
+-- (pvpControlMultiplier); lo aplica su cliente (el controlador de movimiento del place).
+local function slowDown(target: Target, seconds: number, factor: number)
+	if target.player then
+		local rules = CombatRules.get()
+		if not rules.pvpStatus then
+			return
+		end
+		seconds *= rules.pvpControlMultiplier
+	end
+	Status.slow(target.model, seconds, factor)
 end
 
 -- Aturde, congela, inmoviliza o duerme. A un jugador lo deja quieto (atributo "StunnedUntil"), menos
@@ -369,6 +395,9 @@ local function warCry(player: Player, character: Model, root: BasePart): boolean
 		if not target.player then
 			Status.taunt(target.model, player, seconds)
 			taunted += 1
+		end
+		-- A los rivales no se les puede provocar, pero en la arena el grito también los marca y aturde.
+		if not target.player or CombatRules.get().pvpStatus then
 			if linked and ComboService.isMarkedBy(target.model, player) then
 				control(target, COMBO.WarCryStun, "Stun")
 			end
@@ -376,8 +405,34 @@ local function warCry(player: Player, character: Model, root: BasePart): boolean
 			comboOpener(player, "WarCry", target)
 		end
 	end
+	local reductionPerk = Progression.perk(player, "WarCryReduction")
 	player:SetAttribute("GuardUntil", now() + seconds)
-	player:SetAttribute("GuardReduction", Progression.perk(player, "WarCryReduction"))
+	player:SetAttribute("GuardReduction", reductionPerk)
+	-- "Peto de escamas de ámbar" (equipo de la arena, ventaja WarCryAllies): también protege a los
+	-- aliados del radio, sin quitarles una protección mayor que ya tengan.
+	if Progression.perk(player, "WarCryAllies") >= 1 then
+		local rules = CombatRules.get()
+		for _, ally in Players:GetPlayers() do
+			local allyCharacter = ally.Character
+			local allyRoot = if allyCharacter then allyCharacter:FindFirstChild("HumanoidRootPart") else nil
+			local guarded = ally:GetAttribute("GuardUntil")
+			local stronger = typeof(guarded) == "number"
+				and now() < guarded
+				and (ally:GetAttribute("GuardReduction") or 0) > reductionPerk
+			if
+				ally ~= player
+				and not stronger
+				and rules.isAlly(player, ally)
+				and allyRoot
+				and allyRoot:IsA("BasePart")
+				and (allyRoot.Position - root.Position).Magnitude <= SETTINGS.WarCryRadius
+			then
+				ally:SetAttribute("GuardUntil", now() + seconds)
+				ally:SetAttribute("GuardReduction", reductionPerk)
+				AbilityFx.all("ShieldGlare", allyCharacter)
+			end
+		end
+	end
 	AbilityFx.all("WarCry", character, seconds)
 	local reduction = math.round(Progression.perk(player, "WarCryReduction") * 100)
 	Remotes.Notify:FireClient(
@@ -494,6 +549,28 @@ local function markPrey(player: Player, _character: Model, root: BasePart): bool
 				highlight.OutlineColor = Color3.fromRGB(255, 70, 50)
 				highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 				highlight.Parent = enemy
+				Debris:AddItem(highlight, seconds)
+				marked += 1
+			end
+		end
+	end
+	-- En la arena también se marca a los rivales (reciben el daño extra en CombatService.damagePvP).
+	if CombatRules.get().pvpStatus then
+		for _, other in Players:GetPlayers() do
+			local target = playerTarget(player, other)
+			if target and (target.root.Position - root.Position).Magnitude <= SETTINGS.MarkRadius then
+				if linked and ComboService.isMarkedBy(target.model, player) then
+					control(target, COMBO.MarkPreyRoot, "Root")
+				end
+				comboOpener(player, "MarkPrey", target)
+				target.model:SetAttribute("MarkedUntil", untilTime)
+				target.model:SetAttribute("MarkBonus", bonus)
+				local highlight = Instance.new("Highlight")
+				highlight.Name = "PreyMark"
+				highlight.FillTransparency = 1
+				highlight.OutlineColor = Color3.fromRGB(255, 70, 50)
+				highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+				highlight.Parent = target.model
 				Debris:AddItem(highlight, seconds)
 				marked += 1
 			end
@@ -803,9 +880,7 @@ local function frostNova(player: Player, _character: Model, root: BasePart): boo
 		hurt(player, target, damage, "FrostNova")
 		control(target, freeze, "Freeze")
 		comboOpener(player, "FrostNova", target)
-		if not target.player then
-			Status.slow(target.model, freeze + SETTINGS.NovaSlowSeconds, SETTINGS.NovaSlowFactor)
-		end
+		slowDown(target, freeze + SETTINGS.NovaSlowSeconds, SETTINGS.NovaSlowFactor)
 	end
 	AbilityFx.all("FrostNova", root.Position, SETTINGS.NovaRadius)
 	Sfx.play("Hit", root)
@@ -883,8 +958,8 @@ local function meteor(player: Player, character: Model, root: BasePart, aim: Vec
 		Sfx.play("LavaImpact", center)
 		for _, target in targetsAround(player, center, SETTINGS.MeteorRadius) do
 			hurt(player, target, SETTINGS.MeteorDamage * scale, "Meteor")
-			if slow > 0 and not target.player then
-				Status.slow(target.model, slow, SETTINGS.NovaSlowFactor)
+			if slow > 0 then
+				slowDown(target, slow, SETTINGS.NovaSlowFactor)
 			end
 		end
 		for _ = 1, burnTicks do
@@ -920,9 +995,20 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 	end
 	local poisoned = 0
 	if finisher then
+		local rules = CombatRules.get()
 		for _, target in targetsAround(player, root.Position, SETTINGS.AreaHealRadius) do
 			if not target.player then
 				Status.poison(target.model, COMBO.SalvePoisonDps, COMBO.SalvePoisonSeconds, player, "AreaHeal")
+				poisoned += 1
+			elseif rules.pvpStatus then
+				-- A un rival, con el daño de las habilidades contra jugadores.
+				Status.poison(
+					target.model,
+					COMBO.SalvePoisonDps * rules.pvpDamageMultiplier,
+					COMBO.SalvePoisonSeconds,
+					player,
+					"AreaHeal"
+				)
 				poisoned += 1
 			end
 		end
@@ -1081,6 +1167,7 @@ local function sleepPowder(player: Player, character: Model, root: BasePart, aim
 		for _, target in targetsAround(player, center, SETTINGS.PowderRadius) do
 			hurt(player, target, SETTINGS.PowderDamage, "SleepPowder")
 			if target.player then
+				slowDown(target, drowsy, SETTINGS.PowderSlowFactor)
 				table.insert(sleepers, target)
 			elseif not Status.isBoss(target.model) then
 				Status.slow(target.model, drowsy, SETTINGS.PowderSlowFactor)
@@ -1105,7 +1192,7 @@ local function sleepPowder(player: Player, character: Model, root: BasePart, aim
 		for _, target in sleepers do
 			if target.humanoid.Health > 0 and target.model.Parent then
 				-- Antes de dormirlo: el "💤" del cliente lee si está expuesto.
-				if finisher and not target.player then
+				if finisher and (not target.player or CombatRules.get().pvpStatus) then
 					Status.expose(target.model, COMBO.PowderExposed, sleep)
 				end
 				control(target, sleep, "Sleep")
@@ -1198,8 +1285,14 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 		local rules = CombatRules.get()
 		rules.telemetry.abilityUsed(player, ability.id, linkedStep)
 		rules.progressMission(player, "Ability")
+		-- Algunas habilidades tienen su propia ventaja de recarga ("<id>Cooldown" en Data/Perks, p. ej.
+		-- SmashCooldown, del equipo de la arena).
+		local ownRate = if Perks[`{ability.id}Cooldown`] ~= nil
+			then Progression.perk(player, `{ability.id}Cooldown`)
+			else 1
 		local cooldown = ability.cooldownSeconds
 			* Progression.perk(player, "CooldownRate")
+			* ownRate
 			* ComboService.cooldownFactor(player)
 		player:SetAttribute(`AbilityReadyAt{slot}`, now() + cooldown)
 	end

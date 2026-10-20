@@ -278,6 +278,10 @@ function CombatService.heal(player: Player, amount: number, healer: Player?, opt
 	if crit then
 		amount *= Crit.MULTIPLIER
 	end
+	-- Las curaciones de un jugador (no las de la mascota) llevan el ajuste del place (en la arena, menos).
+	if healer and not heal.pet then
+		amount *= CombatRules.get().healMultiplier
+	end
 	local before = humanoid.Health
 	humanoid.Health = math.min(humanoid.MaxHealth, before + amount)
 	local healed = humanoid.Health - before
@@ -324,8 +328,16 @@ local playerFromPart = CombatService.playerFromPart
 
 -- Daño de un jugador a otro. Si le quita toda la vida, el place decide qué pasa
 -- (CombatRules.knockOut: en la Isla queda caído y se cobra su recompensa PvP).
--- "crit": golpe crítico (lo tira quien llama, con el arma del atacante).
-function CombatService.damagePvP(attacker: Player, victim: Player, amount: number, crit: boolean?): boolean
+-- "crit": golpe crítico (lo tira quien llama, con el arma del atacante). "poison": es un golpe del
+-- veneno (número morado, sin destello). Con CombatRules.pvpStatus, los marcados por un cazador y los
+-- expuestos (dormidos por la "Nana de la selva") reciben su daño extra, como los monos.
+function CombatService.damagePvP(
+	attacker: Player,
+	victim: Player,
+	amount: number,
+	crit: boolean?,
+	poison: boolean?
+): boolean
 	if not CombatService.canHitPlayer(attacker, victim) then
 		return false
 	end
@@ -334,23 +346,42 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false
 	end
-	if crit then
-		amount = math.round(amount * Crit.MULTIPLIER)
+	if CombatRules.get().pvpStatus then
+		local bonus = bonusWhile(character, "MarkedUntil", "MarkBonus")
+			+ bonusWhile(character, "ExposedUntil", "ExposedBonus")
+		if bonus ~= 0 then
+			amount *= 1 + bonus
+		end
 	end
-	amount = mitigate(victim, amount)
-	flash(character)
+	if crit then
+		amount *= Crit.MULTIPLIER
+	end
+	amount = mitigate(victim, math.max(1, math.round(amount)))
+	if not poison then
+		flash(character)
+	end
 	ComboService.onActivity(attacker)
 	if amount <= 0 then
 		CombatText.absorbed(victim, attacker)
 		return true
 	end
-	CombatText.taken(victim, amount, crit, attacker)
+	if poison then
+		CombatText.poison(character, amount, attacker, humanoid.Health - amount <= 0)
+	else
+		CombatText.taken(victim, amount, crit, attacker)
+	end
 	if humanoid.Health - amount > 0 then
 		humanoid:TakeDamage(amount)
 		return true
 	end
 	CombatRules.get().knockOut(victim, attacker, "PvP")
 	return true
+end
+
+-- Fracción del daño de "weaponId" contra jugadores (CombatRules: el general y el de esa arma).
+local function pvpWeaponScale(weaponId: string): number
+	local rules = CombatRules.get()
+	return rules.pvpWeaponMultiplier * (rules.pvpWeaponMultipliers[weaponId] or 1)
 end
 
 local function meleeAttack(
@@ -380,7 +411,7 @@ local function meleeAttack(
 		local victim = playerFromPart(part)
 		if victim and not playersHit[victim] then
 			playersHit[victim] = true
-			CombatService.damagePvP(player, victim, damage, Crit.roll(critChance))
+			CombatService.damagePvP(player, victim, damage * pvpWeaponScale(weaponId), Crit.roll(critChance))
 		end
 	end
 end
@@ -573,7 +604,13 @@ local function rangedAttack(
 			if victim then
 				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
 				task.delay(seconds, function()
-					CombatService.damagePvP(player, victim, damage, crit)
+					local pvpScale = pvpWeaponScale(weaponId)
+					local hit = CombatService.damagePvP(player, victim, damage * pvpScale, crit)
+					-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales.
+					local victimCharacter = victim.Character
+					if hit and poison and rules.pvpStatus and victimCharacter then
+						Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
+					end
 				end)
 			end
 		end
@@ -703,9 +740,16 @@ local function giveStarterWeapons(player: Player)
 end
 
 function CombatService:Start()
-	-- Cada golpe del veneno es daño de quien lo puso, sin crítico.
+	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
-		CombatService.damage(model, humanoid, amount, attacker, { poison = true, source = source })
+		local victim = Players:GetPlayerFromCharacter(model)
+		if victim then
+			if attacker then
+				CombatService.damagePvP(attacker, victim, amount, false, true)
+			end
+		else
+			CombatService.damage(model, humanoid, amount, attacker, { poison = true, source = source })
+		end
 	end)
 	Remotes.UseWeapon.OnServerEvent:Connect(onUseWeapon)
 	Remotes.Dodge.OnServerEvent:Connect(onDodge)

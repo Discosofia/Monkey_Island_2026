@@ -1,13 +1,16 @@
 --!strict
 -- HUD de la arena de Dunas (estado en Shared/Arena):
---   - Arriba en el centro: marcador "🐆 0 · 8:00 · 0 🦜" con el color de cada equipo; bajo cada
---     casilla, dónde está la bandera de ese equipo (🏠 en casa, 🏃 robada, ⏳ segundos para volver
---     sola) y, debajo, la línea de la fase (elige equipo, cuenta atrás, llevas la bandera, os la han
---     robado, muerte súbita, ganador).
+--   - Arriba a la derecha, dentro de la franja de la barra de Roblox (GuiService.TopbarInset: el hueco
+--     que deja a los juegos, que en el móvil es más bajo): marcador "🐆 0 · 8:00 · 0 🦜" con el color
+--     de cada equipo y, bajo cada casilla, dónde está la bandera de ese equipo (🏠 en casa, 🏃 robada,
+--     ⏳ segundos para volver sola).
+--   - Arriba en el centro, justo bajo la barra: la línea de la fase (elige equipo, cuenta atrás,
+--     llevas la bandera, os la han robado, muerte súbita, ganador).
 --   - Arriba a la izquierda (12, 10): barras de vida y estamina, como las de la Isla. Debajo quedan
 --     las casillas de habilidades (RoleHUD, en 12, 118).
 --   - En el centro, solo mientras se espera para reaparecer: "Reapareces en 4".
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -26,9 +29,12 @@ local STAMINA_COLOR = Color3.fromRGB(240, 220, 80)
 local LOW_COLOR = Color3.fromRGB(235, 70, 60)
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local SCORE_SIZE = Vector2.new(300, 44)
+-- El marcador no baja de esto aunque la barra de Roblox sea más baja (móvil).
+local SCORE_MIN_HEIGHT = 32
 local FLAG_ROW_HEIGHT = 20
--- Debajo del marcador y de la fila de las banderas. ArenaLobbyController cuelga su ventana debajo.
-local PHASE_TOP = 10 + 44 + 4 + 20 + 4
+-- Línea de la fase, justo bajo la barra de Roblox. ArenaLobbyController cuelga su ventana debajo
+-- (a 6 + 28 + 6 = 40 px).
+local PHASE_TOP = 6
 
 local ArenaHUDController = {}
 
@@ -141,17 +147,29 @@ end
 function ArenaHUDController:Start()
 	local player = Players.LocalPlayer
 	local gui = Widgets.screen("ArenaHUD", player:WaitForChild("PlayerGui"))
+	-- El marcador va en la barra de Roblox: en una pantalla que no la descuenta.
+	local topGui = Widgets.screen("ArenaScore", player:WaitForChild("PlayerGui"))
+	topGui.IgnoreGuiInset = true
 
 	-- Marcador y reloj.
 	local score = Instance.new("Frame")
 	score.Name = "Score"
-	score.AnchorPoint = Vector2.new(0.5, 0)
-	score.Position = UDim2.new(0.5, 0, 0, 10)
-	score.Size = UDim2.fromOffset(SCORE_SIZE.X, SCORE_SIZE.Y)
+	score.AnchorPoint = Vector2.new(1, 0)
 	score.BackgroundColor3 = PANEL_COLOR
 	score.BackgroundTransparency = 0.25
-	score.Parent = gui
+	score.Parent = topGui
 	corner(score, 14)
+	-- En la franja de la barra de Roblox, pegado a su borde derecho y centrado en su alto.
+	local function placeScore()
+		local inset = GuiService.TopbarInset
+		local height = math.clamp(inset.Height - 8, SCORE_MIN_HEIGHT, SCORE_SIZE.Y)
+		local right = if inset.Width > 0 then inset.Max.X else topGui.AbsoluteSize.X
+		score.Size = UDim2.fromOffset(SCORE_SIZE.X * height / SCORE_SIZE.Y, height)
+		score.Position = UDim2.fromOffset(right - 12, inset.Min.Y + math.max(4, (inset.Height - height) / 2))
+	end
+	placeScore()
+	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeScore)
+	topGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeScore)
 	local jaguar = scoreBox(score, "Jaguar", 0)
 	local quetzal = scoreBox(score, "Quetzal", 1)
 	local timer = Widgets.label("", score)
@@ -164,12 +182,11 @@ function ArenaHUDController:Start()
 	local flagLabels: { [string]: TextLabel } = {}
 	for _, teamId in Arena.TEAM_IDS do
 		local anchorX = if teamId == "Jaguar" then 0 else 1
-		local label = Widgets.label("", gui)
+		local label = Widgets.label("", score)
 		label.Name = `Flag{teamId}`
 		label.AnchorPoint = Vector2.new(anchorX, 0)
-		local offset = (SCORE_SIZE.X / 2) * (if anchorX == 0 then -1 else 1)
-		label.Position = UDim2.new(0.5, offset, 0, 10 + SCORE_SIZE.Y + 4)
-		label.Size = UDim2.fromOffset(SCORE_SIZE.X * 0.45, FLAG_ROW_HEIGHT)
+		label.Position = UDim2.new(anchorX, 0, 1, 4)
+		label.Size = UDim2.new(0.48, 0, 0, FLAG_ROW_HEIGHT)
 		label.TextXAlignment = if anchorX == 0 then Enum.TextXAlignment.Left else Enum.TextXAlignment.Right
 		label.TextStrokeTransparency = 0.3
 		flagLabels[teamId] = label

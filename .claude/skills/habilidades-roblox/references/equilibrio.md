@@ -116,8 +116,19 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Duración de un jefe (4 jugadores, 60 % de actividad) | 90–240 s | que dé tiempo a ver sus 3 fases; objetivo 2 min el primero y 3 min el último |
 | Un jefe con un jugador solo | ≤ 360 s | solo es más difícil, pero no eterno |
 | Curación sostenida del médico | ≤ 8 por segundo por aliado | un grupo de monos tiene que seguir siendo peligroso |
+| Arena: duelo entre dos jugadores del mismo rol (Guerrero, Cazador, Mago), 60 % de actividad | 8–10 s | da tiempo a esquivar, cerrar un combo y que el médico cure; el médico (apoyo) puede durar más |
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
+
+**20 de octubre de 2026, arena de Dunas** (sección 6 de la calculadora, `secciones = { arena = true }`;
+el equipamiento se mide con `equipo = { Guerrero = { "BoneMaul" } }` y los números con
+`Equilibrio.ultimaArena()`). Contra jugadores: armas ×0,55 (el arco ×0,7 encima), habilidades ×0,45,
+control ×0,5, curaciones ×0,6 (`Config.Arena`). Duelo espejo: Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s,
+Médico 30 s (con armas ×1 eran 4,5–6 s). El guerrero tumba a cazador y mago en 6,8 s si les alcanza
+(cuerpo a cuerpo); al médico, 11–16 s. Las 24 variantes de `Data/ArenaGear` cambian el duelo de su
+rol menos de un ±12 % (ataque o aguante), y su espejo queda en 7,6–10,6 s: las de −10 de vida a ~7,7 s
+a cambio de movilidad, la Coraza de jaguar a 10,6 s a cambio de −8 % de velocidad. Lo que ganan las de
+"área" (Garrote ligero, Arco corto) no sale en un duelo.
 
 Para comparar las propuestas. Vuelve a sacarla con la calculadora si cambian los números del juego.
 

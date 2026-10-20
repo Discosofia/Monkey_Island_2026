@@ -1,5 +1,6 @@
 --!strict
 -- Ventajas de un jugador en la Isla (Fase 3): las dan su rol, sus talentos y las mejoras de la tienda.
+-- En la arena de Dunas, su rol y el equipamiento de la arena (Data/ArenaGear).
 -- Todas se suman sobre su valor por defecto (Shared/Progression las calcula y RoleService las publica
 -- como atributos "Perk_<nombre>"). Cada sistema lee la suya con Progression.perk(player, nombre).
 
@@ -15,6 +16,8 @@ local Perks: { [string]: number } = {
 	WarCryReduction = 0.4, -- daño que se ahorra (fracción) durante "Grito de guerra"
 	QuakeStun = 2, -- segundos que aturde el "Pisotón"
 	SmashDamage = 1, -- multiplica el daño de "Rompehuesos"
+	SmashCooldown = 1, -- multiplica el tiempo de espera de "Rompehuesos"
+	WarCryAllies = 0, -- 1 = "Grito de guerra" también protege a los aliados cercanos (arena)
 	-- Cazador.
 	MultiShotCount = 5, -- proyectiles de "Disparo múltiple"
 	MarkSeconds = 5, -- duración de "Marcar presas" (con 15 s de recarga, un tercio del tiempo)
@@ -45,6 +48,9 @@ local Perks: { [string]: number } = {
 	MaxHealth = 0, -- vida máxima extra
 	HungerRate = 1, -- multiplica lo rápido que bajan el hambre y la sed
 	SprintCost = 1, -- multiplica la estamina que gasta correr
+	-- Movimiento en la arena (equipamiento de Data/ArenaGear).
+	MoveSpeed = 1, -- multiplica la velocidad al andar y al correr
+	CarrySpeed = 0, -- se suma a Config.Arena.CarrierSpeedMultiplier con la bandera rival a cuestas
 	StartKit = 0, -- cada punto: empiezas con 5 de madera, piedra y fibra
 }
 

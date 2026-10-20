@@ -536,10 +536,19 @@ local Config = {
 		-- En 4v4 y 5v5 (desde SameRoleLimitFromFormat), como mucho MaxSameRole del mismo rol por equipo.
 		SameRoleLimitFromFormat = 4,
 		MaxSameRole = 2,
-		-- Daño y aturdimientos de las habilidades contra otros jugadores. Se ajustan para que un duelo
-		-- entre dos roles iguales dure 8–10 s (calculadora ServerStorage.Tools.Equilibrio).
-		AbilityDamageMultiplier = 0.5,
+		-- Daño de las armas y de las habilidades y duración de los aturdimientos y ralentizaciones
+		-- contra otros jugadores. Ajustados (20-10-2026) para que un duelo entre dos roles iguales dure
+		-- 8–10 s al 60 % de actividad (calculadora ServerStorage.Tools.Equilibrio, sección "Arena"):
+		-- Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s. Con las armas ×1 duraban 4,5–6 s.
+		WeaponDamageMultiplier = 0.55,
+		-- Ajuste de algunas armas sobre WeaponDamageMultiplier (id de Data/Weapons → fracción). El arco
+		-- casi todo lo hace con el arma y desde lejos: sin esto, el duelo de cazadores duraba 6 s.
+		WeaponMultipliers = { Bow = 0.7 } :: { [string]: number },
+		AbilityDamageMultiplier = 0.45,
 		AbilityControlMultiplier = 0.5,
+		-- Las curaciones de los jugadores (el médico) en la arena. Con ×1 un médico se curaba 6,3 por
+		-- segundo solo y un duelo de médicos duraba 55 s; con ×0,6, 30 s (se tumba en 11–16 s).
+		HealingMultiplier = 0.6,
 		-- Los dos equipos: nombre, icono y color (bases, marcador, nombres sobre la cabeza).
 		Teams = {
 			Jaguar = { name = "Jaguar", icon = "🐆", color = Color3.fromRGB(240, 150, 40) },

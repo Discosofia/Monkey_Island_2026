@@ -3,7 +3,10 @@
 --   - Correr (Mayús mantenida; L3 o el botón táctil lo alternan) gasta estamina, que se recupera sola
 --     (CombatClient/Stamina). Esquivar también la gasta (DodgeController).
 --   - Aturdido o sujeto ("StunnedUntil", habilidades rivales): no se mueve.
---   - Con la bandera rival a cuestas ("CarryingFlag") se va más lento (Config.Arena).
+--   - Ralentizado ("SlowedUntil" y "SlowFactor" en el personaje: Nova, Meteoro, Polvo somnífero de un
+--     rival): anda a esa fracción.
+--   - Con la bandera rival a cuestas ("CarryingFlag") se va más lento (Config.Arena, menos con la
+--     ventaja CarrySpeed). El equipo de la arena puede cambiar la velocidad (ventaja MoveSpeed).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +14,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 
@@ -25,7 +29,7 @@ local function update(player: Player, deltaTime: number)
 	Stamina.update(deltaTime)
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	if not humanoid or humanoid.Health <= 0 then
+	if not (character and humanoid) or humanoid.Health <= 0 then
 		sprintToggled = false
 		return
 	end
@@ -37,9 +41,19 @@ local function update(player: Player, deltaTime: number)
 			sprintToggled = false
 		end
 	end
-	local speed = if sprinting then Config.Survival.SprintSpeed else Config.Survival.WalkSpeed
+	local speed = (if sprinting then Config.Survival.SprintSpeed else Config.Survival.WalkSpeed)
+		* Progression.perk(player, "MoveSpeed")
 	if player:GetAttribute("CarryingFlag") ~= nil then
-		speed *= Config.Arena.CarrierSpeedMultiplier
+		speed *= math.min(1, Config.Arena.CarrierSpeedMultiplier + Progression.perk(player, "CarrySpeed"))
+	end
+	local slowedUntil = character:GetAttribute("SlowedUntil")
+	local slowFactor = character:GetAttribute("SlowFactor")
+	if
+		typeof(slowedUntil) == "number"
+		and typeof(slowFactor) == "number"
+		and Workspace:GetServerTimeNow() < slowedUntil
+	then
+		speed *= slowFactor
 	end
 	local stunnedUntil = player:GetAttribute("StunnedUntil")
 	if typeof(stunnedUntil) == "number" and Workspace:GetServerTimeNow() < stunnedUntil then

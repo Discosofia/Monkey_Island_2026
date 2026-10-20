@@ -60,6 +60,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },
+		{ id = "Amber", label = "✨ +500 Ámbar" },
 	},
 }
 

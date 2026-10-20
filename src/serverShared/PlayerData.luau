@@ -183,6 +183,8 @@ local function publish(player: Player, session: Session)
 		"Retention",
 		HttpService:JSONEncode({ supplies = profile.supplies, login = profile.login, daily = profile.daily })
 	)
+	-- Arena de Dunas: lo comprado y lo puesto (ServerShared/ArenaShop), estadísticas y Ámbar de hoy.
+	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).

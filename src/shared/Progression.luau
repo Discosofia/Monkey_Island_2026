@@ -58,12 +58,14 @@ function Progression.validRole(roleId: any): string
 	return if typeof(roleId) == "string" and Roles[roleId] then roleId else Progression.DEFAULT_ROLE
 end
 
--- Ventajas de un rol con sus talentos, las mejoras de la tienda y la mascota activa.
+-- Ventajas de un rol con sus talentos, las mejoras de la tienda y la mascota activa. "extra": más
+-- tablas de ventajas que se suman (el equipamiento de la arena, Data/ArenaGear.perksOf).
 function Progression.computePerks(
 	roleId: string,
 	talents: { [string]: number },
 	upgrades: { [string]: number },
-	petId: string?
+	petId: string?,
+	extra: { { [string]: number } }?
 ): { [string]: number }
 	local perks = table.clone(Perks)
 	local role = Roles[roleId]
@@ -82,6 +84,11 @@ function Progression.computePerks(
 	local pet = if petId then Pets[petId] else nil
 	if pet and pet.perks then
 		for perk, value in pet.perks do
+			perks[perk] += value
+		end
+	end
+	for _, more in extra or {} do
+		for perk, value in more do
 			perks[perk] += value
 		end
 	end

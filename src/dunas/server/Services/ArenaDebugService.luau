@@ -5,11 +5,13 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
 
@@ -113,6 +115,11 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		end
 	end,
 	Dummy = toggleDummy,
+	Amber = function(player)
+		PlayerData.update(player, function(profile)
+			profile.amber += 500
+		end)
+	end,
 }
 
 function ArenaDebugService:Start()

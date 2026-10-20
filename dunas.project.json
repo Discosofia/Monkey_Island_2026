@@ -22,6 +22,14 @@
         "$path": "src/dunas/server"
       }
     },
+    "ServerStorage": {
+      "Tools": {
+        "$className": "Folder",
+        "Equilibrio": {
+          "$path": "src/island/tools/Equilibrio.luau"
+        }
+      }
+    },
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {

@@ -4,7 +4,9 @@
 --     (las curaciones y escudos del médico solo van a ellos).
 --   - Un golpe mortal no deja caído: cuenta la baja y se reaparece en la base (RespawnService).
 --   - Munición infinita (el arco no gasta flechas) y sin dardos venenosos, hacha ni pico.
---   - El daño y los aturdimientos de las habilidades contra jugadores son los de Config.Arena.
+--   - El daño de armas y habilidades y la duración de los aturdimientos contra jugadores son los de
+--     Config.Arena, y funciona todo lo que contra los monos: veneno, ralentizar, marcas, expuesto y
+--     los pasos del combo (pvpStatus).
 -- Lo demás (fiebre, misiones, telemetría, zona segura) se queda en los valores neutros.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,6 +33,10 @@ function DunasCombatRules:Init()
 		knockOut = RespawnService.knockOut,
 		pvpDamageMultiplier = Config.Arena.AbilityDamageMultiplier,
 		pvpControlMultiplier = Config.Arena.AbilityControlMultiplier,
+		pvpWeaponMultiplier = Config.Arena.WeaponDamageMultiplier,
+		pvpWeaponMultipliers = Config.Arena.WeaponMultipliers,
+		healMultiplier = Config.Arena.HealingMultiplier,
+		pvpStatus = true,
 	})
 end
 

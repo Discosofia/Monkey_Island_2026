@@ -25,6 +25,8 @@ export type Role = {
 	icon: string,
 	order: number,
 	passive: string, -- texto para el jugador
+	-- Su ventaja en combate en dos líneas cortas, bajo su nombre al elegir rol en la arena.
+	edge: string,
 	perks: { [string]: number },
 	weapons: { string },
 	items: { [string]: number }?,
@@ -38,6 +40,7 @@ local Roles: { [string]: Role } = {
 		icon = "⚔️",
 		order = 1,
 		passive = "+25 % de daño cuerpo a cuerpo y +20 de vida máxima.",
+		edge = "+25 % melé\n+20 de vida",
 		perks = { MeleeDamage = 0.25, MaxHealth = 20 },
 		weapons = { "StoneClub", "Honda" },
 		abilities = {
@@ -84,6 +87,7 @@ local Roles: { [string]: Role } = {
 		icon = "🏹",
 		order = 2,
 		passive = "+25 % de daño a distancia. Su carcaj recupera 1 flecha cada 3 s (hasta 30).",
+		edge = "+25 % daño\na distancia",
 		perks = { RangedDamage = 0.25 },
 		weapons = { "Bow", "Machete" },
 		items = { Arrow = 40 },
@@ -132,6 +136,7 @@ local Roles: { [string]: Role } = {
 		icon = "🔮",
 		order = 3,
 		passive = "+25 % de daño de hechizos y habilidades un 15 % más rápidas.",
+		edge = "+25 % hechizos\n−15 % recargas",
 		perks = { SpellDamage = 0.25, CooldownRate = -0.15 },
 		weapons = { "MagicStaff", "Machete" },
 		abilities = {
@@ -178,6 +183,7 @@ local Roles: { [string]: Role } = {
 		icon = "⛑️",
 		order = 4,
 		passive = "+15 de vida máxima, reanima el doble de rápido y ve la vida de sus aliados. Al curarlos gana un escudo de savia.",
+		edge = "+15 de vida\nescudo al curar",
 		-- "SapShield": escudo de la Savia protectora (Config.Abilities.SapShieldSeconds y SapShieldCooldown).
 		perks = { ReviveSpeed = -0.5, SeeHealth = 1, MaxHealth = 15, SapShield = 10 },
 		weapons = { "Blowgun", "Machete" },

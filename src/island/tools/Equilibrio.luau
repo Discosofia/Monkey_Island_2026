@@ -20,7 +20,9 @@
 --   3. Tiempo para matar monos y duración de los jefes.
 --   4. Amenaza de los monos y jefes al jugador.
 --   5. Mascotas.
---   6. Alertas: lo que se sale de los límites.
+--   6. Arena de Dunas (solo con secciones.arena = true): cuánto tarda cada rol en tumbar a cada otro
+--      rol en un duelo, con el daño contra jugadores de la arena (Config.Arena) y las defensas.
+--   7. Alertas: lo que se sale de los límites.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -29,6 +31,8 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local OPCIONES_BASE = {
 	talentos = "ninguno", -- "ninguno" o "max" (todos los talentos del rol al máximo)
+	-- Equipamiento de la arena (Data/ArenaGear) puesto por rol: { Guerrero = { "BoneMaul" } }.
+	equipo = {} :: { [string]: { string } },
 	armas = {} :: { [string]: string }, -- [rol] = id de Data/Weapons; sin él, la primera del rol
 	critico = nil :: number?, -- probabilidad de crítico de las armas (nil = la del arma)
 	-- true: las cerbatanas disparan su munición opcional (dardos venenosos, "boostItemId"), que
@@ -54,7 +58,7 @@ local OPCIONES_BASE = {
 	jugadoresJefe = { 1, 4, 8, 20 }, -- tamaños de equipo para la duración de los jefes
 	especies = { "MonoArdilla", "AulladorRojo", "Mandril", "Chimpance", "Gorila" },
 	soloRol = nil :: string?, -- "Mago" para ver solo ese rol en las secciones 1 y 2
-	secciones = { fichas = true, simulacion = true, ttk = true, enemigos = true, mascotas = true },
+	secciones = { fichas = true, simulacion = true, ttk = true, enemigos = true, mascotas = true, arena = false },
 }
 
 -- ===================================== Propuesta =====================================
@@ -73,6 +77,9 @@ type Propuesta = { config: any?, roles: any?, modelos: any?, combos: any?, datos
 -- Los de la llamada en curso (Equilibrio.informe).
 local OPCIONES = OPCIONES_BASE
 local PROPUESTA: Propuesta = {}
+-- Números de la sección 6 del último informe (Equilibrio.ultimaArena), para comparar variantes del
+-- equipamiento sin leer el texto: tiempos[atacante][defensor] = { con = s, sin = s }.
+local ultimaArena: any = nil
 
 -- ===================================== Límites =====================================
 -- Copia de .claude/skills/habilidades-roblox/references/equilibrio.md §3: si cambias uno, cambia los dos.
@@ -100,6 +107,9 @@ local LIMITES = {
 	jefeSegundos = { 90, 240 }, -- duración de un jefe con OPCIONES.aliados jugadores
 	jefeSoloSegundos = 360, -- y con un jugador solo, como mucho
 	curacionPorSegundo = 8, -- curación sostenida del médico a un aliado (de 100 de vida)
+	-- Arena de Dunas (references/equilibrio.md §3): un duelo entre dos jugadores del mismo rol (Guerrero, Cazador o Mago), con
+	-- OPCIONES.actividad, dura esto (s). El médico es de apoyo: su duelo puede ser más largo.
+	arenaDueloEspejo = { 8, 10 },
 }
 
 -- ===================================== Utilidades =====================================
@@ -473,6 +483,7 @@ local function main(copia: Instance): string
 	local Items = require(Data.Items) :: any
 	local Recipes = require(Data.Recipes) :: any
 	local Progression = require(copia.Progression) :: any
+	local ArenaGear = require(Data.ArenaGear) :: any
 
 	mezclar(Config, PROPUESTA.config or {})
 	for roleId, huecos in PROPUESTA.roles or {} do
@@ -518,7 +529,13 @@ local function main(copia: Instance): string
 				rangos[Progression.talentKey(roleId, talentId)] = talento.maxRank
 			end
 		end
-		local valores = Progression.computePerks(roleId, rangos, {}, nil)
+		local equipo = {}
+		for _, gearId in OPCIONES.equipo[roleId] or {} do
+			local item = ArenaGear.items[gearId]
+			assert(item, `OPCIONES.equipo: no existe {gearId} en Data/ArenaGear`)
+			table.insert(equipo, item.perks)
+		end
+		local valores = Progression.computePerks(roleId, rangos, {}, nil, equipo)
 		return function(nombre: string): number
 			local valor = valores[nombre]
 			if valor == nil then
@@ -550,6 +567,7 @@ local function main(copia: Instance): string
 		critico: number,
 		cura: number,
 		veneno: number,
+		venenoBase: number, -- el veneno por segundo sin PlayerDamageMultiplier (contra jugadores)
 		venenoSegundos: number,
 	}
 	-- "forzada": id de un arma para esta medida (las mejoras de la forja, sección 3).
@@ -576,6 +594,7 @@ local function main(copia: Instance): string
 			critico = critico,
 			cura = (arma.healOnHit or 0) / arma.cooldownSeconds,
 			veneno = venenoReal(veneno),
+			venenoBase = veneno,
 			venenoSegundos = if arma.poison then arma.poison.seconds else 0,
 		}
 	end
@@ -599,8 +618,10 @@ local function main(copia: Instance): string
 		return math.max(0, math.min(cuantos, grupo - (objetivos.menos or 0)))
 	end
 
+	-- Como AbilityService: con la ventaja propia de la habilidad si la tiene ("<id>Cooldown").
 	local function recargaDe(ability: any, perk: Perk): number
-		return ability.cooldownSeconds * perk("CooldownRate")
+		local propia = if Perks[`{ability.id}Cooldown`] ~= nil then perk(`{ability.id}Cooldown`) else 1
+		return ability.cooldownSeconds * perk("CooldownRate") * propia
 	end
 
 	local function fichaDe(ability: any, perk: Perk, remate: boolean): Ficha?
@@ -855,12 +876,17 @@ local function main(copia: Instance): string
 	}
 	local CORTES = { 2, 5, 10, 30, 60 }
 
+	-- Contra jugadores (sección 6): el daño del arma y el de las habilidades llevan su multiplicador de
+	-- la arena en vez de PlayerDamageMultiplier (que es solo contra monos).
+	type Pvp = { arma: number, habilidades: number }
+
 	local function simular(
 		roleId: string,
 		grupo: number,
 		conCombos: boolean,
 		armaForzada: string?,
-		duracion: number?
+		duracion: number?,
+		pvp: Pvp?
 	): Sim
 		local fin = duracion or OPCIONES.segundos
 		local perk = perksDe(roleId)
@@ -906,7 +932,8 @@ local function main(copia: Instance): string
 		local function aplicar(cantidad: number, aCritico: number, deHabilidad: boolean, bonus: number)
 			-- aCritico: parte del daño (0-1) que es golpe de combo (crítico seguro y "damageBonus" del combo).
 			local enlace = CRIT * (1 + bonus)
-			local mult = PDM * (aCritico * enlace + (1 - aCritico) * critico)
+			local base = if pvp then (if deHabilidad then pvp.habilidades else pvp.arma) else PDM
+			local mult = base * (aCritico * enlace + (1 - aCritico) * critico)
 			if t >= vulnerableDesde and t < vulnerableHasta then
 				mult *= 1 + vulnerableValor
 			end
@@ -921,7 +948,8 @@ local function main(copia: Instance): string
 
 		-- Lo que gotean los venenos en "dt" (ya en daño real: venenoReal).
 		local function gotear()
-			local delArma = if t < venenoArmaHasta then arma.veneno else 0
+			local venenoArma = if pvp then arma.venenoBase * pvp.arma else arma.veneno
+			local delArma = if t < venenoArmaHasta then venenoArma else 0
 			local deHabilidad = 0
 			if t < venenoHasta and venenoCuantos > 0 then
 				-- En el mono de la cerbatana solo cuenta lo que el de la habilidad tiene de más.
@@ -1015,7 +1043,7 @@ local function main(copia: Instance): string
 			end
 			if ficha.veneno then
 				venenoHasta = t + ficha.veneno.segundos
-				venenoDps = venenoReal(ficha.veneno.dps)
+				venenoDps = if pvp then ficha.veneno.dps * pvp.habilidades else venenoReal(ficha.veneno.dps)
 				venenoCuantos = resolver(ficha.veneno.objetivos, grupo)
 			end
 			local cura = curaDeUso(ficha)
@@ -1608,7 +1636,113 @@ local function main(copia: Instance): string
 		linea("")
 	end
 
-	linea("## 6. Alertas")
+	-- ===================================== 6. Arena =====================================
+	-- Un duelo de dos jugadores, cada uno contra el otro como "1 objetivo" de la simulación, con los
+	-- multiplicadores de Config.Arena (lo que contra jugadores hacen DunasCombatRules y CombatService).
+	-- Lo que aguanta el que recibe: su vida (100 + MaxHealth), lo que su Grito de guerra le quita de
+	-- media (reducción × duración ÷ recarga) y lo que se cura o se protege él solo por segundo (Ungüento
+	-- y Tótem le alcanzan, el Escudo de hojas se lo pone él si no hay aliados y la cerbatana le cura al
+	-- acertar). Segundos para tumbar = vida ÷ (DPS del atacante × actividad × (1 − reducción) − sustento).
+	if OPCIONES.secciones.arena then
+		local arenaConfig = Config.Arena
+		local pvp: Pvp = {
+			arma = arenaConfig.WeaponDamageMultiplier or 1,
+			habilidades = arenaConfig.AbilityDamageMultiplier,
+		}
+		linea(
+			`## 6. Arena de Dunas (duelos; armas ×{n(pvp.arma, 2)}, habilidades ×{n(pvp.habilidades, 2)}, actividad {pct(
+				OPCIONES.actividad
+			)}, {OPCIONES.segundos} s)`
+		)
+		linea(
+			"Segundos que tarda el de la fila en tumbar al de la columna (con combos; entre paréntesis, sin combos)."
+		)
+		type Aguante = { vida: number, reduccion: number, sustento: number }
+		local dps: { [string]: { con: number, sin: number } } = {}
+		local aguante: { [string]: Aguante } = {}
+		for _, roleId in ordenRoles do
+			local perk = perksDe(roleId)
+			-- Cada arma puede llevar su propio ajuste en la arena (Config.Arena.WeaponMultipliers).
+			local armaId = armaDe(roleId, perk).id
+			local propio = (arenaConfig.WeaponMultipliers or {})[armaId] or 1
+			local pvpRol: Pvp = { arma = pvp.arma * propio, habilidades = pvp.habilidades }
+			local con = simular(roleId, 1, true, nil, nil, pvpRol)
+			local sin = simular(roleId, 1, false, nil, nil, pvpRol)
+			dps[roleId] = { con = con.total / OPCIONES.segundos, sin = sin.total / OPCIONES.segundos }
+			local curacion = arenaConfig.HealingMultiplier or 1
+			local reduccion, sustento = 0, armaDe(roleId, perk).cura * curacion
+			for _, ability in Roles[roleId].abilities do
+				local recarga = recargaDe(ability, perk)
+				local ficha = fichaDe(ability, perk, false)
+				if ficha and ficha.mitiga then
+					reduccion += ficha.mitiga.valor * ficha.mitiga.segundos / recarga
+				end
+				if ficha and ficha.cura and ability.id ~= "HealingDart" then
+					sustento += ficha.cura.cantidad * (ficha.cura.ticks or 1) / recarga * curacion
+				end
+				if ficha and ficha.escudo then
+					sustento += ficha.escudo.cantidad / recarga
+				end
+			end
+			aguante[roleId] = { vida = 100 + perk("MaxHealth"), reduccion = reduccion, sustento = sustento }
+		end
+		local function segundos(atacante: string, defensor: string, conCombos: boolean): number
+			local def = aguante[defensor]
+			local efectivo = (if conCombos then dps[atacante].con else dps[atacante].sin)
+					* OPCIONES.actividad
+					* (1 - def.reduccion)
+				- def.sustento
+			return if efectivo > 0 then def.vida / efectivo else math.huge
+		end
+		local cabecera = { "| Atacante \\ Defensor |" }
+		local separador = { "|---|" }
+		for _, roleId in ordenRoles do
+			local def = aguante[roleId]
+			table.insert(
+				cabecera,
+				` {Roles[roleId].icon} {roleId} ({def.vida} vida{if def.reduccion > 0
+					then `, −{pct(def.reduccion)}`
+					else ""}{if def.sustento > 0 then `, +{n(def.sustento)}/s` else ""}) |`
+			)
+			table.insert(separador, "---|")
+		end
+		linea(table.concat(cabecera))
+		linea(table.concat(separador))
+		for _, atacante in ordenRoles do
+			local fila =
+				{ `| {Roles[atacante].icon} {atacante} (DPS {n(dps[atacante].con)} / {n(dps[atacante].sin)}) |` }
+			for _, defensor in ordenRoles do
+				local con, sin = segundos(atacante, defensor, true), segundos(atacante, defensor, false)
+				local texto = if con == math.huge then "∞" else n(con)
+				texto ..= ` ({if sin == math.huge then "∞" else n(sin)})`
+				if atacante == defensor then
+					texto = `**{texto}**`
+				end
+				table.insert(fila, ` {texto} |`)
+			end
+			linea(table.concat(fila))
+		end
+		local tiempos = {}
+		for _, atacante in ordenRoles do
+			tiempos[atacante] = {}
+			for _, defensor in ordenRoles do
+				tiempos[atacante][defensor] =
+					{ con = segundos(atacante, defensor, true), sin = segundos(atacante, defensor, false) }
+			end
+		end
+		ultimaArena = { tiempos = tiempos, dps = dps, aguante = aguante }
+		for _, roleId in ordenRoles do
+			local espejo = segundos(roleId, roleId, true)
+			if roleId ~= "Medico" and fuera(espejo, LIMITES.arenaDueloEspejo) then
+				alerta(
+					`Arena: un duelo {roleId} contra {roleId} dura {if espejo == math.huge then "∞" else n(espejo)} s (objetivo {LIMITES.arenaDueloEspejo[1]}–{LIMITES.arenaDueloEspejo[2]} s)`
+				)
+			end
+		end
+		linea("")
+	end
+
+	linea("## 7. Alertas")
 	if #alertas == 0 then
 		linea("✅ Todo dentro de los límites.")
 	else
@@ -1631,6 +1765,11 @@ local function copiaProfunda(valor: any): any
 end
 
 local Equilibrio = {}
+
+-- Los números de la arena del último informe con secciones.arena (ver ultimaArena), o nil.
+function Equilibrio.ultimaArena(): any
+	return ultimaArena
+end
 
 -- Informe con "opciones" (cambios sobre OPCIONES_BASE) y "propuesta" (ver PROPUESTA). Los dos opcionales.
 function Equilibrio.informe(opciones: any?, propuesta: Propuesta?): string

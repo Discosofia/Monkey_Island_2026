@@ -122,6 +122,10 @@ local Remotes = {
 	ArenaResults = remoteEvent("ArenaResults"),
 	-- Cliente -> servidor (Dunas): volver al Lobby (desde los resultados).
 	ArenaLeave = remoteEvent("ArenaLeave"),
+	-- Cliente -> servidor (Lobby y Dunas): comprar equipamiento de la arena (id de Data/ArenaGear) y
+	-- poner una variante en una ranura (rol, ranura, id; sin id, lo básico). ServerShared/ArenaShop.
+	ArenaBuyGear = remoteEvent("ArenaBuyGear"),
+	ArenaEquipGear = remoteEvent("ArenaEquipGear"),
 }
 
 return Remotes
