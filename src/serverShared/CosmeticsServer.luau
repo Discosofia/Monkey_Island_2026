@@ -26,7 +26,10 @@ end
 local function checkOwnership(player: Player)
 	for cosmeticId, cosmetic in Cosmetics do
 		local owned = false
-		if cosmetic.gamePassId == 0 then
+		if cosmetic.earned then
+			-- Ganado jugando: lo dice el perfil (checkEarned), también en Studio.
+			continue
+		elseif cosmetic.gamePassId == 0 then
 			owned = RunService:IsStudio() and Config.Cosmetics.FreeInStudio
 		else
 			local ok, result = pcall(function()
@@ -80,14 +83,16 @@ local function applyVisuals(player: Player)
 			elseif cosmetic.kind == "Title" and head and head:IsA("BasePart") then
 				local billboard = Instance.new("BillboardGui")
 				billboard.Name = "CosmeticTitle"
-				billboard.Size = UDim2.fromOffset(160, 24)
+				-- Más ancho cuanto más largo el título, para que todos se lean del mismo tamaño.
+				local text = cosmetic.title or cosmetic.name
+				billboard.Size = UDim2.fromOffset(math.max(160, (utf8.len(text) or #text) * 9), 24)
 				billboard.StudsOffset = Vector3.new(0, 4.4, 0)
 				billboard.MaxDistance = 80
 				billboard.Parent = head
 				local label = Instance.new("TextLabel")
 				label.Size = UDim2.fromScale(1, 1)
 				label.BackgroundTransparency = 1
-				label.Text = cosmetic.title or cosmetic.name
+				label.Text = text
 				label.TextColor3 = cosmetic.color
 				label.TextStrokeTransparency = 0.3
 				label.Font = Enum.Font.BuilderSansBold
@@ -108,6 +113,61 @@ local function applyVisuals(player: Player)
 			end
 		end
 	end
+end
+
+-- Cosméticos ganados jugando (los "earned" de Data/Cosmetics): los del perfil, y los de rescate para
+-- quien ya había ganado antes de que existieran.
+local function checkEarned(player: Player)
+	local profile = PlayerData.get(player)
+	if not profile then
+		return
+	end
+	local missing = {}
+	for cosmeticId, cosmetic in Cosmetics do
+		if cosmetic.earned == "Rescue" and profile.rescues > 0 and not profile.earnedCosmetics[cosmeticId] then
+			table.insert(missing, cosmeticId)
+		end
+	end
+	if #missing > 0 then
+		PlayerData.update(player, function(current)
+			for _, cosmeticId in missing do
+				current.earnedCosmetics[cosmeticId] = true
+			end
+		end)
+	end
+	for cosmeticId, cosmetic in Cosmetics do
+		if cosmetic.earned then
+			player:SetAttribute(`Cosmetic_{cosmeticId}`, profile.earnedCosmetics[cosmeticId] == true)
+		end
+	end
+end
+
+-- Da un cosmético que se gana jugando. Devuelve true si es nuevo (no lo tenía).
+function CosmeticsServer.grantEarned(player: Player, cosmeticId: string): boolean
+	local cosmetic = Cosmetics[cosmeticId]
+	local profile = PlayerData.get(player)
+	if not (cosmetic and cosmetic.earned and profile) or profile.earnedCosmetics[cosmeticId] then
+		return false
+	end
+	PlayerData.update(player, function(current)
+		current.earnedCosmetics[cosmeticId] = true
+	end)
+	player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
+	return true
+end
+
+-- Prueba (panel de Studio): da o quita un cosmético ganado, para ver cómo queda.
+function CosmeticsServer.debugToggleEarned(player: Player, cosmeticId: string): boolean
+	local has = false
+	PlayerData.update(player, function(profile)
+		has = not profile.earnedCosmetics[cosmeticId]
+		profile.earnedCosmetics[cosmeticId] = if has then true else nil
+		if not has and profile.cosmetics[Cosmetics[cosmeticId].kind] == cosmeticId then
+			profile.cosmetics[Cosmetics[cosmeticId].kind] = nil
+		end
+	end)
+	player:SetAttribute(`Cosmetic_{cosmeticId}`, has)
+	return has
 end
 
 local function onEquip(player: Player, cosmeticId: any)
@@ -141,6 +201,11 @@ function CosmeticsServer.start()
 	end)
 	local function onPlayer(player: Player)
 		checkOwnership(player)
+		task.spawn(function()
+			if PlayerData.waitFor(player) then
+				checkEarned(player)
+			end
+		end)
 		player.CharacterAdded:Connect(function(character)
 			character:WaitForChild("HumanoidRootPart", 5)
 			PlayerData.waitFor(player)

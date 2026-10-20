@@ -571,7 +571,8 @@ function LobbyUIController:Start()
 		end
 	end
 
-	-- Cosméticos de pago (Robux): solo aspecto, nunca ventaja.
+	-- Cosméticos: solo aspecto, nunca ventaja. Casi todos se compran (Robux); los "earned" se ganan
+	-- jugando (el título de Superviviente, al ganar una partida).
 	local function renderStyle(data: Progression.ProgressData)
 		note(list, "🎨 Solo cambian tu aspecto. Uno equipado por tipo", 0)
 		for index, cosmeticId in
@@ -591,6 +592,8 @@ function LobbyUIController:Start()
 				row.button.MouseButton1Click:Connect(function()
 					Remotes.EquipCosmetic:FireServer(cosmeticId)
 				end)
+			elseif cosmetic.earned then
+				setButton(row.button, "Gana una partida", false)
 			elseif cosmetic.gamePassId == 0 then
 				setButton(row.button, "Próximamente", false)
 			else

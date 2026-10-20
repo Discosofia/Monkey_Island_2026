@@ -9,6 +9,7 @@ local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Retention = require(ServerScriptService.ServerShared.Retention)
@@ -66,6 +67,14 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	NextDay = function(player)
 		Retention.debugNextDay(player)
 		Remotes.Notify:FireClient(player, "📅 Día siguiente: ya puedes cobrar el premio del calendario")
+	end,
+	-- Da o quita el título que se gana al rescatarse, para ver cómo queda (no cuenta como victoria).
+	SurvivorTitle = function(player)
+		local has = CosmeticsServer.debugToggleEarned(player, "TitleSurvivor")
+		Remotes.Notify:FireClient(
+			player,
+			if has then "🏝️ Título de prueba: lo tienes" else "🏝️ Título de prueba: quitado"
+		)
 	end,
 	-- Adelanta una hora el reloj de los huevos de este servidor (Shared/EggIncubation.now).
 	ClockHour = function(player)

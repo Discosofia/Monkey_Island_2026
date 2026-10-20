@@ -49,6 +49,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "ClockHour", label = "⏩ Reloj +1 h" },
 		{ id = "Supplies", label = "🎒 Provisiones de prueba" },
 		{ id = "NextDay", label = "📅 Día siguiente (calendario)" },
+		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
 	},
 }
 

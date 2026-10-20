@@ -77,7 +77,7 @@ local function show(summary: { [string]: any })
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	-- Con la tirada del huevo hay dos líneas más: la ventana crece y lo demás encoge un poco.
 	local roll = if typeof(summary.eggRoll) == "table" then summary.eggRoll else nil
-	local panelHeight = if roll then 0.86 else 0.7
+	local panelHeight = (if roll then 0.86 else 0.7) + (if summary.newTitle then 0.07 else 0)
 	local fit = 0.7 / panelHeight
 	panel.Size = UDim2.fromScale(0.6, panelHeight)
 	panel.BackgroundColor3 = Color3.fromRGB(30, 24, 18)
@@ -114,6 +114,13 @@ local function show(summary: { [string]: any })
 		{ text = `👑 Jefes: {summary.bosses or 0}`, height = 0.08, color = plain },
 		{ text = `✨ Ámbar ganado: {summary.amber}`, height = 0.1, color = Color3.fromRGB(255, 200, 80) },
 	}
+	if summary.newTitle then
+		table.insert(lines, {
+			text = "🏝️ ¡Nuevo título: Superviviente de la Isla! Póntelo en Estilo (Lobby)",
+			height = 0.07,
+			color = Color3.fromRGB(255, 160, 70),
+		})
+	end
 	for index, line in lines do
 		local label = Widgets.label(line.text, panel)
 		label.LayoutOrder = index

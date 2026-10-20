@@ -7,7 +7,8 @@
 --   - Otros servicios (el guardado de datos, 2.8) se enteran con MatchService.onMatchEnded.
 --   - Victoria (la baliza, BeaconService): si el jugador tiene un huevo incubando en el nido del Lobby,
 --     le toca una tirada que le quita horas o lo deja listo (ServerShared/Eggs); el resultado va en su
---     resumen ("eggRoll") y la pantalla de resultados lo enseña con una ruleta.
+--     resumen ("eggRoll") y la pantalla de resultados lo enseña con una ruleta. La primera victoria de
+--     verdad (no la del panel de pruebas) da el título "Superviviente de la Isla" ("newTitle").
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,6 +19,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local DayNightService = require(script.Parent.DayNightService)
@@ -35,9 +37,14 @@ export type Summary = {
 	eggRoll: Eggs.RescueOutcome?,
 	-- Terminada con el panel de pruebas de Studio: no cuenta para el récord, los rescates ni el ranking.
 	test: boolean?,
+	-- Primera victoria de verdad: acaba de ganar el título "Superviviente de la Isla".
+	newTitle: boolean?,
 }
 
 local MatchService = {}
+
+-- Título que se gana al rescatarse por primera vez (Data/Cosmetics, sin Game Pass).
+local SURVIVOR_TITLE = "TitleSurvivor"
 
 local ended = false
 local listeners: { (player: Player, summary: Summary) -> () } = {}
@@ -73,6 +80,11 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 		amber = amber,
 		eggRoll = if result == "Victory" then Eggs.rescueRoll(player) else nil,
 		test = if test then true else nil,
+		newTitle = if result == "Victory"
+				and not test
+				and CosmeticsServer.grantEarned(player, SURVIVOR_TITLE)
+			then true
+			else nil,
 	}
 end
 
