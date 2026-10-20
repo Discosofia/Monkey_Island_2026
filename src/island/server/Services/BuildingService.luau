@@ -22,6 +22,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
 
@@ -266,6 +267,7 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 		model:SetAttribute(Config.Crafting.StationAttribute, definition.station)
 	end
 	model.Parent = structureFolder()
+	Retention.progress(player, "Build")
 	Sfx.play("Build", cframe.Position)
 
 	if buildableId == "Bed" then

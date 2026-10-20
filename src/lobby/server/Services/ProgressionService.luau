@@ -14,6 +14,7 @@ local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 
 local ProgressionService = {}
 
@@ -26,6 +27,8 @@ local function onSelectRole(player: Player, roleId: any)
 	PlayerData.update(player, function(profile)
 		profile.selectedRole = roleId
 	end)
+	-- La misión del día del rol cambia con él.
+	Retention.refresh(player)
 end
 
 local function onLearnTalent(player: Player, roleId: any, talentId: any)

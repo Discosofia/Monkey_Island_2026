@@ -1,7 +1,8 @@
 --!strict
 -- Calendario de 7 días en el Lobby (bucle de retención, octubre de 2026): el cliente pide cobrar el
 -- premio de hoy (la ventana al entrar o la pestaña Misiones; CalendarController, LobbyUIController) y
--- el servidor lo entrega (ServerShared/Retention) y le dice qué ha recibido.
+-- el servidor lo entrega (ServerShared/Retention) y le dice qué ha recibido. También tiene al día las
+-- misiones del día, que se cumplen en la Isla.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -28,6 +29,8 @@ end
 
 function RetentionService:Start()
 	Remotes.ClaimLogin.OnServerEvent:Connect(onClaimLogin)
+	-- Las misiones del día se ven ya en el Lobby (pestaña Misiones), antes de jugar.
+	Retention.start()
 end
 
 return RetentionService

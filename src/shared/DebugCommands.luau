@@ -20,6 +20,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "Egg", label = "🥚 Huevo (rareza siguiente)" },
 		{ id = "HatchNow", label = "🐣 Terminar la defensa del huevo (en el nido)" },
 		{ id = "GrantEgg", label = "🥚 Huevo guardado (al nido del Lobby o la mochila)" },
+		{ id = "Missions", label = "🎯 Cumplir las misiones del día" },
 		{ id = "Crate", label = "📦 Caja de suministro" },
 		{ id = "Pet", label = "🐾 Siguiente mascota" },
 		{ id = "Rain", label = "🌧️ Lluvia" },

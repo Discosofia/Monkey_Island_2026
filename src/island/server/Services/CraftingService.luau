@@ -33,6 +33,7 @@ local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
 local CombatService = require(script.Parent.CombatService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -374,6 +375,7 @@ local function onCraft(player: Player, recipeId: any)
 	end
 	local verb = if recipe.upgrades then "mejorado" else "fabricado"
 	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {Crafting.recipeName(player, recipe)}`)
+	Retention.progress(player, "Craft")
 end
 
 -- La curación que mejor encaja: la más pequeña que cubre la vida que falta, o si ninguna llega,

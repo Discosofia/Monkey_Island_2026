@@ -29,6 +29,7 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local PvPService = require(script.Parent.PvPService)
@@ -286,6 +287,7 @@ local function complete()
 	for player in rewarded do
 		if player.Parent then
 			MatchStats.add(player, MatchStats.EGGS)
+			Retention.progress(player, "Egg")
 			local where = Eggs.grant(player, rarity)
 			local text = if where == "nest"
 				then `🥚 ¡Huevo {label} a salvo! Ya se incuba en tu nido del Lobby`

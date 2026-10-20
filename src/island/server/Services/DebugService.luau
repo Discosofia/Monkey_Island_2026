@@ -26,6 +26,7 @@ local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
@@ -447,6 +448,9 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		debugEggIndex = debugEggIndex % #DEBUG_EGG_RARITIES + 1
 		local rarity = DEBUG_EGG_RARITIES[debugEggIndex]
 		Remotes.Notify:FireClient(player, `🥚 Huevo de prueba ({rarity}): {Eggs.grant(player, rarity) or "?"}`)
+	end,
+	Missions = function(player)
+		Retention.debugCompleteMissions(player)
 	end,
 	HatchNow = function(player)
 		if not EggService.hatchNow() then

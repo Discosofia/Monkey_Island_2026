@@ -36,6 +36,8 @@ end
 local function spawnDummy(ground: Vector3, lookAt: Vector3)
 	local model = Instance.new("Model")
 	model.Name = "Muñeco de práctica"
+	-- Su daño no cuenta para las misiones del día (MissionService).
+	model:SetAttribute("TrainingDummy", true)
 	local facing = CFrame.lookAt(ground, Vector3.new(lookAt.X, ground.Y, lookAt.Z))
 
 	newPart("Post", Vector3.new(0.6, 3, 0.6), facing * CFrame.new(0, 1.5, 0), Color3.fromRGB(110, 72, 40), model)

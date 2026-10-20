@@ -21,6 +21,7 @@ local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -30,6 +31,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Survival = require(ReplicatedStorage.Shared.Survival)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
@@ -1184,6 +1186,7 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 	local linkedStep = ComboService.onAbilityUsed(player, ability.id)
 	if handler(player, character, root, aim.Unit, { from, to }) then
 		TelemetryService.abilityUsed(player, ability.id, linkedStep)
+		Retention.progress(player, "Ability")
 		local cooldown = ability.cooldownSeconds
 			* Progression.perk(player, "CooldownRate")
 			* ComboService.cooldownFactor(player)

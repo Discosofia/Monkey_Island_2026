@@ -1,12 +1,15 @@
 --!strict
 -- Días del bucle de retención (octubre de 2026): qué día es (cambia a las 00:00 UTC más
--- Config.Daily.ResetOffsetSeconds, igual en todos los servidores) y el estado del calendario de 7 días.
--- Lo usan el servidor (ServerShared/Retention) y el cliente (la ventana del calendario y la pestaña
--- Misiones), con la misma hora (Shared/EggIncubation.now).
+-- Config.Daily.ResetOffsetSeconds, igual en todos los servidores) y el estado del calendario de 7 días
+-- y las misiones del día. Lo usan el servidor (ServerShared/Retention) y el cliente (la ventana del
+-- calendario, la pestaña Misiones y el rastreador de la Isla), con la misma hora (Shared/EggIncubation.now).
 
 local Config = require(script.Parent.Config)
+local Missions = require(script.Parent.Data.Missions)
 
 export type LoginState = { lastClaimDay: number, step: number }
+export type DailyMission = { id: string, progress: number, done: boolean }
+export type MissionState = { day: number, role: string, missions: { DailyMission } }
 
 local Daily = {}
 
@@ -41,6 +44,42 @@ end
 -- ¿Se puede cobrar hoy? (un premio por día; el que toca es "step").
 function Daily.canClaim(state: LoginState, now: number): boolean
 	return state.lastClaimDay < Daily.today(now)
+end
+
+-- Misiones del día (Data/Missions): de qué día y rol son, y cómo va cada una.
+function Daily.missionState(raw: any): MissionState
+	local state: MissionState = { day = 0, role = "", missions = {} }
+	if typeof(raw) ~= "table" then
+		return state
+	end
+	if typeof(raw.day) == "number" then
+		state.day = raw.day
+	end
+	if typeof(raw.role) == "string" then
+		state.role = raw.role
+	end
+	if typeof(raw.missions) == "table" then
+		for _, entry in raw.missions do
+			if typeof(entry) == "table" and typeof(entry.id) == "string" and Missions[entry.id] then
+				table.insert(state.missions, {
+					id = entry.id,
+					progress = if typeof(entry.progress) == "number" then entry.progress else 0,
+					done = entry.done == true,
+				})
+			end
+		end
+	end
+	return state
+end
+
+-- "🐒 Derrota 15 monos".
+function Daily.missionText(missionId: string): string
+	local mission = Missions[missionId]
+	if not mission then
+		return missionId
+	end
+	local text = string.gsub(mission.text, "{target}", tostring(mission.target))
+	return `{mission.icon} {text}`
 end
 
 return Daily

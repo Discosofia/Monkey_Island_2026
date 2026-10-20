@@ -21,6 +21,7 @@ local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local NodeModels = require(ServerScriptService.ServerShared.NodeModels)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local InventoryService = require(script.Parent.InventoryService)
 
 -- Margen extra (studs) sobre la distancia del aviso, por el retraso de la red.
@@ -190,6 +191,7 @@ local function collect(state: NodeState, player: Player, amount: number)
 	-- Material extra de las mejoras de la tienda y de la mascota.
 	amount += math.floor(Progression.perk(player, "HarvestBonus"))
 	InventoryService.collect(player, state.definition.itemId, amount)
+	Retention.progress(player, "Gather", amount)
 	Sfx.play("Pickup", state.anchor)
 	local extra = state.definition.extra
 	if extra and rng:NextNumber() < extra.chance then

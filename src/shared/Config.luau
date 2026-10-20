@@ -585,6 +585,10 @@ local Config = {
 		} :: { Reward },
 		-- Si al cobrar tiempo de huevo no hay ninguno en el nido, se da Ámbar por cada hora.
 		AmberPerUnusedEggHour = 30,
+		-- Misiones del día (Data/Missions): cuántas generales tocan, además de la del rol elegido, y
+		-- cada cuánto se apunta en el perfil lo que avanzan en la Isla.
+		GeneralMissions = 2,
+		MissionFlushSeconds = 3,
 	},
 
 	Pets = {

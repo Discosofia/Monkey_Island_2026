@@ -4,14 +4,23 @@
 --     día (Shared/Daily); faltar un día no lo reinicia.
 --   - grant: entrega un premio: Ámbar, provisiones (ServerShared/Supplies), tiempo para el huevo del
 --     nido (con o sin el tope de lo ganado jugando; sin huevo en el nido se cambia por Ámbar) y huevos.
+--   - Misiones del día (Data/Missions): cada día tocan Config.Daily.GeneralMissions generales y una del
+--     rol elegido (si cambia de rol, cambia esa, salvo que ya la hubiera cumplido). Los servicios de la
+--     Isla avisan con progress(jugador, evento, cantidad); se apunta en el perfil cada
+--     Config.Daily.MissionFlushSeconds y, al cumplir una, se entrega su premio con aviso.
+--     start() lo pone en marcha (una vez por servidor, en el Lobby y en la Isla).
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
+local Missions = require(ReplicatedStorage.Shared.Data.Missions)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Analytics = require(script.Parent.Analytics)
 local Eggs = require(script.Parent.Eggs)
@@ -21,6 +30,9 @@ local Supplies = require(script.Parent.Supplies)
 local Retention = {}
 
 local rng = Random.new()
+-- Lo que han avanzado las misiones de cada jugador desde la última vez que se apuntó (por evento).
+local pending: { [Player]: { [string]: number } } = {}
+local started = false
 
 local function now(): number
 	return math.floor(EggIncubation.now())
@@ -94,12 +106,177 @@ function Retention.claimLogin(player: Player): (number?, { string }?)
 	return claimed, lines
 end
 
--- Prueba (panel de Studio): hace como si el último cobro hubiera sido ayer.
+-- Una misión al azar de las que valen ("role" = nil para las generales), sin repetir "taken".
+local function pickMission(role: string?, taken: { [string]: boolean }): string?
+	local candidates = {}
+	for missionId, mission in Missions do
+		if mission.role == role and not taken[missionId] then
+			table.insert(candidates, missionId)
+		end
+	end
+	if #candidates == 0 then
+		return nil
+	end
+	table.sort(candidates)
+	return candidates[rng:NextInteger(1, #candidates)]
+end
+
+-- ¿Hay que renovar las misiones (otro día) o cambiar la del rol?
+local function needsRefresh(profile: PlayerData.Profile, time: number): boolean
+	local state = Daily.missionState(profile.daily)
+	return state.day ~= Daily.today(time) or state.role ~= Progression.validRole(profile.selectedRole)
+end
+
+local function refreshMissions(profile: PlayerData.Profile, time: number)
+	local state = Daily.missionState(profile.daily)
+	local today = Daily.today(time)
+	local role = Progression.validRole(profile.selectedRole)
+	if state.day ~= today then
+		local taken = {}
+		local missions: { Daily.DailyMission } = {}
+		for _ = 1, Config.Daily.GeneralMissions do
+			local missionId = pickMission(nil, taken)
+			if missionId then
+				taken[missionId] = true
+				table.insert(missions, { id = missionId, progress = 0, done = false })
+			end
+		end
+		local roleMission = pickMission(role, taken)
+		if roleMission then
+			table.insert(missions, { id = roleMission, progress = 0, done = false })
+		end
+		state = { day = today, role = role, missions = missions }
+	elseif state.role ~= role then
+		-- Otro rol: su misión cambia por una del nuevo (si la del viejo ya estaba cumplida, se queda).
+		for index, mission in state.missions do
+			if Missions[mission.id].role and not mission.done then
+				local replacement = pickMission(role, {})
+				if replacement then
+					state.missions[index] = { id = replacement, progress = 0, done = false }
+				end
+			end
+		end
+		state.role = role
+	end
+	profile.daily = state :: any
+end
+
+-- Pone al día las misiones del jugador si ha cambiado el día o su rol (al cargar, al elegir rol).
+function Retention.refresh(player: Player)
+	local profile = PlayerData.get(player)
+	if profile and needsRefresh(profile, now()) then
+		PlayerData.update(player, function(current)
+			refreshMissions(current, now())
+		end)
+	end
+end
+
+-- Lo cuentan los servicios de la Isla: "event" como en Data/Missions ("Kill", "Gather"…).
+function Retention.progress(player: Player, event: string, amount: number?)
+	local events = pending[player]
+	if not events then
+		events = {}
+		pending[player] = events
+	end
+	events[event] = (events[event] or 0) + (amount or 1)
+end
+
+-- Apunta en el perfil lo que han avanzado y entrega las misiones que se acaban de cumplir.
+local function flush(player: Player)
+	local events = pending[player]
+	pending[player] = nil
+	if not events or not PlayerData.get(player) then
+		return
+	end
+	local completed: { string } = {}
+	PlayerData.update(player, function(profile)
+		local time = now()
+		if needsRefresh(profile, time) then
+			refreshMissions(profile, time)
+		end
+		local state = Daily.missionState(profile.daily)
+		for _, mission in state.missions do
+			local definition = Missions[mission.id]
+			local added = events[definition.event]
+			if added and not mission.done then
+				mission.progress = math.min(definition.target, mission.progress + added)
+				if mission.progress >= definition.target then
+					mission.done = true
+					table.insert(completed, mission.id)
+				end
+			end
+		end
+		profile.daily = state :: any
+	end)
+	for _, missionId in completed do
+		local lines = Retention.grant(player, Missions[missionId].reward, true, "DailyMission")
+		Remotes.Notify:FireClient(
+			player,
+			`🎯 ¡Misión cumplida! {Daily.missionText(missionId)}: {table.concat(lines, " · ")}`
+		)
+	end
+end
+
+function Retention.start()
+	if started then
+		return
+	end
+	started = true
+	local function onPlayer(player: Player)
+		if PlayerData.waitFor(player) then
+			Retention.refresh(player)
+		end
+	end
+	Players.PlayerAdded:Connect(function(player)
+		task.spawn(onPlayer, player)
+	end)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayer, player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		pending[player] = nil
+	end)
+	task.spawn(function()
+		local sinceRefresh = 0
+		while true do
+			task.wait(Config.Daily.MissionFlushSeconds)
+			for player in table.clone(pending) do
+				task.spawn(flush, player)
+			end
+			-- Cada minuto, por si cambia el día con el jugador dentro.
+			sinceRefresh += Config.Daily.MissionFlushSeconds
+			if sinceRefresh >= 60 then
+				sinceRefresh = 0
+				for _, player in Players:GetPlayers() do
+					task.spawn(Retention.refresh, player)
+				end
+			end
+		end
+	end)
+end
+
+-- Prueba (panel de Studio): hace como si el último cobro y las misiones fueran de ayer.
 function Retention.debugNextDay(player: Player)
 	PlayerData.update(player, function(profile)
 		local state = Daily.loginState(profile.login)
 		profile.login = { lastClaimDay = math.min(state.lastClaimDay, Daily.today(now()) - 1), step = state.step }
+		local missions = Daily.missionState(profile.daily)
+		missions.day = Daily.today(now()) - 1
+		profile.daily = missions :: any
 	end)
+	Retention.refresh(player)
+end
+
+-- Prueba (panel de Studio): completa todas las misiones del día (se entregan en el siguiente apunte).
+function Retention.debugCompleteMissions(player: Player)
+	local profile = PlayerData.get(player)
+	if not profile then
+		return
+	end
+	for _, mission in Daily.missionState(profile.daily).missions do
+		local definition = Missions[mission.id]
+		Retention.progress(player, definition.event, definition.target)
+	end
 end
 
 return Retention

@@ -3,9 +3,10 @@
 --   - Cabecera con el Ámbar y el récord de días.
 --   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar), Mascotas (arriba el nido de huevos: el que se incuba, la mochila, los
---     pendientes y qué puede salir; debajo la colección), Misiones (el calendario de 7 días y lo que
---     te llevas a la próxima partida), Grupo (invitar a jugadores del Lobby para viajar juntos) y Ajustes (tu
---     personaje, tus números de combate y dónde salen los números; UI/SettingsPanel).
+--     pendientes y qué puede salir; debajo la colección), Misiones (el calendario de 7 días, las
+--     misiones del día y lo que te llevas a la próxima partida), Grupo (invitar a jugadores del Lobby
+--     para viajar juntos) y Ajustes (tu personaje, tus números de combate y dónde salen los números;
+--     UI/SettingsPanel).
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
 --   - Botón para plegar el menú y pasear por el naufragio, y X de cerrar en el menú. El menú empieza
@@ -26,6 +27,7 @@ local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Daily = require(ReplicatedStorage.Shared.Daily)
+local Missions = require(ReplicatedStorage.Shared.Data.Missions)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -498,8 +500,31 @@ function LobbyUIController:Start()
 			calendarCountdown = today.button
 		end
 
+		-- Misiones del día: se cumplen en la Isla; aquí se ve cómo van y qué dan.
+		local state = Daily.missionState(retention.daily)
+		note(
+			list,
+			`🎯 Misiones de hoy: se cumplen en la Isla (cambian en {EggIncubation.formatTime(
+				Daily.secondsToReset(now)
+			)})`,
+			3
+		)
+		for index, mission in state.missions do
+			local definition = Missions[mission.id]
+			local row = newRow(list, 3 + index)
+			row.title.Text = Daily.missionText(mission.id)
+			row.title.TextColor3 = if mission.done then Color3.fromRGB(120, 230, 140) else Color3.new(1, 1, 1)
+			row.detail.Text =
+				`{if definition.role then "Misión de tu rol · " else ""}Premio: {Rewards.describe(definition.reward)}`
+			setButton(
+				row.button,
+				if mission.done then "✅ Cumplida" else `{math.floor(mission.progress)}/{definition.target}`,
+				false
+			)
+		end
+
 		local items = Rewards.describeItems(Rewards.sanitizeItems(retention.supplies))
-		local supplies = newRow(list, 3)
+		local supplies = newRow(list, 10)
 		supplies.title.Text = "🎒 Provisiones para tu próxima partida"
 		supplies.detail.Text = if items ~= ""
 			then items
