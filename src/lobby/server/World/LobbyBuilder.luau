@@ -14,8 +14,8 @@
 --
 -- Crea: mar y banco de arena (terreno); el carguero encallado con boquete y bodega, castillo con
 -- puente de mando, chimenea y radar, contenedores en cubierta y grúa; la pasarela de subida; el
--- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga, ancla con cadena,
--- salvavidas; tres carteles en la arena (los roles, con el aviso "RolesPrompt", la bitácora del
+-- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga y ancla con cadena;
+-- tres carteles en la arena (los roles, con el aviso "RolesPrompt", la bitácora del
 -- capitán y el ranking); el nido de huevos (aviso "NidoPrompt", etiqueta Config.Lobby.NestTag); la
 -- lancha de rescate para zarpar (aviso "ZarparPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
@@ -40,7 +40,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 6
+local VERSION = 7
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -1623,29 +1623,6 @@ local function buildPalm(parent: Instance, ground: Vector3, lean: number, yaw: n
 	palm.Parent = parent
 end
 
--- Salvavidas naranja y blanco (aro de tramos de cilindro) colgado de un poste.
-local function lifeRing(parent: Instance, center: CFrame)
-	local segments = 12
-	local radius = 1.6
-	for i = 0, segments - 1 do
-		local a0 = i * 2 * math.pi / segments
-		local a1 = (i + 1) * 2 * math.pi / segments
-		local p0 = (center * CFrame.new(math.cos(a0) * radius, math.sin(a0) * radius, 0)).Position
-		local p1 = (center * CFrame.new(math.cos(a1) * radius, math.sin(a1) * radius, 0)).Position
-		decor(
-			cylinder(
-				"Salvavidas",
-				0.7,
-				p0,
-				p1,
-				if math.floor(i / 3) % 2 == 0 then RESCUE_ORANGE else WHITE_PAINT,
-				Enum.Material.SmoothPlastic,
-				parent
-			)
-		)
-	end
-end
-
 local function buildCamp(parent: Instance)
 	local camp = Instance.new("Model")
 	camp.Name = "Campamento"
@@ -1797,18 +1774,6 @@ local function buildCamp(parent: Instance)
 		)
 		decor(link)
 	end
-
-	-- Salvavidas del barco colgado de un poste junto a la llegada.
-	local ringPost = groundAt(10, 32)
-	newPart(
-		"PosteSalvavidas",
-		Vector3.new(0.5, 6, 0.5),
-		CFrame.new(ringPost + Vector3.new(0, 3, 0)),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		camp
-	)
-	lifeRing(camp, CFrame.lookAt(ringPost + Vector3.new(0, 4.2, 0.6), ringPost + Vector3.new(0, 4.2, 10)))
 
 	camp.Parent = parent
 end
