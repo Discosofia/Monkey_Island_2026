@@ -4,11 +4,12 @@
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local BasecampService = require(script.Parent.BasecampService)
-local Poof = require(script.Parent.Parent.Combat.Poof)
+local Poof = require(ServerScriptService.Combat.Poof)
 
 -- Posiciones respecto al centro del Basecamp: al este de la hoguera, mirando hacia ella.
 local DUMMY_OFFSETS = { Vector3.new(45, 0, -10), Vector3.new(45, 0, 0), Vector3.new(45, 0, 10) }

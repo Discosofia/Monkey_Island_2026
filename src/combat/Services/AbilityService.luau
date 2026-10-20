@@ -9,8 +9,9 @@
 --     pasiva "Savia protectora" también va aquí: al curar a un aliado gana un escudo pequeño.
 -- Los movimientos (Embestida y Parpadeo) los hace el cliente, que es quien mueve a su personaje; el
 -- servidor pone el daño. Lo que se ve lo dibuja cada cliente (Combat/AbilityFx y AbilityFxController),
--- salvo el Cepo, que es una pieza del mundo. Con PvP activo en los dos, las habilidades también
--- afectan a otros jugadores, con menos daño y aturdimientos más cortos. Los estados de los monos están en Combat/Status.
+-- salvo el Cepo, que es una pieza del mundo. Contra los jugadores que las reglas del place dejan herir
+-- (CombatRules: PvP opt-in en la Isla, el otro equipo en la arena), las habilidades hacen menos daño y
+-- aturden menos rato; curaciones y escudos solo van a los aliados. Los estados de los monos están en Status.
 -- El cliente ve cuándo vuelve a estar lista cada una con el atributo "AbilityReadyAt<hueco>".
 -- Combos (Data/Combos, ComboService), dos por rol: la primera habilidad de cada combo marca lo que
 -- toca; las siguientes, enlazadas a tiempo, hacen críticos seguros con daño extra contra los marcados y
@@ -21,7 +22,6 @@ local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -30,13 +30,11 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
-local Survival = require(ReplicatedStorage.Shared.Survival)
-local Retention = require(ServerScriptService.ServerShared.Retention)
 local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
-local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
-local Status = require(script.Parent.Parent.Combat.Status)
-local TelemetryService = require(script.Parent.TelemetryService)
+local AbilityFx = require(script.Parent.Parent.AbilityFx)
+local CombatRules = require(script.Parent.Parent.CombatRules)
+local Status = require(script.Parent.Parent.Status)
 
 local SETTINGS = Config.Abilities
 local COMBO = Config.Combo
@@ -48,7 +46,7 @@ local TRAP_CLOSED_ANGLE = math.rad(84)
 -- Lo más lejos del personaje que se acepta el "desde/hasta" del Parpadeo que manda el cliente.
 local BLINK_POINT_SLACK = 15
 
--- Algo a lo que una habilidad puede dañar: un enemigo o un jugador con PvP.
+-- Algo a lo que una habilidad puede dañar: un enemigo o un jugador rival (CombatService.canHitPlayer).
 type Target = { model: Model, humanoid: Humanoid, root: BasePart, player: Player? }
 type Handler = (player: Player, character: Model, root: BasePart, aim: Vector3, extra: { any }) -> boolean
 
@@ -109,7 +107,7 @@ local function playerTarget(attacker: Player, victim: Player): Target?
 	return nil
 end
 
--- Enemigos vivos (y jugadores con PvP) a menos de "radius" de "center".
+-- Enemigos vivos (y jugadores rivales) a menos de "radius" de "center".
 local function targetsAround(attacker: Player, center: Vector3, radius: number): { Target }
 	local found: { Target } = {}
 	for _, instance in CollectionService:GetTagged(Config.Combat.EnemyTag) do
@@ -161,7 +159,7 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 		CombatService.damagePvP(
 			attacker,
 			target.player,
-			math.max(1, math.round(amount * SETTINGS.PvPDamageMultiplier)),
+			math.max(1, math.round(amount * CombatRules.get().pvpDamageMultiplier)),
 			CombatService.rollPlayerCrit(attacker)
 		)
 	else
@@ -193,7 +191,7 @@ end
 local function control(target: Target, seconds: number, look: ("Stun" | "Freeze" | "Root" | "Sleep")?)
 	local duration = seconds
 	if target.player then
-		duration *= SETTINGS.PvPControlMultiplier
+		duration *= CombatRules.get().pvpControlMultiplier
 		if not Status.holdPlayer(target.player, duration, "PvP") then
 			return
 		end
@@ -210,11 +208,14 @@ local function control(target: Target, seconds: number, look: ("Stun" | "Freeze"
 end
 
 -- El médico ("healer") cura a "player" con "abilityId". Puede ser crítica (Shared/Crit) y lo es seguro
--- si es el remate de su combo. Devuelve false si no se le puede curar (caído…).
+-- si es el remate de su combo. Devuelve false si no se le puede curar (caído, del otro equipo…).
 local function heal(healer: Player, player: Player, amount: number, abilityId: string): boolean
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (humanoid and humanoid.Health > 0 and LifeState.isAlive(player)) then
+		return false
+	end
+	if player ~= healer and not CombatRules.get().isAlly(healer, player) then
 		return false
 	end
 	CombatService.heal(
@@ -910,7 +911,7 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 		if near and heal(player, other, amount, "AreaHeal") then
 			healed += 1
 			if finisher then
-				Survival.addFever(other, -COMBO.SalveFeverCure)
+				CombatRules.get().addFever(other, -COMBO.SalveFeverCure)
 			end
 		end
 	end
@@ -937,7 +938,8 @@ end
 local function healingDart(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
 	local endPoint, result = castShot(character, origin, aim, SETTINGS.DartRange, 1.5)
-	local ally = if result then CombatService.playerFromPart(result.Instance) else nil
+	local hitPlayer = if result then CombatService.playerFromPart(result.Instance) else nil
+	local ally = if hitPlayer and CombatRules.get().isAlly(player, hitPlayer) then hitPlayer else nil
 	local enemy = if result and not ally then targetFromPart(player, result.Instance) else nil
 	-- De cerca, el dardo que pasaría por encima de un mono pequeño le da.
 	if not (ally or enemy) then
@@ -978,13 +980,15 @@ end
 -- revitalizado (absorbe más).
 local function shieldTarget(player: Player, character: Model, root: BasePart): (Player, Model, boolean)
 	local linked = ComboService.isPayoff(player, "LeafShield")
+	local rules = CombatRules.get()
 	local chosen = player
 	local chosenCharacter = character
 	local bestDistance = SETTINGS.ShieldRange
 	for _, other in Players:GetPlayers() do
 		local otherCharacter = other.Character
 		local otherRoot = if otherCharacter then otherCharacter:FindFirstChild("HumanoidRootPart") else nil
-		if otherCharacter and otherRoot and otherRoot:IsA("BasePart") and LifeState.isAlive(other) then
+		local friendly = other == player or rules.isAlly(player, other)
+		if friendly and otherCharacter and otherRoot and otherRoot:IsA("BasePart") and LifeState.isAlive(other) then
 			local distance = (otherRoot.Position - root.Position).Magnitude
 			local revitalized = linked and ComboService.isMarkedBy(otherCharacter, player)
 			if revitalized and distance <= SETTINGS.ShieldRange then
@@ -1185,8 +1189,9 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 	-- Antes de aplicarla: si es el siguiente paso del combo, sus golpes ya cuentan como enlazados.
 	local linkedStep = ComboService.onAbilityUsed(player, ability.id)
 	if handler(player, character, root, aim.Unit, { from, to }) then
-		TelemetryService.abilityUsed(player, ability.id, linkedStep)
-		Retention.progress(player, "Ability")
+		local rules = CombatRules.get()
+		rules.telemetry.abilityUsed(player, ability.id, linkedStep)
+		rules.progressMission(player, "Ability")
 		local cooldown = ability.cooldownSeconds
 			* Progression.perk(player, "CooldownRate")
 			* ComboService.cooldownFactor(player)

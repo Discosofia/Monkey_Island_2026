@@ -16,11 +16,11 @@ juego para que lo nuevo encaje con el código que las usa.
 | Qué | Cómo se anima | Fuente | Dónde se enlaza | Quién la reproduce |
 |---|---|---|---|---|
 | Monos y jefes | KeyframeSequence publicada | Hechas a mano en el Animation Editor (en el place: `ServerStorage.RBX_ANIMSAVES.RigMono`) | `src/shared/Data/MonkeyAnimations.luau` | `src/island/server/Monkeys/MonkeyAnimator.luau` (servidor) |
-| Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/island/client/Controllers/WeaponController.luau` (cliente) |
-| Cuerpo del jugador sin armas (gestos de habilidades, esquivar, comer, beber, curarse, construir, fabricar, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/island/client/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `DodgeController`, `SurvivalController`, `HealController`, `BuildController`, `CraftingController` y `LifeController` |
+| Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/combatClient/Controllers/WeaponController.luau` (cliente) |
+| Cuerpo del jugador sin armas (gestos de habilidades, esquivar, comer, beber, curarse, construir, fabricar, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/combatClient/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `DodgeController`, `SurvivalController`, `HealController`, `BuildController`, `CraftingController` y `LifeController` |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
 | Mascotas (Lobby e Isla) | Por código, cada fotograma: senos (`joint`) y, encima, clips con fotogramas clave (`CLIPS`) | `src/shared/PetModels.luau` | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate` y decide qué clip suena; lo arrancan los `PetController` de los dos places |
-| Pose del grito de guerra, de respaldo | Por código, girando articulaciones (solo si la animación `WarCry` no existe) | `src/island/client/Controllers/AbilityFxController.luau` (`scream`, `poseJoint`) | — | `AbilityFxController` |
+| Pose del grito de guerra, de respaldo | Por código, girando articulaciones (solo si la animación `WarCry` no existe) | `src/combatClient/Controllers/AbilityFxController.luau` (`scream`, `poseJoint`) | — | `AbilityFxController` |
 
 ## 2. Monos y jefes
 

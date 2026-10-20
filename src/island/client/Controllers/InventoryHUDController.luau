@@ -15,7 +15,7 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 
 local ACTION = "ToggleMaterials"
 local COLUMNS = 7

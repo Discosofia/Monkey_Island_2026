@@ -11,7 +11,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local Stamina = require(script.Parent.Parent.Stamina)
+local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 
 local BAR_WIDTH = 170
 local BAR_HEIGHT = 16

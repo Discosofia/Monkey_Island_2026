@@ -11,6 +11,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -24,7 +25,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
 local TelemetryService = require(script.Parent.TelemetryService)
-local CombatText = require(script.Parent.Parent.Combat.CombatText)
+local CombatText = require(ServerScriptService.Combat.CombatText)
 
 local VISUALS = { "RevivePrompt", "DownedBillboard", "DownedHighlight" }
 -- Ítem que se gasta al reanimar y levanta al momento con más vida (Config.Life.ReviveKit*).

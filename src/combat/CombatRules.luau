@@ -1,0 +1,112 @@
+--!strict
+-- Reglas del combate que cambian de un place a otro. El combate (Services/CombatService,
+-- AbilityService, ComboService y los módulos de esta carpeta) es el mismo en la Isla y en la arena de
+-- Dunas; lo que depende de cada place se registra aquí en el Init de uno de sus servicios
+-- (CombatRules.set). Lo que no se registre usa los valores neutros de abajo: sin PvP, todos los
+-- jugadores son aliados, sin zona segura, sin munición ni inventario y sin telemetría.
+--   - Isla (Services/IslandCombatRules): PvP opt-in por el tótem, Basecamp seguro, caer y reanimar
+--     (LifeService), fiebre del mono, munición del inventario, recompensa PvP y misiones diarias.
+--   - Dunas: equipos (atributo "Team"), reaparecer en la base y números de la arena.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+
+export type Telemetry = {
+	damageDealt: (player: Player, source: string, amount: number) -> (),
+	healed: (player: Player, source: string, amount: number) -> (),
+	abilityUsed: (player: Player, abilityId: string, linkedStep: number?) -> (),
+	comboCompleted: (player: Player, streak: number) -> (),
+	held: (player: Player, seconds: number, cause: string) -> (),
+	-- Cómo se llama en la telemetría lo que ha herido a un jugador (un mono, un jefe…).
+	causeOf: (source: Instance?) -> string,
+}
+
+export type Rules = {
+	-- true si "attacker" puede herir a "victim" (ya se ha comprobado que son distintos, que "victim"
+	-- está vivo y que no está esquivando).
+	canHitPlayer: (attacker: Player, victim: Player) -> boolean,
+	-- true si "healer" puede curar o proteger a "player" (las curaciones del médico, sus escudos…).
+	isAlly: (healer: Player, player: Player) -> boolean,
+	-- true si a "player" no le pueden herir los enemigos (monos) ahora mismo: la zona segura.
+	isSafe: (player: Player) -> boolean,
+	-- Un golpe deja a "player" sin vida. "attacker": el jugador que lo ha hecho (PvP) o nil.
+	knockOut: (player: Player, attacker: Player?, cause: string) -> (),
+	-- Gasta una unidad de munición ("itemId", Data/Items). false si no le queda: no dispara.
+	useAmmo: (player: Player, itemId: string) -> boolean,
+	-- Gasta una munición opcional que mejora el disparo (los dardos venenosos). false si no tiene.
+	useBoost: (player: Player, itemId: string) -> boolean,
+	-- El hacha y el pico trabajan el árbol o la roca de delante.
+	strikeResource: (player: Player, root: BasePart, tool: Weapons.ToolDefinition) -> (),
+	-- Sube (o baja, con "amount" negativo) la fiebre del mono.
+	addFever: (player: Player, amount: number) -> (),
+	-- Avanza las misiones diarias del jugador ("Ability", "Combo"…; serverShared/Retention).
+	progressMission: (player: Player, kind: string) -> (),
+	-- Herramientas comunes que se dan además de las armas del rol (el hacha y el pico en la Isla).
+	starterTools: (player: Player) -> { string },
+	-- Daño y duración de los aturdimientos de las habilidades contra jugadores (fracción).
+	pvpDamageMultiplier: number,
+	pvpControlMultiplier: number,
+	telemetry: Telemetry,
+}
+
+local function never(): boolean
+	return false
+end
+
+local function always(): boolean
+	return true
+end
+
+local function nothing() end
+
+local rules: Rules = {
+	canHitPlayer = never,
+	isAlly = always,
+	isSafe = never,
+	knockOut = function(player: Player)
+		local humanoid = if player.Character then player.Character:FindFirstChildOfClass("Humanoid") else nil
+		if humanoid then
+			humanoid.Health = 0
+		end
+	end,
+	useAmmo = always,
+	useBoost = never,
+	strikeResource = nothing,
+	addFever = nothing,
+	progressMission = nothing,
+	starterTools = function()
+		return {}
+	end,
+	pvpDamageMultiplier = Config.Abilities.PvPDamageMultiplier,
+	pvpControlMultiplier = Config.Abilities.PvPControlMultiplier,
+	telemetry = {
+		damageDealt = nothing,
+		healed = nothing,
+		abilityUsed = nothing,
+		comboCompleted = nothing,
+		held = nothing,
+		causeOf = function()
+			return "Otro"
+		end,
+	},
+}
+
+local CombatRules = {}
+
+-- Cambia las reglas que se pasen; las demás se quedan como estaban.
+function CombatRules.set(overrides: { [string]: any })
+	local current = rules :: any
+	for key, value in overrides do
+		assert(current[key] ~= nil, `CombatRules: regla desconocida "{key}"`)
+		current[key] = value
+	end
+end
+
+-- Las reglas en vigor. Se leen en cada uso (no al cargar), porque el place las registra en su Init.
+function CombatRules.get(): Rules
+	return rules
+end
+
+return CombatRules

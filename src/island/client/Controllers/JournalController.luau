@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 
 local ACTION = "ToggleJournal"
 

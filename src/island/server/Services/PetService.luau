@@ -14,6 +14,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -22,8 +23,8 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
-local CombatService = require(script.Parent.CombatService)
-local Status = require(script.Parent.Parent.Combat.Status)
+local CombatService = require(ServerScriptService.Combat.Services.CombatService)
+local Status = require(ServerScriptService.Combat.Status)
 
 local PetService = {}
 

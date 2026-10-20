@@ -16,7 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local TelemetryService = require(script.Parent.Parent.Services.TelemetryService)
+local CombatRules = require(script.Parent.CombatRules)
 
 local Status = {}
 
@@ -77,7 +77,7 @@ end
 -- sujeto siempre (un orangután que pega más a menudo de lo que dura su agarre, dos gorilas
 -- turnándose…), mientras está quieto otro control no lo alarga y, al soltarse, tiene
 -- Config.Combat.PlayerControlImmunitySeconds en los que no se le puede volver a sujetar.
--- "cause" es para la telemetría (TelemetryService.causeOf). Devuelve true si le ha sujetado.
+-- "cause" es para la telemetría (CombatRules.telemetry.causeOf). Devuelve true si le ha sujetado.
 function Status.holdPlayer(player: Player, seconds: number, cause: string): boolean
 	local time = now()
 	local immuneUntil = player:GetAttribute("ControlImmuneUntil")
@@ -86,7 +86,7 @@ function Status.holdPlayer(player: Player, seconds: number, cause: string): bool
 	end
 	player:SetAttribute("StunnedUntil", time + seconds)
 	player:SetAttribute("ControlImmuneUntil", time + seconds + Config.Combat.PlayerControlImmunitySeconds)
-	TelemetryService.held(player, seconds, cause)
+	CombatRules.get().telemetry.held(player, seconds, cause)
 	return true
 end
 

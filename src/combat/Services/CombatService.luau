@@ -2,9 +2,10 @@
 -- Combate (GDD §6, Fase 1.3): armas cuerpo a cuerpo, a distancia (honda y arco, que gastan munición;
 -- bastón mágico y cerbatanas, que no; los dardos de las cerbatanas envenenan) y esquiva.
 -- El servidor decide todo: qué arma lleva el jugador, si el ataque está listo, a quién golpea y el daño.
--- Se daña a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica) y, con el
--- PvP opt-in activo en los dos (Fase 5), a otros jugadores.
--- Cada jugador aparece con las armas de su rol (Data/Roles) y las herramientas comunes.
+-- Se daña a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica) y a otros
+-- jugadores cuando las reglas del place lo permiten (CombatRules: el PvP opt-in de la Isla, los
+-- equipos de la arena). Cada jugador aparece con las armas de su rol (Data/Roles) y las herramientas
+-- comunes del place.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -14,7 +15,6 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
-local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
@@ -22,19 +22,14 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
-local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local ComboService = require(script.Parent.ComboService)
-local InventoryService = require(script.Parent.InventoryService)
-local LifeService = require(script.Parent.LifeService)
-local ResourceService = require(script.Parent.ResourceService)
-local TelemetryService = require(script.Parent.TelemetryService)
-local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
-local CombatText = require(script.Parent.Parent.Combat.CombatText)
-local Status = require(script.Parent.Parent.Combat.Status)
+local AbilityFx = require(script.Parent.Parent.AbilityFx)
+local CombatRules = require(script.Parent.Parent.CombatRules)
+local CombatText = require(script.Parent.Parent.CombatText)
+local Status = require(script.Parent.Parent.Status)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
 local MELEE_HITBOX = Vector2.new(7, 6)
@@ -149,7 +144,7 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	local alive = humanoid.Health > 0
 	if attacker then
 		local source = if hit.pet then "Mascota" else hit.source or "Otro"
-		TelemetryService.damageDealt(attacker, source, math.min(amount, math.max(0, humanoid.Health)))
+		CombatRules.get().telemetry.damageDealt(attacker, source, math.min(amount, math.max(0, humanoid.Health)))
 	end
 	humanoid:TakeDamage(amount)
 	local ko = alive and humanoid.Health <= 0
@@ -199,9 +194,10 @@ local function mitigate(player: Player, amount: number): number
 	return amount
 end
 
--- Daño de un enemigo (un mono) a un jugador. No hace nada si está en el Basecamp, esquivando,
--- o caído. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal no mata:
--- deja al jugador caído (LifeService). Devuelve true si el golpe entró.
+-- Daño de un enemigo (un mono) a un jugador. No hace nada si está en la zona segura (el Basecamp),
+-- esquivando, o caído. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal
+-- lo deja fuera de combate según el place (CombatRules.knockOut: caído en la Isla). Devuelve true si
+-- el golpe entró.
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
 -- "source": el mono o jefe que pega; según su categoría o fase puede hacer un crítico (Shared/Crit).
 -- Sin él (rayos, lava, rocas…) nunca lo es. "cause": quién lo lanza si no hay "source", para la
@@ -214,8 +210,8 @@ function CombatService.damagePlayer(
 	cause: string?,
 	bite: boolean?
 ): boolean
-	-- Con el campamento caído (Shared/Basecamp) no hay zona segura.
-	local safe = player:GetAttribute("InBasecamp") == true and not ignoreSafe and not Basecamp.isFallen()
+	local rules = CombatRules.get()
+	local safe = not ignoreSafe and rules.isSafe(player)
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
 		return false
 	end
@@ -237,11 +233,11 @@ function CombatService.damagePlayer(
 	CombatText.taken(player, amount, crit)
 	-- Los mordiscos suben la fiebre del mono (Fase 2.6) según lo que quitan de la vida máxima.
 	if bite then
-		Survival.addFever(player, Config.Fever.PerHealthBar * amount / math.max(1, humanoid.MaxHealth))
+		rules.addFever(player, Config.Fever.PerHealthBar * amount / math.max(1, humanoid.MaxHealth))
 	end
 	if humanoid.Health - amount <= 0 then
 		Sfx.play("PlayerDown", character.PrimaryPart or character)
-		LifeService.down(player, cause or TelemetryService.causeOf(source))
+		rules.knockOut(player, nil, cause or rules.telemetry.causeOf(source))
 	else
 		Sfx.play("PlayerHurt", character.PrimaryPart or character)
 		humanoid:TakeDamage(amount)
@@ -294,7 +290,7 @@ function CombatService.heal(player: Player, amount: number, healer: Player?, opt
 	-- Solo las de combate (habilidades, cerbatanas y mascotas), no vendas ni reanimaciones.
 	local source = if heal.pet then "Mascota" else heal.source
 	if healer and source then
-		TelemetryService.healed(healer, source, healed)
+		CombatRules.get().telemetry.healed(healer, source, healed)
 	end
 	if healer and healer ~= player and not heal.pet and healed > 0 then
 		for _, listener in healListeners do
@@ -304,18 +300,13 @@ function CombatService.heal(player: Player, amount: number, healer: Player?, opt
 	return healed
 end
 
--- PvP opt-in (GDD §12, Fase 5): ambos con PvP activo y ninguno dentro del Basecamp.
-local function pvpReady(player: Player): boolean
-	return player:GetAttribute("PvP") == true and player:GetAttribute("InBasecamp") ~= true
-end
-
--- true si "attacker" puede herir a "victim" en PvP ahora mismo.
+-- true si "attacker" puede herir a "victim" en PvP ahora mismo. Quién es rival lo deciden las reglas
+-- del place (CombatRules.canHitPlayer).
 function CombatService.canHitPlayer(attacker: Player, victim: Player): boolean
 	return attacker ~= victim
-		and pvpReady(attacker)
-		and pvpReady(victim)
 		and LifeState.isAlive(victim)
 		and not CombatService.isInvulnerable(victim)
+		and CombatRules.get().canHitPlayer(attacker, victim)
 end
 
 function CombatService.playerFromPart(part: Instance): Player?
@@ -331,13 +322,11 @@ function CombatService.playerFromPart(part: Instance): Player?
 end
 local playerFromPart = CombatService.playerFromPart
 
--- Daño de un jugador a otro. Si lo deja caído, cobra su recompensa PvP y sube la propia.
+-- Daño de un jugador a otro. Si le quita toda la vida, el place decide qué pasa
+-- (CombatRules.knockOut: en la Isla queda caído y se cobra su recompensa PvP).
 -- "crit": golpe crítico (lo tira quien llama, con el arma del atacante).
 function CombatService.damagePvP(attacker: Player, victim: Player, amount: number, crit: boolean?): boolean
-	if attacker == victim or not (pvpReady(attacker) and pvpReady(victim)) then
-		return false
-	end
-	if CombatService.isInvulnerable(victim) or not LifeState.isAlive(victim) then
+	if not CombatService.canHitPlayer(attacker, victim) then
 		return false
 	end
 	local character = victim.Character
@@ -360,20 +349,7 @@ function CombatService.damagePvP(attacker: Player, victim: Player, amount: numbe
 		humanoid:TakeDamage(amount)
 		return true
 	end
-	LifeService.down(victim, "PvP")
-	local bounty = victim:GetAttribute("Bounty")
-	local collected = if typeof(bounty) == "number" then bounty else 0
-	local own = attacker:GetAttribute("Bounty")
-	attacker:SetAttribute("Bounty", (if typeof(own) == "number" then own else 0) + 1)
-	victim:SetAttribute("Bounty", 0)
-	if collected > 0 then
-		MatchStats.add(attacker, MatchStats.BOUNTIES, collected)
-		Remotes.Notify:FireAllClients(
-			`💰 {attacker.DisplayName} cobra la recompensa de {victim.DisplayName} ({collected})`
-		)
-	else
-		Remotes.Notify:FireClient(attacker, `⚔️ Has derribado a {victim.DisplayName}`)
-	end
+	CombatRules.get().knockOut(victim, attacker, "PvP")
 	return true
 end
 
@@ -508,7 +484,8 @@ function CombatService.projectile(
 	return travelSeconds, piece
 end
 
--- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico).
+-- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico). Solo a
+-- los aliados según las reglas del place (en la arena, los de su equipo).
 local function healWoundedAlly(healer: Player, amount: number, weaponId: string)
 	local _, healerRoot = livingCharacter(healer)
 	if not healerRoot then
@@ -523,6 +500,7 @@ local function healWoundedAlly(healer: Player, amount: number, weaponId: string)
 			humanoid
 			and root
 			and LifeState.isAlive(ally)
+			and (ally == healer or CombatRules.get().isAlly(healer, ally))
 			and (root.Position - healerRoot.Position).Magnitude <= Config.Combat.WeaponHealRadius
 		then
 			local fraction = humanoid.Health / humanoid.MaxHealth
@@ -547,7 +525,8 @@ local function rangedAttack(
 	critChance: number
 )
 	local ammo = weapon.ammoItemId
-	if ammo and not InventoryService.remove(player, ammo, 1) then
+	local rules = CombatRules.get()
+	if ammo and not rules.useAmmo(player, ammo) then
 		Remotes.Notify:FireClient(player, `Necesitas {Items[ammo].name} para usar: {weapon.name}`)
 		return
 	end
@@ -558,7 +537,7 @@ local function rangedAttack(
 	local poison = weapon.poison
 	local poisonDps = if poison then poison.dps * scale else 0
 	local boost = if poison then poison.boostItemId else nil
-	if boost and InventoryService.remove(player, boost, 1) then
+	if boost and rules.useBoost(player, boost) then
 		poisonDps *= Items[boost].poisonMultiplier or 1
 	end
 	local crit = Crit.roll(critChance)
@@ -589,7 +568,7 @@ local function rangedAttack(
 		endPoint = if result then result.Position else origin + aim * weapon.range
 		if result then
 			targetModel = enemyFromPart(result.Instance)
-			-- Otro jugador con PvP: la piedra le da al llegar.
+			-- Otro jugador al que se puede herir: la piedra le da al llegar.
 			local victim = playerFromPart(result.Instance)
 			if victim then
 				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
@@ -648,7 +627,7 @@ local function onUseWeapon(player: Player, aim: any)
 		meleeAttack(player, character, root, weaponId :: string, weapon, Crit.weaponChance(weaponId :: string))
 		-- El hacha y el pico, además de golpear enemigos, trabajan el árbol o la roca de delante.
 		if weapon.tool then
-			ResourceService.strike(player, root, weapon.tool)
+			CombatRules.get().strikeResource(player, root, weapon.tool)
 		end
 	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
 		WeaponTools.playUse(tool)
@@ -676,8 +655,8 @@ local function onDodge(player: Player)
 end
 
 -- Las armas iniciales van a StarterGear: Roblox las copia a la mochila en cada reaparición.
--- Primero las del rol (atributo "RoleWeapon") y detrás el hacha y el pico, así las teclas 3 y 4 son
--- siempre las mismas. Si cambia el rol a mitad de partida (panel de pruebas), solo cambian las del rol.
+-- Primero las del rol (atributo "RoleWeapon") y detrás las comunes del place (el hacha y el pico en la
+-- Isla), así las teclas 3 y 4 son siempre las mismas. Si cambia el rol a mitad de partida (panel de pruebas), solo cambian las del rol.
 local function giveWeapons(player: Player, weaponIds: { string }, roleWeapon: boolean)
 	local starterGear = player:WaitForChild("StarterGear")
 	local backpack = player:FindFirstChildOfClass("Backpack")
@@ -708,7 +687,7 @@ local function giveStarterWeapons(player: Player)
 		return
 	end
 	giveWeapons(player, roleWeapons(player), true)
-	giveWeapons(player, Config.Combat.StarterTools, false)
+	giveWeapons(player, CombatRules.get().starterTools(player), false)
 	player:GetAttributeChangedSignal("Role"):Connect(function()
 		local containers: { Instance? } =
 			{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), player.Character }

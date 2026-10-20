@@ -25,7 +25,7 @@ local Survival = require(ReplicatedStorage.Shared.Survival)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
-local CombatText = require(script.Parent.Parent.Combat.CombatText)
+local CombatText = require(ServerScriptService.Combat.CombatText)
 
 local TICK_SECONDS = 1
 

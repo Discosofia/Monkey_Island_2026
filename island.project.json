@@ -6,11 +6,17 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
+      },
+      "CombatClient": {
+        "$path": "src/combatClient"
       }
     },
     "ServerScriptService": {
       "ServerShared": {
         "$path": "src/serverShared"
+      },
+      "Combat": {
+        "$path": "src/combat"
       },
       "Server": {
         "$path": "src/island/server"

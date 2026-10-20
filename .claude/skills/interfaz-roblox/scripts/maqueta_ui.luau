@@ -127,7 +127,7 @@ function UI.zona(pantalla: Pantalla, nombre: string, posicion: Vector2, tamano: 
 end
 
 -- Zonas que ocupa Roblox (o el propio juego) en cada dispositivo. Las del salto y los botones de
--- acción repiten las cuentas de src/island/client/ActionButtons.luau: si cambian allí, cambiarlas aquí.
+-- acción repiten las cuentas de src/combatClient/ActionButtons.luau: si cambian allí, cambiarlas aquí.
 local function zonasDeRoblox(pantalla: Pantalla)
 	local w, h = pantalla.tamano.X, pantalla.tamano.Y
 	UI.zona(pantalla, "Barra de Roblox", Vector2.new(0, 0), Vector2.new(260, INSET))

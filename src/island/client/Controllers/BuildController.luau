@@ -22,8 +22,8 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local ActionButtons = require(script.Parent.Parent.ActionButtons)
-local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
+local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
 
 local ROTATE_ACTION = "BuildRotate"
 local NEXT_ACTION = "BuildNext"

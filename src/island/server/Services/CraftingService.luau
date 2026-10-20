@@ -35,11 +35,11 @@ local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
-local CombatService = require(script.Parent.CombatService)
+local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local InventoryService = require(script.Parent.InventoryService)
-local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
-local ArmorModels = require(script.Parent.Parent.Combat.ArmorModels)
-local CombatText = require(script.Parent.Parent.Combat.CombatText)
+local AbilityFx = require(ServerScriptService.Combat.AbilityFx)
+local ArmorModels = require(ServerScriptService.Combat.ArmorModels)
+local CombatText = require(ServerScriptService.Combat.CombatText)
 
 local PROMPT_NAME = "StationPrompt"
 -- Nombre del modelo de hoguera que crea MapBuilder en mapas generados antes de la Fase 2.1.

@@ -144,7 +144,7 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
    `name`, `short`, `description` para el jugador, `cooldownSeconds`, `ultimate`).
 2. `src/shared/Config.luau` → `Abilities`: sus números, con un comentario por número que lo pida
    (unidades: "por golpe", "segundos", "studs").
-3. `src/island/server/Services/AbilityService.luau`: el handler en la sección del rol, con las
+3. `src/combat/Services/AbilityService.luau`: el handler en la sección del rol, con las
    piezas comunes (`targetsAround`, `castShot`, `hurt`, `control`, `heal`, `comboOpener`…), y su
    entrada en `HANDLERS`. Devuelve `false` si no se pudo usar (no gasta recarga). Actualiza la lista
    de la cabecera del archivo.

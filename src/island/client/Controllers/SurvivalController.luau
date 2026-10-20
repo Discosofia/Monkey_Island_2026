@@ -18,9 +18,9 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
-local Stamina = require(script.Parent.Parent.Stamina)
-local ActionButtons = require(script.Parent.Parent.ActionButtons)
-local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
+local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
+local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
 
 local SPRINT_ACTION = "Sprint"
 local EAT_ACTION = "Eat"
@@ -122,7 +122,10 @@ function SurvivalController:Start()
 	end, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
 
 	RunService.RenderStepped:Connect(function(deltaTime)
-		Stamina.update(deltaTime)
+		-- Con hambre o sed bajas, la estamina se recupera a la mitad de ritmo.
+		local low = Config.Survival.LowThreshold
+		local weak = Survival.get(player, Survival.HUNGER) <= low or Survival.get(player, Survival.THIRST) <= low
+		Stamina.update(deltaTime, if weak then 0.5 else 1)
 		updateSprint(player, deltaTime)
 	end)
 

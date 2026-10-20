@@ -1,14 +1,14 @@
 --!strict
 -- Estamina del jugador local (GDD §6.1, Fase 2.1), de 0 a 100. Vive solo en el cliente:
--- la gastan correr (SurvivalController) y esquivar (DodgeController), y la lee el HUD.
--- Se recupera sola tras un momento sin gastarla; con hambre o sed bajas, a la mitad de ritmo.
+-- la gastan correr (el controlador de movimiento de cada place) y esquivar (DodgeController), y la
+-- lee el HUD. Se recupera sola tras un momento sin gastarla, al ritmo que diga el place (en la Isla,
+-- a la mitad con hambre o sed bajas).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Progression = require(ReplicatedStorage.Shared.Progression)
-local Survival = require(ReplicatedStorage.Shared.Survival)
 
 local Stamina = {}
 
@@ -37,15 +37,13 @@ function Stamina.drain(amount: number)
 	lastSpentAt = os.clock()
 end
 
--- Llamado cada frame por SurvivalController.
-function Stamina.update(deltaTime: number)
+-- Llamado cada frame por el controlador de movimiento del place. "regenFactor" multiplica el ritmo
+-- de recuperación (1 si no se pasa).
+function Stamina.update(deltaTime: number, regenFactor: number?)
 	if os.clock() - lastSpentAt < Config.Survival.StaminaRegenDelay then
 		return
 	end
-	local player = Players.LocalPlayer
-	local low = Config.Survival.LowThreshold
-	local weak = Survival.get(player, Survival.HUNGER) <= low or Survival.get(player, Survival.THIRST) <= low
-	local rate = Config.Survival.StaminaRegenPerSecond * (if weak then 0.5 else 1)
+	local rate = Config.Survival.StaminaRegenPerSecond * (regenFactor or 1)
 	current = math.min(Stamina.MAX, current + rate * deltaTime)
 end
 

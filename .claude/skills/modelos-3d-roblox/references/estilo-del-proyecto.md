@@ -22,7 +22,7 @@ tipo que ya existe va en su módulo, con un constructor más y su entrada en los
 | Qué | Módulo | Punto de entrada | Datos que lo enlazan |
 |---|---|---|---|
 | Armas y herramientas (Tool) | `src/shared/WeaponTools.luau` | `WeaponTools.build(weaponId)` | `src/shared/Data/Weapons.luau` |
-| Armaduras puestas | `src/island/server/Combat/ArmorModels.luau` | `ArmorModels.wear(character, armorId)` | `src/shared/Data/Armor.luau` |
+| Armaduras puestas | `src/combat/ArmorModels.luau` | `ArmorModels.wear(character, armorId)` | `src/shared/Data/Armor.luau` |
 | Mascotas | `src/shared/PetModels.luau` | `PetModels.build(petId)` | `src/shared/Data/Pets.luau` |
 | Monos y jefes (articulados) | `src/island/server/Monkeys/MonkeyModels.luau` | `MonkeyModels.build(...)` | `src/shared/Data/Monkeys.luau`, `Bosses.luau` |
 | Monos en estilo voxel | `src/island/server/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
@@ -39,7 +39,7 @@ Las rutas en Studio (con Rojo conectado) siguen `island.project.json` / `lobby.p
 `src/shared` → `ReplicatedStorage.Shared`, `src/serverShared` → `ServerScriptService.ServerShared`,
 `src/island/server` → `ServerScriptService.Server`, `src/island/tools` → `ServerStorage.Tools`.
 Por ejemplo, PetModels es `ReplicatedStorage.Shared.PetModels` y ArmorModels es
-`ServerScriptService.Server.Combat.ArmorModels`.
+`ServerScriptService.Combat.ArmorModels`.
 
 ## 2. Ejes y pivotes
 

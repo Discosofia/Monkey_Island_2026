@@ -11,7 +11,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Retention = require(ServerScriptService.ServerShared.Retention)
-local CombatService = require(script.Parent.CombatService)
+local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local MonkeyService = require(script.Parent.MonkeyService)
 

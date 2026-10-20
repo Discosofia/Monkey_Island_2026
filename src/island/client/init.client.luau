@@ -1,5 +1,6 @@
 --!strict
--- Punto de entrada del cliente de la Isla: carga todos los módulos de la carpeta Controllers.
+-- Punto de entrada del cliente de la Isla: carga todos los módulos de la carpeta Controllers y los del
+-- combate compartido con la arena (ReplicatedStorage.CombatClient.Controllers).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -9,4 +10,4 @@ local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 
 Remotes.Notify.OnClientEvent:Connect(Toast.show)
 
-Loader.load(script.Controllers)
+Loader.load({ script.Controllers, ReplicatedStorage:WaitForChild("CombatClient"):WaitForChild("Controllers") })

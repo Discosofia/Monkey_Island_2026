@@ -26,7 +26,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
 
 local PROMPT_NAME = "StationPrompt"
 local CLOSE_ACTION = "CloseWorkbench"

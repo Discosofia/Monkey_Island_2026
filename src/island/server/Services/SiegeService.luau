@@ -14,6 +14,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Building = require(ReplicatedStorage.Shared.Building)
@@ -24,10 +25,10 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
-local CombatService = require(script.Parent.CombatService)
+local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local MonkeyService = require(script.Parent.MonkeyService)
-local Status = require(script.Parent.Parent.Combat.Status)
+local Status = require(ServerScriptService.Combat.Status)
 
 local STATUS_ATTRIBUTE = "SiegeStatus"
 

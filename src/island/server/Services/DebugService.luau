@@ -36,7 +36,7 @@ local RoleService = require(script.Parent.RoleService)
 local SiegeService = require(script.Parent.SiegeService)
 local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
-local ArmorModels = require(script.Parent.Parent.Combat.ArmorModels)
+local ArmorModels = require(ServerScriptService.Combat.ArmorModels)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 

@@ -12,8 +12,8 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local ActionButtons = require(script.Parent.Parent.ActionButtons)
-local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
+local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
 
 local ACTION = "UseHeal"
 local ANTIDOTE_ID = "Antidote"

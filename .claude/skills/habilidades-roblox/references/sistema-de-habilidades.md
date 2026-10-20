@@ -7,10 +7,10 @@ y corrige esta página.
 
 | Quién | Datos (números) | Lógica (servidor) | Lo que se ve (cliente) |
 |---|---|---|---|
-| Jugador (5 por rol: Z, X, C, R y la definitiva V; la R es el hueco 5) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/island/server/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
+| Jugador (5 por rol: Z, X, C, R y la definitiva V; la R es el hueco 5) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/combat/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
 | Combos (2 por rol, de 3 habilidades en orden, que se conectan) | `Data/Combos.luau`, `Config.Combo` | `Services/ComboService.luau` | `ComboController` (indicador y racha), iconos de marca en `AbilityFxController` |
 | Críticos | `Config.Crit`, `critChance` en `Data/Weapons` | `src/shared/Crit.luau` (funciones puras), los tira `CombatService` | `CombatTextController`, `ComicFxController` |
-| Estados de enemigos (aturdido, lento, provocado) | `Config.Abilities.BossControlMultiplier` | `src/island/server/Combat/Status.luau` | contornos (servidor) y hielo/brillo verde (`AbilityFxController`) |
+| Estados de enemigos (aturdido, lento, provocado) | `Config.Abilities.BossControlMultiplier` | `src/combat/Status.luau` | contornos (servidor) y hielo/brillo verde (`AbilityFxController`) |
 | Monos (ataques especiales) | campos de `Data/Monkeys.luau` (`pounce`, `roar`, `throws`, `grab`, `stomp`, `howl`, `thief`…), `Config.Monkeys`, `Config.Difficulty` | `Services/MonkeyService.luau` (`think`, `bite`, `pounce`, `roar`, `throwStone`, `stomp`, `howl`, `steal`) | `MonkeyAnimator` + `Data/MonkeyAnimations`, burbujas de texto |
 | Jefes (especiales por fase) | `Data/Bosses.luau` (`specials`) | `Services/BossService.luau` (`SPECIALS`, `tick`, `updatePhase`) y peligros de `Combat/Hazards.luau` | marcas de aviso en el suelo (Hazards), `AbilityFx` "Quake", animaciones |
 | Mascotas | `Data/Pets.luau` (`attackDamage`, `healPerTick`, `tracks`, `perks`), `Config.Pets` | `Services/PetService.luau` (cada 2 s) | `src/shared/UI/PetFollowers.luau` (salto al mono), rastreo en el cliente |

@@ -10,12 +10,13 @@ local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
-local CombatService = require(script.Parent.Parent.Services.CombatService)
-local Status = require(script.Parent.Status)
+local CombatService = require(ServerScriptService.Combat.Services.CombatService)
+local Status = require(ServerScriptService.Combat.Status)
 
 local SPARKS_TEXTURE = "rbxasset://textures/particles/fire_sparks_main.dds"
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"

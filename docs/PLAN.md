@@ -92,6 +92,8 @@ monkey_island_2026/
 │  │  ├─ Loader.luau          #   Carga Services/Controllers (Init → Start)
 │  │  └─ UI/                  #   Piezas de interfaz (botones, mensajes)
 │  ├─ serverShared/           # → ServerScriptService.ServerShared (solo servidor, ambos places)
+│  ├─ combat/                 # → ServerScriptService.Combat: armas, habilidades, combos y estados,
+│  │                          #   compartidos por la Isla y la arena; CombatRules = reglas de cada place
 │  ├─ lobby/
 │  │  ├─ server/Services/     # Lógica del servidor del Lobby
 │  │  └─ client/Controllers/  # Interfaz y controles del Lobby

@@ -21,15 +21,13 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
-local Retention = require(ServerScriptService.ServerShared.Retention)
-local AbilityFx = require(script.Parent.Parent.Combat.AbilityFx)
-local TelemetryService = require(script.Parent.TelemetryService)
+local AbilityFx = require(script.Parent.Parent.AbilityFx)
+local CombatRules = require(script.Parent.Parent.CombatRules)
 
 local SETTINGS = Config.Combo
 -- Segundos que se ve "¡COMBO!" (ComboStep = 3) antes de volver a empezar.
@@ -241,8 +239,9 @@ local function complete(player: Player, state: State, combo: Combos.Combo, abili
 		state.chain += 1
 	end
 	bumpStreak(player, state, 1 + (if state.connected then SETTINGS.ConnectStreakBonus else 0))
-	TelemetryService.comboCompleted(player, state.streak)
-	Retention.progress(player, "Combo")
+	local rules = CombatRules.get()
+	rules.telemetry.comboCompleted(player, state.streak)
+	rules.progressMission(player, "Combo")
 	-- Se ve "¡COMBO!" (o "¡CONEXIÓN!") con el combo que se ha cerrado…
 	state.displayUntil = time + COMPLETE_DISPLAY_SECONDS
 	publishStep(player, state, #combo.steps, state.displayUntil)
