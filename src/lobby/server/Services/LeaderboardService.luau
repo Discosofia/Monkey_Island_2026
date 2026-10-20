@@ -1,7 +1,8 @@
 --!strict
 -- Clasificaciones en el Lobby (Fase 6): cada Config.Data.LeaderboardRefreshSeconds lee el top 10 de
 -- cada clasificación y lo publica en ReplicatedStorage ("Leaderboard_<stat>", JSON con nombre y valor)
--- para la pestaña "Ranking", y escribe los primeros en el cartel de la playa.
+-- para la pestaña "Ranking", y escribe los primeros en los carteles de la playa (el del ranking y el
+-- de la arena de Dunas, con Leaderboards.ARENA_STATS).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -52,7 +53,9 @@ local function fillBoards(stat: string, rows: { { name: string, value: number } 
 end
 
 local function refresh()
-	for _, stat in Leaderboards.STATS do
+	local stats = table.clone(Leaderboards.STATS)
+	table.move(Leaderboards.ARENA_STATS, 1, #Leaderboards.ARENA_STATS, #stats + 1, stats)
+	for _, stat in stats do
 		local rows = {}
 		for _, entry in Leaderboards.top(stat, 10) do
 			table.insert(rows, { name = nameOf(entry.userId), value = entry.value })

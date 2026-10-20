@@ -1,7 +1,9 @@
 --!strict
 -- Equipos de la arena: cada jugador elige el suyo al llegar (Remotes.ArenaPickTeam), como mucho
--- Arena.format() por equipo, y aparece en su base. Publica el atributo "Team" (Shared/Arena) y lo
--- pone también en el equipo de Roblox (la lista de jugadores sale por colores).
+-- Arena.format() por equipo, y aparece en su base. Quien llega de la cola del Lobby trae el equipo en
+-- el que le puso (TeleportData "team"; así un grupo juega junto) y entra en él solo, aunque durante la
+-- espera puede cambiarse. Publica el atributo "Team" (Shared/Arena) y lo pone también en el equipo de
+-- Roblox (la lista de jugadores sale por colores).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -67,8 +69,24 @@ function TeamService:Init()
 	end
 end
 
+-- El equipo que trae del Lobby (ArenaQueueService), si cabe.
+local function joinFromQueue(player: Player)
+	local ok, joinData = pcall(function()
+		return player:GetJoinData()
+	end)
+	local data = if ok and typeof(joinData) == "table" then joinData.TeleportData else nil
+	local teamId = if typeof(data) == "table" then data.team else nil
+	if Arena.isTeam(teamId) and Arena.phase() == "Waiting" and #Arena.membersOf(teamId) < Arena.format() then
+		join(player, teamId)
+	end
+end
+
 function TeamService:Start()
 	Remotes.ArenaPickTeam.OnServerEvent:Connect(onPickTeam)
+	Players.PlayerAdded:Connect(function(player)
+		-- Después de que ArenaMatchService lea el formato del primero en llegar.
+		task.defer(joinFromQueue, player)
+	end)
 	Remotes.ArenaReady.OnServerEvent:Connect(function(player: Player, ready: any)
 		if Arena.phase() == "Waiting" and Arena.teamOf(player) and typeof(ready) == "boolean" then
 			player:SetAttribute("ArenaReady", ready)

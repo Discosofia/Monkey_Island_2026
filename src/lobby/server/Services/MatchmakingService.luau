@@ -55,6 +55,13 @@ local function members(leader: Player): { Player }
 	return parties[leader] or { leader }
 end
 
+-- El líder del grupo de "player" y todos sus miembros (sin grupo: él solo). Para la cola de la arena
+-- (ArenaQueueService), que mete al grupo entero en el mismo equipo.
+function MatchmakingService.partyOf(player: Player): (Player, { Player })
+	local leader = leaderOf[player] or player
+	return leader, table.clone(members(leader))
+end
+
 local function publish(leader: Player)
 	local list = parties[leader]
 	if not list then

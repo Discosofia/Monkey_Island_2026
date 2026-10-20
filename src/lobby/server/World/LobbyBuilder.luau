@@ -17,7 +17,8 @@
 -- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga y ancla con cadena;
 -- tres carteles en la arena (los roles, con el aviso "RolesPrompt", la bitácora del
 -- capitán y el ranking); el nido de huevos (aviso "NidoPrompt", etiqueta Config.Lobby.NestTag); la
--- lancha de rescate para zarpar (aviso "ZarparPrompt");
+-- lancha de rescate para zarpar (aviso "ZarparPrompt"); el embarcadero con el velero que lleva a la
+-- arena de Dunas (aviso "ZarparDunasPrompt") y el cartel de la arena con su ranking;
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
 -- palmeras; la isla con el volcán en el horizonte; las otras cuatro islas del archipiélago, aún
@@ -40,7 +41,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 7
+local VERSION = 8
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -72,6 +73,13 @@ local LOG_BOARD_AT = Vector2.new(42.9, -6)
 local LOG_BOARD_FACING = Vector2.new(-0.98, 0.18)
 local ROLE_BOARD_AT = Vector2.new(5, -14)
 local RANKING_BOARD_AT = Vector2.new(43, 15)
+-- Cartel de la arena de Dunas: a continuación del ranking, en la misma hilera.
+local ARENA_BOARD_AT = Vector2.new(43, 30)
+-- Embarcadero hacia las Dunas: sale de la playa entre los dos carteles, hacia el sureste (donde se
+-- ve la Isla de las Dunas), con el velero amarrado al final.
+local DUNES_PIER_FROM = Vector2.new(50, 23)
+local DUNES_PIER_LENGTH = 18
+local DUNES_PIER_DECK = 2.4
 -- Nido de huevos: a la derecha de la llegada, entre la hoguera y las palmeras, lo primero que se ve
 -- al aparecer. Es el Nido de la Isla (BuildModels) en grande, sobre un montículo de arena.
 local NEST_AT = Vector2.new(22, 21)
@@ -776,6 +784,59 @@ local function standingBoard(
 	return board
 end
 
+-- Columnas de un cartel de clasificación (las rellena LeaderboardService por el nombre de cada
+-- columna, que es el de su clasificación): título y una línea por puesto.
+local function rankingColumns(ranking: Part, columns: { { stat: string, title: string } })
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0 -- siempre legible, también de noche
+	gui.Parent = ranking
+	local function text(value: string, list: Instance, position: UDim2, size: UDim2): TextLabel
+		local label = Instance.new("TextLabel")
+		label.Position = position
+		label.Size = size
+		label.BackgroundTransparency = 1
+		label.Text = value
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Font = Enum.Font.BuilderSansBold
+		label.TextScaled = true
+		label.Parent = list
+		-- Tope común: así los dos encabezados y todas las líneas salen del mismo tamaño aunque
+		-- unos textos sean más largos que otros.
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 23
+		limit.Parent = label
+		return label
+	end
+	for column, board in columns do
+		local list = Instance.new("Frame")
+		list.Name = board.stat
+		list.BackgroundColor3 = BOARD_CARD
+		list.BackgroundTransparency = 0.1
+		list.Position = UDim2.fromScale(0.03 + (column - 1) * 0.485, 0.06)
+		list.Size = UDim2.fromScale(0.455, 0.88)
+		list.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.06, 0)
+		corner.Parent = list
+		local header = text(board.title, list, UDim2.fromScale(0.05, 0.03), UDim2.fromScale(0.9, 0.17))
+		header.TextColor3 = Color3.fromRGB(255, 215, 90)
+		for position = 1, Config.Lobby.RankingBoardSize do
+			local line = text(
+				if position == 1 then "Aún no hay datos" else "",
+				list,
+				UDim2.fromScale(0.07, 0.07 + position * 0.165),
+				UDim2.fromScale(0.86, 0.14)
+			)
+			line.Name = tostring(position)
+			line.TextXAlignment = Enum.TextXAlignment.Left
+			line.TextColor3 = RANK_COLORS[position] or line.TextColor3
+		end
+	end
+end
+
 -- Carteles de la playa: los roles junto a la proa (lo dibuja RoleBoardController en cada cliente; con
 -- su aviso se abre el menú) y, al otro lado de la playa, el ranking tras la roca (lo rellena
 -- LeaderboardService) con la bitácora del capitán a continuación.
@@ -821,59 +882,17 @@ local function buildBoards(parent: Instance)
 
 	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 14, 7.5, "🏆 RANKING")
 	CollectionService:AddTag(ranking, Config.Lobby.RankingBoardTag)
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
-	gui.LightInfluence = 0 -- siempre legible, también de noche
-	gui.Parent = ranking
-	local function text(value: string, list: Instance, position: UDim2, size: UDim2): TextLabel
-		local label = Instance.new("TextLabel")
-		label.Position = position
-		label.Size = size
-		label.BackgroundTransparency = 1
-		label.Text = value
-		label.TextColor3 = Color3.new(1, 1, 1)
-		label.Font = Enum.Font.BuilderSansBold
-		label.TextScaled = true
-		label.Parent = list
-		-- Tope común: así los dos encabezados y todas las líneas salen del mismo tamaño aunque
-		-- unos textos sean más largos que otros.
-		local limit = Instance.new("UITextSizeConstraint")
-		limit.MaxTextSize = 23
-		limit.Parent = label
-		return label
-	end
-	for column, board in
-		{
-			{ stat = "BestDays", title = "📅 Más días sobrevividos" },
-			{ stat = "Rescues", title = "🚁 Más rescates" },
-		}
-	do
-		local list = Instance.new("Frame")
-		list.Name = board.stat
-		list.BackgroundColor3 = BOARD_CARD
-		list.BackgroundTransparency = 0.1
-		list.Position = UDim2.fromScale(0.03 + (column - 1) * 0.485, 0.06)
-		list.Size = UDim2.fromScale(0.455, 0.88)
-		list.Parent = gui
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0.06, 0)
-		corner.Parent = list
-		local header = text(board.title, list, UDim2.fromScale(0.05, 0.03), UDim2.fromScale(0.9, 0.17))
-		header.TextColor3 = Color3.fromRGB(255, 215, 90)
-		for position = 1, Config.Lobby.RankingBoardSize do
-			local line = text(
-				if position == 1 then "Aún no hay datos" else "",
-				list,
-				UDim2.fromScale(0.07, 0.07 + position * 0.165),
-				UDim2.fromScale(0.86, 0.14)
-			)
-			line.Name = tostring(position)
-			line.TextXAlignment = Enum.TextXAlignment.Left
-			line.TextColor3 = RANK_COLORS[position] or line.TextColor3
-		end
-	end
+	rankingColumns(ranking, {
+		{ stat = "BestDays", title = "📅 Más días sobrevividos" },
+		{ stat = "Rescues", title = "🚁 Más rescates" },
+	})
+	-- Arena de Dunas: victorias y banderas capturadas (Leaderboards.ARENA_STATS).
+	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, "🏜️ ARENA DE DUNAS")
+	CollectionService:AddTag(arena, Config.Lobby.RankingBoardTag)
+	rankingColumns(arena, {
+		{ stat = "ArenaWins", title = "🏆 Más victorias" },
+		{ stat = "ArenaCaptures", title = "🚩 Más banderas" },
+	})
 
 	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, "ELIGE TU ROL")
 	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)
@@ -1951,6 +1970,152 @@ local function buildLifeboat(parent: Instance)
 	boat.Parent = parent
 end
 
+-- Embarcadero de madera hacia la Isla de las Dunas con un velero del desierto amarrado al final: casco
+-- de madera, vela latina color arena con un sol, banderines de los dos equipos (🐆 naranja y 🦜 azul)
+-- y un farol. Con su aviso ("ZarparDunasPrompt") se abre la pestaña Arena del menú.
+local function buildDunesDock(parent: Instance)
+	local dock = Instance.new("Model")
+	dock.Name = "EmbarcaderoDunas"
+	local from = Vector3.new(DUNES_PIER_FROM.X, DUNES_PIER_DECK, DUNES_PIER_FROM.Y)
+	local toDunes = ((DUNES_CENTER - from) * Vector3.new(1, 0, 1)).Unit
+	local pier = CFrame.lookAt(from, from + toDunes)
+	-- Tablones de la pasarela (a lo largo de -Z local) y pilotes clavados en el fondo.
+	local planks = math.floor(DUNES_PIER_LENGTH / 1.2)
+	for index = 0, planks - 1 do
+		newPart(
+			"Tablon",
+			Vector3.new(4, 0.3, 1.1),
+			pier * CFrame.new(0, 0, -(index + 0.5) * 1.2) * CFrame.Angles(0, math.rad(rng:NextNumber(-1.5, 1.5)), 0),
+			tone(PLANK),
+			Enum.Material.WoodPlanks,
+			dock
+		)
+	end
+	for along = 0, DUNES_PIER_LENGTH, 6 do
+		for _, side in { -1, 1 } do
+			local top = (pier * CFrame.new(side * 1.9, 0.6, -along)).Position
+			cylinder("Pilote", 0.5, top, top - Vector3.new(0, 10, 0), DARK_WOOD, Enum.Material.Wood, dock)
+		end
+	end
+
+	-- Velero, con la proa (-Z local) hacia las Dunas.
+	local at = (pier * CFrame.new(3.6, -DUNES_PIER_DECK + SEA_LEVEL + 0.2, -DUNES_PIER_LENGTH + 2)).Position
+	local frame = CFrame.lookAt(at, at + toDunes) * CFrame.Angles(math.rad(2), 0, math.rad(-3))
+	local hullWood = Color3.fromRGB(120, 78, 44)
+	newPart(
+		"Casco",
+		Vector3.new(3.6, 1.4, 9),
+		frame * CFrame.new(0, 0.7, 0.5),
+		hullWood,
+		Enum.Material.WoodPlanks,
+		dock
+	)
+	newPart(
+		"Proa",
+		Vector3.new(2.6, 1.4, 2.6),
+		frame * CFrame.new(0, 0.7, -4) * CFrame.Angles(0, math.rad(45), 0),
+		hullWood,
+		Enum.Material.WoodPlanks,
+		dock
+	)
+	for _, side in { -1, 1 } do
+		newPart(
+			"Borda",
+			Vector3.new(0.3, 0.4, 9),
+			frame * CFrame.new(side * 1.85, 1.6, 0.5),
+			DARK_WOOD,
+			Enum.Material.Wood,
+			dock
+		)
+	end
+	newPart("Bancada", Vector3.new(3.4, 0.3, 1), frame * CFrame.new(0, 1.4, 2.5), PLANK, Enum.Material.Wood, dock)
+	local mastFoot = (frame * CFrame.new(0, 1.4, -1)).Position
+	local mastTop = (frame * CFrame.new(0, 13.5, -1)).Position
+	cylinder("Mastil", 0.35, mastFoot, mastTop, DARK_WOOD, Enum.Material.Wood, dock)
+	-- Vela latina: una verga inclinada y la vela color arena colgando de ella, con un sol pintado.
+	local yardLow = (frame * CFrame.new(0, 2.6, -4.6)).Position
+	local yardHigh = (frame * CFrame.new(0, 12.5, 2.2)).Position
+	cylinder("Verga", 0.25, yardLow, yardHigh, DARK_WOOD, Enum.Material.Wood, dock)
+	local sailCenter = frame * CFrame.new(-0.15, 6.6, -0.6) * CFrame.Angles(math.rad(-34), 0, 0)
+	local sail = newPart(
+		"Vela",
+		Vector3.new(0.12, 6.4, 6.2),
+		sailCenter,
+		Color3.fromRGB(236, 214, 168),
+		Enum.Material.Fabric,
+		dock
+	)
+	sail.CastShadow = false
+	newPart(
+		"FranjaVela",
+		Vector3.new(0.14, 0.7, 6.2),
+		sailCenter * CFrame.new(0, -2.4, 0),
+		Color3.fromRGB(200, 120, 50),
+		Enum.Material.Fabric,
+		dock
+	)
+	sign(sail, Enum.NormalId.Right, "☀️", Color3.fromRGB(230, 150, 40), Enum.Font.BuilderSansBold)
+	sign(sail, Enum.NormalId.Left, "☀️", Color3.fromRGB(230, 150, 40), Enum.Font.BuilderSansBold)
+	-- Banderines de los dos equipos en lo alto del mástil, por encima de la vela.
+	for index, color in { Color3.fromRGB(240, 150, 40), Color3.fromRGB(40, 165, 230) } do
+		decor(
+			newPart(
+				"Banderin",
+				Vector3.new(0.1, 0.8, 1.6),
+				CFrame.new(mastTop) * frame.Rotation * CFrame.new(0, -0.6 - (index - 1) * 1, 0.9),
+				color,
+				Enum.Material.Fabric,
+				dock
+			)
+		)
+	end
+	local lamp =
+		ball("FarolVelero", 0.6, (frame * CFrame.new(0, 2.4, 4.6)).Position, LANTERN_LIGHT, Enum.Material.Neon, dock)
+	decor(lamp)
+	light(lamp, LANTERN_LIGHT, 16, 1.5)
+
+	-- Aviso para zarpar: en el extremo de la pasarela, junto al velero.
+	local promptAnchor = newPart(
+		"AmarreDunas",
+		Vector3.new(2, 2, 2),
+		pier * CFrame.new(0, 1.5, -DUNES_PIER_LENGTH + 1.5),
+		DARK_WOOD,
+		Enum.Material.Wood,
+		dock
+	)
+	promptAnchor.Transparency = 1
+	decor(promptAnchor)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "ZarparDunasPrompt"
+	prompt.ActionText = "Zarpar a las Dunas"
+	prompt.ObjectText = "Velero de la arena"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = promptAnchor
+
+	-- Cartel a la entrada de la pasarela.
+	local signFrame = pier * CFrame.new(-2.8, 1.8, -0.6) * CFrame.Angles(0, math.rad(-120), 0)
+	newPart(
+		"PosteCartel",
+		Vector3.new(0.5, 5, 0.5),
+		signFrame * CFrame.new(0, -1.6, 0.3),
+		DARK_WOOD,
+		Enum.Material.Wood,
+		dock
+	)
+	local board = newPart(
+		"Cartel",
+		Vector3.new(6, 2, 0.3),
+		signFrame,
+		Color3.fromRGB(205, 175, 125),
+		Enum.Material.WoodPlanks,
+		dock
+	)
+	sign(board, Enum.NormalId.Front, "🏜️ A LAS DUNAS →", Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
+	dock.Parent = parent
+end
+
 -- Pasarela metálica de la arena a la cubierta (por el hueco de la barandilla).
 local function buildRamp(parent: Instance, ship: Model)
 	local shipFrame = ship:GetPivot()
@@ -2893,9 +3058,10 @@ function LobbyBuilder.build(options: Options?)
 	buildBoards(folder)
 	buildNest(folder)
 	buildLifeboat(folder)
+	buildDunesDock(folder)
 	for _, palm in
 		{
-			{ x = 39, z = 27, lean = 0.12, yaw = 0.4 }, -- apartada del cartel del ranking
+			{ x = 52, z = -18, lean = 0.12, yaw = 0.4 }, -- detrás de la bitácora (deja sitio al cartel de la arena)
 			{ x = 46, z = 6, lean = 0.18, yaw = 1.9 },
 			{ x = -58, z = 26, lean = 0.1, yaw = 3.4 },
 			{ x = -70, z = 10, lean = 0.2, yaw = 2.2 },

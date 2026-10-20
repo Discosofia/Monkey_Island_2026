@@ -67,8 +67,19 @@ end
 -- enseña (el que llevas en Dunas, el elegido en el Lobby). "compact": filas más bajas (pantallas de
 -- poco alto, como un teléfono apaisado). Sin "compact" (PC) empieza desplegada en el arma y siempre
 -- hay una ranura abierta (pulsar otra cambia a esa); en compacto empieza cerrada y pulsar la abierta la
--- cierra. Llama a "update" para refrescarla.
-function ArenaGearPicker.new(parent: Instance, order: number, roleOf: () -> string, compact: boolean?): Picker
+-- cierra. "startSlot" y "onSlot": para quien la vuelve a crear a menudo (el menú del Lobby se redibuja
+-- al cambiar algo), la ranura con la que empieza y un aviso cada vez que cambia. "hideHeader": sin la
+-- línea de arriba (rol y Ámbar), donde ya se ven en otro sitio (el menú del Lobby). Llama a "update"
+-- para refrescarla.
+function ArenaGearPicker.new(
+	parent: Instance,
+	order: number,
+	roleOf: () -> string,
+	compact: boolean?,
+	startSlot: string?,
+	onSlot: ((slot: string?) -> ())?,
+	hideHeader: boolean?
+): Picker
 	local player = Players.LocalPlayer
 	local slotHeight = if compact then COMPACT_SLOT_HEIGHT else SLOT_HEIGHT
 	local optionHeight = if compact then COMPACT_OPTION_HEIGHT else OPTION_HEIGHT
@@ -92,6 +103,7 @@ function ArenaGearPicker.new(parent: Instance, order: number, roleOf: () -> stri
 	header.Size = UDim2.new(1, 0, 0, 22)
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.TextColor3 = AMBER_TEXT
+	header.Visible = not hideHeader
 
 	-- Ranuras.
 	local slotRow = Instance.new("Frame")
@@ -121,7 +133,7 @@ function ArenaGearPicker.new(parent: Instance, order: number, roleOf: () -> stri
 	optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	optionsLayout.Parent = options
 
-	local openSlot: string? = if compact then nil else ArenaGear.SLOTS[1]
+	local openSlot: string? = startSlot or if compact then nil else ArenaGear.SLOTS[1]
 	local shownKey = ""
 
 	local function equipped(arena: ArenaData, roleId: string, slot: string): string?
@@ -219,6 +231,7 @@ function ArenaGearPicker.new(parent: Instance, order: number, roleOf: () -> stri
 		end
 	end
 
+	local update: () -> ()
 	for index, slot in ArenaGear.SLOTS do
 		local button = Instance.new("TextButton")
 		button.LayoutOrder = index
@@ -247,11 +260,15 @@ function ArenaGearPicker.new(parent: Instance, order: number, roleOf: () -> stri
 		button.Activated:Connect(function()
 			openSlot = if openSlot == slot and compact then nil else slot
 			shownKey = ""
+			if onSlot then
+				onSlot(openSlot)
+			end
+			update()
 		end)
 		slotButtons[slot] = { button = button, stroke = stroke }
 	end
 
-	local function update()
+	function update()
 		local roleId = roleOf()
 		local role = Roles[roleId]
 		if not role then

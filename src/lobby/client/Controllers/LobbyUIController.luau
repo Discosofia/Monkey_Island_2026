@@ -1,7 +1,8 @@
 --!strict
 -- Interfaz del Lobby (Fase 3):
 --   - Cabecera con el Ámbar y el récord de días.
---   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Talentos (del rol elegido), Tienda
+--   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Arena (la arena PvP de Dunas: formato
+--     1v1…5v5 y cola, tus números y el equipo de la arena de cada rol), Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar), Mascotas (arriba el nido de huevos: el que se incuba, la mochila, los
 --     pendientes y qué puede salir; debajo la colección), Misiones (el calendario de 7 días, las
 --     misiones del día y lo que te llevas a la próxima partida), Grupo (invitar a jugadores del Lobby
@@ -11,7 +12,8 @@
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
 --   - Botón para plegar el menú y pasear por el naufragio, y X de cerrar en el menú. El menú empieza
 --     plegado; el cartel de roles de la playa ("RolesPrompt", tecla E) lo abre en la pestaña Rol, y
---     el nido de huevos ("NidoPrompt") en la pestaña Mascotas.
+--     el nido de huevos ("NidoPrompt") en la pestaña Mascotas, y el velero de las Dunas
+--     ("ZarparDunasPrompt") en la pestaña Arena.
 --   - Botón "Invitar amigos" (invitación de Roblox a tus amigos para que vengan a este Lobby).
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
@@ -21,7 +23,9 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
+local Workspace = game:GetService("Workspace")
 
+local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
@@ -52,7 +56,10 @@ local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
 local EGG_BAR_COLOR = Color3.fromRGB(150, 240, 255)
 -- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
 local DISCARD_CONFIRM_SECONDS = 3
-local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Misiones", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
+local TABS =
+	{ "Rol", "Arena", "Talentos", "Tienda", "Mascotas", "Misiones", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
+-- Pestaña Arena: en pantallas de menos alto que esto, el equipo de la arena va compacto.
+local ARENA_COMPACT_BELOW = 500
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -216,6 +223,12 @@ function LobbyUIController:Start()
 	local nestRow: NestRow? = nil
 	-- Cuenta atrás del siguiente premio del calendario en la pestaña Misiones (cada segundo).
 	local calendarCountdown: TextButton? = nil
+	-- Pestaña Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
+	-- dice cuánto llevas en la cola (se actualiza cada segundo).
+	local arenaFormat = 1
+	local arenaRole: string? = nil
+	local arenaSlot: string? = nil
+	local arenaQueueLine: TextLabel? = nil
 
 	for index, name in TABS do
 		local button = Instance.new("TextButton")
@@ -226,6 +239,10 @@ function LobbyUIController:Start()
 		button.TextScaled = true
 		button.Parent = tabBar
 		corner(button, 8)
+		-- Tope común: con TextScaled, "Rol" salía enorme y "Mascotas" diminuto.
+		local tabTextLimit = Instance.new("UITextSizeConstraint")
+		tabTextLimit.MaxTextSize = 16
+		tabTextLimit.Parent = button
 		button.MouseButton1Click:Connect(function()
 			currentTab = name
 			render()
@@ -681,6 +698,168 @@ function LobbyUIController:Start()
 		end
 	end
 
+	local function readJson(attribute: string): { [string]: any }?
+		local raw = player:GetAttribute(attribute)
+		if typeof(raw) ~= "string" then
+			return nil
+		end
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(raw)
+		end)
+		return if ok and typeof(decoded) == "table" then decoded else nil
+	end
+
+	local function queueText(queue: { [string]: any }): string
+		local waited = math.max(0, Workspace:GetServerTimeNow() - (tonumber(queue.since) or 0))
+		return `⏳ Buscando partida {queue.format}v{queue.format}… {math.floor(waited // 60)}:{string.format(
+			"%02d",
+			math.floor(waited % 60)
+		)}`
+	end
+
+	-- Arena de Dunas: formato y cola (ArenaQueueService), tus números y el equipo de la arena de cada rol
+	-- (Shared/UI/ArenaGearPicker; se compra y se cambia igual que en la base de Dunas).
+	local function renderArena()
+		local queue = readJson("ArenaQueue")
+		local arena = readJson("Arena") or {}
+		local leaderId = player:GetAttribute("PartyLeader")
+		local follower = typeof(leaderId) == "number" and leaderId ~= player.UserId
+
+		-- Formatos y "Buscar partida".
+		local formatRow = Instance.new("Frame")
+		formatRow.LayoutOrder = 1
+		formatRow.Size = UDim2.new(1, -10, 0, 50)
+		formatRow.BackgroundTransparency = 1
+		formatRow.Parent = list
+		local formatLayout = Instance.new("UIListLayout")
+		formatLayout.FillDirection = Enum.FillDirection.Horizontal
+		formatLayout.Padding = UDim.new(0, 6)
+		formatLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		formatLayout.Parent = formatRow
+		local shownFormat = if queue then tonumber(queue.format) or arenaFormat else arenaFormat
+		for format = Config.Arena.MinFormat, Config.Arena.MaxFormat do
+			local button = Instance.new("TextButton")
+			button.LayoutOrder = format
+			button.Size = UDim2.new(0.1, -6, 1, 0)
+			button.Text = `{format}v{format}`
+			button.Font = Enum.Font.BuilderSansBold
+			button.TextScaled = true
+			local chosen = format == shownFormat
+			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
+			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+			button.AutoButtonColor = queue == nil
+			button.Parent = formatRow
+			corner(button, 8)
+			button.MouseButton1Click:Connect(function()
+				if not queue then
+					arenaFormat = format
+					render()
+				end
+			end)
+		end
+		local search = Widgets.button("", formatRow)
+		search.LayoutOrder = 99
+		search.Size = UDim2.new(0.5, -6, 1, 0)
+		local searchLimit = search:FindFirstChildOfClass("UISizeConstraint")
+		if searchLimit then
+			searchLimit:Destroy()
+		end
+		if follower then
+			setButton(search, "Lo elige tu líder", false)
+		elseif queue then
+			setButton(search, "✖ Salir de la cola", true)
+			search.BackgroundColor3 = CLOSE_COLOR
+			search.TextColor3 = Color3.new(1, 1, 1)
+		else
+			setButton(search, "⚔️ Buscar partida", true)
+		end
+		search.MouseButton1Click:Connect(function()
+			if follower then
+				return
+			elseif queue then
+				Remotes.ArenaQueueLeave:FireServer()
+			else
+				Remotes.ArenaQueueJoin:FireServer(arenaFormat)
+			end
+		end)
+
+		-- En la cola: cuánto llevas. Si no: tus números de la arena y el Ámbar de hoy.
+		local status = Widgets.label("", list)
+		status.LayoutOrder = 2
+		status.Size = UDim2.new(1, -10, 0, 24)
+		status.TextColor3 = Color3.fromRGB(255, 220, 150)
+		if queue then
+			status.Text = queueText(queue)
+			arenaQueueLine = status
+		else
+			local stats = if typeof(arena.stats) == "table" then arena.stats else {}
+			local daily = if typeof(arena.daily) == "table"
+					and arena.daily.day == Daily.today(Workspace:GetServerTimeNow())
+				then arena.daily.amber or 0
+				else 0
+			status.Text =
+				`🏆 {stats.wins or 0} victorias · 🚩 {stats.captures or 0} banderas · ✨ hoy {daily}/{Config.Arena.Amber.DailyCap} de Ámbar en la arena`
+		end
+
+		-- Rol cuyo equipo se ve (al empezar, el de la arena o el elegido en el Lobby).
+		local roleId = arenaRole
+			or (if typeof(arena.role) == "string" and Roles[arena.role] then arena.role else nil)
+			or Progression.validRole(player:GetAttribute("SelectedRole"))
+		arenaRole = roleId
+		local roleRow = Instance.new("Frame")
+		roleRow.LayoutOrder = 3
+		roleRow.Size = UDim2.new(1, -10, 0, 44)
+		roleRow.BackgroundTransparency = 1
+		roleRow.Parent = list
+		local roleLayout = Instance.new("UIListLayout")
+		roleLayout.FillDirection = Enum.FillDirection.Horizontal
+		roleLayout.Padding = UDim.new(0, 6)
+		roleLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		roleLayout.Parent = roleRow
+		for index, id in
+			sortedKeys(Roles, function(role)
+				return role.order
+			end)
+		do
+			local role = Roles[id]
+			local button = Instance.new("TextButton")
+			button.LayoutOrder = index
+			button.Size = UDim2.new(0.25, -6, 1, 0)
+			button.Text = `{role.icon} {role.name}`
+			button.Font = Enum.Font.BuilderSansBold
+			button.TextScaled = true
+			local chosen = id == roleId
+			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
+			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+			button.Parent = roleRow
+			corner(button, 8)
+			local limit = Instance.new("UITextSizeConstraint")
+			limit.MaxTextSize = 20
+			limit.Parent = button
+			button.MouseButton1Click:Connect(function()
+				arenaRole = id
+				render()
+			end)
+		end
+
+		-- Equipo de la arena de ese rol.
+		local compact = Workspace.CurrentCamera.ViewportSize.Y < ARENA_COMPACT_BELOW
+		local picker = ArenaGearPicker.new(
+			list,
+			4,
+			function(): string
+				return arenaRole or roleId
+			end,
+			compact,
+			arenaSlot,
+			function(slot)
+				arenaSlot = slot
+			end,
+			true
+		)
+		picker.update()
+	end
+
 	function render()
 		for name, button in tabButtons do
 			local active = name == currentTab
@@ -696,9 +875,12 @@ function LobbyUIController:Start()
 		clearRows(list)
 		nestRow = nil
 		calendarCountdown = nil
+		arenaQueueLine = nil
 		local data = Progression.read(player)
 		if currentTab == "Rol" then
 			renderRoles(data)
+		elseif currentTab == "Arena" then
+			renderArena()
 		elseif currentTab == "Talentos" then
 			renderTalents(data)
 		elseif currentTab == "Tienda" then
@@ -728,6 +910,13 @@ function LobbyUIController:Start()
 				local nestEgg = readEggs().nest
 				if nestEgg then
 					updateNestRow(nestEgg)
+				end
+			end
+			local queueLine = arenaQueueLine
+			if queueLine and panel.Visible then
+				local queue = readJson("ArenaQueue")
+				if queue then
+					queueLine.Text = queueText(queue)
 				end
 			end
 			local countdown = calendarCountdown
@@ -842,6 +1031,9 @@ function LobbyUIController:Start()
 		elseif prompt.Name == "NidoPrompt" then
 			-- Nido de huevos de la playa (World/LobbyBuilder; el huevo lo dibuja NestController).
 			setMenuOpen(true, "Mascotas")
+		elseif prompt.Name == "ZarparDunasPrompt" then
+			-- Velero del embarcadero de las Dunas (World/LobbyBuilder): formato y cola de la arena.
+			setMenuOpen(true, "Arena")
 		end
 	end)
 

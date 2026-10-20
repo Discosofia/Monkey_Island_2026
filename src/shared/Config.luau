@@ -549,6 +549,15 @@ local Config = {
 		-- Las curaciones de los jugadores (el médico) en la arena. Con ×1 un médico se curaba 6,3 por
 		-- segundo solo y un duelo de médicos duraba 55 s; con ×0,6, 30 s (se tumba en 11–16 s).
 		HealingMultiplier = 0.6,
+		-- Cola del Lobby (ArenaQueueService, con MemoryStore): cada cuánto se intenta juntar equipos y
+		-- se miran las partidas encontradas, cuánto vive un ticket sin renovarse, cuánto dura el candado
+		-- del servidor que reparte y cuánto se guarda una partida encontrada hasta que viajan.
+		Queue = {
+			TickSeconds = 3,
+			TicketSeconds = 600,
+			LockSeconds = 8,
+			MatchSeconds = 120,
+		},
 		-- Los dos equipos: nombre, icono y color (bases, marcador, nombres sobre la cabeza).
 		Teams = {
 			Jaguar = { name = "Jaguar", icon = "🐆", color = Color3.fromRGB(240, 150, 40) },
