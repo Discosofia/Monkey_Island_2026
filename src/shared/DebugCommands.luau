@@ -46,6 +46,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "GrantEgg", label = "🥚 Huevo (rareza siguiente)" },
 		{ id = "EggReady", label = "🐣 Huevo del nido listo" },
 		{ id = "ClockHour", label = "⏩ Reloj +1 h" },
+		{ id = "Supplies", label = "🎒 Provisiones de prueba" },
 	},
 }
 

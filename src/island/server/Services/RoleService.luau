@@ -4,6 +4,7 @@
 --   - Publica "Role" y las ventajas como atributos "Perk_<nombre>" (Shared/Progression.perk).
 --   - Aplica las que son de una vez: vida máxima extra, el kit de náufrago y los ítems del rol
 --     (las flechas del cazador). Las armas del rol las da CombatService.
+--   - Entrega las provisiones ganadas fuera de partida (calendario, misiones; ServerShared/Supplies).
 --   - Rellena lo que el rol recupera solo ("refill" en Data/Roles: el carcaj del cazador).
 --   - Marca "TutorialPending" si el jugador aún no ha hecho el tutorial (TutorialController).
 
@@ -16,9 +17,11 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local Supplies = require(ServerScriptService.ServerShared.Supplies)
 local InventoryService = require(script.Parent.InventoryService)
 
 local BASE_HEALTH = 100
@@ -118,6 +121,13 @@ local function onPlayer(player: Player)
 		end
 	end
 	giveRoleItems(player, roleId)
+	local supplies = Supplies.takeAll(player)
+	if next(supplies) ~= nil then
+		for itemId, amount in supplies do
+			InventoryService.add(player, itemId, amount)
+		end
+		Remotes.Notify:FireClient(player, `🎒 Tus provisiones: {Rewards.describeItems(supplies)}`)
+	end
 	if profile and not profile.tutorialDone then
 		player:SetAttribute("TutorialPending", true)
 	end

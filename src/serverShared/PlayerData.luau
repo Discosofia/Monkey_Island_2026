@@ -12,7 +12,8 @@
 -- Los valores que ve el cliente se copian a atributos del Player ("Amber", "BestDays",
 -- "SelectedRole" y "Progress", un JSON con XP, talentos y mejoras; ver Shared/Progression), y
 -- "Settings", un JSON con los ajustes del jugador (Shared/Settings), que el cliente cambia con
--- Remotes.SaveSettings, y "Eggs", un JSON con sus huevos guardados (Shared/EggIncubation).
+-- Remotes.SaveSettings, "Eggs", un JSON con sus huevos guardados (Shared/EggIncubation), y "Retention",
+-- un JSON con sus provisiones, su calendario y sus misiones del día (ServerShared/Retention).
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -173,6 +174,10 @@ local function publish(player: Player, session: Session)
 	)
 	player:SetAttribute("Settings", HttpService:JSONEncode(Settings.sanitize(profile.settings)))
 	player:SetAttribute("Eggs", HttpService:JSONEncode(EggIncubation.normalize(profile.eggs)))
+	player:SetAttribute(
+		"Retention",
+		HttpService:JSONEncode({ supplies = profile.supplies, login = profile.login, daily = profile.daily })
+	)
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).

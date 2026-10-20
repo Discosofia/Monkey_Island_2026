@@ -27,6 +27,7 @@ local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
@@ -682,6 +683,27 @@ function LobbyUIController:Start()
 		end)
 	end
 	joinButton.Activated:Connect(join)
+
+	-- Provisiones guardadas (calendario, misiones): encima del botón de viaje, que es cuando se usan.
+	-- Por píxeles y no en escala: el botón mide de 48 a 80 px de alto según la pantalla.
+	local suppliesLabel = Widgets.label("", gui)
+	suppliesLabel.Name = "SuppliesLine"
+	suppliesLabel.AnchorPoint = Vector2.new(0.5, 1)
+	suppliesLabel.Position = UDim2.new(0.5, 0, 0.95, -86)
+	suppliesLabel.Size = UDim2.new(0.5, 0, 0, 26)
+	suppliesLabel.TextColor3 = Color3.fromRGB(230, 220, 200)
+	local function refreshSupplies()
+		local raw = player:GetAttribute("Retention")
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
+		end)
+		local items = Rewards.sanitizeItems(if ok and typeof(decoded) == "table" then decoded.supplies else nil)
+		local text = Rewards.describeItems(items)
+		suppliesLabel.Text = if text ~= "" then `🎒 Te llevas a la Isla: {text}` else ""
+		suppliesLabel.Visible = text ~= ""
+	end
+	player:GetAttributeChangedSignal("Retention"):Connect(refreshSupplies)
+	refreshSupplies()
 
 	-- El menú se puede plegar para pasear por el naufragio.
 	local menuButton = Widgets.button("📜 Abrir menú", gui)
