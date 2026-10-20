@@ -23,7 +23,7 @@ local Missions: { [string]: Mission } = {
 	Kills = { icon = "🐒", text = "Derrota {target} monos", event = "Kill", target = 15, reward = GENERAL_REWARD },
 	Night = {
 		icon = "🌙",
-		text = "Supera {target} noche en la Isla",
+		text = "Supera {target} noche en la " .. Config.PlaceNames.IslandShort,
 		event = "Night",
 		target = 1,
 		reward = GENERAL_REWARD,

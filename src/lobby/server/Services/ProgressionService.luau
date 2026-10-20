@@ -1,6 +1,8 @@
 --!strict
 -- Progresión en el Lobby (Fase 3): elegir rol, aprender talentos y comprar mejoras con Ámbar.
--- Todo se valida contra el perfil guardado (PlayerData) y se publica de vuelta al cliente.
+-- Todo se valida contra el perfil guardado (PlayerData) y se publica de vuelta al cliente. Cada
+-- cambio de rol, talento, mejora o mascota rehace las ventajas con las que se prueban las
+-- habilidades en el Lobby (LobbyRoleService).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -15,6 +17,7 @@ local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local Retention = require(ServerScriptService.ServerShared.Retention)
+local LobbyRoleService = require(script.Parent.LobbyRoleService)
 
 local ProgressionService = {}
 
@@ -29,6 +32,7 @@ local function onSelectRole(player: Player, roleId: any)
 	end)
 	-- La misión del día del rol cambia con él.
 	Retention.refresh(player)
+	LobbyRoleService.refresh(player)
 end
 
 local function onLearnTalent(player: Player, roleId: any, talentId: any)
@@ -63,6 +67,7 @@ local function onLearnTalent(player: Player, roleId: any, talentId: any)
 	PlayerData.update(player, function(current)
 		current.talents[key] = rank + 1
 	end)
+	LobbyRoleService.refresh(player)
 	Remotes.Notify:FireClient(player, `Aprendido: {talent.name} (rango {rank + 1})`)
 end
 
@@ -89,6 +94,7 @@ local function onBuyUpgrade(player: Player, upgradeId: any)
 		current.amber -= cost
 		current.upgrades[upgradeId] = rank + 1
 	end)
+	LobbyRoleService.refresh(player)
 	PlayerData.saveNow(player)
 	Analytics.amber(player, "Sink", cost, profile.amber, upgradeId)
 	Remotes.Notify:FireClient(player, `Comprado: {upgrade.icon} {upgrade.name} (rango {rank + 1})`)
@@ -108,6 +114,7 @@ local function onSelectPet(player: Player, petId: any)
 	PlayerData.update(player, function(current)
 		current.activePet = petId
 	end)
+	LobbyRoleService.refresh(player)
 end
 
 function ProgressionService:Start()

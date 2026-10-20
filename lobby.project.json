@@ -6,11 +6,17 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
+      },
+      "CombatClient": {
+        "$path": "src/combatClient"
       }
     },
     "ServerScriptService": {
       "ServerShared": {
         "$path": "src/serverShared"
+      },
+      "Combat": {
+        "$path": "src/combat"
       },
       "Server": {
         "$path": "src/lobby/server"
@@ -21,6 +27,9 @@
         "Client": {
           "$path": "src/lobby/client"
         }
+      },
+      "$properties": {
+        "EnableMouseLockOption": false
       }
     }
   }

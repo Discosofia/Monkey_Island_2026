@@ -8,7 +8,7 @@
 --     misiones del día y lo que te llevas a la próxima partida), Grupo (invitar a jugadores del Lobby
 --     para viajar juntos) y Ajustes (tu personaje, tus números de combate y dónde salen los números;
 --     UI/SettingsPanel).
---   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
+--   - Botón "Ir a la Isla de monos" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
 --   - Botón para plegar el menú y pasear por el naufragio, y X de cerrar en el menú. El menú empieza
 --     plegado; el cartel de roles de la playa ("RolesPrompt", tecla E) lo abre en la pestaña Rol, y
@@ -23,6 +23,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
+local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
 
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
@@ -54,6 +55,14 @@ local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
 local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
 -- Barra de incubación del huevo del nido (cian = huevo, como su línea de estado en la Isla).
 local EGG_BAR_COLOR = Color3.fromRGB(150, 240, 255)
+-- Píxeles que se deja libres abajo en el centro para la barra de objetos de Roblox (las armas del
+-- rol): en PC su borde de arriba queda a unos 100 px del de abajo de la pantalla.
+local HOTBAR_CLEARANCE = 112
+-- Pantallas del combate compartido que tapa el menú abierto.
+local COMBAT_HUDS = { RoleHUD = true, ComboHUD = true }
+-- Nombre de la Isla en las frases y texto del botón de viaje.
+local ISLAND = Config.PlaceNames.IslandShort
+local JOIN_TEXT = `🍌 Ir a la {ISLAND} 🐒`
 -- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
 local DISCARD_CONFIRM_SECONDS = 3
 local TABS =
@@ -426,7 +435,7 @@ function LobbyUIController:Start()
 			row.title.Text = "🥚 Nido vacío"
 			row.detail.Text = if #eggs.bag + #eggs.pending > 0
 				then "Pon a incubar uno de tus huevos"
-				else "Defiende huevos en la Isla para conseguirlos"
+				else `Defiende huevos en la {ISLAND} para conseguirlos`
 			setButton(row.button, "—", false)
 		end
 
@@ -521,7 +530,7 @@ function LobbyUIController:Start()
 		local state = Daily.missionState(retention.daily)
 		note(
 			list,
-			`🎯 Misiones de hoy: se cumplen en la Isla (cambian en {EggIncubation.formatTime(
+			`🎯 Misiones de hoy: se cumplen en la {ISLAND} (cambian en {EggIncubation.formatTime(
 				Daily.secondsToReset(now)
 			)})`,
 			3
@@ -674,7 +683,7 @@ function LobbyUIController:Start()
 		local order = 2
 		if inParty then
 			local row = newRow(list, order)
-			row.title.Text = if isLeader then "Eres el líder" else "Viajáis cuando el líder pulse Ir a la Isla"
+			row.title.Text = if isLeader then "Eres el líder" else `Viajáis cuando el líder pulse "{JOIN_TEXT}"`
 			row.detail.Text = "Salir del grupo te deja viajar por tu cuenta."
 			setButton(row.button, "Salir", true)
 			row.button.MouseButton1Click:Connect(function()
@@ -944,11 +953,13 @@ function LobbyUIController:Start()
 	end)
 	render()
 
-	-- Botón de viaje (y el bote del naufragio, que hace lo mismo).
-	local joinButton = Widgets.button("Ir a la Isla", gui)
+	-- Botón de viaje (y el bote del naufragio, que hace lo mismo). Con el menú plegado va encima de la
+	-- barra de objetos de Roblox, que abajo en el centro lleva las armas del rol para probarlas en la
+	-- plaza; con el menú abierto la barra se esconde y el botón baja a su sitio, para no tapar el menú
+	-- en un teléfono (setMenuOpen).
+	local joinButton = Widgets.button(JOIN_TEXT, gui)
 	joinButton.Name = "JoinIslandButton"
 	joinButton.AnchorPoint = Vector2.new(0.5, 1)
-	joinButton.Position = UDim2.fromScale(0.5, 0.95)
 	joinButton.Size = UDim2.fromScale(0.3, 0.1)
 	local waiting = false
 	local function join()
@@ -961,7 +972,7 @@ function LobbyUIController:Start()
 		-- Si el viaje no ocurre (por ejemplo en Studio), el botón vuelve a estar disponible.
 		task.delay(Config.Teleport.CooldownSeconds + 4, function()
 			waiting = false
-			joinButton.Text = "Ir a la Isla"
+			joinButton.Text = JOIN_TEXT
 		end)
 	end
 	joinButton.Activated:Connect(join)
@@ -971,7 +982,6 @@ function LobbyUIController:Start()
 	local suppliesLabel = Widgets.label("", gui)
 	suppliesLabel.Name = "SuppliesLine"
 	suppliesLabel.AnchorPoint = Vector2.new(0.5, 1)
-	suppliesLabel.Position = UDim2.new(0.5, 0, 0.95, -86)
 	suppliesLabel.Size = UDim2.new(0.5, 0, 0, 26)
 	suppliesLabel.TextColor3 = Color3.fromRGB(230, 220, 200)
 	local function refreshSupplies()
@@ -981,7 +991,7 @@ function LobbyUIController:Start()
 		end)
 		local items = Rewards.sanitizeItems(if ok and typeof(decoded) == "table" then decoded.supplies else nil)
 		local text = Rewards.describeItems(items)
-		suppliesLabel.Text = if text ~= "" then `🎒 Te llevas a la Isla: {text}` else ""
+		suppliesLabel.Text = if text ~= "" then `🎒 Te llevas a la {ISLAND}: {text}` else ""
 		suppliesLabel.Visible = text ~= ""
 	end
 	player:GetAttributeChangedSignal("Retention"):Connect(refreshSupplies)
@@ -993,9 +1003,25 @@ function LobbyUIController:Start()
 	menuButton.AnchorPoint = Vector2.new(0, 1)
 	menuButton.Position = UDim2.fromScale(0.02, 0.95)
 	menuButton.Size = UDim2.fromScale(0.17, 0.07)
+	-- Las casillas de habilidades y de combos (CombatClient: RoleHUD y ComboHUD, arriba a la izquierda)
+	-- quedan debajo del menú abierto: se esconden mientras está abierto.
+	local playerGui = player:WaitForChild("PlayerGui")
+	local function showCombatHud(screen: Instance)
+		if screen:IsA("ScreenGui") and COMBAT_HUDS[screen.Name] then
+			screen.Enabled = not panel.Visible
+		end
+	end
+	playerGui.ChildAdded:Connect(showCombatHud)
 	function setMenuOpen(open: boolean, tab: string?)
 		panel.Visible = open
 		menuButton.Text = if open then "📜 Ocultar menú" else "📜 Abrir menú"
+		for _, screen in playerGui:GetChildren() do
+			showCombatHud(screen)
+		end
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, not open)
+		local bottom = if open then UDim2.fromScale(0.5, 0.95) else UDim2.new(0.5, 0, 1, -HOTBAR_CLEARANCE)
+		joinButton.Position = bottom
+		suppliesLabel.Position = bottom + UDim2.fromOffset(0, -86)
 		if tab then
 			currentTab = tab
 			render()
@@ -1004,6 +1030,8 @@ function LobbyUIController:Start()
 	menuButton.Activated:Connect(function()
 		setMenuOpen(not panel.Visible)
 	end)
+	-- El menú empieza plegado (coloca el botón de viaje y la línea de provisiones).
+	setMenuOpen(false)
 
 	-- "X" y no "✕": BuilderSans no tiene ese signo y sale una caja vacía.
 	local closeButton = Widgets.button("X", panel)

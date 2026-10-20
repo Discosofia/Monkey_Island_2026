@@ -144,7 +144,7 @@ local function refresh(time: number)
 		local stored = #data.bag + #data.pending
 		board.detail.Text = if stored > 0
 			then `Tienes {stored} huevo{if stored == 1 then "" else "s"}: ponlo a incubar`
-			else "Consigue huevos en la Isla"
+			else `Consigue huevos en la {Config.PlaceNames.IslandShort}`
 		setPrompt(nest, "Ver el nido")
 		return
 	end

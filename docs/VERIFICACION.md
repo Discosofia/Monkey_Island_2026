@@ -130,18 +130,24 @@ En el place **Lobby**, con ▶:
 
 En el place **Lobby**, con ▶ (se construye solo la primera vez; ver [MAPA.md](MAPA.md), Lobby):
 
-1. [ ] Apareces en la arena junto al naufragio, con luz de atardecer.
-   ✅ A la izquierda, el carguero **«Esperanza»** encallado y escorado: casco de acero azul y rojo con un **boquete** por el que se ve la bodega (cajas, bidones, bananas y una luz de emergencia), castillo blanco con puente de mando, chimenea y radar, contenedores de colores en cubierta (uno a punto de caer por la borda) y una grúa amarilla. Al fondo, la **isla con el volcán humeando** y ríos de lava.
+1. [ ] Apareces en el borde sur de la **plaza**, un óvalo de arena libre, con luz de atardecer.
+   ✅ Dentro solo están la hoguera, el nido de huevos y tres muñecos de práctica (a la izquierda). Los carteles hacen de borde y miran al centro: arriba la **Bitácora del capitán**, arriba a la derecha **Elige tu rol**, a la derecha el **Ranking** y debajo el de la **🎖️ Isla de dunas ☠️**. Arriba a la izquierda, fuera de la plaza, el carguero **«Esperanza»** encallado y escorado: casco de acero azul y rojo con un **boquete** por el que se ve la bodega (cajas, bidones, bananas y una luz de emergencia), castillo blanco con puente de mando, chimenea y radar, contenedores de colores en cubierta (uno a punto de caer por la borda) y una grúa amarilla. Al fondo, la **isla con el volcán humeando** y ríos de lava.
 2. [ ] Pulsa **📜 Ocultar menú** (abajo a la izquierda) y pasea.
    ✅ El panel se pliega y vuelve con **📜 Abrir menú**.
 3. [ ] Sube por la **pasarela metálica** a la cubierta y entra por el boquete a la bodega.
    ✅ Se puede andar por la cubierta entre los contenedores, subir por la escalera exterior al techo del primer piso del castillo y entrar en la bodega.
-4. [ ] Mira el campamento: hoguera con bancos, tienda de lona azul, contenedores varados (uno abierto con cajas PRIMAL), el ancla con su cadena hasta la proa, el salvavidas y la **Bitácora del capitán** (el tablero junto a la llegada).
+4. [ ] Mira el campamento, abajo a la izquierda fuera de la plaza: tienda de lona azul, contenedores varados (uno abierto con cajas PRIMAL), cajas y bidones. Detrás de la bitácora, el ancla con su cadena hasta la proa.
    ✅ La bitácora se lee y cuenta el lore (tormenta, la isla, el Proyecto PRIMAL, la lancha).
-5. [ ] Ve a la **lancha de rescate** de la orilla (cartel "🚤 A LA ISLA →") y mantén **"Zarpar hacia la isla"**.
-   ✅ Hace lo mismo que el botón **Ir a la Isla** (en Studio no viaja; publicado sí).
+5. [ ] Ve a la **lancha de rescate** de la orilla norte, detrás del cartel de roles (cartel "🚤 A LA ISLA →"), y mantén **"Zarpar a la Isla de monos"**.
+   ✅ Hace lo mismo que el botón **🍌 Ir a la Isla de monos 🐒** (en Studio no viaja; publicado sí). El velero del embarcadero, al pie del cartel de la arena, dice **"Zarpar a la Isla de dunas"**.
 6. [ ] Intenta alejarte nadando.
    ✅ Un muro invisible te frena a unos 160 studs.
+7. [ ] **Probar el rol en la plaza.** Con el menú plegado, saca un arma con 1 o 2 y usa las habilidades (Z X C R V) contra los muñecos.
+   ✅ Arriba a la izquierda salen las casillas de las habilidades y de los combos (se esconden con el menú abierto). Los muñecos reciben daño con números, estados y combos, y reaparecen al romperse. La barra de objetos de Roblox sale abajo en el centro, con el botón **🍌 Ir a la Isla de monos 🐒** justo encima; con el menú abierto la barra se esconde y el botón baja.
+8. [ ] Cambia de rol en el cartel **Elige tu rol**.
+   ✅ Cambian al momento las armas, las casillas y las habilidades, y salen listas.
+9. [ ] **Con 2 jugadores** (Prueba → Clientes y servidores → 2 jugadores): el jugador 1 usa todo lo de cada rol sobre el 2 (Torbellino, Embestida, Pisotón, Cepo, Nova de hielo, Rayo, Meteoro, Polvo somnífero, Ungüento, Dardo curativo, Escudo de hojas, Tótem, Grito de guerra) y le dispara con las armas.
+   ✅ El 2 ve los efectos pero no recibe daño, curación, escudo, aturdimiento, sueño, ralentizar, marca ni cepo. Practicar no avanza las misiones del día.
 
 ## 3.2 Roles en la Isla
 

@@ -200,6 +200,13 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
   con el salto. `maqueta_ui.luau` repite sus cuentas: si cambian, cámbialas también allí.
 - La vista previa de Ajustes (`SettingsPanel`, `PREVIEW_RECTS`) dibuja las tres disposiciones de los
   números de combate: si cambias dónde salen, cámbiala también.
+- **Lobby** (desde el 20-10-2026 carga el combate compartido para probar el rol en la plaza): con el
+  menú plegado, `JoinIslandButton` y la línea de provisiones van a 112 px del borde de abajo
+  (`HOTBAR_CLEARANCE`), encima de la barra de objetos de Roblox con las armas del rol (en PC su
+  borde de arriba queda a unos 100 px del de abajo: con 76 se tapaban, captura del usuario). Con el menú
+  abierto (`setMenuOpen`) la barra se esconde (`SetCoreGuiEnabled(Backpack)`), el botón baja a 0.95
+  para no pisar el panel en un teléfono y se esconden `RoleHUD` y `ComboHUD`, que quedan debajo del
+  panel.
 
 ## 8. Ajustes del jugador
 

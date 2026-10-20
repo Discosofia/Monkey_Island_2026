@@ -180,7 +180,10 @@ local function onJoinIsland(player: Player)
 	end
 	local leader = leaderOf[player]
 	if leader and leader ~= player then
-		Remotes.Notify:FireClient(player, `Tu grupo viaja cuando {leader.DisplayName} (líder) pulse "Ir a la Isla"`)
+		Remotes.Notify:FireClient(
+			player,
+			`Tu grupo viaja cuando {leader.DisplayName} (líder) pulse "Ir a la {Config.PlaceNames.IslandShort}"`
+		)
 		return
 	end
 	local travellers = members(player)
@@ -196,7 +199,7 @@ local function onJoinIsland(player: Player)
 	while pending > 0 and os.clock() - started < 8 do
 		task.wait(0.1)
 	end
-	Teleporter.send(travellers, Config.PlaceIds.Island, "la Isla", travelOptions())
+	Teleporter.send(travellers, Config.PlaceIds.Island, `la {Config.PlaceNames.IslandShort}`, travelOptions())
 end
 
 function MatchmakingService:Start()

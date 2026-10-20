@@ -12,13 +12,18 @@
 -- Por seguridad, desde la barra de comandos solo se ejecuta en el place del Lobby
 -- (Config.PlaceIds.Lobby). Para otro place usa build({ force = true }).
 --
--- Crea: mar y banco de arena (terreno); el carguero encallado con boquete y bodega, castillo con
--- puente de mando, chimenea y radar, contenedores en cubierta y grúa; la pasarela de subida; el
--- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga y ancla con cadena;
--- tres carteles en la arena (los roles, con el aviso "RolesPrompt", la bitácora del
--- capitán y el ranking); el nido de huevos (aviso "NidoPrompt", etiqueta Config.Lobby.NestTag); la
--- lancha de rescate para zarpar (aviso "ZarparPrompt"); el embarcadero con el velero que lleva a la
--- arena de Dunas (aviso "ZarparDunasPrompt") y el cartel de la arena con su ranking;
+-- Todo se ordena alrededor de la plaza (PLAZA): un óvalo de arena libre donde se juntan los
+-- jugadores y prueban sus habilidades contra los muñecos de práctica (LobbyDummyService, en
+-- practiceSpots). Dentro quedan la hoguera, el nido y la llegada; los carteles le hacen de borde.
+--
+-- Crea: mar y banco de arena (terreno); el carguero encallado arriba a la izquierda, con boquete y
+-- bodega, castillo con puente de mando, chimenea y radar, contenedores en cubierta y grúa; la
+-- pasarela de subida; la hoguera de la plaza; el campamento abajo a la izquierda con tienda de lona,
+-- contenedores varados y cajas de la carga; el ancla con cadena; cuatro carteles en el borde de la
+-- plaza (la bitácora del capitán arriba, los roles con el aviso "RolesPrompt", el ranking y el de la
+-- arena de Dunas a la derecha); el nido de huevos (aviso "NidoPrompt", etiqueta
+-- Config.Lobby.NestTag); la lancha de rescate para zarpar a la Isla de monos (aviso "ZarparPrompt");
+-- el embarcadero con el velero que lleva a la Isla de dunas (aviso "ZarparDunasPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
 -- palmeras; la isla con el volcán en el horizonte; las otras cuatro islas del archipiélago, aún
@@ -41,7 +46,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 8
+local VERSION = 11
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -65,27 +70,32 @@ local DUNES_CENTER = Vector3.new(820, 0, 470)
 local DUNES_RADIUS = 270
 local PEAKS_CENTER = Vector3.new(-150, 0, -1300)
 
--- Carteles de la playa (x, z): los roles junto a la proa, mirando a la plaza (entre la hoguera y la
--- orilla), y al otro lado el ranking, tras la roca, con la bitácora a continuación, siguiendo la
--- misma hilera y de cara al barco.
-local PLAZA = Vector2.new(17, 10)
-local LOG_BOARD_AT = Vector2.new(42.9, -6)
-local LOG_BOARD_FACING = Vector2.new(-0.98, 0.18)
-local ROLE_BOARD_AT = Vector2.new(5, -14)
-local RANKING_BOARD_AT = Vector2.new(43, 15)
--- Cartel de la arena de Dunas: a continuación del ranking, en la misma hilera.
-local ARENA_BOARD_AT = Vector2.new(43, 30)
--- Embarcadero hacia las Dunas: sale de la playa entre los dos carteles, hacia el sureste (donde se
--- ve la Isla de las Dunas), con el velero amarrado al final.
-local DUNES_PIER_FROM = Vector2.new(50, 23)
+-- Plaza: el círculo de arena libre (centro; radio de unos 41 × 39) donde se juntan los jugadores.
+-- Dentro solo quedan la hoguera, el nido, los muñecos de práctica y la llegada. Los carteles están
+-- sobre su borde (de arriba a la derecha: bitácora, roles, ranking y arena) y miran a su centro; el
+-- barco, el campamento y los botes quedan fuera.
+local PLAZA = Vector2.new(10, -3)
+local LOG_BOARD_AT = Vector2.new(1.7, -41.2)
+local ROLE_BOARD_AT = Vector2.new(39.5, -30.1)
+local RANKING_BOARD_AT = Vector2.new(50.4, -9.4)
+-- Cartel de la arena de Dunas: debajo del ranking, junto al embarcadero.
+local ARENA_BOARD_AT = Vector2.new(48.6, 13.2)
+-- Cartelito de la lancha: en la orilla, entre la bitácora y el cartel de roles.
+local LIFEBOAT_SIGN_AT = Vector2.new(26, -43)
+-- Embarcadero hacia la Isla de dunas: sale de la playa al pie del cartel de la arena, hacia el
+-- sureste (donde se ve la Isla de las Dunas), con el velero amarrado al final.
+local DUNES_PIER_FROM = Vector2.new(40, 27)
 local DUNES_PIER_LENGTH = 18
 local DUNES_PIER_DECK = 2.4
--- Nido de huevos: a la derecha de la llegada, entre la hoguera y las palmeras, lo primero que se ve
--- al aparecer. Es el Nido de la Isla (BuildModels) en grande, sobre un montículo de arena.
-local NEST_AT = Vector2.new(22, 21)
+-- Nido de huevos: en la plaza, delante del cartel de roles y del ranking, a la vista desde la
+-- llegada. Es el Nido de la Isla (BuildModels) en grande, sobre un montículo de arena.
+local NEST_AT = Vector2.new(27, -8)
 local NEST_SCALE = 1.4
 local NEST_MOUND_HEIGHT = 1.6
 local SPAWN_AT = Vector2.new(4, 34)
+local CAMPFIRE_AT = Vector2.new(6, 10)
+-- Muñecos de práctica (LobbyDummyService): en el borde oeste de la plaza, mirando a su centro.
+local PRACTICE_SPOTS = { Vector2.new(-27, -12), Vector2.new(-29, -2), Vector2.new(-27, 8) }
 
 -- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
@@ -93,10 +103,10 @@ local SHIP_BEAM = 22
 local HULL_ROWS = 6
 local ROW_HEIGHT = 2.2
 local HULL_SEGMENTS = 16
--- Encallado: la quilla un par de studs bajo la arena, escorado hacia la playa (+Z) y con la proa
--- algo levantada.
-local SHIP_FRAME = CFrame.new(-36, 2.2, -24)
-	* CFrame.Angles(0, math.rad(-6), 0)
+-- Encallado arriba a la izquierda, fuera de la plaza, con la proa hacia el noreste: la quilla un par
+-- de studs bajo la arena, escorado hacia la playa (+Z) y con la proa algo levantada.
+local SHIP_FRAME = CFrame.new(-44, 2.2, -40)
+	* CFrame.Angles(0, math.rad(17), 0)
 	* CFrame.Angles(math.rad(11), 0, math.rad(4))
 
 local HULL_NAVY = Color3.fromRGB(30, 50, 85)
@@ -313,16 +323,17 @@ local function buildTerrain()
 	-- Arrecife: rocas que asoman alrededor del barco.
 	for _, spot in
 		{
-			Vector3.new(-82, 0, -38),
-			Vector3.new(-70, -1, -52),
-			Vector3.new(-52, -2, -60),
+			Vector3.new(-94, 0, -28),
+			Vector3.new(-72, -1, -60),
+			Vector3.new(-50, -2, -68),
 			Vector3.new(4, -1, -58),
 			Vector3.new(-90, -1, -15),
 		}
 	do
 		terrain:FillBall(spot, rng:NextNumber(5, 8), Enum.Material.Basalt)
 	end
-	terrain:FillBall(Vector3.new(36, 1, 18), 5, Enum.Material.Rock)
+	-- Roca detrás del cartel de la arena, fuera de la plaza.
+	terrain:FillBall(Vector3.new(60, 1, 14), 5, Enum.Material.Rock)
 	terrain:FillBall(Vector3.new(-62, 2, 30), 4, Enum.Material.Rock)
 end
 
@@ -784,6 +795,62 @@ local function standingBoard(
 	return board
 end
 
+-- Cartelito que indica un bote, con el aspecto de los carteles grandes en pequeño: tablón rojo con
+-- el texto dorado, largueros y dos postes de madera oscura con su farol, clavado en el suelo bajo
+-- (x, z) y de cara a la plaza. En la bajada a la orilla los postes se alargan para que el tablón
+-- quede a la altura de la plaza y no parezca hundido.
+local function smallSign(parent: Instance, at: Vector2, text: string)
+	local width, height = 6, 2
+	local ground = groundAt(at.X, at.Y)
+	-- Del suelo al borde de abajo del tablón.
+	local bottom = 2.2 + math.max(0, BAR_TOP - ground.Y)
+	local center = ground + Vector3.new(0, bottom + height / 2, 0)
+	local frame = CFrame.lookAt(center, Vector3.new(PLAZA.X, center.Y, PLAZA.Y))
+	local plank = newPart("Cartel", Vector3.new(width, height, 0.4), frame, HULL_RED, Enum.Material.WoodPlanks, parent)
+	headline(plank, text, Color3.fromRGB(255, 215, 90))
+	for _, side in { -1, 1 } do
+		newPart(
+			"Larguero",
+			Vector3.new(width + 0.3, 0.35, 0.6),
+			frame * CFrame.new(0, side * (height / 2 + 0.17), -0.05),
+			DARK_WOOD,
+			Enum.Material.Wood,
+			parent
+		)
+	end
+	local postTop = height / 2 + 1.2
+	local postBottom = -(height / 2 + bottom + 1)
+	for _, side in { -1, 1 } do
+		local x = side * (width / 2 + 0.45)
+		newPart(
+			"PosteCartel",
+			Vector3.new(0.7, postTop - postBottom, 0.7),
+			frame * CFrame.new(x, (postTop + postBottom) / 2, 0.05),
+			DARK_WOOD,
+			Enum.Material.Wood,
+			parent
+		)
+		newPart(
+			"Tapa",
+			Vector3.new(1, 0.25, 1),
+			frame * CFrame.new(x, postTop + 0.12, 0.05),
+			IRON,
+			Enum.Material.Metal,
+			parent
+		)
+		local lamp = newPart(
+			"Farol",
+			Vector3.new(0.55, 0.7, 0.55),
+			frame * CFrame.new(x, postTop + 0.6, 0.05),
+			LANTERN_LIGHT,
+			Enum.Material.Neon,
+			parent
+		)
+		decor(lamp)
+		light(lamp, LANTERN_LIGHT, 6, 0.5)
+	end
+end
+
 -- Columnas de un cartel de clasificación (las rellena LeaderboardService por el nombre de cada
 -- columna, que es el de su clasificación): título y una línea por puesto.
 local function rankingColumns(ranking: Part, columns: { { stat: string, title: string } })
@@ -842,15 +909,7 @@ end
 -- LeaderboardService) con la bitácora del capitán a continuación.
 local function buildBoards(parent: Instance)
 	-- La bitácora cuenta la historia del naufragio en un panel oscuro, como el del ranking.
-	local log = standingBoard(
-		parent,
-		"BitacoraDelCapitan",
-		LOG_BOARD_AT,
-		14,
-		8.5,
-		"📜 BITÁCORA DEL CAPITÁN",
-		LOG_BOARD_FACING
-	)
+	local log = standingBoard(parent, "BitacoraDelCapitan", LOG_BOARD_AT, 14, 8.5, "📜 BITÁCORA DEL CAPITÁN")
 	local logGui = Instance.new("SurfaceGui")
 	logGui.Face = Enum.NormalId.Front
 	logGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -887,7 +946,7 @@ local function buildBoards(parent: Instance)
 		{ stat = "Rescues", title = "🚁 Más rescates" },
 	})
 	-- Arena de Dunas: victorias y banderas capturadas (Leaderboards.ARENA_STATS).
-	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, "🏜️ ARENA DE DUNAS")
+	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, "🎖️ ISLA DE DUNAS ☠️")
 	CollectionService:AddTag(arena, Config.Lobby.RankingBoardTag)
 	rankingColumns(arena, {
 		{ stat = "ArenaWins", title = "🏆 Más victorias" },
@@ -908,7 +967,7 @@ end
 
 -- Nido de huevos del Lobby: cada cliente dibuja encima su propio huevo y su temporizador
 -- (NestController, por la etiqueta Config.Lobby.NestTag y el punto "EggSeat"); con el aviso
--- "NidoPrompt" se abre el panel del nido. Antorchas tiki a los lados y un cartel de cara a la llegada.
+-- "NidoPrompt" se abre el panel del nido. Antorchas tiki a los lados.
 local function buildNest(parent: Instance)
 	local ground = groundAt(NEST_AT.X, NEST_AT.Y)
 	local model = Instance.new("Model")
@@ -963,28 +1022,6 @@ local function buildNest(parent: Instance)
 		flame.Parent = head
 		light(head, FIRE_LIGHT, 16, 1.5)
 	end
-
-	-- Cartel clavado delante a la izquierda, de cara a la llegada.
-	local signAt = ground + Vector3.new(-5.5, 0, 6)
-	local facing = Vector3.new(SPAWN_AT.X, signAt.Y, SPAWN_AT.Y)
-	cylinder(
-		"Poste",
-		0.5,
-		signAt - Vector3.new(0, 1, 0),
-		signAt + Vector3.new(0, 4.4, 0),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		model
-	)
-	local plank = newPart(
-		"Cartel",
-		Vector3.new(4.6, 1.5, 0.3),
-		CFrame.lookAt(signAt + Vector3.new(0, 3.7, 0), facing + Vector3.new(0, 3.7, 0)) * CFrame.new(0, 0, -0.3),
-		HULL_RED,
-		Enum.Material.WoodPlanks,
-		model
-	)
-	headline(plank, "🥚 NIDO", Color3.fromRGB(255, 215, 90))
 
 	CollectionService:AddTag(model, Config.Lobby.NestTag)
 	model.Parent = parent
@@ -1646,7 +1683,7 @@ local function buildCamp(parent: Instance)
 	local camp = Instance.new("Model")
 	camp.Name = "Campamento"
 	-- Hoguera con leña de deriva.
-	local fireAt = groundAt(6, 10)
+	local fireAt = groundAt(CAMPFIRE_AT.X, CAMPFIRE_AT.Y)
 	for i = 0, 7 do
 		local angle = i * math.pi / 4
 		ball(
@@ -1695,8 +1732,9 @@ local function buildCamp(parent: Instance)
 	end
 	drum(camp, fireAt + Vector3.new(-6.5, 0, 4), false)
 
-	-- Tienda de lona azul sobre dos postes de aluminio.
-	local tentAt = groundAt(-14, 16)
+	-- El resto del campamento, abajo a la izquierda, fuera de la plaza: tienda de lona azul sobre dos
+	-- postes de aluminio.
+	local tentAt = groundAt(-28, 28)
 	local tentFrame = CFrame.new(tentAt) * CFrame.Angles(0, math.rad(20), 0)
 	for _, dx in { -5, 5 } do
 		newPart(
@@ -1734,7 +1772,7 @@ local function buildCamp(parent: Instance)
 
 	-- Contenedores varados en la arena: uno volcado y medio enterrado, otro abierto con la carga
 	-- desparramada.
-	local tipped = groundAt(-20, -1)
+	local tipped = groundAt(-44, 24)
 	container(
 		camp,
 		CFrame.new(tipped + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, 0.45, 0) * CFrame.Angles(math.rad(82), 0, 0),
@@ -1742,7 +1780,7 @@ local function buildCamp(parent: Instance)
 		"PRIMAL",
 		Enum.NormalId.Front
 	)
-	local openAt = groundAt(-36, 12)
+	local openAt = groundAt(-58, 8)
 	local openFrame = CFrame.new(openAt + Vector3.new(0, 2.2, 0)) * CFrame.Angles(0, math.rad(-35), math.rad(-3))
 	container(camp, openFrame, CONTAINER_COLORS[1], nil, nil, true)
 	local mouth = openFrame * CFrame.new(9, 0, 0)
@@ -1755,13 +1793,13 @@ local function buildCamp(parent: Instance)
 	)
 	drum(camp, groundAt(mouth.X - 1, mouth.Z + 4), true)
 
-	-- Más carga por la playa.
-	crate(camp, CFrame.new(groundAt(20, -18) + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.9, 0.15), 2.4, false)
-	drum(camp, groundAt(16, 4), true)
-	drum(camp, groundAt(30, -30), true)
+	-- Más carga por la playa: junto al campamento y detrás del cartel de roles, cerca de la lancha.
+	crate(camp, CFrame.new(groundAt(40, -36) + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.9, 0.15), 2.4, false)
+	drum(camp, groundAt(-34, 36), true)
+	drum(camp, groundAt(46, -36), true)
 
-	-- Ancla moderna (sin cepo) en la arena, unida a la proa por la cadena.
-	local anchorAt = groundAt(14, -40)
+	-- Ancla moderna (sin cepo) en la arena, detrás de la bitácora, unida a la proa por la cadena.
+	local anchorAt = groundAt(2, -47)
 	local anchorFrame = CFrame.new(anchorAt) * CFrame.Angles(0, 0.6, 0.3)
 	newPart("Caña", Vector3.new(0.9, 7, 0.9), anchorFrame * CFrame.new(0, 3, 0), IRON, Enum.Material.Metal, camp)
 	newPart("Corona", Vector3.new(1.6, 1, 3.2), anchorFrame * CFrame.new(0, 0, 0), IRON, Enum.Material.Metal, camp)
@@ -1801,7 +1839,7 @@ end
 local function buildLifeboat(parent: Instance)
 	local boat = Instance.new("Model")
 	boat.Name = "Lancha"
-	local at = Vector3.new(24, SEA_LEVEL + 0.2, -50)
+	local at = Vector3.new(34, SEA_LEVEL + 0.2, -48)
 	local toIsland = (ISLAND_CENTER - at) * Vector3.new(1, 0, 1)
 	-- La proa (-Z local) mira a la isla.
 	local frame = CFrame.lookAt(at, at + toIsland.Unit) * CFrame.Angles(math.rad(3), 0, math.rad(2))
@@ -1940,33 +1978,15 @@ local function buildLifeboat(parent: Instance)
 	decor(promptAnchor)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ZarparPrompt"
-	prompt.ActionText = "Zarpar hacia la isla"
+	prompt.ActionText = `Zarpar a la {Config.PlaceNames.IslandShort}`
 	prompt.ObjectText = "Lancha de rescate"
 	prompt.HoldDuration = 1
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = promptAnchor
 
-	-- Cartel a su lado.
-	local signAt = groundAt(16, -40)
-	local signFrame = CFrame.lookAt(signAt + Vector3.new(0, 4, 0), signAt + Vector3.new(-6, 4, 16))
-	newPart(
-		"PosteCartel",
-		Vector3.new(0.5, 5, 0.5),
-		signFrame * CFrame.new(0, -1.6, 0.3),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		boat
-	)
-	local board = newPart(
-		"Cartel",
-		Vector3.new(6, 2, 0.3),
-		signFrame,
-		Color3.fromRGB(205, 175, 125),
-		Enum.Material.WoodPlanks,
-		boat
-	)
-	sign(board, Enum.NormalId.Front, "🚤 A LA ISLA →", Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
+	-- Cartelito en la orilla, de cara a la plaza.
+	smallSign(boat, LIFEBOAT_SIGN_AT, `🚤 {string.upper(Config.PlaceNames.IslandShort)} →`)
 	boat.Parent = parent
 end
 
@@ -2087,32 +2107,16 @@ local function buildDunesDock(parent: Instance)
 	decor(promptAnchor)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ZarparDunasPrompt"
-	prompt.ActionText = "Zarpar a las Dunas"
+	prompt.ActionText = `Zarpar a la {Config.PlaceNames.DunasShort}`
 	prompt.ObjectText = "Velero de la arena"
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = promptAnchor
 
-	-- Cartel a la entrada de la pasarela.
-	local signFrame = pier * CFrame.new(-2.8, 1.8, -0.6) * CFrame.Angles(0, math.rad(-120), 0)
-	newPart(
-		"PosteCartel",
-		Vector3.new(0.5, 5, 0.5),
-		signFrame * CFrame.new(0, -1.6, 0.3),
-		DARK_WOOD,
-		Enum.Material.Wood,
-		dock
-	)
-	local board = newPart(
-		"Cartel",
-		Vector3.new(6, 2, 0.3),
-		signFrame,
-		Color3.fromRGB(205, 175, 125),
-		Enum.Material.WoodPlanks,
-		dock
-	)
-	sign(board, Enum.NormalId.Front, "🏜️ A LAS DUNAS →", Color3.fromRGB(45, 30, 15), Enum.Font.Antique)
+	-- Cartelito a la entrada de la pasarela, en la arena y de cara a la plaza.
+	local signAt = (pier * CFrame.new(-4.5, 0, -0.6)).Position
+	smallSign(dock, Vector2.new(signAt.X, signAt.Z), `🎖️ {string.upper(Config.PlaceNames.DunasShort)} →`)
 	dock.Parent = parent
 end
 
@@ -2936,8 +2940,9 @@ local function buildBoundary(parent: Instance)
 end
 
 local function buildSpawn(parent: Instance)
-	local at = groundAt(4, 34)
-	local toward = Vector3.new(24, at.Y, -50)
+	local at = groundAt(SPAWN_AT.X, SPAWN_AT.Y)
+	-- De cara a la plaza.
+	local toward = Vector3.new(PLAZA.X, at.Y, PLAZA.Y)
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Llegada"
 	spawn.Size = Vector3.new(10, 1, 10)
@@ -3020,6 +3025,16 @@ local function clearOld()
 end
 
 -- true si el place ya tiene el escenario de esta versión.
+-- Dónde van los muñecos de práctica (en el suelo bajo cada punto) y hacia dónde miran: el centro de
+-- la plaza (LobbyDummyService).
+function LobbyBuilder.practiceSpots(): ({ Vector3 }, Vector3)
+	local spots = {}
+	for _, spot in PRACTICE_SPOTS do
+		table.insert(spots, Vector3.new(spot.X, BAR_TOP, spot.Y))
+	end
+	return spots, Vector3.new(PLAZA.X, BAR_TOP, PLAZA.Y)
+end
+
 function LobbyBuilder.isBuilt(): boolean
 	local folder = Workspace:FindFirstChild(FOLDER_NAME)
 	return folder ~= nil and folder:GetAttribute("Version") == VERSION
@@ -3061,11 +3076,11 @@ function LobbyBuilder.build(options: Options?)
 	buildDunesDock(folder)
 	for _, palm in
 		{
-			{ x = 52, z = -18, lean = 0.12, yaw = 0.4 }, -- detrás de la bitácora (deja sitio al cartel de la arena)
-			{ x = 46, z = 6, lean = 0.18, yaw = 1.9 },
+			{ x = 57, z = -21, lean = 0.12, yaw = 0.4 }, -- detrás del ranking
+			{ x = 57, z = 0, lean = 0.18, yaw = 1.9 }, -- entre el ranking y el cartel de la arena
 			{ x = -58, z = 26, lean = 0.1, yaw = 3.4 },
 			{ x = -70, z = 10, lean = 0.2, yaw = 2.2 },
-			{ x = 28, z = 32, lean = 0.08, yaw = 5.1 },
+			{ x = 16, z = 38, lean = 0.08, yaw = 5.1 }, -- en la orilla, junto a la llegada
 		}
 	do
 		buildPalm(folder, groundAt(palm.x, palm.z) - Vector3.new(0, 0.5, 0), palm.lean, palm.yaw)

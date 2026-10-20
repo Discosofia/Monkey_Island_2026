@@ -71,11 +71,15 @@ El Lobby es el banco de arena donde encalló el barco de los náufragos, con la 
 
 | Qué | Dónde |
 |---|---|
-| Carguero «Esperanza» encallado: casco de acero con boquete y bodega, castillo blanco con puente de mando, chimenea, radar y luces de navegación, contenedores en cubierta (uno a punto de caer) y grúa | A la izquierda de la llegada |
-| Pasarela metálica a la cubierta y escalera exterior al castillo | Costado del barco que da a la playa |
-| Campamento: hoguera con bancos, tienda de lona azul, contenedores varados (uno abierto con cajas del **Proyecto PRIMAL**), bidones, ancla con cadena hasta la proa y salvavidas | Centro de la playa |
-| **Bitácora del capitán** (el lore, en un tablero) | Junto a la llegada |
-| **Lancha de rescate** con el aviso **"Zarpar hacia la isla"** (`ZarparPrompt`, igual que el botón Ir a la Isla). En el barco queda su pescante vacío | Orilla norte, apuntando a la isla |
+| **Plaza**: círculo de arena libre (centro en (10, −3), radio de unos 40 studs) donde se juntan los jugadores, con la hoguera y sus bancos, la llegada y el **nido de huevos** | Centro del banco de arena |
+| **Muñecos de práctica** (3, los del Basecamp; `LobbyDummyService`) para probar las armas y habilidades del rol | Borde oeste de la plaza |
+| Carteles en el borde de la plaza, mirando a su centro: **Bitácora del capitán** (el lore), **Elige tu rol**, **Ranking** y **🎖️ Isla de dunas ☠️** (ranking de la arena) | De arriba a la derecha, en ese orden |
+| Carguero «Esperanza» encallado: casco de acero con boquete y bodega, castillo blanco con puente de mando, chimenea, radar y luces de navegación, contenedores en cubierta (uno a punto de caer) y grúa | Arriba a la izquierda, fuera de la plaza, con la proa al noreste |
+| Pasarela metálica a la cubierta y escalera exterior al castillo | Costado del barco que da a la plaza |
+| Ancla con cadena hasta la proa | Detrás de la bitácora |
+| Campamento: tienda de lona azul, contenedores varados (uno abierto con cajas del **Proyecto PRIMAL**), cajas y bidones | Abajo a la izquierda, fuera de la plaza |
+| **Lancha de rescate** con el aviso **"Zarpar a la Isla de monos"** (`ZarparPrompt`, igual que el botón 🍌 Ir a la Isla de monos 🐒) y su cartelito **🚤 ISLA DE MONOS →**. En el barco queda su pescante vacío | Orilla norte, entre la bitácora y el cartel de roles |
+| **Embarcadero** con el velero y el aviso **"Zarpar a la Isla de dunas"** (`ZarparDunasPrompt`) y su cartelito **🎖️ ISLA DE DUNAS →**, como los carteles grandes en pequeño | Orilla sureste, al pie del cartel de la arena |
 | Isla con el volcán humeante y ríos de lava | Horizonte, al noreste |
 | Luz de atardecer (hora 17:36, atmósfera cálida, brillo y rayos de sol) | `Lighting` |
 

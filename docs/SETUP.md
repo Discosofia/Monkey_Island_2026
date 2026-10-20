@@ -106,7 +106,7 @@ Abre Roblox Studio, o ciérralo del todo y vuelve a abrirlo. Debería aparecer u
    2. **Archivo → Publicar en Roblox como…** (*Publish to Roblox As…*).
    3. Elige la experiencia **Primal Banana Islands**.
    4. Elige la opción de **añadirlo como lugar nuevo** (*Add as a new place*). ⚠️ **No** elijas el lugar que ya existe: ese es el Lobby y lo sobrescribirías.
-   5. Ponle de nombre `Isla` y pulsa **Crear**.
+   5. Ponle de nombre `🍌Isla de monos🐒(survival)` y pulsa **Crear**. El de la arena PvP se llama `🎖️Isla de dunas☠️(PvP)`. Si ya los tenías como `Isla` e `Isla de Dunas`, cámbiales el nombre en el [Creator Hub](https://create.roblox.com/dashboard/creations): tu experiencia → **Places** → el place → **Configurar** → **Nombre**. Son los de `Config.PlaceNames`; si Roblox rechaza algún emoji, quítalo.
    - Alternativa: en el panel **Gestor de recursos** (*Asset Manager*) → **Proyecto** → **Primal Banana Islands**, haz clic derecho y busca **agregar lugar nuevo** (*Add New Place*). La interfaz de Roblox cambia a menudo: si no ves ninguna de las dos opciones, mándame una captura.
 4. (Opcional) Para no confundirlos, cambia el nombre del primer place a `Lobby`. Studio le pone uno por defecto, como "Lugar de tu usuario".
 
@@ -136,7 +136,7 @@ Cada place tiene un número de ID. El código lo necesita para viajar del Lobby 
 
 ## Paso 7: Tamaño del servidor de la Isla (20 jugadores)
 
-En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → **Isla** → configuración del place, y pon el **tamaño del servidor (Server Size / Max Players)** en **20**.
+En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → **🍌Isla de monos🐒(survival)** → configuración del place, y pon el **tamaño del servidor (Server Size / Max Players)** en **20**.
 
 ---
 
@@ -161,7 +161,7 @@ Hay un proyecto de Rojo para cada place:
 ## Paso 9: Probar
 
 **En Studio (botón Play):**
-- **Lobby:** verás el título *Primal Banana Islands* y el botón **Ir a la Isla**. Al pulsarlo aparecerá el mensaje *"Los viajes no funcionan en Studio…"*. Es normal: Roblox no permite viajar entre places desde Studio.
+- **Lobby:** verás el título *Primal Banana Islands* y el botón **🍌 Ir a la Isla de monos 🐒**. Al pulsarlo aparecerá el mensaje *"Los viajes no funcionan en Studio…"*. Es normal: Roblox no permite viajar entre places desde Studio.
 - **Isla:** verás arriba el reloj (*"Día 1 · ☀️ 10:00"*), el indicador *"🏕️ Basecamp: zona segura"* y el botón **Volver al Lobby**. Abajo a la izquierda, solo en Studio, el botón **⏩ Saltar fase** para probar la noche sin esperar.
 - **Salida (Output):** al arrancar, cada servidor escribe *"[Teleporter] Places de esta experiencia: …"* con el nombre y el ID real de cada place. Sirve para comprobar los IDs del paso 6.
 

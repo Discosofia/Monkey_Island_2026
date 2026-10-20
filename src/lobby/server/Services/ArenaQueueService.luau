@@ -140,7 +140,10 @@ local function onJoin(player: Player, format: any)
 	tickets[ticket.key] = ticket
 	publish(ticket, members)
 	for _, member in members do
-		Remotes.Notify:FireClient(member, `⚔️ Buscando partida {format}v{format} en las Dunas…`)
+		Remotes.Notify:FireClient(
+			member,
+			`⚔️ Buscando partida {format}v{format} en la {Config.PlaceNames.DunasShort}…`
+		)
 	end
 end
 
@@ -240,7 +243,10 @@ local function checkMatches()
 			for _, member in ticket.members do
 				if member.Parent then
 					table.insert(travellers, member)
-					Remotes.Notify:FireClient(member, "🏜️ ¡Partida encontrada! Zarpando a las Dunas…")
+					Remotes.Notify:FireClient(
+						member,
+						`🎖️ ¡Partida encontrada! Zarpando a la {Config.PlaceNames.DunasShort} ☠️…`
+					)
 				end
 			end
 			task.spawn(function()
@@ -250,7 +256,7 @@ local function checkMatches()
 				local options = Instance.new("TeleportOptions")
 				options.ReservedServerAccessCode = found.code
 				options:SetTeleportData({ format = found.format, team = found.team })
-				Teleporter.send(travellers, Config.PlaceIds.Dunas, "las Dunas", options)
+				Teleporter.send(travellers, Config.PlaceIds.Dunas, `la {Config.PlaceNames.DunasShort}`, options)
 			end)
 		end
 	end

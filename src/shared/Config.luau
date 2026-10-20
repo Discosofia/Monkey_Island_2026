@@ -17,8 +17,16 @@ local Config = {
 	-- IDs de los places de la experiencia. Cómo obtenerlos: docs/SETUP.md, paso 6.
 	PlaceIds = {
 		Lobby = 86360888108434, -- place "Primal Banana Islands" (lugar de inicio)
-		Island = 84163809226177, -- place creado después ("chillyDuo's Place", renombrar a "Isla")
-		Dunas = 122593636654552, -- place "Isla de Dunas": la arena PvP (captura la bandera)
+		Island = 84163809226177, -- place "🍌Isla de monos🐒(survival)": la partida de supervivencia
+		Dunas = 122593636654552, -- place "🎖️Isla de dunas☠️(PvP)": la arena PvP (captura la bandera)
+	},
+	-- Nombres de los places. "Island" y "Dunas" son los que tienen en el Creator Hub (cambiarlos allí
+	-- también, docs/SETUP.md); los cortos van dentro de las frases del juego ("Ir a la Isla de monos").
+	PlaceNames = {
+		Island = "🍌Isla de monos🐒(survival)",
+		Dunas = "🎖️Isla de dunas☠️(PvP)",
+		IslandShort = "Isla de monos",
+		DunasShort = "Isla de dunas",
 	},
 
 	Match = {

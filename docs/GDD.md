@@ -59,7 +59,7 @@
 
 ```mermaid
 flowchart TD
-  L["Lobby: socializar, elegir rol, tienda, mascota activa"] --> Q["Matchmaking: solo o con amigos"]
+  L["Lobby: socializar, elegir rol, probar sus habilidades, tienda, mascota activa"] --> Q["Matchmaking: solo o con amigos"]
   Q --> T["Teleport a la Isla (servidor de hasta 20)"]
   T --> B["Aparece en el BASECAMP"]
   B --> P["Partida: ciclo día/noche"]
@@ -75,6 +75,8 @@ flowchart TD
   X --> RW
   RW --> L
 ```
+
+**Probar el rol en el Lobby (20-10-2026).** En la plaza del Lobby cada jugador lleva las armas y las 5 habilidades de su rol elegido, con sus talentos, mejoras y mascota, y las prueba contra tres muñecos de práctica (los del Basecamp) antes de zarpar a la Isla de monos o a la Isla de dunas. Nunca afectan a otros jugadores: no les hacen daño, ni los curan, ni los protegen, ni les ponen estados (las curaciones y escudos solo van a uno mismo), y practicar no cuenta para las misiones del día. Lo deciden las reglas del combate del Lobby (`LobbyCombatRules`).
 
 ---
 
@@ -316,11 +318,11 @@ El juego es un **archipiélago de seis islas**. Se juega en dos: la del volcán 
 
 | Isla | Dónde (desde el Lobby) | Cómo se ve | Estado |
 |---|---|---|---|
-| **Lobby** (banco de arena del naufragio) | Centro | El carguero «Esperanza» encallado y el campamento | Lobby |
-| **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable** |
+| **Lobby** (banco de arena del naufragio) | Centro | Una plaza ovalada libre con la hoguera, el nido y los muñecos de práctica, rodeada por los carteles (bitácora, roles, ranking y arena); el carguero «Esperanza» encallado arriba a la izquierda y el campamento abajo a la izquierda | Lobby |
+| **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable**: place **🍌Isla de monos🐒(survival)** |
 | **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | Cerrada |
 | **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | Cerrada |
-| **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | **Jugable**: arena PvP (§12.2), con su embarcadero y su velero en el Lobby |
+| **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | **Jugable**: place **🎖️Isla de dunas☠️(PvP)**, la arena PvP (§12.2), con su embarcadero y su velero en el Lobby |
 | **Picos de la Niebla** | Norte, ~1.300 studs (la más lejana) | Agujas de roca caliza con selva en la cima, cascada y bandas de niebla | Cerrada |
 
 Las islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significa crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de ir. Así se abrió la de las Dunas: un place propio, su ID en `Config.PlaceIds.Dunas` y su embarcadero en el Lobby.
@@ -576,7 +578,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 ### El nido del lobby
 
-- En la playa del naufragio, junto a la llegada. **Cada jugador ve en él su propio huevo** con lo que le falta; al tocarlo se abre la pestaña Mascotas con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza.
+- En la plaza del Lobby, delante del cartel de roles y del ranking. **Cada jugador ve en él su propio huevo** con lo que le falta; al tocarlo se abre la pestaña Mascotas con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza.
 - **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
 - **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
 - **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
@@ -625,7 +627,7 @@ Hay dos formas de pelear contra otros jugadores: en la Isla, solo si los dos lo 
 
 La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una arena de **captura la bandera** entre dos equipos, **Jaguar 🐆** y **Quetzal 🦜**, de **1v1 a 5v5**, en unas ruinas mayas dentro de un cañón del desierto. Es el sitio donde se gasta Ámbar en equipamiento que solo cuenta en la arena, y abre la primera isla del archipiélago que se veía desde el Lobby. Decidido en la entrevista del 20-10-2026.
 
-**Cómo se entra.** Desde el Lobby, en el embarcadero propio con el velero **"Zarpar a las Dunas"** (junto al bote de la Isla) o en la pestaña **Arena** del menú. Se elige formato y se entra en una **cola entre servidores** (MemoryStore), solo o en grupo: el grupo llega al mismo equipo y nunca se separa. Al juntarse las plazas de una partida se reserva un servidor de Dunas y viajan todos. No hay reemplazo de los que se van.
+**Cómo se entra.** Desde el Lobby, en el embarcadero propio con el velero **"Zarpar a la Isla de dunas"** (al pie del cartel de la arena) o en la pestaña **Arena** del menú. Se elige formato y se entra en una **cola entre servidores** (MemoryStore), solo o en grupo: el grupo llega al mismo equipo y nunca se separa. Al juntarse las plazas de una partida se reserva un servidor de Dunas y viajan todos. No hay reemplazo de los que se van.
 
 **Antes de la partida.** Cada jugador elige al llegar su **base** (con un tope de N por equipo), su **rol** y su equipamiento, y pulsa **Listo**. Si están todos listos, 10 s de cuenta atrás; si no, la partida arranca igual a los **60 s** de llegar el primero. Si un equipo sigue vacío, se cancela y vuelven todos al Lobby. Hasta que empieza, las puertas de las bases están cerradas.
 
