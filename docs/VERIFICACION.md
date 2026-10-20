@@ -235,16 +235,16 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 ## 5.2 Huevo y nido
 
 1. [ ] Con 🛠️ +50 de todo, construye un **Nido** en el núcleo con el martillo.
-2. [ ] Pulsa **🥚 Huevo**.
-   ✅ "¡Ha aparecido un huevo misterioso hacia el …!" y bajo el reloj "🥚 Hay un huevo…".
-3. [ ] Encuéntralo: es un **huevo ovalado** color crema con motas turquesa que brilla. Mantén pulsado **"Recoger"**.
+2. [ ] Pulsa **🥚 Huevo (rareza siguiente)**. Cada pulsación cambia el huevo del suelo por uno de la rareza siguiente (común → legendario).
+   ✅ "¡Ha aparecido un huevo COMÚN hacia el …!" y bajo el reloj "🥚 Hay un huevo común…".
+3. [ ] Encuéntralo: es un **huevo ovalado** que brilla con el color de su rareza (común crema con motas pardas, poco común verde, raro azul, épico lila y legendario dorado con motas naranjas). Mantén pulsado **"Recoger"**.
    ✅ Lo llevas sobre la cabeza, vas **más lento**, tienes la etiqueta **⚔️ PvP** y los monos cercanos van a por ti.
 4. [ ] Deja que te tumben.
    ✅ El huevo **cae al suelo** y se puede volver a recoger.
 5. [ ] Llévalo al nido.
-   ✅ "¡El huevo está en el nido! Defendedlo 150 s", el huevo queda **en el centro del nido, apoyado en la paja**, llegan monos y bajo el reloj sale la cuenta atrás.
-6. [ ] Espera a que eclosione (o pulsa **🐣 Eclosionar ya**).
-   ✅ La cáscara **revienta en pedazos** con un destello y "🐣 ¡Ha nacido tu mascota: … Ya te acompaña". La mascota **te sigue al instante** y sus ventajas ya cuentan. Si ya llevabas una más rara, se queda la tuya y la nueva te espera en el Lobby.
+   ✅ "¡El huevo común está en el nido! Defendedlo 150 s", el huevo queda **en el centro del nido**, llegan monos y bajo el reloj sale la cuenta atrás.
+6. [ ] Espera a que acabe (o pulsa **🐣 Terminar la defensa del huevo**).
+   ✅ La cáscara **revienta** con un destello del color de la rareza y "🥚 ¡Huevo Común a salvo! …": ya se incuba en tu nido del Lobby, está en tu mochila de huevos o queda pendiente si la mochila está llena. **No nace la mascota aquí**: se abre en el Lobby (7.1).
 
 ## 5.3 Mascotas
 
@@ -318,8 +318,8 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 
 ## 6.4 Estilo (cosméticos) y servidores privados
 
-1. [ ] En el Lobby (Studio), pestaña **Estilo**. En Studio los cosméticos son gratis para probar: **Equipar** la Estela dorada, el Título y el Aura.
-   ✅ Se ven en tu personaje en el Lobby y en la Isla.
+1. [ ] En el Lobby (Studio), pestaña **Estilo**. En Studio los cosméticos sin pase son gratis para probar: **Equipar** la Estela dorada, el Título y el Aura.
+   ✅ Se ven en tu personaje en el Lobby y en la Isla. El **Título: Superviviente de la Isla** sale con "Gana una partida" (ni en Studio es gratis; ver 7.6).
 2. [ ] En el juego publicado, sin pases creados, salen como **"Próximamente"** (normal; ver [LANZAMIENTO.md](LANZAMIENTO.md)).
 3. [ ] **Servidores privados** y **grupos viajando juntos**: solo en el juego publicado, tras activar los servidores privados en el Creator Hub.
 
@@ -374,6 +374,67 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - Publicar: clic derecho en cada secuencia de ReplicatedStorage.WeaponAnimations > **Save to Roblox** (con el mismo dueño que el juego) y pegar cada id en `src/shared/Data/WeaponAnimations.luau`. Repetir la prueba.
    - Con 2 jugadores (Test > Clients and Servers), el otro ve la animación, la bocanada y el destello.
 19. [ ] Con **🎯 Críticos al 100 %**, los números amarillos son un **35 %** mayores que los normales (un 14 pasa a 19); en Ajustes pone "(+35 %)" junto al crítico del arma.
+
+## 7. Bucle de retención: huevos, calendario y misiones
+
+Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del nido listo, ⏩ Reloj +1 h, 🎒 Provisiones de prueba, 📅 Día siguiente (calendario) y 🏝️ Título Superviviente (sí/no). En la Isla: 🥚 Huevo guardado, 🎯 Cumplir las misiones del día y 🚁 Terminar: victoria. Las partidas terminadas con el panel **no cuentan** para el récord, los rescates ni el ranking.
+
+### 7.1 Nido del Lobby
+
+1. [ ] Pulsa **🥚 Huevo (rareza siguiente)** cinco veces.
+   ✅ El primero entra en el **nido de la playa** (a la derecha de la llegada), tres van a la mochila y el quinto queda **pendiente**. Sobre el nido ves **tu** huevo con su color y "⏳ 7 h 59 min".
+2. [ ] Acércate al nido y pulsa **E**.
+   ✅ Se abre la pestaña **Mascotas** con el nido arriba: el huevo con su barra ("jugando le has quitado 0 s de 4 h 00 min"), **Puede salir** (las mascotas de esa rareza, ✅ las que ya tienes), la **mochila 3/3** y "⚠️ Mochila llena" con el pendiente.
+3. [ ] **Descartar** un huevo de la mochila (pide una segunda pulsación, "¿Seguro?").
+   ✅ +Ámbar según su rareza y el pendiente sube a la mochila.
+4. [ ] **⏩ Reloj +1 h**.
+   ✅ El cartel del nido y la barra restan una hora.
+5. [ ] **🐣 Huevo del nido listo** y pulsa **🐣 Abrir**.
+   ✅ El menú se cierra, el huevo **tiembla cada vez más**, estalla y sube la mascota girando con "🐣 ¡Ha nacido …!". Si es más rara que la tuya, te acompaña. El nido queda vacío y puedes poner otro (**Al nido**).
+
+### 7.2 Aceleración jugando
+
+1. [ ] En la Isla, con un huevo incubando: **⏩ Saltar fase** dos veces (noche → día).
+   ✅ "🌅 Noche superada: tu huevo … del nido, −1 h 00 min".
+2. [ ] **🚁 Terminar: victoria**.
+   ✅ En los resultados, la **ruleta** "🥚 Tirada del rescate" pasa por los premios y se para en uno; debajo, lo que se le ha quitado al huevo. Si se pasa del tope del 50 %, dice "llegó al tope de lo que se acelera jugando".
+3. [ ] Con el huevo listo (7.1 paso 5 sin abrirlo), entra en la Isla y espera 30 s.
+   ✅ "🐣 ¡Tu huevo … está listo! Ábrelo en el nido del Lobby", una sola vez.
+
+### 7.3 Provisiones
+
+1. [ ] En el Lobby, **🎒 Provisiones de prueba**.
+   ✅ Encima de "Ir a la Isla": "🎒 Te llevas a la Isla: 2 ➕ Venda, 5 🍌 Banano, 1 💉 Antídoto".
+2. [ ] Entra en la Isla.
+   ✅ "🎒 Tus provisiones: …" y están en la Bolsa. Al volver al Lobby la línea ya no sale.
+
+### 7.4 Calendario de 7 días
+
+1. [ ] Entra en el Lobby (con **📅 Día siguiente** si ya cobraste hoy y vuelves a entrar).
+   ✅ Sale la ventana **📅 Premio diario · día N de 7**: días 1–4 arriba, 5–7 abajo (el 7 doble y dorado), el de hoy con borde dorado y lo que da.
+2. [ ] **Cobrar**.
+   ✅ "🎉 ¡Día N cobrado! …", la casilla pasa a ✅ y la ventana se cierra sola a los 5 s.
+3. [ ] Pestaña **Misiones**.
+   ✅ El calendario, "Mañana, día N+1" con la cuenta atrás ("En 19 h 29 min") y tus provisiones.
+4. [ ] Repite **📅 Día siguiente** + **Cobrar** hasta el día 7.
+   ✅ El 3 y el 6 quitan tiempo al huevo del nido (sin huevo, dan Ámbar); el 7 da un **huevo raro o mejor** y 500 de Ámbar; después vuelve al día 1.
+
+### 7.5 Misiones diarias
+
+1. [ ] Entra en la Isla (en PC).
+   ✅ Debajo de las habilidades, **🎯 Misiones del día** con 3 líneas (2 generales y 1 de tu rol) y "0/15".
+2. [ ] Cumple una de verdad (por ejemplo, fabrica 3 vendas en la mesa de trabajo).
+   ✅ El contador sube en pocos segundos y al cumplirla "🎯 ¡Misión cumplida! … 60 ✨ Ámbar · ⏩ −20 min a tu huevo …"; la línea pasa a ✅.
+3. [ ] **🎯 Cumplir las misiones del día**.
+   ✅ Las demás se cumplen con su aviso y su premio.
+4. [ ] En el Lobby, pestaña **Misiones**, cambia de rol en **Rol**.
+   ✅ Solo cambia la misión del rol (salvo que ya estuviera cumplida). Con **📅 Día siguiente**, salen 3 nuevas.
+
+### 7.6 Título "Superviviente de la Isla"
+
+1. [ ] Gana una partida **de verdad** (baliza → La Gran Tropa → amanecer; 6.1). La victoria del panel no lo da.
+   ✅ En los resultados: "🏝️ ¡Nuevo título: Superviviente de la Isla!". En el Lobby, pestaña **Estilo**, se puede **Equipar** y se ve en naranja sobre la cabeza.
+2. [ ] Para ver solo cómo queda: **🏝️ Título Superviviente (sí/no)** en el Lobby (y otra vez para quitarlo).
 
 ---
 

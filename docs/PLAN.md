@@ -254,7 +254,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 |---|---|---|
 | **5.1** | 4 jefes en sus guaridas, 3 fases, ataques especiales, pieza de baliza y botín legendario | ✅ Código listo, falta tu prueba |
 | **5.2** | Huevo misterioso: aviso, portador lento y con PvP, nido, incubación defendida y eclosión | ✅ Código listo, falta tu prueba |
-| **5.3** | Mascotas: 10, cinco rarezas, cinco tipos de ayuda, 1 activa desde el Lobby | ✅ Código listo, falta tu prueba |
+| **5.3** | Mascotas: 13, cinco rarezas, seis tipos de ayuda, 1 activa desde el Lobby | ✅ Código listo, falta tu prueba |
 | **5.4** | PvP opt-in con tótem, indicador, recompensa por cabeza y cajas de suministro en las playas | ✅ Código listo, falta tu prueba |
 | **5.5** | Clima (lluvia, tormenta con rayos) y erupción del volcán | ✅ Código listo, falta tu prueba |
 
@@ -287,6 +287,25 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 - [x] Tienda cosmética (Robux), servidores privados *(código; los pases los creas tú)*
 - [ ] Nombre final, icono, miniaturas *(tú; el cuestionario de madurez ya está hecho)*
 - [ ] Beta cerrada → **lanzamiento** *(tú; ver [LANZAMIENTO.md](LANZAMIENTO.md))*
+
+---
+
+### Fase 6b: Bucle de retención (octubre de 2026)
+
+Basado en el documento de diseño «Bucle central de retención» y en la entrevista del 19-oct-2026 (detalles en el GDD §4 "Bucle de retención" y §11). Probado en Studio por partes ([VERIFICACION.md](VERIFICACION.md) §5.2 y §7).
+
+| Entrega | Contenido | Estado |
+|---|---|---|
+| **R1** | Huevos guardados: perfil v3, rareza al aparecer, mochila de 3 + pendientes | ✅ Probado en Studio |
+| **R2** | Nido del Lobby: tu huevo con su temporizador, panel en Mascotas, ceremonia al abrirlo | ✅ Probado en Studio |
+| **R3** | Acelerar jugando: −1 h por noche, ruleta del rescate, tope del 50 %, aviso de huevo listo | ✅ Probado en Studio |
+| **R4** | Provisiones de partida (se guardan y llegan a la mochila al empezar) | ✅ Probado en Studio |
+| **R5** | Calendario de 7 días (ventana al entrar, pestaña Misiones; faltar no reinicia) | ✅ Probado en Studio |
+| **R6** | Título "Superviviente de la Isla" gratis, solo al ganar una partida | ✅ Probado en Studio; falta una victoria real |
+| **R7** | Misiones diarias (2 generales + 1 del rol), rastreador en la Isla (PC) | ✅ Probado en Studio |
+
+- [ ] Probar con 2 jugadores: los dos se llevan su huevo al defender uno juntos
+- [ ] Medir en el juego publicado la retención D1/D7 y cuántos vuelven a abrir su huevo (Analítica: `LoginCalendarDay`, economía `EggDiscard`, `LoginCalendar`, `DailyMission`)
 
 ---
 

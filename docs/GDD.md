@@ -100,13 +100,37 @@ flowchart LR
   P["Jugar partida"] --> M["Ganar Ámbar + XP de rol"]
   M --> U["Comprar mejoras en el lobby"]
   M --> T["Desbloquear talentos del rol"]
-  P --> PE["Conseguir mascotas"]
+  P --> H["Salvar huevos"]
+  H --> N["Incubar en el nido del lobby"]
+  N --> PE["Nace una mascota"]
   P --> BE["Completar el bestiario"]
   U --> P
   T --> P
   PE --> P
   BE --> P
 ```
+
+### Bucle de retención (entre días, octubre de 2026)
+
+El núcleo son los **huevos y las mascotas** (§11): el huevo se gana en la isla, se incuba con horas reales en el nido del lobby y jugar lo acelera. Alrededor van tres cosas que dan un motivo para volver cada día:
+
+- **Calendario de 7 días:** basta con entrar al lobby para cobrar el premio del día (una ventana al llegar y la pestaña **Misiones**). **Faltar un día no lo reinicia**: al volver se cobra el siguiente. Tras el día 7 vuelve al 1. El día cambia a las **00:00 UTC**.
+
+  | Día | Premio |
+  |---|---|
+  | 1 | 100 de Ámbar + 5 bananos |
+  | 2 | Antorcha + 10 de fibra |
+  | 3 | 2 vendas + 1 h para el huevo del nido |
+  | 4 | 100 de Ámbar + 2 antídotos |
+  | 5 | 250 de Ámbar |
+  | 6 | Kit de reanimación + 2 super vendas + 2 h para el huevo |
+  | 7 | **Huevo raro o mejor** (raro 13 · épico 6 · legendario 1) + 500 de Ámbar |
+
+- **Misiones diarias:** cada día tocan **3: dos generales y una del rol elegido** (si cambias de rol, cambia esa, salvo que ya estuviera cumplida). Generales: derrotar 15 monos, superar 1 noche, recolectar 40 recursos, ayudar a salvar 1 huevo, fabricar 3 objetos o construir 3 piezas. De rol: cerrar combos, hacer daño o usar habilidades del rol. Solo cosas que se pueden hacer **jugando solo** (nada de reanimar o curar aliados) y el daño al muñeco de práctica no cuenta. Premio: 60 de Ámbar y −20 min para el huevo (las generales) o 100 y −30 min (la del rol). En la isla se ven en un rastreador bajo los combos (solo en PC: en el móvil esa zona es la del joystick) y en el lobby en la pestaña Misiones.
+- **Provisiones de partida:** el inventario de la isla no se guarda entre partidas, así que los objetos del calendario y las misiones se guardan en el perfil y **llegan a la mochila al empezar la siguiente partida**. En el lobby se ven encima de "Ir a la Isla".
+- **Título "Superviviente de la Isla":** gratis, sin Game Pass, **solo para quien gana una partida** (rescate con la baliza). Se anuncia en los resultados y se equipa en Estilo.
+
+Todo se ajusta en `Config.Daily` (calendario, misiones) y `Config.Egg` (huevos); las misiones están en `Data/Missions`.
 
 ---
 
@@ -544,10 +568,19 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 ## 11. El huevo y las mascotas
 
-- **Aparición:** probabilidad baja cada cierto tiempo en un punto aleatorio de la isla. Hay un **aviso global** con ubicación aproximada.
+- **Aparición:** probabilidad baja cada cierto tiempo en un punto aleatorio de la isla. Hay un **aviso global** con ubicación aproximada y **su rareza**: se sortea al aparecer (común 55 · poco común 25 · raro 13 · épico 6 · legendario 1) y se ve en el color del huevo, cada rareza muy distinta (crema, verde, azul, lila y dorado).
 - **Transporte:** el portador va **más lento**, atrae monos y queda **marcado para PvP**. Los jugadores con PvP activo pueden robarle el huevo; el guerrero lo carga mejor.
-- **Nido:** hay que tenerlo construido en el núcleo del Basecamp. La incubación dura unos minutos y hay que defenderla.
-- **Eclosión:** cada jugador que **participó** en el rescate recibe una **tirada de mascota persistente**.
+- **Nido del Basecamp:** hay que tenerlo construido en el núcleo. La defensa dura unos minutos (150 s, 2 oleadas).
+- **Al terminar la defensa** no nace la mascota: cada jugador que **participó** se lleva **un huevo persistente de esa rareza**. Va directo a su nido del lobby si está vacío; si no, a su **mochila de huevos** (3 casillas); si está llena, queda **pendiente** y en el lobby elige cuál descartar (el descartado da Ámbar según su rareza).
+
+### El nido del lobby
+
+- En la playa del naufragio, junto a la llegada. **Cada jugador ve en él su propio huevo** con lo que le falta; al tocarlo se abre la pestaña Mascotas con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza.
+- **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
+- **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
+- **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
+- **Jugar lo acelera:** cada noche superada en la isla le quita **1 h**; las misiones diarias, 20–30 min; y al **ganar una partida** hay una tirada con ruleta en los resultados (40 % −2 h · 30 % −4 h · 20 % −6 h · 8 % −10 h · **2 % eclosión inmediata**). Lo ganado jugando tiene un **tope del 50 %** del tiempo total del huevo, para que siempre quede algo que esperar al día siguiente; el tiempo del calendario y la eclosión inmediata no cuentan para el tope.
+- Si el huevo termina mientras juegas en la isla, se avisa: "¡Tu huevo está listo! Ábrelo en el nido del Lobby".
 
 ```mermaid
 sequenceDiagram
@@ -561,8 +594,9 @@ sequenceDiagram
   S->>M: Los monos cercanos persiguen al portador
   Note over P,J: Jugadores con PvP activo pueden robar el huevo
   P->>S: Lo entrega en el Nido del Basecamp
-  S->>S: Incubación de unos minutos (hay que defenderla)
-  S->>J: Eclosión con una tirada de mascota por participante
+  S->>S: Defensa de unos minutos
+  S->>J: Un huevo de esa rareza para cada participante (al nido del lobby, la mochila o pendiente)
+  Note over J: En el lobby: horas reales en el nido, acelerado jugando, y se abre con la ceremonia
 ```
 
 ### Mascotas
@@ -607,7 +641,8 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 - **Se gasta en:** mejoras permanentes **moderadas** (huecos de inventario, kit inicial por rol), cosméticos básicos y reroll de talentos.
 - **Talentos:** se desbloquean con la **XP del rol**, no con dinero.
 - **Robux (solo cosmético y comodidad):** skins de personaje y armas, skins de mascota, emotes, efectos, servidores privados y un posible pase de temporada cosmético.
-- **Nunca con Robux:** poder, huevos y objetos aleatorios.
+- **Nunca con Robux:** poder, huevos, tiempo de incubación y objetos aleatorios.
+- **Se gana jugando:** el título "Superviviente de la Isla" (solo al ganar una partida), los premios del calendario y de las misiones diarias (§4).
 
 ---
 
