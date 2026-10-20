@@ -40,6 +40,9 @@ local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 local DebugService = {}
 
 local nextBoss = 1
+-- Rareza del próximo huevo de prueba ("Egg").
+local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
+local debugEggIndex = 0
 
 -- Orden del expositor: cada arma seguida de sus mejoras; las que falten van al final.
 local SHOWCASE_ORDER = {
@@ -429,8 +432,13 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		Workspace:SetAttribute("DebugAlwaysCrit", enabled)
 		Remotes.Notify:FireClient(player, if enabled then "🎯 Críticos al 100 %" else "🎯 Críticos normales")
 	end,
-	Egg = function()
-		EggService.spawnEgg()
+	-- Cada vez, un huevo de la rareza siguiente (de común a legendario), para ver todos los colores.
+	Egg = function(player)
+		debugEggIndex = debugEggIndex % #DEBUG_EGG_RARITIES + 1
+		local rarity = DEBUG_EGG_RARITIES[debugEggIndex]
+		if not EggService.spawnEgg(rarity) then
+			Remotes.Notify:FireClient(player, "Ya hay un huevo en camino o en el nido")
+		end
 	end,
 	HatchNow = function(player)
 		if not EggService.hatchNow() then
