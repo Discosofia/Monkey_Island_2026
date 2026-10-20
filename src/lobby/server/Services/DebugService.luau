@@ -11,6 +11,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local Supplies = require(ServerScriptService.ServerShared.Supplies)
 
 local DebugService = {}
@@ -60,6 +61,11 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	-- Provisiones como las del calendario: llegan al empezar la siguiente partida en la Isla.
 	Supplies = function(player)
 		Supplies.add(player, { Banana = 5, Bandage = 2, Antidote = 1 })
+	end,
+	-- Como si el último premio del calendario se hubiera cobrado ayer: hoy se puede cobrar otro.
+	NextDay = function(player)
+		Retention.debugNextDay(player)
+		Remotes.Notify:FireClient(player, "📅 Día siguiente: ya puedes cobrar el premio del calendario")
 	end,
 	-- Adelanta una hora el reloj de los huevos de este servidor (Shared/EggIncubation.now).
 	ClockHour = function(player)

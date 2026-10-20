@@ -3,7 +3,8 @@
 --   - Cabecera con el Ámbar y el récord de días.
 --   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar), Mascotas (arriba el nido de huevos: el que se incuba, la mochila, los
---     pendientes y qué puede salir; debajo la colección), Grupo (invitar a jugadores del Lobby para viajar juntos) y Ajustes (tu
+--     pendientes y qué puede salir; debajo la colección), Misiones (el calendario de 7 días y lo que
+--     te llevas a la próxima partida), Grupo (invitar a jugadores del Lobby para viajar juntos) y Ajustes (tu
 --     personaje, tus números de combate y dónde salen los números; UI/SettingsPanel).
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
@@ -24,6 +25,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
+local Daily = require(ReplicatedStorage.Shared.Daily)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -35,6 +37,7 @@ local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
+local CalendarStrip = require(ReplicatedStorage.Shared.UI.CalendarStrip)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local ROW_HEIGHT = 78
@@ -47,7 +50,7 @@ local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
 local EGG_BAR_COLOR = Color3.fromRGB(150, 240, 255)
 -- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
 local DISCARD_CONFIRM_SECONDS = 3
-local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
+local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Misiones", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
 
@@ -209,6 +212,8 @@ function LobbyUIController:Start()
 	-- Fila del huevo del nido de la pestaña Mascotas, que se actualiza cada segundo (tiempo y barra).
 	type NestRow = { title: TextLabel, detail: TextLabel, fill: Frame, ready: boolean }
 	local nestRow: NestRow? = nil
+	-- Cuenta atrás del siguiente premio del calendario en la pestaña Misiones (cada segundo).
+	local calendarCountdown: TextButton? = nil
 
 	for index, name in TABS do
 		local button = Instance.new("TextButton")
@@ -455,6 +460,54 @@ function LobbyUIController:Start()
 		end
 	end
 
+	local function readRetention(): { [string]: any }
+		local raw = player:GetAttribute("Retention")
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
+		end)
+		return if ok and typeof(decoded) == "table" then decoded else {}
+	end
+
+	-- Calendario de 7 días (el mismo que la ventana del CalendarController) y las provisiones.
+	local function renderMissions()
+		local retention = readRetention()
+		local login = Daily.loginState(retention.login)
+		local now = EggIncubation.now()
+		local claimable = Daily.canClaim(login, now)
+		note(list, "📅 Calendario: un premio por cada día que entres (si faltas, no se pierde)", 0)
+
+		local holder = Instance.new("Frame")
+		holder.LayoutOrder = 1
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.new(1, -10, 0, 170)
+		holder.Parent = list
+		CalendarStrip.build(holder, login, now)
+
+		local today = newRow(list, 2)
+		local reward = Config.Daily.Calendar[login.step]
+		today.title.Text = if claimable then `Hoy, día {login.step}:` else `Mañana, día {login.step}:`
+		today.title.TextColor3 = Color3.fromRGB(255, 205, 70)
+		today.detail.Text = Rewards.describe(reward)
+		setButton(today.button, if claimable then "Cobrar" else "", claimable)
+		if claimable then
+			today.button.MouseButton1Click:Connect(function()
+				setButton(today.button, "Cobrando…", false)
+				Remotes.ClaimLogin:FireServer()
+			end)
+		else
+			calendarCountdown = today.button
+		end
+
+		local items = Rewards.describeItems(Rewards.sanitizeItems(retention.supplies))
+		local supplies = newRow(list, 3)
+		supplies.title.Text = "🎒 Provisiones para tu próxima partida"
+		supplies.detail.Text = if items ~= ""
+			then items
+			else "Ninguna por ahora: llegan con el calendario y las misiones"
+		supplies.detail.Size = UDim2.new(1, -20, 0, 34)
+		supplies.button.Visible = false
+	end
+
 	-- Colección de mascotas: las que tienes se pueden llevar (1 activa); las demás salen como "???".
 	local function renderPets(data: Progression.ProgressData)
 		local active = player:GetAttribute("ActivePet")
@@ -614,6 +667,7 @@ function LobbyUIController:Start()
 
 		clearRows(list)
 		nestRow = nil
+		calendarCountdown = nil
 		local data = Progression.read(player)
 		if currentTab == "Rol" then
 			renderRoles(data)
@@ -623,6 +677,8 @@ function LobbyUIController:Start()
 			renderShop(data)
 		elseif currentTab == "Mascotas" then
 			renderPets(data)
+		elseif currentTab == "Misiones" then
+			renderMissions()
 		elseif currentTab == "Estilo" then
 			renderStyle(data)
 		elseif currentTab == "Ranking" then
@@ -644,6 +700,15 @@ function LobbyUIController:Start()
 				local nestEgg = readEggs().nest
 				if nestEgg then
 					updateNestRow(nestEgg)
+				end
+			end
+			local countdown = calendarCountdown
+			if countdown and panel.Visible then
+				local left = Daily.secondsToReset(EggIncubation.now())
+				countdown.Text = `En {EggIncubation.formatTime(left)}`
+				if left <= 1 then
+					-- Ha cambiado el día: ya se puede cobrar.
+					task.delay(2, render)
 				end
 			end
 		end

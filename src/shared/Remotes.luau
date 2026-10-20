@@ -107,6 +107,10 @@ local Remotes = {
 	-- Servidor -> cliente (Lobby): ha nacido una mascota (id, rareza del huevo, si se la ha puesto),
 	-- para la ceremonia del nido (NestController).
 	EggHatched = remoteEvent("EggHatched"),
+	-- Cliente -> servidor (Lobby): cobrar el premio de hoy del calendario de 7 días.
+	ClaimLogin = remoteEvent("ClaimLogin"),
+	-- Servidor -> cliente (Lobby): premio cobrado (día 1..7 y lo recibido, línea a línea).
+	LoginClaimed = remoteEvent("LoginClaimed"),
 }
 
 return Remotes

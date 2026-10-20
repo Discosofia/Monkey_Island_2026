@@ -2,6 +2,14 @@
 -- Configuración central del juego.
 -- Para balancear o ajustar el juego, cambia los números aquí: la lógica los lee de este módulo.
 
+-- Premio del calendario y de las misiones (Daily; Shared/Rewards los escribe para el jugador).
+export type Reward = {
+	amber: number?,
+	items: { [string]: number }?,
+	eggSeconds: number?,
+	egg: { [string]: number }?,
+}
+
 local Config = {
 	GameName = "Primal Banana Islands",
 	Subtitle = "Monkey Survival",
@@ -556,6 +564,27 @@ local Config = {
 		LavaBombEverySeconds = 0.7,
 		LavaBombDamage = 20,
 		EruptionRadius = 230,
+	},
+
+	Daily = {
+		-- Bucle de retención (octubre de 2026; Shared/Daily, ServerShared/Retention). El día cambia a las
+		-- 00:00 UTC más este desfase (en segundos) para todos los servidores.
+		ResetOffsetSeconds = 0,
+		-- Calendario de 7 días: basta con entrar al Lobby para cobrar el de hoy. Faltar un día no lo
+		-- reinicia: al volver se cobra el siguiente. Tras el 7 vuelve al 1. Cada premio puede llevar
+		-- Ámbar ("amber"), provisiones para la próxima partida ("items", ServerShared/Supplies), tiempo
+		-- que se quita al huevo del nido sin tope ("eggSeconds") y un huevo ("egg": pesos de rareza).
+		Calendar = {
+			{ amber = 100, items = { Banana = 5 } },
+			{ items = { Torch = 1, Fiber = 10 } },
+			{ items = { Bandage = 2 }, eggSeconds = 60 * 60 },
+			{ amber = 100, items = { Antidote = 2 } },
+			{ amber = 250 },
+			{ items = { ReviveKit = 1, SuperBandage = 2 }, eggSeconds = 2 * 60 * 60 },
+			{ amber = 500, egg = { Rare = 13, Epic = 6, Legendary = 1 } },
+		} :: { Reward },
+		-- Si al cobrar tiempo de huevo no hay ninguno en el nido, se da Ámbar por cada hora.
+		AmberPerUnusedEggHour = 30,
 	},
 
 	Pets = {
