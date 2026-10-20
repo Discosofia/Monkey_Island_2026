@@ -1,6 +1,8 @@
 --!strict
 -- Guardado de datos en la Isla (Fase 2.8): carga el perfil de cada jugador (Ámbar, récord…) y,
 -- al terminar la partida, suma el Ámbar, el récord de días, la partida jugada y la XP del rol.
+-- Una partida terminada con el panel de pruebas ("test" en el resumen) da el Ámbar y la XP, pero no
+-- toca el récord de días, los rescates ni el ranking.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -21,22 +23,29 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	local xp = summary.days * Config.Data.RoleXpPerDay + summary.kills * Config.Data.RoleXpPerKill
 	PlayerData.update(player, function(profile)
 		profile.amber += summary.amber
-		profile.bestDays = math.max(profile.bestDays, summary.days)
 		profile.matches += 1
-		if summary.result == "Victory" then
-			profile.rescues += 1
+		if not summary.test then
+			profile.bestDays = math.max(profile.bestDays, summary.days)
+			if summary.result == "Victory" then
+				profile.rescues += 1
+			end
 		end
 		if typeof(role) == "string" then
 			profile.roleXp[role] = (profile.roleXp[role] or 0) + xp
 		end
 	end)
 	PlayerData.saveNow(player)
-	Remotes.Notify:FireClient(player, `✨ +{summary.amber} de Ámbar guardado`)
+	Remotes.Notify:FireClient(
+		player,
+		`✨ +{summary.amber} de Ámbar guardado{if summary.test then " (prueba: no cuenta para el ranking)" else ""}`
+	)
 	local profile = PlayerData.get(player)
 	if profile then
 		Analytics.amber(player, "Source", summary.amber, profile.amber, "MatchReward")
-		Leaderboards.record(player.UserId, "BestDays", profile.bestDays)
-		Leaderboards.record(player.UserId, "Rescues", profile.rescues)
+		if not summary.test then
+			Leaderboards.record(player.UserId, "BestDays", profile.bestDays)
+			Leaderboards.record(player.UserId, "Rescues", profile.rescues)
+		end
 	end
 	Analytics.event(player, if summary.result == "Victory" then "MatchVictory" else "MatchDefeat", summary.days)
 end

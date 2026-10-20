@@ -33,6 +33,8 @@ export type Summary = {
 	bosses: number,
 	amber: number,
 	eggRoll: Eggs.RescueOutcome?,
+	-- Terminada con el panel de pruebas de Studio: no cuenta para el récord, los rescates ni el ranking.
+	test: boolean?,
 }
 
 local MatchService = {}
@@ -49,7 +51,7 @@ function MatchService.isOver(): boolean
 	return ended
 end
 
-local function summaryFor(player: Player, result: Result, days: number): Summary
+local function summaryFor(player: Player, result: Result, days: number, test: boolean): Summary
 	local kills = MatchStats.get(player, MatchStats.KILLS)
 	local revives = MatchStats.get(player, MatchStats.REVIVES)
 	local bosses = MatchStats.get(player, MatchStats.BOSSES)
@@ -70,10 +72,12 @@ local function summaryFor(player: Player, result: Result, days: number): Summary
 		bosses = bosses,
 		amber = amber,
 		eggRoll = if result == "Victory" then Eggs.rescueRoll(player) else nil,
+		test = if test then true else nil,
 	}
 end
 
-function MatchService.endMatch(result: Result)
+-- "test": la termina el panel de pruebas (DebugService), para que no cuente en el ranking.
+function MatchService.endMatch(result: Result, test: boolean?)
 	if ended then
 		return
 	end
@@ -85,7 +89,7 @@ function MatchService.endMatch(result: Result)
 	ReplicatedStorage:SetAttribute("MatchOver", result)
 
 	for _, player in Players:GetPlayers() do
-		local summary = summaryFor(player, result, days)
+		local summary = summaryFor(player, result, days, test == true)
 		for _, listener in listeners do
 			task.spawn(listener, player, summary)
 		end

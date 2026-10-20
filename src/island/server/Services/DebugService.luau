@@ -535,10 +535,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		Remotes.Notify:FireClient(player, "📡 Tienes las 4 piezas y la baliza se puede encender ya (de día)")
 	end,
 	Defeat = function()
-		MatchService.endMatch("Defeat")
+		MatchService.endMatch("Defeat", true)
 	end,
 	Victory = function()
-		MatchService.endMatch("Victory")
+		MatchService.endMatch("Victory", true)
 	end,
 }
 
