@@ -225,6 +225,9 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
    que casi cada encuentro trae un alfa (×2,5 de vida y ×1,5 de daño: gorila alfa 800 de vida y 30
    de daño, orangután alfa 550). Los cinco simios con alfa también son más grandes (GDD §8.2). Sin
    medir con la calculadora.
+11. **Duelo de médicos en la arena de Dunas: 30 s** (objetivo 8–10 s, `Config.Arena.HealingMultiplier`
+   0,6). El usuario decidió el 20-10-2026 dejarlo así por ahora (el médico apoya, no duela) y
+   revisarlo cuando haya más jugadores, con datos de partidas reales.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

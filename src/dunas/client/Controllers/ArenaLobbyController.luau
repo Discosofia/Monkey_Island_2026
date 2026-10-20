@@ -2,15 +2,16 @@
 -- Ventana "Antes de la batalla" de la arena: se abre sola mientras se espera (fases Waiting y
 -- Countdown) y se cierra al empezar la partida. Se puede plegar para pasear por la base; queda un
 -- botón "🛡️ Equipo y rol" debajo de la línea de la fase para volver a abrirla. Su alto se ajusta a
--- lo que tiene dentro (también con una ranura del equipo abierta), así en un PC se ve todo sin
--- desplazarse; solo si no cabe en la pantalla (un teléfono) se desplaza.
+-- lo que tiene dentro, así se ve todo sin desplazarse; solo si aun así no cabe en la pantalla se
+-- desplaza.
 --   - Equipo: Jaguar o Quetzal, con cuántos hay de cuántos caben (Remotes.ArenaPickTeam).
 --   - Rol: los cuatro, con su ventaja en combate debajo del nombre ("edge" en Data/Roles); el tuyo,
 --     marcado en dorado; los que ya están completos en tu equipo, apagados
 --     (Shared/Arena.roleAllowed; Remotes.ArenaPickRole).
 --   - Equipo de la arena de tu rol: arma, armadura y amuleto, para ponerlo o comprarlo con Ámbar
---     (Shared/UI/ArenaGearPicker). En una pantalla baja, mientras una ranura está desplegada se
---     ocultan las filas de equipos, roles y "¡Listo!" para que quepan sus opciones sin desplazarse.
+--     (Shared/UI/ArenaGearPicker). En una pantalla baja (un teléfono) la ventana se ensancha y se
+--     parte en dos columnas para verlo todo sin desplazarse: a la izquierda equipos, roles (2 × 2),
+--     "¡Listo!" y el estado; a la derecha, las tres ranuras con sus nueve opciones.
 --   - "¡Listo!": cuando lo pulsan todos y los equipos están completos, empieza la cuenta atrás
 --     (Remotes.ArenaReady). Debajo, cuántos están listos.
 
@@ -36,6 +37,13 @@ local ROW_HEIGHT = 50
 -- En pantallas de poco alto (un teléfono apaisado), filas y huecos más bajos para que quepa todo.
 local COMPACT_BELOW = 500
 local COMPACT_ROW_HEIGHT = 44
+-- Ancho de la ventana (fracción de la pantalla y tope en píxeles). En el teléfono, más ancha: va en
+-- dos columnas, y la de la izquierda se lleva COMPACT_LEFT_SHARE del ancho.
+local WIDTH = 0.6
+local MAX_WIDTH = 640
+local COMPACT_WIDTH = 0.94
+local COMPACT_MAX_WIDTH = 820
+local COMPACT_LEFT_SHARE = 0.4
 -- Tope del texto de las casillas: con TextScaled, cada nombre saldría de un tamaño ("Mago" enorme,
 -- "Guerrero" pequeño); así salen todos iguales.
 local TEAM_TEXT_MAX = 24
@@ -135,20 +143,23 @@ function ArenaLobbyController:Start()
 	window.Name = "Window"
 	window.AnchorPoint = Vector2.new(0.5, 0)
 	window.Position = UDim2.new(0.5, 0, 0, REOPEN_TOP)
-	window.Size = UDim2.new(0.6, 0, 0, 300)
+	local widthScale = if compact then COMPACT_WIDTH else WIDTH
+	window.Size = UDim2.new(widthScale, 0, 0, 300)
 	window.BackgroundColor3 = WINDOW_COLOR
 	window.BackgroundTransparency = 0.1
 	window.Parent = gui
 	corner(window, 14)
 	local sizeLimit = Instance.new("UISizeConstraint")
 	sizeLimit.MinSize = Vector2.new(320, 0)
-	sizeLimit.MaxSize = Vector2.new(640, math.huge)
+	sizeLimit.MaxSize = Vector2.new(if compact then COMPACT_MAX_WIDTH else MAX_WIDTH, math.huge)
 	sizeLimit.Parent = window
 
+	-- "—" arriba a la derecha; en el teléfono, arriba a la izquierda (a la derecha está la línea del
+	-- Ámbar del equipamiento).
 	local fold = Instance.new("TextButton")
 	fold.Name = "Fold"
-	fold.AnchorPoint = Vector2.new(1, 0)
-	fold.Position = UDim2.new(1, -12, 0, HEADER_HEIGHT)
+	fold.AnchorPoint = Vector2.new(if compact then 0 else 1, 0)
+	fold.Position = if compact then UDim2.fromOffset(12, HEADER_HEIGHT) else UDim2.new(1, -12, 0, HEADER_HEIGHT)
 	fold.Size = UDim2.fromOffset(44, 44)
 	fold.ZIndex = 2
 	fold.BackgroundColor3 = SQUARE_COLOR
@@ -179,15 +190,44 @@ function ArenaLobbyController:Start()
 	local function fit()
 		local needed = HEADER_HEIGHT + list.AbsoluteContentSize.Y + BOTTOM_MARGIN
 		local available = gui.AbsoluteSize.Y - REOPEN_TOP - BOTTOM_MARGIN
-		window.Size = UDim2.new(0.6, 0, 0, math.min(needed, available))
+		window.Size = UDim2.new(widthScale, 0, 0, math.min(needed, available))
 	end
 	list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fit)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 
+	-- En el teléfono, dos columnas lado a lado: el alto es el de la más alta.
+	local leftPane: Instance = content
+	local rightPane: Instance = content
+	if compact then
+		list.FillDirection = Enum.FillDirection.Horizontal
+		list.VerticalAlignment = Enum.VerticalAlignment.Top
+		list.Padding = UDim.new(0, 10)
+		local function pane(order: number, share: number): Frame
+			local frame = Instance.new("Frame")
+			frame.LayoutOrder = order
+			frame.BackgroundTransparency = 1
+			frame.Size = UDim2.new(share, -5, 0, 0)
+			frame.AutomaticSize = Enum.AutomaticSize.Y
+			frame.Parent = content
+			local layout = Instance.new("UIListLayout")
+			layout.Padding = UDim.new(0, 4)
+			layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			layout.SortOrder = Enum.SortOrder.LayoutOrder
+			layout.Parent = frame
+			return frame
+		end
+		leftPane = pane(1, COMPACT_LEFT_SHARE)
+		rightPane = pane(2, 1 - COMPACT_LEFT_SHARE)
+	end
+
 	-- Equipos.
-	local teamRow = row(content, 1, rowHeight)
+	local teamRow = row(leftPane, 1, rowHeight)
 	local foldRoom = Instance.new("UIPadding")
-	foldRoom.PaddingRight = UDim.new(0, FOLD_ROOM)
+	if compact then
+		foldRoom.PaddingLeft = UDim.new(0, FOLD_ROOM)
+	else
+		foldRoom.PaddingRight = UDim.new(0, FOLD_ROOM)
+	end
 	foldRoom.Parent = teamRow
 	local teamCards: { [string]: { button: TextButton, stroke: UIStroke } } = {}
 	for index, teamId in Arena.TEAM_IDS do
@@ -200,8 +240,17 @@ function ArenaLobbyController:Start()
 		teamCards[teamId] = { button = button, stroke = stroke }
 	end
 
-	-- Roles.
-	local roleRow = row(content, 2, rowHeight + ROLE_ROW_EXTRA)
+	-- Roles: en una fila de cuatro; en el teléfono, en 2 × 2.
+	local roleHeight = rowHeight + ROLE_ROW_EXTRA
+	local roleRow = row(leftPane, 2, if compact then roleHeight * 2 + 6 else roleHeight)
+	if compact then
+		(roleRow:FindFirstChildOfClass("UIListLayout") :: UIListLayout):Destroy()
+		local grid = Instance.new("UIGridLayout")
+		grid.CellSize = UDim2.new(0.5, -3, 0, roleHeight)
+		grid.CellPadding = UDim2.fromOffset(6, 6)
+		grid.SortOrder = Enum.SortOrder.LayoutOrder
+		grid.Parent = roleRow
+	end
 	type RoleCard = { button: TextButton, stroke: UIStroke, name: TextLabel, edge: TextLabel }
 	local roleCards: { [string]: RoleCard } = {}
 	for index, roleId in rolesInOrder() do
@@ -228,21 +277,21 @@ function ArenaLobbyController:Start()
 	end
 
 	-- Equipo de la arena del rol que llevas.
-	local gear = ArenaGearPicker.new(content, 3, function(): string
+	local gear = ArenaGearPicker.new(rightPane, 3, function(): string
 		local roleId = player:GetAttribute("Role")
 		return if typeof(roleId) == "string" then roleId else ""
 	end, compact)
 
 	-- "¡Listo!" y cuántos lo están.
-	local ready = Widgets.button("✅ ¡Listo!", content)
+	local ready = Widgets.button("✅ ¡Listo!", leftPane)
 	ready.Name = "Ready"
 	ready.LayoutOrder = 4
-	ready.Size = UDim2.new(0.6, 0, 0, rowHeight)
+	ready.Size = UDim2.new(if compact then 1 else 0.6, 0, 0, rowHeight)
 	ready.Activated:Connect(function()
 		Remotes.ArenaReady:FireServer(player:GetAttribute("ArenaReady") ~= true)
 	end)
 
-	local status = Widgets.label("", content)
+	local status = Widgets.label("", leftPane)
 	status.Name = "Status"
 	status.LayoutOrder = 5
 	status.Size = UDim2.new(1, 0, 0, 22)
@@ -296,15 +345,10 @@ function ArenaLobbyController:Start()
 			item.edge.TextTransparency = if allowed then 0 else 0.5
 		end
 		gear.update()
-		local picking = compact and gear.isOpen()
-		teamRow.Visible = not picking
-		roleRow.Visible = not picking
-		-- Mientras eliges, la ranura se cierra pulsándola otra vez: "—" taparía la línea del Ámbar.
-		fold.Visible = not picking
 
 		local isReady = player:GetAttribute("ArenaReady") == true
 		local canReady = phase == "Waiting" and myTeam ~= nil
-		ready.Visible = canReady and not picking
+		ready.Visible = canReady
 		ready.Text = if isReady then "⏳ Esperando… (quitar Listo)" else "✅ ¡Listo!"
 		local readyCount, total = 0, 0
 		for _, other in Players:GetPlayers() do
@@ -313,7 +357,6 @@ function ArenaLobbyController:Start()
 				readyCount += 1
 			end
 		end
-		status.Visible = not picking
 		status.Text = if phase == "Countdown"
 			then "Aún puedes cambiar de rol y de equipo"
 			elseif myTeam == nil then "Elige equipo para empezar"

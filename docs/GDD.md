@@ -640,7 +640,7 @@ La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una ar
 
 **Combate.** Es el mismo de la Isla (armas, habilidades, combos y estados, código compartido en `src/combat`) con reglas por equipos y números propios, para que **un duelo entre dos roles iguales dure 8–10 s**:
 
-- Daño de las armas ×0,55 (el arco ×0,7), de las habilidades ×0,45, control ×0,5 y curación ×0,6. Duelos espejo medidos con la calculadora `Equilibrio`: Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s y Médico 30 s (pendiente de decidir si se baja más la curación).
+- Daño de las armas ×0,55 (el arco ×0,7), de las habilidades ×0,45, control ×0,5 y curación ×0,6. Duelos espejo medidos con la calculadora `Equilibrio`: Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s y Médico 30 s (se deja así por ahora: el médico apoya más que pelea; se revisará con datos de partidas reales cuando haya más jugadores).
 - Las curaciones y los escudos solo llegan a los aliados. El veneno, la ralentización, el sueño, las marcas y los combos funcionan contra los rivales.
 - De la Isla solo llegan los **cosméticos** y la **mascota de adorno** (sin ayuda). Los talentos, las mejoras y la forja no cuentan: todos empiezan igual.
 
