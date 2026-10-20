@@ -98,6 +98,15 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): efecto visual de una habilidad de rol (tipo y sus datos; ver
 	-- AbilityFxController). El daño lo pone el servidor; esto es solo lo que se ve.
 	AbilityFx = remoteEvent("AbilityFx"),
+	-- Cliente -> servidor (Lobby): poner en el nido o descartar un huevo guardado
+	-- ("bag" | "pending", posición en esa lista; ServerShared/Eggs).
+	PlaceEgg = remoteEvent("PlaceEgg"),
+	DiscardEgg = remoteEvent("DiscardEgg"),
+	-- Cliente -> servidor (Lobby): abrir el huevo del nido si ya está listo.
+	HatchEgg = remoteEvent("HatchEgg"),
+	-- Servidor -> cliente (Lobby): ha nacido una mascota (id, rareza del huevo, si se la ha puesto),
+	-- para la ceremonia del nido (NestController).
+	EggHatched = remoteEvent("EggHatched"),
 }
 
 return Remotes

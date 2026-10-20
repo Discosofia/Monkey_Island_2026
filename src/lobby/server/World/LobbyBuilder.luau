@@ -16,7 +16,8 @@
 -- puente de mando, chimenea y radar, contenedores en cubierta y grúa; la pasarela de subida; el
 -- campamento con hoguera y tienda de lona, contenedores varados, cajas de la carga, ancla con cadena,
 -- salvavidas; tres carteles en la arena (los roles, con el aviso "RolesPrompt", la bitácora del
--- capitán y el ranking); la lancha de rescate para zarpar (aviso "ZarparPrompt");
+-- capitán y el ranking); el nido de huevos (aviso "NidoPrompt", etiqueta Config.Lobby.NestTag); la
+-- lancha de rescate para zarpar (aviso "ZarparPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
 -- palmeras; la isla con el volcán en el horizonte; las otras cuatro islas del archipiélago, aún
@@ -31,6 +32,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local BuildModels = require(ReplicatedStorage.Shared.BuildModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 
 export type Options = { force: boolean? }
@@ -38,7 +40,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 5
+local VERSION = 6
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -70,6 +72,12 @@ local LOG_BOARD_AT = Vector2.new(42.9, -6)
 local LOG_BOARD_FACING = Vector2.new(-0.98, 0.18)
 local ROLE_BOARD_AT = Vector2.new(5, -14)
 local RANKING_BOARD_AT = Vector2.new(43, 15)
+-- Nido de huevos: a la derecha de la llegada, entre la hoguera y las palmeras, lo primero que se ve
+-- al aparecer. Es el Nido de la Isla (BuildModels) en grande, sobre un montículo de arena.
+local NEST_AT = Vector2.new(22, 21)
+local NEST_SCALE = 1.4
+local NEST_MOUND_HEIGHT = 1.6
+local SPAWN_AT = Vector2.new(4, 34)
 
 -- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
@@ -877,6 +885,90 @@ local function buildBoards(parent: Instance)
 	prompt.MaxActivationDistance = 13
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = roles
+end
+
+-- Nido de huevos del Lobby: cada cliente dibuja encima su propio huevo y su temporizador
+-- (NestController, por la etiqueta Config.Lobby.NestTag y el punto "EggSeat"); con el aviso
+-- "NidoPrompt" se abre el panel del nido. Antorchas tiki a los lados y un cartel de cara a la llegada.
+local function buildNest(parent: Instance)
+	local ground = groundAt(NEST_AT.X, NEST_AT.Y)
+	local model = Instance.new("Model")
+	model.Name = "NidoDeHuevos"
+	local mound = newPart(
+		"Monticulo",
+		Vector3.new(13, NEST_MOUND_HEIGHT * 2, 13),
+		CFrame.new(ground),
+		Color3.fromRGB(214, 190, 140),
+		Enum.Material.Sand,
+		model
+	)
+	local moundMesh = Instance.new("SpecialMesh")
+	moundMesh.MeshType = Enum.MeshType.Sphere
+	moundMesh.Parent = mound
+
+	local nest = BuildModels.build("Nest")
+	nest.Name = "Nido"
+	nest:ScaleTo(NEST_SCALE)
+	local _, nestSize = nest:GetBoundingBox()
+	nest:PivotTo(CFrame.new(ground + Vector3.new(0, NEST_MOUND_HEIGHT * 0.8 + nestSize.Y / 2 - 0.3, 0)))
+	nest.Parent = model
+	local seat = nest:FindFirstChild("EggSeat", true)
+	if seat and seat:IsA("BasePart") then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "NidoPrompt"
+		prompt.ActionText = "Ver el nido"
+		prompt.ObjectText = "Nido de huevos"
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = seat
+	end
+
+	-- Antorchas tiki detrás, a los lados: enmarcan el huevo sin taparlo desde la llegada.
+	for _, side in { -1, 1 } do
+		local base = ground + Vector3.new(side * 6.5, 0, -3)
+		local top = base + Vector3.new(0, 6.2, 0)
+		cylinder("Antorcha", 0.45, base - Vector3.new(0, 1, 0), top, PLANK, Enum.Material.Wood, model)
+		local head = cylinder(
+			"Mecha",
+			0.95,
+			top - Vector3.new(0, 0.3, 0),
+			top + Vector3.new(0, 1, 0),
+			Color3.fromRGB(150, 135, 85),
+			Enum.Material.Fabric,
+			model
+		)
+		local flame = Instance.new("Fire")
+		flame.Size = 3
+		flame.Heat = 6
+		flame.Parent = head
+		light(head, FIRE_LIGHT, 16, 1.5)
+	end
+
+	-- Cartel clavado delante a la izquierda, de cara a la llegada.
+	local signAt = ground + Vector3.new(-5.5, 0, 6)
+	local facing = Vector3.new(SPAWN_AT.X, signAt.Y, SPAWN_AT.Y)
+	cylinder(
+		"Poste",
+		0.5,
+		signAt - Vector3.new(0, 1, 0),
+		signAt + Vector3.new(0, 4.4, 0),
+		DARK_WOOD,
+		Enum.Material.Wood,
+		model
+	)
+	local plank = newPart(
+		"Cartel",
+		Vector3.new(4.6, 1.5, 0.3),
+		CFrame.lookAt(signAt + Vector3.new(0, 3.7, 0), facing + Vector3.new(0, 3.7, 0)) * CFrame.new(0, 0, -0.3),
+		HULL_RED,
+		Enum.Material.WoodPlanks,
+		model
+	)
+	headline(plank, "🥚 NIDO", Color3.fromRGB(255, 215, 90))
+
+	CollectionService:AddTag(model, Config.Lobby.NestTag)
+	model.Parent = parent
 end
 
 local function buildDeck(model: Model)
@@ -2834,6 +2926,7 @@ function LobbyBuilder.build(options: Options?)
 	buildRamp(folder, ship)
 	buildCamp(folder)
 	buildBoards(folder)
+	buildNest(folder)
 	buildLifeboat(folder)
 	for _, palm in
 		{

@@ -9,9 +9,14 @@ local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 
 local DebugService = {}
+
+-- Rareza del próximo huevo de prueba ("GrantEgg").
+local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
+local debugEggIndex = 0
 
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	Amber = function(player)
@@ -39,6 +44,24 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			current.activePet = petId
 		end)
 		Remotes.Notify:FireClient(player, `🐾 Mascota de prueba: {Pets[petId].icon} {Pets[petId].name}`)
+	end,
+	-- Un huevo como los de la Isla, cada vez de la rareza siguiente (al nido, la mochila o pendiente).
+	GrantEgg = function(player)
+		debugEggIndex = debugEggIndex % #DEBUG_EGG_RARITIES + 1
+		local rarity = DEBUG_EGG_RARITIES[debugEggIndex]
+		Remotes.Notify:FireClient(player, `🥚 Huevo de prueba ({rarity}): {Eggs.grant(player, rarity) or "?"}`)
+	end,
+	EggReady = function(player)
+		if not Eggs.makeReady(player) then
+			Remotes.Notify:FireClient(player, "No hay huevo en el nido")
+		end
+	end,
+	-- Adelanta una hora el reloj de los huevos de este servidor (Shared/EggIncubation.now).
+	ClockHour = function(player)
+		local shift = ReplicatedStorage:GetAttribute("DebugClockShift")
+		local hours = (if typeof(shift) == "number" then shift else 0) / 3600 + 1
+		ReplicatedStorage:SetAttribute("DebugClockShift", hours * 3600)
+		Remotes.Notify:FireClient(player, `⏩ Reloj de los huevos: +{hours} h`)
 	end,
 }
 

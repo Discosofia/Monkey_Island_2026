@@ -713,6 +713,8 @@ local Config = {
 		RankingBoardTag = "TablaRanking",
 		RankingBoardSize = 5,
 		RoleBoardTag = "TablaRoles",
+		-- Nido de huevos (World/LobbyBuilder): cada cliente dibuja en él su huevo (NestController).
+		NestTag = "NidoLobby",
 	},
 
 	Social = {

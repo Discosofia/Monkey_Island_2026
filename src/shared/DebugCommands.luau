@@ -41,6 +41,9 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 		{ id = "RoleXp", label = "⭐ +300 XP del rol" },
 		{ id = "Pet", label = "🐾 Siguiente mascota" },
+		{ id = "GrantEgg", label = "🥚 Huevo (rareza siguiente)" },
+		{ id = "EggReady", label = "🐣 Huevo del nido listo" },
+		{ id = "ClockHour", label = "⏩ Reloj +1 h" },
 	},
 }
 

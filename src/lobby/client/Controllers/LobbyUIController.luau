@@ -2,12 +2,14 @@
 -- Interfaz del Lobby (Fase 3):
 --   - Cabecera con el Ámbar y el récord de días.
 --   - Pestañas: Rol (elegir guerrero, cazador, mago o médico), Talentos (del rol elegido), Tienda
---     (mejoras con Ámbar), Grupo (invitar a jugadores del Lobby para viajar juntos) y Ajustes (tu
+--     (mejoras con Ámbar), Mascotas (arriba el nido de huevos: el que se incuba, la mochila, los
+--     pendientes y qué puede salir; debajo la colección), Grupo (invitar a jugadores del Lobby para viajar juntos) y Ajustes (tu
 --     personaje, tus números de combate y dónde salen los números; UI/SettingsPanel).
 --   - Botón "Ir a la Isla" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
 --   - Botón para plegar el menú y pasear por el naufragio, y X de cerrar en el menú. El menú empieza
---     plegado; el cartel de roles de la playa ("RolesPrompt", tecla E) lo abre en la pestaña Rol.
+--     plegado; el cartel de roles de la playa ("RolesPrompt", tecla E) lo abre en la pestaña Rol, y
+--     el nido de huevos ("NidoPrompt") en la pestaña Mascotas.
 --   - Botón "Invitar amigos" (invitación de Roblox a tus amigos para que vengan a este Lobby).
 --   - Ventana de invitación cuando otro jugador te invita a su grupo.
 
@@ -20,7 +22,9 @@ local SocialService = game:GetService("SocialService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
+local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
@@ -38,6 +42,10 @@ local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
 local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
 local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
+-- Barra de incubación del huevo del nido (cian = huevo, como su línea de estado en la Isla).
+local EGG_BAR_COLOR = Color3.fromRGB(150, 240, 255)
+-- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
+local DISCARD_CONFIRM_SECONDS = 3
 local TABS = { "Rol", "Talentos", "Tienda", "Mascotas", "Estilo", "Grupo", "Diario", "Ranking", "Ajustes" }
 
 type Row = { frame: Frame, title: TextLabel, detail: TextLabel, button: TextButton }
@@ -196,6 +204,10 @@ function LobbyUIController:Start()
 	local currentTab = "Rol"
 	local tabButtons: { [string]: TextButton } = {}
 	local render: () -> ()
+	local setMenuOpen: (open: boolean, tab: string?) -> ()
+	-- Fila del huevo del nido de la pestaña Mascotas, que se actualiza cada segundo (tiempo y barra).
+	type NestRow = { title: TextLabel, detail: TextLabel, fill: Frame, ready: boolean }
+	local nestRow: NestRow? = nil
 
 	for index, name in TABS do
 		local button = Instance.new("TextButton")
@@ -288,10 +300,165 @@ function LobbyUIController:Start()
 		end
 	end
 
+	local function readEggs(): EggIncubation.EggData
+		local raw = player:GetAttribute("Eggs")
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
+		end)
+		return EggIncubation.normalize(if ok then decoded else nil)
+	end
+
+	-- Fila con dos botones: el principal (dorado, a la derecha) y "Descartar" a su izquierda.
+	local function twoButtonRow(order: number): (Row, TextButton)
+		local row = newRow(list, order)
+		row.title.Size = UDim2.new(0.46, -10, 0, 30)
+		row.detail.Size = UDim2.new(0.46, -10, 0, 34)
+		row.button.Size = UDim2.new(0.25, -10, 0, 50)
+		local second = Widgets.button("", row.frame)
+		second.AnchorPoint = Vector2.new(1, 0.5)
+		second.Position = UDim2.new(0.75, -10, 0.5, 0)
+		second.Size = UDim2.new(0.27, -10, 0, 50)
+		second.BackgroundColor3 = CLOSE_COLOR
+		second.TextColor3 = Color3.new(1, 1, 1)
+		local limit = second:FindFirstChildOfClass("UISizeConstraint")
+		if limit then
+			limit:Destroy()
+		end
+		return row, second
+	end
+
+	-- Texto del huevo del nido: lo que le falta (o listo) y cuánto lleva incubado.
+	local function updateNestRow(nestEgg: EggIncubation.NestEgg)
+		local row = nestRow
+		if not row then
+			return
+		end
+		local now = EggIncubation.now()
+		local rarity = Rarities[nestEgg.rarity]
+		local ready = EggIncubation.isReady(nestEgg, now)
+		row.title.Text = if ready
+			then `🐣 ¡Huevo {rarity.name} listo!`
+			else `🥚 Huevo {rarity.name} · {EggIncubation.formatTime(EggIncubation.remaining(nestEgg, now))}`
+		local cap = nestEgg.totalSeconds * Config.Egg.PlayCapFraction
+		row.detail.Text = `Incubado {math.floor(EggIncubation.progress(nestEgg, now) * 100)} % · jugando le has `
+			.. `quitado {EggIncubation.formatTime(nestEgg.playBonus)} de {EggIncubation.formatTime(cap)}`
+		row.fill.Size = UDim2.fromScale(math.clamp(EggIncubation.progress(nestEgg, now), 0, 1), 1)
+		if ready ~= row.ready then
+			-- Acaba de quedar listo: rehace la pestaña para encender "Abrir".
+			row.ready = ready
+			task.defer(render)
+		end
+	end
+
+	-- Nido de huevos, arriba de la pestaña Mascotas (órdenes negativos: antes que la colección).
+	local function renderNest()
+		local eggs = readEggs()
+		nestRow = nil
+		note(list, "🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)", -100)
+
+		local nestEgg = eggs.nest
+		local row = newRow(list, -99)
+		if nestEgg then
+			local rarity = Rarities[nestEgg.rarity]
+			row.title.TextColor3 = rarity.color
+			local track = Instance.new("Frame")
+			track.Position = UDim2.new(0, 10, 1, -12)
+			track.Size = UDim2.new(0.68, -10, 0, 6)
+			track.BackgroundColor3 = Color3.fromRGB(25, 20, 15)
+			track.Parent = row.frame
+			corner(track, 3)
+			local fill = Instance.new("Frame")
+			fill.BackgroundColor3 = EGG_BAR_COLOR
+			fill.Parent = track
+			corner(fill, 3)
+			local ready = EggIncubation.isReady(nestEgg, EggIncubation.now())
+			nestRow = { title = row.title, detail = row.detail, fill = fill, ready = ready }
+			updateNestRow(nestEgg)
+			setButton(row.button, if ready then "🐣 Abrir" else "Incubando", ready)
+			if ready then
+				row.button.MouseButton1Click:Connect(function()
+					-- Se cierra el menú para ver la ceremonia en el nido.
+					setMenuOpen(false)
+					Remotes.HatchEgg:FireServer()
+				end)
+			end
+
+			-- Lo que puede salir de esta rareza (las que ya tienes, con ✅).
+			local data = Progression.read(player)
+			local names = {}
+			for _, petId in PetRoll.petsOfRarity(nestEgg.rarity) do
+				local pet = Pets[petId]
+				local owned = (data.pets[petId] or 0) > 0
+				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
+			end
+			local options = newRow(list, -98)
+			options.title.Text = `Puede salir ({rarity.name}):`
+			options.title.TextColor3 = rarity.color
+			options.detail.Text = table.concat(names, " · ")
+			options.detail.Size = UDim2.new(1, -20, 0, 34)
+			options.button.Visible = false
+		else
+			row.title.Text = "🥚 Nido vacío"
+			row.detail.Text = if #eggs.bag + #eggs.pending > 0
+				then "Pon a incubar uno de tus huevos"
+				else "Defiende huevos en la Isla para conseguirlos"
+			setButton(row.button, "—", false)
+		end
+
+		-- Mochila (Config.Egg.BagSize casillas) y, si no cupieron, los pendientes.
+		local function eggRows(source: "bag" | "pending", stored: { EggIncubation.StoredEgg }, firstOrder: number)
+			for index, egg in stored do
+				local rarity = Rarities[egg.rarity]
+				local eggRow, discard = twoButtonRow(firstOrder + index)
+				eggRow.title.Text = `🥚 Huevo {rarity.name}`
+				eggRow.title.TextColor3 = rarity.color
+				eggRow.detail.Text =
+					`Tarda {EggIncubation.formatTime(EggIncubation.hatchSeconds(egg.rarity))} en el nido`
+				setButton(eggRow.button, "Al nido", nestEgg == nil)
+				if nestEgg == nil then
+					eggRow.button.MouseButton1Click:Connect(function()
+						Remotes.PlaceEgg:FireServer(source, index)
+					end)
+				end
+				local amber = EggIncubation.discardAmber(egg.rarity)
+				discard.Text = `Descartar +{amber} ✨`
+				local armedUntil = 0
+				discard.MouseButton1Click:Connect(function()
+					if os.clock() < armedUntil then
+						Remotes.DiscardEgg:FireServer(source, index)
+						return
+					end
+					armedUntil = os.clock() + DISCARD_CONFIRM_SECONDS
+					discard.Text = "¿Seguro?"
+					task.delay(DISCARD_CONFIRM_SECONDS, function()
+						if discard.Parent then
+							discard.Text = `Descartar +{amber} ✨`
+						end
+					end)
+				end)
+			end
+		end
+		note(list, `🎒 Mochila de huevos ({#eggs.bag}/{Config.Egg.BagSize}): esperan sin avanzar`, -90)
+		eggRows("bag", eggs.bag, -90)
+		for slot = #eggs.bag + 1, Config.Egg.BagSize do
+			local empty = newRow(list, -90 + slot)
+			empty.frame.Size = UDim2.new(1, -10, 0, 40)
+			empty.title.Text = "Casilla libre"
+			empty.title.TextColor3 = Color3.fromRGB(160, 150, 135)
+			empty.detail.Visible = false
+			empty.button.Visible = false
+		end
+		if #eggs.pending > 0 then
+			note(list, "⚠️ Mochila llena: estos huevos esperan a que decidas", -80)
+			eggRows("pending", eggs.pending, -80)
+		end
+	end
+
 	-- Colección de mascotas: las que tienes se pueden llevar (1 activa); las demás salen como "???".
 	local function renderPets(data: Progression.ProgressData)
 		local active = player:GetAttribute("ActivePet")
-		note(list, "🥚 Las mascotas salen de los huevos que rescatáis en la isla", 0)
+		renderNest()
+		note(list, "🐾 Tu colección: las mascotas nacen de los huevos del nido", 0)
 		local ids = {}
 		for petId in Pets do
 			table.insert(ids, petId)
@@ -445,6 +612,7 @@ function LobbyUIController:Start()
 		header.Text = `✨ Ámbar: {amberText}   🏆 Récord: {bestText} días`
 
 		clearRows(list)
+		nestRow = nil
 		local data = Progression.read(player)
 		if currentTab == "Rol" then
 			renderRoles(data)
@@ -466,6 +634,19 @@ function LobbyUIController:Start()
 			renderParty()
 		end
 	end
+
+	-- El tiempo del huevo del nido corre solo: se actualiza cada segundo mientras se ve.
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if nestRow and panel.Visible then
+				local nestEgg = readEggs().nest
+				if nestEgg then
+					updateNestRow(nestEgg)
+				end
+			end
+		end
+	end)
 
 	player.AttributeChanged:Connect(function(attribute)
 		-- El panel de Ajustes se actualiza solo al cambiar una opción (no hace falta rehacerlo).
@@ -508,7 +689,7 @@ function LobbyUIController:Start()
 	menuButton.AnchorPoint = Vector2.new(0, 1)
 	menuButton.Position = UDim2.fromScale(0.02, 0.95)
 	menuButton.Size = UDim2.fromScale(0.17, 0.07)
-	local function setMenuOpen(open: boolean, tab: string?)
+	function setMenuOpen(open: boolean, tab: string?)
 		panel.Visible = open
 		menuButton.Text = if open then "📜 Ocultar menú" else "📜 Abrir menú"
 		if tab then
@@ -543,6 +724,9 @@ function LobbyUIController:Start()
 		elseif prompt.Name == "RolesPrompt" then
 			-- Tablón de roles de la proa (World/LobbyBuilder).
 			setMenuOpen(true, "Rol")
+		elseif prompt.Name == "NidoPrompt" then
+			-- Nido de huevos de la playa (World/LobbyBuilder; el huevo lo dibuja NestController).
+			setMenuOpen(true, "Mascotas")
 		end
 	end)
 
