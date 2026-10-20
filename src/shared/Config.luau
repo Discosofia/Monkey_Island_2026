@@ -30,8 +30,9 @@ local Config = {
 	},
 
 	Match = {
-		-- El tamaño real del servidor se configura en Roblox (docs/SETUP.md, paso 7).
-		MaxPlayers = 20,
+		-- El tamaño real del servidor se configura en Roblox (docs/SETUP.md, paso 7). Una partida es para
+		-- un grupo de amigos (desde el 20-10-2026; antes 20 jugadores).
+		MaxPlayers = 5,
 		DayLengthSeconds = 10 * 60,
 		NightLengthSeconds = 7 * 60,
 		-- Segundos antes de la noche en que se avisa a los jugadores para que vuelvan.
@@ -58,7 +59,7 @@ local Config = {
 	-- Jefes (Data/Bosses, BossService). Su vida ("maxHealth" en Data/Bosses, la de un jugador solo) se
 	-- multiplica según los jugadores que pelean con él: vivos, fuera del Basecamp y a menos de su
 	-- "leashRange" de la guarida. Con uno ×HealthBase y cada uno más +HealthPerExtraPlayer, así un
-	-- jefe dura parecido con 1, 4 o 20 jugadores (con más, algo menos). Objetivo con 4 jugadores
+	-- jefe dura parecido con 1, 3 o 5 jugadores. Objetivo con 4 jugadores
 	-- (octubre de 2026, medido con ServerStorage.Tools.Equilibrio): 2 min el primero y 3 min el último.
 	Bosses = {
 		HealthBase = 1,
@@ -798,8 +799,9 @@ local Config = {
 	},
 
 	Party = {
-		-- Grupos del Lobby (Fase 3): tamaño máximo y segundos que vale una invitación.
-		MaxSize = 6,
+		-- Grupos del Lobby (Fase 3): tamaño máximo (el de una partida de la Isla, Match.MaxPlayers) y
+		-- segundos que vale una invitación.
+		MaxSize = 5,
 		InviteSeconds = 60,
 	},
 

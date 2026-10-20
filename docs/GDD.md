@@ -21,7 +21,7 @@
 - **Público:** jugadores de Roblox (≈10–16+ años) a los que les gustan los juegos de supervivencia, exploración y coleccionables.
 - **Plataformas:** **Móvil + PC** desde el día 1 (controles táctiles, UI escalable y rendimiento en gama baja). Consola más adelante.
 - **Estilo visual:** **low-poly estilizado** y colorido. El tono es de aventura con tensión. La violencia es estilizada, **sin sangre ni gore**.
-- **Referentes del género en Roblox:** juegos de supervivencia de día/noche como *99 Nights in the Forest*. Nuestros diferenciadores son el **ecosistema de monos con bestiario**, el **huevo y las mascotas coleccionables**, el **objetivo de rescate**, el **Basecamp compartido de 20 jugadores** y el **PvP por eventos**.
+- **Referentes del género en Roblox:** juegos de supervivencia de día/noche como *99 Nights in the Forest*. Nuestros diferenciadores son el **ecosistema de monos con bestiario**, el **huevo y las mascotas coleccionables**, el **objetivo de rescate**, el **Basecamp compartido entre amigos (hasta 5)** y el **PvP por eventos**.
 
 ---
 
@@ -42,7 +42,7 @@
 | Roles | **Fijo por partida** (se elige en el lobby) + **árbol de talentos** que progresa entre partidas. |
 | Mascotas | **Persistentes.** Cada participante del rescate del huevo recibe una tirada. Se coleccionan y se lleva 1 activa. |
 | Huevo | **Evento PvP opt-in.** El portador queda marcado y los jugadores con PvP activo pueden robárselo. |
-| Servidor | Máximo **20 jugadores**. Se puede entrar a una partida en curso si hay hueco. |
+| Servidor | Máximo **5 jugadores**: una partida es para **un grupo de amigos** (hasta 5, que viajan juntos desde el Lobby). Si sobran plazas, se puede entrar a una partida en curso. *(Cambio del 20-10-2026: al principio eran 20 jugadores que no se conocían; ahora el juego está pensado para jugar con tus amigos.)* |
 | Asedio nocturno | **Sí.** El Basecamp es seguro **mientras resistan las defensas**. |
 | Fiebre del mono | **Sí.** Infección por mordiscos que cura el médico. |
 | Lore | **Santuario-laboratorio** abandonado (Proyecto PRIMAL). |
@@ -60,7 +60,7 @@
 ```mermaid
 flowchart TD
   L["Lobby: socializar, elegir rol, probar sus habilidades, tienda, mascota activa"] --> Q["Matchmaking: solo o con amigos"]
-  Q --> T["Teleport a la Isla (servidor de hasta 20)"]
+  Q --> T["Teleport a la Isla (servidor de hasta 5)"]
   T --> B["Aparece en el BASECAMP"]
   B --> P["Partida: ciclo día/noche"]
   P --> C{"¿Caído?"}
@@ -416,7 +416,7 @@ Son versiones **gigantes y con aspecto distinto** de las especies difíciles. Pe
 
 - Aparece **un jefe cada 2 días**, rotando por los biomas de menor a mayor dificultad. El orden y el intervalo son configurables.
 - El jefe se queda en su guarida **hasta que lo derrotan o hasta que aparece el siguiente**. Así el equipo tiene unos 2 días para prepararse.
-- **Vida según quién pelea** (`Config.Bosses`): cuenta a los jugadores vivos que están en su zona (fuera del Basecamp). Con uno tiene su vida base y cada jugador más le suma un 75 %; al entrar o salir alguien se recalcula sin cambiar el % que le queda. Así dura parecido con 1, 4 o 20 jugadores: con 4, unos **2 minutos** el Orangután y **3 minutos** el Gorila de Ceniza (con las armas de la forja que se suelen tener ese día), tiempo para ver sus tres fases.
+- **Vida según quién pelea** (`Config.Bosses`): cuenta a los jugadores vivos que están en su zona (fuera del Basecamp). Con uno tiene su vida base y cada jugador más le suma un 75 %; al entrar o salir alguien se recalcula sin cambiar el % que le queda. Así dura parecido con 1, 3 o 5 jugadores: con 4, unos **2 minutos** el Orangután y **3 minutos** el Gorila de Ceniza (con las armas de la forja que se suelen tener ese día), tiempo para ver sus tres fases.
 - Si un jefe se escapa, su pieza se puede conseguir en la **siguiente rotación** (8 días después).
 - Las piezas de baliza van al **núcleo compartido**: pertenecen al servidor, no a un jugador.
 
@@ -558,9 +558,9 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 - **Núcleo compartido:** nido, baliza, defensas perimetrales y estaciones grandes. Cualquiera puede aportar recursos, pero solo se puede **desmontar con votación o por el constructor original** (evita el sabotaje).
 - **Parcela personal:** una tienda o espacio pequeño para cofre, cama y estaciones propias. Solo la modifica su dueño.
-- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella si caes y no te reaniman). Cada jugador recibe una de 20 parcelas al entrar; al salir se libera y se derriba lo que tenía en ella.
+- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella si caes y no te reaniman). Cada jugador recibe una de las parcelas al entrar (hay 20: sobran para un grupo de 5); al salir se libera y se derriba lo que tenía en ella.
 - **Sin recursos dentro**, como en el diseño original: hay que salir a buscarlos.
-- **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une a los 20 jugadores en un objetivo común cada noche.
+- **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une al grupo de amigos en un objetivo común cada noche.
   - Las oleadas crecen con el número de día y con el número de jugadores. *(v1: 3 oleadas por noche, por uno o dos portones al azar; ajustes en `Config.Siege`.)*
   - Las defensas se construyen en el **perímetro** (entre las parcelas y la empalizada, incluidos los portones): muros, **estacas** (hieren a los monos que las cruzan) y antorchas.
   - Las defensas dañadas se reparan de día con recursos.
@@ -706,7 +706,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 | Riesgo | Mitigación |
 |---|---|
 | **Alcance enorme** para una sola persona | Construir por fases, con un *vertical slice* jugable antes de producir contenido. Datos de configuración en lugar de código duplicado. |
-| **Rendimiento** (20 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y pruebas en móviles de gama baja. |
+| **Rendimiento** (hasta 5 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y pruebas en móviles de gama baja. |
 | **Moderación y edades** (llegar a menores de 16: Roblox Kids y Select) | Sin sangre ni gore. Los monos derrotados desaparecen con un "¡puf!" de humo y estrellas, sin animación ni grito de muerte (violencia leve, de caricatura). Cuestionario de madurez completo y requisitos de [LANZAMIENTO.md §9](LANZAMIENTO.md#9-menores-de-16-roblox-kids-y-select). |
 | **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Islands* (§15). |
 | **Objetos aleatorios de pago** | Huevos solo por juego. Si algún día se venden, mostrar probabilidades según las normas de Roblox. |

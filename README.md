@@ -1,6 +1,6 @@
 # Primal Banana Islands: Monkey Survival 🍌🐒🏝️
 
-Juego de supervivencia **PvE + PvP opt-in** para **Roblox** (móvil + PC), para hasta **20 jugadores** por servidor.
+Juego de supervivencia **PvE + PvP opt-in** para **Roblox** (móvil + PC), para jugar con **tus amigos** (hasta **5** por partida).
 
 Naufragas en una isla tropical sin salida, antiguo santuario-laboratorio del **Proyecto PRIMAL**, infestada de monos carnívoros de distintas especies y categorías. Desde el **Basecamp** del centro de la isla los jugadores salen a explorar y recolectar, craftean y construyen, resisten los asedios nocturnos, rescatan huevos que se convierten en mascotas y derrotan a los jefes de cada bioma para encender la **baliza de rescate**.
 

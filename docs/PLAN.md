@@ -131,7 +131,7 @@ Más adelante se añadirán `wally.toml` (paquetes, Fase 2) y `assets/` (modelos
 - [x] Instalar Roblox Studio, VS Code, GitHub Desktop y Rokit, y clonar el repo
 - [x] Instalar las herramientas (`rokit install`) y el plugin de Rojo
 - [x] Crear la experiencia en Roblox con 2 places: **Lobby** (inicio) e **Isla**
-- [x] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores
+- [x] Copiar los IDs de los places a `Config.luau` y poner la Isla en 20 jugadores *(20-10-2026: el juego pasa a ser para grupos de amigos; hay que bajarla a **5**, ver [SETUP.md](SETUP.md) paso 7)*
 - [x] Sincronizar con Rojo y publicar ambos places
 - [x] Probar el viaje Lobby ↔ Isla en el juego publicado *(hizo falta poner la experiencia en Público y publicar la Isla)*
 
@@ -253,7 +253,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 - [x] **Optimización (código):** límite de monos activos, "sueño" de la IA y registro de rendimiento
 - [ ] **Optimización (tú):** activar StreamingEnabled y probar en móvil de gama baja *(ver [RENDIMIENTO.md](RENDIMIENTO.md))*
 
-**Criterio de salida:** un servidor de 20 jugadores estable en móvil, y cada bioma tiene una razón para visitarlo.
+**Criterio de salida:** un servidor lleno (5 jugadores desde el 20-10-2026; antes 20) estable en móvil, y cada bioma tiene una razón para visitarlo.
 
 ---
 
@@ -378,7 +378,7 @@ gantt
 | ¿Es divertido? | Tiempo medio de sesión y cuántos llegan a la primera noche |
 | ¿Vuelven? | Retención al día siguiente (D1) y a la semana (D7) |
 | ¿Es justo? | Causas de caída, PvP vs PvE, y qué monos derriban más |
-| ¿Rinde bien? | FPS y memoria en móvil con 20 jugadores |
+| ¿Rinde bien? | FPS y memoria en móvil con el servidor lleno (5 jugadores) |
 
 ---
 

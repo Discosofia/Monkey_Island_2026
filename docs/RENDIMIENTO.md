@@ -1,6 +1,6 @@
 # Rendimiento y pruebas en móvil (Fase 4)
 
-El objetivo de la Fase 4 es un servidor de **20 jugadores estable en móvil**. El código ya incluye:
+El objetivo de la Fase 4 es un servidor lleno **estable en móvil** (se planteó con 20 jugadores; desde el 20-10-2026 la Isla es para grupos de hasta **5 amigos**, así que con 20 hay margen de sobra). El código ya incluye:
 
 - **Tropas solo cerca de los jugadores:** una tropa lejos de todos se guarda como un número (sus monos no existen) y aparece cuando alguien se acerca a menos de `Config.Monkeys.WakeDistance` (350 studs); se vuelve a guardar sin nadie a menos de `DormantDistance` (450). Así hay monos por toda la isla sin que existan todos a la vez.
 - **Monos que duermen:** sin jugadores a menos de `Config.Monkeys.SleepDistance` (300 studs), un mono no piensa.

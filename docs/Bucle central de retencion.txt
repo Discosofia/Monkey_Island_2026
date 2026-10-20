@@ -241,7 +241,7 @@ Las **Misiones de Aceleración** son la pieza que conecta la exploración activa
 | **Cuidado de Base**         | **Fuego Guardián**           | Mantener 4 antorchas de pie encendidas alrededor del Nido durante toda una noche[8]. | Constructor / Cualquier Rol               | +10 Fibra / Madera         | **+100% Velocidad de Incubación** durante la Noche |
 | **Especialista (Médico)**   | **Purificación de la Selva** | Sintetizar 2 Antídotos y curar 60 puntos de Fiebre del Mono en aliados[9].           | ⛑️ Médico (Cerbatana / Taller)            | +1 Kit de Reanimación[3] | **\-1 Hora** instantánea                           |
 | **Especialista (Guerrero)** | **Desafío Alfa**             | Derrotar al Mono Alfa de una tropa en la Selva profunda[10].                         | ⚔️ Guerrero (Cuerpo a cuerpo)             | +1 Pelaje rojo / Hueso     | **\-1 Hora** instantánea                           |
-| **Evento Cooperativo**      | **Defensa del Asedio**       | Evitar que los monos dañen la estructura del Nido durante la noche[8].               | Todo el grupo del Basecamp (20 jugadores) | +150 Ámbar para el grupo   | **\-2 Horas** instantáneas                         |
+| **Evento Cooperativo**      | **Defensa del Asedio**       | Evitar que los monos dañen la estructura del Nido durante la noche[8].               | Todo el grupo del Basecamp (hasta 5 amigos) | +150 Ámbar para el grupo   | **\-2 Horas** instantáneas                         |
 
 ---
 

@@ -134,9 +134,9 @@ Cada place tiene un número de ID. El código lo necesita para viajar del Lobby 
 
 ---
 
-## Paso 7: Tamaño del servidor de la Isla (20 jugadores)
+## Paso 7: Tamaño del servidor de la Isla (5 jugadores)
 
-En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → **🍌Isla de monos🐒(survival)** → configuración del place, y pon el **tamaño del servidor (Server Size / Max Players)** en **20**.
+En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → **🍌Isla de monos🐒(survival)** → configuración del place, y pon el **tamaño del servidor (Server Size / Max Players)** en **5**: una partida es para un grupo de amigos (hasta 5, el tamaño máximo de un grupo del Lobby, `Config.Party.MaxSize`). *(Hasta el 20-10-2026 eran 20.)*
 
 ---
 
