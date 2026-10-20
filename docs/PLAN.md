@@ -94,15 +94,22 @@ monkey_island_2026/
 │  ├─ serverShared/           # → ServerScriptService.ServerShared (solo servidor, ambos places)
 │  ├─ combat/                 # → ServerScriptService.Combat: armas, habilidades, combos y estados,
 │  │                          #   compartidos por la Isla y la arena; CombatRules = reglas de cada place
+│  ├─ combatClient/           # → ReplicatedStorage.CombatClient: controles y efectos del combate
+│  │                          #   (armas, habilidades, esquiva, números, cómic), en la Isla y la arena
 │  ├─ lobby/
 │  │  ├─ server/Services/     # Lógica del servidor del Lobby
 │  │  └─ client/Controllers/  # Interfaz y controles del Lobby
-│  └─ island/
-│     ├─ server/Services/     # Lógica del servidor de la Isla
-│     ├─ client/Controllers/  # HUD y controles de la Isla
-│     └─ tools/               # → ServerStorage.Tools: MapBuilder (generador de la isla)
+│  ├─ island/
+│  │  ├─ server/Services/     # Lógica del servidor de la Isla
+│  │  ├─ client/Controllers/  # HUD y controles de la Isla
+│  │  └─ tools/               # → ServerStorage.Tools: MapBuilder (generador de la isla), Equilibrio
+│  └─ dunas/
+│     ├─ server/Services/     # Partida de la arena: equipos, banderas, reaparición, Ámbar
+│     ├─ server/World/        # ArenaBuilder (mapa de la arena) y FlagModel
+│     └─ client/Controllers/  # HUD, ventana previa y resultados de la arena
 ├─ lobby.project.json         # Proyecto Rojo del Lobby (puerto 34872)
 ├─ island.project.json        # Proyecto Rojo de la Isla (puerto 34873)
+├─ dunas.project.json         # Proyecto Rojo de la Isla de Dunas (puerto 34874)
 ├─ sourcemap.project.json     # Solo para el autocompletado de VS Code
 ├─ rokit.toml                 # Versiones de herramientas
 ├─ selene.toml / stylua.toml  # Lint y formato
@@ -317,6 +324,27 @@ Temporadas con lore, nuevos jefes y eventos, mutadores de partida ("Luna roja", 
 
 ---
 
+### Fase 8: Isla de Dunas, arena PvP (octubre de 2026)
+
+Tercer place: captura la bandera por equipos, de 1v1 a 5v5, con equipamiento propio comprado con Ámbar (diseño en el GDD §12.2, entrevista del 20-10-2026). Probado en Studio con un jugador ([VERIFICACION.md](VERIFICACION.md) §8); falta probarlo con varios jugadores y publicado.
+
+| Entrega | Contenido | Commit | Estado |
+|---|---|---|---|
+| **D1** | Combate compartido entre places: `src/combat` y `src/combatClient`, con reglas por place en `CombatRules`. La Isla juega igual | `804a2f8` | ✅ Probado en Studio |
+| **D2** | Place de Dunas (Rojo 34874), equipos, rol por jugador, partida con espera, cuenta atrás, batalla, muerte súbita y resultados, reaparición, HUD, perfil v4 | `bb38ab1` | ✅ Probado en Studio |
+| **D3** | Banderas (robar, capturar, soltar y devolver), portador más lento, Ámbar con tope diario, estadísticas, ranking y revancha | `556e2a9` | ✅ Probado en Studio (un jugador) |
+| **D4** | Números de la arena (duelos de 8–10 s), veneno, lento, marcas y combos contra rivales, 24 variantes de equipamiento y su tienda | `3fd7559` | ✅ Probado en Studio (un jugador) |
+| **D5** | Lobby: embarcadero con velero, pestaña Arena, cola entre servidores con MemoryStore, cartel de ranking de la arena | `eb18f6c` | ✅ Probado hasta `ReserveServer` (en Studio no se viaja) |
+| **D6** | Mapa final de ruinas mayas e iluminación; esquiva y Embestida sin salir volando, efectos de cómic en la arena, cámara al aparecer | `dce4bd9` | ✅ Probado en Studio |
+| **D7** | Documentación: GDD §12.2, esta fase y VERIFICACION §8 | — | ✅ |
+
+- [ ] Probar con 2–4 jugadores (*Test → Local Server*): daño entre rivales, curación solo a aliados, devolver la bandera, no puntuar con la propia robada, victoria por abandono
+- [ ] Probar publicado: cola y viaje Lobby → Dunas (1v1 con 2 cuentas, grupo de 2 en 2v2), "Volver al Lobby", cobro de Ámbar con tope y ranking
+- [ ] Decidir: duelo de médicos de 30 s (¿bajar más la curación?) y, en el teléfono, la ventana de equipamiento (al abrir una ranura se ocultan equipos, roles y Listo)
+- [ ] Antes de publicar: guardar los places del Lobby y de Dunas y **publicar los tres a la vez** (perfil v4: un place con el código viejo borraría el campo `arena`)
+
+---
+
 ## 4. Cronograma estimado
 
 Estimación con **5–15 h/semana**: unos **7–10 meses** hasta el lanzamiento. El diagrama usa el escenario medio.
@@ -357,4 +385,5 @@ gantt
 
 1. **Tú:** verificar las Fases 2 a 6 en Studio y en el juego publicado (lista de pruebas en el mensaje de entrega).
 2. **Claude:** corregir lo que salga de esa verificación.
-3. **Tú:** pasos de [LANZAMIENTO.md](LANZAMIENTO.md): música, pases, página del juego, beta cerrada y lanzamiento.
+3. **Tú:** probar la arena de Dunas con varios jugadores y publicada ([VERIFICACION.md](VERIFICACION.md) §8, Fase 8).
+4. **Tú:** pasos de [LANZAMIENTO.md](LANZAMIENTO.md): música, pases, página del juego, beta cerrada y lanzamiento.

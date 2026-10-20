@@ -1,4 +1,4 @@
-# Verificación paso a paso (entregas 2.3 a 6.5)
+# Verificación paso a paso (entregas 2.3 a 6.5 y la arena de Dunas)
 
 Sigue los bloques en orden. Cada bloque dice **qué hacer**, **qué debe pasar ✅** y **qué hacer si falla ⚠️**.
 Marca cada casilla al comprobarla.
@@ -13,6 +13,7 @@ Marca cada casilla al comprobarla.
 - [ ] **Reiniciar Rojo:** cierra los dos `rojo serve` y vuelve a lanzarlos:
   - `rojo serve lobby.project.json` (puerto 34872)
   - `rojo serve island.project.json` (puerto 34873)
+  - `rojo serve dunas.project.json` (puerto 34874, para la arena: §8)
 - [ ] En Studio, abre el place **Isla** y conecta el plugin de Rojo al puerto **34873**. Haz lo mismo con el **Lobby** en el **34872**.
 - [ ] **Acceso a las API** (para el guardado): *Archivo → Configuración del juego → Seguridad → Habilitar acceso de Studio a los servicios de API*, en **los dos** places. Publica después de activarlo.
 - [ ] **Panel de pruebas:** al darle a ▶ *Jugar* en Studio verás abajo a la izquierda un botón **🛠️ Pruebas**. Despliega órdenes para no tener que esperar días de partida: dar materiales, sacar un jefe, el huevo, una caja, cambiar el clima… Solo existe en Studio: en el juego publicado no aparece.
@@ -435,6 +436,62 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
 1. [ ] Gana una partida **de verdad** (baliza → La Gran Tropa → amanecer; 6.1). La victoria del panel no lo da.
    ✅ En los resultados: "🏝️ ¡Nuevo título: Superviviente de la Isla!". En el Lobby, pestaña **Estilo**, se puede **Equipar** y se ve en naranja sobre la cabeza.
 2. [ ] Para ver solo cómo queda: **🏝️ Título Superviviente (sí/no)** en el Lobby (y otra vez para quitarlo).
+
+---
+
+## 8. Isla de Dunas (arena PvP)
+
+Abre el place **Isla de Dunas** en Studio y conecta Rojo al puerto **34874**. Si el mapa no es el de las ruinas mayas, se reconstruye solo al darle a ▶ *Jugar* (o con `require(game.ServerScriptService.Server.World.ArenaBuilder).build()` en la barra de comandos, en edición; después **guarda el place**). En Studio no llega nadie del Lobby: el **🛠️ Pruebas** de la arena tiene "🧪 Empezar ya", "👥 Siguiente formato", "🚩 Ir a la bandera rival", "🎯 Rival de práctica" y "✨ +500 Ámbar".
+
+### 8.1 Un jugador (▶ Jugar)
+
+1. [x] Al entrar.
+   ✅ Apareces en lo alto de la pirámide central con la ventana **Elige tu equipo** (equipos, roles, equipamiento) y el marcador arriba.
+2. [x] Elige **Jaguar**, un rol y pulsa **¡Listo!**; después **🧪 Empezar ya**.
+   ✅ Apareces en la baldosa naranja de tu base, con la cámara detrás de ti mirando a la puerta. Cuenta atrás y la puerta se abre.
+3. [x] **🚩 Ir a la bandera rival**, tócala y vuelve con ella a tu pedestal.
+   ✅ "¡Llevas la bandera!", vas más lento y sin Parpadeo ni Embestida; al llegar, captura y el marcador sube.
+4. [x] Cae con la bandera encima (o suéltala) y espera.
+   ✅ La bandera se queda en el suelo y vuelve sola a su pedestal a los 15 s; reapareces en tu base a los 8 s.
+5. [x] Compra una variante en la ventana (con **✨ +500 Ámbar** si hace falta) y equípala.
+   ✅ Baja el Ámbar, queda "Puesto" y se nota (vida, velocidad o recarga según la variante).
+6. [x] Esquiva (Q) y Embestida contra una pared, también saltando.
+   ✅ Te paras en la pared, de pie; nunca sales volando ni dando vueltas.
+7. [ ] Con **🎯 Rival de práctica**, golpéalo con críticos.
+   ✅ Salen los números y los estallidos de cómic (BAM!, POW!, K.O.!) según tus Ajustes del Lobby.
+8. [x] Deja que se acabe el tiempo o llega a 3 capturas.
+   ✅ Resultados con **🔁 Revancha** y **🏝️ Volver al Lobby**; la revancha empieza sola en el mismo servidor.
+
+### 8.2 Varios jugadores (*Test → Local Server*, 2–4 clientes)
+
+1. [ ] Cada uno elige base; con el formato 1v1, el segundo no cabe en un equipo lleno. En 4v4/5v5, no se pueden elegir 3 del mismo rol.
+2. [ ] Pelead entre rivales.
+   ✅ Daño, veneno (morado), ralentizar, marcas y combos funcionan contra el rival; un duelo entre roles iguales dura unos 8–10 s. El aviso "⚔️ … derriba a …" lleva los nombres de los jugadores.
+3. [ ] El médico cura a un aliado y a un rival.
+   ✅ Solo cura al aliado. El Grito con el **Peto de escamas de ámbar** protege también a los aliados.
+4. [ ] Un rival suelta tu bandera; tócala con un aliado.
+   ✅ Vuelve a tu pedestal al momento.
+5. [ ] Con tu bandera robada, llega a tu pedestal con la rival.
+   ✅ No puntúas hasta que tu bandera vuelve a casa.
+6. [ ] Que todos los de un equipo se vayan.
+   ✅ Gana el otro equipo; quien se fue no cobra.
+7. [ ] Al terminar, mira el Ámbar cobrado.
+   ✅ Victoria 60, empate 30, derrota 20, +15 por captura, +2 por baja (tope 20 por bajas), y no más de 400 al día.
+
+### 8.3 Publicado (Studio no viaja entre places)
+
+Antes: guarda los places del Lobby y de Dunas y **publica los tres a la vez** (perfil v4).
+
+1. [ ] En el Lobby, toca el velero **Zarpar a las Dunas**.
+   ✅ Se abre la pestaña **Arena** con formato, cola y equipamiento por rol.
+2. [ ] Con 2 cuentas, entrad en la cola de 1v1.
+   ✅ Os juntan y viajáis al mismo servidor de Dunas, cada uno en un equipo.
+3. [ ] Con un grupo de 2, entrad en la cola de 2v2 (y otros 2 en otra cuenta o grupo).
+   ✅ El grupo llega junto, en el mismo equipo.
+4. [ ] Al terminar, **🏝️ Volver al Lobby**.
+   ✅ Vuelves al Lobby con el Ámbar cobrado; el cartel de la arena (victorias y banderas capturadas) se actualiza.
+5. [ ] Entra en Dunas solo y espera 60 s.
+   ✅ Sin rival, se cancela y vuelves al Lobby.
 
 ---
 

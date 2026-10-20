@@ -51,6 +51,7 @@
 | Especies | Se añade la **marteja** (mono nocturno) a la categoría 1. |
 | PvP en playas | **Cajas de suministro** que llegan por mar = zonas de PvP. |
 | Nombre | **Primal Banana Islands: Monkey Survival.** |
+| Arena PvP (20-10-2026) | **Isla de Dunas: captura la bandera por equipos**, de 1v1 a 5v5, con cola desde el Lobby y equipamiento propio comprado con Ámbar (§12.2). |
 
 ---
 
@@ -311,7 +312,7 @@ flowchart TB
 
 ### 7.1 El archipiélago
 
-El juego es un **archipiélago de seis islas**. Al principio solo se juega en una (la del volcán, la de esta sección); las demás **solo se ven desde el Lobby**, alrededor del banco de arena del naufragio y a distancias distintas, como promesa de contenido futuro:
+El juego es un **archipiélago de seis islas**. Se juega en dos: la del volcán (la de esta sección) y la de las Dunas, que es la arena PvP (§12.2). Las demás **solo se ven desde el Lobby**, alrededor del banco de arena del naufragio y a distancias distintas, como promesa de contenido futuro:
 
 | Isla | Dónde (desde el Lobby) | Cómo se ve | Estado |
 |---|---|---|---|
@@ -319,10 +320,10 @@ El juego es un **archipiélago de seis islas**. Al principio solo se juega en un
 | **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable** |
 | **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | Cerrada |
 | **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | Cerrada |
-| **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | Cerrada |
+| **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | **Jugable**: arena PvP (§12.2), con su embarcadero y su velero en el Lobby |
 | **Picos de la Niebla** | Norte, ~1.300 studs (la más lejana) | Agujas de roca caliza con selva en la cima, cascada y bandas de niebla | Cerrada |
 
-Las islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significará crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de elegir destino.
+Las islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significa crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de ir. Así se abrió la de las Dunas: un place propio, su ID en `Config.PlaceIds.Dunas` y su embarcadero en el Lobby.
 
 ---
 
@@ -608,13 +609,54 @@ sequenceDiagram
 
 ---
 
-## 12. PvP opt-in
+## 12. PvP
+
+Hay dos formas de pelear contra otros jugadores: en la Isla, solo si los dos lo activan (§12.1), y en la arena de la Isla de Dunas, un modo aparte por equipos (§12.2).
+
+### 12.1 En la Isla: PvP opt-in
 
 - **Basecamp:** PvP desactivado siempre.
 - **Activar PvP:** en un tótem del Basecamp. Los jugadores con PvP activo llevan un **indicador visible** y solo pueden atacar a otros jugadores con PvP activo.
 - **Desactivar PvP:** hay una espera (por ejemplo 3 minutos) para evitar abusos.
 - **Activación automática:** al **cargar el huevo** o al abrir una **caja de suministro** disputada.
 - **Recompensa PvP:** quien acumula derribos PvP tiene una recompensa visible para los demás jugadores con PvP activo.
+
+### 12.2 La arena (Isla de Dunas)
+
+La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una arena de **captura la bandera** entre dos equipos, **Jaguar 🐆** y **Quetzal 🦜**, de **1v1 a 5v5**, en unas ruinas mayas dentro de un cañón del desierto. Es el sitio donde se gasta Ámbar en equipamiento que solo cuenta en la arena, y abre la primera isla del archipiélago que se veía desde el Lobby. Decidido en la entrevista del 20-10-2026.
+
+**Cómo se entra.** Desde el Lobby, en el embarcadero propio con el velero **"Zarpar a las Dunas"** (junto al bote de la Isla) o en la pestaña **Arena** del menú. Se elige formato y se entra en una **cola entre servidores** (MemoryStore), solo o en grupo: el grupo llega al mismo equipo y nunca se separa. Al juntarse las plazas de una partida se reserva un servidor de Dunas y viajan todos. No hay reemplazo de los que se van.
+
+**Antes de la partida.** Cada jugador elige al llegar su **base** (con un tope de N por equipo), su **rol** y su equipamiento, y pulsa **Listo**. Si están todos listos, 10 s de cuenta atrás; si no, la partida arranca igual a los **60 s** de llegar el primero. Si un equipo sigue vacío, se cancela y vuelven todos al Lobby. Hasta que empieza, las puertas de las bases están cerradas.
+
+| Regla | Cómo funciona |
+|---|---|
+| **Victoria** | **3 capturas** o, a los **8 min**, el que tenga más. Con empate, **muerte súbita**: la siguiente captura gana. |
+| **Bandera** | Clásica: para puntuar con la rival, **tu bandera tiene que estar en casa**. Se lleva a la espalda. El portador va un **15 % más lento** y no puede usar **Parpadeo** ni **Embestida**. Si cae, la bandera se queda en el suelo: un aliado la devuelve al tocarla y, si nadie la toca, vuelve sola a los **15 s**. |
+| **Muerte** | Sin estado de caído: reaparece en su base a los **5 s** (**8 s** si llevaba la bandera), con 2 s de protección. La vida se recupera sola tras 6 s sin recibir daño. |
+| **Roles** | Libres de 1v1 a 3v3. En 4v4 y 5v5, **como mucho 2 iguales** por equipo. |
+| **Abandono** | Si un equipo se queda vacío, gana el otro. Quien se va antes de acabar no cobra. |
+| **Al terminar** | Resultados de 20 s con votación: **revancha** en el mismo servidor con quienes se queden o **volver al Lobby**. |
+
+**Combate.** Es el mismo de la Isla (armas, habilidades, combos y estados, código compartido en `src/combat`) con reglas por equipos y números propios, para que **un duelo entre dos roles iguales dure 8–10 s**:
+
+- Daño de las armas ×0,55 (el arco ×0,7), de las habilidades ×0,45, control ×0,5 y curación ×0,6. Duelos espejo medidos con la calculadora `Equilibrio`: Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s y Médico 30 s (pendiente de decidir si se baja más la curación).
+- Las curaciones y los escudos solo llegan a los aliados. El veneno, la ralentización, el sueño, las marcas y los combos funcionan contra los rivales.
+- De la Isla solo llegan los **cosméticos** y la **mascota de adorno** (sin ayuda). Los talentos, las mejoras y la forja no cuentan: todos empiezan igual.
+
+**Equipamiento.** Cada rol tiene tres ranuras, **arma, armadura y amuleto**. En cada una se lleva lo básico (gratis) o una de **dos variantes** que se compran con Ámbar (24 en total, `Data/ArenaGear`). Son **horizontales**: cambian cómo juegas el rol a cambio de algo, nunca son mejores sin más. Por ejemplo, la *Maza de hueso grueso* hace que Rompehuesos pegue un 40 % más y tarde un 40 % más en recargarse, y el *Peto de escamas de ámbar* hace que el Grito proteja también a los aliados. Precios: arma 200, armadura 150 y amuleto 100 de Ámbar. La tienda está en la base y en la pestaña Arena del Lobby, con el mismo inventario.
+
+**Ámbar y ranking.** Al terminar: victoria 60, empate 30 y derrota 20, más 15 por captura y 2 por baja (como mucho 20 por bajas). Hay un **tope diario de 400** para que la arena no sea la forma más rápida de ganar Ámbar. Se guardan victorias, derrotas, capturas y bajas, y en el Lobby hay un cartel propio de la arena (**victorias y banderas capturadas**) con la forma de los otros carteles de ranking.
+
+**El mapa** (`src/dunas/server/World/ArenaBuilder`). Mide 400 × 200 studs:
+
+- **Bases**: cada una es el patio de un templo. Tiene la fachada con un arco maya, la máscara del equipo sobre la puerta y estandartes y fuego de su color. Al fondo, una pirámide con su santuario, que es decorado.
+- **Centro**: un carril central con una pirámide escalonada que se sube por cuatro escalinatas. Junto a ella está el juego de pelota, con sus taludes y aros.
+- **Pasillos laterales**: dos, entre muros en ruinas, que se **cierran con muros en 1v1 y 2v2**.
+- **Coberturas y entorno**: estelas, altares y columnas rotas y caídas. Todo dentro de un cañón de arenisca a franjas, con luz de tarde.
+- **Sin peligros del mapa** en esta versión.
+
+**Para más adelante.** Más modos (combate abierto por equipos, todos contra todos, Dominio con 3 altares, Caza de Ámbar), runas pasivas (2–3 equipables de 10), trampas del templo (dardos y pinchos), tormenta de arena y arenas movedizas, ligas con emparejamiento por nivel (MMR), reemplazo desde la cola, penalización por abandono y salas privadas con código.
 
 ---
 
