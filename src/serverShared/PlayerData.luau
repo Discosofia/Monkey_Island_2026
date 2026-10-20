@@ -12,7 +12,7 @@
 -- Los valores que ve el cliente se copian a atributos del Player ("Amber", "BestDays",
 -- "SelectedRole" y "Progress", un JSON con XP, talentos y mejoras; ver Shared/Progression), y
 -- "Settings", un JSON con los ajustes del jugador (Shared/Settings), que el cliente cambia con
--- Remotes.SaveSettings.
+-- Remotes.SaveSettings, y "Eggs", un JSON con sus huevos guardados (Shared/EggIncubation).
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -20,6 +20,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 
@@ -39,6 +40,12 @@ export type Profile = {
 	rescues: number, -- partidas ganadas con la baliza (Fase 6)
 	cosmetics: { [string]: string }, -- cosmético equipado por tipo (Trail, Title, Aura; Fase 6)
 	settings: { [string]: any }, -- ajustes del jugador (Shared/Settings)
+	-- Bucle de retención (versión 3, octubre de 2026):
+	eggs: { [string]: any }, -- huevos guardados: nido, mochila y pendientes (Shared/EggIncubation)
+	login: { [string]: any }, -- calendario de 7 días (ServerShared/Retention)
+	daily: { [string]: any }, -- misiones del día (ServerShared/Retention)
+	supplies: { [string]: number }, -- provisiones para la próxima partida en la Isla
+	earnedCosmetics: { [string]: boolean }, -- cosméticos ganados jugando, sin Game Pass
 }
 
 type Session = {
@@ -57,7 +64,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 2,
+		version = 3,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -72,9 +79,15 @@ local function defaultProfile(): Profile
 		rescues = 0,
 		cosmetics = {},
 		settings = Settings.defaults() :: any,
+		eggs = {},
+		login = {},
+		daily = {},
+		supplies = {},
+		earnedCosmetics = {},
 	}
 end
 
+-- Versión 3: campos nuevos del bucle de retención; "reconcile" ya los rellena vacíos.
 -- Versión 2: el Recolector pasa a ser el Mago. Su XP se suma a la del Mago y los puntos que tenía
 -- en talentos del Recolector quedan libres (esos talentos ya no existen).
 local function migrate(profile: Profile, fromVersion: number)
@@ -159,6 +172,7 @@ local function publish(player: Player, session: Session)
 		})
 	)
 	player:SetAttribute("Settings", HttpService:JSONEncode(Settings.sanitize(profile.settings)))
+	player:SetAttribute("Eggs", HttpService:JSONEncode(EggIncubation.normalize(profile.eggs)))
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).

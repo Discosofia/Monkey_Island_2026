@@ -517,6 +517,27 @@ local Config = {
 		-- Incubación en el nido: duración y oleadas que llegan a por él.
 		IncubationSeconds = 150,
 		DefenseWaves = 2,
+
+		-- Huevos guardados (bucle de retención, octubre de 2026; Shared/EggIncubation, ServerShared/Eggs).
+		-- Al defender el huevo, cada participante se lleva uno de su rareza a la mochila (BagSize; los que
+		-- no caben quedan pendientes hasta decidir en el Lobby). Solo el del nido del Lobby avanza con
+		-- las horas reales y tarda HatchHours según su rareza.
+		HatchHours = { Common = 8, Uncommon = 11, Rare = 14, Epic = 18, Legendary = 24 },
+		BagSize = 3,
+		-- Ámbar por descartar un huevo, según su rareza.
+		DiscardAmber = { Common = 15, Uncommon = 30, Rare = 60, Epic = 120, Legendary = 250 },
+		-- Lo que se gana jugando (días sobrevividos, misiones, tirada del rescate) quita como mucho esta
+		-- fracción del tiempo total del huevo. El tiempo del calendario y la eclosión inmediata no cuentan.
+		PlayCapFraction = 0.5,
+		SecondsPerDaySurvived = 60 * 60,
+		-- Tirada al ganar una partida (rescate) con un huevo en el nido: horas que quita o eclosión inmediata.
+		RescueRoll = {
+			{ weight = 40, hours = 2, hatch = false },
+			{ weight = 30, hours = 4, hatch = false },
+			{ weight = 20, hours = 6, hatch = false },
+			{ weight = 8, hours = 10, hatch = false },
+			{ weight = 2, hours = 0, hatch = true },
+		},
 	},
 
 	Weather = {
