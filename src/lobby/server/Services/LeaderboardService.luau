@@ -15,18 +15,30 @@ local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 
 local LeaderboardService = {}
 
+-- Puestos que se publican (la ventana del ranking enseña 10) y cuántos se piden de más por si hay
+-- que saltarse alguno.
+local TOP_SIZE = 10
+local TOP_SPARE = 10
+
 local names: { [number]: string } = {}
 
-local function nameOf(userId: number): string
+-- Nombre del jugador, o nil si no lo tiene: los jugadores de prueba de Studio (ids negativos) o si
+-- Roblox no lo da ahora (se vuelve a pedir la próxima vez). Así el ranking solo enseña nombres.
+local function nameOf(userId: number): string?
+	if userId <= 0 then
+		return nil
+	end
 	if names[userId] then
 		return names[userId]
 	end
 	local ok, name = pcall(function()
 		return Players:GetNameFromUserIdAsync(userId)
 	end)
-	local result = if ok and typeof(name) == "string" then name else `#{userId}`
-	names[userId] = result
-	return result
+	if not (ok and typeof(name) == "string") then
+		return nil
+	end
+	names[userId] = name
+	return name
 end
 
 local MEDALS = { "🥇", "🥈", "🥉" }
@@ -57,8 +69,11 @@ local function refresh()
 	table.move(Leaderboards.ARENA_STATS, 1, #Leaderboards.ARENA_STATS, #stats + 1, stats)
 	for _, stat in stats do
 		local rows = {}
-		for _, entry in Leaderboards.top(stat, 10) do
-			table.insert(rows, { name = nameOf(entry.userId), value = entry.value })
+		for _, entry in Leaderboards.top(stat, TOP_SIZE + TOP_SPARE) do
+			local name = nameOf(entry.userId)
+			if name and #rows < TOP_SIZE then
+				table.insert(rows, { name = name, value = entry.value })
+			end
 		end
 		ReplicatedStorage:SetAttribute(`Leaderboard_{stat}`, HttpService:JSONEncode(rows))
 		fillBoards(stat, rows)
