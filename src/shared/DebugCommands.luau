@@ -4,7 +4,7 @@
 
 export type Command = { id: string, label: string }
 
-local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
+local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command } } = {
 	Island = {
 		{ id = "Materials", label = "🎒 +50 de todo" },
 		{ id = "NextRole", label = "🎭 Siguiente rol" },
@@ -50,6 +50,14 @@ local DebugCommands: { Island: { Command }, Lobby: { Command } } = {
 		{ id = "Supplies", label = "🎒 Provisiones de prueba" },
 		{ id = "NextDay", label = "📅 Día siguiente (calendario)" },
 		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
+	},
+	Dunas = {
+		{ id = "Solo", label = "🧪 Empezar ya (aunque falte el otro equipo)" },
+		{ id = "Format", label = "👥 Siguiente formato (1v1…5v5)" },
+		{ id = "SkipPhase", label = "⏩ Saltar a la siguiente fase" },
+		{ id = "Abilities", label = "⚡ Habilidades listas" },
+		{ id = "Heal", label = "❤️ Curar" },
+		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },
 	},
 }
 

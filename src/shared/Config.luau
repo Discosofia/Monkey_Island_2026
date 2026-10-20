@@ -18,6 +18,7 @@ local Config = {
 	PlaceIds = {
 		Lobby = 86360888108434, -- place "Primal Banana Islands" (lugar de inicio)
 		Island = 84163809226177, -- place creado después ("chillyDuo's Place", renombrar a "Isla")
+		Dunas = 122593636654552, -- place "Isla de Dunas": la arena PvP (captura la bandera)
 	},
 
 	Match = {
@@ -487,6 +488,44 @@ local Config = {
 		-- Posición del tótem respecto al centro del Basecamp (si el mapa no tiene uno con el atributo
 		-- "PvPTotem").
 		TotemOffset = Vector3.new(0, 0, -32),
+	},
+
+	Arena = {
+		-- Isla de Dunas: arena PvP de captura la bandera, de 1v1 a 5v5 (docs/GDD.md, "La arena").
+		-- Jugadores por equipo: llega del Lobby con el viaje ("format" en TeleportData). En Studio no
+		-- hay viaje: se usa StudioFormat (el panel de pruebas lo cambia).
+		MinFormat = 1,
+		MaxFormat = 5,
+		StudioFormat = 1,
+		-- Antes de la partida: si todos pulsan "Listo", cuenta atrás; si no, a los WaitSeconds de
+		-- llegar el primero arranca igual (si algún equipo está vacío, se cancela y vuelven al Lobby).
+		WaitSeconds = 60,
+		CountdownSeconds = 10,
+		-- Partida: gana quien llegue a CapturesToWin; si se acaba el tiempo, quien tenga más (con
+		-- empate, muerte súbita: la siguiente captura gana).
+		MatchSeconds = 8 * 60,
+		CapturesToWin = 3,
+		ResultsSeconds = 20,
+		-- Al caer se reaparece en la base tras estos segundos (más si llevaba la bandera).
+		RespawnSeconds = 5,
+		CarrierRespawnSeconds = 8,
+		-- Quien lleva la bandera rival anda a esta fracción de su velocidad.
+		CarrierSpeedMultiplier = 0.85,
+		-- La vida se recupera sola tras RegenDelaySeconds sin recibir daño.
+		RegenDelaySeconds = 6,
+		RegenPerSecond = 4,
+		-- En 4v4 y 5v5 (desde SameRoleLimitFromFormat), como mucho MaxSameRole del mismo rol por equipo.
+		SameRoleLimitFromFormat = 4,
+		MaxSameRole = 2,
+		-- Daño y aturdimientos de las habilidades contra otros jugadores. Se ajustan para que un duelo
+		-- entre dos roles iguales dure 8–10 s (calculadora ServerStorage.Tools.Equilibrio).
+		AbilityDamageMultiplier = 0.5,
+		AbilityControlMultiplier = 0.5,
+		-- Los dos equipos: nombre, icono y color (bases, marcador, nombres sobre la cabeza).
+		Teams = {
+			Jaguar = { name = "Jaguar", icon = "🐆", color = Color3.fromRGB(240, 150, 40) },
+			Quetzal = { name = "Quetzal", icon = "🦜", color = Color3.fromRGB(40, 165, 230) },
+		},
 	},
 
 	Supply = {

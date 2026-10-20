@@ -1,0 +1,3 @@
+--!strict
+-- Sustituye al script "Health" que Roblox pone en cada personaje: así la vida NO se regenera sola.
+-- En la arena la recupera RespawnService tras unos segundos sin recibir daño (Config.Arena).

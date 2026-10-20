@@ -47,6 +47,9 @@ export type Profile = {
 	daily: { [string]: any }, -- misiones del día (ServerShared/Retention)
 	supplies: { [string]: number }, -- provisiones para la próxima partida en la Isla
 	earnedCosmetics: { [string]: boolean }, -- cosméticos ganados jugando, sin Game Pass
+	-- Arena de Dunas (versión 4, octubre de 2026): equipamiento comprado y puesto por rol,
+	-- estadísticas y Ámbar ganado hoy en la arena (Shared/Arena).
+	arena: { [string]: any },
 }
 
 type Session = {
@@ -65,7 +68,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 3,
+		version = 4,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -85,9 +88,11 @@ local function defaultProfile(): Profile
 		daily = {},
 		supplies = {},
 		earnedCosmetics = {},
+		arena = {},
 	}
 end
 
+-- Versión 4: el campo "arena" (Dunas); "reconcile" ya lo rellena vacío.
 -- Versión 3: campos nuevos del bucle de retención; "reconcile" ya los rellena vacíos.
 -- Versión 2: el Recolector pasa a ser el Mago. Su XP se suma a la del Mago y los puntos que tenía
 -- en talentos del Recolector quedan libres (esos talentos ya no existen).

@@ -16,9 +16,9 @@ golpe).
 | Piezas comunes: `screen`, `label`, `button` | `src/shared/UI/Widgets.luau` | — | ambos |
 | Reloj, indicador del Basecamp, vida del campamento, líneas de estado (asedio, huevo, baliza), "Volver al Lobby", ⚙️ y ventana de Ajustes, "Saltar fase" | `src/island/client/Controllers/IslandHUDController.luau` | `IslandHUD`, `SettingsUI` | Isla |
 | Barras de hambre, sed, estamina y fiebre | `src/island/client/Controllers/SurvivalHUDController.luau` | `SurvivalHUD` | Isla |
-| Casillas de habilidades Z X C R V | `src/island/client/Controllers/RoleController.luau` (`buildHud`) | `RoleHUD` | Isla |
-| Panel de combos y "¡COMBO!" | `src/island/client/Controllers/ComboController.luau` | `ComboHUD` | Isla |
-| Números de daño, curación, críticos y lo recogido | `src/island/client/Controllers/CombatTextController.luau` + `src/shared/UI/CombatTextColumn.luau` | `CombatText` | Isla |
+| Casillas de habilidades Z X C R V | `src/combatClient/Controllers/RoleController.luau` (`buildHud`) | `RoleHUD` | Isla |
+| Panel de combos y "¡COMBO!" | `src/combatClient/Controllers/ComboController.luau` | `ComboHUD` | Isla |
+| Números de daño, curación, críticos y lo recogido | `src/combatClient/Controllers/CombatTextController.luau` + `src/shared/UI/CombatTextColumn.luau` | `CombatText` | Isla |
 | Bolsa (B): ventana centrada con casillas por secciones | `src/island/client/Controllers/InventoryHUDController.luau` | `InventoryHUD` | Isla |
 | Barra de vida del jefe | `src/island/client/Controllers/BossHUDController.luau` | `BossHUD` | Isla |
 | Contador de munición (arco, honda) con la barrita del carcaj | `src/island/client/Controllers/AmmoHUDController.luau` | `AmmoHUD` | Isla |
@@ -28,12 +28,14 @@ golpe).
 | Diario | `src/island/client/Controllers/JournalController.luau` + `src/shared/UI/Journal.luau` | `JournalHUD` | Isla |
 | Tutorial | `src/island/client/Controllers/TutorialController.luau` | `Tutorial` | Isla |
 | Resultados de la partida | `src/island/client/Controllers/ResultsController.luau` | `Results` | Isla |
-| Botones táctiles (Esquivar, Correr, habilidades…) | `src/island/client/ActionButtons.luau` | `ActionButtons` | Isla |
+| Botones táctiles (Esquivar, Correr, habilidades…) | `src/combatClient/ActionButtons.luau` | `ActionButtons` | Isla |
 | Contenido de Ajustes (vista previa del personaje, tus números de combate y opciones) | `src/shared/UI/SettingsPanel.luau` + `src/shared/Settings.luau` | — | ambos |
 | Avisos cortos arriba | `src/shared/UI/Toast.luau` | `Toasts` | ambos |
 | Panel de pruebas (solo Studio) | `src/shared/UI/DebugPanel.luau` | `DebugPanel` | ambos |
 | Todo el Lobby (título, pestañas, unirse, invitar) | `src/lobby/client/Controllers/LobbyUIController.luau` | `LobbyUI` | Lobby |
-| Efectos en pantalla de habilidades (destellos, estrellas) | `src/island/client/Controllers/AbilityFxController.luau` | varios | Isla |
+| Arena de Dunas: marcador con reloj y línea de la fase (arriba en el centro, desde 10 px), barras de vida y estamina (12, 10), "Reapareces en N" (centro, 0.4) | `src/dunas/client/Controllers/ArenaHUDController.luau` | `ArenaHUD` | Dunas |
+| Arena de Dunas: ventana "Antes de la batalla" (equipo, rol, ¡Listo!) colgada a 96 px, debajo de la línea de la fase; plegada deja "🛡️ Equipo y rol" en ese sitio | `src/dunas/client/Controllers/ArenaLobbyController.luau` | `ArenaLobby` (DisplayOrder 6) | Dunas |
+| Efectos en pantalla de habilidades (destellos, estrellas) | `src/combatClient/Controllers/AbilityFxController.luau` | varios | Isla |
 | Estallidos de cómic del combate (BAM! POW! K.O.! OUCH!) | `src/island/client/Controllers/ComicFxController.luau` + `src/shared/UI/ComicBurst.luau` (dibujo, también en la vista previa de Ajustes) | `BillboardGui` "ComicFx" | Isla |
 | Carteles sobre cosas del mapa ("Parcela libre", "Tótem PvP", nombres de monos, títulos cosméticos, vida del campamento sobre la hoguera) | `BillboardGui` creados en el servidor: `BuildingService`, `PvPService`, `MonkeyService`, `BossService`, `CosmeticsServer`, `BasecampService`… | — | Isla |
 
@@ -129,7 +131,7 @@ Reglas que salen de ahí:
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
 | 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
-| 6 | `JournalHUD` |
+| 6 | `JournalHUD`, `ArenaLobby` (Dunas) |
 | 8 | `SettingsUI` |
 | 10 | `Toasts` |
 | 20 | `DebugPanel` |

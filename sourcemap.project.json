@@ -5,17 +5,26 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
+      },
+      "CombatClient": {
+        "$path": "src/combatClient"
       }
     },
     "ServerScriptService": {
       "ServerShared": {
         "$path": "src/serverShared"
       },
+      "Combat": {
+        "$path": "src/combat"
+      },
       "LobbyServer": {
         "$path": "src/lobby/server"
       },
       "IslandServer": {
         "$path": "src/island/server"
+      },
+      "DunasServer": {
+        "$path": "src/dunas/server"
       }
     },
     "ServerStorage": {
@@ -30,6 +39,9 @@
         },
         "IslandClient": {
           "$path": "src/island/client"
+        },
+        "DunasClient": {
+          "$path": "src/dunas/client"
         }
       },
       "StarterCharacterScripts": {

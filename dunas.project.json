@@ -1,0 +1,41 @@
+{
+  "name": "PrimalBananaIsland-Dunas",
+  "servePort": 34874,
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "CombatClient": {
+        "$path": "src/combatClient"
+      }
+    },
+    "ServerScriptService": {
+      "ServerShared": {
+        "$path": "src/serverShared"
+      },
+      "Combat": {
+        "$path": "src/combat"
+      },
+      "Server": {
+        "$path": "src/dunas/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/dunas/client"
+        }
+      },
+      "StarterCharacterScripts": {
+        "Health": {
+          "$path": "src/dunas/character/Health.server.luau"
+        }
+      },
+      "$properties": {
+        "EnableMouseLockOption": false
+      }
+    }
+  }
+}

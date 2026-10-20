@@ -111,6 +111,12 @@ local Remotes = {
 	ClaimLogin = remoteEvent("ClaimLogin"),
 	-- Servidor -> cliente (Lobby): premio cobrado (día 1..7 y lo recibido, línea a línea).
 	LoginClaimed = remoteEvent("LoginClaimed"),
+	-- Cliente -> servidor (Dunas): antes de la partida, unirse a un equipo ("Jaguar" | "Quetzal"),
+	-- elegir rol (id de Data/Roles) y marcar si está listo (true/false). El estado de la partida va en
+	-- atributos de ReplicatedStorage (Shared/Arena).
+	ArenaPickTeam = remoteEvent("ArenaPickTeam"),
+	ArenaPickRole = remoteEvent("ArenaPickRole"),
+	ArenaReady = remoteEvent("ArenaReady"),
 }
 
 return Remotes
