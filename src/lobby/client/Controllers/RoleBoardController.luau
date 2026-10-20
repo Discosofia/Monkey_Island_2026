@@ -2,7 +2,7 @@
 -- Cartel de los roles en la playa, frente a la proa del «Esperanza» (etiqueta
 -- Config.Lobby.RoleBoardTag, lo pone World/LobbyBuilder). Cada cliente lo dibuja con lo suyo: una
 -- columna por rol con tu nivel en cada uno y el que tienes elegido resaltado. Su aviso
--- ("RolesPrompt", tecla E) abre el menú en la pestaña Rol (LobbyUIController).
+-- ("RolesPrompt", tecla E) abre la ventana de roles (LobbyUIController).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")

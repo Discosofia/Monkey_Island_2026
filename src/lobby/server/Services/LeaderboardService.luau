@@ -1,8 +1,8 @@
 --!strict
 -- Clasificaciones en el Lobby (Fase 6): cada Config.Data.LeaderboardRefreshSeconds lee el top 10 de
 -- cada clasificación y lo publica en ReplicatedStorage ("Leaderboard_<stat>", JSON con nombre y valor)
--- para la pestaña "Ranking", y escribe los primeros en los carteles de la playa (el del ranking y el
--- de la arena de Dunas, con Leaderboards.ARENA_STATS).
+-- para la ventana del ranking (LobbyUIController), y escribe los primeros en el cartel del ranking de
+-- la plaza (supervivencia y, con Leaderboards.ARENA_STATS, la arena de Dunas).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")

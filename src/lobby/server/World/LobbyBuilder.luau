@@ -20,9 +20,11 @@
 -- bodega, castillo con puente de mando, chimenea y radar, contenedores en cubierta y grúa; la
 -- pasarela de subida; la hoguera de la plaza; el campamento abajo a la izquierda con tienda de lona,
 -- contenedores varados y cajas de la carga; el ancla con cadena; cuatro carteles en el borde de la
--- plaza (la bitácora del capitán arriba, los roles con el aviso "RolesPrompt", el ranking y el de la
--- arena de Dunas a la derecha); el nido de huevos (aviso "NidoPrompt", etiqueta
--- Config.Lobby.NestTag); la lancha de rescate para zarpar a la Isla de monos (aviso "ZarparPrompt");
+-- plaza (de izquierda a derecha: el de las mascotas tapando el nombre de la proa, la bitácora del
+-- capitán, los roles con el aviso "RolesPrompt", el ranking con "RankingPrompt" y el de la Isla de
+-- dunas con "ArenaPrompt"); el nido de huevos delante del cartel de las mascotas (aviso "NidoPrompt",
+-- etiqueta Config.Lobby.NestTag); las estaciones con interacción llevan los atributos "StationId" y
+-- "StationIcon" (los marcadores de cada cliente); la lancha de rescate para zarpar a la Isla de monos (aviso "ZarparPrompt");
 -- el embarcadero con el velero que lleva a la Isla de dunas (aviso "ZarparDunasPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
@@ -46,7 +48,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 11
+local VERSION = 12
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -72,9 +74,13 @@ local PEAKS_CENTER = Vector3.new(-150, 0, -1300)
 
 -- Plaza: el círculo de arena libre (centro; radio de unos 41 × 39) donde se juntan los jugadores.
 -- Dentro solo quedan la hoguera, el nido, los muñecos de práctica y la llegada. Los carteles están
--- sobre su borde (de arriba a la derecha: bitácora, roles, ranking y arena) y miran a su centro; el
--- barco, el campamento y los botes quedan fuera.
+-- sobre su borde (de arriba a la izquierda a la derecha: mascotas, bitácora, roles, ranking y arena)
+-- y miran a su centro; el barco, el campamento y los botes quedan fuera.
 local PLAZA = Vector2.new(10, -3)
+-- Cartel de las mascotas: a la izquierda de la bitácora, en la línea que va del centro de la plaza al
+-- nombre de la proa ("ESPERANZA"), para taparlo desde la plaza.
+local PETS_BOARD_AT = Vector2.new(-16.4, -30.4)
+local PETS_BOARD_HEIGHT = 9.5
 local LOG_BOARD_AT = Vector2.new(1.7, -41.2)
 local ROLE_BOARD_AT = Vector2.new(39.5, -30.1)
 local RANKING_BOARD_AT = Vector2.new(50.4, -9.4)
@@ -87,9 +93,9 @@ local LIFEBOAT_SIGN_AT = Vector2.new(26, -43)
 local DUNES_PIER_FROM = Vector2.new(40, 27)
 local DUNES_PIER_LENGTH = 18
 local DUNES_PIER_DECK = 2.4
--- Nido de huevos: en la plaza, delante del cartel de roles y del ranking, a la vista desde la
--- llegada. Es el Nido de la Isla (BuildModels) en grande, sobre un montículo de arena.
-local NEST_AT = Vector2.new(27, -8)
+-- Nido de huevos: en la plaza, delante del cartel de las mascotas (que enseña su huevo). Es el Nido
+-- de la Isla (BuildModels) en grande, sobre un montículo de arena.
+local NEST_AT = Vector2.new(-10.1, -23.9)
 local NEST_SCALE = 1.4
 local NEST_MOUND_HEIGHT = 1.6
 local SPAWN_AT = Vector2.new(4, 34)
@@ -715,8 +721,9 @@ local function headline(part: BasePart, text: string, color: Color3)
 end
 
 -- Cartel grande sobre dos postes clavados en la arena en (x, z), de cara a la plaza o hacia "facing":
--- marco de madera oscura, cabecera con el título y un farol en lo alto de cada poste. Devuelve el
--- tablón, donde va el contenido.
+-- marco de madera oscura, cabecera con el título y un farol en lo alto de cada poste. "headerShare":
+-- qué parte del ancho ocupa la cabecera (más para un título largo). Devuelve el tablón, donde va el
+-- contenido.
 local function standingBoard(
 	parent: Instance,
 	name: string,
@@ -724,7 +731,8 @@ local function standingBoard(
 	width: number,
 	height: number,
 	title: string,
-	facing: Vector2?
+	facing: Vector2?,
+	headerShare: number?
 ): Part
 	local ground = groundAt(at.X, at.Y)
 	local bottom = 4.5 -- del suelo al borde de abajo del tablón
@@ -784,7 +792,7 @@ local function standingBoard(
 	-- Cabecera roja con el título, clavada entre los postes por encima del tablón.
 	local header = newPart(
 		"Cabecera",
-		Vector3.new(width * 0.62, 2.2, 0.5),
+		Vector3.new(width * (headerShare or 0.62), 2.2, 0.5),
 		frame * CFrame.new(0, height / 2 + 1.6, -0.15),
 		HULL_RED,
 		Enum.Material.WoodPlanks,
@@ -852,8 +860,10 @@ local function smallSign(parent: Instance, at: Vector2, text: string)
 end
 
 -- Columnas de un cartel de clasificación (las rellena LeaderboardService por el nombre de cada
--- columna, que es el de su clasificación): título y una línea por puesto.
-local function rankingColumns(ranking: Part, columns: { { stat: string, title: string } })
+-- columna, que es el de su clasificación): título y una línea por puesto. Van en bloques (un recuadro
+-- con su título y sus columnas), repartidos a lo ancho del cartel.
+type RankingBlock = { title: string, columns: { { stat: string, title: string } } }
+local function rankingColumns(ranking: Part, blocks: { RankingBlock })
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -877,36 +887,67 @@ local function rankingColumns(ranking: Part, columns: { { stat: string, title: s
 		limit.Parent = label
 		return label
 	end
-	for column, board in columns do
-		local list = Instance.new("Frame")
-		list.Name = board.stat
-		list.BackgroundColor3 = BOARD_CARD
-		list.BackgroundTransparency = 0.1
-		list.Position = UDim2.fromScale(0.03 + (column - 1) * 0.485, 0.06)
-		list.Size = UDim2.fromScale(0.455, 0.88)
-		list.Parent = gui
+	local blockWidth = 0.94 / #blocks
+	for index, block in blocks do
+		local card = Instance.new("Frame")
+		card.Name = `Bloque{index}`
+		card.BackgroundColor3 = BOARD_CARD
+		card.BackgroundTransparency = 0.1
+		card.Position = UDim2.fromScale(0.03 + (index - 1) * blockWidth, 0.05)
+		card.Size = UDim2.fromScale(blockWidth - 0.02, 0.9)
+		card.Parent = gui
 		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0.06, 0)
-		corner.Parent = list
-		local header = text(board.title, list, UDim2.fromScale(0.05, 0.03), UDim2.fromScale(0.9, 0.17))
-		header.TextColor3 = Color3.fromRGB(255, 215, 90)
-		for position = 1, Config.Lobby.RankingBoardSize do
-			local line = text(
-				if position == 1 then "Aún no hay datos" else "",
-				list,
-				UDim2.fromScale(0.07, 0.07 + position * 0.165),
-				UDim2.fromScale(0.86, 0.14)
-			)
-			line.Name = tostring(position)
-			line.TextXAlignment = Enum.TextXAlignment.Left
-			line.TextColor3 = RANK_COLORS[position] or line.TextColor3
+		corner.CornerRadius = UDim.new(0.05, 0)
+		corner.Parent = card
+		local title = text(block.title, card, UDim2.fromScale(0.04, 0.02), UDim2.fromScale(0.92, 0.15))
+		title.TextColor3 = Color3.fromRGB(255, 160, 90)
+		local columnWidth = 1 / #block.columns
+		for column, board in block.columns do
+			local list = Instance.new("Frame")
+			list.Name = board.stat
+			list.BackgroundTransparency = 1
+			list.Position = UDim2.fromScale((column - 1) * columnWidth, 0.17)
+			list.Size = UDim2.fromScale(columnWidth, 0.83)
+			list.Parent = card
+			local header = text(board.title, list, UDim2.fromScale(0.06, 0), UDim2.fromScale(0.88, 0.15))
+			header.TextColor3 = Color3.fromRGB(255, 215, 90)
+			for position = 1, Config.Lobby.RankingBoardSize do
+				local line = text(
+					if position == 1 then "Aún no hay datos" else "",
+					list,
+					UDim2.fromScale(0.07, 0.02 + position * 0.165),
+					UDim2.fromScale(0.88, 0.14)
+				)
+				line.Name = tostring(position)
+				line.TextXAlignment = Enum.TextXAlignment.Left
+				line.TextColor3 = RANK_COLORS[position] or line.TextColor3
+			end
 		end
 	end
 end
 
--- Carteles de la playa: los roles junto a la proa (lo dibuja RoleBoardController en cada cliente; con
--- su aviso se abre el menú) y, al otro lado de la playa, el ranking tras la roca (lo rellena
--- LeaderboardService) con la bitácora del capitán a continuación.
+-- Aviso de una estación de la plaza (abre su ventana en LobbyUIController) y los atributos con los
+-- que la señalan los marcadores de cada cliente (icono encima y brillo al acercarse).
+local function station(part: BasePart, id: string, icon: string, promptName: string?, action: string?, object: string?)
+	part:SetAttribute("StationId", id)
+	part:SetAttribute("StationIcon", icon)
+	if promptName then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = promptName
+		prompt.ActionText = action or ""
+		prompt.ObjectText = object or ""
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 13
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = part
+	end
+end
+
+-- Carteles del borde de la plaza: la bitácora del capitán; las mascotas (lo dibuja PetBoardController
+-- en cada cliente con su huevo; se interactúa con el nido, no con el cartel); los roles (lo dibuja
+-- RoleBoardController; su aviso abre la ventana de roles); el ranking con las cuatro clasificaciones
+-- (lo rellena LeaderboardService; su aviso abre la ventana del ranking) y el de la Isla de dunas (lo
+-- dibuja ArenaBoardController con tu estado de la arena; su aviso abre la ventana de la arena).
 local function buildBoards(parent: Instance)
 	-- La bitácora cuenta la historia del naufragio en un panel oscuro, como el del ranking.
 	local log = standingBoard(parent, "BitacoraDelCapitan", LOG_BOARD_AT, 14, 8.5, "📜 BITÁCORA DEL CAPITÁN")
@@ -939,30 +980,41 @@ local function buildBoards(parent: Instance)
 	pagePadding.PaddingBottom = UDim.new(0.04, 0)
 	pagePadding.Parent = page
 
-	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 14, 7.5, "🏆 RANKING")
+	-- Mascotas: el huevo del nido de cada jugador (no lleva aviso: se interactúa con el nido). Más alto
+	-- que los demás: el huevo del nido tapa su franja de abajo, y el contenido va encima
+	-- (PetBoardController); subirlo entero dejaría ver el nombre de la proa por debajo.
+	local pets = standingBoard(parent, "TablaMascotas", PETS_BOARD_AT, 14, PETS_BOARD_HEIGHT, "🐾 MASCOTAS")
+	CollectionService:AddTag(pets, Config.Lobby.PetsBoardTag)
+
+	-- Ranking: supervivencia (días y rescates) y arena (victorias y banderas, Leaderboards.ARENA_STATS).
+	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 20, 7.5, "🏆 RANKING")
 	CollectionService:AddTag(ranking, Config.Lobby.RankingBoardTag)
 	rankingColumns(ranking, {
-		{ stat = "BestDays", title = "📅 Más días sobrevividos" },
-		{ stat = "Rescues", title = "🚁 Más rescates" },
+		{
+			title = "🐒 SUPERVIVENCIA",
+			columns = {
+				{ stat = "BestDays", title = "📅 Más días" },
+				{ stat = "Rescues", title = "🚁 Más rescates" },
+			},
+		},
+		{
+			title = "🎖️ ARENA",
+			columns = {
+				{ stat = "ArenaWins", title = "🏆 Más victorias" },
+				{ stat = "ArenaCaptures", title = "🚩 Más banderas" },
+			},
+		},
 	})
-	-- Arena de Dunas: victorias y banderas capturadas (Leaderboards.ARENA_STATS).
-	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, "🎖️ ISLA DE DUNAS ☠️")
-	CollectionService:AddTag(arena, Config.Lobby.RankingBoardTag)
-	rankingColumns(arena, {
-		{ stat = "ArenaWins", title = "🏆 Más victorias" },
-		{ stat = "ArenaCaptures", title = "🚩 Más banderas" },
-	})
+	station(ranking, "Ranking", "🏆", "RankingPrompt", "Ver ranking", "Ranking")
+
+	-- Isla de dunas: tu estado en la arena (ArenaBoardController); su aviso abre la ventana de la arena.
+	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, Config.PlaceNames.Dunas, nil, 0.95)
+	CollectionService:AddTag(arena, Config.Lobby.ArenaBoardTag)
+	station(arena, "Arena", "🎖️", "ArenaPrompt", "Jugar en la arena", Config.PlaceNames.DunasShort)
 
 	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, "ELIGE TU ROL")
 	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "RolesPrompt"
-	prompt.ActionText = "Elegir rol"
-	prompt.ObjectText = "Roles"
-	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 13
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = roles
+	station(roles, "Rol", "⚔️", "RolesPrompt", "Elegir rol", "Roles")
 end
 
 -- Nido de huevos del Lobby: cada cliente dibuja encima su propio huevo y su temporizador
@@ -1024,6 +1076,8 @@ local function buildNest(parent: Instance)
 	end
 
 	CollectionService:AddTag(model, Config.Lobby.NestTag)
+	-- Estación del nido: el aviso está en el asiento del huevo; el marcador va sobre el montículo.
+	station(mound, "Mascotas", "🥚")
 	model.Parent = parent
 end
 

@@ -830,6 +830,10 @@ local Config = {
 		RankingBoardTag = "TablaRanking",
 		RankingBoardSize = 5,
 		RoleBoardTag = "TablaRoles",
+		-- Cartel de las mascotas (lo dibuja PetBoardController en cada cliente: el huevo de su nido) y
+		-- el de la Isla de dunas (ArenaBoardController: tu estado en la arena y la cola).
+		PetsBoardTag = "TablaMascotas",
+		ArenaBoardTag = "TablaArena",
 		-- Nido de huevos (World/LobbyBuilder): cada cliente dibuja en él su huevo (NestController).
 		NestTag = "NidoLobby",
 	},
