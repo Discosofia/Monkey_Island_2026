@@ -12,6 +12,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stamina = require(script.Parent.Parent.Stamina)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local Dash = require(script.Parent.Parent.Dash)
 
 local ACTION = "Dodge"
 
@@ -27,11 +28,10 @@ local function dodge()
 	local character = Players.LocalPlayer.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-	local attachment = if root then root:FindFirstChild("RootAttachment") else nil
-	if not (humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and attachment) then
+	if not (humanoid and humanoid.Health > 0 and root and root:IsA("BasePart")) then
 		return
 	end
-	if not attachment:IsA("Attachment") or not Stamina.tryConsume(Config.Survival.DodgeStaminaCost) then
+	if not Stamina.tryConsume(Config.Survival.DodgeStaminaCost) then
 		return
 	end
 	lastDodgeAt = now
@@ -45,23 +45,13 @@ local function dodge()
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
 	BodyAnimations.play(if direction:Dot(look) > 0.3 then "DodgeRoll" else "DodgeBack")
 
-	-- Empuje horizontal durante un instante; la gravedad sigue actuando.
-	local push = Instance.new("LinearVelocity")
-	push.Attachment0 = attachment
-	push.MaxForce = math.huge
-	push.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
-	push.PrimaryTangentAxis = Vector3.xAxis
-	push.SecondaryTangentAxis = Vector3.zAxis
-	push.PlaneVelocity = Vector2.new(direction.X, direction.Z) * Config.Combat.DodgeSpeed
-	push.Parent = root
-	task.delay(Config.Combat.DodgeDurationSeconds, function()
-		push:Destroy()
-	end)
+	Dash.push(root, direction, Config.Combat.DodgeSpeed, Config.Combat.DodgeDurationSeconds)
 
 	Remotes.Dodge:FireServer()
 end
 
 function DodgeController:Start()
+	Dash.keepUpright()
 	ActionButtons.bind(ACTION, "Esquivar", function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
 			dodge()

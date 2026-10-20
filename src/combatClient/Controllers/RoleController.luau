@@ -35,6 +35,7 @@ local ComboController = require(script.Parent.ComboController)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local Dash = require(script.Parent.Parent.Dash)
 
 -- Una por hueco de Data/Roles (el 4 es la definitiva; el 5, la cuarta activa).
 local KEYS = { Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V, Enum.KeyCode.R }
@@ -143,23 +144,9 @@ end
 
 -- Embestida: empuje horizontal hacia donde apuntas durante un instante.
 local function charge(root: BasePart, direction: Vector3)
-	local attachment = root:FindFirstChild("RootAttachment")
-	if not (attachment and attachment:IsA("Attachment")) then
-		return
-	end
 	root.CFrame = CFrame.lookAt(root.Position, root.Position + direction)
 	local settings = Config.Abilities
-	local push = Instance.new("LinearVelocity")
-	push.Attachment0 = attachment
-	push.MaxForce = math.huge
-	push.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
-	push.PrimaryTangentAxis = Vector3.xAxis
-	push.SecondaryTangentAxis = Vector3.zAxis
-	push.PlaneVelocity = Vector2.new(direction.X, direction.Z) * (settings.ChargeDistance / settings.ChargeSeconds)
-	push.Parent = root
-	task.delay(settings.ChargeSeconds, function()
-		push:Destroy()
-	end)
+	Dash.push(root, direction, settings.ChargeDistance / settings.ChargeSeconds, settings.ChargeSeconds)
 end
 
 -- Parpadeo: salta hasta "distance" studs, parando antes de una pared y solo si hay suelo debajo.
