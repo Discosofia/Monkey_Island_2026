@@ -292,7 +292,7 @@ Igual que la Fase 1, se entrega en partes pequeñas, cada una probable en Studio
 
 ### Fase 6b: Bucle de retención (octubre de 2026)
 
-Basado en el documento de diseño «Bucle central de retención» y en la entrevista del 19-oct-2026 (detalles en el GDD §4 "Bucle de retención" y §11). Probado en Studio por partes ([VERIFICACION.md](VERIFICACION.md) §5.2 y §7).
+Basado en [Bucle central de retencion.txt](Bucle%20central%20de%20retencion.txt) y en la entrevista del 19-oct-2026 (detalles en el GDD §4 "Bucle de retención" y §11). Probado en Studio por partes ([VERIFICACION.md](VERIFICACION.md) §5.2 y §7).
 
 | Entrega | Contenido | Estado |
 |---|---|---|

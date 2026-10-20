@@ -1,0 +1,254 @@
+### 1\. La Arquitectura del Bucle Central en Tres Capas
+
+* **Bucle Micro (Momento a momento / Segundos a Minutos)**:
+  * **Reto**: Monos agresivos que acechan en la selva o intentan robarte comida y recursos[2][4].
+  * **Acción**: Combatir utilizando un sistema de armas (cuerpo a cuerpo o a distancia) y protegerte con armaduras[5].
+  * **Recompensa**: Obtención inmediata de botín (pelaje, colmillos, minerales) con retroalimentación visual clara (números de daño, efectos visuales de impacto)[2].
+* **Bucle Meso (Por sesión / Minutos a Horas)**:
+  * **Reto**: Explorar biomas con mayor nivel de peligro durante el día y prepararse para la caída del sol[3].
+  * **Acción**: Regresar a la base o Basecamp para procesar alimentos en la cocina, fabricar/reparar equipo en las forjas, colocar defensas e incubar huevos[12].
+  * **Recompensa**: Sobrevivir al **asedio nocturno de oleadas de monos**, asegurando el refugio y obteniendo materiales para crear equipamiento de mayor nivel[12][14].
+* **Bucle Macro (Entre días / Días a Semanas)**:
+  * **Reto**: Acumular recursos y nivel suficiente para enfrentar a los jefes de la isla y completar las colecciones[3].
+  * **Acción**: Conectarse a diario para cumplir misiones rotativas, reclamar recompensas acumulativas de inicio de sesión e invertir puntos de experiencia en talentos[12].
+  * **Recompensa**: Obtención de **mascotas persistentes raras**, skins exclusivas y desbloqueo permanente de habilidades o áreas de la isla[7].
+
+---
+
+### 2\. Métodos Específicos de Retención centrados en tus Mecánicas
+
+* **Mascotas Personalizadas como Anzuelo de Anticipación (Retención D7 y D30)**:
+  * Las mascotas deben funcionar mediante un **sistema de incubación y colección persistente**[18]. Al conseguir un huevo en la isla (por ejemplo, al derrotar a un jefe o explorar zonas de riesgo), el jugador debe colocarlo en un nido en su base[19]. La incubación en tiempo real (que toma horas o requiere visitas diarias) aprovecha la **anticipación sostenida**: el jugador regresa al día siguiente motivado por descubrir qué mascota con qué nivel de rareza (común, épica, legendaria) le nacerá[18].
+* **Progresión de Armas y Armaduras que "Abran Puertas"**:
+  * Utiliza un árbol de crafteo progresivo (ejemplo: Madera/Piedra → Hueso/Colmillo → Metal → Obsidiana/Magma)[23]. Un principio fundamental para evitar que el bucle se vuelva estático es que **cada recompensa abra un nuevo reto**[24][25]. Por ejemplo, conseguir la armadura de hueso o la antorcha no solo aumenta tus estadísticas, sino que te permite resistir el frío del volcán o entrar en las cuevas oscuras para enfrentar a los monos nocturnos y a los jefes[4].
+* **Calendario de Recompensas de Inicio de Sesión Diario (Daily Login Streaks)**:
+  * Implementa un calendario diario con recompensas escalonadas[17][26]. Los días 1 a 6 otorgan consumibles esenciales (comida cocinada, medicina, munición o botín de crafteo), mientras que los días hito (Día 7, Día 14 o Día 30) entregan recompensas de alto valor, como una tirada para una mascota exclusiva o una skin de armadura[17][26]. Las recompensas de inicio de sesión diario pueden **aumentar la retención del día 7 (D7) hasta tres veces**[16].
+* **Misiones Diarias Cortas (Daily Quests)**:
+  * Presenta de 3 a 5 misiones rotativas sencillas al entrar a la sesión (ej. *"Derrota 10 monos alfa"*, *"Fabrica un arma de hueso"*, *"Sobrevive 1 noche"*)[27]. Combinar metas de 5 minutos con metas semanales evita la sobrecarga cognitiva y brinda gratificación rápida[27][28].
+
+---
+
+### 3\. Optimización del Primer Contacto (FTUE / Onboarding)
+
+* Los datos de retención en juegos sociales y de supervivencia muestran que hasta un **45% de los jugadores abandonan la experiencia en los primeros 30 segundos** si se sienten perdidos o si el área de inicio no ofrece una dirección inmediata[29]. Rediseñar el punto de aparición para ofrecer una primera acción clara puede reducir ese abandono inicial a un 18%[29].
+* Para optimizar la retención del Día 1 (D1), el jugador debe tener una **acción directa en menos de 10 a 60 segundos** (ejemplo: recoger un garrote básico cerca del punto de aparición y repeler a un primer mono débil)[29]. Evita tutoriales largos de texto y utiliza elementos visuales direccionales (como flechas o resaltados en pantalla) que guíen intuitivamente hacia el crafteo o la base[30].
+
+Para maximizar la **retención del Día 7 (D7)** y habituar a los jugadores a conectarse a diario[1][2], estructuraremos el calendario siguiendo las mejores prácticas de la plataforma[2][3] y las mecánicas de *Primal Banana Islands*[4][5].
+
+El diseño intercala **consumibles de utilidad inmediata** en los días intermedios con un **gran hito exclusivo en el Día 7**[2][6], creando un ciclo de *anticipación sostenida*[7][8].
+
+---
+
+### 📅 Calendario Semanal de Inicio de Sesión (*Daily Login Streak*)
+
+1. **Día 1 — Kit de Bienvenida e Inicio Rápido**:
+  * **Recompensa**: **100 Ámbar**[5] \+ **5 Bananos** (recuperación inmediata de hambre)[9].
+  * **Propósito**: Ofrecer gratificación instantánea en los primeros minutos[6][10] y aliviar la primera necesidad de comida sin alterar el equilibrio de la escasez inicial[9][11].
+2. **Día 2 — Suministros para la Noche**:
+  * **Recompensa**: **3 Antorchas de pie** \+ **10 Fibra**[12][13].
+  * **Propósito**: Preparar al jugador para resistir el asedio nocturno del Basecamp y mantener alejadas a especies nocturnas como la Marteja[13].
+3. **Día 3 — Recursos de Combate y Forja**:
+  * **Recompensa**: **25 Dientes diminutos** (munición especial de cerbatana)[12] \+ **2 Vendas**[12].
+  * **Propósito**: Incentivar el combate con proyectiles y respaldar las habilidades del rol de Médico o la fabricación de armas iniciales[12][16].
+4. **Día 4 — Protección e Inmunidad en la Selva**:
+  * **Recompensa**: **2 Antídotos para la Fiebre del Mono** \+ **5 Pelajes rojos**[12].
+  * **Propósito**: Otorgar una cura directa contra los síntomas de mordiscos en expediciones largas lejos del campamento[17].
+5. **Día 5 — Impulso de Construcción y Economía**:
+  * **Recompensa**: **250 Ámbar**[5] \+ **15 Minerales de Hierro / Piedra pulida**[15][18].
+  * **Propósito**: Proveer capital para comprar mejoras duraderas en el lobby o reforzar los muros perimetrales de la base[5][13].
+6. **Día 6 — Kit de Emergencia para Jefes**:
+  * **Recompensa**: **1 Kit de Reanimación** (reanimación instantánea con 70% de vida)[12] \+ **3 Cataplasmas de grupo**[12].
+  * **Propósito**: Crear un "pico de anticipación" antes del hito final[6], entregando un recurso estratégico para enfrentar a los jefes de bioma[12][19].
+7. **Día 7 — ¡Gran Hito Semanal! (Recompensa Destacada /** **Valuable** **)**:
+  * **Recompensa**: **1 Tirada Garantizada de Huevo de Mascota Persistente**[20][21] \+ **500 Ámbar**[5] \+ **Título de perfil exclusivo ("Superviviente de la Isla")**.
+  * **Propósito**: Entregar una recompensa de alto valor funcional y social[2][3]. Como los huevos y mascotas no se venden por Robux[21][22], regalar una tirada en el Día 7 premia el esfuerzo real y motiva al jugador a incubar su huevo en el nido del Basecamp[12][20].
+
+
+### 📅 Tabla de Recompensas Diarias (Calendario de 7 Días)
+
+| Día       | Nombre de la Recompensa            | Cantidad u Objeto                                                                           | Tipo de Ítem y Rareza                          | Propósito de Retención y Utilidad en Juego                                                                                                                | Efecto Visual UI (`EngagementRewards`)                       |
+| --------- | ---------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Día 1** | **Kit de Iniciación del Náufrago** | **100 Ámbar** \+ **5 Bananos**                                                              | Moneda / Consumible (Común)[3][4]          | Entrega gratificación inmediata en el primer minuto (FTUE) y mitiga la barra de hambre inicial sin romper la escasez del bucle central[5].              | `Types.RewardEffect.Default`[8]                            |
+| **Día 2** | **Suministros para la Noche**      | **3 Antorchas de pie** \+ **10 Fibra**                                                      | Estructura / Material (Común)[3][9]        | Equipa al jugador para proteger el Basecamp durante el asedio nocturno y mantener alejados a los monos de categoría 1 y 2[10][11].                    | `Types.RewardEffect.Default`[8]                            |
+| **Día 3** | **Munición y Botiquín**            | **25 Dientes diminutos** \+ **2 Vendas**                                                    | Munición / Curación (Poco Común)[3][12]    | Apoya a los roles a distancia (como la cerbatana del Médico) y fomenta expediciones fuera de la base segura[9][12].                                   | `Types.RewardEffect.Default`[8]                            |
+| **Día 4** | **Protección de la Selva**         | **2 Antídotos** \+ **5 Pelajes rojos**                                                      | Curación / Material (Poco Común)[3][13]    | Proporciona una cura directa contra la Fiebre del Mono contraída por mordiscos y aporta insumos para el taller del curandero[9][14].                  | `Types.RewardEffect.Default`[8]                            |
+| **Día 5** | **Capital de Base y Forja**        | **250 Ámbar** \+ **15 Minerales de Hierro**                                                 | Moneda / Material (Raro)[3][4]             | Otorga recursos clave para craftear armaduras/herramientas de nivel medio en la forja de piedra o comprar mejoras permanentes en el lobby[4][9].      | `Types.RewardEffect.Default`[8]                            |
+| **Día 6** | **Kit Táctico de Emergencia**      | **1 Kit de Reanimación** \+ **3 Cataplasmas de grupo**                                      | Consumible Especial (Épico)[3][9]          | Crea un pico de anticipación antes del hito final, entregando insumos estratégicos para enfrentar a los jefes de bioma[9].                              | `Types.RewardEffect.Default`[8]                            |
+| **Día 7** | **Gran Hito: Huevo Primordial**    | **1 Tirada de Huevo de Mascota Persistente** \+ **500 Ámbar** \+ **Título "Superviviente"** | Mascota / Moneda / Cosmético (Legendario)[3] | **Hito de alto valor funcional y social** que impulsa la retención D7 hasta tres veces, motivando al jugador a llevar su huevo al nido del Basecamp[9]. | **Types.RewardEffect.Valuable** **(Marco Dorado)**[2][8] |
+
+El estudio de la retención mediante **patrones de diseño** distingue dos enfoques complementarios: los **patrones de diseño de juego** (que definen *qué* mecánicas o interacciones añadir para enganchar al jugador, como bucles de recompensa y ritmos de juego) y los **patrones de diseño de software** (que establecen *cómo* estructurar el código para que sea flexible, mantenible y permita añadir funciones en tiempo real)[1].
+
+Aplicar patrones de ingeniería de software orientados a objetos (como los del marco *Gang of Four*) tiene un impacto directo en la psicología del jugador, en la motivación y en la reducción del abandono (*churn*)[1][2].
+
+---
+
+### 1\. Patrón Observer (Observador) → Retroalimentación Instantánea y Dopamina
+
+* **Concepto técnico**: Desacopla el sistema de notificaciones de la lógica principal del juego, enviando alertas automáticas a los suscriptores cuando ocurre un evento[3][4].
+* **Impacto psicológico**: Proporciona **retroalimentación inmediata** (*instant feedback*) ante los logros, fracasos o cambios en el entorno[3][4]. Esta inmediatez activa respuestas dopaminérgicas en el cerebro que mantienen al jugador alerta y motivado en el momento exacto de la acción[3][5].
+* **Aplicación en la Isla**:
+  * **Eventos globales**: Cuando aparece el Huevo Primordial en la isla, el sistema dispara un evento que notifica a todos los clientes, actualiza la UI y marca al portador para PvP[6].
+  * **Combate y legibilidad**: Mostrar columnas de números visuales para el daño hecho (amarillo), la curación (verde) y las alertas de recursos recogidos ("+2 Madera") permite al jugador entender instantáneamente el impacto de sus acciones[7][8].
+
+---
+
+### 2\. Patrón State (Estado) → Dificultad Dinámica y Estado de Flujo (*Flow*)
+
+* **Concepto técnico**: Gestiona las transiciones entre diferentes estados de un objeto o personaje, permitiendo o restringiendo acciones específicas según el estado activo[3].
+* **Impacto psicológico**: Mantiene al jugador en la **"zona de flujo"** (*Flow*) descrita por Csikszentmihalyi, equilibrando el desafío con la habilidad del jugador para prevenir tanto el aburrimiento por retos muy simples como la frustración por picos injustos de dificultad[3].
+* **Aplicación en la Isla**:
+  * **Inteligencia Artificial de los Monos**: La máquina de estados de las tropas transita de forma fluida entre *Patrulla*, *Alerta*, *Persecución*, *Ataque/Robo* y *Huida* según la presencia de fuego o la muerte del mono alfa[12].
+  * **Estados del Jugador**: Controla mecánicas complejas como pasar de estar activo a estar *Caído* (con 1 minuto para reanimación), contraer la *Fiebre del Mono* a partir de 60 puntos de infección o activar la inmunidad temporal de 2 segundos tras liberarse de un agarre[13].
+
+---
+
+### 3\. Patrón Decorator (Decorador) → Progresión Dinámica y Rejugabilidad
+
+* **Concepto técnico**: Permite añadir nuevas capacidades, atributos o efectos visuales a un objeto (como el personaje o sus armas) en tiempo real sin modificar su estructura base[3][16].
+* **Impacto psicológico**: Sostiene la motivación a largo plazo mediante la percepción de un **incremento constante de poder** y variedad táctica, motivando al jugador a experimentar con nuevas combinaciones y aumentando la rejugabilidad[3].
+* **Aplicación en la Isla**:
+  * **Mascotas Persistentes**: La mascota activa equipada actúa como un decorador del avatar, agregando habilidades pasivas o estadísticas de combate, rastreo o carga de inventario[17].
+  * **Equipamiento y Talentos**: El crafteo progresivo de armaduras (pelaje, hueso, plata) y las habilidades de las distintas clases (como las cerbatanas con veneno del Médico o las capas con carcaj del Cazador) superponen modificadores de daño y efectos sobre las acciones base del jugador[18][19].
+
+**Sí, ampliar el tiempo de eclosión del huevo puede mejorar significativamente la retención del Día 1 (D1) y del Día 7 (D7)**, siempre que se implemente como una mecánica de **anticipación sustained**[1].
+
+A continuación se detalla cómo impacta este cambio en la psicología del jugador y en la estructura de tus bucles de juego:
+
+---
+
+### 1\. La Psicología de la Anticipación (Liberación de Dopamina)
+
+* **Recompensa Inmediata vs. Anticipación**: Cuando el tiempo de eclosión es muy corto, el jugador obtiene una gratificación instantánea dentro de la misma sesión, pero se agota rápidamente la tensión dramática[1][2].
+* **Visibilidad Controlada**: La ciencia de la retención muestra que la dopamina se libera en **anticipación de la recompensa**, no únicamente al recibirla[1]. Dejar un huevo incubando en el nido de la base antes de cerrar la sesión crea un "anzuelo" visual claro: el jugador sabe exactamente qué va a obtener y se siente motivado a regresar al día siguiente para ver qué mascota eclosionó[2][4].
+
+---
+
+### 2\. Diferenciación de Bucles de Juego
+
+* **Bucle Meso (Sesión actual)**: Los temporizadores cortos (de pocos minutos) funcionan bien para la defensa en tiempo real del Basecamp frente a las hordas de monos[5].
+* **Bucle Macro (Retención D1 a D7)**: Extender el tiempo de incubación (a varias horas o a un ciclo de refresco diario) traslada el objetivo al bucle macro a largo plazo[3][5]. Entregar mascotas de alto valor demasiado rápido genera **inflación de recompensas**, erosionando el valor percibido del logro y reduciendo el contenido a explorar[8][9].
+
+---
+
+### 3\. Riesgos a Evitar y Recomendación de Diseño
+
+* **Evitar la Frustración**: Si el tiempo de espera es excesivo y carece de visibilidad o interacción, el jugador puede percibir la mecánica como un obstáculo lento y frustrante[3].
+* **Estrategia Recomendada**:
+  1. **Mantener la visibilidad del progreso**: Muestra un indicador claro o un temporizador visual en el nido para que el jugador sepa cuánto le falta[2][10].
+  2. **Interacción Activa**: Permite que los jugadores puedan acelerar ligeramente el tiempo de incubación realizando acciones en la isla (por ejemplo, aportando calor con antorchas, defendiendo el nido durante el asedio nocturno o alimentándolo con ciertos recursos)[6].
+
+que tal este modelo, el huevo spawnea en el mapa y lanza el evento, el jugador lo recoge y lo lleva al nido del basecamp, lo defiende de los monos y en lugar de eclosionar el huevo pasa a su inventario persistente para que el lo lleve y lo cuide por un tiempo (entre 8-24 horas), el jugador puede tener varios huevos eclosionando a la vez pero siempre debe cumplir lo primero
+
+Este modelo es **excelente y encaja de forma natural** tanto con la psicología de la retención como con el diseño base de *Primal Banana Islands*[1][2].
+
+Combinar una **fase activa de alta tensión** en la sesión con una **fase pasiva de incubación persistente** entre sesiones resuelve el equilibrio entre la gratificación del gameplay y el hábito de retorno diario[3][4].
+
+---
+
+### 🌟 Por qué funciona tan bien desde el punto de vista del Diseño y la Retención
+
+1. **Bucle Meso Intenso (En la Sesión)**:
+  * Mantener el spawn global del huevo, el traslado con PvP *opt-in* y la defensa del nido en el Basecamp frente a las hordas de monos conserva la emoción cooperativa y la tensión del bucle de sesión[2].
+  * La recompensa al terminar el evento es inmediata: **obtener el huevo en tu inventario persistente**. Esto cierra la fase de acción con un logro claro[7][8].
+2. **Bucle Macro y Anticipación Sostenida (Entre Sesiones)**:
+  * Al pasar el huevo a un estado de incubación de 8 a 24 horas en el inventario persistente, transformas el logro en un **anzuelo de retorno directo para el Día 1 (D1) y Día 7 (D7)**[1][9].
+  * Como la dopamina se libera principalmente en anticipación de la recompensa, el jugador cierra su sesión sabiendo exactamente qué va a recibir al volver al día siguiente[4][10].
+3. **Sensación de Posesión y Valor**:
+  * Requerir que el jugador lleve o cuide el huevo en su perfil genera apego emocional con la futura mascota y evita la inflación de recompensas, preservando la escasez y el valor percibido del coleccionable[11].
+
+---
+
+### 💡 Ajustes Recomendados para la Implementación
+
+Para que esta mecánica no genere fricción ni frustración en la comunidad, conviene afinar tres aspectos:
+
+* **Recompensa Compartida por Cooperación**:
+  * En el Basecamp participan varios jugadores defendiendo el nido[14][15]. Asegúrate de que **cada jugador que contribuyó en la defensa reciba su propio huevo** en su inventario persistente[2][5]. Si solo se lo llevara una persona, se rompería el pilar de cooperación del servidor[14].
+* **Límite Claro de Slots de Incubación**:
+  * Define un máximo de huevos simultáneos en eclosión (por ejemplo, 2 o 3 slots). Esto evita la saturación del inventario y mantiene el incentivo de volver a jugar eventos a lo largo de los días[13].
+* **Interacción Ligera de Cuidado ("Aceleradores de Juego")**:
+  * Si el huevo necesita "cuidado", permite interacciones opcionales en el campamento al conectarse (como alimentarlo con Bananos o encender antorchas cerca del nido) que reduzcan un poco el tiempo de espera (ej. restar 1 o 2 horas)[16][17]. Esto premia la interacción sin volver la espera aburrida ni obligatoria[18].
+
+Esta propuesta es brillante porque conecta de forma natural el **bucle de sesión (meso)** con el **bucle de retención a largo plazo (macro)**[1][2]. Al permitir que el huevo progrese tanto fuera como dentro de la partida, le das al jugador libertad de elección y un incentivo directo para permanecer activo en la sesión.
+
+---
+
+### 1\. Definición y Capacidad de Slots
+
+* **Slots en el Inventario Persistente ("Mochila de Huevos")**:
+  * **Límite sugerido**: **3 slots de huevos**.
+  * **Propósito**: Permite al jugador almacenar huevos conseguidos en eventos de rescate o jefes[3][4] sin perder la motivación si consigue más de uno en la misma sesión.
+* **Slots de Incubación Activa en el Nido del Basecamp**:
+  * **Límite sugerido**: **1 slot activo por jugador** en la estación de Nido[5].
+  * **Propósito**: Centrar la atención y el cuidado en un solo huevo a la vez para mantener la escasez y evitar que se desbloquee la colección de mascotas demasiado rápido[6].
+
+---
+
+### 2\. Modos de Incubación: Pasiva (Offline) vs. Acelerada (En Nido)
+
+| Estado del Huevo         | Ubicación                                   | Velocidad de Tiempo       | Tiempo Base (Ejemplo)                                      | Experiencia de Juego                                                                                                                      |
+| ------------------------ | ------------------------------------------- | ------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Incubación Pasiva**    | Guardado en el Inventario Persistente       | **Velocidad Normal (1x)** | **24 horas**                                               | Sigue avanzando mientras el jugador está desconectado. Es el "anzuelo" de retorno para el día siguiente[7].                             |
+| **Incubación Acelerada** | Colocado/Descargado en el Nido del Basecamp | **Acelerada (2x o 3x)**   | **8 - 12 horas** *(o \~3-4h si se interactúa activamente)* | Se activa únicamente cuando el jugador está dentro del servidor jugando. Aumenta la duración promedio de la sesión (*session time*)[8]. |
+
+---
+
+### 3\. Acciones de Cuidado y Misiones de Aceleración en el Basecamp
+
+Mientras el huevo está colocado en el Nido del Basecamp durante la partida, los jugadores pueden realizar actividades de cuidado que reducen el tiempo restante de eclosión:
+
+1. **Aporte de Calor y Mantenimiento (Cuidado de Base)**:
+  * **Mecánica**: Mantener antorchas encendidas o suministrar madera/carbón alrededor de la estructura del Nido[9].
+  * **Efecto**: Aportar calor constante otorga un bonificador de velocidad del +50% al temporizador de eclosión durante la noche.
+2. **Alimentación Nutritiva (Insumos de la Isla)**:
+  * **Mecánica**: Entregar Bananos, agua limpia o frutas raras recabadas durante la exploración de la selva[10].
+  * **Efecto**: Cada ración reduce instantáneamente **30 minutos o 1 hora** del tiempo total del huevo.
+3. **Defensa Existencial durante el Asedio Nocturno**:
+  * **Mecánica**: Resistir con éxito las oleadas de monos que intentan derribar las defensas perimetrales y llegar al núcleo del Basecamp[9].
+  * **Efecto**: Si el nido sobrevive intacto la noche, la energía acumulada le resta **2 horas instantáneas** al tiempo del huevo.
+4. **Misiones Diarias de Expedición (Daily Quests)**:
+  * **Mecánica**: Cumplir objetivos de sesión (ej. *"Derrota 10 monos aulladores"* o *"Cosecha 5 plantas medicinales"*)[11].
+  * **Efecto**: Entregar la misión en la base otorga una "Esencia Tropical" que acelera el huevo del nido en **1 hora extra**.
+
+---
+
+### 4\. Impacto en las Métricas de Retención de Roblox
+
+* **Sube el tiempo de sesión (Engagement / Session Time)**: Sabiendo que estar en la base y cuidar el huevo acelera la eclosión a la mitad del tiempo, los jugadores extienden sus partidas activas en lugar de salir de inmediato[8].
+* **Fomenta el juego cooperativo (Social Mechanics)**: Los compañeros de equipo pueden colaborar aportando madera a las antorchas o protegiendo el Nido juntos durante el asedio nocturno[3][9], lo que multiplica la retención social entre 3 y 5 veces[12].
+* **Garantiza la retención diaria (D1 / D7 Retention)**: Quien deba cerrar sesión sabe que su huevo seguirá madurando en su inventario pasivo y estará listo o muy cerca de eclosionar a su regreso[13][14].
+
+Las **Misiones de Aceleración** son la pieza que conecta la exploración activa de la isla con el Nido del Basecamp. Para que estas misiones impulsen la retención sin permitir que los jugadores "quemen" el contenido demasiado rápido, las estructuraremos combinando objetivos a corto y mediano plazo[1] con recompensas de aceleración directa (reducción de tiempo en minutos/horas) e impulsos pasivos de velocidad[2].
+
+---
+
+### 📜 1\. Sistema y Mecánica de la "Esencia de Incubación"
+
+1. **Activación**: Al colocar un huevo en el Nido del Basecamp, el tablero de la base desbloquea **3 Misiones de Aceleración rotativas** por partida.
+2. **Entrega e Interacción**: Al completar una misión en la isla, el jugador obtiene **Esencia Primal** o **Combustible Térmico**. El jugador debe llevar este recurso de vuelta al Nido e interactuar con él para aplicar la aceleración al huevo[3]. Esto fomenta el tránsito constante entre la selva y el Basecamp[4].
+3. **Efectos Combinados**:
+  * **Reducción Directa**: Resta un bloque fijo de tiempo de eclosión (ej. **\-30 min** o **\-1 hora**).
+  * **Multiplicador Temporal**: Aumenta la velocidad del nido (ej. **+50% de velocidad de incubación durante los siguientes 10 minutos**).
+
+---
+
+### 🎯 2\. Tabla de Misiones de Aceleración Diseñadas por Categoria
+
+| Categoría                   | Nombre de la Misión          | Objetivo / Acción en Juego                                                             | Rol / Requisito Sugerido[5]             | Recompensa Secundaria      | Aceleración de Eclosión                            |
+| --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------- | -------------------------------------------------- |
+| **Combate / PvE**           | **Limpieza de Vástagos**     | Derrotar 8 monos aulladores o martejas nocturnas[6].                                 | Cualquiera (Sinergia con Cazador)         | +50 Ámbar                  | **\-30 minutos** instantáneos                      |
+| **Exploración**             | **Botánica de las Cuevas**   | Cosechar 4 hongos luminosos o cristales en las Cuevas[7].                            | Recomendado Mago / Antorcha requerida     | +15 Piedra / Cristal       | **\-45 minutos** instantáneos                      |
+| **Cuidado de Base**         | **Fuego Guardián**           | Mantener 4 antorchas de pie encendidas alrededor del Nido durante toda una noche[8]. | Constructor / Cualquier Rol               | +10 Fibra / Madera         | **+100% Velocidad de Incubación** durante la Noche |
+| **Especialista (Médico)**   | **Purificación de la Selva** | Sintetizar 2 Antídotos y curar 60 puntos de Fiebre del Mono en aliados[9].           | ⛑️ Médico (Cerbatana / Taller)            | +1 Kit de Reanimación[3] | **\-1 Hora** instantánea                           |
+| **Especialista (Guerrero)** | **Desafío Alfa**             | Derrotar al Mono Alfa de una tropa en la Selva profunda[10].                         | ⚔️ Guerrero (Cuerpo a cuerpo)             | +1 Pelaje rojo / Hueso     | **\-1 Hora** instantánea                           |
+| **Evento Cooperativo**      | **Defensa del Asedio**       | Evitar que los monos dañen la estructura del Nido durante la noche[8].               | Todo el grupo del Basecamp (20 jugadores) | +150 Ámbar para el grupo   | **\-2 Horas** instantáneas                         |
+
+---
+
+### 🛡️ 3\. Reglas de Balance y Límites Anti-Abuso
+
+Para proteger el valor de las mascotas y mantener viva la **anticipación sustained** de regreso al juego al día siguiente[2]:
+
+* **Tope Máximo de Aceleración por Sesión**: Un huevo no puede ser reducido en más de un **50% de su tiempo total pasivo** mediante misiones fojas en una sola sesión de juego. Por ejemplo, si un huevo requiere 12 horas, las misiones y el cuidado en el nido podrán acelerarlo como máximo hasta completar 6 horas de reducción directa; el resto madurará mientras el jugador descansa o regresa en su próxima sesión.
+* **Misiones Exclusivas por Rol**: Asignar 1 misión diaria específica según el rol elegido (Guerrero, Cazador, Mago, Médico) incentiva la cooperación entre distintas clases en el servidor y promueve el uso del sistema de combos[5][11].
+* **Visibilidad Visual del Progreso**: El Nido en el Basecamp mostrará partículas de fuego o neón según el nivel de calor y un contador dinámico que refleja el tiempo restante actualizado en tiempo real tras aplicar cada recompensa.
