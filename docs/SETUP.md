@@ -136,7 +136,9 @@ Cada place tiene un número de ID. El código lo necesita para viajar del Lobby 
 
 ## Paso 7: Tamaño del servidor de cada place
 
-Cada place tiene su propio tamaño de servidor y lo decide Roblox, no el código. En el [Creator Hub](https://create.roblox.com/dashboard/creations), entra en tu experiencia → **Places** → el place → **Configurar**, y pon el **tamaño del servidor (Max Players)**. También se puede desde Studio, con ese place abierto: **Game Settings** → **Places**.
+Cada place tiene su propio tamaño de servidor y lo decide Roblox, no el código. Lo más directo: en Studio, **Archivo → Configuración del juego → Lugares**, que lleva a la página del Creator Hub con el **máximo de jugadores** de cada lugar (también se llega desde el [Creator Hub](https://create.roblox.com/dashboard/creations): tu experiencia → **Configuraciones → Lugares** → el lugar). *Emparejamiento personalizado* no es: ahí se reparte a los jugadores entre servidores, no cuántos caben.
+
+En Studio, `Players.MaxPlayers` da 60 aunque el lugar tenga otro tamaño: es el valor por defecto de Studio. El que cuenta es el de esa página.
 
 | Place | Max Players | Por qué |
 |---|---|---|
