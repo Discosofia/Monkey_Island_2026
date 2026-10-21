@@ -369,7 +369,7 @@ Reglas de la entrevista: la premium del pase es **solo cosmética** (Developer P
 |---|---|---|---|
 | **G1** | Skill `economia-retencion` y calculadora de la economía (línea base: misiones al 100 % en la primera hora, el habitual gasta el 15 % de su Ámbar, equipo de nivel 3 el día 1) | `857ef5e` | ✅ |
 | **G2** | Fundaciones: perfil v5 (`season`, `weekly`, `purchases`, `ownedCosmetics`), compras con recibo (`ServerShared/Purchases`, `ProcessReceipt` en los 3 places), cosméticos con `source`, rareza y huecos por tipo/rol/mascota/rueda de emotes (`Shared/CosmeticSlots`), `Config.Season` y `Config.Shop` | `ca70019` | ✅ |
-| **G3** | Pase de temporada: `Data/Seasons` (T1 con premios provisionales: 3 cosméticos gratis y 3 premium), `Shared/SeasonPass` y `ServerShared/SeasonPass` (XP de la Isla, Dunas y misiones con tope de partidas, +10 % con amigos y ×2 la última semana; reclamar; cierre de temporada que entrega lo no reclamado), compras (premium, pack +10, nivel), cartel del pase en la plaza (Lobby v13) con su "!", ventana sin desplazamiento (`UI/SeasonPassPanel`) y botón 🌋 en la barra, línea de XP en los resultados, sección "Pase" de la calculadora (sin semanales el habitual llega al nivel 24: se cierra con las semanales de G4) | — | ✅ Probado en Studio (Lobby) |
+| **G3** | Pase de temporada: `Data/Seasons` (T1 con premios provisionales: 3 cosméticos gratis y 3 premium), `Shared/SeasonPass` y `ServerShared/SeasonPass` (XP de la Isla, Dunas y misiones con tope de partidas, +10 % con amigos y ×2 la última semana; reclamar; cierre de temporada que entrega lo no reclamado), compras (premium, pack +10, nivel), cartel volcánico del pase en la plaza (Lobby v14) con su "!", ventana sin desplazamiento (`UI/SeasonPassPanel`) y botón 🌋 en la barra, línea de XP en los resultados, sección "Pase" de la calculadora (sin semanales el habitual llega al nivel 24: se cierra con las semanales de G4) | — | ✅ Probado en Studio (Lobby) |
 | **G4** | Misiones v2: fácil/media/difícil, semanales, un cambio gratis al día, eventos nuevos y rastreador en móvil | — | ⏳ |
 | **G5** | Equipo ligado a los jefes: el nivel 3 pide el botín del jefe del día 4; Forja volcánica, obsidiana y nivel 4 | — | ⏳ |
 | **G6** | Contratos de expedición por partida, compartidos por el grupo | — | ⏳ |
@@ -383,7 +383,7 @@ Reglas de la entrevista: la premium del pase es **solo cosmética** (Developer P
 - [ ] Crear en el Creator Hub los Developer Products (pase, pack, nivel, cosméticos sueltos) y poner sus ids (G2/G3/G10)
 - [ ] Antes de publicar: **publicar los tres places a la vez** (perfil v5)
 - [ ] Poner la fecha de verdad de la Temporada 1 en `Data/Seasons` (hoy, provisional: 19-10-2026) (G3/G12)
-- [ ] Guardar y publicar el Lobby con la plaza v13 (cartel del pase) (G3)
+- [ ] Guardar y publicar el Lobby con la plaza v14 (cartel volcánico del pase) (G3)
 
 ---
 

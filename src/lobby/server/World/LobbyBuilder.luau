@@ -48,7 +48,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 13
+local VERSION = 14
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -146,6 +146,12 @@ local LEAF = Color3.fromRGB(70, 150, 60)
 local PLANK = Color3.fromRGB(205, 175, 125)
 local INK = Color3.fromRGB(45, 30, 15)
 local BOARD_CARD = Color3.fromRGB(45, 38, 30)
+-- Cartel del pase de temporada: basalto, obsidiana y lava.
+local BASALT_STONE = Color3.fromRGB(52, 46, 44)
+local BASALT_LIGHT = Color3.fromRGB(78, 70, 66)
+local OBSIDIAN = Color3.fromRGB(26, 19, 20)
+local LAVA = Color3.fromRGB(255, 110, 30)
+local LAVA_LIGHT = Color3.fromRGB(255, 195, 80)
 -- Oro, plata y bronce para los tres primeros del ranking.
 local RANK_COLORS = { Color3.fromRGB(255, 215, 90), Color3.fromRGB(215, 220, 230), Color3.fromRGB(225, 150, 90) }
 
@@ -807,6 +813,267 @@ local function standingBoard(
 	return board
 end
 
+-- Cartel del pase de temporada, como salido del volcán: postes de bloques de basalto con grietas de
+-- lava, tablón de obsidiana (el contenido lo dibuja PassBoardController), cabecera de piedra con las
+-- letras de lava y gotas que cuelgan, braseros de lava en lo alto de los postes y un volcán de bloques
+-- coronándolo, con humo y brasas que salen del cráter. Devuelve el tablón.
+local function volcanoBoard(parent: Instance, name: string, at: Vector2, width: number, height: number): Part
+	local ground = groundAt(at.X, at.Y)
+	local bottom = 4.5 -- del suelo al borde de abajo del tablón
+	local center = ground + Vector3.new(0, bottom + height / 2, 0)
+	local frame = CFrame.lookAt(center, Vector3.new(PLAZA.X, center.Y, PLAZA.Y))
+	local model = Instance.new("Model")
+	model.Name = name
+	local board = newPart(name, Vector3.new(width, height, 0.5), frame, OBSIDIAN, Enum.Material.Basalt, model)
+	-- Marco de basalto con una veta de lava por dentro (un poco por delante del tablón).
+	for _, side in { -1, 1 } do
+		newPart(
+			"Larguero",
+			Vector3.new(width + 0.6, 0.6, 0.8),
+			frame * CFrame.new(0, side * (height / 2 + 0.3), -0.1),
+			BASALT_STONE,
+			Enum.Material.Basalt,
+			model
+		)
+		decor(
+			newPart(
+				"VetaLava",
+				Vector3.new(width - 0.2, 0.12, 0.1),
+				frame * CFrame.new(0, side * (height / 2 - 0.05), -0.3),
+				LAVA,
+				Enum.Material.Neon,
+				model
+			)
+		)
+		decor(
+			newPart(
+				"VetaLava",
+				Vector3.new(0.12, height - 0.2, 0.1),
+				frame * CFrame.new(side * (width / 2 - 0.05), 0, -0.3),
+				LAVA,
+				Enum.Material.Neon,
+				model
+			)
+		)
+	end
+	-- Postes: bloques de basalto apilados, cada uno un poco desplazado, con una grieta de lava que sube
+	-- en zigzag por la cara de delante.
+	local postTop = height / 2 + 3
+	local postBottom = -(height / 2 + bottom + 1)
+	for _, side in { -1, 1 } do
+		local x = side * (width / 2 + 0.95)
+		local y = postBottom
+		local index = 0
+		while y < postTop do
+			index += 1
+			local blockHeight = math.min(1.4, postTop - y)
+			local shift = (index % 2) * 0.12 * side
+			newPart(
+				"PosteCartel",
+				Vector3.new(1.7, blockHeight, 1.7),
+				frame * CFrame.new(x + shift, y + blockHeight / 2, 0.1),
+				if index % 3 == 0 then BASALT_LIGHT else BASALT_STONE,
+				Enum.Material.Basalt,
+				model
+			)
+			if y > postBottom + 1 then
+				-- Zigzag: cada tramo se desplaza a un lado y se une con el anterior por un tramo corto.
+				local crackX = x + shift + (if index % 2 == 0 then 0.3 else -0.25)
+				local color = if index % 2 == 0 then LAVA else LAVA_LIGHT
+				decor(
+					newPart(
+						"GrietaLava",
+						Vector3.new(0.14, blockHeight * 0.85, 0.1),
+						frame * CFrame.new(crackX, y + blockHeight * 0.45, -0.78),
+						color,
+						Enum.Material.Neon,
+						model
+					)
+				)
+				local previousX = x + (1 - index % 2) * 0.12 * side + (if index % 2 == 0 then -0.25 else 0.3)
+				decor(
+					newPart(
+						"GrietaLava",
+						Vector3.new(math.abs(crackX - previousX) + 0.14, 0.14, 0.1),
+						frame * CFrame.new((crackX + previousX) / 2, y + 0.02, -0.78),
+						color,
+						Enum.Material.Neon,
+						model
+					)
+				)
+			end
+			y += blockHeight
+		end
+		-- Brasero de lava en lo alto.
+		newPart(
+			"Brasero",
+			Vector3.new(2.1, 0.7, 2.1),
+			frame * CFrame.new(x, postTop + 0.35, 0.1),
+			OBSIDIAN,
+			Enum.Material.Basalt,
+			model
+		)
+		local ember = decor(
+			newPart(
+				"Brasas",
+				Vector3.new(1.5, 0.35, 1.5),
+				frame * CFrame.new(x, postTop + 0.8, 0.1),
+				LAVA,
+				Enum.Material.Neon,
+				model
+			)
+		)
+		local fire = Instance.new("Fire")
+		fire.Size = 2.5
+		fire.Heat = 5
+		fire.Color = LAVA
+		fire.SecondaryColor = LAVA_LIGHT
+		fire.Parent = ember
+		-- Luz floja: una más fuerte teñiría de naranja el contenido del cartel.
+		light(ember, LAVA, 8, 0.7)
+	end
+	-- Cabecera: dintel de piedra con las letras de lava y gotas de lava colgando.
+	local headerY = height / 2 + 1.8
+	local header = newPart(
+		"Cabecera",
+		Vector3.new(width * 0.97, 2.5, 0.9),
+		frame * CFrame.new(0, headerY, -0.1),
+		BASALT_STONE,
+		Enum.Material.Basalt,
+		model
+	)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0
+	gui.Parent = header
+	local label = Instance.new("TextLabel")
+	label.Position = UDim2.fromScale(0.04, 0.12)
+	label.Size = UDim2.fromScale(0.92, 0.76)
+	label.BackgroundTransparency = 1
+	label.Text = "PASE DE TEMPORADA"
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.Parent = gui
+	local glow = Instance.new("UIGradient")
+	glow.Rotation = 90
+	glow.Color = ColorSequence.new(LAVA_LIGHT, LAVA)
+	glow.Parent = label
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(60, 15, 5)
+	stroke.Thickness = 3
+	stroke.Parent = label
+	for index, drip in
+		{
+			{ x = -0.36, length = 0.9 },
+			{ x = -0.12, length = 0.5 },
+			{ x = 0.18, length = 1.1 },
+			{ x = 0.4, length = 0.6 },
+		}
+	do
+		decor(
+			newPart(
+				"GotaLava",
+				Vector3.new(0.3, drip.length, 0.3),
+				frame * CFrame.new(drip.x * width, headerY - 1.25 - drip.length / 2, -0.4),
+				if index % 2 == 0 then LAVA_LIGHT else LAVA,
+				Enum.Material.Neon,
+				model
+			)
+		)
+	end
+	-- Volcán de bloques sobre la cabecera: una montaña de escalones bajos, el borde del cráter con el lago
+	-- de lava dentro y dos coladas que bajan por delante escalón a escalón, cada vez más abiertas. Poco
+	-- fondo, para que no se vea como una montaña detrás del cartel.
+	local volcanoY = headerY + 1.25
+	local layers = {
+		{ width = 8.4, height = 0.8, depth = 3.4 },
+		{ width = 7, height = 0.8, depth = 3.1 },
+		{ width = 5.8, height = 0.8, depth = 2.8 },
+		{ width = 4.8, height = 0.8, depth = 2.5 },
+		{ width = 3.9, height = 0.8, depth = 2.2 },
+	}
+	local fronts: { { y: number, height: number, depth: number } } = {}
+	for index, layer in layers do
+		newPart(
+			"Volcan",
+			Vector3.new(layer.width, layer.height, layer.depth),
+			frame * CFrame.new(0, volcanoY + layer.height / 2, 0),
+			if index % 2 == 0 then BASALT_LIGHT else BASALT_STONE,
+			Enum.Material.Basalt,
+			model
+		)
+		table.insert(fronts, { y = volcanoY + layer.height / 2, height = layer.height, depth = layer.depth })
+		volcanoY += layer.height
+	end
+	-- Borde del cráter: dos lados y el fondo, con el lago de lava entre ellos.
+	for _, side in { -1, 1 } do
+		newPart(
+			"Volcan",
+			Vector3.new(0.9, 0.7, 2),
+			frame * CFrame.new(side * 1.3, volcanoY + 0.35, 0),
+			BASALT_STONE,
+			Enum.Material.Basalt,
+			model
+		)
+	end
+	newPart(
+		"Volcan",
+		Vector3.new(1.8, 0.7, 0.6),
+		frame * CFrame.new(0, volcanoY + 0.35, 0.7),
+		BASALT_STONE,
+		Enum.Material.Basalt,
+		model
+	)
+	local crater = decor(
+		newPart(
+			"Crater",
+			Vector3.new(1.7, 0.3, 1.4),
+			frame * CFrame.new(0, volcanoY + 0.15, -0.2),
+			LAVA_LIGHT,
+			Enum.Material.Neon,
+			model
+		)
+	)
+	-- Coladas: de arriba abajo, cada escalón un poco más hacia fuera.
+	for step = 1, #fronts do
+		local front = fronts[#fronts - step + 1]
+		for _, side in { -1, 1 } do
+			decor(
+				newPart(
+					"ColadaLava",
+					Vector3.new(0.5, front.height + 0.02, 0.1),
+					frame * CFrame.new(side * (0.35 + step * 0.42), front.y, -front.depth / 2 - 0.04),
+					if step % 2 == 0 then LAVA else LAVA_LIGHT,
+					Enum.Material.Neon,
+					model
+				)
+			)
+		end
+	end
+	local smoke = Instance.new("Smoke")
+	smoke.Color = Color3.fromRGB(70, 60, 58)
+	smoke.Opacity = 0.25
+	smoke.RiseVelocity = 3
+	smoke.Size = 2
+	smoke.Parent = crater
+	local embers = Instance.new("ParticleEmitter")
+	embers.Color = ColorSequence.new(LAVA_LIGHT, LAVA)
+	embers.LightEmission = 0.6
+	embers.Size = NumberSequence.new(0.2, 0)
+	embers.Lifetime = NumberRange.new(1, 1.8)
+	embers.Rate = 6
+	embers.Speed = NumberRange.new(3, 5)
+	embers.SpreadAngle = Vector2.new(25, 25)
+	embers.Acceleration = Vector3.new(0, -4, 0)
+	embers.Parent = crater
+	light(crater, LAVA, 10, 1)
+	model.Parent = parent
+	return board
+end
+
 -- Cartelito que indica un bote, con el aspecto de los carteles grandes en pequeño: tablón rojo con
 -- el texto dorado, largueros y dos postes de madera oscura con su farol, clavado en el suelo bajo
 -- (x, z) y de cara a la plaza. En la bajada a la orilla los postes se alargan para que el tablón
@@ -1018,9 +1285,21 @@ local function buildBoards(parent: Instance)
 	CollectionService:AddTag(arena, Config.Lobby.ArenaBoardTag)
 	station(arena, "Arena", "🎖️", "ArenaPrompt", "Jugar en la arena", Config.PlaceNames.DunasShort)
 
-	local pass = standingBoard(parent, "TablaPase", PASS_BOARD_AT, 12, 7.5, "🌋 PASE DE TEMPORADA", nil, 0.95)
+	local pass = volcanoBoard(parent, "TablaPase", PASS_BOARD_AT, 12, 7.5)
 	CollectionService:AddTag(pass, Config.Lobby.PassBoardTag)
 	station(pass, "Pase", "🌋", "PassPrompt", "Ver el pase", "Pase de temporada")
+	-- El aviso, en el poste derecho a media altura (en el centro tapaba lo que dibuja el cartel, y a los
+	-- pies quedaba detrás del botón de viaje de abajo de la pantalla), y el icono flotante por encima
+	-- del volcán.
+	local promptSpot = Instance.new("Attachment")
+	promptSpot.Name = "AvisoPase"
+	promptSpot.Position = Vector3.new(pass.Size.X / 2 + 1.2, -pass.Size.Y / 4, -1.3)
+	promptSpot.Parent = pass
+	local passPrompt = pass:FindFirstChild("PassPrompt")
+	if passPrompt then
+		passPrompt.Parent = promptSpot
+	end
+	pass:SetAttribute("StationIconLift", 11)
 
 	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, "ELIGE TU ROL")
 	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)

@@ -101,7 +101,12 @@ local function build(player: Player, part: BasePart, id: string, icon: string): 
 	gui.Name = `Estacion_{id}`
 	gui.Adornee = part
 	gui.Size = UDim2.fromOffset(MARKER_SIZE, MARKER_SIZE)
-	local clearance = if id == "Mascotas" then NEST_CLEARANCE else BOARD_CLEARANCE
+	-- Una estación puede pedir su altura ("StationIconLift": el cartel del pase lleva un volcán encima).
+	local lift = part:GetAttribute("StationIconLift")
+	local clearance = if typeof(lift) == "number"
+		then lift
+		elseif id == "Mascotas" then NEST_CLEARANCE
+		else BOARD_CLEARANCE
 	local offset = Vector3.new(0, part.Size.Y / 2 + clearance, 0)
 	gui.StudsOffsetWorldSpace = offset
 	gui.MaxDistance = MAX_DISTANCE
