@@ -2,14 +2,19 @@
 -- Guardado de datos en la Isla (Fase 2.8): carga el perfil de cada jugador (Ámbar, récord…) y,
 -- al terminar la partida, suma el Ámbar, el récord de días, la partida jugada y la XP del rol.
 -- Una partida terminada con el panel de pruebas ("test" en el resumen) da el Ámbar y la XP, pero no
--- toca el récord de días, los rescates ni el ranking.
+-- toca el récord de días, los rescates ni el ranking. Ganar con el equipo del nivel 4 de tu rol (su
+-- arma de rol y la armadura volcánica) da su traje mítico (Data/Cosmetics, earned "MasterVictory").
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
+local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local BossService = require(script.Parent.BossService)
@@ -17,6 +22,47 @@ local MatchService = require(script.Parent.MatchService)
 local MonkeyService = require(script.Parent.MonkeyService)
 
 local DataService = {}
+
+-- Si "player" lleva el equipo del nivel 4 de "roleId": la armadura volcánica y su arma de rol del
+-- último nivel (en la mochila, en la mano o en StarterGear).
+local function hasMasterKit(player: Player, roleId: string): boolean
+	if player:GetAttribute("Armor") ~= "VolcanicArmor" then
+		return false
+	end
+	local containers: { Instance? } =
+		{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), player.Character }
+	for _, container in containers do
+		for _, tool in if container then container:GetChildren() else {} do
+			local weaponId = tool:GetAttribute("WeaponId")
+			if tool:IsA("Tool") and typeof(weaponId) == "string" then
+				local weaponRole, level = WeaponTools.roleLevel(weaponId)
+				if weaponRole == roleId and level >= WeaponTools.MAX_LEVEL then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+-- Trajes míticos de "roleId" que se ganan venciendo con su equipo del nivel 4.
+local function grantMasterOutfits(player: Player, roleId: string)
+	if not hasMasterKit(player, roleId) then
+		return
+	end
+	for cosmeticId, cosmetic in Cosmetics do
+		if
+			cosmetic.source.earned == "MasterVictory"
+			and cosmetic.role == roleId
+			and CosmeticsServer.grant(player, cosmeticId)
+		then
+			Remotes.Notify:FireClient(
+				player,
+				`{cosmetic.icon} ¡Cosmético MÍTICO ganado! {cosmetic.name}. Póntelo en el Armario (Lobby)`
+			)
+		end
+	end
+end
 
 local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	local role = player:GetAttribute("Role")
@@ -34,6 +80,10 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 			profile.roleXp[role] = (profile.roleXp[role] or 0) + xp
 		end
 	end)
+	-- En Studio también cuenta una victoria del panel de pruebas, para poder probarlo.
+	if summary.result == "Victory" and (not summary.test or RunService:IsStudio()) and typeof(role) == "string" then
+		grantMasterOutfits(player, role)
+	end
 	PlayerData.saveNow(player)
 	Remotes.Notify:FireClient(
 		player,

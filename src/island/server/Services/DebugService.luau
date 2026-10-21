@@ -38,7 +38,7 @@ local RoleService = require(script.Parent.RoleService)
 local SiegeService = require(script.Parent.SiegeService)
 local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
-local ArmorModels = require(ServerScriptService.Combat.ArmorModels)
+local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
@@ -329,7 +329,7 @@ end
 -- Armaduras por las que va pasando "Siguiente armadura" (nil = ninguna).
 local ARMOR_CYCLE = { "FurVest", "BoneArmor", "SilverArmor", "VolcanicArmor" }
 
--- Pone la siguiente armadura (o ninguna, tras la última) para ver sus modelos (Combat/ArmorModels).
+-- Pone la siguiente armadura (o ninguna, tras la última) para ver sus modelos (Shared/ArmorModels).
 local function nextArmor(player: Player)
 	local current = player:GetAttribute("Armor")
 	local index = if typeof(current) == "string" then table.find(ARMOR_CYCLE, current) else nil
@@ -339,14 +339,7 @@ local function nextArmor(player: Player)
 	if not character then
 		return
 	end
-	if armorId then
-		ArmorModels.wear(character, armorId, player:GetAttribute("Role"))
-	else
-		local piece = character:FindFirstChild("ArmorPiece")
-		if piece then
-			piece:Destroy()
-		end
-	end
+	ArmorModels.dress(player, character)
 	Remotes.Notify:FireClient(
 		player,
 		`🛡️ {if armorId then Crafting.armorName(armorId, player:GetAttribute("Role")) else "Sin armadura"}`

@@ -9,11 +9,19 @@
 -- golpea (el filo del hacha, el del machete). "tool.Grip" marca dónde va la mano. En la mayoría el
 -- "Handle" es invisible y solo sostiene las piezas. En Studio, el panel de pruebas tiene un
 -- expositor con todas (DebugService). Está en Shared porque el panel de Ajustes (UI/SettingsPanel)
--- también dibuja el arma en la mano del personaje de la vista previa.
+-- y el Armario (UI/WardrobePanel) también dibujan el arma en la mano del personaje de la vista previa.
+--
+-- Aspectos de arma (cosméticos "WeaponSkin" de Data/Cosmetics, Fase 9): cambian el modelo del arma
+-- de un rol (la inicial y sus mejoras, del nivel 1 al 4) por otro con la misma empuñadura ("Grip") y
+-- un tamaño parecido; el nivel se nota en el aspecto (los míticos ganan piezas con cada uno). El
+-- aspecto equipado del rol lo publica CosmeticsServer en el atributo "WeaponSkin" del jugador.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
+local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 
@@ -1317,6 +1325,203 @@ local function buildStaff(tool: Tool, style: StaffStyle): BasePart
 	return handle
 end
 
+-- ===================================== Míticos: dioses de la selva =====================================
+-- Aspectos de arma míticos (Data/Cosmetics "WeaponSkin", rareza "Mythic"): sustituyen al arma de su
+-- rol en cada nivel con la misma empuñadura y el mismo largo que el arma de ese nivel, y ganan piezas
+-- con él. Piedra tallada, oro y jade; lo que brilla es oro de sol (el verde que brilla es de las
+-- curaciones).
+
+local TITAN_STONE = Color3.fromRGB(132, 138, 122)
+local TITAN_STONE_DARK = Color3.fromRGB(92, 98, 88)
+local TITAN_GOLD = Color3.fromRGB(232, 182, 64)
+local SUN_GLOW = Color3.fromRGB(255, 214, 110)
+local JADE = Color3.fromRGB(44, 158, 126)
+local JADE_LIGHT = Color3.fromRGB(110, 214, 176)
+
+-- Cristal de jade de "length" desde "at" (su base) hacia su +Y: funda translúcida y núcleo de jade.
+local function jadeCrystal(handle: BasePart, length: number, width: number, at: CFrame)
+	tooth(handle, "Jade", length, width, width, JADE_LIGHT, GLASS, at * CFrame.new(0, length / 2, 0))
+	tooth(
+		handle,
+		"JadeCore",
+		length * 0.7,
+		width * 0.5,
+		width * 0.5,
+		JADE,
+		SMOOTH,
+		at * CFrame.new(0, length * 0.35, 0)
+	)
+end
+
+-- Maza del Rey Gorila (guerrero): mango de piedra con anillos de oro y, de cabeza, un puño de gorila de
+-- piedra con los nudillos hacia donde golpea (-Z), el pulgar cruzado y un puño de oro en la muñeca.
+-- Nivel 1 (como el garrote de piedra): un anillo de oro. Nivel 2 (maza de hueso): dos anillos, bandas
+-- de oro en el mango y un pomo de jade. Nivel 3 (mazo de hueso grueso, más largo y cogido por el centro):
+-- más grande, con nudilleras de oro en punta, un óvalo de jade en el dorso y borlas de pelaje de gorila
+-- en la muñeca. Nivel 4 (mazo volcánico): un aro de sol alrededor de la muñeca con rayos que brillan,
+-- vetas de oro encendidas en los dedos, cristales de jade saliendo del dorso, luz y motas de sol.
+local function buildTitanKingMace(tool: Tool, level: number): BasePart
+	local long = level >= 3
+	-- Mismo agarre y alto de la cabeza que el arma del nivel (garrote y maza; mazos de nivel 3 y 4).
+	local handle = hiddenHandle(tool, if long then Vector3.new(0.5, 1.7, 0.5) else Vector3.new(0.4, 2.6, 0.4))
+	local scale = ({ 1.05, 1.18, 1.4, 1.55 })[level] or 1
+	local headY = if long then 3.25 else 2.35
+	local shaftTop = headY - 0.5 * scale
+	local shaftBottom = if long then -1 else -1.3
+	rod(
+		handle,
+		"Shaft",
+		shaftTop - shaftBottom,
+		if long then 0.44 else 0.36,
+		TITAN_STONE_DARK,
+		STONE_MATERIAL,
+		CFrame.new(0, (shaftTop + shaftBottom) / 2, 0)
+	)
+	rod(
+		handle,
+		"Wrap",
+		if long then 1.5 else 0.9,
+		if long then 0.52 else 0.42,
+		Color3.fromRGB(120, 34, 34),
+		FABRIC,
+		CFrame.new(0, if long then 0 else -0.7, 0)
+	)
+	if level >= 2 then
+		for _, y in { shaftTop - 0.35, if long then 0.9 else -0.15 } do
+			rod(handle, "Band", 0.1, if long then 0.54 else 0.46, TITAN_GOLD, SMOOTH, CFrame.new(0, y, 0))
+		end
+		ball(handle, "Pommel", if long then 0.62 else 0.5, JADE, SMOOTH, CFrame.new(0, shaftBottom - 0.12, 0))
+		rod(
+			handle,
+			"PommelCup",
+			0.1,
+			if long then 0.56 else 0.46,
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(0, shaftBottom + 0.05, 0)
+		)
+	else
+		rod(handle, "Butt", 0.2, 0.44, TITAN_STONE, STONE_MATERIAL, CFrame.new(0, shaftBottom, 0))
+	end
+
+	-- El puño: palma, cuatro dedos doblados con sus nudillos delante y el pulgar cruzado por debajo.
+	local function at(x: number, y: number, z: number): CFrame
+		return CFrame.new(x * scale, headY + y * scale, z * scale)
+	end
+	block(handle, "Palm", Vector3.new(1, 0.95, 0.8) * scale, TITAN_STONE, STONE_MATERIAL, at(0, 0, 0.05))
+	block(handle, "Wrist", Vector3.new(0.8, 0.3, 0.7) * scale, TITAN_STONE_DARK, STONE_MATERIAL, at(0, -0.55, 0.05))
+	rod(handle, "Cuff", 0.26 * scale, 0.98 * scale, TITAN_GOLD, SMOOTH, at(0, -0.5, 0.05))
+	for finger = 1, 4 do
+		local x = -0.375 + (finger - 1) * 0.25
+		block(handle, "Finger", Vector3.new(0.23, 0.32, 0.44) * scale, TITAN_STONE, STONE_MATERIAL, at(x, 0.28, -0.42))
+		block(
+			handle,
+			"Finger",
+			Vector3.new(0.23, 0.52, 0.26) * scale,
+			TITAN_STONE_DARK,
+			STONE_MATERIAL,
+			at(x, -0.06, -0.58)
+		)
+		ball(handle, "Knuckle", 0.27 * scale, TITAN_STONE, STONE_MATERIAL, at(x, 0.27, -0.62))
+		if finger == 2 or (level >= 2 and finger == 3) then
+			rod(handle, "Ring", 0.12 * scale, 0.3 * scale, TITAN_GOLD, SMOOTH, at(x, 0.28, -0.4) * TO_Z)
+		end
+		if level >= 3 then
+			tooth(
+				handle,
+				"Spike",
+				0.3 * scale,
+				0.14 * scale,
+				0.14 * scale,
+				TITAN_GOLD,
+				SMOOTH,
+				at(x, 0.27, -0.8) * CFrame.Angles(-math.pi / 2, 0, 0)
+			)
+		end
+		if level >= 4 then
+			local vein =
+				block(handle, "Vein", Vector3.new(0.035, 0.36, 0.04) * scale, SUN_GLOW, NEON, at(x, -0.06, -0.72))
+			if finger == 1 then
+				glow(vein, SUN_GLOW, 8)
+			end
+		end
+	end
+	block(
+		handle,
+		"Thumb",
+		Vector3.new(0.3, 0.28, 0.62) * scale,
+		TITAN_STONE,
+		STONE_MATERIAL,
+		at(-0.56, -0.2, -0.28) * CFrame.Angles(0, 0.25, 0)
+	)
+	ball(handle, "ThumbTip", 0.28 * scale, TITAN_STONE_DARK, STONE_MATERIAL, at(-0.4, -0.22, -0.58))
+
+	if level >= 3 then
+		block(handle, "InlayRim", Vector3.new(0.58, 0.5, 0.1) * scale, TITAN_GOLD, SMOOTH, at(0, 0.05, 0.47))
+		block(handle, "Inlay", Vector3.new(0.46, 0.38, 0.12) * scale, JADE, SMOOTH, at(0, 0.05, 0.49))
+		-- Cuentas de jade engastadas alrededor del puño de oro de la muñeca.
+		for index = 0, 5 do
+			local angle = index * math.pi / 3
+			ball(
+				handle,
+				"Bead",
+				0.17 * scale,
+				JADE,
+				SMOOTH,
+				at(0, -0.5, 0.05) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.5)
+			)
+		end
+	end
+
+	if level >= 4 then
+		-- Aro de sol de pie detrás del puño (como el halo del traje): diez tramos de oro con rayos de oro
+		-- y rayos de sol que brillan, alternos.
+		local center = at(0, 0, 0.56)
+		local radius = 0.82 * scale
+		for index = 0, 9 do
+			local angle = index * math.pi / 5
+			block(
+				handle,
+				"SunRing",
+				Vector3.new(2 * radius * math.sin(math.pi / 10) + 0.04, 0.1, 0.1),
+				TITAN_GOLD,
+				SMOOTH,
+				center * CFrame.Angles(0, 0, angle + math.pi / 10) * CFrame.new(0, radius * math.cos(math.pi / 10), 0)
+			)
+			local ray = center * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius + 0.2, 0)
+			if index % 2 == 0 then
+				tooth(handle, "SunRay", 0.4, 0.14, 0.08, TITAN_GOLD, SMOOTH, ray)
+			else
+				tooth(handle, "SunRay", 0.32, 0.1, 0.06, SUN_GLOW, NEON, ray)
+			end
+		end
+		-- Cristales de jade que salen del dorso del puño, hacia atrás y arriba.
+		for index, x in { -0.28, 0, 0.28 } do
+			jadeCrystal(
+				handle,
+				if index == 2 then 0.7 else 0.5,
+				0.2,
+				at(x, 0.3, 0.3) * CFrame.Angles(math.rad(35), 0, -x)
+			)
+		end
+		local crown = block(handle, "Crown", Vector3.new(0.6, 0.08, 0.5) * scale, TITAN_GOLD, SMOOTH, at(0, 0.5, 0.05))
+		local motes = Instance.new("ParticleEmitter")
+		motes.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		motes.Color = ColorSequence.new(SUN_GLOW, TITAN_GOLD)
+		motes.LightEmission = 1
+		motes.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 0) })
+		motes.Transparency = NumberSequence.new(0.15, 1)
+		motes.Lifetime = NumberRange.new(0.8, 1.4)
+		motes.Rate = 6
+		motes.Speed = NumberRange.new(0.4, 1)
+		motes.SpreadAngle = Vector2.new(60, 60)
+		motes.Parent = crown
+	end
+
+	tool.Grip = CFrame.new(0, if long then -0.2 else -0.7, 0)
+	return handle
+end
+
 -- ===================================== Lista =====================================
 
 local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
@@ -1705,10 +1910,75 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 }
 
-function WeaponTools.build(weaponId: string): Tool
+-- Aspectos de arma (Data/Cosmetics "WeaponSkin"), por id del cosmético: reciben el nivel del arma de
+-- rol que sustituyen (1 la inicial, MAX_LEVEL la de la forja volcánica).
+local SKINS: { [string]: (tool: Tool, level: number) -> BasePart } = {
+	TitanKingMace = buildTitanKingMace,
+}
+WeaponTools.MAX_LEVEL = 4
+
+-- Rol y nivel de cada arma de rol: la inicial (Data/Roles, la primera de "weapons") es la 1 y cada
+-- receta del rol que la mejora ("upgrades") suma uno.
+local roleLevels: { [string]: { role: string, level: number } } = {}
+for roleId, role in Roles do
+	local weaponId: string? = role.weapons[1]
+	local level = 1
+	while weaponId and not roleLevels[weaponId] do
+		roleLevels[weaponId] = { role = roleId, level = level }
+		local nextId: string? = nil
+		for _, recipe in Recipes do
+			if recipe.role == roleId and recipe.upgrades == weaponId and recipe.weaponId then
+				nextId = recipe.weaponId
+			end
+		end
+		weaponId = nextId
+		level += 1
+	end
+end
+
+-- Rol y nivel (1 a MAX_LEVEL) de un arma de rol; nil si no es de ningún rol.
+function WeaponTools.roleLevel(weaponId: string): (string?, number)
+	local entry = roleLevels[weaponId]
+	return if entry then entry.role else nil, if entry then entry.level else 0
+end
+
+-- Arma inicial de un rol con el nivel "level" (para la vista previa del Armario).
+function WeaponTools.roleWeapon(roleId: string, level: number): string?
+	for weaponId, entry in roleLevels do
+		if entry.role == roleId and entry.level == level then
+			return weaponId
+		end
+	end
+	return nil
+end
+
+function WeaponTools.hasSkin(skinId: string): boolean
+	return SKINS[skinId] ~= nil
+end
+
+-- El constructor del aspecto "skinId" si es del rol del arma "weaponId", y el nivel del arma.
+local function skinFor(weaponId: string, skinId: any): ((tool: Tool, level: number) -> BasePart)?
+	local roleId = WeaponTools.roleLevel(weaponId)
+	local cosmetic = if typeof(skinId) == "string" then Cosmetics[skinId] else nil
+	return if roleId and cosmetic and cosmetic.role == roleId then SKINS[skinId] else nil
+end
+
+-- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol.
+local function fill(tool: Tool, weaponId: string, skinId: string?)
+	local _, level = WeaponTools.roleLevel(weaponId)
+	local skin = skinFor(weaponId, skinId)
+	tool:SetAttribute("Skin", if skin then skinId else nil)
+	if skin then
+		skin(tool, level)
+	else
+		BUILDERS[weaponId](tool)
+	end
+end
+
+-- Construye el arma "weaponId" como Tool. Con "skinId" (un aspecto de su rol), con ese aspecto.
+function WeaponTools.build(weaponId: string, skinId: string?): Tool
 	local weapon = Weapons[weaponId]
-	local builder = BUILDERS[weaponId]
-	assert(weapon and builder, `Arma desconocida: {weaponId}`)
+	assert(weapon and BUILDERS[weaponId], `Arma desconocida: {weaponId}`)
 
 	local tool = Instance.new("Tool")
 	tool.Name = weapon.name
@@ -1727,8 +1997,43 @@ function WeaponTools.build(weaponId: string): Tool
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)
 
-	builder(tool)
+	fill(tool, weaponId, skinId)
 	return tool
+end
+
+-- Cambia el aspecto de las armas de rol de "player" (mochila, mano y StarterGear) al de su atributo
+-- "WeaponSkin" (o al de siempre si no lleva). Se cambian las piezas dentro de la misma Tool, así no
+-- se mueve de su casilla; la que tenía en la mano se suelta y se vuelve a coger.
+function WeaponTools.reskin(player: Player)
+	local skinId = player:GetAttribute("WeaponSkin")
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	local containers: { Instance? } =
+		{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), character }
+	for _, container in containers do
+		for _, tool in if container then container:GetChildren() else {} do
+			local weaponId = tool:GetAttribute("WeaponId")
+			if
+				tool:IsA("Tool")
+				and typeof(weaponId) == "string"
+				and tool:GetAttribute("Skin") ~= (if skinFor(weaponId, skinId) then skinId else nil)
+			then
+				local inHand = container == character and humanoid ~= nil
+				if inHand and humanoid then
+					humanoid:UnequipTools()
+				end
+				for _, child in tool:GetChildren() do
+					if child:IsA("BasePart") then
+						child:Destroy()
+					end
+				end
+				fill(tool, weaponId, if typeof(skinId) == "string" then skinId else nil)
+				if inHand and humanoid then
+					humanoid:EquipTool(tool)
+				end
+			end
+		end
+	end
 end
 
 -- Sonido de uso, audible para todos. La animación del tajo la reproduce el cliente

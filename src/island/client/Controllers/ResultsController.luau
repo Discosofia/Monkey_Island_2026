@@ -137,7 +137,7 @@ local function show(summary: { [string]: any })
 	end
 	if summary.newTitle then
 		table.insert(lines, {
-			text = "🏝️ ¡Nuevo título: Superviviente de la Isla! Póntelo en Estilo (Lobby)",
+			text = "🏝️ ¡Nuevo título: Superviviente de la Isla! Póntelo en el Armario (Lobby)",
 			height = 0.07,
 			color = Color3.fromRGB(255, 160, 70),
 		})

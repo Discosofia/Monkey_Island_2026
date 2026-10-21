@@ -17,7 +17,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
-local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Building = require(ReplicatedStorage.Shared.Building)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -38,7 +37,7 @@ local BasecampService = require(script.Parent.BasecampService)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local InventoryService = require(script.Parent.InventoryService)
 local AbilityFx = require(ServerScriptService.Combat.AbilityFx)
-local ArmorModels = require(ServerScriptService.Combat.ArmorModels)
+local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local CombatText = require(ServerScriptService.Combat.CombatText)
 
 local PROMPT_NAME = "StationPrompt"
@@ -236,17 +235,14 @@ end
 
 -- Piezas soldadas al torso, la cintura, los brazos y los muslos (R15 o R6). Se vuelve a poner en
 -- cada reaparición.
--- Viste la armadura del jugador (Combat/ArmorModels); una nueva sustituye a la anterior.
+-- Viste la armadura del jugador (Shared/ArmorModels), o su traje si lleva uno (crece con la armadura);
+-- una nueva sustituye a la anterior.
 local function wearArmor(player: Player, character: Model)
-	local armorId = player:GetAttribute("Armor")
-	if typeof(armorId) ~= "string" or not Armor[armorId] then
-		return
-	end
 	-- Espera al torso (R15 o R6) antes de vestir.
 	if not (character:WaitForChild("UpperTorso", 5) or character:FindFirstChild("Torso")) then
 		return
 	end
-	ArmorModels.wear(character, armorId, player:GetAttribute("Role"))
+	ArmorModels.dress(player, character)
 end
 
 -- Quita una herramienta de la mochila, la mano y StarterGear. Devuelve true si estaba equipada.
@@ -300,8 +296,11 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 			wasEquipped = removeWeapon(player, weaponId) or wasEquipped
 		end
 		markReplacedOwned(player, recipe)
-		local tool = WeaponTools.build(recipe.weaponId)
-		-- La mejora de un arma de rol sigue siendo del rol: si cambia (panel de pruebas), se va con él.
+		-- La mejora de un arma de rol lleva el aspecto equipado del rol (CosmeticsServer) y sigue siendo
+		-- del rol: si cambia (panel de pruebas), se va con él.
+		local skinId = player:GetAttribute("WeaponSkin")
+		local tool =
+			WeaponTools.build(recipe.weaponId, if recipe.role and typeof(skinId) == "string" then skinId else nil)
 		if recipe.role then
 			tool:SetAttribute("RoleWeapon", true)
 		end
@@ -520,6 +519,8 @@ local function onUseHeal(player: Player)
 end
 
 function CraftingService:Start()
+	-- En la Isla los trajes míticos crecen con la armadura fabricada.
+	ArmorModels.growWithArmor = true
 	Remotes.Craft.OnServerEvent:Connect(onCraft)
 	Remotes.UseBandage.OnServerEvent:Connect(onUseHeal)
 

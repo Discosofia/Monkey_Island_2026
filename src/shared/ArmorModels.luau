@@ -1,6 +1,9 @@
 --!strict
--- Modelos de las armaduras (Data/Armor) que lleva puestas el personaje. CraftingService los pone al
--- fabricarlas y al reaparecer. Cada pieza va soldada a la parte del cuerpo que cubre (torso,
+-- Modelos de las armaduras (Data/Armor) que lleva puestas el personaje, y de los trajes (cosméticos
+-- "Outfit" de Data/Cosmetics, Fase 9), que se ponen en su lugar. Los viste "dress" con los atributos
+-- del jugador ("Armor", "Role" y "Outfit", que publica ServerShared/CosmeticsServer): CraftingService
+-- al fabricarlas y al reaparecer y CosmeticsServer al cambiar de traje. Está en Shared porque el
+-- Armario (UI/WardrobePanel) viste también el avatar de la vista previa. Cada pieza va soldada a la parte del cuerpo que cubre (torso,
 -- cintura, brazos y muslos), así se mueve con ella y no la atraviesa al andar o al golpear; las
 -- medidas salen del tamaño de esa parte, así quedan bien en cualquier avatar. En R6, que no tiene
 -- antebrazos ni cintura, se usa el trozo correspondiente del brazo, la pierna o el torso.
@@ -2874,6 +2877,445 @@ local function sulfurMantle(body: Body)
 	end
 end
 
+-- ===================================== Míticos: dioses de la selva =====================================
+-- Trajes míticos (Data/Cosmetics, rareza "Mythic"): lo más detallado del juego. Ganan piezas con el
+-- grado de la armadura que se lleva debajo (0 sin armadura, 4 con la volcánica; enteros en el Lobby y
+-- en Dunas). Piedra tallada, oro y jade; lo que brilla es oro de sol (el verde que brilla es solo de
+-- las curaciones, así que el jade va sin neón).
+
+local TITAN_STONE = Color3.fromRGB(132, 138, 122)
+local TITAN_STONE_DARK = Color3.fromRGB(92, 98, 88)
+local TITAN_CARVING = Color3.fromRGB(46, 44, 40)
+local TITAN_GOLD = Color3.fromRGB(232, 182, 64)
+local TITAN_GOLD_DARK = Color3.fromRGB(176, 128, 40)
+local SUN_GLOW = Color3.fromRGB(255, 214, 110)
+local JADE = Color3.fromRGB(44, 158, 126)
+local JADE_LIGHT = Color3.fromRGB(110, 214, 176)
+local ROYAL_RED = Color3.fromRGB(138, 34, 34)
+local LIANA = Color3.fromRGB(58, 104, 46)
+local ORCHID = Color3.fromRGB(236, 96, 150)
+
+-- Motas de sol que suben despacio (el ídolo, el disco solar).
+local function sunMotes(part: BasePart, rate: number)
+	local motes = Instance.new("ParticleEmitter")
+	motes.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	motes.Color = ColorSequence.new(SUN_GLOW, TITAN_GOLD)
+	motes.LightEmission = 1
+	motes.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0) })
+	motes.Transparency = NumberSequence.new(0.15, 1)
+	motes.Lifetime = NumberRange.new(1.2, 2)
+	motes.Rate = rate
+	motes.Speed = NumberRange.new(0.4, 1)
+	motes.SpreadAngle = Vector2.new(60, 60)
+	motes.Acceleration = Vector3.new(0, 0.8, 0)
+	motes.Parent = part
+end
+
+-- Cabeza de gorila tallada en piedra mirando a la -Z de "at", "size" studs de ancho y "depth" veces su
+-- fondo (en relieve sobre el peto, plana; el ídolo, entera): cráneo con cresta, orejas, cara hundida,
+-- cejas de furia, nariz ancha, boca y colmillos de oro. Devuelve los ojos (de "eye" y "eyeMaterial").
+local function stoneGorilla(
+	make: Builder,
+	at: CFrame,
+	size: number,
+	depth: number,
+	eye: Color3,
+	eyeMaterial: Enum.Material
+): { BasePart }
+	local function on(x: number, y: number, z: number): CFrame
+		return at * CFrame.new(x * size, y * size, z * size * depth)
+	end
+	local function scaled(x: number, y: number, z: number): Vector3
+		return Vector3.new(x * size, y * size, z * size * depth)
+	end
+	make.oval(scaled(1, 1, 0.6), TITAN_STONE, SLATE, on(0, 0, 0.1))
+	make.oval(scaled(0.46, 0.34, 0.4), TITAN_STONE, SLATE, on(0, 0.46, 0.16))
+	make.oval(scaled(0.74, 0.6, 0.26), TITAN_STONE_DARK, SLATE, on(0, -0.12, -0.14))
+	make.oval(scaled(0.46, 0.16, 0.12), TITAN_STONE, SLATE, on(0, -0.1, -0.28))
+	make.block(scaled(0.42, 0.06, 0.04), TITAN_CARVING, SMOOTH, on(0, -0.32, -0.27))
+	local eyes = {}
+	for side = -1, 1, 2 do
+		make.oval(scaled(0.18, 0.26, 0.14), TITAN_STONE_DARK, SLATE, on(side * 0.5, 0.02, 0.06))
+		make.oval(
+			scaled(0.42, 0.12, 0.2),
+			TITAN_STONE,
+			SLATE,
+			on(side * 0.18, 0.17, -0.2) * CFrame.Angles(0, 0, side * 0.3)
+		)
+		table.insert(eyes, make.ball(0.13 * size, eye, eyeMaterial, on(side * 0.17, 0.05, -0.24)))
+		make.ball(0.04 * size, TITAN_CARVING, SMOOTH, on(side * 0.09, -0.15, -0.32))
+		make.fang(
+			0.13 * size,
+			0.07 * size,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.13 + 0.035, -0.3, -0.28) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	return eyes
+end
+
+-- Cristal de jade (sin neón: el verde que brilla es de las curaciones): funda translúcida de jade
+-- claro con un núcleo de jade, de "length" desde "base" hacia "direction".
+local function jadeCrystal(make: Builder, base: Vector3, direction: Vector3, length: number, width: number)
+	local at = CFrame.lookAt(base, base + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+	local case = make.fang(length, width, JADE_LIGHT, GLASS, at)
+	case.Transparency = 0.2
+	make.fang(length * 0.75, width * 0.5, JADE, SMOOTH, at * CFrame.new(width * 0.25, 0, -width * 0.25))
+end
+
+-- Hombrera del Rey Gorila (grado 1+): almohadilla de piedra y dos láminas escalonadas con el canto de
+-- oro y, hundida en ellas, una cabeza de gorila de piedra que mira hacia fuera (con los ojos de sol
+-- encendidos desde el grado 3). Grado 4: tres cristales de jade que salen por detrás de la cabeza.
+local function titanPauldron(arm: Builder, side: number, grade: number)
+	local as = arm.size
+	local top = as.Y / 2
+	arm.oval(
+		Vector3.new(as.X * 1.4, 0.56, as.Z * 1.36),
+		TITAN_STONE_DARK,
+		SLATE,
+		CFrame.new(side * 0.12, top + 0.04, 0)
+	)
+	for index = 0, 1 do
+		local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
+			* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
+		arm.oval(
+			Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
+			TITAN_GOLD,
+			SMOOTH,
+			lame * CFrame.new(0, -0.07, 0)
+		)
+		arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), TITAN_STONE, SLATE, lame)
+	end
+	local lit = grade >= 3
+	stoneGorilla(
+		arm,
+		CFrame.new(side * as.X * 0.36, top + 0.3, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
+		0.86,
+		0.7,
+		if lit then SUN_GLOW else JADE,
+		if lit then NEON else SMOOTH
+	)
+	if grade >= 4 then
+		for _, z in { -0.26, 0, 0.26 } do
+			jadeCrystal(
+				arm,
+				Vector3.new(-side * 0.04, top + 0.24, z * as.Z),
+				Vector3.new(-side * 0.35, 1, z * 1.4),
+				if z == 0 then 0.66 else 0.48,
+				0.22
+			)
+		end
+	end
+end
+
+-- Traje mítico del guerrero, Rey Gorila Titán. Grado 0: túnica roja, peto de piedra con ribete de oro y
+-- la cara de un gorila en relieve, gorguera de oro con cuentas de jade, vientre de placas con tachones,
+-- placa de la espalda con un sol de oro y centro de jade, cinturón de piedra con hebilla de jade y
+-- taparrabos rojo con ribete de oro, brazaletes y muñequeras de oro con jade. Grado 1: hombreras con
+-- cabezas de gorila de piedra que miran hacia fuera. Grado 2: manto y capa de pelaje negro de gorila
+-- con el lomo plateado y flecos, broches de oro con cadena y faldones de piedra en los muslos. Grado 3:
+-- el ídolo, un busto de gorila de piedra enorme entre los omoplatos con ojos de sol que brillan y
+-- corona de oro con jade; se encienden los ojos de todas las cabezas y unas vetas de oro en el peto.
+-- Grado 4: disco solar de oro con doce rayos y cuatro cristales de jade detrás del ídolo (queda como
+-- un halo detrás de la cabeza), lianas con orquídeas colgando de él, cristales de jade en las
+-- hombreras y motas de sol que suben.
+local function titanKing(body: Body, grade: number)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2
+	local lit = grade >= 3
+	make.block(
+		Vector3.new(width + 0.1, height * 0.92, depth + 0.14),
+		ROYAL_RED,
+		FABRIC,
+		CFrame.new(0, -height * 0.03, 0)
+	)
+
+	-- Peto: dos pectorales de piedra en ángulo con el borde de abajo de oro y, entre ellos, el esternón
+	-- de piedra oscura con la cara del gorila en relieve entre dos franjas de oro.
+	for side = -1, 1, 2 do
+		local pec = CFrame.new(side * width * 0.25, height * 0.2, front - 0.03) * CFrame.Angles(0.1, -side * 0.14, 0)
+		make.block(Vector3.new(width * 0.44, height * 0.32, 0.1), TITAN_STONE, SLATE, pec)
+		make.block(
+			Vector3.new(width * 0.44, 0.07, 0.12),
+			TITAN_GOLD,
+			SMOOTH,
+			pec * CFrame.new(0, -height * 0.16, -0.01)
+		)
+	end
+	local plate = CFrame.new(0, height * 0.1, front - 0.08)
+	make.block(Vector3.new(width * 0.42, height * 0.52, 0.14), TITAN_STONE_DARK, SLATE, plate)
+	for _, y in { height * 0.26, -height * 0.26 } do
+		make.block(Vector3.new(width * 0.46, 0.08, 0.16), TITAN_GOLD, SMOOTH, plate * CFrame.new(0, y, -0.01))
+	end
+	stoneGorilla(
+		make,
+		plate * CFrame.new(0, -0.02, -0.07),
+		0.74,
+		0.35,
+		if lit then SUN_GLOW else JADE,
+		if lit then NEON else SMOOTH
+	)
+	if lit then
+		-- Vetas de oro encendidas por los pectorales y el vientre.
+		for side = -1, 1, 2 do
+			lavaVein(make, {
+				Vector3.new(side * width * 0.23, height * 0.34, front - 0.1),
+				Vector3.new(side * width * 0.3, height * 0.2, front - 0.1),
+				Vector3.new(side * width * 0.4, height * 0.28, front - 0.1),
+			}, 0.06, SUN_GLOW)
+			lavaVein(make, {
+				Vector3.new(side * width * 0.24, height * 0.12, front - 0.1),
+				Vector3.new(side * width * 0.36, height * 0.1, front - 0.1),
+			}, 0.06, SUN_GLOW)
+		end
+	end
+
+	-- Gorguera de oro con cuentas de jade.
+	for index = 0, 6 do
+		local angle = math.rad(-150 + index * 50)
+		make.block(
+			Vector3.new(0.28, 0.14, 0.16),
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
+				* CFrame.Angles(0, -angle, 0)
+		)
+		if index < 6 then
+			local mid = angle + math.rad(25)
+			make.ball(
+				0.15,
+				JADE,
+				SMOOTH,
+				CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
+			)
+		end
+	end
+
+	-- Vientre de placas de piedra con tachones de oro.
+	for row = 0, 1 do
+		for side = -1, 1, 2 do
+			local at = CFrame.new(side * width * 0.2, -height * 0.21 - row * height * 0.15, front - 0.01)
+			make.block(Vector3.new(width * 0.36, height * 0.12, 0.1), TITAN_STONE_DARK, SLATE, at)
+			make.ball(0.08, TITAN_GOLD, SMOOTH, at * CFrame.new(0, 0, -0.05))
+		end
+	end
+
+	-- Espalda: placa de piedra con cantos de oro y un sol de oro con el centro de jade.
+	make.block(
+		Vector3.new(width * 0.88, height * 0.86, 0.12),
+		TITAN_STONE,
+		SLATE,
+		CFrame.new(0, -height * 0.02, back + 0.08)
+	)
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.08, height * 0.86, 0.14),
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(side * width * 0.44, -height * 0.02, back + 0.09)
+		)
+	end
+	local sun = CFrame.new(0, -height * 0.1, back + 0.15)
+	make.rod(0.06, 0.5, TITAN_GOLD, SMOOTH, sun * FACING)
+	make.ball(0.2, JADE, SMOOTH, sun * CFrame.new(0, 0, 0.05))
+	for index = 0, 3 do
+		make.block(
+			Vector3.new(0.08, 0.26, 0.05),
+			TITAN_GOLD,
+			SMOOTH,
+			sun * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.38, 0)
+		)
+	end
+
+	-- Cinturón de piedra con banda de oro, hebilla de jade y taparrabos rojo delante y detrás.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.09)
+	waist.block(Vector3.new(hipWidth + 0.16, 0.26, hipDepth + 0.18), TITAN_STONE_DARK, SLATE, CFrame.new(0, 0.04, 0))
+	waist.block(Vector3.new(hipWidth + 0.18, 0.06, hipDepth + 0.2), TITAN_GOLD, SMOOTH, CFrame.new(0, 0.15, 0))
+	local buckle = CFrame.new(0, 0.04, beltFront - 0.03)
+	waist.rod(0.06, 0.44, TITAN_GOLD, SMOOTH, buckle * FACING)
+	waist.oval(Vector3.new(0.32, 0.3, 0.12), JADE, SMOOTH, buckle * CFrame.new(0, 0, -0.04))
+	for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
+		waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), ROYAL_RED, FABRIC, CFrame.new(0, -0.38, z))
+		waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.66, z))
+	end
+
+	-- Brazaletes y muñequeras de oro con jade.
+	for side = -1, 1, 2 do
+		local upper = body.upperArm[side]
+		local us = upper.size
+		band(upper, -us.Y * 0.2, 0.12, 0.08, TITAN_GOLD, SMOOTH)
+		upper.ball(0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, -fs.Y / 2 + 0.2, 0.3, 0.1, TITAN_GOLD, SMOOTH)
+		forearm.block(
+			Vector3.new(0.05, 0.16, 0.22),
+			JADE,
+			SMOOTH,
+			CFrame.new(side * (fs.X / 2 + 0.07), -fs.Y / 2 + 0.2, 0)
+		)
+		if grade >= 1 then
+			titanPauldron(upper, side, grade)
+		end
+	end
+
+	-- Grado 2: manto y capa de pelaje de gorila con el lomo plateado, broches y faldones de piedra.
+	if grade >= 2 then
+		make.block(
+			Vector3.new(width + 0.36, 0.34, depth * 0.62),
+			GORILLA_FUR,
+			FABRIC,
+			CFrame.new(0, height / 2 - 0.06, depth * 0.24)
+		)
+		local capeHeight = height * 1.2
+		local capeTop = height / 2 - 0.05
+		local capeZ = back + 0.22
+		make.block(
+			Vector3.new(width * 1.02, capeHeight, 0.12),
+			GORILLA_FUR,
+			FABRIC,
+			CFrame.new(0, capeTop - capeHeight / 2, capeZ)
+		)
+		-- Lomo plateado: una silla de pelaje plateado ancha en los hombros y con mechones en punta abajo.
+		make.oval(
+			Vector3.new(width * 0.84, capeHeight * 0.56, 0.05),
+			SILVER_FUR,
+			FABRIC,
+			CFrame.new(0, capeTop - capeHeight * 0.3, capeZ + 0.06)
+		)
+		for index = -1, 1 do
+			make.fang(
+				if index == 0 then 0.3 else 0.22,
+				0.18,
+				SILVER_FUR_DARK,
+				FABRIC,
+				CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.52, capeZ + 0.07)
+					* CFrame.Angles(math.pi, 0, 0)
+			)
+		end
+		for index = 0, 6 do
+			local x = (index / 6 - 0.5) * width * 0.92
+			make.fang(
+				if index % 2 == 0 then 0.34 else 0.26,
+				0.16,
+				GORILLA_FUR,
+				FABRIC,
+				CFrame.new(x, capeTop - capeHeight + 0.02, capeZ) * CFrame.Angles(math.pi, 0, 0)
+			)
+		end
+		-- Broches de oro con jade, unidos por una cadena que cuelga.
+		local clasps = {}
+		for side = -1, 1, 2 do
+			local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.04)
+			make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
+			make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
+			clasps[side] = clasp.Position
+		end
+		local sag = Vector3.new(0, height / 2 - 0.3, front - 0.06)
+		strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
+		strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
+		for side = -1, 1, 2 do
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+			leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), TITAN_STONE, SLATE, flap)
+			leg.block(Vector3.new(ls.X * 0.92, 0.06, 0.12), TITAN_GOLD, SMOOTH, flap * CFrame.new(0, -ls.Y * 0.2, 0))
+			leg.ball(0.12, JADE, SMOOTH, flap * CFrame.new(0, 0.02, -0.06))
+		end
+	end
+
+	-- Grado 3: el ídolo de la espalda, un busto de piedra con corona de oro, entre los omoplatos: la
+	-- corona llega a la nuca y la cabeza del jugador se sigue viendo por encima.
+	if grade >= 3 then
+		local idolSize = 1.4
+		local idolY = height * 0.05
+		local idol = CFrame.new(0, idolY, back + 0.6) * CFrame.Angles(0, math.pi, 0)
+		local bust = CFrame.new(0, idolY - idolSize * 0.5 - 0.06, back + 0.44)
+		make.block(Vector3.new(width * 0.78, 0.34, 0.5), TITAN_STONE_DARK, SLATE, bust)
+		make.block(Vector3.new(width * 0.8, 0.07, 0.52), TITAN_GOLD, SMOOTH, bust * CFrame.new(0, 0.1, 0))
+		local eyes = stoneGorilla(make, idol, idolSize, 1, SUN_GLOW, NEON)
+		fireLight(eyes[1], SUN_GLOW)
+		-- Corona: banda de oro y cinco puntas con una cuenta de jade.
+		local crown = idol * CFrame.new(0, idolSize * 0.5, idolSize * 0.08)
+		make.block(Vector3.new(idolSize * 0.66, 0.16, idolSize * 0.5), TITAN_GOLD, SMOOTH, crown)
+		for index = -2, 2 do
+			local spike = crown
+				* CFrame.new(index * idolSize * 0.13, 0.08, -idolSize * 0.22)
+				* CFrame.Angles(-0.15, 0, -index * 0.12)
+			local length = if index == 0 then 0.5 else 0.38 - math.abs(index) * 0.04
+			make.fang(length, 0.16, TITAN_GOLD, SMOOTH, spike)
+			make.ball(0.12, JADE, SMOOTH, spike * CFrame.new(0.08, 0.04, -0.1))
+		end
+		-- Grado 4: disco solar con rayos y cristales de jade, lianas con orquídeas y motas de sol.
+		if grade >= 4 then
+			local disc = CFrame.new(0, idolY + 0.3, back + 0.36)
+			-- Aro abierto (no un disco: por detrás taparía la cabeza) de doce tramos de oro, con rayos de
+			-- oro largos y rayos de sol que brillan, alternos.
+			local radius = idolSize * 0.86
+			local segment = 2 * radius * math.sin(math.pi / 12) + 0.04
+			for index = 0, 11 do
+				local angle = index * math.pi / 6
+				make.block(
+					Vector3.new(segment, 0.14, 0.1),
+					TITAN_GOLD_DARK,
+					SMOOTH,
+					disc
+						* CFrame.Angles(0, 0, angle + math.pi / 12)
+						* CFrame.new(0, radius * math.cos(math.pi / 12) - 0.04, 0)
+				)
+				local ray = disc * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius, 0.02)
+				if index % 2 == 0 then
+					make.fang(0.6, 0.2, TITAN_GOLD, SMOOTH, ray)
+				else
+					local beam = make.fang(0.42, 0.14, SUN_GLOW, NEON, ray)
+					if index == 3 then
+						fireLight(beam, SUN_GLOW)
+						sunMotes(beam, 6)
+					end
+				end
+			end
+			-- Cuatro cristales de jade en las diagonales.
+			for _, angle in { math.pi / 4, 3 * math.pi / 4, 5 * math.pi / 4, 7 * math.pi / 4 } do
+				local base = disc * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius - 0.05, 0.05)
+				jadeCrystal(make, base.Position, base.UpVector + Vector3.new(0, 0, 0.15), 0.55, 0.24)
+			end
+			-- Lianas con hojas y una orquídea que caen de los lados del ídolo por la capa.
+			for side = -1, 1, 2 do
+				local points = {
+					Vector3.new(side * width * 0.34, idolY + 0.3, back + 0.5),
+					Vector3.new(side * width * 0.42, height * 0.04, back + 0.4),
+					Vector3.new(side * width * 0.36, -height * 0.2, back + 0.36),
+					Vector3.new(side * width * 0.42, -height * 0.48, back + 0.34),
+				}
+				for index = 1, #points - 1 do
+					strap(make, points[index], points[index + 1], 0.06, LIANA, FABRIC)
+					leaf(
+						make,
+						0.3,
+						if index % 2 == 0 then LEAF else LEAF_DARK,
+						CFrame.new(points[index + 1]) * CFrame.Angles(0, 0, side * 0.9)
+					)
+				end
+				local flower = CFrame.new(points[2] + Vector3.new(side * 0.04, 0, 0.06))
+				for petal = 0, 2 do
+					make.oval(
+						Vector3.new(0.12, 0.2, 0.05),
+						ORCHID,
+						SMOOTH,
+						flower * CFrame.Angles(0, 0, petal * 2.1) * CFrame.new(0, 0.08, 0)
+					)
+				end
+				make.ball(0.07, SUN_GLOW, NEON, flower * CFrame.new(0, 0, 0.03))
+			end
+		end
+	end
+end
+
 -- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
 local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
 	FurVest = { Guerrero = furVest, Cazador = trackerCape, Mago = amuletMantle, Medico = healerBandolier },
@@ -2882,18 +3324,52 @@ local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
 	VolcanicArmor = { Guerrero = volcanicArmor, Cazador = emberCloak, Mago = lavaRobe, Medico = sulfurMantle },
 }
 
--- Viste a "character" con la armadura "armorId" en la versión de su rol "roleId" (sustituye a la que
--- llevara). Devuelve el modelo, o nil si no hay torso o la armadura no existe.
-function ArmorModels.wear(character: Model, armorId: string, roleId: string?): Model?
+-- Grado de cada armadura (sin ninguna, 0): los trajes míticos ganan piezas con él.
+local ARMOR_GRADE: { [string]: number } = { FurVest = 1, BoneArmor = 2, SilverArmor = 3, VolcanicArmor = 4 }
+ArmorModels.MAX_GRADE = 4
+
+-- Trajes (Data/Cosmetics, tipo "Outfit"), por id del cosmético. Reciben el grado de la armadura que
+-- se lleva debajo (0 a MAX_GRADE): los míticos ganan piezas con cada grado; los demás lo enseñarán con
+-- un acento de color.
+local OUTFITS: { [string]: (body: Body, grade: number) -> () } = {
+	TitanKingOutfit = titanKing,
+}
+
+-- Si los trajes crecen con la armadura (la Isla, donde se fabrica: lo pone CraftingService). En el
+-- Lobby y en Dunas, donde no hay armaduras que fabricar, se ven enteros (MAX_GRADE).
+ArmorModels.growWithArmor = false
+
+function ArmorModels.hasOutfit(outfitId: string): boolean
+	return OUTFITS[outfitId] ~= nil
+end
+
+function ArmorModels.grade(armorId: string?): number
+	return if armorId then ARMOR_GRADE[armorId] or 0 else 0
+end
+
+-- Viste a "character" con el traje "outfitId" (si lo hay; con el grado "grade" o el de la armadura)
+-- o, si no, con la armadura "armorId" en la versión de su rol "roleId". Sustituye a lo que llevara; sin
+-- traje ni armadura lo quita. Devuelve el modelo, o nil si no hay nada que poner o no hay torso.
+function ArmorModels.wear(
+	character: Model,
+	armorId: string?,
+	roleId: string?,
+	outfitId: string?,
+	grade: number?
+): Model?
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-	local byRole = BUILDERS[armorId]
-	local build = if byRole then byRole[roleId or DEFAULT_ROLE] or byRole[DEFAULT_ROLE] else nil
-	if not (torso and torso:IsA("BasePart") and build and Armor[armorId]) then
+	if not (torso and torso:IsA("BasePart")) then
 		return nil
 	end
 	local previous = character:FindFirstChild("ArmorPiece")
 	if previous then
 		previous:Destroy()
+	end
+	local outfit = if outfitId then OUTFITS[outfitId] else nil
+	local byRole = if armorId and Armor[armorId] then BUILDERS[armorId] else nil
+	local armor = if byRole then byRole[roleId or DEFAULT_ROLE] or byRole[DEFAULT_ROLE] else nil
+	if not (outfit or armor) then
+		return nil
 	end
 	local model = Instance.new("Model")
 	model.Name = "ArmorPiece"
@@ -2903,7 +3379,7 @@ function ArmorModels.wear(character: Model, armorId: string, roleId: string?): M
 			[1] = limb(model, character, "Right" .. r15, "Right Arm", r6Offset, r6Size),
 		}
 	end
-	build({
+	local body: Body = {
 		torso = limb(model, character, "UpperTorso", "Torso", CFrame.identity),
 		waist = limb(model, character, "LowerTorso", "Torso", CFrame.new(0, -0.8, 0), Vector3.new(2, 0.4, 1)),
 		upperArm = arms("UpperArm", CFrame.new(0, 0.4, 0), Vector3.new(1, 1.2, 1)),
@@ -2912,9 +3388,33 @@ function ArmorModels.wear(character: Model, armorId: string, roleId: string?): M
 			[-1] = limb(model, character, "LeftUpperLeg", "Left Leg", CFrame.new(0, 0.35, 0), Vector3.new(1, 1.3, 1)),
 			[1] = limb(model, character, "RightUpperLeg", "Right Leg", CFrame.new(0, 0.35, 0), Vector3.new(1, 1.3, 1)),
 		},
-	})
+	}
+	if outfit then
+		outfit(body, math.clamp(grade or ArmorModels.grade(armorId), 0, ArmorModels.MAX_GRADE))
+	elseif armor then
+		armor(body)
+	end
 	model.Parent = character
 	return model
+end
+
+-- Viste al personaje de "player" con lo suyo: el traje equipado de su rol ("Outfit") o su armadura.
+function ArmorModels.dress(player: Player, character: Model?): Model?
+	character = character or player.Character
+	if not character then
+		return nil
+	end
+	local armorId = player:GetAttribute("Armor")
+	local roleId = player:GetAttribute("Role")
+	local outfitId = player:GetAttribute("Outfit")
+	local validArmor = if typeof(armorId) == "string" then armorId else nil
+	return ArmorModels.wear(
+		character,
+		validArmor,
+		if typeof(roleId) == "string" then roleId else nil,
+		if typeof(outfitId) == "string" then outfitId else nil,
+		if ArmorModels.growWithArmor then ArmorModels.grade(validArmor) else ArmorModels.MAX_GRADE
+	)
 end
 
 return ArmorModels

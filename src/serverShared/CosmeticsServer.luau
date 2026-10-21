@@ -6,17 +6,21 @@
 --   - Se entera de las compras de Game Pass hechas en la partida y entrega los Developer Products de
 --     los cosméticos sueltos (ServerShared/Purchases, producto "Cosmetic.<id>").
 --   - Equipar/quitar (Remotes.EquipCosmetic) se guarda en el perfil, en su hueco (Shared/CosmeticSlots).
---   - Dibuja lo equipado en el personaje: estela, título y aura.
+--   - Dibuja lo equipado en el personaje: estela, título y aura. El traje y el aspecto del arma del rol
+--     que se juega los publica en los atributos "Outfit" y "WeaponSkin" del jugador y los pone
+--     Shared/ArmorModels (con la armadura) y Shared/WeaponTools (en las armas de rol).
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local PlayerData = require(script.Parent.PlayerData)
 local Purchases = require(script.Parent.Purchases)
 
@@ -76,7 +80,47 @@ local function checkPasses(player: Player)
 	end
 end
 
+-- Lo equipado en el hueco "slot" si lo tiene y existe "isBuilt" (su modelo), o nil.
+local function equippedOwned(
+	player: Player,
+	profile: PlayerData.Profile,
+	slot: string,
+	isBuilt: (string) -> boolean
+): string?
+	local cosmeticId = profile.cosmetics[slot]
+	return if cosmeticId
+			and Cosmetics[cosmeticId]
+			and owns(player, cosmeticId)
+			and isBuilt(cosmeticId)
+		then cosmeticId
+		else nil
+end
+
+-- Publica el traje ("Outfit") y el aspecto del arma ("WeaponSkin") equipados del rol que juega y, si
+-- cambian (o con "force", al aparecer), lo viste y cambia el aspecto de sus armas de rol.
+local function applyRoleCosmetics(player: Player, force: boolean?)
+	local profile = PlayerData.get(player)
+	local roleId = player:GetAttribute("Role")
+	local outfitId, skinId = nil, nil
+	if profile and typeof(roleId) == "string" then
+		outfitId = equippedOwned(player, profile, `Outfit.{roleId}`, ArmorModels.hasOutfit)
+		skinId = equippedOwned(player, profile, `WeaponSkin.{roleId}`, WeaponTools.hasSkin)
+	end
+	if force or player:GetAttribute("Outfit") ~= outfitId then
+		player:SetAttribute("Outfit", outfitId)
+		local character = player.Character
+		if character and (character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")) then
+			ArmorModels.dress(player, character)
+		end
+	end
+	if player:GetAttribute("WeaponSkin") ~= skinId then
+		player:SetAttribute("WeaponSkin", skinId)
+		WeaponTools.reskin(player)
+	end
+end
+
 local function applyVisuals(player: Player)
+	applyRoleCosmetics(player)
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	local head = if character then character:FindFirstChild("Head") else nil
@@ -276,8 +320,14 @@ function CosmeticsServer.start()
 		end)
 		player.CharacterAdded:Connect(function(character)
 			character:WaitForChild("HumanoidRootPart", 5)
+			character:WaitForChild("UpperTorso", 2)
 			PlayerData.waitFor(player)
+			applyRoleCosmetics(player, true)
 			applyVisuals(player)
+		end)
+		-- Cada rol tiene su traje y su aspecto de arma.
+		player:GetAttributeChangedSignal("Role"):Connect(function()
+			applyRoleCosmetics(player)
 		end)
 		if player.Character then
 			PlayerData.waitFor(player)

@@ -11,7 +11,7 @@
 --       Pase (el pase de temporada, UI/SeasonPassPanel; también tiene su botón en la barra).
 --   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar), Misiones (el calendario de 7 días, las misiones del día y lo que te llevas
---     a la próxima partida), Pase, Estilo, Grupo (invitar a jugadores del Lobby para viajar juntos), Diario
+--     a la próxima partida), Pase, Armario (los cosméticos, UI/WardrobePanel), Grupo (invitar a jugadores del Lobby para viajar juntos), Diario
 --     y Ajustes (UI/SettingsPanel). Un punto rojo avisa de lo pendiente (puntos de talento libres,
 --     premio del calendario, premios del pase por reclamar). En PC va en columna a la izquierda; en táctil o en una pantalla baja, en
 --     fila en la franja de la barra de Roblox.
@@ -23,7 +23,6 @@
 
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,8 +36,6 @@ local Workspace = game:GetService("Workspace")
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
 local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Config = require(ReplicatedStorage.Shared.Config)
-local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
-local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Daily = require(ReplicatedStorage.Shared.Daily)
@@ -57,6 +54,7 @@ local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
 local CalendarStrip = require(ReplicatedStorage.Shared.UI.CalendarStrip)
+local WardrobePanel = require(ReplicatedStorage.Shared.UI.WardrobePanel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 -- Alto de una fila (título y una línea de detalle): lo justo para que la Tienda o las Misiones quepan
@@ -103,12 +101,13 @@ local WINDOWS: { [string]: WindowDef } = {
 	Misiones = { icon = "🎯", title = "Misiones" },
 	-- El pase usa el ancho de las listas largas: sus pistas se deslizan y caben más columnas.
 	Pase = { icon = "🌋", title = "Pase de temporada", wide = true, spread = true, own = true },
-	Estilo = { icon = "🎨", title = "Estilo" },
+	-- El armario se coloca solo: el avatar en 3D a la izquierda y las tarjetas a la derecha.
+	Armario = { icon = "👕", title = "Armario", wide = true, own = true },
 	Grupo = { icon = "👥", title = "Grupo" },
 	Diario = { icon = "📖", title = "Diario", wide = true, spread = true },
 	Ajustes = { icon = "⚙️", title = "Ajustes", wide = true, spread = true },
 }
-local MENU = { "Talentos", "Tienda", "Misiones", "Pase", "Estilo", "Grupo", "Diario", "Ajustes" }
+local MENU = { "Talentos", "Tienda", "Misiones", "Pase", "Armario", "Grupo", "Diario", "Ajustes" }
 -- Avisos de las estaciones de la plaza (World/LobbyBuilder) y la ventana que abre cada uno.
 local STATION_PROMPTS: { [string]: string } = {
 	RolesPrompt = "Rol",
@@ -1016,51 +1015,6 @@ function LobbyUIController:Start()
 		end
 	end
 
-	-- Cosméticos: solo aspecto, nunca ventaja. Casi todos se compran (Robux); los "earned" se ganan
-	-- jugando (el título de Superviviente, al ganar una partida). Cada uno va en su hueco
-	-- (Shared/CosmeticSlots).
-	local function renderStyle(data: Progression.ProgressData)
-		note(list, "🎨 Solo cambian tu aspecto. Uno equipado por tipo", 0)
-		for index, cosmeticId in
-			sortedKeys(Cosmetics, function(cosmetic)
-				return cosmetic.order
-			end)
-		do
-			local cosmetic = Cosmetics[cosmeticId]
-			local owned = player:GetAttribute(`Cosmetic_{cosmeticId}`) == true
-			local equipped = CosmeticSlots.equippedIn(data.cosmetics, cosmeticId) ~= nil
-			local source = cosmetic.source
-			local row = newRow(list, index)
-			row.title.Text = `{cosmetic.icon} {cosmetic.name}`
-			row.title.TextColor3 = cosmetic.color
-			row.detail.Text = cosmetic.description
-			if owned then
-				setButton(row.button, if equipped then "Quitar" else "Equipar", true)
-				row.button.MouseButton1Click:Connect(function()
-					Remotes.EquipCosmetic:FireServer(cosmeticId)
-				end)
-			elseif source.earned then
-				setButton(row.button, "Gana una partida", false)
-			elseif source.season then
-				setButton(row.button, "Pase de temporada", false)
-			elseif source.gamePassId and source.gamePassId ~= 0 then
-				local gamePassId = source.gamePassId
-				setButton(row.button, "Comprar", true)
-				row.button.MouseButton1Click:Connect(function()
-					MarketplaceService:PromptGamePassPurchase(player, gamePassId)
-				end)
-			elseif source.productId and source.productId ~= 0 then
-				local productId = source.productId
-				setButton(row.button, if source.price then `Comprar · {source.price} R$` else "Comprar", true)
-				row.button.MouseButton1Click:Connect(function()
-					MarketplaceService:PromptProductPurchase(player, productId)
-				end)
-			else
-				setButton(row.button, "Próximamente", false)
-			end
-		end
-	end
-
 	-- Clasificaciones globales (las publica LeaderboardService cada pocos minutos): dos bloques,
 	-- supervivencia y arena, con dos columnas cada uno, y abajo tu número en cada una. El puesto exacto
 	-- fuera del top no se sabe (OrderedDataStore no lo da): se enseña tu valor.
@@ -1518,8 +1472,8 @@ function LobbyUIController:Start()
 			renderMissions()
 		elseif id == "Pase" then
 			passTick = SeasonPassPanel.build(list, { compact = compactUi, window = panel, title = windowTitle })
-		elseif id == "Estilo" then
-			renderStyle(data)
+		elseif id == "Armario" then
+			WardrobePanel.build(list, { compact = compactUi, rebuild = render })
 		elseif id == "Ranking" then
 			renderRanking()
 		elseif id == "Diario" then

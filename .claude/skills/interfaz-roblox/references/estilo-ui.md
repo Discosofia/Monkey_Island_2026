@@ -80,7 +80,7 @@ busca el texto con grep (`"Volver al Lobby"`).
 | Cómic: crítico | estrella 255, 140, 30 y 255, 215, 40 · rayos 255, 240, 170 · letra 255, 230, 40 con borde 220, 40, 30 | `ComicBurst` |
 | Cómic: K.O. | estrella 220, 40, 30 y 255, 185, 30 · letra blanca con borde 200, 30, 20 | `ComicBurst` |
 | Cómic: recibir | estrella 235, 70, 60 y 255, 215, 205 · letra blanca con borde 170, 20, 20 | `ComicBurst` |
-| Rarezas | común 225, 225, 225 · poco común 120, 220, 120 · raro 90, 160, 255 · épico 200, 110, 255 · legendario 255, 180, 50 | `Data/Rarities.luau` (úsalo, no copies los valores) |
+| Rarezas | común 225, 225, 225 · poco común 120, 220, 120 · raro 90, 160, 255 · épico 200, 110, 255 · legendario 255, 180, 50 · mítico 255, 70, 110 (solo cosméticos; su borde lleva un degradado con oro 255, 214, 110 que gira, `UI/WardrobePanel`) | `Data/Rarities.luau` (úsalo, no copies los valores) |
 
 Reglas que salen de ahí:
 - Un solo color de acción: el **dorado** es "pulsa aquí". No lo uses para decorar ni para avisos.

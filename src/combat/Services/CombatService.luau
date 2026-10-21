@@ -702,8 +702,10 @@ end
 local function giveWeapons(player: Player, weaponIds: { string }, roleWeapon: boolean)
 	local starterGear = player:WaitForChild("StarterGear")
 	local backpack = player:FindFirstChildOfClass("Backpack")
+	local skinId = player:GetAttribute("WeaponSkin")
 	for _, weaponId in weaponIds do
-		local tool = WeaponTools.build(weaponId)
+		-- Con el aspecto de arma equipado del rol (CosmeticsServer), si es de su rol.
+		local tool = WeaponTools.build(weaponId, if roleWeapon and typeof(skinId) == "string" then skinId else nil)
 		if roleWeapon then
 			tool:SetAttribute("RoleWeapon", true)
 		end

@@ -7,17 +7,28 @@
 --     guarda en el perfil). "price" es solo el número que se enseña; el de verdad está en el Creator Hub.
 --   - amber: precio en Ámbar (tienda de Ámbar). season: premio del pase de esa temporada (Data/Seasons,
 --     lo entrega ServerShared/SeasonPass).
---   - earned: se gana jugando ("Rescue": ganar una partida de verdad). Ni en Studio es gratis.
+--   - earned: se gana jugando ("Rescue": ganar una partida de verdad; "MasterVictory": ganarla con el
+--     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService). Ni en
+--     Studio es gratis.
 -- Un id de Robux a 0 sale como "Próximamente" (en Studio se prueba gratis con
 -- Config.Cosmetics.FreeInStudio). Lo que se tiene sin Game Pass se guarda en el perfil
 -- ("ownedCosmetics", ServerShared/CosmeticsServer).
 -- Tipos y su hueco de equipo (Shared/CosmeticSlots): Trail (estela), Title (título sobre la cabeza),
 -- Aura y Frame (marco), uno de cada; Outfit (traje) y WeaponSkin (aspecto del arma), uno por rol
 -- ("role"); PetSkin, uno por mascota ("petId"); Emote, hasta Config.Cosmetics.EmoteSlots a la vez.
+-- Los modelos: trajes en Shared/ArmorModels (OUTFITS), aspectos de arma en Shared/WeaponTools (SKINS).
+--
+-- Rareza y detalle (cuanto más raro, más trabajo en el diseño): Común y Poco común, color y una forma
+-- sencilla; Raro, varios materiales y un motivo propio; Épico, piezas con relieve y algo que brilla;
+-- Legendario, luces y partículas y una espalda llamativa; Mítico (por encima de Legendario), lo más
+-- detallado del juego: el traje y el arma ganan piezas con el nivel de la armadura y del arma (del 0 al
+-- 4 en la Isla; enteros en el Lobby y en Dunas), con luz, partículas y una pieza enorme a la espalda.
+-- Hay un traje y un aspecto de arma míticos por rol, los "dioses de la selva": el traje se gana
+-- (earned "MasterVictory") y el arma se vende suelta en la tienda de Robux.
 
 export type Kind = "Trail" | "Title" | "Aura" | "Outfit" | "WeaponSkin" | "PetSkin" | "Emote" | "Frame"
 
-export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary"
+export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic"
 
 export type Source = {
 	gamePassId: number?,
@@ -25,7 +36,7 @@ export type Source = {
 	price: number?,
 	amber: number?,
 	season: string?,
-	earned: "Rescue"?,
+	earned: ("Rescue" | "MasterVictory")?,
 }
 
 export type Cosmetic = {
@@ -163,6 +174,30 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(255, 90, 40),
 		source = { season = "T1" },
 		title = "👑 Rey de la Isla Primal",
+	},
+
+	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero).
+	TitanKingOutfit = {
+		name = "Traje: Rey Gorila Titán",
+		icon = "🦍",
+		kind = "Outfit",
+		description = "Gana una partida de guerrero con la Maza y la Armadura volcánicas. Crece con tu armadura.",
+		order = 20,
+		rarity = "Mythic",
+		color = Color3.fromRGB(70, 225, 150),
+		source = { earned = "MasterVictory" },
+		role = "Guerrero",
+	},
+	TitanKingMace = {
+		name = "Arma: Maza del Rey Gorila",
+		icon = "🦍",
+		kind = "WeaponSkin",
+		description = "El puño de piedra del Rey Gorila para tu maza de guerrero. Crece con tu arma.",
+		order = 21,
+		rarity = "Mythic",
+		color = Color3.fromRGB(70, 225, 150),
+		source = { productId = 0, price = 449 },
+		role = "Guerrero",
 	},
 }
 

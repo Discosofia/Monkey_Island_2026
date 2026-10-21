@@ -1,7 +1,7 @@
 --!strict
 -- Armaduras (Fase 1.6). Se fabrican en la mesa de trabajo (Data/Recipes) y se llevan puestas.
 -- El jugador guarda la que lleva en el atributo "Armor".
--- Su modelo (piezas sobre el torso, los brazos y los muslos) está en island/server/Combat/ArmorModels; "color" y "material"
+-- Su modelo (piezas sobre el torso, los brazos y los muslos) está en Shared/ArmorModels; "color" y "material"
 -- son su color principal, para la interfaz. Cada rol la lleva con otro aspecto: "name" es el del
 -- guerrero (y de los roles que aún no tienen la suya) y "roleNames" el de los demás (Crafting.armorName).
 
