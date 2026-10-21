@@ -1522,6 +1522,278 @@ local function buildTitanKingMace(tool: Tool, level: number): BasePart
 	return handle
 end
 
+-- Cazador, Jaguar Espectral: pelaje de jaguar con rosetas, piedra de noche, oro y jade; lo que brilla es
+-- la luz del espíritu del jaguar, blanca azulada.
+local JAGUAR = Color3.fromRGB(214, 150, 62)
+local JAGUAR_CREAM = Color3.fromRGB(242, 222, 178)
+local JAGUAR_MOUTH = Color3.fromRGB(96, 30, 32)
+local ROSETTE = Color3.fromRGB(36, 28, 24)
+local NIGHT_STONE = Color3.fromRGB(46, 48, 62)
+local SPECTRAL = Color3.fromRGB(190, 240, 255)
+local SPECTRAL_BODY = Color3.fromRGB(140, 200, 250)
+
+-- Óvalo (bola estirada) de "size".
+local function oval(
+	handle: BasePart,
+	name: string,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material,
+	at: CFrame
+): BasePart
+	local piece = newPiece(name, size, color, material)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = piece
+	attach(handle, piece, at)
+	return piece
+end
+
+-- Cabeza de jaguar rugiendo de "size" de ancho, mirando a la -Z de "at": cráneo ancho con manchas,
+-- mejillas, orejas en punta, ojos almendrados de "eye" con cejas de furia, hocico claro, nariz y boca
+-- abierta con colmillos de oro. Devuelve un ojo.
+local function jaguarMask(handle: BasePart, at: CFrame, size: number, eye: Color3, eyeMaterial: Enum.Material): BasePart
+	local function on(x: number, y: number, z: number): CFrame
+		return at * CFrame.new(x * size, y * size, z * size)
+	end
+	oval(handle, "Mask", Vector3.new(1, 0.7, 0.6) * size, JAGUAR, FABRIC, on(0, 0.05, 0.1))
+	oval(handle, "Mask", Vector3.new(0.36, 0.16, 0.16) * size, JAGUAR_MOUTH, SMOOTH, on(0, -0.33, -0.2))
+	oval(handle, "Mask", Vector3.new(0.2, 0.11, 0.1) * size, ROSETTE, SMOOTH, on(0, -0.1, -0.34))
+	ball(handle, "Spot", 0.08 * size, ROSETTE, SMOOTH, on(0, 0.34, -0.1))
+	local eyePiece: BasePart
+	for side = -1, 1, 2 do
+		oval(handle, "Mask", Vector3.new(0.5, 0.42, 0.44) * size, JAGUAR, FABRIC, on(side * 0.28, -0.14, -0.02))
+		oval(handle, "Mask", Vector3.new(0.26, 0.22, 0.24) * size, JAGUAR_CREAM, FABRIC, on(side * 0.11, -0.2, -0.22))
+		tooth(
+			handle,
+			"Ear",
+			0.26 * size,
+			0.06 * size,
+			0.22 * size,
+			JAGUAR,
+			FABRIC,
+			on(side * 0.36, 0.42, 0.08) * CFrame.Angles(0, 0, -side * 0.35) * CFrame.Angles(0, math.pi / 2, 0)
+		)
+		eyePiece = oval(
+			handle,
+			"Eye",
+			Vector3.new(0.22, 0.1, 0.08) * size,
+			eye,
+			eyeMaterial,
+			on(side * 0.2, 0.05, -0.26) * CFrame.Angles(0, 0, side * 0.35)
+		)
+		block(
+			handle,
+			"Brow",
+			Vector3.new(0.26, 0.04, 0.04) * size,
+			ROSETTE,
+			SMOOTH,
+			on(side * 0.2, 0.15, -0.28) * CFrame.Angles(0, 0, side * 0.45)
+		)
+		tooth(
+			handle,
+			"Fang",
+			0.2 * size,
+			0.06 * size,
+			0.07 * size,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.13, -0.32, -0.26) * CFrame.Angles(math.pi, 0, 0)
+		)
+		ball(handle, "Spot", 0.07 * size, ROSETTE, SMOOTH, on(side * 0.17, 0.3, -0.12))
+		ball(handle, "Spot", 0.07 * size, ROSETTE, SMOOTH, on(side * 0.38, -0.08, -0.16))
+	end
+	return eyePiece
+end
+
+-- Arco del Jaguar Espectral (cazador): el arco recurvo de cada nivel, del mismo tamaño, con las palas de
+-- madera dorada con manchas de jaguar, la empuñadura de pelaje sobre un cuerpo de piedra de noche con
+-- bandas de oro, puntas de garra de oro y la cuerda clara. Nivel 1: un disco de jade en el cuerpo y plumas
+-- negras y doradas. Nivel 2: anillos de oro y cuentas de jade en las palas, un colmillo con las plumas.
+-- Nivel 3: la cabeza de un jaguar rugiendo encima de la mano, con ojos de jade, y placas de piedra de
+-- noche remachadas de oro en las palas. Nivel 4: el espíritu del jaguar: la cuerda, las manchas y los
+-- ojos brillan en luz blanca azulada, zarpazos de luz en las palas, garras fantasma en las puntas, una
+-- luna creciente detrás de la cabeza y chispas de luz.
+local function buildSpectralJaguarBow(tool: Tool, level: number): BasePart
+	local size = ({ 1.25, 1.38, 1.5, 1.6 })[level] or 1.25
+	local lit = level >= 4
+	local handle = hiddenHandle(tool, Vector3.new(0.3, 0.9, 0.35))
+	block(handle, "Riser", Vector3.new(0.34, 1.2, 0.44), NIGHT_STONE, STONE_MATERIAL, CFrame.new())
+	block(handle, "Grip", Vector3.new(0.38, 0.6, 0.48), JAGUAR, FABRIC, CFrame.new())
+	for _, y in { 0.33, -0.33 } do
+		rod(handle, "Band", 0.07, 0.52, TITAN_GOLD, SMOOTH, CFrame.new(0, y, 0))
+	end
+	for _, spot in { Vector3.new(0.2, 0.12, -0.1), Vector3.new(-0.2, -0.1, 0.08), Vector3.new(0.05, -0.15, -0.25) } do
+		ball(handle, "Spot", 0.12, ROSETTE, SMOOTH, CFrame.new(spot))
+	end
+	block(handle, "ArrowRest", Vector3.new(0.12, 0.1, 0.22), TITAN_GOLD, SMOOTH, CFrame.new(0.2, 0.36, 0.04))
+
+	-- Banda alrededor de la pala en "point".
+	local function band(point: Vector3, direction: Vector3, length: number, color: Color3, material: Enum.Material)
+		local half = direction.Unit * length / 2
+		strut(handle, "Band", point - half, point + half, 0.36, 0.29, color, material, Vector3.xAxis)
+	end
+
+	local tipY, tipZ = 0, 0
+	local out = Vector3.new(0, 0, -0.14)
+	for side = -1, 1, 2 do
+		local start = Vector3.new(0, side * 0.6, 0)
+		local middle = Vector3.new(0, side * 1.35 * size, 0.12 * size)
+		local tip = Vector3.new(0, side * 2.05 * size, 0.5 * size)
+		local curl = tip + Vector3.new(0, side * 0.3 * size, -0.12 * size)
+		strut(handle, "Limb", start, middle, 0.3, 0.24, JAGUAR, WOOD_MATERIAL, Vector3.xAxis)
+		strut(handle, "Limb", middle, tip, 0.25, 0.21, JAGUAR, WOOD_MATERIAL, Vector3.xAxis)
+		strut(handle, "Limb", tip, curl, 0.2, 0.18, NIGHT_STONE, STONE_MATERIAL, Vector3.xAxis)
+		band(start, middle - start, 0.12, TITAN_GOLD, SMOOTH)
+		-- Manchas en la cara de fuera y en los costados de las palas (brillan en el nivel 4).
+		for index, point in { start:Lerp(middle, 0.3), start:Lerp(middle, 0.72), middle:Lerp(tip, 0.45) } do
+			for _, offset in
+				{ out * 0.8, Vector3.new(0.13, 0, (index % 2) * 0.06), Vector3.new(-0.13, 0, -(index % 2) * 0.06) }
+			do
+				ball(
+					handle,
+					"Spot",
+					if offset.X == 0 then 0.13 else 0.1,
+					if lit then SPECTRAL else ROSETTE,
+					if lit then NEON else SMOOTH,
+					CFrame.new(point + offset)
+				)
+			end
+		end
+		-- Punta: garra de oro que sigue la curva.
+		local reach = (curl - tip).Unit
+		ball(handle, "Nock", 0.22, TITAN_GOLD, SMOOTH, CFrame.new(curl))
+		tooth(
+			handle,
+			"Claw",
+			0.42,
+			0.14,
+			0.2,
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.lookAt(curl, curl + reach) * CFrame.Angles(-math.rad(90), 0, 0) * CFrame.new(0, 0.2, 0)
+		)
+		if level >= 2 then
+			band(middle, middle - start, 0.1, TITAN_GOLD, SMOOTH)
+			ball(handle, "Jade", 0.16, JADE, SMOOTH, CFrame.new(middle + out * 1.1))
+		end
+		if level >= 3 then
+			local plateFrom, plateTo = start:Lerp(middle, 0.12) + out, start:Lerp(middle, 0.88) + out
+			strut(handle, "Plate", plateFrom, plateTo, 0.1, 0.27, NIGHT_STONE, STONE_MATERIAL, Vector3.xAxis)
+			for _, t in { 0.25, 0.75 } do
+				ball(
+					handle,
+					"Rivet",
+					0.09,
+					TITAN_GOLD,
+					SMOOTH,
+					CFrame.new(plateFrom:Lerp(plateTo, t) + Vector3.new(0, 0, -0.06))
+				)
+			end
+		end
+		if lit then
+			-- Zarpazos de luz por la cara de fuera y una garra fantasma más larga en la punta.
+			for _, x in { -0.06, 0.06 } do
+				strut(
+					handle,
+					"Scratch",
+					middle:Lerp(tip, 0.15) + out + Vector3.new(x, 0, -0.01),
+					middle:Lerp(tip, 0.75) + out + Vector3.new(x, 0, -0.01),
+					0.04,
+					0.03,
+					SPECTRAL,
+					NEON,
+					Vector3.xAxis
+				)
+			end
+			local ghost = newPiece("Ghost", Vector3.new(0.2, 0.75, 0.15), SPECTRAL_BODY, GLASS, "WedgePart")
+			ghost.Transparency = 0.4
+			attach(
+				handle,
+				ghost,
+				CFrame.lookAt(curl, curl + reach) * CFrame.Angles(-math.rad(90), 0, 0) * CFrame.new(0, 0.45, 0)
+			)
+		end
+		tipY, tipZ = tip.Y, tip.Z
+	end
+	local bowString = block(
+		handle,
+		"String",
+		Vector3.new(0.05, tipY * 2, 0.05),
+		if lit then SPECTRAL else JAGUAR_CREAM,
+		if lit then NEON else FABRIC,
+		CFrame.new(0, 0, tipZ)
+	)
+
+	-- Delante, por encima de la mano: el disco de jade (niveles 1 y 2) o la cabeza del jaguar (3 y 4).
+	local face = CFrame.new(0, 0.5, -0.26)
+	if level >= 3 then
+		local eye = jaguarMask(
+			handle,
+			face * CFrame.new(0, 0.06, -0.04),
+			0.5,
+			if lit then SPECTRAL else JADE,
+			if lit then NEON else SMOOTH
+		)
+		if lit then
+			glow(eye, SPECTRAL, 8)
+			-- Luna creciente de plata detrás de la cabeza, con el filo de dentro de luz.
+			local count = 10
+			local step = math.rad(220) / count
+			local radius = 0.62
+			for index = 0, count - 1 do
+				local angle = math.rad(-110) + (index + 0.5) * step
+				local piece = face * CFrame.new(0, 0.06, 0.06) * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius, 0)
+				local length = 2 * radius * math.sin(step / 2) + 0.03
+				local thick = 0.12 - math.abs(index - (count - 1) / 2) * 0.02
+				block(
+					handle,
+					"Moon",
+					Vector3.new(length, thick, 0.06),
+					SILVER,
+					SMOOTH,
+					piece * CFrame.new(0, thick / 2, 0)
+				)
+				block(handle, "Moon", Vector3.new(length, 0.03, 0.07), SPECTRAL, NEON, piece)
+			end
+			glow(bowString, SPECTRAL, 6)
+		end
+	else
+		rod(handle, "Medallion", 0.06, 0.34, TITAN_GOLD, SMOOTH, face * TO_Z)
+		rod(handle, "Medallion", 0.06, 0.26, JADE, SMOOTH, face * CFrame.new(0, 0, -0.03) * TO_Z)
+	end
+
+	-- Cordón con plumas negras y doradas (y un colmillo desde el nivel 2) a un lado de la empuñadura.
+	local charmX = 0.22
+	block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(charmX, -0.55, 0))
+	local feathers = { ROSETTE, TITAN_GOLD, ROSETTE }
+	for index, color in feathers do
+		local offset = index - (#feathers + 1) / 2
+		block(
+			handle,
+			"Feather",
+			Vector3.new(0.04, 0.5, 0.14),
+			color,
+			SMOOTH,
+			CFrame.new(charmX, -0.98, offset * 0.09) * CFrame.Angles(offset * 0.3, 0, 0)
+		)
+	end
+	if level >= 2 then
+		tooth(
+			handle,
+			"Charm",
+			0.3,
+			0.08,
+			0.14,
+			JAGUAR_CREAM,
+			SMOOTH,
+			CFrame.new(charmX + 0.04, -0.9, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
+	end
+	tool.Grip = CFrame.new()
+	return handle
+end
+
 -- ===================================== Lista =====================================
 
 local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
@@ -1914,6 +2186,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 -- rol que sustituyen (1 la inicial, MAX_LEVEL la de la forja volcánica).
 local SKINS: { [string]: (tool: Tool, level: number) -> BasePart } = {
 	TitanKingMace = buildTitanKingMace,
+	SpectralJaguarBow = buildSpectralJaguarBow,
 }
 WeaponTools.MAX_LEVEL = 4
 
