@@ -5,6 +5,9 @@
 -- (art/ui/comic/gen.py) y aquí se tiñen con ImageColor3: el blanco toma el color y el negro se queda.
 -- Va dentro de cualquier marco cuadrado: un BillboardGui sobre un enemigo (ComicFxController) o la
 -- vista previa de Ajustes (UI/SettingsPanel). Dura menos de un segundo y se borra solo.
+-- Estilos de estallido (cosmético BurstStyle, STYLES): cambian los colores de tus golpes ("Hit",
+-- "Crit", "KO"), el de las nubecitas y, si quieren, las palabras. El "Hurt" (lo que te pegan) es
+-- siempre rojo: es el color del daño del juego.
 
 local TweenService = game:GetService("TweenService")
 
@@ -39,6 +42,9 @@ type Look = {
 	edge: Color3, -- borde de la letra (por fuera va otro negro)
 	textHeight: number, -- alto de la palabra respecto al marco
 }
+
+-- Nubecitas de serie (crema).
+local PUFF = Color3.fromRGB(255, 250, 235)
 
 local LOOKS: { [Kind]: Look } = {
 	-- Golpe normal: sale mucho, así que es pequeño, claro y sin adornos.
@@ -95,6 +101,54 @@ local LOOKS: { [Kind]: Look } = {
 	},
 }
 
+-- Lo que cambia un estilo en cada tipo de golpe (solo los colores que pone; el resto, los de serie).
+type Recolor = {
+	outer: Color3?,
+	inner: Color3?,
+	rays: Color3?,
+	star: Color3?,
+	text: Color3?,
+	edge: Color3?,
+}
+type BurstStyle = {
+	Hit: Recolor?,
+	Crit: Recolor?,
+	KO: Recolor?,
+	puff: Color3?,
+	words: { [string]: { string } }?, -- por tipo ("Crit", "KO"…), para cualquier arma
+}
+
+local STYLES: { [string]: BurstStyle } = {
+	-- Erupción: estrellas de lava sobre rojo oscuro, borde de basalto, rayos de fuego y nubes de ceniza;
+	-- el K.O. es una estrella de basalto con lava dentro.
+	VolcanicBurst = {
+		Hit = {
+			outer = Color3.fromRGB(255, 125, 40),
+			star = Color3.fromRGB(255, 200, 80),
+			text = Color3.fromRGB(255, 245, 200),
+			edge = Color3.fromRGB(140, 30, 10),
+		},
+		Crit = {
+			outer = Color3.fromRGB(195, 40, 18),
+			inner = Color3.fromRGB(255, 165, 35),
+			rays = Color3.fromRGB(255, 165, 60),
+			star = Color3.fromRGB(255, 205, 80),
+			text = Color3.fromRGB(255, 240, 150),
+			edge = Color3.fromRGB(55, 25, 15),
+		},
+		KO = {
+			outer = Color3.fromRGB(90, 72, 64),
+			inner = Color3.fromRGB(255, 110, 30),
+			rays = Color3.fromRGB(255, 140, 40),
+			star = Color3.fromRGB(255, 190, 70),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(200, 40, 15),
+		},
+		puff = Color3.fromRGB(125, 115, 110),
+		words = { Crit = { "KABOOM!", "FWOOSH!", "BRRUM!" } },
+	},
+}
+
 local WORDS: { [string]: { string } } = {
 	HitMelee = { "BAM!", "WHACK!", "SMACK!", "BIFF!" },
 	HitRanged = { "PEW!", "ZING!", "THWIP!" },
@@ -111,10 +165,20 @@ local ComicBurst = {}
 -- Último texto de cada lista, para no repetir la misma palabra dos veces seguidas.
 local lastWord: { [string]: string } = {}
 
--- Palabra para un estallido ("Hit" y "Crit" dependen del arma).
-function ComicBurst.word(kind: Kind, weapon: Weapon?): string
+-- ¿Existe el estilo de estallido "cosmeticId"?
+function ComicBurst.hasStyle(cosmeticId: string): boolean
+	return STYLES[cosmeticId] ~= nil
+end
+
+-- Palabra para un estallido ("Hit" y "Crit" dependen del arma; un estilo puede traer las suyas).
+function ComicBurst.word(kind: Kind, weapon: Weapon?, styleId: string?): string
 	local key = if kind == "Hit" or kind == "Crit" then `{kind}{weapon or "Melee"}` else kind
 	local list = WORDS[key]
+	local style = if styleId and kind ~= "Hurt" then STYLES[styleId] else nil
+	if style and style.words and style.words[kind] then
+		key = `{styleId}{kind}`
+		list = style.words[kind]
+	end
 	local choice = list[math.random(#list)]
 	if #list > 1 and choice == lastWord[key] then
 		choice = list[(table.find(list, choice) :: number) % #list + 1]
@@ -185,11 +249,47 @@ local function fadeOut(root: Instance)
 	end
 end
 
+-- El aspecto de "kind" con los colores del estilo "styleId" (si tiene y no es "Hurt").
+local function lookOf(kind: Kind, styleId: string?): (Look, Color3)
+	local style = if styleId and kind ~= "Hurt" then STYLES[styleId] else nil
+	local recolor = if style then (style :: any)[kind] :: Recolor? else nil
+	if not (style and recolor) then
+		return LOOKS[kind], PUFF
+	end
+	local look = table.clone(LOOKS[kind])
+	for field, value in recolor :: any do
+		(look :: any)[field] = value
+	end
+	return look, style.puff or PUFF
+end
+
+-- Los colores de un estallido "kind" con el estilo "styleId" (para su imagen, Shared/RewardModels):
+-- estrella de fondo, la de encima, rayos, estrellitas, letra, borde de la letra y nubecitas.
+function ComicBurst.palette(kind: Kind, styleId: string?): { [string]: Color3 }
+	local look, puffColor = lookOf(kind, styleId)
+	return {
+		outer = look.outer,
+		inner = look.inner or look.outer:Lerp(Color3.new(1, 1, 1), 0.4),
+		rays = look.rays or look.outer:Lerp(Color3.new(1, 1, 1), 0.6),
+		star = look.star,
+		text = look.text,
+		edge = look.edge,
+		puff = puffColor,
+	}
+end
+
 -- Dibuja un estallido dentro de "container" (cuadrado, de "pixels" de lado en pantalla) y lo borra al
--- acabar. Con "freeze" se queda quieto en su momento más grande (para revisarlo en Studio).
--- Devuelve los segundos que dura.
-function ComicBurst.play(container: GuiObject, kind: Kind, text: string, pixels: number, freeze: boolean?): number
-	local look = LOOKS[kind]
+-- acabar, con los colores del estilo "styleId" si lo hay. Con "freeze" se queda quieto en su momento
+-- más grande (para revisarlo en Studio). Devuelve los segundos que dura.
+function ComicBurst.play(
+	container: GuiObject,
+	kind: Kind,
+	text: string,
+	pixels: number,
+	freeze: boolean?,
+	styleId: string?
+): number
+	local look, puffColor = lookOf(kind, styleId)
 	local root = Instance.new("Frame")
 	root.Name = `Comic{kind}`
 	root.BackgroundTransparency = 1
@@ -215,7 +315,7 @@ function ComicBurst.play(container: GuiObject, kind: Kind, text: string, pixels:
 	for index = 1, look.puffs do
 		local angle = start + (index - 1) * math.pi * 2 / look.puffs + (math.random() - 0.5) * 0.6
 		local direction = Vector2.new(math.cos(angle), math.sin(angle))
-		local puff = image(root, "puff", Color3.fromRGB(255, 250, 235), 0.24, 4)
+		local puff = image(root, "puff", puffColor, 0.24, 4)
 		puff.Rotation = math.deg(angle)
 		puff.Position = UDim2.fromScale(0.5 + direction.X * 0.36, 0.5 + direction.Y * 0.36)
 		table.insert(puffs, { label = puff, direction = direction })

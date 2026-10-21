@@ -10,8 +10,11 @@
 --     que se juega los publica en los atributos "Outfit" y "WeaponSkin" del jugador y los pone
 --     Shared/ArmorModels (con la armadura) y Shared/WeaponTools (en las armas de rol).
 --   - Publica el marco ("Frame", lo dibujan las filas del ranking, del grupo y de los resultados con
---     Shared/UI/PlayerFrames) y la skin de la mascota activa ("PetSkin", la ponen los clientes al
---     construirla con Shared/PetModels). Los emotes los hace el cliente (UI/EmoteWheel).
+--     Shared/UI/PlayerFrames), la skin de la mascota activa ("PetSkin", la ponen los clientes al
+--     construirla con Shared/PetModels) y los tipos baratos: el estilo de los números ("NumberStyle",
+--     CombatTextController), el de los estallidos ("BurstStyle", ComicFxController) y la decoración
+--     del nido ("NestDecor", NestController del Lobby). Los emotes los hace el cliente (UI/EmoteWheel).
+--   - De un cosmético por grados (I, II, III) se publica y se dibuja el grado más alto que se tiene.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -30,6 +33,8 @@ local Purchases = require(script.Parent.Purchases)
 local CosmeticsServer = {}
 
 local VISUALS = { "CosmeticTrail", "CosmeticTitle", "CosmeticAura", "CosmeticAttachment" }
+-- Huecos de un tipo que se publican tal cual en un atributo del jugador con el mismo nombre.
+local PUBLISHED = { "Frame", "NumberStyle", "BurstStyle", "NestDecor" }
 
 -- Game Passes que tiene cada jugador (se miran al entrar y al comprar en la partida).
 local passes: { [Player]: { [string]: boolean } } = {}
@@ -85,6 +90,16 @@ local function checkPasses(player: Player)
 	end
 end
 
+-- El grado más alto que tiene de la línea de "cosmeticId" (él mismo si no va por grados), o nil.
+local function bestOwned(player: Player, cosmeticId: string): string?
+	if not Cosmetics[cosmeticId] then
+		return nil
+	end
+	return CosmeticSlots.best(cosmeticId, function(id)
+		return owns(player, id)
+	end)
+end
+
 -- Lo equipado en el hueco "slot" si lo tiene y existe "isBuilt" (su modelo), o nil.
 local function equippedOwned(
 	player: Player,
@@ -92,13 +107,9 @@ local function equippedOwned(
 	slot: string,
 	isBuilt: (string) -> boolean
 ): string?
-	local cosmeticId = profile.cosmetics[slot]
-	return if cosmeticId
-			and Cosmetics[cosmeticId]
-			and owns(player, cosmeticId)
-			and isBuilt(cosmeticId)
-		then cosmeticId
-		else nil
+	local equipped = profile.cosmetics[slot]
+	local cosmeticId = if equipped then bestOwned(player, equipped) else nil
+	return if cosmeticId and isBuilt(cosmeticId) then cosmeticId else nil
 end
 
 -- Publica el traje ("Outfit") y el aspecto del arma ("WeaponSkin") equipados del rol que juega y, si
@@ -124,14 +135,22 @@ local function applyRoleCosmetics(player: Player, force: boolean?)
 	end
 end
 
--- Publica el marco ("Frame") y la skin de la mascota activa ("PetSkin"), si los tiene.
-local function applyFrameAndPet(player: Player)
+local function always(): boolean
+	return true
+end
+
+-- Publica el marco y los tipos baratos (PUBLISHED) y la skin de la mascota activa ("PetSkin"), si los
+-- tiene.
+local function applyPublished(player: Player)
 	local profile = PlayerData.get(player)
-	local frameId, skinId = nil, nil
+	for _, slot in PUBLISHED do
+		local cosmeticId = if profile then equippedOwned(player, profile, slot, always) else nil
+		if player:GetAttribute(slot) ~= cosmeticId then
+			player:SetAttribute(slot, cosmeticId)
+		end
+	end
+	local skinId = nil
 	if profile then
-		frameId = equippedOwned(player, profile, "Frame", function()
-			return true
-		end)
 		local petId = player:GetAttribute("ActivePet")
 		if typeof(petId) == "string" then
 			skinId = equippedOwned(player, profile, CosmeticSlots.petSkinSlot(petId), function(cosmeticId)
@@ -139,17 +158,105 @@ local function applyFrameAndPet(player: Player)
 			end)
 		end
 	end
-	if player:GetAttribute("Frame") ~= frameId then
-		player:SetAttribute("Frame", frameId)
-	end
 	if player:GetAttribute("PetSkin") ~= skinId then
 		player:SetAttribute("PetSkin", skinId)
 	end
 end
 
+local function emitter(root: BasePart, texture: string): ParticleEmitter
+	local particles = Instance.new("ParticleEmitter")
+	particles.Name = "CosmeticAura"
+	particles.Texture = `rbxasset://textures/particles/{texture}`
+	particles.Parent = root
+	return particles
+end
+
+-- Anillo invisible a los pies (soldado a la raíz) del que salen las llamas del aura: desde la raíz
+-- salían dentro del cuerpo y no se veían.
+local function feetRing(root: BasePart): Part
+	local ring = Instance.new("Part")
+	ring.Name = "CosmeticAura"
+	ring.Size = Vector3.new(4, 0.2, 4)
+	ring.Transparency = 1
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Massless = true
+	ring.CFrame = root.CFrame * CFrame.new(0, -root.Size.Y / 2 - 1.8, 0)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = ring
+	weld.Parent = ring
+	ring.Parent = root
+	return ring
+end
+
+-- El aura: chispas de su color y, por grados, más cosas (II: más chispas y un anillo de llamas que
+-- sube desde los pies; III: llamas más altas y brillantes, brasas rápidas, humo oscuro y una luz de su
+-- color).
+local function aura(root: BasePart, cosmetic: Cosmetics.Cosmetic)
+	local grade = cosmetic.grade or 1
+	local sparks = emitter(root, "sparkles_main.dds")
+	sparks.Color = ColorSequence.new(cosmetic.color)
+	sparks.Size = NumberSequence.new(0.3 + (grade - 1) * 0.1)
+	sparks.Rate = 8 + (grade - 1) * 6
+	sparks.Lifetime = NumberRange.new(1, 1.5)
+	sparks.Speed = NumberRange.new(1, 2)
+	sparks.SpreadAngle = Vector2.new(180, 180)
+	sparks.LightEmission = 0.6
+	if grade >= 2 then
+		local flames = emitter(feetRing(root), "fire_main.dds")
+		flames.Shape = Enum.ParticleEmitterShape.Cylinder
+		flames.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+		flames.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+		flames.Color = ColorSequence.new(cosmetic.color:Lerp(Color3.new(1, 1, 0.6), 0.5), cosmetic.color)
+		flames.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1.2 + (grade - 2) * 0.7),
+			NumberSequenceKeypoint.new(1, 0.2),
+		})
+		flames.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.6, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		flames.Brightness = 3 + (grade - 2) * 2
+		flames.Rate = 40 + (grade - 2) * 25
+		flames.Lifetime = NumberRange.new(0.6, 1 + (grade - 2) * 0.3)
+		flames.Speed = NumberRange.new(0.3, 0.6)
+		flames.Acceleration = Vector3.new(0, 7, 0)
+		flames.LightEmission = 0.9
+	end
+	if grade >= 3 then
+		local embers = emitter(root, "sparkles_main.dds")
+		embers.Color = ColorSequence.new(Color3.fromRGB(255, 220, 120), cosmetic.color)
+		embers.Size = NumberSequence.new(0.18)
+		embers.Rate = 12
+		embers.Lifetime = NumberRange.new(1.2, 2)
+		embers.Speed = NumberRange.new(4, 7)
+		embers.EmissionDirection = Enum.NormalId.Top
+		embers.SpreadAngle = Vector2.new(35, 35)
+		embers.LightEmission = 1
+		local smoke = emitter(root, "smoke_main.dds")
+		smoke.Color = ColorSequence.new(Color3.fromRGB(60, 50, 45))
+		smoke.Size = NumberSequence.new(1.2, 3)
+		smoke.Transparency = NumberSequence.new(0.7, 1)
+		smoke.Rate = 3
+		smoke.Lifetime = NumberRange.new(1.5, 2.2)
+		smoke.Speed = NumberRange.new(1, 2)
+		smoke.EmissionDirection = Enum.NormalId.Top
+		smoke.Rotation = NumberRange.new(0, 360)
+		local light = Instance.new("PointLight")
+		light.Name = "CosmeticAura"
+		light.Color = cosmetic.color
+		light.Range = 10
+		light.Brightness = 1.5
+		light.Parent = root
+	end
+end
+
 local function applyVisuals(player: Player)
 	applyRoleCosmetics(player)
-	applyFrameAndPet(player)
+	applyPublished(player)
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	local head = if character then character:FindFirstChild("Head") else nil
@@ -167,9 +274,10 @@ local function applyVisuals(player: Player)
 	if not profile then
 		return
 	end
-	for _, cosmeticId in profile.cosmetics do
-		local cosmetic = Cosmetics[cosmeticId]
-		if cosmetic and owns(player, cosmeticId) then
+	for _, equippedId in profile.cosmetics do
+		local cosmeticId = bestOwned(player, equippedId)
+		local cosmetic = if cosmeticId then Cosmetics[cosmeticId] else nil
+		if cosmetic then
 			if cosmetic.kind == "Trail" then
 				local top = Instance.new("Attachment")
 				top.Name = "CosmeticAttachment"
@@ -207,17 +315,7 @@ local function applyVisuals(player: Player)
 				label.TextScaled = true
 				label.Parent = billboard
 			elseif cosmetic.kind == "Aura" then
-				local aura = Instance.new("ParticleEmitter")
-				aura.Name = "CosmeticAura"
-				aura.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-				aura.Color = ColorSequence.new(cosmetic.color)
-				aura.Size = NumberSequence.new(0.3)
-				aura.Rate = 8
-				aura.Lifetime = NumberRange.new(1, 1.5)
-				aura.Speed = NumberRange.new(1, 2)
-				aura.SpreadAngle = Vector2.new(180, 180)
-				aura.LightEmission = 0.6
-				aura.Parent = root
+				aura(root, cosmetic)
 			end
 		end
 	end
@@ -359,7 +457,7 @@ function CosmeticsServer.start()
 			applyRoleCosmetics(player)
 		end)
 		player:GetAttributeChangedSignal("ActivePet"):Connect(function()
-			applyFrameAndPet(player)
+			applyPublished(player)
 		end)
 		if player.Character then
 			PlayerData.waitFor(player)

@@ -11,6 +11,8 @@
 --   - Los críticos salen un 25 % más grandes, con "!" y un temblor (UI/CombatTextColumn).
 --   - La letra la elige el jugador (Settings.numberFont): de cómic (Bangers, como "POW!") o la clásica;
 --     vale para los números y para lo recogido.
+--   - El daño hecho (tuyo o de un aliado) sale con el estilo de número de quien lo hace (cosmético
+--     NumberStyle, atributo "NumberStyle" del jugador): así los demás también ven el tuyo.
 --   - Lo que recoges (Remotes.Loot): "+2 🌲 Madera" con el color de su rareza, en una columna a la
 --     derecha justo debajo de la de curación (en las tres disposiciones). Lo mismo recogido seguido
 --     suma en la misma línea (Config.CombatText.LootMergeSeconds). Lo que trae la mascota (el
@@ -290,6 +292,13 @@ local function colorOf(kind: string, crit: boolean): Color3
 	return (COLORS :: any)[if crit then `{kind}Crit` else kind]
 end
 
+-- El estilo de número de quien hace el daño (su UserId), si lleva uno.
+local function skinOf(by: any): string?
+	local attacker = if typeof(by) == "number" then Players:GetPlayerByUserId(by) else nil
+	local skin = if attacker then attacker:GetAttribute("NumberStyle") else nil
+	return if typeof(skin) == "string" and CombatTextColumn.hasStyle(skin) then skin else nil
+end
+
 local function nearMe(target: Instance): boolean
 	local character = player.Character
 	local head = headOf(target)
@@ -351,7 +360,13 @@ local function show(entry: any)
 	end
 	local column = worldColumn(target)
 	if column then
-		column:push(textOf(kind, amount), { color = colorOf(kind, crit), crit = crit, scale = scale, dim = dim })
+		column:push(textOf(kind, amount), {
+			color = colorOf(kind, crit),
+			skin = if kind == "Dealt" and not pet then skinOf(entry.by) else nil,
+			crit = crit,
+			scale = scale,
+			dim = dim,
+		})
 	end
 end
 

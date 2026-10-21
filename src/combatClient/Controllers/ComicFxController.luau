@@ -8,6 +8,7 @@
 --   - "KO": el golpe tuyo que derriba al enemigo ("K.O.!"; el servidor lo marca con "ko"), también el
 --     de tu veneno (sus golpes de cada segundo no hacen nada más).
 --   - "Hurt": lo que te quita al menos HurtFraction de tu vida máxima o es crítico ("OUCH!").
+-- Tus golpes salen con tu estilo de estallido (cosmético BurstStyle, atributo "BurstStyle").
 -- Solo lo tuyo: ni lo de tu mascota ni lo de los aliados. Se ajusta en Ajustes (Shared/Settings):
 -- comicFx (sí/no), comicLevel ("All" o "Strong": sin los golpes normales) y comicSize.
 -- El estallido va sobre el pecho del enemigo (por debajo de la cabeza) para no tapar la columna de
@@ -70,6 +71,12 @@ local function weaponKind(): ComicBurst.Weapon
 	return "Melee"
 end
 
+-- Tu estilo de estallido, si llevas uno.
+local function burstStyle(): string?
+	local styleId = player:GetAttribute("BurstStyle")
+	return if typeof(styleId) == "string" and ComicBurst.hasStyle(styleId) then styleId else nil
+end
+
 -- Un estallido fijo en "position" (no sigue al enemigo: dura menos de un segundo y así se ve aunque
 -- el enemigo desaparezca al caer).
 local function spawnAt(position: Vector3, kind: ComicBurst.Kind, word: string, offset: Vector2)
@@ -99,7 +106,7 @@ local function spawnAt(position: Vector3, kind: ComicBurst.Kind, word: string, o
 	frame.Parent = gui
 
 	active += 1
-	local life = ComicBurst.play(frame, kind, word, pixels)
+	local life = ComicBurst.play(frame, kind, word, pixels, false, burstStyle())
 	task.delay(life + 0.05, function()
 		active -= 1
 		gui:Destroy()
@@ -141,7 +148,7 @@ local function onDealt(target: Instance, kind: ComicBurst.Kind, level: Settings.
 	if kind ~= "Hit" then
 		lastStrong[target] = now
 	end
-	spawnAt(head.Position, kind, ComicBurst.word(kind, weaponKind()), DEALT_OFFSET)
+	spawnAt(head.Position, kind, ComicBurst.word(kind, weaponKind(), burstStyle()), DEALT_OFFSET)
 end
 
 local function onBatch(batch: any)

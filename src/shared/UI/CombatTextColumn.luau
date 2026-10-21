@@ -9,6 +9,9 @@
 -- gradiente también tiñe el emoji. El borde negro sí lo rodea, como una pegatina.
 -- También la usa la columna de lo que recoges (con sus propios huecos y duración): una línea con la
 -- misma "key" que la más nueva la sustituye en su sitio ("+1 Madera" → "+3 Madera").
+-- Estilos de número (cosmético NumberStyle, UI/NumberStyles): el daño que hace quien lo lleva sale
+-- con su letra, su brillo de tres colores y su borde, mande lo que mande el ajuste de la letra. Solo
+-- el daño hecho: lo recibido, la curación (verde) y el veneno (morado) no cambian nunca de color.
 -- Va dentro de cualquier marco ("container"): un BillboardGui sobre una cabeza, una columna del alto
 -- del personaje o un marco fijo en la pantalla. La usan CombatTextController y la vista previa del
 -- panel de Ajustes (UI/SettingsPanel).
@@ -18,6 +21,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Settings = require(ReplicatedStorage.Shared.Settings)
+local NumberStyles = require(script.Parent.NumberStyles)
 
 local SETTINGS = Config.CombatText
 -- Alto del número normal respecto al hueco (el crítico, ×CritTextScale, lo llena).
@@ -41,9 +45,12 @@ local COMIC_SCALE = 1.45
 local COMIC_TILT = 6
 local LINE_TILT = 2
 
+type NumberLook = NumberStyles.NumberStyle
+
 export type Align = "Left" | "Right" | "Center"
 export type Style = {
 	color: Color3,
+	skin: string?, -- estilo de número (cosmético NumberStyle) del que hace el daño
 	crit: boolean?,
 	scale: number?, -- tamaño (1 = el del jugador; la mascota y los aliados, menos)
 	dim: number?, -- 0-1: más tenue (los aliados)
@@ -74,6 +81,11 @@ export type Column = {
 }
 
 local CombatTextColumn = {}
+
+-- ¿Existe el estilo de número "cosmeticId"?
+function CombatTextColumn.hasStyle(cosmeticId: string): boolean
+	return NumberStyles[cosmeticId] ~= nil
+end
 
 local ALIGNMENT: { [string]: Enum.TextXAlignment } = {
 	Left = Enum.TextXAlignment.Left,
@@ -118,14 +130,36 @@ function CombatTextColumn.new(container: GuiObject, align: Align, options: Optio
 		return { label = label, gradient = gradient, scale = scale, dim = 0, expired = false, generation = 0 }
 	end
 
-	-- Viste la etiqueta con la letra de cómic o la normal. "pixels": su alto en pantalla.
-	local function dress(entry: Entry, text: string, color: Color3, crit: boolean, comic: boolean, pixels: number)
+	-- Viste la etiqueta con su estilo ("look"), la letra de cómic o la normal. "pixels": su alto en
+	-- pantalla.
+	local function dress(
+		entry: Entry,
+		text: string,
+		color: Color3,
+		crit: boolean,
+		comic: boolean,
+		pixels: number,
+		look: NumberLook?
+	)
 		local label, gradient = entry.label, entry.gradient
 		local stroke = label:FindFirstChildOfClass("UIStroke") :: UIStroke
 		label.Text = text
 		-- Un emoji (empieza por un byte 240-244) no se tiñe: el texto va de un color.
 		local emoji = string.find(text, "[\240-\244]") ~= nil
-		gradient.Enabled = comic and not emoji
+		gradient.Enabled = (comic or look ~= nil) and not emoji
+		if look then
+			local colors = if crit then look.critColors else look.colors
+			label.FontFace = look.font
+			label.TextColor3 = if emoji then colors[2] else WHITE
+			stroke.Color = look.edge
+			stroke.Thickness = math.clamp(pixels * (if crit then 0.1 else 0.085), 1.5, 6)
+			gradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, colors[1]),
+				ColorSequenceKeypoint.new(0.5, colors[2]),
+				ColorSequenceKeypoint.new(1, colors[3]),
+			})
+			return
+		end
 		if not comic then
 			label.FontFace = CLASSIC
 			label.TextColor3 = color
@@ -230,9 +264,14 @@ function CombatTextColumn.new(container: GuiObject, align: Align, options: Optio
 		entry.key = style.key
 		entry.dim = style.dim or 0
 		local label = entry.label
+		local look = if style.skin then NumberStyles[style.skin] else nil
 		local comic = Settings.get().numberFont == "Comic"
-		local height = BASE_HEIGHT * size / slots * (if comic then COMIC_SCALE else 1)
-		dress(entry, if crit then `{text}!` else text, style.color, crit, comic, container.AbsoluteSize.Y * height)
+		local grow = if look then look.scale elseif comic then COMIC_SCALE else 1
+		local height = BASE_HEIGHT * size / slots * grow
+		local pixels = container.AbsoluteSize.Y * height
+		dress(entry, if crit then `{text}!` else text, style.color, crit, comic, pixels, look)
+		-- Un estilo se tuerce y entra como la letra de cómic.
+		comic = comic or look ~= nil
 		label.Size = UDim2.fromScale(1, height)
 		label.Position = UDim2.fromScale(anchorX, 1)
 		label.TextTransparency = entry.dim

@@ -205,10 +205,10 @@ local function describe(reward: Seasons.PassReward, short: boolean?): (string, s
 	return "—", ""
 end
 
--- El modelo 3D de la tarjeta (el avatar con el cosmético, o el del premio).
+-- El modelo 3D de la tarjeta (el del cosmético o tu avatar con él puesto, o el del premio).
 local function modelFor(player: Player, reward: Seasons.PassReward): Model?
 	if reward.cosmetic then
-		return RewardModels.avatar(player.Character, reward.cosmetic)
+		return RewardModels.cosmetic(player.Character, reward.cosmetic)
 	end
 	return RewardModels.forReward(reward :: any)
 end

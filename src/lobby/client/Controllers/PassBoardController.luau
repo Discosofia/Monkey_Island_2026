@@ -223,7 +223,7 @@ function PassBoardController:Start()
 			return
 		end
 		local model = if reward.cosmetic
-			then RewardModels.avatar(player.Character, reward.cosmetic)
+			then RewardModels.cosmetic(player.Character, reward.cosmetic)
 			else RewardModels.forReward(reward)
 		if model then
 			board.model = RewardModels.frame(board.view, model, if reward.cosmetic then 1.2 else 1.35)

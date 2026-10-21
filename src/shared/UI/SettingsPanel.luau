@@ -853,7 +853,10 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 		frame.Position = UDim2.fromScale(0.5, 0.6)
 		frame.Size = UDim2.fromOffset(pixels, pixels)
 		frame.Parent = overlay
-		local life = ComicBurst.play(frame, chosen, ComicBurst.word(chosen), pixels)
+		-- Con tu estilo de estallido, si llevas uno (como en el combate).
+		local styleId = Players.LocalPlayer:GetAttribute("BurstStyle")
+		local style = if typeof(styleId) == "string" then styleId else nil
+		local life = ComicBurst.play(frame, chosen, ComicBurst.word(chosen, nil, style), pixels, false, style)
 		task.delay(life + 0.05, function()
 			frame:Destroy()
 		end)

@@ -4,15 +4,25 @@
 -- rejilla de UNIT studs, con 3–5 tonos planos, como los monos y las mascotas voxel.
 --
 --   RewardModels.forReward(reward)       -- el modelo de un premio (Data/Seasons, Config.Reward)
+--   RewardModels.cosmetic(character, id) -- la imagen de un cosmético: su modelo propio o tu avatar
 --   RewardModels.avatar(character, id)   -- tu avatar en miniatura con un cosmético puesto
 --   RewardModels.frame(viewport, model)  -- lo mete en el ViewportFrame con su cámara y su luz
 --
 -- Todos salen de pie en el origen, con el frente hacia -Z. Los ViewportFrame no dibujan partículas,
 -- estelas (Trail) ni BillboardGui: el aura y la estela se hacen con bloques de neón, y el título lo
--- pone la tarjeta como texto.
+-- pone la tarjeta como texto. Los cosméticos que no se llevan encima tienen su propio modelo: el
+-- estilo de los números (unos números voxel con sus colores y su borde), el de los estallidos (una
+-- estrella de cómic con su "!"), la decoración del nido (alrededor de un nido pequeño) y las skins de
+-- mascota (la mascota con la skin). Un aura por grados lleva más piezas en cada grado.
 
+local ComicBurst = require(script.Parent.UI.ComicBurst)
+local CosmeticSlots = require(script.Parent.CosmeticSlots)
 local Cosmetics = require(script.Parent.Data.Cosmetics)
 local EggModel = require(script.Parent.EggModel)
+local NestDecor = require(script.Parent.NestDecor)
+local NumberStyles = require(script.Parent.UI.NumberStyles)
+local PetModels = require(script.Parent.PetModels)
+local Pets = require(script.Parent.Data.Pets)
 
 local UNIT = 0.25
 
@@ -43,6 +53,12 @@ local CORK = Color3.fromRGB(165, 120, 75)
 local FLAME_RED = Color3.fromRGB(230, 70, 25)
 local FLAME_ORANGE = Color3.fromRGB(255, 140, 30)
 local FLAME_YELLOW = Color3.fromRGB(255, 225, 90)
+local STRAW = Color3.fromRGB(205, 175, 105)
+-- Letras de 3 × 5 celdas (de arriba abajo) para los números voxel.
+local GLYPHS: { [string]: { string } } = {
+	["9"] = { "111", "101", "111", "001", "111" },
+	["!"] = { "1", "1", "1", "0", "1" },
+}
 
 local RewardModels = {}
 
@@ -309,6 +325,207 @@ function RewardModels.forReward(reward: { [string]: any }): Model?
 	return nil
 end
 
+-- Texto voxel ("text", con GLYPHS) en el plano XY mirando a -Z, con el borde detrás: cada celda lleva
+-- detrás un cubo más grande del color "edge", que juntos hacen la silueta. "colors" tiñe por filas de
+-- arriba abajo (arriba, en medio, abajo, con mezclas entre ellas).
+local function voxelText(model: Model, text: string, colors: { Color3 }, edge: Color3, cell: number, at: CFrame)
+	local width = 0
+	for index = 1, #text do
+		width += #GLYPHS[string.sub(text, index, index)][1] + 1
+	end
+	local rowColors = {
+		colors[1],
+		colors[1]:Lerp(colors[2], 0.5),
+		colors[2],
+		colors[2]:Lerp(colors[3], 0.5),
+		colors[3],
+	}
+	local x = -(width - 1) / 2
+	for index = 1, #text do
+		local glyph = GLYPHS[string.sub(text, index, index)]
+		for row, line in glyph do
+			for column = 1, #line do
+				if string.sub(line, column, column) == "1" then
+					-- Se mira desde -Z: la derecha de la pantalla es -X.
+					local center = Vector3.new(-(x + column - 1), 3 - row, 0)
+					local cframe = at * CFrame.new(center * cell)
+					box(model, Vector3.zero, Vector3.one * cell / UNIT, rowColors[row], nil, cframe)
+					box(model, Vector3.new(0, 0, 0.3 * cell / UNIT), Vector3.one * 1.5 * cell / UNIT, edge, nil, cframe)
+				end
+			end
+		end
+		x += #glyph[1] + 1
+	end
+end
+
+-- Estilo de los números: un "99" voxel con los colores y el borde del estilo, algo torcido.
+function RewardModels.numberStyle(cosmeticId: string): Model?
+	local style = NumberStyles[cosmeticId]
+	if not style then
+		return nil
+	end
+	local model = newModel("EstiloDeNumeros")
+	voxelText(model, "99", style.colors, style.edge, 0.45, CFrame.new(0, 1.4, 0) * CFrame.Angles(0, 0, math.rad(-6)))
+	model.WorldPivot = CFrame.identity
+	return model
+end
+
+-- Estilo de los estallidos: la estrella de cómic del crítico con sus colores (estrella de fondo de
+-- doce puntas, la de encima, rayos detrás y dos nubecitas) y un "!" voxel con su borde delante.
+function RewardModels.burstStyle(cosmeticId: string): Model?
+	if not ComicBurst.hasStyle(cosmeticId) then
+		return nil
+	end
+	local colors = ComicBurst.palette("Crit", cosmeticId)
+	local model = newModel("EstiloDeEstallido")
+	local at = CFrame.new(0, 2.2, 0)
+	local spin = function(degrees: number, z: number): CFrame
+		return at * CFrame.new(0, 0, z) * CFrame.Angles(0, 0, math.rad(degrees))
+	end
+	for index = 0, 7 do
+		local ray = box(
+			model,
+			Vector3.zero,
+			Vector3.new(0.35, 22, 0.2),
+			colors.rays,
+			Enum.Material.Neon,
+			spin(index * 45 + 22, 0.5)
+		)
+		ray.Transparency = 0.3
+	end
+	-- Una estrella de "points" puntas de "length" celdas: cada punta en tres tramos que se afinan.
+	local function star(points: number, length: number, color: Color3, z: number, turn: number)
+		box(model, Vector3.zero, Vector3.new(length * 0.95, length * 0.95, 0.4), color, nil, spin(turn, z))
+		box(model, Vector3.zero, Vector3.new(length * 0.95, length * 0.95, 0.4), color, nil, spin(turn + 45, z))
+		for index = 0, points - 1 do
+			local angle = turn + index * 360 / points
+			for step, piece in { { 0.62, 0.55, 0.5 }, { 0.92, 0.36, 0.32 }, { 1.16, 0.18, 0.18 } } do
+				local place = spin(angle, z - step * 0.01) * CFrame.new(0, piece[1] * length * UNIT, 0)
+				box(model, Vector3.zero, Vector3.new(length * piece[2], length * piece[3], 0.4), color, nil, place)
+			end
+		end
+	end
+	star(12, 7, colors.outer, 0.2, 0)
+	star(8, 4.6, colors.inner, 0, 22)
+	for _, spot in { Vector3.new(-1.9, 1.5, -0.3), Vector3.new(1.8, -1.6, -0.3) } do
+		box(model, Vector3.zero, Vector3.new(2.2, 1.6, 0.6), colors.puff, nil, at * CFrame.new(spot))
+		box(model, Vector3.new(0.5, 0.5, 0), Vector3.new(1.4, 1.4, 0.6), colors.puff, nil, at * CFrame.new(spot))
+	end
+	box(
+		model,
+		Vector3.zero,
+		Vector3.new(1.2, 1.2, 0.4),
+		colors.star,
+		Enum.Material.Neon,
+		at * CFrame.new(1.7, 1.6, -0.25)
+	)
+	voxelText(
+		model,
+		"!",
+		{ colors.text, colors.text, colors.text:Lerp(colors.edge, 0.2) },
+		colors.edge,
+		0.36,
+		at * CFrame.new(0, 0.1, -0.45) * CFrame.Angles(0, 0, math.rad(-8))
+	)
+	model.WorldPivot = CFrame.identity
+	return model
+end
+
+-- Decoración del nido: la decoración alrededor de un nido de ramitas pequeño con un huevo dentro.
+function RewardModels.nestDecor(cosmeticId: string): Model?
+	local radius = 2.4
+	local decor = NestDecor.build(cosmeticId, radius)
+	if not decor then
+		return nil
+	end
+	local model = newModel("DecoracionDelNido")
+	box(model, Vector3.new(0, 0.6, 0), Vector3.new(14, 1.2, 14), STRAW, Enum.Material.Fabric)
+	box(
+		model,
+		Vector3.new(0, 0.6, 0),
+		Vector3.new(14, 1.2, 14),
+		STRAW,
+		Enum.Material.Fabric,
+		CFrame.Angles(0, math.rad(45), 0)
+	)
+	for layer = 0, 1 do
+		for index = 1, 12 do
+			local angle = (index + layer * 0.5) * math.pi * 2 / 12
+			local at = CFrame.new(
+				math.cos(angle) * radius * 0.85,
+				(0.35 + layer * 0.42),
+				math.sin(angle) * radius * 0.85
+			) * CFrame.Angles(0, -angle, 0)
+			box(
+				model,
+				Vector3.zero,
+				Vector3.new(1.8, 1.8, 5.2),
+				if index % 2 == 0 then WOOD else LIGHT_WOOD,
+				Enum.Material.Wood,
+				at
+			)
+		end
+	end
+	local egg = EggModel.build("Rare")
+	egg:ScaleTo(0.8)
+	egg:PivotTo(CFrame.new(0, 0.6 + EggModel.HALF_HEIGHT * 0.8, 0))
+	for _, child in egg:GetChildren() do
+		child.Parent = model
+	end
+	egg:Destroy()
+	for _, child in decor:GetChildren() do
+		child.Parent = model
+	end
+	decor:Destroy()
+	model.WorldPivot = CFrame.identity
+	return model
+end
+
+-- Skin de mascota: la mascota de la skin (o la primera de su familia) con la skin puesta.
+function RewardModels.petSkin(cosmeticId: string): Model?
+	local cosmetic = Cosmetics[cosmeticId]
+	if not cosmetic then
+		return nil
+	end
+	local petId = cosmetic.petId
+	if not petId then
+		local candidates = {}
+		for id in Pets do
+			if CosmeticSlots.fitsPet(cosmetic, id) then
+				table.insert(candidates, id)
+			end
+		end
+		table.sort(candidates)
+		petId = candidates[1]
+	end
+	local model = if petId then PetModels.build(petId, cosmeticId) else nil
+	if model then
+		for _, descendant in model:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant.Anchored = true
+			end
+		end
+	end
+	return model
+end
+
+-- La imagen de un cosmético: los que no se llevan encima (números, estallidos, nido, mascota) tienen
+-- su modelo; los demás, tu avatar con él puesto (RewardModels.avatar).
+function RewardModels.cosmetic(character: Model?, cosmeticId: string): Model?
+	local cosmetic = Cosmetics[cosmeticId]
+	local kind = if cosmetic then cosmetic.kind else nil
+	if kind == "NumberStyle" then
+		return RewardModels.numberStyle(cosmeticId)
+	elseif kind == "BurstStyle" then
+		return RewardModels.burstStyle(cosmeticId)
+	elseif kind == "NestDecor" then
+		return RewardModels.nestDecor(cosmeticId)
+	elseif kind == "PetSkin" then
+		return RewardModels.petSkin(cosmeticId)
+	end
+	return RewardModels.avatar(character, cosmeticId)
+end
+
 -- Tu avatar en miniatura con el cosmético "cosmeticIds" puesto (uno o varios, como la estela y el aura
 -- a la vez en el Armario): estela (cinta de bloques de neón que se desvanece detrás) o aura (anillo de
 -- bloques brillantes alrededor). Sin personaje, nil.
@@ -362,8 +579,44 @@ function RewardModels.avatar(character: Model?, cosmeticIds: string | { string }
 				part.Parent = clone
 			end
 		elseif cosmetic and cosmetic.kind == "Aura" then
-			for index = 1, 14 do
-				local angle = index / 14 * math.pi * 2
+			-- Más bloques en cada grado; desde el II, lenguas de fuego a los pies; en el III, un halo de
+			-- brasas sobre la cabeza.
+			local grade = cosmetic.grade or 1
+			if grade >= 2 then
+				for index = 1, 10 do
+					local angle = (index + 0.5) / 10 * math.pi * 2
+					local tall = 0.7 + (index % 3) * 0.35 + (grade - 2) * 0.3
+					local part = Instance.new("Part")
+					part.Anchored = true
+					part.CanCollide = false
+					part.Material = Enum.Material.Neon
+					part.Color = cosmetic.color:Lerp(FLAME_YELLOW, (index % 2) * 0.45)
+					part.Size = Vector3.new(0.32, tall, 0.32)
+					part.CFrame = CFrame.new(math.cos(angle) * 1.25, tall / 2, math.sin(angle) * 1.05)
+						* CFrame.Angles(0, angle, math.rad(8))
+					part.Parent = clone
+				end
+			end
+			if grade >= 3 then
+				for index = 1, 12 do
+					local angle = index / 12 * math.pi * 2
+					local part = Instance.new("Part")
+					part.Anchored = true
+					part.CanCollide = false
+					part.Material = Enum.Material.Neon
+					part.Color = if index % 3 == 0 then FLAME_YELLOW else cosmetic.color
+					part.Size = Vector3.one * (0.2 + (index % 2) * 0.1)
+					part.CFrame = CFrame.new(
+						math.cos(angle) * 0.9,
+						size.Y + 0.35 + (index % 2) * 0.15,
+						math.sin(angle) * 0.9
+					) * CFrame.Angles(angle, angle, 0)
+					part.Parent = clone
+				end
+			end
+			local count = 14 + (grade - 1) * 6
+			for index = 1, count do
+				local angle = index / count * math.pi * 2
 				local part = Instance.new("Part")
 				part.Anchored = true
 				part.CanCollide = false

@@ -21,6 +21,14 @@
 -- Config.Cosmetics.EmoteSlots a la vez (la rueda; con la rueda vacía salen Config.Cosmetics.DefaultEmotes).
 -- Los modelos: trajes en Shared/ArmorModels (OUTFITS), aspectos de arma en Shared/WeaponTools (SKINS),
 -- skins de mascota en Shared/PetModels (SKINS) y marcos en Shared/UI/PlayerFrames (STYLES).
+-- Tipos baratos para llenar la premium (G9d), uno de cada: NumberStyle (colores y letra de los números
+-- de daño que haces, Shared/UI/CombatTextColumn STYLES; los aliados también lo ven), BurstStyle
+-- (colores y palabras de tus estallidos de cómic, Shared/UI/ComicBurst STYLES) y NestDecor
+-- (decoración de tu nido del Lobby, Shared/NestDecor). Su imagen del pase y del Armario está en
+-- Shared/RewardModels.cosmetic.
+-- Grados (I, II, III): el mismo cosmético más intenso en tres niveles del pase. Cada grado es un
+-- cosmético propio con la misma "line" y su "grade"; se equipa la línea y se ve siempre el grado más
+-- alto que tienes (Shared/CosmeticSlots.best), y el Armario enseña una sola tarjeta por línea.
 --
 -- Rareza y detalle (cuanto más raro, más trabajo en el diseño): Común y Poco común, color y una forma
 -- sencilla; Raro, varios materiales y un motivo propio; Épico, piezas con relieve y algo que brilla;
@@ -30,7 +38,18 @@
 -- Hay un traje y un aspecto de arma míticos por rol, los "dioses de la selva": el traje se gana
 -- (earned "MasterVictory") y el arma se vende suelta en la tienda de Robux.
 
-export type Kind = "Trail" | "Title" | "Aura" | "Outfit" | "WeaponSkin" | "PetSkin" | "Emote" | "Frame"
+export type Kind =
+	"Trail"
+	| "Title"
+	| "Aura"
+	| "Outfit"
+	| "WeaponSkin"
+	| "PetSkin"
+	| "Emote"
+	| "Frame"
+	| "NumberStyle"
+	| "BurstStyle"
+	| "NestDecor"
 
 export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic"
 
@@ -58,6 +77,8 @@ export type Cosmetic = {
 	petId: string?, -- PetSkin: la mascota (Data/Pets)
 	petFamily: string?, -- PetSkin de familia: vale para todas las mascotas con ese "family" (Data/Pets)
 	animationId: string?, -- Emote: la animación publicada (rbxassetid://…)
+	line: string?, -- cosmético por grados: los grados de una misma línea comparten este id
+	grade: number?, -- su grado en la línea (1, 2 o 3: I, II, III)
 }
 
 local Cosmetics: { [string]: Cosmetic } = {
@@ -150,15 +171,42 @@ local Cosmetics: { [string]: Cosmetic } = {
 		title = "🔥 Señor del Volcán",
 	},
 	-- Pista premium:
+	-- El aura que evoluciona: I en el nivel 1, II en el 15 y III en el 30.
 	PrimalFlameAura = {
-		name = "Aura: Llama primal",
+		name = "Aura: Llama primal I",
 		icon = "🔥",
 		kind = "Aura",
-		description = "Pase de temporada 1, nivel 1 (premium): chispas de fuego a tu alrededor.",
+		description = "Pase de temporada 1, nivel 1 (premium): chispas de fuego a tu alrededor. Crece en los niveles 15 y 30.",
 		order = 9,
 		rarity = "Epic",
 		color = Color3.fromRGB(255, 110, 30),
 		source = { season = "T1" },
+		line = "PrimalFlame",
+		grade = 1,
+	},
+	PrimalFlameAuraII = {
+		name = "Aura: Llama primal II",
+		icon = "🔥",
+		kind = "Aura",
+		description = "Pase de temporada 1, nivel 15 (premium): llamas que te envuelven y más chispas.",
+		order = 9.1,
+		rarity = "Epic",
+		color = Color3.fromRGB(255, 110, 30),
+		source = { season = "T1" },
+		line = "PrimalFlame",
+		grade = 2,
+	},
+	PrimalFlameAuraIII = {
+		name = "Aura: Llama primal III",
+		icon = "🔥",
+		kind = "Aura",
+		description = "Pase de temporada 1, nivel 30 (premium): una hoguera viva con brasas, humo y su luz.",
+		order = 9.2,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 110, 30),
+		source = { season = "T1" },
+		line = "PrimalFlame",
+		grade = 3,
 	},
 	MagmaStepTrail = {
 		name = "Estela: Pisada de magma",
@@ -174,7 +222,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		name = "Título: Rey de la Isla Primal",
 		icon = "👑",
 		kind = "Title",
-		description = "Pase de temporada 1, nivel 30 (premium).",
+		description = "Pase de temporada 1, nivel 29 (premium).",
 		order = 11,
 		rarity = "Legendary",
 		color = Color3.fromRGB(255, 90, 40),
@@ -213,6 +261,38 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 14,
 		rarity = "Legendary",
 		color = Color3.fromRGB(255, 110, 30),
+		source = { season = "T1" },
+	},
+
+	-- Tipos baratos (G9d), un ejemplo de cada; G11 los pone en su nivel del pase.
+	MagmaNumbers = {
+		name = "Números: Magma",
+		icon = "🔢",
+		kind = "NumberStyle",
+		description = "Pase de temporada 1, nivel 5 (premium): tu daño en letras gruesas de lava que se enfría.",
+		order = 15,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 140, 40),
+		source = { season = "T1" },
+	},
+	VolcanicBurst = {
+		name = "Estallido: Erupción",
+		icon = "💥",
+		kind = "BurstStyle",
+		description = "Pase de temporada 1, nivel 8 (premium): tus golpes estallan en lava y ceniza, «KABOOM!».",
+		order = 16,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 95, 30),
+		source = { season = "T1" },
+	},
+	VolcanicNest = {
+		name = "Nido: Volcánico",
+		icon = "🥚",
+		kind = "NestDecor",
+		description = "Pase de temporada 1, nivel 12 (premium): tu nido rodeado de basalto, un foso de lava y obsidiana.",
+		order = 17,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 120, 45),
 		source = { season = "T1" },
 	},
 	EmoteWave = {

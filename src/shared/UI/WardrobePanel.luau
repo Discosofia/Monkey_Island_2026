@@ -1,11 +1,15 @@
 --!strict
 -- Ventana Armario del Lobby (Fase 9, G9; sustituye a la de Estilo): los cosméticos por pestañas en dos
--- filas (trajes, armas, efectos y títulos; skins de mascota, marcos y emotes, G9c), con un selector de
+-- filas (trajes, armas, efectos y títulos; skins de mascota, marcos y emotes, G9c; estilos de números,
+-- de estallidos y del nido, G9d), con un selector de
 -- rol para los trajes y las armas, y a la izquierda tu avatar en 3D que gira despacio con lo que miras
 -- puesto: el traje entero (como se ve en el Lobby y en Dunas) y el arma de su rol en el nivel más alto.
 -- En Mascotas el visor enseña la mascota con la skin (la activa si le vale); en Marcos, una ficha con
 -- tu nombre y el marco debajo del avatar; en Emotes, el avatar haciendo el emote, y encima de las
--- tarjetas, tu rueda (UI/EmoteWheel).
+-- tarjetas, tu rueda (UI/EmoteWheel). En Estilos (G9d), los números y los estallidos de verdad, en
+-- bucle, con el estilo elegido, y la decoración del nido alrededor de un nido pequeño.
+-- Los cosméticos por grados (I, II, III) tienen una sola tarjeta: la del grado más alto que tienes (o
+-- la del I si no tienes ninguno), con su grado en la etiqueta.
 --   - Pulsar una tarjeta la enseña en el avatar (pulsarla otra vez la quita) y se recuerda en su hueco
 --     aunque cambies de pestaña o de rol: el visor junta lo elegido en cada uno (traje, arma, estela y
 --     aura a la vez) con lo que llevas puesto en el resto. "🔄 Lo que llevas" lo borra todo. Su botón la
@@ -21,6 +25,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
+local ComicBurst = require(ReplicatedStorage.Shared.UI.ComicBurst)
+local CombatTextColumn = require(ReplicatedStorage.Shared.UI.CombatTextColumn)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
@@ -56,7 +62,12 @@ local TABS: { Tab } = {
 	{ id = "Pets", label = "🐾 Mascotas", kinds = { PetSkin = true } },
 	{ id = "Frames", label = "🖼️ Marcos", kinds = { Frame = true } },
 	{ id = "Emotes", label = "😀 Emotes", kinds = { Emote = true } },
+	{ id = "Styles", label = "🎨 Estilos", kinds = { NumberStyle = true, BurstStyle = true, NestDecor = true } },
 }
+-- Grados de los cosméticos que evolucionan.
+local ROMAN = { "I", "II", "III" }
+-- Cada cuánto sale un número o un estallido en la vista previa de Estilos.
+local STYLE_DEMO_SECONDS = 0.9
 -- Pestañas por fila (dos filas: con siete en una, en un teléfono no se leían).
 local TABS_PER_ROW = 4
 -- Nombre de cada familia de mascotas (Data/Pets "family") en las tarjetas de sus skins.
@@ -184,6 +195,16 @@ local function howToGet(cosmetic: Cosmetics.Cosmetic): (string, (() -> ())?)
 	return if source.price then `Próximamente · {source.price} R$` else "Próximamente", nil
 end
 
+local function owned(cosmeticId: string): boolean
+	return Players.LocalPlayer:GetAttribute(`Cosmetic_{cosmeticId}`) == true
+end
+
+-- El grado que se ve de "cosmeticId": el más alto que tienes de su línea (él mismo si no va por grados
+-- o no tienes ninguno).
+local function bestOf(cosmeticId: string): string
+	return CosmeticSlots.best(cosmeticId, owned) or cosmeticId
+end
+
 -- Hueco de la vista previa de un cosmético: el suyo y, los emotes, uno solo para todos.
 local function pickSlot(cosmetic: Cosmetics.Cosmetic): string
 	return CosmeticSlots.slot(cosmetic) or "Emote"
@@ -267,7 +288,7 @@ local function previewModel(roleId: string, equipped: { [string]: string }, noWe
 	for _, slot in { "Trail", "Aura" } do
 		local cosmeticId = shown(equipped, slot)
 		if cosmeticId then
-			table.insert(effects, cosmeticId)
+			table.insert(effects, bestOf(cosmeticId))
 		end
 	end
 	local avatar = RewardModels.avatar(player.Character, effects)
@@ -355,6 +376,63 @@ local function frameCard(pane: Frame, equipped: { [string]: string }, compact: b
 	end
 end
 
+-- Lo que enseña el visor de Estilos: lo elegido si es de la pestaña o, si no, lo que llevas (números,
+-- estallido o nido, en ese orden).
+local function shownStyle(equipped: { [string]: string }): string?
+	local selected = state.selected
+	local cosmetic = if selected then Cosmetics[selected] else nil
+	if selected and cosmetic and TABS[#TABS].kinds[cosmetic.kind] then
+		return selected
+	end
+	for _, slot in { "NumberStyle", "BurstStyle", "NestDecor" } do
+		local cosmeticId = shown(equipped, slot)
+		if cosmeticId then
+			return cosmeticId
+		end
+	end
+	return nil
+end
+
+-- En vivo dentro del visor: números de daño con el estilo (alguno crítico) o estallidos de cómic
+-- (golpe, crítico y K.O.), uno cada STYLE_DEMO_SECONDS mientras el visor exista.
+local function styleDemo(viewport: ViewportFrame, cosmeticId: string)
+	local kind = Cosmetics[cosmeticId].kind
+	local holder = Instance.new("Frame")
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = Vector2.new(0.5, 0.5)
+	holder.Position = UDim2.fromScale(0.5, 0.5)
+	holder.Size = UDim2.fromScale(0.7, 0.7)
+	holder.Parent = viewport
+	local ratio = Instance.new("UIAspectRatioConstraint")
+	ratio.AspectRatio = if kind == "NumberStyle" then 0.9 else 1
+	ratio.Parent = holder
+	local column = if kind == "NumberStyle" then CombatTextColumn.new(holder, "Center") else nil
+	task.spawn(function()
+		-- Un paso para que el marco tenga ya su tamaño en pantalla.
+		task.wait()
+		local step = 0
+		while viewport.Parent do
+			step += 1
+			if column then
+				local crit = step % 3 == 0
+				column:push(tostring(math.random(18, 64) * (if crit then 2 else 1)), {
+					color = Color3.fromRGB(255, 220, 90),
+					skin = cosmeticId,
+					crit = crit,
+				})
+			else
+				local burst: ComicBurst.Kind = if step % 3 == 1 then "Hit" elseif step % 3 == 2 then "Crit" else "KO"
+				local pixels = holder.AbsoluteSize.X
+				ComicBurst.play(holder, burst, ComicBurst.word(burst, "Melee", cosmeticId), pixels, false, cosmeticId)
+			end
+			task.wait(STYLE_DEMO_SECONDS)
+		end
+		if column then
+			column:destroy()
+		end
+	end)
+end
+
 -- Visor 3D con el avatar (o la mascota) que gira, el nombre de lo elegido y su rareza debajo.
 local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: string }, compact: boolean)
 	local viewport = Instance.new("ViewportFrame")
@@ -365,7 +443,22 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 	viewport.Parent = pane
 	corner(viewport, 12)
 	local model: Model? = nil
-	if state.tab == "Pets" then
+	if state.tab == "Styles" then
+		local styleId = shownStyle(equipped)
+		local kind = if styleId then Cosmetics[styleId].kind else nil
+		if styleId and kind == "NestDecor" then
+			model = RewardModels.nestDecor(styleId)
+		elseif styleId then
+			styleDemo(viewport, styleId)
+		else
+			local empty = Widgets.label("Elige un estilo para verlo", viewport)
+			empty.Size = UDim2.new(1, -20, 0, 40)
+			empty.Position = UDim2.new(0, 10, 0.5, -20)
+			empty.TextColor3 = NOTE_COLOR
+			empty.TextWrapped = true
+			textCap(empty, 16)
+		end
+	elseif state.tab == "Pets" then
 		local petId, skinId = shownPet(equipped)
 		model = if petId then PetModels.build(petId, skinId) else nil
 		if not petId then
@@ -523,10 +616,12 @@ function WardrobePanel.build(list: Instance, options: Options)
 		textCap(wheelNote, if compact then 14 else 18)
 	end
 
-	-- Los cosméticos de la pestaña (y del rol), de más raro a menos.
+	-- Los cosméticos de la pestaña (y del rol), de más raro a menos; de los que van por grados, solo el
+	-- que se ve (bestOf: el más alto que tienes o el I).
 	local ids = {}
 	for id, cosmetic in Cosmetics do
-		if tab.kinds[cosmetic.kind] and (not tab.byRole or cosmetic.role == roleId) then
+		local shownGrade = if cosmetic.line then CosmeticSlots.best(id, owned) or CosmeticSlots.grades(id)[1] else id
+		if tab.kinds[cosmetic.kind] and (not tab.byRole or cosmetic.role == roleId) and shownGrade == id then
 			table.insert(ids, id)
 		end
 	end
@@ -568,7 +663,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 	for index = (state.page - 1) * perPage + 1, math.min(#ids, state.page * perPage) do
 		local cosmeticId = ids[index]
 		local cosmetic = Cosmetics[cosmeticId]
-		local owned = player:GetAttribute(`Cosmetic_{cosmeticId}`) == true
+		local has = owned(cosmeticId)
 		local isEquipped = CosmeticSlots.equippedIn(equipped, cosmeticId) ~= nil
 		local card = Instance.new("TextButton")
 		card.LayoutOrder = index
@@ -602,6 +697,8 @@ function WardrobePanel.build(list: Instance, options: Options)
 		local tagText = if isEquipped then `{rarity.name} · puesto` else rarity.name
 		if cosmetic.kind == "PetSkin" then
 			tagText ..= ` · {petTarget(cosmetic)}`
+		elseif cosmetic.line then
+			tagText ..= ` · {ROMAN[cosmetic.grade or 1]} de {ROMAN[#CosmeticSlots.grades(cosmeticId)]}`
 		end
 		local tag = Widgets.label(tagText, card)
 		tag.Position = UDim2.fromOffset(6, if compact then 22 else 27)
@@ -629,7 +726,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 			limit:Destroy()
 		end
 		textCap(button, if compact then 13 else 15)
-		if owned then
+		if has then
 			local equipText = if cosmetic.kind == "Emote" then "A la rueda" else "Equipar"
 			setButton(button, if isEquipped then "Quitar" else equipText, true)
 			button.MouseButton1Click:Connect(function()

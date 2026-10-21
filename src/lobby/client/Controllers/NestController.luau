@@ -6,6 +6,8 @@
 --   - Listo para abrir, el huevo se tambalea y brilla más, y el aviso del nido dice "Abrir el huevo".
 --   - Al nacer la mascota (Remotes.EggHatched) hace la ceremonia: el huevo tiembla cada vez más
 --     fuerte, estalla y sale la mascota girando con su nombre y su rareza.
+--   - Alrededor del nido, la decoración que lleva el jugador (cosmético NestDecor, atributo
+--     "NestDecor"; Shared/NestDecor), apoyada en el suelo. También la ve solo él.
 -- Lo que se decide (poner, descartar, abrir) está en la ventana del nido (LobbyUIController).
 
 local CollectionService = game:GetService("CollectionService")
@@ -19,6 +21,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local EggModel = require(ReplicatedStorage.Shared.EggModel)
+local NestDecor = require(ReplicatedStorage.Shared.NestDecor)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
@@ -38,6 +41,9 @@ local player = Players.LocalPlayer
 local eggModel: Model? = nil
 local eggRarity: string? = nil
 local ceremony = false
+-- La decoración dibujada ahora y cuál es.
+local decorModel: Model? = nil
+local decorId: string? = nil
 -- Huevos del jugador (atributo "Eggs"), leídos al cambiar.
 local eggs: EggIncubation.EggData = EggIncubation.normalize(nil)
 
@@ -97,9 +103,43 @@ local function placeEgg(seat: BasePart, rarity: string)
 	eggRarity = rarity
 end
 
--- Cada fotograma: el aviso y el tambaleo del huevo.
+-- Pone (o cambia, o quita) la decoración del nido si ha cambiado la que lleva.
+local function placeDecor(nest: Model)
+	local wanted = player:GetAttribute("NestDecor")
+	local cosmeticId = if typeof(wanted) == "string" and NestDecor.has(wanted) then wanted else nil
+	if cosmeticId == decorId and (decorModel == nil or decorModel.Parent ~= nil) then
+		return
+	end
+	if decorModel then
+		decorModel:Destroy()
+	end
+	decorModel, decorId = nil, cosmeticId
+	local inner = nest:FindFirstChild("Nido")
+	local bounds = if inner then inner:FindFirstChild("Bounds") else nil
+	if not (cosmeticId and inner and bounds and bounds:IsA("BasePart")) then
+		return
+	end
+	local decor = NestDecor.build(cosmeticId, bounds.Size.X / 2) :: Model
+	decor.Name = "DecoracionDelNido"
+	-- El frente de la decoración (-Z) va hacia la llegada, al otro lado del cartel.
+	decor:PivotTo(CFrame.new(bounds.Position - Vector3.new(0, bounds.Size.Y / 2, 0)) * CFrame.Angles(0, math.pi, 0))
+	decor.Parent = Workspace
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { decor, inner }
+	NestDecor.settle(decor, function(point)
+		local hit = Workspace:Raycast(point + Vector3.new(0, 8, 0), Vector3.new(0, -20, 0), params)
+		return if hit then hit.Position.Y else nil
+	end)
+	decorModel = decor
+end
+
+-- Cada fotograma: la decoración, el aviso y el tambaleo del huevo.
 local function refresh(time: number)
 	local nest, seat = findNest()
+	if nest then
+		placeDecor(nest)
+	end
 	if not (nest and seat) or ceremony then
 		return
 	end

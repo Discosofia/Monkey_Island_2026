@@ -22,6 +22,9 @@ local KIND_NAMES: { [string]: string } = {
 	PetSkin = "Mascota",
 	Emote = "Emote",
 	Frame = "Marco",
+	NumberStyle = "Números",
+	BurstStyle = "Estallido",
+	NestDecor = "Nido",
 }
 
 -- Solo los ítems que existen y en cantidades enteras positivas.

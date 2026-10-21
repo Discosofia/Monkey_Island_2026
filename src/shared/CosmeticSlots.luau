@@ -3,7 +3,10 @@
 -- "cosmetics" = { [hueco] = id }: un hueco por tipo para Trail, Title, Aura y Frame ("Trail"…), uno
 -- por rol para Outfit y WeaponSkin ("Outfit.Guerrero"), uno por mascota para PetSkin
 -- ("PetSkin.Tortuga"; las que comparten modelo, uno por familia: "PetSkin.Felino") y
--- Config.Cosmetics.EmoteSlots para los emotes ("Emote1"…"Emote6", la rueda).
+-- Config.Cosmetics.EmoteSlots para los emotes ("Emote1"…"Emote6", la rueda). Los tipos baratos
+-- (NumberStyle, BurstStyle, NestDecor), uno de cada.
+-- Los cosméticos por grados (Data/Cosmetics "line"/"grade") cuentan como uno solo: cualquier grado de
+-- la línea puesto en su hueco es "la línea puesta", y se ve el más alto que se tiene (best).
 -- Lo usan el servidor (equipar) y el cliente (qué está puesto).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -64,7 +67,45 @@ function CosmeticSlots.emoteSlot(index: number): string
 	return `Emote{index}`
 end
 
--- Hueco donde está puesto "cosmeticId", o nil si no lo está.
+-- Si "a" y "b" son el mismo cosmético o grados de la misma línea.
+function CosmeticSlots.same(a: string, b: string): boolean
+	if a == b then
+		return true
+	end
+	local first, second = Cosmetics[a], Cosmetics[b]
+	return first ~= nil and second ~= nil and first.line ~= nil and first.line == second.line
+end
+
+-- Los grados de la línea de "cosmeticId", del I al más alto (él solo si no tiene línea).
+function CosmeticSlots.grades(cosmeticId: string): { string }
+	local cosmetic = Cosmetics[cosmeticId]
+	if not (cosmetic and cosmetic.line) then
+		return { cosmeticId }
+	end
+	local result = {}
+	for id, candidate in Cosmetics do
+		if candidate.line == cosmetic.line then
+			table.insert(result, id)
+		end
+	end
+	table.sort(result, function(a, b)
+		return (Cosmetics[a].grade or 1) < (Cosmetics[b].grade or 1)
+	end)
+	return result
+end
+
+-- El grado más alto de la línea de "cosmeticId" que se tiene ("owns"), o nil si no se tiene ninguno.
+function CosmeticSlots.best(cosmeticId: string, owns: (string) -> boolean): string?
+	local grades = CosmeticSlots.grades(cosmeticId)
+	for index = #grades, 1, -1 do
+		if owns(grades[index]) then
+			return grades[index]
+		end
+	end
+	return nil
+end
+
+-- Hueco donde está puesto "cosmeticId" (o otro grado de su línea), o nil si no lo está.
 function CosmeticSlots.equippedIn(equipped: { [string]: string }, cosmeticId: string): string?
 	local cosmetic = Cosmetics[cosmeticId]
 	if not cosmetic then
@@ -80,7 +121,8 @@ function CosmeticSlots.equippedIn(equipped: { [string]: string }, cosmeticId: st
 		return nil
 	end
 	local slot = CosmeticSlots.slot(cosmetic)
-	return if slot and equipped[slot] == cosmeticId then slot else nil
+	local current = if slot then equipped[slot] else nil
+	return if slot and current and CosmeticSlots.same(current, cosmeticId) then slot else nil
 end
 
 -- La rueda vacía enseña los de serie: antes de cambiarla se escriben en sus huecos, para que quitar o
