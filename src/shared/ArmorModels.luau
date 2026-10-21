@@ -2955,6 +2955,47 @@ local function stoneGorilla(
 	return eyes
 end
 
+-- Calavera de gorila dorada de "size" de ancho, plana, mirando a la +Z de "at" (la espalda): óvalos de
+-- oro que se cruzan (cráneo con cresta, pómulos y hocico) sobre un contorno oscuro, con la ceja de oro
+-- viejo, las cuencas, la nariz y la boca hundidas y dos colmillos. Sin más detalle: es el motivo del
+-- grado 2 y no debe competir con el ídolo del 3.
+local function goldenGorillaSkull(make: Builder, at: CFrame, size: number)
+	local function on(x: number, y: number, layer: number): CFrame
+		return at * CFrame.new(x * size, y * size, layer * 0.02)
+	end
+	local function disc(x: number, y: number, w: number, h: number, layer: number, color: Color3, tilt: number?)
+		make.oval(
+			Vector3.new(w * size, h * size, 0.04),
+			color,
+			SMOOTH,
+			on(x, y, layer) * CFrame.Angles(0, 0, tilt or 0)
+		)
+	end
+	-- Contorno oscuro del cráneo y del hocico, un poco más grande que el oro.
+	disc(0, 0.2, 0.98, 0.8, 0, TITAN_CARVING)
+	disc(0, -0.3, 0.88, 0.62, 0, TITAN_CARVING)
+	disc(0, 0.56, 0.34, 0.3, 0.5, TITAN_GOLD)
+	disc(0, 0.2, 0.9, 0.72, 1, TITAN_GOLD)
+	for side = -1, 1, 2 do
+		disc(side * 0.4, -0.06, 0.3, 0.3, 1.5, TITAN_GOLD)
+	end
+	disc(0, -0.3, 0.78, 0.52, 2, TITAN_GOLD)
+	for side = -1, 1, 2 do
+		-- Cuencas grandes y hundidas bajo una ceja de furia en V (más baja por dentro).
+		disc(side * 0.21, -0.03, 0.27, 0.25, 3, TITAN_CARVING)
+		disc(side * 0.22, 0.13, 0.46, 0.13, 4, TITAN_GOLD_DARK, side * 0.35)
+		disc(side * 0.07, -0.22, 0.09, 0.07, 3, TITAN_CARVING)
+		make.fang(
+			0.2 * size,
+			0.08 * size,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.15 + 0.04, -0.4, 3) * CFrame.new(0, 0, 0.1 * size) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	make.block(Vector3.new(0.5 * size, 0.05 * size, 0.04), TITAN_CARVING, SMOOTH, on(0, -0.42, 3))
+end
+
 -- Cristal de jade (sin neón: el verde que brilla es de las curaciones): funda translúcida de jade
 -- claro con un núcleo de jade, de "length" desde "base" hacia "direction".
 local function jadeCrystal(make: Builder, base: Vector3, direction: Vector3, length: number, width: number)
@@ -3014,9 +3055,11 @@ end
 -- placa de la espalda con un sol de oro y centro de jade, cinturón de piedra con hebilla de jade y
 -- taparrabos rojo con ribete de oro, brazaletes y muñequeras de oro con jade. Grado 1: hombreras con
 -- cabezas de gorila de piedra que miran hacia fuera. Grado 2: manto y capa de pelaje negro de gorila
--- con el lomo plateado y flecos, broches de oro con cadena y faldones de piedra en los muslos. Grado 3:
--- el ídolo, un busto de gorila de piedra enorme entre los omoplatos con ojos de sol que brillan y
--- corona de oro con jade; se encienden los ojos de todas las cabezas y unas vetas de oro en el peto.
+-- con flecos y una calavera de gorila dorada en la espalda, broches de oro con cadena y faldones de
+-- piedra en los muslos (cada grado tiene su motivo en la espalda). Grado 3: el lomo plateado sale
+-- alrededor del ídolo, un busto de gorila de piedra enorme entre los omoplatos con ojos de sol que
+-- brillan y corona de oro con jade; se encienden los ojos de todas las cabezas y unas vetas de oro en
+-- el peto.
 -- Grado 4: disco solar de oro con doce rayos y cuatro cristales de jade detrás del ídolo (queda como
 -- un halo detrás de la cabeza), lianas con orquídeas colgando de él, cristales de jade en las
 -- hombreras y motas de sol que suben.
@@ -3181,22 +3224,28 @@ local function titanKing(body: Body, grade: number)
 			FABRIC,
 			CFrame.new(0, capeTop - capeHeight / 2, capeZ)
 		)
-		-- Lomo plateado: una silla de pelaje plateado ancha en los hombros y con mechones en punta abajo.
-		make.oval(
-			Vector3.new(width * 0.84, capeHeight * 0.56, 0.05),
-			SILVER_FUR,
-			FABRIC,
-			CFrame.new(0, capeTop - capeHeight * 0.3, capeZ + 0.06)
-		)
-		for index = -1, 1 do
-			make.fang(
-				if index == 0 then 0.3 else 0.22,
-				0.18,
-				SILVER_FUR_DARK,
+		if grade == 2 then
+			-- Calavera de gorila dorada, el motivo de la espalda de este grado: más que el sol del grado 1
+			-- y menos que el ídolo del 3, que la tapa.
+			goldenGorillaSkull(make, CFrame.new(0, capeTop - capeHeight * 0.36, capeZ + 0.06), width * 0.7)
+		else
+			-- Lomo plateado alrededor del ídolo: una silla de pelaje plateado con mechones en punta abajo.
+			make.oval(
+				Vector3.new(width * 0.84, capeHeight * 0.56, 0.05),
+				SILVER_FUR,
 				FABRIC,
-				CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.52, capeZ + 0.07)
-					* CFrame.Angles(math.pi, 0, 0)
+				CFrame.new(0, capeTop - capeHeight * 0.3, capeZ + 0.06)
 			)
+			for index = -1, 1 do
+				make.fang(
+					if index == 0 then 0.3 else 0.22,
+					0.18,
+					SILVER_FUR_DARK,
+					FABRIC,
+					CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.52, capeZ + 0.07)
+						* CFrame.Angles(math.pi, 0, 0)
+				)
+			end
 		end
 		for index = 0, 6 do
 			local x = (index / 6 - 0.5) * width * 0.92

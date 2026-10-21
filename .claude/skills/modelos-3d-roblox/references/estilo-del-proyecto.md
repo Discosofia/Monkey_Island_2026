@@ -352,7 +352,7 @@ orientativo de piezas por modelo:
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
 | Arma (las de nivel 4 de la forja volcánica, 51–59) | 15–60 |
 | Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101 / 137, cazador 56 / 83 / 90 / 132, mago 56 / 73 / 88 / 130, médico 55 / 72 / 86 / 113) | 40–140 |
-| Traje mítico (cosmético, `ArmorModels` OUTFITS; crece con el grado de la armadura, 0–4; Rey Gorila Titán 69 / 109 / 134 / 168 / 238) | hasta ~240 en el grado 4 |
+| Traje mítico (cosmético, `ArmorModels` OUTFITS; crece con el grado de la armadura, 0–4; Rey Gorila Titán 69 / 109 / 146 / 168 / 238) | hasta ~240 en el grado 4 |
 | Aspecto de arma mítico (`WeaponTools` SKINS; crece con el nivel del arma, 1–4; Maza del Rey Gorila 22 / 26 / 42 / 89) | hasta ~90 en el nivel 4 |
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
