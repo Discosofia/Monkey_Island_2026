@@ -11,7 +11,8 @@
 --     su detalle y "Reclamar", "✅ Cobrado" o el candado con el motivo. Después del último nivel, la
 --     columna del premio extra en bucle. Es la única ventana del Lobby que se desliza (lo pidió el
 --     usuario para el pase: las tarjetas necesitan sitio para la imagen y el texto).
---   - Abajo, con premium, el sello "PASE PREMIUM ACTIVO"; sin ella, una frase que invita y las
+--   - Abajo, con premium, el sello "PASE PREMIUM ACTIVO"; sin ella, cuántos premios exclusivos hay, los
+--     tres mejores girando en 3D, cuántos tendrías ya al comprarla (se entregan al momento) y las
 --     compras. Sin id de producto salen "Próximamente"; en Studio hacen una compra de prueba.
 -- Al reclamar, la tarjeta celebra lo que ha dado (no sale el aviso grande: taparía la ventana).
 -- Lee el atributo "Season" del jugador (ServerShared/SeasonPass) y pide con Remotes.ClaimPass.
@@ -65,7 +66,7 @@ type Sizes = {
 	text: number,
 	labels: number,
 }
-local NORMAL: Sizes = { header = 76, card = 158, path = 34, shop = 54, column = 150, view = 86, text = 18, labels = 64 }
+local NORMAL: Sizes = { header = 76, card = 158, path = 34, shop = 62, column = 150, view = 86, text = 18, labels = 64 }
 local COMPACT: Sizes = { header = 36, card = 82, path = 20, shop = 30, column = 112, view = 42, text = 13, labels = 0 }
 
 local SeasonPassPanel = {}
@@ -946,7 +947,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 			shown += 1
 		end
 	end
-	local leftShare = if state.premium then 0.6 else 0.3
+	local leftShare = if state.premium then 0.6 elseif compact then 0.3 else 0.42
 	if state.premium then
 		-- Sello de oro y lava con un brillo que lo recorre.
 		local seal = frame(shop, Color3.new(1, 1, 1))
@@ -981,18 +982,76 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 			{ Offset = Vector2.new(1, 0) }
 		):Play()
 	else
-		local invite = Widgets.label(
-			if compact
-				then "🔥 La pista de fuego: tesoros solo de esta temporada"
-				else "🔥 La pista de fuego guarda los tesoros del volcán: auras, estelas y títulos que solo existen esta temporada",
-			shop
-		)
+		-- Sin premium: cuántos premios exclusivos hay (contados de los datos), los tres mejores girando en
+		-- 3D y cuántos tendrías ya al comprarla (se entregan al momento los alcanzados).
+		local premiumRewards: { { level: number, reward: Seasons.PassReward } } = {}
+		local reached = 0
+		for index = 1, Config.Season.Levels do
+			local reward = SeasonPass.reward(season, index, "Premium")
+			if reward then
+				table.insert(premiumRewards, { level = index, reward = reward })
+				if index <= level then
+					reached += 1
+				end
+			end
+		end
+		local invite = frame(shop, OBSIDIAN, 1)
 		invite.LayoutOrder = 0
 		invite.Size = UDim2.fromScale(leftShare, 1)
-		invite.TextWrapped = true
-		invite.TextXAlignment = Enum.TextXAlignment.Left
-		invite.TextColor3 = LAVA_LIGHT
-		textCap(invite, size.text - 2)
+		local textLeft = 0
+		if not compact then
+			local best = table.clone(premiumRewards)
+			local function rank(entry: { level: number, reward: Seasons.PassReward }): number
+				local cosmetic = if entry.reward.cosmetic then Cosmetics[entry.reward.cosmetic] else nil
+				return (if cosmetic then Rarities[cosmetic.rarity].order else 0) * 100 + entry.level
+			end
+			table.sort(best, function(a, b)
+				return rank(a) > rank(b)
+			end)
+			local side = size.shop - 6
+			for index = 1, math.min(3, #best) do
+				local holder = frame(invite, OBSIDIAN_LIGHT)
+				holder.Position = UDim2.fromOffset((index - 1) * (side + 4), 3)
+				holder.Size = UDim2.fromOffset(side, side)
+				corner(holder, 8)
+				stroke(holder, LAVA, 1.5)
+				local view = Instance.new("ViewportFrame")
+				view.Size = UDim2.fromScale(1, 1)
+				view.BackgroundTransparency = 1
+				view.Parent = holder
+				local model = modelFor(player, best[index].reward)
+				if model then
+					RewardModels.frame(view, model, 1.3)
+					spin(model, true)
+				end
+				textLeft = index * (side + 4) + 4
+			end
+		end
+		local headline = Widgets.label(
+			if compact
+				then `🔥 {#premiumRewards} exclusivos{if reached > 0 then ` · {reached} ya tuyos al comprar` else ""}`
+				else `🔥 Desbloquea {#premiumRewards} premios exclusivos`,
+			invite
+		)
+		headline.Position = UDim2.fromOffset(textLeft, 0)
+		headline.Size = if compact then UDim2.fromScale(1, 1) else UDim2.new(1, -textLeft, 0.55, 0)
+		headline.TextXAlignment = Enum.TextXAlignment.Left
+		headline.TextColor3 = LAVA_LIGHT
+		textCap(headline, size.text)
+		if not compact then
+			local hook = Widgets.label(
+				if reached > 0
+					then `Ya has llegado a {reached}: son tuyos al momento`
+					else "Solo existen esta temporada",
+				invite
+			)
+			hook.Position = UDim2.new(0, textLeft, 0.55, 0)
+			hook.Size = UDim2.new(1, -textLeft, 0.42, 0)
+			hook.TextXAlignment = Enum.TextXAlignment.Left
+			hook.TextColor3 = if reached > 0 then READY_COLOR else SECONDARY
+			hook.Font = Enum.Font.BuilderSans
+			textCap(hook, size.text - 3)
+		end
 	end
 	for index, offer in offers do
 		if offer.show then

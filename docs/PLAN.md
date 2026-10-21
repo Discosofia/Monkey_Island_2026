@@ -375,15 +375,16 @@ Reglas de la entrevista: la premium del pase es **solo cosmética** (Developer P
 | **G6** | Contratos de expedición por partida, compartidos por el grupo | — | ⏳ |
 | **G7** | Eventos de mitad de partida: lluvia tóxica, macacos saboteadores, erupción con cajas militares | — | ⏳ |
 | **G8** | Preparar la Gran Tropa: defensas nuevas que el asedio ataca de verdad | — | ⏳ |
-| **G9** | Cosméticos visibles: trajes por rol, skins de arma y de mascota, marcos, emotes y ventana Armario | — | ⏳ |
+| **G9** | Cosméticos visibles: trajes por rol, skins de arma y de mascota, marcos, emotes y ventana Armario; y los tipos baratos para llenar la premium (estilo de los números de combate, estilo de los estallidos de cómic, decoración del nido, cosméticos que evolucionan por grados) | — | ⏳ |
 | **G10** | Tiendas de cosméticos en Ámbar (rotación diaria) y Robux (rotación semanal) | — | ⏳ |
-| **G11** | Contenido de la Temporada 1 (G11a trajes y armas, G11b mascotas, marcos y efectos, G11c emotes) | — | ⏳ |
+| **G11** | Contenido de la Temporada 1: **un premio premium en cada uno de los 30 niveles** (~8 grandes en los niveles clave, el aura que evoluciona en N1/N15/N30 y ~20 pequeños de los tipos baratos) y ~8 cosméticos gratis (G11a trajes y armas, G11b mascotas, marcos y efectos, G11c emotes, G11d los pequeños) | — | ⏳ |
 | **G12** | Calibración final con la calculadora y documentación (GDD, VERIFICACION, LANZAMIENTO) | — | ⏳ |
 
 - [ ] Crear en el Creator Hub los Developer Products (pase, pack, nivel, cosméticos sueltos) y poner sus ids (G2/G3/G10)
 - [ ] Antes de publicar: **publicar los tres places a la vez** (perfil v5)
 - [ ] Poner la fecha de verdad de la Temporada 1 en `Data/Seasons` (hoy, provisional: 19-10-2026) (G3/G12)
 - [ ] Guardar y publicar el Lobby con la plaza v14 (cartel volcánico del pase) (G3)
+- Decisión del 21-10-2026: la pista premium lleva **un premio en cada nivel** (solo 3 de 30 se veía vacía y no animaba a comprar). Sin moneda cosmética por ahora ("Brasas" queda para otra temporada, cuando haya tienda y datos de compra).
 
 ---
 

@@ -10,8 +10,9 @@ ventana en `src/shared/UI/SeasonPassPanel.luau`. En Studio, el panel de pruebas 
 1. **Tema y fechas.** Un tema que encaje con algo de la partida (bioma, jefe, evento). Inicio
    (`startsAt`, 00:00 UTC) en `Data/Seasons`; dura `Config.Season.Days` (30) y deja
    `Config.Season.RestDays` (7) de descanso: la siguiente empieza 37 días después o más tarde.
-2. **Premios.** ~12 premium (todos cosméticos, uno inmediato en el nivel 1, el final exclusivo) y ~8
-   cosméticos gratis; el resto de niveles gratis con Ámbar, tiempo de huevo (con tope) y provisiones,
+2. **Premios.** **Uno premium en cada nivel** (todos cosméticos: ~8 grandes en los niveles clave, uno que
+   evoluciona por grados y el resto pequeños; uno inmediato en el nivel 1 y el final exclusivo) y ~8
+   cosméticos gratis. Con pocos premium la pista se ve vacía y no anima a comprar (21-10-2026); el resto de niveles gratis con Ámbar, tiempo de huevo (con tope) y provisiones,
    que solo se desbloquean con nivel ganado jugando. Nada de la temporada anterior se repite como
    premio final.
 3. **Contenido.** Modelos con `modelos-3d-roblox` (de frente y **de espaldas**: el jugador se ve por
