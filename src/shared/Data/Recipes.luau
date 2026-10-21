@@ -1,6 +1,7 @@
 --!strict
 -- Recetas de las estaciones de crafteo (GDD §9.3; Fases 1.6 y 2.1). Para balancear, cambia los números.
--- "station" es dónde se fabrica (ver Data/Stations): la mesa de trabajo o la hoguera.
+-- "station" es dónde se fabrica (ver Data/Stations): la mesa de trabajo, la hoguera, el taller del
+-- curandero, la forja de piedra o la volcánica.
 -- Cada receta da UNA de estas cosas:
 --   weaponId → una herramienta o arma (ver Data/Weapons). Solo se fabrica una vez y no se pierde.
 --   itemId   → un ítem que se acumula en el inventario (ver Data/Items), "amount" unidades.
@@ -346,7 +347,8 @@ local Recipes: { [string]: Recipe } = {
 		upgrades = "Club",
 	},
 	-- Mejoras de las armas de rol (forja de piedra): un nivel con botín de categoría 1 y otro con el de
-	-- categoría 2 y 3. Solo salen en la lista del rol que lleva el arma.
+	-- categoría 2 y 3 y la corona del jefe del día 4 (Fase 9, G5). Solo salen en la lista del rol que
+	-- lleva el arma. El nivel 4 está en la forja volcánica (al final).
 	BoneMace = {
 		station = "Forge",
 		name = "Maza de hueso",
@@ -372,6 +374,7 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "ThickBone", amount = 2 },
 			{ itemId = "BigFang", amount = 2 },
 			{ itemId = "Stone", amount = 8 },
+			{ itemId = "ChieftainCrown", amount = 1 },
 		},
 		weaponId = "ThickBoneMaul",
 		upgrades = "BoneMace",
@@ -402,6 +405,7 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "Liana", amount = 3 },
 			{ itemId = "ThickBone", amount = 1 },
 			{ itemId = "Leather", amount = 2 },
+			{ itemId = "ChieftainCrown", amount = 1 },
 		},
 		weaponId = "LianaBow",
 		upgrades = "ReinforcedBow",
@@ -432,6 +436,7 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "Whisker", amount = 2 },
 			{ itemId = "MandrillFang", amount = 1 },
 			{ itemId = "Liana", amount = 2 },
+			{ itemId = "ChieftainCrown", amount = 1 },
 		},
 		weaponId = "SilverStaff",
 		upgrades = "GoldenStaff",
@@ -462,6 +467,7 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "Liana", amount = 2 },
 			{ itemId = "Shell", amount = 3 },
 			{ itemId = "ThickBone", amount = 1 },
+			{ itemId = "ChieftainCrown", amount = 1 },
 		},
 		weaponId = "ShamanBlowgun",
 		upgrades = "BoneBlowgun",
@@ -477,9 +483,85 @@ local Recipes: { [string]: Recipe } = {
 			{ itemId = "SilverFur", amount = 2 },
 			{ itemId = "Leather", amount = 4 },
 			{ itemId = "ThickBone", amount = 2 },
+			{ itemId = "ChieftainCrown", amount = 1 },
 		},
 		armorId = "SilverArmor",
 		upgrades = "BoneArmor",
+	},
+	-- Forja volcánica, nivel 4 (Fase 9, G5): obsidiana y el cristal del jefe de la cueva (día 6).
+	VolcanicMaul = {
+		station = "VolcanicForge",
+		name = "Mazo volcánico",
+		icon = "🌋",
+		description = "Mejora el mazo de hueso grueso: {damage} de daño y golpea más rápido.",
+		order = 70,
+		cost = {
+			{ itemId = "Obsidian", amount = 6 },
+			{ itemId = "ThickBone", amount = 1 },
+			{ itemId = "CaveCrystal", amount = 1 },
+		},
+		weaponId = "VolcanicMaul",
+		upgrades = "ThickBoneMaul",
+		role = "Guerrero",
+	},
+	EmberBow = {
+		station = "VolcanicForge",
+		name = "Arco de brasa",
+		icon = "🏹",
+		description = "Mejora el arco de liana: {damage} de daño, el mayor alcance y flechas más rápidas.",
+		order = 71,
+		cost = {
+			{ itemId = "Obsidian", amount = 4 },
+			{ itemId = "Liana", amount = 2 },
+			{ itemId = "CaveCrystal", amount = 1 },
+		},
+		weaponId = "EmberBow",
+		upgrades = "LianaBow",
+		role = "Cazador",
+	},
+	LavaStaff = {
+		station = "VolcanicForge",
+		name = "Bastón de lava",
+		icon = "🔥",
+		description = "Mejora el bastón de plata: {damage} de daño, hechizos más rápidos y más alcance.",
+		order = 72,
+		cost = {
+			{ itemId = "Obsidian", amount = 4 },
+			{ itemId = "Whisker", amount = 2 },
+			{ itemId = "CaveCrystal", amount = 1 },
+		},
+		weaponId = "LavaStaff",
+		upgrades = "SilverStaff",
+		role = "Mago",
+	},
+	SulfurBlowgun = {
+		station = "VolcanicForge",
+		name = "Cerbatana de azufre",
+		icon = "💨",
+		description = "Mejora la cerbatana del chamán: {damage} de daño, veneno de {poison} por segundo y la que más cura con cada acierto.",
+		order = 73,
+		cost = {
+			{ itemId = "Obsidian", amount = 4 },
+			{ itemId = "Shell", amount = 2 },
+			{ itemId = "CaveCrystal", amount = 1 },
+		},
+		weaponId = "SulfurBlowgun",
+		upgrades = "ShamanBlowgun",
+		role = "Medico",
+	},
+	VolcanicArmor = {
+		station = "VolcanicForge",
+		name = "Armadura volcánica",
+		icon = "🌋",
+		description = "Los monos te hacen un 65 % menos de daño. Sustituye a la anterior.",
+		order = 74,
+		cost = {
+			{ itemId = "Obsidian", amount = 8 },
+			{ itemId = "SilverFur", amount = 1 },
+			{ itemId = "CaveCrystal", amount = 1 },
+		},
+		armorId = "VolcanicArmor",
+		upgrades = "SilverArmor",
 	},
 }
 

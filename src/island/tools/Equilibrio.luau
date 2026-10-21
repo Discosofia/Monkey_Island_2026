@@ -50,8 +50,9 @@ local OPCIONES_BASE = {
 	actividad = 0.6,
 	dias = { 1, 8 },
 	-- Mejoras de las armas de rol de la forja (Data/Recipes, "upgrades") que se suelen tener desde ese
-	-- día: 1 con botín de categoría 1, 2 con el de categoría 2 y 3. Para medir los jefes de cada día.
-	armasPorDia = { [1] = 0, [3] = 1, [6] = 2 } :: { [number]: number },
+	-- día: 1 con botín de categoría 1, 2 con el de categoría 2 y 3 y la corona del jefe del día 4, 3 (la
+	-- forja volcánica) con obsidiana y el cristal del jefe del día 6. Para medir los jefes de cada día.
+	armasPorDia = { [1] = 0, [3] = 1, [5] = 2, [7] = 3 } :: { [number]: number },
 	-- Marca de las mascotas (sección 5): fracción del daño del equipo que va al mono marcado (el más
 	-- cercano al dueño); el resto se reparte entre los demás monos del grupo.
 	focoMarca = 0.5,

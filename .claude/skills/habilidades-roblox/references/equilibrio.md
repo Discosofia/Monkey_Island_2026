@@ -120,6 +120,18 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
+**21 de octubre de 2026, nivel 4 de la forja volcánica** (G5). Mejoras por día (`armasPorDia`): nivel 2
+desde el día 3, nivel 3 desde el 5 (pide la corona del jefe del día 4) y nivel 4 desde el 7 (cristal del
+jefe del día 6). El nivel 4 sube el DPS del arma ~+30 % (Mazo volcánico 68 cada 0,9 s; Arco de brasa
+44 cada 0,65 s; Bastón de lava 34 cada 0,75 s; Cerbatana de azufre 26 cada 0,55 s con veneno 11/s; todos
+con 20 % de crítico): DPS 60 s con combos, 1 obj · grupo: Guerrero 59 · 84, Cazador 73 · 92, Mago 52 ·
+75, Médico 42 · 47 (con el nivel 3: 48 · 73, 58 · 77, 43 · 66, 32 · 38). Con el nivel 3 o 4 las
+habilidades valen menos segundos de arma (Pisotón 7,9, Lluvia 8,3, Rayo 7,2, Múltiple y Cepo 0,35): sus
+daños no suben con la forja; los límites se miden con las armas básicas. El Gorila de Ceniza pasa de
+5.600 a 7.000 de vida para seguir en ~3 min con el nivel 4 (168 s con 4 jugadores; 207 s solo).
+Armadura volcánica: −65 % de daño (vida efectiva +29 % sobre la de plata); el gorila alfa del día 20
+pasa de 45 a 35 por golpe. Con el Grito de guerra (−40 %) se queda en −79 %.
+
 **20 de octubre de 2026, arena de Dunas** (sección 6 de la calculadora, `secciones = { arena = true }`;
 el equipamiento se mide con `equipo = { Guerrero = { "BoneMaul" } }` y los números con
 `Equilibrio.ultimaArena()`). Contra jugadores: armas ×0,55 (el arco ×0,7 encima), habilidades ×0,45,

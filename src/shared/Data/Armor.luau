@@ -37,6 +37,14 @@ local Armor: { [string]: ArmorDefinition } = {
 		color = Color3.fromRGB(200, 205, 215),
 		material = Enum.Material.Fabric,
 	},
+	-- Fase 9 (G5, forja volcánica, con obsidiana y el cristal del jefe de la cueva).
+	VolcanicArmor = {
+		name = "Armadura volcánica",
+		roleNames = { Cazador = "Manto de brasa", Mago = "Túnica de lava", Medico = "Manto de azufre" },
+		damageReduction = 0.65,
+		color = Color3.fromRGB(45, 40, 48),
+		material = Enum.Material.Basalt,
+	},
 }
 
 return Armor

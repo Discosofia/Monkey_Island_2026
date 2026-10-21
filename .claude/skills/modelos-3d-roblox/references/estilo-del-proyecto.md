@@ -257,6 +257,11 @@ un aspecto de peluche que encaja con el estilo cartoon (el Mono X-7 redondo; en 
 Cuando el usuario pide "texturas", se hacen con materiales (no con imágenes subidas):
 - `Fabric`: pelo y plumas.
 - `Wood` en placas verdes (el caparazón de la tortuga): la veta parece los anillos de crecimiento.
+- **Obsidiana y piedra negra brillante**: `SmoothPlastic` muy oscuro (30, 24, 38) con `Reflectance` 0,05
+  como mucho. Con `Glass`, o con más reflejo, coge el azul del cielo y sale gris lila; y un neón
+  translúcido encima (aunque sea al 90 %) la tiñe de cobre. "Bañada en lava" = la esquirla saliendo de
+  un cono de neón más ancho y bajo (`lavaShard` en ArmorModels y WeaponTools), con gotas de neón
+  colgando (`lavaDrip`).
 - `Glacier` con `Transparency` 0,15 para un animal de cristal o hielo: tiene facetas. Con `Glass`
   parecía un globo y se veían por dentro todas las piezas solapadas. `Glass` sí va bien en cristales
   sueltos (`"Spike"`) con un núcleo `Neon`.
@@ -345,8 +350,8 @@ orientativo de piezas por modelo:
 | Tipo | Piezas |
 |---|---|
 | Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
-| Arma | 15–40 |
-| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101, cazador 56 / 83 / 90, mago 56 / 73 / 88, médico 55 / 72 / 86) | 40–105 |
+| Arma (las de nivel 4 de la forja volcánica, 51–59) | 15–60 |
+| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101 / 137, cazador 56 / 83 / 90 / 132, mago 56 / 73 / 88 / 130, médico 55 / 72 / 86 / 113) | 40–140 |
 | Mascota (solo una por jugador) | 80–160 |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |

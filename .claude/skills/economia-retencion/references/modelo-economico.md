@@ -104,14 +104,18 @@ intenso 52.743, amigos 23.425. Pase, nivel el día 7 · 14 · 21 · 30:
 | Intenso | 16 · 30 · 30 · 30 | día 13 | 50 % |
 | Amigos | 10 · 20 · 30 · 30 | día 21 | 56 % |
 
+**Con el equipo ligado a los jefes (G5, 21-10-2026)**: el nivel 2 de la forja sigue el día 1, el
+nivel 3 (armas de rol y armadura de plata) el **día 4** (Corona del caudillo) y el nivel 4 de la forja
+volcánica el **día 6** (obsidiana y Cristal de cueva). Cada jefe da 2 de su tesoro a cada participante;
+la perla (día 2) y el núcleo de magma (día 8) siguen sin receta.
+
 ## 5. Hallazgos pendientes (plan de la Fase 9, `docs/PLAN.md`)
 
 - Contratos de partida (G6): metas compartidas por el grupo dentro de cada partida.
 - El habitual gasta el 15 % del Ámbar que gana; tras el día 6 no tiene en qué gastarlo: tienda de
   cosméticos en Ámbar (G10).
-- Equipo al máximo el día 1–3: el nivel 3 pedirá el botín del jefe del día 4 y habrá un nivel 4 en la
-  Forja volcánica con el del día 6 (G5). Los tesoros de jefe ya se dan a cada participante
-  (`BossService`), separados de la pieza de la baliza.
+- La Perla del río (día 2) y el Núcleo de magma (día 8) no los pide ninguna receta: candidatos para
+  los contratos (G6) o los eventos (G7).
 - El intenso descarta muchos huevos (bolsa de 3 llena): vigilar al cambiar ritmos o premios de huevo.
 - El casual llega justo al nivel 12 del pase (el mínimo) y casi no cumple semanales (0,5 por semana
   con 2 h de juego): si se suben objetivos semanales o se baja la XP, mira primero su fila.

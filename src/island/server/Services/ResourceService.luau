@@ -419,6 +419,54 @@ local function spawnTestNodes(): { Instance }
 	return nodes
 end
 
+-- Vetas de obsidiana (Fase 9, G5) en mapas que aún no las tienen: alrededor de las guaridas del volcán
+-- y de la cueva (Config.Resources.ObsidianVeins), en el suelo que encuentra un rayo hacia abajo. La
+-- semilla es fija: salen siempre en el mismo sitio. Solo mira dentro del mapa: una veta suelta en otro
+-- sitio (la vista previa de los modelos) no cuenta.
+local function addObsidianVeins(): { Instance }
+	local map = Workspace:FindFirstChild("Mapa")
+	local lairs = if map then map:FindFirstChild("GuaridasJefes", true) else nil
+	if not (map and lairs) then
+		return {}
+	end
+	for _, instance in map:GetDescendants() do
+		if instance:GetAttribute(NodeModels.ATTRIBUTE) == "Obsidian" then
+			return {}
+		end
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "Obsidiana"
+	folder.Parent = map
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { Workspace.Terrain }
+	local veinRng = Random.new(5)
+	local nodes: { Instance } = {}
+	for _, spot in Config.Resources.ObsidianVeins do
+		local marker = lairs:FindFirstChild(spot.lair)
+		if not (marker and marker:IsA("BasePart")) then
+			continue
+		end
+		local center = marker.Position
+		local placed, attempts = 0, 0
+		while placed < spot.count and attempts < spot.count * 20 do
+			attempts += 1
+			local angle = veinRng:NextNumber(0, 2 * math.pi)
+			local distance = veinRng:NextNumber(spot.min, spot.max)
+			local point = center + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+			local from = if spot.inside then point + Vector3.new(0, 8, 0) else Vector3.new(point.X, 500, point.Z)
+			local result = Workspace:Raycast(from, Vector3.new(0, -(from.Y - center.Y + 60), 0), params)
+			if result and result.Material ~= Enum.Material.Water and result.Normal.Y > 0.6 then
+				local node = NodeModels.build("Obsidian", result.Position, veinRng)
+				node.Parent = folder
+				table.insert(nodes, node)
+				placed += 1
+			end
+		end
+	end
+	return nodes
+end
+
 -- Las palmeras de islas generadas antes de que fueran talables: se les añade el atributo aquí.
 local function upgradeOldPalms()
 	for _, instance in Workspace:GetDescendants() do
@@ -451,6 +499,9 @@ function ResourceService:Start()
 	end
 	if #found == 0 and Config.Resources.SpawnTestNodesIfNone then
 		found = spawnTestNodes()
+	end
+	for _, vein in addObsidianVeins() do
+		table.insert(found, vein)
 	end
 
 	local count = 0

@@ -223,7 +223,13 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
    - Cazador: **Arco reforzado → Arco de liana** (sustituyen al arco).
    - Mago: **Bastón dorado → Bastón de plata** (sustituyen al bastón mágico).
    - Médico: **Cerbatana de hueso → Cerbatana del chamán** (sustituyen a la cerbatana).
-   ✅ Solo salen las del rol que llevas; cada una cambia el modelo y el daño del arma.
+   ✅ Solo salen las del rol que llevas; cada una cambia el modelo y el daño del arma. El nivel 3 (y la Armadura de plata) pide **👑 Corona del caudillo**: "+50 de todo" la da (sin ella, la receta sale bloqueada).
+6b. [ ] **Forja volcánica** (Fase 9, G5): construye la **🌋 Forja volcánica** en el núcleo con el martillo (piedra, obsidiana y hueso grueso) y fabrica el nivel 4 de tu rol (**Mazo volcánico, Arco de brasa, Bastón de lava o Cerbatana de azufre**) y la **Armadura volcánica** (pide **💎 Cristal de cueva**).
+   ✅ El arma y la armadura cambian de modelo (basalto y obsidiana con grietas de lava); con **🛡️ Siguiente armadura** se ven las 4 versiones por rol. Todas echan humo por los hombros (hombreras con cristales de obsidiana hundidos en lava). De espaldas: volcán en escalones con ríos de lava, humo y corona de cristales (guerrero), capa de ceniza con zarpazos de lava y carcaj con flechas que arden (cazador), sol negro en anillos de fuego con llamas (mago), mochila con cristales de azufre y chimeneas de humo (médico).
+6c. [ ] Ve al **volcán** y a la **sala de la cueva**: hay vetas negras de **obsidiana** con grietas de lava (10 y 5). Pícalas con el pico.
+   ✅ Dan obsidiana (más con el pico de hueso) y se agotan tras 3 golpes completos; reaparecen a los 4 min.
+6d. [ ] Derrota a un jefe (👑 Siguiente jefe + 💔 Jefe al 30 %).
+   ✅ "🏆 Botín del jefe: … ×2"; al caer, los tesoros siguen en la Bolsa.
 7. [ ] En la Salida, cada 2 minutos sale **"[Rendimiento] … streaming activado/DESACTIVADO"**.
 
 ## 5.1 Jefes

@@ -13,6 +13,11 @@ local STONE_DARK = Color3.fromRGB(90, 90, 95)
 local FABRIC = Color3.fromRGB(205, 190, 150)
 local STRAW = Color3.fromRGB(220, 192, 125)
 local STRAW_DARK = Color3.fromRGB(170, 135, 80)
+-- Forja volcánica (Fase 9, G5).
+local BASALT = Color3.fromRGB(62, 58, 60)
+local BASALT_DARK = Color3.fromRGB(44, 41, 44)
+local OBSIDIAN = Color3.fromRGB(30, 24, 38)
+local MAGMA = Color3.fromRGB(255, 110, 30)
 
 local BuildModels = {}
 
@@ -442,6 +447,121 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			STONE,
 			Enum.Material.Slate
 		)
+	end,
+	-- Fase 9 (G5): un volcán pequeño de basalto en tres escalones con un lago de lava arriba, rodeado de
+	-- esquirlas de obsidiana, una boca de horno que brilla por delante (-Z), humo y chispas, y un yunque
+	-- de obsidiana al lado.
+	VolcanicForge = function(model, size)
+		local bottom = -size.Y / 2
+		local furnaceWidth = size.X - 2.4
+		local tierHeight = (size.Y - 1.2) / 3
+		for tier = 0, 2 do
+			local shrink = tier * 1.1
+			newPart(
+				model,
+				"Furnace",
+				Vector3.new(furnaceWidth - shrink, tierHeight, furnaceWidth - shrink),
+				CFrame.new(-0.6, bottom + tierHeight * (tier + 0.5), 0.4),
+				if tier == 1 then BASALT_DARK else BASALT,
+				Enum.Material.Basalt
+			)
+		end
+		local topY = bottom + tierHeight * 3
+		local lava = newPart(
+			model,
+			"Lava",
+			Vector3.new(furnaceWidth - 2.9, 0.3, furnaceWidth - 2.9),
+			CFrame.new(-0.6, topY + 0.05, 0.4),
+			MAGMA,
+			Enum.Material.Neon
+		)
+		local light = Instance.new("PointLight")
+		light.Color = MAGMA
+		light.Range = 18
+		light.Brightness = 2
+		light.Parent = lava
+		local smoke = Instance.new("Smoke")
+		smoke.Color = Color3.fromRGB(70, 66, 66)
+		smoke.Opacity = 0.15
+		smoke.RiseVelocity = 4
+		smoke.Size = 3
+		smoke.Parent = lava
+		local sparks = Instance.new("Fire")
+		sparks.Color = MAGMA
+		sparks.SecondaryColor = Color3.fromRGB(255, 200, 80)
+		sparks.Heat = 6
+		sparks.Size = 3
+		sparks.Parent = lava
+		-- Esquirlas de obsidiana en el borde del cráter, inclinadas hacia fuera.
+		for index = 0, 5 do
+			local angle = index * math.pi / 3 + 0.3
+			local reach = (furnaceWidth - 2.2) / 2
+			local shard = decor(
+				newPart(
+					model,
+					"Obsidian",
+					Vector3.new(0.5, 1.2 + (index % 2) * 0.5, 0.5),
+					CFrame.new(-0.6 + math.cos(angle) * reach, topY + 0.5, 0.4 + math.sin(angle) * reach)
+						* CFrame.Angles(math.sin(angle) * 0.65, 0, -math.cos(angle) * 0.65),
+					OBSIDIAN,
+					Enum.Material.SmoothPlastic
+				)
+			)
+			shard.Reflectance = 0.05
+		end
+		-- Boca del horno por delante: un hueco oscuro con brasas dentro.
+		local mouthZ = 0.4 - furnaceWidth / 2
+		newPart(
+			model,
+			"Mouth",
+			Vector3.new(1.8, 1.3, 0.2),
+			CFrame.new(-0.6, bottom + 0.9, mouthZ - 0.05),
+			OBSIDIAN,
+			Enum.Material.SmoothPlastic
+		)
+		decor(
+			newPart(
+				model,
+				"Embers",
+				Vector3.new(1.4, 0.9, 0.12),
+				CFrame.new(-0.6, bottom + 0.8, mouthZ - 0.12),
+				MAGMA,
+				Enum.Material.Neon
+			)
+		)
+		-- Grietas de lava que bajan por la ladera del horno.
+		for side = -1, 1, 2 do
+			decor(
+				newPart(
+					model,
+					"Crack",
+					Vector3.new(0.18, tierHeight * 2.2, 0.12),
+					CFrame.new(-0.6 + side * 1.1, bottom + tierHeight * 1.6, mouthZ + 0.5)
+						* CFrame.Angles(0, 0, side * 0.35),
+					MAGMA,
+					Enum.Material.Neon
+				)
+			)
+		end
+		-- Yunque de obsidiana sobre un tocón de basalto.
+		local anvilX, anvilZ = size.X / 2 - 0.9, -size.Z / 2 + 1.2
+		newPart(
+			model,
+			"Stump",
+			Vector3.new(1, 1.2, 1),
+			CFrame.new(anvilX, bottom + 0.6, anvilZ),
+			BASALT,
+			Enum.Material.Basalt
+		)
+		local anvil = newPart(
+			model,
+			"Anvil",
+			Vector3.new(0.9, 0.5, 1.6),
+			CFrame.new(anvilX, bottom + 1.45, anvilZ),
+			OBSIDIAN,
+			Enum.Material.SmoothPlastic
+		)
+		anvil.Reflectance = 0.05
 	end,
 }
 

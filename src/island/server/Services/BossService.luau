@@ -194,9 +194,12 @@ local function onBossDied(boss: ActiveBoss)
 			TelemetryService.bossDefeated(player, boss.id, os.clock() - (boss.firstHitAt or os.clock()), boss.fighters)
 		end
 		if player.Parent then
-			InventoryService.collect(player, boss.definition.lootItemId, 1)
+			InventoryService.collect(player, boss.definition.lootItemId, Config.Bosses.LootPerPlayer)
 			MatchStats.add(player, MatchStats.BOSSES)
-			Remotes.Notify:FireClient(player, `🏆 Botín del jefe: {item.icon} {item.name}`)
+			Remotes.Notify:FireClient(
+				player,
+				`🏆 Botín del jefe: {item.icon} {item.name} ×{Config.Bosses.LootPerPlayer}`
+			)
 			for _, listener in defeatListeners do
 				task.spawn(listener, player, boss.id)
 			end

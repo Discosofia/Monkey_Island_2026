@@ -3,7 +3,8 @@
 -- Aparecen en su guarida (MapBuilder: GuaridasJefes/Guarida_<bioma>) según Config.Match.BossRotation,
 -- uno cada Config.Match.BossIntervalDays días, y se quedan hasta que los derrotan o llega el siguiente.
 -- Cada uno suelta siempre una pieza de la baliza de rescate (para el servidor) y su botín especial
--- (para cada jugador que le hizo daño).
+-- (Config.Bosses.LootPerPlayer para cada jugador que le hizo daño): la corona y el cristal piden las
+-- mejoras de nivel 3 y 4 de la forja, una para el arma y otra para la armadura.
 --
 -- Ataques especiales ("specials"), que se desbloquean por fase (fase 2 al 66 % de vida, 3 al 33 %):
 --   stomp      golpe en área que daña y aturde
@@ -123,7 +124,8 @@ local Bosses: { [string]: Boss } = {
 		-- Casi negro: el moteado gris de ceniza de su modelo voxel destaca encima.
 		bodyColor = Color3.fromRGB(42, 38, 38),
 		faceColor = Color3.fromRGB(255, 110, 40),
-		maxHealth = 5600,
+		-- 7000 (antes 5600) desde que el nivel 4 de la forja llega el día 7 (G5): sigue durando ~3 min.
+		maxHealth = 7000,
 		walkSpeed = 16,
 		damage = 32,
 		attackRange = 14, -- más que los demás: con su tamaño, el hocico queda a ~10 studs de la raíz

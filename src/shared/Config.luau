@@ -65,6 +65,9 @@ local Config = {
 	-- jefe dura parecido con 1, 3 o 5 jugadores. Objetivo con 4 jugadores
 	-- (octubre de 2026, medido con ServerStorage.Tools.Equilibrio): 2 min el primero y 3 min el último.
 	Bosses = {
+		-- Unidades de su botín especial (Data/Bosses "lootItemId") para cada jugador que le hizo daño:
+		-- una para el arma y otra para la armadura de la forja (Data/Recipes).
+		LootPerPlayer = 2,
 		HealthBase = 1,
 		HealthPerExtraPlayer = 0.75,
 		MaxHealthMultiplier = 16,
@@ -102,6 +105,14 @@ local Config = {
 		-- Si el mapa no tiene puntos de recolección, se crean unos de prueba alrededor del Basecamp.
 		SpawnTestNodesIfNone = true,
 		TestNodeRingRadius = 100,
+		-- Fase 9 (G5): vetas de obsidiana que ResourceService pone al arrancar si el mapa no tiene
+		-- ninguna, junto a las guaridas del volcán y de la cueva (Mapa/GuaridasJefes). "min"/"max": a
+		-- cuántos studs de la guarida (en el volcán, fuera del cráter de lava). "inside": la guarida
+		-- está bajo tierra y el rayo que busca el suelo sale de dentro de la sala, no del cielo.
+		ObsidianVeins = {
+			{ lair = "Guarida_Volcan", count = 10, min = 45, max = 130 },
+			{ lair = "Guarida_Cuevas", count = 5, min = 10, max = 20, inside = true },
+		},
 		-- Tiempos y cantidades de cada tipo: ver Shared/Data/ResourceNodes.
 	},
 

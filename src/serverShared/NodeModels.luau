@@ -1,6 +1,6 @@
 --!strict
 -- Modelos de los puntos de recolección: árboles (cinco variedades y el mangle), palmeras, rocas irregulares,
--- matas de banano y plátano y arbustos. Los usan ResourceService (nodos de prueba) y MapBuilder
+-- vetas de obsidiana, matas de banano y plátano y arbustos. Los usan ResourceService (nodos de prueba) y MapBuilder
 -- (isla generada). Cuando tengas modelos definitivos, basta con ponerles el mismo atributo
 -- (ver docs/MAPA.md).
 --
@@ -774,6 +774,99 @@ function NodeModels.buildRock(ground: Vector3, rng: Random, scale: number): Mode
 	return rock
 end
 
+-- OBSIDIANA ------------------------------------------------------------------------------------
+-- Veta de obsidiana (Fase 9, G5): montículo de basalto con grietas de lava y un manojo de esquirlas
+-- negras de vidrio, en escalones de bloques, que salen hacia arriba y hacia fuera. Más alta y brillante
+-- que una roca, para que se distinga de lejos en la ladera gris del volcán.
+
+local OBSIDIAN = Color3.fromRGB(30, 24, 38)
+local OBSIDIAN_SHEEN = Color3.fromRGB(96, 70, 130)
+local BASALT = Color3.fromRGB(60, 56, 58)
+local MAGMA_CRACK = Color3.fromRGB(255, 110, 30)
+
+function NodeModels.buildObsidian(ground: Vector3, rng: Random, scale: number): Model
+	local vein = Instance.new("Model")
+	vein.Name = "Obsidiana"
+	local s = scale
+	local base = CFrame.new(ground - Vector3.new(0, 0.3 * s, 0)) * CFrame.Angles(0, rng:NextNumber(0, TAU), 0)
+	rockPiece(
+		vein,
+		Vector3.new(5.2, 1.8, 4.6) * s * jitter(rng, 0.1),
+		base * CFrame.new(0, 0.6 * s, 0) * randomTilt(rng, 0.12),
+		BASALT,
+		Enum.Material.Basalt
+	)
+	rockPiece(
+		vein,
+		Vector3.new(3.8, 1.4, 3.8) * s * jitter(rng, 0.1),
+		base * CFrame.new(0.4 * s, 1.3 * s, -0.3 * s) * randomTilt(rng, 0.2),
+		shade(BASALT, rng, 0.06),
+		Enum.Material.Basalt
+	)
+	-- Grietas de lava que asoman entre el basalto.
+	local firstCrack: Part? = nil
+	for i = 1, 3 do
+		local crack = decorative(
+			newPart(
+				"Crack",
+				Vector3.new(rng:NextNumber(1.8, 2.6) * s, 0.2, 0.22 * s),
+				base * CFrame.Angles(0, i * TAU / 3 + rng:NextNumber(-0.3, 0.3), 0) * CFrame.new(1.5 * s, 1.5 * s, 0),
+				MAGMA_CRACK,
+				vein
+			)
+		)
+		crack.Material = Enum.Material.Neon
+		firstCrack = firstCrack or crack
+	end
+	-- Esquirlas: una grande en el centro y cuatro o cinco más bajas inclinadas hacia fuera, cada una en
+	-- tres escalones que se estrechan hacia la punta, con una franja de reflejo violeta.
+	local start = rng:NextNumber(0, TAU)
+	local shards = rng:NextInteger(4, 5)
+	for i = 0, shards do
+		local height = (if i == 0 then rng:NextNumber(4.6, 5.6) else rng:NextNumber(2.2, 3.4)) * s
+		local width = (if i == 0 then 1.6 else rng:NextNumber(0.9, 1.2)) * s
+		local lean = if i == 0 then rng:NextNumber(0, 0.12) else rng:NextNumber(0.35, 0.6)
+		local frame = base
+			* CFrame.Angles(0, start + i * TAU / shards, 0)
+			* CFrame.new(0, 1.2 * s, if i == 0 then 0 else -1.3 * s)
+			* CFrame.Angles(-lean, 0, 0)
+		local y = 0
+		for step, fraction in { 0.6, 0.28, 0.12 } do
+			local stepHeight = height * fraction
+			local stepWidth = width * (1 - (step - 1) * 0.3)
+			local piece = rockPiece(
+				vein,
+				Vector3.new(stepWidth, stepHeight, stepWidth * 0.8),
+				frame * CFrame.new(0, y + stepHeight / 2, 0),
+				if (i + step) % 2 == 0 then OBSIDIAN else shade(OBSIDIAN, rng, 0.06),
+				Enum.Material.SmoothPlastic
+			)
+			piece.Reflectance = 0.05
+			y += stepHeight
+		end
+		local sheen = decorative(
+			newPart(
+				"Sheen",
+				Vector3.new(width * 0.22, height * 0.5, 0.06),
+				frame * CFrame.new(-width * 0.18, height * 0.32, -width * 0.42),
+				OBSIDIAN_SHEEN,
+				vein
+			)
+		)
+		sheen.Material = Enum.Material.SmoothPlastic
+	end
+	-- Un brillo de lava muy suave: se ve de noche sin iluminar el campamento.
+	if firstCrack then
+		local glow = Instance.new("PointLight")
+		glow.Color = MAGMA_CRACK
+		glow.Range = 8
+		glow.Brightness = 0.8
+		glow.Parent = firstCrack
+	end
+	NodeModels.makeHarvestable(vein, "Obsidian", ground, 4.5 * s)
+	return vein
+end
+
 -- MATAS DE BANANO Y PLÁTANO --------------------------------------------------------------------
 
 -- Una hoja grande en dos tramos: el primero sube desde el tallo y el segundo se dobla hacia abajo.
@@ -961,7 +1054,7 @@ local function buildBush(ground: Vector3, rng: Random, scale: number): Model
 	return bush
 end
 
--- Crea un punto de recolección del tipo dado ("Tree", "Rock", "Bush", "BananaPlant",
+-- Crea un punto de recolección del tipo dado ("Tree", "Rock", "Obsidian", "Bush", "BananaPlant",
 -- "PlantainPlant") apoyado en "ground". Con rng, cada uno sale con tamaño, giro y variedad distintos.
 function NodeModels.build(nodeType: string, ground: Vector3, rng: Random?): Model
 	local random = rng or Random.new()
@@ -970,6 +1063,8 @@ function NodeModels.build(nodeType: string, ground: Vector3, rng: Random?): Mode
 		return NodeModels.buildTree(ground, random, scale)
 	elseif nodeType == "Rock" then
 		return NodeModels.buildRock(ground, random, scale)
+	elseif nodeType == "Obsidian" then
+		return NodeModels.buildObsidian(ground, random, scale)
 	elseif MUSA_KINDS[nodeType] then
 		return NodeModels.buildMusa(nodeType, ground, random)
 	end

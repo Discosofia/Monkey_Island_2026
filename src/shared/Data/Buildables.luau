@@ -161,6 +161,23 @@ local Buildables: { [string]: Buildable } = {
 		station = "Forge",
 		hitSound = "StructureHitStone",
 	},
+	-- Fase 9 (G5): horno de obsidiana con lava. Pide la obsidiana del volcán o de la cueva.
+	VolcanicForge = {
+		name = "Forja volcánica",
+		icon = "🌋",
+		description = "Estación: el nivel 4 de tu arma y tu armadura (obsidiana y cristal de cueva).",
+		order = 6.5,
+		size = Vector3.new(7, 6, 7),
+		cost = {
+			{ itemId = "Stone", amount = 25 },
+			{ itemId = "Obsidian", amount = 8 },
+			{ itemId = "ThickBone", amount = 2 },
+		},
+		health = 700,
+		zones = { Core = true },
+		station = "VolcanicForge",
+		hitSound = "StructureHitStone",
+	},
 }
 
 return Buildables

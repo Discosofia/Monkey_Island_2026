@@ -414,14 +414,14 @@ El **diario de campo** (J en la Isla, icono "Diario" del menú en el Lobby) reco
 
 #### Categoría 4: jefes (uno por bioma)
 
-Son versiones **gigantes y con aspecto distinto** de las especies difíciles. Pegan más, tienen fases y sueltan botín especial. **Cada jefe suelta siempre una pieza de la baliza de rescate.**
+Son versiones **gigantes y con aspecto distinto** de las especies difíciles. Pegan más, tienen fases y sueltan botín especial. **Cada jefe suelta siempre una pieza de la baliza de rescate** (para el servidor) y **2 de su tesoro a cada jugador que le hizo daño** (`Config.Bosses.LootPerPlayer`: uno para el arma y otro para la armadura). Los tesoros no se pierden al caer ni los roban los monos. Desde la Fase 9 (G5) el equipo depende de ellos: la **Corona del caudillo** (día 4) pide el nivel 3 de las armas de rol y la armadura de plata, y el **Cristal de cueva** (día 6) el nivel 4 de la forja volcánica.
 
 | Día de aparición | Jefe | Bioma | Mecánicas | Botín especial |
 |---|---|---|---|---|
 | 2, 10, 18… | **Orangután del Manglar** | Ríos | Atrapa jugadores en el agua y crece la marea en la arena | Perla del río |
 | 4, 12, 20… | **Chimpancé Caudillo** | Montañas | Invoca tropas, lanza troncos y ataca desde posiciones elevadas | Corona del caudillo |
 | 6, 14, 22… | **Gorila Albino** | Cuevas | Pelea en la oscuridad: apaga antorchas y su rugido hace eco y aturde | Cristal de cueva |
-| 8, 16, 24… | **Gorila de Ceniza** | Volcán | Cargas, lluvia de rocas volcánicas. Se enfurece durante las erupciones. | Núcleo de magma (forja de nivel alto) |
+| 8, 16, 24… | **Gorila de Ceniza** | Volcán | Cargas, lluvia de rocas volcánicas. Se enfurece durante las erupciones. Vida base 7.000 (5.600 antes del nivel 4 de la forja) | Núcleo de magma |
 
 **Reglas de aparición:**
 
@@ -558,8 +558,8 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 | Mesa de trabajo | Herramientas y armas básicas, antorchas |
 | Hoguera y cocina | Comida cocinada, agua hervida |
 | Taller del curandero | Vendas, super vendas, ungüentos y antídotos. Solo el médico: **kit de reanimación** (3 fibra, 1 pelaje dorado, 1 hueso: al reanimar se gasta, basta con pulsar y el aliado vuelve con el 70 % de su vida), **cataplasma de grupo** (4 fibra, 2 plátanos, 1 pelaje rojo: con Curar cura 35 a ti y a los aliados a 20 studs; va primero si alguno ha perdido 10 o más) y **dardos venenosos** ×20 (2 fibra, 1 diente diminuto: munición opcional de la cerbatana; mientras queden, cada disparo gasta uno y el veneno pega ×1,6, con su contador "🐸" encima de la barra) |
-| Forja de piedra | Armas y armaduras de hueso y metal |
-| Forja volcánica | Equipo de obsidiana y magma (requiere núcleo de magma) |
+| Forja de piedra | Armas y armaduras de hueso y metal. El nivel 3 de las armas de rol (Mazo de hueso grueso, Arco de liana, Bastón de plata, Cerbatana del chamán) y la Armadura de plata piden además la **Corona del caudillo** (jefe del día 4) |
+| Forja volcánica | Nivel 4 (Fase 9, G5): se construye con 25 piedra, 8 obsidiana y 2 huesos gruesos. **Mazo volcánico, Arco de brasa, Bastón de lava, Cerbatana de azufre** (~+30 % de DPS sobre el nivel 3) y **Armadura volcánica** (−65 % de daño; Manto de brasa, Túnica de lava y Manto de azufre en los otros roles). Piden obsidiana y el **Cristal de cueva** (jefe del día 6). La **obsidiana** sale de vetas negras con grietas de lava en las laderas del volcán (10) y en la sala de la cueva (5), que se pican (4 golpes con el pico de hueso, 9 por veta) |
 | Nido | Incubar huevos |
 | Baliza de rescate | Victoria (requiere las 4 piezas de jefe) |
 

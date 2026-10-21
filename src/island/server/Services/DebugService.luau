@@ -65,15 +65,19 @@ local SHOWCASE_ORDER = {
 	"StoneClub",
 	"BoneMace",
 	"ThickBoneMaul",
+	"VolcanicMaul",
 	"Bow",
 	"ReinforcedBow",
 	"LianaBow",
+	"EmberBow",
 	"MagicStaff",
 	"GoldenStaff",
 	"SilverStaff",
+	"LavaStaff",
 	"Blowgun",
 	"BoneBlowgun",
 	"ShamanBlowgun",
+	"SulfurBlowgun",
 }
 local SHOWCASE_RADIUS = 11
 
@@ -321,7 +325,7 @@ local function petShowcase(player: Player)
 end
 
 -- Armaduras por las que va pasando "Siguiente armadura" (nil = ninguna).
-local ARMOR_CYCLE = { "FurVest", "BoneArmor", "SilverArmor" }
+local ARMOR_CYCLE = { "FurVest", "BoneArmor", "SilverArmor", "VolcanicArmor" }
 
 -- Pone la siguiente armadura (o ninguna, tras la última) para ver sus modelos (Combat/ArmorModels).
 local function nextArmor(player: Player)
@@ -350,8 +354,9 @@ end
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	Materials = function(player)
 		for itemId, item in Items do
-			-- El equipo (la antorcha) se fabrica: no se reparte de 50 en 50.
-			if not item.keep then
+			-- El equipo (la antorcha) se fabrica: no se reparte de 50 en 50. Los tesoros de jefe, que
+			-- tampoco se pierden, sí: los piden la forja de piedra y la volcánica.
+			if item.group ~= "Gear" then
 				InventoryService.add(player, itemId, 50)
 			end
 		end

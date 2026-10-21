@@ -65,6 +65,19 @@ local ResourceNodes: { [string]: NodeDefinition } = {
 		uses = 3,
 		respawnSeconds = 150,
 	},
+	-- Fase 9 (G5): vetas de obsidiana en las laderas del volcán y en la sala de la cueva
+	-- (ResourceService las pone al arrancar si el mapa no las tiene). Duras: 4 golpes con el pico de
+	-- hueso (que da +2 en cada una: 9 por veta), 12 con el de madera.
+	Obsidian = {
+		name = "Obsidiana",
+		actionText = "Picar",
+		itemId = "Obsidian",
+		amount = 1,
+		tool = "Pick",
+		toughness = 12,
+		uses = 3,
+		respawnSeconds = 240,
+	},
 	-- Helechos de la selva: menos fibra que un arbusto, pero hay muchos.
 	Fern = {
 		name = "Helecho",

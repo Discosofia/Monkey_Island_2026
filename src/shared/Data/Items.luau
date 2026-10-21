@@ -11,7 +11,8 @@
 -- "rarity" (Data/Rarities) da color al nombre en el inventario y el diario; sin ella, Común.
 -- "group" pone el objeto en otra sección de la Bolsa ("Materials", "Food", "Healing", "Loot",
 -- "Treasure", "Gear"); sin él, la decide lo que hace (comida, curación, siempre visible o botín).
--- "keep": no se pierde nunca (ni lo roban los monos ni se queda en la mochila al caer): el equipo.
+-- "keep": no se pierde nunca (ni lo roban los monos ni se queda en la mochila al caer): el equipo y
+-- los tesoros de jefe, que piden las mejoras de la forja y no se pueden volver a conseguir.
 -- "note": para qué sirve, en el detalle de la Bolsa.
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.
 
@@ -101,18 +102,51 @@ local Items: { [string]: ItemDefinition } = {
 	ThickBone = { name = "Hueso grueso", icon = "🦴", order = 30, rarity = "Rare" },
 	OrangeFur = { name = "Pelaje naranja", icon = "🍊", order = 31, rarity = "Rare" },
 	SilverFur = { name = "Pelaje plateado", icon = "⚪", order = 32, rarity = "Epic" },
-	-- Fase 5: botín especial de los jefes.
-	RiverPearl = { name = "Perla del río", icon = "🔮", order = 40, rarity = "Legendary", group = "Treasure" },
+	-- Fase 5: botín especial de los jefes (Config.Bosses.LootPerPlayer para cada uno que le hizo daño).
+	-- Fase 9 (G5): la corona y el cristal piden las mejoras de nivel 3 y 4 de la forja (Data/Recipes).
+	RiverPearl = {
+		name = "Perla del río",
+		icon = "🔮",
+		order = 40,
+		rarity = "Legendary",
+		group = "Treasure",
+		keep = true,
+	},
 	ChieftainCrown = {
 		name = "Corona del caudillo",
 		icon = "👑",
 		order = 41,
 		rarity = "Legendary",
 		group = "Treasure",
+		keep = true,
+		note = "La forja de piedra la pide para el nivel 3 de tu arma y la armadura de plata",
 	},
-	CaveCrystal = { name = "Cristal de cueva", icon = "💎", order = 42, rarity = "Legendary", group = "Treasure" },
-	MagmaCore = { name = "Núcleo de magma", icon = "🌋", order = 43, rarity = "Legendary", group = "Treasure" },
+	CaveCrystal = {
+		name = "Cristal de cueva",
+		icon = "💎",
+		order = 42,
+		rarity = "Legendary",
+		group = "Treasure",
+		keep = true,
+		note = "La forja volcánica lo pide, con obsidiana, para el nivel 4 de tu arma y tu armadura",
+	},
+	MagmaCore = {
+		name = "Núcleo de magma",
+		icon = "🌋",
+		order = 43,
+		rarity = "Legendary",
+		group = "Treasure",
+		keep = true,
+	},
 	ShipMetal = { name = "Metal de naufragio", icon = "⚙️", order = 44, rarity = "Uncommon", group = "Treasure" },
+	-- Fase 9 (G5): roca negra de las laderas del volcán y la sala de la cueva (Data/ResourceNodes).
+	Obsidian = {
+		name = "Obsidiana",
+		icon = "⬛",
+		order = 36,
+		rarity = "Rare",
+		note = "Vetas negras con grietas de lava en las laderas del volcán y en la sala de la cueva: se pican",
+	},
 }
 
 return Items

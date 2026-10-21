@@ -14,6 +14,8 @@ local Stations: { [string]: StationDefinition } = {
 	-- Fase 2.3: se construyen con el martillo en el núcleo del Basecamp (Data/Buildables).
 	Healer = { name = "Taller del curandero", icon = "🌿", actionText = "Usar" },
 	Forge = { name = "Forja de piedra", icon = "⚒️", actionText = "Forjar" },
+	-- Fase 9 (G5): el nivel 4 del equipo, con obsidiana y el cristal del jefe de la cueva.
+	VolcanicForge = { name = "Forja volcánica", icon = "🌋", actionText = "Forjar" },
 }
 
 return Stations
