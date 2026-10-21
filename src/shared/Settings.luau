@@ -16,6 +16,8 @@
 --   - comicLevel: "All" (también los golpes normales) o "Strong" (solo críticos, K.O. y golpes fuertes
 --     que recibes).
 --   - comicSize: "Small", "Normal" o "Large" (Config.ComicFx.SizeScale).
+--   - missionsOpen: la lista de misiones de la Isla desplegada (en PC; se pliega tocando su cabecera,
+--     MissionTrackerController). No sale en el panel.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -38,6 +40,7 @@ export type Values = {
 	comicFx: boolean,
 	comicLevel: ComicLevel,
 	comicSize: ComicSize,
+	missionsOpen: boolean,
 }
 
 local Settings = {}
@@ -77,6 +80,7 @@ function Settings.defaults(): Values
 		comicFx = true,
 		comicLevel = "All",
 		comicSize = "Normal",
+		missionsOpen = true,
 	}
 end
 
@@ -98,7 +102,7 @@ function Settings.sanitize(raw: any): Values
 	if typeof(raw.comicSize) == "string" and table.find(Settings.COMIC_SIZES, raw.comicSize) then
 		values.comicSize = raw.comicSize :: ComicSize
 	end
-	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music", "comicFx" } do
+	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music", "comicFx", "missionsOpen" } do
 		if typeof(raw[key]) == "boolean" then
 			(values :: any)[key] = raw[key]
 		end
