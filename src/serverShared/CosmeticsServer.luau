@@ -38,6 +38,14 @@ local PUBLISHED = { "Frame", "NumberStyle", "BurstStyle", "NestDecor" }
 
 -- Game Passes que tiene cada jugador (se miran al entrar y al comprar en la partida).
 local passes: { [Player]: { [string]: boolean } } = {}
+-- Quienes quieren enterarse de un cosmético nuevo guardado en el perfil (CosmeticsServer.onGranted).
+local grantedListeners: { (player: Player, cosmeticId: string) -> () } = {}
+
+local function notifyGranted(player: Player, cosmeticId: string)
+	for _, listener in grantedListeners do
+		task.spawn(listener, player, cosmeticId)
+	end
+end
 
 local function owns(player: Player, cosmeticId: string): boolean
 	return player:GetAttribute(`Cosmetic_{cosmeticId}`) == true
@@ -353,7 +361,14 @@ function CosmeticsServer.grant(player: Player, cosmeticId: string): boolean
 		current.ownedCosmetics[cosmeticId] = true
 	end)
 	player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
+	notifyGranted(player, cosmeticId)
 	return true
+end
+
+-- "callback" se llama cada vez que se guarda un cosmético en el perfil de un jugador (ganado, del pase,
+-- comprado con un Developer Product; la tienda en Ámbar lo hace ella misma).
+function CosmeticsServer.onGranted(callback: (player: Player, cosmeticId: string) -> ())
+	table.insert(grantedListeners, callback)
 end
 
 -- Vuelve a mirar qué tiene (tras darle cosméticos en el perfil, como el pase al comprar la premium).
@@ -408,6 +423,7 @@ local function registerProducts()
 				end,
 				after = function(player)
 					player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
+					notifyGranted(player, cosmeticId)
 				end,
 			})
 		end

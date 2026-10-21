@@ -10,8 +10,8 @@
 --       pendientes y qué puede salir; al lado, la colección), Ranking (las cuatro clasificaciones) y
 --       Pase (el pase de temporada, UI/SeasonPassPanel; también tiene su botón en la barra).
 --   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido), Tienda
---     (mejoras con Ámbar), Misiones (el calendario de 7 días, las misiones del día y lo que te llevas
---     a la próxima partida), Pase, Armario (los cosméticos, UI/WardrobePanel), Emotes (no es una
+--     (pestañas "✨ Mejoras", con Ámbar, y "🎨 Cosméticos", las tiendas que rotan, UI/CosmeticShopPanel),
+--     Misiones (el calendario de 7 días, las misiones del día y lo que te llevas a la próxima partida), Pase, Armario (los cosméticos, UI/WardrobePanel), Emotes (no es una
 --     ventana: abre la rueda de emotes, UI/EmoteWheel), Grupo (invitar a jugadores del Lobby para
 --     viajar juntos), Diario
 --     y Ajustes (UI/SettingsPanel). Un punto rojo avisa de lo pendiente (puntos de talento libres,
@@ -38,6 +38,7 @@ local Workspace = game:GetService("Workspace")
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
 local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Config = require(ReplicatedStorage.Shared.Config)
+local CosmeticShopPanel = require(ReplicatedStorage.Shared.UI.CosmeticShopPanel)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Daily = require(ReplicatedStorage.Shared.Daily)
@@ -453,8 +454,11 @@ function LobbyUIController:Start()
 	local nestRow: NestRow? = nil
 	-- Cuenta atrás del siguiente premio del calendario en la ventana Misiones (cada segundo).
 	local calendarCountdown: TextButton? = nil
-	-- Pestaña de la ventana Misiones ("Hoy" o "Semana").
+	-- Pestaña de la ventana Misiones ("Hoy" o "Semana") y de la Tienda ("Mejoras" o "Cosmeticos").
 	local missionsTab = "Hoy"
+	local shopTab = "Mejoras"
+	-- Cuentas atrás de las tiendas de cosméticos (cada segundo).
+	local shopTick: (() -> ())? = nil
 	-- Cuenta atrás de la temporada en la ventana del pase (cada segundo).
 	local passTick: (() -> ())? = nil
 	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
@@ -542,7 +546,7 @@ function LobbyUIController:Start()
 		end
 	end
 
-	local function renderShop(data: Progression.ProgressData)
+	local function renderUpgrades(data: Progression.ProgressData)
 		local amber = player:GetAttribute("Amber")
 		local balance = if typeof(amber) == "number" then amber else 0
 		for index, upgradeId in
@@ -735,10 +739,12 @@ function LobbyUIController:Start()
 		return if ok and typeof(decoded) == "table" then decoded else {}
 	end
 
-	-- Pestañas de la ventana Misiones: "Hoy" (calendario, misiones del día y provisiones) y "Semana".
-	local function missionTabs(weeklyDone: number, weeklyTotal: number)
+	-- Fila de pestañas de una ventana: botones de 8 px de esquina, la elegida en dorado. Tocar otra la
+	-- elige ("pick") y rehace la ventana.
+	type WindowTab = { id: string, text: string }
+	local function windowTabs(name: string, tabs: { WindowTab }, chosenId: string, pick: (string) -> ())
 		local row = Instance.new("Frame")
-		row.Name = "MissionTabs"
+		row.Name = name
 		row.LayoutOrder = -1
 		row.Size = UDim2.new(1, -10, 0, if compactUi then 34 else 44)
 		row.BackgroundTransparency = 1
@@ -748,15 +754,15 @@ function LobbyUIController:Start()
 		layout.Padding = UDim.new(0, 6)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = row
-		for index, tab in { { id = "Hoy", text = "📅 Hoy" }, { id = "Semana", text = "📆 Semana" } } do
+		for index, tab in tabs do
 			local button = Instance.new("TextButton")
 			button.Name = `Tab{tab.id}`
 			button.LayoutOrder = index
-			button.Size = UDim2.new(0.5, -3, 1, 0)
-			button.Text = if tab.id == "Semana" then `{tab.text} ({weeklyDone}/{weeklyTotal})` else tab.text
+			button.Size = UDim2.new(1 / #tabs, -6 * (#tabs - 1) / #tabs, 1, 0)
+			button.Text = tab.text
 			button.Font = Enum.Font.BuilderSansBold
 			button.TextScaled = true
-			local chosen = tab.id == missionsTab
+			local chosen = tab.id == chosenId
 			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
 			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
 			button.Parent = row
@@ -766,11 +772,40 @@ function LobbyUIController:Start()
 			padding.PaddingBottom = UDim.new(0, 6)
 			padding.Parent = button
 			button.MouseButton1Click:Connect(function()
-				if missionsTab ~= tab.id then
-					missionsTab = tab.id
+				if tab.id ~= chosenId then
+					pick(tab.id)
 					render()
 				end
 			end)
+		end
+	end
+
+	-- Pestañas de la ventana Misiones: "Hoy" (calendario, misiones del día y provisiones) y "Semana".
+	local function missionTabs(weeklyDone: number, weeklyTotal: number)
+		windowTabs(
+			"MissionTabs",
+			{ { id = "Hoy", text = "📅 Hoy" }, { id = "Semana", text = `📆 Semana ({weeklyDone}/{weeklyTotal})` } },
+			missionsTab,
+			function(id)
+				missionsTab = id
+			end
+		)
+	end
+
+	-- Ventana Tienda: las mejoras con Ámbar o las tiendas de cosméticos (UI/CosmeticShopPanel).
+	local function renderShop(data: Progression.ProgressData)
+		windowTabs(
+			"ShopTabs",
+			{ { id = "Mejoras", text = "✨ Mejoras" }, { id = "Cosmeticos", text = "🎨 Cosméticos" } },
+			shopTab,
+			function(id)
+				shopTab = id
+			end
+		)
+		if shopTab == "Cosmeticos" then
+			shopTick = CosmeticShopPanel.build(list, { compact = compactUi })
+		else
+			renderUpgrades(data)
 		end
 	end
 
@@ -1437,6 +1472,10 @@ function LobbyUIController:Start()
 			return
 		end
 		local window = WINDOWS[id]
+		-- Las tiendas de cosméticos van en tarjetas: más ancha y colocada por su panel.
+		if id == "Tienda" and shopTab == "Cosmeticos" then
+			window = { icon = window.icon, title = window.title, wide = true, own = true }
+		end
 		compactUi = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
 		windowTitle.Text = if window.icon ~= "" then `{window.icon} {window.title}` else window.title
 		-- En una pantalla baja, todo el ancho y el alto libres; si no, centrada con su ancho.
@@ -1475,6 +1514,7 @@ function LobbyUIController:Start()
 		nestRow = nil
 		calendarCountdown = nil
 		passTick = nil
+		shopTick = nil
 		arenaQueueLine = nil
 		local data = Progression.read(player)
 		if id == "Rol" then
@@ -1811,6 +1851,10 @@ function LobbyUIController:Start()
 			local tick = passTick
 			if tick and panel.Visible then
 				tick()
+			end
+			local shopCountdown = shopTick
+			if shopCountdown and panel.Visible then
+				shopCountdown()
 			end
 			local countdown = calendarCountdown
 			if countdown and panel.Visible then

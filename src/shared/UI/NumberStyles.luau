@@ -28,6 +28,15 @@ local NumberStyles: { [string]: NumberStyle } = {
 		scale = 1.25,
 		glyph = { 0.2, 0.8 },
 	},
+	-- Hielo: blanco arriba, celeste en medio y azul hondo abajo, con un borde azul marino.
+	FrostNumbers = {
+		font = Font.fromEnum(Enum.Font.LuckiestGuy),
+		colors = { Color3.fromRGB(245, 252, 255), Color3.fromRGB(120, 205, 255), Color3.fromRGB(35, 105, 215) },
+		critColors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(170, 230, 255), Color3.fromRGB(60, 140, 255) },
+		edge = Color3.fromRGB(12, 25, 60),
+		scale = 1.25,
+		glyph = { 0.2, 0.8 },
+	},
 }
 
 return NumberStyles

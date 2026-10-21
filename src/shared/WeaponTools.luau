@@ -2743,4 +2743,28 @@ function WeaponTools.playUse(tool: Tool)
 	end
 end
 
+-- El arma del rol "roleId" en su nivel más alto con el aspecto "skinId", suelta y anclada, para verla
+-- en una imagen (Armario, tiendas de cosméticos). Su PrimaryPart es el mango.
+function WeaponTools.preview(roleId: string, skinId: string?): Model?
+	local weaponId = WeaponTools.roleWeapon(roleId, WeaponTools.MAX_LEVEL)
+	if not weaponId then
+		return nil
+	end
+	local tool = WeaponTools.build(weaponId, skinId)
+	local model = Instance.new("Model")
+	model.Name = "Weapon"
+	for _, child in tool:GetChildren() do
+		if child:IsA("BasePart") then
+			child.Anchored = true
+			child.Parent = model
+		end
+	end
+	tool:Destroy()
+	local handle = model:FindFirstChild("Handle")
+	if handle and handle:IsA("BasePart") then
+		model.PrimaryPart = handle
+	end
+	return model
+end
+
 return WeaponTools

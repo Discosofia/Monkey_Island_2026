@@ -208,6 +208,16 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 			else "sin temporada"
 		Remotes.Notify:FireClient(player, `📆 Reloj del pase: +{days} días → {phase}`)
 	end,
+	-- Adelanta un día (o los que se pidan) el reloj de las tiendas de cosméticos (Shared/CosmeticShop):
+	-- otra oferta en Ámbar y, cada 7, otra en Robux. Con 0 vuelve a hoy.
+	ShopNextDay = function(player, arg)
+		local shift = ReplicatedStorage:GetAttribute("DebugShopShift")
+		local days = if typeof(arg) == "number"
+			then arg
+			else (if typeof(shift) == "number" then shift else 0) / 86400 + 1
+		ReplicatedStorage:SetAttribute("DebugShopShift", days * 86400)
+		Remotes.Notify:FireClient(player, `🛒 Reloj de las tiendas: +{days} días`)
+	end,
 	-- Adelanta una hora el reloj de los huevos de este servidor (Shared/EggIncubation.now).
 	ClockHour = function(player)
 		local shift = ReplicatedStorage:GetAttribute("DebugClockShift")

@@ -18,7 +18,9 @@
 --      qué semanales cumple cada perfil en una semana (y qué día).
 --   2. Perfiles de jugador (casual, habitual, intenso, amigos) durante OPCIONES.dias días reales:
 --      Ámbar ganado por fuente y gastado, día en que compra todas las mejoras, huevos eclosionados,
---      misiones cumplidas y día en que llena los talentos de su rol.
+--      misiones cumplidas y día en que llena los talentos de su rol. Gasta en las mejoras, luego en el
+--      equipo de Dunas y luego en la tienda de cosméticos en Ámbar (Shared/CosmeticShop: lo que puede
+--      pagar de su oferta de cada día); y el catálogo y los precios de las tiendas.
 --   3. Partida: el día más temprano en que se puede tener cada nivel de arma y armadura, y lo que trae
 --      de nuevo cada día de la partida.
 --      Y los contratos de expedición (Data/Contracts): minuto en que se cumple cada paso jugando solo,
@@ -138,6 +140,9 @@ local LIMITES = {
 	paseMisiones = { 0.4, 0.7 },
 	-- El habitual gasta al menos esta fracción del Ámbar que gana en el periodo.
 	ambarGastado = 0.6,
+	-- La tienda de cosméticos en Ámbar no se le acaba al habitual antes de este día (si no, vuelve a
+	-- sobrarle el Ámbar).
+	tiendaHabitualDiaMin = 30,
 	-- Día de partida más temprano en que se puede tener el nivel 3 y el 4 de armas de rol y armadura.
 	equipoNivel3Dia = 4,
 	equipoNivel4Dia = 6,
@@ -247,6 +252,12 @@ local function main(copia: Instance): string
 	local SeasonsModulo = Data:FindFirstChild("Seasons")
 	local Pase = if copia:FindFirstChild("SeasonPass") then require(copia.SeasonPass) :: any else nil
 	local temporada = if SeasonsModulo and Pase then (require(SeasonsModulo) :: any)[1] else nil
+	local Tienda = if copia:FindFirstChild("CosmeticShop") then require(copia.CosmeticShop) :: any else nil
+	local Cosmetics = require(Data.Cosmetics) :: any
+	-- Día (Shared/Daily) en que empieza la simulación: el de la temporada, para que la rotación de la
+	-- tienda sea la de verdad.
+	local diaInicial = if temporada then (temporada.startsAt + Config.Daily.ResetOffsetSeconds) // 86400 else 20000
+	local catalogoAmbar = if Tienda then Tienda.pool("Amber", if temporada then temporada.id else nil) else {}
 
 	local M = Config.Match
 	local MINUTOS_DIA = (M.DayLengthSeconds + M.NightLengthSeconds) / 60
@@ -660,6 +671,11 @@ local function main(copia: Instance): string
 			},
 			gastado = 0,
 			saldo = 0,
+			-- Tienda de cosméticos en Ámbar: lo comprado, lo gastado en ella y el día en que lo tiene todo.
+			cosmeticos = {} :: { [string]: boolean },
+			cosmeticosComprados = 0,
+			gastoCosmeticos = 0,
+			tiendaCompletaDia = nil :: number?,
 			mejorasDia = nil :: number?,
 			equipoDunasDia = nil :: number?,
 			huevosEclosionados = 0,
@@ -892,6 +908,26 @@ local function main(copia: Instance): string
 					r.saldo -= costeDunas
 					r.equipoDunasDia = dia
 				end
+				-- Con las mejoras completas, lo que pueda pagar de su oferta de hoy en la tienda de
+				-- cosméticos (Shared/CosmeticShop: los primeros de la rotación que no tiene).
+				if Tienda and #pendientes == 0 and #catalogoAmbar > 0 then
+					local oferta = Tienda.offer("Amber", diaInicial + dia - 1, function(id)
+						return r.cosmeticos[id] == true
+					end, if temporada then temporada.id else nil)
+					for _, id in oferta do
+						local precio = Tienda.price(id, "Amber") or 0
+						if r.saldo >= precio then
+							r.cosmeticos[id] = true
+							r.cosmeticosComprados += 1
+							r.gastoCosmeticos += precio
+							r.gastado += precio
+							r.saldo -= precio
+						end
+					end
+					if r.cosmeticosComprados >= #catalogoAmbar and not r.tiendaCompletaDia then
+						r.tiendaCompletaDia = dia
+					end
+				end
 				if not r.talentosDia and r.xpRol >= xpTalentos then
 					r.talentosDia = dia
 				end
@@ -982,6 +1018,56 @@ local function main(copia: Instance): string
 			)
 		end
 		linea(`Semanales cumplidas de media (con el cambio): {table.concat(resumen, " · ")}.`)
+		-- Tiendas de cosméticos: catálogo, precios y lo que compra cada perfil en Ámbar.
+		if Tienda then
+			local CS = Config.CosmeticShop
+			local seasonId = if temporada then temporada.id else nil
+			local catalogoRobux = Tienda.pool("Robux", seasonId)
+			local totalAmbar = 0
+			for _, id in catalogoAmbar do
+				local precio = Tienda.price(id, "Amber") or 0
+				totalAmbar += precio
+				if precio < CS.AmberPrices[1] or precio > CS.AmberPrices[2] then
+					alerta(`Tienda: {id} cuesta {precio} de Ámbar (rango {CS.AmberPrices[1]}–{CS.AmberPrices[2]})`)
+				end
+			end
+			for _, id in catalogoRobux do
+				local precio = Tienda.price(id, "Robux") or 0
+				if Cosmetics[id].rarity ~= "Mythic" and (precio < CS.RobuxPrices[1] or precio > CS.RobuxPrices[2]) then
+					alerta(`Tienda: {id} cuesta {precio} R$ (rango {CS.RobuxPrices[1]}–{CS.RobuxPrices[2]})`)
+				end
+			end
+			linea("")
+			linea(
+				`Tiendas de cosméticos: en Ámbar {#catalogoAmbar} ({n(totalAmbar, 0)} Ámbar en total), {CS.AmberSlots} al día; en Robux {#catalogoRobux} sueltos, {CS.RobuxSlots} a la semana; {#Tienda.fixed()} Game Passes fijos.`
+			)
+			linea("| Perfil | Cosméticos comprados en Ámbar | Ámbar en cosméticos | Lo tiene todo |")
+			linea("|---|---|---|---|")
+			for _, clave in OPCIONES.ordenPerfiles do
+				local r = resultados[clave]
+				linea(
+					`| {OPCIONES.perfiles[clave].nombre} | {r.cosmeticosComprados} de {#catalogoAmbar} | {n(
+						r.gastoCosmeticos,
+						0
+					)} | {if r.tiendaCompletaDia then `día {r.tiendaCompletaDia}` else "no"} |`
+				)
+			end
+			local habitualTienda = resultados.habitual
+			if
+				habitualTienda
+				and habitualTienda.tiendaCompletaDia
+				and habitualTienda.tiendaCompletaDia < LIMITES.tiendaHabitualDiaMin
+			then
+				alerta(
+					`Tienda: el habitual ya tiene toda la tienda en Ámbar el día {habitualTienda.tiendaCompletaDia} (mínimo {LIMITES.tiendaHabitualDiaMin}): faltan cosméticos`
+				)
+			end
+			if #catalogoRobux < CS.RobuxSlots * 2 then
+				alerta(
+					`Tienda: solo {#catalogoRobux} cosméticos sueltos en Robux para {CS.RobuxSlots} a la semana (la rotación casi no cambia)`
+				)
+			end
+		end
 		local habitual = resultados.habitual
 		if habitual and habitual.ganado > 0 then
 			local gastado = habitual.gastado / habitual.ganado
@@ -1367,6 +1453,9 @@ local function main(copia: Instance): string
 			PetSkin = true,
 			Emote = true,
 			Frame = true,
+			NumberStyle = true,
+			BurstStyle = true,
+			NestDecor = true,
 		}
 		local ventas = {}
 		local function revisar(tabla: any, ruta: string, visto: { [any]: boolean })

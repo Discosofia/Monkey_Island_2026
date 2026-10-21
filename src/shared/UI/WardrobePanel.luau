@@ -19,6 +19,7 @@
 -- LobbyUIController la rehace al cambiar los datos del jugador; la pestaña, el rol, la tarjeta y la
 -- página elegidas se guardan aquí para que no se pierdan.
 
+local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,7 +48,6 @@ local BLOCKED_COLOR = Color3.fromRGB(90, 90, 90)
 local TAB_COLOR = Color3.fromRGB(70, 58, 44)
 local NOTE_COLOR = Color3.fromRGB(255, 220, 150)
 local DETAIL_COLOR = Color3.fromRGB(215, 205, 190)
-local MYTHIC_GOLD = Color3.fromRGB(255, 214, 110)
 -- Vueltas por segundo del avatar de la vista previa.
 local SPIN_SPEED = 0.12
 -- Tamaño del arma de la vista previa respecto al de verdad.
@@ -139,38 +139,21 @@ local function row(parent: Instance, order: number, height: number): Frame
 	return frame
 end
 
--- Borde de la rareza de una tarjeta: fino y de su color; el legendario más grueso, y el mítico con un
--- degradado de su color y oro que gira.
-local function rarityBorder(card: Frame, rarityId: string)
-	local rarity = Rarities[rarityId] or Rarities.Common
-	local stroke = Instance.new("UIStroke")
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Color = rarity.color
-	stroke.Thickness = if rarityId == "Mythic" then 3 elseif rarityId == "Legendary" then 2.5 else 1.5
-	stroke.Parent = card
-	if rarityId == "Mythic" then
-		stroke.Color = Color3.new(1, 1, 1)
-		local gradient = Instance.new("UIGradient")
-		gradient.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, rarity.color),
-			ColorSequenceKeypoint.new(0.5, MYTHIC_GOLD),
-			ColorSequenceKeypoint.new(1, rarity.color),
-		})
-		gradient.Parent = stroke
-		local connection: RBXScriptConnection
-		connection = RunService.RenderStepped:Connect(function()
-			if not card.Parent then
-				connection:Disconnect()
-				return
-			end
-			gradient.Rotation = (os.clock() * 120) % 360
-		end)
-	end
+-- ¿Está "cosmeticId" en tu oferta de la tienda ("amber", la de hoy; "robux", la de esta semana)?
+-- (atributo "CosmeticShop", CosmeticShopService del Lobby).
+local function onOffer(cosmeticId: string, list: "amber" | "robux"): boolean
+	local raw = Players.LocalPlayer:GetAttribute("CosmeticShop")
+	local ok, decoded = pcall(function()
+		return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
+	end)
+	local offer = if ok and typeof(decoded) == "table" then decoded[list] else nil
+	return typeof(offer) == "table" and table.find(offer, cosmeticId) ~= nil
 end
 
--- Cómo se consigue un cosmético que no tienes, y si el botón compra (y qué).
-local function howToGet(cosmetic: Cosmetics.Cosmetic): (string, (() -> ())?)
-	local source = cosmetic.source
+-- Cómo se consigue un cosmético que no tienes, y si el botón compra (y qué). Lo de las tiendas
+-- (Ámbar y Robux sueltos) solo se compra mientras está en tu oferta; si no, sale "En rotación".
+local function howToGet(cosmeticId: string): (string, (() -> ())?)
+	local source = Cosmetics[cosmeticId].source
 	local player = Players.LocalPlayer
 	if source.earned == "Rescue" then
 		return "Gana una partida", nil
@@ -183,6 +166,8 @@ local function howToGet(cosmetic: Cosmetics.Cosmetic): (string, (() -> ())?)
 		return "Comprar", function()
 			MarketplaceService:PromptGamePassPurchase(player, gamePassId)
 		end
+	elseif source.productId and not onOffer(cosmeticId, "robux") then
+		return "🛒 En rotación", nil
 	elseif source.productId and source.productId ~= 0 then
 		local productId = source.productId
 		return if source.price then `Comprar · {source.price} R$` else "Comprar",
@@ -190,7 +175,7 @@ local function howToGet(cosmetic: Cosmetics.Cosmetic): (string, (() -> ())?)
 				MarketplaceService:PromptProductPurchase(player, productId)
 			end
 	elseif source.amber then
-		return `{source.amber} de Ámbar`, nil
+		return if onOffer(cosmeticId, "amber") then `✨ {source.amber} · 🛒 Tienda` else "🛒 En rotación", nil
 	end
 	return if source.price then `Próximamente · {source.price} R$` else "Próximamente", nil
 end
@@ -213,29 +198,6 @@ end
 -- Lo que lleva el avatar de la vista previa en el hueco "slot": lo que se prueba o, si no, lo equipado.
 local function shown(equipped: { [string]: string }, slot: string): string?
 	return state.picks[slot] or equipped[slot]
-end
-
--- El arma del rol en su nivel más alto, de pie al lado derecho del avatar, con el aspecto "skinId".
-local function standingWeapon(roleId: string, skinId: string?): Model?
-	local weaponId = WeaponTools.roleWeapon(roleId, WeaponTools.MAX_LEVEL)
-	if not weaponId then
-		return nil
-	end
-	local tool = WeaponTools.build(weaponId, skinId)
-	local model = Instance.new("Model")
-	model.Name = "Weapon"
-	for _, child in tool:GetChildren() do
-		if child:IsA("BasePart") then
-			child.Anchored = true
-			child.Parent = model
-		end
-	end
-	tool:Destroy()
-	local handle = model:FindFirstChild("Handle")
-	if handle and handle:IsA("BasePart") then
-		model.PrimaryPart = handle
-	end
-	return model
 end
 
 -- Mascota activa del jugador, si la tiene.
@@ -311,7 +273,7 @@ local function previewModel(roleId: string, equipped: { [string]: string }, noWe
 	local model = Instance.new("Model")
 	model.Name = "Preview"
 	avatar.Parent = model
-	local weapon = if noWeapon then nil else standingWeapon(roleId, shown(equipped, `WeaponSkin.{roleId}`))
+	local weapon = if noWeapon then nil else WeaponTools.preview(roleId, shown(equipped, `WeaponSkin.{roleId}`))
 	if weapon then
 		-- Más pequeña que en la mano (las de nivel 4 miden casi lo que el avatar) y apoyada en el suelo
 		-- a su derecha, un poco inclinada hacia él.
@@ -675,7 +637,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 		card.BackgroundTransparency = 0.1
 		card.Parent = grid
 		corner(card, 10)
-		rarityBorder(card :: any, cosmetic.rarity)
+		Widgets.rarityBorder(card, cosmetic.rarity)
 		card.MouseButton1Click:Connect(function()
 			if picked then
 				state.picks[slot] = nil
@@ -733,7 +695,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 				Remotes.EquipCosmetic:FireServer(cosmeticId)
 			end)
 		else
-			local text, buy = howToGet(cosmetic)
+			local text, buy = howToGet(cosmeticId)
 			setButton(button, text, buy ~= nil)
 			if buy then
 				button.MouseButton1Click:Connect(buy)

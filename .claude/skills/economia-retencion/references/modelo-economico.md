@@ -37,6 +37,7 @@
 |---|---|---|
 | Mejoras permanentes | `Data/Upgrades`, `ProgressionService` | 19 rangos, **1.930** |
 | Equipo de Dunas | `Data/ArenaGear`, `ArenaShop` | 200/150/100 por ranura (24 piezas) |
+| Tienda de cosméticos en Ámbar (G10) | `Data/Cosmetics` (`source.amber`), `Shared/CosmeticShop`, `CosmeticShopService` | 4 al día de lo que aún no tienes; 400 común · 600 poco común · 900 raro · 1.200 épico · 1.500 legendario |
 
 **XP del pase** (`Config.Season`, desde G3; G4 sube la de la Isla): 30 niveles × 1.000. Isla 60/día
 sobrevivido, 150/jefe, 50/huevo salvado, 300 por rescate; Dunas 80/40/30 + 15/captura (las de prueba
@@ -118,10 +119,17 @@ siguiente. Jugando solo con los ritmos, pasos por partida: casual 1,3 · habitua
 (termina el **día 23**, antes 24; misiones 62 %), intenso día 13, amigos día 20. Ámbar del habitual en
 30 días: 22.085 (gasta el 11 %).
 
+**Con las tiendas de cosméticos (G10a, 21-10-2026)**: la calculadora compra, con las mejoras completas,
+lo que puede pagar de la oferta de cada día (es optimista: un jugador de verdad no lo compra todo). Con
+los 5 de prueba (3.200 Ámbar) el habitual pasa de gastar el 11 % al **25 %** y tiene la tienda entera el
+día 9. Midiendo un catálogo de prueba: con 17 cosméticos (13.400 Ámbar) gasta el 71 % pero lo acaba el
+día 23; con **23 (18.900)** gasta el 96 % y lo acaba el día 30; con 29, el 99 % y no lo acaba. El casual
+compra 6–7 (gana poco). Meta de G10b: 20–24 cosméticos en Ámbar y unos 6 sueltos de Robux.
+
 ## 5. Hallazgos pendientes (plan de la Fase 9, `docs/PLAN.md`)
 
-- El habitual gasta el 15 % del Ámbar que gana; tras el día 6 no tiene en qué gastarlo: tienda de
-  cosméticos en Ámbar (G10).
+- El habitual gasta el 25 % del Ámbar que gana: la tienda de cosméticos en Ámbar (G10a) tiene solo 5;
+  el catálogo de G10b la cierra (ver la medida de arriba).
 - La Perla del río (día 2) y el Núcleo de magma (día 8) no los pide ninguna receta: candidatos para
   los eventos (G7) o un paso de contrato que pida entregarlos.
 - Los pasos 3–5 de los contratos (días 5–8) solo los ve quien juega partidas largas (intenso, grupos):

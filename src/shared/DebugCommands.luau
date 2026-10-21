@@ -61,6 +61,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "NextWeek", label = "📆 Semana siguiente (semanales)" },
 		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
 		{ id = "GrantCosmetic", label = "🎁 Dar/quitar el siguiente cosmético" },
+		{ id = "ShopNextDay", label = "🛒 Tienda de cosméticos: día siguiente" },
 		{ id = "FakePurchase", label = "🧾 Compra de prueba (siguiente producto)" },
 		{ id = "RepeatReceipt", label = "🔁 Repetir el último recibo" },
 		{ id = "PassXp", label = "⭐ +500 XP de pase" },

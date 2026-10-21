@@ -13,6 +13,7 @@ Copia de `LIMITES` en `src/island/tools/Economia.luau`: si cambias uno, cambia l
 | `paseIntensoDiaMin` | ≥ día 12 | Quien juega mucho no se lo acaba en una semana (luego vienen los niveles en bucle) |
 | `paseMisiones` | 40–70 % | Las misiones guían (variedad) pero jugar normal también avanza |
 | `ambarGastado` | ≥ 60 % | El habitual tiene en qué gastar lo que gana; si no, el Ámbar deja de motivar |
+| `tiendaHabitualDiaMin` | ≥ día 30 | La tienda de cosméticos en Ámbar no se le acaba al habitual dentro del mes: si lo compra todo, el Ámbar vuelve a sobrar |
 | `equipoNivel3Dia` | ≥ día 4 | El nivel 3 de armas y armadura no llega antes del jefe del día 4 |
 | `equipoNivel4Dia` | ≥ día 6 | El nivel 4 (Forja volcánica) no llega antes del jefe del día 6 |
 | Pago | 0 | Nada de Robux da poder, Ámbar, tiempo de huevo, objetos ni algo aleatorio (alerta dura) |

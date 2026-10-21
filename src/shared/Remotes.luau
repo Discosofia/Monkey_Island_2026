@@ -90,6 +90,9 @@ local Remotes = {
 	TutorialStep = remoteEvent("TutorialStep"),
 	-- Cliente -> servidor (Lobby e Isla): equipar o quitar un cosmético (id de Data/Cosmetics).
 	EquipCosmetic = remoteEvent("EquipCosmetic"),
+	-- Cliente -> servidor (Lobby): comprar con Ámbar un cosmético de la oferta de hoy (id de
+	-- Data/Cosmetics; CosmeticShopService).
+	BuyCosmetic = remoteEvent("BuyCosmetic"),
 	-- Cliente -> servidor (Isla): el tutorial se ha completado.
 	TutorialDone = remoteEvent("TutorialDone"),
 	-- Servidor -> clientes (Isla): la mascota de un jugador ataca a un mono (Player, Model).

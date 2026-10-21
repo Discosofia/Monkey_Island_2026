@@ -973,6 +973,18 @@ local Config = {
 		EmoteCombatSeconds = 5,
 	},
 
+	-- Tiendas de cosméticos del Lobby (Fase 9, G10; Shared/CosmeticShop): en Ámbar, los que tienen
+	-- "source.amber" (Data/Cosmetics), AmberSlots cada día; en Robux, los sueltos con "source.productId",
+	-- RobuxSlots cada semana (el lunes); los Game Passes, siempre. Cada jugador ve los primeros de la
+	-- rotación que aún no tiene. Los precios los mira la calculadora (fuera de estos rangos, alerta; los
+	-- míticos de Robux van aparte).
+	CosmeticShop = {
+		AmberSlots = 4,
+		RobuxSlots = 3,
+		AmberPrices = { 400, 1500 },
+		RobuxPrices = { 75, 250 },
+	},
+
 	-- Pase de temporada (Fase 9; plan en docs/PLAN.md). La premium es solo cosmética: el Ámbar, el
 	-- tiempo de huevo y las provisiones salen de la pista gratis y solo por nivel ganado jugando.
 	-- Los números los mide la calculadora (ServerStorage.Tools.Economia, skill economia-retencion).

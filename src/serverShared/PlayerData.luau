@@ -59,6 +59,9 @@ export type Profile = {
 	-- Cosméticos que se tienen sin Game Pass: ganados jugando, del pase, comprados con Ámbar o con un
 	-- Developer Product (ServerShared/CosmeticsServer). Antes "earnedCosmetics".
 	ownedCosmetics: { [string]: boolean },
+	-- Tiendas de cosméticos (versión 6, octubre de 2026): la oferta de hoy en Ámbar y la de esta semana
+	-- en Robux de este jugador (Shared/CosmeticShop, CosmeticShopService del Lobby).
+	cosmeticShop: { [string]: any },
 }
 
 type Session = {
@@ -77,7 +80,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 5,
+		version = 6,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -102,9 +105,11 @@ local function defaultProfile(): Profile
 		weekly = {},
 		purchases = { receipts = {} },
 		ownedCosmetics = {},
+		cosmeticShop = {},
 	}
 end
 
+-- Versión 6: las tiendas de cosméticos ("cosmeticShop"; "reconcile" lo rellena vacío).
 -- Versión 5: pase de temporada, semanales y compras ("reconcile" los rellena vacíos); los cosméticos
 -- ganados jugando ("earnedCosmetics") pasan a "ownedCosmetics", con los del pase y los comprados.
 -- Versión 4: el campo "arena" (Dunas); "reconcile" ya lo rellena vacío.
