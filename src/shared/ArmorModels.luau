@@ -2981,10 +2981,10 @@ local function goldenGorillaSkull(make: Builder, at: CFrame, size: number)
 	end
 	disc(0, -0.3, 0.78, 0.52, 2, TITAN_GOLD)
 	for side = -1, 1, 2 do
-		-- Cuencas grandes y hundidas bajo una ceja de furia en V (más baja por dentro), con ojos de jade
-		-- como los de las demás cabezas del traje (sin neón: el verde que brilla es de las curaciones) y
-		-- pupilas de plata.
-		disc(side * 0.21, -0.03, 0.27, 0.25, 3, TITAN_CARVING)
+		-- Ojos de jade engastados en oro viejo (como el jade de la hebilla y de la gorguera) bajo una ceja
+		-- de furia en V (más baja por dentro), con pupilas de plata. Sin neón: el verde que brilla es de las
+		-- curaciones.
+		disc(side * 0.21, -0.03, 0.27, 0.25, 3, TITAN_GOLD_DARK)
 		disc(side * 0.21, -0.04, 0.18, 0.16, 3.5, JADE)
 		disc(side * 0.21, -0.04, 0.07, 0.07, 3.8, SILVER)
 		disc(side * 0.22, 0.13, 0.46, 0.13, 4, TITAN_GOLD_DARK, side * 0.35)
