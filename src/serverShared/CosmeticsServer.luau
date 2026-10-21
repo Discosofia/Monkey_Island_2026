@@ -1,8 +1,11 @@
 --!strict
--- Cosméticos de pago en el servidor (Fase 6), en el Lobby y en la Isla:
---   - Comprueba qué Game Passes tiene cada jugador ("Cosmetic_<id>" = true).
---   - Se entera de las compras hechas en la partida.
---   - Equipar/quitar (Remotes.EquipCosmetic) se guarda en el perfil (uno por tipo).
+-- Cosméticos en el servidor (Fase 6; ampliado en la Fase 9), en el Lobby, la Isla y Dunas:
+--   - Decide qué tiene cada jugador ("Cosmetic_<id>" = true): su Game Pass, lo guardado en el perfil
+--     ("ownedCosmetics": ganado jugando, del pase, comprado con Ámbar o con un Developer Product) o,
+--     en Studio, lo de Robux aún sin id (Config.Cosmetics.FreeInStudio).
+--   - Se entera de las compras de Game Pass hechas en la partida y entrega los Developer Products de
+--     los cosméticos sueltos (ServerShared/Purchases, producto "Cosmetic.<id>").
+--   - Equipar/quitar (Remotes.EquipCosmetic) se guarda en el perfil, en su hueco (Shared/CosmeticSlots).
 --   - Dibuja lo equipado en el personaje: estela, título y aura.
 
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -11,33 +14,65 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerData = require(script.Parent.PlayerData)
+local Purchases = require(script.Parent.Purchases)
 
 local CosmeticsServer = {}
 
 local VISUALS = { "CosmeticTrail", "CosmeticTitle", "CosmeticAura", "CosmeticAttachment" }
 
+-- Game Passes que tiene cada jugador (se miran al entrar y al comprar en la partida).
+local passes: { [Player]: { [string]: boolean } } = {}
+
 local function owns(player: Player, cosmeticId: string): boolean
 	return player:GetAttribute(`Cosmetic_{cosmeticId}`) == true
 end
 
-local function checkOwnership(player: Player)
+-- De Robux y aún sin id (sale como "Próximamente").
+local function comingSoon(source: Cosmetics.Source): boolean
+	return source.gamePassId == 0 or source.productId == 0
+end
+
+local function computeOwned(player: Player, cosmeticId: string, profile: PlayerData.Profile?): boolean
+	if profile and profile.ownedCosmetics[cosmeticId] then
+		return true
+	end
+	local source = Cosmetics[cosmeticId].source
+	if source.earned then
+		-- Ganado jugando: solo lo dice el perfil, también en Studio.
+		return false
+	end
+	local owned = passes[player]
+	if owned and owned[cosmeticId] then
+		return true
+	end
+	return comingSoon(source) and RunService:IsStudio() and Config.Cosmetics.FreeInStudio
+end
+
+-- Pone los atributos "Cosmetic_<id>" según lo que tiene ahora.
+local function refreshOwnership(player: Player)
+	local profile = PlayerData.get(player)
+	for cosmeticId in Cosmetics do
+		player:SetAttribute(`Cosmetic_{cosmeticId}`, computeOwned(player, cosmeticId, profile))
+	end
+end
+
+local function checkPasses(player: Player)
+	local owned = {}
 	for cosmeticId, cosmetic in Cosmetics do
-		local owned = false
-		if cosmetic.earned then
-			-- Ganado jugando: lo dice el perfil (checkEarned), también en Studio.
-			continue
-		elseif cosmetic.gamePassId == 0 then
-			owned = RunService:IsStudio() and Config.Cosmetics.FreeInStudio
-		else
+		local gamePassId = cosmetic.source.gamePassId
+		if gamePassId and gamePassId ~= 0 then
 			local ok, result = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, cosmetic.gamePassId)
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, gamePassId)
 			end)
-			owned = ok and result == true
+			owned[cosmeticId] = ok and result == true
 		end
-		player:SetAttribute(`Cosmetic_{cosmeticId}`, owned)
+	end
+	if player.Parent then
+		passes[player] = owned
 	end
 end
 
@@ -115,8 +150,7 @@ local function applyVisuals(player: Player)
 	end
 end
 
--- Cosméticos ganados jugando (los "earned" de Data/Cosmetics): los del perfil, y los de rescate para
--- quien ya había ganado antes de que existieran.
+-- Cosméticos de rescate para quien ya había ganado antes de que existieran.
 local function checkEarned(player: Player)
 	local profile = PlayerData.get(player)
 	if not profile then
@@ -124,50 +158,49 @@ local function checkEarned(player: Player)
 	end
 	local missing = {}
 	for cosmeticId, cosmetic in Cosmetics do
-		if cosmetic.earned == "Rescue" and profile.rescues > 0 and not profile.earnedCosmetics[cosmeticId] then
+		if cosmetic.source.earned == "Rescue" and profile.rescues > 0 and not profile.ownedCosmetics[cosmeticId] then
 			table.insert(missing, cosmeticId)
 		end
 	end
 	if #missing > 0 then
 		PlayerData.update(player, function(current)
 			for _, cosmeticId in missing do
-				current.earnedCosmetics[cosmeticId] = true
+				current.ownedCosmetics[cosmeticId] = true
 			end
 		end)
 	end
-	for cosmeticId, cosmetic in Cosmetics do
-		if cosmetic.earned then
-			player:SetAttribute(`Cosmetic_{cosmeticId}`, profile.earnedCosmetics[cosmeticId] == true)
-		end
-	end
 end
 
--- Da un cosmético que se gana jugando. Devuelve true si es nuevo (no lo tenía).
-function CosmeticsServer.grantEarned(player: Player, cosmeticId: string): boolean
-	local cosmetic = Cosmetics[cosmeticId]
+-- Da un cosmético para siempre (ganado jugando, premio del pase, tienda de Ámbar). Devuelve true si
+-- es nuevo (no lo tenía guardado).
+function CosmeticsServer.grant(player: Player, cosmeticId: string): boolean
 	local profile = PlayerData.get(player)
-	if not (cosmetic and cosmetic.earned and profile) or profile.earnedCosmetics[cosmeticId] then
+	if not (Cosmetics[cosmeticId] and profile) or profile.ownedCosmetics[cosmeticId] then
 		return false
 	end
 	PlayerData.update(player, function(current)
-		current.earnedCosmetics[cosmeticId] = true
+		current.ownedCosmetics[cosmeticId] = true
 	end)
 	player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
 	return true
 end
 
--- Prueba (panel de Studio): da o quita un cosmético ganado, para ver cómo queda.
-function CosmeticsServer.debugToggleEarned(player: Player, cosmeticId: string): boolean
-	local has = false
+-- Prueba (panel de Studio): da o quita un cosmético guardado en el perfil, para ver cómo queda.
+-- Devuelve si ahora lo tiene (un Game Pass comprado o uno gratis en Studio se sigue teniendo).
+function CosmeticsServer.debugToggle(player: Player, cosmeticId: string): boolean
+	if not Cosmetics[cosmeticId] then
+		return false
+	end
 	PlayerData.update(player, function(profile)
-		has = not profile.earnedCosmetics[cosmeticId]
-		profile.earnedCosmetics[cosmeticId] = if has then true else nil
-		if not has and profile.cosmetics[Cosmetics[cosmeticId].kind] == cosmeticId then
-			profile.cosmetics[Cosmetics[cosmeticId].kind] = nil
+		local has = not profile.ownedCosmetics[cosmeticId]
+		profile.ownedCosmetics[cosmeticId] = if has then true else nil
+		if not has and not computeOwned(player, cosmeticId, profile) then
+			CosmeticSlots.unequip(profile.cosmetics, cosmeticId)
 		end
 	end)
-	player:SetAttribute(`Cosmetic_{cosmeticId}`, has)
-	return has
+	refreshOwnership(player)
+	applyVisuals(player)
+	return owns(player, cosmeticId)
 end
 
 local function onEquip(player: Player, cosmeticId: any)
@@ -175,36 +208,66 @@ local function onEquip(player: Player, cosmeticId: any)
 	if not cosmetic or not owns(player, cosmeticId) then
 		return
 	end
+	local changed = false
 	PlayerData.update(player, function(profile)
-		-- Pulsar en el equipado lo quita; si no, sustituye al de su tipo.
-		if profile.cosmetics[cosmetic.kind] == cosmeticId then
-			profile.cosmetics[cosmetic.kind] = nil
-		else
-			profile.cosmetics[cosmetic.kind] = cosmeticId
-		end
+		changed = CosmeticSlots.toggle(profile.cosmetics, cosmeticId)
 	end)
-	applyVisuals(player)
+	if changed then
+		applyVisuals(player)
+	elseif cosmetic.kind == "Emote" then
+		Remotes.Notify:FireClient(player, `Ya llevas {Config.Cosmetics.EmoteSlots} emotes: quita uno antes`)
+	end
+end
+
+-- Cada cosmético que se vende suelto (source.productId) se entrega por ServerShared/Purchases. Se
+-- registran también los que aún no tienen id (0), para la compra de prueba del panel de Studio.
+local function registerProducts()
+	for cosmeticId, cosmetic in Cosmetics do
+		local productId = cosmetic.source.productId
+		if productId then
+			Purchases.register(`Cosmetic.{cosmeticId}`, productId, {
+				name = `{cosmetic.icon} {cosmetic.name}`,
+				grant = function(profile)
+					profile.ownedCosmetics[cosmeticId] = true
+				end,
+				after = function(player)
+					player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
+				end,
+			})
+		end
+	end
 end
 
 function CosmeticsServer.start()
+	registerProducts()
 	Remotes.EquipCosmetic.OnServerEvent:Connect(onEquip)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, purchased)
 		if not purchased then
 			return
 		end
 		for cosmeticId, cosmetic in Cosmetics do
-			if cosmetic.gamePassId == gamePassId then
+			if cosmetic.source.gamePassId == gamePassId then
+				local owned = passes[player]
+				if owned then
+					owned[cosmeticId] = true
+				end
 				player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
 				Remotes.Notify:FireClient(player, `¡Gracias! Ya tienes: {cosmetic.icon} {cosmetic.name}`)
 			end
 		end
 	end)
+	Players.PlayerRemoving:Connect(function(player)
+		passes[player] = nil
+	end)
 	local function onPlayer(player: Player)
-		checkOwnership(player)
 		task.spawn(function()
+			checkPasses(player)
 			if PlayerData.waitFor(player) then
 				checkEarned(player)
 			end
+			refreshOwnership(player)
+			-- El personaje pudo aparecer antes de saber qué tiene.
+			applyVisuals(player)
 		end)
 		player.CharacterAdded:Connect(function(character)
 			character:WaitForChild("HumanoidRootPart", 5)

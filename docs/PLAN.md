@@ -367,8 +367,8 @@ Reglas de la entrevista: la premium del pase es **solo cosmética** (Developer P
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
-| **G1** | Skill `economia-retencion` y calculadora de la economía (línea base: misiones al 100 % en la primera hora, el habitual gasta el 15 % de su Ámbar, equipo de nivel 3 el día 1) | — | ✅ Medido en Studio |
-| **G2** | Fundaciones: perfil v5, compras con recibo (`ProcessReceipt` en los 3 places) y catálogo de cosméticos ampliado | — | ⏳ |
+| **G1** | Skill `economia-retencion` y calculadora de la economía (línea base: misiones al 100 % en la primera hora, el habitual gasta el 15 % de su Ámbar, equipo de nivel 3 el día 1) | `857ef5e` | ✅ |
+| **G2** | Fundaciones: perfil v5 (`season`, `weekly`, `purchases`, `ownedCosmetics`), compras con recibo (`ServerShared/Purchases`, `ProcessReceipt` en los 3 places), cosméticos con `source`, rareza y huecos por tipo/rol/mascota/rueda de emotes (`Shared/CosmeticSlots`), `Config.Season` y `Config.Shop` | — | ✅ Probado en Studio |
 | **G3** | Pase de temporada: XP (Isla, Dunas, misiones, +10 % con amigos), pistas gratis y premium, compras, estación en la plaza y ventana | — | ⏳ |
 | **G4** | Misiones v2: fácil/media/difícil, semanales, un cambio gratis al día, eventos nuevos y rastreador en móvil | — | ⏳ |
 | **G5** | Equipo ligado a los jefes: el nivel 3 pide el botín del jefe del día 4; Forja volcánica, obsidiana y nivel 4 | — | ⏳ |

@@ -46,12 +46,18 @@ export type Profile = {
 	login: { [string]: any }, -- calendario de 7 días (ServerShared/Retention)
 	daily: { [string]: any }, -- misiones del día (ServerShared/Retention)
 	supplies: { [string]: number }, -- provisiones para la próxima partida en la Isla
-	earnedCosmetics: { [string]: boolean }, -- cosméticos ganados jugando, sin Game Pass
 	-- Arena de Dunas (versión 4, octubre de 2026): equipamiento comprado y puesto por rol,
 	-- estadísticas y Ámbar ganado hoy en la arena (Shared/Arena).
 	arena: { [string]: any },
 	-- Guía de la primera vez en el Lobby hecha (roles y nido, LobbyGuideController; 20-10-2026).
 	lobbyGuideDone: boolean,
+	-- Pase de temporada, misiones semanales y compras (versión 5, octubre de 2026):
+	season: { [string]: any }, -- progreso en el pase de la temporada en curso (ServerShared/SeasonPass)
+	weekly: { [string]: any }, -- misiones de la semana (ServerShared/Retention)
+	purchases: { [string]: any }, -- recibos de Developer Products ya entregados (ServerShared/Purchases)
+	-- Cosméticos que se tienen sin Game Pass: ganados jugando, del pase, comprados con Ámbar o con un
+	-- Developer Product (ServerShared/CosmeticsServer). Antes "earnedCosmetics".
+	ownedCosmetics: { [string]: boolean },
 }
 
 type Session = {
@@ -70,7 +76,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 4,
+		version = 5,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -89,17 +95,22 @@ local function defaultProfile(): Profile
 		login = {},
 		daily = {},
 		supplies = {},
-		earnedCosmetics = {},
 		arena = {},
 		lobbyGuideDone = false,
+		season = {},
+		weekly = {},
+		purchases = { receipts = {} },
+		ownedCosmetics = {},
 	}
 end
 
+-- Versión 5: pase de temporada, semanales y compras ("reconcile" los rellena vacíos); los cosméticos
+-- ganados jugando ("earnedCosmetics") pasan a "ownedCosmetics", con los del pase y los comprados.
 -- Versión 4: el campo "arena" (Dunas); "reconcile" ya lo rellena vacío.
 -- Versión 3: campos nuevos del bucle de retención; "reconcile" ya los rellena vacíos.
 -- Versión 2: el Recolector pasa a ser el Mago. Su XP se suma a la del Mago y los puntos que tenía
 -- en talentos del Recolector quedan libres (esos talentos ya no existen).
-local function migrate(profile: Profile, fromVersion: number)
+local function migrate(profile: Profile, fromVersion: number, data: any)
 	if fromVersion < 2 then
 		local gathererXp = profile.roleXp.Recolector
 		if gathererXp then
@@ -113,6 +124,13 @@ local function migrate(profile: Profile, fromVersion: number)
 		end
 		if profile.selectedRole == "Recolector" then
 			profile.selectedRole = "Mago"
+		end
+	end
+	if fromVersion < 5 and typeof(data) == "table" and typeof(data.earnedCosmetics) == "table" then
+		for cosmeticId, earned in data.earnedCosmetics do
+			if typeof(cosmeticId) == "string" and earned == true then
+				profile.ownedCosmetics[cosmeticId] = true
+			end
 		end
 	end
 	profile.version = defaultProfile().version
@@ -130,7 +148,7 @@ local function reconcile(data: any): Profile
 		end
 		fromVersion = if typeof(data.version) == "number" then data.version else 1
 	end
-	migrate(profile, fromVersion)
+	migrate(profile, fromVersion, data)
 	return profile
 end
 
@@ -233,30 +251,36 @@ local function loadLocked(player: Player): (Profile?, boolean)
 	return nil, true
 end
 
-local function save(player: Player, release: boolean)
+-- Devuelve true si los datos quedaron escritos en DataStore.
+local function save(player: Player, release: boolean): boolean
 	local session = sessions[player]
 	local dataStore = getStore()
 	if not (session and session.saveable and dataStore) then
-		return
+		return false
 	end
 	local profile = session.profile
+	local written = false
 	local ok, err = pcall(function()
 		dataStore:UpdateAsync(keyFor(player), function(current: any)
 			local lock = if typeof(current) == "table" then current.session else nil
 			-- Si otro servidor se quedó los datos, no los pisamos.
 			if typeof(lock) == "table" and lock.jobId ~= game.JobId then
+				written = false
 				return nil
 			end
 			local stored = table.clone(profile) :: any
 			stored.session = if release then nil else { jobId = game.JobId, time = os.time() }
+			written = true
 			return stored
 		end)
 	end)
 	if ok then
 		session.dirty = false
 	else
+		written = false
 		warn(`[PlayerData] Error al guardar a {player.Name}: {err}`)
 	end
+	return written
 end
 
 local function onPlayerAdded(player: Player)
@@ -308,9 +332,16 @@ function PlayerData.update(player: Player, change: (profile: Profile) -> ())
 	publish(player, session)
 end
 
--- Guarda ya (por ejemplo, antes de un viaje). Puede tardar: llámala desde un hilo propio.
-function PlayerData.saveNow(player: Player)
-	save(player, false)
+-- Guarda ya (por ejemplo, antes de un viaje o al entregar una compra). Puede tardar: llámala desde
+-- un hilo propio. Devuelve true si quedó guardado (false con datos temporales o si DataStore falla).
+function PlayerData.saveNow(player: Player): boolean
+	return save(player, false)
+end
+
+-- true si los datos del jugador se guardan de verdad (false: datos temporales, sin DataStore).
+function PlayerData.isSaveable(player: Player): boolean
+	local session = sessions[player]
+	return session ~= nil and session.saveable
 end
 
 -- Arranca la carga, el guardado automático y el guardado al cerrar. Llamar una vez por servidor.

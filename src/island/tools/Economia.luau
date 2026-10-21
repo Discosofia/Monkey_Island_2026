@@ -833,7 +833,8 @@ local function main(copia: Instance): string
 	-- ---------------------------------------------------------------- Pago
 	if OPCIONES.secciones.pago then
 		linea("## 5. Reglas de pago")
-		-- Todo lo que se vende con Robux en Data y Config: entradas con gamePassId o productId distinto de 0.
+		-- Todo lo que se vende con Robux en Data y Config: entradas con gamePassId o productId distinto de 0
+		-- (en ellas o en su "source", como los cosméticos de Data/Cosmetics).
 		local COSMETICOS = {
 			Trail = true,
 			Title = true,
@@ -850,13 +851,14 @@ local function main(copia: Instance): string
 				return
 			end
 			visto[tabla] = true
-			local pase = tabla.gamePassId
-			local producto = tabla.productId
+			local fuente = if typeof(tabla.source) == "table" then tabla.source else tabla
+			local pase = fuente.gamePassId
+			local producto = fuente.productId
 			if (typeof(pase) == "number" and pase ~= 0) or (typeof(producto) == "number" and producto ~= 0) then
 				table.insert(ventas, { ruta = ruta, entrada = tabla })
 			end
 			for clave, valor in tabla do
-				if typeof(valor) == "table" then
+				if typeof(valor) == "table" and clave ~= "source" then
 					revisar(valor, `{ruta}.{tostring(clave)}`, visto)
 				end
 			end

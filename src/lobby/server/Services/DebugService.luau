@@ -1,10 +1,13 @@
 --!strict
--- Órdenes del panel de pruebas en el Lobby (solo Studio; en el juego publicado se ignoran).
+-- Órdenes del panel de pruebas en el Lobby (solo Studio; en el juego publicado se ignoran). Algunas
+-- aceptan un segundo valor desde MCP (Remotes.DebugCommand:FireServer("GrantCosmetic", "GoldenTrail")).
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -12,6 +15,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local Purchases = require(ServerScriptService.ServerShared.Purchases)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local Supplies = require(ServerScriptService.ServerShared.Supplies)
 
@@ -21,7 +25,34 @@ local DebugService = {}
 local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 local debugEggIndex = 0
 
-local COMMANDS: { [string]: (player: Player) -> () } = {
+-- Producto de ejemplo para la compra de prueba mientras no haya ninguno de verdad: da la estela de
+-- la selva guardada en el perfil (como un cosmético suelto de la tienda).
+local SAMPLE_PRODUCT = "Prueba.JungleTrail"
+local debugProductIndex = 0
+local debugCosmeticIndex = 0
+local debugReceiptCount = 0
+-- Último recibo de prueba de cada jugador ("RepeatReceipt" lo reenvía).
+local lastReceipt: { [Player]: { key: string, id: string } } = {}
+
+local function receiptCount(player: Player): number
+	local profile = PlayerData.get(player)
+	local receipts = if profile then profile.purchases.receipts else nil
+	return if typeof(receipts) == "table" then #receipts else 0
+end
+
+local function sendReceipt(player: Player, key: string, purchaseId: string)
+	lastReceipt[player] = { key = key, id = purchaseId }
+	local before = receiptCount(player)
+	local decision = Purchases.debugPurchase(player, key, purchaseId)
+	local after = receiptCount(player)
+	local verdict = if decision ~= Enum.ProductPurchaseDecision.PurchaseGranted
+		then "sin entregar (NotProcessedYet)"
+		elseif after > before then "entregado"
+		else "ya estaba entregado (no se da dos veces)"
+	Remotes.Notify:FireClient(player, `🧾 {key} ({purchaseId}): {verdict}. Recibos apuntados: {after}`)
+end
+
+local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	Guide = function(player)
 		PlayerData.update(player, function(profile)
 			profile.lobbyGuideDone = false
@@ -75,11 +106,53 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	-- Da o quita el título que se gana al rescatarse, para ver cómo queda (no cuenta como victoria).
 	SurvivorTitle = function(player)
-		local has = CosmeticsServer.debugToggleEarned(player, "TitleSurvivor")
+		local has = CosmeticsServer.debugToggle(player, "TitleSurvivor")
 		Remotes.Notify:FireClient(
 			player,
 			if has then "🏝️ Título de prueba: lo tienes" else "🏝️ Título de prueba: quitado"
 		)
+	end,
+	-- Da o quita el cosmético siguiente (por orden), o el que se pida, guardado en el perfil.
+	GrantCosmetic = function(player, arg)
+		local ids = {}
+		for cosmeticId in Cosmetics do
+			table.insert(ids, cosmeticId)
+		end
+		table.sort(ids, function(a, b)
+			return Cosmetics[a].order < Cosmetics[b].order
+		end)
+		local cosmeticId = if typeof(arg) == "string" and Cosmetics[arg] then arg else nil
+		if not cosmeticId then
+			debugCosmeticIndex = debugCosmeticIndex % #ids + 1
+			cosmeticId = ids[debugCosmeticIndex]
+		end
+		local has = CosmeticsServer.debugToggle(player, cosmeticId)
+		local cosmetic = Cosmetics[cosmeticId]
+		Remotes.Notify:FireClient(
+			player,
+			`🎁 {cosmetic.icon} {cosmetic.name}: {if has then "lo tienes" else "quitado"}`
+		)
+	end,
+	-- Compra de prueba de un Developer Product (el siguiente registrado, o el que se pida) por la misma
+	-- entrega que un recibo de verdad, con un recibo nuevo.
+	FakePurchase = function(player, arg)
+		local keys = Purchases.keys()
+		local key = if typeof(arg) == "string" and table.find(keys, arg) then arg else nil
+		if not key then
+			debugProductIndex = debugProductIndex % #keys + 1
+			key = keys[debugProductIndex]
+		end
+		debugReceiptCount += 1
+		sendReceipt(player, key, `prueba-{player.UserId}-{os.time()}-{debugReceiptCount}`)
+	end,
+	-- Reenvía el último recibo de prueba: tiene que decir que ya estaba entregado.
+	RepeatReceipt = function(player)
+		local last = lastReceipt[player]
+		if last then
+			sendReceipt(player, last.key, last.id)
+		else
+			Remotes.Notify:FireClient(player, "🧾 Aún no hay ninguna compra de prueba")
+		end
 	end,
 	-- Adelanta una hora el reloj de los huevos de este servidor (Shared/EggIncubation.now).
 	ClockHour = function(player)
@@ -94,11 +167,23 @@ function DebugService:Start()
 	if not RunService:IsStudio() then
 		return
 	end
-	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any)
+	Purchases.register(SAMPLE_PRODUCT, 0, {
+		name = "🌿 Estela de la selva (compra de prueba)",
+		grant = function(profile)
+			profile.ownedCosmetics.JungleTrail = true
+		end,
+		after = function(player)
+			player:SetAttribute("Cosmetic_JungleTrail", true)
+		end,
+	})
+	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any, arg: any)
 		local handler = if typeof(command) == "string" then COMMANDS[command] else nil
 		if handler then
-			handler(player)
+			handler(player, arg)
 		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		lastReceipt[player] = nil
 	end)
 end
 

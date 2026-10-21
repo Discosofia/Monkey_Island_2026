@@ -812,8 +812,45 @@ local Config = {
 	},
 
 	Cosmetics = {
-		-- En Studio, los cosméticos sin Game Pass (ID 0) se pueden probar gratis.
+		-- En Studio, los cosméticos de Robux aún sin id (0, "Próximamente") se pueden probar gratis.
 		FreeInStudio = true,
+		-- Huecos de la rueda de emotes (Shared/CosmeticSlots).
+		EmoteSlots = 6,
+	},
+
+	-- Pase de temporada (Fase 9; plan en docs/PLAN.md). La premium es solo cosmética: el Ámbar, el
+	-- tiempo de huevo y las provisiones salen de la pista gratis y solo por nivel ganado jugando.
+	-- Los números los mide la calculadora (ServerStorage.Tools.Economia, skill economia-retencion).
+	Season = {
+		Levels = 30,
+		LevelXp = 1000,
+		-- Después del último nivel: un nivel "en bucle" cada LoopXp (premio de la pista gratis).
+		LoopXp = 1500,
+		-- Multiplicador de XP los últimos LastWeekDays días de la temporada.
+		LastWeekMultiplier = 2,
+		LastWeekDays = 7,
+		-- Días sin temporada entre una y la siguiente (no se gana XP).
+		RestDays = 7,
+		-- Tope de XP al día de las partidas (Isla y Dunas); las misiones no cuentan en él.
+		DailyMatchXpCap = 1200,
+		-- Extra por jugar con amigos (fuera del tope).
+		FriendsBonus = 0.1,
+	},
+
+	-- Compras con Robux (Fase 9). Los Developer Products los entrega ServerShared/Purchases con su
+	-- recibo apuntado en el perfil. "productId" a 0 = "Próximamente" (créalos en el Creator Hub y pon
+	-- aquí su id; docs/LANZAMIENTO.md); "price" es solo lo que se enseña. "grants" dice qué dan
+	-- (la calculadora comprueba que solo sea el pase o un cosmético).
+	Shop = {
+		-- Recibos que recuerda cada perfil para no entregar dos veces la misma compra.
+		ReceiptHistory = 50,
+		Products = {
+			SeasonPremium = { productId = 0, price = 399, grants = "Premium" },
+			-- El pase y 10 niveles; solo si aún no se tiene la premium de la temporada.
+			SeasonPack = { productId = 0, price = 799, grants = "Premium", levels = 10 },
+			-- Un nivel; no se vende en el último nivel ni en los días de descanso.
+			SeasonLevel = { productId = 0, price = 79, grants = "Levels", levels = 1 },
+		},
 	},
 
 	Teleport = {

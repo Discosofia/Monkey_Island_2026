@@ -82,7 +82,7 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 		test = if test then true else nil,
 		newTitle = if result == "Victory"
 				and not test
-				and CosmeticsServer.grantEarned(player, SURVIVOR_TITLE)
+				and CosmeticsServer.grant(player, SURVIVOR_TITLE)
 			then true
 			else nil,
 	}

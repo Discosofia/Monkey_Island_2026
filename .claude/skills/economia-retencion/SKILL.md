@@ -126,8 +126,12 @@ densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
 1. Léete `references/politicas-roblox.md`.
 2. Id en Data/Config con `0` = "Próximamente"; el usuario lo crea en el Creator Hub y pone el id
    (apúntalo en `docs/LANZAMIENTO.md`).
-3. Developer Product: su manejador en el `ProcessReceipt` común, idempotente (recibo apuntado en el
-   perfil antes de devolver `PurchaseGranted`).
+3. Developer Product: `Purchases.register(clave, productId, { name, grant, after? })` desde el
+   `Start` del sistema que lo entrega (`ServerShared/Purchases`; el `ProcessReceipt` común ya apunta
+   el recibo en el perfil y guarda antes de devolver `PurchaseGranted`). `grant` cambia solo el perfil,
+   sin esperas; `after` pone atributos o avisos. Los cosméticos con `source.productId` se registran
+   solos (`CosmeticsServer`, clave `Cosmetic.<id>`). Pruébalo en el Lobby con el panel: "🧾 Compra de
+   prueba" y "🔁 Repetir el último recibo" (tiene que decir que ya estaba entregado).
 4. Solo cosméticos o el pase (premium, niveles): la calculadora lo comprueba en la sección 5.
 
 ### Evento de partida o cambio de ritmo del equipo

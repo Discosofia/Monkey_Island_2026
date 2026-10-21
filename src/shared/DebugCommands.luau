@@ -50,6 +50,9 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Supplies", label = "🎒 Provisiones de prueba" },
 		{ id = "NextDay", label = "📅 Día siguiente (calendario)" },
 		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
+		{ id = "GrantCosmetic", label = "🎁 Dar/quitar el siguiente cosmético" },
+		{ id = "FakePurchase", label = "🧾 Compra de prueba (siguiente producto)" },
+		{ id = "RepeatReceipt", label = "🔁 Repetir el último recibo" },
 		{ id = "Guide", label = "🧭 Repetir la guía" },
 	},
 	Dunas = {

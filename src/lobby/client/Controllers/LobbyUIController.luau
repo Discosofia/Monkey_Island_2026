@@ -36,6 +36,7 @@ local Workspace = game:GetService("Workspace")
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
 local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Config = require(ReplicatedStorage.Shared.Config)
+local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
@@ -893,7 +894,8 @@ function LobbyUIController:Start()
 	end
 
 	-- Cosméticos: solo aspecto, nunca ventaja. Casi todos se compran (Robux); los "earned" se ganan
-	-- jugando (el título de Superviviente, al ganar una partida).
+	-- jugando (el título de Superviviente, al ganar una partida). Cada uno va en su hueco
+	-- (Shared/CosmeticSlots).
 	local function renderStyle(data: Progression.ProgressData)
 		note(list, "🎨 Solo cambian tu aspecto. Uno equipado por tipo", 0)
 		for index, cosmeticId in
@@ -903,7 +905,8 @@ function LobbyUIController:Start()
 		do
 			local cosmetic = Cosmetics[cosmeticId]
 			local owned = player:GetAttribute(`Cosmetic_{cosmeticId}`) == true
-			local equipped = data.cosmetics[cosmetic.kind] == cosmeticId
+			local equipped = CosmeticSlots.equippedIn(data.cosmetics, cosmeticId) ~= nil
+			local source = cosmetic.source
 			local row = newRow(list, index)
 			row.title.Text = `{cosmetic.icon} {cosmetic.name}`
 			row.title.TextColor3 = cosmetic.color
@@ -913,15 +916,24 @@ function LobbyUIController:Start()
 				row.button.MouseButton1Click:Connect(function()
 					Remotes.EquipCosmetic:FireServer(cosmeticId)
 				end)
-			elseif cosmetic.earned then
+			elseif source.earned then
 				setButton(row.button, "Gana una partida", false)
-			elseif cosmetic.gamePassId == 0 then
-				setButton(row.button, "Próximamente", false)
-			else
+			elseif source.season then
+				setButton(row.button, "Pase de temporada", false)
+			elseif source.gamePassId and source.gamePassId ~= 0 then
+				local gamePassId = source.gamePassId
 				setButton(row.button, "Comprar", true)
 				row.button.MouseButton1Click:Connect(function()
-					MarketplaceService:PromptGamePassPurchase(player, cosmetic.gamePassId)
+					MarketplaceService:PromptGamePassPurchase(player, gamePassId)
 				end)
+			elseif source.productId and source.productId ~= 0 then
+				local productId = source.productId
+				setButton(row.button, if source.price then `Comprar · {source.price} R$` else "Comprar", true)
+				row.button.MouseButton1Click:Connect(function()
+					MarketplaceService:PromptProductPurchase(player, productId)
+				end)
+			else
+				setButton(row.button, "Próximamente", false)
 			end
 		end
 	end

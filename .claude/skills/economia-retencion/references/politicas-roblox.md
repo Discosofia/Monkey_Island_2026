@@ -16,10 +16,10 @@
 
 - `MarketplaceService.ProcessReceipt` se pone **en cada place** donde un jugador pueda estar (Lobby,
   Isla, Dunas): Roblox reintenta el recibo hasta que algún servidor devuelve `PurchaseGranted`.
-- Orden seguro: si el perfil no está cargado o no se puede guardar → `NotYetProcessed`. Si el
+- Orden seguro: si el perfil no está cargado o no se puede guardar → `NotProcessedYet`. Si el
   `PurchaseId` ya está en el perfil → `PurchaseGranted` (ya se entregó). Si no: entregar dentro de
   `PlayerData.update`, apuntar el `PurchaseId` (anillo de los últimos ~50), guardar (`saveNow`) y
-  solo entonces devolver `PurchaseGranted`. Si algo falla, `NotYetProcessed`.
+  solo entonces devolver `PurchaseGranted`. Si algo falla, `NotProcessedYet`.
 - En Studio las compras son de prueba y también llaman a `ProcessReceipt`.
 
 ## Objetos aleatorios de pago (loot boxes, huevos, ruletas)
