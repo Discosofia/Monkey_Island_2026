@@ -7,7 +7,8 @@
 -- (Config.Contracts.StepRewards) y los objetos de "items" para esta partida.
 -- "event" es como en Data/Missions (lo avisan los mismos servicios con ServerShared/Retention), más:
 --   "Visit": llegar a la guarida de un bioma ("key": Rios, Montanas, Cuevas, Volcan).
---   "Supply": abrir una caja de suministro (SupplyService).
+--   "Supply": abrir una caja de suministro (SupplyService); con "key" = "Military", una caja militar de
+--     la erupción preliminar del día 7 (Data/MidEvents).
 --   "Beacon": encender la baliza de rescate (BeaconService).
 -- "key": solo cuenta eso (el jefe, el recurso, el bioma); "keys": solo una de esas (piezas
 -- defensivas); "distinct": cosas distintas (especies); "scales": el objetivo crece con el grupo.
@@ -103,9 +104,10 @@ local Contracts: { [string]: Contract } = {
 				day = 7,
 				icon = "📦",
 				title = "Asegurar",
-				text = "Abrid {target} caja de suministro",
+				text = "Abrid {target} caja militar de la erupción",
 				event = "Supply",
 				target = 1,
+				key = "Military",
 				items = { SuperBandage = 2 },
 			},
 			beacon(),
@@ -198,9 +200,10 @@ local Contracts: { [string]: Contract } = {
 				day = 7,
 				icon = "📦",
 				title = "Asegurar",
-				text = "Abrid {target} caja de suministro",
+				text = "Abrid {target} caja militar de la erupción",
 				event = "Supply",
 				target = 1,
+				key = "Military",
 				items = { SuperBandage = 2 },
 			},
 			beacon(),

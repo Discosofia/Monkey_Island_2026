@@ -32,6 +32,7 @@ local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
 local MatchService = require(script.Parent.MatchService)
+local MidEventService = require(script.Parent.MidEventService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local RoleService = require(script.Parent.RoleService)
 local SiegeService = require(script.Parent.SiegeService)
@@ -493,6 +494,18 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Eruption = function()
 		WeatherService.erupt()
+	end,
+	ToxicRain = function()
+		MidEventService.debugStart("ToxicRain")
+	end,
+	Saboteurs = function()
+		MidEventService.debugStart("Saboteurs")
+	end,
+	PreEruption = function()
+		MidEventService.debugStart("Eruption")
+	end,
+	MidEvents = function(player)
+		Remotes.Notify:FireClient(player, `📅 {MidEventService.describe()}`)
 	end,
 	Lightning = function(player)
 		local character = player.Character

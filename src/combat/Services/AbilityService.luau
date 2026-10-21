@@ -979,6 +979,7 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 	-- Remate de "Cura de urgencia": curaciones críticas seguras (heal), baja la fiebre y envenena a los
 	-- monos del radio.
 	local finisher = ComboService.isPayoff(player, "AreaHeal")
+	local feverCure = (if finisher then COMBO.SalveFeverCure else 0) + CombatRules.get().salveFeverCure()
 	local healed = 0
 	for _, other in Players:GetPlayers() do
 		local character = other.Character
@@ -988,8 +989,8 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 			and (otherRoot.Position - root.Position).Magnitude <= SETTINGS.AreaHealRadius
 		if near and heal(player, other, amount, "AreaHeal") then
 			healed += 1
-			if finisher then
-				CombatRules.get().addFever(other, -COMBO.SalveFeverCure)
+			if feverCure > 0 then
+				CombatRules.get().addFever(other, -feverCure)
 			end
 		end
 	end

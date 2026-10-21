@@ -295,6 +295,8 @@ function IslandHUDController:Start()
 	createStatusLine(gui, "SiegeStatus", 0.13, Color3.fromRGB(255, 120, 90))
 	createStatusLine(gui, "EggStatus", 0.24, Color3.fromRGB(150, 240, 255))
 	createStatusLine(gui, "BeaconStatus", 0.275, Color3.fromRGB(255, 150, 140))
+	-- Evento de mitad de partida (G7, MidEventService): el de ahora o, de noche, el de mañana.
+	createStatusLine(gui, "MidEventStatus", 0.31, Color3.fromRGB(215, 170, 255))
 	createSettingsButton(gui, createReturnButton(gui))
 
 	if RunService:IsStudio() then

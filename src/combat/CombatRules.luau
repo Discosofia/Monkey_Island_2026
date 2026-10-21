@@ -41,6 +41,9 @@ export type Rules = {
 	strikeResource: (player: Player, root: BasePart, tool: Weapons.ToolDefinition) -> (),
 	-- Sube (o baja, con "amount" negativo) la fiebre del mono.
 	addFever: (player: Player, amount: number) -> (),
+	-- Fiebre que baja el Ungüento en área del médico a cada uno que cura, sin contar el remate (la
+	-- lluvia tóxica de la Isla). 0: nada.
+	salveFeverCure: () -> number,
 	-- Avanza las misiones diarias del jugador ("Ability", "Combo"…; serverShared/Retention).
 	progressMission: (player: Player, kind: string) -> (),
 	-- Herramientas comunes que se dan además de las armas del rol (el hacha y el pico en la Isla).
@@ -84,6 +87,9 @@ local rules: Rules = {
 	useBoost = never,
 	strikeResource = nothing,
 	addFever = nothing,
+	salveFeverCure = function()
+		return 0
+	end,
 	progressMission = nothing,
 	starterTools = function()
 		return {}

@@ -6,7 +6,7 @@
 --   - El Basecamp es zona segura contra los monos mientras el campamento no haya caído.
 --   - Un golpe mortal deja caído (LifeService); en PvP, además, se cobra la recompensa del caído.
 --   - La munición sale del inventario, el hacha y el pico trabajan los recursos, los mordiscos suben
---     la fiebre, las habilidades y los combos cuentan para las misiones diarias y todo va a la
+--     la fiebre (el doble con lluvia tóxica, que el Ungüento en área del médico baja), las habilidades y los combos cuentan para las misiones diarias y todo va a la
 --     telemetría de la partida.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -69,7 +69,14 @@ function IslandCombatRules:Init()
 		useAmmo = removeOne,
 		useBoost = removeOne,
 		strikeResource = ResourceService.strike,
-		addFever = Survival.addFever,
+		-- Lo positivo son los mordiscos (CombatService): con lluvia tóxica, el doble.
+		addFever = function(player: Player, amount: number)
+			local toxic = amount > 0 and Survival.toxicRain()
+			Survival.addFever(player, if toxic then amount * Config.MidEvents.ToxicRain.BiteFeverMultiplier else amount)
+		end,
+		salveFeverCure = function(): number
+			return if Survival.toxicRain() then Config.MidEvents.ToxicRain.SalveFeverCure else 0
+		end,
 		progressMission = function(player: Player, kind: string)
 			Retention.progress(player, kind)
 		end,

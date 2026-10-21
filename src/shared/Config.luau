@@ -725,6 +725,79 @@ local Config = {
 		CheckSeconds = 1,
 	},
 
+	-- Eventos de mitad de partida (Fase 9, G7; Data/MidEvents, MidEventService).
+	MidEvents = {
+		-- Los de día empiezan esto después del amanecer.
+		DayStartDelaySeconds = 25,
+		ToxicRain = {
+			DurationSeconds = 6 * 60,
+			-- Fiebre por cada trago de agua del río (un trago quita 25 de sed).
+			WaterFever = 10,
+			-- Los mordiscos suben la fiebre esto de veces más (Config.Fever.PerHealthBar).
+			BiteFeverMultiplier = 2,
+			-- Antídotos para cada médico al empezar (los objetos no se pasan: al grupo lo cura su Ungüento).
+			MedicAntidotes = 2,
+			-- El Ungüento en área del médico baja la fiebre esto a cada uno que cura (sin remate).
+			SalveFeverCure = 15,
+		},
+		Saboteurs = {
+			-- Macacos saboteadores en cada oleada: esta parte del tamaño de la oleada (como poco 2). La
+			-- noche 5 con 5 jugadores, 6 por oleada; jugando solo, 5.
+			ShareOfWave = 0.35,
+			MinPerWave = 2,
+			Species = "Macaco",
+			-- Buscan pieza a esta distancia (desde el portón cubre todo el Basecamp) y le pegan su daño
+			-- por esto (no el ×3 de Config.Siege.StructureDamageMultiplier): la noche 5, ~15 por segundo
+			-- cada uno, así uno solo tarda ~30 s en un muro de piedra y ~20 s en el taller del curandero.
+			-- Las estacas las desarman como siempre (Config.Siege.SpikeDisarmPerHit).
+			SearchRadius = 140,
+			DamageMultiplier = 1.5,
+			-- Piezas a las que van (Data/Buildables): trampas, muros y barricadas, y las estaciones del
+			-- núcleo con el nido. La baliza y las camas, no.
+			Targets = {
+				"Spikes",
+				"WoodWall",
+				"StoneWall",
+				"GateBarricade",
+				"HealerTent",
+				"StoneForge",
+				"VolcanicForge",
+				"Nest",
+			},
+		},
+		Eruption = {
+			DurationSeconds = 150,
+			-- Zonas altas: terreno por encima de esta altura (el 10 % más alto: volcán y montañas).
+			HighGroundY = 55,
+			PyroclastEverySeconds = 1,
+			-- Como las bombas de lava de la erupción (Config.Weather.LavaBombDamage); el golpe de un mono
+			-- del día 1 llega a 40.
+			PyroclastDamage = 22,
+			PyroclastRadius = 7,
+			-- Parte de los piroclastos que va a por un jugador que esté en una zona alta: uno cada ~5 s,
+			-- así se puede abrir una caja militar (8 s) en plena erupción esquivando o aguantando 1–2.
+			AimAtPlayerChance = 0.2,
+			Crates = 2,
+		},
+	},
+
+	-- Cajas militares de la erupción preliminar (G7; SupplyService). Más tiempo para abrirlas y un PvP
+	-- más largo que la caja de suministro; la guardan babuinos.
+	MilitaryCrate = {
+		OpenHoldSeconds = 8,
+		PvPSeconds = 240,
+		Guards = { species = "Babuino", count = 2 },
+		-- Siempre todo esto…
+		Loot = {
+			{ itemId = "Obsidian", min = 4, max = 6 },
+			{ itemId = "SuperBandage", min = 2, max = 2 },
+			{ itemId = "Antidote", min = 1, max = 1 },
+			{ itemId = "CookedMeat", min = 3, max = 3 },
+		},
+		-- …y una esquirla de jefe al azar (el tesoro que pide el nivel 3 o el 4 del equipo).
+		Shards = { "ChieftainCrown", "CaveCrystal" },
+	},
+
 	Pets = {
 		-- Probabilidad (peso) de cada rareza al eclosionar un huevo (Fase 5).
 		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 6, Legendary = 1 },

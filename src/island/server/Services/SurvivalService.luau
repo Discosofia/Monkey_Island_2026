@@ -5,7 +5,8 @@
 --   - La vida solo se regenera con hambre y sed altas y sin daño reciente (el script de
 --     regeneración de Roblox está desactivado: ver src/island/character/Health.server.luau).
 --   - Comer (Remotes.Eat): el servidor elige la comida que más llena de las que lleva el jugador.
---   - Beber (Remotes.Drink): el servidor comprueba que haya agua del terreno cerca.
+--   - Beber (Remotes.Drink): el servidor comprueba que haya agua del terreno cerca. Con lluvia tóxica
+--     (Fase 9, G7) el trago sube la fiebre.
 --   - Al reaparecer sin que te reanimen, hambre y sed suben al menos a Config.Survival.RespawnMinStat.
 -- La estamina es del cliente (Client/Stamina.luau): solo afecta a correr y esquivar.
 -- Fase 2.6: fiebre del mono ("Fever"). Baja sola muy despacio; a 100 quita vida. Al reaparecer sin
@@ -168,6 +169,20 @@ local function onDrink(player: Player)
 	end
 	setStat(player, Survival.THIRST, Survival.get(player, Survival.THIRST) + Config.Survival.DrinkThirst)
 	Sfx.play("Drink", root)
+	-- Lluvia tóxica (G7): el agua del río está contaminada. Se avisa una vez por lluvia.
+	if Survival.toxicRain() then
+		Survival.addFever(player, Config.MidEvents.ToxicRain.WaterFever)
+		local flags = warned[player]
+		if flags and not flags.ToxicWater then
+			flags.ToxicWater = true
+			Remotes.Notify:FireClient(
+				player,
+				"☣️ El agua del río está contaminada y te sube la fiebre: hierve agua en la hoguera o bebe cocos"
+			)
+		end
+	elseif warned[player] then
+		warned[player].ToxicWater = false
+	end
 end
 
 -- Al reaparecer sin que le reanimen (LifeService), hambre y sed no empiezan casi vacías y la fiebre

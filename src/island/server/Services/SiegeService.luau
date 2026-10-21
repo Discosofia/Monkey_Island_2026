@@ -11,6 +11,8 @@
 -- Fase 6: la noche tras encender la baliza ("FinalNight") es La Gran Tropa: una oleada por especie de
 -- Config.Siege.FinalNightSpecies, repartidas para que todas lleguen antes del amanecer. Cada oleada es
 -- un FinalNightGrowth más grande que la anterior y lo que crece es una especie nueva y más fuerte.
+-- Fase 9 (G7): en la noche de macacos saboteadores (MidEventService, setSaboteurs) cada oleada trae
+-- además macacos que van a por las trampas, los muros y las estaciones (Config.MidEvents.Saboteurs).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -39,6 +41,7 @@ local SiegeService = {}
 
 local nightToken = 0
 local debugGreatTroop = false
+local saboteurNight = false
 local rng = Random.new()
 -- Último pinchazo de estaca a cada mono (os.clock): como mucho uno cada SpikeHitCooldownSeconds.
 local lastPinch: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
@@ -143,6 +146,25 @@ local function launchWave(day: number, wave: number)
 			end
 		end
 	end
+	-- Noche de saboteadores: además, macacos que van a por las piezas, repartidos entre los portones.
+	local saboteurs = 0
+	if saboteurNight and not mix then
+		local settings = Config.MidEvents.Saboteurs
+		saboteurs = math.max(settings.MinPerWave, math.round(total * settings.ShareOfWave))
+		for index, gate in gates do
+			local count = share(saboteurs, #gates, index)
+			if count > 0 then
+				local direction = gateDirection(gate)
+				MonkeyService.spawnSiegeGroup(
+					settings.Species,
+					flatCenter + direction * (Config.Building.PerimeterRadius + Config.Siege.SpawnDistance),
+					flatCenter + direction * (Config.Building.PerimeterRadius - 10),
+					count,
+					true
+				)
+			end
+		end
+	end
 	local from = "los 4 portones"
 	if mix then
 		local parts = {}
@@ -154,6 +176,10 @@ local function launchWave(day: number, wave: number)
 				parts,
 				", "
 			)})`
+		)
+	elseif saboteurs > 0 then
+		announce(
+			`🔧 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos y {saboteurs} macacos saboteadores desde {from}`
 		)
 	else
 		announce(`🐒 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos desde {from}`)
@@ -205,6 +231,12 @@ local function runNight(day: number)
 						then `🌕 La Gran Tropa{wave}: {alive} monos atacan el Basecamp`
 						else `🌕 La Gran Tropa{wave}`
 				)
+			elseif saboteurNight then
+				setStatus(
+					if alive > 0
+						then `🔧 Asedio con saboteadores: {alive} monos atacan el Basecamp`
+						else "🔧 Noche de macacos saboteadores"
+				)
 			else
 				setStatus(
 					if alive > 0 then `⚔️ Asedio: {alive} monos atacan el Basecamp` else "🌙 Noche de asedio"
@@ -224,6 +256,7 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 		runNight(day)
 	else
 		nightToken += 1
+		saboteurNight = false
 		MonkeyService.endSiege()
 		setStatus("")
 		-- La Gran Tropa del panel de pruebas no enciende la baliza: al amanecer todo sigue como antes.
@@ -233,6 +266,20 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 				ReplicatedStorage:SetAttribute("FinalNight", nil)
 			end
 		end
+	end
+end
+
+-- Esta noche las oleadas traen macacos saboteadores (MidEventService, al anochecer). Al amanecer se
+-- quita sola.
+function SiegeService.setSaboteurs()
+	saboteurNight = true
+end
+
+-- Panel de pruebas: una oleada ya (de noche), con saboteadores si es su noche.
+function SiegeService.debugWave()
+	local state = MatchState.read()
+	if state and state.phase == "Night" then
+		launchWave(state.day, 1)
 	end
 end
 

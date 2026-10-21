@@ -1,6 +1,7 @@
 --!strict
 -- Efectos del clima en el cliente (Fase 5): gotas de lluvia alrededor de la cámara, cielo más oscuro
--- con tormenta, destellos de los rayos y un tono rojizo durante la erupción del volcán.
+-- con tormenta, destellos de los rayos y un tono rojizo durante la erupción del volcán. Fase 9 (G7):
+-- la lluvia tóxica cae morada (el color del veneno) y tiñe la vista de violeta.
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -41,11 +42,17 @@ function WeatherController:Start()
 	local function apply()
 		local weather = ReplicatedStorage:GetAttribute("Weather")
 		local eruption = ReplicatedStorage:GetAttribute("Eruption") == true
-		rain.Rate = if weather == "Storm" then 900 elseif weather == "Rain" then 450 else 0
+		local toxic = weather == "ToxicRain"
+		rain.Rate = if weather == "Storm" then 900 elseif weather == "Rain" or toxic then 450 else 0
+		rain.Color = ColorSequence.new(if toxic then Color3.fromRGB(190, 120, 255) else Color3.fromRGB(180, 200, 230))
+		rain.LightEmission = if toxic then 0.6 else 0.2
 		local goal = {
-			Brightness = if weather == "Storm" then -0.12 elseif weather == "Rain" then -0.05 else 0,
+			Brightness = if weather == "Storm" then -0.12 elseif weather == "Rain" or toxic then -0.05 else 0,
 			Saturation = if weather == "Clear" or weather == nil then 0 else -0.2,
-			TintColor = if eruption then Color3.fromRGB(255, 215, 190) else Color3.new(1, 1, 1),
+			TintColor = if eruption
+				then Color3.fromRGB(255, 215, 190)
+				elseif toxic then Color3.fromRGB(235, 220, 255)
+				else Color3.new(1, 1, 1),
 		}
 		TweenService:Create(tint, TweenInfo.new(3), goal):Play()
 	end

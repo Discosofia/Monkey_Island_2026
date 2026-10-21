@@ -50,6 +50,8 @@ local Items: { [string]: ItemDefinition } = {
 	Banana = { name = "Banano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
 	Skewer = { name = "Brocheta", icon = "🍢", order = 11, food = { hunger = 60, thirst = 5 } },
 	Coconut = { name = "Coco", icon = "🥥", order = 12, food = { hunger = 5, thirst = 25 } },
+	-- Fase 9 (G7): se hierve en la hoguera; con lluvia tóxica es la que no da fiebre (como el coco).
+	BoiledWater = { name = "Agua hervida", icon = "🍵", order = 12.5, food = { hunger = 0, thirst = 30 } },
 	-- Fase 2.3: botín de hueso y productos del taller del curandero.
 	Bone = { name = "Hueso", icon = "🦴", order = 13 },
 	Ointment = { name = "Ungüento", icon = "🧴", order = 14, heal = 70 },

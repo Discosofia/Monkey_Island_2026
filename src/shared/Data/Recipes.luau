@@ -162,6 +162,17 @@ local Recipes: { [string]: Recipe } = {
 		itemId = "RoastedPlantain",
 		amount = 2,
 	},
+	-- Fase 9 (G7): la lluvia tóxica contamina el agua del río.
+	BoiledWater = {
+		station = "Campfire",
+		name = "Agua hervida (×2)",
+		icon = "🍵",
+		description = "Quita la sed sin riesgo: con lluvia tóxica, el agua del río da fiebre.",
+		order = 23,
+		cost = { { itemId = "Wood", amount = 3 } },
+		itemId = "BoiledWater",
+		amount = 2,
+	},
 	-- Taller del curandero (Fase 2.3).
 	Ointment = {
 		station = "Healer",

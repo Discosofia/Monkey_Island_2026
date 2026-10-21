@@ -5,6 +5,9 @@
 --   - Erupción del volcán: a veces al azar, y siempre cuando el Gorila de Ceniza llega a su última
 --     fase. Durante un minuto el cráter escupe bombas de lava en arco (con aviso en el suelo)
 --     alrededor del volcán.
+--   - Fase 9 (G7, MidEventService): la lluvia tóxica es un clima más ("ToxicRain", force) que no
+--     quita la sed, y la erupción preliminar lanza piroclastos desde el cráter sobre las zonas altas
+--     (pyroclasts).
 -- El cliente lo dibuja (WeatherController) leyendo ReplicatedStorage: "Weather" y "Eruption".
 
 local Players = game:GetService("Players")
@@ -60,6 +63,56 @@ end
 local function volcanoCenter(): Vector3?
 	local marker = Workspace:FindFirstChild("Guarida_Volcan", true)
 	return if marker and marker:IsA("BasePart") then marker.Position else nil
+end
+
+-- Pone el clima "name" durante "seconds" (los eventos de mitad de partida): el sorteo de la fase no lo
+-- quita antes. Después, despejado.
+function WeatherService.force(name: string, seconds: number)
+	weatherToken += 1
+	local token = weatherToken
+	setWeather(name)
+	task.delay(seconds, function()
+		if weatherToken == token then
+			setWeather("Clear")
+		end
+	end)
+end
+
+-- Erupción preliminar (G7): durante "seconds" el cráter lanza piroclastos sobre "spots" (puntos de las
+-- zonas altas) y, a veces (AimAtPlayerChance), sobre un jugador que esté en una de ellas.
+function WeatherService.pyroclasts(spots: { Vector3 }, seconds: number)
+	if #spots == 0 then
+		return
+	end
+	local settings = Config.MidEvents.Eruption
+	local center = volcanoCenter()
+	local crater = if center then center + Vector3.new(0, 40, 0) else nil
+	ReplicatedStorage:SetAttribute("Eruption", true)
+	task.spawn(function()
+		local endsAt = os.clock() + seconds
+		while os.clock() < endsAt do
+			local target = spots[rng:NextInteger(1, #spots)]
+			if rng:NextNumber() < settings.AimAtPlayerChance then
+				local high = {}
+				for _, player in Players:GetPlayers() do
+					local character = player.Character
+					local position = if character then character:GetPivot().Position else nil
+					if position and position.Y >= settings.HighGroundY and LifeState.isAlive(player) then
+						table.insert(high, position)
+					end
+				end
+				if #high > 0 then
+					target = high[rng:NextInteger(1, #high)]
+						+ Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-8, 8))
+				end
+			end
+			Hazards.lavaBomb(target, settings.PyroclastDamage, settings.PyroclastRadius, 2, crater, "Piroclasto")
+			task.wait(settings.PyroclastEverySeconds)
+		end
+		if not erupting then
+			ReplicatedStorage:SetAttribute("Eruption", nil)
+		end
+	end)
 end
 
 function WeatherService.erupt()

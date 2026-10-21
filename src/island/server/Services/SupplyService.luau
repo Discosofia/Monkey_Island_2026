@@ -3,6 +3,9 @@
 -- caja a una playa (si no queda otra sin abrir). Se ve de lejos por una columna de luz y se anuncia
 -- con su dirección. Abrirla (mantener pulsado) activa el PvP de quien la abre y da botín de
 -- naufragio. Los monos de cola larga rondan la caja.
+-- Fase 9 (G7): en la erupción preliminar caen cajas militares en las zonas altas (MidEventService):
+-- verdes y con columna roja, tardan más en abrirse, el PvP dura más y dan obsidiana, una esquirla de
+-- jefe y provisiones (Config.MilitaryCrate). Cuentan como caja ("Supply") con la clave "Military".
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -83,28 +86,35 @@ local function onOpen(crate: Model, player: Player)
 	crate:Destroy()
 end
 
-function SupplyService.spawnCrate()
-	local spot = beachSpot()
-	if not spot then
-		return
-	end
+type CrateStyle = {
+	name: string,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material,
+	strapColor: Color3,
+	beamColor: Color3,
+	holdSeconds: number,
+}
+
+-- Caja en "spot" con su columna de luz y el aviso para abrirla (mantener pulsado).
+local function buildCrate(spot: Vector3, style: CrateStyle, onTriggered: (crate: Model, player: Player) -> ()): Model
 	local crate = Instance.new("Model")
-	crate.Name = "Caja de suministro"
+	crate.Name = style.name
 	local box = Instance.new("Part")
 	box.Name = "Box"
-	box.Size = Vector3.new(4, 3, 4)
-	box.Position = spot + Vector3.new(0, 1.5, 0)
+	box.Size = style.size
+	box.Position = spot + Vector3.new(0, style.size.Y / 2, 0)
 	box.Anchored = true
-	box.Color = Color3.fromRGB(150, 110, 60)
-	box.Material = Enum.Material.WoodPlanks
+	box.Color = style.color
+	box.Material = style.material
 	box.Parent = crate
 	for _, x in { -1, 1 } do
 		local strap = Instance.new("Part")
-		strap.Size = Vector3.new(0.3, 3.1, 4.1)
-		strap.Position = box.Position + Vector3.new(x * 1.2, 0, 0)
+		strap.Size = Vector3.new(0.3, style.size.Y + 0.1, style.size.Z + 0.1)
+		strap.Position = box.Position + Vector3.new(x * style.size.X * 0.3, 0, 0)
 		strap.Anchored = true
 		strap.CanCollide = false
-		strap.Color = Color3.fromRGB(70, 70, 75)
+		strap.Color = style.strapColor
 		strap.Material = Enum.Material.Metal
 		strap.Parent = crate
 	end
@@ -117,23 +127,80 @@ function SupplyService.spawnCrate()
 	beam.CanCollide = false
 	beam.CanQuery = false
 	beam.Material = Enum.Material.Neon
-	beam.Color = Color3.fromRGB(255, 210, 90)
+	beam.Color = style.beamColor
 	beam.Transparency = 0.5
 	beam.Parent = crate
 	crate.PrimaryPart = box
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Abrir (activa PvP)"
-	prompt.ObjectText = "Caja de suministro"
-	prompt.HoldDuration = Config.Supply.OpenHoldSeconds
+	prompt.ObjectText = style.name
+	prompt.HoldDuration = style.holdSeconds
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = box
 	prompt.Triggered:Connect(function(player)
-		onOpen(crate, player)
+		onTriggered(crate, player)
 	end)
-
 	crate.Parent = Workspace
+	return crate
+end
+
+local SUPPLY_STYLE: CrateStyle = {
+	name = "Caja de suministro",
+	size = Vector3.new(4, 3, 4),
+	color = Color3.fromRGB(150, 110, 60),
+	material = Enum.Material.WoodPlanks,
+	strapColor = Color3.fromRGB(70, 70, 75),
+	beamColor = Color3.fromRGB(255, 210, 90),
+	holdSeconds = Config.Supply.OpenHoldSeconds,
+}
+
+local MILITARY_STYLE: CrateStyle = {
+	name = "Caja militar",
+	size = Vector3.new(5, 3.4, 4),
+	color = Color3.fromRGB(78, 96, 58),
+	material = Enum.Material.DiamondPlate,
+	strapColor = Color3.fromRGB(40, 40, 42),
+	beamColor = Color3.fromRGB(255, 80, 60),
+	holdSeconds = Config.MilitaryCrate.OpenHoldSeconds,
+}
+
+local function onOpenMilitary(crate: Model, player: Player)
+	if crate:GetAttribute("Opened") == true or not LifeState.isAlive(player) then
+		return
+	end
+	crate:SetAttribute("Opened", true)
+	local settings = Config.MilitaryCrate
+	PvPService.forceOn(player, settings.PvPSeconds, "has abierto una caja militar")
+	for _, entry in settings.Loot do
+		InventoryService.collect(player, entry.itemId, rng:NextInteger(entry.min, entry.max))
+	end
+	InventoryService.collect(player, settings.Shards[rng:NextInteger(1, #settings.Shards)], 1)
+	announce(`🎖️ {player.DisplayName} ha abierto una caja militar`)
+	Retention.progress(player, "Supply", 1, "Military")
+	crate:Destroy()
+end
+
+-- Caja militar en "spot" (una zona alta, MidEventService), con babuinos de guardia.
+function SupplyService.spawnMilitaryCrate(spot: Vector3)
+	buildCrate(spot, MILITARY_STYLE, onOpenMilitary)
+	local guards = Config.MilitaryCrate.Guards
+	local nearest: Player? = nil
+	for _, player in Players:GetPlayers() do
+		nearest = nearest or player
+	end
+	if nearest then
+		MonkeyService.spawnAmbush(guards.species, spot + Vector3.new(8, 0, 8), guards.count, nearest)
+	end
+end
+
+function SupplyService.spawnCrate()
+	local spot = beachSpot()
+	if not spot then
+		return
+	end
+	local crate = buildCrate(spot, SUPPLY_STYLE, onOpen)
 	activeCrate = crate
 	local direction = Compass.direction(BasecampService.getCenter(), spot)
 	announce(`📦 ¡Ha llegado una caja de suministro a la playa de {direction}! Abrirla activa el PvP`)

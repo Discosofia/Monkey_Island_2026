@@ -2,6 +2,7 @@
 -- Consultas de supervivencia que usan el cliente (HUD, botones) y el servidor (SurvivalService):
 -- hambre y sed (atributos del Player), la mejor comida que lleva y si hay agua cerca.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(script.Parent.Config)
@@ -26,6 +27,12 @@ end
 function Survival.fever(player: Player): number
 	local value = player:GetAttribute(Survival.FEVER)
 	return if typeof(value) == "number" then value else 0
+end
+
+-- true durante la lluvia tóxica (Fase 9, G7; Data/MidEvents): el agua del río da fiebre y los
+-- mordiscos el doble. WeatherService la pone como clima ("Weather" de ReplicatedStorage).
+function Survival.toxicRain(): boolean
+	return ReplicatedStorage:GetAttribute("Weather") == "ToxicRain"
 end
 
 -- Sube (o baja, con un valor negativo) la fiebre. Solo el servidor debe llamarla.

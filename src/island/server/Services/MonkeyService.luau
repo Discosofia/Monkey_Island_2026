@@ -14,6 +14,7 @@
 -- Fase 2.5: los grupos de asedio (SiegeService) entran por un portón; dentro, cada mono se abre hacia
 -- un lado y va a su hueco alrededor de la hoguera (newSiegePath). Atacan las piezas que les cierran
 -- el paso y a los jugadores, también dentro del Basecamp; los macacos desarman las estacas primero.
+-- Fase 9 (G7): los saboteadores van antes a por las trampas, los muros y las estaciones.
 -- Al amanecer se repueblan los grupos; los monos de día se retiran de noche (y viceversa).
 -- Además, un grupo con bajas recupera un mono cada cierto tiempo si no hay jugadores cerca de su
 -- zona (Config.Monkeys.GroupRegrowSeconds): la selva nunca se queda vacía.
@@ -80,6 +81,7 @@ type Group = {
 	stored: number,
 	nextRegrowAt: number, -- os.clock() a partir del cual puede recuperar un mono
 	siege: boolean?, -- grupo del asedio nocturno
+	saboteur: boolean?, -- asedio: van a por trampas, muros y estaciones (G7, Config.MidEvents.Saboteurs)
 	gate: Vector3?, -- portón por el que entra el grupo de asedio
 	alpha: Monkey?, -- líder de la tropa (especies con "alpha")
 	ignoreCap: boolean?, -- no cuenta el límite de monos a la vez (los del panel de pruebas)
@@ -1125,6 +1127,26 @@ local function nearestStructure(position: Vector3, reach: number): Model?
 	return best
 end
 
+-- Saboteadores (G7): la pieza de Config.MidEvents.Saboteurs.Targets más cercana a "position" (dentro de
+-- SearchRadius) y su distancia al borde, o nil.
+local function sabotageTarget(position: Vector3): (Model?, number)
+	local settings = Config.MidEvents.Saboteurs
+	local best: Model? = nil
+	local bestDistance = settings.SearchRadius
+	for _, model in BuildingService.getStructures():GetChildren() do
+		local buildableId = model:GetAttribute("BuildableId")
+		if model:IsA("Model") and typeof(buildableId) == "string" and table.find(settings.Targets, buildableId) then
+			local size = Buildables[buildableId].size
+			local distance = ((model:GetPivot().Position - position) * FLAT).Magnitude - math.max(size.X, size.Z) / 2
+			if distance < bestDistance then
+				best = model
+				bestDistance = distance
+			end
+		end
+	end
+	return best, bestDistance
+end
+
 -- Asedio: si en Config.Siege.DetourAfterSeconds no ha avanzado ni 3 studs hacia "goal" (algo le
 -- tapa el paso, como el tótem o una mesa), rodea hacia un lado un momento. Además salta (unstick).
 local function siegeUnstick(monkey: Monkey, goal: Vector3, now: number)
@@ -1180,6 +1202,35 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 			CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model, nil, true)
 		end
 		return
+	end
+
+	-- Saboteadores (G7): van a por las trampas, los muros y las estaciones antes que a por los jugadores;
+	-- si otra pieza les cierra el camino, la rompen primero.
+	if monkey.group.saboteur then
+		local victim, distance = sabotageTarget(position)
+		if victim then
+			local blocking = if distance > Config.Siege.StructureReach
+				then nearestStructure(position, Config.Siege.StructureReach)
+				else victim
+			if blocking then
+				humanoid:MoveTo(position)
+				if canAttack then
+					monkey.lastAttackAt = now
+					local damage = if blocking:GetAttribute("BuildableId") == "Spikes"
+						then Config.Siege.SpikeDisarmPerHit
+						else monkey.damage * Config.MidEvents.Saboteurs.DamageMultiplier
+					BuildingService.damageStructure(blocking, damage)
+					MonkeyAnimator.play(monkey.model, "Attack")
+					showBubble(monkey, "🔧")
+				end
+			else
+				local detour = monkey.detour
+				local goal = victim:GetPivot().Position
+				humanoid:MoveTo(if detour and now < monkey.detourUntil then detour else goal)
+				siegeUnstick(monkey, goal, now)
+			end
+			return
+		end
 	end
 
 	-- Los que desarman trampas (macaco) van a por las estacas cercanas antes que a por los jugadores
@@ -1259,8 +1310,15 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	siegeUnstick(monkey, goal, now)
 end
 
--- Lanza un grupo de asedio que aparece en "spawnPoint" y entra por "gatePoint".
-function MonkeyService.spawnSiegeGroup(speciesId: string, spawnPoint: Vector3, gatePoint: Vector3, count: number)
+-- Lanza un grupo de asedio que aparece en "spawnPoint" y entra por "gatePoint". "saboteur": van a por
+-- las trampas, los muros y las estaciones (G7).
+function MonkeyService.spawnSiegeGroup(
+	speciesId: string,
+	spawnPoint: Vector3,
+	gatePoint: Vector3,
+	count: number,
+	saboteur: boolean?
+)
 	local group: Group = {
 		speciesId = speciesId,
 		home = spawnPoint,
@@ -1271,6 +1329,7 @@ function MonkeyService.spawnSiegeGroup(speciesId: string, spawnPoint: Vector3, g
 		stored = 0,
 		nextRegrowAt = math.huge,
 		siege = true,
+		saboteur = saboteur,
 		gate = gatePoint,
 	}
 	table.insert(groups, group)
