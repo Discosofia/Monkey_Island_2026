@@ -2038,6 +2038,183 @@ local function buildFeatheredSerpentStaff(tool: Tool, level: number): BasePart
 	return handle
 end
 
+-- Médico, Ceiba de la Vida: corteza gris verdosa de ceiba con espinas cónicas, hojas, flores rosas, el
+-- algodón de sus frutos, oro y jade; lo que brilla es el verde de las curaciones.
+local CEIBA_BARK = Color3.fromRGB(140, 150, 122)
+local CEIBA_BARK_DARK = Color3.fromRGB(100, 108, 88)
+local CEIBA_THORN = Color3.fromRGB(204, 190, 150)
+local KAPOK = Color3.fromRGB(246, 244, 236)
+local KAPOK_POD = Color3.fromRGB(112, 120, 70)
+local CEIBA_BLOSSOM = Color3.fromRGB(238, 140, 176)
+local HEAL_GLOW = Color3.fromRGB(120, 255, 150)
+
+-- Cerbatana de la Ceiba (médico): la caña de cada nivel, del mismo largo, es una rama de ceiba con nudos
+-- y espinas cónicas, la empuñadura envuelta en liana y, en la boca, un aro de hojas; los dardos llevan
+-- algodón de ceiba y salen de un fruto atado a un lado. Nivel 1: tres espinas. Nivel 2: cinco espinas,
+-- una ramita con hojas que brota de la caña, anillos de oro, cuentas de jade y una flor en la boca.
+-- Nivel 3: siete espinas, dos ramitas, la boquilla es una raíz de contrafuerte, más hojas y un fruto
+-- abierto colgando (nivel 4: tres ramitas). Nivel 4: nueve espinas, vetas de savia verde
+-- que brillan por la caña, un anillo de savia en la boca, el algodón que brilla y chispas de curación.
+local function buildCeibaBlowgun(tool: Tool, level: number): BasePart
+	local length = ({ 3.6, 3.9, 4.2, 4.5 })[level] or 3.6
+	local lit = level >= 4
+	local bottom = -1.4
+	local top = bottom + length
+	local handle = hiddenHandle(tool, Vector3.new(0.3, 1.4, 0.3))
+	rod(handle, "Tube", length, 0.28, CEIBA_BARK, WOOD_MATERIAL, CFrame.new(0, (bottom + top) / 2, 0))
+	rod(handle, "Grip", 0.8, 0.33, LEATHER, FABRIC, CFrame.new(0, -0.8, 0))
+	wraps(handle, Vector3.new(0, -1.2, 0), Vector3.new(0, -0.4, 0), 3, 0.36, LIANA_GREEN, Vector3.zAxis)
+
+	-- Nudos de la rama (bultos de corteza a un lado y a otro: en anillo parecía bambú) y espinas cónicas
+	-- en espiral, sin tocar la empuñadura.
+	local y = bottom + 0.9
+	local knot = 0
+	while y < top - 0.3 do
+		if math.abs(y + 0.8) > 0.5 then
+			knot += 1
+			oval(
+				handle,
+				"Knot",
+				Vector3.new(0.2, 0.34, 0.2),
+				CEIBA_BARK_DARK,
+				WOOD_MATERIAL,
+				CFrame.new(0, y, 0) * CFrame.Angles(0, knot * 2.5, 0) * CFrame.new(0, 0, -0.1)
+			)
+		end
+		y += 0.7
+	end
+	local thorns = 1 + level * 2
+	for index = 1, thorns do
+		local thornY = -0.2 + (top - 0.6 - -0.2) * (index - 0.5) / thorns
+		tooth(
+			handle,
+			"Thorn",
+			0.32,
+			0.13,
+			0.18,
+			CEIBA_THORN,
+			SMOOTH,
+			CFrame.new(0, thornY, 0)
+				* CFrame.Angles(0, index * 2.4, 0)
+				* CFrame.new(0, 0, -0.2)
+				* CFrame.Angles(-math.pi / 2, 0, 0)
+		)
+	end
+
+	-- Ramitas con tres hojas que brotan de la caña (una por nivel desde el 2), hacia arriba y afuera.
+	for index = 1, level - 1 do
+		local twig = CFrame.new(0, 0.3 + index * (top - 1) / level, 0)
+			* CFrame.Angles(0, index * 2.1 + 0.5, 0)
+			* CFrame.new(0, 0, -0.14)
+			* CFrame.Angles(-0.7, 0, 0)
+		rod(handle, "Twig", 0.5, 0.08, CEIBA_BARK_DARK, WOOD_MATERIAL, twig * CFrame.new(0, 0.25, 0))
+		for leafIndex = -1, 1 do
+			oval(
+				handle,
+				"Leaf",
+				Vector3.new(0.16, 0.38, 0.03),
+				if leafIndex == 0 then LEAF_GREEN else LIANA_GREEN,
+				SMOOTH,
+				twig * CFrame.new(0, 0.5, 0) * CFrame.Angles(0, 0, leafIndex * 0.7) * CFrame.new(0, 0.17, 0)
+			)
+		end
+	end
+
+	-- Boquilla: de madera oscura o, desde el nivel 3, una raíz de contrafuerte abierta en cuatro.
+	rod(handle, "Mouthpiece", 0.3, 0.3, CEIBA_BARK_DARK, WOOD_MATERIAL, CFrame.new(0, bottom + 0.1, 0))
+	if level >= 3 then
+		for index = 0, 3 do
+			tooth(
+				handle,
+				"Root",
+				0.36,
+				0.08,
+				0.2,
+				CEIBA_BARK_DARK,
+				WOOD_MATERIAL,
+				CFrame.new(0, bottom + 0.28, 0)
+					* CFrame.Angles(0, index * math.pi / 2, 0)
+					* CFrame.new(0, 0, -0.14)
+					* CFrame.Angles(math.pi - 0.35, 0, 0)
+			)
+		end
+	end
+
+	-- Boca: aro de hojas (y una flor desde el nivel 2).
+	local mouth = CFrame.new(0, top - 0.1, 0)
+	rod(handle, "Muzzle", 0.2, 0.3, CEIBA_BARK_DARK, WOOD_MATERIAL, mouth)
+	local leaves = if level >= 3 then 6 else 4
+	for index = 0, leaves - 1 do
+		oval(
+			handle,
+			"Leaf",
+			Vector3.new(0.2, 0.5, 0.03),
+			if index % 2 == 0 then LEAF_GREEN else LIANA_GREEN,
+			SMOOTH,
+			mouth
+				* CFrame.Angles(0, index * math.pi * 2 / leaves, 0)
+				* CFrame.new(0, -0.1, -0.18)
+				* CFrame.Angles(-0.5, 0, 0)
+		)
+	end
+	if level >= 2 then
+		for _, ringY in { top - 0.35, -0.3, bottom + 0.3 } do
+			rod(handle, "Band", 0.07, 0.29, TITAN_GOLD, SMOOTH, CFrame.new(0, ringY, 0))
+		end
+		ball(handle, "Jade", 0.16, JADE, SMOOTH, CFrame.new(0, top - 0.35, -0.15))
+		ball(handle, "Jade", 0.16, JADE, SMOOTH, CFrame.new(0, -0.3, -0.15))
+		local blossom = CFrame.new(0.16, top - 0.5, 0) * CFrame.Angles(0, math.pi / 2, 0)
+		for petal = 0, 4 do
+			oval(
+				handle,
+				"Petal",
+				Vector3.new(0.12, 0.2, 0.03),
+				CEIBA_BLOSSOM,
+				SMOOTH,
+				blossom * CFrame.Angles(0, 0, petal * math.pi * 2 / 5) * CFrame.new(0, 0.1, 0)
+			)
+		end
+		ball(handle, "Blossom", 0.08, TITAN_GOLD, SMOOTH, blossom * CFrame.new(0, 0, -0.02))
+	end
+
+	-- Fruto de ceiba atado a un lado con tres dardos de algodón asomando (y otro abierto colgando de la
+	-- boca desde el nivel 3).
+	oval(handle, "Pouch", Vector3.new(0.22, 0.46, 0.22), KAPOK_POD, SMOOTH, CFrame.new(0.21, -0.1, 0))
+	for index = -1, 1 do
+		local dart = CFrame.new(0.21, 0.2, index * 0.06) * CFrame.Angles(index * 0.15, 0, 0)
+		rod(handle, "Dart", 0.4, 0.04, BONE, SMOOTH, dart)
+		ball(handle, "Fluff", 0.12, KAPOK, if lit then NEON else FABRIC, dart * CFrame.new(0, 0.22, 0))
+	end
+	if level >= 3 then
+		block(handle, "Cord", Vector3.new(0.03, 0.3, 0.03), FIBER, FABRIC, CFrame.new(-0.17, top - 0.5, 0))
+		oval(handle, "Pod", Vector3.new(0.16, 0.34, 0.16), KAPOK_POD, SMOOTH, CFrame.new(-0.17, top - 0.8, 0))
+		local fluff =
+			ball(handle, "Fluff", 0.2, KAPOK, if lit then NEON else FABRIC, CFrame.new(-0.2, top - 0.86, -0.08))
+		if lit then
+			glow(fluff, KAPOK, 4)
+		end
+	end
+
+	if lit then
+		-- Vetas de savia verde que suben por la caña y un anillo de savia en la boca.
+		for _, side in { -1, 1 } do
+			local points = {
+				Vector3.new(side * 0.13, -0.3, -0.06),
+				Vector3.new(side * 0.15, 0.6, 0.03),
+				Vector3.new(side * 0.13, 1.5, -0.05),
+				Vector3.new(side * 0.15, top - 0.4, 0.03),
+			}
+			for index = 1, #points - 1 do
+				strut(handle, "Sap", points[index], points[index + 1], 0.05, 0.05, HEAL_GLOW, NEON, Vector3.xAxis)
+			end
+		end
+		local sap = rod(handle, "Sap", 0.1, 0.33, HEAL_GLOW, NEON, CFrame.new(0, top - 0.25, 0))
+		glow(sap, HEAL_GLOW, 8)
+	end
+	tool.Grip = CFrame.new(0, -0.8, 0)
+	return handle
+end
+
 -- ===================================== Lista =====================================
 
 local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
@@ -2432,6 +2609,7 @@ local SKINS: { [string]: (tool: Tool, level: number) -> BasePart } = {
 	TitanKingMace = buildTitanKingMace,
 	SpectralJaguarBow = buildSpectralJaguarBow,
 	FeatheredSerpentStaff = buildFeatheredSerpentStaff,
+	CeibaBlowgun = buildCeibaBlowgun,
 }
 WeaponTools.MAX_LEVEL = 4
 

@@ -4438,6 +4438,498 @@ local function featheredSerpent(body: Body, grade: number)
 	end
 end
 
+-- Médico, Ceiba de la Vida (el árbol del mundo): lino del médico, corteza gris verdosa de ceiba con sus
+-- espinas cónicas, hojas, flores rosas, frutos de algodón, oro y jade; lo que brilla es el verde de las
+-- curaciones (solo este mítico lo lleva) y el algodón blanco de los frutos.
+local CEIBA_BARK = Color3.fromRGB(140, 150, 122)
+local CEIBA_BARK_DARK = Color3.fromRGB(100, 108, 88)
+local CEIBA_THORN = Color3.fromRGB(204, 190, 150)
+local KAPOK = Color3.fromRGB(246, 244, 236)
+local KAPOK_POD = Color3.fromRGB(112, 120, 70)
+local CEIBA_BLOSSOM = Color3.fromRGB(238, 140, 176)
+local HUMMINGBIRD = Color3.fromRGB(30, 150, 120)
+local HUMMINGBIRD_THROAT = Color3.fromRGB(200, 30, 60)
+
+-- Espina cónica de ceiba de "length" que sale de "base" hacia "direction".
+local function ceibaThorn(make: Builder, base: Vector3, direction: Vector3, length: number, width: number)
+	make.fang(
+		length,
+		width,
+		CEIBA_THORN,
+		SMOOTH,
+		CFrame.lookAt(base, base + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
+	)
+end
+
+-- Rama de ceiba por los puntos de "points": tramos de corteza que se solapan y, con "thorns", una espina
+-- en cada uno, alternando el lado, hacia atrás (+Z).
+local function ceibaBranch(make: Builder, points: { Vector3 }, thickness: number, thorns: boolean)
+	for index = 1, #points - 1 do
+		local from, to = points[index], points[index + 1]
+		local length = (to - from).Magnitude
+		local segment = CFrame.lookAt((from + to) / 2, to)
+		make.oval(Vector3.new(thickness, thickness, length + thickness * 0.6), CEIBA_BARK, WOOD, segment)
+		if thorns then
+			local side = if index % 2 == 0 then 1 else -1
+			ceibaThorn(
+				make,
+				(segment * CFrame.new(side * thickness * 0.4, 0, 0)).Position,
+				segment.RightVector * side + Vector3.new(0, 0, 0.8),
+				thickness * 0.7,
+				thickness * 0.35
+			)
+		end
+	end
+end
+
+-- Roseta de "count" hojas en el plano XY de "at" (mirando a su -Z), de "length" cada una.
+local function leafCluster(make: Builder, at: CFrame, count: number, length: number)
+	for index = 0, count - 1 do
+		leaf(
+			make,
+			length,
+			if index % 2 == 0 then LEAF else LEAF_DARK,
+			at * CFrame.Angles(0, 0, index / count * math.pi * 2) * CFrame.new(0, length * 0.45, index * 0.008)
+		)
+	end
+end
+
+-- Flor de ceiba en "at" (mirando a su -Z): cinco pétalos rosas y el centro de oro.
+local function ceibaBlossom(make: Builder, at: CFrame, size: number)
+	for petal = 0, 4 do
+		make.oval(
+			Vector3.new(size * 0.4, size * 0.6, 0.04),
+			CEIBA_BLOSSOM,
+			SMOOTH,
+			at * CFrame.Angles(0, 0, petal * math.pi * 2 / 5) * CFrame.new(0, size * 0.3, 0)
+		)
+	end
+	make.ball(size * 0.3, TITAN_GOLD, SMOOTH, at * CFrame.new(0, 0, -0.03))
+end
+
+-- Fruto de ceiba de "size" colgando de "at" (su rabito): vaina verde parda; abierto ("open"), el
+-- algodón blanco que revienta por la raja (que brilla con "lit"). Devuelve el algodón (o la vaina).
+local function kapokPod(make: Builder, at: CFrame, size: number, open: boolean, lit: boolean): BasePart
+	local pod =
+		make.oval(Vector3.new(size * 0.45, size, size * 0.45), KAPOK_POD, SMOOTH, at * CFrame.new(0, -size / 2, 0))
+	if not open then
+		return pod
+	end
+	local fluff = pod
+	for index = -1, 1 do
+		fluff = make.ball(
+			size * (if index == 0 then 0.42 else 0.32),
+			KAPOK,
+			if lit then NEON else FABRIC,
+			at * CFrame.new(index * size * 0.14, -size * (0.5 + index * 0.1), size * 0.2)
+		)
+	end
+	return fluff
+end
+
+-- Colibrí de "size" en "at" mirando a su -Z: cuerpo verde, garganta roja, pico largo y dos alas abiertas.
+local function hummingbird(make: Builder, at: CFrame, size: number)
+	make.oval(Vector3.new(0.12, 0.12, 0.28) * size, HUMMINGBIRD, SMOOTH, at)
+	make.ball(0.12 * size, HUMMINGBIRD, SMOOTH, at * CFrame.new(0, 0.04 * size, -0.14 * size))
+	make.oval(
+		Vector3.new(0.09, 0.06, 0.1) * size,
+		HUMMINGBIRD_THROAT,
+		SMOOTH,
+		at * CFrame.new(0, -0.01 * size, -0.16 * size)
+	)
+	make.block(Vector3.new(0.02, 0.02, 0.18) * size, PAINT_BLACK, SMOOTH, at * CFrame.new(0, 0.04 * size, -0.28 * size))
+	make.fang(
+		0.16 * size,
+		0.08 * size,
+		HUMMINGBIRD,
+		SMOOTH,
+		at * CFrame.new(0, 0, 0.14 * size) * CFrame.Angles(math.pi / 2, 0, 0)
+	)
+	for side = -1, 1, 2 do
+		make.oval(
+			Vector3.new(0.26, 0.03, 0.1) * size,
+			HUMMINGBIRD,
+			SMOOTH,
+			at * CFrame.new(side * 0.13 * size, 0.06 * size, 0) * CFrame.Angles(0, 0, side * 0.6)
+		)
+	end
+end
+
+-- Motas verdes de curación que suben despacio (las de la copa) o el algodón que cae ("fluff").
+local function lifeMotes(part: BasePart, rate: number, fluff: boolean)
+	local motes = Instance.new("ParticleEmitter")
+	motes.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	motes.Color = if fluff then ColorSequence.new(KAPOK) else ColorSequence.new(HEAL_GLOW, POTION)
+	motes.LightEmission = if fluff then 0.4 else 1
+	motes.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 0) })
+	motes.Transparency = NumberSequence.new(0.15, 1)
+	motes.Lifetime = NumberRange.new(1.4, 2.2)
+	motes.Rate = rate
+	motes.Speed = NumberRange.new(0.3, 0.8)
+	motes.SpreadAngle = Vector2.new(70, 70)
+	motes.Acceleration = if fluff then Vector3.new(0.3, -0.5, 0) else Vector3.new(0, 0.8, 0)
+	motes.Parent = part
+end
+
+-- Hombrera de la Ceiba (grado 1+): almohadilla de corteza, dos láminas de lino con el canto de oro,
+-- tres espinas cónicas hacia fuera, una roseta de hojas y un fruto colgando (abierto desde el grado 3;
+-- grado 4: tres cristales de jade que brillan en verde).
+local function ceibaPauldron(arm: Builder, side: number, grade: number)
+	local as = arm.size
+	local top = as.Y / 2
+	local lit = grade >= 3
+	arm.oval(Vector3.new(as.X * 1.3, 0.46, as.Z * 1.3), CEIBA_BARK, WOOD, CFrame.new(side * 0.1, top + 0.04, 0))
+	for index = 0, 1 do
+		local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
+			* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
+		arm.oval(
+			Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
+			TITAN_GOLD,
+			SMOOTH,
+			lame * CFrame.new(0, -0.07, 0)
+		)
+		arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), LINEN, FABRIC, lame)
+	end
+	for _, z in { -0.3, 0, 0.3 } do
+		ceibaThorn(
+			arm,
+			Vector3.new(side * as.X * 0.5, top + 0.12, z * as.Z),
+			Vector3.new(side, 0.5, z * 0.6),
+			if z == 0 then 0.36 else 0.26,
+			0.14
+		)
+	end
+	leafCluster(arm, CFrame.new(side * 0.1, top + 0.3, as.Z * 0.2) * CFrame.Angles(-1.2, 0, 0), 5, 0.36)
+	arm.ball(0.14, JADE, SMOOTH, CFrame.new(side * 0.1, top + 0.32, as.Z * 0.2))
+	kapokPod(arm, CFrame.new(side * (as.X * 0.66), top - 0.1, as.Z * 0.3), 0.3, lit, lit)
+	if grade >= 4 then
+		for _, z in { -0.26, 0, 0.26 } do
+			fireCrystal(
+				arm,
+				Vector3.new(-side * 0.04, top + 0.24, z * as.Z - 0.1),
+				Vector3.new(-side * 0.35, 1, z * 1.4),
+				if z == 0 then 0.6 else 0.42,
+				0.2,
+				JADE_LIGHT,
+				HEAL_GLOW
+			)
+		end
+	end
+end
+
+-- Traje mítico del médico, Ceiba de la Vida. Grado 0: túnica de lino, peto de corteza con el canto de
+-- oro y espinas en las esquinas y, en un disco de jade, el glifo de oro del árbol del mundo (una cruz de
+-- ramas con brotes), gorguera de oro con jade, bandolera con tres frascos de savia, cinturón de raíces
+-- trenzadas con hebilla de jade, taparrabos de lino con una bolsa de hierbas, brazaletes de oro y
+-- brazales de corteza con espinas. Detrás, una placa de corteza con el glifo y un brote de tres hojas.
+-- Grado 1: hombreras de corteza con espinas, hojas y un fruto. Grado 2: capa de tela de corteza con
+-- cantos de oro y un fleco de hojas, cuello de hojas, broches, faldones y, de motivo, la base del tronco
+-- de la ceiba con sus raíces de contrafuerte y un brote con flor. Grado 3: el tronco sube por la espalda
+-- y se abre en dos ramas por encima de los hombros (la cabeza queda libre entre ellas), con espinas,
+-- flores rosas, lianas y vetas de savia verde que brillan; brillan el glifo, los frascos y el algodón de
+-- los frutos. Grado 4: la copa, rosetas de hojas grandes en arco por encima de los hombros con cuatro
+-- ramas más, frutos abiertos con algodón que cae, motas de curación, dos colibríes y cristales verdes en
+-- las hombreras.
+local function ceibaOfLife(body: Body, grade: number)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2
+	local lit = grade >= 3
+	local BEHIND = CFrame.Angles(0, math.pi, 0)
+	make.block(Vector3.new(width + 0.1, height * 0.92, depth + 0.14), LINEN, FABRIC, CFrame.new(0, -height * 0.03, 0))
+
+	-- El glifo del árbol del mundo en "at" (mirando a su -Z): disco de jade en un aro de oro y un árbol de
+	-- oro en Y (tronco con dos raíces y dos ramas abiertas) con un brote en cada punta (verde que brilla
+	-- desde el grado 3). En cruz se leía como una cruz cristiana.
+	local function worldTree(at: CFrame, size: number)
+		make.rod(0.06, size, TITAN_GOLD, SMOOTH, at * FACING)
+		make.rod(0.06, size * 0.84, JADE, SMOOTH, at * CFrame.new(0, 0, -0.02) * FACING)
+		local glyph = at * CFrame.new(0, 0, -0.05)
+		make.block(Vector3.new(0.08, size * 0.42, 0.04), TITAN_GOLD, SMOOTH, glyph * CFrame.new(0, -size * 0.08, 0))
+		local tips = { glyph * CFrame.new(0, size * 0.2, 0) }
+		for side = -1, 1, 2 do
+			local branch = glyph * CFrame.new(side * size * 0.1, size * 0.1, 0) * CFrame.Angles(0, 0, -side * 0.7)
+			make.block(Vector3.new(0.07, size * 0.26, 0.04), TITAN_GOLD, SMOOTH, branch)
+			table.insert(tips, branch * CFrame.new(0, size * 0.14, 0))
+			make.block(
+				Vector3.new(0.06, size * 0.14, 0.04),
+				TITAN_GOLD,
+				SMOOTH,
+				glyph * CFrame.new(side * size * 0.06, -size * 0.3, 0) * CFrame.Angles(0, 0, side * 0.8)
+			)
+		end
+		for _, tip in tips do
+			make.ball(
+				size * 0.15,
+				if lit then HEAL_GLOW else LEAF,
+				if lit then NEON else SMOOTH,
+				tip * CFrame.new(0, 0, -0.02)
+			)
+		end
+	end
+
+	-- Peto de corteza con el canto de oro, espinas en las esquinas de arriba y el glifo.
+	local plate = CFrame.new(0, height * 0.14, front - 0.03)
+	make.block(Vector3.new(width * 0.62, height * 0.5, 0.12), TITAN_GOLD, SMOOTH, plate * CFrame.new(0, 0, 0.02))
+	make.block(Vector3.new(width * 0.56, height * 0.44, 0.12), CEIBA_BARK, WOOD, plate * CFrame.new(0, 0, -0.01))
+	for side = -1, 1, 2 do
+		ceibaThorn(
+			make,
+			(plate * CFrame.new(side * width * 0.28, height * 0.2, -0.06)).Position,
+			Vector3.new(side, 0.6, -0.5),
+			0.26,
+			0.12
+		)
+	end
+	worldTree(plate * CFrame.new(0, 0, -0.08), width * 0.34)
+
+	-- Gorguera de oro con cuentas de jade.
+	for index = 0, 6 do
+		local angle = math.rad(-150 + index * 50)
+		make.block(
+			Vector3.new(0.28, 0.14, 0.16),
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
+				* CFrame.Angles(0, -angle, 0)
+		)
+		if index < 6 then
+			local mid = angle + math.rad(25)
+			make.ball(
+				0.15,
+				JADE,
+				SMOOTH,
+				CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
+			)
+		end
+	end
+
+	-- Bandolera del hombro izquierdo a la cadera derecha con tres frascos de savia.
+	local strapFrom = Vector3.new(-width * 0.34, height / 2 - 0.02, front - 0.1)
+	local strapTo = Vector3.new(width * 0.4, -height / 2 + 0.12, front - 0.1)
+	strap(make, strapFrom, strapTo, 0.14, LEATHER, LEATHER_MATERIAL)
+	for _, t in { 0.62, 0.76, 0.9 } do
+		flask(make, CFrame.new(strapFrom:Lerp(strapTo, t) + Vector3.new(0, -0.06, -0.1)), 0.2, lit)
+	end
+
+	-- Espalda (grados 0 y 1): placa de corteza con el glifo y un brote de tres hojas.
+	if grade < 2 then
+		local plaque = CFrame.new(0, height * 0.06, back + 0.08) * BEHIND
+		make.block(Vector3.new(width * 0.5, height * 0.56, 0.1), TITAN_GOLD, SMOOTH, plaque * CFrame.new(0, 0, 0.02))
+		make.block(Vector3.new(width * 0.44, height * 0.5, 0.1), CEIBA_BARK, WOOD, plaque)
+		worldTree(plaque * CFrame.new(0, -0.04, -0.06), width * 0.3)
+		for index = -1, 1 do
+			leaf(
+				make,
+				0.4,
+				LEAF,
+				plaque
+					* CFrame.new(index * 0.12, height * 0.3, -0.04)
+					* CFrame.Angles(0, 0, -index * 0.5)
+					* CFrame.new(0, 0.18, 0)
+			)
+		end
+	end
+
+	-- Cinturón de raíces trenzadas con hebilla de jade, taparrabos de lino y una bolsa de hierbas.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.09)
+	waist.block(Vector3.new(hipWidth + 0.16, 0.24, hipDepth + 0.18), CEIBA_BARK_DARK, WOOD, CFrame.new(0, 0.05, 0))
+	for index = -1, 1, 2 do
+		waist.block(
+			Vector3.new(hipWidth + 0.18, 0.05, hipDepth + 0.2),
+			CEIBA_BARK,
+			WOOD,
+			CFrame.new(0, 0.05 + index * 0.07, 0) * CFrame.Angles(0, 0, index * 0.04)
+		)
+	end
+	local buckle = CFrame.new(0, 0.05, beltFront - 0.03)
+	waist.rod(0.06, 0.42, TITAN_GOLD, SMOOTH, buckle * FACING)
+	waist.oval(Vector3.new(0.3, 0.28, 0.1), JADE, SMOOTH, buckle * CFrame.new(0, 0, -0.04))
+	for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
+		waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), LINEN, FABRIC, CFrame.new(0, -0.38, z))
+		waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.66, z))
+	end
+	herbPouch(waist, CFrame.new(-hipWidth * 0.32, -0.14, beltFront - 0.06), LEAF)
+
+	-- Brazos: brazaletes de oro con jade y brazales de corteza con dos espinas y una liana.
+	for side = -1, 1, 2 do
+		local upper = body.upperArm[side]
+		local us = upper.size
+		band(upper, -us.Y * 0.2, 0.12, 0.08, TITAN_GOLD, SMOOTH)
+		upper.ball(0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, -fs.Y * 0.05, fs.Y * 0.55, 0.1, CEIBA_BARK, WOOD)
+		band(forearm, -fs.Y * 0.05, 0.06, 0.14, LIANA, FABRIC, 0.3)
+		for _, y in { fs.Y * 0.1, -fs.Y * 0.22 } do
+			ceibaThorn(forearm, Vector3.new(side * (fs.X / 2 + 0.05), y, 0), Vector3.new(side, 0.3, 0), 0.22, 0.1)
+		end
+		if grade >= 1 then
+			ceibaPauldron(upper, side, grade)
+		end
+	end
+
+	-- Grado 2: capa de hojas, cuello de hojas, broches y faldones; el tronco y sus raíces.
+	if grade >= 2 then
+		make.block(
+			Vector3.new(width + 0.36, 0.3, depth * 0.62),
+			CEIBA_BARK_DARK,
+			FABRIC,
+			CFrame.new(0, height / 2 - 0.06, depth * 0.24)
+		)
+		for index = 0, 6 do
+			local x = (index / 6 - 0.5) * (width + 0.2)
+			leaf(
+				make,
+				0.42,
+				if index % 2 == 0 then LEAF else LEAF_DARK,
+				CFrame.new(x, height / 2 - 0.3, front - 0.02) * CFrame.Angles(0, math.pi, math.pi)
+			)
+		end
+		local capeHeight = height * 1.16
+		local capeTop = height / 2 - 0.05
+		local capeZ = back + 0.2
+		make.block(
+			Vector3.new(width * 1.02, capeHeight, 0.12),
+			CEIBA_BARK_DARK,
+			FABRIC,
+			CFrame.new(0, capeTop - capeHeight / 2, capeZ)
+		)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.08, capeHeight, 0.14),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * width * 0.5, capeTop - capeHeight / 2, capeZ + 0.01)
+			)
+		end
+		-- Solo un fleco de hojas en el bajo: filas de hojas por toda la capa tapaban el tronco.
+		for index = 0, 6 do
+			local x = (index / 6 - 0.5) * width * 0.92
+			leaf(
+				make,
+				0.5,
+				if index % 2 == 0 then LEAF else LEAF_DARK,
+				CFrame.new(x, capeTop - capeHeight - 0.12, capeZ + 0.07) * BEHIND * CFrame.Angles(0, 0, math.pi)
+			)
+		end
+		local clasps = {}
+		for side = -1, 1, 2 do
+			local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.06)
+			make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
+			make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
+			clasps[side] = clasp.Position
+		end
+		local sag = Vector3.new(0, height / 2 - 0.3, front - 0.12)
+		strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
+		strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
+		for side = -1, 1, 2 do
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+			leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), LINEN, FABRIC, flap)
+			leg.block(Vector3.new(ls.X * 0.92, 0.06, 0.12), TITAN_GOLD, SMOOTH, flap * CFrame.new(0, -ls.Y * 0.2, 0))
+			leaf(
+				leg,
+				0.36,
+				LEAF,
+				flap * CFrame.new(side * 0.1, -0.04, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
+			)
+		end
+
+		-- La base del tronco, de corteza clara sobre la capa oscura, con cinco raíces de contrafuerte
+		-- abiertas, espinas, un aro de oro con jade y, en el grado 2, un brote con una flor en lo alto.
+		local trunkZ = capeZ + 0.3
+		local baseY = capeTop - capeHeight * 0.8
+		make.oval(Vector3.new(0.9, 1.2, 0.5), CEIBA_BARK, WOOD, CFrame.new(0, baseY + 0.45, trunkZ))
+		for index = -2, 2 do
+			local root = CFrame.new(0, baseY + 0.1, trunkZ - 0.04) * CFrame.Angles(0, 0, math.pi + index * 0.5)
+			make.fang(0.95 - math.abs(index) * 0.08, 0.36, CEIBA_BARK, WOOD, root * CFrame.new(-0.18, 0, 0.18))
+		end
+		make.rod(0.1, 0.86, TITAN_GOLD, SMOOTH, CFrame.new(0, baseY + 0.8, trunkZ) * UPRIGHT)
+		make.ball(0.22, JADE, SMOOTH, CFrame.new(0, baseY + 0.8, trunkZ + 0.4))
+		for _, y in { 0.2, 0.5 } do
+			for side = -1, 1, 2 do
+				ceibaThorn(
+					make,
+					Vector3.new(side * 0.3, baseY + y + (side + 1) * 0.06, trunkZ + 0.12),
+					Vector3.new(side * 0.6, 0.2, 1),
+					0.3,
+					0.13
+				)
+			end
+		end
+		if grade == 2 then
+			leafCluster(make, CFrame.new(0, baseY + 1.2, trunkZ + 0.08) * BEHIND, 6, 0.5)
+			ceibaBlossom(make, CFrame.new(0, baseY + 1.2, trunkZ + 0.16) * BEHIND, 0.34)
+		else
+			-- Grado 3: el tronco sube y se abre en dos ramas por encima de los hombros (la cabeza queda libre
+			-- entre ellas), con espinas, vetas de savia que brillan, flores y una liana colgando de cada una.
+			local fork = Vector3.new(0, height * 0.3, trunkZ - 0.04)
+			ceibaBranch(
+				make,
+				{ Vector3.new(0, baseY + 0.9, trunkZ), Vector3.new(0.05, height * 0.02, trunkZ - 0.02), fork },
+				0.5,
+				true
+			)
+			for _, offset in { -0.12, 0.12 } do
+				lavaVein(make, {
+					Vector3.new(offset, baseY + 0.3, trunkZ + 0.25),
+					Vector3.new(offset * 1.6, baseY + 0.9, trunkZ + 0.25),
+					Vector3.new(offset, height * 0.1, trunkZ + 0.22),
+					Vector3.new(offset * 1.4, height * 0.28, trunkZ + 0.2),
+				}, 0.05, HEAL_GLOW)
+			end
+			local tips, elbows = {}, {}
+			for side = -1, 1, 2 do
+				local elbow = Vector3.new(side * width * 0.42, height * 0.62, trunkZ - 0.1)
+				local tip = Vector3.new(side * width * 0.82, height * 0.86, trunkZ - 0.2)
+				ceibaBranch(make, { fork, elbow, tip }, 0.34, true)
+				tips[side], elbows[side] = tip, elbow
+				ceibaBlossom(make, CFrame.new(elbow + Vector3.new(0, 0.18, 0.2)) * BEHIND, 0.42)
+				leafCluster(
+					make,
+					CFrame.new(tip) * BEHIND,
+					if grade >= 4 then 8 else 7,
+					if grade >= 4 then 0.7 else 0.58
+				)
+				local hang = elbow + Vector3.new(side * 0.12, -0.9, 0.16)
+				strap(make, elbow + Vector3.new(0, -0.1, 0.12), hang, 0.05, LIANA, FABRIC)
+				leaf(make, 0.3, LEAF, CFrame.new(hang) * BEHIND * CFrame.Angles(0, 0, math.pi + side * 0.4))
+			end
+			local sap = make.ball(0.24, HEAL_GLOW, NEON, CFrame.new(fork + Vector3.new(0, 0, 0.26)))
+			fireLight(sap, HEAL_GLOW)
+
+			-- Grado 4: la copa: dos ramas más hacia arriba y rosetas grandes en arco por encima de los
+			-- hombros (sin tapar la cabeza), frutos abiertos con algodón que cae, motas de curación y dos
+			-- colibríes junto a las flores.
+			if grade >= 4 then
+				for side = -1, 1, 2 do
+					local tip = Vector3.new(side * width * 0.5, height * 1.08, trunkZ - 0.16)
+					ceibaBranch(make, { elbows[side]:Lerp(fork, 0.4), tip }, 0.22, false)
+					leafCluster(make, CFrame.new(tip) * BEHIND, 7, 0.6)
+					ceibaBlossom(make, CFrame.new(tip + Vector3.new(0, 0, 0.14)) * BEHIND, 0.34)
+					local outer = Vector3.new(side * width * 1.02, height * 0.58, trunkZ - 0.24)
+					ceibaBranch(make, { elbows[side], outer }, 0.2, false)
+					leafCluster(make, CFrame.new(outer) * BEHIND, 6, 0.5)
+					local fluff =
+						kapokPod(make, CFrame.new(tips[side] + Vector3.new(-side * 0.16, -0.3, 0.16)), 0.42, true, true)
+					lifeMotes(fluff, 2, true)
+					hummingbird(
+						make,
+						CFrame.new(tip + Vector3.new(side * 0.42, -0.3, 0.34)) * CFrame.Angles(0, side * 2.2, 0),
+						1.5
+					)
+				end
+				lifeMotes(sap, 5, false)
+			end
+		end
+	end
+end
+
 -- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
 local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
 	FurVest = { Guerrero = furVest, Cazador = trackerCape, Mago = amuletMantle, Medico = healerBandolier },
@@ -4457,6 +4949,7 @@ local OUTFITS: { [string]: (body: Body, grade: number) -> () } = {
 	TitanKingOutfit = titanKing,
 	SpectralJaguarOutfit = spectralJaguar,
 	FeatheredSerpentOutfit = featheredSerpent,
+	CeibaOfLifeOutfit = ceibaOfLife,
 }
 
 -- Si los trajes crecen con la armadura (la Isla, donde se fabrica: lo pone CraftingService). En el

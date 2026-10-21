@@ -176,7 +176,8 @@ local Cosmetics: { [string]: Cosmetic } = {
 		title = "👑 Rey de la Isla Primal",
 	},
 
-	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero; G9b: el cazador y el mago).
+	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero; G9b: el cazador, el mago y
+	-- el médico).
 	TitanKingOutfit = {
 		name = "Traje: Rey Gorila Titán",
 		icon = "🦍",
@@ -242,6 +243,28 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(95, 215, 255),
 		source = { productId = 0, price = 449 },
 		role = "Mago",
+	},
+	CeibaOfLifeOutfit = {
+		name = "Traje: Ceiba de la Vida",
+		icon = "🌳",
+		kind = "Outfit",
+		description = "Gana una partida de médico con la Cerbatana y el Manto de azufre. Crece con tu armadura.",
+		order = 26,
+		rarity = "Mythic",
+		color = Color3.fromRGB(120, 255, 150),
+		source = { earned = "MasterVictory" },
+		role = "Medico",
+	},
+	CeibaBlowgun = {
+		name = "Arma: Cerbatana de la Ceiba",
+		icon = "🌳",
+		kind = "WeaponSkin",
+		description = "Una rama de la ceiba sagrada, con espinas y savia que cura, para tu cerbatana. Crece con tu arma.",
+		order = 27,
+		rarity = "Mythic",
+		color = Color3.fromRGB(120, 255, 150),
+		source = { productId = 0, price = 449 },
+		role = "Medico",
 	},
 }
 
