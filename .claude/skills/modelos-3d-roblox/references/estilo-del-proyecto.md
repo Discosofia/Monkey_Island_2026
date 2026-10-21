@@ -23,7 +23,7 @@ tipo que ya existe va en su módulo, con un constructor más y su entrada en los
 |---|---|---|---|
 | Armas y herramientas (Tool) | `src/shared/WeaponTools.luau` | `WeaponTools.build(weaponId)` | `src/shared/Data/Weapons.luau` |
 | Armaduras puestas y trajes (cosméticos) | `src/shared/ArmorModels.luau` | `ArmorModels.wear(character, armorId, rol, outfitId?, grado?)` | `src/shared/Data/Armor.luau`, `Data/Cosmetics.luau` |
-| Mascotas | `src/shared/PetModels.luau` | `PetModels.build(petId)` | `src/shared/Data/Pets.luau` |
+| Mascotas | `src/shared/PetModels.luau` | `PetModels.build(petId, skinId?)` | `src/shared/Data/Pets.luau` |
 | Monos y jefes (articulados) | `src/island/server/Monkeys/MonkeyModels.luau` | `MonkeyModels.build(...)` | `src/shared/Data/Monkeys.luau`, `Bosses.luau` |
 | Monos en estilo voxel | `src/island/server/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
 | Árboles, palmeras, rocas, matas | `src/serverShared/NodeModels.luau` | `NodeModels.build(nodeType, ground, rng)` | `src/shared/Data/ResourceNodes.luau` |
@@ -699,6 +699,24 @@ orejas, hocico, lista, pecho, patas, cola y punta, manchas, moteado, collar, alf
   correa vertical y la hebilla abajo, panel encima y cincha) le dan espalda y cuentan que es la
   mascota de carga. El beagle ya la tiene con su bandera blanca, y el pointer con la mancha de la
   grupa, que asoma por detrás.
+
+### Skins de mascota (G9c)
+
+`SKINS` al final de PetModels, por id del cosmético (`Data/Cosmetics`, tipo `PetSkin`; las de una
+familia, `petFamily`, valen para todas sus mascotas). Una skin no copia el constructor: cambia los
+colores que este lee con `tone(rig, "clave", porDefecto)` (`palette`), pone material a las piezas de
+cada color de la paleta (`materials`, comparando en hex) y añade piezas propias con la misma rejilla
+(`extra`, con `voxelKit` y el mismo origen). Para hacer skineable otra especie, cambia sus colores
+fijos por `tone`. Lo aprendido con la **Tortuga de Lava**:
+- Escamas de neón por toda la cabeza parecían **manchas de leopardo**: neón solo en ojos y en la lava;
+  las escamas, rojizas sin brillo.
+- El neón aclara: para que la lava se lea naranja (no amarilla) va muy saturada, 255, 85, 10.
+- Un motivo encima (el volcancito) tiene que medir casi la mitad del caparazón y llevar la lava
+  **casi rebosando** el cráter, o desde la altura de la cámara es una pirámide de escalones.
+- Las partículas (humo, brasas) no se ven en un `ViewportFrame` (Armario): el visor enseña solo piezas.
+- Vista previa en edición: clona `PetModels`, `CosmeticSlots` y la carpeta `Data` a una carpeta
+  temporal de ReplicatedStorage y requiere el clon (caché de `require`); cinco copias en fila (normal,
+  espalda, 3/4, frente, normal) y cámara a ~6 studs.
 
 ### Mascotas voxel (tortuga, guacamaya, perezoso y Mono X-7)
 

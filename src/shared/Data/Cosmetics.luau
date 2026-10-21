@@ -10,13 +10,17 @@
 --   - earned: se gana jugando ("Rescue": ganar una partida de verdad; "MasterVictory": ganarla con el
 --     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService). Ni en
 --     Studio es gratis.
+--   - free: lo tiene todo el mundo desde el principio (los emotes de serie).
 -- Un id de Robux a 0 sale como "Próximamente" (en Studio se prueba gratis con
 -- Config.Cosmetics.FreeInStudio). Lo que se tiene sin Game Pass se guarda en el perfil
 -- ("ownedCosmetics", ServerShared/CosmeticsServer).
 -- Tipos y su hueco de equipo (Shared/CosmeticSlots): Trail (estela), Title (título sobre la cabeza),
 -- Aura y Frame (marco), uno de cada; Outfit (traje) y WeaponSkin (aspecto del arma), uno por rol
--- ("role"); PetSkin, uno por mascota ("petId"); Emote, hasta Config.Cosmetics.EmoteSlots a la vez.
--- Los modelos: trajes en Shared/ArmorModels (OUTFITS), aspectos de arma en Shared/WeaponTools (SKINS).
+-- ("role"); PetSkin, uno por mascota ("petId") o, en las que comparten modelo, uno por familia
+-- ("petFamily", Data/Pets: la misma skin vale para los tres felinos); Emote, hasta
+-- Config.Cosmetics.EmoteSlots a la vez (la rueda; con la rueda vacía salen Config.Cosmetics.DefaultEmotes).
+-- Los modelos: trajes en Shared/ArmorModels (OUTFITS), aspectos de arma en Shared/WeaponTools (SKINS),
+-- skins de mascota en Shared/PetModels (SKINS) y marcos en Shared/UI/PlayerFrames (STYLES).
 --
 -- Rareza y detalle (cuanto más raro, más trabajo en el diseño): Común y Poco común, color y una forma
 -- sencilla; Raro, varios materiales y un motivo propio; Épico, piezas con relieve y algo que brilla;
@@ -37,6 +41,7 @@ export type Source = {
 	amber: number?,
 	season: string?,
 	earned: ("Rescue" | "MasterVictory")?,
+	free: boolean?,
 }
 
 export type Cosmetic = {
@@ -51,6 +56,7 @@ export type Cosmetic = {
 	title: string?, -- Title: el texto que se ve
 	role: string?, -- Outfit y WeaponSkin: el rol al que va
 	petId: string?, -- PetSkin: la mascota (Data/Pets)
+	petFamily: string?, -- PetSkin de familia: vale para todas las mascotas con ese "family" (Data/Pets)
 	animationId: string?, -- Emote: la animación publicada (rbxassetid://…)
 }
 
@@ -174,6 +180,95 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(255, 90, 40),
 		source = { season = "T1" },
 		title = "👑 Rey de la Isla Primal",
+	},
+
+	-- Ejemplos de skin de mascota, marcos y emotes (G9c). La Tortuga de Lava y los marcos son premios de
+	-- la temporada 1 (G11 los pone en su nivel); los emotes de serie usan las animaciones de Roblox.
+	LavaTurtleSkin = {
+		name = "Skin: Tortuga de Lava",
+		icon = "🐢",
+		kind = "PetSkin",
+		description = "Tu tortuga con un caparazón de basalto, grietas de lava y un volcancito que humea.",
+		order = 12,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 120, 40),
+		source = { season = "T1" },
+		petId = "Tortuga",
+	},
+	BronzeFrame = {
+		name = "Marco de bronce",
+		icon = "🥉",
+		kind = "Frame",
+		description = "Un borde de bronce con remaches para tu nombre en el ranking, el grupo y los resultados.",
+		order = 13,
+		rarity = "Uncommon",
+		color = Color3.fromRGB(215, 140, 70),
+		source = { season = "T1" },
+	},
+	MoltenObsidianFrame = {
+		name = "Marco: Obsidiana fundida",
+		icon = "🌋",
+		kind = "Frame",
+		description = "Obsidiana con lava que corre por el borde y brasas que suben de tu nombre.",
+		order = 14,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 110, 30),
+		source = { season = "T1" },
+	},
+	EmoteWave = {
+		name = "Emote: Saludar",
+		icon = "👋",
+		kind = "Emote",
+		description = "Saluda con la mano.",
+		order = 30,
+		rarity = "Common",
+		color = Color3.fromRGB(255, 225, 150),
+		source = { free = true },
+		animationId = "rbxassetid://507770239",
+	},
+	EmotePoint = {
+		name = "Emote: Señalar",
+		icon = "👉",
+		kind = "Emote",
+		description = "Señala hacia delante: ¡por allí!",
+		order = 31,
+		rarity = "Common",
+		color = Color3.fromRGB(255, 225, 150),
+		source = { free = true },
+		animationId = "rbxassetid://507770453",
+	},
+	EmoteCheer = {
+		name = "Emote: ¡Ánimo!",
+		icon = "🙌",
+		kind = "Emote",
+		description = "Levanta los brazos para animar al grupo.",
+		order = 32,
+		rarity = "Common",
+		color = Color3.fromRGB(255, 225, 150),
+		source = { free = true },
+		animationId = "rbxassetid://507770677",
+	},
+	EmoteLaugh = {
+		name = "Emote: Reír",
+		icon = "😂",
+		kind = "Emote",
+		description = "Una buena carcajada.",
+		order = 33,
+		rarity = "Common",
+		color = Color3.fromRGB(255, 225, 150),
+		source = { free = true },
+		animationId = "rbxassetid://507770818",
+	},
+	EmoteDance = {
+		name = "Emote: Bailar",
+		icon = "💃",
+		kind = "Emote",
+		description = "Baila hasta que te muevas.",
+		order = 34,
+		rarity = "Common",
+		color = Color3.fromRGB(255, 225, 150),
+		source = { free = true },
+		animationId = "rbxassetid://507771019",
 	},
 
 	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero; G9b: el cazador, el mago y

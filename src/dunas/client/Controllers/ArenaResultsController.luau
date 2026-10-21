@@ -2,7 +2,7 @@
 -- Resultados de una partida de la arena (Remotes.ArenaResults, de ArenaRewardService), con el mismo
 -- aspecto que los de la Isla (ResultsController): victoria, derrota o empate, el marcador, una tabla
 -- con las capturas, bajas y caídas de cada jugador, el Ámbar ganado (con el tope diario) y la XP del
--- pase de temporada.
+-- pase de temporada. Cada fila lleva el marco del jugador (Shared/UI/PlayerFrames).
 -- Abajo, dos botones: "🔁 Revancha" (cierra la ventana: la siguiente partida empieza sola en este
 -- servidor con quienes se queden) y "🏝️ Volver al Lobby". Se cierra sola al acabar los resultados.
 
@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
@@ -78,7 +79,10 @@ local function playerRow(parent: Instance, order: number, row: { [string]: any }
 	frame.BackgroundColor3 = if team then team.color:Lerp(ROW_COLOR, 0.65) else ROW_COLOR
 	frame.Parent = parent
 	corner(frame, 8)
-	if mine then
+	-- Su marco; sin marco, la tuya va con el borde dorado de siempre.
+	if typeof(row.frame) == "string" and PlayerFrames.has(row.frame) then
+		PlayerFrames.apply(frame, row.frame)
+	elseif mine then
 		local stroke = Instance.new("UIStroke")
 		stroke.Color = Color3.fromRGB(242, 178, 36)
 		stroke.Thickness = 2
@@ -169,6 +173,10 @@ local function show(summary: { [string]: any })
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = list
+	-- El borde de los marcos va por fuera de la fila: que la lista no lo corte arriba.
+	local listPadding = Instance.new("UIPadding")
+	listPadding.PaddingTop = UDim.new(0, 3)
+	listPadding.Parent = list
 	for index, row in summary.players or {} do
 		playerRow(list, index, row, row.name == player.DisplayName)
 	end

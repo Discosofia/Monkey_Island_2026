@@ -4,7 +4,8 @@
 -- Al ganar con un huevo incubando en el nido del Lobby, una ruleta enseña su tirada del rescate
 -- ("eggRoll" del resumen, MatchService): las horas que le quita o la eclosión inmediata. Con una
 -- temporada en marcha, también la XP del pase sumada ("pass"). Y los pasos cumplidos del contrato de
--- expedición (Shared/Contract).
+-- expedición (Shared/Contract). Bajo los días, el grupo: una ficha por jugador con su nombre y su marco
+-- (Shared/UI/PlayerFrames).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +16,7 @@ local Contract = require(ReplicatedStorage.Shared.Contract)
 local Contracts = require(ReplicatedStorage.Shared.Data.Contracts)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
@@ -25,6 +27,9 @@ local EGG_COLOR = Color3.fromRGB(150, 240, 255)
 local ROULETTE_STEPS = 20
 local ROULETTE_FIRST_DELAY = 0.05
 local ROULETTE_SLOWDOWN = 1.17
+-- Fichas del grupo: fondo de fila y alto (fracción de la ventana).
+local CHIP_COLOR = Color3.fromRGB(45, 38, 30)
+local TEAM_HEIGHT = 0.11
 
 local ResultsController = {}
 
@@ -85,6 +90,7 @@ local function show(summary: { [string]: any })
 	local passText = SeasonPass.gainText(summary.pass)
 	local contract = Contract.read()
 	local panelHeight = (if roll then 0.86 else 0.7)
+		+ TEAM_HEIGHT
 		+ (if summary.newTitle then 0.07 else 0)
 		+ (if passText then 0.07 else 0)
 		+ (if contract then 0.07 else 0)
@@ -144,11 +150,47 @@ local function show(summary: { [string]: any })
 	end
 	for index, line in lines do
 		local label = Widgets.label(line.text, panel)
-		label.LayoutOrder = index
+		-- De diez en diez: el grupo va entre los días (2) y los monos (3).
+		label.LayoutOrder = index * 10
 		label.Size = UDim2.fromScale(0.9, line.height * fit)
 		label.TextColor3 = line.color
 	end
-	local order = #lines
+	local team = Instance.new("Frame")
+	team.LayoutOrder = 25
+	team.BackgroundTransparency = 1
+	team.Size = UDim2.fromScale(0.94, TEAM_HEIGHT * fit)
+	team.Parent = panel
+	local teamLayout = Instance.new("UIListLayout")
+	teamLayout.FillDirection = Enum.FillDirection.Horizontal
+	teamLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	teamLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	teamLayout.Padding = UDim.new(0, 8)
+	teamLayout.Parent = team
+	local members = Players:GetPlayers()
+	local chipWidth = 1 / math.max(#members, 3)
+	for index, member in members do
+		local chip = Widgets.label(member.DisplayName, team)
+		chip.LayoutOrder = if member == player then 0 else index
+		chip.Size = UDim2.new(chipWidth, -8, 0.86, 0)
+		chip.BackgroundColor3 = CHIP_COLOR
+		chip.BackgroundTransparency = 0.1
+		chip.TextColor3 = if member == player then Color3.fromRGB(242, 178, 36) else plain
+		local chipCorner = Instance.new("UICorner")
+		chipCorner.CornerRadius = UDim.new(0, 8)
+		chipCorner.Parent = chip
+		local chipPadding = Instance.new("UIPadding")
+		chipPadding.PaddingLeft = UDim.new(0, 8)
+		chipPadding.PaddingRight = UDim.new(0, 8)
+		chipPadding.PaddingTop = UDim.new(0, 3)
+		chipPadding.PaddingBottom = UDim.new(0, 3)
+		chipPadding.Parent = chip
+		local chipLimit = Instance.new("UITextSizeConstraint")
+		chipLimit.MaxTextSize = 22
+		chipLimit.Parent = chip
+		local frameId = member:GetAttribute("Frame")
+		PlayerFrames.apply(chip, if typeof(frameId) == "string" then frameId else nil)
+	end
+	local order = #lines * 10
 	if roll then
 		local wheel = Widgets.label("🥚 Tirada del rescate", panel)
 		wheel.LayoutOrder = order + 1

@@ -40,6 +40,8 @@ golpe).
 | Tarjetas de rol de la arena (icono, nombre y ventaja en combate) | `src/shared/UI/ArenaRoleCards.luau` | — | Lobby y Dunas |
 | Arena de Dunas: marcador con reloj y estado de las banderas (arriba a la derecha, **dentro de la franja de la barra de Roblox**: `GuiService.TopbarInset`, en un ScreenGui `ArenaScore` con IgnoreGuiInset), línea de la fase (arriba en el centro, a 6 px bajo la barra), barras de vida y estamina (12, 10), "Reapareces en N" (centro, 0.4) | `src/dunas/client/Controllers/ArenaHUDController.luau` | `ArenaHUD`, `ArenaScore` | Dunas |
 | Arena de Dunas: ventana "Antes de la batalla" (equipo, rol, equipo de la arena con `Shared/UI/ArenaGearPicker`, ¡Listo!) colgada a 40 px, bajo la línea de la fase; su alto se ajusta al contenido (el usuario quiere verlo todo sin desplazarse en PC) y en pantallas de menos de 500 px de alto usa filas de 44 px y se parte en dos columnas (izquierda: equipos, roles 2 × 2, ¡Listo!; derecha: el equipamiento en cuadrícula de 3 × 3 con una barra que explica la opción tocada y su botón); cabe en 844 × 390 sin desplazarse. Plegada deja "🛡️ Equipo y rol" en ese sitio | `src/dunas/client/Controllers/ArenaLobbyController.luau` | `ArenaLobby` (DisplayOrder 6) | Dunas |
+| Rueda de emotes: 6 huecos redondos (76 px) en círculo de 118 px de radio alrededor del centro, con la X roja en medio, velo oscuro detrás (tocarlo la cierra) y la línea "Se para al moverte" debajo. Se abre con "." (el menú de emotes de Roblox se apaga) o con el botón 😀 (52 × 52, como el ⚙️): en la Isla a la izquierda del ⚙️, en el Lobby en la barra del menú (entrada "Emotes", tras Armario) | `src/shared/UI/EmoteWheel.luau` (la arrancan `IslandHUDController` y `LobbyUIController`) | `EmoteWheel` (DisplayOrder 7, IgnoreGuiInset) | Isla y Lobby |
+| Marcos de jugador (cosméticos `Frame`): borde con degradado (`UIStroke` en modo Border) y piezas en las esquinas (remaches o esquirlas), en el legendario la lava que corre por el borde y brasas que suben. Se ponen en las filas del ranking (con 12 px de margen a la izquierda, para que las esquinas no pisen la medalla), las filas de la ventana Grupo, las fichas del grupo de los resultados de la Isla (bajo "Sobrevivisteis") y las filas de los resultados de Dunas | `src/shared/UI/PlayerFrames.luau` (`apply(objeto, frameId)`) | — | Lobby, Isla y Dunas |
 | Efectos en pantalla de habilidades (destellos, estrellas) | `src/combatClient/Controllers/AbilityFxController.luau` | varios | Isla |
 | Estallidos de cómic del combate (BAM! POW! K.O.! OUCH!) | `src/combatClient/Controllers/ComicFxController.luau` + `src/shared/UI/ComicBurst.luau` (dibujo, también en la vista previa de Ajustes) | `BillboardGui` "ComicFx" | Isla y Dunas |
 | Carteles sobre cosas del mapa ("Parcela libre", "Tótem PvP", nombres de monos, títulos cosméticos, vida del campamento sobre la hoguera) | `BillboardGui` creados en el servidor: `BuildingService`, `PvPService`, `MonkeyService`, `BossService`, `CosmeticsServer`, `BasecampService`… | — | Isla |
@@ -150,6 +152,7 @@ Reglas que salen de ahí:
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
 | 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
 | 6 | `JournalHUD`, `ArenaLobby` (Dunas) |
+| 7 | `EmoteWheel` (la rueda de emotes, con velo) |
 | 8 | `SettingsUI` |
 | 10 | `Toasts` |
 | 20 | `DebugPanel` |
@@ -215,7 +218,8 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
   barra de Roblox con las de las misiones y la tarjeta solo se ve con la lista abierta.
 
 - `SettingsButton` (⚙️) va **a la izquierda de `ReturnToLobbyButton`**, colocado con `place()` a
-  partir de la posición y el tamaño reales del botón: si mueves el botón, el ⚙️ lo sigue solo.
+  partir de la posición y el tamaño reales del botón: si mueves el botón, el ⚙️ lo sigue solo. El
+  botón 😀 de los emotes (`EmoteButton`) sigue igual al ⚙️, a su izquierda.
 - `ReturnToLobbyButton` está abajo a la derecha en PC y, con `UserInputService.TouchEnabled`, bajo el
   indicador del Basecamp (0.125 + 8 px). Si cambias el reloj o el indicador de alto, revisa ese 0.125.
 - `DebugPanel` (Pruebas) se coloca a 0.9 en la Isla para dejar sitio a "Saltar fase" (0.98), y en el
@@ -228,7 +232,7 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
   `JoinIslandButton` y la línea de provisiones van a 112 px del borde de abajo (`HOTBAR_CLEARANCE`),
   encima de la barra de objetos de Roblox con las armas del rol (en PC su borde de arriba queda a unos
   100 px del de abajo: con 76 se tapaban, captura del usuario). La barra del menú en columna empieza
-  en `BAR_TOP` (244 px), debajo de las casillas de habilidades (`RoleHUD`, 118–164) y de los combos
+  en `BAR_TOP` (244 px; 9 botones desde el G9c: "Emotes" no abre ventana, abre la rueda), debajo de las casillas de habilidades (`RoleHUD`, 118–164) y de los combos
   (`ComboHUD`, 170–232): si cambian de alto, revisa `BAR_TOP`; "Invitar amigos" va 8 px debajo de la
   barra. Con una ventana abierta (`openWindow`) se esconden la barra de objetos
   (`SetCoreGuiEnabled(Backpack)`), el botón de viaje, las provisiones, "Invitar amigos", `RoleHUD` y

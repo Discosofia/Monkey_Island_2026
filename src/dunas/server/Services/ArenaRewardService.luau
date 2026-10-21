@@ -90,6 +90,8 @@ local function scoreboard(): { { [string]: any } }
 				kills = stat(player, "ArenaKills"),
 				deaths = stat(player, "ArenaDeaths"),
 				captures = stat(player, "ArenaCaptures"),
+				-- Marco puesto (ServerShared/CosmeticsServer), para su fila de los resultados.
+				frame = player:GetAttribute("Frame"),
 			})
 		end
 	end

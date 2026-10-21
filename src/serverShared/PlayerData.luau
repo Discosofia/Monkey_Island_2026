@@ -351,6 +351,22 @@ function PlayerData.isSaveable(player: Player): boolean
 	return session ~= nil and session.saveable
 end
 
+-- Lo equipado de otro jugador, conectado o no (el marco de los puestos del ranking, LeaderboardService),
+-- leído sin bloquear su perfil. nil si no tiene datos o DataStore falla. Puede tardar: desde un hilo.
+function PlayerData.peekCosmetics(userId: number): { [string]: string }?
+	local dataStore = getStore()
+	if not dataStore or userId <= 0 then
+		return nil
+	end
+	local ok, data = pcall(function()
+		return dataStore:GetAsync(`u_{userId}`)
+	end)
+	if ok and typeof(data) == "table" and typeof(data.cosmetics) == "table" then
+		return data.cosmetics
+	end
+	return nil
+end
+
 -- Arranca la carga, el guardado automático y el guardado al cerrar. Llamar una vez por servidor.
 function PlayerData.start()
 	Remotes.SaveSettings.OnServerEvent:Connect(function(player, raw)

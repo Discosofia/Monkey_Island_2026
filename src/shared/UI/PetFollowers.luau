@@ -1,8 +1,8 @@
 --!strict
 -- Mascotas que siguen a su dueño (Fase 5), en el Lobby y en la Isla. Cada cliente dibuja las de todos
--- los jugadores (atributo "ActivePet"), así se mueven suaves sin cargar al servidor. Las de rastreo,
--- además, resaltan a su dueño los monos cercanos cada pocos segundos, y las que olfatean (el beagle)
--- le señalan el huevo misterioso del suelo: huellas hacia él y su distancia. Las de combate, cuando el
+-- los jugadores (atributo "ActivePet", con su skin en "PetSkin"), así se mueven suaves sin cargar al
+-- servidor. Las de rastreo, además, resaltan a su dueño los monos cercanos cada pocos segundos, y las
+-- que olfatean (el beagle) le señalan el huevo misterioso del suelo: huellas hacia él y su distancia. Las de combate, cuando el
 -- servidor avisa de un ataque (Remotes.PetAttack), corren hasta el mono, hacen su ataque (el clip
 -- "Attack" de PetModels, o un salto genérico) justo cuando llega el daño
 -- (Config.Pets.StrikeDelaySeconds) y vuelven con su dueño.
@@ -57,6 +57,7 @@ type Attack = { target: Model, startedAt: number, standOff: number }
 type Idle = { clip: string, startedAt: number, length: number, leaving: boolean, angle: number }
 type Follower = {
 	petId: string,
+	skinId: string?, -- skin puesta (atributo "PetSkin"): si cambia, se vuelve a construir
 	model: Model,
 	attack: Attack?,
 	clock: number, -- tiempo de su animación, que corre más deprisa mientras ataca
@@ -90,8 +91,10 @@ function PetFollowers.start()
 
 	local function sync(player: Player)
 		local petId = player:GetAttribute("ActivePet")
+		local skinAttribute = player:GetAttribute("PetSkin")
+		local skinId = if typeof(skinAttribute) == "string" then skinAttribute else nil
 		local current = followers[player]
-		if current and current.petId == petId then
+		if current and current.petId == petId and current.skinId == skinId then
 			return
 		end
 		if current then
@@ -99,7 +102,7 @@ function PetFollowers.start()
 			followers[player] = nil
 		end
 		if typeof(petId) == "string" then
-			local model = PetModels.build(petId)
+			local model = PetModels.build(petId, skinId)
 			if model then
 				model.Parent = folder
 				local clips = PetModels.clips(model)
@@ -112,6 +115,7 @@ function PetFollowers.start()
 				table.sort(idles)
 				followers[player] = {
 					petId = petId,
+					skinId = skinId,
 					model = model,
 					attack = nil,
 					clock = 0,
@@ -136,6 +140,9 @@ function PetFollowers.start()
 
 	local function watch(player: Player)
 		player:GetAttributeChangedSignal("ActivePet"):Connect(function()
+			sync(player)
+		end)
+		player:GetAttributeChangedSignal("PetSkin"):Connect(function()
 			sync(player)
 		end)
 		sync(player)

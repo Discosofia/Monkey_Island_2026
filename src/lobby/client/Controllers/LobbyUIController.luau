@@ -11,7 +11,9 @@
 --       Pase (el pase de temporada, UI/SeasonPassPanel; también tiene su botón en la barra).
 --   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar), Misiones (el calendario de 7 días, las misiones del día y lo que te llevas
---     a la próxima partida), Pase, Armario (los cosméticos, UI/WardrobePanel), Grupo (invitar a jugadores del Lobby para viajar juntos), Diario
+--     a la próxima partida), Pase, Armario (los cosméticos, UI/WardrobePanel), Emotes (no es una
+--     ventana: abre la rueda de emotes, UI/EmoteWheel), Grupo (invitar a jugadores del Lobby para
+--     viajar juntos), Diario
 --     y Ajustes (UI/SettingsPanel). Un punto rojo avisa de lo pendiente (puntos de talento libres,
 --     premio del calendario, premios del pase por reclamar). En PC va en columna a la izquierda; en táctil o en una pantalla baja, en
 --     fila en la franja de la barra de Roblox.
@@ -54,6 +56,8 @@ local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Upgrades = require(ReplicatedStorage.Shared.Data.Upgrades)
 local CalendarStrip = require(ReplicatedStorage.Shared.UI.CalendarStrip)
+local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
+local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local WardrobePanel = require(ReplicatedStorage.Shared.UI.WardrobePanel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
@@ -104,10 +108,12 @@ local WINDOWS: { [string]: WindowDef } = {
 	-- El armario se coloca solo: el avatar en 3D a la izquierda y las tarjetas a la derecha.
 	Armario = { icon = "👕", title = "Armario", wide = true, own = true },
 	Grupo = { icon = "👥", title = "Grupo" },
+	-- No es una ventana: su botón abre la rueda de emotes (UI/EmoteWheel).
+	Emotes = { icon = "😀", title = "Emotes" },
 	Diario = { icon = "📖", title = "Diario", wide = true, spread = true },
 	Ajustes = { icon = "⚙️", title = "Ajustes", wide = true, spread = true },
 }
-local MENU = { "Talentos", "Tienda", "Misiones", "Pase", "Armario", "Grupo", "Diario", "Ajustes" }
+local MENU = { "Talentos", "Tienda", "Misiones", "Pase", "Armario", "Emotes", "Grupo", "Diario", "Ajustes" }
 -- Avisos de las estaciones de la plaza (World/LobbyBuilder) y la ventana que abre cada uno.
 local STATION_PROMPTS: { [string]: string } = {
 	RolesPrompt = "Rol",
@@ -133,8 +139,9 @@ local LIST_TOP_COMPACT = 44
 local WINDOW_MARGIN_COMPACT = 12
 -- Barra del menú en columna (PC): debajo de las casillas de las habilidades (RoleHUD, de 118 a 164 px)
 -- y de los combos (ComboHUD, de 170 a 232 px). Botones con el icono y su nombre debajo.
+-- Con los 9 botones (G9c, "Emotes") a 48 de alto la columna cabe en una pantalla de 793 px de alto.
 local BAR_TOP = 244
-local BAR_BUTTON = Vector2.new(60, 52)
+local BAR_BUTTON = Vector2.new(60, 48)
 local BAR_GAP = 4
 local INVITE_HEIGHT = 48
 -- Barra en fila (táctil o pantalla baja): solo iconos, en la franja de la barra de Roblox.
@@ -309,6 +316,7 @@ end
 function LobbyUIController:Start()
 	local player = Players.LocalPlayer
 	local gui = Widgets.screen("LobbyUI", player:WaitForChild("PlayerGui"))
+	EmoteWheel.start()
 
 	local playerGui = player:WaitForChild("PlayerGui")
 	-- Barra del menú en fila (táctil o pantalla baja) en vez de en columna; lo decide placeHud.
@@ -1091,6 +1099,15 @@ function LobbyUIController:Start()
 						line.TextColor3 = READY_COLOR
 						line.Font = Enum.Font.BuilderSansBold
 					end
+					-- El marco que lleva puesto (Shared/UI/PlayerFrames), con el nombre un poco hacia dentro.
+					if entry and PlayerFrames.has(entry.frame) then
+						PlayerFrames.apply(line, entry.frame)
+						corner(line, 6)
+						local inset = Instance.new("UIPadding")
+						-- Las piezas de las esquinas no pisan la medalla.
+						inset.PaddingLeft = UDim.new(0, 12)
+						inset.Parent = line
+					end
 					textCap(line, if compactUi then 13 else 17)
 				end
 				local value = mine[board.stat]
@@ -1141,6 +1158,8 @@ function LobbyUIController:Start()
 			if other ~= player then
 				local row = newRow(list, order)
 				row.title.Text = other.DisplayName
+				local frameId = other:GetAttribute("Frame")
+				PlayerFrames.apply(row.frame, if typeof(frameId) == "string" then frameId else nil)
 				local otherMembers = other:GetAttribute("PartyMembers")
 				local busy = typeof(otherMembers) == "string"
 				row.detail.Text = if busy then "Ya está en un grupo" else "En el Lobby"
@@ -1594,7 +1613,11 @@ function LobbyUIController:Start()
 		badgeStroke.Thickness = 1.5
 		badgeStroke.Parent = badge
 		button.Activated:Connect(function()
-			openWindow(if currentWindow == id then nil else id)
+			if id == "Emotes" then
+				EmoteWheel.toggle()
+			else
+				openWindow(if currentWindow == id then nil else id)
+			end
 		end)
 		barButtons[id] = { button = button, icon = icon, name = name, badge = badge }
 	end

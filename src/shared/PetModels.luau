@@ -2,11 +2,16 @@
 -- Modelos de las mascotas (Fase 5): una figura de piezas simples por especie, con partes animadas
 -- (alas que baten, patas que andan, colas que se mueven). Los crean los clientes (Lobby e Isla) para
 -- que sigan a su dueño (UI/PetFollowers); el servidor no los conoce.
+-- Skins (Fase 9, G9c; Data/Cosmetics, tipo PetSkin): cambian los colores que su constructor lee con
+-- "tone", el material de esos colores y añaden piezas propias (SKINS, al final del archivo).
+--   Skin    atributo del modelo con la skin que lleva
 -- Se construyen alrededor de una pieza invisible "Root" (el pivote), con -Z hacia delante.
 -- Atributos del modelo:
 --   Motion  "Walk" (por el suelo), "Hop" (a saltos), "Fly" (vuela alto) o "Hover" (flota cerca)
 --   Height  altura del pivote sobre la parte más baja, para apoyarlo en el suelo
 
+local CosmeticSlots = require(script.Parent.CosmeticSlots)
+local Cosmetics = require(script.Parent.Data.Cosmetics)
 local Pets = require(script.Parent.Data.Pets)
 
 export type Motion = "Walk" | "Hop" | "Fly" | "Hover"
@@ -53,6 +58,7 @@ type Rig = {
 	joints: { Joint },
 	family: string?, -- familia de clips (CLIPS)
 	dims: { [string]: any }?, -- medidas que necesitan sus clips
+	palette: { [string]: Color3 }?, -- colores de la skin puesta (SKINS), que lee "tone"
 	-- Piezas fijas de la cadera (manchas, vientre) que giran sobre la cintura ("hinge", sin escalar) con
 	-- el giro de la mascota, "factor" veces. No son articulaciones: solo se mueven mientras gira.
 	bend: { hinge: CFrame, factor: number, parts: { BasePart } }?,
@@ -74,6 +80,12 @@ local BLACK = Color3.fromRGB(22, 22, 26)
 local rigs: { [Model]: Animated } = {}
 
 local PetModels = {}
+
+-- Color "key" de la mascota: el de su skin si la lleva y lo cambia (SKINS), si no "default".
+local function tone(rig: Rig, key: string, default: Color3): Color3
+	local palette = rig.palette
+	return if palette and palette[key] then palette[key] else default
+end
 
 local function scaled(rig: Rig, cframe: CFrame): CFrame
 	return CFrame.new(cframe.Position * rig.scale) * cframe.Rotation
@@ -2628,18 +2640,19 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	-- Tortuga verde voxel (docs/img/Tortuga verde.jfif): caparazón ancho y bajo en capas que se
 	-- estrechan hacia arriba, con placas verde oliva, amarillas y marrones y el borde marrón oscuro;
 	-- cabeza que asoma con escamas amarillas, aletas de delante largas en escalones y las de atrás
-	-- cortas. Rema con las aletas al andar.
+	-- cortas. Rema con las aletas al andar. Sus colores se pueden cambiar con una skin (SKINS, "tone").
 	Tortuga = function(rig, color)
 		local v = voxelKit(rig, Vector3.new(0, 4, 0))
 		local box = v.box
-		local skin = Color3.fromRGB(55, 110, 40)
+		local skin = tone(rig, "skin", Color3.fromRGB(55, 110, 40))
 		local skinDark = skin:Lerp(BLACK, 0.25)
-		local scale = Color3.fromRGB(170, 155, 45)
-		local olive = color:Lerp(Color3.fromRGB(110, 115, 25), 0.6)
-		local yellow = Color3.fromRGB(150, 140, 40)
-		local brown = Color3.fromRGB(110, 72, 35)
-		local rim = Color3.fromRGB(85, 55, 30)
-		local plastron = Color3.fromRGB(170, 155, 70)
+		local scale = tone(rig, "scale", Color3.fromRGB(170, 155, 45))
+		local olive = tone(rig, "olive", color:Lerp(Color3.fromRGB(110, 115, 25), 0.6))
+		local yellow = tone(rig, "yellow", Color3.fromRGB(150, 140, 40))
+		local brown = tone(rig, "brown", Color3.fromRGB(110, 72, 35))
+		local rim = tone(rig, "rim", Color3.fromRGB(85, 55, 30))
+		local plastron = tone(rig, "plastron", Color3.fromRGB(170, 155, 70))
+		local eye = tone(rig, "eye", Color3.fromRGB(45, 20, 20))
 
 		-- Caparazón: el peto abajo y cuatro capas, cada una en tres cajas (ancha, media y larga) para
 		-- que la planta sea un óvalo en escalones. Cada capa de un tono: de lado se leen las bandas.
@@ -2656,7 +2669,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				box(nil, "Shell", Vector3.new(0, layer[1], 0.5), layer[k] + Vector3.new(0, layer[2], 0), layer[6])
 			end
 		end
-		box(nil, "Shell", Vector3.new(0, 7.4, 0.5), Vector3.new(6, 0.8, 9), olive:Lerp(yellow, 0.3))
+		box(nil, "Shell", Vector3.new(0, 7.4, 0.5), Vector3.new(6, 0.8, 9), tone(rig, "crown", olive:Lerp(yellow, 0.3)))
 		-- Placas de colores pegadas encima de cada capa: { x, y, z, ancho, fondo, color }.
 		for _, plate in
 			{
@@ -2694,7 +2707,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(head, "Snout", Vector3.new(0, 3.6, -16.8), Vector3.new(4, 2.8, 1.2), skin)
 		box(head, "Mouth", Vector3.new(0, 3, -16.3), Vector3.new(4.1, 0.25, 2.3), skinDark:Lerp(BLACK, 0.4))
 		for _, side in { -1, 1 } do
-			box(head, "Eye", Vector3.new(side * 2.55, 4.6, -15), Vector3.new(0.2, 1, 1), Color3.fromRGB(45, 20, 20))
+			box(head, "Eye", Vector3.new(side * 2.55, 4.6, -15), Vector3.new(0.2, 1, 1), eye)
 			box(head, "Glint", Vector3.new(side * 2.62, 4.85, -15.25), Vector3.new(0.1, 0.35, 0.35), WHITE)
 			box(head, "Nostril", Vector3.new(side * 0.8, 4.4, -17.45), Vector3.new(0.4, 0.4, 0.1), skinDark)
 			for _, spot in { { 3.6, -13 }, { 5, -12.6 }, { 3.4, -14.3 }, { 5.3, -13.9 } } do
@@ -4211,19 +4224,176 @@ CLIPS.Bird = function()
 	}
 end
 
-function PetModels.build(petId: string): Model?
+-- Skins de mascota (Data/Cosmetics, tipo PetSkin), por id del cosmético:
+--   palette    colores que cambian (las claves que el constructor lee con "tone")
+--   materials  material de las piezas que llevan ese color de la paleta (Neon para la lava)
+--   extra      piezas propias, con la misma rejilla que el constructor (voxelKit)
+-- Cuanto más rara la skin, más detalle (Data/Cosmetics): una Rara cambia los colores y los materiales
+-- y lleva un motivo propio.
+type Skin = {
+	palette: { [string]: Color3 },
+	materials: { [string]: Enum.Material }?,
+	extra: ((rig: Rig) -> ())?,
+}
+
+-- El neón aclara mucho: para que la lava se lea naranja (y no amarilla) va muy saturada.
+local LAVA = Color3.fromRGB(255, 85, 10)
+local LAVA_HOT = Color3.fromRGB(255, 140, 30)
+local BASALT = Color3.fromRGB(52, 44, 42)
+local OBSIDIAN = Color3.fromRGB(34, 27, 30)
+
+local SKINS: { [string]: Skin } = {
+	-- Tortuga de Lava: caparazón de basalto en capas con el borde de obsidiana, placas de lava que
+	-- brillan arriba (las grietas), piel de carbón con escamas rojizas (de neón parecían manchas de
+	-- leopardo) y ojos de fuego; encima, un volcancito con su cráter de lava, coladas por los lados,
+	-- humo y brasas.
+	LavaTurtleSkin = {
+		palette = {
+			skin = Color3.fromRGB(72, 56, 48),
+			scale = Color3.fromRGB(150, 55, 30),
+			olive = BASALT,
+			crown = Color3.fromRGB(40, 34, 36),
+			yellow = LAVA,
+			brown = Color3.fromRGB(95, 38, 26),
+			rim = OBSIDIAN,
+			plastron = Color3.fromRGB(85, 70, 60),
+			eye = LAVA_HOT,
+		},
+		materials = {
+			olive = Enum.Material.Basalt,
+			crown = Enum.Material.Basalt,
+			yellow = Enum.Material.Neon,
+			eye = Enum.Material.Neon,
+		},
+		extra = function(rig)
+			local v = voxelKit(rig, Vector3.new(0, 4, 0))
+			local box = v.box
+			local cone = Color3.fromRGB(44, 36, 36)
+			-- Cono en tres escalones sobre la cima del caparazón y el cráter, un aro con la lava casi
+			-- rebosando (se ve desde la altura de la cámara).
+			for _, step in { { 8.3, 6, 6.6 }, { 9.3, 4.6, 5 }, { 10.3, 3.2, 3.6 } } do
+				box(nil, "Volcano", Vector3.new(0, step[1], 0.5), Vector3.new(step[2], 1, step[3]), cone).Material =
+					Enum.Material.Basalt
+			end
+			for _, wall in
+				{
+					{ 0, -0.75, 2.6, 0.5 },
+					{ 0, 1.75, 2.6, 0.5 },
+					{ -1.05, 0.5, 0.5, 2 },
+					{ 1.05, 0.5, 0.5, 2 },
+				}
+			do
+				box(nil, "Crater", Vector3.new(wall[1], 11.1, wall[2]), Vector3.new(wall[3], 0.6, wall[4]), OBSIDIAN)
+			end
+			local pool = box(nil, "CraterLava", Vector3.new(0, 11.1, 0.5), Vector3.new(1.6, 0.5, 2), LAVA_HOT)
+			pool.Material = Enum.Material.Neon
+			-- Coladas que bajan del cráter por los escalones del cono: delante, a cada lado y detrás.
+			for _, drip in
+				{
+					{ Vector3.new(0.6, 10.3, -1.35), Vector3.new(0.5, 1, 0.2) },
+					{ Vector3.new(0.6, 9.4, -2.05), Vector3.new(0.5, 1.2, 0.2) },
+					{ Vector3.new(0.9, 8.4, -2.85), Vector3.new(0.5, 1, 0.2) },
+					{ Vector3.new(-1.65, 10.3, 1), Vector3.new(0.2, 1, 0.5) },
+					{ Vector3.new(-2.35, 9.4, 1.3), Vector3.new(0.2, 1.2, 0.5) },
+					{ Vector3.new(-3.05, 8.4, 1.5), Vector3.new(0.2, 1, 0.5) },
+					{ Vector3.new(1.65, 10.4, 1.6), Vector3.new(0.2, 0.8, 0.5) },
+					{ Vector3.new(2.35, 9.5, 1.9), Vector3.new(0.2, 1, 0.5) },
+					{ Vector3.new(-0.4, 10.3, 2.35), Vector3.new(0.5, 1, 0.2) },
+					{ Vector3.new(-0.4, 9.4, 3.05), Vector3.new(0.5, 1.2, 0.2) },
+					{ Vector3.new(-0.6, 8.4, 3.85), Vector3.new(0.5, 1, 0.2) },
+				}
+			do
+				box(nil, "LavaDrip", drip[1], drip[2], LAVA).Material = Enum.Material.Neon
+			end
+			-- Humo gris que sube despacio y brasas que saltan del cráter.
+			local vent = Instance.new("Attachment")
+			vent.Name = "Vent"
+			vent.Position = Vector3.new(0, 0.3 * CELL * rig.scale, 0)
+			vent.Parent = pool
+			local smoke = Instance.new("ParticleEmitter")
+			smoke.Name = "Smoke"
+			smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+			smoke.Color = ColorSequence.new(Color3.fromRGB(110, 100, 100), Color3.fromRGB(70, 65, 65))
+			smoke.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.25 * rig.scale),
+				NumberSequenceKeypoint.new(1, 0.9 * rig.scale),
+			})
+			smoke.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.45),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			smoke.Rate = 4
+			smoke.Lifetime = NumberRange.new(1.4, 2.2)
+			smoke.Speed = NumberRange.new(0.8, 1.4)
+			smoke.SpreadAngle = Vector2.new(12, 12)
+			smoke.RotSpeed = NumberRange.new(-30, 30)
+			smoke.Parent = vent
+			local embers = Instance.new("ParticleEmitter")
+			embers.Name = "Embers"
+			embers.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			embers.Color = ColorSequence.new(LAVA_HOT, LAVA)
+			embers.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.18 * rig.scale),
+				NumberSequenceKeypoint.new(1, 0),
+			})
+			embers.LightEmission = 0.4
+			embers.Brightness = 2
+			embers.LightInfluence = 0
+			embers.Rate = 5
+			embers.Lifetime = NumberRange.new(0.5, 0.9)
+			embers.Speed = NumberRange.new(1.5, 2.5)
+			embers.SpreadAngle = Vector2.new(30, 30)
+			embers.Acceleration = Vector3.new(0, -4, 0)
+			embers.ZOffset = 1
+			embers.Parent = vent
+		end,
+	},
+}
+
+-- Si "skinId" es una skin dibujada que le vale a "petId" (la suya o la de su familia).
+function PetModels.hasSkin(skinId: string, petId: string): boolean
+	local cosmetic = Cosmetics[skinId]
+	return SKINS[skinId] ~= nil and cosmetic ~= nil and CosmeticSlots.fitsPet(cosmetic, petId)
+end
+
+-- Construye la mascota "petId", con la skin "skinId" si le vale.
+function PetModels.build(petId: string, skinId: string?): Model?
 	local pet = Pets[petId]
 	local builder = voxelBuilders[petId] or builders[petId]
 	if not (pet and builder) then
 		return nil
 	end
+	local skin = if skinId and PetModels.hasSkin(skinId, petId) then SKINS[skinId] else nil
 	local model = Instance.new("Model")
 	model.Name = `Mascota_{petId}`
-	local rig: Rig = { model = model, scale = pet.size, joints = {} }
+	local rig: Rig = { model = model, scale = pet.size, joints = {}, palette = if skin then skin.palette else nil }
 	local root = piece(rig, "Root", "Block", Vector3.one * 0.2, CFrame.identity, WHITE)
 	root.Transparency = 1
 	model.PrimaryPart = root
 	local motion = builder(rig, pet.color)
+	if skin then
+		-- El material va por color: cada clave de la paleta con el suyo (comparado en hex, que es como
+		-- guarda la pieza el color).
+		local materials: { [string]: Enum.Material } = {}
+		for key, material in skin.materials or {} do
+			local color = skin.palette[key]
+			if color then
+				materials[color:ToHex()] = material
+			end
+		end
+		for _, part in model:GetChildren() do
+			if part:IsA("BasePart") and part ~= root then
+				local material = materials[part.Color:ToHex()]
+				if material then
+					part.Material = material
+				end
+			end
+		end
+		if skin.extra then
+			skin.extra(rig)
+		end
+		model:SetAttribute("Skin", skinId)
+	end
 	local box, size = model:GetBoundingBox()
 	model:SetAttribute("Motion", motion)
 	model:SetAttribute("Height", -(box.Position.Y - size.Y / 2))

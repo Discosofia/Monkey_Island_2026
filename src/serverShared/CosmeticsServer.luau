@@ -9,6 +9,9 @@
 --   - Dibuja lo equipado en el personaje: estela, título y aura. El traje y el aspecto del arma del rol
 --     que se juega los publica en los atributos "Outfit" y "WeaponSkin" del jugador y los pone
 --     Shared/ArmorModels (con la armadura) y Shared/WeaponTools (en las armas de rol).
+--   - Publica el marco ("Frame", lo dibujan las filas del ranking, del grupo y de los resultados con
+--     Shared/UI/PlayerFrames) y la skin de la mascota activa ("PetSkin", la ponen los clientes al
+--     construirla con Shared/PetModels). Los emotes los hace el cliente (UI/EmoteWheel).
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -45,7 +48,9 @@ local function computeOwned(player: Player, cosmeticId: string, profile: PlayerD
 		return true
 	end
 	local source = Cosmetics[cosmeticId].source
-	if source.earned then
+	if source.free then
+		return true
+	elseif source.earned then
 		-- Ganado jugando: solo lo dice el perfil, también en Studio.
 		return false
 	end
@@ -119,8 +124,32 @@ local function applyRoleCosmetics(player: Player, force: boolean?)
 	end
 end
 
+-- Publica el marco ("Frame") y la skin de la mascota activa ("PetSkin"), si los tiene.
+local function applyFrameAndPet(player: Player)
+	local profile = PlayerData.get(player)
+	local frameId, skinId = nil, nil
+	if profile then
+		frameId = equippedOwned(player, profile, "Frame", function()
+			return true
+		end)
+		local petId = player:GetAttribute("ActivePet")
+		if typeof(petId) == "string" then
+			skinId = equippedOwned(player, profile, CosmeticSlots.petSkinSlot(petId), function(cosmeticId)
+				return CosmeticSlots.fitsPet(Cosmetics[cosmeticId], petId)
+			end)
+		end
+	end
+	if player:GetAttribute("Frame") ~= frameId then
+		player:SetAttribute("Frame", frameId)
+	end
+	if player:GetAttribute("PetSkin") ~= skinId then
+		player:SetAttribute("PetSkin", skinId)
+	end
+end
+
 local function applyVisuals(player: Player)
 	applyRoleCosmetics(player)
+	applyFrameAndPet(player)
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	local head = if character then character:FindFirstChild("Head") else nil
@@ -325,9 +354,12 @@ function CosmeticsServer.start()
 			applyRoleCosmetics(player, true)
 			applyVisuals(player)
 		end)
-		-- Cada rol tiene su traje y su aspecto de arma.
+		-- Cada rol tiene su traje y su aspecto de arma; cada mascota, su skin.
 		player:GetAttributeChangedSignal("Role"):Connect(function()
 			applyRoleCosmetics(player)
+		end)
+		player:GetAttributeChangedSignal("ActivePet"):Connect(function()
+			applyFrameAndPet(player)
 		end)
 		if player.Character then
 			PlayerData.waitFor(player)

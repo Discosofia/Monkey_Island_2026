@@ -967,6 +967,10 @@ local Config = {
 		FreeInStudio = true,
 		-- Huecos de la rueda de emotes (Shared/CosmeticSlots).
 		EmoteSlots = 6,
+		-- Lo que sale en la rueda (UI/EmoteWheel) si no tienes ningún emote puesto: los de serie.
+		DefaultEmotes = { "EmoteWave", "EmotePoint", "EmoteCheer", "EmoteLaugh", "EmoteDance" },
+		-- Segundos sin perder vida antes de poder hacer un emote (fuera de combate).
+		EmoteCombatSeconds = 5,
 	},
 
 	-- Pase de temporada (Fase 9; plan en docs/PLAN.md). La premium es solo cosmética: el Ámbar, el

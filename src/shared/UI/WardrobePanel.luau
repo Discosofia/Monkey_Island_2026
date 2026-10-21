@@ -1,8 +1,11 @@
 --!strict
--- Ventana Armario del Lobby (Fase 9, G9; sustituye a la de Estilo): los cosméticos por pestañas (trajes,
--- armas, efectos y títulos; mascotas, marcos y emotes llegan en G9c), con un selector de rol para los
--- trajes y las armas, y a la izquierda tu avatar en 3D que gira despacio con lo que miras puesto: el
--- traje entero (como se ve en el Lobby y en Dunas) y el arma de su rol en el nivel más alto.
+-- Ventana Armario del Lobby (Fase 9, G9; sustituye a la de Estilo): los cosméticos por pestañas en dos
+-- filas (trajes, armas, efectos y títulos; skins de mascota, marcos y emotes, G9c), con un selector de
+-- rol para los trajes y las armas, y a la izquierda tu avatar en 3D que gira despacio con lo que miras
+-- puesto: el traje entero (como se ve en el Lobby y en Dunas) y el arma de su rol en el nivel más alto.
+-- En Mascotas el visor enseña la mascota con la skin (la activa si le vale); en Marcos, una ficha con
+-- tu nombre y el marco debajo del avatar; en Emotes, el avatar haciendo el emote, y encima de las
+-- tarjetas, tu rueda (UI/EmoteWheel).
 --   - Pulsar una tarjeta la enseña en el avatar; su botón la equipa o la quita (si la tienes) o dice
 --     cómo conseguirla (comprar, pase, ganar).
 --   - Cada tarjeta lleva el borde de su rareza; la mítica, un borde que brilla y gira.
@@ -17,7 +20,11 @@ local RunService = game:GetService("RunService")
 
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
+local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local PetModels = require(ReplicatedStorage.Shared.PetModels)
+local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -44,7 +51,14 @@ local TABS: { Tab } = {
 	{ id = "Weapon", label = "⚔️ Armas", kinds = { WeaponSkin = true }, byRole = true },
 	{ id = "Effects", label = "✨ Efectos", kinds = { Trail = true, Aura = true } },
 	{ id = "Titles", label = "🏷️ Títulos", kinds = { Title = true } },
+	{ id = "Pets", label = "🐾 Mascotas", kinds = { PetSkin = true } },
+	{ id = "Frames", label = "🖼️ Marcos", kinds = { Frame = true } },
+	{ id = "Emotes", label = "😀 Emotes", kinds = { Emote = true } },
 }
+-- Pestañas por fila (dos filas: con siete en una, en un teléfono no se leían).
+local TABS_PER_ROW = 4
+-- Nombre de cada familia de mascotas (Data/Pets "family") en las tarjetas de sus skins.
+local FAMILY_NAMES: { [string]: string } = { Felino = "felinos", Perro = "perros" }
 
 -- "rebuild" vuelve a dibujar la ventana (LobbyUIController.render) tras elegir pestaña, rol o tarjeta.
 export type Options = { compact: boolean, rebuild: () -> () }
@@ -198,8 +212,51 @@ local function standingWeapon(roleId: string, skinId: string?): Model?
 	return model
 end
 
--- Monta el avatar con el traje y el arma de "roleId" que tocan en el visor, centrado en el origen.
-local function previewModel(roleId: string, equipped: { [string]: string }): Model?
+-- Mascota activa del jugador, si la tiene.
+local function activePet(): string?
+	local petId = Players.LocalPlayer:GetAttribute("ActivePet")
+	return if typeof(petId) == "string" and Pets[petId] then petId else nil
+end
+
+-- La mascota y la skin del visor de Mascotas: la skin elegida, en tu mascota activa si le vale (si no,
+-- en la suya o en la primera de su familia), o tu mascota activa con la skin que lleva puesta.
+local function shownPet(equipped: { [string]: string }): (string?, string?)
+	local active = activePet()
+	local selected = state.selected
+	local cosmetic = if selected then Cosmetics[selected] else nil
+	if selected and cosmetic and cosmetic.kind == "PetSkin" then
+		if active and CosmeticSlots.fitsPet(cosmetic, active) then
+			return active, selected
+		elseif cosmetic.petId then
+			return cosmetic.petId, selected
+		end
+		local candidates = {}
+		for petId in Pets do
+			if CosmeticSlots.fitsPet(cosmetic, petId) then
+				table.insert(candidates, petId)
+			end
+		end
+		table.sort(candidates)
+		return candidates[1], selected
+	end
+	if active then
+		return active, equipped[CosmeticSlots.petSkinSlot(active)]
+	end
+	return nil, nil
+end
+
+-- Para quién es una skin de mascota: la mascota o su familia.
+local function petTarget(cosmetic: Cosmetics.Cosmetic): string
+	if cosmetic.petFamily then
+		return FAMILY_NAMES[cosmetic.petFamily] or cosmetic.petFamily
+	end
+	local pet = if cosmetic.petId then Pets[cosmetic.petId] else nil
+	return if pet then `{pet.icon} {pet.name}` else ""
+end
+
+-- Monta el avatar con el traje y el arma de "roleId" que tocan en el visor, centrado en el origen
+-- (sin el arma con "noWeapon": en Emotes, que tapaba los brazos).
+local function previewModel(roleId: string, equipped: { [string]: string }, noWeapon: boolean?): Model?
 	local player = Players.LocalPlayer
 	local selected = state.selected
 	local effect = if selected and Cosmetics[selected] and not Cosmetics[selected].role then selected else ""
@@ -223,7 +280,9 @@ local function previewModel(roleId: string, equipped: { [string]: string }): Mod
 	local model = Instance.new("Model")
 	model.Name = "Preview"
 	avatar.Parent = model
-	local weapon = standingWeapon(roleId, shown(equipped, `WeaponSkin.{roleId}`, "WeaponSkin"))
+	local weapon = if noWeapon
+		then nil
+		else standingWeapon(roleId, shown(equipped, `WeaponSkin.{roleId}`, "WeaponSkin"))
 	if weapon then
 		-- Más pequeña que en la mano (las de nivel 4 miden casi lo que el avatar) y apoyada en el suelo
 		-- a su derecha, un poco inclinada hacia él.
@@ -238,7 +297,57 @@ local function previewModel(roleId: string, equipped: { [string]: string }): Mod
 	return model
 end
 
--- Visor 3D con el avatar que gira, el nombre de lo elegido y su rareza debajo.
+-- El avatar del visor hace el emote "cosmeticId" en bucle: dentro de un WorldModel (sin él, un
+-- ViewportFrame no anima) y con las piezas sueltas salvo la raíz, para que las muevan sus uniones.
+local function playEmote(viewport: ViewportFrame, model: Model, cosmeticId: string)
+	local cosmetic = Cosmetics[cosmeticId]
+	local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
+	local animator = if humanoid then humanoid:FindFirstChildOfClass("Animator") else nil
+	if not (cosmetic and cosmetic.animationId and humanoid and animator) then
+		return
+	end
+	if humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+		return
+	end
+	local world = Instance.new("WorldModel")
+	world.Parent = viewport
+	model.Parent = world
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") and descendant.Name ~= "HumanoidRootPart" then
+			descendant.Anchored = false
+		end
+	end
+	local animation = Instance.new("Animation")
+	animation.AnimationId = cosmetic.animationId
+	local track = animator:LoadAnimation(animation)
+	track.Looped = true
+	track:Play(0)
+end
+
+-- Ficha con tu nombre y el marco que toca (el elegido o el puesto), como en el ranking y el grupo.
+local function frameCard(pane: Frame, equipped: { [string]: string }, compact: boolean)
+	local frameId = shown(equipped, "Frame", "Frame")
+	local card = Widgets.label(Players.LocalPlayer.DisplayName, pane)
+	card.LayoutOrder = 4
+	card.Size = UDim2.new(0.8, 0, 0, if compact then 26 else 34)
+	card.BackgroundColor3 = ROW_COLOR
+	card.BackgroundTransparency = 0.1
+	card.TextColor3 = READY_COLOR
+	corner(card, 8)
+	local padding = Instance.new("UIPadding")
+	padding.PaddingTop = UDim.new(0, 4)
+	padding.PaddingBottom = UDim.new(0, 4)
+	padding.Parent = card
+	textCap(card, if compact then 14 else 18)
+	if frameId then
+		PlayerFrames.apply(card, frameId)
+	else
+		card.Text = `{Players.LocalPlayer.DisplayName} · sin marco`
+		card.TextColor3 = DETAIL_COLOR
+	end
+end
+
+-- Visor 3D con el avatar (o la mascota) que gira, el nombre de lo elegido y su rareza debajo.
 local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: string }, compact: boolean)
 	local viewport = Instance.new("ViewportFrame")
 	viewport.LayoutOrder = 1
@@ -247,10 +356,35 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 	viewport.BackgroundTransparency = 0.2
 	viewport.Parent = pane
 	corner(viewport, 12)
-	local model = previewModel(roleId, equipped)
+	local model: Model? = nil
+	if state.tab == "Pets" then
+		local petId, skinId = shownPet(equipped)
+		model = if petId then PetModels.build(petId, skinId) else nil
+		if not petId then
+			local empty = Widgets.label("Pon una mascota en el nido para verla aquí", viewport)
+			empty.Size = UDim2.new(1, -20, 0, 40)
+			empty.Position = UDim2.new(0, 10, 0.5, -20)
+			empty.TextColor3 = NOTE_COLOR
+			empty.TextWrapped = true
+			textCap(empty, 16)
+		end
+	else
+		model = previewModel(roleId, equipped, state.tab == "Emotes")
+	end
 	if model then
 		local pivot = model:GetPivot()
-		RewardModels.frame(viewport, model, 1.05)
+		-- Más lejos en Emotes (los brazos salen del encuadre de la pose quieta) y en Mascotas (el X-7 se
+		-- cortaba).
+		local fill = if state.tab == "Emotes" then 0.85 elseif state.tab == "Pets" then 1.1 else 1.05
+		RewardModels.frame(viewport, model, fill)
+		local selectedEmote = if state.selected
+				and Cosmetics[state.selected]
+				and Cosmetics[state.selected].kind == "Emote"
+			then state.selected
+			else nil
+		if selectedEmote then
+			playEmote(viewport, model, selectedEmote)
+		end
 		local connection: RBXScriptConnection
 		connection = RunService.RenderStepped:Connect(function(dt)
 			if not viewport.Parent then
@@ -275,6 +409,9 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 		tag.Size = UDim2.new(1, 0, 0, if compact then 16 else 22)
 		tag.TextColor3 = rarity.color
 		textCap(tag, if compact then 12 else 16)
+	end
+	if state.tab == "Frames" then
+		frameCard(pane, equipped, compact)
 	end
 end
 
@@ -321,11 +458,15 @@ function WardrobePanel.build(list: Instance, options: Options)
 	local previewPane = pane(1, 0.36)
 	local cardsPane = pane(2, 0.64)
 
-	-- Pestañas y, en trajes y armas, el rol.
-	local tabs = row(cardsPane, 1, if compact then 32 else 40)
+	-- Pestañas en dos filas y, en trajes y armas, el rol.
+	local tabRows = {}
 	for index, candidate in TABS do
-		local button = chip(tabs, candidate.label, candidate == tab, index)
-		button.Size = UDim2.new(1 / #TABS, -5, 1, 0)
+		local rowIndex = math.ceil(index / TABS_PER_ROW)
+		if not tabRows[rowIndex] then
+			tabRows[rowIndex] = row(cardsPane, rowIndex, if compact then 30 else 36)
+		end
+		local button = chip(tabRows[rowIndex], candidate.label, candidate == tab, index)
+		button.Size = UDim2.new(1 / TABS_PER_ROW, -5, 1, 0)
 		button.MouseButton1Click:Connect(function()
 			state.tab = candidate.id
 			state.page = 1
@@ -334,7 +475,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 		end)
 	end
 	if tab.byRole then
-		local roles = row(cardsPane, 2, if compact then 28 else 34)
+		local roles = row(cardsPane, 3, if compact then 28 else 34)
 		local roleIds = {}
 		for id in Roles do
 			table.insert(roleIds, id)
@@ -352,6 +493,22 @@ function WardrobePanel.build(list: Instance, options: Options)
 				rebuild()
 			end)
 		end
+	end
+
+	-- En Emotes, tu rueda tal como sale al abrirla (vacía, los de serie).
+	if tab.id == "Emotes" then
+		local slots = CosmeticSlots.wheel(equipped)
+		local icons = {}
+		for index = 1, Config.Cosmetics.EmoteSlots do
+			local cosmeticId = slots[index]
+			table.insert(icons, if cosmeticId and Cosmetics[cosmeticId] then Cosmetics[cosmeticId].icon else "·")
+		end
+		local wheelNote = Widgets.label(`Tu rueda (tecla . o 😀): {table.concat(icons, "  ")}`, cardsPane)
+		wheelNote.LayoutOrder = 3
+		wheelNote.Size = UDim2.new(1, 0, 0, if compact then 22 else 28)
+		wheelNote.TextColor3 = NOTE_COLOR
+		wheelNote.TextXAlignment = Enum.TextXAlignment.Left
+		textCap(wheelNote, if compact then 14 else 18)
 	end
 
 	-- Los cosméticos de la pestaña (y del rol), de más raro a menos.
@@ -374,7 +531,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 	state.page = math.clamp(state.page, 1, pages)
 
 	local grid = Instance.new("Frame")
-	grid.LayoutOrder = 3
+	grid.LayoutOrder = 4
 	grid.BackgroundTransparency = 1
 	grid.Size = UDim2.fromScale(1, 0)
 	grid.AutomaticSize = Enum.AutomaticSize.Y
@@ -390,7 +547,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 			if tab.byRole then `Aún no hay nada de {Roles[roleId].name}: ¡pronto!` else "Aún no hay nada aquí",
 			cardsPane
 		)
-		empty.LayoutOrder = 4
+		empty.LayoutOrder = 5
 		empty.Size = UDim2.new(1, 0, 0, 30)
 		empty.TextColor3 = NOTE_COLOR
 		textCap(empty, 18)
@@ -422,7 +579,11 @@ function WardrobePanel.build(list: Instance, options: Options)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		textCap(title, if compact then 14 else 17)
 		local rarity = Rarities[cosmetic.rarity] or Rarities.Common
-		local tag = Widgets.label(if isEquipped then `{rarity.name} · puesto` else rarity.name, card)
+		local tagText = if isEquipped then `{rarity.name} · puesto` else rarity.name
+		if cosmetic.kind == "PetSkin" then
+			tagText ..= ` · {petTarget(cosmetic)}`
+		end
+		local tag = Widgets.label(tagText, card)
 		tag.Position = UDim2.fromOffset(6, if compact then 22 else 27)
 		tag.Size = UDim2.new(1, -12, 0, if compact then 14 else 16)
 		tag.TextColor3 = rarity.color
@@ -449,7 +610,8 @@ function WardrobePanel.build(list: Instance, options: Options)
 		end
 		textCap(button, if compact then 13 else 15)
 		if owned then
-			setButton(button, if isEquipped then "Quitar" else "Equipar", true)
+			local equipText = if cosmetic.kind == "Emote" then "A la rueda" else "Equipar"
+			setButton(button, if isEquipped then "Quitar" else equipText, true)
 			button.MouseButton1Click:Connect(function()
 				Remotes.EquipCosmetic:FireServer(cosmeticId)
 			end)
@@ -463,7 +625,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 	end
 
 	if pages > 1 then
-		local arrows = row(cardsPane, 5, if compact then 30 else 36)
+		local arrows = row(cardsPane, 6, if compact then 30 else 36)
 		local previous = chip(arrows, "◀", false, 1)
 		previous.Size = UDim2.new(0, 60, 1, 0)
 		local pageLabel = Widgets.label(`{state.page} / {pages}`, arrows)

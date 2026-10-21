@@ -1,8 +1,9 @@
 --!strict
 -- Clasificaciones en el Lobby (Fase 6): cada Config.Data.LeaderboardRefreshSeconds lee el top 10 de
--- cada clasificación y lo publica en ReplicatedStorage ("Leaderboard_<stat>", JSON con nombre y valor)
--- para la ventana del ranking (LobbyUIController), y escribe los primeros en el cartel del ranking de
--- la plaza (supervivencia y, con Leaderboards.ARENA_STATS, la arena de Dunas).
+-- cada clasificación y lo publica en ReplicatedStorage ("Leaderboard_<stat>", JSON con nombre, valor y
+-- el marco que lleva puesto, "frame", Shared/UI/PlayerFrames) para la ventana del ranking
+-- (LobbyUIController), y escribe los primeros en el cartel del ranking de la plaza (supervivencia y,
+-- con Leaderboards.ARENA_STATS, la arena de Dunas).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -12,6 +13,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
+local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 
 local LeaderboardService = {}
 
@@ -41,6 +43,22 @@ local function nameOf(userId: number): string?
 	return name
 end
 
+-- Marco puesto de cada jugador del top, leído una vez por actualización (si está en este servidor, de
+-- su atributo; si no, de su perfil guardado).
+local function frameOf(userId: number, frames: { [number]: string | false }): string?
+	if frames[userId] == nil then
+		local online = Players:GetPlayerByUserId(userId)
+		local frame: any = if online then online:GetAttribute("Frame") else nil
+		if not online then
+			local cosmetics = PlayerData.peekCosmetics(userId)
+			frame = if cosmetics then cosmetics.Frame else nil
+		end
+		frames[userId] = if typeof(frame) == "string" then frame else false
+	end
+	local frame = frames[userId]
+	return if frame then frame else nil
+end
+
 local MEDALS = { "🥇", "🥈", "🥉" }
 
 -- Los primeros puestos en el cartel de la playa (World/LobbyBuilder): una línea por puesto.
@@ -67,12 +85,13 @@ end
 local function refresh()
 	local stats = table.clone(Leaderboards.STATS)
 	table.move(Leaderboards.ARENA_STATS, 1, #Leaderboards.ARENA_STATS, #stats + 1, stats)
+	local frames: { [number]: string | false } = {}
 	for _, stat in stats do
 		local rows = {}
 		for _, entry in Leaderboards.top(stat, TOP_SIZE + TOP_SPARE) do
 			local name = nameOf(entry.userId)
 			if name and #rows < TOP_SIZE then
-				table.insert(rows, { name = name, value = entry.value })
+				table.insert(rows, { name = name, value = entry.value, frame = frameOf(entry.userId, frames) })
 			end
 		end
 		ReplicatedStorage:SetAttribute(`Leaderboard_{stat}`, HttpService:JSONEncode(rows))

@@ -2,7 +2,8 @@
 -- HUD de la Isla: reloj de día/noche e indicador del Basecamp (arriba a la derecha), vida del
 -- campamento (arriba en el centro, de noche o si está dañado), botón para volver
 -- al Lobby y botón ⚙️ de Ajustes (abajo a la derecha; en pantallas táctiles, bajo el reloj, porque
--- abajo a la derecha están el salto y los botones de acción).
+-- abajo a la derecha están el salto y los botones de acción) y, a la izquierda del ⚙️, el botón 😀 de
+-- la rueda de emotes (UI/EmoteWheel).
 -- En Studio también muestra un botón para saltar de fase y probar la noche sin esperar.
 -- Fase 1.2+: vida, inventario y barra rápida.
 
@@ -14,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 
 local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Config = require(ReplicatedStorage.Shared.Config)
+local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
@@ -190,7 +192,7 @@ end
 
 -- Botón ⚙️ a la izquierda de "Volver al Lobby": abre los Ajustes (UI/SettingsPanel) en una ventana. Se
 -- construye cada vez que se abre, para que enseñe el arma y las ventajas de ese momento.
-local function createSettingsButton(gui: ScreenGui, returnButton: TextButton)
+local function createSettingsButton(gui: ScreenGui, returnButton: TextButton): TextButton
 	local gear = Instance.new("TextButton")
 	gear.Name = "SettingsButton"
 	gear.AnchorPoint = Vector2.new(1, 0.5)
@@ -283,6 +285,21 @@ local function createSettingsButton(gui: ScreenGui, returnButton: TextButton)
 	close.Activated:Connect(function()
 		setOpen(false)
 	end)
+	return gear
+end
+
+-- Botón 😀 de la rueda de emotes, pegado a la izquierda del ⚙️ como este al de volver.
+local function createEmoteButton(gui: ScreenGui, gear: TextButton)
+	local button = EmoteWheel.button(gui)
+	button.AnchorPoint = Vector2.new(1, 0.5)
+	local function place()
+		local position, size = gear.AbsolutePosition, gear.AbsoluteSize
+		button.Position = UDim2.fromOffset(position.X - 6, position.Y + size.Y / 2)
+	end
+	gear:GetPropertyChangedSignal("AbsolutePosition"):Connect(place)
+	gear:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+	place()
+	EmoteWheel.start()
 end
 
 function IslandHUDController:Start()
@@ -297,7 +314,7 @@ function IslandHUDController:Start()
 	createStatusLine(gui, "BeaconStatus", 0.275, Color3.fromRGB(255, 150, 140))
 	-- Evento de mitad de partida (G7, MidEventService): el de ahora o, de noche, el de mañana.
 	createStatusLine(gui, "MidEventStatus", 0.31, Color3.fromRGB(215, 170, 255))
-	createSettingsButton(gui, createReturnButton(gui))
+	createEmoteButton(gui, createSettingsButton(gui, createReturnButton(gui)))
 
 	if RunService:IsStudio() then
 		local skipButton = Widgets.button("⏩ Saltar fase (Studio)", gui)

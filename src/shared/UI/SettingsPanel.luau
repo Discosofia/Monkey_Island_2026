@@ -589,7 +589,7 @@ local function watchStats(player: Player, refresh: () -> ()): () -> ()
 	watchHolders()
 	local connections = {
 		player.AttributeChanged:Connect(function(name: string)
-			if name == "Role" or name == "ActivePet" or name:sub(1, 5) == "Perk_" then
+			if name == "Role" or name == "ActivePet" or name == "PetSkin" or name:sub(1, 5) == "Perk_" then
 				queue()
 			end
 		end),
@@ -775,7 +775,8 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 	end
 
 	local petId = activePet(player)
-	local petModel = if petId then PetModels.build(petId) else nil
+	local skinId = player:GetAttribute("PetSkin")
+	local petModel = if petId then PetModels.build(petId, if typeof(skinId) == "string" then skinId else nil) else nil
 	if petModel then
 		local height = petModel:GetAttribute("Height")
 		local lift = if typeof(height) == "number" then height else 1
