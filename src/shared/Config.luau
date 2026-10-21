@@ -705,6 +705,26 @@ local Config = {
 		MissionFlushSeconds = 3,
 	},
 
+	-- Contratos de expedición (Fase 9, G6; Data/Contracts, ContractService): uno por partida, del grupo
+	-- entero. Cada paso se abre en su día y se pierde si llega el día del siguiente sin cumplirlo.
+	Contracts = {
+		-- Premio de cada paso por su orden (1–5) para todos los que están en la partida al cumplirlo:
+		-- Ámbar y XP del pase (cuenta como de partida: con el tope del día y el extra de amigos). Lo de la
+		-- partida (vendas, antorchas…) lo pone cada paso en Data/Contracts.
+		StepRewards = {
+			{ amber = 20, xp = 50 },
+			{ amber = 20, xp = 50 },
+			{ amber = 25, xp = 75 },
+			{ amber = 25, xp = 75 },
+			{ amber = 50, xp = 125 },
+		} :: { Reward },
+		-- Los objetivos con "scales" crecen con el grupo: ×(1 + TargetPerExtraPlayer × (jugadores − 1)).
+		TargetPerExtraPlayer = 0.5,
+		-- Pasos "Visit": llegar a menos de esto de la guarida del bioma (Mapa/GuaridasJefes).
+		VisitRadius = 45,
+		CheckSeconds = 1,
+	},
+
 	Pets = {
 		-- Probabilidad (peso) de cada rareza al eclosionar un huevo (Fase 5).
 		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 6, Legendary = 1 },

@@ -12,6 +12,9 @@
 --     las barras de arriba a la izquierda mientras se mira.
 -- Lee el atributo "Retention" (misiones del día y de la semana, ServerShared/Retention), que se apunta
 -- cada pocos segundos mientras juegas.
+-- Debajo, la tarjeta del contrato de expedición de la partida (Fase 9, G6; Shared/Contract): el paso
+-- abierto con lo que lleva el grupo y el siguiente. En PC va siempre a la vista (sigue al panel al
+-- plegarlo); en el teléfono, una ficha "📜" en la franja y la tarjeta bajo la lista al abrirla.
 
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
@@ -19,6 +22,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
+local Contract = require(ReplicatedStorage.Shared.Contract)
+local Contracts = require(ReplicatedStorage.Shared.Data.Contracts)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local Missions = require(ReplicatedStorage.Shared.Data.Missions)
 local Settings = require(ReplicatedStorage.Shared.Settings)
@@ -28,6 +33,8 @@ local GOLD = Color3.fromRGB(255, 205, 70)
 local DONE = Color3.fromRGB(120, 230, 140)
 local TEXT = Color3.fromRGB(230, 220, 200)
 local PANEL = Color3.fromRGB(25, 25, 25)
+local DIM = Color3.fromRGB(175, 165, 150)
+local FAILED = Color3.fromRGB(235, 110, 90)
 local LINE_HEIGHT = 18
 local HEADER_HEIGHT = 20
 local WIDTH = 5 * 66 - 6
@@ -35,8 +42,13 @@ local WIDTH = 5 * 66 - 6
 local CHIP_MIN_HEIGHT = 24
 local CHIP_MAX_HEIGHT = 34
 local CHIP_GAP = 4
+-- Separación entre el panel de misiones y la tarjeta del contrato.
+local CARD_GAP = 6
 
 local MissionTrackerController = {}
+
+-- Lo que dibuja cada versión (PC o teléfono): las misiones y el contrato.
+type Show = { missions: (Shown) -> (), contract: (Contract.State?) -> () }
 
 type Shown = {
 	daily: { Daily.DailyMission },
@@ -66,6 +78,22 @@ end
 
 local function progressText(mission: Daily.DailyMission): string
 	return if mission.done then "✅" else `{math.floor(mission.progress)}/{Missions[mission.id].target}`
+end
+
+-- Columna vertical con el panel de misiones y, debajo, la tarjeta del contrato: la tarjeta sigue al
+-- panel cuando crece o se pliega.
+local function column(parent: Instance): Frame
+	local frame = Instance.new("Frame")
+	frame.Name = "Tracker"
+	frame.BackgroundTransparency = 1
+	frame.Size = UDim2.fromOffset(WIDTH, 0)
+	frame.AutomaticSize = Enum.AutomaticSize.Y
+	frame.Parent = parent
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, CARD_GAP)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = frame
+	return frame
 end
 
 -- Panel con la cabecera que pliega y despliega y, desplegado, una línea por misión (las del día y,
@@ -165,35 +193,116 @@ local function buildList(parent: Instance, onToggle: () -> ()): (Frame, (Shown, 
 		end
 end
 
+-- Tarjeta del contrato: cabecera (contrato y pasos cumplidos), el paso abierto con su progreso y el
+-- siguiente con su día. Devuelve la tarjeta y la función que la dibuja.
+local function buildContractCard(parent: Instance): (Frame, (Contract.State?) -> ())
+	local card = Instance.new("Frame")
+	card.Name = "Contract"
+	card.BackgroundColor3 = PANEL
+	card.BackgroundTransparency = 0.4
+	card.Size = UDim2.fromOffset(WIDTH, HEADER_HEIGHT + 4 + 2 * LINE_HEIGHT)
+	card.Visible = false
+	card.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = card
+
+	local function row(y: number, height: number): (TextLabel, TextLabel)
+		local text = Widgets.label("", card)
+		text.Position = UDim2.fromOffset(6, y)
+		text.Size = UDim2.new(1, -70, 0, height)
+		text.TextXAlignment = Enum.TextXAlignment.Left
+		local count = Widgets.label("", card)
+		count.AnchorPoint = Vector2.new(1, 0)
+		count.Position = UDim2.new(1, -6, 0, y)
+		count.Size = UDim2.fromOffset(60, height)
+		count.TextXAlignment = Enum.TextXAlignment.Right
+		return text, count
+	end
+	local title, titleCount = row(2, HEADER_HEIGHT - 4)
+	title.TextColor3 = GOLD
+	titleCount.TextColor3 = GOLD
+	local current, currentCount = row(HEADER_HEIGHT + 2, LINE_HEIGHT - 2)
+	local upcoming, _ = row(HEADER_HEIGHT + 2 + LINE_HEIGHT, LINE_HEIGHT - 2)
+	upcoming.Size = UDim2.new(1, -12, 0, LINE_HEIGHT - 2)
+	upcoming.TextColor3 = DIM
+
+	return card,
+		function(state: Contract.State?)
+			card.Visible = state ~= nil
+			if not state then
+				return
+			end
+			local contract = Contracts[state.id]
+			local index = math.max(state.index, 1)
+			local step = contract.steps[index]
+			local entry = state.steps[index]
+			title.Text = `📜 Contrato: {contract.icon} {contract.name}`
+			titleCount.Text = `{Contract.doneCount(state)}/{#contract.steps} ✅`
+			if entry.status == "done" then
+				current.Text = `✅ {step.title}: cumplido`
+				current.TextColor3 = DONE
+				currentCount.Text = ""
+			elseif entry.status == "failed" then
+				current.Text = `❌ {step.title}: se acabó el plazo`
+				current.TextColor3 = FAILED
+				currentCount.Text = ""
+			else
+				current.Text = `{step.icon} {Contract.stepText(step, entry.target)}`
+				current.TextColor3 = TEXT
+				currentCount.Text = `{math.floor(entry.progress)}/{entry.target}`
+				currentCount.TextColor3 = TEXT
+			end
+			local nextStep = contract.steps[index + 1]
+			if nextStep then
+				local days = Contract.daysText(contract, index)
+				upcoming.Text =
+					`{string.upper(string.sub(days, 1, 1))}{string.sub(days, 2)} · luego, día {nextStep.day}: {nextStep.icon} {nextStep.title}`
+			else
+				upcoming.Text = if entry.status == "done"
+					then "🚁 Último paso cumplido"
+					else "Último paso: encendedla de día y resistid la noche"
+			end
+		end
+end
+
 -- PC: la lista bajo los combos, desplegada o no según los ajustes del jugador.
-local function buildPanel(player: Player): (Shown) -> ()
+local function buildPanel(player: Player): Show
 	local gui = Widgets.screen("MissionHUD", player:WaitForChild("PlayerGui"))
 	local last: Shown? = nil
 	local draw: (Shown, boolean) -> ()
+	local holder = column(gui)
+	-- Debajo del panel de combos (12, 170, 62 de alto).
+	holder.Position = UDim2.fromOffset(12, 240)
 	local panel
-	panel, draw = buildList(gui, function()
+	panel, draw = buildList(holder, function()
 		Settings.set("missionsOpen", not Settings.get().missionsOpen)
 	end)
-	-- Debajo del panel de combos (12, 170, 62 de alto).
-	panel.Position = UDim2.fromOffset(12, 240)
+	panel.LayoutOrder = 1
+	local card, drawCard = buildContractCard(holder)
+	card.LayoutOrder = 2
 	Settings.onChanged(function(values)
 		if last then
 			draw(last, values.missionsOpen)
 		end
 	end)
-	return function(shown: Shown)
-		last = shown
-		draw(shown, Settings.get().missionsOpen)
-	end
+	return {
+		missions = function(shown: Shown)
+			last = shown
+			draw(shown, Settings.get().missionsOpen)
+		end,
+		contract = drawCard,
+	}
 end
 
 -- Teléfono: fichas en la franja de la barra de Roblox, tras sus botones; tocarlas abre la lista debajo.
-local function buildBand(player: Player): (Shown) -> ()
+local function buildBand(player: Player): Show
 	local gui = Widgets.screen("MissionBand", player:WaitForChild("PlayerGui"))
 	gui.IgnoreGuiInset = true
 
 	local open = false
 	local last: Shown? = nil
+	local lastContract: Contract.State? = nil
 	local draw: (Shown, boolean) -> ()
 	local refresh: () -> ()
 
@@ -213,8 +322,12 @@ local function buildBand(player: Player): (Shown) -> ()
 		open = not open
 		refresh()
 	end
+	local holder = column(gui)
 	local list
-	list, draw = buildList(gui, toggle)
+	list, draw = buildList(holder, toggle)
+	list.LayoutOrder = 1
+	local card, drawCard = buildContractCard(holder)
+	card.LayoutOrder = 2
 
 	local chipHeight = CHIP_MAX_HEIGHT
 	local function place()
@@ -230,7 +343,7 @@ local function buildBand(player: Player): (Shown) -> ()
 			end
 		end
 		-- La lista, justo debajo de la franja y alineada con las fichas.
-		list.Position = UDim2.fromOffset(inset.Min.X + 8, inset.Min.Y + band + 4)
+		holder.Position = UDim2.fromOffset(inset.Min.X + 8, inset.Min.Y + band + 4)
 	end
 	place()
 	GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(place)
@@ -268,9 +381,7 @@ local function buildBand(player: Player): (Shown) -> ()
 
 	function refresh()
 		local shown = last
-		if not shown then
-			return
-		end
+		local contract = lastContract
 		local used = 0
 		local function put(text: string, color: Color3)
 			used += 1
@@ -278,26 +389,51 @@ local function buildBand(player: Player): (Shown) -> ()
 			chip.Text = text
 			chip.TextColor3 = color
 		end
-		for _, mission in shown.daily do
-			put(`{Missions[mission.id].icon} {progressText(mission)}`, if mission.done then DONE else TEXT)
+		if shown then
+			for _, mission in shown.daily do
+				put(`{Missions[mission.id].icon} {progressText(mission)}`, if mission.done then DONE else TEXT)
+			end
+			if #shown.weekly > 0 then
+				local all = shown.weeklyDone >= #shown.weekly
+				put(if all then "📆 ✅" else `📆 {shown.weeklyDone}/{#shown.weekly}`, if all then DONE else GOLD)
+			end
 		end
-		if #shown.weekly > 0 then
-			local all = shown.weeklyDone >= #shown.weekly
-			put(if all then "📆 ✅" else `📆 {shown.weeklyDone}/{#shown.weekly}`, if all then DONE else GOLD)
+		-- El contrato: lo que lleva el paso abierto (o ✅/❌ si ya se cerró).
+		local step = if contract then contract.steps[math.max(contract.index, 1)] else nil
+		if step then
+			if step.status == "done" then
+				put("📜 ✅", DONE)
+			elseif step.status == "failed" then
+				put("📜 ❌", FAILED)
+			else
+				put(`📜 {math.floor(step.progress)}/{step.target}`, GOLD)
+			end
 		end
-		put(if open then "🔼" else "🔽", TEXT)
+		if used > 0 then
+			put(if open then "🔼" else "🔽", TEXT)
+		end
 		for index, chip in chips do
 			chip.Visible = index <= used
 		end
-		-- Plegada, la lista no se ve (las fichas ya dicen lo cumplido).
-		draw(shown, true)
-		list.Visible = open and list.Visible
+		-- Plegada, la lista y la tarjeta no se ven (las fichas ya dicen lo cumplido).
+		if shown then
+			draw(shown, true)
+		end
+		list.Visible = open and shown ~= nil and list.Visible
+		drawCard(contract)
+		card.Visible = open and card.Visible
 	end
 
-	return function(shown: Shown)
-		last = shown
-		refresh()
-	end
+	return {
+		missions = function(shown: Shown)
+			last = shown
+			refresh()
+		end,
+		contract = function(state: Contract.State?)
+			lastContract = state
+			refresh()
+		end,
+	}
 end
 
 function MissionTrackerController:Start()
@@ -305,10 +441,15 @@ function MissionTrackerController:Start()
 	local phone = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	local show = if phone then buildBand(player) else buildPanel(player)
 	local function refresh()
-		show(read(player))
+		show.missions(read(player))
+	end
+	local function refreshContract()
+		show.contract(Contract.read())
 	end
 	player:GetAttributeChangedSignal("Retention"):Connect(refresh)
+	ReplicatedStorage:GetAttributeChangedSignal(Contract.ATTRIBUTE):Connect(refreshContract)
 	refresh()
+	refreshContract()
 end
 
 return MissionTrackerController

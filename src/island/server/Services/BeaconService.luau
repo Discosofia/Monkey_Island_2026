@@ -9,6 +9,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
@@ -17,6 +18,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local DayNightService = require(script.Parent.DayNightService)
 local MatchService = require(script.Parent.MatchService)
 
@@ -66,6 +68,7 @@ local function onLight(player: Player)
 	end
 	lit = true
 	ReplicatedStorage:SetAttribute("BeaconLit", true)
+	Retention.progress(player, "Beacon")
 	local beacon = findBeacon()
 	local lamp = if beacon then beacon:FindFirstChild("Lamp") else nil
 	if lamp and lamp:IsA("BasePart") then

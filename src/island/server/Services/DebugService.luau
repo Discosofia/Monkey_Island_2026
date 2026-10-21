@@ -25,6 +25,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
+local ContractService = require(script.Parent.ContractService)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local EggService = require(script.Parent.EggService)
@@ -459,6 +460,12 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	WeeklyMissions = function(player)
 		Retention.debugCompleteMissions(player, true)
+	end,
+	ContractStep = function()
+		ContractService.debugCompleteStep()
+	end,
+	NextContract = function(player)
+		Remotes.Notify:FireClient(player, `📜 Contrato de prueba: {ContractService.debugNextContract()}`)
 	end,
 	HatchNow = function(player)
 		if not EggService.hatchNow() then

@@ -267,7 +267,7 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 		model:SetAttribute(Config.Crafting.StationAttribute, definition.station)
 	end
 	model.Parent = structureFolder()
-	Retention.progress(player, "Build")
+	Retention.progress(player, "Build", 1, buildableId)
 	Sfx.play("Build", cframe.Position)
 
 	if buildableId == "Bed" then

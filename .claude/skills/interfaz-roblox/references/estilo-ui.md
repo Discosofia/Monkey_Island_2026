@@ -209,6 +209,11 @@ indicador del Basecamp y "Volver al Lobby" mientras construyes, y en un teléfon
 
 ## 7. Dependencias entre elementos
 
+- El rastreador de misiones (`MissionTrackerController`) en PC es una columna (`Tracker`, 12, 240,
+  324 px de ancho) bajo los combos: el panel de misiones y, 6 px debajo, la tarjeta del contrato de
+  expedición (G6), que sigue al panel al plegarlo. En el teléfono, la ficha "📜" va en la franja de la
+  barra de Roblox con las de las misiones y la tarjeta solo se ve con la lista abierta.
+
 - `SettingsButton` (⚙️) va **a la izquierda de `ReturnToLobbyButton`**, colocado con `place()` a
   partir de la posición y el tamaño reales del botón: si mueves el botón, el ⚙️ lo sigue solo.
 - `ReturnToLobbyButton` está abajo a la derecha en PC y, con `UserInputService.TouchEnabled`, bajo el

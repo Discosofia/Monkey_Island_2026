@@ -24,6 +24,7 @@
 | Fuente de Ámbar | Dónde | Números |
 |---|---|---|
 | Final de partida en la Isla | `Config.Match`, `MatchService.summaryFor`, `DataService` | 10/día sobrevivido, 2/mono, 5/reanimación, 50/jefe, 15/recompensa PvP, 25/huevo, 200 por rescate |
+| Contrato de expedición (G6) | `Config.Contracts.StepRewards`, `Data/Contracts`, `ContractService` | 20 · 20 · 25 · 25 · 50 por paso, a todos los de la partida (media por partida: casual 27, habitual 40, intenso 140) |
 | Dunas | `Config.Arena.Amber`, `ArenaRewardService` | 60/30/20 (gana/empata/pierde), 15/captura, 2/baja (máx. 20), tope 400/día |
 | Calendario de 7 días | `Config.Daily.Calendar`, `Retention.claimLogin` | 100 · — · — · 100 · 250 · — · 500 (+ huevo Raro+) |
 | Misiones diarias | `Data/Missions`, `Config.Daily.MissionRewards`, `Retention` | fácil 40 · media (rol) 70 · difícil 120 (+15/25/40 min de huevo) |
@@ -41,7 +42,8 @@
 sobrevivido, 150/jefe, 50/huevo salvado, 300 por rescate; Dunas 80/40/30 + 15/captura (las de prueba
 no dan); tope de partidas 1.200/día (Isla y Dunas juntas); +10 % si hay un amigo de Roblox en el
 servidor; misiones diarias fácil 200, media 200, difícil 300 y semanales 500 + 500 por las 5 (sin
-tope); ×2 los últimos 7 días.
+tope); ×2 los últimos 7 días. Contratos de expedición (G6): 50 · 50 · 75 · 75 · 125 por paso, como XP
+de partida (con el tope y el extra de amigos).
 
 **Misiones v2** (G4): cada día una fácil (general, 3–15 min), una media (del rol, 15–35 min) y una
 difícil (avanzar en la partida, 35–90 min); cada lunes 5 semanales de 13, sin dos de la misma
@@ -109,13 +111,22 @@ nivel 3 (armas de rol y armadura de plata) el **día 4** (Corona del caudillo) y
 volcánica el **día 6** (obsidiana y Cristal de cueva). Cada jefe da 2 de su tesoro a cada participante;
 la perla (día 2) y el núcleo de magma (día 8) siguen sin receta.
 
+**Con los contratos de expedición (G6, 21-10-2026)**: 3 contratos (Campamento del náufrago, Diario del
+naturalista, Ruta del volcán) de 5 pasos que se abren los días 1, 3, 5, 7 y 8 y se pierden al abrir el
+siguiente. Jugando solo con los ritmos, pasos por partida: casual 1,3 · habitual 2 · intenso 5 · amigos
+2,3. Pase, nivel el día 7 · 14 · 21 · 30: casual 2 · 5 · 7 · **13** (antes 12), habitual 9 · 19 · 29 · 30
+(termina el **día 23**, antes 24; misiones 62 %), intenso día 13, amigos día 20. Ámbar del habitual en
+30 días: 22.085 (gasta el 11 %).
+
 ## 5. Hallazgos pendientes (plan de la Fase 9, `docs/PLAN.md`)
 
-- Contratos de partida (G6): metas compartidas por el grupo dentro de cada partida.
 - El habitual gasta el 15 % del Ámbar que gana; tras el día 6 no tiene en qué gastarlo: tienda de
   cosméticos en Ámbar (G10).
 - La Perla del río (día 2) y el Núcleo de magma (día 8) no los pide ninguna receta: candidatos para
-  los contratos (G6) o los eventos (G7).
+  los eventos (G7) o un paso de contrato que pida entregarlos.
+- Los pasos 3–5 de los contratos (días 5–8) solo los ve quien juega partidas largas (intenso, grupos):
+  es lo buscado (metas para la mitad de la partida), pero si la telemetría dice que casi nadie pasa
+  del día 4, son los que hay que mirar.
 - El intenso descarta muchos huevos (bolsa de 3 llena): vigilar al cambiar ritmos o premios de huevo.
 - El casual llega justo al nivel 12 del pase (el mínimo) y casi no cumple semanales (0,5 por semana
   con 2 h de juego): si se suben objetivos semanales o se baja la XP, mira primero su fila.
@@ -129,7 +140,10 @@ la perla (día 2) y el núcleo de magma (día 8) siguen sin receta.
 noche), Boss (`BossService.onDefeated`) y Rescue (victoria que no sea de prueba) en `MissionService`;
 Gather (`ResourceService`), Craft (`CraftingService`), Build (`BuildingService`), Egg (`EggService`),
 Ability y Combo (`IslandCombatRules`); ArenaWin y ArenaCapture (`ArenaRewardService`, Dunas, salvo
-las de prueba). Al terminar una partida se apunta ya (`Retention.flushNow`): luego viene el
+las de prueba); Supply (`SupplyService`, abrir una caja) y Beacon (`BeaconService`, encender la
+baliza) solo los usan los contratos. Llevan clave para los contratos: Gather (el recurso), Build (la
+pieza) y Boss (el jefe). `Retention.onProgress` reparte cada aviso a `ContractService`, que además
+cuenta "Visit" (llegar a una guarida). Al terminar una partida se apunta ya (`Retention.flushNow`): luego viene el
 teletransporte. Los muñecos del Lobby no cuentan. Reanimar y "jugar con amigos" no son misiones (no
 se pueden hacer solo).
 

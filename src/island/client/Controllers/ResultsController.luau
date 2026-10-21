@@ -3,13 +3,16 @@
 -- el Ámbar ganado y un botón para volver ya al Lobby (si no, el servidor os envía a todos).
 -- Al ganar con un huevo incubando en el nido del Lobby, una ruleta enseña su tirada del rescate
 -- ("eggRoll" del resumen, MatchService): las horas que le quita o la eclosión inmediata. Con una
--- temporada en marcha, también la XP del pase sumada ("pass").
+-- temporada en marcha, también la XP del pase sumada ("pass"). Y los pasos cumplidos del contrato de
+-- expedición (Shared/Contract).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Contract = require(ReplicatedStorage.Shared.Contract)
+local Contracts = require(ReplicatedStorage.Shared.Data.Contracts)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -80,9 +83,11 @@ local function show(summary: { [string]: any })
 	-- Con la tirada del huevo hay dos líneas más: la ventana crece y lo demás encoge un poco.
 	local roll = if typeof(summary.eggRoll) == "table" then summary.eggRoll else nil
 	local passText = SeasonPass.gainText(summary.pass)
+	local contract = Contract.read()
 	local panelHeight = (if roll then 0.86 else 0.7)
 		+ (if summary.newTitle then 0.07 else 0)
 		+ (if passText then 0.07 else 0)
+		+ (if contract then 0.07 else 0)
 	local fit = 0.7 / panelHeight
 	panel.Size = UDim2.fromScale(0.6, panelHeight)
 	panel.BackgroundColor3 = Color3.fromRGB(30, 24, 18)
@@ -121,6 +126,14 @@ local function show(summary: { [string]: any })
 	}
 	if passText then
 		table.insert(lines, { text = passText, height = 0.07, color = Color3.fromRGB(255, 150, 80) })
+	end
+	if contract then
+		local definition = Contracts[contract.id]
+		table.insert(lines, {
+			text = `📜 Contrato «{definition.name}»: {Contract.doneCount(contract)}/{#definition.steps} pasos`,
+			height = 0.07,
+			color = Color3.fromRGB(255, 205, 70),
+		})
 	end
 	if summary.newTitle then
 		table.insert(lines, {

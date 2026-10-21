@@ -6,6 +6,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Compass = require(ReplicatedStorage.Shared.Compass)
@@ -13,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
 local MonkeyService = require(script.Parent.MonkeyService)
@@ -77,6 +79,7 @@ local function onOpen(crate: Model, player: Player)
 		InventoryService.collect(player, entry.itemId, entry.amount)
 	end
 	announce(`📦 {player.DisplayName} ha abierto la caja de suministro`)
+	Retention.progress(player, "Supply")
 	crate:Destroy()
 end
 

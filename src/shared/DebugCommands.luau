@@ -22,6 +22,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "GrantEgg", label = "🥚 Huevo guardado (al nido del Lobby o la mochila)" },
 		{ id = "Missions", label = "🎯 Cumplir las misiones del día" },
 		{ id = "WeeklyMissions", label = "📆 Cumplir las semanales" },
+		{ id = "ContractStep", label = "📜 Cumplir el paso del contrato" },
+		{ id = "NextContract", label = "📜 Siguiente contrato" },
 		{ id = "Crate", label = "📦 Caja de suministro" },
 		{ id = "Pet", label = "🐾 Siguiente mascota" },
 		{ id = "Rain", label = "🌧️ Lluvia" },

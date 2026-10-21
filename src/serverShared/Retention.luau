@@ -37,6 +37,7 @@ local rng = Random.new()
 -- suma, el valor más alto (misiones "best") y las claves vistas (misiones "distinct").
 type Events = { [string]: { sum: number, best: number, keys: { [string]: boolean } } }
 local pending: { [Player]: Events } = {}
+local progressListeners: { (player: Player, event: string, amount: number, key: string?) -> () } = {}
 local started = false
 -- Quién suma la XP del pase de los premios (ServerShared/SeasonPass; así no se requieren el uno al
 -- otro). Devuelve la línea para el aviso, o nil si no ha sumado nada.
@@ -237,10 +238,19 @@ function Retention.refresh(player: Player)
 	end
 end
 
+-- Llama a "callback" con cada aviso de progress (el contrato de expedición de la Isla, ContractService,
+-- cuenta con los mismos avisos que las misiones).
+function Retention.onProgress(callback: (player: Player, event: string, amount: number, key: string?) -> ())
+	table.insert(progressListeners, callback)
+end
+
 -- Lo cuentan los servicios de la Isla y de Dunas: "event" como en Data/Missions ("Kill", "Gather"…).
 -- "amount" se suma (o, en las misiones "best", cuenta el más alto); "key" es lo que cuentan las
--- "distinct" (la especie del mono).
+-- "distinct" (la especie del mono) y lo que miran los contratos (el jefe, el recurso, la pieza).
 function Retention.progress(player: Player, event: string, amount: number?, key: string?)
+	for _, listener in progressListeners do
+		task.spawn(listener, player, event, amount or 1, key)
+	end
 	local events = pending[player]
 	if not events then
 		events = {}

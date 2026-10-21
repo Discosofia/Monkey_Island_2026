@@ -54,8 +54,8 @@ function MissionService:Init()
 			Retention.progress(attacker, "Damage", amount)
 		end
 	end)
-	BossService.onDefeated(function(player: Player)
-		Retention.progress(player, "Boss")
+	BossService.onDefeated(function(player: Player, bossId: string)
+		Retention.progress(player, "Boss", 1, bossId)
 	end)
 	DayNightService.onPhaseStarted(onPhaseStarted)
 	-- Al acabar se apunta ya lo pendiente: en unos segundos se van al Lobby. Las partidas que termina el

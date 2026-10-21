@@ -21,6 +21,8 @@
 --      misiones cumplidas y día en que llena los talentos de su rol.
 --   3. Partida: el día más temprano en que se puede tener cada nivel de arma y armadura, y lo que trae
 --      de nuevo cada día de la partida.
+--      Y los contratos de expedición (Data/Contracts): minuto en que se cumple cada paso jugando solo,
+--      qué perfiles llegan antes de que se cierre y su Ámbar y XP por partida (suman a la partida).
 --   4. Pase de temporada (Data/Seasons, la primera temporada): nivel de cada perfil por día, día en que
 --      gana el último nivel, de dónde sale la XP y lo que da la pista gratis. La simulación empieza el
 --      día 1 de la temporada (un lunes; la última semana, ×Config.Season.LastWeekMultiplier). Las
@@ -102,6 +104,10 @@ local OPCIONES_BASE = {
 	ordenPerfiles = { "casual", "habitual", "intenso", "amigos" },
 	-- Minutos que tarda en caer un jefe desde que aparece (para contar si un jugador llega a él).
 	minutosJefe = 3,
+	-- Contratos de expedición: minutos desde que se abre el paso para llegar a una guarida, abrir una
+	-- caja de suministro y encender la baliza (tras el último jefe), y obsidiana picada por minuto
+	-- cuando se va a por ella (supuestos).
+	contratos = { minutosVisita = 5, minutosCaja = 6, minutosBaliza = 2, obsidiana = 1.5 },
 	-- Pase: XP de misiones semanales fija por semana en lugar de la simulada (0 = la simulada).
 	pase = { xpSemanalSupuesta = 0 },
 	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true },
@@ -402,6 +408,65 @@ local function main(copia: Instance): string
 		return xp
 	end
 
+	-- Contratos de expedición (Data/Contracts): minuto de la partida en que se cumple cada paso (jugando
+	-- solo, con los ritmos) y si se cumple antes de que se cierre (el día del siguiente paso).
+	local Contratos = if Data:FindFirstChild("Contracts") then require(Data.Contracts) :: any else {}
+	local CC = Config.Contracts
+	local function diaDelJefe(bossId: string): number
+		local indice = table.find(M.BossRotation, bossId) or #M.BossRotation
+		return indice * M.BossIntervalDays
+	end
+	local function minutoPaso(paso: any): number
+		local abre = (paso.day - 1) * MINUTOS_DIA
+		local C = OPCIONES.contratos
+		if paso.event == "Visit" then
+			return abre + C.minutosVisita
+		elseif paso.event == "Supply" then
+			return abre + C.minutosCaja
+		elseif paso.event == "Boss" then
+			return math.max(abre, (diaDelJefe(paso.key) - 1) * MINUTOS_DIA + OPCIONES.minutosJefe)
+		elseif paso.event == "Beacon" then
+			local ultimoJefe = (#M.BossRotation * M.BossIntervalDays - 1) * MINUTOS_DIA + OPCIONES.minutosJefe
+			return math.max(abre, (M.BeaconUnlockDay - 1) * MINUTOS_DIA, ultimoJefe) + C.minutosBaliza
+		elseif paso.event == "Species" then
+			for minutos = 0, 20 * MINUTOS_DIA do
+				if especiesEn(minutos) >= paso.target then
+					return math.max(abre, minutos)
+				end
+			end
+			return math.huge
+		end
+		local ritmo = if paso.event == "Gather" and paso.key == "Obsidian" then C.obsidiana else R[paso.event]
+		if not ritmo or ritmo <= 0 then
+			return math.huge
+		end
+		return abre + paso.target / ritmo
+	end
+	local function cierraPaso(contrato: any, indice: number): number
+		local siguiente = contrato.steps[indice + 1]
+		return if siguiente then (siguiente.day - 1) * MINUTOS_DIA else math.huge
+	end
+	-- Valor esperado (los contratos tocan al azar) de pasos, Ámbar y XP de pase de una partida.
+	local function contratoEn(minutos: number): (number, number, number)
+		local pasos, ambar, xp, cuantos = 0, 0, 0, 0
+		for _, contrato in Contratos do
+			cuantos += 1
+			for indice, paso in contrato.steps do
+				local minuto = minutoPaso(paso)
+				if minuto <= minutos and minuto <= cierraPaso(contrato, indice) then
+					local premio = CC.StepRewards[indice] or {}
+					pasos += 1
+					ambar += premio.amber or 0
+					xp += premio.xp or 0
+				end
+			end
+		end
+		if cuantos == 0 then
+			return 0, 0, 0
+		end
+		return pasos / cuantos, ambar / cuantos, xp / cuantos
+	end
+
 	-- Una partida de "minutos" en la Isla (empieza en el día 1).
 	local function partida(minutos: number, perfil: any)
 		local dias = math.floor(minutos / MINUTOS_DIA)
@@ -424,13 +489,17 @@ local function main(copia: Instance): string
 			+ M.AmberPerEgg * huevos
 			+ M.AmberForRescue * rescate
 		local xpRol = Config.Data.RoleXpPerDay * dias + Config.Data.RoleXpPerKill * muertes
+		local pasos, ambarContrato, xpContrato = contratoEn(minutos)
 		return {
 			dias = dias,
 			jefes = jefes,
 			rescate = rescate,
 			huevos = huevos,
-			ambar = ambar,
+			ambar = ambar + ambarContrato,
+			ambarContrato = ambarContrato,
 			xpRol = xpRol,
+			pasosContrato = pasos,
+			xpContrato = xpContrato,
 		}
 	end
 
@@ -514,6 +583,7 @@ local function main(copia: Instance): string
 			+ p.jefes * S.IslandXp.PerBoss
 			+ p.huevos * S.IslandXp.PerEgg
 			+ p.rescate * S.IslandXp.Rescue
+			+ p.xpContrato
 		local D = OPCIONES.dunas
 		local porDunas = D.victoria * S.ArenaXp.Win
 			+ D.empate * S.ArenaXp.Tie
@@ -1132,6 +1202,59 @@ local function main(copia: Instance): string
 			end
 		end
 		linea("")
+
+		-- Contratos de expedición: cada paso, cuándo se cumple jugando solo y qué perfiles llegan.
+		if next(Contratos) ~= nil then
+			linea("### Contratos de expedición")
+			linea(
+				"Minuto de la partida en que se cumple cada paso jugando solo (con los ritmos); se pierde si no se cumple antes de que abra el siguiente."
+			)
+			local orden = OPCIONES.ordenPerfiles
+			local cabecera = "| Contrato | Paso | Días | Objetivo | Minuto | Premio |"
+			local separador = "|---|---|---|---|---|---|"
+			for _, clave in orden do
+				cabecera ..= ` {OPCIONES.perfiles[clave].nombre} |`
+				separador ..= "---|"
+			end
+			linea(cabecera)
+			linea(separador)
+			for _, id in claves(Contratos) do
+				local contrato = Contratos[id]
+				for indice, paso in contrato.steps do
+					local minuto = minutoPaso(paso)
+					local cierra = cierraPaso(contrato, indice)
+					local siguiente = contrato.steps[indice + 1]
+					local dias = if siguiente and siguiente.day - 1 > paso.day
+						then `{paso.day}–{siguiente.day - 1}`
+						else tostring(paso.day)
+					local premio = CC.StepRewards[indice] or {}
+					local fila =
+						`| {contrato.icon} {id} | {indice}. {paso.icon} {paso.title} | {dias} | {paso.event}{if paso.key
+							then ` ({paso.key})`
+							else ""} {paso.target} | {if minuto == math.huge then "nunca" else n(minuto)} | {premio.amber or 0} ✨ · {premio.xp or 0} XP |`
+					for _, clave in orden do
+						local perfil = OPCIONES.perfiles[clave]
+						fila ..= if minuto <= cierra and minuto <= perfil.minutosIsla then " sí |" else " no |"
+					end
+					linea(fila)
+					if minuto > cierra then
+						alerta(
+							`Contrato {id}: el paso {indice} ({paso.title}) pide el minuto {n(minuto)} y se cierra en el {n(
+								cierra
+							)}: nadie lo cumple jugando solo`
+						)
+					end
+				end
+			end
+			local resumen = {}
+			for _, clave in orden do
+				local perfil = OPCIONES.perfiles[clave]
+				local pasos, ambar, xp = contratoEn(perfil.minutosIsla)
+				table.insert(resumen, `{perfil.nombre} {n(pasos, 1)} pasos ({n(ambar)} ✨, {n(xp)} XP)`)
+			end
+			linea(`Por partida (media de los contratos): {table.concat(resumen, " · ")}.`)
+			linea("")
+		end
 	end
 
 	-- ---------------------------------------------------------------- Pase
