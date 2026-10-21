@@ -309,9 +309,10 @@ function RewardModels.forReward(reward: { [string]: any }): Model?
 	return nil
 end
 
--- Tu avatar en miniatura con el cosmético "cosmeticId" puesto: estela (cinta de bloques de neón que se
--- desvanece detrás) o aura (anillo de bloques brillantes alrededor). Sin personaje, nil.
-function RewardModels.avatar(character: Model?, cosmeticId: string): Model?
+-- Tu avatar en miniatura con el cosmético "cosmeticIds" puesto (uno o varios, como la estela y el aura
+-- a la vez en el Armario): estela (cinta de bloques de neón que se desvanece detrás) o aura (anillo de
+-- bloques brillantes alrededor). Sin personaje, nil.
+function RewardModels.avatar(character: Model?, cosmeticIds: string | { string }): Model?
 	if not character then
 		return nil
 	end
@@ -345,33 +346,38 @@ function RewardModels.avatar(character: Model?, cosmeticId: string): Model?
 	-- De pie en el origen, mirando a -Z.
 	local _, size = clone:GetBoundingBox()
 	clone:PivotTo(CFrame.new(0, size.Y / 2, 0))
-	local cosmetic = Cosmetics[cosmeticId]
-	if cosmetic and cosmetic.kind == "Trail" then
-		-- Cinta que sale de la espalda hacia atrás y a un lado, cada vez más transparente.
-		for step = 1, 7 do
-			local part = Instance.new("Part")
-			part.Anchored = true
-			part.CanCollide = false
-			part.Material = Enum.Material.Neon
-			part.Color = cosmetic.color
-			part.Transparency = 0.1 + step * 0.11
-			part.Size = Vector3.new(0.35, 2.2 - step * 0.15, 0.7)
-			part.CFrame = CFrame.new(step * 0.38, size.Y * 0.45 + math.sin(step * 0.9) * 0.25, 0.9 + step * 0.55)
-			part.Parent = clone
-		end
-	elseif cosmetic and cosmetic.kind == "Aura" then
-		for index = 1, 14 do
-			local angle = index / 14 * math.pi * 2
-			local part = Instance.new("Part")
-			part.Anchored = true
-			part.CanCollide = false
-			part.Material = Enum.Material.Neon
-			part.Color = cosmetic.color
-			local cube = 0.25 + (index % 3) * 0.1
-			part.Size = Vector3.one * cube
-			part.CFrame = CFrame.new(math.cos(angle) * 1.9, 0.6 + (index % 5) * size.Y * 0.18, math.sin(angle) * 1.6)
-				* CFrame.Angles(angle, angle * 2, 0)
-			part.Parent = clone
+	for _, cosmeticId in if typeof(cosmeticIds) == "table" then cosmeticIds else { cosmeticIds } do
+		local cosmetic = Cosmetics[cosmeticId]
+		if cosmetic and cosmetic.kind == "Trail" then
+			-- Cinta que sale de la espalda hacia atrás y a un lado, cada vez más transparente.
+			for step = 1, 7 do
+				local part = Instance.new("Part")
+				part.Anchored = true
+				part.CanCollide = false
+				part.Material = Enum.Material.Neon
+				part.Color = cosmetic.color
+				part.Transparency = 0.1 + step * 0.11
+				part.Size = Vector3.new(0.35, 2.2 - step * 0.15, 0.7)
+				part.CFrame = CFrame.new(step * 0.38, size.Y * 0.45 + math.sin(step * 0.9) * 0.25, 0.9 + step * 0.55)
+				part.Parent = clone
+			end
+		elseif cosmetic and cosmetic.kind == "Aura" then
+			for index = 1, 14 do
+				local angle = index / 14 * math.pi * 2
+				local part = Instance.new("Part")
+				part.Anchored = true
+				part.CanCollide = false
+				part.Material = Enum.Material.Neon
+				part.Color = cosmetic.color
+				local cube = 0.25 + (index % 3) * 0.1
+				part.Size = Vector3.one * cube
+				part.CFrame = CFrame.new(
+					math.cos(angle) * 1.9,
+					0.6 + (index % 5) * size.Y * 0.18,
+					math.sin(angle) * 1.6
+				) * CFrame.Angles(angle, angle * 2, 0)
+				part.Parent = clone
+			end
 		end
 	end
 	return clone

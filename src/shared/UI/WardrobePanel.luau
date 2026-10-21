@@ -6,8 +6,10 @@
 -- En Mascotas el visor enseña la mascota con la skin (la activa si le vale); en Marcos, una ficha con
 -- tu nombre y el marco debajo del avatar; en Emotes, el avatar haciendo el emote, y encima de las
 -- tarjetas, tu rueda (UI/EmoteWheel).
---   - Pulsar una tarjeta la enseña en el avatar; su botón la equipa o la quita (si la tienes) o dice
---     cómo conseguirla (comprar, pase, ganar).
+--   - Pulsar una tarjeta la enseña en el avatar (pulsarla otra vez la quita) y se recuerda en su hueco
+--     aunque cambies de pestaña o de rol: el visor junta lo elegido en cada uno (traje, arma, estela y
+--     aura a la vez) con lo que llevas puesto en el resto. "🔄 Lo que llevas" lo borra todo. Su botón la
+--     equipa o la quita (si la tienes) o dice cómo conseguirla (comprar, pase, ganar).
 --   - Cada tarjeta lleva el borde de su rareza; la mítica, un borde que brilla y gira.
 --   - Sin desplazamiento en PC: cada pestaña enseña una página de tarjetas y, si hay más, flechas.
 -- LobbyUIController la rehace al cambiar los datos del jugador; la pestaña, el rol, la tarjeta y la
@@ -65,11 +67,14 @@ export type Options = { compact: boolean, rebuild: () -> () }
 
 local WardrobePanel = {}
 
--- Lo elegido, que sobrevive a que la ventana se rehaga.
+-- Lo elegido, que sobrevive a que la ventana se rehaga: "picks" es lo que se prueba en cada hueco
+-- (Shared/CosmeticSlots; los emotes, en "Emote") y "selected", la última tarjeta pulsada (su nombre va
+-- debajo del visor).
 local state = {
 	tab = "Outfit",
 	role = nil :: string?,
 	selected = nil :: string?,
+	picks = {} :: { [string]: string },
 	page = 1,
 	angle = 0,
 }
@@ -179,14 +184,14 @@ local function howToGet(cosmetic: Cosmetics.Cosmetic): (string, (() -> ())?)
 	return if source.price then `Próximamente · {source.price} R$` else "Próximamente", nil
 end
 
--- Lo que lleva puesto el avatar de la vista previa en cada tipo: lo elegido en la ventana o, si no,
--- lo equipado.
-local function shown(equipped: { [string]: string }, slot: string, kind: string): string?
-	local selected = state.selected
-	if selected and Cosmetics[selected] and Cosmetics[selected].kind == kind then
-		return if CosmeticSlots.slot(Cosmetics[selected]) == slot then selected else nil
-	end
-	return equipped[slot]
+-- Hueco de la vista previa de un cosmético: el suyo y, los emotes, uno solo para todos.
+local function pickSlot(cosmetic: Cosmetics.Cosmetic): string
+	return CosmeticSlots.slot(cosmetic) or "Emote"
+end
+
+-- Lo que lleva el avatar de la vista previa en el hueco "slot": lo que se prueba o, si no, lo equipado.
+local function shown(equipped: { [string]: string }, slot: string): string?
+	return state.picks[slot] or equipped[slot]
 end
 
 -- El arma del rol en su nivel más alto, de pie al lado derecho del avatar, con el aspecto "skinId".
@@ -224,7 +229,7 @@ local function shownPet(equipped: { [string]: string }): (string?, string?)
 	local active = activePet()
 	local selected = state.selected
 	local cosmetic = if selected then Cosmetics[selected] else nil
-	if selected and cosmetic and cosmetic.kind == "PetSkin" then
+	if selected and cosmetic and cosmetic.kind == "PetSkin" and state.picks[pickSlot(cosmetic)] == selected then
 		if active and CosmeticSlots.fitsPet(cosmetic, active) then
 			return active, selected
 		elseif cosmetic.petId then
@@ -240,7 +245,7 @@ local function shownPet(equipped: { [string]: string }): (string?, string?)
 		return candidates[1], selected
 	end
 	if active then
-		return active, equipped[CosmeticSlots.petSkinSlot(active)]
+		return active, shown(equipped, CosmeticSlots.petSkinSlot(active))
 	end
 	return nil, nil
 end
@@ -258,9 +263,14 @@ end
 -- (sin el arma con "noWeapon": en Emotes, que tapaba los brazos).
 local function previewModel(roleId: string, equipped: { [string]: string }, noWeapon: boolean?): Model?
 	local player = Players.LocalPlayer
-	local selected = state.selected
-	local effect = if selected and Cosmetics[selected] and not Cosmetics[selected].role then selected else ""
-	local avatar = RewardModels.avatar(player.Character, effect)
+	local effects = {}
+	for _, slot in { "Trail", "Aura" } do
+		local cosmeticId = shown(equipped, slot)
+		if cosmeticId then
+			table.insert(effects, cosmeticId)
+		end
+	end
+	local avatar = RewardModels.avatar(player.Character, effects)
 	if not avatar then
 		return nil
 	end
@@ -268,7 +278,7 @@ local function previewModel(roleId: string, equipped: { [string]: string }, noWe
 	if previous then
 		previous:Destroy()
 	end
-	local outfitId = shown(equipped, `Outfit.{roleId}`, "Outfit")
+	local outfitId = shown(equipped, `Outfit.{roleId}`)
 	if outfitId and ArmorModels.hasOutfit(outfitId) then
 		ArmorModels.wear(avatar, nil, roleId, outfitId, ArmorModels.MAX_GRADE)
 		for _, descendant in avatar:GetDescendants() do
@@ -280,9 +290,7 @@ local function previewModel(roleId: string, equipped: { [string]: string }, noWe
 	local model = Instance.new("Model")
 	model.Name = "Preview"
 	avatar.Parent = model
-	local weapon = if noWeapon
-		then nil
-		else standingWeapon(roleId, shown(equipped, `WeaponSkin.{roleId}`, "WeaponSkin"))
+	local weapon = if noWeapon then nil else standingWeapon(roleId, shown(equipped, `WeaponSkin.{roleId}`))
 	if weapon then
 		-- Más pequeña que en la mano (las de nivel 4 miden casi lo que el avatar) y apoyada en el suelo
 		-- a su derecha, un poco inclinada hacia él.
@@ -326,7 +334,7 @@ end
 
 -- Ficha con tu nombre y el marco que toca (el elegido o el puesto), como en el ranking y el grupo.
 local function frameCard(pane: Frame, equipped: { [string]: string }, compact: boolean)
-	local frameId = shown(equipped, "Frame", "Frame")
+	local frameId = shown(equipped, "Frame")
 	local card = Widgets.label(Players.LocalPlayer.DisplayName, pane)
 	card.LayoutOrder = 4
 	card.Size = UDim2.new(0.8, 0, 0, if compact then 26 else 34)
@@ -377,12 +385,8 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 		-- cortaba).
 		local fill = if state.tab == "Emotes" then 0.85 elseif state.tab == "Pets" then 1.1 else 1.05
 		RewardModels.frame(viewport, model, fill)
-		local selectedEmote = if state.selected
-				and Cosmetics[state.selected]
-				and Cosmetics[state.selected].kind == "Emote"
-			then state.selected
-			else nil
-		if selectedEmote then
+		local selectedEmote = state.picks.Emote
+		if state.tab == "Emotes" and selectedEmote then
 			playEmote(viewport, model, selectedEmote)
 		end
 		local connection: RBXScriptConnection
@@ -412,6 +416,16 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 	end
 	if state.tab == "Frames" then
 		frameCard(pane, equipped, compact)
+	end
+	-- Si se está probando algo, volver a lo que llevas puesto.
+	if next(state.picks) then
+		local reset = chip(pane, "🔄 Lo que llevas", false, 5)
+		reset.Size = UDim2.new(0.7, 0, 0, if compact then 28 else 34)
+		reset.MouseButton1Click:Connect(function()
+			table.clear(state.picks)
+			state.selected = nil
+			rebuild()
+		end)
 	end
 end
 
@@ -470,7 +484,6 @@ function WardrobePanel.build(list: Instance, options: Options)
 		button.MouseButton1Click:Connect(function()
 			state.tab = candidate.id
 			state.page = 1
-			state.selected = nil
 			rebuild()
 		end)
 	end
@@ -489,7 +502,6 @@ function WardrobePanel.build(list: Instance, options: Options)
 			button.MouseButton1Click:Connect(function()
 				state.role = id
 				state.page = 1
-				state.selected = nil
 				rebuild()
 			end)
 		end
@@ -562,13 +574,21 @@ function WardrobePanel.build(list: Instance, options: Options)
 		card.LayoutOrder = index
 		card.Text = ""
 		card.AutoButtonColor = false
-		card.BackgroundColor3 = if state.selected == cosmeticId then Color3.fromRGB(70, 58, 44) else ROW_COLOR
+		local slot = pickSlot(cosmetic)
+		local picked = state.picks[slot] == cosmeticId
+		card.BackgroundColor3 = if picked then Color3.fromRGB(70, 58, 44) else ROW_COLOR
 		card.BackgroundTransparency = 0.1
 		card.Parent = grid
 		corner(card, 10)
 		rarityBorder(card :: any, cosmetic.rarity)
 		card.MouseButton1Click:Connect(function()
-			state.selected = if state.selected == cosmeticId then nil else cosmeticId
+			if picked then
+				state.picks[slot] = nil
+				state.selected = nil
+			else
+				state.picks[slot] = cosmeticId
+				state.selected = cosmeticId
+			end
 			rebuild()
 		end)
 
