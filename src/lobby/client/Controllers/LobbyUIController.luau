@@ -99,7 +99,8 @@ local WINDOWS: { [string]: WindowDef } = {
 	Talentos = { icon = "🌟", title = "Talentos" },
 	Tienda = { icon = "🛒", title = "Tienda" },
 	Misiones = { icon = "🎯", title = "Misiones" },
-	Pase = { icon = "🌋", title = "Pase de temporada", wide = true, own = true },
+	-- El pase usa el ancho de las listas largas: sus pistas se deslizan y caben más columnas.
+	Pase = { icon = "🌋", title = "Pase de temporada", wide = true, spread = true, own = true },
 	Estilo = { icon = "🎨", title = "Estilo" },
 	Grupo = { icon = "👥", title = "Grupo" },
 	Diario = { icon = "📖", title = "Diario", wide = true, spread = true },
@@ -1376,6 +1377,10 @@ function LobbyUIController:Start()
 
 		renderCount += 1
 		local thisRender = renderCount
+		-- El pase se viste de volcán (fondo y marco); cualquier otra ventana lo quita.
+		if id ~= "Pase" then
+			SeasonPassPanel.close()
+		end
 		clearRows(list)
 		listLayout.FillDirection = Enum.FillDirection.Vertical
 		listLayout.Padding = UDim.new(0, 6)
@@ -1397,7 +1402,7 @@ function LobbyUIController:Start()
 		elseif id == "Misiones" then
 			renderMissions()
 		elseif id == "Pase" then
-			passTick = SeasonPassPanel.build(list, { compact = compactUi })
+			passTick = SeasonPassPanel.build(list, { compact = compactUi, window = panel, title = windowTitle })
 		elseif id == "Estilo" then
 			renderStyle(data)
 		elseif id == "Ranking" then
@@ -1646,6 +1651,9 @@ function LobbyUIController:Start()
 		currentWindow = id
 		windowPrompt = if id then prompt else nil
 		local open = id ~= nil
+		if id ~= "Pase" then
+			SeasonPassPanel.close()
+		end
 		panel.Visible = open
 		for _, screen in playerGui:GetChildren() do
 			showCombatHud(screen)

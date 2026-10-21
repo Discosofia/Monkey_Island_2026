@@ -242,9 +242,8 @@ function SeasonPass.claim(player: Player, level: number?, track: Pass.Track?)
 		rewards = take(season, state, only, only == nil)
 		profile.season = state :: any
 	end)
-	if #rewards > 0 then
-		Remotes.Notify:FireClient(player, `🎁 Del pase: {table.concat(grantAll(player, rewards), " · ")}`)
-	end
+	-- Sin aviso: la ventana del pase celebra en la tarjeta lo cobrado (UI/SeasonPassPanel).
+	grantAll(player, rewards)
 end
 
 -- Compra de la premium y/o niveles (dentro de PlayerData.update: sin esperas). Con la premium, lo

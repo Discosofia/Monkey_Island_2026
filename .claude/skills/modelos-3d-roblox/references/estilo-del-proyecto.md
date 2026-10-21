@@ -28,6 +28,7 @@ tipo que ya existe va en su módulo, con un constructor más y su entrada en los
 | Monos en estilo voxel | `src/island/server/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
 | Árboles, palmeras, rocas, matas | `src/serverShared/NodeModels.luau` | `NodeModels.build(nodeType, ground, rng)` | `src/shared/Data/ResourceNodes.luau` |
 | Piezas construibles | `src/shared/BuildModels.luau` | `BuildModels.build(buildableId)` | `src/shared/Data/Buildables.luau` |
+| Imágenes 3D de los premios (tarjetas del pase en `ViewportFrame`: ámbar, reloj de arena, provisiones, tu avatar con el cosmético) | `src/shared/RewardModels.luau` | `RewardModels.forReward(reward)`, `.avatar(character, id)`, `.frame(viewport, model)` | `Data/Seasons`, `Data/Items` |
 | Escenario del Lobby | `src/lobby/server/World/LobbyBuilder.luau` | `LobbyBuilder.build()` | — |
 | Isla generada (terreno + decorado) | `src/island/tools/MapBuilder.luau` | `MapBuilder.build()` | — |
 
