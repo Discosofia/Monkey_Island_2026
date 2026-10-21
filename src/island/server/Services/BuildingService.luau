@@ -362,34 +362,105 @@ local function playHitSound(model: Model)
 	Sfx.play(key, model:GetPivot().Position)
 end
 
--- Daña una pieza; a 0 de vida se rompe. Devuelve true si se rompió.
+local lastHitAt: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
+local brokenCallbacks: { (model: Model) -> () } = {}
+
+local function definitionOf(model: Model): Buildables.Buildable?
+	local buildableId = model:GetAttribute("BuildableId")
+	return if typeof(buildableId) == "string" then Buildables[buildableId] else nil
+end
+
+-- Las que se desgastan a la vista (estacas) se hunden según la vida que les falta.
+local function showWear(model: Model, health: number)
+	local definition = definitionOf(model)
+	if not (definition and definition.sinkOnWear) then
+		return
+	end
+	local basePivot = model:GetAttribute("BasePivot")
+	if typeof(basePivot) ~= "CFrame" then
+		basePivot = model:GetPivot()
+		model:SetAttribute("BasePivot", basePivot)
+	end
+	local maxHealth = model:GetAttribute("MaxHealth")
+	local worn = 1 - health / (if typeof(maxHealth) == "number" then maxHealth else definition.health)
+	model:PivotTo((basePivot :: CFrame) * CFrame.new(0, -worn * definition.size.Y * 0.7, 0))
+end
+
+-- Tótem guardián (G8) a menos de Config.Siege.Totem.Radius de "position" (en el plano), o nil.
+function BuildingService.totemNear(position: Vector3): Model?
+	local radius = Config.Siege.Totem.Radius
+	for _, model in structureFolder():GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("BuildableId") == "WarTotem" then
+			local offset = (model:GetPivot().Position - position) * Vector3.new(1, 0, 1)
+			if offset.Magnitude <= radius then
+				return model
+			end
+		end
+	end
+	return nil
+end
+
+-- Derribada (las "breaksInPlace" a 0 de vida, como la baliza): sigue en pie pero no cuenta.
+function BuildingService.isBroken(model: Model): boolean
+	return model:GetAttribute("Broken") == true
+end
+
+-- Avisa cuando una pieza "breaksInPlace" queda derribada (BeaconService).
+function BuildingService.onBroken(callback: (model: Model) -> ())
+	table.insert(brokenCallbacks, callback)
+end
+
+-- os.clock() del último golpe que recibió la pieza (para reparar solo las que están tranquilas).
+function BuildingService.lastHitAt(model: Model): number
+	return lastHitAt[model] or -math.huge
+end
+
+-- Daña una pieza; a 0 de vida se rompe (o queda derribada si es "breaksInPlace"). Cerca del tótem
+-- guardián recibe menos daño. Devuelve true si se rompió o quedó derribada.
 function BuildingService.damageStructure(model: Model, amount: number): boolean
 	local health = model:GetAttribute("Health")
-	if typeof(health) ~= "number" or model.Parent ~= structures then
+	if typeof(health) ~= "number" or model.Parent ~= structures or BuildingService.isBroken(model) then
 		return false
 	end
+	if BuildingService.totemNear(model:GetPivot().Position) then
+		amount *= 1 - Config.Siege.Totem.PieceReduction
+	end
+	lastHitAt[model] = os.clock()
 	local remaining = health - amount
+	local definition = definitionOf(model)
 	if remaining <= 0 then
 		Sfx.play("StructureBreak", model:GetPivot().Position)
-		removeStructure(model)
+		if definition and definition.breaksInPlace then
+			model:SetAttribute("Health", 0)
+			model:SetAttribute("Broken", true)
+			for _, callback in brokenCallbacks do
+				task.spawn(callback, model)
+			end
+		else
+			removeStructure(model)
+		end
 		return true
 	end
 	model:SetAttribute("Health", remaining)
 	playHitSound(model)
-	-- Las que se desgastan a la vista (estacas) se van hundiendo: se ve cuánto les queda.
-	local buildableId = model:GetAttribute("BuildableId")
-	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
-	if definition and definition.sinkOnWear then
-		local basePivot = model:GetAttribute("BasePivot")
-		if typeof(basePivot) ~= "CFrame" then
-			basePivot = model:GetPivot()
-			model:SetAttribute("BasePivot", basePivot)
-		end
-		local maxHealth = model:GetAttribute("MaxHealth")
-		local worn = 1 - remaining / (if typeof(maxHealth) == "number" then maxHealth else definition.health)
-		model:PivotTo((basePivot :: CFrame) * CFrame.new(0, -worn * definition.size.Y * 0.7, 0))
-	end
+	showWear(model, remaining)
 	return false
+end
+
+-- Devuelve vida a una pieza (sin pasar de la máxima); si estaba derribada, vuelve a contar.
+function BuildingService.repair(model: Model, amount: number)
+	local health = model:GetAttribute("Health")
+	local maxHealth = model:GetAttribute("MaxHealth")
+	if typeof(health) ~= "number" or typeof(maxHealth) ~= "number" or model.Parent ~= structures then
+		return
+	end
+	local repaired = math.min(maxHealth, health + amount)
+	if repaired == health then
+		return
+	end
+	model:SetAttribute("Health", repaired)
+	model:SetAttribute("Broken", nil)
+	showWear(model, repaired)
 end
 
 function BuildingService:Start()

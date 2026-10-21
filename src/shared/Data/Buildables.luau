@@ -25,6 +25,14 @@ export type Buildable = {
 	walkable: boolean?,
 	-- Se va hundiendo en el suelo al perder vida: se ve cuánto le queda (las estacas).
 	sinkOnWear: boolean?,
+	-- Multiplicador del daño de los monos del asedio a esta pieza (por defecto
+	-- Config.Siege.StructureDamageMultiplier). La baliza lo baja: la Gran Tropa tarda en romperla.
+	siegeDamageMultiplier: number?,
+	-- A 0 de vida no desaparece: queda derribada ("Broken") hasta que se repara (la baliza, G8).
+	breaksInPlace: boolean?,
+	-- Solo la rompen los monos que van a por ella (Config.Siege.BeaconRaid); los demás la rodean, así
+	-- que lo que aguanta no depende de si está en el camino de la hoguera (la baliza, G8).
+	raidOnly: boolean?,
 }
 
 local Buildables: { [string]: Buildable } = {
@@ -52,12 +60,32 @@ local Buildables: { [string]: Buildable } = {
 	StandingTorch = {
 		name = "Antorcha de pie",
 		icon = "🔥",
-		description = "Ilumina el Basecamp de noche.",
+		description = "Ilumina el Basecamp de noche y espanta a los aulladores del asedio (se consume).",
 		order = 3,
 		size = Vector3.new(1.2, 6, 1.2),
 		cost = { { itemId = "Wood", amount = 2 }, { itemId = "Fiber", amount = 1 } },
-		health = 60,
+		health = 120,
 		zones = { Core = true, Plot = true, Perimeter = true },
+	},
+	-- Fase 9 (G8): aura defensiva para preparar la Gran Tropa (DefenseService, Config.Siege.Totem).
+	WarTotem = {
+		name = "Tótem guardián",
+		icon = "🗿",
+		description = "Uno por campamento. Cerca de él las piezas reciben menos daño y se reparan de noche, "
+			.. "y los jugadores reciben menos daño.",
+		order = 7.5,
+		size = Vector3.new(4, 9, 4),
+		cost = {
+			{ itemId = "Wood", amount = 20 },
+			{ itemId = "Stone", amount = 15 },
+			{ itemId = "Obsidian", amount = 5 },
+			{ itemId = "RiverPearl", amount = 1 },
+		},
+		-- En la Gran Tropa sin defender, con 800 caía en la 2.ª oleada.
+		health = 1500,
+		zones = { Core = true },
+		maxPerServer = 1,
+		hitSound = "StructureHitStone",
 	},
 	Bed = {
 		name = "Cama",
@@ -136,7 +164,8 @@ local Buildables: { [string]: Buildable } = {
 	Beacon = {
 		name = "Baliza de rescate",
 		icon = "📡",
-		description = "Constrúyela en el núcleo. Con las 4 piezas de los jefes, enciéndela para pedir rescate.",
+		description = "Constrúyela en el núcleo. Con las 4 piezas de los jefes, enciéndela y defiéndela esa noche: "
+			.. "si cae, no hay rescate.",
 		order = 8,
 		size = Vector3.new(6, 12, 6),
 		cost = {
@@ -144,10 +173,19 @@ local Buildables: { [string]: Buildable } = {
 			{ itemId = "Stone", amount = 20 },
 			{ itemId = "ShipMetal", amount = 6 },
 		},
-		health = 2500,
+		health = 16000,
 		zones = { Core = true },
 		maxPerServer = 1,
 		hitSound = "StructureHitStone",
+		-- La Gran Tropa va a por ella (Config.Siege.BeaconRaid): cada golpe le quita la mitad del daño del
+		-- mono (no ×3 como a un muro). Medido en Studio (día 8, solo, sin defenderla, dos noches): 35–45
+		-- de daño por segundo en la 3.ª oleada y 95–130 en la 4.ª (según por qué portón entran); con
+		-- 12.000 caía al final de la 4.ª. Con 16.000 cae entre 10 y 30 s después de llegar la 5.ª (a
+		-- ~6 min de los 7 de noche); matando a la mitad de los que van a por ella llega justa al
+		-- amanecer. Si cae, no hay rescate esa noche (BeaconService).
+		siegeDamageMultiplier = 0.5,
+		breaksInPlace = true,
+		raidOnly = true,
 	},
 	StoneForge = {
 		name = "Forja de piedra",

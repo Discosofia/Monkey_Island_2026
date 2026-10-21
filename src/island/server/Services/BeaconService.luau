@@ -5,6 +5,10 @@
 --      día, se puede encender (mantener pulsado su aviso).
 --   3. Esa noche es la noche final, "La Gran Tropa" (SiegeService: más oleadas y más grandes).
 --   4. Si al amanecer queda alguien en pie: ¡rescate! Victoria para todo el servidor.
+-- Fase 9 (G8): parte de la Gran Tropa va a por la baliza (Config.Siege.BeaconRaid). Si la derriban
+-- (Buildables "breaksInPlace": no desaparece), la señal se corta: no hay rescate al amanecer. Al
+-- amanecer se repara entera y se puede volver a encender (otra Gran Tropa esa noche). Una barra sobre
+-- la baliza enseña su vida mientras está encendida o dañada.
 -- Publica "BeaconStatus" (HUD), "BeaconLit" y "FinalNight" en ReplicatedStorage.
 
 local Players = game:GetService("Players")
@@ -20,12 +24,20 @@ local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local DayNightService = require(script.Parent.DayNightService)
+local BuildingService = require(script.Parent.BuildingService)
 local MatchService = require(script.Parent.MatchService)
+
+local LIT_COLOR = Color3.fromRGB(255, 60, 50)
+local HEALTHY_COLOR = Color3.fromRGB(90, 230, 110)
+local WARNING_COLOR = Color3.fromRGB(255, 170, 60)
+local DANGER_COLOR = Color3.fromRGB(235, 70, 60)
 
 local BeaconService = {}
 
 local lit = false
 local finalNight = false
+-- La Gran Tropa derribó la baliza esta noche: al amanecer no hay rescate.
+local signalCut = false
 
 local function announce(text: string)
 	for _, player in Players:GetPlayers() do
@@ -43,8 +55,152 @@ local function findBeacon(): Model?
 	return nil
 end
 
+-- Luz roja de la baliza encendida, o apagada (como recién construida).
+local function setLamp(beacon: Model?, on: boolean)
+	local lamp = if beacon then beacon:FindFirstChild("Lamp") else nil
+	if not (lamp and lamp:IsA("BasePart")) then
+		return
+	end
+	local light = lamp:FindFirstChildOfClass("PointLight")
+	if on then
+		lamp:SetAttribute("OffColor", lamp:GetAttribute("OffColor") or lamp.Color)
+		lamp.Material = Enum.Material.Neon
+		lamp.Color = LIT_COLOR
+		if not light then
+			light = Instance.new("PointLight")
+			light.Color = LIT_COLOR
+			light.Range = 60
+			light.Brightness = 4
+			light.Parent = lamp
+		end
+	else
+		local offColor = lamp:GetAttribute("OffColor")
+		lamp.Material = Enum.Material.Glass
+		lamp.Color = if typeof(offColor) == "Color3" then offColor else lamp.Color
+		if light then
+			light:Destroy()
+		end
+	end
+end
+
+-- Humo sobre la torre mientras está derribada.
+local function setSmoke(beacon: Model, on: boolean)
+	local tower = beacon:FindFirstChild("Tower")
+	if not (tower and tower:IsA("BasePart")) then
+		return
+	end
+	local smoke = tower:FindFirstChild("BrokenSmoke")
+	if on and not smoke then
+		local newSmoke = Instance.new("Smoke")
+		newSmoke.Name = "BrokenSmoke"
+		newSmoke.Color = Color3.fromRGB(60, 60, 60)
+		newSmoke.Size = 4
+		newSmoke.RiseVelocity = 4
+		newSmoke.Opacity = 0.4
+		newSmoke.Parent = tower
+	elseif not on and smoke then
+		smoke:Destroy()
+	end
+end
+
+-- Barra de vida sobre la baliza (se crea la primera vez que hace falta), como la de la hoguera.
+local function healthBar(beacon: Model): BillboardGui?
+	local tower = beacon:FindFirstChild("Tower")
+	if not (tower and tower:IsA("BasePart")) then
+		return nil
+	end
+	local existing = tower:FindFirstChild("BeaconHealth")
+	if existing and existing:IsA("BillboardGui") then
+		return existing
+	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "BeaconHealth"
+	gui.Size = UDim2.fromOffset(170, 34)
+	gui.StudsOffset = Vector3.new(0, 7, 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 200
+	local label = Instance.new("TextLabel")
+	label.Name = "Label"
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.new(1, 0, 0, 18)
+	label.Font = Enum.Font.BuilderSansBold
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0.3
+	label.Parent = gui
+	local back = Instance.new("Frame")
+	back.Name = "Back"
+	back.Position = UDim2.fromOffset(0, 20)
+	back.Size = UDim2.new(1, 0, 0, 12)
+	back.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	back.BackgroundTransparency = 0.35
+	back.BorderSizePixel = 0
+	back.Parent = gui
+	local backCorner = Instance.new("UICorner")
+	backCorner.CornerRadius = UDim.new(0, 6)
+	backCorner.Parent = back
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.BorderSizePixel = 0
+	fill.Parent = back
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(0, 6)
+	fillCorner.Parent = fill
+	gui.Parent = tower
+	return gui
+end
+
+local function healthOf(beacon: Model): (number, number)
+	local health = beacon:GetAttribute("Health")
+	local maxHealth = beacon:GetAttribute("MaxHealth")
+	local max = if typeof(maxHealth) == "number" then maxHealth else 1
+	return if typeof(health) == "number" then health else max, max
+end
+
+local function updateBar(beacon: Model)
+	local gui = healthBar(beacon)
+	if not gui then
+		return
+	end
+	local health, maxHealth = healthOf(beacon)
+	local fraction = math.clamp(health / maxHealth, 0, 1)
+	local broken = BuildingService.isBroken(beacon)
+	gui.Enabled = lit or broken or fraction < 1
+	local label = gui:FindFirstChild("Label") :: TextLabel
+	label.Text = if broken then "📡 Baliza derribada" else `📡 Baliza {math.floor(health)}/{maxHealth}`
+	local fill = (gui :: any).Back.Fill :: Frame
+	fill.Size = UDim2.fromScale(fraction, 1)
+	fill.BackgroundColor3 = if broken or fraction < 0.25
+		then DANGER_COLOR
+		elseif fraction < 0.5 then WARNING_COLOR
+		else HEALTHY_COLOR
+end
+
+-- La Gran Tropa (u otro mono) la ha derribado: si estaba encendida, la señal se corta.
+local function onBroken(model: Model)
+	if model:GetAttribute("BuildableId") ~= "Beacon" then
+		return
+	end
+	setSmoke(model, true)
+	updateBar(model)
+	if lit then
+		lit = false
+		signalCut = true
+		ReplicatedStorage:SetAttribute("BeaconLit", nil)
+		setLamp(model, false)
+		announce("📡 ¡Los monos han derribado la baliza! Se ha cortado la señal: esta noche no habrá rescate")
+	else
+		announce("📡 ¡Los monos han derribado la baliza! Se reparará al amanecer")
+	end
+end
+
 local function onLight(player: Player)
 	if lit or not LifeState.isAlive(player) then
+		return
+	end
+	local beacon = findBeacon()
+	if beacon and BuildingService.isBroken(beacon) then
+		Remotes.Notify:FireClient(player, "📡 La baliza está derribada: se repara al amanecer")
 		return
 	end
 	local state = MatchState.read()
@@ -69,19 +225,12 @@ local function onLight(player: Player)
 	lit = true
 	ReplicatedStorage:SetAttribute("BeaconLit", true)
 	Retention.progress(player, "Beacon")
-	local beacon = findBeacon()
-	local lamp = if beacon then beacon:FindFirstChild("Lamp") else nil
-	if lamp and lamp:IsA("BasePart") then
-		lamp.Material = Enum.Material.Neon
-		lamp.Color = Color3.fromRGB(255, 60, 50)
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(255, 60, 50)
-		light.Range = 60
-		light.Brightness = 4
-		light.Parent = lamp
+	setLamp(beacon, true)
+	if beacon then
+		updateBar(beacon)
 	end
 	announce(
-		`🚨 ¡{player.DisplayName} ha encendido la baliza! Esta noche llega La Gran Tropa: resistid hasta el amanecer`
+		`🚨 ¡{player.DisplayName} ha encendido la baliza! Esta noche llega La Gran Tropa: defended la baliza hasta el amanecer`
 	)
 end
 
@@ -106,22 +255,38 @@ local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 		finalNight = true
 		ReplicatedStorage:SetAttribute("FinalNight", true)
 		announce("🌕 ¡LA GRAN TROPA! Toda la isla viene a por el Basecamp")
-	elseif phase == "Day" and finalNight then
-		local anyoneStanding = false
-		for _, player in Players:GetPlayers() do
-			if LifeState.isAlive(player) then
-				anyoneStanding = true
-			end
+	elseif phase == "Day" then
+		-- Al amanecer se repara (también si los monos solo la dañaron).
+		local beacon = findBeacon()
+		if beacon then
+			local _, maxHealth = healthOf(beacon)
+			BuildingService.repair(beacon, maxHealth)
+			setSmoke(beacon, false)
+			updateBar(beacon)
 		end
-		if anyoneStanding then
-			announce("🚁 ¡Amanece y llega el rescate! ¡Lo habéis conseguido!")
-			MatchService.endMatch("Victory")
+		if finalNight and signalCut then
+			finalNight = false
+			signalCut = false
+			ReplicatedStorage:SetAttribute("FinalNight", nil)
+			announce("🌅 Amanece sin rescate. La baliza está reparada: encendedla de nuevo y defendedla esta noche")
+		elseif finalNight then
+			local anyoneStanding = false
+			for _, player in Players:GetPlayers() do
+				if LifeState.isAlive(player) then
+					anyoneStanding = true
+				end
+			end
+			if anyoneStanding then
+				announce("🚁 ¡Amanece y llega el rescate! ¡Lo habéis conseguido!")
+				MatchService.endMatch("Victory")
+			end
 		end
 	end
 end
 
 function BeaconService:Init()
 	DayNightService.onPhaseStarted(onPhaseStarted)
+	BuildingService.onBroken(onBroken)
 end
 
 function BeaconService:Start()
@@ -130,6 +295,9 @@ function BeaconService:Start()
 		folder.ChildAdded:Connect(function(child: Instance)
 			if child:IsA("Model") and child:GetAttribute("BuildableId") == "Beacon" then
 				addPrompt(child)
+				child:GetAttributeChangedSignal("Health"):Connect(function()
+					updateBar(child)
+				end)
 			end
 		end)
 	end)
@@ -137,12 +305,20 @@ function BeaconService:Start()
 		task.wait(1)
 		local pieces = #Beacon.pieces()
 		local status: string? = nil
-		if finalNight then
-			status = "🌕 La Gran Tropa: ¡resistid hasta el amanecer!"
+		local beacon = findBeacon()
+		if finalNight and signalCut then
+			status = "📡 Baliza derribada: esta noche no habrá rescate. ¡Resistid hasta el amanecer!"
+		elseif finalNight then
+			local health, maxHealth = 0, 1
+			if beacon then
+				health, maxHealth = healthOf(beacon)
+			end
+			status =
+				`🌕 La Gran Tropa: ¡defended la baliza ({math.floor(health / maxHealth * 100)} %) hasta el amanecer!`
 		elseif lit then
-			status = "🚨 Baliza encendida: esta noche llega La Gran Tropa"
-		elseif pieces > 0 or findBeacon() then
-			local built = if findBeacon() then "construida" else "sin construir"
+			status = "🚨 Baliza encendida: esta noche llega La Gran Tropa. ¡Defendedla!"
+		elseif pieces > 0 or beacon then
+			local built = if beacon then "construida" else "sin construir"
 			status = `📡 Baliza {built} · piezas {pieces}/{Beacon.total()}`
 		end
 		ReplicatedStorage:SetAttribute("BeaconStatus", status)

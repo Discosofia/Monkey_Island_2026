@@ -13,6 +13,8 @@
 -- un FinalNightGrowth más grande que la anterior y lo que crece es una especie nueva y más fuerte.
 -- Fase 9 (G7): en la noche de macacos saboteadores (MidEventService, setSaboteurs) cada oleada trae
 -- además macacos que van a por las trampas, los muros y las estaciones (Config.MidEvents.Saboteurs).
+-- Fase 9 (G8): en la Gran Tropa, parte de los mandriles, orangutanes y gorilas de cada oleada va a por
+-- la baliza (Config.Siege.BeaconRaid); si la derriban no hay rescate esa noche (BeaconService).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -108,6 +110,19 @@ local function share(count: number, parts: number, index: number): number
 	return if index == 1 then count - (parts - 1) * (count // parts) else count // parts
 end
 
+local SABOTEURS: MonkeyService.Raid = {
+	targets = Config.MidEvents.Saboteurs.Targets,
+	searchRadius = Config.MidEvents.Saboteurs.SearchRadius,
+	damageMultiplier = Config.MidEvents.Saboteurs.DamageMultiplier,
+	bubble = "🔧",
+}
+
+local BEACON_RAIDERS: MonkeyService.Raid = {
+	targets = { "Beacon" },
+	searchRadius = Config.Siege.BeaconRaid.SearchRadius,
+	bubble = "📡",
+}
+
 local function launchWave(day: number, wave: number)
 	-- Centro a ras de suelo (BuildingService lo publica); si no, el de la zona.
 	local flatCenter = Building.center() or BasecampService.getCenter()
@@ -132,11 +147,18 @@ local function launchWave(day: number, wave: number)
 		local gatePoint = flatCenter + direction * (Config.Building.PerimeterRadius - 10)
 		local spawnPoint = flatCenter + direction * (Config.Building.PerimeterRadius + Config.Siege.SpawnDistance)
 		if mix then
-			-- Cada especie de la mezcla se reparte entre todos los portones.
+			-- Cada especie de la mezcla se reparte entre todos los portones; de las de BeaconRaid, una
+			-- parte va a por la baliza.
 			for _, entry in mix do
 				local count = share(entry.count, #gates, index)
-				if count > 0 then
-					MonkeyService.spawnSiegeGroup(entry.species, spawnPoint, gatePoint, count)
+				local raiders = if table.find(Config.Siege.BeaconRaid.Species, entry.species)
+					then math.round(count * Config.Siege.BeaconRaid.Share)
+					else 0
+				if raiders > 0 then
+					MonkeyService.spawnSiegeGroup(entry.species, spawnPoint, gatePoint, raiders, BEACON_RAIDERS)
+				end
+				if count - raiders > 0 then
+					MonkeyService.spawnSiegeGroup(entry.species, spawnPoint, gatePoint, count - raiders)
 				end
 			end
 		else
@@ -160,7 +182,7 @@ local function launchWave(day: number, wave: number)
 					flatCenter + direction * (Config.Building.PerimeterRadius + Config.Siege.SpawnDistance),
 					flatCenter + direction * (Config.Building.PerimeterRadius - 10),
 					count,
-					true
+					SABOTEURS
 				)
 			end
 		end

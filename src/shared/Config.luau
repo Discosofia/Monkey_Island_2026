@@ -465,6 +465,35 @@ local Config = {
 		SpikeSlowSeconds = 1,
 		SpikeReachMargin = 1,
 		SpikeWearPerHit = 6,
+		-- Fase 9 (G8): en la Gran Tropa, esta parte de los monos de cada especie de la lista va a por la
+		-- baliza (y rompe lo que le cierre el camino); los demás monos la rodean. Le quitan su daño × el
+		-- "siegeDamageMultiplier" de la baliza (Data/Buildables). Jugando solo, el día 8, sin nadie que
+		-- los pare (medido en Studio): 35–45 de daño por segundo en la 3.ª oleada (mandriles), 95–130
+		-- en la 4.ª (+ orangutanes) y unos 200 en la 5.ª (+ gorilas): la baliza (16.000) cae al poco de
+		-- llegar la 5.ª; matándolos, aguanta.
+		BeaconRaid = {
+			Species = { "Mandril", "Orangutan", "Gorila" },
+			Share = 0.5,
+			SearchRadius = 200,
+		},
+		-- Antorchas de pie (G8): los monos del asedio que temen al fuego (aulladores) huyen de ellas
+		-- ScareSeconds; cada susto le quita ScareWear de vida a la antorcha (120: unos 30 sustos; tres
+		-- en un portón frenan ~1 min a los aulladores de la Gran Tropa que entran por él).
+		TorchScare = {
+			Radius = 10,
+			ScareSeconds = 4,
+			ScareWear = 4,
+		},
+		-- Tótem guardián (G8, DefenseService): a Radius studs de él, las piezas reciben PieceReduction
+		-- menos daño y de noche, si llevan QuietSeconds sin recibir golpes, recuperan RepairPerSecond de
+		-- su vida máxima por segundo; los jugadores reciben PlayerReduction menos daño.
+		Totem = {
+			Radius = 25,
+			PieceReduction = 0.35,
+			PlayerReduction = 0.1,
+			RepairPerSecond = 0.004,
+			QuietSeconds = 6,
+		},
 	},
 
 	Crafting = {
@@ -753,7 +782,7 @@ local Config = {
 			SearchRadius = 140,
 			DamageMultiplier = 1.5,
 			-- Piezas a las que van (Data/Buildables): trampas, muros y barricadas, y las estaciones del
-			-- núcleo con el nido. La baliza y las camas, no.
+			-- núcleo con el nido y el tótem (G8). La baliza y las camas, no.
 			Targets = {
 				"Spikes",
 				"WoodWall",
@@ -763,6 +792,7 @@ local Config = {
 				"StoneForge",
 				"VolcanicForge",
 				"Nest",
+				"WarTotem",
 			},
 		},
 		Eruption = {

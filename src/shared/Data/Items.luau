@@ -113,6 +113,7 @@ local Items: { [string]: ItemDefinition } = {
 		rarity = "Legendary",
 		group = "Treasure",
 		keep = true,
+		note = "El tótem guardián del Basecamp la pide (martillo)",
 	},
 	ChieftainCrown = {
 		name = "Corona del caudillo",

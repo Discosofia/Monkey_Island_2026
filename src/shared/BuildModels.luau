@@ -5,6 +5,7 @@
 -- centro, así que basta con PivotTo(cframe) para colocarlo.
 
 local Buildables = require(script.Parent.Data.Buildables)
+local Config = require(script.Parent.Config)
 
 local WOOD = Color3.fromRGB(125, 85, 50)
 local DARK_WOOD = Color3.fromRGB(85, 55, 32)
@@ -18,6 +19,10 @@ local BASALT = Color3.fromRGB(62, 58, 60)
 local BASALT_DARK = Color3.fromRGB(44, 41, 44)
 local OBSIDIAN = Color3.fromRGB(30, 24, 38)
 local MAGMA = Color3.fromRGB(255, 110, 30)
+-- Tótem guardián (Fase 9, G8): madera tallada con pintura de ocre y ojos de perla del río.
+local TOTEM_LIGHT = Color3.fromRGB(156, 108, 62)
+local OCHRE = Color3.fromRGB(170, 62, 40)
+local PEARL = Color3.fromRGB(205, 225, 255)
 
 local BuildModels = {}
 
@@ -562,6 +567,218 @@ local BUILDERS: { [string]: (model: Model, size: Vector3) -> () } = {
 			Enum.Material.SmoothPlastic
 		)
 		anvil.Reflectance = 0.05
+	end,
+	-- Fase 9 (G8): tótem de tres caras de mono apiladas (gorila ceñudo, aullador con la boca abierta y
+	-- uno de orejas grandes con penacho de obsidiana y la perla del río), talladas delante (-Z) y
+	-- detrás, con alas a los lados, sobre una base de piedra. Un anillo de trazos en el suelo marca
+	-- hasta dónde llega su aura (Config.Siege.Totem.Radius).
+	WarTotem = function(model, size)
+		local bottom = -size.Y / 2
+		newPart(
+			model,
+			"Base",
+			Vector3.new(size.X, 0.8, size.Z),
+			CFrame.new(0, bottom + 0.4, 0),
+			STONE_DARK,
+			Enum.Material.Slate
+		)
+		newPart(
+			model,
+			"Step",
+			Vector3.new(size.X - 0.8, 0.6, size.Z - 0.8),
+			CFrame.new(0, bottom + 1.1, 0),
+			STONE,
+			Enum.Material.Slate
+		)
+		-- De abajo arriba: el gorila (ancho y oscuro), el aullador y el de las orejas (más estrecho).
+		local headHeight = 2
+		local headWidths = { 3, 2.6, 2.3 }
+		local headColors = { DARK_WOOD, TOTEM_LIGHT, WOOD }
+		local firstY = bottom + 1.4 + headHeight / 2
+		-- Cara tallada en el lado "side" (-1 delante, 1 detrás) de la cabeza "index" (1 abajo).
+		local function face(index: number, centerY: number, side: number)
+			local width = headWidths[index]
+			local z = side * (width / 2 + 0.1)
+			newPart(
+				model,
+				"Brow",
+				Vector3.new(width - 0.2, if index == 1 then 0.5 else 0.35, 0.3),
+				CFrame.new(0, centerY + 0.55, z),
+				if index == 1 then Color3.fromRGB(50, 32, 20) else DARK_WOOD,
+				Enum.Material.Wood
+			)
+			for eye = -1, 1, 2 do
+				local socket = newPart(
+					model,
+					"Eye",
+					Vector3.new(0.55, 0.45, 0.2),
+					CFrame.new(eye * 0.6, centerY + 0.15, z),
+					OBSIDIAN,
+					Enum.Material.SmoothPlastic
+				)
+				socket.Reflectance = 0.05
+				decor(
+					newPart(
+						model,
+						"Pupil",
+						Vector3.new(0.24, 0.24, 0.1),
+						CFrame.new(eye * 0.6, centerY + 0.15, z + side * 0.1),
+						PEARL,
+						Enum.Material.Neon
+					)
+				)
+			end
+			-- Rayas de pintura de ocre en las mejillas.
+			for cheek = -1, 1, 2 do
+				decor(
+					newPart(
+						model,
+						"Paint",
+						Vector3.new(0.18, 0.7, 0.1),
+						CFrame.new(cheek * (width / 2 - 0.25), centerY - 0.15, z),
+						OCHRE,
+						Enum.Material.SmoothPlastic
+					)
+				)
+			end
+			local muzzleY = centerY - 0.55
+			newPart(
+				model,
+				"Muzzle",
+				Vector3.new(1.5, 0.75, 0.4),
+				CFrame.new(0, muzzleY, z + side * 0.1),
+				TOTEM_LIGHT,
+				Enum.Material.Wood
+			)
+			if index == 2 then
+				-- El aullador: boca abierta con colmillos.
+				newPart(
+					model,
+					"Mouth",
+					Vector3.new(0.9, 0.45, 0.1),
+					CFrame.new(0, muzzleY - 0.05, z + side * 0.32),
+					DARK_WOOD,
+					Enum.Material.SmoothPlastic
+				)
+				for fang = -1, 1, 2 do
+					decor(
+						newPart(
+							model,
+							"Fang",
+							Vector3.new(0.14, 0.22, 0.08),
+							CFrame.new(fang * 0.3, muzzleY + 0.06, z + side * 0.37),
+							Color3.fromRGB(230, 220, 195),
+							Enum.Material.SmoothPlastic
+						)
+					)
+				end
+			else
+				newPart(
+					model,
+					"Nose",
+					Vector3.new(if index == 1 then 0.8 else 0.45, 0.3, 0.2),
+					CFrame.new(0, muzzleY + 0.2, z + side * 0.35),
+					DARK_WOOD,
+					Enum.Material.Wood
+				)
+			end
+		end
+		for index = 1, 3 do
+			local centerY = firstY + (index - 1) * headHeight
+			local width = headWidths[index]
+			newPart(
+				model,
+				"Head",
+				Vector3.new(width, headHeight, width),
+				CFrame.new(0, centerY, 0),
+				headColors[index],
+				Enum.Material.Wood
+			)
+			face(index, centerY, -1)
+			face(index, centerY, 1)
+		end
+		-- Alas talladas a los lados de la cabeza del medio, levantadas.
+		local wingY = firstY + headHeight
+		local wingX = headWidths[2] / 2
+		for side = -1, 1, 2 do
+			newPart(
+				model,
+				"Wing",
+				Vector3.new(1.5, 0.9, 0.5),
+				CFrame.new(side * (wingX + 0.6), wingY + 0.3, 0) * CFrame.Angles(0, 0, side * math.rad(25)),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+			decor(
+				newPart(
+					model,
+					"WingPaint",
+					Vector3.new(1.1, 0.2, 0.55),
+					CFrame.new(side * (wingX + 0.7), wingY + 0.38, 0) * CFrame.Angles(0, 0, side * math.rad(25)),
+					OCHRE,
+					Enum.Material.SmoothPlastic
+				)
+			)
+		end
+		-- Arriba: orejas grandes y la perla del río que brilla en una corona de esquirlas de obsidiana
+		-- (una a cada lado: se ve de frente y de espaldas).
+		local topY = firstY + 2.5 * headHeight
+		for side = -1, 1, 2 do
+			newPart(
+				model,
+				"Ear",
+				Vector3.new(0.45, 1, 0.9),
+				CFrame.new(side * (headWidths[3] / 2 + 0.2), topY - 0.9, 0),
+				TOTEM_LIGHT,
+				Enum.Material.Wood
+			)
+		end
+		for spike = 0, 3 do
+			local angle = spike * math.pi / 2
+			local shard = newPart(
+				model,
+				"Shard",
+				Vector3.new(0.45, 1.1, 0.45),
+				CFrame.Angles(0, angle, 0) * CFrame.new(0, topY + 0.45, -0.75) * CFrame.Angles(math.rad(-25), 0, 0),
+				OBSIDIAN,
+				Enum.Material.SmoothPlastic
+			)
+			shard.Reflectance = 0.05
+		end
+		local pearl = newPart(
+			model,
+			"Pearl",
+			Vector3.new(1.1, 1.1, 1.1),
+			CFrame.new(0, topY + 1.05, 0),
+			PEARL,
+			Enum.Material.Neon
+		)
+		pearl.Shape = Enum.PartType.Ball
+		local light = Instance.new("PointLight")
+		light.Color = PEARL
+		light.Range = 10
+		light.Brightness = 1.5
+		light.Parent = pearl
+		-- Anillo de trazos en el suelo con el radio del aura.
+		local radius = Config.Siege.Totem.Radius
+		local dashes = 40
+		local dashLength = 2 * math.pi * radius / dashes * 0.55
+		for dash = 1, dashes do
+			local angle = (dash - 0.5) / dashes * 2 * math.pi
+			local ring = decor(
+				newPart(
+					model,
+					"AuraRing",
+					Vector3.new(0.35, 0.1, dashLength),
+					CFrame.new(math.cos(angle) * radius, bottom + 0.05, math.sin(angle) * radius)
+						* CFrame.Angles(0, -angle, 0),
+					PEARL,
+					Enum.Material.Neon
+				)
+			)
+			ring.Transparency = 0.4
+			ring.CastShadow = false
+		end
 	end,
 }
 

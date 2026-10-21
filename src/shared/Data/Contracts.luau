@@ -60,8 +60,9 @@ local function beacon(): Step
 	}
 end
 
--- Piezas que cuentan como defensa del Basecamp (Data/Buildables).
-local DEFENSES = { "WoodWall", "StoneWall", "GateBarricade", "Spikes" }
+-- Piezas que cuentan como defensa del Basecamp (Data/Buildables). Las antorchas de pie, no: son
+-- demasiado baratas.
+local DEFENSES = { "WoodWall", "StoneWall", "GateBarricade", "Spikes", "WarTotem" }
 
 local Contracts: { [string]: Contract } = {
 	Camp = {
@@ -93,7 +94,7 @@ local Contracts: { [string]: Contract } = {
 				day = 5,
 				icon = "🛡️",
 				title = "Fortificar",
-				text = "Levantad {target} muros, estacas o barricadas",
+				text = "Levantad {target} muros, estacas, barricadas o el tótem",
 				event = "Build",
 				target = 4,
 				keys = DEFENSES,

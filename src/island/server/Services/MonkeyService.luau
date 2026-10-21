@@ -69,6 +69,17 @@ local FLAT = Vector3.new(1, 0, 1)
 
 type State = "Idle" | "Chase" | "Flee" | "Return"
 
+-- Asedio: grupo que va a por unas piezas concretas en vez de a la hoguera (rompiendo lo que le cierre
+-- el camino). Los macacos saboteadores (G7) y los que van a por la baliza en la Gran Tropa (G8).
+export type Raid = {
+	targets: { string }, -- ids de Data/Buildables
+	searchRadius: number,
+	-- Multiplicador de su daño a las piezas; nil = el de cada pieza (Buildables "siegeDamageMultiplier"
+	-- o Config.Siege.StructureDamageMultiplier).
+	damageMultiplier: number?,
+	bubble: string,
+}
+
 type Group = {
 	speciesId: string,
 	home: Vector3,
@@ -81,7 +92,7 @@ type Group = {
 	stored: number,
 	nextRegrowAt: number, -- os.clock() a partir del cual puede recuperar un mono
 	siege: boolean?, -- grupo del asedio nocturno
-	saboteur: boolean?, -- asedio: van a por trampas, muros y estaciones (G7, Config.MidEvents.Saboteurs)
+	raid: Raid?, -- asedio: van a por unas piezas concretas (saboteadores, la baliza)
 	gate: Vector3?, -- portón por el que entra el grupo de asedio
 	alpha: Monkey?, -- líder de la tropa (especies con "alpha")
 	ignoreCap: boolean?, -- no cuenta el límite de monos a la vez (los del panel de pruebas)
@@ -1097,14 +1108,16 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 end
 
 -- true si la pieza no cierra el paso ("walkable" en Data/Buildables, como las estacas).
-local function isWalkable(model: Model): boolean
+-- El mono no se para a romperla: la cruza (estacas) o la rodea (la baliza, salvo los que van a por
+-- ella: esos la buscan con raidTarget).
+local function ignoresPiece(model: Model): boolean
 	local buildableId = model:GetAttribute("BuildableId")
 	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
-	return definition ~= nil and definition.walkable == true
+	return definition ~= nil and (definition.walkable == true or definition.raidOnly == true)
 end
 
--- Pieza construida más cercana al alcance que cierra el paso, o nil. Las transitables (estacas) no
--- cuentan: el mono las cruza en vez de pararse a romperlas.
+-- Pieza construida más cercana al alcance que cierra el paso, o nil. Las transitables (estacas) y las
+-- que solo rompen las incursiones (la baliza) no cuentan; las derribadas, tampoco.
 local function nearestStructure(position: Vector3, reach: number): Model?
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
@@ -1116,7 +1129,7 @@ local function nearestStructure(position: Vector3, reach: number): Model?
 		while model and model.Parent ~= BuildingService.getStructures() do
 			model = model:FindFirstAncestorOfClass("Model")
 		end
-		if model and not isWalkable(model) then
+		if model and not ignoresPiece(model) and not BuildingService.isBroken(model) then
 			local distance = (part.Position - position).Magnitude
 			if distance < bestDistance then
 				best = model
@@ -1127,15 +1140,37 @@ local function nearestStructure(position: Vector3, reach: number): Model?
 	return best
 end
 
--- Saboteadores (G7): la pieza de Config.MidEvents.Saboteurs.Targets más cercana a "position" (dentro de
--- SearchRadius) y su distancia al borde, o nil.
-local function sabotageTarget(position: Vector3): (Model?, number)
-	local settings = Config.MidEvents.Saboteurs
+-- Daño de un golpe de mono del asedio a una pieza: el de su incursión o el de la pieza (las estacas,
+-- siempre SpikeDisarmPerHit).
+local function structureDamage(monkey: Monkey, model: Model): number
+	local buildableId = model:GetAttribute("BuildableId")
+	if buildableId == "Spikes" then
+		return Config.Siege.SpikeDisarmPerHit
+	end
+	local raid = monkey.group.raid
+	if raid and raid.damageMultiplier then
+		return monkey.damage * raid.damageMultiplier
+	end
+	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
+	local multiplier = if definition and definition.siegeDamageMultiplier
+		then definition.siegeDamageMultiplier
+		else Config.Siege.StructureDamageMultiplier
+	return monkey.damage * multiplier
+end
+
+-- Incursiones (saboteadores, la baliza): la pieza de sus objetivos más cercana a "position" (dentro de
+-- su searchRadius) y su distancia al borde, o nil. Las derribadas no cuentan.
+local function raidTarget(raid: Raid, position: Vector3): (Model?, number)
 	local best: Model? = nil
-	local bestDistance = settings.SearchRadius
+	local bestDistance = raid.searchRadius
 	for _, model in BuildingService.getStructures():GetChildren() do
 		local buildableId = model:GetAttribute("BuildableId")
-		if model:IsA("Model") and typeof(buildableId) == "string" and table.find(settings.Targets, buildableId) then
+		if
+			model:IsA("Model")
+			and typeof(buildableId) == "string"
+			and table.find(raid.targets, buildableId)
+			and not BuildingService.isBroken(model)
+		then
 			local size = Buildables[buildableId].size
 			local distance = ((model:GetPivot().Position - position) * FLAT).Magnitude - math.max(size.X, size.Z) / 2
 			if distance < bestDistance then
@@ -1145,6 +1180,30 @@ local function sabotageTarget(position: Vector3): (Model?, number)
 		end
 	end
 	return best, bestDistance
+end
+
+-- Asedio (G8): a menos de Config.Siege.TorchScare.Radius de una antorcha de pie, el mono huye hacia
+-- fuera durante ScareSeconds y la antorcha pierde ScareWear de vida. Devuelve true mientras huye.
+local function scaredByTorch(monkey: Monkey, now: number): boolean
+	local settings = Config.Siege.TorchScare
+	local position = monkey.root.Position
+	if now < monkey.scaredUntil then
+		return true
+	end
+	for _, model in BuildingService.getStructures():GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("BuildableId") == "StandingTorch" then
+			local away = (position - model:GetPivot().Position) * FLAT
+			if away.Magnitude <= settings.Radius then
+				monkey.scaredUntil = now + settings.ScareSeconds
+				showBubble(monkey, "🔥 ¡IIH!")
+				local direction = if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis
+				monkey.humanoid:MoveTo(position + direction * 24)
+				BuildingService.damageStructure(model, settings.ScareWear)
+				return true
+			end
+		end
+	end
+	return false
 end
 
 -- Asedio: si en Config.Siege.DetourAfterSeconds no ha avanzado ni 3 studs hacia "goal" (algo le
@@ -1204,10 +1263,16 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		return
 	end
 
-	-- Saboteadores (G7): van a por las trampas, los muros y las estaciones antes que a por los jugadores;
-	-- si otra pieza les cierra el camino, la rompen primero.
-	if monkey.group.saboteur then
-		local victim, distance = sabotageTarget(position)
+	-- Antorchas de pie (G8): los que temen al fuego huyen de ellas un rato y la antorcha se gasta.
+	if definition.fearsFire and scaredByTorch(monkey, now) then
+		return
+	end
+
+	-- Incursiones (saboteadores de G7, la baliza en la Gran Tropa): van a por sus piezas antes que a por
+	-- los jugadores; si otra pieza les cierra el camino, la rompen primero.
+	local raid = monkey.group.raid
+	if raid then
+		local victim, distance = raidTarget(raid, position)
 		if victim then
 			local blocking = if distance > Config.Siege.StructureReach
 				then nearestStructure(position, Config.Siege.StructureReach)
@@ -1216,12 +1281,9 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 				humanoid:MoveTo(position)
 				if canAttack then
 					monkey.lastAttackAt = now
-					local damage = if blocking:GetAttribute("BuildableId") == "Spikes"
-						then Config.Siege.SpikeDisarmPerHit
-						else monkey.damage * Config.MidEvents.Saboteurs.DamageMultiplier
-					BuildingService.damageStructure(blocking, damage)
+					BuildingService.damageStructure(blocking, structureDamage(monkey, blocking))
 					MonkeyAnimator.play(monkey.model, "Attack")
-					showBubble(monkey, "🔧")
+					showBubble(monkey, raid.bubble)
 				end
 			else
 				local detour = monkey.detour
@@ -1275,7 +1337,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		humanoid:MoveTo(position)
 		if canAttack then
 			monkey.lastAttackAt = now
-			BuildingService.damageStructure(structure, monkey.damage * Config.Siege.StructureDamageMultiplier)
+			BuildingService.damageStructure(structure, structureDamage(monkey, structure))
 			MonkeyAnimator.play(monkey.model, "Attack")
 			showBubble(monkey, "💥")
 		end
@@ -1310,14 +1372,14 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	siegeUnstick(monkey, goal, now)
 end
 
--- Lanza un grupo de asedio que aparece en "spawnPoint" y entra por "gatePoint". "saboteur": van a por
--- las trampas, los muros y las estaciones (G7).
+-- Lanza un grupo de asedio que aparece en "spawnPoint" y entra por "gatePoint". "raid": van a por unas
+-- piezas concretas (los saboteadores de G7, la baliza en la Gran Tropa).
 function MonkeyService.spawnSiegeGroup(
 	speciesId: string,
 	spawnPoint: Vector3,
 	gatePoint: Vector3,
 	count: number,
-	saboteur: boolean?
+	raid: Raid?
 )
 	local group: Group = {
 		speciesId = speciesId,
@@ -1329,7 +1391,7 @@ function MonkeyService.spawnSiegeGroup(
 		stored = 0,
 		nextRegrowAt = math.huge,
 		siege = true,
-		saboteur = saboteur,
+		raid = raid,
 		gate = gatePoint,
 	}
 	table.insert(groups, group)

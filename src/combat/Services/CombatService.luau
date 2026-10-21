@@ -177,6 +177,11 @@ local function mitigate(player: Player, amount: number): number
 	if armor then
 		amount = math.max(1, math.round(amount * (1 - armor.damageReduction)))
 	end
+	-- Aura del tótem guardián de la Isla (Fase 9, G8; DefenseService).
+	local ward = player:GetAttribute("WardReduction")
+	if typeof(ward) == "number" and ward > 0 then
+		amount = math.max(1, math.round(amount * (1 - math.clamp(ward, 0, 0.9))))
+	end
 	local now = Workspace:GetServerTimeNow()
 	local guardUntil = player:GetAttribute("GuardUntil")
 	local guard = player:GetAttribute("GuardReduction")
