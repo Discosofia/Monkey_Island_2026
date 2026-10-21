@@ -119,33 +119,37 @@ type BurstStyle = {
 }
 
 local STYLES: { [string]: BurstStyle } = {
-	-- Erupción: estrellas de lava sobre rojo oscuro, borde de basalto, rayos de fuego y nubes de ceniza;
-	-- el K.O. es una estrella de basalto con lava dentro.
+	-- Erupción: siempre una estrella de basalto con lava dentro (lo que no tiene ningún estallido de
+	-- serie): el golpe, basalto y naranja; el crítico, con rayos de fuego; el K.O., basalto oscuro y lava
+	-- roja. Nubes de ceniza y sus palabras ("FSSS!", "KABOOM!").
 	VolcanicBurst = {
+		-- El golpe normal también lleva la lava dentro de la estrella de basalto: si no, se confundía
+		-- con el amarillo de serie.
 		Hit = {
-			outer = Color3.fromRGB(255, 125, 40),
-			star = Color3.fromRGB(255, 200, 80),
-			text = Color3.fromRGB(255, 245, 200),
-			edge = Color3.fromRGB(140, 30, 10),
+			outer = Color3.fromRGB(90, 72, 64),
+			inner = Color3.fromRGB(255, 105, 25),
+			star = Color3.fromRGB(255, 190, 60),
+			text = Color3.fromRGB(255, 225, 80),
+			edge = Color3.fromRGB(150, 25, 5),
 		},
 		Crit = {
-			outer = Color3.fromRGB(195, 40, 18),
-			inner = Color3.fromRGB(255, 165, 35),
-			rays = Color3.fromRGB(255, 165, 60),
+			outer = Color3.fromRGB(105, 84, 75),
+			inner = Color3.fromRGB(255, 130, 25),
+			rays = Color3.fromRGB(255, 120, 30),
 			star = Color3.fromRGB(255, 205, 80),
 			text = Color3.fromRGB(255, 240, 150),
 			edge = Color3.fromRGB(55, 25, 15),
 		},
 		KO = {
-			outer = Color3.fromRGB(90, 72, 64),
-			inner = Color3.fromRGB(255, 110, 30),
+			outer = Color3.fromRGB(58, 46, 42),
+			inner = Color3.fromRGB(240, 55, 15),
 			rays = Color3.fromRGB(255, 140, 40),
 			star = Color3.fromRGB(255, 190, 70),
 			text = Color3.fromRGB(255, 255, 255),
 			edge = Color3.fromRGB(200, 40, 15),
 		},
 		puff = Color3.fromRGB(125, 115, 110),
-		words = { Crit = { "KABOOM!", "FWOOSH!", "BRRUM!" } },
+		words = { Hit = { "FSSS!", "CRACK!", "FWOOSH!" }, Crit = { "KABOOM!", "BRRUM!" } },
 	},
 }
 

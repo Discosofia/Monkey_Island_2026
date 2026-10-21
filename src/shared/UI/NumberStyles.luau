@@ -1,10 +1,13 @@
 --!strict
 -- Estilos de los números de combate (cosmético NumberStyle, Fase 9 G9d), por id del cosmético: la
--- letra, el brillo de arriba abajo (tres colores, uno más claro para el crítico), el borde y cuánto
--- crece la caja (cada letra deja distinto aire arriba y abajo). Los dibuja UI/CombatTextColumn en el
--- daño que hace quien lo lleva, y su imagen (unos números voxel) Shared/RewardModels. Solo datos: sin
--- dependencias, para que RewardModels lo pueda cargar en cualquier sitio.
--- Nunca verde ni morado: son la curación y el veneno.
+-- letra, tres franjas de color de arriba abajo (otras más claras para el crítico), el borde, cuánto
+-- crece la caja (cada letra deja distinto aire arriba y abajo) y "glyph", la parte de la caja (de
+-- arriba abajo, 0–1) que ocupan las cifras en esa letra, para que las tres franjas caigan sobre ellas.
+-- Los dibuja UI/CombatTextColumn en el daño que hace quien lo lleva, y su imagen (unos números voxel)
+-- Shared/RewardModels. Solo datos: sin dependencias, para que RewardModels lo pueda cargar en
+-- cualquier sitio.
+-- Tienen que verse distintos de los de serie (amarillos) a primera vista. Nunca verde ni morado: son
+-- la curación y el veneno.
 
 export type NumberStyle = {
 	font: Font,
@@ -12,16 +15,18 @@ export type NumberStyle = {
 	critColors: { Color3 },
 	edge: Color3,
 	scale: number,
+	glyph: { number },
 }
 
 local NumberStyles: { [string]: NumberStyle } = {
-	-- Lava que se enfría: blanco amarillento arriba, naranja y rojo oscuro abajo, con borde de basalto.
+	-- Lava: amarillo arriba, naranja en medio y rojo vivo abajo, con un borde grueso de basalto.
 	MagmaNumbers = {
 		font = Font.fromEnum(Enum.Font.LuckiestGuy),
-		colors = { Color3.fromRGB(255, 235, 140), Color3.fromRGB(255, 130, 25), Color3.fromRGB(165, 35, 10) },
-		critColors = { Color3.fromRGB(255, 255, 225), Color3.fromRGB(255, 185, 45), Color3.fromRGB(215, 45, 10) },
-		edge = Color3.fromRGB(40, 26, 22),
+		colors = { Color3.fromRGB(255, 225, 70), Color3.fromRGB(255, 115, 20), Color3.fromRGB(205, 30, 10) },
+		critColors = { Color3.fromRGB(255, 250, 190), Color3.fromRGB(255, 150, 25), Color3.fromRGB(230, 40, 10) },
+		edge = Color3.fromRGB(32, 16, 12),
 		scale = 1.25,
+		glyph = { 0.2, 0.8 },
 	},
 }
 

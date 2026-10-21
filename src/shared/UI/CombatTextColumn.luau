@@ -152,10 +152,18 @@ function CombatTextColumn.new(container: GuiObject, align: Align, options: Optio
 			label.FontFace = look.font
 			label.TextColor3 = if emoji then colors[2] else WHITE
 			stroke.Color = look.edge
-			stroke.Thickness = math.clamp(pixels * (if crit then 0.1 else 0.085), 1.5, 6)
+			stroke.Thickness = math.clamp(pixels * (if crit then 0.13 else 0.11), 2, 8)
+			-- Tres franjas marcadas (como su imagen voxel) dentro del alto de las cifras: el degradado
+			-- tiñe toda la caja y, repartido en ella, a las cifras solo les llegaba la franja del medio.
+			local top, bottom = look.glyph[1], look.glyph[2]
+			local third = (bottom - top) / 3
+			local blend = 0.02
 			gradient.Color = ColorSequence.new({
 				ColorSequenceKeypoint.new(0, colors[1]),
-				ColorSequenceKeypoint.new(0.5, colors[2]),
+				ColorSequenceKeypoint.new(top + third - blend, colors[1]),
+				ColorSequenceKeypoint.new(top + third + blend, colors[2]),
+				ColorSequenceKeypoint.new(top + third * 2 - blend, colors[2]),
+				ColorSequenceKeypoint.new(top + third * 2 + blend, colors[3]),
 				ColorSequenceKeypoint.new(1, colors[3]),
 			})
 			return
