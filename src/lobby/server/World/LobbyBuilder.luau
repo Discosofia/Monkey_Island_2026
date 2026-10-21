@@ -21,8 +21,8 @@
 -- pasarela de subida; la hoguera de la plaza; el campamento abajo a la izquierda con tienda de lona,
 -- contenedores varados y cajas de la carga; el ancla con cadena; cuatro carteles en el borde de la
 -- plaza (de izquierda a derecha: el de las mascotas tapando el nombre de la proa, la bitácora del
--- capitán, los roles con el aviso "RolesPrompt", el ranking con "RankingPrompt" y el de la Isla de
--- dunas con "ArenaPrompt"); el nido de huevos delante del cartel de las mascotas (aviso "NidoPrompt",
+-- capitán, los roles con el aviso "RolesPrompt", el ranking con "RankingPrompt", el de la Isla de
+-- dunas con "ArenaPrompt" y, junto a la llegada, el del pase de temporada con "PassPrompt"); el nido de huevos delante del cartel de las mascotas (aviso "NidoPrompt",
 -- etiqueta Config.Lobby.NestTag); las estaciones con interacción llevan los atributos "StationId" y
 -- "StationIcon" (los marcadores de cada cliente); la lancha de rescate para zarpar a la Isla de monos (aviso "ZarparPrompt");
 -- el embarcadero con el velero que lleva a la Isla de dunas (aviso "ZarparDunasPrompt");
@@ -48,7 +48,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 12
+local VERSION = 13
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -74,7 +74,8 @@ local PEAKS_CENTER = Vector3.new(-150, 0, -1300)
 
 -- Plaza: el círculo de arena libre (centro; radio de unos 41 × 39) donde se juntan los jugadores.
 -- Dentro solo quedan la hoguera, el nido, los muñecos de práctica y la llegada. Los carteles están
--- sobre su borde (de arriba a la izquierda a la derecha: mascotas, bitácora, roles, ranking y arena)
+-- sobre su borde (de arriba a la izquierda a la derecha: mascotas, bitácora, roles, ranking, arena y
+-- pase)
 -- y miran a su centro; el barco, el campamento y los botes quedan fuera.
 local PLAZA = Vector2.new(10, -3)
 -- Cartel de las mascotas: a la izquierda de la bitácora, en la línea que va del centro de la plaza al
@@ -86,6 +87,9 @@ local ROLE_BOARD_AT = Vector2.new(39.5, -30.1)
 local RANKING_BOARD_AT = Vector2.new(50.4, -9.4)
 -- Cartel de la arena de Dunas: debajo del ranking, junto al embarcadero.
 local ARENA_BOARD_AT = Vector2.new(48.6, 13.2)
+-- Cartel del pase de temporada: sigue el borde de la plaza tras el de la arena, entre el embarcadero
+-- y la llegada (se ve al darse la vuelta desde la plaza).
+local PASS_BOARD_AT = Vector2.new(27, 31)
 -- Cartelito de la lancha: en la orilla, entre la bitácora y el cartel de roles.
 local LIFEBOAT_SIGN_AT = Vector2.new(26, -43)
 -- Embarcadero hacia la Isla de dunas: sale de la playa al pie del cartel de la arena, hacia el
@@ -946,8 +950,10 @@ end
 -- Carteles del borde de la plaza: la bitácora del capitán; las mascotas (lo dibuja PetBoardController
 -- en cada cliente con su huevo; se interactúa con el nido, no con el cartel); los roles (lo dibuja
 -- RoleBoardController; su aviso abre la ventana de roles); el ranking con las cuatro clasificaciones
--- (lo rellena LeaderboardService; su aviso abre la ventana del ranking) y el de la Isla de dunas (lo
--- dibuja ArenaBoardController con tu estado de la arena; su aviso abre la ventana de la arena).
+-- (lo rellena LeaderboardService; su aviso abre la ventana del ranking), el de la Isla de dunas (lo
+-- dibuja ArenaBoardController con tu estado de la arena; su aviso abre la ventana de la arena) y el
+-- del pase de temporada (PassBoardController: la temporada, tu nivel y lo que tienes por reclamar; su
+-- aviso abre la ventana del pase).
 local function buildBoards(parent: Instance)
 	-- La bitácora cuenta la historia del naufragio en un panel oscuro, como el del ranking.
 	local log = standingBoard(parent, "BitacoraDelCapitan", LOG_BOARD_AT, 14, 8.5, "📜 BITÁCORA DEL CAPITÁN")
@@ -1011,6 +1017,10 @@ local function buildBoards(parent: Instance)
 	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, Config.PlaceNames.Dunas, nil, 0.95)
 	CollectionService:AddTag(arena, Config.Lobby.ArenaBoardTag)
 	station(arena, "Arena", "🎖️", "ArenaPrompt", "Jugar en la arena", Config.PlaceNames.DunasShort)
+
+	local pass = standingBoard(parent, "TablaPase", PASS_BOARD_AT, 12, 7.5, "🌋 PASE DE TEMPORADA", nil, 0.95)
+	CollectionService:AddTag(pass, Config.Lobby.PassBoardTag)
+	station(pass, "Pase", "🌋", "PassPrompt", "Ver el pase", "Pase de temporada")
 
 	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, "ELIGE TU ROL")
 	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)

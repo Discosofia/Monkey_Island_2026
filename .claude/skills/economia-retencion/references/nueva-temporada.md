@@ -1,10 +1,15 @@
 # Preparar una temporada del pase
 
-Lista para cada temporada nueva (la Temporada 1 es "El Despertar del Volcán"). El sistema del pase
-llega en el grupo G3 de la Fase 9 (`docs/PLAN.md`): ajusta los nombres de archivo si cambian.
+Lista para cada temporada nueva (la Temporada 1 es "El Despertar del Volcán"). El sistema es del grupo
+G3 de la Fase 9 (`docs/PLAN.md`): temporadas en `src/shared/Data/Seasons.luau` (en orden; la nueva va
+detrás), cuentas en `src/shared/SeasonPass.luau`, servidor en `src/serverShared/SeasonPass.luau` y
+ventana en `src/shared/UI/SeasonPassPanel.luau`. En Studio, el panel de pruebas del Lobby tiene
+"⭐ +500 XP de pase", "⭐ Siguiente nivel del pase", "🌋 Premium del pase (sí/no)" y "📆 Reloj del pase
++7 días" (última semana, descanso y cierre).
 
-1. **Tema y fechas.** Un tema que encaje con algo de la partida (bioma, jefe, evento). Inicio y fin en
-   UTC en `Data/Seasons`; 30 días + 7 de descanso antes de la siguiente.
+1. **Tema y fechas.** Un tema que encaje con algo de la partida (bioma, jefe, evento). Inicio
+   (`startsAt`, 00:00 UTC) en `Data/Seasons`; dura `Config.Season.Days` (30) y deja
+   `Config.Season.RestDays` (7) de descanso: la siguiente empieza 37 días después o más tarde.
 2. **Premios.** ~12 premium (todos cosméticos, uno inmediato en el nivel 1, el final exclusivo) y ~8
    cosméticos gratis; el resto de niveles gratis con Ámbar, tiempo de huevo (con tope) y provisiones,
    que solo se desbloquean con nivel ganado jugando. Nada de la temporada anterior se repite como

@@ -20,7 +20,10 @@
 --      misiones cumplidas y día en que llena los talentos de su rol.
 --   3. Partida: el día más temprano en que se puede tener cada nivel de arma y armadura, y lo que trae
 --      de nuevo cada día de la partida.
---   4. Pase de temporada (si existe Data/Seasons): nivel por día y de dónde sale la XP.
+--   4. Pase de temporada (Data/Seasons, la primera temporada): nivel de cada perfil por día, día en que
+--      gana el último nivel, de dónde sale la XP y lo que da la pista gratis. La simulación empieza el
+--      día 1 de la temporada (la última semana, ×Config.Season.LastWeekMultiplier). Las semanales aún
+--      no existen: OPCIONES.pase.xpSemanalSupuesta las simula (XP por semana, el primer día que juega).
 --   5. Reglas de pago: nada que se compre con Robux puede dar poder, Ámbar ni tiempo de huevo, ni ser
 --      aleatorio sin enseñar las probabilidades.
 --   6. Alertas.
@@ -94,6 +97,9 @@ local OPCIONES_BASE = {
 	ordenPerfiles = { "casual", "habitual", "intenso", "amigos" },
 	-- Minutos que tarda en caer un jefe desde que aparece (para contar si un jugador llega a él).
 	minutosJefe = 3,
+	-- Pase: XP de misiones semanales supuesta por semana (0 = aún no hay; con todas cumplidas, 5 × 700
+	-- + 700 del plan = 4.200).
+	pase = { xpSemanalSupuesta = 0 },
 	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true },
 }
 
@@ -229,6 +235,8 @@ local function main(copia: Instance): string
 	local Items = require(Data.Items) :: any
 	local Progression = require(copia.Progression) :: any
 	local SeasonsModulo = Data:FindFirstChild("Seasons")
+	local Pase = if copia:FindFirstChild("SeasonPass") then require(copia.SeasonPass) :: any else nil
+	local temporada = if SeasonsModulo and Pase then (require(SeasonsModulo) :: any)[1] else nil
 
 	local M = Config.Match
 	local MINUTOS_DIA = (M.DayLengthSeconds + M.NightLengthSeconds) / 60
@@ -408,33 +416,59 @@ local function main(copia: Instance): string
 
 	-- Misiones del día cumplidas (valor esperado) con "minutos" de Isla.
 	local function misionesDelDia(minutos: number, rol: string)
-		local cumplidas, ambar, huevo = 0, 0, 0
+		local cumplidas, ambar, huevo, xp = 0, 0, 0, 0
 		local function sumar(lista: { string }, cuantas: number)
 			if #lista == 0 or cuantas <= 0 then
 				return
 			end
-			local fraccion, a, h = 0, 0, 0
+			local fraccion, a, h, x = 0, 0, 0, 0
 			for _, id in lista do
 				local mision = Missions[id]
 				if minutosMision(mision) <= minutos then
 					fraccion += 1
 					a += mision.reward.amber or 0
 					h += mision.reward.eggSeconds or 0
+					x += mision.reward.xp or 0
 				end
 			end
 			cumplidas += cuantas * fraccion / #lista
 			ambar += cuantas * a / #lista
 			huevo += cuantas * h / #lista
+			xp += cuantas * x / #lista
 		end
 		sumar(generales, Config.Daily.GeneralMissions)
 		sumar(deRol[rol] or {}, 1)
-		return cumplidas, Config.Daily.GeneralMissions + 1, ambar, huevo
+		return cumplidas, Config.Daily.GeneralMissions + 1, ambar, huevo, xp
+	end
+
+	-- XP de pase de las partidas de un día (Isla y Dunas), antes del tope y del extra de amigos.
+	local function xpPartidas(p: any, partidasDunas: number): (number, number)
+		local S = Config.Season
+		local isla = p.dias * S.IslandXp.PerDay
+			+ p.jefes * S.IslandXp.PerBoss
+			+ p.huevos * S.IslandXp.PerEgg
+			+ p.rescate * S.IslandXp.Rescue
+		local D = OPCIONES.dunas
+		local porDunas = D.victoria * S.ArenaXp.Win
+			+ D.empate * S.ArenaXp.Tie
+			+ (1 - D.victoria - D.empate) * S.ArenaXp.Loss
+			+ D.capturas * S.ArenaXp.PerCapture
+		return isla, porDunas * partidasDunas
 	end
 
 	local function simular(perfil: any)
 		local r = {
 			diasActivos = 0,
-			ambar = { Partidas = 0, Dunas = 0, Calendario = 0, Misiones = 0, Descartes = 0 },
+			ambar = { Partidas = 0, Dunas = 0, Calendario = 0, Misiones = 0, Descartes = 0, Pase = 0 },
+			-- Pase: XP ganada, por fuente, nivel ganado al final de cada día y día en que llega al último.
+			pase = {
+				xp = 0,
+				fuentes = { Isla = 0, Dunas = 0, Misiones = 0, Semanales = 0, Amigos = 0, Doble = 0 },
+				recortada = 0,
+				nivelDia = {} :: { number },
+				terminaDia = nil :: number?,
+				huevoSegundos = 0,
+			},
 			gastado = 0,
 			saldo = 0,
 			mejorasDia = nil :: number?,
@@ -485,6 +519,10 @@ local function main(copia: Instance): string
 			if nido then
 				nido.pasado += 24 * 3600
 			end
+			if Pase then
+				-- Se apunta al terminar el día (antes de jugar, el del día anterior).
+				r.pase.nivelDia[dia - 1] = Pase.earnedLevel(r.pase.xp)
+			end
 			if juega(dia, perfil.diasPorSemana) then
 				r.diasActivos += 1
 				-- Lobby: calendario, eclosión.
@@ -524,7 +562,8 @@ local function main(copia: Instance): string
 					acumuladoHuevos -= 1
 					nuevoHuevo(horasHuevoIsla)
 				end
-				local cumplidas, posibles, ambarMisiones, huevoMisiones = misionesDelDia(perfil.minutosIsla, perfil.rol)
+				local cumplidas, posibles, ambarMisiones, huevoMisiones, xpMisiones =
+					misionesDelDia(perfil.minutosIsla, perfil.rol)
 				r.misiones += cumplidas
 				r.misionesPosibles += posibles
 				r.ambar.Misiones += ambarMisiones
@@ -535,6 +574,68 @@ local function main(copia: Instance): string
 				end
 				-- Dunas.
 				r.ambar.Dunas += dunas(perfil.partidasDunas)
+				-- Pase de temporada: XP del día y premios gratis de los niveles ganados (los no cosméticos
+				-- solo con nivel ganado; aquí todo es ganado jugando).
+				if temporada and dia <= Config.Season.Days then
+					local S = Config.Season
+					local P = r.pase
+					local mult = if dia > S.Days - S.LastWeekDays then S.LastWeekMultiplier else 1
+					local isla, deDunas = xpPartidas(p, perfil.partidasDunas)
+					local partidas = math.min(isla + deDunas, S.DailyMatchXpCap)
+					P.recortada += isla + deDunas - partidas
+					local reparto = if isla + deDunas > 0 then partidas / (isla + deDunas) else 0
+					local amigos = if perfil.amigos then partidas * S.FriendsBonus else 0
+					local semanal = 0
+					local semana = (dia - 1) // 7
+					if OPCIONES.pase.xpSemanalSupuesta > 0 and P.ultimaSemana ~= semana then
+						P.ultimaSemana = semana
+						semanal = OPCIONES.pase.xpSemanalSupuesta
+					end
+					local base = partidas + amigos + xpMisiones + semanal
+					P.fuentes.Isla += isla * reparto
+					P.fuentes.Dunas += deDunas * reparto
+					P.fuentes.Misiones += xpMisiones
+					P.fuentes.Semanales += semanal
+					P.fuentes.Amigos += amigos
+					P.fuentes.Doble += base * (mult - 1)
+					local antes = Pase.earnedLevel(P.xp)
+					local buclesAntes = Pase.loopsEarned(P.xp)
+					P.xp += base * mult
+					local despues = Pase.earnedLevel(P.xp)
+					for nivel = antes + 1, despues do
+						local gratis = temporada.levels[nivel] and temporada.levels[nivel].free
+						if gratis then
+							r.ambar.Pase += gratis.amber or 0
+							if gratis.eggSeconds then
+								P.huevoSegundos += gratis.eggSeconds
+								if nido then
+									tiempoJuego(gratis.eggSeconds)
+								else
+									r.ambar.Pase += gratis.eggSeconds / 3600 * Config.Daily.AmberPerUnusedEggHour
+								end
+							end
+							if gratis.egg then
+								nuevoHuevo(mediaPonderada(gratis.egg, function(rr)
+									return hatchHoras[rr]
+								end))
+							end
+						end
+					end
+					for bucle = buclesAntes + 1, Pase.loopsEarned(P.xp) do
+						local enBucle = Pase.loopReward(bucle)
+						r.ambar.Pase += enBucle.amber or 0
+						if enBucle.eggSeconds then
+							if nido then
+								tiempoJuego(enBucle.eggSeconds)
+							else
+								r.ambar.Pase += enBucle.eggSeconds / 3600 * Config.Daily.AmberPerUnusedEggHour
+							end
+						end
+					end
+					if despues >= S.Levels and not P.terminaDia then
+						P.terminaDia = dia
+					end
+				end
 				-- Gastos: mejoras de la más barata a la más cara; luego el equipo de Dunas de su rol.
 				local ganado = 0
 				for _, valor in r.ambar do
@@ -559,10 +660,23 @@ local function main(copia: Instance): string
 				end
 			end
 		end
+		if Pase then
+			r.pase.nivelDia[OPCIONES.dias] = Pase.earnedLevel(r.pase.xp)
+		end
 		return r
 	end
 
+	-- Todos los perfiles se simulan aunque su tabla no se enseñe (el pase los usa).
 	local resultados = {}
+	for _, clave in OPCIONES.ordenPerfiles do
+		local r = simular(OPCIONES.perfiles[clave])
+		local ganado = 0
+		for _, valor in r.ambar do
+			ganado += valor
+		end
+		r.ganado = ganado
+		resultados[clave] = r
+	end
 	if OPCIONES.secciones.perfiles then
 		linea("## 2. Perfiles de jugador")
 		linea(
@@ -572,27 +686,24 @@ local function main(copia: Instance): string
 		)
 		linea("")
 		linea(
-			"| Perfil | Días activos | Ámbar: partidas · Dunas · calendario · misiones · descartes | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados) | Misiones cumplidas | Talentos llenos |"
+			"| Perfil | Días activos | Ámbar: partidas · Dunas · calendario · misiones · descartes · pase | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados) | Misiones cumplidas | Talentos llenos |"
 		)
 		linea("|---|---|---|---|---|---|---|---|---|---|")
 		for _, clave in OPCIONES.ordenPerfiles do
 			local perfil = OPCIONES.perfiles[clave]
-			local r = simular(perfil)
-			resultados[clave] = r
-			local ganado = 0
-			for _, valor in r.ambar do
-				ganado += valor
-			end
-			r.ganado = ganado
+			local r = resultados[clave]
+			local ganado = r.ganado
 			local a = r.ambar
 			linea(
 				`| {perfil.nombre} ({perfil.diasPorSemana}/sem, {perfil.minutosIsla} min) | {r.diasActivos} | {n(
 					a.Partidas,
 					0
-				)} · {n(a.Dunas, 0)} · {n(a.Calendario, 0)} · {n(a.Misiones, 0)} · {n(a.Descartes, 0)} | {n(
-					ganado,
+				)} · {n(a.Dunas, 0)} · {n(a.Calendario, 0)} · {n(a.Misiones, 0)} · {n(a.Descartes, 0)} · {n(
+					a.Pase,
 					0
-				)} | {n(r.gastado, 0)} | {n(r.saldo, 0)} | {if r.mejorasDia then `día {r.mejorasDia}` else "no"} | {r.huevosEclosionados} ({r.huevosDescartados}) | {pct(
+				)} | {n(ganado, 0)} | {n(r.gastado, 0)} | {n(r.saldo, 0)} | {if r.mejorasDia
+					then `día {r.mejorasDia}`
+					else "no"} | {r.huevosEclosionados} ({r.huevosDescartados}) | {pct(
 					if r.misionesPosibles > 0 then r.misiones / r.misionesPosibles else 0
 				)} | {if r.talentosDia then `día {r.talentosDia} ({perfil.rol})` else "no"} |`
 			)
@@ -822,10 +933,92 @@ local function main(copia: Instance): string
 	-- ---------------------------------------------------------------- Pase
 	if OPCIONES.secciones.pase then
 		linea("## 4. Pase de temporada")
-		if not SeasonsModulo then
-			linea("Sin pase todavía (Data/Seasons no existe).")
+		if not temporada then
+			linea("Sin pase todavía (Data/Seasons o Shared/SeasonPass no existen).")
 		else
-			linea("Data/Seasons existe: falta su simulación en esta calculadora (grupo G3 del plan).")
+			local S = Config.Season
+			-- Lo que da la pista gratis y cuántos cosméticos hay en cada pista.
+			local ambarGratis, huevoGratis, cosmeticosGratis, cosmeticosPremium = 0, 0, 0, 0
+			for _, entrada in temporada.levels do
+				local gratis = entrada.free or {}
+				ambarGratis += gratis.amber or 0
+				huevoGratis += gratis.eggSeconds or 0
+				cosmeticosGratis += if gratis.cosmetic then 1 else 0
+				cosmeticosPremium += if entrada.premium and entrada.premium.cosmetic then 1 else 0
+			end
+			linea(
+				`«{temporada.name}»: {S.Days} días, {S.Levels} niveles × {S.LevelXp} XP ({S.Levels * S.LevelXp} en total), ×{S.LastWeekMultiplier} los últimos {S.LastWeekDays} días, tope de partidas {S.DailyMatchXpCap}/día, amigos +{pct(
+					S.FriendsBonus
+				)}. Pista gratis: {ambarGratis} Ámbar, {n(huevoGratis / 3600)} h de huevo, {cosmeticosGratis} cosméticos; premium: {cosmeticosPremium} cosméticos. Semanales supuestas: {OPCIONES.pase.xpSemanalSupuesta} XP/semana.`
+			)
+			linea("")
+			linea(
+				"| Perfil | Nivel día 7 · 14 · 21 · 30 | Último nivel | XP: Isla · Dunas · misiones · semanales · amigos · ×2 | Misiones (con semanales) | XP sobre el tope |"
+			)
+			linea("|---|---|---|---|---|---|")
+			for _, clave in OPCIONES.ordenPerfiles do
+				local perfil = OPCIONES.perfiles[clave]
+				local P = resultados[clave].pase
+				local f = P.fuentes
+				local nivel = function(d: number): string
+					return tostring(P.nivelDia[math.min(d, OPCIONES.dias)] or 0)
+				end
+				-- El ×2 dobla todas las fuentes por igual: la parte de las misiones no cambia.
+				local sinDoble = f.Isla + f.Dunas + f.Misiones + f.Semanales + f.Amigos
+				local misiones = if sinDoble > 0 then (f.Misiones + f.Semanales) / sinDoble else 0
+				P.parteMisiones = misiones
+				linea(
+					`| {perfil.nombre} | {nivel(7)} · {nivel(14)} · {nivel(21)} · {nivel(S.Days)} | {if P.terminaDia
+						then `día {P.terminaDia}`
+						else "no"} | {n(f.Isla, 0)} · {n(f.Dunas, 0)} · {n(f.Misiones, 0)} · {n(f.Semanales, 0)} · {n(
+						f.Amigos,
+						0
+					)} · {n(f.Doble, 0)} | {pct(misiones)} | {n(P.recortada, 0)} |`
+				)
+			end
+			local habitual = resultados.habitual and resultados.habitual.pase
+			if habitual then
+				local rango = LIMITES.paseHabitualDia
+				if not habitual.terminaDia or habitual.terminaDia < rango[1] or habitual.terminaDia > rango[2] then
+					alerta(
+						`Pase: el habitual {if habitual.terminaDia
+							then `gana el último nivel el día {habitual.terminaDia}`
+							else `no lo termina (nivel {habitual.nivelDia[S.Days] or 0})`} (meta: entre el día {rango[1]} y el {rango[2]})`
+					)
+				end
+				local partes = LIMITES.paseMisiones
+				if habitual.parteMisiones < partes[1] or habitual.parteMisiones > partes[2] then
+					alerta(
+						`Pase: las misiones dan el {pct(habitual.parteMisiones)} de la XP del habitual (meta: {pct(
+							partes[1]
+						)}–{pct(partes[2])})`
+					)
+				end
+			end
+			local casual = resultados.casual and resultados.casual.pase
+			if casual and (casual.nivelDia[S.Days] or 0) < LIMITES.paseCasualNivel then
+				alerta(
+					`Pase: el casual llega al nivel {casual.nivelDia[S.Days] or 0} (mínimo {LIMITES.paseCasualNivel})`
+				)
+			end
+			local intenso = resultados.intenso and resultados.intenso.pase
+			if intenso and intenso.terminaDia and intenso.terminaDia < LIMITES.paseIntensoDiaMin then
+				alerta(`Pase: el intenso lo termina el día {intenso.terminaDia} (mínimo {LIMITES.paseIntensoDiaMin})`)
+			end
+			-- Regla de pago: lo no cosmético de la pista gratis solo con nivel ganado (Shared/SeasonPass).
+			local premioGratis = nil
+			for nivel, entrada in temporada.levels do
+				if entrada.free and not Pase.isCosmeticOnly(entrada.free) then
+					premioGratis = nivel
+					break
+				end
+			end
+			if premioGratis then
+				local estado = Pase.normalize({ id = temporada.id, xp = 0, bought = S.Levels }, temporada.id)
+				if Pase.unlocked(temporada, estado, premioGratis, "Free") then
+					alerta(`Pago: el nivel {premioGratis} gratis (no cosmético) se desbloquea con niveles comprados`)
+				end
+			end
 		end
 		linea("")
 	end
@@ -906,9 +1099,10 @@ local function main(copia: Instance): string
 		-- Premios premium del pase: solo cosméticos.
 		if SeasonsModulo then
 			local Seasons = require(SeasonsModulo) :: any
-			for seasonId, temporada in Seasons.seasons or Seasons do
-				if typeof(temporada) == "table" and typeof(temporada.levels) == "table" then
-					for nivel, datos in temporada.levels do
+			for _, otra in Seasons do
+				if typeof(otra) == "table" and typeof(otra.levels) == "table" then
+					local seasonId = otra.id
+					for nivel, datos in otra.levels do
 						local premio = datos.premium
 						if typeof(premio) == "table" then
 							for clave in premio do

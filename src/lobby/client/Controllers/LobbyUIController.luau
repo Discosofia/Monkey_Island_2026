@@ -7,12 +7,13 @@
 --       Rol (cartel "ELIGE TU ROL": guerrero, cazador, mago o médico, y un atajo a sus talentos),
 --       Arena (cartel de la Isla de dunas y su velero: formato 1v1…5v5 y cola, tus números y el equipo
 --       de la arena de cada rol), Mascotas (el nido: el huevo que se incuba, la mochila, los
---       pendientes y qué puede salir; al lado, la colección) y Ranking (las cuatro clasificaciones).
+--       pendientes y qué puede salir; al lado, la colección), Ranking (las cuatro clasificaciones) y
+--       Pase (el pase de temporada, UI/SeasonPassPanel; también tiene su botón en la barra).
 --   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido), Tienda
 --     (mejoras con Ámbar), Misiones (el calendario de 7 días, las misiones del día y lo que te llevas
---     a la próxima partida), Estilo, Grupo (invitar a jugadores del Lobby para viajar juntos), Diario
+--     a la próxima partida), Pase, Estilo, Grupo (invitar a jugadores del Lobby para viajar juntos), Diario
 --     y Ajustes (UI/SettingsPanel). Un punto rojo avisa de lo pendiente (puntos de talento libres,
---     premio del calendario). En PC va en columna a la izquierda; en táctil o en una pantalla baja, en
+--     premio del calendario, premios del pase por reclamar). En PC va en columna a la izquierda; en táctil o en una pantalla baja, en
 --     fila en la franja de la barra de Roblox.
 --   - Botón "Ir a la Isla de monos" (si estás en un grupo, viaja el grupo entero cuando lo pulsa el líder);
 --     el bote del naufragio ("ZarparPrompt", World/LobbyBuilder) hace lo mismo.
@@ -48,6 +49,8 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
+local SeasonPassPanel = require(ReplicatedStorage.Shared.UI.SeasonPassPanel)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
@@ -96,12 +99,13 @@ local WINDOWS: { [string]: WindowDef } = {
 	Talentos = { icon = "🌟", title = "Talentos" },
 	Tienda = { icon = "🛒", title = "Tienda" },
 	Misiones = { icon = "🎯", title = "Misiones" },
+	Pase = { icon = "🌋", title = "Pase de temporada", wide = true, own = true },
 	Estilo = { icon = "🎨", title = "Estilo" },
 	Grupo = { icon = "👥", title = "Grupo" },
 	Diario = { icon = "📖", title = "Diario", wide = true, spread = true },
 	Ajustes = { icon = "⚙️", title = "Ajustes", wide = true, spread = true },
 }
-local MENU = { "Talentos", "Tienda", "Misiones", "Estilo", "Grupo", "Diario", "Ajustes" }
+local MENU = { "Talentos", "Tienda", "Misiones", "Pase", "Estilo", "Grupo", "Diario", "Ajustes" }
 -- Avisos de las estaciones de la plaza (World/LobbyBuilder) y la ventana que abre cada uno.
 local STATION_PROMPTS: { [string]: string } = {
 	RolesPrompt = "Rol",
@@ -109,6 +113,7 @@ local STATION_PROMPTS: { [string]: string } = {
 	ArenaPrompt = "Arena",
 	ZarparDunasPrompt = "Arena",
 	RankingPrompt = "Ranking",
+	PassPrompt = "Pase",
 }
 -- La ventana de una estación se cierra sola a estos studs más allá del alcance de su aviso.
 local STATION_CLOSE_MARGIN = 6
@@ -429,6 +434,8 @@ function LobbyUIController:Start()
 	local nestRow: NestRow? = nil
 	-- Cuenta atrás del siguiente premio del calendario en la ventana Misiones (cada segundo).
 	local calendarCountdown: TextButton? = nil
+	-- Cuenta atrás de la temporada en la ventana del pase (cada segundo).
+	local passTick: (() -> ())? = nil
 	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
 	-- dice cuánto llevas en la cola (se actualiza cada segundo).
 	local arenaFormat = 1
@@ -1374,6 +1381,7 @@ function LobbyUIController:Start()
 		listLayout.Padding = UDim.new(0, 6)
 		nestRow = nil
 		calendarCountdown = nil
+		passTick = nil
 		arenaQueueLine = nil
 		local data = Progression.read(player)
 		if id == "Rol" then
@@ -1388,6 +1396,8 @@ function LobbyUIController:Start()
 			renderPets(data)
 		elseif id == "Misiones" then
 			renderMissions()
+		elseif id == "Pase" then
+			passTick = SeasonPassPanel.build(list, { compact = compactUi })
 		elseif id == "Estilo" then
 			renderStyle(data)
 		elseif id == "Ranking" then
@@ -1515,13 +1525,21 @@ function LobbyUIController:Start()
 		barButtons[id] = { button = button, icon = icon, name = name, badge = badge }
 	end
 
-	-- Puntos rojos: puntos de talento libres en el rol elegido y premio del calendario por cobrar.
+	-- Puntos rojos: puntos de talento libres en el rol elegido, premio del calendario por cobrar y
+	-- premios del pase por reclamar.
 	local function refreshBadges()
 		local data = Progression.read(player)
 		local roleId = Progression.validRole(player:GetAttribute("SelectedRole"))
 		barButtons.Talentos.badge.Visible = Progression.freePoints(roleId, data) > 0
 		local login = Daily.loginState(readRetention().login)
 		barButtons.Misiones.badge.Visible = Daily.canClaim(login, EggIncubation.now())
+		local season = SeasonPass.info(SeasonPass.now()).season
+		local passRaw = player:GetAttribute("Season")
+		local okPass, passData = pcall(function()
+			return HttpService:JSONDecode(if typeof(passRaw) == "string" then passRaw else "{}")
+		end)
+		barButtons.Pase.badge.Visible = season ~= nil
+			and SeasonPass.hasClaimable(season, SeasonPass.normalize(if okPass then passData else nil, season.id))
 	end
 	refreshBadges()
 
@@ -1690,6 +1708,10 @@ function LobbyUIController:Start()
 					queueLine.Text = queueText(queue)
 				end
 			end
+			local tick = passTick
+			if tick and panel.Visible then
+				tick()
+			end
 			local countdown = calendarCountdown
 			if countdown and panel.Visible then
 				local left = Daily.secondsToReset(EggIncubation.now())
@@ -1732,7 +1754,12 @@ function LobbyUIController:Start()
 		if attribute == "Amber" or attribute == "BestDays" then
 			refreshHeader()
 		end
-		if attribute == "Progress" or attribute == "SelectedRole" or attribute == "Retention" then
+		if
+			attribute == "Progress"
+			or attribute == "SelectedRole"
+			or attribute == "Retention"
+			or attribute == "Season"
+		then
 			refreshBadges()
 		end
 		-- El panel de Ajustes se actualiza solo al cambiar una opción (no hace falta rehacerlo).

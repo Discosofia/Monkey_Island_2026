@@ -13,7 +13,8 @@
 -- "SelectedRole" y "Progress", un JSON con XP, talentos y mejoras; ver Shared/Progression), y
 -- "Settings", un JSON con los ajustes del jugador (Shared/Settings), que el cliente cambia con
 -- Remotes.SaveSettings, "Eggs", un JSON con sus huevos guardados (Shared/EggIncubation), y "Retention",
--- un JSON con sus provisiones, su calendario y sus misiones del día (ServerShared/Retention).
+-- un JSON con sus provisiones, su calendario y sus misiones del día (ServerShared/Retention), y
+-- "Season", un JSON con su progreso en el pase de temporada (Shared/SeasonPass).
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -208,6 +209,7 @@ local function publish(player: Player, session: Session)
 	)
 	-- Arena de Dunas: lo comprado y lo puesto (ServerShared/ArenaShop), estadísticas y Ámbar de hoy.
 	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
+	player:SetAttribute("Season", HttpService:JSONEncode(profile.season))
 	player:SetAttribute("LobbyGuideDone", profile.lobbyGuideDone)
 end
 

@@ -2,7 +2,8 @@
 -- Misiones diarias (bucle de retención, octubre de 2026; ServerShared/Retention). Cada día tocan
 -- Config.Daily.GeneralMissions generales (sin "role") y una del rol elegido (cambia si cambias de rol).
 -- "event" es lo que las hace avanzar (lo cuentan los servicios de la Isla); "{target}" en el texto se
--- cambia por el objetivo. El tiempo de huevo del premio cuenta para el tope de lo ganado jugando.
+-- cambia por el objetivo. El tiempo de huevo del premio cuenta para el tope de lo ganado jugando, y
+-- "xp" es la del pase de temporada (ServerShared/SeasonPass).
 -- Solo cosas que se pueden hacer jugando solo y en un día: nada de reanimar ni curar a aliados.
 
 local Config = require(script.Parent.Parent.Config)
@@ -16,8 +17,8 @@ export type Mission = {
 	reward: Config.Reward,
 }
 
-local GENERAL_REWARD: Config.Reward = { amber = 60, eggSeconds = 20 * 60 }
-local ROLE_REWARD: Config.Reward = { amber = 100, eggSeconds = 30 * 60 }
+local GENERAL_REWARD: Config.Reward = { amber = 60, eggSeconds = 20 * 60, xp = 150 }
+local ROLE_REWARD: Config.Reward = { amber = 100, eggSeconds = 30 * 60, xp = 200 }
 
 local Missions: { [string]: Mission } = {
 	Kills = { icon = "🐒", text = "Derrota {target} monos", event = "Kill", target = 15, reward = GENERAL_REWARD },

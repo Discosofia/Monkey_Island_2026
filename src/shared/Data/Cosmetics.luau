@@ -5,7 +5,8 @@
 --     (docs/LANZAMIENTO.md) y pon aquí su ID.
 --   - productId: Developer Product de la tienda rotativa (lo entrega ServerShared/Purchases y se
 --     guarda en el perfil). "price" es solo el número que se enseña; el de verdad está en el Creator Hub.
---   - amber: precio en Ámbar (tienda de Ámbar). season: premio del pase de esa temporada (Data/Seasons).
+--   - amber: precio en Ámbar (tienda de Ámbar). season: premio del pase de esa temporada (Data/Seasons,
+--     lo entrega ServerShared/SeasonPass).
 --   - earned: se gana jugando ("Rescue": ganar una partida de verdad). Ni en Studio es gratis.
 -- Un id de Robux a 0 sale como "Próximamente" (en Studio se prueba gratis con
 -- Config.Cosmetics.FreeInStudio). Lo que se tiene sin Game Pass se guarda en el perfil
@@ -94,6 +95,74 @@ local Cosmetics: { [string]: Cosmetic } = {
 		rarity = "Rare",
 		color = Color3.fromRGB(255, 235, 90),
 		source = { gamePassId = 2037898785 },
+	},
+
+	-- Temporada 1, "El Despertar del Volcán" (Data/Seasons). Provisionales hasta el contenido de la
+	-- temporada (grupo G11 del plan): solo de los tipos que ya se dibujan (título, estela y aura).
+	-- Pista gratis:
+	TitleCastaway = {
+		name = "Título: Náufrago del Volcán",
+		icon = "🌋",
+		kind = "Title",
+		description = "Pase de temporada 1, nivel 1 (gratis).",
+		order = 6,
+		rarity = "Common",
+		color = Color3.fromRGB(235, 170, 110),
+		source = { season = "T1" },
+		title = "🌋 Náufrago del Volcán",
+	},
+	AshTrail = {
+		name = "Estela de ceniza",
+		icon = "🌫️",
+		kind = "Trail",
+		description = "Pase de temporada 1, nivel 15 (gratis): un rastro gris de ceniza.",
+		order = 7,
+		rarity = "Uncommon",
+		color = Color3.fromRGB(150, 145, 140),
+		source = { season = "T1" },
+	},
+	TitleVolcanoLord = {
+		name = "Título: Señor del Volcán",
+		icon = "🔥",
+		kind = "Title",
+		description = "Pase de temporada 1, nivel 30 (gratis).",
+		order = 8,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 120, 60),
+		source = { season = "T1" },
+		title = "🔥 Señor del Volcán",
+	},
+	-- Pista premium:
+	PrimalFlameAura = {
+		name = "Aura: Llama primal",
+		icon = "🔥",
+		kind = "Aura",
+		description = "Pase de temporada 1, nivel 1 (premium): chispas de fuego a tu alrededor.",
+		order = 9,
+		rarity = "Epic",
+		color = Color3.fromRGB(255, 110, 30),
+		source = { season = "T1" },
+	},
+	MagmaStepTrail = {
+		name = "Estela: Pisada de magma",
+		icon = "🌋",
+		kind = "Trail",
+		description = "Pase de temporada 1, nivel 10 (premium): un rastro de lava.",
+		order = 10,
+		rarity = "Epic",
+		color = Color3.fromRGB(255, 70, 20),
+		source = { season = "T1" },
+	},
+	TitlePrimalKing = {
+		name = "Título: Rey de la Isla Primal",
+		icon = "👑",
+		kind = "Title",
+		description = "Pase de temporada 1, nivel 30 (premium).",
+		order = 11,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 90, 40),
+		source = { season = "T1" },
+		title = "👑 Rey de la Isla Primal",
 	},
 }
 

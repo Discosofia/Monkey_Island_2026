@@ -4,6 +4,8 @@
 --     con tope por partida). Con un tope diario (perfil "arena.daily"): lo que pase del tope no se
 --     cobra, y los resultados lo dicen.
 --   - Estadísticas guardadas (perfil "arena.stats") y rankings de la arena (victorias y capturas).
+--   - XP del pase de temporada (Config.Season.ArenaXp, ServerShared/SeasonPass), con el tope de hoy de
+--     las partidas, que comparte con la Isla.
 -- A cada jugador le manda sus resultados (Remotes.ArenaResults) para la pantalla final. Las partidas
 -- de prueba (panel de pruebas, un solo equipo) no dan nada. También atiende "Volver al Lobby".
 
@@ -18,6 +20,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 
@@ -109,8 +112,11 @@ local function onFinished(winner: string?)
 				else "Loss"
 			local amount = if test then 0 else earned(player, result)
 			local granted, todayTotal = 0, 0
+			local pass: SeasonPass.Gain? = nil
 			if not test then
 				granted, todayTotal = grant(player, amount, result)
+				local xp = Config.Season.ArenaXp
+				pass = SeasonPass.addXp(player, "Match", xp[result] + stat(player, "ArenaCaptures") * xp.PerCapture)
 			end
 			Remotes.ArenaResults:FireClient(player, {
 				result = result,
@@ -121,6 +127,7 @@ local function onFinished(winner: string?)
 				amber = granted,
 				today = todayTotal,
 				dailyCap = Config.Arena.Amber.DailyCap,
+				pass = pass,
 				scores = { Jaguar = Arena.score("Jaguar"), Quetzal = Arena.score("Quetzal") },
 				players = rows,
 			})

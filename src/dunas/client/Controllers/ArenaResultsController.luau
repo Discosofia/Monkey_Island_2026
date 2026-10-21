@@ -1,7 +1,8 @@
 --!strict
 -- Resultados de una partida de la arena (Remotes.ArenaResults, de ArenaRewardService), con el mismo
 -- aspecto que los de la Isla (ResultsController): victoria, derrota o empate, el marcador, una tabla
--- con las capturas, bajas y caídas de cada jugador y el Ámbar ganado (con el tope diario).
+-- con las capturas, bajas y caídas de cada jugador, el Ámbar ganado (con el tope diario) y la XP del
+-- pase de temporada.
 -- Abajo, dos botones: "🔁 Revancha" (cierra la ventana: la siguiente partida empieza sola en este
 -- servidor con quienes se queden) y "🏝️ Volver al Lobby". Se cierra sola al acabar los resultados.
 
@@ -13,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local PANEL_COLOR = Color3.fromRGB(30, 24, 18)
@@ -143,14 +145,21 @@ local function show(summary: { [string]: any })
 		Color3.new(1, 1, 1)
 	)
 	line(panel, amberText(summary), 92, 26, if summary.test then PLAIN else AMBER_TEXT)
+	-- XP del pase de temporada (si hay una en marcha): una línea más y la tabla baja.
+	local passText = SeasonPass.gainText(summary.pass)
+	local listTop = 126
+	if passText then
+		line(panel, passText, 120, 20, Color3.fromRGB(255, 150, 80))
+		listTop = 146
+	end
 
 	-- Tabla de jugadores (con desplazamiento si son muchos).
 	local list = Instance.new("ScrollingFrame")
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.AnchorPoint = Vector2.new(0.5, 0)
-	list.Position = UDim2.new(0.5, 0, 0, 126)
-	list.Size = UDim2.new(1, -24, 1, -126 - 112)
+	list.Position = UDim2.new(0.5, 0, 0, listTop)
+	list.Size = UDim2.new(1, -24, 1, -listTop - 112)
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	list.CanvasSize = UDim2.new()
 	list.ScrollBarThickness = 6

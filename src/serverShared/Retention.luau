@@ -3,7 +3,8 @@
 --   - claimLogin: cobra el premio del día del calendario de 7 días (Config.Daily.Calendar). Uno por
 --     día (Shared/Daily); faltar un día no lo reinicia.
 --   - grant: entrega un premio: Ámbar, provisiones (ServerShared/Supplies), tiempo para el huevo del
---     nido (con o sin el tope de lo ganado jugando; sin huevo en el nido se cambia por Ámbar) y huevos.
+--     nido (con o sin el tope de lo ganado jugando; sin huevo en el nido se cambia por Ámbar), huevos
+--     y XP del pase de temporada (la suma ServerShared/SeasonPass, que se apunta con setXpHandler).
 --   - Misiones del día (Data/Missions): cada día tocan Config.Daily.GeneralMissions generales y una del
 --     rol elegido (si cambia de rol, cambia esa, salvo que ya la hubiera cumplido). Los servicios de la
 --     Isla avisan con progress(jugador, evento, cantidad); se apunta en el perfil cada
@@ -33,6 +34,9 @@ local rng = Random.new()
 -- Lo que han avanzado las misiones de cada jugador desde la última vez que se apuntó (por evento).
 local pending: { [Player]: { [string]: number } } = {}
 local started = false
+-- Quién suma la XP del pase de los premios (ServerShared/SeasonPass; así no se requieren el uno al
+-- otro). Devuelve la línea para el aviso, o nil si no ha sumado nada.
+local xpHandler: ((player: Player, xp: number) -> string?)? = nil
 
 local function now(): number
 	return math.floor(EggIncubation.now())
@@ -83,7 +87,18 @@ function Retention.grant(player: Player, reward: Config.Reward, capped: boolean,
 			table.insert(lines, `🎒 {Rewards.describeItems(items)} (para tu próxima partida)`)
 		end
 	end
+	if reward.xp and xpHandler then
+		local line = xpHandler(player, reward.xp)
+		if line then
+			table.insert(lines, line)
+		end
+	end
 	return lines
+end
+
+-- Lo llama ServerShared/SeasonPass al arrancar.
+function Retention.setXpHandler(handler: (player: Player, xp: number) -> string?)
+	xpHandler = handler
 end
 
 -- Cobra el premio de hoy del calendario. Devuelve el día cobrado (1..7) y lo recibido, o nil si hoy

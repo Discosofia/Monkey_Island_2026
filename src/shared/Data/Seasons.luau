@@ -1,0 +1,85 @@
+--!strict
+-- Temporadas del pase (Fase 9; Shared/SeasonPass, ServerShared/SeasonPass), en orden. Cada una dura
+-- Config.Season.Days días desde "startsAt" (00:00 UTC) y después hay Config.Season.RestDays de descanso
+-- (sin XP; lo que no se reclamó se entrega solo) antes de la siguiente. Lista para preparar una:
+-- .claude/skills/economia-retencion/references/nueva-temporada.md.
+--
+-- "levels": un premio por nivel (1..Config.Season.Levels) en cada pista:
+--   - free: Ámbar, provisiones ("items"), tiempo de huevo ("eggSeconds", con el tope de lo ganado
+--     jugando), un huevo ("egg") o un cosmético ("cosmetic", id de Data/Cosmetics). Lo que no es
+--     cosmético solo se desbloquea con nivel GANADO jugando, nunca con niveles comprados.
+--   - premium: solo un cosmético (la premium se compra con Robux: nada que dé ventaja, Ámbar ni
+--     tiempo de huevo; la calculadora lo comprueba).
+-- Los cosméticos de la temporada llevan source = { season = "<id>" } en Data/Cosmetics.
+
+export type PassReward = {
+	amber: number?,
+	items: { [string]: number }?,
+	eggSeconds: number?,
+	egg: { [string]: number }?,
+	cosmetic: string?,
+}
+
+export type Level = { free: PassReward?, premium: PassReward? }
+
+export type Season = {
+	id: string,
+	name: string,
+	icon: string,
+	color: Color3,
+	startsAt: number, -- segundos UTC (DateTime)
+	levels: { Level },
+}
+
+local function utc(year: number, month: number, day: number): number
+	return DateTime.fromUniversalTime(year, month, day).UnixTimestamp
+end
+
+local MIN = 60
+local HOUR = 60 * MIN
+
+local Seasons: { Season } = {
+	{
+		id = "T1",
+		name = "El Despertar del Volcán",
+		icon = "🌋",
+		color = Color3.fromRGB(255, 120, 50),
+		-- Provisional (lunes): la fecha de verdad se pone antes de publicar (docs/LANZAMIENTO.md).
+		startsAt = utc(2026, 10, 19),
+		-- Premios provisionales hasta el contenido de la temporada (grupo G11 del plan).
+		levels = {
+			{ free = { cosmetic = "TitleCastaway" }, premium = { cosmetic = "PrimalFlameAura" } },
+			{ free = { amber = 75 } },
+			{ free = { items = { Banana = 5, Bandage = 2 } } },
+			{ free = { eggSeconds = 30 * MIN } },
+			{ free = { amber = 100 } },
+			{ free = { items = { Torch = 1, Antidote = 1 } } },
+			{ free = { eggSeconds = 30 * MIN } },
+			{ free = { amber = 100 } },
+			{ free = { items = { SuperBandage = 1 } } },
+			{ free = { amber = 150 }, premium = { cosmetic = "MagmaStepTrail" } },
+			{ free = { eggSeconds = 45 * MIN } },
+			{ free = { items = { Bandage = 3 } } },
+			{ free = { amber = 100 } },
+			{ free = { eggSeconds = 45 * MIN } },
+			{ free = { cosmetic = "AshTrail" } },
+			{ free = { amber = 125 } },
+			{ free = { items = { ReviveKit = 1 } } },
+			{ free = { eggSeconds = HOUR } },
+			{ free = { amber = 125 } },
+			{ free = { egg = { Rare = 1 } } },
+			{ free = { items = { Antidote = 2, SuperBandage = 1 } } },
+			{ free = { amber = 150 } },
+			{ free = { eggSeconds = HOUR } },
+			{ free = { items = { Torch = 2, Banana = 5 } } },
+			{ free = { amber = 200 } },
+			{ free = { eggSeconds = HOUR } },
+			{ free = { items = { ReviveKit = 1, SuperBandage = 2 } } },
+			{ free = { amber = 200 } },
+			{ free = { eggSeconds = 90 * MIN } },
+			{ free = { cosmetic = "TitleVolcanoLord", amber = 300 }, premium = { cosmetic = "TitlePrimalKing" } },
+		},
+	},
+}
+
+return Seasons

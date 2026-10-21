@@ -185,6 +185,11 @@ function CosmeticsServer.grant(player: Player, cosmeticId: string): boolean
 	return true
 end
 
+-- Vuelve a mirar qué tiene (tras darle cosméticos en el perfil, como el pase al comprar la premium).
+function CosmeticsServer.refresh(player: Player)
+	refreshOwnership(player)
+end
+
 -- Prueba (panel de Studio): da o quita un cosmético guardado en el perfil, para ver cómo queda.
 -- Devuelve si ahora lo tiene (un Game Pass comprado o uno gratis en Studio se sigue teniendo).
 function CosmeticsServer.debugToggle(player: Player, cosmeticId: string): boolean

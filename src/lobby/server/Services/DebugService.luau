@@ -17,9 +17,16 @@ local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Purchases = require(ServerScriptService.ServerShared.Purchases)
 local Retention = require(ServerScriptService.ServerShared.Retention)
+local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
+local SeasonRules = require(ReplicatedStorage.Shared.SeasonPass)
 local Supplies = require(ServerScriptService.ServerShared.Supplies)
 
 local DebugService = {}
+
+-- "SeasonShift": días que se adelanta el reloj del pase en cada pulsación y a partir de cuántos vuelve
+-- a 0 (pasada la temporada y su descanso).
+local SEASON_SHIFT_STEP = 7
+local SEASON_SHIFT_MAX = 45
 
 -- Rareza del próximo huevo de prueba ("GrantEgg").
 local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
@@ -104,6 +111,10 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		Retention.debugNextDay(player)
 		Remotes.Notify:FireClient(player, "📅 Día siguiente: ya puedes cobrar el premio del calendario")
 	end,
+	-- Cumple las misiones del día (se entregan en el siguiente apunte, con su XP de pase).
+	Missions = function(player)
+		Retention.debugCompleteMissions(player)
+	end,
 	-- Da o quita el título que se gana al rescatarse, para ver cómo queda (no cuenta como victoria).
 	SurvivorTitle = function(player)
 		local has = CosmeticsServer.debugToggle(player, "TitleSurvivor")
@@ -153,6 +164,41 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		else
 			Remotes.Notify:FireClient(player, "🧾 Aún no hay ninguna compra de prueba")
 		end
+	end,
+	-- Pase de temporada: XP (500 o la que se pida), hasta el siguiente nivel y premium sí/no.
+	PassXp = function(player, arg)
+		SeasonPass.debugAddXp(player, if typeof(arg) == "number" then arg else 500)
+	end,
+	PassLevel = function(player)
+		SeasonPass.debugNextLevel(player)
+	end,
+	PassPremium = function(player)
+		local premium = SeasonPass.debugTogglePremium(player)
+		Remotes.Notify:FireClient(
+			player,
+			if premium then "🌋 Premium de prueba: la tienes" else "🌋 Premium quitada"
+		)
+	end,
+	-- Adelanta el reloj del pase SEASON_SHIFT_STEP días (o los que se pidan) para ver la última semana,
+	-- el descanso y el cierre de la temporada. Pasado SEASON_SHIFT_MAX vuelve a hoy.
+	SeasonShift = function(player, arg)
+		local shift = ReplicatedStorage:GetAttribute("DebugSeasonShift")
+		local days = (if typeof(shift) == "number" then shift else 0) / 86400 + SEASON_SHIFT_STEP
+		if typeof(arg) == "number" then
+			days = arg
+		elseif days > SEASON_SHIFT_MAX then
+			days = 0
+		end
+		ReplicatedStorage:SetAttribute("DebugSeasonShift", days * 86400)
+		for _, other in Players:GetPlayers() do
+			task.spawn(SeasonPass.refresh, other)
+		end
+		local info = SeasonRules.info(SeasonRules.now())
+		local phase = if info.phase == "Active"
+			then `día {info.day}{if info.lastWeek then " (última semana)" else ""}`
+			elseif info.phase == "Rest" then "descanso"
+			else "sin temporada"
+		Remotes.Notify:FireClient(player, `📆 Reloj del pase: +{days} días → {phase}`)
 	end,
 	-- Adelanta una hora el reloj de los huevos de este servidor (Shared/EggIncubation.now).
 	ClockHour = function(player)

@@ -1,10 +1,10 @@
 --!strict
 -- Señales de las estaciones de la plaza del Lobby (las piezas con el atributo "StationId", que pone
--- World/LobbyBuilder: roles, ranking, Isla de dunas y nido):
+-- World/LobbyBuilder: roles, ranking, Isla de dunas, pase de temporada y nido):
 --   - Un icono flotante encima de cada una ("StationIcon"), visible desde lejos, que sube y baja.
 --     Lleva un "!" rojo cuando hay algo para ti: puntos de talento por gastar (roles), el huevo del
---     nido listo o huevos esperando un nido vacío (nido), y "⏳" en la Isla de dunas si estás
---     buscando partida. Cada jugador ve los suyos.
+--     nido listo o huevos esperando un nido vacío (nido), premios del pase por reclamar (pase), y
+--     "⏳" en la Isla de dunas si estás buscando partida. Cada jugador ve los suyos.
 --   - Un contorno dorado en lo que tiene el aviso a la vista (cualquier ProximityPrompt del Lobby,
 --     también los botes), para que se note que se puede usar.
 -- LobbyGuideController resalta el de la estación a la que lleva la guía (StationMarkers.focus).
@@ -18,6 +18,7 @@ local Workspace = game:GetService("Workspace")
 
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local GOLD = Color3.fromRGB(242, 178, 36)
@@ -66,6 +67,10 @@ local function badgeFor(player: Player, id: string): string
 		return if #eggs.bag + #eggs.pending > 0 then "!" else ""
 	elseif id == "Arena" then
 		return if readJson(player:GetAttribute("ArenaQueue")) then "⏳" else ""
+	elseif id == "Pase" then
+		local season = SeasonPass.info(SeasonPass.now()).season
+		local state = SeasonPass.normalize(readJson(player:GetAttribute("Season")), if season then season.id else nil)
+		return if SeasonPass.hasClaimable(season, state) then "!" else ""
 	end
 	return ""
 end
@@ -204,6 +209,7 @@ function StationMarkers:Start()
 			or attribute == "Progress"
 			or attribute == "SelectedRole"
 			or attribute == "ArenaQueue"
+			or attribute == "Season"
 		then
 			refreshAll()
 		end

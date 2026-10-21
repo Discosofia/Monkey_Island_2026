@@ -2,7 +2,8 @@
 -- Pantalla de resultados al terminar la partida (Fase 2.7): días sobrevividos, tus estadísticas,
 -- el Ámbar ganado y un botón para volver ya al Lobby (si no, el servidor os envía a todos).
 -- Al ganar con un huevo incubando en el nido del Lobby, una ruleta enseña su tirada del rescate
--- ("eggRoll" del resumen, MatchService): las horas que le quita o la eclosión inmediata.
+-- ("eggRoll" del resumen, MatchService): las horas que le quita o la eclosión inmediata. Con una
+-- temporada en marcha, también la XP del pase sumada ("pass").
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,6 +13,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 -- Cian del huevo (como su línea de estado en el HUD).
@@ -77,7 +79,10 @@ local function show(summary: { [string]: any })
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	-- Con la tirada del huevo hay dos líneas más: la ventana crece y lo demás encoge un poco.
 	local roll = if typeof(summary.eggRoll) == "table" then summary.eggRoll else nil
-	local panelHeight = (if roll then 0.86 else 0.7) + (if summary.newTitle then 0.07 else 0)
+	local passText = SeasonPass.gainText(summary.pass)
+	local panelHeight = (if roll then 0.86 else 0.7)
+		+ (if summary.newTitle then 0.07 else 0)
+		+ (if passText then 0.07 else 0)
 	local fit = 0.7 / panelHeight
 	panel.Size = UDim2.fromScale(0.6, panelHeight)
 	panel.BackgroundColor3 = Color3.fromRGB(30, 24, 18)
@@ -114,6 +119,9 @@ local function show(summary: { [string]: any })
 		{ text = `👑 Jefes: {summary.bosses or 0}`, height = 0.08, color = plain },
 		{ text = `✨ Ámbar ganado: {summary.amber}`, height = 0.1, color = Color3.fromRGB(255, 200, 80) },
 	}
+	if passText then
+		table.insert(lines, { text = passText, height = 0.07, color = Color3.fromRGB(255, 150, 80) })
+	end
 	if summary.newTitle then
 		table.insert(lines, {
 			text = "🏝️ ¡Nuevo título: Superviviente de la Isla! Póntelo en Estilo (Lobby)",

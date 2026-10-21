@@ -9,6 +9,8 @@
 --     le toca una tirada que le quita horas o lo deja listo (ServerShared/Eggs); el resultado va en su
 --     resumen ("eggRoll") y la pantalla de resultados lo enseña con una ruleta. La primera victoria de
 --     verdad (no la del panel de pruebas) da el título "Superviviente de la Isla" ("newTitle").
+--   - XP del pase de temporada (Config.Season.IslandXp, ServerShared/SeasonPass): por día, jefe, huevo
+--     salvado y rescate, con el tope de hoy; lo sumado va en el resumen ("pass") para los resultados.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,6 +23,7 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
+local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local DayNightService = require(script.Parent.DayNightService)
 
@@ -39,6 +42,8 @@ export type Summary = {
 	test: boolean?,
 	-- Primera victoria de verdad: acaba de ganar el título "Superviviente de la Isla".
 	newTitle: boolean?,
+	-- XP del pase de temporada sumada (nil sin temporada en marcha).
+	pass: SeasonPass.Gain?,
 }
 
 local MatchService = {}
@@ -62,14 +67,20 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 	local kills = MatchStats.get(player, MatchStats.KILLS)
 	local revives = MatchStats.get(player, MatchStats.REVIVES)
 	local bosses = MatchStats.get(player, MatchStats.BOSSES)
+	local eggs = MatchStats.get(player, MatchStats.EGGS)
 	local settings = Config.Match
 	local amber = days * settings.AmberPerDay
 		+ kills * settings.AmberPerKill
 		+ revives * settings.AmberPerRevive
 		+ bosses * settings.AmberPerBoss
 		+ MatchStats.get(player, MatchStats.BOUNTIES) * settings.AmberPerBounty
-		+ MatchStats.get(player, MatchStats.EGGS) * settings.AmberPerEgg
+		+ eggs * settings.AmberPerEgg
 		+ (if result == "Victory" then settings.AmberForRescue else 0)
+	local passXp = Config.Season.IslandXp
+	local xp = days * passXp.PerDay
+		+ bosses * passXp.PerBoss
+		+ eggs * passXp.PerEgg
+		+ (if result == "Victory" then passXp.Rescue else 0)
 	return {
 		result = result,
 		days = days,
@@ -85,6 +96,7 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 				and CosmeticsServer.grant(player, SURVIVOR_TITLE)
 			then true
 			else nil,
+		pass = SeasonPass.addXp(player, "Match", xp),
 	}
 end
 

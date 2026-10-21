@@ -2,12 +2,14 @@
 -- Configuración central del juego.
 -- Para balancear o ajustar el juego, cambia los números aquí: la lógica los lee de este módulo.
 
--- Premio del calendario y de las misiones (Daily; Shared/Rewards los escribe para el jugador).
+-- Premio del calendario, de las misiones y del pase (Daily; Shared/Rewards los escribe para el
+-- jugador). "xp": XP del pase de temporada (las misiones; ServerShared/SeasonPass).
 export type Reward = {
 	amber: number?,
 	items: { [string]: number }?,
 	eggSeconds: number?,
 	egg: { [string]: number }?,
+	xp: number?,
 }
 
 local Config = {
@@ -821,11 +823,16 @@ local Config = {
 	-- Pase de temporada (Fase 9; plan en docs/PLAN.md). La premium es solo cosmética: el Ámbar, el
 	-- tiempo de huevo y las provisiones salen de la pista gratis y solo por nivel ganado jugando.
 	-- Los números los mide la calculadora (ServerStorage.Tools.Economia, skill economia-retencion).
+	-- Temporadas y premios: Data/Seasons; lógica: Shared/SeasonPass y ServerShared/SeasonPass.
 	Season = {
+		-- Días que dura cada temporada (desde "startsAt" de Data/Seasons).
+		Days = 30,
 		Levels = 30,
 		LevelXp = 1000,
-		-- Después del último nivel: un nivel "en bucle" cada LoopXp (premio de la pista gratis).
+		-- Después del último nivel: un nivel "en bucle" cada LoopXp ganada jugando, con estos premios
+		-- por turnos (pista gratis; el tiempo de huevo cuenta para el tope de lo ganado jugando).
 		LoopXp = 1500,
+		LoopRewards = { { amber = 50 }, { eggSeconds = 15 * 60 } } :: { Reward },
 		-- Multiplicador de XP los últimos LastWeekDays días de la temporada.
 		LastWeekMultiplier = 2,
 		LastWeekDays = 7,
@@ -833,8 +840,12 @@ local Config = {
 		RestDays = 7,
 		-- Tope de XP al día de las partidas (Isla y Dunas); las misiones no cuentan en él.
 		DailyMatchXpCap = 1200,
-		-- Extra por jugar con amigos (fuera del tope).
+		-- Extra por jugar con amigos (fuera del tope): si en el servidor hay algún amigo de Roblox.
 		FriendsBonus = 0.1,
+		-- XP de una partida en la Isla (MatchService, al terminar) y en Dunas (ArenaRewardService; las
+		-- de prueba no dan nada). Las misiones llevan la suya en su premio (Data/Missions, "xp").
+		IslandXp = { PerDay = 30, PerBoss = 100, PerEgg = 50, Rescue = 300 },
+		ArenaXp = { Win = 80, Tie = 40, Loss = 30, PerCapture = 15 },
 	},
 
 	-- Compras con Robux (Fase 9). Los Developer Products los entrega ServerShared/Purchases con su
@@ -874,6 +885,8 @@ local Config = {
 		-- el de la Isla de dunas (ArenaBoardController: tu estado en la arena y la cola).
 		PetsBoardTag = "TablaMascotas",
 		ArenaBoardTag = "TablaArena",
+		-- Cartel del pase de temporada (PassBoardController: la temporada, tu nivel y tus premios).
+		PassBoardTag = "TablaPase",
 		-- Nido de huevos (World/LobbyBuilder): cada cliente dibuja en él su huevo (NestController).
 		NestTag = "NidoLobby",
 	},

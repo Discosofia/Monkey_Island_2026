@@ -1,14 +1,28 @@
 --!strict
 -- Premios del bucle de retención (octubre de 2026): cómo se escriben para el jugador. Los reparten el
--- calendario y las misiones (ServerShared/Retention); las provisiones se guardan en el perfil y se
--- entregan al empezar la siguiente partida en la Isla (ServerShared/Supplies).
+-- calendario, las misiones (ServerShared/Retention) y el pase de temporada (ServerShared/SeasonPass,
+-- que además da cosméticos); las provisiones se guardan en el perfil y se entregan al empezar la
+-- siguiente partida en la Isla (ServerShared/Supplies).
 
 local Config = require(script.Parent.Config)
+local Cosmetics = require(script.Parent.Data.Cosmetics)
 local EggIncubation = require(script.Parent.EggIncubation)
 local Items = require(script.Parent.Data.Items)
 local Rarities = require(script.Parent.Data.Rarities)
 
 local Rewards = {}
+
+-- Tipo de cosmético en una palabra, para las casillas pequeñas (Rewards.compact).
+local KIND_NAMES: { [string]: string } = {
+	Trail = "Estela",
+	Title = "Título",
+	Aura = "Aura",
+	Outfit = "Traje",
+	WeaponSkin = "Arma",
+	PetSkin = "Mascota",
+	Emote = "Emote",
+	Frame = "Marco",
+}
 
 -- Solo los ítems que existen y en cantidades enteras positivas.
 function Rewards.sanitizeItems(raw: any): { [string]: number }
@@ -61,10 +75,15 @@ local function eggLabel(weights: { [string]: number }): string
 	return `Huevo {Rarities[lowest].name}{if count > 1 then " o mejor" else ""}`
 end
 
--- Cada parte de un premio, de lo más valioso a lo menos: "🥚 Huevo Raro o mejor", "500 ✨ Ámbar",
--- "⏩ 2 h para tu huevo", "5 🍌 Banano"…
-function Rewards.parts(reward: Config.Reward): { string }
+-- Cada parte de un premio, de lo más valioso a lo menos: "🎨 Título: Señor del Volcán",
+-- "🥚 Huevo Raro o mejor", "500 ✨ Ámbar", "⏩ 2 h para tu huevo", "5 🍌 Banano", "⭐ 150 XP de pase"…
+-- "cosmetic" solo lo llevan los premios del pase (Data/Seasons).
+function Rewards.parts(reward: Config.Reward & { cosmetic: string? }): { string }
 	local parts = {}
+	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
+	if cosmetic then
+		table.insert(parts, `{cosmetic.icon} {cosmetic.name}`)
+	end
 	if reward.egg then
 		table.insert(parts, `🥚 {eggLabel(reward.egg)}`)
 	end
@@ -80,16 +99,23 @@ function Rewards.parts(reward: Config.Reward): { string }
 			table.insert(parts, `🎒 {items}`)
 		end
 	end
+	if reward.xp then
+		table.insert(parts, `⭐ {reward.xp} XP de pase`)
+	end
 	return parts
 end
 
-function Rewards.describe(reward: Config.Reward): string
+function Rewards.describe(reward: Config.Reward & { cosmetic: string? }): string
 	return table.concat(Rewards.parts(reward), " · ")
 end
 
 -- Versión corta para una casilla pequeña: "100 ✨  5 🍌", "🥚 Raro+  500 ✨".
-function Rewards.compact(reward: Config.Reward): string
+function Rewards.compact(reward: Config.Reward & { cosmetic: string? }): string
 	local parts = {}
+	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
+	if cosmetic then
+		table.insert(parts, `{cosmetic.icon} {KIND_NAMES[cosmetic.kind] or cosmetic.name}`)
+	end
 	if reward.egg then
 		-- (string.gsub devuelve dos valores: por eso va en dos pasos.)
 		local label = string.gsub(eggLabel(reward.egg), "^Huevo ", "")
@@ -100,7 +126,12 @@ function Rewards.compact(reward: Config.Reward): string
 		table.insert(parts, `{reward.amber} ✨`)
 	end
 	if reward.eggSeconds then
-		table.insert(parts, `⏩ {reward.eggSeconds // 3600} h`)
+		table.insert(
+			parts,
+			if reward.eggSeconds >= 3600
+				then `⏩ {reward.eggSeconds / 3600 // 0.5 * 0.5} h`
+				else `⏩ {reward.eggSeconds // 60} min`
+		)
 	end
 	if reward.items then
 		local items = Rewards.sanitizeItems(reward.items)

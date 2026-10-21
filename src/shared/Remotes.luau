@@ -113,6 +113,9 @@ local Remotes = {
 	ClaimLogin = remoteEvent("ClaimLogin"),
 	-- Servidor -> cliente (Lobby): premio cobrado (día 1..7 y lo recibido, línea a línea).
 	LoginClaimed = remoteEvent("LoginClaimed"),
+	-- Cliente -> servidor (Lobby): reclamar premios del pase de temporada: un nivel y su pista
+	-- ("Free" | "Premium"), o todos sin argumentos (ServerShared/SeasonPass).
+	ClaimPass = remoteEvent("ClaimPass"),
 	-- Cliente -> servidor (Dunas): antes de la partida, unirse a un equipo ("Jaguar" | "Quetzal"),
 	-- elegir rol (id de Data/Roles) y marcar si está listo (true/false). El estado de la partida va en
 	-- atributos de ReplicatedStorage (Shared/Arena).
