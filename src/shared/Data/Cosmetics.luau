@@ -176,7 +176,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		title = "👑 Rey de la Isla Primal",
 	},
 
-	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero; G9b: el cazador).
+	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero; G9b: el cazador y el mago).
 	TitanKingOutfit = {
 		name = "Traje: Rey Gorila Titán",
 		icon = "🦍",
@@ -220,6 +220,28 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(190, 240, 255),
 		source = { productId = 0, price = 449 },
 		role = "Cazador",
+	},
+	FeatheredSerpentOutfit = {
+		name = "Traje: Serpiente Emplumada",
+		icon = "🐍",
+		kind = "Outfit",
+		description = "Gana una partida de mago con el Bastón y la Túnica de lava. Crece con tu armadura.",
+		order = 24,
+		rarity = "Mythic",
+		color = Color3.fromRGB(95, 215, 255),
+		source = { earned = "MasterVictory" },
+		role = "Mago",
+	},
+	FeatheredSerpentStaff = {
+		name = "Arma: Báculo de la Serpiente Emplumada",
+		icon = "🐍",
+		kind = "WeaponSkin",
+		description = "La serpiente de plumas sostiene el cristal de tu bastón de mago. Crece con tu arma.",
+		order = 25,
+		rarity = "Mythic",
+		color = Color3.fromRGB(95, 215, 255),
+		source = { productId = 0, price = 449 },
+		role = "Mago",
 	},
 }
 

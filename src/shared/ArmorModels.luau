@@ -3980,6 +3980,464 @@ local function spectralJaguar(body: Body, grade: number)
 	end
 end
 
+-- Mago, Serpiente Emplumada: túnica añil (la del mago), escamas turquesa con el vientre de oro, plumas de
+-- quetzal verdes con la punta turquesa, rojo de quetzal, oro y jade; lo que brilla es el azul de las
+-- runas del mago (el verde de las plumas no brilla nunca: el que brilla es de las curaciones).
+local QUETZAL = Color3.fromRGB(40, 160, 74)
+local QUETZAL_RED = Color3.fromRGB(196, 38, 48)
+local SCALE = TURQUOISE
+local SCALE_DARK = Color3.fromRGB(28, 116, 118)
+local SERPENT_MOUTH = Color3.fromRGB(110, 26, 40)
+local SERPENT_EYE = Color3.fromRGB(16, 26, 34)
+
+-- Pluma de quetzal de "length" en el plano XY de "at", con la punta hacia su +Y: verde, con la punta
+-- turquesa (azul de runa que brilla con "lit") y el cañón de oro. La punta va al final y del ancho de la
+-- pluma: un óvalo en medio parecía el ojo de una pluma de pavo real. "wide" es su ancho respecto al
+-- largo (0,36 si no se dice).
+local function quetzalFeather(make: Builder, length: number, at: CFrame, lit: boolean, wide: number?)
+	local ratio = wide or 0.36
+	make.oval(Vector3.new(length * ratio, length, 0.05), QUETZAL, SMOOTH, at)
+	make.oval(
+		Vector3.new(length * ratio * 0.72, length * 0.3, 0.07),
+		if lit then RUNE else SCALE,
+		if lit then NEON else SMOOTH,
+		at * CFrame.new(0, length * 0.36, 0)
+	)
+	make.block(Vector3.new(0.02, length * 0.7, 0.07), TITAN_GOLD, SMOOTH, at * CFrame.new(0, -length * 0.1, 0))
+end
+
+-- Cuerpo de la serpiente por los puntos de "points": tramos de escamas turquesa que se solapan, con un
+-- anillo de oro (el vientre) en cada junta.
+local function serpentBody(make: Builder, points: { Vector3 }, thickness: number)
+	for index = 1, #points - 1 do
+		local from, to = points[index], points[index + 1]
+		local length = (to - from).Magnitude
+		local segment = CFrame.lookAt((from + to) / 2, to)
+		make.oval(Vector3.new(thickness, thickness, length + thickness * 0.6), SCALE, SMOOTH, segment)
+		make.oval(
+			Vector3.new(thickness * 1.08, thickness * 1.08, thickness * 0.24),
+			TITAN_GOLD,
+			SMOOTH,
+			segment * CFrame.new(0, 0, length / 2)
+		)
+	end
+end
+
+-- Cabeza de la serpiente emplumada de "size" mirando a la -Z de "at": cráneo de escamas con una banda
+-- de oro, cejas de oro, fauces abiertas (hocico alzado, mandíbula caída y la boca roja), colmillos de
+-- oro, lengua bífida y, detrás, una cresta de "crest" plumas de quetzal abiertas hacia atrás. Devuelve
+-- los ojos.
+local function serpentHead(
+	make: Builder,
+	at: CFrame,
+	size: number,
+	eye: Color3,
+	eyeMaterial: Enum.Material,
+	crest: number,
+	lit: boolean
+): { BasePart }
+	local function on(x: number, y: number, z: number): CFrame
+		return at * CFrame.new(x * size, y * size, z * size)
+	end
+	local function scaled(x: number, y: number, z: number): Vector3
+		return Vector3.new(x * size, y * size, z * size)
+	end
+	make.oval(scaled(0.72, 0.46, 0.9), SCALE, SMOOTH, on(0, 0.06, 0.05))
+	make.oval(scaled(0.58, 0.2, 0.62), SCALE, SMOOTH, on(0, 0.04, -0.42) * CFrame.Angles(0.42, 0, 0))
+	make.oval(scaled(0.5, 0.16, 0.6), SCALE_DARK, SMOOTH, on(0, -0.28, -0.34) * CFrame.Angles(-0.5, 0, 0))
+	make.oval(scaled(0.44, 0.2, 0.5), SERPENT_MOUTH, SMOOTH, on(0, -0.12, -0.38))
+	make.block(scaled(0.5, 0.05, 0.08), TITAN_GOLD, SMOOTH, on(0, 0.29, 0.18))
+	make.block(scaled(0.04, 0.04, 0.3), QUETZAL_RED, SMOOTH, on(0, -0.14, -0.66))
+	local eyes = {}
+	for side = -1, 1, 2 do
+		make.block(
+			scaled(0.03, 0.03, 0.2),
+			QUETZAL_RED,
+			SMOOTH,
+			on(side * 0.04, -0.14, -0.88) * CFrame.Angles(0, side * 0.35, 0)
+		)
+		local fangWidth = 0.06 * size
+		make.fang(
+			0.2 * size,
+			fangWidth,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.17, -0.06, -0.6) * CFrame.new(fangWidth / 2, 0, -fangWidth / 2) * CFrame.Angles(0, 0, math.pi)
+		)
+		-- Ojo oscuro (claro se perdía contra las escamas) con la pupila rasgada de "eye".
+		make.ball(0.16 * size, SERPENT_EYE, SMOOTH, on(side * 0.3, 0.14, -0.14))
+		table.insert(eyes, make.block(scaled(0.03, 0.12, 0.05), eye, eyeMaterial, on(side * 0.375, 0.14, -0.15)))
+		make.oval(
+			scaled(0.24, 0.08, 0.32),
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.26, 0.27, -0.12) * CFrame.Angles(0, 0, side * 0.3)
+		)
+		make.ball(0.05 * size, SERPENT_MOUTH, SMOOTH, on(side * 0.1, 0.12, -0.72))
+	end
+	for index = 1, crest do
+		local spread = if crest == 1 then 0 else (index - 1) / (crest - 1) * 1.4 - 0.7
+		quetzalFeather(
+			make,
+			(if math.abs(spread) < 0.2 then 0.9 else 0.72) * size,
+			on(0, 0.22, 0.32) * CFrame.Angles(0.9, 0, spread) * CFrame.new(0, 0.32 * size, 0),
+			lit
+		)
+	end
+	return eyes
+end
+
+-- Hombrera de la Serpiente (grado 1+): almohadilla de escamas turquesa, dos láminas añil con el canto de
+-- oro y una cabeza de serpiente con cresta que mira hacia fuera (ojos de runa desde el grado 3; grado
+-- 4: tres cristales de runa detrás).
+local function serpentPauldron(arm: Builder, side: number, grade: number)
+	local as = arm.size
+	local top = as.Y / 2
+	local lit = grade >= 3
+	arm.oval(Vector3.new(as.X * 1.3, 0.46, as.Z * 1.3), SCALE, SMOOTH, CFrame.new(side * 0.1, top + 0.04, 0))
+	for _, z in { -0.3, 0, 0.3 } do
+		arm.ball(0.12, SCALE_DARK, SMOOTH, CFrame.new(side * 0.36, top + 0.1, z * as.Z))
+	end
+	for index = 0, 1 do
+		local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
+			* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
+		arm.oval(
+			Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
+			TITAN_GOLD,
+			SMOOTH,
+			lame * CFrame.new(0, -0.07, 0)
+		)
+		arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), MAGE_INDIGO, FABRIC, lame)
+	end
+	serpentHead(
+		arm,
+		CFrame.new(side * as.X * 0.4, top + 0.32, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
+		0.7,
+		if lit then RUNE else JADE,
+		if lit then NEON else SMOOTH,
+		3,
+		lit
+	)
+	if grade >= 4 then
+		for _, z in { -0.26, 0, 0.26 } do
+			crystal(
+				arm,
+				Vector3.new(-side * 0.04, top + 0.24, z * as.Z),
+				Vector3.new(-side * 0.35, 1, z * 1.4),
+				if z == 0 then 0.62 else 0.44,
+				0.2
+			)
+		end
+	end
+end
+
+-- Traje mítico del mago, Serpiente Emplumada. Grado 0: túnica añil con ribetes de oro, pectoral de
+-- mosaico turquesa en un aro de oro con la cabeza de la serpiente en el centro, gorguera de oro con
+-- cuentas de jade, el cinturón es la propia serpiente (escamas turquesa con anillos de oro y la cabeza
+-- de hebilla), taparrabos rojo de quetzal con plumas, brazaletes de oro y puños de plumas. Detrás, un
+-- disco de mosaico turquesa con un abanico de plumas de quetzal. Grado 1: hombreras de escamas con
+-- cabezas de serpiente con cresta. Grado 2: capa de plumas de quetzal en tres filas, cuello de plumas,
+-- broches con cadena, faldones rojos y, de motivo en la espalda, la serpiente enroscada en espiral con
+-- la cabeza en el centro. Grado 3: la serpiente se alza: el cuerpo sube en S por la capa y la cabeza
+-- grande, con las fauces abiertas y una cresta de siete plumas, queda entre los omoplatos (la cabeza
+-- del jugador se ve por encima); se encienden los ojos de todas las cabezas, las puntas de las plumas y
+-- un aro de runas en el pectoral. Grado 4: un penacho de diez plumas largas abierto como alas alrededor
+-- de la cabeza, con rayos de oro, chispas de runa y cristales de runa en las hombreras.
+local function featheredSerpent(body: Body, grade: number)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local front = -(depth / 2 + 0.08)
+	local back = depth / 2
+	local lit = grade >= 3
+	local eye = if lit then RUNE else JADE
+	local eyeMaterial = if lit then NEON else SMOOTH
+	local BEHIND = CFrame.Angles(0, math.pi, 0)
+	make.block(
+		Vector3.new(width + 0.1, height * 0.92, depth + 0.14),
+		MAGE_INDIGO,
+		FABRIC,
+		CFrame.new(0, -height * 0.03, 0)
+	)
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.08, height * 0.9, 0.08),
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(side * width * 0.3, -height * 0.04, front + 0.01)
+		)
+	end
+
+	-- Pectoral: aro de oro con el mosaico turquesa (teselas de dos tonos y jade) y la cabeza de la
+	-- serpiente en el centro; desde el grado 3, un aro de runas que brilla alrededor.
+	local pectoral = CFrame.new(0, height * 0.12, front - 0.04)
+	make.rod(0.06, width * 0.52, TITAN_GOLD, SMOOTH, pectoral * FACING)
+	make.rod(0.06, width * 0.44, SCALE_DARK, SMOOTH, pectoral * CFrame.new(0, 0, -0.02) * FACING)
+	for index = 0, 9 do
+		local angle = index * math.pi / 5
+		make.block(
+			Vector3.new(0.14, 0.14, 0.05),
+			if index % 3 == 0 then JADE elseif index % 3 == 1 then SCALE else TITAN_GOLD,
+			SMOOTH,
+			pectoral
+				* CFrame.Angles(0, 0, angle)
+				* CFrame.new(0, width * 0.17, -0.05)
+				* CFrame.Angles(0, 0, math.pi / 4)
+		)
+	end
+	if lit then
+		hoop(make, pectoral * CFrame.new(0, 0, -0.06), width * 0.25, 12, 0.05, RUNE, NEON)
+	end
+	-- Las cabezas van de perfil a tres cuartos (de frente, una serpiente parece una rana).
+	local PROFILE = CFrame.Angles(0, -math.pi / 2 + 0.45, 0)
+	serpentHead(make, pectoral * CFrame.new(-0.08, 0.02, -0.16) * PROFILE, 0.68, eye, eyeMaterial, 0, lit)
+
+	-- Gorguera de oro con cuentas de jade.
+	for index = 0, 6 do
+		local angle = math.rad(-150 + index * 50)
+		make.block(
+			Vector3.new(0.28, 0.14, 0.16),
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
+				* CFrame.Angles(0, -angle, 0)
+		)
+		if index < 6 then
+			local mid = angle + math.rad(25)
+			make.ball(
+				0.15,
+				JADE,
+				SMOOTH,
+				CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
+			)
+		end
+	end
+
+	-- Espalda (grados 0 y 1): disco de mosaico turquesa con un abanico de plumas de quetzal.
+	if grade < 2 then
+		local disc = CFrame.new(0, height * 0.08, back + 0.1) * BEHIND
+		for index = -2, 2 do
+			quetzalFeather(
+				make,
+				1,
+				disc * CFrame.new(0, 0, 0.04) * CFrame.Angles(0, 0, index * 0.38) * CFrame.new(0, 0.5, 0),
+				false
+			)
+		end
+		make.rod(0.06, 0.62, TITAN_GOLD, SMOOTH, disc * CFrame.new(0, 0, -0.02) * FACING)
+		make.rod(0.06, 0.48, SCALE, SMOOTH, disc * CFrame.new(0, 0, -0.05) * FACING)
+		make.ball(0.18, JADE, SMOOTH, disc * CFrame.new(0, 0, -0.08))
+	end
+
+	-- Cinturón: la serpiente rodea la cintura (escamas con anillos de oro) con la cabeza de hebilla y la
+	-- cola colgando a un lado; taparrabos rojo de quetzal con el bajo de oro y tres plumas.
+	local waist = body.waist
+	local hipWidth, hipDepth = waist.size.X, waist.size.Z
+	local beltFront = -(hipDepth / 2 + 0.09)
+	waist.block(Vector3.new(hipWidth + 0.16, 0.24, hipDepth + 0.18), SCALE, SMOOTH, CFrame.new(0, 0.05, 0))
+	for _, y in { 0.17, -0.07 } do
+		waist.block(Vector3.new(hipWidth + 0.18, 0.04, hipDepth + 0.2), TITAN_GOLD, SMOOTH, CFrame.new(0, y, 0))
+	end
+	for index = -3, 3 do
+		if index ~= 0 then
+			waist.block(
+				Vector3.new(0.1, 0.1, 0.04),
+				SCALE_DARK,
+				SMOOTH,
+				CFrame.new(index * hipWidth * 0.13, 0.05, beltFront + 0.01) * CFrame.Angles(0, 0, math.pi / 4)
+			)
+		end
+	end
+	serpentHead(waist, CFrame.new(-0.05, 0.06, beltFront - 0.12) * PROFILE, 0.42, eye, eyeMaterial, 0, lit)
+	serpentBody(waist, {
+		Vector3.new(hipWidth * 0.5, 0.0, -hipDepth * 0.2),
+		Vector3.new(hipWidth * 0.58, -0.3, -hipDepth * 0.1),
+		Vector3.new(hipWidth * 0.56, -0.62, -hipDepth * 0.28),
+	}, 0.14)
+	for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
+		waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), QUETZAL_RED, FABRIC, CFrame.new(0, -0.4, z))
+		waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.68, z))
+	end
+	for index = -1, 1 do
+		quetzalFeather(
+			waist,
+			0.42,
+			CFrame.new(index * 0.13, -0.86, beltFront - 0.01) * CFrame.Angles(0, 0, math.pi + index * 0.25),
+			lit
+		)
+	end
+
+	-- Brazos: brazaletes de oro con jade y puños de plumas de quetzal en las muñecas.
+	for side = -1, 1, 2 do
+		local upper = body.upperArm[side]
+		local us = upper.size
+		band(upper, -us.Y * 0.2, 0.12, 0.08, TITAN_GOLD, SMOOTH)
+		upper.ball(0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
+		local forearm = body.lowerArm[side]
+		local fs = forearm.size
+		band(forearm, -fs.Y / 2 + 0.3, 0.08, 0.12, TITAN_GOLD, SMOOTH)
+		band(forearm, -fs.Y / 2 + 0.16, 0.2, 0.1, SCALE, SMOOTH)
+		for _, z in { -0.22, 0.22 } do
+			quetzalFeather(
+				forearm,
+				0.36,
+				CFrame.new(side * (fs.X / 2 + 0.06), -fs.Y / 2 + 0.14, z) * CFrame.Angles(0, math.pi / 2, math.pi),
+				lit
+			)
+		end
+		if grade >= 1 then
+			serpentPauldron(upper, side, grade)
+		end
+	end
+
+	-- Grado 2: capa y cuello de plumas de quetzal, broches con cadena y faldones.
+	if grade >= 2 then
+		make.block(
+			Vector3.new(width + 0.36, 0.3, depth * 0.62),
+			MAGE_INDIGO_DARK,
+			FABRIC,
+			CFrame.new(0, height / 2 - 0.06, depth * 0.24)
+		)
+		for index = 0, 6 do
+			local x = (index / 6 - 0.5) * (width + 0.2)
+			quetzalFeather(make, 0.5, CFrame.new(x, height / 2 - 0.3, front - 0.02) * CFrame.Angles(0, 0, math.pi), lit)
+		end
+		local capeHeight = height * 1.16
+		local capeTop = height / 2 - 0.05
+		local capeZ = back + 0.2
+		make.block(
+			Vector3.new(width * 1.02, capeHeight, 0.12),
+			MAGE_INDIGO_DARK,
+			FABRIC,
+			CFrame.new(0, capeTop - capeHeight / 2, capeZ)
+		)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.08, capeHeight, 0.14),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * width * 0.5, capeTop - capeHeight / 2, capeZ + 0.01)
+			)
+		end
+		-- Tres filas de plumas que caen solapadas, la de abajo por fuera.
+		for row = 0, 2 do
+			local count = 5
+			for index = 0, count - 1 do
+				local x = (index / (count - 1) - 0.5) * width * 0.82 + (row % 2) * 0.16 - 0.08
+				quetzalFeather(
+					make,
+					0.85,
+					CFrame.new(x, capeTop - capeHeight * (0.4 + row * 0.25), capeZ + 0.07 + row * 0.03)
+						* BEHIND
+						* CFrame.Angles(0, 0, math.pi + (index - 2) * 0.08),
+					lit,
+					0.5
+				)
+			end
+		end
+		local clasps = {}
+		for side = -1, 1, 2 do
+			local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.06)
+			make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
+			make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
+			clasps[side] = clasp.Position
+		end
+		local sag = Vector3.new(0, height / 2 - 0.3, front - 0.1)
+		strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
+		strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
+		for side = -1, 1, 2 do
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+			leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), QUETZAL_RED, FABRIC, flap)
+			leg.block(Vector3.new(ls.X * 0.92, 0.06, 0.12), TITAN_GOLD, SMOOTH, flap * CFrame.new(0, -ls.Y * 0.2, 0))
+			leg.ball(0.12, JADE, SMOOTH, flap * CFrame.new(0, 0.02, -0.06))
+		end
+
+		-- El motivo de la espalda: la serpiente enroscada en espiral (grado 2) o alzándose (3 y 4).
+		local coilZ = capeZ + 0.24
+		if grade == 2 then
+			local points = {}
+			for index = 0, 14 do
+				local angle = index * 0.62
+				local radius = 0.78 - index * 0.042
+				table.insert(
+					points,
+					Vector3.new(math.cos(angle) * radius, capeTop - capeHeight * 0.45 + math.sin(angle) * radius, coilZ)
+				)
+			end
+			serpentBody(make, points, 0.26)
+			serpentHead(
+				make,
+				CFrame.new(0, capeTop - capeHeight * 0.45, coilZ + 0.2) * CFrame.Angles(0, -math.pi / 2 - 0.45, 0),
+				0.62,
+				eye,
+				eyeMaterial,
+				3,
+				lit
+			)
+		else
+			serpentBody(make, {
+				Vector3.new(width * 0.34, capeTop - capeHeight * 0.92, coilZ),
+				Vector3.new(-width * 0.2, capeTop - capeHeight * 0.78, coilZ + 0.04),
+				Vector3.new(-width * 0.3, capeTop - capeHeight * 0.6, coilZ + 0.08),
+				Vector3.new(width * 0.18, capeTop - capeHeight * 0.48, coilZ + 0.14),
+				Vector3.new(width * 0.16, capeTop - capeHeight * 0.34, coilZ + 0.22),
+				Vector3.new(0, height * 0.02, back + 0.62),
+			}, 0.28)
+			-- De perfil a tres cuartos, en pose de ataque hacia la derecha: de frente una serpiente parece
+			-- una rana.
+			local headAt = CFrame.new(-width * 0.06, height * 0.12, back + 0.78)
+				* CFrame.Angles(0, -math.pi / 2 - 0.45, 0)
+				* CFrame.Angles(0.25, 0, 0)
+			local eyes = serpentHead(make, headAt, 1.15, RUNE, NEON, 7, true)
+			fireLight(eyes[1], RUNE)
+
+			-- Grado 4: penacho de plumas largas abierto como alas alrededor de la cabeza, con rayos de oro y
+			-- chispas de runa.
+			if grade >= 4 then
+				local crown = CFrame.new(0, height * 0.22, back + 0.5) * BEHIND
+				for _, degrees in { 36, 54, 72, 90, 108 } do
+					for side = -1, 1, 2 do
+						local angle = math.rad(degrees) * side
+						local length = 1.7 - math.abs(degrees - 54) * 0.01
+						quetzalFeather(
+							make,
+							length,
+							crown
+								* CFrame.Angles(0, 0, angle)
+								* CFrame.new(0, 0.55 + length / 2, (degrees % 40) * 0.002),
+							true,
+							0.22
+						)
+						if degrees < 108 then
+							make.fang(
+								0.5,
+								0.12,
+								TITAN_GOLD,
+								SMOOTH,
+								crown * CFrame.Angles(0, 0, angle + side * math.rad(10)) * CFrame.new(-0.06, 0.6, -0.03)
+							)
+						end
+					end
+				end
+				local sparks = Instance.new("ParticleEmitter")
+				sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+				sparks.Color = ColorSequence.new(RUNE, CRYSTAL)
+				sparks.LightEmission = 1
+				sparks.Size =
+					NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0) })
+				sparks.Transparency = NumberSequence.new(0.15, 1)
+				sparks.Lifetime = NumberRange.new(1.2, 2)
+				sparks.Rate = 6
+				sparks.Speed = NumberRange.new(0.4, 1)
+				sparks.SpreadAngle = Vector2.new(60, 60)
+				sparks.Acceleration = Vector3.new(0, 0.8, 0)
+				sparks.Parent = eyes[2]
+			end
+		end
+	end
+end
+
 -- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
 local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
 	FurVest = { Guerrero = furVest, Cazador = trackerCape, Mago = amuletMantle, Medico = healerBandolier },
@@ -3998,6 +4456,7 @@ ArmorModels.MAX_GRADE = 4
 local OUTFITS: { [string]: (body: Body, grade: number) -> () } = {
 	TitanKingOutfit = titanKing,
 	SpectralJaguarOutfit = spectralJaguar,
+	FeatheredSerpentOutfit = featheredSerpent,
 }
 
 -- Si los trajes crecen con la armadura (la Isla, donde se fabrica: lo pone CraftingService). En el

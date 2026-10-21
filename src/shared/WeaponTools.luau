@@ -1794,6 +1794,250 @@ local function buildSpectralJaguarBow(tool: Tool, level: number): BasePart
 	return handle
 end
 
+-- Mago, Serpiente Emplumada: escamas turquesa con anillos de oro, plumas de quetzal verdes con la punta
+-- turquesa, rojo de quetzal, oro y jade; lo que brilla es el azul de las runas del mago.
+local SCALE = Color3.fromRGB(48, 178, 168)
+local SCALE_DARK = Color3.fromRGB(28, 116, 118)
+local QUETZAL = Color3.fromRGB(40, 160, 74)
+local QUETZAL_RED = Color3.fromRGB(196, 38, 48)
+local SERPENT_MOUTH = Color3.fromRGB(110, 26, 40)
+local SERPENT_EYE = Color3.fromRGB(16, 26, 34)
+local RUNE = Color3.fromRGB(95, 215, 255)
+
+-- Pluma de quetzal de "length" en el plano XY de "at" con la punta hacia su +Y: verde, con la punta
+-- turquesa (de runa que brilla con "lit") y el cañón de oro.
+local function quetzalFeather(handle: BasePart, length: number, at: CFrame, lit: boolean)
+	oval(handle, "Feather", Vector3.new(length * 0.36, length, 0.04), QUETZAL, SMOOTH, at)
+	oval(
+		handle,
+		"FeatherTip",
+		Vector3.new(length * 0.26, length * 0.3, 0.06),
+		if lit then RUNE else SCALE,
+		if lit then NEON else SMOOTH,
+		at * CFrame.new(0, length * 0.36, 0)
+	)
+	block(
+		handle,
+		"Quill",
+		Vector3.new(0.02, length * 0.7, 0.06),
+		TITAN_GOLD,
+		SMOOTH,
+		at * CFrame.new(0, -length * 0.1, 0)
+	)
+end
+
+-- Báculo de la Serpiente Emplumada (mago): asta de madera oscura con la empuñadura roja y, arriba, la
+-- cabeza de la serpiente mirando al cielo con las fauces abiertas y el cristal entre ellas (la pieza
+-- "Crystal", la que destella al lanzar), con su cresta de plumas de quetzal. Nivel 1: dos plumas de
+-- cresta y dos colgando. Nivel 2: el cuerpo de la serpiente sube enroscado por la mitad de arriba del
+-- asta, bandas de oro, cuentas de jade y pomo de oro. Nivel 3: el cuerpo empieza sobre la mano, cresta
+-- de cinco plumas, collar de oro con jade y plumas rojas de quetzal colgando. Nivel 4: cresta de siete
+-- plumas con las puntas de runa, ojos de runa, alas de plumas abiertas bajo la cabeza, un anillo de runas
+-- que flota alrededor del cristal y chispas.
+local function buildFeatheredSerpentStaff(tool: Tool, level: number): BasePart
+	local top = STAFF_LENGTH / 2
+	local lit = level >= 4
+	local handle = hiddenHandle(tool, Vector3.new(0.3, STAFF_LENGTH, 0.3))
+	rod(handle, "Shaft", STAFF_LENGTH, 0.3, DARK_BARK, WOOD_MATERIAL, CFrame.new())
+	rod(handle, "Wrap", 0.8, 0.36, QUETZAL_RED, FABRIC, CFrame.new(0, -0.6, 0))
+	rod(handle, "Collar", 0.22, 0.4, TITAN_GOLD, SMOOTH, CFrame.new(0, top, 0))
+	ball(
+		handle,
+		"Butt",
+		0.36,
+		if level >= 2 then TITAN_GOLD else DARK_BARK,
+		if level >= 2 then SMOOTH else WOOD_MATERIAL,
+		CFrame.new(0, -top, 0)
+	)
+	if level >= 2 then
+		for _, y in { -1.4, -0.15, -1.05 } do
+			rod(handle, "Band", 0.08, 0.36, TITAN_GOLD, SMOOTH, CFrame.new(0, y, 0))
+		end
+		for _, y in { -1.25, -1.55 } do
+			rod(handle, "Bead", 0.12, 0.38, JADE, SMOOTH, CFrame.new(0, y, 0))
+		end
+	end
+
+	-- El cuerpo enroscado al asta, de la cola (abajo) al cuello: tramos de escamas con anillos de oro.
+	if level >= 2 then
+		local from = if level >= 3 then 0 else 0.9
+		local count = if level >= 3 then 12 else 7
+		local previous: Vector3? = nil
+		for index = 0, count do
+			local angle = index * 1.05
+			local point = Vector3.new(math.cos(angle) * 0.2, from + (top - from) * index / count, math.sin(angle) * 0.2)
+			if previous then
+				local thick = 0.16 + 0.08 * index / count
+				local length = (point - previous).Magnitude
+				local segment = CFrame.lookAt((point + previous) / 2, point)
+				oval(handle, "Coil", Vector3.new(thick, thick, length + thick * 0.6), SCALE, SMOOTH, segment)
+				if index % 2 == 0 then
+					oval(
+						handle,
+						"Belly",
+						Vector3.new(thick * 1.1, thick * 1.1, thick * 0.3),
+						TITAN_GOLD,
+						SMOOTH,
+						segment * CFrame.new(0, 0, length / 2)
+					)
+				end
+			end
+			previous = point
+		end
+	end
+
+	-- La cabeza mirando arriba y adelante, con las fauces abiertas alrededor del cristal.
+	local size = ({ 1.1, 1.2, 1.3, 1.4 })[level] or 1.1
+	local head = CFrame.new(0, top + 0.42, 0.08) * CFrame.Angles(1, 0, 0)
+	local function on(x: number, y: number, z: number): CFrame
+		return head * CFrame.new(x * size, y * size, z * size)
+	end
+	local neckFrom, neckTo = Vector3.new(0, top + 0.05, 0), (head * CFrame.new(0, 0, 0.2 * size)).Position
+	oval(
+		handle,
+		"Neck",
+		Vector3.new(0.3, 0.3, (neckTo - neckFrom).Magnitude + 0.2),
+		SCALE,
+		SMOOTH,
+		CFrame.lookAt((neckFrom + neckTo) / 2, neckTo)
+	)
+	oval(handle, "Head", Vector3.new(0.5, 0.36, 0.62) * size, SCALE, SMOOTH, on(0, 0.04, 0.04))
+	oval(
+		handle,
+		"Jaw",
+		Vector3.new(0.42, 0.14, 0.46) * size,
+		SCALE,
+		SMOOTH,
+		on(0, 0.08, -0.3) * CFrame.Angles(0.45, 0, 0)
+	)
+	oval(
+		handle,
+		"Jaw",
+		Vector3.new(0.36, 0.12, 0.44) * size,
+		SCALE_DARK,
+		SMOOTH,
+		on(0, -0.18, -0.24) * CFrame.Angles(-0.55, 0, 0)
+	)
+	oval(handle, "Mouth", Vector3.new(0.32, 0.14, 0.36) * size, SERPENT_MOUTH, SMOOTH, on(0, -0.06, -0.28))
+	block(handle, "Band", Vector3.new(0.36, 0.04, 0.06) * size, TITAN_GOLD, SMOOTH, on(0, 0.22, 0.14))
+	for side = -1, 1, 2 do
+		-- Ojo oscuro con la pupila rasgada (de runa en el nivel 4).
+		ball(handle, "Eye", 0.11 * size, SERPENT_EYE, SMOOTH, on(side * 0.21, 0.12, -0.08))
+		local eye = block(
+			handle,
+			"Pupil",
+			Vector3.new(0.025, 0.09, 0.035) * size,
+			if lit then RUNE else JADE,
+			if lit then NEON else SMOOTH,
+			on(side * 0.265, 0.12, -0.09)
+		)
+		if lit and side == 1 then
+			glow(eye, RUNE, 6)
+		end
+		oval(
+			handle,
+			"Brow",
+			Vector3.new(0.16, 0.06, 0.22) * size,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.18, 0.2, -0.08) * CFrame.Angles(0, 0, side * 0.3)
+		)
+		tooth(
+			handle,
+			"Fang",
+			0.16 * size,
+			0.04 * size,
+			0.05 * size,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.12, -0.04, -0.46) * CFrame.Angles(math.pi, 0, 0)
+		)
+	end
+	-- Cresta de plumas que se abre hacia atrás desde la nuca.
+	local crest = ({ 2, 3, 5, 7 })[level] or 2
+	for index = 1, crest do
+		local spread = (index - 1) / math.max(crest - 1, 1) * 1.3 - 0.65
+		quetzalFeather(
+			handle,
+			(if math.abs(spread) < 0.25 then 0.75 else 0.6) * size,
+			on(0, 0.18, 0.28) * CFrame.Angles(-0.6, 0, spread) * CFrame.new(0, 0.3 * size, 0),
+			lit
+		)
+	end
+
+	-- El cristal, entre las fauces.
+	local crystalSize = ({ 0.55, 0.65, 0.75, 0.85 })[level] or 0.55
+	local crystalAt = head * CFrame.new(0, -0.03 * size, -0.42 * size - crystalSize * 0.3)
+	local crystal = block(
+		handle,
+		"Crystal",
+		Vector3.one * crystalSize,
+		RUNE,
+		NEON,
+		crystalAt * CFrame.Angles(math.rad(45), 0, math.rad(45))
+	)
+	crystal.Transparency = 0.1
+	glow(crystal, RUNE, 10)
+
+	-- Plumas que cuelgan del collar (rojas de quetzal desde el nivel 3, con un collar de oro y jade).
+	local hanging = if level >= 3 then { QUETZAL, QUETZAL_RED, QUETZAL, QUETZAL_RED } else { QUETZAL, QUETZAL }
+	for index, color in hanging do
+		local angle = (index - 0.5) / #hanging * math.pi * 2
+		local at = CFrame.new(0, top - 0.35, 0)
+			* CFrame.Angles(0, angle, 0)
+			* CFrame.new(0, 0, -0.24)
+			* CFrame.Angles(-0.15, 0, math.pi)
+		oval(handle, "Feather", Vector3.new(0.14, 0.5, 0.03), color, SMOOTH, at)
+	end
+	if level >= 3 then
+		rod(handle, "Collar", 0.12, 0.46, TITAN_GOLD, SMOOTH, CFrame.new(0, top - 0.12, 0))
+		for index = 0, 3 do
+			ball(
+				handle,
+				"Bead",
+				0.12,
+				JADE,
+				SMOOTH,
+				CFrame.new(0, top - 0.12, 0) * CFrame.Angles(0, index * math.pi / 2, 0) * CFrame.new(0, 0, -0.24)
+			)
+		end
+	end
+
+	if lit then
+		-- Alas de plumas abiertas a los lados del cuello.
+		for side = -1, 1, 2 do
+			for index = 0, 2 do
+				quetzalFeather(
+					handle,
+					0.8 - index * 0.12,
+					CFrame.new(side * 0.2, top + 0.05, 0.05)
+						* CFrame.Angles(0, 0, -side * (0.7 + index * 0.35))
+						* CFrame.new(0, 0.4 - index * 0.06, 0),
+					true
+				)
+			end
+		end
+		-- Anillo de runas que flota inclinado alrededor del cristal.
+		local center = crystalAt
+		local ringCount = 10
+		for index = 0, ringCount - 1 do
+			block(
+				handle,
+				"RuneRing",
+				Vector3.new(0.34, 0.05, 0.05),
+				RUNE,
+				NEON,
+				center
+					* CFrame.Angles(0.4, 0, 0.3)
+					* CFrame.Angles(0, index * math.pi * 2 / ringCount, 0)
+					* CFrame.new(0, 0, -0.62)
+			)
+		end
+	end
+	tool.Grip = CFrame.new(0, -0.6, 0)
+	return handle
+end
+
 -- ===================================== Lista =====================================
 
 local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
@@ -2187,6 +2431,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 local SKINS: { [string]: (tool: Tool, level: number) -> BasePart } = {
 	TitanKingMace = buildTitanKingMace,
 	SpectralJaguarBow = buildSpectralJaguarBow,
+	FeatheredSerpentStaff = buildFeatheredSerpentStaff,
 }
 WeaponTools.MAX_LEVEL = 4
 
