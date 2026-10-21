@@ -111,9 +111,17 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		Retention.debugNextDay(player)
 		Remotes.Notify:FireClient(player, "📅 Día siguiente: ya puedes cobrar el premio del calendario")
 	end,
-	-- Cumple las misiones del día (se entregan en el siguiente apunte, con su XP de pase).
+	-- Cumple las misiones del día o las de la semana (se entregan ya, con su XP de pase).
 	Missions = function(player)
 		Retention.debugCompleteMissions(player)
+	end,
+	WeeklyMissions = function(player)
+		Retention.debugCompleteMissions(player, true)
+	end,
+	-- Como si las semanales fueran de la semana pasada: tocan otras 5 y vuelve el cambio semanal.
+	NextWeek = function(player)
+		Retention.debugNextWeek(player)
+		Remotes.Notify:FireClient(player, "📆 Semana siguiente: semanales nuevas")
 	end,
 	-- Da o quita el título que se gana al rescatarse, para ver cómo queda (no cuenta como victoria).
 	SurvivorTitle = function(player)

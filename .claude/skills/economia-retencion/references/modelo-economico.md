@@ -26,7 +26,8 @@
 | Final de partida en la Isla | `Config.Match`, `MatchService.summaryFor`, `DataService` | 10/día sobrevivido, 2/mono, 5/reanimación, 50/jefe, 15/recompensa PvP, 25/huevo, 200 por rescate |
 | Dunas | `Config.Arena.Amber`, `ArenaRewardService` | 60/30/20 (gana/empata/pierde), 15/captura, 2/baja (máx. 20), tope 400/día |
 | Calendario de 7 días | `Config.Daily.Calendar`, `Retention.claimLogin` | 100 · — · — · 100 · 250 · — · 500 (+ huevo Raro+) |
-| Misiones diarias | `Data/Missions`, `Retention` | 60 la general, 100 la de rol (+20/30 min de huevo) |
+| Misiones diarias | `Data/Missions`, `Config.Daily.MissionRewards`, `Retention` | fácil 40 · media (rol) 70 · difícil 120 (+15/25/40 min de huevo) |
+| Misiones semanales | ídem | 150 cada una; 250 (+1 h de huevo) por cumplir las 5 |
 | Descartar huevo | `Config.Egg.DiscardAmber` | 15/30/60/120/250 por rareza |
 | Tiempo de huevo sin huevo en el nido | `Config.Daily.AmberPerUnusedEggHour` | 30/h |
 | Pase de temporada, pista gratis (nivel ganado jugando) | `Data/Seasons`, `ServerShared/SeasonPass` | T1 provisional: 1.625 en 30 niveles (+ 7 h de huevo, provisiones y un huevo Raro en el N20); en bucle, 50 cada 3.000 XP |
@@ -36,11 +37,17 @@
 | Mejoras permanentes | `Data/Upgrades`, `ProgressionService` | 19 rangos, **1.930** |
 | Equipo de Dunas | `Data/ArenaGear`, `ArenaShop` | 200/150/100 por ranura (24 piezas) |
 
-**XP del pase** (`Config.Season`, desde G3): 30 niveles × 1.000. Isla 30/día sobrevivido, 100/jefe,
-50/huevo salvado, 300 por rescate; Dunas 80/40/30 + 15/captura (las de prueba no dan); tope de
-partidas 1.200/día (Isla y Dunas juntas); +10 % si hay un amigo de Roblox en el servidor; misiones
-diarias 150 la general y 200 la de rol (sin tope); ×2 los últimos 7 días. Las semanales (G4) aún no
-existen: la calculadora las simula con `OPCIONES.pase.xpSemanalSupuesta`.
+**XP del pase** (`Config.Season`, desde G3; G4 sube la de la Isla): 30 niveles × 1.000. Isla 60/día
+sobrevivido, 150/jefe, 50/huevo salvado, 300 por rescate; Dunas 80/40/30 + 15/captura (las de prueba
+no dan); tope de partidas 1.200/día (Isla y Dunas juntas); +10 % si hay un amigo de Roblox en el
+servidor; misiones diarias fácil 200, media 200, difícil 300 y semanales 500 + 500 por las 5 (sin
+tope); ×2 los últimos 7 días.
+
+**Misiones v2** (G4): cada día una fácil (general, 3–15 min), una media (del rol, 15–35 min) y una
+difícil (avanzar en la partida, 35–90 min); cada lunes 5 semanales de 13, sin dos de la misma
+`family` (como mucho una de Dunas; rescate o llegar al día 6, una). Un cambio gratis al día en las
+diarias y uno a la semana en las semanales. La calculadora simula las semanales con lo que hace cada
+perfil en la semana (valor esperado de las 5 que tocan, con el cambio).
 
 Otras progresiones: XP de rol (20/día sobrevivido, 2/mono; nivel = 1 + XP/100; talentos llenos con
 14–15 puntos), huevos (8–24 h en el nido, 1 h menos por día sobrevivido, tope del 50 % de lo ganado
@@ -57,8 +64,9 @@ jugando), mascotas (13), bestiario, ranking (días, rescates, victorias y captur
 
 Cada día de juego es una partida nueva desde el día 1 (un día de partida = 17 min). Los **ritmos**
 (lo que se hace por minuto en la Isla) son supuestos: 1 mono, 5 recursos, 0,15 objetos fabricados,
-0,12 piezas construidas, 2,5 habilidades, 0,35 combos, 300 de daño, 0,03 huevos salvados. Cuando
-haya telemetría, cámbialos en la calculadora y apunta aquí de dónde salen.
+0,12 piezas construidas, 2,5 habilidades, 0,35 combos, 300 de daño, 0,03 huevos salvados, 0,04
+alfas; especies distintas en una partida que llega al día d: 4 + 1,5 × (d − 1). Cuando haya
+telemetría, cámbialos en la calculadora y apunta aquí de dónde salen.
 
 ## 4. Línea base (20-10-2026, antes del pase; 30 días)
 
@@ -83,27 +91,43 @@ Misiones: la más larga pide 33 min (salvar un huevo); las de rol, 4–11 min. T
 forja (nivel 3 de armas y armadura) se puede tener el **día 1** de la partida, y el botín de los
 4 jefes no lo pide ninguna receta.
 
+**Con las misiones v2 (G4, 21-10-2026)**: diarias en sus rangos (fáciles 8–13 min, medias 17–20,
+difíciles 50–67); el casual cumple el 67 % (las difíciles no le caben en 40 min). Semanales por
+semana (con el cambio): casual 0,5 (nunca el extra), habitual 3,7 (45 % con el extra), intenso 5
+(100 %), amigos 4,2 (80 %). Ámbar ganado en 30 días: casual 5.582, habitual 21.195 (gasta el 11 %),
+intenso 52.743, amigos 23.425. Pase, nivel el día 7 · 14 · 21 · 30:
+
+| Perfil | Nivel | Último nivel | Misiones (con semanales) |
+|---|---|---|---|
+| Casual | 2 · 4 · 7 · 12 | no | 59 % |
+| Habitual | 9 · 18 · 27 · 30 | día 24 | 65 % |
+| Intenso | 16 · 30 · 30 · 30 | día 13 | 50 % |
+| Amigos | 10 · 20 · 30 · 30 | día 21 | 56 % |
+
 ## 5. Hallazgos pendientes (plan de la Fase 9, `docs/PLAN.md`)
 
-- Las 3 diarias se cumplen en la primera hora de una partida (todas al 100 %): misiones v2 con
-  dificultad, semanales y contratos de partida (G4, G6).
+- Contratos de partida (G6): metas compartidas por el grupo dentro de cada partida.
 - El habitual gasta el 15 % del Ámbar que gana; tras el día 6 no tiene en qué gastarlo: tienda de
   cosméticos en Ámbar (G10).
 - Equipo al máximo el día 1–3: el nivel 3 pedirá el botín del jefe del día 4 y habrá un nivel 4 en la
   Forja volcánica con el del día 6 (G5). Los tesoros de jefe ya se dan a cada participante
   (`BossService`), separados de la pieza de la baliza.
 - El intenso descarta muchos huevos (bolsa de 3 llena): vigilar al cambiar ritmos o premios de huevo.
-- El rastreador de misiones de la Isla no se ve en móvil (G4).
-- Pase sin semanales: el habitual no lo termina (nivel 24) y el casual llega al 10. Con 4.200 XP de
-  semanales por semana se cumplen las metas, pero las misiones pasan a dar el 77 % de la XP del
-  habitual (meta ≤ 70 %): en G4, semanales algo más bajas (~3.000) o más XP de partida.
+- El casual llega justo al nivel 12 del pase (el mínimo) y casi no cumple semanales (0,5 por semana
+  con 2 h de juego): si se suben objetivos semanales o se baja la XP, mira primero su fila.
+- El intenso tira 15.000 XP sobre el tope de partidas en el mes: el tope hace su trabajo (no termina
+  antes del día 13), pero si se baja la XP de misiones terminaría antes.
 
 ## 6. Dónde se enganchan los eventos de misión
 
-`Retention.progress(player, evento, n)`: Kill y Damage y Night (`MissionService`), Gather
-(`ResourceService`), Craft (`CraftingService`), Build (`BuildingService`), Egg (`EggService`),
-Ability y Combo (`IslandCombatRules`). Las misiones solo cuentan en la Isla (no los muñecos del Lobby
-ni Dunas, hasta G4).
+`Retention.progress(player, evento, n, clave?)`: Kill, Species (clave: la especie) y Alpha
+(`MonkeyService.onKilled`), Damage, Night y ReachDay (el día al que llega quien estaba al empezar la
+noche), Boss (`BossService.onDefeated`) y Rescue (victoria que no sea de prueba) en `MissionService`;
+Gather (`ResourceService`), Craft (`CraftingService`), Build (`BuildingService`), Egg (`EggService`),
+Ability y Combo (`IslandCombatRules`); ArenaWin y ArenaCapture (`ArenaRewardService`, Dunas, salvo
+las de prueba). Al terminar una partida se apunta ya (`Retention.flushNow`): luego viene el
+teletransporte. Los muñecos del Lobby no cuentan. Reanimar y "jugar con amigos" no son misiones (no
+se pueden hacer solo).
 
 XP del pase: `SeasonPass.addXp(player, "Match", n)` en `MatchService.summaryFor` (Isla) y
 `ArenaRewardService` (Dunas); las misiones la dan con `reward.xp` por `Retention.grant` (que llama a

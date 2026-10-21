@@ -673,9 +673,24 @@ local Config = {
 		} :: { Reward },
 		-- Si al cobrar tiempo de huevo no hay ninguno en el nido, se da Ámbar por cada hora.
 		AmberPerUnusedEggHour = 30,
-		-- Misiones del día (Data/Missions): cuántas generales tocan, además de la del rol elegido, y
-		-- cada cuánto se apunta en el perfil lo que avanzan en la Isla.
-		GeneralMissions = 2,
+		-- Misiones (Data/Missions, misiones v2 de la Fase 9): cada día una de cada dificultad, en este
+		-- orden (la "Media" es la del rol elegido), y cada semana WeeklyMissions semanales (cambian el
+		-- lunes a las 00:00 UTC más ResetOffsetSeconds). Cambios gratis: DailyRerolls al día (en las
+		-- diarias) y WeeklyRerolls a la semana (en las semanales); el cambio da otra de la misma clase.
+		Difficulties = { "Facil", "Media", "Dificil" },
+		WeeklyMissions = 5,
+		DailyRerolls = 1,
+		WeeklyRerolls = 1,
+		-- Premio de cada misión por su clase ("xp" es la del pase; el tiempo de huevo cuenta para el
+		-- tope de lo ganado jugando) y el extra por cumplir todas las semanales.
+		MissionRewards = {
+			Facil = { amber = 40, eggSeconds = 15 * 60, xp = 200 },
+			Media = { amber = 70, eggSeconds = 25 * 60, xp = 200 },
+			Dificil = { amber = 120, eggSeconds = 40 * 60, xp = 300 },
+			Semanal = { amber = 150, xp = 500 },
+		} :: { [string]: Reward },
+		WeeklyBonus = { amber = 250, eggSeconds = 60 * 60, xp = 500 } :: Reward,
+		-- Cada cuánto se apunta en el perfil lo que avanzan las misiones en la Isla y en Dunas.
 		MissionFlushSeconds = 3,
 	},
 
@@ -844,7 +859,7 @@ local Config = {
 		FriendsBonus = 0.1,
 		-- XP de una partida en la Isla (MatchService, al terminar) y en Dunas (ArenaRewardService; las
 		-- de prueba no dan nada). Las misiones llevan la suya en su premio (Data/Missions, "xp").
-		IslandXp = { PerDay = 30, PerBoss = 100, PerEgg = 50, Rescue = 300 },
+		IslandXp = { PerDay = 60, PerBoss = 150, PerEgg = 50, Rescue = 300 },
 		ArenaXp = { Win = 80, Tie = 40, Loss = 30, PerCapture = 15 },
 	},
 

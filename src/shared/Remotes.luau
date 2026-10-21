@@ -113,6 +113,9 @@ local Remotes = {
 	ClaimLogin = remoteEvent("ClaimLogin"),
 	-- Servidor -> cliente (Lobby): premio cobrado (día 1..7 y lo recibido, línea a línea).
 	LoginClaimed = remoteEvent("LoginClaimed"),
+	-- Cliente -> servidor (Lobby): cambiar gratis una misión sin cumplir ("daily" | "weekly", su
+	-- posición). ServerShared/Retention.reroll; la respuesta llega como aviso y en "Retention".
+	RerollMission = remoteEvent("RerollMission"),
 	-- Cliente -> servidor (Lobby): reclamar premios del pase de temporada: un nivel y su pista
 	-- ("Free" | "Premium"), o todos sin argumentos (ServerShared/SeasonPass).
 	ClaimPass = remoteEvent("ClaimPass"),

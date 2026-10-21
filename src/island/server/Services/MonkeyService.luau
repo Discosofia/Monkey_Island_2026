@@ -121,7 +121,7 @@ type PlayerInfo = { player: Player, position: Vector3, safe: boolean, hasTorch: 
 local MonkeyService = {}
 
 local monkeys: { [Model]: Monkey } = {}
-local killListeners: { (player: Player, speciesId: string) -> () } = {}
+local killListeners: { (player: Player, speciesId: string, alpha: boolean) -> () } = {}
 -- Médicos que han curado a cada jugador y cuándo (os.clock): comparten el botín de sus peleas.
 local healedBy: { [Player]: { [Player]: number } } = {}
 local groups: { Group } = {}
@@ -351,7 +351,12 @@ local function onDied(monkey: Monkey)
 	local killer = if typeof(killerId) == "number" then Players:GetPlayerByUserId(killerId) else nil
 	if killer then
 		for _, listener in killListeners do
-			task.spawn(listener, killer, monkey.model:GetAttribute("MonkeyType") :: string)
+			task.spawn(
+				listener,
+				killer,
+				monkey.model:GetAttribute("MonkeyType") :: string,
+				monkey.model:GetAttribute("Alpha") == true
+			)
 		end
 		MatchStats.add(killer, MatchStats.KILLS)
 		giveLoot(lootSharers(monkey, killer), monkey.definition)
@@ -1325,8 +1330,9 @@ function MonkeyService.spawnAmbush(
 	return #group.members
 end
 
--- Llama a "callback" cada vez que un jugador derrota a un mono (para el diario de campo).
-function MonkeyService.onKilled(callback: (player: Player, speciesId: string) -> ())
+-- Llama a "callback" cada vez que un jugador derrota a un mono (para el diario de campo y las
+-- misiones), con su especie y si era el alfa de su tropa.
+function MonkeyService.onKilled(callback: (player: Player, speciesId: string, alpha: boolean) -> ())
 	table.insert(killListeners, callback)
 end
 

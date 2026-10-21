@@ -84,6 +84,8 @@ local ISLAND = Config.PlaceNames.IslandShort
 local JOIN_TEXT = `🍌 Ir a la {ISLAND} 🐒`
 -- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
 local DISCARD_CONFIRM_SECONDS = 3
+-- Nombre de cada dificultad de las misiones del día (Data/Missions).
+local DIFFICULTY_NAMES = { Facil = "Fácil", Media = "Media", Dificil = "Difícil" }
 -- Pantallas de menos alto que esto (un teléfono apaisado): la arena y las mascotas, compactas.
 local COMPACT_BELOW = 500
 -- Ventanas. Las de las estaciones (Rol, Arena, Mascotas, Ranking) se abren con su aviso; las del menú,
@@ -197,6 +199,15 @@ local function sortedKeys<T>(map: { [string]: T }, order: (T) -> number): { stri
 		return order(map[a]) < order(map[b])
 	end)
 	return keys
+end
+
+-- Espera larga ("3 d 4 h"; si falta menos de un día, como el tiempo del huevo).
+local function longWait(seconds: number): string
+	local days = seconds // 86400
+	if days < 1 then
+		return EggIncubation.formatTime(seconds)
+	end
+	return `{days} d {(seconds % 86400) // 3600} h`
 end
 
 -- Tope del tamaño de un texto con TextScaled.
@@ -435,6 +446,8 @@ function LobbyUIController:Start()
 	local nestRow: NestRow? = nil
 	-- Cuenta atrás del siguiente premio del calendario en la ventana Misiones (cada segundo).
 	local calendarCountdown: TextButton? = nil
+	-- Pestaña de la ventana Misiones ("Hoy" o "Semana").
+	local missionsTab = "Hoy"
 	-- Cuenta atrás de la temporada en la ventana del pase (cada segundo).
 	local passTick: (() -> ())? = nil
 	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
@@ -715,11 +728,124 @@ function LobbyUIController:Start()
 		return if ok and typeof(decoded) == "table" then decoded else {}
 	end
 
-	-- Calendario de 7 días (el mismo que la ventana del CalendarController) y las provisiones.
+	-- Pestañas de la ventana Misiones: "Hoy" (calendario, misiones del día y provisiones) y "Semana".
+	local function missionTabs(weeklyDone: number, weeklyTotal: number)
+		local row = Instance.new("Frame")
+		row.Name = "MissionTabs"
+		row.LayoutOrder = -1
+		row.Size = UDim2.new(1, -10, 0, if compactUi then 34 else 44)
+		row.BackgroundTransparency = 1
+		row.Parent = list
+		local layout = Instance.new("UIListLayout")
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		layout.Padding = UDim.new(0, 6)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = row
+		for index, tab in { { id = "Hoy", text = "📅 Hoy" }, { id = "Semana", text = "📆 Semana" } } do
+			local button = Instance.new("TextButton")
+			button.Name = `Tab{tab.id}`
+			button.LayoutOrder = index
+			button.Size = UDim2.new(0.5, -3, 1, 0)
+			button.Text = if tab.id == "Semana" then `{tab.text} ({weeklyDone}/{weeklyTotal})` else tab.text
+			button.Font = Enum.Font.BuilderSansBold
+			button.TextScaled = true
+			local chosen = tab.id == missionsTab
+			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
+			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+			button.Parent = row
+			corner(button, 8)
+			local padding = Instance.new("UIPadding")
+			padding.PaddingTop = UDim.new(0, 6)
+			padding.PaddingBottom = UDim.new(0, 6)
+			padding.Parent = button
+			button.MouseButton1Click:Connect(function()
+				if missionsTab ~= tab.id then
+					missionsTab = tab.id
+					render()
+				end
+			end)
+		end
+	end
+
+	-- Filas de misiones (del día o de la semana): lo que piden, lo que llevas, su clase y su premio, y
+	-- "🔄 Cambiar" mientras quede un cambio gratis (pide un segundo toque para no gastarlo sin querer);
+	-- sin cambio, el botón enseña lo que llevas.
+	local function missionRows(
+		scope: "daily" | "weekly",
+		missions: { Daily.DailyMission },
+		canReroll: boolean,
+		firstOrder: number
+	)
+		for index, mission in missions do
+			local definition = Missions[mission.id]
+			local row = newRow(list, firstOrder + index)
+			local progress = if mission.done
+				then "✅ Cumplida"
+				else `{math.floor(mission.progress)}/{definition.target}`
+			row.title.Text = Daily.missionText(mission.id)
+			row.title.TextColor3 = if mission.done then Color3.fromRGB(120, 230, 140) else Color3.new(1, 1, 1)
+			local parts = { if mission.done then "✅" else progress }
+			if not definition.weekly then
+				local class = DIFFICULTY_NAMES[definition.difficulty or "Facil"]
+				table.insert(parts, if definition.role then `{class} (tu rol)` else class)
+			end
+			table.insert(parts, Rewards.compact(definition.reward))
+			row.detail.Text = table.concat(parts, " · ")
+			if mission.done or not canReroll then
+				setButton(row.button, progress, false)
+				continue
+			end
+			setButton(row.button, "🔄 Cambiar", true)
+			local armedUntil = 0
+			row.button.MouseButton1Click:Connect(function()
+				if os.clock() < armedUntil then
+					armedUntil = 0
+					setButton(row.button, "Cambiando…", false)
+					Remotes.RerollMission:FireServer(scope, index)
+					return
+				end
+				armedUntil = os.clock() + DISCARD_CONFIRM_SECONDS
+				row.button.Text = "¿Seguro?"
+				task.delay(DISCARD_CONFIRM_SECONDS, function()
+					if row.button.Parent and row.button.Active then
+						row.button.Text = "🔄 Cambiar"
+					end
+				end)
+			end)
+		end
+	end
+
+	-- Ventana Misiones. "Hoy": el calendario de 7 días (el mismo que la ventana del CalendarController),
+	-- las misiones del día y las provisiones. "Semana": las semanales y el extra por cumplirlas todas.
 	local function renderMissions()
 		local retention = readRetention()
-		local login = Daily.loginState(retention.login)
 		local now = EggIncubation.now()
+		local weekly = Daily.weeklyState(retention.weekly)
+		local weeklyDone = 0
+		for _, mission in weekly.missions do
+			weeklyDone += if mission.done then 1 else 0
+		end
+		missionTabs(weeklyDone, #weekly.missions)
+
+		if missionsTab == "Semana" then
+			local rerolls = math.max(0, Config.Daily.WeeklyRerolls - weekly.rerolls)
+			note(
+				list,
+				`📆 Misiones de la semana: en la {ISLAND} y en la {Config.PlaceNames.DunasShort} (cambian en {longWait(
+					Daily.secondsToWeekReset(now)
+				)}){if rerolls > 0 then ` · 🔄 {rerolls} cambio gratis` else ""}`,
+				1
+			)
+			missionRows("weekly", weekly.missions, rerolls > 0, 1)
+			local bonus = newRow(list, 20)
+			bonus.title.Text = `🏅 Extra por cumplir las {#weekly.missions}`
+			bonus.title.TextColor3 = Color3.fromRGB(255, 205, 70)
+			bonus.detail.Text = `{weeklyDone}/{#weekly.missions} · {Rewards.compact(Config.Daily.WeeklyBonus)}`
+			setButton(bonus.button, if weekly.bonus then "✅ Cobrado" else "Pendiente", false)
+			return
+		end
+
+		local login = Daily.loginState(retention.login)
 		local claimable = Daily.canClaim(login, now)
 		note(list, "📅 Calendario: un premio por cada día que entres (si faltas, no se pierde)", 0)
 
@@ -745,28 +871,17 @@ function LobbyUIController:Start()
 			calendarCountdown = today.button
 		end
 
-		-- Misiones del día: se cumplen en la Isla; aquí se ve cómo van y qué dan.
+		-- Misiones del día: se cumplen en la Isla; aquí se ve cómo van, qué dan y se pueden cambiar.
 		local state = Daily.missionState(retention.daily)
+		local rerolls = math.max(0, Config.Daily.DailyRerolls - state.rerolls)
 		note(
 			list,
 			`🎯 Misiones de hoy: se cumplen en la {ISLAND} (cambian en {EggIncubation.formatTime(
 				Daily.secondsToReset(now)
-			)})`,
+			)}){if rerolls > 0 then ` · 🔄 {rerolls} cambio gratis` else ""}`,
 			3
 		)
-		for index, mission in state.missions do
-			local definition = Missions[mission.id]
-			local row = newRow(list, 3 + index)
-			row.title.Text = Daily.missionText(mission.id)
-			row.title.TextColor3 = if mission.done then Color3.fromRGB(120, 230, 140) else Color3.new(1, 1, 1)
-			row.detail.Text =
-				`{if definition.role then "Misión de tu rol · " else ""}Premio: {Rewards.describe(definition.reward)}`
-			setButton(
-				row.button,
-				if mission.done then "✅ Cumplida" else `{math.floor(mission.progress)}/{definition.target}`,
-				false
-			)
-		end
+		missionRows("daily", state.missions, rerolls > 0, 3)
 
 		local items = Rewards.describeItems(Rewards.sanitizeItems(retention.supplies))
 		local supplies = newRow(list, 10)

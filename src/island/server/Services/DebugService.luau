@@ -452,6 +452,9 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	Missions = function(player)
 		Retention.debugCompleteMissions(player)
 	end,
+	WeeklyMissions = function(player)
+		Retention.debugCompleteMissions(player, true)
+	end,
 	HatchNow = function(player)
 		if not EggService.hatchNow() then
 			Remotes.Notify:FireClient(player, "Primero lleva un huevo al nido")

@@ -109,9 +109,12 @@ function Rewards.describe(reward: Config.Reward & { cosmetic: string? }): string
 	return table.concat(Rewards.parts(reward), " · ")
 end
 
--- Versión corta para una casilla pequeña: "100 ✨  5 🍌", "🥚 Raro+  500 ✨".
+-- Versión corta para una casilla pequeña: "100 ✨  5 🍌", "🥚 Raro+  500 ✨", "⭐ 200 XP  40 ✨".
 function Rewards.compact(reward: Config.Reward & { cosmetic: string? }): string
 	local parts = {}
+	if reward.xp then
+		table.insert(parts, `⭐ {reward.xp} XP`)
+	end
 	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
 	if cosmetic then
 		table.insert(parts, `{cosmetic.icon} {KIND_NAMES[cosmetic.kind] or cosmetic.name}`)

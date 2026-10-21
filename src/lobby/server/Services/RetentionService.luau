@@ -2,7 +2,7 @@
 -- Calendario de 7 días en el Lobby (bucle de retención, octubre de 2026): el cliente pide cobrar el
 -- premio de hoy (la ventana al entrar o la pestaña Misiones; CalendarController, LobbyUIController) y
 -- el servidor lo entrega (ServerShared/Retention) y le dice qué ha recibido. También tiene al día las
--- misiones del día, que se cumplen en la Isla.
+-- misiones del día y de la semana, que se cumplen en la Isla y en Dunas, y hace los cambios gratis.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -27,8 +27,20 @@ local function onClaimLogin(player: Player)
 	end
 end
 
+local function onReroll(player: Player, scope: unknown, index: unknown)
+	if not canRequest(player) or (scope ~= "daily" and scope ~= "weekly") or typeof(index) ~= "number" then
+		return
+	end
+	local changed, message = Retention.reroll(player, scope :: string, index // 1)
+	Remotes.Notify:FireClient(player, if changed then message else `⚠️ {message}`)
+	if changed then
+		Analytics.event(player, "MissionReroll", 1, { scope :: string })
+	end
+end
+
 function RetentionService:Start()
 	Remotes.ClaimLogin.OnServerEvent:Connect(onClaimLogin)
+	Remotes.RerollMission.OnServerEvent:Connect(onReroll)
 	-- Las misiones del día se ven ya en el Lobby (pestaña Misiones), antes de jugar.
 	Retention.start()
 end

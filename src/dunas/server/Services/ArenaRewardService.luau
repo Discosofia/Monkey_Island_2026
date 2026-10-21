@@ -6,6 +6,7 @@
 --   - Estadísticas guardadas (perfil "arena.stats") y rankings de la arena (victorias y capturas).
 --   - XP del pase de temporada (Config.Season.ArenaXp, ServerShared/SeasonPass), con el tope de hoy de
 --     las partidas, que comparte con la Isla.
+--   - Misiones semanales de Dunas (ganar, capturar; ServerShared/Retention).
 -- A cada jugador le manda sus resultados (Remotes.ArenaResults) para la pantalla final. Las partidas
 -- de prueba (panel de pruebas, un solo equipo) no dan nada. También atiende "Volver al Lobby".
 
@@ -20,6 +21,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local Retention = require(ServerScriptService.ServerShared.Retention)
 local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
@@ -117,6 +119,14 @@ local function onFinished(winner: string?)
 				granted, todayTotal = grant(player, amount, result)
 				local xp = Config.Season.ArenaXp
 				pass = SeasonPass.addXp(player, "Match", xp[result] + stat(player, "ArenaCaptures") * xp.PerCapture)
+				-- Misiones semanales de Dunas (ServerShared/Retention), apuntadas ya: luego vuelven al Lobby.
+				if result == "Win" then
+					Retention.progress(player, "ArenaWin")
+				end
+				if stat(player, "ArenaCaptures") > 0 then
+					Retention.progress(player, "ArenaCapture", stat(player, "ArenaCaptures"))
+				end
+				Retention.flushNow(player)
 			end
 			Remotes.ArenaResults:FireClient(player, {
 				result = result,
@@ -140,6 +150,8 @@ function ArenaRewardService:Init()
 end
 
 function ArenaRewardService:Start()
+	-- Las misiones semanales de Dunas cuentan aquí (y las del día se ven al día en el perfil).
+	Retention.start()
 	Remotes.ArenaLeave.OnServerEvent:Connect(function(player: Player)
 		-- Se guarda antes de viajar, para que el Lobby cargue el Ámbar recién ganado.
 		PlayerData.saveNow(player)

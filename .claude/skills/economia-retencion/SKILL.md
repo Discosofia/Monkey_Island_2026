@@ -84,7 +84,7 @@ La `propuesta` (segundo argumento) cambia los datos solo para ese informe:
 ```lua
 return _G.Economia.informe({ secciones = { partida = false } }, {
 	-- números de Config (Match, Daily, Egg, Arena, Season, Shop…)
-	config = { Daily = { GeneralMissions = 3 }, Match = { AmberPerDay = 15 } },
+	config = { Daily = { WeeklyMissions = 4 }, Match = { AmberPerDay = 15 } },
 	-- cualquier módulo de Shared/Data (Missions, Upgrades, Recipes, Cosmetics, Seasons…)
 	datos = {
 		Missions = { Kills = { target = 40, difficulty = "Media" } },

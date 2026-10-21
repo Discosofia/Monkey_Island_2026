@@ -14,7 +14,8 @@
 -- Las reglas de la sección "Alertas" son las de la skill (references/limites.md, tabla LIMITES).
 --
 -- Lo que mide:
---   1. Misiones: minutos de juego que pide cada una con los RITMOS supuestos y su dificultad real.
+--   1. Misiones: minutos de juego que pide cada diaria con los RITMOS supuestos y su dificultad real, y
+--      qué semanales cumple cada perfil en una semana (y qué día).
 --   2. Perfiles de jugador (casual, habitual, intenso, amigos) durante OPCIONES.dias días reales:
 --      Ámbar ganado por fuente y gastado, día en que compra todas las mejoras, huevos eclosionados,
 --      misiones cumplidas y día en que llena los talentos de su rol.
@@ -22,8 +23,9 @@
 --      de nuevo cada día de la partida.
 --   4. Pase de temporada (Data/Seasons, la primera temporada): nivel de cada perfil por día, día en que
 --      gana el último nivel, de dónde sale la XP y lo que da la pista gratis. La simulación empieza el
---      día 1 de la temporada (la última semana, ×Config.Season.LastWeekMultiplier). Las semanales aún
---      no existen: OPCIONES.pase.xpSemanalSupuesta las simula (XP por semana, el primer día que juega).
+--      día 1 de la temporada (un lunes; la última semana, ×Config.Season.LastWeekMultiplier). Las
+--      semanales se simulan con lo que hace cada perfil en la semana (valor esperado de las 5 que le
+--      tocan, con su cambio gratis); OPCIONES.pase.xpSemanalSupuesta > 0 las sustituye por una cifra fija.
 --   5. Reglas de pago: nada que se compre con Robux puede dar poder, Ámbar ni tiempo de huevo, ni ser
 --      aleatorio sin enseñar las probabilidades.
 --   6. Alertas.
@@ -51,6 +53,9 @@ local OPCIONES_BASE = {
 		Revive = 0.05, -- reanimaciones (solo con grupo)
 		Alpha = 0.04, -- alfas derrotados
 	} :: { [string]: number },
+	-- Especies de mono distintas que se derrotan en una partida que llega al día "d" (supuesto): base +
+	-- porDia × (d − 1), hasta el total de Data/Monkeys.
+	especies = { base = 4, porDia = 1.5 },
 	-- Dunas: resultado medio de una partida (fracciones) y lo que hace un jugador en ella.
 	dunas = { victoria = 0.45, empate = 0.1, capturas = 1.5, bajas = 5, minutos = 10 },
 	-- Perfiles: días que juega por semana, minutos en la Isla por día de juego (cada día es una partida
@@ -97,15 +102,14 @@ local OPCIONES_BASE = {
 	ordenPerfiles = { "casual", "habitual", "intenso", "amigos" },
 	-- Minutos que tarda en caer un jefe desde que aparece (para contar si un jugador llega a él).
 	minutosJefe = 3,
-	-- Pase: XP de misiones semanales supuesta por semana (0 = aún no hay; con todas cumplidas, 5 × 700
-	-- + 700 del plan = 4.200).
+	-- Pase: XP de misiones semanales fija por semana en lugar de la simulada (0 = la simulada).
 	pase = { xpSemanalSupuesta = 0 },
 	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true },
 }
 
 -- ===================================== Propuesta =====================================
 -- Vacía = el juego tal como está. Ejemplos:
---   config = { Match = { AmberPerDay = 15 }, Daily = { GeneralMissions = 3 } },
+--   config = { Match = { AmberPerDay = 15 }, Daily = { WeeklyMissions = 4 } },
 --   datos = { Missions = { Kills = { target = 40 } }, Upgrades = { StrongHeart = { costs = { 80, 160, 320 } } } },
 type Propuesta = { config: any?, datos: any? }
 
@@ -250,11 +254,33 @@ local function main(copia: Instance): string
 
 	-- ---------------------------------------------------------------- Misiones
 	-- Minutos de Isla que pide una misión con los ritmos (las noches cuentan al acabar cada día de partida).
+	local totalEspecies = 0
+	for _ in Monkeys do
+		totalEspecies += 1
+	end
+	-- Especies distintas derrotadas en una partida de "minutos".
+	local function especiesEn(minutos: number): number
+		local E = OPCIONES.especies
+		local diaAlcanzado = math.floor(minutos / MINUTOS_DIA) + 1
+		return math.min(totalEspecies, math.floor(E.base + E.porDia * (diaAlcanzado - 1)))
+	end
+	-- Minutos de una partida que pide una misión diaria (las semanales se miden en la semana: simular).
 	local function minutosMision(mision: any): number
 		if mision.event == "Night" then
 			return mision.target * MINUTOS_DIA
 		elseif mision.event == "ReachDay" then
 			return (mision.target - 1) * MINUTOS_DIA
+		elseif mision.event == "Boss" then
+			return (mision.target * M.BossIntervalDays - 1) * MINUTOS_DIA + OPCIONES.minutosJefe
+		elseif mision.event == "Species" then
+			for minutos = 0, 20 * MINUTOS_DIA, 1 do
+				if especiesEn(minutos) >= mision.target then
+					return minutos
+				end
+			end
+			return math.huge
+		elseif mision.event == "Rescue" then
+			return M.BeaconUnlockDay * MINUTOS_DIA
 		end
 		local ritmo = R[mision.event]
 		if not ritmo or ritmo <= 0 then
@@ -272,35 +298,43 @@ local function main(copia: Instance): string
 		return "MuyDificil"
 	end
 
-	local generales, deRol = {}, {} :: { [string]: { string } }
-	for id, mision in Missions do
-		if mision.role then
+	-- Diarias generales por dificultad, las del rol (la "Media") y las semanales.
+	local diarias, deRol, semanales = {}, {}, {} :: { string }
+	for _, id in claves(Missions) do
+		local mision = Missions[id]
+		if mision.weekly then
+			table.insert(semanales, id)
+		elseif mision.role then
 			deRol[mision.role] = deRol[mision.role] or {}
 			table.insert(deRol[mision.role], id)
-		elseif not mision.weekly then
-			table.insert(generales, id)
+		elseif mision.difficulty then
+			diarias[mision.difficulty] = diarias[mision.difficulty] or {}
+			table.insert(diarias[mision.difficulty], id)
 		end
 	end
-	table.sort(generales)
 
 	if OPCIONES.secciones.misiones then
 		linea("## 1. Misiones")
+		linea(
+			`Diarias: una de cada dificultad ({table.concat(Config.Daily.Difficulties, ", ")}; la Media es la del rol), {Config.Daily.DailyRerolls} cambio gratis al día. Minutos de una partida con los ritmos.`
+		)
 		linea("| Misión | Evento | Objetivo | Minutos | Dificultad real | Marcada |")
 		linea("|---|---|---|---|---|---|")
 		local masLarga = 0
 		for _, id in claves(Missions) do
 			local mision = Missions[id]
-			local minutos = minutosMision(mision)
-			if not mision.weekly then
-				masLarga = math.max(masLarga, minutos)
+			if mision.weekly then
+				continue
 			end
+			local minutos = minutosMision(mision)
+			masLarga = math.max(masLarga, minutos)
 			local clase = claseMinutos(minutos)
 			linea(
 				`| {mision.icon} {id}{if mision.role then ` ({mision.role})` else ""} | {mision.event} | {mision.target} | {n(
 					minutos
 				)} | {clase} | {mision.difficulty or "-"} |`
 			)
-			if mision.difficulty and not mision.weekly then
+			if mision.difficulty then
 				local rango = LIMITES.misionMinutos[mision.difficulty]
 				if rango and (minutos < rango[1] or minutos > rango[2]) then
 					alerta(
@@ -436,9 +470,41 @@ local function main(copia: Instance): string
 			huevo += cuantas * h / #lista
 			xp += cuantas * x / #lista
 		end
-		sumar(generales, Config.Daily.GeneralMissions)
-		sumar(deRol[rol] or {}, 1)
-		return cumplidas, Config.Daily.GeneralMissions + 1, ambar, huevo, xp
+		local posibles = 0
+		for _, dificultad in Config.Daily.Difficulties do
+			local lista = if dificultad == "Media" then deRol[rol] or {} else diarias[dificultad] or {}
+			if #lista > 0 then
+				posibles += 1
+				-- Con el cambio gratis: si la que toca no se puede, se cambia por otra (sin repetir).
+				local hechas = 0
+				for _, id in lista do
+					if minutosMision(Missions[id]) <= minutos then
+						hechas += 1
+					end
+				end
+				local ayuda = if #lista > 1 and hechas < #lista
+					then math.min(1, Config.Daily.DailyRerolls) * (1 - hechas / #lista) * hechas / (#lista - 1)
+					else 0
+				-- "ayuda" se reparte como si fuera una misión media de las que sí se pueden.
+				sumar(lista, 1)
+				if ayuda > 0 and hechas > 0 then
+					local a, h, x = 0, 0, 0
+					for _, id in lista do
+						local mision = Missions[id]
+						if minutosMision(mision) <= minutos then
+							a += (mision.reward.amber or 0) / hechas
+							h += (mision.reward.eggSeconds or 0) / hechas
+							x += (mision.reward.xp or 0) / hechas
+						end
+					end
+					cumplidas += ayuda
+					ambar += ayuda * a
+					huevo += ayuda * h
+					xp += ayuda * x
+				end
+			end
+		end
+		return cumplidas, posibles, ambar, huevo, xp
 	end
 
 	-- XP de pase de las partidas de un día (Isla y Dunas), antes del tope y del extra de amigos.
@@ -454,6 +520,59 @@ local function main(copia: Instance): string
 			+ (1 - D.victoria - D.empate) * S.ArenaXp.Loss
 			+ D.capturas * S.ArenaXp.PerCapture
 		return isla, porDunas * partidasDunas
+	end
+
+	-- Semanales: combinaciones, y valor esperado de las cumplidas de las WeeklyMissions que tocan de un
+	-- pool de "total" con "hechas" ya posibles, con el cambio gratis (si alguna no se puede, se cambia por
+	-- otra de las que no tocaron), y probabilidad de tenerlas todas (el extra). No mira las "family".
+	local function comb(total: number, k: number): number
+		if k < 0 or k > total then
+			return 0
+		end
+		local c = 1
+		for i = 1, k do
+			c = c * (total - k + i) / i
+		end
+		return c
+	end
+	local function esperadoSemanal(hechas: number, total: number): (number, number)
+		local k = math.min(Config.Daily.WeeklyMissions, total)
+		local esperado, todas = 0, 0
+		for sinHacer = 0, k do
+			local p = comb(total - hechas, sinHacer) * comb(hechas, k - sinHacer) / comb(total, k)
+			if p > 0 then
+				local resto = total - k
+				local cambio = if sinHacer >= 1
+						and resto > 0
+						and Config.Daily.WeeklyRerolls > 0
+					then math.max(0, hechas - (k - sinHacer)) / resto
+					else 0
+				esperado += p * ((k - sinHacer) + cambio)
+				if sinHacer == 0 then
+					todas += p
+				elseif sinHacer == 1 then
+					todas += p * cambio
+				end
+			end
+		end
+		return esperado, todas
+	end
+	local premioSemanal = Config.Daily.MissionRewards.Semanal
+	local extraSemanal = Config.Daily.WeeklyBonus
+	-- Lo que lleva hecho en la semana un perfil tras una partida de Isla ("p", "minutos") y sus Dunas.
+	local function acumularSemana(acc: { [string]: number }, p: any, minutos: number, perfil: any)
+		for evento, ritmo in R do
+			if evento ~= "Revive" or perfil.amigos then
+				acc[evento] = (acc[evento] or 0) + ritmo * minutos
+			end
+		end
+		acc.Night = (acc.Night or 0) + p.dias
+		acc.ReachDay = math.max(acc.ReachDay or 0, p.dias + 1)
+		acc.Boss = (acc.Boss or 0) + p.jefes
+		acc.Rescue = (acc.Rescue or 0) + p.rescate
+		acc.Species = math.max(acc.Species or 0, especiesEn(minutos))
+		acc.ArenaWin = (acc.ArenaWin or 0) + perfil.partidasDunas * OPCIONES.dunas.victoria
+		acc.ArenaCapture = (acc.ArenaCapture or 0) + perfil.partidasDunas * OPCIONES.dunas.capturas
 	end
 
 	local function simular(perfil: any)
@@ -479,6 +598,17 @@ local function main(copia: Instance): string
 			misionesPosibles = 0,
 			xpRol = 0,
 			talentosDia = nil :: number?,
+			-- Semanales: lo hecho en la semana en curso, el valor esperado y la probabilidad del extra que
+			-- ya se han contado, el día de la primera semana en que se cumple cada una, y la suma de las
+			-- cumplidas y de las semanas con todas.
+			semana = -1,
+			acumulado = {} :: { [string]: number },
+			esperadoContado = 0,
+			todasContado = 0,
+			semanalDia = {} :: { [string]: number },
+			semanalesCumplidas = 0,
+			semanasTodas = 0,
+			semanas = 0,
 		}
 		local pendientes = table.clone(costesMejoras)
 		local costeDunas = 0
@@ -572,6 +702,41 @@ local function main(copia: Instance): string
 				else
 					r.ambar.Misiones += huevoMisiones / 3600 * Config.Daily.AmberPerUnusedEggHour
 				end
+				-- Semanales (empiezan el lunes: el día 1 de la simulación lo es).
+				local semana = (dia - 1) // 7
+				if r.semana ~= semana then
+					r.semana = semana
+					r.semanas += 1
+					r.acumulado = {}
+					r.esperadoContado = 0
+					r.todasContado = 0
+				end
+				acumularSemana(r.acumulado, p, perfil.minutosIsla, perfil)
+				local hechas = 0
+				for _, id in semanales do
+					local mision = Missions[id]
+					if (r.acumulado[mision.event] or 0) >= mision.target then
+						hechas += 1
+						if semana == 0 and not r.semanalDia[id] then
+							r.semanalDia[id] = dia
+						end
+					end
+				end
+				local esperado, todas = esperadoSemanal(hechas, #semanales)
+				local nuevas = math.max(0, esperado - r.esperadoContado)
+				local extra = math.max(0, todas - r.todasContado)
+				r.semanalesCumplidas += nuevas
+				r.semanasTodas += extra
+				r.esperadoContado += nuevas
+				r.todasContado += extra
+				local xpSemanal = nuevas * (premioSemanal.xp or 0) + extra * (extraSemanal.xp or 0)
+				r.ambar.Misiones += nuevas * (premioSemanal.amber or 0) + extra * (extraSemanal.amber or 0)
+				local huevoSemanal = nuevas * (premioSemanal.eggSeconds or 0) + extra * (extraSemanal.eggSeconds or 0)
+				if nido then
+					tiempoJuego(huevoSemanal)
+				else
+					r.ambar.Misiones += huevoSemanal / 3600 * Config.Daily.AmberPerUnusedEggHour
+				end
 				-- Dunas.
 				r.ambar.Dunas += dunas(perfil.partidasDunas)
 				-- Pase de temporada: XP del día y premios gratis de los niveles ganados (los no cosméticos
@@ -585,11 +750,13 @@ local function main(copia: Instance): string
 					P.recortada += isla + deDunas - partidas
 					local reparto = if isla + deDunas > 0 then partidas / (isla + deDunas) else 0
 					local amigos = if perfil.amigos then partidas * S.FriendsBonus else 0
-					local semanal = 0
-					local semana = (dia - 1) // 7
-					if OPCIONES.pase.xpSemanalSupuesta > 0 and P.ultimaSemana ~= semana then
-						P.ultimaSemana = semana
-						semanal = OPCIONES.pase.xpSemanalSupuesta
+					local semanal = xpSemanal
+					if OPCIONES.pase.xpSemanalSupuesta > 0 then
+						semanal = 0
+						if P.ultimaSemana ~= semana then
+							P.ultimaSemana = semana
+							semanal = OPCIONES.pase.xpSemanalSupuesta
+						end
 					end
 					local base = partidas + amigos + xpMisiones + semanal
 					P.fuentes.Isla += isla * reparto
@@ -708,6 +875,43 @@ local function main(copia: Instance): string
 				)} | {if r.talentosDia then `día {r.talentosDia} ({perfil.rol})` else "no"} |`
 			)
 		end
+		-- Semanales: qué día de la primera semana cumple cada una cada perfil.
+		linea("")
+		linea(
+			`Semanales: {Config.Daily.WeeklyMissions} de {#semanales} cada lunes, {Config.Daily.WeeklyRerolls} cambio gratis; {premioSemanal.xp or 0} XP cada una y {extraSemanal.xp or 0} de extra por todas. Día de la primera semana en que la cumple cada perfil:`
+		)
+		local cabecera, raya = "| Semanal | Objetivo", "|---|---"
+		for _, clave in OPCIONES.ordenPerfiles do
+			cabecera ..= ` | {OPCIONES.perfiles[clave].nombre}`
+			raya ..= "|---"
+		end
+		linea(cabecera .. " |")
+		linea(raya .. "|")
+		for _, id in semanales do
+			local mision = Missions[id]
+			local fila = `| {mision.icon} {id} | {mision.event} {mision.target}`
+			local alguno = false
+			for _, clave in OPCIONES.ordenPerfiles do
+				local dia = resultados[clave].semanalDia[id]
+				alguno = alguno or dia ~= nil
+				fila ..= ` | {if dia then `día {dia}` else "no"}`
+			end
+			linea(fila .. " |")
+			if not alguno then
+				alerta(`Semanal {id}: ningún perfil la cumple en una semana`)
+			end
+		end
+		local resumen = {}
+		for _, clave in OPCIONES.ordenPerfiles do
+			local r = resultados[clave]
+			table.insert(
+				resumen,
+				`{OPCIONES.perfiles[clave].nombre} {n(r.semanalesCumplidas / math.max(1, r.semanas))}/semana ({pct(
+					r.semanasTodas / math.max(1, r.semanas)
+				)} con el extra)`
+			)
+		end
+		linea(`Semanales cumplidas de media (con el cambio): {table.concat(resumen, " · ")}.`)
 		local habitual = resultados.habitual
 		if habitual and habitual.ganado > 0 then
 			local gastado = habitual.gastado / habitual.ganado
@@ -949,7 +1153,10 @@ local function main(copia: Instance): string
 			linea(
 				`«{temporada.name}»: {S.Days} días, {S.Levels} niveles × {S.LevelXp} XP ({S.Levels * S.LevelXp} en total), ×{S.LastWeekMultiplier} los últimos {S.LastWeekDays} días, tope de partidas {S.DailyMatchXpCap}/día, amigos +{pct(
 					S.FriendsBonus
-				)}. Pista gratis: {ambarGratis} Ámbar, {n(huevoGratis / 3600)} h de huevo, {cosmeticosGratis} cosméticos; premium: {cosmeticosPremium} cosméticos. Semanales supuestas: {OPCIONES.pase.xpSemanalSupuesta} XP/semana.`
+				)}. Pista gratis: {ambarGratis} Ámbar, {n(huevoGratis / 3600)} h de huevo, {cosmeticosGratis} cosméticos; premium: {cosmeticosPremium} cosméticos. Semanales: {if OPCIONES.pase.xpSemanalSupuesta
+						> 0
+					then `supuestas, {OPCIONES.pase.xpSemanalSupuesta} XP/semana`
+					else "simuladas (sección 2)"}.`
 			)
 			linea("")
 			linea(
