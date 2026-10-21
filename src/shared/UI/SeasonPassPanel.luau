@@ -864,8 +864,14 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		if limit then
 			limit:Destroy()
 		end
-		arrow.AnchorPoint = Vector2.new(if side < 0 then 0 else 1, 0.5)
-		arrow.Position = if side < 0 then UDim2.new(0, size.labels, 0.5, 0) else UDim2.fromScale(1, 0.5)
+		-- La izquierda, fuera de las tarjetas: en la columna de "PREMIUM"/"GRATIS", entre las dos (en el
+		-- teléfono no hay esa columna y va encima de la franja).
+		local outside = side < 0 and size.labels > 0
+		arrow.AnchorPoint = Vector2.new(if side < 0 and not outside then 0 else 1, 0.5)
+		arrow.Position = if outside
+			then UDim2.new(0, size.labels - 6, 0.5, 0)
+			elseif side < 0 then UDim2.fromScale(0, 0.5)
+			else UDim2.fromScale(1, 0.5)
 		arrow.Size = UDim2.fromOffset(if compact then 30 else 40, if compact then 44 else 64)
 		arrow.BackgroundColor3 = OBSIDIAN
 		arrow.BackgroundTransparency = 0.15
