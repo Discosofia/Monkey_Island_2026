@@ -4,13 +4,15 @@
 -- "CombatStateUntil" (hora del servidor en que termina); el cliente y el servidor lo leen aquí para
 -- decidir si una acción vale (canAct). Caído (LifeState) cuenta como el estado "Downed".
 --   - Aturdido ("Stunned", "GuardBroken"): no anda, no pega, ni habilidades, ni esquiva, ni guardia;
---     solo el Evasivo (C7).
+--     solo el Evasivo (C7, Combat/Evasive: la esquiva pulsada estando atrapado, isTrapped).
 --   - Tambaleado ("Staggered", el golpe de una cadena en PvP o un parry recibido): no pega ni usa
 --     habilidades hasta que se recupera.
 --   - En guardia ("Parrying" al pulsar, "Blocking" mientras la mantiene; Combat/Guard, C5): no pega ni
 --     usa habilidades, anda más despacio y no corre. Puede esquivar (y suelta la guardia).
 --   - Inmovilizado no es un estado sino una condición: "StunnedUntil" (Combat/Status.holdPlayer) le
---     quita el movimiento y le deja pegar. Un aturdido también lo lleva.
+--     quita el movimiento y le deja pegar. Un aturdido también lo lleva. Lanzado ("LaunchedUntil",
+--     Combat/Knockback), tampoco: el remate de la cadena dado en el aire, hasta que cae.
+--   - "Evading": el Evasivo, lo que dura su invulnerabilidad.
 -- Las prioridades (qué estado corta a cuál) están en Config.CombatStates.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,6 +39,8 @@ local CombatState = {}
 
 CombatState.ATTRIBUTE = "CombatState"
 CombatState.UNTIL_ATTRIBUTE = "CombatStateUntil"
+-- Hora del servidor en que se puede volver a usar el Evasivo (Combat/Evasive).
+CombatState.EVASIVE_ATTRIBUTE = "EvasiveReadyAt"
 
 -- Acciones que impide cada estado (las demás se pueden hacer).
 local BLOCKS: { [State]: { [Action]: boolean } } = {
@@ -72,6 +76,27 @@ end
 -- true si "player" puede hacer "action" en su estado de ahora.
 function CombatState.canAct(player: Player, action: Action): boolean
 	return not BLOCKS[CombatState.get(player)][action]
+end
+
+local function attributeTime(player: Player, attribute: string): number
+	local value = player:GetAttribute(attribute)
+	return if typeof(value) == "number" then value else -math.huge
+end
+
+-- Hasta cuándo (hora del servidor) está atrapado "player": aturdido, con la guardia rota, inmovilizado
+-- o lanzado. Un aturdido siempre lleva también "StunnedUntil" (Status.stunPlayer).
+function CombatState.trappedUntil(player: Player): number
+	return math.max(attributeTime(player, "StunnedUntil"), attributeTime(player, "LaunchedUntil"))
+end
+
+-- true si "player" está atrapado ahora: su esquiva es el Evasivo (C7).
+function CombatState.isTrapped(player: Player): boolean
+	return Workspace:GetServerTimeNow() < CombatState.trappedUntil(player)
+end
+
+-- Segundos que le faltan a "player" para poder usar el Evasivo (0 si ya puede).
+function CombatState.evasiveWait(player: Player): number
+	return math.max(0, attributeTime(player, CombatState.EVASIVE_ATTRIBUTE) - Workspace:GetServerTimeNow())
 end
 
 -- true si "player" está en guardia (bloqueando o en la ventana del parry, C5): anda más despacio y no corre.

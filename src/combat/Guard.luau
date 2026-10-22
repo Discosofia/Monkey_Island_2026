@@ -20,7 +20,8 @@
 -- Los monos y los jefes (C6, Combat/EnemyAttack) también esperan ese margen al acabar su preparación.
 -- Orden en CombatService: invulnerable → parry → bloqueo → armadura → tótem → Grito → escudo.
 -- Lo que se ve y se oye: destello dorado (parry), chispa (bloqueo) y estallido naranja con grietas
--- (rotura), en AbilityFxController ("GuardFx"), y los sonidos "Parry", "Block" y "GuardBreak".
+-- (rotura), en AbilityFxController ("GuardFx"), y los sonidos "Parry", "Block" y "GuardBreak". Cada
+-- uno se cuenta en la telemetría (C7: Parries, Blocks y GuardBreaks).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -254,6 +255,8 @@ local function guardFx(player: Player, kind: string)
 	end
 	AbilityFx.all("GuardFx", character, kind)
 	Sfx.play(if kind == "Parry" then "Parry" elseif kind == "Break" then "GuardBreak" else "Block", root)
+	CombatRules.get().telemetry
+		.mechanic(player, if kind == "Parry" then "Parries" elseif kind == "Break" then "GuardBreaks" else "Blocks")
 end
 
 -- Rompe la guardia: aturdido "GuardBroken" (con la inmunidad de Status; si la rompe un jugador, ×el

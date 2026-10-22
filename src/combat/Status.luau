@@ -11,7 +11,7 @@
 --   - Envenenado ("PoisonedUntil"): pierde vida cada Config.Abilities.PoisonTickSeconds (poison).
 --   - Expuesto ("ExposedUntil" y "ExposedBonus"): recibe más daño (CombatService.damage).
 -- También deja quietos (holdPlayer) o aturde (stunPlayer) a los jugadores, con su propia regla para
--- no encadenarlo.
+-- no encadenarlo (y, los de otros jugadores, con rendimientos decrecientes: C7).
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -55,11 +55,12 @@ end
 
 -- Rendimientos decrecientes del control (Config.ControlDR), por modelo: cuántos controles seguidos
 -- lleva y cuándo empezó el último que le entró. Se reinicia tras ResetSeconds sin ninguno.
+-- Desde C7 también por jugador, para los controles de otros jugadores (holdPlayer con "PvP").
 type Diminishing = { index: number, lastAt: number }
-local diminishing: { [Model]: Diminishing } = setmetatable({} :: any, { __mode = "k" })
+local diminishing: { [Instance]: Diminishing } = setmetatable({} :: any, { __mode = "k" })
 
 -- Fracción que le dura el siguiente control a "model" (0 = inmune) y lo apunta.
-local function diminish(model: Model): number
+local function diminish(model: Instance): number
 	local settings = Config.ControlDR
 	local time = now()
 	local entry = diminishing[model]
@@ -110,13 +111,21 @@ end
 -- nadie le tenga sujeto siempre (un orangután que pega más a menudo de lo que dura su agarre, dos
 -- gorilas turnándose…), mientras está quieto otro control (este o stunPlayer) no lo alarga y, al
 -- soltarse, tiene Config.Combat.PlayerControlImmunitySeconds en los que no se le puede volver a
--- sujetar ni aturdir. "cause" es para la telemetría (CombatRules.telemetry.causeOf). Devuelve true si
--- le ha sujetado.
+-- sujetar ni aturdir. "cause" es para la telemetría (CombatRules.telemetry.causeOf). Los de otros
+-- jugadores (cause "PvP", C7) llevan además los rendimientos decrecientes de Config.ControlDR, por
+-- jugador: cada uno seguido dura menos y luego no entra hasta ResetSeconds sin ninguno. Se sale con el
+-- Evasivo (Combat/Evasive). Devuelve true si le ha sujetado.
 function Status.holdPlayer(player: Player, seconds: number, cause: string): boolean
 	local time = now()
 	local immuneUntil = player:GetAttribute("ControlImmuneUntil")
 	if seconds <= 0 or (typeof(immuneUntil) == "number" and time < immuneUntil) then
 		return false
+	end
+	if cause == "PvP" then
+		seconds *= diminish(player)
+		if seconds <= 0 then
+			return false
+		end
 	end
 	player:SetAttribute("StunnedUntil", time + seconds)
 	player:SetAttribute("ControlImmuneUntil", time + seconds + Config.Combat.PlayerControlImmunitySeconds)
@@ -126,14 +135,20 @@ end
 
 -- Aturde a un jugador (Fase 10, C2; pisotones, embestidas de jefe, golpes fuertes, control de
 -- habilidades en PvP): como holdPlayer, y además no pega, ni usa habilidades, ni esquiva ni se
--- defiende (estado "Stunned" de Shared/CombatState); desde C7 sale con el Evasivo. Misma regla de
--- inmunidad que holdPlayer. Devuelve true si le ha aturdido. "state": "GuardBroken" para la guardia
+-- defiende (estado "Stunned" de Shared/CombatState); sale con el Evasivo (C7). Misma regla de
+-- inmunidad (y de rendimientos decrecientes en PvP) que holdPlayer. Devuelve true si le ha aturdido. "state": "GuardBroken" para la guardia
 -- rota (Combat/Guard), que es un aturdido con su propio aspecto.
 function Status.stunPlayer(player: Player, seconds: number, cause: string, state: ("Stunned" | "GuardBroken")?): boolean
 	if not Status.holdPlayer(player, seconds, cause) then
 		return false
 	end
-	StateMachine.enter(player, state or "Stunned", seconds)
+	-- Lo que dura de verdad (holdPlayer lo acorta en PvP).
+	local stunnedUntil = player:GetAttribute("StunnedUntil")
+	StateMachine.enter(
+		player,
+		state or "Stunned",
+		if typeof(stunnedUntil) == "number" then stunnedUntil - now() else seconds
+	)
 	return true
 end
 

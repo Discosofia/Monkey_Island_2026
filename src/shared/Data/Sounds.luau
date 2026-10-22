@@ -60,6 +60,7 @@ local Effects: { [string]: Effect } = {
 	Block = { id = FOOTSTEP, volume = 0.8, pitch = 1.8, jitter = 0.1 }, -- Provisional: "wood block thud"
 	Parry = { id = CLICK, volume = 1, pitch = 0.7, jitter = 0.05 }, -- Provisional: "metal clang / parry ring"
 	GuardBreak = { id = BOOM, volume = 0.5, pitch = 1.6, jitter = 0.05 }, -- Provisional: "guard shatter"
+	Evasive = { id = JUMP, volume = 0.6, pitch = 2.2, jitter = 0.05 }, -- Evasivo (C7). Provisional: "quick escape whoosh"
 	Revive = { id = GET_UP, volume = 0.7, pitch = 1.1 },
 	Heal = { id = GET_UP, volume = 0.5, pitch = 1.5 },
 

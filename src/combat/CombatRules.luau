@@ -6,12 +6,21 @@
 -- jugadores son aliados, sin zona segura, sin munición ni inventario y sin telemetría.
 --   - Isla (Services/IslandCombatRules): PvP opt-in por el tótem, Basecamp seguro, caer y reanimar
 --     (LifeService), fiebre del mono, munición del inventario, recompensa PvP y misiones diarias.
---   - Dunas: equipos (atributo "Team"), reaparecer en la base y números de la arena.
+--   - Dunas: equipos (atributo "Team"), reaparecer en la base, números de la arena y la telemetría de
+--     las mecánicas (Services/ArenaTelemetryService).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+
+-- Mecánicas de combate que se cuentan (Fase 10, C7), por rol de "player" y por place:
+--   Parries, Blocks, GuardBreaks  el que defiende (Combat/Guard)
+--   Evasives                      el que lo usa (Combat/Evasive)
+--   ChainFinishers                el que da el remate de la cadena y alcanza algo (CombatService)
+--   Feints                        el que amaga (C8)
+--   WallBangs                     el que empuja contra el muro (C10)
+export type Mechanic = "Parries" | "Blocks" | "GuardBreaks" | "Evasives" | "ChainFinishers" | "Feints" | "WallBangs"
 
 export type Telemetry = {
 	damageDealt: (player: Player, source: string, amount: number) -> (),
@@ -19,6 +28,7 @@ export type Telemetry = {
 	abilityUsed: (player: Player, abilityId: string, linkedStep: number?) -> (),
 	comboCompleted: (player: Player, streak: number) -> (),
 	held: (player: Player, seconds: number, cause: string) -> (),
+	mechanic: (player: Player, mechanic: Mechanic) -> (),
 	-- Cómo se llama en la telemetría lo que ha herido a un jugador (un mono, un jefe…).
 	causeOf: (source: Instance?) -> string,
 }
@@ -114,6 +124,7 @@ local rules: Rules = {
 		abilityUsed = nothing,
 		comboCompleted = nothing,
 		held = nothing,
+		mechanic = nothing,
 		causeOf = function()
 			return "Otro"
 		end,

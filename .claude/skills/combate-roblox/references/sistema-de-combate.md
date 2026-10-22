@@ -10,14 +10,15 @@ no coincide con el código, manda el código.
 | Pieza | Hoy | Fase 10 |
 |---|---|---|
 | Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` | Proyectiles reales (C9) |
-| Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor) | Evasivo (C7) |
+| Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor); Evasivo (`Combat/Evasive`, `CombatClient/EvasiveIcon`, C7 ✅) | — |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅) | Guardia, cadena, Evasivo… (C4–C8) |
 | Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
 | Ataques de monos y jefes | Preparación con aviso y golpe al acabarla (`Combat/EnemyAttack`, `EnemyWindupController`, C6 ✅) | — |
 | Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅) | Proyectiles (C9), muros de los empujes (C10) |
 | Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅), también contra monos y jefes, con sus imbloqueables (C6 ✅) | Amagos (C8) |
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
-| Reglas por place | `Combat/CombatRules` | Campos nuevos de guardia, escalado y entorno |
+| Escalado del combo (PvP) | `Combat/ComboScaling` en `CombatService.damagePvP` (C7 ✅); controles PvP con rendimientos decrecientes en `Status.holdPlayer` | — |
+| Reglas por place | `Combat/CombatRules`; telemetría de mecánicas (`telemetry.mechanic`, C7 ✅: Isla `TelemetryService`, Dunas `ArenaTelemetryService`) | Campos de entorno (C10–C11) |
 
 ## 2. Estados
 
@@ -36,7 +37,11 @@ no coincide con el código, manda el código.
 - Entran `Stunned` (con `Status.stunPlayer`), `Attacking` (cada paso de la cadena, lo que dura),
   `Staggered` (el tambaleo de la cadena en PvP, C4, y el parry recibido, C5), `Parrying`, `Blocking`
   (sin fin: `StateMachine.enter` sin segundos dura hasta `leave`) y `GuardBroken` (C5, con
-  `Status.stunPlayer(…, "GuardBroken")`); `Casting`, `Dodging` y `Evading` los usan C7–C8.
+  `Status.stunPlayer(…, "GuardBroken")`) y `Evading` (el Evasivo, C7, lo que dura su invulnerabilidad);
+  `Casting` y `Dodging` los usará C8.
+- **Atrapado** (`CombatState.isTrapped`, C7): aturdido, guardia rota, inmovilizado (`StunnedUntil`) o
+  lanzado (`LaunchedUntil`, que pone `Knockback.push` con `lift` a un jugador: lo que tarda en caer,
+  `2 × lift ÷ gravedad`, ~0,46 s). Atrapado, la esquiva es el Evasivo; `onDodge` la rechaza.
   `CombatState.isGuarding` = `Blocking` o `Parrying` (los controladores de movimiento: ×0,6 y sin correr).
 - Si el estado pasa a algo que no es `Idle` ni `Attacking` (tambaleo, aturdido, guardia), la cadena
   de golpes vuelve al primero, en el servidor (`CombatService`) y en la predicción del cliente
@@ -104,7 +109,10 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
   `ChainGuardDamage` (el remate `FinisherGuardDamage`) × `cooldownSeconds` ÷ `ChainReferenceCooldown`,
   y los disparos `ProjectileGuardDamage`. Bloqueado no tambalea ni empuja (lo hace `onResult`).
 
-**Planificado.** C7: escalado en PvP y contador `ChainFinishers`. C8: amago (cancelar la
+- Escalado del combo (C7, §8): cada golpe de la cadena que entra a un jugador cuenta; su daño y su
+  tambaleo bajan desde el 4.º seguido. Un remate que alcanza algo suma `ChainFinishers` en la telemetría.
+
+**Planificado.** C8: amago (cancelar la
 preparación). C9: proyectiles simulados por el servidor (ver §6). C10: el remate contra un muro aturde.
 
 ## 4. Esquiva, estamina y Evasivo
@@ -123,9 +131,22 @@ poco por delante); se recupera tras `StaminaRegenDelay` al ritmo de `CombatRules
 mismos números y toma la del servidor si se separan más de `StaminaSyncTolerance`. Probado en Play:
 5 esquivas seguidas 100 → 12; 2,5 s corriendo de verdad 100 → 72.
 
-**Planificado.** C7: **Evasivo**, la misma esquiva pulsada estando
-`Stunned`, `GuardBroken`, `Rooted` o `Launched`: rompe el estado, da invulnerabilidad y aparta;
-recarga `Config.Evasive` (~25 s), con icono en el HUD.
+**Evasivo (C7 ✅).** La misma esquiva pulsada estando atrapado (`CombatState.isTrapped`: aturdido,
+guardia rota, inmovilizado o lanzado). El cliente (`DodgeController`) salta a `Config.Evasive.Speed`
+durante `DurationSeconds` (~12 studs), dibuja `EvasiveFx` y manda `Remotes.Evasive`; el servidor
+(`Combat/Evasive`) comprueba `canAct "Evasive"`, que estaba atrapado (hasta `JitterSeconds` + 2 × su
+margen de red antes) y la recarga (`EvasiveReadyAt`, `CooldownSeconds` 25), y entonces quita
+`StunnedUntil` y `LaunchedUntil`, pone `ControlImmuneUntil` (2 s), `InvulnerableUntil` y el estado
+`Evading` (`InvulnerableSeconds` 0,5), suelta la guardia, termina el combo que recibía
+(`ComboScaling.reset`) y cuenta `Evasives`. No gasta estamina. Atrapado y en recarga no se esquiva: la
+esquiva normal ya no saca de un agarre (antes `Dash` movía aunque `WalkSpeed` fuera 0). HUD:
+`CombatClient/EvasiveIcon` (💨 detrás de la guardia, con cortina de recarga; atrapado y listo, late con
+la tecla); botón táctil "¡Evasivo!" / "Evasivo 12".
+
+Probado en Play (Isla, 22-10-2026): aturdido 8 s → Evasivo a los 0,12 s (recarga 25, `Evading` 0,5 s,
+inmune 2 s, 14 studs, vuelve a andar); otra vez aturdido con él en recarga → Q no hace nada; sujeto
+(`holdPlayer`) → sale (14,6 studs); sujeto y en recarga → no se mueve; lanzado (0,46 s reales) y guardia
+rota → salen; sin estar atrapado, esquiva normal (0,35 s, estamina 100 → 75).
 
 ## 5. Defensa
 
@@ -282,8 +303,23 @@ clientes). Jugadores: `holdPlayer` con inmunidad de 2 s. En PvP: control ×`pvpC
 Probado en Play (Isla, 22-10-2026): 6 parries seguidos al muñeco de sparring le aturden 1,00 · 0,80 ·
 0,60 · 0,40 s, "INMUNE", "INMUNE"; 3 al Orangután del Manglar, 0,50 · 0,40 · 0,30 s.
 
-**Planificado.** C7: escalado en PvP por víctima (daño y tambaleo bajan con cada golpe seguido, con
-mínimo; se reinicia tras ~1 s sin recibir) y Evasivo.
+**Escalado del combo en PvP (C7 ✅, `Combat/ComboScaling`, `Config.ComboScaling`).** Por víctima:
+`damagePvP` con `guard` apunta cada golpe que entra (`Hit` o `Broken`) y multiplica su daño por
+`damageFactor` (desde `FromHit` 4: −8 % por golpe, mínimo 0,5); el tambaleo de la cadena, por
+`hitstunFactor` (−15 %, mínimo 0,4). Los golpes con la misma `hitKey` cuentan una vez (`AbilityService.hurt`
+pone `"<UserId>:<habilidad>"`: el Torbellino es un golpe); el veneno (sin `guard`) no cuenta. Se
+reinicia tras `ResetSeconds` 1 sin recibir, con un `Blocked`/`Parried` y con el Evasivo.
+
+**Controles de jugadores (C7 ✅).** `Status.holdPlayer` con `cause == "PvP"` (lo que ponen las
+habilidades, `AbilityService.control`) aplica además `Config.ControlDR` por jugador (1 → 0,8 → 0,6 →
+0,4 → no entra hasta 6 s sin ninguno), después de mirar la inmunidad de 2 s; `stunPlayer` deja el
+estado lo mismo que el agarre acortado. Los de monos, jefes y la guardia rota no cambian. Calculadora
+(sección 9): 4 rivales controlándote con todo, 16 % del tiempo → 11 % (talentos al máximo 22 → 14 %).
+
+Probado en Play (Isla): PvP 1,00 · 0,80 · 0,60 · 0,40 · INMUNE · INMUNE; un aturdido PvP seguido,
+estado 1,00 y luego 0,80 (igual que el agarre); monos 1,00 · 1,00 · 1,00; escalado (copia del módulo)
+golpes 1–3 ×1, 4.º ×0,92/0,85, … 9.º ×0,52/0,40, dos golpes con la misma clave cuentan uno, se reinicia
+tras 1,05 s y con `reset`.
 
 ## 8 bis. Preparación de monos y jefes (C6 ✅)
 
@@ -337,7 +373,7 @@ reaparecen, y un altar en la pirámide central que da a su equipo una ventaja pe
 | Correr | Mayús | L3 | "Correr" |
 | Guardia (C5 ✅) | F (caído: Rendirse) | L2 | "Guardia", encima de "Esquivar" |
 | Beber (Isla) | E (antes F) | X | Tocar el aviso |
-| Evasivo (C7) | Q estando aturdido | B estando aturdido | "Esquivar" estando aturdido |
+| Evasivo (C7 ✅) | Q estando atrapado | B estando atrapado | "¡Evasivo!" (el de "Esquivar") |
 | Bloqueo de cámara (C2) | Ctrl (el shift lock de Roblox; el jugador lo enciende en el menú de Roblox) | — | — |
 
 El shift lock: `EnableMouseLockOption = true` en los tres `*.project.json` y `CameraLockController`

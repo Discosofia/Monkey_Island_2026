@@ -7,7 +7,7 @@
 --   - Arriba en el centro, justo bajo la barra: la línea de la fase (elige equipo, cuenta atrás,
 --     llevas la bandera, os la han robado, muerte súbita, ganador).
 --   - Arriba a la izquierda (12, 10): barras de vida y estamina (con la guardia a su derecha,
---     CombatClient/GuardBar), como las de la Isla. Debajo quedan
+--     CombatClient/GuardBar, y el Evasivo detrás, CombatClient/EvasiveIcon), como las de la Isla. Debajo quedan
 --     las casillas de habilidades (RoleHUD, en 12, 118).
 --   - En el centro, solo mientras se espera para reaparecer: "Reapareces en 4".
 
@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local EvasiveIcon = require(ReplicatedStorage.CombatClient.EvasiveIcon)
 local GuardBar = require(ReplicatedStorage.CombatClient.GuardBar)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 
@@ -215,6 +216,7 @@ function ArenaHUDController:Start()
 	local healthFill = newBar(column, 1, "❤️", HEALTH_COLOR)
 	local staminaFill = newBar(column, 2, "⚡", STAMINA_COLOR)
 	local updateGuard = GuardBar.attach(column:FindFirstChild("Row2") :: Frame, BAR_WIDTH + 30, BAR_HEIGHT)
+	local updateEvasive = EvasiveIcon.attach(column:FindFirstChild("Row2") :: Frame, BAR_WIDTH + 30)
 
 	-- Cuenta atrás para reaparecer.
 	local respawn = Widgets.label("", gui)
@@ -256,6 +258,7 @@ function ArenaHUDController:Start()
 		staminaFill.Size = UDim2.fromScale(stamina, 1)
 		staminaFill.Visible = stamina > 0
 		updateGuard()
+		updateEvasive()
 
 		local respawnAt = player:GetAttribute("RespawnAt")
 		if typeof(respawnAt) == "number" then

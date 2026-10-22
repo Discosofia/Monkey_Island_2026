@@ -11,6 +11,8 @@
 -- El hacha, el pico y la hoz siguen con el golpe suelto.
 -- Guardia (C5, Combat/Guard): los golpes de monos y jefes que la pasan (damagePlayer con "guard") y los
 -- de otros jugadores (damagePvP con "guard") se pueden bloquear y parar.
+-- Escape y equidad del combo (C7): esquivar atrapado es el Evasivo (Combat/Evasive) y los golpes de un
+-- jugador a otro llevan el escalado del combo (Combat/ComboScaling).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -38,6 +40,8 @@ local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
+local ComboScaling = require(script.Parent.Parent.ComboScaling)
+local Evasive = require(script.Parent.Parent.Evasive)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
@@ -369,6 +373,9 @@ export type PvPGuard = {
 	-- Se llama al resolverse con el resultado ("Hit", "Blocked", "Parried" o "Broken"): lo que el golpe
 	-- hace además del daño (tambaleo, empuje, veneno) va aquí, porque puede resolverse más tarde.
 	onResult: ((outcome: Guard.Outcome) -> ())?,
+	-- Los golpes con la misma clave (los de una habilidad) cuentan como uno en el escalado del combo
+	-- (Combat/ComboScaling); sin ella, cada golpe cuenta.
+	hitKey: string?,
 }
 
 local function applyPvP(attacker: Player, victim: Player, amount: number, crit: boolean?, poison: boolean?)
@@ -416,6 +423,8 @@ end
 -- "guard": el golpe se puede bloquear y parar (Combat/Guard); un golpe de arma espera antes el margen
 -- del defensor para el parry. Devuelve true si "victim" se podía herir (el golpe puede resolverse
 -- después: lo que dependa de que entre va en "guard.onResult").
+-- Los golpes con "guard" que entran llevan el escalado del combo (C7, Combat/ComboScaling): desde el
+-- 4.º seguido hacen menos; bloquear o parar uno termina el combo.
 function CombatService.damagePvP(
 	attacker: Player,
 	victim: Player,
@@ -444,6 +453,11 @@ function CombatService.damagePvP(
 			from = if attackerRoot and attackerRoot:IsA("BasePart") then attackerRoot.Position else nil,
 			attacker = attacker.Character,
 		}, at)
+		if outcome == "Blocked" or outcome == "Parried" then
+			ComboScaling.reset(victim)
+		else
+			scale *= ComboScaling.damageFactor(ComboScaling.register(victim, guard.hitKey))
+		end
 		if outcome ~= "Parried" then
 			applyPvP(attacker, victim, amount * scale, crit, false)
 		end
@@ -526,6 +540,9 @@ local function meleeAttack(
 	local guardDamage = (if finisher then guardSettings.FinisherGuardDamage else guardSettings.ChainGuardDamage)
 		* weapon.cooldownSeconds
 		/ guardSettings.ChainReferenceCooldown
+	if finisher and #hits > 0 then
+		CombatRules.get().telemetry.mechanic(player, "ChainFinishers")
+	end
 	for _, model in hits do
 		local victim = Players:GetPlayerFromCharacter(model)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -542,7 +559,9 @@ local function meleeAttack(
 						finisherPush(root, model)
 					elseif outcome == "Hit" then
 						-- Tambaleo corto: no pega ni usa habilidades, pero puede esquivar antes del siguiente.
+						-- Más corto cuanto más largo el combo que lleva encima (Combat/ComboScaling).
 						local hitstun = MeleeChain.hitstunSeconds(weapon, step)
+							* ComboScaling.hitstunFactor(ComboScaling.current(victim))
 						if hitstun > 0 then
 							StateMachine.enter(victim, "Staggered", hitstun)
 						end
@@ -861,7 +880,8 @@ local function onUseWeapon(player: Player, aim: any)
 end
 
 -- La esquiva: el cliente ya ha movido al personaje; aquí se comprueba que podía (estado, tiempo de
--- espera con el margen de su ping y estamina del servidor) y se le da la invulnerabilidad.
+-- espera con el margen de su ping y estamina del servidor) y se le da la invulnerabilidad. Atrapado
+-- (aturdido, inmovilizado o lanzado) no hay esquiva: su esquiva es el Evasivo (Combat/Evasive).
 local function onDodge(player: Player)
 	local now = os.clock()
 	local last = lastDodgeAt[player]
@@ -870,7 +890,7 @@ local function onDodge(player: Player)
 	if last and now - last < Config.Combat.DodgeCooldownSeconds - slack then
 		return
 	end
-	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Dodge") then
+	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Dodge") or CombatState.isTrapped(player) then
 		return
 	end
 	-- El cliente predice su estamina y puede ir un poco por delante (Config.Survival.StaminaSyncTolerance).
@@ -937,6 +957,7 @@ function CombatService:Start()
 	StaminaServer.start()
 	Hitbox.start()
 	Guard.start()
+	Evasive.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)

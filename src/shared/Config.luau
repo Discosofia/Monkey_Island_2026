@@ -356,15 +356,22 @@ local Config = {
 		HistoryRate = 20, -- muestras por segundo
 	},
 
-	-- Evasivo (C7): la esquiva pulsada estando aturdido, con la guardia rota, inmovilizado o lanzado.
+	-- Evasivo (C7; Combat/Evasive, DodgeController): la esquiva pulsada estando aturdido, con la guardia
+	-- rota, inmovilizado o lanzado (Shared/CombatState.isTrapped). Quita el estado, da invulnerabilidad
+	-- y aparta. No gasta estamina: atrapado puedes no tener. Sujeto y con el Evasivo en recarga, no se
+	-- puede esquivar.
 	Evasive = {
 		CooldownSeconds = 25,
 		InvulnerableSeconds = 0.5,
+		Speed = 60, -- studs/s del salto que aparta…
+		DurationSeconds = 0.2, -- …durante esto (unos 12 studs: fuera del alcance de un arma)
 	},
 
-	-- Escalado de un combo en PvP (C7), por víctima: cuenta los golpes seguidos que recibe y se reinicia
-	-- tras ResetSeconds sin recibir. Desde el golpe FromHit, cada uno hace DamageStep menos (hasta
-	-- MinDamage) y su tambaleo dura HitstunStep menos (hasta MinHitstun).
+	-- Escalado de un combo en PvP (C7; Combat/ComboScaling), por víctima: cuenta los golpes seguidos que
+	-- recibe de otros jugadores y se reinicia tras ResetSeconds sin recibir, al bloquear o parar y con el
+	-- Evasivo. Cada habilidad cuenta como un golpe aunque pegue varias veces; el veneno no cuenta. Desde
+	-- el golpe FromHit, cada uno hace DamageStep menos (hasta MinDamage) y su tambaleo dura HitstunStep
+	-- menos (hasta MinHitstun).
 	ComboScaling = {
 		FromHit = 4,
 		DamageStep = 0.08,
@@ -379,6 +386,7 @@ local Config = {
 	-- rol solo casi no los nota (cazador sobre un mono 27 → 25 %); muerden cuando varios encadenan
 	-- controles sobre el mismo (equipo de 4 sobre un jefe 25 → 12 %, con talentos al máximo 35 → 17 %).
 	-- Con 1 → 0,5 → 0,25 y 10 s el control casi desaparecía (jefe 7 %, cazador 11 %).
+	-- Desde C7 también los controles de un jugador a otro (además de PlayerControlImmunitySeconds).
 	ControlDR = {
 		Steps = { 1, 0.8, 0.6, 0.4 },
 		ResetSeconds = 6,

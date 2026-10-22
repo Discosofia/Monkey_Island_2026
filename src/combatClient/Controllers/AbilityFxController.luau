@@ -25,7 +25,8 @@
 -- de combo, de "ComboMarkBy"/"ComboMarkUntil" (Data/Combos). Al cerrar un combo: aro dorado en el
 -- jugador y, en el del mago, el hielo que estalla.
 -- Guardia (Fase 10, C5; Combat/Guard, efecto "GuardFx"): chispa al bloquear, destello dorado al parar y
--- estallido naranja con esquirlas y grietas al romperse.
+-- estallido naranja con esquirlas y grietas al romperse. Evasivo (C7, "EvasiveFx"): ráfaga de aire
+-- blanco y azul.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -2381,6 +2382,23 @@ local function guardFx(character: Model?, kind: string?)
 	end
 end
 
+-- Evasivo (Fase 10, C7; Combat/Evasive): sale del aturdido o del agarre con una ráfaga de aire blanco y
+-- azul donde estaba (sin dorado ni naranja, que son de la guardia) y un brillo azul en el cuerpo.
+local function evasiveFx(character: Model?)
+	local root = rootOf(character)
+	if not (character and root) then
+		return
+	end
+	local blue = Color3.fromRGB(150, 210, 255)
+	local white = Color3.fromRGB(240, 248, 255)
+	local feet = root.Position - Vector3.new(0, 2.5, 0)
+	glow(character, blue, 0.4)
+	swell(root.Position, 2, 7, white, 0.5, 0.3)
+	ring(feet + Vector3.new(0, 0.3, 0), 1, 7, 0.35, blue, 0.35, 0.15)
+	burst(root.Position, SMOKE_TEXTURE, white, 14, 2.5, 10, 0.5)
+	burst(root.Position, SPARKLE_TEXTURE, blue, 16, 0.9, 14, 0.35)
+end
+
 -- Icono sobre lo que marcó el primer paso de TU combo (atributos "ComboMarkBy"/"ComboMarkUntil",
 -- ComboService): así ves a quién rematar. Los demás jugadores no lo ven.
 local function watchComboMarks()
@@ -2487,6 +2505,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	ComboComplete = comboComplete, -- (personaje, racha)
 	WeaponShotFx = weaponShotFx, -- (personaje, proyectil): bocanada o destello al disparar un arma a distancia
 	GuardFx = guardFx, -- (personaje, "Block" | "Parry" | "Break"): la guardia (Combat/Guard)
+	EvasiveFx = evasiveFx, -- (personaje): el Evasivo (Combat/Evasive; el propio cliente, DodgeController)
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

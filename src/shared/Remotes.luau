@@ -50,6 +50,9 @@ local Remotes = {
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
 	Dodge = remoteEvent("Dodge"),
+	-- Cliente -> servidor: esquiva estando atrapado, el Evasivo (Combat/Evasive: suelta y da
+	-- invulnerabilidad; el salto lo hace el cliente).
+	Evasive = remoteEvent("Evasive"),
 	-- Cliente -> servidor: pulsa (true, con la hora del servidor en su reloj) o suelta (false) la guardia
 	-- (Combat/Guard: parry al pulsar, bloqueo mientras la mantiene).
 	Guard = remoteEvent("Guard"),

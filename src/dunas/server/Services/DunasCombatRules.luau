@@ -7,7 +7,8 @@
 --   - El daño de armas y habilidades y la duración de los aturdimientos contra jugadores son los de
 --     Config.Arena, y funciona todo lo que contra los monos: veneno, ralentizar, marcas, expuesto y
 --     los pasos del combo (pvpStatus).
--- Lo demás (fiebre, misiones, telemetría, zona segura) se queda en los valores neutros.
+--   - Telemetría: solo la de las mecánicas de combate (ArenaTelemetryService, Fase 10, C7).
+-- Lo demás (fiebre, misiones, zona segura) se queda en los valores neutros.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -15,11 +16,15 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CombatRules = require(ServerScriptService.Combat.CombatRules)
+local ArenaTelemetryService = require(script.Parent.ArenaTelemetryService)
 local RespawnService = require(script.Parent.RespawnService)
 
 local DunasCombatRules = {}
 
 function DunasCombatRules:Init()
+	-- La telemetría neutra, salvo la de las mecánicas de combate.
+	local telemetry = table.clone(CombatRules.get().telemetry)
+	telemetry.mechanic = ArenaTelemetryService.mechanic
 	CombatRules.set({
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
 			local attackerTeam = Arena.teamOf(attacker)
@@ -38,6 +43,7 @@ function DunasCombatRules:Init()
 		pvpWeaponMultipliers = Config.Arena.WeaponMultipliers,
 		healMultiplier = Config.Arena.HealingMultiplier,
 		pvpStatus = true,
+		telemetry = telemetry,
 	})
 end
 

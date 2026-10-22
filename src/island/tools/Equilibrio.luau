@@ -2037,7 +2037,7 @@ local function main(copia: Instance): string
 	if OPCIONES.secciones.escape then
 		local DR = Config.ControlDR
 		linea(
-			"## 9. Control y escape (Fase 10, C6 ✅: Config.ControlDR en Combat/Status; C7: propuestas de ComboScaling y Evasive)"
+			"## 9. Control y escape (Fase 10, C6 ✅: Config.ControlDR en Combat/Status; C7 ✅: Combat/ComboScaling y Combat/Evasive)"
 		)
 		-- Fracción del tiempo cubierta por los controles de "aplicaciones" ({ en, segundos }) en "total" s,
 		-- con o sin los rendimientos decrecientes de Config.ControlDR.
@@ -2235,6 +2235,60 @@ local function main(copia: Instance): string
 			end
 		end
 		linea(`Golpe más fuerte de una habilidad contra un jugador: {table.concat(golpes, " · ")}.`)
+		-- Un equipo de rivales que te controla (C7): cada control de un jugador entra solo si no tienes la
+		-- inmunidad de Config.Combat.PlayerControlImmunitySeconds y, con los rendimientos decrecientes
+		-- (Status.holdPlayer con "PvP"), dura la fracción que toque. Como Combat/Status.
+		local inmunidad = Config.Combat.PlayerControlImmunitySeconds or 0
+		local function sujeto(
+			aplicaciones: { { en: number, segundos: number } },
+			duracion: number,
+			decreciente: boolean
+		)
+			table.sort(aplicaciones, function(a, b)
+				return a.en < b.en
+			end)
+			local inmuneHasta, indice, ultima, cubierto = -math.huge, 1, -math.huge, 0
+			for _, aplicacion in aplicaciones do
+				if aplicacion.en >= inmuneHasta then
+					local segundos = aplicacion.segundos
+					if decreciente and DR then
+						if aplicacion.en - ultima >= DR.ResetSeconds then
+							indice = 1
+						end
+						segundos *= DR.Steps[indice] or 0
+					end
+					if segundos > 0 then
+						if decreciente then
+							indice += 1
+							ultima = aplicacion.en
+						end
+						cubierto += math.min(duracion, aplicacion.en + segundos) - aplicacion.en
+						inmuneHasta = aplicacion.en + segundos + inmunidad
+					end
+				end
+			end
+			return cubierto / duracion
+		end
+		local rivales = {}
+		local nombres = {}
+		for i, roleId in ordenRoles do
+			local propias = aplicacionesDe(roleId, total, false, (i - 1) * 0.5)
+			if #propias > 0 then
+				table.insert(nombres, roleId)
+				for _, aplicacion in propias do
+					table.insert(rivales, { en = aplicacion.en, segundos = aplicacion.segundos * controlArena })
+				end
+			end
+		end
+		if #rivales > 0 then
+			linea(
+				`Arena: {#nombres} rivales ({table.concat(nombres, ", ")}) controlándote con todo lo que tienen ({total} s): sujeto el {pct(
+					sujeto(table.clone(rivales), total, false)
+				)} del tiempo solo con la inmunidad de {n(inmunidad, 1)} s → {pct(
+					sujeto(table.clone(rivales), total, true)
+				)} con los rendimientos decrecientes. Sin contar el Evasivo, que te saca de uno cada {Config.Evasive and Config.Evasive.CooldownSeconds or "-"} s.`
+			)
+		end
 		if Config.Evasive then
 			linea(
 				`Evasivo: recarga {Config.Evasive.CooldownSeconds} s, {n(Config.Evasive.InvulnerableSeconds, 2)} s invulnerable.`

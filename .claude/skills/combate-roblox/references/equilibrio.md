@@ -289,6 +289,13 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 - Preparación de monos y jefes (C6 ✅): cabe en la recarga de cada ataque, así que el DPS y el tiempo
   para matar de la sección 4 no cambian (la sección 10 avisa si un aviso no cabe en su recarga). Para
   un jugador atento (30 % esquivados) el DPS baja ~30 %: es el premio de defenderse, no se compensa.
+- **C7 ✅ (22-10-2026):** Evasivo (recarga 25 s, 0,5 s invulnerable) y escalado del combo en PvP
+  (−8 % de daño y −15 % de tambaleo por golpe desde el 4.º, mínimos 0,5 y 0,4) con los números
+  propuestos: las secciones 7 y 9 no cambian (ya los medían). Nuevo en la sección 9: los controles de
+  jugadores llevan los rendimientos decrecientes de los monos; 4 rivales controlándote con todo te
+  tienen sujeto el 16 % del tiempo solo con la inmunidad de 2 s y el **11 %** con ellos (talentos al
+  máximo 22 → 14 %). La alerta del Pisotón con talentos al máximo (65 % tras aturdir 1,75 s) sigue: la
+  respuesta es el Evasivo (con él entra solo el golpe de apertura, 38); se revisa en C13.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

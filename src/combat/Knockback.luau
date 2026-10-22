@@ -5,10 +5,12 @@
 --   - A un jugador lo simula su propio cliente: si el servidor le pusiera la velocidad, su cliente la
 --     pisaría. Se le manda el remoto Knockback y lo aplica KnockbackController con Dash.push (fuerza
 --     limitada y corte contra las paredes).
--- Los jefes no se empujan.
+-- Los jefes no se empujan. Un jugador lanzado hacia arriba queda "lanzado" ("LaunchedUntil", hora del
+-- servidor en que vuelve a caer) y puede salir con el Evasivo (C7, Shared/CombatState.isTrapped).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
@@ -28,6 +30,10 @@ function Knockback.push(model: Model, direction: Vector3, speed: number, seconds
 	local player = Players:GetPlayerFromCharacter(model)
 	if player then
 		Remotes.Knockback:FireClient(player, horizontal, speed, seconds, lift)
+		if lift and lift > 0 then
+			-- Lo que tarda en subir y bajar con esa velocidad.
+			player:SetAttribute("LaunchedUntil", Workspace:GetServerTimeNow() + 2 * lift / Workspace.Gravity)
+		end
 		return
 	end
 	local root = model.PrimaryPart

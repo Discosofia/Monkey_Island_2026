@@ -183,7 +183,8 @@ end
 -- con la probabilidad del arma. Contra jugadores, el combo solo cuenta con CombatRules.pvpStatus (la arena).
 -- Un jugador la puede bloquear o parar de frente (Combat/Guard): gasta el "guardDamage" de la habilidad
 -- (o Config.Guard.AbilityGuardDamage) y las "unblockable" le rompen la guardia. Bloqueada o parada,
--- tampoco le aplica su control (control, slowDown y los empujes miran Guard.defended).
+-- tampoco le aplica su control (control, slowDown y los empujes miran Guard.defended). Contra jugadores
+-- lleva el escalado del combo (C7): todos sus golpes cuentan como uno.
 local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
@@ -214,6 +215,8 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 					then ability.guardDamage
 					else Config.Guard.AbilityGuardDamage,
 				unblockable = ability ~= nil and ability.unblockable == true,
+				-- Todos sus golpes cuentan como uno en el escalado del combo (Combat/ComboScaling).
+				hitKey = `{attacker.UserId}:{abilityId}`,
 			}
 		)
 	else

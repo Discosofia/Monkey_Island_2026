@@ -19,6 +19,9 @@
 --   MinutesPlayed    minutos en la partida · Rol (para pasar lo demás a "por minuto")
 --   PlayerDowned     día de la partida · Rol, Causa (al momento)
 --   BossDefeated     segundos desde el primer golpe · Jefe, jugadores que peleaban (al momento)
+--   Parries, Blocks, GuardBreaks, Evasives, ChainFinishers, Feints, WallBangs
+--                    veces en la partida · Rol, Place ("Isla"; en Dunas los cuenta
+--                    ArenaTelemetryService con "Dunas"). Quién cuenta cada una: CombatRules.Mechanic.
 -- Causa: id de la especie del mono, "Jefe <id>", "Peligro" (rocas, lava, rayos), "Hambre" o "PvP".
 
 local Players = game:GetService("Players")
@@ -117,6 +120,11 @@ end
 
 function TelemetryService.held(player: Player, seconds: number, cause: string)
 	count(player, "TimeHeld", { roleOf(player), cause }, seconds)
+end
+
+-- Una mecánica de combate (Fase 10, C7; CombatRules.Mechanic).
+function TelemetryService.mechanic(player: Player, mechanic: string)
+	count(player, mechanic, { roleOf(player), "Isla" }, 1)
 end
 
 function TelemetryService.downed(player: Player, cause: string)

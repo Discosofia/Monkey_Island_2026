@@ -273,6 +273,14 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   en el cliente (`Head.EnemyWindup`), no en las capturas. Al llevar al personaje lejos con `PivotTo`,
   los monos de antes siguen pegando unos segundos y llegan otros de la zona: cuenta solo lo que
   coincide con el aviso del que mides.
+- **Evasivo** (C7): aturde (`Status.stunPlayer`), sujeta (`holdPlayer`) o rompe la guardia
+  (`stunPlayer(…, "GuardBroken")`) desde el servidor, quitando antes `ControlImmuneUntil` y
+  `EvasiveReadyAt`, y pulsa Q con `user_keyboard_input`. La tecla llega 1–3 s después de la llamada
+  anterior: usa controles de **8 s** (con 3 s ya se había acabado y salió una esquiva normal). Registra
+  `StunnedUntil`, `CombatState`, `EvasiveReadyAt`, `InvulnerableUntil` y la distancia recorrida. Para
+  "lanzado", `Knockback.push(personaje, dir, 5, 0.1, 45)` (pone `LaunchedUntil` +0,46 s) y alárgalo a
+  mano. Los rendimientos decrecientes PvP se prueban con `holdPlayer(p, 1, "PvP")` seguidos en **una
+  sola** llamada (la tabla es de la copia del MCP) y esperando 6 s entre pruebas.
 - **Cadena de golpes** (C4): pulsa como el jugador con `tool:Activate()` desde el cliente (pasa por
   `WeaponController`: tajo, búfer y remoto) cada 0,1 s, y registra en el servidor el atributo
   `ChainStep` del `Player` y el `HealthChanged` de los muñecos con su hora (`ChainStep` no avisa si
@@ -318,7 +326,9 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
 - Telemetría (`TelemetryService`): contar en el servidor y mandar los totales al final de la
   partida, no un evento por uso; Roblox limita los eventos por minuto, admite 3 campos de texto por
   evento y 8000 combinaciones de valores, así que los campos son ids (rol, habilidad, especie), nunca
-  números ni jugadores. Una habilidad o un mono nuevos no necesitan código de telemetría.
+  números ni jugadores. Una habilidad o un mono nuevos no necesitan código de telemetría. Una
+  mecánica nueva sí: un nombre más en `CombatRules.Mechanic` y su llamada a `telemetry.mechanic`
+  (Isla y Dunas la cuentan con el place en el segundo campo).
 - La simulación de combos juega perfecto: solo abre un combo cuando todos sus pasos van a estar listos.
   Un jugador real usa suelta la habilidad corta del paso 1 y luego no tiene el paso 2. Mira siempre
   el **hueco entre combos** (la recarga más larga de sus pasos, ×0,92 por nivel de racha) y si el
