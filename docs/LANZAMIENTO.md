@@ -47,9 +47,9 @@ Cada grupo tiene cuatro sonidos: `Attack` (muerde o salta), `Call` (aúlla o rug
 
 Estela dorada, Estela de la selva, Título "Rey de la selva" y Aura de banana ya tienen su `gamePassId` en `src/shared/Data/Cosmetics.luau`. Para uno nuevo: **Creator Hub → tu experiencia → Monetización → Pases → Crear pase**, con imagen (512×512) y precio, y su ID en `gamePassId` (con `0` sale como "Próximamente").
 
-### Developer Products (Fase 9, por crear)
+### Developer Products (Fase 9, ya creados)
 
-Todo lo que se compra más de una vez o rota en la tienda es un **Developer Product**. Hasta que tenga su id sale como "Próximamente" y no se puede comprar.
+Todo lo que se compra más de una vez o rota en la tienda es un **Developer Product**. Hasta que tenga su id sale como "Próximamente" y no se puede comprar. Los 14 de la tabla se crearon el 22-10-2026 y sus ids ya están en el repo; para uno nuevo, sigue estos pasos.
 
 1. **Creator Hub → tu experiencia → Monetización → Productos para desarrolladores → Crear**. Nombre, imagen (512×512, la imagen voxel del premio sirve) y el precio de la tabla.
 2. Copia el **ID** del producto y ponlo en su `productId` (cambia el `0`).
@@ -72,7 +72,7 @@ Todo lo que se compra más de una vez o rota en la tienda es un **Developer Prod
 | Arma: Báculo de la Serpiente Emplumada (mítico) | `FeatheredSerpentStaff` | 449 |
 | Arma: Cerbatana de la Ceiba (mítico) | `CeibaBlowgun` | 449 |
 
-Los precios que se enseñan en el juego salen de `price`: si cambias el precio en el Creator Hub, cámbialo también allí. Las compras se entregan con recibo (`ServerShared/Purchases`): una compra repetida por Roblox no se entrega dos veces. En Studio las compras son de prueba (no cobran).
+Los precios que se enseñan en el juego salen de `price`: si cambias el precio en el Creator Hub, cámbialo también allí. Deja **apagados los precios regionales** de cada producto: con ellos Roblox cobra otro precio según el país (en el tuyo, ~57 % del base) y no coincidiría con el que enseña el juego. Para comprobarlo, en Studio: `game:GetService("MarketplaceService"):GetProductInfo(id, Enum.InfoType.Product).PriceInRobux` tiene que dar lo mismo que `price`. Las compras se entregan con recibo (`ServerShared/Purchases`): una compra repetida por Roblox no se entrega dos veces. En Studio las compras son de prueba (no cobran).
 
 **Nunca con Robux:** Ámbar, huevos, tiempo de incubación, provisiones ni nada que dé ventaja. Los huevos y las mascotas **no se venden** (solo se consiguen jugando): es una decisión del GDD (§14) para cumplir las normas de Roblox sobre objetos aleatorios de pago. No lo cambies.
 

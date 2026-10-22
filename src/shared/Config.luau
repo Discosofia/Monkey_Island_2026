@@ -1174,11 +1174,11 @@ local Config = {
 		-- Recibos que recuerda cada perfil para no entregar dos veces la misma compra.
 		ReceiptHistory = 50,
 		Products = {
-			SeasonPremium = { productId = 0, price = 399, grants = "Premium" },
+			SeasonPremium = { productId = 3721002705, price = 399, grants = "Premium" },
 			-- El pase y 10 niveles; solo si aún no se tiene la premium de la temporada.
-			SeasonPack = { productId = 0, price = 799, grants = "Premium", levels = 10 },
+			SeasonPack = { productId = 3721002880, price = 799, grants = "Premium", levels = 10 },
 			-- Un nivel; no se vende en el último nivel ni en los días de descanso.
-			SeasonLevel = { productId = 0, price = 79, grants = "Levels", levels = 1 },
+			SeasonLevel = { productId = 3721003016, price = 79, grants = "Levels", levels = 1 },
 		},
 	},
 

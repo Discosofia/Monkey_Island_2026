@@ -606,7 +606,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 45,
 		rarity = "Rare",
 		color = Color3.fromRGB(120, 205, 255),
-		source = { productId = 0, price = 149 },
+		source = { productId = 3721003694, price = 149 },
 	},
 	-- G10b, tienda en Ámbar:
 	TitlePalmClimber = {
@@ -797,7 +797,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 63,
 		rarity = "Uncommon",
 		color = Color3.fromRGB(245, 240, 225),
-		source = { productId = 0, price = 99 },
+		source = { productId = 3721003542, price = 99 },
 		title = "☠️ Capitán pirata",
 	},
 	NeonBurst = {
@@ -808,7 +808,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 64,
 		rarity = "Rare",
 		color = Color3.fromRGB(255, 80, 160),
-		source = { productId = 0, price = 149 },
+		source = { productId = 3721005562, price = 149 },
 	},
 	PetalAura = {
 		name = "Aura: Lluvia de pétalos",
@@ -818,7 +818,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 65,
 		rarity = "Epic",
 		color = Color3.fromRGB(255, 165, 205),
-		source = { productId = 0, price = 199 },
+		source = { productId = 3721005847, price = 199 },
 		look = "Petals",
 	},
 	DiamondFrame = {
@@ -829,7 +829,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 66,
 		rarity = "Epic",
 		color = Color3.fromRGB(170, 235, 255),
-		source = { productId = 0, price = 199 },
+		source = { productId = 3721005979, price = 199 },
 	},
 	StardustTrail = {
 		name = "Estela: Polvo de estrellas",
@@ -839,7 +839,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 67,
 		rarity = "Legendary",
 		color = Color3.fromRGB(45, 70, 175),
-		source = { productId = 0, price = 249 },
+		source = { productId = 3721006202, price = 249 },
 		sparkle = Color3.fromRGB(255, 215, 90),
 	},
 	GoldenTempleNest = {
@@ -850,7 +850,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 68,
 		rarity = "Legendary",
 		color = Color3.fromRGB(255, 200, 60),
-		source = { productId = 0, price = 249 },
+		source = { productId = 3721006641, price = 249 },
 	},
 
 	EmoteWave = {
@@ -976,7 +976,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 21,
 		rarity = "Mythic",
 		color = Color3.fromRGB(70, 225, 150),
-		source = { productId = 0, price = 449 },
+		source = { productId = 3721006818, price = 449 },
 		role = "Guerrero",
 	},
 	SpectralJaguarOutfit = {
@@ -998,7 +998,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 23,
 		rarity = "Mythic",
 		color = Color3.fromRGB(190, 240, 255),
-		source = { productId = 0, price = 449 },
+		source = { productId = 3721007104, price = 449 },
 		role = "Cazador",
 	},
 	FeatheredSerpentOutfit = {
@@ -1020,7 +1020,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 25,
 		rarity = "Mythic",
 		color = Color3.fromRGB(95, 215, 255),
-		source = { productId = 0, price = 449 },
+		source = { productId = 3721007234, price = 449 },
 		role = "Mago",
 	},
 	CeibaOfLifeOutfit = {
@@ -1042,7 +1042,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		order = 27,
 		rarity = "Mythic",
 		color = Color3.fromRGB(120, 255, 150),
-		source = { productId = 0, price = 449 },
+		source = { productId = 3721007360, price = 449 },
 		role = "Medico",
 	},
 }
