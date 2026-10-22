@@ -25,7 +25,6 @@ local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
-local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
@@ -111,16 +110,9 @@ end
 -- carteles).
 local function picture(view: ViewportFrame, cosmeticId: string, textSize: number)
 	local cosmetic = Cosmetics[cosmeticId]
-	-- El aspecto de un arma se ve en el arma (suelta y cruzada), no en el avatar.
-	local weapon = if cosmetic.kind == "WeaponSkin" and cosmetic.role
-		then WeaponTools.preview(cosmetic.role, cosmeticId)
-		else nil
-	if weapon then
-		weapon:PivotTo(CFrame.Angles(0, math.rad(90), math.rad(-40)))
-	end
-	local model = weapon or RewardModels.cosmetic(Players.LocalPlayer.Character, cosmeticId)
+	local model = RewardModels.cosmetic(Players.LocalPlayer.Character, cosmeticId)
 	if model then
-		RewardModels.frame(view, model, if weapon then 1.1 else 1.25)
+		RewardModels.frame(view, model, if cosmetic.kind == "WeaponSkin" then 1.1 else 1.25)
 	end
 	if cosmetic.kind == "Title" then
 		local label = Widgets.label(cosmetic.title or cosmetic.name, view)

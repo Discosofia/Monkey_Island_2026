@@ -176,12 +176,15 @@ local function tooth(
 	color: Color3,
 	material: Enum.Material,
 	at: CFrame
-)
+): { BasePart }
+	local halves = {}
 	for side = -1, 1, 2 do
 		local half = newPiece(name, Vector3.new(width, length, depth / 2), color, material, "WedgePart")
 		local flip = if side > 0 then CFrame.Angles(0, math.pi, 0) else CFrame.identity
 		attach(handle, half, at * CFrame.new(0, 0, side * depth / 4) * flip)
+		table.insert(halves, half)
 	end
+	return halves
 end
 
 -- Filo: dos medias cuñas espalda con espalda que se afilan hacia la -Z de "at" (hachas).
@@ -2215,6 +2218,251 @@ local function buildCeibaBlowgun(tool: Tool, level: number): BasePart
 	return handle
 end
 
+-- ===================================== Temporada 1: fuego azul y azufre =====================================
+-- Aspectos de arma de la Temporada 1, "El Despertar del Volcán" (Data/Seasons): piedra pómez clara,
+-- carbón, cristales de azufre y fuego azul, para que no se confundan con las armas de la forja volcánica
+-- (obsidiana negra y lava naranja). Mismo agarre y largo que el arma de cada nivel; ganan cristales con él
+-- y en el nivel 4 arden en azul.
+
+local PUMICE = Color3.fromRGB(196, 190, 178)
+local PUMICE_DARK = Color3.fromRGB(148, 142, 134)
+local CHARCOAL = Color3.fromRGB(52, 50, 56)
+local BLUE_FIRE = Color3.fromRGB(45, 120, 255)
+local BLUE_FIRE_MID = Color3.fromRGB(90, 185, 255)
+local BLUE_FIRE_PALE = Color3.fromRGB(190, 235, 255)
+
+-- Llama en píxeles (como las de los trajes de la temporada, Shared/ArmorModels), de arriba abajo: X el
+-- fuego azul de fuera, C el celeste y W el corazón casi blanco, que sobresalen más.
+local FLAME_ROWS = {
+	"..X..",
+	".XX.X",
+	".XCXX",
+	"XCWCX",
+	"XCWCX",
+	".XXX.",
+}
+local FLAME_COLORS: { [string]: Color3 } = { X = BLUE_FIRE, C = BLUE_FIRE_MID, W = BLUE_FIRE_PALE }
+local FLAME_RELIEF: { [string]: number } = { X = 0.5, C = 0.75, W = 1 }
+
+-- La llama en píxeles con el pie en "at", celdas de "cell" en su plano XY y relieve hacia su -Z. Cada tramo
+-- seguido de un color es una pieza. Devuelve una del pie, para echar llamas de ahí.
+local function pixelFlame(handle: BasePart, at: CFrame, cell: number): BasePart
+	local columns = #FLAME_ROWS[1]
+	local foot: BasePart? = nil
+	for row, line in FLAME_ROWS do
+		local y = (#FLAME_ROWS - row + 0.5) * cell
+		local start = 1
+		while start <= columns do
+			local char = string.sub(line, start, start)
+			local stop = start
+			while stop < columns and string.sub(line, stop + 1, stop + 1) == char do
+				stop += 1
+			end
+			local color = FLAME_COLORS[char]
+			if color then
+				local relief = FLAME_RELIEF[char] * cell
+				local piece = block(
+					handle,
+					"Flame",
+					Vector3.new((stop - start + 1) * cell, cell, relief),
+					color,
+					NEON,
+					at * CFrame.new(((start + stop) / 2 - (columns + 1) / 2) * cell, y, -relief / 2)
+				)
+				if row == #FLAME_ROWS and not foot then
+					foot = piece
+				end
+			end
+			start = stop + 1
+		end
+	end
+	return foot :: BasePart
+end
+
+-- Cristal de azufre de "length" desde "at" (su base) hacia su +Y: funda amarilla translúcida y núcleo
+-- que brilla.
+local function sulfurCrystal(handle: BasePart, length: number, width: number, at: CFrame)
+	for _, half in tooth(handle, "Sulfur", length, width, width, SULFUR, GLASS, at * CFrame.new(0, length / 2, 0)) do
+		half.Transparency = 0.25
+	end
+	tooth(
+		handle,
+		"SulfurCore",
+		length * 0.7,
+		width * 0.5,
+		width * 0.5,
+		SULFUR_GLOW,
+		NEON,
+		at * CFrame.new(0, length * 0.35, 0)
+	)
+end
+
+-- "at" que lleva la +Y de "base" hacia "direction" (no vertical del todo).
+local function toward(base: CFrame, direction: Vector3): CFrame
+	return CFrame.lookAt(base.Position, base.Position + base:VectorToWorldSpace(direction))
+		* CFrame.Angles(-math.pi / 2, 0, 0)
+end
+
+-- Fuego azul que sale de "part": llamas que suben, con su luz.
+local function blueFire(part: BasePart, rate: number, size: number)
+	local flames = Instance.new("ParticleEmitter")
+	flames.Texture = "rbxasset://textures/particles/fire_main.dds"
+	flames.Color = ColorSequence.new(BLUE_FIRE_PALE, BLUE_FIRE)
+	flames.LightEmission = 1
+	flames.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, size * 0.5), NumberSequenceKeypoint.new(1, 0) })
+	flames.Transparency = NumberSequence.new(0.3, 1)
+	flames.Lifetime = NumberRange.new(0.4, 0.8)
+	flames.Rate = rate
+	flames.Speed = NumberRange.new(size, size * 2)
+	flames.SpreadAngle = Vector2.new(12, 12)
+	flames.Rotation = NumberRange.new(0, 360)
+	flames.RotSpeed = NumberRange.new(-60, 60)
+	flames.Parent = part
+	glow(part, BLUE_FIRE, 8)
+end
+
+-- Maza de Azufre (guerrero): mango de piedra pómez con venda de carbón y, de cabeza, un mazo de piedra
+-- alargado hacia donde golpea (-Z) del que salen cristales de azufre, el más largo por delante. Nivel 1
+-- (como el garrote de piedra): tres cristales y una banda de carbón. Nivel 2 (maza de hueso): una jaula de
+-- cuatro barras de carbón, cristales a los lados y un pomo de azufre. Nivel 3 (mazo de hueso grueso, más
+-- largo y cogido por el centro): más grande, con tapas de carbón por delante y por detrás y siete
+-- cristales. Nivel 4 (mazo volcánico): costuras de fuego azul en las barras y, en vez del cristal de
+-- arriba, una llamarada azul en píxeles (dos cruzadas, para que se vea de frente y de lado), con su luz.
+local function buildSulfurMace(tool: Tool, level: number): BasePart
+	local long = level >= 3
+	-- Mismo agarre y alto de la cabeza que el arma del nivel (garrote y maza; mazos de nivel 3 y 4).
+	local handle = hiddenHandle(tool, if long then Vector3.new(0.5, 1.7, 0.5) else Vector3.new(0.4, 2.6, 0.4))
+	local scale = ({ 1, 1.12, 1.32, 1.45 })[level] or 1
+	local headY = if long then 3.25 else 2.35
+	local shaftTop = headY - 0.4 * scale
+	local shaftBottom = if long then -1 else -1.3
+	rod(
+		handle,
+		"Shaft",
+		shaftTop - shaftBottom,
+		if long then 0.42 else 0.34,
+		PUMICE_DARK,
+		STONE_MATERIAL,
+		CFrame.new(0, (shaftTop + shaftBottom) / 2, 0)
+	)
+	rod(
+		handle,
+		"Wrap",
+		if long then 1.5 else 0.9,
+		if long then 0.5 else 0.4,
+		CHARCOAL,
+		FABRIC,
+		CFrame.new(0, if long then 0 else -0.7, 0)
+	)
+	if level >= 2 then
+		ball(handle, "Pommel", if long then 0.5 else 0.42, SULFUR, SMOOTH, CFrame.new(0, shaftBottom - 0.1, 0))
+		rod(
+			handle,
+			"PommelCup",
+			0.1,
+			if long then 0.5 else 0.42,
+			CHARCOAL,
+			SMOOTH,
+			CFrame.new(0, shaftBottom + 0.05, 0)
+		)
+	else
+		rod(handle, "Butt", 0.2, 0.42, PUMICE, STONE_MATERIAL, CFrame.new(0, shaftBottom, 0))
+	end
+
+	local function at(x: number, y: number, z: number): CFrame
+		return CFrame.new(x * scale, headY + y * scale, z * scale)
+	end
+	-- Medio largo del mazo hacia delante y hacia atrás.
+	local reach = 0.6
+	block(handle, "Head", Vector3.new(0.8, 0.8, reach * 2) * scale, PUMICE, STONE_MATERIAL, at(0, 0, 0))
+	if level >= 2 then
+		for x = -1, 1, 2 do
+			for z = -1, 1, 2 do
+				block(
+					handle,
+					"Bar",
+					Vector3.new(0.14, 0.9, 0.14) * scale,
+					CHARCOAL,
+					STONE_MATERIAL,
+					at(x * 0.41, 0, z * (reach + 0.01))
+				)
+				if level >= 4 then
+					-- Costura de fuego azul por la arista de fuera de cada barra.
+					block(
+						handle,
+						"Seam",
+						Vector3.new(0.05, 0.7, 0.05) * scale,
+						BLUE_FIRE,
+						NEON,
+						at(x * 0.47, 0, z * (reach + 0.07))
+					)
+				end
+			end
+		end
+	else
+		block(
+			handle,
+			"Band",
+			Vector3.new(0.86, 0.14, reach * 2 + 0.06) * scale,
+			CHARCOAL,
+			STONE_MATERIAL,
+			at(0, -0.2, 0)
+		)
+	end
+	if level >= 3 then
+		for z = -1, 1, 2 do
+			block(handle, "Cap", Vector3.new(0.96, 0.96, 0.12) * scale, CHARCOAL, STONE_MATERIAL, at(0, 0, z * reach))
+		end
+	end
+
+	-- Cristales: base en una cara de la cabeza y dirección (respecto a la cabeza), largo y nivel en que sale
+	-- ("upTo": hasta qué nivel; el de arriba deja su sitio a la llamarada).
+	local crystals: { { base: Vector3, direction: Vector3, length: number, level: number, upTo: number? } } = {
+		{ base = Vector3.new(0, 0, -reach - 0.06), direction = Vector3.new(0, 0.05, -1), length = 0.85, level = 1 },
+		{
+			base = Vector3.new(0.05, 0.4, -0.1),
+			direction = Vector3.new(0.15, 1, -0.25),
+			length = 0.62,
+			level = 1,
+			upTo = 3,
+		},
+		{ base = Vector3.new(0, 0.05, reach + 0.06), direction = Vector3.new(0, 0.3, 1), length = 0.55, level = 1 },
+		{ base = Vector3.new(-0.4, 0.05, -0.2), direction = Vector3.new(-1, 0.35, -0.3), length = 0.5, level = 2 },
+		{ base = Vector3.new(0.4, 0.05, -0.2), direction = Vector3.new(1, 0.35, -0.3), length = 0.5, level = 2 },
+		{
+			base = Vector3.new(-0.22, 0.25, -reach - 0.06),
+			direction = Vector3.new(-0.5, 0.6, -1),
+			length = 0.5,
+			level = 3,
+		},
+		{
+			base = Vector3.new(0.22, 0.25, -reach - 0.06),
+			direction = Vector3.new(0.5, 0.6, -1),
+			length = 0.5,
+			level = 3,
+		},
+	}
+	for _, crystal in crystals do
+		if level >= crystal.level and level <= (crystal.upTo or level) then
+			sulfurCrystal(
+				handle,
+				crystal.length * scale,
+				0.26 * scale,
+				toward(at(crystal.base.X, crystal.base.Y, crystal.base.Z), crystal.direction)
+			)
+		end
+	end
+
+	if level >= 4 then
+		local foot = pixelFlame(handle, at(0, 0.4, 0), 0.18 * scale)
+		pixelFlame(handle, at(0, 0.4, 0) * CFrame.Angles(0, math.pi / 2, 0), 0.18 * scale)
+		blueFire(foot, 14, 0.9 * scale)
+	end
+
+	tool.Grip = CFrame.new(0, if long then -0.2 else -0.7, 0)
+	return handle
+end
+
 -- ===================================== Lista =====================================
 
 local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
@@ -2610,6 +2858,7 @@ local SKINS: { [string]: (tool: Tool, level: number) -> BasePart } = {
 	SpectralJaguarBow = buildSpectralJaguarBow,
 	FeatheredSerpentStaff = buildFeatheredSerpentStaff,
 	CeibaBlowgun = buildCeibaBlowgun,
+	SulfurMace = buildSulfurMace,
 }
 WeaponTools.MAX_LEVEL = 4
 

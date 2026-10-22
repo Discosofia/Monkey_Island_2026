@@ -13,8 +13,10 @@
 -- pone la tarjeta como texto. Los cosméticos que no se llevan encima tienen su propio modelo: el
 -- estilo de los números (unos números voxel con sus colores y su borde), el de los estallidos (una
 -- estrella de cómic con su "!"), la decoración del nido (alrededor de un nido pequeño) y las skins de
--- mascota (la mascota con la skin). Un aura por grados lleva más piezas en cada grado.
+-- mascota (la mascota con la skin). Un traje se ve puesto en tu avatar (entero, como en el Lobby) y el
+-- aspecto de un arma, en el arma suelta y cruzada. Un aura por grados lleva más piezas en cada grado.
 
+local ArmorModels = require(script.Parent.ArmorModels)
 local ComicBurst = require(script.Parent.UI.ComicBurst)
 local CosmeticSlots = require(script.Parent.CosmeticSlots)
 local Cosmetics = require(script.Parent.Data.Cosmetics)
@@ -23,6 +25,7 @@ local NestDecor = require(script.Parent.NestDecor)
 local NumberStyles = require(script.Parent.UI.NumberStyles)
 local PetModels = require(script.Parent.PetModels)
 local Pets = require(script.Parent.Data.Pets)
+local WeaponTools = require(script.Parent.WeaponTools)
 
 local UNIT = 0.25
 
@@ -522,8 +525,21 @@ function RewardModels.cosmetic(character: Model?, cosmeticId: string): Model?
 		return RewardModels.nestDecor(cosmeticId)
 	elseif kind == "PetSkin" then
 		return RewardModels.petSkin(cosmeticId)
+	elseif kind == "WeaponSkin" and cosmetic and cosmetic.role then
+		-- El aspecto de un arma se ve en el arma (suelta y cruzada), no en el avatar.
+		local weapon = WeaponTools.preview(cosmetic.role, cosmeticId)
+		if weapon then
+			weapon:PivotTo(CFrame.Angles(0, math.rad(90), math.rad(-40)))
+		end
+		return weapon
 	end
-	return RewardModels.avatar(character, cosmeticId)
+	local avatar = RewardModels.avatar(character, cosmeticId)
+	if avatar and kind == "Outfit" and cosmetic and cosmetic.role then
+		ArmorModels.wear(avatar, nil, cosmetic.role, cosmeticId, ArmorModels.MAX_GRADE)
+		-- De tres cuartos por detrás: la espalda es lo más vistoso de cada traje.
+		avatar:PivotTo(avatar:GetPivot() * CFrame.Angles(0, math.rad(200), 0))
+	end
+	return avatar
 end
 
 -- Bloque de neón en studs (las estelas y las auras de la imagen del avatar).

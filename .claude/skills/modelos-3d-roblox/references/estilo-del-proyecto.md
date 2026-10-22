@@ -75,6 +75,46 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   médico usan `flask` (panza de `Glass` con la poción dentro: con transparencia 0,4 el frasco salía
   blanco; con 0,65 se ve el verde) y `backTotem` (el Tótem sanador en pequeño, con `scale`). El lino
   claro (222, 212, 182) salía azulado con la luz de Studio: tostado (196, 170, 125) se ve como lino.
+  **Hombreras** (preferencia del usuario, octubre de 2026): la base es una **losa cuadrada**
+  inclinada hacia fuera, una **estrella** o un **disco**; un óvalo solo si es plano como una moneda.
+  Nunca óvalos abultados: parecen cojines o setas. Las volcánicas y las de la Temporada 1 comparten
+  la forma: losa, piedra encima, canto oscuro con una raya de neón debajo, tres cristales y una
+  llama en píxeles en medio.
+  **Fuego: llamas en píxeles (`pixelFlame`)**, no puntas. Las lenguas de fuego en pico (`fang` de
+  neón) se leen como **hielo**, sobre todo en azul. `pixelFlame(make, rows, palette, at, cell, mirror)`
+  dibuja filas de texto (`BIG_FLAME` de 10×11 y `SMALL_FLAME` de 5×6; X fuera, C en medio, W el
+  corazón, que sobresale más) en el plano XY de `at` con relieve hacia su +Z, juntando cada tramo
+  del mismo color en una pieza. Paletas: `LAVA_FLAME` (naranja, amarillo, crema) y `BLUE_FLAME` de
+  la temporada. Para que se vea por delante, gira `at` 180° en Y; en un arma, dos llamas cruzadas
+  a 90° (se ven de frente y de lado). Las partículas (`fire_main.dds`) salen de la pieza del pie que
+  devuelve.
+  **Trajes (cosméticos `Outfit`)**: van en `OUTFITS` y **ganan piezas con el grado** de la
+  armadura de debajo (0–4; enteros en el Lobby y en Dunas). Los míticos, muchas; los de temporada,
+  cinco escalones: coraza, hombreras, motivo del pecho, cráter con llama pequeña y llamarada con
+  partículas y luz. Un acento de color (una gema) no se nota: el usuario no veía diferencia entre el
+  grado 0 y el 4. **Cada grado tiene que cambiar algo visible desde detrás**: lo que se añade en
+  el pecho, repítelo con algo en la espalda (si no, el 1 y el 2 se ven iguales de espaldas). No
+  pongas piezas de espalda junto a las hombreras, porque las tapan; llévalas hacia el centro.
+  La paleta de un traje de temporada tiene que distinguirse de la armadura del nivel 4 (obsidiana
+  negra y lava naranja): la Temporada 1 es pómez, carbón, azufre y fuego azul. La pómez clara
+  (196, 190, 178) salía lila con la luz de Studio y, junto al azul, parecía hielo; tostada
+  (184, 172, 152) se lee como piedra.
+  **Límite de 200 locales:** Luau no deja más de 200 variables locales vivas a la vez en el nivel
+  superior de un módulo, y `ArmorModels` llegó al límite: el `require` falla con "Requested module
+  experienced an error while loading". Para ver el error de verdad, usa
+  `loadstring(modulo.Source)`, que da "Out of local registers". Por eso cada traje (salvo el Rey
+  Gorila, cuyos colores y `jadeCrystal` usan los demás) va en su bloque `do … end`, que escribe en
+  `OUTFITS.<id>`: sus locales se sueltan al cerrar el bloque. Un traje nuevo va en su propio `do`.
+  Para contar los locales del nivel superior, busca las líneas sin sangría que casan con
+  `^local (function )?nombre`.
+  **Vista previa de trajes y armas:** rigs R15 sin `BodyColors`, `ArmorModels.wear(rig, nil, rol,
+  outfitId, grado)` para cada grado lado a lado, y las armas de rol con
+  `WeaponTools.build(WeaponTools.roleWeapon(rol, nivel), skinId)`, con sus piezas en un `Model`
+  movido con `PivotTo` (no las sueldes a la mano: salen de lado). Pon las armas lejos de la línea
+  de la cámara, que tapan los trajes. `WeaponTools` solo acepta el aspecto si `Data/Cosmetics` (el
+  módulo en caché) ya tiene la entrada con su `role`: añádela a la tabla en caché antes de probar.
+  La imagen del pase y de las tiendas sale de `RewardModels.cosmetic`: el traje se pone en tu
+  avatar girado a 3/4 de espaldas, y el aspecto de arma se enseña en el arma suelta.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),

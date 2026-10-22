@@ -51,10 +51,10 @@ local Seasons: { Season } = {
 		levels = {
 			{ free = { cosmetic = "TitleCastaway" }, premium = { cosmetic = "PrimalFlameAura" } },
 			{ free = { amber = 75 } },
-			{ free = { items = { Banana = 5, Bandage = 2 } } },
+			{ free = { items = { Banana = 5, Bandage = 2 } }, premium = { cosmetic = "SulfurMace" } },
 			{ free = { eggSeconds = 30 * MIN } },
-			{ free = { amber = 100 }, premium = { cosmetic = "MagmaNumbers" } },
-			{ free = { items = { Torch = 1, Antidote = 1 } } },
+			{ free = { amber = 100 }, premium = { cosmetic = "BlueFireGuardianOutfit" } },
+			{ free = { items = { Torch = 1, Antidote = 1 } }, premium = { cosmetic = "MagmaNumbers" } },
 			{ free = { eggSeconds = 30 * MIN } },
 			{ free = { amber = 100 }, premium = { cosmetic = "VolcanicBurst" } },
 			{ free = { items = { SuperBandage = 1 } } },

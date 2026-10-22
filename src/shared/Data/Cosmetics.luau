@@ -84,6 +84,9 @@ export type Cosmetic = {
 	look: ("Sand" | "Storm" | "Petals")?, -- Aura: otra forma en vez de las chispas (ServerShared/CosmeticsServer)
 }
 
+-- El fuego azul de la temporada 1.
+local BLUE_FIRE = Color3.fromRGB(45, 120, 255)
+
 local Cosmetics: { [string]: Cosmetic } = {
 	GoldenTrail = {
 		name = "Estela dorada",
@@ -267,12 +270,38 @@ local Cosmetics: { [string]: Cosmetic } = {
 		source = { season = "T1" },
 	},
 
+	-- Trajes y armas de la temporada 1 (G11a), uno de cada por rol: fuego azul y azufre sobre piedra pómez
+	-- (Shared/ArmorModels y Shared/WeaponTools), para no confundirse con la armadura y las armas
+	-- volcánicas del nivel 4. Los trajes ganan piezas con el grado de la armadura de debajo, como los míticos.
+	BlueFireGuardianOutfit = {
+		name = "Traje: Guardián del Fuego Azul",
+		icon = "🔥",
+		kind = "Outfit",
+		description = "Pase de temporada 1, nivel 5 (premium): coraza de pómez con un corazón de fuego azul y, a la espalda, un escudo de azufre en llamas.",
+		order = 18,
+		rarity = "Legendary",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Guerrero",
+	},
+	SulfurMace = {
+		name = "Arma: Maza de Azufre",
+		icon = "🔥",
+		kind = "WeaponSkin",
+		description = "Pase de temporada 1, nivel 3 (premium): cristales de azufre en una jaula de piedra para tu maza de guerrero. Arde en azul en el nivel 4.",
+		order = 18.1,
+		rarity = "Epic",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Guerrero",
+	},
+
 	-- Tipos baratos (G9d), un ejemplo de cada; G11 los pone en su nivel del pase.
 	MagmaNumbers = {
 		name = "Números: Magma",
 		icon = "🔢",
 		kind = "NumberStyle",
-		description = "Pase de temporada 1, nivel 5 (premium): tu daño en letras gruesas de lava que se enfría.",
+		description = "Pase de temporada 1, nivel 6 (premium): tu daño en letras gruesas de lava que se enfría.",
 		order = 15,
 		rarity = "Rare",
 		color = Color3.fromRGB(255, 140, 40),
