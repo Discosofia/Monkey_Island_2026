@@ -240,6 +240,26 @@ local Config = {
 		Seconds = 0.25,
 	},
 
+	-- Estados de combate de los jugadores (C2; Shared/CombatState, Combat/StateMachine). Un estado
+	-- nuevo solo sustituye al que hay si su prioridad es igual o mayor (o el que hay ya terminó): un
+	-- aturdimiento corta un ataque, pero un ataque no corta un aturdimiento. Qué impide cada estado
+	-- está en Shared/CombatState.
+	CombatStates = {
+		Priority = {
+			Idle = 0,
+			Attacking = 1,
+			Casting = 1,
+			Blocking = 2,
+			Dodging = 2,
+			Parrying = 3,
+			Staggered = 4,
+			Stunned = 5,
+			GuardBroken = 5,
+			Evading = 6, -- el Evasivo saca de un aturdimiento
+			Downed = 7,
+		} :: { [string]: number },
+	},
+
 	-- Cadena de golpes de las armas cuerpo a cuerpo (C4): 4 golpes y el 4.º remata. Cada paso hace
 	-- "damage" × el daño del arma y dura "time" × su cooldownSeconds (las armas pesadas encadenan más
 	-- despacio). Con la suma de "damage" igual a la de "time", el DPS es el mismo que con golpes sueltos.
@@ -463,13 +483,19 @@ local Config = {
 		-- Curar (H): por debajo de esta fracción de vida, una venda o un ungüento van antes que el
 		-- antídoto aunque tengas fiebre (CraftingService).
 		HealFirstBelow = 0.6,
-		-- Estamina (0 a 100): correr la gasta y esquivar cuesta DodgeStaminaCost.
+		-- Estamina (0 a StaminaMax): correr la gasta y esquivar cuesta DodgeStaminaCost. La lleva el
+		-- servidor (Combat/StaminaServer, atributo "Stamina"); el cliente la predice con estos mismos números.
 		WalkSpeed = 16,
 		SprintSpeed = 24,
+		StaminaMax = 100,
 		SprintStaminaPerSecond = 18,
 		StaminaRegenPerSecond = 20,
 		StaminaRegenDelay = 0.8,
+		WeakStaminaRegenFactor = 0.5, -- con hambre o sed por debajo de LowThreshold se recupera a este ritmo
 		DodgeStaminaCost = 25,
+		-- El cliente se corrige con la del servidor si se separan más de esto (el ritmo de cada uno
+		-- difiere un poco: el servidor sabe que corres por el remoto Sprint y por la velocidad real).
+		StaminaSyncTolerance = 15,
 	},
 
 	Building = {
@@ -1002,7 +1028,8 @@ local Config = {
 		ChargeSeconds = 0.35, -- lo que dura la carga
 		ChargeDamage = 21,
 		ChargeWidth = 6,
-		ChargeKnockback = 45,
+		ChargeKnockback = 45, -- studs/s del empujón a lo que golpea…
+		ChargeKnockbackSeconds = 0.2, -- …y lo que dura en un jugador (a los monos, un solo impulso)
 		WarCryRadius = 40,
 		WarCrySeconds = 4, -- provoca y protege (con 12 s de recarga, un tercio del tiempo)
 		QuakeDamage = 150,

@@ -227,7 +227,7 @@ La partida dura unas 2 h 16 min (8 días de 17 min) y antes había un hueco entr
 | Vida | Al llegar a 0 quedas **Caído**. |
 | Hambre | Baja con el tiempo (unos 20 min de lleno a vacío). Se recupera comiendo: carne cruda (poco), bananos de los arbustos y de los cultivos, plátanos (mejor asados), carne asada y brochetas de la hoguera. |
 | Sed | Baja más rápido (unos 14 min). Se recupera bebiendo agua del río. *Más adelante: hervirla, cocos o lluvia.* |
-| Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. |
+| Estamina | Se gasta al correr y esquivar. Con hambre o sed bajas se recupera más despacio. La lleva el servidor (el cliente la predice), así que no se puede esquivar sin ella. |
 
 A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
 | Fiebre del mono | Sube con los **mordiscos** de los monos según el daño que entra tras la armadura (+20 por cada barra de vida entera perdida a mordiscos; un mono básico, +1) y con la carne cruda (+12). Piedras, pisotones, jefes y peligros no la suben. Desde 60, tinte morado y **oleadas** cortas de vista borrosa (cada 16 s a 60, cada 7 s a 100); entre oleadas se ve bien. A 100 además quita vida poco a poco. Baja sola 4 por minuto (15 por minuto descansando en el Basecamp); el **antídoto** del taller del curandero la quita de golpe y el remate del combo del médico la baja 9. Ritmo buscado: síntomas tras unos 10 minutos de pelea continua sin curarse. |
@@ -326,7 +326,7 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 
 | Mecánica | Cómo funciona | Números |
 |---|---|---|
-| **Estados** | **Aturdido**: no anda, no pega ni usa habilidades (golpes fuertes, guardia rota, parry recibido, rebote contra un muro). **Inmovilizado**: no anda, pero puede pegar (cepo, agarre, hielo). Todo pasa por una máquina de estados con prioridades. | |
+| **Estados** ✅ C2 | **Aturdido**: no anda, no pega ni usa habilidades (golpes fuertes, guardia rota, parry recibido, rebote contra un muro). **Inmovilizado**: no anda, pero puede pegar (cepo, agarre, hielo). Todo pasa por una máquina de estados con prioridades. | |
 | **Cadena de golpes** | Las armas cuerpo a cuerpo encadenan **4 golpes**. El 4.º remata: empuja, o lanza hacia arriba si saltas. Mismo DPS que el golpe suelto. Entre dos golpes siempre queda tiempo para responder. Hacha, pico y hoz siguen con el golpe suelto. | ×0,9 · ×0,9 · ×1 · ×1,4; tambaleo en PvP de hasta 0,35 s, dejando siempre 0,25 s de hueco |
 | **Guardia** | **F / L2 / botón "Guardia"**. Mantener = **bloqueo** de frente (cono de 120°), que gasta una barra de guardia; si se vacía, **guardia rota** (aturdido). Pulsar justo antes del golpe = **parry**: anula el golpe, tambalea al atacante y devuelve guardia (destello **dorado**). Algunos ataques son **imbloqueables** (Rompehuesos, Pisotón, Meteoro, los especiales de los jefes que caen del cielo o salen del suelo) y rompen la guardia. | Guardia 100, se recupera 25/s tras 1 s. Bloqueo −60 % (−70 % contra monos). Parry: ventana 0,3 s, se rearma a los 0,8 s. Cualquier arma rompe la guardia en ~5,7 s de cadenas seguidas. Un golpe suelto necesita ≥ 4. |
 | **Evasivo** | La esquiva pulsada estando aturdido, con la guardia rota, inmovilizado o lanzado: te saca del combo. | Recarga 25 s, 0,5 s invulnerable |
@@ -337,7 +337,7 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 | **Proyectiles** | Los disparos de armas y habilidades vuelan de verdad: se pueden esquivar, bloquear y parar. Ya no persiguen al objetivo. | |
 | **Detección** | Ningún golpe atraviesa paredes. Las áreas solo alcanzan lo que el centro "ve". | |
 | **Entorno** | **Rebote contra muros**: un empujón que te estampa en una pared aturde 0,5 s, con 1,5 s de inmunidad. **Zonas de peligro**: suelo ardiendo, hielo y nubes. En Dunas, **coberturas que se rompen** y reaparecen, y un **altar** en la pirámide central que da a su equipo una ventaja pequeña de 30 s. | |
-| **Bloqueo de cámara** | El shift lock de Roblox, en **Ctrl** (Mayús sigue siendo correr). | |
+| **Bloqueo de cámara** ✅ C2 | El shift lock de Roblox, en **Ctrl** (Mayús sigue siendo correr). Lo enciende cada jugador en el menú de Roblox ("Bloqueo de cámara" / Shift Lock Switch). | |
 
 Lo que **no** se añade: fijar objetivo (lock-on). Los **estilos** de cada rol (guerrero de presión, cazador de control de distancia, mago de área y movilidad, médico de apoyo y desgaste) se documentan y se miden, sin contenido nuevo.
 

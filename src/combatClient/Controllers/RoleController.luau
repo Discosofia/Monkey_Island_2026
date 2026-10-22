@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
@@ -207,6 +208,10 @@ local function useAbility(player: Player, slot: number)
 		return
 	end
 	if not LifeState.isAlive(player) or readyIn(player, slot) > 0 then
+		return
+	end
+	-- Aturdido no se usan habilidades (Shared/CombatState; el servidor lo comprueba otra vez).
+	if not CombatState.canAct(player, "Ability") then
 		return
 	end
 	if os.clock() - (lastSentAt[slot] or -math.huge) < 0.5 then

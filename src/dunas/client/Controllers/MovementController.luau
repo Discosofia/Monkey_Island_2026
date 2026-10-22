@@ -2,7 +2,7 @@
 -- Correr y velocidad en la arena (lo que en la Isla hace SurvivalController, sin hambre ni sed):
 --   - Correr (Mayús mantenida; L3 o el botón táctil lo alternan) gasta estamina, que se recupera sola
 --     (CombatClient/Stamina). Esquivar también la gasta (DodgeController).
---   - Aturdido o sujeto ("StunnedUntil", habilidades rivales): no se mueve.
+--   - Aturdido o inmovilizado ("StunnedUntil", habilidades rivales; Combat/Status): no se mueve.
 --   - Ralentizado ("SlowedUntil" y "SlowFactor" en el personaje: Nova, Meteoro, Polvo somnífero de un
 --     rival): anda a esa fracción.
 --   - Con la bandera rival a cuestas ("CarryingFlag") se va más lento (Config.Arena, menos con la
@@ -31,10 +31,12 @@ local function update(player: Player, deltaTime: number)
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (character and humanoid) or humanoid.Health <= 0 then
 		sprintToggled = false
+		Stamina.setSprinting(false)
 		return
 	end
 	local wantsSprint = (sprintHeld or sprintToggled) and humanoid.MoveDirection.Magnitude > 0.1
 	local sprinting = wantsSprint and Stamina.get() > 0
+	Stamina.setSprinting(sprinting)
 	if sprinting then
 		Stamina.drain(Config.Survival.SprintStaminaPerSecond * deltaTime)
 		if Stamina.get() <= 0 then

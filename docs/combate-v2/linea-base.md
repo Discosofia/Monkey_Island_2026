@@ -58,7 +58,7 @@ en `PlayerData_v1_backups` (`u_<id>_antesC1`) y se restauró después. Resultado
 | Habilidades que viajan | `Spherecast` en el instante + daño con retraso | ✓ | ✗ | ✗ |
 | Áreas (Torbellino, Nova, Grito, Pisotón, Meteoro, Rompehuesos, Polvo, Ungüento, Cepo) | Solo distancia | ✗ | — | ✗ |
 | Mordisco de mono | Distancia al empezar | ✗ | Solo con la esquiva | — |
-| Retroceso de la Embestida a un jugador | El servidor pone la velocidad | — | — | Probablemente no empuja (se comprueba en C2) |
+| Retroceso de la Embestida a un jugador | No empuja: los jugadores están excluidos a propósito (`not target.player`). Corregido en C2: antes se creía que fallaba | — | — | — |
 
 **Pruebas fijas en Play** (se repiten igual en la comparativa final):
 

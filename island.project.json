@@ -39,7 +39,7 @@
         }
       },
       "$properties": {
-        "EnableMouseLockOption": false
+        "EnableMouseLockOption": true
       }
     }
   }

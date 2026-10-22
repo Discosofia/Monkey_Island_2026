@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
@@ -29,6 +30,9 @@ local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
+local Latency = require(script.Parent.Parent.Latency)
+local StaminaServer = require(script.Parent.Parent.StaminaServer)
+local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
@@ -643,7 +647,7 @@ local function rangedAttack(
 end
 
 local function onUseWeapon(player: Player, aim: any)
-	if not LifeState.isAlive(player) then
+	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") then
 		return
 	end
 	local character, root = livingCharacter(player)
@@ -685,11 +689,21 @@ local function onUseWeapon(player: Player, aim: any)
 	end
 end
 
+-- La esquiva: el cliente ya ha movido al personaje; aquí se comprueba que podía (estado, tiempo de
+-- espera con el margen de su ping y estamina del servidor) y se le da la invulnerabilidad.
 local function onDodge(player: Player)
 	local now = os.clock()
 	local last = lastDodgeAt[player]
-	-- Pequeño margen sobre el tiempo de espera del cliente por el retraso de la red.
-	if last and now - last < Config.Combat.DodgeCooldownSeconds * 0.8 then
+	-- Margen sobre el tiempo de espera del cliente por el retraso de la red (Combat/Latency, con tope).
+	local slack = 2 * Latency.compensation(player)
+	if last and now - last < Config.Combat.DodgeCooldownSeconds - slack then
+		return
+	end
+	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Dodge") then
+		return
+	end
+	-- El cliente predice su estamina y puede ir un poco por delante (Config.Survival.StaminaSyncTolerance).
+	if not StaminaServer.tryConsume(player, Config.Survival.DodgeStaminaCost, Config.Survival.StaminaSyncTolerance) then
 		return
 	end
 	lastDodgeAt[player] = now
@@ -746,6 +760,8 @@ local function giveStarterWeapons(player: Player)
 end
 
 function CombatService:Start()
+	StateMachine.start()
+	StaminaServer.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)

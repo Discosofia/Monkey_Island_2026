@@ -244,6 +244,17 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
 - **Combos**: registra `ComboStep`, `ComboStepUntil − ahora`, `ComboStreak` y `AbilityReadyAt<n>` tras
   cada paso. Para probar la ventana, usa primero suelta la habilidad larga del paso 2, abre con el paso 1
   y espera más de 6 s antes de enlazar.
+- **Estados del jugador** (Fase 10): para probar un aturdido o un inmovilizado, `require` en el
+  servidor de `ServerScriptService.Combat.Status` y `Status.stunPlayer(player, 3, "Prueba")` (o
+  `holdPlayer`). Aunque es otra copia del módulo, escribe en los atributos del `Player`
+  (`CombatState`, `StunnedUntil`), que son los que mira el juego. Quita antes `ControlImmuneUntil`.
+- **Correr de verdad**: `Humanoid:Move` desde el MCP no mueve al personaje (los controles de Roblox lo
+  pisan en cada fotograma). Usa `user_keyboard_input` (mantener W y LeftShift) para la estamina.
+- **Remotos del servidor al cliente**: dispara la instancia real
+  (`ReplicatedStorage.Remotes.Knockback:FireClient(...)`), no la del módulo `Remotes` copiado.
+- **El `PlayerModule` de Roblox** se carga desde `StarterPlayer.PlayerModule` (no está en
+  `PlayerScripts` ni en modo edición). Sus teclas son `InputBinding` del sistema de acciones de
+  entrada (`InputContexts`).
 - **Lo que no se puede probar**: con un solo jugador no cambia nada que dependa de cuántos hay (la
   vida de los jefes, curaciones a aliados, PvP). Pide al usuario Test → Clientes y servidores con 2.
 

@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -23,6 +24,10 @@ local lastDodgeAt = -math.huge
 local function dodge()
 	local now = os.clock()
 	if now - lastDodgeAt < Config.Combat.DodgeCooldownSeconds or not LifeState.isAlive(Players.LocalPlayer) then
+		return
+	end
+	-- Aturdido no se esquiva (desde C7, esquivar aturdido será el Evasivo).
+	if not CombatState.canAct(Players.LocalPlayer, "Dodge") then
 		return
 	end
 	local character = Players.LocalPlayer.Character

@@ -23,6 +23,13 @@ function Survival.get(player: Player, attribute: string): number
 	return if typeof(value) == "number" then value else Survival.MAX
 end
 
+-- true si tiene hambre o sed por debajo de Config.Survival.LowThreshold (la estamina se recupera más
+-- despacio: Combat/StaminaServer y SurvivalController).
+function Survival.isWeak(player: Player): boolean
+	local low = Config.Survival.LowThreshold
+	return Survival.get(player, Survival.HUNGER) <= low or Survival.get(player, Survival.THIRST) <= low
+end
+
 -- Fiebre actual (0 si no hay).
 function Survival.fever(player: Player): number
 	local value = player:GetAttribute(Survival.FEVER)

@@ -24,6 +24,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Perks = require(ReplicatedStorage.Shared.Data.Perks)
@@ -35,6 +36,7 @@ local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
+local Knockback = require(script.Parent.Parent.Knockback)
 local Status = require(script.Parent.Parent.Status)
 
 local SETTINGS = Config.Abilities
@@ -230,13 +232,19 @@ local function slowDown(target: Target, seconds: number, factor: number)
 	Status.slow(target.model, seconds, factor)
 end
 
--- Aturde, congela, inmoviliza o duerme. A un jugador lo deja quieto (atributo "StunnedUntil"), menos
--- tiempo. Congelado, inmovilizado y dormido se ven en los clientes (bloque de hielo, brillo verde, "Zzz").
+-- Aturde, congela, inmoviliza o duerme. A un jugador, menos tiempo: aturdir y dormir lo aturden de
+-- verdad (Status.stunPlayer: no anda ni pega); congelar e inmovilizar solo lo dejan quieto
+-- (Status.holdPlayer: puede pegar). Congelado, inmovilizado y dormido se ven en los clientes (bloque de
+-- hielo, brillo verde, "Zzz").
 local function control(target: Target, seconds: number, look: ("Stun" | "Freeze" | "Root" | "Sleep")?)
 	local duration = seconds
 	if target.player then
 		duration *= CombatRules.get().pvpControlMultiplier
-		if not Status.holdPlayer(target.player, duration, "PvP") then
+		local stuns = look == nil or look == "Stun" or look == "Sleep"
+		local landed = if stuns
+			then Status.stunPlayer(target.player, duration, "PvP")
+			else Status.holdPlayer(target.player, duration, "PvP")
+		if not landed then
 			return
 		end
 	else
@@ -389,10 +397,8 @@ local function charge(player: Player, character: Model, root: BasePart, aim: Vec
 					hit[target.model] = true
 					hurt(player, target, damage, "Charge")
 					comboOpener(player, "Charge", target)
-					if not target.player and not Status.isBoss(target.model) then
-						target.root.AssemblyLinearVelocity = direction * SETTINGS.ChargeKnockback
-							+ Vector3.new(0, 20, 0)
-					end
+					-- También a los jugadores rivales (lo aplica su cliente); a los jefes, no.
+					Knockback.push(target.model, direction, SETTINGS.ChargeKnockback, SETTINGS.ChargeKnockbackSeconds)
 				end
 			end
 			task.wait(0.05)
@@ -1280,7 +1286,7 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 	if not (ability and character and humanoid and humanoid.Health > 0 and root and root:IsA("BasePart")) then
 		return
 	end
-	if not LifeState.isAlive(player) then
+	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Ability") then
 		return
 	end
 	local readyAt = player:GetAttribute(`AbilityReadyAt{slot}`)

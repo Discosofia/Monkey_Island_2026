@@ -932,7 +932,7 @@ function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	for _, info in infos do
 		if not info.safe and (info.position - monkey.root.Position).Magnitude <= settings.radius then
 			if CombatService.damagePlayer(info.player, damage, false, monkey.model) then
-				Status.holdPlayer(info.player, settings.stunSeconds, monkey.group.speciesId)
+				Status.stunPlayer(info.player, settings.stunSeconds, monkey.group.speciesId)
 			end
 		end
 	end

@@ -83,10 +83,12 @@ local function updateSprint(player: Player, deltaTime: number)
 	local humanoid = humanoidOf(player)
 	if not humanoid or not LifeState.isAlive(player) then
 		sprintToggled = false
+		Stamina.setSprinting(false)
 		return
 	end
 	local wantsSprint = (sprintHeld or sprintToggled) and humanoid.MoveDirection.Magnitude > 0.1
 	local sprinting = wantsSprint and Stamina.get() > 0
+	Stamina.setSprinting(sprinting)
 	if sprinting then
 		Stamina.drain(Config.Survival.SprintStaminaPerSecond * deltaTime)
 		if Stamina.get() <= 0 then
@@ -99,7 +101,7 @@ local function updateSprint(player: Player, deltaTime: number)
 		local warrior = player:GetAttribute("Role") == "Guerrero"
 		speed *= if warrior then Config.Egg.WarriorCarrySpeedMultiplier else Config.Egg.CarrySpeedMultiplier
 	end
-	-- Aturdido o agarrado (gorila, orangután; Fase 4): no se puede mover.
+	-- Aturdido o inmovilizado (pisotón del gorila, agarre del orangután; Combat/Status): no se puede mover.
 	local stunnedUntil = player:GetAttribute("StunnedUntil")
 	if typeof(stunnedUntil) == "number" and Workspace:GetServerTimeNow() < stunnedUntil then
 		speed = 0
@@ -122,10 +124,9 @@ function SurvivalController:Start()
 	end, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
 
 	RunService.RenderStepped:Connect(function(deltaTime)
-		-- Con hambre o sed bajas, la estamina se recupera a la mitad de ritmo.
-		local low = Config.Survival.LowThreshold
-		local weak = Survival.get(player, Survival.HUNGER) <= low or Survival.get(player, Survival.THIRST) <= low
-		Stamina.update(deltaTime, if weak then 0.5 else 1)
+		-- Con hambre o sed bajas, la estamina se recupera más despacio (igual que en el servidor).
+		local weak = Survival.isWeak(player)
+		Stamina.update(deltaTime, if weak then Config.Survival.WeakStaminaRegenFactor else 1)
 		updateSprint(player, deltaTime)
 	end)
 

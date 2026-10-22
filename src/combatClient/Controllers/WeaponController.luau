@@ -14,6 +14,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
@@ -167,7 +168,11 @@ local function hook(instance: Instance)
 	local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
 	instance.Activated:Connect(function()
 		local character = Players.LocalPlayer.Character
+		-- Aturdido o caído no se pega (Shared/CombatState; el servidor lo comprueba otra vez).
 		if not character or not LifeState.isAlive(Players.LocalPlayer) then
+			return
+		end
+		if not CombatState.canAct(Players.LocalPlayer, "Attack") then
 			return
 		end
 		if weapon and weapon.kind == "Melee" then

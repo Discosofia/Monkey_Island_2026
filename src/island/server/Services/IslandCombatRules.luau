@@ -83,6 +83,10 @@ function IslandCombatRules:Init()
 		starterTools = function(): { string }
 			return Config.Combat.StarterTools
 		end,
+		-- Con hambre o sed bajas, la estamina se recupera más despacio (lo mismo predice SurvivalController).
+		staminaRegenFactor = function(player: Player): number
+			return if Survival.isWeak(player) then Config.Survival.WeakStaminaRegenFactor else 1
+		end,
 		telemetry = TelemetryService,
 	})
 end

@@ -382,7 +382,7 @@ function Hazards.shockwave(
 	task.delay(warnSeconds, function()
 		for _, player in playersNear(ground, radius) do
 			if CombatService.damagePlayer(player, damage, true, nil, cause) then
-				Status.holdPlayer(player, stunSeconds, cause or "Peligro")
+				Status.stunPlayer(player, stunSeconds, cause or "Peligro")
 			end
 		end
 	end)

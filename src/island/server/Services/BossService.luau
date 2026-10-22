@@ -453,7 +453,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 						if not hit[player] then
 							hit[player] = true
 							if CombatService.damagePlayer(player, boss.damage, false, boss.model) then
-								Status.holdPlayer(player, 1, `Jefe {boss.id}`)
+								Status.stunPlayer(player, 1, `Jefe {boss.id}`)
 							end
 						end
 					end
@@ -479,7 +479,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				if TorchService.douse(player, Config.Monkeys.TorchRoarOutSeconds) then
 					Remotes.Notify:FireClient(player, "🌑 ¡El rugido ha apagado tu antorcha!")
 				end
-				Status.holdPlayer(player, 1, `Jefe {boss.id}`)
+				Status.stunPlayer(player, 1, `Jefe {boss.id}`)
 			end
 		end,
 	}

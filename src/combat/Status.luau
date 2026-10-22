@@ -8,7 +8,8 @@
 --   - Provocado ("TauntedBy" y "TauntedUntil"): va a por el jugador que le provocó.
 --   - Envenenado ("PoisonedUntil"): pierde vida cada Config.Abilities.PoisonTickSeconds (poison).
 --   - Expuesto ("ExposedUntil" y "ExposedBonus"): recibe más daño (CombatService.damage).
--- También deja quietos a los jugadores (holdPlayer), con su propia regla para no encadenarlo.
+-- También deja quietos (holdPlayer) o aturde (stunPlayer) a los jugadores, con su propia regla para
+-- no encadenarlo.
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -17,6 +18,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CombatRules = require(script.Parent.CombatRules)
+local StateMachine = require(script.Parent.StateMachine)
 
 local Status = {}
 
@@ -72,12 +74,13 @@ function Status.stun(model: Model, seconds: number, look: ("Stun" | "Freeze" | "
 	return seconds
 end
 
--- Deja quieto a un jugador (agarre del orangután, pisotones, embestidas, control en PvP): no anda,
--- pero puede pegar, usar habilidades y esquivar (SurvivalController). Para que nadie le tenga
--- sujeto siempre (un orangután que pega más a menudo de lo que dura su agarre, dos gorilas
--- turnándose…), mientras está quieto otro control no lo alarga y, al soltarse, tiene
--- Config.Combat.PlayerControlImmunitySeconds en los que no se le puede volver a sujetar.
--- "cause" es para la telemetría (CombatRules.telemetry.causeOf). Devuelve true si le ha sujetado.
+-- Inmoviliza a un jugador (agarre del orangután y de los jefes, cepo, hielo): no anda ("StunnedUntil",
+-- que leen los controladores de movimiento), pero puede pegar, usar habilidades y esquivar. Para que
+-- nadie le tenga sujeto siempre (un orangután que pega más a menudo de lo que dura su agarre, dos
+-- gorilas turnándose…), mientras está quieto otro control (este o stunPlayer) no lo alarga y, al
+-- soltarse, tiene Config.Combat.PlayerControlImmunitySeconds en los que no se le puede volver a
+-- sujetar ni aturdir. "cause" es para la telemetría (CombatRules.telemetry.causeOf). Devuelve true si
+-- le ha sujetado.
 function Status.holdPlayer(player: Player, seconds: number, cause: string): boolean
 	local time = now()
 	local immuneUntil = player:GetAttribute("ControlImmuneUntil")
@@ -87,6 +90,18 @@ function Status.holdPlayer(player: Player, seconds: number, cause: string): bool
 	player:SetAttribute("StunnedUntil", time + seconds)
 	player:SetAttribute("ControlImmuneUntil", time + seconds + Config.Combat.PlayerControlImmunitySeconds)
 	CombatRules.get().telemetry.held(player, seconds, cause)
+	return true
+end
+
+-- Aturde a un jugador (Fase 10, C2; pisotones, embestidas de jefe, golpes fuertes, control de
+-- habilidades en PvP): como holdPlayer, y además no pega, ni usa habilidades, ni esquiva ni se
+-- defiende (estado "Stunned" de Shared/CombatState); desde C7 sale con el Evasivo. Misma regla de
+-- inmunidad que holdPlayer. Devuelve true si le ha aturdido.
+function Status.stunPlayer(player: Player, seconds: number, cause: string): boolean
+	if not Status.holdPlayer(player, seconds, cause) then
+		return false
+	end
+	StateMachine.enter(player, "Stunned", seconds)
 	return true
 end
 

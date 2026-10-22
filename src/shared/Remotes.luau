@@ -50,6 +50,12 @@ local Remotes = {
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
 	Dodge = remoteEvent("Dodge"),
+	-- Cliente -> servidor: empieza (true) o deja (false) de correr, para la estamina del servidor
+	-- (Combat/StaminaServer).
+	Sprint = remoteEvent("Sprint"),
+	-- Servidor -> cliente: un golpe te empuja (dirección Vector3, velocidad en studs/s, segundos). Lo
+	-- aplica el propio cliente, que es quien mueve a su personaje (Combat/Knockback, KnockbackController).
+	Knockback = remoteEvent("Knockback"),
 	-- Cliente -> servidor (Isla): el caído se rinde y reaparece ya (mantener pulsado "Rendirse").
 	Surrender = remoteEvent("Surrender"),
 	-- Cliente -> servidor (Isla): fabricar una receta en la mesa de trabajo (id de Data/Recipes).

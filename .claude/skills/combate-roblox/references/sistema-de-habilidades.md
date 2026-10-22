@@ -92,11 +92,17 @@ si es mortal, `LifeService.down`.
   CombatService le da la función de daño al empezar (`Status.setPoisonDamage`).
 - **Expuesto** (`Status.expose(modelo, bonus, segundos)`): `ExposedUntil` + `ExposedBonus`, recibe más
   daño. Lo pone el remate de "Nana de la selva" a los dormidos; el "💤" lleva debajo "+30 %".
-- **Jugadores**: `StunnedUntil` solo pone `WalkSpeed` a 0 en `SurvivalController` (puede atacar,
-  usar habilidades y esquivar). Se pone **siempre** con `Status.holdPlayer(player, segundos, causa)`:
-  mientras dura otro no lo alarga y al acabar hay `Config.Combat.PlayerControlImmunitySeconds` (2 s)
-  de inmunidad (`ControlImmuneUntil`). Devuelve false si no ha sujetado (para no avisar de un agarre
-  que no ha entrado). `IntimidatedUntil` (rugido),
+- **Jugadores** (desde la Fase 10, C2): dos controles, los dos con la misma regla (mientras dura otro
+  no lo alarga y al acabar hay `Config.Combat.PlayerControlImmunitySeconds`, 2 s, de inmunidad en
+  `ControlImmuneUntil`; devuelven false si no ha entrado, para no avisar de un agarre que no ha
+  entrado):
+  - **Inmovilizado**, `Status.holdPlayer(player, segundos, causa)`: `StunnedUntil` pone `WalkSpeed` a 0
+    (`SurvivalController`, `MovementController` de Dunas); puede atacar, usar habilidades y esquivar.
+    Agarre del orangután y de los jefes; en PvP, congelar e inmovilizar (`control` con "Freeze"/"Root").
+  - **Aturdido**, `Status.stunPlayer`: lo mismo y además el estado "Stunned" (`Combat/StateMachine`,
+    `Shared/CombatState`): no pega, ni habilidades, ni esquiva. Pisotones de monos y jefes, embestida y
+    rugido de los jefes, onda de choque (`Hazards.shockwave`); en PvP, aturdir y dormir.
+  Todo control nuevo sobre jugadores pasa por uno de los dos. `IntimidatedUntil` (rugido),
   `GuardUntil` (grito), `ShieldUntil`/`ShieldHealth` (escudo), `InvulnerableUntil` (esquiva).
 
 ### 2.5 Combos (`Data/Combos`, `ComboService`, `Config.Combo`)

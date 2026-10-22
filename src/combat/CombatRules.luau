@@ -48,6 +48,8 @@ export type Rules = {
 	progressMission: (player: Player, kind: string) -> (),
 	-- Herramientas comunes que se dan además de las armas del rol (el hacha y el pico en la Isla).
 	starterTools: (player: Player) -> { string },
+	-- Ritmo al que se recupera la estamina de "player" (1 = normal; Combat/StaminaServer).
+	staminaRegenFactor: (player: Player) -> number,
 	-- Daño y duración de los aturdimientos de las habilidades contra jugadores (fracción), y daño de
 	-- las armas contra jugadores.
 	pvpDamageMultiplier: number,
@@ -95,6 +97,9 @@ local rules: Rules = {
 	progressMission = nothing,
 	starterTools = function()
 		return {}
+	end,
+	staminaRegenFactor = function()
+		return 1
 	end,
 	pvpDamageMultiplier = Config.Abilities.PvPDamageMultiplier,
 	pvpControlMultiplier = Config.Abilities.PvPControlMultiplier,
