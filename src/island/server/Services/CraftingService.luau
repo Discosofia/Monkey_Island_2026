@@ -31,6 +31,7 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
+local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
@@ -301,6 +302,9 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 		local tool = WeaponTools.build(recipe.weaponId, WeaponTools.skinOf(player, recipe.weaponId))
 		if recipe.role then
 			tool:SetAttribute("RoleWeapon", true)
+			-- Lo mejor fabricado de cada rol se luce en el Lobby y en Dunas.
+			local _, level = WeaponTools.roleLevel(recipe.weaponId)
+			CosmeticsServer.recordGear(player, recipe.role, nil, level)
 		end
 		local starterGear = player:FindFirstChild("StarterGear")
 		if starterGear then
@@ -314,6 +318,10 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 	elseif recipe.armorId then
 		markReplacedOwned(player, recipe)
 		player:SetAttribute("Armor", recipe.armorId)
+		local roleId = player:GetAttribute("Role")
+		if typeof(roleId) == "string" then
+			CosmeticsServer.recordGear(player, roleId, recipe.armorId)
+		end
 		if player.Character then
 			task.spawn(wearArmor, player, player.Character)
 		end

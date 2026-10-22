@@ -62,6 +62,10 @@ export type Profile = {
 	-- Tiendas de cosméticos (versión 6, octubre de 2026): la oferta de hoy en Ámbar y la de esta semana
 	-- en Robux de este jugador (Shared/CosmeticShop, CosmeticShopService del Lobby).
 	cosmeticShop: { [string]: any },
+	-- Mejor equipo fabricado en la Isla por rol (versión 7, octubre de 2026): { armor = id de Data/Armor,
+	-- weapon = nivel 1–4 del arma de rol }. Se luce en el Lobby y en Dunas, solo como aspecto
+	-- (ServerShared/CosmeticsServer).
+	bestGear: { [string]: any },
 }
 
 type Session = {
@@ -80,7 +84,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 6,
+		version = 7,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -106,9 +110,11 @@ local function defaultProfile(): Profile
 		purchases = { receipts = {} },
 		ownedCosmetics = {},
 		cosmeticShop = {},
+		bestGear = {},
 	}
 end
 
+-- Versión 7: el mejor equipo fabricado por rol ("bestGear"; "reconcile" lo rellena vacío).
 -- Versión 6: las tiendas de cosméticos ("cosmeticShop"; "reconcile" lo rellena vacío).
 -- Versión 5: pase de temporada, semanales y compras ("reconcile" los rellena vacíos); los cosméticos
 -- ganados jugando ("earnedCosmetics") pasan a "ownedCosmetics", con los del pase y los comprados.

@@ -3,7 +3,10 @@
 -- "Outfit" de Data/Cosmetics, Fase 9), que se ponen en su lugar. Los viste "dress" con los atributos
 -- del jugador ("Armor", "Role" y "Outfit", que publica ServerShared/CosmeticsServer): CraftingService
 -- al fabricarlas y al reaparecer y CosmeticsServer al cambiar de traje. Está en Shared porque el
--- Armario (UI/WardrobePanel) viste también el avatar de la vista previa. Cada pieza va soldada a la parte del cuerpo que cubre (torso,
+-- Armario (UI/WardrobePanel) viste también el avatar de la vista previa. En el Lobby y en Dunas, donde
+-- no se fabrican, se luce la mejor fabricada en la Isla con ese rol (atributo "ArmorLook", de
+-- CosmeticsServer): solo el modelo, porque el daño lo reduce "Armor" (CombatService).
+-- Cada pieza va soldada a la parte del cuerpo que cubre (torso,
 -- cintura, brazos y muslos), así se mueve con ella y no la atraviesa al andar o al golpear; las
 -- medidas salen del tamaño de esa parte, así quedan bien en cualquier avatar. En R6, que no tiene
 -- antebrazos ni cintura, se usa el trozo correspondiente del brazo, la pierna o el torso.
@@ -5808,9 +5811,13 @@ local BUILDERS: { [string]: { [string]: (body: Body) -> () } } = {
 	VolcanicArmor = { Guerrero = volcanicArmor, Cazador = emberCloak, Mago = lavaRobe, Medico = sulfurMantle },
 }
 
--- Grado de cada armadura (sin ninguna, 0): los trajes míticos ganan piezas con él.
-local ARMOR_GRADE: { [string]: number } = { FurVest = 1, BoneArmor = 2, SilverArmor = 3, VolcanicArmor = 4 }
-ArmorModels.MAX_GRADE = 4
+-- Las armaduras por grado (sin ninguna, 0): los trajes míticos ganan piezas con él.
+ArmorModels.BY_GRADE = { "FurVest", "BoneArmor", "SilverArmor", "VolcanicArmor" }
+ArmorModels.MAX_GRADE = #ArmorModels.BY_GRADE
+local ARMOR_GRADE: { [string]: number } = {}
+for grade, armorId in ArmorModels.BY_GRADE do
+	ARMOR_GRADE[armorId] = grade
+end
 
 -- Si los trajes crecen con la armadura (la Isla, donde se fabrica: lo pone CraftingService). En el
 -- Lobby y en Dunas, donde no hay armaduras que fabricar, se ven enteros (MAX_GRADE).
@@ -5875,13 +5882,14 @@ function ArmorModels.wear(
 	return model
 end
 
--- Viste al personaje de "player" con lo suyo: el traje equipado de su rol ("Outfit") o su armadura.
+-- Viste al personaje de "player" con lo suyo: el traje equipado de su rol ("Outfit") o su armadura
+-- ("Armor", la fabricada, o "ArmorLook", la que luce en el Lobby y en Dunas).
 function ArmorModels.dress(player: Player, character: Model?): Model?
 	character = character or player.Character
 	if not character then
 		return nil
 	end
-	local armorId = player:GetAttribute("Armor")
+	local armorId = player:GetAttribute("Armor") or player:GetAttribute("ArmorLook")
 	local roleId = player:GetAttribute("Role")
 	local outfitId = player:GetAttribute("Outfit")
 	local validArmor = if typeof(armorId) == "string" then armorId else nil

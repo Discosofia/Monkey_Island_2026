@@ -15,6 +15,10 @@
 -- de un rol (la inicial y sus mejoras, del nivel 1 al 4) por otro con la misma empuñadura ("Grip") y
 -- un tamaño parecido; el nivel se nota en el aspecto (los míticos ganan piezas con cada uno). El
 -- aspecto equipado del rol lo publica CosmeticsServer en el atributo "WeaponSkin" del jugador.
+--
+-- Nivel de aspecto (atributo "WeaponLook" del jugador, en el Lobby y en Dunas): el arma de rol se dibuja
+-- con el modelo del mejor nivel que ha fabricado en la Isla, pero sigue siendo la inicial ("WeaponId",
+-- su nombre y sus números). Lo publica CosmeticsServer.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -3196,6 +3200,22 @@ local function skinFor(weaponId: string, skinId: any): (((tool: Tool, level: num
 	return if roleId and cosmetic and cosmetic.role == roleId then SKINS[skinId] else nil, level
 end
 
+-- El arma de rol cuyo modelo se dibuja en lugar de "weaponId" con el nivel de aspecto "lookLevel" (si es
+-- mayor que el suyo), o "weaponId".
+local function lookWeapon(weaponId: string, lookLevel: number?): string
+	local roleId, level = WeaponTools.roleLevel(weaponId)
+	if roleId and lookLevel and lookLevel > level then
+		return WeaponTools.roleWeapon(roleId, math.min(lookLevel, WeaponTools.MAX_LEVEL)) or weaponId
+	end
+	return weaponId
+end
+
+-- El nivel de aspecto de las armas de rol de "player" ("WeaponLook"), o nil.
+function WeaponTools.lookOf(player: Player): number?
+	local level = player:GetAttribute("WeaponLook")
+	return if typeof(level) == "number" then level else nil
+end
+
 -- El aspecto que lleva "player" para el arma "weaponId": el de su rol ("WeaponSkin") o el de la familia
 -- del arma ("MacheteSkin"). WeaponTools.build ya comprueba que le valga.
 function WeaponTools.skinOf(player: Player, weaponId: string): string?
@@ -3204,19 +3224,23 @@ function WeaponTools.skinOf(player: Player, weaponId: string): string?
 	return if typeof(skinId) == "string" then skinId else nil
 end
 
--- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol.
-local function fill(tool: Tool, weaponId: string, skinId: string?)
-	local skin, level = skinFor(weaponId, skinId)
+-- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol y con el modelo
+-- del nivel "lookLevel" si es mayor (atributo "Look": el arma que se ve, si no es ella).
+local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: number?)
+	local shownId = lookWeapon(weaponId, lookLevel)
+	local skin, level = skinFor(shownId, skinId)
 	tool:SetAttribute("Skin", if skin then skinId else nil)
+	tool:SetAttribute("Look", if shownId ~= weaponId then shownId else nil)
 	if skin then
 		skin(tool, level)
 	else
-		BUILDERS[weaponId](tool)
+		BUILDERS[shownId](tool)
 	end
 end
 
--- Construye el arma "weaponId" como Tool. Con "skinId" (un aspecto de su rol), con ese aspecto.
-function WeaponTools.build(weaponId: string, skinId: string?): Tool
+-- Construye el arma "weaponId" como Tool. Con "skinId" (un aspecto de su rol), con ese aspecto, y con
+-- "lookLevel", con el modelo de ese nivel (solo el aspecto).
+function WeaponTools.build(weaponId: string, skinId: string?, lookLevel: number?): Tool
 	local weapon = Weapons[weaponId]
 	assert(weapon and BUILDERS[weaponId], `Arma desconocida: {weaponId}`)
 
@@ -3237,26 +3261,33 @@ function WeaponTools.build(weaponId: string, skinId: string?): Tool
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)
 
-	fill(tool, weaponId, skinId)
+	fill(tool, weaponId, skinId, lookLevel)
 	return tool
 end
 
 -- Cambia el aspecto de las armas de "player" (mochila, mano y StarterGear) al de sus atributos
--- "WeaponSkin" (las de rol) y "MacheteSkin" (o al de siempre si no lleva). Se cambian las piezas dentro de la misma Tool, así no
--- se mueve de su casilla; la que tenía en la mano se suelta y se vuelve a coger.
+-- "WeaponSkin" (las de rol), "MacheteSkin" (o al de siempre si no lleva) y "WeaponLook" (el nivel que se
+-- ve). Se cambian las piezas dentro de la misma Tool, así no se mueve de su casilla; la que tenía en la
+-- mano se suelta y se vuelve a coger.
 function WeaponTools.reskin(player: Player)
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	local lookLevel = WeaponTools.lookOf(player)
 	local containers: { Instance? } =
 		{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), character }
 	for _, container in containers do
 		for _, tool in if container then container:GetChildren() else {} do
 			local weaponId = tool:GetAttribute("WeaponId")
 			local skinId = if typeof(weaponId) == "string" then WeaponTools.skinOf(player, weaponId) else nil
+			local shownId = if typeof(weaponId) == "string" then lookWeapon(weaponId, lookLevel) else nil
 			if
 				tool:IsA("Tool")
 				and typeof(weaponId) == "string"
-				and tool:GetAttribute("Skin") ~= (if skinFor(weaponId, skinId) then skinId else nil)
+				and shownId
+				and (
+					tool:GetAttribute("Skin") ~= (if skinFor(shownId, skinId) then skinId else nil)
+					or tool:GetAttribute("Look") ~= (if shownId ~= weaponId then shownId else nil)
+				)
 			then
 				local inHand = container == character and humanoid ~= nil
 				if inHand and humanoid then
@@ -3267,7 +3298,7 @@ function WeaponTools.reskin(player: Player)
 						child:Destroy()
 					end
 				end
-				fill(tool, weaponId, skinId)
+				fill(tool, weaponId, skinId, lookLevel)
 				if inHand and humanoid then
 					humanoid:EquipTool(tool)
 				end

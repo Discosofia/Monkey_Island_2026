@@ -11,6 +11,8 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
+local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
@@ -115,6 +117,16 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		end
 	end,
 	Dummy = toggleDummy,
+	-- Todas las armaduras de cada rol, con su arma del mismo nivel, en copias del personaje.
+	GearShowcase = GearShowcase.toggle,
+	-- Mejor equipo guardado del rol al grado siguiente (0–4), para ver cómo se luce.
+	BestGear = function(player)
+		local grade = CosmeticsServer.debugNextBestGear(player)
+		Remotes.Notify:FireClient(
+			player,
+			if grade > 0 then `🛡️ Equipo lucido: nivel {grade}` else "🛡️ Equipo lucido: ninguno"
+		)
+	end,
 	Amber = function(player)
 		PlayerData.update(player, function(profile)
 			profile.amber += 500

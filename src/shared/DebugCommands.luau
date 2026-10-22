@@ -59,6 +59,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Missions", label = "🎯 Cumplir las misiones del día" },
 		{ id = "WeeklyMissions", label = "📆 Cumplir las semanales" },
 		{ id = "NextWeek", label = "📆 Semana siguiente (semanales)" },
+		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
+		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
 		{ id = "SurvivorTitle", label = "🏝️ Título Superviviente (sí/no)" },
 		{ id = "GrantCosmetic", label = "🎁 Dar/quitar el siguiente cosmético" },
 		{ id = "ShopNextDay", label = "🛒 Tienda de cosméticos: día siguiente" },
@@ -79,6 +81,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },
+		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
+		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 	},
 }

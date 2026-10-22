@@ -15,6 +15,10 @@
 --     CombatTextController), el de los estallidos ("BurstStyle", ComicFxController) y la decoración
 --     del nido ("NestDecor", NestController del Lobby). Los emotes los hace el cliente (UI/EmoteWheel).
 --   - De un cosmético por grados (I, II, III) se publica y se dibuja el grado más alto que se tiene.
+--   - Guarda el mejor equipo fabricado en la Isla con cada rol (perfil "bestGear", recordGear) y, en el
+--     Lobby y en Dunas (start con "showBestGear"), lo luce: la armadura en "ArmorLook" (Shared/ArmorModels)
+--     y el nivel del arma de rol en "WeaponLook" (Shared/WeaponTools). Solo el aspecto: los números siguen
+--     siendo los de la armadura ("Armor", que aquí no hay) y el arma que se lleva.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -22,6 +26,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
@@ -36,6 +41,8 @@ local CosmeticsServer = {}
 local VISUALS = { "CosmeticTrail", "CosmeticTitle", "CosmeticAura", "CosmeticAttachment" }
 -- Huecos de un tipo que se publican tal cual en un atributo del jugador con el mismo nombre.
 local PUBLISHED = { "Frame", "NumberStyle", "BurstStyle", "NestDecor" }
+-- Si este place luce el mejor equipo fabricado (Lobby y Dunas; en la Isla se lleva el de la partida).
+local showBestGear = false
 
 -- Game Passes que tiene cada jugador (se miran al entrar y al comprar en la partida).
 local passes: { [Player]: { [string]: boolean } } = {}
@@ -121,28 +128,50 @@ local function equippedOwned(
 	return if cosmeticId and isBuilt(cosmeticId) then cosmeticId else nil
 end
 
--- Publica el traje ("Outfit") y el aspecto del arma ("WeaponSkin") equipados del rol que juega y el del
--- machete ("MacheteSkin") y, si cambian (o con "force", al aparecer), lo viste y cambia el aspecto de sus
--- armas.
+-- La mejor armadura y el mejor nivel del arma de rol fabricados con "roleId" (nil si ninguno o el 1).
+local function bestGearOf(profile: PlayerData.Profile, roleId: string): (string?, number?)
+	local best = profile.bestGear[roleId]
+	if typeof(best) ~= "table" then
+		return nil, nil
+	end
+	local armorId = if typeof(best.armor) == "string" and Armor[best.armor] then best.armor else nil
+	local level = if typeof(best.weapon) == "number" and best.weapon > 1
+		then math.min(best.weapon, WeaponTools.MAX_LEVEL)
+		else nil
+	return armorId, level
+end
+
+-- Publica el traje ("Outfit") y el aspecto del arma ("WeaponSkin") equipados del rol que juega, el del
+-- machete ("MacheteSkin") y, si este place lo luce, su mejor equipo ("ArmorLook" y "WeaponLook"); si
+-- cambian (o con "force", al aparecer), lo viste y cambia el aspecto de sus armas.
 local function applyRoleCosmetics(player: Player, force: boolean?)
 	local profile = PlayerData.get(player)
 	local roleId = player:GetAttribute("Role")
-	local outfitId, skinId = nil, nil
+	local outfitId, skinId, armorLook, weaponLook = nil, nil, nil, nil
 	if profile and typeof(roleId) == "string" then
 		outfitId = equippedOwned(player, profile, `Outfit.{roleId}`, ArmorModels.hasOutfit)
 		skinId = equippedOwned(player, profile, `WeaponSkin.{roleId}`, WeaponTools.hasSkin)
+		if showBestGear then
+			armorLook, weaponLook = bestGearOf(profile, roleId)
+		end
 	end
 	local macheteId = if profile then equippedOwned(player, profile, "WeaponSkin.Machete", WeaponTools.hasSkin) else nil
-	if force or player:GetAttribute("Outfit") ~= outfitId then
+	if force or player:GetAttribute("Outfit") ~= outfitId or player:GetAttribute("ArmorLook") ~= armorLook then
 		player:SetAttribute("Outfit", outfitId)
+		player:SetAttribute("ArmorLook", armorLook)
 		local character = player.Character
 		if character and (character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")) then
 			ArmorModels.dress(player, character)
 		end
 	end
-	if player:GetAttribute("WeaponSkin") ~= skinId or player:GetAttribute("MacheteSkin") ~= macheteId then
+	if
+		player:GetAttribute("WeaponSkin") ~= skinId
+		or player:GetAttribute("MacheteSkin") ~= macheteId
+		or player:GetAttribute("WeaponLook") ~= weaponLook
+	then
 		player:SetAttribute("WeaponSkin", skinId)
 		player:SetAttribute("MacheteSkin", macheteId)
+		player:SetAttribute("WeaponLook", weaponLook)
 		WeaponTools.reskin(player)
 	end
 end
@@ -584,6 +613,47 @@ function CosmeticsServer.refresh(player: Player)
 	refreshOwnership(player)
 end
 
+-- Apunta en el perfil de "player" lo que acaba de fabricar con "roleId" en la Isla (la armadura
+-- "armorId" o el arma de rol del nivel "weaponLevel") si es lo mejor que tiene de ese rol.
+function CosmeticsServer.recordGear(player: Player, roleId: string, armorId: string?, weaponLevel: number?)
+	local profile = PlayerData.get(player)
+	if not profile then
+		return
+	end
+	local armorBest, levelBest = bestGearOf(profile, roleId)
+	local betterArmor = armorId ~= nil and ArmorModels.grade(armorId) > ArmorModels.grade(armorBest)
+	local betterWeapon = weaponLevel ~= nil and weaponLevel > (levelBest or 1)
+	if not (betterArmor or betterWeapon) then
+		return
+	end
+	PlayerData.update(player, function(current)
+		local best = { armor = armorBest, weapon = levelBest }
+		if betterArmor then
+			best.armor = armorId
+		end
+		if betterWeapon then
+			best.weapon = weaponLevel
+		end
+		current.bestGear[roleId] = best
+	end)
+end
+
+-- Prueba (panel de Studio, Lobby y Dunas): pasa el mejor equipo guardado del rol que juega al grado
+-- siguiente (armadura de ese grado y arma de ese nivel), y tras el último a ninguno. Devuelve el grado.
+function CosmeticsServer.debugNextBestGear(player: Player): number
+	local roleId = player:GetAttribute("Role")
+	local profile = PlayerData.get(player)
+	if not (profile and typeof(roleId) == "string") then
+		return 0
+	end
+	local grade = (ArmorModels.grade((bestGearOf(profile, roleId))) + 1) % (ArmorModels.MAX_GRADE + 1)
+	PlayerData.update(player, function(current)
+		current.bestGear[roleId] = if grade > 0 then { armor = ArmorModels.BY_GRADE[grade], weapon = grade } else nil
+	end)
+	applyRoleCosmetics(player)
+	return grade
+end
+
 -- Prueba (panel de Studio): da o quita un cosmético guardado en el perfil, para ver cómo queda.
 -- Devuelve si ahora lo tiene (un Game Pass comprado o uno gratis en Studio se sigue teniendo).
 function CosmeticsServer.debugToggle(player: Player, cosmeticId: string): boolean
@@ -638,7 +708,9 @@ local function registerProducts()
 	end
 end
 
-function CosmeticsServer.start()
+-- "showBestGear": este place luce el mejor equipo fabricado en la Isla (Lobby y Dunas).
+function CosmeticsServer.start(options: { showBestGear: boolean? }?)
+	showBestGear = options ~= nil and options.showBestGear == true
 	registerProducts()
 	Remotes.EquipCosmetic.OnServerEvent:Connect(onEquip)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, purchased)

@@ -14,6 +14,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
+local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Purchases = require(ServerScriptService.ServerShared.Purchases)
 local Retention = require(ServerScriptService.ServerShared.Retention)
@@ -124,6 +125,16 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		Remotes.Notify:FireClient(player, "📆 Semana siguiente: semanales nuevas")
 	end,
 	-- Da o quita el título que se gana al rescatarse, para ver cómo queda (no cuenta como victoria).
+	-- Todas las armaduras de cada rol, con su arma del mismo nivel, en copias del personaje.
+	GearShowcase = GearShowcase.toggle,
+	-- Mejor equipo guardado del rol al grado siguiente (0–4), para ver cómo se luce.
+	BestGear = function(player)
+		local grade = CosmeticsServer.debugNextBestGear(player)
+		Remotes.Notify:FireClient(
+			player,
+			if grade > 0 then `🛡️ Equipo lucido: nivel {grade}` else "🛡️ Equipo lucido: ninguno"
+		)
+	end,
 	SurvivorTitle = function(player)
 		local has = CosmeticsServer.debugToggle(player, "TitleSurvivor")
 		Remotes.Notify:FireClient(
