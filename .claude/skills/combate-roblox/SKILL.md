@@ -255,6 +255,13 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
 - **El `PlayerModule` de Roblox** se carga desde `StarterPlayer.PlayerModule` (no está en
   `PlayerScripts` ni en modo edición). Sus teclas son `InputBinding` del sistema de acciones de
   entrada (`InputContexts`).
+- **Línea de visión** (C3): pon un muro (`Part` anclada que choque) entre el jugador y el muñeco del
+  centro y apunta los golpes de los tres muñecos en un atributo de `workspace` desde el servidor
+  (`HealthChanged`): el cliente y el servidor del MCP comparten las instancias, así que la secuencia es
+  servidor (montar y vaciar el registro) → cliente (`UseAbility`/`UseWeapon`) → servidor (leerlo).
+  Repite sin el muro como control. Para probar `Hitbox` aparte, la copia del MCP no está arrancada:
+  rehace la lista en cada consulta (sus tiempos son una cota superior) y, para el rebobinado, llama
+  antes a `Hitbox.start()` en la copia y espera más de un segundo.
 - **Lo que no se puede probar**: con un solo jugador no cambia nada que dependa de cuántos hay (la
   vida de los jefes, curaciones a aliados, PvP). Pide al usuario Test → Clientes y servidores con 2.
 

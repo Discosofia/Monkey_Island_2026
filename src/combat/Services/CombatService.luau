@@ -5,7 +5,7 @@
 -- Se daña a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica) y a otros
 -- jugadores cuando las reglas del place lo permiten (CombatRules: el PvP opt-in de la Isla, los
 -- equipos de la arena). Cada jugador aparece con las armas de su rol (Data/Roles) y las herramientas
--- comunes del place.
+-- comunes del place. A quién alcanza cada golpe lo dice Combat/Hitbox (con línea de visión).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -30,6 +30,7 @@ local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
+local Hitbox = require(script.Parent.Parent.Hitbox)
 local Latency = require(script.Parent.Parent.Latency)
 local StaminaServer = require(script.Parent.Parent.StaminaServer)
 local StateMachine = require(script.Parent.Parent.StateMachine)
@@ -401,26 +402,25 @@ local function meleeAttack(
 	weapon: Weapons.WeaponDefinition,
 	critChance: number
 )
-	local params = OverlapParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
 	local box = root.CFrame * CFrame.new(0, 0, -weapon.range / 2)
 	local size = Vector3.new(MELEE_HITBOX.X, MELEE_HITBOX.Y, weapon.range)
 
 	-- "+daño cuerpo a cuerpo" del guerrero.
 	local damage = math.round(weapon.damage * Progression.perk(player, "MeleeDamage"))
-	local alreadyHit: { [Model]: boolean } = {}
-	local playersHit: { [Player]: boolean } = {}
-	for _, part in Workspace:GetPartBoundsInBox(box, size, params) do
-		local model, humanoid = enemyFromPart(part)
-		if model and humanoid and not alreadyHit[model] then
-			alreadyHit[model] = true
-			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance), source = weaponId })
-		end
-		local victim = playerFromPart(part)
-		if victim and not playersHit[victim] then
-			playersHit[victim] = true
+	-- Cada uno una vez, solo si no hay pared entre el jugador y él, y también donde lo veía el
+	-- atacante con su retraso de red (Combat/Latency, con tope).
+	local hits = Hitbox.inBox(box, size, {
+		exclude = character,
+		from = root.Position,
+		rewind = Latency.compensation(player),
+	})
+	for _, model in hits do
+		local victim = Players:GetPlayerFromCharacter(model)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if victim then
 			CombatService.damagePvP(player, victim, damage * pvpWeaponScale(weaponId), Crit.roll(critChance))
+		elseif humanoid and humanoid.Health > 0 then
+			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance), source = weaponId })
 		end
 	end
 end
@@ -451,23 +451,26 @@ function CombatService.aimDeviation(origin: Vector3, aim: Vector3, point: Vector
 	return if angle <= limit then angle else nil
 end
 
--- Ayuda de puntería: el enemigo vivo más alineado con la dirección de apuntado, dentro del alcance.
-local function findAimTarget(origin: Vector3, aim: Vector3, weapon: Weapons.WeaponDefinition): (Model?, BasePart?)
+-- Ayuda de puntería: el enemigo vivo más alineado con la dirección de apuntado, dentro del alcance y
+-- sin nada en medio (árboles, rocas, terreno).
+local function findAimTarget(
+	character: Model,
+	origin: Vector3,
+	aim: Vector3,
+	weapon: Weapons.WeaponDefinition
+): (Model?, BasePart?)
 	local bestModel: Model? = nil
 	local bestPart: BasePart? = nil
 	local bestAngle = math.huge
-	for _, instance in CollectionService:GetTagged(Config.Combat.EnemyTag) do
-		local humanoid = instance:FindFirstChildOfClass("Humanoid")
-		local part = if instance:IsA("Model") then instance.PrimaryPart else nil
-		if humanoid and humanoid.Health > 0 and part then
-			local offset = part.Position - origin
-			if offset.Magnitude <= weapon.range and offset.Magnitude > 0 then
-				local angle = CombatService.aimDeviation(origin, aim, part.Position, weapon.aimAssistDegrees or 0)
-				if angle and angle < bestAngle then
-					bestAngle = angle
-					bestModel = instance :: Model
-					bestPart = part
-				end
+	for _, model in Hitbox.inSphere(origin, weapon.range, { exclude = character }) do
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		local part = model.PrimaryPart
+		if CollectionService:HasTag(model, Config.Combat.EnemyTag) and humanoid and humanoid.Health > 0 and part then
+			local angle = CombatService.aimDeviation(origin, aim, part.Position, weapon.aimAssistDegrees or 0)
+			if angle and angle < bestAngle then
+				bestAngle = angle
+				bestModel = model
+				bestPart = part
 			end
 		end
 	end
@@ -591,18 +594,10 @@ local function rangedAttack(
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
 
-	local targetModel, targetPart = findAimTarget(origin, aim, weapon)
+	local targetModel, targetPart = findAimTarget(character, origin, aim, weapon)
 	local endPoint: Vector3
 	if targetModel and targetPart then
-		-- Comprueba que no haya nada en medio (árboles, rocas, terreno).
-		params.FilterDescendantsInstances = { character, targetModel }
-		local blocked = Workspace:Raycast(origin, targetPart.Position - origin, params)
-		if blocked then
-			targetModel = nil
-			endPoint = blocked.Position
-		else
-			endPoint = targetPart.Position
-		end
+		endPoint = targetPart.Position
 	else
 		local result = Workspace:Raycast(origin, aim * weapon.range, params)
 		endPoint = if result then result.Position else origin + aim * weapon.range
@@ -762,6 +757,7 @@ end
 function CombatService:Start()
 	StateMachine.start()
 	StaminaServer.start()
+	Hitbox.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)

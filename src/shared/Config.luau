@@ -146,6 +146,9 @@ local Config = {
 		-- pueden volver a dejar quieto (Combat/Status.holdPlayer). Con 2, un orangután te tiene
 		-- quieto como mucho el 46 % del tiempo y te da ~3 s para apartarte.
 		PlayerControlImmunitySeconds = 2,
+		-- Studs sobre el suelo desde donde mira un área que cae en el suelo (Meteoro, Lluvia, Polvo,
+		-- Cepo) para saber a quién alcanza sin pared en medio (Combat/Hitbox.visible).
+		AreaSightLift = 3,
 	},
 
 	-- Golpes críticos (Shared/Crit): hacen más daño o curan más y su número sale más grande.
@@ -318,6 +321,9 @@ local Config = {
 	Net = {
 		MaxCompensationSeconds = 0.15, -- rebobinar posiciones al golpear
 		ParryGraceMaxSeconds = 0.12, -- esperar el parry del defensor antes de aplicar un golpe
+		-- Posiciones guardadas de cada combatiente para rebobinar (Combat/PositionHistory).
+		HistorySeconds = 1,
+		HistoryRate = 20, -- muestras por segundo
 	},
 
 	-- Evasivo (C7): la esquiva pulsada estando aturdido, con la guardia rota, inmovilizado o lanzado.

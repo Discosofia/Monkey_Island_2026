@@ -17,6 +17,8 @@
 -- toca; las siguientes, enlazadas a tiempo, hacen críticos seguros con daño extra contra los marcados y
 -- el remate un efecto extra. Lo que golpea un remate que conecta con el otro combo queda marcado para
 -- ese (ComboService.touch). Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
+-- A quién alcanza cada una lo dice Combat/Hitbox: las áreas, solo a quien se ve desde su centro (las
+-- paredes y las rocas protegen). Marcar presas no la necesita: señala por el olfato del cazador.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -36,6 +38,7 @@ local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
+local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Status = require(script.Parent.Parent.Status)
 
@@ -113,36 +116,43 @@ local function playerTarget(attacker: Player, victim: Player): Target?
 	return nil
 end
 
--- Enemigos vivos (y jugadores rivales) a menos de "radius" de "center".
-local function targetsAround(attacker: Player, center: Vector3, radius: number): { Target }
+-- Los objetivos (enemigos vivos y jugadores rivales) entre los combatientes de una consulta de Hitbox.
+local function targetsOf(attacker: Player, models: { Model }): { Target }
 	local found: { Target } = {}
-	for _, instance in CollectionService:GetTagged(Config.Combat.EnemyTag) do
-		local target = enemyTarget(instance)
-		if target and (target.root.Position - center).Magnitude <= radius then
-			table.insert(found, target)
-		end
-	end
-	for _, other in Players:GetPlayers() do
-		local target = playerTarget(attacker, other)
-		if target and (target.root.Position - center).Magnitude <= radius then
+	for _, model in models do
+		local victim = Players:GetPlayerFromCharacter(model)
+		local target = if victim then playerTarget(attacker, victim) else enemyTarget(model)
+		if target then
 			table.insert(found, target)
 		end
 	end
 	return found
 end
 
--- Como targetsAround, pero midiendo en horizontal y con "height" de margen hacia arriba y hacia
+-- Enemigos vivos (y jugadores rivales) a menos de "radius" de "center" que se ven desde "from" (por
+-- defecto, el centro): las paredes y las rocas protegen (Combat/Hitbox).
+local function targetsAround(attacker: Player, center: Vector3, radius: number, from: Vector3?): { Target }
+	return targetsOf(attacker, Hitbox.inSphere(center, radius, { exclude = attacker.Character, from = from }))
+end
+
+-- Lo que alcanza un área que cae en el suelo ("ground", de groundBelow): mira desde un poco más arriba
+-- (Config.Combat.AreaSightLift) para que el terreno no tape a quien está encima.
+local function targetsAroundGround(attacker: Player, ground: Vector3, radius: number): { Target }
+	return targetsAround(attacker, ground, radius, ground + Vector3.new(0, Config.Combat.AreaSightLift, 0))
+end
+
+-- Como targetsAroundGround, pero midiendo en horizontal y con "height" de margen hacia arriba y hacia
 -- abajo: para lo que está en el suelo (el cepo). En una ladera, la distancia en 3D deja fuera a los
 -- que están encima pero más arriba o más abajo, y el centro de un mono está a varios studs del suelo.
 local function targetsOnGround(attacker: Player, center: Vector3, radius: number, height: number): { Target }
-	local found: { Target } = {}
-	for _, target in targetsAround(attacker, center, radius + height) do
-		local offset = target.root.Position - center
-		if Vector3.new(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) <= height then
-			table.insert(found, target)
-		end
-	end
-	return found
+	return targetsOf(
+		attacker,
+		Hitbox.inSphere(center, radius, {
+			exclude = attacker.Character,
+			from = center + Vector3.new(0, Config.Combat.AreaSightLift, 0),
+			flatHeight = height,
+		})
+	)
 end
 
 local function targetFromPart(attacker: Player, part: Instance): Target?
@@ -290,10 +300,7 @@ local function castShot(
 	range: number,
 	radius: number
 ): (Vector3, RaycastResult?)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-	local result = Workspace:Spherecast(origin, radius, direction * range, params)
+	local result = Hitbox.sweepSphere(origin, radius, direction * range, { character })
 	if result then
 		return result.Position, result
 	end
@@ -302,26 +309,14 @@ end
 
 -- El objetivo mejor alineado con la puntería, dentro de un cono, al alcance y sin nada en medio.
 -- De cerca el cono es más ancho y solo cuenta en horizontal (CombatService.aimDeviation).
-local function bestInCone(
-	attacker: Player,
-	character: Model,
-	origin: Vector3,
-	aim: Vector3,
-	range: number,
-	degrees: number
-): Target?
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
+local function bestInCone(attacker: Player, origin: Vector3, aim: Vector3, range: number, degrees: number): Target?
 	local best: Target? = nil
 	local bestAngle = math.huge
 	for _, target in targetsAround(attacker, origin, range) do
 		local angle = CombatService.aimDeviation(origin, aim, target.root.Position, degrees)
 		if angle and angle < bestAngle then
-			params.FilterDescendantsInstances = { character, target.model }
-			if not Workspace:Raycast(origin, target.root.Position - origin, params) then
-				best = target
-				bestAngle = angle
-			end
+			best = target
+			bestAngle = angle
 		end
 	end
 	return best
@@ -329,9 +324,9 @@ end
 
 -- El objetivo que el jugador tiene delante a corta distancia (Config.Combat.CloseAimRange), o nil.
 -- Para los disparos que irían rectos por encima de un mono pequeño pegado al jugador.
-local function closeTarget(attacker: Player, character: Model, origin: Vector3, aim: Vector3): Target?
+local function closeTarget(attacker: Player, origin: Vector3, aim: Vector3): Target?
 	local settings = Config.Combat
-	return bestInCone(attacker, character, origin, aim, settings.CloseAimRange + settings.CloseAimHeight, 0)
+	return bestInCone(attacker, origin, aim, settings.CloseAimRange + settings.CloseAimHeight, 0)
 end
 
 -- La puntería de un disparo recto de "range": la misma si alcanza a alguien o no hay objetivo
@@ -518,7 +513,7 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 	local spread = math.rad(SETTINGS.MultiShotSpreadDegrees)
 	-- De cerca, el abanico se centra en el mono que tienes delante y la flecha del centro le da
 	-- aunque esté pegado (un Spherecast no ve lo que ya toca al salir).
-	local close = closeTarget(player, character, origin, aim)
+	local close = closeTarget(player, origin, aim)
 	aim = closeAim(player, character, origin, aim, SETTINGS.MultiShotRange, close)
 	local center = math.ceil(count / 2)
 	Sfx.play("Shoot", root)
@@ -765,7 +760,7 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 	task.spawn(function()
 		for _ = 1, SETTINGS.RainTicks do
 			task.wait(0.2)
-			for _, target in targetsAround(player, center, SETTINGS.RainRadius) do
+			for _, target in targetsAroundGround(player, center, SETTINGS.RainRadius) do
 				hurt(player, target, damage, "ArrowRain")
 			end
 			task.wait(math.max(0, interval - 0.2))
@@ -775,20 +770,8 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 end
 
 -- Hasta dónde llega una flecha que atraviesa monos y jugadores: solo la para el terreno o el decorado.
-local function pierceEnd(character: Model, origin: Vector3, direction: Vector3, range: number): Vector3
-	local ignore: { Instance } = { character }
-	for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
-		table.insert(ignore, enemy)
-	end
-	for _, other in Players:GetPlayers() do
-		if other.Character then
-			table.insert(ignore, other.Character)
-		end
-	end
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = ignore
-	local result = Workspace:Raycast(origin, direction * range, params)
+local function pierceEnd(origin: Vector3, direction: Vector3, range: number): Vector3
+	local result = Hitbox.ray(origin, direction * range)
 	return if result then result.Position else origin + direction * range
 end
 
@@ -802,10 +785,12 @@ local function pierceLine(
 	origin: Vector3,
 	direction: Vector3
 ): (Vector3, { PierceHit })
-	local endPoint = pierceEnd(character, origin, direction, SETTINGS.PierceRange)
+	local endPoint = pierceEnd(origin, direction, SETTINGS.PierceRange)
 	local length = (endPoint - origin).Magnitude
 	local hits: { PierceHit } = {}
-	for _, target in targetsAround(player, origin, length + 3) do
+	-- El rayo de pierceEnd ya ha mirado el camino: hasta "endPoint" no hay pared.
+	local nearby = Hitbox.inSphere(origin, length + 3, { exclude = character, throughWalls = true })
+	for _, target in targetsOf(player, nearby) do
 		local offset = target.root.Position - origin
 		local along = offset:Dot(direction)
 		local apart = (offset - direction * along).Magnitude
@@ -831,7 +816,7 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 	-- De cerca, si la flecha recta no atravesaría a nadie, va hacia el mono que tienes delante.
 	local _, straightHits = pierceLine(player, character, origin, aim)
 	if #straightHits == 0 then
-		local close = closeTarget(player, character, origin, aim)
+		local close = closeTarget(player, origin, aim)
 		if close then
 			aim = (close.root.Position - origin).Unit
 		end
@@ -861,7 +846,7 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 	local direct = if result then targetFromPart(player, result.Instance) else nil
 	-- De cerca, la bola que pasaría por encima de un mono pequeño (o no lo vería por estar pegado) le da.
 	if not direct then
-		direct = closeTarget(player, character, origin, aim)
+		direct = closeTarget(player, origin, aim)
 		if direct then
 			endPoint = direct.root.Position
 		end
@@ -885,7 +870,8 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 		if direct then
 			strike(direct, SETTINGS.FireballDamage * scale)
 		end
-		for _, target in targetsAround(player, endPoint, radius) do
+		-- La explosión mira desde un stud antes del impacto: si la bola da en una pared, lo de detrás no se quema.
+		for _, target in targetsAround(player, endPoint, radius, endPoint - aim) do
 			if not (direct and target.model == direct.model) then
 				strike(target, SETTINGS.FireballSplashDamage * scale)
 			end
@@ -924,7 +910,7 @@ end
 
 local function chainLightning(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
-	local first = bestInCone(player, character, origin, aim, SETTINGS.ChainRange, 25)
+	local first = bestInCone(player, origin, aim, SETTINGS.ChainRange, 25)
 	if not first then
 		Remotes.Notify:FireClient(player, "🔮 No hay ningún mono a tiro: apunta hacia uno")
 		return false
@@ -977,7 +963,7 @@ local function meteor(player: Player, character: Model, root: BasePart, aim: Vec
 	task.spawn(function()
 		task.wait(SETTINGS.MeteorDelay)
 		Sfx.play("LavaImpact", center)
-		for _, target in targetsAround(player, center, SETTINGS.MeteorRadius) do
+		for _, target in targetsAroundGround(player, center, SETTINGS.MeteorRadius) do
 			hurt(player, target, SETTINGS.MeteorDamage * scale, "Meteor")
 			if slow > 0 then
 				slowDown(target, slow, SETTINGS.NovaSlowFactor)
@@ -985,7 +971,7 @@ local function meteor(player: Player, character: Model, root: BasePart, aim: Vec
 		end
 		for _ = 1, burnTicks do
 			task.wait(1)
-			for _, target in targetsAround(player, center, SETTINGS.MeteorRadius) do
+			for _, target in targetsAroundGround(player, center, SETTINGS.MeteorRadius) do
 				hurt(player, target, COMBO.MeteorBurnDamage * scale, "Meteor")
 			end
 		end
@@ -1054,7 +1040,7 @@ local function healingDart(player: Player, character: Model, root: BasePart, aim
 	local enemy = if result and not ally then targetFromPart(player, result.Instance) else nil
 	-- De cerca, el dardo que pasaría por encima de un mono pequeño le da.
 	if not (ally or enemy) then
-		enemy = closeTarget(player, character, origin, aim)
+		enemy = closeTarget(player, origin, aim)
 		if enemy then
 			endPoint = enemy.root.Position
 		end
@@ -1186,7 +1172,7 @@ local function sleepPowder(player: Player, character: Model, root: BasePart, aim
 		-- Lo que tarda el puñado de polvo en llegar.
 		task.wait(0.5)
 		local sleepers: { Target } = {}
-		for _, target in targetsAround(player, center, SETTINGS.PowderRadius) do
+		for _, target in targetsAroundGround(player, center, SETTINGS.PowderRadius) do
 			hurt(player, target, SETTINGS.PowderDamage, "SleepPowder")
 			if target.player then
 				slowDown(target, drowsy, SETTINGS.PowderSlowFactor)

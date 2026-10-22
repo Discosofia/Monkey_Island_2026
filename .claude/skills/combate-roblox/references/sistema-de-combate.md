@@ -13,7 +13,7 @@ no coincide con el código, manda el código.
 | Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor) | Evasivo (C7) |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅) | Guardia, cadena, Evasivo… (C4–C8) |
 | Estados de enemigos | `Combat/Status` (atributos del modelo) | Control decreciente por modelo (C6) |
-| Detección | Distinta en cada sitio | `Combat/Hitbox` para todo (C3) |
+| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos | Monos y jefes (C6), proyectiles (C9), muros de los empujes (C10) |
 | Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas | Bloqueo, parry y guardia (C5) |
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
 | Reglas por place | `Combat/CombatRules` | Campos nuevos de guardia, escalado y entorno |
@@ -51,12 +51,14 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
   (distancia, `Data/WeaponAnimations`) y manda `Remotes.UseWeapon:FireServer(puntería)`.
 - Servidor (`CombatService.onUseWeapon`): espera `cooldownSeconds` del arma (`os.clock`).
   - Cuerpo a cuerpo (`meleeAttack`): **una caja** de `MELEE_HITBOX` (7 × 6) × `range` delante de la
-    raíz, con `GetPartBoundsInBox`, **en el instante y sin mirar paredes**. Un golpe suelto, sin
-    preparación ni recuperación.
+    raíz, con `Hitbox.inBox` (C3): solo a quien se ve desde la raíz del atacante y también donde
+    estaba hace `Latency.compensation` (rebobinado, ≤ 0,15 s). Un golpe suelto, sin preparación ni
+    recuperación.
   - Distancia (`rangedAttack`): munición (`CombatRules.useAmmo`); ayuda de puntería
-    (`findAimTarget`, cono `aimAssistDegrees` y `aimDeviation`) con un rayo de línea de visión. Si
-    encuentra un mono, el proyectil visible vuela hacia él y el daño llega con `task.delay` **aunque
-    el mono se haya apartado**. Contra un jugador solo vale un rayo directo (sin ayuda): asimetría.
+    (`findAimTarget`, cono `aimAssistDegrees` y `aimDeviation`) entre los monos que se ven
+    (`Hitbox.inSphere`). Si encuentra un mono, el proyectil visible vuela hacia él y el daño llega con
+    `task.delay` **aunque el mono se haya apartado** (hasta C9). Contra un jugador solo vale un rayo
+    directo (sin ayuda): asimetría.
 - PvP: daño del arma × `pvpWeaponMultiplier` × `pvpWeaponMultipliers[arma]` (arena: ×0,55, arco ×0,7).
 
 **Planificado.** C4: `chain` en `Data/Weapons` (4 pasos con preparación, activo, recuperación,
@@ -105,19 +107,49 @@ Regla: **nunca `.Touched`**. Una consulta en el servidor en el instante del impa
 excluyen al atacante, los efectos y lo que no colisiona, y una tabla para dañar a cada objetivo una
 sola vez por ataque.
 
-| Ataque | Hoy | Planificado |
+| Ataque | Hoy (C3 ✅) | Planificado |
 |---|---|---|
-| Golpe con arma | `GetPartBoundsInBox` en el instante, sin paredes | `Hitbox.sweepBox` (`Blockcast`) en el instante activo, con posiciones rebobinadas y `visible` (C3, C4) |
-| Disparo de arma | Rayo + ayuda; daño con retraso aunque se aparte | Proyectil del servidor: un `Spherecast` por paso de `Heartbeat` (C9) |
-| Habilidades que viajan | `castShot` (`Spherecast` en el instante) + daño con retraso | El mismo proyectil por pasos (C9) |
-| Áreas (`targetsAround`, `targetsOnGround`) | **Solo distancia: atraviesan paredes** | `inSphere`/`inBox` + `visible` desde el centro (C3) |
-| Ayuda de puntería (`bestInCone`, `findAimTarget`) | Cono + rayo de línea de visión | Igual, solo orienta la dirección inicial; mismo cono para todos (C9) |
+| Golpe con arma | `Hitbox.inBox` en el instante + `visible` desde la raíz del atacante + rebobinado | `sweepBox` en el instante activo de cada golpe de la cadena (C4) |
+| Disparo de arma | Ayuda de puntería entre los que se ven + daño con retraso aunque se aparte | Proyectil del servidor: un `sweepSphere` por paso de `Heartbeat` (C9) |
+| Habilidades que viajan | `castShot` (`Hitbox.sweepSphere` en el instante) + daño con retraso | El mismo proyectil por pasos (C9) |
+| Áreas (`targetsAround`, `targetsAroundGround`, `targetsOnGround`) | `Hitbox.inSphere` + `visible` desde el centro: **las paredes protegen** | — |
+| Ayuda de puntería (`bestInCone`, `findAimTarget`) | Cono entre los que se ven (`inSphere`) | Solo orienta la dirección inicial; mismo cono para todos (C9) |
+| Flecha perforante | `Hitbox.ray` hasta el terreno o una pared + línea, sin `visible` (el rayo ya mira el camino) | Proyectil que atraviesa (C9) |
 | Mordisco de mono | Distancia al empezar el ataque, daño en el mismo instante | Preparación visible y `inBox` + `visible` al acabarla (C6) |
-| Empujes | El cliente corta el empuje propio contra una pared | Rayo por la trayectoria en el servidor: rebote contra muros (C10) |
+| Empujes | El cliente corta el empuje propio contra una pared | `Hitbox.ray` por la trayectoria en el servidor: rebote contra muros (C10) |
+| Marcar presas | Distancia, sin línea de visión (a propósito: señala por el olfato) | — |
 
-`Combat/Hitbox` (C3): `ray`, `sweepSphere`, `sweepBox`, `inBox`, `inSphere`, `visible` y `rewound`
-(con `Combat/PositionHistory`: posiciones del último segundo a 20 Hz). Las áreas consultan solo las
-piezas de personajes y monos (lista de inclusión por etiquetas).
+**`Combat/Hitbox`** (C3). Lo arranca `CombatService:Start` (`Hitbox.start`).
+- **Combatientes**: los modelos con `Config.Combat.EnemyTag` y los personajes. La lista se rehace
+  solo cuando cambia (etiquetas, `CharacterAdded`/`Removing`) y sirve de lista de inclusión para
+  las consultas de piezas y de exclusión para la línea de visión.
+- `ray(origen, dirección)`: contra el mundo, con `RespectCanCollide` e `IgnoreWater`, sin
+  combatientes. Solo tapan las piezas que chocan y el terreno; el decorado del proyecto es
+  `CanCollide = false` (y las marcas, `CanQuery = false`), así que no tapa.
+- `visible(desde, modelo)`: rayo a la raíz y, si está tapada, a la cabeza (medio escondido tras algo
+  bajo también cuenta).
+- `inSphere(centro, radio, consulta)`: raíz a menos del radio (**la misma medida de antes**, para que
+  la calculadora siga valiendo) + `visible`. `inBox(cframe, tamaño, consulta)`: piezas dentro de la
+  caja (`GetPartBoundsInBox` con la lista de inclusión) + `visible`. La consulta lleva `exclude`
+  (el atacante), `from` (desde dónde se mira; por defecto el centro), `throughWalls`, `rewind`
+  (segundos) y `flatHeight` (en horizontal, para lo que está en el suelo).
+- Las áreas que caen en el suelo (Meteoro, Lluvia, Polvo, Cepo) miran desde
+  `Config.Combat.AreaSightLift` (3 studs) sobre el suelo; la explosión de la Bola de fuego, desde
+  1 stud antes del impacto (si da en una pared, lo de detrás no se quema).
+- `sweepSphere` / `sweepBox`: `Spherecast` / `Blockcast` que devuelven lo primero que tocan; no ven
+  lo que ya tocan al salir. Sin `RespectCanCollide`: las piezas de los monos no chocan y el disparo
+  las atravesaría.
+- `rewound(modelo, segundos)` y **`Combat/PositionHistory`**: la raíz de cada combatiente a
+  `Config.Net.HistoryRate` (20) muestras por segundo durante `HistorySeconds` (1), en un anillo fijo
+  sin crear tablas; `at` interpola entre muestras.
+
+Probado en Play (Isla, 22-10-2026), con el muro de la línea base (1 × 14 × 8 entre el guerrero y el
+muñeco del centro): Torbellino 7 golpes → **0** (sin muro, 7 de 6); garrote a 6,5 studs 4 de 4 →
+**0 de 4** (sin muro, 4 de 27); Pisotón y Nova dan a los muñecos de los lados, que se ven, y no al
+del centro; la Bola de fuego contra el muro no quema al de detrás (sin muro, 24). Rebobinado: una
+caja vacía en el sitio viejo de un muñeco movido 5 studs lo encuentra con `rewind = 0,3` y sin
+rebobinar no. Coste: 47–66 µs por consulta con 109 combatientes (copia que rehace la lista cada
+vez: cota superior); peleando con 32 mandriles, heartbeat 0,32 ms y física 2,27 ms (antes 0,31 y 2,21).
 
 ## 7. Red y lag
 
@@ -134,8 +166,11 @@ puede empujar a un jugador poniéndole velocidad.
   jugadores a propósito** (`not target.player`); ahora sí, en PvP. Probado en Play: el remoto mueve al
   jugador 10,5 studs (45 studs/s, 0,2 s); la Embestida lanza a un mandril a 44 studs/s.
 
-**Planificado.** C3: rebobinar posiciones al golpear, con tope.
-C5: margen del parry a favor del defensor, con tope. Regla de equidad: el tope nunca pasa de ~0,15 s
+- Rebobinado (C3): el golpe con arma también vale contra donde estaba el objetivo hace
+  `Latency.compensation(atacante)` segundos (`Hitbox.inBox` con `rewind`, `Combat/PositionHistory`).
+  Las áreas no rebobinan: son generosas y así miden lo mismo que la calculadora.
+
+**Planificado.** C5: margen del parry a favor del defensor, con tope. Regla de equidad: el tope nunca pasa de ~0,15 s
 y es el mismo para todos.
 
 ## 8. Control y escape

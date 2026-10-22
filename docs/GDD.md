@@ -335,7 +335,7 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 | **Amagos** | Pulsar la guardia durante la preparación cancela el golpe (gratis, uno por segundo) o la habilidad (15 de estamina y 1,5 s de recarga en vez de la entera). Se ve un humo de amago. | |
 | **Preparación** | Las habilidades tienen una preparación corta (0,15–0,35 s). Los monos avisan antes de morder (0,4 · 0,5 · 0,6 s por categoría) y los jefes antes de golpear (0,7 s). Si te apartas, fallan. | |
 | **Proyectiles** | Los disparos de armas y habilidades vuelan de verdad: se pueden esquivar, bloquear y parar. Ya no persiguen al objetivo. | |
-| **Detección** | Ningún golpe atraviesa paredes. Las áreas solo alcanzan lo que el centro "ve". | |
+| **Detección** ✅ C3 | Ningún golpe con arma ni ninguna área atraviesa paredes, rocas o árboles: un área solo alcanza lo que su centro "ve" (un mono no esconde a otro), y el golpe con arma, lo que ve quien pega. El golpe con arma cuenta también dónde estaba el objetivo cuando lo vio el atacante, por su ping. Los disparos que persiguen se arreglan con los proyectiles. | Rebobinado de hasta 0,15 s |
 | **Entorno** | **Rebote contra muros**: un empujón que te estampa en una pared aturde 0,5 s, con 1,5 s de inmunidad. **Zonas de peligro**: suelo ardiendo, hielo y nubes. En Dunas, **coberturas que se rompen** y reaparecen, y un **altar** en la pirámide central que da a su equipo una ventaja pequeña de 30 s. | |
 | **Bloqueo de cámara** ✅ C2 | El shift lock de Roblox, en **Ctrl** (Mayús sigue siendo correr). Lo enciende cada jugador en el menú de Roblox ("Bloqueo de cámara" / Shift Lock Switch). | |
 
