@@ -6,6 +6,8 @@
 --     Mantenerla bloquea ("Blocking", sin fin hasta soltar). En guardia no se pega ni se usan
 --     habilidades, se anda más despacio y no se corre (CombatState.isGuarding). Esquivar la suelta.
 --   - Si se pulsa mientras pega o está tambaleado, la guardia se pone al acabar (si sigue pulsando).
+--     Durante la preparación de un golpe o de una habilidad, pulsar es un amago (C8, Combat/Feint): la
+--     cancela y la guardia se pone en ese momento.
 --   - Barra "Guard" (atributo del Player, 0–Max): cada golpe bloqueado gasta su "guardDamage" y se
 --     recupera sola tras RegenDelaySeconds sin recibir. Vacía: guardia rota (estado "GuardBroken",
 --     Status.stunPlayer con su inmunidad) y hay que volver a pulsar.
@@ -36,6 +38,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local AbilityFx = require(script.Parent.AbilityFx)
 local CombatRules = require(script.Parent.CombatRules)
+local Feint = require(script.Parent.Feint)
 local Latency = require(script.Parent.Latency)
 local StateMachine = require(script.Parent.StateMachine)
 local Status = require(script.Parent.Status)
@@ -200,6 +203,8 @@ local function onGuard(player: Player, pressed: any, clientTime: any)
 	local state = stateOf(player)
 	if pressed == true then
 		state.holding = true
+		-- Preparando un golpe o una habilidad: amaga si puede (y la guardia se pone ya).
+		Feint.try(player)
 		start(player, if typeof(clientTime) == "number" then clientTime else nil)
 	else
 		state.holding = false

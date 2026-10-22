@@ -28,6 +28,9 @@ export type PlayerAnimation = {
 	id: string,
 	priority: Enum.AnimationPriority,
 	looped: boolean?, -- en bucle hasta que el código la para (Crawl, Revive, Whirlwind)
+	-- Segundos hasta el golpe del gesto: BodyAnimations.playAbility lo estira a la preparación de la
+	-- habilidad (C8, "castSeconds" de Data/Roles).
+	impactSeconds: number?,
 }
 
 local PlayerAnimations = {
@@ -38,7 +41,8 @@ local PlayerAnimations = {
 		-- misma pose girando las articulaciones por código, que tiembla si lleva un arma en la mano.
 		WarCry = { id = "rbxassetid://127375051692539", priority = Enum.AnimationPriority.Action3 },
 		Charge = { id = "rbxassetid://106518569968843", priority = Enum.AnimationPriority.Action3 }, -- embestida con el hombro por delante
-		Smash = { id = "rbxassetid://117133122045501", priority = Enum.AnimationPriority.Action3 }, -- rompehuesos: golpe de dos manos al suelo (0,25 s)
+		-- Rompehuesos: golpe de dos manos al suelo.
+		Smash = { id = "rbxassetid://117133122045501", priority = Enum.AnimationPriority.Action3, impactSeconds = 0.25 },
 		-- Esquiva (DodgeController): voltereta hacia delante si te mueves hacia donde miras; salto
 		-- atrás si estás quieto o vas hacia atrás.
 		DodgeRoll = { id = "rbxassetid://137704861516961", priority = Enum.AnimationPriority.Action3 },

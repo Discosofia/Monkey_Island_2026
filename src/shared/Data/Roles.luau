@@ -16,8 +16,14 @@ export type Ability = {
 	description: string,
 	cooldownSeconds: number,
 	ultimate: boolean?,
-	-- Guardia (Fase 10, C5; Combat/Guard): la que gasta si un jugador la bloquea (sin él,
-	-- Config.Guard.AbilityGuardDamage) y si es imbloqueable (rompe la guardia y entra entera).
+	-- Preparación (Fase 10, C8; AbilityService): segundos desde que se pulsa hasta que sale, con el gesto
+	-- ya en marcha. En ese tiempo se puede amagar (pulsar la guardia) y un aturdimiento la corta. 0 =
+	-- sale al momento (las de defensa y huida: Grito, Parpadeo, Escudo). Sin él,
+	-- Config.Windup.AbilityDefaultSeconds.
+	castSeconds: number?,
+	-- Guardia (Fase 10, C5 y C8; Combat/Guard): la que gasta si un jugador la bloquea, una vez por uso
+	-- aunque pegue varias veces (sin él, Config.Guard.AbilityGuardDamage), y si es imbloqueable (rompe
+	-- la guardia y entra entera). Las fuertes 25, las medias 20, las de control 15 y el dardo 10.
 	guardDamage: number?,
 	unblockable: boolean?,
 }
@@ -54,6 +60,8 @@ local Roles: { [string]: Role } = {
 				short = "Torbellino",
 				description = "Gira con el arma y golpea a todo lo que tienes alrededor.",
 				cooldownSeconds = 7,
+				castSeconds = 0.2,
+				guardDamage = 25,
 			},
 			{
 				id = "Charge",
@@ -61,6 +69,8 @@ local Roles: { [string]: Role } = {
 				short = "Embestida",
 				description = "Cargas hacia delante, dañas y empujas a lo que atraviesas.",
 				cooldownSeconds = 6,
+				castSeconds = 0.2,
+				guardDamage = 20,
 			},
 			{
 				id = "WarCry",
@@ -68,6 +78,7 @@ local Roles: { [string]: Role } = {
 				short = "Grito",
 				description = "Los monos cercanos van a por ti y recibes un 40 % menos de daño.",
 				cooldownSeconds = 12,
+				castSeconds = 0,
 			},
 			{
 				id = "Quake",
@@ -75,6 +86,7 @@ local Roles: { [string]: Role } = {
 				short = "Pisotón",
 				description = "Pisas el suelo con fuerza: daño fuerte alrededor y aturde a los monos.",
 				cooldownSeconds = 90,
+				castSeconds = 0.35,
 				ultimate = true,
 				unblockable = true,
 			},
@@ -84,6 +96,7 @@ local Roles: { [string]: Role } = {
 				short = "Rompe",
 				description = "Un golpe brutal hacia delante que daña y tumba un momento a los monos.",
 				cooldownSeconds = 8,
+				castSeconds = 0.3,
 				unblockable = true,
 			},
 		},
@@ -105,6 +118,8 @@ local Roles: { [string]: Role } = {
 				short = "Múltiple",
 				description = "Lanzas un abanico de proyectiles hacia donde apuntas.",
 				cooldownSeconds = 5,
+				castSeconds = 0.2,
+				guardDamage = 20,
 			},
 			{
 				id = "MarkPrey",
@@ -112,6 +127,7 @@ local Roles: { [string]: Role } = {
 				short = "Marcar",
 				description = "Señala a los monos cercanos: el equipo los ve y les hace más daño.",
 				cooldownSeconds = 15,
+				castSeconds = 0.15,
 			},
 			{
 				id = "Trap",
@@ -119,6 +135,8 @@ local Roles: { [string]: Role } = {
 				short = "Cepo",
 				description = "Deja un cepo a tus pies; cuando un mono lo pisa, atrapa a todos los que tiene alrededor.",
 				cooldownSeconds = 9,
+				castSeconds = 0.15,
+				guardDamage = 15,
 			},
 			{
 				id = "ArrowRain",
@@ -126,6 +144,8 @@ local Roles: { [string]: Role } = {
 				short = "Lluvia",
 				description = "Una zona donde apuntas recibe daño continuo durante unos segundos.",
 				cooldownSeconds = 90,
+				castSeconds = 0.3,
+				guardDamage = 20,
 				ultimate = true,
 			},
 			{
@@ -134,6 +154,8 @@ local Roles: { [string]: Role } = {
 				short = "Perforante",
 				description = "Una flecha recta que atraviesa a todos los monos que encuentra en línea.",
 				cooldownSeconds = 8,
+				castSeconds = 0.3,
+				guardDamage = 25,
 			},
 		},
 	},
@@ -152,6 +174,8 @@ local Roles: { [string]: Role } = {
 				short = "Fuego",
 				description = "Proyectil que explota al impactar y daña alrededor.",
 				cooldownSeconds = 6,
+				castSeconds = 0.2,
+				guardDamage = 25,
 			},
 			{
 				id = "FrostNova",
@@ -159,6 +183,8 @@ local Roles: { [string]: Role } = {
 				short = "Hielo",
 				description = "Congela a los monos a tu alrededor y después los ralentiza.",
 				cooldownSeconds = 11,
+				castSeconds = 0.25,
+				guardDamage = 15,
 			},
 			{
 				id = "Blink",
@@ -166,6 +192,7 @@ local Roles: { [string]: Role } = {
 				short = "Parpadeo",
 				description = "Te teletransportas hacia donde miras.",
 				cooldownSeconds = 7,
+				castSeconds = 0,
 			},
 			{
 				id = "ChainLightning",
@@ -173,6 +200,8 @@ local Roles: { [string]: Role } = {
 				short = "Rayo",
 				description = "Un rayo que salta entre varios monos, algo más débil en cada salto.",
 				cooldownSeconds = 90,
+				castSeconds = 0.3,
+				guardDamage = 25,
 				ultimate = true,
 			},
 			{
@@ -181,6 +210,7 @@ local Roles: { [string]: Role } = {
 				short = "Meteoro",
 				description = "Una roca ardiente cae del cielo donde apuntas y daña a todos los de alrededor.",
 				cooldownSeconds = 10,
+				castSeconds = 0.2,
 				unblockable = true,
 			},
 		},
@@ -201,6 +231,7 @@ local Roles: { [string]: Role } = {
 				short = "Ungüento",
 				description = "Cura a los aliados cercanos (y a ti).",
 				cooldownSeconds = 15,
+				castSeconds = 0.2,
 			},
 			{
 				id = "HealingDart",
@@ -208,6 +239,8 @@ local Roles: { [string]: Role } = {
 				short = "Dardo",
 				description = "Dardo que cura al aliado que alcanza (o pica un poco a un mono).",
 				cooldownSeconds = 6,
+				castSeconds = 0.15,
+				guardDamage = 10,
 			},
 			{
 				id = "LeafShield",
@@ -215,6 +248,7 @@ local Roles: { [string]: Role } = {
 				short = "Escudo",
 				description = "El aliado más cercano (o tú) recibe un escudo que absorbe daño.",
 				cooldownSeconds = 12,
+				castSeconds = 0,
 			},
 			{
 				id = "HealingTotem",
@@ -222,6 +256,7 @@ local Roles: { [string]: Role } = {
 				short = "Tótem",
 				description = "Plantas un tótem donde apuntas que cura poco a poco a quien esté cerca.",
 				cooldownSeconds = 90,
+				castSeconds = 0.3,
 				ultimate = true,
 			},
 			{
@@ -230,6 +265,8 @@ local Roles: { [string]: Role } = {
 				short = "Somnífero",
 				description = "Lanzas una nube donde apuntas: a los monos les entra sueño y se duermen un momento (los jefes, no).",
 				cooldownSeconds = 12,
+				castSeconds = 0.25,
+				guardDamage = 15,
 			},
 		},
 	},

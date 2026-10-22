@@ -8,6 +8,8 @@
 --     servidor diga que está en guardia; si no la confirma enseguida (pegando, tambaleado, guardia
 --     rota), se quita.
 --   - Caído no hay guardia: F vuelve a ser "Rendirse" (LifeController) y el botón desaparece.
+--   - Pulsar durante la preparación de un golpe o de una habilidad es un amago (C8, CombatClient/Feint):
+--     aquí se cancela lo que se ve al momento y el servidor (Combat/Feint) decide.
 -- En guardia se anda más despacio y no se corre (los controladores de movimiento de cada place miran
 -- CombatState.isGuarding).
 
@@ -20,6 +22,7 @@ local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
+local Feint = require(script.Parent.Parent.Feint)
 local WeaponController = require(script.Parent.WeaponController)
 
 local ACTION = "Guard"
@@ -40,6 +43,7 @@ local function setPressed(value: boolean)
 	pressing = value
 	if value then
 		pressedAt = os.clock()
+		Feint.try(Players.LocalPlayer.Character)
 		Remotes.Guard:FireServer(true, Workspace:GetServerTimeNow())
 	else
 		Remotes.Guard:FireServer(false)

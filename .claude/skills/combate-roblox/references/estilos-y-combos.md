@@ -69,10 +69,15 @@ y para preparar una habilidad; no sustituye a los combos de habilidades.
 - **Telemetría** (al publicar): `AbilityUses`, `AbilityLinked`, `ComboCompleted`, `DamageBySource`
   por rol, y desde la Fase 10 los contadores de guardia, parry, Evasivo, amagos y remates.
 
-## 5. Amagos y lectura (Fase 10, C8)
+## 5. Amagos y lectura (Fase 10, C8 ✅)
 
 - El amago se hace pulsando la guardia durante la preparación de un golpe (gratis, como mucho uno
-  por segundo) o de una habilidad (cuesta estamina y deja una recarga corta de penalización).
+  por segundo) o de una habilidad (15 de estamina y 1,5 s de recarga en vez de la entera). La
+  guardia se pone en ese momento: amagar y parar en la misma pulsación es una opción (y cancelar tu
+  habilidad para defenderte de algo que viene, otra).
+- Cada habilidad tiene su preparación (0,15–0,35 s; al momento las de defensa y huida): es la
+  ventana para leerla y para amagarla. Las imbloqueables se ven venir al menos `Config.Reaction`
+  (preparación + lo que tarda en caer: el Meteoro, con su aviso rojo).
 - Tiene que **verse** que es un amago (humo corto), para que un buen jugador pueda leerlo: el amago
   engaña al reflejo, no a la vista.
 - Lo mismo vale para todo: preparación visible antes de lo fuerte, sonido distinto para golpe,

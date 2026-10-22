@@ -19,6 +19,12 @@
 -- ese (ComboService.touch). Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
 -- A quién alcanza cada una lo dice Combat/Hitbox: las áreas, solo a quien se ve desde su centro (las
 -- paredes y las rocas protegen). Marcar presas no la necesita: señala por el olfato del cazador.
+-- Preparación (Fase 10, C8): al pulsar, el jugador queda "Casting" (Shared/CombatState) lo que diga su
+-- "castSeconds" (Data/Roles; menos su retraso de red, que ya la empezó en su pantalla) y la habilidad
+-- sale al acabar: entonces cuenta el paso del combo, se aplica y empieza la recarga. Si en ese tiempo
+-- le aturden, le tambalean o cae, no sale y no gasta la recarga. Pulsar la guardia es un amago
+-- (Combat/Feint): cuesta estamina y deja la recarga corta de Config.Feint. Las de castSeconds = 0
+-- (Grito, Parpadeo, Escudo) salen al momento, como antes.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -38,9 +44,12 @@ local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
+local Feint = require(script.Parent.Parent.Feint)
 local Guard = require(script.Parent.Parent.Guard)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
+local Latency = require(script.Parent.Parent.Latency)
+local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
 
 local SETTINGS = Config.Abilities
@@ -55,6 +64,8 @@ local BLINK_POINT_SLACK = 15
 -- Habilidades que mueven al personaje: no se pueden usar con el atributo "MovementLocked" (en la
 -- arena, quien lleva la bandera rival). El cliente (RoleController) tampoco las lanza.
 local MOVEMENT_ABILITIES = { Charge = true, Blink = true }
+-- El estado "Casting" dura la preparación más esto (s); al salir la habilidad se quita antes.
+local CAST_STATE_MARGIN = 0.5
 
 -- Algo a lo que una habilidad puede dañar: un enemigo o un jugador rival (CombatService.canHitPlayer).
 type Target = { model: Model, humanoid: Humanoid, root: BasePart, player: Player? }
@@ -65,6 +76,10 @@ local AbilityService = {}
 local traps: { [Player]: { Model } } = {}
 -- Cuándo puede volver a ganar el escudo de la Savia protectora cada médico.
 local sapReadyAt: { [Player]: number } = {}
+-- Cuántas veces ha salido cada habilidad de cada jugador (useKey).
+local uses: { [Player]: { [string]: number } } = {}
+-- Preparación en curso de cada jugador: cambia con cada una, así una cancelada no sale después.
+local castTickets: { [Player]: number } = {}
 
 local function now(): number
 	return Workspace:GetServerTimeNow()
@@ -165,6 +180,13 @@ local function targetFromPart(attacker: Player, part: Instance): Target?
 	return if victim then playerTarget(attacker, victim) else nil
 end
 
+-- Clave del uso en curso de "abilityId" de "player": todos sus golpes la llevan, así contra un jugador
+-- gastan la guardia una vez y cuentan como un golpe en el escalado del combo (CombatService.damagePvP).
+local function useKey(player: Player, abilityId: string): string
+	local count = if uses[player] then uses[player][abilityId] or 0 else 0
+	return `{player.UserId}:{abilityId}:{count}`
+end
+
 -- La habilidad "abilityId" del rol de "player" (Data/Roles), o nil.
 local function abilityOf(player: Player, abilityId: string): Roles.Ability?
 	local roleId = player:GetAttribute("Role")
@@ -184,7 +206,8 @@ end
 -- Un jugador la puede bloquear o parar de frente (Combat/Guard): gasta el "guardDamage" de la habilidad
 -- (o Config.Guard.AbilityGuardDamage) y las "unblockable" le rompen la guardia. Bloqueada o parada,
 -- tampoco le aplica su control (control, slowDown y los empujes miran Guard.defended). Contra jugadores
--- lleva el escalado del combo (C7): todos sus golpes cuentan como uno.
+-- lleva el escalado del combo (C7): todos los golpes de un uso cuentan como uno y gastan la guardia una
+-- vez (C8).
 local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
@@ -215,8 +238,8 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 					then ability.guardDamage
 					else Config.Guard.AbilityGuardDamage,
 				unblockable = ability ~= nil and ability.unblockable == true,
-				-- Todos sus golpes cuentan como uno en el escalado del combo (Combat/ComboScaling).
-				hitKey = `{attacker.UserId}:{abilityId}`,
+				-- Todos los golpes de un uso cuentan como uno (Combat/ComboScaling) y gastan la guardia una vez.
+				hitKey = useKey(attacker, abilityId),
 			}
 		)
 	else
@@ -512,22 +535,17 @@ local function smash(player: Player, character: Model, root: BasePart, aim: Vect
 	local facing = flat(aim)
 	local minDot = math.cos(math.rad(SETTINGS.SmashAngle / 2))
 	local ground = groundBelow(root.Position, { character })
+	-- Sale cuando el arma baja: la preparación (castSeconds) dura lo que el gesto hasta el golpe.
 	AbilityFx.all("Smash", ground, facing, SETTINGS.SmashRange, if around then 360 else SETTINGS.SmashAngle)
-	-- El golpe llega cuando el arma baja (el gesto tarda un poco).
-	task.delay(0.25, function()
-		if not (root.Parent and LifeState.isAlive(player)) then
-			return
+	Sfx.play("RockImpact", root)
+	for _, target in targetsAround(player, root.Position, SETTINGS.SmashRange) do
+		local offset = target.root.Position - root.Position
+		local inFront = flat(offset):Dot(facing) >= minDot or offset.Magnitude < 2
+		if around or inFront then
+			hurt(player, target, damage, "Smash")
+			control(target, SETTINGS.SmashStun, "Stun")
 		end
-		Sfx.play("RockImpact", root)
-		for _, target in targetsAround(player, root.Position, SETTINGS.SmashRange) do
-			local offset = target.root.Position - root.Position
-			local inFront = flat(offset):Dot(facing) >= minDot or offset.Magnitude < 2
-			if around or inFront then
-				hurt(player, target, damage, "Smash")
-				control(target, SETTINGS.SmashStun, "Stun")
-			end
-		end
-	end)
+	end
 	return true
 end
 
@@ -1289,6 +1307,64 @@ local HANDLERS: { [string]: Handler } = {
 	SleepPowder = sleepPowder,
 }
 
+-- Sale la habilidad del hueco "slot": cuenta el paso del combo, la aplica y, si se ha podido usar,
+-- empieza su recarga.
+local function release(player: Player, slot: number, ability: Roles.Ability, aim: Vector3, extra: { any })
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	local handler = HANDLERS[ability.id]
+	if not (character and root and root:IsA("BasePart") and handler and LifeState.isAlive(player)) then
+		return
+	end
+	local count = uses[player] or {}
+	uses[player] = count
+	count[ability.id] = (count[ability.id] or 0) + 1
+	-- Antes de aplicarla: si es el siguiente paso del combo, sus golpes ya cuentan como enlazados.
+	local linkedStep = ComboService.onAbilityUsed(player, ability.id)
+	if handler(player, character, root, aim, extra) then
+		local rules = CombatRules.get()
+		rules.telemetry.abilityUsed(player, ability.id, linkedStep)
+		rules.progressMission(player, "Ability")
+		-- Algunas habilidades tienen su propia ventaja de recarga ("<id>Cooldown" en Data/Perks, p. ej.
+		-- SmashCooldown, del equipo de la arena).
+		local ownRate = if Perks[`{ability.id}Cooldown`] ~= nil
+			then Progression.perk(player, `{ability.id}Cooldown`)
+			else 1
+		local cooldown = ability.cooldownSeconds
+			* Progression.perk(player, "CooldownRate")
+			* ownRate
+			* ComboService.cooldownFactor(player)
+		player:SetAttribute(`AbilityReadyAt{slot}`, now() + cooldown)
+	end
+end
+
+-- Preparación de la habilidad del hueco "slot" (C8): "Casting" hasta que sale. Si al acabar ya no está
+-- en "Casting" (le han aturdido, tambaleado o ha caído) no sale; si amaga (Combat/Feint), tampoco, y
+-- queda la recarga de penalización.
+local function cast(player: Player, slot: number, ability: Roles.Ability, aim: Vector3, extra: { any }, seconds: number)
+	local ticket = (castTickets[player] or 0) + 1
+	castTickets[player] = ticket
+	local delay = math.max(0, seconds - Latency.compensation(player))
+	-- Con margen, para que el estado no se quede puesto si cae a mitad (al salir se quita).
+	StateMachine.enter(player, "Casting", delay + CAST_STATE_MARGIN)
+	local mark = Feint.begin(player, "Ability", delay, function()
+		castTickets[player] = ticket + 1
+		StateMachine.leave(player, "Casting")
+		player:SetAttribute(`AbilityReadyAt{slot}`, now() + Config.Feint.AbilityPenaltySeconds)
+	end)
+	task.delay(delay, function()
+		Feint.finish(player, mark)
+		if castTickets[player] ~= ticket or not player.Parent or CombatState.get(player) ~= "Casting" then
+			return
+		end
+		StateMachine.leave(player, "Casting")
+		if MOVEMENT_ABILITIES[ability.id] and player:GetAttribute("MovementLocked") == true then
+			return
+		end
+		release(player, slot, ability, aim, extra)
+	end)
+end
+
 -- "from" y "to": dónde empezó y acabó el Parpadeo en el cliente (solo para su efecto).
 local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: any)
 	if typeof(slot) ~= "number" or typeof(aim) ~= "Vector3" or aim.Magnitude < 0.5 then
@@ -1311,29 +1387,17 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 	if typeof(readyAt) == "number" and now() < readyAt - 0.25 then
 		return
 	end
-	local handler = HANDLERS[ability.id]
-	if not handler then
+	if not HANDLERS[ability.id] then
 		return
 	end
 	if MOVEMENT_ABILITIES[ability.id] and player:GetAttribute("MovementLocked") == true then
 		return
 	end
-	-- Antes de aplicarla: si es el siguiente paso del combo, sus golpes ya cuentan como enlazados.
-	local linkedStep = ComboService.onAbilityUsed(player, ability.id)
-	if handler(player, character, root, aim.Unit, { from, to }) then
-		local rules = CombatRules.get()
-		rules.telemetry.abilityUsed(player, ability.id, linkedStep)
-		rules.progressMission(player, "Ability")
-		-- Algunas habilidades tienen su propia ventaja de recarga ("<id>Cooldown" en Data/Perks, p. ej.
-		-- SmashCooldown, del equipo de la arena).
-		local ownRate = if Perks[`{ability.id}Cooldown`] ~= nil
-			then Progression.perk(player, `{ability.id}Cooldown`)
-			else 1
-		local cooldown = ability.cooldownSeconds
-			* Progression.perk(player, "CooldownRate")
-			* ownRate
-			* ComboService.cooldownFactor(player)
-		player:SetAttribute(`AbilityReadyAt{slot}`, now() + cooldown)
+	local seconds = ability.castSeconds or Config.Windup.AbilityDefaultSeconds
+	if seconds > 0 then
+		cast(player, slot, ability, aim.Unit, { from, to }, seconds)
+	else
+		release(player, slot, ability, aim.Unit, { from, to })
 	end
 end
 
@@ -1348,6 +1412,8 @@ function AbilityService:Start()
 		end
 		traps[player] = nil
 		sapReadyAt[player] = nil
+		uses[player] = nil
+		castTickets[player] = nil
 	end)
 end
 

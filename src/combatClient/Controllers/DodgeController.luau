@@ -20,6 +20,7 @@ local Stamina = require(script.Parent.Parent.Stamina)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local Dash = require(script.Parent.Parent.Dash)
+local Feint = require(script.Parent.Parent.Feint)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 
 local ACTION = "Dodge"
@@ -75,7 +76,12 @@ local function dodge()
 		return
 	end
 	local now = os.clock()
-	if now - lastDodgeAt < Config.Combat.DodgeCooldownSeconds or not CombatState.canAct(player, "Dodge") then
+	-- Preparando una habilidad no se esquiva (C8; el servidor tampoco deja: "Casting").
+	if
+		now - lastDodgeAt < Config.Combat.DodgeCooldownSeconds
+		or not CombatState.canAct(player, "Dodge")
+		or Feint.casting()
+	then
 		return
 	end
 	if not Stamina.tryConsume(Config.Survival.DodgeStaminaCost) then

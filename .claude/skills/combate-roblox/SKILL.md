@@ -154,7 +154,10 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
 ### Habilidad del jugador (nueva o sustituta)
 
 1. `src/shared/Data/Roles.luau`: entrada en `abilities` del rol, en el hueco de su tecla (`id`,
-   `name`, `short`, `description` para el jugador, `cooldownSeconds`, `ultimate`).
+   `name`, `short`, `description` para el jugador, `cooldownSeconds`, `ultimate`), su preparación
+   `castSeconds` (0,15–0,35 s; 0 si es de defensa o de huida: sale al momento) y su guardia
+   `guardDamage` (una vez por uso: 25 fuerte, 20 media, 15 control) o `unblockable` (que se vea venir
+   al menos `Config.Reaction`).
 2. `src/shared/Config.luau` → `Abilities`: sus números, con un comentario por número que lo pida
    (unidades: "por golpe", "segundos", "studs").
 3. `src/combat/Services/AbilityService.luau`: el handler en la sección del rol, con las
@@ -162,7 +165,9 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
    entrada en `HANDLERS`. Devuelve `false` si no se pudo usar (no gasta recarga). Actualiza la lista
    de la cabecera del archivo.
 4. Si **mueve al jugador**: la parte del movimiento en `RoleController.useAbility` (como `Charge`,
-   `Blink`, `Whirlwind`) y en el servidor solo el daño/efecto con `AbilityFx.others`.
+   `Blink`, `Whirlwind`), en `release` para que salga al acabar la preparación, y en el servidor solo
+   el daño/efecto con `AbilityFx.others`. Si el gesto tiene un golpe marcado, su `impactSeconds` en
+   `Data/PlayerAnimations` (lo estira a la preparación).
 5. Efecto: función nueva en `AbilityFxController` y su entrada en `EFFECTS` con el comentario de sus
    datos; el servidor la lanza con `AbilityFx.all` (o `others`). Actualiza la cabecera del
    controlador. Si deja un objeto en el mundo (como el cepo), su forma con la skill
@@ -286,6 +291,21 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   `ChainStep` del `Player` y el `HealthChanged` de los muñecos con su hora (`ChainStep` no avisa si
   repite valor: un 1 tras otro 1 no sale). Para el remate contra un mono, sujétalo delante del jugador
   con `PivotTo` en cada `Heartbeat` y suéltalo 0,5 s tras el 4.º golpe para medir su velocidad.
+- **Preparación y amagos** (C8): registra en el servidor `CombatState` (`Casting` → nil al salir),
+  `AbilityReadyAt<hueco>`, `Stamina` y el `HealthChanged` de los muñecos. Por remotos desde el cliente:
+  `UseAbility:FireServer(hueco, puntería)`, `task.wait(0.08)` y `Guard:FireServer(true, hora)` /
+  `(false)` (amago: −15 de estamina, recarga 1,5 s, `Parrying`, sin daño). El amago del golpe:
+  `tool:Activate()` y la guardia a los 0,1 s (gratis; el segundo antes de 1 s no vale). Para el camino
+  del cliente (humo, que no gire ni cargue), teclas reales en una sola llamada:
+  `keyPress Z`, `wait 60`, `keyPress F`; mira `workspace.AbilityFx` (una pieza "Swell") y el giro de la
+  raíz en `RenderStepped`. Para cortar una preparación con un aturdimiento, conecta en el servidor un
+  `GetAttributeChangedSignal("CombatState")` que al ver `Casting` llame a `Status.stunPlayer` (la
+  llamada siguiente del MCP llega tarde). Ojo: la copia del MCP tiene su propio `StateMachine`, así
+  que el temporizador real de `Casting` puede quitarle antes el estado al aturdido de la copia; en el
+  juego no pasa (el aturdido real cambia el ticket).
+- **La calculadora sin el Studio de la Isla**: copia `src/island/tools/Equilibrio.luau` a
+  `src/shared/_EquilibrioTemporal.luau`; Rojo la sincroniza a `ReplicatedStorage.Shared` del place
+  abierto y se carga con `Clone` + `require` como siempre. Bórrala al terminar (y no la subas).
 - **Saltar**: `Humanoid.Jump = true` desde el MCP no salta (los controles de Roblox lo pisan). Para
   estar en el aire en un instante (el remate que lanza), sube al personaje con `PivotTo` unos 9 studs
   justo antes.
@@ -355,6 +375,10 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   necesita un margen fijo en el servidor (`Config.Net.JitterSeconds`) además del ping: sin él, en
   Studio (ping ~0) una pulsación que llegaba milisegundos antes se rechazaba y la cadena se rompía. Para
   que el margen no suba el ritmo, el siguiente paso cuenta desde `max(ahora, listoEn)`.
+- La simulación es escalonada: con el arma pegando cada ~0,9 s, 0,05 s más de preparación (o de daño)
+  puede quitar o no un garrotazo y mover el duelo de la arena 0,3–0,6 s de golpe. Antes de compensar,
+  mira la rejilla entera: si cada arreglo mueve otra alerta al límite, deja la alerta con su razón y
+  que la calibración final (C13) la resuelva con todo puesto.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
   extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final.
 

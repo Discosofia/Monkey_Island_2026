@@ -85,7 +85,7 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Cadena de golpes (sección 7) | DPS de la cadena ÷ el del golpe suelto; tambaleo y hueco entre golpes frente a `Config.Reaction`; daño de una cadena en la arena (con el escalado del combo); guardia que gasta | que la cadena no cambie el DPS, que siempre deje responder y que todas las armas rompan la guardia en el mismo tiempo |
 | Defensa (sección 8) | golpes y segundos para romper la guardia por arma (con su recuperación); duelo espejo de la arena con `defensa` (bloqueo y parry) | que quedarse en guardia no sea gratis y que defender alargue el duelo sin eternizarlo |
 | Control y escape (sección 9) | control del equipo sobre un jefe y de cada rol sobre un mono con y sin `Config.ControlDR` (controles solapados contados una vez); en la arena, lo que entra mientras no puedes actuar (golpe de apertura + arma y una habilidad durante el aturdimiento), con el Evasivo en recarga | que nadie se quede sin salida y que el control no se apile |
-| Monos con preparación (sección 10) | aviso de cada mono frente a la reacción; DPS para un jugador atento (`esquivaMonos`); golpes y segundos para romper la guardia | que todo ataque se vea venir y que bloquear contra un alfa no sea un muro ni un papel |
+| Preparación (sección 10) | monos: aviso de cada mono frente a la reacción; DPS para un jugador atento (`esquivaMonos`); golpes y segundos para romper la guardia. Habilidades (C8): su preparación, recarga, la de un amago y la guardia que gasta por uso. La simulación (secciones 2 y 6) saca cada habilidad al acabar su preparación y no pega con el arma mientras dura | que todo ataque se vea venir y que bloquear contra un alfa no sea un muro ni un papel; que la preparación no se note lenta ni quite valor al combo |
 
 Las secciones 7 a 10 son de la Fase 10 ("Combate v2"). Hasta que se haga el grupo de cada mecánica,
 miden los números **propuestos** de `Config` (`Reaction`, `Chain`, `Guard`, `Net`, `Evasive`,
@@ -134,6 +134,7 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Hueco entre dos golpes de una cadena | ≥ `Config.Reaction` (0,25 s) | la cadena siempre deja bloquear, hacer parry o esquivar |
 | Golpes para romper la guardia (un golpe suelto: remate, habilidad, jefe, mono) | ≥ 4 | ningún golpe solo te deja sin guardia |
 | Segundos que aguanta en guardia quien recibe cadenas seguidas | 4–6 s | quedarse en guardia se paga, pero da tiempo a responder |
+| Preparación de una habilidad | 0–0,35 s; una imbloqueable se ve venir (preparación + lo que tarda su golpe) ≥ `Config.Reaction` (0,25 s) | más larga se nota lenta; una imbloqueable que no se ve venir no tiene respuesta |
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
@@ -296,6 +297,19 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   tienen sujeto el 16 % del tiempo solo con la inmunidad de 2 s y el **11 %** con ellos (talentos al
   máximo 22 → 14 %). La alerta del Pisotón con talentos al máximo (65 % tras aturdir 1,75 s) sigue: la
   respuesta es el Evasivo (con él entra solo el golpe de apertura, 38); se revisa en C13.
+- **C8 ✅ (22-10-2026):** preparación de las habilidades (`castSeconds`, 0,15–0,35 s; al momento
+  Grito, Parpadeo y Escudo) y amagos (`Config.Feint`). Valor del combo en 180 s casi igual (grupo /
+  1 objetivo: guerrero +30/+14 → +33/+15 %, cazador +31/+17 → +29/+14 %, mago +34/+15 → +32/+15 %).
+  DPS en grupo sin combos: guerrero 47,3 → 45,4 (−4 %: la preparación del Torbellino y la Embestida
+  se suma al giro y a la carga y le quita garrotazos), los demás ±1 %. Duelos espejo de la arena 9,8 ·
+  9,1 · 9,3 → **10,4** · 9,3 · 9,6 s, y el de guerreros con defensa 11,8 → **12,6** s: dos alertas
+  nuevas, a propósito (la preparación da tiempo a responder) y se recalibran en C13, cuando los
+  proyectiles reales (C9) cambien más los duelos. Compensarlo ahora no cuadra: el garrote ×1,1 en la
+  arena devuelve 9,8 s pero sube el combo del Pisotón a 36 % (límite 35 %), y la Embestida 27 y el
+  Rompehuesos 27 con el garrote ×1,04 lo arreglan sin talentos pero dejan al mago −20 % con talentos.
+  El efecto es escalonado (un garrotazo más o menos): 0,05 s de preparación más o menos lo cambia
+  todo o nada. La alerta nueva "imbloqueable que no se ve venir" la tenía el Pisotón antes de C8
+  (0,2 s): ahora 0,55 s.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

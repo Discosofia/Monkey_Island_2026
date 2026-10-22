@@ -16,7 +16,8 @@
 --   1. Fichas: cada habilidad por separado (daño por uso, DPS sostenido, segundos de arma, control,
 --      curación).
 --   2. Simulación de SEGUNDOS s por rol, contra 1 objetivo y contra un grupo, con dos jugadores: uno
---      que pulsa lo que esté listo y otro que enlaza el combo. Daño acumulado en el tiempo.
+--      que pulsa lo que esté listo y otro que enlaza el combo. Daño acumulado en el tiempo. Cada
+--      habilidad sale al acabar su preparación ("castSeconds", C8).
 --   3. Tiempo para matar monos y duración de los jefes.
 --   4. Amenaza de los monos y jefes al jugador.
 --   5. Mascotas.
@@ -27,7 +28,8 @@
 --   8. Defensa: lo que tarda en romperse la guardia y los duelos de la arena con bloqueo y parry.
 --   9. Control y escape: control sobre los jefes con rendimientos decrecientes y la secuencia más
 --      larga sin poder actuar en la arena.
---   10. Monos con preparación: aviso, DPS para un jugador atento y guardia.
+--   10. Preparación: la de los monos (aviso, DPS para un jugador atento y guardia) y la de las
+--       habilidades con sus amagos (C8).
 --   11. Alertas: lo que se sale de los límites.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -146,6 +148,9 @@ local LIMITES = {
 	golpesRomperGuardia = 4, -- ningún golpe suelto rompe la guardia en menos golpes
 	romperGuardiaCuerpo = { 4, 6 }, -- s que aguanta en guardia quien recibe una cadena tras otra
 	arenaDueloDefensa = { 8, 12 }, -- duelo espejo con bloqueo y parry (OPCIONES.defensa)
+	-- Preparación de una habilidad (s, C8): corta para que no se note lenta; las imbloqueables se ven venir
+	-- (preparación + lo que tarda su golpe) al menos Config.Reaction (si no, no se pueden leer ni esquivar).
+	preparacionHabilidad = { 0, 0.35 },
 }
 
 -- ===================================== Utilidades =====================================
@@ -212,10 +217,11 @@ end
 --   combo: Config.Combo
 -- Ficha:
 --   familia     texto ("Daño en área", "Control", "Curación"…)
---   golpes      { { cantidad, en (s desde el uso), objetivos, minObjetivos? } } daño a cada objetivo
+--   golpes      { { cantidad, en (s desde que sale, tras su preparación), objetivos, minObjetivos? } }
+--               daño a cada objetivo
 --   objetivos   { fijo = n } · { radio = r } (estimado por tipicosEnRadio) · { abanico = flechas }
 --               · { radio = r, menos = 1 } (el área sin el impactado)
---   bloqueo     segundos que no se puede atacar con el arma (giros, cargas)
+--   bloqueo     segundos que no se puede atacar con el arma desde que sale (giros, cargas)
 --   control     { segundos, objetivos, tipo = "Stun" | "Freeze" | "Root" | "Sleep", jefes? }
 --               (jefes = false: no afecta a los jefes, no cuenta en el control del equipo sobre un jefe)
 --   lento       { segundos, factor, objetivos }
@@ -301,12 +307,12 @@ local MODELOS: { [string]: Modelo } = {
 			golpes = {
 				{
 					cantidad = A.SmashDamage * perk("MeleeDamage") * perk("SmashDamage"),
-					en = 0.25,
+					en = 0, -- al acabar la preparación (castSeconds), cuando el arma baja
 					objetivos = objetivos,
 				},
 			},
 			control = { segundos = A.SmashStun, objetivos = objetivos, tipo = "Stun" },
-			bloqueo = 0.4,
+			bloqueo = 0.15, -- después del golpe
 		}
 	end,
 	-- Cazador.
@@ -658,6 +664,11 @@ local function main(copia: Instance): string
 	local function recargaDe(ability: any, perk: Perk): number
 		local propia = if Perks[`{ability.id}Cooldown`] ~= nil then perk(`{ability.id}Cooldown`) else 1
 		return ability.cooldownSeconds * perk("CooldownRate") * propia
+	end
+
+	-- Preparación de una habilidad (C8): lo que tarda en salir desde que se pulsa (AbilityService).
+	local function preparacionDe(ability: any): number
+		return ability.castSeconds or (Config.Windup and Config.Windup.AbilityDefaultSeconds) or 0
 	end
 
 	local function fichaDe(ability: any, perk: Perk, remate: boolean): Ficha?
@@ -1052,11 +1063,14 @@ local function main(copia: Instance): string
 				end
 			end
 			local ficha = fichaDe(ability, perk, enlazado)
-			listo[hueco] = t + recargaDe(ability, perk) * factorRacha()
+			-- Sale al acabar la preparación (C8): sus golpes y su recarga cuentan desde ahí, y mientras dura
+			-- no se pega con el arma. El combo se decide al pulsar (en el juego, al salir: es casi lo mismo).
+			local prep = preparacionDe(ability)
+			listo[hueco] = t + prep + recargaDe(ability, perk) * factorRacha()
 			if not ficha then
 				return
 			end
-			bloqueoHasta = t + math.max(OPCIONES.lanzamiento, ficha.bloqueo or 0)
+			bloqueoHasta = t + math.max(OPCIONES.lanzamiento, prep + (ficha.bloqueo or 0))
 			-- Los marcados por el paso 1 son, como mucho, los que alcanzó (aprox. los 2-3 primeros).
 			local marcados = math.min(grupo, 3)
 			-- Contra jugadores, las definitivas llevan además su propio multiplicador (AbilityService.hurt).
@@ -1066,7 +1080,7 @@ local function main(copia: Instance): string
 					local cuantos = resolver(golpe.objetivos, grupo)
 					local seguro = if enlazado and cuantos > 0 then math.min(1, marcados / cuantos) else 0
 					table.insert(pendientes, {
-						en = t + golpe.en,
+						en = t + prep + golpe.en,
 						cantidad = golpe.cantidad * cuantos * definitiva,
 						criticoSeguro = seguro,
 						bonus = bonus,
@@ -1076,12 +1090,12 @@ local function main(copia: Instance): string
 			if ficha.vulnerable then
 				-- Solo en los que alcanza: con un área pequeña, parte del grupo se queda fuera.
 				local cuantos = resolver(ficha.vulnerable.objetivos, grupo)
-				vulnerableDesde = t + (ficha.vulnerable.en or 0)
+				vulnerableDesde = t + prep + (ficha.vulnerable.en or 0)
 				vulnerableHasta = vulnerableDesde + ficha.vulnerable.segundos
 				vulnerableValor = ficha.vulnerable.valor * math.min(1, cuantos / grupo)
 			end
 			if ficha.veneno then
-				venenoHasta = t + ficha.veneno.segundos
+				venenoHasta = t + prep + ficha.veneno.segundos
 				venenoDps = if pvp then ficha.veneno.dps * pvp.habilidades else venenoReal(ficha.veneno.dps)
 				venenoCuantos = resolver(ficha.veneno.objetivos, grupo)
 			end
@@ -1810,6 +1824,11 @@ local function main(copia: Instance): string
 
 	-- Arma cuerpo a cuerpo del rol (la que se mide en la cadena): la elegida en OPCIONES.armas si es de
 	-- cuerpo a cuerpo, si no la primera de sus armas iniciales que lo sea.
+	-- Ajuste propio de un arma en la arena (Config.Arena.WeaponMultipliers).
+	local function propioArena(armaId: string): number
+		return (arenaConfig.WeaponMultipliers or {})[armaId] or 1
+	end
+
 	local function armaCuerpo(roleId: string): string?
 		local elegida = OPCIONES.armas[roleId]
 		if elegida and Weapons[elegida] and Weapons[elegida].kind == "Melee" then
@@ -1921,7 +1940,7 @@ local function main(copia: Instance): string
 				local cadena = cadenaDe(armaId, ventaja)
 				local arena = 0
 				for k, golpe in cadena.golpes do
-					arena += golpe.dano * armaArena * escalaCombo(k)
+					arena += golpe.dano * armaArena * propioArena(armaId) * escalaCombo(k)
 				end
 				local responde = cadena.hueco >= REACCION
 				local segundosGuardia = romperGuardia(cadena.guardia / #CH.Steps, cadena.duracion / #CH.Steps)
@@ -1999,7 +2018,15 @@ local function main(copia: Instance): string
 			end
 		end
 		-- Ningún golpe suelto (habilidad, remate) rompe la guardia entera en menos de LIMITES.golpesRomperGuardia.
+		-- Cada habilidad gasta su "guardDamage" (Data/Roles) una vez por uso aunque pegue varias veces (C8).
 		local mayor = math.max(GU.FinisherGuardDamage, GU.AbilityGuardDamage, GU.BossGuardDamage)
+		for _, roleId in ordenRoles do
+			for _, ability in Roles[roleId].abilities do
+				if not ability.unblockable then
+					mayor = math.max(mayor, ability.guardDamage or GU.AbilityGuardDamage)
+				end
+			end
+		end
 		if mayor * LIMITES.golpesRomperGuardia > GU.Max + 1e-6 then
 			alerta(
 				`Guardia: un golpe de {mayor} la rompe en {math.ceil(GU.Max / mayor)} golpes (mín. {LIMITES.golpesRomperGuardia})`
@@ -2179,7 +2206,7 @@ local function main(copia: Instance): string
 						local cadena = cadenaDe(armaId, perk("MeleeDamage"))
 						for k, golpe in cadena.golpes do
 							if golpe.en < segundos then
-								suma += golpe.dano * armaArena * escalaCombo(k + desde)
+								suma += golpe.dano * armaArena * propioArena(armaId) * escalaCombo(k + desde)
 							end
 						end
 					end
@@ -2207,7 +2234,8 @@ local function main(copia: Instance): string
 							local otraFicha = if otraHabilidad ~= ability
 								then fichaDe(otraHabilidad, perk, false)
 								else nil
-							if otraFicha and segundos >= REACCION then
+							-- Solo si da tiempo a reaccionar y a prepararla (C8) antes de que se levante.
+							if otraFicha and segundos >= REACCION + preparacionDe(otraHabilidad) then
 								otra = math.max(otra, contraJugador(otraHabilidad, otraFicha))
 							end
 						end
@@ -2297,11 +2325,72 @@ local function main(copia: Instance): string
 		linea("")
 	end
 
-	-- ===================================== 10. Monos con preparación (C6) =====================================
+	-- ===================================== 10. Preparación (C6, C8) =====================================
 
 	if OPCIONES.secciones.preparacion and Config.Windup then
 		local W = Config.Windup
-		linea("## 10. Monos con preparación (Fase 10, C6 ✅: Config.Windup y Combat/EnemyAttack)")
+		linea(
+			"## 10. Preparación (Fase 10: monos C6 ✅, Config.Windup y Combat/EnemyAttack; habilidades y amagos C8 ✅, Combat/Feint)"
+		)
+		local FE = Config.Feint
+		if FE then
+			linea(
+				`Habilidades: salen al acabar su preparación ("castSeconds"; sin él, {n(W.AbilityDefaultSeconds, 2)} s). Amago (guardia durante la preparación): golpe gratis, uno cada {FE.WeaponCooldownSeconds} s; habilidad {FE.AbilityStaminaCost} de estamina y recarga de {n(
+					FE.AbilityPenaltySeconds,
+					1
+				)} s. Guardia que gasta: una vez por uso.`
+			)
+			linea("| Rol | Habilidad | Preparación | Recarga | Amagada | Guardia por uso |")
+			linea("|---|---|---|---|---|---|")
+			for _, roleId in ordenRoles do
+				if visible(roleId) then
+					local perk = perksDe(roleId)
+					for _, ability in Roles[roleId].abilities do
+						local prep = preparacionDe(ability)
+						local ficha = fichaDe(ability, perk, false)
+						local pega = ficha ~= nil and #(ficha.golpes or {}) > 0
+						local guardia = if ability.unblockable
+							then "imbloqueable"
+							elseif pega then tostring(ability.guardDamage or (GU and GU.AbilityGuardDamage) or 0)
+							else "-"
+						linea(
+							`| {Roles[roleId].icon} {roleId} | {ability.name} | {if prep > 0
+								then n(prep, 2) .. " s"
+								else "al momento"} | {n(recargaDe(ability, perk), 1)} s | {if prep > 0
+								then n(FE.AbilityPenaltySeconds, 1) .. " s"
+								else "-"} | {guardia} |`
+						)
+						if fuera(prep, LIMITES.preparacionHabilidad) then
+							alerta(
+								`{ability.name} ({roleId}): prepara {n(prep, 2)} s (entre {LIMITES.preparacionHabilidad[1]} y {LIMITES.preparacionHabilidad[2]} s)`
+							)
+						end
+						-- Lo que se ve venir una imbloqueable: su preparación y lo que tarda en llegar su primer
+						-- golpe (el Meteoro cae del cielo sobre su aviso rojo).
+						local llega = math.huge
+						for _, golpe in if ficha then ficha.golpes or {} else {} do
+							llega = math.min(llega, golpe.en)
+						end
+						local aviso = prep + (if llega == math.huge then 0 else llega)
+						if ability.unblockable and aviso < REACCION - 1e-6 then
+							alerta(
+								`{ability.name} ({roleId}): es imbloqueable y se ve venir {n(aviso, 2)} s (mín. {n(
+									REACCION,
+									2
+								)} s para poder leerla)`
+							)
+						end
+						if FE.AbilityPenaltySeconds >= recargaDe(ability, perk) and prep > 0 then
+							alerta(
+								`{ability.name} ({roleId}): su recarga ({n(recargaDe(ability, perk), 1)} s) no es mayor que la del amago`
+							)
+						end
+					end
+				end
+			end
+			linea("")
+		end
+		linea("Monos:")
 		linea(
 			`Aviso antes del mordisco por categoría: {table.concat(W.MonkeyByTier, " · ")} s; jefes {W.BossSeconds} s. La preparación cabe en la recarga (cuenta desde que empieza): el DPS no cambia. Un jugador atento esquiva o se aparta del {pct(
 				OPCIONES.esquivaMonos

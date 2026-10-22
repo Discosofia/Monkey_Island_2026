@@ -6,6 +6,8 @@
 -- paso), se guarda en el búfer la pulsación que llega un poco antes de tiempo y, si el tajo da a algo,
 -- se para un instante (parón de impacto) y el remate hace temblar la cámara. El hacha, el pico y la
 -- hoz (y un personaje R6) usan el tajo de Roblox, más rápido que el normal.
+-- Amago (C8, CombatClient/Feint): pulsar la guardia durante la preparación de un tajo lo corta y la
+-- cadena vuelve al primer golpe. Mientras se prepara una habilidad no se pega.
 -- Las de distancia (R15) usan las animaciones de Shared/Data/WeaponAnimations: con el arma en la
 -- mano, el brazo derecho cuelga junto al cuerpo ("Hold", en bucle) y al disparar hace el movimiento
 -- de su tipo de arma (tensar el arco, estirar la honda, lanzar el hechizo, soplar la cerbatana),
@@ -29,6 +31,7 @@ local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 local Aim = require(script.Parent.Parent.Aim)
+local Feint = require(script.Parent.Parent.Feint)
 
 -- Tajo estándar de Roblox, por si el personaje no trae el suyo en su script Animate.
 local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
@@ -246,8 +249,19 @@ local function playChainSwing(character: Model, weapon: Weapons.WeaponDefinition
 			slashTrack:Play(0.05, 1, weapon.swingAnimationSpeed or 1)
 		end
 	end
+	local feinted = false
+	local mark = Feint.begin("Attack", MeleeChain.windupSeconds(weapon, step), function()
+		feinted = true
+		chain = MeleeChain.newState()
+		if track and track.IsPlaying then
+			track:Stop(0.1)
+		elseif slashTrack and slashTrack.IsPlaying then
+			slashTrack:Stop(0.1)
+		end
+	end)
 	task.delay(MeleeChain.windupSeconds(weapon, step), function()
-		if character.Parent == nil or not swingConnects(character, weapon) then
+		Feint.finish(mark)
+		if feinted or character.Parent == nil or not swingConnects(character, weapon) then
 			return
 		end
 		local finisher = MeleeChain.isFinisher(step)
@@ -286,6 +300,7 @@ local function swingChain(character: Model, tool: Tool, weaponId: string, weapon
 			and tool.Parent == character
 			and LifeState.isAlive(player)
 			and CombatState.canAct(player, "Attack")
+			and not Feint.casting()
 		then
 			swingChain(character, tool, weaponId, weapon)
 		end
@@ -305,7 +320,7 @@ local function hook(instance: Instance)
 		if not character or not LifeState.isAlive(Players.LocalPlayer) then
 			return
 		end
-		if not CombatState.canAct(Players.LocalPlayer, "Attack") then
+		if not CombatState.canAct(Players.LocalPlayer, "Attack") or Feint.casting() then
 			return
 		end
 		if weapon and MeleeChain.uses(weapon) then

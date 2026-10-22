@@ -28,11 +28,13 @@ Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, 
    se mandó hace menos de 0,5 s. Calcula la puntería (`Aim.direction`). Las de **movimiento** las
    hace el propio cliente, que es quien mueve a su personaje: `Charge` (empuje), `Blink`
    (teletransporte, manda `from`/`to`) y `Whirlwind` (giro). Pone el gesto con
-   `BodyAnimations.playAbility(id)` y manda `Remotes.UseAbility:FireServer(slot, aim, from, to)`.
+   `BodyAnimations.playAbility(id, castSeconds)` y manda `Remotes.UseAbility:FireServer(slot, aim, from,
+   to)`. La carga y el giro esperan a que acabe la preparación (C8, `sistema-de-combate.md` §5 bis).
 2. **Servidor** (`AbilityService.onUseAbility`): valida tipos, rol, vida, `LifeState.isAlive` y la
-   recarga (con 0,25 s de margen por la red). Llama a `ComboService.onAbilityUsed` **antes** del
-   handler (así el handler ya sabe si va enlazado) y luego a `HANDLERS[id](player, character, root,
-   aim, { from, to })`.
+   recarga (con 0,25 s de margen por la red). Preparación (C8): estado `Casting` durante
+   `castSeconds` (Data/Roles) y al acabar `release`, si no le han aturdido ni ha amagado. `release`
+   llama a `ComboService.onAbilityUsed` **antes** del handler (así el handler ya sabe si va enlazado)
+   y luego a `HANDLERS[id](player, character, root, aim, { from, to })`.
 3. El handler devuelve `true` si la habilidad se usó. **Si devuelve `false` no gasta recarga** (el
    Rayo encadenado sin mono a tiro).
 4. Recarga = `cooldownSeconds × Perk CooldownRate × ComboService.cooldownFactor` → atributo

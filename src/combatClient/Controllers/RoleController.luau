@@ -14,6 +14,11 @@
 --   - La casilla del siguiente paso del combo (Data/Combos) se resalta en azul.
 --   - Con el atributo "MovementLocked" (en la arena, quien lleva la bandera rival) no se pueden usar
 --     la Embestida ni el Parpadeo.
+--   - Preparación (Fase 10, C8): el gesto sale al pulsar y la habilidad al acabar su "castSeconds"
+--     (Data/Roles); el movimiento propio (la Embestida, el giro del Torbellino) también espera a ese
+--     momento, como el servidor. Pulsar la guardia mientras tanto es un amago (CombatClient/Feint): se
+--     para el gesto y no sale. Si le aturden antes, tampoco. El Parpadeo no lleva preparación: se
+--     teletransporta al pulsar y manda desde dónde y hasta dónde.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -37,6 +42,7 @@ local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local Dash = require(script.Parent.Parent.Dash)
+local Feint = require(script.Parent.Parent.Feint)
 
 -- Una por hueco de Data/Roles (el 4 es la definitiva; el 5, la cuarta activa).
 local KEYS = { Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V, Enum.KeyCode.R }
@@ -210,8 +216,9 @@ local function useAbility(player: Player, slot: number)
 	if not LifeState.isAlive(player) or readyIn(player, slot) > 0 then
 		return
 	end
-	-- Aturdido no se usan habilidades (Shared/CombatState; el servidor lo comprueba otra vez).
-	if not CombatState.canAct(player, "Ability") then
+	-- Aturdido no se usan habilidades (Shared/CombatState; el servidor lo comprueba otra vez), ni
+	-- mientras se prepara otra.
+	if not CombatState.canAct(player, "Ability") or Feint.casting() then
 		return
 	end
 	if os.clock() - (lastSentAt[slot] or -math.huge) < 0.5 then
@@ -222,11 +229,16 @@ local function useAbility(player: Player, slot: number)
 		return
 	end
 	local aim = Aim.direction(character)
+	local castSeconds = ability.castSeconds or Config.Windup.AbilityDefaultSeconds
 	-- Desde dónde y hasta dónde va el Parpadeo, para que los demás vean su efecto.
 	local from, to = nil, nil
+	-- Lo que mueve al personaje: sale a la vez que la habilidad en el servidor.
+	local release: (() -> ())? = nil
 	if ability.id == "Charge" then
-		charge(root, flat(aim))
-		AbilityFxController.play("Charge", character, Config.Abilities.ChargeSeconds)
+		release = function()
+			charge(root, flat(aim))
+			AbilityFxController.play("Charge", character, Config.Abilities.ChargeSeconds)
+		end
 	elseif ability.id == "Blink" then
 		from = root.Position
 		if not blink(character, root, flat(aim), Progression.perk(player, "BlinkDistance")) then
@@ -240,17 +252,53 @@ local function useAbility(player: Player, slot: number)
 		if ComboController.nextStep(player) == "Whirlwind" then
 			seconds += Config.Combo.WhirlwindExtraSeconds
 		end
-		spin(humanoid, root, seconds)
-		AbilityFxController.play("Whirlwind", character, seconds)
+		-- Agachado y con los brazos abiertos desde que se pulsa; gira al salir.
+		BodyAnimations.play("Whirlwind")
+		release = function()
+			spin(humanoid, root, seconds)
+			AbilityFxController.play("Whirlwind", character, seconds)
+		end
 	elseif ability.id == "Smash" then
 		-- El golpe va al cono de delante: se vuelve hacia donde apunta.
 		local facing = flat(aim)
 		root.CFrame = CFrame.lookAt(root.Position, root.Position + facing)
 	end
-	-- Gesto del cuerpo (pisotón, lanzar, agacharse…), si la habilidad tiene (Data/PlayerAnimations).
-	BodyAnimations.playAbility(ability.id)
+	-- Gesto del cuerpo (pisotón, lanzar, agacharse…), si la habilidad tiene (Data/PlayerAnimations),
+	-- con su golpe al acabar la preparación.
+	BodyAnimations.playAbility(ability.id, castSeconds)
 	lastSentAt[slot] = os.clock()
 	Remotes.UseAbility:FireServer(slot, aim, from, to)
+	if castSeconds <= 0 then
+		if release then
+			release()
+		end
+		return
+	end
+	local feinted = false
+	local mark = Feint.begin("Ability", castSeconds, function()
+		feinted = true
+		BodyAnimations.stopAbility(ability.id)
+		if ability.id == "Whirlwind" then
+			BodyAnimations.stop("Whirlwind")
+		end
+	end)
+	task.delay(castSeconds, function()
+		Feint.finish(mark)
+		-- Amagada, o le han aturdido o tambaleado mientras: en el servidor tampoco sale.
+		local state = CombatState.get(player)
+		local cut = feinted
+			or not LifeState.isAlive(player)
+			or not (state == "Casting" or state == "Idle" or state == "Attacking")
+		if cut then
+			if ability.id == "Whirlwind" and not feinted then
+				BodyAnimations.stop("Whirlwind")
+			end
+			return
+		end
+		if release then
+			release()
+		end
+	end)
 end
 
 -- Casillas de las habilidades bajo las barras de supervivencia.

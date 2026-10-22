@@ -392,7 +392,9 @@ local Config = {
 		ResetSeconds = 6,
 	},
 
-	-- Amagos (C8): pulsar la guardia durante la preparación cancela el golpe o la habilidad.
+	-- Amagos (C8; Combat/Feint, CombatClient/Feint): pulsar la guardia durante la preparación cancela el
+	-- golpe de la cadena o la habilidad, sale un humo corto y la guardia se pone como siempre (amagar y
+	-- parar es una opción). Si el amago no se puede, la guardia espera a que acabe, como antes.
 	Feint = {
 		WeaponCooldownSeconds = 1, -- el del golpe es gratis, como mucho uno por esto
 		AbilityStaminaCost = 15, -- el de una habilidad cuesta estamina…
@@ -416,7 +418,9 @@ local Config = {
 		ReachMargin = 1.5,
 		HitWidthFactor = 1.2,
 		HitHeight = 8,
-		AbilityDefaultSeconds = 0.2, -- habilidades sin "castSeconds" propio (C8)
+		-- Habilidades sin "castSeconds" propio (C8, Data/Roles). Cada una sale al acabar la suya; si en ese
+		-- tiempo te aturden, no sale y no gasta la recarga.
+		AbilityDefaultSeconds = 0.2,
 	},
 
 	-- Rebote contra muros (C10): un empujón que te estampa contra una pared o roca.

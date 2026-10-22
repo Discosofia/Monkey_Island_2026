@@ -11,11 +11,11 @@ no coincide con el código, manda el código.
 |---|---|---|
 | Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` | Proyectiles reales (C9) |
 | Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor); Evasivo (`Combat/Evasive`, `CombatClient/EvasiveIcon`, C7 ✅) | — |
-| Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅) | Guardia, cadena, Evasivo… (C4–C8) |
+| Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅); `Casting` de las habilidades (C8 ✅) | — |
 | Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
 | Ataques de monos y jefes | Preparación con aviso y golpe al acabarla (`Combat/EnemyAttack`, `EnemyWindupController`, C6 ✅) | — |
 | Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅) | Proyectiles (C9), muros de los empujes (C10) |
-| Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅), también contra monos y jefes, con sus imbloqueables (C6 ✅) | Amagos (C8) |
+| Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅), también contra monos y jefes, con sus imbloqueables (C6 ✅); amagos (`Combat/Feint`, `CombatClient/Feint`, C8 ✅) | — |
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
 | Escalado del combo (PvP) | `Combat/ComboScaling` en `CombatService.damagePvP` (C7 ✅); controles PvP con rendimientos decrecientes en `Status.holdPlayer` | — |
 | Reglas por place | `Combat/CombatRules`; telemetría de mecánicas (`telemetry.mechanic`, C7 ✅: Isla `TelemetryService`, Dunas `ArenaTelemetryService`) | Campos de entorno (C10–C11) |
@@ -38,7 +38,8 @@ no coincide con el código, manda el código.
   `Staggered` (el tambaleo de la cadena en PvP, C4, y el parry recibido, C5), `Parrying`, `Blocking`
   (sin fin: `StateMachine.enter` sin segundos dura hasta `leave`) y `GuardBroken` (C5, con
   `Status.stunPlayer(…, "GuardBroken")`) y `Evading` (el Evasivo, C7, lo que dura su invulnerabilidad);
-  `Casting` y `Dodging` los usará C8.
+  `Casting` (C8: la preparación de una habilidad; no pega, ni otra habilidad, ni esquiva; la guardia
+  la amaga). `Dodging` no se usa: la esquiva solo pone `InvulnerableUntil`.
 - **Atrapado** (`CombatState.isTrapped`, C7): aturdido, guardia rota, inmovilizado (`StunnedUntil`) o
   lanzado (`LaunchedUntil`, que pone `Knockback.push` con `lift` a un jugador: lo que tarda en caer,
   `2 × lift ÷ gravedad`, ~0,46 s). Atrapado, la esquiva es el Evasivo; `onDodge` la rechaza.
@@ -112,8 +113,10 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 - Escalado del combo (C7, §8): cada golpe de la cadena que entra a un jugador cuenta; su daño y su
   tambaleo bajan desde el 4.º seguido. Un remate que alcanza algo suma `ChainFinishers` en la telemetría.
 
-**Planificado.** C8: amago (cancelar la
-preparación). C9: proyectiles simulados por el servidor (ver §6). C10: el remate contra un muro aturde.
+- Amago (C8, §5 bis): pulsar la guardia durante la preparación del golpe (`chainAttack` lo registra
+  en `Combat/Feint`) lo cancela; la cadena vuelve al primero. Gratis, uno por segundo.
+
+**Planificado.** C9: proyectiles simulados por el servidor (ver §6). C10: el remate contra un muro aturde.
 
 ## 4. Esquiva, estamina y Evasivo
 
@@ -206,6 +209,47 @@ marca y el expuesto (con `pvpStatus`) van después de la guardia, con el crític
   tajo pone la guardia al acabar el paso; en guardia no pega; esquivar la suelta; velocidad 9,6
   (16 × 0,6). Caído: F enlazada a Rendirse y no a la guardia; al revivir, al revés.
 
+## 5 bis. Preparación de las habilidades y amagos (C8 ✅)
+
+- **Preparación**: `castSeconds` de cada habilidad en `Data/Roles` (sin él,
+  `Config.Windup.AbilityDefaultSeconds` 0,2). `AbilityService.onUseAbility` valida y llama a `cast`:
+  estado `Casting` (con 0,5 s de margen, por si cae a mitad) durante `castSeconds −
+  Latency.compensation` y al acabar `release` (si sigue en `Casting` y con su ticket: un aturdimiento,
+  un tambaleo o caer la cortan sin gastar la recarga). `release` cuenta el uso (`useKey`), llama a
+  `ComboService.onAbilityUsed` (el paso cuenta al salir, no al pulsar), al handler y pone la recarga.
+  `castSeconds = 0` (Grito, Parpadeo, Escudo): `release` al momento, como antes.
+- Cliente (`RoleController.useAbility`): el gesto al pulsar (`BodyAnimations.playAbility(id,
+  castSeconds)`, que estira el de `impactSeconds` —el Rompehuesos, 0,25 s— para que el golpe caiga al
+  salir) y lo que mueve al personaje (la carga de la Embestida, el giro del Torbellino, que ya se agacha
+  al pulsar) al acabar, si no ha amagado ni le han aturdido. El Parpadeo no lleva preparación: se
+  teletransporta al pulsar y manda `from`/`to`. Mientras prepara, `CombatClient/Feint.casting()` no
+  deja pegar (`WeaponController`), ni usar otra (`RoleController`), ni esquivar (`DodgeController`).
+- El Rompehuesos ya no lleva su `task.delay(0.25)` ni el efecto su espera: la preparación es eso.
+- **Amagos** (`Combat/Feint`, servidor; `CombatClient/Feint`, cliente; `Config.Feint`): quien
+  prepara algo lo registra (`Feint.begin(player, "Attack" | "Ability", segundos, cancel)` y
+  `finish` al salir). `Guard` llama a `Feint.try` al pulsar, **antes** de poner la guardia: si puede,
+  cancela y la guardia se pone ya (amagar y parar en la misma pulsación). Golpe: gratis, uno cada
+  `WeaponCooldownSeconds` (1). Habilidad: `AbilityStaminaCost` (15) de `StaminaServer` y
+  `AbilityReadyAt<hueco>` = ahora + `AbilityPenaltySeconds` (1,5). `FeintFx` a los demás (humo gris
+  delante del pecho; el propio cliente lo dibuja al momento) y telemetría `Feints`. Si no puede, la
+  guardia espera a que acabe, como antes. El cliente predice igual (`GuardController` → `Feint.try`):
+  para el tajo o el gesto y no lanza el movimiento; solo hasta su ping antes de que salga (después la
+  pulsación llegaría tarde) y avisa "💨 Sin estamina para amagar".
+- **Guardia una vez por uso**: `AbilityService.hurt` manda `hitKey = useKey` (`"<UserId>:<id>:<usos>"`),
+  y `CombatService.damagePvP` cobra la guardia de una clave una sola vez por víctima (la primera vez
+  que la bloquea; `guardSpent`, se olvida a los 15 s). El escalado del combo usa la misma clave: antes
+  era por habilidad, y dos usos de la misma en un combo largo contaban como uno.
+- `guardDamage` por habilidad (Data/Roles): 25 las fuertes (Torbellino, Flecha perforante, Bola de
+  fuego, Rayo), 20 las medias (Embestida, Disparo múltiple, Lluvia), 15 las de control (Cepo, Nova,
+  Polvo), 10 el Dardo. Imbloqueables: Rompehuesos, Pisotón y Meteoro.
+
+Probado en Play en el Lobby (22-10-2026, guerrero contra los muñecos, por remotos y con teclas
+reales): Rompehuesos `Casting` 0,30 s y golpe y recarga al acabar; amago del Torbellino a los 0,08 s
+(estamina 100 → 85, recarga 1,5 s, `Parrying`, sin daño; 1,9 s después sale normal); aturdido a mitad
+(no sale ni gasta la recarga; luego sale); amago del garrote (sin daño; el segundo antes de 1 s no
+vale y el golpe entra; pasado el segundo vale otra vez); Z y F con teclas reales (humo `FeintFx` en
+el cliente, sin giro); Z y X sin amagar (giro a los 0,22 s y carga a los 0,23 s de la tecla).
+
 ## 6. Detección de impactos
 
 Regla: **nunca `.Touched`**. Una consulta en el servidor en el instante del impacto, con filtros que
@@ -284,8 +328,8 @@ puede empujar a un jugador poniéndole velocidad.
   0,12)` antes de resolver (0 si ya está en guardia, si no podría abrir el parry o si es menos de un
   fotograma), y resuelve con la hora del golpe. La pulsación cuenta desde la hora que manda el cliente,
   como mucho ese margen antes de llegar. Lo que el golpe hace además del daño (tambaleo, empuje,
-  veneno) va en `onResult`, porque puede resolverse más tarde. Las habilidades no esperan (C8 les
-  pone preparación).
+  veneno) va en `onResult`, porque puede resolverse más tarde. Las habilidades no esperan el margen:
+  su preparación (C8) ya avisa antes, y el servidor la empieza `Latency.compensation` más corta.
 - Monos y jefes (C6): al acabar la preparación, `EnemyAttack.strike` espera `Guard.grace(presa)` y
   entonces mira si sigue en la caja (con su posición más reciente: a favor del defensor) y resuelve la
   guardia con la hora del golpe (`Guard.Hit.at`). El cliente sabe en qué instante del servidor cae el

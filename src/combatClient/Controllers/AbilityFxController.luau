@@ -26,7 +26,7 @@
 -- jugador y, en el del mago, el hielo que estalla.
 -- Guardia (Fase 10, C5; Combat/Guard, efecto "GuardFx"): chispa al bloquear, destello dorado al parar y
 -- estallido naranja con esquirlas y grietas al romperse. Evasivo (C7, "EvasiveFx"): ráfaga de aire
--- blanco y azul.
+-- blanco y azul. Amago (C8, "FeintFx"): bocanada corta de humo gris delante del pecho.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -861,9 +861,8 @@ local function quake(center: Vector3, radius: number)
 end
 
 -- Rompehuesos: grietas en abanico delante del guerrero (alrededor si es el remate del combo), piedras
--- que saltan y polvo. Llega con el golpe, un momento después del gesto.
+-- que saltan y polvo. Llega con el golpe, al acabar la preparación (cuando el arma baja).
 local function smash(ground: Vector3, facing: Vector3, range: number, degrees: number)
-	task.wait(0.25)
 	local params = groundParams()
 	local crackColor = Color3.fromRGB(28, 20, 14)
 	local rockColor = Color3.fromRGB(120, 95, 70)
@@ -2399,6 +2398,20 @@ local function evasiveFx(character: Model?)
 	burst(root.Position, SPARKLE_TEXTURE, blue, 16, 0.9, 14, 0.35)
 end
 
+-- Amago (C8, Combat/Feint): bocanada corta de humo gris delante del pecho, donde iba a salir el golpe.
+-- Pequeña y sin brillo para no confundirse con el Evasivo (blanco y azul, todo el cuerpo): solo dice
+-- "lo ha cancelado", para que el rival aprenda a leerlo.
+local function feintFx(character: Model?)
+	local root = rootOf(character)
+	if not (character and root) then
+		return
+	end
+	local grey = Color3.fromRGB(165, 160, 155)
+	local front = root.Position + root.CFrame.LookVector * 1.8 + Vector3.new(0, 0.6, 0)
+	swell(front, 0.6, 2.6, grey, 0.55, 0.25, Enum.Material.SmoothPlastic)
+	burst(front, SMOKE_TEXTURE, grey, 10, 1.8, 5, 0.45)
+end
+
 -- Icono sobre lo que marcó el primer paso de TU combo (atributos "ComboMarkBy"/"ComboMarkUntil",
 -- ComboService): así ves a quién rematar. Los demás jugadores no lo ven.
 local function watchComboMarks()
@@ -2506,6 +2519,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	WeaponShotFx = weaponShotFx, -- (personaje, proyectil): bocanada o destello al disparar un arma a distancia
 	GuardFx = guardFx, -- (personaje, "Block" | "Parry" | "Break"): la guardia (Combat/Guard)
 	EvasiveFx = evasiveFx, -- (personaje): el Evasivo (Combat/Evasive; el propio cliente, DodgeController)
+	FeintFx = feintFx, -- (personaje): el amago (Combat/Feint; el propio cliente, CombatClient/Feint)
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

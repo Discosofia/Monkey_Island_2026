@@ -13,6 +13,8 @@
 --     quita el movimiento y le deja pegar. Un aturdido también lo lleva. Lanzado ("LaunchedUntil",
 --     Combat/Knockback), tampoco: el remate de la cadena dado en el aire, hasta que cae.
 --   - "Evading": el Evasivo, lo que dura su invulnerabilidad.
+--   - Preparando una habilidad ("Casting", C8; AbilityService): no pega, ni otra habilidad, ni esquiva;
+--     la guardia la cancela (amago, Combat/Feint). Un aturdimiento o un tambaleo la cortan.
 -- Las prioridades (qué estado corta a cuál) están en Config.CombatStates.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -46,7 +48,7 @@ CombatState.EVASIVE_ATTRIBUTE = "EvasiveReadyAt"
 local BLOCKS: { [State]: { [Action]: boolean } } = {
 	Idle = {},
 	Attacking = {},
-	Casting = {},
+	Casting = { Attack = true, Ability = true, Dodge = true },
 	Blocking = { Attack = true, Ability = true },
 	Parrying = { Attack = true, Ability = true },
 	Dodging = {},

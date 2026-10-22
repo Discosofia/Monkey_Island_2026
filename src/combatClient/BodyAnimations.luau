@@ -117,11 +117,23 @@ function BodyAnimations.setSpeed(key: PlayerAnimations.Key, speed: number)
 	end
 end
 
--- Gesto de una habilidad de Data/Roles, si tiene.
-function BodyAnimations.playAbility(abilityId: string)
+-- Gesto de una habilidad de Data/Roles, si tiene. Con "castSeconds" (su preparación, C8), el que marca
+-- su golpe ("impactSeconds" en Data/PlayerAnimations) se estira para que el golpe caiga cuando sale.
+function BodyAnimations.playAbility(abilityId: string, castSeconds: number?)
+	local key = PlayerAnimations.Abilities[abilityId]
+	if not key then
+		return
+	end
+	local impact = PlayerAnimations.Animations[key].impactSeconds
+	local speed = if impact and castSeconds and castSeconds > 0 then impact / castSeconds else 1
+	BodyAnimations.play(key, speed)
+end
+
+-- Para el gesto de una habilidad (el amago, C8).
+function BodyAnimations.stopAbility(abilityId: string)
 	local key = PlayerAnimations.Abilities[abilityId]
 	if key then
-		BodyAnimations.play(key)
+		BodyAnimations.stop(key)
 	end
 end
 

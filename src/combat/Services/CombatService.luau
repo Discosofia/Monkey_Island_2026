@@ -13,6 +13,7 @@
 -- de otros jugadores (damagePvP con "guard") se pueden bloquear y parar.
 -- Escape y equidad del combo (C7): esquivar atrapado es el Evasivo (Combat/Evasive) y los golpes de un
 -- jugador a otro llevan el escalado del combo (Combat/ComboScaling).
+-- Amagos (C8, Combat/Feint): pulsar la guardia durante la preparación de un golpe de la cadena lo cancela.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -42,6 +43,7 @@ local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
 local ComboScaling = require(script.Parent.Parent.ComboScaling)
 local Evasive = require(script.Parent.Parent.Evasive)
+local Feint = require(script.Parent.Parent.Feint)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
@@ -373,10 +375,38 @@ export type PvPGuard = {
 	-- Se llama al resolverse con el resultado ("Hit", "Blocked", "Parried" o "Broken"): lo que el golpe
 	-- hace además del daño (tambaleo, empuje, veneno) va aquí, porque puede resolverse más tarde.
 	onResult: ((outcome: Guard.Outcome) -> ())?,
-	-- Los golpes con la misma clave (los de una habilidad) cuentan como uno en el escalado del combo
-	-- (Combat/ComboScaling); sin ella, cada golpe cuenta.
+	-- Los golpes con la misma clave (los de un uso de una habilidad) cuentan como uno en el escalado del
+	-- combo (Combat/ComboScaling) y gastan la guardia una sola vez (C8: el Torbellino bloqueado entero
+	-- gasta lo que un golpe); sin ella, cada golpe cuenta.
 	hitKey: string?,
 }
+
+-- Claves de golpe (PvPGuard.hitKey) que ya han gastado la guardia de cada víctima, con su hora (os.clock).
+local guardSpent: { [Player]: { [string]: number } } = {}
+-- Una clave se olvida pasado esto (s): ningún uso de una habilidad dura tanto.
+local GUARD_KEY_SECONDS = 15
+
+-- true si "key" ya gastó la guardia de "victim".
+local function guardAlreadySpent(victim: Player, key: string): boolean
+	local spent = guardSpent[victim]
+	local at = if spent then spent[key] else nil
+	return at ~= nil and os.clock() - at < GUARD_KEY_SECONDS
+end
+
+local function markGuardSpent(victim: Player, key: string)
+	local spent = guardSpent[victim]
+	if not spent then
+		spent = {}
+		guardSpent[victim] = spent
+	end
+	local clock = os.clock()
+	for other, at in spent do
+		if clock - at >= GUARD_KEY_SECONDS then
+			spent[other] = nil
+		end
+	end
+	spent[key] = clock
+end
 
 local function applyPvP(attacker: Player, victim: Player, amount: number, crit: boolean?, poison: boolean?)
 	local character = victim.Character
@@ -447,12 +477,16 @@ function CombatService.damagePvP(
 			return
 		end
 		local attackerRoot = if attacker.Character then attacker.Character:FindFirstChild("HumanoidRootPart") else nil
+		local key = guard.hitKey
 		local outcome, scale = Guard.resolve(victim, {
-			guardDamage = guard.guardDamage,
+			guardDamage = if key and guardAlreadySpent(victim, key) then 0 else guard.guardDamage,
 			unblockable = guard.unblockable,
 			from = if attackerRoot and attackerRoot:IsA("BasePart") then attackerRoot.Position else nil,
 			attacker = attacker.Character,
 		}, at)
+		if key and outcome == "Blocked" then
+			markGuardSpent(victim, key)
+		end
 		if outcome == "Blocked" or outcome == "Parried" then
 			ComboScaling.reset(victim)
 		else
@@ -582,16 +616,25 @@ end
 
 -- Un paso de la cadena: el golpe cae al acabar la preparación (Shared/MeleeChain.windupSeconds, menos
 -- el retraso de red del atacante, que ya la empezó en su pantalla). Si en ese tiempo le tambalean, le
--- aturden, cae o cambia de arma, el golpe no sale.
+-- aturden, cae o cambia de arma, el golpe no sale. Pulsar la guardia en ese tiempo es un amago (C8,
+-- Combat/Feint): el golpe no sale y la cadena vuelve al primero.
 local function chainAttack(player: Player, tool: Tool, weaponId: string, weapon: Weapons.WeaponDefinition, step: number)
 	local stepSeconds = MeleeChain.stepSeconds(weapon, step)
 	StateMachine.enter(player, "Attacking", stepSeconds)
 	player:SetAttribute("ChainStep", step)
 	local delay = math.max(0, MeleeChain.windupSeconds(weapon, step) - Latency.compensation(player))
+	local feinted = false
+	local mark = Feint.begin(player, "Attack", delay, function()
+		feinted = true
+		chains[player] = nil
+		StateMachine.leave(player, "Attacking")
+	end)
 	task.delay(delay, function()
+		Feint.finish(player, mark)
 		local character, root = livingCharacter(player)
 		if
-			not (character and root)
+			feinted
+			or not (character and root)
 			or tool.Parent ~= character
 			or not LifeState.isAlive(player)
 			or not CombatState.canAct(player, "Attack")
@@ -961,6 +1004,7 @@ function CombatService:Start()
 	Hitbox.start()
 	Guard.start()
 	Evasive.start()
+	Feint.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)
@@ -996,6 +1040,7 @@ function CombatService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastAttackAt[player] = nil
 		chains[player] = nil
+		guardSpent[player] = nil
 		lastDodgeAt[player] = nil
 	end)
 end
