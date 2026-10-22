@@ -425,7 +425,7 @@ Decisiones de la entrevista:
 | **C4** | Cadena de 4 golpes cuerpo a cuerpo con remate (`Shared/MeleeChain`, tajos `Slash1`–`Slash4`) | `c7cbfa5` | ✅ |
 | **C5** | Guardia: bloqueo, parry y rotura; HUD y botón (`Combat/Guard`, `GuardController`, `CombatClient/GuardBar`) | `c4a5552` | ✅ |
 | **C6** | Monos y jefes con preparación, control decreciente y muñecos que atacan para practicar (`Combat/EnemyAttack`, `EnemyWindupController`, `Config.ControlDR` en `Status.stun`, muñeco de sparring) | `fa01ab2` | ✅ |
-| **C7** | Evasivo, escalado del combo en PvP y telemetría nueva | — | ⬜ |
+| **C7** | Evasivo, escalado del combo en PvP y telemetría nueva (`Combat/Evasive`, `CombatClient/EvasiveIcon`, `Combat/ComboScaling`, controles PvP con `Config.ControlDR`, `telemetry.mechanic` en la Isla y en Dunas) | `b66465d` | ✅ |
 | **C8** | Habilidades con preparación y amagos | — | ⬜ |
 | **C9** | Proyectiles reales | — | ⬜ |
 | **C10** | Rebote contra muros y zonas de peligro | — | ⬜ |
