@@ -1,0 +1,1533 @@
+Para elevar tu sistema de combate híbrido (cuerpo a cuerpo y a distancia) a un nivel fluido y competitivo, además de la detección por consultas espaciales, animaciones, knockback, tiempos de recuperación y cancelación de ataques, te conviene incluir los siguientes componentes en tu proyecto:1. Máquina de Estados del Personaje y Sistema de PrioridadesPara evitar conflictos de animaciones y comportamientos no deseados, es imprescindible gestionar a los personajes mediante estados explícitos (Idle, Attacking, Stunned, Blocking, Dashing, Invulnerable, Ragdoll)12.Jerarquía de prioridades: Define una regla estricta de prioridades para determinar qué acción interrumpe a cuál (por ejemplo, Stun > Block > Attack > Movement)1. De esta manera, si un jugador sufre un aturdimiento, este estado cancela e interrumpe automáticamente los de menor prioridad1.2. Mecánicas Defensivas InteractivasPara evitar que los enfrentamientos se reduzcan a presionar botones sin estrategia, el juego necesita opciones de defensa activas:Parry / Perfect Block: Premia el bloqueo realizado en el momento exacto en que conecta el golpe enemigo, desequilibrando o aturdiendo al atacante y abriendo una ventana para contraatacar34.Ragdoll Cancel (Combo Breaker): Permite al jugador defensor escapar de un combo extenso ejecutando un dash mientras está derribado, ligado a un tiempo de reutilización largo (por ejemplo, 20 o 30 segundos)5.Cuadros de Invulnerabilidad (I-Frames): Asigna invulnerabilidad breve durante la esquiva (dash) para permitir esquivar proyectiles a distancia o golpes pesados si se cronometra bien1more_horiz.3. Sistema de Control de Masas (CC) y Efectos de EstadoEn un sistema que combina meleé y rango, un gestor de Status Effects ayuda a equilibrar clases y habilidades8:Variedad de CC: Implementa estados como Stun (inmovilización total), Slow (ralentización), Silence / Disabled (imposibilidad de usar habilidades) y Root / Trapped (fijación al suelo permitiendo atacar pero no desplazarse)9more_horiz.Control de duraciones: Maneja en el servidor si los estados se sobrescriben, se acumulan (stacking) o extienden su duración al recibir nuevos impactos813.4. Fijación de Objetivos (Lock-On) y CámaraEn combates rápidos con proyectiles, orientar la visión y el ataque de forma cómoda para el jugador es clave14:Lock-On dinámico: Implementa una función opcional que mantenga la cámara y la orientación del personaje enfocadas en el oponente en el plano horizontal (RenderStepped)1516.Selección inteligente: Estructura la búsqueda de objetivo en fases: evalúa primero la posición del mouse (raycast) y, si no detecta un objetivo válido, utiliza la entidad más cercana en un radio, validando siempre la línea de visión en el servidor17.5. Detección y Comportamiento de Proyectiles a DistanciaPara el combate a distancia, la detección de impactos requiere técnicas distintas al cuerpo a cuerpo:Evitar .Touched(): No utilices el evento .Touched() para proyectiles o armas veloces, ya que depende de fotogramas simulados por el motor de física y suele pasar de largo sin registrar o registrar impactos múltiples18more_horiz.Shapecasting / Spherecast / Raycast por cuadro: Emplea Spherecasts o consultas por cuadro con RunService para proyectiles, evaluando el volumen recorrido entre cada fotograma19more_horiz.6. Claridad de Combate y Retroalimentación (Juice)La retroalimentación clara comunica exactamente lo que sucede en medio de la pelea2324:Indicadores telegrafiados: Muestra zonas brillantes o alertas visuales antes de ataques pesados o habilidades a distancia de área25.Efectos diferenciados: Utiliza texto de combate flotante (damage numbers), efectos de sonido distintos para impacto limpio, bloqueo o parry, y sacudida suave de cámara4more_horiz.7. Validación Autoritaria en el Servidor (Anti-Exploit)El cliente solo debe solicitar la intención de ataque, la animación local y la sugerencia de objetivo27:Verificación de servidor: El servidor debe validar la distancia entre personajes, la comprobación de muros/coberturas (Line of Sight) y el estado actual de los cooldowns antes de infligir daño mediante Humanoid:TakeDamage27more_horiz.
+
+
+--
+
+
+Para diseñar una Máquina de Estados de Combate (FSM) fluida y competitiva en Roblox Studio, la clave es estructurar los estados de forma modular y definir un sistema de prioridades explícito que determine exactamente qué acciones pueden interrumpir a otras1.1. Catálogo de Estados PrincipalesUn personaje en un sistema de combate híbrido (cuerpo a cuerpo y distancia) suele transitar entre estos estados clave12:Idle / Movement: Estado base (caminar, correr, saltar).Attacking: Ejecución de ataques (M1 combo, M2 heavy, Ranged cast).Blocking: Reducción de daño e inmunidad al hitstun frontal.Parrying: Ventana breve (ej. 0.2s - 0.3s) que desequilibra al atacante si conecta un golpe.Stunned: Control de masas (Hitstun / Blockstun) que deshabilita acciones.Invulnerable (I-Frames): Ventana durante dashes o habilidades donde el personaje ignora impactos1.Ragdoll / KnockedDown: Derribo o impacto fuerte que deshabilita controles y activa físicas.2. Jerarquía y Matriz de PrioridadesPara resolver cuándo un estado puede sobrescribir a otro, asignamos una jerarquía numérica de prioridad1. Un estado de mayor valor siempre interrumpe o bloquea a uno de menor valor1:$$\text{Invulnerable (6)} > \text{Ragdoll (5)} > \text{Stunned (4)} > \text{Parrying (3)} > \text{Blocking / Attacking (2)} > \text{Movement / Idle (1)}$$Regla de Interrupción: Si un jugador está en Attacking (Prioridad 2) y recibe un impacto que aplica Stunned (Prioridad 4), el estado Stunned tiene mayor jerarquía. Por lo tanto, interrumpe el ataque, frena la animación activa y limpia los efectos13.Regla de Bloqueo de Input: Si el jugador está en Stunned (Prioridad 4) e intenta presionar el botón de Attacking (Prioridad 2), la solicitud se rechaza automáticamente.3. Estructura del Módulo Luau (StateManager)Este módulo centraliza el control de estados utilizando Atributos de Roblox en el modelo del personaje (Character:SetAttribute("State", ...)), lo que permite que tanto el cliente como el servidor lean el estado actual de forma instantánea45.Módulo en ReplicatedStorage.Modules.StateManager:local StateManager = {}
+StateManager.__index = StateManager
+
+-- 1. Registro de Estados Enum
+StateManager.States = {
+	Idle = "Idle",
+	Movement = "Movement",
+	Attacking = "Attacking",
+	Blocking = "Blocking",
+	Parrying = "Parrying",
+	Stunned = "Stunned",
+	Ragdoll = "Ragdoll",
+	Invulnerable = "Invulnerable"
+}
+
+-- 2. Jerarquía de Prioridades
+local Priority = {
+	Invulnerable = 6,
+	Ragdoll = 5,
+	Stunned = 4,
+	Parrying = 3,
+	Blocking = 2,
+	Attacking = 2,
+	Movement = 1,
+	Idle = 0
+}
+
+-- Mantenimiento de timers activos por personaje
+local activeTimers = {}
+
+-- Obtener estado actual
+function StateManager.GetState(character: Model): string
+	return character:GetAttribute("State") or StateManager.States.Idle
+end
+
+-- Intentar cambiar de estado
+function StateManager.SetState(character: Model, newState: string, duration: number?): boolean
+	local currentState = StateManager.GetState(character)
+	local currentPriority = Priority[currentState] or 0
+	local newPriority = Priority[newState] or 0
+
+	-- Comprobación de prioridad: Solo se acepta si la prioridad es igual o mayor
+	if newPriority < currentPriority then
+		return false
+	end
+
+	-- Limpiar timer anterior si existía
+	if activeTimers[character] then
+		task.cancel(activeTimers[character])
+		activeTimers[character] = nil
+	end
+
+	-- Si el nuevo estado es de mayor prioridad (ej. Stun sobre Ataque), cancelamos animaciones activas
+	if newPriority > currentPriority and currentPriority == Priority.Attacking then
+		StateManager.CancelCurrentActions(character)
+	end
+
+	-- Aplicar nuevo atributo de estado
+	character:SetAttribute("State", newState)
+
+	-- Si tiene duración definida (ej. Stun de 1.5s o Parry de 0.3s), programa el retorno a Idle
+	if duration and duration > 0 then
+		activeTimers[character] = task.delay(duration, function()
+			activeTimers[character] = nil
+			-- Retornar a Idle una vez cumplido el tiempo
+			character:SetAttribute("State", StateManager.States.Idle)
+		end)
+	end
+
+	return true
+end
+
+-- Limpieza y detención de animaciones en curso al ser interrumpido
+function StateManager.CancelCurrentActions(character: Model)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid:FindFirstChildOfClass("Animator") then
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		for _, track in animator:GetPlayingAnimationTracks() do
+			if track.Priority == Enum.AnimationPriority.Action then
+				track:Stop(0.1) -- Detención fluida de la animación de ataque [3]
+			end
+		end
+	end
+end
+
+return StateManager
+4. Integración Cliente vs. ServidorEn el Cliente (LocalScript): Antes de enviar la petición de ataque o habilidad al servidor mediante un RemoteEvent, el cliente consulta localmente StateManager.GetState(character). Si el jugador está en Stunned, Ragdoll o Blocking, la acción ni siquiera se envía, evitando spam de red innecesario67.En el Servidor (Script): El servidor mantiene la autoridad final89. Cuando recibe la petición del cliente:Verifica con StateManager.GetState(character) si el personaje está libre para actuar10.Si está en un estado válido, cambia el estado a Attacking, ejecuta la lógica de daño/hitbox y, si el personaje recibe un golpe enemigo, la lógica del servidor invoca StateManager.SetState(target, "Stunned", duration)410.
+
+--
+
+Para asegurar la equidad y la fluidez en el juego, la implementación del temporizador de stun acumulativo y del sistema de Parry / Perfect Block requiere prevenir conflictos de sincronización (race conditions) y manejar las validaciones de impacto en el servidor1more_horiz.1. Temporizador de Stun Acumulativo (Stun Stacker)El Problema ComúnEn un combo de varios golpes rápidos (como una ráfaga de 5 puñetazos), si usas un task.delay simple por cada impacto, el temporizador del primer golpe se ejecutará a mitad del combo y des-aturdirá al enemigo prematuramente12.La Solución: Patrón de Contador de Tickets (Stun Ticket)Para resolver esto, cada personaje mantiene un número de versión o "ticket" de aturdimiento (StunTicket)45. Cada golpe nuevo incrementa dicho ticket45. Cuando el temporizador programado finaliza, verifica si su ticket sigue siendo el actual; si no coincide porque ingresó un nuevo golpe, la tarea se descarta y el stun se mantiene activo de forma fluida durante todo el combo45.Módulo en ServerScriptService.Modules.StunHandler:local StunHandler = {}
+local StateManager = require(game:GetService("ReplicatedStorage").Modules.StateManager)
+
+-- Tabla para rastrear tickets y velocidades originales por modelo
+local activeStuns = {}
+
+function StunHandler.ApplyStun(character: Model, duration: number)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
+
+	-- Inicializar o recuperar registro del personaje
+	if not activeStuns[character] then
+		activeStuns[character] = {
+			Ticket = 0,
+			OriginalWalkSpeed = humanoid.WalkSpeed,
+			OriginalJumpPower = humanoid.JumpPower
+		}
+	end
+
+	local record = activeStuns[character]
+	record.Ticket += 1
+	local currentTicket = record.Ticket
+
+	-- Cambiar estado a Stunned a través del StateManager
+	StateManager.SetState(character, StateManager.States.Stunned)
+
+	-- Restringir movimiento físico
+	humanoid.WalkSpeed = 0
+	humanoid.JumpPower = 0
+
+	-- Programar la liberación de Stun
+	task.delay(duration, function()
+		-- Solo liberamos si no se ha recibido otro golpe que incrementó el ticket
+		if activeStuns[character] and activeStuns[character].Ticket == currentTicket then
+			-- Restaurar física original
+			humanoid.WalkSpeed = record.OriginalWalkSpeed
+			humanoid.JumpPower = record.OriginalJumpPower
+			
+			-- Retornar a estado Idle
+			StateManager.SetState(character, StateManager.States.Idle)
+			activeStuns[character] = nil
+		end
+	end)
+end
+
+return StunHandler
+2. Módulo de Parry / Perfect BlockEl Parry / Perfect Block se activa cuando un jugador presiona el botón de defensa67. Durante una ventana breve de tiempo (por ejemplo, 0.25 segundos), el personaje entra en el estado Parrying67. Si expira sin ser atacado, pasa automáticamente al estado Blocking7.Cuando un atacante intenta infligir daño:El servidor evalúa el estado del objetivo3.Si está en Parrying, se anula el daño, se aturde al atacante (desequilibrio) y se activan efectos visuales y auditivos (vfx/sfx)6more_horiz.Si está en Blocking, se mitiga el daño y se evita el hitstun1011.Si no se defiende, recibe el impacto e invoca StunHandler.ApplyStun1213.Módulo en ServerScriptService.Modules.CombatResolver:local CombatResolver = {}
+local StateManager = require(game:GetService("ReplicatedStorage").Modules.StateManager)
+local StunHandler = require(script.Parent.StunHandler)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VFXRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("CombatVFX")
+
+-- Iniciar ventana de Parry en el personaje defensor
+function CombatResolver.StartParry(defender: Model, parryWindow: number)
+	parryWindow = parryWindow or 0.25
+	
+	-- Intentar pasar a estado Parrying
+	if StateManager.SetState(defender, StateManager.States.Parrying) then
+		task.delay(parryWindow, function()
+			-- Si la ventana de Parry vence y sigue en Parrying, pasa a Blocking regular
+			if StateManager.GetState(defender) == StateManager.States.Parrying then
+				StateManager.SetState(defender, StateManager.States.Blocking)
+			end
+		end)
+	end
+end
+
+-- Detener bloqueo manualmente (al soltar la tecla)
+function CombatResolver.StopBlock(defender: Model)
+	local state = StateManager.GetState(defender)
+	if state == StateManager.States.Blocking or state == StateManager.States.Parrying then
+		StateManager.SetState(defender, StateManager.States.Idle)
+	end
+end
+
+-- Resolver intento de golpe entre Attacker y Defender (Validación autoritaria en Servidor)
+function CombatResolver.ProcessHit(attacker: Model, defender: Model, rawDamage: number, stunDuration: number)
+	local defenderState = StateManager.GetState(defender)
+	local defenderHumanoid = defender:FindFirstChildOfClass("Humanoid")
+	
+	if not defenderHumanoid or defenderHumanoid.Health <= 0 then return end
+
+	-- CASO 1: Perfect Block / Parry Exitoso
+	if defenderState == StateManager.States.Parrying then
+		-- 1. Aturdir al atacante como castigo (Counter-Stun)
+		StunHandler.ApplyStun(attacker, 1.2)
+		
+		-- 2. Notificar a los clientes para reproducir sonido de choque metálico y partículas de destello
+		VFXRemote:FireAllClients("ParryEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	-- CASO 2: Bloqueo Normal
+	if defenderState == StateManager.States.Blocking then
+		-- Reducir el daño (ejemplo: 80% de reducción) y no aplicar Hitstun
+		local reducedDamage = rawDamage * 0.2
+		defenderHumanoid:TakeDamage(reducedDamage) -- Respetar ForceFields de spawn
+		
+		VFXRemote:FireAllClients("BlockEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	-- CASO 3: Impacto Limpio (Sin defensa)
+	defenderHumanoid:TakeDamage(rawDamage) -- Respetar ForceFields
+	StunHandler.ApplyStun(defender, stunDuration)
+	
+	VFXRemote:FireAllClients("HitEffect", defender.PrimaryPart.CFrame)
+end
+
+return CombatResolver
+Integración en el Flujo de JuegoDefensa (LocalScript): Al presionar la tecla F, envía un RemoteEvent al servidor solicitando la acción de bloqueo14. El servidor llama a CombatResolver.StartParry(player.Character). Al soltar F, solicita el fin de la defensa y el servidor llama a CombatResolver.StopBlock(player.Character)14.Impacto de Ataque (ServerScript): Cuando una habilidad o combo (cuerpo a cuerpo o proyectil) registra una colisión en el servidor, invoca CombatResolver.ProcessHit(attacker, target, damage, stunTime) en lugar de aplicar TakeDamage directamente1213.
+
+--
+
+El método nativo de Roblox Studio para la detección por Raycast utiliza la función workspace:Raycast()12. A diferencia del evento genérico .Touched(), el raycasting calcula un vector directo en el espacio tridimensional y devuelve información precisa sobre el primer objeto interceptado (RaycastResult)34.A continuación se muestra un ejemplo funcional en Luau para un ataque a distancia o un disparo que puedes utilizar en el servidor o cliente:Ejemplo de Script Luau: Detección de Disparo/Ataque con Raycastlocal Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+
+local function RealizarAtaqueRaycast(attackerCharacter: Model, origen: Vector3, direccionObjetivo: Vector3, rangoMaximo: number)
+	-- 1. Calcular el vector de dirección con la longitud/rango deseado
+	-- La dirección debe ser un vector normalizado (.Unit) multiplicado por la distancia
+	local direccionVector = direccionObjetivo.Unit * rangoMaximo
+
+	-- 2. Configurar los parámetros del Raycast (RaycastParams)
+	local raycastParams = RaycastParams.new()
+	
+	-- Filtrar al propio atacante para evitar que el rayo choque con su propio personaje
+	raycastParams.FilterDescendantsInstances = { attackerCharacter }
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	-- 3. Ejecutar la consulta en el Workspace
+	local resultado: RaycastResult? = Workspace:Raycast(origen, direccionVector, raycastParams)
+
+	-- 4. Evaluar el resultado de la colisión
+	if resultado then
+		local parteImpactada = resultado.Instance
+		local posicionImpacto = resultado.Position
+		local normalSuperficie = resultado.Normal
+
+		-- Buscar si el objeto impactado pertenece al modelo de un personaje con Humanoid
+		local characterModelo = parteImpactada:FindFirstAncestorOfClass("Model")
+		if characterModelo then
+			local humanoid = characterModelo:FindFirstChildWhichIsA("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				-- ¡Impacto confirmado contra un personaje!
+				print("Objetivo impactado:", characterModelo.Name, "en posición:", posicionImpacto)
+				return {
+					Exito = true,
+					Humanoid = humanoid,
+					Posicion = posicionImpacto,
+					Normal = normalSuperficie
+				}
+			end
+		end
+
+		print("El rayo impactó contra una superficie física/escenario:", parteImpactada.Name)
+		return { Exito = false, Posicion = posicionImpacto, Normal = normalSuperficie }
+	else
+		-- Si no hubo colisión dentro del rango máximo, el punto final es la distancia máxima
+		local puntoFinal = origen + direccionVector
+		print("El ataque no impactó nada dentro del rango de", rangoMaximo, "studs.")
+		return { Exito = false, Posicion = puntoFinal }
+	end
+end
+Elementos Clave del Código:direccionVector: workspace:Raycast no acepta un punto de llegada directamente, sino un vector de dirección y magnitud56. Por ello, se multiplica el vector unitario (.Unit) por la distancia máxima78.RaycastParams: Garantiza que el rayo ignore partes específicas (como el atacante o efectos visuales) para evitar autogolpes910.RaycastResult: Retorna propiedades esenciales como .Instance (la parte tocada), .Position (coordenada exactas del impacto en el mundo 3D) y .Normal (dirección de la cara impactada para instanciar chispas o partículas)34.Búsqueda de Ancestros: Se utiliza FindFirstAncestorOfClass("Model") en lugar de part.Parent directo, ya que un impacto puede ocurrir en un accesorio, sombrero o extremidad anidada dentro del personaje1112.
+
+--
+
+La detección mediante Spherecast (una variante de Shapecasting en Roblox Studio) expande el raycasting tradicional de una línea unidimensional a una esfera tridimensional que barre el espacio a lo largo de un vector de dirección12.Es la técnica ideal para proyectiles con volumen (orbes de energía, bolas de fuego, flechas pesadas) o ataques cuerpo a cuerpo con área de impacto amplia, ya que evita que un proyectil veloz pase de largo entre fotogramas sin registrar impacto23.1. Sintaxis Básica de workspace:SpherecastLa función nativa de Roblox tiene la siguiente firma:local resultado: RaycastResult? = workspace:Spherecast(origin, radius, direction, raycastParams)
+origin (Vector3): Punto de partida en el mundo 3D.radius (number): Radio de la esfera en studs (determina el grosor del proyectil/área).direction (Vector3): Vector de desplazamiento (dirección normalizada multiplicada por la distancia).raycastParams (RaycastParams): Filtros para ignorar al atacante o elementos decorativos4more_horiz.2. Módulo de Ejemplo Luau (SpherecastHitbox)A continuación tienes una implementación limpia que puedes utilizar en tu servidor o cliente para validar impactos de proyectiles o habilidades con volumen:local Workspace = game:GetService("Workspace")
+
+local SpherecastHitbox = {}
+
+-- Realiza una consulta individual por Spherecast
+function SpherecastHitbox.CastSphere(
+	attackerCharacter: Model,
+	origin: Vector3,
+	radius: number,
+	directionVector: Vector3
+): { Exito: boolean, Humanoid: Humanoid?, Position: Vector3, Normal: Vector3, Instance: BasePart? }
+
+	-- 1. Configurar los parámetros de filtro (RaycastParams)
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = { attackerCharacter } -- Evita que el atacante se golpee a sí mismo
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = true
+
+	-- 2. Ejecutar la consulta de Spherecast
+	local result: RaycastResult? = Workspace:Spherecast(origin, radius, directionVector, params)
+
+	-- 3. Procesar el resultado
+	if result then
+		local hitInstance = result.Instance
+		local hitPosition = result.Position
+		local hitNormal = result.Normal
+
+		-- Buscar si el objeto tocado pertenece a un modelo con Humanoid
+		local characterModel = hitInstance:FindFirstAncestorOfClass("Model")
+		if characterModel then
+			local humanoid = characterModel:FindFirstChildWhichIsA("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				return {
+					Exito = true,
+					Humanoid = humanoid,
+					Character = characterModel,
+					Position = hitPosition,
+					Normal = hitNormal,
+					Instance = hitInstance
+				}
+			end
+		end
+
+		-- Si impactó un obstáculo del mapa (pared, cobertura)
+		return {
+			Exito = false,
+			Position = hitPosition,
+			Normal = hitNormal,
+			Instance = hitInstance
+		}
+	end
+
+	-- Si no hubo colisión dentro de la distancia máxima
+	return {
+		Exito = false,
+		Position = origin + directionVector,
+		Normal = Vector3.yAxis,
+		Instance = nil
+	}
+end
+
+return SpherecastHitbox
+3. Ejemplo de Aplicación en un Proyectil en MovimientoPara un proyectil que viaja fotograma a fotograma (por ejemplo, con RunService.Heartbeat), se evalúa el Spherecast entre la posición del fotograma anterior y la posición actual. De este modo, la esfera cubre todo el volumen barrido en ese intervalo de tiempo:local RunService = game:GetService("RunService")
+local SpherecastHitbox = require(script.SpherecastHitbox)
+
+local function LanzaProyectil(attacker: Model, startPos: Vector3, targetDirection: Vector3, speed: number, radius: number, maxLifetime: number)
+	local currentPos = startPos
+	local elapsedTime = 0
+	local connection: RBXScriptConnection? = nil
+
+	connection = RunService.Heartbeat:Connect(function(deltaTime)
+		elapsedTime += deltaTime
+		
+		-- Calcular el desplazamiento de este fotograma
+		local stepDistance = speed * deltaTime
+		local directionVector = targetDirection.Unit * stepDistance
+
+		-- Evaluar el volumen recorrido entre el fotograma anterior y el actual
+		local hitResult = SpherecastHitbox.CastSphere(attacker, currentPos, radius, directionVector)
+
+		if hitResult.Instance then
+			-- Se detectó una colisión (enemigo o pared)
+			if hitResult.Exito and hitResult.Humanoid then
+				print("¡Spherecast detectó a:", hitResult.Character.Name)
+				-- Aquí invocas tu CombatResolver.ProcessHit(...)
+			else
+				print("El proyectil chocó contra el escenario:", hitResult.Instance.Name)
+			end
+
+			connection:Disconnect()
+			return
+		end
+
+		-- Actualizar posición para el siguiente fotograma
+		currentPos += directionVector
+
+		-- Destruir si sobrepasa el tiempo de vida
+		if elapsedTime >= maxLifetime then
+			connection:Disconnect()
+		end
+	end)
+end
+Ventajas Clave frente a .Touched() y Raycast EstándarGrosor Físico Garantizado: A diferencia del Raycast clásico (que es una línea de grosor cero y requiere múltiples rayos para cubrir un área)17, el Spherecast tiene un radio definido con precisión matemática.Sin Colisiones Perdidas: .Touched() depende de que las partes se superpongan en un fotograma simulado de física2more_horiz. Si el proyectil es rápido, atravesará al enemigo sin disparar el evento. Spherecast prueba el volumen continuo barrido2.Optimización: Consulta una sola forma volumétrica en lugar de iterar sobre listas de piezas en un área (GetPartsInPart / GetPartBoundsInRadius)23.
+
+--
+
+Para conectar el combate a distancia con el sistema defensivo que diseñamos, integraremos la detección volumétrica con Spherecast y la mecánica de Ataques Imbloqueables (Guard Breaks).1. Lógica de Ataques Imbloqueables (Guard Breaks)Un ataque imbloqueable ignora las ventanas de Blocking y Parrying. Cuando impacta a un personaje en postura defensiva:Cancela inmediatamente el estado de Parrying o Blocking.Fuerza un estado de desequilibrio/aturdimiento (Guard Broken).Aplica el daño completo sin mitigación.Actualización de CombatResolver (Servidor)Modificamos la función ProcessHit para evaluar la propiedad isGuardBreak:-- ServerScriptService.Modules.CombatResolver
+local CombatResolver = {}
+local StateManager = require(game:GetService("ReplicatedStorage").Modules.StateManager)
+local StunHandler = require(script.Parent.StunHandler)
+local VFXRemote = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("CombatVFX")
+
+function CombatResolver.ProcessHit(
+	attacker: Model, 
+	defender: Model, 
+	rawDamage: number, 
+	stunDuration: number, 
+	isGuardBreak: boolean?
+)
+	local defenderState = StateManager.GetState(defender)
+	local defenderHumanoid = defender:FindFirstChildOfClass("Humanoid")
+	
+	if not defenderHumanoid or defenderHumanoid.Health <= 0 then return end
+
+	local isDefending = (defenderState == StateManager.States.Parrying or defenderState == StateManager.States.Blocking)
+
+	-- CASO 1: El ataque es IMBLOQUEABLE (Guard Break)
+	if isDefending and isGuardBreak then
+		-- Romper la postura defensiva inmediatamente
+		StateManager.SetState(defender, StateManager.States.Idle)
+		
+		-- Aplicar aturdimiento por rotura de guardia y daño completo
+		StunHandler.ApplyStun(defender, stunDuration + 0.5) -- Penalización extra de tiempo
+		defenderHumanoid:TakeDamage(rawDamage)
+		
+		VFXRemote:FireAllClients("GuardBreakEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	-- CASO 2: Perfect Block / Parry Exitoso (Solo si NO es imbloqueable)
+	if defenderState == StateManager.States.Parrying then
+		StunHandler.ApplyStun(attacker, 1.2) -- Castigo al atacante
+		VFXRemote:FireAllClients("ParryEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	-- CASO 3: Bloqueo Normal (Solo si NO es imbloqueable)
+	if defenderState == StateManager.States.Blocking then
+		local reducedDamage = rawDamage * 0.2 -- 80% de reducción de daño
+		defenderHumanoid:TakeDamage(reducedDamage)
+		VFXRemote:FireAllClients("BlockEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	-- CASO 4: Impacto Limpio (Incapaz de defenderse o sin bloqueo activo)
+	defenderHumanoid:TakeDamage(rawDamage)
+	StunHandler.ApplyStun(defender, stunDuration)
+	VFXRemote:FireAllClients("HitEffect", defender.PrimaryPart.CFrame)
+end
+
+return CombatResolver
+2. Módulo de Proyectiles con Spherecast (ProjectileService)Este script administra el viaje fotograma a fotograma de los proyectiles mediante RunService.Heartbeat. Al usar Spherecast entre la posición del fotograma anterior y el actual, se garantiza un volumen de colisión perfecto sin atravesar objetivos.Módulo en ServerScriptService.Modules.ProjectileService:local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local CombatResolver = require(script.Parent.CombatResolver)
+
+local ProjectileService = {}
+
+type ProjectileData = {
+	Attacker: Model,
+	Origin: Vector3,
+	Direction: Vector3,
+	Speed: number,
+	Radius: number,
+	MaxDistance: number,
+	Damage: number,
+	StunDuration: number,
+	IsGuardBreak: boolean
+}
+
+function ProjectileService.Fire(data: ProjectileData)
+	local currentPos = data.Origin
+	local distanceTraveled = 0
+	local connection: RBXScriptConnection? = nil
+
+	-- Configurar filtro de colisión (Ignorar al atacante)
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = { data.Attacker }
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	raycastParams.IgnoreWater = true
+
+	connection = RunService.Heartbeat:Connect(function(deltaTime)
+		-- 1. Calcular el vector de desplazamiento para este fotograma
+		local stepDistance = data.Speed * deltaTime
+		local directionVector = data.Direction.Unit * stepDistance
+
+		-- 2. Ejecutar Spherecast a lo largo del paso del fotograma
+		local hitResult: RaycastResult? = Workspace:Spherecast(currentPos, data.Radius, directionVector, raycastParams)
+
+		if hitResult then
+			local hitInstance = hitResult.Instance
+			local hitModel = hitInstance:FindFirstAncestorOfClass("Model")
+
+			-- Evaluar si se impactó a un personaje con Humanoid
+			if hitModel then
+				local humanoid = hitModel:FindFirstChildWhichIsA("Humanoid")
+				if humanoid and humanoid.Health > 0 and hitModel ~= data.Attacker then
+					-- Procesar impacto con la regla de Guard Break
+					CombatResolver.ProcessHit(
+						data.Attacker,
+						hitModel,
+						data.Damage,
+						data.StunDuration,
+						data.IsGuardBreak
+					)
+					connection:Disconnect()
+					return
+				end
+			end
+
+			-- Impacto contra una pared o estructura del mapa
+			print("El proyectil chocó contra la cobertura:", hitInstance.Name)
+			connection:Disconnect()
+			return
+		end
+
+		-- 3. Actualizar posición y verificar límite de alcance
+		currentPos += directionVector
+		distanceTraveled += stepDistance
+
+		if distanceTraveled >= data.MaxDistance then
+			connection:Disconnect()
+		end
+	end)
+end
+
+return ProjectileService
+3. Ejemplo de Uso en el ServidorCuando un jugador lanza un ataque cargado o un orbe pesado a distancia:local ProjectileService = require(ServerScriptService.Modules.ProjectileService)
+
+-- Disparo de un ataque cargado imbloqueable
+ProjectileService.Fire({
+	Attacker = player.Character,
+	Origin = player.Character.PrimaryPart.Position + Vector3.new(0, 1.5, 0),
+	Direction = player.Character.PrimaryPart.CFrame.LookVector,
+	Speed = 120,          -- Velocidad en studs/segundo
+	Radius = 2.5,          -- Radio del orbe (volumen de impacto)
+	MaxDistance = 150,     -- Alcance máximo
+	Damage = 35,           -- Daño base
+	StunDuration = 1.0,    -- Tiempo de aturdimiento
+	IsGuardBreak = true    -- Flag para romper guardia
+})
+
+
+--
+
+Los eventos de animación (también llamados Event Markers o Keyframe Events) son marcadores que se insertan directamente en la línea de tiempo dentro del Animation Editor o Moon Animator de Roblox Studio12.En lugar de depender de tiempos fijos con task.wait() que pueden desincronizarse si se cambia la velocidad de ejecución o el ritmo del combate, los eventos permiten ejecutar código exactamente en el fotograma visual deseado1more_horiz.1. Las Fases de una Animación de CombateUn ataque bien estructurado se divide en tres fases definidas por marcadores de eventos en la línea de tiempo56:Anticipación / Windup (HitStart): El personaje prepara el golpe (carga la espada o echa el puño hacia atrás)56. Al alcanzar este marcador, se activa la hitbox (Raycast/Spherecast)37.Ventana Activa / Impacto (HitEnd): Es la ventana donde el arma/extremidad está en movimiento y puede causar daño35. Al llegar a este punto, la hitbox se deshabilita38.Ventana de Combo / Cancelación (ComboWindow): Es una marca intermedia donde se le permite al jugador encadenar el siguiente golpe del combo o ejecutar un dash para cancelar la recuperación9more_horiz.Recuperación / Endlag: El personaje vuelve a la postura neutral56. Durante este periodo, el personaje queda vulnerable si falló el golpe612.2. Eventos y Métodos Clave en LuauRoblox proporciona varias señales asociadas a AnimationTrack para reaccionar a la animación1more_horiz::GetMarkerReachedSignal("NombreDelEvento"): Es el método moderno y recomendado115. Escucha únicamente cuando la animación llega a un marcador con ese nombre específico115.KeyframeReached: Método tradicional que se dispara al alcanzar cualquier fotograma clave con nombre18.AnimationTrack.Ended: Se dispara automáticamente cuando la animación llega a su final de forma natural1416.AnimationTrack.Stopped: Se dispara de inmediato cuando la pista es interrumpida o detenida manualmente mediante :Stop() (por ejemplo, al sufrir un aturdimiento o parry)1417.3. Ejemplo Práctico: Control de Hitbox y Ventana de ComboA continuación se muestra un ejemplo de script para gestionar un ataque mediante eventos de animación (HitStart, HitEnd, ComboStart):-- LocalScript / ServerScript al cargar la animación
+local humanoid = character:WaitForChild("Humanoid")
+local animator = humanoid:WaitForChild("Animator")
+
+local attackAnimation = Instance.new("Animation")
+attackAnimation.AnimationId = "rbxassetid://TU_ANIMACION_ID"
+
+local track = animator:LoadAnimation(attackAnimation)
+track.Priority = Enum.AnimationPriority.Action -- Asegurar prioridad sobre el movimiento [18, 19]
+
+-- 1. Iniciar Hitbox en el fotograma exacto del golpe
+track:GetMarkerReachedSignal("HitStart"):Connect(function()
+	character:SetAttribute("HitboxActive", true)
+	-- Iniciar consulta de Spherecast / Raycast [3]
+end)
+
+-- 2. Desactivar Hitbox cuando el arma pasa de largo
+track:GetMarkerReachedSignal("HitEnd"):Connect(function()
+	character:SetAttribute("HitboxActive", false)
+end)
+
+-- 3. Abrir la ventana para encadenar combos o cancelar con Dash
+track:GetMarkerReachedSignal("ComboStart"):Connect(function()
+	character:SetAttribute("CanChainCombo", true)
+end)
+
+-- 4. Limpieza al finalizar la animación
+track.Ended:Connect(function()
+	character:SetAttribute("HitboxActive", false)
+	character:SetAttribute("CanChainCombo", false)
+	character:SetAttribute("State", "Idle")
+end)
+
+track:Play(0.1) -- Reproducir con tiempo de transición fluido [20]
+4. Cancelación e Interrupción con .Stopped y :Stop()Cuando un jugador recibe un aturdimiento (Stunned), un derribo (Ragdoll) o su golpe es rechazado por un Parry, es fundamental cortar las animaciones de ataque activas para evitar que los eventos de daño sigan disparándose18more_horiz.Módulo de Limpieza de Animaciones:local function InterruptAttacks(character: Model)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then return end
+
+	-- Iterar sobre todas las pistas que se están reproduciendo [22, 24]
+	for _, playingTrack in animator:GetPlayingAnimationTracks() do
+		-- Filtrar solo las animaciones de acción/ataque [24]
+		if playingTrack.Priority == Enum.AnimationPriority.Action or playingTrack.Priority == Enum.AnimationPriority.Action2 then
+			playingTrack:Stop(0.1) -- Detener con un desvanecimiento corto [23, 24]
+		end
+	end
+	
+	-- Apagar atributos de hitbox para evitar golpes fantasma [21]
+	character:SetAttribute("HitboxActive", false)
+	character:SetAttribute("CanChainCombo", false)
+end
+Al llamar a playingTrack:Stop(), se dispara la señal .Stopped1417. Si tienes código esperando a que el ataque termine, debes asegurarte de desconectar las señales o validar los atributos antes de aplicar el daño2122.5. Configuración de Prioridades (AnimationPriority)Para evitar que el personaje se "rompa" o se quede estático al caminar mientras ataca:Action / Action2: Asigna esta prioridad en el Animation Editor para todos los ataques2324.Mezcla de Animaciones (Blending): Si el ataque solo afecta al torso y brazos en la animación (dejando las piernas libres), la prioridad Action permitirá que el jugador camine y golpee al mismo tiempo sin interrumpir el ciclo de carrera de las piernas2325.
+
+--
+
+Para implementar un sistema de tiempos de recuperación (cooldowns) profesional, escalable y resistente a trampas (anti-exploit) en Roblox Studio, la regla de oro es evitar el uso de task.wait() o wait() dispersos en cada habilidad12.En un juego de combate híbrido, los scripts individuales con task.wait() generan código desordenado (spaghetti code), dificultan aplicar modificadores de tiempo (como ítems o combos que reducen la recarga) y hacen que la interfaz del jugador se desincronice fácilmente con el servidor1more_horiz.A continuación se detalla la arquitectura óptima basada en marcas de tiempo (timestamps) con os.clock(), centralizada en el servidor y sincronizada con el cliente.1. Principios Clave del SistemaBasado en Marcas de Tiempo (os.clock()): En lugar de pausar hilos con task.wait(), registramos el momento exacto en que se usó la habilidad45. Comprobar si la habilidad está lista requiere una simple resta (os.clock() - UltimoUso) >= TiempoCooldown, lo cual no consume memoria ni recursos en bucles activos4more_horiz.Autoridad Total del Servidor: La interfaz del cliente solo muestra la animación del cooldown como guía visual78. Si un usuario intenta enviar un evento antes de tiempo, el servidor rechaza la petición sin ejecutar la habilidad78.Tabla Unificada de Configuración: Todos los tiempos base residen en un módulo de balance central (AbilityConfig)9more_horiz.Soporte para Modificadores: Permite aplicar reducciones porcentuales (ej. -20% por un estado) o reducciones planas (ej. -2 segundos por acertar un Parry)3more_horiz.2. Módulo Central (ServerScriptService.Modules.CooldownManager)Este módulo se encarga de guardar las marcas de tiempo por jugador y validar las solicitudes:-- ServerScriptService.Modules.CooldownManager
+local CooldownManager = {}
+CooldownManager.__index = CooldownManager
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CooldownRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("CooldownRemote")
+
+-- Estructura de almacenamiento: [UserId][AbilityName] = { LastUsed = number, Duration = number }
+local activeCooldowns = {}
+
+-- Tabla de tiempos base por habilidad
+local BaseCooldowns = {
+	M1 = 0.5,
+	LightAttack = 2.0,
+	HeavyAttack = 6.0,
+	Fireball = 8.0,
+	Dash = 4.0,
+	Parry = 5.0
+}
+
+-- Inicializar registro para un jugador
+function CooldownManager.InitPlayer(player: Player)
+	activeCooldowns[player.UserId] = {}
+end
+
+-- Limpieza al salir el jugador
+function CooldownManager.RemovePlayer(player: Player)
+	activeCooldowns[player.UserId] = nil
+end
+
+-- Verifica si una habilidad se puede usar (Retorna boolean y tiempo restante)
+function CooldownManager.CanUse(player: Player, abilityName: string): (boolean, number)
+	local playerTable = activeCooldowns[player.UserId]
+	if not playerTable then return true, 0 end
+
+	local data = playerTable[abilityName]
+	if not data then return true, 0 end
+
+	local timePassed = os.clock() - data.LastUsed
+	local timeRemaining = data.Duration - timePassed
+
+	if timeRemaining <= 0 then
+		return true, 0
+	else
+		return false, math.max(0, timeRemaining)
+	end
+end
+
+-- Establecer o reiniciar el Cooldown
+function CooldownManager.SetCooldown(player: Player, abilityName: string, customDuration: number?, modifierPercent: number?)
+	local userId = player.UserId
+	if not activeCooldowns[userId] then
+		activeCooldowns[userId] = {}
+	end
+
+	-- Obtener duración base o personalizada
+	local duration = customDuration or BaseCooldowns[abilityName] or 1.0
+
+	-- Aplicar modificador opcional (ejemplo: 0.8 para un 20% de reducción)
+	if modifierPercent then
+		duration = duration * modifierPercent
+	end
+
+	-- Guardar marca de tiempo
+	activeCooldowns[userId][abilityName] = {
+		LastUsed = os.clock(),
+		Duration = duration
+	}
+
+	-- Replicar al cliente para animar la UI (HUD / Hotbar)
+	CooldownRemote:FireClient(player, abilityName, duration)
+end
+
+-- Reducir el tiempo restante de forma plana (ej. por acertar un combo o Parry)
+function CooldownManager.ReduceCooldown(player: Player, abilityName: string, secondsToReduce: number)
+	local userId = player.UserId
+	if activeCooldowns[userId] and activeCooldowns[userId][abilityName] then
+		local data = activeCooldowns[userId][abilityName]
+		data.LastUsed -= secondsToReduce -- Restar tiempo a la marca inicial acelera el fin
+		
+		-- Recalcular y enviar actualización a la UI
+		local newRemaining = math.max(0, data.Duration - (os.clock() - data.LastUsed))
+		CooldownRemote:FireClient(player, abilityName, newRemaining)
+	end
+end
+
+return CooldownManager
+3. Uso en el Servidor (ServerScriptService.CombatServer)Cada vez que el cliente solicita realizar una habilidad o ataque, el servidor primero valida el tiempo de recuperación antes de invocar animaciones, hitboxes o efectos:local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local CooldownManager = require(ServerScriptService.Modules.CooldownManager)
+local Players = game:GetService("Players")
+
+-- Inicializar/Limpiar datos cuando los jugadores se conectan o desconectan
+Players.PlayerAdded:Connect(CooldownManager.InitPlayer)
+Players.PlayerRemoving:Connect(CooldownManager.RemovePlayer)
+
+-- Evento de ataque o disparo
+local CastAbilityRemote = ReplicatedStorage.Events.CastAbility
+
+CastAbilityRemote.OnServerEvent:Connect(function(player, abilityName)
+	-- 1. Validar si el jugador está en Cooldown en el Servidor
+	local canUse, timeRemaining = CooldownManager.CanUse(player, abilityName)
+	
+	if not canUse then
+		warn(player.Name .. " intentó usar " .. abilityName .. " antes de tiempo. Restan: " .. string.format("%.2f", timeRemaining) .. "s")
+		return -- Rechazar petición
+	end
+
+	-- 2. Activar la habilidad (Hitbox, Animaciones, Daño)
+	-- Exito: Registrar el nuevo cooldown
+	CooldownManager.SetCooldown(player, abilityName)
+	
+	print("Habilidad ejecutada con éxito:", abilityName)
+end)
+4. Sincronización con la UI del Cliente (StarterPlayerScripts.CooldownUIHandler)En el cliente, no necesitamos validar la lógica de combate; únicamente escuchamos el RemoteEvent que notifica el inicio de un cooldown y animamos la veladura (cooldown sweep) de la Hotbar usando TweenService o RunService:-- StarterPlayerScripts.CooldownUIHandler
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local CooldownRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("CooldownRemote")
+
+-- Escuchar cuando el servidor confirma un cooldown
+CooldownRemote.OnClientEvent:Connect(function(abilityName, duration)
+	local hotbar = PlayerGui:FindFirstChild("HotbarGui")
+	if not hotbar then return end
+
+	local slot = hotbar.Frame:FindFirstChild(abilityName)
+	if slot then
+		local overlay = slot:FindFirstChild("CooldownOverlay") -- Un Frame semitransparente sobre el ícono
+		local textLabel = slot:FindFirstChild("TimeLabel")
+
+		if overlay then
+			-- Reiniciar tamaño al 100% de la casilla
+			overlay.Size = UDim2.new(1, 0, 1, 0)
+			overlay.Visible = true
+
+			-- Animar la veladura hacia 0% de altura en la duración exacta
+			local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+			local tween = TweenService:Create(overlay, tweenInfo, { Size = UDim2.new(1, 0, 0, 0) })
+			tween:Play()
+
+			tween.Completed:Connect(function()
+				overlay.Visible = false
+			end)
+		end
+	end
+end)
+Ventajas de esta Estructura:Escalable a Combos y Habilidades Especiales: Si un jugador acierta un combo de 3 golpes (M1 x3), puedes llamar a CooldownManager.ReduceCooldown(player, "Fireball", 2.0) para recompensarlo reduciendo 2 segundos la recarga de su habilidad principal3more_horiz.Cero Fugas de Memoria: Al desconectarse un jugador, la función RemovePlayer elimina la tabla de su UserId, liberando la memoria por completo215.Imposible de Manipular por Explotadores: El cliente no puede cambiar los valores de os.clock() del servidor ni forzar habilidades acelerando su tiempo local78.
+
+--
+
+La manipulación de la velocidad lineal es el motor físico detrás del Knockback (retroceso), los Dashes (desplazamientos), los Lanzamientos aéreos (Uppercuts) y los Ataques descendentes (Downslams).En el motor de Roblox existen tres enfoques principales para aplicar y gestionar la velocidad lineal en los personajes:1. Métodos de Manipulación Física en Roblox StudioMétodoTipoDescripción y Uso IdealAssemblyLinearVelocityPropiedad directa de BasePartAsigna un vector de velocidad instantáneo al HumanoidRootPart1. Es ideal para knockbacks inmediatos, impidiendo tirones por latencia cuando se ejecuta correctamente1.BasePart:ApplyImpulse()Método de físicaAplica una fuerza vectorial instantánea que escala según la masa total del ensamblaje del personaje (Masa x Velocidad)2. Excelente para explosiones y retrocesos realistas.LinearVelocityConstraint modernaReemplaza a las antiguas BodyVelocity (obsoletas). Aplica una fuerza constante o controlada durante un tiempo determinado (ideal para deslices prolongados, empujes sostenidos o atracción magnética).2. Implementación de Retroceso (Knockback) y Elevación AéreaPara combates competitivos, la combinación de la dirección del atacante (LookVector) con fuerzas horizontales y verticales permite crear una gran variedad de efectos:Módulo Luau: KnockbackServicelocal KnockbackService = {}
+
+-- Aplica un impulso de retroceso al personaje objetivo
+function KnockbackService.ApplyKnockback(
+	targetCharacter: Model,
+	attackerCFrame: CFrame,
+	horizontalForce: number,
+	verticalForce: number
+)
+	local targetHRP = targetCharacter:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local targetHumanoid = targetCharacter:FindFirstChildWhichIsA("Humanoid")
+	
+	if not targetHRP or not targetHumanoid or targetHumanoid.Health <= 0 then return end
+
+	-- 1. Obtener la dirección frontal del atacante en el plano horizontal
+	local lookDirection = attackerCFrame.LookVector
+	local horizontalVector = Vector3.new(lookDirection.X, 0, lookDirection.Z).Unit
+
+	-- 2. Calcular el vector final combinando fuerza horizontal y elevación (eje Y)
+	local knockbackVector = (horizontalVector * horizontalForce) + Vector3.new(0, verticalForce, 0)
+
+	-- OPCIÓN A: Usando AssemblyLinearVelocity (Instantáneo y directo)
+	targetHRP.AssemblyLinearVelocity = knockbackVector
+
+	-- OPCIÓN B (Alternativa): Usando ApplyImpulse (Tiene en cuenta la masa)
+	-- local impulseVector = (knockbackVector * targetHRP:GetMass())
+	-- targetHRP:ApplyImpulse(impulseVector)
+end
+
+return KnockbackService
+3. Casos de Uso Avanzados en CombateA. Uppercut / Lanzamiento Aéreo (Airborne)Mecánica: Lanza al objetivo verticalmente en el aire para iniciar combos aéreos34.Implementación: Se aplica un valor elevado en la componente Y del vector de velocidad25:-- Eleva al enemigo 60 studs/s hacia arriba y lo empuja levemente hacia atrás
+KnockbackService.ApplyKnockback(targetCharacter, attackerCFrame, 15, 60)
+B. Impacto Descendente (Downslam)Mecánica: Estrellar a un enemigo contra el suelo desde el aire3.Implementación: Se asigna una velocidad Y negativa junto a un estado de Ragdoll:targetHRP.AssemblyLinearVelocity = Vector3.new(0, -100, 0)
+C. Dash Horizontal con Inmunidad (I-Frames)Mecánica: Esquiada o esquiva rápida en la dirección de movimiento del jugador.Implementación: Aplica un vector de velocidad en la dirección de entrada del jugador (Humanoid.MoveDirection) o en el vector lateral (CFrame.RightVector)6.4. Consideraciones Técnicas y Buenas PrácticasEvitar BodyVelocity (Obsoleto): No utilices instancias antiguas como BodyVelocity con MaxForce = Vector3.new(math.huge, math.huge, math.huge), ya que el motor de física de Roblox las considera obsoletas y pueden causar inconsistencias1more_horiz.Reducción Temporal de Movimiento: Durante el momento exacto en que se aplica el knockback, es conveniente ajustar temporalmente Humanoid.WalkSpeed = 0 para evitar que las teclas del jugador objetivo cancelen la inercia del movimiento físico.Propiedad de Red (Network Ownership): Cuando un jugador recibe un impacto muy fuerte o entra en estado de Ragdoll, la simulación física del personaje puede experimentar retardo si el servidor no gestiona o devuelve adecuadamente el control de la física.
+
+--
+
+Para programar un sistema de detección de proyectiles a distancia en Roblox Studio que sea preciso, fluido y seguro contra trampas (anti-exploit), la regla fundamental es evitar el uso de .Touched()1more_horiz. El evento .Touched() depende de intersecciones físicas en fotogramas simulados, por lo que proyectiles rápidos pueden atravesar a un objetivo entre un fotograma y otro sin registrar el impacto1more_horiz.Un sistema profesional para armas o habilidades de rango se compone de tres capas:Captura de Objetivo 3D en el Cliente (ViewportPointToRay).Simulación y Barredura Cuadro a Cuadro (RunService.Heartbeat + Raycast/Spherecast).Validación Autoritaria y Replicación en Servidor (Sanity Checks + FireAllClients).1. Captura de Apuntado en el Cliente (ToolController.client.luau)El cliente calcula la posición 3D donde apunta el cursor del jugador proyectando un rayo desde la pantalla hacia el mundo mediante Camera:ViewportPointToRay()4more_horiz. Además, para evitar la sensación de lag (input delay), el cliente dibuja su propio proyectil visual de inmediato antes de notificar al servidor7more_horiz.-- LocalScript dentro de la Herramienta o StarterPlayerScripts
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+local remotesFolder = ReplicatedStorage:WaitForChild("Events")
+local fireProjectileRemote = remotesFolder:WaitForChild("FireProjectile")
+
+local MAX_MOUSE_DISTANCE = 1000
+local MAX_LASER_DISTANCE = 300
+
+-- Convertir la posición 2D del mouse en una coordenada 3D en el espacio
+local function GetWorldMousePosition(): Vector3
+	local mouseLocation = UserInputService:GetMouseLocation()
+	local screenToWorldRay = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+	local directionVector = screenToWorldRay.Direction * MAX_MOUSE_DISTANCE
+
+	local raycastResult = Workspace:Raycast(screenToWorldRay.Origin, directionVector)
+	if raycastResult then
+		return raycastResult.Position -- Punto de impacto en la escena
+	else
+		return screenToWorldRay.Origin + directionVector -- Límite de distancia máxima
+	end
+end
+
+local function ShootWeapon(toolHandle: BasePart)
+	local target3DPosition = GetWorldMousePosition()
+	local startPosition = toolHandle.Position
+	local targetDirection = (target3DPosition - startPosition).Unit * MAX_LASER_DISTANCE
+
+	-- Enviar la solicitud de disparo al servidor
+	fireProjectileRemote:FireServer(startPosition, targetDirection)
+end
+2. Detección y Barredura Cuadro a Cuadro en Servidor (ProjectileService.server.luau)Para garantizar que proyectiles veloces no atraviesen paredes ni personajes, evaluamos en cada fotograma del servidor (RunService.Heartbeat) el trayecto recorrido entre la posición del fotograma anterior y la posición actual2more_horiz. Usar RaycastParams con FilterDescendantsInstances asegura que el proyectil ignore al propio atacante13more_horiz.-- Script en ServerScriptService
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remotesFolder = ReplicatedStorage:WaitForChild("Events")
+local fireProjectileRemote = remotesFolder:WaitForChild("FireProjectile")
+local replicateVFXRemote = remotesFolder:WaitForChild("ReplicateProjectileVFX")
+
+local MAX_HIT_PROXIMITY = 12 -- Margen de tolerancia para latencia de red
+
+-- Validar que el disparo no haya atravesado coberturas o paredes en el servidor
+local function IsHitValid(attackerPlayer: Player, characterToDamage: Model, hitPosition: Vector3, originPos: Vector3): boolean
+	-- 1. Comprobar la distancia entre la posición reportada y la ubicación actual del objetivo
+	local hrp = characterToDamage:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not hrp then return false end
+
+	local distance = (hrp.Position - hitPosition).Magnitude
+	if distance > MAX_HIT_PROXIMITY then
+		return false -- El objetivo ya no estaba en esa posición
+	end
+
+	-- 2. Comprobar Línea de Visión (Line of Sight) para evitar disparar a través de muros
+	local rayLength = (hitPosition - originPos).Magnitude
+	local rayDirection = (hitPosition - originPos).Unit
+	
+	local rayParams = RaycastParams.new()
+	rayParams.FilterDescendantsInstances = { attackerPlayer.Character }
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	local rayResult = Workspace:Raycast(originPos, rayDirection * rayLength, rayParams)
+	if rayResult and not rayResult.Instance:IsDescendantOf(characterToDamage) then
+		return false -- Un obstáculo del mapa bloqueó el disparo
+	end
+
+	return true
+end
+
+-- Simular el proyectil en movimiento
+local function SpawnServerProjectile(attackerPlayer: Player, origin: Vector3, directionVector: Vector3, speed: number, radius: number)
+	local currentPos = origin
+	local distanceTraveled = 0
+	local maxDistance = directionVector.Magnitude
+	local directionUnit = directionVector.Unit
+
+	local rayParams = RaycastParams.new()
+	rayParams.FilterDescendantsInstances = { attackerPlayer.Character }
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	-- Notificar a los DEMÁS clientes para que muestren la bala visualmente sin retardo local
+	replicateVFXRemote:FireAllClients(attackerPlayer, origin, directionVector, speed)
+
+	local connection: RBXScriptConnection? = nil
+	connection = RunService.Heartbeat:Connect(function(deltaTime)
+		local stepDistance = speed * deltaTime
+		local stepVector = directionUnit * stepDistance
+
+		-- Barredura volumétrica entre el fotograma anterior y el actual
+		local hitResult: RaycastResult?
+		if radius > 0 then
+			hitResult = Workspace:Spherecast(currentPos, radius, stepVector, rayParams)
+		else
+			hitResult = Workspace:Raycast(currentPos, stepVector, rayParams)
+		end
+
+		if hitResult then
+			local hitInstance = hitResult.Instance
+			local hitPosition = hitResult.Position
+			local characterModel = hitInstance:FindFirstAncestorOfClass("Model")
+
+			if characterModel then
+				local humanoid = characterModel:FindFirstChildWhichIsA("Humanoid")
+				if humanoid and humanoid.Health > 0 and characterModel ~= attackerPlayer.Character then
+					-- Validar antes de infligir daño
+					if IsHitValid(attackerPlayer, characterModel, hitPosition, origin) then
+						humanoid:TakeDamage(25) -- TakeDamage respeta ForceFields de spawn
+					end
+				end
+			end
+
+			connection:Disconnect()
+			return
+		end
+
+		currentPos += stepVector
+		distanceTraveled += stepDistance
+
+		if distanceTraveled >= maxDistance then
+			connection:Disconnect()
+		end
+	end)
+end
+
+fireProjectileRemote.OnServerEvent:Connect(function(player, origin, directionVector)
+	-- Validar la cadencia y el origen antes de generar la simulación
+	SpawnServerProjectile(player, origin, directionVector, 180, 1.5)
+end)
+3. Replicación Visual a Terceros (ClientVFXHandler.client.luau)Para que los demás jugadores vean el proyectil volando en tiempo real sin saturar el servidor, este envía las coordenadas iniciales mediante FireAllClients1617. Cada cliente remoto dibuja la trayectoria de forma independiente, excluyendo al jugador que disparó originalmente para que no vea la bala duplicada1819.-- LocalScript en StarterPlayerScripts
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
+local replicateVFXRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("ReplicateProjectileVFX")
+
+replicateVFXRemote.OnClientEvent:Connect(function(shooterPlayer: Player, origin: Vector3, directionVector: Vector3, speed: number)
+	-- Ignorar si el disparo proviene del propio jugador local
+	if shooterPlayer == localPlayer then return end
+
+	-- Crear representación visual (Tween / Parte Neon) únicamente para observadores
+	local projectilePart = Instance.new("Part")
+	projectilePart.Size = Vector3.new(1, 1, 3)
+	projectilePart.CFrame = CFrame.lookAt(origin, origin + directionVector)
+	projectilePart.Material = Enum.Material.Neon
+	projectilePart.Color = Color3.fromRGB(255, 170, 0)
+	projectilePart.CanCollide = false
+	projectilePart.Anchored = true
+	projectilePart.Parent = Workspace
+
+	-- Mover la parte decorativa o destruirla tras el tiempo estimado de vuelo
+	game:GetService("Debris"):AddItem(projectilePart, directionVector.Magnitude / speed)
+end)
+Puntos Clave de Seguridad y Optimización:Humanoid:TakeDamage() frente a Health -= x: Aplica siempre el daño utilizando :TakeDamage(), ya que respeta los ForceFields de la zona de reaparición (spawn), mientras que modificar la salud directamente atraviesa la protección de spawn2021.Separación de Responsabilidades: El cliente únicamente sugiere la intención de disparo y el punto objetivo2223. El servidor es la única autoridad responsable de verificar el tiempo de reutilización (cooldown), la línea de visión y la aplicación del daño23more_horiz.Búsqueda de Ancestros: Al procesar la parte tocada (RaycastResult.Instance), utiliza FindFirstAncestorOfClass("Model") para ubicar correctamente al personaje aunque el rayo impacte en accesorios, sombreros o extremidades27more_horiz.
+
+--
+
+Los ataques imbloqueables (Guard Breaks o Unblockables) son la herramienta principal para equilibrar el sistema defensivo en juegos de combate de Roblox (como The Strongest Battlegrounds o Blox Fruits)12.1. Impacto de los Imbloqueables en la DefensaEvitan la defensa pasiva (Turtling): Previenen que un jugador mantenga presionada la tecla de bloqueo indefinidamente sin recibir castigo34.Anulación de Parry y Block: Un ataque imbloqueable ignora por completo la reducción de daño del estado Blocking y la ventana de contragolpe del Parrying13.Rotura de Guardia (Guard Broken): Al impactar contra un defensor en postura de bloqueo, cancela inmediatamente su estado defensivo y le aplica un stun o desequilibrio prolongado, abriendo la oportunidad para un combo completo35.Incentivo al Movimiento (Counterplay): Obliga al jugador defensor a reaccionar mediante desvíos con movimiento (Dash), uso de cuadros de invulnerabilidad (I-Frames) o distanciamiento (Spacing), en lugar de confiar únicamente en la tecla de bloqueo67.2. Programación de la Lógica en CombatResolverPara integrar esta mecánica, extendemos la función ProcessHit en el servidor con una bandera booleana (isUnblockable o isGuardBreak):-- ServerScriptService.Modules.CombatResolver
+local CombatResolver = {}
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StateManager = require(ReplicatedStorage.Modules.StateManager)
+local StunHandler = require(script.Parent.StunHandler)
+
+local VFXRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("CombatVFX")
+
+function CombatResolver.ProcessHit(
+	attacker: Model,
+	defender: Model,
+	rawDamage: number,
+	stunDuration: number,
+	isUnblockable: boolean? -- Flag que indica si el ataque es imbloqueable
+)
+	local defenderState = StateManager.GetState(defender)
+	local defenderHumanoid = defender:FindFirstChildOfClass("Humanoid")
+
+	if not defenderHumanoid or defenderHumanoid.Health <= 0 then return end
+
+	local isDefending = (defenderState == StateManager.States.Parrying or defenderState == StateManager.States.Blocking)
+
+	---------------------------------------------------------
+	-- CASO 1: ATAQUE IMBLOQUEABLE (GUARD BREAK)
+	---------------------------------------------------------
+	if isDefending and isUnblockable then
+		-- 1. Cancelar inmediatamente la postura defensiva
+		StateManager.SetState(defender, StateManager.States.Idle)
+
+		-- 2. Aplicar aturdimiento extendido por rotura de guardia
+		local guardBreakStunTime = stunDuration + 0.6
+		StunHandler.ApplyStun(defender, guardBreakStunTime)
+
+		-- 3. Infligir daño completo (respetando ForceFields)
+		defenderHumanoid:TakeDamage(rawDamage)
+
+		-- 4. Notificar a los clientes para efectos de rotura de guardia
+		VFXRemote:FireAllClients("GuardBreakEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	---------------------------------------------------------
+	-- CASO 2: PERFECT BLOCK / PARRY EXITOSO (Ataques bloqueables)
+	---------------------------------------------------------
+	if defenderState == StateManager.States.Parrying then
+		StunHandler.ApplyStun(attacker, 1.2) -- Castigo al atacante
+		VFXRemote:FireAllClients("ParryEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	---------------------------------------------------------
+	-- CASO 3: BLOQUEO NORMAL (Ataques bloqueables)
+	---------------------------------------------------------
+	if defenderState == StateManager.States.Blocking then
+		local reducedDamage = rawDamage * 0.2 -- 80% de reducción de daño
+		defenderHumanoid:TakeDamage(reducedDamage)
+		VFXRemote:FireAllClients("BlockEffect", defender.PrimaryPart.CFrame)
+		return
+	end
+
+	---------------------------------------------------------
+	-- CASO 4: IMPACTO LIMPIO (Objetivo sin bloqueo activo)
+	---------------------------------------------------------
+	defenderHumanoid:TakeDamage(rawDamage)
+	StunHandler.ApplyStun(defender, stunDuration)
+	VFXRemote:FireAllClients("HitEffect", defender.PrimaryPart.CFrame)
+end
+
+return CombatResolver
+3. Ejemplo de Ejecución (Ataque Pesado o Habilidad)Cuando se detecta un impacto por Spherecast o Raycast correspondiente a un remate de combo o habilidad especial8:local CombatResolver = require(ServerScriptService.Modules.CombatResolver)
+
+-- Parámetros de un ataque pesado o habilidad cargada imbloqueable
+local damage = 35
+local stunTime = 0.8
+local isUnblockable = true -- Romperá la guardia si el objetivo está bloqueando
+
+CombatResolver.ProcessHit(attackerModel, defenderModel, damage, stunTime, isUnblockable)
+4. Principios de Balance para ImbloqueablesAnticipación Clara (Telegraphing): Las animaciones de ataques imbloqueables deben incluir un tiempo de preparación (windup) visible o un destello/aura en el arma para que el oponente entienda que debe esquivar (Dash) en lugar de presionar la tecla de bloqueo910.Recuperación Castigable (Endlag): Si el atacante falla un imbloqueable (whiff), la animación debe dejarlo brevemente vulnerable para premiar el desvío o esquiva del defensor1011.Uso de TakeDamage(): Garantiza que el daño respete las protecciones de reaparición (ForceFields) en el servidor1213.
+
+--
+
+Para lograr un combate en Roblox Studio que se sienta inmediato y receptivo para el atacante, pero que al mismo tiempo sea preciso y justo (anti-exploit) para los demás jugadores, es necesario implementar una arquitectura de autoridad dividida y compensación de latencia12.A continuación se detallan las estrategias esenciales para estructurar esta comunicación:1. Modelo de Autoridad DivididaEl principio fundamental es que el cliente sugiere la intención y el servidor decide el resultado23:Responsabilidad del Cliente: Captura la entrada del jugador (clic o tecla), reproduce la animación de ataque e indicadores de forma inmediata y envía la solicitud al servidor14.Responsabilidad del Servidor: Mantiene la autoridad final25. Valida que el jugador no esté aturdido o en tiempo de reutilización, comprueba la distancia y línea de visión (Line of Sight) con el objetivo, aplica el daño mediante TakeDamage() y registra la pérdida de salud3more_horiz.2. Respuesta Inmediata en el Cliente con Cancelación del ServidorSi el cliente esperara la respuesta del servidor antes de mostrar la animación del golpe, el jugador percibiría un retardo (input lag) constante proporcional a su ping17.Ejecución predictiva: Al presionar la tecla de ataque, el cliente reproduce la animación de inmediato de forma local14.Invocación al servidor: Paralelamente, invoca la acción en el servidor mediante un RemoteEvent14.Mecanismo de cancelación: Si la validación en el servidor falla (por ejemplo, porque el jugador fue aturdido un milisegundo antes en el servidor), este envía una respuesta remota al cliente para detener la animación local limpiamente y prevenir efectos fantasma48.3. Replicación Eficiente de Efectos Visuales y Auditivos (VFX/SFX)Para evitar sobrecargar la red y saturar el hilo principal del servidor:Generación local: El servidor nunca debe instanciar ni animar con TweenService objetos visuales decorativos como proyectiles, destellos o partículas9.Patrón FireAllClients: Cuando el servidor valida una habilidad o proyectil, llama a RemoteEvent:FireAllClients() pasando únicamente los datos esenciales (posición inicial, dirección y velocidad)1011.Renderizado independiente: Cada cliente remoto recibe los datos y dibuja la bala, el láser o las partículas de impacto localmente912. El cliente que disparó ignora dicho evento para no duplicar su propia representación visual12.4. Validación de Impactos y Tolerancia a Latencia (Sanity Checks)Debido a que el objetivo se está moviendo en su propia pantalla, la posición del objetivo en el servidor suele estar ligeramente rezagada en comparación con la del cliente13.Margen de proximidad (Proximity Tolerance): Al validar un impacto devuelto por el cliente, el servidor calcula la distancia entre la posición del golpe y el personaje objetivo. Se debe añadir un margen de tolerancia aceptable (por ejemplo, MAX_HIT_PROXIMITY = 10 a 12 studs) para no descartar impactos legítimos causados por el ping13more_horiz.Comprobación de Muros (Line of Sight): El servidor ejecuta un Raycast desde la posición de origen del atacante hasta el punto de impacto para confirmar que no existan muros u obstáculos del escenario en medio6.Sustituir .Touched(): No utilices el evento .Touched() en combates competitivos16. Emplea consultas volumétricas directas (GetPartBoundsInRadius o Spherecast) invocadas en el instante del impacto, deduplicando los humanoides alcanzados mediante una tabla interna para aplicar daño una sola vez por ataque17more_horiz.5. Sincronización de Cooldowns y EstadosSincronización visual: Muestra la veladura de recarga (cooldown sweep) en la interfaz del cliente utilizando la configuración compartida, pero exige que la duración real sea verificada en el servidor comparando la marca de tiempo os.clock()20.Marcar eventos de animación: Inserta Event Markers (como HitStart y HitEnd) en la línea de tiempo de tus animaciones con AnimationTrack:GetMarkerReachedSignal() para activar y desactivar las ventanas activas de daño de forma precisa en ambos lados2122.
+
+--
+
+### 1\. Estructura Esencial de un Combo
+
+Un combo fluido y bien diseñado suele estructurarse en **tres fases principales** intercaladas con ataques básicos (M1)[5][6]:
+
+* **Apertura o Iniciador (** **Opener** **):** Habilidades rápidas de desplazamiento, agarre o aturdimiento ligero que inician el combo[5]. Si el atacante falla la apertura, debe quedar expuesto a un tiempo de recuperación (*endlag*) para que el oponente pueda castigarlo[7][8].
+* **Extensor (** **Extender** **):** Movimientos que extienden el estado de aturdimiento (*stun*) o reubican al rival cerca del jugador (mediante *M1s*, empujones o enlaces de habilidades)[5].
+* **Rematador (** **Finisher** **):** Ataques de alto impacto o derribo final que infligen el mayor daño cuando el oponente ya no puede esquivar[5][7].
+
+---
+
+### 2\. Mecánicas de Combate y Tácticas Avanzadas (*Techs*)
+
+Para dar profundidad táctica y permitir que los jugadores desarrollen habilidad propia, es crucial implementar mecánicas de interacción directa[6]:
+
+* **Intercambio de Ataques Básicos (** **M1 Trading** **):** Los golpes básicos (*M1*) deben aplicar un breve bamboleo (*stagger*)[6]. El jugador que gestione mejor los tiempos de recuperado o los saltos al atacar gana la iniciativa para iniciar su combo[6].
+* **Cancelaciones de Animación (** **Roll/Spell Canceling** **):**
+  * Permitir cancelar esquives (*roll cancel*) consumiendo recursos para ganar cuadros de invulnerabilidad (*i-frames*) y posicionarse rápidamente[9].
+  * Implementar la cancelación de habilidades o hechizos (*spell/mantra canceling*) para amagar (*faint*), engañar la reacción del rival y hacerle gastar sus recursos defensivos[9].
+* **Impacto contra el Entorno (** **Wall Bangs / Wall Combos** **):** Aprovechar la geometría del mapa para que los ataques que empujan al rival reboten contra paredes o esquinas, permitiendo encadenar extensiones adicionales[12].
+* **Gestión de Esquive y Bloqueo (** **Instinct Break &amp; Evasives** **):**
+  * Sistemas de **esquive limitado o Visión (** **Instinct** **)** que evitan ataques automáticos pero se rompen tras recibir cierto número de *M1s*, ataques de área (AoE) o movimientos específicos de ruptura (*Instinct break*)[16][17].
+  * Barra de **Escape/Evasivo (** **Ragdoll Cancel** **)**: Recursos defensivos con tiempo de recarga que permiten al jugador aturdido escapar de un combo para evitar ser eliminado de un solo turno (*100-to-0 true combo*) sin capacidad de respuesta[18].
+* **Bloqueo de Pánico (** **Scared Parry** **):** Si un jugador intenta hacer *parry* o bloqueo mientras ya está en aturdimiento por fallar una lectura, entra en una animación de pánico que lo deja indefenso por un breve lapso[22].
+
+---
+
+### 3\. Estilos de Juego Principal (*Playstyles*)
+
+Diseñar clases, frutas, armas o artes marciales debe responder a diferentes arquetipos de jugador[2]:
+
+1. **Agresivo (** **Rushdown / Presión Directa** **):** Personajes o equipamientos orientados al combate cuerpo a cuerpo veloz, reducción de distancias y combos continuos de alto daño[4].
+2. **Defensivo / Contraataque (** **Counter-Play / Spacing** **):** Basado en mantener la distancia, esperar el fallo o *endlag* del rival, ejecutar bloqueos/parries precisos (*perfect dodge*) y castigar inmediatamente[2].
+3. **Control de Espacio / Distancia (** **Zoning &amp; Range** **):** Diseñado para manipular la posición del oponente con proyectiles, trampas o invocaciones desde ángulos múltiples antes de entrar a cerrar la baja[8].
+4. **Técnico / Fundamentos Básicos (** **Boxing / Grounded Fighting** **):** Enfocado en la gestión de estamina, amagos (*feints*), posicionamiento y lectura táctica del rival sin depender de habilidades mágicas masivas[2].
+
+---
+
+### 4\. Mejores Prácticas de Diseño e Implementación
+
+* **Evitar los** **True Combos** **Ineludibles Infiinitos:** Garantiza siempre una ventana defensiva (desactivación de *Instinct*, uso de *evasive* o resistencia de *posture*) para que el combate sea una conversación de ida y vuelta y no un castigo unidireccional[16].
+* **Riesgo vs. Recompensa en los Iniciadores:** Un *opener* con gran alcance o aturdimiento largo debe conllevar un tiempo de reutilización (*cooldown*) extenso o dejar al usuario muy vulnerable si falla[7].
+* **Legibilidad Visual y Sonora:** Añadir señales claras (efectos de sonido o animaciones distintivas) cuando alguien amaga o cancela un ataque, permitiendo que los jugadores con mejores reflejos puedan reaccionar[8][9].
+
+--
+
+1. Análisis del Sistema de Combate de tu GDDEl GDD plantea un sistema de combate dinámico de tercera persona optimizado para PC y móviles1, con mecánicas clave bien definidas:Estructura de Combos de 3 Pasos: Cada rol cuenta con dos combos estructurados en tres fases fijas (Paso 1 → Paso 2 → Paso 3) dentro de una ventana de tiempo (máximo 6 segundos)23.Mecánica de Marcado y Golpes Críticos: La primera habilidad actúa como iniciadora (Opener) y aplica una marca; la segunda y tercera habilidad aprovechan dicha marca para garantizar impactos críticos y desencadenar efectos especiales o explosiones de área23.Conexiones de Combos (Combo Links): Al completar un combo, se habilita la secuencia del segundo combo en su paso 2 (patrón A → B → A), permitiendo encadenar habilidades continuamente sin interrupciones torpes2.Ritmo Acelerado: La reducción del 40% en los tiempos de recarga de las habilidades activas fomenta un flujo continuo de combinaciones rápidas4.Ajuste de Daño en PvP (Arena Isla de Dunas): En la arena 5v5 de captura de bandera, los multiplicadores de daño de las armas ($\times0.55$) y habilidades ($\times0.45$) están ajustados para lograr un Time-To-Kill (TTK) de 8 a 10 segundos en duelos entre roles equivalentes, evitando eliminaciones instantáneas56.2. Mejores Prácticas e Implementación de CombosPara asegurar que los combos se sientan precisos y competitivos, se pueden aplicar los estándares observados en los títulos de PvP más populares de la plataforma:A. Estructura Canónica de Combos (Iniciador → Extensor → Remate)Opener (Iniciador): Habilidades de movimiento rápido, aturdimiento ligero o agarres (por ejemplo, la Embestida del Guerrero o el Cepo del Cazador)78. Regla de oro: Si un Opener falla, debe dejar al atacante expuesto a tiempo de recuperación (endlag) para que el rival castigue la imprudencia910.Extender (Extensor): Movimientos que reubican o mantienen al objetivo atrapado (como el Parpadeo del Mago o el Escudo de Hojas del Médico)3more_horiz.Finisher (Remate): Habilidades de alto impacto (como la Bola de fuego mejorada del Mago o la Flecha perforante en abanico) que concluyen la cadena cuando el oponente no puede reaccionar2more_horiz.B. Prevención de Combos Infinitos (100-to-0 True Combos)Los combos donde el rival pierde la totalidad de su vida sin capacidad de respuesta resultan altamente frustrantes.En el GDD, esto se previene aplicando un factor de control reducido ($\times0.5$) en PvP6. Para profundizar esto, se pueden implementar recursos de escape con tiempo de recarga (Ragdoll Cancel / Evasives) que permitan al jugador liberarse si recibe demasiado aturdimiento continuo1112.C. Amagos y Cancelaciones (Feints & Cancels)Incluir mecánicas de amago mediante combinaciones simples (por ejemplo, cancelar un hechizo o un esquive consumiendo estamina) permite engañar al rival para que malgaste sus opciones defensivas antes de lanzar el combo principal1314.D. Balance Horizontal de EquipamientoLas variantes de equipamiento en la arena de Dunas (compradas con Ámbar) siguen una excelente práctica de diseño: son horizontales15. Modifican el estilo de juego (por ejemplo, mayor daño a cambio de mayor recarga) sin ofrecer ventajas numéricas directas o mecánicas pay-to-win15.3. Estilos de Juego (Arquetipos de Roles)Los cuatro roles definidos en tu GDD encajan claramente en los arquetipos clásicos de los juegos de pelea:Guerrero (Rushdown / Presión Directa / Control Cercano):Estilo: Enfocado en acortar distancias, aguantar daño (+20 de vida) y agrupar enemigos7.Estrategia: Inicia con Embestida o Grito de guerra, extiende con Rompehuesos y remata con Torbellino37.Cazador (Zoner / Control de Espacio):Estilo: Mantiene la distancia mediante ataques de precisión a rango y trampas7.Estrategia: Atrapa al rival con el Cepo, aplica Marcar presas y remata con abanicos de proyectiles perforantes37.Mago (Buster Elemental / Movilidad):Estilo: Daño masivo de área y control de estado (congelación y quemadura) con alta movilidad7.Estrategia: Inmoviliza con Nova de hielo, se posiciona con Parpadeo y detona con Bola de fuego o Meteoro37.Médico (Soporte / Control Táctico / Venenos):Estilo: Mantenimiento de equipo mediante escudos y curaciones, combinado con debuffs constantes7.Estrategia: Otorga escudos, duerme a los rivales con Polvo somnífero para aumentar el daño recibido (+30%) y aplica daño continuo por veneno con la cerbatana37.
+
+--
+
+En la arena de la **Isla de Dunas**, el equipamiento comprado con **Ámbar** (Arma, Armadura y Amuleto) está diseñado bajo un principio **horizontal**: no otorga ventajas puras de poder, sino que modifica el comportamiento de una habilidad (por ejemplo, aumentando su daño/efecto a cambio de un tiempo de recarga mayor)[1].
+
+Aprovechando esta mecánica de personalización, exploremos **un nuevo combo exclusivo por rol** según la pieza de Ámbar equipada:
+
+---
+
+### 1\. ⚔️ Guerrero: Combo *"Carga de Coloso"*
+
+* **Pieza Comprada:** **Maza de hueso grueso** (Arma de Ámbar)[1].
+  * *Efecto de la pieza:* Aumenta el daño y el área de **Rompehuesos (R)** un 40 %, a cambio de un 40 % más de tiempo de recarga[1].
+* **Secuencia del Combo (R → X → C):**
+  1. **Rompehuesos (R - Iniciador de Impacto):** Se usa como *opener* en lugar de remate, derribando en cono a los rivales que defienden o escoltan la bandera[2][3].
+  2. **Embestida (X - Extensor de Empuje):** Te desplazas 20 studs hacia los enemigos caídos para empujarlos contra los muros o estructuras del cañón[2][4].
+  3. **Grito de guerra (C - Remate y Soporte):** Con el *Peto de escamas de ámbar*, el grito no solo reduce el daño recibido por los rivales (-40 %), sino que otorga un escudo temporal a los aliados cercanos que avanzan a capturar la bandera[1][2].
+
+---
+
+### 2\. 🏹 Cazador: Combo *"Lluvia Repulsiva"*
+
+* **Pieza Comprada:** **Carcaj de Flechas Pesadas** (Amuleto de Ámbar)[1].
+  * *Efecto de la pieza:* Modifica **Disparo múltiple (Z)** a corta distancia para que el abanico de proyectiles repela ligeramente a los enemigos golpeados.
+* **Secuencia del Combo (Z → R → C):**
+  1. **Disparo múltiple (Z - Iniciador Repulsivo):** Si un atacante cuerpo a cuerpo se acerca, disparas a quemarropa para frenar su avance y distanciarlo.
+  2. **Flecha perforante (R - Extensor en Línea):** Aprovechas la distancia creada para atravesar al rival con una ráfaga recta mientras se recupera del empuje[2].
+  3. **Cepo (C - Remate de Zona):** Lanzas la trampa exactamente en el punto de aterrizaje del objetivo, dejándolo inmovilizado bajo la marca del Cazador para que tu equipo remate desde rango seguro[2][5].
+
+---
+
+### 3\. 🔮 Mago: Combo *"Cataclismo Astral"*
+
+* **Pieza Comprada:** **Núcleo Astral de Ámbar** (Amuleto de Ámbar)[1].
+  * *Efecto de la pieza:* Reduce el tiempo de aviso de **Meteoro (R)** de 0.8 s a 0.4 s, permitiendo usarlo como zona de control iniciadora a cambio de un área de impacto ligeramente más reducida.
+* **Secuencia del Combo (R → C → X):**
+  1. **Meteoro (R - Iniciador de Zona):** Lanzas el meteoro sorpresivo directamente sobre la ruta del portador de la bandera enemiga[2][3].
+  2. **Parpadeo (C - Extensor de Posición):** Te reubicas instantáneamente al borde del área de impacto mediante teletransporte[2].
+  3. **Nova de hielo (X - Remate de Congelación):** Congelas a los rivales justo cuando cae el meteoro, garantizando el golpe crítico en área e inmovilizándolos sobre el terreno ardiente[2][5].
+
+---
+
+### 4\. ⛑️ Médico: Combo *"Brote Tóxico"*
+
+* **Pieza Comprada:** **Puchero de Tóxicos Concentrados** (Amuleto de Ámbar)[1].
+  * *Efecto de la pieza:* Potencia la nube de **Polvo somnífero (R)** para infligir daño por veneno continuo a los enemigos afectados sin despertarlos de inmediato.
+* **Secuencia del Combo (R → C → X):**
+  1. **Polvo somnífero (R - Iniciador de Control):** Lanzas la nube en el cuello de botella del mapa para dormir y ralentizar a los perseguidores[2].
+  2. **Escudo de hojas (C - Extensor Defensivo):** Colocas la protección sobre ti o el aliado que lleva la bandera antes de entrar en zona de riesgo[2][3].
+  3. **Dardo curativo / Venenoso (X - Remate de Amplificación):** Disparas el dardo que aprovecha el bonificador de daño (+30 %) de los objetivos dormidos[5], aplicando una carga de veneno crítico que debilita al rival mientras tu equipo escapa a la base
+
+--
+
+El equilibrio del daño en el combate PvP se logra mediante un conjunto de **multiplicadores específicos**, **mecanismos de prevención de aturdimiento infinito (** **anti-stunlock** **)** y un **diseño horizontal de equipamiento**:
+
+### 1\. Multiplicadores Directos de PvP y Target TTK
+
+En lugar de utilizar los mismos valores de daño que contra los enemigos del entorno (PvE), los enfrentamientos PvP aplican ajustes a la escala de combate[1][2]:
+
+* **Daño de Armas:** Se reduce a un **×0,55** (con excepciones como el arco a ×0,7)[2].
+* **Habilidades Activas:** Se ajustan a un **×0,45** de su valor base[2].
+* **Curaciones y Escudos:** Se escalan a un **×0,6**[2].
+* **Tiempo para Eliminar (TTK):** Estas reducciones están calibradas para que un duelo entre dos roles equivalentes (como Guerrero, Cazador o Mago) dure en promedio entre **8 y 10 segundos**[2]. Esto evita eliminaciones instantáneas de un solo turno (*100-to-0 true combos*) y da espacio a la recuperación táctica.
+
+---
+
+### 2\. Control de Masas e Inmunidad a Aturdimientos (*Stunlock*)
+
+Para evitar que un jugador quede indefenso si es atacado por varios rivales o por secuencias continuas:
+
+* **Duración de Control al 50%:** Todos los aturdimientos, congelaciones, agarres e inmovilizaciones duran la mitad de tiempo (**×0,5**) en PvP respecto a su versión PvE[1][2].
+* **Ventana de Inmunidad (** **PlayerControlImmunitySeconds** **):** Tras ser liberado de cualquier efecto de control o agarre, el personaje recibe **2 segundos de inmunidad a nuevos aturdimientos**[3]. Durante este lapso puede moverse y responder, aunque sigue recibiendo daño normal de ataques[3].
+
+---
+
+### 3\. Ajuste de Ritmo de Habilidades (Frecuencia vs. Daño)
+
+Para lograr un combate ágil donde los combos fluyan sin inflar el daño por segundo (DPS) total:
+
+* Las habilidades activas reducen sus tiempos de recarga un **40%**, pero su daño e impacto individual se reducen en ese mismo **40%**[4].
+* Esto permite enlazar habilidades con mayor frecuencia para formar combos sin que el daño de una sola habilidad resulte devastador[4].
+
+---
+
+### 4\. Equipamiento Horizontal y Techos de Estadísticas (*Soft Caps*)
+
+* **Variantes Horizontales:** El equipamiento especial (comprado con Ámbar en la arena) no ofrece ventajas numéricas absolutas, sino intercambios tácticos (*trade-offs*)[5]. Por ejemplo, aumentar el área de impacto o el daño a cambio de un tiempo de recarga más largo[5].
+* **Límites de Rendimiento (** **Soft Caps** **):** Al igual que en otros títulos competitivos de la plataforma, el sistema equilibra los puntos de vida y daño con rendimientos decrecientes a partir de ciertos umbrales, impidiendo la creación de personajes invencibles o destructores de un solo golpe
+
+--
+
+Tras analizar el **GDD.md** de *Primal Banana Islands: Monkey Survival*[1] en comparación con los referentes de combate PvP en Roblox presentes en las fuentes (como *Blox Fruits*, *The Strongest Battlegrounds*, *Deepwoken*, *Jujutsu Shenanigans*, *BedWars* y *RIVALS*)[2], se identifican **cinco oportunidades clave de mejora** para elevar el juego a un nivel más competitivo, emocionante y equilibrado:
+
+---
+
+### 1\. Sistema Neutral Defensivo: *Parry* y Amagos (*Feints*)
+
+* **Estado Actual en el GDD:** El juego cuenta con esquiva/dash, multiplicadores reducidos en PvP (×0,45 en habilidades, ×0,55 en armas)[5] y una ventana de inmunidad al control tras ser liberado (`PlayerControlImmunitySeconds`)[5].
+* **Lo que enseñan los referentes:** En títulos como *Deepwoken* y *The Strongest Battlegrounds*, la base del combate de alta habilidad radica en la lectura del rival mediante **bloqueos perfectos (** **Parry** **)** y **amagos (** **Feints / Spell Canceling** **)**[6]. Los amagos permiten cancelar la animación de un ataque o hechizo consumiendo recurso para engañar la reacción del oponente y hacerle gastar sus opciones defensivas[7][8].
+* **Oportunidad de Mejora:**
+  * Implementar una ventana breve de **Bloqueo Perfecto (** **Parry** **)**: si el jugador bloquea justo cuando entra el golpe, no recibe daño y desequilibra al atacante por un instante[6][9].
+  * Permitir **cancelar la animación de inicio de habilidades** o ataques cargados (presionando esquiva o bloqueo durante el inicio)[7][10]. Esto evita que el combate se reduzca a lanzar habilidades en recarga y premia el engaño táctico.
+
+---
+
+### 2\. Mecánicas Anti-Bloqueo (*Guard Break / Instinct Break*)
+
+* **Estado Actual en el GDD:** Los aturdimientos y controles se reducen al 50% en PvP[5], pero no se especifica cómo responder contra un jugador que mantiene el bloqueo constante.
+* **Lo que enseñan los referentes:** En *Blox Fruits*, la mecánica de *Instinct Break* obliga a usar movimientos específicos de ruptura o cadenas de ataques básicos para consumir los esquives automáticos del rival antes de iniciar el combo[11][12]. En *The Strongest Battlegrounds*, ciertos ataques pesados rompen el bloqueo directamente (*Guard Break*)[9][13].
+* **Oportunidad de Mejora:**
+  * Designar ciertas habilidades activas (como el *Rompehuesos* del Guerrero o la *Flecha perforante* del Cazador)[14] con la propiedad de **Ruptura de Bloqueo**.
+  * Si un rival mantiene el bloqueo activo contra una habilidad de este tipo, su postura se rompe (*stagger* pesado), dejándolo vulnerable a la primera habilidad iniciadora (*Opener*) de un combo[9][15].
+
+---
+
+### 3\. Recurso de Escape Activo (*Ragdoll Cancel / Evasivo*)
+
+* **Estado Actual en el GDD:** El sistema aplica inmunidad automática de 2 segundos tras salir de un aturdimiento[5] e intercala las habilidades en un bucle A → B → A mediante conexiones[15].
+* **Lo que enseñan los referentes:** En *Jujutsu Shenanigans* y *Blox Fruits*, la libertad de escape no es solo pasiva, sino un **recurso activo (** **Evasive / Ragdoll Cancel / V4** **)**[3]. Permite interrumplir un combo devastador a cambio de un tiempo de recarga largo (ej. 30–40 s) o consumo de estamina.
+* **Oportunidad de Mejora:**
+  * Otorgar a cada rol un **Escape de Pánico (Evasivo)** con un tiempo de recarga independiente alto. Esto permite liberarse en medio de una cadena de aturdimiento antes de perder toda la barra de vida, obligando al atacante a baitear (*engañar*) el evasivo rival antes de lanzar su combo completo[3].
+
+---
+
+### 4\. Interacción con el Entorno (*Wall Bangs / Rebotes*)
+
+* **Estado Actual en el GDD:** La Isla de Dunas es una arena 5v5 de captura la bandera con cañones, muros y ruinas[1][19]. Las habilidades de empuje (como la *Embestida* del Guerrero) desplazan a los rivales 20 studs[14].
+* **Lo que enseñan los referentes:** Tanto *The Strongest Battlegrounds* como *Deepwoken* utilizan la geometría del mapa a través de los **"Wall Bangs"**: si un impacto que empuja proyecta al enemigo contra una pared o estructura, este rebota y queda aturdido por una fracción de segundo adicional, permitiendo extender el combo[20][21].
+* **Oportunidad de Mejora:**
+  * Si la *Embestida* del Guerrero o el remate repulsivo del Cazador impactan al objetivo contra una superficie sólida de la arena, se genera un **Rebote de Pared (** **Wall Bang** **)**, otorgando una ventana adicional para conectar la siguiente habilidad[14]. Esto convierte la posición espacial en el mapa en un factor estratégico fundamental.
+
+---
+
+### 5\. Objetivos Dinámicos en la Arena de Dunas
+
+* **Estado Actual en el GDD:** Modo Captura la Bandera tradicional (3 capturas o el que más tenga a los 8 minutos)[19].
+* **Lo que enseñan los referentes:** Juegos como *BedWars* y *RIVALS* mantienen el interés competitivo generando **puntos de conflicto secundario** en el mapa (generadores de esmeraldas/hierro o cajas de suministros), obligando a los equipos a salir de la postura defensiva en sus bases[22].
+* **Oportunidad de Mejora:**
+  * Introducir **"Altares de Ámbar" o Cajas de Suministro Disputadas** en el centro del cañón de Dunas[1]. Capturar estos puntos neutrales a mitad de la partida puede otorgar bonificaciones temporales de velocidad o reducir la recarga de la habilidad Definitiva (**V**) de todo el equipo[15][26], dinamizando el flujo de combate entre las capturas de bandera.
+
+--
+
+El diseño del sistema de **Parry (Bloqueo Perfecto)** y **Amagos (** **Feints / Cancels** **)** para *Primal Banana Islands: Monkey Survival* añade esa capa de lectura táctica y anticipación que distingue a las mejores experiencias competitivas de Roblox[1].
+
+---
+
+### 1\. Sistema de Parry (Bloqueo Perfecto)
+
+El *Parry* premia la reacción precisa sobre el bloqueo pasivo continuo.
+
+* **Ventana de Reacción (** **Parry Window** **):** Al activar la tecla de defensa (**F** en PC / **L2** en Mando / **Botón de Escudo** en Móvil), el personaje entra en una postura de guardia activa durante **0.25 segundos (15 frames)**.
+* **Recompensa al Acertar (** **Perfect Parry** **):**
+  * **Inmunidad total:** Cancela el 100% del daño del ataque entrante (tanto golpes M1 como habilidades esquivables)[2].
+  * **Desequilibrio al Atacante (** **Stagger** **):** Corta la animación del rival y le aplica un aturdimiento de **0.35 s en PvP** (0.8 s contra monos/jefes en PvE)[2].
+  * **Sonido y Visual:** Un destello dorado metálico con sonido seco de choque (*clash*).
+* **Bloqueo Normal vs. Parry:**
+  * Si se mantiene presionada la tecla después de los 0.25 s iniciales, la postura pasa a **Bloqueo Normal**.
+  * El Bloqueo Normal reduce el daño recibido un 50%, pero consume barra de **Postura/Estamina** por cada impacto recibido[4]. Si la postura llega a cero, la guardia se rompe (*Guard Break*).
+* **Castigo por Fallo (** **Scared Parry / Bloqueo de Pánico** **):**
+  * Si el jugador intenta hacer *parry* a destiempo o presiona el botón mientras ya está aturdido por un combo, entra en una animación de **pánico de 0.5 s**[5].
+  * Durante este estado no se puede esquivar ni bloquear, quedando totalmente expuesto al contraataque rival[5].
+
+---
+
+### 2\. Sistema de Amagos (*Feints / Cancels*)
+
+Los amagos permiten engañar la lectura del oponente para forzar un *Parry* a destiempo o hacerle gastar sus habilidades defensivas[3][6].
+
+* **Amago de Habilidad (** **Mantra / Spell Canceling** **):**
+  * **Mecánica:** Presionar **Bloqueo (F / L2)** durante la animación de inicio (*windup*, primeros 0.20 s) de cualquier habilidad activa (Z, X, C, R)[3][6].
+  * **Efecto:** El personaje interrumpe el lanzamiento produciendo el sonido e inicio visual del ataque, engañando al rival[2][3].
+  * **Costo:** Consume un **15% de Estamina** y aplica un tiempo de recarga corto de penalización (**1.5 segundos**) a la habilidad amagada en lugar de su *cooldown* completo[3].
+* **Amago de Golpe Básico (** **M1 Feint** **):**
+  * Interrumpe el inicio del swing de un ataque M1 presionando Bloqueo[7]. Sirve para baitear la esquiva del rival y castigarlo en el punto de aterrizaje[8].
+* **Cancelación de Esquive (** **Roll Cancel** **):**
+  * Permite cortar la animación del rodaje/dash presionando el botón de ataque M1 o habilidad en cualquier punto del recorrido[2].
+  * Otorga cuadros de invulnerabilidad (*i-frames*) durante la esquiva y permite reaparecer atacando inmediatamente desde un ángulo ciego del oponente[2].
+
+---
+
+### 3\. Aplicación Táctica por Rol
+
+| Rol             | Amago Característico (*Feint*)                                              | Jugada Táctica (*Mind Game*)                                                                                                             |
+| --------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **⚔️ Guerrero** | **Amago de Embestida (X):** Inicia la carrera y la frena a mitad de camino. | Provoca que el rival presione *Parry* por pánico. Al quedar en *Scared Parry*, se conecta inmediatamente un *Rompehuesos (R)*[5][8]. |
+| **🏹 Cazador**  | **Amago de Disparo múltiple (Z):** Amaga el arco a corta distancia.         | El rival esquiva rodando hacia un lado. Se realiza un *Roll Cancel* hacia su posición de caída y se coloca el *Cepo (C)*[2][8].      |
+| **🔮 Mago**     | **Amago de Nova de hielo (X):** Cancela el destello de congelación[3].    | Engaña el tiempo de *Parry* del rival y permite lanzar la *Bola de fuego (Z)* justo cuando la guardia del oponente caduca[3].          |
+| **⛑️ Médico**   | **Amago de Polvo somnífero (R):** Amaga lanzar la nube de sueño.            | Hace gastar la habilidad de escape o esquiva del rival para asegurar el dardo de veneno[3][9].                                       |
+
+---
+
+### 4\. Mapeo de Controles Multisistema
+
+| Acción               | PC (Teclado + Ratón)               | Mando (Xbox / PlayStation)                 | Móvil (Pantalla Táctil)                |
+| -------------------- | ---------------------------------- | ------------------------------------------ | -------------------------------------- |
+| **Parry / Bloqueo**  | Clic Derecho / `F`                 | `L2` / `LT`                                | Botón "Guardia / Parry"                |
+| **Amagar Habilidad** | `Z/X/C/R` \+ Clic Derecho (`M2`)   | Mantener `R1` \+ Botón de Habilidad + `L2` | Tocar Habilidad + Tocar Botón "Amagar" |
+| **Roll Cancel**      | `Q` (Dash) + Clic Izquierdo (`M1`) | `L1` (Dash) + `R2` (Ataque)                | Deslizar Joystick/Dash + Tocar Ataque  |
+
+--
+
+Para implementar el **sistema de interacción con el entorno** en *Primal Banana Islands: Monkey Survival*, nos basamos en tres pilares mecánicos inspirados en los mejores referentes de lucha y física de Roblox (como *Deepwoken* y *Jujutsu Shenanigans*)[1][2], adaptados a las reglas de tu GDD para la Isla y la Arena de Dunas[3][4]:
+
+---
+
+### 1\. Pilares del Sistema de Interacción con el Entorno
+
+1. **Rebote contra Muros y Estructuras (** **Wall Bangs / Wall Combos** **):**
+  * **Mecánica:** Cuando una habilidad o golpe con empuje (*knockback*, como la *Embestida* del Guerrero, la *Flecha repulsiva* del Cazador o el remate M1) proyecta a un personaje contra una superficie sólida (paredes de roca, ruinas mayas en Dunas o muros del Basecamp)[2].
+  * **Efecto:** Cancela el vector de desplazamiento restante, aplica un breve aturdimiento de impacto (**0.35 s de** **Wall Stun**) y activa partículas de polvo/grietas junto con un sonido de choque seco. Esto abre una ventana para extender la cadena de habilidades[2].
+2. **Coberturas y Obstáculos Destruibles (** **Destructible Objects** **):**
+  * **En la Arena de Dunas:** Columnas de piedra erosionadas, vallas de madera y altares pequeños pueden agrietarse y colapsar tras recibir habilidades de alto impacto (como *Meteoro* o *Pisotón*), eliminando coberturas estratégicas del rival[1][4].
+  * **En el Basecamp (PvE):** Las **estacas defensivas** dañan a los monos o jugadores rivales que sean empujados contra ellas[3].
+3. **Terrenos Modificados por Habilidades (** **Hazard Zones** **):**
+  * Áreas afectadas temporalmente por habilidades: el suelo ardiendo por la *Lluvia de estrellas* del Mago (daño continuo por 3 s)[5], la congelación de la *Nova de hielo*[5] o los *Cepos* del Cazador[6].
+
+---
+
+### 2\. Flujo Lógico de Detección de *Wall Bang*
+
+Para evitar falsos positivos y asegurar que el rendimiento sea óptimo en móviles y PC, la colisión se calcula en el servidor mediante **Raycasting direccional** durante la trayectoria del empuje:
+
+```
+[Inicio de Knockback] ──&gt; [Desplazamiento continuo por LinearVelocity]
+                                 │
+                        (En cada Step de física)
+                                 │
+                   ¿Raycast detecta pared a &lt; 3 studs?
+                         ├── SÍ  ──&gt; 1. Detener LinearVelocity
+                         │           2. Activar animación de choque (Ragdoll breve)
+                         │           3. Aplicar Wall Stun (0.35 s)
+                         │           4. Emitir efecto visual de grieta/polvo
+                         │
+                         └── NO  ──&gt; Continuar empuje normal hasta frenar
+
+```
+
+---
+
+### 3\. Implementación del Código en Luau (Roblox Studio)
+
+Este script modular maneja el vector de empuje y la detección de impacto contra el entorno utilizando `RaycastParams`:
+
+```
+-- ServerScriptService/Combat/EnvironmentInteractionService.luau
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+local EnvironmentService = {}
+
+-- Configuración de Raycast que ignora personajes y efectos visuales
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+raycastParams.IgnoreWater = true
+
+function EnvironmentService.ApplyKnockbackWithWallCheck(targetCharacter, directionVector, force, duration)
+    local hrp = targetCharacter:FindFirstChild("HumanoidRootPart")
+    local humanoid = targetCharacter:FindFirstChild("Humanoid")
+    if not hrp or not humanoid then return end
+
+    -- Ignorar a todos los personajes en la detección de paredes
+    local ignoreList = {}
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player.Character then table.insert(ignoreList, player.Character) end
+    end
+    raycastParams.FilterObjects = ignoreList
+
+    -- Crear impulso físico
+    local linearVelocity = Instance.new("LinearVelocity")
+    local attachment = Instance.new("Attachment", hrp)
+    linearVelocity.Attachment0 = attachment
+    linearVelocity.MaxForce = 100000
+    linearVelocity.VectorVelocity = directionVector.Unit * force
+    linearVelocity.Parent = hrp
+
+    local startTime = tick()
+    local wallHit = false
+
+    -- Bucle de detección frame a frame durante el empuje
+    local connection
+    connection = game:GetService("RunService").Heartbeat:Connect(function()
+        local elapsedTime = tick() - startTime
+        
+        -- Detección frontal de pared (Raycast 3 studs adelante en la dirección del empuje)
+        local rayResult = Workspace:Raycast(hrp.Position, directionVector.Unit * 3, raycastParams)
+
+        if rayResult and rayResult.Instance and rayResult.Instance.CanCollide then
+            wallHit = true
+            connection:Disconnect()
+            linearVelocity:Destroy()
+            attachment:Destroy()
+
+            -- Ejecutar efecto de Wall Bang
+            EnvironmentService.TriggerWallBang(targetCharacter, rayResult.Position, rayResult.Normal)
+        elseif elapsedTime &gt;= duration then
+            connection:Disconnect()
+            linearVelocity:Destroy()
+            attachment:Destroy()
+        end
+    end)
+end
+
+function EnvironmentService.TriggerWallBang(character, hitPosition, hitNormal)
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+
+    -- 1. Aplicar estado de Wall Stun breve (0.35 segundos)
+    character:SetAttribute("WallStunning", true)
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics) -- Animación de choque
+
+    -- 2. Emitir efectos visuales/sonoros en el punto de impacto
+    local impactFX = Instance.new("Part")
+    impactFX.Anchored = true
+    impactFX.CanCollide = false
+    impactFX.Size = Vector3.new(1, 1, 1)
+    impactFX.CFrame = CFrame.lookAt(hitPosition, hitPosition + hitNormal)
+    impactFX.Parent = Workspace
+
+    -- Limpieza y restauración tras el Wall Stun
+    task.delay(0.35, function()
+        if character and character:Parent() then
+            character:SetAttribute("WallStunning", nil)
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        impactFX:Destroy()
+    end)
+end
+
+return EnvironmentService
+
+```
+
+---
+
+### 4\. Equilibrio y Reglas de Diseño
+
+* **Límite de Rebote (** **Wall Bang Cooldown** **):** Para evitar que un jugador quede atrapado en una esquina recibiendo rebotes infinitos, se aplica un temporizador de **1.5 segundos de inmunidad a** **Wall Bangs** tras sufrir el primer choque.
+* **Posicionamiento Táctico en Dunas:** En la arena 5v5, atraer al portador de la bandera hacia los pasillos laterales o ruinas cerradas aumenta el riesgo de sufrir un *Wall Bang*, mientras que avanzar por el centro de la pirámide ofrece mayor espacio pero menor cobertura
+
+--
+
+La implementación del **sistema de interacción con el entorno** para *Primal Banana Islands: Monkey Survival* integra la geometría de la Isla y de la Arena de Dunas con la física de combate de los roles[1][2]. Inspirado en las mecánicas de juegos como *Deepwoken* y *Jujutsu Shenanigans*[3][4], el sistema combina **rebotes de pared (** **Wall Bangs** **)**, **coberturas modificables** y **zonas de peligro en el suelo (** **Hazard Zones** **)**[5][6].
+
+---
+
+### 1\. Pilares Mecánicos de Interacción
+
+* **Rebote contra Muros (** **Wall Bangs / Wall Combos** **):** Cuando una habilidad con empuje (*knockback*), como la *Embestida* del Guerrero (20 studs)[5] o la repulsión de las habilidades del Cazador[5], proyecta a un rival contra una estructura sólida (paredes de roca, ruinas mayas en Dunas o empalizadas del Basecamp)[2]:
+  1. El desplazamiento del objetivo se detiene al colisionar contra la superficie[4].
+  2. Se aplica un breve aturdimiento de impacto (**0.35 s de** **Wall Stun**)[4].
+  3. Se activan partículas de polvo/grietas y un efecto sonoro de impacto.
+* **Objetos y Coberturas en Dunas:** En la arena 5v5 de la Isla de Dunas (mapa de 400 × 200 studs con cañones y ruinas)[2], los ataques de alto impacto en área (*Meteoro* del Mago, *Pisotón* del Guerrero)[5] pueden agrietar o romper coberturas menores (columnas rotas, estelas)[2], abriendo líneas de visión para los atacantes a distancia[3].
+* **Alteración del Terreno (** **Hazard Zones** **):** Habilidades como la *Lluvia de estrellas* del Mago dejan el suelo ardiendo durante 3 segundos[5], la *Nova de hielo* congela superficies[5] y el *Cepo* del Cazador atrapa a quienes lo pisan[5], creando áreas de control de espacio (*zoning*)[6].
+* **Peligros Ambientales en el Basecamp (PvE):** Las defensas y estacas del Basecamp dañan a los monos o jugadores rivales empujados contra ellas[1].
+
+---
+
+### 2\. Flujo de Colisión y Física en Servidor
+
+Para garantizar un rendimiento fluido en dispositivos **Móvil y PC**[7], la colisión se calcula en el servidor mediante **Raycasting direccional** durante la trayectoria del empuje[8]:
+
+```
+[Inicio de Knockback] ──&gt; [Desplazamiento por LinearVelocity]
+                                 │
+                   (Raycast continuo en RunService.Heartbeat)
+                                 │
+                   ¿Detecta pared CanCollide a &lt; 3 studs?
+                         ├── SÍ  ──&gt; 1. Cancelar LinearVelocity
+                         │           2. Estado Physics / Ragdoll breve
+                         │           3. Aplicar Wall Stun (0.35 s)
+                         │           4. Emitir partículas e impacto
+                         │
+                         └── NO  ──&gt; Continuar trayectoria hasta frenar
+
+```
+
+---
+
+### 3\. Código de Implementación en Luau (Roblox Studio)
+
+A continuación se muestra el módulo ejecutable en el servidor para gestionar empujes y detección de estructuras:
+
+```
+-- ServerScriptService/Combat/EnvironmentService.luau
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local EnvironmentService = {}
+
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+raycastParams.IgnoreWater = true
+
+function EnvironmentService.ApplyKnockbackWithWallCheck(targetCharacter, directionVector, force, duration)
+    local hrp = targetCharacter:FindFirstChild("HumanoidRootPart")
+    local humanoid = targetCharacter:FindFirstChild("Humanoid")
+    if not hrp or not humanoid then return end
+
+    -- Excluir personajes del Raycast para detectar solo estructuras sólidas
+    local ignoreList = {}
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player.Character then table.insert(ignoreList, player.Character) end
+    end
+    raycastParams.FilterObjects = ignoreList
+
+    -- Aplicar impulso de física
+    local attachment = Instance.new("Attachment", hrp)
+    local linearVelocity = Instance.new("LinearVelocity")
+    linearVelocity.Attachment0 = attachment
+    linearVelocity.MaxForce = 100000
+    linearVelocity.VectorVelocity = directionVector.Unit * force
+    linearVelocity.Parent = hrp
+
+    local startTime = tick()
+    local connection
+
+    connection = RunService.Heartbeat:Connect(function()
+        local elapsedTime = tick() - startTime
+        
+        -- Detección frontal a 3 studs en la dirección del empuje
+        local rayResult = Workspace:Raycast(hrp.Position, directionVector.Unit * 3, raycastParams)
+
+        if rayResult and rayResult.Instance and rayResult.Instance.CanCollide then
+            connection:Disconnect()
+            linearVelocity:Destroy()
+            attachment:Destroy()
+
+            -- Desencadenar efecto de Wall Bang
+            EnvironmentService.TriggerWallBang(targetCharacter, rayResult.Position, rayResult.Normal)
+        elseif elapsedTime &gt;= duration then
+            connection:Disconnect()
+            linearVelocity:Destroy()
+            attachment:Destroy()
+        end
+    end)
+end
+
+function EnvironmentService.TriggerWallBang(character, hitPosition, hitNormal)
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+
+    -- 1. Aplicar estado de Wall Stun (0.35 s)
+    character:SetAttribute("WallStunning", true)
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+
+    -- 2. Emitir partículas y sonido en el punto de colisión
+    local impactPoint = Instance.new("Part")
+    impactPoint.Anchored = true
+    impactPoint.CanCollide = false
+    impactPoint.Size = Vector3.new(1, 1, 1)
+    impactPoint.CFrame = CFrame.lookAt(hitPosition, hitPosition + hitNormal)
+    impactPoint.Parent = Workspace
+
+    -- Limpieza y recuperación
+    task.delay(0.35, function()
+        if character and character:Parent() then
+            character:SetAttribute("WallStunning", nil)
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        impactPoint:Destroy()
+    end)
+end
+
+return EnvironmentService
+
+```
+
+---
+
+### 4\. Reglas de Balance e Inmunidad
+
+* **Inmunidad a Bucles de Rebote:** Tras sufrir un *Wall Bang*, el objetivo recibe **1.5 segundos de inmunidad a colisiones de pared** para evitar que quede atrapado de forma infinita en esquinas o pasillos estrechos[4].
+* **Estrategia Espacial en Dunas:** Los pasillos laterales cerrados de Dunas aumentan el riesgo de sufrir un *Wall Bang*, mientras que la pirámide central escalonada proporciona espacio abierto pero deja al jugador expuesto a proyectiles y ataques en área

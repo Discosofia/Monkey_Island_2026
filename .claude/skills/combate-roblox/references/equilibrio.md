@@ -82,6 +82,16 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Te deja quieto | fracción del tiempo que un mono solo te inmoviliza si todos sus golpes entran, con la inmunidad tras soltarte | bloqueo |
 | % del arma (mascotas) | DPS de la mascota ÷ DPS medio de las armas de rol | que la mascota ayude sin jugar por ti |
 | Marca (mascotas) | `MarkBonus` × el DPS del arma del dueño solo y del equipo (`aliados` × `focoMarca`, la parte de su daño que va al marcado); a un jefe, lo que le deja a "Marcar presas" | que el pointer ayude al grupo sin quitarle su papel al cazador |
+| Cadena de golpes (sección 7) | DPS de la cadena ÷ el del golpe suelto; tambaleo y hueco entre golpes frente a `Config.Reaction`; daño de una cadena en la arena (con el escalado del combo); guardia que gasta | que la cadena no cambie el DPS, que siempre deje responder y que todas las armas rompan la guardia en el mismo tiempo |
+| Defensa (sección 8) | golpes y segundos para romper la guardia por arma (con su recuperación); duelo espejo de la arena con `defensa` (bloqueo y parry) | que quedarse en guardia no sea gratis y que defender alargue el duelo sin eternizarlo |
+| Control y escape (sección 9) | control del equipo sobre un jefe y de cada rol sobre un mono con y sin `Config.ControlDR` (controles solapados contados una vez); en la arena, lo que entra mientras no puedes actuar (golpe de apertura + arma y una habilidad durante el aturdimiento), con el Evasivo en recarga | que nadie se quede sin salida y que el control no se apile |
+| Monos con preparación (sección 10) | aviso de cada mono frente a la reacción; DPS para un jugador atento (`esquivaMonos`); golpes y segundos para romper la guardia | que todo ataque se vea venir y que bloquear contra un alfa no sea un muro ni un papel |
+
+Las secciones 7 a 10 son de la Fase 10 ("Combate v2"). Hasta que se haga el grupo de cada mecánica,
+miden los números **propuestos** de `Config` (`Reaction`, `Chain`, `Guard`, `Net`, `Evasive`,
+`ComboScaling`, `ControlDR`, `Feint`, `Windup`, `WallBang`). Cuando el grupo se haga, su sección
+tiene que medir lo que hace el juego. La arena de la sección 9 necesita `secciones.arena = true` para
+el duelo con defensa de la sección 8.
 
 Supuestos (los que más cambian el resultado): monos repartidos (un radio 10 alcanza 2,5 de media,
 un radio 14 3,5, más de 14, 4,5); del abanico de flechas entran 2 en un solo mono y el 70 % en un
@@ -117,6 +127,12 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Un jefe con un jugador solo | ≤ 360 s | solo es más difícil, pero no eterno |
 | Curación sostenida del médico | ≤ 8 por segundo por aliado | un grupo de monos tiene que seguir siendo peligroso |
 | Arena: duelo entre dos jugadores del mismo rol (Guerrero, Cazador, Mago), 60 % de actividad | 8–10 s | da tiempo a esquivar, cerrar un combo y que el médico cure; el médico (apoyo) puede durar más |
+| Arena: el mismo duelo con defensa (bloquea el 25 % y para el 5 % del daño) | 8–12 s | defender bien alarga el duelo, pero no lo eterniza |
+| DPS de la cadena de golpes frente al golpe suelto | ×0,95–1,05 | la cadena cambia el ritmo y el remate, no el daño |
+| Lo que entra mientras no puedes actuar (arena, Evasivo en recarga) | ≤ 35 % de 100 de vida | un combo sin escape no puede decidir un duelo; un golpe solo, sin nada detrás, no cuenta |
+| Hueco entre dos golpes de una cadena | ≥ `Config.Reaction` (0,25 s) | la cadena siempre deja bloquear, hacer parry o esquivar |
+| Golpes para romper la guardia (un golpe suelto: remate, habilidad, jefe, mono) | ≥ 4 | ningún golpe solo te deja sin guardia |
+| Segundos que aguanta en guardia quien recibe cadenas seguidas | 4–6 s | quedarse en guardia se paga, pero da tiempo a responder |
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
@@ -240,6 +256,24 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 11. **Duelo de médicos en la arena de Dunas: 30 s** (objetivo 8–10 s, `Config.Arena.HealingMultiplier`
    0,6). El usuario decidió el 20-10-2026 dejarlo así por ahora (el médico apoya, no duela) y
    revisarlo cuando haya más jugadores, con datos de partidas reales.
+
+12. **El Pisotón (V del guerrero) quita 84 de 100 de un golpe en la arena** (150 × 1,25 de ventaja
+   × 0,45 de las habilidades, en área de 16 studs); con la cadena durante su aturdimiento (1 s en la
+   arena), 119. Lo encontró la sección 9 el 22-10-2026. Ya pasaba antes de la Fase 10 (no es un combo:
+   un golpe solo). Por decidir: un multiplicador propio de las definitivas contra jugadores o dejarlo.
+
+**Fase 10 (22-10-2026), números propuestos medidos** (secciones 7 a 10, se aplican en sus grupos):
+- Cadena: 4 golpes (×0,9 · ×0,9 · ×1 · ×1,4 en 0,9 · 0,9 · 1 · 1,4 golpes del arma) con el mismo DPS
+  que el golpe suelto. El tambaleo (0,35 s) se recorta para dejar siempre 0,25 s de hueco: sin eso,
+  la cadena del machete no dejaba responder y quitaba un 45 % en la arena.
+- Guardia: la de la cadena se escala con la velocidad del arma (garrote y machete la rompen en
+  5,7 s; sin escalar, el machete en 3,8 s). Jefes y habilidades gastan 25 (4 golpes) y los monos 12 ·
+  18 · 22 por categoría (×1,5 los alfas): con 40 y 50, un alfa o un jefe la rompían en 2 golpes.
+- Duelo espejo con defensa: Guerrero 11,8 s, Cazador 10,7 s, Mago 10,8 s (sin defensa 9,4 · 8,6 · 8,7).
+- Rendimientos decrecientes `1 → 0,8 → 0,6 → 0,4` con reinicio a los 6 s. El equipo de 4 sobre un
+  jefe pasa del 25 % al 12 % (con talentos al máximo, del 35 % al 17 %; resuelve el hallazgo 1 al
+  aplicarse en C6). Un rol solo casi no lo nota: el cazador sobre un mono pasa del 27 % al 25 %.
+  Con `1 → 0,5 → 0,25` y 10 s el control casi desaparecía (equipo 7 %, cazador 11 %).
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

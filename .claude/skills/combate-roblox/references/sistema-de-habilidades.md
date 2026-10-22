@@ -1,7 +1,8 @@
 # Cómo funcionan las habilidades del juego
 
 Estado del repo en octubre de 2026. Si algo de aquí no coincide con el código, manda el código: léelo
-y corrige esta página.
+y corrige esta página. Las mecánicas comunes (golpe con arma, esquiva, guardia, estados, detección de
+impactos, red) están en `sistema-de-combate.md`.
 
 ## 1. Mapa: quién tiene habilidades y dónde viven
 

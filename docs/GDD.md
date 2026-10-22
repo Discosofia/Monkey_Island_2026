@@ -318,6 +318,29 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 - **Lo que recoges** (recolección, botín de monos y jefes, cajas, tu mochila al caer) sale igual, en una columna propia **a la derecha, debajo de las curaciones**: "+2 🌲 Madera" con el color de su rareza. Lo mismo recogido seguido suma en la misma línea. Se puede quitar en Ajustes.
 - En **Ajustes** (⚙️ en la Isla, icono del menú en el Lobby) cada jugador elige dónde salen sus números: **junto a la cabeza**, en una **columna del alto del jugador** o **fijos en la pantalla**; y ve su personaje con un ejemplo, el daño y el crítico de su arma, sus habilidades, su combo y su mascota.
 
+### 6.5 Combate v2 (Fase 10, en curso)
+
+*Borrador del 22-10-2026* (entrevista del mismo día; plan por grupos en `docs/PLAN.md`, Fase 10). Lo de esta sección **aún no está en el juego**: cada grupo lo añade y lo pasa a §6.1–§6.4 al cerrarse. Los números están medidos con la calculadora `Equilibrio` (secciones 7 a 10) y están en `Config` (`Chain`, `Guard`, `Net`, `Evasive`, `ComboScaling`, `ControlDR`, `Feint`, `Windup`, `WallBang`). La foto de cómo estaba el combate antes está en `docs/combate-v2/linea-base.md`.
+
+**Principio: equidad.** Mismas ventanas y números en PC, móvil y mando. La compensación del lag favorece al defensor, con un tope de 0,15 s. Toda opción fuerte tiene respuesta. Ningún combo sin escape quita más del 35 % de la vida. Los avisos se ven también sin sonido. Isla y Dunas usan el mismo combate.
+
+| Mecánica | Cómo funciona | Números |
+|---|---|---|
+| **Estados** | **Aturdido**: no anda, no pega ni usa habilidades (golpes fuertes, guardia rota, parry recibido, rebote contra un muro). **Inmovilizado**: no anda, pero puede pegar (cepo, agarre, hielo). Todo pasa por una máquina de estados con prioridades. | |
+| **Cadena de golpes** | Las armas cuerpo a cuerpo encadenan **4 golpes**. El 4.º remata: empuja, o lanza hacia arriba si saltas. Mismo DPS que el golpe suelto. Entre dos golpes siempre queda tiempo para responder. Hacha, pico y hoz siguen con el golpe suelto. | ×0,9 · ×0,9 · ×1 · ×1,4; tambaleo en PvP de hasta 0,35 s, dejando siempre 0,25 s de hueco |
+| **Guardia** | **F / L2 / botón "Guardia"**. Mantener = **bloqueo** de frente (cono de 120°), que gasta una barra de guardia; si se vacía, **guardia rota** (aturdido). Pulsar justo antes del golpe = **parry**: anula el golpe, tambalea al atacante y devuelve guardia (destello **dorado**). Algunos ataques son **imbloqueables** (Rompehuesos, Pisotón, Meteoro, los especiales de los jefes que caen del cielo o salen del suelo) y rompen la guardia. | Guardia 100, se recupera 25/s tras 1 s. Bloqueo −60 % (−70 % contra monos). Parry: ventana 0,3 s, se rearma a los 0,8 s. Cualquier arma rompe la guardia en ~5,7 s de cadenas seguidas. Un golpe suelto necesita ≥ 4. |
+| **Evasivo** | La esquiva pulsada estando aturdido, con la guardia rota, inmovilizado o lanzado: te saca del combo. | Recarga 25 s, 0,5 s invulnerable |
+| **Escalado del combo (PvP)** | Desde el 4.º golpe seguido, cada uno hace un 8 % menos (hasta la mitad) y su tambaleo dura un 15 % menos. Se reinicia tras 1 s sin recibir. | |
+| **Control decreciente (monos y jefes)** | Controles seguidos sobre el mismo enemigo duran 100 → 80 → 60 → 40 %, y luego es inmune hasta 6 s sin recibir otro. | Equipo de 4 sobre un jefe: 25 % → 12 % del tiempo |
+| **Amagos** | Pulsar la guardia durante la preparación cancela el golpe (gratis, uno por segundo) o la habilidad (15 de estamina y 1,5 s de recarga en vez de la entera). Se ve un humo de amago. | |
+| **Preparación** | Las habilidades tienen una preparación corta (0,15–0,35 s). Los monos avisan antes de morder (0,4 · 0,5 · 0,6 s por categoría) y los jefes antes de golpear (0,7 s). Si te apartas, fallan. | |
+| **Proyectiles** | Los disparos de armas y habilidades vuelan de verdad: se pueden esquivar, bloquear y parar. Ya no persiguen al objetivo. | |
+| **Detección** | Ningún golpe atraviesa paredes. Las áreas solo alcanzan lo que el centro "ve". | |
+| **Entorno** | **Rebote contra muros**: un empujón que te estampa en una pared aturde 0,5 s, con 1,5 s de inmunidad. **Zonas de peligro**: suelo ardiendo, hielo y nubes. En Dunas, **coberturas que se rompen** y reaparecen, y un **altar** en la pirámide central que da a su equipo una ventaja pequeña de 30 s. | |
+| **Bloqueo de cámara** | El shift lock de Roblox, en **Ctrl** (Mayús sigue siendo correr). | |
+
+Lo que **no** se añade: fijar objetivo (lock-on). Los **estilos** de cada rol (guerrero de presión, cazador de control de distancia, mago de área y movilidad, médico de apoyo y desgaste) se documentan y se miden, sin contenido nuevo.
+
 ---
 
 ## 7. La isla

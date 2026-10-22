@@ -1,5 +1,5 @@
 -- Calculadora de equilibrio de las habilidades: jugadores (roles), monos, jefes y mascotas. La usa la
--- skill habilidades-roblox (.claude/skills/habilidades-roblox). Se ejecuta en Studio, en modo edición
+-- skill combate-roblox (.claude/skills/combate-roblox). Se ejecuta en Studio, en modo edición
 -- (sin pulsar Play), desde la barra de comandos o con el MCP, y devuelve un informe en tablas:
 --
 --   local m = game.ServerStorage.Tools.Equilibrio:Clone() -- copia: así no usa la versión vieja en caché
@@ -22,7 +22,13 @@
 --   5. Mascotas.
 --   6. Arena de Dunas (solo con secciones.arena = true): cuánto tarda cada rol en tumbar a cada otro
 --      rol en un duelo, con el daño contra jugadores de la arena (Config.Arena) y las defensas.
---   7. Alertas: lo que se sale de los límites.
+--   Fase 10, "Combate v2" (miden los números propuestos de Config hasta que se haga su grupo):
+--   7. Cadena de golpes: DPS frente al golpe suelto, huecos entre golpes, combos sin escape y guardia.
+--   8. Defensa: lo que tarda en romperse la guardia y los duelos de la arena con bloqueo y parry.
+--   9. Control y escape: control sobre los jefes con rendimientos decrecientes y la secuencia más
+--      larga sin poder actuar en la arena.
+--   10. Monos con preparación: aviso, DPS para un jugador atento y guardia.
+--   11. Alertas: lo que se sale de los límites.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -59,7 +65,25 @@ local OPCIONES_BASE = {
 	jugadoresJefe = { 1, 4, 8, 20 }, -- tamaños de equipo para la duración de los jefes
 	especies = { "MonoArdilla", "AulladorRojo", "Mandril", "Chimpance", "Gorila" },
 	soloRol = nil :: string?, -- "Mago" para ver solo ese rol en las secciones 1 y 2
-	secciones = { fichas = true, simulacion = true, ttk = true, enemigos = true, mascotas = true, arena = false },
+	-- Fase 10 (sección 8): fracción del daño recibido que el defensor bloquea y que para con un parry en
+	-- un duelo de la arena.
+	defensa = { bloqueo = 0.25, parry = 0.05 },
+	-- Fase 10 (sección 10): fracción de los ataques avisados de los monos que un jugador atento esquiva o
+	-- de la que se aparta (solo los que avisan al menos Config.Reaction).
+	esquivaMonos = 0.3,
+	secciones = {
+		fichas = true,
+		simulacion = true,
+		ttk = true,
+		enemigos = true,
+		mascotas = true,
+		arena = false,
+		-- Fase 10, Combate v2 (propuestas de Config hasta que se haga su grupo).
+		cadenas = true,
+		defensa = true,
+		escape = true,
+		preparacion = true,
+	},
 }
 
 -- ===================================== Propuesta =====================================
@@ -83,7 +107,7 @@ local PROPUESTA: Propuesta = {}
 local ultimaArena: any = nil
 
 -- ===================================== Límites =====================================
--- Copia de .claude/skills/habilidades-roblox/references/equilibrio.md §3: si cambias uno, cambia los dos.
+-- Copia de .claude/skills/combate-roblox/references/equilibrio.md §3: si cambias uno, cambia los dos.
 
 local LIMITES = {
 	recargaActiva = { 4, 25 },
@@ -111,6 +135,14 @@ local LIMITES = {
 	-- Arena de Dunas (references/equilibrio.md §3): un duelo entre dos jugadores del mismo rol (Guerrero, Cazador o Mago), con
 	-- OPCIONES.actividad, dura esto (s). El médico es de apoyo: su duelo puede ser más largo.
 	arenaDueloEspejo = { 8, 10 },
+	-- Fase 10 (Combate v2; secciones 7 a 10).
+	dpsCadena = { 0.95, 1.05 }, -- DPS de la cadena de golpes frente al golpe suelto de hoy
+	-- Lo que quita en la arena una secuencia sin escape (huecos más cortos que Config.Reaction y
+	-- controles que no dejan actuar), en fracción de 100 de vida, con el Evasivo en recarga.
+	comboSinEscape = 0.35,
+	golpesRomperGuardia = 4, -- ningún golpe suelto rompe la guardia en menos golpes
+	romperGuardiaCuerpo = { 4, 6 }, -- s que aguanta en guardia quien recibe una cadena tras otra
+	arenaDueloDefensa = { 8, 12 }, -- duelo espejo con bloqueo y parry (OPCIONES.defensa)
 }
 
 -- ===================================== Utilidades =====================================
@@ -1644,6 +1676,8 @@ local function main(copia: Instance): string
 	-- media (reducción × duración ÷ recarga) y lo que se cura o se protege él solo por segundo (Ungüento
 	-- y Tótem le alcanzan, el Escudo de hojas se lo pone él si no hay aliados y la cerbatana le cura al
 	-- acertar). Segundos para tumbar = vida ÷ (DPS del atacante × actividad × (1 − reducción) − sustento).
+	-- Duelo espejo de un rol (con combos), para la sección 8; nil si esta sección no se ha calculado.
+	local arenaEspejo: ((roleId: string) -> number)? = nil
 	if OPCIONES.secciones.arena then
 		local arenaConfig = Config.Arena
 		local pvp: Pvp = {
@@ -1732,6 +1766,9 @@ local function main(copia: Instance): string
 			end
 		end
 		ultimaArena = { tiempos = tiempos, dps = dps, aguante = aguante }
+		arenaEspejo = function(roleId: string): number
+			return segundos(roleId, roleId, true)
+		end
 		for _, roleId in ordenRoles do
 			local espejo = segundos(roleId, roleId, true)
 			if roleId ~= "Medico" and fuera(espejo, LIMITES.arenaDueloEspejo) then
@@ -1743,7 +1780,492 @@ local function main(copia: Instance): string
 		linea("")
 	end
 
-	linea("## 7. Alertas")
+	-- ===================================== Fase 10: Combate v2 =====================================
+	-- Las secciones 7 a 10 miden los números propuestos de Config (Reaction, Chain, Guard, ComboScaling,
+	-- ControlDR, Windup…) antes de programarlos. Cuando se haga cada grupo, su sección pasa a medir lo
+	-- que hace el juego: si el handler cambia, cambia también aquí.
+
+	local REACCION = if Config.Reaction then Config.Reaction.Seconds else 0.25
+	local arenaConfig = Config.Arena
+	local CH = Config.Chain
+	local GU = Config.Guard
+	local ES = Config.ComboScaling
+
+	-- Fracción del daño que hace el golpe número "k" de un combo en PvP (Config.ComboScaling).
+	local function escalaCombo(k: number): number
+		if not ES or k < ES.FromHit then
+			return 1
+		end
+		return math.max(ES.MinDamage, 1 - ES.DamageStep * (k - ES.FromHit + 1))
+	end
+
+	-- Arma cuerpo a cuerpo del rol (la que se mide en la cadena): la elegida en OPCIONES.armas si es de
+	-- cuerpo a cuerpo, si no la primera de sus armas iniciales que lo sea.
+	local function armaCuerpo(roleId: string): string?
+		local elegida = OPCIONES.armas[roleId]
+		if elegida and Weapons[elegida] and Weapons[elegida].kind == "Melee" then
+			return elegida
+		end
+		for _, id in Roles[roleId].weapons do
+			if Weapons[id] and Weapons[id].kind == "Melee" and not Weapons[id].tool then
+				return id
+			end
+		end
+		return nil
+	end
+
+	-- Una cadena completa de "armaId" con la ventaja "ventaja": cuándo cae cada golpe (s desde el
+	-- primero), su daño base y el hueco más corto que deja entre dos golpes para responder.
+	-- "tambaleo": el más largo de sus golpes (Config.Chain.PvPHitstunSeconds, recortado para dejar el
+	-- hueco de reacción hasta el siguiente).
+	type Cadena = {
+		golpes: { { en: number, dano: number } },
+		duracion: number,
+		hueco: number,
+		guardia: number,
+		tambaleo: number,
+	}
+	local function cadenaDe(armaId: string, ventaja: number): Cadena
+		local arma = Weapons[armaId]
+		local cd = arma.cooldownSeconds
+		local golpes = {}
+		local inicio = 0
+		local hueco = math.huge
+		local guardia = 0
+		local tambaleo = 0
+		local escalaGuardia = cd / (GU.ChainReferenceCooldown or cd)
+		for i, paso in CH.Steps do
+			local preparacion = CH.WindupFraction * paso.time * cd
+			table.insert(golpes, { en = inicio + preparacion, dano = arma.damage * ventaja * paso.damage })
+			if i > 1 then
+				-- Del final del tambaleo del golpe anterior a este golpe.
+				local entre = golpes[i].en - golpes[i - 1].en
+				local recortado = math.max(0, math.min(CH.PvPHitstunSeconds, entre - REACCION))
+				tambaleo = math.max(tambaleo, recortado)
+				hueco = math.min(hueco, entre - recortado)
+			end
+			guardia += (if i == #CH.Steps then GU.FinisherGuardDamage else GU.ChainGuardDamage) * escalaGuardia
+			inicio += paso.time * cd
+		end
+		return { golpes = golpes, duracion = inicio, hueco = hueco, guardia = guardia, tambaleo = tambaleo }
+	end
+
+	-- Segundos que aguanta en guardia quien recibe golpes de "dano" de guardia cada "intervalo" s, con la
+	-- recuperación de Config.Guard (math.huge si no se rompe nunca) y cuántos golpes hacen falta.
+	local function romperGuardia(dano: number, intervalo: number): (number, number)
+		if dano <= 0 then
+			return math.huge, math.huge
+		end
+		local recupera = math.max(0, intervalo - GU.RegenDelaySeconds) * GU.RegenPerSecond
+		if dano <= recupera then
+			return math.huge, math.huge
+		end
+		local golpes = 1
+		local guardia = GU.Max - dano
+		while guardia > 0 and golpes < 1000 do
+			guardia = math.min(GU.Max, guardia + recupera) - dano
+			golpes += 1
+		end
+		return (golpes - 1) * intervalo, golpes
+	end
+
+	-- ===================================== 7. Cadena de golpes (C4) =====================================
+
+	if OPCIONES.secciones.cadenas and CH and GU then
+		local sumaDano, sumaTiempo = 0, 0
+		local pasos = {}
+		for _, paso in CH.Steps do
+			sumaDano += paso.damage
+			sumaTiempo += paso.time
+			table.insert(pasos, `×{n(paso.damage, 2)} en {n(paso.time, 2)}`)
+		end
+		local relacion = sumaDano / sumaTiempo
+		local armaArena = arenaConfig.WeaponDamageMultiplier or 1
+		linea("## 7. Cadena de golpes (Fase 10, C4: propuesta de Config.Chain)")
+		linea(
+			`{#CH.Steps} golpes ({table.concat(pasos, " · ")}; tiempo en golpes del arma). DPS de la cadena = {n(
+				relacion,
+				2
+			)} × el del golpe suelto en todas las armas cuerpo a cuerpo.`
+		)
+		linea(
+			`Hueco = tiempo entre dos golpes menos el tambaleo (hasta {n(CH.PvPHitstunSeconds, 2)} s, recortado para dejar la reacción de {n(
+				REACCION,
+				2
+			)} s). Arena: daño ×{n(armaArena, 2)} con el escalado del combo, sobre 100 de vida.`
+		)
+		if fuera(relacion, LIMITES.dpsCadena) then
+			alerta(
+				`Cadena: su DPS es {n(relacion, 2)} × el del golpe suelto (debe quedar en {LIMITES.dpsCadena[1]}–{LIMITES.dpsCadena[2]})`
+			)
+		end
+		linea(
+			"| Rol | Arma | Golpe | Cadena (s) | Tambaleo | Hueco | ¿Deja responder? | Arena: cadena | Guardia que gasta | Rompe guardia en |"
+		)
+		linea("|---|---|---|---|---|---|---|---|---|---|")
+		for _, roleId in ordenRoles do
+			local armaId = armaCuerpo(roleId)
+			if armaId and visible(roleId) then
+				local perk = perksDe(roleId)
+				local ventaja = perk("MeleeDamage")
+				local cadena = cadenaDe(armaId, ventaja)
+				local arena = 0
+				for k, golpe in cadena.golpes do
+					arena += golpe.dano * armaArena * escalaCombo(k)
+				end
+				local responde = cadena.hueco >= REACCION
+				local segundosGuardia = romperGuardia(cadena.guardia / #CH.Steps, cadena.duracion / #CH.Steps)
+				linea(
+					`| {Roles[roleId].icon} {roleId} | {armaId} | {n(Weapons[armaId].damage * ventaja, 0)} | {n(
+						cadena.duracion,
+						2
+					)} | {n(cadena.tambaleo, 2)} s | {n(cadena.hueco, 2)} s | {if responde then "sí" else "**no**"} | {n(
+						arena,
+						0
+					)} ({pct(arena / 100)}) | {n(cadena.guardia, 0)} | {if segundosGuardia == math.huge
+						then "nunca"
+						else n(segundosGuardia, 1) .. " s"} |`
+				)
+				if fuera(segundosGuardia, LIMITES.romperGuardiaCuerpo) then
+					alerta(
+						`Guardia contra la cadena de {armaId} ({roleId}): aguanta {if segundosGuardia == math.huge
+							then "siempre"
+							else n(segundosGuardia, 1) .. " s"} (objetivo {LIMITES.romperGuardiaCuerpo[1]}–{LIMITES.romperGuardiaCuerpo[2]} s)`
+					)
+				end
+				if not responde and arena / 100 > LIMITES.comboSinEscape then
+					alerta(
+						`Cadena de {armaId} ({roleId}): no deja responder (hueco {n(cadena.hueco, 2)} s) y quita {pct(
+							arena / 100
+						)} de 100 en la arena (máx. {pct(LIMITES.comboSinEscape)})`
+					)
+				end
+			end
+		end
+		linea("")
+	end
+
+	-- ===================================== 8. Defensa (C5) =====================================
+
+	if OPCIONES.secciones.defensa and GU then
+		linea("## 8. Defensa (Fase 10, C5: propuesta de Config.Guard)")
+		linea(
+			`Guardia {GU.Max}, se recupera {GU.RegenPerSecond}/s tras {GU.RegenDelaySeconds} s sin recibir. Bloqueo −{pct(
+				GU.BlockReduction
+			)} contra jugadores y −{pct(GU.BlockReductionEnemies)} contra monos; parry: ventana {n(
+				GU.ParryWindowSeconds,
+				2
+			)} s, tambalea {n(GU.ParryStaggerPvP, 2)} s a un jugador.`
+		)
+		linea("| Rol | Arma | Guardia por golpe | Golpes para romper | Aguanta en guardia |")
+		linea("|---|---|---|---|---|")
+		for _, roleId in ordenRoles do
+			if visible(roleId) then
+				local perk = perksDe(roleId)
+				local armaId = armaDe(roleId, perk).id
+				local arma = Weapons[armaId]
+				local porGolpe, intervalo
+				if arma.kind == "Melee" and CH and not arma.tool then
+					local cadena = cadenaDe(armaId, 1)
+					porGolpe = cadena.guardia / #CH.Steps
+					intervalo = cadena.duracion / #CH.Steps
+				else
+					porGolpe = GU.ProjectileGuardDamage
+					intervalo = arma.cooldownSeconds
+				end
+				local aguanta, golpes = romperGuardia(porGolpe, intervalo)
+				linea(
+					`| {Roles[roleId].icon} {roleId} | {armaId} | {n(porGolpe, 1)} | {if golpes == math.huge
+						then "nunca"
+						else tostring(golpes)} | {if aguanta == math.huge then "nunca" else n(aguanta, 1) .. " s"} |`
+				)
+				if arma.kind == "Melee" and fuera(aguanta, LIMITES.romperGuardiaCuerpo) then
+					alerta(
+						`Guardia contra {armaId} ({roleId}): aguanta {if aguanta == math.huge
+							then "siempre"
+							else n(aguanta, 1) .. " s"} (objetivo {LIMITES.romperGuardiaCuerpo[1]}–{LIMITES.romperGuardiaCuerpo[2]} s)`
+					)
+				end
+			end
+		end
+		-- Ningún golpe suelto (habilidad, remate) rompe la guardia entera en menos de LIMITES.golpesRomperGuardia.
+		local mayor = math.max(GU.FinisherGuardDamage, GU.AbilityGuardDamage, GU.BossGuardDamage)
+		if mayor * LIMITES.golpesRomperGuardia > GU.Max + 1e-6 then
+			alerta(
+				`Guardia: un golpe de {mayor} la rompe en {math.ceil(GU.Max / mayor)} golpes (mín. {LIMITES.golpesRomperGuardia})`
+			)
+		end
+		local def = OPCIONES.defensa
+		local factor = 1 - def.bloqueo * GU.BlockReduction - def.parry
+		if arenaEspejo then
+			linea("")
+			linea(
+				`Duelo espejo en la arena con defensa: el defensor bloquea el {pct(def.bloqueo)} del daño y para el {pct(
+					def.parry
+				)} (recibe ×{n(factor, 2)}).`
+			)
+			linea("| Rol | Sin defensa | Con defensa |")
+			linea("|---|---|---|")
+			for _, roleId in ordenRoles do
+				local sin = (arenaEspejo :: (string) -> number)(roleId)
+				local con = sin / factor
+				linea(`| {Roles[roleId].icon} {roleId} | {n(sin)} s | {n(con)} s |`)
+				if roleId ~= "Medico" and fuera(con, LIMITES.arenaDueloDefensa) then
+					alerta(
+						`Arena con defensa: un duelo {roleId} contra {roleId} dura {n(con)} s (objetivo {LIMITES.arenaDueloDefensa[1]}–{LIMITES.arenaDueloDefensa[2]} s)`
+					)
+				end
+			end
+		else
+			linea(`Duelos con defensa: activa secciones.arena (el defensor recibiría ×{n(factor, 2)} del daño).`)
+		end
+		linea("")
+	end
+
+	-- ===================================== 9. Control y escape (C6, C7) =====================================
+
+	if OPCIONES.secciones.escape then
+		local DR = Config.ControlDR
+		linea("## 9. Control y escape (Fase 10, C6 y C7: propuestas de Config.ControlDR, ComboScaling y Evasive)")
+		-- Fracción del tiempo cubierta por los controles de "aplicaciones" ({ en, segundos }) en "total" s,
+		-- con o sin los rendimientos decrecientes de Config.ControlDR.
+		local function cobertura(aplicaciones: { { en: number, segundos: number } }, total: number, conDR: boolean)
+			table.sort(aplicaciones, function(a, b)
+				return a.en < b.en
+			end)
+			local indice, ultima = 1, -math.huge
+			local cubierto, hasta = 0, 0
+			for _, aplicacion in aplicaciones do
+				local segundos = aplicacion.segundos
+				if conDR and DR then
+					if aplicacion.en - ultima >= DR.ResetSeconds then
+						indice = 1
+					end
+					segundos *= DR.Steps[indice] or 0
+					if segundos > 0 then
+						indice += 1
+						ultima = aplicacion.en
+					end
+				end
+				local fin = math.min(total, aplicacion.en + segundos)
+				if fin > hasta then
+					cubierto += fin - math.max(hasta, aplicacion.en)
+					hasta = fin
+				end
+			end
+			return cubierto / total
+		end
+		-- Controles que pone cada rol (con el remate si da más) cada vez que se recargan.
+		local function aplicacionesDe(roleId: string, total: number, jefe: boolean, desfase: number)
+			local perk = perksDe(roleId)
+			local lista = {}
+			for _, ability in Roles[roleId].abilities do
+				local ficha = fichaDe(ability, perk, false)
+				local remate = fichaDe(ability, perk, true)
+				local control = if remate
+						and remate.control
+						and (not (ficha and ficha.control) or remate.control.segundos > ficha.control.segundos)
+					then remate.control
+					elseif ficha then ficha.control
+					else nil
+				if control and not (jefe and control.jefes == false) then
+					local recarga = recargaDe(ability, perk)
+					local segundos = control.segundos * (if jefe then A.BossControlMultiplier else 1)
+					local t = desfase
+					while t < total do
+						table.insert(lista, { en = t, segundos = segundos })
+						t += recarga
+					end
+				end
+			end
+			return lista
+		end
+		local total = OPCIONES.segundosCombo
+		local equipo = {}
+		for i, roleId in ordenRoles do
+			for _, aplicacion in aplicacionesDe(roleId, total, true, (i - 1) * 0.5) do
+				table.insert(equipo, aplicacion)
+			end
+		end
+		local sinDR = cobertura(table.clone(equipo), total, false)
+		local conDR = cobertura(table.clone(equipo), total, true)
+		linea(
+			`Equipo de un jugador de cada rol sobre un jefe ({total} s, controles solapados contados una vez): {pct(
+				sinDR
+			)} del tiempo sin rendimientos decrecientes → {pct(conDR)} con ellos ({if DR
+				then table.concat(DR.Steps, " → ") .. ", reinicio " .. DR.ResetSeconds .. " s"
+				else "sin Config.ControlDR"}).`
+		)
+		if conDR > LIMITES.controlJefeEquipo then
+			alerta(
+				`Con rendimientos decrecientes, un equipo de 4 roles aún tiene quieto a un jefe el {pct(conDR)} (máx. {pct(
+					LIMITES.controlJefeEquipo
+				)})`
+			)
+		end
+		for _, roleId in ordenRoles do
+			local uno = aplicacionesDe(roleId, total, false, 0)
+			if #uno > 0 and visible(roleId) then
+				linea(
+					`- {roleId} sobre un mono: {pct(cobertura(table.clone(uno), total, false))} → {pct(
+						cobertura(table.clone(uno), total, true)
+					)} del tiempo.`
+				)
+			end
+		end
+		-- Arena: lo que entra mientras un rival no puede actuar, con el Evasivo en recarga. Para cada
+		-- habilidad que aturde (Stun y Sleep; congelar e inmovilizar dejan pegar) × el control de la arena:
+		-- su propio golpe y, mientras dura, el arma (la cadena o los disparos que caben) y la habilidad de
+		-- daño más fuerte del rol que no sea ella (una, el resto se está recargando). Un golpe solo, sin
+		-- nada detrás, no es un combo (va en "golpe de apertura").
+		linea("")
+		linea(
+			`Arena: lo que entra mientras no puedes actuar (Evasivo en recarga; con él sales a los {n(REACCION, 2)} s del primer control y solo entra el golpe que abre). Sobre 100 de vida.`
+		)
+		linea("| Rol | Abre con | Sin actuar | Golpe de apertura | Mientras no actúa | Total | Con Evasivo |")
+		linea("|---|---|---|---|---|---|---|")
+		local controlArena = arenaConfig.AbilityControlMultiplier or 1
+		local habilidadArena = arenaConfig.AbilityDamageMultiplier or 1
+		local armaArena = arenaConfig.WeaponDamageMultiplier or 1
+		for _, roleId in ordenRoles do
+			if visible(roleId) then
+				local perk = perksDe(roleId)
+				-- Daño del arma del rol en "segundos" (la cadena cuerpo a cuerpo o los disparos a distancia).
+				local function armaEn(segundos: number, desde: number): number
+					local armaId = armaCuerpo(roleId)
+					local suma = 0
+					if armaId and CH then
+						local cadena = cadenaDe(armaId, perk("MeleeDamage"))
+						for k, golpe in cadena.golpes do
+							if golpe.en < segundos then
+								suma += golpe.dano * armaArena * escalaCombo(k + desde)
+							end
+						end
+					end
+					local distancia = armaDe(roleId, perk)
+					if Weapons[distancia.id].kind ~= "Melee" then
+						local propio = (arenaConfig.WeaponMultipliers or {})[distancia.id] or 1
+						local disparos = math.floor(segundos / Weapons[distancia.id].cooldownSeconds) + 1
+						local aDistancia = 0
+						for k = 1, disparos do
+							aDistancia += distancia.golpe * armaArena * propio * escalaCombo(k + desde)
+						end
+						suma = math.max(suma, aDistancia)
+					end
+					return suma
+				end
+				local peor = { nombre = "-", segundos = 0, apertura = 0, despues = 0 }
+				for _, ability in Roles[roleId].abilities do
+					local ficha = fichaDe(ability, perk, true)
+					local control = ficha and ficha.control
+					if control and (control.tipo == "Stun" or control.tipo == "Sleep") then
+						local segundos = control.segundos * controlArena
+						local apertura = danoDeUso(ficha :: Ficha, 1) * habilidadArena
+						local otra = 0
+						for _, otraHabilidad in Roles[roleId].abilities do
+							local otraFicha = if otraHabilidad ~= ability
+								then fichaDe(otraHabilidad, perk, false)
+								else nil
+							if otraFicha and segundos >= REACCION then
+								otra = math.max(otra, danoDeUso(otraFicha, 1) * habilidadArena)
+							end
+						end
+						local despues = armaEn(segundos, 1) + otra
+						if apertura + despues > peor.apertura + peor.despues then
+							peor =
+								{ nombre = ability.name, segundos = segundos, apertura = apertura, despues = despues }
+						end
+					end
+				end
+				local combo = peor.apertura + peor.despues
+				linea(
+					`| {Roles[roleId].icon} {roleId} | {peor.nombre} | {n(peor.segundos, 2)} s | {n(peor.apertura, 0)} | {n(
+						peor.despues,
+						0
+					)} | {n(combo, 0)} ({pct(combo / 100)}) | {n(peor.apertura, 0)} |`
+				)
+				if peor.despues > 0 and combo / 100 > LIMITES.comboSinEscape then
+					alerta(
+						`Arena: {roleId} abre con {peor.nombre}, deja al rival {n(peor.segundos, 2)} s sin actuar y le quita {pct(
+							combo / 100
+						)} (máx. {pct(LIMITES.comboSinEscape)} con el Evasivo en recarga)`
+					)
+				end
+			end
+		end
+		if Config.Evasive then
+			linea(
+				`Evasivo: recarga {Config.Evasive.CooldownSeconds} s, {n(Config.Evasive.InvulnerableSeconds, 2)} s invulnerable.`
+			)
+		end
+		linea("")
+	end
+
+	-- ===================================== 10. Monos con preparación (C6) =====================================
+
+	if OPCIONES.secciones.preparacion and Config.Windup then
+		local W = Config.Windup
+		linea("## 10. Monos con preparación (Fase 10, C6: propuesta de Config.Windup y Config.Guard)")
+		linea(
+			`Aviso antes del mordisco por categoría: {table.concat(W.MonkeyByTier, " · ")} s; jefes {W.BossSeconds} s. Un jugador atento esquiva o se aparta del {pct(
+				OPCIONES.esquivaMonos
+			)} de los avisados (≥ {n(REACCION, 2)} s). Día {OPCIONES.dias[1]}, sin crítico.`
+		)
+		linea(
+			"| Mono | Cat. | Aviso | DPS | DPS (atento) | Guardia por golpe | Golpes para romper | Aguanta en guardia |"
+		)
+		linea("|---|---|---|---|---|---|---|---|")
+		local especies = {}
+		for id, mono in Monkeys do
+			if mono.damage > 0 then
+				table.insert(especies, id)
+			end
+		end
+		table.sort(especies, function(a, b)
+			return Monkeys[a].tier < Monkeys[b].tier or (Monkeys[a].tier == Monkeys[b].tier and a < b)
+		end)
+		for _, id in especies do
+			local mono = Monkeys[id]
+			local aviso = W.MonkeyByTier[mono.tier] or W.MonkeyByTier[#W.MonkeyByTier]
+			local dano = mono.damage * multiplicadorDia(OPCIONES.dias[1], Config.Difficulty.DamagePerDay)
+			local dps = dano / mono.attackCooldownSeconds
+			local atento = if aviso >= REACCION then dps * (1 - OPCIONES.esquivaMonos) else dps
+			local guardia = (GU and GU.MonkeyGuardDamage[mono.tier] or 0)
+				* (if mono.alpha and GU then GU.AlphaGuardMultiplier else 1)
+			local aguanta, golpes = math.huge, math.huge
+			if GU then
+				aguanta, golpes = romperGuardia(guardia, mono.attackCooldownSeconds)
+			end
+			linea(
+				`| {mono.name}{if mono.alpha then " (alfa)" else ""} | {mono.tier} | {n(aviso, 2)} s | {n(dps)} | {n(
+					atento
+				)} | {n(guardia, 0)} | {if golpes == math.huge then "nunca" else tostring(golpes)} | {if aguanta
+						== math.huge
+					then "siempre"
+					else n(aguanta, 1) .. " s"} |`
+			)
+			if golpes < LIMITES.golpesRomperGuardia then
+				alerta(
+					`{mono.name}{if mono.alpha then " alfa" else ""}: rompe la guardia en {golpes} golpes (mín. {LIMITES.golpesRomperGuardia})`
+				)
+			end
+			if aviso < REACCION then
+				alerta(
+					`{mono.name}: avisa {n(aviso, 2)} s antes de morder (no da tiempo a reaccionar: {n(REACCION, 2)} s)`
+				)
+			end
+		end
+		if GU then
+			linea(
+				`Jefes: aviso {W.BossSeconds} s; su golpe gasta {GU.BossGuardDamage} de guardia ({math.ceil(
+					GU.Max / GU.BossGuardDamage
+				)} golpes para romperla); los especiales que caen del cielo o salen del suelo no se bloquean.`
+			)
+		end
+		linea("")
+	end
+
+	linea("## 11. Alertas")
 	if #alertas == 0 then
 		linea("✅ Todo dentro de los límites.")
 	else

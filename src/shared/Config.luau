@@ -230,6 +230,125 @@ local Config = {
 		PowderExposed = 0.3, -- …y los dormidos reciben esto más de daño (fracción) hasta despertar
 	},
 
+	-- Fase 10, "Combate v2" (docs/PLAN.md): números propuestos para las mecánicas nuevas, medidos con la
+	-- calculadora ServerStorage.Tools.Equilibrio (secciones 7 a 10). Hasta que se haga el grupo de cada
+	-- uno (C2–C11), solo los lee la calculadora.
+
+	-- Lo que tarda una persona en reaccionar a un aviso que ve (s). Un hueco más corto entre dos golpes
+	-- no deja responder: cuenta como combo sin escape.
+	Reaction = {
+		Seconds = 0.25,
+	},
+
+	-- Cadena de golpes de las armas cuerpo a cuerpo (C4): 4 golpes y el 4.º remata. Cada paso hace
+	-- "damage" × el daño del arma y dura "time" × su cooldownSeconds (las armas pesadas encadenan más
+	-- despacio). Con la suma de "damage" igual a la de "time", el DPS es el mismo que con golpes sueltos.
+	-- Las herramientas (hacha, pico, hoz: "tool" en Data/Weapons) siguen con el golpe suelto.
+	Chain = {
+		Steps = {
+			{ damage = 0.9, time = 0.9 },
+			{ damage = 0.9, time = 0.9 },
+			{ damage = 1.0, time = 1.0 },
+			{ damage = 1.4, time = 1.4 }, -- remate: empuja (o lanza hacia arriba si el atacante va en el aire)
+		},
+		WindupFraction = 0.35, -- parte de cada paso antes del golpe (preparación, el momento del amago)
+		LinkWindowSeconds = 0.8, -- tras un golpe, hasta cuándo el siguiente sigue la cadena
+		ResetSeconds = 1.2, -- sin pegar este tiempo, se vuelve al primer golpe
+		-- Tambaleo de cada golpe contra jugadores (no el remate, que empuja). Como mucho dura el hueco hasta
+		-- el siguiente golpe menos Config.Reaction: la cadena siempre deja responder (bloquear, parry o
+		-- esquivar entre dos golpes), también con las armas rápidas.
+		PvPHitstunSeconds = 0.35,
+		FinisherKnockback = 35, -- studs/s del empuje del remate
+		FinisherLaunch = 45, -- studs/s hacia arriba si el atacante va en el aire
+		FinisherStaggerTier = 2, -- monos hasta esta categoría se tambalean con el remate (no alfas ni jefes)
+		FinisherStaggerSeconds = 0.6,
+	},
+
+	-- Guardia (C5): bloquear (mantener) y parry (pulsar justo antes del golpe).
+	Guard = {
+		Max = 100,
+		RegenPerSecond = 25,
+		RegenDelaySeconds = 1, -- sin recibir golpes este tiempo, se recupera
+		BlockReduction = 0.6, -- daño que quita el bloqueo contra jugadores…
+		BlockReductionEnemies = 0.7, -- …y contra monos y jefes
+		BlockAngle = 120, -- grados del cono de delante que cubre
+		BlockWalkMultiplier = 0.6, -- velocidad mientras bloquea
+		-- Guardia que gasta cada golpe bloqueado. Los de la cadena son los de un arma de
+		-- ChainReferenceCooldown s y se escalan con su cooldownSeconds: así cualquier arma rompe la guardia
+		-- en el mismo tiempo (las rápidas pegan más veces, pero gastan menos cada vez).
+		ChainGuardDamage = 12,
+		FinisherGuardDamage = 24,
+		ChainReferenceCooldown = 0.9,
+		ProjectileGuardDamage = 10,
+		AbilityGuardDamage = 25, -- por defecto; una habilidad puede llevar el suyo (Data/Roles "guardDamage")
+		MonkeyGuardDamage = { [1] = 12, [2] = 18, [3] = 22 } :: { [number]: number }, -- por categoría
+		AlphaGuardMultiplier = 1.5,
+		BossGuardDamage = 25,
+		BreakStunSeconds = 1.2, -- guardia rota: aturdido (contra jugadores, × el control del place)
+		ParryWindowSeconds = 0.3, -- igual para todos los dispositivos
+		ParryRearmSeconds = 0.8, -- no se puede volver a hacer parry hasta pasado esto (no se puede spamear)
+		ParryStaggerPvP = 0.6, -- el atacante al que le paran el golpe queda tambaleado…
+		ParryStaggerMonkey = 1,
+		ParryStaggerBoss = 0.5,
+		ParryGuardRefund = 20, -- …y quien para recupera esto de guardia
+	},
+
+	-- Compensación del lag (C2, C3, C5): margen a favor del defensor o del atacante, igual para todos y
+	-- con tope. Nadie gana por tener más ping.
+	Net = {
+		MaxCompensationSeconds = 0.15, -- rebobinar posiciones al golpear
+		ParryGraceMaxSeconds = 0.12, -- esperar el parry del defensor antes de aplicar un golpe
+	},
+
+	-- Evasivo (C7): la esquiva pulsada estando aturdido, con la guardia rota, inmovilizado o lanzado.
+	Evasive = {
+		CooldownSeconds = 25,
+		InvulnerableSeconds = 0.5,
+	},
+
+	-- Escalado de un combo en PvP (C7), por víctima: cuenta los golpes seguidos que recibe y se reinicia
+	-- tras ResetSeconds sin recibir. Desde el golpe FromHit, cada uno hace DamageStep menos (hasta
+	-- MinDamage) y su tambaleo dura HitstunStep menos (hasta MinHitstun).
+	ComboScaling = {
+		FromHit = 4,
+		DamageStep = 0.08,
+		MinDamage = 0.5,
+		HitstunStep = 0.15,
+		MinHitstun = 0.4,
+		ResetSeconds = 1,
+	},
+
+	-- Rendimientos decrecientes del control sobre monos y jefes (C6), por modelo: cada control seguido
+	-- dura esta fracción; después, inmune hasta ResetSeconds sin recibir otro. Suaves a propósito: un
+	-- rol solo casi no los nota (cazador sobre un mono 27 → 25 %); muerden cuando varios encadenan
+	-- controles sobre el mismo (equipo de 4 sobre un jefe 25 → 12 %, con talentos al máximo 35 → 17 %).
+	-- Con 1 → 0,5 → 0,25 y 10 s el control casi desaparecía (jefe 7 %, cazador 11 %).
+	ControlDR = {
+		Steps = { 1, 0.8, 0.6, 0.4 },
+		ResetSeconds = 6,
+	},
+
+	-- Amagos (C8): pulsar la guardia durante la preparación cancela el golpe o la habilidad.
+	Feint = {
+		WeaponCooldownSeconds = 1, -- el del golpe es gratis, como mucho uno por esto
+		AbilityStaminaCost = 15, -- el de una habilidad cuesta estamina…
+		AbilityPenaltySeconds = 1.5, -- …y deja esta recarga en vez de la entera
+	},
+
+	-- Preparación de los ataques (C6, C8): lo que se ve venir antes del golpe.
+	Windup = {
+		MonkeyByTier = { 0.4, 0.5, 0.6 } :: { number }, -- mordisco de los monos por categoría (s)
+		BossSeconds = 0.7, -- golpe de los jefes
+		AbilityDefaultSeconds = 0.2, -- habilidades sin "castSeconds" propio
+	},
+
+	-- Rebote contra muros (C10): un empujón que te estampa contra una pared o roca.
+	WallBang = {
+		StunSeconds = 0.5,
+		ImmunitySeconds = 1.5,
+		Damage = 5,
+	},
+
 	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
 	Difficulty = {
 		HealthPerDay = 0.12, -- +12 % de vida por cada día pasado

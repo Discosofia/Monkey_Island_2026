@@ -400,6 +400,41 @@ Reglas de la entrevista: la premium del pase es **solo cosmética** (Developer P
 
 ---
 
+### Fase 10: Combate v2 (octubre de 2026)
+
+Revisión y mejora del combate buscando la **equidad**. Se basa en [Sistema de combate y combos.txt](Sistema%20de%20combate%20y%20combos.txt), el mapa [Sistemas de combate en roblox.png](Sistemas%20de%20combate%20en%20roblox.png), la investigación de referentes (The Strongest Battlegrounds, Deepwoken, juegos de lucha, accesibilidad en móvil, detección en Roblox) y la entrevista del 22-10-2026. Diseño en el GDD §6.5. Plan con los handoffs: `C:\Users\jose\.claude\plans\fizzy-snacking-quiche.md`. Cada grupo es un commit y una sesión. El combate se mide con la skill `combate-roblox` (antes `habilidades-roblox`), con la calculadora `src/island/tools/Equilibrio.luau` (secciones 7 a 10, nuevas). Al cerrar la fase, la comparativa contra la foto inicial (`docs/combate-v2/linea-base.md`) va en `docs/combate-v2/comparativa.md`.
+
+Decisiones de la entrevista:
+- Isla y Dunas con el mismo combate.
+- Bloqueo + parry + barra de guardia (los imbloqueables la rompen).
+- Cadena de 4 golpes en cuerpo a cuerpo y proyectiles reales.
+- Evasivo + escalado en PvP + control decreciente sobre los enemigos.
+- Una sola ventana de parry para todos, con compensación de ping a favor del defensor.
+- Amagos en el golpe y en las habilidades.
+- Rebote contra muros, zonas de peligro, coberturas que se rompen y altar en Dunas.
+- Aturdido separado de inmovilizado.
+- Guardia en F / L2 / botón; Evasivo = esquivar estando aturdido.
+- Shift lock de Roblox en Ctrl.
+- Sin lock-on; los estilos se documentan y se miden.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **C1** | Skill `combate-roblox` (renombrada y ampliada: mecánicas, detección, estilos y combos, equidad), números propuestos en `Config` y secciones 7 a 10 de la calculadora con sus límites, foto inicial y GDD §6.5 | — | 🔄 |
+| **C2** | Fundaciones: máquina de estados, aturdido e inmovilizado, estamina del servidor, `Latency`, `Knockback` (la Embestida empuja también a jugadores) y shift lock en Ctrl | — | ⬜ |
+| **C3** | Detección de impactos unificada (`Combat/Hitbox`: rayos, esferas, cajas, áreas con línea de visión, posiciones rebobinadas). Ningún golpe atraviesa paredes. | — | ⬜ |
+| **C4** | Cadena de 4 golpes cuerpo a cuerpo con remate | — | ⬜ |
+| **C5** | Guardia: bloqueo, parry y rotura; HUD y botón | — | ⬜ |
+| **C6** | Monos y jefes con preparación, control decreciente y muñecos que atacan para practicar | — | ⬜ |
+| **C7** | Evasivo, escalado del combo en PvP y telemetría nueva | — | ⬜ |
+| **C8** | Habilidades con preparación y amagos | — | ⬜ |
+| **C9** | Proyectiles reales | — | ⬜ |
+| **C10** | Rebote contra muros y zonas de peligro | — | ⬜ |
+| **C11** | Dunas: coberturas que se rompen y altar disputado | — | ⬜ |
+| **C12** | Claridad, interfaz y aprendizaje | — | ⬜ |
+| **C13** | Calibración final, documentación y comparativa antes → después | — | ⬜ |
+
+---
+
 ## 4. Cronograma estimado
 
 Estimación con **5–15 h/semana**: unos **7–10 meses** hasta el lanzamiento. El diagrama usa el escenario medio.

@@ -1,20 +1,33 @@
 ---
-name: habilidades-roblox
-description: Crea, edita y equilibra habilidades del juego (las 4 de cada rol del jugador, los combos, los ataques especiales de los monos, los especiales de los jefes y la ayuda de las mascotas) con un control de equilibrio medible. Antes de tocar el código mide la propuesta con una calculadora que corre en Roblox Studio por MCP (daño por uso, DPS sostenido, daño acumulado en el tiempo, pico, "segundos de arma", control, curación, si compensa el combo, tiempo para matar, golpe máximo de los enemigos) y la compara con los límites del proyecto; luego la implementa en todos los archivos que toca y la prueba. Úsala siempre que el usuario pida una habilidad nueva o cambiar una ("haz una habilidad de bumerán para el cazador", "el torbellino pega poco", "baja la recarga de la nova", "el gorila aturde demasiado", "que el jefe haga una lluvia de lava", "una mascota que congele"), o pregunte por equilibrio, DPS, daño por segundo, combos, críticos, recargas, cooldowns, talentos, aturdimientos, curación, tiempo para matar o "¿está roto X?", aunque no diga "habilidad". No es para la animación del gesto (skill animaciones-roblox), el modelo 3D de un objeto que deja la habilidad (modelos-3d-roblox) ni el HUD (interfaz-roblox), aunque puede pedirlas.
+name: combate-roblox
+description: Crea, revisa, administra y equilibra todo el combate del juego con un control medible. Cubre las habilidades (las 5 de cada rol, ataques especiales de monos y jefes, ayuda de las mascotas), las mecánicas (golpe con arma y su cadena, esquiva, bloqueo, parry y guardia, amagos, Evasivo, aturdido e inmovilizado, empujes y rebote contra muros, zonas de peligro, proyectiles), la detección de impactos (rayos, esferas, cajas, línea de visión, lag), los combos de habilidades y sus conexiones, los estilos de cada rol y la equidad entre roles, dispositivos y jugadores en la Isla (PvE) y en la arena de Dunas (PvP). Antes de tocar el código mide la propuesta con una calculadora que corre en Roblox Studio por MCP (daño por uso, DPS, segundos de arma, control, curación, valor del combo, tiempo para matar, duelos de la arena, golpe máximo de los enemigos, combos sin escape, guardia) y la compara con los límites; luego la implementa en todos los archivos que toca y la prueba. Úsala siempre que el usuario pida o pregunte algo del combate ("haz una habilidad de bumerán", "el torbellino pega poco", "baja la recarga de la nova", "el gorila aturde demasiado", "el parry es imposible en el móvil", "me matan sin poder hacer nada", "añade un remate al garrote", "el golpe atraviesa paredes", "que el jefe haga una lluvia de lava", "¿está roto X?"), o por equilibrio, DPS, combos, críticos, recargas, cooldowns, talentos, aturdimientos, bloqueo, parry, hitbox, lag, PvP, tiempo para matar o estilos de juego, aunque no diga "combate" ni "habilidad". No es para la animación del gesto (skill animaciones-roblox), el modelo 3D de un objeto (modelos-3d-roblox) ni el HUD (interfaz-roblox), aunque puede pedirlas.
 ---
 
-# Habilidades y equilibrio
+# Combate y equilibrio
 
-Esta skill crea o retoca habilidades **midiéndolas antes de escribirlas**. Una habilidad mal medida
+Esta skill crea, revisa y administra el combate **midiéndolo antes de escribirlo**. Un número mal medido
 se nota tarde: un rol que hace el doble que otro, un combo que nadie necesita o que todos están
 obligados a hacer, un mono que te deja quieto para siempre, un jefe que cae antes de enseñar su
-segunda fase. Aquí cada propuesta pasa por la calculadora, se compara con la línea base y con los
+segunda fase, un combo del que no se puede salir o una ventana de parry que en el móvil no se puede
+acertar. Aquí cada propuesta pasa por la calculadora, se compara con la línea base y con los
 límites, y solo entonces se implementa en todos los archivos que toca.
+
+Abarca cuatro cosas, cada una con su receta:
+- **Habilidades** (§1–§4 abajo): las de los roles, los monos, los jefes y las mascotas.
+- **Mecánicas** (§7): cómo se ataca, se defiende, se escapa y se detecta un golpe.
+- **Combos y estilos** (`references/estilos-y-combos.md`): qué hace cada rol, cómo se enlaza y qué
+  no puede pasar (combos sin escape, opciones sin respuesta).
+- **Equidad** (§8): entre roles, entre dispositivos (PC, móvil, mando) y entre jugadores con distinto ping.
 
 Recursos (rutas relativas a esta carpeta):
 - `references/sistema-de-habilidades.md`: cómo funcionan hoy las habilidades de jugadores, combos,
   críticos, estados, monos, jefes y mascotas; qué archivo hace qué y el orden de los
   multiplicadores. **Léelo antes de tocar código.**
+- `references/sistema-de-combate.md`: las mecánicas (estados y prioridades, golpe con arma, esquiva,
+  guardia, Evasivo, empujes, proyectiles), la **detección de impactos** y la red (lag, quién decide
+  qué). Dice qué existe hoy y qué está planificado en la Fase 10. **Léelo antes de tocar una mecánica.**
+- `references/estilos-y-combos.md`: arquetipo de cada rol, estructura abre → extiende → remata,
+  reglas contra los combos infinitos, amagos y lectura. **Léelo antes de diseñar un combo o un rol.**
 - `references/equilibrio.md`: principios (con fuentes), qué mide la calculadora, los **límites**, la
   línea base actual, hallazgos pendientes y recetas de ajuste. **Léelo antes de proponer números.**
 - La calculadora es una herramienta del repo: `src/island/tools/Equilibrio.luau`, que Rojo pone en
@@ -291,3 +304,59 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
 - Si aprendes algo nuevo de cómo probar o equilibrar, añádelo a §5.1 o §5.2.
 - Deja Studio como estaba: borra la copia temporal (`ServerStorage._EquilibrioTemporal`) si la
   creaste, quita `DebugAlwaysCrit` y para el Play si lo arrancaste tú.
+
+## 7. Mecánicas de combate
+
+Una mecánica (algo que tienen todos los roles: el golpe con arma, la esquiva, la guardia, el Evasivo,
+un estado nuevo, una regla de empuje) toca más cosas que una habilidad y cambia el juego de todos.
+Mira primero `references/sistema-de-combate.md` (qué hay hoy) y el plan de la Fase 10 si sigue
+abierto (`docs/PLAN.md`, Fase 10, y su archivo de plan con los handoffs).
+
+### 7.1 Ficha de una mecánica
+
+- **Problema**: qué no puede hacer hoy el jugador o qué es injusto ("me matan sin poder responder",
+  "en el móvil no llego", "el golpe me da a través de la pared").
+- **Regla**: qué cambia, en una frase que entienda un jugador de 10 años.
+- **Estados**: en qué estado entra quien la usa y quien la recibe, cuánto dura, qué prioridad tiene y
+  qué acciones bloquea (`canAct`). Ningún estado nuevo fuera de la máquina de estados.
+- **Respuesta**: cómo se contrarresta (toda opción fuerte tiene una: bloqueo → imbloqueable o
+  rotura; parry → amago; combo → Evasivo; imbloqueable → preparación larga y castigo si falla).
+- **Red**: quién decide (siempre el servidor), qué predice el cliente, qué margen de lag da y con
+  qué tope (`Config`).
+- **Detección**: qué consulta usa (`Combat/Hitbox`: rayo, esfera, caja, área con línea de visión).
+  Nunca `.Touched`.
+- **Lectura**: cómo se ve y cómo se oye, también sin sonido y en un teléfono. Colores con
+  significado: verde curación, morado veneno, rojo daño recibido, dorado parry, naranja con grietas
+  guardia rota.
+- **Isla y Dunas**: si cambia por place, con qué regla de `CombatRules`.
+- **Números** y qué sección de la calculadora la mide.
+
+### 7.2 Implementar una mecánica
+
+1. Números en `Config` (un bloque por mecánica, con un comentario por número) y datos en `Data`.
+2. La regla en el servidor (`src/combat`), compartida por los tres places; lo que cambia por place,
+   en `CombatRules` y en el `Init` de `IslandCombatRules`, `DunasCombatRules` y `LobbyCombatRules`.
+3. El cliente (`src/combatClient`): entrada (teclado, mando y botón táctil en `ActionButtons`),
+   predicción y efectos. Las poses son `AnimationTrack` (skill `animaciones-roblox`).
+4. Su sección o su caso en la calculadora (`Equilibrio`) y sus límites en `LIMITES` y en
+   `references/equilibrio.md` §3.
+5. Telemetría: un contador nuevo por `CombatRules.telemetry` si responde a una pregunta de diseño.
+6. Documentación: `references/sistema-de-combate.md` y `docs/GDD.md` §6.
+7. Prueba en Play en la Isla **y** en Dunas; lo que dependa de dos jugadores (PvP, parry entre
+   jugadores, lag) se pide al usuario con *Test → Clientes y servidores* con 2.
+
+## 8. Equidad
+
+Antes de dar por buena una propuesta, repasa:
+
+- **Entre roles**: el reparto de §3 de `equilibrio.md` (±20 % en grupo, ±30 % a un objetivo) y los
+  duelos de la arena. Cada rol gana en su escenario (`references/estilos-y-combos.md`), ninguno en
+  todos.
+- **Entre dispositivos**: las mismas ventanas y los mismos números en PC, móvil y mando. Si algo es
+  difícil en el móvil, se ensancha para todos o se hace más legible; nunca se da ventaja a un
+  dispositivo. Los avisos se ven sin sonido.
+- **Entre pings**: la compensación de lag favorece al defensor y tiene tope; nadie gana por tener más
+  ping.
+- **Sin salida**: ningún combo sin escape pasa del límite de vida de `equilibrio.md` §3; todo control
+  sobre un jugador pasa por `Status` (inmunidad al soltarse) y tiene respuesta (Evasivo).
+- **Pago**: nada que se compre con Robux da poder; el equipo de Ámbar de Dunas es horizontal.
