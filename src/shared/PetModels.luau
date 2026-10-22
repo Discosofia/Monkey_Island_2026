@@ -1710,6 +1710,75 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 			)
 		end
 	end
+	-- Equipo de una skin (SKINS: lo pide su paleta, y así vale para los tres perros, con sus medidas):
+	-- la camiseta de marinero a rayas en el pecho ("shirt" y "shirtStripe") y, a la espalda, el mástil con
+	-- la bandera pirata ("flag"), que ondea; la calavera mira atrás y adelante, para verse de espaldas.
+	local gear = rig.palette or {}
+	if gear.shirt and gear.shirtStripe then
+		local from, to = chestFront - 0.15, frontEnd - 0.4
+		local shirtBottom, shirtTop = bottom - 0.2, top + 0.15
+		local stripes = 6
+		for index = 1, stripes do
+			local height = (shirtTop - shirtBottom) / stripes
+			box(
+				nil,
+				"Shirt",
+				Vector3.new(0, shirtBottom + (index - 0.5) * height, (from + to) / 2),
+				Vector3.new(bodyW + 0.3, height, to - from),
+				if index % 2 == 0 then gear.shirtStripe else gear.shirt
+			)
+		end
+	end
+	if gear.flag then
+		-- Medidas de la bandera en celdas (el doble que una bandera "de verdad" para un perro: más pequeña
+		-- no se leía desde la cámara).
+		local poleZ = (chestFront + frontEnd) / 2 + 1.5
+		local poleH = 11
+		box(
+			nil,
+			"FlagPole",
+			Vector3.new(0, top + poleH / 2, poleZ),
+			Vector3.new(0.7, poleH, 0.7),
+			Color3.fromRGB(110, 75, 40)
+		)
+		box(
+			nil,
+			"FlagTip",
+			Vector3.new(0, top + poleH + 0.5, poleZ),
+			Vector3.new(1.1, 1, 1.1),
+			Color3.fromRGB(235, 190, 60)
+		)
+		local flagParts: { BasePart } = {}
+		local flagY, flagX = top + poleH - 2.3, 3.5
+		box(flagParts, "Flag", Vector3.new(flagX, flagY, poleZ), Vector3.new(6.4, 4.2, 0.25), gear.flag)
+		for _, face in { -1, 1 } do
+			local z = poleZ + face * 0.2
+			box(flagParts, "FlagSkull", Vector3.new(flagX, flagY + 0.5, z), Vector3.new(1.8, 1.5, 0.15), WHITE)
+			box(flagParts, "FlagSkull", Vector3.new(flagX, flagY - 0.4, z), Vector3.new(1.1, 0.5, 0.15), WHITE)
+			for _, eye in { -1, 1 } do
+				box(
+					flagParts,
+					"FlagEye",
+					Vector3.new(flagX + eye * 0.4, flagY + 0.5, z + face * 0.05),
+					Vector3.new(0.45, 0.45, 0.15),
+					gear.flag
+				)
+			end
+			for _, bone in { -1, 1 } do
+				local part = box(
+					flagParts,
+					"FlagBone",
+					Vector3.new(flagX, flagY - 0.9, poleZ + face * 0.16),
+					Vector3.new(3.4, 0.4, 0.15),
+					WHITE
+				)
+				part.CFrame *= CFrame.Angles(0, 0, math.rad(bone * 25))
+			end
+		end
+		for _, part in flagParts do
+			joint(rig, part, CFrame.new(at(Vector3.new(0, flagY, poleZ))), Vector3.yAxis, 0.12, 4, 0, false)
+		end
+	end
 	for _, side in { -1, 1 } do
 		ticking(
 			nil,
@@ -1836,6 +1905,62 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 			Color3.fromRGB(235, 190, 60)
 		)
 	end
+	-- El pañuelo de la skin, con lunares y el nudo detrás ("bandana"), y el parche del ojo izquierdo con
+	-- su cinta ("eyePatch").
+	if gear.bandana then
+		box(
+			headParts,
+			"Bandana",
+			Vector3.new(0, crown + 0.2, head.Z + 0.3),
+			Vector3.new(skull.X + 0.3, 0.6, skull.Z),
+			gear.bandana
+		)
+		box(
+			headParts,
+			"Bandana",
+			Vector3.new(0, crown - 0.35, head.Z + 0.3),
+			Vector3.new(skull.X + 0.35, 0.7, skull.Z + 0.2),
+			gear.bandana
+		)
+		for _, dot in { -1.2, 0.3, 1.5 } do
+			box(
+				headParts,
+				"BandanaDot",
+				Vector3.new(dot, crown + 0.52, head.Z + dot * 0.5),
+				Vector3.new(0.5, 0.1, 0.5),
+				WHITE
+			)
+		end
+		local back = head.Z + skull.Z / 2 + 0.4
+		box(headParts, "BandanaKnot", Vector3.new(0, crown - 0.3, back), Vector3.new(1.1, 0.9, 0.8), gear.bandana)
+		for _, side in { -1, 1 } do
+			local ribbon = box(
+				headParts,
+				"BandanaTail",
+				Vector3.new(side * 0.45, crown - 1.2, back + 0.35),
+				Vector3.new(0.6, 1.5, 0.25),
+				gear.bandana
+			)
+			ribbon.CFrame *= CFrame.Angles(math.rad(20), 0, math.rad(side * 18))
+		end
+	end
+	if gear.eyePatch then
+		local eye = Vector3.new(-(skull.X / 2 - 1.25), snoutTop + 0.75, skullFront)
+		flat(headParts, "EyePatch", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(1.6, 1.4), gear.eyePatch, 0.2)
+		-- La cinta cruza la frente en diagonal, del parche a la sien de enfrente.
+		local from, to = eye + Vector3.new(0.4, 0.5, 0), Vector3.new(skull.X / 2, crown - 0.5, skullFront)
+		local direction = to - from
+		flat(
+			headParts,
+			"EyePatchStrap",
+			(from + to) / 2,
+			-Vector3.zAxis,
+			Vector3.new(direction.X, direction.Y, 0).Unit,
+			Vector2.new(direction.Magnitude, 0.3),
+			gear.eyePatch,
+			0.17
+		)
+	end
 	-- La cabeza (con cuello, collar y cara) mira despacio a un lado y a otro, girando sobre la nuca.
 	local neckHinge = CFrame.new(at(Vector3.new(0, top - 0.6, neckZ)))
 	local skullJoint: Joint? = nil
@@ -1854,20 +1979,35 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 		local x = side * (skull.X / 2 + ear.X / 2 - 0.05)
 		local earTop = crown - 0.35
 		local earZ = head.Z + skull.Z / 2 - ear.Z / 2 - 0.5
-		local part = box(nil, "Ear", Vector3.new(x, earTop - ear.Y / 2, earZ), ear, o.ears or headColor)
-		local item = joint(
-			rig,
-			part,
-			CFrame.new(at(Vector3.new(x, earTop, earZ))),
-			Vector3.zAxis,
-			0.08 * side,
-			9,
-			0,
-			true,
-			nil,
-			skullJoint
-		)
-		item.bone = if side < 0 then "EarL" else "EarR"
+		local parts = { box(nil, "Ear", Vector3.new(x, earTop - ear.Y / 2, earZ), ear, o.ears or headColor) }
+		-- El aro de oro de la skin ("earring"), abajo en la oreja derecha.
+		if gear.earring and side > 0 then
+			table.insert(
+				parts,
+				box(
+					nil,
+					"Earring",
+					Vector3.new(x, earTop - ear.Y - 0.3, earZ - ear.Z / 2 + 0.5),
+					Vector3.new(0.3, 0.9, 0.9),
+					gear.earring
+				)
+			)
+		end
+		for _, part in parts do
+			local item = joint(
+				rig,
+				part,
+				CFrame.new(at(Vector3.new(x, earTop, earZ))),
+				Vector3.zAxis,
+				0.08 * side,
+				9,
+				0,
+				true,
+				nil,
+				skullJoint
+			)
+			item.bone = if side < 0 then "EarL" else "EarR"
+		end
 	end
 
 	-- Patas de dos tramos. Delante, hombro (algo más claro, asoma por el costado) y columna recta;
@@ -4347,6 +4487,20 @@ local SKINS: { [string]: Skin } = {
 			embers.ZOffset = 1
 			embers.Parent = vent
 		end,
+	},
+	-- Perro pirata (tienda, skin de familia de los tres perros): cada uno con su pelaje, para que se
+	-- reconozca, y el equipo que dibuja voxelDog con estos colores: pañuelo rojo con lunares, parche,
+	-- aro de oro, camiseta de marinero blanca y azul marino y la bandera pirata en su mástil.
+	PirateDogSkin = {
+		palette = {
+			bandana = Color3.fromRGB(205, 35, 35),
+			eyePatch = Color3.fromRGB(25, 22, 25),
+			earring = Color3.fromRGB(240, 195, 60),
+			shirt = Color3.fromRGB(240, 240, 232),
+			shirtStripe = Color3.fromRGB(35, 55, 125),
+			flag = Color3.fromRGB(28, 24, 30),
+		},
+		materials = { earring = Enum.Material.Metal },
 	},
 }
 

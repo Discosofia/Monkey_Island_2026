@@ -179,30 +179,171 @@ local function emitter(root: BasePart, texture: string): ParticleEmitter
 	return particles
 end
 
--- Anillo invisible a los pies (soldado a la raíz) del que salen las llamas del aura: desde la raíz
--- salían dentro del cuerpo y no se veían.
-local function feetRing(root: BasePart): Part
-	local ring = Instance.new("Part")
-	ring.Name = "CosmeticAura"
-	ring.Size = Vector3.new(4, 0.2, 4)
-	ring.Transparency = 1
-	ring.CanCollide = false
-	ring.CanQuery = false
-	ring.CanTouch = false
-	ring.Massless = true
-	ring.CFrame = root.CFrame * CFrame.new(0, -root.Size.Y / 2 - 1.8, 0)
+-- Anillo invisible (soldado a la raíz) del que sale parte del aura: a los pies las llamas y la arena
+-- (desde la raíz salían dentro del cuerpo y no se veían) y sobre la cabeza la nube y los pétalos.
+-- "height" es su altura sobre la raíz (negativa: los pies).
+local function ring(root: BasePart, height: number, width: number?): Part
+	local part = Instance.new("Part")
+	part.Name = "CosmeticAura"
+	part.Size = Vector3.new(width or 4, 0.2, width or 4)
+	part.Transparency = 1
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Massless = true
+	part.CFrame = root.CFrame * CFrame.new(0, height, 0)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
-	weld.Part1 = ring
-	weld.Parent = ring
-	ring.Parent = root
-	return ring
+	weld.Part1 = part
+	weld.Parent = part
+	part.Parent = root
+	return part
+end
+
+local function feetRing(root: BasePart): Part
+	return ring(root, -root.Size.Y / 2 - 1.8)
+end
+
+-- Auras con otra forma ("look" en Data/Cosmetics) en vez de las chispas:
+--   Sand    polvo de arena que gira a los pies y granos que brillan
+--   Storm   una nube negra sobre la cabeza que suelta chispas eléctricas hacia abajo, y su luz
+--   Petals  pétalos de su color y blancos que caen despacio desde encima de la cabeza
+local LOOKS: { [string]: (root: BasePart, cosmetic: Cosmetics.Cosmetic) -> () } = {
+	Sand = function(root, cosmetic)
+		local dust = emitter(feetRing(root), "smoke_main.dds")
+		dust.Shape = Enum.ParticleEmitterShape.Cylinder
+		dust.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+		dust.Color = ColorSequence.new(cosmetic.color, cosmetic.color:Lerp(Color3.fromRGB(150, 120, 80), 0.4))
+		dust.Size = NumberSequence.new(0.8, 1.8)
+		dust.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.25, 0.45),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		dust.Rate = 14
+		dust.Lifetime = NumberRange.new(1.2, 1.8)
+		dust.Speed = NumberRange.new(0.4, 0.9)
+		dust.Acceleration = Vector3.new(0, 1.2, 0)
+		dust.Rotation = NumberRange.new(0, 360)
+		dust.RotSpeed = NumberRange.new(120, 200)
+		local grains = emitter(feetRing(root), "sparkles_main.dds")
+		grains.Shape = Enum.ParticleEmitterShape.Cylinder
+		grains.Color = ColorSequence.new(Color3.fromRGB(255, 235, 170), cosmetic.color)
+		grains.Size = NumberSequence.new(0.18, 0)
+		grains.Rate = 16
+		grains.Lifetime = NumberRange.new(0.8, 1.4)
+		grains.Speed = NumberRange.new(1, 2.5)
+		grains.EmissionDirection = Enum.NormalId.Top
+		grains.SpreadAngle = Vector2.new(30, 30)
+		grains.Acceleration = Vector3.new(0, -2, 0)
+		grains.LightEmission = 0.7
+	end,
+	Storm = function(root, cosmetic)
+		local cloud = ring(root, 4.2, 3)
+		local smoke = emitter(cloud, "smoke_main.dds")
+		smoke.Shape = Enum.ParticleEmitterShape.Box
+		smoke.Color = ColorSequence.new(Color3.fromRGB(55, 58, 70), Color3.fromRGB(35, 36, 45))
+		smoke.Size = NumberSequence.new(1.4, 2.2)
+		smoke.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.3, 0.25),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		smoke.Rate = 14
+		smoke.Lifetime = NumberRange.new(1.4, 2)
+		smoke.Speed = NumberRange.new(0.1, 0.3)
+		smoke.SpreadAngle = Vector2.new(180, 180)
+		smoke.Rotation = NumberRange.new(0, 360)
+		smoke.RotSpeed = NumberRange.new(-20, 20)
+		local bolts = emitter(cloud, "sparkles_main.dds")
+		bolts.Shape = Enum.ParticleEmitterShape.Box
+		bolts.Color = ColorSequence.new(Color3.new(1, 1, 1), cosmetic.color)
+		bolts.Size = NumberSequence.new(0.5, 0.15)
+		-- Positivo: altas y finas (rayos), no anchas.
+		bolts.Squash = NumberSequence.new(2)
+		bolts.Rate = 20
+		bolts.Lifetime = NumberRange.new(0.15, 0.3)
+		bolts.Speed = NumberRange.new(8, 12)
+		bolts.EmissionDirection = Enum.NormalId.Bottom
+		bolts.SpreadAngle = Vector2.new(15, 15)
+		bolts.LightEmission = 1
+		bolts.Brightness = 3
+		local light = Instance.new("PointLight")
+		light.Name = "CosmeticAura"
+		light.Color = cosmetic.color
+		light.Range = 9
+		light.Brightness = 1.2
+		light.Parent = cloud
+	end,
+	Petals = function(root, cosmetic)
+		local petals = emitter(ring(root, 4, 5), "sparkles_main.dds")
+		petals.Shape = Enum.ParticleEmitterShape.Box
+		petals.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, cosmetic.color),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 240, 245)),
+			ColorSequenceKeypoint.new(1, cosmetic.color),
+		})
+		petals.Size = NumberSequence.new(0.35)
+		petals.Squash = NumberSequence.new(0.6)
+		petals.Rate = 10
+		petals.Lifetime = NumberRange.new(2.5, 3.5)
+		petals.Speed = NumberRange.new(0.2, 0.6)
+		petals.SpreadAngle = Vector2.new(180, 180)
+		petals.Acceleration = Vector3.new(0, -1.6, 0)
+		petals.Drag = 1
+		petals.Rotation = NumberRange.new(0, 360)
+		petals.RotSpeed = NumberRange.new(-90, 90)
+		petals.LightEmission = 0.3
+	end,
+}
+
+-- La estela: una por cada franja de "colors" (de arriba abajo) o una de "color"; de Épico arriba,
+-- más larga y más brillante; con "sparkle", chispas que caen y se quedan atrás al correr.
+local function trail(root: BasePart, cosmetic: Cosmetics.Cosmetic)
+	local colors = cosmetic.colors or { cosmetic.color }
+	local rich = cosmetic.rarity == "Epic" or cosmetic.rarity == "Legendary" or cosmetic.rarity == "Mythic"
+	local points = {}
+	for index = 0, #colors do
+		local point = Instance.new("Attachment")
+		point.Name = "CosmeticAttachment"
+		point.Position = Vector3.new(0, 1 - index * 2 / #colors, 0)
+		point.Parent = root
+		points[index] = point
+	end
+	for index, color in colors do
+		local stripe = Instance.new("Trail")
+		stripe.Name = "CosmeticTrail"
+		stripe.Attachment0 = points[index - 1]
+		stripe.Attachment1 = points[index]
+		stripe.Color = ColorSequence.new(color)
+		stripe.Transparency = NumberSequence.new(0.3, 1)
+		stripe.Lifetime = if rich then 0.9 else 0.6
+		stripe.LightEmission = if rich then 1 else 0.5
+		stripe.Parent = root
+	end
+	if cosmetic.sparkle then
+		local sparks = emitter(root, "sparkles_main.dds")
+		sparks.Name = "CosmeticTrail"
+		sparks.Color = ColorSequence.new(Color3.new(1, 1, 1), cosmetic.sparkle)
+		sparks.Size = NumberSequence.new(0.3, 0)
+		sparks.Rate = 14
+		sparks.Lifetime = NumberRange.new(0.8, 1.2)
+		sparks.Speed = NumberRange.new(0.3, 1)
+		sparks.SpreadAngle = Vector2.new(180, 180)
+		sparks.Acceleration = Vector3.new(0, -3, 0)
+		sparks.LightEmission = 1
+	end
 end
 
 -- El aura: chispas de su color y, por grados, más cosas (II: más chispas y un anillo de llamas que
 -- sube desde los pies; III: llamas más altas y brillantes, brasas rápidas, humo oscuro y una luz de su
 -- color).
 local function aura(root: BasePart, cosmetic: Cosmetics.Cosmetic)
+	local look = if cosmetic.look then LOOKS[cosmetic.look] else nil
+	if look then
+		look(root, cosmetic)
+		return
+	end
 	local grade = cosmetic.grade or 1
 	local sparks = emitter(root, "sparkles_main.dds")
 	sparks.Color = ColorSequence.new(cosmetic.color)
@@ -287,23 +428,7 @@ local function applyVisuals(player: Player)
 		local cosmetic = if cosmeticId then Cosmetics[cosmeticId] else nil
 		if cosmetic then
 			if cosmetic.kind == "Trail" then
-				local top = Instance.new("Attachment")
-				top.Name = "CosmeticAttachment"
-				top.Position = Vector3.new(0, 1, 0)
-				top.Parent = root
-				local bottom = Instance.new("Attachment")
-				bottom.Name = "CosmeticAttachment"
-				bottom.Position = Vector3.new(0, -1, 0)
-				bottom.Parent = root
-				local trail = Instance.new("Trail")
-				trail.Name = "CosmeticTrail"
-				trail.Attachment0 = top
-				trail.Attachment1 = bottom
-				trail.Color = ColorSequence.new(cosmetic.color)
-				trail.Transparency = NumberSequence.new(0.3, 1)
-				trail.Lifetime = 0.6
-				trail.LightEmission = 0.5
-				trail.Parent = root
+				trail(root, cosmetic)
 			elseif cosmetic.kind == "Title" and head and head:IsA("BasePart") then
 				local billboard = Instance.new("BillboardGui")
 				billboard.Name = "CosmeticTitle"

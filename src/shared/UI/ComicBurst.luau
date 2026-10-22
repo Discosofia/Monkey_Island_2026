@@ -151,6 +151,91 @@ local STYLES: { [string]: BurstStyle } = {
 		puff = Color3.fromRGB(125, 115, 110),
 		words = { Hit = { "FSSS!", "CRACK!", "FWOOSH!" }, Crit = { "KABOOM!", "BRRUM!" } },
 	},
+	-- Chapuzón (tienda): una ola azul con espuma blanca dentro, gotas celestes y nubes de espuma.
+	SplashBurst = {
+		Hit = {
+			outer = Color3.fromRGB(60, 150, 235),
+			inner = Color3.fromRGB(235, 250, 255),
+			star = Color3.fromRGB(150, 220, 255),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(20, 80, 170),
+		},
+		Crit = {
+			outer = Color3.fromRGB(35, 120, 220),
+			inner = Color3.fromRGB(120, 215, 255),
+			rays = Color3.fromRGB(200, 240, 255),
+			star = Color3.fromRGB(235, 250, 255),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(15, 60, 140),
+		},
+		KO = {
+			outer = Color3.fromRGB(20, 70, 150),
+			inner = Color3.fromRGB(60, 170, 240),
+			rays = Color3.fromRGB(150, 220, 255),
+			star = Color3.fromRGB(235, 250, 255),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(10, 40, 100),
+		},
+		puff = Color3.fromRGB(235, 248, 255),
+		words = { Hit = { "SPLASH!", "SPLOSH!", "PLAF!" }, Crit = { "KA-SPLASH!", "GLUB-BOOM!" } },
+	},
+	-- Rayo (tienda, épico): una nube de tormenta gris oscura con el rayo amarillo dentro y rayos
+	-- blancos detrás.
+	LightningBurst = {
+		Hit = {
+			outer = Color3.fromRGB(70, 75, 95),
+			inner = Color3.fromRGB(255, 230, 50),
+			star = Color3.fromRGB(255, 245, 160),
+			text = Color3.fromRGB(255, 240, 90),
+			edge = Color3.fromRGB(25, 30, 60),
+		},
+		Crit = {
+			outer = Color3.fromRGB(55, 60, 80),
+			inner = Color3.fromRGB(255, 235, 60),
+			rays = Color3.fromRGB(235, 245, 255),
+			star = Color3.fromRGB(255, 250, 190),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(30, 40, 90),
+		},
+		KO = {
+			outer = Color3.fromRGB(35, 38, 55),
+			inner = Color3.fromRGB(150, 210, 255),
+			rays = Color3.fromRGB(255, 235, 60),
+			star = Color3.fromRGB(255, 245, 160),
+			text = Color3.fromRGB(255, 240, 90),
+			edge = Color3.fromRGB(15, 20, 50),
+		},
+		puff = Color3.fromRGB(95, 100, 120),
+		words = { Hit = { "BZZT!", "ZAAP!", "KRZZ!" }, Crit = { "KRAKK!", "KA-BRAMM!" } },
+	},
+	-- Neón (Robux): estrella negra con el borde rosa y el centro celeste, como una máquina recreativa.
+	NeonBurst = {
+		Hit = {
+			outer = Color3.fromRGB(30, 25, 40),
+			inner = Color3.fromRGB(255, 70, 150),
+			star = Color3.fromRGB(80, 235, 255),
+			text = Color3.fromRGB(80, 235, 255),
+			edge = Color3.fromRGB(255, 50, 140),
+		},
+		Crit = {
+			outer = Color3.fromRGB(25, 20, 35),
+			inner = Color3.fromRGB(80, 235, 255),
+			rays = Color3.fromRGB(255, 70, 150),
+			star = Color3.fromRGB(255, 240, 90),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(255, 50, 140),
+		},
+		KO = {
+			outer = Color3.fromRGB(20, 15, 30),
+			inner = Color3.fromRGB(255, 70, 150),
+			rays = Color3.fromRGB(80, 235, 255),
+			star = Color3.fromRGB(255, 240, 90),
+			text = Color3.fromRGB(255, 240, 90),
+			edge = Color3.fromRGB(40, 20, 80),
+		},
+		puff = Color3.fromRGB(80, 235, 255),
+		words = { Hit = { "BLIP!", "BOOP!", "PIU!" }, Crit = { "COMBO!", "MEGA!" }, KO = { "GAME OVER!" } },
+	},
 }
 
 local WORDS: { [string]: { string } } = {

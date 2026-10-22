@@ -126,10 +126,18 @@ día 9. Midiendo un catálogo de prueba: con 17 cosméticos (13.400 Ámbar) gast
 día 23; con **23 (18.900)** gasta el 96 % y lo acaba el día 30; con 29, el 99 % y no lo acaba. El casual
 compra 6–7 (gana poco). Meta de G10b: 20–24 cosméticos en Ámbar y unos 6 sueltos de Robux.
 
+**Con el catálogo (G10b, 21-10-2026)**: tema "selva y mar" (no el volcán de la temporada). En Ámbar,
+22 cosméticos que suman **19.000**: 6 títulos, 3 estelas, 3 auras, 3 marcos, 3 números, 2 estallidos,
+1 nido y 1 skin de familia (Perro pirata, 1.500). En Robux, 11 sueltos: 6 nuevos de 99–249 R$ (título,
+estallido, aura, marco, estela y nido), los Números Escarcha y las 4 armas míticas. Gastado en 30 días:
+casual 5.730 de 6.002 (compra 6 de 22), habitual **21.380 de 22.085** (97 %, tiene la tienda entera el
+**día 30**), intenso 21.380 (todo el día 12), amigos 21.380 (día 27). Sin alertas.
+
 ## 5. Hallazgos pendientes (plan de la Fase 9, `docs/PLAN.md`)
 
-- El habitual gasta el 25 % del Ámbar que gana: la tienda de cosméticos en Ámbar (G10a) tiene solo 5;
-  el catálogo de G10b la cierra (ver la medida de arriba).
+- El intenso y los grupos tienen la tienda en Ámbar entera antes del día 30 (días 12 y 27) y el intenso
+  acumula 35.000 Ámbar sin uso: cada temporada tiene que traer cosméticos nuevos a la tienda (unos
+  4.000–5.000 Ámbar al mes) o el Ámbar vuelve a sobrar al segundo mes.
 - La Perla del río (día 2) y el Núcleo de magma (día 8) no los pide ninguna receta: candidatos para
   los eventos (G7) o un paso de contrato que pida entregarlos.
 - Los pasos 3–5 de los contratos (días 5–8) solo los ve quien juega partidas largas (intenso, grupos):

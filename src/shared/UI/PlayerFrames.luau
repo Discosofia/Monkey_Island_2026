@@ -46,6 +46,70 @@ local STYLES: { [string]: Style } = {
 		cornerEdge = Color3.fromRGB(255, 110, 30),
 		embers = Color3.fromRGB(255, 140, 40),
 	},
+	-- Bambú (tienda): caña clara con nudos oscuros cada poco y las esquinas atadas.
+	BambooFrame = {
+		thickness = 2.5,
+		colors = (function()
+			local cane, node = Color3.fromRGB(225, 200, 120), Color3.fromRGB(120, 95, 45)
+			local list = {}
+			for index = 1, 13 do
+				table.insert(list, if index % 3 == 0 then node else cane)
+			end
+			return list
+		end)(),
+		rotation = 0,
+		corner = "Rivet",
+		cornerColor = Color3.fromRGB(140, 100, 55),
+		cornerEdge = Color3.fromRGB(70, 45, 25),
+	},
+	-- Coral (tienda): rosa coral y blanco, con una perla en cada esquina.
+	CoralFrame = {
+		thickness = 3,
+		colors = {
+			Color3.fromRGB(255, 225, 220),
+			Color3.fromRGB(255, 130, 115),
+			Color3.fromRGB(235, 85, 95),
+			Color3.fromRGB(255, 130, 115),
+			Color3.fromRGB(255, 225, 220),
+		},
+		rotation = 45,
+		corner = "Rivet",
+		cornerColor = Color3.fromRGB(250, 248, 240),
+		cornerEdge = Color3.fromRGB(200, 170, 165),
+	},
+	-- Oro del templo (tienda, épico): el brillo corre por el oro y las esquinas son turquesas.
+	TempleGoldFrame = {
+		thickness = 3,
+		colors = {
+			Color3.fromRGB(150, 100, 25),
+			Color3.fromRGB(255, 205, 60),
+			Color3.fromRGB(255, 250, 200),
+			Color3.fromRGB(255, 205, 60),
+			Color3.fromRGB(150, 100, 25),
+		},
+		rotation = 0,
+		flow = 0.25,
+		corner = "Shard",
+		cornerColor = Color3.fromRGB(60, 205, 200),
+		cornerEdge = Color3.fromRGB(120, 80, 20),
+	},
+	-- Diamante (Robux, épico): blanco y celeste que destella al correr, gemas y chispas que suben.
+	DiamondFrame = {
+		thickness = 3,
+		colors = {
+			Color3.fromRGB(150, 215, 255),
+			Color3.fromRGB(255, 255, 255),
+			Color3.fromRGB(110, 190, 245),
+			Color3.fromRGB(255, 255, 255),
+			Color3.fromRGB(150, 215, 255),
+		},
+		rotation = 0,
+		flow = 0.45,
+		corner = "Shard",
+		cornerColor = Color3.fromRGB(235, 250, 255),
+		cornerEdge = Color3.fromRGB(80, 160, 230),
+		embers = Color3.fromRGB(230, 248, 255),
+	},
 }
 
 -- Prefijo de lo que pone el marco en la pieza (para quitarlo al cambiarlo).

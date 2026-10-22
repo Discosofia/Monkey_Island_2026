@@ -37,6 +37,24 @@ local NumberStyles: { [string]: NumberStyle } = {
 		scale = 1.25,
 		glyph = { 0.2, 0.8 },
 	},
+	-- Coral: rosa claro arriba, coral en medio y rosa hondo abajo, con un borde azul de mar.
+	CoralNumbers = {
+		font = Font.fromEnum(Enum.Font.FredokaOne),
+		colors = { Color3.fromRGB(255, 225, 220), Color3.fromRGB(255, 130, 115), Color3.fromRGB(215, 60, 85) },
+		critColors = { Color3.fromRGB(255, 245, 240), Color3.fromRGB(255, 160, 140), Color3.fromRGB(240, 80, 100) },
+		edge = Color3.fromRGB(10, 55, 75),
+		scale = 1.2,
+		glyph = { 0.2, 0.8 },
+	},
+	-- Atardecer: sol amarillo arriba, rosa en medio y azul de noche abajo, con un borde casi negro.
+	SunsetNumbers = {
+		font = Font.fromEnum(Enum.Font.LuckiestGuy),
+		colors = { Color3.fromRGB(255, 220, 80), Color3.fromRGB(255, 110, 130), Color3.fromRGB(45, 65, 170) },
+		critColors = { Color3.fromRGB(255, 245, 160), Color3.fromRGB(255, 140, 150), Color3.fromRGB(70, 95, 210) },
+		edge = Color3.fromRGB(20, 15, 35),
+		scale = 1.25,
+		glyph = { 0.2, 0.8 },
+	},
 }
 
 return NumberStyles

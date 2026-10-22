@@ -241,8 +241,431 @@ local function volcanic(radius: number): Model
 	return model
 end
 
+-- Más oscuros de lo que parecen: con las luces del nido de la plaza, la arena clara se veía blanca.
+local SAND = Color3.fromRGB(205, 165, 100)
+local SAND_DARK = Color3.fromRGB(180, 140, 80)
+local FOAM = Color3.fromRGB(205, 235, 240)
+local SEA = Color3.fromRGB(40, 165, 185)
+local CORAL = Color3.fromRGB(240, 95, 90)
+local CORAL_DEEP = Color3.fromRGB(225, 70, 95)
+local SHELL = Color3.fromRGB(235, 175, 150)
+local STAR = Color3.fromRGB(255, 140, 55)
+local PALM_TRUNK = Color3.fromRGB(150, 110, 65)
+local PALM_LEAF = Color3.fromRGB(70, 160, 70)
+local COCONUT = Color3.fromRGB(95, 60, 35)
+local PEARL = Color3.fromRGB(255, 235, 245)
+
+-- Concha de abanico: tres costillas que se abren desde la charnela (que mira al centro).
+local function scallop(piece: Model, at: CFrame, s: number, color: Color3)
+	for index = -1, 1 do
+		block(
+			piece,
+			at * CFrame.Angles(0, math.rad(index * 28), 0) * CFrame.new(0, 0.1 * s, 0.35 * s),
+			Vector3.new(0.3 * s, 0.16 * s, 0.75 * s),
+			if index == 0 then color else color:Lerp(CORAL, 0.25)
+		)
+	end
+	block(piece, at * CFrame.new(0, 0.12 * s, 0), Vector3.new(0.35 * s, 0.2 * s, 0.25 * s), color:Lerp(SAND_DARK, 0.4))
+end
+
+-- Estrella de mar: cinco brazos planos alrededor de un centro.
+local function starfish(piece: Model, at: CFrame, s: number)
+	block(piece, at * CFrame.new(0, 0.08 * s, 0), Vector3.new(0.45 * s, 0.16 * s, 0.45 * s), STAR)
+	for index = 0, 4 do
+		block(
+			piece,
+			at * CFrame.Angles(0, math.rad(index * 72), 0) * CFrame.new(0, 0.07 * s, 0.45 * s),
+			Vector3.new(0.26 * s, 0.13 * s, 0.6 * s),
+			STAR:Lerp(CORAL, (index % 2) * 0.3)
+		)
+	end
+end
+
+-- Coral de ramas: un tronco y ramas que suben en escalones, con las puntas más claras.
+local function branchCoral(piece: Model, at: CFrame, s: number, height: number, color: Color3)
+	block(piece, at * CFrame.new(0, height * 0.3 * s, 0), Vector3.new(0.5 * s, height * 0.6 * s, 0.5 * s), color)
+	for _, branch in { { -0.55, 0.55, 0.7 }, { 0.6, 0.45, 0.8 }, { 0.1, 0.75, 1 }, { -0.25, 0.4, -0.5 } } do
+		local x, y, z = branch[1] * s, height * branch[2] * s, branch[3] * 0.3 * s
+		block(piece, at * CFrame.new(x * 0.5, y, z * 0.5), Vector3.new(math.abs(x) + 0.3 * s, 0.3 * s, 0.3 * s), color)
+		block(
+			piece,
+			at * CFrame.new(x, y + height * 0.22 * s, z),
+			Vector3.new(0.3 * s, height * 0.44 * s, 0.3 * s),
+			color
+		)
+		block(
+			piece,
+			at * CFrame.new(x, y + height * 0.46 * s, z),
+			Vector3.new(0.32 * s, 0.25 * s, 0.32 * s),
+			color:Lerp(PEARL, 0.45)
+		)
+	end
+end
+
+-- Playa de coral: una playa de arena alrededor del nido, con la orilla de agua y espuma delante,
+-- conchas y estrellas de mar en la arena, una almeja abierta con una perla que brilla, y detrás
+-- corales de ramas y una palmera con cocos.
+local function coralBeach(radius: number): Model
+	local model = Instance.new("Model")
+	model.Name = "NidoPlayaDeCoral"
+	local s = radius / 5
+	local center = Vector3.zero
+	-- La arena: tramos tangentes en dos anillos, con manchas más oscuras.
+	for ringIndex, ring in { { radius * 1.18, 1.8 }, { radius * 1.55, 1.8 } } do
+		local segments = if ringIndex == 1 then 26 else 32
+		local length = 2 * math.pi * ring[1] / segments * 1.12
+		for index = 1, segments do
+			local angle = (index - 0.5) * 360 / segments
+			local piece = group(model, around(angle, ring[1]))
+			local at = CFrame.lookAt(around(angle, ring[1]), center)
+			block(
+				piece,
+				at * CFrame.new(0, 0.07 * s, 0),
+				Vector3.new(length, 0.14 * s, ring[2] * s),
+				if (index + ringIndex) % 5 == 0 then SAND_DARK else SAND,
+				Enum.Material.SmoothPlastic
+			)
+		end
+	end
+	-- La orilla, delante: agua turquesa con una línea de espuma por dentro.
+	local shore = radius * 1.95
+	for index = -6, 6 do
+		local angle = index * 9
+		local piece = group(model, around(angle, shore))
+		local at = CFrame.lookAt(around(angle, shore), center)
+		local length = 2 * math.pi * shore / 40 * 1.15
+		block(
+			piece,
+			at * CFrame.new(0, 0.05 * s, 0.2 * s),
+			Vector3.new(length, 0.1 * s, 1.4 * s),
+			SEA,
+			Enum.Material.Glass
+		).Transparency =
+			0.15
+		block(
+			piece,
+			at * CFrame.new(math.sin(index) * 0.2 * s, 0.09 * s, -0.55 * s),
+			Vector3.new(length * 0.9, 0.1 * s, 0.35 * s),
+			FOAM
+		)
+	end
+	-- Conchas y estrellas de mar sueltas por la arena.
+	for _, shell in { { 35, 1.25 }, { 95, 1.5 }, { 250, 1.3 }, { 300, 1.55 }, { 140, 1.2 } } do
+		local where = around(shell[1], radius * shell[2])
+		scallop(
+			group(model, where),
+			CFrame.lookAt(where, center),
+			s * 2,
+			if shell[1] > 200 then SHELL else CORAL:Lerp(SHELL, 0.5)
+		)
+	end
+	for _, star in { { -30, 1.45 }, { 70, 1.2 }, { 200, 1.5 } } do
+		local where = around(star[1], radius * star[2])
+		starfish(group(model, where), CFrame.lookAt(where, center) * CFrame.Angles(0, math.rad(star[1]), 0), s * 2)
+	end
+	-- La almeja abierta, a la derecha delante, con su perla que brilla.
+	local c = s * 1.6
+	local clamAt = around(55, radius * 1.6)
+	local clam = group(model, clamAt)
+	local clamFrame = CFrame.lookAt(clamAt, center)
+	block(clam, clamFrame * CFrame.new(0, 0.2 * c, 0), Vector3.new(1.4 * c, 0.4 * c, 1.1 * c), SHELL:Lerp(CORAL, 0.2))
+	block(
+		clam,
+		clamFrame * CFrame.new(0, 0.75 * c, 0.4 * c) * CFrame.Angles(math.rad(-55), 0, 0),
+		Vector3.new(1.4 * c, 0.25 * c, 1.1 * c),
+		SHELL:Lerp(CORAL, 0.2)
+	)
+	local pearl =
+		block(clam, clamFrame * CFrame.new(0, 0.55 * c, -0.05 * c), Vector3.one * 0.45 * c, PEARL, Enum.Material.Neon)
+	local pearlLight = Instance.new("PointLight")
+	pearlLight.Color = Color3.fromRGB(255, 210, 230)
+	pearlLight.Range = 2.5 * c
+	pearlLight.Brightness = 0.8
+	pearlLight.Parent = pearl
+	-- Corales de ramas detrás, a los dos lados, y uno pequeño delante a la izquierda.
+	for _, reef in
+		{
+			{ 145, 1.5, 3.2, CORAL },
+			{ 215, 1.55, 3.8, CORAL_DEEP },
+			{ 165, 1.85, 2.4, STAR },
+			{ -60, 1.55, 1.6, CORAL },
+		}
+	do
+		local where = around(reef[1], radius * reef[2])
+		branchCoral(group(model, where), CFrame.lookAt(where, center), s * 1.6, reef[3], reef[4])
+	end
+	-- La palmera, detrás y algo a la derecha: tronco en tramos que se inclina hacia fuera, cocos y hojas
+	-- que caen en arco.
+	local p = s * 1.6
+	local palmAt = around(195, radius * 1.75)
+	local palm = group(model, palmAt)
+	local base = CFrame.lookAt(palmAt, center) * CFrame.Angles(math.rad(-8), 0, 0)
+	local top = base
+	for index = 1, 6 do
+		local segment = base * CFrame.new(0, (index - 0.5) * 1.1 * p, -index * index * 0.04 * p)
+		block(
+			palm,
+			segment,
+			Vector3.new((0.8 - index * 0.04) * p, 1.15 * p, (0.8 - index * 0.04) * p),
+			if index % 2 == 0 then PALM_TRUNK else PALM_TRUNK:Lerp(SAND_DARK, 0.35)
+		)
+		top = segment
+	end
+	top = top * CFrame.new(0, 0.6 * p, 0)
+	for index = 0, 2 do
+		block(
+			palm,
+			top * CFrame.Angles(0, math.rad(index * 120), 0) * CFrame.new(0.35 * p, -0.35 * p, 0),
+			Vector3.one * 0.5 * p,
+			COCONUT
+		)
+	end
+	for index = 0, 6 do
+		local leaf = top * CFrame.Angles(0, math.rad(index * 360 / 7), 0)
+		block(
+			palm,
+			leaf * CFrame.new(0, 0.15 * p, 1 * p) * CFrame.Angles(math.rad(-15), 0, 0),
+			Vector3.new(0.7 * p, 0.15 * p, 2 * p),
+			PALM_LEAF
+		)
+		block(
+			palm,
+			leaf * CFrame.new(0, -0.45 * p, 2.55 * p) * CFrame.Angles(math.rad(35), 0, 0),
+			Vector3.new(0.55 * p, 0.15 * p, 1.5 * p),
+			PALM_LEAF:Lerp(BASALT_DARK, 0.2)
+		)
+	end
+	return model
+end
+
+local STONE = Color3.fromRGB(150, 142, 124)
+local STONE_DARK = Color3.fromRGB(112, 105, 92)
+local MOSS = Color3.fromRGB(95, 125, 70)
+-- El oro, de metal y más apagado de lo que parece: con la luz de la plaza, liso y más claro se veía de
+-- neón.
+local GOLD = Color3.fromRGB(225, 165, 40)
+local GOLD_DARK = Color3.fromRGB(160, 105, 25)
+local TURQUOISE = Color3.fromRGB(60, 205, 200)
+local FLAME = Color3.fromRGB(255, 150, 40)
+
+-- Antorcha de piedra: pie, cuenco de oro y fuego con su luz.
+local function templeTorch(piece: Model, at: CFrame, s: number)
+	block(
+		piece,
+		at * CFrame.new(0, 0.9 * s, 0),
+		Vector3.new(0.6 * s, 1.8 * s, 0.6 * s),
+		STONE_DARK,
+		Enum.Material.Slate
+	)
+	block(piece, at * CFrame.new(0, 1.95 * s, 0), Vector3.new(1 * s, 0.3 * s, 1 * s), GOLD, Enum.Material.Metal)
+	local coal =
+		block(piece, at * CFrame.new(0, 2.2 * s, 0), Vector3.new(0.7 * s, 0.2 * s, 0.7 * s), FLAME, Enum.Material.Neon)
+	local fire = Instance.new("ParticleEmitter")
+	fire.Texture = "rbxasset://textures/particles/fire_main.dds"
+	fire.Color = ColorSequence.new(Color3.fromRGB(255, 220, 120), FLAME)
+	fire.Size = NumberSequence.new(1.1 * s, 0.2 * s)
+	fire.LightEmission = 0.9
+	fire.Rate = 18
+	fire.Lifetime = NumberRange.new(0.5, 0.8)
+	fire.Speed = NumberRange.new(1, 2)
+	fire.EmissionDirection = Enum.NormalId.Top
+	fire.SpreadAngle = Vector2.new(10, 10)
+	fire.Parent = coal
+	local light = Instance.new("PointLight")
+	light.Color = FLAME
+	light.Range = 4 * s
+	light.Brightness = 1
+	light.Parent = coal
+end
+
+-- Ídolo de oro: cabeza de mono voxel (cara clara, cejas, ojos de turquesa y orejas) sobre un pedestal.
+local function idol(piece: Model, at: CFrame, s: number, size: number)
+	local u = s * size
+	block(piece, at * CFrame.new(0, 0.5 * u, 0), Vector3.new(1.6 * u, 1 * u, 1.4 * u), STONE, Enum.Material.Slate)
+	local head =
+		block(piece, at * CFrame.new(0, 1.95 * u, 0), Vector3.new(1.9 * u, 1.9 * u, 1.6 * u), GOLD, Enum.Material.Metal)
+	block(
+		piece,
+		at * CFrame.new(0, 1.65 * u, -0.82 * u),
+		Vector3.new(1.3 * u, 1 * u, 0.1 * u),
+		Color3.fromRGB(240, 195, 95),
+		Enum.Material.Metal
+	)
+	block(
+		piece,
+		at * CFrame.new(0, 2.42 * u, -0.88 * u),
+		Vector3.new(1.6 * u, 0.28 * u, 0.22 * u),
+		GOLD_DARK,
+		Enum.Material.Metal
+	)
+	for _, side in { -1, 1 } do
+		block(
+			piece,
+			at * CFrame.new(side * 0.4 * u, 2.1 * u, -0.85 * u),
+			Vector3.new(0.3 * u, 0.3 * u, 0.1 * u),
+			TURQUOISE,
+			Enum.Material.Neon
+		)
+		block(
+			piece,
+			at * CFrame.new(side * 1.1 * u, 2 * u, 0),
+			Vector3.new(0.35 * u, 0.7 * u, 0.6 * u),
+			GOLD_DARK,
+			Enum.Material.Metal
+		)
+	end
+	-- El hocico de mono que sobresale, con los orificios y la boca, y un mechón encima.
+	local muzzle = Color3.fromRGB(240, 200, 110)
+	block(piece, at * CFrame.new(0, 1.45 * u, -0.95 * u), Vector3.new(1.1 * u, 0.65 * u, 0.3 * u), muzzle)
+	for _, side in { -1, 1 } do
+		block(
+			piece,
+			at * CFrame.new(side * 0.17 * u, 1.62 * u, -1.11 * u),
+			Vector3.new(0.14 * u, 0.12 * u, 0.04 * u),
+			GOLD_DARK
+		)
+	end
+	block(piece, at * CFrame.new(0, 1.3 * u, -1.11 * u), Vector3.new(0.6 * u, 0.08 * u, 0.04 * u), GOLD_DARK)
+	block(piece, at * CFrame.new(0, 2.98 * u, 0.1 * u), Vector3.new(0.7 * u, 0.25 * u, 0.9 * u), GOLD_DARK)
+	local shine = Instance.new("ParticleEmitter")
+	shine.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	shine.Color = ColorSequence.new(Color3.fromRGB(255, 245, 190), GOLD)
+	shine.Size = NumberSequence.new(0.25 * s, 0)
+	shine.LightEmission = 1
+	shine.Rate = 3
+	shine.Lifetime = NumberRange.new(0.8, 1.4)
+	shine.Speed = NumberRange.new(0.3, 0.8)
+	shine.SpreadAngle = Vector2.new(180, 180)
+	shine.Parent = head
+end
+
+-- Templo dorado: un muro bajo de piedra tallada alrededor del nido con remate de oro, monedas por el
+-- suelo, dos antorchas encendidas delante, columnas en las esquinas y detrás una pirámide escalonada
+-- con el gran ídolo de oro arriba y dos pequeños a los lados. Brillos de oro y la luz de las antorchas.
+local function goldenTemple(radius: number): Model
+	local model = Instance.new("Model")
+	model.Name = "NidoTemploDorado"
+	local s = radius / 5
+	local center = Vector3.zero
+	-- El muro: tramos tangentes de piedra con musgo en algunos y una franja de oro encima; más bajo
+	-- delante, para ver el huevo.
+	local wall = radius * 1.4
+	local segments = 22
+	local length = 2 * math.pi * wall / segments * 1.08
+	for index = 1, segments do
+		local angle = (index - 0.5) * 360 / segments
+		local back = (1 - math.cos(math.rad(angle))) / 2
+		local height = (0.9 + back * 1.4) * s
+		local piece = group(model, around(angle, wall))
+		local at = CFrame.lookAt(around(angle, wall), center)
+		block(
+			piece,
+			at * CFrame.new(0, height / 2, 0),
+			Vector3.new(length, height, 1.5 * s),
+			if index % 2 == 0 then STONE else STONE_DARK,
+			Enum.Material.Slate
+		)
+		block(
+			piece,
+			at * CFrame.new(0, height + 0.08 * s, 0),
+			Vector3.new(length, 0.25 * s, 1.7 * s),
+			GOLD,
+			Enum.Material.Metal
+		)
+		if index % 4 == 1 then
+			block(
+				piece,
+				at * CFrame.new(length * 0.2, height * 0.3, 0.77 * s),
+				Vector3.new(length * 0.4, height * 0.4, 0.1 * s),
+				MOSS,
+				Enum.Material.Grass
+			)
+		end
+		-- Monedas por dentro del muro.
+		if index % 3 == 0 then
+			block(
+				piece,
+				at * CFrame.new(length * 0.1, 0.06 * s, -1.3 * s) * CFrame.Angles(0, index, 0),
+				Vector3.new(0.45 * s, 0.12 * s, 0.45 * s),
+				GOLD,
+				Enum.Material.Metal
+			)
+		end
+	end
+	-- Columnas en las cuatro esquinas, más altas detrás, con capitel de oro.
+	for _, column in { { 45, 3.4 }, { -45, 3.4 }, { 135, 5.2 }, { -135, 5.2 } } do
+		local where = around(column[1], wall + 0.2 * s)
+		local piece = group(model, where)
+		local at = CFrame.lookAt(where, center)
+		local height = column[2] * s
+		block(
+			piece,
+			at * CFrame.new(0, height / 2, 0),
+			Vector3.new(1.7 * s, height, 1.7 * s),
+			STONE,
+			Enum.Material.Slate
+		)
+		block(
+			piece,
+			at * CFrame.new(0, height + 0.2 * s, 0),
+			Vector3.new(2.2 * s, 0.5 * s, 2.2 * s),
+			GOLD,
+			Enum.Material.Metal
+		)
+		block(
+			piece,
+			at * CFrame.new(0, height * 0.55, -0.87 * s),
+			Vector3.new(0.6 * s, 0.6 * s, 0.08 * s),
+			TURQUOISE,
+			Enum.Material.Neon
+		)
+	end
+	-- Antorchas delante, a los lados del frente.
+	for _, side in { -1, 1 } do
+		local where = around(side * 26, wall + 1.8 * s)
+		templeTorch(group(model, where), CFrame.lookAt(where, center), s * 1.5)
+	end
+	-- La pirámide escalonada detrás, con la escalera de delante, y el gran ídolo arriba.
+	local pyramidAt = around(180, wall + 4.5 * s)
+	local pyramid = group(model, pyramidAt)
+	local at = CFrame.lookAt(pyramidAt, center)
+	local tierY = 0
+	for index, tier in { { 11, 1.8 }, { 8.4, 1.6 }, { 5.8, 1.5 } } do
+		block(
+			pyramid,
+			at * CFrame.new(0, tierY + tier[2] / 2 * s, 0),
+			Vector3.new(tier[1] * s, tier[2] * s, tier[1] * 0.6 * s),
+			if index % 2 == 1 then STONE else STONE_DARK,
+			Enum.Material.Slate
+		)
+		block(
+			pyramid,
+			at * CFrame.new(0, tierY + tier[2] * s - 0.08 * s, -tier[1] * 0.3 * s),
+			Vector3.new(tier[1] * s, 0.16 * s, 0.12 * s),
+			GOLD,
+			Enum.Material.Metal
+		)
+		tierY += tier[2] * s
+	end
+	block(
+		pyramid,
+		at * CFrame.new(0, tierY / 2, -3.5 * s),
+		Vector3.new(2.4 * s, tierY, 1.2 * s),
+		STONE_DARK,
+		Enum.Material.Slate
+	)
+	idol(pyramid, at * CFrame.new(0, tierY, 0), s, 1.7)
+	for _, side in { -1, 1 } do
+		local where = around(180 + side * 40, wall + 2.2 * s)
+		idol(group(model, where), CFrame.lookAt(where, center), s, 0.95)
+	end
+	return model
+end
+
 local BUILDERS: { [string]: (radius: number) -> Model } = {
 	VolcanicNest = volcanic,
+	CoralBeachNest = coralBeach,
+	GoldenTempleNest = goldenTemple,
 }
 
 -- Apoya cada grupo de "decor" (ya colocada) en el suelo: "groundAt" da la altura del suelo bajo un

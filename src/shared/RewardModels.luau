@@ -526,6 +526,95 @@ function RewardModels.cosmetic(character: Model?, cosmeticId: string): Model?
 	return RewardModels.avatar(character, cosmeticId)
 end
 
+-- Bloque de neón en studs (las estelas y las auras de la imagen del avatar).
+local function glow(model: Model, color: Color3, size: Vector3, cframe: CFrame, transparency: number): Part
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Transparency = transparency
+	part.Size = size
+	part.CFrame = cframe
+	part.Parent = model
+	return part
+end
+
+-- Las auras con otra forma ("look", ServerShared/CosmeticsServer) en bloques, alrededor de un avatar de
+-- alto "size.Y" con los pies en y = 0: la arena que gira a los pies, la nube con sus rayos y los pétalos.
+local function auraLook(model: Model, cosmetic: Cosmetics.Cosmetic, size: Vector3)
+	if cosmetic.look == "Sand" then
+		-- Dos vueltas y media de espiral que sube hasta la cintura, más ancha arriba.
+		for index = 1, 34 do
+			local angle = index / 34 * math.pi * 5
+			local radius = 1.1 + index * 0.03
+			glow(
+				model,
+				if index % 4 == 0 then Color3.fromRGB(255, 240, 185) else cosmetic.color,
+				Vector3.new(0.7, 0.3, 0.42),
+				CFrame.new(math.cos(angle) * radius, 0.15 + index * 0.075, math.sin(angle) * radius)
+					* CFrame.Angles(0, -angle, 0),
+				0.1
+			).Material =
+				Enum.Material.SmoothPlastic
+		end
+	elseif cosmetic.look == "Storm" then
+		local top = size.Y + 0.8
+		for _, puff in
+			{
+				{ 0, 0, 0, 1.6 },
+				{ -0.9, -0.1, 0.2, 1.1 },
+				{ 0.95, -0.05, -0.1, 1.2 },
+				{ 0.2, 0.45, 0.3, 1 },
+				{ -0.4, 0.1, -0.6, 0.9 },
+				{ 0.5, 0, 0.7, 0.9 },
+			}
+		do
+			local part = glow(
+				model,
+				Color3.fromRGB(60, 62, 75),
+				Vector3.new(puff[4], puff[4] * 0.6, puff[4]),
+				CFrame.new(puff[1], top + puff[2], puff[3]),
+				0
+			)
+			part.Material = Enum.Material.SmoothPlastic
+		end
+		-- Rayos en zigzag que bajan a los lados.
+		for _, side in { -1, 1 } do
+			local x, y = side * 1.1, top - 0.4
+			for step = 1, 4 do
+				local tilt = if step % 2 == 0 then 0.35 else -0.35
+				glow(
+					model,
+					if step == 1 then Color3.new(1, 1, 1) else cosmetic.color,
+					Vector3.new(0.14, 0.7, 0.14),
+					CFrame.new(x, y - 0.35, 0) * CFrame.Angles(0, 0, tilt * side),
+					0
+				)
+				x += side * tilt * 0.5
+				y -= 0.65
+			end
+		end
+	elseif cosmetic.look == "Petals" then
+		for index = 1, 30 do
+			local angle = index * 2.4
+			local radius = 0.9 + (index % 3) * 0.5
+			glow(
+				model,
+				if index % 3 == 0 then Color3.fromRGB(255, 240, 245) else cosmetic.color,
+				Vector3.new(0.45, 0.08, 0.32),
+				CFrame.new(
+					math.cos(angle) * radius,
+					0.4 + (index * 0.37 % 1) * (size.Y + 0.6),
+					math.sin(angle) * radius
+				) * CFrame.Angles(index, index * 0.7, index * 1.3),
+				0
+			).Material =
+				Enum.Material.SmoothPlastic
+		end
+	end
+end
+
 -- Tu avatar en miniatura con el cosmético "cosmeticIds" puesto (uno o varios, como la estela y el aura
 -- a la vez en el Armario): estela (cinta de bloques de neón que se desvanece detrás) o aura (anillo de
 -- bloques brillantes alrededor). Sin personaje, nil.
@@ -566,18 +655,37 @@ function RewardModels.avatar(character: Model?, cosmeticIds: string | { string }
 	for _, cosmeticId in if typeof(cosmeticIds) == "table" then cosmeticIds else { cosmeticIds } do
 		local cosmetic = Cosmetics[cosmeticId]
 		if cosmetic and cosmetic.kind == "Trail" then
-			-- Cinta que sale de la espalda hacia atrás y a un lado, cada vez más transparente.
-			for step = 1, 7 do
-				local part = Instance.new("Part")
-				part.Anchored = true
-				part.CanCollide = false
-				part.Material = Enum.Material.Neon
-				part.Color = cosmetic.color
-				part.Transparency = 0.1 + step * 0.11
-				part.Size = Vector3.new(0.35, 2.2 - step * 0.15, 0.7)
-				part.CFrame = CFrame.new(step * 0.38, size.Y * 0.45 + math.sin(step * 0.9) * 0.25, 0.9 + step * 0.55)
-				part.Parent = clone
+			-- Cinta que sale de la espalda hacia atrás y a un lado, cada vez más transparente, en franjas
+			-- si tiene varios colores; de Épico arriba, más larga; con "sparkle", chispas que caen.
+			local colors = cosmetic.colors or { cosmetic.color }
+			local rich = cosmetic.rarity == "Epic" or cosmetic.rarity == "Legendary" or cosmetic.rarity == "Mythic"
+			local steps = if rich then 9 else 7
+			for step = 1, steps do
+				local height = 2.2 - step * 0.15
+				local center = CFrame.new(step * 0.38, size.Y * 0.45 + math.sin(step * 0.9) * 0.25, 0.9 + step * 0.55)
+				for index, color in colors do
+					glow(
+						clone,
+						color,
+						Vector3.new(0.35, height / #colors, 0.7),
+						center * CFrame.new(0, height / 2 - (index - 0.5) * height / #colors, 0),
+						0.1 + step * (0.77 / steps)
+					)
+				end
+				if cosmetic.sparkle and step % 2 == 0 then
+					glow(
+						clone,
+						cosmetic.sparkle,
+						Vector3.one * 0.22,
+						center
+							* CFrame.new(0.3, -height / 2 - 0.3 - (step % 3) * 0.25, 0)
+							* CFrame.Angles(step, step, 0),
+						0
+					)
+				end
 			end
+		elseif cosmetic and cosmetic.kind == "Aura" and cosmetic.look then
+			auraLook(clone, cosmetic, size)
 		elseif cosmetic and cosmetic.kind == "Aura" then
 			-- Más bloques en cada grado; desde el II, lenguas de fuego a los pies; en el III, un halo de
 			-- brasas sobre la cabeza.

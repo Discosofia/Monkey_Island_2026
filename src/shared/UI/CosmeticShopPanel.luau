@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticShop = require(ReplicatedStorage.Shared.CosmeticShop)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
@@ -126,6 +127,18 @@ local function picture(view: ViewportFrame, cosmeticId: string, textSize: number
 		label.Size = UDim2.fromScale(1, 0.24)
 		label.TextColor3 = cosmetic.color
 		textCap(label, textSize)
+	elseif cosmetic.kind == "Frame" then
+		-- Tu nombre con el marco, como en el ranking.
+		local card = Widgets.label(Players.LocalPlayer.DisplayName, view)
+		card.AnchorPoint = Vector2.new(0.5, 0)
+		card.Position = UDim2.new(0.5, 0, 0, 6)
+		card.Size = UDim2.fromScale(0.86, 0.2)
+		card.BackgroundColor3 = Color3.fromRGB(45, 36, 28)
+		card.BackgroundTransparency = 0.1
+		card.TextColor3 = Color3.fromRGB(255, 240, 210)
+		corner(card, 6)
+		textCap(card, textSize)
+		PlayerFrames.apply(card, cosmeticId)
 	end
 end
 
