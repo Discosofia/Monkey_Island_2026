@@ -27,7 +27,7 @@ local WeaponAnimations: { [string]: WeaponAnimation } = {
 	Slash2 = { id = "rbxassetid://120859937990073" },
 	Slash3 = { id = "rbxassetid://90979498051114" },
 	Slash4 = { id = "rbxassetid://84709619605184" },
-	Guard = { id = "" },
+	Guard = { id = "rbxassetid://75420437779908" },
 }
 
 return WeaponAnimations
