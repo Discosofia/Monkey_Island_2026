@@ -77,11 +77,14 @@ export type Cosmetic = {
 	weapon: string?, -- WeaponSkin de un arma que no es de rol: su familia ("Machete", Shared/WeaponTools)
 	petId: string?, -- PetSkin: la mascota (Data/Pets)
 	petFamily: string?, -- PetSkin de familia: vale para todas las mascotas con ese "family" (Data/Pets)
+	petShown: string?, -- PetSkin de familia: la mascota de su imagen (si no, la primera por orden alfabético)
 	animationId: string?, -- Emote: la animación publicada (rbxassetid://…)
 	line: string?, -- cosmético por grados: los grados de una misma línea comparten este id
 	grade: number?, -- su grado en la línea (1, 2 o 3: I, II, III)
 	colors: { Color3 }?, -- Trail: franjas de arriba abajo (una estela por color) en vez de "color"
 	sparkle: Color3?, -- Trail: chispas de este color que caen de la estela
+	emission: number?, -- Trail: brillo de las franjas (LightEmission; de serie 1 de Épico arriba): más bajo, su color no se vuelve blanco sobre la arena al sol
+	footprints: Color3?, -- Trail: huellas de este color que se quedan en el suelo y se apagan (ServerShared/CosmeticsServer)
 	look: ("Sand" | "Storm" | "Petals")?, -- Aura: otra forma en vez de las chispas (ServerShared/CosmeticsServer)
 }
 
@@ -220,11 +223,28 @@ local Cosmetics: { [string]: Cosmetic } = {
 		name = "Estela: Pisada de magma",
 		icon = "🌋",
 		kind = "Trail",
-		description = "Pase de temporada 1, nivel 11 (premium): un rastro de lava.",
+		description = "Pase de temporada 1, nivel 11 (premium): un rastro de lava con brasas que caen, y huellas de lava que se enfrían donde pisas.",
 		order = 10,
 		rarity = "Epic",
 		color = Color3.fromRGB(255, 70, 20),
 		source = { season = "T1" },
+		colors = { Color3.fromRGB(255, 110, 20), Color3.fromRGB(230, 50, 10), Color3.fromRGB(120, 20, 10) },
+		sparkle = Color3.fromRGB(255, 140, 40),
+		emission = 0.3,
+		footprints = Color3.fromRGB(255, 85, 10),
+	},
+	BlueFireTrail = {
+		name = "Estela de fuego azul",
+		icon = "🔥",
+		kind = "Trail",
+		description = "Pase de temporada 1, nivel 16 (premium): un rastro de fuego azul que suelta chispas de azufre.",
+		order = 10.1,
+		rarity = "Epic",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		colors = { Color3.fromRGB(70, 160, 255), Color3.fromRGB(25, 80, 255), Color3.fromRGB(20, 30, 150) },
+		sparkle = SULFUR_YELLOW,
+		emission = 0.2,
 	},
 	TitlePrimalKing = {
 		name = "Título: Rey de la Isla Primal",
@@ -238,13 +258,14 @@ local Cosmetics: { [string]: Cosmetic } = {
 		title = "👑 Rey de la Isla Primal",
 	},
 
-	-- Ejemplos de skin de mascota, marcos y emotes (G9c). La Tortuga de Lava y los marcos son premios de
-	-- la temporada 1 (G11 los pone en su nivel); los emotes de serie usan las animaciones de Roblox.
+	-- Skins de mascota y marcos de la temporada 1 (G9c y G11b): la Tortuga de Lava y los marcos de bronce
+	-- y de plata en la pista gratis; el Jaguar de Magma (skin de los tres felinos), el marco de fuego
+	-- azul y el de obsidiana fundida en la premium.
 	LavaTurtleSkin = {
 		name = "Skin: Tortuga de Lava",
 		icon = "🐢",
 		kind = "PetSkin",
-		description = "Tu tortuga con un caparazón de basalto, grietas de lava y un volcancito que humea.",
+		description = "Pase de temporada 1, nivel 12 (gratis): tu tortuga con un caparazón de basalto, grietas de lava y un volcancito que humea.",
 		order = 12,
 		rarity = "Rare",
 		color = Color3.fromRGB(255, 120, 40),
@@ -255,21 +276,53 @@ local Cosmetics: { [string]: Cosmetic } = {
 		name = "Marco de bronce",
 		icon = "🥉",
 		kind = "Frame",
-		description = "Un borde de bronce con remaches para tu nombre en el ranking, el grupo y los resultados.",
+		description = "Pase de temporada 1, nivel 4 (gratis): un borde de bronce con remaches para tu nombre en el ranking, el grupo y los resultados.",
 		order = 13,
 		rarity = "Uncommon",
 		color = Color3.fromRGB(215, 140, 70),
+		source = { season = "T1" },
+	},
+	SilverFrame = {
+		name = "Marco de plata",
+		icon = "🥈",
+		kind = "Frame",
+		description = "Pase de temporada 1, nivel 22 (gratis): plata pulida con un brillo que la recorre y una tachuela de acero en cada esquina.",
+		order = 13.1,
+		rarity = "Rare",
+		color = Color3.fromRGB(205, 215, 225),
+		source = { season = "T1" },
+	},
+	BlueFireFrame = {
+		name = "Marco de fuego azul",
+		icon = "🔥",
+		kind = "Frame",
+		description = "Pase de temporada 1, nivel 21 (premium): piedra pómez con fuego azul que corre por el borde, azufre en las esquinas y chispas que suben.",
+		order = 13.2,
+		rarity = "Epic",
+		color = BLUE_FIRE,
 		source = { season = "T1" },
 	},
 	MoltenObsidianFrame = {
 		name = "Marco: Obsidiana fundida",
 		icon = "🌋",
 		kind = "Frame",
-		description = "Obsidiana con lava que corre por el borde y brasas que suben de tu nombre.",
+		description = "Pase de temporada 1, nivel 27 (premium): obsidiana con lava que corre por el borde y brasas que suben de tu nombre.",
 		order = 14,
 		rarity = "Legendary",
 		color = Color3.fromRGB(255, 110, 30),
 		source = { season = "T1" },
+	},
+	MagmaJaguarSkin = {
+		name = "Skin: Jaguar de Magma",
+		icon = "🐆",
+		kind = "PetSkin",
+		description = "Pase de temporada 1, nivel 23 (premium), para tus tres felinos: pelaje de basalto con rosetas de lava, ojos de fuego, una grieta de lava en el lomo que humea y la cola en llamas.",
+		order = 14.1,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 85, 10),
+		source = { season = "T1" },
+		petFamily = "Felino",
+		petShown = "Ocelote",
 	},
 
 	-- Trajes y armas de la temporada 1 (G11a), un traje y un arma por rol y el machete gratis: fuego azul y azufre sobre piedra pómez

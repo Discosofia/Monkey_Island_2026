@@ -20,6 +20,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -300,8 +301,84 @@ local LOOKS: { [string]: (root: BasePart, cosmetic: Cosmetics.Cosmetic) -> () } 
 	end,
 }
 
+-- Huellas de la estela ("footprints"): mientras el personaje anda por el suelo, cada FOOTPRINT_STEP
+-- studs deja un pie de neón de ese color, alternando el izquierdo y el derecho, que se enfría hasta
+-- un tono oscuro y se apaga. Se guardan en Workspace.CosmeticFootprints (sin colisión ni consultas).
+-- Dura mientras esté su marca en la raíz: applyVisuals la borra con lo demás.
+local FOOTPRINT_STEP = 2.4
+local FOOTPRINT_COOL = 1.2
+local FOOTPRINT_FADE = 1.6
+
+local function footprints(root: BasePart, color: Color3)
+	local character = root.Parent
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if not (character and humanoid) then
+		return
+	end
+	local mark = Instance.new("Configuration")
+	mark.Name = "CosmeticTrail"
+	mark.Parent = root
+	local folder = workspace:FindFirstChild("CosmeticFootprints")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "CosmeticFootprints"
+		folder.Parent = workspace
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character, folder }
+	params.IgnoreWater = true
+	local cooled = color:Lerp(Color3.fromRGB(40, 32, 30), 0.85)
+	task.spawn(function()
+		local last = root.Position
+		local side = 1
+		while mark.Parent and root.Parent do
+			task.wait(0.1)
+			local moved = Vector3.new(root.Position.X - last.X, 0, root.Position.Z - last.Z)
+			if humanoid.FloorMaterial ~= Enum.Material.Air and moved.Magnitude >= FOOTPRINT_STEP then
+				last = root.Position
+				local facing = CFrame.lookAlong(Vector3.zero, moved.Unit)
+				local from = root.Position + facing.RightVector * side * 0.45
+				local hit = workspace:Raycast(from, Vector3.new(0, -root.Size.Y / 2 - 4, 0), params)
+				if hit then
+					local foot = Instance.new("Part")
+					foot.Name = "Footprint"
+					foot.Anchored = true
+					foot.CanCollide = false
+					foot.CanQuery = false
+					foot.CanTouch = false
+					foot.CastShadow = false
+					foot.Material = Enum.Material.Neon
+					foot.Color = color
+					foot.Size = Vector3.new(0.55, 0.06, 0.9)
+					foot.CFrame = CFrame.lookAlong(hit.Position + hit.Normal * 0.03, moved.Unit)
+					foot.Parent = folder
+					TweenService:Create(foot, TweenInfo.new(FOOTPRINT_COOL), { Color = cooled }):Play()
+					TweenService:Create(
+						foot,
+						TweenInfo.new(
+							FOOTPRINT_FADE,
+							Enum.EasingStyle.Linear,
+							Enum.EasingDirection.In,
+							0,
+							false,
+							FOOTPRINT_COOL
+						),
+						{ Transparency = 1 }
+					):Play()
+					task.delay(FOOTPRINT_COOL + FOOTPRINT_FADE, function()
+						foot:Destroy()
+					end)
+				end
+				side = -side
+			end
+		end
+	end)
+end
+
 -- La estela: una por cada franja de "colors" (de arriba abajo) o una de "color"; de Épico arriba,
--- más larga y más brillante; con "sparkle", chispas que caen y se quedan atrás al correr.
+-- más larga y más brillante; con "sparkle", chispas que caen y se quedan atrás al correr; con
+-- "footprints", huellas en el suelo.
 local function trail(root: BasePart, cosmetic: Cosmetics.Cosmetic)
 	local colors = cosmetic.colors or { cosmetic.color }
 	local rich = cosmetic.rarity == "Epic" or cosmetic.rarity == "Legendary" or cosmetic.rarity == "Mythic"
@@ -321,7 +398,7 @@ local function trail(root: BasePart, cosmetic: Cosmetics.Cosmetic)
 		stripe.Color = ColorSequence.new(color)
 		stripe.Transparency = NumberSequence.new(0.3, 1)
 		stripe.Lifetime = if rich then 0.9 else 0.6
-		stripe.LightEmission = if rich then 1 else 0.5
+		stripe.LightEmission = cosmetic.emission or if rich then 1 else 0.5
 		stripe.Parent = root
 	end
 	if cosmetic.sparkle then
@@ -335,6 +412,9 @@ local function trail(root: BasePart, cosmetic: Cosmetics.Cosmetic)
 		sparks.SpreadAngle = Vector2.new(180, 180)
 		sparks.Acceleration = Vector3.new(0, -3, 0)
 		sparks.LightEmission = 1
+	end
+	if cosmetic.footprints then
+		footprints(root, cosmetic.footprints)
 	end
 end
 

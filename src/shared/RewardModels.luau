@@ -484,13 +484,13 @@ function RewardModels.nestDecor(cosmeticId: string): Model?
 	return model
 end
 
--- Skin de mascota: la mascota de la skin (o la primera de su familia) con la skin puesta.
+-- Skin de mascota: la mascota de la skin (o la de "petShown", o la primera de su familia) con la skin puesta.
 function RewardModels.petSkin(cosmeticId: string): Model?
 	local cosmetic = Cosmetics[cosmeticId]
 	if not cosmetic then
 		return nil
 	end
-	local petId = cosmetic.petId
+	local petId = cosmetic.petId or cosmetic.petShown
 	if not petId then
 		local candidates = {}
 		for id in Pets do
@@ -699,6 +699,19 @@ function RewardModels.avatar(character: Model?, cosmeticIds: string | { string }
 						center
 							* CFrame.new(0.3, -height / 2 - 0.3 - (step % 3) * 0.25, 0)
 							* CFrame.Angles(step, step, 0),
+						0
+					)
+				end
+			end
+			-- Con "footprints", las últimas pisadas en el suelo detrás, cada vez más frías.
+			local footprints = cosmetic.footprints
+			if footprints then
+				for step = 1, 4 do
+					glow(
+						clone,
+						footprints:Lerp(Color3.fromRGB(40, 32, 30), (step - 1) * 0.22),
+						Vector3.new(0.5, 0.06, 0.85),
+						CFrame.new(if step % 2 == 0 then 0.4 else -0.3, 0.03, 0.4 + step * 1.05),
 						0
 					)
 				end

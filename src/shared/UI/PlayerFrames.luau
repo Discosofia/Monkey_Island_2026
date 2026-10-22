@@ -6,7 +6,8 @@
 -- UIGradient y marcos pequeños), sin imágenes.
 --
 -- Cuanto más raro, más detalle (Data/Cosmetics): Poco común, un degradado y remaches en las esquinas;
--- Legendario, además, la lava que corre por el borde, esquirlas en las esquinas y brasas que suben.
+-- Raro, además, un brillo que corre por el borde; Épico y Legendario, esquirlas en las esquinas y
+-- chispas o brasas que suben.
 
 local RunService = game:GetService("RunService")
 
@@ -45,6 +46,40 @@ local STYLES: { [string]: Style } = {
 		cornerColor = Color3.fromRGB(34, 27, 30),
 		cornerEdge = Color3.fromRGB(255, 110, 30),
 		embers = Color3.fromRGB(255, 140, 40),
+	},
+	-- Plata (pase, gratis, raro): plata pulida con un brillo que la recorre despacio y tachuelas de acero.
+	SilverFrame = {
+		thickness = 2.5,
+		colors = {
+			Color3.fromRGB(140, 150, 165),
+			Color3.fromRGB(215, 222, 232),
+			Color3.fromRGB(255, 255, 255),
+			Color3.fromRGB(215, 222, 232),
+			Color3.fromRGB(140, 150, 165),
+		},
+		rotation = 0,
+		flow = 0.15,
+		corner = "Rivet",
+		cornerColor = Color3.fromRGB(110, 120, 135),
+		cornerEdge = Color3.fromRGB(45, 50, 60),
+	},
+	-- Fuego azul (pase, premium, épico): el de los trajes de la temporada 1, fuego azul que corre por la
+	-- piedra pómez, esquirlas de azufre y chispas azules.
+	BlueFireFrame = {
+		thickness = 3,
+		colors = {
+			Color3.fromRGB(165, 160, 150),
+			Color3.fromRGB(45, 120, 255),
+			Color3.fromRGB(190, 230, 255),
+			Color3.fromRGB(45, 120, 255),
+			Color3.fromRGB(165, 160, 150),
+		},
+		rotation = 0,
+		flow = 0.4,
+		corner = "Shard",
+		cornerColor = Color3.fromRGB(235, 205, 55),
+		cornerEdge = Color3.fromRGB(120, 95, 20),
+		embers = Color3.fromRGB(150, 210, 255),
 	},
 	-- Bambú (tienda): caña clara con nudos oscuros cada poco y las esquinas atadas.
 	BambooFrame = {

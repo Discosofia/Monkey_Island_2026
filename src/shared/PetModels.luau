@@ -167,6 +167,21 @@ local function joint(
 	return item
 end
 
+-- Pega "part" a la pieza articulada "base": se mueve con ella como si fueran una sola (lo que una skin
+-- añade a la cola o a la cabeza). Devuelve si "base" tenía articulación.
+local function attachTo(rig: Rig, part: BasePart, base: BasePart): boolean
+	for _, item in rig.joints do
+		if item.part == base then
+			local copy = table.clone(item)
+			copy.part = part
+			copy.offset = item.hinge:Inverse() * part.CFrame
+			table.insert(rig.joints, copy)
+			return true
+		end
+	end
+	return false
+end
+
 -- Articula sobre "hinge" todas las piezas ya creadas cuyo centro (sin escalar) cumple "inside" y que
 -- no se mueven ya por su cuenta: la cabeza entera con sus ojos, bigotes y orejas, o la cola con sus
 -- plumas. Llamar al final del constructor, cuando ya están todas las piezas. Devuelve sus
@@ -762,14 +777,21 @@ local VOXEL = 0.11
 -- caja con el vientre claro, paletillas y ancas en bloque, cabeza cúbica con hocico cuadrado, orejas
 -- oscuras, patas en columna con dedos marcados y cola recta por tramos. Mismos huesos y medidas
 -- ("dims") que "cat", así que usa los mismos clips. Medidas en celdas, con el suelo en y = 0.
+-- Colores que cambia una skin de la familia (SKINS, "tone"): "coat" (pelaje), "spots" (manchas, rayas,
+-- anillos y punta de la cola; con ella también los lleva el jaguarundí), "belly", "muzzle", "paw",
+-- "toe" (las rendijas de los dedos) y "eye". Con el pelaje de una skin, el de cristal deja de ser de hielo.
 local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
+	local palette = rig.palette
+	local skinned = palette ~= nil and palette.coat ~= nil
+	coat = tone(rig, "coat", coat)
 	local crystal = options.crystal == true
+	local glassy = crystal and not skinned
 	local slim = options.slim == true
-	local spots = options.spots
-	local material = if crystal then Enum.Material.Glacier else Enum.Material.SmoothPlastic
+	local spots = if palette and palette.spots then palette.spots else options.spots
+	local material = if glassy then Enum.Material.Glacier else Enum.Material.SmoothPlastic
 	local light = coat:Lerp(WHITE, 0.45)
 	local pale = coat:Lerp(WHITE, 0.22)
-	local belly = if spots and not crystal then coat:Lerp(WHITE, 0.78) else coat:Lerp(WHITE, 0.18)
+	local belly = tone(rig, "belly", if spots and not crystal then coat:Lerp(WHITE, 0.78) else coat:Lerp(WHITE, 0.18))
 	local dark = coat:Lerp(BLACK, 0.55)
 	local legH = if slim then 5.5 else 7
 	local bodyH = if slim then 5 else 6
@@ -966,7 +988,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	local nape = Vector3.new(0, top + 0.35, head.Z + headSize.Z / 2 + 1.3)
 	box(headParts, "Nape", nape, Vector3.new(bodyW - 2.6, 1.1, 3.2), coat)
 	-- Hocico y mandíbula claros en el ocelote; en el jaguarundí, la cara casi del color del cuerpo.
-	local muzzleColor = if spots then light else coat:Lerp(WHITE, 0.15)
+	local muzzleColor = tone(rig, "muzzle", if spots then light else coat:Lerp(WHITE, 0.15))
 	box(
 		headParts,
 		"Jaw",
@@ -1019,7 +1041,16 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			Vector2.new(1.6 * s, 0.7 * s),
 			if crystal then light else belly
 		)
-		flat(headParts, "Eye", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(1.5 * s, 0.8 * s), options.eyeColor, 0.1).Material = if crystal
+		flat(
+			headParts,
+			"Eye",
+			eye,
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(1.5 * s, 0.8 * s),
+			tone(rig, "eye", options.eyeColor),
+			0.1
+		).Material = if crystal
 			then Enum.Material.Neon
 			else Enum.Material.SmoothPlastic
 		flat(
@@ -1029,7 +1060,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			-Vector3.zAxis,
 			Vector3.xAxis,
 			Vector2.new(0.35 * s, 0.8 * s),
-			if crystal then Color3.fromRGB(20, 60, 120) else BLACK,
+			if glassy then Color3.fromRGB(20, 60, 120) else BLACK,
 			0.16
 		)
 		flat(
@@ -1126,7 +1157,8 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	-- los dedos. El tramo de abajo cuelga del de arriba y se dobla al avanzar, como en "cat".
 	local knee = legH * 0.5
 	local hipY = centerY
-	local paw = coat:Lerp(WHITE, if spots then 0.32 else 0.12)
+	local paw = tone(rig, "paw", coat:Lerp(WHITE, if spots then 0.32 else 0.12))
+	local toeColor = tone(rig, "toe", dark)
 	-- Tono algo más oscuro para los músculos que abultan: marca la sombra entre ellos.
 	local muscle = coat:Lerp(BLACK, 0.12)
 	local phases = { 0, math.pi, math.pi, 0 }
@@ -1259,7 +1291,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				"Toe",
 				pawCenter + Vector3.new(toe * pawSize.X / 6, 0.15, -pawSize.Z / 2 + 0.6),
 				Vector3.new(0.2, pawSize.Y - 0.2, 1.3),
-				dark
+				toeColor
 			)
 		end
 		local thigh: Joint? = nil
@@ -1366,7 +1398,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 		from = to
 	end
 
-	if crystal then
+	if glassy then
 		for _, part in rig.model:GetChildren() do
 			if part:IsA("BasePart") and part.Material == material then
 				part.Transparency = 0.15
@@ -2337,6 +2369,7 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 
 	-- Jaguar de cristal: felino de hielo cristalino con manchas que brillan por dentro, racimos de
 	-- cristales en el lomo y los hombros, un cristal en la frente y un corazón que late de luz.
+	-- Con una skin, sus cristales cambian de color ("crystal" y "crystalGlow" en la paleta).
 	JaguarCristal = function(rig, color)
 		local glow = Color3.fromRGB(80, 200, 255)
 		local options: CatOptions = {
@@ -2346,6 +2379,8 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			earSize = 0.36,
 		}
 		felid(rig, color, options)
+		color = tone(rig, "crystal", color)
+		glow = tone(rig, "crystalGlow", glow)
 		if PetModels.voxelCats then
 			voxelCrystals(rig, color, glow)
 		else
@@ -2390,12 +2425,13 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		local heart =
 			piece(rig, "Heart", "Ball", Vector3.one * 0.3, CFrame.new(0, 0.05, -0.65), glow, Enum.Material.Neon)
 		local light = Instance.new("PointLight")
-		light.Color = color
+		light.Color = if rig.palette then glow else color
 		light.Range = 8
 		light.Brightness = 1.2
 		light.Parent = heart
+		-- Con una skin no: sus chispas las pone la skin.
 		local body = rig.model:FindFirstChild("Body")
-		if body then
+		if body and not rig.palette then
 			local sparkles = Instance.new("Sparkles")
 			sparkles.SparkleColor = color
 			sparkles.Parent = body
@@ -4486,6 +4522,170 @@ local SKINS: { [string]: Skin } = {
 			embers.Acceleration = Vector3.new(0, -4, 0)
 			embers.ZOffset = 1
 			embers.Parent = vent
+		end,
+	},
+	-- Jaguar de Magma (pase, legendario, skin de familia de los tres felinos): pelaje de basalto con
+	-- rosetas, rayas y anillos de lava (el jaguarundí, que no tiene manchas, las lleva con la skin),
+	-- vientre de brasa apagada, patas de obsidiana con los dedos de lava y ojos de fuego. Encima, una
+	-- grieta de lava en zigzag a lo largo del lomo entre rocas de obsidiana, que humea y suelta brasas,
+	-- y la cola acaba en una llama de bloques (se ve también en la imagen del pase) con su fuego. En el
+	-- de cristal, los cristales son de obsidiana con el corazón de lava, y no lleva rocas.
+	MagmaJaguarSkin = {
+		palette = {
+			coat = Color3.fromRGB(58, 48, 50),
+			spots = LAVA,
+			belly = Color3.fromRGB(105, 45, 30),
+			muzzle = Color3.fromRGB(80, 66, 66),
+			paw = OBSIDIAN,
+			toe = LAVA_HOT,
+			eye = Color3.fromRGB(255, 200, 50),
+			crystal = OBSIDIAN,
+			crystalGlow = LAVA,
+		},
+		materials = {
+			spots = Enum.Material.Neon,
+			toe = Enum.Material.Neon,
+			eye = Enum.Material.Neon,
+		},
+		extra = function(rig)
+			local dims = rig.dims
+			if not dims then
+				return
+			end
+			local length: number = dims.length
+			local top: number = dims.halfHeight
+			local waist = 0.4 * VOXEL
+			local bend = rig.bend
+			-- Bloque en studs (sin escalar) con medidas en celdas; los de detrás de la cintura se doblan
+			-- con la cadera.
+			local function block(name: string, center: Vector3, size: Vector3, color: Color3): BasePart
+				local part = piece(rig, name, "Block", size * VOXEL, CFrame.new(center), color, Enum.Material.Neon)
+				if bend and center.Z > waist then
+					table.insert(bend.parts, part)
+				end
+				return part
+			end
+			-- Grieta: tramos de 2 celdas que se tuercen a un lado y a otro, de la nuca a la cola.
+			local from, to = -length / 2 + VOXEL, length / 2 - 1.2 * VOXEL
+			local count = math.floor((to - from) / (2 * VOXEL))
+			local vent: BasePart? = nil
+			for index = 1, count do
+				local z = from + (index - 0.5) * (to - from) / count
+				local part = block(
+					"LavaCrack",
+					Vector3.new((if index % 2 == 0 then 0.35 else -0.35) * VOXEL, top + 0.1 * VOXEL, z),
+					Vector3.new(0.8, 0.3, 2.4),
+					if index % 3 == 0 then LAVA_HOT else LAVA
+				)
+				if index == math.ceil(count / 3) then
+					vent = part
+				end
+			end
+			-- Rocas de obsidiana a los dos lados de la grieta, más altas en los hombros.
+			if not rig.model:FindFirstChild("Crystal") then
+				for index, z in { -6, -3, 0, 3, 6 } do
+					for _, side in { -1, 1 } do
+						local tall = 1.6 - index * 0.2
+						block(
+							"Obsidian",
+							Vector3.new(side * 1.4 * VOXEL, top + tall / 2 * VOXEL, (z + side * 0.4) * VOXEL),
+							Vector3.new(1.2, tall, 1.8),
+							OBSIDIAN
+						).Material =
+							Enum.Material.Basalt
+					end
+				end
+			end
+			if vent then
+				local smoke = Instance.new("ParticleEmitter")
+				smoke.Name = "Smoke"
+				smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+				smoke.Color = ColorSequence.new(Color3.fromRGB(95, 85, 85), Color3.fromRGB(60, 55, 55))
+				smoke.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.2 * rig.scale),
+					NumberSequenceKeypoint.new(1, 0.8 * rig.scale),
+				})
+				smoke.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.55),
+					NumberSequenceKeypoint.new(1, 1),
+				})
+				smoke.Rate = 3
+				smoke.Lifetime = NumberRange.new(1.2, 1.8)
+				smoke.Speed = NumberRange.new(0.6, 1.1)
+				smoke.SpreadAngle = Vector2.new(15, 15)
+				smoke.RotSpeed = NumberRange.new(-30, 30)
+				smoke.Parent = vent
+				local embers = Instance.new("ParticleEmitter")
+				embers.Name = "Embers"
+				embers.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+				embers.Color = ColorSequence.new(LAVA_HOT, LAVA)
+				embers.Size = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.15 * rig.scale),
+					NumberSequenceKeypoint.new(1, 0),
+				})
+				embers.LightEmission = 0.4
+				embers.Brightness = 2
+				embers.LightInfluence = 0
+				embers.Rate = 5
+				embers.Lifetime = NumberRange.new(0.6, 1)
+				embers.Speed = NumberRange.new(1.2, 2.2)
+				embers.SpreadAngle = Vector2.new(25, 25)
+				embers.Acceleration = Vector3.new(0, -3, 0)
+				embers.ZOffset = 1
+				embers.Parent = vent
+			end
+			local body = rig.model:FindFirstChild("Body")
+			if body then
+				local light = Instance.new("PointLight")
+				light.Name = "MagmaGlow"
+				light.Color = LAVA
+				light.Range = 7
+				light.Brightness = 0.9
+				light.Parent = body
+			end
+			-- La llama de la punta de la cola: bloques que suben y se aclaran, y su fuego.
+			local tip = rig.model:FindFirstChild("TailTip")
+			if tip and tip:IsA("BasePart") then
+				local tipEnd = (tip.CFrame * CFrame.new(0, 0, -tip.Size.Z / 2)).Position / rig.scale
+				local flame: BasePart? = nil
+				for _, step in
+					{
+						{ 0.6, 2.4, LAVA },
+						{ 2, 1.9, LAVA },
+						{ 3.3, 1.4, LAVA_HOT },
+						{ 4.5, 0.9, Color3.fromRGB(255, 215, 80) },
+						{ 5.5, 0.5, Color3.fromRGB(255, 240, 160) },
+					}
+				do
+					local height: number, width: number, color: Color3 = step[1], step[2], step[3]
+					flame = piece(
+						rig,
+						"TailFlame",
+						"Block",
+						Vector3.new(width, 1.3, width) * VOXEL,
+						CFrame.new(tipEnd + Vector3.new(0, height, height * 0.15) * VOXEL),
+						color,
+						Enum.Material.Neon
+					)
+					attachTo(rig, flame :: BasePart, tip)
+				end
+				if flame then
+					local fire = Instance.new("ParticleEmitter")
+					fire.Name = "Fire"
+					fire.Texture = "rbxasset://textures/particles/fire_main.dds"
+					fire.Color = ColorSequence.new(LAVA_HOT, LAVA)
+					fire.Size = NumberSequence.new({
+						NumberSequenceKeypoint.new(0, 0.3 * rig.scale),
+						NumberSequenceKeypoint.new(1, 0),
+					})
+					fire.LightEmission = 0.8
+					fire.Rate = 14
+					fire.Lifetime = NumberRange.new(0.3, 0.5)
+					fire.Speed = NumberRange.new(0.6, 1.2)
+					fire.SpreadAngle = Vector2.new(10, 10)
+					fire.Parent = flame
+				end
+			end
 		end,
 	},
 	-- Perro pirata (tienda, skin de familia de los tres perros): cada uno con su pelaje, para que se
