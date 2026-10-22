@@ -146,7 +146,9 @@ la tecla); botón táctil "¡Evasivo!" / "Evasivo 12".
 Probado en Play (Isla, 22-10-2026): aturdido 8 s → Evasivo a los 0,12 s (recarga 25, `Evading` 0,5 s,
 inmune 2 s, 14 studs, vuelve a andar); otra vez aturdido con él en recarga → Q no hace nada; sujeto
 (`holdPlayer`) → sale (14,6 studs); sujeto y en recarga → no se mueve; lanzado (0,46 s reales) y guardia
-rota → salen; sin estar atrapado, esquiva normal (0,35 s, estamina 100 → 75).
+rota → salen; sin estar atrapado, esquiva normal (0,35 s, estamina 100 → 75). En Dunas (batalla con
+"Empezar ya"): icono y Evasivo igual (14,5 studs; contra el basamento del templo solo 4,4, porque `Dash`
+se corta en la pared) y, al acabar la partida, `ArenaTelemetryService` manda sus eventos sin errores.
 
 ## 5. Defensa
 
