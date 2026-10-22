@@ -1,4 +1,4 @@
-# Verificación paso a paso (entregas 2.3 a 6.5 y la arena de Dunas)
+# Verificación paso a paso (entregas 2.3 a 6.5, la arena de Dunas y la Fase 9)
 
 Sigue los bloques en orden. Cada bloque dice **qué hacer**, **qué debe pasar ✅** y **qué hacer si falla ⚠️**.
 Marca cada casilla al comprobarla.
@@ -434,10 +434,12 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
 
 ### 7.5 Misiones diarias
 
+Desde la Fase 9 son las misiones v2 (una fácil, una media del rol y una difícil): las semanales y el cambio gratis se prueban en el §10.4.
+
 1. [ ] Entra en la Isla (en PC).
-   ✅ Debajo de las habilidades, **🎯 Misiones del día** con 3 líneas (2 generales y 1 de tu rol) y "0/15".
-2. [ ] Cumple una de verdad (por ejemplo, fabrica 3 vendas en la mesa de trabajo).
-   ✅ El contador sube en pocos segundos y al cumplirla "🎯 ¡Misión cumplida! … 60 ✨ Ámbar · ⏩ −20 min a tu huevo …"; la línea pasa a ✅.
+   ✅ Debajo de las habilidades, el rastreador de misiones con 3 líneas (la fácil, la de tu rol y la difícil) y, debajo, las semanales.
+2. [ ] Cumple una de verdad (por ejemplo, fabrica 2 vendas en la mesa de trabajo, si te ha tocado la fácil de fabricar).
+   ✅ El contador sube en pocos segundos y al cumplirla "🎯 ¡Misión cumplida! …" con 40 ✨ Ámbar, −15 min a tu huevo y la XP del pase; la línea pasa a ✅.
 3. [ ] **🎯 Cumplir las misiones del día**.
    ✅ Las demás se cumplen con su aviso y su premio.
 4. [ ] En el Lobby, icono **🎯 Misiones**; cambia de rol en el cartel **Elige tu rol**.
@@ -446,7 +448,7 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
 ### 7.6 Título "Superviviente de la Isla"
 
 1. [ ] Gana una partida **de verdad** (baliza → La Gran Tropa → amanecer; 6.1). La victoria del panel no lo da.
-   ✅ En los resultados: "🏝️ ¡Nuevo título: Superviviente de la Isla!". En el Lobby, icono **🎨 Estilo**, se puede **Equipar** y se ve en naranja sobre la cabeza.
+   ✅ En los resultados: "🏝️ ¡Nuevo título: Superviviente de la Isla!". En el Lobby, icono **👕 Armario** → 🏷️ Títulos, se puede **Equipar** y se ve en naranja sobre la cabeza.
 2. [ ] Para ver solo cómo queda: **🏝️ Título Superviviente (sí/no)** en el Lobby (y otra vez para quitarlo).
 
 ---
@@ -525,6 +527,137 @@ En el place **Lobby**, con ▶. Para el móvil, elige un teléfono en *Prueba �
    ✅ Las ventanas ocupan toda la pantalla y se reparten en columnas; la arena en dos columnas. Con una ventana abierta no se ven el joystick, el salto ni los botones de combate.
 7. [ ] Mira los carteles.
    ✅ **🐾 Mascotas**: tu huevo con su tiempo y barra, qué puede salir, la mochila y quién te acompaña. **🎖️Isla de dunas☠️(PvP)**: tus victorias y banderas, el Ámbar de hoy y los jugadores en cola por formato. **Ranking**: supervivencia y arena, solo nombres (sin los jugadores de prueba de Studio).
+
+---
+
+## 10. Fase 9: pase, misiones v2, mitad de partida y cosméticos (21-10-2026)
+
+Casi todo se prueba en el **Lobby**; la partida (10.5–10.8), en la **Isla**. El panel 🛠️ del Lobby tiene: ⭐ +500 XP de pase, ⭐ Siguiente nivel del pase, 🌋 Premium del pase (sí/no), 📆 Reloj del pase +7 días, 🧾 Compra de prueba (siguiente producto), 🔁 Repetir el último recibo, 🎁 Dar/quitar el siguiente cosmético, 🛒 Tienda de cosméticos: día siguiente, 📆 Cumplir las semanales y 📆 Semana siguiente. El de la Isla: 📆 Cumplir las semanales, 📜 Cumplir el paso del contrato, 📜 Siguiente contrato, 📅 Días de los eventos de esta partida, ☣️ Lluvia tóxica ya, 🔧 Noche de macacos saboteadores, 🎖️ Erupción preliminar con cajas militares y 🌕 La Gran Tropa ya.
+
+### 10.0 Antes: copia de tu perfil
+
+▶ *Jugar* en Studio **escribe tu perfil de verdad** (el mismo que el del juego publicado). Antes de probar, en la barra de comandos de Studio (en edición, con el acceso a las API activado) pon tu número de usuario y ejecuta:
+
+```lua
+local DS = game:GetService("DataStoreService")
+local clave = "u_" .. 0 -- ← tu UserId
+DS:GetDataStore("PlayerData_v1_backups"):SetAsync(clave .. "_antesFase9", DS:GetDataStore("PlayerData_v1"):GetAsync(clave))
+```
+
+Al terminar, para dejarlo como estaba, cambia el orden (lee de `PlayerData_v1_backups` con la clave `.. "_antesFase9"` y guarda en `PlayerData_v1` con `clave`), con el Play parado.
+
+### 10.1 Calculadora
+
+1. [ ] En el Studio de la **Isla**, en edición:
+   ```lua
+   local m = game.ServerStorage.Tools.Economia:Clone(); print(require(m).informe()); m:Destroy()
+   ```
+   ✅ En la Salida, las secciones 1–6. En "4. Pase", el habitual termina el **día 23** y el casual llega al **13**. En "5. Reglas de pago", 18 productos, todos ✅ (los que tienen "falta" en Id son los que aún no has creado, §LANZAMIENTO 3). En "6. Alertas": **✅ Todo dentro de los límites**.
+
+### 10.2 Compras de prueba (Lobby)
+
+1. [ ] **🧾 Compra de prueba** hasta que salga el **pase premium** (va pasando por los productos).
+   ✅ Aviso de compra; en la ventana del pase (🌋) la pista premium se abre y los cosméticos premium de los niveles que ya tenías pasan a ser tuyos (entrega retroactiva).
+2. [ ] **🔁 Repetir el último recibo**.
+   ✅ Dice que ya estaba entregado; no cambia nada.
+3. [ ] En la ventana del pase, con premium.
+   ✅ Ya no salen los botones de la premium ni del pack (+10 niveles); sí el de +1 nivel.
+4. [ ] Quita la premium (**🌋 Premium del pase**) y haz la **🧾** del pack.
+   ✅ Premium y 10 niveles más, pero el Ámbar, el tiempo de huevo y las provisiones de esos niveles salen con "🔒 Gánalo jugando"; los cosméticos sí se reclaman.
+5. [ ] En el nivel 30, o con el **📆 Reloj del pase** en el descanso.
+   ✅ No sale el botón de +1 nivel.
+
+### 10.3 Pase de temporada (Lobby)
+
+1. [ ] Mira el **cartel volcánico del pase** en la plaza y el icono 🌋 sobre él.
+   ✅ La temporada "El Despertar del Volcán", la cuenta atrás, tu nivel y los próximos premios. Con algo por reclamar, "!" en el icono y punto rojo en 🌋 de la barra.
+2. [ ] Abre el pase (cartel o 🌋) en PC.
+   ✅ Dos pistas sincronizadas, gratis abajo y premium arriba, con la imagen voxel de cada premio y el sello premium; un premio premium en **cada** nivel. Al tocar un premio, su detalle.
+3. [ ] **⭐ Siguiente nivel del pase** varias veces y **Reclamar todo**.
+   ✅ Se cobran los de la pista gratis (Ámbar, huevo, provisiones, cosméticos) y, con premium, los de arriba. El N20 gratis da un **huevo Raro**.
+4. [ ] **📆 Reloj del pase +7 días** tres veces (última semana) y **⭐ +500 XP de pase**.
+   ✅ La cabecera dice ×2 y suben 1.000.
+5. [ ] Otra vez **📆 +7 días** (fin de la temporada).
+   ✅ Lo que no habías reclamado se entrega solo; durante el descanso no se gana XP.
+6. [ ] En la Isla, termina una partida (🚁 o 💀).
+   ✅ En los resultados, la línea de XP del pase y su barra.
+7. [ ] **Móvil** (*Prueba → Dispositivo*).
+   ✅ La ventana del pase ocupa la pantalla y se lee.
+
+### 10.4 Misiones v2
+
+1. [ ] Lobby, icono **🎯 Misiones**, pestaña **Hoy**.
+   ✅ Calendario y 3 misiones: fácil, media (de tu rol) y difícil, cada una con su premio (Ámbar, huevo y XP del pase).
+2. [ ] **Cambiar** una misión.
+   ✅ Sale otra de la misma dificultad; el botón ya no deja cambiar otra hoy. Con **📅 Día siguiente**, vuelve.
+3. [ ] Pestaña **Semana**.
+   ✅ 5 semanales (como mucho una de Dunas) y el extra por cumplir las 5; un cambio a la semana. **📆 Cumplir las semanales** las da todas con el extra; **📆 Semana siguiente** saca 5 nuevas.
+4. [ ] En la Isla.
+   ✅ El rastreador enseña las diarias y las semanales y se pliega al tocar su cabecera (se recuerda al volver). En el **móvil**, fichas en la franja de la barra de Roblox.
+5. [ ] En Dunas, gana o captura una bandera con una semanal de Dunas.
+   ✅ Avanza.
+
+### 10.5 Equipo ligado a los jefes (Isla)
+
+1. [ ] **🎒 +50 de todo** y abre la Forja de piedra.
+   ✅ El nivel 3 de las armas de rol y la Armadura de plata piden la **Corona del caudillo**.
+2. [ ] **👑 Siguiente jefe** hasta el Chimpancé Caudillo y derrótalo.
+   ✅ Cada participante recibe **2** coronas y ya se puede fabricar el nivel 3.
+3. [ ] Construye la **Forja volcánica** (25 piedra, 8 obsidiana, 2 huesos gruesos) y pica una veta de obsidiana del volcán.
+   ✅ El nivel 4 (Mazo volcánico, Arco de brasa, Bastón de lava, Cerbatana de azufre, Armadura volcánica) pide obsidiana y el **Cristal de cueva** (jefe del día 6).
+
+### 10.6 Contratos de expedición (Isla)
+
+1. [ ] Empieza una partida.
+   ✅ Bajo el rastreador de misiones, la tarjeta del contrato (📜 en el móvil) con el paso 1 y su día.
+2. [ ] Cumple el paso de verdad (por ejemplo, construye 3 piezas en el Campamento del náufrago) o con **📜 Cumplir el paso del contrato**.
+   ✅ Todos los de la partida reciben Ámbar, XP del pase y su objeto; el paso siguiente se abre en su día. **📜 Siguiente contrato** cambia de contrato.
+3. [ ] Deja pasar el día del paso sin cumplirlo (⏩ Saltar fase).
+   ✅ El paso se pierde al abrirse el siguiente.
+4. [ ] Termina la partida.
+   ✅ En los resultados, la línea del contrato.
+
+### 10.7 Eventos de mitad de partida (Isla)
+
+1. [ ] **📅 Días de los eventos de esta partida**.
+   ✅ El día de la lluvia tóxica (3 o 4), la noche de los saboteadores (5) y la erupción preliminar (7). La víspera de cada uno, al anochecer, sale el aviso.
+2. [ ] **☣️ Lluvia tóxica ya** y bebe del río.
+   ✅ Línea de estado en el HUD; el agua y los mordiscos dan fiebre. El agua hervida de la hoguera no; el médico recibe 2 antídotos y su Ungüento baja la fiebre.
+3. [ ] **🔧 Noche de macacos saboteadores** (de noche).
+   ✅ Parte de cada oleada son macacos que van a por estacas, muros, barricadas y estaciones, no a por la baliza ni las camas.
+4. [ ] **🎖️ Erupción preliminar con cajas militares** (de día: de noche el volcán tiene gorilas y el asedio pega dentro del campamento).
+   ✅ Piroclastos en las zonas altas y 2 cajas militares con babuinos; abrir una (8 s) activa el PvP y da obsidiana, vendas, antídoto, comida y una esquirla de jefe. El paso "Asegurar" del contrato se cumple.
+
+### 10.8 La Gran Tropa, la baliza y el tótem (Isla)
+
+1. [ ] Construye el **tótem guardián** (pide una Perla del río) y unas **antorchas de pie**.
+   ✅ A 25 studs las piezas reciben menos daño y se reparan de noche.
+2. [ ] **📡 4 piezas + baliza sin espera**, enciéndela y **🌕 La Gran Tropa ya**.
+   ✅ Parte de los mandriles, orangutanes y gorilas va a por la baliza (16.000 de vida); los demás monos la rodean. Las antorchas espantan a los aulladores y se gastan.
+3. [ ] Deja que la derriben.
+   ✅ Se corta la señal: esa noche no hay rescate. Al amanecer se repara y se puede volver a encender.
+
+### 10.9 Cosméticos y Armario (Lobby)
+
+1. [ ] **🎁 Dar/quitar el siguiente cosmético** unas cuantas veces y abre **👕 Armario**.
+   ✅ Avatar 3D que gira y pestañas Trajes, Armas, Efectos, Títulos, Mascotas, Marcos, Emotes y Estilos, con borde de rareza (el mítico por encima del legendario). La vista previa junta lo elegido en cada hueco.
+2. [ ] Equipa un traje y un arma de la Temporada 1 y de los míticos, en cada rol.
+   ✅ Se ven en el Lobby y en Dunas enteros, y en la Isla crecen con el nivel de la armadura y del arma. Míralos **de espaldas**: el motivo de la espalda se ve.
+3. [ ] Equipa una skin de mascota (Tortuga de Lava, Jaguar de Magma, Perro pirata), un marco, una estela, unos números, un estallido y una decoración del nido.
+   ✅ La mascota cambia sin perder su ayuda; el marco sale en el ranking, la ventana Grupo y los resultados; los números y estallidos, al pegar a los muñecos; la decoración, alrededor de tu nido (solo la ves tú).
+4. [ ] Mantén **"."** (o 😀) y suelta sobre un emote.
+   ✅ Lo hace; los de la temporada con sus efectos (Grito de gorila, Danza del fuego en bucle, Erupción). Moverse lo para; en combate no deja.
+
+### 10.10 Tiendas de cosméticos (Lobby)
+
+1. [ ] **Tienda** → pestaña **🎨 Cosméticos**.
+   ✅ 4 en Ámbar (de lo que aún no tienes), 3 sueltos de Robux de la semana y, debajo, los Game Passes. Ningún premio de la temporada en curso.
+2. [ ] Compra uno en Ámbar (**✨ +500 Ámbar** si hace falta; pide dos pulsaciones).
+   ✅ Se descuenta, sale en el Armario y no vuelve a la oferta. **🛒 Tienda de cosméticos: día siguiente** cambia los 4.
+3. [ ] Un suelto de Robux con **🧾 Compra de prueba** (o el botón, que en Studio es de prueba).
+   ✅ Se entrega una sola vez (🔁 no lo duplica).
+
+Al terminar, restaura tu perfil (10.0).
 
 ## Cuando termines
 

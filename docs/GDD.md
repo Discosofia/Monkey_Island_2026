@@ -1,6 +1,6 @@
-# Primal Banana Islands: Monkey Survival — Documento de Diseño del Juego (GDD) v0.2
+# Primal Banana Islands: Monkey Survival — Documento de Diseño del Juego (GDD) v0.3
 
-> **Estado:** diseño base confirmado tras la entrevista (v0.2: todas las propuestas de la v0.1 confirmadas).
+> **Estado:** diseño base confirmado tras la entrevista (v0.2: todas las propuestas de la v0.1 confirmadas). v0.3 (21-10-2026): pase de temporada, misiones v2, contratos, eventos de mitad de partida, cosméticos y tiendas (Fase 9 de `docs/PLAN.md`; §4, §5.4, §11 y §14).
 > **Nombre:** **Primal Banana Islands: Monkey Survival** (ver [§15](#15-nombre)). El repositorio conserva el nombre `monkey_island_2026`.
 
 ---
@@ -86,8 +86,9 @@ flowchart TD
 | **Nido de huevos**, delante del cartel **🐾 Mascotas** | El nido, la mochila, los pendientes y la colección. El cartel enseña el huevo que se incuba, la mochila y la mascota que te acompaña; se interactúa con el nido |
 | Cartel **🎖️Isla de dunas☠️(PvP)** (y su velero) | La arena: formato, cola y equipamiento por rol. El cartel enseña tus números, el Ámbar de hoy y cuántos esperan en cada formato |
 | Cartel **🏆 Ranking** | Las cuatro clasificaciones (días, rescates, victorias y banderas en la arena), con el top 10 y tu número. El cartel enseña el top 5 en dos bloques, supervivencia y arena |
+| Cartel volcánico del **🌋 Pase** (Fase 9) | El pase de temporada (§14.1). El cartel enseña la temporada, la cuenta atrás, tu nivel y los próximos premios, con "!" si hay algo que reclamar |
 
-El resto (Talentos, Tienda, Misiones, Estilo, Grupo, Diario y Ajustes) va en una **barra de iconos**: en columna a la izquierda en PC y en fila arriba en el móvil, con un **punto rojo** cuando hay algo pendiente (talentos por gastar, premio del calendario). Arriba, una pastilla con el Ámbar y el récord; el título del juego se va a los pocos segundos. Las ventanas se ajustan a su contenido para verlo todo sin desplazarse (las listas largas, en columnas). Para que se encuentren las estaciones: un **icono flotante** sobre cada una con "!" cuando hay algo para ti, un **contorno dorado** al acercarse y una **guía la primera vez** (un rastro dorado al cartel de roles y después al nido).
+El resto (Talentos, Tienda, Misiones, Pase, Armario, Emotes, Grupo, Diario y Ajustes) va en una **barra de iconos**: en columna a la izquierda en PC y en fila arriba en el móvil, con un **punto rojo** cuando hay algo pendiente (talentos por gastar, premio del calendario). Arriba, una pastilla con el Ámbar y el récord; el título del juego se va a los pocos segundos. Las ventanas se ajustan a su contenido para verlo todo sin desplazarse (las listas largas, en columnas). Para que se encuentren las estaciones: un **icono flotante** sobre cada una con "!" cuando hay algo para ti, un **contorno dorado** al acercarse y una **guía la primera vez** (un rastro dorado al cartel de roles y después al nido).
 
 ---
 
@@ -118,10 +119,15 @@ flowchart LR
   H --> N["Incubar en el nido del lobby"]
   N --> PE["Nace una mascota"]
   P --> BE["Completar el bestiario"]
+  P --> XP["XP del pase de temporada"]
+  XP --> PA["Niveles del pase: Ámbar, huevo y cosméticos"]
+  M --> CS["Tienda de cosméticos en Ámbar"]
   U --> P
   T --> P
   PE --> P
   BE --> P
+  PA --> P
+  CS --> P
 ```
 
 ### Bucle de retención (entre días, octubre de 2026)
@@ -140,11 +146,14 @@ El núcleo son los **huevos y las mascotas** (§11): el huevo se gana en la isla
   | 6 | Kit de reanimación + 2 super vendas + 2 h para el huevo |
   | 7 | **Huevo raro o mejor** (raro 13 · épico 6 · legendario 1) + 500 de Ámbar |
 
-- **Misiones diarias:** cada día tocan **3: dos generales y una del rol elegido** (si cambias de rol, cambia esa, salvo que ya estuviera cumplida). Generales: derrotar 15 monos, superar 1 noche, recolectar 40 recursos, ayudar a salvar 1 huevo, fabricar 3 objetos o construir 3 piezas. De rol: cerrar combos, hacer daño o usar habilidades del rol. Solo cosas que se pueden hacer **jugando solo** (nada de reanimar o curar aliados) y el daño al muñeco de práctica no cuenta. Premio: 60 de Ámbar y −20 min para el huevo (las generales) o 100 y −30 min (la del rol). En la isla se ven en un rastreador bajo los combos (solo en PC: en el móvil esa zona es la del joystick) y en el lobby en la ventana Misiones del menú.
-- **Provisiones de partida:** el inventario de la isla no se guarda entre partidas, así que los objetos del calendario y las misiones se guardan en el perfil y **llegan a la mochila al empezar la siguiente partida**. En el lobby se ven encima de "Ir a la Isla".
-- **Título "Superviviente de la Isla":** gratis, sin Game Pass, **solo para quien gana una partida** (rescate con la baliza). Se anuncia en los resultados y se equipa en Estilo.
+- **Misiones diarias (v2, Fase 9):** cada día tocan **3, una de cada dificultad**: una **fácil** general (derrotar 10 monos, recolectar 40 recursos, fabricar 2 objetos o construir 1 pieza; unos 8–13 min), una **media** del rol elegido (cerrar combos, hacer daño o usar habilidades del rol; 17–20 min; si cambias de rol, cambia esa, salvo que ya estuviera cumplida) y una **difícil** que pide avanzar en la partida (llegar al día 4, superar 3 noches, derrotar 2 jefes o 2 alfas, salvar 2 huevos; 50–67 min, casi la mitad de una partida). **Un cambio gratis al día** da otra de la misma dificultad. Solo cosas que se pueden hacer **jugando solo** (nada de reanimar o curar aliados) y el daño al muñeco de práctica no cuenta. Premio: fácil 40 de Ámbar, −15 min de huevo y 200 de XP del pase; media 70, −25 min y 200; difícil 120, −40 min y 300.
+- **Misiones semanales:** cada lunes (00:00 UTC) tocan **5 de 13** (alfas, jefes, construir, fabricar, huevos, llegar al día 6, recolectar, monos, noches, rescate, especies distintas del bestiario y, como mucho una, ganar o capturar en Dunas), sin dos de la misma familia, con **un cambio gratis a la semana**. Cada una da 150 de Ámbar y 500 de XP; las 5 juntas, 250 de Ámbar, −1 h de huevo y 500 de XP más. Las de Dunas avanzan jugando en la arena.
+- **Dónde se ven:** en la isla, en un rastreador bajo los combos con las diarias y las semanales, que se pliega (en el móvil, fichas en la franja de la barra de Roblox); en el lobby, en la ventana **Misiones** (pestañas Hoy y Semana).
+- **Provisiones de partida:** el inventario de la isla no se guarda entre partidas, así que los objetos del calendario, las misiones y el pase se guardan en el perfil y **llegan a la mochila al empezar la siguiente partida**. En el lobby se ven encima de "Ir a la Isla".
+- **Pase de temporada** (§14.1): las partidas, Dunas y las misiones dan XP; cada nivel trae un premio gratis y uno premium cosmético. Es la meta del mes; las misiones, la del día y la semana; los contratos (§5.4), la de cada partida.
+- **Título "Superviviente de la Isla":** gratis, sin Game Pass, **solo para quien gana una partida** (rescate con la baliza). Se anuncia en los resultados y se equipa en el Armario. Ningún pase, calendario ni tienda lo da.
 
-Todo se ajusta en `Config.Daily` (calendario, misiones) y `Config.Egg` (huevos); las misiones están en `Data/Missions`.
+Todo se ajusta en `Config.Daily` (calendario, misiones), `Config.Season` (pase) y `Config.Egg` (huevos); las misiones están en `Data/Missions`. Los números se miden con la calculadora `Economia` (skill `economia-retencion`).
 
 ---
 
@@ -187,6 +196,25 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 - **Victoria (rescate):** se construye la **baliza de rescate** con piezas de los 4 jefes de bioma. Al encenderla empieza la **noche final** ("La Gran Tropa"). Si alguien sigue en pie al amanecer, llega el rescate.
   - La baliza solo se puede encender desde el **día 8** (configurable). Como aparece un jefe cada 2 días (días 2, 4, 6 y 8), antes no se pueden tener las 4 piezas.
 - **Entrar a mitad de partida:** se permite mientras haya hueco y no esté en curso la noche final. Las recompensas dependen de la **contribución** mientras estuviste presente.
+
+### 5.4 Metas de mitad de partida (Fase 9)
+
+La partida dura unas 2 h 16 min (8 días de 17 min) y antes había un hueco entre el día 4 y el 8 sin nada nuevo. Ahora cada tramo tiene su meta:
+
+- **Equipo ligado a los jefes** (§9.3): el nivel 3 pide la Corona del caudillo (jefe del día 4) y el nivel 4 de la Forja volcánica, obsidiana y el Cristal de cueva (día 6). Cada jefe da 2 de su tesoro a **cada** participante.
+- **Contratos de expedición:** uno por partida, compartido por todo el grupo, de 5 pasos que se abren los días 1, 3, 5, 7 y 8; un paso que no se cumple antes de que se abra el siguiente se pierde. Los objetivos de cantidad crecen con el grupo (+50 % por cada jugador más). Cada paso da a todos los de la partida Ámbar (20 · 20 · 25 · 25 · 50), XP del pase (50 · 50 · 75 · 75 · 125, como XP de partida) y algún objeto. Se ven en una tarjeta bajo el rastreador de misiones (ficha "📜" en el móvil) y en los resultados.
+
+  | Contrato | Día 1 | Día 3 | Día 5 | Día 7 | Día 8 |
+  |---|---|---|---|---|---|
+  | 🏕️ Campamento del náufrago | Construir 3 piezas | Llegar a la cueva del Gorila Albino | Levantar 4 defensas o el tótem | Abrir una caja militar | Encender la baliza |
+  | 📖 Diario del naturalista | Recolectar 80 recursos | Monos de 8 especies | Un alfa | 12 monos | Encender la baliza |
+  | 🌋 Ruta del volcán | Fabricar 3 objetos | Derrotar al Chimpancé Caudillo | 6 de obsidiana | Abrir una caja militar | Encender la baliza |
+
+- **Eventos de mitad de partida**, cada uno en un día al azar de los suyos, con aviso la víspera al anochecer y una línea de estado en el HUD:
+  - **Lluvia tóxica** (día 3 o 4, 6 min): el agua del río y los mordiscos dan fiebre. Se combate con agua hervida en la hoguera, antídotos (el médico recibe 2) y el Ungüento del médico, que baja la fiebre a quien cura.
+  - **Noche de macacos saboteadores** (noche 5): parte de cada oleada son macacos que van a por trampas, muros, barricadas y las estaciones del núcleo (no a por la baliza ni las camas).
+  - **Erupción preliminar** (día 7, 150 s): lluvia de piroclastos en las zonas altas y **2 cajas militares** guardadas por babuinos, con obsidiana, vendas, antídoto, comida y una esquirla de jefe al azar. Abrirlas (8 s) activa el PvP durante 4 min.
+- **Preparar la Gran Tropa** (noche final): la mitad de los mandriles, orangutanes y gorilas de cada oleada va a por la **baliza** (16.000 de vida; solo la rompen ellos). Si cae, se corta la señal, esa noche no hay rescate y al amanecer se repara y se puede volver a encender. Ayudan el **tótem guardián** (uno por campamento, pide una Perla del río: a 25 studs, −35 % de daño a las piezas y reparación nocturna, −10 % de daño a los jugadores) y las **antorchas de pie**, que espantan a los aulladores del asedio y se gastan. Sin defenderla, la baliza cae al poco de llegar la 5.ª oleada.
 
 ---
 
@@ -576,7 +604,8 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
   - Las defensas se construyen en el **perímetro** (entre las parcelas y la empalizada, incluidos los portones): muros, **estacas** (hieren a los monos que las cruzan) y antorchas.
   - Las defensas dañadas se reparan de día con recursos.
   - Si los monos rompen el perímetro, atacan estructuras y jugadores dentro, pero **el nido y la baliza tienen su propia defensa**: es lo último que cae.
-  - La noche del encendido de la baliza es la **noche final** ("La Gran Tropa"), el asedio más fuerte de la partida.
+  - La noche del encendido de la baliza es la **noche final** ("La Gran Tropa"), el asedio más fuerte de la partida, en el que una parte de los monos va a por la baliza (§5.4).
+  - La noche 5 llegan los **macacos saboteadores**, que van a por las defensas y las estaciones (§5.4).
 
 ---
 
@@ -593,7 +622,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 - **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
 - **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
 - **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
-- **Jugar lo acelera:** cada noche superada en la isla le quita **1 h**; las misiones diarias, 20–30 min; y al **ganar una partida** hay una tirada con ruleta en los resultados (40 % −2 h · 30 % −4 h · 20 % −6 h · 8 % −10 h · **2 % eclosión inmediata**). Lo ganado jugando tiene un **tope del 50 %** del tiempo total del huevo, para que siempre quede algo que esperar al día siguiente; el tiempo del calendario y la eclosión inmediata no cuentan para el tope.
+- **Jugar lo acelera:** cada noche superada en la isla le quita **1 h**; las misiones diarias, 15–40 min, y las 5 semanales, 1 h; la pista gratis del pase, de 30 min a 1 h 30 min en algunos niveles; y al **ganar una partida** hay una tirada con ruleta en los resultados (40 % −2 h · 30 % −4 h · 20 % −6 h · 8 % −10 h · **2 % eclosión inmediata**). Lo ganado jugando tiene un **tope del 50 %** del tiempo total del huevo, para que siempre quede algo que esperar al día siguiente; el tiempo del calendario y la eclosión inmediata no cuentan para el tope.
 - Si el huevo termina mientras juegas en la isla, se avisa: "¡Tu huevo está listo! Ábrelo en el nido del Lobby".
 
 ```mermaid
@@ -618,7 +647,8 @@ sequenceDiagram
 - **Colección persistente.** Se equipa **1 mascota activa** desde el lobby.
 - **Tipos de ayuda:** combate, carga (más material o más botín), rastreo (detecta monos; el beagle también huele el huevo), marca (señala al mono más cercano: todos le hacen más daño), curación y apoyo.
 - **Rarezas:** de común a legendaria. Fauna tropical (tucán, guacamaya, tortuga, jaguarundí…), tres sabuesos (beagle, labrador y pointer inglés) y criaturas "experimentales" legendarias del laboratorio (ver Lore).
-- **Importante:** los huevos **solo se consiguen jugando**, nunca con Robux. Así se evitan las normas de Roblox sobre objetos aleatorios de pago.
+- **Skins de mascota** (Fase 9, solo cosméticas): cambian los colores, los materiales y algunas piezas sin tocar la ayuda. Las mascotas que comparten modelo llevan **skins de familia** (los tres felinos, los tres perros). Ejemplos: Tortuga de Lava y Jaguar de Magma (pase), Perro pirata (tienda en Ámbar). Se eligen en el Armario.
+- **Importante:** los huevos **solo se consiguen jugando**, nunca con Robux. Así se evitan las normas de Roblox sobre objetos aleatorios de pago. El huevo Raro del nivel 20 del pase está en la pista gratis y solo sale con nivel ganado jugando.
 
 ---
 
@@ -692,12 +722,50 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 
 ## 14. Economía y monetización
 
-- **Moneda del juego: Ámbar** (nombre provisional). Se gana por días sobrevividos, contribución (recolectar, reanimar, defender), jefes y rescates.
-- **Se gasta en:** mejoras permanentes **moderadas** (huecos de inventario, kit inicial por rol), cosméticos básicos y reroll de talentos.
+- **Moneda del juego: Ámbar** (nombre provisional). Se gana por días sobrevividos, contribución (recolectar, reanimar, defender), jefes, rescates, contratos de expedición (§5.4), Dunas, el calendario, las misiones (§4) y la pista gratis del pase.
+- **Se gasta en:** mejoras permanentes **moderadas** (19 rangos, 1.930 en total: vida, estómago, kit de náufrago, estamina…), el equipo de Dunas y la **tienda de cosméticos en Ámbar** (§14.2), que es el sumidero de quien ya tiene las mejoras.
 - **Talentos:** se desbloquean con la **XP del rol**, no con dinero.
-- **Robux (solo cosmético y comodidad):** skins de personaje y armas, skins de mascota, emotes, efectos, servidores privados y un posible pase de temporada cosmético.
-- **Nunca con Robux:** poder, huevos, tiempo de incubación y objetos aleatorios.
-- **Se gana jugando:** el título "Superviviente de la Isla" (solo al ganar una partida), los premios del calendario y de las misiones diarias (§4).
+- **Robux (solo cosmético y comodidad):** la premium del pase y sus niveles (§14.1), cosméticos sueltos en la tienda de Robux, los Game Passes cosméticos (estelas, título, aura) y servidores privados.
+- **Nunca con Robux:** poder, **Ámbar** (compra mejoras con ventaja), huevos, tiempo de incubación, provisiones y objetos aleatorios. Lo comprueba la sección "Reglas de pago" de la calculadora `Economia`.
+- **Se gana jugando:** el título "Superviviente de la Isla" (solo al ganar una partida), los trajes míticos (§14.3), los premios del calendario, de las misiones y de la pista gratis del pase.
+
+### 14.1 Pase de temporada (Fase 9)
+
+- **Temporada de 30 días** con **30 niveles de 1.000 XP**; después, 7 días de descanso (sin XP; lo no reclamado se entrega solo) y empieza la siguiente. Los **últimos 7 días dan ×2 de XP**. Pasado el nivel 30, cada 1.500 XP da un nivel "en bucle" (50 de Ámbar o −15 min de huevo, por turnos).
+- **XP:** Isla 60 por día sobrevivido, 150 por jefe, 50 por huevo salvado y 300 por rescate; Dunas 80/40/30 (gana/empata/pierde) y 15 por captura; contratos 50–125 por paso. Las partidas tienen un **tope de 1.200 XP al día**; las misiones no cuentan en él. **+10 %** si hay un amigo de Roblox en el servidor.
+- **Dos pistas** con un premio en **cada nivel**:
+  - **Gratis:** Ámbar (1.625 en total), tiempo de huevo (7 h), provisiones, un **huevo Raro** (N20) y 8 cosméticos (títulos Náufrago del Volcán en N1 y **Señor del Volcán** en N30, marcos de bronce y plata, el emote Saludo simio, el Machete de Azufre, la Tortuga de Lava y la Estela de ceniza). Lo que no es cosmético solo se desbloquea con nivel **ganado jugando**.
+  - **Premium:** **solo cosméticos**, uno en cada uno de los 30 niveles: los 4 trajes del fuego azul por rol (N5, N10, N20, N25), las 4 armas de azufre (N3, N7, N13, N18), el aura **Llama primal** que evoluciona (I, II y III en N1, N15 y N30), el Jaguar de Magma (skin de los tres felinos, N23), 3 emotes con efectos, estelas, marcos, títulos, estilos de números y estallidos y dos nidos.
+- **Compras** (Developer Products, `Config.Shop`): **premium 399 R$** (vale para la temporada en curso; si se compra a mitad, entrega lo ya alcanzado), **pack premium + 10 niveles 799 R$** (solo si aún no es premium) y **1 nivel 79 R$** (no en el nivel 30 ni en el descanso). Los niveles comprados nunca desbloquean el Ámbar, el huevo ni las provisiones de la pista gratis.
+- **Ritmo medido** (calculadora, 30 días): el jugador habitual (5 días a la semana, 1 h) lo termina el **día 23**; el casual (3 días, 40 min) llega al nivel 13; el intenso, el día 13 (no antes, por el tope); un grupo de amigos, el día 20. Las misiones son el 50–62 % de la XP.
+- **Temporada 1: "El Despertar del Volcán"** (🌋, fuego azul y azufre sobre piedra pómez; los premios naranjas son los de magma). Se abre en el cartel volcánico de la plaza o con 🌋 en la barra; la ventana tiene dos pistas sincronizadas que se desplazan (excepción a las ventanas sin desplazamiento) con la imagen voxel de cada premio y el sello premium. En la Isla, aviso "+XP de pase" y barra en los resultados.
+- Preparar la siguiente: `.claude/skills/economia-retencion/references/nueva-temporada.md`.
+
+### 14.2 Tiendas de cosméticos (Fase 9)
+
+Pestaña **🎨 Cosméticos** de la Tienda del Lobby. Tema "selva y mar", para no competir con el volcán del pase. Nunca entran los premios de la temporada en curso.
+
+- **En Ámbar:** 4 al día de un catálogo de 22 (19.000 de Ámbar en total), rotación común con la semilla del día de la que cada jugador ve primero lo que aún no tiene. Precio por rareza: común 400 · poco común 600 · raro 900 · épico 1.200 · legendario 1.500. El habitual gasta el 97 % de su Ámbar en 30 días y tiene la tienda entera el día 30.
+- **En Robux:** 3 sueltos que rotan cada lunes de 11 (99–249 R$, y las 4 armas míticas a 449 R$), un Developer Product cada uno; debajo, los Game Passes, siempre a la venta.
+- El Armario dice si algo está hoy en la tienda.
+
+### 14.3 Cosméticos
+
+- **Tipos:** trajes por rol, aspectos de arma por rol (y del machete), skins de mascota, estelas, auras, títulos, marcos (ranking, Grupo y resultados), emotes (rueda con la tecla "." o 😀), estilo de los números de daño, estilo de los estallidos de cómic y decoración del nido (solo la ve quien la lleva). Algunos tienen **grados I, II y III** que comparten línea: se ve el más alto que tienes.
+- **Rarezas:** común, poco común, raro, épico, legendario y **mítico**. Cuanto más raro, más detalle; las variantes se distinguen de un vistazo, también de espaldas.
+- **Míticos** (dioses de la selva): un traje por rol que **se gana** venciendo con el equipo de nivel 4 del rol (Rey Gorila Titán, Jaguar Espectral, Serpiente Emplumada, Ceiba de la Vida) y su arma, en la tienda de Robux. Crecen con el nivel de la armadura y del arma en la Isla y se ven enteros en el Lobby y en Dunas. Los trajes del pase también ganan piezas con el grado de la armadura.
+- Todo se elige en el **Armario** del Lobby (avatar 3D que gira, pestañas Trajes, Armas, Efectos, Títulos, Mascotas, Marcos, Emotes y Estilos). En Dunas solo llegan los cosméticos (§12.2).
+
+### 14.4 Correcciones a la investigación
+
+`docs/Sistema de recompensas y retencion.txt` y `docs/battle_pass_30_days.xlsx`/`.pdf` (investigación previa) sirvieron de base, con estas correcciones (están también en la hoja "Correcciones" del Excel; el PDF es una exportación y no se toca):
+
+| # | El Excel decía | En el juego |
+|---|---|---|
+| 7 | La premium vende aceleradores del nido y Ámbar | Premium 100 % cosmética: el Ámbar compra vida y daño, venderlo sería pagar para ganar |
+| 8 | "Superviviente de la Isla" en el nivel 30 gratis | Ese título es solo para quien gana; el N30 gratis da "Señor del Volcán" |
+| 9 | Skins de mascotas que no existen (Tití, Mandril, Gorila Albino); total premium 90 cuando suma 75; 1.000 XP al día justos | Skins solo de las 13 mascotas reales (y de familia); el pase se termina con ~20–24 días activos |
+| 10 | Niveles comprados con los premios gratis incluidos | Los premios no cosméticos solo se desbloquean con nivel ganado jugando |
 
 ---
 

@@ -1,12 +1,13 @@
-# Lanzamiento (Fase 6)
+# Lanzamiento (Fases 6 y 9)
 
 Todo el código del lanzamiento está hecho. Lo que queda son **ajustes en el Creator Hub y en Studio**, que solo puedes hacer tú con tu cuenta. Sigue esta lista en orden.
 
 ## 1. Antes de nada: probar
 
 1. Repasa la lista de pruebas de las Fases 2 a 6 (está en el mensaje de entrega de Claude y en [PLAN.md](PLAN.md)).
-2. Activa **StreamingEnabled** en la Isla y prueba en un móvil ([RENDIMIENTO.md](RENDIMIENTO.md)).
-3. Activa el acceso a las API en Studio para probar el guardado ([SETUP.md](SETUP.md#guardado-de-datos-fase-28)).
+2. La lista de la Fase 9 (pase, misiones, contratos, eventos, cosméticos y tiendas): [VERIFICACION.md §10](VERIFICACION.md#10-fase-9-pase-misiones-v2-mitad-de-partida-y-cosméticos-21-10-2026).
+3. Activa **StreamingEnabled** en la Isla y prueba en un móvil ([RENDIMIENTO.md](RENDIMIENTO.md)).
+4. Activa el acceso a las API en Studio para probar el guardado ([SETUP.md](SETUP.md#guardado-de-datos-fase-28)).
 
 ## 2. Sonido
 
@@ -40,12 +41,49 @@ Las voces están en `MonkeyVoices`, en el mismo archivo, divididas por tamaño. 
 
 Cada grupo tiene cuatro sonidos: `Attack` (muerde o salta), `Call` (aúlla o ruge), `Hurt` (recibe un golpe) y `Death` (ya no suena: al derrotarlos suena `Hurt` y el "¡puf!"). Los jefes usan los de `Large` más graves (`BOSS_PITCH`), así que no hace falta subir sonidos aparte para ellos. En el botón de prueba aparecen como `MonkeySmallAttack`, `MonkeyLargeCall`, `BossRoar`…
 
-## 3. Tienda cosmética (Robux)
+## 3. Tienda cosmética y pase de temporada (Robux)
 
-1. **Creator Hub → tu experiencia → Monetización → Pases → Crear pase**.
-2. Crea un pase por cosmético de `src/shared/Data/Cosmetics.luau`: Estela dorada, Estela de la selva, Título "Rey de la selva" y Aura de banana. Ponle imagen (512×512) y precio (los cosméticos suelen ir de 50 a 200 Robux).
-3. Copia el **ID** de cada pase en su `gamePassId`. Con `0` sale como "Próximamente".
-4. Los huevos y las mascotas **no se venden** con Robux (solo se consiguen jugando). Es una decisión del GDD para cumplir las normas de Roblox sobre objetos aleatorios de pago: no lo cambies.
+### Game Passes (ya creados)
+
+Estela dorada, Estela de la selva, Título "Rey de la selva" y Aura de banana ya tienen su `gamePassId` en `src/shared/Data/Cosmetics.luau`. Para uno nuevo: **Creator Hub → tu experiencia → Monetización → Pases → Crear pase**, con imagen (512×512) y precio, y su ID en `gamePassId` (con `0` sale como "Próximamente").
+
+### Developer Products (Fase 9, por crear)
+
+Todo lo que se compra más de una vez o rota en la tienda es un **Developer Product**. Hasta que tenga su id sale como "Próximamente" y no se puede comprar.
+
+1. **Creator Hub → tu experiencia → Monetización → Productos para desarrolladores → Crear**. Nombre, imagen (512×512, la imagen voxel del premio sirve) y el precio de la tabla.
+2. Copia el **ID** del producto y ponlo en su `productId` (cambia el `0`).
+3. Calculadora (`Economia`, sección 5): la columna **Id** pasa de "falta" a ✅ y todos siguen siendo ✅ cosméticos.
+
+| Producto | Dónde va el id | Precio |
+|---|---|---|
+| 🌋 Pase de temporada premium (vale para la temporada en curso; el mismo producto sirve para las siguientes) | `Config.Shop.Products.SeasonPremium` | 399 |
+| 🌋 Pase premium + 10 niveles | `Config.Shop.Products.SeasonPack` | 799 |
+| ⭐ Un nivel del pase | `Config.Shop.Products.SeasonLevel` | 79 |
+| Título: Capitán pirata | `Data/Cosmetics` → `TitlePirateCaptain` | 99 |
+| Números: Escarcha | `FrostNumbers` | 149 |
+| Estallido: Neón | `NeonBurst` | 149 |
+| Aura: Lluvia de pétalos | `PetalAura` | 199 |
+| Marco de diamante | `DiamondFrame` | 199 |
+| Estela: Polvo de estrellas | `StardustTrail` | 249 |
+| Nido: Templo dorado | `GoldenTempleNest` | 249 |
+| Arma: Maza del Rey Gorila (mítico) | `TitanKingMace` | 449 |
+| Arma: Arco del Jaguar Espectral (mítico) | `SpectralJaguarBow` | 449 |
+| Arma: Báculo de la Serpiente Emplumada (mítico) | `FeatheredSerpentStaff` | 449 |
+| Arma: Cerbatana de la Ceiba (mítico) | `CeibaBlowgun` | 449 |
+
+Los precios que se enseñan en el juego salen de `price`: si cambias el precio en el Creator Hub, cámbialo también allí. Las compras se entregan con recibo (`ServerShared/Purchases`): una compra repetida por Roblox no se entrega dos veces. En Studio las compras son de prueba (no cobran).
+
+**Nunca con Robux:** Ámbar, huevos, tiempo de incubación, provisiones ni nada que dé ventaja. Los huevos y las mascotas **no se venden** (solo se consiguen jugando): es una decisión del GDD (§14) para cumplir las normas de Roblox sobre objetos aleatorios de pago. No lo cambies.
+
+### Fecha de la Temporada 1
+
+La Temporada 1 ("El Despertar del Volcán") empieza en `startsAt` de `src/shared/Data/Seasons.luau`. Hoy es **provisional** (lunes 19-10-2026). Antes de publicar:
+
+1. Elige un **lunes** igual o posterior al día en que publiques (las semanales y el calendario cambian el lunes a las 00:00 UTC).
+2. Cambia `startsAt = utc(2026, 10, 19)` por esa fecha. La temporada dura 30 días, con ×2 de XP los 7 últimos, y después hay 7 de descanso.
+3. Vuelve a pasar la calculadora: no cambia nada salvo la fecha.
+4. Prepara la Temporada 2 antes de que acabe el descanso (`.claude/skills/economia-retencion/references/nueva-temporada.md`).
 
 ## 4. Servidores privados
 
@@ -69,7 +107,8 @@ Cada grupo tiene cuatro sonidos: `Attack` (muerde o salta), `Call` (aúlla o rug
 
 - **Incorporación (embudo):** cada paso del tutorial y "Completado". Si mucha gente abandona en un paso, ese paso se explica mal.
 - **Economía:** Ámbar ganado (al terminar cada partida) y gastado (tienda del Lobby).
-- **Eventos propios:** `MatchVictory` y `MatchDefeat`, con los días sobrevividos.
+- **Eventos propios:** `MatchVictory` y `MatchDefeat`, con los días sobrevividos, y `SeasonLevel` (cada nivel del pase que se alcanza, con la temporada): sirve de embudo del pase.
+- **Compras:** el Creator Dashboard (Monetización) da el ingreso por producto; mira la conversión del pase premium y si alguien compra niveles sueltos.
 - **Retención** (D1, D7) y sesiones: Roblox las calcula solo.
 
 ## 7. Beta cerrada
@@ -82,9 +121,11 @@ Cada grupo tiene cuatro sonidos: `Attack` (muerde o salta), `Call` (aúlla o rug
 
 ## 8. Lanzamiento
 
-1. Pon la experiencia en **Pública** (los dos places ya están publicados).
-2. Opcional: **Anuncios patrocinados** en el Creator Hub con un presupuesto pequeño los primeros días, para que el algoritmo tenga datos.
-3. Vigila la Salida, la analítica y los comentarios la primera semana.
+1. **Publica los tres places a la vez** (Lobby, Isla e Isla de Dunas): comparten el perfil (`PlayerData_v1`, ahora en la versión 6) y un place viejo no entiende un perfil nuevo. Antes, guarda el Lobby con la plaza v14 (el cartel volcánico del pase) y la Isla con lo generado.
+2. Comprueba la fecha de la Temporada 1 (§3) y los ids de los Developer Products.
+3. Pon la experiencia en **Pública**.
+4. Opcional: **Anuncios patrocinados** en el Creator Hub con un presupuesto pequeño los primeros días, para que el algoritmo tenga datos.
+5. Vigila la Salida, la analítica y los comentarios la primera semana: D1/D7, el nivel del pase al que llega la gente (`SeasonLevel`) y la conversión del pase. Con datos de verdad, cambia los ritmos supuestos de la calculadora (`OPCIONES.ritmos`).
 
 ## 9. Menores de 16 (Roblox Kids y Select)
 
@@ -127,4 +168,4 @@ Los requisitos cambian a menudo; consúltalos en la [documentación oficial de R
 
 ## Después del lanzamiento (Fase 7)
 
-Temporadas con lore (tarjetas del laboratorio), jefes y eventos nuevos, mutadores de partida ("Luna roja", "Temporada de lluvias") y balance según los datos.
+Temporadas del pase con lore (tarjetas del laboratorio; cada una trae cosméticos nuevos a la tienda en Ámbar, unos 4.000–5.000 de Ámbar al mes, para que no vuelva a sobrar), jefes y eventos nuevos, mutadores de partida ("Luna roja", "Temporada de lluvias") y balance según los datos.

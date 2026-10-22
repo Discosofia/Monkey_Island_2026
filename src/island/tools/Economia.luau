@@ -1442,8 +1442,9 @@ local function main(copia: Instance): string
 	-- ---------------------------------------------------------------- Pago
 	if OPCIONES.secciones.pago then
 		linea("## 5. Reglas de pago")
-		-- Todo lo que se vende con Robux en Data y Config: entradas con gamePassId o productId distinto de 0
-		-- (en ellas o en su "source", como los cosméticos de Data/Cosmetics).
+		-- Todo lo que se vende con Robux en Data y Config: entradas con gamePassId o productId (en ellas o
+		-- en su "source", como los cosméticos de Data/Cosmetics). Las de id 0 ("Próximamente") también se
+		-- revisan: se venderán en cuanto se cree el producto en el Creator Hub.
 		local COSMETICOS = {
 			Trail = true,
 			Title = true,
@@ -1466,8 +1467,9 @@ local function main(copia: Instance): string
 			local fuente = if typeof(tabla.source) == "table" then tabla.source else tabla
 			local pase = fuente.gamePassId
 			local producto = fuente.productId
-			if (typeof(pase) == "number" and pase ~= 0) or (typeof(producto) == "number" and producto ~= 0) then
-				table.insert(ventas, { ruta = ruta, entrada = tabla })
+			if typeof(pase) == "number" or typeof(producto) == "number" then
+				local id = if typeof(pase) == "number" then pase else producto
+				table.insert(ventas, { ruta = ruta, entrada = tabla, precio = fuente.price, sinId = id == 0 })
 			end
 			for clave, valor in tabla do
 				if typeof(valor) == "table" and clave ~= "source" then
@@ -1482,8 +1484,12 @@ local function main(copia: Instance): string
 				revisar(require(modulo), `Data.{modulo.Name}`, visto)
 			end
 		end
-		linea("| Se vende | Qué da | Estado |")
-		linea("|---|---|---|")
+		table.sort(ventas, function(a, b)
+			return a.ruta < b.ruta
+		end)
+		linea("| Se vende | Qué da | Precio | Id | Estado |")
+		linea("|---|---|---|---|---|")
+		local sinId = 0
 		for _, venta in ventas do
 			local e = venta.entrada
 			local estado
@@ -1510,10 +1516,17 @@ local function main(copia: Instance): string
 					)
 				end
 			end
-			linea(`| {venta.ruta} | {que} | {estado} |`)
+			local precio = if typeof(venta.precio) == "number" then `{venta.precio} R$` else "—"
+			if venta.sinId then
+				sinId += 1
+			end
+			linea(`| {venta.ruta} | {que} | {precio} | {if venta.sinId then "falta" else "✅"} | {estado} |`)
 		end
 		if #ventas == 0 then
-			linea("| — | Nada a la venta con id | ✅ |")
+			linea("| — | Nada a la venta | — | — | ✅ |")
+		elseif sinId > 0 then
+			linea("")
+			linea(`{sinId} de {#ventas} sin id ("Próximamente"): se crean en el Creator Hub (docs/LANZAMIENTO.md).`)
 		end
 		-- Premios premium del pase: solo cosméticos.
 		if SeasonsModulo then

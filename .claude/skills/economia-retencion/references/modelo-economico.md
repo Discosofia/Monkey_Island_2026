@@ -19,7 +19,7 @@
 7. **Se juega en grupos de amigos** (partida de hasta 5): lo social es lo que retiene al jugador que
    ya lo tiene todo; premiar jugar juntos, nunca obligar a jugar con desconocidos.
 
-## 2. Fuentes y sumideros (octubre de 2026)
+## 2. Fuentes y sumideros (octubre de 2026, Fase 9 cerrada)
 
 | Fuente de Ámbar | Dónde | Números |
 |---|---|---|
@@ -31,7 +31,7 @@
 | Misiones semanales | ídem | 150 cada una; 250 (+1 h de huevo) por cumplir las 5 |
 | Descartar huevo | `Config.Egg.DiscardAmber` | 15/30/60/120/250 por rareza |
 | Tiempo de huevo sin huevo en el nido | `Config.Daily.AmberPerUnusedEggHour` | 30/h |
-| Pase de temporada, pista gratis (nivel ganado jugando) | `Data/Seasons`, `ServerShared/SeasonPass` | T1 provisional: 1.625 en 30 niveles (+ 7 h de huevo, provisiones y un huevo Raro en el N20); en bucle, 50 cada 3.000 XP |
+| Pase de temporada, pista gratis (nivel ganado jugando) | `Data/Seasons`, `ServerShared/SeasonPass` | T1: 1.625 en 30 niveles (+ 7 h de huevo, provisiones, un huevo Raro en el N20 y 8 cosméticos); en bucle, 50 cada 3.000 XP |
 
 | Sumidero de Ámbar | Dónde | Total |
 |---|---|---|
@@ -71,82 +71,74 @@ Cada día de juego es una partida nueva desde el día 1 (un día de partida = 17
 alfas; especies distintas en una partida que llega al día d: 4 + 1,5 × (d − 1). Cuando haya
 telemetría, cámbialos en la calculadora y apunta aquí de dónde salen.
 
-## 4. Línea base (20-10-2026, antes del pase; 30 días)
+## 4. Línea base (22-10-2026, Fase 9 cerrada: Temporada 1 completa; 30 días)
 
-| Perfil | Ámbar ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados) | Misiones cumplidas | Talentos llenos |
-|---|---|---|---|---|---|---|---|
-| Casual | 6.200 | 1.930 | 4.270 | día 12 | 11 (0) | 100 % | no |
-| Habitual | 15.698 | 2.380 | 13.318 | día 6 | 20 (16) | 100 % | día 12 |
-| Intenso | 44.834 | 2.380 | 42.454 | día 2 | 29 (106) | 100 % | día 4 |
-| Amigos | 17.059 | 2.380 | 14.679 | día 6 | 16 (27) | 100 % | día 11 |
+Medida en el G12 con todo encendido (misiones v2, semanales, contratos, pase con sus 30 + 30 premios,
+tiendas en Ámbar y Robux). Sin alertas.
 
-Con el pase (G3, sin semanales): el Ámbar del habitual pasa de 15.698 a 16.657 (925 del pase) y
-sigue gastando el 14 %. Nivel del pase el día 7 · 14 · 21 · 30:
+| Perfil | Ámbar ganado (partidas · Dunas · calendario · misiones · descartes · pase) | Gastado | Sin usar | Mejoras completas | Cosméticos en Ámbar | Huevos eclosionados (descartados) | Diarias cumplidas | Semanales por semana (con el extra) |
+|---|---|---|---|---|---|---|---|---|
+| Casual | 6.002 (2.480 · 0 · 1.400 · 1.597 · 0 · 525) | 5.730 | 272 | día 12 | 6 de 22 | 11 (0) | 67 % | 0,5 (0 %) |
+| Habitual | 22.085 (7.035 · 1.502 · 2.850 · 8.158 · 565 · 1.975) | 21.380 (97 %) | 705 | día 5 | 22, el día 30 | 20 (17) | 100 % | 3,7 (45 %) |
+| Intenso | 56.943 (28.575 · 6.435 · 3.900 · 11.900 · 3.558 · 2.575) | 21.380 | 35.563 | día 1 | 22, el día 12 | 29 (107) | 100 % | 5 (100 %) |
+| Amigos | 24.297 (8.812 · 2.431 · 2.000 · 8.048 · 931 · 2.075) | 21.380 | 2.917 | día 4 | 22, el día 27 | 16 (28) | 100 % | 4,2 (80 %) |
 
-| Perfil | Sin semanales | Último nivel | Con 4.200 XP/semana supuestas | Último nivel | Misiones (con semanales) |
+Pase (30 niveles × 1.000 XP; gratis: 1.625 Ámbar, 7 h de huevo, 8 cosméticos; premium: 30 cosméticos):
+
+| Perfil | Nivel el día 7 · 14 · 21 · 30 | Último nivel | XP: Isla · Dunas · misiones · semanales · amigos · ×2 | Misiones (con semanales) | XP sobre el tope |
 |---|---|---|---|---|---|
-| Casual | 2 · 4 · 6 · 10 | no | 6 · 12 · 19 · 30 | día 26 | 90 % |
-| Habitual | 4 · 9 · 14 · 24 | no | 8 · 17 · 26 · 30 | día 23 | 77 % |
-| Intenso | 11 · 23 · 30 · 30 | día 18 | 16 · 30 · 30 · 30 | día 13 | 50 % |
-| Amigos | 5 · 10 · 15 · 27 | no | 9 · 18 · 28 · 30 | día 23 | 68 % |
+| Casual | 2 · 5 · 7 · 13 | no | 4.760 · 0 · 4.800 · 923 · 0 · 2.621 | 55 % | 0 |
+| Habitual | 9 · 19 · 29 · 30 | día 23 | 14.070 · 1.596 · 14.700 · 10.343 · 0 · 9.758 | 62 % | 0 |
+| Intenso | 16 · 30 · 30 · 30 | día 13 | 32.069 · 3.931 · 21.000 · 15.000 · 0 · 16.300 | 50 % | 26.640 |
+| Amigos | 10 · 21 · 30 · 30 | día 20 | 17.170 · 2.584 · 11.900 · 12.462 · 1.975 · 10.913 | 53 % | 0 |
 
-Misiones: la más larga pide 33 min (salvar un huevo); las de rol, 4–11 min. Todo el equipo de la
-forja (nivel 3 de armas y armadura) se puede tener el **día 1** de la partida, y el botín de los
-4 jefes no lo pide ninguna receta.
+Misiones diarias: fáciles 8–13 min, medias 17–20, difíciles 50–67. Partida: nivel 2 de la forja el
+día 1, nivel 3 el día 4 (Corona del caudillo), nivel 4 el día 6 (obsidiana y Cristal de cueva).
+Contratos, pasos por partida jugando solo: casual 1,3 · habitual 2 · intenso 5 · amigos 2,3. Reglas de
+pago: 18 productos de Robux (3 del pase, 11 sueltos, 4 Game Passes), todos cosméticos o el pase; 14
+siguen sin id ("Próximamente") hasta que se creen en el Creator Hub.
 
-**Con las misiones v2 (G4, 21-10-2026)**: diarias en sus rangos (fáciles 8–13 min, medias 17–20,
-difíciles 50–67); el casual cumple el 67 % (las difíciles no le caben en 40 min). Semanales por
-semana (con el cambio): casual 0,5 (nunca el extra), habitual 3,7 (45 % con el extra), intenso 5
-(100 %), amigos 4,2 (80 %). Ámbar ganado en 30 días: casual 5.582, habitual 21.195 (gasta el 11 %),
-intenso 52.743, amigos 23.425. Pase, nivel el día 7 · 14 · 21 · 30:
+**Robustez (G12)**, cambiando una cosa cada vez:
 
-| Perfil | Nivel | Último nivel | Misiones (con semanales) |
-|---|---|---|---|
-| Casual | 2 · 4 · 7 · 12 | no | 59 % |
-| Habitual | 9 · 18 · 27 · 30 | día 24 | 65 % |
-| Intenso | 16 · 30 · 30 · 30 | día 13 | 50 % |
-| Amigos | 10 · 20 · 30 · 30 | día 21 | 56 % |
+| Prueba | Qué salta |
+|---|---|
+| Ritmos ×0,7 (todo un 30 % más lento) | La diaria fácil de fabricar pide 19 min (rango 3–15) y la de huevos 95 (35–90); el paso 1 del Campamento sale en el minuto 36 y se cierra en el 34; los pasos 3–4 de Campamento y Naturalista no caben solo; el casual llega al nivel 11 del pase (mínimo 12) |
+| Habitual de 4 días y 45 min | No termina el pase (nivel 26) |
+| Casual de 2 días y 30 min | Nivel 7 del pase |
 
-**Con el equipo ligado a los jefes (G5, 21-10-2026)**: el nivel 2 de la forja sigue el día 1, el
-nivel 3 (armas de rol y armadura de plata) el **día 4** (Corona del caudillo) y el nivel 4 de la forja
-volcánica el **día 6** (obsidiana y Cristal de cueva). Cada jefe da 2 de su tesoro a cada participante;
-la perla (día 2) y el núcleo de magma (día 8) siguen sin receta.
+Con los ritmos supuestos todo cabe con poca holgura en el casual y en los primeros pasos de los
+contratos: es lo primero que hay que mirar cuando haya telemetría.
 
-**Con los contratos de expedición (G6, 21-10-2026)**: 3 contratos (Campamento del náufrago, Diario del
-naturalista, Ruta del volcán) de 5 pasos que se abren los días 1, 3, 5, 7 y 8 y se pierden al abrir el
-siguiente. Jugando solo con los ritmos, pasos por partida: casual 1,3 · habitual 2 · intenso 5 · amigos
-2,3. Pase, nivel el día 7 · 14 · 21 · 30: casual 2 · 5 · 7 · **13** (antes 12), habitual 9 · 19 · 29 · 30
-(termina el **día 23**, antes 24; misiones 62 %), intenso día 13, amigos día 20. Ámbar del habitual en
-30 días: 22.085 (gasta el 11 %).
+**Cómo se llegó aquí** (Fase 9, 20–22 de octubre de 2026):
 
-**Con las tiendas de cosméticos (G10a, 21-10-2026)**: la calculadora compra, con las mejoras completas,
-lo que puede pagar de la oferta de cada día (es optimista: un jugador de verdad no lo compra todo). Con
-los 5 de prueba (3.200 Ámbar) el habitual pasa de gastar el 11 % al **25 %** y tiene la tienda entera el
-día 9. Midiendo un catálogo de prueba: con 17 cosméticos (13.400 Ámbar) gasta el 71 % pero lo acaba el
-día 23; con **23 (18.900)** gasta el 96 % y lo acaba el día 30; con 29, el 99 % y no lo acaba. El casual
-compra 6–7 (gana poco). Meta de G10b: 20–24 cosméticos en Ámbar y unos 6 sueltos de Robux.
-
-**Con el catálogo (G10b, 21-10-2026)**: tema "selva y mar" (no el volcán de la temporada). En Ámbar,
-22 cosméticos que suman **19.000**: 6 títulos, 3 estelas, 3 auras, 3 marcos, 3 números, 2 estallidos,
-1 nido y 1 skin de familia (Perro pirata, 1.500). En Robux, 11 sueltos: 6 nuevos de 99–249 R$ (título,
-estallido, aura, marco, estela y nido), los Números Escarcha y las 4 armas míticas. Gastado en 30 días:
-casual 5.730 de 6.002 (compra 6 de 22), habitual **21.380 de 22.085** (97 %, tiene la tienda entera el
-**día 30**), intenso 21.380 (todo el día 12), amigos 21.380 (día 27). Sin alertas.
+| Momento | Habitual: Ámbar gastado | Habitual: pase | Casual: pase | Equipo de nivel 3 |
+|---|---|---|---|---|
+| Antes del pase (línea base del G1) | 15 % (2.380 de 15.698) | — | — | día 1 |
+| G3: pase sin semanales | 14 % | nivel 24, no lo termina | nivel 10 | día 1 |
+| G4: misiones v2 y semanales (XP de la Isla 60/día, 150/jefe; diaria fácil 200) | 11 % | día 24 | nivel 12 | día 1 |
+| G5: equipo ligado a los jefes | 11 % | día 24 | nivel 12 | **día 4** |
+| G6: contratos | 11 % | **día 23** | **nivel 13** | día 4 |
+| G10a/G10b: tiendas de cosméticos (22 en Ámbar, 19.000) | **97 %** | día 23 | nivel 13 | día 4 |
+| G11/G12: Temporada 1 completa | 97 % | día 23 | nivel 13 | día 4 |
 
 ## 5. Hallazgos pendientes (plan de la Fase 9, `docs/PLAN.md`)
 
 - El intenso y los grupos tienen la tienda en Ámbar entera antes del día 30 (días 12 y 27) y el intenso
   acumula 35.000 Ámbar sin uso: cada temporada tiene que traer cosméticos nuevos a la tienda (unos
   4.000–5.000 Ámbar al mes) o el Ámbar vuelve a sobrar al segundo mes.
-- La Perla del río (día 2) y el Núcleo de magma (día 8) no los pide ninguna receta: candidatos para
-  los eventos (G7) o un paso de contrato que pida entregarlos.
+- El Núcleo de magma (jefe del día 8) no lo pide ninguna receta (la Perla del río ya la pide el tótem
+  guardián, G8): candidato para un paso de contrato o un construible de la próxima temporada.
 - Los pasos 3–5 de los contratos (días 5–8) solo los ve quien juega partidas largas (intenso, grupos):
   es lo buscado (metas para la mitad de la partida), pero si la telemetría dice que casi nadie pasa
   del día 4, son los que hay que mirar.
 - El intenso descarta muchos huevos (bolsa de 3 llena): vigilar al cambiar ritmos o premios de huevo.
-- El casual llega justo al nivel 12 del pase (el mínimo) y casi no cumple semanales (0,5 por semana
-  con 2 h de juego): si se suben objetivos semanales o se baja la XP, mira primero su fila.
-- El intenso tira 15.000 XP sobre el tope de partidas en el mes: el tope hace su trabajo (no termina
+- El casual llega justo al nivel 13 del pase (mínimo 12) y casi no cumple semanales (0,5 por semana
+  con 2 h de juego); con ritmos un 30 % más lentos se queda en el 11. Si se suben objetivos semanales,
+  se baja la XP o la telemetría da ritmos más lentos, mira primero su fila.
+- Con ritmos un 30 % más lentos, la diaria fácil de fabricar (2 objetos) se sale de su rango y el paso 1
+  del Campamento del náufrago (3 piezas) no cabe en los días 1–2 jugando solo: candidatos a bajar
+  (1 objeto más fácil, 2 piezas) si los datos lo confirman.
+- El intenso tira 26.000 XP sobre el tope de partidas en el mes: el tope hace su trabajo (no termina
   antes del día 13), pero si se baja la XP de misiones terminaría antes.
 
 ## 6. Dónde se enganchan los eventos de misión
