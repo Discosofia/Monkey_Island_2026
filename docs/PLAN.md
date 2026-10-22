@@ -422,7 +422,7 @@ Decisiones de la entrevista:
 | **C1** | Skill `combate-roblox` (renombrada y ampliada: mecánicas, detección, estilos y combos, equidad), números propuestos en `Config` y secciones 7 a 10 de la calculadora con sus límites, foto inicial y GDD §6.5 | `05d7697` | ✅ |
 | **C2** | Fundaciones: máquina de estados, aturdido e inmovilizado, estamina del servidor, `Latency`, `Knockback` (la Embestida empuja también a jugadores) y shift lock en Ctrl | `fe480f8` | ✅ |
 | **C3** | Detección de impactos unificada (`Combat/Hitbox`: rayos, esferas, cajas, áreas con línea de visión, posiciones rebobinadas). Ningún golpe atraviesa paredes. | `803d208` | ✅ |
-| **C4** | Cadena de 4 golpes cuerpo a cuerpo con remate | — | ⬜ |
+| **C4** | Cadena de 4 golpes cuerpo a cuerpo con remate (`Shared/MeleeChain`, tajos `Slash1`–`Slash4`) | `c7cbfa5` | ✅ |
 | **C5** | Guardia: bloqueo, parry y rotura; HUD y botón | — | ⬜ |
 | **C6** | Monos y jefes con preparación, control decreciente y muñecos que atacan para practicar | — | ⬜ |
 | **C7** | Evasivo, escalado del combo en PvP y telemetría nueva | — | ⬜ |
