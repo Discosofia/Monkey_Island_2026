@@ -296,11 +296,9 @@ local function grant(player: Player, recipeId: string, recipe: Recipes.Recipe)
 			wasEquipped = removeWeapon(player, weaponId) or wasEquipped
 		end
 		markReplacedOwned(player, recipe)
-		-- La mejora de un arma de rol lleva el aspecto equipado del rol (CosmeticsServer) y sigue siendo
-		-- del rol: si cambia (panel de pruebas), se va con él.
-		local skinId = player:GetAttribute("WeaponSkin")
-		local tool =
-			WeaponTools.build(recipe.weaponId, if recipe.role and typeof(skinId) == "string" then skinId else nil)
+		-- La mejora lleva el aspecto equipado (CosmeticsServer) del rol o del machete, si le vale; la de un
+		-- arma de rol sigue siendo del rol: si cambia (panel de pruebas), se va con él.
+		local tool = WeaponTools.build(recipe.weaponId, WeaponTools.skinOf(player, recipe.weaponId))
 		if recipe.role then
 			tool:SetAttribute("RoleWeapon", true)
 		end

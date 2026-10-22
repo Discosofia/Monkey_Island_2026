@@ -115,6 +115,17 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   módulo en caché) ya tiene la entrada con su `role`: añádela a la tabla en caché antes de probar.
   La imagen del pase y de las tiendas sale de `RewardModels.cosmetic`: el traje se pone en tu
   avatar girado a 3/4 de espaldas, y el aspecto de arma se enseña en el arma suelta.
+  Los trajes de temporada comparten `seasonBelt` y `seasonLimbs` (cinturón, hombreras desde el grado
+  1, brazales y faldones), y cada rol conserva su silueta de siempre: coraza del guerrero, capa y
+  carcaj del cazador, túnica y motivo alto del mago, mochila del médico. La espalda del grado 4 de
+  cada uno es una llamarada que sale de su pieza propia: el cráter, el carcaj, el aro o el
+  incensario. Al mirarlos en fila, ponlos en línea a lo ancho (`x`), nunca uno detrás de otro: se
+  tapan.
+  **Aspectos de armas que no son de rol** (el machete): el cosmético lleva `weapon = "Machete"` en
+  vez de `role`, hueco `WeaponSkin.Machete` y atributo `MacheteSkin`. `WeaponTools.FAMILY_LEVELS` da
+  su nivel (machete 1, afilado 2), y `WeaponTools.skinOf(player, weaponId)` elige el aspecto que
+  toca a cada arma: úsalo siempre que construyas un arma del jugador. La vista previa de un arma
+  suelta sale de `WeaponTools.previewWeapon(weaponId, skinId)`.
 - **Mascotas (PetModels):** alrededor de una pieza invisible `Root` (pivote), -Z hacia delante. Las partes
   que se mueven (alas, patas, cola) se registran con `joint(...)`. Atributos `Motion` y `Height`.
   Para una extremidad con varias piezas (brazo, codo, mano, nudillos, una calva cosida encima),

@@ -74,6 +74,7 @@ export type Cosmetic = {
 	source: Source,
 	title: string?, -- Title: el texto que se ve
 	role: string?, -- Outfit y WeaponSkin: el rol al que va
+	weapon: string?, -- WeaponSkin de un arma que no es de rol: su familia ("Machete", Shared/WeaponTools)
 	petId: string?, -- PetSkin: la mascota (Data/Pets)
 	petFamily: string?, -- PetSkin de familia: vale para todas las mascotas con ese "family" (Data/Pets)
 	animationId: string?, -- Emote: la animación publicada (rbxassetid://…)
@@ -84,8 +85,9 @@ export type Cosmetic = {
 	look: ("Sand" | "Storm" | "Petals")?, -- Aura: otra forma en vez de las chispas (ServerShared/CosmeticsServer)
 }
 
--- El fuego azul de la temporada 1.
+-- El fuego azul y el azufre de la temporada 1.
 local BLUE_FIRE = Color3.fromRGB(45, 120, 255)
+local SULFUR_YELLOW = Color3.fromRGB(235, 205, 55)
 
 local Cosmetics: { [string]: Cosmetic } = {
 	GoldenTrail = {
@@ -218,7 +220,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		name = "Estela: Pisada de magma",
 		icon = "🌋",
 		kind = "Trail",
-		description = "Pase de temporada 1, nivel 10 (premium): un rastro de lava.",
+		description = "Pase de temporada 1, nivel 11 (premium): un rastro de lava.",
 		order = 10,
 		rarity = "Epic",
 		color = Color3.fromRGB(255, 70, 20),
@@ -270,7 +272,7 @@ local Cosmetics: { [string]: Cosmetic } = {
 		source = { season = "T1" },
 	},
 
-	-- Trajes y armas de la temporada 1 (G11a), uno de cada por rol: fuego azul y azufre sobre piedra pómez
+	-- Trajes y armas de la temporada 1 (G11a), un traje y un arma por rol y el machete gratis: fuego azul y azufre sobre piedra pómez
 	-- (Shared/ArmorModels y Shared/WeaponTools), para no confundirse con la armadura y las armas
 	-- volcánicas del nivel 4. Los trajes ganan piezas con el grado de la armadura de debajo, como los míticos.
 	BlueFireGuardianOutfit = {
@@ -294,6 +296,84 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = BLUE_FIRE,
 		source = { season = "T1" },
 		role = "Guerrero",
+	},
+	BlueFireStalkerOutfit = {
+		name = "Traje: Acechador del Fuego Azul",
+		icon = "🔥",
+		kind = "Outfit",
+		description = "Pase de temporada 1, nivel 10 (premium): capa de pómez y un carcaj cuyas flechas arden en azul.",
+		order = 18.2,
+		rarity = "Legendary",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Cazador",
+	},
+	SulfurBow = {
+		name = "Arma: Arco de Azufre",
+		icon = "🔥",
+		kind = "WeaponSkin",
+		description = "Pase de temporada 1, nivel 7 (premium): palas de carbón con puntas de azufre para tu arco. Arde en azul en el nivel 4.",
+		order = 18.3,
+		rarity = "Epic",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Cazador",
+	},
+	BlueFireInvokerOutfit = {
+		name = "Traje: Invocador del Fuego Azul",
+		icon = "🔥",
+		kind = "Outfit",
+		description = "Pase de temporada 1, nivel 20 (premium): túnica de carbón y, a la espalda, un aro de piedra del que brota fuego azul.",
+		order = 18.4,
+		rarity = "Legendary",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Mago",
+	},
+	SulfurStaff = {
+		name = "Arma: Bastón de Azufre",
+		icon = "🔥",
+		kind = "WeaponSkin",
+		description = "Pase de temporada 1, nivel 13 (premium): un racimo de cristales de azufre en lo alto de tu bastón. Arde en azul en el nivel 4.",
+		order = 18.5,
+		rarity = "Epic",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Mago",
+	},
+	BlueFireHealerOutfit = {
+		name = "Traje: Sanador del Fuego Azul",
+		icon = "🔥",
+		kind = "Outfit",
+		description = "Pase de temporada 1, nivel 25 (premium): manto de pómez, frascos que curan y un incensario de fuego azul a la espalda.",
+		order = 18.6,
+		rarity = "Legendary",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Medico",
+	},
+	SulfurBlowgun = {
+		name = "Arma: Cerbatana de Azufre",
+		icon = "🔥",
+		kind = "WeaponSkin",
+		description = "Pase de temporada 1, nivel 18 (premium): caña de pómez con cristales de azufre en la boca. Arde en azul en el nivel 4.",
+		order = 18.7,
+		rarity = "Epic",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		role = "Medico",
+	},
+	-- Pista gratis: el aspecto del machete, para el cazador, el mago y el médico (el guerrero no lo lleva).
+	SulfurMachete = {
+		name = "Arma: Machete de Azufre",
+		icon = "🔥",
+		kind = "WeaponSkin",
+		description = "Pase de temporada 1, nivel 8 (gratis): una hoja de cristal de azufre para tu machete. Con filo de fuego azul cuando lo afilas.",
+		order = 18.8,
+		rarity = "Rare",
+		color = SULFUR_YELLOW,
+		source = { season = "T1" },
+		weapon = "Machete",
 	},
 
 	-- Tipos baratos (G9d), un ejemplo de cada; G11 los pone en su nivel del pase.

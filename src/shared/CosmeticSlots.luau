@@ -1,7 +1,8 @@
 --!strict
 -- Huecos de equipo de los cosméticos (Fase 9). Lo equipado se guarda en el perfil como
 -- "cosmetics" = { [hueco] = id }: un hueco por tipo para Trail, Title, Aura y Frame ("Trail"…), uno
--- por rol para Outfit y WeaponSkin ("Outfit.Guerrero"), uno por mascota para PetSkin
+-- por rol para Outfit y WeaponSkin ("Outfit.Guerrero"; los aspectos de un arma que no es de rol, uno por
+-- su familia: "WeaponSkin.Machete"), uno por mascota para PetSkin
 -- ("PetSkin.Tortuga"; las que comparten modelo, uno por familia: "PetSkin.Felino") y
 -- Config.Cosmetics.EmoteSlots para los emotes ("Emote1"…"Emote6", la rueda). Los tipos baratos
 -- (NumberStyle, BurstStyle, NestDecor), uno de cada.
@@ -22,6 +23,8 @@ function CosmeticSlots.slot(cosmetic: Cosmetics.Cosmetic): string?
 	local kind = cosmetic.kind
 	if kind == "Emote" then
 		return nil
+	elseif kind == "WeaponSkin" and cosmetic.weapon then
+		return `WeaponSkin.{cosmetic.weapon}`
 	elseif kind == "Outfit" or kind == "WeaponSkin" then
 		return if cosmetic.role then `{kind}.{cosmetic.role}` else nil
 	elseif kind == "PetSkin" then

@@ -7,8 +7,8 @@
 --     los cosméticos sueltos (ServerShared/Purchases, producto "Cosmetic.<id>").
 --   - Equipar/quitar (Remotes.EquipCosmetic) se guarda en el perfil, en su hueco (Shared/CosmeticSlots).
 --   - Dibuja lo equipado en el personaje: estela, título y aura. El traje y el aspecto del arma del rol
---     que se juega los publica en los atributos "Outfit" y "WeaponSkin" del jugador y los pone
---     Shared/ArmorModels (con la armadura) y Shared/WeaponTools (en las armas de rol).
+--     que se juega los publica en los atributos "Outfit" y "WeaponSkin" del jugador, y el del machete en
+--     "MacheteSkin"; los pone Shared/ArmorModels (con la armadura) y Shared/WeaponTools (en las armas).
 --   - Publica el marco ("Frame", lo dibujan las filas del ranking, del grupo y de los resultados con
 --     Shared/UI/PlayerFrames), la skin de la mascota activa ("PetSkin", la ponen los clientes al
 --     construirla con Shared/PetModels) y los tipos baratos: el estilo de los números ("NumberStyle",
@@ -120,8 +120,9 @@ local function equippedOwned(
 	return if cosmeticId and isBuilt(cosmeticId) then cosmeticId else nil
 end
 
--- Publica el traje ("Outfit") y el aspecto del arma ("WeaponSkin") equipados del rol que juega y, si
--- cambian (o con "force", al aparecer), lo viste y cambia el aspecto de sus armas de rol.
+-- Publica el traje ("Outfit") y el aspecto del arma ("WeaponSkin") equipados del rol que juega y el del
+-- machete ("MacheteSkin") y, si cambian (o con "force", al aparecer), lo viste y cambia el aspecto de sus
+-- armas.
 local function applyRoleCosmetics(player: Player, force: boolean?)
 	local profile = PlayerData.get(player)
 	local roleId = player:GetAttribute("Role")
@@ -130,6 +131,7 @@ local function applyRoleCosmetics(player: Player, force: boolean?)
 		outfitId = equippedOwned(player, profile, `Outfit.{roleId}`, ArmorModels.hasOutfit)
 		skinId = equippedOwned(player, profile, `WeaponSkin.{roleId}`, WeaponTools.hasSkin)
 	end
+	local macheteId = if profile then equippedOwned(player, profile, "WeaponSkin.Machete", WeaponTools.hasSkin) else nil
 	if force or player:GetAttribute("Outfit") ~= outfitId then
 		player:SetAttribute("Outfit", outfitId)
 		local character = player.Character
@@ -137,8 +139,9 @@ local function applyRoleCosmetics(player: Player, force: boolean?)
 			ArmorModels.dress(player, character)
 		end
 	end
-	if player:GetAttribute("WeaponSkin") ~= skinId then
+	if player:GetAttribute("WeaponSkin") ~= skinId or player:GetAttribute("MacheteSkin") ~= macheteId then
 		player:SetAttribute("WeaponSkin", skinId)
+		player:SetAttribute("MacheteSkin", macheteId)
 		WeaponTools.reskin(player)
 	end
 end

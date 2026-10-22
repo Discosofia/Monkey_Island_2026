@@ -273,17 +273,27 @@ local function previewModel(roleId: string, equipped: { [string]: string }, noWe
 	local model = Instance.new("Model")
 	model.Name = "Preview"
 	avatar.Parent = model
-	local weapon = if noWeapon then nil else WeaponTools.preview(roleId, shown(equipped, `WeaponSkin.{roleId}`))
-	if weapon then
-		-- Más pequeña que en la mano (las de nivel 4 miden casi lo que el avatar) y apoyada en el suelo
-		-- a su derecha, un poco inclinada hacia él.
+	-- Más pequeñas que en la mano (las de nivel 4 miden casi lo que el avatar) y apoyadas en el suelo a un
+	-- lado ("side": 1 la derecha), un poco inclinadas hacia él.
+	local _, avatarSize = avatar:GetBoundingBox()
+	local function standBeside(weapon: Model, side: number)
 		weapon:ScaleTo(WEAPON_PREVIEW_SCALE)
-		local _, avatarSize = avatar:GetBoundingBox()
-		weapon:PivotTo(CFrame.Angles(0, 0, 0.12))
+		weapon:PivotTo(CFrame.Angles(0, 0, 0.12 * side))
 		local box, size = weapon:GetBoundingBox()
 		local lift = size.Y / 2 - box.Position.Y
-		weapon:PivotTo(weapon:GetPivot() + Vector3.new(avatarSize.X / 2 + 0.7 - box.Position.X, lift, -box.Position.Z))
+		weapon:PivotTo(
+			weapon:GetPivot() + Vector3.new(side * (avatarSize.X / 2 + 0.7) - box.Position.X, lift, -box.Position.Z)
+		)
 		weapon.Parent = model
+	end
+	local weapon = if noWeapon then nil else WeaponTools.preview(roleId, shown(equipped, `WeaponSkin.{roleId}`))
+	if weapon then
+		standBeside(weapon, 1)
+	end
+	-- El machete con su aspecto, a la izquierda, si el rol lo lleva y hay uno puesto o probándose.
+	local macheteSkin = shown(equipped, "WeaponSkin.Machete")
+	if not noWeapon and macheteSkin and table.find(Roles[roleId].weapons, "Machete") then
+		standBeside(WeaponTools.previewWeapon("SharpMachete", macheteSkin), -1)
 	end
 	return model
 end
@@ -583,7 +593,10 @@ function WardrobePanel.build(list: Instance, options: Options)
 	local ids = {}
 	for id, cosmetic in Cosmetics do
 		local shownGrade = if cosmetic.line then CosmeticSlots.best(id, owned) or CosmeticSlots.grades(id)[1] else id
-		if tab.kinds[cosmetic.kind] and (not tab.byRole or cosmetic.role == roleId) and shownGrade == id then
+		-- Los aspectos de un arma que no es de rol (el machete) salen en los roles que la llevan.
+		local forRole = cosmetic.role == roleId
+			or (cosmetic.weapon ~= nil and table.find(Roles[roleId].weapons, cosmetic.weapon) ~= nil)
+		if tab.kinds[cosmetic.kind] and (not tab.byRole or forRole) and shownGrade == id then
 			table.insert(ids, id)
 		end
 	end

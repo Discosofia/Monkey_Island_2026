@@ -2463,6 +2463,277 @@ local function buildSulfurMace(tool: Tool, level: number): BasePart
 	return handle
 end
 
+-- Dos llamas en píxeles cruzadas (se ven de frente y de lado) con el pie en "at" y el fuego de partículas.
+local function crossedFlames(handle: BasePart, at: CFrame, cell: number, rate: number)
+	local foot = pixelFlame(handle, at, cell)
+	pixelFlame(handle, at * CFrame.Angles(0, math.pi / 2, 0), cell)
+	blueFire(foot, rate, cell * 6)
+end
+
+-- Arco de Azufre (cazador): palas de madera de carbón con placas de pómez en el lomo, empuñadura de pómez
+-- con venda de carbón. Nivel 1 (arco): puntas de pómez. Nivel 2 (arco reforzado): puntas de cristal de
+-- azufre y plumas celestes colgando. Nivel 3 (arco de liana): una raya de fuego azul por la cara de las palas
+-- y dos cristales de azufre en el lomo de cada una. Nivel 4 (arco de brasa): la cuerda de fuego azul y una
+-- llama azul en píxeles delante de la empuñadura. Mismo tamaño que el arco de cada nivel.
+local function buildSulfurBow(tool: Tool, level: number): BasePart
+	local size = ({ 1.25, 1.38, 1.5, 1.6 })[level] or 1.25
+	local handle = hiddenHandle(tool, Vector3.new(0.3, 0.9, 0.35))
+	block(handle, "Riser", Vector3.new(0.34, 1.1, 0.44), PUMICE, STONE_MATERIAL, CFrame.new())
+	block(handle, "Grip", Vector3.new(0.38, 0.6, 0.48), CHARCOAL, FABRIC, CFrame.new())
+	block(handle, "ArrowRest", Vector3.new(0.12, 0.1, 0.22), SULFUR, SMOOTH, CFrame.new(0.2, 0.36, 0.04))
+	local tipY, tipZ = 0, 0
+	for side = -1, 1, 2 do
+		local start = Vector3.new(0, side * 0.5, 0)
+		local middle = Vector3.new(0, side * 1.35 * size, 0.12 * size)
+		local tip = Vector3.new(0, side * 2.05 * size, 0.5 * size)
+		local curl = tip + Vector3.new(0, side * 0.3 * size, -0.12 * size)
+		strut(handle, "Limb", start, middle, 0.3, 0.24, CHARCOAL, WOOD_MATERIAL, Vector3.xAxis)
+		strut(handle, "Limb", middle, tip, 0.25, 0.21, CHARCOAL, WOOD_MATERIAL, Vector3.xAxis)
+		strut(handle, "Limb", tip, curl, 0.2, 0.18, CHARCOAL, WOOD_MATERIAL, Vector3.xAxis)
+		local back = Vector3.new(0, 0, -0.14)
+		strut(handle, "Plate", start + back, middle + back, 0.12, 0.28, PUMICE, STONE_MATERIAL, Vector3.xAxis)
+		strut(
+			handle,
+			"Plate",
+			middle + back,
+			tip:Lerp(middle, 0.3) + back,
+			0.1,
+			0.24,
+			PUMICE,
+			STONE_MATERIAL,
+			Vector3.xAxis
+		)
+		if level >= 2 then
+			local reach = (curl - tip).Unit
+			sulfurCrystal(handle, 0.5, 0.18, CFrame.lookAt(curl, curl + reach) * CFrame.Angles(-math.rad(90), 0, 0))
+		else
+			ball(handle, "Nock", 0.22, PUMICE, SMOOTH, CFrame.new(curl))
+		end
+		if level >= 3 then
+			local out = Vector3.new(0, 0, 0.13)
+			strut(
+				handle,
+				"Seam",
+				start:Lerp(middle, 0.15) + out,
+				middle + out,
+				0.08,
+				0.05,
+				BLUE_FIRE,
+				NEON,
+				Vector3.xAxis
+			)
+			strut(handle, "Seam", middle + out, tip:Lerp(middle, 0.2) + out, 0.07, 0.05, BLUE_FIRE, NEON, Vector3.xAxis)
+			for _, spot in { start:Lerp(middle, 0.55), middle:Lerp(tip, 0.45) } do
+				sulfurCrystal(
+					handle,
+					0.42,
+					0.16,
+					CFrame.new(spot + Vector3.new(0, 0, -0.2)) * CFrame.Angles(-math.rad(90) + side * 0.3, 0, 0)
+				)
+			end
+		end
+		tipY, tipZ = tip.Y, tip.Z
+	end
+	block(
+		handle,
+		"String",
+		Vector3.new(0.05, tipY * 2, 0.05),
+		if level >= 4 then BLUE_FIRE else CHARCOAL,
+		if level >= 4 then NEON else FABRIC,
+		CFrame.new(0, 0, tipZ)
+	)
+	if level >= 2 then
+		-- Cordón con dos plumas celestes y una de pómez colgando a un lado de la empuñadura.
+		block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), CHARCOAL, FABRIC, CFrame.new(0.22, -0.55, 0))
+		for index, color in { BLUE_FIRE_MID, PUMICE, BLUE_FIRE_MID } do
+			local offset = index - 2
+			block(
+				handle,
+				"Feather",
+				Vector3.new(0.04, 0.5, 0.14),
+				color,
+				SMOOTH,
+				CFrame.new(0.22, -0.98, offset * 0.09) * CFrame.Angles(offset * 0.3, 0, 0)
+			)
+		end
+	end
+	if level >= 4 then
+		crossedFlames(handle, CFrame.new(0, -0.34, -0.3), 0.11, 8)
+	end
+	tool.Grip = CFrame.new()
+	return handle
+end
+
+-- Bastón de Azufre (mago): asta de pómez con venda de carbón y, en lo alto, un cristal grande de azufre de
+-- pie rodeado de otros más pequeños que se abren. Nivel 1 (bastón mágico): dos cristales pequeños. Cada nivel
+-- suma uno y el cristal crece como el del bastón de ese nivel; nivel 2 (de oro): cuatro garras de carbón y una
+-- banda de pómez; nivel 3 (de plata): un aro de fuego azul alrededor de los cristales; nivel 4 (de lava): una
+-- llamarada azul en píxeles encima del cristal grande, con su luz.
+local function buildSulfurStaff(tool: Tool, level: number): BasePart
+	local crystalSize = ({ 0.55, 0.65, 0.75, 0.85 })[level] or 0.55
+	local top = STAFF_LENGTH / 2
+	local handle = hiddenHandle(tool, Vector3.new(0.3, STAFF_LENGTH, 0.3))
+	rod(handle, "Shaft", STAFF_LENGTH, 0.3, PUMICE_DARK, STONE_MATERIAL, CFrame.new())
+	rod(handle, "Collar", 0.25, 0.44, CHARCOAL, STONE_MATERIAL, CFrame.new(0, top, 0))
+	ball(handle, "Butt", 0.36, CHARCOAL, STONE_MATERIAL, CFrame.new(0, -top, 0))
+	rod(handle, "Wrap", 0.8, 0.36, CHARCOAL, FABRIC, CFrame.new(0, -0.6, 0))
+	sulfurCrystal(handle, crystalSize * 2, crystalSize * 0.8, CFrame.new(0, top + 0.08, 0))
+	local count = level + 1
+	for index = 0, count - 1 do
+		sulfurCrystal(
+			handle,
+			crystalSize * 1.1,
+			crystalSize * 0.5,
+			CFrame.new(0, top + 0.08, 0)
+				* CFrame.Angles(0, index * math.pi * 2 / count + 0.3, 0)
+				* CFrame.Angles(-0.55, 0, 0)
+		)
+	end
+	if level >= 2 then
+		rod(handle, "Band", 0.14, 0.36, PUMICE, STONE_MATERIAL, CFrame.new(0, top - 0.5, 0))
+		-- Garras de carbón que salen del collar y sujetan los cristales por fuera.
+		local reach = crystalSize * 0.9
+		for index = 0, 3 do
+			local angle = index * math.pi / 2 + math.pi / 4
+			local outward = Vector3.new(math.sin(angle), 0, math.cos(angle))
+			local base = Vector3.new(0, top, 0) + outward * 0.12
+			local bulge = Vector3.new(0, top + crystalSize * 0.6, 0) + outward * reach
+			local tip = Vector3.new(0, top + crystalSize * 1.2, 0) + outward * reach * 0.6
+			strut(handle, "Claw", base, bulge, 0.12, 0.12, CHARCOAL, STONE_MATERIAL, outward)
+			strut(handle, "Claw", bulge, tip, 0.1, 0.1, CHARCOAL, STONE_MATERIAL, outward)
+		end
+	end
+	if level >= 3 then
+		local radius = crystalSize * 1.15
+		local segments = 12
+		for index = 0, segments - 1 do
+			block(
+				handle,
+				"Ring",
+				Vector3.new(2 * radius * math.sin(math.pi / segments) + 0.03, 0.07, 0.07),
+				BLUE_FIRE,
+				NEON,
+				CFrame.new(0, top + crystalSize * 0.7, 0)
+					* CFrame.Angles(0, index * math.pi * 2 / segments, 0)
+					* CFrame.new(0, 0, -radius * math.cos(math.pi / segments))
+			)
+		end
+	end
+	if level >= 4 then
+		crossedFlames(handle, CFrame.new(0, top + 0.08 + crystalSize * 2, 0), 0.16, 12)
+	end
+	tool.Grip = CFrame.new(0, -0.6, 0)
+	return handle
+end
+
+-- Cerbatana de Azufre (médico): caña de pómez con nudos de carbón, boquilla de carbón y la bolsita de
+-- dardos. Nivel 1 (cerbatana): la boca de pómez oscura. Nivel 2 (de hueso): un racimo de tres cristales de
+-- azufre bajo la boca. Nivel 3 (de chamán): cinco cristales y dos anillos de fuego azul. Nivel 4 (de azufre):
+-- una llama azul en píxeles en la boca, con su luz. Mismo largo que la cerbatana de cada nivel.
+local function buildSulfurBlowgun(tool: Tool, level: number): BasePart
+	local length = ({ 3.6, 3.9, 4.2, 4.5 })[level] or 3.6
+	local bottom = -1.4
+	local top = bottom + length
+	local handle = hiddenHandle(tool, Vector3.new(0.3, 1.4, 0.3))
+	rod(handle, "Tube", length, 0.24, PUMICE, STONE_MATERIAL, CFrame.new(0, (bottom + top) / 2, 0))
+	local y = bottom + 0.9
+	while y < top - 0.3 do
+		if math.abs(y + 0.8) > 0.5 then
+			rod(handle, "Node", 0.08, 0.3, CHARCOAL, STONE_MATERIAL, CFrame.new(0, y, 0))
+		end
+		y += 0.6
+	end
+	rod(handle, "Mouthpiece", 0.3, 0.32, CHARCOAL, STONE_MATERIAL, CFrame.new(0, bottom + 0.1, 0))
+	rod(handle, "Muzzle", 0.22, 0.32, PUMICE_DARK, STONE_MATERIAL, CFrame.new(0, top - 0.08, 0))
+	rod(handle, "Grip", 0.8, 0.3, CHARCOAL, FABRIC, CFrame.new(0, -0.8, 0))
+	block(handle, "Pouch", Vector3.new(0.18, 0.42, 0.3), CHARCOAL, FABRIC, CFrame.new(0.2, -0.1, 0))
+	for index = -1, 1 do
+		local dart = CFrame.new(0.2, 0.2, index * 0.08) * CFrame.Angles(index * 0.15, 0, 0)
+		rod(handle, "Dart", 0.4, 0.04, BONE, SMOOTH, dart)
+		ball(handle, "Fluff", 0.11, BLUE_FIRE_MID, FABRIC, dart * CFrame.new(0, 0.22, 0))
+	end
+	if level >= 2 then
+		local count = if level >= 3 then 5 else 3
+		for index = 0, count - 1 do
+			sulfurCrystal(
+				handle,
+				if index % 2 == 0 then 0.5 else 0.38,
+				0.16,
+				CFrame.new(0, top - 0.75, 0)
+					* CFrame.Angles(0, index * math.pi * 2 / count + 0.4, 0)
+					* CFrame.new(0, 0, -0.12)
+					* CFrame.Angles(-0.5, 0, 0)
+			)
+		end
+	end
+	if level >= 3 then
+		for _, ringY in { top - 1.3, top - 1.55 } do
+			rod(handle, "Glow", 0.06, 0.3, BLUE_FIRE, NEON, CFrame.new(0, ringY, 0))
+		end
+	end
+	if level >= 4 then
+		crossedFlames(handle, CFrame.new(0, top + 0.02, 0), 0.09, 8)
+	end
+	tool.Grip = CFrame.new(0, -0.8, 0)
+	return handle
+end
+
+-- Machete de Azufre (aspecto gratis del pase para el machete, que llevan el cazador, el mago y el médico): la
+-- hoja es un cristal de azufre translúcido con el corazón que brilla, el lomo de carbón y la empuñadura de
+-- pómez. Nivel 2 (machete afilado): más largo, con el filo de fuego azul y dientes de azufre en el lomo.
+-- La hoja es el "Handle", como en los machetes (filo hacia -Z).
+local function buildSulfurMachete(tool: Tool, level: number): BasePart
+	local sharp = level >= 2
+	local length = if sharp then 2.9 else 2.6
+	local width = if sharp then 0.85 else 0.75
+	local blade = newPiece("Handle", Vector3.new(0.12, length, width), SULFUR, GLASS)
+	blade.Transparency = 0.25
+	blade.Parent = tool
+	local tip = newPiece("Tip", Vector3.new(0.12, 0.8, width), SULFUR, GLASS, "WedgePart")
+	tip.Transparency = 0.25
+	attach(blade, tip, CFrame.new(0, length / 2 + 0.4, 0))
+	block(blade, "Core", Vector3.new(0.06, length * 0.85, width * 0.35), SULFUR_GLOW, NEON, CFrame.new(0, -0.05, 0))
+	block(blade, "Spine", Vector3.new(0.16, length, 0.1), CHARCOAL, STONE_MATERIAL, CFrame.new(0, 0, width / 2 - 0.04))
+	block(
+		blade,
+		"Edge",
+		Vector3.new(0.14, length, 0.07),
+		if sharp then BLUE_FIRE else PUMICE,
+		if sharp then NEON else SMOOTH,
+		CFrame.new(0, 0, -(width / 2 - 0.03))
+	)
+	if sharp then
+		for index = 0, 4 do
+			tooth(
+				blade,
+				"Serration",
+				0.2,
+				0.1,
+				0.16,
+				SULFUR,
+				GLASS,
+				CFrame.new(0, -length / 2 + 0.45 + index * 0.3, width / 2 + 0.03) * TO_Z
+			)
+		end
+	end
+	local gripY = -length / 2 - 0.75
+	block(
+		blade,
+		"Guard",
+		Vector3.new(0.3, 0.16, width + 0.18),
+		CHARCOAL,
+		STONE_MATERIAL,
+		CFrame.new(0, -length / 2 - 0.08, 0)
+	)
+	block(blade, "Grip", Vector3.new(0.34, 1.2, 0.42), PUMICE_DARK, STONE_MATERIAL, CFrame.new(0, gripY, 0))
+	for _, offset in { 0.4, -0.4 } do
+		block(blade, "Wrap", Vector3.new(0.38, 0.12, 0.46), CHARCOAL, FABRIC, CFrame.new(0, gripY + offset, 0))
+	end
+	ball(blade, "Pommel", 0.44, SULFUR, SMOOTH, CFrame.new(0, gripY - 0.7, 0))
+	tool.Grip = CFrame.new(0, gripY, 0)
+	return blade
+end
+
 -- ===================================== Lista =====================================
 
 local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
@@ -2851,16 +3122,28 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 }
 
--- Aspectos de arma (Data/Cosmetics "WeaponSkin"), por id del cosmético: reciben el nivel del arma de
--- rol que sustituyen (1 la inicial, MAX_LEVEL la de la forja volcánica).
+-- Aspectos de arma (Data/Cosmetics "WeaponSkin"), por id del cosmético: reciben el nivel del arma que
+-- sustituyen (en las de rol, 1 la inicial y MAX_LEVEL la de la forja volcánica; en el machete, 1 o 2).
 local SKINS: { [string]: (tool: Tool, level: number) -> BasePart } = {
 	TitanKingMace = buildTitanKingMace,
 	SpectralJaguarBow = buildSpectralJaguarBow,
 	FeatheredSerpentStaff = buildFeatheredSerpentStaff,
 	CeibaBlowgun = buildCeibaBlowgun,
 	SulfurMace = buildSulfurMace,
+	SulfurBow = buildSulfurBow,
+	SulfurStaff = buildSulfurStaff,
+	SulfurBlowgun = buildSulfurBlowgun,
+	SulfurMachete = buildSulfurMachete,
 }
 WeaponTools.MAX_LEVEL = 4
+
+-- Armas que no son de rol pero tienen aspectos propios (Data/Cosmetics "weapon"), con su nivel: el machete
+-- (que llevan el cazador, el mago y el médico) y su mejora. El aspecto equipado lo publica CosmeticsServer
+-- en el atributo "<familia>Skin" del jugador ("MacheteSkin").
+local FAMILY_LEVELS: { [string]: { family: string, level: number } } = {
+	Machete = { family = "Machete", level = 1 },
+	SharpMachete = { family = "Machete", level = 2 },
+}
 
 -- Rol y nivel de cada arma de rol: la inicial (Data/Roles, la primera de "weapons") es la 1 y cada
 -- receta del rol que la mejora ("upgrades") suma uno.
@@ -2901,17 +3184,29 @@ function WeaponTools.hasSkin(skinId: string): boolean
 	return SKINS[skinId] ~= nil
 end
 
--- El constructor del aspecto "skinId" si es del rol del arma "weaponId", y el nivel del arma.
-local function skinFor(weaponId: string, skinId: any): ((tool: Tool, level: number) -> BasePart)?
-	local roleId = WeaponTools.roleLevel(weaponId)
+-- El constructor del aspecto "skinId" si es del arma "weaponId" (de su rol o de su familia), y el nivel
+-- del arma.
+local function skinFor(weaponId: string, skinId: any): (((tool: Tool, level: number) -> BasePart)?, number)
 	local cosmetic = if typeof(skinId) == "string" then Cosmetics[skinId] else nil
-	return if roleId and cosmetic and cosmetic.role == roleId then SKINS[skinId] else nil
+	local family = FAMILY_LEVELS[weaponId]
+	if family then
+		return if cosmetic and cosmetic.weapon == family.family then SKINS[skinId] else nil, family.level
+	end
+	local roleId, level = WeaponTools.roleLevel(weaponId)
+	return if roleId and cosmetic and cosmetic.role == roleId then SKINS[skinId] else nil, level
+end
+
+-- El aspecto que lleva "player" para el arma "weaponId": el de su rol ("WeaponSkin") o el de la familia
+-- del arma ("MacheteSkin"). WeaponTools.build ya comprueba que le valga.
+function WeaponTools.skinOf(player: Player, weaponId: string): string?
+	local family = FAMILY_LEVELS[weaponId]
+	local skinId = player:GetAttribute(if family then `{family.family}Skin` else "WeaponSkin")
+	return if typeof(skinId) == "string" then skinId else nil
 end
 
 -- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol.
 local function fill(tool: Tool, weaponId: string, skinId: string?)
-	local _, level = WeaponTools.roleLevel(weaponId)
-	local skin = skinFor(weaponId, skinId)
+	local skin, level = skinFor(weaponId, skinId)
 	tool:SetAttribute("Skin", if skin then skinId else nil)
 	if skin then
 		skin(tool, level)
@@ -2946,11 +3241,10 @@ function WeaponTools.build(weaponId: string, skinId: string?): Tool
 	return tool
 end
 
--- Cambia el aspecto de las armas de rol de "player" (mochila, mano y StarterGear) al de su atributo
--- "WeaponSkin" (o al de siempre si no lleva). Se cambian las piezas dentro de la misma Tool, así no
+-- Cambia el aspecto de las armas de "player" (mochila, mano y StarterGear) al de sus atributos
+-- "WeaponSkin" (las de rol) y "MacheteSkin" (o al de siempre si no lleva). Se cambian las piezas dentro de la misma Tool, así no
 -- se mueve de su casilla; la que tenía en la mano se suelta y se vuelve a coger.
 function WeaponTools.reskin(player: Player)
-	local skinId = player:GetAttribute("WeaponSkin")
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	local containers: { Instance? } =
@@ -2958,6 +3252,7 @@ function WeaponTools.reskin(player: Player)
 	for _, container in containers do
 		for _, tool in if container then container:GetChildren() else {} do
 			local weaponId = tool:GetAttribute("WeaponId")
+			local skinId = if typeof(weaponId) == "string" then WeaponTools.skinOf(player, weaponId) else nil
 			if
 				tool:IsA("Tool")
 				and typeof(weaponId) == "string"
@@ -2972,7 +3267,7 @@ function WeaponTools.reskin(player: Player)
 						child:Destroy()
 					end
 				end
-				fill(tool, weaponId, if typeof(skinId) == "string" then skinId else nil)
+				fill(tool, weaponId, skinId)
 				if inHand and humanoid then
 					humanoid:EquipTool(tool)
 				end
@@ -2996,9 +3291,11 @@ end
 -- en una imagen (Armario, tiendas de cosméticos). Su PrimaryPart es el mango.
 function WeaponTools.preview(roleId: string, skinId: string?): Model?
 	local weaponId = WeaponTools.roleWeapon(roleId, WeaponTools.MAX_LEVEL)
-	if not weaponId then
-		return nil
-	end
+	return if weaponId then WeaponTools.previewWeapon(weaponId, skinId) else nil
+end
+
+-- El arma "weaponId" con el aspecto "skinId", suelta y anclada (como WeaponTools.preview).
+function WeaponTools.previewWeapon(weaponId: string, skinId: string?): Model
 	local tool = WeaponTools.build(weaponId, skinId)
 	local model = Instance.new("Model")
 	model.Name = "Weapon"

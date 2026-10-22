@@ -2946,8 +2946,8 @@ local function sulfurMantle(body: Body)
 end
 
 -- Trajes (Data/Cosmetics, tipo "Outfit"), por id del cosmético; cada sección pone los suyos. Reciben el
--- grado de la armadura que se lleva debajo (0 a MAX_GRADE): los míticos ganan piezas con cada grado; los
--- de temporada lo enseñan con una gema de color. Cada traje (salvo el primero, cuyos colores y cristales
+-- grado de la armadura que se lleva debajo (0 a MAX_GRADE) y ganan piezas con él: muchas los míticos y
+-- cinco escalones los de temporada. Cada traje (salvo el primero, cuyos colores y cristales
 -- de jade usan los demás) va en su bloque "do": Luau no deja más de 200 variables locales a la vez en
 -- el módulo, y las del bloque se sueltan al cerrarlo.
 local OUTFITS: { [string]: (body: Body, grade: number) -> () } = {}
@@ -5163,6 +5163,74 @@ do
 		end
 	end
 
+	-- Cinturón de carbón con la hebilla de pómez: un tachón de azufre y, desde el grado 2, dos cristales.
+	-- Devuelve el frente del cinturón (su Z), para colgar más cosas.
+	local function seasonBelt(body: Body, grade: number): number
+		local waist = body.waist
+		local hipWidth, hipDepth = waist.size.X, waist.size.Z
+		local beltFront = -(hipDepth / 2 + 0.09)
+		waist.block(Vector3.new(hipWidth + 0.16, 0.28, hipDepth + 0.18), CHARCOAL, SLATE, CFrame.new(0, 0.06, 0))
+		local buckle = CFrame.new(0, 0.06, beltFront - 0.05)
+		waist.block(Vector3.new(0.46, 0.36, 0.1), PUMICE, SLATE, buckle)
+		waist.block(Vector3.new(0.3, 0.22, 0.06), CHARCOAL, SLATE, buckle * CFrame.new(0, 0, -0.05))
+		waist.ball(0.18, SULFUR, SMOOTH, buckle * CFrame.new(0, 0, -0.08))
+		if grade >= 2 then
+			for side = -1, 1, 2 do
+				fireCrystal(
+					waist,
+					(buckle * CFrame.new(side * 0.2, 0.12, 0)).Position,
+					Vector3.new(side, 1, -0.3),
+					0.26,
+					0.12,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
+		return beltFront
+	end
+
+	-- Brazos y muslos de los trajes de la temporada: hombreras desde el grado 1, brazales de pómez con una
+	-- raya de fuego azul y un cristal de azufre desde el grado 2, y faldones de "flap" con una placa de
+	-- carbón, la raya azul y un tachón (más largos con "long", los de las túnicas).
+	local function seasonLimbs(body: Body, grade: number, flap: Color3, flapMaterial: Enum.Material, long: boolean?)
+		for side = -1, 1, 2 do
+			if grade >= 1 then
+				blueFirePauldron(body.upperArm[side], side, grade >= 4)
+			end
+			local forearm = body.lowerArm[side]
+			local fs = forearm.size
+			band(forearm, 0.05, fs.Y * 0.6, 0.1, PUMICE, SLATE)
+			band(forearm, fs.Y * 0.32, 0.06, 0.14, BLUE_FIRE, NEON)
+			band(forearm, -fs.Y / 2 + 0.12, 0.12, 0.14, CHARCOAL, SLATE)
+			if grade >= 2 then
+				fireCrystal(
+					forearm,
+					Vector3.new(side * (fs.X / 2), 0.05, 0.1),
+					Vector3.new(side, 0.4, 0.5),
+					0.4,
+					0.18,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			local tall = if long then 0.6 else 0.44
+			local at = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * (if long then 0.3 else 0.2), -(ls.Z / 2 + 0.06))
+				* CFrame.Angles(0.1, 0, 0)
+			leg.block(Vector3.new(ls.X * 0.9, ls.Y * tall, 0.1), flap, flapMaterial, at)
+			leg.block(Vector3.new(ls.X * 0.62, ls.Y * 0.28, 0.06), CHARCOAL, SLATE, at * CFrame.new(0, 0.02, -0.07))
+			leg.block(
+				Vector3.new(ls.X * 0.9, 0.06, 0.12),
+				BLUE_FIRE,
+				NEON,
+				at * CFrame.new(0, -ls.Y * (tall / 2 - 0.01), -0.01)
+			)
+			leg.ball(0.12, SULFUR, SMOOTH, at * CFrame.new(0, 0.02, -0.11))
+		end
+	end
+
 	-- Traje de temporada del guerrero, Guardián del Fuego Azul. Delante: coraza de pómez cruzada por dos
 	-- correas de carbón con el canto de fuego azul y tachones de azufre; donde se cruzan, una llama en píxeles
 	-- sobre un disco de carbón sujeto por cuatro cristales de azufre; gorguera de carbón con cristales de
@@ -5306,60 +5374,430 @@ do
 			end
 		end
 
-		-- Cinturón de carbón con la hebilla de pómez: un tachón de azufre y, desde el grado 2, dos cristales.
-		local waist = body.waist
-		local hipWidth, hipDepth = waist.size.X, waist.size.Z
-		local beltFront = -(hipDepth / 2 + 0.09)
-		waist.block(Vector3.new(hipWidth + 0.16, 0.28, hipDepth + 0.18), CHARCOAL, SLATE, CFrame.new(0, 0.06, 0))
-		local buckle = CFrame.new(0, 0.06, beltFront - 0.05)
-		waist.block(Vector3.new(0.46, 0.36, 0.1), PUMICE, SLATE, buckle)
-		waist.block(Vector3.new(0.3, 0.22, 0.06), CHARCOAL, SLATE, buckle * CFrame.new(0, 0, -0.05))
-		waist.ball(0.18, SULFUR, SMOOTH, buckle * CFrame.new(0, 0, -0.08))
-		if grade >= 2 then
-			for side = -1, 1, 2 do
-				fireCrystal(
-					waist,
-					(buckle * CFrame.new(side * 0.2, 0.12, 0)).Position,
-					Vector3.new(side, 1, -0.3),
-					0.26,
-					0.12,
-					SULFUR,
-					SULFUR_GLOW
-				)
-			end
-		end
-
-		for side = -1, 1, 2 do
-			if grade >= 1 then
-				blueFirePauldron(body.upperArm[side], side, lit)
-			end
-			local forearm = body.lowerArm[side]
-			local fs = forearm.size
-			band(forearm, 0.05, fs.Y * 0.6, 0.1, PUMICE, SLATE)
-			band(forearm, fs.Y * 0.32, 0.06, 0.14, BLUE_FIRE, NEON)
-			band(forearm, -fs.Y / 2 + 0.12, 0.12, 0.14, CHARCOAL, SLATE)
-			if grade >= 2 then
-				fireCrystal(
-					forearm,
-					Vector3.new(side * (fs.X / 2), 0.05, 0.1),
-					Vector3.new(side, 0.4, 0.5),
-					0.4,
-					0.18,
-					SULFUR,
-					SULFUR_GLOW
-				)
-			end
-			local leg = body.upperLeg[side]
-			local ls = leg.size
-			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
-			leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.44, 0.1), PUMICE, SLATE, flap)
-			leg.block(Vector3.new(ls.X * 0.62, ls.Y * 0.28, 0.06), CHARCOAL, SLATE, flap * CFrame.new(0, 0.02, -0.07))
-			leg.block(Vector3.new(ls.X * 0.9, 0.06, 0.12), BLUE_FIRE, NEON, flap * CFrame.new(0, -ls.Y * 0.21, -0.01))
-			leg.ball(0.12, SULFUR, SMOOTH, flap * CFrame.new(0, 0.02, -0.11))
-		end
+		seasonBelt(body, grade)
+		seasonLimbs(body, grade, PUMICE, SLATE)
 	end
 
 	OUTFITS.BlueFireGuardianOutfit = blueFireGuardian
+
+	-- Traje de temporada del cazador, Acechador del Fuego Azul. Delante: jubón de cuero de carbón, la
+	-- correa del carcaj de pómez con tachones de azufre, esclavina de pómez con la raya de fuego azul,
+	-- cinturón con zurrón y un cuchillo de azufre. Detrás: capa de pómez oscura con el bajo de carbón y el
+	-- carcaj de pómez con aros de carbón y flechas de plumas celestes. Por grados: 0, todo eso; 1, las
+	-- hombreras; 2, collar de tres puntas de flecha de azufre con un broche de fuego azul, la capucha
+	-- bajada forrada de celeste y dos cristales de azufre en el carcaj; 3, tres zarpazos de fuego azul en la
+	-- capa, aros de fuego azul en el carcaj y una llama pequeña entre las flechas (arden); 4, la llama de las
+	-- flechas más grande, el bajo de la capa en llamas y el fuego de partículas, con su luz.
+	local function blueFireStalker(body: Body, grade: number)
+		local make = body.torso
+		local width, height, depth = make.size.X, make.size.Y, make.size.Z
+		local front = -(depth / 2 + 0.08)
+		local back = depth / 2
+		local lit = grade >= 4
+		local FACING_FRONT = CFrame.Angles(0, math.pi, 0)
+		make.block(
+			Vector3.new(width + 0.12, height * 0.92, depth + 0.14),
+			CHARCOAL,
+			LEATHER_MATERIAL,
+			CFrame.new(0, -height * 0.02, 0)
+		)
+		quiverStrap(make, front - 0.04, 0.16, PUMICE_DARK, LEATHER_MATERIAL)
+		local strapFrom = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.04)
+		local strapTo = Vector3.new(-width * 0.4, -height / 2 + 0.12, front - 0.04)
+		for _, t in { 0.25, 0.5, 0.75 } do
+			make.ball(0.12, SULFUR, SMOOTH, CFrame.new(strapFrom:Lerp(strapTo, t) + Vector3.new(0, 0, -0.08)))
+		end
+		-- Esclavina de pómez sobre los hombros con la raya de fuego azul delante.
+		make.block(Vector3.new(width + 0.36, 0.3, depth + 0.36), PUMICE, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+		make.block(
+			Vector3.new(width + 0.38, 0.05, 0.08),
+			BLUE_FIRE,
+			NEON,
+			CFrame.new(0, height / 2 - 0.2, -depth / 2 - 0.15)
+		)
+		if grade >= 2 then
+			-- Collar: cordón en V con tres puntas de flecha de azufre y un broche con una llama azul.
+			local neckLeft = Vector3.new(-width * 0.2, height / 2 - 0.12, front - 0.06)
+			local neckRight = Vector3.new(width * 0.2, height / 2 - 0.12, front - 0.06)
+			local bottom = Vector3.new(0, height * 0.14, front - 0.1)
+			strap(make, neckLeft, bottom, 0.04, CHARCOAL, FABRIC)
+			strap(make, bottom, neckRight, 0.04, CHARCOAL, FABRIC)
+			for index, spot in { neckLeft:Lerp(bottom, 0.7), bottom, neckRight:Lerp(bottom, 0.7) } do
+				fireCrystal(
+					make,
+					spot + Vector3.new(0, -0.02, -0.02),
+					Vector3.new((index - 2) * 0.2, -1, -0.15),
+					0.28,
+					0.13,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			local brooch = CFrame.new(-width * 0.3, height / 2 - 0.2, front - 0.14)
+			make.rod(0.06, 0.4, CHARCOAL, SLATE, brooch * FACING)
+			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, brooch * CFrame.new(0, -0.17, -0.04) * FACING_FRONT, 0.06, false)
+		end
+
+		-- Espalda: capa de pómez oscura con el bajo de carbón y la raya azul.
+		local capeHeight = height * 1.08
+		local capeY = height / 2 - capeHeight / 2 - 0.02
+		local capeZ = back + 0.16
+		make.block(Vector3.new(width * 1.02, capeHeight, 0.12), PUMICE_DARK, FABRIC, CFrame.new(0, capeY, capeZ))
+		local capeBottom = capeY - capeHeight / 2
+		make.block(
+			Vector3.new(width * 1.04, 0.16, 0.14),
+			CHARCOAL,
+			FABRIC,
+			CFrame.new(0, capeBottom + 0.08, capeZ + 0.01)
+		)
+		make.block(
+			Vector3.new(width * 1.04, 0.05, 0.16),
+			BLUE_FIRE,
+			NEON,
+			CFrame.new(0, capeBottom + 0.18, capeZ + 0.01)
+		)
+		if grade >= 3 then
+			-- Tres zarpazos de fuego azul en diagonal, en la mitad de la capa que no tapa el carcaj.
+			for index = -1, 1 do
+				local x = -width * 0.24 + index * 0.15
+				strap(
+					make,
+					Vector3.new(x - 0.14, height * 0.06, capeZ + 0.07),
+					Vector3.new(x + 0.18, -height * 0.46, capeZ + 0.07),
+					0.11,
+					BLUE_FIRE_MID,
+					NEON
+				)
+			end
+		end
+		if lit then
+			-- El bajo de la capa arde: cuatro llamas pequeñas.
+			for index = 0, 3 do
+				local x = -width * 0.39 + index * width * 0.26
+				local hem = pixelFlame(
+					make,
+					SMALL_FLAME,
+					BLUE_FLAME,
+					CFrame.new(x, capeBottom + 0.12, capeZ + 0.08),
+					0.1,
+					index % 2 == 1
+				)
+				if index == 1 then
+					blueFire(hem, 4, 0.4)
+				end
+			end
+		end
+		if grade >= 2 then
+			loweredHood(make, CHARCOAL, BLUE_FIRE_MID, FABRIC)
+		end
+		local quiverLength = 1.9
+		local quiverAt = backQuiver(make, {
+			length = quiverLength,
+			radius = 0.27,
+			color = PUMICE,
+			material = SLATE,
+			rim = CHARCOAL,
+			rimMaterial = SLATE,
+			arrows = 7,
+			feathers = { BLUE_FIRE_MID, PUMICE },
+		}, 0.32)
+		make.rod(0.1, 0.6, CHARCOAL, SLATE, quiverAt * UPRIGHT)
+		if grade >= 2 then
+			for side = -1, 1, 2 do
+				fireCrystal(
+					make,
+					(quiverAt * CFrame.new(side * 0.22, -0.25, 0.12)).Position,
+					quiverAt:VectorToWorldSpace(Vector3.new(side * 0.8, -0.6, 0.4)),
+					0.38,
+					0.17,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
+		if grade >= 3 then
+			for _, y in { 0.45, -0.45 } do
+				make.rod(0.05, 0.6, BLUE_FIRE, NEON, quiverAt * CFrame.new(0, y, 0) * UPRIGHT)
+			end
+			-- Las flechas arden: una llama entre las plumas y, en el grado 4, la llamarada grande que sale del
+			-- carcaj por encima del hombro.
+			local mouth = quiverAt * CFrame.new(0, quiverLength / 2 + 0.1, 0.05)
+			if lit then
+				blueFire(pixelFlame(make, BIG_FLAME, BLUE_FLAME, mouth, 0.14, false), 10, 0.8)
+			else
+				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, mouth, 0.13, false)
+			end
+		end
+
+		-- Cinturón con zurrón de pómez y un cuchillo de azufre.
+		local beltFront = seasonBelt(body, grade)
+		local waist = body.waist
+		local hipWidth = waist.size.X
+		local pouch = CFrame.new(hipWidth * 0.32, -0.12, beltFront - 0.06)
+		waist.block(Vector3.new(0.36, 0.32, 0.14), CHARCOAL, LEATHER_MATERIAL, pouch)
+		waist.block(Vector3.new(0.4, 0.13, 0.18), PUMICE, FABRIC, pouch * CFrame.new(0, 0.12, -0.01))
+		local knife = CFrame.new(-hipWidth * 0.36, -0.05, beltFront - 0.04) * CFrame.Angles(0, 0, 0.25)
+		waist.block(Vector3.new(0.1, 0.24, 0.1), CHARCOAL, LEATHER_MATERIAL, knife)
+		fireCrystal(
+			waist,
+			(knife * CFrame.new(0, -0.12, 0)).Position,
+			knife:VectorToWorldSpace(Vector3.new(0, -1, -0.05)),
+			0.4,
+			0.12,
+			SULFUR,
+			SULFUR_GLOW
+		)
+		seasonLimbs(body, grade, PUMICE_DARK, FABRIC)
+	end
+
+	-- Traje de temporada del mago, Invocador del Fuego Azul. Delante: túnica de carbón con una pechera de
+	-- pómez ribeteada de fuego azul y faja de carbón. Detrás: un panel de pómez oscura con un disco de piedra
+	-- dentro de un aro de carbón. Por grados: 0, todo eso; 1, las hombreras; 2, una runa de fuego azul en el
+	-- pecho (aro con una llama dentro), un cuello alto de cristales de azufre que se ve también por detrás y
+	-- dos talismanes de pómez colgando bajo el disco; 3, un aro de fuego azul alrededor del disco con seis
+	-- rayos de azufre y una llama en el centro; 4, en vez de esa llama, la llamarada grande que asoma por
+	-- encima de los hombros, una corona de cinco cristales de azufre y el fuego de partículas con su luz.
+	local function blueFireInvoker(body: Body, grade: number)
+		local make = body.torso
+		local width, height, depth = make.size.X, make.size.Y, make.size.Z
+		local front = -(depth / 2 + 0.09)
+		local back = depth / 2
+		local lit = grade >= 4
+		local FACING_FRONT = CFrame.Angles(0, math.pi, 0)
+		make.block(
+			Vector3.new(width + 0.12, height * 0.96, depth + 0.16),
+			CHARCOAL,
+			FABRIC,
+			CFrame.new(0, -height * 0.02, 0)
+		)
+		make.block(
+			Vector3.new(width * 0.5, height * 0.86, 0.08),
+			PUMICE,
+			FABRIC,
+			CFrame.new(0, -height * 0.04, front - 0.02)
+		)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.05, height * 0.86, 0.05),
+				BLUE_FIRE,
+				NEON,
+				CFrame.new(side * width * 0.26, -height * 0.04, front - 0.05)
+			)
+		end
+		if grade >= 2 then
+			-- Runa: aro de fuego azul con una llama dentro.
+			local runeAt = CFrame.new(0, height * 0.12, front - 0.08)
+			hoop(make, runeAt, width * 0.17, 10, 0.05, BLUE_FIRE, NEON)
+			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, runeAt * CFrame.new(0, -0.2, -0.02) * FACING_FRONT, 0.07, false)
+			-- Cuello alto de cristales de azufre, de un hombro a otro por detrás de la nuca.
+			for index = 0, 4 do
+				local angle = math.rad(-80 + index * 40)
+				fireCrystal(
+					make,
+					Vector3.new(math.sin(angle) * width * 0.4, height / 2 - 0.05, math.cos(angle) * depth * 0.45 + 0.05),
+					Vector3.new(math.sin(angle) * 0.4, 1, math.cos(angle) * 0.4 + 0.1),
+					if index == 2 then 0.75 else 0.6,
+					0.28,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
+
+		-- Espalda: panel de pómez oscura con un disco de piedra en un aro de carbón.
+		local ringAt = CFrame.new(0, height * 0.12, back + 0.2)
+		make.block(
+			Vector3.new(width * 0.96, height * 1.02, 0.12),
+			PUMICE_DARK,
+			FABRIC,
+			CFrame.new(0, -height * 0.06, back + 0.12)
+		)
+		make.rod(0.08, width * 0.62, PUMICE, SLATE, ringAt * CFrame.new(0, 0, -0.02) * FACING)
+		hoop(make, ringAt * CFrame.new(0, 0, 0.02), width * 0.3, 12, 0.1, CHARCOAL, SLATE)
+		if grade >= 2 then
+			-- Talismanes: dos placas de pómez con una runa azul que cuelgan bajo el disco.
+			for side = -1, 1, 2 do
+				local from = (ringAt * CFrame.new(side * width * 0.2, -width * 0.34, 0.04)).Position
+				local to = from + Vector3.new(side * 0.04, -height * 0.18, 0.02)
+				strap(make, from, to, 0.03, CHARCOAL, FABRIC)
+				make.block(Vector3.new(0.24, 0.36, 0.06), PUMICE, SLATE, CFrame.new(to.X, to.Y - 0.18, to.Z))
+				make.block(Vector3.new(0.06, 0.22, 0.03), BLUE_FIRE, NEON, CFrame.new(to.X, to.Y - 0.18, to.Z + 0.04))
+			end
+		end
+		if grade >= 3 then
+			hoop(make, ringAt * CFrame.new(0, 0, 0.04), width * 0.38, 14, 0.1, BLUE_FIRE, NEON)
+			for index = 0, 5 do
+				local angle = index * math.pi / 3 + math.pi / 6
+				local out = Vector3.new(math.sin(angle), math.cos(angle), 0.12)
+				fireCrystal(
+					make,
+					(ringAt * CFrame.new(out.X * width * 0.42, out.Y * width * 0.42, 0)).Position,
+					out,
+					0.42,
+					0.2,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			local flameAt = ringAt * CFrame.new(0, -width * 0.24, 0.06)
+			if lit then
+				blueFire(pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.1, false), 10, 0.8)
+			else
+				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, width * 0.09, false)
+			end
+		end
+		if lit then
+			-- Corona de cristales de azufre que asoma por encima de los hombros.
+			for index, x in { -0.4, -0.2, 0, 0.2, 0.4 } do
+				fireCrystal(
+					make,
+					Vector3.new(x * width, height * 0.44, back + 0.24),
+					Vector3.new(x * 1.1, 1, 0.35),
+					if index == 3 then 1.05 elseif index % 2 == 0 then 0.8 else 0.6,
+					if index == 3 then 0.32 else 0.26,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
+
+		seasonBelt(body, grade)
+		seasonLimbs(body, grade, CHARCOAL, FABRIC, true)
+	end
+
+	-- Traje de temporada del médico, Sanador del Fuego Azul. Delante: túnica de lino bajo un manto de pómez
+	-- con la raya de fuego azul, un peto de pómez y la bandolera de carbón con tres frascos. Detrás: capa de
+	-- pómez oscura, bastidor de madera y una mochila de pómez con una correa de carbón. Por grados: 0, todo
+	-- eso; 1, las hombreras; 2, la cruz verde que brilla en el peto (el verde de las curaciones), los frascos
+	-- que brillan y dos frascos más a los lados de la mochila; 3, encima de la mochila un incensario de
+	-- carbón con borde de pómez y cadenas, con una llama azul y humo; 4, la llamarada grande que sale del
+	-- incensario y el fuego de partículas con su luz.
+	local function blueFireHealer(body: Body, grade: number)
+		local make = body.torso
+		local width, height, depth = make.size.X, make.size.Y, make.size.Z
+		local front = -(depth / 2 + 0.08)
+		local back = depth / 2
+		local lit = grade >= 4
+		local healing = grade >= 2
+		make.block(
+			Vector3.new(width + 0.12, height * 0.94, depth + 0.16),
+			LINEN,
+			FABRIC,
+			CFrame.new(0, -height * 0.02, 0)
+		)
+		make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), PUMICE, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+		make.block(
+			Vector3.new(width + 0.42, 0.06, depth + 0.42),
+			BLUE_FIRE,
+			NEON,
+			CFrame.new(0, height / 2 - 0.24, 0.04)
+		)
+		-- Peto de pómez arriba a la izquierda, fuera del camino de la bandolera.
+		local plastron = CFrame.new(-width * 0.27, height * 0.12, front - 0.04)
+		make.block(Vector3.new(width * 0.34, height * 0.36, 0.08), PUMICE, SLATE, plastron)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.05, height * 0.36, 0.06),
+				CHARCOAL,
+				SLATE,
+				plastron * CFrame.new(side * width * 0.17, 0, -0.02)
+			)
+		end
+		if healing then
+			local cross = make.block(
+				Vector3.new(width * 0.07, height * 0.26, 0.05),
+				HEAL_GLOW,
+				NEON,
+				plastron * CFrame.new(0, 0, -0.06)
+			)
+			make.block(
+				Vector3.new(width * 0.22, height * 0.08, 0.05),
+				HEAL_GLOW,
+				NEON,
+				plastron * CFrame.new(0, 0.04, -0.06)
+			)
+			fireLight(cross, HEAL_GLOW)
+		end
+		local from = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.08)
+		local to = Vector3.new(-width * 0.4, -height / 2 + 0.12, front - 0.08)
+		strap(make, from, to, 0.16, CHARCOAL, LEATHER_MATERIAL)
+		for _, t in { 0.22, 0.42, 0.62 } do
+			local at = from:Lerp(to, t)
+			flask(make, CFrame.new(at.X, at.Y - 0.32, at.Z - 0.1), 0.22, healing)
+		end
+
+		-- Espalda: capa de pómez oscura, bastidor de madera y la mochila de pómez.
+		local capeHeight = height * 1.06
+		local capeY = height / 2 - capeHeight / 2 - 0.02
+		make.block(Vector3.new(width * 1.02, capeHeight, 0.12), PUMICE_DARK, FABRIC, CFrame.new(0, capeY, back + 0.16))
+		make.block(
+			Vector3.new(width * 1.03, 0.06, 0.14),
+			BLUE_FIRE,
+			NEON,
+			CFrame.new(0, capeY - capeHeight / 2 + 0.04, back + 0.17)
+		)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.1, height * 1.1, 0.1),
+				TOTEM_WOOD,
+				WOOD,
+				CFrame.new(side * width * 0.38, height * 0.04, back + 0.3)
+			)
+		end
+		for _, y in { height * 0.44, -height * 0.4 } do
+			make.block(Vector3.new(width * 0.86, 0.1, 0.1), TOTEM_WOOD, WOOD, CFrame.new(0, y, back + 0.3))
+		end
+		local pack = CFrame.new(0, -height * 0.08, back + 0.44)
+		make.block(Vector3.new(width * 0.72, height * 0.62, 0.46), PUMICE, SLATE, pack)
+		make.block(Vector3.new(width * 0.74, 0.12, 0.48), CHARCOAL, SLATE, pack * CFrame.new(0, height * 0.1, 0))
+		for _, x in { -0.2, 0, 0.2 } do
+			make.ball(0.16, SULFUR, SMOOTH, pack * CFrame.new(x * width, height * 0.1, 0.25))
+		end
+		if healing then
+			for side = -1, 1, 2 do
+				flask(make, pack * CFrame.new(side * (width * 0.36 + 0.24), -height * 0.2, 0.04), 0.42, true)
+			end
+		end
+		if grade >= 3 then
+			-- Incensario: cuenco de carbón con borde de pómez sobre la mochila, colgado de tres cadenas.
+			local censer = pack * CFrame.new(0, height * 0.31 + 0.18, 0.02)
+			make.block(Vector3.new(width * 0.56, 0.32, 0.42), CHARCOAL, SLATE, censer)
+			make.block(Vector3.new(width * 0.62, 0.08, 0.48), PUMICE, SLATE, censer * CFrame.new(0, 0.18, 0))
+			for _, x in { -0.2, 0, 0.2 } do
+				make.ball(0.1, SULFUR, SMOOTH, censer * CFrame.new(x * width, 0, 0.19))
+			end
+			for side = -1, 1, 2 do
+				strap(
+					make,
+					(censer * CFrame.new(side * width * 0.2, 0.15, 0)).Position,
+					(censer * CFrame.new(side * width * 0.06, 0.9, 0)).Position,
+					0.04,
+					CHARCOAL,
+					SLATE
+				)
+			end
+			local flameAt = censer * CFrame.new(0, 0.2, 0.04)
+			local flame = if lit
+				then pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.1, false)
+				else pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, 0.16, false)
+			smoke(flame, 2, Color3.fromRGB(150, 160, 190), 0.7)
+			if lit then
+				blueFire(flame, 10, 0.7)
+			end
+		end
+
+		-- Cinturón, una venda enrollada y dos bolsitas de hierbas.
+		local beltFront = seasonBelt(body, grade)
+		local waist = body.waist
+		local hipWidth = waist.size.X
+		waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(hipWidth * 0.32, -0.06, beltFront - 0.1) * UPRIGHT)
+		herbPouch(waist, CFrame.new(-hipWidth * 0.34, -0.12, beltFront - 0.08), LEAF)
+		seasonLimbs(body, grade, PUMICE_DARK, FABRIC)
+	end
+
+	OUTFITS.BlueFireStalkerOutfit = blueFireStalker
+	OUTFITS.BlueFireInvokerOutfit = blueFireInvoker
+	OUTFITS.BlueFireHealerOutfit = blueFireHealer
 end
 
 -- Constructores por armadura y rol (el que falta usa el de DEFAULT_ROLE).
