@@ -428,6 +428,7 @@ Decisiones de la entrevista:
 | **C7** | Evasivo, escalado del combo en PvP y telemetría nueva (`Combat/Evasive`, `CombatClient/EvasiveIcon`, `Combat/ComboScaling`, controles PvP con `Config.ControlDR`, `telemetry.mechanic` en la Isla y en Dunas) | `b66465d` | ✅ |
 | **C8** | Habilidades con preparación y amagos (`castSeconds` y estado `Casting`, `Combat/Feint` y `CombatClient/Feint`, guardia una vez por uso, sección 10 de `Equilibrio`) | `159671d` | ✅ |
 | **C9** | Proyectiles reales | — | ⬜ |
+| **C9b** | Disparo de remate de las armas a distancia (cada 4.º tiro seguido, mismo DPS total: el arco atraviesa a 2, el bastón explota en un área pequeña, la cerbatana pone doble veneno o doble cura y la honda tambalea a monos de categoría 1–2) | — | ⬜ |
 | **C10** | Rebote contra muros y zonas de peligro | — | ⬜ |
 | **C11** | Dunas: coberturas que se rompen y altar disputado | — | ⬜ |
 | **C12** | Claridad, interfaz y aprendizaje | — | ⬜ |

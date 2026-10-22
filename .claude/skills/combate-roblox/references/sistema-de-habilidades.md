@@ -47,16 +47,22 @@ Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, 
 | `targetsAround(attacker, centro, radio)` | enemigos vivos con la etiqueta `Enemy` y jugadores con PvP en una esfera |
 | `targetsOnGround(attacker, centro, radio, alto)` | igual pero en horizontal (cosas en el suelo, laderas) |
 | `bestInCone(attacker, character, origen, puntería, alcance, grados)` | el mejor alineado y sin obstáculos |
-| `castShot(character, origen, dirección, alcance, radio)` | disparo recto con `Spherecast`: punto final y a qué dio |
-| `targetFromPart`, `enemyTarget`, `playerTarget` | de una pieza a un `Target` |
+| `castShot(character, origen, dirección, alcance, radio)` | disparo recto con `Spherecast` en el instante: punto final y a qué dio (dónde cae un área: Lluvia, Meteoro, Tótem, Polvo) |
+| `CombatService.aimShot(player, origen, puntería, alcance, velocidad, grados, aliados?)` | ayuda de puntería de un proyectil (C9): la dirección de salida; contra monos, adonde estarán al llegar |
+| `Projectiles.fire(shot)` | proyectil real (C9, `Combat/Projectiles`): `onHit(modelo)` decide si le vale (si no, lo atraviesa) y `onEnd(punto)` lo que pasa al pararse |
+| `targetOfModel`, `enemyTarget`, `playerTarget` | de un combatiente a un `Target` (nil si no se le puede dañar) |
 | `groundBelow(posición, ignorar)` | suelo y su normal (para apoyar cosas) |
 | `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`pvpDamageMultiplier` (y las definitivas ×`pvpUltimateMultiplier`, de `CombatRules`); crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
 | `control(target, segundos, "Stun" \| "Freeze" \| "Root")` | aturde/congela/inmoviliza (jugadores con PvP: ×`PvPControlMultiplier`) |
 | `heal(healer, player, cantidad, abilityId)` | curación con críticos (seguro si es el remate) |
 | `comboOpener(player, abilityId, target)` | marca el objetivo si es el paso 1 del combo |
 
-Los proyectiles con viaje (Bola de fuego, Dardo, flechas) aplican el daño con `task.delay` al
-tiempo de vuelo, a la vez que el efecto que dibujan los clientes.
+Las que viajan (Disparo múltiple, Flecha perforante, Bola de fuego y Dardo curativo) son proyectiles
+reales desde C9 (`Combat/Projectiles`): salen hacia donde dice `aimShot` (solo engancha
+a quien la línea de tiro ya casi toca, `Config.Projectiles`), el servidor los mueve paso a paso y el daño entra cuando
+tocan a alguien; quien se aparta, se libra. La Bola de fuego estalla donde para (el primero que toca,
+una pared o el final de su alcance). Los clientes los dibujan con la hora de salida del servidor
+(efectos `Projectile` y `ProjectileEnd`, con el aspecto de `LOOKS` en `AbilityFxController`).
 
 ### 2.3 Orden de los multiplicadores de daño (jugador → mono)
 

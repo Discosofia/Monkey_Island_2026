@@ -1,6 +1,8 @@
 --!strict
 -- Combate (GDD §6, Fase 1.3): armas cuerpo a cuerpo, a distancia (honda y arco, que gastan munición;
 -- bastón mágico y cerbatanas, que no; los dardos de las cerbatanas envenenan) y esquiva.
+-- Los disparos son proyectiles reales (Fase 10, C9; Combat/Projectiles): van rectos, se pueden esquivar
+-- y la ayuda de puntería (aimShot) solo elige hacia dónde salen.
 -- El servidor decide todo: qué arma lleva el jugador, si el ataque está listo, a quién golpea y el daño.
 -- Se daña a lo que tenga la etiqueta Config.Combat.EnemyTag (monos, muñecos de práctica) y a otros
 -- jugadores cuando las reglas del place lo permiten (CombatRules: el PvP opt-in de la Isla, los
@@ -19,7 +21,6 @@ local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
@@ -47,6 +48,7 @@ local Feint = require(script.Parent.Parent.Feint)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
+local Projectiles = require(script.Parent.Parent.Projectiles)
 local StaminaServer = require(script.Parent.Parent.StaminaServer)
 local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
@@ -99,7 +101,6 @@ function CombatService.enemyFromPart(part: Instance): (Model?, Humanoid?)
 	end
 	return nil, nil
 end
-local enemyFromPart = CombatService.enemyFromPart
 
 -- Destello rojo sobre el objetivo. Los números flotantes los dibuja cada cliente (Combat/CombatText).
 local function flash(model: Model)
@@ -364,7 +365,6 @@ function CombatService.playerFromPart(part: Instance): Player?
 	end
 	return nil
 end
-local playerFromPart = CombatService.playerFromPart
 
 -- Cómo se puede defender un golpe de un jugador a otro (CombatService.damagePvP).
 export type PvPGuard = {
@@ -671,80 +671,93 @@ function CombatService.aimDeviation(origin: Vector3, aim: Vector3, point: Vector
 	return if angle <= limit then angle else nil
 end
 
--- Ayuda de puntería: el enemigo vivo más alineado con la dirección de apuntado, dentro del alcance y
--- sin nada en medio (árboles, rocas, terreno).
-local function findAimTarget(
-	character: Model,
+-- Adónde apuntar a un mono para que le dé un proyectil de "speed" que sale de "origin": adonde estará
+-- al llegar, si sigue como va (en horizontal: los saltos no se adivinan), como mucho
+-- Config.Projectiles.LeadMaxSeconds por delante.
+local function leadPoint(origin: Vector3, root: BasePart, speed: number): Vector3
+	local velocity = root.AssemblyLinearVelocity
+	local flatVelocity = Vector3.new(velocity.X, 0, velocity.Z)
+	local point = root.Position
+	for _ = 1, 2 do
+		local seconds = math.min((point - origin).Magnitude / speed, Config.Projectiles.LeadMaxSeconds)
+		point = root.Position + flatVelocity * seconds
+	end
+	return point
+end
+
+-- Cuánto se aparta "point" de la línea de tiro que sale de "origin" hacia "aim" (studs), y a qué
+-- distancia está a lo largo de ella; nil si queda detrás. Con "flatClose", de cerca (Config.Combat.
+-- CloseAimRange y CloseAimHeight) solo cuenta en horizontal: la cámara mira por encima del hombro y un
+-- mono pequeño pegado al jugador queda muy por debajo de la línea.
+local function offAimLine(origin: Vector3, aim: Vector3, point: Vector3, flatClose: boolean): (number?, number)
+	local offset = point - origin
+	local along = offset:Dot(aim)
+	if along <= 0 then
+		return nil, along
+	end
+	local settings = Config.Combat
+	local flatOffset = Vector3.new(offset.X, 0, offset.Z)
+	local flatAim = Vector3.new(aim.X, 0, aim.Z)
+	if
+		flatClose
+		and flatOffset.Magnitude <= settings.CloseAimRange
+		and math.abs(offset.Y) <= settings.CloseAimHeight
+		and flatAim.Magnitude > 0.1
+	then
+		local direction = flatAim.Unit
+		local flatAlong = flatOffset:Dot(direction)
+		if flatAlong <= 0 then
+			return nil, along
+		end
+		return (flatOffset - direction * flatAlong).Magnitude, along
+	end
+	return (offset - aim * along).Magnitude, along
+end
+
+-- Ayuda de puntería de un disparo (C9): la dirección con la que sale desde "origin". Solo engancha a
+-- quien la línea de tiro ya casi toca (Config.Projectiles): apuntando entre dos, el disparo pasa entre
+-- ellos. Entre los que se ven a menos de "range", el más cercano a la línea:
+--   - un mono vivo a menos de MonkeyAimStuds de ella (de lejos, dentro de MonkeyAimMinDegrees),
+--     apuntando adonde estará al llegar el proyectil (leadPoint);
+--   - un jugador rival (o, con "allies", un aliado vivo) a menos de PlayerAimStuds (PlayerAimMinDegrees),
+--     apuntando adonde está: se puede apartar.
+-- El proyectil va recto desde ahí: no persigue a nadie. Sin nadie, sale hacia "aim".
+function CombatService.aimShot(
+	player: Player,
 	origin: Vector3,
 	aim: Vector3,
-	weapon: Weapons.WeaponDefinition
-): (Model?, BasePart?)
-	local bestModel: Model? = nil
-	local bestPart: BasePart? = nil
-	local bestAngle = math.huge
-	for _, model in Hitbox.inSphere(origin, weapon.range, { exclude = character }) do
+	range: number,
+	speed: number,
+	allies: boolean?
+): Vector3
+	local settings = Config.Projectiles
+	local best: Vector3? = nil
+	local bestOff = math.huge
+	for _, model in Hitbox.inSphere(origin, range, { exclude = player.Character }) do
+		local root = Hitbox.rootOf(model)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
-		local part = model.PrimaryPart
-		if CollectionService:HasTag(model, Config.Combat.EnemyTag) and humanoid and humanoid.Health > 0 and part then
-			local angle = CombatService.aimDeviation(origin, aim, part.Position, weapon.aimAssistDegrees or 0)
-			if angle and angle < bestAngle then
-				bestAngle = angle
-				bestModel = model
-				bestPart = part
+		if root and humanoid and humanoid.Health > 0 then
+			local victim = Players:GetPlayerFromCharacter(model)
+			local valid, studs, degrees, point
+			if victim then
+				valid = CombatService.canHitPlayer(player, victim)
+					or (allies == true and LifeState.isAlive(victim) and CombatRules.get().isAlly(player, victim))
+				studs, degrees, point = settings.PlayerAimStuds, settings.PlayerAimMinDegrees, root.Position
+			else
+				valid = CollectionService:HasTag(model, Config.Combat.EnemyTag)
+				studs, degrees, point = settings.MonkeyAimStuds, settings.MonkeyAimMinDegrees, nil
+			end
+			if valid then
+				local off, along = offAimLine(origin, aim, root.Position, victim == nil)
+				if off and off <= math.max(studs, along * math.tan(math.rad(degrees))) and off < bestOff then
+					bestOff = off
+					best = point or leadPoint(origin, root, speed)
+				end
 			end
 		end
 	end
-	return bestModel, bestPart
-end
-
--- Lo que se ve volar: piedra (honda), flecha (arco), dardo de savia (cerbatana) o bola de energía
--- (bastón y hechizos).
--- Devuelve los segundos que tarda en llegar y la pieza.
-function CombatService.projectile(
-	style: string,
-	origin: Vector3,
-	endPoint: Vector3,
-	speed: number,
-	color: Color3?
-): (number, BasePart)
-	local piece = Instance.new("Part")
-	piece.Name = "Projectile"
-	piece.Anchored = true
-	piece.CanCollide = false
-	piece.CanQuery = false
-	piece.CanTouch = false
-	piece.CastShadow = false
-	if style == "Arrow" then
-		piece.Size = Vector3.new(0.15, 0.15, 2.2)
-		piece.Color = Color3.fromRGB(120, 85, 50)
-		piece.Material = Enum.Material.Wood
-	elseif style == "Dart" then
-		piece.Size = Vector3.new(0.1, 0.1, 0.9)
-		piece.Color = Color3.fromRGB(150, 225, 120)
-		piece.Material = Enum.Material.Neon
-	elseif style == "Spell" then
-		piece.Shape = Enum.PartType.Ball
-		piece.Size = Vector3.one * 0.9
-		piece.Color = color or Color3.fromRGB(170, 110, 255)
-		piece.Material = Enum.Material.Neon
-		local light = Instance.new("PointLight")
-		light.Color = piece.Color
-		light.Range = 8
-		light.Parent = piece
-	else
-		piece.Shape = Enum.PartType.Ball
-		piece.Size = Vector3.one * 0.6
-		piece.Color = Color3.fromRGB(130, 130, 135)
-	end
-	local offset = endPoint - origin
-	piece.CFrame = if offset.Magnitude > 0.01 then CFrame.lookAt(origin, endPoint) else CFrame.new(origin)
-	piece.Parent = Workspace
-	local travelSeconds = offset.Magnitude / speed
-	TweenService
-		:Create(piece, TweenInfo.new(travelSeconds, Enum.EasingStyle.Linear), { CFrame = piece.CFrame + offset })
-		:Play()
-	Debris:AddItem(piece, travelSeconds + 0.05)
-	return travelSeconds, piece
+	local offset = if best then best - origin else Vector3.zero
+	return if offset.Magnitude > 0.01 then offset.Unit else aim
 end
 
 -- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico). Solo a
@@ -778,6 +791,10 @@ local function healWoundedAlly(healer: Player, amount: number, weaponId: string)
 	end
 end
 
+-- Un disparo de un arma a distancia (C9): un proyectil real (Combat/Projectiles) que sale hacia donde
+-- dice la ayuda de puntería (aimShot) y da al primero que encuentra: si se aparta, falla. Atraviesa a
+-- los aliados. Contra un jugador se puede bloquear y parar (con el margen del defensor, como el golpe);
+-- el veneno de las cerbatanas entra al impactar.
 local function rangedAttack(
 	player: Player,
 	character: Model,
@@ -810,60 +827,49 @@ local function rangedAttack(
 
 	local head = character:FindFirstChild("Head")
 	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-
-	local targetModel, targetPart = findAimTarget(character, origin, aim, weapon)
-	local endPoint: Vector3
-	if targetModel and targetPart then
-		endPoint = targetPart.Position
-	else
-		local result = Workspace:Raycast(origin, aim * weapon.range, params)
-		endPoint = if result then result.Position else origin + aim * weapon.range
-		if result then
-			targetModel = enemyFromPart(result.Instance)
-			-- Otro jugador al que se puede herir: la piedra le da al llegar.
-			local victim = playerFromPart(result.Instance)
+	local speed = weapon.projectileSpeed or 120
+	Projectiles.fire({
+		owner = player,
+		look = weapon.projectile or "Stone",
+		origin = origin,
+		direction = CombatService.aimShot(player, origin, aim, weapon.range, speed),
+		speed = speed,
+		range = weapon.range,
+		radius = Config.Projectiles.WeaponRadius,
+		onHit = function(model)
+			local victim = Players:GetPlayerFromCharacter(model)
 			if victim then
-				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
-				task.delay(seconds, function()
-					local pvpScale = pvpWeaponScale(weaponId)
-					CombatService.damagePvP(player, victim, damage * pvpScale, crit, false, {
-						guardDamage = Config.Guard.ProjectileGuardDamage,
-						waitForParry = true,
-						onResult = function(outcome)
-							-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran).
-							local victimCharacter = victim.Character
-							if outcome == "Hit" and poison and rules.pvpStatus and victimCharacter then
-								Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
-							end
-						end,
-					})
-				end)
-			end
-		end
-	end
-
-	-- Proyectil visible que vuela hasta el destino; el daño llega cuando impacta.
-	local travelSeconds =
-		CombatService.projectile(weapon.projectile or "Stone", origin, endPoint, weapon.projectileSpeed or 120)
-
-	local hitModel = targetModel
-	if hitModel then
-		task.delay(travelSeconds, function()
-			local humanoid = hitModel:FindFirstChildOfClass("Humanoid")
-			if humanoid and humanoid.Health > 0 then
-				CombatService.damage(hitModel, humanoid, damage, player, { crit = crit, source = weaponId })
-				if poison and humanoid.Health > 0 then
-					Status.poison(hitModel, poisonDps, poison.seconds, player, weaponId)
+				if not CombatService.canHitPlayer(player, victim) then
+					return false
 				end
-				if weapon.healOnHit then
-					healWoundedAlly(player, weapon.healOnHit, weaponId)
-				end
+				local pvpScale = pvpWeaponScale(weaponId)
+				CombatService.damagePvP(player, victim, damage * pvpScale, crit, false, {
+					guardDamage = Config.Guard.ProjectileGuardDamage,
+					waitForParry = true,
+					onResult = function(outcome)
+						-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran).
+						local victimCharacter = victim.Character
+						if outcome == "Hit" and poison and rules.pvpStatus and victimCharacter then
+							Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
+						end
+					end,
+				})
+				return true
 			end
-		end)
-	end
+			local humanoid = model:FindFirstChildOfClass("Humanoid")
+			if not (CollectionService:HasTag(model, Config.Combat.EnemyTag) and humanoid and humanoid.Health > 0) then
+				return false
+			end
+			CombatService.damage(model, humanoid, damage, player, { crit = crit, source = weaponId })
+			if poison and humanoid.Health > 0 then
+				Status.poison(model, poisonDps, poison.seconds, player, weaponId)
+			end
+			if weapon.healOnHit then
+				healWoundedAlly(player, weapon.healOnHit, weaponId)
+			end
+			return true
+		end,
+	})
 end
 
 local function onUseWeapon(player: Player, aim: any)
@@ -1005,6 +1011,7 @@ function CombatService:Start()
 	Guard.start()
 	Evasive.start()
 	Feint.start()
+	Projectiles.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)

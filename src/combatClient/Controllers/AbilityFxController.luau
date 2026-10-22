@@ -27,6 +27,9 @@
 -- Guardia (Fase 10, C5; Combat/Guard, efecto "GuardFx"): chispa al bloquear, destello dorado al parar y
 -- estallido naranja con esquirlas y grietas al romperse. Evasivo (C7, "EvasiveFx"): ráfaga de aire
 -- blanco y azul. Amago (C8, "FeintFx"): bocanada corta de humo gris delante del pecho.
+-- Proyectiles (C9, Combat/Projectiles; efectos "Projectile" y "ProjectileEnd"): los disparos de las armas
+-- y las flechas, bolas y dardos de las habilidades vuelan aquí a la hora del servidor (LOOKS: cómo se ve
+-- cada uno y qué deja al pararse, como la explosión de la Bola de fuego).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -204,6 +207,15 @@ local function retire(body: BasePart, seconds: number)
 	end
 	Debris:AddItem(body, seconds)
 end
+
+-- Cómo se ve un proyectil (efecto "Projectile", C9): la pieza que vuela (con la punta hacia -Z), lo que
+-- hace en cada fotograma ("follow", con dónde está y cuánto lleva volando) y lo que deja al pararse
+-- ("land", en ese punto).
+type Look = {
+	body: BasePart,
+	follow: ((cframe: CFrame, elapsed: number) -> ())?,
+	land: (position: Vector3) -> (),
+}
 
 -- Estela con el ancho "width" en el punto "offset" de "part". Mira siempre a la cámara.
 local function trail(part: BasePart, offset: Vector3, color: ColorSequence, lifetime: number, width: number): Trail
@@ -904,23 +916,24 @@ end
 
 -- ===================================== Cazador =====================================
 
--- Disparo múltiple: flechas verdes brillantes con estela verde.
-local function multiShot(origin: Vector3, endPoints: { Vector3 }, speed: number)
+-- Disparo múltiple: flechas verdes brillantes con estela verde (cada flecha, un proyectil).
+local function multiShotLook(): Look
 	local green = Color3.fromRGB(70, 230, 100)
-	for _, endPoint in endPoints do
-		local body = arrow(green, Color3.fromRGB(170, 255, 170), green, Enum.Material.Neon)
-		trail(
-			body,
-			Vector3.new(0, 0, 1.1),
-			ColorSequence.new(Color3.fromRGB(120, 255, 140), Color3.fromRGB(30, 160, 60)),
-			0.35,
-			0.35
-		)
-		fly(body, origin, endPoint, speed, nil, function()
+	local body = arrow(green, Color3.fromRGB(170, 255, 170), green, Enum.Material.Neon)
+	trail(
+		body,
+		Vector3.new(0, 0, 1.1),
+		ColorSequence.new(Color3.fromRGB(120, 255, 140), Color3.fromRGB(30, 160, 60)),
+		0.35,
+		0.35
+	)
+	return {
+		body = body,
+		land = function(position)
 			retire(body, 0.4)
-			burst(endPoint, SPARKLE_TEXTURE, green, 6, 0.6, 6, 0.4)
-		end)
-	end
+			burst(position, SPARKLE_TEXTURE, green, 6, 0.6, 6, 0.4)
+		end,
+	}
 end
 
 -- Marcar presas: onda roja desde el cazador (las dianas salen solas, ver watchMarks).
@@ -1189,30 +1202,31 @@ local function arrowRain(center: Vector3, radius: number, seconds: number)
 end
 
 -- Flecha perforante: flecha dorada más grande, con una estela blanca larga, que no se para en los monos.
-local function piercingShot(origin: Vector3, endPoints: { Vector3 }, speed: number)
+local function piercingShotLook(): Look
 	local gold = Color3.fromRGB(255, 205, 80)
-	for _, endPoint in endPoints do
-		local body = arrow(gold, Color3.fromRGB(255, 250, 220), Color3.fromRGB(255, 240, 200), Enum.Material.Neon)
-		body.Size = Vector3.new(0.2, 0.2, 3.2)
-		trail(
-			body,
-			Vector3.new(0, 0, 1.4),
-			ColorSequence.new(Color3.fromRGB(255, 255, 240), Color3.fromRGB(255, 190, 60)),
-			0.6,
-			0.5
-		)
-		fly(body, origin, endPoint, speed, nil, function()
+	local body = arrow(gold, Color3.fromRGB(255, 250, 220), Color3.fromRGB(255, 240, 200), Enum.Material.Neon)
+	body.Size = Vector3.new(0.2, 0.2, 3.2)
+	trail(
+		body,
+		Vector3.new(0, 0, 1.4),
+		ColorSequence.new(Color3.fromRGB(255, 255, 240), Color3.fromRGB(255, 190, 60)),
+		0.6,
+		0.5
+	)
+	return {
+		body = body,
+		land = function(position)
 			retire(body, 0.6)
-			burst(endPoint, SPARKLE_TEXTURE, gold, 10, 0.8, 8, 0.5)
-		end)
-	end
+			burst(position, SPARKLE_TEXTURE, gold, 10, 0.8, 8, 0.5)
+		end,
+	}
 end
 
 -- ===================================== Mago =====================================
 
 -- Bola de fuego: bola roja en llamas que va recta; tres bolitas giran a su alrededor y dejan una
--- espiral. Al llegar, explosión.
-local function fireball(origin: Vector3, endPoint: Vector3, speed: number, splash: number)
+-- espiral. Al pararse, explosión del radio "splash".
+local function fireballLook(splash: number): Look
 	local core = ball("Fireball", 1.5, Color3.fromRGB(255, 45, 25))
 	local fire = Instance.new("Fire")
 	fire.Color = Color3.fromRGB(255, 70, 30)
@@ -1230,7 +1244,6 @@ local function fireball(origin: Vector3, endPoint: Vector3, speed: number, splas
 	local orbs: { Part } = {}
 	for _ = 1, 3 do
 		local orb = ball("Orb", 0.45, Color3.fromRGB(255, 180, 70))
-		orb.CFrame = CFrame.new(origin)
 		trail(
 			orb,
 			Vector3.zero,
@@ -1238,36 +1251,44 @@ local function fireball(origin: Vector3, endPoint: Vector3, speed: number, splas
 			0.6,
 			0.35
 		)
-		orb.Parent = folder
 		table.insert(orbs, orb)
 	end
 
-	fly(core, origin, endPoint, speed, function(cframe, elapsed)
-		for index, orb in orbs do
-			local angle = elapsed * 16 + index * 2 * math.pi / 3
-			orb.CFrame = cframe * CFrame.new(math.cos(angle) * 1.3, math.sin(angle) * 1.3, 0)
-		end
-	end, function()
-		retire(core, 0.4)
-		for _, orb in orbs do
-			retire(orb, 0.7)
-		end
-		swell(endPoint, 1, splash * 2, Color3.fromRGB(255, 100, 30), 0.15, 0.35)
-		swell(endPoint, 1, splash, Color3.fromRGB(255, 230, 120), 0, 0.25)
-		local flames = emitter(
-			FIRE_TEXTURE,
-			ColorSequence.new(Color3.fromRGB(255, 210, 90), Color3.fromRGB(255, 50, 20)),
-			NumberSequence.new(3, 0),
-			splash * 2,
-			0.6
-		)
-		flames.LightEmission = 1
-		flames.Parent = anchorAt(endPoint, 1.2)
-		flames:Emit(30)
-		burst(endPoint, SMOKE_TEXTURE, Color3.fromRGB(70, 60, 55), 12, 4, splash, 1.2)
-		flash(endPoint, Color3.fromRGB(255, 120, 40), splash * 3, 6, 0.5)
-		shake(endPoint, 25, 0.4, 0.3)
-	end)
+	return {
+		body = core,
+		follow = function(cframe, elapsed)
+			for index, orb in orbs do
+				local angle = elapsed * 16 + index * 2 * math.pi / 3
+				orb.CFrame = cframe * CFrame.new(math.cos(angle) * 1.3, math.sin(angle) * 1.3, 0)
+				orb.Parent = folder
+			end
+		end,
+		land = function(position)
+			retire(core, 0.4)
+			for _, orb in orbs do
+				if orb.Parent then
+					retire(orb, 0.7)
+				else
+					orb:Destroy()
+				end
+			end
+			swell(position, 1, splash * 2, Color3.fromRGB(255, 100, 30), 0.15, 0.35)
+			swell(position, 1, splash, Color3.fromRGB(255, 230, 120), 0, 0.25)
+			local flames = emitter(
+				FIRE_TEXTURE,
+				ColorSequence.new(Color3.fromRGB(255, 210, 90), Color3.fromRGB(255, 50, 20)),
+				NumberSequence.new(3, 0),
+				splash * 2,
+				0.6
+			)
+			flames.LightEmission = 1
+			flames.Parent = anchorAt(position, 1.2)
+			flames:Emit(30)
+			burst(position, SMOKE_TEXTURE, Color3.fromRGB(70, 60, 55), 12, 4, splash, 1.2)
+			flash(position, Color3.fromRGB(255, 120, 40), splash * 3, 6, 0.5)
+			shake(position, 25, 0.4, 0.3)
+		end,
+	}
 end
 
 -- Nova de hielo: aros helados, pinchos de hielo que salen del suelo y escarcha.
@@ -1667,7 +1688,7 @@ local function healBurst(position: Vector3)
 end
 
 -- Dardo curativo: dardo amarillo con plumas y cola rojas.
-local function dart(origin: Vector3, endPoint: Vector3, speed: number)
+local function healingDartLook(): Look
 	local body = piece("Dart", Vector3.new(0.12, 0.12, 1.1), Color3.fromRGB(255, 215, 40))
 	weld(
 		body,
@@ -1684,10 +1705,13 @@ local function dart(origin: Vector3, endPoint: Vector3, speed: number)
 		0.3,
 		0.3
 	)
-	fly(body, origin, endPoint, speed, nil, function()
-		retire(body, 0.4)
-		burst(endPoint, SPARKLE_TEXTURE, Color3.fromRGB(255, 225, 80), 6, 0.5, 5, 0.3)
-	end)
+	return {
+		body = body,
+		land = function(position)
+			retire(body, 0.4)
+			burst(position, SPARKLE_TEXTURE, Color3.fromRGB(255, 225, 80), 6, 0.5, 5, 0.3)
+		end,
+	}
 end
 
 -- Destello amarillo: luz, chispas y una estrella de brillo que gira y se apaga.
@@ -2486,7 +2510,175 @@ local function watchComboMarks()
 	end
 end
 
--- ===================================== Despacho =====================================
+-- ===================================== Proyectiles (C9) =====================================
+
+-- Lo que disparan las armas a distancia: piedra (honda), flecha (arco), dardo de savia (cerbatana) o
+-- bola de energía (bastón). Al pararse, desaparece.
+local function weaponLook(style: string): Look
+	local body: Part
+	if style == "Arrow" then
+		body = piece("Projectile", Vector3.new(0.15, 0.15, 2.2), Color3.fromRGB(120, 85, 50), Enum.Material.Wood)
+	elseif style == "Dart" then
+		body = piece("Projectile", Vector3.new(0.1, 0.1, 0.9), Color3.fromRGB(150, 225, 120))
+	elseif style == "Spell" then
+		body = ball("Projectile", 0.9, Color3.fromRGB(170, 110, 255))
+		local light = Instance.new("PointLight")
+		light.Color = body.Color
+		light.Range = 8
+		light.Parent = body
+	else
+		body = ball("Projectile", 0.6, Color3.fromRGB(130, 130, 135), Enum.Material.SmoothPlastic)
+	end
+	return {
+		body = body,
+		land = function()
+			body:Destroy()
+		end,
+	}
+end
+
+local LOOKS: { [string]: (extra: { any }) -> Look } = {
+	Stone = function()
+		return weaponLook("Stone")
+	end,
+	Arrow = function()
+		return weaponLook("Arrow")
+	end,
+	Dart = function()
+		return weaponLook("Dart")
+	end,
+	Spell = function()
+		return weaponLook("Spell")
+	end,
+	MultiShot = multiShotLook,
+	PiercingShot = piercingShotLook,
+	Fireball = function(extra)
+		return fireballLook(if typeof(extra[1]) == "number" then extra[1] else 8)
+	end,
+	HealingDart = healingDartLook,
+}
+
+-- Proyectiles en vuelo: lo que hay que hacer cuando el servidor dice dónde se ha parado cada uno.
+local landings: { [number]: (position: Vector3) -> () } = {}
+
+-- Cuánto avanza "displacement" desde "from" antes de chocar aquí con el mundo (lo que choca y el
+-- terreno) o, si no atraviesa ("pierce"), con un mono. Los jugadores y el decorado que no choca no lo
+-- paran: si le da a otro jugador, lo dice el servidor.
+local function localStop(from: Vector3, displacement: Vector3, params: RaycastParams, pierce: boolean): number?
+	local length = displacement.Magnitude
+	if length < 1e-3 then
+		return nil
+	end
+	local direction = displacement / length
+	local travelled = 0
+	for _ = 1, 4 do
+		local result = Workspace:Raycast(from + direction * travelled, direction * (length - travelled), params)
+		if not result then
+			return nil
+		end
+		travelled += result.Distance
+		local part = result.Instance
+		local model = part:FindFirstAncestorOfClass("Model")
+		local humanoid = if model then model:FindFirstChildOfClass("Humanoid") else nil
+		if humanoid then
+			if not pierce and model and CollectionService:HasTag(model, Config.Combat.EnemyTag) then
+				return travelled
+			end
+		elseif part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide) then
+			return travelled
+		end
+		travelled += 0.05
+		if travelled >= length then
+			return nil
+		end
+	end
+	return nil
+end
+
+-- Un proyectil del servidor (Combat/Projectiles): va recto desde "origin" a "speed" y se dibuja donde
+-- está a la hora del servidor, así que aunque llegue tarde por el ping se ve donde lo ven todos. Se para
+-- donde dice "ProjectileEnd" o, antes, si aquí choca con el mundo o con un mono (no espera al servidor).
+local function projectile(
+	id: number,
+	lookId: string,
+	owner: Model?,
+	origin: Vector3,
+	direction: Vector3,
+	speed: number,
+	range: number,
+	startTime: number,
+	pierce: boolean,
+	extra: { any }?
+)
+	local build = LOOKS[lookId]
+	if not build then
+		return
+	end
+	local look = build(extra or {})
+	local body = look.body
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = if owner then { folder, owner } else { folder }
+	params.IgnoreWater = true
+	local limit = range
+	local stopPoint: Vector3? = nil
+	local travelled = 0
+	local finished = false
+	local connection: RBXScriptConnection? = nil
+	local function finish(position: Vector3)
+		if finished then
+			return
+		end
+		finished = true
+		landings[id] = nil
+		if connection then
+			connection:Disconnect()
+		end
+		body.CFrame = CFrame.lookAt(position, position + direction)
+		look.land(position)
+	end
+	landings[id] = function(position)
+		local along = (position - origin):Dot(direction)
+		if along <= travelled then
+			finish(position)
+		elseif along < limit then
+			limit = along
+			stopPoint = position
+		end
+	end
+	body.CFrame = CFrame.lookAt(origin, origin + direction)
+	body.Parent = folder
+	connection = RunService.RenderStepped:Connect(function()
+		local elapsed = Workspace:GetServerTimeNow() - startTime
+		local target = math.min(math.max(speed * elapsed, travelled), limit)
+		local from = origin + direction * travelled
+		local hit = localStop(from, direction * (target - travelled), params, pierce)
+		if hit then
+			target = travelled + hit
+			limit = target
+			stopPoint = from + direction * hit
+		end
+		travelled = target
+		local cframe = CFrame.lookAt(origin + direction * travelled, origin + direction * (travelled + 1))
+		body.CFrame = cframe
+		if look.follow then
+			look.follow(cframe, elapsed)
+		end
+		if travelled >= limit - 1e-3 then
+			finish(stopPoint or origin + direction * limit)
+		end
+	end)
+end
+
+-- El servidor dice dónde se ha parado el proyectil "id".
+local function projectileEnd(id: number, position: Vector3)
+	local landing = landings[id]
+	if landing then
+		landing(position)
+	end
+end
+
+-- ===================================== Despacho =====================================-- ===================================== Despacho =====================================
 
 -- Cada efecto con los datos que manda el servidor (Combat/AbilityFx).
 local EFFECTS: { [string]: (...any) -> () } = {
@@ -2495,13 +2687,10 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	WarCry = warCry, -- (personaje, segundos)
 	Quake = quake, -- (centro en el suelo, radio)
 	Smash = smash, -- (suelo a los pies, hacia dónde mira, alcance, grados del cono; 360 = alrededor)
-	MultiShot = multiShot, -- (origen, { puntos de llegada }, velocidad)
-	PiercingShot = piercingShot, -- (origen, { puntos de llegada }, velocidad)
 	MarkPrey = markPrey, -- (centro, radio)
 	TrapSnap = trapSnap, -- (centro en el suelo, radio de captura)
 	Rooted = rooted, -- (modelo, segundos)
 	ArrowRain = arrowRain, -- (centro en el suelo, radio, segundos)
-	Fireball = fireball, -- (origen, llegada, velocidad, radio de la explosión)
 	FrostNova = frostNova, -- (centro, radio)
 	Frozen = frozen, -- (modelo, segundos)
 	Blink = blink, -- (desde, hasta)
@@ -2509,7 +2698,6 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Meteor = meteor, -- (centro en el suelo, radio, segundos hasta el impacto, segundos que arde el suelo)
 	AreaHeal = areaHeal, -- (centro, radio)
 	HealBurst = healBurst, -- (posición)
-	Dart = dart, -- (origen, llegada, velocidad)
 	ShieldGlare = shieldGlare, -- (personaje)
 	Totem = totem, -- (posición, hacia dónde mira el médico, radio, segundos)
 	SleepPowder = sleepPowder, -- (origen, centro en el suelo, radio, segundos que dura la nube)
@@ -2520,6 +2708,10 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	GuardFx = guardFx, -- (personaje, "Block" | "Parry" | "Break"): la guardia (Combat/Guard)
 	EvasiveFx = evasiveFx, -- (personaje): el Evasivo (Combat/Evasive; el propio cliente, DodgeController)
 	FeintFx = feintFx, -- (personaje): el amago (Combat/Feint; el propio cliente, CombatClient/Feint)
+	-- (id, aspecto de LOOKS, personaje que dispara, origen, dirección, velocidad, alcance, hora de salida
+	-- del servidor, atraviesa, datos del aspecto): un proyectil (Combat/Projectiles)
+	Projectile = projectile,
+	ProjectileEnd = projectileEnd, -- (id, dónde se ha parado)
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

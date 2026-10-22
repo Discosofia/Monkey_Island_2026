@@ -20,7 +20,18 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 --   ChainFinishers                el que da el remate de la cadena y alcanza algo (CombatService)
 --   Feints                        el que amaga (C8)
 --   WallBangs                     el que empuja contra el muro (C10)
-export type Mechanic = "Parries" | "Blocks" | "GuardBreaks" | "Evasives" | "ChainFinishers" | "Feints" | "WallBangs"
+--   ShotsHit, ShotsMissed         el que dispara un proyectil, según dé a alguien o no (C9,
+--                                 Combat/Projectiles): la tasa de acierto real para la calculadora
+export type Mechanic =
+	"Parries"
+	| "Blocks"
+	| "GuardBreaks"
+	| "Evasives"
+	| "ChainFinishers"
+	| "Feints"
+	| "WallBangs"
+	| "ShotsHit"
+	| "ShotsMissed"
 
 export type Telemetry = {
 	damageDealt: (player: Player, source: string, amount: number) -> (),

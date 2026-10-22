@@ -9,12 +9,12 @@ no coincide con el código, manda el código.
 
 | Pieza | Hoy | Fase 10 |
 |---|---|---|
-| Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` | Proyectiles reales (C9) |
+| Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` con proyectiles reales (`Combat/Projectiles`, C9 ✅) | Disparo de remate a distancia (C9b) |
 | Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor); Evasivo (`Combat/Evasive`, `CombatClient/EvasiveIcon`, C7 ✅) | — |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅); `Casting` de las habilidades (C8 ✅) | — |
 | Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
 | Ataques de monos y jefes | Preparación con aviso y golpe al acabarla (`Combat/EnemyAttack`, `EnemyWindupController`, C6 ✅) | — |
-| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅) | Proyectiles (C9), muros de los empujes (C10) |
+| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅); proyectiles paso a paso (C9 ✅) | Muros de los empujes (C10) |
 | Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅), también contra monos y jefes, con sus imbloqueables (C6 ✅); amagos (`Combat/Feint`, `CombatClient/Feint`, C8 ✅) | — |
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
 | Escalado del combo (PvP) | `Combat/ComboScaling` en `CombatService.damagePvP` (C7 ✅); controles PvP con rendimientos decrecientes en `Status.holdPlayer` | — |
@@ -99,11 +99,12 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
   30/s suelto); la ventana (a 1,2 s sigue, tras 2 s vuelve al 1) y el búfer (pulsar 0,2 s antes da el
   paso 2); el hacha sigue suelta; el remate tambalea 0,6 s a un capuchino, no a un mandril alfa, empuja
   a 35 studs/s y en el aire lanza a 45.
-  - Distancia (`rangedAttack`): munición (`CombatRules.useAmmo`); ayuda de puntería
-    (`findAimTarget`, cono `aimAssistDegrees` y `aimDeviation`) entre los monos que se ven
-    (`Hitbox.inSphere`). Si encuentra un mono, el proyectil visible vuela hacia él y el daño llega con
-    `task.delay` **aunque el mono se haya apartado** (hasta C9). Contra un jugador solo vale un rayo
-    directo (sin ayuda): asimetría.
+  - Distancia (`rangedAttack`, C9 ✅): munición (`CombatRules.useAmmo`) y un **proyectil real**
+    (`Combat/Projectiles`, §6 bis) que sale de la cabeza hacia donde dice `CombatService.aimShot` y da
+    al primero que encuentra (atraviesa a los aliados): si el mono se aparta, falla. El veneno de las
+    cerbatanas y su cura al aliado entran al impactar. Contra un jugador, el mismo proyectil (se puede
+    bloquear y parar con el margen del defensor, `waitForParry`). Antes de C9 el daño llegaba con
+    `task.delay` aunque el mono se apartara, y contra jugadores solo valía un rayo directo.
 - PvP: daño del arma × `pvpWeaponMultiplier` × `pvpWeaponMultipliers[arma]` (arena: ×0,55, arco ×0,7).
 
 - Guardia (C5): cada golpe de la cadena contra un jugador se puede bloquear o parar (§5); gasta
@@ -116,7 +117,8 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 - Amago (C8, §5 bis): pulsar la guardia durante la preparación del golpe (`chainAttack` lo registra
   en `Combat/Feint`) lo cancela; la cadena vuelve al primero. Gratis, uno por segundo.
 
-**Planificado.** C9: proyectiles simulados por el servidor (ver §6). C10: el remate contra un muro aturde.
+**Planificado.** C9b: disparo de remate de las armas a distancia (cada 4.º tiro seguido, mismo DPS
+total). C10: el remate contra un muro aturde.
 
 ## 4. Esquiva, estamina y Evasivo
 
@@ -259,11 +261,11 @@ sola vez por ataque.
 | Ataque | Hoy (C3 ✅) | Planificado |
 |---|---|---|
 | Golpe con arma | `Hitbox.inBox` en el instante del golpe de cada paso de la cadena (C4 ✅) + `visible` desde la raíz del atacante + rebobinado | — |
-| Disparo de arma | Ayuda de puntería entre los que se ven + daño con retraso aunque se aparte | Proyectil del servidor: un `sweepSphere` por paso de `Heartbeat` (C9) |
-| Habilidades que viajan | `castShot` (`Hitbox.sweepSphere` en el instante) + daño con retraso | El mismo proyectil por pasos (C9) |
+| Disparo de arma | Proyectil del servidor (C9 ✅, §6 bis): en cada `Heartbeat`, `Hitbox.ray` (mundo) + `Hitbox.sweepCombatants` (esfera entre los combatientes) de la posición anterior a la nueva | — |
+| Habilidades que viajan (Disparo múltiple, Bola de fuego, Dardo) | El mismo proyectil (C9 ✅); `castShot` queda para dónde cae un área | — |
 | Áreas (`targetsAround`, `targetsAroundGround`, `targetsOnGround`) | `Hitbox.inSphere` + `visible` desde el centro: **las paredes protegen** | — |
-| Ayuda de puntería (`bestInCone`, `findAimTarget`) | Cono entre los que se ven (`inSphere`) | Solo orienta la dirección inicial; mismo cono para todos (C9) |
-| Flecha perforante | `Hitbox.ray` hasta el terreno o una pared + línea, sin `visible` (el rayo ya mira el camino) | Proyectil que atraviesa (C9) |
+| Ayuda de puntería (`CombatService.aimShot`; `bestInCone` del Rayo) | Solo elige la dirección de salida (C9 ✅), entre los que se ven y solo si la línea de tiro ya casi los toca: monos a ≤ 2,5 studs de ella (adonde estarán al llegar), jugadores a ≤ 1,5 (adonde están) | — |
+| Flecha perforante | Proyectil que atraviesa (C9 ✅, `pierce`): a cada uno una vez, cuando le llega; la para el mundo | — |
 | Mordisco de mono y golpe de jefe | Preparación (C6 ✅) y al acabarla, tras el margen del defensor, una caja delante (`EnemyAttack.reaches`: `GetPartBoundsInBox` con solo el personaje + `Hitbox.visible` desde la raíz) | — |
 | Empujes | El cliente corta el empuje propio contra una pared | `Hitbox.ray` por la trayectoria en el servidor: rebote contra muros (C10) |
 | Marcar presas | Distancia, sin línea de visión (a propósito: señala por el olfato) | — |
@@ -299,6 +301,54 @@ del centro; la Bola de fuego contra el muro no quema al de detrás (sin muro, 24
 caja vacía en el sitio viejo de un muñeco movido 5 studs lo encuentra con `rewind = 0,3` y sin
 rebobinar no. Coste: 47–66 µs por consulta con 109 combatientes (copia que rehace la lista cada
 vez: cota superior); peleando con 32 mandriles, heartbeat 0,32 ms y física 2,27 ms (antes 0,31 y 2,21).
+
+## 6 bis. Proyectiles (C9 ✅)
+
+`Combat/Projectiles` (lo arranca `CombatService:Start`). `Projectiles.fire(shot)` con `owner`, `look`
+(aspecto en el cliente), `origin`, `direction`, `speed`, `range`, `radius`, `pierce`, `onHit`, `onEnd`,
+`extra` y `counts`.
+- **Servidor**: un solo bucle de `Heartbeat` para todos. En cada paso, de la posición anterior a la
+  nueva: `Hitbox.ray` contra el mundo (solo lo que choca y el terreno: el decorado que no choca no
+  para un disparo) y `Hitbox.sweepCombatants` (`Spherecast` con la lista de inclusión de los
+  combatientes, saltando al tirador y a los ya tocados) hasta la pared. `onHit(modelo)` devuelve si le
+  vale: un aliado, un caído o un mono muerto devuelven `false` y el proyectil sigue. Sin `pierce`, se
+  para en el primero que vale; con `pierce`, solo en el mundo o al final del alcance. Al salir mira
+  también desde 1,5 studs antes del origen (la esfera no ve lo que ya toca: el mono pegado).
+- **Sin lag a favor del tirador**: el proyectil sale cuando llega la orden y con las posiciones de
+  ahora (no se rebobina: así favorece al que esquiva). Contra un jugador, los disparos de arma esperan
+  el margen del parry (`waitForParry`); los de habilidad, no (como el resto de habilidades).
+- **Ayuda de puntería** (`CombatService.aimShot`): solo la dirección de salida; el proyectil no
+  persigue. Mide **en studs desde la línea de tiro**, no en grados: engancha al más cercano a la línea
+  si su centro está a menos de `MonkeyAimStuds` (2,5; de lejos, dentro de `MonkeyAimMinDegrees` 2°)
+  y apunta adonde estará al llegar (`leadPoint`: velocidad horizontal × tiempo de vuelo, hasta
+  `LeadMaxSeconds` 0,8 s). Contra jugadores, `PlayerAimStuds` 1,5 (`PlayerAimMinDegrees` 1°) y adonde
+  están. De cerca (`CloseAimRange`/`CloseAimHeight`) a los monos solo se mide en horizontal: el mono
+  pequeño por debajo de la cámara. El Dardo curativo busca también a los aliados. Igual para todos
+  los dispositivos y todas las armas. Con conos de 10–12° (y 30° de cerca) apuntar entre dos muñecos
+  separados 10 studs mandaba el disparo a uno de ellos (lo vio el usuario el 22-10-2026); ahora pasa
+  entre ellos.
+- **Cliente** (`AbilityFxController`, efectos `Projectile` y `ProjectileEnd`): cada aspecto de `LOOKS`
+  (piedra, flecha, dardo, bola del bastón, flechas del Disparo múltiple y la perforante, Bola de fuego,
+  Dardo curativo) vuela recto y se dibuja donde está **a la hora del servidor** (con ping llega tarde,
+  pero adelantado: todos lo ven en el mismo sitio). Se para donde dice `ProjectileEnd` o, antes, si
+  en ese cliente choca con el mundo o con un mono (no espera al servidor); al pararse deja lo suyo
+  (chispas, la explosión de la Bola de fuego).
+- **Telemetría**: `ShotsHit` / `ShotsMissed` por rol y place (`counts = false` en el abanico del
+  Disparo múltiple y en la perforante, que fallan o atraviesan a propósito): la tasa de acierto real
+  para la opción `acierto` de la calculadora.
+- **Calculadora**: los golpes con `velocidad` y las armas a distancia cuentan con `OPCIONES.acierto`
+  (1 − falla × distancia ÷ velocidad; contra monos 30 studs y 0,25/s, contra jugadores 35 studs y
+  0,9/s, mínimo 0,5). Por eso el daño de las armas a distancia subió 1 punto y el de la perforante y la
+  Bola de fuego 1–2 (mismo DPS real en la Isla), y `Config.Arena.WeaponMultipliers` compensa los
+  duelos (arco 0,85, bastón 1,35, cerbatana 1,1, honda 1,2).
+
+Probado en Play (Lobby, 22-10-2026, muñecos a 30 studs): honda a los 0,215 s (30 ÷ 140) con 9 de daño;
+muñeco apartado 5 studs a los 0,11 s → la piedra pasa de largo hasta su alcance y no hay daño; un muro
+delante la para y el de detrás no recibe; a través de una pieza que no choca, sí. Disparo múltiple: 5
+flechas, una a cada muñeco a los 0,35 s (0,2 + 30 ÷ 200), 5 de daño. Flecha perforante en línea: los
+tres, cada uno cuando le llega (+0,11 · 0,16 · 0,20 s), 12 de daño. Bola de fuego: 0,53 s, 20 de daño.
+Dardo curativo: 0,33 s, 6. Cerbatana: 0,18 s, 11, y el veneno al impactar. Adelanto: blanco que cruza
+a 16 studs/s, 3 de 3 (se dispara con él en z −19,9 y le da en −16,4).
 
 ## 7. Red y lag
 

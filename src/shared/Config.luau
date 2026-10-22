@@ -134,10 +134,11 @@ local Config = {
 		PlayerDamageMultiplier = 0.7,
 		-- Cerbatanas del médico ("healOnHit" en Data/Weapons): a qué distancia busca al aliado herido.
 		WeaponHealRadius = 40,
-		-- Puntería a corta distancia (CombatService.aimDeviation): la cámara mira por encima del hombro
-		-- y, de cerca, un mono pequeño queda muy por debajo de la línea de tiro. A menos de
-		-- CloseAimRange (en horizontal) y CloseAimHeight (en vertical) solo cuenta la dirección en
-		-- horizontal, con un cono de al menos CloseAimDegrees.
+		-- Puntería a corta distancia (CombatService.aimDeviation, el Rayo encadenado; y los proyectiles,
+		-- CombatService.aimShot): la cámara mira por encima del hombro y, de cerca, un mono pequeño queda
+		-- muy por debajo de la línea de tiro. A menos de CloseAimRange (en horizontal) y CloseAimHeight (en
+		-- vertical) solo cuenta la dirección en horizontal (el Rayo, con un cono de al menos
+		-- CloseAimDegrees).
 		CloseAimRange = 18,
 		CloseAimHeight = 8,
 		CloseAimDegrees = 30,
@@ -339,6 +340,25 @@ local Config = {
 		ParryStaggerMonkey = 1, -- …un mono, aturdido (los jefes se resisten: ×BossControlMultiplier)…
 		ParryStaggerRange = 12, -- …solo si pega desde aquí (studs): parar un disparo no tambalea al tirador
 		ParryGuardRefund = 20, -- …y quien para recupera esto de guardia
+	},
+
+	-- Proyectiles reales (C9; Combat/Projectiles): los disparos de las armas a distancia y las habilidades
+	-- que viajan (Disparo múltiple, Flecha perforante, Bola de fuego, Dardo curativo) los mueve el
+	-- servidor paso a paso, y dan a quien encuentran por el camino. Se pueden esquivar, bloquear y parar.
+	Projectiles = {
+		WeaponRadius = 0.6, -- radio (studs) del disparo de un arma
+		-- Ayuda de puntería (CombatService.aimShot): solo elige la dirección de salida, y solo si la línea de
+		-- tiro ya pasa casi por el blanco: su centro a menos de MonkeyAimStuds de ella (de lejos, dentro de
+		-- MonkeyAimMinDegrees). Así, apuntando entre dos monos el disparo pasa entre ellos (con un cono de
+		-- 10–12°, y 30° de cerca, se iba al de al lado). Contra monos apunta adonde estará al llegar (como
+		-- mucho LeadMaxSeconds por delante); contra jugadores, más estrecho (PlayerAim…) y adonde está: se
+		-- pueden apartar. De cerca (Config.Combat.CloseAimRange) un mono pequeño queda por debajo de la
+		-- línea de la cámara: ahí solo cuenta la distancia en horizontal. Igual para todos los dispositivos.
+		MonkeyAimStuds = 2.5,
+		MonkeyAimMinDegrees = 2,
+		PlayerAimStuds = 1.5,
+		PlayerAimMinDegrees = 1,
+		LeadMaxSeconds = 0.8,
 	},
 
 	-- Compensación del lag (C2, C3, C5): margen a favor del defensor o del atacante, igual para todos y
@@ -801,8 +821,11 @@ local Config = {
 		-- UltimateDamageMultiplier, 22-10-2026). Con las armas ×1 duraban 4,5–6 s.
 		WeaponDamageMultiplier = 0.55,
 		-- Ajuste de algunas armas sobre WeaponDamageMultiplier (id de Data/Weapons → fracción). El arco
-		-- casi todo lo hace con el arma y desde lejos: sin esto, el duelo de cazadores duraba 6 s.
-		WeaponMultipliers = { Bow = 0.7 } :: { [string]: number },
+		-- casi todo lo hace con el arma y desde lejos: sin esto, el duelo de cazadores duraba 6 s (con 0,7).
+		-- Desde C9 los disparos se pueden esquivar: la calculadora supone que contra jugadores acierta el
+		-- arco el 84 %, la cerbatana el 81 %, la honda el 77 % y el bastón (lento) el 74 %, y esto lo
+		-- compensa para que los duelos espejo sigan en 9,3 s (cazador) y 9,7 s (mago).
+		WeaponMultipliers = { Bow = 0.85, MagicStaff = 1.35, Blowgun = 1.1, Honda = 1.2 } :: { [string]: number },
 		AbilityDamageMultiplier = 0.45,
 		-- Las definitivas (V), además, esto (22-10-2026): el Pisotón quitaba 84 de 100 de un golpe y el
 		-- Rayo encadenado 68; ahora 38 y 30 (límite 40). Los duelos espejo pasan de 8,6–9,4 s a 9,1–9,8 s.
@@ -1104,6 +1127,7 @@ local Config = {
 		MultiShotDamage = 7, -- por proyectil
 		MultiShotSpreadDegrees = 40,
 		MultiShotRange = 100,
+		MultiShotSpeed = 200, -- studs/s
 		MarkRadius = 70,
 		TrapDamage = 12,
 		TrapRadius = 3.5, -- salta cuando un mono lo pisa (a esta distancia)
@@ -1116,13 +1140,13 @@ local Config = {
 		RainSeconds = 4,
 		RainRadius = 12,
 		RainMaxDistance = 60,
-		PierceDamage = 16, -- Flecha perforante, a cada mono que atraviesa
+		PierceDamage = 17, -- Flecha perforante, a cada mono que atraviesa (16 hasta C9: ahora se puede esquivar)
 		PierceRange = 90,
 		PierceWidth = 1.5, -- radio de la línea que atraviesa
 		PierceSpeed = 220, -- studs/s
 
 		-- Mago.
-		FireballDamage = 27, -- al que recibe el impacto
+		FireballDamage = 29, -- al que recibe el impacto (27 hasta C9: ahora se puede esquivar)
 		FireballSplashDamage = 18, -- a los demás del radio
 		FireballSplashRadius = 8,
 		FireballSpeed = 90,

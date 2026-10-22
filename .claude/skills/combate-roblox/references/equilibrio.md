@@ -96,7 +96,11 @@ el duelo con defensa de la sección 8.
 Supuestos (los que más cambian el resultado): monos repartidos (un radio 10 alcanza 2,5 de media,
 un radio 14 3,5, más de 14, 4,5); del abanico de flechas entran 2 en un solo mono y el 70 % en un
 grupo; el cepo salta a los 2 s; los monos no salen de la lluvia; 0,3 s sin pegar al lanzar; la
-simulación pega el 100 % del tiempo y la sección 3 el 60 % (`actividad`). El veneno de las cerbatanas
+simulación pega el 100 % del tiempo y la sección 3 el 60 % (`actividad`). Los proyectiles (C9: las armas
+a distancia y los golpes con `velocidad` en la ficha) aciertan `acierto` = 1 − falla × distancia ÷
+velocidad: contra monos 30 studs y 0,25 por segundo de vuelo (la ayuda adelanta el tiro: arco 96 %,
+bastón 94 %), contra jugadores 35 studs y 0,9 (arco 84 %, cerbatana 81 %, honda 77 %, bastón 74 %);
+son supuestos hasta que la telemetría (`ShotsHit`/`ShotsMissed`) dé los reales. El veneno de las cerbatanas
 cuenta en el DPS del arma, sin críticos y redondeado como en el juego, en el mono al que dispara (si el
 médico reparte los dardos envenena a más, hasta 5 con su cadencia); el de una habilidad (`veneno` en la
 ficha) no se suma al de la cerbatana en ese mono: gana el más fuerte. Cámbialos en `OPCIONES`
@@ -310,6 +314,15 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   El efecto es escalonado (un garrotazo más o menos): 0,05 s de preparación más o menos lo cambia
   todo o nada. La alerta nueva "imbloqueable que no se ve venir" la tenía el Pisotón antes de C8
   (0,2 s): ahora 0,55 s.
+- **C9 ✅ (22-10-2026):** proyectiles reales. Con la tasa de acierto (`acierto`), sin compensar,
+  la Isla perdía un 3–6 % de DPS a distancia y la arena se iba (duelo de cazadores 9,3 → 10,8 s, de
+  magos 9,6 → 11,9 s). Compensado: cada arma a distancia +1 de daño (= 1 ÷ su acierto, redondeado;
+  todas a ±2,5 % del DPS real de antes), Flecha perforante 16 → 17, Bola de fuego 27 → 29 y en la
+  arena `WeaponMultipliers` arco 0,7 → 0,85, bastón 1,35, cerbatana 1,1, honda 1,2. Resultado: DPS
+  60 s con combos ±1 % en todos los roles, valor del combo igual, duelos espejo 10,4 · 9,3 · 9,7 s
+  (antes 10,4 · 9,3 · 9,6) y las mismas alertas sin talentos y con talentos al máximo. El Disparo
+  múltiple queda a −4 % (7 por flecha: el siguiente entero se pasa). Los supuestos contra jugadores
+  se revisan en C13 con la telemetría de aciertos.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un
@@ -351,6 +364,7 @@ campos está en la cabecera del servicio. Cómo leerlo frente a la calculadora:
 | ¿Qué tumba a la gente? | `PlayerDowned` por causa y día | golpe máximo y "caído en" de la sección 4 |
 | ¿Te tienen quieto? | `TimeHeld` por causa ÷ `MinutesPlayed` | "te deja quieto" de la sección 4 |
 | ¿Cuánto dura un jefe? | `BossDefeated` (segundos, por jefe y jugadores) | duración de la sección 3 (90–240 s) |
+| ¿Cuánto aciertan los disparos? | `ShotsHit` ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (Isla / Dunas) | `OPCIONES.acierto` (contra monos en la Isla, contra jugadores en Dunas) |
 
 Para una habilidad nueva no hay que tocar nada: sus usos y su daño salen solos por su id (si hace
 daño con `hurt` y cura con `heal`). Un mono o jefe nuevo sale por su especie o `Jefe <id>`; un

@@ -19,6 +19,9 @@
 -- ese (ComboService.touch). Los demás golpes pueden ser críticos con la probabilidad del arma (Shared/Crit).
 -- A quién alcanza cada una lo dice Combat/Hitbox: las áreas, solo a quien se ve desde su centro (las
 -- paredes y las rocas protegen). Marcar presas no la necesita: señala por el olfato del cazador.
+-- Las que viajan (Disparo múltiple, Flecha perforante, Bola de fuego y Dardo curativo) son proyectiles
+-- reales (C9, Combat/Projectiles): van rectos desde donde apunta la ayuda de puntería
+-- (CombatService.aimShot) y dan a quien encuentran; quien se aparta, se libra.
 -- Preparación (Fase 10, C8): al pulsar, el jugador queda "Casting" (Shared/CombatState) lo que diga su
 -- "castSeconds" (Data/Roles; menos su retraso de red, que ya la empezó en su pantalla) y la habilidad
 -- sale al acabar: entonces cuenta el paso del combo, se aplica y empieza la recarga. Si en ese tiempo
@@ -49,13 +52,12 @@ local Guard = require(script.Parent.Parent.Guard)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
+local Projectiles = require(script.Parent.Parent.Projectiles)
 local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
 
 local SETTINGS = Config.Abilities
 local COMBO = Config.Combo
--- Velocidad (studs/s) de las flechas del Disparo múltiple.
-local ARROW_SPEED = 200
 -- Radio de las mandíbulas del cepo y cuánto se cierran (casi 90°: quedan de pie, una contra otra).
 local TRAP_JAW_RADIUS = 1.5
 local TRAP_CLOSED_ANGLE = math.rad(84)
@@ -171,13 +173,14 @@ local function targetsOnGround(attacker: Player, center: Vector3, radius: number
 	)
 end
 
-local function targetFromPart(attacker: Player, part: Instance): Target?
-	local model = CombatService.enemyFromPart(part)
-	if model then
-		return enemyTarget(model)
+-- El objetivo que es "model" (un combatiente que ha tocado un proyectil), o nil si no se le puede dañar
+-- (un aliado, uno caído, un mono muerto): el proyectil lo atraviesa.
+local function targetOfModel(attacker: Player, model: Model): Target?
+	local victim = Players:GetPlayerFromCharacter(model)
+	if victim then
+		return playerTarget(attacker, victim)
 	end
-	local victim = CombatService.playerFromPart(part)
-	return if victim then playerTarget(attacker, victim) else nil
+	return if CollectionService:HasTag(model, Config.Combat.EnemyTag) then enemyTarget(model) else nil
 end
 
 -- Clave del uso en curso de "abilityId" de "player": todos sus golpes la llevan, así contra un jugador
@@ -368,33 +371,6 @@ local function bestInCone(attacker: Player, origin: Vector3, aim: Vector3, range
 	return best
 end
 
--- El objetivo que el jugador tiene delante a corta distancia (Config.Combat.CloseAimRange), o nil.
--- Para los disparos que irían rectos por encima de un mono pequeño pegado al jugador.
-local function closeTarget(attacker: Player, origin: Vector3, aim: Vector3): Target?
-	local settings = Config.Combat
-	return bestInCone(attacker, origin, aim, settings.CloseAimRange + settings.CloseAimHeight, 0)
-end
-
--- La puntería de un disparo recto de "range": la misma si alcanza a alguien o no hay objetivo
--- cercano ("close", de closeTarget); si no, hacia él.
-local function closeAim(
-	attacker: Player,
-	character: Model,
-	origin: Vector3,
-	aim: Vector3,
-	range: number,
-	close: Target?
-): Vector3
-	if not close then
-		return aim
-	end
-	local _, result = castShot(character, origin, aim, range, 1)
-	if result and targetFromPart(attacker, result.Instance) then
-		return aim
-	end
-	return (close.root.Position - origin).Unit
-end
-
 -- ===================================== Guerrero =====================================
 
 local function whirlwind(player: Player, character: Model, root: BasePart): boolean
@@ -551,6 +527,9 @@ end
 
 -- ===================================== Cazador =====================================
 
+-- Disparo múltiple: flechas en abanico, cada una un proyectil (Combat/Projectiles) que da al primero
+-- que encuentra. El abanico se centra con la ayuda de puntería (CombatService.aimShot: el mono de delante,
+-- también si está pegado).
 local function multiShot(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local count = math.max(1, math.floor(Progression.perk(player, "MultiShotCount")))
 	-- Remate del combo del cazador: más proyectiles (y críticos a los atrapados, en hurt).
@@ -560,28 +539,30 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 	local damage = SETTINGS.MultiShotDamage * Progression.perk(player, "RangedDamage")
 	local origin = headOf(character, root)
 	local spread = math.rad(SETTINGS.MultiShotSpreadDegrees)
-	-- De cerca, el abanico se centra en el mono que tienes delante y la flecha del centro le da
-	-- aunque esté pegado (un Spherecast no ve lo que ya toca al salir).
-	local close = closeTarget(player, origin, aim)
-	aim = closeAim(player, character, origin, aim, SETTINGS.MultiShotRange, close)
-	local center = math.ceil(count / 2)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.MultiShotRange, SETTINGS.MultiShotSpeed)
 	Sfx.play("Shoot", root)
-	local endPoints = {}
 	for index = 1, count do
 		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
-		local direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim)
-		local endPoint, result = castShot(character, origin, direction, SETTINGS.MultiShotRange, 1)
-		local target = if result then targetFromPart(player, result.Instance) else nil
-		if not target and close and index == center then
-			target = close
-			endPoint = close.root.Position
-		end
-		table.insert(endPoints, endPoint)
-		if target then
-			task.delay((endPoint - origin).Magnitude / ARROW_SPEED, hurt, player, target, damage, "MultiShot")
-		end
+		Projectiles.fire({
+			owner = player,
+			look = "MultiShot",
+			origin = origin,
+			direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim),
+			speed = SETTINGS.MultiShotSpeed,
+			range = SETTINGS.MultiShotRange,
+			radius = 1,
+			-- Las del borde del abanico fallan a propósito: no cuentan en la tasa de acierto.
+			counts = false,
+			onHit = function(model)
+				local target = targetOfModel(player, model)
+				if not target then
+					return false
+				end
+				hurt(player, target, damage, "MultiShot")
+				return true
+			end,
+		})
 	end
-	AbilityFx.all("MultiShot", origin, endPoints, ARROW_SPEED)
 	return true
 end
 
@@ -818,41 +799,9 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 	return true
 end
 
--- Hasta dónde llega una flecha que atraviesa monos y jugadores: solo la para el terreno o el decorado.
-local function pierceEnd(origin: Vector3, direction: Vector3, range: number): Vector3
-	local result = Hitbox.ray(origin, direction * range)
-	return if result then result.Position else origin + direction * range
-end
-
-type PierceHit = { target: Target, along: number }
-
--- Lo que atraviesa una flecha perforante en "direction": dónde acaba y a quién alcanza, con la
--- distancia a la que está cada uno.
-local function pierceLine(
-	player: Player,
-	character: Model,
-	origin: Vector3,
-	direction: Vector3
-): (Vector3, { PierceHit })
-	local endPoint = pierceEnd(origin, direction, SETTINGS.PierceRange)
-	local length = (endPoint - origin).Magnitude
-	local hits: { PierceHit } = {}
-	-- El rayo de pierceEnd ya ha mirado el camino: hasta "endPoint" no hay pared.
-	local nearby = Hitbox.inSphere(origin, length + 3, { exclude = character, throughWalls = true })
-	for _, target in targetsOf(player, nearby) do
-		local offset = target.root.Position - origin
-		local along = offset:Dot(direction)
-		local apart = (offset - direction * along).Magnitude
-		-- Con margen para el cuerpo del mono (su centro está a un par de studs de su borde).
-		if along > 0 and along <= length + 1 and apart <= SETTINGS.PierceWidth + 2 then
-			table.insert(hits, { target = target, along = along })
-		end
-	end
-	return endPoint, hits
-end
-
--- Flecha perforante: atraviesa a todos los que encuentra en línea recta, a cada uno cuando le llega.
--- Como remate de "Tiro de gracia", dispara más en un abanico estrecho.
+-- Flecha perforante: un proyectil que atraviesa a todos los que encuentra en línea recta (a cada uno una
+-- vez, cuando le llega); solo la para el terreno o una pared. Como remate de "Tiro de gracia", dispara
+-- más en un abanico estrecho.
 local function piercingShot(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local damage = SETTINGS.PierceDamage
 		* Progression.perk(player, "RangedDamage")
@@ -862,70 +811,83 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 		count += COMBO.PierceExtraArrows
 	end
 	local origin = headOf(character, root)
-	-- De cerca, si la flecha recta no atravesaría a nadie, va hacia el mono que tienes delante.
-	local _, straightHits = pierceLine(player, character, origin, aim)
-	if #straightHits == 0 then
-		local close = closeTarget(player, origin, aim)
-		if close then
-			aim = (close.root.Position - origin).Unit
-		end
-	end
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.PierceRange, SETTINGS.PierceSpeed)
 	local spread = math.rad(COMBO.PierceSpreadDegrees)
-	local endPoints = {}
 	for index = 1, count do
 		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
-		local direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim)
-		local endPoint, hits = pierceLine(player, character, origin, direction)
-		table.insert(endPoints, endPoint)
-		for _, hit in hits do
-			task.delay(hit.along / SETTINGS.PierceSpeed, hurt, player, hit.target, damage, "PiercingShot")
-		end
+		Projectiles.fire({
+			owner = player,
+			look = "PiercingShot",
+			origin = origin,
+			direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim),
+			speed = SETTINGS.PierceSpeed,
+			range = SETTINGS.PierceRange,
+			radius = SETTINGS.PierceWidth,
+			pierce = true,
+			counts = false,
+			onHit = function(model)
+				local target = targetOfModel(player, model)
+				if not target then
+					return false
+				end
+				hurt(player, target, damage, "PiercingShot")
+				return true
+			end,
+		})
 	end
 	Sfx.play("Shoot", root)
-	AbilityFx.all("PiercingShot", origin, endPoints, SETTINGS.PierceSpeed)
 	return true
 end
 
 -- ===================================== Mago =====================================
 
+-- Bola de fuego: un proyectil (Combat/Projectiles) que estalla donde para (en el primero que toca, en
+-- una pared o al final de su alcance): daño al impactado y salpicadura a los de alrededor.
 local function fireball(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local scale = Progression.perk(player, "SpellDamage") * Progression.perk(player, "FireballDamage")
 	local origin = headOf(character, root)
-	local endPoint, result = castShot(character, origin, aim, SETTINGS.FireballRange, 1.5)
-	local direct = if result then targetFromPart(player, result.Instance) else nil
-	-- De cerca, la bola que pasaría por encima de un mono pequeño (o no lo vería por estar pegado) le da.
-	if not direct then
-		direct = closeTarget(player, origin, aim)
-		if direct then
-			endPoint = direct.root.Position
-		end
-	end
-	local seconds = (endPoint - origin).Magnitude / SETTINGS.FireballSpeed
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.FireballRange, SETTINGS.FireballSpeed)
 	-- Remate del combo del mago: rompe el hielo con una explosión más grande.
 	local finisher = ComboService.isPayoff(player, "Fireball")
 	local radius = SETTINGS.FireballSplashRadius * (if finisher then 1 + COMBO.FireballSplashBonus else 1)
-	AbilityFx.all("Fireball", origin, endPoint, SETTINGS.FireballSpeed, radius)
 	Sfx.play("Shoot", root)
-	task.delay(seconds, function()
-		Sfx.play("LavaImpact", endPoint)
-		local function strike(target: Target, amount: number)
-			if finisher and ComboService.isMarkedBy(target.model, player) then
-				AbilityFx.all("IceShatter", target.root.Position)
+	local direct: Target? = nil
+	Projectiles.fire({
+		owner = player,
+		look = "Fireball",
+		origin = origin,
+		direction = aim,
+		speed = SETTINGS.FireballSpeed,
+		range = SETTINGS.FireballRange,
+		radius = 1.5,
+		extra = { radius },
+		onHit = function(model)
+			direct = targetOfModel(player, model)
+			return direct ~= nil
+		end,
+		onEnd = function(endPoint)
+			Sfx.play("LavaImpact", endPoint)
+			local function strike(target: Target, amount: number)
+				if finisher and ComboService.isMarkedBy(target.model, player) then
+					AbilityFx.all("IceShatter", target.root.Position)
+				end
+				hurt(player, target, amount, "Fireball")
+				-- Primer paso de "Lluvia de estrellas": lo que quema queda chamuscado.
+				comboOpener(player, "Fireball", target)
 			end
-			hurt(player, target, amount, "Fireball")
-			-- Primer paso de "Lluvia de estrellas": lo que quema queda chamuscado.
-			comboOpener(player, "Fireball", target)
-		end
-		if direct then
-			strike(direct, SETTINGS.FireballDamage * scale)
-		end
-		-- La explosión mira desde un stud antes del impacto: si la bola da en una pared, lo de detrás no se quema.
-		for _, target in targetsAround(player, endPoint, radius, endPoint - aim) do
-			if not (direct and target.model == direct.model) then
-				strike(target, SETTINGS.FireballSplashDamage * scale)
+			local hit = direct
+			if hit then
+				strike(hit, SETTINGS.FireballDamage * scale)
 			end
-		end
-	end)
+			-- La explosión mira desde un stud antes del impacto: si la bola da en una pared, lo de detrás no
+			-- se quema.
+			for _, target in targetsAround(player, endPoint, radius, endPoint - aim) do
+				if not (hit and target.model == hit.model) then
+					strike(target, SETTINGS.FireballSplashDamage * scale)
+				end
+			end
+		end,
+	})
 	return true
 end
 
@@ -1081,43 +1043,45 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 	return true
 end
 
+-- Dardo curativo: un proyectil (Combat/Projectiles) que cura al primer aliado que toca o hiere al primer
+-- mono o rival. La ayuda de puntería también busca a los aliados.
 local function healingDart(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
-	local endPoint, result = castShot(character, origin, aim, SETTINGS.DartRange, 1.5)
-	local hitPlayer = if result then CombatService.playerFromPart(result.Instance) else nil
-	local ally = if hitPlayer and CombatRules.get().isAlly(player, hitPlayer) then hitPlayer else nil
-	local enemy = if result and not ally then targetFromPart(player, result.Instance) else nil
-	-- De cerca, el dardo que pasaría por encima de un mono pequeño le da.
-	if not (ally or enemy) then
-		enemy = closeTarget(player, origin, aim)
-		if enemy then
-			endPoint = enemy.root.Position
-		end
-	end
-	local seconds = (endPoint - origin).Magnitude / SETTINGS.DartSpeed
-	AbilityFx.all("Dart", origin, endPoint, SETTINGS.DartSpeed)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.DartRange, SETTINGS.DartSpeed, true)
 	Sfx.play("Shoot", root)
-	if not (ally or enemy) then
-		return true
-	end
-	task.delay(seconds, function()
-		if ally and heal(player, ally, SETTINGS.DartHeal * Progression.perk(player, "HealPower"), "HealingDart") then
-			local allyCharacter = ally.Character
-			local allyRoot = if allyCharacter then allyCharacter:FindFirstChild("HumanoidRootPart") else nil
-			if allyRoot and allyRoot:IsA("BasePart") then
-				AbilityFx.all("HealBurst", allyRoot.Position)
-				Sfx.play("Heal", allyRoot)
+	Projectiles.fire({
+		owner = player,
+		look = "HealingDart",
+		origin = origin,
+		direction = aim,
+		speed = SETTINGS.DartSpeed,
+		range = SETTINGS.DartRange,
+		radius = 1.5,
+		onHit = function(model)
+			local ally = Players:GetPlayerFromCharacter(model)
+			if ally and CombatRules.get().isAlly(player, ally) then
+				if not heal(player, ally, SETTINGS.DartHeal * Progression.perk(player, "HealPower"), "HealingDart") then
+					return false
+				end
+				local allyRoot = model:FindFirstChild("HumanoidRootPart")
+				if allyRoot and allyRoot:IsA("BasePart") then
+					AbilityFx.all("HealBurst", allyRoot.Position)
+					Sfx.play("Heal", allyRoot)
+				end
+				-- Primer paso del combo del médico: el aliado queda "revitalizado".
+				ComboService.opener(player, "HealingDart", model)
+				Remotes.Notify:FireClient(player, `⛑️ Dardo curativo a {ally.DisplayName}`)
+				return true
 			end
-			-- Primer paso del combo del médico: el aliado queda "revitalizado".
-			if allyCharacter then
-				ComboService.opener(player, "HealingDart", allyCharacter)
+			local enemy = targetOfModel(player, model)
+			if not enemy then
+				return false
 			end
-			Remotes.Notify:FireClient(player, `⛑️ Dardo curativo a {ally.DisplayName}`)
-		elseif enemy then
 			hurt(player, enemy, SETTINGS.DartDamage, "HealingDart")
 			comboOpener(player, "HealingDart", enemy)
-		end
-	end)
+			return true
+		end,
+	})
 	return true
 end
 

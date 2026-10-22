@@ -73,6 +73,11 @@ local OPCIONES_BASE = {
 	-- Fase 10 (sección 10): fracción de los ataques avisados de los monos que un jugador atento esquiva o
 	-- de la que se aparta (solo los que avisan al menos Config.Reaction).
 	esquivaMonos = 0.3,
+	-- Fase 10, C9 (proyectiles reales): fracción de los disparos que aciertan. Falla más cuanto más tarda
+	-- en llegar (distancia ÷ velocidad del proyectil): 1 − falla × segundos, como poco "minimo". Contra
+	-- monos la ayuda de puntería adelanta el tiro (falla si cambian de dirección o algo se cruza);
+	-- contra jugadores apunta a donde están y se pueden apartar. Lo que no viaja acierta siempre.
+	acierto = { distanciaMonos = 30, fallaMonos = 0.25, distanciaJugadores = 35, fallaJugadores = 0.9, minimo = 0.5 },
 	secciones = {
 		fichas = true,
 		simulacion = true,
@@ -217,8 +222,9 @@ end
 --   combo: Config.Combo
 -- Ficha:
 --   familia     texto ("Daño en área", "Control", "Curación"…)
---   golpes      { { cantidad, en (s desde que sale, tras su preparación), objetivos, minObjetivos? } }
---               daño a cada objetivo
+--   golpes      { { cantidad, en (s desde que sale, tras su preparación), objetivos, minObjetivos?,
+--               velocidad? } } daño a cada objetivo; "velocidad" (studs/s): es un proyectil que se puede
+--               esquivar y cuenta con la tasa de acierto de OPCIONES.acierto (C9)
 --   objetivos   { fijo = n } · { radio = r } (estimado por tipicosEnRadio) · { abanico = flechas }
 --               · { radio = r, menos = 1 } (el área sin el impactado)
 --   bloqueo     segundos que no se puede atacar con el arma desde que sale (giros, cargas)
@@ -234,7 +240,7 @@ end
 --   movilidad   studs · critSeguro: el remate hace críticos seguros (curaciones)
 
 type Objetivos = { fijo: number?, radio: number?, abanico: number?, menos: number? }
-type Golpe = { cantidad: number, en: number, objetivos: Objetivos, minObjetivos: number? }
+type Golpe = { cantidad: number, en: number, objetivos: Objetivos, minObjetivos: number?, velocidad: number? }
 type Ficha = {
 	familia: string,
 	golpes: { Golpe }?,
@@ -321,7 +327,12 @@ local MODELOS: { [string]: Modelo } = {
 		return {
 			familia = "Daño en abanico",
 			golpes = {
-				{ cantidad = A.MultiShotDamage * perk("RangedDamage"), en = 0.3, objetivos = { abanico = flechas } },
+				{
+					cantidad = A.MultiShotDamage * perk("RangedDamage"),
+					en = 0.3,
+					objetivos = { abanico = flechas },
+					velocidad = A.MultiShotSpeed,
+				},
 			},
 		}
 	end,
@@ -368,6 +379,7 @@ local MODELOS: { [string]: Modelo } = {
 				cantidad = A.PierceDamage * perk("RangedDamage") * perk("PierceDamage"),
 				en = 0.3,
 				objetivos = { fijo = 2 },
+				velocidad = A.PierceSpeed,
 			})
 		end
 		return { familia = "Daño en línea (atraviesa)", golpes = golpes }
@@ -380,7 +392,13 @@ local MODELOS: { [string]: Modelo } = {
 		return {
 			familia = "Daño + área",
 			golpes = {
-				{ cantidad = A.FireballDamage * escala, en = llegada, objetivos = { fijo = 1 } },
+				-- La salpicadura no: en un grupo, la bola que no da al primero suele dar a otro.
+				{
+					cantidad = A.FireballDamage * escala,
+					en = llegada,
+					objetivos = { fijo = 1 },
+					velocidad = A.FireballSpeed,
+				},
 				{ cantidad = A.FireballSplashDamage * escala, en = llegada, objetivos = { radio = radio, menos = 1 } },
 			},
 		}
@@ -598,14 +616,30 @@ local function main(copia: Instance): string
 		return math.max(1, math.round(dps * tick * PDM)) / tick
 	end
 
+	-- Fracción de los disparos de un proyectil de "velocidad" (studs/s) que aciertan (OPCIONES.acierto);
+	-- 1 si no viaja (nil).
+	local function aciertoDe(velocidad: number?, contraJugadores: boolean): number
+		if not velocidad then
+			return 1
+		end
+		local ajuste = OPCIONES.acierto
+		local segundos = (if contraJugadores then ajuste.distanciaJugadores else ajuste.distanciaMonos) / velocidad
+		local falla = if contraJugadores then ajuste.fallaJugadores else ajuste.fallaMonos
+		return math.clamp(1 - falla * segundos, ajuste.minimo, 1)
+	end
+
 	-- Arma del rol: id, daño por golpe con la ventaja del rol (como CombatService), DPS base y real.
 	-- "veneno": daño real por segundo del veneno de las cerbatanas (Data/Weapons "poison") en el mono al
-	-- que dispara; cuenta en los DPS del arma.
+	-- que dispara; cuenta en los DPS del arma. Las de distancia disparan proyectiles (C9): los DPS ya
+	-- llevan su "acierto" contra monos ("aciertoJugadores", en la arena). El veneno no: cada acierto lo
+	-- renueva y dura más que el hueco entre dos.
 	type Arma = {
 		id: string,
 		golpe: number,
 		dpsBase: number,
 		dpsReal: number,
+		acierto: number,
+		aciertoJugadores: number,
 		critico: number,
 		cura: number,
 		veneno: number,
@@ -627,14 +661,18 @@ local function main(copia: Instance): string
 		if OPCIONES.dardosVenenosos and refuerzo then
 			veneno *= Items[refuerzo].poisonMultiplier or 1
 		end
-		local dpsGolpes = golpe / arma.cooldownSeconds
+		local velocidad = if arma.kind == "Ranged" then arma.projectileSpeed or 120 else nil
+		local acierto = aciertoDe(velocidad, false)
+		local dpsGolpes = golpe / arma.cooldownSeconds * acierto
 		return {
 			id = id,
 			golpe = golpe,
 			dpsBase = dpsGolpes + veneno,
 			dpsReal = dpsGolpes * PDM * (1 + critico * (CRIT - 1)) + venenoReal(veneno),
+			acierto = acierto,
+			aciertoJugadores = aciertoDe(velocidad, true),
 			critico = critico,
-			cura = (arma.healOnHit or 0) / arma.cooldownSeconds,
+			cura = (arma.healOnHit or 0) / arma.cooldownSeconds * acierto,
 			veneno = venenoReal(veneno),
 			venenoBase = veneno,
 			venenoSegundos = if arma.poison then arma.poison.seconds else 0,
@@ -686,7 +724,7 @@ local function main(copia: Instance): string
 		local total = 0
 		for _, golpe in ficha.golpes or {} do
 			if grupo >= (golpe.minObjetivos or 1) then
-				total += golpe.cantidad * resolver(golpe.objetivos, grupo)
+				total += golpe.cantidad * resolver(golpe.objetivos, grupo) * aciertoDe(golpe.velocidad, false)
 			end
 		end
 		if ficha.veneno then
@@ -699,7 +737,7 @@ local function main(copia: Instance): string
 		local total = 0
 		for _, golpe in ficha.golpes or {} do
 			if golpe.en <= ventana and grupo >= (golpe.minObjetivos or 1) then
-				total += golpe.cantidad * resolver(golpe.objetivos, grupo)
+				total += golpe.cantidad * resolver(golpe.objetivos, grupo) * aciertoDe(golpe.velocidad, false)
 			end
 		end
 		if ficha.veneno then
@@ -738,10 +776,13 @@ local function main(copia: Instance): string
 				local veneno = if arma.veneno > 0
 					then ` + veneno {n(arma.veneno)}/s real {n(arma.venenoSegundos)} s`
 					else ""
+				local acierto = if arma.acierto < 1
+					then `, acierto {pct(arma.acierto)} (jugadores {pct(arma.aciertoJugadores)})`
+					else ""
 				linea(
 					`### {Roles[roleId].icon} {roleId}: arma {arma.id} ({arma.golpe} por golpe{veneno}, DPS real {n(
 						arma.dpsReal
-					)}, crítico {pct(arma.critico)}) · vida {100 + perk("MaxHealth")}`
+					)}{acierto}, crítico {pct(arma.critico)}) · vida {100 + perk("MaxHealth")}`
 				)
 				local savia = perk("SapShield")
 				if savia > 0 then
@@ -1081,7 +1122,7 @@ local function main(copia: Instance): string
 					local seguro = if enlazado and cuantos > 0 then math.min(1, marcados / cuantos) else 0
 					table.insert(pendientes, {
 						en = t + prep + golpe.en,
-						cantidad = golpe.cantidad * cuantos * definitiva,
+						cantidad = golpe.cantidad * cuantos * definitiva * aciertoDe(golpe.velocidad, pvp ~= nil),
 						criticoSeguro = seguro,
 						bonus = bonus,
 					})
@@ -1197,7 +1238,7 @@ local function main(copia: Instance): string
 					lanzar(hueco)
 				elseif t >= armaLista then
 					armaLista = t + Weapons[arma.id].cooldownSeconds
-					aplicar(arma.golpe, 0, false, 0)
+					aplicar(arma.golpe * (if pvp then arma.aciertoJugadores else arma.acierto), 0, false, 0)
 					resultado.cura += arma.cura * Weapons[arma.id].cooldownSeconds
 					if arma.veneno > 0 then
 						venenoArmaHasta = t + arma.venenoSegundos

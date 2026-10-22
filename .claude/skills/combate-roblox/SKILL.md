@@ -161,7 +161,8 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
 2. `src/shared/Config.luau` → `Abilities`: sus números, con un comentario por número que lo pida
    (unidades: "por golpe", "segundos", "studs").
 3. `src/combat/Services/AbilityService.luau`: el handler en la sección del rol, con las
-   piezas comunes (`targetsAround`, `castShot`, `hurt`, `control`, `heal`, `comboOpener`…), y su
+   piezas comunes (`targetsAround`, `castShot`, `hurt`, `control`, `heal`, `comboOpener`…; si viaja,
+   un proyectil con `Projectiles.fire` y la dirección de `CombatService.aimShot`), y su
    entrada en `HANDLERS`. Devuelve `false` si no se pudo usar (no gasta recarga). Actualiza la lista
    de la cabecera del archivo.
 4. Si **mueve al jugador**: la parte del movimiento en `RoleController.useAbility` (como `Charge`,
@@ -242,8 +243,17 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   cercano** en todos los scripts (cliente y servidor), escucha a los tres (las áreas alcanzan a los
   vecinos) y súbeles la vida (`MaxHealth = 1000`) para que no se rompan a mitad de prueba. La
   mascota activa también les pega cada 2 s: no confundas sus golpes con los tuyos.
-- **Apunta desde la cabeza**: los disparos de habilidad (`castShot`) salen de `Head`, así que la
+- **Apunta desde la cabeza**: los disparos (proyectiles y `castShot`) salen de `Head`, así que la
   puntería es `(objetivo − cabeza).Unit`, no desde `HumanoidRootPart`.
+- **Proyectiles** (C9): el daño entra cuando el proyectil llega (distancia ÷ velocidad; las
+  habilidades, tras su preparación). Para un **fallo**, conecta en el servidor del MCP
+  `ReplicatedStorage.Remotes.UseWeapon.OnServerEvent` (la instancia es la misma) y aparta el muñeco con
+  `PivotTo` ~0,08 s después; dispara desde el cliente con la llamada siguiente. Para el **adelanto**,
+  un blanco de prueba: `Model` con `Humanoid` y una raíz sin anclar, etiqueta `Enemy`, que en cada
+  `Heartbeat` se pone en `inicio + v·t` con `AssemblyLinearVelocity = v` (16 studs/s de lado); dispara
+  a donde está y mira dónde estaba al recibir el golpe. Lo que se ve, en `workspace.AbilityFx` del
+  cliente (piezas `Projectile`, `Arrow`, `Fireball`, `Dart`). En el Lobby no hay comando de rol: pon el
+  atributo `Role` del `Player` desde el servidor (le cambia las armas).
 - **Mono concreto sin comando**: el panel solo crea mandriles; para otra especie busca en el
   servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
   a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y

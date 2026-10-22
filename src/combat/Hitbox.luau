@@ -9,6 +9,8 @@
 --   - inBox: los combatientes con alguna pieza dentro de una caja (GetPartBoundsInBox), con línea de
 --     visión. Es el golpe con arma; la cadena de C4 lo barrerá con sweepBox.
 --   - sweepSphere / sweepBox: Spherecast y Blockcast (disparos y barridos); devuelven lo primero que tocan.
+--   - sweepCombatants: una esfera que avanza solo entre los combatientes (cada paso de un proyectil, C9;
+--     el mundo lo mira ray: así el decorado que no choca no para los disparos).
 --   - rewound: dónde estaba un combatiente hace unos segundos (Combat/PositionHistory), para el lag.
 -- Combatientes: los modelos con la etiqueta Config.Combat.EnemyTag (monos, jefes, muñecos) y los
 -- personajes de los jugadores. La lista se rehace solo cuando cambia, y las consultas de piezas buscan
@@ -49,6 +51,9 @@ sightParams.RespectCanCollide = true
 local overlapParams = OverlapParams.new()
 overlapParams.FilterType = Enum.RaycastFilterType.Include
 
+local combatantCastParams = RaycastParams.new()
+combatantCastParams.FilterType = Enum.RaycastFilterType.Include
+
 local function rebuild()
 	table.clear(combatants)
 	table.clear(isCombatant)
@@ -67,6 +72,7 @@ local function rebuild()
 	end
 	sightParams.FilterDescendantsInstances = combatants
 	overlapParams.FilterDescendantsInstances = combatants
+	combatantCastParams.FilterDescendantsInstances = combatants
 	dirty = not started
 end
 
@@ -221,6 +227,45 @@ end
 -- Caja de "size" en "cframe" que avanza "displacement": lo primero que toca, sin lo de "ignore".
 function Hitbox.sweepBox(cframe: CFrame, size: Vector3, displacement: Vector3, ignore: { Instance }): RaycastResult?
 	return Workspace:Blockcast(cframe, size, displacement, castParams(ignore))
+end
+
+-- Esfera de "radius" que avanza "displacement" desde "origin" solo entre los combatientes: el primero
+-- que toca que no esté en "skip" (quien dispara, los ya atravesados), la distancia que ha avanzado su
+-- centro y el punto de contacto. No ve lo que ya toca al salir: quien llama sale desde un poco antes.
+function Hitbox.sweepCombatants(
+	origin: Vector3,
+	radius: number,
+	displacement: Vector3,
+	skip: { [Model]: boolean }
+): (Model?, number, Vector3?)
+	Hitbox.combatants()
+	local length = displacement.Magnitude
+	if length < 1e-3 then
+		return nil, 0, nil
+	end
+	local direction = displacement / length
+	local travelled = 0
+	-- Si toca a uno de "skip", sigue desde ahí (ya lo toca, así que no lo vuelve a ver); unas pocas veces.
+	for _ = 1, 6 do
+		local result = Workspace:Spherecast(
+			origin + direction * travelled,
+			radius,
+			direction * (length - travelled),
+			combatantCastParams
+		)
+		if not result then
+			return nil, length, nil
+		end
+		travelled += math.max(result.Distance, 0.05)
+		local model = Hitbox.ownerOf(result.Instance)
+		if model and not skip[model] then
+			return model, math.min(travelled, length), result.Position
+		end
+		if travelled >= length then
+			break
+		end
+	end
+	return nil, length, nil
 end
 
 -- Rehace la lista de combatientes cuando cambia y empieza a guardar sus posiciones. Lo llama
