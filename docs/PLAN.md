@@ -424,7 +424,7 @@ Decisiones de la entrevista:
 | **C3** | Detección de impactos unificada (`Combat/Hitbox`: rayos, esferas, cajas, áreas con línea de visión, posiciones rebobinadas). Ningún golpe atraviesa paredes. | `803d208` | ✅ |
 | **C4** | Cadena de 4 golpes cuerpo a cuerpo con remate (`Shared/MeleeChain`, tajos `Slash1`–`Slash4`) | `c7cbfa5` | ✅ |
 | **C5** | Guardia: bloqueo, parry y rotura; HUD y botón (`Combat/Guard`, `GuardController`, `CombatClient/GuardBar`) | `c4a5552` | ✅ |
-| **C6** | Monos y jefes con preparación, control decreciente y muñecos que atacan para practicar | — | ⬜ |
+| **C6** | Monos y jefes con preparación, control decreciente y muñecos que atacan para practicar (`Combat/EnemyAttack`, `EnemyWindupController`, `Config.ControlDR` en `Status.stun`, muñeco de sparring) | `fa01ab2` | ✅ |
 | **C7** | Evasivo, escalado del combo en PvP y telemetría nueva | — | ⬜ |
 | **C8** | Habilidades con preparación y amagos | — | ⬜ |
 | **C9** | Proyectiles reales | — | ⬜ |
