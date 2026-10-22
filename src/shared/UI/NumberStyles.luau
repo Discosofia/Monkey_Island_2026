@@ -28,6 +28,17 @@ local NumberStyles: { [string]: NumberStyle } = {
 		scale = 1.25,
 		glyph = { 0.2, 0.8 },
 	},
+	-- Fuego azul (temporada 1): puntas de azufre arriba, azul eléctrico en medio y añil abajo, como una
+	-- llama de gas, con un borde de ceniza oscura. El amarillo solo arriba, para no parecer los de serie,
+	-- y saturado (más claro salía blanco y se confundía con los de hielo).
+	BlueFireNumbers = {
+		font = Font.fromEnum(Enum.Font.LuckiestGuy),
+		colors = { Color3.fromRGB(255, 195, 0), Color3.fromRGB(40, 105, 255), Color3.fromRGB(28, 30, 165) },
+		critColors = { Color3.fromRGB(255, 215, 30), Color3.fromRGB(70, 140, 255), Color3.fromRGB(40, 50, 210) },
+		edge = Color3.fromRGB(18, 18, 38),
+		scale = 1.25,
+		glyph = { 0.2, 0.8 },
+	},
 	-- Hielo: blanco arriba, celeste en medio y azul hondo abajo, con un borde azul marino.
 	FrostNumbers = {
 		font = Font.fromEnum(Enum.Font.LuckiestGuy),

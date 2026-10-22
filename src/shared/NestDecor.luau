@@ -662,8 +662,269 @@ local function goldenTemple(radius: number): Model
 	return model
 end
 
+-- El fuego azul y el azufre de la temporada 1, sobre piedra pómez (no tan clara como parece: con las
+-- luces del nido de la plaza se veía blanca).
+local PUMICE = Color3.fromRGB(122, 116, 104)
+local PUMICE_LIGHT = Color3.fromRGB(150, 144, 128)
+local PUMICE_DARK = Color3.fromRGB(92, 87, 80)
+local ASH = Color3.fromRGB(100, 96, 90)
+local PORE = Color3.fromRGB(52, 50, 50)
+-- El azufre también, más oscuro: con la luz del huevo, el claro se volvía blanco.
+local SULFUR = Color3.fromRGB(200, 160, 20)
+local SULFUR_LIGHT = Color3.fromRGB(230, 190, 45)
+local SULFUR_CRUST = Color3.fromRGB(180, 160, 80)
+local BLUE_FLAME = { Color3.fromRGB(25, 50, 210), Color3.fromRGB(45, 120, 255), Color3.fromRGB(120, 185, 255) }
+local BLUE_TIP = Color3.fromRGB(200, 230, 255)
+
+-- Llama azul de bloques de neón (las partículas de fuego se ven humo oscuro o blancas al sol): tramos
+-- que se afinan hacia arriba, del añil de la base al azul claro de la punta, y dos lenguas a los lados.
+local function blueFlame(piece: Model, at: CFrame, height: number, s: number)
+	local y = 0
+	for step, color in BLUE_FLAME do
+		local width = (1 - (step - 1) * 0.28) * height * 0.5
+		local tall = height * (0.34 - (step - 1) * 0.04)
+		block(piece, at * CFrame.new(0, y + tall / 2, 0), Vector3.new(width, tall, width), color, Enum.Material.Neon)
+		y += tall
+	end
+	block(
+		piece,
+		at * CFrame.new(0.04 * s, y + height * 0.08, 0),
+		Vector3.new(height * 0.1, height * 0.16, height * 0.1),
+		BLUE_TIP,
+		Enum.Material.Neon
+	)
+	for _, side in { -1, 1 } do
+		block(
+			piece,
+			at * CFrame.new(side * height * 0.24, height * 0.42, 0) * CFrame.Angles(0, 0, math.rad(side * -14)),
+			Vector3.new(height * 0.12, height * 0.3, height * 0.12),
+			BLUE_FLAME[2],
+			Enum.Material.Neon
+		)
+	end
+end
+
+-- Cristal de azufre: un prisma de bloque con la punta más clara y una cara de luz por delante.
+local function sulfurCrystal(piece: Model, at: CFrame, width: number, height: number)
+	block(piece, at * CFrame.new(0, height * 0.42, 0), Vector3.new(width, height * 0.84, width), SULFUR)
+	block(
+		piece,
+		at * CFrame.new(0, height * 0.9, 0),
+		Vector3.new(width * 0.62, height * 0.18, width * 0.62),
+		SULFUR_LIGHT
+	)
+	block(
+		piece,
+		at * CFrame.new(-width * 0.2, height * 0.45, -width * 0.46),
+		Vector3.new(width * 0.22, height * 0.6, width * 0.12),
+		SULFUR_LIGHT
+	)
+end
+
+-- Cráter de azufre: el nido en el fondo de un cráter. Una costra de azufre alrededor con grietas de
+-- fuego azul, el borde del cráter de piedra pómez con poros (más bajo delante, para ver el huevo),
+-- cuatro fumarolas con su llama azul en los lados y detrás racimos de cristales de azufre, el más alto
+-- con fuego azul en la base. Chispas azules que suben y una luz azul floja.
+local function sulfurCrater(radius: number): Model
+	local model = Instance.new("Model")
+	model.Name = "NidoCraterDeAzufre"
+	local s = radius / 5
+	local center = Vector3.zero
+	-- La costra: un anillo de losas tangentes de ceniza (amarillo entero se confundía con el foso de
+	-- lava del volcánico), con manchas de azufre y una grieta azul cada tres.
+	local crust = radius * 1.18
+	local segments = 26
+	local length = 2 * math.pi * crust / segments * 1.12
+	for index = 1, segments do
+		local angle = (index - 0.5) * 360 / segments
+		local at = CFrame.lookAt(around(angle, crust), center)
+		local piece = group(model, around(angle, crust))
+		block(piece, at * CFrame.new(0, 0.07 * s, 0), Vector3.new(length, 0.14 * s, 1.5 * s), ASH, Enum.Material.Slate)
+		if index % 2 == 0 then
+			block(
+				piece,
+				at * CFrame.new(length * ((index % 3) * 0.2 - 0.2), 0.16 * s, (index % 4 - 1.5) * 0.25 * s),
+				Vector3.new(length * 0.5, 0.06 * s, 0.7 * s),
+				if index % 4 == 0 then SULFUR else SULFUR_CRUST
+			)
+		end
+		if index % 3 == 1 then
+			block(
+				piece,
+				at * CFrame.new(0, 0.15 * s, 0) * CFrame.Angles(0, math.rad(24), 0),
+				Vector3.new(0.14 * s, 0.06 * s, 1.3 * s),
+				BLUE_FLAME[2],
+				Enum.Material.Neon
+			)
+		end
+	end
+	-- El borde del cráter: 20 bloques de pómez casi pegados e inclinados hacia fuera, más altos detrás
+	-- (con un bloque encima que lo hace dentado), la cara de arriba más clara y algún poro (dos juntos
+	-- parecían ojos).
+	local rim = radius * 1.55
+	local stones = 20
+	for index = 1, stones do
+		local angle = (index - 1) * 360 / stones + (if index % 2 == 0 then 5 else -3)
+		local back = (1 - math.cos(math.rad(angle))) / 2 -- 0 delante, 1 detrás
+		local height = (0.8 + back * 2.4 + (index % 3) * 0.2) * s
+		local width = (2 + (index % 2) * 0.3) * s
+		local base = around(angle, rim)
+		local piece = group(model, base)
+		local at = CFrame.lookAt(base, center) * CFrame.Angles(math.rad(-10), 0, 0)
+		block(
+			piece,
+			at * CFrame.new(0, height / 2, 0),
+			Vector3.new(width, height, 1.8 * s),
+			if index % 2 == 0 then PUMICE else PUMICE_DARK,
+			Enum.Material.Slate
+		)
+		block(
+			piece,
+			at * CFrame.new(-width * 0.1, height + 0.06 * s, 0.1 * s),
+			Vector3.new(width * 0.7, 0.12 * s, 1.1 * s),
+			PUMICE_LIGHT,
+			Enum.Material.Slate
+		)
+		if back > 0.5 then
+			block(
+				piece,
+				at * CFrame.new(width * 0.22, height + 0.35 * s, 0.2 * s),
+				Vector3.new(width * 0.45, 0.7 * s, 1.2 * s),
+				PUMICE_DARK,
+				Enum.Material.Slate
+			)
+		end
+		-- Azufre que ha cristalizado encima de algunas piedras (de lado y detrás, para que se vea por
+		-- encima del borde).
+		if index % 2 == 1 and back > 0.25 then
+			sulfurCrystal(
+				piece,
+				at * CFrame.new(-width * 0.25, height, 0) * CFrame.Angles(math.rad(-15), 0, math.rad(12)),
+				0.55 * s,
+				(1 + back) * s
+			)
+		end
+		if index % 3 == 0 then
+			block(
+				piece,
+				at * CFrame.new(width * 0.25, height * 0.3, -0.91 * s),
+				Vector3.new(0.34 * s, 0.18 * s, 0.06 * s),
+				PORE
+			)
+		end
+	end
+	-- Fumarolas a los lados: una chimenea de pómez de dos bloques, la boca oscura y su llama azul.
+	local flames = {}
+	for _, angle in { 62, 108, 252, 298 } do
+		local base = around(angle, rim - 0.4 * s)
+		local piece = group(model, base)
+		local at = CFrame.lookAt(base, center)
+		local top = (2.2 + (angle % 2) * 0.2) * s
+		block(
+			piece,
+			at * CFrame.new(0, top * 0.3, 0),
+			Vector3.new(1.5 * s, top * 0.6, 1.5 * s),
+			PUMICE,
+			Enum.Material.Slate
+		)
+		block(
+			piece,
+			at * CFrame.new(0, top * 0.8, 0),
+			Vector3.new(1.05 * s, top * 0.4, 1.05 * s),
+			PUMICE_LIGHT,
+			Enum.Material.Slate
+		)
+		block(piece, at * CFrame.new(0, top + 0.02 * s, 0), Vector3.new(0.6 * s, 0.06 * s, 0.6 * s), PORE)
+		block(piece, at * CFrame.new(0.55 * s, top * 0.7, -0.4 * s), Vector3.new(0.4 * s, 0.4 * s, 0.4 * s), SULFUR)
+		blueFlame(piece, at * CFrame.new(0, top, 0), 2.4 * s, s)
+		table.insert(flames, piece)
+	end
+	-- Cinco racimos de cristales de azufre detrás, inclinados hacia fuera; el del centro es el más alto y
+	-- tiene fuego azul en la base.
+	for _, cluster in { { 125, 4 }, { 152, 5.6 }, { 180, 7.5 }, { 208, 6 }, { 235, 4.4 } } do
+		local height = cluster[2] * s
+		local base = around(cluster[1], rim + 1.2 * s)
+		local piece = group(model, base)
+		local at = CFrame.lookAt(base, center)
+		block(
+			piece,
+			at * CFrame.new(0, 0.2 * s, 0),
+			Vector3.new(3.6 * s, 0.5 * s, 3 * s),
+			PUMICE_DARK,
+			Enum.Material.Slate
+		)
+		sulfurCrystal(piece, at * CFrame.Angles(math.rad(-12), 0, 0), 1.5 * s, height)
+		sulfurCrystal(
+			piece,
+			at * CFrame.new(-1.2 * s, 0, 0.2 * s) * CFrame.Angles(math.rad(-8), 0, math.rad(22)),
+			1.05 * s,
+			height * 0.62
+		)
+		sulfurCrystal(
+			piece,
+			at * CFrame.new(1.25 * s, 0, 0.1 * s) * CFrame.Angles(math.rad(-6), 0, math.rad(-26)),
+			1.1 * s,
+			height * 0.5
+		)
+		sulfurCrystal(
+			piece,
+			at * CFrame.new(0.2 * s, 0, -1.2 * s) * CFrame.Angles(math.rad(16), 0, math.rad(-10)),
+			0.7 * s,
+			height * 0.3
+		)
+		if cluster[1] == 180 then
+			for _, side in { -1, 1 } do
+				blueFlame(piece, at * CFrame.new(side * 1.7 * s, 0.45 * s, -1.1 * s), 1.8 * s, s)
+			end
+			table.insert(flames, piece)
+		end
+	end
+	-- Cristalitos sueltos en el borde de delante, a los dos lados del hueco.
+	for _, angle in { 32, -32 } do
+		local base = around(angle, rim - 1.1 * s)
+		local piece = group(model, base)
+		local at = CFrame.lookAt(base, center) * CFrame.Angles(math.rad(-10), 0, math.rad(angle * 0.4))
+		sulfurCrystal(piece, at, 0.7 * s, 1.5 * s)
+		sulfurCrystal(
+			piece,
+			at * CFrame.new(0.5 * s, 0, 0.2 * s) * CFrame.Angles(0, 0, math.rad(-25)),
+			0.35 * s,
+			0.7 * s
+		)
+	end
+	-- Chispas y luz (en un ViewportFrame no se ven; en el mundo, sí).
+	local glow = block(model, CFrame.new(0, 0.05, 0), Vector3.new(0.2, 0.1, 0.2), BLUE_FLAME[2], Enum.Material.Neon)
+	glow.Name = "Brillo"
+	glow.Transparency = 1
+	local light = Instance.new("PointLight")
+	light.Color = BLUE_FLAME[2]
+	light.Range = radius * 2.2
+	light.Brightness = 0.8
+	light.Parent = glow
+	for _, piece in flames do
+		for _, part in piece:GetChildren() do
+			if part:IsA("BasePart") and part.Color == BLUE_TIP then
+				local sparks = Instance.new("ParticleEmitter")
+				sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+				sparks.Color = ColorSequence.new(BLUE_TIP, SULFUR_LIGHT)
+				sparks.Size = NumberSequence.new(0.15 * s, 0)
+				sparks.LightEmission = 1
+				sparks.Rate = 2
+				sparks.Lifetime = NumberRange.new(1.2, 2)
+				sparks.Speed = NumberRange.new(1.5, 3)
+				sparks.Acceleration = Vector3.new(0, 1, 0)
+				sparks.EmissionDirection = Enum.NormalId.Top
+				sparks.SpreadAngle = Vector2.new(20, 20)
+				sparks.Parent = part
+			end
+		end
+	end
+	return model
+end
+
 local BUILDERS: { [string]: (radius: number) -> Model } = {
 	VolcanicNest = volcanic,
+	SulfurCraterNest = sulfurCrater,
 	CoralBeachNest = coralBeach,
 	GoldenTempleNest = goldenTemple,
 }

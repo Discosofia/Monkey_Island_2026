@@ -151,6 +151,37 @@ local STYLES: { [string]: BurstStyle } = {
 		puff = Color3.fromRGB(125, 115, 110),
 		words = { Hit = { "FSSS!", "CRACK!", "FWOOSH!" }, Crit = { "KABOOM!", "BRRUM!" } },
 	},
+	-- Fuego azul (temporada 1): una llama azul con azufre amarillo dentro (el chapuzón lleva espuma
+	-- blanca y el rayo, nube gris); el crítico, el azufre más vivo y rayos celestes (con el centro celeste
+	-- se confundía con el chapuzón); el K.O., añil con el centro azul. Nubes de humo de azufre y sus
+	-- palabras ("FSHHH!").
+	BlueFireBurst = {
+		Hit = {
+			outer = Color3.fromRGB(40, 95, 240),
+			inner = Color3.fromRGB(240, 205, 50),
+			star = Color3.fromRGB(150, 210, 255),
+			text = Color3.fromRGB(255, 235, 110),
+			edge = Color3.fromRGB(15, 25, 110),
+		},
+		Crit = {
+			outer = Color3.fromRGB(30, 70, 215),
+			inner = Color3.fromRGB(255, 220, 70),
+			rays = Color3.fromRGB(150, 210, 255),
+			star = Color3.fromRGB(255, 240, 140),
+			text = Color3.fromRGB(255, 240, 140),
+			edge = Color3.fromRGB(15, 20, 90),
+		},
+		KO = {
+			outer = Color3.fromRGB(22, 25, 95),
+			inner = Color3.fromRGB(45, 120, 255),
+			rays = Color3.fromRGB(240, 205, 50),
+			star = Color3.fromRGB(255, 235, 110),
+			text = Color3.fromRGB(255, 255, 255),
+			edge = Color3.fromRGB(10, 10, 55),
+		},
+		puff = Color3.fromRGB(215, 205, 140),
+		words = { Hit = { "FSSH!", "FWUMP!", "PSSST!" }, Crit = { "FSHHH!", "WHOOOM!" } },
+	},
 	-- Chapuzón (tienda): una ola azul con espuma blanca dentro, gotas celestes y nubes de espuma.
 	SplashBurst = {
 		Hit = {

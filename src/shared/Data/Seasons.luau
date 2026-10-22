@@ -47,13 +47,13 @@ local Seasons: { Season } = {
 		-- Provisional (lunes): la fecha de verdad se pone antes de publicar (docs/LANZAMIENTO.md).
 		startsAt = utc(2026, 10, 19),
 		-- Contenido de la temporada (grupo G11 del plan): trajes y armas de fuego azul y azufre (G11a);
-		-- mascotas, marcos y estelas (G11b); emotes (G11c); los tres grados de la Llama primal (N1, N15, N30).
-		-- Faltan los premios pequeños de los niveles premium vacíos (G11d).
+		-- mascotas, marcos y estelas (G11b); emotes (G11c); los tres grados de la Llama primal (N1, N15, N30);
+		-- títulos, números, estallidos y nidos en el resto (G11d). Un premio premium en cada nivel.
 		levels = {
 			{ free = { cosmetic = "TitleCastaway" }, premium = { cosmetic = "PrimalFlameAura" } },
 			{ free = { amber = 75 }, premium = { cosmetic = "EmoteGorillaRoar" } },
 			{ free = { items = { Banana = 5, Bandage = 2 } }, premium = { cosmetic = "SulfurMace" } },
-			{ free = { eggSeconds = 30 * MIN, cosmetic = "BronzeFrame" } },
+			{ free = { eggSeconds = 30 * MIN, cosmetic = "BronzeFrame" }, premium = { cosmetic = "TitleVolcanoSon" } },
 			{ free = { amber = 100 }, premium = { cosmetic = "BlueFireGuardianOutfit" } },
 			{
 				free = { items = { Torch = 1, Antidote = 1 }, cosmetic = "EmoteMonkeySalute" },
@@ -69,21 +69,21 @@ local Seasons: { Season } = {
 				premium = { cosmetic = "VolcanicNest" },
 			},
 			{ free = { amber = 100 }, premium = { cosmetic = "SulfurStaff" } },
-			{ free = { eggSeconds = 45 * MIN } },
+			{ free = { eggSeconds = 45 * MIN }, premium = { cosmetic = "BlueFireNumbers" } },
 			{ free = { cosmetic = "AshTrail" }, premium = { cosmetic = "PrimalFlameAuraII" } },
 			{ free = { amber = 125 }, premium = { cosmetic = "BlueFireTrail" } },
 			{ free = { items = { ReviveKit = 1 } }, premium = { cosmetic = "EmoteEruption" } },
 			{ free = { eggSeconds = HOUR }, premium = { cosmetic = "SulfurBlowgun" } },
-			{ free = { amber = 125 } },
+			{ free = { amber = 125 }, premium = { cosmetic = "TitleAshWalker" } },
 			{ free = { egg = { Rare = 1 } }, premium = { cosmetic = "BlueFireInvokerOutfit" } },
 			{ free = { items = { Antidote = 2, SuperBandage = 1 } }, premium = { cosmetic = "BlueFireFrame" } },
-			{ free = { amber = 150, cosmetic = "SilverFrame" } },
+			{ free = { amber = 150, cosmetic = "SilverFrame" }, premium = { cosmetic = "BlueFireBurst" } },
 			{ free = { eggSeconds = HOUR }, premium = { cosmetic = "MagmaJaguarSkin" } },
-			{ free = { items = { Torch = 2, Banana = 5 } } },
+			{ free = { items = { Torch = 2, Banana = 5 } }, premium = { cosmetic = "TitleMagmaTamer" } },
 			{ free = { amber = 200 }, premium = { cosmetic = "BlueFireHealerOutfit" } },
-			{ free = { eggSeconds = HOUR } },
+			{ free = { eggSeconds = HOUR }, premium = { cosmetic = "TitleBlueFlameGuardian" } },
 			{ free = { items = { ReviveKit = 1, SuperBandage = 2 } }, premium = { cosmetic = "MoltenObsidianFrame" } },
-			{ free = { amber = 200 } },
+			{ free = { amber = 200 }, premium = { cosmetic = "SulfurCraterNest" } },
 			{ free = { eggSeconds = 90 * MIN }, premium = { cosmetic = "TitlePrimalKing" } },
 			{ free = { cosmetic = "TitleVolcanoLord", amber = 300 }, premium = { cosmetic = "PrimalFlameAuraIII" } },
 		},
