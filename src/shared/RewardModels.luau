@@ -14,13 +14,16 @@
 -- estilo de los números (unos números voxel con sus colores y su borde), el de los estallidos (una
 -- estrella de cómic con su "!"), la decoración del nido (alrededor de un nido pequeño) y las skins de
 -- mascota (la mascota con la skin). Un traje se ve puesto en tu avatar (entero, como en el Lobby) y el
--- aspecto de un arma, en el arma suelta y cruzada. Un aura por grados lleva más piezas en cada grado.
+-- aspecto de un arma, en el arma suelta y cruzada. Un aura por grados lleva más piezas en cada grado. Un
+-- emote, tu avatar quieto en su pose clave ("card" de Data/EmoteAnimations) con bloques que recuerdan su
+-- efecto.
 
 local ArmorModels = require(script.Parent.ArmorModels)
 local ComicBurst = require(script.Parent.UI.ComicBurst)
 local CosmeticSlots = require(script.Parent.CosmeticSlots)
 local Cosmetics = require(script.Parent.Data.Cosmetics)
 local EggModel = require(script.Parent.EggModel)
+local EmoteAnimations = require(script.Parent.Data.EmoteAnimations)
 local NestDecor = require(script.Parent.NestDecor)
 local NumberStyles = require(script.Parent.UI.NumberStyles)
 local PetModels = require(script.Parent.PetModels)
@@ -56,6 +59,7 @@ local CORK = Color3.fromRGB(165, 120, 75)
 local FLAME_RED = Color3.fromRGB(230, 70, 25)
 local FLAME_ORANGE = Color3.fromRGB(255, 140, 30)
 local FLAME_YELLOW = Color3.fromRGB(255, 225, 90)
+local LAVA_NEON = Color3.fromRGB(255, 90, 0)
 local STRAW = Color3.fromRGB(205, 175, 105)
 -- Letras de 3 × 5 celdas (de arriba abajo) para los números voxel.
 local GLYPHS: { [string]: { string } } = {
@@ -512,6 +516,169 @@ function RewardModels.petSkin(cosmeticId: string): Model?
 	return model
 end
 
+-- Pone el avatar (sus piezas ancladas) en la pose "pose" ({ pieza = { x, y, z, px?, py?, pz? } }, como en
+-- Data/EmoteAnimations): recorre las uniones desde la raíz y coloca cada pieza respecto a la anterior. Las
+-- del cuerpo (Motor6D o AnimationConstraint) con su pose (las que no la nombran, en reposo); lo que va
+-- soldado (accesorios, piezas del traje), donde estaba respecto a su pieza.
+local function poseAvatar(model: Model, pose: { [string]: any })
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if not (root and root:IsA("BasePart")) then
+		return
+	end
+	-- Uniones: de cada pieza, las piezas unidas a ella y dónde va cada una respecto a ella.
+	local links: { [BasePart]: { { part: BasePart, offset: CFrame } } } = {}
+	local function link(from: BasePart, to: BasePart, offset: CFrame)
+		links[from] = links[from] or {}
+		table.insert(links[from], { part = to, offset = offset })
+		links[to] = links[to] or {}
+		table.insert(links[to], { part = from, offset = offset:Inverse() })
+	end
+	local function poseOf(part: BasePart): CFrame
+		local value = pose[part.Name]
+		if not value then
+			return CFrame.identity
+		end
+		return CFrame.new(value[4] or 0, value[5] or 0, value[6] or 0)
+			* CFrame.Angles(math.rad(value[1] or 0), math.rad(value[2] or 0), math.rad(value[3] or 0))
+	end
+	for _, item in model:GetDescendants() do
+		if item:IsA("Motor6D") and item.Part0 and item.Part1 then
+			link(item.Part0, item.Part1, item.C0 * poseOf(item.Part1) * item.C1:Inverse())
+		elseif item:IsA("AnimationConstraint") and item.Attachment0 and item.Attachment1 then
+			local part0, part1 = item.Attachment0.Parent, item.Attachment1.Parent
+			if part0 and part0:IsA("BasePart") and part1 and part1:IsA("BasePart") then
+				link(part0, part1, item.Attachment0.CFrame * poseOf(part1) * item.Attachment1.CFrame:Inverse())
+			end
+		elseif (item:IsA("JointInstance") or item:IsA("WeldConstraint")) and item.Part0 and item.Part1 then
+			local part0, part1 = (item :: any).Part0 :: BasePart, (item :: any).Part1 :: BasePart
+			link(part0, part1, part0.CFrame:ToObjectSpace(part1.CFrame))
+		elseif item:IsA("RigidConstraint") and item.Attachment0 and item.Attachment1 then
+			local part0, part1 = item.Attachment0.Parent, item.Attachment1.Parent
+			if part0 and part0:IsA("BasePart") and part1 and part1:IsA("BasePart") then
+				link(part0, part1, part0.CFrame:ToObjectSpace(part1.CFrame))
+			end
+		end
+	end
+	local placed: { [BasePart]: CFrame } = { [root] = root.CFrame }
+	local queue: { BasePart } = { root }
+	local index = 1
+	while queue[index] do
+		local from = queue[index]
+		index += 1
+		for _, linked in links[from] or {} do
+			if not placed[linked.part] then
+				placed[linked.part] = placed[from] * linked.offset
+				table.insert(queue, linked.part)
+			end
+		end
+	end
+	for part, cframe in placed do
+		part.CFrame = cframe
+	end
+end
+
+-- Bloque anclado de las pistas de un emote.
+local function hintBlock(model: Model, color: Color3, size: Vector3, cframe: CFrame, neon: boolean)
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.Material = if neon then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	part.Color = color
+	part.Size = size
+	part.CFrame = cframe
+	part.Parent = model
+end
+
+-- Aro de bloques en el suelo alrededor de los pies.
+local function hintRing(model: Model, radius: number, count: number, colors: { Color3 }, neon: boolean)
+	for index = 1, count do
+		local angle = index / count * math.pi * 2
+		local cube = 0.3 + (index % 3) * 0.08
+		hintBlock(
+			model,
+			colors[index % #colors + 1],
+			Vector3.new(cube, cube * 0.6, cube),
+			CFrame.new(math.cos(angle) * radius, cube * 0.3, math.sin(angle) * radius) * CFrame.Angles(0, angle, 0),
+			neon
+		)
+	end
+end
+
+local EMOTE_HINTS: { [string]: (model: Model) -> () } = {
+	-- Onda de polvo por el suelo y piedrecitas en el aire.
+	EmoteGorillaRoar = function(model)
+		hintRing(model, 1.9, 16, { SAND, Color3.fromRGB(205, 180, 135) }, false)
+		for index = 1, 5 do
+			local angle = index * 1.3
+			hintBlock(
+				model,
+				Color3.fromRGB(120, 112, 104),
+				Vector3.one * 0.25,
+				CFrame.new(math.cos(angle) * 1.4, 0.5 + (index % 3) * 0.35, math.sin(angle) * 1.2)
+					* CFrame.Angles(angle, angle, 0),
+				false
+			)
+		end
+	end,
+	-- Llamas azules (tres bloques que se estrechan) en las manos.
+	EmoteFireDance = function(model)
+		for _, name in { "RightHand", "LeftHand" } do
+			local hand = model:FindFirstChild(name, true)
+			if hand and hand:IsA("BasePart") then
+				for step = 0, 2 do
+					local side = 0.42 - step * 0.11
+					hintBlock(
+						model,
+						if step == 2 then Color3.fromRGB(170, 225, 255) else Color3.fromRGB(45, 120, 255),
+						Vector3.one * side,
+						CFrame.new(hand.Position + Vector3.new(0, 0.35 + step * 0.32, 0))
+							* CFrame.Angles(0, step * 0.6, 0),
+						true
+					)
+				end
+			end
+		end
+	end,
+	-- Aro de lava y un chorro de ceniza y brasas bajo el salto.
+	-- (En neón, los naranjas claros salen amarillos: lava más oscura.)
+	EmoteEruption = function(model)
+		hintRing(model, 1.5, 14, { FLAME_RED, LAVA_NEON }, true)
+		for index = 1, 12 do
+			local angle = index * 2.4
+			local ember = index % 3 == 0
+			local cube = if ember then 0.22 else 0.38
+			hintBlock(
+				model,
+				if ember then LAVA_NEON else Color3.fromRGB(48, 45, 45),
+				Vector3.one * cube,
+				CFrame.new(math.cos(angle) * 0.5 * (index % 4) / 3, 0.2 + index * 0.1, math.sin(angle) * 0.4)
+					* CFrame.Angles(angle, angle, 0),
+				ember
+			)
+		end
+	end,
+}
+
+-- El avatar de la imagen de un emote, en su pose clave y con la pista de su efecto.
+local function emoteCard(avatar: Model, cosmeticId: string)
+	local spec = EmoteAnimations[cosmeticId]
+	if not spec then
+		return
+	end
+	-- El fotograma más cercano a "card" (los tiempos que se suman no dan el número exacto).
+	local closest = spec.keyframes[1]
+	for _, frame in spec.keyframes do
+		if math.abs(frame.t - spec.card) < math.abs(closest.t - spec.card) then
+			closest = frame
+		end
+	end
+	poseAvatar(avatar, closest)
+	local hint = EMOTE_HINTS[cosmeticId]
+	if hint then
+		hint(avatar)
+	end
+end
+
 -- La imagen de un cosmético: los que no se llevan encima (números, estallidos, nido, mascota) tienen
 -- su modelo; los demás, tu avatar con él puesto (RewardModels.avatar).
 function RewardModels.cosmetic(character: Model?, cosmeticId: string): Model?
@@ -537,6 +704,9 @@ function RewardModels.cosmetic(character: Model?, cosmeticId: string): Model?
 		return weapon
 	end
 	local avatar = RewardModels.avatar(character, cosmeticId)
+	if avatar and kind == "Emote" then
+		emoteCard(avatar, cosmeticId)
+	end
 	if avatar and kind == "Outfit" and cosmetic and cosmetic.role then
 		ArmorModels.wear(avatar, nil, cosmetic.role, cosmeticId, ArmorModels.MAX_GRADE)
 		-- De tres cuartos por detrás: la espalda es lo más vistoso de cada traje.

@@ -5,7 +5,9 @@
 --
 --   require(game.ServerStorage.Tools.PlayerAnimationBuilder).build()
 --
--- Crea (o sustituye) ReplicatedStorage.PlayerAnimations con una KeyframeSequence por animación.
+-- Crea (o sustituye) ReplicatedStorage.PlayerAnimations con una KeyframeSequence por animación, y
+-- ReplicatedStorage.EmoteAnimations con las de los emotes (Shared/Data/EmoteAnimations; su id publicado
+-- va al "animationId" del emote en Shared/Data/Cosmetics).
 -- Para probarlas basta con pulsar Play: en Studio, Client/BodyAnimations usa estas secuencias
 -- mientras su id esté vacío. Para el juego publicado: clic derecho en cada una > "Save to Roblox"
 -- (con el mismo dueño que el juego) y pegar el id en Shared/Data/PlayerAnimations.
@@ -34,8 +36,10 @@ end
 local MonkeyAnimationBuilder =
 	freshRequire((script.Parent :: Instance):WaitForChild("MonkeyAnimationBuilder") :: ModuleScript)
 local PlayerAnimations = freshRequire(ReplicatedStorage.Shared.Data.PlayerAnimations)
+local EmoteAnimations = freshRequire(ReplicatedStorage.Shared.Data.EmoteAnimations)
 
 local FOLDER_NAME = "PlayerAnimations"
+local EMOTE_FOLDER_NAME = "EmoteAnimations"
 
 -- De qué pieza cuelga cada una en el rig R15.
 local PARENT: { [string]: string } = {
@@ -662,11 +666,30 @@ function PlayerAnimationBuilder.build(options: { fresh: boolean? }?)
 	end
 	table.sort(names)
 	folder.Parent = ReplicatedStorage
+	-- Los emotes, con prioridad de acción como los pone la rueda (UI/EmoteWheel).
+	local oldEmotes = ReplicatedStorage:FindFirstChild(EMOTE_FOLDER_NAME)
+	if oldEmotes then
+		oldEmotes:Destroy()
+	end
+	local emotes = Instance.new("Folder")
+	emotes.Name = EMOTE_FOLDER_NAME
+	local emoteNames = {}
+	for cosmeticId, spec in EmoteAnimations do
+		local sequence = MonkeyAnimationBuilder.sequence(spec, PARENT)
+		sequence.Name = cosmeticId
+		sequence.Priority = Enum.AnimationPriority.Action
+		sequence.Parent = emotes
+		table.insert(emoteNames, cosmeticId)
+	end
+	table.sort(emoteNames)
+	emotes.Parent = ReplicatedStorage
 	print(
-		`[PlayerAnimationBuilder] Listo: ReplicatedStorage.PlayerAnimations ({table.concat(names, ", ")}).\n`
+		`[PlayerAnimationBuilder] Listo: ReplicatedStorage.PlayerAnimations ({table.concat(names, ", ")}) y `
+			.. `ReplicatedStorage.EmoteAnimations ({table.concat(emoteNames, ", ")}).\n`
 			.. "  Pruébalas con Play (en Studio se usan mientras su id esté vacío).\n"
 			.. "  Para publicarlas: clic derecho en cada una > Save to Roblox (mismo dueño que el juego),\n"
-			.. "  y pega cada id en src/shared/Data/PlayerAnimations.luau."
+			.. "  y pega cada id en src/shared/Data/PlayerAnimations.luau (los de los emotes, en su\n"
+			.. "  animationId de src/shared/Data/Cosmetics.luau)."
 	)
 end
 

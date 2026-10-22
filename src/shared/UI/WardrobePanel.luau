@@ -31,6 +31,7 @@ local CombatTextColumn = require(ReplicatedStorage.Shared.UI.CombatTextColumn)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local EmoteTracks = require(ReplicatedStorage.Shared.EmoteTracks)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
@@ -301,10 +302,10 @@ end
 -- El avatar del visor hace el emote "cosmeticId" en bucle: dentro de un WorldModel (sin él, un
 -- ViewportFrame no anima) y con las piezas sueltas salvo la raíz, para que las muevan sus uniones.
 local function playEmote(viewport: ViewportFrame, model: Model, cosmeticId: string)
-	local cosmetic = Cosmetics[cosmeticId]
+	local animationId = EmoteTracks.id(cosmeticId)
 	local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
 	local animator = if humanoid then humanoid:FindFirstChildOfClass("Animator") else nil
-	if not (cosmetic and cosmetic.animationId and humanoid and animator) then
+	if not (animationId and humanoid and animator) then
 		return
 	end
 	if humanoid.RigType ~= Enum.HumanoidRigType.R15 then
@@ -319,7 +320,7 @@ local function playEmote(viewport: ViewportFrame, model: Model, cosmeticId: stri
 		end
 	end
 	local animation = Instance.new("Animation")
-	animation.AnimationId = cosmetic.animationId
+	animation.AnimationId = animationId
 	local track = animator:LoadAnimation(animation)
 	track.Looped = true
 	track:Play(0)

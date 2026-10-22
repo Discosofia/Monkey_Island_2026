@@ -47,18 +47,21 @@ local Seasons: { Season } = {
 		-- Provisional (lunes): la fecha de verdad se pone antes de publicar (docs/LANZAMIENTO.md).
 		startsAt = utc(2026, 10, 19),
 		-- Contenido de la temporada (grupo G11 del plan): trajes y armas de fuego azul y azufre (G11a);
-		-- mascotas, marcos y estelas (G11b); los tres grados de la Llama primal (N1, N15, N30). Faltan los
-		-- emotes (G11c) y los premios pequeños de los niveles premium vacíos (G11d).
+		-- mascotas, marcos y estelas (G11b); emotes (G11c); los tres grados de la Llama primal (N1, N15, N30).
+		-- Faltan los premios pequeños de los niveles premium vacíos (G11d).
 		levels = {
 			{ free = { cosmetic = "TitleCastaway" }, premium = { cosmetic = "PrimalFlameAura" } },
-			{ free = { amber = 75 } },
+			{ free = { amber = 75 }, premium = { cosmetic = "EmoteGorillaRoar" } },
 			{ free = { items = { Banana = 5, Bandage = 2 } }, premium = { cosmetic = "SulfurMace" } },
 			{ free = { eggSeconds = 30 * MIN, cosmetic = "BronzeFrame" } },
 			{ free = { amber = 100 }, premium = { cosmetic = "BlueFireGuardianOutfit" } },
-			{ free = { items = { Torch = 1, Antidote = 1 } }, premium = { cosmetic = "MagmaNumbers" } },
+			{
+				free = { items = { Torch = 1, Antidote = 1 }, cosmetic = "EmoteMonkeySalute" },
+				premium = { cosmetic = "MagmaNumbers" },
+			},
 			{ free = { eggSeconds = 30 * MIN }, premium = { cosmetic = "SulfurBow" } },
 			{ free = { amber = 100, cosmetic = "SulfurMachete" }, premium = { cosmetic = "VolcanicBurst" } },
-			{ free = { items = { SuperBandage = 1 } } },
+			{ free = { items = { SuperBandage = 1 } }, premium = { cosmetic = "EmoteFireDance" } },
 			{ free = { amber = 150 }, premium = { cosmetic = "BlueFireStalkerOutfit" } },
 			{ free = { eggSeconds = 45 * MIN }, premium = { cosmetic = "MagmaStepTrail" } },
 			{
@@ -69,7 +72,7 @@ local Seasons: { Season } = {
 			{ free = { eggSeconds = 45 * MIN } },
 			{ free = { cosmetic = "AshTrail" }, premium = { cosmetic = "PrimalFlameAuraII" } },
 			{ free = { amber = 125 }, premium = { cosmetic = "BlueFireTrail" } },
-			{ free = { items = { ReviveKit = 1 } } },
+			{ free = { items = { ReviveKit = 1 } }, premium = { cosmetic = "EmoteEruption" } },
 			{ free = { eggSeconds = HOUR }, premium = { cosmetic = "SulfurBlowgun" } },
 			{ free = { amber = 125 } },
 			{ free = { egg = { Rare = 1 } }, premium = { cosmetic = "BlueFireInvokerOutfit" } },

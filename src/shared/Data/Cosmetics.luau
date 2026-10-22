@@ -78,7 +78,7 @@ export type Cosmetic = {
 	petId: string?, -- PetSkin: la mascota (Data/Pets)
 	petFamily: string?, -- PetSkin de familia: vale para todas las mascotas con ese "family" (Data/Pets)
 	petShown: string?, -- PetSkin de familia: la mascota de su imagen (si no, la primera por orden alfabético)
-	animationId: string?, -- Emote: la animación publicada (rbxassetid://…)
+	animationId: string?, -- Emote: la animación publicada (rbxassetid://…); vacía, la de Data/EmoteAnimations solo en Studio (Shared/EmoteTracks)
 	line: string?, -- cosmético por grados: los grados de una misma línea comparten este id
 	grade: number?, -- su grado en la línea (1, 2 o 3: I, II, III)
 	colors: { Color3 }?, -- Trail: franjas de arriba abajo (una estela por color) en vez de "color"
@@ -829,6 +829,52 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(255, 225, 150),
 		source = { free = true },
 		animationId = "rbxassetid://507771019",
+	},
+	-- Emotes de la temporada 1 (G11c): su animación sale de Data/EmoteAnimations (generada con
+	-- PlayerAnimationBuilder y publicada) y los premium llevan efectos (Shared/UI/EmoteFx).
+	EmoteMonkeySalute = {
+		name = "Emote: Saludo simio",
+		icon = "🐒",
+		kind = "Emote",
+		description = "Pase de temporada 1, nivel 6 (gratis): ¡uh, uh, ah, ah! Rascándote la cabeza y el sobaco.",
+		order = 35,
+		rarity = "Uncommon",
+		color = Color3.fromRGB(215, 160, 90),
+		source = { season = "T1" },
+		animationId = "rbxassetid://123521100925484",
+	},
+	EmoteGorillaRoar = {
+		name = "Emote: Grito de gorila",
+		icon = "🦍",
+		kind = "Emote",
+		description = "Pase de temporada 1, nivel 2: te golpeas el pecho y ruges; el suelo tiembla y salta polvo.",
+		order = 36,
+		rarity = "Rare",
+		color = Color3.fromRGB(205, 180, 135),
+		source = { season = "T1" },
+		animationId = "rbxassetid://98624267630027",
+	},
+	EmoteFireDance = {
+		name = "Emote: Danza del fuego",
+		icon = "🔥",
+		kind = "Emote",
+		description = "Pase de temporada 1, nivel 9: bailas con fuego azul en las manos y saltan chispas de azufre en cada pisotón.",
+		order = 37,
+		rarity = "Epic",
+		color = BLUE_FIRE,
+		source = { season = "T1" },
+		animationId = "rbxassetid://132754980480280",
+	},
+	EmoteEruption = {
+		name = "Emote: Erupción",
+		icon = "🌋",
+		kind = "Emote",
+		description = "Pase de temporada 1, nivel 17: tiemblas y se abren grietas de lava, y saltas en un chorro de ceniza y brasas.",
+		order = 38,
+		rarity = "Epic",
+		color = Color3.fromRGB(255, 120, 30),
+		source = { season = "T1" },
+		animationId = "rbxassetid://77826216225173",
 	},
 
 	-- Míticos, los dioses de la selva (uno de cada por rol; G9a: el guerrero; G9b: el cazador, el mago y

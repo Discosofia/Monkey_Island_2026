@@ -1,13 +1,15 @@
 --!strict
 -- Rueda de emotes (Fase 9, G9c), en el Lobby y en la Isla: los 6 huecos de la rueda (Shared/CosmeticSlots;
--- vacía, los de serie de Config.Cosmetics.DefaultEmotes) en círculo alrededor del personaje. Se abre con
--- la tecla "." (la de los emotes de Roblox, cuyo menú se apaga para no abrir los dos) o con el botón 😀
--- (EmoteWheel.button: junto al ⚙️ en la Isla y en la barra del menú del Lobby).
+-- vacía, los de serie de Config.Cosmetics.DefaultEmotes) en círculo alrededor del personaje. Está abierta
+-- mientras se mantiene pulsada la tecla "." (la de los emotes de Roblox, cuyo menú se apaga para no abrir
+-- los dos): al soltarla se hace el emote que está bajo el ratón, si hay uno. El botón 😀 la abre y la
+-- cierra (EmoteWheel.button: junto al ⚙️ en la Isla y en la barra del menú del Lobby; en táctil no hay tecla).
 --   - Elegir uno lo hace en tu personaje (lo ven todos: la animación del jugador se replica sola) y
 --     cierra la rueda. Se para al moverte, saltar, sacar un arma o recibir daño.
 --   - Solo fuera de combate: sin perder vida en Config.Cosmetics.EmoteCombatSeconds, sin estar caído
 --     (Shared/LifeState) y con un avatar R15 (las animaciones de los emotes son de R15).
--- Los emotes se ponen en la rueda desde el Armario del Lobby (UI/WardrobePanel).
+-- Los emotes se ponen en la rueda desde el Armario del Lobby (UI/WardrobePanel). Su animación sale de
+-- Shared/EmoteTracks y los de la temporada llevan efectos (UI/EmoteFx, que arranca con la rueda).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,6 +20,8 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local EmoteFx = require(ReplicatedStorage.Shared.UI.EmoteFx)
+local EmoteTracks = require(ReplicatedStorage.Shared.EmoteTracks)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
@@ -44,6 +48,8 @@ local wheel: Frame? = nil
 local lastHurt = -math.huge
 local current: AnimationTrack? = nil
 local started = false
+-- El emote bajo el ratón (el que se hace al soltar la tecla).
+local hovered: string? = nil
 
 local function corner(parent: Instance, radius: UDim)
 	local item = Instance.new("UICorner")
@@ -79,10 +85,15 @@ end
 -- Hace el emote "cosmeticId" en tu personaje (si lo tienes y estás fuera de combate).
 function EmoteWheel.play(cosmeticId: string)
 	local cosmetic = Cosmetics[cosmeticId]
-	if not (cosmetic and cosmetic.kind == "Emote" and cosmetic.animationId) then
+	if not (cosmetic and cosmetic.kind == "Emote") then
 		return
 	end
 	if player:GetAttribute(`Cosmetic_{cosmeticId}`) ~= true then
+		return
+	end
+	local animationId = EmoteTracks.id(cosmeticId)
+	if not animationId then
+		Toast.show("Este emote aún no está listo")
 		return
 	end
 	local character = player.Character
@@ -101,7 +112,7 @@ function EmoteWheel.play(cosmeticId: string)
 	-- Con un arma en la mano, su pose taparía el emote.
 	humanoid:UnequipTools()
 	local animation = Instance.new("Animation")
-	animation.AnimationId = cosmetic.animationId
+	animation.AnimationId = animationId
 	local track = animator:LoadAnimation(animation)
 	track.Priority = Enum.AnimationPriority.Action
 	track:Play(FADE_SECONDS)
@@ -123,6 +134,7 @@ function EmoteWheel.play(cosmeticId: string)
 end
 
 function EmoteWheel.close()
+	hovered = nil
 	if gui then
 		gui.Enabled = false
 	end
@@ -160,10 +172,14 @@ local function slotButton(parent: Instance, index: number, cosmeticId: string?)
 	textCap(name, 14)
 	if owned and cosmeticId then
 		slot.MouseEnter:Connect(function()
+			hovered = cosmeticId
 			stroke.Color = READY_COLOR
 			stroke.Thickness = 3
 		end)
 		slot.MouseLeave:Connect(function()
+			if hovered == cosmeticId then
+				hovered = nil
+			end
 			stroke.Color = (cosmetic :: Cosmetics.Cosmetic).color
 			stroke.Thickness = 2
 		end)
@@ -184,6 +200,7 @@ local function refresh()
 			child:Destroy()
 		end
 	end
+	hovered = nil
 	local slots = CosmeticSlots.wheel(Progression.read(player).cosmetics)
 	for index = 1, Config.Cosmetics.EmoteSlots do
 		slotButton(wheel, index, slots[index])
@@ -266,7 +283,9 @@ local function buildGui()
 	close.Activated:Connect(EmoteWheel.close)
 	-- En táctil no hay tecla.
 	local hint = Widgets.label(
-		if UserInputService.KeyboardEnabled then "Se para al moverte · tecla . para abrir" else "Se para al moverte",
+		if UserInputService.KeyboardEnabled
+			then "Mantén . y suelta sobre un emote · se para al moverte"
+			else "Se para al moverte",
 		screen
 	)
 	hint.Name = "Hint"
@@ -298,13 +317,25 @@ function EmoteWheel.start()
 	end
 	started = true
 	buildGui()
+	EmoteFx.start()
 	-- El menú de emotes de Roblox usa la misma tecla.
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, false)
 	end)
+	-- Abierta solo mientras se mantiene la tecla; al soltarla, el emote bajo el ratón.
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == Enum.KeyCode.Period then
-			EmoteWheel.toggle()
+		if not processed and input.KeyCode == Enum.KeyCode.Period and not (gui and gui.Enabled) then
+			EmoteWheel.open()
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.KeyCode ~= Enum.KeyCode.Period or not (gui and gui.Enabled) then
+			return
+		end
+		local pick = hovered
+		EmoteWheel.close()
+		if pick then
+			EmoteWheel.play(pick)
 		end
 	end)
 	-- Lo puesto en la rueda cambia desde el Armario (Progress) y lo que se tiene, con las compras.
