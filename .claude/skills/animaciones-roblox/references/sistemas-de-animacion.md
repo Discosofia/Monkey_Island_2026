@@ -113,7 +113,7 @@ aullador (15), el mandril (15), el orangután (12) y el gorila (15) andan. `Run`
 `WeaponAnimationBuilder` genera desde código las animaciones de las armas (R15): `Hold` (brazo
 derecho colgando con el arma, en bucle, prioridad Action), un disparo por tipo de proyectil (`Stone`
 honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prioridad Action2) y los 4 tajos de la cadena
-cuerpo a cuerpo (`Slash1`–`Slash4`, Action2).
+cuerpo a cuerpo (`Slash1`–`Slash4`, Action2) y la pose de guardia (`Guard`, en bucle, Action3).
 
 - **Los tajos** (C4) son specs como los de `PlayerAnimationBuilder` (`SLASHES`, grados de
   `CFrame.Angles`), no `joint()`. `WeaponController` los estira a lo que dura cada paso de la cadena,
@@ -125,6 +125,16 @@ cuerpo a cuerpo (`Slash1`–`Slash4`, Action2).
   `mano.CFrame * RightGripAttachment.CFrame * tool.Grip:Inverse()`) y **mide** dónde queda la cabeza
   del arma en cada fotograma (lado, delante y alto respecto a la raíz): desde arriba o desde atrás la
   tira engaña (el orden de las copias se invierte y la perspectiva esconde el arma).
+- **La pose de guardia** (C5, `Guard`, `GUARD_POSE`): en bucle, prioridad **Action3** (por encima de
+  `Hold` y de los tajos), solo la parte de arriba (las piernas siguen andando). La reproduce
+  `GuardController` con `WeaponController.track`. Se buscó con **cinemática directa** en vez de
+  reproducir la animación por cada prueba: los maniquíes de `CreateHumanoidModelFromDescription` usan
+  `AnimationConstraint` (no `Motor6D`), así que `Part1 = Part0 * Attachment0.CFrame * giro *
+  Attachment1.CFrame:Inverse()`, y la herramienta con `mano * RightGrip.C0 * RightGrip.C1:Inverse()`.
+  Da lo mismo que la animación y permite barrer miles de ángulos en un segundo (buscar la mano y luego
+  la dirección del arma). Ojo: en modo edición, `StepAnimations` justo tras `Play` a veces no aplica
+  la pose; con `task.wait()` entre pasos sí. En el avatar real (otras proporciones) la pose se nota
+  menos que en el maniquí: mírala en Play.
 
 - **La fuente es el código**, no un spec: para cambiar un disparo, cambia sus ángulos en `SHOTS`
   (`pose` = la pose de disparo, `pulse` = el golpe al soltar, `raise` = segundos hasta la pose,

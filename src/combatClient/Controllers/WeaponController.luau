@@ -141,10 +141,20 @@ local function weaponTrack(character: Model, key: string): AnimationTrack?
 		return nil
 	end
 	-- El disparo y los tajos van por encima del brazo colgando, y todos por encima de la pose de empuñar.
-	track.Priority = if key == "Hold" then Enum.AnimationPriority.Action else Enum.AnimationPriority.Action2
-	track.Looped = key == "Hold"
+	-- La guardia (GuardController), por encima de todo.
+	track.Priority = if key == "Hold"
+		then Enum.AnimationPriority.Action
+		elseif key == "Guard" then Enum.AnimationPriority.Action3
+		else Enum.AnimationPriority.Action2
+	track.Looped = key == "Hold" or key == "Guard"
 	weaponTracks[key] = track
 	return track
+end
+
+-- La animación de arma "key" del personaje del jugador (Shared/Data/WeaponAnimations), cargada una vez
+-- por personaje; nil si no hay (R6, o sin publicar fuera de Studio). La usa GuardController.
+function WeaponController.track(character: Model, key: string): AnimationTrack?
+	return weaponTrack(character, key)
 end
 
 local function holdArm(character: Model)
@@ -340,6 +350,14 @@ end
 
 function WeaponController:Start()
 	local player = Players.LocalPlayer
+	-- Si le tambalean (un parry, un golpe en PvP), le aturden o se pone en guardia, el servidor corta la
+	-- cadena: aquí también vuelve al primer golpe.
+	player:GetAttributeChangedSignal(CombatState.ATTRIBUTE):Connect(function()
+		local state = CombatState.get(player)
+		if state ~= "Idle" and state ~= "Attacking" then
+			chain = MeleeChain.newState()
+		end
+	end)
 	player.CharacterAdded:Connect(onCharacter)
 	if player.Character then
 		onCharacter(player.Character)

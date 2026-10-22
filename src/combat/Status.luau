@@ -96,12 +96,13 @@ end
 -- Aturde a un jugador (Fase 10, C2; pisotones, embestidas de jefe, golpes fuertes, control de
 -- habilidades en PvP): como holdPlayer, y además no pega, ni usa habilidades, ni esquiva ni se
 -- defiende (estado "Stunned" de Shared/CombatState); desde C7 sale con el Evasivo. Misma regla de
--- inmunidad que holdPlayer. Devuelve true si le ha aturdido.
-function Status.stunPlayer(player: Player, seconds: number, cause: string): boolean
+-- inmunidad que holdPlayer. Devuelve true si le ha aturdido. "state": "GuardBroken" para la guardia
+-- rota (Combat/Guard), que es un aturdido con su propio aspecto.
+function Status.stunPlayer(player: Player, seconds: number, cause: string, state: ("Stunned" | "GuardBroken")?): boolean
 	if not Status.holdPlayer(player, seconds, cause) then
 		return false
 	end
-	StateMachine.enter(player, "Stunned", seconds)
+	StateMachine.enter(player, state or "Stunned", seconds)
 	return true
 end
 

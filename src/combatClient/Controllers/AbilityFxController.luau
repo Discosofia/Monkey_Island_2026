@@ -24,6 +24,8 @@
 -- la cabeza en vez de la diana); los iconos de las marcas
 -- de combo, de "ComboMarkBy"/"ComboMarkUntil" (Data/Combos). Al cerrar un combo: aro dorado en el
 -- jugador y, en el del mago, el hielo que estalla.
+-- Guardia (Fase 10, C5; Combat/Guard, efecto "GuardFx"): chispa al bloquear, destello dorado al parar y
+-- estallido naranja con esquirlas y grietas al romperse.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -2313,6 +2315,72 @@ local function comboComplete(character: Model?, streak: number?)
 	flash(root.Position, gold, 14, 3 + level, 0.5)
 end
 
+-- Contorno de color sobre "character" que se apaga en "seconds".
+local function glow(character: Model, color: Color3, seconds: number)
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "GuardGlow"
+	highlight.FillColor = color
+	highlight.FillTransparency = 0.45
+	highlight.OutlineColor = color
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.Parent = character
+	TweenService:Create(highlight, TweenInfo.new(seconds), { FillTransparency = 1, OutlineTransparency = 1 }):Play()
+	Debris:AddItem(highlight, seconds + 0.05)
+end
+
+-- Guardia (Fase 10, C5; Combat/Guard), delante del pecho:
+--   - "Block": chispa blanca pequeña.
+--   - "Parry": destello dorado en todo el cuerpo, aro dorado y chispas (el dorado es solo del parry).
+--   - "Break": estallido naranja con esquirlas que caen y grietas oscuras en el aire (guardia rota).
+local function guardFx(character: Model?, kind: string?)
+	local root = rootOf(character)
+	if not (character and root) then
+		return
+	end
+	local front = root.Position + root.CFrame.LookVector * 1.5 + Vector3.new(0, 0.8, 0)
+	if kind == "Parry" then
+		local gold = Color3.fromRGB(255, 205, 60)
+		glow(character, gold, 0.35)
+		ring(root.Position + Vector3.new(0, 0.5, 0), 1.5, 7, 0.35, gold, 0.4, 0.1)
+		burst(front, SPARKLE_TEXTURE, gold, 24, 1.2, 16, 0.4)
+		flash(front, gold, 16, 4, 0.35)
+	elseif kind == "Break" then
+		local orange = Color3.fromRGB(255, 130, 40)
+		glow(character, orange, 0.6)
+		burst(front, SPARKLE_TEXTURE, orange, 18, 1, 12, 0.5)
+		flash(front, orange, 12, 3, 0.4)
+		-- Esquirlas: cubitos naranjas que saltan hacia fuera y caen.
+		for _ = 1, 8 do
+			local shard = piece("GuardShard", Vector3.one * rng:NextNumber(0.25, 0.45), orange, Enum.Material.Neon)
+			shard.CFrame = CFrame.new(front)
+			shard.Parent = folder
+			local velocity = Vector3.new(rng:NextNumber(-1, 1), rng:NextNumber(0.4, 1.2), rng:NextNumber(-1, 1)) * 14
+			local start = front
+			animate(0.6, function(alpha)
+				local t = alpha * 0.6
+				shard.CFrame = CFrame.new(start + velocity * t + GRAVITY * 0.5 * t * t) * CFrame.Angles(t * 9, t * 7, 0)
+				shard.Transparency = alpha
+			end, function()
+				shard:Destroy()
+			end)
+		end
+		-- Grietas: rayas oscuras en estrella delante del pecho, mirando hacia fuera.
+		local cracks: { BasePart } = {}
+		for index = 1, 5 do
+			local crack =
+				piece("GuardCrack", Vector3.new(0.12, rng:NextNumber(1, 1.8), 0.05), Color3.fromRGB(60, 25, 5))
+			crack.CFrame = CFrame.lookAt(front, front + root.CFrame.LookVector)
+				* CFrame.Angles(0, 0, math.rad(index * 72 + rng:NextNumber(-15, 15)))
+				* CFrame.new(0, crack.Size.Y / 2, 0)
+			crack.Parent = folder
+			table.insert(cracks, crack)
+		end
+		fadeAway(cracks, 0.3, 0.3)
+	else
+		burst(front, SPARKLE_TEXTURE, Color3.fromRGB(235, 240, 255), 8, 0.7, 10, 0.25)
+	end
+end
+
 -- Icono sobre lo que marcó el primer paso de TU combo (atributos "ComboMarkBy"/"ComboMarkUntil",
 -- ComboService): así ves a quién rematar. Los demás jugadores no lo ven.
 local function watchComboMarks()
@@ -2418,6 +2486,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	IceShatter = iceShatter, -- (posición): la Bola de fuego del combo rompe el hielo
 	ComboComplete = comboComplete, -- (personaje, racha)
 	WeaponShotFx = weaponShotFx, -- (personaje, proyectil): bocanada o destello al disparar un arma a distancia
+	GuardFx = guardFx, -- (personaje, "Block" | "Parry" | "Break"): la guardia (Combat/Guard)
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

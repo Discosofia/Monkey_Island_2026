@@ -9,6 +9,8 @@
 -- Las armas cuerpo a cuerpo pegan en cadena (Fase 10, C4; Shared/MeleeChain): 4 golpes con preparación,
 -- el 4.º remata y empuja (o lanza hacia arriba si se da en el aire); en PvP cada golpe tambalea un poco.
 -- El hacha, el pico y la hoz siguen con el golpe suelto.
+-- Guardia (C5, Combat/Guard): los golpes de monos y jefes que la pasan (damagePlayer con "guard") y los
+-- de otros jugadores (damagePvP con "guard") se pueden bloquear y parar.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -21,6 +23,7 @@ local Armor = require(ReplicatedStorage.Shared.Data.Armor)
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
+local Guard = require(script.Parent.Parent.Guard)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
@@ -213,40 +216,53 @@ local function mitigate(player: Player, amount: number): number
 end
 
 -- Daño de un enemigo (un mono) a un jugador. No hace nada si está en la zona segura (el Basecamp),
--- esquivando, o caído. La armadura y las defensas de los roles lo reducen (mitigate). Un golpe mortal
--- lo deja fuera de combate según el place (CombatRules.knockOut: caído en la Isla). Devuelve true si
--- el golpe entró.
+-- esquivando, o caído. La guardia (Combat/Guard), la armadura y las defensas de los roles lo reducen
+-- (mitigate). Un golpe mortal lo deja fuera de combate según el place (CombatRules.knockOut: caído en
+-- la Isla). Devuelve true si el golpe entró (también bloqueado) y el resultado de la guardia: con un
+-- parry, false y "Parried".
 -- "ignoreSafe": los monos del asedio (Fase 2.5) también hieren dentro del Basecamp.
 -- "source": el mono o jefe que pega; según su categoría o fase puede hacer un crítico (Shared/Crit).
 -- Sin él (rayos, lava, rocas…) nunca lo es. "cause": quién lo lanza si no hay "source", para la
 -- telemetría de caídas (Combat/Hazards). "bite": es un mordisco de mono y sube la fiebre del mono.
+-- "guard": el golpe se puede bloquear y parar (Guard.enemyHit: los golpes básicos de monos y jefes);
+-- sin él, la guardia no cuenta (los especiales y los peligros, hasta C6).
 function CombatService.damagePlayer(
 	player: Player,
 	amount: number,
 	ignoreSafe: boolean?,
 	source: Instance?,
 	cause: string?,
-	bite: boolean?
-): boolean
+	bite: boolean?,
+	guard: Guard.Hit?
+): (boolean, Guard.Outcome?)
 	local rules = CombatRules.get()
 	local safe = not ignoreSafe and rules.isSafe(player)
 	if safe or CombatService.isInvulnerable(player) or not LifeState.isAlive(player) then
-		return false
+		return false, nil
 	end
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (character and humanoid and humanoid.Health > 0) then
-		return false
+		return false, nil
+	end
+	local outcome: Guard.Outcome = "Hit"
+	if guard then
+		local scale
+		outcome, scale = Guard.resolve(player, guard)
+		if outcome == "Parried" then
+			return false, outcome
+		end
+		amount *= scale
 	end
 	local crit = Crit.roll(Crit.sourceChance(source))
 	if crit then
-		amount = math.round(amount * Crit.MULTIPLIER)
+		amount *= Crit.MULTIPLIER
 	end
-	amount = mitigate(player, amount)
+	amount = mitigate(player, math.max(1, math.round(amount)))
 	flash(character)
 	if amount <= 0 then
 		CombatText.absorbed(player)
-		return true
+		return true, outcome
 	end
 	CombatText.taken(player, amount, crit)
 	-- Los mordiscos suben la fiebre del mono (Fase 2.6) según lo que quitan de la vida máxima.
@@ -260,7 +276,7 @@ function CombatService.damagePlayer(
 		Sfx.play("PlayerHurt", character.PrimaryPart or character)
 		humanoid:TakeDamage(amount)
 	end
-	return true
+	return true, outcome
 end
 
 export type HealOptions = {
@@ -344,25 +360,22 @@ function CombatService.playerFromPart(part: Instance): Player?
 end
 local playerFromPart = CombatService.playerFromPart
 
--- Daño de un jugador a otro. Si le quita toda la vida, el place decide qué pasa
--- (CombatRules.knockOut: en la Isla queda caído y se cobra su recompensa PvP).
--- "crit": golpe crítico (lo tira quien llama, con el arma del atacante). "poison": es un golpe del
--- veneno (número morado, sin destello). Con CombatRules.pvpStatus, los marcados por un cazador y los
--- expuestos (dormidos por la "Nana de la selva") reciben su daño extra, como los monos.
-function CombatService.damagePvP(
-	attacker: Player,
-	victim: Player,
-	amount: number,
-	crit: boolean?,
-	poison: boolean?
-): boolean
-	if not CombatService.canHitPlayer(attacker, victim) then
-		return false
-	end
+-- Cómo se puede defender un golpe de un jugador a otro (CombatService.damagePvP).
+export type PvPGuard = {
+	guardDamage: number, -- guardia que gasta si se bloquea (Config.Guard)
+	unblockable: boolean?, -- rompe la guardia y entra entero
+	-- Un golpe de arma: espera el margen del defensor para el parry (Guard.grace) antes de resolverse.
+	waitForParry: boolean?,
+	-- Se llama al resolverse con el resultado ("Hit", "Blocked", "Parried" o "Broken"): lo que el golpe
+	-- hace además del daño (tambaleo, empuje, veneno) va aquí, porque puede resolverse más tarde.
+	onResult: ((outcome: Guard.Outcome) -> ())?,
+}
+
+local function applyPvP(attacker: Player, victim: Player, amount: number, crit: boolean?, poison: boolean?)
 	local character = victim.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (character and humanoid and humanoid.Health > 0) then
-		return false
+		return
 	end
 	if CombatRules.get().pvpStatus then
 		local bonus = bonusWhile(character, "MarkedUntil", "MarkBonus")
@@ -381,7 +394,7 @@ function CombatService.damagePvP(
 	ComboService.onActivity(attacker)
 	if amount <= 0 then
 		CombatText.absorbed(victim, attacker)
-		return true
+		return
 	end
 	if poison then
 		CombatText.poison(character, amount, attacker, humanoid.Health - amount <= 0)
@@ -390,9 +403,60 @@ function CombatService.damagePvP(
 	end
 	if humanoid.Health - amount > 0 then
 		humanoid:TakeDamage(amount)
-		return true
+		return
 	end
 	CombatRules.get().knockOut(victim, attacker, "PvP")
+end
+
+-- Daño de un jugador a otro. Si le quita toda la vida, el place decide qué pasa
+-- (CombatRules.knockOut: en la Isla queda caído y se cobra su recompensa PvP).
+-- "crit": golpe crítico (lo tira quien llama, con el arma del atacante). "poison": es un golpe del
+-- veneno (número morado, sin destello; no se defiende). Con CombatRules.pvpStatus, los marcados por un
+-- cazador y los expuestos (dormidos por la "Nana de la selva") reciben su daño extra, como los monos.
+-- "guard": el golpe se puede bloquear y parar (Combat/Guard); un golpe de arma espera antes el margen
+-- del defensor para el parry. Devuelve true si "victim" se podía herir (el golpe puede resolverse
+-- después: lo que dependa de que entre va en "guard.onResult").
+function CombatService.damagePvP(
+	attacker: Player,
+	victim: Player,
+	amount: number,
+	crit: boolean?,
+	poison: boolean?,
+	guard: PvPGuard?
+): boolean
+	if not CombatService.canHitPlayer(attacker, victim) then
+		return false
+	end
+	if poison or not guard then
+		applyPvP(attacker, victim, amount, crit, poison)
+		return true
+	end
+	local at = Workspace:GetServerTimeNow()
+	local function resolve()
+		-- Mientras esperaba ha podido esquivar o caer.
+		if not CombatService.canHitPlayer(attacker, victim) then
+			return
+		end
+		local attackerRoot = if attacker.Character then attacker.Character:FindFirstChild("HumanoidRootPart") else nil
+		local outcome, scale = Guard.resolve(victim, {
+			guardDamage = guard.guardDamage,
+			unblockable = guard.unblockable,
+			from = if attackerRoot and attackerRoot:IsA("BasePart") then attackerRoot.Position else nil,
+			attacker = attacker.Character,
+		}, at)
+		if outcome ~= "Parried" then
+			applyPvP(attacker, victim, amount * scale, crit, false)
+		end
+		if guard.onResult then
+			guard.onResult(outcome)
+		end
+	end
+	local wait = if guard.waitForParry then Guard.grace(victim) else 0
+	if wait > 0 then
+		task.delay(wait, resolve)
+	else
+		resolve()
+	end
 	return true
 end
 
@@ -456,23 +520,35 @@ local function meleeAttack(
 		from = root.Position,
 		rewind = Latency.compensation(player),
 	})
+	-- Guardia que gasta cada golpe (Config.Guard): la de un arma de ChainReferenceCooldown s, escalada
+	-- con la suya (todas rompen la guardia en el mismo tiempo); el remate, más.
+	local guardSettings = Config.Guard
+	local guardDamage = (if finisher then guardSettings.FinisherGuardDamage else guardSettings.ChainGuardDamage)
+		* weapon.cooldownSeconds
+		/ guardSettings.ChainReferenceCooldown
 	for _, model in hits do
 		local victim = Players:GetPlayerFromCharacter(model)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		if victim then
-			local hit =
-				CombatService.damagePvP(player, victim, damage * pvpWeaponScale(weaponId), Crit.roll(critChance))
-			if hit and step and LifeState.isAlive(victim) then
-				if finisher then
-					finisherPush(root, model)
-				else
-					-- Tambaleo corto: no pega ni usa habilidades, pero puede esquivar antes del siguiente.
-					local hitstun = MeleeChain.hitstunSeconds(weapon, step)
-					if hitstun > 0 then
-						StateMachine.enter(victim, "Staggered", hitstun)
+			CombatService.damagePvP(player, victim, damage * pvpWeaponScale(weaponId), Crit.roll(critChance), false, {
+				guardDamage = guardDamage,
+				waitForParry = true,
+				onResult = function(outcome)
+					-- Solo si entra: bloqueado no tambalea ni empuja.
+					if not (step and (outcome == "Hit" or outcome == "Broken") and LifeState.isAlive(victim)) then
+						return
 					end
-				end
-			end
+					if finisher then
+						finisherPush(root, model)
+					elseif outcome == "Hit" then
+						-- Tambaleo corto: no pega ni usa habilidades, pero puede esquivar antes del siguiente.
+						local hitstun = MeleeChain.hitstunSeconds(weapon, step)
+						if hitstun > 0 then
+							StateMachine.enter(victim, "Staggered", hitstun)
+						end
+					end
+				end,
+			})
 		elseif humanoid and humanoid.Health > 0 then
 			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance), source = weaponId })
 			if finisher and humanoid.Health > 0 then
@@ -691,12 +767,17 @@ local function rangedAttack(
 				local seconds = (endPoint - origin).Magnitude / (weapon.projectileSpeed or 120)
 				task.delay(seconds, function()
 					local pvpScale = pvpWeaponScale(weaponId)
-					local hit = CombatService.damagePvP(player, victim, damage * pvpScale, crit)
-					-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales.
-					local victimCharacter = victim.Character
-					if hit and poison and rules.pvpStatus and victimCharacter then
-						Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
-					end
+					CombatService.damagePvP(player, victim, damage * pvpScale, crit, false, {
+						guardDamage = Config.Guard.ProjectileGuardDamage,
+						waitForParry = true,
+						onResult = function(outcome)
+							-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran).
+							local victimCharacter = victim.Character
+							if outcome == "Hit" and poison and rules.pvpStatus and victimCharacter then
+								Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
+							end
+						end,
+					})
 				end)
 			end
 		end
@@ -798,6 +879,8 @@ local function onDodge(player: Player)
 	end
 	lastDodgeAt[player] = now
 	player:SetAttribute("InvulnerableUntil", Workspace:GetServerTimeNow() + Config.Combat.DodgeInvulnerableSeconds)
+	-- Esquivar suelta la guardia (Combat/Guard).
+	Guard.drop(player)
 end
 
 -- Las armas iniciales van a StarterGear: Roblox las copia a la mochila en cada reaparición.
@@ -853,6 +936,7 @@ function CombatService:Start()
 	StateMachine.start()
 	StaminaServer.start()
 	Hitbox.start()
+	Guard.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)
@@ -867,8 +951,22 @@ function CombatService:Start()
 	Remotes.UseWeapon.OnServerEvent:Connect(onUseWeapon)
 	Remotes.Dodge.OnServerEvent:Connect(onDodge)
 
-	Players.PlayerAdded:Connect(giveStarterWeapons)
+	-- Si le tambalean (un parry, un golpe en PvP), le aturden o se pone en guardia, la cadena vuelve al
+	-- primer golpe (WeaponController hace lo mismo con su predicción).
+	local function watchState(player: Player)
+		player:GetAttributeChangedSignal(CombatState.ATTRIBUTE):Connect(function()
+			local state = CombatState.get(player)
+			if state ~= "Idle" and state ~= "Attacking" then
+				chains[player] = nil
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(function(player)
+		watchState(player)
+		giveStarterWeapons(player)
+	end)
 	for _, player in Players:GetPlayers() do
+		watchState(player)
 		task.spawn(giveStarterWeapons, player)
 	end
 	Players.PlayerRemoving:Connect(function(player)

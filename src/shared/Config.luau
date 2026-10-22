@@ -299,15 +299,18 @@ local Config = {
 		FinisherShakeStuds = 0.25,
 	},
 
-	-- Guardia (C5): bloquear (mantener) y parry (pulsar justo antes del golpe).
+	-- Guardia (C5; Combat/Guard, GuardController): pulsar F / L2 / "Guardia" abre el parry y mantenerla
+	-- bloquea. Atributo "Guard" del Player (0–Max).
 	Guard = {
 		Max = 100,
 		RegenPerSecond = 25,
-		RegenDelaySeconds = 1, -- sin recibir golpes este tiempo, se recupera
-		BlockReduction = 0.6, -- daño que quita el bloqueo contra jugadores…
+		RegenDelaySeconds = 1, -- sin recibir golpes este tiempo, se recupera (también bloqueando)
+		-- Daño que quita el bloqueo contra jugadores… (0,6 dejaba el duelo de guerreros con defensa en
+		-- 12,2 s, fuera de 8–12)
+		BlockReduction = 0.5,
 		BlockReductionEnemies = 0.7, -- …y contra monos y jefes
-		BlockAngle = 120, -- grados del cono de delante que cubre
-		BlockWalkMultiplier = 0.6, -- velocidad mientras bloquea
+		BlockAngle = 120, -- grados del cono de delante que cubren el bloqueo y el parry
+		BlockWalkMultiplier = 0.6, -- velocidad mientras bloquea (y no corre)
 		-- Guardia que gasta cada golpe bloqueado. Los de la cadena son los de un arma de
 		-- ChainReferenceCooldown s y se escalan con su cooldownSeconds: así cualquier arma rompe la guardia
 		-- en el mismo tiempo (las rápidas pegan más veces, pero gastan menos cada vez).
@@ -319,12 +322,15 @@ local Config = {
 		MonkeyGuardDamage = { [1] = 12, [2] = 18, [3] = 22 } :: { [number]: number }, -- por categoría
 		AlphaGuardMultiplier = 1.5,
 		BossGuardDamage = 25,
-		BreakStunSeconds = 1.2, -- guardia rota: aturdido (contra jugadores, × el control del place)
-		ParryWindowSeconds = 0.3, -- igual para todos los dispositivos
+		-- Guardia rota: aturdido (estado "GuardBroken"). Si la rompe otro jugador, × el control del place
+		-- (CombatRules.pvpControlMultiplier).
+		BreakStunSeconds = 1.2,
+		-- Desde que se pulsa (aunque se suelte enseguida); igual para todos los dispositivos.
+		ParryWindowSeconds = 0.3,
 		ParryRearmSeconds = 0.8, -- no se puede volver a hacer parry hasta pasado esto (no se puede spamear)
 		ParryStaggerPvP = 0.6, -- el atacante al que le paran el golpe queda tambaleado…
-		ParryStaggerMonkey = 1,
-		ParryStaggerBoss = 0.5,
+		ParryStaggerMonkey = 1, -- …un mono, aturdido (los jefes se resisten: ×BossControlMultiplier)…
+		ParryStaggerRange = 12, -- …solo si pega desde aquí (studs): parar un disparo no tambalea al tirador
 		ParryGuardRefund = 20, -- …y quien para recupera esto de guardia
 	},
 
@@ -332,7 +338,9 @@ local Config = {
 	-- con tope. Nadie gana por tener más ping.
 	Net = {
 		MaxCompensationSeconds = 0.15, -- rebobinar posiciones al golpear
-		ParryGraceMaxSeconds = 0.12, -- esperar el parry del defensor antes de aplicar un golpe
+		-- Esperar el parry del defensor antes de aplicar un golpe de arma en PvP (su ping, hasta esto). La
+		-- pulsación cuenta desde la hora que manda su cliente, como mucho esto antes de llegar.
+		ParryGraceMaxSeconds = 0.12,
 		-- Margen fijo al comprobar un ritmo que el cliente lleva con su reloj (la cadena de golpes): una
 		-- pulsación puntual llega unos milisegundos antes o después según la red y el fotograma.
 		JitterSeconds = 0.05,

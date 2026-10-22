@@ -2,6 +2,7 @@
 -- Barras de supervivencia arriba a la izquierda (Fase 2.1): hambre, sed y estamina.
 -- Parpadean en rojo cuando bajan de Config.Survival.LowThreshold.
 -- Fase 2.6: barra de fiebre (solo si tienes) y vista nublada con fiebre alta.
+-- Fase 10 (C5): la guardia, a la derecha de la estamina (CombatClient/GuardBar).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +12,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local GuardBar = require(ReplicatedStorage.CombatClient.GuardBar)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 
 local BAR_WIDTH = 170
@@ -81,6 +83,7 @@ function SurvivalHUDController:Start()
 			return Stamina.get() / Stamina.MAX
 		end),
 	}
+	local updateGuard = GuardBar.attach(bars[3].row, BAR_WIDTH + 30, BAR_HEIGHT)
 	local feverBar = newBar(column, 4, "🤒", Color3.fromRGB(190, 90, 200), function()
 		return Survival.fever(player) / Survival.MAX
 	end)
@@ -107,6 +110,7 @@ function SurvivalHUDController:Start()
 	RunService.RenderStepped:Connect(function()
 		-- Parpadeo: medio segundo encendido, medio apagado.
 		local blinkOn = os.clock() % 1 < 0.5
+		updateGuard()
 		for _, bar in bars do
 			local value = math.clamp(bar.read(), 0, 1)
 			bar.fill.Size = UDim2.fromScale(value, 1)

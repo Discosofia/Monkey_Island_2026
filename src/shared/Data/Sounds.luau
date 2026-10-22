@@ -56,6 +56,10 @@ local Effects: { [string]: Effect } = {
 	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta a un mono o jefe (carne)
 	PlayerHurt = { id = OUCH, volume = 0.6, pitch = 1, jitter = 0.08 },
 	PlayerDown = { id = OOF, volume = 0.7, pitch = 0.9 },
+	-- Guardia (Fase 10, C5; Combat/Guard).
+	Block = { id = FOOTSTEP, volume = 0.8, pitch = 1.8, jitter = 0.1 }, -- Provisional: "wood block thud"
+	Parry = { id = CLICK, volume = 1, pitch = 0.7, jitter = 0.05 }, -- Provisional: "metal clang / parry ring"
+	GuardBreak = { id = BOOM, volume = 0.5, pitch = 1.6, jitter = 0.05 }, -- Provisional: "guard shatter"
 	Revive = { id = GET_UP, volume = 0.7, pitch = 1.1 },
 	Heal = { id = GET_UP, volume = 0.5, pitch = 1.5 },
 

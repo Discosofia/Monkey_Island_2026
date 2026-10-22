@@ -1958,14 +1958,14 @@ local function main(copia: Instance): string
 	-- ===================================== 8. Defensa (C5) =====================================
 
 	if OPCIONES.secciones.defensa and GU then
-		linea("## 8. Defensa (Fase 10, C5: propuesta de Config.Guard)")
+		linea("## 8. Defensa (Fase 10, C5 ✅: Config.Guard y Combat/Guard)")
 		linea(
 			`Guardia {GU.Max}, se recupera {GU.RegenPerSecond}/s tras {GU.RegenDelaySeconds} s sin recibir. Bloqueo −{pct(
 				GU.BlockReduction
 			)} contra jugadores y −{pct(GU.BlockReductionEnemies)} contra monos; parry: ventana {n(
 				GU.ParryWindowSeconds,
 				2
-			)} s, tambalea {n(GU.ParryStaggerPvP, 2)} s a un jugador.`
+			)} s, tambalea {n(GU.ParryStaggerPvP, 2)} s a un jugador (y aturde {n(GU.ParryStaggerMonkey, 2)} s a un mono) si pega a menos de {GU.ParryStaggerRange} studs.`
 		)
 		linea("| Rol | Arma | Guardia por golpe | Golpes para romper | Aguanta en guardia |")
 		linea("|---|---|---|---|---|")

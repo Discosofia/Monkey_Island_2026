@@ -38,6 +38,7 @@ local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
+local Guard = require(script.Parent.Parent.Guard)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Status = require(script.Parent.Parent.Status)
@@ -164,29 +165,33 @@ local function targetFromPart(attacker: Player, part: Instance): Target?
 	return if victim then playerTarget(attacker, victim) else nil
 end
 
--- true si "abilityId" es la definitiva (V) del rol de "player".
-local function isUltimate(player: Player, abilityId: string): boolean
+-- La habilidad "abilityId" del rol de "player" (Data/Roles), o nil.
+local function abilityOf(player: Player, abilityId: string): Roles.Ability?
 	local roleId = player:GetAttribute("Role")
 	local role = if typeof(roleId) == "string" then Roles[roleId] else nil
 	for _, ability in if role then role.abilities else {} do
 		if ability.id == abilityId then
-			return ability.ultimate == true
+			return ability
 		end
 	end
-	return false
+	return nil
 end
 
 -- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos (y las definitivas aún menos:
 -- CombatRules.pvpUltimateMultiplier). Si la habilidad está enlazada en el combo y el objetivo lleva su
 -- marca, es crítico seguro y hace el daño extra del combo (Data/Combos "damageBonus"); si no, es crítico
 -- con la probabilidad del arma. Contra jugadores, el combo solo cuenta con CombatRules.pvpStatus (la arena).
+-- Un jugador la puede bloquear o parar de frente (Combat/Guard): gasta el "guardDamage" de la habilidad
+-- (o Config.Guard.AbilityGuardDamage) y las "unblockable" le rompen la guardia. Bloqueada o parada,
+-- tampoco le aplica su control (control, slowDown y los empujes miran Guard.defended).
 local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
 	end
 	if target.player then
 		local rules = CombatRules.get()
-		if isUltimate(attacker, abilityId) then
+		local ability = abilityOf(attacker, abilityId)
+		if ability and ability.ultimate then
 			amount *= rules.pvpUltimateMultiplier
 		end
 		local crit = false
@@ -202,7 +207,14 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 			attacker,
 			target.player,
 			math.max(1, math.round(amount * rules.pvpDamageMultiplier)),
-			crit or CombatService.rollPlayerCrit(attacker)
+			crit or CombatService.rollPlayerCrit(attacker),
+			false,
+			{
+				guardDamage = if ability and ability.guardDamage
+					then ability.guardDamage
+					else Config.Guard.AbilityGuardDamage,
+				unblockable = ability ~= nil and ability.unblockable == true,
+			}
 		)
 	else
 		local comboHit = ComboService.isComboHit(attacker, target.model, abilityId)
@@ -234,7 +246,7 @@ end
 local function slowDown(target: Target, seconds: number, factor: number)
 	if target.player then
 		local rules = CombatRules.get()
-		if not rules.pvpStatus then
+		if not rules.pvpStatus or Guard.defended(target.player) then
 			return
 		end
 		seconds *= rules.pvpControlMultiplier
@@ -249,6 +261,10 @@ end
 local function control(target: Target, seconds: number, look: ("Stun" | "Freeze" | "Root" | "Sleep")?)
 	local duration = seconds
 	if target.player then
+		-- Lo ha bloqueado o parado (Combat/Guard): no le aturde.
+		if Guard.defended(target.player) then
+			return
+		end
 		duration *= CombatRules.get().pvpControlMultiplier
 		local stuns = look == nil or look == "Stun" or look == "Sleep"
 		local landed = if stuns
@@ -392,8 +408,16 @@ local function charge(player: Player, character: Model, root: BasePart, aim: Vec
 					hit[target.model] = true
 					hurt(player, target, damage, "Charge")
 					comboOpener(player, "Charge", target)
-					-- También a los jugadores rivales (lo aplica su cliente); a los jefes, no.
-					Knockback.push(target.model, direction, SETTINGS.ChargeKnockback, SETTINGS.ChargeKnockbackSeconds)
+					-- También a los jugadores rivales (lo aplica su cliente), salvo si la han bloqueado o
+					-- parado (Combat/Guard); a los jefes, no.
+					if not (target.player and Guard.defended(target.player)) then
+						Knockback.push(
+							target.model,
+							direction,
+							SETTINGS.ChargeKnockback,
+							SETTINGS.ChargeKnockbackSeconds
+						)
+					end
 				end
 			end
 			task.wait(0.05)

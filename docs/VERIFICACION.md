@@ -26,10 +26,11 @@ Marca cada casilla al comprobarla.
 | Elegir arma o herramienta | 1–5 (las 2 armas del rol, hacha, pico, martillo) |
 | Usar arma o herramienta | Clic |
 | Esquivar | Q |
+| Guardia (pulsar = parry, mantener = bloqueo) | F · mando: L2 |
 | Correr | Mayús |
 | Comer | G |
 | Curar | H |
-| Beber | F (junto al agua) |
+| Beber | E (junto al agua) |
 | Bolsa | B |
 | Diario de campo | J |
 | Habilidades del rol | Z, X, C, R y V (la definitiva) · mando: mantén R1 + A, B, X, Y o L1 |

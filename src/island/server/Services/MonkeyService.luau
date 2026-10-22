@@ -50,6 +50,7 @@ local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local Guard = require(ServerScriptService.Combat.Guard)
 local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
@@ -836,17 +837,18 @@ local function steal(monkey: Monkey, player: Player)
 end
 
 -- Mordisco normal. Tras un salto pega el doble; el orangután además inmoviliza (no si te acaba de
--- soltar: Status.holdPlayer).
+-- soltar: Status.holdPlayer, ni si lo bloqueas). Se puede bloquear y parar (Combat/Guard).
 function bite(monkey: Monkey, player: Player)
 	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
 	monkey.pounced = false
 	MonkeyAnimator.play(monkey.model, "Attack")
-	local landed = CombatService.damagePlayer(player, damage, false, monkey.model, nil, true)
+	local landed, outcome =
+		CombatService.damagePlayer(player, damage, false, monkey.model, nil, true, Guard.enemyHit(monkey.model))
 	if landed then
 		playVoice(monkey, "Attack")
 	end
 	local grab = monkey.definition.grab
-	if landed and grab and Status.holdPlayer(player, grab, monkey.group.speciesId) then
+	if landed and outcome ~= "Blocked" and grab and Status.holdPlayer(player, grab, monkey.group.speciesId) then
 		Remotes.Notify:FireClient(player, `🦧 ¡El {monkey.definition.name} te ha agarrado!`)
 	end
 end
@@ -912,7 +914,7 @@ function throwStone(monkey: Monkey, info: PlayerInfo, now: number)
 		local character = info.player.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		if root and root:IsA("BasePart") and (root.Position - target).Magnitude <= 5 then
-			CombatService.damagePlayer(info.player, damage, false, monkey.model)
+			CombatService.damagePlayer(info.player, damage, false, monkey.model, nil, nil, Guard.enemyHit(monkey.model))
 		end
 	end)
 end
@@ -1258,7 +1260,15 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		humanoid:MoveTo(position)
 		if canAttack then
 			monkey.lastAttackAt = now
-			CombatService.damagePlayer(target.player, monkey.damage, true, monkey.model, nil, true)
+			CombatService.damagePlayer(
+				target.player,
+				monkey.damage,
+				true,
+				monkey.model,
+				nil,
+				true,
+				Guard.enemyHit(monkey.model)
+			)
 		end
 		return
 	end

@@ -7,7 +7,8 @@
 -- Crea (o sustituye) ReplicatedStorage.WeaponAnimations con una KeyframeSequence por animación de
 -- Shared/Data/WeaponAnimations: "Hold" (brazo derecho colgando con el arma, en bucle), un disparo
 -- por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart" cerbatana) y los 4 tajos de
--- la cadena de golpes cuerpo a cuerpo ("Slash1"–"Slash4", Shared/MeleeChain).
+-- la cadena de golpes cuerpo a cuerpo ("Slash1"–"Slash4", Shared/MeleeChain) y la pose de guardia
+-- ("Guard", Combat/Guard).
 -- Para probarlas basta con pulsar Play: en Studio, WeaponController usa estas secuencias mientras
 -- su id esté vacío. Para el juego publicado: clic derecho en cada una > "Save to Roblox" y pegar el
 -- id en Shared/Data/WeaponAnimations.
@@ -353,6 +354,36 @@ local SLASHES: { [string]: any } = {
 	},
 }
 
+-- La pose de guardia (Fase 10, C5; GuardController), en bucle y con el mismo formato que los tajos:
+-- el antebrazo derecho alzado delante de la cara con el arma cruzada hacia la izquierda, el izquierdo
+-- de través delante del pecho y el torso un poco encogido. Solo la parte de arriba: las piernas siguen
+-- andando (en guardia se anda más despacio). Medido con el garrote de piedra (lado, delante, alto del
+-- suelo): mano derecha (0,7; 1,1; 3,7), mano izquierda bajo el mango (−0,2; 1,4; 3,7) y cabeza del
+-- arma a la izquierda y arriba (−2,3; 2,5; 4,7).
+local GUARD_POSE: { [string]: any } = {
+	UpperTorso = { 8, -12, 0 },
+	Head = { -6, 10, 0 },
+	RightUpperArm = { 60, 0, -40 },
+	RightLowerArm = { 45, 0, 0 },
+	RightHand = { -105, 45, 0 },
+	LeftUpperArm = { 50, -20, 30 },
+	LeftLowerArm = { 60, 0, 0 },
+}
+
+local GUARD: { [string]: any } = {
+	name = "Guard",
+	loop = true,
+	priority = "Action3", -- por encima del brazo colgando (Hold) y de los tajos
+	easing = "Cubic",
+	direction = "Out",
+	keyframes = {
+		table.clone(GUARD_POSE),
+		table.clone(GUARD_POSE),
+	},
+}
+GUARD.keyframes[1].t = 0
+GUARD.keyframes[2].t = 1
+
 local WeaponAnimationBuilder = {}
 
 -- Añade a "sequence" un fotograma en "time" con las piezas de "frames" (las demás de "animated",
@@ -479,10 +510,12 @@ function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 		sequence.Priority = Enum.AnimationPriority.Action2
 		sequence.Parent = folder
 	end
+	assert(WeaponAnimations.Guard, `[WeaponAnimationBuilder] Falta "Guard" en Data/WeaponAnimations`)
+	MonkeyAnimationBuilder.sequence(GUARD, PARENT).Parent = folder
 	folder.Parent = ReplicatedStorage
 	print(
 		"[WeaponAnimationBuilder] Listo: ReplicatedStorage.WeaponAnimations (Hold, Stone, Arrow, Spell, Dart, "
-			.. "Slash1–Slash4).\n"
+			.. "Slash1–Slash4, Guard).\n"
 			.. "  Pruébalas con Play (en Studio se usan mientras su id esté vacío).\n"
 			.. "  Para publicarlas: clic derecho en cada una > Save to Roblox, y pega cada id en\n"
 			.. "  src/shared/Data/WeaponAnimations.luau (con el mismo dueño que el juego)."

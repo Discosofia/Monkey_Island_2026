@@ -14,7 +14,7 @@ no coincide con el código, manda el código.
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅) | Guardia, cadena, Evasivo… (C4–C8) |
 | Estados de enemigos | `Combat/Status` (atributos del modelo) | Control decreciente por modelo (C6) |
 | Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos | Monos y jefes (C6), proyectiles (C9), muros de los empujes (C10) |
-| Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas | Bloqueo, parry y guardia (C5) |
+| Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅) | Monos y jefes con preparación y sus especiales bloqueables o no (C6), amagos (C8) |
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
 | Reglas por place | `Combat/CombatRules` | Campos nuevos de guardia, escalado y entorno |
 
@@ -32,8 +32,14 @@ no coincide con el código, manda el código.
 - Comprueban `canAct`: en el servidor, `CombatService.onUseWeapon` ("Attack"), `onDodge` ("Dodge") y
   `AbilityService.onUseAbility` ("Ability"); en el cliente, `WeaponController`, `DodgeController` y
   `RoleController.useAbility`, para no mandar lo que el servidor va a rechazar.
-- Entran `Stunned` (con `Status.stunPlayer`), `Attacking` (cada paso de la cadena, lo que dura) y
-  `Staggered` (el tambaleo de la cadena en PvP, C4); los demás estados los usan los grupos C5–C8.
+- Entran `Stunned` (con `Status.stunPlayer`), `Attacking` (cada paso de la cadena, lo que dura),
+  `Staggered` (el tambaleo de la cadena en PvP, C4, y el parry recibido, C5), `Parrying`, `Blocking`
+  (sin fin: `StateMachine.enter` sin segundos dura hasta `leave`) y `GuardBroken` (C5, con
+  `Status.stunPlayer(…, "GuardBroken")`); `Casting`, `Dodging` y `Evading` los usan C7–C8.
+  `CombatState.isGuarding` = `Blocking` o `Parrying` (los controladores de movimiento: ×0,6 y sin correr).
+- Si el estado pasa a algo que no es `Idle` ni `Attacking` (tambaleo, aturdido, guardia), la cadena
+  de golpes vuelve al primero, en el servidor (`CombatService`) y en la predicción del cliente
+  (`WeaponController`).
 - **Inmovilizado** (`Status.holdPlayer`: `StunnedUntil`, no anda pero pega) y **aturdido**
   (`Status.stunPlayer`: lo mismo y el estado `Stunned`, no pega ni usa habilidades ni esquiva), con la
   misma inmunidad de 2 s al soltarse. Qué usa cada uno: `sistema-de-habilidades.md` §2.4.
@@ -93,8 +99,11 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
     directo (sin ayuda): asimetría.
 - PvP: daño del arma × `pvpWeaponMultiplier` × `pvpWeaponMultipliers[arma]` (arena: ×0,55, arco ×0,7).
 
-**Planificado.** C5: bloquear y parar los golpes de la cadena (`ChainGuardDamage`,
-`FinisherGuardDamage`). C7: escalado en PvP y contador `ChainFinishers`. C8: amago (cancelar la
+- Guardia (C5): cada golpe de la cadena contra un jugador se puede bloquear o parar (§5); gasta
+  `ChainGuardDamage` (el remate `FinisherGuardDamage`) × `cooldownSeconds` ÷ `ChainReferenceCooldown`,
+  y los disparos `ProjectileGuardDamage`. Bloqueado no tambalea ni empuja (lo hace `onResult`).
+
+**Planificado.** C7: escalado en PvP y contador `ChainFinishers`. C8: amago (cancelar la
 preparación). C9: proyectiles simulados por el servidor (ver §6). C10: el remate contra un muro aturde.
 
 ## 4. Esquiva, estamina y Evasivo
@@ -119,18 +128,56 @@ recarga `Config.Evasive` (~25 s), con icono en el HUD.
 
 ## 5. Defensa
 
-**Hoy.** Orden de `CombatService.damagePlayer` (monos y peligros): zona segura, invulnerable o caído
+**Hoy (C5 ✅, 22-10-2026).** Orden: zona segura, invulnerable o caído → **guardia** (parry → bloqueo)
 → crítico del atacante → `mitigate`: armadura (`Data/Armor`) → tótem guardián (`WardReduction`) →
-Grito de guerra (`GuardReduction`) → Escudo de hojas (`ShieldHealth`, absorbe). `damagePvP`: marca y
-expuesto (con `pvpStatus`) → crítico → `mitigate`. No hay bloqueo ni parry.
+Grito de guerra (`GuardReduction`) → Escudo de hojas (`ShieldHealth`, absorbe). En `damagePvP`, la
+marca y el expuesto (con `pvpStatus`) van después de la guardia, con el crítico.
 
-**Planificado (C5).** Remoto `Guard` (F / L2 / botón "Guardia"; al estar caído, F sigue siendo
-Rendirse). Barra `Guard` (0–100). Bloqueo de frente (cono en `Config`): reduce el daño y gasta
-guardia con el `guardDamage` del ataque; vacía → `GuardBroken` (aturdido). Parry: ventana desde que se
-pulsa (~0,3 s, igual para todos), se rearma tras un tiempo; anula el golpe, tambalea al atacante y
-devuelve guardia. Margen a favor del defensor: el servidor espera el parry hasta `min(ping, tope)`
-antes de aplicar un golpe. Imbloqueables (`unblockable`) rompen la guardia. Orden nuevo: invulnerable
-→ parry → bloqueo → armadura → tótem → Grito → escudo.
+**Guardia (`Combat/Guard`, servidor; `GuardController`, cliente).** Números en `Config.Guard`.
+- Remoto `Guard` (pulsar con la hora del servidor en el reloj del cliente; soltar). F / L2 / botón
+  "Guardia" (casilla encima de "Esquivar"). El controlador solo está enlazado con el jugador vivo:
+  caído, F es "Rendirse" (`LifeController`). Beber pasó de F a E.
+- Pulsar abre el **parry** (`Parrying`, `ParryWindowSeconds` 0,3 s **aunque se suelte**) si han
+  pasado `ParryRearmSeconds` (0,8 s) desde el anterior; si no, solo bloquea. Mantener = **bloqueo**
+  (`Blocking`, sin fin hasta soltar). Pulsado mientras pega, está tambaleado o aturdido, se pone al
+  acabar si sigue pulsando (`Guard.start` vigila el atributo `CombatState`). Esquivar la suelta
+  (`Guard.drop` en `onDodge`): hay que volver a pulsar.
+- Solo de frente: `BlockAngle` (120°) desde la raíz del defensor hacia `from` (la raíz del atacante).
+- `Guard.resolve(jugador, golpe, instante)` → `"Hit" | "Blocked" | "Parried" | "Broken"` y la
+  fracción del daño que entra. Bloqueado: ×(1 − `BlockReduction` 0,5) contra jugadores o
+  ×(1 − `BlockReductionEnemies` 0,7) contra monos y jefes, y gasta el `guardDamage` del golpe; a 0,
+  `Broken`: guardia rota (`Status.stunPlayer(…, "GuardBreak", "GuardBroken")`, `BreakStunSeconds`
+  1,2 s; si la rompe un jugador, ×`pvpControlMultiplier`), con la inmunidad de 2 s de siempre.
+  Parry: no entra, +`ParryGuardRefund` (20), atributo `ParryAt` y, si el atacante está a menos de
+  `ParryStaggerRange` (12 studs), le tambalea (`ParryStaggerPvP` 0,6 s; un mono `Status.stun`
+  `ParryStaggerMonkey` 1 s, un jefe la mitad por `BossControlMultiplier`). Así parar un disparo de
+  lejos no tambalea al tirador. Imbloqueable a quien está en guardia: `Broken` y entra entero.
+- Barra `Guard` (atributo del `Player`): se recupera `RegenPerSecond` (25/s) tras `RegenDelaySeconds`
+  (1 s) sin recibir golpes, también bloqueando. El HUD (`CombatClient/GuardBar`, a la derecha de la
+  estamina en la Isla y en Dunas) solo la enseña si no está llena o se está en guardia: plateada,
+  dorada 0,4 s tras un parry y naranja con la guardia rota.
+- Qué se puede defender hoy:
+  - **De otros jugadores** (`damagePvP` con `guard`): la cadena y los disparos de arma (esperan el
+    margen del parry, §7), y las habilidades (`AbilityService.hurt`: `guardDamage` de `Data/Roles` o
+    `AbilityGuardDamage` 25). `unblockable` en `Data/Roles`: Rompehuesos, Pisotón y Meteoro. Una
+    habilidad bloqueada o parada tampoco aplica su control, su lentitud ni el empuje de la Embestida
+    (`Guard.defended`, 0,1 s tras el golpe). El veneno no se defiende.
+  - **De monos y jefes** (`damagePlayer` con `Guard.enemyHit`): mordisco, piedra del chimpancé,
+    mordisco del asedio y golpe normal del jefe. Gastan `MonkeyGuardDamage` por categoría (×1,5 alfa)
+    o `BossGuardDamage`. Un mordisco bloqueado no agarra (orangután). `damagePlayer` devuelve además
+    el resultado (`false, "Parried"` con un parry). Los especiales (pisotón, embestida, agarre del
+    jefe) y los peligros (`Hazards`) **no miran la guardia** hasta C6.
+- Lo que se ve y se oye: `AbilityFx` "GuardFx" (`Block`: chispa blanca; `Parry`: contorno, aro y
+  chispas doradas; `Break`: contorno naranja, esquirlas y grietas) y los sonidos `Block`, `Parry` y
+  `GuardBreak` (provisionales en `Data/Sounds`). Pose `Guard` de `Data/WeaponAnimations` (en bucle,
+  `Action3`), generada por `WeaponAnimationBuilder` (`GUARD_POSE`).
+- Probado en Play (Isla, 22-10-2026, guerrero contra un mandril alfa sujeto delante): sin guardia
+  18 por mordisco; bloqueando 5 y −27 de guardia, que se recupera a 25/s; por detrás entra entero y no
+  gasta guardia; 2 parries en 9 toques cada 0,85 s: el golpe no entra y el mandril queda aturdido
+  1,00 s; con varios monos la guardia se rompe (`GuardBroken` 1,2 s) y vuelve sola a 100. Mantener =
+  parry 0,3 s → bloqueo → soltar; pulsar otra vez antes de 0,8 s solo bloquea; pulsar a mitad del
+  tajo pone la guardia al acabar el paso; en guardia no pega; esquivar la suelta; velocidad 9,6
+  (16 × 0,6). Caído: F enlazada a Rendirse y no a la guardia; al revivir, al revés.
 
 ## 6. Detección de impactos
 
@@ -205,8 +252,15 @@ puede empujar a un jugador poniéndole velocidad.
   `Latency.compensation(atacante)` segundos (`Hitbox.inBox` con `rewind`, `Combat/PositionHistory`).
   Las áreas no rebobinan: son generosas y así miden lo mismo que la calculadora.
 
-**Planificado.** C5: margen del parry a favor del defensor, con tope. Regla de equidad: el tope nunca pasa de ~0,15 s
-y es el mismo para todos.
+- Margen del parry a favor del defensor (C5): `CombatService.damagePvP` con `waitForParry` (la cadena
+  y los disparos de arma) espera `Guard.grace(defensor)` = `min(ping, Config.Net.ParryGraceMaxSeconds
+  0,12)` antes de resolver (0 si ya está en guardia, si no podría abrir el parry o si es menos de un
+  fotograma), y resuelve con la hora del golpe. La pulsación cuenta desde la hora que manda el cliente,
+  como mucho ese margen antes de llegar. Lo que el golpe hace además del daño (tambaleo, empuje,
+  veneno) va en `onResult`, porque puede resolverse más tarde. Las habilidades no esperan (C8 les
+  pone preparación) ni los monos (C6).
+
+Regla de equidad: los topes nunca pasan de ~0,15 s y son los mismos para todos.
 
 ## 8. Control y escape
 
@@ -236,7 +290,8 @@ reaparecen, y un altar en la pirámide central que da a su equipo una ventaja pe
 | Habilidades Z X C R V | Teclas | Mantener R1 + A, B, X, Y, L1 | 5 botones junto al salto |
 | Esquivar | Q | B | "Esquivar" |
 | Correr | Mayús | L3 | "Correr" |
-| Guardia (C5) | F | L2 | "Guardia" |
+| Guardia (C5 ✅) | F (caído: Rendirse) | L2 | "Guardia", encima de "Esquivar" |
+| Beber (Isla) | E (antes F) | X | Tocar el aviso |
 | Evasivo (C7) | Q estando aturdido | B estando aturdido | "Esquivar" estando aturdido |
 | Bloqueo de cámara (C2) | Ctrl (el shift lock de Roblox; el jugador lo enciende en el menú de Roblox) | — | — |
 

@@ -19,7 +19,8 @@ export type Handler = (actionName: string, state: Enum.UserInputState, input: In
 -- Casilla de cada acción: columna contando desde el salto hacia la izquierda y fila contando
 -- hacia arriba (0 = la fila justo encima del salto). Las más usadas, junto al pulgar.
 -- Las 5 habilidades del rol van en un bloque de 2 columnas (la definitiva a la izquierda y la cuarta
--- activa, la R, encima de la C).
+-- activa, la R, encima de la C). La guardia (Fase 10, C5), justo encima de esquivar: las dos defensas
+-- bajo el pulgar.
 local SLOTS: { [string]: Vector2 } = {
 	Dodge = Vector2.new(0, 0),
 	Sprint = Vector2.new(1, 0),
@@ -27,11 +28,12 @@ local SLOTS: { [string]: Vector2 } = {
 	Ability2 = Vector2.new(3, 0),
 	Eat = Vector2.new(4, 0),
 	UseHeal = Vector2.new(5, 0),
-	ToggleMaterials = Vector2.new(0, 1),
+	Guard = Vector2.new(0, 1),
 	ToggleJournal = Vector2.new(1, 1),
 	Ability3 = Vector2.new(2, 1),
 	Ability4 = Vector2.new(3, 1),
 	Surrender = Vector2.new(4, 1),
+	ToggleMaterials = Vector2.new(5, 1),
 	BuildRotate = Vector2.new(0, 2),
 	BuildNext = Vector2.new(1, 2),
 	Ability5 = Vector2.new(2, 2),

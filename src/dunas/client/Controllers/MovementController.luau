@@ -5,6 +5,7 @@
 --   - Aturdido o inmovilizado ("StunnedUntil", habilidades rivales; Combat/Status): no se mueve.
 --   - Ralentizado ("SlowedUntil" y "SlowFactor" en el personaje: Nova, Meteoro, Polvo somnífero de un
 --     rival): anda a esa fracción.
+--   - En guardia (Fase 10, C5; Shared/CombatState) no se corre y se anda más despacio.
 --   - Con la bandera rival a cuestas ("CarryingFlag") se va más lento (Config.Arena, menos con la
 --     ventaja CarrySpeed). El equipo de la arena puede cambiar la velocidad (ventaja MoveSpeed).
 
@@ -13,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
@@ -34,7 +36,8 @@ local function update(player: Player, deltaTime: number)
 		Stamina.setSprinting(false)
 		return
 	end
-	local wantsSprint = (sprintHeld or sprintToggled) and humanoid.MoveDirection.Magnitude > 0.1
+	local guarding = CombatState.isGuarding(player)
+	local wantsSprint = (sprintHeld or sprintToggled) and humanoid.MoveDirection.Magnitude > 0.1 and not guarding
 	local sprinting = wantsSprint and Stamina.get() > 0
 	Stamina.setSprinting(sprinting)
 	if sprinting then
@@ -47,6 +50,9 @@ local function update(player: Player, deltaTime: number)
 		* Progression.perk(player, "MoveSpeed")
 	if player:GetAttribute("CarryingFlag") ~= nil then
 		speed *= math.min(1, Config.Arena.CarrierSpeedMultiplier + Progression.perk(player, "CarrySpeed"))
+	end
+	if guarding then
+		speed *= Config.Guard.BlockWalkMultiplier
 	end
 	local slowedUntil = character:GetAttribute("SlowedUntil")
 	local slowFactor = character:GetAttribute("SlowFactor")

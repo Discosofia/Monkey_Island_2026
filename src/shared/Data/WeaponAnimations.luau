@@ -11,6 +11,9 @@
 --     destello del bastón (AbilityFxController, efecto "WeaponShotFx").
 --   - Slash1–Slash4: los tajos de la cadena de golpes cuerpo a cuerpo (Shared/MeleeChain). Mientras su
 --     id esté vacío, fuera de Studio se usa el tajo de Roblox.
+--   - Guard: la pose de guardia (en bucle, Fase 10, C5; GuardController): los antebrazos delante de la
+--     cara con el arma cruzada. Mientras su id esté vacío, fuera de Studio no hay pose (la guardia
+--     funciona igual).
 
 export type WeaponAnimation = { id: string, fxDelay: number? }
 
@@ -24,6 +27,7 @@ local WeaponAnimations: { [string]: WeaponAnimation } = {
 	Slash2 = { id = "rbxassetid://120859937990073" },
 	Slash3 = { id = "rbxassetid://90979498051114" },
 	Slash4 = { id = "rbxassetid://84709619605184" },
+	Guard = { id = "" },
 }
 
 return WeaponAnimations

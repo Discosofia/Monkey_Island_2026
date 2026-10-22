@@ -32,15 +32,21 @@ function StateMachine.reset(player: Player)
 	player:SetAttribute(CombatState.UNTIL_ATTRIBUTE, nil)
 end
 
--- Pone a "player" en "state" durante "seconds". Devuelve false si el estado que tiene tiene más
+-- Pone a "player" en "state" durante "seconds" o, sin "seconds", hasta que lo quite "leave" (el
+-- bloqueo dura lo que se mantiene la guardia). Devuelve false si el estado que tiene tiene más
 -- prioridad y aún no ha terminado (no cambia nada).
-function StateMachine.enter(player: Player, state: CombatState.State, seconds: number): boolean
+function StateMachine.enter(player: Player, state: CombatState.State, seconds: number?): boolean
 	local current = CombatState.get(player)
 	if current ~= "Idle" and (PRIORITY[state] or 0) < (PRIORITY[current] or 0) then
 		return false
 	end
 	local ticket = (tickets[player] or 0) + 1
 	tickets[player] = ticket
+	if not seconds then
+		player:SetAttribute(CombatState.ATTRIBUTE, state)
+		player:SetAttribute(CombatState.UNTIL_ATTRIBUTE, nil)
+		return true
+	end
 	local untilTime = now() + seconds
 	-- Un estado igual que aún dura más no se acorta.
 	local currentUntil = player:GetAttribute(CombatState.UNTIL_ATTRIBUTE)

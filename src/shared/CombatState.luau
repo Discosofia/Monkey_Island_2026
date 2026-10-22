@@ -7,6 +7,8 @@
 --     solo el Evasivo (C7).
 --   - Tambaleado ("Staggered", el golpe de una cadena en PvP o un parry recibido): no pega ni usa
 --     habilidades hasta que se recupera.
+--   - En guardia ("Parrying" al pulsar, "Blocking" mientras la mantiene; Combat/Guard, C5): no pega ni
+--     usa habilidades, anda más despacio y no corre. Puede esquivar (y suelta la guardia).
 --   - Inmovilizado no es un estado sino una condición: "StunnedUntil" (Combat/Status.holdPlayer) le
 --     quita el movimiento y le deja pegar. Un aturdido también lo lleva.
 -- Las prioridades (qué estado corta a cuál) están en Config.CombatStates.
@@ -70,6 +72,12 @@ end
 -- true si "player" puede hacer "action" en su estado de ahora.
 function CombatState.canAct(player: Player, action: Action): boolean
 	return not BLOCKS[CombatState.get(player)][action]
+end
+
+-- true si "player" está en guardia (bloqueando o en la ventana del parry, C5): anda más despacio y no corre.
+function CombatState.isGuarding(player: Player): boolean
+	local state = CombatState.get(player)
+	return state == "Blocking" or state == "Parrying"
 end
 
 return CombatState

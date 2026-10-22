@@ -37,6 +37,7 @@ local MonkeyService = require(script.Parent.MonkeyService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local TorchService = require(script.Parent.TorchService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local Guard = require(ServerScriptService.Combat.Guard)
 local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
@@ -586,7 +587,10 @@ local function tick(now: number)
 		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then
 			boss.lastAttackAt = now
 			MonkeyAnimator.play(boss.model, "Attack")
-			if CombatService.damagePlayer(target, boss.damage, false, boss.model) then
+			-- Su golpe normal se puede bloquear y parar (Combat/Guard); los especiales, no (hasta C6).
+			if
+				CombatService.damagePlayer(target, boss.damage, false, boss.model, nil, nil, Guard.enemyHit(boss.model))
+			then
 				Sfx.play("BossAttack", boss.root)
 			end
 		end

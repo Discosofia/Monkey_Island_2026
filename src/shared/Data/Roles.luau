@@ -16,6 +16,10 @@ export type Ability = {
 	description: string,
 	cooldownSeconds: number,
 	ultimate: boolean?,
+	-- Guardia (Fase 10, C5; Combat/Guard): la que gasta si un jugador la bloquea (sin él,
+	-- Config.Guard.AbilityGuardDamage) y si es imbloqueable (rompe la guardia y entra entera).
+	guardDamage: number?,
+	unblockable: boolean?,
 }
 
 export type Refill = { itemId: string, seconds: number, cap: number }
@@ -72,6 +76,7 @@ local Roles: { [string]: Role } = {
 				description = "Pisas el suelo con fuerza: daño fuerte alrededor y aturde a los monos.",
 				cooldownSeconds = 90,
 				ultimate = true,
+				unblockable = true,
 			},
 			{
 				id = "Smash",
@@ -79,6 +84,7 @@ local Roles: { [string]: Role } = {
 				short = "Rompe",
 				description = "Un golpe brutal hacia delante que daña y tumba un momento a los monos.",
 				cooldownSeconds = 8,
+				unblockable = true,
 			},
 		},
 	},
@@ -175,6 +181,7 @@ local Roles: { [string]: Role } = {
 				short = "Meteoro",
 				description = "Una roca ardiente cae del cielo donde apuntas y daña a todos los de alrededor.",
 				cooldownSeconds = 10,
+				unblockable = true,
 			},
 		},
 	},

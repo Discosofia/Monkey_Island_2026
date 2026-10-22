@@ -238,6 +238,14 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
   a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y
   `HealthChanged` durante 20 s. Ojo: vienen también sus compañeros de grupo.
+- **Guardia** (C5): pulsa F de verdad con `user_keyboard_input` (`keyDown`/`keyUp`, `keyPress` dura
+  ~0,2 s) o manda `Remotes.Guard:FireServer(true, workspace:GetServerTimeNow())` / `(false)` desde el
+  cliente. Registra en el servidor `CombatState`, `Guard`, `ParryAt` y el `HealthChanged` del
+  personaje. Para tener un mono delante: el comando "Mandrill" fuera del Basecamp (zona segura: ahí no
+  pegan), súbete la vida, borra los demás monos a menos de 60–80 studs (otros llegan solos y pegan
+  también) y sujeta el mandril a 3,5 studs con `PivotTo` en cada `Heartbeat`, delante o detrás según
+  la `LookVector` de la raíz (para el cono). Para cazar un parry sin reloj, toques cada 0,85 s (>
+  `ParryRearmSeconds`): cae en la ventana ~1 de cada 4.
 - **Habilidades que mueven al jugador** (`Charge`, `Blink`, `Whirlwind`): el movimiento lo hace
   `RoleController`, así que con `UseAbility:FireServer` a pelo el personaje no se mueve. Ponlo antes
   con `PivotTo` a 3 studs del muñeco para que el servidor lo encuentre al pasar.

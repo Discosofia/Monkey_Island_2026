@@ -4,14 +4,17 @@
 --     Gasta estamina; al vaciarse vuelves a caminar.
 --   - Comer: G, cruceta izquierda o el botón "Comer" (aparece si llevas comida). El servidor elige
 --     la comida que más llena.
---   - Beber: junto al agua aparece un aviso "Beber" como los de recolectar (F en PC, X en mando,
---     tocar en móvil). Es un aviso local que sigue al jugador mientras está cerca del agua.
+--   - Beber: junto al agua aparece un aviso "Beber" como los de recolectar (E en PC, X en mando,
+--     tocar en móvil). Es un aviso local que sigue al jugador mientras está cerca del agua. Hasta la
+--     Fase 10 era F, que ahora es la guardia (GuardController).
+--   - En guardia (Fase 10, C5; Shared/CombatState) no se corre y se anda más despacio.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
@@ -46,7 +49,7 @@ local function createDrinkPrompt(): (BasePart, ProximityPrompt)
 	prompt.Name = "DrinkPrompt"
 	prompt.ActionText = "Beber"
 	prompt.ObjectText = "Agua"
-	prompt.KeyboardKeyCode = Enum.KeyCode.F
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
@@ -86,7 +89,9 @@ local function updateSprint(player: Player, deltaTime: number)
 		Stamina.setSprinting(false)
 		return
 	end
-	local wantsSprint = (sprintHeld or sprintToggled) and humanoid.MoveDirection.Magnitude > 0.1
+	-- En guardia (Fase 10, C5) no se corre y se anda más despacio.
+	local guarding = CombatState.isGuarding(player)
+	local wantsSprint = (sprintHeld or sprintToggled) and humanoid.MoveDirection.Magnitude > 0.1 and not guarding
 	local sprinting = wantsSprint and Stamina.get() > 0
 	Stamina.setSprinting(sprinting)
 	if sprinting then
@@ -100,6 +105,9 @@ local function updateSprint(player: Player, deltaTime: number)
 	if player:GetAttribute("CarryingEgg") == true then
 		local warrior = player:GetAttribute("Role") == "Guerrero"
 		speed *= if warrior then Config.Egg.WarriorCarrySpeedMultiplier else Config.Egg.CarrySpeedMultiplier
+	end
+	if guarding then
+		speed *= Config.Guard.BlockWalkMultiplier
 	end
 	-- Aturdido o inmovilizado (pisotón del gorila, agarre del orangután; Combat/Status): no se puede mover.
 	local stunnedUntil = player:GetAttribute("StunnedUntil")

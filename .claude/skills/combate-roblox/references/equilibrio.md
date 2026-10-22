@@ -265,7 +265,7 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
    `Config.Abilities.PvPUltimateMultiplier` 0,4, por `CombatRules.pvpUltimateMultiplier` en
    `AbilityService.hurt`). Arena: Pisotón 38 y Rayo 30; duelos espejo 9,8 · 9,1 · 9,3 s. Límite nuevo
    `golpeJugador` (40). Con defensa, el duelo de guerreros sale en 12,2 s (límite 12): se ajusta en C5
-   con los números de la guardia.
+   con los números de la guardia. **Ajustado en C5:** bloqueo −50 % contra jugadores → 11,8 s.
 
 **Fase 10 (22-10-2026), números propuestos medidos** (secciones 7 a 10, se aplican en sus grupos):
 - Cadena: 4 golpes (×0,9 · ×0,9 · ×1 · ×1,4 en 0,9 · 0,9 · 1 · 1,4 golpes del arma) con el mismo DPS
@@ -275,6 +275,11 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   5,7 s; sin escalar, el machete en 3,8 s). Jefes y habilidades gastan 25 (4 golpes) y los monos 12 ·
   18 · 22 por categoría (×1,5 los alfas): con 40 y 50, un alfa o un jefe la rompían en 2 golpes.
 - Duelo espejo con defensa: Guerrero 11,8 s, Cazador 10,7 s, Mago 10,8 s (sin defensa 9,4 · 8,6 · 8,7).
+  **C5 ✅ (22-10-2026):** con las definitivas contra jugadores (hallazgo 12) el de guerreros salía en
+  12,2 s con bloqueo −60 %; `BlockReduction` pasa a **0,5** (contra monos sigue 0,7): 11,8 · 11 ·
+  11,2 s (sin defensa 9,8 · 9,1 · 9,3). Con talentos al máximo, el de guerreros con defensa da 13 s
+  (13,4 con −60 %): viene de que el duelo sin defensa ya da 10,7 s con talentos (alerta de antes,
+  junto al cazador en 7,5 s y el Pisotón con 65 % tras aturdir), no de la guardia.
 - Rendimientos decrecientes `1 → 0,8 → 0,6 → 0,4` con reinicio a los 6 s. El equipo de 4 sobre un
   jefe pasa del 25 % al 12 % (con talentos al máximo, del 35 % al 17 %; resuelve el hallazgo 1 al
   aplicarse en C6). Un rol solo casi no lo nota: el cazador sobre un mono pasa del 27 % al 25 %.
