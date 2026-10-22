@@ -17,6 +17,7 @@
 --   - Margen a favor del defensor (grace): CombatService espera hasta min(ping, ParryGraceMaxSeconds)
 --     antes de resolver un golpe de arma en PvP, y la pulsación cuenta desde la hora de su cliente
 --     (como mucho ese margen antes de llegar). Igual para todos y con tope.
+-- Los monos y los jefes (C6, Combat/EnemyAttack) también esperan ese margen al acabar su preparación.
 -- Orden en CombatService: invulnerable → parry → bloqueo → armadura → tótem → Grito → escudo.
 -- Lo que se ve y se oye: destello dorado (parry), chispa (bloqueo) y estallido naranja con grietas
 -- (rotura), en AbilityFxController ("GuardFx"), y los sonidos "Parry", "Block" y "GuardBreak".
@@ -57,6 +58,7 @@ export type Hit = {
 	attacker: Model?, -- quién pega: a quien tambalea un parry, si está cerca
 	unblockable: boolean?, -- rompe la guardia y entra entero
 	enemy: boolean?, -- lo da un mono o un jefe (Config.Guard.BlockReductionEnemies)
+	at: number?, -- hora del servidor del golpe, si se resuelve más tarde (el margen del defensor)
 }
 
 type State = {
@@ -294,7 +296,7 @@ end
 -- fracción del daño que entra (0 en un parry).
 function Guard.resolve(player: Player, hit: Hit, at: number?): (Outcome, number)
 	local state = stateOf(player)
-	local time = at or now()
+	local time = at or hit.at or now()
 	local guarding = state.guardFrom <= time + 1e-3 and CombatState.isGuarding(player)
 	local parrying = time >= state.parryFrom - 1e-3 and time <= state.parryUntil + 1e-3
 	if not (guarding or parrying) or not facing(player, hit.from) then

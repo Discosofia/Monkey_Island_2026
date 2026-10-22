@@ -77,9 +77,12 @@ si es mortal, `LifeService.down`.
 
 - **Enemigos** (`Combat/Status`): `StunnedUntil` (aturdir, congelar e inmovilizar son lo mismo para
   la IA: ni anda ni ataca; cambia solo cómo se ve), `SlowedUntil` + `SlowFactor`, `TauntedBy` +
-  `TauntedUntil`. Los jefes se quedan la fracción `BossControlMultiplier` (0,5). **No hay
-  rendimientos decrecientes**: un aturdimiento nuevo solo alarga si acaba más tarde. Los leen
-  `MonkeyService.think`/`siegeThink` y `BossService.tick` en cada vuelta.
+  `TauntedUntil`. Los jefes se quedan la fracción `BossControlMultiplier` (0,5). **Rendimientos
+  decrecientes** (Fase 10, C6; `Config.ControlDR`), por modelo: cada control seguido dura 1 · 0,8 ·
+  0,6 · 0,4 de lo suyo y después es inmune (`Status.stun` devuelve 0 y pone `ControlResistedAt`)
+  hasta `ResetSeconds` (6 s) después del último que le entró. Cuentan todos los `Status.stun`
+  (habilidades, parry, remate de la cadena). Un aturdimiento nuevo solo alarga si acaba más tarde.
+  Los leen `MonkeyService.think`/`siegeThink` y `BossService.tick` en cada vuelta.
 - **Marca del cazador**: `MarkedUntil` + `MarkBonus` en el modelo (+ `Highlight`).
 - **Veneno** (`Status.poison(modelo, dps, segundos, atacante, fuente)`): un golpe cada
   `Config.Abilities.PoisonTickSeconds` (1 s) por `CombatService.damage` con `poison = true` (número
@@ -188,12 +191,20 @@ del Basecamp (`TrainingDummyService`).
 - `think` (estado `Chase`): pisotón si el objetivo está a menos de `radio × 0,6`; mordisco a
   `attackRange` cada `attackCooldownSeconds` (o robo si es ladrón; el agarre va en el mordisco);
   fuera de alcance, salto entre 8 y 18 studs o piedra a `throws.range`. Aullido y rugido al
-  detectarte (estado `Idle`). El asedio (`siegeThink`) no usa especiales.
+  detectarte (estado `Idle`). El asedio (`siegeThink`) solo muerde.
+- **Preparación** (Fase 10, C6; `Combat/EnemyAttack`): mordisco, robo, piedra y pisotón empiezan
+  con `EnemyAttack.windup` (el mono se para, se gira hacia ti, chilla y avisa; atributos
+  `WindupUntil`/`WindupKind` que dibuja `EnemyWindupController`) y golpean al acabar. El mordisco y el
+  robo usan `EnemyAttack.strike` (espera `Guard.grace` y mira la caja de delante + `visible`); el
+  pisotón, `Hitbox.inSphere` con un `Guard.Hit` imbloqueable. Mientras se prepara
+  (`EnemyAttack.busy`), `think` lo deja quieto; un `Status.stun` la corta. La recarga cuenta desde que
+  empieza, así que el DPS no cambia. Números en `Config.Windup`.
 - Escalado: `Config.Difficulty` sube vida (+12 %/día) y daño (+8 %/día) hasta ×2,5; los alfas
   ×2,5 de vida y ×1,5 de daño. Los especiales escalan con `monkey.damage / definition.damage`.
 - Cada especial: burbuja (`showBubble`), voz (`playVoice`), animación (`MonkeyAnimator.play`) y,
-  si hace daño, `CombatService.damagePlayer(player, daño, false, monkey.model)` (para que pueda ser
-  crítico según la categoría).
+  si hace daño, `CombatService.damagePlayer(player, daño, false, monkey.model, nil, nil, golpe)`
+  (para que pueda ser crítico según la categoría; `golpe` = `Guard.enemyHit`, con `unblockable` si
+  no se puede bloquear). Todo lo que hace daño, tras su preparación (`EnemyAttack.windup`).
 - Un especial nuevo: campo opcional en `MonkeyDefinition` + datos de la especie + función en
   `MonkeyService` + su llamada en `think` + campo de espera en el tipo `Monkey` (y su valor inicial
   en `spawnMonkey`) + animación si hace falta + `description` (diario de campo) + `docs/GDD.md` §8.2.

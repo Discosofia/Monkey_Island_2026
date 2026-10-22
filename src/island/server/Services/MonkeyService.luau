@@ -21,6 +21,9 @@
 -- Las tropas solo existen cerca de los jugadores (updatePopulation): lejos se guardan como un
 -- número y aparecen cuando alguien se acerca, así hay monos por toda la isla y el límite de monos
 -- a la vez (MaxActive) solo cuenta los que hay alrededor de algún jugador.
+-- Fase 10, C6: los ataques se ven venir (Combat/EnemyAttack). El mordisco, el robo y la piedra avisan
+-- según la categoría (Config.Windup.MonkeyByTier) y solo entran si al acabar sigues delante y a su
+-- alcance; se pueden bloquear y parar. El pisotón del gorila avisa más y no se puede bloquear.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -50,7 +53,9 @@ local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
+local EnemyAttack = require(ServerScriptService.Combat.EnemyAttack)
 local Guard = require(ServerScriptService.Combat.Guard)
+local Hitbox = require(ServerScriptService.Combat.Hitbox)
 local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
@@ -388,7 +393,7 @@ local function onDied(monkey: Monkey)
 end
 
 local onHurt: (monkey: Monkey, health: number) -> ()
-local bite: (monkey: Monkey, player: Player) -> ()
+local bite: (monkey: Monkey, player: Player, siege: boolean?) -> ()
 local pounce: (monkey: Monkey, target: Vector3, now: number) -> ()
 local roar: (monkey: Monkey, infos: { PlayerInfo }, now: number) -> ()
 local throwStone: (monkey: Monkey, info: PlayerInfo, now: number) -> ()
@@ -836,21 +841,66 @@ local function steal(monkey: Monkey, player: Player)
 	)
 end
 
--- Mordisco normal. Tras un salto pega el doble; el orangután además inmoviliza (no si te acaba de
--- soltar: Status.holdPlayer, ni si lo bloqueas). Se puede bloquear y parar (Combat/Guard).
-function bite(monkey: Monkey, player: Player)
-	local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
-	monkey.pounced = false
-	MonkeyAnimator.play(monkey.model, "Attack")
-	local landed, outcome =
-		CombatService.damagePlayer(player, damage, false, monkey.model, nil, true, Guard.enemyHit(monkey.model))
-	if landed then
-		playVoice(monkey, "Attack")
+-- Preparación (Combat/EnemyAttack) de un ataque de "monkey" a "player": se para, se gira hacia él,
+-- chilla y avisa "seconds"; la animación de ataque empieza Config.Windup.AttackLeadSeconds antes del
+-- golpe. Después llama a "strike".
+local function prepare(monkey: Monkey, player: Player, seconds: number, strike: () -> ())
+	local character = player.Character
+	if character then
+		EnemyAttack.face(monkey.model, character:GetPivot().Position)
 	end
-	local grab = monkey.definition.grab
-	if landed and outcome ~= "Blocked" and grab and Status.holdPlayer(player, grab, monkey.group.speciesId) then
-		Remotes.Notify:FireClient(player, `🦧 ¡El {monkey.definition.name} te ha agarrado!`)
+	monkey.humanoid:MoveTo(monkey.root.Position)
+	if not EnemyAttack.windup(monkey.model, seconds, "Strike", strike) then
+		return
 	end
+	playVoice(monkey, "Attack")
+	task.delay(math.max(0, seconds - Config.Windup.AttackLeadSeconds), function()
+		if EnemyAttack.busy(monkey.model) then
+			MonkeyAnimator.play(monkey.model, "Attack")
+		end
+	end)
+end
+
+-- Lo que avisa el mordisco de un mono (por su categoría).
+local function windupSeconds(monkey: Monkey): number
+	local byTier = Config.Windup.MonkeyByTier
+	return byTier[monkey.definition.tier] or byTier[#byTier]
+end
+
+-- Mordisco normal, con preparación: solo entra si al acabarla sigues delante y a su alcance. Tras un
+-- salto pega el doble; el orangután además inmoviliza (no si te acaba de soltar: Status.holdPlayer, ni
+-- si lo bloqueas). Se puede bloquear y parar (Combat/Guard). "siege": el del asedio, que también pega
+-- dentro del Basecamp.
+function bite(monkey: Monkey, player: Player, siege: boolean?)
+	prepare(monkey, player, windupSeconds(monkey), function()
+		local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
+		monkey.pounced = false
+		EnemyAttack.strike(monkey.model, player, monkey.definition.attackRange, function(hit)
+			local landed, outcome = CombatService.damagePlayer(player, damage, siege, monkey.model, nil, true, hit)
+			local grab = monkey.definition.grab
+			if
+				landed
+				and outcome ~= "Blocked"
+				and grab
+				and not siege
+				and Status.holdPlayer(player, grab, monkey.group.speciesId)
+			then
+				Remotes.Notify:FireClient(player, `🦧 ¡El {monkey.definition.name} te ha agarrado!`)
+			end
+		end)
+	end)
+end
+
+-- El capuchino roba en vez de morder, con la misma preparación: si te has apartado, o lo bloqueas o lo
+-- paras, no te quita nada (y el parry le tambalea).
+local function snatch(monkey: Monkey, player: Player)
+	prepare(monkey, player, windupSeconds(monkey), function()
+		EnemyAttack.strike(monkey.model, player, monkey.definition.attackRange, function(hit)
+			if Guard.resolve(player, hit) == "Hit" and monkeys[monkey.model] and monkey.state == "Chase" then
+				steal(monkey, player)
+			end
+		end)
+	end)
 end
 
 -- Salto hacia la presa (marimonda, gibón).
@@ -885,16 +935,10 @@ function roar(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	end
 end
 
--- Piedra lanzada (chimpancé): vuela hasta donde estaba el jugador y daña si sigue cerca.
-function throwStone(monkey: Monkey, info: PlayerInfo, now: number)
-	local settings = monkey.definition.throws
-	if not settings then
-		return
-	end
-	monkey.throwReadyAt = now + settings.cooldownSeconds
+-- Lanza la piedra de "monkey" hacia "target", donde estaba "player" al soltarla (throwStone).
+local function throwAt(monkey: Monkey, player: Player, target: Vector3, baseDamage: number)
 	MonkeyAnimator.play(monkey.model, "Throw")
 	local origin = monkey.root.Position + Vector3.new(0, 2, 0)
-	local target = info.position
 	local stone = Instance.new("Part")
 	stone.Name = "MonkeyStone"
 	stone.Shape = Enum.PartType.Ball
@@ -909,34 +953,66 @@ function throwStone(monkey: Monkey, info: PlayerInfo, now: number)
 	local seconds = (target - origin).Magnitude / 70
 	TweenService:Create(stone, TweenInfo.new(seconds, Enum.EasingStyle.Linear), { Position = target }):Play()
 	Debris:AddItem(stone, seconds + 0.05)
-	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
+	local damage = math.round(baseDamage * monkey.damage / math.max(1, monkey.definition.damage))
 	task.delay(seconds, function()
-		local character = info.player.Character
+		local character = player.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		if root and root:IsA("BasePart") and (root.Position - target).Magnitude <= 5 then
-			CombatService.damagePlayer(info.player, damage, false, monkey.model, nil, nil, Guard.enemyHit(monkey.model))
+			CombatService.damagePlayer(player, damage, false, monkey.model, nil, nil, Guard.enemyHit(monkey.model))
 		end
 	end)
 end
 
--- Golpe en el pecho del gorila: daña y aturde a todos los que estén cerca.
-function stomp(monkey: Monkey, infos: { PlayerInfo }, now: number)
+-- Piedra lanzada (chimpancé), tras avisar como su mordisco: vuela hasta donde estaba el jugador al
+-- soltarla y daña si sigue cerca. Se puede bloquear y parar.
+function throwStone(monkey: Monkey, info: PlayerInfo, now: number)
+	local settings = monkey.definition.throws
+	if not settings then
+		return
+	end
+	monkey.throwReadyAt = now + settings.cooldownSeconds
+	local character = info.player.Character
+	if character then
+		EnemyAttack.face(monkey.model, character:GetPivot().Position)
+	end
+	monkey.humanoid:MoveTo(monkey.root.Position)
+	EnemyAttack.windup(monkey.model, windupSeconds(monkey), "Strike", function()
+		local aim = info.player.Character
+		local aimRoot = if aim then aim:FindFirstChild("HumanoidRootPart") else nil
+		if aimRoot and aimRoot:IsA("BasePart") then
+			throwAt(monkey, info.player, aimRoot.Position, settings.damage)
+		end
+	end)
+end
+
+-- Golpe en el pecho del gorila: tras avisar (Config.Windup.MonkeyStompSeconds, "‼"), daña y aturde
+-- a todos los que estén cerca y se vean. No se puede bloquear: a quien está en guardia se la rompe
+-- (Combat/Guard); hay que apartarse o esquivar.
+function stomp(monkey: Monkey, _infos: { PlayerInfo }, now: number)
 	local settings = monkey.definition.stomp
 	if not settings then
 		return
 	end
 	monkey.stompReadyAt = now + settings.cooldownSeconds
-	showBubble(monkey, "💥 ¡PUM!")
-	playVoice(monkey, "Call")
-	Sfx.play("RockImpact", monkey.root.Position)
-	MonkeyAnimator.play(monkey.model, "Stomp")
-	local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
-	for _, info in infos do
-		if not info.safe and (info.position - monkey.root.Position).Magnitude <= settings.radius then
-			if CombatService.damagePlayer(info.player, damage, false, monkey.model) then
-				Status.stunPlayer(info.player, settings.stunSeconds, monkey.group.speciesId)
+	monkey.humanoid:MoveTo(monkey.root.Position)
+	local started = EnemyAttack.windup(monkey.model, Config.Windup.MonkeyStompSeconds, "Unblockable", function()
+		showBubble(monkey, "💥 ¡PUM!")
+		Sfx.play("RockImpact", monkey.root.Position)
+		local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
+		for _, model in Hitbox.inSphere(monkey.root.Position, settings.radius, { exclude = monkey.model }) do
+			local player = Players:GetPlayerFromCharacter(model)
+			if player then
+				local hit = Guard.enemyHit(monkey.model)
+				hit.unblockable = true
+				if CombatService.damagePlayer(player, damage, false, monkey.model, nil, nil, hit) then
+					Status.stunPlayer(player, settings.stunSeconds, monkey.group.speciesId)
+				end
 			end
 		end
+	end)
+	if started then
+		playVoice(monkey, "Call")
+		MonkeyAnimator.play(monkey.model, "Stomp")
 	end
 end
 
@@ -995,7 +1071,8 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 
 	-- Habilidades de los roles (Combat/Status): aturdido no hace nada; ralentizado anda más despacio;
 	-- provocado por un guerrero va a por él.
-	if Status.isStunned(monkey.model) then
+	-- Preparando un ataque (Combat/EnemyAttack): quieto hasta que golpea.
+	if Status.isStunned(monkey.model) or EnemyAttack.busy(monkey.model) then
 		humanoid:MoveTo(position)
 		return
 	end
@@ -1064,13 +1141,15 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 		local distance = (info.position - position).Magnitude
 		if definition.stomp and distance <= definition.stomp.radius * 0.6 and now >= monkey.stompReadyAt then
 			stomp(monkey, infos, now)
+			return
 		end
 		if distance <= definition.attackRange then
 			humanoid:MoveTo(position)
+			-- La recarga cuenta desde que empieza a preparar el ataque: el ritmo no cambia.
 			if now - monkey.lastAttackAt >= definition.attackCooldownSeconds then
 				monkey.lastAttackAt = now
 				if definition.thief then
-					steal(monkey, info.player)
+					snatch(monkey, info.player)
 				else
 					bite(monkey, info.player)
 				end
@@ -1236,7 +1315,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 	local position = monkey.root.Position
 	local humanoid = monkey.humanoid
 	local canAttack = now - monkey.lastAttackAt >= definition.attackCooldownSeconds
-	if Status.isStunned(monkey.model) then
+	if Status.isStunned(monkey.model) or EnemyAttack.busy(monkey.model) then
 		humanoid:MoveTo(position)
 		return
 	end
@@ -1260,15 +1339,7 @@ local function siegeThink(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		humanoid:MoveTo(position)
 		if canAttack then
 			monkey.lastAttackAt = now
-			CombatService.damagePlayer(
-				target.player,
-				monkey.damage,
-				true,
-				monkey.model,
-				nil,
-				true,
-				Guard.enemyHit(monkey.model)
-			)
+			bite(monkey, target.player, true)
 		end
 		return
 	end

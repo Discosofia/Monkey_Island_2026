@@ -3,7 +3,9 @@
 -- como atributos del modelo con la hora del servidor en que terminan; la IA de los monos
 -- (MonkeyService) y la de los jefes (BossService) los consultan en cada vuelta.
 --   - Aturdido ("StunnedUntil"): no se mueve ni ataca. Lo usan aturdir, congelar e inmovilizar.
---     Los jefes se resisten (Config.Abilities.BossControlMultiplier).
+--     Los jefes se resisten (Config.Abilities.BossControlMultiplier). Rendimientos decrecientes
+--     (Fase 10, C6; Config.ControlDR), por modelo: cada control seguido dura menos y después es
+--     inmune un rato; "ControlResistedAt" (hora del servidor) avisa a los clientes de que lo ha resistido.
 --   - Ralentizado ("SlowedUntil" y "SlowFactor"): anda más despacio.
 --   - Provocado ("TauntedBy" y "TauntedUntil"): va a por el jugador que le provocó.
 --   - Envenenado ("PoisonedUntil"): pierde vida cada Config.Abilities.PoisonTickSeconds (poison).
@@ -51,12 +53,41 @@ function Status.isBoss(model: Model): boolean
 	return model:GetAttribute("Boss") ~= nil
 end
 
+-- Rendimientos decrecientes del control (Config.ControlDR), por modelo: cuántos controles seguidos
+-- lleva y cuándo empezó el último que le entró. Se reinicia tras ResetSeconds sin ninguno.
+type Diminishing = { index: number, lastAt: number }
+local diminishing: { [Model]: Diminishing } = setmetatable({} :: any, { __mode = "k" })
+
+-- Fracción que le dura el siguiente control a "model" (0 = inmune) y lo apunta.
+local function diminish(model: Model): number
+	local settings = Config.ControlDR
+	local time = now()
+	local entry = diminishing[model]
+	if not entry or time - entry.lastAt >= settings.ResetSeconds then
+		entry = { index = 1, lastAt = time }
+		diminishing[model] = entry
+	end
+	local factor = settings.Steps[entry.index] or 0
+	if factor > 0 then
+		entry.index += 1
+		entry.lastAt = time
+	end
+	return factor
+end
+
 -- Aturde (o congela, o inmoviliza, o duerme). Aturdido lleva un contorno amarillo; el bloque de hielo
 -- del congelado, el brillo verde del inmovilizado y los "Zzz" del dormido los dibuja cada cliente
--- (AbilityFxController). Devuelve los segundos que dura de verdad (los jefes se resisten).
+-- (AbilityFxController). Todo control a un enemigo pasa por aquí: habilidades, el parry y el remate de
+-- la cadena. Devuelve los segundos que dura de verdad (los jefes se resisten y cada control seguido
+-- dura menos); 0 si es inmune.
 function Status.stun(model: Model, seconds: number, look: ("Stun" | "Freeze" | "Root" | "Sleep")?): number
 	if Status.isBoss(model) then
 		seconds *= Config.Abilities.BossControlMultiplier
+	end
+	seconds *= diminish(model)
+	if seconds <= 0 then
+		model:SetAttribute("ControlResistedAt", now())
+		return 0
 	end
 	local untilTime = now() + seconds
 	local current = model:GetAttribute("StunnedUntil")

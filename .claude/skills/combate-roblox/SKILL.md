@@ -183,17 +183,22 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
 ### Ataque especial de un mono
 
 Campo opcional en el tipo `MonkeyDefinition` y valor en la especie (`Data/Monkeys`), función en
-`MonkeyService` con burbuja, voz, animación y `CombatService.damagePlayer(…, monkey.model)`, su
-llamada en `think` (y en `siegeThink` si también asedia), campo de espera en el tipo `Monkey` y su
-valor inicial en `spawnMonkey`. Escala su daño con `monkey.damage / definition.damage`. Actualiza la
-`description` (diario de campo) y `docs/GDD.md` §8.2. Todo lo fuerte, con aviso.
+`MonkeyService` con burbuja, voz, animación y `CombatService.damagePlayer(…, monkey.model, nil, nil,
+golpe)`, su llamada en `think` (y en `siegeThink` si también asedia), campo de espera en el tipo
+`Monkey` y su valor inicial en `spawnMonkey`. Escala su daño con `monkey.damage / definition.damage`.
+Actualiza la `description` (diario de campo) y `docs/GDD.md` §8.2. Todo lo que hace daño, con
+**preparación** (`Combat/EnemyAttack.windup`, su tiempo en `Config.Windup`, que quepa en su recarga) y
+al acabarla con `EnemyAttack.strike` (a uno) o `Hitbox.inSphere` (área); `golpe` = `Guard.enemyHit`, con
+`unblockable = true` (y `WindupKind` "Unblockable") si no se puede bloquear.
 
 ### Especial de un jefe
 
 Entrada en `specials` del jefe (`Data/Bosses`; el **orden es la prioridad**), función en `SPECIALS`
 de `BossService` (daño como fracción de `boss.damage`), animación en `SPECIAL_ANIMATIONS` y, si cae
-del cielo o sale del suelo, un peligro de `Combat/Hazards` con su marca de aviso. Comenta el nuevo
-`id` en la cabecera de `Data/Bosses` y añade su línea a la sección 4 del script.
+del cielo o sale del suelo, un peligro de `Combat/Hazards` con su marca de aviso (los peligros son
+imbloqueables). Lo que pega de cerca, con `EnemyAttack.windup` como el golpe normal (si es
+imbloqueable, "Unblockable"). Comenta el nuevo `id` en la cabecera de `Data/Bosses` y añade su línea
+a la sección 4 del script y a la de imbloqueables de la sección 10.
 
 ### Mascota
 
@@ -256,6 +261,18 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   servidor de `ServerScriptService.Combat.Status` y `Status.stunPlayer(player, 3, "Prueba")` (o
   `holdPlayer`). Aunque es otra copia del módulo, escribe en los atributos del `Player`
   (`CombatState`, `StunnedUntil`), que son los que mira el juego. Quita antes `ControlImmuneUntil`.
+- **Preparación de monos y jefes** (C6): el muñeco de sparring (Basecamp, `MuñecosDePractica`, en
+  (45, _, 22) desde la hoguera; en el Lobby, junto a los otros tres) pega cada 1,8 s a quien esté a
+  menos de 6 studs: es la forma rápida de probar el aviso, el bloqueo y el parry sin monos. Registra en
+  el servidor `WindupUntil` del enemigo (el golpe cae cuando pasa a nil), el `HealthChanged` del
+  personaje (o el `Highlight` del destello con el sparring, que no quita vida), `Guard`, `ParryAt` y
+  `StunnedUntil − ahora` del enemigo (control decreciente: 1 → 0,8 → 0,6 → 0,4 → "INMUNE"). Para el
+  parry desde el cliente: lee `WindupUntil`, espera hasta 0,1 s antes y manda
+  `Remotes.Guard:FireServer(true, workspace:GetServerTimeNow())` y a los 0,15 s `(false)`. Para
+  apartarse: `PivotTo` 6–7 studs fuera de la caja 0,1–0,15 s después de empezar el aviso. El "!" sale
+  en el cliente (`Head.EnemyWindup`), no en las capturas. Al llevar al personaje lejos con `PivotTo`,
+  los monos de antes siguen pegando unos segundos y llegan otros de la zona: cuenta solo lo que
+  coincide con el aviso del que mides.
 - **Cadena de golpes** (C4): pulsa como el jugador con `tool:Activate()` desde el cliente (pasa por
   `WeaponController`: tajo, búfer y remoto) cada 0,1 s, y registra en el servidor el atributo
   `ChainStep` del `Player` y el `HealthChanged` de los muñecos con su hora (`ChainStep` no avisa si

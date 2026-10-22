@@ -274,7 +274,11 @@ local function control(target: Target, seconds: number, look: ("Stun" | "Freeze"
 			return
 		end
 	else
+		-- Con los rendimientos decrecientes (Status), 0 si ya lo ha resistido.
 		duration = Status.stun(target.model, seconds, look)
+		if duration <= 0 then
+			return
+		end
 	end
 	if look == "Freeze" then
 		AbilityFx.all("Frozen", target.model, duration)

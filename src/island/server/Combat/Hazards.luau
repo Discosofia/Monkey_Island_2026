@@ -5,6 +5,8 @@
 -- Hacen daño a quien esté dentro del círculo al caer, también en el Basecamp: el círculo ya avisa.
 -- "cause" (opcional, al final): quién lo lanza, para la telemetría (p. ej. "Jefe Orangutan"); sin
 -- él cuenta como "Peligro".
+-- No se pueden bloquear (Fase 10, C6): a quien está en guardia dentro del círculo se la rompen
+-- (Combat/Guard) y entran enteros. Hay que salir del círculo o esquivar.
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -16,6 +18,7 @@ local Workspace = game:GetService("Workspace")
 
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
+local Guard = require(ServerScriptService.Combat.Guard)
 local Status = require(ServerScriptService.Combat.Status)
 
 local SPARKS_TEXTURE = "rbxasset://textures/particles/fire_sparks_main.dds"
@@ -28,6 +31,11 @@ local LAVA_FLIGHT_SECONDS = 1.1
 local VERTICAL_REACH = 8
 
 local Hazards = {}
+
+-- Lo que cae del cielo o sale del suelo: imbloqueable (viene de todos lados).
+local function unblockable(): Guard.Hit
+	return { guardDamage = 0, unblockable = true, enemy = true }
+end
 
 local rng = Random.new()
 
@@ -149,7 +157,7 @@ local function hurtNear(position: Vector3, radius: number, damage: number, cause
 		return
 	end
 	for _, player in playersNear(position, radius) do
-		CombatService.damagePlayer(player, damage, true, nil, cause)
+		CombatService.damagePlayer(player, damage, true, nil, cause, nil, unblockable())
 	end
 end
 
@@ -381,7 +389,7 @@ function Hazards.shockwave(
 	marker(ground, radius, Color3.fromRGB(255, 160, 40), warnSeconds)
 	task.delay(warnSeconds, function()
 		for _, player in playersNear(ground, radius) do
-			if CombatService.damagePlayer(player, damage, true, nil, cause) then
+			if CombatService.damagePlayer(player, damage, true, nil, cause, nil, unblockable()) then
 				Status.stunPlayer(player, stunSeconds, cause or "Peligro")
 			end
 		end

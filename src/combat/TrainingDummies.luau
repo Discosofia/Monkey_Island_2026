@@ -3,13 +3,28 @@
 -- (TrainingDummyService) y en la plaza del Lobby (LobbyDummyService). Tienen la etiqueta de enemigo,
 -- así que las armas y las habilidades les hacen daño, les ponen estados y sirven para enlazar
 -- combos. Al romperse hacen "¡puf!" y reaparecen en el mismo sitio.
+-- Fase 10, C6: el de sparring (placeSparring) además devuelve los golpes con un palo, avisando como un
+-- mono (Combat/EnemyAttack), para practicar el bloqueo y el parry. No hace daño: gasta guardia, la
+-- rompe y, si le paras, se queda tambaleado (Config.Combat.Sparring*).
 
 local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local EnemyAttack = require(script.Parent.EnemyAttack)
+local Guard = require(script.Parent.Guard)
 local Poof = require(script.Parent.Poof)
+local Status = require(script.Parent.Status)
+
+-- El palo del sparring respecto a su raíz: en reposo, alzado a la derecha; al golpear, bajado delante.
+local CLUB_REST = CFrame.new(1.5, 1.2, -0.4) * CFrame.Angles(math.rad(70), 0, math.rad(-20))
+local CLUB_HIT = CFrame.new(0.6, 0, -1.8) * CFrame.Angles(math.rad(-10), 0, math.rad(-10))
 
 local TrainingDummies = {}
 
@@ -30,9 +45,72 @@ local function groundAt(position: Vector3): Vector3
 	return if result then result.Position else position
 end
 
-local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3)
+-- Destello rojo del golpe que entra (no quita vida).
+local function flash(character: Model)
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = Color3.fromRGB(255, 60, 60)
+	highlight.FillTransparency = 0.4
+	highlight.OutlineTransparency = 1
+	highlight.Parent = character
+	Debris:AddItem(highlight, 0.15)
+end
+
+-- Jugador vivo más cercano a "root" dentro de Config.Combat.SparringRange (en horizontal).
+local function nearestPlayer(root: BasePart): (Player?, BasePart?)
+	local best, bestRoot, bestDistance = nil, nil, Config.Combat.SparringRange
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local other = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if other and other:IsA("BasePart") and LifeState.isAlive(player) then
+			local offset = (other.Position - root.Position) * Vector3.new(1, 0, 1)
+			if offset.Magnitude <= bestDistance then
+				best, bestRoot, bestDistance = player, other, offset.Magnitude
+			end
+		end
+	end
+	return best, bestRoot
+end
+
+-- Un golpe del sparring a "player": se gira, avisa y baja el palo. Si entra, destello rojo y "¡ay!".
+local function spar(model: Model, root: BasePart, club: BasePart, player: Player, target: BasePart)
+	local settings = Config.Combat
+	EnemyAttack.face(model, target.Position)
+	EnemyAttack.windup(model, settings.SparringWindupSeconds, "Strike", function()
+		local rest = root.CFrame * CLUB_REST
+		local swing = TweenService:Create(club, TweenInfo.new(0.1), { CFrame = root.CFrame * CLUB_HIT })
+		swing.Completed:Once(function()
+			TweenService:Create(club, TweenInfo.new(0.3), { CFrame = rest }):Play()
+		end)
+		swing:Play()
+		Sfx.play("SwingHeavy", root)
+		EnemyAttack.strike(model, player, settings.SparringRange, function(hit)
+			hit.guardDamage = settings.SparringGuardDamage
+			local character = player.Character
+			if Guard.resolve(player, hit) == "Hit" and character then
+				flash(character)
+				Sfx.play("PlayerHurt", character.PrimaryPart or character)
+			end
+		end)
+	end)
+end
+
+-- Mientras exista: cada Config.Combat.SparringAttackSeconds pega a quien tenga cerca (si no está
+-- aturdido ni roto).
+local function sparLoop(model: Model, humanoid: Humanoid, root: BasePart, club: BasePart)
+	while model.Parent and humanoid.Health > 0 do
+		task.wait(Config.Combat.SparringAttackSeconds)
+		if model.Parent and humanoid.Health > 0 and not Status.isStunned(model) and not EnemyAttack.busy(model) then
+			local player, target = nearestPlayer(root)
+			if player and target then
+				spar(model, root, club, player, target)
+			end
+		end
+	end
+end
+
+local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3, sparring: boolean?)
 	local model = Instance.new("Model")
-	model.Name = "Muñeco de práctica"
+	model.Name = if sparring then "Muñeco de sparring" else "Muñeco de práctica"
 	-- Su daño no cuenta para las misiones del día (MissionService).
 	model:SetAttribute("TrainingDummy", true)
 	local facing = CFrame.lookAt(ground, Vector3.new(lookAt.X, ground.Y, lookAt.Z))
@@ -45,9 +123,25 @@ local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3)
 	local root = newPart("HumanoidRootPart", Vector3.new(2, 2, 1), facing * CFrame.new(0, 4, 0), Color3.new(), model)
 	root.Transparency = 1
 	model.PrimaryPart = root
+	local club: Part? = nil
+	if sparring then
+		-- Ojos (brillan al avisar, EnemyWindupController), cinta azul en la frente y un palo en la mano.
+		for _, side in { -1, 1 } do
+			newPart(
+				"Eye",
+				Vector3.one * 0.28,
+				facing * CFrame.new(side * 0.32, 5.95, -0.72),
+				Color3.fromRGB(30, 25, 20),
+				model
+			)
+		end
+		newPart("Band", Vector3.new(1.7, 0.3, 1.7), facing * CFrame.new(0, 6.35, 0), Color3.fromRGB(40, 80, 170), model)
+		club = newPart("Club", Vector3.new(0.45, 0.45, 3.4), root.CFrame * CLUB_REST, Color3.fromRGB(95, 60, 35), model)
+		club.CanCollide = false
+	end
 
 	local humanoid = Instance.new("Humanoid")
-	humanoid.DisplayName = "Muñeco de práctica"
+	humanoid.DisplayName = if sparring then "Muñeco de sparring" else "Muñeco de práctica"
 	humanoid.MaxHealth = Config.Combat.DummyHealth
 	humanoid.Health = Config.Combat.DummyHealth
 	humanoid.BreakJointsOnDeath = false
@@ -65,9 +159,12 @@ local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3)
 		respawning = true
 		Poof.vanish(model)
 		task.delay(Config.Combat.DummyRespawnSeconds, function()
-			spawnDummy(folder, ground, lookAt)
+			spawnDummy(folder, ground, lookAt, sparring)
 		end)
 	end)
+	if club then
+		task.spawn(sparLoop, model, humanoid, root, club)
+	end
 end
 
 -- Pone un muñeco en el suelo bajo cada punto de "spots", mirando hacia "lookAt", dentro de una
@@ -79,6 +176,18 @@ function TrainingDummies.place(spots: { Vector3 }, lookAt: Vector3)
 	for _, spot in spots do
 		spawnDummy(folder, groundAt(spot), lookAt)
 	end
+end
+
+-- Pone el muñeco de sparring (el que devuelve los golpes) en el suelo bajo "spot", mirando hacia
+-- "lookAt", en la carpeta de los muñecos de práctica.
+function TrainingDummies.placeSparring(spot: Vector3, lookAt: Vector3)
+	local folder = Workspace:FindFirstChild("MuñecosDePractica")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "MuñecosDePractica"
+		folder.Parent = Workspace
+	end
+	spawnDummy(folder :: Instance, groundAt(spot), lookAt, true)
 end
 
 return TrainingDummies

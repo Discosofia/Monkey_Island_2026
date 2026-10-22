@@ -231,8 +231,9 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
 
 ## 5. Hallazgos pendientes (para decidir, no aplicados)
 
-1. **Sin rendimientos decrecientes de control sobre los enemigos.** Hoy está en límites (equipo de 4 sobre un jefe:
-   25 %), pero con talentos al máximo sube al 39 % y el Cazador llega al 43 % por mono.
+1. ~~Sin rendimientos decrecientes de control sobre los enemigos~~ (equipo de 4 sobre un jefe 25 %, 39 % con
+   talentos al máximo; el cazador 43 % por mono). **Resuelto en C6 (22-10-2026)**: `Config.ControlDR`
+   en `Status.stun` (equipo 25 → 12 %, con talentos 35 → 17 %).
 2. **El Mono X-7 (legendario)** hace el 45 % del DPS medio de un arma de rol (48 % antes de las
    cerbatanas con veneno del 19-10-2026); las mascotas no pasan por el ×0,7.
 3. **Con talentos al máximo** la Lluvia de proyectiles vale 39 s de arma y la Bola de fuego supera el
@@ -281,9 +282,13 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   (13,4 con −60 %): viene de que el duelo sin defensa ya da 10,7 s con talentos (alerta de antes,
   junto al cazador en 7,5 s y el Pisotón con 65 % tras aturdir), no de la guardia.
 - Rendimientos decrecientes `1 → 0,8 → 0,6 → 0,4` con reinicio a los 6 s. El equipo de 4 sobre un
-  jefe pasa del 25 % al 12 % (con talentos al máximo, del 35 % al 17 %; resuelve el hallazgo 1 al
-  aplicarse en C6). Un rol solo casi no lo nota: el cazador sobre un mono pasa del 27 % al 25 %.
+  jefe pasa del 25 % al 12 % (con talentos al máximo, del 35 % al 17 %; resuelve el hallazgo 1).
+  Un rol solo casi no lo nota: el cazador sobre un mono pasa del 27 % al 25 %.
   Con `1 → 0,5 → 0,25` y 10 s el control casi desaparecía (equipo 7 %, cazador 11 %).
+  **C6 ✅ (22-10-2026):** aplicado en `Status.stun` para todo control a un enemigo; medido en Play.
+- Preparación de monos y jefes (C6 ✅): cabe en la recarga de cada ataque, así que el DPS y el tiempo
+  para matar de la sección 4 no cambian (la sección 10 avisa si un aviso no cabe en su recarga). Para
+  un jugador atento (30 % esquivados) el DPS baja ~30 %: es el premio de defenderse, no se compensa.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un

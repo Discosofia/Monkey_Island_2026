@@ -12,9 +12,10 @@ no coincide con el código, manda el código.
 | Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` | Proyectiles reales (C9) |
 | Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor) | Evasivo (C7) |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅) | Guardia, cadena, Evasivo… (C4–C8) |
-| Estados de enemigos | `Combat/Status` (atributos del modelo) | Control decreciente por modelo (C6) |
-| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos | Monos y jefes (C6), proyectiles (C9), muros de los empujes (C10) |
-| Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅) | Monos y jefes con preparación y sus especiales bloqueables o no (C6), amagos (C8) |
+| Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
+| Ataques de monos y jefes | Preparación con aviso y golpe al acabarla (`Combat/EnemyAttack`, `EnemyWindupController`, C6 ✅) | — |
+| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅) | Proyectiles (C9), muros de los empujes (C10) |
+| Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅), también contra monos y jefes, con sus imbloqueables (C6 ✅) | Amagos (C8) |
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
 | Reglas por place | `Combat/CombatRules` | Campos nuevos de guardia, escalado y entorno |
 
@@ -162,11 +163,14 @@ marca y el expuesto (con `pvpStatus`) van después de la guardia, con el crític
     `AbilityGuardDamage` 25). `unblockable` en `Data/Roles`: Rompehuesos, Pisotón y Meteoro. Una
     habilidad bloqueada o parada tampoco aplica su control, su lentitud ni el empuje de la Embestida
     (`Guard.defended`, 0,1 s tras el golpe). El veneno no se defiende.
-  - **De monos y jefes** (`damagePlayer` con `Guard.enemyHit`): mordisco, piedra del chimpancé,
-    mordisco del asedio y golpe normal del jefe. Gastan `MonkeyGuardDamage` por categoría (×1,5 alfa)
-    o `BossGuardDamage`. Un mordisco bloqueado no agarra (orangután). `damagePlayer` devuelve además
-    el resultado (`false, "Parried"` con un parry). Los especiales (pisotón, embestida, agarre del
-    jefe) y los peligros (`Hazards`) **no miran la guardia** hasta C6.
+  - **De monos y jefes** (`damagePlayer` con `Guard.enemyHit`): mordisco, robo del capuchino (si
+    lo bloqueas o lo paras no te quita nada), piedra del chimpancé, mordisco del asedio y golpe normal
+    del jefe. Gastan `MonkeyGuardDamage` por categoría (×1,5 alfa) o `BossGuardDamage`. Un mordisco
+    bloqueado no agarra (orangután). `damagePlayer` devuelve además el resultado (`false, "Parried"`
+    con un parry). Llegan tras su preparación (§8 bis) y esperan el margen del defensor.
+    **Imbloqueables** (C6): el pisotón del gorila, la embestida del jefe y los peligros (`Hazards`:
+    pisotón de jefe, rocas, lava, rayos) llevan `unblockable` (rompen la guardia y entran enteros); el
+    agarre del jefe no la mira (te agarra aunque estés en guardia).
 - Lo que se ve y se oye: `AbilityFx` "GuardFx" (`Block`: chispa blanca; `Parry`: contorno, aro y
   chispas doradas; `Break`: contorno naranja, esquirlas y grietas) y los sonidos `Block`, `Parry` y
   `GuardBreak` (provisionales en `Data/Sounds`). Pose `Guard` de `Data/WeaponAnimations` (en bucle,
@@ -193,7 +197,7 @@ sola vez por ataque.
 | Áreas (`targetsAround`, `targetsAroundGround`, `targetsOnGround`) | `Hitbox.inSphere` + `visible` desde el centro: **las paredes protegen** | — |
 | Ayuda de puntería (`bestInCone`, `findAimTarget`) | Cono entre los que se ven (`inSphere`) | Solo orienta la dirección inicial; mismo cono para todos (C9) |
 | Flecha perforante | `Hitbox.ray` hasta el terreno o una pared + línea, sin `visible` (el rayo ya mira el camino) | Proyectil que atraviesa (C9) |
-| Mordisco de mono | Distancia al empezar el ataque, daño en el mismo instante | Preparación visible y `inBox` + `visible` al acabarla (C6) |
+| Mordisco de mono y golpe de jefe | Preparación (C6 ✅) y al acabarla, tras el margen del defensor, una caja delante (`EnemyAttack.reaches`: `GetPartBoundsInBox` con solo el personaje + `Hitbox.visible` desde la raíz) | — |
 | Empujes | El cliente corta el empuje propio contra una pared | `Hitbox.ray` por la trayectoria en el servidor: rebote contra muros (C10) |
 | Marcar presas | Distancia, sin línea de visión (a propósito: señala por el olfato) | — |
 
@@ -258,19 +262,60 @@ puede empujar a un jugador poniéndole velocidad.
   fotograma), y resuelve con la hora del golpe. La pulsación cuenta desde la hora que manda el cliente,
   como mucho ese margen antes de llegar. Lo que el golpe hace además del daño (tambaleo, empuje,
   veneno) va en `onResult`, porque puede resolverse más tarde. Las habilidades no esperan (C8 les
-  pone preparación) ni los monos (C6).
+  pone preparación).
+- Monos y jefes (C6): al acabar la preparación, `EnemyAttack.strike` espera `Guard.grace(presa)` y
+  entonces mira si sigue en la caja (con su posición más reciente: a favor del defensor) y resuelve la
+  guardia con la hora del golpe (`Guard.Hit.at`). El cliente sabe en qué instante del servidor cae el
+  golpe (`WindupUntil`), así que el parry se acierta igual con cualquier ping.
 
 Regla de equidad: los topes nunca pasan de ~0,15 s y son los mismos para todos.
 
 ## 8. Control y escape
 
-**Hoy.** Enemigos: `Status.stun` (aturdir, congelar, inmovilizar y dormir son lo mismo para la IA),
-sin rendimientos decrecientes; los jefes se quedan `BossControlMultiplier` (0,5). Jugadores:
-`holdPlayer` con inmunidad de 2 s. En PvP: control ×`pvpControlMultiplier` (Isla 0,5, arena 0,5).
+**Hoy.** Enemigos: `Status.stun` (aturdir, congelar, inmovilizar y dormir son lo mismo para la IA);
+los jefes se quedan `BossControlMultiplier` (0,5). **Rendimientos decrecientes** (C6 ✅,
+`Config.ControlDR`), por modelo y para todo control (habilidades, parry, remate): 1 → 0,8 → 0,6 → 0,4
+y después inmune hasta 6 s después del último que entró (`ControlResistedAt` → "INMUNE" en los
+clientes). Jugadores: `holdPlayer` con inmunidad de 2 s. En PvP: control ×`pvpControlMultiplier`
+(Isla 0,5, arena 0,5).
 
-**Planificado.** C6: rendimientos decrecientes por modelo (100 → 50 → 25 % → inmune, se reinicia) y
-jefes aparte. C7: escalado en PvP por víctima (daño y tambaleo bajan con cada golpe seguido, con
+Probado en Play (Isla, 22-10-2026): 6 parries seguidos al muñeco de sparring le aturden 1,00 · 0,80 ·
+0,60 · 0,40 s, "INMUNE", "INMUNE"; 3 al Orangután del Manglar, 0,50 · 0,40 · 0,30 s.
+
+**Planificado.** C7: escalado en PvP por víctima (daño y tambaleo bajan con cada golpe seguido, con
 mínimo; se reinicia tras ~1 s sin recibir) y Evasivo.
+
+## 8 bis. Preparación de monos y jefes (C6 ✅)
+
+`Combat/EnemyAttack` (servidor) y `EnemyWindupController` (cliente). Números en `Config.Windup`.
+- `windup(modelo, segundos, tipo, golpe)`: pone `WindupUntil` (hora del servidor del golpe) y
+  `WindupKind` ("Strike" o "Unblockable") y llama a `golpe` al acabar si sigue vivo. Un cambio de
+  `StunnedUntil` (cualquier `Status.stun`) la corta. `busy`: la IA (`think`, `siegeThink`,
+  `BossService.tick`, el sparring) lo deja quieto y no empieza otro ataque. `face`: se gira hacia la
+  presa al empezar y ya no gira: apartarse de lado también vale.
+- `strike(modelo, jugador, alcance, entra, falla?, imbloqueable?)`: margen del defensor (§7) y caja de
+  largo alcance + `ReachMargin` (1,5), ancho alcance × `HitWidthFactor` (1,2) y alto
+  max(`HitHeight` 8, alcance), delante de la raíz, + `Hitbox.visible`.
+- Avisos: mordisco, robo y piedra de los monos `MonkeyByTier` (0,4 · 0,5 · 0,6 s), pisotón del gorila
+  `MonkeyStompSeconds` (0,8, "‼"), golpe y agarre de los jefes `BossSeconds` (0,7; el agarre "‼"),
+  embestida `BossChargeSeconds` (0,7, "‼"); el pisotón de jefe lleva "‼" lo que tarda su onda (0,9).
+  La animación `Attack` empieza `AttackLeadSeconds` (0,2) antes del golpe: la cabeza del mandril
+  baja a los ~0,22 s de sus 0,5 s. El chillido (`Monkey<voz>Attack`, `BossAttack`) suena al empezar.
+- La recarga de cada ataque cuenta desde que empieza la preparación, que cabe en ella (la sección 10
+  de la calculadora avisa si no): el DPS de los monos no cambia; baja solo para quien esquiva, se
+  aparta o se defiende.
+- Cliente: "!" blanco (o "‼" naranja) sobre la cabeza que crece hasta el golpe y los `Eye` del modelo
+  en neón (crema o naranja) mientras dura; "INMUNE" que sube con `ControlResistedAt`.
+- **Muñeco de sparring** (`TrainingDummies.placeSparring`, Basecamp y Lobby): pega cada
+  `Config.Combat.SparringAttackSeconds` (1,8 s) a quien esté a menos de `SparringRange` (6), con
+  aviso `SparringWindupSeconds` (0,5) y `SparringGuardDamage` (18). No hace daño: `Guard.resolve` y,
+  si entra, destello rojo y "¡ay!".
+
+Probado en Play (22-10-2026): sparring en la Isla y en el Lobby (golpe a los 0,50 s del aviso,
+bloqueo −18 de guardia, parry 3 de 3 y 2 de 2, apartarse 6,5 studs a un lado 2 de 2 fallos); mandril
+alfa (aviso 0,5 s, ritmo 1,55 s como antes, apartarse 7 studs 3 de 3 fallos); gorila alfa (pisotón
+"‼" 0,8 s rompe la guardia, mordisco 0,6 s); Orangután del Manglar (golpe 0,7 s, agarre "‼"
+0,7 s, parry 3 de 3).
 
 ## 9. Entorno
 

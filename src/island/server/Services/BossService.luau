@@ -10,6 +10,10 @@
 --     cada jugador que le hizo daño.
 --   - El HUD lee su estado de ReplicatedStorage ("BossName", "BossHealth", "BossMaxHealth",
 --     "BossPhase", "BossPosition"). La música lee "BossId" y "BossFighting" (está peleando).
+--   - Fase 10, C6: sus ataques se ven venir (Combat/EnemyAttack). El golpe normal avisa
+--     Config.Windup.BossSeconds y solo entra si al acabar sigues delante y a su alcance; se puede
+--     bloquear y parar (el parry le tambalea la mitad). No se pueden bloquear ("‼"): el agarre (lo
+--     atraviesa), la embestida y el pisotón (rompen la guardia) y lo que cae del cielo (Hazards).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -37,6 +41,7 @@ local MonkeyService = require(script.Parent.MonkeyService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local TorchService = require(script.Parent.TorchService)
 local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local EnemyAttack = require(ServerScriptService.Combat.EnemyAttack)
 local Guard = require(ServerScriptService.Combat.Guard)
 local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
@@ -379,6 +384,8 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 		stomp = function(boss)
 			bubble(boss, "💥 ¡PUM!")
 			local position = boss.root.Position
+			-- Quieto y con el "‼" hasta que cae la onda (que ya avisa en el suelo).
+			EnemyAttack.windup(boss.model, STOMP_IMPACT_SECONDS, "Unblockable", function() end)
 			Hazards.shockwave(
 				position,
 				STOMP_RADIUS,
@@ -436,9 +443,12 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				end
 			end
 		end,
+		-- Avisa (Config.Windup.BossChargeSeconds, "‼") y sale hacia donde estés entonces. No se puede
+		-- bloquear: a quien está en guardia se la rompe; hay que apartarse o esquivar.
 		charge = function(boss, _special, _target, targetRoot)
 			bubble(boss, "¡!")
-			task.delay(0.6, function()
+			EnemyAttack.face(boss.model, targetRoot.Position)
+			EnemyAttack.windup(boss.model, Config.Windup.BossChargeSeconds, "Unblockable", function()
 				if current ~= boss then
 					return
 				end
@@ -453,7 +463,19 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 					for _, player in playersAround(boss.root.Position, 9) do
 						if not hit[player] then
 							hit[player] = true
-							if CombatService.damagePlayer(player, boss.damage, false, boss.model) then
+							local unblockable = Guard.enemyHit(boss.model)
+							unblockable.unblockable = true
+							if
+								CombatService.damagePlayer(
+									player,
+									boss.damage,
+									false,
+									boss.model,
+									nil,
+									nil,
+									unblockable
+								)
+							then
 								Status.stunPlayer(player, 1, `Jefe {boss.id}`)
 							end
 						end
@@ -461,17 +483,29 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				end
 			end)
 		end,
+		-- Avisa como su golpe ("‼") y agarra si al acabar sigues delante y cerca. El agarre atraviesa la
+		-- guardia (no la gasta ni la rompe: te agarra igual); hay que apartarse o esquivar.
 		grab = function(boss, _special, target, targetRoot)
-			if (targetRoot.Position - boss.root.Position).Magnitude > boss.definition.attackRange * 1.6 then
+			local reach = boss.definition.attackRange * 1.6
+			if (targetRoot.Position - boss.root.Position).Magnitude > reach then
 				return
 			end
 			bubble(boss, "¡TE TENGO!")
-			if
-				CombatService.damagePlayer(target, math.round(boss.damage * 0.6), false, boss.model)
-				and Status.holdPlayer(target, 3, `Jefe {boss.id}`)
-			then
-				Remotes.Notify:FireClient(target, "🦧 ¡El jefe te ha agarrado! Que te ayuden tus compañeros")
-			end
+			EnemyAttack.face(boss.model, targetRoot.Position)
+			EnemyAttack.windup(boss.model, Config.Windup.BossSeconds, "Unblockable", function()
+				EnemyAttack.strike(boss.model, target, reach, function()
+					if
+						current == boss
+						and CombatService.damagePlayer(target, math.round(boss.damage * 0.6), false, boss.model)
+						and Status.holdPlayer(target, 3, `Jefe {boss.id}`)
+					then
+						Remotes.Notify:FireClient(
+							target,
+							"🦧 ¡El jefe te ha agarrado! Que te ayuden tus compañeros"
+						)
+					end
+				end)
+			end)
 		end,
 		extinguish = function(boss)
 			bubble(boss, "¡GRRROOOAAAR!")
@@ -528,6 +562,11 @@ local function tick(now: number)
 		boss.channelUntil = 0
 		MonkeyAnimator.stop(boss.model, "Invoke")
 	end
+	-- Preparando un ataque (Combat/EnemyAttack): quieto hasta que golpea.
+	if EnemyAttack.busy(boss.model) then
+		boss.humanoid:MoveTo(boss.root.Position)
+		return
+	end
 	local speed = boss.definition.walkSpeed * (1 + 0.15 * (boss.phase - 1)) * Status.speedFactor(boss.model)
 	if boss.humanoid.WalkSpeed ~= speed then
 		boss.humanoid.WalkSpeed = speed
@@ -574,7 +613,7 @@ local function tick(now: number)
 					boss.humanoid:MoveTo(boss.root.Position)
 				end
 				SPECIALS[special.id](boss, special, target, targetRoot)
-				if channel then
+				if channel or EnemyAttack.busy(boss.model) then
 					return
 				end
 				break
@@ -584,15 +623,27 @@ local function tick(now: number)
 
 	if distance <= boss.definition.attackRange then
 		boss.humanoid:MoveTo(boss.root.Position)
+		-- La recarga cuenta desde que empieza a preparar el golpe: el ritmo no cambia.
 		if now - boss.lastAttackAt >= boss.definition.attackCooldownSeconds then
 			boss.lastAttackAt = now
-			MonkeyAnimator.play(boss.model, "Attack")
-			-- Su golpe normal se puede bloquear y parar (Combat/Guard); los especiales, no (hasta C6).
-			if
-				CombatService.damagePlayer(target, boss.damage, false, boss.model, nil, nil, Guard.enemyHit(boss.model))
-			then
-				Sfx.play("BossAttack", boss.root)
-			end
+			local seconds = Config.Windup.BossSeconds
+			EnemyAttack.face(boss.model, targetRoot.Position)
+			boss.humanoid:MoveTo(boss.root.Position)
+			-- Su golpe normal se puede bloquear y parar (Combat/Guard).
+			local victim = target
+			EnemyAttack.windup(boss.model, seconds, "Strike", function()
+				EnemyAttack.strike(boss.model, victim, boss.definition.attackRange, function(hit)
+					if current == boss then
+						CombatService.damagePlayer(victim, boss.damage, false, boss.model, nil, nil, hit)
+					end
+				end)
+			end)
+			Sfx.play("BossAttack", boss.root)
+			task.delay(math.max(0, seconds - Config.Windup.AttackLeadSeconds), function()
+				if EnemyAttack.busy(boss.model) then
+					MonkeyAnimator.play(boss.model, "Attack")
+				end
+			end)
 		end
 	else
 		boss.humanoid:MoveTo(targetRoot.Position)

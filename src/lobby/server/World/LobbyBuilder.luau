@@ -106,6 +106,8 @@ local SPAWN_AT = Vector2.new(4, 34)
 local CAMPFIRE_AT = Vector2.new(6, 10)
 -- Muñecos de práctica (LobbyDummyService): en el borde oeste de la plaza, mirando a su centro.
 local PRACTICE_SPOTS = { Vector2.new(-27, -12), Vector2.new(-29, -2), Vector2.new(-27, 8) }
+-- El de sparring, que devuelve los golpes (Fase 10, C6), al final de la fila.
+local SPARRING_SPOT = Vector2.new(-25, 20)
 
 -- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
@@ -3368,14 +3370,14 @@ local function clearOld()
 end
 
 -- true si el place ya tiene el escenario de esta versión.
--- Dónde van los muñecos de práctica (en el suelo bajo cada punto) y hacia dónde miran: el centro de
--- la plaza (LobbyDummyService).
-function LobbyBuilder.practiceSpots(): ({ Vector3 }, Vector3)
+-- Dónde van los muñecos de práctica (en el suelo bajo cada punto), hacia dónde miran (el centro de la
+-- plaza) y dónde va el de sparring (LobbyDummyService).
+function LobbyBuilder.practiceSpots(): ({ Vector3 }, Vector3, Vector3)
 	local spots = {}
 	for _, spot in PRACTICE_SPOTS do
 		table.insert(spots, Vector3.new(spot.X, BAR_TOP, spot.Y))
 	end
-	return spots, Vector3.new(PLAZA.X, BAR_TOP, PLAZA.Y)
+	return spots, Vector3.new(PLAZA.X, BAR_TOP, PLAZA.Y), Vector3.new(SPARRING_SPOT.X, BAR_TOP, SPARRING_SPOT.Y)
 end
 
 function LobbyBuilder.isBuilt(): boolean

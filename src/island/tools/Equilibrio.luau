@@ -2036,7 +2036,9 @@ local function main(copia: Instance): string
 
 	if OPCIONES.secciones.escape then
 		local DR = Config.ControlDR
-		linea("## 9. Control y escape (Fase 10, C6 y C7: propuestas de Config.ControlDR, ComboScaling y Evasive)")
+		linea(
+			"## 9. Control y escape (Fase 10, C6 ✅: Config.ControlDR en Combat/Status; C7: propuestas de ComboScaling y Evasive)"
+		)
 		-- Fracción del tiempo cubierta por los controles de "aplicaciones" ({ en, segundos }) en "total" s,
 		-- con o sin los rendimientos decrecientes de Config.ControlDR.
 		local function cobertura(aplicaciones: { { en: number, segundos: number } }, total: number, conDR: boolean)
@@ -2245,16 +2247,16 @@ local function main(copia: Instance): string
 
 	if OPCIONES.secciones.preparacion and Config.Windup then
 		local W = Config.Windup
-		linea("## 10. Monos con preparación (Fase 10, C6: propuesta de Config.Windup y Config.Guard)")
+		linea("## 10. Monos con preparación (Fase 10, C6 ✅: Config.Windup y Combat/EnemyAttack)")
 		linea(
-			`Aviso antes del mordisco por categoría: {table.concat(W.MonkeyByTier, " · ")} s; jefes {W.BossSeconds} s. Un jugador atento esquiva o se aparta del {pct(
+			`Aviso antes del mordisco por categoría: {table.concat(W.MonkeyByTier, " · ")} s; jefes {W.BossSeconds} s. La preparación cabe en la recarga (cuenta desde que empieza): el DPS no cambia. Un jugador atento esquiva o se aparta del {pct(
 				OPCIONES.esquivaMonos
 			)} de los avisados (≥ {n(REACCION, 2)} s). Día {OPCIONES.dias[1]}, sin crítico.`
 		)
 		linea(
-			"| Mono | Cat. | Aviso | DPS | DPS (atento) | Guardia por golpe | Golpes para romper | Aguanta en guardia |"
+			"| Mono | Cat. | Aviso | Recarga | DPS | DPS (atento) | Guardia por golpe | Golpes para romper | Aguanta en guardia |"
 		)
-		linea("|---|---|---|---|---|---|---|---|")
+		linea("|---|---|---|---|---|---|---|---|---|")
 		local especies = {}
 		for id, mono in Monkeys do
 			if mono.damage > 0 then
@@ -2277,16 +2279,24 @@ local function main(copia: Instance): string
 				aguanta, golpes = romperGuardia(guardia, mono.attackCooldownSeconds)
 			end
 			linea(
-				`| {mono.name}{if mono.alpha then " (alfa)" else ""} | {mono.tier} | {n(aviso, 2)} s | {n(dps)} | {n(
-					atento
-				)} | {n(guardia, 0)} | {if golpes == math.huge then "nunca" else tostring(golpes)} | {if aguanta
-						== math.huge
-					then "siempre"
-					else n(aguanta, 1) .. " s"} |`
+				`| {mono.name}{if mono.alpha then " (alfa)" else ""} | {mono.tier} | {n(aviso, 2)} s | {n(
+					mono.attackCooldownSeconds,
+					2
+				)} s | {n(dps)} | {n(atento)} | {n(guardia, 0)} | {if golpes == math.huge
+					then "nunca"
+					else tostring(golpes)} | {if aguanta == math.huge then "siempre" else n(aguanta, 1) .. " s"} |`
 			)
 			if golpes < LIMITES.golpesRomperGuardia then
 				alerta(
 					`{mono.name}{if mono.alpha then " alfa" else ""}: rompe la guardia en {golpes} golpes (mín. {LIMITES.golpesRomperGuardia})`
+				)
+			end
+			if aviso > mono.attackCooldownSeconds then
+				alerta(
+					`{mono.name}: su preparación ({n(aviso, 2)} s) no cabe en su recarga ({n(
+						mono.attackCooldownSeconds,
+						2
+					)} s): pega menos a menudo`
 				)
 			end
 			if aviso < REACCION then
@@ -2297,10 +2307,20 @@ local function main(copia: Instance): string
 		end
 		if GU then
 			linea(
-				`Jefes: aviso {W.BossSeconds} s; su golpe gasta {GU.BossGuardDamage} de guardia ({math.ceil(
+				`Jefes: su golpe avisa {W.BossSeconds} s y gasta {GU.BossGuardDamage} de guardia ({math.ceil(
 					GU.Max / GU.BossGuardDamage
-				)} golpes para romperla); los especiales que caen del cielo o salen del suelo no se bloquean.`
+				)} golpes para romperla); el parry les tambalea ×{A.BossControlMultiplier}.`
 			)
+		end
+		linea(
+			`Imbloqueables ("‼", rompen la guardia o la atraviesan): pisotón del gorila (aviso {W.MonkeyStompSeconds} s), agarre de los jefes ({W.BossSeconds} s), su embestida ({W.BossChargeSeconds} s) y lo que cae del cielo o sale del suelo (pisotón, rocas, lava, rayos: su marca en el suelo).`
+		)
+		for _, jefe in Bosses do
+			if W.BossSeconds > jefe.attackCooldownSeconds then
+				alerta(
+					`{jefe.name}: su preparación ({W.BossSeconds} s) no cabe en su recarga ({jefe.attackCooldownSeconds} s)`
+				)
+			end
 		end
 		linea("")
 	end
