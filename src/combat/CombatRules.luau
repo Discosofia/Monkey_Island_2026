@@ -52,6 +52,8 @@ export type Rules = {
 	-- las armas contra jugadores.
 	pvpDamageMultiplier: number,
 	pvpControlMultiplier: number,
+	-- Las definitivas (V) contra jugadores, además de pvpDamageMultiplier.
+	pvpUltimateMultiplier: number,
 	pvpWeaponMultiplier: number,
 	-- Ajuste de algunas armas sobre pvpWeaponMultiplier (id de Data/Weapons → fracción).
 	pvpWeaponMultipliers: { [string]: number },
@@ -96,6 +98,7 @@ local rules: Rules = {
 	end,
 	pvpDamageMultiplier = Config.Abilities.PvPDamageMultiplier,
 	pvpControlMultiplier = Config.Abilities.PvPControlMultiplier,
+	pvpUltimateMultiplier = Config.Abilities.PvPUltimateMultiplier,
 	pvpWeaponMultiplier = 1,
 	pvpWeaponMultipliers = {},
 	healMultiplier = 1,

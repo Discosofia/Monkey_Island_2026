@@ -137,9 +137,12 @@ local LIMITES = {
 	arenaDueloEspejo = { 8, 10 },
 	-- Fase 10 (Combate v2; secciones 7 a 10).
 	dpsCadena = { 0.95, 1.05 }, -- DPS de la cadena de golpes frente al golpe suelto de hoy
-	-- Lo que quita en la arena una secuencia sin escape (huecos más cortos que Config.Reaction y
-	-- controles que no dejan actuar), en fracción de 100 de vida, con el Evasivo en recarga.
+	-- Lo que entra en la arena mientras no puedes actuar, después del golpe que te aturde (huecos más
+	-- cortos que Config.Reaction y controles que no dejan actuar), en fracción de 100 de vida, con el
+	-- Evasivo en recarga.
 	comboSinEscape = 0.35,
+	-- El golpe más fuerte de una habilidad (definitivas incluidas) a un jugador en la arena, de 100 de vida.
+	golpeJugador = 40,
 	golpesRomperGuardia = 4, -- ningún golpe suelto rompe la guardia en menos golpes
 	romperGuardiaCuerpo = { 4, 6 }, -- s que aguanta en guardia quien recibe una cadena tras otra
 	arenaDueloDefensa = { 8, 12 }, -- duelo espejo con bloqueo y parry (OPCIONES.defensa)
@@ -910,8 +913,9 @@ local function main(copia: Instance): string
 	local CORTES = { 2, 5, 10, 30, 60 }
 
 	-- Contra jugadores (sección 6): el daño del arma y el de las habilidades llevan su multiplicador de
-	-- la arena en vez de PlayerDamageMultiplier (que es solo contra monos).
-	type Pvp = { arma: number, habilidades: number }
+	-- la arena en vez de PlayerDamageMultiplier (que es solo contra monos); las definitivas, además, el
+	-- suyo (Config.Arena.UltimateDamageMultiplier).
+	type Pvp = { arma: number, habilidades: number, definitivas: number }
 
 	local function simular(
 		roleId: string,
@@ -1055,13 +1059,15 @@ local function main(copia: Instance): string
 			bloqueoHasta = t + math.max(OPCIONES.lanzamiento, ficha.bloqueo or 0)
 			-- Los marcados por el paso 1 son, como mucho, los que alcanzó (aprox. los 2-3 primeros).
 			local marcados = math.min(grupo, 3)
+			-- Contra jugadores, las definitivas llevan además su propio multiplicador (AbilityService.hurt).
+			local definitiva = if pvp and ability.ultimate then pvp.definitivas else 1
 			for _, golpe in ficha.golpes or {} do
 				if grupo >= (golpe.minObjetivos or 1) then
 					local cuantos = resolver(golpe.objetivos, grupo)
 					local seguro = if enlazado and cuantos > 0 then math.min(1, marcados / cuantos) else 0
 					table.insert(pendientes, {
 						en = t + golpe.en,
-						cantidad = golpe.cantidad * cuantos,
+						cantidad = golpe.cantidad * cuantos * definitiva,
 						criticoSeguro = seguro,
 						bonus = bonus,
 					})
@@ -1683,11 +1689,13 @@ local function main(copia: Instance): string
 		local pvp: Pvp = {
 			arma = arenaConfig.WeaponDamageMultiplier or 1,
 			habilidades = arenaConfig.AbilityDamageMultiplier,
+			definitivas = arenaConfig.UltimateDamageMultiplier or 1,
 		}
 		linea(
-			`## 6. Arena de Dunas (duelos; armas ×{n(pvp.arma, 2)}, habilidades ×{n(pvp.habilidades, 2)}, actividad {pct(
-				OPCIONES.actividad
-			)}, {OPCIONES.segundos} s)`
+			`## 6. Arena de Dunas (duelos; armas ×{n(pvp.arma, 2)}, habilidades ×{n(pvp.habilidades, 2)}, definitivas ×{n(
+				pvp.definitivas,
+				2
+			)} más, actividad {pct(OPCIONES.actividad)}, {OPCIONES.segundos} s)`
 		)
 		linea(
 			"Segundos que tarda el de la fila en tumbar al de la columna (con combos; entre paréntesis, sin combos)."
@@ -1700,7 +1708,8 @@ local function main(copia: Instance): string
 			-- Cada arma puede llevar su propio ajuste en la arena (Config.Arena.WeaponMultipliers).
 			local armaId = armaDe(roleId, perk).id
 			local propio = (arenaConfig.WeaponMultipliers or {})[armaId] or 1
-			local pvpRol: Pvp = { arma = pvp.arma * propio, habilidades = pvp.habilidades }
+			local pvpRol: Pvp =
+				{ arma = pvp.arma * propio, habilidades = pvp.habilidades, definitivas = pvp.definitivas }
 			local con = simular(roleId, 1, true, nil, nil, pvpRol)
 			local sin = simular(roleId, 1, false, nil, nil, pvpRol)
 			dps[roleId] = { con = con.total / OPCIONES.segundos, sin = sin.total / OPCIONES.segundos }
@@ -2116,8 +2125,9 @@ local function main(copia: Instance): string
 		-- Arena: lo que entra mientras un rival no puede actuar, con el Evasivo en recarga. Para cada
 		-- habilidad que aturde (Stun y Sleep; congelar e inmovilizar dejan pegar) × el control de la arena:
 		-- su propio golpe y, mientras dura, el arma (la cadena o los disparos que caben) y la habilidad de
-		-- daño más fuerte del rol que no sea ella (una, el resto se está recargando). Un golpe solo, sin
-		-- nada detrás, no es un combo (va en "golpe de apertura").
+		-- daño más fuerte del rol que no sea ella (una, el resto se está recargando). El límite
+		-- (LIMITES.comboSinEscape) va sobre lo que entra después del golpe que abre; ese golpe y cualquier
+		-- otro golpe solo de una habilidad tienen el suyo (LIMITES.golpeJugador).
 		linea("")
 		linea(
 			`Arena: lo que entra mientras no puedes actuar (Evasivo en recarga; con él sales a los {n(REACCION, 2)} s del primer control y solo entra el golpe que abre). Sobre 100 de vida.`
@@ -2126,10 +2136,38 @@ local function main(copia: Instance): string
 		linea("|---|---|---|---|---|---|---|")
 		local controlArena = arenaConfig.AbilityControlMultiplier or 1
 		local habilidadArena = arenaConfig.AbilityDamageMultiplier or 1
+		local definitivaArena = arenaConfig.UltimateDamageMultiplier or 1
 		local armaArena = arenaConfig.WeaponDamageMultiplier or 1
+		-- Daño de un uso de "ability" a un jugador en la arena (las definitivas, con su multiplicador).
+		local function contraJugador(ability: any, ficha: Ficha): number
+			return danoDeUso(ficha, 1) * habilidadArena * (if ability.ultimate then definitivaArena else 1)
+		end
+		local golpes = {}
 		for _, roleId in ordenRoles do
 			if visible(roleId) then
 				local perk = perksDe(roleId)
+				-- El golpe más fuerte de una habilidad contra un jugador.
+				local masFuerte, masFuerteDano = "-", 0
+				for _, ability in Roles[roleId].abilities do
+					local ficha = fichaDe(ability, perk, true)
+					if ficha then
+						-- Un solo golpe: el mayor de su ficha (el Torbellino o la Lluvia reparten en varios).
+						local mayor = 0
+						for _, golpe in ficha.golpes or {} do
+							mayor = math.max(mayor, golpe.cantidad)
+						end
+						mayor *= habilidadArena * (if ability.ultimate then definitivaArena else 1)
+						if mayor > masFuerteDano then
+							masFuerte, masFuerteDano = ability.name, mayor
+						end
+					end
+				end
+				table.insert(golpes, `{roleId} {masFuerte} {n(masFuerteDano, 0)}`)
+				if masFuerteDano > LIMITES.golpeJugador then
+					alerta(
+						`Arena: {masFuerte} ({roleId}) quita {n(masFuerteDano, 0)} de 100 de un golpe (máx. {LIMITES.golpeJugador})`
+					)
+				end
 				-- Daño del arma del rol en "segundos" (la cadena cuerpo a cuerpo o los disparos a distancia).
 				local function armaEn(segundos: number, desde: number): number
 					local armaId = armaCuerpo(roleId)
@@ -2160,14 +2198,14 @@ local function main(copia: Instance): string
 					local control = ficha and ficha.control
 					if control and (control.tipo == "Stun" or control.tipo == "Sleep") then
 						local segundos = control.segundos * controlArena
-						local apertura = danoDeUso(ficha :: Ficha, 1) * habilidadArena
+						local apertura = contraJugador(ability, ficha :: Ficha)
 						local otra = 0
 						for _, otraHabilidad in Roles[roleId].abilities do
 							local otraFicha = if otraHabilidad ~= ability
 								then fichaDe(otraHabilidad, perk, false)
 								else nil
 							if otraFicha and segundos >= REACCION then
-								otra = math.max(otra, danoDeUso(otraFicha, 1) * habilidadArena)
+								otra = math.max(otra, contraJugador(otraHabilidad, otraFicha))
 							end
 						end
 						local despues = armaEn(segundos, 1) + otra
@@ -2184,15 +2222,16 @@ local function main(copia: Instance): string
 						0
 					)} | {n(combo, 0)} ({pct(combo / 100)}) | {n(peor.apertura, 0)} |`
 				)
-				if peor.despues > 0 and combo / 100 > LIMITES.comboSinEscape then
+				if peor.despues / 100 > LIMITES.comboSinEscape then
 					alerta(
-						`Arena: {roleId} abre con {peor.nombre}, deja al rival {n(peor.segundos, 2)} s sin actuar y le quita {pct(
-							combo / 100
+						`Arena: {roleId} abre con {peor.nombre}, deja al rival {n(peor.segundos, 2)} s sin actuar y después le quita {pct(
+							peor.despues / 100
 						)} (máx. {pct(LIMITES.comboSinEscape)} con el Evasivo en recarga)`
 					)
 				end
 			end
 		end
+		linea(`Golpe más fuerte de una habilidad contra un jugador: {table.concat(golpes, " · ")}.`)
 		if Config.Evasive then
 			linea(
 				`Evasivo: recarga {Config.Evasive.CooldownSeconds} s, {n(Config.Evasive.InvulnerableSeconds, 2)} s invulnerable.`

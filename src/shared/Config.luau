@@ -710,12 +710,16 @@ local Config = {
 		-- Daño de las armas y de las habilidades y duración de los aturdimientos y ralentizaciones
 		-- contra otros jugadores. Ajustados (20-10-2026) para que un duelo entre dos roles iguales dure
 		-- 8–10 s al 60 % de actividad (calculadora ServerStorage.Tools.Equilibrio, sección "Arena"):
-		-- Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s. Con las armas ×1 duraban 4,5–6 s.
+		-- Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s (9,8 · 9,1 · 9,3 s desde que las definitivas llevan su
+		-- UltimateDamageMultiplier, 22-10-2026). Con las armas ×1 duraban 4,5–6 s.
 		WeaponDamageMultiplier = 0.55,
 		-- Ajuste de algunas armas sobre WeaponDamageMultiplier (id de Data/Weapons → fracción). El arco
 		-- casi todo lo hace con el arma y desde lejos: sin esto, el duelo de cazadores duraba 6 s.
 		WeaponMultipliers = { Bow = 0.7 } :: { [string]: number },
 		AbilityDamageMultiplier = 0.45,
+		-- Las definitivas (V), además, esto (22-10-2026): el Pisotón quitaba 84 de 100 de un golpe y el
+		-- Rayo encadenado 68; ahora 38 y 30 (límite 40). Los duelos espejo pasan de 8,6–9,4 s a 9,1–9,8 s.
+		UltimateDamageMultiplier = 0.45,
 		AbilityControlMultiplier = 0.5,
 		-- Las curaciones de los jugadores (el médico) en la arena. Con ×1 un médico se curaba 6,3 por
 		-- segundo solo y un duelo de médicos duraba 55 s; con ×0,6, 30 s (se tumba en 11–16 s).
@@ -978,6 +982,9 @@ local Config = {
 		-- Contra otros jugadores (PvP activo) hacen este daño y los aturdimientos duran esto.
 		PvPDamageMultiplier = 0.5,
 		PvPControlMultiplier = 0.5,
+		-- Las definitivas (V), además, esto contra jugadores: ningún golpe de una habilidad pasa de 40 de
+		-- 100 (el Pisotón quitaba 94 y el Rayo encadenado 75 de un golpe; ahora 37 y 30).
+		PvPUltimateMultiplier = 0.4,
 		-- Los jefes se resisten: aturdir, congelar o inmovilizar les dura esta fracción.
 		BossControlMultiplier = 0.5,
 		-- Veneno (Combat/Status.poison: cerbatanas y remate de "Cura de urgencia"): un golpe cada tanto.

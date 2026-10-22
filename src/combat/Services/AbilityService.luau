@@ -152,16 +152,31 @@ local function targetFromPart(attacker: Player, part: Instance): Target?
 	return if victim then playerTarget(attacker, victim) else nil
 end
 
--- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos. Si la habilidad está
--- enlazada en el combo y el objetivo lleva su marca, es crítico seguro y hace el daño extra del combo
--- (Data/Combos "damageBonus"); si no, es crítico con la probabilidad del arma. Contra jugadores, el
--- combo solo cuenta con CombatRules.pvpStatus (la arena).
+-- true si "abilityId" es la definitiva (V) del rol de "player".
+local function isUltimate(player: Player, abilityId: string): boolean
+	local roleId = player:GetAttribute("Role")
+	local role = if typeof(roleId) == "string" then Roles[roleId] else nil
+	for _, ability in if role then role.abilities else {} do
+		if ability.id == abilityId then
+			return ability.ultimate == true
+		end
+	end
+	return false
+end
+
+-- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos (y las definitivas aún menos:
+-- CombatRules.pvpUltimateMultiplier). Si la habilidad está enlazada en el combo y el objetivo lleva su
+-- marca, es crítico seguro y hace el daño extra del combo (Data/Combos "damageBonus"); si no, es crítico
+-- con la probabilidad del arma. Contra jugadores, el combo solo cuenta con CombatRules.pvpStatus (la arena).
 local function hurt(attacker: Player, target: Target, amount: number, abilityId: string)
 	if target.humanoid.Health <= 0 then
 		return
 	end
 	if target.player then
 		local rules = CombatRules.get()
+		if isUltimate(attacker, abilityId) then
+			amount *= rules.pvpUltimateMultiplier
+		end
 		local crit = false
 		if rules.pvpStatus then
 			local comboHit = ComboService.isComboHit(attacker, target.model, abilityId)

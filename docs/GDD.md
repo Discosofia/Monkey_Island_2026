@@ -242,7 +242,7 @@ A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo
 
 El rol se elige en el lobby y es **fijo durante la partida**. Cada rol tiene su propia **XP** que desbloquea talentos de forma permanente.
 
-Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el pico) y **5 habilidades**: 4 activas (**Z, X, C, R**) y una **definitiva** (**V**) con un tiempo de espera largo. Con mando se mantiene **R1** y se pulsa **A, B, X, Y o L1**; en móvil son 5 botones junto al salto. La cuarta activa va en la **R** y no en la E porque la E es la tecla de los avisos (recoger, reanimar, fabricar…). Solo gastan tiempo de espera. Con el PvP activo también afectan a otros jugadores, con la mitad de daño y aturdimientos de la mitad de tiempo. Los números están en `Config.Abilities`.
+Cada rol tiene una **pasiva**, sus **armas iniciales** (además del hacha y el pico) y **5 habilidades**: 4 activas (**Z, X, C, R**) y una **definitiva** (**V**) con un tiempo de espera largo. Con mando se mantiene **R1** y se pulsa **A, B, X, Y o L1**; en móvil son 5 botones junto al salto. La cuarta activa va en la **R** y no en la E porque la E es la tecla de los avisos (recoger, reanimar, fabricar…). Solo gastan tiempo de espera. Con el PvP activo también afectan a otros jugadores, con la mitad de daño y aturdimientos de la mitad de tiempo; las definitivas, con un 40 % de esa mitad (ningún golpe de una habilidad pasa de 40 de 100: el Pisotón quitaba 94). Los números están en `Config.Abilities`.
 
 | Rol | Pasiva | Armas iniciales | Activas (Z · X · C · R) | Definitiva (V) |
 |---|---|---|---|---|
@@ -706,7 +706,7 @@ La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una ar
 
 **Combate.** Es el mismo de la Isla (armas, habilidades, combos y estados, código compartido en `src/combat`) con reglas por equipos y números propios, para que **un duelo entre dos roles iguales dure 8–10 s**:
 
-- Daño de las armas ×0,55 (el arco ×0,7), de las habilidades ×0,45, control ×0,5 y curación ×0,6. Duelos espejo medidos con la calculadora `Equilibrio`: Guerrero 9,4 s, Cazador 8,6 s, Mago 8,7 s y Médico 30 s (se deja así por ahora: el médico apoya más que pelea; se revisará con datos de partidas reales cuando haya más jugadores).
+- Daño de las armas ×0,55 (el arco ×0,7), de las habilidades ×0,45 (las definitivas, ×0,45 más: el Pisotón quitaba 84 de 100 de un golpe y el Rayo encadenado 68; ahora 38 y 30), control ×0,5 y curación ×0,6. Duelos espejo medidos con la calculadora `Equilibrio`: Guerrero 9,8 s, Cazador 9,1 s, Mago 9,3 s y Médico 30 s (se deja así por ahora: el médico apoya más que pelea; se revisará con datos de partidas reales cuando haya más jugadores).
 - Las curaciones y los escudos solo llegan a los aliados. El veneno, la ralentización, el sueño, las marcas y los combos funcionan contra los rivales.
 - De la Isla solo llegan los **cosméticos** y la **mascota de adorno** (sin ayuda). Los talentos, las mejoras y la forja no cuentan: todos empiezan igual.
 

@@ -33,6 +33,7 @@ function DunasCombatRules:Init()
 		knockOut = RespawnService.knockOut,
 		pvpDamageMultiplier = Config.Arena.AbilityDamageMultiplier,
 		pvpControlMultiplier = Config.Arena.AbilityControlMultiplier,
+		pvpUltimateMultiplier = Config.Arena.UltimateDamageMultiplier,
 		pvpWeaponMultiplier = Config.Arena.WeaponDamageMultiplier,
 		pvpWeaponMultipliers = Config.Arena.WeaponMultipliers,
 		healMultiplier = Config.Arena.HealingMultiplier,

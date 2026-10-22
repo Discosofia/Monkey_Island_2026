@@ -48,7 +48,7 @@ Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, 
 | `castShot(character, origen, dirección, alcance, radio)` | disparo recto con `Spherecast`: punto final y a qué dio |
 | `targetFromPart`, `enemyTarget`, `playerTarget` | de una pieza a un `Target` |
 | `groundBelow(posición, ignorar)` | suelo y su normal (para apoyar cosas) |
-| `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`PvPDamageMultiplier`; crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
+| `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`pvpDamageMultiplier` (y las definitivas ×`pvpUltimateMultiplier`, de `CombatRules`); crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
 | `control(target, segundos, "Stun" \| "Freeze" \| "Root")` | aturde/congela/inmoviliza (jugadores con PvP: ×`PvPControlMultiplier`) |
 | `heal(healer, player, cantidad, abilityId)` | curación con críticos (seguro si es el remate) |
 | `comboOpener(player, abilityId, target)` | marca el objetivo si es el paso 1 del combo |
@@ -60,7 +60,7 @@ tiempo de vuelo, a la vez que el efecto que dibujan los clientes.
 
 1. Número de `Config.Abilities` × ventajas (`MeleeDamage`, `RangedDamage` o `SpellDamage` del rol,
    más la del talento de esa habilidad) y, si toca, extras del remate del combo.
-2. `hurt`: redondeo; contra jugadores ×0,5 y crítico del arma; contra monos, crítico = combo seguro
+2. `hurt`: redondeo; contra jugadores ×0,5 (las definitivas ×0,4 más; en la arena ×0,45 y ×0,45) y crítico del arma; contra monos, crítico = combo seguro
    **o** tirada del arma.
 3. `CombatService.damage`: ×`Config.Combat.PlayerDamageMultiplier` (0,7; no a mascotas) →
    intimidado por un mandril ×0,7 → marcado por un cazador ×(1 + `MarkBonus`) → expuesto (dormido
