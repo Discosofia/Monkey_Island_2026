@@ -110,9 +110,21 @@ aullador (15), el mandril (15), el orangután (12) y el gorila (15) andan. `Run`
 
 ## 3. Personaje del jugador con armas
 
-`WeaponAnimationBuilder` genera desde código las animaciones de las armas a distancia (R15):
-`Hold` (brazo derecho colgando con el arma, en bucle, prioridad Action) y un disparo por tipo de
-proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prioridad Action2).
+`WeaponAnimationBuilder` genera desde código las animaciones de las armas (R15): `Hold` (brazo
+derecho colgando con el arma, en bucle, prioridad Action), un disparo por tipo de proyectil (`Stone`
+honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prioridad Action2) y los 4 tajos de la cadena
+cuerpo a cuerpo (`Slash1`–`Slash4`, Action2).
+
+- **Los tajos** (C4) son specs como los de `PlayerAnimationBuilder` (`SLASHES`, grados de
+  `CFrame.Angles`), no `joint()`. `WeaponController` los estira a lo que dura cada paso de la cadena,
+  así que el marcador "Golpe" tiene que ir en `Config.Chain.WindupFraction` (35 %) de su duración
+  (`build()` avisa si no). El arma va a lo largo de la palma (el `Grip` de las armas es solo una
+  traslación en Y de `RightGripAttachment`): con el brazo colgando apunta al frente y con el brazo
+  delante, hacia arriba; `RightHand` X− la baja hacia delante. Para revisarlos, suelda la
+  herramienta real al maniquí (`WeaponTools.build(id)`, cada pieza a `RightHand` con
+  `mano.CFrame * RightGripAttachment.CFrame * tool.Grip:Inverse()`) y **mide** dónde queda la cabeza
+  del arma en cada fotograma (lado, delante y alto respecto a la raíz): desde arriba o desde atrás la
+  tira engaña (el orden de las copias se invierte y la perspectiva esconde el arma).
 
 - **La fuente es el código**, no un spec: para cambiar un disparo, cambia sus ángulos en `SHOTS`
   (`pose` = la pose de disparo, `pulse` = el golpe al soltar, `raise` = segundos hasta la pose,

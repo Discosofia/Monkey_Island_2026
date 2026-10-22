@@ -17,8 +17,9 @@ local Knockback = {}
 -- Velocidad hacia arriba que se suma al empujar a un mono (sale un poco del suelo y no se arrastra).
 local ENEMY_LIFT = 20
 
--- Empuja a "model" en "direction" (se aplana) a "speed" studs/s durante "seconds".
-function Knockback.push(model: Model, direction: Vector3, speed: number, seconds: number)
+-- Empuja a "model" en "direction" (se aplana) a "speed" studs/s durante "seconds". Con "lift" lo lanza
+-- además hacia arriba a esos studs/s (el remate de la cadena dado en el aire).
+function Knockback.push(model: Model, direction: Vector3, speed: number, seconds: number, lift: number?)
 	local horizontal = Vector3.new(direction.X, 0, direction.Z)
 	if horizontal.Magnitude < 0.01 or model:GetAttribute("Boss") ~= nil then
 		return
@@ -26,12 +27,12 @@ function Knockback.push(model: Model, direction: Vector3, speed: number, seconds
 	horizontal = horizontal.Unit
 	local player = Players:GetPlayerFromCharacter(model)
 	if player then
-		Remotes.Knockback:FireClient(player, horizontal, speed, seconds)
+		Remotes.Knockback:FireClient(player, horizontal, speed, seconds, lift)
 		return
 	end
 	local root = model.PrimaryPart
 	if root then
-		root.AssemblyLinearVelocity = horizontal * speed + Vector3.new(0, ENEMY_LIFT, 0)
+		root.AssemblyLinearVelocity = horizontal * speed + Vector3.new(0, lift or ENEMY_LIFT, 0)
 	end
 end
 

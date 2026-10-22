@@ -1,12 +1,13 @@
 --!strict
--- Generador de las animaciones de las armas a distancia (R15). Se ejecuta en Studio, en modo
--- edición (sin pulsar Play), desde la barra de comandos:
+-- Generador de las animaciones de las armas (R15). Se ejecuta en Studio, en modo edición (sin pulsar
+-- Play), desde la barra de comandos:
 --
 --   require(game.ServerStorage.Tools.WeaponAnimationBuilder).build()
 --
 -- Crea (o sustituye) ReplicatedStorage.WeaponAnimations con una KeyframeSequence por animación de
--- Shared/Data/WeaponAnimations: "Hold" (brazo derecho colgando con el arma, en bucle) y un disparo
--- por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart" cerbatana).
+-- Shared/Data/WeaponAnimations: "Hold" (brazo derecho colgando con el arma, en bucle), un disparo
+-- por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart" cerbatana) y los 4 tajos de
+-- la cadena de golpes cuerpo a cuerpo ("Slash1"–"Slash4", Shared/MeleeChain).
 -- Para probarlas basta con pulsar Play: en Studio, WeaponController usa estas secuencias mientras
 -- su id esté vacío. Para el juego publicado: clic derecho en cada una > "Save to Roblox" y pegar el
 -- id en Shared/Data/WeaponAnimations.
@@ -30,6 +31,10 @@ local function freshRequire(module: ModuleScript): any
 end
 
 local WeaponAnimations = freshRequire(ReplicatedStorage.Shared.Data.WeaponAnimations)
+local Config = freshRequire(ReplicatedStorage.Shared.Config)
+-- Se toma al cargar el módulo: build() corre en una copia que freshRequire ya ha sacado del árbol.
+local MonkeyAnimationBuilder =
+	freshRequire((script.Parent :: Instance):WaitForChild("MonkeyAnimationBuilder") :: ModuleScript)
 
 local FOLDER_NAME = "WeaponAnimations"
 local MARKER = "Disparo"
@@ -45,6 +50,12 @@ local PARENT: { [string]: string } = {
 	LeftUpperArm = "UpperTorso",
 	LeftLowerArm = "LeftUpperArm",
 	LeftHand = "LeftLowerArm",
+	RightUpperLeg = "LowerTorso",
+	RightLowerLeg = "RightUpperLeg",
+	RightFoot = "RightLowerLeg",
+	LeftUpperLeg = "LowerTorso",
+	LeftLowerLeg = "LeftUpperLeg",
+	LeftFoot = "LeftLowerLeg",
 }
 
 -- Giro hacia delante/arriba ("raise", alrededor de X) y después hacia los lados ("swing", alrededor
@@ -150,6 +161,195 @@ local SHOTS: { [string]: Shot } = {
 		seconds = 0.55,
 		raise = 0.14,
 		pulseSeconds = 0.14,
+	},
+}
+
+-- Los tajos de la cadena de golpes (Fase 10, C4). No son ángulos de joint() sino specs como los de
+-- PlayerAnimationBuilder (grados de CFrame.Angles en el espacio de la pieza de la que cuelga cada una;
+-- ver ese archivo). Parten del reposo y vuelven a él: con el arma en la mano, al terminar sigue la
+-- pose de empuñar de Roblox. WeaponController los estira a lo que dura cada paso, así que el golpe
+-- (marcador "Golpe") va en Config.Chain.WindupFraction de su duración, igual que el daño en el
+-- servidor; build() avisa si no. El arma va a lo largo de la palma: RightHand X− la lleva hacia
+-- delante. Medido en Studio con el garrote de piedra (cabeza del arma: lado, delante, alto del suelo):
+--   1. Vertical: de detrás de la cabeza (1,1; −4,7; 6,2) a delante del pecho (0,4; 5,5; 3,1) y abajo.
+--   2. Barrido de derecha a izquierda: (5; −2; 4,4) → (1,2; 5; 2,7) → (−4,5; 1,4; 3,6).
+--   3. Revés ascendente de izquierda a derecha: (−3,2; 2,7; 3,2) → (3,5; 4,1; 4,5) → (4,3; −0,7; 7).
+--   4. Remate: con las dos manos de detrás de la cabeza al suelo, delante (4,6), en zancada (pies a
+--      −0,13, como el Rompehuesos). Más largo, como su paso.
+local function slamPose(t: number, marker: string?): { [string]: any }
+	return {
+		t = t,
+		marcador = marker,
+		LowerTorso = { -10, 0, 0, 0, -0.55, 0 },
+		UpperTorso = { -30, 0, 0 },
+		Head = { 20, 0, 0 },
+		RightUpperArm = { 60, 0, -15 },
+		RightLowerArm = { 5, 0, 0 },
+		RightHand = { -40, 0, 0 },
+		LeftUpperArm = { 60, 0, 25 },
+		LeftLowerArm = { 10, 0, 0 },
+		RightUpperLeg = { 65, 0, 0 },
+		RightLowerLeg = { -75, 0, 0 },
+		RightFoot = { 20, 0, 0 },
+		LeftUpperLeg = { -10, 0, 0 },
+		LeftLowerLeg = { -45, 0, 0 },
+		LeftFoot = { 35, 0, 0 },
+	}
+end
+
+local SLASHES: { [string]: any } = {
+	Slash1 = {
+		name = "Slash1",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.15,
+				direction = "In", -- acelera hacia el golpe
+				UpperTorso = { 12, -20, 0 },
+				Head = { -5, 15, 0 },
+				RightUpperArm = { 170, 0, 15 },
+				RightLowerArm = { 45, 0, 0 },
+				RightHand = { -60, 0, 0 },
+				LeftUpperArm = { 35, 0, -15 },
+				LeftLowerArm = { 30, 0, 0 },
+			},
+			{
+				t = 0.21,
+				marcador = "Golpe",
+				UpperTorso = { -15, 15, 0 },
+				Head = { 8, -10, 0 },
+				RightUpperArm = { 75, 0, 0 },
+				RightLowerArm = { 5, 0, 0 },
+				RightHand = { -60, 0, 0 },
+				LeftUpperArm = { 10, 0, -25 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			{
+				t = 0.32,
+				UpperTorso = { -20, 20, 0 },
+				Head = { 10, -12, 0 },
+				RightUpperArm = { 35, 0, -10 },
+				RightLowerArm = { 10, 0, 0 },
+				RightHand = { -45, 0, 0 },
+				LeftUpperArm = { 0, 0, -25 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			{ t = 0.6, reposo = true },
+		},
+	},
+	Slash2 = {
+		name = "Slash2",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.15,
+				direction = "In",
+				LowerTorso = { 0, -20, 0 },
+				UpperTorso = { 0, -50, 0 },
+				Head = { 0, 45, 0 },
+				RightUpperArm = { 45, 0, 35 },
+				RightLowerArm = { 20, 0, 0 },
+				RightHand = { -50, 0, 0 },
+				LeftUpperArm = { 50, 0, -20 },
+				LeftLowerArm = { 40, 0, 0 },
+			},
+			{
+				t = 0.21,
+				marcador = "Golpe",
+				LowerTorso = { 0, 0, 0 },
+				UpperTorso = { -5, 10, 0 },
+				Head = { 0, -8, 0 },
+				RightUpperArm = { 55, 0, 5 },
+				RightLowerArm = { 5, 0, 0 },
+				RightHand = { -55, 0, 0 },
+				LeftUpperArm = { 25, 0, -30 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			{
+				t = 0.32,
+				LowerTorso = { 0, 20, 0 },
+				UpperTorso = { -5, 50, 0 },
+				Head = { 0, -45, 0 },
+				RightUpperArm = { 50, 0, -30 },
+				RightLowerArm = { 15, 0, 0 },
+				RightHand = { -50, 0, 0 },
+				LeftUpperArm = { 10, 0, -35 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			{ t = 0.6, reposo = true },
+		},
+	},
+	Slash3 = {
+		name = "Slash3",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.15,
+				direction = "In",
+				LowerTorso = { 0, 20, 0 },
+				UpperTorso = { -10, 50, 0 },
+				Head = { 5, -45, 0 },
+				RightUpperArm = { 10, 0, -30 },
+				RightLowerArm = { 30, 0, 0 },
+				RightHand = { -10, 0, 0 },
+				LeftUpperArm = { 20, 0, -10 },
+				LeftLowerArm = { 30, 0, 0 },
+			},
+			{
+				t = 0.21,
+				marcador = "Golpe",
+				LowerTorso = { 0, 0, 0 },
+				UpperTorso = { 0, -5, 0 },
+				Head = { 0, 5, 0 },
+				RightUpperArm = { 70, 0, 20 },
+				RightLowerArm = { 5, 0, 0 },
+				RightHand = { -55, 0, 0 },
+				LeftUpperArm = { 30, 0, -35 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			{
+				t = 0.32,
+				LowerTorso = { 0, -15, 0 },
+				UpperTorso = { 5, -30, 0 },
+				Head = { -5, 25, 0 },
+				RightUpperArm = { 90, 0, 30 },
+				RightLowerArm = { 10, 0, 0 },
+				RightHand = { -40, 0, 0 },
+				LeftUpperArm = { 20, 0, -40 },
+				LeftLowerArm = { 20, 0, 0 },
+			},
+			{ t = 0.6, reposo = true },
+		},
+	},
+	Slash4 = {
+		name = "Slash4",
+		easing = "Cubic",
+		direction = "Out",
+		keyframes = {
+			{ t = 0, reposo = true },
+			{
+				t = 0.24,
+				direction = "In",
+				UpperTorso = { 6, 0, 0 },
+				Head = { -8, 0, 0 },
+				RightUpperArm = { 165, 0, -10 },
+				RightLowerArm = { 30, 0, 0 },
+				RightHand = { -60, 0, 0 },
+				LeftUpperArm = { 165, 0, 20 },
+				LeftLowerArm = { 35, 0, 0 },
+				RightUpperLeg = { 20, 0, 0 },
+				RightLowerLeg = { -20, 0, 0 },
+			},
+			slamPose(0.315, "Golpe"),
+			slamPose(0.5),
+			{ t = 0.9, reposo = true },
+		},
 	},
 }
 
@@ -263,9 +463,26 @@ function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 		assert(data and data.fxDelay, `[WeaponAnimationBuilder] Falta "{name}" con fxDelay en Data/WeaponAnimations`)
 		buildShot(name, shot, data.fxDelay).Parent = folder
 	end
+	for name, spec in SLASHES do
+		assert(WeaponAnimations[name], `[WeaponAnimationBuilder] Falta "{name}" en Data/WeaponAnimations`)
+		local keyframes = spec.keyframes
+		local length = keyframes[#keyframes].t
+		for _, keyframe in keyframes do
+			if keyframe.marcador and math.abs(keyframe.t / length - Config.Chain.WindupFraction) > 0.01 then
+				warn(
+					`[WeaponAnimationBuilder] El golpe de "{name}" va al {math.round(100 * keyframe.t / length)} % y el `
+						.. `del servidor al {math.round(100 * Config.Chain.WindupFraction)} % (Config.Chain.WindupFraction)`
+				)
+			end
+		end
+		local sequence = MonkeyAnimationBuilder.sequence(spec, PARENT)
+		sequence.Priority = Enum.AnimationPriority.Action2
+		sequence.Parent = folder
+	end
 	folder.Parent = ReplicatedStorage
 	print(
-		"[WeaponAnimationBuilder] Listo: ReplicatedStorage.WeaponAnimations (Hold, Stone, Arrow, Spell, Dart).\n"
+		"[WeaponAnimationBuilder] Listo: ReplicatedStorage.WeaponAnimations (Hold, Stone, Arrow, Spell, Dart, "
+			.. "Slash1–Slash4).\n"
 			.. "  Pruébalas con Play (en Studio se usan mientras su id esté vacío).\n"
 			.. "  Para publicarlas: clic derecho en cada una > Save to Roblox, y pega cada id en\n"
 			.. "  src/shared/Data/WeaponAnimations.luau (con el mismo dueño que el juego)."

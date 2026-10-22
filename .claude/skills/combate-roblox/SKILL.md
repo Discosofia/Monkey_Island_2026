@@ -248,6 +248,14 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   servidor de `ServerScriptService.Combat.Status` y `Status.stunPlayer(player, 3, "Prueba")` (o
   `holdPlayer`). Aunque es otra copia del módulo, escribe en los atributos del `Player`
   (`CombatState`, `StunnedUntil`), que son los que mira el juego. Quita antes `ControlImmuneUntil`.
+- **Cadena de golpes** (C4): pulsa como el jugador con `tool:Activate()` desde el cliente (pasa por
+  `WeaponController`: tajo, búfer y remoto) cada 0,1 s, y registra en el servidor el atributo
+  `ChainStep` del `Player` y el `HealthChanged` de los muñecos con su hora (`ChainStep` no avisa si
+  repite valor: un 1 tras otro 1 no sale). Para el remate contra un mono, sujétalo delante del jugador
+  con `PivotTo` en cada `Heartbeat` y suéltalo 0,5 s tras el 4.º golpe para medir su velocidad.
+- **Saltar**: `Humanoid.Jump = true` desde el MCP no salta (los controles de Roblox lo pisan). Para
+  estar en el aire en un instante (el remate que lanza), sube al personaje con `PivotTo` unos 9 studs
+  justo antes.
 - **Correr de verdad**: `Humanoid:Move` desde el MCP no mueve al personaje (los controles de Roblox lo
   pisan en cada fotograma). Usa `user_keyboard_input` (mantener W y LeftShift) para la estamina.
 - **Remotos del servidor al cliente**: dispara la instancia real
@@ -308,6 +316,10 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   tampoco se pintan.
 - Al probar por MCP no lances una habilidad justo después de mover al personaje con `PivotTo` desde
   el cliente: el servidor aún lo ve donde estaba (el cepo se queda en el sitio viejo). Espera ~0,5 s.
+- Un ritmo que llevan a la vez el cliente y el servidor, cada uno con su reloj (la cadena de golpes),
+  necesita un margen fijo en el servidor (`Config.Net.JitterSeconds`) además del ping: sin él, en
+  Studio (ping ~0) una pulsación que llegaba milisegundos antes se rechazaba y la cadena se rompía. Para
+  que el margen no suba el ritmo, el siguiente paso cuenta desde `max(ahora, listoEn)`.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
   extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final.
 

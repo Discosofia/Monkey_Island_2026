@@ -11,7 +11,7 @@ local Dash = require(script.Parent.Parent.Dash)
 local KnockbackController = {}
 
 function KnockbackController:Start()
-	Remotes.Knockback.OnClientEvent:Connect(function(direction: any, speed: any, seconds: any)
+	Remotes.Knockback.OnClientEvent:Connect(function(direction: any, speed: any, seconds: any, lift: any)
 		if typeof(direction) ~= "Vector3" or typeof(speed) ~= "number" or typeof(seconds) ~= "number" then
 			return
 		end
@@ -19,6 +19,11 @@ function KnockbackController:Start()
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		if root and root:IsA("BasePart") then
 			Dash.push(root, direction, speed, seconds)
+			-- Lanzado hacia arriba (el remate de la cadena en el aire): Dash solo empuja en horizontal.
+			if typeof(lift) == "number" and lift > 0 then
+				local velocity = root.AssemblyLinearVelocity
+				root.AssemblyLinearVelocity = Vector3.new(velocity.X, lift, velocity.Z)
+			end
 		end
 	end)
 end

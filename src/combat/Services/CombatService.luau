@@ -6,6 +6,9 @@
 -- jugadores cuando las reglas del place lo permiten (CombatRules: el PvP opt-in de la Isla, los
 -- equipos de la arena). Cada jugador aparece con las armas de su rol (Data/Roles) y las herramientas
 -- comunes del place. A quién alcanza cada golpe lo dice Combat/Hitbox (con línea de visión).
+-- Las armas cuerpo a cuerpo pegan en cadena (Fase 10, C4; Shared/MeleeChain): 4 golpes con preparación,
+-- el 4.º remata y empuja (o lanza hacia arriba si se da en el aire); en PvP cada golpe tambalea un poco.
+-- El hacha, el pico y la hoz siguen con el golpe suelto.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -21,6 +24,8 @@ local Crit = require(ReplicatedStorage.Shared.Crit)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
+local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -31,6 +36,7 @@ local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
 local Hitbox = require(script.Parent.Parent.Hitbox)
+local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
 local StaminaServer = require(script.Parent.Parent.StaminaServer)
 local StateMachine = require(script.Parent.Parent.StateMachine)
@@ -42,6 +48,8 @@ local MELEE_HITBOX = Vector2.new(7, 6)
 local CombatService = {}
 
 local lastAttackAt: { [Player]: number } = {}
+-- Dónde va la cadena de golpes de cada jugador (Shared/MeleeChain).
+local chains: { [Player]: MeleeChain.State } = {}
 local damageListeners: { (model: Model, attacker: Player?, amount: number) -> () } = {}
 local healListeners: { (player: Player, healer: Player, amount: number) -> () } = {}
 
@@ -394,19 +402,53 @@ local function pvpWeaponScale(weaponId: string): number
 	return rules.pvpWeaponMultiplier * (rules.pvpWeaponMultipliers[weaponId] or 1)
 end
 
+-- true si el remate de la cadena tambalea a este enemigo: monos de categoría hasta
+-- Config.Chain.FinisherStaggerTier y los muñecos; no los alfas ni los jefes.
+local function staggersOnFinisher(model: Model): boolean
+	if Status.isBoss(model) or model:GetAttribute("Alpha") == true then
+		return false
+	end
+	local speciesId = model:GetAttribute("MonkeyType")
+	local species = if typeof(speciesId) == "string" then Monkeys[speciesId] else nil
+	return (if species then species.tier else 1) <= Config.Chain.FinisherStaggerTier
+end
+
+-- El remate de la cadena (Shared/MeleeChain): empuja hacia donde mira el atacante o, si va en el aire
+-- (sin suelo a Config.Chain.AirborneGroundDistance), lo lanza hacia arriba. Los jefes no se mueven
+-- (Combat/Knockback).
+local function finisherPush(root: BasePart, model: Model)
+	local settings = Config.Chain
+	local airborne = Hitbox.ray(root.Position, Vector3.new(0, -settings.AirborneGroundDistance, 0)) == nil
+	Knockback.push(
+		model,
+		root.CFrame.LookVector,
+		settings.FinisherKnockback,
+		settings.FinisherKnockbackSeconds,
+		if airborne then settings.FinisherLaunch else nil
+	)
+end
+
+-- Un golpe con arma cuerpo a cuerpo: el paso "step" de la cadena (Shared/MeleeChain; su multiplicador
+-- de daño, el tambaleo en PvP y el remate) o, sin "step", el golpe suelto de las herramientas.
 local function meleeAttack(
 	player: Player,
 	character: Model,
 	root: BasePart,
 	weaponId: string,
 	weapon: Weapons.WeaponDefinition,
-	critChance: number
+	critChance: number,
+	step: number?
 )
 	local box = root.CFrame * CFrame.new(0, 0, -weapon.range / 2)
 	local size = Vector3.new(MELEE_HITBOX.X, MELEE_HITBOX.Y, weapon.range)
 
 	-- "+daño cuerpo a cuerpo" del guerrero.
-	local damage = math.round(weapon.damage * Progression.perk(player, "MeleeDamage"))
+	local damage = weapon.damage * Progression.perk(player, "MeleeDamage")
+	if step then
+		damage *= MeleeChain.damageMultiplier(step)
+	end
+	damage = math.round(damage)
+	local finisher = step ~= nil and MeleeChain.isFinisher(step)
 	-- Cada uno una vez, solo si no hay pared entre el jugador y él, y también donde lo veía el
 	-- atacante con su retraso de red (Combat/Latency, con tope).
 	local hits = Hitbox.inBox(box, size, {
@@ -418,11 +460,51 @@ local function meleeAttack(
 		local victim = Players:GetPlayerFromCharacter(model)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		if victim then
-			CombatService.damagePvP(player, victim, damage * pvpWeaponScale(weaponId), Crit.roll(critChance))
+			local hit =
+				CombatService.damagePvP(player, victim, damage * pvpWeaponScale(weaponId), Crit.roll(critChance))
+			if hit and step and LifeState.isAlive(victim) then
+				if finisher then
+					finisherPush(root, model)
+				else
+					-- Tambaleo corto: no pega ni usa habilidades, pero puede esquivar antes del siguiente.
+					local hitstun = MeleeChain.hitstunSeconds(weapon, step)
+					if hitstun > 0 then
+						StateMachine.enter(victim, "Staggered", hitstun)
+					end
+				end
+			end
 		elseif humanoid and humanoid.Health > 0 then
 			CombatService.damage(model, humanoid, damage, player, { crit = Crit.roll(critChance), source = weaponId })
+			if finisher and humanoid.Health > 0 then
+				if staggersOnFinisher(model) then
+					Status.stun(model, Config.Chain.FinisherStaggerSeconds)
+				end
+				finisherPush(root, model)
+			end
 		end
 	end
+end
+
+-- Un paso de la cadena: el golpe cae al acabar la preparación (Shared/MeleeChain.windupSeconds, menos
+-- el retraso de red del atacante, que ya la empezó en su pantalla). Si en ese tiempo le tambalean, le
+-- aturden, cae o cambia de arma, el golpe no sale.
+local function chainAttack(player: Player, tool: Tool, weaponId: string, weapon: Weapons.WeaponDefinition, step: number)
+	local stepSeconds = MeleeChain.stepSeconds(weapon, step)
+	StateMachine.enter(player, "Attacking", stepSeconds)
+	player:SetAttribute("ChainStep", step)
+	local delay = math.max(0, MeleeChain.windupSeconds(weapon, step) - Latency.compensation(player))
+	task.delay(delay, function()
+		local character, root = livingCharacter(player)
+		if
+			not (character and root)
+			or tool.Parent ~= character
+			or not LifeState.isAlive(player)
+			or not CombatState.canAct(player, "Attack")
+		then
+			return
+		end
+		meleeAttack(player, character, root, weaponId, weapon, Crit.weaponChance(weaponId), step)
+	end)
 end
 
 -- Cuánto se desvía "point" de la puntería "aim" desde "origin" (en radianes), o nil si queda fuera
@@ -657,6 +739,19 @@ local function onUseWeapon(player: Player, aim: any)
 	end
 
 	local now = os.clock()
+	if MeleeChain.uses(weapon) then
+		-- Cadena de golpes: el ritmo lo lleva la cadena, con el margen del retraso de red del atacante
+		-- (como la esquiva) y el de Config.Net.JitterSeconds; no se acumula de un golpe a otro.
+		local chain = chains[player] or MeleeChain.newState()
+		chains[player] = chain
+		local slack = Config.Net.JitterSeconds + 2 * Latency.compensation(player)
+		local step = MeleeChain.advance(chain, weaponId :: string, weapon, now, slack)
+		if step then
+			WeaponTools.playUse(tool)
+			chainAttack(player, tool, weaponId :: string, weapon, step)
+		end
+		return
+	end
 	local last = lastAttackAt[player]
 	if last and now - last < weapon.cooldownSeconds then
 		return
@@ -778,6 +873,7 @@ function CombatService:Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastAttackAt[player] = nil
+		chains[player] = nil
 		lastDodgeAt[player] = nil
 	end)
 end

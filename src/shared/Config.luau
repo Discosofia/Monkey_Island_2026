@@ -263,10 +263,11 @@ local Config = {
 		} :: { [string]: number },
 	},
 
-	-- Cadena de golpes de las armas cuerpo a cuerpo (C4): 4 golpes y el 4.º remata. Cada paso hace
-	-- "damage" × el daño del arma y dura "time" × su cooldownSeconds (las armas pesadas encadenan más
-	-- despacio). Con la suma de "damage" igual a la de "time", el DPS es el mismo que con golpes sueltos.
-	-- Las herramientas (hacha, pico, hoz: "tool" en Data/Weapons) siguen con el golpe suelto.
+	-- Cadena de golpes de las armas cuerpo a cuerpo (C4; Shared/MeleeChain): 4 golpes y el 4.º remata.
+	-- Cada paso hace "damage" × el daño del arma y dura "time" × su cooldownSeconds (las armas pesadas
+	-- encadenan más despacio). Con la suma de "damage" igual a la de "time", el DPS es el mismo que con
+	-- golpes sueltos. Las herramientas (hacha, pico, hoz: "tool" en Data/Weapons) siguen con el golpe
+	-- suelto.
 	Chain = {
 		Steps = {
 			{ damage = 0.9, time = 0.9 },
@@ -275,16 +276,27 @@ local Config = {
 			{ damage = 1.4, time = 1.4 }, -- remate: empuja (o lanza hacia arriba si el atacante va en el aire)
 		},
 		WindupFraction = 0.35, -- parte de cada paso antes del golpe (preparación, el momento del amago)
-		LinkWindowSeconds = 0.8, -- tras un golpe, hasta cuándo el siguiente sigue la cadena
-		ResetSeconds = 1.2, -- sin pegar este tiempo, se vuelve al primer golpe
+		-- Desde que se puede dar el siguiente golpe, hasta cuándo sigue la cadena; después vuelve al primero.
+		LinkWindowSeconds = 0.8,
+		-- Una pulsación hasta este tiempo antes de que se pueda pegar se guarda y sale en cuanto se puede
+		-- (el cliente; quien pulsa al ritmo no pierde golpes por el fotograma o el toque).
+		BufferSeconds = 0.3,
 		-- Tambaleo de cada golpe contra jugadores (no el remate, que empuja). Como mucho dura el hueco hasta
 		-- el siguiente golpe menos Config.Reaction: la cadena siempre deja responder (bloquear, parry o
 		-- esquivar entre dos golpes), también con las armas rápidas.
 		PvPHitstunSeconds = 0.35,
-		FinisherKnockback = 35, -- studs/s del empuje del remate
+		FinisherKnockback = 35, -- studs/s del empuje del remate…
+		FinisherKnockbackSeconds = 0.2, -- …durante este tiempo (unos 7 studs)
 		FinisherLaunch = 45, -- studs/s hacia arriba si el atacante va en el aire
+		-- Si no hay suelo a esta distancia bajo la raíz del atacante, va en el aire (la raíz queda a ~3,2).
+		AirborneGroundDistance = 4.5,
 		FinisherStaggerTier = 2, -- monos hasta esta categoría se tambalean con el remate (no alfas ni jefes)
 		FinisherStaggerSeconds = 0.6,
+		-- Sensación (solo en el cliente que pega): el tajo se para un instante al dar ("parón de impacto")
+		-- y el remate hace temblar un poco la cámara.
+		HitStopSeconds = 0.05,
+		FinisherHitStopSeconds = 0.1,
+		FinisherShakeStuds = 0.25,
 	},
 
 	-- Guardia (C5): bloquear (mantener) y parry (pulsar justo antes del golpe).
@@ -321,6 +333,9 @@ local Config = {
 	Net = {
 		MaxCompensationSeconds = 0.15, -- rebobinar posiciones al golpear
 		ParryGraceMaxSeconds = 0.12, -- esperar el parry del defensor antes de aplicar un golpe
+		-- Margen fijo al comprobar un ritmo que el cliente lleva con su reloj (la cadena de golpes): una
+		-- pulsación puntual llega unos milisegundos antes o después según la red y el fotograma.
+		JitterSeconds = 0.05,
 		-- Posiciones guardadas de cada combatiente para rebobinar (Combat/PositionHistory).
 		HistorySeconds = 1,
 		HistoryRate = 20, -- muestras por segundo

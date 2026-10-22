@@ -9,7 +9,7 @@ no coincide con el código, manda el código.
 
 | Pieza | Hoy | Fase 10 |
 |---|---|---|
-| Golpe con arma | `CombatService.onUseWeapon` → `meleeAttack` / `rangedAttack` | Cadena de 4 golpes (C4), proyectiles reales (C9) |
+| Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` | Proyectiles reales (C9) |
 | Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor) | Evasivo (C7) |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅) | Guardia, cadena, Evasivo… (C4–C8) |
 | Estados de enemigos | `Combat/Status` (atributos del modelo) | Control decreciente por modelo (C6) |
@@ -32,7 +32,8 @@ no coincide con el código, manda el código.
 - Comprueban `canAct`: en el servidor, `CombatService.onUseWeapon` ("Attack"), `onDodge` ("Dodge") y
   `AbilityService.onUseAbility` ("Ability"); en el cliente, `WeaponController`, `DodgeController` y
   `RoleController.useAbility`, para no mandar lo que el servidor va a rechazar.
-- Hoy solo entra `Stunned` (con `Status.stunPlayer`); los demás estados los usan los grupos C4–C8.
+- Entran `Stunned` (con `Status.stunPlayer`), `Attacking` (cada paso de la cadena, lo que dura) y
+  `Staggered` (el tambaleo de la cadena en PvP, C4); los demás estados los usan los grupos C5–C8.
 - **Inmovilizado** (`Status.holdPlayer`: `StunnedUntil`, no anda pero pega) y **aturdido**
   (`Status.stunPlayer`: lo mismo y el estado `Stunned`, no pega ni usa habilidades ni esquiva), con la
   misma inmunidad de 2 s al soltarse. Qué usa cada uno: `sistema-de-habilidades.md` §2.4.
@@ -47,13 +48,44 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 ## 3. Golpe con arma
 
 **Hoy.**
-- Cliente (`WeaponController`): al activar la Tool reproduce el tajo (cuerpo a cuerpo) o el disparo
-  (distancia, `Data/WeaponAnimations`) y manda `Remotes.UseWeapon:FireServer(puntería)`.
-- Servidor (`CombatService.onUseWeapon`): espera `cooldownSeconds` del arma (`os.clock`).
-  - Cuerpo a cuerpo (`meleeAttack`): **una caja** de `MELEE_HITBOX` (7 × 6) × `range` delante de la
-    raíz, con `Hitbox.inBox` (C3): solo a quien se ve desde la raíz del atacante y también donde
-    estaba hace `Latency.compensation` (rebobinado, ≤ 0,15 s). Un golpe suelto, sin preparación ni
-    recuperación.
+- **Cadena de golpes (C4).** Las armas cuerpo a cuerpo que no son herramientas (`MeleeChain.uses`:
+  `kind = "Melee"` sin `tool`) pegan en cadena de 4. `Shared/MeleeChain` (funciones puras, las usan
+  el cliente y el servidor con su reloj, y la calculadora mide lo mismo en la sección 7):
+  - cada paso dura `Config.Chain.Steps[k].time` × `cooldownSeconds` del arma y hace `damage` × su
+    daño; el golpe cae a `WindupFraction` (35 %) del paso: preparación → golpe → recuperación;
+  - `advance(estado, arma, ahora, margen)`: el siguiente paso sigue la cadena si se pulsa antes de
+    `LinkWindowSeconds` (0,8 s) desde que se puede; si no, al cambiar de arma o tras el remate, vuelve
+    al 1. `readyAt = max(ahora, readyAt) + paso`: el margen del servidor no se acumula, así que no
+    sube el ritmo;
+  - `hitstunSeconds`: tambaleo en PvP (`PvPHitstunSeconds`, recortado para dejar siempre
+    `Config.Reaction` hasta el golpe siguiente); el remate no tambalea, empuja.
+- Cliente (`WeaponController`): con un arma de cadena predice el paso, reproduce su tajo
+  (`Slash1`–`Slash4` de `Data/WeaponAnimations`, generados por `WeaponAnimationBuilder` y estirados a
+  lo que dura el paso; sin ellos, el tajo de Roblox) y manda `UseWeapon` solo cuando empieza un paso.
+  Una pulsación hasta `BufferSeconds` (0,3 s) antes de poder se guarda y sale a tiempo. Si al caer el
+  golpe la caja toca a un enemigo o a otro jugador, parón de impacto (`HitStopSeconds`, el remate
+  `FinisherHitStopSeconds`) y en el remate un temblor de cámara (`Humanoid.CameraOffset`). Las demás
+  armas: el tajo de Roblox o el disparo (distancia) y `UseWeapon` en cada pulsación.
+- Servidor (`CombatService.onUseWeapon`):
+  - Cadena: `MeleeChain.advance` con margen `Config.Net.JitterSeconds` (0,05 s) + 2 × `Latency`
+    (con solo el mismo reloj en los dos lados, una pulsación que llegaba milisegundos antes se
+    rechazaba y la cadena se rompía). `chainAttack`: estado `Attacking` lo que dura el paso, atributo
+    `ChainStep` en el `Player` y el golpe tras la preparación menos `Latency.compensation` (el
+    atacante ya la empezó en su pantalla). No sale si mientras tanto le tambalean, le aturden, cae o
+    cambia de arma (`canAct "Attack"`). En el remate, `Knockback.push` hacia donde mira
+    (`FinisherKnockback` 35 durante 0,2 s) o, si no hay suelo a `AirborneGroundDistance` bajo su raíz,
+    con `lift` = `FinisherLaunch` (45); los monos de categoría ≤ `FinisherStaggerTier` y los muñecos
+    se tambalean (`Status.stun`, 0,6 s); los alfas y los jefes no (a los jefes tampoco los mueve).
+  - Herramientas (hacha, pico, hoz): golpe suelto cada `cooldownSeconds`, como antes.
+  - `meleeAttack` (los dos): **una caja** de `MELEE_HITBOX` (7 × 6) × `range` delante de la raíz, con
+    `Hitbox.inBox` (C3): solo a quien se ve desde la raíz del atacante y también donde estaba hace
+    `Latency.compensation` (rebobinado, ≤ 0,15 s). Se usa `inBox` en el instante del golpe y no
+    `sweepBox` (que solo devuelve lo primero que toca): un tajo alcanza a todos los de la caja.
+- Probado en Play (Isla, 22-10-2026, guerrero con garrote de piedra): pasos cada 0,81 · 0,81 · 0,90 ·
+  1,26 s y golpes a 0,28 · 0,28 · 0,32 · 0,46 s de cada paso, daño 24 · 24 · 27 · 37 (29,6/s frente a
+  30/s suelto); la ventana (a 1,2 s sigue, tras 2 s vuelve al 1) y el búfer (pulsar 0,2 s antes da el
+  paso 2); el hacha sigue suelta; el remate tambalea 0,6 s a un capuchino, no a un mandril alfa, empuja
+  a 35 studs/s y en el aire lanza a 45.
   - Distancia (`rangedAttack`): munición (`CombatRules.useAmmo`); ayuda de puntería
     (`findAimTarget`, cono `aimAssistDegrees` y `aimDeviation`) entre los monos que se ven
     (`Hitbox.inSphere`). Si encuentra un mono, el proyectil visible vuela hacia él y el daño llega con
@@ -61,10 +93,9 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
     directo (sin ayuda): asimetría.
 - PvP: daño del arma × `pvpWeaponMultiplier` × `pvpWeaponMultipliers[arma]` (arena: ×0,55, arco ×0,7).
 
-**Planificado.** C4: `chain` en `Data/Weapons` (4 pasos con preparación, activo, recuperación,
-multiplicador y caja; el 4.º remata empujando, o lanza hacia arriba si el atacante va en el aire),
-búfer de entrada en el cliente, tambaleo corto por golpe en PvP. El hacha y el pico siguen con el
-golpe suelto. C9: proyectiles simulados por el servidor (ver §6).
+**Planificado.** C5: bloquear y parar los golpes de la cadena (`ChainGuardDamage`,
+`FinisherGuardDamage`). C7: escalado en PvP y contador `ChainFinishers`. C8: amago (cancelar la
+preparación). C9: proyectiles simulados por el servidor (ver §6). C10: el remate contra un muro aturde.
 
 ## 4. Esquiva, estamina y Evasivo
 
@@ -109,7 +140,7 @@ sola vez por ataque.
 
 | Ataque | Hoy (C3 ✅) | Planificado |
 |---|---|---|
-| Golpe con arma | `Hitbox.inBox` en el instante + `visible` desde la raíz del atacante + rebobinado | `sweepBox` en el instante activo de cada golpe de la cadena (C4) |
+| Golpe con arma | `Hitbox.inBox` en el instante del golpe de cada paso de la cadena (C4 ✅) + `visible` desde la raíz del atacante + rebobinado | — |
 | Disparo de arma | Ayuda de puntería entre los que se ven + daño con retraso aunque se aparte | Proyectil del servidor: un `sweepSphere` por paso de `Heartbeat` (C9) |
 | Habilidades que viajan | `castShot` (`Hitbox.sweepSphere` en el instante) + daño con retraso | El mismo proyectil por pasos (C9) |
 | Áreas (`targetsAround`, `targetsAroundGround`, `targetsOnGround`) | `Hitbox.inSphere` + `visible` desde el centro: **las paredes protegen** | — |
@@ -165,6 +196,10 @@ puede empujar a un jugador poniéndole velocidad.
   (`KnockbackController` → `Dash.push`); a un jefe, nada. Hasta C2 la Embestida **no empujaba a los
   jugadores a propósito** (`not target.player`); ahora sí, en PvP. Probado en Play: el remoto mueve al
   jugador 10,5 studs (45 studs/s, 0,2 s); la Embestida lanza a un mandril a 44 studs/s.
+  Desde C4 lleva un `lift` opcional (studs/s hacia arriba): el remate de la cadena dado en el aire.
+  El cliente lo suma como velocidad vertical después de `Dash.push` (que solo empuja en horizontal).
+- `Config.Net.JitterSeconds` (C4, 0,05 s): margen fijo cuando el servidor comprueba un ritmo que el
+  cliente lleva con su propio reloj (la cadena de golpes), además del de `Latency`.
 
 - Rebobinado (C3): el golpe con arma también vale contra donde estaba el objetivo hace
   `Latency.compensation(atacante)` segundos (`Hitbox.inBox` con `rewind`, `Combat/PositionHistory`).

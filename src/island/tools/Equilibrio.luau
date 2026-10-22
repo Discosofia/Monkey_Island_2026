@@ -1826,7 +1826,8 @@ local function main(copia: Instance): string
 	-- Una cadena completa de "armaId" con la ventaja "ventaja": cuándo cae cada golpe (s desde el
 	-- primero), su daño base y el hueco más corto que deja entre dos golpes para responder.
 	-- "tambaleo": el más largo de sus golpes (Config.Chain.PvPHitstunSeconds, recortado para dejar el
-	-- hueco de reacción hasta el siguiente).
+	-- hueco de reacción hasta el siguiente). Hace lo mismo que Shared/MeleeChain (windupSeconds,
+	-- hitstunSeconds), que usan CombatService y WeaponController: si cambia uno, cambia el otro.
 	type Cadena = {
 		golpes: { { en: number, dano: number } },
 		duracion: number,
@@ -1890,7 +1891,7 @@ local function main(copia: Instance): string
 		end
 		local relacion = sumaDano / sumaTiempo
 		local armaArena = arenaConfig.WeaponDamageMultiplier or 1
-		linea("## 7. Cadena de golpes (Fase 10, C4: propuesta de Config.Chain)")
+		linea("## 7. Cadena de golpes (Fase 10, C4 ✅: Config.Chain y Shared/MeleeChain)")
 		linea(
 			`{#CH.Steps} golpes ({table.concat(pasos, " · ")}; tiempo en golpes del arma). DPS de la cadena = {n(
 				relacion,
