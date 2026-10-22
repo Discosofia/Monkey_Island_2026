@@ -18,6 +18,9 @@ export type WeaponDefinition = {
 	-- puntería es la misma para todas (Config.Projectiles).
 	projectileSpeed: number?,
 	projectile: ("Stone" | "Arrow" | "Spell" | "Dart")?, -- cómo se ve lo que dispara (piedra por defecto)
+	-- Disparo de remate (C9b, Shared/RangedChain): qué hace el 4.º disparo seguido (Config.RangedChain.
+	-- Finishers): "Pierce" atraviesa, "Burst" estalla, "Sap" cura el doble, "Stagger" tambalea a un mono.
+	finisher: ("Pierce" | "Burst" | "Sap" | "Stagger")?,
 	spell: boolean?, -- hechizo: su daño sube con "SpellDamage" en vez de "RangedDamage"
 	-- Armas del médico: cada disparo que acierta a un enemigo cura esto al aliado más herido cerca
 	-- (o al propio médico), a menos de Config.Combat.WeaponHealRadius…
@@ -77,6 +80,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		range = 90,
 		ammoItemId = "Stone",
 		projectileSpeed = 140,
+		finisher = "Stagger",
 	},
 	WoodenAxe = {
 		name = "Hacha de madera",
@@ -107,6 +111,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		range = 110,
 		ammoItemId = "Stone",
 		projectileSpeed = 170,
+		finisher = "Stagger",
 	},
 	BoneAxe = {
 		name = "Hacha de hueso",
@@ -195,6 +200,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		ammoItemId = "Arrow",
 		projectileSpeed = 200,
 		projectile = "Arrow",
+		finisher = "Pierce",
 	},
 	MagicStaff = {
 		name = "Bastón mágico",
@@ -206,6 +212,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectileSpeed = 120,
 		projectile = "Spell",
 		spell = true,
+		finisher = "Burst",
 	},
 	-- Médico: dispara dardos de savia, sin munición, que envenenan. Casi todo el daño del médico es el
 	-- de su cerbatana (medido con la calculadora ServerStorage.Tools.Equilibrio: ~60 % del de un rol de
@@ -221,6 +228,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		healOnHit = 2,
 		poison = { dps = 5, seconds = 4, boostItemId = "VenomDart" },
+		finisher = "Sap",
 	},
 	Club = {
 		name = "Garrote con colmillos",
@@ -264,6 +272,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		ammoItemId = "Arrow",
 		projectileSpeed = 220,
 		projectile = "Arrow",
+		finisher = "Pierce",
 	},
 	LianaBow = {
 		name = "Arco de liana",
@@ -276,6 +285,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		ammoItemId = "Arrow",
 		projectileSpeed = 250,
 		projectile = "Arrow",
+		finisher = "Pierce",
 	},
 	BoneBlowgun = {
 		name = "Cerbatana de hueso",
@@ -289,6 +299,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		healOnHit = 3,
 		poison = { dps = 7, seconds = 4, boostItemId = "VenomDart" },
+		finisher = "Sap",
 	},
 	ShamanBlowgun = {
 		name = "Cerbatana del chamán",
@@ -302,6 +313,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		healOnHit = 5,
 		poison = { dps = 9, seconds = 4, boostItemId = "VenomDart" },
+		finisher = "Sap",
 	},
 	-- Fase 9 (G5): nivel 4 de las armas de rol, en la forja volcánica (obsidiana y cristal de cueva).
 	-- ~+30 % de DPS sobre el nivel 3, como el salto anterior.
@@ -326,6 +338,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		ammoItemId = "Arrow",
 		projectileSpeed = 280,
 		projectile = "Arrow",
+		finisher = "Pierce",
 	},
 	SulfurBlowgun = {
 		name = "Cerbatana de azufre",
@@ -339,6 +352,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectile = "Dart",
 		healOnHit = 7,
 		poison = { dps = 11, seconds = 4, boostItemId = "VenomDart" },
+		finisher = "Sap",
 	},
 	LavaStaff = {
 		name = "Bastón de lava",
@@ -351,6 +365,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectileSpeed = 165,
 		projectile = "Spell",
 		spell = true,
+		finisher = "Burst",
 	},
 	GoldenStaff = {
 		name = "Bastón dorado",
@@ -363,6 +378,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectileSpeed = 135,
 		projectile = "Spell",
 		spell = true,
+		finisher = "Burst",
 	},
 	SilverStaff = {
 		name = "Bastón de plata",
@@ -375,6 +391,7 @@ local Weapons: { [string]: WeaponDefinition } = {
 		projectileSpeed = 150,
 		projectile = "Spell",
 		spell = true,
+		finisher = "Burst",
 	},
 }
 

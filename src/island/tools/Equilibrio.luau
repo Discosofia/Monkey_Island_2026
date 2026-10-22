@@ -144,6 +144,10 @@ local LIMITES = {
 	arenaDueloEspejo = { 8, 10 },
 	-- Fase 10 (Combate v2; secciones 7 a 10).
 	dpsCadena = { 0.95, 1.05 }, -- DPS de la cadena de golpes frente al golpe suelto de hoy
+	-- Disparo de remate a distancia (C9b): DPS de un ciclo frente al disparo suelto, contra uno y en la
+	-- arena, y como mucho esto contra un grupo (el remate que atraviesa o estalla alcanza a más).
+	dpsRemateUno = { 0.95, 1.05 },
+	dpsRemateGrupo = 1.15,
 	-- Lo que entra en la arena mientras no puedes actuar, después del golpe que te aturde (huecos más
 	-- cortos que Config.Reaction y controles que no dejan actuar), en fracción de 100 de vida, con el
 	-- Evasivo en recarga.
@@ -628,20 +632,37 @@ local function main(copia: Instance): string
 		return math.clamp(1 - falla * segundos, ajuste.minimo, 1)
 	end
 
+	-- Disparo de remate de las armas a distancia (C9b, Config.RangedChain y Shared/RangedChain): los
+	-- números del remate de "arma" (Data/Weapons "finisher"), o nil si no tiene.
+	local RC = Config.RangedChain
+	local function remateDe(arma: any): any
+		return if RC and arma.kind == "Ranged" and arma.finisher then RC.Finishers[arma.finisher] else nil
+	end
+
 	-- Arma del rol: id, daño por golpe con la ventaja del rol (como CombatService), DPS base y real.
 	-- "veneno": daño real por segundo del veneno de las cerbatanas (Data/Weapons "poison") en el mono al
 	-- que dispara; cuenta en los DPS del arma. Las de distancia disparan proyectiles (C9): los DPS ya
 	-- llevan su "acierto" contra monos ("aciertoJugadores", en la arena). El veneno no: cada acierto lo
 	-- renueva y dura más que el hueco entre dos.
+	-- Con disparo de remate (C9b), "golpe" es la media de un ciclo contra uno (los normales y el remate,
+	-- redondeados como CombatService); "extra(grupo)", lo que el remate añade de media por disparo a los
+	-- demás de un grupo (atraviesa o estalla); el veneno doble dura mientras se sigue el ritmo (el remate
+	-- llega antes de que se acabe y uno más flojo no lo pisa: Combat/Status.poison); "control", la
+	-- fracción del tiempo que el tambaleo tiene quieto a un mono.
 	type Arma = {
 		id: string,
 		golpe: number,
+		golpeNormal: number,
+		golpeRemate: number,
+		extra: (grupo: number) -> number,
+		control: number,
 		dpsBase: number,
 		dpsReal: number,
 		acierto: number,
 		aciertoJugadores: number,
 		critico: number,
 		cura: number,
+		curaPropia: number, -- la del médico a sí mismo (el remate solo cura más a un aliado)
 		veneno: number,
 		venenoBase: number, -- el veneno por segundo sin PlayerDamageMultiplier (contra jugadores)
 		venenoSegundos: number,
@@ -654,25 +675,55 @@ local function main(copia: Instance): string
 			then "MeleeDamage"
 			elseif arma.spell then "SpellDamage"
 			else "RangedDamage"
-		local golpe = math.round(arma.damage * perk(ventaja))
+		local remate = remateDe(arma)
+		local largo = if remate then RC.Length else 1
+		local golpeNormal = math.round(arma.damage * perk(ventaja) * (if remate then remate.shot else 1))
+		local golpeRemate = if remate then math.round(arma.damage * perk(ventaja) * remate.finisher) else golpeNormal
+		local golpe = ((largo - 1) * golpeNormal + golpeRemate) / largo
 		local critico = OPCIONES.critico or arma.critChance or Config.Crit.DefaultWeaponChance
 		local veneno = if arma.poison then arma.poison.dps * perk(ventaja) else 0
 		local refuerzo = if arma.poison then arma.poison.boostItemId else nil
 		if OPCIONES.dardosVenenosos and refuerzo then
 			veneno *= Items[refuerzo].poisonMultiplier or 1
 		end
+		if remate and remate.poisonMultiplier then
+			veneno *= remate.poisonMultiplier
+		end
+		local cura = (arma.healOnHit or 0)
+			* (if remate and remate.healMultiplier then (largo - 1 + remate.healMultiplier) / largo else 1)
+		local function extra(grupo: number): number
+			if not remate or grupo <= 1 then
+				return 0
+			end
+			local otros = 0
+			if remate.pierceTargets then
+				otros = math.min(remate.pierceTargets, grupo) - 1
+			elseif remate.radius then
+				-- El área sin el impactado, como la salpicadura de la Bola de fuego.
+				otros = math.max(0, math.min(tipicosEnRadio(remate.radius) - 1, grupo - 1))
+			end
+			return golpeRemate * (remate.othersDamage or 0) * otros / largo
+		end
+		local control = if remate and remate.staggerSeconds
+			then remate.staggerSeconds / (largo * arma.cooldownSeconds)
+			else 0
 		local velocidad = if arma.kind == "Ranged" then arma.projectileSpeed or 120 else nil
 		local acierto = aciertoDe(velocidad, false)
 		local dpsGolpes = golpe / arma.cooldownSeconds * acierto
 		return {
 			id = id,
 			golpe = golpe,
+			golpeNormal = golpeNormal,
+			golpeRemate = golpeRemate,
+			extra = extra,
+			control = control,
 			dpsBase = dpsGolpes + veneno,
 			dpsReal = dpsGolpes * PDM * (1 + critico * (CRIT - 1)) + venenoReal(veneno),
 			acierto = acierto,
 			aciertoJugadores = aciertoDe(velocidad, true),
 			critico = critico,
-			cura = (arma.healOnHit or 0) / arma.cooldownSeconds * acierto,
+			cura = cura / arma.cooldownSeconds * acierto,
+			curaPropia = (arma.healOnHit or 0) / arma.cooldownSeconds * acierto,
 			veneno = venenoReal(veneno),
 			venenoBase = veneno,
 			venenoSegundos = if arma.poison then arma.poison.seconds else 0,
@@ -779,10 +830,13 @@ local function main(copia: Instance): string
 				local acierto = if arma.acierto < 1
 					then `, acierto {pct(arma.acierto)} (jugadores {pct(arma.aciertoJugadores)})`
 					else ""
+				local porGolpe = if arma.golpeRemate ~= arma.golpeNormal
+					then `{arma.golpeNormal} por golpe y {arma.golpeRemate} el remate`
+					else `{arma.golpe} por golpe`
 				linea(
-					`### {Roles[roleId].icon} {roleId}: arma {arma.id} ({arma.golpe} por golpe{veneno}, DPS real {n(
-						arma.dpsReal
-					)}{acierto}, crítico {pct(arma.critico)}) · vida {100 + perk("MaxHealth")}`
+					`### {Roles[roleId].icon} {roleId}: arma {arma.id} ({porGolpe}{veneno}, DPS real {n(arma.dpsReal)}{acierto}, crítico {pct(
+						arma.critico
+					)}) · vida {100 + perk("MaxHealth")}`
 				)
 				local savia = perk("SapShield")
 				if savia > 0 then
@@ -1238,7 +1292,9 @@ local function main(copia: Instance): string
 					lanzar(hueco)
 				elseif t >= armaLista then
 					armaLista = t + Weapons[arma.id].cooldownSeconds
-					aplicar(arma.golpe * (if pvp then arma.aciertoJugadores else arma.acierto), 0, false, 0)
+					-- Con disparo de remate (C9b), la media del ciclo y lo que alcanza a los demás del grupo.
+					local disparo = arma.golpe + (if pvp then 0 else arma.extra(grupo))
+					aplicar(disparo * (if pvp then arma.aciertoJugadores else arma.acierto), 0, false, 0)
 					resultado.cura += arma.cura * Weapons[arma.id].cooldownSeconds
 					if arma.veneno > 0 then
 						venenoArmaHasta = t + arma.venenoSegundos
@@ -1769,7 +1825,8 @@ local function main(copia: Instance): string
 			local sin = simular(roleId, 1, false, nil, nil, pvpRol)
 			dps[roleId] = { con = con.total / OPCIONES.segundos, sin = sin.total / OPCIONES.segundos }
 			local curacion = arenaConfig.HealingMultiplier or 1
-			local reduccion, sustento = 0, armaDe(roleId, perk).cura * curacion
+			-- La cura de su arma a sí mismo (C9b: el remate solo cura más a un aliado).
+			local reduccion, sustento = 0, armaDe(roleId, perk).curaPropia * curacion
 			for _, ability in Roles[roleId].abilities do
 				local recarga = recargaDe(ability, perk)
 				local ficha = fichaDe(ability, perk, false)
@@ -2010,6 +2067,80 @@ local function main(copia: Instance): string
 						)} de 100 en la arena (máx. {pct(LIMITES.comboSinEscape)})`
 					)
 				end
+			end
+		end
+		linea("")
+	end
+
+	-- Disparo de remate de las armas a distancia (C9b): cada RC.Length.º disparo seguido al mismo ritmo.
+	-- Mide cada arma con su daño sin ventajas frente al disparo suelto de antes (todos iguales), contra
+	-- uno, contra el grupo de OPCIONES.grupo y en la arena. Hace lo mismo que armaDe y CombatService.
+	if OPCIONES.secciones.cadenas and RC then
+		linea(`### Disparo de remate (C9b ✅: Config.RangedChain y Shared/RangedChain)`)
+		linea(
+			`Cada {RC.Length}.º disparo seguido (hasta {n(RC.LinkWindowSeconds, 2)} s después de poder disparar) es un remate. DPS frente al disparo suelto (×1), con su acierto; grupo de {OPCIONES.grupo}.`
+		)
+		linea("| Arma | Remate | Normal · remate | DPS 1 obj | DPS grupo | Arena | Control (un mono) | Cura |")
+		linea("|---|---|---|---|---|---|---|---|")
+		local ids = {}
+		for id, arma in Weapons do
+			if remateDe(arma) then
+				table.insert(ids, id)
+			end
+		end
+		table.sort(ids, function(a, b)
+			local wa, wb = Weapons[a], Weapons[b]
+			return if wa.finisher == wb.finisher then wa.damage < wb.damage else wa.finisher < wb.finisher
+		end)
+		local sinVentajas: Perk = function()
+			return 1
+		end
+		for _, id in ids do
+			local arma = Weapons[id]
+			local con = armaDe("", sinVentajas, id)
+			-- El mismo arma sin remate (el disparo suelto de C9).
+			local suelto = math.round(arma.damage)
+			local venenoSuelto = venenoReal(if arma.poison then arma.poison.dps else 0)
+			local function dps(golpe: number, veneno: number, acierto: number): number
+				return golpe / arma.cooldownSeconds * acierto * PDM + veneno
+			end
+			local antes = dps(suelto, venenoSuelto, con.acierto)
+			local uno = dps(con.golpe, con.veneno, con.acierto) / antes
+			local grupo = dps(con.golpe + con.extra(OPCIONES.grupo), con.veneno, con.acierto) / antes
+			-- Arena: sin PlayerDamageMultiplier, veneno sin redondear y acierto contra jugadores.
+			local venenoAntes = if arma.poison then arma.poison.dps else 0
+			local arena = (con.golpe / arma.cooldownSeconds * con.aciertoJugadores + con.venenoBase)
+				/ (suelto / arma.cooldownSeconds * con.aciertoJugadores + venenoAntes)
+			local curaAntes = (arma.healOnHit or 0) / arma.cooldownSeconds * con.acierto
+			linea(
+				`| {id} | {arma.finisher} | {con.golpeNormal} · {con.golpeRemate} | ×{n(uno, 2)} | ×{n(grupo, 2)} | ×{n(
+					arena,
+					2
+				)} | {if con.control > 0 then pct(con.control) else "-"} | {if curaAntes > 0
+					then `{n(curaAntes, 2)} → {n(con.cura, 2)}/s`
+					else "-"} |`
+			)
+			if fuera(uno, LIMITES.dpsRemateUno) then
+				alerta(
+					`Remate de {id}: su DPS contra uno es ×{n(uno, 2)} el del disparo suelto (debe quedar en {LIMITES.dpsRemateUno[1]}–{LIMITES.dpsRemateUno[2]})`
+				)
+			end
+			if fuera(arena, LIMITES.dpsRemateUno) then
+				alerta(
+					`Remate de {id}: su DPS en la arena es ×{n(arena, 2)} el del disparo suelto (debe quedar en {LIMITES.dpsRemateUno[1]}–{LIMITES.dpsRemateUno[2]})`
+				)
+			end
+			if grupo > LIMITES.dpsRemateGrupo then
+				alerta(
+					`Remate de {id}: su DPS contra el grupo es ×{n(grupo, 2)} el del disparo suelto (máx. ×{LIMITES.dpsRemateGrupo})`
+				)
+			end
+			if con.control > LIMITES.controlPorHabilidad then
+				alerta(
+					`Remate de {id}: tambalea a un mono el {pct(con.control)} del tiempo (máx. {pct(
+						LIMITES.controlPorHabilidad
+					)})`
+				)
 			end
 		end
 		linea("")

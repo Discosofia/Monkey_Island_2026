@@ -307,6 +307,32 @@ local Config = {
 		FinisherShakeStuds = 0.25,
 	},
 
+	-- Disparo de remate de las armas a distancia (C9b; Shared/RangedChain): el Length.º disparo seguido al
+	-- mismo ritmo es un remate, un proyectil distinto que se ve y se puede esquivar. Cada arma dice el
+	-- suyo ("finisher" en Data/Weapons). Los normales hacen "shot" × el daño del arma y el remate
+	-- "finisher" ×: con (Length − 1) × shot + finisher = Length, el DPS contra uno es el de antes. Lo que
+	-- el remate hace además lo mide la calculadora (sección 7).
+	RangedChain = {
+		Length = 4,
+		-- Desde que se puede disparar otra vez, hasta cuándo sigue la cuenta; después vuelve al primero.
+		LinkWindowSeconds = 0.8,
+		Finishers = {
+			-- Arcos: la flecha atraviesa al primero y da también al siguiente (pierceTargets en total), a
+			-- éste con othersDamage × su daño.
+			Pierce = { shot = 0.9, finisher = 1.3, pierceTargets = 2, othersDamage = 0.35 },
+			-- Bastones: la bola estalla donde se para; a los demás a menos de "radius" studs (con línea de
+			-- visión), othersDamage × su daño.
+			Burst = { shot = 0.9, finisher = 1.3, radius = 6, othersDamage = 0.35 },
+			-- Cerbatanas: el dardo de savia cura healMultiplier × lo normal (healOnHit) a un aliado; al propio
+			-- médico, lo normal (en un duelo no se sostiene más). Un veneno doble subía su DPS un 20 %: el
+			-- remate llega antes de que se acabe y quedaba doble todo el rato.
+			Sap = { shot = 0.9, finisher = 1.3, healMultiplier = 2 },
+			-- Hondas: tambalea staggerSeconds a un mono hasta Config.Chain.FinisherStaggerTier (no alfas,
+			-- jefes ni jugadores: sería control sin riesgo a distancia).
+			Stagger = { shot = 0.9, finisher = 1.3, staggerSeconds = 0.6 },
+		},
+	},
+
 	-- Guardia (C5; Combat/Guard, GuardController): pulsar F / L2 / "Guardia" abre el parry y mantenerla
 	-- bloquea. Atributo "Guard" del Player (0–Max).
 	Guard = {

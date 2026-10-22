@@ -30,6 +30,10 @@
 -- Proyectiles (C9, Combat/Projectiles; efectos "Projectile" y "ProjectileEnd"): los disparos de las armas
 -- y las flechas, bolas y dardos de las habilidades vuelan aquí a la hora del servidor (LOOKS: cómo se ve
 -- cada uno y qué deja al pararse, como la explosión de la Bola de fuego).
+-- Disparo de remate (C9b, Shared/RangedChain): destello del color del remate en el arma al disparar
+-- ("WeaponShotFx") y su proyectil ("<estilo>Finisher" en LOOKS): piedra grande con estela de polvo
+-- (honda), flecha con punta y estela celestes (arco), bola de energía azul que estalla (bastón) y dardo
+-- verde de savia con estela (cerbatana: cura el doble).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -719,16 +723,54 @@ local SHOT_FX: { [string]: (character: Model) -> () } = {
 	Spell = crystalFlash,
 }
 
-local function weaponShotFx(character: Model?, projectile: string?)
+-- Color de cada remate (C9b), en el arma al disparar y en su proyectil.
+local FINISHER_COLORS: { [string]: Color3 } = {
+	Stone = Color3.fromRGB(255, 225, 170),
+	Arrow = Color3.fromRGB(120, 220, 255),
+	Spell = Color3.fromRGB(110, 160, 255),
+	Dart = Color3.fromRGB(90, 230, 110),
+}
+
+-- Destello del remate: una chispa que crece en el arma (o en la mano).
+local function finisherGlint(character: Model, style: string)
+	local tool = character:FindFirstChildOfClass("Tool")
+	local handle = if tool then tool:FindFirstChild("Handle") else nil
+	local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
+	local at = if handle and handle:IsA("BasePart") then handle elseif hand and hand:IsA("BasePart") then hand else nil
+	if not at then
+		return
+	end
+	local color = FINISHER_COLORS[style] or FINISHER_COLORS.Stone
+	local glint = ball("FinisherFlash", 0.5, color, Enum.Material.Neon, 0.1)
+	glint.CFrame = at.CFrame
+	glint.Parent = folder
+	TweenService:Create(glint, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.one * 3,
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(glint, 0.35)
+	burst(at.Position, SPARKLE_TEXTURE, color, 8, 0.6, 8, 0.4)
+	flash(at.Position, color, 10, 3, 0.3)
+end
+
+-- (personaje, estilo del arma, remate): la bocanada o el destello del disparo y, si es el remate, su
+-- chispa de color.
+local function weaponShotFx(character: Model?, projectile: string?, finisher: boolean?)
 	local key = projectile or "Stone"
 	local effect = SHOT_FX[key]
-	if not (effect and character) then
+	if not (character and (effect or finisher)) then
 		return
 	end
 	local data = WeaponAnimations[key]
 	task.wait(if data then data.fxDelay or 0 else 0)
-	if character.Parent then
+	if not character.Parent then
+		return
+	end
+	if effect then
 		effect(character)
+	end
+	if finisher then
+		finisherGlint(character, key)
 	end
 end
 
@@ -2537,6 +2579,49 @@ local function weaponLook(style: string): Look
 	}
 end
 
+-- El remate de un arma (C9b): más grande, del color de su remate y con estela. El del bastón estalla
+-- al pararse en el radio "splash" (lo que alcanza el servidor); el de la honda levanta polvo.
+local function finisherLook(style: string, splash: number?): Look
+	local color = FINISHER_COLORS[style] or FINISHER_COLORS.Stone
+	local body: Part
+	if style == "Arrow" then
+		body = arrow(Color3.fromRGB(120, 85, 50), color, Color3.fromRGB(235, 250, 255), Enum.Material.Neon)
+		body.Size = Vector3.new(0.22, 0.22, 2.8)
+		trail(body, Vector3.new(0, 0, 1.2), ColorSequence.new(Color3.fromRGB(240, 252, 255), color), 0.45, 0.4)
+	elseif style == "Dart" then
+		body = piece("Projectile", Vector3.new(0.18, 0.18, 1.3), color)
+		trail(body, Vector3.new(0, 0, 0.6), ColorSequence.new(Color3.fromRGB(200, 255, 200), color), 0.35, 0.3)
+	elseif style == "Spell" then
+		body = ball("Projectile", 1.5, color)
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Range = 12
+		light.Brightness = 2
+		light.Parent = body
+		trail(body, Vector3.zero, ColorSequence.new(Color3.fromRGB(230, 240, 255), color), 0.3, 1.1)
+	else
+		body = ball("Projectile", 1.1, Color3.fromRGB(105, 100, 95), Enum.Material.Slate)
+		trail(body, Vector3.zero, ColorSequence.new(color, Color3.fromRGB(150, 130, 100)), 0.3, 0.7)
+	end
+	return {
+		body = body,
+		land = function(position)
+			retire(body, 0.5)
+			if style == "Spell" then
+				local radius = splash or 6
+				swell(position, 1, radius * 2, color, 0.2, 0.3)
+				swell(position, 1, radius, Color3.fromRGB(235, 245, 255), 0, 0.2)
+				burst(position, SPARKLE_TEXTURE, color, 20, 1.2, radius * 2, 0.6)
+				flash(position, color, radius * 3, 5, 0.4)
+			elseif style == "Stone" then
+				burst(position, SMOKE_TEXTURE, Color3.fromRGB(170, 150, 120), 10, 2, 6, 0.6)
+			else
+				burst(position, SPARKLE_TEXTURE, color, 10, 0.8, 8, 0.5)
+			end
+		end,
+	}
+end
+
 local LOOKS: { [string]: (extra: { any }) -> Look } = {
 	Stone = function()
 		return weaponLook("Stone")
@@ -2556,6 +2641,18 @@ local LOOKS: { [string]: (extra: { any }) -> Look } = {
 		return fireballLook(if typeof(extra[1]) == "number" then extra[1] else 8)
 	end,
 	HealingDart = healingDartLook,
+	StoneFinisher = function()
+		return finisherLook("Stone")
+	end,
+	ArrowFinisher = function()
+		return finisherLook("Arrow")
+	end,
+	DartFinisher = function()
+		return finisherLook("Dart")
+	end,
+	SpellFinisher = function(extra)
+		return finisherLook("Spell", if typeof(extra[1]) == "number" then extra[1] else nil)
+	end,
 }
 
 -- Proyectiles en vuelo: lo que hay que hacer cuando el servidor dice dónde se ha parado cada uno.
@@ -2678,7 +2775,7 @@ local function projectileEnd(id: number, position: Vector3)
 	end
 end
 
--- ===================================== Despacho =====================================-- ===================================== Despacho =====================================
+-- ===================================== Despacho =====================================
 
 -- Cada efecto con los datos que manda el servidor (Combat/AbilityFx).
 local EFFECTS: { [string]: (...any) -> () } = {
@@ -2704,7 +2801,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Asleep = asleep, -- (modelo, segundos)
 	IceShatter = iceShatter, -- (posición): la Bola de fuego del combo rompe el hielo
 	ComboComplete = comboComplete, -- (personaje, racha)
-	WeaponShotFx = weaponShotFx, -- (personaje, proyectil): bocanada o destello al disparar un arma a distancia
+	WeaponShotFx = weaponShotFx, -- (personaje, proyectil, remate): bocanada o destello al disparar un arma a distancia
 	GuardFx = guardFx, -- (personaje, "Block" | "Parry" | "Break"): la guardia (Combat/Guard)
 	EvasiveFx = evasiveFx, -- (personaje): el Evasivo (Combat/Evasive; el propio cliente, DodgeController)
 	FeintFx = feintFx, -- (personaje): el amago (Combat/Feint; el propio cliente, CombatClient/Feint)

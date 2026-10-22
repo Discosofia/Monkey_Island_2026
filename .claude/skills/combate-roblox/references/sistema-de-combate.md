@@ -9,7 +9,7 @@ no coincide con el código, manda el código.
 
 | Pieza | Hoy | Fase 10 |
 |---|---|---|
-| Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` con proyectiles reales (`Combat/Projectiles`, C9 ✅) | Disparo de remate a distancia (C9b) |
+| Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` con proyectiles reales (`Combat/Projectiles`, C9 ✅) y disparo de remate (`Shared/RangedChain`, C9b ✅) | — |
 | Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor); Evasivo (`Combat/Evasive`, `CombatClient/EvasiveIcon`, C7 ✅) | — |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅); `Casting` de las habilidades (C8 ✅) | — |
 | Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
@@ -105,6 +105,19 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
     cerbatanas y su cura al aliado entran al impactar. Contra un jugador, el mismo proyectil (se puede
     bloquear y parar con el margen del defensor, `waitForParry`). Antes de C9 el daño llegaba con
     `task.delay` aunque el mono se apartara, y contra jugadores solo valía un rayo directo.
+  - **Disparo de remate** (C9b ✅, `Shared/RangedChain`, `Config.RangedChain`): el 4.º disparo
+    seguido al mismo ritmo (hasta `LinkWindowSeconds` 0,8 s después de poder disparar; cambiar de arma,
+    tambalearse, aturdirse o ponerse en guardia vuelven al primero) es un proyectil distinto, más
+    fuerte: los normales ×0,9 y el remate ×1,3 (mismo DPS contra uno). Cada arma el suyo
+    (`finisher` en `Data/Weapons`): **arco** `Pierce` (atraviesa al primero y da al siguiente con el
+    35 %, `maxHits` 2), **bastón** `Burst` (estalla donde se para, también en una pared o al final:
+    35 % a los de 6 studs con línea de visión), **cerbatana** `Sap` (cura el doble a un aliado; al
+    propio médico, lo normal: en un duelo no se sostiene más) y **honda** `Stagger` (tambalea 0,6 s a
+    un mono de categoría ≤ 2, no alfas, jefes ni jugadores). Lo que alcanza a los demás no envenena,
+    no cura ni tambalea. El veneno doble de la cerbatana se descartó: el remate llega antes de que se
+    acabe y quedaba doble siempre (+20 % de DPS). El ritmo lo lleva también el cliente
+    (`WeaponController`, con `RangedChain.advance`) para el destello del remate; el servidor admite el
+    margen `Config.Net.JitterSeconds` + ping, sin acumularlo. Telemetría `ShotFinishers`.
 - PvP: daño del arma × `pvpWeaponMultiplier` × `pvpWeaponMultipliers[arma]` (arena: ×0,55, arco ×0,7).
 
 - Guardia (C5): cada golpe de la cadena contra un jugador se puede bloquear o parar (§5); gasta
@@ -117,8 +130,7 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 - Amago (C8, §5 bis): pulsar la guardia durante la preparación del golpe (`chainAttack` lo registra
   en `Combat/Feint`) lo cancela; la cadena vuelve al primero. Gratis, uno por segundo.
 
-**Planificado.** C9b: disparo de remate de las armas a distancia (cada 4.º tiro seguido, mismo DPS
-total). C10: el remate contra un muro aturde.
+**Planificado.** C10: el remate contra un muro aturde.
 
 ## 4. Esquiva, estamina y Evasivo
 
@@ -305,8 +317,8 @@ vez: cota superior); peleando con 32 mandriles, heartbeat 0,32 ms y física 2,27
 ## 6 bis. Proyectiles (C9 ✅)
 
 `Combat/Projectiles` (lo arranca `CombatService:Start`). `Projectiles.fire(shot)` con `owner`, `look`
-(aspecto en el cliente), `origin`, `direction`, `speed`, `range`, `radius`, `pierce`, `onHit`, `onEnd`,
-`extra` y `counts`.
+(aspecto en el cliente), `origin`, `direction`, `speed`, `range`, `radius`, `pierce` (con `maxHits`,
+se para al dar a tantos: el remate del arco, C9b), `onHit`, `onEnd`, `extra` y `counts`.
 - **Servidor**: un solo bucle de `Heartbeat` para todos. En cada paso, de la posición anterior a la
   nueva: `Hitbox.ray` contra el mundo (solo lo que choca y el terreno: el decorado que no choca no
   para un disparo) y `Hitbox.sweepCombatants` (`Spherecast` con la lista de inclusión de los
@@ -332,7 +344,10 @@ vez: cota superior); peleando con 32 mandriles, heartbeat 0,32 ms y física 2,27
   Dardo curativo) vuela recto y se dibuja donde está **a la hora del servidor** (con ping llega tarde,
   pero adelantado: todos lo ven en el mismo sitio). Se para donde dice `ProjectileEnd` o, antes, si
   en ese cliente choca con el mundo o con un mono (no espera al servidor); al pararse deja lo suyo
-  (chispas, la explosión de la Bola de fuego).
+  (chispas, la explosión de la Bola de fuego). Los remates de las armas (C9b) son
+  `<estilo>Finisher` (`StoneFinisher`, `ArrowFinisher`, `SpellFinisher` con su radio en `extra`,
+  `DartFinisher`): más grandes, del color del remate y con estela; al disparar, `WeaponShotFx` con su
+  tercer dato a `true` pone una chispa de ese color en el arma.
 - **Telemetría**: `ShotsHit` / `ShotsMissed` por rol y place (`counts = false` en el abanico del
   Disparo múltiple y en la perforante, que fallan o atraviesan a propósito): la tasa de acierto real
   para la opción `acierto` de la calculadora.
@@ -349,6 +364,12 @@ flechas, una a cada muñeco a los 0,35 s (0,2 + 30 ÷ 200), 5 de daño. Flecha p
 tres, cada uno cuando le llega (+0,11 · 0,16 · 0,20 s), 12 de daño. Bola de fuego: 0,53 s, 20 de daño.
 Dardo curativo: 0,33 s, 6. Cerbatana: 0,18 s, 11, y el veneno al impactar. Adelanto: blanco que cruza
 a 16 studs/s, 3 de 3 (se dispara con él en z −19,9 y le da en −16,4).
+
+Remate (C9b, Lobby, 22-10-2026, muñecos en fila a 30 studs, disparos cada `cooldown` + 0,05 s): arco
+15 · 15 · 15 · **22** + 8 al de detrás (10 studs más allá) y el 5.º otra vez 15; bastón 10 · 10 · 10 ·
+**14** + 5 de la explosión al de 4,5 studs, y cada 1,8 s (fuera del ritmo) ningún remate; honda 11 ·
+11 · 11 · **15** y `StunnedUntil` +0,6 s; cerbatana 12 · 12 · 12 · **17**, el veneno 4/s y al propio
+médico +2 (lo normal). En el cliente, los cuatro aspectos se distinguen de los normales.
 
 ## 7. Red y lag
 

@@ -254,6 +254,15 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   a donde está y mira dónde estaba al recibir el golpe. Lo que se ve, en `workspace.AbilityFx` del
   cliente (piezas `Projectile`, `Arrow`, `Fireball`, `Dart`). En el Lobby no hay comando de rol: pon el
   atributo `Role` del `Player` desde el servidor (le cambia las armas).
+- **Disparo de remate** (C9b): equipa el arma desde el cliente (`Humanoid:EquipTool`) y dispara con
+  `UseWeapon:FireServer` cada `cooldownSeconds` + 0,05 s; el 4.º es el remate (en `workspace.AbilityFx`,
+  una pieza más grande). Cada 1,8 s ya no hay remate (fuera del ritmo). Para el que atraviesa o
+  estalla, pon los muñecos en fila (misma X) con `PivotTo` desde el servidor; el de 4,5 studs detrás
+  del primero entra en la explosión del bastón. En el Lobby, dispara desde z ≈ +38 hacia −z: desde el
+  sur, el casco del naufragio (z ≈ −32) para los disparos, y aparta antes el muñeco de sparring
+  (x −25, z 20), que queda en la línea. Para ver los aspectos quietos: una copia de
+  `AbilityFxController` en el cliente, `:Init()` y `play("Projectile", id, "<estilo>Finisher", nil,
+  origen, dirección, 0.6, 200, ahora, false, extra)` delante de la cámara.
 - **Mono concreto sin comando**: el panel solo crea mandriles; para otra especie busca en el
   servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
   a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y

@@ -16,6 +16,8 @@
 -- Escape y equidad del combo (C7): esquivar atrapado es el Evasivo (Combat/Evasive) y los golpes de un
 -- jugador a otro llevan el escalado del combo (Combat/ComboScaling).
 -- Amagos (C8, Combat/Feint): pulsar la guardia durante la preparación de un golpe de la cadena lo cancela.
+-- Disparo de remate (C9b, Shared/RangedChain): el 4.º disparo seguido al mismo ritmo con un arma a
+-- distancia es un remate, distinto por arma (atraviesa, estalla, cura el doble o tambalea a un mono).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -34,6 +36,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
@@ -61,6 +64,8 @@ local CombatService = {}
 local lastAttackAt: { [Player]: number } = {}
 -- Dónde va la cadena de golpes de cada jugador (Shared/MeleeChain).
 local chains: { [Player]: MeleeChain.State } = {}
+-- Y la cuenta de disparos seguidos de las armas a distancia (Shared/RangedChain).
+local shots: { [Player]: RangedChain.State } = {}
 local damageListeners: { (model: Model, attacker: Player?, amount: number) -> () } = {}
 local healListeners: { (player: Player, healer: Player, amount: number) -> () } = {}
 
@@ -761,8 +766,9 @@ function CombatService.aimShot(
 end
 
 -- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico). Solo a
--- los aliados según las reglas del place (en la arena, los de su equipo).
-local function healWoundedAlly(healer: Player, amount: number, weaponId: string)
+-- los aliados según las reglas del place (en la arena, los de su equipo). "allyMultiplier": el remate
+-- (C9b) cura más a un aliado, no al propio médico (en un duelo no se sostiene más).
+local function healWoundedAlly(healer: Player, amount: number, weaponId: string, allyMultiplier: number?)
 	local _, healerRoot = livingCharacter(healer)
 	if not healerRoot then
 		return
@@ -787,7 +793,8 @@ local function healWoundedAlly(healer: Player, amount: number, weaponId: string)
 		end
 	end
 	if best then
-		CombatService.heal(best, amount, healer, { source = weaponId })
+		local multiplier = if best ~= healer then allyMultiplier or 1 else 1
+		CombatService.heal(best, amount * multiplier, healer, { source = weaponId })
 	end
 end
 
@@ -795,6 +802,10 @@ end
 -- dice la ayuda de puntería (aimShot) y da al primero que encuentra: si se aparta, falla. Atraviesa a
 -- los aliados. Contra un jugador se puede bloquear y parar (con el margen del defensor, como el golpe);
 -- el veneno de las cerbatanas entra al impactar.
+-- "shot": el número del disparo seguido (Shared/RangedChain). El último es el remate (C9b): otro
+-- proyectil, más fuerte, y lo suyo según el arma (Config.RangedChain.Finishers): el del arco atraviesa
+-- al primero y da también al siguiente; el del bastón estalla donde se para; el de la cerbatana cura
+-- el doble a un aliado; el de la honda tambalea a un mono pequeño (no a jugadores).
 local function rangedAttack(
 	player: Player,
 	character: Model,
@@ -802,7 +813,8 @@ local function rangedAttack(
 	weaponId: string,
 	weapon: Weapons.WeaponDefinition,
 	aim: Vector3,
-	critChance: number
+	critChance: number,
+	shot: number
 )
 	local ammo = weapon.ammoItemId
 	local rules = CombatRules.get()
@@ -810,9 +822,10 @@ local function rangedAttack(
 		Remotes.Notify:FireClient(player, `Necesitas {Items[ammo].name} para usar: {weapon.name}`)
 		return
 	end
+	local finisher = if RangedChain.isFinisher(weapon, shot) then RangedChain.settings(weapon) else nil
 	-- "+daño a distancia" del cazador o "+daño de hechizos" del mago, con sus talentos (también el veneno).
 	local scale = Progression.perk(player, if weapon.spell then "SpellDamage" else "RangedDamage")
-	local damage = math.round(weapon.damage * scale)
+	local damage = math.round(weapon.damage * scale * RangedChain.damageMultiplier(weapon, shot))
 	-- Dardos venenosos del médico: munición opcional; mientras queden, cada disparo gasta uno.
 	local poison = weapon.poison
 	local poisonDps = if poison then poison.dps * scale else 0
@@ -821,54 +834,96 @@ local function rangedAttack(
 		poisonDps *= Items[boost].poisonMultiplier or 1
 	end
 	local crit = Crit.roll(critChance)
+	local style = weapon.projectile or "Stone"
 	-- La animación del disparo se ve sola (es del personaje); la bocanada o el destello, a los demás
 	-- (el que dispara ya los ha lanzado en su cliente).
-	AbilityFx.others(player, "WeaponShotFx", character, weapon.projectile or "Stone")
+	AbilityFx.others(player, "WeaponShotFx", character, style, finisher ~= nil)
+	if finisher then
+		rules.telemetry.mechanic(player, "ShotFinishers")
+	end
+
+	-- El daño de este disparo a "model" (true si le vale; si no, el proyectil lo atraviesa). "main": el
+	-- primero al que da, el único al que envenena, por el que cura y al que tambalea.
+	local function strike(model: Model, amount: number, main: boolean): boolean
+		local victim = Players:GetPlayerFromCharacter(model)
+		if victim then
+			if not CombatService.canHitPlayer(player, victim) then
+				return false
+			end
+			local pvpScale = pvpWeaponScale(weaponId)
+			CombatService.damagePvP(player, victim, amount * pvpScale, crit, false, {
+				guardDamage = Config.Guard.ProjectileGuardDamage,
+				waitForParry = true,
+				onResult = function(outcome)
+					-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran).
+					local victimCharacter = victim.Character
+					if main and outcome == "Hit" and poison and rules.pvpStatus and victimCharacter then
+						Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
+					end
+				end,
+			})
+			return true
+		end
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if not (CollectionService:HasTag(model, Config.Combat.EnemyTag) and humanoid and humanoid.Health > 0) then
+			return false
+		end
+		CombatService.damage(model, humanoid, amount, player, { crit = crit, source = weaponId })
+		if not main then
+			return true
+		end
+		if poison and humanoid.Health > 0 then
+			Status.poison(model, poisonDps, poison.seconds, player, weaponId)
+		end
+		if weapon.healOnHit then
+			healWoundedAlly(player, weapon.healOnHit, weaponId, if finisher then finisher.healMultiplier else nil)
+		end
+		if finisher and finisher.staggerSeconds and humanoid.Health > 0 and staggersOnFinisher(model) then
+			Status.stun(model, finisher.staggerSeconds)
+		end
+		return true
+	end
 
 	local head = character:FindFirstChild("Head")
 	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
 	local speed = weapon.projectileSpeed or 120
+	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
+	local others = if finisher then math.round(damage * (finisher.othersDamage or 0)) else 0
+	local direct: Model? = nil
 	Projectiles.fire({
 		owner = player,
-		look = weapon.projectile or "Stone",
+		look = if finisher then `{style}Finisher` else style,
 		origin = origin,
-		direction = CombatService.aimShot(player, origin, aim, weapon.range, speed),
+		direction = direction,
 		speed = speed,
 		range = weapon.range,
 		radius = Config.Projectiles.WeaponRadius,
+		pierce = finisher ~= nil and finisher.pierceTargets ~= nil,
+		maxHits = if finisher then finisher.pierceTargets else nil,
+		extra = if finisher and finisher.radius then { finisher.radius } else nil,
 		onHit = function(model)
-			local victim = Players:GetPlayerFromCharacter(model)
-			if victim then
-				if not CombatService.canHitPlayer(player, victim) then
-					return false
+			if direct == nil then
+				if strike(model, damage, true) then
+					direct = model
+					return true
 				end
-				local pvpScale = pvpWeaponScale(weaponId)
-				CombatService.damagePvP(player, victim, damage * pvpScale, crit, false, {
-					guardDamage = Config.Guard.ProjectileGuardDamage,
-					waitForParry = true,
-					onResult = function(outcome)
-						-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran).
-						local victimCharacter = victim.Character
-						if outcome == "Hit" and poison and rules.pvpStatus and victimCharacter then
-							Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
-						end
-					end,
-				})
-				return true
-			end
-			local humanoid = model:FindFirstChildOfClass("Humanoid")
-			if not (CollectionService:HasTag(model, Config.Combat.EnemyTag) and humanoid and humanoid.Health > 0) then
 				return false
 			end
-			CombatService.damage(model, humanoid, damage, player, { crit = crit, source = weaponId })
-			if poison and humanoid.Health > 0 then
-				Status.poison(model, poisonDps, poison.seconds, player, weaponId)
-			end
-			if weapon.healOnHit then
-				healWoundedAlly(player, weapon.healOnHit, weaponId)
-			end
-			return true
+			-- Los siguientes, solo el remate que atraviesa.
+			return others > 0 and strike(model, others, false)
 		end,
+		-- El remate del bastón estalla donde se para (en el primero, en una pared o al final de su
+		-- alcance), mirando desde un poco antes: lo que hay detrás de una pared no se alcanza.
+		onEnd = if finisher and finisher.radius
+			then function(position)
+				local radius = finisher.radius :: number
+				for _, model in Hitbox.inSphere(position, radius, { exclude = character, from = position - direction }) do
+					if model ~= direct then
+						strike(model, others, false)
+					end
+				end
+			end
+			else nil,
 	})
 end
 
@@ -888,16 +943,41 @@ local function onUseWeapon(player: Player, aim: any)
 	end
 
 	local now = os.clock()
+	-- Margen del retraso de red del atacante (como la esquiva) y el de Config.Net.JitterSeconds: el
+	-- cliente lleva el ritmo con su reloj.
+	local slack = Config.Net.JitterSeconds + 2 * Latency.compensation(player)
 	if MeleeChain.uses(weapon) then
 		-- Cadena de golpes: el ritmo lo lleva la cadena, con el margen del retraso de red del atacante
 		-- (como la esquiva) y el de Config.Net.JitterSeconds; no se acumula de un golpe a otro.
 		local chain = chains[player] or MeleeChain.newState()
 		chains[player] = chain
-		local slack = Config.Net.JitterSeconds + 2 * Latency.compensation(player)
 		local step = MeleeChain.advance(chain, weaponId :: string, weapon, now, slack)
 		if step then
 			WeaponTools.playUse(tool)
 			chainAttack(player, tool, weaponId :: string, weapon, step)
+		end
+		return
+	end
+	if weapon.kind == "Ranged" then
+		-- Disparos seguidos: el ritmo y el remate los lleva Shared/RangedChain.
+		if not (typeof(aim) == "Vector3" and aim.Magnitude > 0.5) then
+			return
+		end
+		local count = shots[player] or RangedChain.newState()
+		shots[player] = count
+		local shot = RangedChain.advance(count, weaponId :: string, weapon, now, slack)
+		if shot then
+			WeaponTools.playUse(tool)
+			rangedAttack(
+				player,
+				character,
+				root,
+				weaponId :: string,
+				weapon,
+				aim.Unit,
+				Crit.weaponChance(weaponId :: string),
+				shot
+			)
 		end
 		return
 	end
@@ -907,24 +987,11 @@ local function onUseWeapon(player: Player, aim: any)
 	end
 	lastAttackAt[player] = now
 
-	if weapon.kind == "Melee" then
-		WeaponTools.playUse(tool)
-		meleeAttack(player, character, root, weaponId :: string, weapon, Crit.weaponChance(weaponId :: string))
-		-- El hacha y el pico, además de golpear enemigos, trabajan el árbol o la roca de delante.
-		if weapon.tool then
-			CombatRules.get().strikeResource(player, root, weapon.tool)
-		end
-	elseif typeof(aim) == "Vector3" and aim.Magnitude > 0.5 then
-		WeaponTools.playUse(tool)
-		rangedAttack(
-			player,
-			character,
-			root,
-			weaponId :: string,
-			weapon,
-			aim.Unit,
-			Crit.weaponChance(weaponId :: string)
-		)
+	WeaponTools.playUse(tool)
+	meleeAttack(player, character, root, weaponId :: string, weapon, Crit.weaponChance(weaponId :: string))
+	-- El hacha y el pico, además de golpear enemigos, trabajan el árbol o la roca de delante.
+	if weapon.tool then
+		CombatRules.get().strikeResource(player, root, weapon.tool)
 	end
 end
 
@@ -1027,12 +1094,17 @@ function CombatService:Start()
 	Remotes.Dodge.OnServerEvent:Connect(onDodge)
 
 	-- Si le tambalean (un parry, un golpe en PvP), le aturden o se pone en guardia, la cadena vuelve al
-	-- primer golpe (WeaponController hace lo mismo con su predicción).
+	-- primer golpe y la cuenta de disparos al primero, sin adelantar el siguiente (WeaponController hace
+	-- lo mismo con su predicción).
 	local function watchState(player: Player)
 		player:GetAttributeChangedSignal(CombatState.ATTRIBUTE):Connect(function()
 			local state = CombatState.get(player)
 			if state ~= "Idle" and state ~= "Attacking" then
 				chains[player] = nil
+				local count = shots[player]
+				if count then
+					count.shot = 0
+				end
 			end
 		end)
 	end
@@ -1047,6 +1119,7 @@ function CombatService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastAttackAt[player] = nil
 		chains[player] = nil
+		shots[player] = nil
 		guardSpent[player] = nil
 		lastDodgeAt[player] = nil
 	end)

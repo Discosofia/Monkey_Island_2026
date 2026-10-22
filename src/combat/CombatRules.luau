@@ -22,6 +22,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 --   WallBangs                     el que empuja contra el muro (C10)
 --   ShotsHit, ShotsMissed         el que dispara un proyectil, según dé a alguien o no (C9,
 --                                 Combat/Projectiles): la tasa de acierto real para la calculadora
+--   ShotFinishers                 el que dispara el remate de un arma a distancia (C9b, CombatService)
 export type Mechanic =
 	"Parries"
 	| "Blocks"
@@ -32,6 +33,7 @@ export type Mechanic =
 	| "WallBangs"
 	| "ShotsHit"
 	| "ShotsMissed"
+	| "ShotFinishers"
 
 export type Telemetry = {
 	damageDealt: (player: Player, source: string, amount: number) -> (),

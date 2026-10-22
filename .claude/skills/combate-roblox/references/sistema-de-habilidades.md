@@ -49,7 +49,7 @@ Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, 
 | `bestInCone(attacker, character, origen, puntería, alcance, grados)` | el mejor alineado y sin obstáculos |
 | `castShot(character, origen, dirección, alcance, radio)` | disparo recto con `Spherecast` en el instante: punto final y a qué dio (dónde cae un área: Lluvia, Meteoro, Tótem, Polvo) |
 | `CombatService.aimShot(player, origen, puntería, alcance, velocidad, grados, aliados?)` | ayuda de puntería de un proyectil (C9): la dirección de salida; contra monos, adonde estarán al llegar |
-| `Projectiles.fire(shot)` | proyectil real (C9, `Combat/Projectiles`): `onHit(modelo)` decide si le vale (si no, lo atraviesa) y `onEnd(punto)` lo que pasa al pararse |
+| `Projectiles.fire(shot)` | proyectil real (C9, `Combat/Projectiles`): `onHit(modelo)` decide si le vale (si no, lo atraviesa) y `onEnd(punto)` lo que pasa al pararse; con `pierce`, `maxHits` lo para al dar a tantos |
 | `targetOfModel`, `enemyTarget`, `playerTarget` | de un combatiente a un `Target` (nil si no se le puede dañar) |
 | `groundBelow(posición, ignorar)` | suelo y su normal (para apoyar cosas) |
 | `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`pvpDamageMultiplier` (y las definitivas ×`pvpUltimateMultiplier`, de `CombatRules`); crítico seguro si es golpe de combo, si no, con la probabilidad del arma |

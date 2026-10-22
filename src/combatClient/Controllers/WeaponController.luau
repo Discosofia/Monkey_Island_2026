@@ -14,6 +14,8 @@
 -- con más prioridad que la pose de empuñar de Roblox. Como son animaciones del personaje del propio
 -- jugador, los demás también las ven; la bocanada y el destello (AbilityFxController,
 -- "WeaponShotFx") se los manda el servidor.
+-- Disparo de remate (C9b, Shared/RangedChain): aquí se predice la cuenta de disparos seguidos para que
+-- el destello del remate salga al momento; el proyectil y lo que hace los decide el servidor.
 
 local CollectionService = game:GetService("CollectionService")
 local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
@@ -26,6 +28,7 @@ local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
+local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
@@ -51,7 +54,6 @@ local WeaponController = {}
 local hooked: { [Tool]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local slashTrack: AnimationTrack? = nil
 local lastSwingAt = -math.huge
-local lastShotAt = -math.huge
 -- Animaciones de armas ya cargadas en el personaje actual, por clave.
 local weaponTracks: { [string]: AnimationTrack } = {}
 -- Ids temporales de Studio de las secuencias generadas, por clave (se registran una vez).
@@ -59,6 +61,8 @@ local studioIds: { [string]: string } = {}
 -- Predicción de la cadena de golpes (el servidor lleva la suya con los mismos tiempos).
 local chain = MeleeChain.newState()
 local buffered = false
+-- Y de la cuenta de disparos de las armas a distancia.
+local shots = RangedChain.newState()
 
 -- Usa el tajo del paquete de animaciones del avatar (script Animate) o el estándar.
 local function loadSlash(character: Model): AnimationTrack?
@@ -174,17 +178,19 @@ local function releaseArm()
 	end
 end
 
-local function shoot(character: Model, weapon: Weapons.WeaponDefinition)
-	if os.clock() - lastShotAt < weapon.cooldownSeconds then
-		return
+-- Dispara si el arma está lista (true): solo entonces se avisa al servidor, que lleva la misma cuenta.
+local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponDefinition): boolean
+	local shot = RangedChain.advance(shots, weaponId, weapon, os.clock())
+	if not shot then
+		return false
 	end
-	lastShotAt = os.clock()
 	local projectile = weapon.projectile or "Stone"
 	local track = weaponTrack(character, projectile)
 	if track then
 		track:Play(0.05)
 	end
-	AbilityFxController.play("WeaponShotFx", character, projectile)
+	AbilityFxController.play("WeaponShotFx", character, projectile, RangedChain.isFinisher(weapon, shot))
+	return true
 end
 
 -- true si el tajo de "weapon" va a dar a un enemigo o a otro jugador (la misma caja que el servidor,
@@ -328,8 +334,8 @@ local function hook(instance: Instance)
 			return
 		elseif weapon and weapon.kind == "Melee" then
 			playSwing(character, weapon)
-		elseif weapon and weapon.kind == "Ranged" then
-			shoot(character, weapon)
+		elseif weapon and weapon.kind == "Ranged" and not shoot(character, weaponId :: string, weapon) then
+			return
 		end
 		Remotes.UseWeapon:FireServer(Aim.direction(character))
 	end)
@@ -366,11 +372,12 @@ end
 function WeaponController:Start()
 	local player = Players.LocalPlayer
 	-- Si le tambalean (un parry, un golpe en PvP), le aturden o se pone en guardia, el servidor corta la
-	-- cadena: aquí también vuelve al primer golpe.
+	-- cadena y la cuenta de disparos: aquí también vuelven al primero.
 	player:GetAttributeChangedSignal(CombatState.ATTRIBUTE):Connect(function()
 		local state = CombatState.get(player)
 		if state ~= "Idle" and state ~= "Attacking" then
 			chain = MeleeChain.newState()
+			shots.shot = 0
 		end
 	end)
 	player.CharacterAdded:Connect(onCharacter)

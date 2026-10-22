@@ -29,7 +29,8 @@ export type Shot = {
 	speed: number, -- studs/s
 	range: number, -- studs
 	radius: number, -- studs: el grosor que alcanza
-	pierce: boolean?, -- atraviesa a todos los que toca (cada uno una vez); solo lo para el mundo
+	pierce: boolean?, -- atraviesa a todos los que toca (cada uno una vez); solo lo para el mundo…
+	maxHits: number?, -- …o, con esto, al dar a tantos (el remate del arco, C9b)
 	-- Al tocar un combatiente: true si le vale (le da y, sin "pierce", se para); false para atravesarlo.
 	onHit: (model: Model, position: Vector3) -> boolean,
 	-- Al acabar: dónde, a quién dio el último (o nil) y si ha dado a alguien.
@@ -47,6 +48,7 @@ type Flight = {
 	travelled: number,
 	skip: { [Model]: boolean },
 	hitAny: boolean,
+	hits: number,
 }
 
 local Projectiles = {}
@@ -85,7 +87,8 @@ local function advance(flight: Flight, distance: number): boolean
 		flight.skip[model] = true
 		if shot.onHit(model, from) then
 			flight.hitAny = true
-			if not shot.pierce then
+			flight.hits += 1
+			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
 				flight.position = from
 				finish(flight, from, model)
 				return true
@@ -133,6 +136,7 @@ function Projectiles.fire(shot: Shot): number
 		travelled = 0,
 		skip = if character then { [character] = true } else {},
 		hitAny = false,
+		hits = 0,
 	}
 	AbilityFx.all(
 		"Projectile",
@@ -154,7 +158,8 @@ function Projectiles.fire(shot: Shot): number
 		flight.skip[model] = true
 		if shot.onHit(model, contact or shot.origin) then
 			flight.hitAny = true
-			if not shot.pierce then
+			flight.hits += 1
+			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
 				finish(flight, contact or shot.origin, model)
 				return flight.id
 			end

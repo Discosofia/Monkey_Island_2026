@@ -82,7 +82,7 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Te deja quieto | fracción del tiempo que un mono solo te inmoviliza si todos sus golpes entran, con la inmunidad tras soltarte | bloqueo |
 | % del arma (mascotas) | DPS de la mascota ÷ DPS medio de las armas de rol | que la mascota ayude sin jugar por ti |
 | Marca (mascotas) | `MarkBonus` × el DPS del arma del dueño solo y del equipo (`aliados` × `focoMarca`, la parte de su daño que va al marcado); a un jefe, lo que le deja a "Marcar presas" | que el pointer ayude al grupo sin quitarle su papel al cazador |
-| Cadena de golpes (sección 7) | DPS de la cadena ÷ el del golpe suelto; tambaleo y hueco entre golpes frente a `Config.Reaction`; daño de una cadena en la arena (con el escalado del combo); guardia que gasta | que la cadena no cambie el DPS, que siempre deje responder y que todas las armas rompan la guardia en el mismo tiempo |
+| Cadena de golpes (sección 7) | DPS de la cadena ÷ el del golpe suelto; tambaleo y hueco entre golpes frente a `Config.Reaction`; daño de una cadena en la arena (con el escalado del combo); guardia que gasta. Disparo de remate (C9b): por arma a distancia, DPS del ciclo ÷ el disparo suelto contra uno, contra el grupo y en la arena, el control del tambaleo y la cura | que la cadena no cambie el DPS, que siempre deje responder y que todas las armas rompan la guardia en el mismo tiempo; que el remate a distancia no cambie el DPS contra uno ni dispare el de grupo |
 | Defensa (sección 8) | golpes y segundos para romper la guardia por arma (con su recuperación); duelo espejo de la arena con `defensa` (bloqueo y parry) | que quedarse en guardia no sea gratis y que defender alargue el duelo sin eternizarlo |
 | Control y escape (sección 9) | control del equipo sobre un jefe y de cada rol sobre un mono con y sin `Config.ControlDR` (controles solapados contados una vez); en la arena, lo que entra mientras no puedes actuar (golpe de apertura + arma y una habilidad durante el aturdimiento), con el Evasivo en recarga | que nadie se quede sin salida y que el control no se apile |
 | Preparación (sección 10) | monos: aviso de cada mono frente a la reacción; DPS para un jugador atento (`esquivaMonos`); golpes y segundos para romper la guardia. Habilidades (C8): su preparación, recarga, la de un amago y la guardia que gasta por uso. La simulación (secciones 2 y 6) saca cada habilidad al acabar su preparación y no pega con el arma mientras dura | que todo ataque se vea venir y que bloquear contra un alfa no sea un muro ni un papel; que la preparación no se note lenta ni quite valor al combo |
@@ -103,7 +103,10 @@ bastón 94 %), contra jugadores 35 studs y 0,9 (arco 84 %, cerbatana 81 %, honda
 son supuestos hasta que la telemetría (`ShotsHit`/`ShotsMissed`) dé los reales. El veneno de las cerbatanas
 cuenta en el DPS del arma, sin críticos y redondeado como en el juego, en el mono al que dispara (si el
 médico reparte los dardos envenena a más, hasta 5 con su cadencia); el de una habilidad (`veneno` en la
-ficha) no se suma al de la cerbatana en ese mono: gana el más fuerte. Cámbialos en `OPCIONES`
+ficha) no se suma al de la cerbatana en ese mono: gana el más fuerte. El disparo de remate (C9b): el
+golpe del arma es la media del ciclo (3 normales y el remate); en un grupo el del arco da siempre a un
+segundo y el del bastón alcanza a `tipicosEnRadio(6)` − 1 = 1 más; la cura doble solo cuenta para
+los aliados (la del médico a sí mismo, en la arena, es la normal). Cámbialos en `OPCIONES`
 si una pregunta concreta lo necesita.
 
 ## 3. Límites
@@ -133,6 +136,7 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Arena: duelo entre dos jugadores del mismo rol (Guerrero, Cazador, Mago), 60 % de actividad | 8–10 s | da tiempo a esquivar, cerrar un combo y que el médico cure; el médico (apoyo) puede durar más |
 | Arena: el mismo duelo con defensa (bloquea el 25 % y para el 5 % del daño) | 8–12 s | defender bien alarga el duelo, pero no lo eterniza |
 | DPS de la cadena de golpes frente al golpe suelto | ×0,95–1,05 | la cadena cambia el ritmo y el remate, no el daño |
+| Disparo de remate a distancia (C9b): DPS del ciclo frente al disparo suelto | ×0,95–1,05 contra uno y en la arena; ≤ ×1,15 contra el grupo | el remate premia el ritmo, no sube el daño; el que atraviesa o estalla alcanza a más, pero no convierte el arma en un área |
 | Lo que entra mientras no puedes actuar, después del golpe que te aturde (arena, Evasivo en recarga) | ≤ 35 % de 100 de vida | un combo sin escape no puede decidir un duelo |
 | Golpe más fuerte de una habilidad (definitivas incluidas) a un jugador | ≤ 40 de 100 | como los monos el día 1: nada te tumba de uno o dos golpes; las definitivas llevan su propio multiplicador contra jugadores |
 | Hueco entre dos golpes de una cadena | ≥ `Config.Reaction` (0,25 s) | la cadena siempre deja bloquear, hacer parry o esquivar |
@@ -323,6 +327,15 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   (antes 10,4 · 9,3 · 9,6) y las mismas alertas sin talentos y con talentos al máximo. El Disparo
   múltiple queda a −4 % (7 por flecha: el siguiente entero se pasa). Los supuestos contra jugadores
   se revisan en C13 con la telemetría de aciertos.
+- **C9b ✅ (22-10-2026):** disparo de remate (cada 4.º seguido, normales ×0,9 y remate ×1,3). Por
+  arma: contra uno ×0,99–1,03 (redondeo), contra el grupo arco ×1,10–1,13 y bastón ×1,11–1,15 (35 %
+  del remate a uno más), honda 17–19 % de control sobre un mono. Primera propuesta con el 50 % a los
+  demás: ×1,16–1,20 en grupo. Veneno doble de la cerbatana: ×1,16–1,23 contra uno (el remate llega
+  antes de que se acabe), cambiado por la cura doble al aliado (2,7 → 3,4/s con la cerbatana; al
+  médico mismo, no: con ella los duelos contra él se alargaban un 9 %). Resultado: DPS en grupo sin
+  combos cazador 40,7 → 42,5 y mago 36,1 → 37,3 (el resto igual), valor del combo 29 → 28 % y 32 → 31 %
+  (grupo), duelos espejo 10,4 · 9,4 · 9,8 s (el médico 30,5 → 28,9), las mismas 9 alertas sin
+  talentos y con talentos al máximo 18 → 17 (el combo del cazador 36 → 35 %).
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un
@@ -365,6 +378,7 @@ campos está en la cabecera del servicio. Cómo leerlo frente a la calculadora:
 | ¿Te tienen quieto? | `TimeHeld` por causa ÷ `MinutesPlayed` | "te deja quieto" de la sección 4 |
 | ¿Cuánto dura un jefe? | `BossDefeated` (segundos, por jefe y jugadores) | duración de la sección 3 (90–240 s) |
 | ¿Cuánto aciertan los disparos? | `ShotsHit` ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (Isla / Dunas) | `OPCIONES.acierto` (contra monos en la Isla, contra jugadores en Dunas) |
+| ¿Se dispara al ritmo? | `ShotFinishers` × 4 ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (1 = siempre al ritmo) | el remate de la sección 7 (que supone que siempre) |
 
 Para una habilidad nueva no hay que tocar nada: sus usos y su daño salen solos por su id (si hace
 daño con `hurt` y cura con `heal`). Un mono o jefe nuevo sale por su especie o `Jefe <id>`; un
