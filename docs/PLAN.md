@@ -428,7 +428,7 @@ Decisiones de la entrevista:
 | **C7** | Evasivo, escalado del combo en PvP y telemetría nueva (`Combat/Evasive`, `CombatClient/EvasiveIcon`, `Combat/ComboScaling`, controles PvP con `Config.ControlDR`, `telemetry.mechanic` en la Isla y en Dunas) | `b66465d` | ✅ |
 | **C8** | Habilidades con preparación y amagos (`castSeconds` y estado `Casting`, `Combat/Feint` y `CombatClient/Feint`, guardia una vez por uso, sección 10 de `Equilibrio`) | `159671d` | ✅ |
 | **C9** | Proyectiles reales (`Combat/Projectiles`, ayuda de puntería `CombatService.aimShot` en studs que adelanta contra monos, tasa de acierto en `Equilibrio` y daños compensados, telemetría `ShotsHit`/`ShotsMissed`) | `9c6b98c` | ✅ |
-| **C9b** | Disparo de remate de las armas a distancia (cada 4.º tiro seguido, mismo DPS total: el arco atraviesa a 2, el bastón explota en un área pequeña, la cerbatana pone doble veneno o doble cura y la honda tambalea a monos de categoría 1–2) | — | ⬜ |
+| **C9b** | Disparo de remate de las armas a distancia (`Shared/RangedChain`, `Config.RangedChain`: cada 4.º disparo seguido, mismo DPS contra uno; el arco atraviesa al primero y da al siguiente, el bastón estalla, la cerbatana cura el doble a un aliado y la honda tambalea a monos pequeños; telemetría `ShotFinishers`) | `1beeb86` | ✅ |
 | **C10** | Rebote contra muros y zonas de peligro | — | ⬜ |
 | **C11** | Dunas: coberturas que se rompen y altar disputado | — | ⬜ |
 | **C12** | Claridad, interfaz y aprendizaje | — | ⬜ |
