@@ -60,7 +60,7 @@ local PlayerAnimations = {
 		Crawl = { id = "rbxassetid://120906840673143", priority = Enum.AnimationPriority.Action4, looped = true }, -- caído, se arrastra
 		Revive = { id = "rbxassetid://109653278143351", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
 		-- Montado (Fase 11, UI/MountRiders): a horcajadas sobre la montura, con las riendas, en bucle.
-		Ride = { id = "", priority = Enum.AnimationPriority.Action4, looped = true },
+		Ride = { id = "rbxassetid://88188843088858", priority = Enum.AnimationPriority.Action4, looped = true },
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para
