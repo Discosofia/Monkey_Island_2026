@@ -106,6 +106,9 @@ local Remotes = {
 	-- Cliente -> servidor (Lobby e Isla): montar (true) o bajar (false) de la montura que lleva
 	-- (ServerShared/MountServer).
 	ToggleMount = remoteEvent("ToggleMount"),
+	-- Cliente -> servidor (Lobby e Isla): que la montura escupa (gesto, sin daño). Servidor -> clientes:
+	-- el jugador cuya montura escupe (Player), para la animación y las partículas (UI/MountRiders).
+	MountSpit = remoteEvent("MountSpit"),
 	-- Cliente -> servidor (Isla): paso del tutorial alcanzado (número), para la analítica.
 	TutorialStep = remoteEvent("TutorialStep"),
 	-- Cliente -> servidor (Lobby e Isla): equipar o quitar un cosmético (id de Data/Cosmetics).

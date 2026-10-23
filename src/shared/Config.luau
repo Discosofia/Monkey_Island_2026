@@ -1221,6 +1221,8 @@ local Config = {
 		-- Espera entre montar y volver a montar, y desde el último daño recibido para poder montar.
 		RemountCooldown = 2,
 		HurtCooldown = 4,
+		-- Escupir montado (gesto sin daño, Fase 11 M3): espera entre un escupitajo y el siguiente.
+		SpitCooldown = 3,
 		-- Al abrir un huevo de una rareza que tenga monturas que aún no tienes, probabilidad de que salga
 		-- una de ellas en vez de una mascota (Shared/PetRoll.rollMount; medido con la calculadora Economia).
 		-- Con 0,5 el habitual (5 días por semana, 1 h) la tiene al 50 % el día 17 y al 74 % el 30.

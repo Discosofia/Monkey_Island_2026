@@ -7,6 +7,8 @@
 -- huevo, no está aturdido ni haciendo otra cosa y no le han hecho daño hace poco
 -- (Config.Mounts.HurtCooldown). Lo bajan: pedirlo, recibir daño, coger el huevo, caer, morir o
 -- reaparecer, y cambiar de montura.
+-- Montado, la montura puede escupir (gesto sin daño, remoto MountSpit): el servidor mira la espera
+-- (Config.Mounts.SpitCooldown) y avisa a todos los clientes, que la animan (UI/MountRiders).
 -- Lo arrancan los MountService del Lobby y de la Isla.
 
 local Players = game:GetService("Players")
@@ -28,6 +30,7 @@ local canRequest = RequestCooldown.new(0.25)
 -- Última vez (os.clock) que montó o bajó, y que recibió daño.
 local lastToggle: { [Player]: number } = {}
 local lastHurt: { [Player]: number } = {}
+local lastSpit: { [Player]: number } = {}
 
 function MountServer.isMounted(player: Player): boolean
 	return CombatState.isMounted(player)
@@ -92,6 +95,19 @@ local function onToggle(player: Player, wanted: any)
 	lastToggle[player] = os.clock()
 end
 
+local function onSpit(player: Player)
+	local mountId = player:GetAttribute(ATTRIBUTE)
+	local mount = if typeof(mountId) == "string" then Mounts[mountId] else nil
+	if not (mount and mount.animations.Spit and mount.animations.Spit ~= "") then
+		return
+	end
+	if os.clock() - (lastSpit[player] or -math.huge) < SETTINGS.SpitCooldown then
+		return
+	end
+	lastSpit[player] = os.clock()
+	Remotes.MountSpit:FireAllClients(player)
+end
+
 local function watchCharacter(player: Player, character: Model)
 	-- Reaparecer lo deja a pie.
 	MountServer.dismount(player)
@@ -139,6 +155,7 @@ end
 
 function MountServer.start()
 	Remotes.ToggleMount.OnServerEvent:Connect(onToggle)
+	Remotes.MountSpit.OnServerEvent:Connect(onSpit)
 	Players.PlayerAdded:Connect(watchPlayer)
 	for _, player in Players:GetPlayers() do
 		watchPlayer(player)
@@ -146,6 +163,7 @@ function MountServer.start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastToggle[player] = nil
 		lastHurt[player] = nil
+		lastSpit[player] = nil
 	end)
 end
 

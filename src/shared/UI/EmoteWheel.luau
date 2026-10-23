@@ -76,6 +76,9 @@ local function blockedReason(humanoid: Humanoid?): string?
 		return "Ahora no puedes hacer emotes"
 	elseif humanoid.RigType ~= Enum.HumanoidRigType.R15 then
 		return "Los emotes son para avatares R15"
+	elseif player:GetAttribute("Mounted") ~= nil then
+		-- Montado (Fase 11) el gesto es de la montura (UI/MountRiders).
+		return "🦙 Montado no: pulsa Y (o Escupir) para que tu montura escupa"
 	elseif os.clock() - lastHurt < Config.Cosmetics.EmoteCombatSeconds then
 		return "⚔️ En combate no: espera unos segundos"
 	end
