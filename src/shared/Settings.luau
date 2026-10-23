@@ -16,6 +16,8 @@
 --   - comicLevel: "All" (también los golpes normales) o "Strong" (solo críticos, K.O. y golpes fuertes
 --     que recibes).
 --   - comicSize: "Small", "Normal" o "Large" (Config.ComicFx.SizeScale).
+--   - cameraShake: temblor de la cámara en combate (remates, habilidades, rebotes, la guardia): "On",
+--     "Soft" o "Off" (Config.CameraShake.Scale; CombatClient/CameraShake).
 --   - missionsOpen: la lista de misiones de la Isla desplegada (en PC; se pliega tocando su cabecera,
 --     MissionTrackerController). No sale en el panel.
 
@@ -29,6 +31,7 @@ export type Layout = "Head" | "Column" | "Screen"
 export type ComicLevel = "All" | "Strong"
 export type ComicSize = "Small" | "Normal" | "Large"
 export type NumberFont = "Comic" | "Classic"
+export type CameraShake = "On" | "Soft" | "Off"
 export type Values = {
 	textLayout: Layout,
 	numberFont: NumberFont,
@@ -40,6 +43,7 @@ export type Values = {
 	comicFx: boolean,
 	comicLevel: ComicLevel,
 	comicSize: ComicSize,
+	cameraShake: CameraShake,
 	missionsOpen: boolean,
 }
 
@@ -67,6 +71,12 @@ Settings.COMIC_SIZE_NAMES = {
 	Normal = "Normales",
 	Large = "Grandes",
 } :: { [string]: string }
+Settings.CAMERA_SHAKES = { "On", "Soft", "Off" } :: { CameraShake }
+Settings.CAMERA_SHAKE_NAMES = {
+	On = "Encendido",
+	Soft = "Suave",
+	Off = "Apagado",
+} :: { [string]: string }
 
 function Settings.defaults(): Values
 	return {
@@ -80,6 +90,7 @@ function Settings.defaults(): Values
 		comicFx = true,
 		comicLevel = "All",
 		comicSize = "Normal",
+		cameraShake = "On",
 		missionsOpen = true,
 	}
 end
@@ -101,6 +112,9 @@ function Settings.sanitize(raw: any): Values
 	end
 	if typeof(raw.comicSize) == "string" and table.find(Settings.COMIC_SIZES, raw.comicSize) then
 		values.comicSize = raw.comicSize :: ComicSize
+	end
+	if typeof(raw.cameraShake) == "string" and table.find(Settings.CAMERA_SHAKES, raw.cameraShake) then
+		values.cameraShake = raw.cameraShake :: CameraShake
 	end
 	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music", "comicFx", "missionsOpen" } do
 		if typeof(raw[key]) == "boolean" then

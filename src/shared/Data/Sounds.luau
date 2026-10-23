@@ -56,13 +56,17 @@ local Effects: { [string]: Effect } = {
 	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta a un mono o jefe (carne)
 	PlayerHurt = { id = OUCH, volume = 0.6, pitch = 1, jitter = 0.08 },
 	PlayerDown = { id = OOF, volume = 0.7, pitch = 0.9 },
-	-- Guardia (Fase 10, C5; Combat/Guard).
-	Block = { id = FOOTSTEP, volume = 0.8, pitch = 1.8, jitter = 0.1 }, -- Provisional: "wood block thud"
-	Parry = { id = CLICK, volume = 1, pitch = 0.7, jitter = 0.05 }, -- Provisional: "metal clang / parry ring"
-	GuardBreak = { id = BOOM, volume = 0.5, pitch = 1.6, jitter = 0.05 }, -- Provisional: "guard shatter"
-	Evasive = { id = JUMP, volume = 0.6, pitch = 2.2, jitter = 0.05 }, -- Evasivo (C7). Provisional: "quick escape whoosh"
-	-- Rebote contra muros (C10, CombatService). Provisional: "body slam against stone wall"
-	WallBang = { id = BOOM, volume = 0.6, pitch = 0.8, jitter = 0.08, range = 120 },
+	-- Guardia (Fase 10, C5; Combat/Guard) y el resto del combate v2 (C12): audios de Pro Sound Effects y de
+	-- Roblox del Creator Store, con licencia para usar en el juego. Madera contra piedra al bloquear, un
+	-- tintineo claro al parar (se distingue a ciegas del bloqueo), madera que se astilla al romperse la
+	-- guardia, un soplido al escapar o amagar y piedra que cae contra la pared en el rebote.
+	Block = { id = assets(9118629282, 9118629121, 9118621947), volume = 0.9, pitch = 1, jitter = 0.08 },
+	Parry = { id = assets(9113133597, 9125362690), volume = 0.8, pitch = 1.15, jitter = 0.04 },
+	GuardBreak = { id = assets(9120826936, 9113582284), volume = 1, pitch = 0.9, jitter = 0.05 },
+	Evasive = { id = "rbxassetid://12222200", volume = 0.8, pitch = 0.9, jitter = 0.05 }, -- Evasivo (C7)
+	Feint = { id = "rbxassetid://12222200", volume = 0.45, pitch = 0.65, jitter = 0.05 }, -- amago (C8)
+	-- Rebote contra muros (C10, CombatService).
+	WallBang = { id = assets(9118588165, 9118587494), volume = 0.9, pitch = 0.9, jitter = 0.08, range = 120 },
 	Revive = { id = GET_UP, volume = 0.7, pitch = 1.1 },
 	Heal = { id = GET_UP, volume = 0.5, pitch = 1.5 },
 

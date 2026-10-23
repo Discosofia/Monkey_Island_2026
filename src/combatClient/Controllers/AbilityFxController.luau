@@ -25,7 +25,7 @@
 -- de combo, de "ComboMarkBy"/"ComboMarkUntil" (Data/Combos). Al cerrar un combo: aro dorado en el
 -- jugador y, en el del mago, el hielo que estalla.
 -- Guardia (Fase 10, C5; Combat/Guard, efecto "GuardFx"): chispa al bloquear, destello dorado al parar y
--- estallido naranja con esquirlas y grietas al romperse. Evasivo (C7, "EvasiveFx"): ráfaga de aire
+-- estallido naranja con esquirlas y grietas al romperse; en la propia, la cámara tiembla (C12). Evasivo (C7, "EvasiveFx"): ráfaga de aire
 -- blanco y azul. Amago (C8, "FeintFx"): bocanada corta de humo gris delante del pecho.
 -- Proyectiles (C9, Combat/Projectiles; efectos "Projectile" y "ProjectileEnd"): los disparos de las armas
 -- y las flechas, bolas y dardos de las habilidades vuelan aquí a la hora del servidor (LOOKS: cómo se ve
@@ -50,6 +50,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local CameraShake = require(script.Parent.Parent.CameraShake)
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
@@ -410,29 +411,18 @@ local function groundAt(position: Vector3, params: RaycastParams): Vector3
 	return if result then result.Position else position
 end
 
--- Tiembla la cámara del jugador local si está a menos de "reach" de "origin".
+-- Tiembla la cámara del jugador local si está a menos de "reach" de "origin" (más cuanto más cerca; el
+-- ajuste "cameraShake" lo suaviza o lo apaga: CombatClient/CameraShake).
 local function shake(origin: Vector3, reach: number, strength: number, seconds: number)
-	local camera = Workspace.CurrentCamera
 	local root = rootOf(Players.LocalPlayer.Character)
-	if not (camera and root) then
+	if not root then
 		return
 	end
 	local distance = (root.Position - origin).Magnitude
 	if distance > reach then
 		return
 	end
-	local power = strength * (1 - distance / reach)
-	local name = `AbilityShake{os.clock()}`
-	local elapsed = 0
-	RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 1, function(deltaTime)
-		elapsed += deltaTime
-		if elapsed >= seconds then
-			RunService:UnbindFromRenderStep(name)
-			return
-		end
-		local amount = power * (1 - elapsed / seconds)
-		camera.CFrame *= CFrame.new(rng:NextNumber(-1, 1) * amount * 0.4, rng:NextNumber(-1, 1) * amount * 0.4, 0)
-	end)
+	CameraShake.play(strength * (1 - distance / reach), seconds)
 end
 
 -- Flecha con la punta hacia -Z (la dirección en la que vuela).
@@ -2359,6 +2349,15 @@ local function guardFx(character: Model?, kind: string?)
 		return
 	end
 	local front = root.Position + root.CFrame.LookVector * 1.5 + Vector3.new(0, 0.8, 0)
+	-- La propia guardia (C12): un golpe seco al parar y uno más fuerte al romperse.
+	if character == Players.LocalPlayer.Character then
+		local settings = Config.CameraShake
+		if kind == "Parry" then
+			CameraShake.play(settings.ParryPower, settings.ParrySeconds)
+		elseif kind == "Break" then
+			CameraShake.play(settings.BreakPower, settings.BreakSeconds)
+		end
+	end
 	if kind == "Parry" then
 		local gold = Color3.fromRGB(255, 205, 60)
 		glow(character, gold, 0.35)

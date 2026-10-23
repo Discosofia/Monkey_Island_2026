@@ -197,7 +197,15 @@ local Config = {
 	-- Estallidos de cómic del combate ("BAM!", "POW!", "K.O.!", "OUCH!"): ComicFxController.
 	ComicFx = {
 		-- Lado en píxeles en una pantalla de 720 px de alto (se escala con el alto de la pantalla).
-		Pixels = { Hit = 84, Crit = 150, KO = 190, Hurt = 120 } :: { [string]: number },
+		Pixels = {
+			Hit = 84,
+			Crit = 150,
+			KO = 190,
+			Hurt = 120,
+			Parry = 160,
+			GuardBroken = 170,
+			Counter = 160,
+		} :: { [string]: number },
 		MinScreenScale = 0.6, -- en un teléfono no bajan de esto (no se usa la escala de los números)
 		SizeScale = { Small = 0.75, Normal = 1, Large = 1.3 } :: { [string]: number }, -- ajuste "comicSize"
 		HitCooldownSeconds = 0.3, -- como mucho un estallido de golpe normal por enemigo en este tiempo
@@ -206,6 +214,23 @@ local Config = {
 		HurtFraction = 0.1, -- lo que recibes sale si te quita al menos esto de tu vida máxima (o es crítico)
 		MaxActive = 10, -- estallidos a la vez como mucho
 		MaxDistance = 200, -- studs
+		-- La guardia (C12): el parry y la rotura salen sobre ti y sobre los jugadores a menos de esto (en
+		-- la arena, el rival con quien peleas)…
+		GuardNearbyStuds = 24,
+		-- …y tu primer golpe a un enemigo aturdido o a un rival tambaleado hasta esto tras tu parry es una
+		-- "¡CONTRA!" (lo que dura el aturdido del parry a un mono, Config.Guard.ParryStaggerMonkey).
+		CounterSeconds = 1,
+	},
+
+	-- Temblor de la cámara en combate (C12, CombatClient/CameraShake): cuánto tiembla con cada valor del
+	-- ajuste "cameraShake" (Shared/Settings). Lo usan el remate de la cadena, las habilidades, el rebote
+	-- contra muros y la guardia.
+	CameraShake = {
+		Scale = { On = 1, Soft = 0.45, Off = 0 } :: { [string]: number },
+		ParryPower = 0.35, -- al hacer un parry: un golpe seco y corto…
+		ParrySeconds = 0.15,
+		BreakPower = 0.8, -- …y al romperte la guardia, más fuerte
+		BreakSeconds = 0.35,
 	},
 
 	-- Dos combos de 3 habilidades por rol, que se conectan (Data/Combos, ComboService).

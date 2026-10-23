@@ -52,6 +52,9 @@ export type Profile = {
 	arena: { [string]: any },
 	-- Guía de la primera vez en el Lobby hecha (roles y nido, LobbyGuideController; 20-10-2026).
 	lobbyGuideDone: boolean,
+	-- Paso de la guardia de esa guía hecho (parar el golpe del muñeco de sparring; Fase 10, C12). Aparte
+	-- para que también lo hagan quienes ya tenían la guía hecha.
+	combatGuideDone: boolean,
 	-- Pase de temporada, misiones semanales y compras (versión 5, octubre de 2026):
 	season: { [string]: any }, -- progreso en el pase de la temporada en curso (ServerShared/SeasonPass)
 	weekly: { [string]: any }, -- misiones de la semana (ServerShared/Retention)
@@ -105,6 +108,7 @@ local function defaultProfile(): Profile
 		supplies = {},
 		arena = {},
 		lobbyGuideDone = false,
+		combatGuideDone = false,
 		season = {},
 		weekly = {},
 		purchases = { receipts = {} },
@@ -227,6 +231,7 @@ local function publish(player: Player, session: Session)
 	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
 	player:SetAttribute("Season", HttpService:JSONEncode(profile.season))
 	player:SetAttribute("LobbyGuideDone", profile.lobbyGuideDone)
+	player:SetAttribute("CombatGuideDone", profile.combatGuideDone)
 end
 
 -- Carga y bloquea los datos. Devuelve el perfil (o nil y si fue por un error de DataStore).

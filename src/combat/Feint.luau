@@ -8,13 +8,14 @@
 --   - Si no se puede amagar, no pasa nada: la guardia se pone al acabar el golpe, como siempre.
 -- Combat/Guard lo prueba al pulsar (Feint.try) antes de poner la guardia: amagar y parar en la misma
 -- pulsación vale. Se ve un humo corto ("FeintFx") para que el rival pueda leerlo (el propio cliente lo
--- dibuja al momento, CombatClient/Feint) y se cuenta en la telemetría ("Feints").
+-- dibuja al momento, CombatClient/Feint) y se oye (sonido "Feint", C12), y se cuenta en la telemetría ("Feints").
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local AbilityFx = require(script.Parent.AbilityFx)
 local CombatRules = require(script.Parent.CombatRules)
 local StaminaServer = require(script.Parent.StaminaServer)
@@ -74,6 +75,7 @@ function Feint.try(player: Player): boolean
 	local character = player.Character
 	if character then
 		AbilityFx.others(player, "FeintFx", character)
+		Sfx.play("Feint", character.PrimaryPart or character)
 	end
 	CombatRules.get().telemetry.mechanic(player, "Feints")
 	return true

@@ -8,9 +8,14 @@
 --   - "KO": el golpe tuyo que derriba al enemigo ("K.O.!"; el servidor lo marca con "ko"), también el
 --     de tu veneno (sus golpes de cada segundo no hacen nada más).
 --   - "Hurt": lo que te quita al menos HurtFraction de tu vida máxima o es crítico ("OUCH!").
+--   - La guardia (Fase 10, C12), por el aviso "GuardFx" de Remotes.AbilityFx: "¡PARRY!" y "¡GUARDIA
+--     ROTA!" sobre ti o sobre un jugador a menos de GuardNearbyStuds (en la arena, el rival que te para
+--     el golpe), y "¡CONTRA!" con tu primer golpe, hasta CounterSeconds tras tu parry, a un enemigo
+--     aturdido o a un rival tambaleado (el castigo del parry).
 -- Tus golpes salen con tu estilo de estallido (cosmético BurstStyle, atributo "BurstStyle").
 -- Solo lo tuyo: ni lo de tu mascota ni lo de los aliados. Se ajusta en Ajustes (Shared/Settings):
--- comicFx (sí/no), comicLevel ("All" o "Strong": sin los golpes normales) y comicSize.
+-- comicFx (sí/no), comicLevel ("All" o "Strong": sin los golpes normales; los de la guardia salen
+-- siempre) y comicSize.
 -- El estallido va sobre el pecho del enemigo (por debajo de la cabeza) para no tapar la columna de
 -- números, que sale encima de ella.
 
@@ -31,7 +36,9 @@ local SETTINGS = Config.ComicFx
 -- daño recibido (a la izquierda).
 local DEALT_OFFSET = Vector2.new(0, -0.35)
 local HURT_OFFSET = Vector2.new(0.35, -0.45)
-local RANK: { [string]: number } = { Hit = 1, Crit = 2, KO = 3 }
+local RANK: { [string]: number } = { Hit = 1, Crit = 2, Counter = 3, KO = 4 }
+-- La guardia de alguien va sobre su cabeza, más arriba que el "OUCH!".
+local GUARD_OFFSET = Vector2.new(0, 0.2)
 
 local ComicFxController = {}
 
@@ -41,6 +48,9 @@ local active = 0
 local lastAny: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
 local lastStrong: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
 local lastHurt = -math.huge
+-- Tu último parry (os.clock) y si ya se ha usado para una "¡CONTRA!".
+local parriedAt = -math.huge
+local counterUsed = true
 
 -- Escala según el alto de la pantalla: en un teléfono más pequeños que los números, para no tapar
 -- media pantalla.
@@ -129,12 +139,56 @@ local function onHurt(character: Model, amount: number, crit: boolean)
 	end
 end
 
+-- true si "target" está aturdido (un mono, un jefe) o tambaleado (un rival): lo que deja tu parry.
+local function punishable(target: Instance): boolean
+	local rival = Players:GetPlayerFromCharacter(target)
+	if rival then
+		return rival:GetAttribute("CombatState") == "Staggered"
+	end
+	local stunnedUntil = target:GetAttribute("StunnedUntil")
+	return typeof(stunnedUntil) == "number" and stunnedUntil > Workspace:GetServerTimeNow()
+end
+
+-- La guardia de "character" ("Parry" o "Break"; el bloqueo no lleva estallido): sobre ti o sobre un
+-- jugador cerca.
+local function onGuard(character: any, kind: any)
+	if typeof(character) ~= "Instance" or not character:IsA("Model") or not Settings.get().comicFx then
+		return
+	end
+	local burst: ComicBurst.Kind? = if kind == "Parry" then "Parry" elseif kind == "Break" then "GuardBroken" else nil
+	local head = headOf(character)
+	if not (burst and head) then
+		return
+	end
+	local own = character == player.Character
+	if not own then
+		local mine = player.Character and headOf(player.Character)
+		if not mine or (mine.Position - head.Position).Magnitude > SETTINGS.GuardNearbyStuds then
+			return
+		end
+	end
+	if own and burst == "Parry" then
+		parriedAt = os.clock()
+		counterUsed = false
+	end
+	spawnAt(head.Position, burst, ComicBurst.word(burst), GUARD_OFFSET)
+end
+
 -- Tu golpe más fuerte sobre "target" en este lote.
 local function onDealt(target: Instance, kind: ComicBurst.Kind, level: Settings.ComicLevel)
 	if kind == "Hit" and level == "Strong" then
 		return
 	end
 	local now = os.clock()
+	if kind == "Counter" then
+		local head = headOf(target)
+		if head then
+			lastAny[target] = now
+			lastStrong[target] = now
+			spawnAt(head.Position, kind, ComicBurst.word(kind), DEALT_OFFSET)
+		end
+		return
+	end
 	if kind == "Hit" and now - (lastAny[target] or -math.huge) < SETTINGS.HitCooldownSeconds then
 		return
 	elseif kind == "Crit" and now - (lastStrong[target] or -math.huge) < SETTINGS.CritCooldownSeconds then
@@ -179,6 +233,15 @@ local function onBatch(batch: any)
 			continue
 		end
 		local kind: ComicBurst.Kind = if entry.ko == true then "KO" elseif crit then "Crit" else "Hit"
+		if
+			kind ~= "KO"
+			and not counterUsed
+			and os.clock() - parriedAt <= SETTINGS.CounterSeconds
+			and punishable(target)
+		then
+			counterUsed = true
+			kind = "Counter"
+		end
 		local current = strongest[target]
 		if not current or RANK[kind] > RANK[current] then
 			strongest[target] = kind
@@ -191,6 +254,11 @@ end
 
 function ComicFxController:Start()
 	Remotes.CombatText.OnClientEvent:Connect(onBatch)
+	Remotes.AbilityFx.OnClientEvent:Connect(function(kind, ...)
+		if kind == "GuardFx" then
+			onGuard(...)
+		end
+	end)
 end
 
 return ComicFxController

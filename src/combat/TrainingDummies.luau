@@ -113,6 +113,10 @@ local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3, sp
 	model.Name = if sparring then "Muñeco de sparring" else "Muñeco de práctica"
 	-- Su daño no cuenta para las misiones del día (MissionService).
 	model:SetAttribute("TrainingDummy", true)
+	-- El de sparring lo busca la guía del Lobby (LobbyGuideController) para llevarte hasta él.
+	if sparring then
+		model:SetAttribute("Sparring", true)
+	end
 	local facing = CFrame.lookAt(ground, Vector3.new(lookAt.X, ground.Y, lookAt.Z))
 
 	newPart("Post", Vector3.new(0.6, 3, 0.6), facing * CFrame.new(0, 1.5, 0), Color3.fromRGB(110, 72, 40), model)

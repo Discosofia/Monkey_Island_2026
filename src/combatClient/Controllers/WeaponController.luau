@@ -34,6 +34,7 @@ local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 local Aim = require(script.Parent.Parent.Aim)
+local CameraShake = require(script.Parent.Parent.CameraShake)
 local Feint = require(script.Parent.Parent.Feint)
 
 -- Tajo estándar de Roblox, por si el personaje no trae el suyo en su script Animate.
@@ -164,6 +165,37 @@ function WeaponController.track(character: Model, key: string): AnimationTrack?
 	return weaponTrack(character, key)
 end
 
+-- Por dónde va la cadena de golpes o la cuenta de disparos que se usó la última, para el indicador
+-- (ChainPipsController): golpes dados, cuántos tiene y hasta cuándo sigue (os.clock). nil si no hay
+-- ninguna en curso (o el arma a distancia no tiene remate).
+export type Progress = { step: number, length: number, untilTime: number }
+function WeaponController.progress(): Progress?
+	local melee: Progress? = nil
+	if chain.step > 0 then
+		-- Tras el remate se ve llena hasta que acaba su tajo; si no, hasta que se pasa la ventana.
+		local finished = chain.step >= MeleeChain.LENGTH
+		melee = {
+			step = chain.step,
+			length = MeleeChain.LENGTH,
+			untilTime = chain.readyAt + if finished then 0 else Config.Chain.LinkWindowSeconds,
+		}
+	end
+	local ranged: Progress? = nil
+	local weapon = if shots.weaponId then Weapons[shots.weaponId] else nil
+	if shots.shot > 0 and weapon and weapon.finisher then
+		local finished = shots.shot >= RangedChain.LENGTH
+		ranged = {
+			step = shots.shot,
+			length = RangedChain.LENGTH,
+			untilTime = shots.readyAt + if finished then 0 else Config.RangedChain.LinkWindowSeconds,
+		}
+	end
+	if melee and ranged then
+		return if melee.untilTime >= ranged.untilTime then melee else ranged
+	end
+	return melee or ranged
+end
+
 local function holdArm(character: Model)
 	local track = weaponTrack(character, "Hold")
 	if track and not track.IsPlaying then
@@ -220,13 +252,13 @@ local function swingConnects(character: Model, weapon: Weapons.WeaponDefinition)
 	return false
 end
 
--- Temblor corto de la cámara (el remate que da).
+-- Temblor corto de la cámara (el remate que da), con el ajuste "cameraShake" (CombatClient/CameraShake).
 local function shake(character: Model)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
+	local amount = Config.Chain.FinisherShakeStuds * CameraShake.scale()
+	if not humanoid or amount <= 0 then
 		return
 	end
-	local amount = Config.Chain.FinisherShakeStuds
 	local finish = os.clock() + SHAKE_SECONDS
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function()

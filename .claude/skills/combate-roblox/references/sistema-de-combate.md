@@ -19,6 +19,7 @@ no coincide con el código, manda el código.
 | Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente; rebote contra muros (C10 ✅, §9) | — |
 | Escalado del combo (PvP) | `Combat/ComboScaling` en `CombatService.damagePvP` (C7 ✅); controles PvP con rendimientos decrecientes en `Status.holdPlayer` | — |
 | Entorno | Rebote contra muros y zonas de peligro (`Combat/Zones`, `ZoneController`, C10 ✅, §9) | Coberturas y altar de Dunas (C11) |
+| Claridad (C12 ✅) | Temblor común con su ajuste (`CombatClient/CameraShake`, `cameraShake`), indicador de la cadena (`ChainPipsController`, de `WeaponController.progress`), estallidos de la guardia en `ComicFxController` (`ComicBurst`: `Parry`, `GuardBroken`, `Counter`), sonidos de `Data/Sounds`, ayuda de controles y cadena en `SettingsPanel`, paso de la guardia en la guía del Lobby | — |
 | Reglas por place | `Combat/CombatRules`; telemetría de mecánicas (`telemetry.mechanic`, C7 ✅: Isla `TelemetryService`, Dunas `ArenaTelemetryService`) | Campos de entorno (C11) |
 
 ## 2. Estados
@@ -215,7 +216,7 @@ marca y el expuesto (con `pvpStatus`) van después de la guardia, con el crític
     agarre del jefe no la mira (te agarra aunque estés en guardia).
 - Lo que se ve y se oye: `AbilityFx` "GuardFx" (`Block`: chispa blanca; `Parry`: contorno, aro y
   chispas doradas; `Break`: contorno naranja, esquirlas y grietas) y los sonidos `Block`, `Parry` y
-  `GuardBreak` (provisionales en `Data/Sounds`). Pose `Guard` de `Data/WeaponAnimations` (en bucle,
+  `GuardBreak` (audios del Creator Store en `Data/Sounds` desde C12). Pose `Guard` de `Data/WeaponAnimations` (en bucle,
   `Action3`), generada por `WeaponAnimationBuilder` (`GUARD_POSE`).
 - Probado en Play (Isla, 22-10-2026, guerrero contra un mandril alfa sujeto delante): sin guardia
   18 por mordisco; bloqueando 5 y −27 de guardia, que se recupera a 25/s; por detrás entra entero y no
@@ -497,7 +498,7 @@ aviso.
   (× `pvpDamageMultiplier`) y `Status.stunPlayer(…, StunSeconds × pvpControlMultiplier, "PvP")`, que no
   alarga un aturdido que ya tenga; recién salido con el Evasivo (invulnerable), nada. Después,
   `ImmunitySeconds` 1,5 sin otro rebote al mismo. Efecto `WallBang` (hundimiento y grietas en la pared,
-  polvo, piedrecitas y temblor), sonido `WallBang` (provisional) y telemetría `WallBangs` del que empuja.
+  polvo, piedrecitas y temblor), sonido `WallBang` (piedra contra la pared, C12) y telemetría `WallBangs` del que empuja.
 - Probado en Play (Lobby, 22-10-2026) con un blanco suelto (`PlatformStand`) y un muro 6 studs detrás:
   Embestida −15 y a los 0,08 s rebote −4 y aturdido 0,5; Rompehuesos solo −23, aparta 3,4 studs y
   rebota a los 0,12 s; Embestida y Rompehuesos 0,7 s después: el segundo no rebota (inmunidad); remate
@@ -580,6 +581,10 @@ chocan sin rayos ("Barrera"): antes se subía al basamento y se salía de la are
 | Beber (Isla) | E (antes F) | X | Tocar el aviso |
 | Evasivo (C7 ✅) | Q estando atrapado | B estando atrapado | "¡Evasivo!" (el de "Esquivar") |
 | Bloqueo de cámara (C2) | Ctrl (el shift lock de Roblox; el jugador lo enciende en el menú de Roblox) | — | — |
+
+La misma tabla, para el jugador, en Ajustes → "Controles del combate" (`SettingsPanel.CONTROLS`, C12): si
+cambia una tecla, cámbiala también allí. La guía del Lobby enseña la guardia con el muñeco de sparring
+(`LobbyGuideController`, paso "Sparring"; se completa con `ParryAt` y se guarda en `combatGuideDone`).
 
 El shift lock: `EnableMouseLockOption = true` en los tres `*.project.json` y `CameraLockController`
 cambia las teclas de Mayús a Ctrl. El `PlayerModule` de Roblox se carga hoy desde

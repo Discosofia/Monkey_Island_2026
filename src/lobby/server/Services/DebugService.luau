@@ -64,6 +64,7 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 	Guide = function(player)
 		PlayerData.update(player, function(profile)
 			profile.lobbyGuideDone = false
+			profile.combatGuideDone = false
 		end)
 	end,
 	Amber = function(player)

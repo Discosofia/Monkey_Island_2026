@@ -12,6 +12,10 @@
 --      cambiar el arma, el rol, la mascota o una ventaja; en el Lobby, la inicial del rol.
 --   3. Opciones: disposición de los números, ajustes sí/no y efectos de cómic (Shared/Settings, se
 --      guardan en el perfil).
+--   4. Controles del combate (Fase 10, C12): qué tecla, botón del mando o botón táctil hace cada cosa
+--      (la guardia, el amago, el Evasivo, el bloqueo de cámara…).
+--   5. Temblor de la cámara (encendido, suave o apagado; C12).
+-- En "Tus números" también salen la cadena del arma (sus golpes y su remate) y la guardia.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,10 +25,12 @@ local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local Perks = require(ReplicatedStorage.Shared.Data.Perks)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Settings = require(ReplicatedStorage.Shared.Settings)
@@ -488,12 +494,46 @@ local function petHelp(pet: Pets.Pet): string
 	return if #help > 0 then table.concat(help, " · ") else pet.description
 end
 
+-- Cadena del arma (Fase 10, C4 y C9b): el daño de cada golpe seguido y lo que hace el remate. nil si el
+-- arma pega suelta (herramientas, armas a distancia sin remate).
+local function chainHelp(weapon: Weapons.WeaponDefinition, damage: number): string?
+	if MeleeChain.uses(weapon) then
+		local hits = {}
+		for step = 1, MeleeChain.LENGTH do
+			table.insert(hits, `{math.round(damage * MeleeChain.damageMultiplier(step))}`)
+		end
+		return `🔗 Cadena de {MeleeChain.LENGTH} golpes al ritmo: {table.concat(hits, " · ")}; el último empuja (si saltas, lanza hacia arriba; contra un muro, aturde)`
+	end
+	local finisher = RangedChain.settings(weapon)
+	if not finisher then
+		return nil
+	end
+	local shot = math.round(damage * finisher.shot)
+	local last = math.round(damage * finisher.finisher)
+	local does = if weapon.finisher == "Pierce"
+		then `atraviesa y da a {finisher.pierceTargets} enemigos`
+		elseif weapon.finisher == "Burst" then `estalla en {finisher.radius} studs`
+		elseif weapon.finisher == "Sap" then `cura el doble a un aliado`
+		else `tambalea a los monos pequeños`
+	return `🎯 Cada {RangedChain.LENGTH}.º disparo seguido es un remate: {shot} → {last} y {does}`
+end
+
+-- La guardia (Fase 10, C5): lo que quita el bloqueo, la ventana del parry y la rotura.
+local function guardHelp(): string
+	local guard = Config.Guard
+	return `🛡️ Guardia {guard.Max}: bloquear quita el {math.round(guard.BlockReduction * 100)} % del daño de frente (de los monos, el {math.round(
+		guard.BlockReductionEnemies * 100
+	)} %); pulsar justo antes del golpe es un parry ({decimal(guard.ParryWindowSeconds)} s). Sin guardia, aturdido {decimal(
+		guard.BreakStunSeconds
+	)} s`
+end
+
 local function fillStats(parent: Frame, player: Player, context: Context)
 	local roleId = roleOf(player, context)
 	local role = Roles[roleId]
 	local perk = perkGetter(player, context)
 	local critPercent = Crit.percent(Crit.MULTIPLIER - 1)
-	heading(parent, `{role.icon} Tus números de combate ({role.name})`, 1)
+	heading(parent, `{role.icon} Tus números de combate ({role.name})`, 10)
 
 	-- Arma: una línea con el daño (y el veneno de las cerbatanas) y el crítico.
 	local weaponId, chance = weaponOf(player, context)
@@ -512,28 +552,33 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 		text(
 			parent,
 			`⚔️ <b>{weapon.name}</b>: {damage} de daño{poison} · <font color="{CRIT_HEX}">{Crit.percent(chance)} de crítico</font> (+{critPercent}){forge}`,
-			2
+			20
 		)
+		local chainLine = chainHelp(weapon, damage)
+		if chainLine then
+			text(parent, chainLine, 21, SOFT_COLOR)
+		end
 	end
+	text(parent, guardHelp(), 22, SOFT_COLOR)
 	if roleId == "Medico" then
 		local normal = Crit.percent(Crit.healChance(chance, 1))
 		local save = Crit.percent(Crit.healChance(chance, 0))
 		local threshold = Crit.percent(Config.Crit.SaveThreshold)
-		text(parent, `💚 Curas críticas: {normal}; {save} si el aliado tiene menos del {threshold} de vida`, 3)
+		text(parent, `💚 Curas críticas: {normal}; {save} si el aliado tiene menos del {threshold} de vida`, 30)
 	end
 
-	text(parent, `✨ Habilidades · {Crit.percent(chance)} de crítico`, 4, SOFT_COLOR)
-	abilityGrid(parent, 5, role, perk)
+	text(parent, `✨ Habilidades · {Crit.percent(chance)} de crítico`, 40, SOFT_COLOR)
+	abilityGrid(parent, 50, role, perk)
 
 	local combos = Combos[roleId] or {}
 	for index, combo in combos do
-		text(parent, comboLine(combo, role), 5 + index)
+		text(parent, comboLine(combo, role), 50 + index)
 	end
 	if #combos > 0 then
 		local bonus = combos[1].damageBonus
 		local extra = if bonus then ` y +{math.round(bonus * 100)} %` else ""
 		local connect = if #combos >= 2 then " Cerrar uno abre el paso 2 del otro." else ""
-		text(parent, `🔗 Pasos 2 y 3: crítico seguro{extra} a lo marcado.{connect}`, 9, SOFT_COLOR)
+		text(parent, `🔗 Pasos 2 y 3: crítico seguro{extra} a lo marcado.{connect}`, 90, SOFT_COLOR)
 	end
 
 	local petId = activePet(player)
@@ -545,10 +590,10 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 			`🐾 {pet.icon} <b>{pet.name}</b> <font color="#{rarity.color:ToHex()}">({rarity.name})</font>: {petHelp(
 				pet
 			)}`,
-			10
+			100
 		)
 	else
-		text(parent, "🐾 Sin mascota: los huevos de la isla te dan una.", 10, SOFT_COLOR)
+		text(parent, "🐾 Sin mascota: los huevos de la isla te dan una.", 100, SOFT_COLOR)
 	end
 end
 
@@ -1022,7 +1067,7 @@ local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, "💥 Efectos de cómic", 20)
 	text(
 		parent,
-		"Estallidos al golpear (BAM!), en los críticos (POW!), al derribar (K.O.!) y cuando te pegan fuerte (OUCH!).",
+		"Estallidos al golpear (BAM!), en los críticos (POW!), al derribar (K.O.!), cuando te pegan fuerte (OUCH!) y en la guardia (¡PARRY!, ¡GUARDIA ROTA!, ¡CONTRA!).",
 		21,
 		SOFT_COLOR
 	)
@@ -1041,6 +1086,47 @@ local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 			paint(switch, on)
 		end
 	end
+end
+
+-- ===================================== Controles =====================================
+
+-- Lo que se hace en combate y con qué: PC · mando · móvil (los mismos que ActionButtons y los
+-- controladores de combate: WeaponController, RoleController, GuardController, DodgeController…).
+local CONTROLS: { { name: string, keys: string, help: string? } } = {
+	{ name = "Pegar o disparar", keys = "clic · R2 · tocar la pantalla", help = "4 golpes al ritmo son una cadena" },
+	{ name = "Habilidades", keys = "Z X C R y V · R1 + A B X Y L1 · sus botones" },
+	{
+		name = "Guardia",
+		keys = "F · L2 · «Guardia»",
+		help = "pulsa justo antes del golpe para un parry; mantén para bloquear",
+	},
+	{ name = "Amago", keys = "la guardia mientras preparas un golpe o una habilidad", help = "engaña al que para" },
+	{ name = "Esquivar", keys = "Q · B · «Esquivar»" },
+	{ name = "Evasivo", keys = "esquivar estando aturdido o sujeto", help = "te saca del combo" },
+	{ name = "Correr", keys = "Mayús · L3 · «Correr»" },
+	{
+		name = "Bloqueo de cámara",
+		keys = "Ctrl (en PC)",
+		help = "actívalo en el menú de Roblox; apuntas hacia donde miras",
+	},
+}
+
+local function buildControls(parent: Frame)
+	heading(parent, "🎮 Controles del combate", 1)
+	text(parent, "PC · mando · móvil", 2, SOFT_COLOR)
+	for index, control in CONTROLS do
+		local help = if control.help then ` <font color="{SOFT_HEX}">({control.help})</font>` else ""
+		text(parent, `<b>{control.name}</b>: <font color="{KEY_HEX}">{control.keys}</font>{help}`, 2 + index)
+	end
+	text(parent, `💨 El Evasivo se recarga en {Config.Evasive.CooldownSeconds} s.`, 20, SOFT_COLOR)
+end
+
+-- Va en su propia sección, detrás de los controles: en el Lobby las secciones se reparten en columnas
+-- por orden y así cae debajo de ellos (en la de opciones ya no cabía sin desplazarse).
+local function buildShake(parent: Frame): (values: Settings.Values) -> ()
+	heading(parent, "📳 Temblor de la cámara", 1)
+	text(parent, "En los remates, las habilidades fuertes, los rebotes contra muros y la guardia", 2, SOFT_COLOR)
+	return choiceRow(parent, 3, "cameraShake", Settings.CAMERA_SHAKES, Settings.CAMERA_SHAKE_NAMES)
 end
 
 -- Construye el panel dentro de "parent" (que debe poder desplazarse si no cabe). Se limpia solo al
@@ -1072,6 +1158,8 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	refreshStats()
 	local stopWatching = if context == "Island" then watchStats(player, refreshStats) else nil
 	local refreshOptions = buildOptions(section(root, 3))
+	buildControls(section(root, 4))
+	local refreshShake = buildShake(section(root, 5))
 
 	-- Al cambiar algo de los efectos de cómic se enseña uno al momento (un crítico, que siempre sale).
 	local shownComic = ""
@@ -1079,6 +1167,7 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 		preview.setLayout(values.textLayout)
 		refreshLayout(values)
 		refreshOptions(values)
+		refreshShake(values)
 		local comic = `{values.comicFx}/{values.comicLevel}/{values.comicSize}`
 		if shownComic ~= "" and comic ~= shownComic then
 			preview.showComic("Crit")

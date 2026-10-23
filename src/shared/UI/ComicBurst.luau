@@ -8,6 +8,9 @@
 -- Estilos de estallido (cosmético BurstStyle, STYLES): cambian los colores de tus golpes ("Hit",
 -- "Crit", "KO"), el de las nubecitas y, si quieren, las palabras. El "Hurt" (lo que te pegan) es
 -- siempre rojo: es el color del daño del juego.
+-- La guardia (Fase 10, C12) tiene los suyos, iguales con cualquier estilo: "¡PARRY!" dorado (el color del
+-- parry), "¡GUARDIA ROTA!" naranja con el centro oscuro de la rotura y "¡CONTRA!" (el golpe que castiga
+-- al que acabas de parar) crema con el centro y la letra dorados.
 
 local TweenService = game:GetService("TweenService")
 
@@ -25,7 +28,7 @@ local BLACK = Color3.new(0, 0, 0)
 local POP = TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local FADE_SECONDS = 0.14
 
-export type Kind = "Hit" | "Crit" | "KO" | "Hurt"
+export type Kind = "Hit" | "Crit" | "KO" | "Hurt" | "Parry" | "GuardBroken" | "Counter"
 -- Con qué se golpea: cambia la palabra ("BAM!" / "PEW!" / "ZAP!").
 export type Weapon = "Melee" | "Ranged" | "Spell"
 
@@ -98,6 +101,45 @@ local LOOKS: { [Kind]: Look } = {
 		text = Color3.fromRGB(255, 255, 255),
 		edge = Color3.fromRGB(170, 20, 20),
 		textHeight = 0.3,
+	},
+	-- La guardia: palabras largas, así que la letra es más baja.
+	Parry = {
+		life = 0.55,
+		outer = Color3.fromRGB(255, 205, 60),
+		outerSize = 0.86,
+		inner = Color3.fromRGB(255, 245, 205),
+		rays = Color3.fromRGB(255, 235, 150),
+		puffs = 0,
+		stars = 4,
+		star = Color3.fromRGB(255, 250, 225),
+		text = Color3.fromRGB(255, 255, 255),
+		edge = Color3.fromRGB(165, 105, 10),
+		textHeight = 0.26,
+	},
+	GuardBroken = {
+		life = 0.6,
+		outer = Color3.fromRGB(255, 130, 40),
+		outerSize = 0.88,
+		inner = Color3.fromRGB(90, 40, 15),
+		puffs = 3,
+		stars = 0,
+		star = Color3.fromRGB(255, 130, 40),
+		text = Color3.fromRGB(255, 225, 170),
+		edge = Color3.fromRGB(150, 50, 5),
+		textHeight = 0.22,
+	},
+	Counter = {
+		life = 0.55,
+		outer = Color3.fromRGB(255, 248, 230),
+		outerSize = 0.86,
+		inner = Color3.fromRGB(255, 205, 60),
+		rays = Color3.fromRGB(255, 205, 60),
+		puffs = 3,
+		stars = 3,
+		star = Color3.fromRGB(255, 205, 60),
+		text = Color3.fromRGB(255, 215, 70),
+		edge = Color3.fromRGB(110, 60, 5),
+		textHeight = 0.26,
 	},
 }
 
@@ -278,6 +320,9 @@ local WORDS: { [string]: { string } } = {
 	CritSpell = { "KA-ZAP!", "KRAKOOM!" },
 	KO = { "K.O.!" },
 	Hurt = { "OUCH!", "OOF!", "ARGH!" },
+	Parry = { "¡PARRY!" },
+	GuardBroken = { "¡GUARDIA ROTA!" },
+	Counter = { "¡CONTRA!" },
 }
 
 local ComicBurst = {}

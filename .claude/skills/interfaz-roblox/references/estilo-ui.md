@@ -150,7 +150,7 @@ Reglas que salen de ahí:
 |---|---|
 | -1 | `CombatText` (debajo de todo; IgnoreGuiInset) |
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
-| 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) |
+| 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) y `ChainPips` (IgnoreGuiInset: los rombos de la cadena, que siguen los pies del personaje; Fase 10, C12) |
 | 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
 | 6 | `JournalHUD`, `ArenaLobby` (Dunas) |
 | 7 | `EmoteWheel` (la rueda de emotes, con velo) |
@@ -252,6 +252,8 @@ Cuando haya varias formas razonables de colocar o mostrar algo, el usuario quier
 **opciones del jugador** en Ajustes, no una elección suya: `Shared/Settings.luau` (valores, defectos y
 `sanitize`), `Shared/UI/SettingsPanel.luau` (la fila del panel) y el código que lo dibuja leyendo
 `Settings.get()` y `Settings.onChanged`. Ejemplos ya hechos: `textLayout` ("Head", "Column",
-"Screen") y `numberFont` ("Comic", "Classic") para los números de combate y `comicFx` / `comicLevel` / `comicSize` para los estallidos de
-cómic. En el panel, `choiceRow` (fila de botones para elegir uno) y `toggleLine` (Sí/No) son las
+"Screen") y `numberFont` ("Comic", "Classic") para los números de combate, `comicFx` / `comicLevel` / `comicSize` para los estallidos de
+cómic y `cameraShake` ("On", "Soft", "Off") para el temblor de la cámara (`CombatClient/CameraShake`: todo
+temblor nuevo pasa por ahí). En el Lobby las secciones de Ajustes se reparten en columnas por orden: la del
+temblor va sola detrás de "Controles del combate" porque en la de opciones ya no cabía sin desplazarse. En el panel, `choiceRow` (fila de botones para elegir uno) y `toggleLine` (Sí/No) son las
 piezas para añadir una opción nueva.
