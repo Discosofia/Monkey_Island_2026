@@ -76,7 +76,7 @@ local Roles: { [string]: Role } = {
 				id = "WarCry",
 				name = "Grito de guerra",
 				short = "Grito",
-				description = "Los monos cercanos van a por ti y recibes un 40 % menos de daño.",
+				description = "Los monos cercanos van a por ti y recibes un 40 % menos de daño (de otros jugadores, un 15 %).",
 				cooldownSeconds = 12,
 				castSeconds = 0,
 			},

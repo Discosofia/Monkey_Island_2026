@@ -25,7 +25,7 @@ Recursos (rutas relativas a esta carpeta):
   multiplicadores. **Léelo antes de tocar código.**
 - `references/sistema-de-combate.md`: las mecánicas (estados y prioridades, golpe con arma, esquiva,
   guardia, Evasivo, empujes, proyectiles), la **detección de impactos** y la red (lag, quién decide
-  qué). Dice qué existe hoy y qué está planificado en la Fase 10. **Léelo antes de tocar una mecánica.**
+  qué). Dice qué existe hoy (la Fase 10 está cerrada). **Léelo antes de tocar una mecánica.**
 - `references/estilos-y-combos.md`: arquetipo de cada rol, estructura abre → extiende → remata,
   reglas contra los combos infinitos, amagos y lectura. **Léelo antes de diseñar un combo o un rol.**
 - `references/equilibrio.md`: principios (con fuentes), qué mide la calculadora, los **límites**, la
@@ -431,7 +431,14 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   mira la rejilla entera: si cada arreglo mueve otra alerta al límite, deja la alerta con su razón y
   que la calibración final (C13) la resuelva con todo puesto.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
-  extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final.
+  extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final. Para sacar una
+  sección del informe, `local i = r:find("## 12. Alertas", 1, true); r:sub(i)`: `r:sub(r:find(…))` recibe
+  también el final de lo encontrado y devuelve solo el título.
+- Antes de equilibrar contra una alerta, mira si esa medida existe en el juego: la arena se mide sin
+  talentos (en Dunas no cuentan) y el control del equipo sobre un jefe, con los rendimientos decrecientes.
+  En C13 la palanca buena del duelo de guerreros no fue su daño sino su aguante: el Grito de guerra (−40 %
+  un tercio del tiempo) protegía igual contra jugadores; ×0,375 contra ellos lo arregló sin tocar el combo
+  del Pisotón, que cualquier subida de daño del garrote empujaba al límite.
 
 ## 6. Cerrar
 

@@ -81,7 +81,8 @@ una pared o el final de su alcance). Los clientes los dibujan con la hora de sal
 
 Daño a un jugador (`CombatService.damagePlayer`): no en el Basecamp, esquivando ni caído → crítico
 del mono/jefe (`Crit.sourceChance`) → `mitigate`: armadura (`Data/Armor`) → Grito de guerra
-(`GuardUntil`/`GuardReduction`) → Escudo de hojas (`ShieldHealth`, absorbe) → fiebre por mordisco →
+(`GuardUntil`/`GuardReduction`; contra el daño de otro jugador, `damagePvP` pasa `pvp` y la reducción va
+× `Config.Abilities.PvPWarCryMultiplier`, 0,375: −40 % → −15 %, C13) → Escudo de hojas (`ShieldHealth`, absorbe) → fiebre por mordisco →
 si es mortal, `LifeService.down`.
 
 ### 2.4 Estados

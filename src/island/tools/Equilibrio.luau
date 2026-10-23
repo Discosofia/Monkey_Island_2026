@@ -22,7 +22,8 @@
 --   4. Amenaza de los monos y jefes al jugador.
 --   5. Mascotas.
 --   6. Arena de Dunas (solo con secciones.arena = true): cuánto tarda cada rol en tumbar a cada otro
---      rol en un duelo, con el daño contra jugadores de la arena (Config.Arena) y las defensas.
+--      rol en un duelo, con el daño contra jugadores de la arena (Config.Arena) y las defensas. Lo de
+--      la arena (aquí y en las secciones 9 y 11) se mide siempre sin talentos: en Dunas no cuentan.
 --   Fase 10, "Combate v2" (miden los números propuestos de Config hasta que se haga su grupo):
 --   7. Cadena de golpes: DPS frente al golpe suelto, huecos entre golpes, combos sin escape y guardia.
 --   8. Defensa: lo que tarda en romperse la guardia y los duelos de la arena con bloqueo y parry.
@@ -609,9 +610,12 @@ local function main(copia: Instance): string
 		return OPCIONES.soloRol == nil or OPCIONES.soloRol == roleId
 	end
 
+	-- En Dunas no cuentan los talentos (ArenaRoleService): mientras se calcula una sección de la arena
+	-- ("enArena"), las ventajas salen sin ellos aunque el informe pida talentos = "max".
+	local enArena = false
 	local function perksDe(roleId: string): Perk
 		local rangos = {}
-		if OPCIONES.talentos == "max" then
+		if OPCIONES.talentos == "max" and not enArena then
 			for talentId, talento in Talents[roleId] or {} do
 				rangos[Progression.talentKey(roleId, talentId)] = talento.maxRank
 			end
@@ -1021,10 +1025,15 @@ local function main(copia: Instance): string
 		end
 		equipo *= A.BossControlMultiplier
 		linea("")
+		-- Con Config.ControlDR (C6) el límite se mira en la sección 9, con los rendimientos decrecientes y
+		-- los controles solapados contados una vez: esta suma solo se enseña.
+		local conDR = Config.ControlDR ~= nil and OPCIONES.secciones.escape
 		linea(
-			`Control de un equipo con un jugador de cada rol sobre un jefe: {pct(equipo)} del tiempo (no hay rendimientos decrecientes).`
+			`Control de un equipo con un jugador de cada rol sobre un jefe: {pct(equipo)} del tiempo (suma sin rendimientos decrecientes{if conDR
+				then "; el límite se mira en la sección 9"
+				else ""}).`
 		)
-		if equipo > LIMITES.controlJefeEquipo then
+		if equipo > LIMITES.controlJefeEquipo and not conDR then
 			alerta(
 				`Un equipo de 4 roles tiene quieto a un jefe el {pct(equipo)} del tiempo (máx. {pct(
 					LIMITES.controlJefeEquipo
@@ -1831,6 +1840,7 @@ local function main(copia: Instance): string
 	-- Duelo espejo de un rol (con combos), para la sección 8; nil si esta sección no se ha calculado.
 	local arenaEspejo: ((roleId: string) -> number)? = nil
 	if OPCIONES.secciones.arena then
+		enArena = true
 		local arenaConfig = Config.Arena
 		local pvp: Pvp = {
 			arma = arenaConfig.WeaponDamageMultiplier or 1,
@@ -1841,7 +1851,7 @@ local function main(copia: Instance): string
 			`## 6. Arena de Dunas (duelos; armas ×{n(pvp.arma, 2)}, habilidades ×{n(pvp.habilidades, 2)}, definitivas ×{n(
 				pvp.definitivas,
 				2
-			)} más, actividad {pct(OPCIONES.actividad)}, {OPCIONES.segundos} s)`
+			)} más, actividad {pct(OPCIONES.actividad)}, {OPCIONES.segundos} s, sin talentos)`
 		)
 		linea(
 			"Segundos que tarda el de la fila en tumbar al de la columna (con combos; entre paréntesis, sin combos)."
@@ -1866,7 +1876,9 @@ local function main(copia: Instance): string
 				local recarga = recargaDe(ability, perk)
 				local ficha = fichaDe(ability, perk, false)
 				if ficha and ficha.mitiga then
-					reduccion += ficha.mitiga.valor * ficha.mitiga.segundos / recarga
+					-- Contra jugadores, el Grito protege menos (Config.Abilities.PvPWarCryMultiplier, C13).
+					local contraJugadores = Config.Abilities.PvPWarCryMultiplier or 1
+					reduccion += ficha.mitiga.valor * contraJugadores * ficha.mitiga.segundos / recarga
 				end
 				if ficha and ficha.cura and ability.id ~= "HealingDart" then
 					sustento += ficha.cura.cantidad * (ficha.cura.ticks or 1) / recarga * curacion
@@ -1934,6 +1946,7 @@ local function main(copia: Instance): string
 			end
 		end
 		linea("")
+		enArena = false
 	end
 
 	-- ===================================== Fase 10: Combate v2 =====================================
@@ -2398,7 +2411,8 @@ local function main(copia: Instance): string
 		-- su propio golpe y, mientras dura, el arma (la cadena o los disparos que caben) y la habilidad de
 		-- daño más fuerte del rol que no sea ella (una, el resto se está recargando). El límite
 		-- (LIMITES.comboSinEscape) va sobre lo que entra después del golpe que abre; ese golpe y cualquier
-		-- otro golpe solo de una habilidad tienen el suyo (LIMITES.golpeJugador).
+		-- otro golpe solo de una habilidad tienen el suyo (LIMITES.golpeJugador). Sin talentos, como en Dunas.
+		enArena = true
 		linea("")
 		linea(
 			`Arena: lo que entra mientras no puedes actuar (Evasivo en recarga; con él sales a los {n(REACCION, 2)} s del primer control y solo entra el golpe que abre). Sobre 100 de vida.`
@@ -2635,6 +2649,7 @@ local function main(copia: Instance): string
 				)} con los rendimientos decrecientes. Sin contar el Evasivo, que te saca de uno cada {Config.Evasive and Config.Evasive.CooldownSeconds or "-"} s.`
 			)
 		end
+		enArena = false
 		if Config.Evasive then
 			linea(
 				`Evasivo: recarga {Config.Evasive.CooldownSeconds} s, {n(Config.Evasive.InvulnerableSeconds, 2)} s invulnerable.`
@@ -2811,6 +2826,7 @@ local function main(copia: Instance): string
 	local CV = arenaConfig.Covers
 	local AL = arenaConfig.Altar
 	if OPCIONES.secciones.arena and CV and AL and ultimaArena then
+		enArena = true
 		linea("## 11. Dunas: coberturas y altar (C11 ✅, CoverService y AltarService)")
 		linea(
 			`Coberturas: {CV.Health} de piedra; una habilidad le quita {CV.Damage.Ability}, una definitiva {CV.Damage.Ultimate}, el remate de la cadena {CV.Damage.Finisher} y el disparo de remate {CV.Damage.ShotFinisher}; vuelven a los {CV.RespawnSeconds} s. Un jugador solo, con actividad {pct(
@@ -2918,6 +2934,7 @@ local function main(copia: Instance): string
 			end
 		end
 		linea("")
+		enArena = false
 	end
 
 	linea("## 12. Alertas")

@@ -1213,6 +1213,10 @@ local Config = {
 		-- Las definitivas (V), además, esto contra jugadores: ningún golpe de una habilidad pasa de 40 de
 		-- 100 (el Pisotón quitaba 94 y el Rayo encadenado 75 de un golpe; ahora 37 y 30).
 		PvPUltimateMultiplier = 0.4,
+		-- La protección del Grito de guerra contra el daño de otros jugadores es esta fracción de la suya
+		-- (−40 % → −15 %; contra monos, entera). Con toda, el duelo de guerreros de la arena duraba 10,4 s
+		-- (12,6 s con defensa; C13).
+		PvPWarCryMultiplier = 0.375,
 		-- Los jefes se resisten: aturdir, congelar o inmovilizar les dura esta fracción.
 		BossControlMultiplier = 0.5,
 		-- Veneno (Combat/Status.poison: cerbatanas y remate de "Cura de urgencia"): un golpe cada tanto.

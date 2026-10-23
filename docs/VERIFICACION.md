@@ -1,4 +1,4 @@
-# Verificación paso a paso (entregas 2.3 a 6.5, la arena de Dunas y la Fase 9)
+# Verificación paso a paso (entregas 2.3 a 6.5, la arena de Dunas y las Fases 9 y 10)
 
 Sigue los bloques en orden. Cada bloque dice **qué hacer**, **qué debe pasar ✅** y **qué hacer si falla ⚠️**.
 Marca cada casilla al comprobarla.
@@ -657,6 +657,81 @@ Al terminar, para dejarlo como estaba, cambia el orden (lee de `PlayerData_v1_ba
    ✅ Se descuenta, sale en el Armario y no vuelve a la oferta. **🛒 Tienda de cosméticos: día siguiente** cambia los 4.
 3. [ ] Un suelto de Robux con **🧾 Compra de prueba** (o el botón, que en Studio es de prueba).
    ✅ Se entrega una sola vez (🔁 no lo duplica).
+
+Al terminar, restaura tu perfil (10.0).
+
+## 11. Fase 10: Combate v2 (22-10-2026)
+
+Lo nuevo de §6.5 del GDD. Casi todo se prueba con un jugador en la Isla, junto a los **muñecos de práctica** y el **muñeco de sparring** del Basecamp (al este de la hoguera; en el Lobby, en la plaza). Antes, haz la copia de tu perfil (10.0): Play escribe el perfil de verdad.
+
+### 11.1 Un jugador (▶ Jugar, en la Isla)
+
+1. [ ] **Cadena de golpes:** con el garrote, pega seguido a un muñeco.
+   ✅ Cuatro tajos distintos; el 4.º (remate) pega más (~×1,4), tiembla la cámara y bajo tus pies se llenan **4 rombos** (el 4.º, dorado, late antes del remate). Si paras 1,2 s, vuelve al primero. Hacha y pico, golpe suelto.
+2. [ ] **Disparo de remate:** con el arco (o la honda, el bastón, la cerbatana), dispara seguido.
+   ✅ El 4.º disparo es más grande y de color, con una chispa en el arma; el del arco atraviesa al muñeco y da al de detrás, el del bastón estalla. Disparando cada 2 s no sale.
+3. [ ] **Guardia:** ponte delante del muñeco de sparring (te pega cada 1,8 s con un "!" encima) y mantén **F**.
+   ✅ La barra de guardia (a la derecha de la estamina) baja con cada golpe, suena madera contra piedra y no pierdes vida. Si se vacía: "¡GUARDIA ROTA!" naranja y quedas aturdido un momento.
+4. [ ] **Parry:** pulsa **F** justo cuando el "!" va a acabar.
+   ✅ "¡PARRY!" dorado, un tintineo, la guardia sube y el sparring se tambalea. Tu siguiente golpe saca "¡CONTRA!".
+5. [ ] **Amago:** pulsa **Z** (o pega) y, antes de que salga, **F**.
+   ✅ Bocanada de humo gris; la habilidad no sale y se recarga en 1,5 s (gasta 15 de estamina). El golpe del arma se amaga gratis una vez por segundo.
+6. [ ] **Preparación de los monos:** pulsa **🐒 Mandril aquí** fuera del Basecamp.
+   ✅ Antes de morder se para y avisa con "!" (0,5 s). Si te apartas o esquivas en ese momento, falla. Un gorila avisa el pisotón con **"‼" naranja**: no se puede bloquear.
+7. [ ] **Evasivo:** deja que un orangután te agarre (o que un gorila te tumbe) y pulsa **Q**.
+   ✅ Te suelta con una ráfaga blanca y azul, y el icono 💨 baja como una cortina durante 25 s. Atrapado y en recarga, Q no hace nada.
+8. [ ] **Control decreciente:** como mago, congela al mismo mandril con la Nova cada vez que esté lista.
+   ✅ Cada congelación dura menos y a la cuarta o la quinta sale "INMUNE".
+9. [ ] **Paredes:** con una roca entre tú y un muñeco, usa el Torbellino o el garrote.
+   ✅ No le das. Sin la roca, sí.
+10. [ ] **Proyectiles:** dispara a un mandril que corre de lado.
+   ✅ La piedra (o la flecha) vuela de verdad: apuntando casi encima, la ayuda la adelanta; apuntando entre dos monos, pasa entre ellos. Una pared la para.
+11. [ ] **Rebote contra muros:** con el guerrero, Embestida a un mono pegado a una roca.
+   ✅ Grietas en la roca, polvo, un golpe sordo y el mono aturdido medio segundo.
+12. [ ] **Zonas:** como mago, Nova en el suelo; como médico, Polvo somnífero.
+   ✅ Baldosas de hielo azul (3 s, ralentiza) y nube lila (3 s). Bola de fuego → Nova → Meteoro deja el suelo ardiendo.
+13. [ ] **⚙️ Ajustes:** "Tus números" enseña la cadena del arma (o el disparo de remate) y la guardia; hay "🎮 Controles del combate" (PC, mando y móvil) y "📳 Temblor de la cámara" (Encendido, Suave o Apagado; apagado, el remate ya no mueve la cámara).
+14. [ ] **Bloqueo de cámara:** en el menú de Roblox enciende "Shift Lock" y pulsa **Ctrl**.
+   ✅ La cámara queda detrás del hombro; Mayús sigue siendo correr.
+15. [ ] En la **Salida**, ninguna línea roja nueva.
+
+### 11.2 Dunas (▶ Jugar, en el place de Dunas)
+
+1. [ ] **🧪 Empezar ya**. Junto a una estela, usa habilidades de daño.
+   ✅ Se agrieta (a dos tercios y a un tercio), cae en trozos y vuelve a los 45 s; rota, se pasa a través.
+2. [ ] **⛩️ Encender el altar ya y subir a él**.
+   ✅ En 6 s lo tomas (haz y gemas del color de tu equipo, línea en el HUD bajo la fase) y tu V se carga el doble durante 30 s. En los resultados, "⛩️ Altares".
+3. [ ] Desde el patio de la base, intenta subir por la cara del templo y salir por detrás.
+   ✅ No se puede (barreras invisibles).
+
+### 11.3 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en Dunas)
+
+Por el MCP solo hay un jugador: esto solo lo puedes probar tú. Dime qué pasa en cada paso.
+
+1. [ ] **Duelo espejo** (los dos del mismo rol, sin defenderse): cuenta los segundos hasta que cae uno.
+   ✅ 8–10 s el guerrero, el cazador y el mago (el médico tarda mucho más, a propósito). Defendiéndose bien, hasta ~12 s.
+2. [ ] **Parry entre jugadores:** uno pega con el garrote y el otro pulsa F justo antes.
+   ✅ "¡PARRY!" sobre el que para, el atacante se tambalea y el primer golpe del que paró saca "¡CONTRA!".
+3. [ ] **Amago contra parry:** el atacante amaga (F durante el tajo) y vuelve a pegar.
+   ✅ Quien paró por reflejo gasta su ventana y recibe el segundo golpe.
+4. [ ] **Guardia contra habilidades:** uno mantiene F y el otro le hace un Torbellino entero.
+   ✅ La guardia baja **una vez** por el Torbellino (25), no por cada vuelta. El Rompehuesos y el Pisotón la rompen.
+5. [ ] **Grito de guerra en PvP:** el guerrero usa el Grito y el otro le pega.
+   ✅ Le quita un 15 % menos (no el 40 % de contra los monos).
+6. [ ] **Combo sin escape:** el guerrero abre con el Pisotón y sigue pegando.
+   ✅ El otro, aturdido, pulsa Q (Evasivo) y sale; sin Evasivo, tras el Pisotón no pierde más de un tercio de la vida.
+7. [ ] **Escalado:** muchos golpes seguidos al mismo rival.
+   ✅ Desde el 4.º, cada uno quita un poco menos. Los controles seguidos duran menos cada vez.
+8. [ ] **Proyectiles contra un jugador:** dispara a un rival que se aparta de lado.
+   ✅ Si se aparta a tiempo, falla (contra jugadores la ayuda no adelanta). Bloqueado o parado, como un golpe.
+9. [ ] **Rebote:** Embestida a un rival pegado a una pared.
+   ✅ Grietas y un aturdido corto (0,25 s).
+10. [ ] **Altar disputado:** los dos equipos en el altar a la vez.
+   ✅ La barra se para; cuando uno se va, el otro primero vacía la del rival y luego llena la suya.
+11. [ ] **Cura doble de la cerbatana** (en la Isla, 2 clientes): el médico dispara seguido a un mono con el aliado herido cerca.
+   ✅ El 4.º dardo cura el doble al aliado.
+12. [ ] **Rendimiento** (en la Isla, 5 clientes): pelead todos juntos contra un grupo de monos.
+   ✅ El servidor sigue a ~60 FPS (la línea "[Rendimiento]" de la Salida) y nadie nota tirones.
 
 Al terminar, restaura tu perfil (10.0).
 

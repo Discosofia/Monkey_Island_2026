@@ -204,7 +204,8 @@ end
 
 -- Reduce el daño que recibe un jugador: armadura (Data/Armor), "Grito de guerra" del guerrero y
 -- "Escudo de hojas" del médico, que absorbe hasta romperse. Puede devolver 0 (todo absorbido).
-local function mitigate(player: Player, amount: number): number
+-- "pvp": el daño viene de otro jugador (el Grito protege menos: PvPWarCryMultiplier).
+local function mitigate(player: Player, amount: number, pvp: boolean?): number
 	local armorId = player:GetAttribute("Armor")
 	local armor = if typeof(armorId) == "string" then Armor[armorId] else nil
 	if armor then
@@ -219,6 +220,9 @@ local function mitigate(player: Player, amount: number): number
 	local guardUntil = player:GetAttribute("GuardUntil")
 	local guard = player:GetAttribute("GuardReduction")
 	if typeof(guardUntil) == "number" and now < guardUntil and typeof(guard) == "number" then
+		if pvp then
+			guard *= Config.Abilities.PvPWarCryMultiplier
+		end
 		amount = math.max(1, math.round(amount * (1 - math.clamp(guard, 0, 0.9))))
 	end
 	local shieldUntil = player:GetAttribute("ShieldUntil")
@@ -434,7 +438,7 @@ local function applyPvP(attacker: Player, victim: Player, amount: number, crit: 
 	if crit then
 		amount *= Crit.MULTIPLIER
 	end
-	amount = mitigate(victim, math.max(1, math.round(amount)))
+	amount = mitigate(victim, math.max(1, math.round(amount)), true)
 	if not poison then
 		flash(character)
 	end

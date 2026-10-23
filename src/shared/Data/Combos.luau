@@ -16,7 +16,9 @@
 -- "damageBonus" es distinto por rol para que enlazar valga parecido a todos (+30 % de daño en una
 -- pelea larga contra un grupo, medido con la calculadora ServerStorage.Tools.Equilibrio): con las
 -- conexiones casi todos los golpes de habilidad del mago van enlazados (críticos seguros) y no le hace
--- falta más; el guerrero cierra menos combos (el Grito tarda 12 s) y su remate es el Torbellino.
+-- falta más; el guerrero cierra menos combos (el Grito tarda 12 s) y su remate es el Torbellino. Con la
+-- preparación de las habilidades (C8) y los talentos al máximo, su 0,25 daba +41 % (límite 35 %): 0,15
+-- desde C13 (+27 % sin talentos, +34 % con ellos).
 
 export type Combo = {
 	name: string,
@@ -75,7 +77,7 @@ local Combos: { [string]: { Combo } } = {
 			icon = "💫",
 			finisher = "El Grito aturde a los desequilibrados y el Torbellino gira 1 s más.",
 			short = "aturde y gira 1 s más",
-			damageBonus = 0.25,
+			damageBonus = 0.15,
 		},
 		{
 			name = "Martillo y yunque",
@@ -84,7 +86,7 @@ local Combos: { [string]: { Combo } } = {
 			icon = "🔨",
 			finisher = "El Rompehuesos golpea a todo lo que tienes alrededor, no solo delante.",
 			short = "golpea a tu alrededor",
-			damageBonus = 0.25,
+			damageBonus = 0.15,
 		},
 	},
 	Medico = {

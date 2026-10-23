@@ -1,9 +1,9 @@
 # Cómo funciona el combate (mecánicas, detección y red)
 
-Estado del repo el 22 de octubre de 2026, al empezar la Fase 10 ("Combate v2", `docs/PLAN.md`).
-Cada apartado dice **qué hay hoy** y, si cambia, **qué está planificado** y en qué grupo (C1–C13).
-Cuando un grupo se cierra, actualiza aquí su apartado: lo planificado pasa a ser lo que hay. Si algo
-no coincide con el código, manda el código.
+Estado del repo el 22 de octubre de 2026, al cerrar la Fase 10 ("Combate v2", `docs/PLAN.md`): los grupos
+C1–C13 están hechos y cada apartado dice **qué hay hoy** (con el grupo que lo trajo). Antes y después, medida
+a medida: `docs/combate-v2/comparativa.md`. Si cambias una mecánica, actualiza aquí su apartado. Si algo no
+coincide con el código, manda el código.
 
 ## 1. Mapa
 

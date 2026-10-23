@@ -151,6 +151,21 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
+**22 de octubre de 2026, cierre de la Fase 10 (Combate v2, C13).** La comparativa completa con la foto
+inicial está en `docs/combate-v2/comparativa.md`. Armas básicas:
+
+| Rol | DPS 60 s, 1 obj (sin → con combos) | DPS 60 s, grupo (sin → con combos) | Combo en 180 s (grupo / 1 obj; con talentos al máximo) | Control sobre un mono (con rendimientos decrecientes) |
+|---|---|---|---|---|
+| Guerrero | 28,1 → 31 | 45,4 → 54,3 | +27 / +11 % (+34 %) | 11 % |
+| Cazador | 28,1 → 31,8 | 42,5 → 52 | +28 / +15 % (+35 %) | 25 % |
+| Mago | 22,8 → 25,9 | 37,3 → 48,4 | +31 / +15 % (+28 %) | 13 % |
+| Médico | 18,1 → 19,1 (cura 15,1 → 21,2/s) | 18,8 → 25,2 | | 21 % |
+
+Jefes con 1 / 4 jugadores: 130 / 105, 151 / 123, 178 / 144 y 214 / 174 s. Equipo de 4 sobre un jefe: 12 %
+(con talentos al máximo, 17 %). Arena (sin talentos): espejo 9,8 · 9,4 · 9,8 s (médico 28,9), con defensa 11,8
+· 11,4 · 11,9 s; combo sin escape más largo 34 % (Pisotón); variantes de equipo ±15 %, espejo 8,3–11,3 s.
+Alertas: 7 sin talentos y 11 con talentos al máximo (hallazgos 2, 3 y 7).
+
 **21 de octubre de 2026, nivel 4 de la forja volcánica** (G5). Mejoras por día (`armasPorDia`): nivel 2
 desde el día 3, nivel 3 desde el 5 (pide la corona del jefe del día 4) y nivel 4 desde el 7 (cristal del
 jefe del día 6). El nivel 4 sube el DPS del arma ~+30 % (Mazo volcánico 68 cada 0,9 s; Arco de brasa
@@ -261,8 +276,10 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
    (por MCP solo hay uno; hace falta Test → Clientes y servidores con 2).
 7. **Golpes máximos el día 20**: gibón, mandril, chimpancé y gorila pasan de 60 de 100 sin armadura.
 
-8. **Con talentos al máximo y la cuarta activa**: el control del equipo sobre un jefe llega al 42 % y
-   enlazar combos da +36–39 % (límite 35 %); el resto de alertas con talentos ya estaban (punto 3).
+8. ~~**Con talentos al máximo y la cuarta activa**: el control del equipo sobre un jefe llega al 42 % y
+   enlazar combos da +36–39 % (límite 35 %)~~. **Resuelto en la Fase 10:** el control, con los rendimientos
+   decrecientes de C6 (17 %; la sección 1 ya solo enseña la suma y el límite se mira en la 9); los combos, en
+   C13 (el daño enlazado del guerrero 0,25 → 0,15: +41 → +34 %; el cazador queda en +35 %).
 9. **La racha con conexiones**: en la simulación se queda en x5; un jugador real que espera a que se
    recargue el paso 2 (Marcar 15 s, Nova 9 s) sin pegar con el arma la pierde a los 8 s. Mirar en la
    telemetría `ComboBestStreak` antes de tocarla.
@@ -359,6 +376,20 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   media de +1–2 % de daño (límite 5 %); en una pelea, tener la V lista suma +8 % (guerrero), +30 %
   (cazador) y +12 % (mago) de daño en los 10 primeros s. No cambia ninguna cifra de las secciones 1 a 10
   ni las alertas (9 sin talentos, 17 con talentos al máximo).
+- **C12 (22-10-2026):** claridad e interfaz; no cambia ningún número.
+- **C13 (22-10-2026), calibración final:**
+  - La calculadora mide la arena **sin talentos** aunque el informe los pida (`enArena` en `perksDe`; en Dunas
+    no cuentan): fuera las 2 alertas de la arena con talentos (cazador 7,7 s y el Pisotón 65 % tras aturdir)
+    y la del guerrero a 11 s, que no pasaban en el juego.
+  - El control del equipo sobre un jefe se mira solo en la sección 9 (con los rendimientos decrecientes).
+  - Duelo de guerreros 10,4 s (12,6 s con defensa): viene del Grito, que daba al guerrero −13 % de daño de
+    media en la arena. **`Config.Abilities.PvPWarCryMultiplier` 0,375** (el Grito protege −15 % del daño de
+    otros jugadores, −40 % del de los monos; en `CombatService.mitigate` con `pvp`). Rejilla: con el garrote
+    ×1,1 en la arena el duelo bajaba a 9,8 s pero el combo del Pisotón subía a 36 %; con el Grito ×0,625 a
+    10 / 12,1 s; ×0,5 a 9,9 / 12 s (rozando); **×0,375 a 9,8 / 11,8 s** con el Pisotón en 34 %.
+  - Combo del guerrero con talentos +41 %: `damageBonus` de sus dos combos **0,25 → 0,15** (+27 % sin talentos,
+    +34 % con ellos). Con 0,2 / 0,2 se quedaba en +38 %; con 0,15 y el Grito ×0,625, el duelo volvía a 10,1 s.
+  - Resultado: 9 → 7 alertas sin talentos y 17 → 11 con talentos al máximo, todas de antes de la fase.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un
