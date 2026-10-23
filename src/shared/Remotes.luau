@@ -49,6 +49,9 @@ local Remotes = {
 	-- Cliente -> servidor (los tres places): un administrador le da todo a un jugador del servidor
 	-- (UserId). Solo vale si quien lo pide está en Config.Admins o es el dueño (ServerShared/Admin).
 	AdminGiveAll = remoteEvent("AdminGiveAll"),
+	-- Cliente -> servidor (los tres places): un administrador le da una cosa a un jugador del servidor
+	-- (UserId, "Cosmetic" | "Pet" | "Mount" | "Egg", id o rareza del huevo). Las mismas comprobaciones que AdminGiveAll.
+	AdminGive = remoteEvent("AdminGive"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).

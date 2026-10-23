@@ -833,8 +833,8 @@ local Config = {
 
 	-- Administradores (UserIds): ven el panel "👑 Admin" también en el juego publicado y pueden darle
 	-- todo (cosméticos, emotes, mascotas y monturas) a un jugador de su servidor (ServerShared/Admin).
-	-- El dueño del juego lo es siempre. 8620190944 = chillyduo.
-	Admins = { 8620190944 },
+	-- El dueño del juego (chillyduo) lo es siempre, sin estar en la lista.
+	Admins = {} :: { number },
 
 	Data = {
 		-- Guardado de datos (Fase 2.8). Cambiar StoreName empieza de cero (útil para pruebas).

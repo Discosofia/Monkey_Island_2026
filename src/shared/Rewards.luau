@@ -27,6 +27,11 @@ local KIND_NAMES: { [string]: string } = {
 	NestDecor = "Nido",
 }
 
+-- El tipo de un cosmético en una palabra ("Estela", "Traje"…).
+function Rewards.kindName(kind: string): string
+	return KIND_NAMES[kind] or kind
+end
+
 -- Solo los ítems que existen y en cantidades enteras positivas.
 function Rewards.sanitizeItems(raw: any): { [string]: number }
 	local items: { [string]: number } = {}
