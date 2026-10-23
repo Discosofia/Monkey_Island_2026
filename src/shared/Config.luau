@@ -974,9 +974,12 @@ local Config = {
 		FirstDelaySeconds = 120,
 		OpenHoldSeconds = 5,
 		ItemsPerCrate = 3,
-		-- Botín posible: { itemId, mín, máx, peso }.
+		-- Siempre todo esto…
+		Always = {
+			{ itemId = "ShipMetal", min = 2, max = 2 },
+		},
+		-- …y ItemsPerCrate tiradas de este botín: { itemId, mín, máx, peso }.
 		Loot = {
-			{ itemId = "ShipMetal", min = 2, max = 4, weight = 5 },
 			{ itemId = "Bandage", min = 2, max = 3, weight = 4 },
 			{ itemId = "Ointment", min = 1, max = 2, weight = 2 },
 			{ itemId = "CookedMeat", min = 2, max = 4, weight = 4 },
@@ -1170,6 +1173,7 @@ local Config = {
 		Guards = { species = "Babuino", count = 2 },
 		-- Siempre todo esto…
 		Loot = {
+			{ itemId = "ShipMetal", min = 2, max = 2 },
 			{ itemId = "Obsidian", min = 4, max = 6 },
 			{ itemId = "SuperBandage", min = 2, max = 2 },
 			{ itemId = "Antidote", min = 1, max = 1 },

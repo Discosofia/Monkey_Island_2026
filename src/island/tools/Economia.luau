@@ -1115,6 +1115,9 @@ local function main(copia: Instance): string
 				poner(jefe.lootItemId, indice * M.BossIntervalDays)
 			end
 		end
+		for _, botin in Config.Supply.Always do
+			poner(botin.itemId, 1)
+		end
 		for _, botin in Config.Supply.Loot do
 			poner(botin.itemId, 1)
 		end

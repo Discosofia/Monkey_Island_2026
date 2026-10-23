@@ -59,6 +59,9 @@ local function rollLoot(): { { itemId: string, amount: number } }
 		total += entry.weight
 	end
 	local result = {}
+	for _, entry in Config.Supply.Always do
+		table.insert(result, { itemId = entry.itemId, amount = rng:NextInteger(entry.min, entry.max) })
+	end
 	for _ = 1, Config.Supply.ItemsPerCrate do
 		local pick = rng:NextNumber(0, total)
 		for _, entry in pool do
