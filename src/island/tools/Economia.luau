@@ -146,6 +146,9 @@ local LIMITES = {
 	-- Día de partida más temprano en que se puede tener el nivel 3 y el 4 de armas de rol y armadura.
 	equipoNivel3Dia = 4,
 	equipoNivel4Dia = 6,
+	-- Monturas (Fase 11): día en que el habitual pasa del 50 % de tener una (ni regalada en la primera
+	-- semana ni fuera del mes).
+	monturaHabitualDia = { 12, 30 },
 }
 
 -- ===================================== Utilidades =====================================
@@ -254,6 +257,15 @@ local function main(copia: Instance): string
 	local temporada = if SeasonsModulo and Pase then (require(SeasonsModulo) :: any)[1] else nil
 	local Tienda = if copia:FindFirstChild("CosmeticShop") then require(copia.CosmeticShop) :: any else nil
 	local Cosmetics = require(Data.Cosmetics) :: any
+	-- Monturas (Fase 11): al eclosionar un huevo de una rareza que tenga monturas, Config.Mounts.EggChance
+	-- de que salga una montura en vez de una mascota.
+	local MountsModulo = Data:FindFirstChild("Mounts")
+	local Mounts = if MountsModulo then require(MountsModulo) :: any else {}
+	local raresConMontura: { [string]: boolean } = {}
+	for _, montura in Mounts do
+		raresConMontura[montura.rarity] = true
+	end
+	local chanceMontura = if Config.Mounts and Config.Mounts.EggChance then Config.Mounts.EggChance else 0
 	-- Día (Shared/Daily) en que empieza la simulación: el de la temporada, para que la rotación de la
 	-- tienda sea la de verdad.
 	local diaInicial = if temporada then (temporada.startsAt + Config.Daily.ResetOffsetSeconds) // 86400 else 20000
@@ -377,6 +389,13 @@ local function main(copia: Instance): string
 	local descarteIsla = mediaPonderada(pesosIsla, function(r)
 		return Config.Egg.DiscardAmber[r]
 	end)
+	-- Probabilidad de que un huevo con estas rarezas dé una montura al abrirse.
+	local function probMontura(pesos: { [string]: number }): number
+		return mediaPonderada(pesos, function(r)
+			return if raresConMontura[r] then chanceMontura else 0
+		end)
+	end
+	local montaIsla = probMontura(pesosIsla)
 	local rescateSegundos = 0
 	do
 		local total = 0
@@ -680,6 +699,9 @@ local function main(copia: Instance): string
 			equipoDunasDia = nil :: number?,
 			huevosEclosionados = 0,
 			huevosDescartados = 0,
+			-- Probabilidad de no tener aún una montura y día en que pasa del 50 % tenerla.
+			sinMontura = 1,
+			monturaDia = nil :: number?,
 			misiones = 0,
 			misionesPosibles = 0,
 			xpRol = 0,
@@ -707,15 +729,16 @@ local function main(copia: Instance): string
 		end
 		local xpTalentos = xpParaTalentos(perfil.rol)
 		local paso = 1 -- calendario
-		-- Nido: segundos totales del huevo, transcurridos, bonos; mochila (cuántos esperan).
+		-- Nido: segundos totales del huevo, transcurridos, bonos y probabilidad de montura; mochila (los
+		-- que esperan: sus horas y su probabilidad de montura).
 		local nido: any = nil
-		local mochila = 0
+		local mochila: { { horas: number, montura: number } } = {}
 		local acumuladoHuevos = 0
-		local function nuevoHuevo(horas: number)
+		local function nuevoHuevo(horas: number, montura: number)
 			if not nido then
-				nido = { total = horas * 3600, pasado = 0, juego = 0, gratis = 0 }
-			elseif mochila < Config.Egg.BagSize then
-				mochila += 1
+				nido = { total = horas * 3600, pasado = 0, juego = 0, gratis = 0, montura = montura }
+			elseif #mochila < Config.Egg.BagSize then
+				table.insert(mochila, { horas = horas, montura = montura })
 			else
 				r.huevosDescartados += 1
 				r.ambar.Descartes += descarteIsla
@@ -752,17 +775,24 @@ local function main(copia: Instance): string
 					end
 				end
 				if premio.egg then
-					nuevoHuevo(mediaPonderada(premio.egg, function(rr)
-						return hatchHoras[rr]
-					end))
+					nuevoHuevo(
+						mediaPonderada(premio.egg, function(rr)
+							return hatchHoras[rr]
+						end),
+						probMontura(premio.egg)
+					)
 				end
 				paso = paso % #Config.Daily.Calendar + 1
 				if listo() then
 					r.huevosEclosionados += 1
+					r.sinMontura *= 1 - nido.montura
+					if not r.monturaDia and r.sinMontura <= 0.5 then
+						r.monturaDia = dia
+					end
 					nido = nil
-					if mochila > 0 then
-						mochila -= 1
-						nuevoHuevo(horasHuevoIsla)
+					local siguiente = table.remove(mochila, 1)
+					if siguiente then
+						nuevoHuevo(siguiente.horas, siguiente.montura)
 					end
 				end
 				-- Isla.
@@ -776,7 +806,7 @@ local function main(copia: Instance): string
 				acumuladoHuevos += p.huevos
 				while acumuladoHuevos >= 1 do
 					acumuladoHuevos -= 1
-					nuevoHuevo(horasHuevoIsla)
+					nuevoHuevo(horasHuevoIsla, montaIsla)
 				end
 				local cumplidas, posibles, ambarMisiones, huevoMisiones, xpMisiones =
 					misionesDelDia(perfil.minutosIsla, perfil.rol)
@@ -868,9 +898,12 @@ local function main(copia: Instance): string
 								end
 							end
 							if gratis.egg then
-								nuevoHuevo(mediaPonderada(gratis.egg, function(rr)
-									return hatchHoras[rr]
-								end))
+								nuevoHuevo(
+									mediaPonderada(gratis.egg, function(rr)
+										return hatchHoras[rr]
+									end),
+									probMontura(gratis.egg)
+								)
 							end
 						end
 					end
@@ -979,6 +1012,40 @@ local function main(copia: Instance): string
 					else "no"} | {r.huevosEclosionados} ({r.huevosDescartados}) | {pct(
 					if r.misionesPosibles > 0 then r.misiones / r.misionesPosibles else 0
 				)} | {if r.talentosDia then `día {r.talentosDia} ({perfil.rol})` else "no"} |`
+			)
+		end
+		-- Monturas: probabilidad de tener la primera al final y día en que pasa del 50 %.
+		if next(raresConMontura) then
+			local habitualMontura = resultados.habitual
+			if habitualMontura then
+				local dia = habitualMontura.monturaDia
+				local limite = LIMITES.monturaHabitualDia
+				if not dia or dia > limite[2] then
+					alerta(
+						`Monturas: el habitual no llega al 50 % de tener una hasta {if dia
+							then `el día {dia}`
+							else "pasado el periodo"} (máximo el día {limite[2]})`
+					)
+				elseif dia < limite[1] then
+					alerta(`Monturas: el habitual ya tiene una al 50 % el día {dia} (mínimo el día {limite[1]})`)
+				end
+			end
+			local textos = {}
+			for _, clave in OPCIONES.ordenPerfiles do
+				local r = resultados[clave]
+				table.insert(
+					textos,
+					`{OPCIONES.perfiles[clave].nombre} {pct(1 - r.sinMontura)} ({if r.monturaDia
+						then `50 % el día {r.monturaDia}`
+						else "no llega al 50 %"})`
+				)
+			end
+			linea("")
+			linea(
+				`Monturas: {pct(chanceMontura)} de los huevos de su rareza al abrirse. Tiene una al día {OPCIONES.dias}: {table.concat(
+					textos,
+					" · "
+				)}.`
 			)
 		end
 		-- Semanales: qué día de la primera semana cumple cada una cada perfil.

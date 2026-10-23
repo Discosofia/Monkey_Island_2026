@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
@@ -188,6 +189,12 @@ function PetBoardController:Start()
 				local pet = Pets[petId]
 				local owned = (data.pets[petId] or 0) > 0
 				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
+			end
+			-- Y sus monturas (Fase 11), mientras no las tengas.
+			for _, mountId in PetRoll.mountsOfRarity(nestEgg.rarity) do
+				local mount = Mounts[mountId]
+				local owned = (data.mounts[mountId] or 0) > 0
+				table.insert(names, `{mount.icon} {mount.name} (montura){if owned then " ✅" else ""}`)
 			end
 			board.options.Text = `Puede salir: {table.concat(names, " · ")}`
 		else

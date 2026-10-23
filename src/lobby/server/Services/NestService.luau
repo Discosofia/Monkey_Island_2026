@@ -52,11 +52,11 @@ local function onHatch(player: Player)
 	end
 	local egg = Eggs.get(player)
 	local rarity = if egg and egg.nest then egg.nest.rarity else nil
-	local petId, equipped = Eggs.hatch(player)
+	local petId, equipped, isMount = Eggs.hatch(player)
 	if not (petId and rarity) then
 		return
 	end
-	Remotes.EggHatched:FireClient(player, petId, rarity, equipped)
+	Remotes.EggHatched:FireClient(player, petId, rarity, equipped, isMount)
 end
 
 function NestService:Start()

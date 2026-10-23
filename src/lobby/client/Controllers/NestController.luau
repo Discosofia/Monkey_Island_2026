@@ -5,7 +5,8 @@
 --     ven. Lo que le falta lo enseña el cartel de las mascotas de detrás (PetBoardController).
 --   - Listo para abrir, el huevo se tambalea y brilla más, y el aviso del nido dice "Abrir el huevo".
 --   - Al nacer la mascota (Remotes.EggHatched) hace la ceremonia: el huevo tiembla cada vez más
---     fuerte, estalla y sale la mascota girando con su nombre y su rareza.
+--     fuerte, estalla y sale la mascota girando con su nombre y su rareza. Si ha salido una montura
+--     (Fase 11), sale ella, a escala de nido, y el letrero dice cómo montarla.
 --   - Alrededor del nido, la decoración que lleva el jugador (cosmético NestDecor, atributo
 --     "NestDecor"; Shared/NestDecor), apoyada en el suelo. También la ve solo él.
 -- Lo que se decide (poner, descartar, abrir) está en la ventana del nido (LobbyUIController).
@@ -21,6 +22,8 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local EggModel = require(ReplicatedStorage.Shared.EggModel)
+local MountModels = require(ReplicatedStorage.Shared.MountModels)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local NestDecor = require(ReplicatedStorage.Shared.NestDecor)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
@@ -160,9 +163,12 @@ local function refresh(time: number)
 	end
 end
 
--- Letrero grande en pantalla con la mascota que ha nacido.
-local function announce(petId: string, equipped: boolean)
-	local pet = Pets[petId]
+-- Escala de la montura al salir del nido (de tamaño real no cabría: la llama mide 7,5 studs).
+local MOUNT_REVEAL_SCALE = 0.45
+
+-- Letrero grande en pantalla con la mascota (o la montura) que ha nacido.
+local function announce(petId: string, equipped: boolean, isMount: boolean)
+	local pet: { name: string, icon: string, rarity: string } = if isMount then Mounts[petId] else Pets[petId]
 	local rarity = Rarities[pet.rarity]
 	local gui = Widgets.screen("EggHatchedUI", player:WaitForChild("PlayerGui"))
 	gui.DisplayOrder = 9
@@ -171,7 +177,13 @@ local function announce(petId: string, equipped: boolean)
 	label.Position = UDim2.fromScale(0.5, 0.3)
 	label.Size = UDim2.fromScale(0.6, 0.09)
 	local detail = Widgets.label(
-		`{rarity.name} · {if equipped then "ya te acompaña" else "en tu colección (llevas una más rara)"}`,
+		if isMount
+			then `{rarity.name} · ¡Una montura! {if equipped
+				then "Móntala con N (o el botón Montar)"
+				else "Llévala desde la ventana de Mascotas"}`
+			else `{rarity.name} · {if equipped
+				then "ya te acompaña"
+				else "en tu colección (llevas una más rara)"}`,
 		gui
 	)
 	detail.AnchorPoint = Vector2.new(0.5, 0)
@@ -187,10 +199,10 @@ local function announce(petId: string, equipped: boolean)
 	end)
 end
 
-local function playCeremony(petId: string, rarity: string, equipped: boolean)
+local function playCeremony(petId: string, rarity: string, equipped: boolean, isMount: boolean)
 	local _, seat = findNest()
 	if not seat then
-		announce(petId, equipped)
+		announce(petId, equipped, isMount)
 		return
 	end
 	ceremony = true
@@ -211,12 +223,19 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean)
 	local burstAt = eggRest(seat).Position
 	clearEgg()
 	EggModel.burst(burstAt, rarity)
-	announce(petId, equipped)
-	-- La mascota sube del nido girando y se va.
-	local pet = PetModels.build(petId)
+	announce(petId, equipped, isMount)
+	-- La mascota (o la montura, más pequeña) sube del nido girando y se va.
+	local pet = if isMount then MountModels.build(petId) else PetModels.build(petId)
 	if pet then
+		if isMount then
+			pet:ScaleTo(MOUNT_REVEAL_SCALE)
+		end
 		local height = pet:GetAttribute("Height")
 		local lift = if typeof(height) == "number" then height else 1.5
+		if isMount then
+			-- El pivote de la montura está en el suelo, no en el centro.
+			lift = 0
+		end
 		pet.Parent = Workspace
 		local revealStart = os.clock()
 		while os.clock() - revealStart < REVEAL_SECONDS do
@@ -234,9 +253,10 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean)
 end
 
 function NestController:Start()
-	Remotes.EggHatched.OnClientEvent:Connect(function(petId: any, rarity: any, equipped: any)
-		if typeof(petId) == "string" and Pets[petId] and typeof(rarity) == "string" and Rarities[rarity] then
-			task.spawn(playCeremony, petId, rarity, equipped == true)
+	Remotes.EggHatched.OnClientEvent:Connect(function(petId: any, rarity: any, equipped: any, isMount: any)
+		local known = if isMount == true then Mounts[petId] ~= nil else Pets[petId] ~= nil
+		if typeof(petId) == "string" and known and typeof(rarity) == "string" and Rarities[rarity] then
+			task.spawn(playCeremony, petId, rarity, equipped == true, isMount == true)
 		end
 	end)
 	eggs = readEggs()

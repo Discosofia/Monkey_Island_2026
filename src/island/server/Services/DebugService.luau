@@ -27,6 +27,7 @@ local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
 local ContractService = require(script.Parent.ContractService)
+local Admin = require(ServerScriptService.ServerShared.Admin)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Retention = require(ServerScriptService.ServerShared.Retention)
@@ -470,6 +471,13 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Crate = function()
 		SupplyService.spawnCrate()
+	end,
+	-- Todo lo que se puede tener (solo Studio, panel de pruebas): todos los cosméticos, emotes
+	-- incluidos, todas las mascotas y todas las monturas, guardados en el perfil del que lo pulsa
+	-- (ServerShared/Admin.grantAll; en el juego publicado lo hace el panel de administradores).
+	UnlockAll = function(player)
+		Admin.grantAll(player)
+		Remotes.Notify:FireClient(player, "🔓 Desbloqueado todo: cosméticos, emotes, mascotas y monturas")
 	end,
 	-- Da la montura de prueba (la primera de Data/Mounts) y la lleva puesta (Fase 11).
 	Mount = function(player)

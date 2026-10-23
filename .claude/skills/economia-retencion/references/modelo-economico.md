@@ -98,6 +98,10 @@ Contratos, pasos por partida jugando solo: casual 1,3 · habitual 2 · intenso 5
 pago: 18 productos de Robux (3 del pase, 11 sueltos, 4 Game Passes), todos cosméticos o el pase; 14
 siguen sin id ("Próximamente") hasta que se creen en el Creator Hub.
 
+Monturas (Fase 11, M2, `Config.Mounts.EggChance` 0,5: la mitad de los huevos Raros dan la Llama Andina
+mientras no la tienes). Probabilidad de tenerla el día 30 (día en que pasa del 50 %): casual 66 % (21) ·
+habitual 74 % (17) · intenso 86 % (12) · amigos 66 % (21). Límite `monturaHabitualDia` 12–30.
+
 **Robustez (G12)**, cambiando una cosa cada vez:
 
 | Prueba | Qué salta |

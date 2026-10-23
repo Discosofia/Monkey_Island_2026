@@ -2,8 +2,11 @@
 -- Tiradas de mascotas y huevos. El huevo saca su rareza al aparecer en la Isla (rollRarity, con
 -- Config.Pets.RarityWeights) y, al eclosionar en el nido del Lobby, una mascota al azar de esa rareza
 -- (rollPet). También da la siguiente mascota para recorrerlas todas desde el panel de pruebas.
+-- Monturas (Fase 11): antes de la mascota, un huevo de una rareza que tenga monturas que aún no
+-- tienes da una de ellas con Config.Mounts.EggChance (rollMount).
 
 local Config = require(script.Parent.Config)
+local Mounts = require(script.Parent.Data.Mounts)
 local Pets = require(script.Parent.Data.Pets)
 local Rarities = require(script.Parent.Data.Rarities)
 
@@ -42,6 +45,33 @@ function PetRoll.petsOfRarity(rarity: string): { string }
 	end
 	table.sort(candidates)
 	return candidates
+end
+
+-- Monturas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza).
+function PetRoll.mountsOfRarity(rarity: string): { string }
+	local candidates = {}
+	for mountId, mount in Mounts do
+		if mount.rarity == rarity then
+			table.insert(candidates, mountId)
+		end
+	end
+	table.sort(candidates)
+	return candidates
+end
+
+-- Montura que sale de un huevo de "rarity" (nil si sale mascota): con Config.Mounts.EggChance, una
+-- de las de su rareza que no tenga aún ("owned"). Si ya las tiene todas, mascota.
+function PetRoll.rollMount(rarity: string, owned: { [string]: number }, rng: Random): string?
+	local candidates = {}
+	for _, mountId in PetRoll.mountsOfRarity(rarity) do
+		if (owned[mountId] or 0) <= 0 then
+			table.insert(candidates, mountId)
+		end
+	end
+	if #candidates == 0 or rng:NextNumber() >= Config.Mounts.EggChance then
+		return nil
+	end
+	return candidates[rng:NextInteger(1, #candidates)]
 end
 
 -- Mascota al azar de una rareza (si no hay ninguna de esa rareza, de todas).

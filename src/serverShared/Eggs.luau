@@ -5,7 +5,7 @@
 --   - grant: un huevo nuevo (de la defensa en la Isla o del calendario). Si el nido está vacío entra
 --     directo en él; si no, a la mochila; si está llena, queda pendiente.
 --   - placeInNest / discard: lo que el jugador decide en el nido del Lobby.
---   - hatch: abre el huevo del nido ya listo y da una mascota de su rareza.
+--   - hatch: abre el huevo del nido ya listo y da una mascota de su rareza (o una montura, Fase 11).
 --   - addPlayTime / addFreeTime / makeReady: le quitan tiempo al huevo del nido.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -110,13 +110,27 @@ function Eggs.discard(player: Player, source: Source, index: number): number
 end
 
 -- Abre el huevo del nido si ya está listo: una mascota de su rareza a la colección. Si es más rara
--- que la que lleva (o no lleva ninguna), pasa a acompañarle. Devuelve la mascota y si se la puso.
-function Eggs.hatch(player: Player): (string?, boolean)
+-- que la que lleva (o no lleva ninguna), pasa a acompañarle. Puede salir, en cambio, una montura de
+-- su rareza que aún no tenga (PetRoll.rollMount): se la pone si no llevaba ninguna. Devuelve lo que
+-- ha salido, si se lo puso y si es una montura.
+function Eggs.hatch(player: Player): (string?, boolean, boolean)
 	local equipped = false
+	local isMount = false
 	local petId = edit(player, function(data, profile): string?
 		local nest = data.nest
 		if not (nest and EggIncubation.isReady(nest, now())) then
 			return nil
+		end
+		local mountId = PetRoll.rollMount(nest.rarity, profile.mounts, rng)
+		if mountId then
+			data.nest = nil
+			profile.mounts[mountId] = (profile.mounts[mountId] or 0) + 1
+			isMount = true
+			if profile.activeMount == "" then
+				profile.activeMount = mountId
+				equipped = true
+			end
+			return mountId
 		end
 		local pet = PetRoll.rollPet(nest.rarity, rng)
 		data.nest = nil
@@ -128,7 +142,7 @@ function Eggs.hatch(player: Player): (string?, boolean)
 		end
 		return pet
 	end)
-	return petId, equipped
+	return petId, equipped, isMount
 end
 
 -- Quita tiempo ganado jugando al huevo del nido (con tope). Devuelve los segundos quitados.

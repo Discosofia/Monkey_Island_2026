@@ -669,6 +669,12 @@ function LobbyUIController:Start()
 				local owned = (data.pets[petId] or 0) > 0
 				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
 			end
+			-- Y sus monturas (Fase 11), mientras no las tengas.
+			for _, mountId in PetRoll.mountsOfRarity(nestEgg.rarity) do
+				local mount = Mounts[mountId]
+				local owned = (data.mounts[mountId] or 0) > 0
+				table.insert(names, `{mount.icon} {mount.name} (montura){if owned then " ✅" else ""}`)
+			end
 			local options = newRow(parent, -98)
 			options.title.Text = `Puede salir ({rarity.name}):`
 			options.title.TextColor3 = rarity.color

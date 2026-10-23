@@ -831,6 +831,11 @@ local Config = {
 		-- Recetas: ver Shared/Data/Recipes.
 	},
 
+	-- Administradores (UserIds): ven el panel "👑 Admin" también en el juego publicado y pueden darle
+	-- todo (cosméticos, emotes, mascotas y monturas) a un jugador de su servidor (ServerShared/Admin).
+	-- El dueño del juego lo es siempre. 8620190944 = chillyduo.
+	Admins = { 8620190944 },
+
 	Data = {
 		-- Guardado de datos (Fase 2.8). Cambiar StoreName empieza de cero (útil para pruebas).
 		StoreName = "PlayerData_v1",
@@ -1216,6 +1221,10 @@ local Config = {
 		-- Espera entre montar y volver a montar, y desde el último daño recibido para poder montar.
 		RemountCooldown = 2,
 		HurtCooldown = 4,
+		-- Al abrir un huevo de una rareza que tenga monturas que aún no tienes, probabilidad de que salga
+		-- una de ellas en vez de una mascota (Shared/PetRoll.rollMount; medido con la calculadora Economia).
+		-- Con 0,5 el habitual (5 días por semana, 1 h) la tiene al 50 % el día 17 y al 74 % el 30.
+		EggChance = 0.5,
 		-- Velocidad del jinete (studs/s) a la que la montura empieza a galopar y a la que galopa del todo.
 		RunFrom = 6,
 		RunFull = 14,

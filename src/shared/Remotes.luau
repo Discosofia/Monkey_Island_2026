@@ -46,6 +46,9 @@ local Remotes = {
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.
 	DebugCommand = remoteEvent("DebugCommand"),
+	-- Cliente -> servidor (los tres places): un administrador le da todo a un jugador del servidor
+	-- (UserId). Solo vale si quien lo pide está en Config.Admins o es el dueño (ServerShared/Admin).
+	AdminGiveAll = remoteEvent("AdminGiveAll"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
@@ -126,8 +129,8 @@ local Remotes = {
 	DiscardEgg = remoteEvent("DiscardEgg"),
 	-- Cliente -> servidor (Lobby): abrir el huevo del nido si ya está listo.
 	HatchEgg = remoteEvent("HatchEgg"),
-	-- Servidor -> cliente (Lobby): ha nacido una mascota (id, rareza del huevo, si se la ha puesto),
-	-- para la ceremonia del nido (NestController).
+	-- Servidor -> cliente (Lobby): ha nacido una mascota (id, rareza del huevo, si se la ha puesto y si
+	-- es una montura de Data/Mounts), para la ceremonia del nido (NestController).
 	EggHatched = remoteEvent("EggHatched"),
 	-- Cliente -> servidor (Lobby): cobrar el premio de hoy del calendario de 7 días.
 	ClaimLogin = remoteEvent("ClaimLogin"),

@@ -16,6 +16,7 @@ Copia de `LIMITES` en `src/island/tools/Economia.luau`: si cambias uno, cambia l
 | `tiendaHabitualDiaMin` | ≥ día 30 | La tienda de cosméticos en Ámbar no se le acaba al habitual dentro del mes: si lo compra todo, el Ámbar vuelve a sobrar |
 | `equipoNivel3Dia` | ≥ día 4 | El nivel 3 de armas y armadura no llega antes del jefe del día 4 |
 | `equipoNivel4Dia` | ≥ día 6 | El nivel 4 (Forja volcánica) no llega antes del jefe del día 6 |
+| `monturaHabitualDia` | día 12–30 | Las monturas son especiales: el habitual pasa del 50 % de tener una dentro del mes, pero no en la primera semana y media |
 | Pago | 0 | Nada de Robux da poder, Ámbar, tiempo de huevo, objetos ni algo aleatorio (alerta dura). Se revisa también lo que tiene id 0 ("Próximamente"): se vende en cuanto se crea el producto |
 
 Las alertas de pago no se aceptan con una razón de diseño: se rediseña lo que las dispara.

@@ -13,6 +13,7 @@ local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Admin = require(ServerScriptService.ServerShared.Admin)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
@@ -78,6 +79,13 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 			local role = Progression.validRole(profile.selectedRole)
 			profile.roleXp[role] = (profile.roleXp[role] or 0) + 300
 		end)
+	end,
+	-- Todo lo que se puede tener (solo Studio, panel de pruebas): todos los cosméticos, emotes
+	-- incluidos, todas las mascotas y todas las monturas, guardados en el perfil del que lo pulsa
+	-- (ServerShared/Admin.grantAll; en el juego publicado lo hace el panel de administradores).
+	UnlockAll = function(player)
+		Admin.grantAll(player)
+		Remotes.Notify:FireClient(player, "🔓 Desbloqueado todo: cosméticos, emotes, mascotas y monturas")
 	end,
 	-- Da la montura de prueba (la primera de Data/Mounts) y la lleva puesta (Fase 11).
 	Mount = function(player)
