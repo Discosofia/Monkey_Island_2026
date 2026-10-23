@@ -14,11 +14,12 @@ no coincide con el código, manda el código.
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅); `Casting` de las habilidades (C8 ✅) | — |
 | Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
 | Ataques de monos y jefes | Preparación con aviso y golpe al acabarla (`Combat/EnemyAttack`, `EnemyWindupController`, C6 ✅) | — |
-| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅); proyectiles paso a paso (C9 ✅) | Muros de los empujes (C10) |
+| Detección | `Combat/Hitbox` + `Combat/PositionHistory` (C3 ✅): arma, áreas, cono de puntería y disparos rectos; monos y jefes (C6 ✅); proyectiles paso a paso (C9 ✅); muros de los empujes (C10 ✅) | — |
 | Defensa | Esquiva, armadura, Grito de guerra, Escudo de hojas; bloqueo, parry y guardia (`Combat/Guard`, `GuardController`, C5 ✅), también contra monos y jefes, con sus imbloqueables (C6 ✅); amagos (`Combat/Feint`, `CombatClient/Feint`, C8 ✅) | — |
-| Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente | Rebote contra muros (C10) |
+| Empujes | `Combat/Knockback` (C2 ✅): a los monos el servidor, a los jugadores su cliente; rebote contra muros (C10 ✅, §9) | — |
 | Escalado del combo (PvP) | `Combat/ComboScaling` en `CombatService.damagePvP` (C7 ✅); controles PvP con rendimientos decrecientes en `Status.holdPlayer` | — |
-| Reglas por place | `Combat/CombatRules`; telemetría de mecánicas (`telemetry.mechanic`, C7 ✅: Isla `TelemetryService`, Dunas `ArenaTelemetryService`) | Campos de entorno (C10–C11) |
+| Entorno | Rebote contra muros y zonas de peligro (`Combat/Zones`, `ZoneController`, C10 ✅, §9) | Coberturas y altar de Dunas (C11) |
+| Reglas por place | `Combat/CombatRules`; telemetría de mecánicas (`telemetry.mechanic`, C7 ✅: Isla `TelemetryService`, Dunas `ArenaTelemetryService`) | Campos de entorno (C11) |
 
 ## 2. Estados
 
@@ -130,7 +131,8 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 - Amago (C8, §5 bis): pulsar la guardia durante la preparación del golpe (`chainAttack` lo registra
   en `Combat/Feint`) lo cancela; la cadena vuelve al primero. Gratis, uno por segundo.
 
-**Planificado.** C10: el remate contra un muro aturde.
+- Rebote contra muros (C10 ✅, §9): el remate que estampa a un mono o a un rival contra una pared
+  le aturde y le quita un poco (`finisherPush` pasa el atacante a `Knockback.push`).
 
 ## 4. Esquiva, estamina y Evasivo
 
@@ -279,7 +281,7 @@ sola vez por ataque.
 | Ayuda de puntería (`CombatService.aimShot`; `bestInCone` del Rayo) | Solo elige la dirección de salida (C9 ✅), entre los que se ven y solo si la línea de tiro ya casi los toca: monos a ≤ 2,5 studs de ella (adonde estarán al llegar), jugadores a ≤ 1,5 (adonde están) | — |
 | Flecha perforante | Proyectil que atraviesa (C9 ✅, `pierce`): a cada uno una vez, cuando le llega; la para el mundo | — |
 | Mordisco de mono y golpe de jefe | Preparación (C6 ✅) y al acabarla, tras el margen del defensor, una caja delante (`EnemyAttack.reaches`: `GetPartBoundsInBox` con solo el personaje + `Hitbox.visible` desde la raíz) | — |
-| Empujes | El cliente corta el empuje propio contra una pared | `Hitbox.ray` por la trayectoria en el servidor: rebote contra muros (C10) |
+| Empujes | `Hitbox.ray` por la trayectoria en el servidor (C10 ✅, §9): rebote contra muros; el cliente sigue cortando el empuje propio contra la pared (`Dash`) | — |
 | Marcar presas | Distancia, sin línea de visión (a propósito: señala por el olfato) | — |
 
 **`Combat/Hitbox`** (C3). Lo arranca `CombatService:Start` (`Hitbox.start`).
@@ -389,6 +391,10 @@ puede empujar a un jugador poniéndole velocidad.
   El cliente lo suma como velocidad vertical después de `Dash.push` (que solo empuja en horizontal).
 - `Config.Net.JitterSeconds` (C4, 0,05 s): margen fijo cuando el servidor comprueba un ritmo que el
   cliente lleva con su propio reloj (la cadena de golpes), además del de `Latency`.
+- Rebote contra muros (C10): el servidor ve moverse a un jugador empujado **tarde** (en Studio, con
+  ping ~0, lo ve empezar ~0,28 s después del remoto y llegar a los ~0,35 s). Por eso no comprueba la
+  llegada en un instante: desde la llegada esperada (+ 2 × ping + `JitterSeconds`) mira en cada
+  `Heartbeat` durante `WallBang.ArriveWindowSeconds` (0,5 s) si ya está contra la pared.
 
 - Rebobinado (C3): el golpe con arma también vale contra donde estaba el objetivo hace
   `Latency.compensation(atacante)` segundos (`Hitbox.inBox` con `rewind`, `Combat/PositionHistory`).
@@ -473,12 +479,56 @@ alfa (aviso 0,5 s, ritmo 1,55 s como antes, apartarse 7 studs 3 de 3 fallos); go
 ## 9. Entorno
 
 **Hoy.** Peligros de los jefes (`island/server/Combat/Hazards`: onda, rocas, lava, rayos) con marca de
-aviso; suelo ardiendo del Meteoro rematado (`MeteorBurnTicks`). Sin rebote contra muros, coberturas que
-se rompan ni puntos disputados.
+aviso.
 
-**Planificado.** C10: rebote contra muros (aturde con `Config.WallBang` y da 1,5 s de inmunidad) y
-`Combat/Zones` (suelo ardiendo, hielo, nube). C11 (Dunas): coberturas `Destructible` que se rompen y
-reaparecen, y un altar en la pirámide central que da a su equipo una ventaja pequeña de 30 s.
+**Rebote contra muros (C10 ✅, `Combat/Knockback`, `Config.WallBang`).**
+- Lo hacen los empujones de un jugador: la Embestida, el Rompehuesos (nuevo en C10: aparta a los del
+  cono `SmashKnockback` 30 studs/s durante 0,15 s, hacia fuera del guerrero) y el remate de la cadena.
+  `Knockback.push(modelo, dirección, velocidad, segundos, lift?, atacante?)`: sin atacante no hay
+  rebote (los empujes de monos y jefes no lo hacen). Los jefes no se empujan.
+- Al empujar, `Hitbox.ray` desde la raíz por la trayectoria (velocidad × segundos + `BodyReach` 2,5).
+  Es pared si la normal sube menos de `MaxNormalY` 0,6 (una ladera suave no estampa). Al llegar, la raíz
+  tiene que estar a menos de `BodyReach` + `ArriveSlack` (1,5) del plano de la pared, mirado en cada
+  `Heartbeat` durante `ArriveWindowSeconds` (§7): si se ha apartado o un mono se ha frenado antes, no
+  rebota.
+- El rebote (`CombatService` lo registra con `Knockback.onWallBang`): `WallBang.Damage` 5 y aturdido
+  `StunSeconds` 0,5. A un mono, `Status.stun` (con el control decreciente: si ya iba aturdido o
+  tambaleado, apenas alarga). A un rival, como el control de una habilidad: `damagePvP` sin guardia
+  (× `pvpDamageMultiplier`) y `Status.stunPlayer(…, StunSeconds × pvpControlMultiplier, "PvP")`, que no
+  alarga un aturdido que ya tenga; recién salido con el Evasivo (invulnerable), nada. Después,
+  `ImmunitySeconds` 1,5 sin otro rebote al mismo. Efecto `WallBang` (hundimiento y grietas en la pared,
+  polvo, piedrecitas y temblor), sonido `WallBang` (provisional) y telemetría `WallBangs` del que empuja.
+- Probado en Play (Lobby, 22-10-2026) con un blanco suelto (`PlatformStand`) y un muro 6 studs detrás:
+  Embestida −15 y a los 0,08 s rebote −4 y aturdido 0,5; Rompehuesos solo −23, aparta 3,4 studs y
+  rebota a los 0,12 s; Embestida y Rompehuesos 0,7 s después: el segundo no rebota (inmunidad); remate
+  del garrote −29 y rebote −4 a los 0,1 s; sin muro no rebota. Un jugador empujado contra el muro
+  (remoto real + copia de `Knockback` del MCP): rebote a los 0,35 s.
+
+**Zonas de peligro (C10 ✅, `Combat/Zones`, `Config.Zones`).**
+- `Zones.create({ kind, owner, center, radius, seconds, tickSeconds, firstTick?, onTick })`: un solo
+  bucle de `Heartbeat` para todas (lo arranca `CombatService:Start`); cada zona llama a su `onTick`
+  mientras dura y se quita si se va su dueño. Quien la crea (`AbilityService`) decide a quién alcanza
+  (solo monos y rivales de quien la pone) y qué le hace. Todos los clientes la dibujan igual: efecto
+  `Zone` (`AbilityFxController`), con baldosas voxel que siguen el suelo (`groundTiles`: en una ladera
+  no se entierran).
+- **Fuego** ("Fire"): el Meteoro que cierra "Lluvia de estrellas", igual que antes (`MeteorBurnTicks`
+  golpes de `MeteorBurnDamage`, uno por segundo, a quien siga en el radio).
+- **Hielo** ("Ice"): cada Nova deja su radio helado `Ice.Seconds` 3 s. Cada `TickSeconds` 0,25 s, a quien
+  está dentro (`targetsOnGround`, `Height` 5): lento ×`Ice.SlowFactor` 0,6 durante tick + `LingerSeconds`
+  (no recorta una lentitud más fuerte y más larga: `Status.slow`) y, a un rival donde las habilidades
+  le ralentizan (`pvpStatus`), `SlipperyUntil` en el personaje: su cliente (`ZoneController`) resbala
+  (una `LinearVelocity` de fuerza limitada cuya velocidad sigue a la que quiere con `Traction` 3/s;
+  cede ante otro empuje). Medido: con W tarda ~0,3 s en coger velocidad y al soltar se desliza ~1 s
+  (sin hielo, de 16 a 0 en un fotograma).
+- **Nube** ("Cloud"): la del Polvo se queda `Cloud.Seconds` 3 s desde que cae: a quien entra le entra
+  sueño (lento ×`PowderSlowFactor`, renovado cada tick), sin dormirle; a los jefes, nada. Los que
+  estaban al caer se duermen como antes.
+- Probado en Play (Lobby): hielo (el de dentro sigue ×0,5 de la Nova y luego ×0,6 de la zona; el que
+  entra a 1 s, ×0,6 cada 0,25 s hasta los 3 s), nube (el de dentro se duerme 1,5 s; el que entra a
+  1,5 s solo va lento) y fuego (−8 a +1, +2 y +3 s tras el Meteoro rematado).
+
+**Planificado.** C11 (Dunas): coberturas `Destructible` que se rompen y reaparecen, y un altar en la
+pirámide central que da a su equipo una ventaja pequeña de 30 s.
 
 ## 10. Controles
 

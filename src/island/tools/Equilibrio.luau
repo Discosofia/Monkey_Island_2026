@@ -26,8 +26,8 @@
 --   Fase 10, "Combate v2" (miden los números propuestos de Config hasta que se haga su grupo):
 --   7. Cadena de golpes: DPS frente al golpe suelto, huecos entre golpes, combos sin escape y guardia.
 --   8. Defensa: lo que tarda en romperse la guardia y los duelos de la arena con bloqueo y parry.
---   9. Control y escape: control sobre los jefes con rendimientos decrecientes y la secuencia más
---      larga sin poder actuar en la arena.
+--   9. Control y escape: control sobre los jefes con rendimientos decrecientes, la secuencia más
+--      larga sin poder actuar en la arena y el rebote contra muros (C10).
 --   10. Preparación: la de los monos (aviso, DPS para un jugador atento y guardia) y la de las
 --       habilidades con sus amagos (C8).
 --   11. Alertas: lo que se sale de los límites.
@@ -242,6 +242,10 @@ end
 --   mitiga      { valor, segundos } (el lanzador recibe "valor" menos de daño)
 --   cura        { cantidad, objetivos (aliados), ticks?, cada? } · escudo { cantidad, segundos }
 --   movilidad   studs · critSeguro: el remate hace críticos seguros (curaciones)
+--   empuje      true: empuja (Combat/Knockback); contra un muro, rebote (Config.WallBang, sección 9)
+--   zona        { tipo, segundos, factor? } lo que deja en el suelo (Combat/Zones, C10): solo se enseña;
+--               su daño (el fuego) va en "golpes" y su lentitud no cambia las cifras
+--   El 5.º argumento del modelo, C, es todo Config (Zones, WallBang…).
 
 type Objetivos = { fijo: number?, radio: number?, abanico: number?, menos: number? }
 type Golpe = { cantidad: number, en: number, objetivos: Objetivos, minObjetivos: number?, velocidad: number? }
@@ -259,10 +263,12 @@ type Ficha = {
 	escudo: { cantidad: number, segundos: number }?,
 	movilidad: number?,
 	critSeguro: boolean?,
+	empuje: boolean?,
+	zona: { tipo: string, segundos: number, factor: number? }?,
 	nota: string?,
 }
 type Perk = (nombre: string) -> number
-type Modelo = (A: any, perk: Perk, remate: boolean, combo: any) -> Ficha
+type Modelo = (A: any, perk: Perk, remate: boolean, combo: any, C: any) -> Ficha
 
 local MODELOS: { [string]: Modelo } = {
 	-- Guerrero.
@@ -290,6 +296,7 @@ local MODELOS: { [string]: Modelo } = {
 			},
 			bloqueo = A.ChargeSeconds,
 			movilidad = A.ChargeDistance,
+			empuje = true,
 		}
 	end,
 	WarCry = function(A, perk, remate, combo)
@@ -323,6 +330,7 @@ local MODELOS: { [string]: Modelo } = {
 			},
 			control = { segundos = A.SmashStun, objetivos = objetivos, tipo = "Stun" },
 			bloqueo = 0.15, -- después del golpe
+			empuje = true, -- hacia fuera (C10)
 		}
 	end,
 	-- Cazador.
@@ -407,8 +415,9 @@ local MODELOS: { [string]: Modelo } = {
 			},
 		}
 	end,
-	FrostNova = function(A, perk)
+	FrostNova = function(A, perk, _remate, _combo, C)
 		local congela = perk("NovaFreeze")
+		local hielo = C and C.Zones and C.Zones.Ice
 		return {
 			familia = "Control en área",
 			golpes = { { cantidad = A.NovaDamage * perk("SpellDamage"), en = 0, objetivos = { radio = A.NovaRadius } } },
@@ -418,6 +427,8 @@ local MODELOS: { [string]: Modelo } = {
 				factor = A.NovaSlowFactor,
 				objetivos = { radio = A.NovaRadius },
 			},
+			-- C10: el radio se queda helado (lento y resbala quien entra).
+			zona = if hielo then { tipo = "hielo", segundos = hielo.Seconds, factor = hielo.SlowFactor } else nil,
 		}
 	end,
 	Blink = function(_A, perk)
@@ -452,6 +463,7 @@ local MODELOS: { [string]: Modelo } = {
 		return {
 			familia = "Daño en área retardado",
 			golpes = golpes,
+			zona = if remate then { tipo = "fuego", segundos = combo.MeteorBurnTicks } else nil,
 			lento = if lento > 0
 				then { segundos = lento, factor = A.NovaSlowFactor, objetivos = { radio = A.MeteorRadius } }
 				else nil,
@@ -484,8 +496,9 @@ local MODELOS: { [string]: Modelo } = {
 		local cantidad = perk("ShieldAmount") * (if remate then 1 + combo.ShieldBonus else 1)
 		return { familia = "Escudo", escudo = { cantidad = cantidad, segundos = A.ShieldSeconds } }
 	end,
-	SleepPowder = function(A, perk, remate, combo)
+	SleepPowder = function(A, perk, remate, combo, C)
 		local duerme = perk("PowderSleep") + (if remate then combo.PowderExtraSleep else 0)
+		local nube = C and C.Zones and C.Zones.Cloud
 		return {
 			familia = "Control en área",
 			golpes = { { cantidad = A.PowderDamage, en = 0.5, objetivos = { radio = A.PowderRadius } } },
@@ -514,6 +527,8 @@ local MODELOS: { [string]: Modelo } = {
 				then { cantidad = combo.PowderHeal * perk("HealPower"), objetivos = { fijo = 2 } }
 				else nil,
 			critSeguro = remate,
+			-- C10: la nube se queda (a quien entra le entra sueño, sin dormirle).
+			zona = if nube then { tipo = "nube", segundos = nube.Seconds, factor = A.PowderSlowFactor } else nil,
 		}
 	end,
 	HealingTotem = function(A, perk)
@@ -766,7 +781,7 @@ local function main(copia: Instance): string
 			alerta(`{ability.id}: no tiene modelo en MODELOS (Tools/Equilibrio); no se puede medir`)
 			return nil
 		end
-		return modelo(A, perk, remate, COMBO)
+		return modelo(A, perk, remate, COMBO, Config)
 	end
 
 	-- Daño base (antes de PDM y críticos) de un uso contra "grupo" monos.
@@ -900,6 +915,17 @@ local function main(copia: Instance): string
 						end
 						if ficha.lento then
 							table.insert(otros, `lento ×{n(ficha.lento.factor, 2)} {n(ficha.lento.segundos)} s`)
+						end
+						if ficha.zona then
+							table.insert(
+								otros,
+								`zona de {ficha.zona.tipo} {n(ficha.zona.segundos)} s{if ficha.zona.factor
+									then " (lento ×" .. n(ficha.zona.factor, 2) .. ")"
+									else ""}`
+							)
+						end
+						if ficha.empuje then
+							table.insert(otros, "empuja (rebote contra muros)")
 						end
 						if ficha.escudo then
 							table.insert(
@@ -2236,7 +2262,7 @@ local function main(copia: Instance): string
 	if OPCIONES.secciones.escape then
 		local DR = Config.ControlDR
 		linea(
-			"## 9. Control y escape (Fase 10, C6 ✅: Config.ControlDR en Combat/Status; C7 ✅: Combat/ComboScaling y Combat/Evasive)"
+			"## 9. Control y escape (Fase 10, C6 ✅: Config.ControlDR en Combat/Status; C7 ✅: Combat/ComboScaling y Combat/Evasive; C10 ✅: rebote contra muros)"
 		)
 		-- Fracción del tiempo cubierta por los controles de "aplicaciones" ({ en, segundos }) en "total" s,
 		-- con o sin los rendimientos decrecientes de Config.ControlDR.
@@ -2314,6 +2340,7 @@ local function main(copia: Instance): string
 				)})`
 			)
 		end
+		local WB = Config.WallBang
 		for _, roleId in ordenRoles do
 			local uno = aplicacionesDe(roleId, total, false, 0)
 			if #uno > 0 and visible(roleId) then
@@ -2322,6 +2349,39 @@ local function main(copia: Instance): string
 						cobertura(table.clone(uno), total, true)
 					)} del tiempo.`
 				)
+			end
+			-- C10: si todos sus empujones lo estampan contra un muro (lo peor; en la Isla, pocos). Los que ya
+			-- aturden (el Rompehuesos) apenas alargan: no cuentan.
+			if WB and visible(roleId) then
+				local perk = perksDe(roleId)
+				local conMuro = table.clone(uno)
+				local empujones = 0
+				for _, ability in Roles[roleId].abilities do
+					local ficha = fichaDe(ability, perk, false)
+					if ficha and ficha.empuje and not ficha.control then
+						empujones += 1
+						local t = 0
+						while t < total do
+							table.insert(conMuro, { en = t, segundos = WB.StunSeconds })
+							t += recargaDe(ability, perk)
+						end
+					end
+				end
+				if empujones > 0 then
+					local muro = cobertura(conMuro, total, true)
+					linea(
+						`  - con todos sus empujones contra un muro: {pct(cobertura(table.clone(conMuro), total, false))} → {pct(
+							muro
+						)} con los rendimientos decrecientes.`
+					)
+					if muro > LIMITES.controlPorRol then
+						alerta(
+							`{roleId}: con los empujones contra un muro tiene quieto a un mono el {pct(muro)} (máx. {pct(
+								LIMITES.controlPorRol
+							)})`
+						)
+					end
+				end
 			end
 		end
 		-- Arena: lo que entra mientras un rival no puede actuar, con el Evasivo en recarga. Para cada
@@ -2345,6 +2405,7 @@ local function main(copia: Instance): string
 			return danoDeUso(ficha, 1) * habilidadArena * (if ability.ultimate then definitivaArena else 1)
 		end
 		local golpes = {}
+		local filasMuro: { string } = {}
 		for _, roleId in ordenRoles do
 			if visible(roleId) then
 				local perk = perksDe(roleId)
@@ -2425,6 +2486,68 @@ local function main(copia: Instance): string
 						0
 					)} | {n(combo, 0)} ({pct(combo / 100)}) | {n(peor.apertura, 0)} |`
 				)
+				-- Rebote contra muros (C10): el empujón que lo estampa (Embestida, Rompehuesos o el remate de
+				-- la cadena) y lo que entra mientras está aturdido por el muro. Si el empujón ya aturde (el
+				-- Rompehuesos), el muro no lo alarga (Status.stunPlayer) y solo suma su daño.
+				if WB then
+					local danoMuro = WB.Damage * habilidadArena
+					local casos = {}
+					for _, ability in Roles[roleId].abilities do
+						local ficha = fichaDe(ability, perk, true)
+						if ficha and ficha.empuje then
+							local propio = if ficha.control
+									and (ficha.control.tipo == "Stun" or ficha.control.tipo == "Sleep")
+								then ficha.control.segundos
+								else 0
+							table.insert(casos, {
+								nombre = ability.name,
+								segundos = (if propio > 0 then propio else WB.StunSeconds) * controlArena,
+								apertura = contraJugador(ability, ficha :: Ficha) + danoMuro,
+								desde = 1,
+								sin = ability,
+							})
+						end
+					end
+					local armaId = armaCuerpo(roleId)
+					if armaId and CH then
+						local cadena = cadenaDe(armaId, perk("MeleeDamage"))
+						local ultimo = #cadena.golpes
+						table.insert(casos, {
+							nombre = `remate ({armaId})`,
+							segundos = WB.StunSeconds * controlArena,
+							apertura = cadena.golpes[ultimo].dano * armaArena * propioArena(armaId) * escalaCombo(
+								ultimo
+							) + danoMuro,
+							desde = ultimo,
+						})
+					end
+					for _, caso in casos do
+						local otra = 0
+						for _, otraHabilidad in Roles[roleId].abilities do
+							local otraFicha = if otraHabilidad ~= caso.sin
+								then fichaDe(otraHabilidad, perk, false)
+								else nil
+							if otraFicha and caso.segundos >= REACCION + preparacionDe(otraHabilidad) then
+								otra = math.max(otra, contraJugador(otraHabilidad, otraFicha))
+							end
+						end
+						local despues = armaEn(caso.segundos, caso.desde) + otra
+						table.insert(
+							filasMuro,
+							`| {Roles[roleId].icon} {roleId} | {caso.nombre} | {n(caso.segundos, 2)} s | {n(
+								caso.apertura,
+								0
+							)} | {n(despues, 0)} ({pct(despues / 100)}) |`
+						)
+						if despues / 100 > LIMITES.comboSinEscape then
+							alerta(
+								`Arena: {roleId} estampa al rival contra un muro con {caso.nombre} y, mientras está aturdido, le quita {pct(
+									despues / 100
+								)} (máx. {pct(LIMITES.comboSinEscape)})`
+							)
+						end
+					end
+				end
 				if peor.despues / 100 > LIMITES.comboSinEscape then
 					alerta(
 						`Arena: {roleId} abre con {peor.nombre}, deja al rival {n(peor.segundos, 2)} s sin actuar y después le quita {pct(
@@ -2435,6 +2558,20 @@ local function main(copia: Instance): string
 			end
 		end
 		linea(`Golpe más fuerte de una habilidad contra un jugador: {table.concat(golpes, " · ")}.`)
+		if WB and #filasMuro > 0 then
+			linea("")
+			linea(
+				`Rebote contra muros (C10 ✅, Combat/Knockback): aturde {n(WB.StunSeconds, 2)} s (arena ×{n(
+					controlArena,
+					2
+				)}), quita {WB.Damage} (×{n(habilidadArena, 2)}) y deja {n(WB.ImmunitySeconds, 1)} s sin otro rebote. En la arena, con el rival contra un muro y el Evasivo en recarga:`
+			)
+			linea("| Rol | Empujón | Aturdido por el muro | Empujón + muro | Mientras no actúa |")
+			linea("|---|---|---|---|---|")
+			for _, fila in filasMuro do
+				linea(fila)
+			end
+		end
 		-- Un equipo de rivales que te controla (C7): cada control de un jugador entra solo si no tienes la
 		-- inmunidad de Config.Combat.PlayerControlImmunitySeconds y, con los rendimientos decrecientes
 		-- (Status.holdPlayer con "PvP"), dura la fracción que toque. Como Combat/Status.

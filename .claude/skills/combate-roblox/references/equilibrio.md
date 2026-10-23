@@ -84,7 +84,7 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Marca (mascotas) | `MarkBonus` × el DPS del arma del dueño solo y del equipo (`aliados` × `focoMarca`, la parte de su daño que va al marcado); a un jefe, lo que le deja a "Marcar presas" | que el pointer ayude al grupo sin quitarle su papel al cazador |
 | Cadena de golpes (sección 7) | DPS de la cadena ÷ el del golpe suelto; tambaleo y hueco entre golpes frente a `Config.Reaction`; daño de una cadena en la arena (con el escalado del combo); guardia que gasta. Disparo de remate (C9b): por arma a distancia, DPS del ciclo ÷ el disparo suelto contra uno, contra el grupo y en la arena, el control del tambaleo y la cura | que la cadena no cambie el DPS, que siempre deje responder y que todas las armas rompan la guardia en el mismo tiempo; que el remate a distancia no cambie el DPS contra uno ni dispare el de grupo |
 | Defensa (sección 8) | golpes y segundos para romper la guardia por arma (con su recuperación); duelo espejo de la arena con `defensa` (bloqueo y parry) | que quedarse en guardia no sea gratis y que defender alargue el duelo sin eternizarlo |
-| Control y escape (sección 9) | control del equipo sobre un jefe y de cada rol sobre un mono con y sin `Config.ControlDR` (controles solapados contados una vez); en la arena, lo que entra mientras no puedes actuar (golpe de apertura + arma y una habilidad durante el aturdimiento), con el Evasivo en recarga | que nadie se quede sin salida y que el control no se apile |
+| Control y escape (sección 9) | control del equipo sobre un jefe y de cada rol sobre un mono con y sin `Config.ControlDR` (controles solapados contados una vez), también con todos sus empujones contra un muro (C10); en la arena, lo que entra mientras no puedes actuar (golpe de apertura + arma y una habilidad durante el aturdimiento), con el Evasivo en recarga, y lo mismo con el rival estampado contra un muro (Embestida, Rompehuesos y el remate de la cadena) | que nadie se quede sin salida y que el control no se apile |
 | Preparación (sección 10) | monos: aviso de cada mono frente a la reacción; DPS para un jugador atento (`esquivaMonos`); golpes y segundos para romper la guardia. Habilidades (C8): su preparación, recarga, la de un amago y la guardia que gasta por uso. La simulación (secciones 2 y 6) saca cada habilidad al acabar su preparación y no pega con el arma mientras dura | que todo ataque se vea venir y que bloquear contra un alfa no sea un muro ni un papel; que la preparación no se note lenta ni quite valor al combo |
 
 Las secciones 7 a 10 son de la Fase 10 ("Combate v2"). Hasta que se haga el grupo de cada mecánica,
@@ -336,6 +336,15 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   combos cazador 40,7 → 42,5 y mago 36,1 → 37,3 (el resto igual), valor del combo 29 → 28 % y 32 → 31 %
   (grupo), duelos espejo 10,4 · 9,4 · 9,8 s (el médico 30,5 → 28,9), las mismas 9 alertas sin
   talentos y con talentos al máximo 18 → 17 (el combo del cazador 36 → 35 %).
+- **C10 ✅ (22-10-2026):** rebote contra muros (`Config.WallBang`: 5 de daño y aturdido 0,5 s, 1,5 s
+  de inmunidad) y zonas (`Config.Zones`). No cambia ninguna cifra de las secciones 1 a 8 ni las
+  alertas (9 sin talentos, 17 con talentos al máximo). En la arena el muro aturde 0,25 s (×0,5 del
+  control PvP, lo mismo que la reacción): lo peor que entra después es 0–12 de 100 (guerrero 0, con
+  el garrote no cabe un golpe; los otros, el disparo de su arma a distancia tras el remate del machete).
+  Sobre un mono, el guerrero con todos sus empujones contra un muro: 14 → 18 % sin y 11 → 12 % con los
+  rendimientos decrecientes (talentos al máximo 16 → 20 % y 12 → 14 %; límite 45 %). Las zonas de hielo
+  y de nube solo ralentizan (la calculadora no mide la lentitud: la enseña en las fichas) y el fuego es
+  el de antes. El Rompehuesos gana un empujón (30 studs/s, 0,15 s) sin cambiar su daño ni su control.
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un
@@ -379,6 +388,7 @@ campos está en la cabecera del servicio. Cómo leerlo frente a la calculadora:
 | ¿Cuánto dura un jefe? | `BossDefeated` (segundos, por jefe y jugadores) | duración de la sección 3 (90–240 s) |
 | ¿Cuánto aciertan los disparos? | `ShotsHit` ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (Isla / Dunas) | `OPCIONES.acierto` (contra monos en la Isla, contra jugadores en Dunas) |
 | ¿Se dispara al ritmo? | `ShotFinishers` × 4 ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (1 = siempre al ritmo) | el remate de la sección 7 (que supone que siempre) |
+| ¿Se usan los muros? | `WallBangs` ÷ `ChainFinishers` (y ÷ los usos de la Embestida y el Rompehuesos), por rol y place | la fila "con todos sus empujones contra un muro" de la sección 9 (lo peor) |
 
 Para una habilidad nueva no hay que tocar nada: sus usos y su daño salen solos por su id (si hace
 daño con `hurt` y cura con `heal`). Un mono o jefe nuevo sale por su especie o `Jefe <id>`; un

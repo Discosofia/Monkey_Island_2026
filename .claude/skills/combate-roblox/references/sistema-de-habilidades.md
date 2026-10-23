@@ -52,6 +52,9 @@ Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, 
 | `Projectiles.fire(shot)` | proyectil real (C9, `Combat/Projectiles`): `onHit(modelo)` decide si le vale (si no, lo atraviesa) y `onEnd(punto)` lo que pasa al pararse; con `pierce`, `maxHits` lo para al dar a tantos |
 | `targetOfModel`, `enemyTarget`, `playerTarget` | de un combatiente a un `Target` (nil si no se le puede dañar) |
 | `groundBelow(posición, ignorar)` | suelo y su normal (para apoyar cosas) |
+| `Knockback.push(modelo, dirección, velocidad, segundos, lift?, atacante)` | empujón (Embestida, Rompehuesos); con el atacante, rebote contra muros (C10) |
+| `Zones.create({ kind, owner, center, radius, seconds, tickSeconds, firstTick?, onTick })` | zona de peligro en el suelo (C10, `Combat/Zones`): fuego del Meteoro rematado, hielo de la Nova, nube del Polvo; `onTick` decide a quién alcanza |
+| `slowDown(target, segundos, factor)` · `slip(target, segundos)` | ralentiza (a un rival solo con `pvpStatus`); hace resbalar a un rival (`SlipperyUntil`, el hielo) |
 | `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`pvpDamageMultiplier` (y las definitivas ×`pvpUltimateMultiplier`, de `CombatRules`); crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
 | `control(target, segundos, "Stun" \| "Freeze" \| "Root")` | aturde/congela/inmoviliza (jugadores con PvP: ×`PvPControlMultiplier`) |
 | `heal(healer, player, cantidad, abilityId)` | curación con críticos (seguro si es el remate) |

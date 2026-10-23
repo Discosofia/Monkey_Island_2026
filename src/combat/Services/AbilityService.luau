@@ -28,6 +28,9 @@
 -- le aturden, le tambalean o cae, no sale y no gasta la recarga. Pulsar la guardia es un amago
 -- (Combat/Feint): cuesta estamina y deja la recarga corta de Config.Feint. Las de castSeconds = 0
 -- (Grito, Parpadeo, Escudo) salen al momento, como antes.
+-- Empujes y zonas (C10): la Embestida y el Rompehuesos empujan (Combat/Knockback; contra un muro, rebote).
+-- La Nova deja el suelo helado, la nube del Polvo se queda y el Meteoro rematado deja el suelo ardiendo:
+-- zonas de Combat/Zones que solo alcanzan a los monos y a los rivales.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -55,9 +58,11 @@ local Latency = require(script.Parent.Parent.Latency)
 local Projectiles = require(script.Parent.Parent.Projectiles)
 local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
+local Zones = require(script.Parent.Parent.Zones)
 
 local SETTINGS = Config.Abilities
 local COMBO = Config.Combo
+local ZONES = Config.Zones
 -- Radio de las mandíbulas del cepo y cuánto se cierran (casi 90°: quedan de pie, una contra otra).
 local TRAP_JAW_RADIUS = 1.5
 local TRAP_CLOSED_ANGLE = math.rad(84)
@@ -283,6 +288,14 @@ local function slowDown(target: Target, seconds: number, factor: number)
 	Status.slow(target.model, seconds, factor)
 end
 
+-- Hace resbalar a un jugador rival (el hielo de la Nova): con las mismas reglas que slowDown, su cliente
+-- (ZoneController) lo nota con el atributo "SlipperyUntil" del personaje. Los monos no resbalan.
+local function slip(target: Target, seconds: number)
+	if target.player and CombatRules.get().pvpStatus then
+		target.model:SetAttribute("SlipperyUntil", now() + seconds)
+	end
+end
+
 -- Aturde, congela, inmoviliza o duerme. A un jugador, menos tiempo: aturdir y dormir lo aturden de
 -- verdad (Status.stunPlayer: no anda ni pega); congelar e inmovilizar solo lo dejan quieto
 -- (Status.holdPlayer: puede pegar). Congelado, inmovilizado y dormido se ven en los clientes (bloque de
@@ -421,7 +434,9 @@ local function charge(player: Player, character: Model, root: BasePart, aim: Vec
 							target.model,
 							direction,
 							SETTINGS.ChargeKnockback,
-							SETTINGS.ChargeKnockbackSeconds
+							SETTINGS.ChargeKnockbackSeconds,
+							nil,
+							player
 						)
 					end
 				end
@@ -502,7 +517,8 @@ local function quake(player: Player, character: Model, root: BasePart): boolean
 end
 
 -- Rompehuesos: golpe pesado a los monos del cono de delante (el cliente gira al guerrero hacia donde
--- apunta). Como remate de "Martillo y yunque", a todos los de alrededor.
+-- apunta), que los tumba y los aparta un poco (contra un muro, rebotan: Combat/Knockback). Como remate de
+-- "Martillo y yunque", a todos los de alrededor.
 local function smash(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local damage = SETTINGS.SmashDamage
 		* Progression.perk(player, "MeleeDamage")
@@ -520,6 +536,11 @@ local function smash(player: Player, character: Model, root: BasePart, aim: Vect
 		if around or inFront then
 			hurt(player, target, damage, "Smash")
 			control(target, SETTINGS.SmashStun, "Stun")
+			-- Hacia fuera desde el guerrero (al que está pegado, hacia delante). A los jefes, no.
+			if not (target.player and Guard.defended(target.player)) then
+				local away = if offset.Magnitude < 2 then facing else flat(offset)
+				Knockback.push(target.model, away, SETTINGS.SmashKnockback, SETTINGS.SmashKnockbackSeconds, nil, player)
+			end
 		end
 	end
 	return true
@@ -891,7 +912,9 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 	return true
 end
 
-local function frostNova(player: Player, _character: Model, root: BasePart): boolean
+-- Nova de hielo: congela y ralentiza a los de alrededor, y deja su radio helado unos segundos
+-- (Config.Zones.Ice): quien entra va lento y, si es un rival, resbala.
+local function frostNova(player: Player, character: Model, root: BasePart): boolean
 	local damage = SETTINGS.NovaDamage * Progression.perk(player, "SpellDamage")
 	local freeze = Progression.perk(player, "NovaFreeze")
 	for _, target in targetsAround(player, root.Position, SETTINGS.NovaRadius) do
@@ -902,6 +925,23 @@ local function frostNova(player: Player, _character: Model, root: BasePart): boo
 	end
 	AbilityFx.all("FrostNova", root.Position, SETTINGS.NovaRadius)
 	Sfx.play("Hit", root)
+	local ground = groundBelow(root.Position, { character })
+	local ice = ZONES.Ice
+	local lasts = ZONES.TickSeconds + ZONES.LingerSeconds
+	Zones.create({
+		kind = "Ice",
+		owner = player,
+		center = ground,
+		radius = SETTINGS.NovaRadius,
+		seconds = ice.Seconds,
+		tickSeconds = ZONES.TickSeconds,
+		onTick = function()
+			for _, target in targetsOnGround(player, ground, SETTINGS.NovaRadius, ZONES.Height) do
+				slowDown(target, lasts, ice.SlowFactor)
+				slip(target, lasts)
+			end
+		end,
+	})
 	return true
 end
 
@@ -961,7 +1001,8 @@ local function chainLightning(player: Player, character: Model, root: BasePart, 
 end
 
 -- Meteoro: una roca ardiente cae donde apunta el mago tras un aviso en el suelo. Como remate de
--- "Lluvia de estrellas", deja el suelo ardiendo unos segundos.
+-- "Lluvia de estrellas", deja el suelo ardiendo unos segundos (zona "Fire" de Combat/Zones: un golpe por
+-- segundo a quien siga en el radio).
 local function meteor(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
 	local endPoint = castShot(character, origin, aim, SETTINGS.MeteorMaxDistance, 0.5)
@@ -969,7 +1010,7 @@ local function meteor(player: Player, character: Model, root: BasePart, aim: Vec
 	local scale = Progression.perk(player, "SpellDamage")
 	local slow = Progression.perk(player, "MeteorSlow")
 	local burnTicks = if ComboService.isPayoff(player, "Meteor") then COMBO.MeteorBurnTicks else 0
-	AbilityFx.all("Meteor", center, SETTINGS.MeteorRadius, SETTINGS.MeteorDelay, burnTicks)
+	AbilityFx.all("Meteor", center, SETTINGS.MeteorRadius, SETTINGS.MeteorDelay)
 	Sfx.play("LavaLaunch", root)
 	task.spawn(function()
 		task.wait(SETTINGS.MeteorDelay)
@@ -980,11 +1021,21 @@ local function meteor(player: Player, character: Model, root: BasePart, aim: Vec
 				slowDown(target, slow, SETTINGS.NovaSlowFactor)
 			end
 		end
-		for _ = 1, burnTicks do
-			task.wait(1)
-			for _, target in targetsAroundGround(player, center, SETTINGS.MeteorRadius) do
-				hurt(player, target, COMBO.MeteorBurnDamage * scale, "Meteor")
-			end
+		if burnTicks > 0 and player.Parent then
+			Zones.create({
+				kind = "Fire",
+				owner = player,
+				center = center,
+				radius = SETTINGS.MeteorRadius,
+				seconds = burnTicks,
+				tickSeconds = 1,
+				firstTick = 1,
+				onTick = function()
+					for _, target in targetsAroundGround(player, center, SETTINGS.MeteorRadius) do
+						hurt(player, target, COMBO.MeteorBurnDamage * scale, "Meteor")
+					end
+				end,
+			})
 		end
 	end)
 	return true
@@ -1170,8 +1221,9 @@ local function healingTotem(player: Player, character: Model, root: BasePart, ai
 end
 
 -- Polvo somnífero: una nube donde apunta el médico. A los monos les entra sueño (van lentos) y luego
--- se duermen; los jefes no se duermen. Como remate de "Nana de la selva", duermen más, la nube cura a
--- los aliados que estén dentro y los dormidos reciben más daño hasta despertar (Status.expose).
+-- se duermen; los jefes no se duermen. La nube se queda unos segundos (zona "Cloud", Config.Zones): a
+-- quien entra después le entra sueño, sin dormirle. Como remate de "Nana de la selva", duermen más, la
+-- nube cura a los aliados que estén dentro y los dormidos reciben más daño hasta despertar (Status.expose).
 local function sleepPowder(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
 	local endPoint = castShot(character, origin, aim, SETTINGS.PowderMaxDistance, 0.5)
@@ -1179,11 +1231,32 @@ local function sleepPowder(player: Player, character: Model, root: BasePart, aim
 	local finisher = ComboService.isPayoff(player, "SleepPowder")
 	local sleep = Progression.perk(player, "PowderSleep") + (if finisher then COMBO.PowderExtraSleep else 0)
 	local drowsy = SETTINGS.PowderDrowsySeconds
-	AbilityFx.all("SleepPowder", origin, center, SETTINGS.PowderRadius, drowsy + sleep)
+	AbilityFx.all("SleepPowder", origin, center, SETTINGS.PowderRadius)
 	Sfx.play("Shoot", root)
 	task.spawn(function()
 		-- Lo que tarda el puñado de polvo en llegar.
 		task.wait(0.5)
+		if not player.Parent then
+			return
+		end
+		local lasts = ZONES.TickSeconds + ZONES.LingerSeconds
+		Zones.create({
+			kind = "Cloud",
+			owner = player,
+			center = center,
+			radius = SETTINGS.PowderRadius,
+			seconds = ZONES.Cloud.Seconds,
+			tickSeconds = ZONES.TickSeconds,
+			onTick = function()
+				for _, target in targetsAroundGround(player, center, SETTINGS.PowderRadius) do
+					if target.player then
+						slowDown(target, lasts, SETTINGS.PowderSlowFactor)
+					elseif not Status.isBoss(target.model) then
+						Status.slow(target.model, lasts, SETTINGS.PowderSlowFactor)
+					end
+				end
+			end,
+		})
 		local sleepers: { Target } = {}
 		for _, target in targetsAroundGround(player, center, SETTINGS.PowderRadius) do
 			hurt(player, target, SETTINGS.PowderDamage, "SleepPowder")

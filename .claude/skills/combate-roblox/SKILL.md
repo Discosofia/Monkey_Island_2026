@@ -162,7 +162,9 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
    (unidades: "por golpe", "segundos", "studs").
 3. `src/combat/Services/AbilityService.luau`: el handler en la sección del rol, con las
    piezas comunes (`targetsAround`, `castShot`, `hurt`, `control`, `heal`, `comboOpener`…; si viaja,
-   un proyectil con `Projectiles.fire` y la dirección de `CombatService.aimShot`), y su
+   un proyectil con `Projectiles.fire` y la dirección de `CombatService.aimShot`; si deja algo en el
+   suelo unos segundos, una zona con `Zones.create` y su aspecto en `ZONE_LOOKS`; si empuja,
+   `Knockback.push` con el jugador como atacante, que da el rebote contra muros), y su
    entrada en `HANDLERS`. Devuelve `false` si no se pudo usar (no gasta recarga). Actualiza la lista
    de la cabecera del archivo.
 4. Si **mueve al jugador**: la parte del movimiento en `RoleController.useAbility` (como `Charge`,
@@ -263,6 +265,25 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   (x −25, z 20), que queda en la línea. Para ver los aspectos quietos: una copia de
   `AbilityFxController` en el cliente, `:Init()` y `play("Projectile", id, "<estilo>Finisher", nil,
   origen, dirección, 0.6, 200, ahora, false, extra)` delante de la cámara.
+- **Rebote contra muros** (C10): los muñecos están anclados y un `Model` con `Humanoid` normal apenas se
+  mueve con el empujón (el `Humanoid` lo frena). Monta en el servidor un blanco suelto (una pieza
+  `HumanoidRootPart` de 2×4×2, `Humanoid` con `PlatformStand = true`, etiqueta `Enemy`, vida 1000) y un
+  muro anclado 6 studs detrás; pon al jugador a 4 studs mirándolo (`PivotTo`) y usa la Embestida o el
+  Rompehuesos con `UseAbility:FireServer` (recarga a 0 con `AbilityReadyAt<n>` desde el servidor), o el
+  garrote con `tool:Activate()` sujetando el blanco delante hasta `ChainStep` = 4. Registra su
+  `HealthChanged` (el rebote: −4 en el Lobby) y `StunnedUntil`; en el cliente, `Dent`/`Crack` en
+  `workspace.AbilityFx`. Para un **jugador** empujado no hay rival: dispara la instancia real
+  `ReplicatedStorage.Remotes.Knockback:FireClient(…)` (lo mueve) y a la vez la copia del MCP de
+  `Knockback.push(…, atacante)` con tu propio `onWallBang` (comprueba la pared). El servidor ve llegar
+  al jugador ~0,3 s tarde aunque el ping sea ~0: mira en una ventana, no en un instante.
+- **Zonas** (C10): registra `SlowedUntil`/`SlowFactor` y `StunnedUntil` de dos blancos (anclados vale):
+  uno dentro al lanzar y otro fuera que metes con `PivotTo` 1–1,5 s después (solo debe ir lento). Para el
+  resbalón, pon `SlipperyUntil` en tu personaje desde el servidor, graba en el cliente la velocidad
+  horizontal en cada `Heartbeat` y mantén W 1,2 s con `user_keyboard_input`; compara sin el atributo. El
+  fuego necesita el combo "Lluvia de estrellas" (Bola de fuego → Nova → Meteoro, ~1 s entre pasos). Para
+  capturar efectos del cliente en Play: desactiva sus `ScreenGui` (el premio diario sale encima) y fija la
+  cámara con `BindToRenderStep` (poner `CameraType` no basta: el script de cámara la mueve); al parar el
+  Play se va todo.
 - **Mono concreto sin comando**: el panel solo crea mandriles; para otra especie busca en el
   servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
   a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y

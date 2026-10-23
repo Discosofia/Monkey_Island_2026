@@ -34,6 +34,8 @@
 -- ("WeaponShotFx") y su proyectil ("<estilo>Finisher" en LOOKS): piedra grande con estela de polvo
 -- (honda), flecha con punta y estela celestes (arco), bola de energía azul que estalla (bastón) y dardo
 -- verde de savia con estela (cerbatana: cura el doble).
+-- Entorno (C10): rebote contra muros ("WallBang": grietas en la pared, polvo y piedras) y zonas de peligro
+-- de Combat/Zones ("Zone": suelo ardiendo del Meteoro rematado, hielo de la Nova y nube del Polvo).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -1606,8 +1608,8 @@ local function lightning(from: Vector3, to: Vector3, target: Model?)
 end
 
 -- Meteoro: aviso rojo en el suelo mientras cae del cielo una roca ardiente; al llegar, explosión de
--- fuego y suelo agrietado. Con "burnTicks" (remate del combo), el suelo arde ese número de segundos.
-local function meteor(center: Vector3, radius: number, delay: number, burnTicks: number)
+-- fuego y suelo agrietado. El suelo ardiendo del remate es una zona ("Zone" "Fire").
+local function meteor(center: Vector3, radius: number, delay: number)
 	local warning = disc(center + Vector3.new(0, 0.1, 0), radius, Color3.fromRGB(255, 70, 30), Enum.Material.Neon, 1)
 	warning.Parent = folder
 	TweenService:Create(warning, TweenInfo.new(delay, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
@@ -1644,38 +1646,6 @@ local function meteor(center: Vector3, radius: number, delay: number, burnTicks:
 		flames.Parent = anchorAt(center, 1.5)
 		flames:Emit(40)
 		flash(center, Color3.fromRGB(255, 120, 40), radius * 3, 7, 0.6)
-		if burnTicks > 0 then
-			local scorch = disc(
-				center + Vector3.new(0, 0.12, 0),
-				radius * 0.8,
-				Color3.fromRGB(40, 20, 12),
-				Enum.Material.Slate,
-				0.55
-			)
-			scorch.Parent = folder
-			-- Llamas pequeñas repartidas por la zona mientras arde.
-			for index = 1, 7 do
-				local angle = index / 7 * 2 * math.pi
-				local spot = center
-					+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * rng:NextNumber(0.2, 0.8)
-				local embers = emitter(
-					FIRE_TEXTURE,
-					ColorSequence.new(Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 60, 20)),
-					NumberSequence.new(2, 0),
-					3,
-					0.9
-				)
-				embers.LightEmission = 1
-				embers.EmissionDirection = Enum.NormalId.Top
-				embers.SpreadAngle = Vector2.new(20, 20)
-				embers.Rate = 8
-				embers.Parent = anchorAt(spot + Vector3.new(0, 0.3, 0), burnTicks + 1.5)
-				task.delay(burnTicks, function()
-					embers.Enabled = false
-				end)
-			end
-			fadeAway({ scorch }, 0.8, burnTicks)
-		end
 	end)
 end
 
@@ -2198,8 +2168,9 @@ local function totem(position: Vector3, facing: Vector3, radius: number, seconds
 	end)
 end
 
--- Polvo somnífero: un puñado de polvo lila vuela hasta el punto y suelta una nube que dura "seconds".
-local function sleepPowder(origin: Vector3, center: Vector3, radius: number, seconds: number)
+-- Polvo somnífero: un puñado de polvo lila vuela hasta el punto y suelta la nube (la que se queda es una
+-- zona, "Zone" "Cloud").
+local function sleepPowder(origin: Vector3, center: Vector3, radius: number)
 	local lilac = Color3.fromRGB(205, 150, 255)
 	local pouch = ball("Powder", 0.7, lilac)
 	trail(pouch, Vector3.zero, ColorSequence.new(Color3.fromRGB(240, 210, 255), lilac), 0.4, 0.5)
@@ -2208,22 +2179,6 @@ local function sleepPowder(origin: Vector3, center: Vector3, radius: number, sec
 		retire(pouch, 0.4)
 		ring(center + Vector3.new(0, 0.3, 0), 1, radius, 0.5, lilac, 0.6, 0.3)
 		burst(landing, SPARKLE_TEXTURE, Color3.fromRGB(255, 220, 255), 20, 1, radius, 0.8)
-		local cloud = emitter(
-			SMOKE_TEXTURE,
-			ColorSequence.new(Color3.fromRGB(220, 180, 255), Color3.fromRGB(170, 120, 230)),
-			NumberSequence.new(radius * 0.5, radius * 0.8),
-			radius * 0.4,
-			2
-		)
-		cloud.Transparency = NumberSequence.new(0.55, 1)
-		cloud.SpreadAngle = Vector2.new(180, 15)
-		cloud.Acceleration = Vector3.new(0, 0.5, 0)
-		cloud.Rate = 6
-		cloud.Parent = anchorAt(center + Vector3.new(0, 1.5, 0), seconds + 2.5)
-		cloud:Emit(8)
-		task.delay(seconds, function()
-			cloud.Enabled = false
-		end)
 	end)
 end
 
@@ -2775,6 +2730,210 @@ local function projectileEnd(id: number, position: Vector3)
 	end
 end
 
+-- ===================================== Entorno (C10) =====================================
+
+-- Rebote contra muros (Combat/Knockback): hundimiento y grietas en la pared donde ha chocado, polvo y
+-- piedrecitas que caen. "normal" sale de la pared.
+local function wallBang(point: Vector3, normal: Vector3)
+	local crackColor = Color3.fromRGB(28, 20, 14)
+	local rockColor = Color3.fromRGB(120, 95, 70)
+	-- Dos ejes a lo largo de la pared.
+	local reference = if math.abs(normal.Y) < 0.95 then Vector3.yAxis else Vector3.xAxis
+	local side = normal:Cross(reference).Unit
+	local along = side:Cross(normal).Unit
+	local surface = point + normal * 0.08
+	local marks: { BasePart } = {}
+	local dent = piece("Dent", Vector3.new(1.6, 1.6, 0.12), crackColor, Enum.Material.Slate)
+	dent.CFrame = CFrame.lookAt(surface, surface + normal) * CFrame.Angles(0, 0, rng:NextNumber(0, math.pi))
+	dent.Parent = folder
+	table.insert(marks, dent)
+	local count = 7
+	for index = 1, count do
+		local angle = index / count * 2 * math.pi + rng:NextNumber(-0.3, 0.3)
+		local direction = side * math.cos(angle) + along * math.sin(angle)
+		local length = rng:NextNumber(1.6, 3.4)
+		local from = surface + direction * 0.5
+		local to = surface + direction * length
+		local crack = piece(
+			"Crack",
+			Vector3.new(rng:NextNumber(0.16, 0.3), 0.1, (to - from).Magnitude),
+			crackColor,
+			Enum.Material.Slate
+		)
+		-- Con el "arriba" de la pieza hacia fuera de la pared: queda pegada a ella.
+		crack.CFrame = CFrame.lookAt((from + to) / 2, to, normal)
+		crack.Parent = folder
+		table.insert(marks, crack)
+	end
+	fadeAway(marks, 0.8, 1.6)
+	for _ = 1, 7 do
+		local size = rng:NextNumber(0.25, 0.6)
+		local rock = piece("Debris", Vector3.new(size, size * 0.8, size), rockColor, Enum.Material.Slate)
+		rock.CFrame = CFrame.new(point + normal * 0.6 + side * rng:NextNumber(-1, 1) + along * rng:NextNumber(-1, 1))
+		local velocity = normal * rng:NextNumber(4, 10) + Vector3.new(0, rng:NextNumber(4, 12), 0)
+		fling(rock, velocity, Vector3.new(rng:NextNumber(-8, 8), rng:NextNumber(-8, 8), 0), 0.9)
+	end
+	burst(point + normal, SMOKE_TEXTURE, Color3.fromRGB(165, 140, 105), 18, 2.5, 8, 1.2)
+	shake(point, 25, 0.8, 0.3)
+end
+
+-- Suelo ardiendo (el Meteoro rematado): quemado y llamas pequeñas repartidas mientras dura.
+local function fireZone(center: Vector3, radius: number, seconds: number)
+	local scorch =
+		disc(center + Vector3.new(0, 0.12, 0), radius * 0.8, Color3.fromRGB(40, 20, 12), Enum.Material.Slate, 0.55)
+	scorch.Parent = folder
+	for index = 1, 7 do
+		local angle = index / 7 * 2 * math.pi
+		local spot = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * rng:NextNumber(0.2, 0.8)
+		local embers = emitter(
+			FIRE_TEXTURE,
+			ColorSequence.new(Color3.fromRGB(255, 180, 60), Color3.fromRGB(255, 60, 20)),
+			NumberSequence.new(2, 0),
+			3,
+			0.9
+		)
+		embers.LightEmission = 1
+		embers.EmissionDirection = Enum.NormalId.Top
+		embers.SpreadAngle = Vector2.new(20, 20)
+		embers.Rate = 8
+		embers.Parent = anchorAt(spot + Vector3.new(0, 0.3, 0), seconds + 1.5)
+		task.delay(seconds, function()
+			embers.Enabled = false
+		end)
+	end
+	fadeAway({ scorch }, 0.8, seconds)
+end
+
+-- Baldosas voxel que cubren el círculo de "radius" alrededor de "center" pegadas al suelo (en una ladera
+-- no se entierran, como un disco plano): cada una a la altura y con la inclinación del suelo bajo ella,
+-- con un color al azar de "colors". Devuelve las piezas (ya puestas).
+local function groundTiles(
+	center: Vector3,
+	radius: number,
+	size: number,
+	colors: { Color3 },
+	material: Enum.Material,
+	transparency: number
+): { BasePart }
+	local params = groundParams()
+	local tiles: { BasePart } = {}
+	local steps = math.ceil(radius / size)
+	for ix = -steps, steps do
+		for iz = -steps, steps do
+			local offset = Vector3.new(ix, 0, iz) * size
+			if offset.Magnitude <= radius then
+				local above = center + offset + Vector3.new(0, 6, 0)
+				local hit = Workspace:Raycast(above, Vector3.new(0, -40, 0), params)
+				local position = if hit then hit.Position else center + offset
+				local normal = if hit then hit.Normal else Vector3.yAxis
+				local tile = piece(
+					"ZoneTile",
+					Vector3.new(size * 1.04, 0.2, size * 1.04),
+					colors[rng:NextInteger(1, #colors)],
+					material,
+					transparency
+				)
+				-- Apoyada en el suelo con su inclinación, sin girar en horizontal (rejilla).
+				local forward = Vector3.zAxis - normal * normal.Z
+				tile.CFrame = CFrame.lookAt(position + normal * 0.12, position + normal * 0.12 + forward, normal)
+				tile.Parent = folder
+				table.insert(tiles, tile)
+			end
+		end
+	end
+	return tiles
+end
+
+-- Hielo de la Nova: baldosas de hielo azul en dos tonos por todo el radio, con escarcha blanca y
+-- destellos, que se derriten al final.
+local function iceZone(center: Vector3, radius: number, seconds: number)
+	local params = groundParams()
+	local parts = groundTiles(
+		center,
+		radius,
+		3,
+		{ Color3.fromRGB(95, 170, 240), Color3.fromRGB(130, 195, 250) },
+		Enum.Material.Ice,
+		0.12
+	)
+	for _ = 1, 12 do
+		local angle = rng:NextNumber(0, 2 * math.pi)
+		local spot = groundAt(
+			center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * rng:NextNumber(0.15, 0.9),
+			params
+		)
+		local frost = piece(
+			"Frost",
+			Vector3.new(rng:NextNumber(0.8, 1.6), 0.4, rng:NextNumber(0.3, 0.6)),
+			Color3.fromRGB(235, 248, 255),
+			Enum.Material.Ice,
+			0
+		)
+		frost.CFrame = CFrame.new(spot + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
+		frost.Parent = folder
+		table.insert(parts, frost)
+	end
+	local sparkles =
+		emitter(SPARKLE_TEXTURE, ColorSequence.new(Color3.fromRGB(220, 245, 255)), NumberSequence.new(0.6, 0), 0.5, 1)
+	sparkles.LightEmission = 1
+	sparkles.Rate = 6
+	for index = 1, 4 do
+		local angle = index / 4 * 2 * math.pi
+		local glints = sparkles:Clone()
+		glints.Parent =
+			anchorAt(center + Vector3.new(math.cos(angle), 0.6, math.sin(angle)) * radius * 0.5, seconds + 1)
+		task.delay(seconds, function()
+			glints.Enabled = false
+		end)
+	end
+	sparkles:Destroy()
+	fadeAway(parts, 0.6, math.max(0, seconds - 0.6))
+end
+
+-- Nube del Polvo somnífero: humo lila que se queda en el radio y baldosas lilas suaves en el suelo para
+-- ver hasta dónde llega.
+local function cloudZone(center: Vector3, radius: number, seconds: number)
+	local area = groundTiles(
+		center,
+		radius,
+		3,
+		{ Color3.fromRGB(205, 150, 255), Color3.fromRGB(185, 130, 240) },
+		Enum.Material.Neon,
+		0.8
+	)
+	local cloud = emitter(
+		SMOKE_TEXTURE,
+		ColorSequence.new(Color3.fromRGB(220, 180, 255), Color3.fromRGB(170, 120, 230)),
+		NumberSequence.new(radius * 0.5, radius * 0.8),
+		radius * 0.4,
+		2
+	)
+	cloud.Transparency = NumberSequence.new(0.55, 1)
+	cloud.SpreadAngle = Vector2.new(180, 15)
+	cloud.Acceleration = Vector3.new(0, 0.5, 0)
+	cloud.Rate = 6
+	cloud.Parent = anchorAt(center + Vector3.new(0, 1.5, 0), seconds + 2.5)
+	cloud:Emit(8)
+	task.delay(seconds, function()
+		cloud.Enabled = false
+	end)
+	fadeAway(area, 0.5, math.max(0, seconds - 0.5))
+end
+
+local ZONE_LOOKS: { [string]: (center: Vector3, radius: number, seconds: number) -> () } = {
+	Fire = fireZone,
+	Ice = iceZone,
+	Cloud = cloudZone,
+}
+
+-- Una zona de peligro (Combat/Zones).
+local function zone(kind: string, center: Vector3, radius: number, seconds: number)
+	local look = ZONE_LOOKS[kind]
+	if look then
+		look(center, radius, seconds)
+	end
+end
+
 -- ===================================== Despacho =====================================
 
 -- Cada efecto con los datos que manda el servidor (Combat/AbilityFx).
@@ -2792,12 +2951,12 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Frozen = frozen, -- (modelo, segundos)
 	Blink = blink, -- (desde, hasta)
 	Lightning = lightning, -- (desde, hasta, modelo alcanzado)
-	Meteor = meteor, -- (centro en el suelo, radio, segundos hasta el impacto, segundos que arde el suelo)
+	Meteor = meteor, -- (centro en el suelo, radio, segundos hasta el impacto)
 	AreaHeal = areaHeal, -- (centro, radio)
 	HealBurst = healBurst, -- (posición)
 	ShieldGlare = shieldGlare, -- (personaje)
 	Totem = totem, -- (posición, hacia dónde mira el médico, radio, segundos)
-	SleepPowder = sleepPowder, -- (origen, centro en el suelo, radio, segundos que dura la nube)
+	SleepPowder = sleepPowder, -- (origen, centro en el suelo, radio)
 	Asleep = asleep, -- (modelo, segundos)
 	IceShatter = iceShatter, -- (posición): la Bola de fuego del combo rompe el hielo
 	ComboComplete = comboComplete, -- (personaje, racha)
@@ -2809,6 +2968,8 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	-- del servidor, atraviesa, datos del aspecto): un proyectil (Combat/Projectiles)
 	Projectile = projectile,
 	ProjectileEnd = projectileEnd, -- (id, dónde se ha parado)
+	WallBang = wallBang, -- (punto de la pared, su normal): rebote contra muros (Combat/Knockback)
+	Zone = zone, -- ("Fire" | "Ice" | "Cloud", centro en el suelo, radio, segundos): Combat/Zones
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

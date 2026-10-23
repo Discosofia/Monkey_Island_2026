@@ -18,6 +18,8 @@
 -- Amagos (C8, Combat/Feint): pulsar la guardia durante la preparación de un golpe de la cadena lo cancela.
 -- Disparo de remate (C9b, Shared/RangedChain): el 4.º disparo seguido al mismo ritmo con un arma a
 -- distancia es un remate, distinto por arma (atraviesa, estalla, cura el doble o tambalea a un mono).
+-- Rebote contra muros (C10, Combat/Knockback): un empujón de un jugador que estampa a un mono o a un
+-- rival contra una pared le quita Config.WallBang.Damage y le aturde (wallBang).
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -55,6 +57,7 @@ local Projectiles = require(script.Parent.Parent.Projectiles)
 local StaminaServer = require(script.Parent.Parent.StaminaServer)
 local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
+local Zones = require(script.Parent.Parent.Zones)
 
 -- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
 local MELEE_HITBOX = Vector2.new(7, 6)
@@ -532,8 +535,8 @@ end
 
 -- El remate de la cadena (Shared/MeleeChain): empuja hacia donde mira el atacante o, si va en el aire
 -- (sin suelo a Config.Chain.AirborneGroundDistance), lo lanza hacia arriba. Los jefes no se mueven
--- (Combat/Knockback).
-local function finisherPush(root: BasePart, model: Model)
+-- (Combat/Knockback). Contra un muro, rebota.
+local function finisherPush(player: Player, root: BasePart, model: Model)
 	local settings = Config.Chain
 	local airborne = Hitbox.ray(root.Position, Vector3.new(0, -settings.AirborneGroundDistance, 0)) == nil
 	Knockback.push(
@@ -541,7 +544,8 @@ local function finisherPush(root: BasePart, model: Model)
 		root.CFrame.LookVector,
 		settings.FinisherKnockback,
 		settings.FinisherKnockbackSeconds,
-		if airborne then settings.FinisherLaunch else nil
+		if airborne then settings.FinisherLaunch else nil,
+		player
 	)
 end
 
@@ -595,7 +599,7 @@ local function meleeAttack(
 						return
 					end
 					if finisher then
-						finisherPush(root, model)
+						finisherPush(player, root, model)
 					elseif outcome == "Hit" then
 						-- Tambaleo corto: no pega ni usa habilidades, pero puede esquivar antes del siguiente.
 						-- Más corto cuanto más largo el combo que lleva encima (Combat/ComboScaling).
@@ -613,7 +617,7 @@ local function meleeAttack(
 				if staggersOnFinisher(model) then
 					Status.stun(model, Config.Chain.FinisherStaggerSeconds)
 				end
-				finisherPush(root, model)
+				finisherPush(player, root, model)
 			end
 		end
 	end
@@ -1071,14 +1075,46 @@ local function giveStarterWeapons(player: Player)
 	end)
 end
 
+-- Rebote contra muros (C10, Combat/Knockback): "model" ha chocado contra la pared en "point" empujado por
+-- "attacker". A un rival, como el control de una habilidad: × el control PvP del place y sin alargar un
+-- aturdido que ya tenga (Status.stunPlayer); recién salido con el Evasivo, nada.
+local function wallBang(model: Model, attacker: Player, point: Vector3, normal: Vector3)
+	local settings = Config.WallBang
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if not (humanoid and humanoid.Health > 0) then
+		return
+	end
+	local victim = Players:GetPlayerFromCharacter(model)
+	if victim then
+		if not CombatService.canHitPlayer(attacker, victim) then
+			return
+		end
+		local rules = CombatRules.get()
+		CombatService.damagePvP(attacker, victim, math.max(1, math.round(settings.Damage * rules.pvpDamageMultiplier)))
+		if LifeState.isAlive(victim) then
+			Status.stunPlayer(victim, settings.StunSeconds * rules.pvpControlMultiplier, "PvP")
+		end
+	else
+		CombatService.damage(model, humanoid, settings.Damage, attacker, { source = "WallBang" })
+		if humanoid.Health > 0 then
+			Status.stun(model, settings.StunSeconds)
+		end
+	end
+	Sfx.play("WallBang", point)
+	AbilityFx.all("WallBang", point, normal)
+	CombatRules.get().telemetry.mechanic(attacker, "WallBangs")
+end
+
 function CombatService:Start()
 	StateMachine.start()
+	Knockback.onWallBang(wallBang)
 	StaminaServer.start()
 	Hitbox.start()
 	Guard.start()
 	Evasive.start()
 	Feint.start()
 	Projectiles.start()
+	Zones.start()
 	-- Cada golpe del veneno es daño de quien lo puso, sin crítico (a un jugador, por damagePvP).
 	Status.setPoisonDamage(function(model, humanoid, amount, attacker, source)
 		local victim = Players:GetPlayerFromCharacter(model)

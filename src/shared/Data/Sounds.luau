@@ -61,6 +61,8 @@ local Effects: { [string]: Effect } = {
 	Parry = { id = CLICK, volume = 1, pitch = 0.7, jitter = 0.05 }, -- Provisional: "metal clang / parry ring"
 	GuardBreak = { id = BOOM, volume = 0.5, pitch = 1.6, jitter = 0.05 }, -- Provisional: "guard shatter"
 	Evasive = { id = JUMP, volume = 0.6, pitch = 2.2, jitter = 0.05 }, -- Evasivo (C7). Provisional: "quick escape whoosh"
+	-- Rebote contra muros (C10, CombatService). Provisional: "body slam against stone wall"
+	WallBang = { id = BOOM, volume = 0.6, pitch = 0.8, jitter = 0.08, range = 120 },
 	Revive = { id = GET_UP, volume = 0.7, pitch = 1.1 },
 	Heal = { id = GET_UP, volume = 0.5, pitch = 1.5 },
 

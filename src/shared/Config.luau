@@ -469,11 +469,47 @@ local Config = {
 		AbilityDefaultSeconds = 0.2,
 	},
 
-	-- Rebote contra muros (C10): un empujón que te estampa contra una pared o roca.
+	-- Rebote contra muros (C10, Combat/Knockback): un empujón de un jugador (Embestida, Rompehuesos y el
+	-- remate de la cadena) que estampa a un mono o a un rival contra una pared, una roca o el terreno le
+	-- aturde y le quita un poco de vida. A un jugador, como el control de una habilidad (× el control PvP
+	-- del place y sin alargar un aturdido que ya tenga). Los jefes no se empujan.
 	WallBang = {
 		StunSeconds = 0.5,
-		ImmunitySeconds = 1.5,
+		ImmunitySeconds = 1.5, -- después, ningún otro rebote al mismo
 		Damage = 5,
+		-- Se busca la pared por la trayectoria del empujón (velocidad × segundos) más esto (studs): lo que
+		-- separa la raíz de la pared al chocar (el cuerpo; Dash corta el empuje de un jugador a 2,5).
+		BodyReach = 2.5,
+		-- Al acabar el viaje, la raíz tiene que estar a menos de BodyReach + esto de la pared: si se ha
+		-- apartado (Evasivo) o un mono no ha llegado (rozamiento), no rebota.
+		ArriveSlack = 1.5,
+		-- Desde que debería llegar, se mira durante esto (s) si ya está contra la pared: el servidor ve
+		-- moverse a un jugador con retraso (en Studio, con ping ~0, lo ve llegar ~0,2 s tarde).
+		ArriveWindowSeconds = 0.5,
+		-- Es pared si su normal sube menos que esto (una ladera suave no estampa).
+		MaxNormalY = 0.6,
+	},
+
+	-- Zonas de peligro (C10, Combat/Zones): lo que dejan unas habilidades en el suelo unos segundos. Solo
+	-- afectan a los monos y a los rivales de quien las pone (a un rival, solo donde las habilidades le
+	-- ralentizan: CombatRules.pvpStatus). Todos los clientes las ven igual (efecto "Zone").
+	--   - Fuego: el Meteoro que cierra "Lluvia de estrellas" (Combo.MeteorBurnTicks y MeteorBurnDamage).
+	--   - Hielo: la Nova de hielo deja su radio helado: ralentiza y resbala.
+	--   - Nube: la nube del Polvo somnífero se queda: a quien entra le entra sueño (va lento), sin dormirle.
+	Zones = {
+		TickSeconds = 0.25, -- cada cuánto se mira quién está dentro (hielo y nube)
+		LingerSeconds = 0.25, -- lo que dura la lentitud tras salir (además de un tick)
+		Height = 5, -- studs por encima y por debajo del suelo que cuentan como "dentro"
+		Ice = {
+			Seconds = 3,
+			SlowFactor = 0.6, -- velocidad que les queda
+			-- Al resbalar, la velocidad de un jugador sigue a la que quiere con esta rapidez (1/s): con 3
+			-- tarda ~0,3 s en frenar o girar (ZoneController).
+			Traction = 3,
+		},
+		Cloud = {
+			Seconds = 3, -- desde que cae; ralentiza con Abilities.PowderSlowFactor (no a los jefes)
+		},
 	},
 
 	-- Dificultad por día (Fase 2.7): cada día los monos tienen más vida y pegan más fuerte.
@@ -1148,6 +1184,8 @@ local Config = {
 		SmashRange = 9,
 		SmashAngle = 100, -- grados del cono (enlazado como remate, golpea alrededor)
 		SmashStun = 0.5, -- los tumba un momento (corto: el control del equipo sobre los jefes)
+		SmashKnockback = 30, -- studs/s del empujón hacia fuera (C10: contra un muro, rebote)…
+		SmashKnockbackSeconds = 0.15, -- …durante este tiempo (unos 4,5 studs; a los jefes, no)
 
 		-- Cazador.
 		MultiShotDamage = 7, -- por proyectil

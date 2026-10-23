@@ -152,8 +152,21 @@ function Status.stunPlayer(player: Player, seconds: number, cause: string, state
 	return true
 end
 
+-- Ralentiza a "model" a "factor" de su velocidad. No recorta una lentitud igual o más fuerte que dure
+-- más (C10: las zonas la renuevan cada poco).
 function Status.slow(model: Model, seconds: number, factor: number)
-	model:SetAttribute("SlowedUntil", now() + seconds)
+	local untilTime = now() + seconds
+	local current = model:GetAttribute("SlowedUntil")
+	local currentFactor = model:GetAttribute("SlowFactor")
+	if
+		typeof(current) == "number"
+		and current > untilTime
+		and typeof(currentFactor) == "number"
+		and currentFactor <= factor
+	then
+		return
+	end
+	model:SetAttribute("SlowedUntil", untilTime)
 	model:SetAttribute("SlowFactor", factor)
 end
 
