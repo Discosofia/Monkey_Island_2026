@@ -9,6 +9,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
@@ -54,6 +55,7 @@ local function onLearnTalent(player: Player, roleId: any, talentId: any)
 		tutorialDone = profile.tutorialDone,
 		bestiary = profile.bestiary,
 		pets = profile.pets,
+		mounts = profile.mounts,
 		cosmetics = profile.cosmetics,
 	}
 	if rank >= talent.maxRank then
@@ -117,8 +119,25 @@ local function onSelectPet(player: Player, petId: any)
 	LobbyRoleService.refresh(player)
 end
 
+local function onSelectMount(player: Player, mountId: any)
+	if typeof(mountId) ~= "string" or not canRequest(player) then
+		return
+	end
+	local profile = PlayerData.get(player)
+	if not profile then
+		return
+	end
+	if mountId ~= "" and (not Mounts[mountId] or (profile.mounts[mountId] or 0) <= 0) then
+		return
+	end
+	PlayerData.update(player, function(current)
+		current.activeMount = mountId
+	end)
+end
+
 function ProgressionService:Start()
 	Remotes.SelectPet.OnServerEvent:Connect(onSelectPet)
+	Remotes.SelectMount.OnServerEvent:Connect(onSelectMount)
 	Remotes.SelectRole.OnServerEvent:Connect(onSelectRole)
 	Remotes.LearnTalent.OnServerEvent:Connect(onLearnTalent)
 	Remotes.BuyUpgrade.OnServerEvent:Connect(onBuyUpgrade)

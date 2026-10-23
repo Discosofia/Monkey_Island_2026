@@ -24,6 +24,7 @@ tipo que ya existe va en su módulo, con un constructor más y su entrada en los
 | Armas y herramientas (Tool) | `src/shared/WeaponTools.luau` | `WeaponTools.build(weaponId)` | `src/shared/Data/Weapons.luau` |
 | Armaduras puestas y trajes (cosméticos) | `src/shared/ArmorModels.luau` | `ArmorModels.wear(character, armorId, rol, outfitId?, grado?)` | `src/shared/Data/Armor.luau`, `Data/Cosmetics.luau` |
 | Mascotas | `src/shared/PetModels.luau` | `PetModels.build(petId, skinId?)` | `src/shared/Data/Pets.luau` |
+| Monturas (voxel, celdas de 0,2 studs, atributo `Bone` por pieza, attachment `Seat`) | `src/shared/MountModels.luau` | `MountModels.build(mountId)` | `src/shared/Data/Mounts.luau` |
 | Monos y jefes (articulados) | `src/island/server/Monkeys/MonkeyModels.luau` | `MonkeyModels.build(...)` | `src/shared/Data/Monkeys.luau`, `Bosses.luau` |
 | Monos en estilo voxel | `src/island/server/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
 | Árboles, palmeras, rocas, matas | `src/serverShared/NodeModels.luau` | `NodeModels.build(nodeType, ground, rng)` | `src/shared/Data/ResourceNodes.luau` |
@@ -406,6 +407,7 @@ orientativo de piezas por modelo:
 | Traje mítico (cosmético, `ArmorModels` OUTFITS; crece con el grado de la armadura, 0–4; Rey Gorila Titán 69 / 109 / 150 / 168 / 238, Jaguar Espectral 143 / 190 / 265 / 281 / 318, Serpiente Emplumada 128 / 198 / 317 / 323 / 373, Ceiba de la Vida 84 / 124 / 182 / 235 / 341) | hasta ~380 en el grado 4 (solo uno por jugador) |
 | Aspecto de arma mítico (`WeaponTools` SKINS; crece con el nivel del arma, 1–4; Maza del Rey Gorila 22 / 26 / 42 / 89, Arco del Jaguar Espectral 36 / 42 / 70 / 108, Báculo de la Serpiente 30 / 48 / 69 / 103, Cerbatana de la Ceiba 28 / 47 / 69 / 84) | hasta ~110 en el nivel 4 |
 | Mascota (solo una por jugador) | 80–160 |
+| Montura (`MountModels`; son pocas y especiales) | hasta 175 rara, 225 legendaria, 275 mítica |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |
 | Mono voxel (§8), bloques de diseño | hasta ~150 (unidos en ≤ 10 piezas en juego); jefe hasta 500 (techo 1.000) |

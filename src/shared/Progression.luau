@@ -22,6 +22,7 @@ export type ProgressData = {
 	tutorialDone: boolean,
 	bestiary: { [string]: number },
 	pets: { [string]: number },
+	mounts: { [string]: number },
 	cosmetics: { [string]: string },
 }
 
@@ -119,6 +120,7 @@ function Progression.read(player: Player): ProgressData
 		tutorialDone = data.tutorialDone == true,
 		bestiary = if typeof(data.bestiary) == "table" then data.bestiary else {},
 		pets = if typeof(data.pets) == "table" then data.pets else {},
+		mounts = if typeof(data.mounts) == "table" then data.mounts else {},
 		cosmetics = if typeof(data.cosmetics) == "table" then data.cosmetics else {},
 	}
 end

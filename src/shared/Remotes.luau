@@ -98,6 +98,11 @@ local Remotes = {
 	UseAbility = remoteEvent("UseAbility"),
 	-- Cliente -> servidor (Lobby): llevar una mascota (id de Data/Pets, o "" para ninguna).
 	SelectPet = remoteEvent("SelectPet"),
+	-- Cliente -> servidor (Lobby): llevar una montura (id de Data/Mounts, o "" para ninguna; Fase 11).
+	SelectMount = remoteEvent("SelectMount"),
+	-- Cliente -> servidor (Lobby e Isla): montar (true) o bajar (false) de la montura que lleva
+	-- (ServerShared/MountServer).
+	ToggleMount = remoteEvent("ToggleMount"),
 	-- Cliente -> servidor (Isla): paso del tutorial alcanzado (número), para la analítica.
 	TutorialStep = remoteEvent("TutorialStep"),
 	-- Cliente -> servidor (Lobby e Isla): equipar o quitar un cosmético (id de Data/Cosmetics).

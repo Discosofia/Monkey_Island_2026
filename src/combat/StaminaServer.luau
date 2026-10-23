@@ -72,7 +72,9 @@ end
 local function update(deltaTime: number)
 	for player, state in states do
 		local before = state.value
-		if state.sprinting and state.value > 0 and isMoving(player) then
+		-- Montado (Fase 11) no se gasta: corre la montura.
+		local mounted = player:GetAttribute("Mounted") ~= nil
+		if state.sprinting and not mounted and state.value > 0 and isMoving(player) then
 			local cost = SETTINGS.SprintStaminaPerSecond * Progression.perk(player, "SprintCost")
 			state.value = math.max(0, state.value - cost * deltaTime)
 			state.lastSpentAt = os.clock()

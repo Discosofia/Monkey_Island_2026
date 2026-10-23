@@ -75,8 +75,19 @@ function CombatState.get(player: Player): State
 	return state :: State
 end
 
+-- Atributo con la montura en la que va (Fase 11, ServerShared/MountServer). Montado no se pelea:
+-- ni golpes, ni habilidades, ni esquiva, ni guardia. Al intentarlo, el cliente pide bajarse.
+CombatState.MOUNTED_ATTRIBUTE = "Mounted"
+
+function CombatState.isMounted(player: Player): boolean
+	return typeof(player:GetAttribute(CombatState.MOUNTED_ATTRIBUTE)) == "string"
+end
+
 -- true si "player" puede hacer "action" en su estado de ahora.
 function CombatState.canAct(player: Player, action: Action): boolean
+	if CombatState.isMounted(player) then
+		return false
+	end
 	return not BLOCKS[CombatState.get(player)][action]
 end
 

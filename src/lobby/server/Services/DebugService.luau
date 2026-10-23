@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -77,6 +78,15 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 			local role = Progression.validRole(profile.selectedRole)
 			profile.roleXp[role] = (profile.roleXp[role] or 0) + 300
 		end)
+	end,
+	-- Da la montura de prueba (la primera de Data/Mounts) y la lleva puesta (Fase 11).
+	Mount = function(player)
+		local mountId = next(Mounts) :: string
+		PlayerData.update(player, function(current)
+			current.mounts[mountId] = math.max(current.mounts[mountId] or 0, 1)
+			current.activeMount = mountId
+		end)
+		Remotes.Notify:FireClient(player, `Montura de prueba: {Mounts[mountId].icon} {Mounts[mountId].name} (pulsa N)`)
 	end,
 	-- Pasa a la siguiente mascota y la lleva puesta (se la da si no la tenía).
 	Pet = function(player)

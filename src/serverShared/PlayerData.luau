@@ -69,6 +69,9 @@ export type Profile = {
 	-- weapon = nivel 1–4 del arma de rol }. Se luce en el Lobby y en Dunas, solo como aspecto
 	-- (ServerShared/CosmeticsServer).
 	bestGear: { [string]: any },
+	-- Monturas (versión 8, Fase 11): las que tiene (Data/Mounts) y la que lleva ("" = ninguna).
+	mounts: { [string]: number },
+	activeMount: string,
 }
 
 type Session = {
@@ -87,7 +90,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 7,
+		version = 8,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -115,9 +118,12 @@ local function defaultProfile(): Profile
 		ownedCosmetics = {},
 		cosmeticShop = {},
 		bestGear = {},
+		mounts = {},
+		activeMount = "",
 	}
 end
 
+-- Versión 8: las monturas ("mounts" y "activeMount"; "reconcile" los rellena vacíos).
 -- Versión 7: el mejor equipo fabricado por rol ("bestGear"; "reconcile" lo rellena vacío).
 -- Versión 6: las tiendas de cosméticos ("cosmeticShop"; "reconcile" lo rellena vacío).
 -- Versión 5: pase de temporada, semanales y compras ("reconcile" los rellena vacíos); los cosméticos
@@ -203,6 +209,9 @@ local function publish(player: Player, session: Session)
 		session.publishedPet = petId
 		player:SetAttribute("ActivePet", petId)
 	end
+	-- Montura que lleva, solo si la tiene (ServerShared/MountServer pone "Mounted" al montarla).
+	local hasMount = profile.activeMount ~= "" and (profile.mounts[profile.activeMount] or 0) > 0
+	player:SetAttribute("ActiveMount", if hasMount then profile.activeMount else nil)
 	player:SetAttribute(
 		"Progress",
 		HttpService:JSONEncode({
@@ -213,6 +222,7 @@ local function publish(player: Player, session: Session)
 			tutorialDone = profile.tutorialDone,
 			bestiary = profile.bestiary,
 			pets = profile.pets,
+			mounts = profile.mounts,
 			cosmetics = profile.cosmetics,
 		})
 	)

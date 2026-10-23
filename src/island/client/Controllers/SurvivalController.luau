@@ -19,6 +19,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local MountRiders = require(ReplicatedStorage.Shared.UI.MountRiders)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
@@ -87,6 +88,16 @@ local function updateSprint(player: Player, deltaTime: number)
 	if not humanoid or not LifeState.isAlive(player) then
 		sprintToggled = false
 		Stamina.setSprinting(false)
+		return
+	end
+	-- Montado (Fase 11) corre la montura: su velocidad, sin gastar estamina.
+	local mountSpeed = MountRiders.speedOf(player)
+	if mountSpeed then
+		sprintToggled = false
+		Stamina.setSprinting(false)
+		if humanoid.WalkSpeed ~= mountSpeed then
+			humanoid.WalkSpeed = mountSpeed
+		end
 		return
 	end
 	-- En guardia (Fase 10, C5) no se corre y se anda más despacio.

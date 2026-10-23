@@ -23,6 +23,7 @@ export type Key =
 	| "Revive"
 	| "Hammer"
 	| "Craft"
+	| "Ride"
 
 export type PlayerAnimation = {
 	id: string,
@@ -58,6 +59,8 @@ local PlayerAnimations = {
 		Craft = { id = "rbxassetid://71536295123191", priority = Enum.AnimationPriority.Action3 }, -- manos trabajando (fabricar, cocinar)
 		Crawl = { id = "rbxassetid://120906840673143", priority = Enum.AnimationPriority.Action4, looped = true }, -- caído, se arrastra
 		Revive = { id = "rbxassetid://109653278143351", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
+		-- Montado (Fase 11, UI/MountRiders): a horcajadas sobre la montura, con las riendas, en bucle.
+		Ride = { id = "", priority = Enum.AnimationPriority.Action4, looped = true },
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para

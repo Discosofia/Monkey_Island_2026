@@ -13,6 +13,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
@@ -27,6 +28,7 @@ local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
 local ContractService = require(script.Parent.ContractService)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
+local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local EggService = require(script.Parent.EggService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -468,6 +470,15 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Crate = function()
 		SupplyService.spawnCrate()
+	end,
+	-- Da la montura de prueba (la primera de Data/Mounts) y la lleva puesta (Fase 11).
+	Mount = function(player)
+		local mountId = next(Mounts) :: string
+		PlayerData.update(player, function(current)
+			current.mounts[mountId] = math.max(current.mounts[mountId] or 0, 1)
+			current.activeMount = mountId
+		end)
+		Remotes.Notify:FireClient(player, `Montura de prueba: {Mounts[mountId].icon} {Mounts[mountId].name} (pulsa N)`)
 	end,
 	Pet = function(player)
 		local current = player:GetAttribute("ActivePet")

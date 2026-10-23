@@ -38,6 +38,7 @@ local SLOTS: { [string]: Vector2 } = {
 	BuildNext = Vector2.new(1, 2),
 	Ability5 = Vector2.new(2, 2),
 	BuildDemolish = Vector2.new(3, 2),
+	Mount = Vector2.new(4, 2), -- montar y bajar (Fase 11, UI/MountRiders)
 }
 -- Acciones sin casilla fija: a partir de aquí, en la cuarta fila.
 local EXTRA_ROW = 3

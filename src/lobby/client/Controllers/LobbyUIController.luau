@@ -47,6 +47,7 @@ local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
@@ -1054,6 +1055,61 @@ function LobbyUIController:Start()
 				end)
 			else
 				setButton(button, "—", false)
+			end
+		end
+
+		-- Monturas (Fase 11): una fila por montura, con su botón para llevarla (se monta con N).
+		local activeMount = player:GetAttribute("ActiveMount")
+		note(petsPane, "🦙 Monturas: llévala y móntala con N (o el botón Montar)", 2)
+		local mountIds = {}
+		for mountId in Mounts do
+			table.insert(mountIds, mountId)
+		end
+		table.sort(mountIds, function(a, b)
+			return Mounts[a].name < Mounts[b].name
+		end)
+		for index, mountId in mountIds do
+			local mount = Mounts[mountId]
+			local rarity = Rarities[mount.rarity]
+			local owned = (data.mounts[mountId] or 0) > 0
+			local isActive = activeMount == mountId
+			local row = Instance.new("Frame")
+			row.LayoutOrder = 2 + index
+			row.BackgroundColor3 = ROW_COLOR
+			row.BackgroundTransparency = 0.15
+			row.Size = UDim2.new(1, -10, 0, if compact then 34 else 44)
+			row.Parent = petsPane
+			corner(row, 10)
+			local stroke = Instance.new("UIStroke")
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			stroke.Color = READY_COLOR
+			stroke.Thickness = 2
+			stroke.Enabled = isActive
+			stroke.Parent = row
+			local name = Widgets.label(
+				if owned then `{mount.icon} {mount.name} · {rarity.name}` else `❓ ??? · {rarity.name}`,
+				row
+			)
+			name.Position = UDim2.fromOffset(8, 0)
+			name.Size = UDim2.new(0.62, -8, 1, 0)
+			name.TextXAlignment = Enum.TextXAlignment.Left
+			name.TextColor3 = rarity.color
+			textCap(name, if compact then 14 else 17)
+			local button = Widgets.button("", row)
+			button.AnchorPoint = Vector2.new(1, 0.5)
+			button.Position = UDim2.new(1, -6, 0.5, 0)
+			button.Size = UDim2.new(0.38, -6, 1, -8)
+			local limit = button:FindFirstChildOfClass("UISizeConstraint")
+			if limit then
+				limit:Destroy()
+			end
+			if owned then
+				setButton(button, if isActive then "Quitar" else "Llevar", true)
+				button.MouseButton1Click:Connect(function()
+					Remotes.SelectMount:FireServer(if isActive then "" else mountId)
+				end)
+			else
+				setButton(button, "Sale de los huevos", false)
 			end
 		end
 	end

@@ -1203,6 +1203,20 @@ local Config = {
 		MarkBossMultiplier = 0.5,
 	},
 
+	Mounts = {
+		-- Monturas (Fase 11; Data/Mounts, ServerShared/MountServer, UI/MountRiders): viaje rápido en el
+		-- Lobby y en la Isla. Montado se va a Speed × "speed" de la montura (correr a pie son 24) sin
+		-- gastar estamina, y no se pelea (Shared/CombatState): recibir daño, cargar el huevo o caer te
+		-- bajan.
+		Speed = 30,
+		-- Espera entre montar y volver a montar, y desde el último daño recibido para poder montar.
+		RemountCooldown = 2,
+		HurtCooldown = 4,
+		-- Velocidad del jinete (studs/s) a la que la montura empieza a galopar y a la que galopa del todo.
+		RunFrom = 6,
+		RunFull = 14,
+	},
+
 	Abilities = {
 		-- Habilidades de los roles (Fase 3; nombres y tiempos de espera en Shared/Data/Roles).
 		-- Los daños se multiplican por la ventaja de daño del rol (MeleeDamage, RangedDamage o

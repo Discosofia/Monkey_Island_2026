@@ -92,6 +92,25 @@ local function crawlPose(t: number, side: number): { [string]: any }
 	}
 end
 
+-- Montar: sentado a horcajadas (muslos al frente y abiertos para rodear el lomo, rodillas dobladas)
+-- con las manos delante en las riendas. "bob" sube un poco el cuerpo, al compás de la montura.
+local function ridePose(t: number, bob: number): { [string]: any }
+	return {
+		t = t,
+		LowerTorso = { 0, 0, 0, 0, 0.05 * bob, 0 },
+		UpperTorso = { -8 - 3 * bob, 0, 0 },
+		Head = { 6, 0, 0 },
+		RightUpperLeg = { 75, 0, -28 },
+		RightLowerLeg = { -70, 0, 0 },
+		LeftUpperLeg = { 75, 0, 28 },
+		LeftLowerLeg = { -70, 0, 0 },
+		RightUpperArm = { 35, 0, 8 },
+		RightLowerArm = { 45, 0, 0 },
+		LeftUpperArm = { 35, 0, -8 },
+		LeftLowerArm = { 45, 0, 0 },
+	}
+end
+
 -- Reanimar: de rodillas (la izquierda en el suelo) empujando con las dos manos sobre el aliado.
 local function revivePose(t: number, push: boolean): { [string]: any }
 	return {
@@ -627,6 +646,14 @@ local SPECS: { [string]: any } = {
 		easing = "Cubic",
 		direction = "InOut",
 		keyframes = { crawlPose(0, 1), crawlPose(0.5, -1), crawlPose(1, 1) },
+	},
+	-- Montado (Fase 11): en bucle mientras se va en la montura (UI/MountRiders).
+	Ride = {
+		name = "Ride",
+		loop = true,
+		easing = "Cubic",
+		direction = "InOut",
+		keyframes = { ridePose(0, 0), ridePose(0.6, 1), ridePose(1.2, 0) },
 	},
 	-- Reanimar: en bucle mientras se mantiene pulsado el aviso "Reanimar".
 	Revive = {

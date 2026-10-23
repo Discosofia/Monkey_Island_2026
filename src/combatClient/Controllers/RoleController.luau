@@ -216,6 +216,11 @@ local function useAbility(player: Player, slot: number)
 	if not LifeState.isAlive(player) or readyIn(player, slot) > 0 then
 		return
 	end
+	-- Montado (Fase 11) no se pelea: la habilidad baja de la montura y hay que pulsarla otra vez.
+	if CombatState.isMounted(player) then
+		Remotes.ToggleMount:FireServer(false)
+		return
+	end
 	-- Aturdido no se usan habilidades (Shared/CombatState; el servidor lo comprueba otra vez), ni
 	-- mientras se prepara otra.
 	if not CombatState.canAct(player, "Ability") or Feint.casting() then

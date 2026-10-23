@@ -6,7 +6,7 @@
 --   require(game.ServerStorage.Tools.MonkeyAnimationBuilder).build("MonosPequenos")  -- un lote
 --
 -- Cada módulo de MonkeyAnimationSpecs es un lote ("MonosPequenos", "MonosMedianosYGrandes",
--- "GorilaDeCeniza") con sus animaciones escritas como tablas (el formato "spec" de la skill
+-- "GorilaDeCeniza", y "Monturas" con las de Shared/MountModels) con sus animaciones escritas como tablas (el formato "spec" de la skill
 -- animaciones-roblox, ver abajo). build() crea (o sustituye) una KeyframeSequence por spec en
 -- ServerStorage.RBX_ANIMSAVES.<lote>, donde también las encuentra el Animation Editor. Para el juego:
 -- clic derecho en cada una > "Save to Roblox" (con el mismo dueño que el juego) y pegar el id en
@@ -44,6 +44,8 @@ export type Spec = {
 	priority: string?,
 	easing: string?,
 	direction: string?,
+	-- Jerarquía de otro rig (las monturas, lote "Monturas"); sin ella, la de los monos.
+	parents: { [string]: string }?,
 	keyframes: { { [string]: any } },
 }
 
@@ -171,7 +173,7 @@ function MonkeyAnimationBuilder.build(only: string?, options: { fresh: boolean? 
 			if old then
 				old:Destroy()
 			end
-			MonkeyAnimationBuilder.sequence(spec).Parent = folder
+			MonkeyAnimationBuilder.sequence(spec, spec.parents).Parent = folder
 			count += 1
 		end
 		table.insert(built, `{module.Name} ({count})`)
