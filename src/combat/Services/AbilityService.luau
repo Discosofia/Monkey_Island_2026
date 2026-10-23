@@ -31,6 +31,8 @@
 -- Empujes y zonas (C10): la Embestida y el Rompehuesos empujan (Combat/Knockback; contra un muro, rebote).
 -- La Nova deja el suelo helado, la nube del Polvo se queda y el Meteoro rematado deja el suelo ardiendo:
 -- zonas de Combat/Zones que solo alcanzan a los monos y a los rivales.
+-- Coberturas (C11, Combat/Destructibles): las habilidades de daño alcanzan las que tocan (su área, o el
+-- proyectil que se para en una); el Rayo encadenado salta entre enemigos y no las toca.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -50,6 +52,7 @@ local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
+local Destructibles = require(script.Parent.Parent.Destructibles)
 local Feint = require(script.Parent.Parent.Feint)
 local Guard = require(script.Parent.Parent.Guard)
 local Hitbox = require(script.Parent.Parent.Hitbox)
@@ -205,6 +208,25 @@ local function abilityOf(player: Player, abilityId: string): Roles.Ability?
 		end
 	end
 	return nil
+end
+
+-- Cómo alcanza una cobertura la habilidad "abilityId" (Combat/Destructibles): como definitiva o no.
+local function coverKind(player: Player, abilityId: string): Destructibles.Kind
+	local ability = abilityOf(player, abilityId)
+	return if ability and ability.ultimate then "Ultimate" else "Ability"
+end
+
+-- El área de la habilidad "abilityId" alcanza las coberturas que toca, vistas desde "from" (por defecto,
+-- el centro); con la misma tabla "once", una vez en todo el uso.
+local function breakCovers(
+	player: Player,
+	abilityId: string,
+	center: Vector3,
+	radius: number,
+	once: Destructibles.Once?,
+	from: Vector3?
+)
+	Destructibles.blast(center, radius, coverKind(player, abilityId), player, once, from)
 end
 
 -- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos (y las definitivas aún menos:
@@ -395,6 +417,7 @@ local function whirlwind(player: Player, character: Model, root: BasePart): bool
 	local damage = SETTINGS.WhirlwindDamage * Progression.perk(player, "MeleeDamage")
 	local hits = math.max(1, math.round(seconds / SETTINGS.WhirlwindInterval))
 	AbilityFx.others(player, "Whirlwind", character, seconds)
+	local coverOnce: Destructibles.Once = {}
 	task.spawn(function()
 		for _ = 1, hits do
 			if not (root.Parent and LifeState.isAlive(player)) then
@@ -404,6 +427,7 @@ local function whirlwind(player: Player, character: Model, root: BasePart): bool
 			for _, target in targetsAround(player, root.Position, SETTINGS.WhirlwindRadius) do
 				hurt(player, target, damage, "Whirlwind")
 			end
+			breakCovers(player, "Whirlwind", root.Position, SETTINGS.WhirlwindRadius, coverOnce)
 			task.wait(SETTINGS.WhirlwindInterval)
 		end
 	end)
@@ -416,6 +440,7 @@ local function charge(player: Player, character: Model, root: BasePart, aim: Vec
 		* Progression.perk(player, "ChargeDamage")
 	local direction = flat(aim)
 	local hit: { [Model]: boolean } = {}
+	local coverOnce: Destructibles.Once = {}
 	Sfx.play("Swing", root)
 	AbilityFx.others(player, "Charge", character, SETTINGS.ChargeSeconds)
 	-- El cliente mueve al personaje; aquí se va mirando por dónde pasa.
@@ -441,6 +466,7 @@ local function charge(player: Player, character: Model, root: BasePart, aim: Vec
 					end
 				end
 			end
+			breakCovers(player, "Charge", root.Position, SETTINGS.ChargeWidth, coverOnce)
 			task.wait(0.05)
 		end
 	end)
@@ -511,6 +537,7 @@ local function quake(player: Player, character: Model, root: BasePart): boolean
 		hurt(player, target, damage, "Quake")
 		control(target, stun, "Stun")
 	end
+	breakCovers(player, "Quake", root.Position, SETTINGS.QuakeRadius)
 	Sfx.play("RockImpact", root)
 	AbilityFx.all("Quake", ground, SETTINGS.QuakeRadius)
 	return true
@@ -543,6 +570,19 @@ local function smash(player: Player, character: Model, root: BasePart, aim: Vect
 			end
 		end
 	end
+	-- Las coberturas, en el cono de delante (una esfera que lo cubre) o, rematado, alrededor.
+	if around then
+		breakCovers(player, "Smash", root.Position, SETTINGS.SmashRange)
+	else
+		breakCovers(
+			player,
+			"Smash",
+			root.Position + facing * SETTINGS.SmashRange / 2,
+			SETTINGS.SmashRange / 2,
+			nil,
+			root.Position
+		)
+	end
 	return true
 end
 
@@ -562,6 +602,8 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 	local spread = math.rad(SETTINGS.MultiShotSpreadDegrees)
 	aim = CombatService.aimShot(player, origin, aim, SETTINGS.MultiShotRange, SETTINGS.MultiShotSpeed)
 	Sfx.play("Shoot", root)
+	-- Todas las flechas del abanico alcanzan una cobertura una sola vez.
+	local coverOnce: Destructibles.Once = {}
 	for index = 1, count do
 		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
 		Projectiles.fire({
@@ -574,6 +616,8 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 			radius = 1,
 			-- Las del borde del abanico fallan a propósito: no cuentan en la tasa de acierto.
 			counts = false,
+			breaks = coverKind(player, "MultiShot"),
+			breakOnce = coverOnce,
 			onHit = function(model)
 				local target = targetOfModel(player, model)
 				if not target then
@@ -805,6 +849,8 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 		* Progression.perk(player, "RangedDamage")
 		* Progression.perk(player, "RainDamage")
 	local interval = SETTINGS.RainSeconds / SETTINGS.RainTicks
+	local coverOnce: Destructibles.Once = {}
+	local lift = Config.Combat.AreaSightLift
 	Sfx.play("Shoot", root)
 	-- La nube y las flechas que caen las dibujan los clientes.
 	AbilityFx.all("ArrowRain", center, SETTINGS.RainRadius, SETTINGS.RainSeconds)
@@ -814,6 +860,7 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 			for _, target in targetsAroundGround(player, center, SETTINGS.RainRadius) do
 				hurt(player, target, damage, "ArrowRain")
 			end
+			breakCovers(player, "ArrowRain", center, SETTINGS.RainRadius, coverOnce, center + Vector3.new(0, lift, 0))
 			task.wait(math.max(0, interval - 0.2))
 		end
 	end)
@@ -834,6 +881,7 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 	local origin = headOf(character, root)
 	aim = CombatService.aimShot(player, origin, aim, SETTINGS.PierceRange, SETTINGS.PierceSpeed)
 	local spread = math.rad(COMBO.PierceSpreadDegrees)
+	local coverOnce: Destructibles.Once = {}
 	for index = 1, count do
 		local angle = if count == 1 then 0 else -spread / 2 + spread * (index - 1) / (count - 1)
 		Projectiles.fire({
@@ -846,6 +894,8 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 			radius = SETTINGS.PierceWidth,
 			pierce = true,
 			counts = false,
+			breaks = coverKind(player, "PiercingShot"),
+			breakOnce = coverOnce,
 			onHit = function(model)
 				local target = targetOfModel(player, model)
 				if not target then
@@ -907,6 +957,7 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 					strike(target, SETTINGS.FireballSplashDamage * scale)
 				end
 			end
+			breakCovers(player, "Fireball", endPoint, radius, nil, endPoint - aim)
 		end,
 	})
 	return true
@@ -923,6 +974,7 @@ local function frostNova(player: Player, character: Model, root: BasePart): bool
 		comboOpener(player, "FrostNova", target)
 		slowDown(target, freeze + SETTINGS.NovaSlowSeconds, SETTINGS.NovaSlowFactor)
 	end
+	breakCovers(player, "FrostNova", root.Position, SETTINGS.NovaRadius)
 	AbilityFx.all("FrostNova", root.Position, SETTINGS.NovaRadius)
 	Sfx.play("Hit", root)
 	local ground = groundBelow(root.Position, { character })
@@ -1021,6 +1073,14 @@ local function meteor(player: Player, character: Model, root: BasePart, aim: Vec
 				slowDown(target, slow, SETTINGS.NovaSlowFactor)
 			end
 		end
+		breakCovers(
+			player,
+			"Meteor",
+			center,
+			SETTINGS.MeteorRadius,
+			nil,
+			center + Vector3.new(0, Config.Combat.AreaSightLift, 0)
+		)
 		if burnTicks > 0 and player.Parent then
 			Zones.create({
 				kind = "Fire",

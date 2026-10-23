@@ -86,12 +86,15 @@ salvo "segundos de arma", que compara dos números base y no depende de esos mul
 | Defensa (sección 8) | golpes y segundos para romper la guardia por arma (con su recuperación); duelo espejo de la arena con `defensa` (bloqueo y parry) | que quedarse en guardia no sea gratis y que defender alargue el duelo sin eternizarlo |
 | Control y escape (sección 9) | control del equipo sobre un jefe y de cada rol sobre un mono con y sin `Config.ControlDR` (controles solapados contados una vez), también con todos sus empujones contra un muro (C10); en la arena, lo que entra mientras no puedes actuar (golpe de apertura + arma y una habilidad durante el aturdimiento), con el Evasivo en recarga, y lo mismo con el rival estampado contra un muro (Embestida, Rompehuesos y el remate de la cadena) | que nadie se quede sin salida y que el control no se apile |
 | Preparación (sección 10) | monos: aviso de cada mono frente a la reacción; DPS para un jugador atento (`esquivaMonos`); golpes y segundos para romper la guardia. Habilidades (C8): su preparación, recarga, la de un amago y la guardia que gasta por uso. La simulación (secciones 2 y 6) saca cada habilidad al acabar su preparación y no pega con el arma mientras dura | que todo ataque se vea venir y que bloquear contra un alfa no sea un muro ni un papel; que la preparación no se note lenta ni quite valor al combo |
+| Dunas (sección 11, C11; con `secciones.arena`) | coberturas: segundos que tarda un jugador solo en romper una (piedra ÷ (habilidades que la alcanzan ÷ su recarga + el remate de su cadena o de su arma) × actividad; las definitivas la rompen de un golpe, aparte). Altar: las V de más de un equipo que toma todos los altares de una partida, el daño de los 10 primeros s de una pelea con la V lista y sin ella, y la ventaja media sobre todo el daño de la partida | que una cobertura no sea de papel ni eterna, y que el altar valga la pena sin decidir la partida |
 
 Las secciones 7 a 10 son de la Fase 10 ("Combate v2"). Hasta que se haga el grupo de cada mecánica,
 miden los números **propuestos** de `Config` (`Reaction`, `Chain`, `Guard`, `Net`, `Evasive`,
 `ComboScaling`, `ControlDR`, `Feint`, `Windup`, `WallBang`). Cuando el grupo se haga, su sección
 tiene que medir lo que hace el juego. La arena de la sección 9 necesita `secciones.arena = true` para
-el duelo con defensa de la sección 8.
+el duelo con defensa de la sección 8, y la sección 11 (Dunas) también. La lista de las habilidades que
+alcanzan una cobertura (`COBERTURAS` en la sección 11) es la de los `breakCovers` y `breaks` de
+`AbilityService`: si una habilidad nueva rompe coberturas, va en los dos sitios.
 
 Supuestos (los que más cambian el resultado): monos repartidos (un radio 10 alcanza 2,5 de media,
 un radio 14 3,5, más de 14, 4,5); del abanico de flechas entran 2 en un solo mono y el 70 % en un
@@ -143,6 +146,8 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Golpes para romper la guardia (un golpe suelto: remate, habilidad, jefe, mono) | ≥ 4 | ningún golpe solo te deja sin guardia |
 | Segundos que aguanta en guardia quien recibe cadenas seguidas | 4–6 s | quedarse en guardia se paga, pero da tiempo a responder |
 | Preparación de una habilidad | 0–0,35 s; una imbloqueable se ve venir (preparación + lo que tarda su golpe) ≥ `Config.Reaction` (0,25 s) | más larga se nota lenta; una imbloqueable que no se ve venir no tiene respuesta |
+| Dunas: segundos que tarda un jugador solo (Guerrero, Cazador o Mago, 60 % de actividad, sin su V) en romper una cobertura | 8–20 s | de papel no protege; eterna, quien se esconde detrás no tiene respuesta. El médico (apoyo) tarda más |
+| Dunas: lo que el altar sube de media el daño de un equipo que los toma todos en una partida | ≤ +5 % | que valga la pena ir a por él sin que decida la partida (la bandera es lo que gana) |
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
@@ -345,6 +350,15 @@ mandril 4–6 s, gorila 10–13 s el día 1; casi el doble el día 8. Mascotas: 
   rendimientos decrecientes (talentos al máximo 16 → 20 % y 12 → 14 %; límite 45 %). Las zonas de hielo
   y de nube solo ralentizan (la calculadora no mide la lentitud: la enseña en las fichas) y el fuego es
   el de antes. El Rompehuesos gana un empujón (30 studs/s, 0,15 s) sin cambiar su daño ni su control.
+- **C11 (22-10-2026):** coberturas de Dunas (`Config.Arena.Covers`: 100 de piedra; habilidad 25,
+  definitiva 100, remate de la cadena 20, disparo de remate 20; vuelven a los 45 s) y altar
+  (`Config.Arena.Altar`: se toma en 6 s, 30 s con la V ×2, vuelve a los 75 s; el primero a los 30 s).
+  Un jugador solo rompe una cobertura en 10,3 s (guerrero) · 11,6 (cazador) · 10,4 (mago) · 23,3
+  (médico, solo con el remate de la cerbatana); el Pisotón y la Lluvia de proyectiles, de un golpe. En
+  8 min hay 6 altares: quien los toma todos tiene 2 V más (de 5,3; el mago 2,4 de 6,3) y una ventaja
+  media de +1–2 % de daño (límite 5 %); en una pelea, tener la V lista suma +8 % (guerrero), +30 %
+  (cazador) y +12 % (mago) de daño en los 10 primeros s. No cambia ninguna cifra de las secciones 1 a 10
+  ni las alertas (9 sin talentos, 17 con talentos al máximo).
 
 Resueltos el 16 de octubre de 2026: el orangután te dejaba quieto el 100 % del tiempo (su agarre de
 2,5 s duraba más que su ataque de 1,8 s y cada golpe lo renovaba); ahora todo control sobre un
@@ -389,6 +403,8 @@ campos está en la cabecera del servicio. Cómo leerlo frente a la calculadora:
 | ¿Cuánto aciertan los disparos? | `ShotsHit` ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (Isla / Dunas) | `OPCIONES.acierto` (contra monos en la Isla, contra jugadores en Dunas) |
 | ¿Se dispara al ritmo? | `ShotFinishers` × 4 ÷ (`ShotsHit` + `ShotsMissed`), por rol y place (1 = siempre al ritmo) | el remate de la sección 7 (que supone que siempre) |
 | ¿Se usan los muros? | `WallBangs` ÷ `ChainFinishers` (y ÷ los usos de la Embestida y el Rompehuesos), por rol y place | la fila "con todos sus empujones contra un muro" de la sección 9 (lo peor) |
+| ¿Duran las coberturas? | `CoversBroken` ÷ `ArenaMatchPlayed`, por rol (Dunas) | los segundos para romper una de la sección 11 (si se rompen todas en cada pelea, son de papel) |
+| ¿Se disputa el altar? | `AltarCaptures` ÷ `ArenaMatchPlayed` (cuenta a cada uno de los que lo toman), por rol | los altares por partida de la sección 11 (6 en 8 min) |
 
 Para una habilidad nueva no hay que tocar nada: sus usos y su daño salen solos por su id (si hace
 daño con `hurt` y cura con `heal`). Un mono o jefe nuevo sale por su especie o `Jefe <id>`; un

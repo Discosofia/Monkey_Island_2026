@@ -5,7 +5,10 @@
 --     de cada equipo y, bajo cada casilla, dónde está la bandera de ese equipo (🏠 en casa, 🏃 robada,
 --     ⏳ segundos para volver sola).
 --   - Arriba en el centro, justo bajo la barra: la línea de la fase (elige equipo, cuenta atrás,
---     llevas la bandera, os la han robado, muerte súbita, ganador).
+--     llevas la bandera, os la han robado, muerte súbita, ganador) y, debajo, durante la partida, la del
+--     altar de la pirámide (Fase 10, C11; AltarService): cuándo se enciende, quién lo está tomando o si
+--     está disputado, y el equipo que tiene su ventaja (✨ V ×2) con los segundos que le quedan. En el
+--     centro y no bajo el marcador: ahí lo tapa la lista de jugadores de Roblox.
 --   - Arriba a la izquierda (12, 10): barras de vida y estamina (con la guardia a su derecha,
 --     CombatClient/GuardBar, y el Evasivo detrás, CombatClient/EvasiveIcon), como las de la Isla. Debajo quedan
 --     las casillas de habilidades (RoleHUD, en 12, 118).
@@ -35,6 +38,8 @@ local SCORE_SIZE = Vector2.new(300, 44)
 -- El marcador no baja de esto aunque la barra de Roblox sea más baja (móvil).
 local SCORE_MIN_HEIGHT = 32
 local FLAG_ROW_HEIGHT = 20
+local ALTAR_ROW_HEIGHT = 22
+local ALTAR_COLOR = Color3.fromRGB(255, 205, 90)
 -- Línea de la fase, justo bajo la barra de Roblox. ArenaLobbyController cuelga su ventana debajo
 -- (a 6 + 28 + 6 = 40 px).
 local PHASE_TOP = 6
@@ -113,6 +118,35 @@ local function flagText(teamId: string): string
 		return `⏳ En el suelo {math.max(0, math.ceil(left))}`
 	end
 	return "🏠 En casa"
+end
+
+-- El altar de la pirámide y su ventaja, en corto (cabe bajo el marcador).
+local function altarText(): string
+	local now = Workspace:GetServerTimeNow()
+	local parts = {}
+	local state = ReplicatedStorage:GetAttribute("AltarState")
+	local owner = ReplicatedStorage:GetAttribute("AltarTeam")
+	if state == "Dormant" then
+		local readyAt = ReplicatedStorage:GetAttribute("AltarReadyAt")
+		local left = if typeof(readyAt) == "number" then readyAt - now else 0
+		table.insert(parts, `⛩️ Altar en {clock(math.max(0, left))}`)
+	elseif state == "Active" then
+		if ReplicatedStorage:GetAttribute("AltarContested") == true then
+			table.insert(parts, "⛩️ ⚔️ Altar disputado")
+		elseif Arena.isTeam(owner) then
+			local progress = ReplicatedStorage:GetAttribute("AltarProgress")
+			local percent = if typeof(progress) == "number" then math.floor(progress * 100) else 0
+			table.insert(parts, `⛩️ {Config.Arena.Teams[owner].icon} toma el altar {percent} %`)
+		else
+			table.insert(parts, "⛩️ ¡Altar encendido!")
+		end
+	end
+	local buffTeam = ReplicatedStorage:GetAttribute("AltarBuffTeam")
+	local buffUntil = ReplicatedStorage:GetAttribute("AltarBuffUntil")
+	if Arena.isTeam(buffTeam) and typeof(buffUntil) == "number" and buffUntil > now then
+		table.insert(parts, `✨ {Config.Arena.Teams[buffTeam].icon} V ×2 {math.ceil(buffUntil - now)}`)
+	end
+	return table.concat(parts, " · ")
 end
 
 -- Texto de la línea de la fase (debajo del marcador).
@@ -201,6 +235,14 @@ function ArenaHUDController:Start()
 	phaseLine.Position = UDim2.new(0.5, 0, 0, PHASE_TOP)
 	phaseLine.Size = UDim2.fromOffset(420, 28)
 	phaseLine.TextStrokeTransparency = 0.3
+	-- El altar, debajo de la fase.
+	local altarLabel = Widgets.label("", gui)
+	altarLabel.Name = "Altar"
+	altarLabel.AnchorPoint = Vector2.new(0.5, 0)
+	altarLabel.Position = UDim2.new(0.5, 0, 0, PHASE_TOP + 28 + 2)
+	altarLabel.Size = UDim2.fromOffset(420, ALTAR_ROW_HEIGHT)
+	altarLabel.TextColor3 = ALTAR_COLOR
+	altarLabel.TextStrokeTransparency = 0.3
 
 	-- Vida y estamina.
 	local column = Instance.new("Frame")
@@ -238,6 +280,7 @@ function ArenaHUDController:Start()
 			elseif phase == "SuddenDeath" then "⚡"
 			else "—"
 		phaseLine.Text = phaseText(player)
+		altarLabel.Text = if Arena.inBattle() then altarText() else ""
 		for teamId, label in flagLabels do
 			label.Visible = Arena.inBattle()
 			label.Text = flagText(teamId)

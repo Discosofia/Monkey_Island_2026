@@ -23,15 +23,23 @@
 --   "Gate"       puerta de la base: cerrada antes de la partida
 --   "FlagStand"  pedestal de la bandera
 --   "Zone"       volumen invisible de la base
--- y en Arena: "SideWalls" (muros que cierran los pasillos; cada hijo es una pieza) y un
+-- y en Arena: "SideWalls" (muros que cierran los pasillos; cada hijo es una pieza), un
 -- SpawnLocation "EsperaSpawn" en lo alto de la pirámide, donde aparecen los que aún no han elegido
--- equipo.
+-- equipo, y el modelo "Altar" (Fase 10, C11; AltarService): el altar de la cima, con "Captura" (el
+-- centro de la zona que se toma), los "Pilar" con su "Gema", el "Glifo" del suelo y el "Haz" de luz,
+-- que colorea cada cliente (AltarController).
+-- Coberturas que se rompen (C11; CoverService): las estelas y las columnas de pie son modelos con la
+-- etiqueta Config.Combat.DestructibleTag; su zócalo o su basa se quedan fuera del modelo (no se rompen).
 --
 -- Lo decorativo va con CanCollide, CanQuery y CanTouch en false: el Parpadeo lanza rayos y no debe
 -- tropezar con un estandarte. Nada que choque deja subirse a un muro: un salto llega a ~7 studs.
+-- Barreras invisibles ("Barrera": chocan, sin rayos) delante de la cara del basamento de cada templo
+-- (sus relieves hacían de peldaño) y por los bordes de fuera de su terraza: detrás del templo no hay
+-- cañón, y quien llegaba arriba se salía de la arena.
 --
 -- ⚠️ Borra la carpeta Workspace.Arena, la Baseplate y los SpawnLocation sueltos antes de construir.
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -43,7 +51,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Arena"
 -- Sube este número al cambiar el escenario: los places con una versión anterior guardada se
 -- reconstruyen solos al arrancar (ArenaWorldService).
-local VERSION = 4
+local VERSION = 5
 -- Semilla del decorado al azar (contrafuertes, cactus, dunas): el mismo mapa en cada construcción.
 local SEED = 2026
 
@@ -73,6 +81,8 @@ local TEMPLE_PLATFORM_HEIGHT = 12
 local TEMPLE_DEPTH = 80
 local TEMPLE_HALF_SIZES = { 32, 25.5, 18, 12.5 }
 local TEMPLE_TIER_HEIGHT = 7
+-- Alto de las barreras invisibles (studs, desde su suelo).
+local BARRIER_HEIGHT = 80
 
 local SAND = Color3.fromRGB(222, 186, 128)
 local LIMESTONE = Color3.fromRGB(196, 178, 140)
@@ -130,6 +140,27 @@ local function marker(part: BasePart)
 	part.CanCollide = false
 	part.CanQuery = false
 	part.CanTouch = false
+end
+
+-- Barrera invisible: choca con los personajes, pero no la encuentran los rayos (ni la cámara, ni los
+-- disparos, ni el Parpadeo).
+local function barrier(size: Vector3, cframe: CFrame, parent: Instance)
+	local part = block("Barrera", size, cframe, LIMESTONE, nil, parent)
+	part.Transparency = 1
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+end
+
+-- Cobertura que se rompe (C11): un modelo con la etiqueta de las destructibles (CoverService). Atómico:
+-- con StreamingEnabled llega entero a los clientes (CoverController dibuja sus grietas y sus trozos).
+local function coverModel(name: string, parent: Instance): Model
+	local model = Instance.new("Model")
+	model.Name = name
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	CollectionService:AddTag(model, Config.Combat.DestructibleTag)
+	model.Parent = parent
+	return model
 end
 
 -- Decorado: se ve pero no choca ni lo encuentran los rayos. Las piezas pequeñas no dan sombra.
@@ -359,7 +390,8 @@ local function stairs(
 end
 
 -- Estela maya: losa tallada sobre un zócalo, con tocado y una cara en relieve en las dos caras
--- anchas. "frame": el punto del suelo (puede ir inclinado); las caras anchas miran a ±Z local.
+-- anchas. "frame": el punto del suelo (puede ir inclinado); las caras anchas miran a ±Z local. Es una
+-- cobertura que se rompe (modelo "Estela"); el zócalo se queda.
 local function stela(parent: Instance, frame: CFrame, height: number)
 	local width, depth = 4.2, 2.4
 	block(
@@ -370,14 +402,17 @@ local function stela(parent: Instance, frame: CFrame, height: number)
 		nil,
 		parent
 	)
-	block(
-		"Estela",
+	local cover = coverModel("Estela", parent)
+	local slab = block(
+		"Losa",
 		Vector3.new(width, height, depth),
 		frame * CFrame.new(0, 1 + height / 2, 0),
 		tone(LIMESTONE),
 		nil,
-		parent
+		cover
 	)
+	cover.PrimaryPart = slab
+	parent = cover
 	block(
 		"Tocado",
 		Vector3.new(width + 0.8, 1.6, depth + 0.4),
@@ -425,14 +460,16 @@ local function stela(parent: Instance, frame: CFrame, height: number)
 	end
 end
 
--- Columna rota: basa cuadrada y tres tambores de pie, cada uno un poco descolocado.
+-- Columna rota: basa cuadrada y tres tambores de pie, cada uno un poco descolocado. Es una cobertura
+-- que se rompe (modelo "Columna"); la basa se queda.
 local function brokenColumn(parent: Instance, ground: Vector3, height: number)
 	block("Basa", Vector3.new(6.4, 1.2, 6.4), CFrame.new(ground + Vector3.new(0, 0.6, 0)), LIMESTONE_DARK, nil, parent)
+	parent = coverModel("Columna", parent)
 	local bottom = 1.2
 	for index, share in { 0.42, 0.34, 0.24 } do
 		local drumHeight = (height - 1.2) * share
 		local offset = Vector3.new(rng:NextNumber(-0.3, 0.3), 0, rng:NextNumber(-0.3, 0.3))
-		cylinder(
+		local drum = cylinder(
 			"Tambor",
 			5 - index * 0.2,
 			ground + offset + Vector3.new(0, bottom, 0),
@@ -441,6 +478,9 @@ local function brokenColumn(parent: Instance, ground: Vector3, height: number)
 			Enum.Material.Limestone,
 			parent
 		)
+		if index == 1 then
+			(parent :: Model).PrimaryPart = drum
+		end
 		bottom += drumHeight
 	end
 end
@@ -912,6 +952,27 @@ local function buildTemple(parent: Instance, teamColor: Color3, side: number)
 	for _, zSign in { -1, 1 } do
 		brazier(temple, Vector3.new(centerX - side * (topHalf - 3.5), summit, zSign * 9.5), teamColor, false)
 	end
+
+	-- Barreras: delante de la cara del basamento, más allá de lo que sobresale (molduras, pilastras y el
+	-- glifo, cuyos bordes a 45° hacían de peldaño hasta arriba), y por los otros tres bordes de la terraza.
+	barrier(
+		Vector3.new(0.5, BARRIER_HEIGHT, halfWidth * 2),
+		CFrame.new(outer - side * 1.45, BASE_FLOOR + BARRIER_HEIGHT / 2, 0),
+		temple
+	)
+	local terraceY = TEMPLE_PLATFORM_HEIGHT + BARRIER_HEIGHT / 2
+	barrier(
+		Vector3.new(1, BARRIER_HEIGHT, halfWidth * 2),
+		CFrame.new(outer + side * (TEMPLE_DEPTH - 0.5), terraceY, 0),
+		temple
+	)
+	for _, zSign in { -1, 1 } do
+		barrier(
+			Vector3.new(TEMPLE_DEPTH, BARRIER_HEIGHT, 1),
+			CFrame.new(centerX, terraceY, zSign * (halfWidth - 0.5)),
+			temple
+		)
+	end
 	temple.Parent = parent
 end
 
@@ -1276,6 +1337,71 @@ local function buildPyramid(folder: Folder)
 	pyramid.Parent = folder
 end
 
+-- Altar de la cima (C11, AltarService): cuatro pilares bajos con una gema en las esquinas del punto de
+-- aparición, un glifo redondo en el suelo y un haz de luz que se ve desde toda la arena. Las gemas, el
+-- glifo y el haz los colorea cada cliente según el estado (AltarController); aquí salen apagados.
+local function buildAltar(folder: Folder)
+	local altar = Instance.new("Model")
+	altar.Name = "Altar"
+	-- Entero y siempre en todos los clientes (su haz se ve desde toda la arena).
+	altar.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	local top = #PYRAMID_SIZES * PYRAMID_STEP + 1 -- encima de la baldosa de aparición
+	local capture = block("Captura", Vector3.one, CFrame.new(0, top, 0), LIMESTONE, nil, altar)
+	marker(capture)
+	altar.PrimaryPart = capture
+	local corner = 4.6
+	for _, xSign in { -1, 1 } do
+		for _, zSign in { -1, 1 } do
+			local at = Vector3.new(xSign * corner, top, zSign * corner)
+			block(
+				"Pilar",
+				Vector3.new(1.6, 3.2, 1.6),
+				CFrame.new(at + Vector3.new(0, 1.6, 0)),
+				LIMESTONE_DARK,
+				nil,
+				altar
+			)
+			decor(
+				block("Remate", Vector3.new(2, 0.5, 2), CFrame.new(at + Vector3.new(0, 3.45, 0)), LIMESTONE, nil, altar)
+			)
+			decor(
+				block(
+					"Gema",
+					Vector3.new(1, 1, 1),
+					CFrame.new(at + Vector3.new(0, 4.2, 0)) * CFrame.Angles(0, math.rad(45), math.rad(45)),
+					LIMESTONE_LIGHT,
+					Enum.Material.Neon,
+					altar
+				)
+			)
+		end
+	end
+	local glyph = block(
+		"Glifo",
+		Vector3.new(0.12, 8, 8),
+		CFrame.new(0, top + 0.06, 0) * UPRIGHT,
+		LIMESTONE_DARK,
+		Enum.Material.Neon,
+		altar
+	)
+	glyph.Shape = Enum.PartType.Cylinder
+	decor(glyph)
+	local beamHeight = 140
+	local beam = block(
+		"Haz",
+		Vector3.new(beamHeight, 3, 3),
+		CFrame.new(0, top + beamHeight / 2, 0) * UPRIGHT,
+		CREAM,
+		Enum.Material.Neon,
+		altar
+	)
+	beam.Shape = Enum.PartType.Cylinder
+	beam.Transparency = 1
+	beam.CastShadow = false
+	decor(beam)
+	altar.Parent = folder
+end
+
 -- Muro del juego de pelota (junto a la pirámide): más alto, con talud hacia el carril, moldura
 -- oscura y un aro de piedra en lo alto. "laneSide": hacia dónde queda el carril (±1 en Z).
 local function buildCourtWall(ruins: Folder, side: number, z: number, laneSide: number)
@@ -1444,11 +1570,18 @@ local function buildLanes(folder: Folder)
 	ball("Pelota", 2.6, Vector3.new(42, 1.3, 12), Color3.fromRGB(45, 32, 26), Enum.Material.Rubber, ruins)
 
 	for _, side in { -1, 1 } do
-		-- Coberturas del carril central: altar bajo y estelas, simétricos.
-		block("Altar", Vector3.new(4, 3.4, 20), CFrame.new(side * 80, 1.7, 0), LIMESTONE, nil, ruins)
-		block("Altar", Vector3.new(5, 0.8, 21), CFrame.new(side * 80, 3.8, 0), LIMESTONE_DARK, nil, ruins)
+		-- Coberturas del carril central: altar bajo (no se rompe) y estelas, simétricos.
+		block("AltarBajo", Vector3.new(4, 3.4, 20), CFrame.new(side * 80, 1.7, 0), LIMESTONE, nil, ruins)
+		block("AltarBajo", Vector3.new(5, 0.8, 21), CFrame.new(side * 80, 3.8, 0), LIMESTONE_DARK, nil, ruins)
 		for _, zSign in { -1, 1 } do
-			block("Altar", Vector3.new(5, 5, 3), CFrame.new(side * 80, 2.5, zSign * 10.5), LIMESTONE_DARK, nil, ruins)
+			block(
+				"AltarBajo",
+				Vector3.new(5, 5, 3),
+				CFrame.new(side * 80, 2.5, zSign * 10.5),
+				LIMESTONE_DARK,
+				nil,
+				ruins
+			)
 		end
 		for _, spot in { Vector2.new(58, 18), Vector2.new(58, -18), Vector2.new(108, 14), Vector2.new(108, -14) } do
 			stela(ruins, CFrame.new(side * spot.X, 0, spot.Y) * facingX, 12)
@@ -1613,6 +1746,7 @@ function ArenaBuilder.build(options: Options?)
 	buildBase(bases, "Quetzal", 1)
 	bases.Parent = folder
 	buildPyramid(folder)
+	buildAltar(folder)
 	buildLanes(folder)
 	buildBackdrop(folder)
 	folder.Parent = Workspace

@@ -119,6 +119,9 @@ local Config = {
 	Combat = {
 		-- Solo se puede dañar a lo que tenga esta etiqueta (CollectionService): monos y muñecos.
 		EnemyTag = "Enemy",
+		-- Coberturas que se rompen (Fase 10, C11; Combat/Destructibles): los modelos del mundo con esta
+		-- etiqueta. Hoy solo las estelas y columnas de la arena de Dunas (Config.Arena.Covers).
+		DestructibleTag = "Destructible",
 		-- Herramientas con las que aparece todo jugador, detrás de las armas de su rol (Data/Roles).
 		StarterTools = { "WoodenAxe", "WoodenPick" },
 		DodgeCooldownSeconds = 1.2,
@@ -896,6 +899,34 @@ local Config = {
 		-- Las curaciones de los jugadores (el médico) en la arena. Con ×1 un médico se curaba 6,3 por
 		-- segundo solo y un duelo de médicos duraba 55 s; con ×0,6, 30 s (se tumba en 11–16 s).
 		HealingMultiplier = 0.6,
+		-- Altar de la cima de la pirámide del centro (Fase 10, C11; AltarService). Se toma quedándose a
+		-- menos de CaptureRadius (en horizontal, hasta CaptureHeight por encima de la cima) durante
+		-- CaptureSeconds sin rivales: con los dos equipos, la barra se para; sin nadie, se vacía sola en
+		-- DecaySeconds; si entra el otro equipo, primero la vacía. Da al equipo BuffSeconds en los que su
+		-- definitiva (V) se recarga UltChargeRate veces más rápido: con 30 s y ×2, 30 s menos de espera de
+		-- los 90 (una V más cada tres altares). Después se apaga y vuelve RespawnSeconds más tarde; el
+		-- primero, FirstSeconds después de empezar la partida. La calculadora lo mide (sección 11).
+		Altar = {
+			CaptureSeconds = 6,
+			CaptureRadius = 7,
+			CaptureHeight = 8,
+			DecaySeconds = 12,
+			BuffSeconds = 30,
+			UltChargeRate = 2,
+			RespawnSeconds = 75,
+			FirstSeconds = 30,
+		},
+		-- Coberturas que se rompen (Fase 10, C11; CoverService y Combat/Destructibles): las estelas y las
+		-- columnas de pie. Tienen Health de piedra; cada golpe que alcanza una le quita lo de Damage según
+		-- lo que sea: una habilidad de daño (cada uso, una vez por cobertura), una definitiva, el remate de
+		-- la cadena o el disparo de remate. Los golpes normales no. Rota, no tapa ni choca, y vuelve
+		-- RespawnSeconds después (si hay alguien dentro, en cuanto se aparta). Un jugador solo tarda
+		-- 10–12 s en romper una (el médico, 23 s; sección 11 de la calculadora).
+		Covers = {
+			Health = 100,
+			Damage = { Ability = 25, Ultimate = 100, Finisher = 20, ShotFinisher = 20 },
+			RespawnSeconds = 45,
+		},
 		-- Cola del Lobby (ArenaQueueService, con MemoryStore): cada cuánto se intenta juntar equipos y
 		-- se miran las partidas encontradas, cuánto vive un ticket sin renovarse, cuánto dura el candado
 		-- del servidor que reparte y cuánto se guarda una partida encontrada hasta que viajan.

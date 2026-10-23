@@ -95,6 +95,19 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	GoHome = function(player)
 		goToStand(player, Arena.teamOf(player))
 	end,
+	-- El altar de la pirámide (C11, AltarService) se enciende ya (si está apagado en la partida) y el
+	-- jugador sube a él.
+	Altar = function(player)
+		if ReplicatedStorage:GetAttribute("AltarState") == "Dormant" then
+			ReplicatedStorage:SetAttribute("AltarReadyAt", Workspace:GetServerTimeNow())
+		end
+		local arena = Workspace:FindFirstChild("Arena")
+		local altar = if arena then arena:FindFirstChild("Altar") else nil
+		local center = if altar then altar:FindFirstChild("Captura") else nil
+		if player.Character and center and center:IsA("BasePart") then
+			player.Character:PivotTo(CFrame.new(center.Position + Vector3.new(0, 4, 2)))
+		end
+	end,
 	Solo = function()
 		ArenaMatchService.debugSolo()
 	end,

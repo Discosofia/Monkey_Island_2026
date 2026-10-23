@@ -527,8 +527,46 @@ aviso.
   entra a 1 s, ×0,6 cada 0,25 s hasta los 3 s), nube (el de dentro se duerme 1,5 s; el que entra a
   1,5 s solo va lento) y fuego (−8 a +1, +2 y +3 s tras el Meteoro rematado).
 
-**Planificado.** C11 (Dunas): coberturas `Destructible` que se rompen y reaparecen, y un altar en la
-pirámide central que da a su equipo una ventaja pequeña de 30 s.
+**Coberturas que se rompen (C11, Dunas; `Combat/Destructibles`, `CoverService`, `Config.Arena.Covers`).**
+- Las 16 estelas y las 4 columnas de pie de la arena son modelos con la etiqueta
+  `Config.Combat.DestructibleTag` (`World/ArenaBuilder` v5; su zócalo o su basa se quedan). Las columnas
+  caídas y los altares bajos del carril no se rompen: siempre queda algo detrás de lo que ponerse.
+- El combate solo dice qué las alcanza (`Destructibles.blast` para un área, `inBox` para la caja del
+  remate de la cadena, `hitPart` para el proyectil que se para en una, con `breaks` en el `Shot`), con
+  una tabla `once` por uso (cada cobertura una vez: las flechas del abanico, las vueltas del
+  Torbellino) y línea de visión desde el centro (lo de detrás de una pared no se rompe). Tipos:
+  `Ability` (las de daño: Torbellino, Embestida, Pisotón, Rompehuesos, Disparo múltiple, Lluvia,
+  Flecha perforante, Bola de fuego, Nova, Meteoro; el Rayo encadenado no), `Ultimate`, `Finisher` y
+  `ShotFinisher`. Los golpes normales no las rompen. Sin modelos con la etiqueta (Isla, Lobby), no hace nada.
+- `CoverService` (Dunas) les quita la piedra de `Damage`, solo durante la partida. Sin piedra: no se
+  ven, no chocan, no tapan (las áreas y los disparos pasan) y vuelven a los `RespawnSeconds` (45 s) en
+  cuanto no hay nadie dentro. Al empezar la partida y al volver a esperar, todas enteras. Lo publica en
+  atributos del modelo (`CoverHealth`, `CoverMaxHealth`, `CoverBroken`); `CoverController` dibuja las
+  esquirlas de cada golpe, las grietas voxel con dos tercios y un tercio de piedra, los trozos que caen
+  (anclados, movidos por el cliente: no empujan a nadie) y el polvo. Son modelos atómicos para el
+  streaming. Telemetría `CoversBroken` (quien la rompe).
+- Probado en Play (Dunas): Torbellino −25 una sola vez, Rompehuesos −25, remate del garrote −20, 4.º
+  disparo del bastón −20 una vez (toca y estalla), Bola de fuego −25, Pisotón la rompe de golpe; rota,
+  un rayo la atraviesa; vuelve a los 45,0 s, y con el jugador dentro espera hasta que se aparta (0,9 s).
+
+**Altar de la pirámide (C11, Dunas; `AltarService`, `AltarController`, `Config.Arena.Altar`).**
+- En la cima de la pirámide del centro (`Arena.Altar`: pilares con gema, glifo, haz de luz y la pieza
+  `Captura`, su centro). Se enciende a los `FirstSeconds` (30 s) de empezar y lo toma el equipo que se
+  queda a `CaptureRadius` (7 studs en horizontal, hasta 8 por encima) `CaptureSeconds` (6 s) sin
+  rivales: con los dos equipos se para (disputado), si entra el otro solo primero la vacía, y sin nadie
+  se vacía en `DecaySeconds` (12 s). Da `BuffSeconds` (30 s) con la definitiva de todo el equipo ×2 (30 s
+  menos de espera; la recarga en `AbilityReadyAt<hueco>` avanza de más). Vuelve a los `RespawnSeconds`
+  (75 s). Atributos en `ReplicatedStorage` (`AltarState`, `AltarProgress`, `AltarTeam`,
+  `AltarContested`, `AltarBuffTeam`, `AltarBuffUntil`, `ArenaAltars_<equipo>`, en la cabecera del
+  servicio). Se ve: haz y gemas blancos encendido, del color del equipo que lo toma, parpadeo disputado;
+  cartel con la barra; línea en el HUD bajo la de la fase y en los resultados. Telemetría `AltarCaptures`.
+- Probado en Play (Dunas, un jugador): se toma en 6,0 s; la barra baja sola (−0,25 en 3 s); con 2 s de
+  ventaja, la V baja 7 s en 5 s (2 × 2 + 3); acaba y vuelve al ritmo normal. Sin probar: disputado
+  (hacen falta dos equipos).
+
+**Barreras del templo (C11).** Delante de la cara del basamento de cada templo (sus relieves hacían de
+peldaño: el glifo en rombo, a 45°) y por los otros tres bordes de su terraza hay piezas invisibles que
+chocan sin rayos ("Barrera"): antes se subía al basamento y se salía de la arena por detrás.
 
 ## 10. Controles
 

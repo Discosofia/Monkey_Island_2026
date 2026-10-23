@@ -8,7 +8,7 @@
 --
 -- Eventos (valor · campos):
 --   Parries, Blocks, GuardBreaks, Evasives, ChainFinishers, Feints, WallBangs, ShotsHit, ShotsMissed,
---   ShotFinishers
+--   ShotFinishers, CoversBroken, AltarCaptures (estas dos, solo en la arena: C11)
 --                       veces en la partida · Rol, Place ("Dunas"; los de la Isla llevan "Isla")
 --   ArenaMatchPlayed    1 por partida terminada · Rol (para pasar lo demás a "por partida")
 

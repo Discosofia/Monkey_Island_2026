@@ -164,7 +164,9 @@ con la densidad y el tono del archivo que tocas. `--!strict` donde ya lo está.
    piezas comunes (`targetsAround`, `castShot`, `hurt`, `control`, `heal`, `comboOpener`…; si viaja,
    un proyectil con `Projectiles.fire` y la dirección de `CombatService.aimShot`; si deja algo en el
    suelo unos segundos, una zona con `Zones.create` y su aspecto en `ZONE_LOOKS`; si empuja,
-   `Knockback.push` con el jugador como atacante, que da el rebote contra muros), y su
+   `Knockback.push` con el jugador como atacante, que da el rebote contra muros; si hace daño, que
+   alcance las coberturas de Dunas: `breakCovers` con su área o `breaks` en su proyectil, y su id en
+   `COBERTURAS` de la sección 11 de la calculadora), y su
    entrada en `HANDLERS`. Devuelve `false` si no se pudo usar (no gasta recarga). Actualiza la lista
    de la cabecera del archivo.
 4. Si **mueve al jugador**: la parte del movimiento en `RoleController.useAbility` (como `Charge`,
@@ -284,6 +286,15 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   capturar efectos del cliente en Play: desactiva sus `ScreenGui` (el premio diario sale encima) y fija la
   cámara con `BindToRenderStep` (poner `CameraType` no basta: el script de cámara la mueve); al parar el
   Play se va todo.
+- **Coberturas y altar** (C11, Dunas): "🧪 Empezar ya" y espera a `ArenaPhase` = "Battle". En el
+  servidor, busca la estela más cercana a (58, 7, 18) entre los `CollectionService:GetTagged("Destructible")`
+  y registra `CoverHealth`/`CoverBroken`; pon al jugador a 4,5 studs mirándola (`PivotTo`), "⚡
+  Habilidades listas" y `UseAbility:FireServer(hueco, (1, 0, 0))` (del guerrero, la definitiva es el
+  hueco 4). Para otro rol, el atributo `Role` del `Player` desde el servidor (le cambia las armas). Las
+  grietas y los trozos, en `workspace.CoverFx` del cliente; para verlos, la cámara fija con
+  `BindToRenderStep`. El altar: botón "⛩️ Encender el altar ya y subir a él" y `AltarProgress` cada
+  segundo; la ventaja se mira con `AbilityReadyAt<hueco de la V>` puesto a +90 desde el servidor. Lo que
+  cambia en el código del cliente no llega al Play en marcha: hay que pararlo y volver a empezar.
 - **Mono concreto sin comando**: el panel solo crea mandriles; para otra especie busca en el
   servidor un modelo de `workspace.Monos` con `MonkeyType` = su id, súbete la vida, pon al personaje
   a 4 studs con `PivotTo` (y vuelve a ponerlo si se aleja) y registra `StunnedUntil` y

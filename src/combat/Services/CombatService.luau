@@ -20,6 +20,7 @@
 -- distancia es un remate, distinto por arma (atraviesa, estalla, cura el doble o tambalea a un mono).
 -- Rebote contra muros (C10, Combat/Knockback): un empujón de un jugador que estampa a un mono o a un
 -- rival contra una pared le quita Config.WallBang.Damage y le aturde (wallBang).
+-- Coberturas (C11, Combat/Destructibles): el remate de la cadena y el disparo de remate las alcanzan.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -47,6 +48,7 @@ local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
+local Destructibles = require(script.Parent.Parent.Destructibles)
 local ComboScaling = require(script.Parent.Parent.ComboScaling)
 local Evasive = require(script.Parent.Parent.Evasive)
 local Feint = require(script.Parent.Parent.Feint)
@@ -586,6 +588,9 @@ local function meleeAttack(
 	if finisher and #hits > 0 then
 		CombatRules.get().telemetry.mechanic(player, "ChainFinishers")
 	end
+	if finisher then
+		Destructibles.inBox(box, size, "Finisher", player, root.Position)
+	end
 	for _, model in hits do
 		local victim = Players:GetPlayerFromCharacter(model)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -894,6 +899,8 @@ local function rangedAttack(
 	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
 	local others = if finisher then math.round(damage * (finisher.othersDamage or 0)) else 0
 	local direct: Model? = nil
+	-- El remate alcanza las coberturas (C11): donde se para y, el del bastón, en su explosión (una vez).
+	local coverOnce: Destructibles.Once = {}
 	Projectiles.fire({
 		owner = player,
 		look = if finisher then `{style}Finisher` else style,
@@ -905,6 +912,8 @@ local function rangedAttack(
 		pierce = finisher ~= nil and finisher.pierceTargets ~= nil,
 		maxHits = if finisher then finisher.pierceTargets else nil,
 		extra = if finisher and finisher.radius then { finisher.radius } else nil,
+		breaks = if finisher then "ShotFinisher" else nil,
+		breakOnce = coverOnce,
 		onHit = function(model)
 			if direct == nil then
 				if strike(model, damage, true) then
@@ -926,6 +935,7 @@ local function rangedAttack(
 						strike(model, others, false)
 					end
 				end
+				Destructibles.blast(position, radius, "ShotFinisher", player, coverOnce, position - direction)
 			end
 			else nil,
 	})

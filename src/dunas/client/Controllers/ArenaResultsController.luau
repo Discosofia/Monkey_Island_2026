@@ -1,6 +1,7 @@
 --!strict
 -- Resultados de una partida de la arena (Remotes.ArenaResults, de ArenaRewardService), con el mismo
--- aspecto que los de la Isla (ResultsController): victoria, derrota o empate, el marcador, una tabla
+-- aspecto que los de la Isla (ResultsController): victoria, derrota o empate, el marcador, los altares
+-- de la pirámide que ha tomado cada equipo, una tabla
 -- con las capturas, bajas y caídas de cada jugador, el Ámbar ganado (con el tope diario) y la XP del
 -- pase de temporada. Cada fila lleva el marco del jugador (Shared/UI/PlayerFrames).
 -- Abajo, dos botones: "🔁 Revancha" (cierra la ventana: la siguiente partida empieza sola en este
@@ -148,13 +149,22 @@ local function show(summary: { [string]: any })
 		28,
 		Color3.new(1, 1, 1)
 	)
-	line(panel, amberText(summary), 92, 26, if summary.test then PLAIN else AMBER_TEXT)
+	-- Altares de la pirámide que ha tomado cada equipo (Fase 10, C11).
+	local altars = summary.altars or {}
+	line(
+		panel,
+		`⛩️ Altares: {jaguar.icon} {altars.Jaguar or 0} · {altars.Quetzal or 0} {quetzal.icon}`,
+		88,
+		20,
+		Color3.fromRGB(255, 205, 90)
+	)
+	line(panel, amberText(summary), 110, 26, if summary.test then PLAIN else AMBER_TEXT)
 	-- XP del pase de temporada (si hay una en marcha): una línea más y la tabla baja.
 	local passText = SeasonPass.gainText(summary.pass)
-	local listTop = 126
+	local listTop = 144
 	if passText then
-		line(panel, passText, 120, 20, Color3.fromRGB(255, 150, 80))
-		listTop = 146
+		line(panel, passText, 138, 20, Color3.fromRGB(255, 150, 80))
+		listTop = 164
 	end
 
 	-- Tabla de jugadores (con desplazamiento si son muchos).

@@ -23,6 +23,8 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 --   ShotsHit, ShotsMissed         el que dispara un proyectil, según dé a alguien o no (C9,
 --                                 Combat/Projectiles): la tasa de acierto real para la calculadora
 --   ShotFinishers                 el que dispara el remate de un arma a distancia (C9b, CombatService)
+--   CoversBroken                  el que rompe una cobertura de Dunas (C11, CoverService)
+--   AltarCaptures                 cada uno de los que toman el altar de Dunas (C11, AltarService)
 export type Mechanic =
 	"Parries"
 	| "Blocks"
@@ -34,6 +36,8 @@ export type Mechanic =
 	| "ShotsHit"
 	| "ShotsMissed"
 	| "ShotFinishers"
+	| "CoversBroken"
+	| "AltarCaptures"
 
 export type Telemetry = {
 	damageDealt: (player: Player, source: string, amount: number) -> (),

@@ -78,6 +78,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "SkipPhase", label = "⏩ Saltar a la siguiente fase" },
 		{ id = "GoEnemyFlag", label = "🚩 Ir a la bandera rival" },
 		{ id = "GoHome", label = "🏠 Volver a mi pedestal" },
+		{ id = "Altar", label = "⛩️ Encender el altar ya y subir a él" },
 		{ id = "Abilities", label = "⚡ Habilidades listas" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },

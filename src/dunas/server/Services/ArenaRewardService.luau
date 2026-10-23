@@ -141,6 +141,11 @@ local function onFinished(winner: string?)
 				dailyCap = Config.Arena.Amber.DailyCap,
 				pass = pass,
 				scores = { Jaguar = Arena.score("Jaguar"), Quetzal = Arena.score("Quetzal") },
+				-- Altares de la pirámide tomados por cada equipo (C11, AltarService).
+				altars = {
+					Jaguar = ReplicatedStorage:GetAttribute("ArenaAltars_Jaguar") or 0,
+					Quetzal = ReplicatedStorage:GetAttribute("ArenaAltars_Quetzal") or 0,
+				},
 				players = rows,
 			})
 		end

@@ -30,7 +30,9 @@
 --      larga sin poder actuar en la arena y el rebote contra muros (C10).
 --   10. Preparación: la de los monos (aviso, DPS para un jugador atento y guardia) y la de las
 --       habilidades con sus amagos (C8).
---   11. Alertas: lo que se sale de los límites.
+--   11. Dunas (solo con secciones.arena = true; C11): lo que tarda un jugador solo en romper una
+--       cobertura y lo que vale la ventaja del altar (la definitiva antes) en un duelo y en una partida.
+--   12. Alertas: lo que se sale de los límites.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -160,6 +162,12 @@ local LIMITES = {
 	-- Preparación de una habilidad (s, C8): corta para que no se note lenta; las imbloqueables se ven venir
 	-- (preparación + lo que tarda su golpe) al menos Config.Reaction (si no, no se pueden leer ni esquivar).
 	preparacionHabilidad = { 0, 0.35 },
+	-- Dunas (C11, sección 11): segundos que tarda un jugador solo (Guerrero, Cazador o Mago, con
+	-- OPCIONES.actividad) en romper una cobertura sin su definitiva: ni de papel ni eterna.
+	coberturaSegundos = { 8, 20 },
+	-- Lo que el altar sube de media el daño de un equipo que los toma todos en una partida (la definitiva
+	-- más a menudo), sobre el que no toma ninguno.
+	altarVentaja = 0.05,
 }
 
 -- ===================================== Utilidades =====================================
@@ -1055,7 +1063,8 @@ local function main(copia: Instance): string
 		conCombos: boolean,
 		armaForzada: string?,
 		duracion: number?,
-		pvp: Pvp?
+		pvp: Pvp?,
+		sinDefinitiva: boolean? -- la definitiva en recarga al empezar (sección 11)
 	): Sim
 		local fin = duracion or OPCIONES.segundos
 		local perk = perksDe(roleId)
@@ -1068,8 +1077,8 @@ local function main(copia: Instance): string
 			huecoDe[ability.id] = hueco
 		end
 		local listo: { number } = {}
-		for hueco in abilities do
-			listo[hueco] = 0
+		for hueco, ability in abilities do
+			listo[hueco] = if sinDefinitiva and ability.ultimate then math.huge else 0
 		end
 		local pendientes: { { en: number, cantidad: number, criticoSeguro: number, bonus: number } } = {}
 		local resultado: Sim =
@@ -2777,7 +2786,141 @@ local function main(copia: Instance): string
 		linea("")
 	end
 
-	linea("## 11. Alertas")
+	-- ===================================== 11. Dunas (C11) =====================================
+	-- Coberturas (Config.Arena.Covers): lo que tarda un jugador solo en romper una con lo que la alcanza,
+	-- como AbilityService (las habilidades de COBERTURAS, una vez por uso; las definitivas, de un golpe)
+	-- y CombatService (el remate de la cadena, uno cada cadena entera, o el disparo de remate, uno cada
+	-- RangedChain.Length disparos), con OPCIONES.actividad.
+	-- Altar (Config.Arena.Altar): un equipo que los toma todos en una partida tiene la definitiva antes.
+	-- "V de más" = altares × BuffSeconds × (UltChargeRate − 1) ÷ recarga de la V. Lo que vale una V: el
+	-- daño a un rival en los 10 primeros s de una pelea con ella lista menos sin ella (con la arena y los
+	-- combos; lo que decide el altar en la pelea siguiente). La ventaja media es lo de todas las V de más
+	-- sobre el daño de toda la partida (DPS sin V × actividad × duración + las V de siempre).
+	local COBERTURAS = {
+		Whirlwind = true,
+		Charge = true,
+		Quake = true,
+		Smash = true,
+		MultiShot = true,
+		ArrowRain = true,
+		PiercingShot = true,
+		Fireball = true,
+		FrostNova = true,
+		Meteor = true,
+	}
+	local CV = arenaConfig.Covers
+	local AL = arenaConfig.Altar
+	if OPCIONES.secciones.arena and CV and AL and ultimaArena then
+		linea("## 11. Dunas: coberturas y altar (C11 ✅, CoverService y AltarService)")
+		linea(
+			`Coberturas: {CV.Health} de piedra; una habilidad le quita {CV.Damage.Ability}, una definitiva {CV.Damage.Ultimate}, el remate de la cadena {CV.Damage.Finisher} y el disparo de remate {CV.Damage.ShotFinisher}; vuelven a los {CV.RespawnSeconds} s. Un jugador solo, con actividad {pct(
+				OPCIONES.actividad
+			)}:`
+		)
+		linea("| Rol | Habilidades que la alcanzan | Piedra/s | Remate | Piedra/s | Segundos para romperla | Su V |")
+		linea("|---|---|---|---|---|---|---|")
+		for _, roleId in ordenRoles do
+			local perk = perksDe(roleId)
+			local nombres = {}
+			local porHabilidades = 0
+			local definitiva = "—"
+			for _, ability in Roles[roleId].abilities do
+				if COBERTURAS[ability.id] then
+					if ability.ultimate then
+						definitiva = `{ability.name}: la rompe`
+					else
+						porHabilidades += CV.Damage.Ability / recargaDe(ability, perk)
+						table.insert(nombres, ability.name)
+					end
+				end
+			end
+			local armaId = armaDe(roleId, perk).id
+			local weapon = Weapons[armaId]
+			local remate, porRemate = "—", 0
+			if weapon.kind == "Melee" and not weapon.tool then
+				local cada = cadenaDe(armaId, 1).duracion
+				remate = `cadena, cada {n(cada)} s`
+				porRemate = CV.Damage.Finisher / cada
+			elseif remateDe(weapon) then
+				local cada = RC.Length * weapon.cooldownSeconds
+				remate = `disparo, cada {n(cada)} s`
+				porRemate = CV.Damage.ShotFinisher / cada
+			end
+			local total = (porHabilidades + porRemate) * OPCIONES.actividad
+			local segundos = if total > 0 then CV.Health / total else math.huge
+			linea(
+				`| {Roles[roleId].icon} {roleId} | {if #nombres > 0 then table.concat(nombres, ", ") else "—"} | {n(
+					porHabilidades
+				)} | {remate} | {n(porRemate)} | {if segundos == math.huge then "∞" else n(segundos)} | {definitiva} |`
+			)
+			if roleId ~= "Medico" and fuera(segundos, LIMITES.coberturaSegundos) then
+				alerta(
+					`Dunas: {roleId} rompe una cobertura solo en {if segundos == math.huge then "∞" else n(segundos)} s (objetivo {LIMITES.coberturaSegundos[1]}–{LIMITES.coberturaSegundos[2]} s)`
+				)
+			end
+		end
+
+		local partida = arenaConfig.MatchSeconds
+		local ciclo = AL.CaptureSeconds + AL.RespawnSeconds
+		local altares = math.max(0, math.floor((partida - AL.FirstSeconds - AL.CaptureSeconds) / ciclo) + 1)
+		local adelanto = AL.BuffSeconds * (AL.UltChargeRate - 1)
+		linea("")
+		linea(
+			`Altar: se toma en {AL.CaptureSeconds} s y da {AL.BuffSeconds} s con la definitiva ×{n(AL.UltChargeRate, 1)} ({n(
+				adelanto
+			)} s menos de espera); vuelve a los {AL.RespawnSeconds} s. En {n(partida / 60, 0)} min hay {altares}: quien los toma todos adelanta su V {n(
+				altares * adelanto
+			)} s. Daño a un rival en los 10 primeros s de una pelea (pegando todo el rato, sin defensas):`
+		)
+		linea(
+			"| Rol | Recarga de la V | V de más en una partida | En 10 s con la V lista | Sin ella | La V suma | Ventaja media |"
+		)
+		linea("|---|---|---|---|---|---|---|")
+		local pvp = {
+			arma = arenaConfig.WeaponDamageMultiplier or 1,
+			habilidades = arenaConfig.AbilityDamageMultiplier,
+			definitivas = arenaConfig.UltimateDamageMultiplier or 1,
+		}
+		for _, roleId in ordenRoles do
+			local perk = perksDe(roleId)
+			local recargaV = math.huge
+			for _, ability in Roles[roleId].abilities do
+				if ability.ultimate then
+					recargaV = recargaDe(ability, perk)
+				end
+			end
+			local armaId = armaDe(roleId, perk).id
+			local propio = (arenaConfig.WeaponMultipliers or {})[armaId] or 1
+			local pvpRol = { arma = pvp.arma * propio, habilidades = pvp.habilidades, definitivas = pvp.definitivas }
+			local con = simular(roleId, 1, true, nil, nil, pvpRol)
+			local sin = simular(roleId, 1, true, nil, nil, pvpRol, true)
+			local conDiez, sinDiez = con.curva[10] or 0, sin.curva[10] or 0
+			local danoV = math.max(0, conDiez - sinDiez)
+			local dpsSin = sin.total / OPCIONES.segundos
+			local vDeMas = altares * adelanto / recargaV
+			local vDeSiempre = partida / recargaV
+			local base = dpsSin * OPCIONES.actividad * partida + danoV * vDeSiempre
+			local ventaja = if base > 0 then danoV * vDeMas / base else 0
+			linea(
+				`| {Roles[roleId].icon} {roleId} | {n(recargaV, 0)} s | {n(vDeMas, 1)} (de {n(vDeSiempre, 1)}) | {n(
+					conDiez,
+					0
+				)} | {n(sinDiez, 0)} | {if sinDiez > 0
+					then `{if conDiez >= sinDiez then "+" else ""}{pct(conDiez / sinDiez - 1)}`
+					else "—"} | +{pct(ventaja)} |`
+			)
+			if ventaja > LIMITES.altarVentaja then
+				alerta(
+					`Dunas: el altar sube el daño de un equipo de {roleId} un {pct(ventaja)} de media (máx. {pct(
+						LIMITES.altarVentaja
+					)})`
+				)
+			end
+		end
+		linea("")
+	end
+
+	linea("## 12. Alertas")
 	if #alertas == 0 then
 		linea("✅ Todo dentro de los límites.")
 	else

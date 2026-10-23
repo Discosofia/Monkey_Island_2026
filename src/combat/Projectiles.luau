@@ -9,6 +9,7 @@
 -- Lo que se ve lo dibuja cada cliente (AbilityFxController, efectos "Projectile" y "ProjectileEnd") con
 -- la hora de salida del servidor: todos lo ven en el mismo sitio, aunque cada uno con su ping.
 -- Telemetría: cada uno que puede dar a alguien cuenta "ShotsHit" o "ShotsMissed" (Combat/CombatRules).
+-- Coberturas (C11, Combat/Destructibles): con "breaks", el que se para en una la alcanza.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -16,6 +17,7 @@ local Workspace = game:GetService("Workspace")
 
 local AbilityFx = require(script.Parent.AbilityFx)
 local CombatRules = require(script.Parent.CombatRules)
+local Destructibles = require(script.Parent.Destructibles)
 local Hitbox = require(script.Parent.Hitbox)
 
 -- Sale desde esto antes del origen: la esfera no ve lo que ya toca al salir, y así da al mono pegado.
@@ -39,6 +41,10 @@ export type Shot = {
 	extra: { any }?,
 	-- false: no cuenta en la telemetría de aciertos (lo que no apunta a nadie, como un dardo al aire).
 	counts: boolean?,
+	-- Si se para en una cobertura, la alcanza con esto (C11; las habilidades y el disparo de remate), una
+	-- vez por cobertura y tabla "breakOnce" (la de todas las flechas de un mismo abanico).
+	breaks: Destructibles.Kind?,
+	breakOnce: Destructibles.Once?,
 }
 
 type Flight = {
@@ -98,6 +104,9 @@ local function advance(flight: Flight, distance: number): boolean
 	flight.position += shot.direction * open
 	flight.travelled += open
 	if wall then
+		if shot.breaks then
+			Destructibles.hitPart(wall.Instance, shot.breaks, shot.owner, wall.Position, shot.breakOnce)
+		end
 		finish(flight, wall.Position, nil)
 		return true
 	end
