@@ -16,7 +16,7 @@ El MCP de Studio es el oficial de Roblox: `%LOCALAPPDATA%\Roblox\mcp.bat` lanza 
 | `base.md` | Reglas y arquitectura del proyecto (resumen de `CLAUDE.md`). Va en todos los presets |
 | `modelos.md`, `animaciones.md`, `interfaz.md`, `combate.md`, `economia.md` | Resúmenes de las skills de `.claude/skills/` |
 | `diseno.md` | Estado del GDD y del PLAN, y cómo proponer ideas |
-| `auditoria.md` | Método de auditoría por carpetas y formato del informe |
+| `auditoria.md` | Método de auditoría archivo por archivo, con cada riesgo citado literal, y formato del informe |
 | `generar_presets.py` | Crea los presets "Monos – …" de LM Studio con `base.md` más cada resumen, y copia `base.md` a `AGENTS.md` (raíz del repo) para CodeGPT |
 | `informes/` | Informes de auditoría que genere el modelo |
 
@@ -70,7 +70,7 @@ Prueba: *"Lee src/shared/Config.luau y dime cuánto dura el día y la noche de l
 | Preguntas sobre el código ("¿dónde se calcula X?") | Cambios que tocan varios sistemas o el perfil guardado |
 | Ideas de diseño y fichas para `docs/PLAN.md` | Equilibrio fino con la calculadora (muchas iteraciones) |
 | Cambios pequeños en `Data/*` y `Config` | Modelos voxel complejos: Claude ve las capturas, gpt-oss no |
-| Una pasada de auditoría por carpeta | Corregir lo que salga de la auditoría con gravedad alta |
+| Resumir un archivo: qué hace y sus funciones (ver el límite en auditoria.md) | Buscar riesgos (auditoría) y corregirlos |
 | Inspeccionar Studio y ejecutar las calculadoras | Animaciones (hay que mirar las tiras) |
 
 gpt-oss-20b **no ve imágenes**, así que `screen_capture` no le sirve. Los resúmenes le dicen que revise con números y te pida mirar.
