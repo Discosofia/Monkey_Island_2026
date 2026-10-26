@@ -14,3 +14,8 @@ roblox.yml
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Local
+.env
+*.log
+node_modules/
