@@ -396,6 +396,12 @@ local function main(copia: Instance): string
 		end)
 	end
 	local montaIsla = probMontura(pesosIsla)
+	-- Mascotas de cada rareza: una repetida da Config.Egg.DuplicateAmber en vez de otra copia.
+	local mascotasRareza: { [string]: number } = {}
+	for _, mascota in require(Data.Pets) :: any do
+		mascotasRareza[mascota.rarity] = (mascotasRareza[mascota.rarity] or 0) + 1
+	end
+	local ambarRepetida = Config.Egg.DuplicateAmber or {}
 	local rescateSegundos = 0
 	do
 		local total = 0
@@ -678,7 +684,9 @@ local function main(copia: Instance): string
 	local function simular(perfil: any)
 		local r = {
 			diasActivos = 0,
-			ambar = { Partidas = 0, Dunas = 0, Calendario = 0, Misiones = 0, Descartes = 0, Pase = 0 },
+			ambar = { Partidas = 0, Dunas = 0, Calendario = 0, Misiones = 0, Descartes = 0, Repetidas = 0, Pase = 0 },
+			-- Mascotas repetidas esperadas (dan Ámbar en vez de otra copia).
+			repetidas = 0,
 			-- Pase: XP ganada, por fuente, nivel ganado al final de cada día y día en que llega al último.
 			pase = {
 				xp = 0,
@@ -732,13 +740,15 @@ local function main(copia: Instance): string
 		-- Nido: segundos totales del huevo, transcurridos, bonos y probabilidad de montura; mochila (los
 		-- que esperan: sus horas y su probabilidad de montura).
 		local nido: any = nil
-		local mochila: { { horas: number, montura: number } } = {}
+		local mochila: { { horas: number, montura: number, pesos: { [string]: number } } } = {}
 		local acumuladoHuevos = 0
-		local function nuevoHuevo(horas: number, montura: number)
+		-- Mascotas de cada rareza que se esperan tener ya (para la probabilidad de repetida).
+		local tiene: { [string]: number } = {}
+		local function nuevoHuevo(horas: number, montura: number, pesos: { [string]: number })
 			if not nido then
-				nido = { total = horas * 3600, pasado = 0, juego = 0, gratis = 0, montura = montura }
+				nido = { total = horas * 3600, pasado = 0, juego = 0, gratis = 0, montura = montura, pesos = pesos }
 			elseif #mochila < Config.Egg.BagSize then
-				table.insert(mochila, { horas = horas, montura = montura })
+				table.insert(mochila, { horas = horas, montura = montura, pesos = pesos })
 			else
 				r.huevosDescartados += 1
 				r.ambar.Descartes += descarteIsla
@@ -752,6 +762,23 @@ local function main(copia: Instance): string
 		end
 		local function listo(): boolean
 			return nido ~= nil and nido.pasado + nido.juego + nido.gratis >= nido.total
+		end
+		-- Al abrir el huevo del nido: si sale mascota y ya la tiene, Ámbar (valor esperado por rareza).
+		local function eclosionar()
+			local total = 0
+			for _, peso in nido.pesos do
+				total += peso
+			end
+			for rareza, peso in nido.pesos do
+				local cuantas = mascotasRareza[rareza] or 0
+				if total > 0 and cuantas > 0 then
+					local mascota = peso / total * (1 - (if raresConMontura[rareza] then chanceMontura else 0))
+					local repetida = (tiene[rareza] or 0) / cuantas
+					r.repetidas += mascota * repetida
+					r.ambar.Repetidas += mascota * repetida * (ambarRepetida[rareza] or 0)
+					tiene[rareza] = (tiene[rareza] or 0) + mascota * (1 - repetida)
+				end
+			end
 		end
 
 		for dia = 1, OPCIONES.dias do
@@ -779,12 +806,14 @@ local function main(copia: Instance): string
 						mediaPonderada(premio.egg, function(rr)
 							return hatchHoras[rr]
 						end),
-						probMontura(premio.egg)
+						probMontura(premio.egg),
+						premio.egg
 					)
 				end
 				paso = paso % #Config.Daily.Calendar + 1
 				if listo() then
 					r.huevosEclosionados += 1
+					eclosionar()
 					r.sinMontura *= 1 - nido.montura
 					if not r.monturaDia and r.sinMontura <= 0.5 then
 						r.monturaDia = dia
@@ -792,7 +821,7 @@ local function main(copia: Instance): string
 					nido = nil
 					local siguiente = table.remove(mochila, 1)
 					if siguiente then
-						nuevoHuevo(siguiente.horas, siguiente.montura)
+						nuevoHuevo(siguiente.horas, siguiente.montura, siguiente.pesos)
 					end
 				end
 				-- Isla.
@@ -806,7 +835,7 @@ local function main(copia: Instance): string
 				acumuladoHuevos += p.huevos
 				while acumuladoHuevos >= 1 do
 					acumuladoHuevos -= 1
-					nuevoHuevo(horasHuevoIsla, montaIsla)
+					nuevoHuevo(horasHuevoIsla, montaIsla, pesosIsla)
 				end
 				local cumplidas, posibles, ambarMisiones, huevoMisiones, xpMisiones =
 					misionesDelDia(perfil.minutosIsla, perfil.rol)
@@ -902,7 +931,8 @@ local function main(copia: Instance): string
 									mediaPonderada(gratis.egg, function(rr)
 										return hatchHoras[rr]
 									end),
-									probMontura(gratis.egg)
+									probMontura(gratis.egg),
+									gratis.egg
 								)
 							end
 						end
@@ -992,7 +1022,7 @@ local function main(copia: Instance): string
 		)
 		linea("")
 		linea(
-			"| Perfil | Días activos | Ámbar: partidas · Dunas · calendario · misiones · descartes · pase | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados) | Misiones cumplidas | Talentos llenos |"
+			"| Perfil | Días activos | Ámbar: partidas · Dunas · calendario · misiones · descartes · repetidas · pase | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados, mascotas repetidas) | Misiones cumplidas | Talentos llenos |"
 		)
 		linea("|---|---|---|---|---|---|---|---|---|---|")
 		for _, clave in OPCIONES.ordenPerfiles do
@@ -1005,11 +1035,11 @@ local function main(copia: Instance): string
 					a.Partidas,
 					0
 				)} · {n(a.Dunas, 0)} · {n(a.Calendario, 0)} · {n(a.Misiones, 0)} · {n(a.Descartes, 0)} · {n(
-					a.Pase,
+					a.Repetidas,
 					0
-				)} | {n(ganado, 0)} | {n(r.gastado, 0)} | {n(r.saldo, 0)} | {if r.mejorasDia
+				)} · {n(a.Pase, 0)} | {n(ganado, 0)} | {n(r.gastado, 0)} | {n(r.saldo, 0)} | {if r.mejorasDia
 					then `día {r.mejorasDia}`
-					else "no"} | {r.huevosEclosionados} ({r.huevosDescartados}) | {pct(
+					else "no"} | {r.huevosEclosionados} ({r.huevosDescartados}, {n(r.repetidas, 1)}) | {pct(
 					if r.misionesPosibles > 0 then r.misiones / r.misionesPosibles else 0
 				)} | {if r.talentosDia then `día {r.talentosDia} ({perfil.rol})` else "no"} |`
 			)

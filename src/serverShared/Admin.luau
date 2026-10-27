@@ -122,9 +122,14 @@ local function onGive(admin: Player, userId: any, kind: any, id: any)
 		end
 		done = `🎁 {target.DisplayName} ya tiene {label}`
 	elseif kind == "Pet" then
-		-- Como al abrir un huevo: una más en su colección (no se la pone).
+		-- Se tiene una de cada, como al abrir un huevo (no se la pone).
+		local profile = PlayerData.get(target)
+		if profile and (profile.pets[id] or 0) > 0 then
+			Remotes.Notify:FireClient(admin, `{target.DisplayName} ya tenía {label}`)
+			return
+		end
 		PlayerData.update(target, function(current)
-			current.pets[id] = (current.pets[id] or 0) + 1
+			current.pets[id] = 1
 		end)
 		done = `🎁 {target.DisplayName} ya tiene {label}`
 		if target ~= admin then

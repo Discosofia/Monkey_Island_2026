@@ -276,6 +276,26 @@ local function grantPurchase(profile: PlayerData.Profile, premium: boolean, leve
 	profile.season = state :: any
 end
 
+-- ¿Se puede comprar ahora? Solo con la temporada en curso; la premium, si aún no la tiene, y los
+-- niveles, si aún no está en el último.
+local function canBuy(profile: PlayerData.Profile, premium: boolean): (boolean, string?)
+	local info = Pass.info(Pass.now())
+	if info.phase ~= "Active" or not info.season then
+		return false, "🌋 El pase vuelve con la próxima temporada"
+	end
+	local state = Pass.normalize(profile.season)
+	if state.id ~= info.season.id then
+		state = Pass.normalize(nil, info.season.id)
+	end
+	if premium and state.premium then
+		return false, "🌋 Ya tienes el pase premium de esta temporada"
+	end
+	if not premium and Pass.level(state) >= S.Levels then
+		return false, "⭐ Ya estás en el último nivel del pase"
+	end
+	return true, nil
+end
+
 local function registerProducts()
 	local products = Config.Shop.Products
 	local function register(key: string, name: string, premium: boolean, levels: number)
@@ -286,6 +306,9 @@ local function registerProducts()
 			end,
 			after = function(player)
 				CosmeticsServer.refresh(player)
+			end,
+			available = function(profile)
+				return canBuy(profile, premium)
 			end,
 		})
 	end

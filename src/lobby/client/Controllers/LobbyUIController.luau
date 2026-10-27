@@ -661,22 +661,32 @@ function LobbyUIController:Start()
 				end)
 			end
 
-			-- Lo que puede salir de esta rareza (las que ya tienes, con ✅).
+			-- Lo que puede salir de esta rareza (las que ya tienes, con ✅). Una repetida da Ámbar.
 			local data = Progression.read(player)
 			local names = {}
+			local missingPets, missingMounts = 0, 0
 			for _, petId in PetRoll.petsOfRarity(nestEgg.rarity) do
 				local pet = Pets[petId]
 				local owned = (data.pets[petId] or 0) > 0
+				missingPets += if owned then 0 else 1
 				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
 			end
 			-- Y sus monturas (Fase 11), mientras no las tengas.
 			for _, mountId in PetRoll.mountsOfRarity(nestEgg.rarity) do
 				local mount = Mounts[mountId]
 				local owned = (data.mounts[mountId] or 0) > 0
+				missingMounts += if owned then 0 else 1
 				table.insert(names, `{mount.icon} {mount.name} (montura){if owned then " ✅" else ""}`)
 			end
 			local options = newRow(parent, -98)
 			options.title.Text = `Puede salir ({rarity.name}):`
+			if missingPets == 0 then
+				-- Ya las tiene todas: lo dice antes de abrirlo (y si aún puede salir una montura).
+				local amber = Config.Egg.DuplicateAmber[nestEgg.rarity] or 0
+				options.title.Text = if missingMounts > 0
+					then `{rarity.name}: ya tienes todas sus mascotas (repetida: +{amber} ✨) · aún puede salir montura`
+					else `{rarity.name}: ya tienes todas · te dará +{amber} ✨ Ámbar`
+			end
 			options.title.TextColor3 = rarity.color
 			options.detail.Text = table.concat(names, " · ")
 			options.detail.Size = UDim2.new(1, -20, 0, options.detail.Size.Y.Offset)
@@ -1022,10 +1032,7 @@ function LobbyUIController:Start()
 			stroke.Thickness = 2
 			stroke.Enabled = isActive
 			stroke.Parent = card
-			local name = Widgets.label(
-				if owned > 0 then `{pet.icon} {pet.name}{if owned > 1 then " ×" .. owned else ""}` else "❓ ???",
-				card
-			)
+			local name = Widgets.label(if owned > 0 then `{pet.icon} {pet.name}` else "❓ ???", card)
 			name.Position = UDim2.fromOffset(6, if compact then 3 else 4)
 			name.Size = UDim2.new(1, -12, 0, if compact then 18 else 22)
 			name.TextColor3 = rarity.color

@@ -72,6 +72,18 @@ Todo lo que se compra más de una vez o rota en la tienda es un **Developer Prod
 | Arma: Báculo de la Serpiente Emplumada (mítico) | `FeatheredSerpentStaff` | 449 |
 | Arma: Cerbatana de la Ceiba (mítico) | `CeibaBlowgun` | 449 |
 
+**Regalos** (T3, 26-10-2026): un producto por precio, con el mismo precio que el cosmético que se regala. Se crearon el 26-10-2026 y sus ids ya están en `Config.Shop.GiftProducts`. El filtro de texto de Roblox tapa los nombres con "R$" o con precios, así que se llaman por la rareza de lo que se regala (la ventana de compra ya enseña el precio).
+
+| Producto | Dónde va el id | Precio |
+|---|---|---|
+| Regalo de cosmético común | `Config.Shop.GiftProducts.Gift99` | 99 |
+| Regalo de cosmético poco común | `Gift149` | 149 |
+| Regalo de cosmético raro | `Gift199` | 199 |
+| Regalo de cosmético épico | `Gift249` | 249 |
+| Regalo de cosmético mítico | `Gift449` | 449 |
+
+Si añades un cosmético de Robux con un precio nuevo, crea también su regalo de ese precio (con los precios regionales apagados).
+
 Los precios que se enseñan en el juego salen de `price`: si cambias el precio en el Creator Hub, cámbialo también allí. Deja **apagados los precios regionales** de cada producto: con ellos Roblox cobra otro precio según el país (en el tuyo, ~57 % del base) y no coincidiría con el que enseña el juego. Para comprobarlo, en Studio: `game:GetService("MarketplaceService"):GetProductInfo(id, Enum.InfoType.Product).PriceInRobux` tiene que dar lo mismo que `price`. Las compras se entregan con recibo (`ServerShared/Purchases`): una compra repetida por Roblox no se entrega dos veces. En Studio las compras son de prueba (no cobran).
 
 **Nunca con Robux:** Ámbar, huevos, tiempo de incubación, provisiones ni nada que dé ventaja. Los huevos y las mascotas **no se venden** (solo se consiguen jugando): es una decisión del GDD (§14) para cumplir las normas de Roblox sobre objetos aleatorios de pago. No lo cambies.

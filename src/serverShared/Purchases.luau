@@ -11,6 +11,12 @@
 --   4. Guardar ya (PlayerData.saveNow) y solo entonces devolver PurchaseGranted. Si no se pudo
 --      guardar, NotProcessedYet: el reintento encuentra el recibo y vuelve a intentar guardar.
 -- En Studio sin acceso a DataStore (datos temporales) se entrega igual, para probar.
+--
+-- No volver a pagar lo que ya tienes (26-10-2026): Roblox no deja rechazar un recibo ya cobrado, así
+-- que la defensa es no pedir el pago. El cliente no abre la ventana de compra: pide la compra con
+-- Remotes.RequestPurchase y el servidor la abre (Purchases.prompt) solo si "available" dice que se
+-- puede entregar y no hay otra abierta. Si aun así llega un recibo de algo que ya tiene, el recibo se
+-- apunta y no se da nada (nunca Ámbar a cambio: reglas de pago).
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -21,21 +27,29 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
+local RequestCooldown = require(script.Parent.RequestCooldown)
 
 export type Handler = {
 	-- Texto del aviso al jugador ("Pase de temporada").
 	name: string,
 	-- Entrega en el perfil. Corre dentro de PlayerData.update: sin esperas y sin fallar (si no hay
-	-- nada que dar, que no dé nada; el recibo se apunta igual).
-	grant: (profile: PlayerData.Profile, player: Player) -> (),
+	-- nada que dar, que no dé nada; el recibo se apunta igual). "purchaseId" es el del recibo.
+	grant: (profile: PlayerData.Profile, player: Player, purchaseId: string) -> (),
 	-- Después de guardar: atributos, avisos o efectos (opcional).
 	after: ((player: Player) -> ())?,
+	-- ¿Se puede comprar ahora? Si no, el motivo para el aviso ("Ya lo tienes"). Sin él, siempre.
+	available: ((profile: PlayerData.Profile, player: Player) -> (boolean, string?))?,
 }
 
 local Purchases = {}
 
 local handlers: { [string]: Handler } = {}
 local keyByProduct: { [number]: string } = {}
+local productByKey: { [string]: number } = {}
+-- Cuándo abrió cada jugador la ventana de compra de Roblox (hasta PromptProductPurchaseFinished o
+-- Config.Shop.PromptTimeoutSeconds).
+local prompting: { [Player]: number } = {}
+local canRequest = RequestCooldown.new(1)
 local order: { string } = {}
 -- Recibos que se están entregando ahora (Roblox puede volver a llamar mientras se guarda).
 local inFlight: { [string]: boolean } = {}
@@ -85,7 +99,7 @@ local function grantReceipt(player: Player, key: string, purchaseId: string): En
 	inFlight[purchaseId] = true
 	local ok, err = pcall(function()
 		PlayerData.update(player, function(current)
-			handler.grant(current, player)
+			handler.grant(current, player, purchaseId)
 			local receipts = receiptsOf(current)
 			table.insert(receipts, purchaseId)
 			while #receipts > Config.Shop.ReceiptHistory do
@@ -136,6 +150,7 @@ end
 function Purchases.register(key: string, productId: number, handler: Handler)
 	assert(handlers[key] == nil, `Purchases: "{key}" ya está registrado`)
 	handlers[key] = handler
+	productByKey[key] = productId
 	table.insert(order, key)
 	if productId ~= 0 then
 		assert(keyByProduct[productId] == nil, `Purchases: el producto {productId} ya está registrado`)
@@ -154,8 +169,64 @@ function Purchases.debugPurchase(player: Player, key: string, purchaseId: string
 	return grantReceipt(player, key, purchaseId)
 end
 
+-- ¿Puede comprar "key" ahora? Si no, el motivo.
+function Purchases.available(player: Player, key: string): (boolean, string?)
+	local handler = handlers[key]
+	local profile = PlayerData.get(player)
+	if not (handler and profile) then
+		return false, "La tienda aún no está lista: prueba en un momento"
+	end
+	local check = handler.available
+	if check then
+		return check(profile, player)
+	end
+	return true, nil
+end
+
+-- Abre la ventana de compra de "key" (o, en Studio sin id, hace una compra de prueba) si se puede
+-- entregar; si no, avisa del motivo. Devuelve true si la abrió.
+function Purchases.prompt(player: Player, key: string): boolean
+	local ok, reason = Purchases.available(player, key)
+	if not ok then
+		if reason then
+			Remotes.Notify:FireClient(player, reason)
+		end
+		return false
+	end
+	local openedAt = prompting[player]
+	if openedAt and os.clock() - openedAt < Config.Shop.PromptTimeoutSeconds then
+		return false
+	end
+	local productId = productByKey[key]
+	if productId == 0 then
+		if RunService:IsStudio() then
+			task.spawn(grantReceipt, player, key, `prueba-{player.UserId}-{os.time()}-{os.clock()}`)
+			return true
+		end
+		Remotes.Notify:FireClient(player, "Próximamente")
+		return false
+	end
+	prompting[player] = os.clock()
+	MarketplaceService:PromptProductPurchase(player, productId)
+	return true
+end
+
 function Purchases.start()
 	MarketplaceService.ProcessReceipt = processReceipt
+	Remotes.RequestPurchase.OnServerEvent:Connect(function(player, key)
+		if typeof(key) == "string" and handlers[key] and canRequest(player) then
+			Purchases.prompt(player, key)
+		end
+	end)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId)
+		local player = Players:GetPlayerByUserId(userId)
+		if player then
+			prompting[player] = nil
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		prompting[player] = nil
+	end)
 end
 
 return Purchases

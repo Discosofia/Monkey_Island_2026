@@ -735,6 +735,37 @@ Por el MCP solo hay un jugador: esto solo lo puedes probar tú. Dime qué pasa e
 
 Al terminar, restaura tu perfil (10.0).
 
+## 12. Propiedad única y regalos (T3, 26-10-2026)
+
+Antes, la copia de tu perfil (§10.0): la migración cambia tus mascotas repetidas por Ámbar.
+
+### 12.1 Mascotas: una de cada (Lobby, ▶ Jugar)
+
+1. [ ] Entra con un perfil que tenga mascotas repetidas (versión 8).
+   ✅ A los pocos segundos, "🐾 Ahora tienes una mascota de cada: tus repetidas te dieron +N ✨ Ámbar". En la ventana del nido, la colección ya no enseña "×N".
+2. [ ] **🥚 Huevo**, **Al nido** y **🐣 Huevo del nido listo** hasta que salga una mascota que ya tienes; **🐣 Abrir**.
+   ✅ "🐣 ¡Otra vez …!" y "Ya la tenías: +N ✨ Ámbar" (el doble del descarte de su rareza). La colección no cambia.
+3. [ ] Pon en el nido un huevo de una rareza de la que tienes todas las mascotas.
+   ✅ La ficha "Puede salir" dice "ya tienes todas · te dará +N ✨ Ámbar" (o que aún puede salir una montura).
+
+### 12.2 No volver a pagar (Lobby)
+
+1. [ ] Con un cosmético de Robux que ya tienes, pulsa su compra desde el Armario o la tienda.
+   ✅ "✅ Ya tienes …" y no se abre la ventana de Roblox. Con la premium del pase, "Ya tienes el pase premium…".
+2. [ ] Pulsa dos veces seguidas la compra de algo que no tienes.
+   ✅ Solo se abre una ventana de compra.
+
+### 12.3 Regalar (*Test → Clientes y servidores*, 2 clientes, en el Lobby)
+
+1. [ ] El jugador 1 abre la tienda (🎨 Cosméticos) y pulsa 🎁 en una tarjeta de Robux.
+   ✅ La barra de abajo cambia a "🎁 Regalar … a:" con el jugador 2 (no salen los que ya lo tienen). ✕ la cierra.
+2. [ ] Elige al jugador 2 (en Studio, sin id, es una compra de prueba).
+   ✅ El 1 recibe "🎁 Le regalaste … a …"; el 2, "🎁 ¡… te regaló …! Está en tu 👕 Armario", y lo tiene en el Armario.
+3. [ ] Vuelve a pulsar 🎁 en ese cosmético.
+   ✅ El jugador 2 ya no sale en la lista.
+4. [ ] Publicado: regala a alguien y que salga del servidor justo antes de pagar.
+   ✅ El que paga ve "lo recibirá al entrar"; el otro lo recibe al entrar a cualquier place.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -654,6 +654,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 - **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
 - **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
 - **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
+- **Una de cada** (26-10-2026): si ya tienes la mascota que sale, en su lugar recibes **Ámbar**, el doble de lo que da descartar ese huevo (común 30 · poco común 60 · raro 120 · épico 240 · legendario 500). La colección no enseña cantidades. Si ya tienes todas las mascotas de la rareza del huevo, la ficha del nido lo avisa antes de abrirlo (y si aún puede salir una montura). Quien tenía copias de antes las cambió por Ámbar al entrar, con un aviso.
 - **Jugar lo acelera:** cada noche superada en la isla le quita **1 h**; las misiones diarias, 15–40 min, y las 5 semanales, 1 h; la pista gratis del pase, de 30 min a 1 h 30 min en algunos niveles; y al **ganar una partida** hay una tirada con ruleta en los resultados (40 % −2 h · 30 % −4 h · 20 % −6 h · 8 % −10 h · **2 % eclosión inmediata**). Lo ganado jugando tiene un **tope del 50 %** del tiempo total del huevo, para que siempre quede algo que esperar al día siguiente; el tiempo del calendario y la eclosión inmediata no cuentan para el tope.
 - Si el huevo termina mientras juegas en la isla, se avisa: "¡Tu huevo está listo! Ábrelo en el nido del Lobby".
 
@@ -781,6 +782,8 @@ Pestaña **🎨 Cosméticos** de la Tienda del Lobby. Tema "selva y mar", para n
 
 - **En Ámbar:** 4 al día de un catálogo de 22 (19.000 de Ámbar en total), rotación común con la semilla del día de la que cada jugador ve primero lo que aún no tiene. Precio por rareza: común 400 · poco común 600 · raro 900 · épico 1.200 · legendario 1.500. El habitual gasta el 97 % de su Ámbar en 30 días y tiene la tienda entera el día 30.
 - **En Robux:** 3 sueltos que rotan cada lunes de 11 (99–249 R$, y las 4 armas míticas a 449 R$), un Developer Product cada uno; debajo, los Game Passes, siempre a la venta.
+- **No se paga dos veces** (26-10-2026): lo que ya tienes sale "✅ Tuyo", y la ventana de compra de Roblox la abre el servidor solo si lo puede entregar (el cosmético, la premium o un nivel del pase) y no hay otra abierta.
+- **Regalar** (26-10-2026): el botón 🎁 de cada tarjeta de Robux deja elegir a un jugador del servidor que aún no lo tiene. Se paga con un producto de regalo de su mismo precio. Los dos reciben un aviso; si el otro se va antes del pago, lo recibe al entrar a cualquier place. Solo se regalan cosméticos de Robux.
 - El Armario dice si algo está hoy en la tienda.
 
 ### 14.3 Cosméticos

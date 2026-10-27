@@ -92,6 +92,12 @@ Pase (30 niveles × 1.000 XP; gratis: 1.625 Ámbar, 7 h de huevo, 8 cosméticos;
 | Intenso | 16 · 30 · 30 · 30 | día 13 | 32.069 · 3.931 · 21.000 · 15.000 · 0 · 16.300 | 50 % | 26.640 |
 | Amigos | 10 · 21 · 30 · 30 | día 20 | 17.170 · 2.584 · 11.900 · 12.462 · 1.975 · 10.913 | 53 % | 0 |
 
+Mascotas repetidas (T3, 26-10-2026): se tiene una de cada y una repetida da `Config.Egg.DuplicateAmber`
+(el doble del descarte). La calculadora las cuenta en la fuente "repetidas" (valor esperado según las
+que ya tiene de cada rareza). En 30 días: casual 3,7 repetidas (+188), habitual 10,9 (+506), intenso
+18,4 (+880). Es un +2–3 % de Ámbar: el casual compra un cosmético más en Ámbar y nada más cambia. Los
+regalos (`Config.Shop.GiftProducts`, 5 productos por precio) salen en "Reglas de pago" como cosméticos.
+
 Misiones diarias: fáciles 8–13 min, medias 17–20, difíciles 50–67. Partida: nivel 2 de la forja el
 día 1, nivel 3 el día 4 (Corona del caudillo), nivel 4 el día 6 (obsidiana y Cristal de cueva).
 Contratos, pasos por partida jugando solo: casual 1,3 · habitual 2 · intenso 5 · amigos 2,3. Reglas de

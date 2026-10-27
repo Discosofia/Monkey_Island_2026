@@ -18,7 +18,6 @@
 -- Lee el atributo "Season" del jugador (ServerShared/SeasonPass) y pide con Remotes.ClaimPass.
 
 local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -155,14 +154,10 @@ local function readState(player: Player): any
 	return if ok then decoded else nil
 end
 
--- Compra: con id, la ventana de Roblox; sin id, en Studio una compra de prueba (panel de pruebas).
-local function buy(player: Player, key: string)
-	local productId = Config.Shop.Products[key].productId
-	if productId ~= 0 then
-		MarketplaceService:PromptProductPurchase(player, productId)
-	elseif RunService:IsStudio() then
-		Remotes.DebugCommand:FireServer("FakePurchase", key)
-	end
+-- Compra: la ventana de Roblox la abre el servidor si se puede entregar (ServerShared/Purchases); sin
+-- id, en Studio, una compra de prueba.
+local function buy(key: string)
+	Remotes.RequestPurchase:FireServer(key)
 end
 
 -- Nombre y detalle de un premio para su tarjeta. "short": nombres cortos para el teléfono (sin el
@@ -1066,7 +1061,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 			offerButton.Size = UDim2.new((1 - leftShare) / shown, -6, 1, -4)
 			if available then
 				offerButton.Activated:Connect(function()
-					buy(player, offer.key)
+					buy(offer.key)
 				end)
 			end
 		end

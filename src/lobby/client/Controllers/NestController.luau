@@ -166,19 +166,24 @@ end
 -- Escala de la montura al salir del nido (de tamaño real no cabría: la llama mide 7,5 studs).
 local MOUNT_REVEAL_SCALE = 0.45
 
--- Letrero grande en pantalla con la mascota (o la montura) que ha nacido.
-local function announce(petId: string, equipped: boolean, isMount: boolean)
+-- Letrero grande en pantalla con la mascota (o la montura) que ha nacido. "amber" > 0: ya la tenía y
+-- se cambia por Ámbar.
+local function announce(petId: string, equipped: boolean, isMount: boolean, amber: number)
 	local pet: { name: string, icon: string, rarity: string } = if isMount then Mounts[petId] else Pets[petId]
 	local rarity = Rarities[pet.rarity]
 	local gui = Widgets.screen("EggHatchedUI", player:WaitForChild("PlayerGui"))
 	gui.DisplayOrder = 9
-	local label = Widgets.label(`🐣 ¡Ha nacido {pet.icon} {pet.name}!`, gui)
+	local label = Widgets.label(
+		if amber > 0 then `🐣 ¡Otra vez {pet.icon} {pet.name}!` else `🐣 ¡Ha nacido {pet.icon} {pet.name}!`,
+		gui
+	)
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
 	label.Position = UDim2.fromScale(0.5, 0.3)
 	label.Size = UDim2.fromScale(0.6, 0.09)
 	local detail = Widgets.label(
-		if isMount
-			then `{rarity.name} · ¡Una montura! {if equipped
+		if amber > 0
+			then `{rarity.name} · Ya la tenías: +{amber} ✨ Ámbar`
+			elseif isMount then `{rarity.name} · ¡Una montura! {if equipped
 				then "Móntala con N (o el botón Montar)"
 				else "Llévala desde la ventana de Mascotas"}`
 			else `{rarity.name} · {if equipped
@@ -199,10 +204,10 @@ local function announce(petId: string, equipped: boolean, isMount: boolean)
 	end)
 end
 
-local function playCeremony(petId: string, rarity: string, equipped: boolean, isMount: boolean)
+local function playCeremony(petId: string, rarity: string, equipped: boolean, isMount: boolean, amber: number)
 	local _, seat = findNest()
 	if not seat then
-		announce(petId, equipped, isMount)
+		announce(petId, equipped, isMount, amber)
 		return
 	end
 	ceremony = true
@@ -223,7 +228,7 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean, is
 	local burstAt = eggRest(seat).Position
 	clearEgg()
 	EggModel.burst(burstAt, rarity)
-	announce(petId, equipped, isMount)
+	announce(petId, equipped, isMount, amber)
 	-- La mascota (o la montura, más pequeña) sube del nido girando y se va.
 	local pet = if isMount then MountModels.build(petId) else PetModels.build(petId)
 	if pet then
@@ -253,10 +258,17 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean, is
 end
 
 function NestController:Start()
-	Remotes.EggHatched.OnClientEvent:Connect(function(petId: any, rarity: any, equipped: any, isMount: any)
+	Remotes.EggHatched.OnClientEvent:Connect(function(petId: any, rarity: any, equipped: any, isMount: any, amber: any)
 		local known = if isMount == true then Mounts[petId] ~= nil else Pets[petId] ~= nil
 		if typeof(petId) == "string" and known and typeof(rarity) == "string" and Rarities[rarity] then
-			task.spawn(playCeremony, petId, rarity, equipped == true, isMount == true)
+			task.spawn(
+				playCeremony,
+				petId,
+				rarity,
+				equipped == true,
+				isMount == true,
+				if typeof(amber) == "number" then amber else 0
+			)
 		end
 	end)
 	eggs = readEggs()

@@ -22,6 +22,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
@@ -72,6 +73,8 @@ export type Profile = {
 	-- Monturas (versión 8, Fase 11): las que tiene (Data/Mounts) y la que lleva ("" = ninguna).
 	mounts: { [string]: number },
 	activeMount: string,
+	-- Avisos para la próxima vez que entra (versión 9, 26-10-2026): se enseñan una vez y se borran.
+	notices: { string },
 }
 
 type Session = {
@@ -90,7 +93,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 8,
+		version = 9,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -120,9 +123,12 @@ local function defaultProfile(): Profile
 		bestGear = {},
 		mounts = {},
 		activeMount = "",
+		notices = {},
 	}
 end
 
+-- Versión 9: se tiene una mascota (y una montura) de cada. Las copias de más se cambian por
+-- Config.Egg.DuplicateAmber de su rareza, con un aviso al entrar.
 -- Versión 8: las monturas ("mounts" y "activeMount"; "reconcile" los rellena vacíos).
 -- Versión 7: el mejor equipo fabricado por rol ("bestGear"; "reconcile" lo rellena vacío).
 -- Versión 6: las tiendas de cosméticos ("cosmeticShop"; "reconcile" lo rellena vacío).
@@ -153,6 +159,28 @@ local function migrate(profile: Profile, fromVersion: number, data: any)
 			if typeof(cosmeticId) == "string" and earned == true then
 				profile.ownedCosmetics[cosmeticId] = true
 			end
+		end
+	end
+	if fromVersion < 9 then
+		local refund = 0
+		for petId, count in profile.pets do
+			local pet = Pets[petId]
+			if typeof(count) == "number" and count > 1 then
+				refund += (count - 1) * (if pet then Config.Egg.DuplicateAmber[pet.rarity] or 0 else 0)
+				profile.pets[petId] = 1
+			end
+		end
+		for mountId, count in profile.mounts do
+			if typeof(count) == "number" and count > 1 then
+				profile.mounts[mountId] = 1
+			end
+		end
+		if refund > 0 then
+			profile.amber += refund
+			table.insert(
+				profile.notices,
+				`🐾 Ahora tienes una mascota de cada: tus repetidas te dieron +{refund} ✨ Ámbar`
+			)
 		end
 	end
 	profile.version = defaultProfile().version
@@ -333,6 +361,18 @@ local function onPlayerAdded(player: Player)
 	sessions[player] = session
 	publish(player, session)
 	loadedSignal:Fire(player)
+	if #session.profile.notices > 0 then
+		task.delay(Config.Data.NoticeDelaySeconds, function()
+			if sessions[player] ~= session then
+				return
+			end
+			for _, notice in session.profile.notices do
+				Remotes.Notify:FireClient(player, notice)
+			end
+			table.clear(session.profile.notices)
+			session.dirty = true
+		end)
+	end
 end
 
 local function onPlayerRemoving(player: Player)

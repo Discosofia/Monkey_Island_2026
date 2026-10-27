@@ -703,6 +703,12 @@ local function registerProducts()
 					player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
 					notifyGranted(player, cosmeticId)
 				end,
+				available = function(_profile, player)
+					if owns(player, cosmeticId) then
+						return false, `✅ Ya tienes {cosmetic.icon} {cosmetic.name}`
+					end
+					return true, nil
+				end,
 			})
 		end
 	end

@@ -110,12 +110,14 @@ function Eggs.discard(player: Player, source: Source, index: number): number
 end
 
 -- Abre el huevo del nido si ya está listo: una mascota de su rareza a la colección. Si es más rara
--- que la que lleva (o no lleva ninguna), pasa a acompañarle. Puede salir, en cambio, una montura de
--- su rareza que aún no tenga (PetRoll.rollMount): se la pone si no llevaba ninguna. Devuelve lo que
--- ha salido, si se lo puso y si es una montura.
-function Eggs.hatch(player: Player): (string?, boolean, boolean)
+-- que la que lleva (o no lleva ninguna), pasa a acompañarle. Si ya la tenía, da en su lugar
+-- Config.Egg.DuplicateAmber (se tiene una de cada). Puede salir, en cambio, una montura de su rareza
+-- que aún no tenga (PetRoll.rollMount): se la pone si no llevaba ninguna. Devuelve lo que ha salido,
+-- si se lo puso, si es una montura y el Ámbar de la repetida (0 si es nueva).
+function Eggs.hatch(player: Player): (string?, boolean, boolean, number)
 	local equipped = false
 	local isMount = false
+	local amber = 0
 	local petId = edit(player, function(data, profile): string?
 		local nest = data.nest
 		if not (nest and EggIncubation.isReady(nest, now())) then
@@ -124,7 +126,7 @@ function Eggs.hatch(player: Player): (string?, boolean, boolean)
 		local mountId = PetRoll.rollMount(nest.rarity, profile.mounts, rng)
 		if mountId then
 			data.nest = nil
-			profile.mounts[mountId] = (profile.mounts[mountId] or 0) + 1
+			profile.mounts[mountId] = 1
 			isMount = true
 			if profile.activeMount == "" then
 				profile.activeMount = mountId
@@ -134,7 +136,13 @@ function Eggs.hatch(player: Player): (string?, boolean, boolean)
 		end
 		local pet = PetRoll.rollPet(nest.rarity, rng)
 		data.nest = nil
-		profile.pets[pet] = (profile.pets[pet] or 0) + 1
+		if (profile.pets[pet] or 0) > 0 then
+			amber = Config.Egg.DuplicateAmber[Pets[pet].rarity] or 0
+			profile.amber += amber
+			Analytics.amber(player, "Source", amber, profile.amber, "PetDuplicate")
+			return pet
+		end
+		profile.pets[pet] = 1
 		local current = Pets[profile.activePet]
 		if not current or Rarities[current.rarity].order <= Rarities[Pets[pet].rarity].order then
 			profile.activePet = pet
@@ -142,7 +150,7 @@ function Eggs.hatch(player: Player): (string?, boolean, boolean)
 		end
 		return pet
 	end)
-	return petId, equipped, isMount
+	return petId, equipped, isMount, amber
 end
 
 -- Quita tiempo ganado jugando al huevo del nido (con tope). Devuelve los segundos quitados.

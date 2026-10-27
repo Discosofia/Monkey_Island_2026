@@ -133,10 +133,18 @@ local Remotes = {
 	-- ("bag" | "pending", posición en esa lista; ServerShared/Eggs).
 	PlaceEgg = remoteEvent("PlaceEgg"),
 	DiscardEgg = remoteEvent("DiscardEgg"),
+	-- Cliente -> servidor (los tres places): comprar un Developer Product (clave de ServerShared/Purchases,
+	-- como "Cosmetic.<id>" o "SeasonPremium"). El servidor abre la ventana de Roblox solo si lo puede
+	-- entregar (no lo tiene ya) y no hay otra abierta.
+	RequestPurchase = remoteEvent("RequestPurchase"),
+	-- Cliente -> servidor (Lobby): regalar un cosmético de Robux (id) a un jugador del servidor (UserId)
+	-- que aún no lo tiene (ServerShared/Gifts).
+	RequestGift = remoteEvent("RequestGift"),
 	-- Cliente -> servidor (Lobby): abrir el huevo del nido si ya está listo.
 	HatchEgg = remoteEvent("HatchEgg"),
 	-- Servidor -> cliente (Lobby): ha nacido una mascota (id, rareza del huevo, si se la ha puesto y si
-	-- es una montura de Data/Mounts), para la ceremonia del nido (NestController).
+	-- es una montura de Data/Mounts, y el Ámbar que da si es una mascota repetida: 0 si es nueva), para
+	-- la ceremonia del nido (NestController).
 	EggHatched = remoteEvent("EggHatched"),
 	-- Cliente -> servidor (Lobby): cobrar el premio de hoy del calendario de 7 días.
 	ClaimLogin = remoteEvent("ClaimLogin"),

@@ -845,6 +845,13 @@ local Config = {
 		RetrySeconds = 2,
 		-- Un bloqueo más viejo que esto es de un servidor caído: se ignora.
 		LockTimeoutSeconds = 600,
+		-- Avisos guardados para la próxima vez que entra (perfil "notices": la compensación de las
+		-- mascotas repetidas, un regalo recibido sin estar): segundos tras cargar, para que el cliente
+		-- ya escuche.
+		NoticeDelaySeconds = 8,
+		-- Regalos para quien no estaba en el servidor al llegar el pago (ServerShared/Gifts): se guardan
+		-- aparte (clave "g_<userId>") y se entregan al entrar a cualquier place.
+		GiftStoreName = "Gifts_v1",
 		-- Clasificaciones (Fase 6): prefijo de los OrderedDataStore y cada cuánto refresca el Lobby.
 		LeaderboardPrefix = "Ranking_v1_",
 		LeaderboardRefreshSeconds = 300,
@@ -1021,6 +1028,10 @@ local Config = {
 		BagSize = 3,
 		-- Ámbar por descartar un huevo, según su rareza.
 		DiscardAmber = { Common = 15, Uncommon = 30, Rare = 60, Epic = 120, Legendary = 250 },
+		-- Ámbar de una mascota que ya se tiene al abrir el huevo (se tiene una de cada; 26-10-2026): el
+		-- doble del descarte, para que esperar las horas del nido compense. También compensa, una vez,
+		-- las copias que había antes de la versión 9 del perfil (ServerShared/PlayerData).
+		DuplicateAmber = { Common = 30, Uncommon = 60, Rare = 120, Epic = 240, Legendary = 500 },
 		-- Lo que se gana jugando (días sobrevividos, misiones, tirada del rescate) quita como mucho esta
 		-- fracción del tiempo total del huevo. El tiempo del calendario y la eclosión inmediata no cuentan.
 		PlayCapFraction = 0.5,
@@ -1411,12 +1422,25 @@ local Config = {
 	Shop = {
 		-- Recibos que recuerda cada perfil para no entregar dos veces la misma compra.
 		ReceiptHistory = 50,
+		-- Mientras la ventana de compra de Roblox está abierta no se abre otra (ServerShared/Purchases);
+		-- pasado este tiempo sin respuesta de Roblox, se da por cerrada.
+		PromptTimeoutSeconds = 60,
 		Products = {
 			SeasonPremium = { productId = 3721002705, price = 399, grants = "Premium" },
 			-- El pase y 10 niveles; solo si aún no se tiene la premium de la temporada.
 			SeasonPack = { productId = 3721002880, price = 799, grants = "Premium", levels = 10 },
 			-- Un nivel; no se vende en el último nivel ni en los días de descanso.
 			SeasonLevel = { productId = 3721003016, price = 79, grants = "Levels", levels = 1 },
+		},
+		-- Regalos (T3, 26-10-2026; ServerShared/Gifts): un producto por precio de los cosméticos de Robux
+		-- sueltos (Data/Cosmetics "source.price"). El servidor apunta qué cosmético y a quién antes de
+		-- abrir la compra. Solo cosméticos.
+		GiftProducts = {
+			Gift99 = { productId = 3722761253, price = 99, grants = "Cosmetic" },
+			Gift149 = { productId = 3722761421, price = 149, grants = "Cosmetic" },
+			Gift199 = { productId = 3722761555, price = 199, grants = "Cosmetic" },
+			Gift249 = { productId = 3722761715, price = 249, grants = "Cosmetic" },
+			Gift449 = { productId = 3722761838, price = 449, grants = "Cosmetic" },
 		},
 	},
 

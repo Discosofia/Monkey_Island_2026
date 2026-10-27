@@ -178,10 +178,10 @@ local function howToGet(cosmeticId: string): (string, (() -> ())?)
 	elseif source.productId and not onOffer(cosmeticId, "robux") then
 		return "🛒 En rotación", nil
 	elseif source.productId and source.productId ~= 0 then
-		local productId = source.productId
+		-- La abre el servidor (ServerShared/Purchases), que no cobra lo que ya tienes.
 		return if source.price then `Comprar · {source.price} R$` else "Comprar",
 			function()
-				MarketplaceService:PromptProductPurchase(player, productId)
+				Remotes.RequestPurchase:FireServer(`Cosmetic.{cosmeticId}`)
 			end
 	elseif source.amber then
 		return if onOffer(cosmeticId, "amber") then `✨ {source.amber} · 🛒 Tienda` else "🛒 En rotación", nil

@@ -4,6 +4,9 @@
 --     siguiente. Comprar pide un segundo toque ("¿Comprar?") para no gastar sin querer.
 --   - En Robux: tu oferta de la semana (cambia el lunes). Sin id de producto sale "Próximamente"; en
 --     Studio hace una compra de prueba (panel de pruebas, "FakePurchase").
+--   - Regalar (T3, 26-10-2026): el botón 🎁 de cada tarjeta de Robux cambia la barra de abajo por los
+--     jugadores del servidor que aún no lo tienen. Elegir uno lo pide al servidor (Remotes.RequestGift,
+--     ServerShared/Gifts), que cobra el producto de regalo de su precio.
 --   - Siempre a la venta: los Game Passes, en tarjetas pequeñas, con su precio de Roblox.
 --   - Cada tarjeta lleva la imagen 3D del cosmético (Shared/RewardModels, tu avatar con él puesto; los
 --     aspectos de arma, el arma sola, Shared/WeaponTools) y el borde de su rareza; tocarla explica qué
@@ -35,6 +38,9 @@ local NOTE_COLOR = Color3.fromRGB(255, 220, 150)
 local DETAIL_COLOR = Color3.fromRGB(215, 205, 190)
 -- Segundos que espera el segundo toque de "Comprar" en Ámbar.
 local CONFIRM_SECONDS = 3
+-- Jugadores que caben en la barra del regalo (teléfono, PC), por orden de nombre.
+local GIFT_PICKS_COMPACT = 3
+local GIFT_PICKS = 5
 local HINT =
 	"Toca una tarjeta para ver qué es · Solo cambian tu aspecto, nunca dan ventaja · Lo que compras se pone en el 👕 Armario"
 
@@ -42,8 +48,10 @@ export type Options = { compact: boolean }
 
 local CosmeticShopPanel = {}
 
--- Lo tocado (se recuerda entre dibujos) y los precios de los Game Passes que ya ha dicho Roblox.
+-- Lo tocado (se recuerda entre dibujos), el cosmético que se va a regalar y los precios de los Game
+-- Passes que ya ha dicho Roblox.
 local selected: string? = nil
+local giftFor: string? = nil
 local passPrices: { [number]: number } = {}
 
 local function corner(parent: Instance, radius: number)
@@ -236,6 +244,8 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 	local buttonHeight = if compact then 26 else 34
 	local cards: { [string]: TextButton } = {}
 	local detail: TextLabel
+	local giftBar: Frame
+	local showGift: () -> ()
 
 	local function pick(cosmeticId: string)
 		selected = cosmeticId
@@ -352,20 +362,32 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		local button = cardButton(card, buttonHeight, if compact then 13 else 15)
 		local source = Cosmetics[cosmeticId].source
 		local price = source.price or 0
-		if bought[cosmeticId] then
-			setButton(button, "✅ Tuyo", false)
-		elseif source.productId and source.productId ~= 0 then
-			local productId = source.productId
-			setButton(button, `R$ {price}`, true)
-			button.MouseButton1Click:Connect(function()
+		-- La compra la abre el servidor (ServerShared/Purchases), que no cobra lo que ya tienes; en Studio,
+		-- sin id, hace una compra de prueba.
+		local sold = source.productId and source.productId ~= 0
+		if sold or RunService:IsStudio() then
+			-- 🎁 a la derecha del precio, también si ya es tuyo.
+			button.Size = UDim2.new(1, -(16 + buttonHeight), 0, buttonHeight)
+			button.Position = UDim2.new(0.5, -(buttonHeight + 6) / 2, 1, -5)
+			local gift = cardButton(card, buttonHeight, if compact then 13 else 15)
+			gift.Name = "Gift"
+			gift.AnchorPoint = Vector2.new(1, 1)
+			gift.Position = UDim2.new(1, -5, 1, -5)
+			gift.Size = UDim2.fromOffset(buttonHeight, buttonHeight)
+			setButton(gift, "🎁", true)
+			gift.MouseButton1Click:Connect(function()
 				pick(cosmeticId)
-				MarketplaceService:PromptProductPurchase(player, productId)
+				giftFor = if giftFor == cosmeticId then nil else cosmeticId
+				showGift()
 			end)
-		elseif RunService:IsStudio() then
-			setButton(button, `R$ {price} · prueba`, true)
+		end
+		if bought[cosmeticId] or owned(cosmeticId) then
+			setButton(button, "✅ Tuyo", false)
+		elseif sold or RunService:IsStudio() then
+			setButton(button, if sold then `R$ {price}` else `R$ {price} · prueba`, true)
 			button.MouseButton1Click:Connect(function()
 				pick(cosmeticId)
-				Remotes.DebugCommand:FireServer("FakePurchase", `Cosmetic.{cosmeticId}`)
+				Remotes.RequestPurchase:FireServer(`Cosmetic.{cosmeticId}`)
 			end)
 		else
 			setButton(button, "Próximamente", false)
@@ -461,6 +483,95 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 	detail.TextColor3 = DETAIL_COLOR
 	detail.TextXAlignment = Enum.TextXAlignment.Left
 	textCap(detail, if compact then 12 else 15)
+
+	-- Barra del regalo: en el sitio de la de abajo, los jugadores que aún no tienen "giftFor".
+	giftBar = Instance.new("Frame")
+	giftBar.Name = "GiftBar"
+	giftBar.LayoutOrder = 4
+	giftBar.Size = UDim2.new(1, -10, 0, if compact then 24 else 34)
+	giftBar.BackgroundTransparency = 1
+	giftBar.Visible = false
+	giftBar.Parent = list
+	local giftLayout = Instance.new("UIListLayout")
+	giftLayout.FillDirection = Enum.FillDirection.Horizontal
+	giftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	giftLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	giftLayout.Padding = UDim.new(0, 6)
+	giftLayout.Parent = giftBar
+	function showGift()
+		for _, child in giftBar:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		local cosmeticId = giftFor
+		giftBar.Visible = cosmeticId ~= nil
+		detail.Visible = cosmeticId == nil
+		if not cosmeticId then
+			return
+		end
+		local cosmetic = Cosmetics[cosmeticId]
+		local textSize = if compact then 12 else 15
+		local function add(text: string, width: number, order: number): TextButton
+			local option = Widgets.button(text, giftBar)
+			option.LayoutOrder = order
+			option.Size = UDim2.new(0, width, 1, 0)
+			local limit = option:FindFirstChildOfClass("UISizeConstraint")
+			if limit then
+				limit:Destroy()
+			end
+			textCap(option, textSize)
+			return option
+		end
+		local title = Widgets.label(`🎁 Regalar {cosmetic.icon} {shortName(cosmetic)} a:`, giftBar)
+		title.LayoutOrder = 0
+		title.Size = UDim2.new(0, if compact then 170 else 260, 1, 0)
+		title.TextColor3 = NOTE_COLOR
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		textCap(title, textSize)
+		local others = {}
+		for _, other in Players:GetPlayers() do
+			if other ~= Players.LocalPlayer and other:GetAttribute(`Cosmetic_{cosmeticId}`) ~= true then
+				table.insert(others, other)
+			end
+		end
+		table.sort(others, function(a, b)
+			return a.DisplayName < b.DisplayName
+		end)
+		local shown = 0
+		for _, other in others do
+			if shown < (if compact then GIFT_PICKS_COMPACT else GIFT_PICKS) then
+				shown += 1
+				local option = add(other.DisplayName, if compact then 96 else 140, shown)
+				setButton(option, other.DisplayName, true)
+				local userId = other.UserId
+				option.MouseButton1Click:Connect(function()
+					giftFor = nil
+					showGift()
+					Remotes.RequestGift:FireServer(cosmeticId, userId)
+				end)
+			end
+		end
+		if shown == 0 then
+			local nobody = Widgets.label("No hay nadie más en el servidor que no lo tenga", giftBar)
+			nobody.LayoutOrder = 1
+			nobody.Size = UDim2.new(0, if compact then 220 else 360, 1, 0)
+			nobody.Font = Enum.Font.BuilderSans
+			nobody.TextColor3 = DETAIL_COLOR
+			nobody.TextXAlignment = Enum.TextXAlignment.Left
+			textCap(nobody, textSize)
+		end
+		local close = add("✕", if compact then 24 else 34, 100)
+		setButton(close, "✕", true)
+		close.MouseButton1Click:Connect(function()
+			giftFor = nil
+			showGift()
+		end)
+	end
+	if giftFor and not table.find(robuxOffer, giftFor) then
+		giftFor = nil
+	end
+	showGift()
 
 	-- Cabeceras con lo que falta para el cambio (se rehacen cada segundo).
 	local function tick()
