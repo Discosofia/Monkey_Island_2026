@@ -452,6 +452,24 @@ Decisiones del 23-10-2026:
 | **M2** | Conseguirlas jugando: tirada de montura al abrir un huevo de su rareza, ceremonia y lista del nido, GDD y calculadora `Economia` (EggChance 0,5). Con él, el panel de administradores para dar todo a un jugador | `586edf8` | ✅ |
 | **M3** | Gesto de escupir montado (remoto `MountSpit`, Y o el botón Escupir, cada 3 s; partículas en el marcador "Escupir") | `6cbf97f` | ✅ |
 
+### Pedidos del 26-10-2026 (tandas)
+
+Diecinueve pedidos agrupados en tandas; cada una es una sesión. Plan con el detalle: `C:\Users\jose\.claude\plans\fluffy-stirring-octopus.md`.
+
+Decisiones: tras ganar, "Seguir sobreviviendo" en la Isla; la montura de los 7 días es una tirada con pesos que se repite en cada ciclo, y una repetida da Ámbar; el Quetzalcóatl planea, no vuela; solo se regalan cosméticos de Robux; el estilo nuevo de V es opcional, no sustituye al actual.
+
+| Tanda | Contenido (puntos del pedido) | Commit | Estado |
+|---|---|---|---|
+| **T1** | Español latino en todos los textos (15), "pieza" → "estructura" (17), monos alfa: semanal 6 → 20 y diaria 2 → 8, con el ritmo de la calculadora corregido a 0,2/min (18) | `0c92957` | ✅ |
+| **T2** | Menú del martillo compacto y confirmación al volver al Lobby (1), emotes de Dunas unificados (2), Armario en 3 columnas (3) | — | ⏳ |
+| **T3** | No volver a comprar lo que ya tienes (5), mascotas únicas y Ámbar por repetida (12), regalar cosméticos (6) | — | ⏳ |
+| **T4** | Panel de administración v2: eventos en vivo, anuncio global, dar a todos y más (4) | — | ⏳ |
+| **T5** | Montura Jaguar Albino legendaria y patas del perro pirata (7, 11); montura Quetzalcóatl mítica (8) | — | ⏳ |
+| **T6** | Bienvenida de pioneros con el calendario y la montura del ciclo de 7 días (9) | — | ⏳ |
+| **T7** | Estilo nuevo para la V de cada rol, que el jugador elige (19) | — | ⏳ |
+| **T8** | Fase 12: seguir sobreviviendo y parcela permanente en el Basecamp (10); grupos P1–P6, con su propio plan antes de P2 | — | ⏳ |
+| **T9** | Diseño (solo documentos): Laboratorio en ruinas (13), isla de aventuras (14), juego en inglés (16) | — | ⏳ |
+
 ---
 
 ## 4. Cronograma estimado
