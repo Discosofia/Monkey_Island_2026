@@ -463,7 +463,7 @@ Decisiones: tras ganar, "Seguir sobreviviendo" en la Isla; la montura de los 7 d
 | **T1** | Español latino en todos los textos (15), "pieza" → "estructura" (17), monos alfa: semanal 6 → 20 y diaria 2 → 8, con el ritmo de la calculadora corregido a 0,2/min (18) | `0c92957` | ✅ |
 | **T2** | Menú del martillo compacto y confirmación al volver al Lobby (1), emotes de Dunas unificados (2), Armario en 3 columnas (3) | `e514e82` | ✅ (falta ver la ficha del martillo en el emulador de teléfono) |
 | **T3** | No volver a comprar lo que ya tienes (5), mascotas únicas y Ámbar por repetida (12), regalar cosméticos (6) | `861d1d1` | ✅ (falta probar el regalo con 2 jugadores; perfil v9: publicar los 3 places a la vez) |
-| **T4** | Panel de administración v2: eventos en vivo, anuncio global, dar a todos y más (4). En 5 sub-tandas: T4a base, T4b eventos, T4c moderación, T4d perfil y servidor, T4e admin jefe gigante | T4a `7070501` · T4b `064edae` | ⏳ T4a ✅ T4b ✅ (falta probar "todos los servidores" en el juego publicado y la franja de eventos en el teléfono) |
+| **T4** | Panel de administración v2: eventos en vivo, anuncio global, dar a todos y más (4). En 5 sub-tandas: T4a base, T4b eventos, T4c moderación, T4d perfil y servidor, T4e admin jefe gigante | T4a `7070501` · T4b `064edae` · T4c `579f0a0` | ⏳ T4a ✅ T4b ✅ T4c ✅ (falta probar "todos los servidores" y un baneo real en el juego publicado, y la franja de eventos en el teléfono) |
 | **T5** | Montura Jaguar Albino legendaria y patas del perro pirata (7, 11); montura Quetzalcóatl mítica (8) | — | ⏳ |
 | **T6** | Bienvenida de pioneros con el calendario y la montura del ciclo de 7 días (9) | — | ⏳ |
 | **T7** | Estilo nuevo para la V de cada rol, que el jugador elige (19) | — | ⏳ |
