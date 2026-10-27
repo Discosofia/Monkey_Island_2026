@@ -490,6 +490,37 @@ Decisiones del 27-10-2026:
 | **P5** | Incubadora (acelera el nido del Lobby y en el nivel III da un segundo hueco) y nido de la parcela (vida y probabilidad de subir la rareza); los 4 fallos de los nidos y soltar el huevo | `d5ca5b9` | ✅ (falta que se vaya el dueño con 2 jugadores, la subida de rareza, el teléfono y el juego publicado: VERIFICACION §18) |
 | **P6** | Costes y ritmo en `Economia` y el GDD | `8f39c29` | ✅ (precios 600 / 2.400 / 6.000: las 7 al III el día 46 el intenso y el 105 el grupo de amigos) |
 
+### Diseños de T9 (27-10-2026): fases futuras
+
+T9 dejó escritos tres diseños que se construirán más adelante, cada uno en su fase. Los grupos son tentativos: al empezar cada fase se hace una sesión de plan propia (`EnterPlanMode`) que los fija.
+
+**Fase 13: Laboratorio en ruinas** (cuarto place, shooter por equipos sin roles). Diseño: [LABORATORIO.md](LABORATORIO.md), resumen en el GDD §12.3.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **L1** | Place nuevo (`laboratorio.project.json`, `Config.PlaceIds.Laboratorio`), `LabCombatRules`, las 4 armas (`Data/LabWeapons`) y la sección del Laboratorio en `Equilibrio` | — | ⏳ |
+| **L2** | Mapa Laboratorio central (`World/LabBuilder`) y el modo de duelo por equipos | — | ⏳ |
+| **L3** | Cola con modo y formato (sobre `ArenaQueueService`), embarcadero y cartel del Lobby | — | ⏳ |
+| **L4** | Todos contra todos y rondas; mapas Azotea de la torre y Alcantarillas; votación de mapa | — | ⏳ |
+| **L5** | Recompensas (Ámbar con tope de 300, XP del pase, skins por bajas, títulos, ranking, misión semanal) en `Economia` y el GDD | — | ⏳ |
+
+**Fase 14: Isla Calavera** (quinto place, mazmorra PvE de 1 a 5). Diseño: [AVENTURAS.md](AVENTURAS.md), resumen en el GDD §7.2.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **D1** | Place nuevo (`calavera.project.json`, `Config.PlaceIds.Calavera`), `DungeonCombatRules`, entrada con grupo y cola, dificultades, caído y puntos de control | — | ⏳ |
+| **D2** | Piso 1 entero: salas, variantes, trampas, acertijos, sala secreta y el Narigudo Carcelero | — | ⏳ |
+| **D3** | Piso 2 y el Dril del Suero | — | ⏳ |
+| **D4** | Piso 3 y el Gelada Rey Calavera | — | ⏳ |
+| **D5** | Botín: huevo mítico (y la mascota mítica nueva), set y armas de la Calavera como planos, cofre de llaves y tope semanal, en `Economia` | — | ⏳ |
+| **D6** | Ranking de tiempo y la sección de la mazmorra en `Economia` y el GDD | — | ⏳ |
+
+**Tanda "Idioma inglés"** (GDD §18): `Shared/Strings` con una `LocalizationTable` en/es revisada a mano y todos los textos del código pasados a claves (también los que llevan números dentro). Antes, el usuario pone la ficha en inglés en Creator Hub y activa la traducción automática.
+
+| Tanda | Contenido | Commit | Estado |
+|---|---|---|---|
+| **I1** | `Shared/Strings` + `LocalizationTable`, y pasar los textos de `src/**` a claves | — | ⏳ |
+
 ---
 
 ## 4. Cronograma estimado

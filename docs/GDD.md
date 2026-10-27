@@ -405,12 +405,22 @@ El juego es un **archipiélago de seis islas**. Se juega en dos: la del volcán 
 |---|---|---|---|
 | **Lobby** (banco de arena del naufragio) | Centro | Una plaza ovalada libre con la hoguera, el nido y los muñecos de práctica, rodeada por los carteles (mascotas, bitácora, roles, ranking y arena); el carguero «Esperanza» encallado arriba a la izquierda y el campamento abajo a la izquierda | Lobby |
 | **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable**: place **🍌Isla de monos🐒(survival)** |
-| **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | Cerrada |
-| **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | Cerrada |
+| **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | **En diseño:** la mazmorra (§7.2, `docs/AVENTURAS.md`) |
+| **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | **En diseño:** el Laboratorio en ruinas (§12.3, `docs/LABORATORIO.md`) |
 | **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | **Jugable**: place **🎖️Isla de dunas☠️(PvP)**, la arena PvP (§12.2), con su embarcadero y su velero en el Lobby |
 | **Picos de la Niebla** | Norte, ~1.300 studs (la más lejana) | Agujas de roca caliza con selva en la cima, cascada y bandas de niebla | Cerrada |
 
 Las islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significa crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de ir. Así se abrió la de las Dunas: un place propio, su ID en `Config.PlaceIds.Dunas` y su embarcadero en el Lobby.
+
+### 7.2 La Isla Calavera: la mazmorra (en diseño)
+
+Diseño completo en [`docs/AVENTURAS.md`](AVENTURAS.md) (27-10-2026); se construirá en la Fase 14. Es el quinto place: una **mazmorra por instancias** dentro de la roca-cráneo, un ala de pruebas del Proyecto PRIMAL.
+
+- **Grupo de 1 a 5**, con su rol, sus talentos y su mejor equipo forjado; la dificultad escala con el número. Se entra desde un embarcadero del Lobby, en grupo o por cola.
+- **Tres pisos** de 5–6 salas hechas a mano (oleadas, trampas, acertijos que se pueden hacer solo), con una variante al azar de cada sala en cada partida y una sala secreta por piso. Jefes nuevos: **el Narigudo Carcelero**, **el Dril del Suero** y, al final, **el Gelada Rey Calavera**. 25–35 min.
+- **Muerte:** caído y reanimación; si nadie te levanta, vuelves en el siguiente punto de control; si caen todos, se pierde.
+- **Botín propio:** el **huevo mítico** del jefe final (Quetzalcóatl o una mascota mítica nueva; 0,5 % en Difícil y 1,5 % en Pesadilla), el set y las armas de la Calavera por rol (tan buenos como lo mejor de la forja, nunca mejores; en la Isla, como planos), skins que no salen en ninguna tienda y llaves de las salas secretas para el cofre final.
+- **Rejugar:** Normal, Difícil y Pesadilla (cada una se abre con la anterior) y un ranking de tiempo en el Lobby. Tope semanal: las 10 primeras partidas ganadas dan todo el botín.
 
 ---
 
@@ -773,6 +783,17 @@ La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una ar
 
 **Para más adelante.** Más modos (combate abierto por equipos, todos contra todos, Dominio con 3 altares, Caza de Ámbar), runas pasivas (2–3 equipables de 10), trampas del templo (dardos y pinchos), tormenta de arena y arenas movedizas, ligas con emparejamiento por nivel (MMR), reemplazo desde la cola, penalización por abandono y salas privadas con código.
 
+### 12.3 El Laboratorio en ruinas (en diseño)
+
+Diseño completo en [`docs/LABORATORIO.md`](LABORATORIO.md) (27-10-2026); se construirá en la Fase 13. Es el cuarto place, en la Ciudad Perdida (§7.1): un **shooter por equipos**, **Piratas invasores** contra **Guardianes del laboratorio**.
+
+- **Sin roles, habilidades ni talentos:** todos empiezan igual y eligen 1 de 4 armas del laboratorio (lanzadardos tranquilizante, rifle de bananas primales, lanzarredes de arpón y cañón de suero ácido), iguales en los dos bandos. Vida 100, sin caído.
+- **Ritmo:** partidas de 6 min y **tiempo para matar de 1,5–2,5 s** dentro del alcance de cada arma (medido; cada arma gana a su distancia).
+- **Modos** (se eligen en la cola): duelo por equipos de 1v1 a 5v5, todos contra todos de 10 y rondas sin reaparición al mejor de 7.
+- **Tres mapas pequeños** que se votan al llegar: Laboratorio central, Azotea de la torre y Alcantarillas.
+- **Recompensas:** Ámbar con tope diario propio de 300 (unos 5 por minuto, menos que la Isla y Dunas), XP del pase, skins de las armas del Lab por bajas y títulos por victorias. Ranking en el Lobby.
+- **Emparejamiento:** la cola entre servidores de Dunas (`ArenaQueueService`, `Arena`, `TeamService`) con modo y formato.
+
 ---
 
 ## 13. Lore
@@ -799,6 +820,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 - **Talentos:** se desbloquean con la **XP del rol**, no con dinero.
 - **Robux (solo cosmético y comodidad):** la premium del pase y sus niveles (§14.1), cosméticos sueltos en la tienda de Robux, los Game Passes cosméticos (estelas, título, aura) y servidores privados.
 - **Nunca con Robux:** poder, **Ámbar** (compra mejoras con ventaja), huevos, tiempo de incubación, provisiones y objetos aleatorios. Lo comprueba la sección "Reglas de pago" de la calculadora `Economia`.
+- **Fuentes en diseño** (27-10-2026): el Laboratorio en ruinas (§12.3, tope de 300 al día) y la mazmorra de la Isla Calavera (§7.2, tope de 10 partidas con botín entero a la semana). Las dos dan menos Ámbar por minuto que la Isla, o lo mismo como mucho, para que la Isla siga siendo el sitio principal.
 - **Se gana jugando:** el título "Superviviente de la Isla" (solo al ganar una partida), los trajes míticos (§14.3), los premios del calendario, de las misiones y de la pista gratis del pase.
 
 ### 14.1 Pase de temporada (Fase 9)
@@ -876,3 +898,17 @@ Las preguntas de la v0.1 están resueltas (ver §2). Quedan detalles para decidi
 2. ¿Nombre final de la moneda? ("Ámbar" es provisional; ¿quizá **Bananas doradas**, por el nombre del juego?)
 3. ¿Qué hacen exactamente las **bananas primales**: mejora temporal, ingrediente o las dos cosas?
 4. Duraciones finales del día y de la noche (se empieza con 10+7 y se ajusta en la Fase 1).
+
+---
+
+## 18. Idiomas
+
+El juego está en español latino (T1 quitó las formas de vosotros). Conviene traducirlo: el inglés da mucho más alcance en Roblox. Decidido el 27-10-2026, de menos a más esfuerzo:
+
+1. **Ficha de la experiencia en inglés** en Creator Hub: nombre, descripción, miniaturas e icono. Es barato y es lo que más alcance da. Lo hace el usuario. Texto propuesto:
+   - **Nombre:** *Primal Banana Islands: Monkey Survival* (ya está en inglés, §15).
+   - **Descripción:** *Shipwrecked on an island where a secret lab turned monkeys wild. Team up with up to 5 friends, gather, craft and build your camp, survive the nights, beat the giant bosses and call for rescue. Hatch pets in your nest, fight other players in the desert arena and unlock your own permanent plot.*
+   - Las miniaturas, con el texto en inglés (o sin texto).
+2. **Traducción automática de Roblox** activada para los demás idiomas. Sin código.
+3. **`Shared/Strings` con una `LocalizationTable`** en/es: todos los textos del código pasan a un módulo con claves y el inglés se revisa a mano (solo el inglés; los demás idiomas siguen con la automática). Es necesario porque los textos con números dentro (`{n} días`) se traducen mal solos: el módulo los forma con `LocalizationTable` y sus argumentos.
+4. El paso 3 es una **tanda de código** propia en `docs/PLAN.md` ("Idioma inglés").
