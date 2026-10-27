@@ -21,9 +21,11 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
+local BuildingService = require(script.Parent.BuildingService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
 local CombatText = require(ServerScriptService.Combat.CombatText)
@@ -49,6 +51,18 @@ local function livingHumanoid(player: Player): Humanoid?
 		return humanoid
 	end
 	return nil
+end
+
+-- Vida por segundo de más descansando junto a la cama de tu parcela (en pie), aunque tengas hambre o sed.
+local function restRegen(player: Player): number
+	local level = BuildingService.plotLevel(player, "Bed")
+	local bed = if level > 0 then BuildingService.plotStructure(player, "Bed") else nil
+	local character = player.Character
+	if not (bed and character) then
+		return 0
+	end
+	local distance = (bed:GetPivot().Position - character:GetPivot().Position).Magnitude
+	return if distance <= Config.Plot.RestRadius then PlotStructures.Bed.levels[level].restRegen or 0 else 0
 end
 
 local function warnLow(player: Player, attribute: string, value: number, message: string)
@@ -122,8 +136,9 @@ local function tick(player: Player)
 
 	local fed = hunger >= Config.Survival.RegenMinStat and thirst >= Config.Survival.RegenMinStat
 	local calm = os.clock() - (lastDamagedAt[player] or -math.huge) >= Config.Survival.RegenDelayAfterDamage
-	if fed and calm and humanoid.Health < humanoid.MaxHealth then
-		humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + Config.Survival.RegenPerSecond * TICK_SECONDS)
+	local regen = (if fed then Config.Survival.RegenPerSecond else 0) + restRegen(player)
+	if calm and regen > 0 and humanoid.Health < humanoid.MaxHealth then
+		humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + regen * TICK_SECONDS)
 	end
 end
 

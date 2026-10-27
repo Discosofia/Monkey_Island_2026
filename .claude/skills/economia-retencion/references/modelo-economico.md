@@ -37,6 +37,7 @@
 |---|---|---|
 | Mejoras permanentes | `Data/Upgrades`, `ProgressionService` | 19 rangos, **1.930** |
 | Equipo de Dunas | `Data/ArenaGear`, `ArenaShop` | 200/150/100 por ranura (24 piezas) |
+| Parcela permanente (Fase 12, P3; solo quien ha ganado) | `Data/PlotStructures`, `PlotService` (Isla) | 7 estructuras × 3 niveles: 600 · 2.400 · 6.000 cada una, 63.000 en total, más materiales de la Bolsa. **Precios de prueba**: los fija P6 con la sección "Parcela" de la calculadora |
 | Tienda de cosméticos en Ámbar (G10) | `Data/Cosmetics` (`source.amber`), `Shared/CosmeticShop`, `CosmeticShopService` | 4 al día de lo que aún no tienes; 400 común · 600 poco común · 900 raro · 1.200 épico · 1.500 legendario |
 
 **XP del pase** (`Config.Season`, desde G3; G4 sube la de la Isla): 30 niveles × 1.000. Isla 60/día

@@ -17,13 +17,25 @@ local Plot = {}
 Plot.STRUCTURES = { "Forge", "Healer", "Garden", "Bed", "Chest", "Incubator", "Nest" }
 Plot.MAX_LEVEL = 3
 
--- Pieza de Data/Buildables con que se dibuja cada una mientras no tenga modelo propio por nivel (P3).
-Plot.BUILDABLE = {
-	Forge = "StoneForge",
-	Healer = "HealerTent",
-	Bed = "Bed",
-	Nest = "Nest",
-} :: { [string]: string }
+-- Cómo se escribe cada nivel (el 0 es "aún no está"). Coste, vida y efecto de cada uno:
+-- Data/PlotStructures; su modelo, Shared/PlotModels.
+Plot.ROMAN = { "I", "II", "III" }
+-- Aviso del cartel de cada hueco (atributo "PlotIndex"): abre la ventana Parcela a su dueño.
+Plot.PROMPT_NAME = "PlotPrompt"
+-- Atributo del Player con el descuento (0–1) de su parcela en las recetas de una estación, seguido del
+-- id de la estación (PlotService lo pone mientras la estructura está en pie; Shared/Crafting lo aplica).
+Plot.DISCOUNT_ATTRIBUTE = "PlotDiscount_"
+
+-- Cuánto pide de un material una receta de "stationId" a "player", con el descuento de su parcela (la
+-- forja y el taller, Data/PlotStructures "discount"). Redondeado al más cercano (hacia arriba, los costes
+-- pequeños se quedaban sin descuento: 3 × 0,7 = 2,1 → 3) y nunca por debajo de 1.
+function Plot.discounted(player: Player, stationId: string, amount: number): number
+	local discount = player:GetAttribute(Plot.DISCOUNT_ATTRIBUTE .. stationId)
+	if typeof(discount) ~= "number" or discount <= 0 then
+		return amount
+	end
+	return math.max(1, math.round(amount * (1 - discount)))
+end
 
 export type State = {
 	unlocked: boolean,

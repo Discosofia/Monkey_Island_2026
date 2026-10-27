@@ -712,6 +712,14 @@ local Config = {
 			Chest = { x = -8, z = -8.5, yaw = 90 },
 			Incubator = { x = 8, z = -8.5, yaw = 270 },
 		},
+		-- Niveles, costes y efectos de cada estructura: Data/PlotStructures (P3).
+		-- Cama: su "restRegen" se suma a la vida que recuperas a menos de esto de ella (studs), sin daño
+		-- reciente (Config.Survival.RegenDelayAfterDamage) y aunque tengas hambre o sed.
+		RestRadius = 10,
+		-- Reparar una estructura rota (cualquiera puede, con su aviso): lo que cuesta. Si no, vuelve sola al
+		-- amanecer, con toda la vida.
+		RepairCost = { { itemId = "Wood", amount = 10 }, { itemId = "Stone", amount = 6 } },
+		RepairHoldSeconds = 2,
 	},
 
 	Fever = {
@@ -838,6 +846,8 @@ local Config = {
 		-- "Campfire"…; ver Data/Stations). Si falta la mesa, se crea una en el Basecamp, desplazada así
 		-- respecto a su centro. Si falta la hoguera, se usa el modelo "Hoguera" del mapa o se crea una.
 		StationAttribute = "CraftingStation",
+		-- Una segunda estación en la misma pieza (la forja III de la parcela también es forja volcánica).
+		ExtraStationAttribute = "CraftingStation2",
 		DefaultWorkbenchOffset = Vector3.new(-35, 0, 0),
 		DefaultCampfireOffset = Vector3.new(0, 0, 0),
 		-- Distancia máxima (studs) a una estación para abrirla y fabricar.

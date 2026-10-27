@@ -7,6 +7,7 @@
 local Armor = require(script.Parent.Data.Armor)
 local Config = require(script.Parent.Config)
 local Inventory = require(script.Parent.Inventory)
+local Plot = require(script.Parent.Plot)
 local Recipes = require(script.Parent.Data.Recipes)
 local Roles = require(script.Parent.Data.Roles)
 local Weapons = require(script.Parent.Data.Weapons)
@@ -43,9 +44,14 @@ function Crafting.isForRole(player: Player, recipe: Recipes.Recipe): boolean
 	return recipe.role == nil or player:GetAttribute("Role") == recipe.role
 end
 
+-- Lo que pide de un material la receta a este jugador (menos con la forja o el taller de su parcela).
+function Crafting.costAmount(player: Player, recipe: Recipes.Recipe, amount: number): number
+	return Plot.discounted(player, recipe.station, amount)
+end
+
 function Crafting.canAfford(player: Player, recipe: Recipes.Recipe): boolean
 	for _, cost in recipe.cost do
-		if Inventory.count(player, cost.itemId) < cost.amount then
+		if Inventory.count(player, cost.itemId) < Crafting.costAmount(player, recipe, cost.amount) then
 			return false
 		end
 	end

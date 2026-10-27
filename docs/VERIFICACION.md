@@ -1016,6 +1016,39 @@ Lo que falta: el asedio contra las estructuras de la parcela y dos jugadores.
 4. [ ] El jugador 1 sale de la partida.
    ✅ Su parcela queda libre («Parcela libre», borde de madera) y sus estructuras desaparecen.
 
+### P3. Estructuras que se mejoran
+
+Probado en Studio (1 jugador, con el perfil restaurado después):
+- **Ventana «🏡 Tu parcela»:** sale con el aviso «Mejorar» del cartel de tu hueco y enseña las 7 estructuras sin desplazarse (en PC, una columna; en el tamaño de un teléfono, dos).
+- **Mejorar:** cada nivel cobra el Ámbar y los materiales justos. Si falta algo, no cobra nada. Al volver a entrar, la parcela sale con sus niveles.
+- **Forja III:** tiene los dos avisos (forja y forja volcánica) y las recetas piden un 30 % menos (redondeado, nunca menos de 1).
+- **Rota:** sin descuento, sus avisos se esconden y sale «Reparar (🌲 10 ⛰️ 6)». Reparada, vuelve todo. Al amanecer vuelve con toda la vida.
+- **Amanecer:** el taller I da 1 venda y el huerto I, 1 banano y 1 plátano.
+- **Cama III:** junto a ella se recuperan 3 de vida por segundo más.
+
+Lo que falta: el asedio de verdad, caer con la cama, dos jugadores y el teléfono real.
+
+#### 18.6 La parcela en la partida (Isla, ▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+
+1. [ ] Pulsa «🎒 +50 de todo», ve al cartel de tu parcela y construye la cama en la ventana «🏡 Tu parcela». Después cae (deja que te peguen los monos) y no te rindas.
+   ✅ La cuenta atrás de Caído empieza en 50 s, no en 60, y reapareces en tu cama.
+2. [ ] Salta a la noche y deja que los monos golpeen el taller de tu parcela hasta romperlo.
+   ✅ Sale «💥 Han roto tu Taller del curandero…». No puedes abrir sus recetas, pero sí «Reparar». Si no lo reparas, al amanecer no te da vendas y vuelve con toda la vida.
+3. [ ] Con la forja a medio romper, mejórala.
+   ✅ La forja nueva sale con la misma parte de vida que le quedaba (no se repara al mejorarla).
+
+#### 18.7 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] El jugador 1 tiene la parcela y su forja está rota. El jugador 2 se acerca a ella.
+   ✅ Al 2 le sale «Reparar» y, si la repara, le cuesta a él la madera y la piedra. Lo que no le sale es el aviso para usar la forja.
+2. [ ] El jugador 2 se acerca al cartel de la parcela del 1.
+   ✅ No le sale «Mejorar»: la ventana solo la abre el dueño desde su cartel.
+
+#### 18.8 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Abre «🏡 Tu parcela».
+   ✅ Ocupa toda la pantalla libre, con las estructuras en dos columnas. Se lee todo sin desplazarse y los botones se pulsan bien.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

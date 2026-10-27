@@ -20,9 +20,11 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
+local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local BasecampService = require(script.Parent.BasecampService)
+local BuildingService = require(script.Parent.BuildingService)
 local InventoryService = require(script.Parent.InventoryService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local CombatText = require(ServerScriptService.Combat.CombatText)
@@ -219,6 +221,13 @@ end
 
 -- Llamado por CombatService ante un golpe mortal. "cause": qué le ha tumbado, para la telemetría
 -- (TelemetryService.causeOf, "PvP", "Hambre").
+-- Segundos caído antes de reaparecer: menos con la cama de la parcela en pie (Data/PlotStructures).
+local function downedSeconds(player: Player): number
+	local level = BuildingService.plotLevel(player, "Bed")
+	local factor = if level > 0 then PlotStructures.Bed.levels[level].downedFactor else nil
+	return Config.Life.DownedSeconds * (factor or 1)
+end
+
 function LifeService.down(player: Player, cause: string)
 	local character, humanoid, root = characterParts(player)
 	if not (character and humanoid and root) or not LifeState.isAlive(player) then
@@ -233,7 +242,8 @@ function LifeService.down(player: Player, cause: string)
 	humanoid.WalkSpeed = Config.Life.CrawlSpeed
 	humanoid.JumpHeight = 0
 	humanoid.JumpPower = 0
-	player:SetAttribute("DownedEndsAt", Workspace:GetServerTimeNow() + Config.Life.DownedSeconds)
+	local seconds = downedSeconds(player)
+	player:SetAttribute("DownedEndsAt", Workspace:GetServerTimeNow() + seconds)
 	downedAt[player] = os.clock()
 	setState(player, "Downed")
 
@@ -280,7 +290,7 @@ function LifeService.down(player: Player, cause: string)
 	Remotes.Notify:FireClient(player, "🆘 ¡Has caído! Un aliado puede reanimarte.")
 	local token = (downedToken[player] or 0) + 1
 	downedToken[player] = token
-	task.delay(Config.Life.DownedSeconds, function()
+	task.delay(seconds, function()
 		if downedToken[player] == token then
 			respawnDowned(player, false)
 		end

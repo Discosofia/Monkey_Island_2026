@@ -23,6 +23,8 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Plot = require(ReplicatedStorage.Shared.Plot)
+local PlotModels = require(ReplicatedStorage.Shared.PlotModels)
+local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
@@ -45,6 +47,7 @@ local plots: { CFrame } = {}
 local plotOwners: { [number]: Player } = {}
 local plotSigns: { [number]: TextLabel } = {}
 local plotMarkers: { [number]: Model } = {}
+local plotBuiltCallbacks: { (player: Player) -> () } = {}
 local structures: Folder? = nil
 local hammerTemplate: Tool? = nil
 local canBuild = RequestCooldown.new(Config.Building.BuildCooldownSeconds)
@@ -118,6 +121,18 @@ local function buildPlotMarker(index: number, plot: CFrame, parent: Instance)
 	label.Font = Enum.Font.BuilderSansBold
 	label.TextScaled = true
 	label.Parent = billboard
+	-- Abre la ventana Parcela (PlotController); el cliente solo se lo enseña al dueño de una parcela
+	-- permanente.
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = Plot.PROMPT_NAME
+	prompt.ActionText = "Mejorar"
+	prompt.ObjectText = "🏡 Parcela"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt.Enabled = false
+	prompt:SetAttribute("PlotIndex", index)
+	prompt.Parent = post
 	plotSigns[index] = label
 	plotMarkers[index] = model
 	model.Parent = parent
@@ -357,16 +372,24 @@ local function plotOwnedBy(player: Player): number?
 	return nil
 end
 
--- Levanta las estructuras de la parcela permanente de "player" desde su perfil (las que tienen nivel y
--- ya tienen modelo), quitando antes las que tenía. Sin parcela desbloqueada, solo el cartel de siempre.
+-- Levanta las estructuras de la parcela permanente de "player" desde su perfil (las que tienen nivel),
+-- quitando antes las que tenía. Cada una con el modelo y la vida de su nivel (Shared/PlotModels,
+-- Data/PlotStructures). Sin parcela desbloqueada, solo el cartel de siempre.
 local function rebuildPermanent(player: Player)
 	local index = plotOwnedBy(player)
 	local profile = PlayerData.get(player)
 	if not (index and profile) then
 		return
 	end
+	-- Cada una vuelve con la parte de vida que tenía (subir de nivel en pleno asedio no repara las demás).
+	local healthLeft: { [string]: number } = {}
 	for _, model in structureFolder():GetChildren() do
 		if model:GetAttribute("OwnerUserId") == player.UserId and model:GetAttribute("Permanent") then
+			local structureId = model:GetAttribute("PlotStructure")
+			local health, maxHealth = model:GetAttribute("Health"), model:GetAttribute("MaxHealth")
+			if typeof(structureId) == "string" and typeof(health) == "number" and typeof(maxHealth) == "number" then
+				healthLeft[structureId] = health / maxHealth
+			end
 			removeStructure(model)
 		end
 	end
@@ -378,16 +401,16 @@ local function rebuildPermanent(player: Player)
 	local plot = plots[index]
 	for _, structureId in Plot.STRUCTURES do
 		local level = state.levels[structureId]
-		local buildableId = Plot.BUILDABLE[structureId]
+		local definition = PlotStructures[structureId]
 		local spot = Config.Plot.Layout[structureId]
-		local definition = if buildableId then Buildables[buildableId] else nil
 		if level > 0 and definition and spot then
+			local levelData = definition.levels[level]
 			local position = (plot * CFrame.new(spot.x, 0, spot.z)).Position
 			local groundY = Building.groundAt(position.X, position.Z, center.Y, characters()) or center.Y
 			local cframe = CFrame.new(position.X, groundY + definition.size.Y / 2, position.Z)
 				* plot.Rotation
 				* CFrame.Angles(0, math.rad(spot.yaw), 0)
-			if buildableId == "Bed" then
+			if definition.buildableId == "Bed" then
 				-- La de la parcela sustituye a una cama de la partida.
 				for _, other in structureFolder():GetChildren() do
 					local mine = other:GetAttribute("OwnerUserId") == player.UserId
@@ -396,25 +419,38 @@ local function rebuildPermanent(player: Player)
 					end
 				end
 			end
-			local model = BuildModels.build(buildableId)
+			local model = PlotModels.build(structureId, level)
 			model:PivotTo(cframe)
-			model:SetAttribute("BuildableId", buildableId)
+			-- La pieza de la partida que hace su papel (la cama, el nido): otros sistemas la buscan así.
+			if definition.buildableId then
+				model:SetAttribute("BuildableId", definition.buildableId)
+			end
 			model:SetAttribute("PlotStructure", structureId)
 			model:SetAttribute("Level", level)
 			model:SetAttribute("Permanent", true)
 			model:SetAttribute("OwnerUserId", player.UserId)
 			model:SetAttribute("OwnerName", player.DisplayName)
 			model:SetAttribute("Zone", "Plot")
-			model:SetAttribute("Health", definition.health)
-			model:SetAttribute("MaxHealth", definition.health)
+			local health = math.ceil(levelData.health * (healthLeft[structureId] or 1))
+			model:SetAttribute("Health", health)
+			model:SetAttribute("MaxHealth", levelData.health)
+			if health <= 0 then
+				model:SetAttribute("Broken", true)
+			end
 			if definition.station then
 				model:SetAttribute(Config.Crafting.StationAttribute, definition.station)
 			end
+			if levelData.extraStation then
+				model:SetAttribute(Config.Crafting.ExtraStationAttribute, levelData.extraStation)
+			end
 			model.Parent = structureFolder()
-			if buildableId == "Bed" then
+			if definition.buildableId == "Bed" then
 				player:SetAttribute("RespawnCFrame", cframe * CFrame.new(0, 3, 0))
 			end
 		end
+	end
+	for _, callback in plotBuiltCallbacks do
+		task.spawn(callback, player)
 	end
 end
 
@@ -449,10 +485,39 @@ local function releasePlayer(player: Player)
 	end
 end
 
--- Vuelve a levantar la parcela permanente de "player" desde su perfil: al desbloquearla (PlotService) y,
--- en P3, al subir de nivel una estructura.
+-- Vuelve a levantar la parcela permanente de "player" desde su perfil: al desbloquearla y al subir de
+-- nivel una estructura (PlotService).
 function BuildingService.refreshPlot(player: Player)
 	rebuildPermanent(player)
+end
+
+-- Avisa cada vez que se levanta la parcela permanente de un jugador (PlotService recalcula sus efectos).
+function BuildingService.onPlotBuilt(callback: (player: Player) -> ())
+	table.insert(plotBuiltCallbacks, callback)
+end
+
+-- Estructura "structureId" de la parcela permanente de "player" en la partida, o nil si no la tiene.
+function BuildingService.plotStructure(player: Player, structureId: string): Model?
+	for _, model in structureFolder():GetChildren() do
+		if
+			model:IsA("Model")
+			and model:GetAttribute("PlotStructure") == structureId
+			and model:GetAttribute("OwnerUserId") == player.UserId
+		then
+			return model
+		end
+	end
+	return nil
+end
+
+-- Nivel con que funciona esa estructura ahora mismo: 0 si no la tiene o está rota (asedio).
+function BuildingService.plotLevel(player: Player, structureId: string): number
+	local model = BuildingService.plotStructure(player, structureId)
+	if not model or BuildingService.isBroken(model) then
+		return 0
+	end
+	local level = model:GetAttribute("Level")
+	return if typeof(level) == "number" then level else 0
 end
 
 -- Para el asedio (entrega 2.5) y otros sistemas: carpeta con todas las piezas construidas.
@@ -472,7 +537,11 @@ local function playHitSound(model: Model)
 	end
 	lastHitSound[model] = now
 	local buildableId = model:GetAttribute("BuildableId")
-	local definition = if typeof(buildableId) == "string" then Buildables[buildableId] else nil
+	local plotId = model:GetAttribute("PlotStructure")
+	local definition: { hitSound: string? }? = if typeof(plotId) == "string"
+		then PlotStructures[plotId]
+		elseif typeof(buildableId) == "string" then Buildables[buildableId]
+		else nil
 	local key = if definition and definition.hitSound then definition.hitSound else "StructureHit"
 	Sfx.play(key, model:GetPivot().Position)
 end

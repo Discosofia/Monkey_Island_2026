@@ -208,6 +208,16 @@ local function addStation(stationId: string, instance: Instance)
 	table.insert(stations, { stationId = stationId, anchor = anchor, ownerUserId = if permanent then owner else nil })
 end
 
+-- Las estaciones que marca una pieza (una, o dos con Config.Crafting.ExtraStationAttribute).
+local function addStationsOf(instance: Instance)
+	for _, attribute in { Config.Crafting.StationAttribute, Config.Crafting.ExtraStationAttribute } do
+		local stationId = instance:GetAttribute(attribute)
+		if typeof(stationId) == "string" then
+			addStation(stationId, instance)
+		end
+	end
+end
+
 -- Quita las estaciones de una pieza derribada o rota.
 local function removeStationsIn(instance: Instance)
 	for index = #stations, 1, -1 do
@@ -234,7 +244,10 @@ local function isNearStation(player: Player, stationId: string): boolean
 	end
 	for _, station in stations do
 		local distance = (station.anchor.Position - root.Position).Magnitude
-		local usable = station.ownerUserId == nil or station.ownerUserId == player.UserId
+		-- La de una parcela permanente solo la usa su dueño, y rota (asedio) no funciona.
+		local usable = (station.ownerUserId == nil or station.ownerUserId == player.UserId)
+			and station.anchor.Parent ~= nil
+			and station.anchor.Parent:GetAttribute("Broken") ~= true
 		if
 			usable
 			and station.stationId == stationId
@@ -383,7 +396,7 @@ local function onCraft(player: Player, recipeId: any)
 	end
 	-- Ya se comprobó que alcanza para todo: se gasta y se entrega.
 	for _, cost in recipe.cost do
-		InventoryService.remove(player, cost.itemId, cost.amount)
+		InventoryService.remove(player, cost.itemId, Crafting.costAmount(player, recipe, cost.amount))
 	end
 	grant(player, recipeId, recipe)
 	local character = player.Character
@@ -543,10 +556,7 @@ function CraftingService:Start()
 	Remotes.UseBandage.OnServerEvent:Connect(onUseHeal)
 
 	for _, instance in Workspace:GetDescendants() do
-		local stationId = instance:GetAttribute(Config.Crafting.StationAttribute)
-		if typeof(stationId) == "string" then
-			addStation(stationId, instance)
-		end
+		addStationsOf(instance)
 	end
 	if not hasStation("Workbench") then
 		addStation("Workbench", buildWorkbench())
@@ -560,12 +570,7 @@ function CraftingService:Start()
 	-- Estaciones construidas durante la partida (BuildingService).
 	task.spawn(function()
 		local folder = Workspace:WaitForChild(Building.STRUCTURES_FOLDER)
-		folder.ChildAdded:Connect(function(child)
-			local stationId = child:GetAttribute(Config.Crafting.StationAttribute)
-			if typeof(stationId) == "string" then
-				addStation(stationId, child)
-			end
-		end)
+		folder.ChildAdded:Connect(addStationsOf)
 		folder.ChildRemoved:Connect(removeStationsIn)
 	end)
 

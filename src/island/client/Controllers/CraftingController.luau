@@ -66,8 +66,10 @@ local function costText(player: Player, recipe: Recipes.Recipe): string
 	local parts = {}
 	for _, cost in recipe.cost do
 		local have = Inventory.count(player, cost.itemId)
-		local color = if have >= cost.amount then HAVE_COLOR else MISSING_COLOR
-		table.insert(parts, `<font color="{color}">{Items[cost.itemId].icon} {cost.amount} ({have})</font>`)
+		-- Con la forja o el taller de su parcela pide menos (Shared/Plot).
+		local amount = Crafting.costAmount(player, recipe, cost.amount)
+		local color = if have >= amount then HAVE_COLOR else MISSING_COLOR
+		table.insert(parts, `<font color="{color}">{Items[cost.itemId].icon} {amount} ({have})</font>`)
 	end
 	return table.concat(parts, "   ")
 end
@@ -291,10 +293,20 @@ function CraftingController:Start()
 	end)
 
 	-- Las estaciones de la parcela permanente de otro (Fase 12) solo las usa su dueño: aquí no se ofrecen.
+	-- Rota (asedio) tampoco: así se ve el aviso de repararla, que usa la misma tecla (PlotService).
 	local function hideForeignPrompt(instance: Instance)
 		local owner = instance:GetAttribute("OwnerUserId")
-		if instance:IsA("ProximityPrompt") and instance.Name == PROMPT_NAME and owner ~= nil then
-			instance.Enabled = owner == player.UserId
+		if not (instance:IsA("ProximityPrompt") and instance.Name == PROMPT_NAME and owner ~= nil) then
+			return
+		end
+		local prompt = instance :: ProximityPrompt
+		local model = prompt:FindFirstAncestorOfClass("Model")
+		local function update()
+			prompt.Enabled = owner == player.UserId and not (model and model:GetAttribute("Broken") == true)
+		end
+		update()
+		if model then
+			model:GetAttributeChangedSignal("Broken"):Connect(update)
 		end
 	end
 	Workspace.DescendantAdded:Connect(hideForeignPrompt)

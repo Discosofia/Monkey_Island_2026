@@ -25,6 +25,7 @@ golpe).
 | Contador de munición (arco, honda) con la barrita del carcaj | `src/island/client/Controllers/AmmoHUDController.luau` | `AmmoHUD` | Isla |
 | Cartel de caído / espíritu | `src/island/client/Controllers/LifeController.luau` | `LifeHUD` | Isla |
 | Mesa de fabricación | `src/island/client/Controllers/CraftingController.luau` | `CraftingHUD` | Isla |
+| Ventana «🏡 Tu parcela» (Fase 12; la abre el cartel de tu hueco; en pantallas bajas ocupa todo y va en dos columnas) | `src/island/client/Controllers/PlotController.luau` | `PlotHUD` | Isla |
 | Panel de construcción: en PC, ventana opaca "🔨 Construir" a la derecha (12 piezas en 3 columnas x 4 filas de 118 x 62, unos 382 x 312 px, fondo `Active` para que ningún clic lo atraviese); en un teléfono, una ficha con la pieza elegida y ◀ ▶ (300 x 52) arriba en el centro, a 4 px bajo la barra de Roblox (de noche tapa la vida del campamento mientras se lleva el martillo; decidido por el usuario el 26-10-2026) | `src/island/client/Controllers/BuildController.luau` | `BuildHUD` | Isla |
 | Diario | `src/island/client/Controllers/JournalController.luau` + `src/shared/UI/Journal.luau` | `JournalHUD` | Isla |
 | Tutorial | `src/island/client/Controllers/TutorialController.luau` | `Tutorial` | Isla |
@@ -157,7 +158,7 @@ Reglas que salen de ahí:
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) y `ChainPips` (IgnoreGuiInset: los rombos de la cadena, que siguen los pies del personaje; Fase 10, C12) |
 | 1 | `LiveEvents` (franja de los eventos en vivo, en la barra de Roblox) |
-| 5 | `ActionButtons`, `CraftingHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
+| 5 | `ActionButtons`, `CraftingHUD`, `PlotHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
 | 6 | `JournalHUD`, `ArenaLobby` (Dunas) |
 | 7 | `EmoteWheel` (la rueda de emotes, con velo) |
 | 8 | `SettingsUI` |
