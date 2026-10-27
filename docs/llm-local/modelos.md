@@ -54,6 +54,9 @@
 - El arnés o la silla no puede ser del color de las manchas.
 - No dejes rendijas entre tramos: revisa con una cámara baja.
 - El cuello no es más alto que la cabeza.
+- Serpiente (Quetzalcóatl): secciones achaflanadas que se solapan entre tramos; la S de reposo va en las articulaciones (`rest`).
+- Plumas en hoja de tres cajas gruesas (no palos finos); el penacho, en capas con inclinaciones distintas para que tenga volumen.
+- Si el usuario pide añadir una pieza, no muevas nada más.
 
 ## Cerrar
 

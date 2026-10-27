@@ -1099,8 +1099,13 @@ function LobbyUIController:Start()
 			stroke.Thickness = 2
 			stroke.Enabled = isActive
 			stroke.Parent = row
+			-- Las que no salen de los huevos normales (origin) se ven con su nombre y un candado; las demás, ocultas.
+			local shortName = string.match(mount.name, "^[^,]+") or mount.name
 			local name = Widgets.label(
-				if owned then `{mount.icon} {mount.name} · {rarity.name}` else `❓ ??? · {rarity.name}`,
+				if owned
+					then `{mount.icon} {mount.name} · {rarity.name}`
+					elseif mount.origin then `🔒 {shortName} · {rarity.name}`
+					else `❓ ??? · {rarity.name}`,
 				row
 			)
 			name.Position = UDim2.fromOffset(8, 0)
@@ -1122,7 +1127,7 @@ function LobbyUIController:Start()
 					Remotes.SelectMount:FireServer(if isActive then "" else mountId)
 				end)
 			else
-				setButton(button, "Sale de los huevos", false)
+				setButton(button, mount.origin or "Sale de los huevos", false)
 			end
 		end
 	end

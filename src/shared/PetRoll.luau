@@ -47,7 +47,8 @@ function PetRoll.petsOfRarity(rarity: string): { string }
 	return candidates
 end
 
--- Monturas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza).
+-- Monturas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza). Las míticas
+-- (el Quetzalcóatl) solo saldrán del huevo mítico, que aún no existe: ningún huevo normal es Mítico.
 function PetRoll.mountsOfRarity(rarity: string): { string }
 	local candidates = {}
 	for mountId, mount in Mounts do

@@ -809,6 +809,26 @@ con el **Jaguar Albino Esmeralda** (T5a, 27-10-2026; seis vueltas con el usuario
   `ReplicatedStorage`, requiere `MountModels` del clon y borra el clon. Para presentarlo: espalda, 3/4 y
   frente en fila, con la llama y un avatar R15 de verdad al lado.
 
+Lo aprendido con el **Quetzalcóatl** (T5b, 27-10-2026; tope subido a 360 piezas por el usuario, "lo más
+importante es la cara y el penacho"):
+- **Serpiente:** perfil (Z, altura, ancho) interpolado y secciones achaflanadas por tramo (lomo claro,
+  bandas de dos verdes, vientre); la última sección de cada tramo entra en el siguiente para que al
+  ondular no se abra rendija. La S de reposo va en las articulaciones (`rest` en grados en `joints`:
+  `build` gira el hueso, lo que cuelga de él y sus cajas): en edición y en los `ViewportFrame` se ve la
+  S, y las animaciones suman su onda encima.
+- **Plumas:** palos rectos parecían pajitas, y finas, de canto, palitos: hoja en tres cajas (base,
+  centro ancho y punta de otro tono) **gruesas como bloques**. El penacho, una melena redonda en cuatro
+  capas (rojo largo fuera, naranja, amarillo dentro y unas hacia atrás para el volumen por detrás), con
+  inclinación y fondo algo distintos en cada pluma: todas iguales, de lado era un disco plano. Una
+  pluma sin base empieza a un tercio de su largo: para que nazca del cuerpo, adelanta su inicio.
+- **Cabeza** a escala propia (`HEAD` alrededor de la nuca) para hacerla mayor sin rehacer las medidas.
+- **Ojo:** solo a los lados (con otra cara delante parecía duplicado), bajo una ceja de oro pesada
+  con pestañas de fuego. La ceja acaba en ganchos que se cierran (curva cerrada con hueco): el usuario
+  los ajustó al detalle (grosor igual en los dos, sin hueco entre ellos, sin tapar el ojo). Si pide
+  añadir una pieza, **no muevas nada más**.
+- **Boca abierta** con el giro de reposo de la mandíbula y una garganta oscura en la mandíbula (sin
+  ella se ve el cielo entre las fauces).
+
 ### Skins de mascota (G9c)
 
 `SKINS` al final de PetModels, por id del cosmético (`Data/Cosmetics`, tipo `PetSkin`; las de una

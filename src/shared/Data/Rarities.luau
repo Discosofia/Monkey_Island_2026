@@ -1,7 +1,8 @@
 --!strict
 -- Rarezas del botín (GDD §9.1, Fase 4): nombre y color con que se muestran en el inventario y el diario.
--- Mítico (Fase 9, G9) es solo de cosméticos, por encima de Legendario: nunca sale de un huevo ni del
--- botín. Cuanto más raro, más detalle lleva el diseño (Data/Cosmetics).
+-- Mítico (Fase 9, G9) va por encima de Legendario: los cosméticos míticos y, desde T5b, el Quetzalcóatl
+-- (Data/Mounts: premio de pioneros y huevo mítico). Nunca sale de un huevo normal ni del botín. Cuanto
+-- más raro, más detalle lleva el diseño (Data/Cosmetics).
 
 export type Rarity = { name: string, color: Color3, order: number }
 

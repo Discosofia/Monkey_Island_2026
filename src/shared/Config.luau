@@ -1317,6 +1317,11 @@ local Config = {
 		-- Velocidad del jinete (studs/s) a la que la montura empieza a galopar y a la que galopa del todo.
 		RunFrom = 6,
 		RunFull = 14,
+		-- Planeo de las monturas que planean (Data/Mounts "glide"; UI/MountRiders): al caer con el suelo a
+		-- más de MinHeight studs bajo la montura, empieza a planear sola y baja a FallSpeed studs/s como
+		-- mucho (desde 40 studs, unos 5 s y unos 170 studs de avance montado). Nunca sube. Deja de planear
+		-- con el suelo (o el agua) a menos de Landing studs.
+		Glide = { MinHeight = 8, FallSpeed = 8, Landing = 1.5 },
 	},
 
 	Abilities = {

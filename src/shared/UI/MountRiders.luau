@@ -7,8 +7,12 @@
 -- Animaciones de la montura (Data/Mounts "animations"): "Idle" parada y "Run" al ir rápido (se
 -- mezclan según la velocidad, Config.Mounts.RunFrom / RunFull), "Jump" al saltar y "Gesture" cuando el
 -- servidor avisa del gesto (Remotes.MountGesture): en su marcador ("gesture.marker") sale el efecto
--- (MountModels.gesture: el escupitajo de la llama, el rugido del jaguar). El aura de la montura que la
--- tenga gira más deprisa al galopar (MountModels.animateAura).
+-- (MountModels.gesture: el escupitajo de la llama, el rugido del jaguar, el silbido del Quetzalcóatl).
+-- Los efectos de la montura (el aura, los remolinos, las plumas, la sombra) se avivan al galopar y al
+-- planear (MountModels.animate).
+-- Planeo (Data/Mounts "glide", Config.Mounts.Glide): la que planea, al caer con el suelo lejos, baja
+-- despacio (lo frena el cliente del jinete) y pone su animación "Glide"; los demás clientes lo ven por la
+-- misma regla (cae y el suelo está lejos), sin remoto.
 -- Para el jinete local, además: sube el HipHeight para que vaya sentado encima, pone la pose "Ride"
 -- (Client/BodyAnimations) y lo baja si coge un arma o se mete en el agua. La velocidad la pone quien
 -- la lleva en cada place (SurvivalController en la Isla, MountController en el Lobby) con speedOf.
@@ -32,6 +36,7 @@ local RIDER_LIFT = 0.35
 local JUMP_SPEED, JUMP_GAP = 8, 0.8
 -- Velocidad horizontal a la que la animación de galope va a su ritmo normal.
 local RUN_REFERENCE = 24
+local GLIDE = SETTINGS.Glide
 
 type Rider = {
 	mountId: string,
@@ -40,6 +45,7 @@ type Rider = {
 	seatHeight: number, -- altura del asiento sobre el suelo de la montura
 	tracks: { [string]: AnimationTrack },
 	jumpedAt: number,
+	gliding: boolean,
 }
 
 local MountRiders = {}
@@ -90,6 +96,9 @@ local function loadTracks(model: Model, mountId: string): { [string]: AnimationT
 	if tracks.Run then
 		tracks.Run.Looped = true
 		tracks.Run:Play(0.2, 0.001)
+	end
+	if tracks.Glide then
+		tracks.Glide.Looped = true
 	end
 	local gesture = Mounts[mountId].gesture
 	if tracks.Gesture then
@@ -170,11 +179,26 @@ local function sync(player: Player)
 		seatHeight = seatLocal.Y,
 		tracks = loadTracks(model, mountId),
 		jumpedAt = -math.huge,
+		gliding = false,
 	}
 	riders[player] = rider
 	if player == Players.LocalPlayer then
 		setLocalRider(rider)
 	end
+end
+
+-- ¿Planea "rider"? Su montura planea, cae y el suelo bajo ella está lejos: más de MinHeight para
+-- empezar y más de Landing para seguir.
+local function glides(rider: Rider, velocity: Vector3): boolean
+	if not Mounts[rider.mountId].glide or velocity.Y > (if rider.gliding then 0.5 else -2) then
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { rider.model, rider.root.Parent :: Instance }
+	local feet = rider.root.Position - Vector3.new(0, rider.seatHeight + RIDER_LIFT, 0)
+	local reach = if rider.gliding then GLIDE.Landing else GLIDE.MinHeight
+	return Workspace:Raycast(feet, Vector3.new(0, -reach, 0), params) == nil
 end
 
 local function update(deltaTime: number)
@@ -199,8 +223,28 @@ local function update(deltaTime: number)
 		if tracks.Idle then
 			tracks.Idle:AdjustWeight(math.max(1 - run, 0.001), 0.15)
 		end
-		MountModels.animateAura(rider.model, deltaTime, run)
-		if tracks.Jump and velocity.Y > JUMP_SPEED and os.clock() - rider.jumpedAt > JUMP_GAP then
+		local gliding = glides(rider, velocity)
+		if gliding ~= rider.gliding then
+			rider.gliding = gliding
+			if tracks.Glide then
+				if gliding then
+					if tracks.Jump then
+						tracks.Jump:Stop(0.2)
+					end
+					tracks.Glide:Play(0.3)
+				else
+					tracks.Glide:Stop(0.25)
+				end
+			end
+		end
+		-- El jinete local cae despacio: frena la caída a FallSpeed (con medio paso de gravedad de margen,
+		-- que la física suma antes del siguiente fotograma). Nunca sube.
+		if gliding and rider.root.Parent == Players.LocalPlayer.Character and velocity.Y < -GLIDE.FallSpeed then
+			local fall = -GLIDE.FallSpeed + Workspace.Gravity * deltaTime * 0.5
+			rider.root.AssemblyLinearVelocity = Vector3.new(velocity.X, fall, velocity.Z)
+		end
+		MountModels.animate(rider.model, deltaTime, run, if gliding then 1 else 0, { rider.root.Parent :: Instance })
+		if tracks.Jump and not gliding and velocity.Y > JUMP_SPEED and os.clock() - rider.jumpedAt > JUMP_GAP then
 			rider.jumpedAt = os.clock()
 			tracks.Jump:Play(0.1)
 		end

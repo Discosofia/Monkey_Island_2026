@@ -263,7 +263,11 @@ local function main(copia: Instance): string
 	local Mounts = if MountsModulo then require(MountsModulo) :: any else {}
 	local raresConMontura: { [string]: boolean } = {}
 	for _, montura in Mounts do
-		raresConMontura[montura.rarity] = true
+		-- Las que tienen "origin" (el Quetzalcóatl: premio de pioneros y huevo mítico, aún sin hacer) no
+		-- salen de los huevos normales.
+		if not montura.origin then
+			raresConMontura[montura.rarity] = true
+		end
 	end
 	local chanceMontura = if Config.Mounts and Config.Mounts.EggChance then Config.Mounts.EggChance else 0
 	-- Día (Shared/Daily) en que empieza la simulación: el de la temporada, para que la rotación de la
@@ -1090,6 +1094,13 @@ local function main(copia: Instance): string
 			-- Cada montura por separado (las de una misma rareza se reparten los huevos de esa rareza).
 			local porMontura = {}
 			for _, montura in Mounts do
+				if montura.origin then
+					table.insert(
+						porMontura,
+						`{montura.name} ({montura.rarity}): no sale de los huevos normales ({montura.origin}; aún sin hacer)`
+					)
+					continue
+				end
 				local partes = {}
 				for _, clave in OPCIONES.ordenPerfiles do
 					local sin = resultados[clave].sinMonturaRareza[montura.rarity] or 1

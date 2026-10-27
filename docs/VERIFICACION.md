@@ -845,6 +845,34 @@ Probado en Studio (Isla, 1 jugador): montar el jaguar, reposo y galope, el aura 
 1. [ ] Monta el jaguar en la Isla publicada.
    ✅ Las cuatro animaciones cargan (si el jaguar va rígido, las animaciones no son del dueño del juego).
 
+## 15. Lo que queda por probar de T5b: Quetzalcóatl (27-10-2026)
+
+Probado en Studio (Isla, 1 jugador): montar el Quetzalcóatl, sus cinco animaciones (quieto, avanzar, saltar, planear y silbar), los remolinos, las plumas que caen, la sombra, el silbido (soplo y ráfaga de 18 plumas) y el planeo (desde 45 studs baja a unos 8,8 studs/s, no te baja de la montura y quita la animación al tocar el suelo). Para tenerlo: 👑 Admin → dar la montura «Quetzalcóatl, la Serpiente Emplumada», y llevarla desde el cartel de Mascotas del Lobby.
+
+### 15.1 En el Lobby (▶ Jugar)
+
+1. [ ] Abre la ventana de Mascotas sin tener el Quetzalcóatl.
+   ✅ Sale «🔒 Quetzalcóatl · Mítico» en rojo mítico y el botón gris «Pioneros · Huevo mítico», legible en PC.
+2. [ ] Con el Quetzalcóatl, sube a un tejado o una tarima alta del Lobby y salta montado.
+   ✅ Abre el penacho y los abanicos, baja despacio y deja de planear al llegar al suelo.
+
+### 15.2 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Abre la ventana de Mascotas sin tenerlo.
+   ✅ El texto del botón «Pioneros · Huevo mítico» se lee.
+2. [ ] Montado, mira los botones de abajo a la derecha.
+   ✅ Sale «Silbar»; al tocarlo, silba con la ráfaga de plumas.
+
+### 15.3 Dos jugadores (*Test → Clientes y servidores*, 2 clientes)
+
+1. [ ] El 1 monta el Quetzalcóatl, avanza, silba y salta desde alto; el 2 lo mira.
+   ✅ El 2 ve la onda al avanzar, los remolinos, las plumas, el silbido y el planeo con el plumaje abierto.
+
+### 15.4 En el juego publicado
+
+1. [ ] Monta el Quetzalcóatl en la Isla publicada.
+   ✅ Las cinco animaciones cargan (si va rígido, las animaciones no son del dueño del juego).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

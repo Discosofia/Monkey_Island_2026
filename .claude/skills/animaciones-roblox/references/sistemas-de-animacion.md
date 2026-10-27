@@ -19,7 +19,7 @@ juego para que lo nuevo encaje con el código que las usa.
 | Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/combatClient/Controllers/WeaponController.luau` (cliente) |
 | Cuerpo del jugador sin armas (gestos de habilidades, esquivar, comer, beber, curarse, construir, fabricar, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/combatClient/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `DodgeController`, `SurvivalController`, `HealController`, `BuildController`, `CraftingController` y `LifeController` |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
-| Monturas (Llama Andina, Jaguar Albino Esmeralda) | KeyframeSequence publicada sobre un rig de Motor6D (`Body` desde `Root`; `Neck` → `Head` → `Jaw`, `EarL`/`EarR`; `Tail` (el jaguar, `Tail` → `Tail2` → `Tail3`); `LegFL` → `ShinFL`…), con `AnimationController` | Specs en `src/island/tools/MonkeyAnimationSpecs/Monturas.luau` (cada spec lleva `parents`, su jerarquía), generadas con `MonkeyAnimationBuilder.build("Monturas")` | `src/shared/Data/Mounts.luau` (`animations`: `Run`, `Idle`, `Gesture`, `Jump`) | `src/shared/UI/MountRiders.luau`: `Idle`/`Run` mezcladas por velocidad, `Jump` al saltar y `Gesture` cuando el servidor avisa; en su marcador (`gesture.marker`: "Escupir", "Rugido") llama a `MountModels.gesture` |
+| Monturas (Llama Andina, Jaguar Albino Esmeralda, Quetzalcóatl) | KeyframeSequence publicada sobre un rig de Motor6D (`Body` desde `Root`; `Neck` → `Head` → `Jaw`, `EarL`/`EarR`; `Tail` (el jaguar, `Tail` → `Tail2` → `Tail3`); `LegFL` → `ShinFL`…; el Quetzalcóatl, sin patas: `Body` → `Seg1`…`Seg5` → `TailFan`, `FanL`/`FanR` en `Seg1`, `Jaw` → `Tongue` y `CrestTop`/`CrestL`/`CrestR` en `Head`), con `AnimationController` | Specs en `src/island/tools/MonkeyAnimationSpecs/Monturas.luau` (cada spec lleva `parents`, su jerarquía), generadas con `MonkeyAnimationBuilder.build("Monturas")` | `src/shared/Data/Mounts.luau` (`animations`: `Run`, `Idle`, `Gesture`, `Jump` y, la que planea, `Glide`) | `src/shared/UI/MountRiders.luau`: `Idle`/`Run` mezcladas por velocidad, `Jump` al saltar, `Glide` mientras planea y `Gesture` cuando el servidor avisa; en su marcador (`gesture.marker`: "Escupir", "Rugido", "Silbido") llama a `MountModels.gesture` |
 | Mascotas (Lobby e Isla) | Por código, cada fotograma: senos (`joint`) y, encima, clips con fotogramas clave (`CLIPS`) | `src/shared/PetModels.luau` | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate` y decide qué clip suena; lo arrancan los `PetController` de los dos places |
 | Pose del grito de guerra, de respaldo | Por código, girando articulaciones (solo si la animación `WarCry` no existe) | `src/combatClient/Controllers/AbilityFxController.luau` (`scream`, `poseJoint`) | — | `AbilityFxController` |
 
@@ -302,3 +302,12 @@ monos (`Torso`, `Head`, `Right Arm`…).
   `Anim.measure` antes de mirar la tira.
 - Cola en S: cada tramo repite el giro del anterior con retraso (`tailWave`): arriba y abajo al
   galopar, de lado a lado (eje Y) parado.
+
+Con el **Quetzalcóatl** (T5b):
+- La onda de lado (`sideWave`) va de tramo a tramo con retraso y crece hacia la cola. El planeo
+  deshace parte de la S de reposo restando el `rest` de cada tramo.
+- **Los giros en X se suman a lo largo de la cola**: 4° en cada tramo bajaban la punta casi 3 studs.
+  Si el lomo se alza (`Body` en X), inclina el primer tramo al revés o la cola toca el suelo.
+- Una tira de un modelo largo sale en fila de cabeza a cola: para la onda de lado, recoloca las copias
+  en paralelo y míralas desde arriba.
+- Flota a 1,7 studs: un "se hunde" de `Anim.show` de menos de eso no toca el suelo, pero se ve feo.

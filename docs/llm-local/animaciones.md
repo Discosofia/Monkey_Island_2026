@@ -61,3 +61,4 @@ return Anim.measure(rig, ks)      -- altura de cada extremidad por instante
 - Las specs van en `MonkeyAnimationSpecs/Monturas.luau`, con `parents` (la jerarquía de huesos de la montura). Se generan con `MonkeyAnimationBuilder.build("Monturas")` y se enlazan en `Data/Mounts` (`Run`, `Idle`, `Gesture`, `Jump`).
 - El gesto (escupir, rugir) lleva un marcador con el nombre de `gesture.marker`: ahí sale el efecto.
 - En el galope, mide con `Anim.measure`: un lomo que cabecea mucho clava las manos en el suelo.
+- La que planea tiene además `Glide`. En una cola en tramos, los giros en X se suman: pocos grados por tramo.
