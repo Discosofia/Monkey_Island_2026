@@ -1,4 +1,4 @@
-# Verificación paso a paso (entregas 2.3 a 6.5, la arena de Dunas y las Fases 9 y 10)
+# Verificación paso a paso (entregas 2.3 a 6.5, la arena de Dunas, las Fases 9 y 10 y los pedidos del 26-10-2026)
 
 Sigue los bloques en orden. Cada bloque dice **qué hacer**, **qué debe pasar ✅** y **qué hacer si falla ⚠️**.
 Marca cada casilla al comprobarla.
@@ -765,6 +765,59 @@ Antes, la copia de tu perfil (§10.0): la migración cambia tus mascotas repetid
    ✅ El jugador 2 ya no sale en la lista.
 4. [ ] Publicado: regala a alguien y que salga del servidor justo antes de pagar.
    ✅ El que paga ve "lo recibirá al entrar"; el otro lo recibe al entrar a cualquier place.
+
+## 13. Lo que queda por probar de T2 y T4 (27-10-2026)
+
+Lo demás de estas tandas ya se probó en Studio al hacerlas. Antes, la copia de tu perfil (§10.0; o, siendo administrador, 👑 Admin → 🛡️ en tu fila → 📋 Perfil → 📦 Hacer copia).
+
+### 13.1 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] **Isla**: coge el martillo (T2).
+   ✅ Arriba en el centro, a 4 px de la barra de Roblox, la ficha de la pieza elegida con ◀ ▶ (300 × 52). Se lee y los botones se pulsan.
+2. [ ] **Lobby**: con el panel 👑 Admin → 🎉 Eventos, lanza dos eventos en «Este servidor» (por ejemplo, 💰 Doble Ámbar y 🍀 Suerte de huevo) (T4b).
+   ✅ La franja de la barra de Roblox enseña dos pastillas con icono y tiempo ("💰 14:59") sin tapar los iconos del menú del Lobby. Tocar una explica el evento.
+3. [ ] Lo mismo en la **Isla** y en **Dunas**.
+   ✅ Las pastillas no tapan las fichas de las misiones (Isla) ni el marcador de banderas (Dunas).
+
+### 13.2 Dos jugadores (*Test → Clientes y servidores*, 2 clientes)
+
+El jugador 1 es el administrador (en Studio, el dueño del juego); el 2, un jugador normal.
+
+1. [ ] **Lobby**, 👑 Admin → 👥 Jugadores → 🛡️ en la fila del jugador 2 → 🔇 5 min (T4c).
+   ✅ El 2 recibe "🔇 Un administrador te ha silenciado…" y no puede escribir en el chat; 🔊 Quitar lo devuelve.
+2. [ ] ❄️ Congelar y 🔥 Descongelar al jugador 2.
+   ✅ El 2 no se puede mover hasta descongelarlo; si se resetea congelado, reaparece congelado.
+3. [ ] 📍 Ir hasta y 👁 Espiar al jugador 2.
+   ✅ El 1 aparece junto al 2; con Espiar, su cámara sigue al 2 hasta "Dejar de espiar" o cerrar la ventana.
+4. [ ] 📋 Perfil del jugador 2 → 🗑️ Quitar una mascota (dos toques).
+   ✅ El 2 deja de tenerla en la ventana de mascotas.
+5. [ ] 👢 Expulsar al jugador 2 con un motivo (dos toques).
+   ✅ El 2 sale con "Te ha expulsado un administrador. Motivo: …".
+6. [ ] **Isla**, los dos en la partida, fuera del Basecamp. El 1: 🎉 Eventos → «Este servidor» → 👹 Ser gigante (T4e).
+   ✅ El 1 crece con su corona; la barra de jefe dice "👹 …, el gigante · fase 1/3" y su vida es 3600 × 1,75 = 6300.
+7. [ ] El 1 usa 🦶 Pisotón (I), 🌊 Ola (O) y 📣 Rugido (P) con el 2 dentro de los avisos naranjas.
+   ✅ El 2 pierde 35, 25 y 10 y queda aturdido 1 s y 1,5 s; dentro del Basecamp no le pasa nada. El 1 también le puede pegar con su rol.
+8. [ ] Que el gigante tumbe al 2.
+   ✅ El 2 queda caído (como en el PvP) y el gigante no cobra recompensa.
+9. [ ] El 2 pega al gigante hasta derribarlo (para ir rápido, el 1 se baja la vida desde la Salida del servidor: `game.Players.<nombre>.Character.Humanoid.Health = 50`).
+   ✅ "👹 ¡El gigante ha caído! Premio para …"; el 2 recibe el título «👹 Matagigantes» (en el Armario) y un huevo legendario; el 1 vuelve a su tamaño.
+
+### 13.3 En el juego publicado (con 2 servidores abiertos o un amigo en otro servidor)
+
+1. [ ] 👑 Admin → 📢 Todos → anuncio en «🌍 Todos los servidores» (T4a).
+   ✅ El cartel "📢 Anuncio · …" sale en los dos servidores, también en la Isla y en Dunas.
+2. [ ] «🌍 Elegir · todos» → un huevo común (dos toques).
+   ✅ Los jugadores de los dos servidores lo reciben; en 📜 Registro sale una sola vez.
+3. [ ] 🎉 Eventos → «🌍 Todos» → 💰 Doble Ámbar en +5 min.
+   ✅ En todos los servidores sale "⏳ … en 4:59"; un servidor que se abre después también lo ve; ⏹ Parar lo quita en todos.
+4. [ ] 🏝️ Ahora en la Isla → «🌍 Todos» → ⛈️ Tormenta desde el Lobby.
+   ✅ Llueve en las partidas de la Isla que estén abiertas.
+5. [ ] 🖥️ Servidor → 🔄 Actualizar.
+   ✅ Sale cada servidor con su place, jugadores, FPS y tiempo encendido.
+6. [ ] ⛔ Banear 1 h a una **cuenta de pruebas** desde 🛡️ (dos toques), y luego ✅ Quitar baneo con su nombre (T4c).
+   ✅ La cuenta sale y no puede entrar a ningún place, con el motivo; tras quitarlo, entra.
+7. [ ] 🛠️ Mantenimiento en 1 min (dos toques), justo antes de publicar una actualización (T4d).
+   ✅ Anuncio y cuenta atrás en todos los servidores; al acabar, los jugadores salen con "🛠️ El juego está en mantenimiento…" y durante 10 min no pueden entrar (tú sí). Se cancela con ⏹ en 🎉 Eventos.
 
 ## Cuando termines
 

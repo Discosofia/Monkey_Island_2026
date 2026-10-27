@@ -50,6 +50,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 7. **Estilo de código:** `--!strict` donde ya está, tabs, 120 columnas y LF. Imita los nombres, comentarios y funciones de ayuda del archivo que tocas.
 8. Al terminar, pasa `stylua src` y `selene src`, y `rojo build <place>.project.json --output build/<place>.rbxl`.
 9. **No hagas commits ni push.** Los hace el usuario o Claude, cuando el usuario dice "aprobado".
+10. **Lo que no hayas podido probar, apúntalo en `docs/VERIFICACION.md`**: una sección nueva con pasos `1. [ ] …` y debajo `✅ lo que debe pasar`, agrupados por cómo se prueban (teléfono, 2 jugadores, juego publicado).
 
 ## Roblox Studio por MCP (servidor `Roblox_Studio`)
 

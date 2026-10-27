@@ -66,6 +66,7 @@ print(require(m).informe()); m:Destroy()
 - No se editan en Studio los scripts sincronizados: Rojo los sobrescribe.
 - Al escribir archivos con Python en Windows, hay que forzar LF (`newline=""`).
 - Flujo de trabajo: cada grupo de `docs/PLAN.md` es una sesión. Se prueba en Studio y con la calculadora, después se hace el commit, y el push solo cuando el usuario dice "aprobado". Entonces se marca la fila en `PLAN.md` en un commit aparte.
+- **Lo que queda sin probar va a `docs/VERIFICACION.md`.** Si algo no se ha podido probar (hacen falta 2 jugadores, el juego publicado, el emulador de teléfono…), se apunta allí como sección nueva, en su formato (`1. [ ] paso` y debajo `✅ lo que debe pasar`), agrupado por cómo se prueba, y va en el mismo commit que el cambio. `PLAN.md`, los handoffs y el resumen al usuario solo remiten a esa sección.
 
 ## Studio y MCP: trampas conocidas
 
