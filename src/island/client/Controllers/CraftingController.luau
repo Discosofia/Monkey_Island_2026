@@ -14,6 +14,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
@@ -288,6 +289,18 @@ function CraftingController:Start()
 			open(anchor, id :: string)
 		end
 	end)
+
+	-- Las estaciones de la parcela permanente de otro (Fase 12) solo las usa su dueño: aquí no se ofrecen.
+	local function hideForeignPrompt(instance: Instance)
+		local owner = instance:GetAttribute("OwnerUserId")
+		if instance:IsA("ProximityPrompt") and instance.Name == PROMPT_NAME and owner ~= nil then
+			instance.Enabled = owner == player.UserId
+		end
+	end
+	Workspace.DescendantAdded:Connect(hideForeignPrompt)
+	for _, instance in Workspace:GetDescendants() do
+		hideForeignPrompt(instance)
+	end
 
 	-- Inventario, recetas fabricadas o estado de vida: cualquier atributo del jugador refresca.
 	player.AttributeChanged:Connect(function(attribute: string)

@@ -681,12 +681,13 @@ local Config = {
 		Reach = 30,
 		-- Núcleo compartido: círculo alrededor del centro del Basecamp donde cualquiera construye.
 		CoreRadius = 40,
-		-- Parcelas personales: cuántas, a qué distancia del centro y de qué tamaño (cuadradas).
-		PlotCount = 20,
+		-- Parcelas personales (Fase 12): una por jugador (5), a qué distancia del centro y de qué tamaño
+		-- (cuadradas, para que quepan las 7 estructuras de la parcela permanente, Config.Plot).
 		PlotRingRadius = 62,
-		PlotSize = 13,
-		-- Grados libres a cada lado de los 4 portones, para que las parcelas no tapen los caminos.
-		GateGapDegrees = 18,
+		PlotSize = 24,
+		-- Ángulo de cada parcela (grados; los 4 portones están en 0, 90, 180 y 270). Tres cuadrantes
+		-- tienen una en medio y el cuarto, dos: así ninguna pisa el camino de un portón.
+		PlotAngles = { 45, 135, 225, 299, 331 },
 		-- Perímetro: hasta dónde se pueden poner defensas (la empalizada de MapBuilder está a 81).
 		PerimeterRadius = 92,
 		-- Piezas como máximo por jugador, y parte del coste que se devuelve al derribar.
@@ -696,6 +697,21 @@ local Config = {
 		OverlapShrink = 0.6,
 		BuildCooldownSeconds = 0.25,
 		-- Piezas: ver Shared/Data/Buildables.
+	},
+
+	Plot = {
+		-- Parcela permanente (Fase 12, Shared/Plot): sitio de cada estructura dentro de la parcela, en
+		-- studs desde su centro (X a lo ancho; Z hacia la empalizada, así que -Z mira al centro del
+		-- Basecamp y al cartel) y su giro en grados. La columna del medio queda libre para entrar.
+		Layout = {
+			Forge = { x = -8, z = 7.5, yaw = 180 },
+			Nest = { x = 0, z = 7.5, yaw = 180 },
+			Healer = { x = 8, z = 7.5, yaw = 180 },
+			Garden = { x = -8, z = -1.5, yaw = 90 },
+			Bed = { x = 8, z = -1.5, yaw = 0 },
+			Chest = { x = -8, z = -8.5, yaw = 90 },
+			Incubator = { x = 8, z = -8.5, yaw = 270 },
+		},
 	},
 
 	Fever = {

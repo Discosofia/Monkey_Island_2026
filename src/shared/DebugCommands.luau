@@ -48,6 +48,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "BasecampHurt", label = "🏕️ Campamento al 10 %" },
 		{ id = "Defeat", label = "💀 Terminar: derrota" },
 		{ id = "Victory", label = "🚁 Terminar: victoria (rescate)" },
+		{ id = "PlotLevels", label = "🏡 Parcela: desbloquear y subir sus estructuras un nivel" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

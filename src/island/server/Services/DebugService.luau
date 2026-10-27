@@ -14,6 +14,7 @@ local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
+local Plot = require(ReplicatedStorage.Shared.Plot)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
@@ -25,6 +26,7 @@ local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
+local BuildingService = require(script.Parent.BuildingService)
 local BossService = require(script.Parent.BossService)
 local ContractService = require(script.Parent.ContractService)
 local Admin = require(ServerScriptService.ServerShared.Admin)
@@ -586,6 +588,21 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Victory = function()
 		MatchService.endMatch("Victory", true)
+	end,
+	-- Parcela permanente (Fase 12): la desbloquea y sube un nivel cada estructura (de 3 vuelve a 0).
+	PlotLevels = function(player)
+		local level = 0
+		PlayerData.update(player, function(profile)
+			local state = Plot.normalize(profile.plot)
+			state.unlocked = true
+			for _, structureId in Plot.STRUCTURES do
+				state.levels[structureId] = (state.levels[structureId] + 1) % (Plot.MAX_LEVEL + 1)
+				level = state.levels[structureId]
+			end
+			profile.plot = state :: any
+		end)
+		BuildingService.refreshPlot(player)
+		Remotes.Notify:FireClient(player, `🏡 Estructuras de la parcela al nivel {level}`)
 	end,
 }
 

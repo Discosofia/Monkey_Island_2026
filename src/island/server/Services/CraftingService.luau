@@ -51,7 +51,8 @@ local DARK_WOOD = Color3.fromRGB(85, 55, 32)
 
 local CraftingService = {}
 
-type Station = { stationId: string, anchor: BasePart }
+-- "ownerUserId": la de una parcela permanente (Fase 12) solo la usa su dueño.
+type Station = { stationId: string, anchor: BasePart, ownerUserId: number? }
 
 local stations: { Station } = {}
 local canCraft = RequestCooldown.new(Config.Crafting.CraftCooldownSeconds)
@@ -197,8 +198,14 @@ local function addStation(stationId: string, instance: Instance)
 	prompt.MaxActivationDistance = Config.Crafting.UseDistance
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("StationId", stationId)
+	if instance:GetAttribute("Permanent") == true then
+		-- De una parcela permanente: el cliente de los demás esconde el aviso (CraftingController).
+		prompt:SetAttribute("OwnerUserId", instance:GetAttribute("OwnerUserId"))
+	end
 	prompt.Parent = anchor
-	table.insert(stations, { stationId = stationId, anchor = anchor })
+	local owner = instance:GetAttribute("OwnerUserId")
+	local permanent = instance:GetAttribute("Permanent") == true and typeof(owner) == "number"
+	table.insert(stations, { stationId = stationId, anchor = anchor, ownerUserId = if permanent then owner else nil })
 end
 
 -- Quita las estaciones de una pieza derribada o rota.
@@ -227,7 +234,12 @@ local function isNearStation(player: Player, stationId: string): boolean
 	end
 	for _, station in stations do
 		local distance = (station.anchor.Position - root.Position).Magnitude
-		if station.stationId == stationId and distance <= Config.Crafting.UseDistance + DISTANCE_TOLERANCE then
+		local usable = station.ownerUserId == nil or station.ownerUserId == player.UserId
+		if
+			usable
+			and station.stationId == stationId
+			and distance <= Config.Crafting.UseDistance + DISTANCE_TOLERANCE
+		then
 			return true
 		end
 	end

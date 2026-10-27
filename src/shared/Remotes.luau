@@ -186,6 +186,9 @@ local Remotes = {
 	LoginClaimed = remoteEvent("LoginClaimed"),
 	-- Cliente -> servidor (Lobby): ha visto la ventana de bienvenida (Shared/Pioneer.shouldWelcome).
 	WelcomeSeen = remoteEvent("WelcomeSeen"),
+	-- Cliente -> servidor (los tres places): ha visto la ventana de bienvenida a su parcela permanente
+	-- (Shared/Plot, UI/PlotWelcome).
+	PlotWelcomeSeen = remoteEvent("PlotWelcomeSeen"),
 	-- Cliente -> servidor (Lobby): cambiar gratis una misión sin cumplir ("daily" | "weekly", su
 	-- posición). ServerShared/Retention.reroll; la respuesta llega como aviso y en "Retention".
 	RerollMission = remoteEvent("RerollMission"),

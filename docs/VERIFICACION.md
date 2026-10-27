@@ -990,6 +990,32 @@ Lo que falta: una victoria de verdad (con la baliza), dos jugadores y el juego p
 1. [ ] Gana una partida y elige seguir. Desde otra cuenta, intenta entrar en ese servidor (Unirse desde un amigo).
    ✅ Sale «Esta partida ha terminado: volviendo al Lobby» y te devuelve al Lobby.
 
+### P2. Desbloqueo y 5 huecos
+
+Probado en Studio (1 jugador):
+- **Huecos:** hay 5 parcelas de 24×24 entre el núcleo y la empalizada. Ninguna pisa el camino de un portón.
+- **Migración:** un perfil v11 con `rescues = 1` pasa a v12 con la parcela desbloqueada. Su hueco sale como «🏡 Parcela de …», con el borde más grueso, de piedra y oro. La bienvenida sale en la Isla y en el Lobby (aquí, después del calendario) y no se repite.
+- **Victoria:** con la parcela sin desbloquear, «🚁 Terminar: victoria (rescate)» la desbloquea. El cartel cambia enseguida y la bienvenida espera a que se cierre la ventana de resultados.
+- **Volver a entrar:** «🏡 Parcela: desbloquear y subir sus estructuras un nivel» levanta en su sitio la forja, el taller, el nido y la cama. Al salir y volver a entrar, la parcela vuelve con ellas. El servidor no deja derribarlas.
+
+Lo que falta: el asedio contra las estructuras de la parcela y dos jugadores.
+
+#### 18.4 El asedio contra la parcela (Isla, ▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+
+1. [ ] Pulsa «🏡 Parcela: desbloquear y subir sus estructuras un nivel», salta a la noche y deja que los monos golpeen la forja de tu parcela hasta dejarla a 0.
+   ✅ La forja no desaparece: sigue en su sitio, rota. Al repararla o al amanecer vuelve a tener vida.
+
+#### 18.5 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] El jugador 1 pulsa «🏡 Parcela: desbloquear y subir sus estructuras un nivel». El jugador 2 va a la parcela del 1 y se acerca a su forja y a su taller.
+   ✅ El 2 ve la parcela, el cartel con el nombre del 1 y las estructuras, pero no le sale el aviso para usar la forja ni el taller. Al 1 sí le sale.
+2. [ ] El jugador 2 intenta construir dentro de la parcela del 1 o derribar algo suyo.
+   ✅ No le deja: «solo en tu parcela…» o «Esta pieza es de …».
+3. [ ] Con el nido de la parcela del 1 puesto, construid el nido del Basecamp en el núcleo.
+   ✅ Se puede: el nido de la parcela no cuenta para el límite de uno por servidor.
+4. [ ] El jugador 1 sale de la partida.
+   ✅ Su parcela queda libre («Parcela libre», borde de madera) y sus estructuras desaparecen.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

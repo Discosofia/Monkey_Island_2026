@@ -16,7 +16,7 @@
 -- un JSON con sus provisiones, su calendario y sus misiones del día y de la semana (ServerShared/Retention), y
 -- "Season", un JSON con su progreso en el pase de temporada (Shared/SeasonPass), y "Pioneer", un JSON
 -- con si es pionero y sus tiradas (Shared/Pioneer), y "Ultimates", un JSON con la definitiva que ha
--- elegido para cada rol (Shared/RoleAbilities).
+-- elegido para cada rol (Shared/RoleAbilities), y "Plot", un JSON con su parcela permanente (Shared/Plot).
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -27,6 +27,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Pioneer = require(ReplicatedStorage.Shared.Pioneer)
+local Plot = require(ReplicatedStorage.Shared.Plot)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
@@ -85,6 +86,9 @@ export type Profile = {
 	-- Definitiva elegida por rol (versión 11, T7, 27-10-2026): { [rol] = id de Data/Roles }; sin elegir,
 	-- la del hueco 4 (Shared/RoleAbilities).
 	ultimates: { [string]: string },
+	-- Parcela permanente (versión 12, Fase 12, 27-10-2026): desbloqueada al ganar, niveles de sus
+	-- estructuras y cofre (Shared/Plot).
+	plot: { [string]: any },
 }
 
 type Session = {
@@ -103,7 +107,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 11,
+		version = 12,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -136,9 +140,12 @@ local function defaultProfile(): Profile
 		notices = {},
 		pioneer = {},
 		ultimates = {},
+		plot = Plot.normalize(nil) :: any,
 	}
 end
 
+-- Versión 12: la parcela permanente ("plot"; "reconcile" la rellena). Quien ya había ganado alguna
+-- partida ("rescues") la tiene desbloqueada.
 -- Versión 11: la definitiva elegida por rol ("ultimates"; "reconcile" lo rellena vacío: todos llevan la
 -- de siempre hasta que elijan otra).
 -- Versión 10: bienvenida de pioneros ("pioneer"; "reconcile" lo rellena vacío). Quien entra antes del
@@ -199,6 +206,12 @@ local function migrate(profile: Profile, fromVersion: number, data: any)
 			)
 		end
 	end
+	-- Siempre completa (un perfil guardado a medias no deja huecos en los niveles ni en el cofre).
+	local plot = Plot.normalize(profile.plot)
+	if fromVersion < 12 and profile.rescues > 0 then
+		plot.unlocked = true
+	end
+	profile.plot = plot :: any
 	profile.version = defaultProfile().version
 end
 
@@ -286,6 +299,7 @@ local function publish(player: Player, session: Session)
 	player:SetAttribute("Season", HttpService:JSONEncode(profile.season))
 	player:SetAttribute("Pioneer", HttpService:JSONEncode(Pioneer.normalize(profile.pioneer)))
 	player:SetAttribute("Ultimates", HttpService:JSONEncode(profile.ultimates))
+	player:SetAttribute("Plot", HttpService:JSONEncode(profile.plot))
 	player:SetAttribute("LobbyGuideDone", profile.lobbyGuideDone)
 	player:SetAttribute("CombatGuideDone", profile.combatGuideDone)
 end
@@ -592,6 +606,12 @@ function PlayerData.start()
 		local values = Settings.sanitize(raw)
 		PlayerData.update(player, function(profile)
 			profile.settings = values :: any
+		end)
+	end)
+	-- La ventana de bienvenida a la parcela (UI/PlotWelcome) sale en cualquier place: se ve una vez.
+	Remotes.PlotWelcomeSeen.OnServerEvent:Connect(function(player)
+		PlayerData.update(player, function(profile)
+			profile.plot.noticeShown = true
 		end)
 	end)
 	Players.PlayerAdded:Connect(onPlayerAdded)

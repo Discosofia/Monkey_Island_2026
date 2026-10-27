@@ -4,8 +4,9 @@
 --
 -- El Basecamp se divide en:
 --   - Núcleo compartido: un círculo de Config.Building.CoreRadius alrededor del centro.
---   - Parcelas personales: Config.Building.PlotCount cuadrados en un anillo, dejando libres los
---     caminos de los 4 portones. Cada jugador recibe una al entrar (atributo "PlotIndex").
+--   - Parcelas personales: un cuadrado por ángulo de Config.Building.PlotAngles en un anillo, dejando
+--     libres los caminos de los 4 portones. Cada jugador recibe una al entrar (atributo "PlotIndex");
+--     quien ya ha ganado una vez la tiene permanente (Shared/Plot).
 --   - Perímetro (Fase 2.5): el resto del Basecamp hasta Config.Building.PerimeterRadius, incluidos
 --     los portones. Ahí van las defensas: muros, estacas y antorchas.
 
@@ -30,21 +31,15 @@ function Building.center(): Vector3?
 	return if typeof(value) == "Vector3" then value else nil
 end
 
--- Parcelas: CFrames en el suelo, mirando hacia el centro. Siempre salen en el mismo orden.
+-- Parcelas: CFrames en el suelo, mirando hacia el centro, una por ángulo de Config.Building.PlotAngles.
+-- Siempre salen en el mismo orden.
 function Building.plots(center: Vector3): { CFrame }
 	local settings = Config.Building
-	local perQuadrant = math.max(1, settings.PlotCount // 4)
-	local gap = math.rad(settings.GateGapDegrees)
 	local plots = {}
-	for quadrant = 0, 3 do
-		local first = quadrant * math.pi / 2 + gap
-		local last = (quadrant + 1) * math.pi / 2 - gap
-		for i = 0, perQuadrant - 1 do
-			local t = if perQuadrant == 1 then 0.5 else i / (perQuadrant - 1)
-			local angle = first + (last - first) * t
-			local position = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * settings.PlotRingRadius
-			table.insert(plots, CFrame.lookAt(position, Vector3.new(center.X, position.Y, center.Z)))
-		end
+	for _, degrees in settings.PlotAngles do
+		local angle = math.rad(degrees)
+		local position = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * settings.PlotRingRadius
+		table.insert(plots, CFrame.lookAt(position, Vector3.new(center.X, position.Y, center.Z)))
 	end
 	return plots
 end
