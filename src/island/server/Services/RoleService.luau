@@ -95,7 +95,8 @@ function RoleService.refreshPerks(player: Player)
 	publishPerks(player)
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	if humanoid then
+	-- El administrador gigante (GiantAdminService) lleva su propia vida mientras lo es.
+	if humanoid and player:GetAttribute("AdminBoss") ~= true then
 		humanoid.MaxHealth = BASE_HEALTH + Progression.perk(player, "MaxHealth")
 	end
 end

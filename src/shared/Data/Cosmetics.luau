@@ -8,7 +8,8 @@
 --   - amber: precio en Ámbar (tienda de Ámbar). season: premio del pase de esa temporada (Data/Seasons,
 --     lo entrega ServerShared/SeasonPass).
 --   - earned: se gana jugando ("Rescue": ganar una partida de verdad; "MasterVictory": ganarla con el
---     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService). Ni en
+--     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService;
+--     "GiantSlayer": derribar al administrador convertido en gigante, island/GiantAdminService). Ni en
 --     Studio es gratis.
 --   - free: lo tiene todo el mundo desde el principio (los emotes de serie).
 -- Un id de Robux a 0 sale como "Próximamente" (en Studio se prueba gratis con
@@ -59,7 +60,7 @@ export type Source = {
 	price: number?,
 	amber: number?,
 	season: string?,
-	earned: ("Rescue" | "MasterVictory")?,
+	earned: ("Rescue" | "MasterVictory" | "GiantSlayer")?,
 	free: boolean?,
 }
 
@@ -134,6 +135,18 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(255, 160, 70),
 		source = { earned = "Rescue" },
 		title = "🏝️ Superviviente de la Isla",
+	},
+	-- Solo de un evento: derribar al administrador convertido en gigante (T4e).
+	TitleGiantSlayer = {
+		name = "Título: Matagigantes",
+		icon = "👹",
+		kind = "Title",
+		description = "Solo para quien ayudó a derribar al gigante en un evento de la Isla.",
+		order = 6,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 205, 70),
+		source = { earned = "GiantSlayer" },
+		title = "👹 Matagigantes",
 	},
 	BananaAura = {
 		name = "Aura de banana",

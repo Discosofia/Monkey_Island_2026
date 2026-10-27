@@ -292,6 +292,10 @@ local function onIslandAction(admin: Player, action: any, scope: any)
 		Remotes.Notify:FireClient(admin, "🏝️ Aquí no hay partida de la Isla: elige «Todos los servidores»")
 		return
 	end
+	if action == "Giant" and (scope ~= "Server" or place ~= "Island") then
+		Remotes.Notify:FireClient(admin, "👹 Ser gigante es solo en tu partida de la Isla: elige «Este servidor»")
+		return
+	end
 	local info = IslandActions[action]
 	AdminLog.add(admin, "Isla", `{info.icon} {info.name} · {SCOPE_TEXT[scope]}`)
 	if not AdminNet.send("IslandAction", { action = action, admin = admin.UserId }, scope) then

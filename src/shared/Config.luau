@@ -857,6 +857,35 @@ local Config = {
 		-- Lista de servidores: cuánto se espera a que respondan.
 		ServerListSeconds = 3,
 	},
+	-- El administrador convertido en jefe gigante en la Isla (T4e, island/server/Services/GiantAdminService):
+	-- su personaje crece, pelea con su rol y con tres golpes de jefe con aviso en el suelo, y los que le
+	-- pegan se llevan el premio al derribarlo. Medido con Equilibrio (sección 3, jefes): con las armas del
+	-- día 8 un jugador le quita unos 23 por segundo (las armas pegan entero a un jugador y las habilidades
+	-- ×0,5), así que con 4 jugadores (vida ×3,25) cae en unos 2 minutos.
+	GiantAdmin = {
+		Scale = 2.5,
+		BaseHealth = 3600,
+		-- Vida × (1 + esto × (jugadores − 1)), como los jefes.
+		HealthPerExtraPlayer = 0.75,
+		-- Los golpes (daño contra 100 de vida base; los avisos son imbloqueables y en el Basecamp no
+		-- alcanzan). Algo por debajo del pisotón del Gorila de Ceniza (49 + 1,5 s cada 12 s), porque el
+		-- gigante además usa su rol.
+		Stomp = { radius = 16, damage = 35, stunSeconds = 1, warnSeconds = 1, cooldown = 7 },
+		Wave = {
+			impacts = 5,
+			spacing = 8,
+			radius = 6,
+			damage = 25,
+			warnSeconds = 0.8,
+			stepSeconds = 0.12,
+			cooldown = 9,
+		},
+		Roar = { radius = 28, damage = 10, stunSeconds = 1.5, warnSeconds = 1.2, cooldown = 15 },
+		-- Premio para los que le han pegado (un intento de golpe en los CreditSeconds antes de perder vida).
+		RewardTitle = "TitleGiantSlayer",
+		RewardEgg = "Legendary",
+		CreditSeconds = 1.5,
+	},
 	-- Eventos en vivo que lanza un administrador (T4b; catálogo en Data/LiveEvents, servidor en
 	-- ServerShared/LiveEventsServer). Son gratis para todos: nada de esto se vende.
 	LiveEvents = {

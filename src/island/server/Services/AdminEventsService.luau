@@ -17,6 +17,7 @@ local AdminNet = require(ServerScriptService.ServerShared.AdminNet)
 local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
 local DayNightService = require(script.Parent.DayNightService)
+local GiantAdminService = require(script.Parent.GiantAdminService)
 local MatchService = require(script.Parent.MatchService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local SupplyService = require(script.Parent.SupplyService)
@@ -106,6 +107,17 @@ local ACTIONS: { [string]: () -> boolean } = {
 
 function AdminEventsService:Start()
 	AdminNet.on("IslandAction", function(data: any)
+		-- "Ser gigante": al propio administrador, si está en esta partida (GiantAdminService).
+		if typeof(data) == "table" and data.action == "Giant" then
+			local admin = Players:GetPlayerByUserId(data.admin)
+			if admin and not MatchService.isOver() then
+				local done, reason = GiantAdminService.toggle(admin)
+				if not done and reason then
+					Remotes.Notify:FireClient(admin, reason)
+				end
+			end
+			return
+		end
 		local action = if typeof(data) == "table" then ACTIONS[data.action] else nil
 		if not action or MatchService.isOver() then
 			return

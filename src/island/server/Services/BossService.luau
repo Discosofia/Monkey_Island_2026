@@ -136,16 +136,24 @@ local function bubble(boss: ActiveBoss, text: string)
 	Debris:AddItem(billboard, 1.5)
 end
 
+-- true mientras hay atributos de un jefe publicados (para borrarlos una sola vez al irse: sin jefe, el
+-- administrador gigante usa los mismos atributos, GiantAdminService).
+local published = false
+
 local function publish()
 	local boss = current
 	if not boss then
-		for _, name in
-			{ "BossId", "BossName", "BossHealth", "BossMaxHealth", "BossPhase", "BossPosition", "BossFighting" }
-		do
-			ReplicatedStorage:SetAttribute(name, nil)
+		if published then
+			published = false
+			for _, name in
+				{ "BossId", "BossName", "BossHealth", "BossMaxHealth", "BossPhase", "BossPosition", "BossFighting" }
+			do
+				ReplicatedStorage:SetAttribute(name, nil)
+			end
 		end
 		return
 	end
+	published = true
 	ReplicatedStorage:SetAttribute("BossId", boss.id)
 	ReplicatedStorage:SetAttribute("BossName", boss.definition.name)
 	ReplicatedStorage:SetAttribute("BossHealth", math.max(0, boss.humanoid.Health))
@@ -266,6 +274,11 @@ local function rescaleHealth(boss: ActiveBoss)
 		humanoid.MaxHealth = maxHealth
 		humanoid.Health = health
 	end
+end
+
+-- true si hay un jefe despierto en la isla.
+function BossService.isAlive(): boolean
+	return current ~= nil
 end
 
 function BossService.spawn(bossId: string)

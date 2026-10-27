@@ -168,6 +168,8 @@ local function howToGet(cosmeticId: string): (string, (() -> ())?)
 		return "Gana una partida", nil
 	elseif source.earned == "MasterVictory" then
 		return "Gana con el nivel 4", nil
+	elseif source.earned == "GiantSlayer" then
+		return "Derriba al gigante", nil
 	elseif source.season then
 		return "Pase de temporada", nil
 	elseif source.gamePassId and source.gamePassId ~= 0 then

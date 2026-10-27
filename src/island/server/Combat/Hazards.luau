@@ -376,6 +376,22 @@ function Hazards.lavaBomb(
 	end)
 end
 
+-- Área con aviso para un golpe que decide otro (los del administrador gigante, T4e): marca el suelo
+-- "warnSeconds" y al acabar llama a "land" con los jugadores que siguen dentro y el punto del suelo.
+function Hazards.warnArea(
+	position: Vector3,
+	radius: number,
+	color: Color3,
+	warnSeconds: number,
+	land: (players: { Player }, ground: Vector3) -> ()
+)
+	local ground = groundAt(position)
+	marker(ground, radius, color, warnSeconds)
+	task.delay(warnSeconds, function()
+		land(playersNear(ground, radius), ground)
+	end)
+end
+
 -- Onda de choque alrededor de "position": daña y aturde a quien siga dentro tras el aviso.
 function Hazards.shockwave(
 	position: Vector3,

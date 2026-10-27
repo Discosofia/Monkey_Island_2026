@@ -78,6 +78,9 @@ local Remotes = {
 	-- Cliente -> servidor: "List" (servidores) o "Maintenance" (minutos de aviso); servidor -> cliente:
 	-- ("List", servidores, alcance). Ver ServerShared/ServerOps.
 	AdminServer = remoteEvent("AdminServer"),
+	-- Cliente -> servidor (Isla): el administrador convertido en gigante usa un golpe de jefe ("Stomp" |
+	-- "Wave" | "Roar", dirección Vector3). Ver island/server/Services/GiantAdminService.
+	GiantAttack = remoteEvent("GiantAttack"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
