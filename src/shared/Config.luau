@@ -848,6 +848,10 @@ local Config = {
 		LogShown = 40,
 		AnnounceMaxLength = 140,
 		AnnounceSeconds = 10,
+		-- Moderación (T4c, ServerShared/Moderation): minutos de silencio y horas de baneo que se eligen.
+		MuteMinutes = { 5, 15, 60 },
+		BanHours = { 1, 24, 168, 720 },
+		ReasonMaxLength = 120,
 	},
 	-- Eventos en vivo que lanza un administrador (T4b; catálogo en Data/LiveEvents, servidor en
 	-- ServerShared/LiveEventsServer). Son gratis para todos: nada de esto se vende.

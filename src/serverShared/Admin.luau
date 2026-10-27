@@ -8,14 +8,14 @@
 --   - mandar un anuncio a este servidor o a todos (filtrado por TextService);
 --   - ver el registro de acciones de los administradores (ServerShared/AdminLog);
 --   - lanzar y parar eventos en vivo (ServerShared/LiveEventsServer) y hacer cosas al momento en las
---     partidas de la Isla (Data/IslandActions), en este servidor o en todos.
+--     partidas de la Isla (Data/IslandActions), en este servidor o en todos;
+--   - moderar a un jugador (ServerShared/Moderation).
 -- No toca el Ámbar, las mejoras ni los talentos. El cliente enseña el panel si el Player lleva el
 -- atributo "IsAdmin", pero el servidor lo vuelve a comprobar en cada petición.
 -- Lo cambia con PlayerData.update, así que respeta el bloqueo de sesión del perfil.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TextService = game:GetService("TextService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
@@ -30,6 +30,7 @@ local AdminNet = require(script.Parent.AdminNet)
 local CosmeticsServer = require(script.Parent.CosmeticsServer)
 local Eggs = require(script.Parent.Eggs)
 local LiveEventsServer = require(script.Parent.LiveEventsServer)
+local Moderation = require(script.Parent.Moderation)
 local PlayerData = require(script.Parent.PlayerData)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 
@@ -224,11 +225,8 @@ local function onAnnounce(admin: Player, text: any, scope: any)
 		return
 	end
 	-- Lo que se enseña a todos pasa por el filtro de Roblox, como cualquier texto de un jugador.
-	local ok, filtered = pcall(function()
-		local result = TextService:FilterStringAsync(text, admin.UserId, Enum.TextFilterContext.PublicChat)
-		return result:GetNonChatStringForBroadcastAsync()
-	end)
-	if not ok then
+	local filtered = Moderation.filter(text, admin.UserId)
+	if not filtered then
 		Remotes.Notify:FireClient(admin, "⚠️ El filtro de texto no responde: prueba en un momento")
 		return
 	end
@@ -304,6 +302,7 @@ function Admin.start(placeName: string)
 	AdminLog.start(placeName)
 	AdminNet.start()
 	LiveEventsServer.run()
+	Moderation.start(Admin.isAdmin)
 	Remotes.AdminLiveEvent.OnServerEvent:Connect(onLiveEvent)
 	Remotes.AdminIslandAction.OnServerEvent:Connect(onIslandAction)
 	Remotes.AdminGiveAll.OnServerEvent:Connect(onGiveAll)

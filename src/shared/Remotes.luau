@@ -68,6 +68,10 @@ local Remotes = {
 	-- Cliente -> servidor: un administrador hace algo en las partidas de la Isla (Data/IslandActions,
 	-- "Server" | "All").
 	AdminIslandAction = remoteEvent("AdminIslandAction"),
+	-- Cliente -> servidor: un administrador modera a un jugador (acción, UserId, detalles). Ver
+	-- ServerShared/Moderation: "Mute" (minutos), "Unmute", "Kick" (motivo), "Ban" (horas, motivo),
+	-- "Goto", "Freeze", "Unfreeze"; y "Unban" (nombre de usuario en lugar del UserId).
+	AdminModerate = remoteEvent("AdminModerate"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).

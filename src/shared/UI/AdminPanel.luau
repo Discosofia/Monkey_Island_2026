@@ -1,9 +1,10 @@
 --!strict
 -- Panel de administradores (ServerShared/Admin), en los tres places y también en el juego publicado:
 -- un botón "👑 Admin" encima del de Pruebas que despliega una ventana con pestañas (T4):
---   - 👥 Jugadores: los jugadores del servidor con "Dar todo" y "Elegir", que abre al lado el listado
+--   - 👥 Jugadores: los jugadores del servidor con 🛡️ (moderar: silenciar, expulsar, banear, ir hasta él,
+--     espiarlo y congelarlo; ServerShared/Moderation), "Dar todo" y "Elegir", que abre al lado el listado
 --     de los huevos (por rareza), las mascotas, las monturas y los cosméticos del juego, con buscador,
---     para darle una sola cosa.
+--     para darle una sola cosa. Arriba, quitar un baneo por nombre de usuario.
 --   - 📢 Todos: un anuncio y "Dar a todos" (el mismo listado), en este servidor o en todos.
 --   - 🎉 Eventos: eventos en vivo (Data/LiveEvents) ahora o programados, los que están en marcha con
 --     ⏹ para pararlos, y lo que se hace al momento en la Isla (Data/IslandActions).
@@ -12,6 +13,7 @@
 -- a comprobar al pedirlo.
 
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 
 local Config = require(script.Parent.Parent.Config)
 local Cosmetics = require(script.Parent.Parent.Data.Cosmetics)
@@ -395,19 +397,287 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 		picker.Visible = false
 	end)
 
-	-- Página 👥 Jugadores: una fila por jugador del servidor (tú el primero) con "Elegir" y "Dar todo".
+	-- Ventana de moderación de un jugador, en el mismo sitio que el listado (se ve una de las dos):
+	-- motivo, silenciar, expulsar y banear (estos dos con segundo toque), ir hasta él, espiarlo y
+	-- congelarlo. Lo comprueba y lo hace ServerShared/Moderation.
+	local moderate = Instance.new("Frame")
+	moderate.Name = "Moderate"
+	moderate.AnchorPoint = picker.AnchorPoint
+	moderate.Position = picker.Position
+	moderate.Size = picker.Size
+	moderate.BackgroundColor3 = WOOD
+	moderate.BackgroundTransparency = 0.1
+	moderate.BorderSizePixel = 0
+	moderate.Active = true
+	moderate.Visible = false
+	moderate.Parent = gui
+	corner(moderate, 12)
+	local moderateLimit = Instance.new("UISizeConstraint")
+	moderateLimit.MinSize = Vector2.new(340, 280)
+	moderateLimit.MaxSize = Vector2.new(480, 580)
+	moderateLimit.Parent = moderate
+	local moderateTitle = Widgets.label("", moderate)
+	moderateTitle.Position = UDim2.fromOffset(8, 4)
+	moderateTitle.Size = UDim2.new(1, -52, 0, 26)
+	moderateTitle.TextColor3 = TITLE
+	moderateTitle.TextXAlignment = Enum.TextXAlignment.Left
+	local moderateClose = close:Clone()
+	moderateClose.Parent = moderate
+	local moderateBody = scroller(moderate)
+	moderateBody.Position = UDim2.fromOffset(6, 36)
+	moderateBody.Size = UDim2.new(1, -12, 1, -42)
+	list(moderateBody, 6)
+
+	local moderated: { userId: number, name: string }? = nil
+	-- A quién espía la cámara (nil: a ti).
+	local spying: Player? = nil
+	local spyButton: TextButton
+
+	local function stopSpying()
+		spying = nil
+		local camera = Workspace.CurrentCamera
+		local character = player.Character
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		if camera and humanoid then
+			camera.CameraSubject = humanoid
+		end
+		spyButton.Text = "👁 Espiar"
+	end
+
+	local function moderateHeading(text: string, order: number)
+		local label = Widgets.label(text, moderateBody)
+		label.LayoutOrder = order
+		label.Size = UDim2.new(1, -8, 0, 22)
+		label.TextColor3 = TITLE
+		label.TextXAlignment = Enum.TextXAlignment.Left
+	end
+	local function buttonRow(name: string, order: number, texts: { string }): { TextButton }
+		local row = Instance.new("Frame")
+		row.Name = name
+		row.LayoutOrder = order
+		row.Size = UDim2.new(1, -8, 0, 36)
+		row.BackgroundTransparency = 1
+		row.Parent = moderateBody
+		local layout = list(row, 4)
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		local buttons = {}
+		for index, text in texts do
+			local button = smallButton(text, row)
+			button.Name = `B{index}`
+			button.LayoutOrder = index
+			button.Size = UDim2.new(1 / #texts, -4, 1, 0)
+			table.insert(buttons, button)
+		end
+		return buttons
+	end
+
+	-- Expulsar y banear piden un segundo toque.
+	local armedModeration: TextButton? = nil
+	local armedModerationUntil = 0
+	local function twoTaps(button: TextButton, text: string): boolean
+		if armedModeration == button and os.clock() <= armedModerationUntil then
+			armedModeration = nil
+			button.Text = text
+			return true
+		end
+		if armedModeration then
+			armedModeration.Text = armedModeration:GetAttribute("Label") :: string
+		end
+		armedModeration = button
+		armedModerationUntil = os.clock() + CONFIRM_SECONDS
+		button.Text = "¿Seguro?"
+		task.delay(CONFIRM_SECONDS, function()
+			if armedModeration == button and os.clock() >= armedModerationUntil then
+				button.Text = text
+				armedModeration = nil
+			end
+		end)
+		return false
+	end
+
+	local function send(action: string, a: any?, b: any?)
+		local current = moderated
+		if current then
+			Remotes.AdminModerate:FireServer(action, current.userId, a, b)
+		end
+	end
+
+	moderateHeading("Motivo (expulsar y banear)", 1)
+	local reason = Instance.new("TextBox")
+	reason.Name = "Reason"
+	reason.LayoutOrder = 2
+	reason.Size = UDim2.new(1, -8, 0, 32)
+	reason.BackgroundColor3 = ROW
+	reason.BorderSizePixel = 0
+	reason.TextColor3 = Color3.new(1, 1, 1)
+	reason.PlaceholderText = "Ej.: insultos en el chat"
+	reason.PlaceholderColor3 = Color3.fromRGB(160, 150, 130)
+	reason.Font = Enum.Font.BuilderSans
+	reason.TextSize = 18
+	reason.TextXAlignment = Enum.TextXAlignment.Left
+	reason.ClearTextOnFocus = false
+	reason.Text = ""
+	reason.Parent = moderateBody
+	corner(reason, 8)
+	local reasonPadding = Instance.new("UIPadding")
+	reasonPadding.PaddingLeft = UDim.new(0, 6)
+	reasonPadding.Parent = reason
+	reason:GetPropertyChangedSignal("Text"):Connect(function()
+		if #reason.Text > Config.AdminTools.ReasonMaxLength then
+			reason.Text = string.sub(reason.Text, 1, Config.AdminTools.ReasonMaxLength)
+		end
+	end)
+
+	moderateHeading("🔇 Silenciar el chat", 3)
+	local muteTexts = {}
+	for _, minutes in Config.AdminTools.MuteMinutes do
+		table.insert(muteTexts, `{minutes} min`)
+	end
+	table.insert(muteTexts, "🔊 Quitar")
+	local muteButtons = buttonRow("Mute", 4, muteTexts)
+	for index, button in muteButtons do
+		local minutes = Config.AdminTools.MuteMinutes[index]
+		button.MouseButton1Click:Connect(function()
+			if minutes then
+				send("Mute", minutes)
+			else
+				send("Unmute")
+			end
+		end)
+	end
+
+	moderateHeading("⛔ Banear de toda la experiencia (pide un segundo toque)", 5)
+	local banTexts = {}
+	for _, hours in Config.AdminTools.BanHours do
+		table.insert(banTexts, if hours < 24 then `{hours} h` else `{hours // 24} d`)
+	end
+	for index, button in buttonRow("Ban", 6, banTexts) do
+		local hours = Config.AdminTools.BanHours[index]
+		button:SetAttribute("Label", button.Text)
+		button.BackgroundColor3 = CLOSE
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.MouseButton1Click:Connect(function()
+			if twoTaps(button, banTexts[index]) then
+				send("Ban", hours, reason.Text)
+			end
+		end)
+	end
+
+	moderateHeading("Otras", 7)
+	local others = buttonRow("Other", 8, { "👢 Expulsar", "📍 Ir hasta", "👁 Espiar" })
+	local kick = others[1]
+	kick:SetAttribute("Label", kick.Text)
+	kick.BackgroundColor3 = CLOSE
+	kick.TextColor3 = Color3.new(1, 1, 1)
+	kick.MouseButton1Click:Connect(function()
+		if twoTaps(kick, "👢 Expulsar") then
+			send("Kick", reason.Text)
+		end
+	end)
+	others[2].MouseButton1Click:Connect(function()
+		send("Goto")
+	end)
+	spyButton = others[3]
+	spyButton.MouseButton1Click:Connect(function()
+		local current = moderated
+		if spying or not current then
+			stopSpying()
+			return
+		end
+		local other = Players:GetPlayerByUserId(current.userId)
+		local character = if other then other.Character else nil
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		local camera = Workspace.CurrentCamera
+		if other and humanoid and camera then
+			spying = other
+			camera.CameraSubject = humanoid
+			spyButton.Text = "👁 Dejar de espiar"
+		end
+	end)
+	local freezeButtons = buttonRow("Freeze", 9, { "❄️ Congelar", "🔥 Descongelar" })
+	freezeButtons[1].MouseButton1Click:Connect(function()
+		send("Freeze")
+	end)
+	freezeButtons[2].MouseButton1Click:Connect(function()
+		send("Unfreeze")
+	end)
+
+	local function openModerate(userId: number, name: string)
+		if spying then
+			stopSpying()
+		end
+		moderated = { userId = userId, name = name }
+		moderateTitle.Text = `🛡️ Moderar a {name}`
+		picker.Visible = false
+		moderate.Visible = true
+	end
+	local function closeModerate()
+		moderate.Visible = false
+		moderated = nil
+		if spying then
+			stopSpying()
+		end
+	end
+	moderateClose.MouseButton1Click:Connect(closeModerate)
+	-- Abrir el listado cierra la moderación (y al revés, en openModerate).
+	picker:GetPropertyChangedSignal("Visible"):Connect(function()
+		if picker.Visible and moderate.Visible then
+			closeModerate()
+		end
+	end)
+
+	-- Página 👥 Jugadores: quitar un baneo por nombre y una fila por jugador del servidor (tú el
+	-- primero) con 🛡️, "Elegir" y "Dar todo".
 	local playersPage = scroller(pages)
 	playersPage.Name = "Players"
 	playersPage.Size = UDim2.fromScale(1, 1)
 	list(playersPage, 4)
 
+	-- Quitar un baneo: el baneado no está en el servidor, así que va por nombre de usuario.
+	local unbanRow = Instance.new("Frame")
+	unbanRow.Name = "Unban"
+	unbanRow.LayoutOrder = -1
+	unbanRow.Size = UDim2.new(1, -8, 0, 32)
+	unbanRow.BackgroundTransparency = 1
+	unbanRow.Parent = playersPage
+	local unbanName = Instance.new("TextBox")
+	unbanName.Name = "Name"
+	unbanName.Size = UDim2.new(0.66, -4, 1, 0)
+	unbanName.BackgroundColor3 = ROW
+	unbanName.BorderSizePixel = 0
+	unbanName.TextColor3 = Color3.new(1, 1, 1)
+	unbanName.PlaceholderText = "⛔ Usuario baneado (sin @)"
+	unbanName.PlaceholderColor3 = Color3.fromRGB(160, 150, 130)
+	unbanName.Font = Enum.Font.BuilderSans
+	unbanName.TextSize = 17
+	unbanName.TextXAlignment = Enum.TextXAlignment.Left
+	unbanName.ClearTextOnFocus = false
+	unbanName.Text = ""
+	unbanName.Parent = unbanRow
+	corner(unbanName, 8)
+	local unbanPadding = Instance.new("UIPadding")
+	unbanPadding.PaddingLeft = UDim.new(0, 6)
+	unbanPadding.Parent = unbanName
+	local unbanButton = smallButton("✅ Quitar baneo", unbanRow)
+	unbanButton.Name = "Go"
+	unbanButton.AnchorPoint = Vector2.new(1, 0)
+	unbanButton.Position = UDim2.fromScale(1, 0)
+	unbanButton.Size = UDim2.fromScale(0.34, 1)
+	unbanButton.MouseButton1Click:Connect(function()
+		local name = string.gsub(unbanName.Text, "[@%s]", "")
+		if name ~= "" then
+			Remotes.AdminModerate:FireServer("Unban", name)
+			unbanName.Text = ""
+		end
+	end)
+
 	local function renderPlayers()
 		for _, child in playersPage:GetChildren() do
-			if child:IsA("Frame") or child:IsA("TextLabel") then
+			if (child:IsA("Frame") and child ~= unbanRow) or child:IsA("TextLabel") then
 				child:Destroy()
 			end
 		end
-		local title = Widgets.label("Elegir un huevo, mascota, montura o cosmético, o dar todo", playersPage)
+		local title = Widgets.label("🛡️ moderar · 🎁 elegir qué dar · 🔓 dar todo", playersPage)
 		title.LayoutOrder = 0
 		title.Size = UDim2.new(1, -8, 0, 24)
 		title.TextColor3 = TITLE
@@ -429,24 +699,28 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 			corner(row, 8)
 			local name = Widgets.label(`{other.DisplayName} (@{other.Name})`, row)
 			name.Position = UDim2.fromOffset(6, 0)
-			name.Size = UDim2.new(0.44, -6, 1, 0)
+			name.Size = UDim2.new(0.4, -6, 1, 0)
 			name.TextXAlignment = Enum.TextXAlignment.Left
 			local userId, displayName = other.UserId, other.DisplayName
-			local giveAll = smallButton("🔓 Dar todo", row)
-			giveAll.Name = "GiveAll"
-			giveAll.AnchorPoint = Vector2.new(1, 0.5)
-			giveAll.Position = UDim2.new(1, -4, 0.5, 0)
-			giveAll.Size = UDim2.new(0.28, -6, 1, -8)
-			giveAll.MouseButton1Click:Connect(function()
+			local function rowButton(text: string, buttonName: string, right: number, width: number): TextButton
+				local button = smallButton(text, row)
+				button.Name = buttonName
+				button.AnchorPoint = Vector2.new(1, 0.5)
+				button.Position = UDim2.new(1 - right, -4, 0.5, 0)
+				button.Size = UDim2.new(width, -6, 1, -8)
+				return button
+			end
+			rowButton("🔓 Dar todo", "GiveAll", 0, 0.24).MouseButton1Click:Connect(function()
 				Remotes.AdminGiveAll:FireServer(userId)
 			end)
-			local choose = smallButton("🎁 Elegir", row)
-			choose.Name = "Choose"
-			choose.AnchorPoint = Vector2.new(1, 0.5)
-			choose.Position = UDim2.new(0.72, -4, 0.5, 0)
-			choose.Size = UDim2.new(0.26, -6, 1, -8)
-			choose.MouseButton1Click:Connect(function()
+			rowButton("🎁 Elegir", "Choose", 0.24, 0.22).MouseButton1Click:Connect(function()
 				openPicker({ kind = "Player", userId = userId, name = displayName })
+			end)
+			local shield = rowButton("🛡️", "Moderate", 0.46, 0.14)
+			shield.BackgroundColor3 = CLOSE
+			shield.TextColor3 = Color3.new(1, 1, 1)
+			shield.MouseButton1Click:Connect(function()
+				openModerate(userId, displayName)
 			end)
 		end
 	end
@@ -867,6 +1141,7 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 			end
 		end
 		picker.Visible = false
+		closeModerate()
 	end
 	for index, tab in tabs do
 		local button = smallButton(tab.text, tabBar)
@@ -885,6 +1160,7 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 			showTab(current)
 		else
 			picker.Visible = false
+			closeModerate()
 		end
 	end)
 	Players.PlayerAdded:Connect(function()
@@ -895,6 +1171,9 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	Players.PlayerRemoving:Connect(function(other)
 		if target and target.kind == "Player" and other.UserId == target.userId then
 			picker.Visible = false
+		end
+		if moderated and other.UserId == moderated.userId then
+			closeModerate()
 		end
 		if window.Visible and current == "Players" then
 			task.defer(renderPlayers)
