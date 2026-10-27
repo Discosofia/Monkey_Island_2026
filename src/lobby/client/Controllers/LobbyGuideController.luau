@@ -37,7 +37,7 @@ local STEPS: { Step } = {
 	{
 		station = "Rol",
 		prompt = "RolesPrompt",
-		message = "⚔️ Ve al cartel «Elige tu rol» y pulsa E para elegir tu rol",
+		message = "⚔️ Ve al cartel «Elige tu rol» y presiona E para elegir tu rol",
 	},
 	{
 		station = "Mascotas",
@@ -55,9 +55,9 @@ local function guardKey(): string
 	if input == Enum.UserInputType.Touch then
 		return "toca «Guardia»"
 	elseif input.Name:find("Gamepad") then
-		return "pulsa L2"
+		return "presiona L2"
 	end
-	return "pulsa F"
+	return "presiona F"
 end
 
 local function sparringStep(): Step

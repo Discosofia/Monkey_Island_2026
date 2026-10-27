@@ -158,7 +158,7 @@ local function phaseText(player: Player): string
 		if player:GetAttribute("CarryingFlag") ~= nil then
 			return "🚩 ¡Llevas la bandera! Llévala a tu pedestal"
 		elseif myTeam and flagState(myTeam) == "Carried" then
-			return "⚠️ ¡Os han robado la bandera! Recuperadla"
+			return "⚠️ ¡Les robaron la bandera! Recupérala"
 		end
 	end
 	if phase == "Waiting" then

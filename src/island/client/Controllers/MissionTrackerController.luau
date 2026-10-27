@@ -261,7 +261,7 @@ local function buildContractCard(parent: Instance): (Frame, (Contract.State?) ->
 			else
 				upcoming.Text = if entry.status == "done"
 					then "🚁 Último paso cumplido"
-					else "Último paso: encendedla de día y resistid la noche"
+					else "Último paso: enciéndela de día y resiste la noche"
 			end
 		end
 end

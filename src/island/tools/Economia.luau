@@ -55,7 +55,7 @@ local OPCIONES_BASE = {
 		Damage = 300, -- daño hecho a monos
 		Egg = 0.03, -- huevos salvados (~1 cada 2 días de partida)
 		Revive = 0.05, -- reanimaciones (solo con grupo)
-		Alpha = 0.04, -- alfas derrotados
+		Alpha = 0.2, -- alfas derrotados (en juego: 6 en menos de media hora, 26-10-2026)
 	} :: { [string]: number },
 	-- Especies de mono distintas que se derrotan en una partida que llega al día "d" (supuesto): base +
 	-- porDia × (d − 1), hasta el total de Data/Monkeys.

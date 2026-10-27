@@ -245,7 +245,7 @@ function pickUp(player: Player)
 	weld.Parent = part
 	setEggParent(character)
 	PvPService.forceOn(player, 60, "llevas el huevo")
-	announce(`🥚 {player.DisplayName} lleva el huevo. ¡Escoltadlo hasta el nido!`)
+	announce(`🥚 {player.DisplayName} lleva el huevo. ¡Escóltalo hasta el nido!`)
 end
 
 local function drop(reason: string)
@@ -333,7 +333,7 @@ local function startIncubation(target: Model)
 			* CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
 	)
 	incubationEndsAt = os.clock() + Config.Egg.IncubationSeconds
-	announce(`🥚 ¡El huevo {rarityName()} está en el nido! Defendedlo {Config.Egg.IncubationSeconds} s`)
+	announce(`🥚 ¡El huevo {rarityName()} está en el nido! Defiéndelo {Config.Egg.IncubationSeconds} s`)
 
 	-- Oleadas a por el nido.
 	local center = Building.center() or BasecampService.getCenter()
@@ -382,7 +382,7 @@ function EggService.spawnEgg(forcedRarity: string?): boolean
 				`🥚 ¡Ha aparecido un huevo {string.upper(Rarities[rarity].name)} hacia {Compass.direction(
 					center,
 					ground
-				)}! Llevadlo al nido`
+				)}! Llévalo al nido`
 			)
 			return true
 		end
@@ -431,7 +431,7 @@ local function tick()
 		if remaining <= 0 then
 			complete()
 		else
-			setStatus(`🥚 Defended el huevo {rarityName()}: {remaining} s`)
+			setStatus(`🥚 Defiende el huevo {rarityName()}: {remaining} s`)
 		end
 	else
 		setStatus(`🥚 Hay un huevo {rarityName()} en la isla`)

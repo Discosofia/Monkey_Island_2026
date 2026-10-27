@@ -67,7 +67,7 @@ jugando), mascotas (13), bestiario, ranking (días, rescates, victorias y captur
 
 Cada día de juego es una partida nueva desde el día 1 (un día de partida = 17 min). Los **ritmos**
 (lo que se hace por minuto en la Isla) son supuestos: 1 mono, 5 recursos, 0,15 objetos fabricados,
-0,12 piezas construidas, 2,5 habilidades, 0,35 combos, 300 de daño, 0,03 huevos salvados, 0,04
+0,12 piezas construidas, 2,5 habilidades, 0,35 combos, 300 de daño, 0,03 huevos salvados, 0,2
 alfas; especies distintas en una partida que llega al día d: 4 + 1,5 × (d − 1). Cuando haya
 telemetría, cámbialos en la calculadora y apunta aquí de dónde salen.
 

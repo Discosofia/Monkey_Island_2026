@@ -103,7 +103,7 @@ function RoleBoardController:Start()
 			badge.Position = UDim2.fromScale(0.5, 0.84)
 			badge.Size = UDim2.fromScale(0.84, 0.12)
 			badge.BackgroundColor3 = if isSelected then CARD_COLOR else SELECTED_COLOR
-			badge.Text = if isSelected then "✔ ELEGIDO" else "Pulsa E"
+			badge.Text = if isSelected then "✔ ELEGIDO" else "Presiona E"
 			badge.TextColor3 = if isSelected then SELECTED_COLOR else SELECTED_TEXT
 			badge.Font = Enum.Font.BuilderSansExtraBold
 			badge.TextScaled = true

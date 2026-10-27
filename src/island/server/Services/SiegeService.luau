@@ -274,7 +274,7 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 		if debugGreatTroop then
 			ReplicatedStorage:SetAttribute("FinalNight", true)
 		end
-		announce("🌙 Cae la noche: los monos asediarán el Basecamp. ¡Cerrad los portones!")
+		announce("🌙 Cae la noche: los monos asediarán el Basecamp. ¡Cierra los portones!")
 		runNight(day)
 	else
 		nightToken += 1

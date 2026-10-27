@@ -162,7 +162,7 @@ local function tick(elapsed: number)
 			set("AltarState", "Active")
 			set("AltarReadyAt", nil)
 			Remotes.Notify:FireAllClients(
-				"⛩️ ¡El altar de la pirámide se ha encendido! Quedaos en lo alto para tomarlo"
+				"⛩️ ¡El altar de la pirámide se encendió! Quédate en lo alto para tomarlo"
 			)
 		end
 		return

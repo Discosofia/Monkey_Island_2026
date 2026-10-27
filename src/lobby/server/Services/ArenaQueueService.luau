@@ -301,7 +301,7 @@ function ArenaQueueService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		local ticket = ticketOf(player)
 		if ticket then
-			removeTicket(ticket, `{player.DisplayName} se ha ido: salís de la cola de la arena`)
+			removeTicket(ticket, `{player.DisplayName} se fue: salen de la cola de la arena`)
 		end
 	end)
 	task.spawn(function()

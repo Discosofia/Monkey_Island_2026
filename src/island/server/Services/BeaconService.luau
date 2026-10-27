@@ -230,7 +230,7 @@ local function onLight(player: Player)
 		updateBar(beacon)
 	end
 	announce(
-		`🚨 ¡{player.DisplayName} ha encendido la baliza! Esta noche llega La Gran Tropa: defended la baliza hasta el amanecer`
+		`🚨 ¡{player.DisplayName} ha encendido la baliza! Esta noche llega La Gran Tropa: defiende la baliza hasta el amanecer`
 	)
 end
 
@@ -268,7 +268,9 @@ local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 			finalNight = false
 			signalCut = false
 			ReplicatedStorage:SetAttribute("FinalNight", nil)
-			announce("🌅 Amanece sin rescate. La baliza está reparada: encendedla de nuevo y defendedla esta noche")
+			announce(
+				"🌅 Amanece sin rescate. La baliza está reparada: enciéndela de nuevo y defiéndela esta noche"
+			)
 		elseif finalNight then
 			local anyoneStanding = false
 			for _, player in Players:GetPlayers() do
@@ -277,7 +279,7 @@ local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 				end
 			end
 			if anyoneStanding then
-				announce("🚁 ¡Amanece y llega el rescate! ¡Lo habéis conseguido!")
+				announce("🚁 ¡Amanece y llega el rescate! ¡Lo lograron!")
 				MatchService.endMatch("Victory")
 			end
 		end
@@ -307,16 +309,16 @@ function BeaconService:Start()
 		local status: string? = nil
 		local beacon = findBeacon()
 		if finalNight and signalCut then
-			status = "📡 Baliza derribada: esta noche no habrá rescate. ¡Resistid hasta el amanecer!"
+			status = "📡 Baliza derribada: esta noche no habrá rescate. ¡Resiste hasta el amanecer!"
 		elseif finalNight then
 			local health, maxHealth = 0, 1
 			if beacon then
 				health, maxHealth = healthOf(beacon)
 			end
 			status =
-				`🌕 La Gran Tropa: ¡defended la baliza ({math.floor(health / maxHealth * 100)} %) hasta el amanecer!`
+				`🌕 La Gran Tropa: ¡defiende la baliza ({math.floor(health / maxHealth * 100)} %) hasta el amanecer!`
 		elseif lit then
-			status = "🚨 Baliza encendida: esta noche llega La Gran Tropa. ¡Defendedla!"
+			status = "🚨 Baliza encendida: esta noche llega La Gran Tropa. ¡Defiéndela!"
 		elseif pieces > 0 or beacon then
 			local built = if beacon then "construida" else "sin construir"
 			status = `📡 Baliza {built} · piezas {pieces}/{Beacon.total()}`

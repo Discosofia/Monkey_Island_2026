@@ -19,7 +19,7 @@ local Mounts: { [string]: Mount } = {
 		name = "Llama Andina",
 		icon = "🦙",
 		rarity = "Rare",
-		description = "Una llama de lana blanca y negra con su manta tejida y sus gafas de sol.",
+		description = "Una llama de lana blanca y negra con su manta tejida y sus lentes de sol.",
 		size = 1,
 		speed = 1,
 		-- Llama_Run, Llama_Idle, Llama_Spit y Llama_Jump (RBX_ANIMSAVES.Monturas), publicadas el 23-10-2026.

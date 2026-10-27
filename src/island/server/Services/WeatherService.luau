@@ -127,7 +127,7 @@ function WeatherService.erupt()
 	local crater = center + Vector3.new(0, 40, 0)
 	erupting = true
 	ReplicatedStorage:SetAttribute("Eruption", true)
-	announce("🌋 ¡El volcán entra en erupción! Alejaos de sus laderas")
+	announce("🌋 ¡El volcán entra en erupción! Aléjate de sus laderas")
 	task.spawn(function()
 		local endsAt = os.clock() + Config.Weather.EruptionSeconds
 		while os.clock() < endsAt do

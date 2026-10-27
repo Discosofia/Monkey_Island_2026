@@ -71,7 +71,7 @@ local Missions: { [string]: Mission } = {
 	Kills = daily("Facil", { icon = "🐒", text = "Derrota {target} monos", event = "Kill", target = 10 }),
 	Gather = daily("Facil", { icon = "🪓", text = "Recolecta {target} recursos", event = "Gather", target = 40 }),
 	Craft = daily("Facil", { icon = "🛠️", text = "Fabrica {target} objetos", event = "Craft", target = 2 }),
-	Build = daily("Facil", { icon = "🧱", text = "Construye {target} pieza", event = "Build", target = 1 }),
+	Build = daily("Facil", { icon = "🧱", text = "Construye {target} estructura", event = "Build", target = 1 }),
 
 	-- Diarias medias: la del rol.
 	WarriorCombos = role(
@@ -113,7 +113,7 @@ local Missions: { [string]: Mission } = {
 		best = true,
 	}),
 	Bosses = daily("Dificil", { icon = "👑", text = "Ayuda a derrotar {target} jefes", event = "Boss", target = 2 }),
-	Alphas = daily("Dificil", { icon = "🦍", text = "Derrota {target} monos alfa", event = "Alpha", target = 2 }),
+	Alphas = daily("Dificil", { icon = "🦍", text = "Derrota {target} monos alfa", event = "Alpha", target = 8 }),
 	Night = daily(
 		"Dificil",
 		{ icon = "🌙", text = "Supera {target} noches en la " .. ISLAND, event = "Night", target = 3 }
@@ -128,7 +128,7 @@ local Missions: { [string]: Mission } = {
 		event = "Night",
 		target = 10,
 	}),
-	WeeklyAlphas = weekly({ icon = "🦍", text = "Derrota {target} monos alfa", event = "Alpha", target = 6 }),
+	WeeklyAlphas = weekly({ icon = "🦍", text = "Derrota {target} monos alfa", event = "Alpha", target = 20 }),
 	WeeklySpecies = weekly({
 		icon = "📖",
 		text = "Derrota monos de {target} especies distintas",
@@ -140,7 +140,7 @@ local Missions: { [string]: Mission } = {
 	WeeklyKills = weekly({ icon = "🐒", text = "Derrota {target} monos", event = "Kill", target = 150 }),
 	WeeklyGather = weekly({ icon = "🪓", text = "Recolecta {target} recursos", event = "Gather", target = 600 }),
 	WeeklyCraft = weekly({ icon = "🛠️", text = "Fabrica {target} objetos", event = "Craft", target = 20 }),
-	WeeklyBuild = weekly({ icon = "🧱", text = "Construye {target} piezas", event = "Build", target = 15 }),
+	WeeklyBuild = weekly({ icon = "🧱", text = "Construye {target} estructuras", event = "Build", target = 15 }),
 	WeeklyRescue = weekly({
 		icon = "🚁",
 		text = "Gana {target} partida con el rescate",

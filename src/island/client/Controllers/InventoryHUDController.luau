@@ -283,7 +283,7 @@ function InventoryHUDController:Start()
 	local function hint(): string
 		return if UserInputService.TouchEnabled
 			then "Toca un objeto para ver qué es"
-			else "Pasa el ratón por un objeto para ver qué es"
+			else "Pasa el mouse por un objeto para ver qué es"
 	end
 
 	local function selectItem(itemId: string?)

@@ -94,7 +94,10 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 			current.mounts[mountId] = math.max(current.mounts[mountId] or 0, 1)
 			current.activeMount = mountId
 		end)
-		Remotes.Notify:FireClient(player, `Montura de prueba: {Mounts[mountId].icon} {Mounts[mountId].name} (pulsa N)`)
+		Remotes.Notify:FireClient(
+			player,
+			`Montura de prueba: {Mounts[mountId].icon} {Mounts[mountId].name} (presiona N)`
+		)
 	end,
 	-- Pasa a la siguiente mascota y la lleva puesta (se la da si no la tenía).
 	Pet = function(player)

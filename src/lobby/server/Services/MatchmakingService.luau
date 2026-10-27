@@ -182,7 +182,7 @@ local function onJoinIsland(player: Player)
 	if leader and leader ~= player then
 		Remotes.Notify:FireClient(
 			player,
-			`Tu grupo viaja cuando {leader.DisplayName} (líder) pulse "Ir a la {Config.PlaceNames.IslandShort}"`
+			`Tu grupo viaja cuando {leader.DisplayName} (líder) presione "Ir a la {Config.PlaceNames.IslandShort}"`
 		)
 		return
 	end

@@ -486,7 +486,10 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			current.mounts[mountId] = math.max(current.mounts[mountId] or 0, 1)
 			current.activeMount = mountId
 		end)
-		Remotes.Notify:FireClient(player, `Montura de prueba: {Mounts[mountId].icon} {Mounts[mountId].name} (pulsa N)`)
+		Remotes.Notify:FireClient(
+			player,
+			`Montura de prueba: {Mounts[mountId].icon} {Mounts[mountId].name} (presiona N)`
+		)
 	end,
 	Pet = function(player)
 		local current = player:GetAttribute("ActivePet")

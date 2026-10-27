@@ -1098,7 +1098,7 @@ local CONTROLS: { { name: string, keys: string, help: string? } } = {
 	{
 		name = "Guardia",
 		keys = "F · L2 · «Guardia»",
-		help = "pulsa justo antes del golpe para un parry; mantén para bloquear",
+		help = "presiona justo antes del golpe para un parry; mantén para bloquear",
 	},
 	{ name = "Amago", keys = "la guardia mientras preparas un golpe o una habilidad", help = "engaña al que para" },
 	{ name = "Esquivar", keys = "Q · B · «Esquivar»" },
@@ -1113,7 +1113,7 @@ local CONTROLS: { { name: string, keys: string, help: string? } } = {
 
 local function buildControls(parent: Frame)
 	heading(parent, "🎮 Controles del combate", 1)
-	text(parent, "PC · mando · móvil", 2, SOFT_COLOR)
+	text(parent, "PC · control · celular", 2, SOFT_COLOR)
 	for index, control in CONTROLS do
 		local help = if control.help then ` <font color="{SOFT_HEX}">({control.help})</font>` else ""
 		text(parent, `<b>{control.name}</b>: <font color="{KEY_HEX}">{control.keys}</font>{help}`, 2 + index)

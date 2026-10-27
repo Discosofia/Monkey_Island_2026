@@ -148,7 +148,7 @@ end
 
 -- Fuera de Studio no hay nadie con quien jugar: de vuelta al Lobby.
 local function cancel()
-	Remotes.Notify:FireAllClients("No ha llegado el otro equipo: volvéis al Lobby")
+	Remotes.Notify:FireAllClients("No llegó el otro equipo: vuelven al Lobby")
 	setPhase("Results", Config.Arena.ResultsSeconds)
 	task.delay(3, function()
 		local players = Players:GetPlayers()

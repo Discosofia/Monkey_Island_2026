@@ -160,7 +160,7 @@ function ArenaBoardController:Start()
 			board.badge.BackgroundColor3 = CARD_COLOR
 			board.badge.TextColor3 = READY_COLOR
 		else
-			board.badge.Text = "Pulsa E para jugar"
+			board.badge.Text = "Presiona E para jugar"
 			board.badge.BackgroundColor3 = READY_COLOR
 			board.badge.TextColor3 = DARK_TEXT
 		end

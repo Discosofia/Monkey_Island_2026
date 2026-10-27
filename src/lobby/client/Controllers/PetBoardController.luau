@@ -205,7 +205,7 @@ function PetBoardController:Start()
 			board.eggTime.TextColor3 = if stored > 0 then READY_COLOR else SECONDARY
 			board.track.Visible = false
 			board.options.Text = if stored > 0
-				then "Acércate al nido y pulsa E"
+				then "Acércate al nido y presiona E"
 				else `Defiende huevos en la {Config.PlaceNames.IslandShort} para conseguirlos`
 		end
 

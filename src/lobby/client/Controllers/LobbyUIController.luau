@@ -1243,7 +1243,7 @@ function LobbyUIController:Start()
 		local order = 2
 		if inParty then
 			local row = newRow(list, order)
-			row.title.Text = if isLeader then "Eres el líder" else `Viajáis cuando el líder pulse "{JOIN_TEXT}"`
+			row.title.Text = if isLeader then "Eres el líder" else `Viajan cuando el líder presione "{JOIN_TEXT}"`
 			row.detail.Text = "Salir del grupo te deja viajar por tu cuenta."
 			setButton(row.button, "Salir", true)
 			row.button.MouseButton1Click:Connect(function()

@@ -218,7 +218,7 @@ local function show(summary: { [string]: any })
 	countdown.TextColor3 = Color3.fromRGB(180, 170, 160)
 	task.spawn(function()
 		for remaining = Config.Match.ResultsSeconds, 0, -1 do
-			countdown.Text = `Volvéis todos al Lobby en {remaining} s`
+			countdown.Text = `Vuelven todos al Lobby en {remaining} s`
 			task.wait(1)
 		end
 	end)
