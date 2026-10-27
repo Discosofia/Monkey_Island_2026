@@ -203,6 +203,10 @@ Cada día aumentan la cantidad de monos, la proporción de especies de categorí
 - **Derrota:** todos los jugadores del servidor están caídos a la vez (10 s seguidos de noche). Se muestran los resultados y se vuelve al lobby.
 - **Victoria (rescate):** se construye la **baliza de rescate** con piezas de los 4 jefes de bioma. Al encenderla empieza la **noche final** ("La Gran Tropa"). Si alguien sigue en pie al amanecer, llega el rescate.
   - La baliza solo se puede encender desde el **día 8** (configurable). Como aparece un jefe cada 2 días (días 2, 4, 6 y 8), antes no se pueden tener las 4 piezas.
+- **Seguir sobreviviendo** (Fase 12): al amanecer del rescate se paga todo y se guarda (Ámbar, rescate, título, pase y ruleta del huevo). Cada jugador elige **"Seguir sobreviviendo"** o **"Volver al Lobby"**; quien no elige en 30 s vuelve al Lobby.
+  - La partida sigue sin fin: la dificultad sigue subiendo y los 4 jefes vuelven en orden cada 2 días (días 10–16, 18–24…), sin piezas de baliza. Los que ya se derrotaron vuelven en cada vuelta con +30 % de vida y +15 % de daño; uno que aún no se ha derrotado vuelve igual.
+  - El final de verdad (cuando caen todos o vuelven al Lobby) solo paga lo extra: días, bajas y jefes. No hay segundo rescate, y no cuenta otra partida ni otra victoria. El récord de días cuenta el total.
+  - En una partida ya ganada no entra nadie nuevo.
 - **Entrar a mitad de partida:** se permite mientras haya hueco y no esté en curso la noche final. Las recompensas dependen de la **contribución** mientras estuviste presente.
 
 ### 5.4 Metas de mitad de partida (Fase 9)
@@ -640,8 +644,24 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 ## 10. El Basecamp
 
 - **Núcleo compartido:** nido, baliza, defensas perimetrales y estaciones grandes. Cualquiera puede aportar recursos, pero solo se puede **desmontar con votación o por el constructor original** (evita el sabotaje).
-- **Parcela personal:** una tienda o espacio pequeño para cofre, cama y estaciones propias. Solo la modifica su dueño.
-- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella si caes y no te reaniman). Cada jugador recibe una de las parcelas al entrar (hay 20: sobran para un grupo de 5); al salir se libera y se derriba lo que tenía en ella.
+- **Parcela personal:** 5 huecos de unos 24×24 dentro de la empalizada, entre las 4 puertas (uno por jugador). Al entrar, cada jugador ocupa uno; al salir se libera y se derriba lo que había construido en él. Quien nunca ha ganado recibe el hueco vacío, para su cama y lo que construya con el martillo.
+- **Parcela permanente** (Fase 12): se desbloquea al **ganar por primera vez** (también la tienen quienes ya habían ganado antes), con una ventana de bienvenida. Viaja con el jugador: en cualquier partida ocupa su hueco y se levanta con sus estructuras y sus niveles. Todos la ven, pero solo el dueño la usa (salvo lo compartido del cofre). Se gestiona en la ventana **🏡 Tu parcela**, desde el cartel del hueco.
+  - **7 estructuras con 3 niveles (I/II/III)**, cada una con su modelo voxel por nivel (el II con zócalo de piedra y banderín de bronce; el III con basalto, oro y una gema de ámbar), también distintos por detrás. Cada nivel cuesta **600 / 2.400 / 6.000 Ámbar** más materiales (63.000 Ámbar las 7 al III). Los materiales salen primero del cofre privado y luego de la Bolsa. El nivel se guarda en el perfil y nunca baja. Las ventajas son pequeñas:
+
+    | Estructura | I | II | III |
+    |---|---|---|---|
+    | ⚒️ Forja | −10 % de materiales | −20 % | −30 % y forja volcánica |
+    | 🌿 Taller del curandero | 1 venda al amanecer, −10 % en curas | 2 vendas, −20 % | 3 vendas, −30 % |
+    | 🍌 Huerto | 2 de fruta al amanecer | 4 | 6 |
+    | 🛏️ Cama | reapareces en 50 s, +1 vida/s a su lado | 40 s, +2 | 30 s, +3 |
+    | 📦 Cofre | 6 casillas | 12 | 20 |
+    | 🌡️ Incubadora | huevos del nido del Lobby al 85 % del tiempo | 70 % | 70 % y un segundo hueco en el nido |
+    | 🥚 Nido | nido para los huevos, 5 % de subir su rareza | 10 % | 15 % |
+
+  - **Asedio:** las estructuras tienen vida en la partida. A 0 quedan rotas y no dan su efecto hasta que alguien las repara (madera y piedra) o hasta el amanecer, que vuelven con toda la vida.
+  - **Cofre:** guarda materiales y consumibles en casillas de 50 (nunca armas, armaduras ni piezas de la baliza). Se deposita en cualquier momento, y lo que no está en el cofre se pierde al acabar la partida. Tiene una parte **privada** y otra **compartida**, que llenan las mismas casillas. De la compartida coge cualquiera de la partida, sin límite: va a su Bolsa de la partida, nunca a su perfil, y el dueño recibe un aviso. Solo se usa con el cofre en pie.
+  - **Ritmo medido** (calculadora `Economia`, sección 2b): quien gana tiene las 7 al nivel I en 2 semanas (intenso) o un mes (grupo de amigos), y al III en 1,5 meses si juega mucho cada día (intenso) o en 3,5 meses si es un grupo de amigos. Al III, huerto, taller y forja ahorran unos 4 minutos de recoger por día de partida.
+- **Construcción:** por **cuadrícula** con el **martillo**, cómoda en móvil y en PC. Piezas en `Data/Buildables`: muros de madera y de piedra, antorcha de pie y cama (reapareces en ella si caes y no te reaniman).
 - **Sin recursos dentro**, como en el diseño original: hay que salir a buscarlos.
 - **Asedio nocturno:** de noche, oleadas de monos intentan entrar desde varias direcciones. El interior es seguro **mientras resistan las defensas** (muros, trampas y antorchas). Esto da sentido a construir y une al grupo de amigos en un objetivo común cada noche.
   - Las oleadas crecen con el número de día y con el número de jugadores. *(v1: 3 oleadas por noche, por uno o dos portones al azar; ajustes en `Config.Siege`.)*
@@ -657,13 +677,16 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 - **Aparición:** probabilidad baja cada cierto tiempo en un punto aleatorio de la isla. Hay un **aviso global** con ubicación aproximada y **su rareza**: se sortea al aparecer (común 55 · poco común 25 · raro 13 · épico 6 · legendario 1) y se ve en el color del huevo, cada rareza muy distinta (crema, verde, azul, lila y dorado).
 - **Transporte:** el portador va **más lento**, atrae monos y queda **marcado para PvP**. Los jugadores con PvP activo pueden robarle el huevo; el guerrero lo carga mejor.
+- **Soltar el huevo** (Fase 12): con la **K** (R3 en el mando o el botón "Soltar huevo") el portador lo deja en el suelo, y cualquiera puede volver a cogerlo.
 - **Nido del Basecamp:** hay que tenerlo construido en el núcleo. La defensa dura unos minutos (150 s, 2 oleadas).
+  - El huevo se entrega en el nido en pie más cercano: el del martillo o el **nido de la parcela** (Fase 12), que tiene más vida en cada nivel y un 5 / 10 / 15 % de probabilidad de **subir un grado la rareza** del huevo defendido. Si el nido cae durante la defensa (también el de la parcela, aunque solo quede roto), el huevo se pierde. Mientras se defiende, el nido de la parcela no se puede mejorar. Si su dueño sale de la partida, el huevo cae al suelo a su lado y se puede llevar a otro nido.
 - **Al terminar la defensa** no nace la mascota: cada jugador que **participó** se lleva **un huevo persistente de esa rareza**. Va directo a su nido del lobby si está vacío; si no, a su **mochila de huevos** (3 casillas); si está llena, queda **pendiente** y en el lobby elige cuál descartar (el descartado da Ámbar según su rareza).
 
 ### El nido del lobby
 
 - En la plaza del Lobby, delante del cartel **🐾 Mascotas** (a la izquierda de la bitácora). **Cada jugador ve en el nido su propio huevo**, y en el cartel lo que le falta, qué puede salir, su mochila y la mascota que le acompaña; al tocar el nido se abre su ventana con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza, y al lado la colección.
 - **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
+- **Incubadora de la parcela** (Fase 12, §10): los huevos del nido tardan el 85 % del tiempo con la I y el 70 % con la II y la III; al mejorarla, también acorta lo que le falta al huevo que ya está. La III da un **segundo hueco** en el nido, con dos huevos avanzando a la vez (en la calculadora, el habitual que la tuviera abriría unos 38 huevos al mes en vez de 20). Cuenta el nivel guardado, aunque la incubadora esté rota en una partida.
 - **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
 - **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
 - **Una de cada** (26-10-2026): si ya tienes la mascota que sale, en su lugar recibes **Ámbar**, el doble de lo que da descartar ese huevo (común 30 · poco común 60 · raro 120 · épico 240 · legendario 500). La colección no enseña cantidades. Si ya tienes todas las mascotas de la rareza del huevo, la ficha del nido lo avisa antes de abrirlo (y si aún puede salir una montura). Quien tenía copias de antes las cambió por Ámbar al entrar, con un aviso.
@@ -772,7 +795,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 ## 14. Economía y monetización
 
 - **Moneda del juego: Ámbar** (nombre provisional). Se gana por días sobrevividos, contribución (recolectar, reanimar, defender), jefes, rescates, contratos de expedición (§5.4), Dunas, el calendario, las misiones (§4) y la pista gratis del pase.
-- **Se gasta en:** mejoras permanentes **moderadas** (19 rangos, 1.930 en total: vida, estómago, kit de náufrago, estamina…), el equipo de Dunas y la **tienda de cosméticos en Ámbar** (§14.2), que es el sumidero de quien ya tiene las mejoras.
+- **Se gasta en:** mejoras permanentes **moderadas** (19 rangos, 1.930 en total: vida, estómago, kit de náufrago, estamina…), el equipo de Dunas, la **tienda de cosméticos en Ámbar** (§14.2), que es el sumidero de quien ya tiene las mejoras, y la **parcela permanente** de quien ha ganado (§10, 63.000 en total), el sumidero de los meses siguientes.
 - **Talentos:** se desbloquean con la **XP del rol**, no con dinero.
 - **Robux (solo cosmético y comodidad):** la premium del pase y sus niveles (§14.1), cosméticos sueltos en la tienda de Robux, los Game Passes cosméticos (estelas, título, aura) y servidores privados.
 - **Nunca con Robux:** poder, **Ámbar** (compra mejoras con ventaja), huevos, tiempo de incubación, provisiones y objetos aleatorios. Lo comprueba la sección "Reglas de pago" de la calculadora `Economia`.

@@ -20,9 +20,10 @@
 -- Medido con Economia (27-10-2026, incubadora y nido III desde el día 1): los factores no cambian los
 -- huevos abiertos al mes (se abren al volver cada día), el segundo hueco los dobla (habitual 20 → 38) y el
 -- nido III lleva los legendarios del 1 % al 2 %. Nada de esto se compra con Robux.
--- Precios de prueba (27-10-2026): 600 / 2.400 / 6.000 Ámbar por estructura, 63.000 las 7 al nivel III.
--- Con el Ámbar que sobra medido en la calculadora (Economia, 60 días), el grupo de amigos las tiene en
--- unos 3 meses y el intenso en algo más de 1. Los fija P6 con la sección "Parcela" de Economia.
+-- Precios (fijados en P6, 27-10-2026): 600 / 2.400 / 6.000 Ámbar por estructura, 63.000 las 7 al nivel III.
+-- Medido en la sección 2b de Economia (parcela desde el día 1, gastando lo que sobra tras las mejoras, la
+-- tienda y 4.500 de cosméticos nuevos por temporada): las 7 al III el día 46 el intenso, el 105 el grupo de
+-- amigos y el 128 el habitual que ganara. Límites parcelaIntensoDiaMin y parcelaAmigosDiaMax.
 
 local Config = require(script.Parent.Parent.Config)
 

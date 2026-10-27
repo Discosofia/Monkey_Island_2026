@@ -37,7 +37,7 @@
 |---|---|---|
 | Mejoras permanentes | `Data/Upgrades`, `ProgressionService` | 19 rangos, **1.930** |
 | Equipo de Dunas | `Data/ArenaGear`, `ArenaShop` | 200/150/100 por ranura (24 piezas) |
-| Parcela permanente (Fase 12, P3; solo quien ha ganado) | `Data/PlotStructures`, `PlotService` (Isla) | 7 estructuras × 3 niveles: 600 · 2.400 · 6.000 cada una, 63.000 en total, más materiales de la Bolsa. **Precios de prueba**: los fija P6 con la sección "Parcela" de la calculadora |
+| Parcela permanente (Fase 12; solo quien ha ganado) | `Data/PlotStructures`, `PlotService` (Isla) | 7 estructuras × 3 niveles: 600 · 2.400 · 6.000 cada una, 63.000 en total, más materiales del cofre privado o la Bolsa. Precios fijados en P6 (sección 2b de la calculadora) |
 | Tienda de cosméticos en Ámbar (G10) | `Data/Cosmetics` (`source.amber`), `Shared/CosmeticShop`, `CosmeticShopService` | 4 al día de lo que aún no tienes; 400 común · 600 poco común · 900 raro · 1.200 épico · 1.500 legendario |
 
 **XP del pase** (`Config.Season`, desde G3; G4 sube la de la Isla): 30 niveles × 1.000. Isla 60/día
@@ -105,6 +105,23 @@ Tirada de pioneros (T6, 27-10-2026):
 - **Ámbar:** las repetidas dan unos 250 por ciclo a la larga, alrededor del 5 % de lo que gana el habitual. No entra en la simulación de perfiles de la §2 (que dura 30 días).
 - **Lo que no cuenta:** la §5b solo mide la tirada. Los huevos también dan la Llama y el Jaguar.
 
+Parcela permanente (P6, 27-10-2026; sección 2b, 180 días con la parcela desde el día 1, gastando lo que
+sobra tras las mejoras, la tienda y 4.500 de cosméticos nuevos por temporada; 63.000 Ámbar las 7 al III):
+
+| Perfil | Ganado al mes | Las 7 al I | Las 7 al II | Las 7 al III |
+|---|---|---|---|---|
+| Casual | 8.583 | día 110 | no | no |
+| Habitual | 24.115 | día 40 | día 66 | día 128 |
+| Intenso | 59.594 | día 14 | día 22 | día 46 |
+| Amigos | 26.006 | día 32 | día 51 | día 105 |
+
+Se probaron precios más altos (1.000/4.000/12.000: intenso día 77, amigos 179; 1.000/5.000/15.000: 93 y
+216) y el usuario se quedó con 600/2.400/6.000. Ninguna estructura pide materiales que no salgan el día 1
+de la partida (con suerte del botín). Al III, huerto, taller y forja ahorran 19,5 recursos por día de
+partida (3,9 min de recoger, el 23 %; límite 25 %); el huerto III cubre el 74 % del hambre de un día. El
+cofre III guarda hasta 1.000 recursos (200 min de recoger). Desde P6 el Ámbar de un huevo descartado es el
+de su rareza (antes, los del calendario contaban como de la Isla): +190 al habitual en 30 días.
+
 Misiones diarias: fáciles 8–13 min, medias 17–20, difíciles 50–67. Partida: nivel 2 de la forja el
 día 1, nivel 3 el día 4 (Corona del caudillo), nivel 4 el día 6 (obsidiana y Cristal de cueva).
 Contratos, pasos por partida jugando solo: casual 1,3 · habitual 2 · intenso 5 · amigos 2,3. Reglas de
@@ -155,12 +172,13 @@ contratos: es lo primero que hay que mirar cuando haya telemetría.
 - Con ritmos un 30 % más lentos, la diaria fácil de fabricar (2 objetos) se sale de su rango y el paso 1
   del Campamento del náufrago (3 piezas) no cabe en los días 1–2 jugando solo: candidatos a bajar
   (1 objeto más fácil, 2 piezas) si los datos lo confirman.
-- Parcela (Fase 12, P5; opciones `incubadora` y `nidoParcela` de la calculadora): con la incubadora III
-  desde el día 1, el nido tiene dos huecos y se abren el doble de huevos (habitual 20 → 38 al mes), y con
-  el nido III los legendarios pasan del 1 % al 2 %. Las dos juntas dan la alerta «el habitual tiene una
-  montura al 50 % el día 9». Se acepta porque es el final de la parcela (unos 3 meses de Ámbar) y no la
-  tiene nadie el día 1; P6 lo mide con el día real en que se tiene. Los factores de tiempo (85 % y 70 %)
-  no cambian los huevos al mes en la calculadora, que simula por días.
+- Parcela (Fase 12, P6; sección 2b de la calculadora): la incubadora y el nido se simulan con el nivel
+  comprado cada día. En 30 días solo el intenso gana y tiene parcela (desde el día 1); su incubadora III
+  llega el día 43, así que la alerta de P5 («montura al 50 % el día 9», con las dos al III desde el día 1)
+  ya no sale. Con las dos al III el habitual abriría 38 huevos al mes en vez de 20: si algún día se baja
+  el precio de la incubadora III, mira las monturas. Los perfiles casual, habitual y amigos no ganan nunca
+  en la calculadora (los dos primeros no tienen probabilidad de rescate y el grupo, con 90 min, no llega a
+  la baliza del día 8): la parcela solo se ve en su simulación larga, como si hubieran ganado.
 - Desde P5 la calculadora da Ámbar por el tiempo de huevo que llega con el huevo ya listo (como el juego,
   `Retention.grant`). Antes se perdía. Por eso el habitual tiene la tienda entera el día 28 (alerta,
   mínimo 30): +270 Ámbar del calendario. Es el hallazgo de la tienda de arriba.

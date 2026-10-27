@@ -16,6 +16,7 @@ return _G.Economia.informe()
 ```
 
 - **Opciones:** `dias = 45`, `perfiles = { habitual = { minutosIsla = 90, diasPorSemana = 4 } }`, `ritmos = { Kill = 1.5 }` y `secciones = { partida = false }`.
+- **Parcela** (sección 2b): costes de las 7 estructuras, lo que dan en la partida y el día en que cada perfil las tiene al III; `parcela = { dias = 180 }` cambia la simulación larga.
 - **Propuesta:**
   ```lua
   return _G.Economia.informe({ secciones = { partida = false } }, {

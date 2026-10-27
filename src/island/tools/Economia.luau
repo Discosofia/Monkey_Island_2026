@@ -21,6 +21,11 @@
 --      misiones cumplidas y día en que llena los talentos de su rol. Gasta en las mejoras, luego en el
 --      equipo de Dunas y luego en la tienda de cosméticos en Ámbar (Shared/CosmeticShop: lo que puede
 --      pagar de su oferta de cada día); y el catálogo y los precios de las tiendas.
+--   2b. Parcela permanente (Fase 12): Ámbar y materiales de los 3 niveles de las 7 estructuras, lo que dan
+--      en la partida (fruta, vendas, descuentos, cofre) medido en minutos de recoger, quién la desbloquea
+--      en el periodo y, en una simulación larga con la parcela desde el día 1, el día en que cada perfil
+--      tiene las 7 a cada nivel (gasta en ella lo que le sobra tras las mejoras y la tienda). La incubadora
+--      y el nido de la simulación son los del nivel comprado cada día.
 --   3. Partida: el día más temprano en que se puede tener cada nivel de arma y armadura, y lo que trae
 --      de nuevo cada día de la partida.
 --      Y los contratos de expedición (Data/Contracts): minuto en que se cumple cada paso jugando solo,
@@ -120,7 +125,20 @@ local OPCIONES_BASE = {
 	-- Nivel del nido de la parcela (0 = sin él) en el que se defienden todos los huevos de la Isla: cada
 	-- uno puede subir un grado de rareza ("rarityUp" de Data/PlotStructures).
 	nidoParcela = 0,
-	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true, pioneros = true },
+	-- Parcela (Fase 12, P6). "desdeDia": día en que todos la tienen (0 = al ganar por primera vez, como en el
+	-- juego). La sección 2b simula además "dias" días con la parcela desde el día 1 (como si cada perfil
+	-- hubiera ganado ya). "tiendaPorTemporada": Ámbar de los cosméticos nuevos que trae cada temporada a la
+	-- tienda (supuesto, modelo-economico.md §5), que se compran antes que la parcela.
+	parcela = { desdeDia = 0, dias = 180, tiendaPorTemporada = 4500 },
+	secciones = {
+		misiones = true,
+		perfiles = true,
+		parcela = true,
+		partida = true,
+		pase = true,
+		pago = true,
+		pioneros = true,
+	},
 }
 
 -- ===================================== Propuesta =====================================
@@ -159,6 +177,13 @@ local LIMITES = {
 	monturaHabitualDia = { 12, 30 },
 	-- Tirada de pioneros (T6): día en que quien entra a diario tiene las 3 monturas al 50 % (unos 3 meses).
 	pionerosTodasDiario = { 75, 110 },
+	-- Parcela (Fase 12, P6), con la parcela desde el día 1: el intenso no tiene las 7 estructuras al III
+	-- antes de este día y el grupo de amigos sí las tiene antes de este otro (63.000 Ámbar: 46 y 105 días,
+	-- decidido el 27-10-2026). Y parte de un día de partida de recoger que ahorran huerto, taller y forja al
+	-- III juntos (las ventajas decididas en el plan dan el 23 %).
+	parcelaIntensoDiaMin = 40,
+	parcelaAmigosDiaMax = 150,
+	parcelaVentajaDia = 0.25,
 }
 
 -- ===================================== Utilidades =====================================
@@ -395,45 +420,130 @@ local function main(copia: Instance): string
 		linea("")
 	end
 
-	-- ---------------------------------------------------------------- Perfiles
-	local hatchHoras = Config.Egg.HatchHours
-	local pesosIsla = Config.Pets.RarityWeights
-	do
-		-- Nido de la parcela: parte de los huevos de cada rareza sube a la siguiente (no a la mítica:
-		-- ningún huevo normal lo es).
-		local nivelNido = OPCIONES.nidoParcela
-		local datosNido = if nivelNido > 0 then (require(Data.PlotStructures) :: any).Nest.levels[nivelNido] else nil
-		local sube = if datosNido then datosNido.rarityUp or 0 else 0
-		if sube > 0 then
-			local orden = {}
-			for rareza in pesosIsla do
-				table.insert(orden, rareza)
-			end
-			table.sort(orden, function(a, b)
-				return Rarities[a].order < Rarities[b].order
-			end)
-			local nuevos = table.clone(pesosIsla)
-			for i = 1, #orden - 1 do
-				local pasa = pesosIsla[orden[i]] * sube
-				nuevos[orden[i]] -= pasa
-				nuevos[orden[i + 1]] += pasa
-			end
-			pesosIsla = nuevos
+	-- ---------------------------------------------------------------- Botín de la partida
+	-- Día de partida más temprano en que se consigue cada ítem (la sección 3 y la parcela).
+	local diaItem: { [string]: number } = {}
+	local function poner(itemId: string, dia: number)
+		if diaItem[itemId] == nil or dia < diaItem[itemId] then
+			diaItem[itemId] = dia
 		end
 	end
-	local horasHuevoIsla = mediaPonderada(pesosIsla, function(r)
-		return hatchHoras[r]
-	end)
-	local descarteIsla = mediaPonderada(pesosIsla, function(r)
-		return Config.Egg.DiscardAmber[r]
-	end)
+	for _, nodo in ResourceNodes do
+		poner(nodo.itemId, 1)
+		if nodo.extra then
+			poner(nodo.extra.itemId, 1)
+		end
+	end
+	for _, mono in Monkeys do
+		local dia = if mono.groups > 0 then 1 else math.huge
+		for _, entrada in Config.Siege.SpeciesByDay do
+			if Monkeys[entrada.species] == mono then
+				dia = math.min(dia, entrada.day)
+			end
+		end
+		for _, botin in mono.loot do
+			poner(botin.itemId, dia)
+		end
+	end
+	for indice, bossId in M.BossRotation do
+		local jefe = Bosses[bossId]
+		if jefe and jefe.lootItemId then
+			poner(jefe.lootItemId, indice * M.BossIntervalDays)
+		end
+	end
+	for _, botin in Config.Supply.Always do
+		poner(botin.itemId, 1)
+	end
+	for _, botin in Config.Supply.Loot do
+		poner(botin.itemId, 1)
+	end
+	-- Estaciones construibles (la forja): el día de sus materiales.
+	local diaEstacion: { [string]: number } = { Workbench = 1, Campfire = 1 }
+	local function diaCoste(coste: { any }): number
+		local dia = 1
+		for _, c in coste do
+			dia = math.max(dia, diaItem[c.itemId] or math.huge)
+		end
+		return dia
+	end
+	-- Lo que sale de alguna receta (lo demás que "upgrades" sustituye, como el arma inicial del rol, ya
+	-- se tiene desde el día 1).
+	local fabricado: { [string]: boolean } = {}
+	for _, receta in Recipes do
+		local salida = receta.weaponId or receta.armorId
+		if salida then
+			fabricado[salida] = true
+		end
+	end
+	-- Recetas: hasta que no cambie nada (las mejoras dependen de lo anterior de la cadena).
+	local diaReceta: { [string]: number } = {}
+	local diaSalida: { [string]: number } = {}
+	for _ = 1, 10 do
+		for _, construible in Buildables do
+			if construible.station then
+				diaEstacion[construible.station] =
+					math.min(diaEstacion[construible.station] or math.huge, diaCoste(construible.cost))
+			end
+		end
+		for id, receta in Recipes do
+			local dia = math.max(diaCoste(receta.cost), diaEstacion[receta.station] or 1)
+			if receta.upgrades and fabricado[receta.upgrades] then
+				dia = math.max(dia, diaSalida[receta.upgrades] or math.huge)
+			end
+			diaReceta[id] = dia
+			local salida = receta.weaponId or receta.armorId or receta.itemId or receta.offhand
+			if salida then
+				diaSalida[salida] = math.min(diaSalida[salida] or math.huge, dia)
+				if receta.itemId then
+					poner(receta.itemId, dia)
+				end
+			end
+		end
+	end
+
+	-- ---------------------------------------------------------------- Perfiles
+	local hatchHoras = Config.Egg.HatchHours
 	-- Probabilidad de que un huevo con estas rarezas dé una montura al abrirse.
 	local function probMontura(pesos: { [string]: number }): number
 		return mediaPonderada(pesos, function(r)
 			return if raresConMontura[r] then chanceMontura else 0
 		end)
 	end
-	local montaIsla = probMontura(pesosIsla)
+	-- Huevo de la Isla defendido en un nido de la parcela de nivel 0–3: parte de los huevos de cada rareza
+	-- sube a la siguiente ("rarityUp" de Data/PlotStructures; no a la mítica: ningún huevo normal lo es).
+	-- Rarezas, horas medias, Ámbar de descartarlo y probabilidad de montura.
+	local PlotStructures = require(Data.PlotStructures) :: any
+	local ordenRarezas = {}
+	for rareza in Config.Pets.RarityWeights do
+		table.insert(ordenRarezas, rareza)
+	end
+	table.sort(ordenRarezas, function(a, b)
+		return Rarities[a].order < Rarities[b].order
+	end)
+	local huevosIsla = {}
+	for nivel = 0, 3 do
+		local pesos = table.clone(Config.Pets.RarityWeights)
+		local datosNido = if nivel > 0 then PlotStructures.Nest.levels[nivel] else nil
+		local sube = if datosNido then datosNido.rarityUp or 0 else 0
+		for i = 1, #ordenRarezas - 1 do
+			local pasa = Config.Pets.RarityWeights[ordenRarezas[i]] * sube
+			pesos[ordenRarezas[i]] -= pasa
+			pesos[ordenRarezas[i + 1]] += pasa
+		end
+		huevosIsla[nivel] = {
+			pesos = pesos,
+			horas = mediaPonderada(pesos, function(r)
+				return hatchHoras[r]
+			end),
+			descarte = mediaPonderada(pesos, function(r)
+				return Config.Egg.DiscardAmber[r]
+			end),
+			montura = probMontura(pesos),
+		}
+	end
+	-- El de OPCIONES.nidoParcela (la cabecera de la sección 2 y el rescate).
+	local pesosIsla = huevosIsla[OPCIONES.nidoParcela].pesos
+	local horasHuevoIsla = huevosIsla[OPCIONES.nidoParcela].horas
 	-- Mascotas de cada rareza: una repetida da Config.Egg.DuplicateAmber en vez de otra copia.
 	local mascotasRareza: { [string]: number } = {}
 	for _, mascota in require(Data.Pets) :: any do
@@ -719,16 +829,33 @@ local function main(copia: Instance): string
 		acc.ArenaCapture = (acc.ArenaCapture or 0) + perfil.partidasDunas * OPCIONES.dunas.capturas
 	end
 
-	-- Huecos del nido y factor del tiempo de los huevos con la incubadora de la parcela del perfil
-	-- (Data/PlotStructures: "eggTimeFactor" y "nestSlots" de su nivel).
-	local PlotStructures = require(Data.PlotStructures) :: any
-	local function incubadora(perfil: any): (number, number)
-		local nivel = perfil.incubadora or OPCIONES.incubadora
+	-- Huecos del nido y factor del tiempo de los huevos con una incubadora de nivel 0–3 (Data/PlotStructures:
+	-- "eggTimeFactor" y "nestSlots").
+	local function incubadora(nivel: number): (number, number)
 		local datos = if nivel > 0 then PlotStructures.Incubator.levels[nivel] else nil
 		return if datos then datos.nestSlots or 1 else 1, if datos then datos.eggTimeFactor or 1 else 1
 	end
 
-	local function simular(perfil: any)
+	-- Parcela (Fase 12, P6): cada nivel de cada estructura, en el orden en que se compra (todas al I, luego
+	-- al II y luego al III; dentro de un nivel, el orden de Shared/Plot), con su Ámbar y el día de partida en
+	-- que se tienen sus materiales (diaItem: hace falta una partida que llegue a él).
+	local PlotModulo = require(copia.Plot) :: any
+	local nivelesParcela = {}
+	for nivel = 1, PlotModulo.MAX_LEVEL do
+		for _, id in PlotModulo.STRUCTURES do
+			local datos = PlotStructures[id].levels[nivel]
+			local diaMaterial = 1
+			for _, c in datos.cost do
+				diaMaterial = math.max(diaMaterial, diaItem[c.itemId] or math.huge)
+			end
+			table.insert(nivelesParcela, { id = id, nivel = nivel, ambar = datos.amber, diaMaterial = diaMaterial })
+		end
+	end
+	local OP = OPCIONES.parcela
+
+	-- "dias": días reales simulados. "desdeDia": día en que tiene la parcela (0 = al ganar por primera vez,
+	-- cuando la probabilidad de haber ganado ya pasa del 50 %).
+	local function simular(perfil: any, dias: number, desdeDia: number)
 		local r = {
 			diasActivos = 0,
 			ambar = { Partidas = 0, Dunas = 0, Calendario = 0, Misiones = 0, Descartes = 0, Repetidas = 0, Pase = 0 },
@@ -774,7 +901,29 @@ local function main(copia: Instance): string
 			semanalesCumplidas = 0,
 			semanasTodas = 0,
 			semanas = 0,
+			-- Parcela: día en que la tiene, nivel de cada estructura, día en que compra cada nivel, Ámbar
+			-- gastado en ella, día en que tiene las 7 a cada nivel y lo que no puede pagar por los materiales.
+			-- "tiendaNueva": Ámbar de los cosméticos nuevos de cada mes que aún no ha gastado.
+			parcela = {
+				dia = nil :: number?,
+				niveles = {} :: { [string]: number },
+				nivelDia = {} :: { [string]: number },
+				gasto = 0,
+				todasDia = {} :: { [number]: number },
+				sinMaterial = {} :: { [string]: number },
+			},
+			tiendaNueva = 0,
+			sinGanar = 1,
 		}
+		for _, id in PlotModulo.STRUCTURES do
+			r.parcela.niveles[id] = 0
+		end
+		-- Nivel de la incubadora y del nido: el fijo de las opciones (del perfil o de todos) o el comprado.
+		local function nivelParcela(id: string): number
+			local fijo = if id == "Incubator" then perfil.incubadora or OPCIONES.incubadora else OPCIONES.nidoParcela
+			return if fijo > 0 then fijo else r.parcela.niveles[id]
+		end
+		local diaAlcanzado = math.floor(perfil.minutosIsla / MINUTOS_DIA) + 1
 		local pendientes = table.clone(costesMejoras)
 		local costeDunas = 0
 		if perfil.partidasDunas > 0 then
@@ -790,7 +939,7 @@ local function main(copia: Instance): string
 		-- totales del huevo (por el factor de la incubadora), transcurridos, bonos y probabilidad de
 		-- montura; mochila (los que esperan: sus horas y su probabilidad de montura).
 		local nidos: { any } = {}
-		local huecos, factorHuevo = incubadora(perfil)
+		local huecos, factorHuevo = incubadora(nivelParcela("Incubator"))
 		local mochila: { { horas: number, montura: number, pesos: { [string]: number } } } = {}
 		local acumuladoHuevos = 0
 		-- Mascotas de cada rareza que se esperan tener ya (para la probabilidad de repetida).
@@ -813,7 +962,9 @@ local function main(copia: Instance): string
 				table.insert(mochila, { horas = horas, montura = montura, pesos = pesos })
 			else
 				r.huevosDescartados += 1
-				r.ambar.Descartes += descarteIsla
+				r.ambar.Descartes += mediaPonderada(pesos, function(rr)
+					return Config.Egg.DiscardAmber[rr]
+				end)
 			end
 		end
 		local function listo(nido: any): boolean
@@ -853,7 +1004,7 @@ local function main(copia: Instance): string
 			end
 		end
 
-		for dia = 1, OPCIONES.dias do
+		for dia = 1, dias do
 			for hueco = 1, huecos do
 				if nidos[hueco] then
 					nidos[hueco].pasado += 24 * 3600
@@ -915,6 +1066,11 @@ local function main(copia: Instance): string
 				-- Isla.
 				local p = partida(perfil.minutosIsla, perfil)
 				r.ambar.Partidas += p.ambar
+				-- La parcela se desbloquea al ganar por primera vez (o el día fijo de "desdeDia").
+				r.sinGanar *= 1 - p.rescate
+				if not r.parcela.dia and (if desdeDia > 0 then dia >= desdeDia else r.sinGanar <= 0.5) then
+					r.parcela.dia = dia
+				end
 				r.xpRol += p.xpRol
 				tiempoJuego(p.dias * Config.Egg.SecondsPerDaySurvived)
 				if p.rescate > 0 then
@@ -923,7 +1079,8 @@ local function main(copia: Instance): string
 				acumuladoHuevos += p.huevos
 				while acumuladoHuevos >= 1 do
 					acumuladoHuevos -= 1
-					nuevoHuevo(horasHuevoIsla, montaIsla, pesosIsla)
+					local huevo = huevosIsla[nivelParcela("Nest")]
+					nuevoHuevo(huevo.horas, huevo.montura, huevo.pesos)
 				end
 				local cumplidas, posibles, ambarMisiones, huevoMisiones, xpMisiones =
 					misionesDelDia(perfil.minutosIsla, perfil.rol)
@@ -974,10 +1131,15 @@ local function main(copia: Instance): string
 				r.ambar.Dunas += dunas(perfil.partidasDunas)
 				-- Pase de temporada: XP del día y premios gratis de los niveles ganados (los no cosméticos
 				-- solo con nivel ganado; aquí todo es ganado jugando).
-				if temporada and dia <= Config.Season.Days then
+				if temporada then
 					local S = Config.Season
 					local P = r.pase
-					local mult = if dia > S.Days - S.LastWeekDays then S.LastWeekMultiplier else 1
+					-- Pasada la primera temporada (simulaciones largas), otra igual desde cero.
+					local diaTemporada = (dia - 1) % S.Days + 1
+					if dia > S.Days and diaTemporada == 1 then
+						P.xp = 0
+					end
+					local mult = if diaTemporada > S.Days - S.LastWeekDays then S.LastWeekMultiplier else 1
 					local isla, deDunas = xpPartidas(p, perfil.partidasDunas)
 					local partidas = math.min(isla + deDunas, S.DailyMatchXpCap)
 					P.recortada += isla + deDunas - partidas
@@ -1079,13 +1241,72 @@ local function main(copia: Instance): string
 						r.tiendaCompletaDia = dia
 					end
 				end
+				-- Pasada la primera temporada, cada una trae cosméticos nuevos a la tienda (supuesto:
+				-- OPCIONES.parcela.tiendaPorTemporada), que se compran antes que la parcela.
+				if temporada and dia > Config.Season.Days and (dia - 1) % Config.Season.Days == 0 then
+					r.tiendaNueva += OP.tiendaPorTemporada
+				end
+				if #pendientes == 0 and r.tiendaNueva > 0 then
+					local pago = math.min(r.saldo, r.tiendaNueva)
+					r.tiendaNueva -= pago
+					r.gastoCosmeticos += pago
+					r.gastado += pago
+					r.saldo -= pago
+				end
+				-- Parcela, con lo que sobra: el siguiente nivel en orden que pueda pagar (se salta los que
+				-- piden materiales de un día de partida al que no llega; los demás, ahorra para ellos).
+				if r.parcela.dia and #pendientes == 0 and r.tiendaNueva <= 0 then
+					local P = r.parcela
+					for _, entrada in nivelesParcela do
+						if P.niveles[entrada.id] ~= entrada.nivel - 1 then
+							continue
+						end
+						if entrada.diaMaterial > diaAlcanzado then
+							P.sinMaterial[`{entrada.id}{entrada.nivel}`] = entrada.diaMaterial
+							continue
+						end
+						if r.saldo < entrada.ambar then
+							break
+						end
+						r.saldo -= entrada.ambar
+						r.gastado += entrada.ambar
+						P.gasto += entrada.ambar
+						P.niveles[entrada.id] = entrada.nivel
+						P.nivelDia[`{entrada.id}{entrada.nivel}`] = dia
+						if entrada.id == "Incubator" then
+							-- Eggs.speedUp: lo que le falta a cada huevo del nido pasa al factor nuevo.
+							local nuevosHuecos, nuevoFactor = incubadora(nivelParcela("Incubator"))
+							for hueco = 1, huecos do
+								local nido = nidos[hueco]
+								if nido and not listo(nido) then
+									local hecho = nido.pasado + nido.juego + nido.gratis
+									nido.total = hecho + (nido.total - hecho) * nuevoFactor / factorHuevo
+								end
+							end
+							huecos, factorHuevo = nuevosHuecos, nuevoFactor
+							local siguiente = if huecos > 1 and not nidos[huecos] then table.remove(mochila, 1) else nil
+							if siguiente then
+								nuevoHuevo(siguiente.horas, siguiente.montura, siguiente.pesos)
+							end
+						end
+					end
+					for nivel = 1, PlotModulo.MAX_LEVEL do
+						if not P.todasDia[nivel] then
+							local completas = true
+							for _, id in PlotModulo.STRUCTURES do
+								completas = completas and P.niveles[id] >= nivel
+							end
+							P.todasDia[nivel] = if completas then dia else nil
+						end
+					end
+				end
 				if not r.talentosDia and r.xpRol >= xpTalentos then
 					r.talentosDia = dia
 				end
 			end
 		end
 		if Pase then
-			r.pase.nivelDia[OPCIONES.dias] = Pase.earnedLevel(r.pase.xp)
+			r.pase.nivelDia[dias] = Pase.earnedLevel(r.pase.xp)
 		end
 		return r
 	end
@@ -1093,7 +1314,7 @@ local function main(copia: Instance): string
 	-- Todos los perfiles se simulan aunque su tabla no se enseñe (el pase los usa).
 	local resultados = {}
 	for _, clave in OPCIONES.ordenPerfiles do
-		local r = simular(OPCIONES.perfiles[clave])
+		local r = simular(OPCIONES.perfiles[clave], OPCIONES.dias, OP.desdeDia)
 		local ganado = 0
 		for _, valor in r.ambar do
 			ganado += valor
@@ -1109,7 +1330,7 @@ local function main(copia: Instance): string
 			)} h de media.`
 		)
 		if OPCIONES.incubadora > 0 or OPCIONES.nidoParcela > 0 then
-			local huecos, factor = incubadora({})
+			local huecos, factor = incubadora(OPCIONES.incubadora)
 			linea(
 				`Parcela: incubadora {OPCIONES.incubadora} ({huecos} hueco(s) en el nido, huevos al {pct(factor)} del tiempo) · nido {OPCIONES.nidoParcela} (Legendario en {pct(
 					mediaPonderada(pesosIsla, function(r)
@@ -1296,88 +1517,235 @@ local function main(copia: Instance): string
 		linea("")
 	end
 
+	-- ---------------------------------------------------------------- Parcela
+	if OPCIONES.secciones.parcela then
+		linea("## 2b. Parcela permanente")
+		local function nombreItem(id: string): string
+			return if Items[id] then Items[id].name else id
+		end
+		local function diaTexto(valor: number): string
+			return if valor == math.huge then "nunca" else `día {valor}`
+		end
+		-- Costes: cada celda, Ámbar · materiales (día de partida en que se tienen todos).
+		local totalNivel = { 0, 0, 0 }
+		linea("Coste de cada nivel: Ámbar · materiales (día de partida en que se tienen todos).")
+		linea("")
+		linea("| Estructura | I | II | III |")
+		linea("|---|---|---|---|")
+		local entradas: { [string]: any } = {}
+		for _, entrada in nivelesParcela do
+			entradas[`{entrada.id}{entrada.nivel}`] = entrada
+		end
+		for _, id in PlotModulo.STRUCTURES do
+			local estructura = PlotStructures[id]
+			local celdas = {}
+			for nivel, datos in estructura.levels do
+				totalNivel[nivel] += datos.amber
+				local materiales = {}
+				for _, c in datos.cost do
+					table.insert(materiales, `{nombreItem(c.itemId)} {c.amount}`)
+				end
+				local diaMaterial = entradas[`{id}{nivel}`].diaMaterial
+				table.insert(celdas, `{datos.amber} ✨ · {table.concat(materiales, ", ")} ({diaTexto(diaMaterial)})`)
+				if diaMaterial == math.huge then
+					alerta(
+						`Parcela: {estructura.name} {PlotModulo.ROMAN[nivel]} pide un material que no sale en la partida`
+					)
+				end
+			end
+			linea(`| {estructura.icon} {estructura.name} | {table.concat(celdas, " | ")} |`)
+		end
+		linea(
+			`| Las 7 | {totalNivel[1]} ✨ | {totalNivel[2]} ✨ | {totalNivel[3]} ✨ (en total {totalNivel[1] + totalNivel[2] + totalNivel[3]}) |`
+		)
+		linea("")
+
+		-- Lo que da en la partida, en recursos (unidades que se recogen) por día de partida y en minutos de
+		-- recoger con el ritmo de Gather. Fabricados por día: R.Craft, repartidos entre las estaciones según
+		-- cuántas recetas tiene cada una.
+		local recetasPorEstacion: { [string]: number } = {}
+		local materialesPorEstacion: { [string]: number } = {}
+		local totalRecetas = 0
+		for _, receta in Recipes do
+			totalRecetas += 1
+			recetasPorEstacion[receta.station] = (recetasPorEstacion[receta.station] or 0) + 1
+			for _, c in receta.cost do
+				materialesPorEstacion[receta.station] = (materialesPorEstacion[receta.station] or 0) + c.amount
+			end
+		end
+		local fabricadosDia = R.Craft * MINUTOS_DIA
+		local function ahorroDescuento(estaciones: { string }, descuento: number): number
+			local ahorro = 0
+			for _, estacion in estaciones do
+				local cuantas = recetasPorEstacion[estacion] or 0
+				if cuantas > 0 then
+					local media = materialesPorEstacion[estacion] / cuantas
+					ahorro += fabricadosDia * cuantas / totalRecetas * media * descuento
+				end
+			end
+			return ahorro
+		end
+		local costeVenda = 0
+		for _, c in Recipes.Bandage.cost do
+			costeVenda += c.amount
+		end
+		local curaVenda = if Items.Bandage and Items.Bandage.heal then Items.Bandage.heal else 30
+		local hambreDia = Config.Survival.HungerPerMinute * MINUTOS_DIA
+		local function minutosDe(unidades: number): number
+			return unidades / R.Gather
+		end
+		linea(
+			`Lo que da en la partida por día de partida ({n(MINUTOS_DIA)} min), en recursos que no hay que recoger (a {n(
+				R.Gather
+			)} por minuto). Fabricados: {n(fabricadosDia)} por día.`
+		)
+		linea("")
+		linea("| Estructura | I | II | III |")
+		linea("|---|---|---|---|")
+		local totalAhorro = { 0, 0, 0 }
+		local function filaEfecto(id: string, f: (any) -> (number, string))
+			local estructura = PlotStructures[id]
+			local celdas = {}
+			for nivel, datos in estructura.levels do
+				local unidades, texto = f(datos)
+				totalAhorro[nivel] += unidades
+				table.insert(celdas, `{texto} → {n(unidades)} ({n(minutosDe(unidades))} min)`)
+			end
+			linea(`| {estructura.icon} {estructura.name} | {table.concat(celdas, " | ")} |`)
+		end
+		filaEfecto("Garden", function(datos)
+			local unidades, hambre = 0, 0
+			for itemId, cuantos in datos.food or {} do
+				unidades += cuantos
+				local comida = Items[itemId] and Items[itemId].food
+				hambre += cuantos * (if comida then comida.hunger else 0)
+			end
+			return unidades, `{unidades} de fruta, {pct(hambre / hambreDia)} del hambre del día`
+		end)
+		filaEfecto("Healer", function(datos)
+			local vendas = datos.bandages or 0
+			local descuento = ahorroDescuento(datos.stations or {}, datos.discount or 0)
+			return vendas * costeVenda + descuento,
+				`{vendas} vendas ({vendas * curaVenda} de vida) y −{pct(datos.discount or 0)}`
+		end)
+		filaEfecto("Forge", function(datos)
+			return ahorroDescuento(datos.stations or {}, datos.discount or 0), `−{pct(datos.discount or 0)}`
+		end)
+		local celdasTotal = {}
+		for nivel = 1, 3 do
+			local minutos = minutosDe(totalAhorro[nivel])
+			table.insert(
+				celdasTotal,
+				`{n(totalAhorro[nivel])} recursos, {n(minutos)} min ({pct(minutos / MINUTOS_DIA)} del día)`
+			)
+		end
+		linea(`| Las tres | {table.concat(celdasTotal, " | ")} |`)
+		local ventaja = minutosDe(totalAhorro[3]) / MINUTOS_DIA
+		if ventaja > LIMITES.parcelaVentajaDia then
+			alerta(
+				`Parcela: al nivel III, huerto, taller y forja ahorran el {pct(ventaja)} de un día de partida (máximo {pct(
+					LIMITES.parcelaVentajaDia
+				)})`
+			)
+		end
+		local cofre = {}
+		for nivel = 1, 3 do
+			local unidades = PlotModulo.chestSlots(nivel) * Config.Plot.ChestStack
+			table.insert(cofre, `{PlotModulo.ROMAN[nivel]} {unidades} ({n(minutosDe(unidades), 0)} min)`)
+		end
+		linea(
+			`Cofre: lo que guarda como mucho de una partida a otra, en recursos (minutos de recoger): {table.concat(
+				cofre,
+				" · "
+			)}. La cama acorta la reaparición y cura a su lado (eso lo mide Equilibrio).`
+		)
+		linea("")
+
+		-- Quién la desbloquea en el periodo de la sección 2 y con qué niveles.
+		local reales = {}
+		for _, clave in OPCIONES.ordenPerfiles do
+			local P = resultados[clave].parcela
+			local niveles = {}
+			for _, id in PlotModulo.STRUCTURES do
+				table.insert(niveles, tostring(P.niveles[id]))
+			end
+			table.insert(
+				reales,
+				`{OPCIONES.perfiles[clave].nombre} {if P.dia
+					then `el día {P.dia} (niveles {table.concat(niveles, "/")} el día {OPCIONES.dias}, {n(P.gasto, 0)} ✨)`
+					else "no la tiene"}`
+			)
+		end
+		linea(
+			`En la sección 2 ({OPCIONES.dias} días, se tiene al ganar por primera vez): {table.concat(reales, " · ")}.`
+		)
+		linea("")
+
+		-- Simulación larga: todos con la parcela desde el día 1.
+		local largos = {}
+		for _, clave in OPCIONES.ordenPerfiles do
+			largos[clave] = simular(OPCIONES.perfiles[clave], OP.dias, 1)
+		end
+		linea(
+			`Con la parcela desde el día 1 (como si ya hubiera ganado), {OP.dias} días: gasta en ella lo que le sobra tras las mejoras, la tienda y {OP.tiendaPorTemporada} ✨ de cosméticos nuevos por temporada. Orden: todas al I, luego al II, luego al III.`
+		)
+		linea("")
+		linea(
+			"| Perfil | Ganado al mes | En la parcela | Las 7 al I | Las 7 al II | Las 7 al III | Incubadora III | Nido III | Sin materiales |"
+		)
+		linea("|---|---|---|---|---|---|---|---|---|")
+		local function diaMeses(valor: number?): string
+			return if valor then `día {valor} ({n(valor / 30, 1)} meses)` else "no"
+		end
+		for _, clave in OPCIONES.ordenPerfiles do
+			local r = largos[clave]
+			local P = r.parcela
+			local ganado = 0
+			for _, valor in r.ambar do
+				ganado += valor
+			end
+			local faltan = {}
+			for _, entrada in nivelesParcela do
+				local clavePaso = `{entrada.id}{entrada.nivel}`
+				if P.sinMaterial[clavePaso] then
+					table.insert(
+						faltan,
+						`{PlotStructures[entrada.id].name} {PlotModulo.ROMAN[entrada.nivel]} ({diaTexto(
+							P.sinMaterial[clavePaso]
+						)})`
+					)
+				end
+			end
+			local perfil = OPCIONES.perfiles[clave]
+			linea(
+				`| {perfil.nombre} | {n(ganado / OP.dias * 30, 0)} | {n(P.gasto, 0)} | {diaMeses(P.todasDia[1])} | {diaMeses(
+					P.todasDia[2]
+				)} | {diaMeses(P.todasDia[3])} | {diaMeses(P.nivelDia.Incubator3)} | {diaMeses(P.nivelDia.Nest3)} | {if #faltan
+						> 0
+					then `{table.concat(faltan, ", ")}; llega al día {perfil.minutosIsla // MINUTOS_DIA + 1}`
+					else "—"} |`
+			)
+		end
+		local intenso = largos.intenso and largos.intenso.parcela.todasDia[3]
+		if intenso and intenso < LIMITES.parcelaIntensoDiaMin then
+			alerta(`Parcela: el intenso tiene las 7 al III el día {intenso} (mínimo {LIMITES.parcelaIntensoDiaMin})`)
+		end
+		if largos.amigos then
+			local dia = largos.amigos.parcela.todasDia[3]
+			if (not dia and OP.dias >= LIMITES.parcelaAmigosDiaMax) or (dia and dia > LIMITES.parcelaAmigosDiaMax) then
+				alerta(
+					`Parcela: el grupo de amigos no tiene las 7 al III hasta {if dia
+						then `el día {dia}`
+						else "pasado el periodo"} (máximo {LIMITES.parcelaAmigosDiaMax})`
+				)
+			end
+		end
+		linea("")
+	end
+
 	-- ---------------------------------------------------------------- Partida
 	if OPCIONES.secciones.partida then
 		linea("## 3. Partida: cuándo se puede tener cada cosa")
-		-- Día de partida más temprano en que se consigue cada ítem.
-		local diaItem: { [string]: number } = {}
-		local function poner(itemId: string, dia: number)
-			if diaItem[itemId] == nil or dia < diaItem[itemId] then
-				diaItem[itemId] = dia
-			end
-		end
-		for _, nodo in ResourceNodes do
-			poner(nodo.itemId, 1)
-			if nodo.extra then
-				poner(nodo.extra.itemId, 1)
-			end
-		end
-		for _, mono in Monkeys do
-			local dia = if mono.groups > 0 then 1 else math.huge
-			for _, entrada in Config.Siege.SpeciesByDay do
-				if Monkeys[entrada.species] == mono then
-					dia = math.min(dia, entrada.day)
-				end
-			end
-			for _, botin in mono.loot do
-				poner(botin.itemId, dia)
-			end
-		end
-		for indice, bossId in M.BossRotation do
-			local jefe = Bosses[bossId]
-			if jefe and jefe.lootItemId then
-				poner(jefe.lootItemId, indice * M.BossIntervalDays)
-			end
-		end
-		for _, botin in Config.Supply.Always do
-			poner(botin.itemId, 1)
-		end
-		for _, botin in Config.Supply.Loot do
-			poner(botin.itemId, 1)
-		end
-		-- Estaciones construibles (la forja): el día de sus materiales.
-		local diaEstacion: { [string]: number } = { Workbench = 1, Campfire = 1 }
-		local function diaCoste(coste: { any }): number
-			local dia = 1
-			for _, c in coste do
-				dia = math.max(dia, diaItem[c.itemId] or math.huge)
-			end
-			return dia
-		end
-		-- Lo que sale de alguna receta (lo demás que "upgrades" sustituye, como el arma inicial del rol, ya
-		-- se tiene desde el día 1).
-		local fabricado: { [string]: boolean } = {}
-		for _, receta in Recipes do
-			local salida = receta.weaponId or receta.armorId
-			if salida then
-				fabricado[salida] = true
-			end
-		end
-		-- Recetas: hasta que no cambie nada (las mejoras dependen de lo anterior de la cadena).
-		local diaReceta: { [string]: number } = {}
-		local diaSalida: { [string]: number } = {}
-		for _ = 1, 10 do
-			for _, construible in Buildables do
-				if construible.station then
-					diaEstacion[construible.station] =
-						math.min(diaEstacion[construible.station] or math.huge, diaCoste(construible.cost))
-				end
-			end
-			for id, receta in Recipes do
-				local dia = math.max(diaCoste(receta.cost), diaEstacion[receta.station] or 1)
-				if receta.upgrades and fabricado[receta.upgrades] then
-					dia = math.max(dia, diaSalida[receta.upgrades] or math.huge)
-				end
-				diaReceta[id] = dia
-				local salida = receta.weaponId or receta.armorId or receta.itemId or receta.offhand
-				if salida then
-					diaSalida[salida] = math.min(diaSalida[salida] or math.huge, dia)
-					if receta.itemId then
-						poner(receta.itemId, dia)
-					end
-				end
-			end
-		end
 		-- Cadenas de mejora: arma de cada rol y armadura.
 		local function cadena(inicio: (any) -> boolean): { string }
 			local lista = {}
