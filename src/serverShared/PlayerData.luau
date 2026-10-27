@@ -433,6 +433,125 @@ function PlayerData.peekCosmetics(userId: number): { [string]: string }?
 	return nil
 end
 
+-- Copias de seguridad de los perfiles (T4d, panel de administración): DataStore
+-- Config.Data.BackupStoreName, clave "u_<userId>_<etiqueta>_<os.time>", con lo guardado del perfil (sin
+-- el bloqueo de sesión). Todo puede tardar: desde un hilo.
+local backups: DataStore? = nil
+local function backupStore(): DataStore?
+	if not backups then
+		local ok, result = pcall(function()
+			return DataStoreService:GetDataStore(Config.Data.BackupStoreName)
+		end)
+		backups = if ok then result else nil
+	end
+	return backups
+end
+
+-- ¿Tiene este servidor cargado el perfil de "player"? (Se suelta al salir, tras guardarlo.)
+function PlayerData.hasSession(player: Player): boolean
+	return sessions[player] ~= nil
+end
+
+-- Lo guardado ahora del perfil de "userId" (aunque esté jugando en otro servidor), sin bloquearlo.
+function PlayerData.readStored(userId: number): any?
+	local dataStore = getStore()
+	if not dataStore then
+		return nil
+	end
+	local ok, data = pcall(function()
+		return dataStore:GetAsync(`u_{userId}`)
+	end)
+	return if ok and typeof(data) == "table" then data else nil
+end
+
+-- Guarda una copia de lo guardado ahora. Devuelve su clave (nil si no hay perfil o DataStore falla).
+function PlayerData.backup(userId: number, label: string): string?
+	local data = PlayerData.readStored(userId)
+	local dataStore = backupStore()
+	if not (data and dataStore) then
+		return nil
+	end
+	local copy = table.clone(data)
+	copy.session = nil
+	local key = `u_{userId}_{label}_{os.time()}`
+	local ok, err = pcall(function()
+		dataStore:SetAsync(key, copy)
+	end)
+	if not ok then
+		warn(`[PlayerData] No se pudo hacer la copia {key}: {err}`)
+		return nil
+	end
+	return key
+end
+
+-- Claves de las copias de "userId", la más nueva primero (como mucho "limit").
+function PlayerData.listBackups(userId: number, limit: number): { string }
+	local dataStore = backupStore()
+	local keys: { string } = {}
+	if not dataStore then
+		return keys
+	end
+	pcall(function()
+		local pages = dataStore:ListKeysAsync(`u_{userId}_`, 100)
+		while true do
+			for _, key in pages:GetCurrentPage() do
+				table.insert(keys, (key :: DataStoreKey).KeyName)
+			end
+			if pages.IsFinished or #keys >= 300 then
+				break
+			end
+			pages:AdvanceToNextPageAsync()
+		end
+	end)
+	local function stamp(key: string): number
+		return tonumber(string.match(key, "_(%d+)$")) or 0
+	end
+	table.sort(keys, function(a, b)
+		return stamp(a) > stamp(b)
+	end)
+	while #keys > limit do
+		table.remove(keys)
+	end
+	return keys
+end
+
+-- Pone la copia "key" como perfil de "userId". Solo si ningún servidor lo tiene cargado (si no, false
+-- y el motivo). Antes guarda una copia de lo que había ("antes_de_restaurar").
+function PlayerData.restore(userId: number, key: string): (boolean, string)
+	local dataStore, backupData = getStore(), backupStore()
+	if not (dataStore and backupData) or string.sub(key, 1, #`u_{userId}_`) ~= `u_{userId}_` then
+		return false, "No se puede abrir el DataStore"
+	end
+	local ok, copy = pcall(function()
+		return backupData:GetAsync(key)
+	end)
+	if not ok or typeof(copy) ~= "table" then
+		return false, "Esa copia no existe"
+	end
+	PlayerData.backup(userId, "antes_de_restaurar")
+	local blocked = false
+	local written, err = pcall(function()
+		dataStore:UpdateAsync(`u_{userId}`, function(current: any)
+			local lock = if typeof(current) == "table" then current.session else nil
+			local stale = typeof(lock) == "table" and os.time() - (lock.time or 0) > Config.Data.LockTimeoutSeconds
+			if typeof(lock) == "table" and not stale then
+				blocked = true
+				return nil
+			end
+			local data = table.clone(copy)
+			data.session = nil
+			return data
+		end)
+	end)
+	if not written then
+		return false, `DataStore falló: {err}`
+	end
+	if blocked then
+		return false, "Está jugando en otro servidor: tiene que salir antes"
+	end
+	return true, "Copia restaurada"
+end
+
 -- Arranca la carga, el guardado automático y el guardado al cerrar. Llamar una vez por servidor.
 function PlayerData.start()
 	Remotes.SaveSettings.OnServerEvent:Connect(function(player, raw)

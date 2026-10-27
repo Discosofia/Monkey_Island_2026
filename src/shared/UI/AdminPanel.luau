@@ -8,6 +8,7 @@
 --   - 📢 Todos: un anuncio y "Dar a todos" (el mismo listado), en este servidor o en todos.
 --   - 🎉 Eventos: eventos en vivo (Data/LiveEvents) ahora o programados, los que están en marcha con
 --     ⏹ para pararlos, y lo que se hace al momento en la Isla (Data/IslandActions).
+--   - 🖥️ Servidor: mantenimiento con aviso y la lista de servidores (ServerShared/ServerOps).
 --   - 📜 Registro: lo último que han hecho los administradores, en cualquier servidor.
 -- Solo sale si el servidor ha marcado al jugador con el atributo "IsAdmin", y el servidor lo vuelve
 -- a comprobar al pedirlo.
@@ -423,10 +424,35 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	moderateTitle.TextXAlignment = Enum.TextXAlignment.Left
 	local moderateClose = close:Clone()
 	moderateClose.Parent = moderate
+	-- Dos pestañas: 🛡️ Moderar (ServerShared/Moderation) y 📋 Perfil (ServerShared/AdminProfile). De
+	-- alguien que no está en el servidor (abierto por nombre) solo el perfil.
+	local sideTabs = Instance.new("Frame")
+	sideTabs.Name = "SideTabs"
+	sideTabs.Position = UDim2.fromOffset(6, 36)
+	sideTabs.Size = UDim2.new(1, -12, 0, 30)
+	sideTabs.BackgroundTransparency = 1
+	sideTabs.Parent = moderate
+	local sideLayout = list(sideTabs, 4)
+	sideLayout.FillDirection = Enum.FillDirection.Horizontal
+	local moderateTab = smallButton("🛡️ Moderar", sideTabs)
+	moderateTab.Name = "ModerateTab"
+	moderateTab.LayoutOrder = 1
+	moderateTab.Size = UDim2.new(0.5, -2, 1, 0)
+	local profileTab = smallButton("📋 Perfil", sideTabs)
+	profileTab.Name = "ProfileTab"
+	profileTab.LayoutOrder = 2
+	profileTab.Size = UDim2.new(0.5, -2, 1, 0)
+
 	local moderateBody = scroller(moderate)
-	moderateBody.Position = UDim2.fromOffset(6, 36)
-	moderateBody.Size = UDim2.new(1, -12, 1, -42)
+	moderateBody.Position = UDim2.fromOffset(6, 72)
+	moderateBody.Size = UDim2.new(1, -12, 1, -78)
 	list(moderateBody, 6)
+	local profileBody = scroller(moderate)
+	profileBody.Name = "Profile"
+	profileBody.Position = moderateBody.Position
+	profileBody.Size = moderateBody.Size
+	profileBody.Visible = false
+	list(profileBody, 4)
 
 	local moderated: { userId: number, name: string }? = nil
 	-- A quién espía la cámara (nil: a ti).
@@ -451,13 +477,13 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 		label.TextColor3 = TITLE
 		label.TextXAlignment = Enum.TextXAlignment.Left
 	end
-	local function buttonRow(name: string, order: number, texts: { string }): { TextButton }
+	local function buttonRow(name: string, order: number, texts: { string }, parent: Instance?): { TextButton }
 		local row = Instance.new("Frame")
 		row.Name = name
 		row.LayoutOrder = order
 		row.Size = UDim2.new(1, -8, 0, 36)
 		row.BackgroundTransparency = 1
-		row.Parent = moderateBody
+		row.Parent = parent or moderateBody
 		local layout = list(row, 4)
 		layout.FillDirection = Enum.FillDirection.Horizontal
 		local buttons = {}
@@ -602,18 +628,170 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 		send("Unfreeze")
 	end)
 
+	-- De quién es la pestaña 📋 Perfil: su UserId (en el servidor) o su nombre de usuario (fuera).
+	local profileWho: (number | string)? = nil
+	local function requestProfile(action: string, a: any?, b: any?)
+		if profileWho then
+			Remotes.AdminProfile:FireServer(action, profileWho, a, b)
+		end
+	end
+	local function profileLabel(text: string, order: number, color: Color3?)
+		local label = Widgets.label(text, profileBody)
+		label.LayoutOrder = order
+		label.Size = UDim2.new(1, -8, 0, 20)
+		label.TextColor3 = color or Color3.new(1, 1, 1)
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 16
+		limit.Parent = label
+	end
+	-- Fila con un texto y un botón (copias para restaurar, cosas para quitar), de segundo toque.
+	local function profileRow(order: number, text: string, color: Color3, button: string, action: () -> ())
+		local row = Instance.new("Frame")
+		row.LayoutOrder = order
+		row.Size = UDim2.new(1, -8, 0, 30)
+		row.BackgroundColor3 = ROW
+		row.BorderSizePixel = 0
+		row.Parent = profileBody
+		corner(row, 8)
+		local label = Widgets.label(text, row)
+		label.Position = UDim2.fromOffset(6, 0)
+		label.Size = UDim2.new(0.72, -6, 1, 0)
+		label.TextColor3 = color
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 16
+		limit.Parent = label
+		local go = smallButton(button, row)
+		go.Name = "Go"
+		go.AnchorPoint = Vector2.new(1, 0.5)
+		go.Position = UDim2.new(1, -3, 0.5, 0)
+		go.Size = UDim2.new(0.28, -3, 1, -6)
+		go.BackgroundColor3 = CLOSE
+		go.TextColor3 = Color3.new(1, 1, 1)
+		go:SetAttribute("Label", button)
+		go.MouseButton1Click:Connect(function()
+			if twoTaps(go, button) then
+				action()
+			end
+		end)
+	end
+
+	Remotes.AdminProfile.OnClientEvent:Connect(function(data: any)
+		if typeof(data) ~= "table" then
+			return
+		end
+		for _, child in profileBody:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		if data.missing then
+			profileLabel(`No hay perfil guardado de {tostring(data.name)}`, 1, SECONDARY)
+			return
+		end
+		local order = 0
+		local function nextOrder(): number
+			order += 1
+			return order
+		end
+		for _, line in data.lines or {} do
+			profileLabel(tostring(line), nextOrder())
+		end
+		local online = data.online == true
+		local actions =
+			buttonRow("Actions", nextOrder(), { "📦 Hacer copia", "📅 Calendario", "🎯 Misiones" }, profileBody)
+		actions[1].MouseButton1Click:Connect(function()
+			requestProfile("Backup")
+		end)
+		for index, what in { "Calendar", "Missions" } do
+			local button = actions[index + 1]
+			local text = button.Text
+			button:SetAttribute("Label", text)
+			if not online then
+				button.BackgroundColor3 = ROW
+				button.TextColor3 = SECONDARY
+				button.AutoButtonColor = false
+				continue
+			end
+			button.MouseButton1Click:Connect(function()
+				if twoTaps(button, text) then
+					requestProfile("Reset", what)
+				end
+			end)
+		end
+		profileLabel("📥 Copias de seguridad (restaurar pide un segundo toque)", nextOrder(), TITLE)
+		if #(data.backups or {}) == 0 then
+			profileLabel("Ninguna", nextOrder(), SECONDARY)
+		end
+		for _, backup in data.backups or {} do
+			local key = backup.key
+			profileRow(nextOrder(), tostring(backup.label), SECONDARY, "📥 Restaurar", function()
+				requestProfile("Restore", key)
+			end)
+		end
+		if online then
+			profileLabel("🗑️ Quitar (pide un segundo toque)", nextOrder(), TITLE)
+			for _, item in data.items or {} do
+				local rarity = Rarities[item.rarity] or Rarities.Common
+				local kind, id = item.kind, item.id
+				profileRow(nextOrder(), tostring(item.label), rarity.color, "🗑️ Quitar", function()
+					requestProfile("Remove", kind, id)
+				end)
+			end
+		end
+	end)
+
+	local function showSide(which: "Moderate" | "Profile")
+		moderateBody.Visible = which == "Moderate"
+		profileBody.Visible = which == "Profile"
+		for _, pair in { { moderateTab, "Moderate" }, { profileTab, "Profile" } } do
+			local button, id = pair[1] :: TextButton, pair[2]
+			button.BackgroundColor3 = if id == which then GOLD else ROW
+			button.TextColor3 = if id == which then GOLD_TEXT else Color3.new(1, 1, 1)
+		end
+		if which == "Profile" then
+			requestProfile("View")
+		end
+	end
+	moderateTab.MouseButton1Click:Connect(function()
+		if moderated then
+			showSide("Moderate")
+		end
+	end)
+	profileTab.MouseButton1Click:Connect(function()
+		showSide("Profile")
+	end)
+
 	local function openModerate(userId: number, name: string)
 		if spying then
 			stopSpying()
 		end
 		moderated = { userId = userId, name = name }
-		moderateTitle.Text = `🛡️ Moderar a {name}`
+		profileWho = userId
+		moderateTitle.Text = `🛡️ {name}`
+		moderateTab.Visible = true
 		picker.Visible = false
 		moderate.Visible = true
+		showSide("Moderate")
+	end
+	-- Perfil de alguien por su nombre de usuario (puede no estar en el servidor).
+	local function openProfileByName(name: string)
+		if spying then
+			stopSpying()
+		end
+		moderated = nil
+		profileWho = name
+		moderateTitle.Text = `📋 @{name}`
+		moderateTab.Visible = false
+		picker.Visible = false
+		moderate.Visible = true
+		showSide("Profile")
 	end
 	local function closeModerate()
 		moderate.Visible = false
 		moderated = nil
+		profileWho = nil
 		if spying then
 			stopSpying()
 		end
@@ -633,7 +811,7 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	playersPage.Size = UDim2.fromScale(1, 1)
 	list(playersPage, 4)
 
-	-- Quitar un baneo: el baneado no está en el servidor, así que va por nombre de usuario.
+	-- Por nombre de usuario (alguien que puede no estar en el servidor): ver su perfil o quitarle el baneo.
 	local unbanRow = Instance.new("Frame")
 	unbanRow.Name = "Unban"
 	unbanRow.LayoutOrder = -1
@@ -642,11 +820,11 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	unbanRow.Parent = playersPage
 	local unbanName = Instance.new("TextBox")
 	unbanName.Name = "Name"
-	unbanName.Size = UDim2.new(0.66, -4, 1, 0)
+	unbanName.Size = UDim2.new(0.42, -4, 1, 0)
 	unbanName.BackgroundColor3 = ROW
 	unbanName.BorderSizePixel = 0
 	unbanName.TextColor3 = Color3.new(1, 1, 1)
-	unbanName.PlaceholderText = "⛔ Usuario baneado (sin @)"
+	unbanName.PlaceholderText = "Usuario (sin @)"
 	unbanName.PlaceholderColor3 = Color3.fromRGB(160, 150, 130)
 	unbanName.Font = Enum.Font.BuilderSans
 	unbanName.TextSize = 17
@@ -663,6 +841,16 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	unbanButton.AnchorPoint = Vector2.new(1, 0)
 	unbanButton.Position = UDim2.fromScale(1, 0)
 	unbanButton.Size = UDim2.fromScale(0.34, 1)
+	local profileButton = smallButton("📋 Perfil", unbanRow)
+	profileButton.Name = "Profile"
+	profileButton.Position = UDim2.fromScale(0.42, 0)
+	profileButton.Size = UDim2.new(0.24, -4, 1, 0)
+	profileButton.MouseButton1Click:Connect(function()
+		local name = string.gsub(unbanName.Text, "[@%s]", "")
+		if name ~= "" then
+			openProfileByName(name)
+		end
+	end)
 	unbanButton.MouseButton1Click:Connect(function()
 		local name = string.gsub(unbanName.Text, "[@%s]", "")
 		if name ~= "" then
@@ -1005,8 +1193,10 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	eventHeading("🎉 Eventos (la fiesta y la lluvia de huevos, en el Lobby)", 4)
 	local eventGrid = grid("EventGrid", 5, 2)
 	local eventKinds = {}
-	for kind in LiveEventCatalog do
-		table.insert(eventKinds, kind)
+	for kind, info in LiveEventCatalog do
+		if not info.hidden then
+			table.insert(eventKinds, kind)
+		end
 	end
 	table.sort(eventKinds, function(a, b)
 		return LiveEventCatalog[a].order < LiveEventCatalog[b].order
@@ -1120,11 +1310,124 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 		end
 	end)
 
+	-- Página 🖥️ Servidor: mantenimiento con aviso (segundo toque) y la lista de servidores con su place,
+	-- jugadores y FPS (ServerShared/ServerOps; en Studio solo este).
+	local serverPage = scroller(pages)
+	serverPage.Name = "Server"
+	serverPage.Size = UDim2.fromScale(1, 1)
+	list(serverPage, 6)
+	local function serverLabel(text: string, order: number, color: Color3)
+		local label = Widgets.label(text, serverPage)
+		label.LayoutOrder = order
+		label.Size = UDim2.new(1, -8, 0, 22)
+		label.TextColor3 = color
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		return label
+	end
+	serverLabel("🛠️ Mantenimiento en todos los servidores", 1, TITLE)
+	local maintenanceRow = Instance.new("Frame")
+	maintenanceRow.Name = "Maintenance"
+	maintenanceRow.LayoutOrder = 2
+	maintenanceRow.Size = UDim2.new(1, -8, 0, 36)
+	maintenanceRow.BackgroundTransparency = 1
+	maintenanceRow.Parent = serverPage
+	local maintenanceLayout = list(maintenanceRow, 4)
+	maintenanceLayout.FillDirection = Enum.FillDirection.Horizontal
+	for index, minutes in Config.AdminTools.MaintenanceMinutes do
+		local text = `🛠️ En {minutes} min`
+		local button = smallButton(text, maintenanceRow)
+		button.Name = `M{minutes}`
+		button.LayoutOrder = index
+		button.Size = UDim2.new(1 / #Config.AdminTools.MaintenanceMinutes, -4, 1, 0)
+		button.BackgroundColor3 = CLOSE
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button:SetAttribute("Label", text)
+		button.MouseButton1Click:Connect(function()
+			if twoTaps(button, text) then
+				Remotes.AdminServer:FireServer("Maintenance", minutes)
+			end
+		end)
+	end
+	local maintenanceNote = serverLabel(
+		"Avisa a todos, guarda y cierra al acabar la cuenta. Se cancela en 🎉 Eventos con ⏹.",
+		3,
+		SECONDARY
+	)
+	maintenanceNote.Font = Enum.Font.BuilderSans
+
+	serverLabel("🖥️ Servidores", 4, TITLE)
+	local refreshServers = smallButton("🔄 Actualizar", serverPage)
+	refreshServers.Name = "Refresh"
+	refreshServers.LayoutOrder = 5
+	refreshServers.Size = UDim2.new(0.4, 0, 0, 32)
+	local serverList = Instance.new("Frame")
+	serverList.Name = "List"
+	serverList.LayoutOrder = 6
+	serverList.Size = UDim2.new(1, -8, 0, 0)
+	serverList.AutomaticSize = Enum.AutomaticSize.Y
+	serverList.BackgroundTransparency = 1
+	serverList.Parent = serverPage
+	list(serverList, 3)
+	local function requestServers()
+		for _, child in serverList:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		local asking = Widgets.label("Preguntando a los servidores…", serverList)
+		asking.Size = UDim2.new(1, 0, 0, 22)
+		asking.TextColor3 = SECONDARY
+		Remotes.AdminServer:FireServer("List")
+	end
+	refreshServers.MouseButton1Click:Connect(requestServers)
+	local PLACE_NAMES = { Lobby = "🏝️ Lobby", Island = "🍌 Isla", Dunas = "🎖️ Dunas" }
+	Remotes.AdminServer.OnClientEvent:Connect(function(action: any, servers: any, scope: any)
+		if action ~= "List" or typeof(servers) ~= "table" then
+			return
+		end
+		for _, child in serverList:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		local total = 0
+		for index, server in servers do
+			total += tonumber(server.players) or 0
+			local minutes = (tonumber(server.uptime) or 0) // 60
+			local uptime = if minutes >= 60 then `{minutes // 60} h {minutes % 60} min` else `{minutes} min`
+			local fps = tonumber(server.fps) or 0
+			local row = Widgets.label(
+				`{PLACE_NAMES[server.place] or tostring(server.place)} · 👥 {server.players}/{server.max} · {fps} FPS · ⏱️ {uptime} · {server.job}`,
+				serverList
+			)
+			row.LayoutOrder = index
+			row.Size = UDim2.new(1, 0, 0, 24)
+			row.BackgroundColor3 = ROW
+			row.BackgroundTransparency = 0
+			row.TextXAlignment = Enum.TextXAlignment.Left
+			-- Por debajo de 40 FPS el servidor va cargado: en naranja (aviso).
+			row.TextColor3 = if fps < 40 then Color3.fromRGB(255, 170, 60) else Color3.new(1, 1, 1)
+			corner(row, 8)
+			local limit = Instance.new("UITextSizeConstraint")
+			limit.MaxTextSize = 16
+			limit.Parent = row
+		end
+		local footer = Widgets.label(
+			`{#servers} servidor(es) · {total} jugador(es){if scope == "Server" then " · solo este (Studio)" else ""}`,
+			serverList
+		)
+		footer.LayoutOrder = #servers + 1
+		footer.Size = UDim2.new(1, 0, 0, 22)
+		footer.TextColor3 = SECONDARY
+		footer.TextXAlignment = Enum.TextXAlignment.Left
+	end)
+
 	-- Pestañas.
 	local tabs = {
 		{ id = "Players", text = "👥 Jugadores", page = playersPage :: GuiObject, open = renderPlayers },
 		{ id = "Everyone", text = "📢 Todos", page = everyonePage :: GuiObject, open = function() end },
 		{ id = "Events", text = "🎉 Eventos", page = eventsPage :: GuiObject, open = renderRunning },
+		{ id = "Server", text = "🖥️ Servidor", page = serverPage :: GuiObject, open = requestServers },
 		{ id = "Log", text = "📜 Registro", page = logPage :: GuiObject, open = requestLog },
 	}
 	local tabButtons: { TextButton } = {}

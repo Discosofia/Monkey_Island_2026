@@ -72,6 +72,12 @@ local Remotes = {
 	-- ServerShared/Moderation: "Mute" (minutos), "Unmute", "Kick" (motivo), "Ban" (horas, motivo),
 	-- "Goto", "Freeze", "Unfreeze"; y "Unban" (nombre de usuario en lugar del UserId).
 	AdminModerate = remoteEvent("AdminModerate"),
+	-- Cliente -> servidor: perfil de un jugador ("View" | "Remove" | "Reset" | "Backup" | "Restore", UserId o
+	-- nombre, detalles; ServerShared/AdminProfile); servidor -> cliente: lo que se sabe de él (tabla).
+	AdminProfile = remoteEvent("AdminProfile"),
+	-- Cliente -> servidor: "List" (servidores) o "Maintenance" (minutos de aviso); servidor -> cliente:
+	-- ("List", servidores, alcance). Ver ServerShared/ServerOps.
+	AdminServer = remoteEvent("AdminServer"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).

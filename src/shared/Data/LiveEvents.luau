@@ -3,7 +3,7 @@
 -- admin (15, 30 o 60 min, Config.LiveEvents.Durations) no llevan "seconds"; los de un momento sí.
 -- Los números de cada uno están en Config.LiveEvents.
 
-export type Kind = "DoubleAmber" | "DoubleXp" | "FastEgg" | "EggLuck" | "Party" | "EggRain"
+export type Kind = "DoubleAmber" | "DoubleXp" | "FastEgg" | "EggLuck" | "Party" | "EggRain" | "Maintenance"
 
 export type Info = {
 	icon: string,
@@ -15,6 +15,8 @@ export type Info = {
 	seconds: number?,
 	-- Solo pasa algo en ese place (el resto lo ve en la franja, pero no le afecta).
 	place: string?,
+	-- No sale entre los eventos del panel (lo lanza otra cosa: el mantenimiento, en la pestaña Servidor).
+	hidden: boolean?,
 }
 
 local LiveEvents: { [string]: Info } = {
@@ -57,6 +59,16 @@ local LiveEvents: { [string]: Info } = {
 		order = 6,
 		seconds = 90,
 		place = "Lobby",
+	},
+	-- Mantenimiento (T4d, ServerShared/ServerOps): al empezar se guarda todo y se expulsa a los
+	-- jugadores; mientras dura ("seconds") no se puede entrar. Lo programa la pestaña 🖥️ Servidor.
+	Maintenance = {
+		icon = "🛠️",
+		name = "Mantenimiento",
+		detail = "El juego se cierra para actualizarse: termina lo que estés haciendo y vuelve en unos minutos",
+		order = 99,
+		seconds = 600,
+		hidden = true,
 	},
 }
 

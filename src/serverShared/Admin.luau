@@ -9,7 +9,8 @@
 --   - ver el registro de acciones de los administradores (ServerShared/AdminLog);
 --   - lanzar y parar eventos en vivo (ServerShared/LiveEventsServer) y hacer cosas al momento en las
 --     partidas de la Isla (Data/IslandActions), en este servidor o en todos;
---   - moderar a un jugador (ServerShared/Moderation).
+--   - moderar a un jugador (ServerShared/Moderation), ver y arreglar su perfil (ServerShared/AdminProfile)
+--     y ver los servidores o programar un mantenimiento (ServerShared/ServerOps).
 -- No toca el Ámbar, las mejoras ni los talentos. El cliente enseña el panel si el Player lleva el
 -- atributo "IsAdmin", pero el servidor lo vuelve a comprobar en cada petición.
 -- Lo cambia con PlayerData.update, así que respeta el bloqueo de sesión del perfil.
@@ -27,12 +28,14 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local AdminLog = require(script.Parent.AdminLog)
 local AdminNet = require(script.Parent.AdminNet)
+local AdminProfile = require(script.Parent.AdminProfile)
 local CosmeticsServer = require(script.Parent.CosmeticsServer)
 local Eggs = require(script.Parent.Eggs)
 local LiveEventsServer = require(script.Parent.LiveEventsServer)
 local Moderation = require(script.Parent.Moderation)
 local PlayerData = require(script.Parent.PlayerData)
 local RequestCooldown = require(script.Parent.RequestCooldown)
+local ServerOps = require(script.Parent.ServerOps)
 
 local Admin = {}
 
@@ -256,7 +259,7 @@ local function onLiveEvent(admin: Player, op: any, a: any, b: any, c: any, d: an
 		return
 	end
 	local info = if typeof(a) == "string" then LiveEventCatalog[a] else nil
-	if op ~= "Start" or not info or not AdminNet.isScope(d) then
+	if op ~= "Start" or not info or info.hidden or not AdminNet.isScope(d) then
 		return
 	end
 	if not table.find(Config.LiveEvents.Durations, b) or not table.find(Config.LiveEvents.Delays, c) then
@@ -303,6 +306,8 @@ function Admin.start(placeName: string)
 	AdminNet.start()
 	LiveEventsServer.run()
 	Moderation.start(Admin.isAdmin)
+	AdminProfile.start(Admin.isAdmin)
+	ServerOps.start(placeName, Admin.isAdmin)
 	Remotes.AdminLiveEvent.OnServerEvent:Connect(onLiveEvent)
 	Remotes.AdminIslandAction.OnServerEvent:Connect(onIslandAction)
 	Remotes.AdminGiveAll.OnServerEvent:Connect(onGiveAll)

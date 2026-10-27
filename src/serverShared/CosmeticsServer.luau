@@ -602,6 +602,26 @@ function CosmeticsServer.grant(player: Player, cosmeticId: string): boolean
 	return true
 end
 
+-- Le quita un cosmético guardado (panel de administración, T4d) y se lo quita de encima si lo llevaba.
+-- Los de Game Pass no se pueden quitar (se tienen por el pase). Devuelve true si lo tenía.
+function CosmeticsServer.revoke(player: Player, cosmeticId: string): boolean
+	local profile = PlayerData.get(player)
+	if not (profile and profile.ownedCosmetics[cosmeticId]) then
+		return false
+	end
+	PlayerData.update(player, function(current)
+		current.ownedCosmetics[cosmeticId] = nil
+		for slot, equipped in table.clone(current.cosmetics) do
+			if equipped == cosmeticId then
+				current.cosmetics[slot] = nil
+			end
+		end
+	end)
+	refreshOwnership(player)
+	applyVisuals(player)
+	return true
+end
+
 -- "callback" se llama cada vez que se guarda un cosmético en el perfil de un jugador (ganado, del pase,
 -- comprado con un Developer Product; la tienda en Ámbar lo hace ella misma).
 function CosmeticsServer.onGranted(callback: (player: Player, cosmeticId: string) -> ())

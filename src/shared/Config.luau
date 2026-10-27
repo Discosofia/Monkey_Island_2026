@@ -852,6 +852,10 @@ local Config = {
 		MuteMinutes = { 5, 15, 60 },
 		BanHours = { 1, 24, 168, 720 },
 		ReasonMaxLength = 120,
+		-- Mantenimiento (T4d): minutos de aviso antes de cerrar, a elegir.
+		MaintenanceMinutes = { 1, 5, 10 },
+		-- Lista de servidores: cuánto se espera a que respondan.
+		ServerListSeconds = 3,
 	},
 	-- Eventos en vivo que lanza un administrador (T4b; catálogo en Data/LiveEvents, servidor en
 	-- ServerShared/LiveEventsServer). Son gratis para todos: nada de esto se vende.
@@ -891,6 +895,10 @@ local Config = {
 		-- Regalos para quien no estaba en el servidor al llegar el pago (ServerShared/Gifts): se guardan
 		-- aparte (clave "g_<userId>") y se entregan al entrar a cualquier place.
 		GiftStoreName = "Gifts_v1",
+		-- Copias de seguridad de los perfiles (panel de administración, T4d; también las de las pruebas
+		-- en Studio): clave "u_<userId>_<etiqueta>_<os.time>".
+		BackupStoreName = "PlayerData_v1_backups",
+		BackupsShown = 12,
 		-- Clasificaciones (Fase 6): prefijo de los OrderedDataStore y cada cuánto refresca el Lobby.
 		LeaderboardPrefix = "Ranking_v1_",
 		LeaderboardRefreshSeconds = 300,
