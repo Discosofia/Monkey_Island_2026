@@ -873,6 +873,45 @@ Probado en Studio (Isla, 1 jugador): montar el Quetzalcóatl, sus cinco animacio
 1. [ ] Monta el Quetzalcóatl en la Isla publicada.
    ✅ Las cinco animaciones cargan (si va rígido, las animaciones no son del dueño del juego).
 
+## 16. Lo que queda por probar de T6: bienvenida de pioneros (27-10-2026)
+
+Probado en Studio (Lobby, 1 jugador, con las 3 monturas):
+- **El perfil:** al entrar queda marcado como pionero (atributo `Pioneer`).
+- **La ventana:** sale aunque hoy ya se haya cobrado, con «Tirada de pioneros: en 7 cobros» y las probabilidades.
+- **La tirada:** con 🛠️ Pruebas → «🌟 Calendario: cobrar el día 7» y Cobrar, sale. Una Llama repetida dio +120 de Ámbar y «cycles» pasó a 1. No hubo errores en la Salida.
+- **Los visores:** el huevo de pioneros y las tres monturas se encuadraron bien en modo edición.
+
+Lo que falta: ver la animación entera en pantalla (la captura de Studio en Play no dibuja los visores 3D), una montura **nueva**, quien no es pionero y el teléfono.
+
+### 16.1 En el Lobby (▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+
+1. [ ] Pulsa 🛠️ Pruebas → «🌟 Calendario: cobrar el día 7» y, en la ventana (o en la pestaña Misiones), Cobrar.
+   ✅ En la ventana, el huevo azul marino con motas de oro tiembla cada vez más, destella del color de la rareza y sale la montura girando, con su nombre y su rareza.
+2. [ ] Repite el paso 1 hasta que salga una montura que ya tienes.
+   ✅ La montura se ve velada y tachada, con «Ya la tenías: +N ✨ Ámbar», y el Ámbar sube.
+3. [ ] Con 👑 Admin → 📋 Perfil, quítate el Jaguar y repite el paso 1 hasta que salga.
+   ✅ Sale sin tachar, aparece en la ventana de Mascotas y se puede montar.
+4. [ ] Cierra la ventana, sal y vuelve a entrar antes de una hora.
+   ✅ Si no hay nada que cobrar, la bienvenida no vuelve a salir. Pasada una hora, sí.
+5. [ ] Restaura la copia del perfil.
+
+### 16.2 Quien no es pionero (con una cuenta nueva y la fecha de la T1 ya pasada)
+
+1. [ ] Entra con una cuenta sin perfil cuando ya haya terminado la Temporada 1 (o mueve `startsAt` de la T1 al pasado en una copia del place).
+   ✅ No queda marcado como pionero: la ventana solo sale si hay premio, con el título «📅 Premio diario», y el día 7 no tiene tirada.
+
+### 16.3 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Entra al Lobby como pionero.
+   ✅ Se leen el agradecimiento, «Tirada de pioneros: …» y la línea de probabilidades, sin solaparse con el calendario.
+2. [ ] Cobra el día 7 (paso 16.1.1).
+   ✅ La montura cabe en el visor y su nombre no tapa la cabeza.
+
+### 16.4 En el juego publicado
+
+1. [ ] Publica los **3 places a la vez** (el perfil pasa a la versión 10) y entra al Lobby.
+   ✅ Sale la bienvenida de pioneros y el perfil no se pierde al ir a la Isla o a Dunas y volver.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

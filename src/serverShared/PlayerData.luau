@@ -14,7 +14,8 @@
 -- "Settings", un JSON con los ajustes del jugador (Shared/Settings), que el cliente cambia con
 -- Remotes.SaveSettings, "Eggs", un JSON con sus huevos guardados (Shared/EggIncubation), y "Retention",
 -- un JSON con sus provisiones, su calendario y sus misiones del día y de la semana (ServerShared/Retention), y
--- "Season", un JSON con su progreso en el pase de temporada (Shared/SeasonPass).
+-- "Season", un JSON con su progreso en el pase de temporada (Shared/SeasonPass), y "Pioneer", un JSON
+-- con si es pionero y sus tiradas (Shared/Pioneer).
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -24,6 +25,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
+local Pioneer = require(ReplicatedStorage.Shared.Pioneer)
+local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 
@@ -75,6 +78,9 @@ export type Profile = {
 	activeMount: string,
 	-- Avisos para la próxima vez que entra (versión 9, 26-10-2026): se enseñan una vez y se borran.
 	notices: { string },
+	-- Bienvenida de pioneros (versión 10, T6, 27-10-2026): si es pionero, tiradas cobradas y última
+	-- ventana vista (Shared/Pioneer).
+	pioneer: { [string]: any },
 }
 
 type Session = {
@@ -93,7 +99,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 9,
+		version = 10,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -124,9 +130,12 @@ local function defaultProfile(): Profile
 		mounts = {},
 		activeMount = "",
 		notices = {},
+		pioneer = {},
 	}
 end
 
+-- Versión 10: bienvenida de pioneros ("pioneer"; "reconcile" lo rellena vacío). Quien entra antes del
+-- fin de la primera temporada queda marcado al cargar (markPioneer), venga de la versión que venga.
 -- Versión 9: se tiene una mascota (y una montura) de cada. Las copias de más se cambian por
 -- Config.Egg.DuplicateAmber de su rareza, con un aviso al entrar.
 -- Versión 8: las monturas ("mounts" y "activeMount"; "reconcile" los rellena vacíos).
@@ -268,6 +277,7 @@ local function publish(player: Player, session: Session)
 	-- Arena de Dunas: lo comprado y lo puesto (ServerShared/ArenaShop), estadísticas y Ámbar de hoy.
 	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
 	player:SetAttribute("Season", HttpService:JSONEncode(profile.season))
+	player:SetAttribute("Pioneer", HttpService:JSONEncode(Pioneer.normalize(profile.pioneer)))
 	player:SetAttribute("LobbyGuideDone", profile.lobbyGuideDone)
 	player:SetAttribute("CombatGuideDone", profile.combatGuideDone)
 end
@@ -344,6 +354,19 @@ local function save(player: Player, release: boolean): boolean
 	return written
 end
 
+-- Pionero (T6): quien entra antes del fin de la primera temporada queda marcado para siempre. Devuelve
+-- true si lo ha marcado ahora.
+local function markPioneer(profile: Profile): boolean
+	local state = Pioneer.normalize(profile.pioneer)
+	local time = SeasonPass.now()
+	if Pioneer.isPioneer(state) or time >= Pioneer.deadline() then
+		return false
+	end
+	state.since = math.floor(time)
+	profile.pioneer = state :: any
+	return true
+end
+
 local function onPlayerAdded(player: Player)
 	local profile, failed = loadLocked(player)
 	if not player.Parent then
@@ -358,6 +381,9 @@ local function onPlayerAdded(player: Player)
 		dirty = false,
 		publishedPet = false,
 	}
+	if markPioneer(session.profile) then
+		session.dirty = true
+	end
 	sessions[player] = session
 	publish(player, session)
 	loadedSignal:Fire(player)

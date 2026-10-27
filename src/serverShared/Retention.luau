@@ -1,7 +1,8 @@
 --!strict
 -- Calendario y misiones diarias (bucle de retención, octubre de 2026), en el Lobby y en la Isla.
 --   - claimLogin: cobra el premio del día del calendario de 7 días (Config.Daily.Calendar). Uno por
---     día (Shared/Daily); faltar un día no lo reinicia.
+--     día (Shared/Daily); faltar un día no lo reinicia. Al cobrar el 7, los pioneros tienen una
+--     tirada de montura (T6, Shared/Pioneer).
 --   - grant: entrega un premio: Ámbar, provisiones (ServerShared/Supplies), tiempo para el huevo del
 --     nido (con o sin el tope de lo ganado jugando; sin huevo en el nido se cambia por Ámbar), huevos
 --     y XP del pase de temporada (la suma ServerShared/SeasonPass, que se apunta con setXpHandler).
@@ -20,7 +21,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Missions = require(ReplicatedStorage.Shared.Data.Missions)
+local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
+local Pioneer = require(ReplicatedStorage.Shared.Pioneer)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -107,23 +110,65 @@ function Retention.setXpHandler(handler: (player: Player, xp: number) -> string?
 end
 
 -- Cobra el premio de hoy del calendario. Devuelve el día cobrado (1..7) y lo recibido, o nil si hoy
--- ya lo cobró (o su perfil aún no ha cargado).
-function Retention.claimLogin(player: Player): (number?, { string }?)
+-- ya lo cobró (o su perfil aún no ha cargado). Al cobrar el día 7, un pionero tiene además la tirada
+-- de montura (T6; Shared/Pioneer): la tercera respuesta es lo que ha salido.
+function Retention.claimLogin(player: Player): (number?, { string }?, Pioneer.Roll?)
 	local time = now()
 	local day: number? = nil
+	local roll: Pioneer.Roll? = nil
 	PlayerData.update(player, function(profile)
 		local state = Daily.loginState(profile.login)
-		if Daily.canClaim(state, time) then
-			day = state.step
-			profile.login = { lastClaimDay = Daily.today(time), step = state.step % Daily.CALENDAR_DAYS + 1 }
+		if not Daily.canClaim(state, time) then
+			return
 		end
+		day = state.step
+		profile.login = { lastClaimDay = Daily.today(time), step = state.step % Daily.CALENDAR_DAYS + 1 }
+		local pioneer = Pioneer.normalize(profile.pioneer)
+		if state.step ~= Daily.CALENDAR_DAYS or not Pioneer.isPioneer(pioneer) then
+			return
+		end
+		-- No evita las que ya tiene: una repetida se cambia por Ámbar de su rareza.
+		local mountId = PetRoll.rollPioneer(rng)
+		local amber = 0
+		if (profile.mounts[mountId] or 0) > 0 then
+			amber = Config.Egg.DuplicateAmber[Mounts[mountId].rarity] or 0
+			profile.amber += amber
+			Analytics.amber(player, "Source", amber, profile.amber, "PioneerDuplicate")
+		else
+			profile.mounts[mountId] = 1
+			if profile.activeMount == "" then
+				profile.activeMount = mountId
+			end
+		end
+		pioneer.cycles += 1
+		profile.pioneer = pioneer :: any
+		roll = { mount = mountId, amber = amber }
 	end)
 	if not day then
-		return nil, nil
+		return nil, nil, nil
 	end
 	local claimed = day :: number
 	local lines = Retention.grant(player, Config.Daily.Calendar[claimed], false, "LoginCalendar")
-	return claimed, lines
+	if roll then
+		local mount = Mounts[roll.mount]
+		table.insert(
+			lines,
+			if roll.amber > 0
+				then `🌟 Tirada de pioneros: {mount.icon} {mount.name} otra vez (+{roll.amber} ✨ Ámbar)`
+				else `🌟 Tirada de pioneros: ¡{mount.icon} {mount.name}!`
+		)
+		Analytics.event(player, "PioneerRoll", 1, { roll.mount, if roll.amber > 0 then "Duplicate" else "New" })
+	end
+	return claimed, lines, roll
+end
+
+-- La ventana de bienvenida se ha visto (Shared/Pioneer.shouldWelcome no la repite enseguida).
+function Retention.welcomeSeen(player: Player)
+	PlayerData.update(player, function(profile)
+		local pioneer = Pioneer.normalize(profile.pioneer)
+		pioneer.welcomeAt = now()
+		profile.pioneer = pioneer :: any
+	end)
 end
 
 -- ¿Vale "missionId" para la clase "slot"? Una dificultad diaria ("Media" = la del rol) o "Semanal".
@@ -453,6 +498,13 @@ function Retention.debugNextDay(player: Player)
 		profile.daily = missions :: any
 	end)
 	Retention.refresh(player)
+end
+
+-- Prueba (panel de Studio): el próximo cobro es el día 7 y se puede cobrar ya (tirada de pioneros).
+function Retention.debugCalendarDay7(player: Player)
+	PlayerData.update(player, function(profile)
+		profile.login = { lastClaimDay = Daily.today(now()) - 1, step = Daily.CALENDAR_DAYS }
+	end)
 end
 
 -- Prueba (panel de Studio): hace como si las semanales fueran de la semana pasada.

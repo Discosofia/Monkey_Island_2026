@@ -135,6 +135,14 @@ flowchart LR
 El núcleo son los **huevos y las mascotas** (§11): el huevo se gana en la isla, se incuba con horas reales en el nido del lobby y jugar lo acelera. Alrededor van tres cosas que dan un motivo para volver cada día:
 
 - **Calendario de 7 días:** basta con entrar al lobby para cobrar el premio del día (una ventana al llegar y la ventana **Misiones** del menú). **Faltar un día no lo reinicia**: al volver se cobra el siguiente. Tras el día 7 vuelve al 1. El día cambia a las **00:00 UTC**.
+- **Bienvenida de pioneros (T6):**
+  - **Quién es pionero:** quien entra antes de que acabe la **Temporada 1** del pase. Queda marcado para siempre.
+  - **La ventana:** a los pioneros, la ventana del Lobby les da las gracias **una vez por sesión**, aunque no haya nada que cobrar (no se repite si vuelven antes de una hora). Muestra el calendario, cuántos cobros faltan para la tirada y la probabilidad de cada montura.
+  - **La tirada:** cada vez que cobran el día 7 (se repite en cada ciclo) tienen una tirada de montura: **Llama 75 % · Jaguar 18 % · Quetzalcóatl 7 %**. Se revela en la misma ventana: el huevo de pioneros (azul marino con motas de oro) tiembla, estalla con el color de la rareza y sale la montura girando.
+  - **Repetidas:** la tirada no evita las que ya tienes. Una repetida da Ámbar (120 · 500 · 1000) y se ve tachada.
+  - **Ritmo:** quien entra a diario tiene las tres al 50 % hacia el **día 84**; el habitual, hacia el 118.
+  - **Los demás jugadores:** tienen el calendario normal, sin tirada.
+  - **Dónde se ajusta:** `Config.Pioneer`. Se mide en la sección §5b de `Economia`.
 
   | Día | Premio |
   |---|---|

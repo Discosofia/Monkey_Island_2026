@@ -98,6 +98,12 @@ que ya tiene de cada rareza). En 30 días: casual 3,7 repetidas (+188), habitual
 18,4 (+880). Es un +2–3 % de Ámbar: el casual compra un cosmético más en Ámbar y nada más cambia. Los
 regalos (`Config.Shop.GiftProducts`, 5 productos por precio) salen en "Reglas de pago" como cosméticos.
 
+Tirada de pioneros (T6, 27-10-2026):
+- **Qué es:** al cobrar el día 7 del calendario, quien entró antes del fin de la T1 tiene una tirada de montura, `Config.Pioneer.Weights` Llama 75 · Jaguar 18 · Quetzalcóatl 7. No evita las repetidas, que dan `DuplicateAmber` (Mythic 1000).
+- **Ritmo:** con la §5b de la calculadora (límite `pionerosTodasDiario`), las 3 se tienen al 50 % en 12 ciclos. Son el día 84 a diario, el 118 el habitual y el 196 el casual. El Quetzalcóatl solo, al 50 % en 10 ciclos.
+- **Ámbar:** las repetidas dan unos 250 por ciclo a la larga, alrededor del 5 % de lo que gana el habitual. No entra en la simulación de perfiles de la §2 (que dura 30 días).
+- **Lo que no cuenta:** la §5b solo mide la tirada. Los huevos también dan la Llama y el Jaguar.
+
 Misiones diarias: fáciles 8–13 min, medias 17–20, difíciles 50–67. Partida: nivel 2 de la forja el
 día 1, nivel 3 el día 4 (Corona del caudillo), nivel 4 el día 6 (obsidiana y Cristal de cueva).
 Contratos, pasos por partida jugando solo: casual 1,3 · habitual 2 · intenso 5 · amigos 2,3. Reglas de

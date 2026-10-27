@@ -58,6 +58,15 @@ local PALETTES: { [string]: Palette } = {
 		glow = Color3.fromRGB(255, 190, 70),
 		outline = Color3.fromRGB(255, 235, 150),
 	},
+	-- Pioneros (T6): el huevo de la tirada de montura del día 7, azul marino con motas de oro. No es de
+	-- ninguna rareza para no adelantar lo que sale.
+	Pioneer = {
+		shell = Color3.fromRGB(30, 45, 95),
+		spots = Color3.fromRGB(245, 195, 70),
+		spotsDark = Color3.fromRGB(190, 130, 35),
+		glow = Color3.fromRGB(255, 215, 110),
+		outline = Color3.fromRGB(255, 230, 160),
+	},
 }
 
 function EggModel.palette(rarity: string): Palette

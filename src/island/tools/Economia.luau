@@ -32,6 +32,8 @@
 --      tocan, con su cambio gratis); OPCIONES.pase.xpSemanalSupuesta > 0 las sustituye por una cifra fija.
 --   5. Reglas de pago: nada que se compre con Robux puede dar poder, Ámbar ni tiempo de huevo, ni ser
 --      aleatorio sin enseñar las probabilidades.
+--   5b. Tirada de pioneros (Config.Pioneer): probabilidad de cada montura, ciclos del calendario hasta
+--      tenerlas todas por perfil y Ámbar de las repetidas.
 --   6. Alertas.
 --
 -- Los RITMOS (lo que hace un jugador por minuto en la Isla) son SUPUESTOS: cámbialos con datos de
@@ -112,7 +114,7 @@ local OPCIONES_BASE = {
 	contratos = { minutosVisita = 5, minutosCaja = 6, minutosBaliza = 2, obsidiana = 1.5 },
 	-- Pase: XP de misiones semanales fija por semana en lugar de la simulada (0 = la simulada).
 	pase = { xpSemanalSupuesta = 0 },
-	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true },
+	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true, pioneros = true },
 }
 
 -- ===================================== Propuesta =====================================
@@ -149,6 +151,8 @@ local LIMITES = {
 	-- Monturas (Fase 11): día en que el habitual pasa del 50 % de tener una (ni regalada en la primera
 	-- semana ni fuera del mes).
 	monturaHabitualDia = { 12, 30 },
+	-- Tirada de pioneros (T6): día en que quien entra a diario tiene las 3 monturas al 50 % (unos 3 meses).
+	pionerosTodasDiario = { 75, 110 },
 }
 
 -- ===================================== Utilidades =====================================
@@ -1681,6 +1685,95 @@ local function main(copia: Instance): string
 					end
 				end
 			end
+		end
+		linea("")
+	end
+
+	-- ---------------------------------------------------------------- Pioneros
+	-- Tirada de pioneros (T6): al completar cada ciclo del calendario (7 días con entrada, no hace falta
+	-- que sean seguidos) sale una montura con Config.Pioneer.Weights. No evita las que ya tiene: una
+	-- repetida da Config.Egg.DuplicateAmber de su rareza. Solo cuenta la tirada (los huevos también dan la
+	-- Llama y el Jaguar, así que esas llegan algo antes; el Quetzalcóatl solo sale de aquí).
+	local Pioneer = Config.Pioneer
+	if OPCIONES.secciones.pioneros and Pioneer and Pioneer.Weights then
+		linea("## 5b. Tirada de pioneros")
+		local ids = claves(Pioneer.Weights)
+		local total = 0
+		for _, id in ids do
+			total += Pioneer.Weights[id]
+		end
+		local p: { [string]: number } = {}
+		for _, id in ids do
+			p[id] = Pioneer.Weights[id] / total
+		end
+		-- Probabilidad de tenerlas todas tras "k" tiradas (inclusión-exclusión: con k tiradas que dan una
+		-- de cada vez, faltar dos a la vez es que todas salgan la tercera).
+		local function todas(k: number): number
+			local resultado = 1
+			for _, id in ids do
+				resultado -= (1 - p[id]) ^ k
+			end
+			if #ids == 3 then
+				for _, id in ids do
+					resultado += p[id] ^ k
+				end
+			end
+			return resultado
+		end
+		local function mediana(f: (number) -> number): number
+			for k = 1, 1000 do
+				if f(k) >= 0.5 then
+					return k
+				end
+			end
+			return math.huge
+		end
+		linea("| Montura | Rareza | Probabilidad | Ciclos al 50 % | Ámbar si repetida |")
+		linea("|---|---|---|---|---|")
+		local ambarCiclo = 0
+		for _, id in ids do
+			local montura = Mounts[id]
+			local rareza = if montura then montura.rarity else "?"
+			local ambar = (Config.Egg.DuplicateAmber or {})[rareza]
+			if not montura then
+				alerta(`Pioneros: "{id}" no está en Data/Mounts`)
+			elseif not ambar then
+				alerta(`Pioneros: Config.Egg.DuplicateAmber no tiene {rareza} (repetida de {montura.name})`)
+			end
+			local ciclos = mediana(function(k)
+				return 1 - (1 - p[id]) ^ k
+			end)
+			linea(
+				`| {if montura then montura.name else id} | {rareza} | {n(p[id] * 100, 1)} % | {ciclos} | {ambar or "-"} |`
+			)
+			ambarCiclo += p[id] * (ambar or 0)
+		end
+		local cicloTodas = mediana(todas)
+		linea("")
+		linea(
+			`Mediana para tener las {#ids}: {cicloTodas} ciclos. Ámbar de las repetidas a la larga: {n(ambarCiclo, 0)} por ciclo.`
+		)
+		linea("| Perfil | Ciclos al mes | Mediana de las 3 (días) | Las tiene a los 30 · 90 · 180 días |")
+		linea("|---|---|---|---|")
+		for _, clave in OPCIONES.ordenPerfiles do
+			local perfil = OPCIONES.perfiles[clave]
+			-- Días reales por ciclo: 7 días con entrada.
+			local diasCiclo = 7 * 7 / perfil.diasPorSemana
+			local function aLos(dias: number): string
+				return pct(todas(math.floor(dias / diasCiclo)))
+			end
+			linea(
+				`| {perfil.nombre} ({perfil.diasPorSemana}/sem) | {n(30 / diasCiclo)} | {n(cicloTodas * diasCiclo, 0)} | {aLos(
+					30
+				)} · {aLos(90)} · {aLos(180)} |`
+			)
+		end
+		local limite = LIMITES.pionerosTodasDiario
+		local diario = cicloTodas * 7
+		if diario < limite[1] or diario > limite[2] then
+			alerta(
+				`Pioneros: quien entra a diario tiene las {#ids} al 50 % el día {n(diario, 0)} (entre {limite[1]} y {limite[2]})`
+			)
 		end
 		linea("")
 	end

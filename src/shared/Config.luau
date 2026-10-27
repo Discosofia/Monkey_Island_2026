@@ -1106,8 +1106,9 @@ local Config = {
 		DiscardAmber = { Common = 15, Uncommon = 30, Rare = 60, Epic = 120, Legendary = 250 },
 		-- Ámbar de una mascota que ya se tiene al abrir el huevo (se tiene una de cada; 26-10-2026): el
 		-- doble del descarte, para que esperar las horas del nido compense. También compensa, una vez,
-		-- las copias que había antes de la versión 9 del perfil (ServerShared/PlayerData).
-		DuplicateAmber = { Common = 30, Uncommon = 60, Rare = 120, Epic = 240, Legendary = 500 },
+		-- las copias que había antes de la versión 9 del perfil (ServerShared/PlayerData). Mítico: el
+		-- Quetzalcóatl repetido de la tirada de pioneros (Config.Pioneer).
+		DuplicateAmber = { Common = 30, Uncommon = 60, Rare = 120, Epic = 240, Legendary = 500, Mythic = 1000 },
 		-- Lo que se gana jugando (días sobrevividos, misiones, tirada del rescate) quita como mucho esta
 		-- fracción del tiempo total del huevo. El tiempo del calendario y la eclosión inmediata no cuentan.
 		PlayCapFraction = 0.5,
@@ -1322,6 +1323,19 @@ local Config = {
 		-- mucho (desde 40 studs, unos 5 s y unos 170 studs de avance montado). Nunca sube. Deja de planear
 		-- con el suelo (o el agua) a menos de Landing studs.
 		Glide = { MinHeight = 8, FallSpeed = 8, Landing = 1.5 },
+	},
+
+	Pioneer = {
+		-- Bienvenida de pioneros (T6, 27-10-2026; Shared/Pioneer, ServerShared/Retention). Es pionero
+		-- quien entra antes de que acabe la primera temporada del pase (Data/Seasons): queda marcado para
+		-- siempre. Al cobrar el día 7 del calendario (cada ciclo, se repite) tiene una tirada de montura
+		-- con estos pesos (PetRoll.rollPioneer). No evita las que ya tiene: una repetida da
+		-- Config.Egg.DuplicateAmber de su rareza. Medido con Economia (§5b): quien entra a diario tiene
+		-- las 3 al 50 % hacia el día 84 (12 ciclos), el habitual hacia el 118 y el casual hacia el 196.
+		Weights = { Llama = 75, Jaguar = 18, Quetzalcoatl = 7 },
+		-- La ventana de bienvenida sale al entrar al Lobby si hay premio que cobrar o si hace al menos
+		-- esto desde la última vez (volver de una partida corta no la vuelve a enseñar).
+		WelcomeGapMinutes = 60,
 	},
 
 	Abilities = {

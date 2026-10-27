@@ -3,7 +3,8 @@
 -- Config.Pets.RarityWeights) y, al eclosionar en el nido del Lobby, una mascota al azar de esa rareza
 -- (rollPet). También da la siguiente mascota para recorrerlas todas desde el panel de pruebas.
 -- Monturas (Fase 11): antes de la mascota, un huevo de una rareza que tenga monturas que aún no
--- tienes da una de ellas con Config.Mounts.EggChance (rollMount).
+-- tienes da una de ellas con Config.Mounts.EggChance (rollMount). La tirada de pioneros (T6) da una
+-- de las tres con Config.Pioneer.Weights (rollPioneer).
 
 local Config = require(script.Parent.Config)
 local Mounts = require(script.Parent.Data.Mounts)
@@ -48,7 +49,8 @@ function PetRoll.petsOfRarity(rarity: string): { string }
 end
 
 -- Monturas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza). Las míticas
--- (el Quetzalcóatl) solo saldrán del huevo mítico, que aún no existe: ningún huevo normal es Mítico.
+-- (el Quetzalcóatl) salen de la tirada de pioneros (rollPioneer) y saldrán del huevo mítico, que aún no
+-- existe: ningún huevo normal es Mítico.
 function PetRoll.mountsOfRarity(rarity: string): { string }
 	local candidates = {}
 	for mountId, mount in Mounts do
@@ -73,6 +75,30 @@ function PetRoll.rollMount(rarity: string, owned: { [string]: number }, rng: Ran
 		return nil
 	end
 	return candidates[rng:NextInteger(1, #candidates)]
+end
+
+-- Tirada de pioneros (T6): una montura con Config.Pioneer.Weights, tenga o no las que salen (una
+-- repetida se cambia por Ámbar donde se entrega, ServerShared/Retention).
+function PetRoll.rollPioneer(rng: Random): string
+	local weights: { [string]: number } = Config.Pioneer.Weights
+	-- Por id, para que la misma tirada dé siempre lo mismo.
+	local ids = {}
+	local total = 0
+	for mountId, weight in weights do
+		if Mounts[mountId] then
+			table.insert(ids, mountId)
+			total += weight
+		end
+	end
+	table.sort(ids)
+	local pick = rng:NextNumber(0, total)
+	for _, mountId in ids do
+		pick -= weights[mountId]
+		if pick <= 0 then
+			return mountId
+		end
+	end
+	return ids[#ids]
 end
 
 -- Mascota al azar de una rareza (si no hay ninguna de esa rareza, de todas).

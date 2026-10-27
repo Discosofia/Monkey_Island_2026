@@ -60,6 +60,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "ClockHour", label = "⏩ Reloj +1 h" },
 		{ id = "Supplies", label = "🎒 Provisiones de prueba" },
 		{ id = "NextDay", label = "📅 Día siguiente (calendario)" },
+		{ id = "CalendarDay7", label = "🌟 Calendario: cobrar el día 7 (pioneros)" },
 		{ id = "Missions", label = "🎯 Cumplir las misiones del día" },
 		{ id = "WeeklyMissions", label = "📆 Cumplir las semanales" },
 		{ id = "NextWeek", label = "📆 Semana siguiente (semanales)" },

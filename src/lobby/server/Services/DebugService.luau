@@ -134,6 +134,10 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		Retention.debugNextDay(player)
 		Remotes.Notify:FireClient(player, "📅 Día siguiente: ya puedes cobrar el premio del calendario")
 	end,
+	CalendarDay7 = function(player)
+		Retention.debugCalendarDay7(player)
+		Remotes.Notify:FireClient(player, "🌟 Ya puedes cobrar el día 7 (con la tirada si eres pionero)")
+	end,
 	-- Cumple las misiones del día o las de la semana (se entregan ya, con su XP de pase).
 	Missions = function(player)
 		Retention.debugCompleteMissions(player)

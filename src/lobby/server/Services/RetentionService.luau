@@ -20,10 +20,16 @@ local function onClaimLogin(player: Player)
 	if not canRequest(player) then
 		return
 	end
-	local day, lines = Retention.claimLogin(player)
+	local day, lines, roll = Retention.claimLogin(player)
 	if day and lines then
-		Remotes.LoginClaimed:FireClient(player, day, lines)
+		Remotes.LoginClaimed:FireClient(player, day, lines, roll)
 		Analytics.event(player, "LoginCalendarDay", day)
+	end
+end
+
+local function onWelcomeSeen(player: Player)
+	if canRequest(player) then
+		Retention.welcomeSeen(player)
 	end
 end
 
@@ -40,6 +46,7 @@ end
 
 function RetentionService:Start()
 	Remotes.ClaimLogin.OnServerEvent:Connect(onClaimLogin)
+	Remotes.WelcomeSeen.OnServerEvent:Connect(onWelcomeSeen)
 	Remotes.RerollMission.OnServerEvent:Connect(onReroll)
 	-- Las misiones del día se ven ya en el Lobby (pestaña Misiones), antes de jugar.
 	Retention.start()

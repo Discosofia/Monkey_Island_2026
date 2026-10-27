@@ -177,8 +177,11 @@ local Remotes = {
 	EggHatched = remoteEvent("EggHatched"),
 	-- Cliente -> servidor (Lobby): cobrar el premio de hoy del calendario de 7 días.
 	ClaimLogin = remoteEvent("ClaimLogin"),
-	-- Servidor -> cliente (Lobby): premio cobrado (día 1..7 y lo recibido, línea a línea).
+	-- Servidor -> cliente (Lobby): premio cobrado (día 1..7 y lo recibido, línea a línea) y, si era el
+	-- día 7 de un pionero, su tirada de montura ({ mount, amber }; Shared/Pioneer).
 	LoginClaimed = remoteEvent("LoginClaimed"),
+	-- Cliente -> servidor (Lobby): ha visto la ventana de bienvenida (Shared/Pioneer.shouldWelcome).
+	WelcomeSeen = remoteEvent("WelcomeSeen"),
 	-- Cliente -> servidor (Lobby): cambiar gratis una misión sin cumplir ("daily" | "weekly", su
 	-- posición). ServerShared/Retention.reroll; la respuesta llega como aviso y en "Retention".
 	RerollMission = remoteEvent("RerollMission"),
