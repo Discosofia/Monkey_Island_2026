@@ -1,9 +1,9 @@
 --!strict
 -- HUD de la Isla: reloj de día/noche e indicador del Basecamp (arriba a la derecha), vida del
--- campamento (arriba en el centro, de noche o si está dañado), botón para volver
--- al Lobby y botón ⚙️ de Ajustes (abajo a la derecha; en pantallas táctiles, bajo el reloj, porque
--- abajo a la derecha están el salto y los botones de acción) y, a la izquierda del ⚙️, el botón 😀 de
--- la rueda de emotes (UI/EmoteWheel).
+-- campamento (arriba en el centro, de noche o si está dañado), botón para volver al Lobby (pide un
+-- segundo toque: salir pierde lo de la isla) y botón ⚙️ de Ajustes (abajo a la derecha; en pantallas
+-- táctiles, bajo el reloj, porque abajo a la derecha están el salto y los botones de acción) y, a la
+-- izquierda del ⚙️, el botón 😀 de la rueda de emotes (UI/EmoteWheel).
 -- En Studio también muestra un botón para saltar de fase y probar la noche sin esperar.
 -- Fase 1.2+: vida, inventario y barra rápida.
 
@@ -19,12 +19,19 @@ local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
+local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local SAFE_COLOR = Color3.fromRGB(120, 230, 140)
 local DANGER_COLOR = Color3.fromRGB(255, 170, 60)
 local FALLEN_COLOR = Color3.fromRGB(235, 70, 60)
 local HEALTHY_COLOR = Color3.fromRGB(90, 230, 110)
+-- "Volver al Lobby": dorado como todo botón; rojo de cerrar mientras pide confirmación.
+local READY_COLOR = Color3.fromRGB(242, 178, 36)
+local READY_TEXT = Color3.fromRGB(40, 25, 5)
+local LEAVE_COLOR = Color3.fromRGB(150, 60, 50)
+-- Segundos que espera el segundo toque de "Volver al Lobby" antes de volver a su texto.
+local CONFIRM_SECONDS = 4
 
 local IslandHUDController = {}
 
@@ -173,18 +180,42 @@ local function createReturnButton(gui: ScreenGui): TextButton
 		returnButton.Position = UDim2.fromScale(0.98, 0.98)
 	end
 
+	-- Salir pierde todo lo de la isla: el primer toque pide confirmación (en rojo) y solo el segundo,
+	-- antes de CONFIRM_SECONDS, viaja. Un clic perdido ya no te saca de la partida.
 	local waiting = false
+	local confirming = 0
+	local function reset()
+		confirming = 0
+		returnButton.Text = "Volver al Lobby"
+		returnButton.BackgroundColor3 = READY_COLOR
+		returnButton.TextColor3 = READY_TEXT
+	end
 	returnButton.Activated:Connect(function()
 		if waiting then
 			return
 		end
+		if confirming == 0 then
+			confirming += 1
+			local attempt = confirming
+			returnButton.Text = "¿Salir? Pierdes todo"
+			Toast.show("⚠️ Si vuelves al Lobby pierdes lo que llevas de la isla. Toca otra vez para salir")
+			returnButton.BackgroundColor3 = LEAVE_COLOR
+			returnButton.TextColor3 = Color3.new(1, 1, 1)
+			task.delay(CONFIRM_SECONDS, function()
+				if confirming == attempt and not waiting then
+					reset()
+				end
+			end)
+			return
+		end
+		reset()
 		waiting = true
 		returnButton.Text = "Viajando..."
 		Remotes.RequestReturnToLobby:FireServer()
 
 		task.delay(Config.Teleport.CooldownSeconds, function()
 			waiting = false
-			returnButton.Text = "Volver al Lobby"
+			reset()
 		end)
 	end)
 	return returnButton

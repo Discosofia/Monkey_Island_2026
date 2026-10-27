@@ -15,7 +15,8 @@
 --     aura a la vez) con lo que llevas puesto en el resto. "🔄 Lo que llevas" lo borra todo. Su botón la
 --     equipa o la quita (si la tienes) o dice cómo conseguirla (comprar, pase, ganar).
 --   - Cada tarjeta lleva el borde de su rareza; la mítica, un borde que brilla y gira.
---   - Sin desplazamiento en PC: cada pestaña enseña una página de tarjetas y, si hay más, flechas.
+--   - Sin desplazamiento en PC: cada pestaña enseña una página de tarjetas y, si hay más, flechas. Menos
+--     Estilos: tres columnas con título (números, estallidos y nido) que se deslizan hacia abajo.
 -- LobbyUIController la rehace al cambiar los datos del jugador; la pestaña, el rol, la tarjeta y la
 -- página elegidas se guardan aquí para que no se pierdan.
 
@@ -65,6 +66,12 @@ local TABS: { Tab } = {
 	{ id = "Emotes", label = "😀 Emotes", kinds = { Emote = true } },
 	{ id = "Styles", label = "🎨 Estilos", kinds = { NumberStyle = true, BurstStyle = true, NestDecor = true } },
 }
+-- Columnas de la pestaña Estilos, una por tipo.
+local STYLE_COLUMNS = {
+	{ kind = "NumberStyle", label = "🔢 Números" },
+	{ kind = "BurstStyle", label = "💥 Estallidos" },
+	{ kind = "NestDecor", label = "🪺 Nido" },
+}
 -- Grados de los cosméticos que evolucionan.
 local ROMAN = { "I", "II", "III" }
 -- Cada cuánto sale un número o un estallido en la vista previa de Estilos.
@@ -89,6 +96,7 @@ local state = {
 	picks = {} :: { [string]: string },
 	page = 1,
 	angle = 0,
+	scroll = {} :: { [string]: number },
 }
 local rebuild: () -> () = function() end
 
@@ -612,18 +620,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 	local perPage = if compact then 6 else 9
 	local pages = math.max(1, math.ceil(#ids / perPage))
 	state.page = math.clamp(state.page, 1, pages)
-
-	local grid = Instance.new("Frame")
-	grid.LayoutOrder = 4
-	grid.BackgroundTransparency = 1
-	grid.Size = UDim2.fromScale(1, 0)
-	grid.AutomaticSize = Enum.AutomaticSize.Y
-	grid.Parent = cardsPane
-	local gridLayout = Instance.new("UIGridLayout")
-	gridLayout.CellSize = UDim2.new(1 / 3, -6, 0, if compact then 86 else 112)
-	gridLayout.CellPadding = UDim2.fromOffset(6, 6)
-	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	gridLayout.Parent = grid
+	local cardHeight = if compact then 86 else 112
 
 	if #ids == 0 then
 		local empty = Widgets.label(
@@ -636,8 +633,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 		textCap(empty, 18)
 	end
 
-	for index = (state.page - 1) * perPage + 1, math.min(#ids, state.page * perPage) do
-		local cosmeticId = ids[index]
+	local function makeCard(parent: Instance, index: number, cosmeticId: string)
 		local cosmetic = Cosmetics[cosmeticId]
 		local has = owned(cosmeticId)
 		local isEquipped = CosmeticSlots.equippedIn(equipped, cosmeticId) ~= nil
@@ -649,7 +645,8 @@ function WardrobePanel.build(list: Instance, options: Options)
 		local picked = state.picks[slot] == cosmeticId
 		card.BackgroundColor3 = if picked then Color3.fromRGB(70, 58, 44) else ROW_COLOR
 		card.BackgroundTransparency = 0.1
-		card.Parent = grid
+		card.Size = UDim2.new(1, 0, 0, cardHeight)
+		card.Parent = parent
 		corner(card, 10)
 		Widgets.rarityBorder(card, cosmetic.rarity)
 		card.MouseButton1Click:Connect(function()
@@ -715,6 +712,74 @@ function WardrobePanel.build(list: Instance, options: Options)
 				button.MouseButton1Click:Connect(buy)
 			end
 		end
+	end
+
+	if tab.id == "Styles" then
+		-- Estilos: una columna por tipo, con su título, que se desliza hacia abajo (excepción a "sin
+		-- desplazamiento", pedida por el usuario el 26-10-2026). Se ven tantas tarjetas como en una
+		-- página de las otras pestañas, y cada columna recuerda dónde se quedó al rehacer la ventana.
+		local visible = if compact then 2 else 3
+		local columns = row(cardsPane, 4, (visible * (cardHeight + 6) - 6) + (if compact then 24 else 30))
+		for index, column in STYLE_COLUMNS do
+			local frame = Instance.new("Frame")
+			frame.LayoutOrder = index
+			frame.BackgroundTransparency = 1
+			frame.Size = UDim2.new(1 / #STYLE_COLUMNS, -4, 1, 0)
+			frame.Parent = columns
+			local heading = Widgets.label(column.label, frame)
+			heading.Size = UDim2.new(1, 0, 0, if compact then 20 else 26)
+			heading.TextColor3 = NOTE_COLOR
+			textCap(heading, if compact then 14 else 18)
+			local scroller = Instance.new("ScrollingFrame")
+			scroller.Name = column.kind
+			scroller.AnchorPoint = Vector2.new(0, 1)
+			scroller.Position = UDim2.fromScale(0, 1)
+			scroller.Size = UDim2.new(1, 0, 1, -(if compact then 24 else 30))
+			scroller.BackgroundTransparency = 1
+			scroller.BorderSizePixel = 0
+			scroller.ScrollingDirection = Enum.ScrollingDirection.Y
+			scroller.ScrollBarThickness = if compact then 3 else 5
+			scroller.ScrollBarImageColor3 = READY_COLOR
+			scroller.Parent = frame
+			local layout = Instance.new("UIListLayout")
+			layout.SortOrder = Enum.SortOrder.LayoutOrder
+			layout.Padding = UDim.new(0, 6)
+			layout.Parent = scroller
+			-- Hueco a la derecha para la barra, que no pise los botones de las tarjetas.
+			local padding = Instance.new("UIPadding")
+			padding.PaddingRight = UDim.new(0, if compact then 5 else 8)
+			padding.Parent = scroller
+			local count = 0
+			for order, cosmeticId in ids do
+				if Cosmetics[cosmeticId].kind == column.kind then
+					count += 1
+					makeCard(scroller, order, cosmeticId)
+				end
+			end
+			-- Alto del lienzo a mano (no AutomaticCanvasSize) para poder devolver la posición enseguida.
+			scroller.CanvasSize = UDim2.fromOffset(0, math.max(0, count * (cardHeight + 6) - 6))
+			scroller.CanvasPosition = Vector2.new(0, state.scroll[column.kind] or 0)
+			scroller:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+				state.scroll[column.kind] = scroller.CanvasPosition.Y
+			end)
+		end
+		buildPreview(previewPane, roleId, equipped, compact)
+		return
+	end
+
+	local grid = Instance.new("Frame")
+	grid.LayoutOrder = 4
+	grid.BackgroundTransparency = 1
+	grid.Size = UDim2.fromScale(1, 0)
+	grid.AutomaticSize = Enum.AutomaticSize.Y
+	grid.Parent = cardsPane
+	local gridLayout = Instance.new("UIGridLayout")
+	gridLayout.CellSize = UDim2.new(1 / 3, -6, 0, cardHeight)
+	gridLayout.CellPadding = UDim2.fromOffset(6, 6)
+	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	gridLayout.Parent = grid
+	for index = (state.page - 1) * perPage + 1, math.min(#ids, state.page * perPage) do
+		makeCard(grid, index, ids[index])
 	end
 
 	if pages > 1 then

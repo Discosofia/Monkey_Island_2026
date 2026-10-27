@@ -1,7 +1,8 @@
 --!strict
 -- Modo construcción (Fase 2.2): se activa al equipar el martillo.
---   - Panel a la derecha con las piezas y su coste; la elegida se ve como vista previa transparente
---     (verde si se puede poner, roja si no).
+--   - Ventana compacta a la derecha con las piezas y su coste (en un teléfono, una ficha con la pieza
+--     elegida y ◀ ▶); la elegida se ve como vista previa transparente (verde si se puede poner, roja
+--     si no).
 --   - PC: el ratón apunta, clic coloca, R gira, T cambia de pieza y X derriba una pieza tuya.
 --   - Móvil y mando: la vista previa va al centro de la pantalla; tocar (o R2) coloca y hay botones
 --     "Girar", "Pieza" y "Quitar" (cruceta derecha, L1 y cruceta abajo en mando).
@@ -33,8 +34,24 @@ local VALID_COLOR = Color3.fromRGB(90, 230, 110)
 local INVALID_COLOR = Color3.fromRGB(240, 70, 60)
 local SELECTED_COLOR = Color3.fromRGB(242, 178, 36)
 local IDLE_COLOR = Color3.fromRGB(45, 38, 30)
+local WINDOW_COLOR = Color3.fromRGB(25, 20, 15)
+-- Cuadrícula del panel en PC: 12 piezas en 3 columnas x 4 filas (unos 380 x 320 px).
+local PANEL_COLUMNS = 3
+local TILE_SIZE = Vector2.new(118, 62)
 
 local BuildController = {}
+
+local function corner(parent: Instance, radius: number)
+	local instance = Instance.new("UICorner")
+	instance.CornerRadius = UDim.new(0, radius)
+	instance.Parent = parent
+end
+
+local function textCap(object: GuiObject, max: number)
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MaxTextSize = max
+	limit.Parent = object
+end
 
 local function sortedIds(): { string }
 	local ids = {}
@@ -79,62 +96,146 @@ function BuildController:Start()
 	local placementValid = false
 	local aimedStructure: Model? = nil
 
-	-- Panel de piezas.
+	-- Panel de piezas: una ventana opaca y compacta a la derecha, en una cuadrícula de 3 columnas. Antes
+	-- era una columna transparente de 600 px que llegaba hasta "Volver al Lobby": un clic entre dos
+	-- piezas caía en ese botón. El fondo es Active para que ningún clic lo atraviese.
 	local gui = Widgets.screen("BuildHUD", player:WaitForChild("PlayerGui"))
 	gui.Enabled = false
 	local panel = Instance.new("Frame")
 	panel.Name = "Pieces"
 	panel.AnchorPoint = Vector2.new(1, 0.5)
 	panel.Position = UDim2.new(1, -12, 0.5, 0)
-	panel.Size = UDim2.fromOffset(230, 0)
+	panel.Size = UDim2.fromOffset(PANEL_COLUMNS * TILE_SIZE.X + (PANEL_COLUMNS - 1) * 6 + 16, 0)
 	panel.AutomaticSize = Enum.AutomaticSize.Y
-	panel.BackgroundTransparency = 1
+	panel.BackgroundColor3 = WINDOW_COLOR
+	panel.BackgroundTransparency = 0.05
+	panel.Active = true
 	panel.Parent = gui
+	corner(panel, 12)
+	local panelPadding = Instance.new("UIPadding")
+	panelPadding.PaddingTop = UDim.new(0, 6)
+	panelPadding.PaddingBottom = UDim.new(0, 8)
+	panelPadding.PaddingLeft = UDim.new(0, 8)
+	panelPadding.PaddingRight = UDim.new(0, 8)
+	panelPadding.Parent = panel
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Padding = UDim.new(0, 6)
 	layout.Parent = panel
+	local heading = Widgets.label("🔨 Construir", panel)
+	heading.LayoutOrder = 1
+	heading.Size = UDim2.new(1, 0, 0, 26)
+	heading.TextXAlignment = Enum.TextXAlignment.Left
+	textCap(heading, 20)
+	local refreshPanel: () -> ()
+	local grid = Instance.new("Frame")
+	grid.LayoutOrder = 2
+	grid.BackgroundTransparency = 1
+	grid.Size = UDim2.fromScale(1, 0)
+	grid.AutomaticSize = Enum.AutomaticSize.Y
+	grid.Parent = panel
+	local gridLayout = Instance.new("UIGridLayout")
+	gridLayout.CellSize = UDim2.fromOffset(TILE_SIZE.X, TILE_SIZE.Y)
+	gridLayout.CellPadding = UDim2.fromOffset(6, 6)
+	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	gridLayout.Parent = grid
 
-	local buttons: { TextButton } = {}
+	type Tile = { button: TextButton, name: TextLabel, cost: TextLabel }
+	local tiles: { Tile } = {}
 	for index, id in ids do
 		local button = Instance.new("TextButton")
 		button.Name = id
 		button.LayoutOrder = index
-		button.Size = UDim2.fromOffset(230, 54)
+		button.Text = ""
 		button.BackgroundColor3 = IDLE_COLOR
-		button.BackgroundTransparency = 0.15
-		button.TextColor3 = Color3.new(1, 1, 1)
-		button.Font = Enum.Font.BuilderSansBold
-		button.TextScaled = true
-		button.RichText = true
-		button.Parent = panel
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
-		corner.Parent = button
-		local padding = Instance.new("UIPadding")
-		padding.PaddingTop = UDim.new(0, 4)
-		padding.PaddingBottom = UDim.new(0, 4)
-		padding.PaddingLeft = UDim.new(0, 8)
-		padding.PaddingRight = UDim.new(0, 8)
-		padding.Parent = button
+		button.Parent = grid
+		corner(button, 8)
+		local name = Widgets.label("", button)
+		name.Position = UDim2.fromOffset(5, 4)
+		name.Size = UDim2.new(1, -10, 0, 32)
+		name.TextWrapped = true
+		textCap(name, 14)
+		local cost = Widgets.label("", button)
+		cost.AnchorPoint = Vector2.new(0, 1)
+		cost.Position = UDim2.new(0, 5, 1, -4)
+		cost.Size = UDim2.new(1, -10, 0, 18)
+		cost.RichText = true
+		textCap(cost, 14)
 		button.MouseButton1Click:Connect(function()
 			selected = index
+			refreshPanel()
 		end)
-		buttons[index] = button
+		tiles[index] = { button = button, name = name, cost = cost }
 	end
 
+	-- En un teléfono la cuadrícula no cabe: una ficha con la pieza elegida y ◀ ▶ para cambiarla, arriba
+	-- en el centro, justo bajo la barra de Roblox (a la derecha están Girar, Pieza y Quitar; a la izquierda,
+	-- las barras y las habilidades). De noche tapa la vida del campamento mientras llevas el martillo.
+	local card = Instance.new("Frame")
+	card.Name = "PieceCard"
+	card.AnchorPoint = Vector2.new(0.5, 0)
+	card.Position = UDim2.new(0.5, 0, 0, 4)
+	card.Size = UDim2.fromOffset(300, 52)
+	card.BackgroundColor3 = WINDOW_COLOR
+	card.BackgroundTransparency = 0.05
+	card.Active = true
+	card.Parent = gui
+	corner(card, 12)
+	local function arrow(text: string, anchorX: number): TextButton
+		local button = Instance.new("TextButton")
+		button.AnchorPoint = Vector2.new(anchorX, 0.5)
+		button.Position = UDim2.new(anchorX, if anchorX == 0 then 4 else -4, 0.5, 0)
+		button.Size = UDim2.fromOffset(44, 44)
+		button.BackgroundColor3 = IDLE_COLOR
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Font = Enum.Font.BuilderSansExtraBold
+		button.TextScaled = true
+		button.Text = text
+		button.Parent = card
+		corner(button, 8)
+		return button
+	end
+	local previous = arrow("◀", 0)
+	local nextButton = arrow("▶", 1)
+	local cardName = Widgets.label("", card)
+	cardName.Position = UDim2.fromOffset(52, 4)
+	cardName.Size = UDim2.new(1, -104, 0, 24)
+	textCap(cardName, 16)
+	local cardCost = Widgets.label("", card)
+	cardCost.Position = UDim2.fromOffset(52, 28)
+	cardCost.Size = UDim2.new(1, -104, 0, 20)
+	cardCost.RichText = true
+	textCap(cardCost, 15)
+	previous.Activated:Connect(function()
+		selected = (selected - 2) % #ids + 1
+		refreshPanel()
+	end)
+	nextButton.Activated:Connect(function()
+		selected = selected % #ids + 1
+		refreshPanel()
+	end)
 	local hint = Widgets.label("", gui)
 	hint.AnchorPoint = Vector2.new(0.5, 1)
 	hint.Position = UDim2.new(0.5, 0, 1, -100)
 	hint.Size = UDim2.fromScale(0.6, 0.04)
 
-	local function refreshPanel()
+	function refreshPanel()
+		local touch = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+		panel.Visible = not touch
+		card.Visible = touch
 		for index, id in ids do
 			local definition = Buildables[id]
-			buttons[index].Text = `{definition.icon} {definition.name}\n{costText(player, definition)}`
-			buttons[index].BackgroundColor3 = if index == selected then SELECTED_COLOR else IDLE_COLOR
+			local tile = tiles[index]
+			local chosen = index == selected
+			tile.button.BackgroundColor3 = if chosen then SELECTED_COLOR else IDLE_COLOR
+			tile.name.Text = `{definition.icon} {definition.name}`
+			tile.name.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+			tile.name.TextStrokeTransparency = if chosen then 1 else 0.5
+			tile.cost.Text = costText(player, definition)
 		end
-		local touch = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+		local definition = Buildables[ids[selected]]
+		cardName.Text = `{definition.icon} {definition.name}`
+		cardCost.Text = costText(player, definition)
 		hint.Text = if touch
 			then "Toca para colocar · Girar · Pieza · Quitar"
 			else "Clic: colocar · R: girar · T: cambiar pieza · F: quitar una pieza tuya"

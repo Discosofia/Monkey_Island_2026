@@ -13,15 +13,19 @@
 --     CombatClient/GuardBar, y el Evasivo detrás, CombatClient/EvasiveIcon), como las de la Isla. Debajo quedan
 --     las casillas de habilidades (RoleHUD, en 12, 118).
 --   - En el centro, solo mientras se espera para reaparecer: "Reapareces en 4".
+--   - Botón 😀 de la rueda de emotes (UI/EmoteWheel, la del Lobby y la Isla): abajo a la derecha en PC y
+--     arriba a la derecha, bajo las banderas, en táctil.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local EvasiveIcon = require(ReplicatedStorage.CombatClient.EvasiveIcon)
 local GuardBar = require(ReplicatedStorage.CombatClient.GuardBar)
@@ -259,6 +263,23 @@ function ArenaHUDController:Start()
 	local staminaFill = newBar(column, 2, "⚡", STAMINA_COLOR)
 	local updateGuard = GuardBar.attach(column:FindFirstChild("Row2") :: Frame, BAR_WIDTH + 30, BAR_HEIGHT)
 	local updateEvasive = EvasiveIcon.attach(column:FindFirstChild("Row2") :: Frame, BAR_WIDTH + 30)
+
+	-- Rueda de emotes, la misma del Lobby y la Isla (sin ella salía el menú de emotes de Roblox). Su
+	-- botón 😀 va abajo a la derecha en PC, como en la Isla; en táctil ahí están el salto y los botones
+	-- de acción, así que va arriba a la derecha, bajo el estado de las banderas.
+	local emoteButton = EmoteWheel.button(gui)
+	local function placeEmoteButton()
+		if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+			emoteButton.AnchorPoint = Vector2.new(1, 0)
+			emoteButton.Position = UDim2.new(1, -12, 0, FLAG_ROW_HEIGHT + 12)
+		else
+			emoteButton.AnchorPoint = Vector2.new(1, 1)
+			emoteButton.Position = UDim2.new(1, -12, 1, -12)
+		end
+	end
+	placeEmoteButton()
+	UserInputService.LastInputTypeChanged:Connect(placeEmoteButton)
+	EmoteWheel.start()
 
 	-- Cuenta atrás para reaparecer.
 	local respawn = Widgets.label("", gui)

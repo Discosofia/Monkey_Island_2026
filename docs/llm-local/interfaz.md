@@ -23,7 +23,7 @@ Toda la interfaz se hace **por código**: no hay nada a mano en `StarterGui`. Lo
 5. Posiciones con `fromScale` y `AnchorPoint` en la esquina a la que se pega la pieza.
 6. Lo que va junto, en un `Frame` con `UIListLayout`.
 7. Lo que sale en el centro de la pantalla dura poco y no bloquea los toques (`Active = false`).
-8. En el PC, las ventanas se ven **enteras sin desplazamiento** (salvo el pase).
+8. En el PC, las ventanas se ven **enteras sin desplazamiento** (salvo el pase y los Estilos del Armario).
 
 ## Medir en Studio
 

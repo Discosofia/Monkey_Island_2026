@@ -42,7 +42,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 1. **Lo de pago es solo cosmético.** El Ámbar, el tiempo de huevo y las provisiones nunca se venden. Nada aleatorio con Robux.
 2. **Colores con significado:** el verde es solo para la curación, el morado para el veneno y el rojo para el daño recibido.
 3. **Los modelos son voxel** (bloques en rejilla, pocos tonos planos) salvo que se pida otra cosa. Las variantes se distinguen a primera vista, también por detrás.
-4. **Las ventanas del PC se ven enteras sin desplazamiento** (salvo el pase). En el teléfono, filas compactas.
+4. **Las ventanas del PC se ven enteras sin desplazamiento** (salvo el pase y los Estilos del Armario). En el teléfono, filas compactas.
 5. **Las poses de las armas son `AnimationTrack`**, nunca articulaciones giradas por código.
 6. **No edites en Studio los scripts que sincroniza Rojo**: edita el archivo del repo.
 7. **Estilo de código:** `--!strict` donde ya está, tabs, 120 columnas y LF. Imita los nombres, comentarios y funciones de ayuda del archivo que tocas.

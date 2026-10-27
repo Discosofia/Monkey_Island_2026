@@ -1,5 +1,5 @@
 --!strict
--- Rueda de emotes (Fase 9, G9c), en el Lobby y en la Isla: los 6 huecos de la rueda (Shared/CosmeticSlots;
+-- Rueda de emotes (Fase 9, G9c), en el Lobby, la Isla y Dunas: los 6 huecos de la rueda (Shared/CosmeticSlots;
 -- vacía, los de serie de Config.Cosmetics.DefaultEmotes) en círculo alrededor del personaje. Está abierta
 -- mientras se mantiene pulsada la tecla "." (la de los emotes de Roblox, cuyo menú se apaga para no abrir
 -- los dos): al soltarla se hace el emote que está bajo el ratón, si hay uno. El botón 😀 la abre y la
