@@ -461,7 +461,7 @@ Decisiones: tras ganar, "Seguir sobreviviendo" en la Isla; la montura de los 7 d
 | Tanda | Contenido (puntos del pedido) | Commit | Estado |
 |---|---|---|---|
 | **T1** | Español latino en todos los textos (15), "pieza" → "estructura" (17), monos alfa: semanal 6 → 20 y diaria 2 → 8, con el ritmo de la calculadora corregido a 0,2/min (18) | `0c92957` | ✅ |
-| **T2** | Menú del martillo compacto y confirmación al volver al Lobby (1), emotes de Dunas unificados (2), Armario en 3 columnas (3) | — | ⏳ |
+| **T2** | Menú del martillo compacto y confirmación al volver al Lobby (1), emotes de Dunas unificados (2), Armario en 3 columnas (3) | `e514e82` | ✅ (falta ver la ficha del martillo en el emulador de teléfono) |
 | **T3** | No volver a comprar lo que ya tienes (5), mascotas únicas y Ámbar por repetida (12), regalar cosméticos (6) | — | ⏳ |
 | **T4** | Panel de administración v2: eventos en vivo, anuncio global, dar a todos y más (4) | — | ⏳ |
 | **T5** | Montura Jaguar Albino legendaria y patas del perro pirata (7, 11); montura Quetzalcóatl mítica (8) | — | ⏳ |
