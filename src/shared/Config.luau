@@ -43,6 +43,11 @@ local Config = {
 		-- Un jefe cada BossIntervalDays días, en este orden (GDD §8.2).
 		BossIntervalDays = 2,
 		BossRotation = { "OrangutanDelManglar", "ChimpanceCaudillo", "GorilaAlbino", "GorilaDeCeniza" },
+		-- Cada vuelta de la rotación (días 10–16, 18–24…, Fase 12) los jefes ya derrotados salen con esto
+		-- más de vida y de daño por vuelta, hasta Difficulty.MaxMultiplier, y sin pieza de baliza nueva.
+		-- Uno que aún no han derrotado vuelve con su fuerza normal.
+		BossRoundHealth = 0.3,
+		BossRoundDamage = 0.15,
 		-- Primer día en que se puede encender la baliza de rescate (GDD §5.3).
 		BeaconUnlockDay = 8,
 		-- Derrota (Fase 2.7): de noche, si todos los jugadores están caídos a la vez durante

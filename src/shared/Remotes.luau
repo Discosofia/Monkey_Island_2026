@@ -113,6 +113,8 @@ local Remotes = {
 	Demolish = remoteEvent("Demolish"),
 	-- Servidor -> cliente (Isla): la partida ha terminado; lleva el resumen para la pantalla final.
 	MatchEnded = remoteEvent("MatchEnded"),
+	-- Cliente -> servidor (Isla, Fase 12): tras el rescate, el jugador elige seguir sobreviviendo.
+	ChooseContinue = remoteEvent("ChooseContinue"),
 	-- Cliente -> servidor (Lobby): elegir rol (id de Data/Roles).
 	SelectRole = remoteEvent("SelectRole"),
 	-- Cliente -> servidor (Lobby): la guía de la primera vez está hecha (LobbyGuideController).

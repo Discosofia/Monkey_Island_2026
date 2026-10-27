@@ -6,6 +6,10 @@
 -- temporada en marcha, también la XP del pase sumada ("pass"). Y los pasos cumplidos del contrato de
 -- expedición (Shared/Contract). Bajo los días, el grupo: una ficha por jugador con su nombre y su marco
 -- (Shared/UI/PlayerFrames).
+-- Fase 12: en el rescate ("canContinue") hay dos botones, "Seguir sobreviviendo" (remoto
+-- ChooseContinue: se cierra la ventana y sigue la partida) y "Volver al Lobby"; quien no elige vuelve.
+-- El final de una partida que siguió (phase "Endless") enseña los días totales y lo ganado después
+-- del rescate.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +34,8 @@ local ROULETTE_SLOWDOWN = 1.17
 -- Fichas del grupo: fondo de fila y alto (fracción de la ventana).
 local CHIP_COLOR = Color3.fromRGB(45, 38, 30)
 local TEAM_HEIGHT = 0.11
+-- Alto máximo de la ventana (fracción de la pantalla).
+local MAX_PANEL_HEIGHT = 0.94
 
 local ResultsController = {}
 
@@ -72,7 +78,12 @@ end
 
 local function show(summary: { [string]: any })
 	local player = Players.LocalPlayer
-	local gui = Widgets.screen("Results", player:WaitForChild("PlayerGui"))
+	local playerGui = player:WaitForChild("PlayerGui")
+	local previous = playerGui:FindFirstChild("Results")
+	if previous then
+		previous:Destroy()
+	end
+	local gui = Widgets.screen("Results", playerGui)
 	gui.DisplayOrder = 50
 	gui.IgnoreGuiInset = true
 
@@ -89,13 +100,16 @@ local function show(summary: { [string]: any })
 	local roll = if typeof(summary.eggRoll) == "table" then summary.eggRoll else nil
 	local passText = SeasonPass.gainText(summary.pass)
 	local contract = Contract.read()
+	local canContinue = summary.canContinue == true
 	local panelHeight = (if roll then 0.86 else 0.7)
+		+ (if canContinue then 0.13 else 0)
 		+ TEAM_HEIGHT
 		+ (if summary.newTitle then 0.07 else 0)
 		+ (if passText then 0.07 else 0)
 		+ (if contract then 0.07 else 0)
 	local fit = 0.7 / panelHeight
-	panel.Size = UDim2.fromScale(0.6, panelHeight)
+	-- Todo va en fracciones de la ventana: si no cabe en la pantalla, se encoge entera.
+	panel.Size = UDim2.fromScale(0.6, math.min(panelHeight, MAX_PANEL_HEIGHT))
 	panel.BackgroundColor3 = Color3.fromRGB(30, 24, 18)
 	panel.Parent = gui
 	local corner = Instance.new("UICorner")
@@ -115,15 +129,25 @@ local function show(summary: { [string]: any })
 	padding.Parent = panel
 
 	local victory = summary.result == "Victory"
+	local endless = summary.phase == "Endless"
 	type Line = { text: string, height: number, color: Color3 }
 	local plain = Color3.fromRGB(230, 220, 200)
 	local lines: { Line } = {
 		{
-			text = if victory then "🚁 ¡Rescatados!" else "💀 El Basecamp ha caído",
+			text = if victory
+				then "🚁 ¡Rescatados!"
+				elseif endless then "♾️ Fin de la supervivencia"
+				else "💀 El Basecamp ha caído",
 			height = 0.14,
 			color = Color3.fromRGB(255, 210, 120),
 		},
-		{ text = `Sobrevivieron {summary.days} día(s)`, height = 0.09, color = Color3.new(1, 1, 1) },
+		{
+			text = if endless
+				then `Sobrevivieron {summary.days} día(s): {summary.extraDays or 0} después del rescate`
+				else `Sobrevivieron {summary.days} día(s)`,
+			height = 0.09,
+			color = Color3.new(1, 1, 1),
+		},
 		{ text = `🐒 Monos derrotados: {summary.kills}`, height = 0.08, color = plain },
 		{ text = `💚 Aliados reanimados: {summary.revives}`, height = 0.08, color = plain },
 		{ text = `👻 Caídas: {summary.deaths}`, height = 0.08, color = plain },
@@ -210,6 +234,17 @@ local function show(summary: { [string]: any })
 		task.spawn(playRoulette, wheel, detail, roll)
 	end
 
+	if canContinue then
+		local continueButton = Widgets.button("♾️ Seguir sobreviviendo", panel)
+		continueButton.LayoutOrder = order + 1
+		continueButton.Size = UDim2.fromScale(0.6, 0.13 * fit)
+		continueButton.MouseButton1Click:Connect(function()
+			Remotes.ChooseContinue:FireServer()
+			gui:Destroy()
+		end)
+		order += 1
+	end
+
 	local button = Widgets.button("Volver al Lobby", panel)
 	button.LayoutOrder = order + 1
 	button.Size = UDim2.fromScale(0.6, 0.13 * fit)
@@ -224,7 +259,12 @@ local function show(summary: { [string]: any })
 	countdown.TextColor3 = Color3.fromRGB(180, 170, 160)
 	task.spawn(function()
 		for remaining = Config.Match.ResultsSeconds, 0, -1 do
-			countdown.Text = `Vuelven todos al Lobby en {remaining} s`
+			if not gui.Parent then
+				return
+			end
+			countdown.Text = if canContinue
+				then `Si no eliges, vuelves al Lobby en {remaining} s`
+				else `Vuelven todos al Lobby en {remaining} s`
 			task.wait(1)
 		end
 	end)

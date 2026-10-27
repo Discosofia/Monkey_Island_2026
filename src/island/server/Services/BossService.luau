@@ -14,6 +14,9 @@
 --     Config.Windup.BossSeconds y solo entra si al acabar sigues delante y a su alcance; se puede
 --     bloquear y parar (el parry le tambalea la mitad). No se pueden bloquear ("‼"): el agarre (lo
 --     atraviesa), la embestida y el pisotón (rompen la guardia) y lo que cae del cielo (Hazards).
+--   - Fase 12: la rotación se repite (días 10, 12…) y en cada vuelta los jefes ya derrotados salen
+--     más fuertes (Config.Match.BossRoundHealth y BossRoundDamage, "strength"); uno que aún no han
+--     derrotado vuelve con su fuerza normal. Una pieza de baliza que ya se tiene no se vuelve a anunciar.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -78,6 +81,7 @@ type ActiveBoss = {
 	fightingUntil: number, -- os.clock(); ver FIGHT_GRACE_SECONDS
 	contributors: { [Player]: boolean },
 	fighters: number, -- jugadores peleando con los que está calculada su vida (rescaleHealth)
+	strength: { health: number, damage: number }, -- multiplicadores de la vuelta de la rotación
 	firstHitAt: number?, -- os.clock() del primer golpe de un jugador (telemetría de duración)
 }
 
@@ -199,6 +203,7 @@ local function onBossDied(boss: ActiveBoss)
 		return
 	end
 	current = nil
+	local newPiece = not Beacon.has(boss.id)
 	Beacon.add(boss.id)
 	local item = Items[boss.definition.lootItemId]
 	local reported = false
@@ -219,7 +224,11 @@ local function onBossDied(boss: ActiveBoss)
 			end
 		end
 	end
-	announce(`🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`)
+	announce(
+		if newPiece
+			then `🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`
+			else `🏆 ¡{boss.definition.name} ha caído!`
+	)
 	MonkeyAnimator.die(boss.model)
 	Poof.vanish(boss.model)
 	publish()
@@ -265,7 +274,7 @@ local function rescaleHealth(boss: ActiveBoss)
 	end
 	boss.fighters = fighters
 	local fraction = humanoid.Health / humanoid.MaxHealth
-	local maxHealth = math.round(boss.definition.maxHealth * healthMultiplier(fighters))
+	local maxHealth = math.round(boss.definition.maxHealth * boss.strength.health * healthMultiplier(fighters))
 	local health = math.max(1, fraction * maxHealth)
 	if maxHealth < humanoid.MaxHealth then
 		humanoid.Health = health
@@ -281,7 +290,18 @@ function BossService.isAlive(): boolean
 	return current ~= nil
 end
 
-function BossService.spawn(bossId: string)
+-- Multiplicadores de vida y daño de la vuelta "round" de la rotación (0 la primera).
+local function strengthFor(round: number): { health: number, damage: number }
+	local settings = Config.Match
+	local cap = Config.Difficulty.MaxMultiplier
+	return {
+		health = math.min(cap, 1 + settings.BossRoundHealth * round),
+		damage = math.min(cap, 1 + settings.BossRoundDamage * round),
+	}
+end
+
+-- "round": la vuelta de la rotación (0 o nil la primera, Fase 12), para salir más fuerte.
+function BossService.spawn(bossId: string, round: number?)
 	local definition = Bosses[bossId]
 	local species = Monkeys[definition.baseSpecies]
 	if not (definition and species) then
@@ -296,7 +316,8 @@ function BossService.spawn(bossId: string)
 	look.scale = definition.scale
 	look.bodyColor = definition.bodyColor
 	look.faceColor = definition.faceColor
-	look.maxHealth = math.round(definition.maxHealth * healthMultiplier(1))
+	local strength = strengthFor(round or 0)
+	look.maxHealth = math.round(definition.maxHealth * strength.health * healthMultiplier(1))
 	look.walkSpeed = definition.walkSpeed
 	local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, groundBelow(lair), bossId)
 	model.Name = definition.name
@@ -318,7 +339,7 @@ function BossService.spawn(bossId: string)
 		root = root,
 		lair = lair,
 		phase = 1,
-		damage = definition.damage,
+		damage = math.round(definition.damage * strength.damage),
 		cooldowns = {},
 		nextSpecialAt = now + 4,
 		lastAttackAt = 0,
@@ -326,6 +347,7 @@ function BossService.spawn(bossId: string)
 		fightingUntil = 0,
 		contributors = {},
 		fighters = 1,
+		strength = strength,
 	}
 	for _, special in definition.specials do
 		boss.cooldowns[special.id] = now + rng:NextNumber(3, 6)
@@ -541,7 +563,7 @@ local function updatePhase(boss: ActiveBoss)
 	boss.phase = phase
 	-- Su probabilidad de crítico depende de la fase (Shared/Crit).
 	boss.model:SetAttribute("BossPhase", phase)
-	boss.damage = math.round(boss.definition.damage * (1 + 0.2 * (phase - 1)))
+	boss.damage = math.round(boss.definition.damage * boss.strength.damage * (1 + 0.2 * (phase - 1)))
 	bubble(boss, "😡")
 	Sfx.play("BossRoar", boss.root)
 	MonkeyAnimator.play(boss.model, "Roar")
@@ -669,11 +691,18 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 		return
 	end
 	local rotation = Config.Match.BossRotation
-	local bossId = rotation[((day // interval) - 1) % #rotation + 1]
+	local index = (day // interval) - 1
+	local bossId = rotation[index % #rotation + 1]
 	if current then
 		despawnCurrent(`🌫️ {current.definition.name} se retira a su guarida…`)
 	end
-	BossService.spawn(bossId)
+	-- Solo vuelve más fuerte si ya lo derrotaron (su pieza está en la baliza): uno que se les resistió
+	-- vuelve igual, para que el grupo atascado pueda conseguir su pieza.
+	local round = if Beacon.has(bossId) then index // #rotation else 0
+	BossService.spawn(bossId, round)
+	if round > 0 then
+		announce(`👑 {Bosses[bossId].name} vuelve más fuerte (vuelta {round + 1})`)
+	end
 end
 
 function BossService:Init()

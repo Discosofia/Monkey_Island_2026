@@ -957,6 +957,39 @@ Lo que falta: dos jugadores (la arena y las curas a otros), los efectos vistos e
 1. [ ] Publica los **3 places a la vez** (el perfil pasa a la versión 11) y elige otra V en el Lobby.
    ✅ Al ir a la Isla y a Dunas lleva la V elegida, y al volver al Lobby sigue elegida.
 
+## 18. Lo que queda por probar de la Fase 12: Victoria y parcela permanente (27-10-2026)
+
+### P1. Seguir sobreviviendo
+
+Probado en Studio (1 jugador, con 🛠️ Pruebas → «🚁 Terminar: victoria (rescate)» y «💀 Terminar: derrota», que son de prueba y no cuentan para el récord):
+- **Rescate:** la ventana sale con «♾️ Seguir sobreviviendo», «Volver al Lobby» y «Si no eliges, vuelves al Lobby en N s», y cabe entera en la pantalla. Da +200 de Ámbar y suma 1 partida.
+- **Seguir:** después de pulsar el botón, a los 30 s sigues en la partida y el estado de la baliza dice «♾️ Seguir sobreviviendo».
+- **Jefes:** el día 10, sin haberlo derrotado, el Orangután vuelve con su vida normal (2205). Con las 4 piezas, el día 12 el Chimpancé sale más fuerte (4030 = 3100 × 1,3).
+- **Final:** la ventana dice «♾️ Fin de la supervivencia: 9 días después del rescate» y da solo lo extra: +90 de Ámbar y +540 de XP del pase. No vuelve a contar la partida.
+
+Lo que falta: una victoria de verdad (con la baliza), dos jugadores y el juego publicado.
+
+#### 18.1 Una victoria de verdad (Isla, ▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+
+1. [ ] Usa 🛠️ Pruebas → «📡 4 piezas + baliza sin espera», construye la baliza, enciéndela de día, salta a la noche y después al amanecer sin caer.
+   ✅ Sale «¡Rescatados!» con los dos botones; en el Lobby, los rescates suben en 1.
+2. [ ] Pulsa «♾️ Seguir sobreviviendo», salta un par de días y deja que te derroten de noche.
+   ✅ Sale «Fin de la supervivencia» y el récord de días (cartel 🏆 Ranking del Lobby) cuenta todos los días, no solo hasta el rescate. Los rescates no vuelven a subir.
+3. [ ] Después del rescate, intenta encender otra vez la baliza.
+   ✅ Sale «Ya los rescataron» y la baliza sigue apagada.
+
+#### 18.2 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Ganen. Uno pulsa «Seguir sobreviviendo» y el otro no pulsa nada.
+   ✅ A los 30 s el que no eligió vuelve al Lobby y el otro sigue en la partida, con el aviso «¡A seguir sobreviviendo!».
+2. [ ] Ganen y que los dos pulsen «Volver al Lobby», o ninguno pulse nada.
+   ✅ Los dos vuelven al Lobby, como antes de la Fase 12.
+
+#### 18.3 En el juego publicado
+
+1. [ ] Gana una partida y elige seguir. Desde otra cuenta, intenta entrar en ese servidor (Unirse desde un amigo).
+   ✅ Sale «Esta partida ha terminado: volviendo al Lobby» y te devuelve al Lobby.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

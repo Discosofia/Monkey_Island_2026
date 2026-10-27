@@ -154,9 +154,14 @@ local function flush(player: Player)
 end
 
 function TelemetryService:Init()
-	MatchService.onMatchEnded(function(player)
+	MatchService.onMatchEnded(function(player, summary)
 		flush(player)
-		ended = true
+		-- Tras el rescate la partida puede seguir (Fase 12): se vuelve a contar desde aquí.
+		if summary.phase == "Rescue" then
+			tallyOf(player)
+		else
+			ended = true
+		end
 	end)
 end
 

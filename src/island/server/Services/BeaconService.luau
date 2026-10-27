@@ -10,6 +10,8 @@
 -- amanecer se repara entera y se puede volver a encender (otra Gran Tropa esa noche). Una barra sobre
 -- la baliza enseña su vida mientras está encendida o dañada.
 -- Publica "BeaconStatus" (HUD), "BeaconLit" y "FinalNight" en ReplicatedStorage.
+-- Fase 12: tras el rescate la partida puede seguir ("Seguir sobreviviendo"); la baliza se apaga y ya
+-- no se puede encender.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -198,6 +200,10 @@ local function onLight(player: Player)
 	if lit or not LifeState.isAlive(player) then
 		return
 	end
+	if MatchService.isRescued() then
+		Remotes.Notify:FireClient(player, "📡 Ya los rescataron: ahora toca sobrevivir todo lo que puedan")
+		return
+	end
 	local beacon = findBeacon()
 	if beacon and BuildingService.isBroken(beacon) then
 		Remotes.Notify:FireClient(player, "📡 La baliza está derribada: se repara al amanecer")
@@ -280,6 +286,12 @@ local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 			end
 			if anyoneStanding then
 				announce("🚁 ¡Amanece y llega el rescate! ¡Lo lograron!")
+				-- La partida puede seguir (Fase 12): la baliza ya cumplió y se queda apagada.
+				finalNight = false
+				lit = false
+				ReplicatedStorage:SetAttribute("FinalNight", nil)
+				ReplicatedStorage:SetAttribute("BeaconLit", nil)
+				setLamp(beacon, false)
 				MatchService.endMatch("Victory")
 			end
 		end
@@ -308,7 +320,9 @@ function BeaconService:Start()
 		local pieces = #Beacon.pieces()
 		local status: string? = nil
 		local beacon = findBeacon()
-		if finalNight and signalCut then
+		if MatchService.isRescued() then
+			status = "♾️ Seguir sobreviviendo: cada día de más cuenta para tu récord"
+		elseif finalNight and signalCut then
 			status = "📡 Baliza derribada: esta noche no habrá rescate. ¡Resiste hasta el amanecer!"
 		elseif finalNight then
 			local health, maxHealth = 0, 1

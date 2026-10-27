@@ -25,6 +25,8 @@ local DataService = {}
 
 -- Si "player" lleva el equipo del nivel 4 de "roleId": la armadura volcánica y su arma de rol del
 -- último nivel (en la mochila, en la mano o en StarterGear).
+-- Fase 12: el final de "Seguir sobreviviendo" (phase "Endless") no vuelve a contar la partida; su
+-- "days" es el total, así el récord y el ranking cuentan los días de más.
 local function hasMasterKit(player: Player, roleId: string): boolean
 	if player:GetAttribute("Armor") ~= "VolcanicArmor" then
 		return false
@@ -69,7 +71,10 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	local xp = summary.days * Config.Data.RoleXpPerDay + summary.kills * Config.Data.RoleXpPerKill
 	PlayerData.update(player, function(profile)
 		profile.amber += summary.amber
-		profile.matches += 1
+		-- El final tras "Seguir sobreviviendo" es la misma partida: ya contó en el rescate.
+		if summary.phase ~= "Endless" then
+			profile.matches += 1
+		end
 		if not summary.test then
 			profile.bestDays = math.max(profile.bestDays, summary.days)
 			if summary.result == "Victory" then
@@ -97,7 +102,14 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 			Leaderboards.record(player.UserId, "Rescues", profile.rescues)
 		end
 	end
-	Analytics.event(player, if summary.result == "Victory" then "MatchVictory" else "MatchDefeat", summary.days)
+	Analytics.event(
+		player,
+		if summary.result == "Victory"
+			then "MatchVictory"
+			elseif summary.phase == "Endless" then "MatchEndless"
+			else "MatchDefeat",
+		summary.days
+	)
 end
 
 -- Diario de campo (Fase 4): cuenta los monos derrotados por especie y los jefes por id (los dos en
