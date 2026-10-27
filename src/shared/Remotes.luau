@@ -169,6 +169,8 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): efecto visual de una habilidad de rol (tipo y sus datos; ver
 	-- AbilityFxController). El daño lo pone el servidor; esto es solo lo que se ve.
 	AbilityFx = remoteEvent("AbilityFx"),
+	-- Cliente -> servidor (Isla): soltar en el suelo el huevo misterioso que lleva (EggService).
+	DropEgg = remoteEvent("DropEgg"),
 	-- Cliente -> servidor (Lobby): poner en el nido o descartar un huevo guardado
 	-- ("bag" | "pending", posición en esa lista; ServerShared/Eggs).
 	PlaceEgg = remoteEvent("PlaceEgg"),
@@ -180,11 +182,11 @@ local Remotes = {
 	-- Cliente -> servidor (Lobby): regalar un cosmético de Robux (id) a un jugador del servidor (UserId)
 	-- que aún no lo tiene (ServerShared/Gifts).
 	RequestGift = remoteEvent("RequestGift"),
-	-- Cliente -> servidor (Lobby): abrir el huevo del nido si ya está listo.
+	-- Cliente -> servidor (Lobby): abrir el huevo de un hueco del nido (1 o 2) si ya está listo.
 	HatchEgg = remoteEvent("HatchEgg"),
 	-- Servidor -> cliente (Lobby): ha nacido una mascota (id, rareza del huevo, si se la ha puesto y si
-	-- es una montura de Data/Mounts, y el Ámbar que da si es una mascota repetida: 0 si es nueva), para
-	-- la ceremonia del nido (NestController).
+	-- es una montura de Data/Mounts, el Ámbar que da si es una mascota repetida: 0 si es nueva, y el hueco
+	-- del nido), para la ceremonia del nido (NestController).
 	EggHatched = remoteEvent("EggHatched"),
 	-- Cliente -> servidor (Lobby): cobrar el premio de hoy del calendario de 7 días.
 	ClaimLogin = remoteEvent("ClaimLogin"),

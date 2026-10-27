@@ -1083,6 +1083,46 @@ Lo que falta: coger de lo compartido con otro jugador, salir del juego de verdad
 1. [ ] Con unos 15 objetos distintos en la Bolsa, abre tu cofre.
    ✅ Ocupa toda la pantalla, con la Bolsa a la izquierda y el cofre a la derecha, sin desplazarse. Las casillas, los botones 1 / 10 / Todo y «🔒 Privado / 🤝 Compartido» se pulsan bien. Con la Bolsa muy llena (más de unos 20 objetos), la columna de la Bolsa se desplaza.
 
+### P5. Incubadora, nido de la parcela y soltar el huevo
+
+Probado en Studio (1 jugador, con el perfil restaurado después):
+- **Soltar el huevo:** al recogerlo sale «Soltar huevo» (K, R3 en el mando y botón táctil). Al pulsarlo, el huevo queda en el suelo, el botón desaparece y cualquiera puede recogerlo.
+- **Dos nidos:** con un nido de la partida a 8 studs del de la parcela, el huevo va al de la parcela de quien lo encontró. Solo con el otro a mano, va al otro.
+- **Nido roto con huevo:** el huevo se pierde («💔 Los monos han destrozado el nido…»).
+- **Mejorar durante la defensa:** el nido no se deja mejorar («🥚 Tu nido defiende un huevo…»). Construir el cofre en plena defensa no toca el nido ni pierde el huevo.
+- **El nido de la parcela desaparece (como si su dueño se fuera):** el huevo cae a su lado y se puede llevar a otro nido.
+- **Incubadora III:** el huevo defendido entra en el segundo hueco del nido, con el 70 % del tiempo. La incubadora de la parcela enseña los dos huevos con el color de su rareza.
+- **Mejorar la incubadora de I a II:** lo que les falta a los huevos del nido baja en 0,70 / 0,85.
+- **Lobby:** dos huevos uno al lado del otro en el nido. La ventana enseña los dos huecos, se abre cada uno por separado y «Al nido» llena el hueco libre.
+
+Lo que falta: que se vaya el dueño de verdad, otro jugador que suelte o coja el huevo, la subida de rareza (es al azar), el teléfono y el juego publicado.
+
+#### 18.12 En la Isla (▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+
+1. [ ] Sube la parcela al nivel III con «🏡 Parcela» del panel de pruebas y defiende varios huevos en tu nido («🥚 Huevo», «🐣 Terminar la defensa»).
+   ✅ Más o menos 1 de cada 7 sale con «✨ ¡El nido de … ha mejorado el huevo: ahora es …!» y un grado más de rareza. Un huevo legendario nunca sube.
+
+#### 18.13 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] El jugador 2 lleva un huevo al nido de la parcela del jugador 1 y, durante la defensa, el jugador 1 sale de la partida.
+   ✅ El huevo cae junto al sitio del nido, sale «🥚 … se ha ido: el huevo ha caído junto a su nido. ¡Llévalo a otro!», y el 2 lo puede recoger y llevar a su nido.
+2. [ ] El jugador 1 recoge el huevo y lo suelta («Soltar huevo»). El jugador 2 lo recoge.
+   ✅ El 2 lo lleva, con el PvP activado; el 1 sigue con el PvP activado hasta que acaba su minuto.
+3. [ ] El jugador 1 encuentra el huevo y el 2 lo lleva al lado del nido de la parcela del 1, que tiene otro nido cerca.
+   ✅ El huevo se incuba en el nido de la parcela del 1, que fue quien lo encontró.
+
+#### 18.14 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Recoge un huevo en la Isla.
+   ✅ El botón «Soltar huevo» sale junto a los demás, sin tapar el salto, y se pulsa bien.
+2. [ ] Con la incubadora III y dos huevos en el nido, abre el nido del Lobby.
+   ✅ Se leen los dos huecos con sus barras y sus botones «Abrir» / «Incubando».
+
+#### 18.15 En el juego publicado
+
+1. [ ] Con la incubadora III, deja dos huevos en el nido del Lobby y vuelve al cabo de unas horas.
+   ✅ Los dos han avanzado sin jugar, cada uno con el 70 % de su tiempo, y el cartel de mascotas del nido resume el segundo («2.º: …»).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

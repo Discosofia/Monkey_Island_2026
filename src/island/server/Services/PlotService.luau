@@ -13,6 +13,10 @@
 --     Shared/Crafting), vendas y fruta al amanecer (aquí), y la cama (LifeService y SurvivalService).
 --   - Asedio: rota, cualquiera la repara con su aviso (Config.Plot.RepairCost); si no, al amanecer
 --     vuelve con toda la vida (después de repartir lo del amanecer: la rota esa noche no da nada).
+--   - Incubadora (P5): su efecto es en el nido del Lobby (ServerShared/Eggs, con el nivel del perfil). Al
+--     mejorarla, los huevos que ya incuban se acortan con el nuevo factor; en la Isla enseña los huevos
+--     del nido del Lobby del dueño con el color de su rareza.
+--   - El nido no se mejora mientras se defiende un huevo en él (Plot.NEST_BUSY_ATTRIBUTE, EggService).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -28,6 +32,9 @@ local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
+local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
+local Eggs = require(ServerScriptService.ServerShared.Eggs)
+local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BuildingService = require(script.Parent.BuildingService)
@@ -145,6 +152,29 @@ local function watchStructure(model: Model)
 	end)
 end
 
+-- Huevos de bloques de la incubadora (Shared/PlotModels: "Egg" y, en el III, "Egg2"): cada uno con el color
+-- de la rareza del huevo de ese hueco del nido del Lobby; el de un hueco vacío no se ve.
+local function paintIncubator(player: Player)
+	local model = BuildingService.plotStructure(player, "Incubator")
+	local eggs = Eggs.get(player)
+	if not (model and eggs) then
+		return
+	end
+	for slot = 1, #EggIncubation.NEST_KEYS do
+		local egg = EggIncubation.inSlot(eggs, slot)
+		local suffix = if slot == 1 then "" else tostring(slot)
+		for _, name in { `Egg{suffix}`, `Egg{suffix}Top` } do
+			local part = model:FindFirstChild(name)
+			if part and part:IsA("BasePart") then
+				part.Transparency = if egg then 0 else 1
+				if egg then
+					part.Color = Rarities[egg.rarity].color
+				end
+			end
+		end
+	end
+end
+
 local function onPlotBuilt(player: Player)
 	for structureId in PlotStructures do
 		local model = BuildingService.plotStructure(player, structureId)
@@ -153,6 +183,7 @@ local function onPlotBuilt(player: Player)
 		end
 	end
 	applyDiscounts(player)
+	paintIncubator(player)
 end
 
 local function onUpgrade(player: Player, structureId: any)
@@ -173,6 +204,10 @@ local function onUpgrade(player: Player, structureId: any)
 	local nextLevel = definition.levels[level + 1]
 	if not nextLevel then
 		Remotes.Notify:FireClient(player, `{definition.icon} {definition.name} ya está al máximo`)
+		return
+	end
+	if structureId == "Nest" and player:GetAttribute(Plot.NEST_BUSY_ATTRIBUTE) then
+		Remotes.Notify:FireClient(player, "🥚 Tu nido defiende un huevo: mejóralo cuando acabe")
 		return
 	end
 	if not LifeState.isAlive(player) then
@@ -201,7 +236,12 @@ local function onUpgrade(player: Player, structureId: any)
 	PlayerData.update(player, function(current)
 		current.amber -= nextLevel.amber
 		local plot = Plot.normalize(current.plot)
+		local _, factorBefore = Plot.incubator(plot)
 		plot.levels[structureId] = level + 1
+		local _, factorAfter = Plot.incubator(plot)
+		if factorAfter < factorBefore then
+			Eggs.speedUp(current, factorBefore, factorAfter)
+		end
 		for _, entry in nextLevel.cost do
 			local stored = plot.chest.private[entry.itemId] or 0
 			local fromChest = if useChest then math.min(stored, entry.amount) else 0
@@ -287,6 +327,16 @@ end
 
 function PlotService:Start()
 	Remotes.UpgradePlot.OnServerEvent:Connect(onUpgrade)
+	-- Los huevos del nido del Lobby cambian (abrir, poner, tiempo ganado): se repinta la incubadora.
+	local function watchEggs(player: Player)
+		player:GetAttributeChangedSignal("Eggs"):Connect(function()
+			paintIncubator(player)
+		end)
+	end
+	Players.PlayerAdded:Connect(watchEggs)
+	for _, player in Players:GetPlayers() do
+		watchEggs(player)
+	end
 end
 
 return PlotService

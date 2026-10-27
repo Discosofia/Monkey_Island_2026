@@ -801,9 +801,14 @@ local BUILDERS: { [string]: (kit: Kit) -> () } = {
 		local coals = decor(block(kit, "Coals", Vector3.new(1.6, 0.2, 1.6), CFrame.new(0, base + 0.85, 0), MAGMA))
 		glow(coals, MAGMA, 6)
 		block(kit, "Straw", Vector3.new(2.4, 0.4, 2.4), CFrame.new(0, base + 1.1, 0), STRAW, Enum.Material.Grass)
-		-- Huevo de bloques en el lecho.
-		decor(block(kit, "Egg", Vector3.new(0.8, 1, 0.8), CFrame.new(0, base + 1.75, 0), FABRIC))
-		decor(block(kit, "EggTop", Vector3.new(0.5, 0.3, 0.5), CFrame.new(0, base + 2.4, 0), FABRIC))
+		-- Huevos de bloques en el lecho, uno por hueco del nido del Lobby (dos en el III): PlotService los
+		-- pinta del color de la rareza del huevo que incuba el dueño y esconde los de un hueco vacío.
+		for slot = 1, if level == 3 then 2 else 1 do
+			local x = if level == 3 then (slot - 1.5) * 1.1 else 0
+			local suffix = if slot == 1 then "" else tostring(slot)
+			decor(block(kit, `Egg{suffix}`, Vector3.new(0.8, 1, 0.8), CFrame.new(x, base + 1.75, 0), FABRIC))
+			decor(block(kit, `Egg{suffix}Top`, Vector3.new(0.5, 0.3, 0.5), CFrame.new(x, base + 2.4, 0), FABRIC))
+		end
 		if level == 1 then
 			-- Tejadillo de paja sobre cuatro palos.
 			for sideX = -1, 1, 2 do

@@ -155,6 +155,15 @@ contratos: es lo primero que hay que mirar cuando haya telemetría.
 - Con ritmos un 30 % más lentos, la diaria fácil de fabricar (2 objetos) se sale de su rango y el paso 1
   del Campamento del náufrago (3 piezas) no cabe en los días 1–2 jugando solo: candidatos a bajar
   (1 objeto más fácil, 2 piezas) si los datos lo confirman.
+- Parcela (Fase 12, P5; opciones `incubadora` y `nidoParcela` de la calculadora): con la incubadora III
+  desde el día 1, el nido tiene dos huecos y se abren el doble de huevos (habitual 20 → 38 al mes), y con
+  el nido III los legendarios pasan del 1 % al 2 %. Las dos juntas dan la alerta «el habitual tiene una
+  montura al 50 % el día 9». Se acepta porque es el final de la parcela (unos 3 meses de Ámbar) y no la
+  tiene nadie el día 1; P6 lo mide con el día real en que se tiene. Los factores de tiempo (85 % y 70 %)
+  no cambian los huevos al mes en la calculadora, que simula por días.
+- Desde P5 la calculadora da Ámbar por el tiempo de huevo que llega con el huevo ya listo (como el juego,
+  `Retention.grant`). Antes se perdía. Por eso el habitual tiene la tienda entera el día 28 (alerta,
+  mínimo 30): +270 Ámbar del calendario. Es el hallazgo de la tienda de arriba.
 - El intenso tira 26.000 XP sobre el tope de partidas en el mes: el tope hace su trabajo (no termina
   antes del día 13), pero si se baja la XP de misiones terminaría antes.
 

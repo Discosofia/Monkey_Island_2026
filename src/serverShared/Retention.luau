@@ -76,8 +76,8 @@ function Retention.grant(player: Player, reward: Config.Reward, capped: boolean,
 	end
 	if reward.eggSeconds then
 		local data = Eggs.get(player)
-		local nest = data and data.nest
-		if nest and not EggIncubation.isReady(nest, now()) then
+		local nest = if data then EggIncubation.active(data, now()) else nil
+		if nest then
 			local applied = if capped
 				then Eggs.addPlayTime(player, reward.eggSeconds)
 				else Eggs.addFreeTime(player, reward.eggSeconds)

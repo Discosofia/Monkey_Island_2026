@@ -1,13 +1,15 @@
 --!strict
 -- Nido de huevos del Lobby (bucle de retención, octubre de 2026): lo que el jugador decide en el panel
 -- del nido (NestController). Todo se valida y se cambia en ServerShared/Eggs.
---   - PlaceEgg: pone en el nido vacío un huevo de la mochila o de los pendientes.
+--   - PlaceEgg: pone en un hueco libre del nido un huevo de la mochila o de los pendientes (dos huecos con
+--     la incubadora III de la parcela, Fase 12).
 --   - DiscardEgg: lo descarta a cambio de Ámbar.
---   - HatchEgg: abre el huevo del nido si está listo; el cliente hace la ceremonia (EggHatched).
+--   - HatchEgg: abre el huevo de un hueco del nido si está listo; el cliente hace la ceremonia (EggHatched).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
@@ -31,7 +33,7 @@ local function onPlace(player: Player, rawSource: any, rawIndex: any)
 	if Eggs.placeInNest(player, source, index) then
 		Remotes.Notify:FireClient(player, "🥚 Huevo en el nido: ya se está incubando")
 	else
-		Remotes.Notify:FireClient(player, "El nido ya tiene un huevo: ábrelo cuando esté listo")
+		Remotes.Notify:FireClient(player, "El nido está lleno: abre un huevo cuando esté listo")
 	end
 end
 
@@ -46,17 +48,19 @@ local function onDiscard(player: Player, rawSource: any, rawIndex: any)
 	end
 end
 
-local function onHatch(player: Player)
+local function onHatch(player: Player, rawSlot: any)
+	local slot = if rawSlot == 2 then 2 else 1
 	if not canRequest(player) then
 		return
 	end
 	local egg = Eggs.get(player)
-	local rarity = if egg and egg.nest then egg.nest.rarity else nil
-	local petId, equipped, isMount, amber = Eggs.hatch(player)
+	local nest = if egg then EggIncubation.inSlot(egg, slot) else nil
+	local rarity = if nest then nest.rarity else nil
+	local petId, equipped, isMount, amber = Eggs.hatch(player, slot)
 	if not (petId and rarity) then
 		return
 	end
-	Remotes.EggHatched:FireClient(player, petId, rarity, equipped, isMount, amber)
+	Remotes.EggHatched:FireClient(player, petId, rarity, equipped, isMount, amber, slot)
 end
 
 function NestService:Start()

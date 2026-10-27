@@ -114,6 +114,12 @@ local OPCIONES_BASE = {
 	contratos = { minutosVisita = 5, minutosCaja = 6, minutosBaliza = 2, obsidiana = 1.5 },
 	-- Pase: XP de misiones semanales fija por semana en lugar de la simulada (0 = la simulada).
 	pase = { xpSemanalSupuesta = 0 },
+	-- Nivel de la incubadora de la parcela (Fase 12, P5; 0 = sin ella) con que se simulan todos los
+	-- perfiles; uno con su propio "incubadora" en "perfiles" usa el suyo.
+	incubadora = 0,
+	-- Nivel del nido de la parcela (0 = sin él) en el que se defienden todos los huevos de la Isla: cada
+	-- uno puede subir un grado de rareza ("rarityUp" de Data/PlotStructures).
+	nidoParcela = 0,
 	secciones = { misiones = true, perfiles = true, partida = true, pase = true, pago = true, pioneros = true },
 }
 
@@ -251,6 +257,7 @@ local function main(copia: Instance): string
 	local Monkeys = require(Data.Monkeys) :: any
 	local Bosses = require(Data.Bosses) :: any
 	local ResourceNodes = require(Data.ResourceNodes) :: any
+	local Rarities = require(Data.Rarities) :: any
 	local Buildables = require(Data.Buildables) :: any
 	local Weapons = require(Data.Weapons) :: any
 	local Armor = require(Data.Armor) :: any
@@ -391,6 +398,29 @@ local function main(copia: Instance): string
 	-- ---------------------------------------------------------------- Perfiles
 	local hatchHoras = Config.Egg.HatchHours
 	local pesosIsla = Config.Pets.RarityWeights
+	do
+		-- Nido de la parcela: parte de los huevos de cada rareza sube a la siguiente (no a la mítica:
+		-- ningún huevo normal lo es).
+		local nivelNido = OPCIONES.nidoParcela
+		local datosNido = if nivelNido > 0 then (require(Data.PlotStructures) :: any).Nest.levels[nivelNido] else nil
+		local sube = if datosNido then datosNido.rarityUp or 0 else 0
+		if sube > 0 then
+			local orden = {}
+			for rareza in pesosIsla do
+				table.insert(orden, rareza)
+			end
+			table.sort(orden, function(a, b)
+				return Rarities[a].order < Rarities[b].order
+			end)
+			local nuevos = table.clone(pesosIsla)
+			for i = 1, #orden - 1 do
+				local pasa = pesosIsla[orden[i]] * sube
+				nuevos[orden[i]] -= pasa
+				nuevos[orden[i + 1]] += pasa
+			end
+			pesosIsla = nuevos
+		end
+	end
 	local horasHuevoIsla = mediaPonderada(pesosIsla, function(r)
 		return hatchHoras[r]
 	end)
@@ -689,6 +719,15 @@ local function main(copia: Instance): string
 		acc.ArenaCapture = (acc.ArenaCapture or 0) + perfil.partidasDunas * OPCIONES.dunas.capturas
 	end
 
+	-- Huecos del nido y factor del tiempo de los huevos con la incubadora de la parcela del perfil
+	-- (Data/PlotStructures: "eggTimeFactor" y "nestSlots" de su nivel).
+	local PlotStructures = require(Data.PlotStructures) :: any
+	local function incubadora(perfil: any): (number, number)
+		local nivel = perfil.incubadora or OPCIONES.incubadora
+		local datos = if nivel > 0 then PlotStructures.Incubator.levels[nivel] else nil
+		return if datos then datos.nestSlots or 1 else 1, if datos then datos.eggTimeFactor or 1 else 1
+	end
+
 	local function simular(perfil: any)
 		local r = {
 			diasActivos = 0,
@@ -747,34 +786,57 @@ local function main(copia: Instance): string
 		end
 		local xpTalentos = xpParaTalentos(perfil.rol)
 		local paso = 1 -- calendario
-		-- Nido: segundos totales del huevo, transcurridos, bonos y probabilidad de montura; mochila (los
-		-- que esperan: sus horas y su probabilidad de montura).
-		local nido: any = nil
+		-- Nido: un hueco por huevo (dos con la incubadora III de la parcela), cada uno con los segundos
+		-- totales del huevo (por el factor de la incubadora), transcurridos, bonos y probabilidad de
+		-- montura; mochila (los que esperan: sus horas y su probabilidad de montura).
+		local nidos: { any } = {}
+		local huecos, factorHuevo = incubadora(perfil)
 		local mochila: { { horas: number, montura: number, pesos: { [string]: number } } } = {}
 		local acumuladoHuevos = 0
 		-- Mascotas de cada rareza que se esperan tener ya (para la probabilidad de repetida).
 		local tiene: { [string]: number } = {}
 		local function nuevoHuevo(horas: number, montura: number, pesos: { [string]: number })
-			if not nido then
-				nido = { total = horas * 3600, pasado = 0, juego = 0, gratis = 0, montura = montura, pesos = pesos }
-			elseif #mochila < Config.Egg.BagSize then
+			for hueco = 1, huecos do
+				if not nidos[hueco] then
+					nidos[hueco] = {
+						total = horas * 3600 * factorHuevo,
+						pasado = 0,
+						juego = 0,
+						gratis = 0,
+						montura = montura,
+						pesos = pesos,
+					}
+					return
+				end
+			end
+			if #mochila < Config.Egg.BagSize then
 				table.insert(mochila, { horas = horas, montura = montura, pesos = pesos })
 			else
 				r.huevosDescartados += 1
 				r.ambar.Descartes += descarteIsla
 			end
 		end
+		local function listo(nido: any): boolean
+			return nido ~= nil and nido.pasado + nido.juego + nido.gratis >= nido.total
+		end
+		-- El huevo que recibe el tiempo ganado (ServerShared/Eggs): el primero que aún no está listo.
+		local function activo(): any
+			for hueco = 1, huecos do
+				if nidos[hueco] and not listo(nidos[hueco]) then
+					return nidos[hueco]
+				end
+			end
+			return nil
+		end
 		local function tiempoJuego(segundos: number)
-			if nido then
+			local nido = activo()
+			if activo() then
 				local hueco = math.max(0, nido.total * Config.Egg.PlayCapFraction - nido.juego)
 				nido.juego += math.min(segundos, hueco)
 			end
 		end
-		local function listo(): boolean
-			return nido ~= nil and nido.pasado + nido.juego + nido.gratis >= nido.total
-		end
 		-- Al abrir el huevo del nido: si sale mascota y ya la tiene, Ámbar (valor esperado por rareza).
-		local function eclosionar()
+		local function eclosionar(nido: any)
 			local total = 0
 			for _, peso in nido.pesos do
 				total += peso
@@ -792,8 +854,10 @@ local function main(copia: Instance): string
 		end
 
 		for dia = 1, OPCIONES.dias do
-			if nido then
-				nido.pasado += 24 * 3600
+			for hueco = 1, huecos do
+				if nidos[hueco] then
+					nidos[hueco].pasado += 24 * 3600
+				end
 			end
 			if Pase then
 				-- Se apunta al terminar el día (antes de jugar, el del día anterior).
@@ -805,7 +869,8 @@ local function main(copia: Instance): string
 				local premio = Config.Daily.Calendar[paso]
 				r.ambar.Calendario += premio.amber or 0
 				if premio.eggSeconds then
-					if nido then
+					local nido = activo()
+					if activo() then
 						nido.gratis += premio.eggSeconds
 					else
 						r.ambar.Calendario += premio.eggSeconds / 3600 * Config.Daily.AmberPerUnusedEggHour
@@ -821,25 +886,30 @@ local function main(copia: Instance): string
 					)
 				end
 				paso = paso % #Config.Daily.Calendar + 1
-				if listo() then
-					r.huevosEclosionados += 1
-					eclosionar()
-					r.sinMontura *= 1 - nido.montura
-					local totalPesos = 0
-					for _, peso in nido.pesos do
-						totalPesos += peso
-					end
-					for rareza in raresConMontura do
-						local p = if totalPesos > 0 then (nido.pesos[rareza] or 0) / totalPesos * chanceMontura else 0
-						r.sinMonturaRareza[rareza] = (r.sinMonturaRareza[rareza] or 1) * (1 - p)
-					end
-					if not r.monturaDia and r.sinMontura <= 0.5 then
-						r.monturaDia = dia
-					end
-					nido = nil
-					local siguiente = table.remove(mochila, 1)
-					if siguiente then
-						nuevoHuevo(siguiente.horas, siguiente.montura, siguiente.pesos)
+				for hueco = 1, huecos do
+					local nido = nidos[hueco]
+					if listo(nido) then
+						r.huevosEclosionados += 1
+						eclosionar(nido)
+						r.sinMontura *= 1 - nido.montura
+						local totalPesos = 0
+						for _, peso in nido.pesos do
+							totalPesos += peso
+						end
+						for rareza in raresConMontura do
+							local p = if totalPesos > 0
+								then (nido.pesos[rareza] or 0) / totalPesos * chanceMontura
+								else 0
+							r.sinMonturaRareza[rareza] = (r.sinMonturaRareza[rareza] or 1) * (1 - p)
+						end
+						if not r.monturaDia and r.sinMontura <= 0.5 then
+							r.monturaDia = dia
+						end
+						nidos[hueco] = nil
+						local siguiente = table.remove(mochila, 1)
+						if siguiente then
+							nuevoHuevo(siguiente.horas, siguiente.montura, siguiente.pesos)
+						end
 					end
 				end
 				-- Isla.
@@ -847,7 +917,7 @@ local function main(copia: Instance): string
 				r.ambar.Partidas += p.ambar
 				r.xpRol += p.xpRol
 				tiempoJuego(p.dias * Config.Egg.SecondsPerDaySurvived)
-				if p.rescate > 0 and nido then
+				if p.rescate > 0 then
 					tiempoJuego(rescateSegundos * p.rescate)
 				end
 				acumuladoHuevos += p.huevos
@@ -860,7 +930,7 @@ local function main(copia: Instance): string
 				r.misiones += cumplidas
 				r.misionesPosibles += posibles
 				r.ambar.Misiones += ambarMisiones
-				if nido then
+				if activo() then
 					tiempoJuego(huevoMisiones)
 				else
 					r.ambar.Misiones += huevoMisiones / 3600 * Config.Daily.AmberPerUnusedEggHour
@@ -895,7 +965,7 @@ local function main(copia: Instance): string
 				local xpSemanal = nuevas * (premioSemanal.xp or 0) + extra * (extraSemanal.xp or 0)
 				r.ambar.Misiones += nuevas * (premioSemanal.amber or 0) + extra * (extraSemanal.amber or 0)
 				local huevoSemanal = nuevas * (premioSemanal.eggSeconds or 0) + extra * (extraSemanal.eggSeconds or 0)
-				if nido then
+				if activo() then
 					tiempoJuego(huevoSemanal)
 				else
 					r.ambar.Misiones += huevoSemanal / 3600 * Config.Daily.AmberPerUnusedEggHour
@@ -938,7 +1008,7 @@ local function main(copia: Instance): string
 							r.ambar.Pase += gratis.amber or 0
 							if gratis.eggSeconds then
 								P.huevoSegundos += gratis.eggSeconds
-								if nido then
+								if activo() then
 									tiempoJuego(gratis.eggSeconds)
 								else
 									r.ambar.Pase += gratis.eggSeconds / 3600 * Config.Daily.AmberPerUnusedEggHour
@@ -959,7 +1029,7 @@ local function main(copia: Instance): string
 						local enBucle = Pase.loopReward(bucle)
 						r.ambar.Pase += enBucle.amber or 0
 						if enBucle.eggSeconds then
-							if nido then
+							if activo() then
 								tiempoJuego(enBucle.eggSeconds)
 							else
 								r.ambar.Pase += enBucle.eggSeconds / 3600 * Config.Daily.AmberPerUnusedEggHour
@@ -1038,6 +1108,16 @@ local function main(copia: Instance): string
 				horasHuevoIsla
 			)} h de media.`
 		)
+		if OPCIONES.incubadora > 0 or OPCIONES.nidoParcela > 0 then
+			local huecos, factor = incubadora({})
+			linea(
+				`Parcela: incubadora {OPCIONES.incubadora} ({huecos} hueco(s) en el nido, huevos al {pct(factor)} del tiempo) · nido {OPCIONES.nidoParcela} (Legendario en {pct(
+					mediaPonderada(pesosIsla, function(r)
+						return if r == "Legendary" then 1 else 0
+					end)
+				)} de los huevos de la Isla).`
+			)
+		end
 		linea("")
 		linea(
 			"| Perfil | Días activos | Ámbar: partidas · Dunas · calendario · misiones · descartes · repetidas · pase | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados, mascotas repetidas) | Misiones cumplidas | Talentos llenos |"

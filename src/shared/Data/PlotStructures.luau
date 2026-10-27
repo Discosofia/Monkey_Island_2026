@@ -12,8 +12,14 @@
 --   - Efectos por nivel (solo los que tiene cada estructura): "discount" (parte de los materiales que se
 --     ahorra en las recetas de "stations"), "bandages" y "food" (lo que deja en la Bolsa al amanecer),
 --     "downedFactor" (multiplica Config.Life.DownedSeconds) y "restRegen" (vida por segundo cerca de la
---     cama, sin daño reciente). El cofre da casillas (Config.Plot.ChestSlots, ChestService); la incubadora y
---     el nido dan su efecto en P5.
+--     cama, sin daño reciente). El cofre da casillas (Config.Plot.ChestSlots, ChestService).
+--   - Incubadora (P5): "eggTimeFactor" multiplica las horas de los huevos del nido del Lobby (también sin
+--     conectarse, y aunque esté rota en la partida: cuenta el nivel del perfil) y "nestSlots" da huecos al
+--     nido (Shared/Plot.incubator, ServerShared/Eggs). Nido (P5): "rarityUp", probabilidad de que el huevo
+--     defendido en él suba un grado de rareza (EggService, PetRoll.upgradeRarity).
+-- Medido con Economia (27-10-2026, incubadora y nido III desde el día 1): los factores no cambian los
+-- huevos abiertos al mes (se abren al volver cada día), el segundo hueco los dobla (habitual 20 → 38) y el
+-- nido III lleva los legendarios del 1 % al 2 %. Nada de esto se compra con Robux.
 -- Precios de prueba (27-10-2026): 600 / 2.400 / 6.000 Ámbar por estructura, 63.000 las 7 al nivel III.
 -- Con el Ámbar que sobra medido en la calculadora (Economia, 60 días), el grupo de amigos las tiene en
 -- unos 3 meses y el intenso en algo más de 1. Los fija P6 con la sección "Parcela" de Economia.
@@ -39,6 +45,9 @@ export type Level = {
 	food: { [string]: number }?,
 	downedFactor: number?,
 	restRegen: number?,
+	eggTimeFactor: number?,
+	nestSlots: number?,
+	rarityUp: number?,
 }
 
 export type Structure = {
@@ -260,7 +269,7 @@ local PlotStructures: { [string]: Structure } = {
 	Incubator = {
 		name = "Incubadora",
 		icon = "🌡️",
-		description = "Tu incubadora: acelera el huevo de tu nido del Lobby (llega en P5).",
+		description = "Tu incubadora: los huevos de tu nido del Lobby tardan menos, también sin jugar.",
 		size = Vector3.new(4, 4, 4),
 		hitSound = "StructureHitStone",
 		levels = {
@@ -268,7 +277,8 @@ local PlotStructures: { [string]: Structure } = {
 				amber = 600,
 				cost = { { itemId = "Stone", amount = 15 }, { itemId = "Fiber", amount = 15 } },
 				health = 350,
-				effect = "Huevo del nido más rápido (pronto)",
+				effect = "Huevos del nido del Lobby en el 85 % del tiempo",
+				eggTimeFactor = 0.85,
 			},
 			{
 				amber = 2400,
@@ -278,7 +288,8 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "GoldenFur", amount = 4 },
 				},
 				health = 600,
-				effect = "Huevo del nido más rápido aún (pronto)",
+				effect = "Huevos del nido del Lobby en el 70 % del tiempo",
+				eggTimeFactor = 0.7,
 			},
 			{
 				amber = 6000,
@@ -288,14 +299,16 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "SilverFur", amount = 2 },
 				},
 				health = 900,
-				effect = "Un segundo hueco en el nido (pronto)",
+				effect = "70 % del tiempo y un segundo hueco en el nido",
+				eggTimeFactor = 0.7,
+				nestSlots = 2,
 			},
 		},
 	},
 	Nest = {
 		name = "Nido",
 		icon = "🥚",
-		description = "Tu nido: defiende en él los huevos que encuentres en la partida.",
+		description = "Tu nido: defiende en él los huevos de la partida; puede mejorar su rareza.",
 		size = Vector3.new(6, 3, 6),
 		buildableId = "Nest",
 		levels = {
@@ -303,7 +316,8 @@ local PlotStructures: { [string]: Structure } = {
 				amber = 600,
 				cost = { { itemId = "Wood", amount = 15 }, { itemId = "Fiber", amount = 15 } },
 				health = 600,
-				effect = "Nido para los huevos de la partida",
+				effect = "Nido para los huevos · 5 % de subir su rareza",
+				rarityUp = 0.05,
 			},
 			{
 				amber = 2400,
@@ -313,7 +327,8 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "GoldenFur", amount = 4 },
 				},
 				health = 900,
-				effect = "Más vida (y mejor huevo, pronto)",
+				effect = "Más vida · 10 % de subir la rareza del huevo",
+				rarityUp = 0.1,
 			},
 			{
 				amber = 6000,
@@ -323,7 +338,8 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "OrangeFur", amount = 4 },
 				},
 				health = 1300,
-				effect = "Aún más vida (y mejor huevo, pronto)",
+				effect = "Aún más vida · 15 % de subir la rareza del huevo",
+				rarityUp = 0.15,
 			},
 		},
 	},

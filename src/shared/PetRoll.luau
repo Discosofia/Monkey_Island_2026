@@ -4,7 +4,8 @@
 -- (rollPet). También da la siguiente mascota para recorrerlas todas desde el panel de pruebas.
 -- Monturas (Fase 11): antes de la mascota, un huevo de una rareza que tenga monturas que aún no
 -- tienes da una de ellas con Config.Mounts.EggChance (rollMount). La tirada de pioneros (T6) da una
--- de las tres con Config.Pioneer.Weights (rollPioneer).
+-- de las tres con Config.Pioneer.Weights (rollPioneer). El nido de la parcela puede subir un grado la
+-- rareza del huevo que se defiende en él (upgradeRarity, Fase 12).
 
 local Config = require(script.Parent.Config)
 local Mounts = require(script.Parent.Data.Mounts)
@@ -34,6 +35,21 @@ function PetRoll.rollRarity(rng: Random, weights: { [string]: number }?): string
 		end
 	end
 	return names[#names] or "Common"
+end
+
+-- Nido de la parcela (Fase 12, P5): con probabilidad "chance", la rareza de un huevo defendido sube un
+-- grado. Nunca a Mítico (ningún huevo normal lo es) ni más allá de Legendario. Devuelve la rareza final.
+function PetRoll.upgradeRarity(rarity: string, chance: number, rng: Random): string
+	local current = Rarities[rarity]
+	if not current or chance <= 0 or rng:NextNumber() >= chance then
+		return rarity
+	end
+	for name, data in Rarities do
+		if data.order == current.order + 1 and name ~= "Mythic" then
+			return name
+		end
+	end
+	return rarity
 end
 
 -- Mascotas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza).

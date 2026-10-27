@@ -4,8 +4,13 @@
 --      al aparecer con Config.Pets.RarityWeights y se ve en su color, Shared/EggModel).
 --   2. Quien lo recoge lo lleva encima: va más lento, los monos cercanos van a por él y tiene el PvP
 --      activado (otros jugadores con PvP pueden derribarlo y quedarse el huevo).
---   3. Si el portador cae, el huevo se queda en el suelo para que otro lo recoja.
---   4. Al llevarlo al Nido del Basecamp empieza la incubación: llegan oleadas a por él.
+--   3. Si el portador cae, o lo suelta (Remotes.DropEgg, EggCarryController), el huevo se queda en el
+--      suelo para que otro lo recoja.
+--   4. Al llevarlo a un nido empieza la incubación: llegan oleadas a por él. Vale el nido en pie más
+--      cercano (el del martillo o el de una parcela, Fase 12); a su alcance, el de la parcela de quien
+--      lo encontró gana a los demás. El nido de una parcela puede subir un grado la rareza del huevo
+--      ("rarityUp" de su nivel, Data/PlotStructures). Si el nido se rompe o lo destrozan, el huevo se
+--      pierde; si el dueño de la parcela se va, cae al suelo a su lado y se puede llevar a otro nido.
 --   5. Al terminar la incubación, cada participante (quien lo llevó o estuvo cerca durante el viaje, y
 --      quien esté en el Basecamp al final) se lleva un huevo de esa rareza (ServerShared/Eggs): va a su
 --      nido del Lobby, a su mochila o queda pendiente. La mascota nace después, en el nido del Lobby.
@@ -18,6 +23,8 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Building = require(ReplicatedStorage.Shared.Building)
+local Plot = require(ReplicatedStorage.Shared.Plot)
+local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Compass = require(ReplicatedStorage.Shared.Compass)
 local Config = require(ReplicatedStorage.Shared.Config)
 local EggModel = require(ReplicatedStorage.Shared.EggModel)
@@ -32,6 +39,7 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
+local BuildingService = require(script.Parent.BuildingService)
 local MonkeyService = require(script.Parent.MonkeyService)
 local PvPService = require(script.Parent.PvPService)
 
@@ -58,6 +66,10 @@ local carrier: Player? = nil
 local participants: { [Player]: boolean } = {}
 local incubationEndsAt = 0
 local nest: Model? = nil
+-- Dónde estaba el nido (para dejar el huevo al lado si el nido de una parcela se va con su dueño).
+local nestPosition = Vector3.zero
+-- Quien recogió el huevo primero: su nido de la parcela tiene preferencia.
+local finder: Player? = nil
 
 local function announce(text: string)
 	for _, player in Players:GetPlayers() do
@@ -76,6 +88,25 @@ local function publishPosition()
 	ReplicatedStorage:SetAttribute("EggPosition", if part and state == "Ground" then part.Position else nil)
 end
 
+-- Dueño (en la partida) del nido de una parcela, o nil si es el del martillo o el dueño ya no está.
+local function plotOwner(target: Model): Player?
+	local userId = target:GetAttribute("OwnerUserId")
+	if not target:GetAttribute("Permanent") or typeof(userId) ~= "number" then
+		return nil
+	end
+	return Players:GetPlayerByUserId(userId)
+end
+
+-- Suelta el nido en el que se incubaba: su dueño ya lo puede mejorar (Plot.NEST_BUSY_ATTRIBUTE).
+local function releaseNest()
+	local target = nest
+	nest = nil
+	local owner = if target then plotOwner(target) else nil
+	if owner then
+		owner:SetAttribute(Plot.NEST_BUSY_ATTRIBUTE, nil)
+	end
+end
+
 local function clearEgg()
 	if eggModel then
 		eggModel:Destroy()
@@ -86,7 +117,8 @@ local function clearEgg()
 		carrier:SetAttribute("CarryingEgg", nil)
 	end
 	carrier = nil
-	nest = nil
+	finder = nil
+	releaseNest()
 	table.clear(participants)
 	setStatus(nil)
 end
@@ -235,6 +267,7 @@ function pickUp(player: Player)
 	end
 	state = "Carried"
 	carrier = player
+	finder = finder or player
 	participants[player] = true
 	player:SetAttribute("CarryingEgg", true)
 	setPrompt(part, false)
@@ -261,14 +294,56 @@ local function drop(reason: string)
 	announce(`🥚 {reason}: el huevo ha caído al suelo`)
 end
 
-local function findNest(): Model?
+-- El portador lo suelta (Remotes.DropEgg): queda en el suelo, a sus pies.
+local function onDropRequest(player: Player)
+	if state == "Carried" and carrier == player then
+		drop(`{player.DisplayName} lo ha soltado`)
+	end
+end
+
+-- Nido en pie más cercano a "position" que esté al alcance de la entrega (el del martillo o el de una
+-- parcela). A su alcance, el de la parcela de quien encontró el huevo gana a cualquier otro.
+local function findNest(position: Vector3): Model?
 	local folder = Workspace:FindFirstChild(Building.STRUCTURES_FOLDER)
+	local best: Model? = nil
+	local bestDistance = math.huge
 	for _, model in if folder then folder:GetChildren() else {} do
-		if model:IsA("Model") and model:GetAttribute("BuildableId") == "Nest" then
-			return model
+		if
+			model:IsA("Model")
+			and model:GetAttribute("BuildableId") == "Nest"
+			and not BuildingService.isBroken(model)
+		then
+			local distance = (model:GetPivot().Position - position).Magnitude
+			if distance <= DELIVERY_DISTANCE + 4 then
+				if finder and plotOwner(model) == finder then
+					distance = -1
+				end
+				if distance < bestDistance then
+					best, bestDistance = model, distance
+				end
+			end
 		end
 	end
-	return nil
+	return best
+end
+
+-- Rareza con que sale el huevo defendido en "target": el nido de una parcela puede subirla un grado.
+local function finalRarity(target: Model?): string
+	local level = if target and target:GetAttribute("Permanent") then target:GetAttribute("Level") else nil
+	local levelData = if typeof(level) == "number" then PlotStructures.Nest.levels[level] else nil
+	if not (levelData and levelData.rarityUp) then
+		return rarity
+	end
+	local upgraded = PetRoll.upgradeRarity(rarity, levelData.rarityUp, rng)
+	if upgraded ~= rarity then
+		local owner = target and target:GetAttribute("OwnerName")
+		announce(
+			`✨ ¡El nido de {if typeof(owner) == "string" then owner else "la parcela"} ha mejorado el huevo: ahora es {string.upper(
+				Rarities[upgraded].name
+			)}!`
+		)
+	end
+	return upgraded
 end
 
 -- Fin de la incubación: el huevo se salva y cada participante se lleva uno de su rareza.
@@ -279,6 +354,7 @@ local function complete()
 			rewarded[player] = true
 		end
 	end
+	rarity = finalRarity(nest)
 	local part = egg
 	if part then
 		EggModel.burst(part.Position, rarity)
@@ -316,6 +392,12 @@ local function startIncubation(target: Model)
 	carrier = nil
 	state = "Incubating"
 	nest = target
+	nestPosition = target:GetPivot().Position
+	-- Mientras incuba, el nido de una parcela no se mejora ni se reconstruye (PlotService, BuildingService).
+	local owner = plotOwner(target)
+	if owner then
+		owner:SetAttribute(Plot.NEST_BUSY_ATTRIBUTE, true)
+	end
 	-- Lo deja en el hueco del nido (su punto "EggSeat"), un poco hundido en el forro de paja.
 	unweld(part)
 	setPrompt(part, false)
@@ -418,14 +500,25 @@ local function tick()
 				participants[player] = true
 			end
 		end
-		local target = findNest()
-		if target and (target:GetPivot().Position - position).Magnitude <= DELIVERY_DISTANCE + 4 then
+		local target = findNest(position)
+		if target then
 			startIncubation(target)
 		end
 		setStatus(`🥚 {holder.DisplayName} lleva el huevo {rarityName()}`)
 	elseif state == "Incubating" then
 		local target = nest
-		if not target or not target.Parent then
+		-- El nido de una parcela solo desaparece si su dueño se va (roto, se queda en su sitio): el huevo
+		-- cae a su lado y se puede llevar a otro nido. Roto o destrozado (el del martillo), se pierde.
+		if target and not target.Parent and target:GetAttribute("Permanent") then
+			releaseNest()
+			local owner = target:GetAttribute("OwnerName")
+			placeOnGround(nestPosition + Vector3.new(4, 0, 0))
+			announce(
+				`🥚 {if typeof(owner) == "string" then owner else "El dueño del nido"} se ha ido: el huevo ha caído junto a su nido. ¡Llévalo a otro!`
+			)
+			return
+		end
+		if not target or not target.Parent or BuildingService.isBroken(target) then
 			announce("💔 Los monos han destrozado el nido: el huevo se ha perdido")
 			clearEgg()
 			return
@@ -445,6 +538,7 @@ function EggService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		participants[player] = nil
 	end)
+	Remotes.DropEgg.OnServerEvent:Connect(onDropRequest)
 	task.spawn(function()
 		while true do
 			task.wait(Config.Egg.CheckSeconds)

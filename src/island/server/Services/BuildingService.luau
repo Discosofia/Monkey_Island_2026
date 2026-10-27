@@ -382,9 +382,12 @@ local function rebuildPermanent(player: Player)
 		return
 	end
 	-- Cada una vuelve con la parte de vida que tenía (subir de nivel en pleno asedio no repara las demás).
+	-- El nido en el que se defiende un huevo se queda como está (EggService lo sigue por la instancia).
 	local healthLeft: { [string]: number } = {}
+	local nestBusy = player:GetAttribute(Plot.NEST_BUSY_ATTRIBUTE) == true
 	for _, model in structureFolder():GetChildren() do
-		if model:GetAttribute("OwnerUserId") == player.UserId and model:GetAttribute("Permanent") then
+		local keep = nestBusy and model:GetAttribute("PlotStructure") == "Nest"
+		if model:GetAttribute("OwnerUserId") == player.UserId and model:GetAttribute("Permanent") and not keep then
 			local structureId = model:GetAttribute("PlotStructure")
 			local health, maxHealth = model:GetAttribute("Health"), model:GetAttribute("MaxHealth")
 			if typeof(structureId) == "string" and typeof(health) == "number" and typeof(maxHealth) == "number" then
@@ -403,7 +406,7 @@ local function rebuildPermanent(player: Player)
 		local level = state.levels[structureId]
 		local definition = PlotStructures[structureId]
 		local spot = Config.Plot.Layout[structureId]
-		if level > 0 and definition and spot then
+		if level > 0 and definition and spot and not (nestBusy and structureId == "Nest") then
 			local levelData = definition.levels[level]
 			local position = (plot * CFrame.new(spot.x, 0, spot.z)).Position
 			local groundY = Building.groundAt(position.X, position.Z, center.Y, characters()) or center.Y

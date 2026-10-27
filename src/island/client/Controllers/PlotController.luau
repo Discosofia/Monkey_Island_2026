@@ -134,6 +134,11 @@ local function refreshRow(player: Player, state: Plot.State, row: Row)
 		table.insert(parts, `<font color="{color}">{Items[entry.itemId].icon} {entry.amount} ({have})</font>`)
 	end
 	row.cost.Text = table.concat(parts, "  ")
+	-- El nido no se mejora mientras defiende un huevo (EggService): se reconstruiría y lo perderías.
+	if row.structureId == "Nest" and player:GetAttribute(Plot.NEST_BUSY_ATTRIBUTE) then
+		row.effect.Text = "🥚 Defiende un huevo: se mejora cuando acabe"
+		ready = false
+	end
 	row.button.Text = if not ready then "Faltan" elseif level == 0 then "Construir" else "Mejorar"
 	row.button.BackgroundColor3 = if ready then READY_COLOR else BLOCKED_COLOR
 	row.button.TextColor3 = if ready then Color3.fromRGB(40, 25, 5) else Color3.fromRGB(200, 200, 200)

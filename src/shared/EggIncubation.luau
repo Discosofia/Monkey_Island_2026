@@ -2,7 +2,9 @@
 -- Huevos guardados (bucle de retención, octubre de 2026): cuentas puras que usan el servidor
 -- (ServerShared/Eggs) y los clientes (el nido del Lobby, el HUD de la Isla).
 --   - La mochila guarda hasta Config.Egg.BagSize huevos; los que no caben quedan "pendientes".
---   - Solo el del nido avanza con el reloj real (también sin conectarse).
+--   - Solo el del nido avanza con el reloj real (también sin conectarse). Con la incubadora III de la
+--     parcela (Fase 12, P5; Shared/Plot.incubator) el nido tiene un segundo hueco ("nest2") y, desde la I,
+--     los huevos tardan menos: su tiempo total se multiplica por el factor de la incubadora.
 --   - Jugar le quita tiempo ("playBonus", con tope Config.Egg.PlayCapFraction del total); el calendario
 --     se lo quita sin tope ("freeBonus"); "ready" lo deja listo ya (eclosión inmediata del rescate).
 -- Las horas son las del servidor (workspace:GetServerTimeNow, igual en cliente y servidor). En Studio
@@ -24,10 +26,13 @@ export type NestEgg = {
 	freeBonus: number,
 	ready: boolean?,
 }
-export type EggData = { nest: NestEgg?, bag: { StoredEgg }, pending: { StoredEgg } }
+export type EggData = { nest: NestEgg?, nest2: NestEgg?, bag: { StoredEgg }, pending: { StoredEgg } }
 export type RescueResult = { seconds: number, hatch: boolean }
 
 local EggIncubation = {}
+
+-- Huecos del nido, en orden (el segundo solo con la incubadora III).
+EggIncubation.NEST_KEYS = { "nest", "nest2" }
 
 local function validRarity(value: any): string?
 	return if typeof(value) == "string" and Rarities[value] then value else nil
@@ -45,7 +50,7 @@ end
 
 -- Deja unos datos de huevos (del perfil o del JSON del cliente) con la forma correcta.
 function EggIncubation.normalize(raw: any): EggData
-	local data: EggData = { nest = nil, bag = {}, pending = {} }
+	local data: EggData = { nest = nil, nest2 = nil, bag = {}, pending = {} }
 	if typeof(raw) ~= "table" then
 		return data
 	end
@@ -60,30 +65,33 @@ function EggIncubation.normalize(raw: any): EggData
 			end
 		end
 	end
-	local nest = raw.nest
-	local rarity = if typeof(nest) == "table" then validRarity(nest.rarity) else nil
-	if rarity then
-		local function number(value: any): number
-			return if typeof(value) == "number" then value else 0
+	local function number(value: any): number
+		return if typeof(value) == "number" then value else 0
+	end
+	for _, key in EggIncubation.NEST_KEYS do
+		local nest = raw[key]
+		local rarity = if typeof(nest) == "table" then validRarity(nest.rarity) else nil
+		if rarity then
+			(data :: any)[key] = {
+				rarity = rarity,
+				totalSeconds = if number(nest.totalSeconds) > 0
+					then nest.totalSeconds
+					else EggIncubation.hatchSeconds(rarity),
+				startedAt = number(nest.startedAt),
+				playBonus = number(nest.playBonus),
+				freeBonus = number(nest.freeBonus),
+				ready = if nest.ready == true then true else nil,
+			}
 		end
-		data.nest = {
-			rarity = rarity,
-			totalSeconds = if number(nest.totalSeconds) > 0
-				then nest.totalSeconds
-				else EggIncubation.hatchSeconds(rarity),
-			startedAt = number(nest.startedAt),
-			playBonus = number(nest.playBonus),
-			freeBonus = number(nest.freeBonus),
-			ready = if nest.ready == true then true else nil,
-		}
 	end
 	return data
 end
 
-function EggIncubation.newNest(rarity: string, now: number): NestEgg
+-- Huevo recién puesto en el nido. "factor": el de la incubadora de la parcela (1 sin ella).
+function EggIncubation.newNest(rarity: string, now: number, factor: number?): NestEgg
 	return {
 		rarity = rarity,
-		totalSeconds = EggIncubation.hatchSeconds(rarity),
+		totalSeconds = EggIncubation.hatchSeconds(rarity) * (factor or 1),
 		startedAt = now,
 		playBonus = 0,
 		freeBonus = 0,
@@ -106,6 +114,51 @@ end
 -- Fracción ya incubada (0..1), para las barras.
 function EggIncubation.progress(nest: NestEgg, now: number): number
 	return 1 - EggIncubation.remaining(nest, now) / nest.totalSeconds
+end
+
+-- Huevo del hueco "slot" del nido (1 o 2).
+function EggIncubation.inSlot(data: EggData, slot: number): NestEgg?
+	return if slot == 2 then data.nest2 elseif slot == 1 then data.nest else nil
+end
+
+-- Pone (o quita, con nil) el huevo del hueco "slot" del nido.
+function EggIncubation.setSlot(data: EggData, slot: number, nest: NestEgg?)
+	if slot == 2 then
+		data.nest2 = nest
+	else
+		data.nest = nest
+	end
+end
+
+-- Primer hueco libre del nido con "slots" huecos (nil si están todos ocupados).
+function EggIncubation.freeSlot(data: EggData, slots: number): number?
+	for slot = 1, slots do
+		if not EggIncubation.inSlot(data, slot) then
+			return slot
+		end
+	end
+	return nil
+end
+
+-- Huevo que recibe el tiempo ganado (jugando, calendario, rescate): el primero que aún no está listo.
+function EggIncubation.active(data: EggData, now: number): NestEgg?
+	for slot = 1, #EggIncubation.NEST_KEYS do
+		local nest = EggIncubation.inSlot(data, slot)
+		if nest and not EggIncubation.isReady(nest, now) then
+			return nest
+		end
+	end
+	return nil
+end
+
+-- Al mejorar la incubadora: el tiempo que le falta al huevo pasa a ser el de la nueva (multiplicado por
+-- toFactor / fromFactor). Lo ya incubado y los bonos no cambian; se acorta el total.
+function EggIncubation.speedUp(nest: NestEgg, fromFactor: number, toFactor: number, now: number)
+	if nest.ready or fromFactor <= 0 or toFactor >= fromFactor then
+		return
+	end
+	local left = EggIncubation.remaining(nest, now)
+	nest.totalSeconds -= left * (1 - toFactor / fromFactor)
 end
 
 -- Cuánto tiempo más se le puede quitar jugando.

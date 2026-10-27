@@ -50,6 +50,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
+local Plot = require(ReplicatedStorage.Shared.Plot)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local SeasonPassPanel = require(ReplicatedStorage.Shared.UI.SeasonPassPanel)
@@ -452,9 +453,10 @@ function LobbyUIController:Start()
 	end
 	local render: () -> ()
 	local openWindow: (id: string?, prompt: ProximityPrompt?) -> ()
-	-- Fila del huevo del nido de la ventana Mascotas, que se actualiza cada segundo (tiempo y barra).
+	-- Filas de los huevos del nido de la ventana Mascotas (una por hueco), que se actualizan cada segundo
+	-- (tiempo y barra).
 	type NestRow = { title: TextLabel, detail: TextLabel, fill: Frame, ready: boolean }
-	local nestRow: NestRow? = nil
+	local nestRows: { [number]: NestRow } = {}
 	-- Cuenta atrás del siguiente premio del calendario en la ventana Misiones (cada segundo).
 	local calendarCountdown: TextButton? = nil
 	-- Pestaña de la ventana Misiones ("Hoy" o "Semana") y de la Tienda ("Mejoras" o "Cosmeticos").
@@ -618,8 +620,8 @@ function LobbyUIController:Start()
 	end
 
 	-- Texto del huevo del nido: lo que le falta (o listo) y cuánto lleva incubado.
-	local function updateNestRow(nestEgg: EggIncubation.NestEgg)
-		local row = nestRow
+	local function updateNestRow(slot: number, nestEgg: EggIncubation.NestEgg)
+		local row = nestRows[slot]
 		if not row then
 			return
 		end
@@ -643,12 +645,31 @@ function LobbyUIController:Start()
 	-- Nido de huevos, en la columna izquierda de la ventana Mascotas.
 	local function renderNest(parent: Instance)
 		local eggs = readEggs()
-		nestRow = nil
-		note(parent, "🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)", -100)
+		table.clear(nestRows)
+		-- Huecos del nido: dos con la incubadora III de la parcela (Fase 12), que también acorta los huevos.
+		local slots, factor = Plot.incubator(Plot.of(player))
+		slots = math.max(slots, if eggs.nest2 then 2 else 1)
+		note(
+			parent,
+			if factor < 1
+				then `🥚 Tu nido: tu incubadora deja los huevos en el {math.round(factor * 100)} % del tiempo`
+				else "🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)",
+			-100
+		)
 
-		local nestEgg = eggs.nest
-		local row = newRow(parent, -99)
-		if nestEgg then
+		-- Lo que puede salir se enseña del primer huevo (con dos, la ventana no cabría sin desplazarse).
+		local shownOptions = false
+		for slot = 1, slots do
+			local nestEgg = EggIncubation.inSlot(eggs, slot)
+			local row = newRow(parent, -100 + slot * 2)
+			if not nestEgg then
+				row.title.Text = if slots > 1 then `🥚 Hueco {slot} libre` else "🥚 Nido vacío"
+				row.detail.Text = if #eggs.bag + #eggs.pending > 0
+					then "Pon a incubar uno de tus huevos"
+					else `Defiende huevos en la {ISLAND} para conseguirlos`
+				setButton(row.button, "—", false)
+				continue
+			end
 			local rarity = Rarities[nestEgg.rarity]
 			row.title.TextColor3 = rarity.color
 			-- Más alta que una fila normal: la barra va debajo del detalle, sin taparlo.
@@ -664,16 +685,20 @@ function LobbyUIController:Start()
 			fill.Parent = track
 			corner(fill, 3)
 			local ready = EggIncubation.isReady(nestEgg, EggIncubation.now())
-			nestRow = { title = row.title, detail = row.detail, fill = fill, ready = ready }
-			updateNestRow(nestEgg)
+			nestRows[slot] = { title = row.title, detail = row.detail, fill = fill, ready = ready }
+			updateNestRow(slot, nestEgg)
 			setButton(row.button, if ready then "🐣 Abrir" else "Incubando", ready)
 			if ready then
 				row.button.MouseButton1Click:Connect(function()
 					-- Se cierra la ventana para ver la ceremonia en el nido.
 					openWindow(nil)
-					Remotes.HatchEgg:FireServer()
+					Remotes.HatchEgg:FireServer(slot)
 				end)
 			end
+			if shownOptions then
+				continue
+			end
+			shownOptions = true
 
 			-- Lo que puede salir de esta rareza (las que ya tienes, con ✅). Una repetida da Ámbar.
 			local data = Progression.read(player)
@@ -692,7 +717,7 @@ function LobbyUIController:Start()
 				missingMounts += if owned then 0 else 1
 				table.insert(names, `{mount.icon} {mount.name} (montura){if owned then " ✅" else ""}`)
 			end
-			local options = newRow(parent, -98)
+			local options = newRow(parent, -99 + slot * 2)
 			options.title.Text = `Puede salir ({rarity.name}):`
 			if missingPets == 0 then
 				-- Ya las tiene todas: lo dice antes de abrirlo (y si aún puede salir una montura).
@@ -705,13 +730,8 @@ function LobbyUIController:Start()
 			options.detail.Text = table.concat(names, " · ")
 			options.detail.Size = UDim2.new(1, -20, 0, options.detail.Size.Y.Offset)
 			options.button.Visible = false
-		else
-			row.title.Text = "🥚 Nido vacío"
-			row.detail.Text = if #eggs.bag + #eggs.pending > 0
-				then "Pon a incubar uno de tus huevos"
-				else `Defiende huevos en la {ISLAND} para conseguirlos`
-			setButton(row.button, "—", false)
 		end
+		local hasRoom = EggIncubation.freeSlot(eggs, slots) ~= nil
 
 		-- Mochila (Config.Egg.BagSize casillas) y, si no cupieron, los pendientes.
 		local function eggRows(source: "bag" | "pending", stored: { EggIncubation.StoredEgg }, firstOrder: number)
@@ -722,8 +742,8 @@ function LobbyUIController:Start()
 				eggRow.title.TextColor3 = rarity.color
 				eggRow.detail.Text =
 					`Tarda {EggIncubation.formatTime(EggIncubation.hatchSeconds(egg.rarity))} en el nido`
-				setButton(eggRow.button, "Al nido", nestEgg == nil)
-				if nestEgg == nil then
+				setButton(eggRow.button, "Al nido", hasRoom)
+				if hasRoom then
 					eggRow.button.MouseButton1Click:Connect(function()
 						Remotes.PlaceEgg:FireServer(source, index)
 					end)
@@ -1599,7 +1619,7 @@ function LobbyUIController:Start()
 		clearRows(list)
 		listLayout.FillDirection = Enum.FillDirection.Vertical
 		listLayout.Padding = UDim.new(0, 6)
-		nestRow = nil
+		table.clear(nestRows)
 		calendarCountdown = nil
 		passTick = nil
 		shopTick = nil
@@ -1923,10 +1943,13 @@ function LobbyUIController:Start()
 			if ticks % 5 == 0 then
 				refreshBadges()
 			end
-			if nestRow and panel.Visible then
-				local nestEgg = readEggs().nest
-				if nestEgg then
-					updateNestRow(nestEgg)
+			if next(nestRows) and panel.Visible then
+				local eggs = readEggs()
+				for slot in nestRows do
+					local nestEgg = EggIncubation.inSlot(eggs, slot)
+					if nestEgg then
+						updateNestRow(slot, nestEgg)
+					end
 				end
 			end
 			local queueLine = arenaQueueLine

@@ -24,13 +24,13 @@ local EggTimeService = {}
 
 -- Quién estaba en la partida al empezar la noche en curso.
 local atNightStart: { [Player]: boolean } = {}
--- A quién ya se avisó de que su huevo está listo (una vez por partida y huevo).
-local toldReady: { [Player]: boolean } = {}
+-- A quién ya se avisó de que su huevo está listo (una vez por partida y huevo), por hueco del nido.
+local toldReady: { [Player]: { [number]: boolean } } = {}
 
 local function rewardDawn(player: Player)
 	local before = Eggs.get(player)
-	local nest = before and before.nest
-	if not nest or EggIncubation.isReady(nest, EggIncubation.now()) then
+	local nest = if before then EggIncubation.active(before, EggIncubation.now()) else nil
+	if not nest then
 		return
 	end
 	local name = Rarities[nest.rarity].name
@@ -67,14 +67,18 @@ end
 local function checkReady()
 	for _, player in Players:GetPlayers() do
 		local data = Eggs.get(player)
-		local nest = data and data.nest
-		local ready = nest ~= nil and EggIncubation.isReady(nest, EggIncubation.now())
-		if ready and not toldReady[player] then
-			toldReady[player] = true
-			local name = Rarities[(nest :: EggIncubation.NestEgg).rarity].name
-			Remotes.Notify:FireClient(player, `🐣 ¡Tu huevo {name} está listo! Ábrelo en el nido del Lobby`)
-		elseif not ready then
-			toldReady[player] = nil
+		local told = toldReady[player] or {}
+		toldReady[player] = told
+		for slot = 1, #EggIncubation.NEST_KEYS do
+			local nest = if data then EggIncubation.inSlot(data, slot) else nil
+			local ready = nest ~= nil and EggIncubation.isReady(nest, EggIncubation.now())
+			if ready and not told[slot] then
+				told[slot] = true
+				local name = Rarities[(nest :: EggIncubation.NestEgg).rarity].name
+				Remotes.Notify:FireClient(player, `🐣 ¡Tu huevo {name} está listo! Ábrelo en el nido del Lobby`)
+			elseif not ready then
+				told[slot] = nil
+			end
 		end
 	end
 end

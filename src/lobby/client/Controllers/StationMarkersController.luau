@@ -17,6 +17,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
+local Plot = require(ReplicatedStorage.Shared.Plot)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 
@@ -61,10 +62,15 @@ local function badgeFor(player: Player, id: string): string
 			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
 		end)
 		local eggs = EggIncubation.normalize(if ok then decoded else nil)
-		if eggs.nest then
-			return if EggIncubation.isReady(eggs.nest, EggIncubation.now()) then "!" else ""
+		-- Un huevo listo, o un hueco libre del nido con huevos esperando (Shared/Plot.incubator).
+		for slot = 1, #EggIncubation.NEST_KEYS do
+			local nest = EggIncubation.inSlot(eggs, slot)
+			if nest and EggIncubation.isReady(nest, EggIncubation.now()) then
+				return "!"
+			end
 		end
-		return if #eggs.bag + #eggs.pending > 0 then "!" else ""
+		local slots = Plot.incubator(Plot.of(player))
+		return if EggIncubation.freeSlot(eggs, slots) and #eggs.bag + #eggs.pending > 0 then "!" else ""
 	elseif id == "Arena" then
 		return if readJson(player:GetAttribute("ArenaQueue")) then "⏳" else ""
 	elseif id == "Pase" then

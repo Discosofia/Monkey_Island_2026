@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
 local Config = require(script.Parent.Config)
+local PlotStructures = require(script.Parent.Data.PlotStructures)
 
 local Plot = {}
 
@@ -34,6 +35,9 @@ Plot.DISCOUNT_ATTRIBUTE = "PlotDiscount_"
 Plot.CHEST_PROMPT = "ChestPrompt"
 Plot.CHEST_ATTRIBUTE = "PlotChest"
 Plot.CHEST_PARTS = { "private", "shared" }
+-- Atributo del Player mientras se defiende un huevo en el nido de su parcela (P5, EggService): el nido
+-- no se puede mejorar ni se reconstruye hasta que acaba (la ventana Parcela lo dice).
+Plot.NEST_BUSY_ATTRIBUTE = "PlotNestBusy"
 
 -- Cuánto pide de un material una receta de "stationId" a "player", con el descuento de su parcela (la
 -- forja y el taller, Data/PlotStructures "discount"). Redondeado al más cercano (hacia arriba, los costes
@@ -81,6 +85,14 @@ function Plot.normalize(raw: any): State
 		levels = levels,
 		chest = { private = counts(chest.private), shared = counts(chest.shared) },
 	}
+end
+
+-- Incubadora (P5) de una parcela: huecos del nido del Lobby y factor del tiempo de sus huevos. Cuenta el
+-- nivel del perfil (el nido del Lobby no sabe de asedios).
+function Plot.incubator(state: State): (number, number)
+	local level = if state.unlocked then state.levels.Incubator else 0
+	local data = if level > 0 then PlotStructures.Incubator.levels[level] else nil
+	return if data then data.nestSlots or 1 else 1, if data then data.eggTimeFactor or 1 else 1
 end
 
 -- Casillas del cofre en un nivel (0 sin cofre).

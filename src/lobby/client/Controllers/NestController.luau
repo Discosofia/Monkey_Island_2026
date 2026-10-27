@@ -2,7 +2,8 @@
 -- Nido de huevos del Lobby (bucle de retención, octubre de 2026), en cada cliente:
 --   - Dibuja sobre el nido de la plaza (etiqueta Config.Lobby.NestTag, punto "EggSeat") el huevo que
 --     el jugador tiene incubando, con el color de su rareza. Cada jugador ve el suyo: los demás no lo
---     ven. Lo que le falta lo enseña el cartel de las mascotas de detrás (PetBoardController).
+--     ven. Con la incubadora III de la parcela (Fase 12) son dos, uno al lado del otro. Lo que les falta
+--     lo enseña el cartel de las mascotas de detrás (PetBoardController).
 --   - Listo para abrir, el huevo se tambalea y brilla más, y el aviso del nido dice "Abrir el huevo".
 --   - Al nacer la mascota (Remotes.EggHatched) hace la ceremonia: el huevo tiembla cada vez más
 --     fuerte, estalla y sale la mascota girando con su nombre y su rareza. Si ha salido una montura
@@ -34,15 +35,17 @@ local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 -- El huevo del Lobby, más grande que el de la Isla: el nido también lo es.
 local EGG_SCALE = 1.5
 local EGG_SINK = 0.5
+-- Con dos huevos, cada uno se aparta esto del centro del nido.
+local PAIR_OFFSET = 1.3
 local CEREMONY_SHAKE_SECONDS = 1.6
 local REVEAL_SECONDS = 4
 
 local NestController = {}
 
 local player = Players.LocalPlayer
--- Huevo dibujado ahora y de qué rareza (para no rehacerlo cada segundo).
-local eggModel: Model? = nil
-local eggRarity: string? = nil
+-- Huevos dibujados ahora (por hueco del nido) y de qué rareza (para no rehacerlos cada segundo).
+local eggModels: { [number]: Model } = {}
+local eggRarities: { [number]: string } = {}
 local ceremony = false
 -- La decoración dibujada ahora y cuál es.
 local decorModel: Model? = nil
@@ -73,8 +76,14 @@ local function findNest(): (Model?, BasePart?)
 	return nil, nil
 end
 
-local function eggRest(seat: BasePart): CFrame
-	return CFrame.new(seat.Position + Vector3.new(0, EggModel.HALF_HEIGHT * EGG_SCALE - EGG_SINK, 0))
+-- Sitio del huevo del hueco "slot": en el centro si está solo, a un lado si hay dos.
+local function eggRest(seat: BasePart, slot: number, pair: boolean): CFrame
+	local side = if pair then (if slot == 1 then -PAIR_OFFSET else PAIR_OFFSET) else 0
+	return CFrame.new(seat.Position + Vector3.new(side, EggModel.HALF_HEIGHT * EGG_SCALE - EGG_SINK, 0))
+end
+
+local function isPair(): boolean
+	return eggs.nest ~= nil and eggs.nest2 ~= nil
 end
 
 local function setPrompt(nest: Model, text: string)
@@ -84,26 +93,27 @@ local function setPrompt(nest: Model, text: string)
 	end
 end
 
-local function clearEgg()
-	if eggModel then
-		eggModel:Destroy()
+local function clearEgg(slot: number)
+	local model = eggModels[slot]
+	if model then
+		model:Destroy()
 	end
-	eggModel = nil
-	eggRarity = nil
+	eggModels[slot] = nil
+	eggRarities[slot] = nil
 end
 
-local function placeEgg(seat: BasePart, rarity: string)
-	if eggModel and eggRarity == rarity then
+local function placeEgg(seat: BasePart, slot: number, rarity: string)
+	if eggModels[slot] and eggRarities[slot] == rarity then
 		return
 	end
-	clearEgg()
+	clearEgg(slot)
 	local model, main = EggModel.build(rarity, "HuevoDelNido")
 	model:ScaleTo(EGG_SCALE)
-	model:PivotTo(eggRest(seat))
+	model:PivotTo(eggRest(seat, slot, isPair()))
 	main.Anchored = true
 	model.Parent = Workspace
-	eggModel = model
-	eggRarity = rarity
+	eggModels[slot] = model
+	eggRarities[slot] = rarity
 end
 
 -- Pone (o cambia, o quita) la decoración del nido si ha cambiado la que lleva.
@@ -146,21 +156,24 @@ local function refresh(time: number)
 	if not (nest and seat) or ceremony then
 		return
 	end
-	local nestEgg = eggs.nest
-	if not nestEgg then
-		clearEgg()
-		setPrompt(nest, "Ver el nido")
-		return
+	local anyReady = false
+	for slot = 1, #EggIncubation.NEST_KEYS do
+		local nestEgg = EggIncubation.inSlot(eggs, slot)
+		if not nestEgg then
+			clearEgg(slot)
+			continue
+		end
+		placeEgg(seat, slot, nestEgg.rarity)
+		local ready = EggIncubation.isReady(nestEgg, EggIncubation.now())
+		anyReady = anyReady or ready
+		local model = eggModels[slot]
+		if model then
+			-- Listo: se tambalea como si fuera a romperse. Incubando: casi quieto.
+			local wobble = if ready then math.sin(time * 9 + slot) * 0.12 else math.sin(time * 1.5 + slot) * 0.025
+			model:PivotTo(eggRest(seat, slot, isPair()) * CFrame.Angles(wobble, 0, wobble * 0.6))
+		end
 	end
-	placeEgg(seat, nestEgg.rarity)
-	local ready = EggIncubation.isReady(nestEgg, EggIncubation.now())
-	setPrompt(nest, if ready then "Abrir el huevo" else "Ver el nido")
-	local model = eggModel
-	if model then
-		-- Listo: se tambalea como si fuera a romperse. Incubando: casi quieto.
-		local wobble = if ready then math.sin(time * 9) * 0.12 else math.sin(time * 1.5) * 0.025
-		model:PivotTo(eggRest(seat) * CFrame.Angles(wobble, 0, wobble * 0.6))
-	end
+	setPrompt(nest, if anyReady then "Abrir el huevo" else "Ver el nido")
 end
 
 -- Escala de la montura al salir del nido (de tamaño real no cabría: la llama mide 7,5 studs).
@@ -204,29 +217,39 @@ local function announce(petId: string, equipped: boolean, isMount: boolean, ambe
 	end)
 end
 
-local function playCeremony(petId: string, rarity: string, equipped: boolean, isMount: boolean, amber: number)
+local function playCeremony(
+	petId: string,
+	rarity: string,
+	equipped: boolean,
+	isMount: boolean,
+	amber: number,
+	slot: number
+)
 	local _, seat = findNest()
 	if not seat then
 		announce(petId, equipped, isMount, amber)
 		return
 	end
 	ceremony = true
-	placeEgg(seat, rarity)
-	local model = eggModel
+	-- El otro huevo (si lo hay) sigue donde estaba; el que nace, en su sitio de antes de abrirse.
+	local pair = eggModels[1] ~= nil and eggModels[2] ~= nil
+	placeEgg(seat, slot, rarity)
+	local rest = eggRest(seat, slot, pair)
+	local model = eggModels[slot]
 	-- El huevo tiembla cada vez más fuerte y estalla.
 	local started = os.clock()
 	while model and os.clock() - started < CEREMONY_SHAKE_SECONDS do
 		local t = (os.clock() - started) / CEREMONY_SHAKE_SECONDS
 		local shake = 0.05 + t * 0.3
 		model:PivotTo(
-			eggRest(seat)
+			rest
 				* CFrame.new(math.sin(os.clock() * 50) * shake * 0.3, 0, 0)
 				* CFrame.Angles(math.sin(os.clock() * 37) * shake, 0, math.cos(os.clock() * 41) * shake)
 		)
 		RunService.RenderStepped:Wait()
 	end
-	local burstAt = eggRest(seat).Position
-	clearEgg()
+	local burstAt = rest.Position
+	clearEgg(slot)
 	EggModel.burst(burstAt, rarity)
 	announce(petId, equipped, isMount, amber)
 	-- La mascota (o la montura, más pequeña) sube del nido girando y se va.
@@ -247,8 +270,9 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean, is
 			local t = os.clock() - revealStart
 			local rise = math.min(t / 0.6, 1)
 			pet:PivotTo(
-				CFrame.new(seat.Position + Vector3.new(0, 0.6 + lift * 0.5 + rise * 2.2, 0))
-					* CFrame.Angles(0, t * 1.8, 0)
+				CFrame.new(
+					Vector3.new(rest.X, seat.Position.Y, rest.Z) + Vector3.new(0, 0.6 + lift * 0.5 + rise * 2.2, 0)
+				) * CFrame.Angles(0, t * 1.8, 0)
 			)
 			RunService.RenderStepped:Wait()
 		end
@@ -258,19 +282,22 @@ local function playCeremony(petId: string, rarity: string, equipped: boolean, is
 end
 
 function NestController:Start()
-	Remotes.EggHatched.OnClientEvent:Connect(function(petId: any, rarity: any, equipped: any, isMount: any, amber: any)
-		local known = if isMount == true then Mounts[petId] ~= nil else Pets[petId] ~= nil
-		if typeof(petId) == "string" and known and typeof(rarity) == "string" and Rarities[rarity] then
-			task.spawn(
-				playCeremony,
-				petId,
-				rarity,
-				equipped == true,
-				isMount == true,
-				if typeof(amber) == "number" then amber else 0
-			)
+	Remotes.EggHatched.OnClientEvent:Connect(
+		function(petId: any, rarity: any, equipped: any, isMount: any, amber: any, slot: any)
+			local known = if isMount == true then Mounts[petId] ~= nil else Pets[petId] ~= nil
+			if typeof(petId) == "string" and known and typeof(rarity) == "string" and Rarities[rarity] then
+				task.spawn(
+					playCeremony,
+					petId,
+					rarity,
+					equipped == true,
+					isMount == true,
+					if typeof(amber) == "number" then amber else 0,
+					if slot == 2 then 2 else 1
+				)
+			end
 		end
-	end)
+	)
 	eggs = readEggs()
 	player:GetAttributeChangedSignal("Eggs"):Connect(function()
 		eggs = readEggs()

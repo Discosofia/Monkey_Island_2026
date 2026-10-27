@@ -70,7 +70,14 @@ local function summary(data: any): { string }
 		return if typeof(data[key]) == "number" then data[key] else 0
 	end
 	local eggs = EggIncubation.normalize(data.eggs)
-	local nest = if eggs.nest then `{Rarities[eggs.nest.rarity].name} en el nido` else "nido vacío"
+	local inNest = {}
+	for slot = 1, #EggIncubation.NEST_KEYS do
+		local egg = EggIncubation.inSlot(eggs, slot)
+		if egg then
+			table.insert(inNest, Rarities[egg.rarity].name)
+		end
+	end
+	local nest = if #inNest > 0 then `{table.concat(inNest, " y ")} en el nido` else "nido vacío"
 	local today, todayTotal = missionsDone(data.daily)
 	local week, weekTotal = missionsDone(data.weekly)
 	local season = if typeof(data.season) == "table" then data.season else {}
@@ -109,8 +116,11 @@ local function items(profile: PlayerData.Profile): { Item }
 		end
 	end
 	local eggs = EggIncubation.normalize(profile.eggs)
-	if eggs.nest then
-		add("Egg", "nest:1", `🥚 Huevo {Rarities[eggs.nest.rarity].name} · nido`, eggs.nest.rarity)
+	for slot = 1, #EggIncubation.NEST_KEYS do
+		local egg = EggIncubation.inSlot(eggs, slot)
+		if egg then
+			add("Egg", `nest:{slot}`, `🥚 Huevo {Rarities[egg.rarity].name} · nido`, egg.rarity)
+		end
 	end
 	for _, where in { "bag", "pending" } do
 		for index, egg in (eggs :: any)[where] do
@@ -196,8 +206,8 @@ local function removeItem(admin: Player, target: Player, kind: string, id: strin
 		local removed = false
 		PlayerData.update(target, function(current)
 			local eggs = EggIncubation.normalize(current.eggs)
-			if where == "nest" and eggs.nest then
-				eggs.nest = nil
+			if where == "nest" and position and EggIncubation.inSlot(eggs, position) then
+				EggIncubation.setSlot(eggs, position, nil)
 				removed = true
 			elseif (where == "bag" or where == "pending") and position and (eggs :: any)[where][position] then
 				table.remove((eggs :: any)[where], position)

@@ -169,12 +169,21 @@ function PetBoardController:Start()
 
 	local function draw(board: Board)
 		local eggs = readEggs()
-		local nestEgg = eggs.nest
+		-- Con dos huecos (incubadora III de la parcela), el cartel enseña el primero y resume el otro.
+		local nestEgg = eggs.nest or eggs.nest2
+		local other = if eggs.nest then eggs.nest2 else nil
 		local now = EggIncubation.now()
 		if nestEgg then
 			local rarity = Rarities[nestEgg.rarity]
 			local ready = EggIncubation.isReady(nestEgg, now)
-			board.eggTitle.Text = `🥚 Huevo {rarity.name}`
+			board.eggTitle.Text = if other
+				then `🥚 Huevo {rarity.name} · 2.º: {Rarities[other.rarity].name}, {if EggIncubation.isReady(
+						other,
+						now
+					)
+					then "listo"
+					else EggIncubation.formatTime(EggIncubation.remaining(other, now))}`
+				else `🥚 Huevo {rarity.name}`
 			board.eggTitle.TextColor3 = rarity.color
 			board.eggTime.Text = if ready
 				then "🐣 ¡Listo para abrir!"
