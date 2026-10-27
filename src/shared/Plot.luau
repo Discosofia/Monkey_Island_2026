@@ -6,10 +6,13 @@
 --     uno de los 5 huecos del Basecamp con sus estructuras.
 --   - Cada estructura tiene un nivel 0–3 (0 = aún no está). Su sitio en la parcela, Config.Plot.Layout.
 --   - "noticeShown": ya vio la ventana de bienvenida a la parcela.
---   - "chest": lo guardado en el cofre (privado y compartido; P4).
+--   - "chest": lo guardado en el cofre (P4, ChestService), por objeto: "private" solo lo usa el dueño y
+--     "shared" lo coge cualquiera de su partida. Todos lo ven en el atributo "Plot" del dueño.
 
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+
+local Config = require(script.Parent.Config)
 
 local Plot = {}
 
@@ -25,6 +28,12 @@ Plot.PROMPT_NAME = "PlotPrompt"
 -- Atributo del Player con el descuento (0–1) de su parcela en las recetas de una estación, seguido del
 -- id de la estación (PlotService lo pone mientras la estructura está en pie; Shared/Crafting lo aplica).
 Plot.DISCOUNT_ATTRIBUTE = "PlotDiscount_"
+-- Aviso del cofre (todos lo ven: lo compartido es de cualquiera) y atributo del Player con el nivel con que
+-- funciona su cofre (nil si no lo tiene o está roto; lo pone PlotService). Lo guardado en el cofre solo se
+-- usa con el cofre en pie, también para pagar las mejoras.
+Plot.CHEST_PROMPT = "ChestPrompt"
+Plot.CHEST_ATTRIBUTE = "PlotChest"
+Plot.CHEST_PARTS = { "private", "shared" }
 
 -- Cuánto pide de un material una receta de "stationId" a "player", con el descuento de su parcela (la
 -- forja y el taller, Data/PlotStructures "discount"). Redondeado al más cercano (hacia arriba, los costes
@@ -72,6 +81,31 @@ function Plot.normalize(raw: any): State
 		levels = levels,
 		chest = { private = counts(chest.private), shared = counts(chest.shared) },
 	}
+end
+
+-- Casillas del cofre en un nivel (0 sin cofre).
+function Plot.chestSlots(level: number): number
+	return Config.Plot.ChestSlots[level] or 0
+end
+
+-- Casillas que ocupa lo guardado: cada objeto de cada parte llena casillas de Config.Plot.ChestStack.
+function Plot.slotsUsed(chest: { private: { [string]: number }, shared: { [string]: number } }): number
+	local used = 0
+	for _, part in Plot.CHEST_PARTS do
+		for _, amount in (chest :: any)[part] do
+			used += math.ceil(amount / Config.Plot.ChestStack)
+		end
+	end
+	return used
+end
+
+-- Cuánto más de "itemId" cabe en la parte "part" de un cofre de nivel "level" (llena primero la última
+-- casilla empezada de ese objeto y luego las libres).
+function Plot.roomFor(state: State, level: number, part: string, itemId: string): number
+	local stack = Config.Plot.ChestStack
+	local current = ((state.chest :: any)[part] :: { [string]: number })[itemId] or 0
+	local otherSlots = Plot.slotsUsed(state.chest) - math.ceil(current / stack)
+	return math.max(0, (Plot.chestSlots(level) - otherSlots) * stack - current)
 end
 
 -- Parcela de "player" según su atributo "Plot" (sin desbloquear si aún no ha cargado).

@@ -26,6 +26,7 @@ golpe).
 | Cartel de caído / espíritu | `src/island/client/Controllers/LifeController.luau` | `LifeHUD` | Isla |
 | Mesa de fabricación | `src/island/client/Controllers/CraftingController.luau` | `CraftingHUD` | Isla |
 | Ventana «🏡 Tu parcela» (Fase 12; la abre el cartel de tu hueco; en pantallas bajas ocupa todo y va en dos columnas) | `src/island/client/Controllers/PlotController.luau` | `PlotHUD` | Isla |
+| Ventana del cofre de una parcela (Fase 12, P4; la abre el aviso «Abrir» del cofre): al dueño, dos columnas de casillas como las de la Bolsa (su Bolsa, con el selector «🔒 Privado / 🤝 Compartido» de dónde guarda, y el cofre con las casillas usadas; las del cofre llevan 🔒 o 🤝 arriba a la izquierda); a los demás, solo lo compartido. Abajo, el detalle del objeto y la cantidad por toque (1 / 10 / Todo). En PC se ensancha con más columnas antes de encoger las casillas (mínimo 44 px); en pantallas bajas ocupa todo | `src/island/client/Controllers/ChestController.luau` | `ChestHUD` | Isla |
 | Panel de construcción: en PC, ventana opaca "🔨 Construir" a la derecha (12 piezas en 3 columnas x 4 filas de 118 x 62, unos 382 x 312 px, fondo `Active` para que ningún clic lo atraviese); en un teléfono, una ficha con la pieza elegida y ◀ ▶ (300 x 52) arriba en el centro, a 4 px bajo la barra de Roblox (de noche tapa la vida del campamento mientras se lleva el martillo; decidido por el usuario el 26-10-2026) | `src/island/client/Controllers/BuildController.luau` | `BuildHUD` | Isla |
 | Diario | `src/island/client/Controllers/JournalController.luau` + `src/shared/UI/Journal.luau` | `JournalHUD` | Isla |
 | Tutorial | `src/island/client/Controllers/TutorialController.luau` | `Tutorial` | Isla |
@@ -159,7 +160,7 @@ Reglas que salen de ahí:
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) y `ChainPips` (IgnoreGuiInset: los rombos de la cadena, que siguen los pies del personaje; Fase 10, C12) |
 | 1 | `LiveEvents` (franja de los eventos en vivo, en la barra de Roblox) |
 | 5 | `ActionButtons`, `CraftingHUD`, `PlotHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
-| 6 | `JournalHUD`, `ArenaLobby` (Dunas) |
+| 6 | `JournalHUD`, `ArenaLobby` (Dunas), `ChestHUD` (el cofre: en el teléfono tapa los botones táctiles de combate) |
 | 7 | `EmoteWheel` (la rueda de emotes, con velo) |
 | 8 | `SettingsUI` |
 | 10 | `Toasts` |

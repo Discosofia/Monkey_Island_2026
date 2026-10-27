@@ -1,7 +1,7 @@
 --!strict
 -- Estructuras de la parcela permanente (Fase 12, P3; Shared/Plot): cada una con 3 niveles (I/II/III).
--- Subir un nivel cuesta Ámbar (del perfil) y materiales (de la Bolsa de la partida; desde P4, del
--- cofre). El nivel se guarda en el perfil y nunca baja. En la partida, cada estructura tiene vida: a 0
+-- Subir un nivel cuesta Ámbar (del perfil) y materiales (primero de lo privado del cofre en pie, después
+-- de la Bolsa de la partida). El nivel se guarda en el perfil y nunca baja. En la partida, cada estructura tiene vida: a 0
 -- queda rota y no da su efecto hasta que se repara o hasta el amanecer (PlotService).
 --   - "size": caja que ocupa en la parcela (la de su pieza invisible "Bounds", Shared/PlotModels); su
 --     sitio y su giro, Config.Plot.Layout.
@@ -12,10 +12,18 @@
 --   - Efectos por nivel (solo los que tiene cada estructura): "discount" (parte de los materiales que se
 --     ahorra en las recetas de "stations"), "bandages" y "food" (lo que deja en la Bolsa al amanecer),
 --     "downedFactor" (multiplica Config.Life.DownedSeconds) y "restRegen" (vida por segundo cerca de la
---     cama, sin daño reciente). El cofre, la incubadora y el nido dan su efecto en P4 y P5.
+--     cama, sin daño reciente). El cofre da casillas (Config.Plot.ChestSlots, ChestService); la incubadora y
+--     el nido dan su efecto en P5.
 -- Precios de prueba (27-10-2026): 600 / 2.400 / 6.000 Ámbar por estructura, 63.000 las 7 al nivel III.
 -- Con el Ámbar que sobra medido en la calculadora (Economia, 60 días), el grupo de amigos las tiene en
 -- unos 3 meses y el intenso en algo más de 1. Los fija P6 con la sección "Parcela" de Economia.
+
+local Config = require(script.Parent.Parent.Config)
+
+-- Lo que da cada nivel del cofre, con sus casillas de Config.Plot.
+local function chestEffect(level: number): string
+	return `{Config.Plot.ChestSlots[level]} casillas de {Config.Plot.ChestStack}, privadas o compartidas`
+end
 
 export type Cost = { itemId: string, amount: number }
 
@@ -218,14 +226,14 @@ local PlotStructures: { [string]: Structure } = {
 	Chest = {
 		name = "Cofre",
 		icon = "📦",
-		description = "Tu cofre: guarda materiales y consumibles de una partida a otra (llega en P4).",
+		description = "Tu cofre: guarda materiales y consumibles de una partida a otra.",
 		size = Vector3.new(4, 3, 3),
 		levels = {
 			{
 				amber = 600,
 				cost = { { itemId = "Wood", amount = 25 } },
 				health = 400,
-				effect = "Cofre pequeño (pronto)",
+				effect = chestEffect(1),
 			},
 			{
 				amber = 2400,
@@ -235,7 +243,7 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "ShipMetal", amount = 2 },
 				},
 				health = 650,
-				effect = "Cofre mediano (pronto)",
+				effect = chestEffect(2),
 			},
 			{
 				amber = 6000,
@@ -245,7 +253,7 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "GoldenFur", amount = 4 },
 				},
 				health = 950,
-				effect = "Cofre grande (pronto)",
+				effect = chestEffect(3),
 			},
 		},
 	},

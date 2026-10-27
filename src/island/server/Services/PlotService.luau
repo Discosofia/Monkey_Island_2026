@@ -5,8 +5,9 @@
 --     ser permanente enseguida y el cliente enseña la ventana de bienvenida (UI/PlotWelcome).
 --   - Levantar las estructuras en su hueco lo hace BuildingService.refreshPlot.
 --   - Mejoras (P3, Data/PlotStructures; Remotes.UpgradePlot desde la ventana Parcela): cada nivel cuesta
---     Ámbar del perfil y materiales de la Bolsa. Se comprueba todo y se cobra todo sin esperas en medio,
---     y el nivel queda en el perfil para siempre.
+--     Ámbar del perfil y materiales, primero de lo privado del cofre (si está en pie) y el resto de la
+--     Bolsa. Se comprueba todo y se cobra todo sin esperas en medio, y el nivel queda en el perfil para
+--     siempre.
 --   - Efectos, solo mientras la estructura está en pie (BuildingService.plotLevel; rota no cuenta):
 --     descuento en las recetas de la forja y del taller (atributos PlotDiscount_<estación>, que aplica
 --     Shared/Crafting), vendas y fruta al amanecer (aquí), y la cama (LifeService y SurvivalService).
@@ -58,8 +59,11 @@ function PlotService.active(player: Player, structureId: string): PlotStructures
 	return if level > 0 then PlotStructures[structureId].levels[level] else nil
 end
 
--- Descuentos de la forja y del taller en pie (atributos que lee Shared/Crafting en los dos lados).
+-- Descuentos de la forja y del taller en pie (atributos que lee Shared/Crafting en los dos lados), y el
+-- nivel del cofre en pie (Plot.CHEST_ATTRIBUTE: ChestService y las dos ventanas).
 local function applyDiscounts(player: Player)
+	local chestLevel = BuildingService.plotLevel(player, "Chest")
+	player:SetAttribute(Plot.CHEST_ATTRIBUTE, if chestLevel > 0 then chestLevel else nil)
 	local discounts: { [string]: number } = {}
 	for structureId in PlotStructures do
 		local level = PlotService.active(player, structureId)
@@ -182,22 +186,34 @@ local function onUpgrade(player: Player, structureId: any)
 		Remotes.Notify:FireClient(player, `Te faltan {nextLevel.amber - profile.amber} de Ámbar`)
 		return
 	end
+	-- Los materiales salen primero de lo privado del cofre (solo si está en pie) y el resto, de la Bolsa.
+	local useChest = BuildingService.plotLevel(player, "Chest") > 0
 	for _, entry in nextLevel.cost do
-		if Inventory.count(player, entry.itemId) < entry.amount then
+		local stored = if useChest then state.chest.private[entry.itemId] or 0 else 0
+		if stored + Inventory.count(player, entry.itemId) < entry.amount then
 			Remotes.Notify:FireClient(player, `Te faltan materiales: {costText(nextLevel.cost)}`)
 			return
 		end
 	end
 	-- Desde aquí no hay esperas: lo comprobado no puede cambiar antes de cobrarlo.
 	local before = profile.amber
+	local fromBag: { [string]: number } = {}
 	PlayerData.update(player, function(current)
 		current.amber -= nextLevel.amber
 		local plot = Plot.normalize(current.plot)
 		plot.levels[structureId] = level + 1
+		for _, entry in nextLevel.cost do
+			local stored = plot.chest.private[entry.itemId] or 0
+			local fromChest = if useChest then math.min(stored, entry.amount) else 0
+			plot.chest.private[entry.itemId] = if stored - fromChest > 0 then stored - fromChest else nil
+			fromBag[entry.itemId] = entry.amount - fromChest
+		end
 		current.plot = plot :: any
 	end)
-	for _, entry in nextLevel.cost do
-		InventoryService.remove(player, entry.itemId, entry.amount)
+	for itemId, amount in fromBag do
+		if amount > 0 then
+			InventoryService.remove(player, itemId, amount)
+		end
 	end
 	Analytics.amber(player, "Sink", nextLevel.amber, before - nextLevel.amber, `Plot.{structureId}.{level + 1}`)
 	BuildingService.refreshPlot(player)

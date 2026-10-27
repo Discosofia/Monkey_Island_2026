@@ -13,6 +13,9 @@
 -- "Treasure", "Gear"); sin él, la decide lo que hace (comida, curación, siempre visible o botín).
 -- "keep": no se pierde nunca (ni lo roban los monos ni se queda en la mochila al caer): el equipo y
 -- los tesoros de jefe, que piden las mejoras de la forja y no se pueden volver a conseguir.
+-- "storable": se puede guardar en el cofre de la parcela (Fase 12, ChestService). Si no se dice, todo lo
+-- que no es "keep": materiales, comida, curas y munición sí; el equipo y los tesoros de jefe, no (las
+-- piezas de la baliza no son objetos de la Bolsa).
 -- "note": para qué sirve, en el detalle de la Bolsa.
 -- Iconos: usa emojis anteriores a 2020; los más nuevos (🪵, 🪨…) Roblox los muestra como un cuadro vacío.
 
@@ -28,6 +31,7 @@ export type ItemDefinition = {
 	rarity: string?,
 	group: string?,
 	keep: boolean?,
+	storable: boolean?,
 	note: string?,
 }
 
@@ -151,5 +155,11 @@ local Items: { [string]: ItemDefinition } = {
 		note = "Vetas negras con grietas de lava en las laderas del volcán y en la sala de la cueva: se pican",
 	},
 }
+
+for _, definition in Items do
+	if definition.storable == nil then
+		definition.storable = definition.keep ~= true
+	end
+end
 
 return Items

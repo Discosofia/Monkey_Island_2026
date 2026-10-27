@@ -720,6 +720,12 @@ local Config = {
 		-- amanecer, con toda la vida.
 		RepairCost = { { itemId = "Wood", amount = 10 }, { itemId = "Stone", amount = 6 } },
 		RepairHoldSeconds = 2,
+		-- Cofre (P4, ChestService): casillas en los niveles I, II y III y cuánto cabe de un objeto en cada
+		-- una (100 maderas ocupan 2). Lo privado y lo compartido llenan las mismas casillas.
+		ChestSlots = { 6, 12, 20 },
+		ChestStack = 50,
+		-- Cada cuánto se acepta otra orden del cofre de un jugador (clics rápidos).
+		ChestCooldownSeconds = 0.15,
 	},
 
 	Fever = {

@@ -1049,6 +1049,40 @@ Lo que falta: el asedio de verdad, caer con la cama, dos jugadores y el teléfon
 1. [ ] Abre «🏡 Tu parcela».
    ✅ Ocupa toda la pantalla libre, con las estructuras en dos columnas. Se lee todo sin desplazarse y los botones se pulsan bien.
 
+### P4. Cofre con parte privada y compartida
+
+Probado en Studio (1 jugador, con el perfil restaurado después):
+- **Guardar:** «Abrir» en el cofre enseña tu Bolsa (solo lo que se puede guardar: ni la antorcha ni los tesoros de jefe) y el cofre. Guardar en lo privado o en lo compartido, de 1, de 10 o todo.
+- **Casillas:** al llenarse (6 en el cofre I, de 50 cada una), solo completa la casilla empezada de ese objeto y avisa «📦 El cofre está lleno».
+- **Trampas:** diez clics seguidos guardan una sola vez. El servidor rechaza los objetos no guardables y las cantidades falsas.
+- **Sacar** de lo privado y de lo compartido (el dueño), a la Bolsa.
+- **Mejoras:** el cofre II cobró la madera y la piedra de lo privado del cofre y el metal de la Bolsa.
+- **Perder la partida y volver a entrar:** lo guardado sigue ahí.
+- **Roto:** se apaga «Abrir», sale «Reparar», la ventana se cierra y no se puede guardar ni sacar.
+
+Lo que falta: coger de lo compartido con otro jugador, salir del juego de verdad y el teléfono.
+
+#### 18.9 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] El jugador 1 tiene el cofre construido y guarda 10 maderas en «🤝 Compartido» y 5 en «🔒 Privado». El jugador 2 abre su cofre.
+   ✅ Al 2 la ventana le dice «📦 Cofre de …» y solo le enseña lo compartido (las 10 maderas), sin su Bolsa ni lo privado.
+2. [ ] El jugador 2 pulsa la madera con «Todo».
+   ✅ Las maderas llegan a su Bolsa un momento después (se espera a que se guarde el perfil del 1). Al 1 le sale «📦 … ha cogido 🌲 10 Madera de tu cofre compartido» y su cofre ya no las tiene.
+3. [ ] El jugador 2 pulsa la madera muchas veces seguidas.
+   ✅ Nunca coge más de las que había. Si pulsa mientras espera, le sale «📦 Espera: aún se está guardando lo anterior».
+4. [ ] El jugador 1 sale de la partida con la ventana del 2 abierta.
+   ✅ La ventana del 2 se cierra y el cofre desaparece con la parcela.
+
+#### 18.10 En el juego publicado
+
+1. [ ] Guarda algo en el cofre, pulsa «Volver al Lobby» y entra otra vez en la Isla.
+   ✅ Lo guardado sigue ahí (al salir se guarda el perfil; en Studio no llega ese guardado).
+
+#### 18.11 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Con unos 15 objetos distintos en la Bolsa, abre tu cofre.
+   ✅ Ocupa toda la pantalla, con la Bolsa a la izquierda y el cofre a la derecha, sin desplazarse. Las casillas, los botones 1 / 10 / Todo y «🔒 Privado / 🤝 Compartido» se pulsan bien. Con la Bolsa muy llena (más de unos 20 objetos), la columna de la Bolsa se desplaza.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

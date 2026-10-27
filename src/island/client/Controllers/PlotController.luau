@@ -3,8 +3,8 @@
 --   - La ventana de bienvenida al desbloquearla, cuando se cierra la de resultados del rescate
 --     (UI/PlotWelcome).
 --   - La ventana "Tu parcela" (P3), que abre el aviso del cartel de tu hueco: las 7 estructuras con su
---     nivel, lo que da el siguiente y lo que cuesta (Ámbar del perfil y materiales de la Bolsa,
---     Data/PlotStructures). Construir o mejorar lo pide al servidor (Remotes.UpgradePlot).
+--     nivel, lo que da el siguiente y lo que cuesta (Ámbar del perfil y materiales de lo privado del
+--     cofre en pie y de la Bolsa, Data/PlotStructures). Construir o mejorar lo pide al servidor (Remotes.UpgradePlot).
 --     Sin desplazamiento: en PC una columna de filas; en pantallas bajas (teléfono), dos columnas.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -124,8 +124,10 @@ local function refreshRow(player: Player, state: Plot.State, row: Row)
 	local parts = {
 		`<font color="{if ready then HAVE_COLOR else MISSING_COLOR}">✨ {nextLevel.amber} ({amber})</font>`,
 	}
+	-- Lo privado del cofre cuenta mientras está en pie (Plot.CHEST_ATTRIBUTE), como al cobrar (PlotService).
+	local stored = if player:GetAttribute(Plot.CHEST_ATTRIBUTE) then state.chest.private else {}
 	for _, entry in nextLevel.cost do
-		local have = Inventory.count(player, entry.itemId)
+		local have = Inventory.count(player, entry.itemId) + (stored[entry.itemId] or 0)
 		local enough = have >= entry.amount
 		ready = ready and enough
 		local color = if enough then HAVE_COLOR else MISSING_COLOR

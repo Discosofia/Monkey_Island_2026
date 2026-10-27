@@ -116,8 +116,12 @@ local Remotes = {
 	-- Cliente -> servidor (Isla, Fase 12): tras el rescate, el jugador elige seguir sobreviviendo.
 	ChooseContinue = remoteEvent("ChooseContinue"),
 	-- Cliente -> servidor (Isla, Fase 12): subir un nivel una estructura de la parcela permanente (id de
-	-- Shared/Plot.STRUCTURES), con Ámbar y materiales de la Bolsa (PlotService).
+	-- Shared/Plot.STRUCTURES), con Ámbar y materiales del cofre y de la Bolsa (PlotService).
 	UpgradePlot = remoteEvent("UpgradePlot"),
+	-- Cliente -> servidor (Isla, Fase 12): guardar en tu cofre (itemId, cantidad, "private" | "shared") y
+	-- sacar de un cofre (UserId de su dueño, parte, itemId, cantidad). ChestService.
+	ChestStore = remoteEvent("ChestStore"),
+	ChestTake = remoteEvent("ChestTake"),
 	-- Cliente -> servidor (Lobby): elegir rol (id de Data/Roles).
 	SelectRole = remoteEvent("SelectRole"),
 	-- Cliente -> servidor (Lobby): la guía de la primera vez está hecha (LobbyGuideController).
