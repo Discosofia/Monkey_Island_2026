@@ -27,6 +27,7 @@ local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 
 local WOOD = Color3.fromRGB(110, 72, 40)
@@ -3238,6 +3239,28 @@ local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: nu
 	end
 end
 
+-- Lo que dice la herramienta del arma al pasar por encima ("Machete: 12 de daño · golpea árboles"), en el
+-- idioma del jugador. El servidor lo pone en español y UI/Localizer lo traduce en cada cliente.
+function WeaponTools.tooltip(weaponId: string): string
+	local weapon = Weapons[weaponId]
+	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
+	local text = Strings.t("{weapon}: {damage} de daño", { weapon = Strings.t(weapon.name), damage = damage })
+	if weapon.poison then
+		text ..= Strings.t(
+			" · veneno {dps}/s",
+			{ dps = math.round(weapon.poison.dps * Config.Combat.PlayerDamageMultiplier) }
+		)
+	end
+	if weapon.tool then
+		local kind = weapon.tool.kind
+		text ..= if kind == "Axe"
+			then Strings.t(" · golpea árboles")
+			elseif kind == "Sickle" then Strings.t(" · corta helechos y arbustos")
+			else Strings.t(" · golpea rocas")
+	end
+	return text
+end
+
 -- Construye el arma "weaponId" como Tool. Con "skinId" (un aspecto de su rol), con ese aspecto, y con
 -- "lookLevel", con el modelo de ese nivel (solo el aspecto).
 function WeaponTools.build(weaponId: string, skinId: string?, lookLevel: number?): Tool
@@ -3246,18 +3269,7 @@ function WeaponTools.build(weaponId: string, skinId: string?, lookLevel: number?
 
 	local tool = Instance.new("Tool")
 	tool.Name = weapon.name
-	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
-	tool.ToolTip = `{weapon.name}: {damage} de daño`
-	if weapon.poison then
-		tool.ToolTip ..= ` · veneno {math.round(weapon.poison.dps * Config.Combat.PlayerDamageMultiplier)}/s`
-	end
-	if weapon.tool then
-		local kind = weapon.tool.kind
-		tool.ToolTip ..= if kind == "Axe"
-			then " · golpea árboles"
-			elseif kind == "Sickle" then " · corta helechos y arbustos"
-			else " · golpea rocas"
-	end
+	tool.ToolTip = WeaponTools.tooltip(weaponId)
 	tool.CanBeDropped = false
 	tool:SetAttribute("WeaponId", weaponId)
 

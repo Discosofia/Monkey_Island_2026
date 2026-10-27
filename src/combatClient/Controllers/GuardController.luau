@@ -21,6 +21,7 @@ local Workspace = game:GetService("Workspace")
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Feint = require(script.Parent.Parent.Feint)
 local WeaponController = require(script.Parent.WeaponController)
@@ -67,7 +68,7 @@ local function refreshBinding()
 	end
 	bound = alive
 	if alive then
-		ActionButtons.bind(ACTION, "Guardia", onAction, Enum.KeyCode.F, Enum.KeyCode.ButtonL2)
+		ActionButtons.bind(ACTION, Strings.t("Guardia"), onAction, Enum.KeyCode.F, Enum.KeyCode.ButtonL2)
 	else
 		setPressed(false)
 		ActionButtons.unbind(ACTION)

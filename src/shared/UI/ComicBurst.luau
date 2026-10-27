@@ -14,6 +14,8 @@
 
 local TweenService = game:GetService("TweenService")
 
+local Strings = require(script.Parent.Parent.Strings)
+
 local ATLAS = "rbxassetid://106987700658195"
 -- Celdas del atlas en píxeles: { x, y, ancho, alto } (las mismas que en gen.py).
 local CELLS: { [string]: { number } } = {
@@ -320,9 +322,9 @@ local WORDS: { [string]: { string } } = {
 	CritSpell = { "KA-ZAP!", "KRAKOOM!" },
 	KO = { "K.O.!" },
 	Hurt = { "OUCH!", "OOF!", "ARGH!" },
-	Parry = { "¡PARRY!" },
-	GuardBroken = { "¡GUARDIA ROTA!" },
-	Counter = { "¡CONTRA!" },
+	Parry = { Strings.later("¡PARRY!") },
+	GuardBroken = { Strings.later("¡GUARDIA ROTA!") },
+	Counter = { Strings.later("¡CONTRA!") },
 }
 
 local ComicBurst = {}
@@ -349,6 +351,10 @@ function ComicBurst.word(kind: Kind, weapon: Weapon?, styleId: string?): string
 		choice = list[(table.find(list, choice) :: number) % #list + 1]
 	end
 	lastWord[key] = choice
+	-- Las onomatopeyas valen en los dos idiomas; solo se traducen las palabras de la guardia.
+	if kind == "Parry" or kind == "GuardBroken" or kind == "Counter" then
+		return Strings.t(choice)
+	end
 	return choice
 end
 

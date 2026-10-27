@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(script.Parent.Parent.Config)
 local Remotes = require(script.Parent.Parent.Remotes)
 local Sounds = require(script.Parent.Parent.Data.Sounds)
+local Strings = require(script.Parent.Parent.Strings)
 local Widgets = require(script.Parent.Widgets)
 
 local WOOD = Color3.fromRGB(25, 20, 15)
@@ -84,7 +85,8 @@ function AnnounceBanner.start()
 		if typeof(message) ~= "string" then
 			return
 		end
-		title.Text = `📢 Anuncio · {tostring(from)}`
+		-- El anuncio sale tal cual lo escribió el administrador; solo se traduce el título.
+		title.Text = Strings.t("📢 Anuncio · {from}", { from = tostring(from) })
 		text.Text = message
 		banner.Visible = true
 		scale.Scale = 1.15

@@ -15,6 +15,9 @@ local RunService = game:GetService("RunService")
 local Config = require(script.Parent.Config)
 local EggIncubation = require(script.Parent.EggIncubation)
 local Seasons = require(script.Parent.Data.Seasons)
+local Strings = require(script.Parent.Strings)
+
+local T = Strings.t
 
 export type Phase = "Active" | "Rest" | "None"
 export type Track = "Free" | "Premium"
@@ -249,16 +252,23 @@ function SeasonPass.gainText(gain: any): string?
 	if typeof(gain) ~= "table" or typeof(gain.xp) ~= "number" then
 		return nil
 	end
-	local level = if gain.levelsUp and gain.levelsUp > 0 then `¡nivel {gain.level}!` else `nivel {gain.level}`
-	local parts = { `⭐ +{gain.xp} XP de pase · {level} ({gain.progress}/{gain.need})` }
+	local level = if gain.levelsUp and gain.levelsUp > 0
+		then T("¡nivel {level}!", { level = gain.level })
+		else T("nivel {level}", { level = gain.level })
+	local parts = {
+		T(
+			"⭐ +{xp} XP de pase · {level} ({progress}/{need})",
+			{ xp = gain.xp, level = level, progress = gain.progress, need = gain.need }
+		),
+	}
 	if (gain.friends or 0) > 0 then
-		table.insert(parts, `amigos +{gain.friends}`)
+		table.insert(parts, T("amigos +{n}", { n = gain.friends }))
 	end
 	if (gain.multiplier or 1) > 1 then
-		table.insert(parts, `×{gain.multiplier} última semana`)
+		table.insert(parts, T("×{n} última semana", { n = gain.multiplier }))
 	end
 	if (gain.capped or 0) > 0 then
-		table.insert(parts, `tope de hoy: {gain.capped} sin contar`)
+		table.insert(parts, T("tope de hoy: {n} sin contar", { n = gain.capped }))
 	end
 	return table.concat(parts, " · ")
 end

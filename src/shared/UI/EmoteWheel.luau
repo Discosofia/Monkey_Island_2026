@@ -24,6 +24,7 @@ local EmoteFx = require(ReplicatedStorage.Shared.UI.EmoteFx)
 local EmoteTracks = require(ReplicatedStorage.Shared.EmoteTracks)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
@@ -70,17 +71,22 @@ local function stopEmote()
 	end
 end
 
+-- El nombre del emote sin su prefijo ("Emote: Saludo" → "Saludo"), en el idioma del jugador.
+local function shortName(name: string): string
+	return (string.gsub(Strings.t(name), "^[^:]+: ", ""))
+end
+
 -- Por qué no se puede hacer un emote ahora (nil si se puede).
 local function blockedReason(humanoid: Humanoid?): string?
 	if not humanoid or humanoid.Health <= 0 or not LifeState.isAlive(player) then
-		return "Ahora no puedes hacer emotes"
+		return Strings.later("Ahora no puedes hacer emotes")
 	elseif humanoid.RigType ~= Enum.HumanoidRigType.R15 then
-		return "Los emotes son para avatares R15"
+		return Strings.later("Los emotes son para avatares R15")
 	elseif player:GetAttribute("Mounted") ~= nil then
 		-- Montado (Fase 11) el gesto es de la montura (UI/MountRiders).
-		return "🦙 Montado no: presiona Y (o Escupir) para que tu montura escupa"
+		return Strings.later("🦙 Montado no: presiona Y (o Escupir) para que tu montura escupa")
 	elseif os.clock() - lastHurt < Config.Cosmetics.EmoteCombatSeconds then
-		return "⚔️ En combate no: espera unos segundos"
+		return Strings.later("⚔️ En combate no: espera unos segundos")
 	end
 	return nil
 end
@@ -167,8 +173,7 @@ local function slotButton(parent: Instance, index: number, cosmeticId: string?)
 	local icon = Widgets.label(if owned and cosmetic then cosmetic.icon else "·", slot)
 	icon.Position = UDim2.fromScale(0.2, 0.1)
 	icon.Size = UDim2.fromScale(0.6, 0.5)
-	local name =
-		Widgets.label(if owned and cosmetic then (string.gsub(cosmetic.name, "^[^:]+: ", "")) else "Vacío", slot)
+	local name = Widgets.label(if owned and cosmetic then shortName(cosmetic.name) else Strings.t("Vacío"), slot)
 	name.Position = UDim2.fromScale(0.1, 0.6)
 	name.Size = UDim2.fromScale(0.8, 0.24)
 	name.TextColor3 = if owned then Color3.new(1, 1, 1) else EMPTY_TEXT
@@ -287,8 +292,8 @@ local function buildGui()
 	-- En táctil no hay tecla.
 	local hint = Widgets.label(
 		if UserInputService.KeyboardEnabled
-			then "Mantén . y suelta sobre un emote · se para al moverte"
-			else "Se para al moverte",
+			then Strings.t("Mantén . y suelta sobre un emote · se para al moverte")
+			else Strings.t("Se para al moverte"),
 		screen
 	)
 	hint.Name = "Hint"

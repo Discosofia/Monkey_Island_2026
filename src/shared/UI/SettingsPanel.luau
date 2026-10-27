@@ -35,11 +35,15 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Settings = require(ReplicatedStorage.Shared.Settings)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local CombatTextColumn = require(script.Parent.CombatTextColumn)
 local ComicBurst = require(script.Parent.ComicBurst)
 local Widgets = require(script.Parent.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 export type Context = "Island" | "Lobby"
 
@@ -87,11 +91,11 @@ type AbilityInfo = {
 	note: ((perk: PerkGetter) -> string)?,
 }
 
--- 1.8 → "1,8"; 2 → "2".
+-- 1.8 → "1,8" (en inglés, "1.8"); 2 → "2".
 local function decimal(value: number): string
 	local rounded = math.round(value * 10) / 10
 	local result = if rounded % 1 == 0 then tostring(math.round(rounded)) else string.format("%.1f", rounded)
-	return (result:gsub("%.", ","))
+	return if Strings.language() == "es" then (result:gsub("%.", ",")) else result
 end
 
 -- 0.05 → "+5 %"; -0.2 → "−20 %".
@@ -99,43 +103,44 @@ local function signedPercent(value: number): string
 	return `{if value < 0 then "−" else "+"}{math.round(math.abs(value) * 100)} %`
 end
 
+-- Una nota sin números ("por golpe"), marcada con later para traducirla al dibujarla.
 local function fixed(note: string): (perk: PerkGetter) -> string
 	return function()
-		return note
+		return T(note)
 	end
 end
 
 local ABILITY_INFO: { [string]: AbilityInfo } = {
 	-- Guerrero.
-	Whirlwind = { amount = "WhirlwindDamage", perks = { "MeleeDamage" }, note = fixed("por golpe") },
-	Charge = { amount = "ChargeDamage", perks = { "MeleeDamage", "ChargeDamage" }, note = fixed("y empuja") },
+	Whirlwind = { amount = "WhirlwindDamage", perks = { "MeleeDamage" }, note = fixed(later("por golpe")) },
+	Charge = { amount = "ChargeDamage", perks = { "MeleeDamage", "ChargeDamage" }, note = fixed(later("y empuja")) },
 	WarCry = {
 		effect = function(perk)
 			return signedPercent(-perk("WarCryReduction"))
 		end,
-		note = fixed("de daño recibido"),
+		note = fixed(later("de daño recibido")),
 	},
 	Quake = {
 		amount = "QuakeDamage",
 		perks = { "MeleeDamage" },
 		note = function(perk)
-			return `aturde {decimal(perk("QuakeStun"))} s`
+			return T("aturde {s} s", { s = decimal(perk("QuakeStun")) })
 		end,
 	},
 	Leap = {
 		amount = "LeapDamage",
 		perks = { "MeleeDamage" },
 		note = function(perk)
-			return `y sujeta {decimal(perk("QuakeStun"))} s`
+			return T("y sujeta {s} s", { s = decimal(perk("QuakeStun")) })
 		end,
 	},
-	Smash = { amount = "SmashDamage", perks = { "MeleeDamage", "SmashDamage" }, note = fixed("por mono") },
+	Smash = { amount = "SmashDamage", perks = { "MeleeDamage", "SmashDamage" }, note = fixed(later("por mono")) },
 	-- Cazador.
 	MultiShot = {
 		amount = "MultiShotDamage",
 		perks = { "RangedDamage" },
 		note = function(perk)
-			return `×{math.round(perk("MultiShotCount"))} proyectiles`
+			return T("×{n} proyectiles", { n = math.round(perk("MultiShotCount")) })
 		end,
 	},
 	MarkPrey = {
@@ -143,65 +148,81 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 			return signedPercent(perk("MarkedBonus"))
 		end,
 		note = function(perk)
-			return `de daño, {decimal(perk("MarkSeconds"))} s`
+			return T("de daño, {s} s", { s = decimal(perk("MarkSeconds")) })
 		end,
 	},
 	Trap = {
 		amount = "TrapDamage",
 		perks = { "RangedDamage" },
 		note = function(perk)
-			return `sujeta {decimal(perk("TrapRoot"))} s`
+			return T("sujeta {s} s", { s = decimal(perk("TrapRoot")) })
 		end,
 	},
-	ArrowRain = { amount = "RainDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed("por golpe") },
-	TrueShot = { amount = "TrueShotDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed("a uno") },
-	PiercingShot = { amount = "PierceDamage", perks = { "RangedDamage", "PierceDamage" }, note = fixed("por mono") },
+	ArrowRain = { amount = "RainDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed(later("por golpe")) },
+	TrueShot = { amount = "TrueShotDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed(later("a uno")) },
+	PiercingShot = {
+		amount = "PierceDamage",
+		perks = { "RangedDamage", "PierceDamage" },
+		note = fixed(later("por mono")),
+	},
 	-- Mago.
-	Fireball = { amount = "FireballDamage", perks = { "SpellDamage", "FireballDamage" }, note = fixed("y salpica") },
+	Fireball = {
+		amount = "FireballDamage",
+		perks = { "SpellDamage", "FireballDamage" },
+		note = fixed(later("y salpica")),
+	},
 	FrostNova = {
 		amount = "NovaDamage",
 		perks = { "SpellDamage" },
 		note = function(perk)
-			return `congela {decimal(perk("NovaFreeze"))} s`
+			return T("congela {s} s", { s = decimal(perk("NovaFreeze")) })
 		end,
 	},
 	Blink = {
 		effect = function(perk)
 			return `{math.round(perk("BlinkDistance"))}`
 		end,
-		note = fixed("studs de salto"),
+		note = fixed(later("studs de salto")),
 	},
 	ChainLightning = {
 		amount = "ChainDamage",
 		perks = { "SpellDamage" },
 		note = function(perk)
-			return `y {math.round(perk("ChainJumps"))} saltos`
+			return T("y {n} saltos", { n = math.round(perk("ChainJumps")) })
 		end,
 	},
 	LavaBeam = {
 		amount = "BeamDamage",
 		perks = { "SpellDamage" },
 		note = function(perk)
-			return `×{Config.Abilities.BeamTicks + math.max(0, math.floor(perk("ChainJumps") - Perks.ChainJumps))} golpes`
+			return T(
+				"×{n} golpes",
+				{ n = Config.Abilities.BeamTicks + math.max(0, math.floor(perk("ChainJumps") - Perks.ChainJumps)) }
+			)
 		end,
 	},
-	Meteor = { amount = "MeteorDamage", perks = { "SpellDamage" }, note = fixed("por mono") },
+	Meteor = { amount = "MeteorDamage", perks = { "SpellDamage" }, note = fixed(later("por mono")) },
 	-- Médico.
-	AreaHeal = { amount = "AreaHealAmount", perks = { "HealPower" }, heal = true, note = fixed("a cada aliado") },
-	HealingDart = { amount = "DartHeal", perks = { "HealPower" }, heal = true, note = fixed("al aliado") },
+	AreaHeal = { amount = "AreaHealAmount", perks = { "HealPower" }, heal = true, note = fixed(later("a cada aliado")) },
+	HealingDart = { amount = "DartHeal", perks = { "HealPower" }, heal = true, note = fixed(later("al aliado")) },
 	LeafShield = {
 		effect = function(perk)
 			return `{math.round(perk("ShieldAmount"))}`
 		end,
-		note = fixed("de escudo"),
+		note = fixed(later("de escudo")),
 	},
-	HealingTotem = { amount = "TotemHealPerSecond", perks = { "HealPower" }, heal = true, note = fixed("por segundo") },
-	Resurgence = { amount = "SurgeHeal", perks = { "HealPower" }, heal = true, note = fixed("y quita males") },
+	HealingTotem = {
+		amount = "TotemHealPerSecond",
+		perks = { "HealPower" },
+		heal = true,
+		note = fixed(later("por segundo")),
+	},
+	Resurgence = { amount = "SurgeHeal", perks = { "HealPower" }, heal = true, note = fixed(later("y quita males")) },
 	SleepPowder = {
 		amount = "PowderDamage",
 		perks = {},
 		note = function(perk)
-			return `y duerme {decimal(perk("PowderSleep"))} s`
+			return T("y duerme {s} s", { s = decimal(perk("PowderSleep")) })
 		end,
 	},
 }
@@ -209,40 +230,40 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 -- Las ventajas de una mascota ("perks" de Data/Pets, lo que suman a Data/Perks) en palabras.
 local PERK_TEXT: { [string]: (value: number) -> string } = {
 	MeleeDamage = function(value)
-		return `{signedPercent(value)} de daño cuerpo a cuerpo`
+		return T("{percent} de daño cuerpo a cuerpo", { percent = signedPercent(value) })
 	end,
 	RangedDamage = function(value)
-		return `{signedPercent(value)} de daño a distancia`
+		return T("{percent} de daño a distancia", { percent = signedPercent(value) })
 	end,
 	SpellDamage = function(value)
-		return `{signedPercent(value)} de daño de hechizos`
+		return T("{percent} de daño de hechizos", { percent = signedPercent(value) })
 	end,
 	HealPower = function(value)
-		return `{signedPercent(value)} de curación`
+		return T("{percent} de curación", { percent = signedPercent(value) })
 	end,
 	CooldownRate = function(value)
-		return `{signedPercent(value)} de recarga de habilidades`
+		return T("{percent} de recarga de habilidades", { percent = signedPercent(value) })
 	end,
 	MaxHealth = function(value)
-		return `+{math.round(value)} de vida máxima`
+		return T("+{n} de vida máxima", { n = math.round(value) })
 	end,
 	HungerRate = function(value)
-		return `el hambre y la sed bajan un {math.round(math.abs(value) * 100)} % más despacio`
+		return T("el hambre y la sed bajan un {n} % más despacio", { n = math.round(math.abs(value) * 100) })
 	end,
 	SprintCost = function(value)
-		return `correr gasta un {math.round(math.abs(value) * 100)} % menos de estamina`
+		return T("correr gasta un {n} % menos de estamina", { n = math.round(math.abs(value) * 100) })
 	end,
 	HarvestBonus = function(value)
-		return `+{math.round(value)} material en cada recolección`
+		return T("+{n} material en cada recolección", { n = math.round(value) })
 	end,
 	HarvestSpeed = function(value)
-		return `recolectas un {math.round(math.abs(value) * 100)} % más rápido`
+		return T("recolectas un {n} % más rápido", { n = math.round(math.abs(value) * 100) })
 	end,
 	ToolPower = function(value)
-		return `+{math.round(value)} de potencia del hacha y el pico`
+		return T("+{n} de potencia del hacha y el pico", { n = math.round(value) })
 	end,
 	LootBonus = function(value)
-		return `un {math.round(value * 100)} % de un objeto más del botín de cada mono`
+		return T("un {n} % de un objeto más del botín de cada mono", { n = math.round(value * 100) })
 	end,
 }
 
@@ -442,7 +463,7 @@ local function abilityGrid(parent: Instance, order: number, abilities: { Roles.A
 		stack.Parent = cell
 
 		local title = cellLabel(cell, 1, 15, Enum.Font.BuilderSans, TEXT_COLOR)
-		title.Text = `<font color="{KEY_HEX}"><b>{ABILITY_KEYS[index] or ""}</b></font> {ability.short}`
+		title.Text = `<font color="{KEY_HEX}"><b>{ABILITY_KEYS[index] or ""}</b></font> {T(ability.short)}`
 		local value, color = abilityValue(ability, perk)
 		local number = cellLabel(cell, 2, 22, Enum.Font.BuilderSansBold, color)
 		number.Text = value
@@ -458,11 +479,13 @@ local function comboLine(combo: Combos.Combo, role: Roles.Role): string
 	for _, stepId in combo.steps do
 		for _, ability in role.abilities do
 			if ability.id == stepId then
-				table.insert(names, ability.short)
+				table.insert(names, T(ability.short))
 			end
 		end
 	end
-	return `{combo.icon} <b>{combo.name}</b>: {table.concat(names, " → ")} · <font color="{SOFT_HEX}">{combo.short}</font>`
+	return `{combo.icon} <b>{T(combo.name)}</b>: {table.concat(names, " → ")} · <font color="{SOFT_HEX}">{T(
+		combo.short
+	)}</font>`
 end
 
 -- Lo que hace la mascota, con sus números: ataque y curación, rastreo y sus ventajas (Data/Perks, ya
@@ -471,27 +494,49 @@ local function petHelp(pet: Pets.Pet): string
 	local help = {}
 	local seconds = Config.Pets.TickSeconds
 	if pet.attackDamage and pet.healPerTick then
-		table.insert(help, `{pet.attackDamage} de daño y +{pet.healPerTick} de vida cada {seconds} s`)
+		table.insert(
+			help,
+			T(
+				"{damage} de daño y +{heal} de vida cada {seconds} s",
+				{ damage = pet.attackDamage, heal = pet.healPerTick, seconds = seconds }
+			)
+		)
 	elseif pet.attackDamage then
-		table.insert(help, `{pet.attackDamage} de daño al mono más cercano cada {seconds} s`)
+		table.insert(
+			help,
+			T(
+				"{damage} de daño al mono más cercano cada {seconds} s",
+				{ damage = pet.attackDamage, seconds = seconds }
+			)
+		)
 	elseif pet.healPerTick then
-		table.insert(help, `+{pet.healPerTick} de vida cada {seconds} s`)
+		table.insert(help, T("+{heal} de vida cada {seconds} s", { heal = pet.healPerTick, seconds = seconds }))
 	end
 	if pet.tracks then
 		table.insert(
 			help,
-			`resalta los monos a menos de {Config.Pets.TrackRadius} studs cada {Config.Pets.TrackSeconds} s`
+			T(
+				"resalta los monos a menos de {radius} studs cada {seconds} s",
+				{ radius = Config.Pets.TrackRadius, seconds = Config.Pets.TrackSeconds }
+			)
 		)
 	end
 	if pet.sniffsEggs then
-		table.insert(help, `huele el huevo a menos de {Config.Pets.EggSniffRadius} studs y te deja huellas hacia él`)
+		table.insert(
+			help,
+			T(
+				"huele el huevo a menos de {radius} studs y te deja huellas hacia él",
+				{ radius = Config.Pets.EggSniffRadius }
+			)
+		)
 	end
 	if pet.marks then
 		table.insert(
 			help,
-			`marca al mono más cercano: todos le hacen {signedPercent(Config.Pets.MarkBonus)} de daño (a los jefes, +{decimal(
-				Config.Pets.MarkBonus * Config.Pets.MarkBossMultiplier * 100
-			)} %)`
+			T("marca al mono más cercano: todos le hacen {percent} de daño (a los jefes, +{boss} %)", {
+				percent = signedPercent(Config.Pets.MarkBonus),
+				boss = decimal(Config.Pets.MarkBonus * Config.Pets.MarkBossMultiplier * 100),
+			})
 		)
 	end
 	local names = {}
@@ -506,10 +551,13 @@ local function petHelp(pet: Pets.Pet): string
 		end
 	end
 	if pet.attackDamage or pet.healPerTick then
-		table.insert(help, `<font color="{CRIT_HEX}">{Crit.percent(Config.Crit.PetChance)} de crítico</font>`)
+		table.insert(
+			help,
+			`<font color="{CRIT_HEX}">{T("{percent} de crítico", { percent = Crit.percent(Config.Crit.PetChance) })}</font>`
+		)
 	end
 	-- Una ayuda que el panel aún no sabe contar: la descripción de Data/Pets.
-	return if #help > 0 then table.concat(help, " · ") else pet.description
+	return if #help > 0 then table.concat(help, " · ") else T(pet.description)
 end
 
 -- Cadena del arma (Fase 10, C4 y C9b): el daño de cada golpe seguido y lo que hace el remate. nil si el
@@ -520,7 +568,10 @@ local function chainHelp(weapon: Weapons.WeaponDefinition, damage: number): stri
 		for step = 1, MeleeChain.LENGTH do
 			table.insert(hits, `{math.round(damage * MeleeChain.damageMultiplier(step))}`)
 		end
-		return `🔗 Cadena de {MeleeChain.LENGTH} golpes al ritmo: {table.concat(hits, " · ")}; el último empuja (si saltas, lanza hacia arriba; contra un muro, aturde)`
+		return T(
+			"🔗 Cadena de {n} golpes al ritmo: {hits}; el último empuja (si saltas, lanza hacia arriba; contra un muro, aturde)",
+			{ n = MeleeChain.LENGTH, hits = table.concat(hits, " · ") }
+		)
 	end
 	local finisher = RangedChain.settings(weapon)
 	if not finisher then
@@ -529,21 +580,29 @@ local function chainHelp(weapon: Weapons.WeaponDefinition, damage: number): stri
 	local shot = math.round(damage * finisher.shot)
 	local last = math.round(damage * finisher.finisher)
 	local does = if weapon.finisher == "Pierce"
-		then `atraviesa y da a {finisher.pierceTargets} enemigos`
-		elseif weapon.finisher == "Burst" then `estalla en {finisher.radius} studs`
-		elseif weapon.finisher == "Sap" then `cura el doble a un aliado`
-		else `tambalea a los monos pequeños`
-	return `🎯 Cada {RangedChain.LENGTH}.º disparo seguido es un remate: {shot} → {last} y {does}`
+		then T("atraviesa y da a {n} enemigos", { n = finisher.pierceTargets })
+		elseif weapon.finisher == "Burst" then T("estalla en {radius} studs", { radius = finisher.radius })
+		elseif weapon.finisher == "Sap" then T("cura el doble a un aliado")
+		else T("tambalea a los monos pequeños")
+	return T(
+		"🎯 Cada {n}.º disparo seguido es un remate: {shot} → {last} y {does}",
+		{ n = RangedChain.LENGTH, shot = shot, last = last, does = does }
+	)
 end
 
 -- La guardia (Fase 10, C5): lo que quita el bloqueo, la ventana del parry y la rotura.
 local function guardHelp(): string
 	local guard = Config.Guard
-	return `🛡️ Guardia {guard.Max}: bloquear quita el {math.round(guard.BlockReduction * 100)} % del daño de frente (de los monos, el {math.round(
-		guard.BlockReductionEnemies * 100
-	)} %); pulsar justo antes del golpe es un parry ({decimal(guard.ParryWindowSeconds)} s). Sin guardia, aturdido {decimal(
-		guard.BreakStunSeconds
-	)} s`
+	return T(
+		"🛡️ Guardia {max}: bloquear quita el {block} % del daño de frente (de los monos, el {enemies} %); pulsar justo antes del golpe es un parry ({parry} s). Sin guardia, aturdido {stun} s",
+		{
+			max = guard.Max,
+			block = math.round(guard.BlockReduction * 100),
+			enemies = math.round(guard.BlockReductionEnemies * 100),
+			parry = decimal(guard.ParryWindowSeconds),
+			stun = decimal(guard.BreakStunSeconds),
+		}
+	)
 end
 
 local function fillStats(parent: Frame, player: Player, context: Context)
@@ -551,7 +610,7 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	local role = Roles[roleId]
 	local perk = perkGetter(player, context)
 	local critPercent = Crit.percent(Crit.MULTIPLIER - 1)
-	heading(parent, `{role.icon} Tus números de combate ({role.name})`, 10)
+	heading(parent, T("{icon} Tus números de combate ({role})", { icon = role.icon, role = T(role.name) }), 10)
 
 	-- Arma: una línea con el daño (y el veneno de las cerbatanas) y el crítico.
 	local weaponId, chance = weaponOf(player, context)
@@ -560,16 +619,23 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 		local scale = perk(weaponPerk(weapon)) * Config.Combat.PlayerDamageMultiplier
 		local damage = math.round(weapon.damage * scale)
 		local poison = if weapon.poison
-			then ` + <font color="{POISON_HEX}">veneno {math.round(weapon.poison.dps * scale)}/s ({decimal(
-				weapon.poison.seconds
-			)} s)</font>`
+			then ` + <font color="{POISON_HEX}">{T("veneno {dps}/s ({seconds} s)", {
+				dps = math.round(weapon.poison.dps * scale),
+				seconds = decimal(weapon.poison.seconds),
+			})}</font>`
 			else ""
 		local forge = if chance < BEST_FORGE_CHANCE
-			then ` <font color="{SOFT_HEX}">(forja: hasta {Crit.percent(BEST_FORGE_CHANCE)})</font>`
+			then ` <font color="{SOFT_HEX}">{T(
+				"(forja: hasta {percent})",
+				{ percent = Crit.percent(BEST_FORGE_CHANCE) }
+			)}</font>`
 			else ""
 		text(
 			parent,
-			`⚔️ <b>{weapon.name}</b>: {damage} de daño{poison} · <font color="{CRIT_HEX}">{Crit.percent(chance)} de crítico</font> (+{critPercent}){forge}`,
+			`⚔️ <b>{T(weapon.name)}</b>: {T("{damage} de daño", { damage = damage })}{poison} · <font color="{CRIT_HEX}">{T(
+				"{percent} de crítico",
+				{ percent = Crit.percent(chance) }
+			)}</font> (+{critPercent}){forge}`,
 			20
 		)
 		local chainLine = chainHelp(weapon, damage)
@@ -582,10 +648,17 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 		local normal = Crit.percent(Crit.healChance(chance, 1))
 		local save = Crit.percent(Crit.healChance(chance, 0))
 		local threshold = Crit.percent(Config.Crit.SaveThreshold)
-		text(parent, `💚 Curas críticas: {normal}; {save} si el aliado tiene menos del {threshold} de vida`, 30)
+		text(
+			parent,
+			T(
+				"💚 Curas críticas: {normal}; {save} si el aliado tiene menos del {threshold} de vida",
+				{ normal = normal, save = save, threshold = threshold }
+			),
+			30
+		)
 	end
 
-	text(parent, `✨ Habilidades · {Crit.percent(chance)} de crítico`, 40, SOFT_COLOR)
+	text(parent, T("✨ Habilidades · {percent} de crítico", { percent = Crit.percent(chance) }), 40, SOFT_COLOR)
 	abilityGrid(parent, 50, RoleAbilities.of(player, roleId), perk)
 
 	local combos = Combos[roleId] or {}
@@ -594,9 +667,13 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	end
 	if #combos > 0 then
 		local bonus = combos[1].damageBonus
-		local extra = if bonus then ` y +{math.round(bonus * 100)} %` else ""
-		local connect = if #combos >= 2 then " Cerrar uno abre el paso 2 del otro." else ""
-		text(parent, `🔗 Pasos 2 y 3: crítico seguro{extra} a lo marcado.{connect}`, 90, SOFT_COLOR)
+		local line = if bonus
+			then T("🔗 Pasos 2 y 3: crítico seguro y +{n} % a lo marcado.", { n = math.round(bonus * 100) })
+			else T("🔗 Pasos 2 y 3: crítico seguro a lo marcado.")
+		if #combos >= 2 then
+			line ..= " " .. T("Cerrar uno abre el paso 2 del otro.")
+		end
+		text(parent, line, 90, SOFT_COLOR)
 	end
 
 	local petId = activePet(player)
@@ -605,13 +682,13 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 		local rarity = Rarities[pet.rarity]
 		text(
 			parent,
-			`🐾 {pet.icon} <b>{pet.name}</b> <font color="#{rarity.color:ToHex()}">({rarity.name})</font>: {petHelp(
+			`🐾 {pet.icon} <b>{T(pet.name)}</b> <font color="#{rarity.color:ToHex()}">({T(rarity.name)})</font>: {petHelp(
 				pet
 			)}`,
 			100
 		)
 	else
-		text(parent, "🐾 Sin mascota: los huevos de la isla te dan una.", 100, SOFT_COLOR)
+		text(parent, T("🐾 Sin mascota: los huevos de la isla te dan una."), 100, SOFT_COLOR)
 	end
 end
 
@@ -831,7 +908,7 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 		local distance = (extents.Y / 2) / math.tan(math.rad(camera.FieldOfView / 2)) * 1.25
 		camera.CFrame = CFrame.lookAt(center + Vector3.new(0, 0.4, -distance), center)
 	else
-		local note = Widgets.label("Tu personaje aparecerá aquí", holder)
+		local note = Widgets.label(T("Tu personaje aparecerá aquí"), holder)
 		note.Size = UDim2.fromScale(0.6, 0.12)
 		note.AnchorPoint = Vector2.new(0.5, 0.5)
 		note.Position = UDim2.fromScale(0.5, 0.5)
@@ -887,7 +964,7 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 			frame.Size = rect[3]
 			columns[side]:clear()
 		end
-		screenHint.Text = if layout == "Screen" then "↔ fijos en la pantalla" else ""
+		screenHint.Text = if layout == "Screen" then T("↔ fijos en la pantalla") else ""
 	end
 
 	-- Un estallido de cómic sobre el pecho del avatar, del tamaño elegido. Sin "kind", el siguiente
@@ -940,7 +1017,7 @@ local function buildPreview(parent: Frame, player: Player, context: Context): Pr
 				lootTotal = if itemId == lastItem then lootTotal + 1 else 1
 				lastItem = itemId
 				local item = Items[itemId]
-				columns.loot:push(`+{lootTotal} {item.icon} {item.name}`, { color = TEXT_COLOR, key = itemId })
+				columns.loot:push(`+{lootTotal} {item.icon} {T(item.name)}`, { color = TEXT_COLOR, key = itemId })
 			end
 			local crit = math.random() < 0.25
 			if tick % 2 == 1 then
@@ -995,11 +1072,11 @@ end
 -- ===================================== Opciones =====================================
 
 local TOGGLES = {
-	{ key = "showNumbers", label = "Números de daño y curación" },
-	{ key = "allyNumbers", label = "Daño de los aliados (tenue)" },
-	{ key = "showLoot", label = "Lo que recoges (+2 🌲 Madera)" },
-	{ key = "showCombo", label = "Combos y racha" },
-	{ key = "music", label = "Música (tecla M)" },
+	{ key = "showNumbers", label = later("Números de daño y curación") },
+	{ key = "allyNumbers", label = later("Daño de los aliados (tenue)") },
+	{ key = "showLoot", label = later("Lo que recoges (+2 🌲 Madera)") },
+	{ key = "showCombo", label = later("Combos y racha") },
+	{ key = "music", label = later("Música (tecla M)") },
 }
 
 -- Fila de botones para elegir uno de "choices" en el ajuste "key". Devuelve cómo repintarla.
@@ -1021,7 +1098,7 @@ local function choiceRow(
 	rowLayout.Parent = row
 	local buttons: { [string]: TextButton } = {}
 	for index, choice in choices do
-		local option = button(row, names[choice])
+		local option = button(row, T(names[choice]))
 		option.LayoutOrder = index
 		option.Size = UDim2.new(1 / #choices, -4, 1, 0)
 		option.Activated:Connect(function()
@@ -1043,7 +1120,7 @@ local function toggleLine(parent: Instance, order: number, key: string, label: s
 	line.BackgroundTransparency = 1
 	line.Size = UDim2.new(1, 0, 0, 40)
 	line.Parent = parent
-	local name = text(line, label, 1)
+	local name = text(line, T(label), 1)
 	name.AutomaticSize = Enum.AutomaticSize.None
 	name.Size = UDim2.fromScale(0.65, 1)
 	local switch = button(line, "")
@@ -1059,15 +1136,15 @@ end
 -- Va arriba del todo, encima de la vista previa: es lo que más se cambia y la vista previa enseña
 -- al momento cómo queda.
 local function buildLayoutChoice(parent: Frame): (values: Settings.Values) -> ()
-	heading(parent, "📍 Dónde salen tus números", 1)
+	heading(parent, T("📍 Dónde salen tus números"), 1)
 	text(
 		parent,
-		"Rojo a la izquierda: daño que recibes. Verde a la derecha: curaciones; debajo, lo que recoges.",
+		T("Rojo a la izquierda: daño que recibes. Verde a la derecha: curaciones; debajo, lo que recoges."),
 		2,
 		SOFT_COLOR
 	)
 	local refreshLayout = choiceRow(parent, 3, "textLayout", Settings.LAYOUTS, Settings.LAYOUT_NAMES)
-	text(parent, "Letra de los números", 4, SOFT_COLOR)
+	text(parent, T("Letra de los números"), 4, SOFT_COLOR)
 	local refreshFont = choiceRow(parent, 5, "numberFont", Settings.NUMBER_FONTS, Settings.NUMBER_FONT_NAMES)
 	return function(values: Settings.Values)
 		refreshLayout(values)
@@ -1076,23 +1153,25 @@ local function buildLayoutChoice(parent: Frame): (values: Settings.Values) -> ()
 end
 
 local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
-	heading(parent, "⚙️ Opciones", 4)
+	heading(parent, T("⚙️ Opciones"), 4)
 	local toggleButtons: { [string]: TextButton } = {}
 	for index, toggle in TOGGLES do
 		toggleButtons[toggle.key] = toggleLine(parent, 4 + index, toggle.key, toggle.label)
 	end
 
-	heading(parent, "💥 Efectos de cómic", 20)
+	heading(parent, T("💥 Efectos de cómic"), 20)
 	text(
 		parent,
-		"Estallidos al golpear (BAM!), en los críticos (POW!), al derribar (K.O.!), cuando te pegan fuerte (OUCH!) y en la guardia (¡PARRY!, ¡GUARDIA ROTA!, ¡CONTRA!).",
+		T(
+			"Estallidos al golpear (BAM!), en los críticos (POW!), al derribar (K.O.!), cuando te pegan fuerte (OUCH!) y en la guardia (¡PARRY!, ¡GUARDIA ROTA!, ¡CONTRA!)."
+		),
 		21,
 		SOFT_COLOR
 	)
-	toggleButtons.comicFx = toggleLine(parent, 22, "comicFx", "Efectos de cómic")
-	text(parent, "Cuáles: todos, o solo críticos, K.O. y golpes fuertes que recibes", 23, SOFT_COLOR)
+	toggleButtons.comicFx = toggleLine(parent, 22, "comicFx", later("Efectos de cómic"))
+	text(parent, T("Cuáles: todos, o solo críticos, K.O. y golpes fuertes que recibes"), 23, SOFT_COLOR)
 	local refreshLevel = choiceRow(parent, 24, "comicLevel", Settings.COMIC_LEVELS, Settings.COMIC_LEVEL_NAMES)
-	text(parent, "Tamaño", 25, SOFT_COLOR)
+	text(parent, T("Tamaño"), 25, SOFT_COLOR)
 	local refreshSize = choiceRow(parent, 26, "comicSize", Settings.COMIC_SIZES, Settings.COMIC_SIZE_NAMES)
 
 	return function(values: Settings.Values)
@@ -1100,7 +1179,7 @@ local function buildOptions(parent: Frame): (values: Settings.Values) -> ()
 		refreshSize(values)
 		for key, switch in toggleButtons do
 			local on = (values :: any)[key] == true
-			switch.Text = if on then "Sí" else "No"
+			switch.Text = if on then T("Sí") else T("No")
 			paint(switch, on)
 		end
 	end
@@ -1111,44 +1190,69 @@ end
 -- Lo que se hace en combate y con qué: PC · mando · móvil (los mismos que ActionButtons y los
 -- controladores de combate: WeaponController, RoleController, GuardController, DodgeController…).
 local CONTROLS: { { name: string, keys: string, help: string? } } = {
-	{ name = "Pegar o disparar", keys = "clic · R2 · tocar la pantalla", help = "4 golpes al ritmo son una cadena" },
-	{ name = "Habilidades", keys = "Z X C R y V · R1 + A B X Y L1 · sus botones" },
 	{
-		name = "Guardia",
-		keys = "F · L2 · «Guardia»",
-		help = "presiona justo antes del golpe para un parry; mantén para bloquear",
+		name = later("Pegar o disparar"),
+		keys = later("clic · R2 · tocar la pantalla"),
+		help = later("4 golpes al ritmo son una cadena"),
 	},
-	{ name = "Amago", keys = "la guardia mientras preparas un golpe o una habilidad", help = "engaña al que para" },
-	{ name = "Esquivar", keys = "Q · B · «Esquivar»" },
-	{ name = "Evasivo", keys = "esquivar estando aturdido o sujeto", help = "te saca del combo" },
-	{ name = "Correr", keys = "Mayús · L3 · «Correr»" },
+	{ name = later("Habilidades"), keys = later("Z X C R y V · R1 + A B X Y L1 · sus botones") },
 	{
-		name = "Bloqueo de cámara",
-		keys = "Ctrl (en PC)",
-		help = "actívalo en el menú de Roblox; apuntas hacia donde miras",
+		name = later("Guardia"),
+		keys = later("F · L2 · «Guardia»"),
+		help = later("presiona justo antes del golpe para un parry; mantén para bloquear"),
+	},
+	{
+		name = later("Amago"),
+		keys = later("la guardia mientras preparas un golpe o una habilidad"),
+		help = later("engaña al que para"),
+	},
+	{ name = later("Esquivar"), keys = later("Q · B · «Esquivar»") },
+	{
+		name = later("Evasivo"),
+		keys = later("esquivar estando aturdido o sujeto"),
+		help = later("te saca del combo"),
+	},
+	{ name = later("Correr"), keys = later("Mayús · L3 · «Correr»") },
+	{
+		name = later("Bloqueo de cámara"),
+		keys = later("Ctrl (en PC)"),
+		help = later("actívalo en el menú de Roblox; apuntas hacia donde miras"),
 	},
 }
 
 local function buildControls(parent: Frame)
-	heading(parent, "🎮 Controles del combate", 1)
-	text(parent, "PC · control · celular", 2, SOFT_COLOR)
+	heading(parent, T("🎮 Controles del combate"), 1)
+	text(parent, T("PC · control · celular"), 2, SOFT_COLOR)
 	for index, control in CONTROLS do
-		local help = if control.help then ` <font color="{SOFT_HEX}">({control.help})</font>` else ""
-		text(parent, `<b>{control.name}</b>: <font color="{KEY_HEX}">{control.keys}</font>{help}`, 2 + index)
+		local help = if control.help then ` <font color="{SOFT_HEX}">({T(control.help)})</font>` else ""
+		text(parent, `<b>{T(control.name)}</b>: <font color="{KEY_HEX}">{T(control.keys)}</font>{help}`, 2 + index)
 	end
-	text(parent, `💨 El Evasivo se recarga en {Config.Evasive.CooldownSeconds} s.`, 20, SOFT_COLOR)
+	text(
+		parent,
+		T("💨 El Evasivo se recarga en {seconds} s.", { seconds = Config.Evasive.CooldownSeconds }),
+		20,
+		SOFT_COLOR
+	)
 end
 
 -- Va en su propia sección, detrás de los controles: en el Lobby las secciones se reparten en columnas
 -- por orden y así cae debajo de ellos (en la de opciones ya no cabía sin desplazarse).
 local function buildShake(parent: Frame): (values: Settings.Values) -> ()
-	heading(parent, "📳 Temblor de la cámara", 1)
-	text(parent, "En los remates, las habilidades fuertes, los rebotes contra muros y la guardia", 2, SOFT_COLOR)
-	return choiceRow(parent, 3, "cameraShake", Settings.CAMERA_SHAKES, Settings.CAMERA_SHAKE_NAMES)
+	heading(parent, T("📳 Temblor de la cámara"), 1)
+	text(parent, T("En los remates, las habilidades fuertes, los rebotes contra muros y la guardia"), 2, SOFT_COLOR)
+	local refreshShake = choiceRow(parent, 3, "cameraShake", Settings.CAMERA_SHAKES, Settings.CAMERA_SHAKE_NAMES)
+	-- Idioma (GDD §18): cada opción en su idioma; "Automático" sigue el de la cuenta de Roblox.
+	heading(parent, T("🌐 Idioma · Language"), 4)
+	local refreshLanguage = choiceRow(parent, 5, "language", Settings.LANGUAGES, Settings.LANGUAGE_NAMES)
+	return function(values: Settings.Values)
+		refreshShake(values)
+		refreshLanguage(values)
+	end
 end
 
 -- Construye el panel dentro de "parent" (que debe poder desplazarse si no cabe). Se limpia solo al
--- destruirse.
+-- destruirse. Al cambiar de idioma (Strings.onChanged) lo rehace quien lo abrió: el Lobby reparte sus
+-- apartados en columnas después de construirlo.
 function SettingsPanel.build(parent: Instance, context: Context): Frame
 	local player = Players.LocalPlayer
 	local root = Instance.new("Frame")

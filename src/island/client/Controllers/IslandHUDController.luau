@@ -19,6 +19,7 @@ local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
@@ -315,6 +316,12 @@ local function createSettingsButton(gui: ScreenGui, returnButton: TextButton): T
 	end)
 	close.Activated:Connect(function()
 		setOpen(false)
+	end)
+	-- Otro idioma (elegido en este mismo panel): se rehace en él.
+	Strings.onChanged(function()
+		if window.Visible then
+			setOpen(true)
+		end
 	end)
 	return gear
 end

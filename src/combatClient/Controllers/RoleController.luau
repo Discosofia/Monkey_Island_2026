@@ -37,6 +37,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local AbilityFxController = require(script.Parent.AbilityFxController)
@@ -94,7 +95,7 @@ local function adjustPrompt(player: Player, prompt: ProximityPrompt)
 		if kit then
 			prompt.HoldDuration = Config.Life.ReviveKitHoldSeconds
 		end
-		prompt.ActionText = if kit then "Reanimar con kit" else "Reanimar"
+		prompt.ActionText = if kit then Strings.t("Reanimar con kit") else Strings.t("Reanimar")
 	end
 end
 
@@ -314,7 +315,7 @@ local function useAbility(player: Player, slot: number)
 		return
 	end
 	if MOVEMENT_ABILITIES[ability.id] and player:GetAttribute("MovementLocked") == true then
-		Toast.show(`🚩 Con la bandera no puedes usar {ability.name}`)
+		Toast.show("🚩 Con la bandera no puedes usar {ability}", { ability = Strings.t(ability.name) })
 		return
 	end
 	local aim = Aim.direction(character)
@@ -477,13 +478,13 @@ function RoleController:Start()
 	local shownRole: string? = nil
 	local function bindRole(abilities: { Roles.Ability })
 		for slot, ability in abilities do
-			ActionButtons.bind(`Ability{slot}`, ability.short, function(_, state: Enum.UserInputState)
+			ActionButtons.bind(`Ability{slot}`, Strings.t(ability.short), function(_, state: Enum.UserInputState)
 				if state == Enum.UserInputState.Begin then
 					useAbility(player, slot)
 				end
 				return Enum.ContextActionResult.Sink
 			end, KEYS[slot])
-			hud[slot].name.Text = ability.short
+			hud[slot].name.Text = Strings.t(ability.short)
 		end
 	end
 	bindPad(player)
@@ -511,10 +512,13 @@ function RoleController:Start()
 					elseif ability.ultimate then Color3.fromRGB(255, 200, 60)
 					else Color3.fromRGB(200, 200, 200)
 				cell.stroke.Thickness = if isNext then 3 else 2
-				cell.timer.Text = if ready then "lista" else `{math.ceil(remaining)} s`
+				cell.timer.Text = if ready then Strings.t("lista") else `{math.ceil(remaining)} s`
 				cell.timer.TextColor3 = if ready then Color3.fromRGB(140, 240, 140) else Color3.fromRGB(180, 180, 180)
 				cell.frame.BackgroundTransparency = if ready then 0.35 else 0.6
-				ActionButtons.setTitle(`Ability{slot}`, if ready then ability.short else `{math.ceil(remaining)}`)
+				ActionButtons.setTitle(
+					`Ability{slot}`,
+					if ready then Strings.t(ability.short) else `{math.ceil(remaining)}`
+				)
 			end
 		end
 		task.wait(0.2)

@@ -20,6 +20,9 @@ jobs:
       - name: Lint (Selene)
         run: selene src
 
+      - name: Textos traducibles (tools/strings.py)
+        run: python3 tools/strings.py
+
       - name: Build de los places (Rojo)
         run: |
           mkdir -p build

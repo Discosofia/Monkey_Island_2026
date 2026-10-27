@@ -6,6 +6,7 @@
 
 local Config = require(script.Parent.Config)
 local Missions = require(script.Parent.Data.Missions)
+local Strings = require(script.Parent.Strings)
 
 export type LoginState = { lastClaimDay: number, step: number }
 -- "seen": lo ya contado de las misiones "distinct" (especies de mono).
@@ -138,14 +139,22 @@ function Daily.allDone(missions: { DailyMission }): boolean
 	return #missions > 0
 end
 
--- "🐒 Derrota 15 monos".
-function Daily.missionText(missionId: string): string
+-- La misión como argumento de una frase (Shared/Strings): "🐒 Derrota 15 monos". El servidor la manda así
+-- por un remoto para que el cliente la traduzca.
+function Daily.missionArg(missionId: string): any
 	local mission = Missions[missionId]
 	if not mission then
 		return missionId
 	end
-	local text = string.gsub(mission.text, "{target}", tostring(mission.target))
-	return `{mission.icon} {text}`
+	return {
+		Strings.later("{icon} {text}"),
+		{ icon = mission.icon, text = { mission.text, { target = mission.target } } },
+	}
+end
+
+-- "🐒 Derrota 15 monos", en el idioma del jugador.
+function Daily.missionText(missionId: string): string
+	return Strings.arg(Daily.missionArg(missionId))
 end
 
 return Daily

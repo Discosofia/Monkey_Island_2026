@@ -911,4 +911,11 @@ El juego está en español latino (T1 quitó las formas de vosotros). Conviene t
    - Las miniaturas, con el texto en inglés (o sin texto).
 2. **Traducción automática de Roblox** activada para los demás idiomas. Sin código.
 3. **`Shared/Strings` con una `LocalizationTable`** en/es: todos los textos del código pasan a un módulo con claves y el inglés se revisa a mano (solo el inglés; los demás idiomas siguen con la automática). Es necesario porque los textos con números dentro (`{n} días`) se traducen mal solos: el módulo los forma con `LocalizationTable` y sus argumentos.
-4. El paso 3 es una **tanda de código** propia en `docs/PLAN.md` ("Idioma inglés").
+4. El paso 3 es una **tanda de código** propia en `docs/PLAN.md` ("Idioma inglés"), en cinco partes (I1a–I1e).
+
+Decidido en la entrevista de I1 (27-10-2026):
+- **Idioma de cada jugador:** el de su cuenta de Roblox (español si es `es-*`; inglés en los demás casos) y un selector en Ajustes: Automático / Español / English, guardado en el perfil.
+- **Idioma de origen en Creator Hub: inglés.** Los demás idiomas (francés, portugués…) los traduce Roblox desde el inglés revisado, con la tabla que genera `tools/strings.py --csv`. Se cambia al terminar la I1e, no antes, para que la nube no capture frases españolas como si fueran inglesas.
+- **Los nombres propios se traducen** (Amber, Capuchin, Lava Turtle, Dune Island…).
+- **Solo en español:** las herramientas de desarrollo (`Equilibrio`, `Economia`, `MapBuilder`, comandos de prueba) y el panel de administración. Los avisos de moderación sí se traducen.
+- **El español es la clave** (`T("Ámbar: {n}", { n = amber })`): el código sigue leyéndose en español.

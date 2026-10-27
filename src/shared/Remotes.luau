@@ -32,7 +32,8 @@ local Remotes = {
 	RequestJoinIsland = remoteEvent("RequestJoinIsland"),
 	-- Cliente -> servidor (Isla): el jugador quiere volver al Lobby.
 	RequestReturnToLobby = remoteEvent("RequestReturnToLobby"),
-	-- Servidor -> cliente: mensaje corto para mostrar en pantalla.
+	-- Servidor -> cliente: mensaje corto para mostrar en pantalla (texto, args?): la plantilla en español y
+	-- sus argumentos, que el cliente traduce (Shared/Strings, UI/Toast).
 	Notify = remoteEvent("Notify"),
 	-- Cliente -> servidor (Lobby e Isla): guardar los ajustes del jugador (tabla, ver Shared/Settings).
 	SaveSettings = remoteEvent("SaveSettings"),

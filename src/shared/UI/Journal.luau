@@ -7,18 +7,22 @@ local Bosses = require(script.Parent.Parent.Data.Bosses)
 local Items = require(script.Parent.Parent.Data.Items)
 local Monkeys = require(script.Parent.Parent.Data.Monkeys)
 local Rarities = require(script.Parent.Parent.Data.Rarities)
+local Strings = require(script.Parent.Parent.Strings)
 local Widgets = require(script.Parent.Widgets)
 
+local T = Strings.t
+local later = Strings.later
+
 local ZONE_NAMES: { [string]: string } = {
-	Selva = "Selva",
-	Basecamp = "Alrededores del Basecamp",
-	Playa = "Playas",
-	Rios = "Ríos y manglar",
-	Montanas = "Montañas",
-	Volcan = "Volcán",
-	Cuevas = "Cuevas",
+	Selva = later("Selva"),
+	Basecamp = later("Alrededores del Basecamp"),
+	Playa = later("Playas"),
+	Rios = later("Ríos y manglar"),
+	Montanas = later("Montañas"),
+	Volcan = later("Volcán"),
+	Cuevas = later("Cuevas"),
 }
-local SCHEDULES = { Day = "Día", Night = "Noche", Both = "Día y noche" }
+local SCHEDULES = { Day = later("Día"), Night = later("Noche"), Both = later("Día y noche") }
 
 local Journal = {}
 
@@ -29,7 +33,7 @@ end
 local function itemText(itemId: string): string
 	local item = Items[itemId]
 	local rarity = Rarities[item.rarity or "Common"]
-	return `<font color="{hex(rarity.color)}">{item.icon} {item.name}</font>`
+	return `<font color="{hex(rarity.color)}">{item.icon} {T(item.name)}</font>`
 end
 
 local function lootText(definition: Monkeys.MonkeyDefinition): string
@@ -120,24 +124,40 @@ function Journal.fill(list: Instance, bestiary: { [string]: number }): number
 		local definition = Monkeys[speciesId]
 		local kills = bestiary[speciesId] or 0
 		local stars = string.rep("⭐", definition.tier)
-		local zone = ZONE_NAMES[definition.zone or "Selva"] or "Selva"
-		local schedule = SCHEDULES[definition.activeAt]
+		local zone = T(ZONE_NAMES[definition.zone or "Selva"] or ZONE_NAMES.Selva)
+		local schedule = T(SCHEDULES[definition.activeAt])
 		order += 1
 		if kills > 0 then
 			discovered += 1
 			addRow(
 				list,
 				order,
-				`{definition.name}  {stars}  ·  derrotados: {kills}`,
-				`{schedule} · {zone}\n{definition.description}\nBotín: {lootText(definition)}`
+				T(
+					"{name}  {stars}  ·  derrotados: {kills}",
+					{ name = T(definition.name), stars = stars, kills = kills }
+				),
+				T("{schedule} · {zone}\n{description}\nBotín: {loot}", {
+					schedule = schedule,
+					zone = zone,
+					description = T(definition.description),
+					loot = lootText(definition),
+				})
 			)
 		else
-			addRow(list, order, `❓ ???  {stars}  ·  {zone}, de {string.lower(schedule)}`)
+			addRow(
+				list,
+				order,
+				T("❓ ???  {stars}  ·  {zone}, de {schedule}", {
+					stars = stars,
+					zone = zone,
+					schedule = string.lower(schedule),
+				})
+			)
 		end
 	end
 
 	order += 1
-	local heading = Widgets.label("👑 Jefes", list)
+	local heading = Widgets.label(T("👑 Jefes"), list)
 	heading.LayoutOrder = order
 	heading.Size = UDim2.new(1, -10, 0, 34)
 	heading.TextXAlignment = Enum.TextXAlignment.Left
@@ -146,18 +166,22 @@ function Journal.fill(list: Instance, bestiary: { [string]: number }): number
 	for _, bossId in Journal.sortedBosses() do
 		local boss = Bosses[bossId]
 		local defeats = bestiary[bossId] or 0
-		local zone = ZONE_NAMES[boss.biome] or boss.biome
+		local zone = if ZONE_NAMES[boss.biome] then T(ZONE_NAMES[boss.biome]) else boss.biome
 		order += 1
 		if defeats > 0 then
 			discovered += 1
 			addRow(
 				list,
 				order,
-				`👑 {boss.name}  ·  derrotado: {defeats}`,
-				`Guarida: {zone}\n{boss.description}\nBotín: {itemText(boss.lootItemId)} y una pieza de la baliza`
+				T("👑 {name}  ·  derrotado: {defeats}", { name = T(boss.name), defeats = defeats }),
+				T("Guarida: {zone}\n{description}\nBotín: {loot} y una pieza de la baliza", {
+					zone = zone,
+					description = T(boss.description),
+					loot = itemText(boss.lootItemId),
+				})
 			)
 		else
-			addRow(list, order, `❓ ???  👑  ·  guarida: {zone}`)
+			addRow(list, order, T("❓ ???  👑  ·  guarida: {zone}", { zone = zone }))
 		end
 	end
 	return discovered

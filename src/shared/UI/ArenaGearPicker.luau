@@ -17,7 +17,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ArenaGear = require(ReplicatedStorage.Shared.Data.ArenaGear)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 local CARD_COLOR = Color3.fromRGB(45, 38, 30)
 local INFO_COLOR = Color3.fromRGB(25, 20, 15)
@@ -27,7 +31,7 @@ local SECONDARY_TEXT = Color3.fromRGB(210, 200, 185)
 local SECONDARY_BUTTON = Color3.fromRGB(90, 90, 110)
 local DARK_TEXT = Color3.fromRGB(40, 25, 5)
 local SLOT_ICONS = { Weapon = "🗡️", Armor = "🛡️", Amulet = "📿" }
-local BASIC_TEXT = "Básico"
+local BASIC_TEXT = later("Básico")
 -- PC: alto de las ranuras y de las filas de opciones.
 local SLOT_HEIGHT = 50
 local OPTION_HEIGHT = 58
@@ -37,7 +41,7 @@ local NAME_HEIGHT = 22
 local GRID_OPTION_HEIGHT = 44
 local GRID_TITLE_HEIGHT = 18
 local GRID_INFO_HEIGHT = 48
-local HINT_TEXT = "Toca una opción para ver qué hace y ponerla o comprarla"
+local HINT_TEXT = later("Toca una opción para ver qué hace y ponerla o comprarla")
 
 export type Picker = { frame: Frame, update: () -> () }
 
@@ -82,7 +86,7 @@ end
 -- Lo que se ve de una opción: "🦴 Maza de hueso grueso" o "⬜ Básico".
 local function optionName(gearId: string?): string
 	local item = if gearId then ArenaGear.items[gearId] else nil
-	return if item then `{item.icon} {item.name}` else `⬜ {BASIC_TEXT}`
+	return if item then `{item.icon} {T(item.name)}` else `⬜ {T(BASIC_TEXT)}`
 end
 
 -- Botón de una opción: "✔ Puesto", "Poner" o su precio (comprar).
@@ -110,12 +114,12 @@ local function actionButton(
 	padding.PaddingRight = UDim.new(0, 6)
 	padding.Parent = action
 	if equipped(arena, roleId, slot) == gearId then
-		action.Text = "✔ Puesto"
+		action.Text = T("✔ Puesto")
 		action.BackgroundColor3 = CARD_COLOR
 		action.TextColor3 = SECONDARY_TEXT
 		action.AutoButtonColor = false
 	elseif owned then
-		action.Text = "Poner"
+		action.Text = T("Poner")
 		action.BackgroundColor3 = GOLD
 		action.TextColor3 = DARK_TEXT
 		action.Activated:Connect(function()
@@ -125,7 +129,7 @@ local function actionButton(
 		local cost = if item then item.cost else 0
 		local affordable = amber >= cost
 		-- "Comprar" con el precio: el ✨ solo apenas se ve sobre el dorado.
-		action.Text = `Comprar · {cost}`
+		action.Text = T("Comprar · {cost}", { cost = cost })
 		action.BackgroundColor3 = if affordable then GOLD else SECONDARY_BUTTON
 		action.TextColor3 = if affordable then DARK_TEXT else Color3.new(1, 1, 1)
 		action.Activated:Connect(function()
@@ -233,7 +237,7 @@ function ArenaGearPicker.new(
 		name.Position = UDim2.fromOffset(8, 4)
 		name.Size = UDim2.new(1, -150, 0, NAME_HEIGHT)
 		textLimit(name, 20)
-		local description = Widgets.label(if item then item.description else "Sin cambios", rowFrame)
+		local description = Widgets.label(if item then T(item.description) else T("Sin cambios"), rowFrame)
 		description.Font = Enum.Font.BuilderSans
 		description.TextXAlignment = Enum.TextXAlignment.Left
 		description.TextWrapped = true
@@ -326,7 +330,10 @@ function ArenaGearPicker.new(
 		name.TextWrapped = true
 		textLimit(name, 14)
 		local state = Widgets.label(
-			if current == gearId then "✔ Puesto" elseif owned then "Tuyo" else `✨ {if item then item.cost else 0}`,
+			if current == gearId
+				then T("✔ Puesto")
+				elseif owned then T("Tuyo")
+				else `✨ {if item then item.cost else 0}`,
 			button
 		)
 		state.Font = Enum.Font.BuilderSans
@@ -369,7 +376,7 @@ function ArenaGearPicker.new(
 			layout.Padding = UDim.new(0, 4)
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Parent = column
-			local title = Widgets.label(`{SLOT_ICONS[slot]} {ArenaGear.SLOT_NAMES[slot]}`, column)
+			local title = Widgets.label(`{SLOT_ICONS[slot]} {T(ArenaGear.SLOT_NAMES[slot])}`, column)
 			title.LayoutOrder = 0
 			title.Size = UDim2.new(1, 0, 0, GRID_TITLE_HEIGHT)
 			title.TextColor3 = SECONDARY_TEXT
@@ -393,7 +400,7 @@ function ArenaGearPicker.new(
 		bar.BackgroundTransparency = 0.25
 		bar.Parent = frame
 		corner(bar, 8)
-		local text = Widgets.label(HINT_TEXT, bar)
+		local text = Widgets.label(T(HINT_TEXT), bar)
 		text.Font = Enum.Font.BuilderSans
 		text.TextXAlignment = Enum.TextXAlignment.Left
 		text.TextWrapped = true
@@ -403,7 +410,7 @@ function ArenaGearPicker.new(
 		textLimit(text, 14)
 		if slotOfChoice then
 			local item = if gearOfChoice then ArenaGear.items[gearOfChoice] else nil
-			text.Text = `{optionName(gearOfChoice)}: {if item then item.description else "sin cambios"}`
+			text.Text = `{optionName(gearOfChoice)}: {if item then T(item.description) else T("sin cambios")}`
 			text.Size = UDim2.new(1, -150, 1, -4)
 			actionButton(bar, roleId, slotOfChoice, gearOfChoice, arena, amber)
 		end
@@ -430,13 +437,16 @@ function ArenaGearPicker.new(
 		local arena = readArena(player)
 		local amberValue = player:GetAttribute("Amber")
 		local amber = if typeof(amberValue) == "number" then amberValue else 0
-		header.Text = `{role.icon} Equipo de {role.name} en la arena · ✨ {amber} de Ámbar`
+		header.Text = T(
+			"{icon} Equipo de {role} en la arena · ✨ {amber} de Ámbar",
+			{ icon = role.icon, role = T(role.name), amber = amber }
+		)
 		for slot, item in slotButtons do
 			local id = equipped(arena, roleId, slot)
 			local gear = if id then ArenaGear.items[id] else nil
-			item.button.Text = `{SLOT_ICONS[slot]} {ArenaGear.SLOT_NAMES[slot]}\n{if gear
-				then `{gear.icon} {gear.name}`
-				else BASIC_TEXT}`
+			item.button.Text = `{SLOT_ICONS[slot]} {T(ArenaGear.SLOT_NAMES[slot])}\n{if gear
+				then `{gear.icon} {T(gear.name)}`
+				else T(BASIC_TEXT)}`
 			item.stroke.Enabled = chosen == slot
 		end
 		-- Se rehace solo si algo cambia (no en cada vuelta: los botones se recrearían).

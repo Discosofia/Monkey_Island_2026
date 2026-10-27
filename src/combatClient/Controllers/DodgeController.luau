@@ -16,6 +16,7 @@ local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Stamina = require(script.Parent.Parent.Stamina)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
@@ -23,8 +24,9 @@ local Dash = require(script.Parent.Parent.Dash)
 local Feint = require(script.Parent.Parent.Feint)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 
+local T = Strings.t
+
 local ACTION = "Dodge"
-local TITLE = "Esquivar"
 
 local DodgeController = {}
 
@@ -95,22 +97,22 @@ end
 -- Texto del botón táctil: "Esquivar" o, atrapado, "Evasivo" (con los segundos que le faltan).
 local function buttonTitle(player: Player): string
 	if not CombatState.isTrapped(player) then
-		return TITLE
+		return T("Esquivar")
 	end
 	local wait = CombatState.evasiveWait(player)
-	return if wait > 0 then `Evasivo {math.ceil(wait)}` else "¡Evasivo!"
+	return if wait > 0 then T("Evasivo {n}", { n = math.ceil(wait) }) else T("¡Evasivo!")
 end
 
 function DodgeController:Start()
 	local player = Players.LocalPlayer
 	Dash.keepUpright()
-	ActionButtons.bind(ACTION, TITLE, function(_, state: Enum.UserInputState)
+	local shown = T("Esquivar")
+	ActionButtons.bind(ACTION, shown, function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
 			dodge()
 		end
 		return Enum.ContextActionResult.Sink
 	end, Enum.KeyCode.Q, Enum.KeyCode.ButtonB)
-	local shown = TITLE
 	RunService.Heartbeat:Connect(function()
 		local title = buttonTitle(player)
 		if title ~= shown then

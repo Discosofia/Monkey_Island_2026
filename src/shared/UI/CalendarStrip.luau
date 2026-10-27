@@ -10,6 +10,7 @@
 local Config = require(script.Parent.Parent.Config)
 local Daily = require(script.Parent.Parent.Daily)
 local Rewards = require(script.Parent.Parent.Rewards)
+local Strings = require(script.Parent.Parent.Strings)
 local Widgets = require(script.Parent.Widgets)
 
 local CalendarStrip = {}
@@ -62,12 +63,13 @@ local function cell(row: Frame, day: number, width: number, cellState: CellState
 		stroke.Parent = frame
 	end
 
+	local dayText = Strings.t("Día {day}", { day = day })
 	local title = Widgets.label(
 		if cellState == "Claimed"
-			then `✅ Día {day}`
-			elseif cellState == "Tomorrow" then `Día {day} · mañana`
-			elseif big then `⭐ Día {day}`
-			else `Día {day}`,
+			then `✅ {dayText}`
+			elseif cellState == "Tomorrow" then Strings.t("Día {day} · mañana", { day = day })
+			elseif big then `⭐ {dayText}`
+			else dayText,
 		frame
 	)
 	title.Position = UDim2.fromScale(0.05, 0.05)

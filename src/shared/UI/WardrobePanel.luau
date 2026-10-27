@@ -41,8 +41,12 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local READY_COLOR = Color3.fromRGB(242, 178, 36)
@@ -57,20 +61,24 @@ local WEAPON_PREVIEW_SCALE = 0.7
 
 type Tab = { id: string, label: string, kinds: { [string]: boolean }, byRole: boolean? }
 local TABS: { Tab } = {
-	{ id = "Outfit", label = "👕 Trajes", kinds = { Outfit = true }, byRole = true },
-	{ id = "Weapon", label = "⚔️ Armas", kinds = { WeaponSkin = true }, byRole = true },
-	{ id = "Effects", label = "✨ Efectos", kinds = { Trail = true, Aura = true } },
-	{ id = "Titles", label = "🏷️ Títulos", kinds = { Title = true } },
-	{ id = "Pets", label = "🐾 Mascotas", kinds = { PetSkin = true } },
-	{ id = "Frames", label = "🖼️ Marcos", kinds = { Frame = true } },
-	{ id = "Emotes", label = "😀 Emotes", kinds = { Emote = true } },
-	{ id = "Styles", label = "🎨 Estilos", kinds = { NumberStyle = true, BurstStyle = true, NestDecor = true } },
+	{ id = "Outfit", label = later("👕 Trajes"), kinds = { Outfit = true }, byRole = true },
+	{ id = "Weapon", label = later("⚔️ Armas"), kinds = { WeaponSkin = true }, byRole = true },
+	{ id = "Effects", label = later("✨ Efectos"), kinds = { Trail = true, Aura = true } },
+	{ id = "Titles", label = later("🏷️ Títulos"), kinds = { Title = true } },
+	{ id = "Pets", label = later("🐾 Mascotas"), kinds = { PetSkin = true } },
+	{ id = "Frames", label = later("🖼️ Marcos"), kinds = { Frame = true } },
+	{ id = "Emotes", label = later("😀 Emotes"), kinds = { Emote = true } },
+	{
+		id = "Styles",
+		label = later("🎨 Estilos"),
+		kinds = { NumberStyle = true, BurstStyle = true, NestDecor = true },
+	},
 }
 -- Columnas de la pestaña Estilos, una por tipo.
 local STYLE_COLUMNS = {
-	{ kind = "NumberStyle", label = "🔢 Números" },
-	{ kind = "BurstStyle", label = "💥 Estallidos" },
-	{ kind = "NestDecor", label = "🪺 Nido" },
+	{ kind = "NumberStyle", label = later("🔢 Números") },
+	{ kind = "BurstStyle", label = later("💥 Estallidos") },
+	{ kind = "NestDecor", label = later("🪺 Nido") },
 }
 -- Grados de los cosméticos que evolucionan.
 local ROMAN = { "I", "II", "III" }
@@ -79,7 +87,7 @@ local STYLE_DEMO_SECONDS = 0.9
 -- Pestañas por fila (dos filas: con siete en una, en un teléfono no se leían).
 local TABS_PER_ROW = 4
 -- Nombre de cada familia de mascotas (Data/Pets "family") en las tarjetas de sus skins.
-local FAMILY_NAMES: { [string]: string } = { Felino = "felinos", Perro = "perros" }
+local FAMILY_NAMES: { [string]: string } = { Felino = later("felinos"), Perro = later("perros") }
 
 -- "rebuild" vuelve a dibujar la ventana (LobbyUIController.render) tras elegir pestaña, rol o tarjeta.
 export type Options = { compact: boolean, rebuild: () -> () }
@@ -165,30 +173,33 @@ local function howToGet(cosmeticId: string): (string, (() -> ())?)
 	local source = Cosmetics[cosmeticId].source
 	local player = Players.LocalPlayer
 	if source.earned == "Rescue" then
-		return "Gana una partida", nil
+		return T("Gana una partida"), nil
 	elseif source.earned == "MasterVictory" then
-		return "Gana con el nivel 4", nil
+		return T("Gana con el nivel 4"), nil
 	elseif source.earned == "GiantSlayer" then
-		return "Derriba al gigante", nil
+		return T("Derriba al gigante"), nil
 	elseif source.season then
-		return "Pase de temporada", nil
+		return T("Pase de temporada"), nil
 	elseif source.gamePassId and source.gamePassId ~= 0 then
 		local gamePassId = source.gamePassId
-		return "Comprar", function()
+		return T("Comprar"), function()
 			MarketplaceService:PromptGamePassPurchase(player, gamePassId)
 		end
 	elseif source.productId and not onOffer(cosmeticId, "robux") then
-		return "🛒 En rotación", nil
+		return T("🛒 En rotación"), nil
 	elseif source.productId and source.productId ~= 0 then
 		-- La abre el servidor (ServerShared/Purchases), que no cobra lo que ya tienes.
-		return if source.price then `Comprar · {source.price} R$` else "Comprar",
+		return if source.price then T("Comprar · {price} R$", { price = source.price }) else T("Comprar"),
 			function()
 				Remotes.RequestPurchase:FireServer(`Cosmetic.{cosmeticId}`)
 			end
 	elseif source.amber then
-		return if onOffer(cosmeticId, "amber") then `✨ {source.amber} · 🛒 Tienda` else "🛒 En rotación", nil
+		return if onOffer(cosmeticId, "amber")
+			then T("✨ {amber} · 🛒 Tienda", { amber = source.amber })
+			else T("🛒 En rotación"),
+			nil
 	end
-	return if source.price then `Próximamente · {source.price} R$` else "Próximamente", nil
+	return if source.price then T("Próximamente · {price} R$", { price = source.price }) else T("Próximamente"), nil
 end
 
 local function owned(cosmeticId: string): boolean
@@ -247,10 +258,10 @@ end
 -- Para quién es una skin de mascota: la mascota o su familia.
 local function petTarget(cosmetic: Cosmetics.Cosmetic): string
 	if cosmetic.petFamily then
-		return FAMILY_NAMES[cosmetic.petFamily] or cosmetic.petFamily
+		return if FAMILY_NAMES[cosmetic.petFamily] then T(FAMILY_NAMES[cosmetic.petFamily]) else cosmetic.petFamily
 	end
 	local pet = if cosmetic.petId then Pets[cosmetic.petId] else nil
-	return if pet then `{pet.icon} {pet.name}` else ""
+	return if pet then `{pet.icon} {T(pet.name)}` else ""
 end
 
 -- Monta el avatar con el traje y el arma de "roleId" que tocan en el visor, centrado en el origen
@@ -354,7 +365,7 @@ local function frameCard(pane: Frame, equipped: { [string]: string }, compact: b
 	if frameId then
 		PlayerFrames.apply(card, frameId)
 	else
-		card.Text = `{Players.LocalPlayer.DisplayName} · sin marco`
+		card.Text = T("{name} · sin marco", { name = Players.LocalPlayer.DisplayName })
 		card.TextColor3 = DETAIL_COLOR
 	end
 end
@@ -434,7 +445,7 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 		elseif styleId then
 			styleDemo(viewport, styleId)
 		else
-			local empty = Widgets.label("Elige un estilo para verlo", viewport)
+			local empty = Widgets.label(T("Elige un estilo para verlo"), viewport)
 			empty.Size = UDim2.new(1, -20, 0, 40)
 			empty.Position = UDim2.new(0, 10, 0.5, -20)
 			empty.TextColor3 = NOTE_COLOR
@@ -445,7 +456,7 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 		local petId, skinId = shownPet(equipped)
 		model = if petId then PetModels.build(petId, skinId) else nil
 		if not petId then
-			local empty = Widgets.label("Pon una mascota en el nido para verla aquí", viewport)
+			local empty = Widgets.label(T("Pon una mascota en el nido para verla aquí"), viewport)
 			empty.Size = UDim2.new(1, -20, 0, 40)
 			empty.Position = UDim2.new(0, 10, 0.5, -20)
 			empty.TextColor3 = NOTE_COLOR
@@ -476,15 +487,17 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 		end)
 	end
 	local selected = if state.selected then Cosmetics[state.selected] else nil
-	local caption =
-		Widgets.label(if selected then `{selected.icon} {selected.name}` else "Elige algo para verlo puesto", pane)
+	local caption = Widgets.label(
+		if selected then `{selected.icon} {T(selected.name)}` else T("Elige algo para verlo puesto"),
+		pane
+	)
 	caption.LayoutOrder = 2
 	caption.Size = UDim2.new(1, 0, 0, if compact then 20 else 28)
 	caption.TextColor3 = if selected then selected.color else NOTE_COLOR
 	textCap(caption, if compact then 14 else 20)
 	if selected then
 		local rarity = Rarities[selected.rarity] or Rarities.Common
-		local tag = Widgets.label(rarity.name, pane)
+		local tag = Widgets.label(T(rarity.name), pane)
 		tag.LayoutOrder = 3
 		tag.Size = UDim2.new(1, 0, 0, if compact then 16 else 22)
 		tag.TextColor3 = rarity.color
@@ -495,7 +508,7 @@ local function buildPreview(pane: Frame, roleId: string, equipped: { [string]: s
 	end
 	-- Si se está probando algo, volver a lo que llevas puesto.
 	if next(state.picks) then
-		local reset = chip(pane, "🔄 Lo que llevas", false, 5)
+		local reset = chip(pane, T("🔄 Lo que llevas"), false, 5)
 		reset.Size = UDim2.new(0.7, 0, 0, if compact then 28 else 34)
 		reset.MouseButton1Click:Connect(function()
 			table.clear(state.picks)
@@ -555,7 +568,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 		if not tabRows[rowIndex] then
 			tabRows[rowIndex] = row(cardsPane, rowIndex, if compact then 30 else 36)
 		end
-		local button = chip(tabRows[rowIndex], candidate.label, candidate == tab, index)
+		local button = chip(tabRows[rowIndex], T(candidate.label), candidate == tab, index)
 		button.Size = UDim2.new(1 / TABS_PER_ROW, -5, 1, 0)
 		button.MouseButton1Click:Connect(function()
 			state.tab = candidate.id
@@ -573,7 +586,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 			return Roles[a].order < Roles[b].order
 		end)
 		for index, id in roleIds do
-			local button = chip(roles, `{Roles[id].icon} {Roles[id].name}`, id == roleId, index)
+			local button = chip(roles, `{Roles[id].icon} {T(Roles[id].name)}`, id == roleId, index)
 			button.Size = UDim2.new(1 / #roleIds, -5, 1, 0)
 			button.MouseButton1Click:Connect(function()
 				state.role = id
@@ -591,7 +604,8 @@ function WardrobePanel.build(list: Instance, options: Options)
 			local cosmeticId = slots[index]
 			table.insert(icons, if cosmeticId and Cosmetics[cosmeticId] then Cosmetics[cosmeticId].icon else "·")
 		end
-		local wheelNote = Widgets.label(`Tu rueda (tecla . o 😀): {table.concat(icons, "  ")}`, cardsPane)
+		local wheelNote =
+			Widgets.label(T("Tu rueda (tecla . o 😀): {icons}", { icons = table.concat(icons, "  ") }), cardsPane)
 		wheelNote.LayoutOrder = 3
 		wheelNote.Size = UDim2.new(1, 0, 0, if compact then 22 else 28)
 		wheelNote.TextColor3 = NOTE_COLOR
@@ -626,7 +640,9 @@ function WardrobePanel.build(list: Instance, options: Options)
 
 	if #ids == 0 then
 		local empty = Widgets.label(
-			if tab.byRole then `Aún no hay nada de {Roles[roleId].name}: ¡pronto!` else "Aún no hay nada aquí",
+			if tab.byRole
+				then T("Aún no hay nada de {role}: ¡pronto!", { role = T(Roles[roleId].name) })
+				else T("Aún no hay nada aquí"),
 			cardsPane
 		)
 		empty.LayoutOrder = 5
@@ -662,18 +678,21 @@ function WardrobePanel.build(list: Instance, options: Options)
 			rebuild()
 		end)
 
-		local title = Widgets.label(`{cosmetic.icon} {(string.gsub(cosmetic.name, "^[^:]+: ", ""))}`, card)
+		local title = Widgets.label(`{cosmetic.icon} {(string.gsub(T(cosmetic.name), "^[^:]+: ", ""))}`, card)
 		title.Position = UDim2.fromOffset(6, 4)
 		title.Size = UDim2.new(1, -12, 0, if compact then 18 else 22)
 		title.TextColor3 = cosmetic.color
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		textCap(title, if compact then 14 else 17)
 		local rarity = Rarities[cosmetic.rarity] or Rarities.Common
-		local tagText = if isEquipped then `{rarity.name} · puesto` else rarity.name
+		local tagText = if isEquipped then T("{rarity} · puesto", { rarity = T(rarity.name) }) else T(rarity.name)
 		if cosmetic.kind == "PetSkin" then
 			tagText ..= ` · {petTarget(cosmetic)}`
 		elseif cosmetic.line then
-			tagText ..= ` · {ROMAN[cosmetic.grade or 1]} de {ROMAN[#CosmeticSlots.grades(cosmeticId)]}`
+			tagText ..= ` · {T("{grade} de {grades}", {
+				grade = ROMAN[cosmetic.grade or 1],
+				grades = ROMAN[#CosmeticSlots.grades(cosmeticId)],
+			})}`
 		end
 		local tag = Widgets.label(tagText, card)
 		tag.Position = UDim2.fromOffset(6, if compact then 22 else 27)
@@ -682,7 +701,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 		tag.TextXAlignment = Enum.TextXAlignment.Left
 		textCap(tag, if compact then 11 else 13)
 		if not compact then
-			local detail = Widgets.label(cosmetic.description, card)
+			local detail = Widgets.label(T(cosmetic.description), card)
 			detail.Position = UDim2.fromOffset(6, 45)
 			detail.Size = UDim2.new(1, -12, 0, 26)
 			detail.Font = Enum.Font.BuilderSans
@@ -702,8 +721,8 @@ function WardrobePanel.build(list: Instance, options: Options)
 		end
 		textCap(button, if compact then 13 else 15)
 		if has then
-			local equipText = if cosmetic.kind == "Emote" then "A la rueda" else "Equipar"
-			setButton(button, if isEquipped then "Quitar" else equipText, true)
+			local equipText = if cosmetic.kind == "Emote" then T("A la rueda") else T("Equipar")
+			setButton(button, if isEquipped then T("Quitar") else equipText, true)
 			button.MouseButton1Click:Connect(function()
 				Remotes.EquipCosmetic:FireServer(cosmeticId)
 			end)
@@ -728,7 +747,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 			frame.BackgroundTransparency = 1
 			frame.Size = UDim2.new(1 / #STYLE_COLUMNS, -4, 1, 0)
 			frame.Parent = columns
-			local heading = Widgets.label(column.label, frame)
+			local heading = Widgets.label(T(column.label), frame)
 			heading.Size = UDim2.new(1, 0, 0, if compact then 20 else 26)
 			heading.TextColor3 = NOTE_COLOR
 			textCap(heading, if compact then 14 else 18)

@@ -55,6 +55,7 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local SeasonPassPanel = require(ReplicatedStorage.Shared.UI.SeasonPassPanel)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
@@ -2027,6 +2028,8 @@ function LobbyUIController:Start()
 	Players.PlayerRemoving:Connect(function()
 		task.defer(render)
 	end)
+	-- Otro idioma (Ajustes, Shared/Strings): la ventana abierta se rehace en él.
+	Strings.onChanged(render)
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		if prompt.Name == "ZarparPrompt" then

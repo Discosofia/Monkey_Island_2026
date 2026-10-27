@@ -515,11 +515,15 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **D5** | Botín: huevo mítico (y la mascota mítica nueva), set y armas de la Calavera como planos, cofre de llaves y tope semanal, en `Economia` | — | ⏳ |
 | **D6** | Ranking de tiempo y la sección de la mazmorra en `Economia` y el GDD | — | ⏳ |
 
-**Tanda "Idioma inglés"** (GDD §18): `Shared/Strings` con una `LocalizationTable` en/es revisada a mano y todos los textos del código pasados a claves (también los que llevan números dentro). Antes, el usuario pone la ficha en inglés en Creator Hub y activa la traducción automática.
+**Tanda "Idioma inglés"** (GDD §18, plan aprobado el 27-10-2026): `Shared/Strings` con el español como clave, el inglés revisado a mano en `Data/Strings/*` y todos los textos del código pasados a `T()` (también los que llevan números dentro). Al terminar la I1e, el usuario cambia el idioma de origen a inglés en Creator Hub, sube `build/localization.csv` y activa la traducción automática. Cada parte cierra con una página de revisión es | en.
 
 | Tanda | Contenido | Commit | Estado |
 |---|---|---|---|
-| **I1** | `Shared/Strings` + `LocalizationTable`, y pasar los textos de `src/**` a claves | — | ⏳ |
+| **I1a** | Base: `Shared/Strings`, `UI/Localizer` (carteles, `ProximityPrompt`, herramientas), ajuste de idioma, `Notify` con argumentos, `tools/strings.py` en el CI; la UI de `src/shared` y `CombatClient` | — | ⏳ |
+| **I1b** | La Isla: `src/island/**` (HUD, Basecamp, crafteo, misiones, faro, sus `Notify`) | — | ⏳ |
+| **I1c** | El Lobby y `serverShared`: `src/lobby/**`, carteles de `LobbyBuilder`, pase, compras, retención, moderación | — | ⏳ |
+| **I1d** | Dunas y el combate: `src/dunas/**`, `src/combat/**`, carteles de `ArenaBuilder` | — | ⏳ |
+| **I1e** | El contenido de `Data/*` (nombres y descripciones) y el CSV para Creator Hub | — | ⏳ |
 
 ---
 

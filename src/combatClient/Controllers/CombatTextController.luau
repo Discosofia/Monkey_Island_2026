@@ -27,6 +27,7 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local CombatTextColumn = require(ReplicatedStorage.Shared.UI.CombatTextColumn)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
@@ -381,7 +382,7 @@ local function showLoot(itemId: any, amount: any, by: any)
 	-- Lo que trae la mascota (el labrador), aparte y con su icono: así se ve que es suyo.
 	if typeof(by) == "string" then
 		lastLoot = nil
-		column:push(`+{amount} {item.icon} {item.name} {by}`, { color = rarity.color })
+		column:push(`+{amount} {item.icon} {Strings.t(item.name)} {by}`, { color = rarity.color })
 		return
 	end
 	local now = os.clock()
@@ -390,7 +391,7 @@ local function showLoot(itemId: any, amount: any, by: any)
 		total += lastLoot.total
 	end
 	lastLoot = { itemId = itemId, total = total, at = now }
-	column:push(`+{total} {item.icon} {item.name}`, { color = rarity.color, key = itemId })
+	column:push(`+{total} {item.icon} {Strings.t(item.name)}`, { color = rarity.color, key = itemId })
 end
 
 function CombatTextController:Start()

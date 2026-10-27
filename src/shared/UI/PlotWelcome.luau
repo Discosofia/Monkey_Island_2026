@@ -10,7 +10,11 @@ local TweenService = game:GetService("TweenService")
 
 local Plot = require(ReplicatedStorage.Shared.Plot)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(script.Parent.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local GOLD = Color3.fromRGB(255, 205, 70)
@@ -18,9 +22,9 @@ local TEXT = Color3.fromRGB(230, 220, 200)
 local CHECK_SECONDS = 1
 
 local LINES = {
-	"Has ganado: tu parcela del Basecamp es tuya para siempre.",
-	"Viaja contigo a cada partida y aparece con tu nombre en uno de los 5 huecos.",
-	"En ella irás levantando y mejorando forja, taller, huerto, cama, cofre, incubadora y nido.",
+	later("Has ganado: tu parcela del Basecamp es tuya para siempre."),
+	later("Viaja contigo a cada partida y aparece con tu nombre en uno de los 5 huecos."),
+	later("En ella irás levantando y mejorando forja, taller, huerto, cama, cofre, incubadora y nido."),
 }
 
 local PlotWelcome = {}
@@ -48,7 +52,7 @@ local function open(playerGui: PlayerGui)
 	sizeLimit.MaxSize = Vector2.new(560, 330)
 	sizeLimit.Parent = panel
 
-	local title = Widgets.label("🏡 ¡Tienes parcela propia!", panel)
+	local title = Widgets.label(T("🏡 ¡Tienes parcela propia!"), panel)
 	title.Name = "Title"
 	title.AnchorPoint = Vector2.new(0.5, 0)
 	title.Position = UDim2.new(0.5, 0, 0, 10)
@@ -56,7 +60,7 @@ local function open(playerGui: PlayerGui)
 	title.TextColor3 = GOLD
 
 	for index, text in LINES do
-		local line = Widgets.label(text, panel)
+		local line = Widgets.label(T(text), panel)
 		line.Name = `Line{index}`
 		line.AnchorPoint = Vector2.new(0.5, 0)
 		line.Position = UDim2.fromScale(0.5, 0.22 + (index - 1) * 0.19)
@@ -66,7 +70,7 @@ local function open(playerGui: PlayerGui)
 		line.TextColor3 = TEXT
 	end
 
-	local ok = Widgets.button("¡Genial!", panel)
+	local ok = Widgets.button(T("¡Genial!"), panel)
 	ok.Name = "Ok"
 	ok.AnchorPoint = Vector2.new(0.5, 1)
 	ok.Position = UDim2.new(0.5, 0, 1, -12)

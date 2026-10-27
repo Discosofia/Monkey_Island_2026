@@ -8,7 +8,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local CARD_COLOR = Color3.fromRGB(45, 38, 30)
 local DISABLED_COLOR = Color3.fromRGB(90, 90, 90)
@@ -105,10 +108,10 @@ function ArenaRoleCards.new(
 		stroke.Enabled = false
 		stroke.Parent = button
 
-		local name = Widgets.label(`{role.icon} {role.name}`, button)
+		local name = Widgets.label(`{role.icon} {T(role.name)}`, button)
 		name.Size = UDim2.fromScale(1, 0.45)
 		textLimit(name, NAME_TEXT_MAX)
-		local edge = Widgets.label(role.edge, button)
+		local edge = Widgets.label(T(role.edge), button)
 		edge.Font = Enum.Font.BuilderSans
 		edge.TextColor3 = SECONDARY_TEXT
 		edge.Position = UDim2.fromScale(0, 0.45)

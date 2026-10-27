@@ -17,7 +17,10 @@ local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Settings = require(ReplicatedStorage.Shared.Settings)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local GOLD = Color3.fromRGB(255, 205, 70)
 local NEXT = Color3.fromRGB(120, 230, 255)
@@ -37,7 +40,7 @@ end
 local function shortName(roleId: string, abilityId: string): string
 	for _, ability in Roles[roleId].abilities do
 		if ability.id == abilityId then
-			return ability.short
+			return T(ability.short)
 		end
 	end
 	return abilityId
@@ -149,8 +152,8 @@ function ComboController:Start()
 
 	-- "chain": combos seguidos cerrados por conexiones (0 si este se empezó a mano).
 	local function showPop(streak: number, chain: number)
-		local headline = if chain >= 1 then `¡CONEXIÓN! {chain + 1} seguidos` else "¡COMBO!"
-		pop.Text = if streak >= 2 then `{headline} · racha x{streak}` else headline
+		local headline = if chain >= 1 then T("¡CONEXIÓN! {n} seguidos", { n = chain + 1 }) else T("¡COMBO!")
+		pop.Text = if streak >= 2 then T("{headline} · racha x{n}", { headline = headline, n = streak }) else headline
 		pop.TextTransparency = 0
 		pop.TextStrokeTransparency = 0.3
 		popScale.Scale = 1.8
@@ -183,7 +186,8 @@ function ComboController:Start()
 		local streak = if now < streakUntil then number(player, "ComboStreak") else 0
 		panel.Visible = step > 0 or streak > 0
 
-		title.Text = if step > 0 and step < #combo.steps then `{combo.name} {step}/{#combo.steps}` else combo.name
+		local comboName = T(combo.name)
+		title.Text = if step > 0 and step < #combo.steps then `{comboName} {step}/{#combo.steps}` else comboName
 		streakLabel.Text = if streak > 0 then `x{streak}` else ""
 		local connected = player:GetAttribute("ComboConnected") == true
 		for index, pill in pills do

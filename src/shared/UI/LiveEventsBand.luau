@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 
 local Catalog = require(script.Parent.Parent.Data.LiveEvents)
 local LiveEvents = require(script.Parent.Parent.LiveEvents)
+local Strings = require(script.Parent.Parent.Strings)
 local Toast = require(script.Parent.Toast)
 local Widgets = require(script.Parent.Widgets)
 
@@ -20,6 +21,8 @@ local GOLD = Color3.fromRGB(242, 178, 36)
 local NEXT = Color3.fromRGB(120, 230, 255) -- cian: "lo siguiente"
 local CHIP_HEIGHT = 36
 local COMPACT_HEIGHT = 500
+
+local T = Strings.t
 
 local LiveEventsBand = {}
 
@@ -77,11 +80,12 @@ function LiveEventsBand.start()
 		padding.PaddingRight = UDim.new(0, 12)
 		padding.Parent = button
 		button.MouseButton1Click:Connect(function()
-			local text = `{info.icon} {info.name}: {info.detail}`
+			local args = { icon = info.icon, name = T(info.name), detail = T(info.detail) }
 			if info.place == "Lobby" then
-				text ..= " (en el Lobby)"
+				Toast.show("{icon} {name}: {detail} (en el Lobby)", args)
+			else
+				Toast.show("{icon} {name}: {detail}", args)
 			end
-			Toast.show(text)
 		end)
 		return button
 	end
@@ -107,12 +111,14 @@ function LiveEventsBand.start()
 			local stroke = button:FindFirstChildOfClass("UIStroke") :: UIStroke
 			if LiveEvents.isRunning(event, now) then
 				local left = LiveEvents.clock(event.endsAt - now)
-				button.Text = if compact then `{info.icon} {left}` else `{info.icon} {info.name} · {left}`
+				button.Text = if compact then `{info.icon} {left}` else `{info.icon} {T(info.name)} · {left}`
 				button.TextColor3 = Color3.new(1, 1, 1)
 				stroke.Color = GOLD
 			else
 				local wait = LiveEvents.clock(event.startsAt - now)
-				button.Text = if compact then `⏳{info.icon} {wait}` else `⏳ {info.icon} {info.name} en {wait}`
+				button.Text = if compact
+					then `⏳{info.icon} {wait}`
+					else T("⏳ {icon} {name} en {wait}", { icon = info.icon, name = T(info.name), wait = wait })
 				button.TextColor3 = NEXT
 				stroke.Color = NEXT
 			end

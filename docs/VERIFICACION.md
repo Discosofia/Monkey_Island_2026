@@ -1123,6 +1123,29 @@ Lo que falta: que se vaya el dueño de verdad, otro jugador que suelte o coja el
 1. [ ] Con la incubadora III, deja dos huevos en el nido del Lobby y vuelve al cabo de unas horas.
    ✅ Los dos han avanzado sin jugar, cada uno con el 70 % de su tiempo, y el cartel de mascotas del nido resume el segundo («2.º: …»).
 
+## 19. Lo que queda por probar de I1a: la base del inglés (27-10-2026)
+
+Probado en Studio (1 jugador, Lobby e Isla): el selector 🌐 Idioma de Ajustes se guarda en el perfil y cambia al momento el panel de Ajustes (que sigue cabiendo sin desplazarse en PC), el Armario, el pase y la tienda de cosméticos; las herramientas de la mochila de la Isla dicen su daño en inglés; `[Strings] sin inglés` solo sale para nombres de `Data` (I1e) y avisos del servidor de las tandas que faltan. Hasta la I1e, en inglés quedan en español los nombres de armas, monos, cosméticos y rarezas, y los textos propios del Lobby, la Isla y Dunas.
+
+#### 19.1 Con otra cuenta (o cambiando el idioma de tu cuenta de Roblox)
+
+1. [ ] Entra con una cuenta en inglés que no haya tocado el selector (Ajustes → 🌐 en «Automático»).
+   ✅ El panel de Ajustes, el Armario y el pase salen en inglés sin elegir nada.
+2. [ ] Lo mismo con una cuenta en español.
+   ✅ Todo sale en español.
+3. [ ] Con una cuenta en francés (o portugués), en el juego publicado y después de la I1e (con la tabla subida a Creator Hub).
+   ✅ Los textos salen en francés, también los que llevan números («Jour 3 sur 30…»); si alguno no está traducido, sale en inglés, nunca en español.
+
+#### 19.2 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Pon a un jugador en English y al otro en Español, y haz que les llegue un aviso a los dos (por ejemplo, el de amago sin estamina, o un anuncio de administrador).
+   ✅ Cada uno lo lee en su idioma; el texto del anuncio sale tal cual lo escribiste.
+
+#### 19.3 En el teléfono (emulador de Studio, apaisado)
+
+1. [ ] Abre Ajustes, Armario y pase con el idioma en English.
+   ✅ Los textos caben en sus botones y tarjetas (el inglés no corta palabras ni se sale).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -7,6 +7,7 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Contracts = require(script.Parent.Data.Contracts)
+local Strings = require(script.Parent.Strings)
 
 local ATTRIBUTE = "Contract"
 
@@ -48,9 +49,9 @@ function Contract.read(): State?
 	return decoded :: State
 end
 
--- Texto del paso con su objetivo ("Construid 3 piezas").
+-- Texto del paso con su objetivo ("Construyan 3 piezas"), en el idioma del jugador.
 function Contract.stepText(step: Contracts.Step, target: number): string
-	return (string.gsub(step.text, "{target}", tostring(target)))
+	return Strings.t(step.text, { target = target })
 end
 
 -- Días en que está abierto el paso "index" ("días 3–4", "día 7").
@@ -58,9 +59,9 @@ function Contract.daysText(contract: Contracts.Contract, index: number): string
 	local step = contract.steps[index]
 	local nextStep = contract.steps[index + 1]
 	if nextStep and nextStep.day - 1 > step.day then
-		return `días {step.day}–{nextStep.day - 1}`
+		return Strings.t("días {from}–{to}", { from = step.day, to = nextStep.day - 1 })
 	end
-	return `día {step.day}`
+	return Strings.t("día {day}", { day = step.day })
 end
 
 -- Pasos cumplidos.

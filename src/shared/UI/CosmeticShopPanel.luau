@@ -28,7 +28,10 @@ local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local PICKED_COLOR = Color3.fromRGB(70, 58, 44)
@@ -41,8 +44,9 @@ local CONFIRM_SECONDS = 3
 -- Jugadores que caben en la barra del regalo (teléfono, PC), por orden de nombre.
 local GIFT_PICKS_COMPACT = 3
 local GIFT_PICKS = 5
-local HINT =
+local HINT = Strings.later(
 	"Toca una tarjeta para ver qué es · Solo cambian tu aspecto, nunca dan ventaja · Lo que compras se pone en el 👕 Armario"
+)
 
 export type Options = { compact: boolean }
 
@@ -105,13 +109,13 @@ end
 
 -- El nombre sin el tipo delante ("Título: Cazaplátanos" → "Cazaplátanos").
 local function shortName(cosmetic: Cosmetics.Cosmetic): string
-	return (string.gsub(cosmetic.name, "^[^:]+: ", ""))
+	return (string.gsub(T(cosmetic.name), "^[^:]+: ", ""))
 end
 
 local function describe(cosmeticId: string): string
 	local cosmetic = Cosmetics[cosmeticId]
 	local rarity = Rarities[cosmetic.rarity] or Rarities.Common
-	return `{cosmetic.icon} {cosmetic.name} · {rarity.name} · {cosmetic.description}`
+	return `{cosmetic.icon} {T(cosmetic.name)} · {T(rarity.name)} · {T(cosmetic.description)}`
 end
 
 -- Imagen 3D del cosmético en "view" y, si es un título, su texto encima (los ViewportFrame no dibujan
@@ -123,7 +127,7 @@ local function picture(view: ViewportFrame, cosmeticId: string, textSize: number
 		RewardModels.frame(view, model, if cosmetic.kind == "WeaponSkin" then 1.1 else 1.25)
 	end
 	if cosmetic.kind == "Title" then
-		local label = Widgets.label(cosmetic.title or cosmetic.name, view)
+		local label = Widgets.label(T(cosmetic.title or cosmetic.name), view)
 		label.Size = UDim2.fromScale(1, 0.24)
 		label.TextColor3 = cosmetic.color
 		textCap(label, textSize)
@@ -215,7 +219,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 	local compact = options.compact
 	local shop = readShop()
 	if not shop then
-		local wait = Widgets.label("Abriendo la tienda…", list)
+		local wait = Widgets.label(T("Abriendo la tienda…"), list)
 		wait.LayoutOrder = 1
 		wait.Size = UDim2.new(1, -10, 0, 30)
 		wait.TextColor3 = NOTE_COLOR
@@ -285,7 +289,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		textCap(name, if compact then 13 else 16)
 		if tagHeight > 0 then
 			local rarity = Rarities[cosmetic.rarity] or Rarities.Common
-			local tag = Widgets.label(rarity.name, card)
+			local tag = Widgets.label(T(rarity.name), card)
 			tag.AnchorPoint = Vector2.new(0, 1)
 			tag.Position = UDim2.new(0, 6, 1, -(buttonHeight + 9))
 			tag.Size = UDim2.new(1, -12, 0, tagHeight)
@@ -325,7 +329,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		local button = cardButton(card, buttonHeight, if compact then 13 else 15)
 		local price = CosmeticShop.price(cosmeticId, "Amber") or 0
 		if bought[cosmeticId] or owned(cosmeticId) then
-			setButton(button, "✅ Tuyo", false)
+			setButton(button, T("✅ Tuyo"), false)
 			continue
 		end
 		setButton(button, `✨ {price}`, balance >= price)
@@ -337,12 +341,12 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 			end
 			if os.clock() < armedUntil then
 				armedUntil = 0
-				setButton(button, "Comprando…", false)
+				setButton(button, T("Comprando…"), false)
 				Remotes.BuyCosmetic:FireServer(cosmeticId)
 				return
 			end
 			armedUntil = os.clock() + CONFIRM_SECONDS
-			button.Text = "¿Comprar?"
+			button.Text = T("¿Comprar?")
 			task.delay(CONFIRM_SECONDS, function()
 				if button.Parent and button.Active then
 					button.Text = `✨ {price}`
@@ -351,7 +355,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		end)
 	end
 	if #amberOffer == 0 then
-		tile(amberCards, 1, 1, "🎉 Ya tienes todo lo de la tienda en Ámbar", compact)
+		tile(amberCards, 1, 1, T("🎉 Ya tienes todo lo de la tienda en Ámbar"), compact)
 	end
 
 	-- En PC, la tienda de Robux ocupa el ancho de la de Ámbar y deja el último hueco para explicarse.
@@ -382,26 +386,26 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 			end)
 		end
 		if bought[cosmeticId] or owned(cosmeticId) then
-			setButton(button, "✅ Tuyo", false)
+			setButton(button, T("✅ Tuyo"), false)
 		elseif sold or RunService:IsStudio() then
-			setButton(button, if sold then `R$ {price}` else `R$ {price} · prueba`, true)
+			setButton(button, if sold then `R$ {price}` else T("R$ {price} · prueba", { price = price }), true)
 			button.MouseButton1Click:Connect(function()
 				pick(cosmeticId)
 				Remotes.RequestPurchase:FireServer(`Cosmetic.{cosmeticId}`)
 			end)
 		else
-			setButton(button, "Próximamente", false)
+			setButton(button, T("Próximamente"), false)
 		end
 	end
 	if #robuxOffer == 0 then
-		tile(robuxCards, 1, robuxRow, "🎉 Ya tienes todo lo de esta semana", compact)
+		tile(robuxCards, 1, robuxRow, T("🎉 Ya tienes todo lo de esta semana"), compact)
 	end
 	if not compact then
 		tile(
 			robuxCards,
 			robuxRow,
 			robuxRow,
-			"🗓️ Nuevos cada lunes\nSolo cambian tu aspecto: nunca dan ventaja",
+			T("🗓️ Nuevos cada lunes\nSolo cambian tu aspecto: nunca dan ventaja"),
 			compact
 		)
 	end
@@ -410,7 +414,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 	local passes = CosmeticShop.fixed()
 	local passHeight = if compact then 44 else 66
 	local passHeader, passCards = section(list, 3, UDim.new(1, -10), passHeight, compact)
-	passHeader.Text = "🎟️ Siempre a la venta"
+	passHeader.Text = T("🎟️ Siempre a la venta")
 	for index, cosmeticId in passes do
 		local cosmetic = Cosmetics[cosmeticId]
 		local card = Instance.new("TextButton")
@@ -449,9 +453,9 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		textCap(button, if compact then 12 else 15)
 		local gamePassId = cosmetic.source.gamePassId or 0
 		if owned(cosmeticId) then
-			setButton(button, "✅ Tuyo", false)
+			setButton(button, T("✅ Tuyo"), false)
 		elseif gamePassId == 0 then
-			setButton(button, "Próximamente", false)
+			setButton(button, T("Próximamente"), false)
 		else
 			local known = passPrices[gamePassId]
 			setButton(button, if known then `R$ {known}` else "R$ …", true)
@@ -476,7 +480,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		end
 	end
 
-	detail = Widgets.label(if selected and cards[selected] then describe(selected) else HINT, list)
+	detail = Widgets.label(if selected and cards[selected] then describe(selected) else T(HINT), list)
 	detail.LayoutOrder = 4
 	detail.Size = UDim2.new(1, -10, 0, if compact then 18 else 26)
 	detail.Font = Enum.Font.BuilderSans
@@ -523,7 +527,10 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 			textCap(option, textSize)
 			return option
 		end
-		local title = Widgets.label(`🎁 Regalar {cosmetic.icon} {shortName(cosmetic)} a:`, giftBar)
+		local title = Widgets.label(
+			T("🎁 Regalar {icon} {name} a:", { icon = cosmetic.icon, name = shortName(cosmetic) }),
+			giftBar
+		)
 		title.LayoutOrder = 0
 		title.Size = UDim2.new(0, if compact then 170 else 260, 1, 0)
 		title.TextColor3 = NOTE_COLOR
@@ -553,7 +560,7 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 			end
 		end
 		if shown == 0 then
-			local nobody = Widgets.label("No hay nadie más en el servidor que no lo tenga", giftBar)
+			local nobody = Widgets.label(T("No hay nadie más en el servidor que no lo tenga"), giftBar)
 			nobody.LayoutOrder = 1
 			nobody.Size = UDim2.new(0, if compact then 220 else 360, 1, 0)
 			nobody.Font = Enum.Font.BuilderSans
@@ -578,8 +585,12 @@ function CosmeticShopPanel.build(list: Instance, options: Options): () -> ()
 		local now = CosmeticShop.now()
 		local amberLeft = CosmeticShop.formatLeft(CosmeticShop.secondsLeft("Amber", now))
 		local robuxLeft = CosmeticShop.formatLeft(CosmeticShop.secondsLeft("Robux", now))
-		amberHeader.Text = if compact then `✨ Ámbar · {amberLeft}` else `✨ En Ámbar · cambia en {amberLeft}`
-		robuxHeader.Text = if compact then `💰 Robux · {robuxLeft}` else `💰 En Robux · cambia en {robuxLeft}`
+		amberHeader.Text = if compact
+			then T("✨ Ámbar · {left}", { left = amberLeft })
+			else T("✨ En Ámbar · cambia en {left}", { left = amberLeft })
+		robuxHeader.Text = if compact
+			then `💰 Robux · {robuxLeft}`
+			else T("💰 En Robux · cambia en {left}", { left = robuxLeft })
 	end
 	tick()
 	return tick

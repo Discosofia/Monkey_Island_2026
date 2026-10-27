@@ -9,27 +9,31 @@ local Cosmetics = require(script.Parent.Data.Cosmetics)
 local EggIncubation = require(script.Parent.EggIncubation)
 local Items = require(script.Parent.Data.Items)
 local Rarities = require(script.Parent.Data.Rarities)
+local Strings = require(script.Parent.Strings)
+
+local T = Strings.t
+local later = Strings.later
 
 local Rewards = {}
 
 -- Tipo de cosmético en una palabra, para las casillas pequeñas (Rewards.compact).
 local KIND_NAMES: { [string]: string } = {
-	Trail = "Estela",
-	Title = "Título",
-	Aura = "Aura",
-	Outfit = "Traje",
-	WeaponSkin = "Arma",
-	PetSkin = "Mascota",
-	Emote = "Emote",
-	Frame = "Marco",
-	NumberStyle = "Números",
-	BurstStyle = "Estallido",
-	NestDecor = "Nido",
+	Trail = later("Estela"),
+	Title = later("Título"),
+	Aura = later("Aura"),
+	Outfit = later("Traje"),
+	WeaponSkin = later("Arma"),
+	PetSkin = later("Mascota"),
+	Emote = later("Emote"),
+	Frame = later("Marco"),
+	NumberStyle = later("Números"),
+	BurstStyle = later("Estallido"),
+	NestDecor = later("Nido"),
 }
 
--- El tipo de un cosmético en una palabra ("Estela", "Traje"…).
+-- El tipo de un cosmético en una palabra ("Estela", "Traje"…), en el idioma del jugador.
 function Rewards.kindName(kind: string): string
-	return KIND_NAMES[kind] or kind
+	return if KIND_NAMES[kind] then T(KIND_NAMES[kind]) else kind
 end
 
 -- Solo los ítems que existen y en cantidades enteras positivas.
@@ -46,8 +50,9 @@ function Rewards.sanitizeItems(raw: any): { [string]: number }
 	return items
 end
 
--- "5 🍌 Banano, 2 ➕ Venda", en el orden del inventario (vacío si no hay nada).
-function Rewards.describeItems(items: { [string]: number }): string
+-- Los objetos como argumento de una frase (Shared/Strings): "5 🍌 Banano, 2 ➕ Venda", en el orden del
+-- inventario. El servidor lo manda así por un remoto para que el cliente lo traduzca.
+function Rewards.itemsArg(items: { [string]: number }): { list: { any } }
 	local ids = {}
 	for itemId in items do
 		if Items[itemId] then
@@ -57,16 +62,25 @@ function Rewards.describeItems(items: { [string]: number }): string
 	table.sort(ids, function(a, b)
 		return Items[a].order < Items[b].order
 	end)
-	local parts = {}
+	local list = {}
 	for _, itemId in ids do
 		local item = Items[itemId]
-		table.insert(parts, `{items[itemId]} {item.icon} {item.name}`)
+		table.insert(
+			list,
+			{ later("{n} {icon} {name}"), { n = items[itemId], icon = item.icon, name = { item.name } } }
+		)
 	end
-	return table.concat(parts, ", ")
+	return { list = list }
 end
 
-local function eggLabel(weights: { [string]: number }): string
-	-- La rareza más baja posible: "Huevo Raro o mejor" (o solo "Huevo Épico" si es la única).
+-- "5 🍌 Banano, 2 ➕ Venda" en el idioma del jugador (vacío si no hay nada).
+function Rewards.describeItems(items: { [string]: number }): string
+	return Strings.arg(Rewards.itemsArg(items))
+end
+
+-- La rareza más baja posible del huevo y si puede salir mejor ("Huevo Raro o mejor", o solo "Huevo
+-- Épico" si es la única). nil si no hay ninguna.
+local function eggRarity(weights: { [string]: number }): (string?, boolean)
 	local lowest: string? = nil
 	local count = 0
 	for rarity, weight in weights do
@@ -77,10 +91,16 @@ local function eggLabel(weights: { [string]: number }): string
 			end
 		end
 	end
+	return lowest, count > 1
+end
+
+local function eggLabel(weights: { [string]: number }): string
+	local lowest, better = eggRarity(weights)
 	if not lowest then
-		return "Huevo"
+		return T("Huevo")
 	end
-	return `Huevo {Rarities[lowest].name}{if count > 1 then " o mejor" else ""}`
+	local rarity = T(Rarities[lowest].name)
+	return if better then T("Huevo {rarity} o mejor", { rarity = rarity }) else T("Huevo {rarity}", { rarity = rarity })
 end
 
 -- Cada parte de un premio, de lo más valioso a lo menos: "🎨 Título: Señor del Volcán",
@@ -90,16 +110,16 @@ function Rewards.parts(reward: Config.Reward & { cosmetic: string? }): { string 
 	local parts = {}
 	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
 	if cosmetic then
-		table.insert(parts, `{cosmetic.icon} {cosmetic.name}`)
+		table.insert(parts, `{cosmetic.icon} {T(cosmetic.name)}`)
 	end
 	if reward.egg then
 		table.insert(parts, `🥚 {eggLabel(reward.egg)}`)
 	end
 	if reward.amber then
-		table.insert(parts, `{reward.amber} ✨ Ámbar`)
+		table.insert(parts, T("{n} ✨ Ámbar", { n = reward.amber }))
 	end
 	if reward.eggSeconds then
-		table.insert(parts, `⏩ {EggIncubation.formatTime(reward.eggSeconds)} para tu huevo`)
+		table.insert(parts, T("⏩ {time} para tu huevo", { time = EggIncubation.formatTime(reward.eggSeconds) }))
 	end
 	if reward.items then
 		local items = Rewards.describeItems(Rewards.sanitizeItems(reward.items))
@@ -108,7 +128,7 @@ function Rewards.parts(reward: Config.Reward & { cosmetic: string? }): { string 
 		end
 	end
 	if reward.xp then
-		table.insert(parts, `⭐ {reward.xp} XP de pase`)
+		table.insert(parts, T("⭐ {n} XP de pase", { n = reward.xp }))
 	end
 	return parts
 end
@@ -125,13 +145,15 @@ function Rewards.compact(reward: Config.Reward & { cosmetic: string? }): string
 	end
 	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
 	if cosmetic then
-		table.insert(parts, `{cosmetic.icon} {KIND_NAMES[cosmetic.kind] or cosmetic.name}`)
+		table.insert(
+			parts,
+			`{cosmetic.icon} {if KIND_NAMES[cosmetic.kind] then T(KIND_NAMES[cosmetic.kind]) else T(cosmetic.name)}`
+		)
 	end
 	if reward.egg then
-		-- (string.gsub devuelve dos valores: por eso va en dos pasos.)
-		local label = string.gsub(eggLabel(reward.egg), "^Huevo ", "")
-		label = string.gsub(label, " o mejor$", "+")
-		table.insert(parts, `🥚 {label}`)
+		local lowest, better = eggRarity(reward.egg)
+		local label = if lowest then T(Rarities[lowest].name) else T("Huevo")
+		table.insert(parts, `🥚 {label}{if lowest and better then "+" else ""}`)
 	end
 	if reward.amber then
 		table.insert(parts, `{reward.amber} ✨`)

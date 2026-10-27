@@ -1,10 +1,12 @@
 --!strict
--- Muestra mensajes cortos en la parte superior de la pantalla (solo cliente).
+-- Muestra mensajes cortos en la parte superior de la pantalla (solo cliente). El mensaje es la plantilla
+-- en español y sus argumentos (Shared/Strings): así llega también del servidor por Remotes.Notify.
 
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
 
 local Sounds = require(script.Parent.Parent.Data.Sounds)
+local Strings = require(script.Parent.Parent.Strings)
 
 local DISPLAY_SECONDS = 4
 
@@ -69,9 +71,9 @@ local function playSound()
 	sound:Play()
 end
 
-function Toast.show(message: string)
+function Toast.show(message: string, args: Strings.Args?)
 	local text = getLabel()
-	text.Text = message
+	text.Text = Strings.t(message, args)
 	text.Visible = true
 	playSound()
 

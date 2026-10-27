@@ -32,7 +32,10 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Seasons = require(ReplicatedStorage.Shared.Data.Seasons)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(script.Parent.Widgets)
+
+local T = Strings.t
 
 -- Volcán: obsidiana (premium y marco), basalto (gratis), lava y brasas.
 local OBSIDIAN = Color3.fromRGB(24, 17, 16)
@@ -165,9 +168,12 @@ end
 local function describe(reward: Seasons.PassReward, short: boolean?): (string, string)
 	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
 	if cosmetic then
-		local extra = if reward.amber then `+ {reward.amber} Ámbar · ` else ""
-		local name = if short then (string.gsub(cosmetic.name, "^[^:]*: ", "")) else cosmetic.name
-		return name, `{extra}{Rarities[cosmetic.rarity].name}`
+		local rarity = T(Rarities[cosmetic.rarity].name)
+		local name = if short then (string.gsub(T(cosmetic.name), "^[^:]*: ", "")) else T(cosmetic.name)
+		return name,
+			if reward.amber
+				then T("+ {amber} Ámbar · {rarity}", { amber = reward.amber, rarity = rarity })
+				else rarity
 	elseif reward.egg then
 		local best, bestWeight = "Rare", -1
 		for rarity, weight in reward.egg do
@@ -175,11 +181,12 @@ local function describe(reward: Seasons.PassReward, short: boolean?): (string, s
 				best, bestWeight = rarity, weight
 			end
 		end
-		return `Huevo {Rarities[best].name}`, "Para tu nido de mascotas"
+		return T("Huevo {rarity}", { rarity = T(Rarities[best].name) }), T("Para tu nido de mascotas")
 	elseif reward.amber then
-		return `{reward.amber} Ámbar`, "Para mejoras y la tienda"
+		return T("{amber} Ámbar", { amber = reward.amber }), T("Para mejoras y la tienda")
 	elseif reward.eggSeconds then
-		return `−{EggIncubation.formatTime(reward.eggSeconds)} de huevo`, "Acelera el huevo del nido"
+		return T("−{time} de huevo", { time = EggIncubation.formatTime(reward.eggSeconds) }),
+			T("Acelera el huevo del nido")
 	elseif reward.items then
 		local ids = {}
 		for itemId in reward.items do
@@ -190,12 +197,12 @@ local function describe(reward: Seasons.PassReward, short: boolean?): (string, s
 		end)
 		local parts = {}
 		for _, itemId in ids do
-			table.insert(parts, `{Items[itemId].name} ×{reward.items[itemId]}`)
+			table.insert(parts, `{T(Items[itemId].name)} ×{reward.items[itemId]}`)
 		end
 		if short and #parts > 1 then
-			return `{parts[1]} +{#parts - 1}`, "Para tu próxima partida"
+			return `{parts[1]} +{#parts - 1}`, T("Para tu próxima partida")
 		end
-		return table.concat(parts, " · "), "Para tu próxima partida"
+		return table.concat(parts, " · "), T("Para tu próxima partida")
 	end
 	return "—", ""
 end
@@ -348,7 +355,7 @@ local function styleWindow(window: Frame, title: TextLabel?, season: Seasons.Sea
 	if title then
 		title.TextColor3 = LAVA_LIGHT
 		if season then
-			title.Text = `{season.icon} {season.name}`
+			title.Text = `{season.icon} {T(season.name)}`
 		end
 	end
 end
@@ -385,7 +392,7 @@ end
 
 -- Celebración en una tarjeta recién cobrada: un sello que cae y el premio que sube.
 local function celebrate(card: Frame, text: string, size: Sizes)
-	local stamp = Widgets.label("¡TUYO!", card)
+	local stamp = Widgets.label(T("¡TUYO!"), card)
 	stamp.AnchorPoint = Vector2.new(0.5, 0.5)
 	stamp.Position = UDim2.fromScale(0.5, 0.4)
 	stamp.Size = UDim2.fromScale(0.9, 0.3)
@@ -478,7 +485,7 @@ local function buildCard(
 	-- El título se escribe encima del avatar (los ViewportFrame no dibujan carteles).
 	local cosmetic = if reward.cosmetic then Cosmetics[reward.cosmetic] else nil
 	if cosmetic and cosmetic.kind == "Title" then
-		local titleText = Widgets.label(cosmetic.title or cosmetic.name, view)
+		local titleText = Widgets.label(T(cosmetic.title or cosmetic.name), view)
 		titleText.Size = UDim2.fromScale(1, 0.24)
 		titleText.TextColor3 = cosmetic.color
 		textCap(titleText, size.text - 2)
@@ -492,7 +499,9 @@ local function buildCard(
 
 	local name, detail = describe(reward, compact)
 	if info.track == "Loop" then
-		name, detail = "Premio extra", `Cada {Config.Season.LoopXp} XP tras el nivel {Config.Season.Levels}`
+		name, detail =
+			T("Premio extra"),
+			T("Cada {xp} XP tras el nivel {level}", { xp = Config.Season.LoopXp, level = Config.Season.Levels })
 	end
 	local top = size.view + 6
 	local nameLabel = Widgets.label(name, card)
@@ -522,7 +531,9 @@ local function buildCard(
 	if info.status == "Ready" then
 		local claim = button(
 			card,
-			if info.readyCount and info.readyCount > 1 then `Reclamar ×{info.readyCount}` else "Reclamar",
+			if info.readyCount and info.readyCount > 1
+				then T("Reclamar ×{n}", { n = info.readyCount })
+				else T("Reclamar"),
 			true,
 			size.text
 		)
@@ -543,7 +554,7 @@ local function buildCard(
 			end
 		end)
 	else
-		local status = Widgets.label(if info.status == "Claimed" then "✅ Cobrado" else info.lockText, card)
+		local status = Widgets.label(if info.status == "Claimed" then T("✅ Cobrado") else info.lockText, card)
 		status.Position = UDim2.fromOffset(6, top)
 		status.Size = UDim2.new(1, -12, 0, bottom)
 		status.TextColor3 = if info.status == "Claimed" then DONE_COLOR else LOCKED_TEXT
@@ -579,7 +590,7 @@ local function buildNode(parent: Instance, y: number, label: string, lit: boolea
 	number.TextStrokeTransparency = if lit then 1 else 0.5
 	textCap(number, math.max(11, size.text - 2))
 	if state == "You" then
-		local you = Widgets.label("TÚ", parent)
+		local you = Widgets.label(T("TÚ"), parent)
 		you.AnchorPoint = Vector2.new(0, 0.5)
 		you.Position = UDim2.new(0.5, diameter / 2 + 4, 0, y + size.path / 2)
 		you.Size = UDim2.fromOffset(28, math.max(12, size.path // 2))
@@ -625,22 +636,24 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 	local function refreshTime()
 		local current = SeasonPass.info(SeasonPass.now())
 		if current.phase == "Active" then
-			timeText.Text =
-				`Día {current.day} de {Config.Season.Days} · termina en {formatLeft(current.secondsLeft)}{if current.lastWeek
-					then ` · 🔥 ×{current.multiplier} XP`
-					else ""}`
+			timeText.Text = T("Día {day} de {days} · termina en {left}", {
+				day = current.day,
+				days = Config.Season.Days,
+				left = formatLeft(current.secondsLeft),
+			}) .. (if current.lastWeek then ` · 🔥 ×{current.multiplier} XP` else "")
 		elseif current.phase == "Rest" then
-			timeText.Text = `Temporada terminada · la siguiente en {formatLeft(current.secondsLeft)}`
+			timeText.Text =
+				T("Temporada terminada · la siguiente en {left}", { left = formatLeft(current.secondsLeft) })
 		elseif season then
-			timeText.Text = `Empieza en {formatLeft(current.secondsLeft)}`
+			timeText.Text = T("Empieza en {left}", { left = formatLeft(current.secondsLeft) })
 		else
-			timeText.Text = "Aún no hay ninguna temporada prevista"
+			timeText.Text = T("Aún no hay ninguna temporada prevista")
 		end
 		timeText.TextColor3 = if current.lastWeek then LAVA_LIGHT else SECONDARY
 		-- En el teléfono no cabe la línea del tiempo: lo que queda va en el título de la ventana.
 		local title = options.title
 		if compact and title and season and current.phase ~= "None" then
-			title.Text = `{season.icon} {season.name} · {formatLeft(current.secondsLeft)}{if current.lastWeek
+			title.Text = `{season.icon} {T(season.name)} · {formatLeft(current.secondsLeft)}{if current.lastWeek
 				then ` · ×{current.multiplier} XP`
 				else ""}`
 		end
@@ -651,7 +664,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		textCap(timeText, size.text + 2)
 		refreshTime()
 		local note = box(list, 2, size.shop)
-		local text = Widgets.label("Cuando empiece una temporada, jugar en las islas te dará XP de pase.", note)
+		local text = Widgets.label(T("Cuando empiece una temporada, jugar en las islas te dará XP de pase."), note)
 		text.Size = UDim2.fromScale(1, 1)
 		text.TextColor3 = LAVA_LIGHT
 		textCap(text, size.text)
@@ -676,7 +689,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 	medalNumber.Size = UDim2.fromScale(1, if compact then 1 else 0.6)
 	medalNumber.TextColor3 = LAVA_LIGHT
 	if not compact then
-		local medalLabel = Widgets.label("NIVEL", medal)
+		local medalLabel = Widgets.label(T("NIVEL"), medal)
 		medalLabel.Position = UDim2.fromScale(0, 0.66)
 		medalLabel.Size = UDim2.fromScale(1, 0.2)
 		medalLabel.TextColor3 = SECONDARY
@@ -708,11 +721,11 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 	local loopsDone = state.xp >= Config.Season.Levels * Config.Season.LevelXp
 	local barText = Widgets.label(
 		if loopsDone
-			then `{progress}/{need} XP · premio extra`
-			else `{progress}/{need} XP para el nivel {math.min(earned + 1, Config.Season.Levels)}{if state.bought
-					> 0
-				then ` · {state.bought} comprados`
-				else ""}`,
+			then T("{progress}/{need} XP · premio extra", { progress = progress, need = need })
+			else T(
+				"{progress}/{need} XP para el nivel {level}",
+				{ progress = progress, need = need, level = math.min(earned + 1, Config.Season.Levels) }
+			) .. (if state.bought > 0 then T(" · {n} comprados", { n = state.bought }) else ""),
 		bar
 	)
 	barText.Size = UDim2.fromScale(1, 1)
@@ -720,7 +733,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 
 	local claimAll = button(
 		header,
-		if claimCount > 0 then `🎁 Reclamar todo ({claimCount})` else "Nada por reclamar",
+		if claimCount > 0 then T("🎁 Reclamar todo ({n})", { n = claimCount }) else T("Nada por reclamar"),
 		claimCount > 0,
 		size.text
 	)
@@ -730,7 +743,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 	if claimCount > 0 then
 		claimAll.Activated:Connect(function()
 			claimAll.Active = false
-			claimAll.Text = "Reclamando…"
+			claimAll.Text = T("Reclamando…")
 			Remotes.ClaimPass:FireServer()
 		end)
 	end
@@ -742,7 +755,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		for _, tag in
 			{
 				{ text = "🔥\nPREMIUM", y = 0, color = LAVA_LIGHT },
-				{ text = "GRATIS", y = size.card + size.path + 8, color = SECONDARY },
+				{ text = T("GRATIS"), y = size.card + size.path + 8, color = SECONDARY },
 			}
 		do
 			local label = Widgets.label(tag.text, tracks)
@@ -791,7 +804,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 				track = "Loop",
 				reward = SeasonPass.loopReward(state.loops + 1) :: any,
 				status = if loops > 0 then "Ready" else "Locked",
-				lockText = `🔒 Tras el nivel {Config.Season.Levels}`,
+				lockText = T("🔒 Tras el nivel {level}", { level = Config.Season.Levels }),
 				readyCount = loops,
 			}, size, compact)
 		else
@@ -807,9 +820,9 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 				if claimed then
 					claimedNow[key] = true
 				end
-				local lockText = `🔒 Nivel {column}`
+				local lockText = T("🔒 Nivel {level}", { level = column })
 				if track == "Premium" and not state.premium then
-					lockText = "🔒 Solo premium"
+					lockText = T("🔒 Solo premium")
 				elseif
 					track == "Free"
 					and reward
@@ -818,7 +831,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 					and earned < column
 				then
 					-- Llegó con niveles comprados: lo que no es aspecto se gana jugando.
-					lockText = "🔒 Gánalo jugando"
+					lockText = T("🔒 Gánalo jugando")
 				end
 				cardOf[key] = buildCard(player, holder, if track == "Premium" then 0 else freeY, {
 					level = column,
@@ -915,7 +928,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 	shopLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	shopLayout.Parent = shop
 	if info.phase ~= "Active" then
-		local ended = Widgets.label("🌋 La temporada terminó: lo que no reclamaste ya es tuyo.", shop)
+		local ended = Widgets.label(T("🌋 La temporada terminó: lo que no reclamaste ya es tuyo."), shop)
 		ended.Size = UDim2.fromScale(1, 1)
 		ended.TextColor3 = LAVA_LIGHT
 		textCap(ended, size.text)
@@ -927,12 +940,15 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		{ key = "SeasonPremium", text = `🌋 Premium · {products.SeasonPremium.price} R$`, show = not state.premium },
 		{
 			key = "SeasonPack",
-			text = `🌋 Premium + {products.SeasonPack.levels} niveles · {products.SeasonPack.price} R$`,
+			text = T(
+				"🌋 Premium + {levels} niveles · {price} R$",
+				{ levels = products.SeasonPack.levels, price = products.SeasonPack.price }
+			),
 			show = not state.premium,
 		},
 		{
 			key = "SeasonLevel",
-			text = `⭐ +1 nivel · {products.SeasonLevel.price} R$`,
+			text = T("⭐ +1 nivel · {price} R$", { price = products.SeasonLevel.price }),
 			show = level < Config.Season.Levels,
 		},
 	}
@@ -951,7 +967,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		corner(seal, 12)
 		gradient(seal, READY_COLOR, LAVA, 0)
 		stroke(seal, LAVA_LIGHT, 2)
-		local sealText = Widgets.label("👑 PASE PREMIUM ACTIVO 🔥", seal)
+		local sealText = Widgets.label(T("👑 PASE PREMIUM ACTIVO 🔥"), seal)
 		sealText.Size = UDim2.fromScale(1, 1)
 		sealText.TextColor3 = DARK_TEXT
 		sealText.TextStrokeTransparency = 1
@@ -1024,8 +1040,10 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		end
 		local headline = Widgets.label(
 			if compact
-				then `🔥 {#premiumRewards} exclusivos{if reached > 0 then ` · {reached} ya tuyos al comprar` else ""}`
-				else `🔥 Desbloquea {#premiumRewards} premios exclusivos`,
+				then T("🔥 {n} exclusivos", { n = #premiumRewards }) .. (if reached > 0
+					then T(" · {n} ya tuyos al comprar", { n = reached })
+					else "")
+				else T("🔥 Desbloquea {n} premios exclusivos", { n = #premiumRewards }),
 			invite
 		)
 		headline.Position = UDim2.fromOffset(textLeft, 0)
@@ -1036,8 +1054,8 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 		if not compact then
 			local hook = Widgets.label(
 				if reached > 0
-					then `Ya has llegado a {reached}: son tuyos al momento`
-					else "Solo existen esta temporada",
+					then T("Ya has llegado a {n}: son tuyos al momento", { n = reached })
+					else T("Solo existen esta temporada"),
 				invite
 			)
 			hook.Position = UDim2.new(0, textLeft, 0.55, 0)
@@ -1053,7 +1071,7 @@ function SeasonPassPanel.build(list: Instance, options: Options): () -> ()
 			local available = products[offer.key].productId ~= 0 or RunService:IsStudio()
 			local offerButton = button(
 				shop,
-				if available then offer.text else `{offer.text} · Próximamente`,
+				if available then offer.text else T("{offer} · Próximamente", { offer = offer.text }),
 				available,
 				size.text - 2
 			)

@@ -18,6 +18,7 @@
 --   - comicSize: "Small", "Normal" o "Large" (Config.ComicFx.SizeScale).
 --   - cameraShake: temblor de la cámara en combate (remates, habilidades, rebotes, la guardia): "On",
 --     "Soft" o "Off" (Config.CameraShake.Scale; CombatClient/CameraShake).
+--   - language: idioma de los textos (Shared/Strings): "Auto" (el de la cuenta de Roblox), "es" o "en".
 --   - missionsOpen: la lista de misiones de la Isla desplegada (en PC; se pliega tocando su cabecera,
 --     MissionTrackerController). No sale en el panel.
 
@@ -26,12 +27,14 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Remotes = require(script.Parent.Remotes)
+local Strings = require(script.Parent.Strings)
 
 export type Layout = "Head" | "Column" | "Screen"
 export type ComicLevel = "All" | "Strong"
 export type ComicSize = "Small" | "Normal" | "Large"
 export type NumberFont = "Comic" | "Classic"
 export type CameraShake = "On" | "Soft" | "Off"
+export type Language = "Auto" | "es" | "en"
 export type Values = {
 	textLayout: Layout,
 	numberFont: NumberFont,
@@ -44,38 +47,49 @@ export type Values = {
 	comicLevel: ComicLevel,
 	comicSize: ComicSize,
 	cameraShake: CameraShake,
+	language: Language,
 	missionsOpen: boolean,
 }
+
+local later = Strings.later
 
 local Settings = {}
 
 Settings.LAYOUTS = { "Head", "Column", "Screen" } :: { Layout }
+-- Los nombres de las opciones, en español; el panel los traduce con Strings.
 Settings.LAYOUT_NAMES = {
-	Head = "Junto a la cabeza",
-	Column = "Columna del alto del jugador",
-	Screen = "Fijos en la pantalla",
+	Head = later("Junto a la cabeza"),
+	Column = later("Columna del alto del jugador"),
+	Screen = later("Fijos en la pantalla"),
 } :: { [string]: string }
 Settings.NUMBER_FONTS = { "Comic", "Classic" } :: { NumberFont }
 Settings.NUMBER_FONT_NAMES = {
-	Comic = "¡Cómic!",
-	Classic = "Clásica",
+	Comic = later("¡Cómic!"),
+	Classic = later("Clásica"),
 } :: { [string]: string }
 Settings.COMIC_LEVELS = { "All", "Strong" } :: { ComicLevel }
 Settings.COMIC_LEVEL_NAMES = {
-	All = "Todo",
-	Strong = "Solo lo fuerte",
+	All = later("Todo"),
+	Strong = later("Solo lo fuerte"),
 } :: { [string]: string }
 Settings.COMIC_SIZES = { "Small", "Normal", "Large" } :: { ComicSize }
 Settings.COMIC_SIZE_NAMES = {
-	Small = "Pequeños",
-	Normal = "Normales",
-	Large = "Grandes",
+	Small = later("Pequeños"),
+	Normal = later("Normales"),
+	Large = later("Grandes"),
 } :: { [string]: string }
 Settings.CAMERA_SHAKES = { "On", "Soft", "Off" } :: { CameraShake }
 Settings.CAMERA_SHAKE_NAMES = {
-	On = "Encendido",
-	Soft = "Suave",
-	Off = "Apagado",
+	On = later("Encendido"),
+	Soft = later("Suave"),
+	Off = later("Apagado"),
+} :: { [string]: string }
+Settings.LANGUAGES = { "Auto", "es", "en" } :: { Language }
+-- Cada idioma en su propio idioma (su inglés es el mismo texto); "Automático" sí se traduce.
+Settings.LANGUAGE_NAMES = {
+	Auto = later("Automático"),
+	es = later("Español"),
+	en = later("English"),
 } :: { [string]: string }
 
 function Settings.defaults(): Values
@@ -91,6 +105,7 @@ function Settings.defaults(): Values
 		comicLevel = "All",
 		comicSize = "Normal",
 		cameraShake = "On",
+		language = "Auto",
 		missionsOpen = true,
 	}
 end
@@ -115,6 +130,9 @@ function Settings.sanitize(raw: any): Values
 	end
 	if typeof(raw.cameraShake) == "string" and table.find(Settings.CAMERA_SHAKES, raw.cameraShake) then
 		values.cameraShake = raw.cameraShake :: CameraShake
+	end
+	if typeof(raw.language) == "string" and table.find(Settings.LANGUAGES, raw.language) then
+		values.language = raw.language :: Language
 	end
 	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music", "comicFx", "missionsOpen" } do
 		if typeof(raw[key]) == "boolean" then
@@ -159,6 +177,7 @@ function Settings.set(key: string, value: any)
 	(values :: any)[key] = value
 	local clean = Settings.sanitize(values)
 	current = clean
+	Strings.applySetting(clean.language)
 	changed:Fire(clean)
 	Remotes.SaveSettings:FireServer(clean)
 end

@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 
 local STRIKE_COLOR = Color3.fromRGB(255, 255, 255)
 local STRIKE_EYES = Color3.fromRGB(255, 245, 190)
@@ -126,7 +127,7 @@ local function resisted(model: Model)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = "INMUNE"
+	label.Text = Strings.t("INMUNE")
 	label.TextColor3 = RESISTED_COLOR
 	label.TextStrokeTransparency = 0.2
 	label.Font = Enum.Font.BuilderSansExtraBold
