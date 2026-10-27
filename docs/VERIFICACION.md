@@ -912,6 +912,51 @@ Lo que falta: ver la animación entera en pantalla (la captura de Studio en Play
 1. [ ] Publica los **3 places a la vez** (el perfil pasa a la versión 10) y entra al Lobby.
    ✅ Sale la bienvenida de pioneros y el perfil no se pierde al ir a la Isla o a Dunas y volver.
 
+## 17. Lo que queda por probar de T7: la otra definitiva de cada rol (27-10-2026)
+
+Probado en Studio (1 jugador, por remotos y con la tecla V, contra los muñecos):
+- **Isla:** el Salto del gorila vuela 40 studs en arco y cae a 2 studs del muñeco al que apuntas (289 e inmovilizado); el Disparo certero hace 420 con la flecha blanca y dorada; el Haz volcánico da sus 10 golpes de 27 (con 2 rangos de Tormenta) y un aturdimiento lo corta a los 3; el Resurgir cura 70 y quita el veneno y el agarre. Cada uno empieza su recarga de 90 s.
+- **Lobby:** en la ventana de Talentos salen las dos V debajo de los talentos, sin desplazamiento en PC; «Elegir» guarda la V en el perfil, cambia los botones y la casilla V del HUD pasa a «Salto».
+- **Perfil:** pasa a la versión 11 con `ultimates`, sin perder nada.
+
+Lo que falta: dos jugadores (la arena y las curas a otros), los efectos vistos en pantalla, el teléfono y el juego publicado.
+
+### 17.1 Los efectos (Isla, ▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+
+1. [ ] En el Lobby, ventana Talentos, elige la otra V de cada rol que pruebes. Entra a la Isla, usa 🛠️ Pruebas → «🎭 Siguiente rol» y «⚡ Habilidades listas», y pulsa V delante de los muñecos.
+   ✅ Guerrero: mientras salta, una sombra oscura con un aro ámbar marca dónde cae, y al caer el suelo se agrieta.
+   ✅ Cazador: mientras carga sale una línea dorada fina hacia donde apuntas y después una flecha blanca y dorada con estela.
+   ✅ Mago: un rayo de lava naranja con núcleo amarillo une el bastón con el muñeco durante 2 s, con chispas donde da.
+   ✅ Médico: una columna verde sube del médico y salen tres coronas de hojas.
+2. [ ] Restaura la copia del perfil.
+
+### 17.2 Con dos jugadores (*Prueba → Clientes y servidores*, 2 jugadores; en Dunas, «🧪 Empezar ya»)
+
+1. [ ] En Dunas, un cazador apunta con el Disparo certero al otro jugador.
+   ✅ El apuntado ve la línea dorada antes del disparo; le quita unos 38 de 100 y, si bloquea, menos y gasta guardia.
+2. [ ] Un guerrero salta con el Salto del gorila sobre el otro jugador, que está en guardia.
+   ✅ Le rompe la guardia, le quita unos 38 y le deja quieto un momento (puede salir con el Evasivo).
+3. [ ] Un mago lanza el Haz volcánico al otro, que bloquea de frente.
+   ✅ Le gasta la guardia una sola vez aunque el haz pegue varias veces.
+4. [ ] Un médico con Resurgir: el otro jugador, de su equipo, está envenenado y aturdido.
+   ✅ En Dunas solo se le quita el veneno (sigue aturdido); en la Isla se le quitan los dos y se cura.
+5. [ ] En Dunas, el Salto, el Disparo y el Haz contra una estela.
+   ✅ La rompen de un golpe.
+6. [ ] En Dunas, con la bandera rival a cuestas, pulsa V con el Salto del gorila.
+   ✅ No salta y sale el aviso de la bandera.
+
+### 17.3 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] En el Lobby abre Talentos.
+   ✅ Se ven las dos filas de la V con su descripción y el botón, sin cortarse.
+2. [ ] En la Isla, con el Salto elegido, mira los botones junto al salto.
+   ✅ El de la V pone «Salto» y al pulsarlo salta hacia donde mira la cámara.
+
+### 17.4 En el juego publicado
+
+1. [ ] Publica los **3 places a la vez** (el perfil pasa a la versión 11) y elige otra V en el Lobby.
+   ✅ Al ir a la Isla y a Dunas lleva la V elegida, y al volver al Lobby sigue elegida.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

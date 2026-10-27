@@ -235,6 +235,23 @@ function Status.poison(model: Model, dps: number, seconds: number, attacker: Pla
 	end)
 end
 
+-- Quita a un jugador el veneno y, con "controls", el aturdido, el agarre y el lanzamiento (Resurgir del
+-- médico, T7). La inmunidad que ya tenga a otro control se queda.
+function Status.cleansePlayer(player: Player, controls: boolean)
+	local character = player.Character
+	if character then
+		-- El goteo ve que ya no está y se para solo.
+		poisoned[character] = nil
+		character:SetAttribute("PoisonedUntil", nil)
+	end
+	if controls then
+		player:SetAttribute("StunnedUntil", nil)
+		player:SetAttribute("LaunchedUntil", nil)
+		StateMachine.leave(player, "Stunned")
+		StateMachine.leave(player, "GuardBroken")
+	end
+end
+
 function Status.isStunned(model: Model): boolean
 	return active(model, "StunnedUntil")
 end

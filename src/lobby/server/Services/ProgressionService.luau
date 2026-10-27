@@ -1,5 +1,6 @@
 --!strict
--- Progresión en el Lobby (Fase 3): elegir rol, aprender talentos y comprar mejoras con Ámbar.
+-- Progresión en el Lobby (Fase 3): elegir rol y su definitiva (T7), aprender talentos y comprar mejoras
+-- con Ámbar.
 -- Todo se valida contra el perfil guardado (PlayerData) y se publica de vuelta al cliente. Cada
 -- cambio de rol, talento, mejora o mascota rehace las ventajas con las que se prueban las
 -- habilidades en el Lobby (LobbyRoleService).
@@ -9,6 +10,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
@@ -71,6 +73,22 @@ local function onLearnTalent(player: Player, roleId: any, talentId: any)
 	end)
 	LobbyRoleService.refresh(player)
 	Remotes.Notify:FireClient(player, `Aprendido: {talent.name} (rango {rank + 1})`)
+end
+
+-- La definitiva que lleva con el rol "roleId" (T7): la del hueco 4 o una de sus "altUltimates".
+local function onSelectUltimate(player: Player, roleId: any, abilityId: any)
+	if typeof(roleId) ~= "string" or typeof(abilityId) ~= "string" or not canRequest(player) then
+		return
+	end
+	local ability = RoleAbilities.findUltimate(roleId, abilityId)
+	if not ability then
+		return
+	end
+	PlayerData.update(player, function(profile)
+		profile.ultimates[roleId] = abilityId
+	end)
+	LobbyRoleService.refresh(player, true)
+	Remotes.Notify:FireClient(player, `Definitiva de {Roles[roleId].name}: {ability.name}`)
 end
 
 local function onBuyUpgrade(player: Player, upgradeId: any)
@@ -140,6 +158,7 @@ function ProgressionService:Start()
 	Remotes.SelectMount.OnServerEvent:Connect(onSelectMount)
 	Remotes.SelectRole.OnServerEvent:Connect(onSelectRole)
 	Remotes.LearnTalent.OnServerEvent:Connect(onLearnTalent)
+	Remotes.SelectUltimate.OnServerEvent:Connect(onSelectUltimate)
 	Remotes.BuyUpgrade.OnServerEvent:Connect(onBuyUpgrade)
 end
 

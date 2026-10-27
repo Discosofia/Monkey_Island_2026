@@ -25,6 +25,7 @@ local Workspace = game:GetService("Workspace")
 
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
@@ -215,13 +216,10 @@ local function refundUltimate(player: Player, state: State, roleId: string)
 	end
 end
 
+-- También las definitivas que se eligen en el Lobby (Data/Roles "altUltimates", T7).
 local function isUltimate(roleId: string, abilityId: string): boolean
-	for _, ability in Roles[roleId].abilities do
-		if ability.id == abilityId then
-			return ability.ultimate == true
-		end
-	end
-	return false
+	local ability = RoleAbilities.find(roleId, abilityId)
+	return ability ~= nil and ability.ultimate == true
 end
 
 -- Sube la racha "levels" niveles (o la empieza en x1 si ya se había perdido).

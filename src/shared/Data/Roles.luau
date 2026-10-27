@@ -8,6 +8,9 @@
 --   - "abilities": 4 activas y la definitiva, en el orden de sus huecos: Z, X, C, la definitiva V y la
 --     cuarta activa R (con mando, R1 + A, B, X, Y y L1). La R va al final para que los huecos 1-4 sigan
 --     siendo los de siempre. Las gestiona AbilityService y sus números están en Config.Abilities.
+--   - "altUltimates": otras definitivas que el jugador puede elegir en el Lobby (ventana de Talentos) en
+--     lugar de la del hueco 4 (T7). La elegida va en su perfil, una por rol; Shared/RoleAbilities da las
+--     5 habilidades de un jugador con la que haya elegido.
 
 export type Ability = {
 	id: string,
@@ -26,6 +29,9 @@ export type Ability = {
 	-- la guardia y entra entera). Las fuertes 25, las medias 20, las de control 15 y el dardo 10.
 	guardDamage: number?,
 	unblockable: boolean?,
+	-- Solo las definitivas: contra jugadores, esto además de CombatRules.pvpUltimateMultiplier. Lo llevan
+	-- las de un solo objetivo, que meten todo su daño en un golpe: así ninguno pasa de 40 de 100 (T7).
+	pvpMultiplier: number?,
 }
 
 export type Refill = { itemId: string, seconds: number, cap: number }
@@ -42,6 +48,7 @@ export type Role = {
 	items: { [string]: number }?,
 	refill: Refill?,
 	abilities: { Ability },
+	altUltimates: { Ability }?,
 }
 
 local Roles: { [string]: Role } = {
@@ -98,6 +105,19 @@ local Roles: { [string]: Role } = {
 				cooldownSeconds = 8,
 				castSeconds = 0.3,
 				unblockable = true,
+			},
+		},
+		altUltimates = {
+			{
+				id = "Leap",
+				name = "Salto del gorila",
+				short = "Salto",
+				description = "Saltas sobre un enemigo: daño enorme a ese y lo inmovilizas.",
+				cooldownSeconds = 90,
+				castSeconds = 0.35,
+				ultimate = true,
+				unblockable = true,
+				pvpMultiplier = 0.45,
 			},
 		},
 	},
@@ -158,6 +178,19 @@ local Roles: { [string]: Role } = {
 				guardDamage = 25,
 			},
 		},
+		altUltimates = {
+			{
+				id = "TrueShot",
+				name = "Disparo certero",
+				short = "Certero",
+				description = "Tiro cargado con línea de aviso: daño enorme a un solo enemigo.",
+				cooldownSeconds = 90,
+				castSeconds = 0.35,
+				guardDamage = 25,
+				ultimate = true,
+				pvpMultiplier = 0.5,
+			},
+		},
 	},
 	Mago = {
 		name = "Mago",
@@ -214,6 +247,18 @@ local Roles: { [string]: Role } = {
 				unblockable = true,
 			},
 		},
+		altUltimates = {
+			{
+				id = "LavaBeam",
+				name = "Haz volcánico",
+				short = "Haz",
+				description = "Rayo de lava fijo en un enemigo 2 s: mucho daño a ese.",
+				cooldownSeconds = 90,
+				castSeconds = 0.3,
+				guardDamage = 25,
+				ultimate = true,
+			},
+		},
 	},
 	Medico = {
 		name = "Médico",
@@ -267,6 +312,17 @@ local Roles: { [string]: Role } = {
 				cooldownSeconds = 12,
 				castSeconds = 0.25,
 				guardDamage = 15,
+			},
+		},
+		altUltimates = {
+			{
+				id = "Resurgence",
+				name = "Resurgir",
+				short = "Resurgir",
+				description = "Curas de golpe a los cercanos y les quitas veneno y aturdidos (en la arena, solo el veneno).",
+				cooldownSeconds = 90,
+				castSeconds = 0.2,
+				ultimate = true,
 			},
 		},
 	},

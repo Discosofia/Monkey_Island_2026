@@ -45,6 +45,9 @@ local OPCIONES_BASE = {
 	-- Equipamiento de la arena (Data/ArenaGear) puesto por rol: { Guerrero = { "BoneMaul" } }.
 	equipo = {} :: { [string]: { string } },
 	armas = {} :: { [string]: string }, -- [rol] = id de Data/Weapons; sin él, la primera del rol
+	-- Definitiva de cada rol (T7): [rol] = id de una de sus "altUltimates" (Data/Roles), o "otra" para
+	-- todos con la primera alternativa. Sin ella, la del hueco 4.
+	definitivas = {} :: { [string]: string } | string,
 	critico = nil :: number?, -- probabilidad de crítico de las armas (nil = la del arma)
 	-- true: las cerbatanas disparan su munición opcional (dardos venenosos, "boostItemId"), que
 	-- multiplica su veneno por "poisonMultiplier" (Data/Items).
@@ -540,6 +543,58 @@ local MODELOS: { [string]: Modelo } = {
 			zona = if nube then { tipo = "nube", segundos = nube.Seconds, factor = A.PowderSlowFactor } else nil,
 		}
 	end,
+	-- Las otras definitivas (T7, Data/Roles "altUltimates"; se miden con OPCIONES.definitivas).
+	Leap = function(A, perk)
+		return {
+			familia = "Daño a uno + control (salto)",
+			golpes = {
+				{ cantidad = A.LeapDamage * perk("MeleeDamage"), en = A.LeapFlightSeconds, objetivos = { fijo = 1 } },
+				{
+					cantidad = A.LeapSplashDamage * perk("MeleeDamage"),
+					en = A.LeapFlightSeconds,
+					objetivos = { radio = A.LeapSplashRadius, menos = 1 },
+				},
+			},
+			-- Inmoviliza al que cae encima (el talento Réplica, como el Pisotón).
+			control = { segundos = perk("QuakeStun"), objetivos = { fijo = 1 }, tipo = "Root" },
+			movilidad = A.LeapRange,
+		}
+	end,
+	TrueShot = function(A, perk)
+		return {
+			familia = "Daño a uno (tiro cargado)",
+			golpes = {
+				{
+					cantidad = A.TrueShotDamage * perk("RangedDamage") * perk("RainDamage"),
+					en = 0,
+					objetivos = { fijo = 1 },
+					velocidad = A.TrueShotSpeed,
+				},
+			},
+		}
+	end,
+	LavaBeam = function(A, perk)
+		-- Cada salto de más del talento Tormenta (sobre los 4 de Data/Perks) es un golpe más
+		-- (AbilityService.lavaBeam).
+		local ticks = A.BeamTicks + math.max(0, math.floor(perk("ChainJumps") - 4))
+		local cada = A.BeamSeconds / A.BeamTicks
+		local golpes = {}
+		for i = 1, ticks do
+			table.insert(
+				golpes,
+				{ cantidad = A.BeamDamage * perk("SpellDamage"), en = i * cada, objetivos = { fijo = 1 } }
+			)
+		end
+		-- Mientras dura no pega con el bastón.
+		return { familia = "Daño a uno (canalizado)", golpes = golpes, bloqueo = ticks * cada }
+	end,
+	Resurgence = function(A, perk)
+		return {
+			familia = "Curación de golpe en área",
+			cura = { cantidad = A.SurgeHeal * perk("HealPower"), objetivos = { radio = A.SurgeRadius } },
+			nota = "y quita veneno, aturdido y agarre (en la arena, solo el veneno)",
+		}
+	end,
 	HealingTotem = function(A, perk)
 		return {
 			familia = "Curación continua en área",
@@ -574,6 +629,19 @@ local function main(copia: Instance): string
 	local ArenaGear = require(Data.ArenaGear) :: any
 
 	mezclar(Config, PROPUESTA.config or {})
+	-- La otra definitiva en el hueco 4 (OPCIONES.definitivas), antes de la propuesta: así una propuesta de
+	-- "roles" cambia la que se mide.
+	for roleId, role in Roles do
+		local wanted = if OPCIONES.definitivas == "otra"
+			then (if role.altUltimates and role.altUltimates[1] then role.altUltimates[1].id else nil)
+			elseif typeof(OPCIONES.definitivas) == "table" then (OPCIONES.definitivas :: any)[roleId]
+			else nil
+		for _, ability in role.altUltimates or {} do
+			if ability.id == wanted then
+				role.abilities[4] = table.clone(ability)
+			end
+		end
+	end
 	for roleId, huecos in PROPUESTA.roles or {} do
 		for hueco, cambios in huecos do
 			local actual = Roles[roleId].abilities[hueco]
@@ -1213,7 +1281,7 @@ local function main(copia: Instance): string
 			-- Los marcados por el paso 1 son, como mucho, los que alcanzó (aprox. los 2-3 primeros).
 			local marcados = math.min(grupo, 3)
 			-- Contra jugadores, las definitivas llevan además su propio multiplicador (AbilityService.hurt).
-			local definitiva = if pvp and ability.ultimate then pvp.definitivas else 1
+			local definitiva = if pvp and ability.ultimate then pvp.definitivas * (ability.pvpMultiplier or 1) else 1
 			for _, golpe in ficha.golpes or {} do
 				if grupo >= (golpe.minObjetivos or 1) then
 					local cuantos = resolver(golpe.objetivos, grupo)
@@ -2425,7 +2493,9 @@ local function main(copia: Instance): string
 		local armaArena = arenaConfig.WeaponDamageMultiplier or 1
 		-- Daño de un uso de "ability" a un jugador en la arena (las definitivas, con su multiplicador).
 		local function contraJugador(ability: any, ficha: Ficha): number
-			return danoDeUso(ficha, 1) * habilidadArena * (if ability.ultimate then definitivaArena else 1)
+			return danoDeUso(ficha, 1)
+				* habilidadArena
+				* (if ability.ultimate then definitivaArena * (ability.pvpMultiplier or 1) else 1)
 		end
 		local golpes = {}
 		local filasMuro: { string } = {}
@@ -2442,7 +2512,9 @@ local function main(copia: Instance): string
 						for _, golpe in ficha.golpes or {} do
 							mayor = math.max(mayor, golpe.cantidad)
 						end
-						mayor *= habilidadArena * (if ability.ultimate then definitivaArena else 1)
+						mayor *= habilidadArena * (if ability.ultimate
+							then definitivaArena * (ability.pvpMultiplier or 1)
+							else 1)
 						if mayor > masFuerteDano then
 							masFuerte, masFuerteDano = ability.name, mayor
 						end
@@ -2815,12 +2887,15 @@ local function main(copia: Instance): string
 		Whirlwind = true,
 		Charge = true,
 		Quake = true,
+		Leap = true,
 		Smash = true,
 		MultiShot = true,
 		ArrowRain = true,
+		TrueShot = true,
 		PiercingShot = true,
 		Fireball = true,
 		FrostNova = true,
+		LavaBeam = true,
 		Meteor = true,
 	}
 	local CV = arenaConfig.Covers

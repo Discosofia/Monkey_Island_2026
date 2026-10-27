@@ -8,7 +8,7 @@ impactos, red) están en `sistema-de-combate.md`.
 
 | Quién | Datos (números) | Lógica (servidor) | Lo que se ve (cliente) |
 |---|---|---|---|
-| Jugador (5 por rol: Z, X, C, R y la definitiva V; la R es el hueco 5) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/combat/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
+| Jugador (5 por rol: Z, X, C, R y la definitiva V; la R es el hueco 5. Cada rol tiene otra V en `altUltimates`, T7: la que lleva cada jugador la da `Shared/RoleAbilities`, con el atributo `Ultimates`) | `src/shared/Data/Roles.luau` (id, nombre, recarga), `Config.Abilities` (daños, radios, duraciones), `Data/Perks`, `Data/Talents` | `src/combat/Services/AbilityService.luau` (un *handler* por habilidad) | `RoleController` (teclas, casillas, movimientos propios), `AbilityFxController` (efectos), `Data/PlayerAnimations.Abilities` (gesto) |
 | Combos (2 por rol, de 3 habilidades en orden, que se conectan) | `Data/Combos.luau`, `Config.Combo` | `Services/ComboService.luau` | `ComboController` (indicador y racha), iconos de marca en `AbilityFxController` |
 | Críticos | `Config.Crit`, `critChance` en `Data/Weapons` | `src/shared/Crit.luau` (funciones puras), los tira `CombatService` | `CombatTextController`, `ComicFxController` |
 | Estados de enemigos (aturdido, lento, provocado) | `Config.Abilities.BossControlMultiplier` | `src/combat/Status.luau` | contornos (servidor) y hielo/brillo verde (`AbilityFxController`) |
@@ -55,7 +55,7 @@ Remotos (`src/shared/Remotes.luau`): `UseAbility` (cliente → servidor: hueco, 
 | `Knockback.push(modelo, dirección, velocidad, segundos, lift?, atacante)` | empujón (Embestida, Rompehuesos); con el atacante, rebote contra muros (C10) |
 | `Zones.create({ kind, owner, center, radius, seconds, tickSeconds, firstTick?, onTick })` | zona de peligro en el suelo (C10, `Combat/Zones`): fuego del Meteoro rematado, hielo de la Nova, nube del Polvo; `onTick` decide a quién alcanza |
 | `slowDown(target, segundos, factor)` · `slip(target, segundos)` | ralentiza (a un rival solo con `pvpStatus`); hace resbalar a un rival (`SlipperyUntil`, el hielo) |
-| `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`pvpDamageMultiplier` (y las definitivas ×`pvpUltimateMultiplier`, de `CombatRules`); crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
+| `hurt(attacker, target, cantidad, abilityId)` | daño de habilidad: PvP ×`pvpDamageMultiplier` (y las definitivas ×`pvpUltimateMultiplier`, de `CombatRules`, y ×su `pvpMultiplier` de `Data/Roles` si lo llevan); crítico seguro si es golpe de combo, si no, con la probabilidad del arma |
 | `control(target, segundos, "Stun" \| "Freeze" \| "Root")` | aturde/congela/inmoviliza (jugadores con PvP: ×`PvPControlMultiplier`) |
 | `heal(healer, player, cantidad, abilityId)` | curación con críticos (seguro si es el remate) |
 | `comboOpener(player, abilityId, target)` | marca el objetivo si es el paso 1 del combo |
@@ -271,10 +271,16 @@ Los números exactos y sus medidas salen de la calculadora (`src/island/tools/Eq
 
 | Rol | Z | X | C | R | V (definitiva) | Combos (pasos) |
 |---|---|---|---|---|---|---|
-| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 12 s | Rompehuesos 8 s | Pisotón 90 s | Embestida → Grito → Torbellino · Grito → Embestida → Rompehuesos |
-| Cazador | Disparo múltiple 5 s | Marcar presas 15 s | Cepo 9 s | Flecha perforante 8 s | Lluvia de proyectiles 90 s | Cepo → Marcar → Disparo múltiple · Marcar → Cepo → Flecha perforante |
-| Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Meteoro 10 s | Rayo encadenado 90 s | Nova → Parpadeo → Bola de fuego · Bola de fuego → Nova → Meteoro |
-| Médico | Ungüento 15 s | Dardo curativo 6 s | Escudo de hojas 12 s | Polvo somnífero 12 s | Tótem sanador 90 s | Dardo → Escudo → Ungüento · Escudo → Dardo → Polvo somnífero |
+| Guerrero | Torbellino 7 s | Embestida 6 s | Grito de guerra 12 s | Rompehuesos 8 s | Pisotón 90 s · o Salto del gorila 90 s | Embestida → Grito → Torbellino · Grito → Embestida → Rompehuesos |
+| Cazador | Disparo múltiple 5 s | Marcar presas 15 s | Cepo 9 s | Flecha perforante 8 s | Lluvia de proyectiles 90 s · o Disparo certero 90 s | Cepo → Marcar → Disparo múltiple · Marcar → Cepo → Flecha perforante |
+| Mago (recargas ×0,85) | Bola de fuego 6 s | Nova de hielo 11 s | Parpadeo 7 s | Meteoro 10 s | Rayo encadenado 90 s · o Haz volcánico 90 s | Nova → Parpadeo → Bola de fuego · Bola de fuego → Nova → Meteoro |
+| Médico | Ungüento 15 s | Dardo curativo 6 s | Escudo de hojas 12 s | Polvo somnífero 12 s | Tótem sanador 90 s · o Resurgir 90 s | Dardo → Escudo → Ungüento · Escudo → Dardo → Polvo somnífero |
+
+Las dos V de cada rol (T7) valen lo mismo en una partida típica: la de área gana contra grupos y la de un
+objetivo contra jefes. Para medir la otra: `informe({ definitivas = "otra" })` (o
+`{ definitivas = { Mago = "LavaBeam" } }`). El Haz volcánico deja al mago en "Casting" mientras dura (un
+aturdimiento lo corta) y el Resurgir limpia con `Status.cleansePlayer` (en la arena, `pvpStatus`, solo
+el veneno).
 
 Pasiva del médico: +15 de vida máxima y "Savia protectora" (ventaja `SapShield`, en
 `AbilityService` con `CombatService.onPlayerHealed`): al curar a otro jugador gana un escudo de 10

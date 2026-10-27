@@ -14,7 +14,7 @@ local Perks: { [string]: number } = {
 	WhirlwindSeconds = 2, -- duración de "Torbellino"
 	ChargeDamage = 1, -- multiplica el daño de "Embestida"
 	WarCryReduction = 0.4, -- daño que se ahorra (fracción) durante "Grito de guerra"
-	QuakeStun = 2, -- segundos que aturde el "Pisotón"
+	QuakeStun = 2, -- segundos que aturde el "Pisotón" (o que inmoviliza el "Salto del gorila")
 	SmashDamage = 1, -- multiplica el daño de "Rompehuesos"
 	SmashCooldown = 1, -- multiplica el tiempo de espera de "Rompehuesos"
 	WarCryAllies = 0, -- 1 = "Grito de guerra" también protege a los aliados cercanos (arena)
@@ -23,13 +23,13 @@ local Perks: { [string]: number } = {
 	MarkSeconds = 5, -- duración de "Marcar presas" (con 15 s de recarga, un tercio del tiempo)
 	MarkedBonus = 0.2, -- daño extra (fracción) que reciben los monos que marcas
 	TrapRoot = 1.8, -- segundos que sujeta el "Cepo"
-	RainDamage = 1, -- multiplica el daño de "Lluvia de proyectiles"
+	RainDamage = 1, -- multiplica el daño de "Lluvia de proyectiles" (o del "Disparo certero")
 	PierceDamage = 1, -- multiplica el daño de "Flecha perforante"
 	-- Mago.
 	FireballDamage = 1, -- multiplica el daño de "Bola de fuego"
 	NovaFreeze = 1.2, -- segundos que congela "Nova de hielo"
 	BlinkDistance = 25, -- studs que avanza "Parpadeo"
-	ChainJumps = 4, -- saltos de "Rayo encadenado"
+	ChainJumps = 4, -- saltos de "Rayo encadenado" (cada uno de más, un golpe más del "Haz volcánico")
 	MeteorSlow = 0, -- segundos que el "Meteoro" ralentiza a los que alcanza
 	-- Médico.
 	ReviveSpeed = 1, -- multiplica el tiempo de mantener "Reanimar" (0.5 = el doble de rápido)

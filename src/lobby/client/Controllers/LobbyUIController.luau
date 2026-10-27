@@ -9,7 +9,8 @@
 --       de la arena de cada rol), Mascotas (el nido: el huevo que se incuba, la mochila, los
 --       pendientes y qué puede salir; al lado, la colección), Ranking (las cuatro clasificaciones) y
 --       Pase (el pase de temporada, UI/SeasonPassPanel; también tiene su botón en la barra).
---   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido), Tienda
+--   - Barra del menú (MENU) con lo que se usa desde cualquier sitio: Talentos (del rol elegido, y debajo
+--     sus definitivas para elegir la que lleva: Shared/RoleAbilities, T7), Tienda
 --     (pestañas "✨ Mejoras", con Ámbar, y "🎨 Cosméticos", las tiendas que rotan, UI/CosmeticShopPanel),
 --     Misiones (el calendario de 7 días, las misiones del día y lo que te llevas a la próxima partida), Pase, Armario (los cosméticos, UI/WardrobePanel), Emotes (no es una
 --     ventana: abre la rueda de emotes, UI/EmoteWheel), Grupo (invitar a jugadores del Lobby para
@@ -53,6 +54,7 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local SeasonPassPanel = require(ReplicatedStorage.Shared.UI.SeasonPassPanel)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Talents = require(ReplicatedStorage.Shared.Data.Talents)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
@@ -492,7 +494,7 @@ function LobbyUIController:Start()
 			end
 			row.title.Text = `{role.icon} {role.name} · nivel {Progression.level(xp)}`
 			local names = {}
-			for _, ability in role.abilities do
+			for _, ability in RoleAbilities.of(player, roleId) do
 				table.insert(names, if ability.ultimate then `definitiva: {ability.name}` else ability.name)
 			end
 			row.detail.Text = `{role.passive}\nHabilidades: {table.concat(names, " · ")}`
@@ -543,6 +545,18 @@ function LobbyUIController:Start()
 			setButton(row.button, if full then "Máximo" else "Aprender", not full and points > 0)
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.LearnTalent:FireServer(roleId, talentId)
+			end)
+		end
+		-- La definitiva (V) que lleva con este rol (T7): una fila por cada una que puede elegir.
+		local chosen = RoleAbilities.chosenUltimate(player, roleId)
+		for index, ability in RoleAbilities.ultimates(roleId) do
+			local row = newRow(list, 20 + index)
+			local isChosen = ability.id == chosen
+			row.title.Text = `⭐ V: {ability.name}`
+			row.detail.Text = ability.description
+			setButton(row.button, if isChosen then "Elegida" else "Elegir", not isChosen)
+			row.button.MouseButton1Click:Connect(function()
+				Remotes.SelectUltimate:FireServer(roleId, ability.id)
 			end)
 		end
 	end

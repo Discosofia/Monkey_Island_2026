@@ -1,25 +1,27 @@
 --!strict
 -- Rol del jugador local en la Isla (Fase 3):
---   - 5 habilidades (Data/Roles): Z, X, C y R las activas y V la definitiva. Con mando, mantén R1 y
+--   - 5 habilidades (Data/Roles): Z, X, C y R las activas y V la definitiva (la que haya elegido en el
+--     Lobby, T7: Shared/RoleAbilities). Con mando, mantén R1 y
 --     pulsa A, B, X, Y o L1. En móvil, un bloque de 5 botones junto al salto. Bajo las barras de
 --     supervivencia, una casilla por habilidad (en el orden Z X C R V) dice cuándo vuelve a estar lista.
 --     La R no es la E porque la E es la de los avisos (recoger, reanimar, fabricar…).
 --   - Los movimientos los hace este cliente (es quien mueve al personaje): la Embestida empuja hacia
---     delante, el Parpadeo teletransporta, el Torbellino hace girar al guerrero y el Rompehuesos lo
---     vuelve hacia donde apuntas. El resto lo aplica
+--     delante, el Parpadeo teletransporta, el Torbellino hace girar al guerrero, el Rompehuesos lo
+--     vuelve hacia donde apuntas y el Salto del gorila lo lleva en arco hasta el enemigo. El resto lo aplica
 --     el servidor (AbilityService). Sus efectos (rastro rojo, estelas de viento, punto negro y chispa)
 --     se dibujan aquí al momento con AbilityFxController; a los demás se los manda el servidor.
 --   - Avisos más rápidos según sus ventajas: "Reanimar" (médico) y recolectar (mejora de la tienda).
 --   - Médico: ve una barra de vida sobre la cabeza de cada aliado.
 --   - La casilla del siguiente paso del combo (Data/Combos) se resalta en azul.
 --   - Con el atributo "MovementLocked" (en la arena, quien lleva la bandera rival) no se pueden usar
---     la Embestida ni el Parpadeo.
+--     la Embestida, el Parpadeo ni el Salto del gorila.
 --   - Preparación (Fase 10, C8): el gesto sale al pulsar y la habilidad al acabar su "castSeconds"
 --     (Data/Roles); el movimiento propio (la Embestida, el giro del Torbellino) también espera a ese
 --     momento, como el servidor. Pulsar la guardia mientras tanto es un amago (CombatClient/Feint): se
 --     para el gesto y no sale. Si le aturden antes, tampoco. El Parpadeo no lleva preparación: se
 --     teletransporta al pulsar y manda desde dónde y hasta dónde.
 
+local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -33,6 +35,7 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
@@ -57,6 +60,10 @@ local PAD_BUTTONS = {
 	Enum.KeyCode.ButtonY,
 	Enum.KeyCode.ButtonL1,
 }
+-- Las que mueven al personaje: con la bandera rival (atributo "MovementLocked") no se pueden usar.
+local MOVEMENT_ABILITIES = { Charge = true, Blink = true, Leap = true }
+-- Altura del arco del Salto del gorila (studs sobre la recta entre la salida y la caída).
+local LEAP_HEIGHT = 10
 local PAD_MODIFIER = "AbilityModifier"
 local PAD_ACTION = "AbilityPad"
 -- Avisos cuyo tiempo de mantener depende de una ventaja del jugador.
@@ -180,6 +187,85 @@ local function blink(character: Model, root: BasePart, direction: Vector3, dista
 	return true
 end
 
+-- Salto del gorila: a quién le cae encima. El enemigo (o el rival de otro equipo) más cerca de la línea
+-- de la puntería dentro del cono y del alcance; si no hay ninguno, al frente hasta una pared. Devuelve
+-- el punto del suelo donde cae (un poco antes del enemigo, para no caer dentro de él).
+local function leapLanding(player: Player, character: Model, root: BasePart, aim: Vector3): Vector3
+	local settings = Config.Abilities
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character }
+	local origin = root.Position
+	local direction = flat(aim)
+	local minDot = math.cos(math.rad(settings.LeapAimDegrees))
+	local candidates: { Model } = {}
+	for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
+		if enemy:IsA("Model") then
+			table.insert(candidates, enemy)
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other ~= player and other.Character and player.Team and other.Team and other.Team ~= player.Team then
+			table.insert(candidates, other.Character)
+		end
+	end
+	local best: Vector3? = nil
+	local bestDot = minDot
+	for _, model in candidates do
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		local position = model:GetPivot().Position
+		local offset = Vector3.new(position.X - origin.X, 0, position.Z - origin.Z)
+		local distance = offset.Magnitude
+		if humanoid and humanoid.Health > 0 and distance > 1 and distance <= settings.LeapRange then
+			local dot = offset.Unit:Dot(direction)
+			-- Sin nada en medio (lo primero que toca el rayo es él).
+			local hit = if dot >= bestDot then Workspace:Raycast(origin, position - origin, params) else nil
+			if dot >= bestDot and (not hit or hit.Instance:IsDescendantOf(model)) then
+				best = origin + offset.Unit * math.max(0, distance - 2)
+				bestDot = dot
+			end
+		end
+	end
+	if not best then
+		local wall = Workspace:Raycast(origin, direction * settings.LeapRange, params)
+		local reach = if wall then math.max(0, (wall.Position - origin).Magnitude - 2) else settings.LeapRange
+		best = origin + direction * reach
+	end
+	local point = best :: Vector3
+	local ground = Workspace:Raycast(point + Vector3.new(0, 8, 0), Vector3.new(0, -60, 0), params)
+	return if ground then ground.Position else point
+end
+
+-- Salto del gorila: lleva al personaje en arco hasta "landing" en "seconds" (el servidor pega al caer).
+local function leap(humanoid: Humanoid, root: BasePart, landing: Vector3, seconds: number)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { root.Parent :: Instance }
+	local startGround = Workspace:Raycast(root.Position, Vector3.new(0, -50, 0), params)
+	local height = if startGround then root.Position.Y - startGround.Position.Y else 3
+	local from = root.Position
+	local to = landing + Vector3.new(0, height, 0)
+	local facing = flat(to - from)
+	humanoid.AutoRotate = false
+	local elapsed = 0
+	local connection: RBXScriptConnection
+	connection = RunService.RenderStepped:Connect(function(deltaTime)
+		elapsed += deltaTime
+		local alpha = math.min(elapsed / seconds, 1)
+		if not root.Parent then
+			connection:Disconnect()
+			return
+		end
+		local position = from:Lerp(to, alpha) + Vector3.new(0, LEAP_HEIGHT * 4 * alpha * (1 - alpha), 0)
+		root.AssemblyLinearVelocity = Vector3.zero
+		root.CFrame = CFrame.lookAt(position, position + facing)
+		if alpha >= 1 then
+			connection:Disconnect()
+			humanoid.AutoRotate = true
+		end
+	end)
+end
+
 -- Torbellino: el personaje gira sobre sí mismo mientras dura, agachado y con los brazos abiertos
 -- (animación "Whirlwind" en bucle, Data/PlayerAnimations).
 local function spin(humanoid: Humanoid, root: BasePart, seconds: number)
@@ -204,9 +290,7 @@ local function readyIn(player: Player, slot: number): number
 end
 
 local function useAbility(player: Player, slot: number)
-	local roleId = player:GetAttribute("Role")
-	local role = if typeof(roleId) == "string" then Roles[roleId] else nil
-	local ability = if role then role.abilities[slot] else nil
+	local ability = RoleAbilities.of(player)[slot]
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
@@ -229,13 +313,13 @@ local function useAbility(player: Player, slot: number)
 	if os.clock() - (lastSentAt[slot] or -math.huge) < 0.5 then
 		return
 	end
-	if (ability.id == "Charge" or ability.id == "Blink") and player:GetAttribute("MovementLocked") == true then
+	if MOVEMENT_ABILITIES[ability.id] and player:GetAttribute("MovementLocked") == true then
 		Toast.show(`🚩 Con la bandera no puedes usar {ability.name}`)
 		return
 	end
 	local aim = Aim.direction(character)
 	local castSeconds = ability.castSeconds or Config.Windup.AbilityDefaultSeconds
-	-- Desde dónde y hasta dónde va el Parpadeo, para que los demás vean su efecto.
+	-- Desde dónde y hasta dónde va el Parpadeo, para que los demás vean su efecto (el Salto, dónde cae).
 	local from, to = nil, nil
 	-- Lo que mueve al personaje: sale a la vez que la habilidad en el servidor.
 	local release: (() -> ())? = nil
@@ -263,6 +347,16 @@ local function useAbility(player: Player, slot: number)
 			spin(humanoid, root, seconds)
 			AbilityFxController.play("Whirlwind", character, seconds)
 		end
+	elseif ability.id == "Leap" then
+		local landing = leapLanding(player, character, root, aim)
+		to = landing
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + flat(landing - root.Position))
+		release = function()
+			leap(humanoid, root, landing, Config.Abilities.LeapFlightSeconds)
+		end
+	elseif ability.id == "TrueShot" then
+		-- La línea de aviso, también para uno mismo (a los demás se la manda el servidor).
+		AbilityFxController.play("TrueShotAim", character, aim, castSeconds)
 	elseif ability.id == "Smash" then
 		-- El golpe va al cono de delante: se vuelve hacia donde apunta.
 		local facing = flat(aim)
@@ -379,9 +473,10 @@ function RoleController:Start()
 	end)
 
 	local hud = buildHud(player)
+	-- Rol y definitiva de los botones puestos ("<rol>:<definitiva>"): cambian al elegir otra en el Lobby.
 	local shownRole: string? = nil
-	local function bindRole(role: Roles.Role)
-		for slot, ability in role.abilities do
+	local function bindRole(abilities: { Roles.Ability })
+		for slot, ability in abilities do
 			ActionButtons.bind(`Ability{slot}`, ability.short, function(_, state: Enum.UserInputState)
 				if state == Enum.UserInputState.Begin then
 					useAbility(player, slot)
@@ -397,14 +492,16 @@ function RoleController:Start()
 	while true do
 		local roleId = player:GetAttribute("Role")
 		local role = if typeof(roleId) == "string" then Roles[roleId] else nil
-		if role and roleId ~= shownRole then
-			shownRole = roleId :: string
-			bindRole(role)
+		local abilities = RoleAbilities.of(player)
+		local shown = if role then `{roleId}:{RoleAbilities.chosenUltimate(player, roleId :: string)}` else nil
+		if role and shown ~= shownRole then
+			shownRole = shown
+			bindRole(abilities)
 		end
 		if role then
 			-- El siguiente paso del combo en marcha (ComboController) se resalta en azul.
 			local comboNext = ComboController.nextStep(player)
-			for slot, ability in role.abilities do
+			for slot, ability in abilities do
 				local remaining = readyIn(player, slot)
 				local cell = hud[slot]
 				local ready = remaining <= 0

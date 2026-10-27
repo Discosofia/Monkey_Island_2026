@@ -4,18 +4,21 @@
 -- cada fotograma se ven fluidas y no cargan la red. Es solo lo que se ve: el daño y los estados los
 -- pone el servidor.
 --   - Guerrero: estelas de viento en círculo (Torbellino), rastro rojo (Embestida), pose de grito con
---     brillo rojo (Grito de guerra), suelo agrietado con piedras que saltan (Pisotón) y grietas en
---     abanico (Rompehuesos).
+--     brillo rojo (Grito de guerra), suelo agrietado con piedras que saltan (Pisotón y la caída del Salto
+--     del gorila), la sombra con aro ámbar que avisa dónde cae el Salto y grietas en abanico (Rompehuesos).
 --   - Cazador: flechas verdes con estela (Disparo múltiple), diana sobre las presas marcadas, brillo
 --     verde suave en el mono atrapado (el Cepo lo pone el servidor), nube que suelta la
---     Lluvia de proyectiles y flecha dorada que atraviesa (Flecha perforante).
+--     Lluvia de proyectiles, flecha dorada que atraviesa (Flecha perforante) y, en el Disparo certero, la
+--     línea dorada de aviso mientras carga y una flecha blanca y dorada más gruesa.
 --   - Mago: bola de fuego roja con bolitas en espiral, monos congelados en bloques de hielo, punto
 --     negro y chispa del Parpadeo, rayo que deja una sombra y humo en los monos alcanzados y roca
---     ardiente que cae del cielo sobre un aviso rojo (Meteoro).
+--     ardiente que cae del cielo sobre un aviso rojo (Meteoro) y rayo de lava naranja del bastón al
+--     enemigo mientras dura el atributo "LavaBeamUntil" del mago (Haz volcánico).
 --   - Médico: hojas que salen en círculo (Ungüento), dardo amarillo con cola roja, burbuja de escudo
 --     con destello amarillo, tótem navajo de madera con gema verde sobre un suelo de hojas, nube lila
 --     con "💤" sobre los monos dormidos (Polvo somnífero; "+30 %" si están expuestos) y vapor morado
---     sobre los envenenados (cerbatanas y "Cura de urgencia").
+--     sobre los envenenados (cerbatanas y "Cura de urgencia"). Resurgir: columna y onda verdes con tres
+--     coronas de hojas.
 -- Los movimientos del propio jugador (Embestida, Torbellino y Parpadeo) los dibuja RoleController al
 -- momento con AbilityFxController.play; el servidor se los manda solo a los demás.
 -- La diana de las presas, el vapor del veneno y la burbuja del escudo no llegan por el evento: salen de
@@ -906,6 +909,27 @@ local function quake(center: Vector3, radius: number)
 	shake(ground, radius * 2.5, 1, 0.6)
 end
 
+-- Salto del gorila: dónde va a caer. Una sombra que se oscurece y un aro ámbar que se cierra hasta el
+-- radio del golpe mientras dura el salto; al caer, el Pisotón lo pone el servidor ("Quake").
+local function leapMark(ground: Vector3, radius: number, seconds: number)
+	local shadow = disc(
+		ground + Vector3.new(0, 0.08, 0),
+		radius * 0.35,
+		Color3.fromRGB(20, 16, 12),
+		Enum.Material.SmoothPlastic,
+		0.85
+	)
+	shadow.Parent = folder
+	animate(seconds, function(alpha)
+		local size = radius * (0.35 + 0.65 * alpha)
+		shadow.Size = Vector3.new(0.15, size * 2, size * 2)
+		shadow.Transparency = 0.85 - 0.4 * alpha
+	end, function()
+		fadeAway({ shadow }, 0.3)
+	end)
+	ring(ground + Vector3.new(0, 0.25, 0), radius * 1.6, radius, seconds, Color3.fromRGB(255, 180, 60), 0.5, 0.2)
+end
+
 -- Rompehuesos: grietas en abanico delante del guerrero (alrededor si es el remate del combo), piedras
 -- que saltan y polvo. Llega con el golpe, al acabar la preparación (cuando el arma baja).
 local function smash(ground: Vector3, facing: Vector3, range: number, degrees: number)
@@ -1252,6 +1276,52 @@ local function piercingShotLook(): Look
 		land = function(position)
 			retire(body, 0.6)
 			burst(position, SPARKLE_TEXTURE, gold, 10, 0.8, 8, 0.5)
+		end,
+	}
+end
+
+-- Disparo certero: mientras carga, una línea dorada fina desde la cabeza del cazador hacia donde apunta
+-- (aviso para el apuntado), que se va encendiendo hasta el disparo.
+local function trueShotAim(character: Model?, aim: Vector3, seconds: number)
+	local head = if character then character:FindFirstChild("Head") else nil
+	if not (head and head:IsA("BasePart")) or typeof(aim) ~= "Vector3" or aim.Magnitude < 0.5 then
+		return
+	end
+	local direction = aim.Unit
+	local length = Config.Abilities.TrueShotRange
+	local params = groundParams()
+	local wall = Workspace:Raycast(head.Position, direction * length, params)
+	if wall then
+		length = (wall.Position - head.Position).Magnitude
+	end
+	local line =
+		piece("AimLine", Vector3.new(0.08, 0.08, length), Color3.fromRGB(255, 215, 90), Enum.Material.Neon, 0.8)
+	line.Parent = folder
+	animate(math.max(seconds, 0.05), function(alpha)
+		if not head.Parent then
+			return
+		end
+		local from = head.Position
+		line.CFrame = CFrame.lookAt(from, from + direction) * CFrame.new(0, 0, -length / 2)
+		line.Transparency = 0.8 - 0.55 * alpha
+		line.Size = Vector3.new(0.08 + 0.1 * alpha, 0.08 + 0.1 * alpha, length)
+	end, function()
+		line:Destroy()
+	end)
+end
+
+-- Disparo certero: flecha blanca con punta dorada, más gruesa que la perforante, con estela larga.
+local function trueShotLook(): Look
+	local gold = Color3.fromRGB(255, 200, 70)
+	local body = arrow(Color3.fromRGB(250, 248, 235), gold, gold, Enum.Material.Neon)
+	body.Size = Vector3.new(0.28, 0.28, 3.6)
+	trail(body, Vector3.new(0, 0, 1.6), ColorSequence.new(Color3.fromRGB(255, 255, 245), gold), 0.9, 0.8)
+	return {
+		body = body,
+		land = function(position)
+			retire(body, 0.9)
+			burst(position, SPARKLE_TEXTURE, gold, 18, 1, 12, 0.6)
+			flash(position, gold, 14, 5, 0.3)
 		end,
 	}
 end
@@ -1639,6 +1709,68 @@ local function meteor(center: Vector3, radius: number, delay: number)
 	end)
 end
 
+-- Haz volcánico: rayo de lava del bastón (o la mano) del mago al enemigo mientras dure el atributo
+-- "LavaBeamUntil" del personaje (el servidor lo quita antes si se corta). Núcleo amarillo, halo naranja,
+-- chispas donde da y una luz que tiembla.
+local function lavaBeam(character: Model?, target: Model?, seconds: number)
+	if not (character and target) then
+		return
+	end
+	local core = piece("Beam", Vector3.new(0.4, 0.4, 1), Color3.fromRGB(255, 230, 120))
+	local glowPart = piece("BeamGlow", Vector3.new(1.4, 1.4, 1), Color3.fromRGB(255, 100, 20), nil, 0.5)
+	core.Parent = folder
+	glowPart.Parent = folder
+	local impact = anchorAt(Vector3.zero, seconds + 1)
+	local sparks = emitter(
+		FIRE_TEXTURE,
+		ColorSequence.new(Color3.fromRGB(255, 220, 100), Color3.fromRGB(255, 60, 10)),
+		NumberSequence.new(1.2, 0),
+		10,
+		0.4
+	)
+	sparks.LightEmission = 1
+	sparks.Rate = 40
+	sparks.Parent = impact
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 120, 40)
+	light.Range = 14
+	light.Parent = impact
+	local function source(): Vector3?
+		local tool = character:FindFirstChildOfClass("Tool")
+		local handle = if tool then tool:FindFirstChild("Handle") else nil
+		if handle and handle:IsA("BasePart") then
+			return handle.Position + handle.CFrame.UpVector * 1.5
+		end
+		local hand = character:FindFirstChild("RightHand")
+		return if hand and hand:IsA("BasePart") then hand.Position else nil
+	end
+	animate(seconds + 0.2, function(alpha)
+		local untilTime = character:GetAttribute("LavaBeamUntil")
+		local from = source()
+		local to = rootOf(target)
+		local active = typeof(untilTime) == "number" and Workspace:GetServerTimeNow() < untilTime
+		if not (active and from and to) then
+			core.Transparency = 1
+			glowPart.Transparency = 1
+			sparks.Enabled = false
+			light.Enabled = false
+			return
+		end
+		local length = (to.Position - from).Magnitude
+		local cframe = CFrame.lookAt(from, to.Position) * CFrame.new(0, 0, -length / 2)
+		local wobble = 1 + 0.15 * math.sin(alpha * 60)
+		core.CFrame = cframe
+		core.Size = Vector3.new(0.4 * wobble, 0.4 * wobble, length)
+		glowPart.CFrame = cframe
+		glowPart.Size = Vector3.new(1.4 * wobble, 1.4 * wobble, length)
+		impact.WorldPosition = to.Position
+		light.Brightness = 3 + 2 * math.sin(alpha * 40)
+	end, function()
+		fadeAway({ core, glowPart }, 0.2)
+		sparks.Enabled = false
+	end)
+end
+
 -- ===================================== Médico =====================================
 
 -- Hojas que salen girando en círculo desde "center" hasta "radius".
@@ -1687,6 +1819,30 @@ end
 local function healBurst(position: Vector3)
 	leafWave(position - Vector3.new(0, 2, 0), 3, 7, 1.5, 0.6, rng:NextNumber(0, 6))
 	burst(position, SPARKLE_TEXTURE, Color3.fromRGB(150, 255, 160), 12, 0.7, 6, 0.6)
+end
+
+-- Resurgir: columna de luz verde que sube del médico, tres coronas de hojas que se abren hasta el radio
+-- y una onda verde.
+local function resurgence(center: Vector3, radius: number)
+	local ground = groundAt(center, groundParams())
+	local column = piece("Column", Vector3.new(radius * 0.3, 1, radius * 0.3), Color3.fromRGB(150, 255, 170), nil, 0.35)
+	column.Shape = Enum.PartType.Cylinder
+	column.Parent = folder
+	animate(0.8, function(alpha)
+		local height = 4 + 22 * alpha
+		column.Size = Vector3.new(height, radius * 0.3 * (1 - 0.5 * alpha), radius * 0.3 * (1 - 0.5 * alpha))
+		column.CFrame = CFrame.new(ground + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		column.Transparency = 0.35 + 0.65 * alpha
+	end, function()
+		column:Destroy()
+	end)
+	leafWave(ground, radius, 18, 1, 1.2, 0)
+	task.delay(0.12, leafWave, ground, radius * 0.85, 14, 2.4, 1.1, 0.4)
+	task.delay(0.24, leafWave, ground, radius * 0.7, 10, 3.8, 1, 0.8)
+	ring(ground + Vector3.new(0, 0.2, 0), 1, radius, 0.9, Color3.fromRGB(120, 240, 140), 0.7, 0.3)
+	swell(center, 2, radius * 1.2, Color3.fromRGB(150, 255, 170), 0.6, 0.6)
+	burst(center, SPARKLE_TEXTURE, Color3.fromRGB(220, 255, 220), 30, 1, 14, 0.9)
+	flash(center, Color3.fromRGB(150, 255, 170), radius * 2, 4, 0.6)
 end
 
 -- Dardo curativo: dardo amarillo con plumas y cola rojas.
@@ -2591,6 +2747,7 @@ local LOOKS: { [string]: (extra: { any }) -> Look } = {
 	end,
 	MultiShot = multiShotLook,
 	PiercingShot = piercingShotLook,
+	TrueShot = trueShotLook,
 	Fireball = function(extra)
 		return fireballLook(if typeof(extra[1]) == "number" then extra[1] else 8)
 	end,
@@ -2941,18 +3098,22 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Charge = charge, -- (personaje, segundos)
 	WarCry = warCry, -- (personaje, segundos)
 	Quake = quake, -- (centro en el suelo, radio)
+	LeapMark = leapMark, -- (centro en el suelo, radio, segundos del salto): dónde cae el Salto del gorila
 	Smash = smash, -- (suelo a los pies, hacia dónde mira, alcance, grados del cono; 360 = alrededor)
 	MarkPrey = markPrey, -- (centro, radio)
 	TrapSnap = trapSnap, -- (centro en el suelo, radio de captura)
 	Rooted = rooted, -- (modelo, segundos)
 	ArrowRain = arrowRain, -- (centro en el suelo, radio, segundos)
+	TrueShotAim = trueShotAim, -- (personaje, puntería, segundos de carga): aviso del Disparo certero
 	FrostNova = frostNova, -- (centro, radio)
 	Frozen = frozen, -- (modelo, segundos)
 	Blink = blink, -- (desde, hasta)
 	Lightning = lightning, -- (desde, hasta, modelo alcanzado)
+	LavaBeam = lavaBeam, -- (personaje del mago, modelo alcanzado, segundos): el Haz volcánico
 	Meteor = meteor, -- (centro en el suelo, radio, segundos hasta el impacto)
 	AreaHeal = areaHeal, -- (centro, radio)
 	HealBurst = healBurst, -- (posición)
+	Resurgence = resurgence, -- (centro, radio)
 	ShieldGlare = shieldGlare, -- (personaje)
 	Totem = totem, -- (posición, hacia dónde mira el médico, radio, segundos)
 	SleepPowder = sleepPowder, -- (origen, centro en el suelo, radio)

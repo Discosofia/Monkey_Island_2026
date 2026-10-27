@@ -151,6 +151,17 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
+**27 de octubre de 2026, la otra definitiva de cada rol (T7).** Se mide con `informe({ definitivas = "otra" })`.
+DPS 60 s con combos, 1 objetivo · grupo, de la V de siempre → la otra: Guerrero (Pisotón → Salto del gorila)
+31 · 54,3 → 33,7 · 51,7; Cazador (Lluvia → Disparo certero) 31,8 · 52 → 34,2 · 47,3; Mago (Rayo → Haz
+volcánico) 25,9 · 48,4 → 28,2 · 44,4; Médico (Tótem → Resurgir) cura 21,2 → 20,6/s y quita estados. Segundos de
+arma 12,4 · 12,9 · 15,4. Contra jugadores, el Salto y el Disparo llevan `pvpMultiplier` 0,45 y 0,5 en
+`Data/Roles` (sin él, 84 y 81 de 100 de un golpe en la arena; con él, 38, como el Pisotón). Duelos espejo
+9,8 · 9,5 · 9,7 s, sin alertas nuevas. Con talentos al máximo y las cuatro V de un objetivo el Orangután caía
+en 88 s con 4 jugadores: su vida sube de 2100 a 2205 (92 s). El Disparo certero quedó en 300 (con 320 el combo
+del cazador, con talentos al máximo, pasaba del +35 %). Lección: con una pelea de ~90 s cada V sale una vez,
+así que bajar su daño apenas mueve la duración de un jefe; la palanca es la vida del jefe.
+
 **22 de octubre de 2026, cierre de la Fase 10 (Combate v2, C13).** La comparativa completa con la foto
 inicial está en `docs/combate-v2/comparativa.md`. Armas básicas:
 

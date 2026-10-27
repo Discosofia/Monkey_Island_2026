@@ -7,7 +7,10 @@
 --   - Mago: Bola de fuego, Nova de hielo, Parpadeo, Rayo encadenado y Meteoro.
 --   - Médico: Ungüento en área, Dardo curativo, Escudo de hojas, Tótem sanador y Polvo somnífero. Su
 --     pasiva "Savia protectora" también va aquí: al curar a un aliado gana un escudo pequeño.
--- Los movimientos (Embestida y Parpadeo) los hace el cliente, que es quien mueve a su personaje; el
+-- Cada rol tiene otra definitiva para elegir en el Lobby (T7, Data/Roles "altUltimates"; la que lleva cada
+-- jugador, Shared/RoleAbilities): Salto del gorila ("Leap"), Disparo certero ("TrueShot"), Haz volcánico
+-- ("LavaBeam") y Resurgir ("Resurgence"). Las de un solo objetivo llevan "pvpMultiplier" contra jugadores.
+-- Los movimientos (Embestida, Parpadeo y Salto del gorila) los hace el cliente, que es quien mueve a su personaje; el
 -- servidor pone el daño. Lo que se ve lo dibuja cada cliente (Combat/AbilityFx y AbilityFxController),
 -- salvo el Cepo, que es una pieza del mundo. Contra los jugadores que las reglas del place dejan herir
 -- (CombatRules: PvP opt-in en la Isla, el otro equipo en la arena), las habilidades hacen menos daño y
@@ -46,6 +49,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Perks = require(ReplicatedStorage.Shared.Data.Perks)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local ComboService = require(script.Parent.ComboService)
@@ -73,9 +77,12 @@ local TRAP_CLOSED_ANGLE = math.rad(84)
 local BLINK_POINT_SLACK = 15
 -- Habilidades que mueven al personaje: no se pueden usar con el atributo "MovementLocked" (en la
 -- arena, quien lleva la bandera rival). El cliente (RoleController) tampoco las lanza.
-local MOVEMENT_ABILITIES = { Charge = true, Blink = true }
+local MOVEMENT_ABILITIES = { Charge = true, Blink = true, Leap = true }
 -- El estado "Casting" dura la preparación más esto (s); al salir la habilidad se quita antes.
 local CAST_STATE_MARGIN = 0.5
+-- Lo que ven los demás mientras se prepara una habilidad (AbilityFxController), con (personaje, puntería,
+-- segundos): la línea de aviso del Disparo certero, para que el apuntado pueda apartarse o bloquear.
+local CAST_FX: { [string]: string } = { TrueShot = "TrueShotAim" }
 
 -- Algo a lo que una habilidad puede dañar: un enemigo o un jugador rival (CombatService.canHitPlayer).
 type Target = { model: Model, humanoid: Humanoid, root: BasePart, player: Player? }
@@ -198,11 +205,9 @@ local function useKey(player: Player, abilityId: string): string
 	return `{player.UserId}:{abilityId}:{count}`
 end
 
--- La habilidad "abilityId" del rol de "player" (Data/Roles), o nil.
+-- La habilidad "abilityId" del rol de "player" (Data/Roles, con la definitiva que ha elegido), o nil.
 local function abilityOf(player: Player, abilityId: string): Roles.Ability?
-	local roleId = player:GetAttribute("Role")
-	local role = if typeof(roleId) == "string" then Roles[roleId] else nil
-	for _, ability in if role then role.abilities else {} do
+	for _, ability in RoleAbilities.of(player) do
 		if ability.id == abilityId then
 			return ability
 		end
@@ -230,7 +235,7 @@ local function breakCovers(
 end
 
 -- Daña a un objetivo con la habilidad "abilityId"; a los jugadores, menos (y las definitivas aún menos:
--- CombatRules.pvpUltimateMultiplier). Si la habilidad está enlazada en el combo y el objetivo lleva su
+-- CombatRules.pvpUltimateMultiplier y su "pvpMultiplier"). Si la habilidad está enlazada en el combo y el objetivo lleva su
 -- marca, es crítico seguro y hace el daño extra del combo (Data/Combos "damageBonus"); si no, es crítico
 -- con la probabilidad del arma. Contra jugadores, el combo solo cuenta con CombatRules.pvpStatus (la arena).
 -- Un jugador la puede bloquear o parar de frente (Combat/Guard): gasta el "guardDamage" de la habilidad
@@ -246,7 +251,7 @@ local function hurt(attacker: Player, target: Target, amount: number, abilityId:
 		local rules = CombatRules.get()
 		local ability = abilityOf(attacker, abilityId)
 		if ability and ability.ultimate then
-			amount *= rules.pvpUltimateMultiplier
+			amount *= rules.pvpUltimateMultiplier * (ability.pvpMultiplier or 1)
 		end
 		local crit = false
 		if rules.pvpStatus then
@@ -586,6 +591,58 @@ local function smash(player: Player, character: Model, root: BasePart, aim: Vect
 	return true
 end
 
+-- Salto del gorila (T7): el cliente salta (RoleController) hasta el punto que manda en "extra[2]" (solo
+-- se acepta al alcance; si no, cae al frente). Aquí, la sombra que avisa a todos de dónde cae y, al caer,
+-- el golpe: al que cae encima (el más cercano al punto), el daño grande y el inmovilizado ("QuakeStun",
+-- como el Pisotón); a los demás del radio, la salpicadura. No se puede bloquear.
+local function leap(player: Player, character: Model, root: BasePart, aim: Vector3, extra: { any }): boolean
+	local landing = extra[2]
+	local reach = SETTINGS.LeapRange + BLINK_POINT_SLACK
+	if typeof(landing) ~= "Vector3" or (landing - root.Position).Magnitude > reach then
+		landing = root.Position + flat(aim) * SETTINGS.LeapRange
+	end
+	local ground = groundBelow(landing, { character })
+	local flight = SETTINGS.LeapFlightSeconds
+	local melee = Progression.perk(player, "MeleeDamage")
+	local hold = Progression.perk(player, "QuakeStun")
+	AbilityFx.all("LeapMark", ground, SETTINGS.LeapSplashRadius, flight)
+	Sfx.play("Swing", root)
+	task.delay(flight, function()
+		if not (player.Parent and LifeState.isAlive(player)) then
+			return
+		end
+		local targets = targetsAroundGround(player, ground, SETTINGS.LeapSplashRadius)
+		local main: Target? = nil
+		local closest = math.huge
+		for _, target in targets do
+			local distance = (target.root.Position - ground).Magnitude
+			if distance < closest then
+				main = target
+				closest = distance
+			end
+		end
+		for _, target in targets do
+			if target == main then
+				hurt(player, target, SETTINGS.LeapDamage * melee, "Leap")
+				control(target, hold, "Root")
+			else
+				hurt(player, target, SETTINGS.LeapSplashDamage * melee, "Leap")
+			end
+		end
+		breakCovers(
+			player,
+			"Leap",
+			ground,
+			SETTINGS.LeapSplashRadius,
+			nil,
+			ground + Vector3.new(0, Config.Combat.AreaSightLift, 0)
+		)
+		Sfx.play("RockImpact", ground)
+		AbilityFx.all("Quake", ground, SETTINGS.LeapSplashRadius)
+	end)
+	return true
+end
+
 -- ===================================== Cazador =====================================
 
 -- Disparo múltiple: flechas en abanico, cada una un proyectil (Combat/Projectiles) que da al primero
@@ -867,6 +924,36 @@ local function arrowRain(player: Player, character: Model, root: BasePart, aim: 
 	return true
 end
 
+-- Disparo certero (T7): un proyectil rápido a uno. Mientras se prepara, los demás ven su línea de aviso
+-- (CAST_FX). Para en el primero que toca; una cobertura la rompe de un golpe (como definitiva).
+local function trueShot(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local damage = SETTINGS.TrueShotDamage
+		* Progression.perk(player, "RangedDamage")
+		* Progression.perk(player, "RainDamage")
+	local origin = headOf(character, root)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.TrueShotRange, SETTINGS.TrueShotSpeed)
+	Sfx.play("Shoot", root)
+	Projectiles.fire({
+		owner = player,
+		look = "TrueShot",
+		origin = origin,
+		direction = aim,
+		speed = SETTINGS.TrueShotSpeed,
+		range = SETTINGS.TrueShotRange,
+		radius = 1,
+		breaks = coverKind(player, "TrueShot"),
+		onHit = function(model)
+			local target = targetOfModel(player, model)
+			if not target then
+				return false
+			end
+			hurt(player, target, damage, "TrueShot")
+			return true
+		end,
+	})
+	return true
+end
+
 -- Flecha perforante: un proyectil que atraviesa a todos los que encuentra en línea recta (a cada uno una
 -- vez, cuando le llega); solo la para el terreno o una pared. Como remate de "Tiro de gracia", dispara
 -- más en un abanico estrecho.
@@ -1047,6 +1134,62 @@ local function chainLightning(player: Player, character: Model, root: BasePart, 
 			end
 			current = nextTarget
 			task.wait(0.08)
+		end
+	end)
+	return true
+end
+
+-- Haz volcánico (T7): un rayo de lava fijo en el enemigo mejor alineado con la puntería, un golpe cada
+-- BeamSeconds ÷ BeamTicks (y uno más por cada salto de más del talento Tormenta). Mientras dura, el mago
+-- sigue "Casting" (anda, pero no pega ni usa otra habilidad): si le aturden, se corta. También se corta
+-- si el enemigo cae o se aleja más de BeamLeash. Si algo lo tapa, ese golpe no entra; si es una
+-- cobertura, el haz la quema (de un golpe, como definitiva).
+local function lavaBeam(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
+	local target = bestInCone(player, headOf(character, root), aim, SETTINGS.BeamRange, 25)
+	if not target then
+		Remotes.Notify:FireClient(player, "🔮 No hay ningún enemigo a tiro: apunta hacia uno")
+		return false
+	end
+	local extraTicks = math.max(0, math.floor(Progression.perk(player, "ChainJumps") - Perks.ChainJumps))
+	local ticks = SETTINGS.BeamTicks + extraTicks
+	local interval = SETTINGS.BeamSeconds / SETTINGS.BeamTicks
+	local seconds = ticks * interval
+	local damage = SETTINGS.BeamDamage * Progression.perk(player, "SpellDamage")
+	-- Con margen (cada espera se retrasa un poco): al acabar se quita.
+	StateMachine.enter(player, "Casting", seconds + CAST_STATE_MARGIN)
+	-- El rayo lo dibuja cada cliente mientras dure este atributo (se quita antes si se corta).
+	character:SetAttribute("LavaBeamUntil", now() + seconds)
+	AbilityFx.all("LavaBeam", character, target.model, seconds)
+	Sfx.play("LavaLaunch", root)
+	local coverOnce: Destructibles.Once = {}
+	task.spawn(function()
+		for _ = 1, ticks do
+			task.wait(interval)
+			local casting = player.Parent and LifeState.isAlive(player) and CombatState.get(player) == "Casting"
+			local reachable = root.Parent
+				and target.root.Parent
+				and target.humanoid.Health > 0
+				and (target.root.Position - root.Position).Magnitude <= SETTINGS.BeamLeash
+			if not (casting and reachable) then
+				break
+			end
+			local from = headOf(character, root)
+			local blocked = Hitbox.ray(from, target.root.Position - from)
+			if blocked then
+				Destructibles.hitPart(
+					blocked.Instance,
+					coverKind(player, "LavaBeam"),
+					player,
+					blocked.Position,
+					coverOnce
+				)
+			else
+				hurt(player, target, damage, "LavaBeam")
+			end
+		end
+		StateMachine.leave(player, "Casting")
+		if character.Parent then
+			character:SetAttribute("LavaBeamUntil", nil)
 		end
 	end)
 	return true
@@ -1280,6 +1423,33 @@ local function healingTotem(player: Player, character: Model, root: BasePart, ai
 	return true
 end
 
+-- Resurgir (T7): cura de golpe a los aliados del radio (y al médico) y les quita el veneno y, salvo en la
+-- arena (CombatRules.pvpStatus), el aturdido, el agarre y el lanzamiento (Status.cleansePlayer): allí el
+-- control del rival se respeta y la salida es el Evasivo.
+local function resurgence(player: Player, _character: Model, root: BasePart): boolean
+	local amount = SETTINGS.SurgeHeal * Progression.perk(player, "HealPower")
+	local controls = not CombatRules.get().pvpStatus
+	local healed = 0
+	for _, other in Players:GetPlayers() do
+		local otherCharacter = other.Character
+		local otherRoot = if otherCharacter then otherCharacter:FindFirstChild("HumanoidRootPart") else nil
+		if
+			otherRoot
+			and otherRoot:IsA("BasePart")
+			and (otherRoot.Position - root.Position).Magnitude <= SETTINGS.SurgeRadius
+			and heal(player, other, amount, "Resurgence")
+		then
+			Status.cleansePlayer(other, controls)
+			AbilityFx.all("HealBurst", otherRoot.Position)
+			healed += 1
+		end
+	end
+	AbilityFx.all("Resurgence", root.Position, SETTINGS.SurgeRadius)
+	Sfx.play("Heal", root)
+	Remotes.Notify:FireClient(player, `⛑️ ¡Resurgir! Has curado y limpiado a {healed} jugador(es)`)
+	return true
+end
+
 -- Polvo somnífero: una nube donde apunta el médico. A los monos les entra sueño (van lentos) y luego
 -- se duermen; los jefes no se duermen. La nube se queda unos segundos (zona "Cloud", Config.Zones): a
 -- quien entra después le entra sueño, sin dormirle. Como remate de "Nana de la selva", duermen más, la
@@ -1386,21 +1556,25 @@ local HANDLERS: { [string]: Handler } = {
 	Charge = charge,
 	WarCry = warCry,
 	Quake = quake,
+	Leap = leap,
 	Smash = smash,
 	MultiShot = multiShot,
 	MarkPrey = markPrey,
 	Trap = trap,
 	ArrowRain = arrowRain,
+	TrueShot = trueShot,
 	PiercingShot = piercingShot,
 	Fireball = fireball,
 	FrostNova = frostNova,
 	Blink = blink,
 	ChainLightning = chainLightning,
+	LavaBeam = lavaBeam,
 	Meteor = meteor,
 	AreaHeal = areaHeal,
 	HealingDart = healingDart,
 	LeafShield = leafShield,
 	HealingTotem = healingTotem,
+	Resurgence = resurgence,
 	SleepPowder = sleepPowder,
 }
 
@@ -1444,6 +1618,11 @@ local function cast(player: Player, slot: number, ability: Roles.Ability, aim: V
 	local delay = math.max(0, seconds - Latency.compensation(player))
 	-- Con margen, para que el estado no se quede puesto si cae a mitad (al salir se quita).
 	StateMachine.enter(player, "Casting", delay + CAST_STATE_MARGIN)
+	local castFx = CAST_FX[ability.id]
+	local character = player.Character
+	if castFx and character then
+		AbilityFx.others(player, castFx, character, aim, delay)
+	end
 	local mark = Feint.begin(player, "Ability", delay, function()
 		castTickets[player] = ticket + 1
 		StateMachine.leave(player, "Casting")
@@ -1462,14 +1641,13 @@ local function cast(player: Player, slot: number, ability: Roles.Ability, aim: V
 	end)
 end
 
--- "from" y "to": dónde empezó y acabó el Parpadeo en el cliente (solo para su efecto).
+-- "from" y "to": dónde empezó y acabó el Parpadeo en el cliente (solo para su efecto), o dónde cae el
+-- Salto del gorila ("to").
 local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: any)
 	if typeof(slot) ~= "number" or typeof(aim) ~= "Vector3" or aim.Magnitude < 0.5 then
 		return
 	end
-	local roleId = player:GetAttribute("Role")
-	local role = if typeof(roleId) == "string" then Roles[roleId] else nil
-	local ability = if role then role.abilities[slot] else nil
+	local ability = RoleAbilities.of(player)[slot]
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil

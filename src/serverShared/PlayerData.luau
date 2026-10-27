@@ -15,7 +15,8 @@
 -- Remotes.SaveSettings, "Eggs", un JSON con sus huevos guardados (Shared/EggIncubation), y "Retention",
 -- un JSON con sus provisiones, su calendario y sus misiones del día y de la semana (ServerShared/Retention), y
 -- "Season", un JSON con su progreso en el pase de temporada (Shared/SeasonPass), y "Pioneer", un JSON
--- con si es pionero y sus tiradas (Shared/Pioneer).
+-- con si es pionero y sus tiradas (Shared/Pioneer), y "Ultimates", un JSON con la definitiva que ha
+-- elegido para cada rol (Shared/RoleAbilities).
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -81,6 +82,9 @@ export type Profile = {
 	-- Bienvenida de pioneros (versión 10, T6, 27-10-2026): si es pionero, tiradas cobradas y última
 	-- ventana vista (Shared/Pioneer).
 	pioneer: { [string]: any },
+	-- Definitiva elegida por rol (versión 11, T7, 27-10-2026): { [rol] = id de Data/Roles }; sin elegir,
+	-- la del hueco 4 (Shared/RoleAbilities).
+	ultimates: { [string]: string },
 }
 
 type Session = {
@@ -99,7 +103,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 10,
+		version = 11,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -131,9 +135,12 @@ local function defaultProfile(): Profile
 		activeMount = "",
 		notices = {},
 		pioneer = {},
+		ultimates = {},
 	}
 end
 
+-- Versión 11: la definitiva elegida por rol ("ultimates"; "reconcile" lo rellena vacío: todos llevan la
+-- de siempre hasta que elijan otra).
 -- Versión 10: bienvenida de pioneros ("pioneer"; "reconcile" lo rellena vacío). Quien entra antes del
 -- fin de la primera temporada queda marcado al cargar (markPioneer), venga de la versión que venga.
 -- Versión 9: se tiene una mascota (y una montura) de cada. Las copias de más se cambian por
@@ -278,6 +285,7 @@ local function publish(player: Player, session: Session)
 	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
 	player:SetAttribute("Season", HttpService:JSONEncode(profile.season))
 	player:SetAttribute("Pioneer", HttpService:JSONEncode(Pioneer.normalize(profile.pioneer)))
+	player:SetAttribute("Ultimates", HttpService:JSONEncode(profile.ultimates))
 	player:SetAttribute("LobbyGuideDone", profile.lobbyGuideDone)
 	player:SetAttribute("CombatGuideDone", profile.combatGuideDone)
 end

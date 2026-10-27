@@ -119,6 +119,8 @@ local Remotes = {
 	LobbyGuideDone = remoteEvent("LobbyGuideDone"),
 	-- Cliente -> servidor (Lobby): aprender un rango de talento (rol, talento).
 	LearnTalent = remoteEvent("LearnTalent"),
+	-- Cliente -> servidor (Lobby): elegir la definitiva de un rol (rol, id de Data/Roles; T7).
+	SelectUltimate = remoteEvent("SelectUltimate"),
 	-- Cliente -> servidor (Lobby): comprar un rango de mejora con Ámbar (id de Data/Upgrades).
 	BuyUpgrade = remoteEvent("BuyUpgrade"),
 	-- Cliente -> servidor (Lobby): invitar a un jugador al grupo (UserId).

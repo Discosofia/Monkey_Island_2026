@@ -1,7 +1,8 @@
 --!strict
 -- Talentos por rol (GDD §6.3, Fase 3). Se aprenden en el Lobby con puntos de talento, que se ganan
 -- con la XP de ese rol (Shared/Progression). Cada rango suma "perRank" a la ventaja "perk".
--- Cada talento mejora una de las 5 habilidades del rol (los del médico, también su pasiva).
+-- Cada talento mejora una de las 5 habilidades del rol (los del médico, también su pasiva); el de la
+-- definitiva, la que lleve (Data/Roles "altUltimates", T7).
 -- Si se quita un talento, los puntos que tuviera gastados vuelven a quedar libres solos.
 
 export type Talent = {
@@ -41,7 +42,7 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		Aftershock = {
 			name = "Réplica",
-			description = "El Pisotón aturde 0,5 s más por rango.",
+			description = "El Pisotón aturde (o el Salto del gorila inmoviliza) 0,5 s más por rango.",
 			order = 4,
 			perk = "QuakeStun",
 			perRank = 0.5,
@@ -83,7 +84,7 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		Downpour = {
 			name = "Diluvio",
-			description = "+20 % de daño de la Lluvia de proyectiles por rango.",
+			description = "+20 % de daño de la Lluvia de proyectiles (o del Disparo certero) por rango.",
 			order = 4,
 			perk = "RainDamage",
 			perRank = 0.2,
@@ -125,7 +126,7 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		Storm = {
 			name = "Tormenta",
-			description = "El Rayo encadenado salta a 1 mono más por rango.",
+			description = "El Rayo encadenado salta a 1 mono más (o el Haz volcánico dura un golpe más) por rango.",
 			order = 4,
 			perk = "ChainJumps",
 			perRank = 1,
@@ -152,7 +153,7 @@ local Talents: { [string]: { [string]: Talent } } = {
 		},
 		StrongSalve = {
 			name = "Ungüento potente",
-			description = "+25 % de curación por rango (vendas, ungüentos, dardo y tótem).",
+			description = "+25 % de curación por rango (vendas, ungüentos, dardo, tótem y Resurgir).",
 			order = 2,
 			perk = "HealPower",
 			perRank = 0.25,

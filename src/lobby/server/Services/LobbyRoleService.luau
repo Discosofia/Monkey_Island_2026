@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 
 local ABILITY_SLOTS = 5 -- los huecos de Data/Roles (4 activas y la definitiva)
@@ -18,8 +19,8 @@ local ABILITY_SLOTS = 5 -- los huecos de Data/Roles (4 activas y la definitiva)
 local LobbyRoleService = {}
 
 -- Vuelve a calcular las ventajas de "player" con su perfil guardado; si cambia de rol, sus
--- habilidades quedan listas.
-function LobbyRoleService.refresh(player: Player)
+-- habilidades quedan listas. "newUltimate": ha cambiado de definitiva (T7), que también queda lista.
+function LobbyRoleService.refresh(player: Player, newUltimate: boolean?)
 	local profile = PlayerData.get(player)
 	if not profile then
 		return
@@ -34,6 +35,8 @@ function LobbyRoleService.refresh(player: Player)
 		for slot = 1, ABILITY_SLOTS do
 			player:SetAttribute(`AbilityReadyAt{slot}`, nil)
 		end
+	elseif newUltimate then
+		player:SetAttribute(`AbilityReadyAt{RoleAbilities.ULTIMATE_SLOT}`, nil)
 	end
 end
 

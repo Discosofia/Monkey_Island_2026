@@ -55,7 +55,9 @@ local Bosses: { [string]: Boss } = {
 		scale = 3,
 		bodyColor = Color3.fromRGB(150, 60, 22),
 		faceColor = Color3.fromRGB(90, 60, 45),
-		maxHealth = 2100,
+		-- 2100 hasta T7 (27-10-2026): con las definitivas de un solo objetivo y los talentos al máximo caía
+		-- en 88 s con 4 jugadores (objetivo ≥ 90).
+		maxHealth = 2205,
 		walkSpeed = 13,
 		damage = 24,
 		attackRange = 11,

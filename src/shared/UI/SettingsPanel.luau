@@ -33,6 +33,7 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
@@ -121,6 +122,13 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 			return `aturde {decimal(perk("QuakeStun"))} s`
 		end,
 	},
+	Leap = {
+		amount = "LeapDamage",
+		perks = { "MeleeDamage" },
+		note = function(perk)
+			return `y sujeta {decimal(perk("QuakeStun"))} s`
+		end,
+	},
 	Smash = { amount = "SmashDamage", perks = { "MeleeDamage", "SmashDamage" }, note = fixed("por mono") },
 	-- Cazador.
 	MultiShot = {
@@ -146,6 +154,7 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 		end,
 	},
 	ArrowRain = { amount = "RainDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed("por golpe") },
+	TrueShot = { amount = "TrueShotDamage", perks = { "RangedDamage", "RainDamage" }, note = fixed("a uno") },
 	PiercingShot = { amount = "PierceDamage", perks = { "RangedDamage", "PierceDamage" }, note = fixed("por mono") },
 	-- Mago.
 	Fireball = { amount = "FireballDamage", perks = { "SpellDamage", "FireballDamage" }, note = fixed("y salpica") },
@@ -169,6 +178,13 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 			return `y {math.round(perk("ChainJumps"))} saltos`
 		end,
 	},
+	LavaBeam = {
+		amount = "BeamDamage",
+		perks = { "SpellDamage" },
+		note = function(perk)
+			return `×{Config.Abilities.BeamTicks + math.max(0, math.floor(perk("ChainJumps") - Perks.ChainJumps))} golpes`
+		end,
+	},
 	Meteor = { amount = "MeteorDamage", perks = { "SpellDamage" }, note = fixed("por mono") },
 	-- Médico.
 	AreaHeal = { amount = "AreaHealAmount", perks = { "HealPower" }, heal = true, note = fixed("a cada aliado") },
@@ -180,6 +196,7 @@ local ABILITY_INFO: { [string]: AbilityInfo } = {
 		note = fixed("de escudo"),
 	},
 	HealingTotem = { amount = "TotemHealPerSecond", perks = { "HealPower" }, heal = true, note = fixed("por segundo") },
+	Resurgence = { amount = "SurgeHeal", perks = { "HealPower" }, heal = true, note = fixed("y quita males") },
 	SleepPowder = {
 		amount = "PowderDamage",
 		perks = {},
@@ -384,9 +401,10 @@ local function cellLabel(parent: Instance, order: number, size: number, font: En
 	return label
 end
 
--- Cuadrícula de las 5 habilidades: tecla y nombre corto (los de las casillas del HUD), el número y
--- una nota. Fondo oscuro de ventana, sin borde dorado: se lee como información, no como botón.
-local function abilityGrid(parent: Instance, order: number, role: Roles.Role, perk: PerkGetter)
+-- Cuadrícula de las 5 habilidades (con la definitiva elegida: Shared/RoleAbilities): tecla y nombre
+-- corto (los de las casillas del HUD), el número y una nota. Fondo oscuro de ventana, sin borde dorado:
+-- se lee como información, no como botón.
+local function abilityGrid(parent: Instance, order: number, abilities: { Roles.Ability }, perk: PerkGetter)
 	local grid = Instance.new("Frame")
 	grid.LayoutOrder = order
 	grid.BackgroundTransparency = 1
@@ -406,7 +424,7 @@ local function abilityGrid(parent: Instance, order: number, role: Roles.Role, pe
 	grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	fit()
 
-	for index, ability in role.abilities do
+	for index, ability in abilities do
 		local cell = Instance.new("Frame")
 		cell.Name = ability.id
 		cell.LayoutOrder = ABILITY_ORDER[index] or index
@@ -568,7 +586,7 @@ local function fillStats(parent: Frame, player: Player, context: Context)
 	end
 
 	text(parent, `✨ Habilidades · {Crit.percent(chance)} de crítico`, 40, SOFT_COLOR)
-	abilityGrid(parent, 50, role, perk)
+	abilityGrid(parent, 50, RoleAbilities.of(player, roleId), perk)
 
 	local combos = Combos[roleId] or {}
 	for index, combo in combos do

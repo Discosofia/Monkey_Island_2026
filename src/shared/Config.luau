@@ -1375,6 +1375,14 @@ local Config = {
 		WarCrySeconds = 4, -- provoca y protege (con 12 s de recarga, un tercio del tiempo)
 		QuakeDamage = 150,
 		QuakeRadius = 16,
+		-- Salto del gorila (la otra definitiva, T7): daño a uno frente al área del Pisotón. Inmoviliza al que
+		-- cae lo que diga la ventaja "QuakeStun" (el talento Réplica sirve para las dos).
+		LeapDamage = 330, -- al enemigo sobre el que cae
+		LeapSplashDamage = 60, -- a los demás del radio
+		LeapSplashRadius = 10,
+		LeapRange = 40, -- hasta dónde salta (studs)
+		LeapFlightSeconds = 0.5, -- lo que dura el salto: su sombra en el suelo avisa dónde cae
+		LeapAimDegrees = 30, -- cono en el que busca a quién caerle; si no hay nadie, cae donde apuntas
 		SmashDamage = 24, -- Rompehuesos, a cada mono del cono de delante
 		SmashRange = 9,
 		SmashAngle = 100, -- grados del cono (enlazado como remate, golpea alrededor)
@@ -1399,6 +1407,11 @@ local Config = {
 		RainSeconds = 4,
 		RainRadius = 12,
 		RainMaxDistance = 60,
+		-- Disparo certero (la otra definitiva, T7): un proyectil a uno; el talento Diluvio también lo sube.
+		-- Con 320 y talentos al máximo el combo del cazador pasaba del +35 %.
+		TrueShotDamage = 300,
+		TrueShotSpeed = 300, -- studs/s
+		TrueShotRange = 150,
 		PierceDamage = 17, -- Flecha perforante, a cada mono que atraviesa (16 hasta C9: ahora se puede esquivar)
 		PierceRange = 90,
 		PierceWidth = 1.5, -- radio de la línea que atraviesa
@@ -1418,6 +1431,13 @@ local Config = {
 		ChainFalloff = 0.75, -- cada salto hace esto del anterior
 		ChainRange = 60, -- alcance hasta el primer mono
 		ChainJumpRange = 20,
+		-- Haz volcánico (la otra definitiva, T7): canalizado sobre uno. Cada salto de más del talento
+		-- Tormenta ("ChainJumps" por encima de 4) es un golpe más (BeamSeconds ÷ BeamTicks más largo).
+		BeamDamage = 30, -- por golpe
+		BeamTicks = 8,
+		BeamSeconds = 2,
+		BeamRange = 60, -- alcance hasta el enemigo al empezar…
+		BeamLeash = 75, -- …y si se aleja más, se corta
 		MeteorDamage = 24, -- Meteoro, a cada mono del radio
 		MeteorRadius = 9,
 		MeteorDelay = 0.8, -- segundos entre el aviso en el suelo y el impacto (da tiempo a verlo caer)
@@ -1440,6 +1460,9 @@ local Config = {
 		TotemHealPerSecond = 6,
 		TotemRadius = 16,
 		TotemMaxDistance = 40, -- se planta donde apuntas, como mucho a esta distancia
+		-- Resurgir (la otra definitiva, T7): de golpe lo que el tótem en 8 s, y quita estados.
+		SurgeHeal = 50, -- a cada aliado del radio (y al médico)
+		SurgeRadius = 18,
 		PowderDamage = 8, -- Polvo somnífero, a cada mono de la nube
 		PowderRadius = 9,
 		PowderMaxDistance = 40, -- la nube cae donde apuntas, como mucho a esta distancia
