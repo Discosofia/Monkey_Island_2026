@@ -52,6 +52,16 @@ local Remotes = {
 	-- Cliente -> servidor (los tres places): un administrador le da una cosa a un jugador del servidor
 	-- (UserId, "Cosmetic" | "Pet" | "Mount" | "Egg", id o rareza del huevo). Las mismas comprobaciones que AdminGiveAll.
 	AdminGive = remoteEvent("AdminGive"),
+	-- Cliente -> servidor: un administrador da una cosa del listado (o "All", todo) a todos los
+	-- jugadores ("All" | "Pet" | "Mount" | "Egg" | "Cosmetic", id, "Server" | "All": este servidor o todos).
+	AdminGiveEveryone = remoteEvent("AdminGiveEveryone"),
+	-- Cliente -> servidor: un administrador manda un anuncio (texto, "Server" | "All").
+	AdminAnnounce = remoteEvent("AdminAnnounce"),
+	-- Servidor -> clientes: anuncio de un administrador (texto ya filtrado, nombre de quien lo manda).
+	Announce = remoteEvent("Announce"),
+	-- Cliente -> servidor: un administrador pide el registro de acciones; servidor -> cliente: la
+	-- lista ({ t, by, place, action, detail }, la más nueva primero).
+	AdminLog = remoteEvent("AdminLog"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).

@@ -835,6 +835,20 @@ local Config = {
 	-- todo (cosméticos, emotes, mascotas y monturas) a un jugador de su servidor (ServerShared/Admin).
 	-- El dueño del juego (chillyduo) lo es siempre, sin estar en la lista.
 	Admins = {} :: { number },
+	-- Panel de administradores v2 (T4): lo que viaja entre servidores (ServerShared/AdminNet, tema de
+	-- MessagingService), el registro de acciones (ServerShared/AdminLog) y el anuncio a todos.
+	AdminTools = {
+		Topic = "Admin",
+		LogStoreName = "AdminLog_v1",
+		-- Acciones que guarda el registro (las más viejas se borran) y cada cuánto se escriben las nuevas
+		-- (juntas, para no gastar escrituras del DataStore).
+		LogKeep = 200,
+		LogFlushSeconds = 10,
+		-- Lo que enseña el panel al pedirlo.
+		LogShown = 40,
+		AnnounceMaxLength = 140,
+		AnnounceSeconds = 10,
+	},
 
 	Data = {
 		-- Guardado de datos (Fase 2.8). Cambiar StoreName empieza de cero (útil para pruebas).
