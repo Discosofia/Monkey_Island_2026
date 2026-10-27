@@ -18,6 +18,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -37,6 +38,8 @@ export type Summary = {
 	deaths: number,
 	bosses: number,
 	amber: number,
+	-- Multiplicador del evento en vivo "Doble Ámbar" (T4b), si lo había al terminar.
+	amberBoost: number?,
 	eggRoll: Eggs.RescueOutcome?,
 	-- Terminada con el panel de pruebas de Studio: no cuenta para el récord, los rescates ni el ranking.
 	test: boolean?,
@@ -76,6 +79,9 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 		+ MatchStats.get(player, MatchStats.BOUNTIES) * settings.AmberPerBounty
 		+ eggs * settings.AmberPerEgg
 		+ (if result == "Victory" then settings.AmberForRescue else 0)
+	-- Evento en vivo "Doble Ámbar" (T4b).
+	local boost = LiveEvents.amberMultiplier()
+	amber *= boost
 	local passXp = Config.Season.IslandXp
 	local xp = days * passXp.PerDay
 		+ bosses * passXp.PerBoss
@@ -89,6 +95,7 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 		deaths = MatchStats.get(player, MatchStats.DEATHS),
 		bosses = bosses,
 		amber = amber,
+		amberBoost = if boost > 1 then boost else nil,
 		eggRoll = if result == "Victory" then Eggs.rescueRoll(player) else nil,
 		test = if test then true else nil,
 		newTitle = if result == "Victory"

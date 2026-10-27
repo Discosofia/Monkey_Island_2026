@@ -6,7 +6,9 @@
 --     cosmético, una mascota, una montura o un huevo de una rareza);
 --   - "Dar a todos": lo mismo a todos los jugadores de este servidor o de todos (ServerShared/AdminNet);
 --   - mandar un anuncio a este servidor o a todos (filtrado por TextService);
---   - ver el registro de acciones de los administradores (ServerShared/AdminLog).
+--   - ver el registro de acciones de los administradores (ServerShared/AdminLog);
+--   - lanzar y parar eventos en vivo (ServerShared/LiveEventsServer) y hacer cosas al momento en las
+--     partidas de la Isla (Data/IslandActions), en este servidor o en todos.
 -- No toca el Ámbar, las mejoras ni los talentos. El cliente enseña el panel si el Player lleva el
 -- atributo "IsAdmin", pero el servidor lo vuelve a comprobar en cada petición.
 -- Lo cambia con PlayerData.update, así que respeta el bloqueo de sesión del perfil.
@@ -17,6 +19,8 @@ local TextService = game:GetService("TextService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local IslandActions = require(ReplicatedStorage.Shared.Data.IslandActions)
+local LiveEventCatalog = require(ReplicatedStorage.Shared.Data.LiveEvents)
 local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
@@ -25,10 +29,14 @@ local AdminLog = require(script.Parent.AdminLog)
 local AdminNet = require(script.Parent.AdminNet)
 local CosmeticsServer = require(script.Parent.CosmeticsServer)
 local Eggs = require(script.Parent.Eggs)
+local LiveEventsServer = require(script.Parent.LiveEventsServer)
 local PlayerData = require(script.Parent.PlayerData)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 
 local Admin = {}
+
+-- Place de este servidor ("Lobby", "Island" o "Dunas"), de Admin.start.
+local place = "?"
 
 local canRequest = RequestCooldown.new(1)
 -- Lo que llega a todos los jugadores (dar a todos, anuncios), más espaciado.
@@ -236,10 +244,68 @@ local function onLog(admin: Player)
 	end
 end
 
+-- Eventos en vivo (ServerShared/LiveEventsServer): "Start" con tipo, minutos, retraso y alcance, o
+-- "Stop" con su id.
+local function onLiveEvent(admin: Player, op: any, a: any, b: any, c: any, d: any)
+	if not Admin.isAdmin(admin) or not canBroadcast(admin) then
+		return
+	end
+	if op == "Stop" and typeof(a) == "string" then
+		if LiveEventsServer.stop(a) then
+			AdminLog.add(admin, "Parar evento", a)
+			Remotes.Notify:FireClient(admin, "⏹ Evento parado")
+		end
+		return
+	end
+	local info = if typeof(a) == "string" then LiveEventCatalog[a] else nil
+	if op ~= "Start" or not info or not AdminNet.isScope(d) then
+		return
+	end
+	if not table.find(Config.LiveEvents.Durations, b) or not table.find(Config.LiveEvents.Delays, c) then
+		return
+	end
+	local event, reached = LiveEventsServer.start(a, b, c, d, admin.DisplayName)
+	if not event then
+		return
+	end
+	local length = if info.seconds then `{info.seconds // 60} min` else `{b} min`
+	local when = if c > 0 then `en {c} min` else "ya"
+	AdminLog.add(admin, "Evento", `{info.icon} {info.name} · {when} · {length} · {SCOPE_TEXT[d]}`)
+	if not reached then
+		Remotes.Notify:FireClient(admin, "⚠️ No se pudo llegar a los demás servidores: solo en este")
+	elseif c > 0 then
+		Remotes.Notify:FireClient(admin, `{info.icon} {info.name} programado: empieza {when}`)
+	end
+end
+
+-- Acciones al momento en la Isla (Data/IslandActions). Las hace el AdminEventsService de la Isla al
+-- recibir "IslandAction"; en el Lobby y en Dunas solo tiene sentido para todos los servidores.
+local function onIslandAction(admin: Player, action: any, scope: any)
+	if typeof(action) ~= "string" or not IslandActions[action] or not AdminNet.isScope(scope) then
+		return
+	end
+	if not Admin.isAdmin(admin) or not canRequest(admin) then
+		return
+	end
+	if scope == "Server" and place ~= "Island" then
+		Remotes.Notify:FireClient(admin, "🏝️ Aquí no hay partida de la Isla: elige «Todos los servidores»")
+		return
+	end
+	local info = IslandActions[action]
+	AdminLog.add(admin, "Isla", `{info.icon} {info.name} · {SCOPE_TEXT[scope]}`)
+	if not AdminNet.send("IslandAction", { action = action, admin = admin.UserId }, scope) then
+		Remotes.Notify:FireClient(admin, "⚠️ No se pudo llegar a los demás servidores: solo en este")
+	end
+end
+
 -- Lo llaman los AdminService de cada place ("Lobby", "Island" o "Dunas", para el registro).
-function Admin.start(place: string)
-	AdminLog.start(place)
+function Admin.start(placeName: string)
+	place = placeName
+	AdminLog.start(placeName)
 	AdminNet.start()
+	LiveEventsServer.run()
+	Remotes.AdminLiveEvent.OnServerEvent:Connect(onLiveEvent)
+	Remotes.AdminIslandAction.OnServerEvent:Connect(onIslandAction)
 	Remotes.AdminGiveAll.OnServerEvent:Connect(onGiveAll)
 	Remotes.AdminGive.OnServerEvent:Connect(onGive)
 	Remotes.AdminGiveEveryone.OnServerEvent:Connect(onGiveEveryone)

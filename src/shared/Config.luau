@@ -849,6 +849,27 @@ local Config = {
 		AnnounceMaxLength = 140,
 		AnnounceSeconds = 10,
 	},
+	-- Eventos en vivo que lanza un administrador (T4b; catálogo en Data/LiveEvents, servidor en
+	-- ServerShared/LiveEventsServer). Son gratis para todos: nada de esto se vende.
+	LiveEvents = {
+		-- Los de "todos los servidores" se guardan aquí para que un servidor que arranca los vea.
+		StoreName = "LiveEvents_v1",
+		-- Duraciones y retrasos (minutos) que se eligen en el panel.
+		Durations = { 15, 30, 60 },
+		Delays = { 0, 5, 15, 30, 60 },
+		AmberMultiplier = 2,
+		XpMultiplier = 2,
+		-- El huevo del nido avanza esto veces más rápido (se le quita tiempo cada EggTickSeconds).
+		EggSpeed = 2,
+		EggTickSeconds = 60,
+		-- Pesos de la rareza de los huevos que aparecen con "Suerte de huevo" (normal: Pets.RarityWeights).
+		EggLuckWeights = { Common = 30, Uncommon = 30, Rare = 22, Epic = 13, Legendary = 5 },
+		-- Lluvia de huevos del Lobby: huevos por jugador (mínimo EggRainMin) y cada jugador recoge uno.
+		EggRainPerPlayer = 2,
+		EggRainMin = 6,
+		-- Radio de la plaza del Lobby donde caen los huevos y el confeti de la fiesta.
+		PlazaRadius = 24,
+	},
 
 	Data = {
 		-- Guardado de datos (Fase 2.8). Cambiar StoreName empieza de cero (útil para pruebas).

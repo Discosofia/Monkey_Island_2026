@@ -1,6 +1,6 @@
 --!strict
 -- Pantalla de resultados al terminar la partida (Fase 2.7): días sobrevividos, tus estadísticas,
--- el Ámbar ganado y un botón para volver ya al Lobby (si no, el servidor os envía a todos).
+-- el Ámbar ganado y un botón para volver ya al Lobby (si no, el servidor los envía a todos).
 -- Al ganar con un huevo incubando en el nido del Lobby, una ruleta enseña su tirada del rescate
 -- ("eggRoll" del resumen, MatchService): las horas que le quita o la eclosión inmediata. Con una
 -- temporada en marcha, también la XP del pase sumada ("pass"). Y los pasos cumplidos del contrato de
@@ -123,12 +123,18 @@ local function show(summary: { [string]: any })
 			height = 0.14,
 			color = Color3.fromRGB(255, 210, 120),
 		},
-		{ text = `Sobrevivisteis {summary.days} día(s)`, height = 0.09, color = Color3.new(1, 1, 1) },
+		{ text = `Sobrevivieron {summary.days} día(s)`, height = 0.09, color = Color3.new(1, 1, 1) },
 		{ text = `🐒 Monos derrotados: {summary.kills}`, height = 0.08, color = plain },
 		{ text = `💚 Aliados reanimados: {summary.revives}`, height = 0.08, color = plain },
 		{ text = `👻 Caídas: {summary.deaths}`, height = 0.08, color = plain },
 		{ text = `👑 Jefes: {summary.bosses or 0}`, height = 0.08, color = plain },
-		{ text = `✨ Ámbar ganado: {summary.amber}`, height = 0.1, color = Color3.fromRGB(255, 200, 80) },
+		{
+			text = `✨ Ámbar ganado: {summary.amber}{if summary.amberBoost
+				then ` (×{summary.amberBoost} por el evento)`
+				else ""}`,
+			height = 0.1,
+			color = Color3.fromRGB(255, 200, 80),
+		},
 	}
 	if passText then
 		table.insert(lines, { text = passText, height = 0.07, color = Color3.fromRGB(255, 150, 80) })

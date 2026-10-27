@@ -24,6 +24,7 @@ local EggModel = require(ReplicatedStorage.Shared.EggModel)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -370,7 +371,9 @@ function EggService.spawnEgg(forcedRarity: string?): boolean
 		return false
 	end
 	clearEgg()
-	rarity = if forcedRarity and Rarities[forcedRarity] then forcedRarity else PetRoll.rollRarity(rng)
+	rarity = if forcedRarity and Rarities[forcedRarity]
+		then forcedRarity
+		else PetRoll.rollRarity(rng, LiveEvents.eggWeights())
 	local center = BasecampService.getCenter()
 	for _ = 1, 60 do
 		local angle = rng:NextNumber(0, 2 * math.pi)

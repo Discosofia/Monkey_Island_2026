@@ -109,6 +109,8 @@ local Effects: { [string]: Effect } = {
 	Thunder = { id = BOOM, volume = 1, pitch = 0.5, jitter = 0.1, range = 400 },
 	LavaLaunch = { id = BOOM, volume = 0.35, pitch = 1.4, range = 200 },
 	LavaImpact = { id = BOOM, volume = 0.8, pitch = 0.8, jitter = 0.1, range = 160 },
+	-- Fuegos artificiales de la fiesta del Lobby (evento en vivo, T4b). Provisional: «firework pop».
+	Firework = { id = BOOM, volume = 0.3, pitch = 1.9, jitter = 0.15, range = 250 },
 	RockImpact = { id = LAND, volume = 1, pitch = 0.5, jitter = 0.1, range = 120 },
 	EggHatch = { id = GET_UP, volume = 0.9, pitch = 1.8, range = 120 },
 	-- "¡Puf!" de humo al derrotar un mono, un jefe o un muñeco (Combat/Poof).

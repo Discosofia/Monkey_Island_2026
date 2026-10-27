@@ -5,6 +5,8 @@
 --     de los huevos (por rareza), las mascotas, las monturas y los cosméticos del juego, con buscador,
 --     para darle una sola cosa.
 --   - 📢 Todos: un anuncio y "Dar a todos" (el mismo listado), en este servidor o en todos.
+--   - 🎉 Eventos: eventos en vivo (Data/LiveEvents) ahora o programados, los que están en marcha con
+--     ⏹ para pararlos, y lo que se hace al momento en la Isla (Data/IslandActions).
 --   - 📜 Registro: lo último que han hecho los administradores, en cualquier servidor.
 -- Solo sale si el servidor ha marcado al jugador con el atributo "IsAdmin", y el servidor lo vuelve
 -- a comprobar al pedirlo.
@@ -13,6 +15,9 @@ local Players = game:GetService("Players")
 
 local Config = require(script.Parent.Parent.Config)
 local Cosmetics = require(script.Parent.Parent.Data.Cosmetics)
+local IslandActions = require(script.Parent.Parent.Data.IslandActions)
+local LiveEventCatalog = require(script.Parent.Parent.Data.LiveEvents)
+local LiveEvents = require(script.Parent.Parent.LiveEvents)
 local Mounts = require(script.Parent.Parent.Data.Mounts)
 local Pets = require(script.Parent.Parent.Data.Pets)
 local Rarities = require(script.Parent.Parent.Data.Rarities)
@@ -603,10 +608,249 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 		end
 	end)
 
+	-- Página 🎉 Eventos: alcance, duración y retraso elegidos arriba; los eventos con tiempo
+	-- (Data/LiveEvents), los que están en marcha o programados con ⏹ para pararlos, y lo que se hace al
+	-- momento en la Isla (Data/IslandActions). Para todos los servidores piden un segundo toque.
+	local eventsPage = scroller(pages)
+	eventsPage.Name = "Events"
+	eventsPage.Size = UDim2.fromScale(1, 1)
+	list(eventsPage, 6)
+
+	local chosenScope: Scope = "Server"
+	local chosenMinutes = Config.LiveEvents.Durations[1]
+	local chosenDelay = 0
+
+	-- Fila de opciones (la elegida en dorado): "values" con su texto.
+	local function choiceRow(order: number, title: string, values: { any }, texts: { string }, pick: (any) -> ())
+		local row = Instance.new("Frame")
+		row.LayoutOrder = order
+		row.Size = UDim2.new(1, -8, 0, 32)
+		row.BackgroundTransparency = 1
+		row.Parent = eventsPage
+		local label = Widgets.label(title, row)
+		label.Size = UDim2.fromScale(0.22, 1)
+		label.TextColor3 = TITLE
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		local buttons = Instance.new("Frame")
+		buttons.Position = UDim2.fromScale(0.22, 0)
+		buttons.Size = UDim2.fromScale(0.78, 1)
+		buttons.BackgroundTransparency = 1
+		buttons.Parent = row
+		local layout = list(buttons, 4)
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		local all: { TextButton } = {}
+		local function paint(selected: number)
+			for index, button in all do
+				button.BackgroundColor3 = if index == selected then GOLD else ROW
+				button.TextColor3 = if index == selected then GOLD_TEXT else Color3.new(1, 1, 1)
+			end
+		end
+		for index, value in values do
+			local button = smallButton(texts[index], buttons)
+			button.LayoutOrder = index
+			button.Size = UDim2.new(1 / #values, -4, 1, 0)
+			button.MouseButton1Click:Connect(function()
+				paint(index)
+				pick(value)
+			end)
+			table.insert(all, button)
+		end
+		paint(1)
+	end
+
+	local function eventHeading(text: string, order: number)
+		local label = Widgets.label(text, eventsPage)
+		label.LayoutOrder = order
+		label.Size = UDim2.new(1, -8, 0, 22)
+		label.TextColor3 = TITLE
+		label.TextXAlignment = Enum.TextXAlignment.Left
+	end
+
+	-- Cuadrícula de botones de "columns" columnas.
+	local function grid(name: string, order: number, columns: number): Frame
+		local frame = Instance.new("Frame")
+		frame.Name = name
+		frame.LayoutOrder = order
+		frame.Size = UDim2.new(1, -8, 0, 0)
+		frame.AutomaticSize = Enum.AutomaticSize.Y
+		frame.BackgroundTransparency = 1
+		frame.Parent = eventsPage
+		local layout = Instance.new("UIGridLayout")
+		layout.CellPadding = UDim2.fromOffset(4, 4)
+		layout.CellSize = UDim2.new(1 / columns, -4, 0, 36)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = frame
+		return frame
+	end
+
+	-- Un botón que, para todos los servidores, pide un segundo toque antes de "action".
+	local waiting: TextButton? = nil
+	local waitingUntil = 0
+	local function confirmed(button: TextButton, text: string): boolean
+		if chosenScope == "Server" then
+			return true
+		end
+		if waiting == button and os.clock() <= waitingUntil then
+			waiting = nil
+			button.Text = text
+			return true
+		end
+		if waiting then
+			waiting.Text = waiting:GetAttribute("Label") :: string
+		end
+		waiting = button
+		waitingUntil = os.clock() + CONFIRM_SECONDS
+		button.Text = "¿En todos?"
+		task.delay(CONFIRM_SECONDS, function()
+			if waiting == button and os.clock() >= waitingUntil then
+				button.Text = text
+				waiting = nil
+			end
+		end)
+		return false
+	end
+
+	choiceRow(1, "Dónde", { "Server", "All" }, { "📍 Este servidor", "🌍 Todos" }, function(value)
+		chosenScope = value
+	end)
+	local durationTexts = {}
+	for _, minutes in Config.LiveEvents.Durations do
+		table.insert(durationTexts, `{minutes} min`)
+	end
+	choiceRow(2, "Dura", Config.LiveEvents.Durations, durationTexts, function(value)
+		chosenMinutes = value
+	end)
+	local delayTexts = {}
+	for _, minutes in Config.LiveEvents.Delays do
+		table.insert(delayTexts, if minutes == 0 then "Ya" else `+{minutes}`)
+	end
+	choiceRow(3, "Empieza", Config.LiveEvents.Delays, delayTexts, function(value)
+		chosenDelay = value
+	end)
+
+	eventHeading("🎉 Eventos (la fiesta y la lluvia de huevos, en el Lobby)", 4)
+	local eventGrid = grid("EventGrid", 5, 2)
+	local eventKinds = {}
+	for kind in LiveEventCatalog do
+		table.insert(eventKinds, kind)
+	end
+	table.sort(eventKinds, function(a, b)
+		return LiveEventCatalog[a].order < LiveEventCatalog[b].order
+	end)
+	for index, kind in eventKinds do
+		local info = LiveEventCatalog[kind]
+		local text = `{info.icon} {info.name}`
+		local button = smallButton(text, eventGrid)
+		button.Name = kind
+		button.LayoutOrder = index
+		button:SetAttribute("Label", text)
+		button.MouseButton1Click:Connect(function()
+			if confirmed(button, text) then
+				Remotes.AdminLiveEvent:FireServer("Start", kind, chosenMinutes, chosenDelay, chosenScope)
+			end
+		end)
+	end
+
+	eventHeading("⏱️ En marcha y programados", 6)
+	local running = Instance.new("Frame")
+	running.Name = "Running"
+	running.LayoutOrder = 7
+	running.Size = UDim2.new(1, -8, 0, 0)
+	running.AutomaticSize = Enum.AutomaticSize.Y
+	running.BackgroundTransparency = 1
+	running.Parent = eventsPage
+	list(running, 3)
+	local function renderRunning()
+		for _, child in running:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		local now = LiveEvents.now()
+		local any = false
+		for index, event in LiveEvents.list() do
+			if event.endsAt <= now then
+				continue
+			end
+			any = true
+			local info = LiveEventCatalog[event.kind]
+			local row = Instance.new("Frame")
+			row.Name = event.kind
+			row.LayoutOrder = index
+			row.Size = UDim2.new(1, 0, 0, 32)
+			row.BackgroundColor3 = ROW
+			row.BorderSizePixel = 0
+			row.Parent = running
+			corner(row, 8)
+			local state = if LiveEvents.isRunning(event, now)
+				then `queda {LiveEvents.clock(event.endsAt - now)}`
+				else `empieza en {LiveEvents.clock(event.startsAt - now)}`
+			local where = if event.scope == "All" then "🌍" else "📍"
+			local label = Widgets.label(`{where} {info.icon} {info.name} · {state}`, row)
+			label.Position = UDim2.fromOffset(6, 0)
+			label.Size = UDim2.new(0.78, -6, 1, 0)
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			local labelLimit = Instance.new("UITextSizeConstraint")
+			labelLimit.MaxTextSize = 16
+			labelLimit.Parent = label
+			local stop = smallButton("⏹ Parar", row)
+			stop.Name = "Stop"
+			stop.AnchorPoint = Vector2.new(1, 0.5)
+			stop.Position = UDim2.new(1, -3, 0.5, 0)
+			stop.Size = UDim2.new(0.22, -3, 1, -6)
+			stop.BackgroundColor3 = CLOSE
+			stop.TextColor3 = Color3.new(1, 1, 1)
+			local id = event.id
+			stop.MouseButton1Click:Connect(function()
+				Remotes.AdminLiveEvent:FireServer("Stop", id)
+			end)
+		end
+		if not any then
+			local empty = Widgets.label("Ninguno", running)
+			empty.Size = UDim2.new(1, 0, 0, 22)
+			empty.TextColor3 = SECONDARY
+			empty.TextXAlignment = Enum.TextXAlignment.Left
+		end
+	end
+
+	eventHeading("🏝️ Ahora en la Isla", 8)
+	local islandGrid = grid("IslandGrid", 9, 4)
+	local actionIds = {}
+	for action in IslandActions do
+		table.insert(actionIds, action)
+	end
+	table.sort(actionIds, function(a, b)
+		return IslandActions[a].order < IslandActions[b].order
+	end)
+	for index, action in actionIds do
+		local info = IslandActions[action]
+		local text = `{info.icon} {info.name}`
+		local button = smallButton(text, islandGrid)
+		button.Name = action
+		button.LayoutOrder = index
+		button:SetAttribute("Label", text)
+		button.MouseButton1Click:Connect(function()
+			if confirmed(button, text) then
+				Remotes.AdminIslandAction:FireServer(action, chosenScope)
+			end
+		end)
+	end
+
+	-- Mientras se ve la página, la lista de los que están en marcha se rehace cada segundo.
+	task.spawn(function()
+		while true do
+			if window.Visible and eventsPage.Visible then
+				renderRunning()
+			end
+			task.wait(1)
+		end
+	end)
+
 	-- Pestañas.
 	local tabs = {
 		{ id = "Players", text = "👥 Jugadores", page = playersPage :: GuiObject, open = renderPlayers },
 		{ id = "Everyone", text = "📢 Todos", page = everyonePage :: GuiObject, open = function() end },
+		{ id = "Events", text = "🎉 Eventos", page = eventsPage :: GuiObject, open = renderRunning },
 		{ id = "Log", text = "📜 Registro", page = logPage :: GuiObject, open = requestLog },
 	}
 	local tabButtons: { TextButton } = {}

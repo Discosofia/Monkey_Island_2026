@@ -17,6 +17,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Daily = require(ReplicatedStorage.Shared.Daily)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
@@ -37,7 +38,8 @@ end
 local function earned(player: Player, result: "Win" | "Tie" | "Loss"): number
 	local amber = Config.Arena.Amber
 	local fromKills = math.min(stat(player, "ArenaKills") * amber.PerKill, amber.MaxFromKills)
-	return amber[result] + stat(player, "ArenaCaptures") * amber.PerCapture + fromKills
+	-- Evento en vivo "Doble Ámbar" (T4b): el tope diario sigue igual.
+	return (amber[result] + stat(player, "ArenaCaptures") * amber.PerCapture + fromKills) * LiveEvents.amberMultiplier()
 end
 
 -- Cobra hasta el tope diario y guarda las estadísticas. Devuelve lo cobrado y lo que lleva hoy.

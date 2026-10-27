@@ -25,11 +25,10 @@ local subscribed = false
 local seen: { [string]: boolean } = {}
 
 local function run(kind: string, data: any)
+	-- Algunos mensajes solo los entiende un place (las acciones de la Isla): los demás los ignoran.
 	local handler = handlers[kind]
 	if handler then
 		task.spawn(handler, data)
-	else
-		warn(`[AdminNet] Mensaje sin manejador: {kind}`)
 	end
 end
 

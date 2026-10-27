@@ -62,6 +62,12 @@ local Remotes = {
 	-- Cliente -> servidor: un administrador pide el registro de acciones; servidor -> cliente: la
 	-- lista ({ t, by, place, action, detail }, la más nueva primero).
 	AdminLog = remoteEvent("AdminLog"),
+	-- Cliente -> servidor: un administrador lanza un evento en vivo ("Start", tipo de Data/LiveEvents,
+	-- minutos, minutos de retraso, "Server" | "All") o lo para ("Stop", id). Ver ServerShared/LiveEventsServer.
+	AdminLiveEvent = remoteEvent("AdminLiveEvent"),
+	-- Cliente -> servidor: un administrador hace algo en las partidas de la Isla (Data/IslandActions,
+	-- "Server" | "All").
+	AdminIslandAction = remoteEvent("AdminIslandAction"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).

@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Daily = require(ReplicatedStorage.Shared.Daily)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Pass = require(ReplicatedStorage.Shared.SeasonPass)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Data.Seasons)
@@ -184,6 +185,8 @@ function SeasonPass.addXp(player: Player, source: Source, amount: number): Gain?
 	if info.phase ~= "Active" or not season then
 		return nil
 	end
+	-- El de la temporada (fin de semana…) por el del evento en vivo "Doble XP" (T4b), si lo hay.
+	local multiplier = info.multiplier * LiveEvents.xpMultiplier()
 	local gain: Gain? = nil
 	PlayerData.update(player, function(profile)
 		local state = Pass.normalize(profile.season, season.id)
@@ -201,7 +204,7 @@ function SeasonPass.addXp(player: Player, source: Source, amount: number): Gain?
 				friends = math.round(base * S.FriendsBonus)
 			end
 		end
-		local total = (base + friends) * info.multiplier
+		local total = (base + friends) * multiplier
 		local before = Pass.level(state)
 		state.xp += total
 		local progress, need = Pass.progress(state)
@@ -209,8 +212,8 @@ function SeasonPass.addXp(player: Player, source: Source, amount: number): Gain?
 		gain = {
 			xp = total,
 			capped = capped,
-			friends = friends * info.multiplier,
-			multiplier = info.multiplier,
+			friends = friends * multiplier,
+			multiplier = multiplier,
 			level = Pass.level(state),
 			levelsUp = Pass.level(state) - before,
 			progress = progress,

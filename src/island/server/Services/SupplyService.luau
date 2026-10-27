@@ -205,8 +205,9 @@ function SupplyService.spawnCrate()
 	end
 	local crate = buildCrate(spot, SUPPLY_STYLE, onOpen)
 	activeCrate = crate
-	local direction = Compass.direction(BasecampService.getCenter(), spot)
-	announce(`📦 ¡Ha llegado una caja de suministro a la playa de {direction}! Abrirla activa el PvP`)
+	-- "el oeste" → "del oeste" (no "de el oeste").
+	local direction = string.gsub(Compass.direction(BasecampService.getCenter(), spot), "^el ", "del ")
+	announce(`📦 ¡Ha llegado una caja de suministro a la playa {direction}! Abrirla activa el PvP`)
 
 	-- Monos de cola larga rondando la caja: atacan a quien se acerque.
 	local nearest: Player? = nil
