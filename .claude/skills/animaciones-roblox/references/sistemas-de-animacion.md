@@ -19,7 +19,7 @@ juego para que lo nuevo encaje con el código que las usa.
 | Jugador con arma a distancia (R15) | KeyframeSequence publicada | Generadas por código: `src/island/tools/WeaponAnimationBuilder.luau` | `src/shared/Data/WeaponAnimations.luau` | `src/combatClient/Controllers/WeaponController.luau` (cliente) |
 | Cuerpo del jugador sin armas (gestos de habilidades, esquivar, comer, beber, curarse, construir, fabricar, caído, reanimar) | KeyframeSequence publicada | Generadas por código: `src/island/tools/PlayerAnimationBuilder.luau` | `src/shared/Data/PlayerAnimations.luau` | `src/combatClient/BodyAnimations.luau` (cliente), llamado desde `RoleController`, `DodgeController`, `SurvivalController`, `HealController`, `BuildController`, `CraftingController` y `LifeController` |
 | Jugador con arma cuerpo a cuerpo | El tajo de Roblox (`toolslash` del avatar o el estándar) | — | `WeaponController` (`DEFAULT_SLASH`) | `WeaponController` |
-| Monturas (Llama Andina) | KeyframeSequence publicada sobre un rig de Motor6D (`Body` desde `Root`; `Neck` → `Head` → `Jaw`, `EarL`/`EarR`; `Tail`; `LegFL` → `ShinFL`…), con `AnimationController` | Specs en `src/island/tools/MonkeyAnimationSpecs/Monturas.luau` (cada spec lleva `parents`, su jerarquía), generadas con `MonkeyAnimationBuilder.build("Monturas")` | `src/shared/Data/Mounts.luau` (`animations`) | Aún nadie (falta la mecánica de montar); el escupitajo es `MountModels.spit` en el marcador "Escupir" |
+| Monturas (Llama Andina, Jaguar Albino Esmeralda) | KeyframeSequence publicada sobre un rig de Motor6D (`Body` desde `Root`; `Neck` → `Head` → `Jaw`, `EarL`/`EarR`; `Tail` (el jaguar, `Tail` → `Tail2` → `Tail3`); `LegFL` → `ShinFL`…), con `AnimationController` | Specs en `src/island/tools/MonkeyAnimationSpecs/Monturas.luau` (cada spec lleva `parents`, su jerarquía), generadas con `MonkeyAnimationBuilder.build("Monturas")` | `src/shared/Data/Mounts.luau` (`animations`: `Run`, `Idle`, `Gesture`, `Jump`) | `src/shared/UI/MountRiders.luau`: `Idle`/`Run` mezcladas por velocidad, `Jump` al saltar y `Gesture` cuando el servidor avisa; en su marcador (`gesture.marker`: "Escupir", "Rugido") llama a `MountModels.gesture` |
 | Mascotas (Lobby e Isla) | Por código, cada fotograma: senos (`joint`) y, encima, clips con fotogramas clave (`CLIPS`) | `src/shared/PetModels.luau` | — | `src/shared/UI/PetFollowers.luau` llama a `PetModels.animate` y decide qué clip suena; lo arrancan los `PetController` de los dos places |
 | Pose del grito de guerra, de respaldo | Por código, girando articulaciones (solo si la animación `WarCry` no existe) | `src/combatClient/Controllers/AbilityFxController.luau` (`scream`, `poseJoint`) | — | `AbilityFxController` |
 
@@ -286,3 +286,19 @@ El R15 que crea `Anim.playerRig("R15")` (y el de los jugadores) cuelga así:
 En Studio ese R15 lleva articulaciones nuevas (`AnimationConstraint`) en vez de Motor6D; las
 animaciones se aplican igual y `Anim.hierarchy` entiende las dos. El R6 tiene las piezas de los
 monos (`Torso`, `Head`, `Right Arm`…).
+
+## Monturas: lo aprendido con el Jaguar (T5a, octubre de 2026)
+
+- Rig para la tira: construye la montura con `MountModels.build` desde un **clon de la carpeta
+  `Shared`** (`Data/Mounts` queda en caché y el `size` saldría viejo), ponla en Workspace y pásala a
+  `Anim.placeRig`. Bórrala al terminar.
+- Signos en un cuadrúpedo con la cabeza delante: X positivo levanta la cabeza; en la cola, que sale
+  hacia atrás, X negativo la sube; en la mandíbula, X negativo abre la boca.
+- Patas de felino: al agacharse, el codo de delante va atrás (brazo −, antebrazo +) y la rodilla de
+  atrás adelante (muslo +, caña −). Al recoger la pata en el galope, las cuatro doblan el tramo de
+  abajo en negativo (el pie queda detrás), al revés que la llama en las de atrás.
+- Galope: el cabeceo y el bote del lomo clavan las manos en el suelo. Con 5° y 0,14 studs se hundían
+  0,26; con 3°, 0,06 de bote y el lomo alzado 0,08, nada. Prueba varias combinaciones en un bucle con
+  `Anim.measure` antes de mirar la tira.
+- Cola en S: cada tramo repite el giro del anterior con retraso (`tailWave`): arriba y abajo al
+  galopar, de lado a lado (eje Y) parado.

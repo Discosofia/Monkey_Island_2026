@@ -407,7 +407,7 @@ orientativo de piezas por modelo:
 | Traje mítico (cosmético, `ArmorModels` OUTFITS; crece con el grado de la armadura, 0–4; Rey Gorila Titán 69 / 109 / 150 / 168 / 238, Jaguar Espectral 143 / 190 / 265 / 281 / 318, Serpiente Emplumada 128 / 198 / 317 / 323 / 373, Ceiba de la Vida 84 / 124 / 182 / 235 / 341) | hasta ~380 en el grado 4 (solo uno por jugador) |
 | Aspecto de arma mítico (`WeaponTools` SKINS; crece con el nivel del arma, 1–4; Maza del Rey Gorila 22 / 26 / 42 / 89, Arco del Jaguar Espectral 36 / 42 / 70 / 108, Báculo de la Serpiente 30 / 48 / 69 / 103, Cerbatana de la Ceiba 28 / 47 / 69 / 84) | hasta ~110 en el nivel 4 |
 | Mascota (solo una por jugador) | 80–160 |
-| Montura (`MountModels`; son pocas y especiales) | hasta 175 rara, 225 legendaria, 275 mítica |
+| Montura (`MountModels`; son pocas y especiales) | hasta 175 rara, 250 legendaria (el Jaguar, 248), 275 mítica |
 | Mono normal (hay muchos a la vez) | 15–30 |
 | Jefe (solo hay uno) | hasta 60 |
 | Mono voxel (§8), bloques de diseño | hasta ~150 (unidos en ≤ 10 piezas en juego); jefe hasta 500 (techo 1.000) |
@@ -752,6 +752,62 @@ orejas, hocico, lista, pecho, patas, cola y punta, manchas, moteado, collar, alf
   correa vertical y la hebilla abajo, panel encima y cincha) le dan espalda y cuentan que es la
   mascota de carga. El beagle ya la tiene con su bandera blanca, y el pointer con la mancha de la
   grupa, que asoma por detrás.
+
+- **Equipo de una skin que tapa una pieza que se mueve** (la camiseta del perro pirata, T5a): una
+  caja fija encima de una pieza articulada la deja asomar en cuanto se mueve. El hombro giraba con la
+  pata y al galopar salía en diagonal de la camiseta. Si la prenda hace de esa masa, quita la pieza
+  de debajo y deja solo lo que sale de la prenda (el brazo con un puño). Pruébalo en el clip de
+  máximo giro (`Run`) y en `IdleSit`, no solo parado.
+
+### Monturas voxel (Llama y Jaguar)
+
+`MountModels`: cajas sueltas en celdas de 0,2 studs × `size`, cada una soldada a su hueso (`Bone`),
+con huesos de `Motor6D` para las `KeyframeSequence`. Cada montura es un constructor en `builders` que
+devuelve el asiento, las articulaciones y, si los tiene, `mouth` (escupir), `roar` (rugido) y `aura`
+(bandas `Beam` y cubitos de neón en un hueso "Aura" que gira `MountModels.animateAura`). Lo aprendido
+con el **Jaguar Albino Esmeralda** (T5a, 27-10-2026; seis vueltas con el usuario):
+- **Proporciones de verdad, buscadas:** cruz a la mitad del largo de cabeza y cuerpo, y cola un 41 %
+  (jaguar: 1,1–1,85 m + 45–75 cm de cola, 65–80 cm a la cruz). Con la cruz al 36 % y la cola al 27 % el
+  usuario lo veía "chaparro" y "una mesa". Busca las medidas del animal antes de dibujar.
+- **El tronco nunca es una caja:** tres tramos (pecho hondo, cintura recogida, grupa) con los cantos de
+  arriba y de abajo achaflanados (`segment`: caja central y dos más estrechas arriba y abajo), grupa
+  redondeada por detrás y la línea del vientre que sube hacia la cintura.
+- **Musculatura en escalones de tono:** omóplatos y hombro +4 % de blanco; muslo, anca, tríceps y
+  corva más oscuros; deltoides y cuádriceps delante; punta del codo, músculo del antebrazo, pantorrilla
+  y talón. Los de la pata van en su hueso para moverse con ella.
+- **Cara (como la referencia voxel):** el perfil sube en escalones de la nariz a la coronilla (puente,
+  cara con los ojos, frente más atrás, bóveda), no una pared con un hocico pegado. Hocico bien marcado:
+  puente, dos almohadillas de los bigotes con puntos, nariz en triángulo (ancha arriba y estrecha
+  abajo), barbilla con mechón, carrillos delanteros que abrazan el hocico y el pliegue suave que baja
+  de la nariz (este sí lo pidió el usuario; lo de "buzón" era la raya oscura de la llama).
+  - **Ojos pequeños** (1 × 0,6 celdas) con párpado de otro tono que los enmarca, pupila en ranura y un
+    brillo; grandes parecían de dibujo infantil.
+  - Orificios de la nariz pequeños, apagados y en las esquinas de abajo: grandes y en medio, hocico
+    de cerdo.
+  - Ceja en dos tramos con el de dentro más bajo (mirada seria), lagrimales y ceño.
+  - El interior de la boca más estrecho que la barbilla, o asoma como una raya roja por los lados.
+- **Rosetas:** cuatro barras en anillo parecían letras ("O", "U"). Un anillo de cuatro manchas en las
+  diagonales, de tamaños algo distintos (semilla fija) y con el centro del color del pelaje, se lee como
+  roseta. Grandes (2,4–3 celdas) para que se vea el hueco.
+- **El arnés no puede ser del color de las manchas:** la silla de jade se comía las rosetas de jade.
+  Azul marino con oro contrasta con el blanco y deja el jade a las manchas. Cuadrados uno dentro de
+  otro en un faldón parecen una diana.
+- **Sin rendijas:** cada tramo entra en el siguiente (la nuca en el cuello, el brazo en el antebrazo,
+  el antebrazo y el corvejón en el pie). El usuario las ve desde abajo y de cerca: revisa con una
+  cámara baja.
+- **El cuello no puede ser más alto que la cabeza:** baja hacia ella en escalones (cresta en dos
+  tramos) o cambia de golpe. Un cuello largo deja un hueco entre la nuca y el collar: acerca la cabeza
+  al pecho (moviendo todas sus cajas, articulaciones y la boca del rugido a la vez, con un script).
+- Lo que va sobre el pecho (el colgante) cuelga del hueso `Body`, no del cuello: si no, se despega al
+  mover el cuello.
+- **Aura:** con 0,75 studs de ancho las bandas parecían velas: 0,06–0,3. Los pastel muy claros con
+  neón y `LightEmission` alto salían blancos: colores saturados (95, 175, 255; 255, 125, 185…) y
+  `LightEmission` 0,3. En edición no gira (piezas ancladas): pruébalo en Play.
+- **Tamaño de montura:** el jinete necesita el lomo a ~3,5 studs (la llama, 3,9). El jaguar va a
+  `size` 1,1 (lomo 3,6, 10,3 de largo con la cola).
+- **Vista previa:** `Data` queda en caché aunque cambie `size`; clona la carpeta `Shared` entera a
+  `ReplicatedStorage`, requiere `MountModels` del clon y borra el clon. Para presentarlo: espalda, 3/4 y
+  frente en fila, con la llama y un avatar R15 de verdad al lado.
 
 ### Skins de mascota (G9c)
 

@@ -1,7 +1,7 @@
 --!strict
 -- Monturas (Fase 11) en el Lobby: dibuja las de todos (Shared/UI/MountRiders), enlaza Montar (N, R3 en
--- el mando y botón táctil) mientras lleves una montura y Escupir (Y y botón táctil) mientras vas
--- montado, y pone la velocidad montado (en el Lobby nadie más la cambia).
+-- el mando y botón táctil) mientras lleves una montura y su gesto (Y y botón táctil: escupir, rugir)
+-- mientras vas montado, y pone la velocidad montado (en el Lobby nadie más la cambia).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,7 @@ local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local MountRiders = require(ReplicatedStorage.Shared.UI.MountRiders)
 
 local ACTION = "Mount"
-local SPIT_ACTION = "MountSpit"
+local GESTURE_ACTION = "MountGesture"
 -- Velocidad a pie en el Lobby (la de Roblox).
 local WALK_SPEED = 16
 
@@ -32,26 +32,27 @@ local function refreshBinding()
 	end
 end
 
--- Escupir (M3), solo montado: Y y botón táctil.
-local function refreshSpit()
-	if Players.LocalPlayer:GetAttribute("Mounted") ~= nil then
-		ActionButtons.bind(SPIT_ACTION, "Escupir", function(_, state: Enum.UserInputState)
+-- El gesto de la montura (M3: escupir, rugir), solo montado: Y y botón táctil con su texto.
+local function refreshGesture()
+	local label = MountRiders.gestureLabel()
+	if label then
+		ActionButtons.bind(GESTURE_ACTION, label, function(_, state: Enum.UserInputState)
 			if state == Enum.UserInputState.Begin then
-				MountRiders.spit()
+				MountRiders.gesture()
 			end
 			return Enum.ContextActionResult.Sink
 		end, Enum.KeyCode.Y)
 	else
-		ActionButtons.unbind(SPIT_ACTION)
+		ActionButtons.unbind(GESTURE_ACTION)
 	end
 end
 
 function MountController:Start()
 	MountRiders.start()
 	Players.LocalPlayer:GetAttributeChangedSignal("ActiveMount"):Connect(refreshBinding)
-	Players.LocalPlayer:GetAttributeChangedSignal("Mounted"):Connect(refreshSpit)
+	Players.LocalPlayer:GetAttributeChangedSignal("Mounted"):Connect(refreshGesture)
 	refreshBinding()
-	refreshSpit()
+	refreshGesture()
 	-- Solo se toca la velocidad montado y al bajar: a pie la deja como esté.
 	local wasMounted = false
 	RunService.Heartbeat:Connect(function()

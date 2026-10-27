@@ -7,8 +7,9 @@
 -- huevo, no está aturdido ni haciendo otra cosa y no le han hecho daño hace poco
 -- (Config.Mounts.HurtCooldown). Lo bajan: pedirlo, recibir daño, coger el huevo, caer, morir o
 -- reaparecer, y cambiar de montura.
--- Montado, la montura puede escupir (gesto sin daño, remoto MountSpit): el servidor mira la espera
--- (Config.Mounts.SpitCooldown) y avisa a todos los clientes, que la animan (UI/MountRiders).
+-- Montado, la montura hace su gesto (Data/Mounts "gesture": la llama escupe y el jaguar ruge; sin daño,
+-- remoto MountGesture): el servidor mira la espera (Config.Mounts.GestureCooldown) y avisa a todos los
+-- clientes, que lo animan (UI/MountRiders).
 -- Lo arrancan los MountService del Lobby y de la Isla.
 
 local Players = game:GetService("Players")
@@ -30,7 +31,7 @@ local canRequest = RequestCooldown.new(0.25)
 -- Última vez (os.clock) que montó o bajó, y que recibió daño.
 local lastToggle: { [Player]: number } = {}
 local lastHurt: { [Player]: number } = {}
-local lastSpit: { [Player]: number } = {}
+local lastGesture: { [Player]: number } = {}
 
 function MountServer.isMounted(player: Player): boolean
 	return CombatState.isMounted(player)
@@ -95,17 +96,17 @@ local function onToggle(player: Player, wanted: any)
 	lastToggle[player] = os.clock()
 end
 
-local function onSpit(player: Player)
+local function onGesture(player: Player)
 	local mountId = player:GetAttribute(ATTRIBUTE)
 	local mount = if typeof(mountId) == "string" then Mounts[mountId] else nil
-	if not (mount and mount.animations.Spit and mount.animations.Spit ~= "") then
+	if not (mount and mount.animations.Gesture ~= "") then
 		return
 	end
-	if os.clock() - (lastSpit[player] or -math.huge) < SETTINGS.SpitCooldown then
+	if os.clock() - (lastGesture[player] or -math.huge) < SETTINGS.GestureCooldown then
 		return
 	end
-	lastSpit[player] = os.clock()
-	Remotes.MountSpit:FireAllClients(player)
+	lastGesture[player] = os.clock()
+	Remotes.MountGesture:FireAllClients(player)
 end
 
 local function watchCharacter(player: Player, character: Model)
@@ -155,7 +156,7 @@ end
 
 function MountServer.start()
 	Remotes.ToggleMount.OnServerEvent:Connect(onToggle)
-	Remotes.MountSpit.OnServerEvent:Connect(onSpit)
+	Remotes.MountGesture.OnServerEvent:Connect(onGesture)
 	Players.PlayerAdded:Connect(watchPlayer)
 	for _, player in Players:GetPlayers() do
 		watchPlayer(player)
@@ -163,7 +164,7 @@ function MountServer.start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastToggle[player] = nil
 		lastHurt[player] = nil
-		lastSpit[player] = nil
+		lastGesture[player] = nil
 	end)
 end
 

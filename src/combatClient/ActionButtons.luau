@@ -39,7 +39,7 @@ local SLOTS: { [string]: Vector2 } = {
 	Ability5 = Vector2.new(2, 2),
 	BuildDemolish = Vector2.new(3, 2),
 	Mount = Vector2.new(4, 2), -- montar y bajar (Fase 11, UI/MountRiders)
-	MountSpit = Vector2.new(5, 2), -- escupir montado (Fase 11, M3)
+	MountGesture = Vector2.new(5, 2), -- gesto montado: escupir, rugir (Fase 11, M3)
 }
 -- Acciones sin casilla fija: a partir de aquí, en la cuarta fila.
 local EXTRA_ROW = 3

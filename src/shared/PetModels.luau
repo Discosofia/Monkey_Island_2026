@@ -2061,13 +2061,25 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 		local upperTop = bottom + 1
 		local lowZ = z
 		if isFront then
-			box(
-				upper,
-				"Shoulder",
-				Vector3.new(side * (bodyW / 2 - 0.85), bottom + bodyH * 0.42, z - 0.2),
-				Vector3.new(2, bodyH * 0.66, 3.4),
-				shoulderColor
-			)
+			-- Con la camiseta de la skin, la camiseta hace de hombro y el brazo sale de ella por un puño
+			-- azul. El hombro gira con la pata: dentro de la camiseta fija se salía en diagonal al galopar.
+			if gear.shirt and gear.shirtStripe then
+				box(
+					upper,
+					"SleeveCuff",
+					Vector3.new(x, bottom, z),
+					Vector3.new(width + 0.6, 1.2, width + 0.6),
+					gear.shirtStripe
+				)
+			else
+				box(
+					upper,
+					"Shoulder",
+					Vector3.new(side * (bodyW / 2 - 0.85), bottom + bodyH * 0.42, z - 0.2),
+					Vector3.new(2, bodyH * 0.66, 3.4),
+					shoulderColor
+				)
+			end
 			box(
 				upper,
 				"UpperArm",

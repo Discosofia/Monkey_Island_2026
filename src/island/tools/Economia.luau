@@ -710,6 +710,8 @@ local function main(copia: Instance): string
 			-- Probabilidad de no tener aún una montura y día en que pasa del 50 % tenerla.
 			sinMontura = 1,
 			monturaDia = nil :: number?,
+			-- Lo mismo por rareza de montura (la de cada rareza solo sale de sus huevos).
+			sinMonturaRareza = {} :: { [string]: number },
 			misiones = 0,
 			misionesPosibles = 0,
 			xpRol = 0,
@@ -815,6 +817,14 @@ local function main(copia: Instance): string
 					r.huevosEclosionados += 1
 					eclosionar()
 					r.sinMontura *= 1 - nido.montura
+					local totalPesos = 0
+					for _, peso in nido.pesos do
+						totalPesos += peso
+					end
+					for rareza in raresConMontura do
+						local p = if totalPesos > 0 then (nido.pesos[rareza] or 0) / totalPesos * chanceMontura else 0
+						r.sinMonturaRareza[rareza] = (r.sinMonturaRareza[rareza] or 1) * (1 - p)
+					end
 					if not r.monturaDia and r.sinMontura <= 0.5 then
 						r.monturaDia = dia
 					end
@@ -1077,6 +1087,18 @@ local function main(copia: Instance): string
 					" · "
 				)}.`
 			)
+			-- Cada montura por separado (las de una misma rareza se reparten los huevos de esa rareza).
+			local porMontura = {}
+			for _, montura in Mounts do
+				local partes = {}
+				for _, clave in OPCIONES.ordenPerfiles do
+					local sin = resultados[clave].sinMonturaRareza[montura.rarity] or 1
+					table.insert(partes, `{OPCIONES.perfiles[clave].nombre} {pct(1 - sin)}`)
+				end
+				table.insert(porMontura, `{montura.name} ({montura.rarity}): {table.concat(partes, ", ")}`)
+			end
+			table.sort(porMontura)
+			linea(`Cada montura al día {OPCIONES.dias}: {table.concat(porMontura, " · ")}.`)
 		end
 		-- Semanales: qué día de la primera semana cumple cada una cada perfil.
 		linea("")

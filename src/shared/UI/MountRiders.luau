@@ -5,9 +5,10 @@
 -- No colisiona ni se puede golpear (CanCollide y CanQuery apagados): el cuerpo sigue siendo el
 -- personaje, así que el combate, el huevo y la zona segura no cambian.
 -- Animaciones de la montura (Data/Mounts "animations"): "Idle" parada y "Run" al ir rápido (se
--- mezclan según la velocidad, Config.Mounts.RunFrom / RunFull), "Jump" al saltar y "Spit" cuando el
--- servidor avisa de que escupe (Remotes.MountSpit): en su marcador "Escupir" salen las partículas
--- (MountModels.spit).
+-- mezclan según la velocidad, Config.Mounts.RunFrom / RunFull), "Jump" al saltar y "Gesture" cuando el
+-- servidor avisa del gesto (Remotes.MountGesture): en su marcador ("gesture.marker") sale el efecto
+-- (MountModels.gesture: el escupitajo de la llama, el rugido del jaguar). El aura de la montura que la
+-- tenga gira más deprisa al galopar (MountModels.animateAura).
 -- Para el jinete local, además: sube el HipHeight para que vaya sentado encima, pone la pose "Ride"
 -- (Client/BodyAnimations) y lo baja si coge un arma o se mete en el agua. La velocidad la pone quien
 -- la lleva en cada place (SurvivalController en la Isla, MountController en el Lobby) con speedOf.
@@ -90,9 +91,10 @@ local function loadTracks(model: Model, mountId: string): { [string]: AnimationT
 		tracks.Run.Looped = true
 		tracks.Run:Play(0.2, 0.001)
 	end
-	if tracks.Spit then
-		tracks.Spit:GetMarkerReachedSignal("Escupir"):Connect(function()
-			MountModels.spit(model)
+	local gesture = Mounts[mountId].gesture
+	if tracks.Gesture then
+		tracks.Gesture:GetMarkerReachedSignal(gesture.marker):Connect(function()
+			MountModels.gesture(model, gesture.effect)
 		end)
 	end
 	return tracks
@@ -197,6 +199,7 @@ local function update(deltaTime: number)
 		if tracks.Idle then
 			tracks.Idle:AdjustWeight(math.max(1 - run, 0.001), 0.15)
 		end
+		MountModels.animateAura(rider.model, deltaTime, run)
 		if tracks.Jump and velocity.Y > JUMP_SPEED and os.clock() - rider.jumpedAt > JUMP_GAP then
 			rider.jumpedAt = os.clock()
 			tracks.Jump:Play(0.1)
@@ -222,10 +225,18 @@ local function watchLocal(character: Model)
 	end
 end
 
--- Pide que la montura escupa (el servidor mira la espera y avisa a todos).
-function MountRiders.spit()
+-- Texto del botón del gesto de la montura en la que va el jugador local (nil a pie o si la montura
+-- aún no tiene la animación del gesto).
+function MountRiders.gestureLabel(): string?
+	local mountId = Players.LocalPlayer:GetAttribute(CombatState.MOUNTED_ATTRIBUTE)
+	local mount = if typeof(mountId) == "string" then Mounts[mountId] else nil
+	return if mount and mount.animations.Gesture ~= "" then mount.gesture.label else nil
+end
+
+-- Pide el gesto de la montura (el servidor mira la espera y avisa a todos).
+function MountRiders.gesture()
 	if CombatState.isMounted(Players.LocalPlayer) then
-		Remotes.MountSpit:FireServer()
+		Remotes.MountGesture:FireServer()
 	end
 end
 
@@ -261,11 +272,11 @@ function MountRiders.start()
 		track(player)
 	end
 	Players.PlayerRemoving:Connect(remove)
-	Remotes.MountSpit.OnClientEvent:Connect(function(player: any)
+	Remotes.MountGesture.OnClientEvent:Connect(function(player: any)
 		local rider = if typeof(player) == "Instance" and player:IsA("Player") then riders[player] else nil
-		local spit = if rider then rider.tracks.Spit else nil
-		if spit then
-			spit:Play(0.1)
+		local gesture = if rider then rider.tracks.Gesture else nil
+		if gesture then
+			gesture:Play(0.1)
 		end
 	end)
 	RunService.RenderStepped:Connect(update)

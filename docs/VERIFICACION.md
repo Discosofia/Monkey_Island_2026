@@ -819,6 +819,32 @@ El jugador 1 es el administrador (en Studio, el dueño del juego); el 2, un juga
 7. [ ] 🛠️ Mantenimiento en 1 min (dos toques), justo antes de publicar una actualización (T4d).
    ✅ Anuncio y cuenta atrás en todos los servidores; al acabar, los jugadores salen con "🛠️ El juego está en mantenimiento…" y durante 10 min no pueden entrar (tú sí). Se cancela con ⏹ en 🎉 Eventos.
 
+## 14. Lo que queda por probar de T5a: Jaguar Albino Esmeralda y perro pirata (27-10-2026)
+
+Probado en Studio (Isla, 1 jugador): montar el jaguar, reposo y galope, el aura (despacio parado y deprisa al galopar), el rugido (animación, cubitos y ojos) y la velocidad montado (33). Para tener el jaguar: 👑 Admin → dar la montura «Jaguar Albino Esmeralda», y llevarla desde el cartel de Mascotas del Lobby.
+
+### 14.1 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Monta el jaguar y mira los botones de abajo a la derecha.
+   ✅ Sale el botón «Rugir» (con la llama sale «Escupir»); al tocarlo, el jaguar ruge.
+
+### 14.2 Dos jugadores (*Test → Clientes y servidores*, 2 clientes)
+
+1. [ ] El 1 monta el jaguar, galopa y ruge (Y); el 2 lo mira.
+   ✅ El 2 ve el galope, el aura girando y la onda de cubitos pastel con los ojos encendidos al rugir.
+2. [ ] El 1 ruge varias veces seguidas.
+   ✅ Solo ruge una vez cada 3 s.
+
+### 14.3 En el Lobby (▶ Jugar)
+
+1. [ ] Monta el jaguar y salta.
+   ✅ Galopa, salta con su animación (se estira en el aire) y el jinete va sentado sobre la silla azul marino.
+
+### 14.4 En el juego publicado
+
+1. [ ] Monta el jaguar en la Isla publicada.
+   ✅ Las cuatro animaciones cargan (si el jaguar va rígido, las animaciones no son del dueño del juego).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

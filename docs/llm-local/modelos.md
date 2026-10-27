@@ -45,6 +45,16 @@
 - Hombreras: losas cuadradas, estrellas, círculos u óvalos planos como monedas. Nunca óvalos como almohadas.
 - Los grados de un mismo set comparten materiales, paleta y motivos.
 
+## Animales grandes y monturas (lo aprendido con el Jaguar, octubre de 2026)
+
+- Busca las proporciones reales del animal: el jaguar tiene la cruz a la mitad del largo y la cola en un 41 %. Si no, sale chaparro.
+- El tronco nunca es una sola caja: tramos (pecho, cintura, grupa) con los cantos achaflanados y musculatura en escalones de tono.
+- La cara sube en escalones de la nariz a la frente. El hocico tiene que estar marcado. Los ojos van pequeños y con párpado. Los orificios de la nariz, pequeños y en las esquinas de abajo.
+- Las rosetas son un anillo de manchas sueltas: con barras parecen letras.
+- El arnés o la silla no puede ser del color de las manchas.
+- No dejes rendijas entre tramos: revisa con una cámara baja.
+- El cuello no es más alto que la cabeza.
+
 ## Cerrar
 
 - El constructor final va al archivo del repo. `stylua src` y `selene src`.

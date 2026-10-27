@@ -55,3 +55,9 @@ return Anim.measure(rig, ks)      -- altura de cada extremidad por instante
 3. Pega el id en `src/shared/Data/MonkeyAnimations.luau` o en `Data/WeaponAnimations.luau`.
 4. El spec final va a git, en `src/island/tools/MonkeyAnimationSpecs/<lote>.luau`. Las armas viven en `WeaponAnimationBuilder`.
 5. `Anim.clear()` cuando el usuario apruebe. Recuérdale que guarde el place.
+
+## Monturas
+
+- Las specs van en `MonkeyAnimationSpecs/Monturas.luau`, con `parents` (la jerarquía de huesos de la montura). Se generan con `MonkeyAnimationBuilder.build("Monturas")` y se enlazan en `Data/Mounts` (`Run`, `Idle`, `Gesture`, `Jump`).
+- El gesto (escupir, rugir) lleva un marcador con el nombre de `gesture.marker`: ahí sale el efecto.
+- En el galope, mide con `Anim.measure`: un lomo que cabecea mucho clava las manos en el suelo.

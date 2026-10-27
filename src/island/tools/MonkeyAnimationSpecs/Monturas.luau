@@ -1,5 +1,5 @@
 --!strict
--- Animaciones de las monturas (Shared/MountModels): de momento, la Llama Andina. Cada spec lleva
+-- Animaciones de las monturas (Shared/MountModels): la Llama Andina y el Jaguar. Cada spec lleva
 -- "parents", la jerarquía de huesos de la montura, porque no es la de los monos. Ver
 -- MonkeyAnimationBuilder para el formato. Los ángulos son los de CFrame.Angles en el espacio del
 -- hueso padre: en las patas (cuelgan hacia abajo), X positivo lleva la pezuña adelante; en el
@@ -127,7 +127,290 @@ table.sort(idle, function(a, b)
 	return a.t < b.t
 end)
 
+-- ===== Jaguar Albino Esmeralda (T5a) =====
+-- La cola tiene tres tramos (Tail → Tail2 → Tail3) y sale hacia atrás: X negativo la sube. La cabeza
+-- y la mandíbula están delante de su articulación: X positivo levanta la cabeza y X negativo abre la
+-- boca. El hueso "Aura" no se anima: lo gira MountModels.animateAura.
+--   - Jaguar_Run: galope de 0,55 s en bucle, zancada larga de felino: el lomo cabecea, la cabeza va
+--     casi quieta y la cola, tendida atrás, ondula con un retraso de tramo a tramo.
+--   - Jaguar_Idle: de pie (3,6 s en bucle): respira, la cola ondula en S de lado a lado, gira la
+--     cabeza a un lado y vuelve, y sacude una oreja.
+--   - Jaguar_Roar: rugido (1,25 s): se agacha, se alza con el pecho arriba y las manos adelante y abre
+--     las fauces en el marcador "Rugido" (0,45 s), donde quien la reproduce llama a
+--     MountModels.gesture (la onda del aura y los ojos).
+--   - Jaguar_Jump: salto (0,9 s; la altura la da la física): se agacha, empuja con las patas de atrás,
+--     se estira en el aire con las manos delante y amortigua.
+
+local JAGUAR_PARENTS: { [string]: string } = table.clone(PARENTS)
+JAGUAR_PARENTS.Tail2 = "Tail"
+JAGUAR_PARENTS.Tail3 = "Tail2"
+
+-- Ola de la cola: cada tramo repite el giro del anterior con retraso, así se dobla en S.
+local function tailWave(
+	frame: { [string]: any },
+	u: number,
+	axis: number,
+	amplitude: number,
+	base: { number },
+	lag: number
+)
+	for i, bone in { "Tail", "Tail2", "Tail3" } do
+		local angle = { base[i], 0, 0 }
+		angle[axis] += round(amplitude * math.sin(2 * math.pi * (u - (i - 1) * lag)))
+		frame[bone] = angle
+	end
+end
+
+local function jaguarGallop(length: number, steps: number): { { [string]: any } }
+	local legs = {
+		-- Al recoger la pata, el pie queda detrás de la rodilla (corvejón doblado): las cuatro doblan en
+		-- negativo, no como la llama.
+		{ name = "BL", phase = 0, fold = -50 },
+		{ name = "BR", phase = 0.1, fold = -50 },
+		{ name = "FL", phase = 0.5, fold = -70 },
+		{ name = "FR", phase = 0.6, fold = -70 },
+	}
+	local keyframes = {}
+	for i = 0, steps do
+		local u = i / steps
+		local frame: { [string]: any } = { t = round(length * u) }
+		for _, leg in legs do
+			local angle = 2 * math.pi * (u - leg.phase)
+			frame[`Leg{leg.name}`] = { round(40 * math.sin(angle)), 0, 0 }
+			frame[`Shin{leg.name}`] = { round(leg.fold * math.max(0, math.cos(angle))), 0, 0 }
+		end
+		local wave = math.sin(2 * math.pi * u)
+		-- Cabeceo y bote pequeños y el lomo algo alzado: con 5° y 0,14 studs, las manos se clavaban
+		-- 0,26 studs en el suelo (medido con Anim.measure).
+		frame.Body = { round(3 * wave), 0, 0, 0, round(0.08 + 0.06 * math.cos(2 * math.pi * (u - 0.25))), 0 }
+		frame.Neck = { round(-4 - 4 * wave), 0, 0 }
+		frame.Head = { round(-1 * wave), 0, 0 }
+		frame.EarL = { 30, 0, 0 }
+		frame.EarR = { 30, 0, 0 }
+		-- Cola tendida atrás (sube a la línea del lomo) y ondulando arriba y abajo.
+		tailWave(frame, u, 1, 8, { -10, 8, 12 }, 0.15)
+		table.insert(keyframes, frame)
+	end
+	return keyframes
+end
+
+local function jaguarIdle(length: number, steps: number): { { [string]: any } }
+	local keyframes = {}
+	for i = 0, steps do
+		local u = i / steps
+		local t = round(length * u)
+		local frame: { [string]: any } = { t = t }
+		-- Respira: el lomo sube y baja dos veces por ciclo.
+		frame.Body = { round(0.8 * math.sin(4 * math.pi * u)), 0, 0 }
+		frame.Neck = { round(1.5 * math.sin(4 * math.pi * u - 0.6)), 0, 0 }
+		-- Mira a un lado entre el 30 % y el 70 % del ciclo y vuelve.
+		local look = math.clamp(math.sin(math.pi * math.clamp((u - 0.3) / 0.4, 0, 1)) * 1.4, 0, 1)
+		frame.Head = { 0, round(24 * look), round(-4 * look) }
+		-- La oreja izquierda se sacude una vez.
+		local flick = if math.abs(u - 0.85) < 0.04 then 1 else 0
+		frame.EarL = { round(25 * flick), 0, round(-20 * flick) }
+		frame.EarR = { 0, 0, 0 }
+		-- Cola en S de lado a lado (sobre el eje vertical), despacio.
+		tailWave(frame, u, 2, 14, { 0, 0, 0 }, 0.12)
+		table.insert(keyframes, frame)
+	end
+	return keyframes
+end
+
 return {
+	Jaguar_Run = {
+		name = "Jaguar_Run",
+		loop = true,
+		priority = "Movement",
+		easing = "Linear",
+		parents = JAGUAR_PARENTS,
+		keyframes = jaguarGallop(0.55, 12),
+	},
+	Jaguar_Idle = {
+		name = "Jaguar_Idle",
+		loop = true,
+		priority = "Idle",
+		easing = "Cubic",
+		direction = "InOut",
+		parents = JAGUAR_PARENTS,
+		keyframes = jaguarIdle(3.6, 24),
+	},
+	Jaguar_Roar = {
+		name = "Jaguar_Roar",
+		loop = false,
+		priority = "Action",
+		easing = "Cubic",
+		direction = "Out",
+		parents = JAGUAR_PARENTS,
+		keyframes = {
+			{ t = 0, reposo = true },
+			-- Se prepara: agacha el pecho y la cabeza, orejas atrás.
+			{
+				t = 0.2,
+				Body = { -3, 0, 0 },
+				Neck = { -8, 0, 0 },
+				Head = { -6, 0, 0 },
+				Jaw = { -4, 0, 0 },
+				EarL = { 55, 0, 0 },
+				EarR = { 55, 0, 0 },
+				LegFL = { -8, 0, 0 },
+				LegFR = { -8, 0, 0 },
+				ShinFL = { 16, 0, 0 },
+				ShinFR = { 16, 0, 0 },
+			},
+			-- Ruge: se alza con el pecho arriba, las manos adelante y las fauces abiertas.
+			{
+				t = 0.45,
+				marcador = "Rugido",
+				Body = { 9, 0, 0, 0, 0.35, 0 },
+				Neck = { 12, 0, 0 },
+				Head = { 14, 0, 0 },
+				Jaw = { -38, 0, 0 },
+				EarL = { 65, 0, 0 },
+				EarR = { 65, 0, 0 },
+				LegFL = { 22, 0, 0 },
+				LegFR = { 22, 0, 0 },
+				ShinFL = { -18, 0, 0 },
+				ShinFR = { -18, 0, 0 },
+				LegBL = { -8, 0, 0 },
+				LegBR = { -8, 0, 0 },
+				Tail = { -18, 0, 0 },
+				Tail2 = { 12, 0, 0 },
+				Tail3 = { 10, 0, 0 },
+			},
+			-- Aguanta el rugido sacudiendo un poco la cabeza.
+			{
+				t = 0.75,
+				Body = { 8, 0, 0, 0, 0.32, 0 },
+				Neck = { 10, 0, 0 },
+				Head = { 12, 6, 0 },
+				Jaw = { -34, 0, 0 },
+				EarL = { 65, 0, 0 },
+				EarR = { 65, 0, 0 },
+				LegFL = { 20, 0, 0 },
+				LegFR = { 20, 0, 0 },
+				ShinFL = { -16, 0, 0 },
+				ShinFR = { -16, 0, 0 },
+				LegBL = { -8, 0, 0 },
+				LegBR = { -8, 0, 0 },
+				Tail = { -16, 0, 0 },
+				Tail2 = { 10, 0, 0 },
+				Tail3 = { 8, 0, 0 },
+			},
+			-- Baja y cierra la boca.
+			{
+				t = 1,
+				Body = { 1, 0, 0, 0, 0.04, 0 },
+				Neck = { 2, 0, 0 },
+				Head = { 2, 0, 0 },
+				Jaw = { -6, 0, 0 },
+				EarL = { 20, 0, 0 },
+				EarR = { 20, 0, 0 },
+			},
+			{ t = 1.25, reposo = true },
+		},
+	},
+	Jaguar_Jump = {
+		name = "Jaguar_Jump",
+		loop = false,
+		priority = "Action",
+		easing = "Cubic",
+		direction = "InOut",
+		parents = JAGUAR_PARENTS,
+		keyframes = {
+			{ t = 0, reposo = true },
+			-- Se agacha: el lomo baja y las patas se doblan con los pies en su sitio.
+			{
+				t = 0.15,
+				Body = { -2, 0, 0, 0, -0.05, 0 },
+				Neck = { -6, 0, 0 },
+				Head = { 4, 0, 0 },
+				EarL = { 30, 0, 0 },
+				EarR = { 30, 0, 0 },
+				LegFL = { -25, 0, 0 },
+				LegFR = { -25, 0, 0 },
+				ShinFL = { 50, 0, 0 },
+				ShinFR = { 50, 0, 0 },
+				LegBL = { 30, 0, 0 },
+				LegBR = { 30, 0, 0 },
+				ShinBL = { -50, 0, 0 },
+				ShinBR = { -50, 0, 0 },
+				Tail = { 10, 0, 0 },
+			},
+			-- Impulso: el pecho sube, las de atrás empujan estiradas y las manos se recogen.
+			{
+				t = 0.3,
+				Body = { 12, 0, 0, 0, 0.15, 0 },
+				Neck = { -6, 0, 0 },
+				Head = { 2, 0, 0 },
+				EarL = { 35, 0, 0 },
+				EarR = { 35, 0, 0 },
+				LegFL = { 40, 0, 0 },
+				LegFR = { 40, 0, 0 },
+				ShinFL = { -80, 0, 0 },
+				ShinFR = { -80, 0, 0 },
+				LegBL = { -40, 0, 0 },
+				LegBR = { -40, 0, 0 },
+				ShinBL = { 10, 0, 0 },
+				ShinBR = { 10, 0, 0 },
+				Tail = { -10, 0, 0 },
+				Tail2 = { 10, 0, 0 },
+			},
+			-- En el aire: estirado, manos delante y patas atrás, la cola de timón.
+			{
+				t = 0.5,
+				Body = { 0, 0, 0, 0, 0.12, 0 },
+				Neck = { -4, 0, 0 },
+				Head = { 2, 0, 0 },
+				EarL = { 35, 0, 0 },
+				EarR = { 35, 0, 0 },
+				LegFL = { 55, 0, 0 },
+				LegFR = { 55, 0, 0 },
+				ShinFL = { -25, 0, 0 },
+				ShinFR = { -25, 0, 0 },
+				LegBL = { -45, 0, 0 },
+				LegBR = { -45, 0, 0 },
+				ShinBL = { 25, 0, 0 },
+				ShinBR = { 25, 0, 0 },
+				Tail = { -18, 0, 0 },
+				Tail2 = { 6, 0, 0 },
+				Tail3 = { 6, 0, 0 },
+			},
+			-- Cae de manos: las de delante reciben el peso y las de atrás vuelven bajo el cuerpo.
+			{
+				t = 0.65,
+				Body = { -3, 0, 0 },
+				Neck = { 3, 0, 0 },
+				Head = { 0, 0, 0 },
+				EarL = { 20, 0, 0 },
+				EarR = { 20, 0, 0 },
+				LegFL = { 20, 0, 0 },
+				LegFR = { 20, 0, 0 },
+				ShinFL = { -8, 0, 0 },
+				ShinFR = { -8, 0, 0 },
+				LegBL = { 15, 0, 0 },
+				LegBR = { 15, 0, 0 },
+				ShinBL = { -20, 0, 0 },
+				ShinBR = { -20, 0, 0 },
+				Tail = { -8, 0, 0 },
+			},
+			-- Amortigua.
+			{
+				t = 0.75,
+				Body = { -1, 0, 0 },
+				Neck = { 5, 0, 0 },
+				LegFL = { -18, 0, 0 },
+				LegFR = { -18, 0, 0 },
+				ShinFL = { 36, 0, 0 },
+				ShinFR = { 36, 0, 0 },
+				LegBL = { 20, 0, 0 },
+				LegBR = { 20, 0, 0 },
+				ShinBL = { -36, 0, 0 },
+				ShinBR = { -36, 0, 0 },
+			},
+			{ t = 0.9, reposo = true },
+		},
+	},
 	Llama_Run = {
 		name = "Llama_Run",
 		loop = true,
