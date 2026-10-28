@@ -1189,6 +1189,43 @@ Probado en Studio (1 jugador, Lobby), en English y en Español y cambiando de un
 5. [ ] Cobra el día 7 del calendario con una cuenta pionera en inglés.
    ✅ La ventana dice «🎉 Day 7 claimed! …» con cada premio en inglés y la tirada «🎁 Pioneer roll: …».
 
+## 22. Lo que queda por probar de I1d: Dunas y el combate en inglés (27-10-2026)
+
+Sin probar en Studio: la tanda se aprobó con la comprobación de `tools/strings.py`, stylua, selene y los tres `rojo build`. Hasta la I1e, en inglés quedan en español los nombres de `Data` (roles, habilidades, armas, objetos). Jaguar y Quetzal se escriben igual en los dos idiomas.
+
+#### 22.1 En el Studio de Dunas (1 jugador, panel de pruebas para empezar solo)
+
+1. [ ] Pon el ajuste de idioma en English y entra en Dunas.
+   ✅ La ventana «Antes de la batalla» dice «🛡️ Team and role», «✅ Ready!», «Pick a team to start» y, al pulsar Listo, «⏳ Waiting… (cancel Ready)» y «Ready: 1/2». En el teléfono, las dos columnas siguen sin desplazamiento.
+2. [ ] Elige equipo y empieza una partida de prueba.
+   ✅ La línea de la fase dice «⚔️ The battle starts in …» y después llega el aviso «⚔️ Let the battle begin! …»; bajo el marcador, «🏠 At base»; la línea del altar, «⛩️ Altar in 0:45», y el cartel sobre el altar, lo mismo.
+3. [ ] Roba la bandera rival, muere con ella y captúrala después.
+   ✅ «🚩 You have the flag! …», «🏃 Stolen!», «⏳ Dropped 12», «Respawning in 4» y los avisos «🚩 … takes the 🦜 Quetzal flag!», «💥 … dropped …» y «🏆 … captures the … flag! 🐆 1 · 0 🦜».
+4. [ ] Súbete a lo alto de la pirámide cuando se encienda el altar.
+   ✅ «⛩️ The pyramid altar is lit! …», «⛩️ 🐆 taking the altar 40%», «⛩️ Take it!» en el cartel y, al tomarlo, «⛩️ Team 🐆 Jaguar takes the altar! …».
+5. [ ] Termina la partida.
+   ✅ Los resultados dicen «🧪 Test match», «Doesn't count for Amber or the leaderboard», «⛩️ Altars: 🐆 1 · 0 🦜», «Rematch starts in … s with whoever stays», «🔁 Rematch» y «🏝️ Back to Lobby», sin texto cortado. La consola, sin `[Strings] sin inglés`.
+6. [ ] Vuelve a ponerlo en Español y repite el paso 1.
+   ✅ Todo sale como antes de la I1d.
+
+#### 22.2 En la Isla y el Lobby (1 jugador, en English)
+
+1. [ ] En la Isla, usa el grito de guerra con monos cerca, marca presas con el cazador y usa el tótem y Resurgir con el médico.
+   ✅ «⚔️ 3 monkeys are coming for you! …» (con uno, «A monkey is coming for you!»), «🏹 2 prey marked for … s», «⛑️ Healing totem for … s» y «⛑️ Resurgence! You healed and cleansed 1 player».
+2. [ ] Dispara un arma a distancia sin munición.
+   ✅ «You need … to use: …» (los nombres, en español hasta la I1e).
+3. [ ] En el Lobby, mira los muñecos de práctica.
+   ✅ Sobre la cabeza, «Practice dummy» y «Sparring dummy».
+
+#### 22.3 Con 2 jugadores en Dunas (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Pon a uno en English y al otro en Español, uno en cada equipo, y que uno derribe al otro.
+   ✅ «⚔️ 🐆 … knocks out 🦜 …» a uno y «⚔️ 🐆 … derriba a 🦜 …» al otro.
+2. [ ] Que los dos elijan el mismo rol cuando el formato solo admite uno, y que uno intente entrar en un equipo lleno.
+   ✅ «Your team already has too many of this role: …» / «Ya hay demasiados … en tu equipo» y «Team … is already full» / «El equipo … ya está completo», cada uno en su idioma.
+3. [ ] Con el médico, lanza el escudo de hojas a tu compañero.
+   ✅ Al que lo recibe, «🍃 … shields you for …» o «🍃 … te protege con un escudo de …»; al médico, «🍃 … shield on …» o «🍃 Escudo de … para …».
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

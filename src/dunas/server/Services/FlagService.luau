@@ -20,7 +20,10 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+
+local later = Strings.later
 local FlagModel = require(script.Parent.Parent.World.FlagModel)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
@@ -95,7 +98,7 @@ local function standAt(flag: Flag, ground: Vector3)
 	flag.model:PivotTo(CFrame.new(ground + Vector3.new(0, FlagModel.POLE_HEIGHT / 2, 0)))
 end
 
-local function sendHome(flag: Flag, message: string?)
+local function sendHome(flag: Flag, message: string?, args: { [string]: any }?)
 	release(flag)
 	local stand = standOf(flag.teamId)
 	standAt(flag, stand.Position + Vector3.new(0, stand.Size.Y / 2, 0))
@@ -103,7 +106,7 @@ local function sendHome(flag: Flag, message: string?)
 	flag.returnAt = nil
 	publish(flag)
 	if message then
-		Remotes.Notify:FireAllClients(message)
+		Remotes.Notify:FireAllClients(message, args)
 		Sfx.play("Pickup", flag.pole)
 	end
 end
@@ -134,7 +137,10 @@ local function pickUp(flag: Flag, player: Player, character: Model)
 	highlight.Parent = character
 	publish(flag)
 	Sfx.play("Pickup", flag.pole)
-	Remotes.Notify:FireAllClients(`🚩 ¡{player.DisplayName} se lleva la bandera {teamText(flag.teamId)}!`)
+	Remotes.Notify:FireAllClients(
+		"🚩 ¡{name} se lleva la bandera {team}!",
+		{ name = player.DisplayName, team = teamText(flag.teamId) }
+	)
 end
 
 local function drop(flag: Flag, position: Vector3)
@@ -153,7 +159,7 @@ local function drop(flag: Flag, position: Vector3)
 	local hit = Workspace:Raycast(position + Vector3.new(0, 2, 0), Vector3.new(0, -60, 0), params)
 	-- Si cae fuera del mapa (al vacío), vuelve a casa.
 	if not hit then
-		sendHome(flag, `↩️ La bandera {teamText(flag.teamId)} vuelve a su base`)
+		sendHome(flag, later("↩️ La bandera {team} vuelve a su base"), { team = teamText(flag.teamId) })
 		return
 	end
 	standAt(flag, hit.Position)
@@ -161,7 +167,10 @@ local function drop(flag: Flag, position: Vector3)
 	flag.returnAt = now() + Config.Arena.FlagReturnSeconds
 	publish(flag)
 	if carrier then
-		Remotes.Notify:FireAllClients(`💥 ¡{carrier.DisplayName} ha soltado la bandera {teamText(flag.teamId)}!`)
+		Remotes.Notify:FireAllClients(
+			"💥 ¡{name} ha soltado la bandera {team}!",
+			{ name = carrier.DisplayName, team = teamText(flag.teamId) }
+		)
 	end
 end
 
@@ -170,10 +179,11 @@ local function capture(player: Player, flag: Flag, ownTeam: string)
 	player:SetAttribute("ArenaCaptures", (if typeof(captures) == "number" then captures else 0) + 1)
 	sendHome(flag)
 	ArenaMatchService.addCapture(ownTeam)
-	Remotes.Notify:FireAllClients(
-		`🏆 ¡{player.DisplayName} captura la bandera {teamText(flag.teamId)}! `
-			.. `{Config.Arena.Teams.Jaguar.icon} {Arena.score("Jaguar")} · {Arena.score("Quetzal")} {Config.Arena.Teams.Quetzal.icon}`
-	)
+	Remotes.Notify:FireAllClients("🏆 ¡{name} captura la bandera {team}! {score}", {
+		name = player.DisplayName,
+		team = teamText(flag.teamId),
+		score = `{Config.Arena.Teams.Jaguar.icon} {Arena.score("Jaguar")} · {Arena.score("Quetzal")} {Config.Arena.Teams.Quetzal.icon}`,
+	})
 end
 
 -- Todas a casa (al cambiar de fase).
@@ -203,7 +213,7 @@ local function tick()
 				drop(flag, lastPosition[carrier] or flag.pole.Position)
 			end
 		elseif flag.state == "Dropped" and flag.returnAt and now() >= flag.returnAt then
-			sendHome(flag, `↩️ La bandera {teamText(flag.teamId)} vuelve a su base`)
+			sendHome(flag, later("↩️ La bandera {team} vuelve a su base"), { team = teamText(flag.teamId) })
 		end
 	end
 
@@ -223,7 +233,11 @@ local function tick()
 						pickUp(flag, player, character)
 						carrying = flag.teamId
 					elseif flag.teamId == teamId and flag.state == "Dropped" then
-						sendHome(flag, `↩️ {player.DisplayName} devuelve la bandera {teamText(flag.teamId)}`)
+						sendHome(
+							flag,
+							later("↩️ {name} devuelve la bandera {team}"),
+							{ name = player.DisplayName, team = teamText(flag.teamId) }
+						)
 					end
 				end
 			end

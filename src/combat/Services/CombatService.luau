@@ -832,7 +832,11 @@ local function rangedAttack(
 	local ammo = weapon.ammoItemId
 	local rules = CombatRules.get()
 	if ammo and not rules.useAmmo(player, ammo) then
-		Remotes.Notify:FireClient(player, `Necesitas {Items[ammo].name} para usar: {weapon.name}`)
+		Remotes.Notify:FireClient(
+			player,
+			"Necesitas {ammo} para usar: {weapon}",
+			{ ammo = { Items[ammo].name }, weapon = { weapon.name } }
+		)
 		return
 	end
 	local finisher = if RangedChain.isFinisher(weapon, shot) then RangedChain.settings(weapon) else nil

@@ -52,6 +52,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local ComboService = require(script.Parent.ComboService)
 local CombatService = require(script.Parent.CombatService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
@@ -66,6 +67,8 @@ local Projectiles = require(script.Parent.Parent.Projectiles)
 local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
 local Zones = require(script.Parent.Parent.Zones)
+
+local later = Strings.later
 
 local SETTINGS = Config.Abilities
 local COMBO = Config.Combo
@@ -529,7 +532,10 @@ local function warCry(player: Player, character: Model, root: BasePart): boolean
 	local reduction = math.round(Progression.perk(player, "WarCryReduction") * 100)
 	Remotes.Notify:FireClient(
 		player,
-		`⚔️ ¡{taunted} mono(s) van a por ti! Recibes un {reduction} % menos de daño`
+		if taunted == 1
+			then later("⚔️ ¡Un mono va a por ti! Recibes un {reduction} % menos de daño")
+			else later("⚔️ ¡{taunted} monos van a por ti! Recibes un {reduction} % menos de daño"),
+		{ taunted = taunted, reduction = reduction }
 	)
 	return true
 end
@@ -746,7 +752,13 @@ local function markPrey(player: Player, _character: Model, root: BasePart): bool
 	end
 	-- Las dianas sobre las presas salen del atributo "MarkedUntil" en cada cliente.
 	AbilityFx.all("MarkPrey", root.Position, SETTINGS.MarkRadius)
-	Remotes.Notify:FireClient(player, `🏹 {marked} presa(s) marcada(s) durante {seconds} s`)
+	Remotes.Notify:FireClient(
+		player,
+		if marked == 1
+			then later("🏹 Una presa marcada durante {seconds} s")
+			else later("🏹 {marked} presas marcadas durante {seconds} s"),
+		{ marked = marked, seconds = seconds }
+	)
 	return true
 end
 
@@ -1291,8 +1303,12 @@ local function areaHeal(player: Player, _character: Model, root: BasePart): bool
 	Remotes.Notify:FireClient(
 		player,
 		if finisher
-			then `⛑️ ¡Cura de urgencia! Has curado a {healed} jugador(es), les has bajado la fiebre y has envenenado a {poisoned} mono(s)`
-			else `⛑️ Has curado a {healed} jugador(es)`
+			then later(
+				"⛑️ ¡Cura de urgencia! Has curado a {healed} jugadores, les has bajado la fiebre y has envenenado a {poisoned} monos"
+			)
+			elseif healed == 1 then later("⛑️ Has curado a un jugador")
+			else later("⛑️ Has curado a {healed} jugadores"),
+		{ healed = healed, poisoned = poisoned }
 	)
 	return true
 end
@@ -1324,7 +1340,7 @@ local function healingDart(player: Player, character: Model, root: BasePart, aim
 				end
 				-- Primer paso del combo del médico: el aliado queda "revitalizado".
 				ComboService.opener(player, "HealingDart", model)
-				Remotes.Notify:FireClient(player, `⛑️ Dardo curativo a {ally.DisplayName}`)
+				Remotes.Notify:FireClient(player, "⛑️ Dardo curativo a {name}", { name = ally.DisplayName })
 				return true
 			end
 			local enemy = targetOfModel(player, model)
@@ -1382,10 +1398,18 @@ local function leafShield(player: Player, character: Model, root: BasePart): boo
 	AbilityFx.all("ShieldGlare", chosenCharacter)
 	Sfx.play("Heal", root)
 	if chosen ~= player then
-		Remotes.Notify:FireClient(chosen, `🍃 {player.DisplayName} te protege con un escudo de {amount}`)
-		Remotes.Notify:FireClient(player, `🍃 Escudo de {amount} para {chosen.DisplayName}`)
+		Remotes.Notify:FireClient(
+			chosen,
+			"🍃 {name} te protege con un escudo de {amount}",
+			{ name = player.DisplayName, amount = amount }
+		)
+		Remotes.Notify:FireClient(
+			player,
+			"🍃 Escudo de {amount} para {name}",
+			{ amount = amount, name = chosen.DisplayName }
+		)
 	else
-		Remotes.Notify:FireClient(player, `🍃 Te proteges con un escudo de {amount}`)
+		Remotes.Notify:FireClient(player, "🍃 Te proteges con un escudo de {amount}", { amount = amount })
 	end
 	return true
 end
@@ -1419,7 +1443,7 @@ local function healingTotem(player: Player, character: Model, root: BasePart, ai
 			end
 		end
 	end)
-	Remotes.Notify:FireClient(player, `⛑️ Tótem sanador durante {SETTINGS.TotemSeconds} s`)
+	Remotes.Notify:FireClient(player, "⛑️ Tótem sanador durante {seconds} s", { seconds = SETTINGS.TotemSeconds })
 	return true
 end
 
@@ -1446,7 +1470,13 @@ local function resurgence(player: Player, _character: Model, root: BasePart): bo
 	end
 	AbilityFx.all("Resurgence", root.Position, SETTINGS.SurgeRadius)
 	Sfx.play("Heal", root)
-	Remotes.Notify:FireClient(player, `⛑️ ¡Resurgir! Has curado y limpiado a {healed} jugador(es)`)
+	Remotes.Notify:FireClient(
+		player,
+		if healed == 1
+			then later("⛑️ ¡Resurgir! Has curado y limpiado a un jugador")
+			else later("⛑️ ¡Resurgir! Has curado y limpiado a {healed} jugadores"),
+		{ healed = healed }
+	)
 	return true
 end
 

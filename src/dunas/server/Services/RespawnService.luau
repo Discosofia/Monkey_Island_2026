@@ -58,9 +58,10 @@ function RespawnService.knockOut(victim: Player, attacker: Player?, _cause: stri
 	end
 	if attacker and attacker ~= victim then
 		addStat(attacker, "ArenaKills")
-		Remotes.Notify:FireAllClients(
-			`⚔️ {teamIcon(attacker)} {attacker.DisplayName} derriba a {teamIcon(victim)} {victim.DisplayName}`
-		)
+		Remotes.Notify:FireAllClients("⚔️ {attacker} derriba a {victim}", {
+			attacker = `{teamIcon(attacker)} {attacker.DisplayName}`,
+			victim = `{teamIcon(victim)} {victim.DisplayName}`,
+		})
 	end
 	for _, listener in knockOutListeners do
 		task.spawn(listener, victim, attacker)

@@ -23,9 +23,12 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
 local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local WINDOW_COLOR = Color3.fromRGB(25, 20, 15)
 local CARD_COLOR = Color3.fromRGB(45, 38, 30)
@@ -236,7 +239,7 @@ function ArenaLobbyController:Start()
 	end, compact)
 
 	-- "¡Listo!" y cuántos lo están.
-	local ready = Widgets.button("✅ ¡Listo!", leftPane)
+	local ready = Widgets.button(T("✅ ¡Listo!"), leftPane)
 	ready.Name = "Ready"
 	ready.LayoutOrder = 4
 	ready.Size = UDim2.new(if compact then 1 else 0.6, 0, 0, rowHeight)
@@ -252,7 +255,7 @@ function ArenaLobbyController:Start()
 
 	task.defer(fit)
 
-	local reopen = Widgets.button("🛡️ Equipo y rol", gui)
+	local reopen = Widgets.button(T("🛡️ Equipo y rol"), gui)
 	reopen.Name = "Reopen"
 	reopen.AnchorPoint = Vector2.new(0.5, 0)
 	reopen.Position = UDim2.new(0.5, 0, 0, REOPEN_TOP)
@@ -298,7 +301,7 @@ function ArenaLobbyController:Start()
 		local isReady = player:GetAttribute("ArenaReady") == true
 		local canReady = phase == "Waiting" and myTeam ~= nil
 		ready.Visible = canReady
-		ready.Text = if isReady then "⏳ Esperando… (quitar Listo)" else "✅ ¡Listo!"
+		ready.Text = if isReady then T("⏳ Esperando… (quitar Listo)") else T("✅ ¡Listo!")
 		local readyCount, total = 0, 0
 		for _, other in Players:GetPlayers() do
 			total += 1
@@ -307,9 +310,9 @@ function ArenaLobbyController:Start()
 			end
 		end
 		status.Text = if phase == "Countdown"
-			then "Aún puedes cambiar de rol y de equipo"
-			elseif myTeam == nil then "Elige equipo para empezar"
-			else `Listos: {readyCount}/{math.max(total, format * 2)}`
+			then T("Aún puedes cambiar de rol y de equipo")
+			elseif myTeam == nil then T("Elige equipo para empezar")
+			else T("Listos: {ready}/{total}", { ready = readyCount, total = math.max(total, format * 2) })
 	end)
 end
 

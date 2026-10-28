@@ -39,6 +39,7 @@ EXCLUDED = [
     "src/serverShared/AdminProfile.luau",
     "src/serverShared/GearShowcase.luau",
     "src/lobby/server/Services/AdminService.luau",
+    "src/dunas/server/Services/ArenaDebugService.luau",
     "src/lobby/server/Services/DebugService.luau",
     "src/lobby/client/Controllers/AdminController.luau",
     "src/lobby/client/Controllers/DebugController.luau",
@@ -52,6 +53,8 @@ COVERED = [
     "src/island/",
     "src/lobby/",
     "src/serverShared/",
+    "src/dunas/",
+    "src/combat/",
 ]
 
 # Campos de Data que se traducen por su nombre (T(def.name)): archivo → campos. Se rellena en la I1e.

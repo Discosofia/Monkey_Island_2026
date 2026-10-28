@@ -130,7 +130,7 @@ local function finish(winner: string?)
 	setPhase("Results", Config.Arena.ResultsSeconds)
 	if winner then
 		local team = Config.Arena.Teams[winner]
-		Remotes.Notify:FireAllClients(`🏆 ¡Gana el equipo {team.icon} {team.name}!`)
+		Remotes.Notify:FireAllClients("🏆 ¡Gana el equipo {icon} {name}!", { icon = team.icon, name = team.name })
 	else
 		Remotes.Notify:FireAllClients("🤝 Empate")
 	end

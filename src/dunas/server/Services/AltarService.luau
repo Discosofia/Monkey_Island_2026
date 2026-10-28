@@ -120,7 +120,8 @@ local function capture(teamId: string, takers: { Player })
 	end
 	Sfx.play("Revive", center)
 	Remotes.Notify:FireAllClients(
-		`⛩️ ¡El equipo {teamText(teamId)} toma el altar! Su definitiva se carga el doble de rápido {altar.BuffSeconds} s`
+		"⛩️ ¡El equipo {team} toma el altar! Su definitiva se carga el doble de rápido {seconds} s",
+		{ team = teamText(teamId), seconds = altar.BuffSeconds }
 	)
 end
 

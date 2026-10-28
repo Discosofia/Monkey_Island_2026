@@ -17,7 +17,10 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local PANEL_COLOR = Color3.fromRGB(30, 24, 18)
 local SHADE_COLOR = Color3.fromRGB(10, 8, 6)
@@ -50,25 +53,27 @@ end
 
 local function titleOf(summary: { [string]: any }): (string, Color3)
 	if summary.test then
-		return "🧪 Partida de prueba", PLAIN
+		return T("🧪 Partida de prueba"), PLAIN
 	elseif summary.result == "Win" then
-		return "🏆 ¡Victoria!", GOLD_TEXT
+		return T("🏆 ¡Victoria!"), GOLD_TEXT
 	elseif summary.result == "Loss" then
-		return "💀 Derrota", LOSS_TEXT
+		return T("💀 Derrota"), LOSS_TEXT
 	end
-	return "🤝 Empate", PLAIN
+	return T("🤝 Empate"), PLAIN
 end
 
 local function amberText(summary: { [string]: any }): string
 	if summary.test then
-		return "No cuenta para el Ámbar ni el ranking"
+		return T("No cuenta para el Ámbar ni el ranking")
 	end
-	local text = `✨ +{summary.amber} de Ámbar`
 	local lost = (summary.earned or 0) - (summary.amber or 0)
 	if lost > 0 then
-		text ..= ` (tope diario {summary.today}/{summary.dailyCap}: {lost} sin cobrar)`
+		return T(
+			"✨ +{amber} de Ámbar (tope diario {today}/{cap}: {lost} sin cobrar)",
+			{ amber = summary.amber, today = summary.today, cap = summary.dailyCap, lost = lost }
+		)
 	end
-	return text
+	return T("✨ +{amber} de Ámbar", { amber = summary.amber })
 end
 
 -- Fila de la tabla: icono del equipo, nombre y sus números.
@@ -153,7 +158,10 @@ local function show(summary: { [string]: any })
 	local altars = summary.altars or {}
 	line(
 		panel,
-		`⛩️ Altares: {jaguar.icon} {altars.Jaguar or 0} · {altars.Quetzal or 0} {quetzal.icon}`,
+		T(
+			"⛩️ Altares: {jaguar} · {quetzal}",
+			{ jaguar = `{jaguar.icon} {altars.Jaguar or 0}`, quetzal = `{altars.Quetzal or 0} {quetzal.icon}` }
+		),
 		88,
 		20,
 		Color3.fromRGB(255, 205, 90)
@@ -208,16 +216,16 @@ local function show(summary: { [string]: any })
 	row.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	row.Padding = UDim.new(0, 10)
 	row.Parent = buttons
-	local rematch = Widgets.button("🔁 Revancha", buttons)
+	local rematch = Widgets.button(T("🔁 Revancha"), buttons)
 	rematch.Size = UDim2.fromScale(0.48, 1)
-	local leave = Widgets.button("🏝️ Volver al Lobby", buttons)
+	local leave = Widgets.button(T("🏝️ Volver al Lobby"), buttons)
 	leave.Size = UDim2.fromScale(0.48, 1)
 	leave.BackgroundColor3 = SECONDARY_BUTTON
 	leave.TextColor3 = Color3.new(1, 1, 1)
 
 	rematch.Activated:Connect(close)
 	leave.Activated:Connect(function()
-		leave.Text = "⏳ Viajando…"
+		leave.Text = T("⏳ Viajando…")
 		Remotes.ArenaLeave:FireServer()
 	end)
 
@@ -232,7 +240,8 @@ local function show(summary: { [string]: any })
 			close()
 			return
 		end
-		countdown.Text = `La revancha empieza en {math.ceil(Arena.secondsLeft())} s con quienes se queden`
+		countdown.Text =
+			T("La revancha empieza en {seconds} s con quienes se queden", { seconds = math.ceil(Arena.secondsLeft()) })
 	end)
 end
 

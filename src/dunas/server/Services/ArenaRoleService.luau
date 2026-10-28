@@ -76,7 +76,8 @@ function ArenaRoleService.ensureAllowed(player: Player)
 			local role = Roles[roleId]
 			Remotes.Notify:FireClient(
 				player,
-				`{role.icon} Tu rol ya está completo en el equipo: juegas como {role.name}`
+				"{icon} Tu rol ya está completo en el equipo: juegas como {role}",
+				{ icon = role.icon, role = { role.name } }
 			)
 			return
 		end
@@ -93,7 +94,7 @@ local function onPickRole(player: Player, roleId: any)
 	end
 	local teamId = Arena.teamOf(player)
 	if teamId and not Arena.roleAllowed(player, teamId, roleId) then
-		Remotes.Notify:FireClient(player, `Ya hay demasiados {Roles[roleId].name} en tu equipo`)
+		Remotes.Notify:FireClient(player, "Ya hay demasiados {role} en tu equipo", { role = { Roles[roleId].name } })
 		return
 	end
 	setRole(player, roleId)

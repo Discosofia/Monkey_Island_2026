@@ -14,6 +14,7 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local NEUTRAL = Color3.fromRGB(250, 245, 230)
@@ -111,13 +112,13 @@ function AltarController:Start()
 		if not active then
 			local readyAt = attribute("AltarReadyAt")
 			local left = if typeof(readyAt) == "number" then readyAt - Workspace:GetServerTimeNow() else 0
-			title.Text = `⛩️ Altar en {clock(left)}`
+			title.Text = Strings.t("⛩️ Altar en {time}", { time = clock(left) })
 		elseif contested then
-			title.Text = "⛩️ ⚔️ ¡Disputado!"
+			title.Text = Strings.t("⛩️ ⚔️ ¡Disputado!")
 		elseif ownerColor then
 			title.Text = `⛩️ {Config.Arena.Teams[owner].icon} {math.floor(amount * 100)} %`
 		else
-			title.Text = "⛩️ ¡Tómalo!"
+			title.Text = Strings.t("⛩️ ¡Tómalo!")
 		end
 	end)
 end

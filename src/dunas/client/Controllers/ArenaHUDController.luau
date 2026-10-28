@@ -25,11 +25,14 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local EvasiveIcon = require(ReplicatedStorage.CombatClient.EvasiveIcon)
 local GuardBar = require(ReplicatedStorage.CombatClient.GuardBar)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
+
+local T = Strings.t
 
 local BAR_WIDTH = 170
 local BAR_HEIGHT = 16
@@ -115,13 +118,13 @@ end
 local function flagText(teamId: string): string
 	local state = flagState(teamId)
 	if state == "Carried" then
-		return "🏃 ¡Robada!"
+		return T("🏃 ¡Robada!")
 	elseif state == "Dropped" then
 		local returnAt = ReplicatedStorage:GetAttribute(`ArenaFlagReturnAt_{teamId}`)
 		local left = if typeof(returnAt) == "number" then returnAt - Workspace:GetServerTimeNow() else 0
-		return `⏳ En el suelo {math.max(0, math.ceil(left))}`
+		return T("⏳ En el suelo {seconds}", { seconds = math.max(0, math.ceil(left)) })
 	end
-	return "🏠 En casa"
+	return T("🏠 En casa")
 end
 
 -- El altar de la pirámide y su ventaja, en corto (cabe bajo el marcador).
@@ -133,16 +136,22 @@ local function altarText(): string
 	if state == "Dormant" then
 		local readyAt = ReplicatedStorage:GetAttribute("AltarReadyAt")
 		local left = if typeof(readyAt) == "number" then readyAt - now else 0
-		table.insert(parts, `⛩️ Altar en {clock(math.max(0, left))}`)
+		table.insert(parts, T("⛩️ Altar en {time}", { time = clock(math.max(0, left)) }))
 	elseif state == "Active" then
 		if ReplicatedStorage:GetAttribute("AltarContested") == true then
-			table.insert(parts, "⛩️ ⚔️ Altar disputado")
+			table.insert(parts, T("⛩️ ⚔️ Altar disputado"))
 		elseif Arena.isTeam(owner) then
 			local progress = ReplicatedStorage:GetAttribute("AltarProgress")
 			local percent = if typeof(progress) == "number" then math.floor(progress * 100) else 0
-			table.insert(parts, `⛩️ {Config.Arena.Teams[owner].icon} toma el altar {percent} %`)
+			table.insert(
+				parts,
+				T(
+					"⛩️ {icon} toma el altar {percent} %",
+					{ icon = Config.Arena.Teams[owner].icon, percent = percent }
+				)
+			)
 		else
-			table.insert(parts, "⛩️ ¡Altar encendido!")
+			table.insert(parts, T("⛩️ ¡Altar encendido!"))
 		end
 	end
 	local buffTeam = ReplicatedStorage:GetAttribute("AltarBuffTeam")
@@ -160,27 +169,29 @@ local function phaseText(player: Player): string
 	local myTeam = Arena.teamOf(player)
 	if Arena.inBattle() then
 		if player:GetAttribute("CarryingFlag") ~= nil then
-			return "🚩 ¡Llevas la bandera! Llévala a tu pedestal"
+			return T("🚩 ¡Llevas la bandera! Llévala a tu pedestal")
 		elseif myTeam and flagState(myTeam) == "Carried" then
-			return "⚠️ ¡Les robaron la bandera! Recupérala"
+			return T("⚠️ ¡Les robaron la bandera! Recupérala")
 		end
 	end
 	if phase == "Waiting" then
 		if not Arena.teamOf(player) then
-			return "Elige tu equipo"
+			return T("Elige tu equipo")
 		end
-		return if left > 0 then `Esperando a los equipos · {clock(left)}` else "Esperando a los equipos"
+		return if left > 0
+			then T("Esperando a los equipos · {time}", { time = clock(left) })
+			else T("Esperando a los equipos")
 	elseif phase == "Countdown" then
-		return `⚔️ La batalla empieza en {math.ceil(left)}`
+		return T("⚔️ La batalla empieza en {seconds}", { seconds = math.ceil(left) })
 	elseif phase == "SuddenDeath" then
-		return "⚡ ¡Muerte súbita! La siguiente captura gana"
+		return T("⚡ ¡Muerte súbita! La siguiente captura gana")
 	elseif phase == "Results" then
 		local winner = ReplicatedStorage:GetAttribute("ArenaWinner")
 		if Arena.isTeam(winner) then
 			local team = Config.Arena.Teams[winner :: string]
-			return `🏆 ¡Gana el equipo {team.icon} {team.name}!`
+			return T("🏆 ¡Gana el equipo {icon} {name}!", { icon = team.icon, name = team.name })
 		end
-		return "🤝 Empate"
+		return T("🤝 Empate")
 	end
 	return ""
 end
@@ -327,7 +338,7 @@ function ArenaHUDController:Start()
 		local respawnAt = player:GetAttribute("RespawnAt")
 		if typeof(respawnAt) == "number" then
 			local left = math.max(0, respawnAt - Workspace:GetServerTimeNow())
-			respawn.Text = `Reapareces en {math.ceil(left)}`
+			respawn.Text = T("Reapareces en {seconds}", { seconds = math.ceil(left) })
 			respawn.Visible = true
 		else
 			respawn.Visible = false

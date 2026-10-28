@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local EnemyAttack = require(script.Parent.EnemyAttack)
 local Guard = require(script.Parent.Guard)
@@ -145,7 +146,10 @@ local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3, sp
 	end
 
 	local humanoid = Instance.new("Humanoid")
-	humanoid.DisplayName = if sparring then "Muñeco de sparring" else "Muñeco de práctica"
+	-- En español: UI/Localizer lo traduce en cada cliente.
+	humanoid.DisplayName = if sparring
+		then Strings.later("Muñeco de sparring")
+		else Strings.later("Muñeco de práctica")
 	humanoid.MaxHealth = Config.Combat.DummyHealth
 	humanoid.Health = Config.Combat.DummyHealth
 	humanoid.BreakJointsOnDeath = false

@@ -26,7 +26,11 @@ local function join(player: Player, teamId: string)
 	ArenaRoleService.ensureAllowed(player)
 	RespawnService.respawnNow(player)
 	local team = Config.Arena.Teams[teamId]
-	Remotes.Notify:FireClient(player, `{team.icon} Estás en el equipo {team.name}: elige tu rol y presiona "Listo"`)
+	Remotes.Notify:FireClient(
+		player,
+		'{icon} Estás en el equipo {name}: elige tu rol y presiona "Listo"',
+		{ icon = team.icon, name = team.name }
+	)
 end
 
 -- Mete en un equipo a quien aún no lo tenga (al acabarse la espera): al que tenga menos jugadores.
@@ -51,7 +55,11 @@ local function onPickTeam(player: Player, teamId: any)
 		return
 	end
 	if #Arena.membersOf(teamId) >= Arena.format() then
-		Remotes.Notify:FireClient(player, `El equipo {Config.Arena.Teams[teamId].name} ya está completo`)
+		Remotes.Notify:FireClient(
+			player,
+			"El equipo {name} ya está completo",
+			{ name = Config.Arena.Teams[teamId].name }
+		)
 		return
 	end
 	join(player, teamId)
