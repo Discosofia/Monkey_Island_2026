@@ -3,6 +3,7 @@
 -- con el remoto Sprint y aquí se mira que se mueva de verdad) y lo que tiene coste (la esquiva y,
 -- desde C8, los amagos), y se recupera sola tras Config.Survival.StaminaRegenDelay sin gastar, al ritmo
 -- que diga el place (CombatRules.staminaRegenFactor: en la Isla, a la mitad con hambre o sed bajas).
+-- Correr no se cobra donde CombatRules.movement.staminaFree (el Lobby).
 -- Se publica en el atributo "Stamina" del Player; el cliente la predice con los mismos números
 -- (CombatClient/Stamina) y se corrige con ella si se separan.
 
@@ -74,7 +75,9 @@ local function update(deltaTime: number)
 		local before = state.value
 		-- Montado (Fase 11) no se gasta: corre la montura.
 		local mounted = player:GetAttribute("Mounted") ~= nil
-		if state.sprinting and not mounted and state.value > 0 and isMoving(player) then
+		-- Con la regla de movimiento staminaFree (el Lobby) correr no se cobra.
+		local free = CombatRules.get().movement.staminaFree
+		if state.sprinting and not mounted and not free and state.value > 0 and isMoving(player) then
 			local cost = SETTINGS.SprintStaminaPerSecond * Progression.perk(player, "SprintCost")
 			state.value = math.max(0, state.value - cost * deltaTime)
 			state.lastSpentAt = os.clock()

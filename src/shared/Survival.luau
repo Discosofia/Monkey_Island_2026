@@ -24,7 +24,7 @@ function Survival.get(player: Player, attribute: string): number
 end
 
 -- true si tiene hambre o sed por debajo de Config.Survival.LowThreshold (la estamina se recupera más
--- despacio: Combat/StaminaServer y SurvivalController).
+-- despacio: Combat/StaminaServer y LocomotionController).
 function Survival.isWeak(player: Player): boolean
 	local low = Config.Survival.LowThreshold
 	return Survival.get(player, Survival.HUNGER) <= low or Survival.get(player, Survival.THIRST) <= low

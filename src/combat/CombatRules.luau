@@ -10,6 +10,8 @@
 --     las mecánicas (Services/ArenaTelemetryService).
 --   - Laboratorio (Fase 13, Services/LabCombatRules): sin roles, habilidades ni guardia; las armas del
 --     Laboratorio (Data/LabWeapons, sin remate ni crítico) y reaparecer.
+-- El movimiento (Fase 15: correr sin estamina, deslizarse, esquiva con voltereta o impulso) también se
+-- registra aquí (campo "movement") y se publica en atributos de ReplicatedStorage para el cliente.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -50,6 +52,12 @@ export type Telemetry = {
 	mechanic: (player: Player, mechanic: Mechanic) -> (),
 	-- Cómo se llama en la telemetría lo que ha herido a un jugador (un mono, un jefe…).
 	causeOf: (source: Instance?) -> string,
+}
+
+export type Movement = {
+	staminaFree: boolean,
+	slide: boolean,
+	dodgeStyle: string,
 }
 
 export type Rules = {
@@ -103,6 +111,11 @@ export type Rules = {
 	-- true: contra jugadores funciona todo lo que contra los monos (veneno, ralentizar, marcas,
 	-- expuesto y los pasos del combo). En la Isla, false: el PvP opt-in solo hace daño y aturde.
 	pvpStatus: boolean,
+	-- Movimiento del place (Fase 15, V1): staminaFree, correr sin gastar estamina (el Lobby); slide,
+	-- deslizarse al correr (V2); dodgeStyle, "Roll" (voltereta) o "Dash" (impulso; V3). El cliente no lee
+	-- ServerScriptService: se publica como atributos de ReplicatedStorage (MovementStaminaFree,
+	-- MovementSlide, MovementDodgeStyle) y los lee CombatClient/Movement.rules.
+	movement: Movement,
 	telemetry: Telemetry,
 }
 
@@ -153,6 +166,7 @@ local rules: Rules = {
 	pvpWeaponMultipliers = {},
 	healMultiplier = 1,
 	pvpStatus = false,
+	movement = { staminaFree = false, slide = true, dodgeStyle = "Roll" },
 	telemetry = {
 		damageDealt = nothing,
 		healed = nothing,
@@ -168,6 +182,14 @@ local rules: Rules = {
 
 local CombatRules = {}
 
+-- Publica el movimiento del place para el cliente (CombatClient/Movement.rules).
+local function publishMovement()
+	local movement = rules.movement
+	ReplicatedStorage:SetAttribute("MovementStaminaFree", movement.staminaFree)
+	ReplicatedStorage:SetAttribute("MovementSlide", movement.slide)
+	ReplicatedStorage:SetAttribute("MovementDodgeStyle", movement.dodgeStyle)
+end
+
 -- Cambia las reglas que se pasen; las demás se quedan como estaban.
 function CombatRules.set(overrides: { [string]: any })
 	local current = rules :: any
@@ -175,11 +197,17 @@ function CombatRules.set(overrides: { [string]: any })
 		assert(current[key] ~= nil, `CombatRules: regla desconocida "{key}"`)
 		current[key] = value
 	end
+	if overrides.movement ~= nil then
+		publishMovement()
+	end
 end
 
 -- Las reglas en vigor. Se leen en cada uso (no al cargar), porque el place las registra en su Init.
 function CombatRules.get(): Rules
 	return rules
 end
+
+-- Al cargar el módulo el cliente ya tiene valores (los neutros) hasta que el place registre los suyos.
+publishMovement()
 
 return CombatRules

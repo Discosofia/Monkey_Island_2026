@@ -1,6 +1,6 @@
 --!strict
 -- Estamina del jugador local (GDD §6.1, Fase 2.1), de 0 a Config.Survival.StaminaMax. La gastan correr
--- (el controlador de movimiento de cada place) y esquivar (DodgeController), y la lee el HUD. Se
+-- (LocomotionController, el mismo en todos los places) y esquivar (DodgeController), y la lee el HUD. Se
 -- recupera sola tras un momento sin gastarla, al ritmo que diga el place (en la Isla, más despacio con
 -- hambre o sed bajas).
 -- Desde la Fase 10 (C2) manda el servidor (Combat/StaminaServer, atributo "Stamina" del Player): aquí
@@ -43,7 +43,7 @@ function Stamina.drain(amount: number)
 	lastSpentAt = os.clock()
 end
 
--- El controlador de movimiento dice si el jugador corre; el servidor solo se entera de los cambios.
+-- LocomotionController dice si el jugador corre; el servidor solo se entera de los cambios.
 function Stamina.setSprinting(value: boolean)
 	if value ~= sprinting then
 		sprinting = value
@@ -51,7 +51,7 @@ function Stamina.setSprinting(value: boolean)
 	end
 end
 
--- Llamado cada frame por el controlador de movimiento del place. "regenFactor" multiplica el ritmo
+-- Llamado cada frame por LocomotionController. "regenFactor" multiplica el ritmo
 -- de recuperación (1 si no se pasa).
 function Stamina.update(deltaTime: number, regenFactor: number?)
 	local server = Players.LocalPlayer:GetAttribute("Stamina")

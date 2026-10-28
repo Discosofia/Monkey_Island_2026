@@ -54,6 +54,7 @@ end
 
 function IslandCombatRules:Init()
 	CombatRules.set({
+		movement = { staminaFree = false, slide = true, dodgeStyle = "Roll" },
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
 			return pvpReady(attacker) and pvpReady(victim)
 		end,
@@ -84,7 +85,7 @@ function IslandCombatRules:Init()
 		starterTools = function(): { string }
 			return Config.Combat.StarterTools
 		end,
-		-- Con hambre o sed bajas, la estamina se recupera más despacio (lo mismo predice SurvivalController).
+		-- Con hambre o sed bajas, la estamina se recupera más despacio (lo mismo predice LocomotionController).
 		staminaRegenFactor = function(player: Player): number
 			return if Survival.isWeak(player) then Config.Survival.WeakStaminaRegenFactor else 1
 		end,

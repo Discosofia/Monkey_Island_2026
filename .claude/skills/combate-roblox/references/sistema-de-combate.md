@@ -45,7 +45,8 @@ coincide con el código, manda el código.
 - **Atrapado** (`CombatState.isTrapped`, C7): aturdido, guardia rota, inmovilizado (`StunnedUntil`) o
   lanzado (`LaunchedUntil`, que pone `Knockback.push` con `lift` a un jugador: lo que tarda en caer,
   `2 × lift ÷ gravedad`, ~0,46 s). Atrapado, la esquiva es el Evasivo; `onDodge` la rechaza.
-  `CombatState.isGuarding` = `Blocking` o `Parrying` (los controladores de movimiento: ×0,6 y sin correr).
+  `CombatState.isGuarding` = `Blocking` o `Parrying` (en el movimiento: ×0,6 con el modificador `Guard` de
+  `Movement`, y sin correr en `LocomotionController`).
 - Si el estado pasa a algo que no es `Idle` ni `Attacking` (tambaleo, aturdido, guardia), la cadena
   de golpes vuelve al primero, en el servidor (`CombatService`) y en la predicción del cliente
   (`WeaponController`).
@@ -144,12 +145,28 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 `InvulnerableUntil` (`DodgeInvulnerableSeconds`, 0,35 s): `damagePlayer` y `canHitPlayer` lo respetan.
 
 **Estamina (C2).** La lleva el servidor (`Combat/StaminaServer`, atributo `Stamina` del `Player`): la
-gasta correr (el cliente avisa con el remoto `Sprint` y el servidor mira que se mueva de verdad, a más
-de 2 studs/s) y `tryConsume` (la esquiva, con `StaminaSyncTolerance` de margen porque el cliente va un
+gasta correr, salvo con `movement.staminaFree` (el Lobby, V1) (el cliente avisa con el remoto `Sprint` y
+el servidor mira que se mueva de verdad, a más de 2 studs/s) y `tryConsume` (la esquiva, con `StaminaSyncTolerance` de margen porque el cliente va un
 poco por delante); se recupera tras `StaminaRegenDelay` al ritmo de `CombatRules.staminaRegenFactor`
 (Isla: `WeakStaminaRegenFactor` con hambre o sed bajas, `Survival.isWeak`). El cliente predice con los
 mismos números y toma la del servidor si se separan más de `StaminaSyncTolerance`. Probado en Play:
 5 esquivas seguidas 100 → 12; 2,5 s corriendo de verdad 100 → 72.
+
+**Movimiento (Fase 15, V1).** Un solo escritor de `Humanoid.WalkSpeed`: `combatClient/Movement.luau`, con
+velocidad = base × modificadores. Base: `Movement.addBase` (la montura, `Mount`, y el gateo, `Downed`;
+gana la primera que devuelva número); si no hay ninguna, andar `Config.Movement.WalkSpeed` (18) o correr
+`SprintSpeed` (26). Modificadores (`addModifier`, se multiplican): `Guard` ×0,6, `Slow` (ralentizar),
+`Stun` (aturdido o inmovilizado = 0), `Egg` (huevo a cuestas, ×0,75 o ×0,9 con Guerrero), `Flag` (bandera
+rival en Dunas) y `MoveSpeed` (ventaja de equipo). `combatClient/Controllers/LocomotionController` los
+registra, lleva Mayús, L3 y el botón "Correr" (que alterna) y predice la estamina. Las reglas del place
+(`CombatRules.movement`: `staminaFree`, `slide`, `dodgeStyle`) van como atributos `MovementStaminaFree`,
+`MovementSlide` y `MovementDodgeStyle` de `ReplicatedStorage`, y las lee `Movement.rules()`. Valores: Lobby
+`staminaFree = true`; Laboratorio `dodgeStyle = "Dash"`; el resto `"Roll"`; `slide = true` en todos (lo usa
+V2). `LifeService` ya no guarda ni restaura la velocidad (el gateo es una base, no un valor guardado), y
+`SurvivalController` de la Isla solo come y bebe. Se borraron los `MovementController` de Dunas y del Lab.
+Probado en Studio (28-10-2026): Isla andar 18 y correr 26 con estamina, aturdido 0, ralentizado ×0,5,
+guardia 10,8 sin correr, gateo 4 y vuelta a 18, huevo ×0,9 con Guerrero; Lobby 18/26 sin gasto de
+estamina, montura 33 y vuelta a 18. Lo que falta, en `docs/VERIFICACION.md` §31.
 
 **Evasivo (C7 ✅).** La misma esquiva pulsada estando atrapado (`CombatState.isTrapped`: aturdido,
 guardia rota, inmovilizado o lanzado). El cliente (`DodgeController`) salta a `Config.Evasive.Speed`

@@ -72,12 +72,11 @@ local function clearVisuals(character: Model)
 	end
 end
 
--- Velocidad y salto normales, guardados al caer para restaurarlos después.
+-- Salto normal, guardado al caer para restaurarlo después. La velocidad (gateo incluido) la pone el
+-- cliente (CombatClient/Movement).
 local function restoreMovement(humanoid: Humanoid)
-	local walkSpeed = humanoid:GetAttribute("NormalWalkSpeed")
 	local jumpHeight = humanoid:GetAttribute("NormalJumpHeight")
 	local jumpPower = humanoid:GetAttribute("NormalJumpPower")
-	humanoid.WalkSpeed = if typeof(walkSpeed) == "number" then walkSpeed else 16
 	humanoid.JumpHeight = if typeof(jumpHeight) == "number" then jumpHeight else 7.2
 	humanoid.JumpPower = if typeof(jumpPower) == "number" then jumpPower else 50
 end
@@ -241,10 +240,8 @@ function LifeService.down(player: Player, cause: string)
 	TelemetryService.downed(player, cause)
 	humanoid.Health = 1
 	humanoid:UnequipTools()
-	humanoid:SetAttribute("NormalWalkSpeed", humanoid.WalkSpeed)
 	humanoid:SetAttribute("NormalJumpHeight", humanoid.JumpHeight)
 	humanoid:SetAttribute("NormalJumpPower", humanoid.JumpPower)
-	humanoid.WalkSpeed = Config.Life.CrawlSpeed
 	humanoid.JumpHeight = 0
 	humanoid.JumpPower = 0
 	local seconds = downedSeconds(player)

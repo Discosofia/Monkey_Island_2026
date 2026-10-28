@@ -1,12 +1,10 @@
 --!strict
 -- Monturas (Fase 11) en el Lobby: dibuja las de todos (Shared/UI/MountRiders), enlaza Montar (N, R3 en
 -- el mando y botón táctil) mientras lleves una montura y su gesto (Y y botón táctil: escupir, rugir)
--- mientras vas montado, y pone la velocidad montado (en el Lobby nadie más la cambia).
+-- mientras vas montado. La velocidad montado la pone LocomotionController (MountRiders.speedOf).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local RunService = game:GetService("RunService")
 
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local MountRiders = require(ReplicatedStorage.Shared.UI.MountRiders)
@@ -16,8 +14,6 @@ local T = Strings.t
 
 local ACTION = "Mount"
 local GESTURE_ACTION = "MountGesture"
--- Velocidad a pie en el Lobby (la de Roblox).
-local WALK_SPEED = 16
 
 local MountController = {}
 
@@ -56,25 +52,6 @@ function MountController:Start()
 	Players.LocalPlayer:GetAttributeChangedSignal("Mounted"):Connect(refreshGesture)
 	refreshBinding()
 	refreshGesture()
-	-- Solo se toca la velocidad montado y al bajar: a pie la deja como esté.
-	local wasMounted = false
-	RunService.Heartbeat:Connect(function()
-		local character = Players.LocalPlayer.Character
-		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-		if not humanoid then
-			return
-		end
-		local speed = MountRiders.speedOf(Players.LocalPlayer)
-		if speed then
-			wasMounted = true
-		elseif wasMounted then
-			wasMounted = false
-			speed = WALK_SPEED
-		end
-		if speed and humanoid.WalkSpeed ~= speed then
-			humanoid.WalkSpeed = speed
-		end
-	end)
 end
 
 return MountController

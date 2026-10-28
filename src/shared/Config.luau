@@ -630,6 +630,14 @@ local Config = {
 		-- Especies (vida, daño, botín…): ver Shared/Data/Monkeys.
 	},
 
+	-- Movimiento de los cuatro places (Fase 15, V1): lo escribe un único módulo, CombatClient/Movement.
+	Movement = {
+		-- Velocidad al andar (studs/s) antes de los modificadores (guardia, ralentizar, huevo, bandera…).
+		WalkSpeed = 18,
+		-- Velocidad al correr (studs/s); correr gasta estamina (Survival.SprintStaminaPerSecond).
+		SprintSpeed = 26,
+	},
+
 	Life = {
 		-- Segundos caído antes de reaparecer (en tu cama o en el Basecamp) si nadie te reanima.
 		DownedSeconds = 60,
@@ -674,8 +682,6 @@ local Config = {
 		HealFirstBelow = 0.6,
 		-- Estamina (0 a StaminaMax): correr la gasta y esquivar cuesta DodgeStaminaCost. La lleva el
 		-- servidor (Combat/StaminaServer, atributo "Stamina"); el cliente la predice con estos mismos números.
-		WalkSpeed = 16,
-		SprintSpeed = 24,
 		StaminaMax = 100,
 		SprintStaminaPerSecond = 18,
 		StaminaRegenPerSecond = 20,

@@ -1,7 +1,7 @@
 --!strict
 -- Monturas (Fase 11) en la Isla: dibuja las de todos (Shared/UI/MountRiders), enlaza Montar (N, R3 en
 -- el mando y botón táctil) mientras lleves una montura y su gesto (Y y botón táctil: escupir, rugir)
--- mientras vas montado. La velocidad montado la pone SurvivalController (MountRiders.speedOf).
+-- mientras vas montado. La velocidad montado la pone LocomotionController (MountRiders.speedOf).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

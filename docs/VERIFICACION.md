@@ -1730,6 +1730,45 @@ Probado en Play en el Studio del Laboratorio, con un jugador y con copia y resta
 3. [ ] Con una cuenta que ya tenga bajas guardadas de antes de la L5b (de la L5a), entra en el Lobby sin jugar.
    ✅ Los grados que le tocan aparecen como ganados en el Armario al entrar, sin jugar otra partida. Una cuenta sin `lab.weaponKills` guardado no tiene grados retroactivos.
 
+## 31. Lo que queda por probar de V1: movimiento unificado (28-10-2026)
+
+Probado en Studio con un jugador, con copia y restauración del perfil (28-10-2026): en la Isla, andar 18, correr 26 con gasto de estamina, aturdido 0, ralentizado ×0,5, guardia 10,8 sin correr, gateo a 4 (poniendo `LifeState` a «Downed» a mano) y vuelta a 18, y huevo ×0,9 con Guerrero; en el Lobby, las reglas publicadas, 18/26, correr sin gastar estamina, montura (Jaguar) 33 y vuelta a 18, y aturdido 0; en Dunas, las reglas publicadas, 18/26 con gasto de estamina, aturdido, ralentizado, guardia 10,8 sin correr, bandera 15,3 (poniendo `CarryingFlag` a mano) y `MoveSpeed` ×1,08 (con `Perk_MoveSpeed` a mano); en el Laboratorio, las reglas publicadas (`Dash`), 18/26, vaciar la estamina (el cliente baja a 18 con unos 8 de estamina, por ir por delante del servidor), aturdido y ralentizado (a mano y con `Status.entangle`). Lo que queda necesita caer de verdad, la bandera y una pieza de la arena reales, un dardo o red de un rival, el teléfono, 2 jugadores o el juego publicado. Empieza por 31.1.
+
+#### 31.1 En el Studio de la Isla, con un jugador (haz antes una copia del perfil en `PlayerData_v1_backups`, y restáurala después)
+
+1. [ ] Cae de verdad: deja que el hambre llegue a cero o recibe un golpe mortal (sin poner ningún atributo a mano). Mientras gateas, mira la velocidad del personaje; después reanímate o reaparece.
+   ✅ Al caer la velocidad baja a 4. Al reanimarte o reaparecer vuelve a 18 (o a 26 si corres), sin tocar nada. `humanoid:GetAttribute("NormalWalkSpeed")` da nil.
+2. [ ] Con un rol que no sea Guerrero, recoge un huevo del nido y anda, y después corre.
+   ✅ Anda a unos 13,5 (18 × 0,75) y corre a unos 19,5 (26 × 0,75).
+3. [ ] Ralentiza a tu personaje con un mono o una habilidad real (un dardo, la Nova o el Polvo somnífero, según tu rol) y mide la velocidad mientras dura.
+   ✅ Anda más despacio mientras dura el efecto (`SlowedUntil`), y vuelve a 18 al acabar.
+4. [ ] Con hambre o sed bajas, gasta la estamina corriendo hasta cero y mide cuánto tarda en volver a 100. Repite con las necesidades cubiertas.
+   ✅ Con hambre o sed bajas se recupera a la mitad de velocidad.
+
+#### 31.2 En el Studio de Dunas, con un jugador
+
+1. [ ] Empieza una partida («Empezar ya»), coge la bandera rival de verdad y anda y corre con ella.
+   ✅ La velocidad es 18 × min(1; 0,85 + CarrySpeed), o sea 15,3 sin ventaja de CarrySpeed. Sin `MovementController` en el cliente, la pone `LocomotionController`.
+2. [ ] Equípate una pieza de la arena con `MoveSpeed` (por ejemplo, la de +0,08 de `Data/ArenaGear`) y mide la velocidad andando y corriendo.
+   ✅ La velocidad sube en ese factor sobre 18 y sobre 26, y vuelve a lo normal al quitártela.
+
+#### 31.3 En el Studio del Laboratorio, con un jugador
+
+1. [ ] Recibe un dardo o una red de un rival real (hacen falta 2 jugadores), y mide la velocidad mientras dura.
+   ✅ Anda más despacio mientras dura el efecto, y vuelve a 18 al acabar.
+
+#### 31.4 En el emulador de teléfono y con mando (elige un dispositivo en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] En la Isla, pulsa el botón «Correr» una vez, anda un poco y vuelve a pulsarlo, sin mantener el dedo.
+   ✅ La primera pulsación pone a correr y gasta estamina; la segunda vuelve a andar.
+2. [ ] Con un mando, pulsa L3 para correr y L3 otra vez para parar.
+   ✅ Alterna igual que el botón táctil, y mientras corres gasta estamina.
+
+#### 31.5 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas)
+
+1. [ ] Uno de los dos se monta en una montura y corre, y el otro lo mira desde su pantalla.
+   ✅ Se ve el movimiento normal en las dos pantallas, sin tirones ni paradas de velocidad. El servidor no escribe la velocidad: el `WalkSpeed` que se ve es el que manda el cliente de ese jugador.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -16,6 +16,8 @@ local LobbyCombatRules = {}
 
 function LobbyCombatRules:Init()
 	CombatRules.set({
+		-- En la plaza se corre sin gastar estamina.
+		movement = { staminaFree = true, slide = true, dodgeStyle = "Roll" },
 		isAlly = function(): boolean
 			return false
 		end,

@@ -2,7 +2,7 @@
 -- Banderas de la arena (captura la bandera), con las reglas clásicas:
 --   - Cada equipo tiene la suya en el pedestal de su base ("FlagStand").
 --   - Un rival que la toca se la lleva a la espalda: va más lento (Config.Arena.CarrierSpeedMultiplier,
---     lo aplica MovementController), no puede usar Parpadeo ni Embestida ("MovementLocked") y todos
+--     lo aplica LocomotionController), no puede usar Parpadeo ni Embestida ("MovementLocked") y todos
 --     lo ven resaltado del color de la bandera, también a través de las paredes.
 --   - Para puntuar, el portador la lleva a su propio pedestal mientras su bandera está en casa.
 --   - Si el portador cae (o se va), la bandera queda en el suelo: un aliado del equipo dueño la

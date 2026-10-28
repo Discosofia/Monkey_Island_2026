@@ -111,8 +111,8 @@ si es mortal, `LifeService.down`.
   no lo alarga y al acabar hay `Config.Combat.PlayerControlImmunitySeconds`, 2 s, de inmunidad en
   `ControlImmuneUntil`; devuelven false si no ha entrado, para no avisar de un agarre que no ha
   entrado):
-  - **Inmovilizado**, `Status.holdPlayer(player, segundos, causa)`: `StunnedUntil` pone `WalkSpeed` a 0
-    (`SurvivalController`, `MovementController` de Dunas); puede atacar, usar habilidades y esquivar.
+  - **Inmovilizado**, `Status.holdPlayer(player, segundos, causa)`: `StunnedUntil` pone la velocidad a 0
+    (modificador `Stun` de `Movement`, V1); puede atacar, usar habilidades y esquivar.
     Agarre del orangután y de los jefes; en PvP, congelar e inmovilizar (`control` con "Freeze"/"Root").
   - **Aturdido**, `Status.stunPlayer`: lo mismo y además el estado "Stunned" (`Combat/StateMachine`,
     `Shared/CombatState`): no pega, ni habilidades, ni esquiva. Pisotones de monos y jefes, embestida y

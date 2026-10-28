@@ -15,7 +15,7 @@
 -- misma regla (cae y el suelo está lejos), sin remoto.
 -- Para el jinete local, además: sube el HipHeight para que vaya sentado encima, pone la pose "Ride"
 -- (Client/BodyAnimations) y lo baja si coge un arma o se mete en el agua. La velocidad la pone quien
--- la lleva en cada place (SurvivalController en la Isla, MountController en el Lobby) con speedOf.
+-- la lleva en todos los places LocomotionController (CombatClient/Movement) con speedOf.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

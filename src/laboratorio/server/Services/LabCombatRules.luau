@@ -33,6 +33,7 @@ end
 
 function LabCombatRules:Init()
 	CombatRules.set({
+		movement = { staminaFree = false, slide = true, dodgeStyle = "Dash" },
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
 			if LabModes.isFreeForAll() then
 				return Arena.inBattle() and attacker ~= victim
