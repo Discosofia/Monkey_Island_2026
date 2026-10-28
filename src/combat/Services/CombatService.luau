@@ -59,6 +59,7 @@ local Feint = require(script.Parent.Parent.Feint)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
+local PositionHistory = require(script.Parent.Parent.PositionHistory)
 local Projectiles = require(script.Parent.Parent.Projectiles)
 local StaminaServer = require(script.Parent.Parent.StaminaServer)
 local StateMachine = require(script.Parent.Parent.StateMachine)
@@ -427,7 +428,14 @@ local function markGuardSpent(victim: Player, key: string)
 	spent[key] = clock
 end
 
-local function applyPvP(attacker: Player, victim: Player, amount: number, crit: boolean?, poison: boolean?)
+local function applyPvP(
+	attacker: Player,
+	victim: Player,
+	amount: number,
+	crit: boolean?,
+	poison: boolean?,
+	head: boolean?
+)
 	local character = victim.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if not (character and humanoid and humanoid.Health > 0) then
@@ -440,8 +448,9 @@ local function applyPvP(attacker: Player, victim: Player, amount: number, crit: 
 			amount *= 1 + bonus
 		end
 	end
-	if crit then
-		amount *= Crit.MULTIPLIER
+	-- La cabeza no se suma al crítico al azar: cuenta el mayor de los dos.
+	if crit or head then
+		amount *= math.max(if crit then Crit.MULTIPLIER else 1, if head then Config.Combat.Headshot.Multiplier else 1)
 	end
 	amount = mitigate(victim, math.max(1, math.round(amount)), true)
 	if not poison then
@@ -457,7 +466,7 @@ local function applyPvP(attacker: Player, victim: Player, amount: number, crit: 
 		CombatText.poison(character, amount, attacker, humanoid.Health - amount <= 0)
 	else
 		local attackerRoot = if attacker.Character then attacker.Character.PrimaryPart else nil
-		CombatText.taken(victim, amount, crit, attacker, nil, if attackerRoot then attackerRoot.Position else nil)
+		CombatText.taken(victim, amount, crit, attacker, head, if attackerRoot then attackerRoot.Position else nil)
 	end
 	if humanoid.Health - amount > 0 then
 		humanoid:TakeDamage(amount)
@@ -476,19 +485,22 @@ end
 -- después: lo que dependa de que entre va en "guard.onResult").
 -- Los golpes con "guard" que entran llevan el escalado del combo (C7, Combat/ComboScaling): desde el
 -- 4.º seguido hacen menos; bloquear o parar uno termina el combo.
+-- "head": el disparo ha dado a la cabeza (Fase 15, V7): ×Config.Combat.Headshot.Multiplier, sin sumarse al
+-- crítico (se queda el mayor). Si el golpe se bloquea, bloquea.
 function CombatService.damagePvP(
 	attacker: Player,
 	victim: Player,
 	amount: number,
 	crit: boolean?,
 	poison: boolean?,
-	guard: PvPGuard?
+	guard: PvPGuard?,
+	head: boolean?
 ): boolean
 	if not CombatService.canHitPlayer(attacker, victim) then
 		return false
 	end
 	if poison or not guard then
-		applyPvP(attacker, victim, amount, crit, poison)
+		applyPvP(attacker, victim, amount, crit, poison, head)
 		return true
 	end
 	local at = Workspace:GetServerTimeNow()
@@ -514,7 +526,7 @@ function CombatService.damagePvP(
 			scale *= ComboScaling.damageFactor(ComboScaling.register(victim, guard.hitKey))
 		end
 		if outcome ~= "Parried" then
-			applyPvP(attacker, victim, amount * scale, crit, false)
+			applyPvP(attacker, victim, amount * scale, crit, false, head)
 		end
 		if guard.onResult then
 			guard.onResult(outcome)
@@ -846,7 +858,7 @@ local function acidLob(
 	point: Vector3?,
 	weapon: Weapons.WeaponDefinition,
 	damage: number,
-	strike: (model: Model, amount: number, main: boolean) -> boolean
+	strike: (model: Model, amount: number, main: boolean, isHead: boolean?) -> boolean
 )
 	local settings = Config.Lab
 	local target: Vector3
@@ -917,7 +929,9 @@ local function rangedAttack(
 	aim: Vector3,
 	critChance: number,
 	shot: number,
-	point: Vector3?
+	point: Vector3?,
+	shotOrigin: Vector3?,
+	lag: number
 )
 	local ammo = weapon.ammoItemId
 	local rules = CombatRules.get()
@@ -951,11 +965,17 @@ local function rangedAttack(
 
 	-- El daño de este disparo a "model" (true si le vale; si no, el proyectil lo atraviesa). "main": el
 	-- primero al que da, el único al que envenena, por el que cura y al que tambalea.
-	local function strike(model: Model, amount: number, main: boolean): boolean
+	-- "isHead": el proyectil ha dado a la cabeza de un jugador. Cuenta solo en el impacto directo (main) de un
+	-- arma a distancia en un place con cabezas (no el área del cañón de suero ni del bastón, ni los daños del remate).
+	local function strike(model: Model, amount: number, main: boolean, isHead: boolean?): boolean
 		local victim = Players:GetPlayerFromCharacter(model)
 		if victim then
 			if not CombatService.canHitPlayer(player, victim) then
 				return false
+			end
+			local head = rules.headshots and weapon.kind == "Ranged" and main and isHead == true
+			if head then
+				rules.telemetry.mechanic(player, "Headshots")
 			end
 			local pvpScale = pvpWeaponScale(weaponId)
 			-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran), y las
@@ -970,7 +990,7 @@ local function rangedAttack(
 				end
 			end
 			if not rules.guard then
-				CombatService.damagePvP(player, victim, amount * pvpScale, crit)
+				CombatService.damagePvP(player, victim, amount * pvpScale, crit, nil, nil, head)
 				landed()
 				return true
 			end
@@ -982,7 +1002,7 @@ local function rangedAttack(
 						landed()
 					end
 				end,
-			})
+			}, head)
 			return true
 		end
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -1009,7 +1029,8 @@ local function rangedAttack(
 	end
 
 	local head = character:FindFirstChild("Head")
-	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
+	local serverOrigin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
+	local origin = shotOrigin or serverOrigin
 	local speed = weapon.projectileSpeed or 120
 	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
 	if weapon.lab and weapon.lab.effect == "AcidBurst" then
@@ -1033,9 +1054,13 @@ local function rangedAttack(
 		extra = if finisher and finisher.radius then { finisher.radius } else nil,
 		breaks = if finisher then "ShotFinisher" else nil,
 		breakOnce = coverOnce,
-		onHit = function(model)
+		-- Con cabezas: los jugadores se prueban rebobinados por el lag del tirador y el proyectil sale algo
+		-- adelantado (con tope). TODO-V8: validar la dirección contra un cono cuando haya mira de referencia.
+		rewind = if rules.headshots then lag else nil,
+		lead = if rules.headshots then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
+		onHit = function(model, _, isHead)
 			if direct == nil then
-				if strike(model, damage, true) then
+				if strike(model, damage, true, isHead) then
 					direct = model
 					return true
 				end
@@ -1060,7 +1085,34 @@ local function rangedAttack(
 	})
 end
 
-local function onUseWeapon(player: Player, aim: any, point: any)
+-- true si "value" es un número normal (ni NaN ni infinito).
+local function isFinite(value: any): boolean
+	return typeof(value) == "number" and value == value and math.abs(value) < math.huge
+end
+
+-- El origen del disparo que manda el cliente (la cabeza o la cámara en primera persona), o nil si no vale:
+-- tiene que ser un Vector3 finito, a menos de Config.Combat.Headshot.OriginToleranceStuds de la cabeza del
+-- tirador donde estaba hace "lag" segundos, y sin pared entre su cabeza actual y ese punto.
+local function acceptedOrigin(character: Model, root: BasePart, claimed: any, lag: number): Vector3?
+	if not (typeof(claimed) == "Vector3" and isFinite(claimed.X) and isFinite(claimed.Y) and isFinite(claimed.Z)) then
+		return nil
+	end
+	local head = character:FindFirstChild("Head")
+	if not (head and head:IsA("BasePart")) then
+		return nil
+	end
+	local rewoundRoot = PositionHistory.at(character, lag) or root.Position
+	local rewoundHead = rewoundRoot + (head.Position - root.Position)
+	if (claimed - rewoundHead).Magnitude > Config.Combat.Headshot.OriginToleranceStuds then
+		return nil
+	end
+	if Hitbox.ray(head.Position, claimed - head.Position) then
+		return nil
+	end
+	return claimed
+end
+
+local function onUseWeapon(player: Player, aim: any, point: any, origin: any, shotTime: any)
 	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") then
 		return
 	end
@@ -1101,6 +1153,11 @@ local function onUseWeapon(player: Player, aim: any, point: any)
 		local shot = RangedChain.advance(count, weaponId :: string, weapon, now, slack)
 		if shot then
 			WeaponTools.playUse(tool)
+			-- El retraso del disparo: lo que ha tardado en llegar, con el tope de la compensación del lag.
+			local lag = 0
+			if isFinite(shotTime) then
+				lag = math.clamp(Workspace:GetServerTimeNow() - shotTime, 0, Latency.compensation(player))
+			end
 			rangedAttack(
 				player,
 				character,
@@ -1110,7 +1167,9 @@ local function onUseWeapon(player: Player, aim: any, point: any)
 				aim.Unit,
 				Crit.weaponChance(weaponId :: string),
 				shot,
-				if typeof(point) == "Vector3" then point else nil
+				if typeof(point) == "Vector3" then point else nil,
+				acceptedOrigin(character, root, origin, lag),
+				lag
 			)
 		end
 		return

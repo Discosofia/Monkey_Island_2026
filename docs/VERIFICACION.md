@@ -1977,6 +1977,59 @@ Probado en Studio, en la Isla (28-10-2026): ciclos de Walk, Run y RunArmed gener
 2. [ ] Uno corre con un arma en la mano, y el otro lo mira.
    ✅ El otro ve RunArmed, con el brazo derecho sujetando el arma.
 
+## 36. Lo que queda por probar de V7: detección PvP y cabeza (28-10-2026)
+
+Solo está probado con el CI local (stylua, selene, `strings.py` y `rojo build`) y con la calculadora `Equilibrio` (sección 12): con un 30 % de aciertos a la cabeza, los duelos espejo de la arena bajan de 9,4 a 8,6 s (Cazador), de 9,8 a 9,0 s (Mago) y de 28,9 a 22,1 s (Médico), sin alertas nuevas. En el Laboratorio, con un 30 % de aciertos a la cabeza salen 2 alertas nuevas ("Laboratorio con cabezas"): Dardos 1,47 s a 15 studs y Rifle 1,23 s a 50 studs, bajo el mínimo de 1,5 s. Se dejan: son el mejor caso medio (el rifle sigue necesitando 2 aciertos, mínimo ~1 s) y se recalibran en V8 con el cargador y la dispersión. Nada de esto se ha probado en Play ni con dos jugadores. La dirección del disparo todavía no se valida contra la dispersión (eso es V8), así que no se prueba aquí. Empieza por 36.1.
+
+#### 36.1 En Play, con un jugador, en Dunas y en el Laboratorio (haz antes una copia del perfil en `PlayerData_v1_backups`, y restáurala después)
+
+1. [ ] En Dunas, dispara con el arco, el bastón y la cerbatana varias veces a un muñeco de práctica, y mira la Salida.
+   ✅ Todos los disparos salen sin errores ni avisos en la consola, y el daño y los números son los de siempre.
+2. [ ] En Dunas, dispara a un muñeco a unos 10 studs y mira de dónde sale cada proyectil.
+   ✅ Sale de la punta del cañón o del Handle del arma, no de la cabeza ni de la cadera, y en menos de 0,12 s el proyectil se junta con su trayectoria real.
+3. [ ] En el Laboratorio, en primera persona, dispara el rifle y el cañón de suero.
+   ✅ El origen del disparo sale de la cámara (del centro de la mira), y el rifle y el cañón de suero siguen acertando donde apuntas.
+4. [ ] Desde la consola del cliente, llama a `Remotes.UseWeapon:FireServer(dirección, punto, origen, hora)` con un origen a más de 5 studs de tu cabeza (por ejemplo, 20 studs hacia arriba) y dispara.
+   ✅ El servidor no acepta el origen falso: el disparo sale de tu cabeza real y no aparece en el punto que mandaste. No hay error en la Salida.
+5. [ ] En la Isla y en el Lobby, dispara el arma a distancia y pega con el arma cuerpo a cuerpo.
+   ✅ Disparan y pegan igual que antes de V7, sin errores y sin números de «¡Cabeza!».
+
+#### 36.2 En el Studio de Dunas o del Laboratorio, con 2 jugadores (*Test → Clientes y servidores*, con 2)
+
+1. [ ] A dispara de frente a la cabeza de B con un arma a distancia, sin moverse B.
+   ✅ En la pantalla de A y en la de B sale «¡Cabeza!» con el número ×1,5 y estilo de crítico. El destello de los bordes de B (V5) es más fuerte que con un golpe normal del mismo daño.
+2. [ ] A dispara al cuerpo de B con el mismo arma, y después a la cabeza.
+   ✅ El cuerpo hace el daño normal, sin «¡Cabeza!». La cabeza hace una vez y media ese daño.
+3. [ ] A dispara a la cabeza de B con un golpe crítico seguro (pon el atributo `DebugAlwaysCrit` en `workspace`).
+   ✅ El daño es ×1,5 y no ×2,025: no se multiplican el crítico y la cabeza. El número sale grande y con «¡Cabeza!».
+4. [ ] En Dunas, A dispara con la cerbatana a la cabeza de B.
+   ✅ Cuenta como cabeza (×1,5 y «¡Cabeza!») y además entra el veneno morado como siempre.
+5. [ ] En el Laboratorio, A dispara el rifle a la cabeza de B.
+   ✅ Cuenta como cabeza (×1,5 y «¡Cabeza!»).
+6. [ ] En el Laboratorio, A dispara el cañón de suero a la cabeza de B.
+   ✅ No sale «¡Cabeza!» ni hay ×1,5: el cañón de suero no tiene cabeza.
+7. [ ] Con un retraso simulado de 100–150 ms (*Network Settings*), B se mueve de lado mientras A le dispara.
+   ✅ B recibe el disparo donde lo veía A en su pantalla, y no por detrás de una pared.
+8. [ ] Con el mismo retraso, A dispara desde detrás de una cobertura (una roca o un muro) a B, que está tras otra.
+   ✅ El disparo no atraviesa la cobertura para dar en la cabeza de B.
+9. [ ] B bloquea o hace parry a un disparo de A dirigido a la cabeza, y después a un disparo al cuerpo.
+   ✅ El parry lo para igual en los dos casos, y el bloqueo reduce el daño en la misma proporción. Si el número de la cabeza no cuadra con eso, avísame.
+10. [ ] En Dunas, A coge la bandera y B le dispara a la cabeza.
+   ✅ El disparo a la cabeza cuenta igual con la bandera encima, y ni la captura ni la recogida cambian por V7.
+11. [ ] Con un jugador en R15 escalado (más alto o más ancho), A dispara al pecho de B.
+   ✅ La cápsula del cuerpo sigue a los pies y al cuello, y el disparo al pecho acierta igual que con la escala normal.
+
+#### 36.3 Revisión visual (en Studio, con un jugador; en el teléfono, a 844 × 390 con *Prueba → Dispositivo*)
+
+1. [ ] Por cada arma a distancia (arco, bastón, cerbatana, rifle, cañón de suero), mira de cerca la punta en *Explorer*. Busca el Attachment «Muzzle» o el Handle.
+   ✅ El proyectil sale de la punta del cañón. Si el Handle está lejos del cañón, añade un Attachment llamado «Muzzle» en la punta del modelo del arma y repite la prueba.
+2. [ ] En el teléfono, en Dunas, recibe un disparo a la cabeza mientras hay otros números de combate en pantalla.
+   ✅ «¡Cabeza!» se lee sin solaparse con los números de daño, de curación ni con el HUD, y no tapa la barra de vida.
+3. [ ] En PC, en Dunas, recibe dos golpes seguidos: uno al cuerpo y otro a la cabeza.
+   ✅ Los dos números salen separados, y el de la cabeza lleva «¡Cabeza!» sin pisar al otro.
+4. [ ] En el teléfono, mira el destello de los bordes tras un disparo a la cabeza.
+   ✅ Se ve más fuerte que con un golpe normal, y no bloquea los botones de combate (como en 34.2).
+
 ## 37. Fase 15 V6: ajustes de arena y mira (28-10-2026)
 
 Probado en Play, con un jugador, en el Laboratorio y en Dunas (28-10-2026): el ⚙️ queda a la izquierda del 😀 sin solaparse (hueco de 6 px); la ventana tiene la sección 🎯 Mira y ya no sale «Dónde salen tus números»; con la ventana abierta y el ratón libre en el Laboratorio, la mira se esconde; los 5 estilos, 5 colores, 3 tamaños y 3 grosores se dibujan sin errores; con `setSpread(20)` la mira se abre de 31 a 71 px; el inglés se lee bien; en Dunas la mira aparece con un arma a distancia en la mano y el icono del sistema se oculta. El perfil se restauró después. Lo que queda: el teléfono, el mando, el ratón real en Dunas y en el Laboratorio, el idioma con la ventana abierta, el desplazamiento de la ventana en PC y la mira dinámica con disparos reales, que llega con V8. Empieza por 37.1.

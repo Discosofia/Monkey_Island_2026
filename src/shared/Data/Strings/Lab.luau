@@ -18,6 +18,7 @@ return {
 
 	-- Botón táctil de la mira del rifle (CombatClient/WeaponController).
 	["Mira"] = "Scope",
+	["¡Cabeza!"] = "Headshot!",
 
 	-- Duelo por equipos (L2): bandos, fases, HUD, selector de arma y avisos del servidor.
 	["Piratas"] = "Pirates",

@@ -178,6 +178,25 @@ local Config = {
 		-- Studs sobre el suelo desde donde mira un área que cae en el suelo (Meteoro, Lluvia, Polvo,
 		-- Cepo) para saber a quién alcanza sin pared en medio (Combat/Hitbox.visible).
 		AreaSightLift = 3,
+		-- Disparos a la cabeza (Fase 15, V7; CombatRules.headshots: Dunas y el Laboratorio). Solo armas a
+		-- distancia contra jugadores; los proyectiles se prueban contra una esfera de cabeza y una cápsula
+		-- de cuerpo (Combat/Hitbox.sweepPlayers) en la posición rebobinada de la víctima.
+		Headshot = {
+			-- Multiplicador del daño de un impacto directo a la cabeza. No se suma al crítico: cuenta el mayor.
+			Multiplier = 1.5,
+			-- La esfera de la cabeza es este factor × el radio visible de la pieza Head (la mitad de su lado
+			-- mayor): algo mayor que la cabeza, para que el móvil no quede castigado.
+			HeadRadiusScale = 1.15,
+			-- Radio (studs) de la cápsula vertical del cuerpo, de los pies al cuello; incluye los brazos.
+			BodyRadius = 1.2,
+			-- Studs que puede separarse el origen que manda el cliente de la cabeza del servidor (rebobinada).
+			OriginToleranceStuds = 5,
+			-- Segundos máximos que el proyectil se adelanta al salir para compensar el retraso del tirador.
+			ShotLeadMaxSeconds = 0.1,
+			-- Solo visual: el proyectil propio sale del cañón del arma y en estos segundos se junta con su
+			-- trayectoria real (AbilityFxController.projectile). No cambia dónde acierta.
+			MuzzleBlendSeconds = 0.12,
+		},
 	},
 
 	-- Golpes críticos (Shared/Crit): hacen más daño o curan más y su número sale más grande.

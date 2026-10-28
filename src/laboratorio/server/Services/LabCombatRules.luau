@@ -66,6 +66,7 @@ function LabCombatRules:Init()
 		pvpUltimateMultiplier = 1,
 		pvpWeaponMultiplier = 1,
 		pvpStatus = true,
+		headshots = true,
 	})
 end
 

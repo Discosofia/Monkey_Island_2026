@@ -103,11 +103,24 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
   paso 2); el hacha sigue suelta; el remate tambalea 0,6 s a un capuchino, no a un mandril alfa, empuja
   a 35 studs/s y en el aire lanza a 45.
   - Distancia (`rangedAttack`, C9 ✅): munición (`CombatRules.useAmmo`) y un **proyectil real**
-    (`Combat/Projectiles`, §6 bis) que sale de la cabeza hacia donde dice `CombatService.aimShot` y da
-    al primero que encuentra (atraviesa a los aliados): si el mono se aparta, falla. El veneno de las
-    cerbatanas y su cura al aliado entran al impactar. Contra un jugador, el mismo proyectil (se puede
-    bloquear y parar con el margen del defensor, `waitForParry`). Antes de C9 el daño llegaba con
-    `task.delay` aunque el mono se apartara, y contra jugadores solo valía un rayo directo.
+    (`Combat/Projectiles`, §6 bis) hacia donde dice `CombatService.aimShot` y da al primero que
+    encuentra (atraviesa a los aliados): si el mono se aparta, falla. El veneno de las cerbatanas y su
+    cura al aliado entran al impactar. Contra un jugador, el mismo proyectil (se puede bloquear y parar
+    con el margen del defensor, `waitForParry`). Antes de C9 el daño llegaba con `task.delay` aunque el
+    mono se apartara, y contra jugadores solo valía un rayo directo.
+  - **Origen (V7, Fase 15):** `UseWeapon` manda también el origen (la cámara en primera persona, o la
+    punta del arma) y la hora del disparo. El servidor acepta el origen del cliente si es un `Vector3`
+    finito, está a ≤ `Headshot.OriginToleranceStuds` (5) de la cabeza del tirador rebobinada y no hay
+    pared entre su cabeza actual y ese punto; si no, sale de su propia cabeza. `lag` =
+    `min(ahora − hora, Latency.compensation)`. La dirección todavía no se valida contra la dispersión
+    (queda para V8, TODO-V8 en `rangedAttack`).
+  - **Cabeza (V7):** con la regla `headshots` (Dunas y el Laboratorio), el proyectil se prueba contra los
+    jugadores rebobinados `lag` segundos y sale algo adelantado (`ShotLeadMaxSeconds` 0,1 s). Cada
+    jugador es una esfera de cabeza (radio visible × `HeadRadiusScale` 1,15) más una cápsula de cuerpo
+    (`BodyRadius` 1,2; pies a cuello, con los brazos). Un impacto directo a la cabeza hace ×1,5
+    (`Headshot.Multiplier`) solo con armas a distancia contra jugadores, y no se suma al crítico: cuenta
+    el mayor. Las áreas y el cañón de suero no tienen cabeza. Telemetría `Headshots`; el número sale
+    como «¡Cabeza!» (estilo crítico) y `DamageFxController` lo reacciona como `head`.
   - **Disparo de remate** (C9b ✅, `Shared/RangedChain`, `Config.RangedChain`): el 4.º disparo
     seguido al mismo ritmo (hasta `LinkWindowSeconds` 0,8 s después de poder disparar; cambiar de arma,
     tambalearse, aturdirse o ponerse en guardia vuelven al primero) es un proyectil distinto, más
@@ -321,7 +334,7 @@ sola vez por ataque.
 | Ataque | Hoy (C3 ✅) | Planificado |
 |---|---|---|
 | Golpe con arma | `Hitbox.inBox` en el instante del golpe de cada paso de la cadena (C4 ✅) + `visible` desde la raíz del atacante + rebobinado | — |
-| Disparo de arma | Proyectil del servidor (C9 ✅, §6 bis): en cada `Heartbeat`, `Hitbox.ray` (mundo) + `Hitbox.sweepCombatants` (esfera entre los combatientes) de la posición anterior a la nueva | — |
+| Disparo de arma | Proyectil del servidor (C9 ✅, §6 bis): en cada `Heartbeat`, `Hitbox.ray` (mundo) + `Hitbox.sweepCombatants` (esfera entre los combatientes) de la posición anterior a la nueva. En Dunas y el Laboratorio (regla `headshots`, V7): los jugadores, rebobinados, con `Hitbox.sweepPlayers` (esfera de cabeza + cápsula de cuerpo) | — |
 | Habilidades que viajan (Disparo múltiple, Bola de fuego, Dardo) | El mismo proyectil (C9 ✅); `castShot` queda para dónde cae un área | — |
 | Áreas (`targetsAround`, `targetsAroundGround`, `targetsOnGround`) | `Hitbox.inSphere` + `visible` desde el centro: **las paredes protegen** | — |
 | Ayuda de puntería (`CombatService.aimShot`; `bestInCone` del Rayo) | Solo elige la dirección de salida (C9 ✅), entre los que se ven y solo si la línea de tiro ya casi los toca: monos a ≤ 2,5 studs de ella (adonde estarán al llegar), jugadores a ≤ 1,5 (adonde están) | — |
@@ -437,6 +450,9 @@ Parpadeo, Torbellino, esquiva) los hace el cliente, que simula su personaje: por
 puede empujar a un jugador poniéndole velocidad.
 - `Combat/Latency.compensation(player)`: `Player:GetNetworkPing()` (segundos, aproximadamente de ida)
   sin pasar de `Config.Net.MaxCompensationSeconds` (0,15 s).
+- **Rebobinado de proyectiles (V7):** en Dunas y el Laboratorio, el disparo de arma prueba a cada jugador
+  donde estaba `lag` segundos antes (`PositionHistory`) y sale adelantado hasta 0,1 s. El origen que
+  manda el cliente vale si cae a ≤ 5 studs de la cabeza rebobinada del tirador y sin pared (§3).
 - `Combat/Knockback.push(modelo, dirección, velocidad, segundos)`: a un mono le pone la velocidad (y
   un pequeño salto); a un jugador le manda el remoto `Knockback` y lo aplica su cliente
   (`KnockbackController` → `Dash.push`); a un jefe, nada. Hasta C2 la Embestida **no empujaba a los

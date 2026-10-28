@@ -22,7 +22,7 @@ Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y 
 - Esquiva y salto como en el resto del juego, con una diferencia: la esquiva es un empujón **sin rodada** (estilo `Dash`), y la cámara se inclina un poco hacia el lado de la esquiva mientras el arma de la vista se aparta (V3). No hay guardia ni parry: en un shooter el bloqueo no tiene sentido.
 - Los disparos son **proyectiles** (`Combat/Projectiles`, el mismo sistema de la Isla y de Dunas, con su compensación de lag y su tope). Nada de rayos instantáneos: así se ve el disparo y se puede esquivar a distancia.
 - **Ayuda de puntería estrecha**, la misma de la Isla: solo corrige si la línea ya casi toca al blanco. El botón de disparo del móvil es grande y no dispara solo. Ningún dispositivo tiene ventaja.
-- Sin disparos a la cabeza: un crítico por zona castigaría al jugador de móvil.
+- Disparos a la cabeza (Fase 15, V7): ×1,5 solo con armas a distancia contra jugadores, en impacto directo (no el área del cañón de suero). La cabeza tiene una hitbox algo mayor que la visible, la ayuda de puntería sigue apuntando al cuerpo y no se suma al crítico: se queda el mayor. El móvil no queda castigado porque el ×1,5 es moderado.
 
 ### 2.1 Las 4 armas
 

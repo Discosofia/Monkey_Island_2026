@@ -35,7 +35,8 @@
 --       cobertura y lo que vale la ventaja del altar (la definitiva antes) en un duelo y en una partida.
 --   12. Laboratorio (solo con secciones.laboratorio = true; Fase 13, docs/LABORATORIO.md §2): sin roles ni
 --       habilidades, el tiempo para matar de cada arma a cada distancia, quién gana cada cruce y el
---       área del suero contra dos rivales juntos.
+--       área del suero contra dos rivales juntos, y (Fase 15, V7) el tiempo para matar con una fracción de
+--       aciertos a la cabeza (OPCIONES.laboratorio.cabeza, ×Config.Combat.Headshot.Multiplier).
 --   13. Alertas: lo que se sale de los límites.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -90,8 +91,10 @@ local OPCIONES_BASE = {
 	-- Fase 13 (sección 12): distancias de un duelo del Laboratorio (corta, media, larga, en studs) y la
 	-- fracción de disparos que acierta cada arma a cada una (docs/LABORATORIO.md §2.2). Aquí no vale el
 	-- modelo de "acierto": el rifle falla más de cerca (cuesta seguir al que se mueve con la mira) y el
-	-- lanzadardos de lejos (los dardos se abren).
+	-- lanzadardos de lejos (los dardos se abren). "cabeza" (Fase 15, V7): fracción de los aciertos que dan a
+	-- la cabeza (Config.Combat.Headshot.Multiplier); su tabla va aparte de la base de las alertas.
 	laboratorio = {
+		cabeza = 0.3,
 		distancias = { 15, 50, 120 },
 		acierto = {
 			LabDartGun = { 0.85, 0.6, 0.5 },
@@ -3041,7 +3044,8 @@ local function main(copia: Instance): string
 		local L = OPCIONES.laboratorio
 		local vida = Config.Lab.Health
 		local distancias = L.distancias
-		local function ttk(arma: any, distancia: number, acierto: number): number?
+		-- "dano": el daño de un impacto directo (por defecto, el del arma; con cabezas, su media).
+		local function ttk(arma: any, distancia: number, acierto: number, dano: number?): number?
 			if distancia > arma.range then
 				return nil
 			end
@@ -3062,7 +3066,7 @@ local function main(copia: Instance): string
 					end
 					venenoHasta = t + veneno.seconds
 				end
-				hecho += arma.damage
+				hecho += dano or arma.damage
 				if hecho >= vida - 1e-6 then
 					return t
 				end
@@ -3127,6 +3131,30 @@ local function main(copia: Instance): string
 			end
 		end
 		linea("")
+		-- Con cabezas (Fase 15, V7): una fracción de los aciertos va a la cabeza (×Headshot.Multiplier). El
+		-- daño de impacto directo es la media; el cañón de suero (área) no tiene cabeza y el veneno no cambia.
+		local cabeza = L.cabeza
+		local multiplicador = Config.Combat.Headshot.Multiplier
+		linea(
+			`Con {pct(cabeza)} de aciertos a la cabeza (×{multiplicador}; el cañón de suero es de área y no cuenta):`
+		)
+		linea(`| Arma | {table.concat(cabecera, " | ")} |`)
+		linea(`|---|{string.rep("---|", #distancias)}`)
+		local tiemposCabeza: { [string]: { number? } } = {}
+		for _, id in LabWeapons.ORDER do
+			local arma = LabWeapons.weapons[id]
+			local area = arma.lab and arma.lab.effect == "AcidBurst"
+			local dano = if area then arma.damage else arma.damage * (1 + cabeza * (multiplicador - 1))
+			tiemposCabeza[id] = {}
+			local celdas = {}
+			for indice, distancia in distancias do
+				local t = ttk(arma, distancia, L.acierto[id][indice], dano)
+				tiemposCabeza[id][indice] = t
+				celdas[indice] = if t then `{n(t, 2)} s` else "fuera de alcance"
+			end
+			linea(`| {arma.name} | {table.concat(celdas, " | ")} |`)
+		end
+		linea("")
 		linea("Dos rivales juntos (el área los alcanza a los dos; las demás armas, uno detrás de otro):")
 		linea(`| Arma | {table.concat(cabecera, " | ")} |`)
 		linea(`|---|{string.rep("---|", #distancias)}`)
@@ -3153,6 +3181,18 @@ local function main(copia: Instance): string
 			if mejor == math.huge or fuera(mejor, LIMITES.laboratorioTTK) then
 				alerta(
 					`Laboratorio: {nombre} mata en {n(mejor, 2)} s en su mejor distancia (objetivo {LIMITES.laboratorioTTK[1]}–{LIMITES.laboratorioTTK[2]} s)`
+				)
+			end
+			local mejorCabeza = math.huge
+			for indice in distancias do
+				local t = tiemposCabeza[id][indice]
+				if t and t < mejorCabeza then
+					mejorCabeza = t
+				end
+			end
+			if mejorCabeza < LIMITES.laboratorioTTK[1] then
+				alerta(
+					`Laboratorio con cabezas: {nombre} mata en {n(mejorCabeza, 2)} s en su mejor distancia (mínimo {LIMITES.laboratorioTTK[1]} s)`
 				)
 			end
 			local ganadas, jugadas = victorias[id] or 0, cruces[id] or 0

@@ -12,6 +12,8 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local AIM_DISTANCE = 500
+-- A esta distancia o menos de la cabeza, la cámara cuenta como primera persona.
+local FIRST_PERSON_STUDS = 3
 
 local Aim = {}
 
@@ -52,6 +54,20 @@ function Aim.point(character: Model): Vector3
 	return if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
 end
 
+-- De dónde sale el disparo (Fase 15, V7): la cámara si está pegada a la cabeza (primera persona, a
+-- FIRST_PERSON_STUDS o menos) y, si no, la cabeza. El servidor la acepta si está cerca de la cabeza.
+function Aim.origin(character: Model): Vector3
+	local camera = Workspace.CurrentCamera
+	local head = character:FindFirstChild("Head")
+	if not (head and head:IsA("BasePart")) then
+		return camera.CFrame.Position
+	end
+	if (camera.CFrame.Position - head.Position).Magnitude <= FIRST_PERSON_STUDS then
+		return camera.CFrame.Position
+	end
+	return head.Position
+end
+
 function Aim.direction(character: Model): Vector3
 	local camera = Workspace.CurrentCamera
 	if UserInputService.MouseEnabled then
@@ -59,8 +75,7 @@ function Aim.direction(character: Model): Vector3
 		local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
 		local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, aimParams(character))
 		local target = if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
-		local head = character:FindFirstChild("Head")
-		local origin = if head and head:IsA("BasePart") then head.Position else camera.CFrame.Position
+		local origin = Aim.origin(character)
 		local direction = target - origin
 		if direction.Magnitude > 0.1 then
 			return direction.Unit

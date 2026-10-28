@@ -30,6 +30,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 --   CoversBroken                  el que rompe una cobertura de Dunas (C11, CoverService)
 --   AltarCaptures                 cada uno de los que toman el altar de Dunas (C11, AltarService)
 --   Slides                        el que se desliza (Fase 15, V2, CombatService.onSlide)
+--   Headshots                     el que da un disparo a la cabeza de un jugador (Fase 15, V7, CombatService)
 export type Mechanic =
 	"Parries"
 	| "Blocks"
@@ -44,6 +45,7 @@ export type Mechanic =
 	| "CoversBroken"
 	| "AltarCaptures"
 	| "Slides"
+	| "Headshots"
 
 export type Telemetry = {
 	damageDealt: (player: Player, source: string, amount: number) -> (),
@@ -98,6 +100,9 @@ export type Rules = {
 	abilities: boolean,
 	-- false: no hay guardia ni parry; los golpes entran sin esperar el parry del defensor.
 	guard: boolean,
+	-- true: las armas a distancia hacen más daño a la cabeza de un jugador (Fase 15, V7; Dunas y el
+	-- Laboratorio) y sus disparos se prueban contra posiciones rebobinadas (Combat/Hitbox.sweepPlayers).
+	headshots: boolean,
 
 	-- Ritmo al que se recupera la estamina de "player" (1 = normal; Combat/StaminaServer).
 	staminaRegenFactor: (player: Player) -> number,
@@ -160,6 +165,7 @@ local rules: Rules = {
 	end,
 	abilities = true,
 	guard = true,
+	headshots = false,
 	staminaRegenFactor = function()
 		return 1
 	end,

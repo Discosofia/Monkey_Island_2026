@@ -12,6 +12,8 @@
 -- Coberturas (C11, Combat/Destructibles): con "breaks", el que se para en una la alcanza.
 -- En arco (Fase 13, el cañón de suero del Laboratorio): con "gravity" cae mientras vuela; cada paso es un
 -- tramo recto entre dos puntos de la parábola, así que se mira igual. "speed" es la de salida.
+-- Cabeza y lag (Fase 15, V7): con "rewind", los jugadores se prueban donde estaban hace esos segundos,
+-- con la cabeza aparte (onHit recibe "isHead"); con "lead", el proyectil sale ya adelantado.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -36,7 +38,8 @@ export type Shot = {
 	pierce: boolean?, -- atraviesa a todos los que toca (cada uno una vez); solo lo para el mundo…
 	maxHits: number?, -- …o, con esto, al dar a tantos (el remate del arco, C9b)
 	-- Al tocar un combatiente: true si le vale (le da y, sin "pierce", se para); false para atravesarlo.
-	onHit: (model: Model, position: Vector3) -> boolean,
+	-- "isHead": dio a la cabeza de un jugador (solo con "rewind").
+	onHit: (model: Model, position: Vector3, isHead: boolean?) -> boolean,
 	-- Al acabar: dónde, a quién dio el último (o nil) y si ha dado a alguien.
 	onEnd: ((position: Vector3, model: Model?, hitAny: boolean) -> ())?,
 	-- Datos que el cliente usa al llegar (el radio de la explosión de la Bola de fuego).
@@ -49,6 +52,11 @@ export type Shot = {
 	breakOnce: Destructibles.Once?,
 	-- Studs/s² hacia abajo (en arco); "range" es entonces lo que recorre por la curva.
 	gravity: number?,
+	-- Segundos de lag del tirador (Fase 15, V7): los jugadores se prueban donde estaban hace esto, con
+	-- cabeza y cuerpo (Hitbox.sweepPlayers); el resto, como siempre.
+	rewind: number?,
+	-- Segundos que el proyectil avanza de golpe al salir, para compensar el retraso del tirador.
+	lead: number?,
 }
 
 type Flight = {
@@ -77,6 +85,30 @@ local function finish(flight: Flight, position: Vector3, model: Model?)
 	if shot.onEnd then
 		task.spawn(shot.onEnd, position, model, flight.hitAny)
 	end
+end
+
+-- Barre un tramo de "flight" entre los combatientes: el primero que toca, lo que avanza hasta él, el
+-- contacto y si es la cabeza de un jugador. Con "rewind", los jugadores se prueban aparte
+-- (Hitbox.sweepPlayers) y el barrido normal los ignora; se toma el más cercano de los dos.
+local function sweepFlight(flight: Flight, from: Vector3, displacement: Vector3): (Model?, number, Vector3?, boolean)
+	local shot = flight.shot
+	local rewind = shot.rewind
+	if not rewind then
+		local model, along, contact = Hitbox.sweepCombatants(from, shot.radius, displacement, flight.skip)
+		return model, along, contact, false
+	end
+	local skip = table.clone(flight.skip)
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			skip[player.Character] = true
+		end
+	end
+	local model, along, contact = Hitbox.sweepCombatants(from, shot.radius, displacement, skip)
+	local playerModel, playerAlong, playerContact, isHead = Hitbox.sweepPlayers(from, displacement, rewind, flight.skip)
+	if playerModel and (not model or playerAlong <= along) then
+		return playerModel, playerAlong, playerContact, isHead
+	end
+	return model, along, contact, false
 end
 
 -- Lo que se mueve "flight" en "deltaTime" (sin pasar de su alcance).
@@ -111,14 +143,14 @@ local function advance(flight: Flight, deltaTime: number): boolean
 	local from = flight.position
 	local swept = 0
 	while swept < open do
-		local model, along = Hitbox.sweepCombatants(from, shot.radius, direction * (open - swept), flight.skip)
+		local model, along, _, isHead = sweepFlight(flight, from, direction * (open - swept))
 		if not model then
 			break
 		end
 		swept += along
 		from = flight.position + direction * swept
 		flight.skip[model] = true
-		if shot.onHit(model, from) then
+		if shot.onHit(model, from, isHead) then
 			flight.hitAny = true
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
@@ -175,6 +207,8 @@ function Projectiles.fire(shot: Shot): number
 		hitAny = false,
 		hits = 0,
 	}
+	local lead = shot.lead or 0
+	-- Con adelanto, lo dibujado sale ya "lead" segundos por delante, como el servidor.
 	AbilityFx.all(
 		"Projectile",
 		flight.id,
@@ -184,17 +218,17 @@ function Projectiles.fire(shot: Shot): number
 		shot.direction,
 		shot.speed,
 		shot.range,
-		Workspace:GetServerTimeNow(),
+		Workspace:GetServerTimeNow() - lead,
 		shot.pierce == true,
 		shot.extra,
 		shot.gravity
 	)
 	-- Lo que ya toca al salir (un mono pegado al tirador): una esfera desde un poco antes del origen.
 	local behind = shot.origin - shot.direction * START_BACK
-	local model, _, contact = Hitbox.sweepCombatants(behind, shot.radius, shot.direction * START_BACK, flight.skip)
+	local model, _, contact, isHead = sweepFlight(flight, behind, shot.direction * START_BACK)
 	if model then
 		flight.skip[model] = true
-		if shot.onHit(model, contact or shot.origin) then
+		if shot.onHit(model, contact or shot.origin, isHead) then
 			flight.hitAny = true
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
@@ -202,6 +236,9 @@ function Projectiles.fire(shot: Shot): number
 				return flight.id
 			end
 		end
+	end
+	if lead > 0 and advance(flight, lead) then
+		return flight.id
 	end
 	table.insert(flights, flight)
 	return flight.id

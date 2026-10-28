@@ -11,6 +11,9 @@
 --   - sweepSphere / sweepBox: Spherecast y Blockcast (disparos y barridos); devuelven lo primero que tocan.
 --   - sweepCombatants: una esfera que avanza solo entre los combatientes (cada paso de un proyectil, C9;
 --     el mundo lo mira ray: así el decorado que no choca no para los disparos).
+--   - sweepPlayers (Fase 15, V7): un punto que avanza solo entre los jugadores vivos, probado contra su
+--     cabeza (esfera) y su cuerpo (cápsula vertical, de los pies al cuello) en la posición rebobinada por
+--     el lag del tirador (Config.Combat.Headshot). Dice cuál es el primero y si lo toca en la cabeza.
 --   - rewound: dónde estaba un combatiente hace unos segundos (Combat/PositionHistory), para el lag.
 -- Combatientes: los modelos con la etiqueta Config.Combat.EnemyTag (monos, jefes, muñecos) y los
 -- personajes de los jugadores. La lista se rehace solo cuando cambia, y las consultas de piezas buscan
@@ -26,6 +29,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local PositionHistory = require(script.Parent.PositionHistory)
 
 local ENEMY_TAG = Config.Combat.EnemyTag
+local HEADSHOT = Config.Combat.Headshot
+-- Si cabeza y cuerpo se tocan a distancias que difieren menos de esto (studs), cuenta la cabeza.
+local HEAD_TIE_STUDS = 0.05
 
 export type Query = {
 	exclude: Model?, -- quien ataca: nunca se alcanza a sí mismo
@@ -152,6 +158,110 @@ function Hitbox.rewound(model: Model, seconds: number): Vector3?
 	return if root then root.Position else nil
 end
 
+-- La forma de un personaje (Fase 15, V7): la cápsula del cuerpo (de los pies "feet" al cuello "neck", ambos
+-- en la vertical de la raíz) y la esfera de la cabeza (centro y radio ya ensanchado), con sus piezas
+-- actuales. "root" es la raíz; la cabeza puede faltar.
+type BodyShape = {
+	root: BasePart,
+	feet: Vector3,
+	neck: Vector3,
+	headCenter: Vector3?,
+	headRadius: number,
+}
+
+local function bodyShape(model: Model): BodyShape?
+	local root = rootOf(model)
+	if not root then
+		return nil
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local head = model:FindFirstChild("Head")
+	local rootPosition = root.Position
+	local feetY = rootPosition.Y - ((if humanoid then humanoid.HipHeight else 0) + root.Size.Y / 2)
+	local headCenter: Vector3? = nil
+	local headRadius = 0
+	local neckY = rootPosition.Y + root.Size.Y / 2
+	if head and head:IsA("BasePart") then
+		headCenter = head.Position
+		-- El radio visible de la pieza (la mitad de su lado mayor) sirve igual en R6, R15 y escalado.
+		headRadius = math.max(head.Size.X, head.Size.Y, head.Size.Z) / 2 * HEADSHOT.HeadRadiusScale
+		neckY = head.Position.Y - headRadius
+	end
+	neckY = math.max(neckY, feetY)
+	return {
+		root = root,
+		feet = Vector3.new(rootPosition.X, feetY, rootPosition.Z),
+		neck = Vector3.new(rootPosition.X, neckY, rootPosition.Z),
+		headCenter = headCenter,
+		headRadius = headRadius,
+	}
+end
+
+-- Distancia a lo largo del segmento (origen "o", unitario "u", largo "length") hasta que entra en la
+-- esfera de centro "c" y radio "r", o nil. Si ya empieza dentro, 0.
+local function segmentSphere(o: Vector3, u: Vector3, length: number, c: Vector3, r: number): number?
+	local m = o - c
+	local b = m:Dot(u)
+	local k = m:Dot(m) - r * r
+	if k <= 0 then
+		return 0
+	end
+	if b > 0 then
+		return nil
+	end
+	local disc = b * b - k
+	if disc < 0 then
+		return nil
+	end
+	local t = -b - math.sqrt(disc)
+	return if t <= length then math.max(t, 0) else nil
+end
+
+-- Lo mismo contra una cápsula vertical de "a" (abajo) a "b" (arriba) y radio "r": el cilindro entre los
+-- dos puntos más las esferas de los extremos.
+local function segmentCapsule(o: Vector3, u: Vector3, length: number, a: Vector3, b: Vector3, r: number): number?
+	local best = segmentSphere(o, u, length, a, r)
+	local top = segmentSphere(o, u, length, b, r)
+	if top and (not best or top < best) then
+		best = top
+	end
+	local axis = b - a
+	local axisLength = axis.Magnitude
+	if axisLength < 1e-3 then
+		return best
+	end
+	local v = axis / axisLength
+	local m = o - a
+	local perpendicular = m - v * m:Dot(v)
+	local travel = u - v * u:Dot(v)
+	local qa = travel:Dot(travel)
+	local qb = perpendicular:Dot(travel)
+	local qc = perpendicular:Dot(perpendicular) - r * r
+	local t: number? = nil
+	if qc <= 0 then
+		-- Dentro del cilindro infinito: vale si está entre los extremos.
+		local along = m:Dot(v)
+		if along >= 0 and along <= axisLength then
+			t = 0
+		end
+	elseif qa > 1e-9 then
+		local disc = qb * qb - qa * qc
+		if disc >= 0 then
+			local hit = (-qb - math.sqrt(disc)) / qa
+			if hit >= 0 and hit <= length then
+				local along = (o + u * hit - a):Dot(v)
+				if along >= 0 and along <= axisLength then
+					t = hit
+				end
+			end
+		end
+	end
+	if t and (not best or t < best) then
+		best = t
+	end
+	return best
+end
+
 local function sees(query: Query, center: Vector3, model: Model): boolean
 	return query.throughWalls == true or Hitbox.visible(query.from or center, model)
 end
@@ -181,8 +291,8 @@ function Hitbox.inSphere(center: Vector3, radius: number, query: Query?): { Mode
 	return found
 end
 
--- Combatientes con alguna pieza dentro de la caja (o, con "rewind", con la raíz dentro donde
--- estaban entonces, con 1 stud de margen por el cuerpo). Ver Query.
+-- Combatientes con alguna pieza dentro de la caja (o, con "rewind", con algún punto de su cápsula del
+-- cuerpo dentro donde estaban entonces, con el radio de la cápsula de margen). Ver Query.
 function Hitbox.inBox(cframe: CFrame, size: Vector3, query: Query?): { Model }
 	local options = query or NO_QUERY
 	local center = cframe.Position
@@ -203,17 +313,26 @@ function Hitbox.inBox(cframe: CFrame, size: Vector3, query: Query?): { Model }
 	end
 	local rewind = options.rewind or 0
 	if rewind > 0 then
-		local half = size / 2 + Vector3.one
+		-- La caja se ensancha el radio de la cápsula del cuerpo; se prueban sus pies, su centro y su cuello
+		-- trasladados a donde estaba entonces (solo coherencia con los disparos: sin cabeza).
+		local half = size / 2 + Vector3.one * HEADSHOT.BodyRadius
 		for _, model in combatants do
 			local past = if seen[model] or not model.Parent then nil else PositionHistory.at(model, rewind)
-			if past then
-				local localPoint = cframe:PointToObjectSpace(past)
-				if
-					math.abs(localPoint.X) <= half.X
-					and math.abs(localPoint.Y) <= half.Y
-					and math.abs(localPoint.Z) <= half.Z
-				then
-					consider(model)
+			local shape = if past then bodyShape(model) else nil
+			if past and shape then
+				local shift = past - shape.root.Position
+				local feet = shape.feet + shift
+				local neck = shape.neck + shift
+				for _, point in { feet, feet:Lerp(neck, 0.5), neck } do
+					local localPoint = cframe:PointToObjectSpace(point)
+					if
+						math.abs(localPoint.X) <= half.X
+						and math.abs(localPoint.Y) <= half.Y
+						and math.abs(localPoint.Z) <= half.Z
+					then
+						consider(model)
+						break
+					end
 				end
 			end
 		end
@@ -284,6 +403,56 @@ function Hitbox.sweepCombatants(
 		end
 	end
 	return nil, length, nil
+end
+
+-- Un punto que avanza "displacement" desde "origin" solo entre los personajes de jugadores vivos que no
+-- estén en "skip" (Fase 15, V7). Cada uno se prueba donde estaba hace "rewind" segundos (el lag del
+-- tirador): su cuerpo se traslada desde la raíz actual a esa posición pasada. Contra la esfera de la
+-- cabeza y la cápsula del cuerpo (Config.Combat.Headshot); el grosor está en esos radios. Devuelve el
+-- primero a lo largo del segmento: el modelo, lo que ha avanzado, el punto de contacto y si es la cabeza
+-- (si cabeza y cuerpo se tocan casi a la vez, cuenta la cabeza).
+function Hitbox.sweepPlayers(
+	origin: Vector3,
+	displacement: Vector3,
+	rewind: number,
+	skip: { [Model]: boolean }
+): (Model?, number, Vector3?, boolean)
+	local length = displacement.Magnitude
+	if length < 1e-3 then
+		return nil, 0, nil, false
+	end
+	local direction = displacement / length
+	local bestModel: Model? = nil
+	local bestAlong = math.huge
+	local bestHead = false
+	for _, player in Players:GetPlayers() do
+		local model = player.Character
+		local humanoid = if model then model:FindFirstChildOfClass("Humanoid") else nil
+		local shape = if model and humanoid and humanoid.Health > 0 and not skip[model] then bodyShape(model) else nil
+		if model and shape then
+			local past = if rewind > 0 then PositionHistory.at(model, rewind) else nil
+			local shift = if past then past - shape.root.Position else Vector3.zero
+			local headAlong: number? = nil
+			if shape.headCenter then
+				headAlong = segmentSphere(origin, direction, length, shape.headCenter + shift, shape.headRadius)
+			end
+			local bodyAlong =
+				segmentCapsule(origin, direction, length, shape.feet + shift, shape.neck + shift, HEADSHOT.BodyRadius)
+			local along = headAlong
+			local isHead = headAlong ~= nil
+			if bodyAlong and (not headAlong or bodyAlong < headAlong - HEAD_TIE_STUDS) then
+				along = bodyAlong
+				isHead = false
+			end
+			if along and along < bestAlong then
+				bestModel, bestAlong, bestHead = model, along, isHead
+			end
+		end
+	end
+	if not bestModel then
+		return nil, length, nil, false
+	end
+	return bestModel, bestAlong, origin + direction * bestAlong, bestHead
 end
 
 -- Rehace la lista de combatientes cuando cambia y empieza a guardar sus posiciones. Lo llama

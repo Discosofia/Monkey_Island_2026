@@ -428,7 +428,13 @@ local function hook(instance: Instance)
 		end
 		-- El cañón de suero (en arco) cae en el punto al que se apunta.
 		local lobbed = weapon and weapon.lab and weapon.lab.effect == "AcidBurst"
-		Remotes.UseWeapon:FireServer(Aim.direction(character), if lobbed then Aim.point(character) else nil)
+		-- Dirección, punto (solo el cañón), de dónde sale y la hora: el servidor compensa el lag y comprueba el origen.
+		Remotes.UseWeapon:FireServer(
+			Aim.direction(character),
+			if lobbed then Aim.point(character) else nil,
+			Aim.origin(character),
+			Workspace:GetServerTimeNow()
+		)
 	end)
 	if weapon and weapon.kind == "Ranged" then
 		instance.Equipped:Connect(function()

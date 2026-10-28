@@ -2945,6 +2945,9 @@ end
 -- Un proyectil del servidor (Combat/Projectiles): va recto desde "origin" a "speed" y se dibuja donde
 -- está a la hora del servidor, así que aunque llegue tarde por el ping se ve donde lo ven todos. Se para
 -- donde dice "ProjectileEnd" o, antes, si aquí choca con el mundo o con un mono (no espera al servidor).
+-- El propio (Fase 15, V7) sale del cañón del arma (un Attachment "Muzzle" o, si no, su Handle) y en
+-- Config.Combat.Headshot.MuzzleBlendSeconds se junta con la trayectoria real: solo cambia cómo se ve, no
+-- dónde acierta (eso lo decide el servidor).
 local function projectile(
 	id: number,
 	lookId: string,
@@ -2973,6 +2976,22 @@ local function projectile(
 	local travelled = 0
 	local finished = false
 	local connection: RBXScriptConnection? = nil
+	-- Del cañón local a la trayectoria: el desfase al salir y su peso (1 → 0) según el tiempo.
+	local muzzleOffset = Vector3.zero
+	if owner and owner == Players.LocalPlayer.Character then
+		local tool = owner:FindFirstChildOfClass("Tool")
+		local muzzle = if tool then tool:FindFirstChild("Muzzle", true) else nil
+		local handle = if tool then tool:FindFirstChild("Handle") else nil
+		if muzzle and muzzle:IsA("Attachment") then
+			muzzleOffset = muzzle.WorldPosition - origin
+		elseif handle and handle:IsA("BasePart") then
+			muzzleOffset = handle.Position - origin
+		end
+	end
+	local blendSeconds = Config.Combat.Headshot.MuzzleBlendSeconds
+	local function muzzleShift(elapsed: number): Vector3
+		return muzzleOffset * math.max(0, 1 - elapsed / blendSeconds)
+	end
 	local function finish(position: Vector3)
 		if finished then
 			return
@@ -3019,6 +3038,7 @@ local function projectile(
 			path += (point - last).Magnitude
 			local ahead = at(elapsed + 0.02)
 			local cframe = CFrame.lookAt(point, if (ahead - point).Magnitude > 1e-3 then ahead else point + direction)
+				+ muzzleShift(elapsed)
 			body.CFrame = cframe
 			last = point
 			if look.follow then
@@ -3042,6 +3062,7 @@ local function projectile(
 		end
 		travelled = target
 		local cframe = CFrame.lookAt(origin + direction * travelled, origin + direction * (travelled + 1))
+			+ muzzleShift(elapsed)
 		body.CFrame = cframe
 		if look.follow then
 			look.follow(cframe, elapsed)

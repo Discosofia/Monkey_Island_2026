@@ -302,6 +302,8 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
 | Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
 
+**Cabeza** (Fase 15, V7): en PvP a distancia, en la Isla de Dunas y en el Laboratorio, un impacto directo de arma a distancia en la cabeza de otro jugador hace ×1,5 (no el cañón de suero ni las áreas). No se suma al crítico: cuenta el mayor. Sale «¡Cabeza!» con estilo de crítico.
+
 **Combos** (`Data/Combos`, `ComboService`): cada rol tiene **dos**, de tres habilidades **en orden**, con 6 s como mucho entre una y otra (si la siguiente aún se está recargando, los 6 s cuentan desde que esté lista). Cada combo empieza con una habilidad distinta: **la que usas primero decide cuál está en marcha**. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+15 % el guerrero, +10 % el cazador, nada el mago) y el remate tiene un efecto extra.
 
 **Conexiones:** al cerrar un combo, el otro queda **abierto en su paso 1**: lo marcado sigue marcado, lo que golpea el remate se marca y se sigue directamente por su **paso 2** (A → B → A…). Cada combo cerrado tras una conexión sube la racha **un nivel más** y sale "¡CONEXIÓN! N seguidos"; en el indicador, el paso saltado lleva "🔗". Ningún combo usa la definitiva (V): con 90 s de recarga casi nunca se podía cerrar. Cada paso enlazado la acerca **10 s**, como mucho **20 s por recarga**.

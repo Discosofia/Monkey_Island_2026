@@ -286,6 +286,11 @@ local function textOf(kind: string, amount: number): string
 	return tostring(amount)
 end
 
+-- El número con la etiqueta de cabeza delante si lo es.
+local function labelOf(text: string, head: boolean): string
+	return if head then `{Strings.t("¡Cabeza!")} {text}` else text
+end
+
 local function colorOf(kind: string, crit: boolean): Color3
 	if kind == "Absorbed" then
 		return COLORS.Absorbed
@@ -317,7 +322,9 @@ local function show(entry: any)
 	if typeof(target) ~= "Instance" or typeof(amount) ~= "number" or typeof(kind) ~= "string" then
 		return
 	end
-	local crit = entry.crit == true
+	-- Un golpe a la cabeza (PvP con armas a distancia) sale como un crítico reforzado, con su etiqueta.
+	local head = entry.head == true
+	local crit = entry.crit == true or head
 	local pet = entry.pet == true
 	local mine = entry.by == player.UserId
 	local scale = if pet then SETTINGS.PetTextScale else 1
@@ -328,7 +335,10 @@ local function show(entry: any)
 		local side = if kind == "Heal" then "Right" else "Left"
 		local column = ownColumns[side]
 		if column then
-			column:push(textOf(kind, amount), { color = colorOf(kind, crit), crit = crit, scale = scale })
+			column:push(
+				labelOf(textOf(kind, amount), head),
+				{ color = colorOf(kind, crit), crit = crit, scale = scale }
+			)
 		end
 		return
 	end
@@ -361,7 +371,7 @@ local function show(entry: any)
 	end
 	local column = worldColumn(target)
 	if column then
-		column:push(textOf(kind, amount), {
+		column:push(labelOf(textOf(kind, amount), head), {
 			color = colorOf(kind, crit),
 			skin = if kind == "Dealt" and not pet then skinOf(entry.by) else nil,
 			crit = crit,

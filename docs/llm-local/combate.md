@@ -53,7 +53,7 @@ return _G.Equilibrio.informe({ soloRol = "Cazador" })
 - **Entre roles:** ±20 % en grupo y ±30 % a un objetivo. Cada rol gana en su escenario.
 - **Entre dispositivos:** las mismas ventanas y números en PC, móvil y mando. Los avisos se ven sin sonido.
 - **Sin salida:** todo control sobre un jugador pasa por `Status` (inmunidad al soltarse) y tiene respuesta (Evasivo).
-- **Detección:** con `Combat/Hitbox` (rayo, esfera, caja). Nunca `.Touched`.
+- **Detección:** con `Combat/Hitbox` (rayo, esfera, caja). Nunca `.Touched`. En PvP a distancia (Dunas y Laboratorio), el proyectil se prueba contra jugadores rebobinados: cabeza (esfera) ×1,5 y cuerpo (cápsula); el origen del disparo lo manda el cliente y el servidor lo acepta a ≤ 5 studs de su cabeza.
 - **Colores:** verde curación, morado veneno, rojo daño recibido, dorado parry y naranja con grietas para la guardia rota.
 - **Pago:** nada de Robux da poder.
 
