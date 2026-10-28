@@ -335,6 +335,22 @@ local function mouthPose(t: number, near: boolean, head: number, marker: string?
 	}
 end
 
+-- Deslizarse: la cadera baja y el tronco se echa hacia atrás, con la pierna derecha estirada al frente
+-- y la izquierda doblada debajo. Sin brazos ni cabeza: siguen con el arma y la cámara.
+local function slidePose(t: number): { [string]: any }
+	return {
+		t = t,
+		LowerTorso = { 25, 0, 0, 0, -1.2, 0 },
+		UpperTorso = { 8, 0, 0 },
+		RightUpperLeg = { 85, 0, 0 },
+		RightLowerLeg = { -5, 0, 0 },
+		RightFoot = { -10, 0, 0 },
+		LeftUpperLeg = { 35, 0, 0 },
+		LeftLowerLeg = { -110, 0, 0 },
+		LeftFoot = { 20, 0, 0 },
+	}
+end
+
 local SPECS: { [string]: any } = {
 	-- Pisotón del guerrero. AbilityService hace el daño al recibir la petición: el pie cae a 0,2 s.
 	Quake = {
@@ -461,6 +477,14 @@ local SPECS: { [string]: any } = {
 			backHopLanding(0.3, -5),
 			{ t = 0.5, reposo = true },
 		},
+	},
+	-- Deslizamiento (en bucle; Slide la para al terminar). Pose provisional hasta la V4.
+	Slide = {
+		name = "Slide",
+		loop = true,
+		easing = "Cubic",
+		direction = "InOut",
+		keyframes = { slidePose(0), slidePose(0.4) },
 	},
 	Hammer = {
 		name = "Hammer",

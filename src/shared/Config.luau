@@ -636,6 +636,30 @@ local Config = {
 		WalkSpeed = 18,
 		-- Velocidad al correr (studs/s); correr gasta estamina (Survival.SprintStaminaPerSecond).
 		SprintSpeed = 26,
+		-- Deslizamiento (Fase 15, V2): solo corriendo, en el suelo; no da invulnerabilidad.
+		Slide = {
+			-- Velocidad al empezar y al terminar (studs/s); baja en línea recta.
+			StartSpeed = 36,
+			EndSpeed = 18,
+			-- Duración del deslizamiento (s).
+			Seconds = 0.75,
+			-- Espera hasta el siguiente, contada desde el inicio del anterior (s).
+			CooldownSeconds = 1,
+			-- Estamina que cuesta (el Lobby no la cobra: regla staminaFree).
+			StaminaCost = 15,
+			-- Velocidad horizontal real mínima para empezar (studs/s): hay que ir corriendo de verdad.
+			MinSpeed = 22,
+			-- Salto deslizado: fracción de la velocidad que se conserva en el aire hasta aterrizar.
+			JumpKeep = 0.9,
+			-- Tope del impulso del salto deslizado (s).
+			JumpCarrySeconds = 0.6,
+			-- Con hambre o sed bajas (Survival.isWeak), factor de la velocidad de salida y la final.
+			WeakFactor = 0.85,
+			-- Cuánto baja la cámara en primera persona, solo en el Laboratorio (studs).
+			CameraDrop = 1.5,
+			-- Lo que tarda la cámara en bajar y en subir (s).
+			CameraSeconds = 0.1,
+		},
 	},
 
 	Life = {

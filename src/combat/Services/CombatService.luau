@@ -89,6 +89,7 @@ function CombatService.onPlayerHealed(callback: (player: Player, healer: Player,
 	table.insert(healListeners, callback)
 end
 local lastDodgeAt: { [Player]: number } = {}
+local lastSlideAt: { [Player]: number } = {}
 
 local function livingCharacter(player: Player): (Model?, BasePart?)
 	local character = player.Character
@@ -1151,6 +1152,35 @@ local function onDodge(player: Player)
 	Guard.drop(player)
 end
 
+-- El deslizamiento (Fase 15, V2): el cliente ya ha movido al personaje; aquí se comprueba que podía
+-- (regla del place, estado, bandera, tiempo de espera con el margen de su ping y estamina del servidor)
+-- y se anota hasta cuándo dura en "SlidingUntil". No da invulnerabilidad ni suelta la guardia.
+local function onSlide(player: Player)
+	local rules = CombatRules.get()
+	local settings = Config.Movement.Slide
+	local now = os.clock()
+	local last = lastSlideAt[player]
+	local slack = 2 * Latency.compensation(player)
+	if last and now - last < settings.CooldownSeconds - slack then
+		return
+	end
+	if not rules.movement.slide or player:GetAttribute("CarryingFlag") ~= nil then
+		return
+	end
+	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Slide") or CombatState.isTrapped(player) then
+		return
+	end
+	if
+		not rules.movement.staminaFree
+		and not StaminaServer.tryConsume(player, settings.StaminaCost, Config.Survival.StaminaSyncTolerance)
+	then
+		return
+	end
+	lastSlideAt[player] = now
+	player:SetAttribute("SlidingUntil", Workspace:GetServerTimeNow() + settings.Seconds)
+	rules.telemetry.mechanic(player, "Slides")
+end
+
 -- Las armas iniciales van a StarterGear: Roblox las copia a la mochila en cada reaparición.
 -- Primero las del rol (atributo "RoleWeapon") y detrás las comunes del place (el hacha y el pico en la
 -- Isla), así las teclas 3 y 4 son siempre las mismas. Si cambia el rol a mitad de partida (panel de pruebas), solo cambian las del rol.
@@ -1268,6 +1298,7 @@ function CombatService:Start()
 	end)
 	Remotes.UseWeapon.OnServerEvent:Connect(onUseWeapon)
 	Remotes.Dodge.OnServerEvent:Connect(onDodge)
+	Remotes.Slide.OnServerEvent:Connect(onSlide)
 
 	-- Si le tambalean (un parry, un golpe en PvP), le aturden o se pone en guardia, la cadena vuelve al
 	-- primer golpe y la cuenta de disparos al primero, sin adelantar el siguiente (WeaponController hace
@@ -1298,6 +1329,7 @@ function CombatService:Start()
 		shots[player] = nil
 		guardSpent[player] = nil
 		lastDodgeAt[player] = nil
+		lastSlideAt[player] = nil
 	end)
 end
 

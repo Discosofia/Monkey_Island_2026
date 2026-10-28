@@ -1214,6 +1214,11 @@ local CONTROLS: { { name: string, keys: string, help: string? } } = {
 	},
 	{ name = later("Correr"), keys = later("Mayús · L3 · «Correr»") },
 	{
+		name = later("Deslizar"),
+		keys = later("Alt izquierdo (C en el Laboratorio) · R3 · «Deslizar» mientras corres"),
+		help = later("solo corriendo; no te hace invulnerable"),
+	},
+	{
 		name = later("Bloqueo de cámara"),
 		keys = later("Ctrl (en PC)"),
 		help = later("actívalo en el menú de Roblox; apuntas hacia donde miras"),

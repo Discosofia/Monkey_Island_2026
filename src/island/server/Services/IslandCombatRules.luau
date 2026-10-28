@@ -54,7 +54,7 @@ end
 
 function IslandCombatRules:Init()
 	CombatRules.set({
-		movement = { staminaFree = false, slide = true, dodgeStyle = "Roll" },
+		movement = { staminaFree = false, slide = true, dodgeStyle = "Roll", slideKey = "LeftAlt" },
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
 			return pvpReady(attacker) and pvpReady(victim)
 		end,

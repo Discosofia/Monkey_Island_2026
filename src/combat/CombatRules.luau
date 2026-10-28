@@ -29,6 +29,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 --   ShotFinishers                 el que dispara el remate de un arma a distancia (C9b, CombatService)
 --   CoversBroken                  el que rompe una cobertura de Dunas (C11, CoverService)
 --   AltarCaptures                 cada uno de los que toman el altar de Dunas (C11, AltarService)
+--   Slides                        el que se desliza (Fase 15, V2, CombatService.onSlide)
 export type Mechanic =
 	"Parries"
 	| "Blocks"
@@ -42,6 +43,7 @@ export type Mechanic =
 	| "ShotFinishers"
 	| "CoversBroken"
 	| "AltarCaptures"
+	| "Slides"
 
 export type Telemetry = {
 	damageDealt: (player: Player, source: string, amount: number) -> (),
@@ -58,6 +60,8 @@ export type Movement = {
 	staminaFree: boolean,
 	slide: boolean,
 	dodgeStyle: string,
+	-- Tecla del deslizamiento (nombre de Enum.KeyCode): "LeftAlt", o "C" en el Laboratorio.
+	slideKey: string,
 }
 
 export type Rules = {
@@ -114,7 +118,7 @@ export type Rules = {
 	-- Movimiento del place (Fase 15, V1): staminaFree, correr sin gastar estamina (el Lobby); slide,
 	-- deslizarse al correr (V2); dodgeStyle, "Roll" (voltereta) o "Dash" (impulso; V3). El cliente no lee
 	-- ServerScriptService: se publica como atributos de ReplicatedStorage (MovementStaminaFree,
-	-- MovementSlide, MovementDodgeStyle) y los lee CombatClient/Movement.rules.
+	-- MovementSlide, MovementDodgeStyle, MovementSlideKey) y los lee CombatClient/Movement.rules.
 	movement: Movement,
 	telemetry: Telemetry,
 }
@@ -166,7 +170,7 @@ local rules: Rules = {
 	pvpWeaponMultipliers = {},
 	healMultiplier = 1,
 	pvpStatus = false,
-	movement = { staminaFree = false, slide = true, dodgeStyle = "Roll" },
+	movement = { staminaFree = false, slide = true, dodgeStyle = "Roll", slideKey = "LeftAlt" },
 	telemetry = {
 		damageDealt = nothing,
 		healed = nothing,
@@ -188,6 +192,7 @@ local function publishMovement()
 	ReplicatedStorage:SetAttribute("MovementStaminaFree", movement.staminaFree)
 	ReplicatedStorage:SetAttribute("MovementSlide", movement.slide)
 	ReplicatedStorage:SetAttribute("MovementDodgeStyle", movement.dodgeStyle)
+	ReplicatedStorage:SetAttribute("MovementSlideKey", movement.slideKey)
 end
 
 -- Cambia las reglas que se pasen; las demás se quedan como estaban.

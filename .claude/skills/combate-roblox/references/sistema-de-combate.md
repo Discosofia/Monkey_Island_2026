@@ -28,7 +28,7 @@ coincide con el código, manda el código.
 - `Shared/CombatState` (funciones puras, lo leen cliente y servidor): estados `Idle`, `Attacking`,
   `Casting`, `Blocking`, `Parrying`, `Dodging`, `Evading`, `Staggered`, `Stunned`, `GuardBroken` y
   `Downed` (= caído de `LifeState`), y la tabla de qué acciones impide cada uno (`Attack`, `Ability`,
-  `Dodge`, `Guard`, `Evasive`). `CombatState.canAct(player, acción)`.
+  `Dodge`, `Guard`, `Evasive`, `Slide`, V2). `CombatState.canAct(player, acción)`.
 - `Combat/StateMachine` (servidor): `enter(player, estado, segundos)` solo si su prioridad
   (`Config.CombatStates.Priority`) es igual o mayor que la del estado en curso, o si este ya terminó;
   `leave`, `reset`. Publica `CombatState` y `CombatStateUntil` en el `Player` y usa un "ticket" por
@@ -167,6 +167,19 @@ V2). `LifeService` ya no guarda ni restaura la velocidad (el gateo es una base, 
 Probado en Studio (28-10-2026): Isla andar 18 y correr 26 con estamina, aturdido 0, ralentizado ×0,5,
 guardia 10,8 sin correr, gateo 4 y vuelta a 18, huevo ×0,9 con Guerrero; Lobby 18/26 sin gasto de
 estamina, montura 33 y vuelta a 18. Lo que falta, en `docs/VERIFICACION.md` §31.
+
+**Deslizar (Fase 15, V2).** `combatClient/Slide.luau`, solo corriendo: Alt izquierdo (C en el Laboratorio,
+por `slideKey`), R3 en el mando y, en el móvil, el botón Correr pasa a "Deslizar" mientras se corre. Empuja
+con `Dash.push` de `Config.Movement.Slide.StartSpeed` (36) a `EndSpeed` (18) en `Seconds` (0,75 s), con el
+cuerpo agachado (`BodyAnimations` "Slide", provisional hasta publicar su secuencia). Cooldown de 1 s, mínimo
+de velocidad `MinSpeed` (22) y `StaminaCost` (15) de estamina con `StaminaServer.tryConsume` (el Lobby no la
+cobra, `staminaFree`). El remoto `Slide` lo valida `CombatService.onSlide`: regla `slide`, sin llevar la
+bandera, `canAct "Slide"`, sin estar atrapado, cooldown con el margen del ping y estamina; pone
+`SlidingUntil` y cuenta la telemetría `Slides`. No da invulnerabilidad ni suelta la guardia. Saltar lo
+termina y conserva `JumpKeep` (0,9) de la velocidad en el aire (salto deslizado, sin encadenar). Con hambre
+o sed bajas, ×0,85. `Slide.cancel` lo corta al aturdirte, atraparte, caer, morir y al esquivar
+(`DodgeController`). Probado en Studio en el Lobby y el Laboratorio (28-10-2026); lo que queda, en
+`docs/VERIFICACION.md` §32.
 
 **Evasivo (C7 ✅).** La misma esquiva pulsada estando atrapado (`CombatState.isTrapped`: aturdido,
 guardia rota, inmovilizado o lanzado). El cliente (`DodgeController`) salta a `Config.Evasive.Speed`
@@ -603,6 +616,7 @@ chocan sin rayos ("Barrera"): antes se subía al basamento y se salía de la are
 | Habilidades Z X C R V | Teclas | Mantener R1 + A, B, X, Y, L1 | 5 botones junto al salto |
 | Esquivar | Q | B | "Esquivar" |
 | Correr | Mayús | L3 | "Correr" |
+| Deslizar (V2) | Alt izquierdo (C en el Laboratorio) | R3 | "Deslizar", el botón Correr mientras corres |
 | Guardia (C5 ✅) | F (caído: Rendirse) | L2 | "Guardia", encima de "Esquivar" |
 | Beber (Isla) | E (antes F) | X | Tocar el aviso |
 | Evasivo (C7 ✅) | Q estando atrapado | B estando atrapado | "¡Evasivo!" (el de "Esquivar") |

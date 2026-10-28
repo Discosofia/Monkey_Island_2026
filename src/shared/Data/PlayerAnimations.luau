@@ -14,6 +14,7 @@ export type Key =
 	| "Whirlwind"
 	| "DodgeRoll"
 	| "DodgeBack"
+	| "Slide"
 	| "CastForward"
 	| "CastArea"
 	| "Place"
@@ -48,6 +49,11 @@ local PlayerAnimations = {
 		-- atrás si estás quieto o vas hacia atrás.
 		DodgeRoll = { id = "rbxassetid://137704861516961", priority = Enum.AnimationPriority.Action3 },
 		DodgeBack = { id = "rbxassetid://80943980651716", priority = Enum.AnimationPriority.Action3 },
+		-- Deslizamiento (Fase 15, V2; combatClient/Slide): agachado y echado hacia atrás, con una pierna
+		-- estirada, en bucle hasta que Slide la para. Solo piernas y tronco: los brazos siguen con el arma.
+		-- PROVISIONAL, sin publicar: id vacío (en Studio usa la secuencia de PlayerAnimationBuilder; en el
+		-- juego publicado no se reproduce). La pose definitiva es la V4.
+		Slide = { id = "", priority = Enum.AnimationPriority.Action3, looped = true },
 		-- Torbellino: agachado y con los brazos abiertos, en bucle mientras RoleController lo hace girar.
 		Whirlwind = { id = "rbxassetid://86446930487394", priority = Enum.AnimationPriority.Action3, looped = true },
 		CastForward = { id = "rbxassetid://140190769864612", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente

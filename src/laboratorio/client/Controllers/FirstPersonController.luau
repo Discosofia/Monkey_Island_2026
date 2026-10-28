@@ -8,6 +8,7 @@
 --     "LabBack" de la espalda ni sus partículas) con las
 --     manos, pegada a la cámara abajo a la derecha. Con el rifle acercado (WeaponController) se centra
 --     para apuntar por la mira, y cada disparo la echa un poco atrás (retroceso).
+--   - Deslizarse (CombatClient/Slide): la cámara baja Config.Movement.Slide.CameraDrop con un fundido corto.
 -- Los demás ven el arma en la mano del personaje, con sus animaciones de siempre.
 -- El ratón va bloqueado en el centro. Para pulsar una ventana (el selector de arma, los resultados, el
 -- panel de pruebas) se suelta con freeCursor: mientras alguien lo pida, un botón invisible con Modal deja
@@ -29,6 +30,7 @@ local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
+local Slide = require(ReplicatedStorage.CombatClient.Slide)
 
 -- Dónde va la mano respecto a la cámara (derecha, arriba, delante): abajo a la derecha, con el arma
 -- girada un poco hacia el centro (HIP_YAW, HIP_PITCH) para que se le vea el costado; al apuntar con la
@@ -295,6 +297,12 @@ local function follow(deltaTime: number)
 		end
 	end
 	local camera = Workspace.CurrentCamera
+	-- Deslizándose (Fase 15, V2) la cámara baja. Este paso va después de la cámara de Roblox, que
+	-- recalcula su CFrame cada fotograma, así que no se acumula; el arma de la vista la sigue.
+	local drop = Slide.currentDrop()
+	if camera and drop > 0 then
+		camera.CFrame += Vector3.new(0, -drop, 0)
+	end
 	-- Muerto (o eliminado de la ronda, de espectador): sin el arma delante de la cámara.
 	if viewModel and isDead(Players.LocalPlayer.Character) then
 		clearViewModel()

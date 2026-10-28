@@ -1,6 +1,6 @@
 # Combate y equilibrio (resumen de la skill combate-roblox)
 
-<!-- Fuente: .claude/skills/combate-roblox/SKILL.md, 26-10-2026. Detalles: references/sistema-de-habilidades.md, sistema-de-combate.md, estilos-y-combos.md y equilibrio.md (§2 medidas, §3 límites, §4 línea base, §6 palancas). -->
+<!-- Fuente: .claude/skills/combate-roblox/SKILL.md, 28-10-2026. Detalles: references/sistema-de-habilidades.md, sistema-de-combate.md, estilos-y-combos.md y equilibrio.md (§2 medidas, §3 límites, §4 línea base, §6 palancas). -->
 
 **Regla: se mide antes de escribir.** Cada propuesta pasa por la calculadora `Equilibrio`, se compara con la línea base y los límites, y solo entonces se implementa.
 
@@ -34,6 +34,7 @@ return _G.Equilibrio.informe({ soloRol = "Cazador" })
 - **Fantasía y familia:** daño a uno, daño en área, control, defensa, curación, movilidad o apoyo.
 - **Combo:** prepara, enlaza o remata. La ventana es de 6 s y ninguna definitiva entra en combos.
 - **Lectura y respuesta:** cómo se ve venir y cómo se esquiva. En PvP, el daño y el control van ×0,5.
+- **Movilidad:** correr 18/26; deslizar (Alt izquierdo, C en el Laboratorio, R3 en mando; 15 de estamina, cooldown 1 s, de 36 a 18 studs/s en 0,75 s, sin invulnerabilidad; ×0,85 con hambre o sed bajas).
 - **Móvil:** apunta hacia donde mira la cámara. El texto corto del botón tiene unas 9 letras.
 - **Números:** parte del pariente más cercano que ya existe.
 

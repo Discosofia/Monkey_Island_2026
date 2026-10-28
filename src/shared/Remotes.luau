@@ -86,6 +86,8 @@ local Remotes = {
 	UseWeapon = remoteEvent("UseWeapon"),
 	-- Cliente -> servidor (Isla): el jugador ha esquivado (para la invulnerabilidad breve).
 	Dodge = remoteEvent("Dodge"),
+	-- Cliente -> servidor: el jugador se desliza (Combat/CombatService.onSlide valida y pone "SlidingUntil").
+	Slide = remoteEvent("Slide"),
 	-- Cliente -> servidor: esquiva estando atrapado, el Evasivo (Combat/Evasive: suelta y da
 	-- invulnerabilidad; el salto lo hace el cliente).
 	Evasive = remoteEvent("Evasive"),

@@ -1,7 +1,8 @@
 --!strict
 -- Esquiva: impulso rápido en la dirección en la que te mueves (o hacia atrás si estás quieto).
 -- Q en PC, B en mando y un botón táctil en móvil. El servidor da una invulnerabilidad breve.
--- Cuesta estamina (Config.Survival.DodgeStaminaCost): sin estamina no se puede esquivar.
+-- Cuesta estamina (Config.Survival.DodgeStaminaCost): sin estamina no se puede esquivar. Esquivar
+-- durante un deslizamiento (CombatClient/Slide) lo corta.
 -- Evasivo (Fase 10, C7; Combat/Evasive): la misma esquiva estando atrapado (aturdido, con la guardia
 -- rota, inmovilizado o lanzado: CombatState.isTrapped). Suelta, aparta más lejos y no gasta estamina,
 -- pero recarga Config.Evasive.CooldownSeconds; atrapado y con él en recarga, no se esquiva. El botón
@@ -22,6 +23,7 @@ local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local Dash = require(script.Parent.Parent.Dash)
 local Feint = require(script.Parent.Parent.Feint)
+local Slide = require(script.Parent.Parent.Slide)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 
 local T = Strings.t
@@ -56,6 +58,7 @@ local function evasive(player: Player, humanoid: Humanoid, root: BasePart)
 		return
 	end
 	evasivePendingUntil = os.clock() + 1
+	Slide.cancel()
 	local settings = Config.Evasive
 	Dash.push(root, dashDirection(humanoid, root), settings.Speed, settings.DurationSeconds)
 	AbilityFxController.play("EvasiveFx", player.Character)
@@ -90,6 +93,8 @@ local function dodge()
 		return
 	end
 	lastDodgeAt = now
+	-- Esquivar corta el deslizamiento (los dos son un impulso).
+	Slide.cancel()
 	Dash.push(root, dashDirection(humanoid, root), Config.Combat.DodgeSpeed, Config.Combat.DodgeDurationSeconds)
 	Remotes.Dodge:FireServer()
 end

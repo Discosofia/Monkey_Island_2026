@@ -3,7 +3,7 @@
 -- igual en la Isla, el Lobby, Dunas y el Laboratorio. La velocidad es
 --     base (andar o correr, o la de un proveedor "addBase": la montura, el gateo) × modificadores
 -- y cada sistema aporta lo suyo con addBase / addModifier (LocomotionController registra los del juego).
--- Las reglas de movimiento del place (staminaFree, slide, dodgeStyle) las publica CombatRules como
+-- Las reglas de movimiento del place (staminaFree, slide, dodgeStyle, slideKey) las publica CombatRules como
 -- atributos de ReplicatedStorage y se leen con Movement.rules().
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +14,7 @@ export type Rules = {
 	staminaFree: boolean,
 	slide: boolean,
 	dodgeStyle: string,
+	slideKey: string,
 }
 
 type Entry = { name: string, fn: (player: Player) -> number? }
@@ -76,10 +77,12 @@ function Movement.rules(): Rules
 	local staminaFree = ReplicatedStorage:GetAttribute("MovementStaminaFree")
 	local slide = ReplicatedStorage:GetAttribute("MovementSlide")
 	local dodgeStyle = ReplicatedStorage:GetAttribute("MovementDodgeStyle")
+	local slideKey = ReplicatedStorage:GetAttribute("MovementSlideKey")
 	return {
 		staminaFree = if typeof(staminaFree) == "boolean" then staminaFree else false,
 		slide = if typeof(slide) == "boolean" then slide else true,
 		dodgeStyle = if typeof(dodgeStyle) == "string" then dodgeStyle else "Roll",
+		slideKey = if typeof(slideKey) == "string" then slideKey else "LeftAlt",
 	}
 end
 

@@ -1769,6 +1769,68 @@ Probado en Studio con un jugador, con copia y restauración del perfil (28-10-20
 1. [ ] Uno de los dos se monta en una montura y corre, y el otro lo mira desde su pantalla.
    ✅ Se ve el movimiento normal en las dos pantallas, sin tirones ni paradas de velocidad. El servidor no escribe la velocidad: el `WalkSpeed` que se ve es el que manda el cliente de ese jugador.
 
+## 32. Lo que queda por probar de V2: deslizamiento (28-10-2026)
+
+Probado en Studio con un jugador, en el Lobby y en el Laboratorio (28-10-2026): el pico de velocidad, unos 35,5 studs/s, que baja en línea recta a unos 18 en 0,75 s; el cooldown de 1 s; andando no desliza; en el Lobby no gasta estamina; el salto deslizado conserva unos 0,89 de la velocidad; en el Laboratorio la cámara baja 1,5 en unos 0,1 s. Consola sin errores. En la Isla también (28-10-2026): coste de 15 de estamina (91 → 75, con el gasto de correr), cooldown (no a 0,72 y 0,92 s, sí a 1,08 y 1,43 s), con 7 de estamina no desliza y con hambre y sed a 10 el pico es 30,1 (0,85 × 36) y el final 15,3. En Dunas (28-10-2026): sin bandera desliza (pico 35,4, estamina −15) y con `CarryingFlag` no desliza. Lo que queda necesita la bandera real en Dunas, el teléfono, el mando, el juego publicado (con la pose) o 2 jugadores. Empieza por 32.1.
+
+#### 32.1 En el Studio de la Isla, con un jugador (haz antes una copia del perfil en `PlayerData_v1_backups`, y restáurala después)
+
+1. [x] Con la estamina llena, corre y pulsa Alt izquierdo. Mira la estamina antes y después del deslizamiento.
+   ✅ Al deslizar, la estamina baja de golpe unos 15 puntos (de 100 a unos 85), sin contar la regeneración de ese momento.
+2. [x] Gasta la estamina corriendo hasta quedarte justo por debajo de 15 (unos 14) y pulsa Alt izquierdo.
+   ✅ No desliza: sigue corriendo o anda, y la estamina no baja de golpe.
+3. [x] Con hambre o sed bajas (deja que baje una de las dos o pon el valor que usa `Survival.isWeak`), desliza y mide el pico de velocidad. Compáralo con un deslizamiento con las necesidades cubiertas.
+   ✅ Con hambre o sed bajas el pico es unas 0,85 veces el normal: unos 30 studs/s en vez de 35,5 (medido: 30,1).
+
+#### 32.2 En el Studio de Dunas, con un jugador
+
+1. [ ] Empieza una partida («Empezar ya»), coge la bandera rival de verdad, corre y pulsa Alt izquierdo. (Probado el 28-10-2026 solo con el atributo `CarryingFlag` puesto a mano: no desliza ni gasta estamina; falta con la bandera real.)
+   ✅ No desliza mientras llevas la bandera: no hay impulso ni coste de estamina.
+2. [x] Suelta la bandera y pulsa Alt izquierdo corriendo. (Probado quitando el atributo: pico 35,4.)
+   ✅ Vuelve a deslizar con el mismo impulso y coste que en la Isla.
+
+#### 32.3 En el Studio del Laboratorio, con un jugador
+
+1. [ ] Con la estamina llena, corre y pulsa C dos veces, con 0,8 s entre una pulsación y otra.
+   ✅ Solo desliza la primera. La segunda no hace nada, porque el cooldown es de 1 s.
+2. [ ] Igual que el paso anterior, pero con 1,1 s entre las dos pulsaciones.
+   ✅ Desliza las dos veces: la segunda empieza al acabar el cooldown.
+3. [ ] Con la estamina justo por debajo de 15 (unos 14), pulsa C corriendo.
+   ✅ No desliza. Con 15 o más sí.
+
+#### 32.4 En el emulador de teléfono y con mando (elige un dispositivo en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] En la Isla, corre con el botón «Correr» y mira el botón mientras corres.
+   ✅ El botón dice «Deslizar» mientras corres, y vuelve a «Correr» al parar.
+2. [ ] Corriendo, pulsa el botón «Deslizar».
+   ✅ Desliza con el mismo impulso y coste que con Alt izquierdo.
+3. [ ] Pon el correr con el botón «Correr» y no muevas el joystick.
+   ✅ Tras unos 0,3 s sin mover el joystick, el correr táctil se apaga y el botón vuelve a «Correr».
+4. [ ] Con un mando, corre y pulsa R3.
+   ✅ Desliza igual que con Alt izquierdo.
+5. [ ] Con un mando y una montura equipada, a pie, pulsa R3.
+   ✅ Hoy R3 hace Montar y no desliza. Decisión pendiente: si se acepta así, se anota aquí; si no, el deslizamiento tiene prioridad sobre Montar.
+6. [ ] Con un mando y un huevo a cuestas, pulsa R3.
+   ✅ Hoy R3 hace Soltar huevo y no desliza. Decisión pendiente, igual que el paso anterior.
+
+#### 32.5 En el juego publicado (con la pose `Slide` publicada)
+
+1. [ ] En Windows, con el juego publicado en la Isla, Dunas y el Lobby, pulsa Alt izquierdo mientras corres.
+   ✅ Desliza, y no se abre el menú de la ventana ni del navegador.
+2. [ ] En los mismos tres places, pulsa Alt izquierdo sin correr y, con Alt pulsado, haz clic para atacar.
+   ✅ Ni Alt ni el clic se pisan: el clic de arma funciona igual y no sale ningún menú.
+3. [ ] En la Isla y en el Lobby, con el bloqueo de cámara (Ctrl) encendido, desliza.
+   ✅ El personaje no da tirones de giro ni pelea con la cámara, y al acabar sigue igual que sin bloqueo.
+4. [ ] Desliza hacia una pared de la Isla o de Dunas.
+   ✅ Se frena en la pared y no la atraviesa.
+5. [ ] Ejecuta `PlayerAnimationBuilder.build()` en modo edición, publica la secuencia «Slide» y enlázala como indica la skill `animaciones-roblox`. Después, juega y desliza.
+   ✅ Al deslizar se ve la pose de agachado, y al acabar el personaje se levanta. Antes de publicarla, el id está vacío y no hay pose.
+
+#### 32.6 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas)
+
+1. [ ] Uno de los dos desliza y el otro lo mira desde su pantalla (con la pose publicada).
+   ✅ El otro ve la pose de agachado y el deslizamiento a la misma velocidad que tú, sin tirones. El servidor no escribe la velocidad: el deslizamiento se ve como lo mueve el cliente de ese jugador.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

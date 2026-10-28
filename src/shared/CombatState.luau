@@ -35,7 +35,7 @@ export type State =
 	| "GuardBroken"
 	| "Downed"
 
-export type Action = "Attack" | "Ability" | "Dodge" | "Guard" | "Evasive"
+export type Action = "Attack" | "Ability" | "Dodge" | "Guard" | "Evasive" | "Slide"
 
 local CombatState = {}
 
@@ -48,15 +48,15 @@ CombatState.EVASIVE_ATTRIBUTE = "EvasiveReadyAt"
 local BLOCKS: { [State]: { [Action]: boolean } } = {
 	Idle = {},
 	Attacking = {},
-	Casting = { Attack = true, Ability = true, Dodge = true },
-	Blocking = { Attack = true, Ability = true },
-	Parrying = { Attack = true, Ability = true },
+	Casting = { Attack = true, Ability = true, Dodge = true, Slide = true },
+	Blocking = { Attack = true, Ability = true, Slide = true },
+	Parrying = { Attack = true, Ability = true, Slide = true },
 	Dodging = {},
-	Evading = { Attack = true, Ability = true, Guard = true, Evasive = true },
-	Staggered = { Attack = true, Ability = true },
-	Stunned = { Attack = true, Ability = true, Dodge = true, Guard = true },
-	GuardBroken = { Attack = true, Ability = true, Dodge = true, Guard = true },
-	Downed = { Attack = true, Ability = true, Dodge = true, Guard = true, Evasive = true },
+	Evading = { Attack = true, Ability = true, Guard = true, Evasive = true, Slide = true },
+	Staggered = { Attack = true, Ability = true, Slide = true },
+	Stunned = { Attack = true, Ability = true, Dodge = true, Guard = true, Slide = true },
+	GuardBroken = { Attack = true, Ability = true, Dodge = true, Guard = true, Slide = true },
+	Downed = { Attack = true, Ability = true, Dodge = true, Guard = true, Evasive = true, Slide = true },
 }
 
 -- El estado de "player" ahora mismo ("Idle" si el que tenía ya ha terminado).
