@@ -1696,9 +1696,9 @@ Probado en Play en el Studio del Laboratorio, con un jugador y con copia y resta
 
 #### 30.2 En el Studio de la Isla, en modo edición: la calculadora
 
-1. [ ] En la barra de comandos, ejecuta `local m = game.ServerStorage.Tools.Economia:Clone(); print(require(m).informe()); m:Destroy()`.
+1. [x] En la barra de comandos, ejecuta `local m = game.ServerStorage.Tools.Economia:Clone(); print(require(m).informe()); m:Destroy()`.
    ✅ La salida tiene la línea «Skins del Laboratorio» con los días para llegar a cada grado (50, 250 y 1.000 bajas con una sola arma): habitual 9 · 44 · 175; intenso 3 · 11 · 42; grupo de amigos 6 · 28 · 110. Repartidas entre las cuatro armas, los días salen cuatro veces más.
-2. [ ] Lee la sección «Alertas» de esa misma salida.
+2. [x] Lee la sección «Alertas» de esa misma salida.
    ✅ No aparece ninguna alerta nueva por las skins. Si sale una, se compara con la alerta aceptada de la tienda de Ámbar (`docs/LABORATORIO.md` §5) antes de tocar nada.
 
 #### 30.3 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en el Laboratorio)
