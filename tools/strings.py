@@ -56,6 +56,7 @@ COVERED = [
     "src/serverShared/",
     "src/dunas/",
     "src/combat/",
+    "src/laboratorio/",
 ]
 
 # Campos de Data que se traducen por su nombre (T(def.name)): archivo → campos.
@@ -68,6 +69,7 @@ DATA_FIELDS: dict[str, list[str]] = {
     "src/shared/Data/Contracts.luau": ["name", "description", "title", "text"],
     "src/shared/Data/Cosmetics.luau": ["name", "description", "title"],
     "src/shared/Data/Items.luau": ["name", "note"],
+    "src/shared/Data/LabWeapons.luau": ["name", "description"],
     "src/shared/Data/LiveEvents.luau": ["name", "detail"],
     "src/shared/Data/MidEvents.luau": ["name", "eve", "start", "status"],
     "src/shared/Data/Missions.luau": ["text"],

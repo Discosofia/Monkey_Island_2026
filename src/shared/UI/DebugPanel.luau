@@ -11,7 +11,7 @@ local Widgets = require(script.Parent.Widgets)
 
 local DebugPanel = {}
 
-function DebugPanel.start(place: "Island" | "Lobby" | "Dunas")
+function DebugPanel.start(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 	if not RunService:IsStudio() then
 		return
 	end

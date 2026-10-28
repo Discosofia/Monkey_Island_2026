@@ -97,7 +97,7 @@ Abre Roblox Studio, o ciérralo del todo y vuelve a abrirlo. Debería aparecer u
 
 ---
 
-## Paso 5: Crear la experiencia con sus 2 places
+## Paso 5: Crear la experiencia con sus places
 
 1. En Studio: **New → Baseplate**.
 2. **File → Publish to Roblox** → **Create new experience** → nombre: `Primal Banana Islands`. Este primer place es el **Lobby** (el lugar de inicio).
@@ -106,7 +106,7 @@ Abre Roblox Studio, o ciérralo del todo y vuelve a abrirlo. Debería aparecer u
    2. **Archivo → Publicar en Roblox como…** (*Publish to Roblox As…*).
    3. Elige la experiencia **Primal Banana Islands**.
    4. Elige la opción de **añadirlo como lugar nuevo** (*Add as a new place*). ⚠️ **No** elijas el lugar que ya existe: ese es el Lobby y lo sobrescribirías.
-   5. Ponle de nombre `🍌Isla de monos🐒(survival)` y pulsa **Crear**. El de la arena PvP se llama `🎖️Isla de dunas☠️(PvP)`. Si ya los tenías como `Isla` e `Isla de Dunas`, cámbiales el nombre en el [Creator Hub](https://create.roblox.com/dashboard/creations): tu experiencia → **Places** → el place → **Configurar** → **Nombre**. Son los de `Config.PlaceNames`; si Roblox rechaza algún emoji, quítalo.
+   5. Ponle de nombre `🍌Isla de monos🐒(survival)` y pulsa **Crear**. El de la arena PvP se llama `🎖️Isla de dunas☠️(PvP)`, y el del shooter por equipos (Fase 13), `🧪Laboratorio en ruinas🏴‍☠️(PvP)`: se crean igual. Si ya los tenías como `Isla` e `Isla de Dunas`, cámbiales el nombre en el [Creator Hub](https://create.roblox.com/dashboard/creations): tu experiencia → **Places** → el place → **Configurar** → **Nombre**. Son los de `Config.PlaceNames`; si Roblox rechaza algún emoji, quítalo.
    - Alternativa: en el panel **Gestor de recursos** (*Asset Manager*) → **Proyecto** → **Primal Banana Islands**, haz clic derecho y busca **agregar lugar nuevo** (*Add New Place*). La interfaz de Roblox cambia a menudo: si no ves ninguna de las dos opciones, mándame una captura.
 4. (Opcional) Para no confundirlos, cambia el nombre del primer place a `Lobby`. Studio le pone uno por defecto, como "Lugar de tu usuario".
 
@@ -122,15 +122,17 @@ Cada place tiene un número de ID. El código lo necesita para viajar del Lobby 
    print(game.PlaceId)
    ```
 3. Copia el número que aparece en la ventana **Output**.
-4. Repite lo mismo con el place **Isla**.
-5. Pon ambos números en `src/shared/Config.luau`:
+4. Repite lo mismo con los demás places (**Isla**, **Isla de dunas**, **Laboratorio en ruinas**).
+5. Pon los números en `src/shared/Config.luau`:
    ```lua
    PlaceIds = {
    	Lobby = 1234567890, -- tu número
    	Island = 9876543210, -- tu número
+   	Dunas = …, -- tu número
+   	Laboratorio = …, -- tu número (0 mientras no exista)
    },
    ```
-6. Guarda el archivo. Si quieres que quede guardado en el repo, pásame los dos IDs y los subo yo (no son secretos).
+6. Guarda el archivo. Si quieres que quede guardado en el repo, pásame los IDs y los subo yo (no son secretos).
 
 ---
 
@@ -145,6 +147,7 @@ En Studio, `Players.MaxPlayers` da 60 aunque el lugar tenga otro tamaño: es el 
 | Lobby | **20** | Es donde se juntan los jugadores y se forman los grupos. |
 | 🍌Isla de monos🐒(survival) | **5** | Una partida es para un grupo de amigos (hasta 5, el tamaño máximo de un grupo del Lobby, `Config.Party.MaxSize`). *(Hasta el 20-10-2026 eran 20.)* |
 | 🎖️Isla de dunas☠️(PvP) | **10** | Para el 5v5 (`Config.Arena.MaxFormat`). Cada partida va a un servidor reservado, que también tiene este tamaño como máximo. |
+| 🧪Laboratorio en ruinas🏴‍☠️(PvP) | **10** | Para el 5v5 y el todos contra todos de 10 (docs/LABORATORIO.md §3). |
 
 `Config.Match.MaxPlayers` solo lo apunta (ningún código lo usa): si cambias un tamaño, cámbialo aquí y en Roblox.
 
@@ -158,13 +161,15 @@ Hay un proyecto de Rojo para cada place:
 |---|---|---|
 | Lobby | `rojo serve lobby.project.json` | 34872 |
 | Isla | `rojo serve island.project.json` | 34873 |
+| Isla de dunas | `rojo serve dunas.project.json` | 34874 |
+| Laboratorio en ruinas | `rojo serve laboratorio.project.json` | 34875 |
 
 1. Abre el place **Lobby** en Studio.
 2. En VS Code ejecuta `rojo serve lobby.project.json` y deja la terminal abierta.
 3. En Studio: **Plugins → Rojo → Connect**. Revisa que el puerto sea **34872** y conecta.
 4. Aparecerán las carpetas `Shared` (en ReplicatedStorage), `ServerShared` y `Server` (en ServerScriptService) y `Client` (en StarterPlayer → StarterPlayerScripts).
 5. **File → Publish to Roblox** para guardar el place con el código.
-6. Repite con la **Isla**: ábrela en Studio, ejecuta `rojo serve island.project.json`, conecta usando el puerto **34873** y publica.
+6. Repite con la **Isla**: ábrela en Studio, ejecuta `rojo serve island.project.json`, conecta usando el puerto **34873** y publica. Igual con Dunas (34874) y el Laboratorio (34875).
 
 ---
 

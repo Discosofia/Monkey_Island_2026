@@ -432,7 +432,7 @@ visual); su forma va en `PetModels` con la skill `modelos-3d-roblox`.
   que la calibración final (C13) la resuelva con todo puesto.
 - Prueba primero una rejilla pequeña (2–3 valores por palanca, todos los roles) con un script que
   extraiga las filas del informe, y solo después afina; enseña al usuario la tabla final. Para sacar una
-  sección del informe, `local i = r:find("## 12. Alertas", 1, true); r:sub(i)`: `r:sub(r:find(…))` recibe
+  sección del informe, `local i = r:find("## 13. Alertas", 1, true); r:sub(i)`: `r:sub(r:find(…))` recibe
   también el final de lo encontrado y devuelve solo el título.
 - Antes de equilibrar contra una alerta, mira si esa medida existe en el juego: la arena se mide sin
   talentos (en Dunas no cuentan) y el control del equipo sobre un jefe, con los rendimientos decrecientes.

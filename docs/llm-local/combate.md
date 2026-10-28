@@ -25,6 +25,7 @@ return _G.Equilibrio.informe({ soloRol = "Cazador" })
   local r = _G.Equilibrio.informe(); local i = r:find("Alertas", 1, true); return r:sub(i)
   ```
 - Mira también con `talentos = "max"`.
+- **Laboratorio** (Fase 13, sin roles): `informe({ secciones = { laboratorio = true } })` mide el tiempo para matar de las 4 armas de `Data/LabWeapons` a 15, 50 y 120 studs y quién gana cada cruce (objetivo: 1,5–2,5 s en la distancia de cada arma).
 - Enseña al usuario una tabla **antes → después**: recarga, segundos de arma, DPS en grupo, control y alertas.
 
 ## Ficha de diseño

@@ -211,7 +211,7 @@ local function catalog(): { Entry }
 	return entries
 end
 
-local function build(place: "Island" | "Lobby" | "Dunas")
+local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 	local player = Players.LocalPlayer
 	local gui = Widgets.screen("AdminPanel", player:WaitForChild("PlayerGui"))
 	gui.DisplayOrder = 21
@@ -1484,7 +1484,7 @@ local function build(place: "Island" | "Lobby" | "Dunas")
 	end)
 end
 
-function AdminPanel.start(place: "Island" | "Lobby" | "Dunas")
+function AdminPanel.start(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 	local player = Players.LocalPlayer
 	if player:GetAttribute("IsAdmin") == true then
 		build(place)

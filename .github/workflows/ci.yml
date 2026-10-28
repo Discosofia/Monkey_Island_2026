@@ -32,3 +32,4 @@ jobs:
           rojo build lobby.project.json --output build/lobby.rbxl
           rojo build island.project.json --output build/island.rbxl
           rojo build dunas.project.json --output build/dunas.rbxl
+          rojo build laboratorio.project.json --output build/laboratorio.rbxl

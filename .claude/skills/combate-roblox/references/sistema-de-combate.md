@@ -322,6 +322,15 @@ vez: cota superior); peleando con 32 mandriles, heartbeat 0,32 ms y física 2,27
 `Combat/Projectiles` (lo arranca `CombatService:Start`). `Projectiles.fire(shot)` con `owner`, `look`
 (aspecto en el cliente), `origin`, `direction`, `speed`, `range`, `radius`, `pierce` (con `maxHits`,
 se para al dar a tantos: el remate del arco, C9b), `onHit`, `onEnd`, `extra` y `counts`.
+- **En arco** (Fase 13, el cañón de suero del Laboratorio): con `gravity` (studs/s²) cae mientras vuela;
+  cada paso es un tramo recto entre dos puntos de la parábola (se mira igual) y `range` es lo que
+  recorre por la curva. `CombatService` (`acidLob`) le da la velocidad para caer donde apunta y el
+  cliente dibuja la misma curva a la hora del servidor.
+- **Laboratorio** (Fase 13, `Data/LabWeapons`, mezcladas en `Data/Weapons`): sin remate ni crítico; al
+  acertar, `labHit` pone `Status.slowStack` (lanzadardos: −4 % por dardo hasta −20 %, 1,5 s) o
+  `Status.entangle` (lanzarredes: −35 % 1 s, sin repetirse antes de 3 s; nunca deja quieto). Las
+  reglas del place (`CombatRules`: `roleWeapons`, `abilities = false`, `guard = false`) quitan roles,
+  habilidades y guardia; sin guardia, el disparo a un jugador entra sin esperar el parry.
 - **Servidor**: un solo bucle de `Heartbeat` para todos. En cada paso, de la posición anterior a la
   nueva: `Hitbox.ray` contra el mundo (solo lo que choca y el terreno: el decorado que no choca no
   para un disparo) y `Hitbox.sweepCombatants` (`Spherecast` con la lista de inclusión de los

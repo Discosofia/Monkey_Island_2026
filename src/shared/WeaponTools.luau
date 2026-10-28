@@ -19,10 +19,14 @@
 -- Nivel de aspecto (atributo "WeaponLook" del jugador, en el Lobby y en Dunas): el arma de rol se dibuja
 -- con el modelo del mejor nivel que ha fabricado en la Isla, pero sigue siendo la inicial ("WeaponId",
 -- su nombre y sus números). Lo publica CosmeticsServer.
+--
+-- Armas del Laboratorio (Fase 13, Data/LabWeapons): sus modelos están en Shared/LabWeaponModels, uno
+-- por facción; la del jugador ("LabFaction") hace de aspecto (skinOf) y reskin las cambia.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
@@ -3220,6 +3224,9 @@ end
 -- El aspecto que lleva "player" para el arma "weaponId": el de su rol ("WeaponSkin") o el de la familia
 -- del arma ("MacheteSkin"). WeaponTools.build ya comprueba que le valga.
 function WeaponTools.skinOf(player: Player, weaponId: string): string?
+	if LabWeaponModels.has(weaponId) then
+		return LabWeaponModels.faction(player:GetAttribute("LabFaction"))
+	end
 	local family = FAMILY_LEVELS[weaponId]
 	local skinId = player:GetAttribute(if family then `{family.family}Skin` else "WeaponSkin")
 	return if typeof(skinId) == "string" then skinId else nil
@@ -3228,6 +3235,12 @@ end
 -- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol y con el modelo
 -- del nivel "lookLevel" si es mayor (atributo "Look": el arma que se ve, si no es ella).
 local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: number?)
+	if LabWeaponModels.has(weaponId) then
+		local faction = LabWeaponModels.faction(skinId)
+		tool:SetAttribute("Skin", faction)
+		LabWeaponModels.build(tool, weaponId, faction)
+		return
+	end
 	local shownId = lookWeapon(weaponId, lookLevel)
 	local skin, level = skinFor(shownId, skinId)
 	tool:SetAttribute("Skin", if skin then skinId else nil)
@@ -3243,13 +3256,12 @@ end
 -- idioma del jugador. El servidor lo pone en español y UI/Localizer lo traduce en cada cliente.
 function WeaponTools.tooltip(weaponId: string): string
 	local weapon = Weapons[weaponId]
-	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
+	-- Las del Laboratorio, tal cual: allí solo se pelea entre jugadores.
+	local multiplier = if weapon.lab then 1 else Config.Combat.PlayerDamageMultiplier
+	local damage = math.round(weapon.damage * multiplier)
 	local text = Strings.t("{weapon}: {damage} de daño", { weapon = Strings.t(weapon.name), damage = damage })
 	if weapon.poison then
-		text ..= Strings.t(
-			" · veneno {dps}/s",
-			{ dps = math.round(weapon.poison.dps * Config.Combat.PlayerDamageMultiplier) }
-		)
+		text ..= Strings.t(" · veneno {dps}/s", { dps = math.round(weapon.poison.dps * multiplier) })
 	end
 	if weapon.tool then
 		local kind = weapon.tool.kind
@@ -3265,7 +3277,7 @@ end
 -- "lookLevel", con el modelo de ese nivel (solo el aspecto).
 function WeaponTools.build(weaponId: string, skinId: string?, lookLevel: number?): Tool
 	local weapon = Weapons[weaponId]
-	assert(weapon and BUILDERS[weaponId], `Arma desconocida: {weaponId}`)
+	assert(weapon and (BUILDERS[weaponId] or LabWeaponModels.has(weaponId)), `Arma desconocida: {weaponId}`)
 
 	local tool = Instance.new("Tool")
 	tool.Name = weapon.name
@@ -3292,12 +3304,14 @@ function WeaponTools.reskin(player: Player)
 			local weaponId = tool:GetAttribute("WeaponId")
 			local skinId = if typeof(weaponId) == "string" then WeaponTools.skinOf(player, weaponId) else nil
 			local shownId = if typeof(weaponId) == "string" then lookWeapon(weaponId, lookLevel) else nil
+			local lab = typeof(weaponId) == "string" and LabWeaponModels.has(weaponId)
 			if
 				tool:IsA("Tool")
 				and typeof(weaponId) == "string"
 				and shownId
 				and (
-					tool:GetAttribute("Skin") ~= (if skinFor(shownId, skinId) then skinId else nil)
+					tool:GetAttribute("Skin")
+						~= (if lab then skinId elseif skinFor(shownId, skinId) then skinId else nil)
 					or tool:GetAttribute("Look") ~= (if shownId ~= weaponId then shownId else nil)
 				)
 			then

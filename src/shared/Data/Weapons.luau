@@ -1,7 +1,9 @@
 --!strict
 -- Armas y herramientas (GDD §6, Fases 1.3 y 1.6). Para balancear, cambia los números aquí.
 -- Las iniciales dependen del rol (Data/Roles, más Config.Combat.StarterTools); el resto se fabrica
--- (Data/Recipes).
+-- (Data/Recipes). Las del Laboratorio (Data/LabWeapons) se añaden al final.
+
+local LabWeapons = require(script.Parent.LabWeapons)
 
 export type WeaponDefinition = {
 	name: string,
@@ -17,7 +19,8 @@ export type WeaponDefinition = {
 	-- puede esquivar, y cuanto más rápido, menos (la calculadora cuenta su acierto con esto). La ayuda de
 	-- puntería es la misma para todas (Config.Projectiles).
 	projectileSpeed: number?,
-	projectile: ("Stone" | "Arrow" | "Spell" | "Dart")?, -- cómo se ve lo que dispara (piedra por defecto)
+	-- Cómo se ve lo que dispara (piedra por defecto; los "Lab…", las armas del Laboratorio).
+	projectile: ("Stone" | "Arrow" | "Spell" | "Dart" | "LabDart" | "LabBanana" | "LabNet" | "LabAcid")?,
 	-- Disparo de remate (C9b, Shared/RangedChain): qué hace el 4.º disparo seguido (Config.RangedChain.
 	-- Finishers): "Pierce" atraviesa, "Burst" estalla, "Sap" cura el doble, "Stagger" tambalea a un mono.
 	finisher: ("Pierce" | "Burst" | "Sap" | "Stagger")?,
@@ -36,6 +39,9 @@ export type WeaponDefinition = {
 	-- Herramienta de recolección (hacha, pico, hoz): golpeando un árbol o una roca con ella equipada; la
 	-- hoz corta de un golpe los helechos y arbustos que tienes delante (ResourceService).
 	tool: ToolDefinition?,
+	-- Solo las del Laboratorio (Data/LabWeapons): qué hace al acertar y si acerca la vista.
+	lab: LabWeapons.LabFields?,
+	description: string?,
 }
 
 export type PoisonDefinition = {
@@ -394,5 +400,9 @@ local Weapons: { [string]: WeaponDefinition } = {
 		finisher = "Burst",
 	},
 }
+
+for id, weapon in LabWeapons.weapons do
+	Weapons[id] = weapon :: any
+end
 
 return Weapons

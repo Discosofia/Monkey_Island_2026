@@ -33,7 +33,10 @@
 --       habilidades con sus amagos (C8).
 --   11. Dunas (solo con secciones.arena = true; C11): lo que tarda un jugador solo en romper una
 --       cobertura y lo que vale la ventaja del altar (la definitiva antes) en un duelo y en una partida.
---   12. Alertas: lo que se sale de los límites.
+--   12. Laboratorio (solo con secciones.laboratorio = true; Fase 13, docs/LABORATORIO.md §2): sin roles ni
+--       habilidades, el tiempo para matar de cada arma a cada distancia, quién gana cada cruce y el
+--       área del suero contra dos rivales juntos.
+--   13. Alertas: lo que se sale de los límites.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -84,6 +87,19 @@ local OPCIONES_BASE = {
 	-- monos la ayuda de puntería adelanta el tiro (falla si cambian de dirección o algo se cruza);
 	-- contra jugadores apunta a donde están y se pueden apartar. Lo que no viaja acierta siempre.
 	acierto = { distanciaMonos = 30, fallaMonos = 0.25, distanciaJugadores = 35, fallaJugadores = 0.9, minimo = 0.5 },
+	-- Fase 13 (sección 12): distancias de un duelo del Laboratorio (corta, media, larga, en studs) y la
+	-- fracción de disparos que acierta cada arma a cada una (docs/LABORATORIO.md §2.2). Aquí no vale el
+	-- modelo de "acierto": el rifle falla más de cerca (cuesta seguir al que se mueve con la mira) y el
+	-- lanzadardos de lejos (los dardos se abren).
+	laboratorio = {
+		distancias = { 15, 50, 120 },
+		acierto = {
+			LabDartGun = { 0.85, 0.6, 0.5 },
+			LabBananaRifle = { 0.6, 0.85, 0.8 },
+			LabNetHarpoon = { 0.9, 0.6, 0.5 },
+			LabAcidCannon = { 0.85, 0.8, 0.5 },
+		} :: { [string]: { number } },
+	},
 	secciones = {
 		fichas = true,
 		simulacion = true,
@@ -96,6 +112,7 @@ local OPCIONES_BASE = {
 		defensa = true,
 		escape = true,
 		preparacion = true,
+		laboratorio = false, -- Fase 13: el Laboratorio en ruinas (sección 12)
 	},
 }
 
@@ -172,6 +189,9 @@ local LIMITES = {
 	-- Lo que el altar sube de media el daño de un equipo que los toma todos en una partida (la definitiva
 	-- más a menudo), sobre el que no toma ninguno.
 	altarVentaja = 0.05,
+	-- Laboratorio (Fase 13): segundos para matar de cada arma en su mejor distancia. Fuera de ella puede
+	-- tardar más (es el sitio de otra); ninguna puede ganar todos los cruces ni quedarse sin ninguno.
+	laboratorioTTK = { 1.5, 2.5 },
 }
 
 -- ===================================== Utilidades =====================================
@@ -3012,7 +3032,139 @@ local function main(copia: Instance): string
 		enArena = false
 	end
 
-	linea("## 12. Alertas")
+	-- ===================================== 12. Laboratorio =====================================
+	-- Fase 13: todos con la misma vida (Config.Lab.Health) y sin ventajas. Tiempo para matar: disparos
+	-- que hacen falta (los aciertos llegan cada cadencia ÷ acierto) más el viaje del proyectil; el veneno
+	-- entra sin parar entre un acierto y el siguiente mientras dura, y puede rematar antes del siguiente.
+	if OPCIONES.secciones.laboratorio then
+		local LabWeapons = require(Data.LabWeapons) :: any
+		local L = OPCIONES.laboratorio
+		local vida = Config.Lab.Health
+		local distancias = L.distancias
+		local function ttk(arma: any, distancia: number, acierto: number): number?
+			if distancia > arma.range then
+				return nil
+			end
+			local viaje = distancia / arma.projectileSpeed
+			local intervalo = arma.cooldownSeconds / acierto
+			local veneno = arma.poison
+			local hecho, anterior, venenoHasta = 0, viaje, -math.huge
+			for k = 1, 500 do
+				local t = viaje + (k - 1) * intervalo
+				if veneno then
+					local hasta = math.min(t, venenoHasta)
+					if hasta > anterior then
+						local falta = vida - hecho
+						if veneno.dps * (hasta - anterior) >= falta then
+							return anterior + falta / veneno.dps
+						end
+						hecho += veneno.dps * (hasta - anterior)
+					end
+					venenoHasta = t + veneno.seconds
+				end
+				hecho += arma.damage
+				if hecho >= vida - 1e-6 then
+					return t
+				end
+				anterior = t
+			end
+			return nil
+		end
+		local tiempos: { [string]: { number? } } = {}
+		for _, id in LabWeapons.ORDER do
+			tiempos[id] = {}
+			for indice, distancia in distancias do
+				tiempos[id][indice] = ttk(LabWeapons.weapons[id], distancia, L.acierto[id][indice])
+			end
+		end
+		local cabecera = {}
+		for _, distancia in distancias do
+			table.insert(cabecera, `{distancia} studs`)
+		end
+		linea(`## 12. Laboratorio (vida {vida}; segundos para matar con el acierto de OPCIONES.laboratorio)`)
+		linea(`| Arma | Daño · cadencia · alcance · velocidad | {table.concat(cabecera, " | ")} |`)
+		linea(`|---|---|{string.rep("---|", #distancias)}`)
+		for _, id in LabWeapons.ORDER do
+			local arma = LabWeapons.weapons[id]
+			local celdas = {}
+			for indice in distancias do
+				local t = tiempos[id][indice]
+				celdas[indice] = if t then `{n(t, 2)} s ({pct(L.acierto[id][indice])})` else "fuera de alcance"
+			end
+			local danoTexto = if arma.poison
+				then `{arma.damage} + {arma.poison.dps}/s × {arma.poison.seconds} s`
+				else `{arma.damage}`
+			linea(
+				`| {arma.name} | {danoTexto} · {n(arma.cooldownSeconds, 2)} s · {arma.range} · {arma.projectileSpeed} | {table.concat(
+					celdas,
+					" | "
+				)} |`
+			)
+		end
+		linea("")
+		linea("Quién gana cada cruce (el que mata antes a esa distancia):")
+		linea(`| Cruce | {table.concat(cabecera, " | ")} |`)
+		linea(`|---|{string.rep("---|", #distancias)}`)
+		local victorias: { [string]: number } = {}
+		local cruces: { [string]: number } = {}
+		for i, a in LabWeapons.ORDER do
+			for j = i + 1, #LabWeapons.ORDER do
+				local b = LabWeapons.ORDER[j]
+				local celdas = {}
+				for indice in distancias do
+					local ta, tb = tiempos[a][indice], tiempos[b][indice]
+					local ganador = if ta and (not tb or ta < tb) then a elseif tb then b else nil
+					if ganador then
+						victorias[ganador] = (victorias[ganador] or 0) + 1
+						cruces[a] = (cruces[a] or 0) + 1
+						cruces[b] = (cruces[b] or 0) + 1
+					end
+					celdas[indice] = if ganador then LabWeapons.weapons[ganador].name else "—"
+				end
+				linea(
+					`| {LabWeapons.weapons[a].name} – {LabWeapons.weapons[b].name} | {table.concat(celdas, " | ")} |`
+				)
+			end
+		end
+		linea("")
+		linea("Dos rivales juntos (el área los alcanza a los dos; las demás armas, uno detrás de otro):")
+		linea(`| Arma | {table.concat(cabecera, " | ")} |`)
+		linea(`|---|{string.rep("---|", #distancias)}`)
+		for _, id in LabWeapons.ORDER do
+			local arma = LabWeapons.weapons[id]
+			local area = arma.lab and arma.lab.effect == "AcidBurst"
+			local celdas = {}
+			for indice in distancias do
+				local t = tiempos[id][indice]
+				celdas[indice] = if t then `{n(if area then t else 2 * t, 2)} s` else "—"
+			end
+			linea(`| {arma.name} | {table.concat(celdas, " | ")} |`)
+		end
+		linea("")
+		for _, id in LabWeapons.ORDER do
+			local nombre = LabWeapons.weapons[id].name
+			local mejor = math.huge
+			for indice in distancias do
+				local t = tiempos[id][indice]
+				if t and t < mejor then
+					mejor = t
+				end
+			end
+			if mejor == math.huge or fuera(mejor, LIMITES.laboratorioTTK) then
+				alerta(
+					`Laboratorio: {nombre} mata en {n(mejor, 2)} s en su mejor distancia (objetivo {LIMITES.laboratorioTTK[1]}–{LIMITES.laboratorioTTK[2]} s)`
+				)
+			end
+			local ganadas, jugadas = victorias[id] or 0, cruces[id] or 0
+			if jugadas > 0 and ganadas == jugadas then
+				alerta(`Laboratorio: {nombre} gana todos sus cruces ({ganadas} de {jugadas})`)
+			elseif ganadas == 0 then
+				alerta(`Laboratorio: {nombre} no gana ningún cruce`)
+			end
+		end
+	end
+
+	linea("## 13. Alertas")
 	if #alertas == 0 then
 		linea("✅ Todo dentro de los límites.")
 	else

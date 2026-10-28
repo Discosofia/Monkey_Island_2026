@@ -1677,6 +1677,10 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 	if typeof(slot) ~= "number" or typeof(aim) ~= "Vector3" or aim.Magnitude < 0.5 then
 		return
 	end
+	-- Places sin habilidades (el Laboratorio): ni las habilidades ni, con ellas, los combos.
+	if not CombatRules.get().abilities then
+		return
+	end
 	local ability = RoleAbilities.of(player)[slot]
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil

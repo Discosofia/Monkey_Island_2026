@@ -16,16 +16,21 @@
 -- "WeaponShotFx") se los manda el servidor.
 -- Disparo de remate (C9b, Shared/RangedChain): aquí se predice la cuenta de disparos seguidos para que
 -- el destello del remate salga al momento; el proyectil y lo que hace los decide el servidor.
+-- Laboratorio (Fase 13, Data/LabWeapons): cada arma dispara con la animación de su "pose", y el rifle
+-- acerca la vista (Config.Lab.RifleZoomFieldOfView) mientras se mantiene apuntado: clic derecho o gatillo
+-- izquierdo del mando, o el botón "Mira" en el móvil (uno lo pone y otro lo quita).
 
 local CollectionService = game:GetService("CollectionService")
 local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
@@ -33,6 +38,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local AbilityFxController = require(script.Parent.AbilityFxController)
+local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 local CameraShake = require(script.Parent.Parent.CameraShake)
 local Feint = require(script.Parent.Parent.Feint)
@@ -49,6 +55,8 @@ local HOLD_FADE = 0.15
 -- (CombatService.MELEE_HITBOX).
 local MELEE_HITBOX = Vector2.new(7, 6)
 local SHAKE_SECONDS = 0.15
+local ZOOM_ACTION = "Zoom"
+local ZOOM_SECONDS = 0.15
 
 local WeaponController = {}
 
@@ -64,6 +72,8 @@ local chain = MeleeChain.newState()
 local buffered = false
 -- Y de la cuenta de disparos de las armas a distancia.
 local shots = RangedChain.newState()
+-- Quién quiere saber de cada disparo que sale (el arma en primera persona del Laboratorio).
+local shotListeners: { (weapon: Weapons.WeaponDefinition) -> () } = {}
 
 -- Usa el tajo del paquete de animaciones del avatar (script Animate) o el estándar.
 local function loadSlash(character: Model): AnimationTrack?
@@ -217,12 +227,20 @@ local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponD
 		return false
 	end
 	local projectile = weapon.projectile or "Stone"
-	local track = weaponTrack(character, projectile)
+	local track = weaponTrack(character, if weapon.lab then weapon.lab.pose else projectile)
 	if track then
 		track:Play(0.05)
 	end
 	AbilityFxController.play("WeaponShotFx", character, projectile, RangedChain.isFinisher(weapon, shot))
+	for _, listener in shotListeners do
+		task.spawn(listener, weapon)
+	end
 	return true
+end
+
+-- Llama a "callback" cada vez que sale un disparo de un arma a distancia de este jugador.
+function WeaponController.onShot(callback: (weapon: Weapons.WeaponDefinition) -> ())
+	table.insert(shotListeners, callback)
 end
 
 -- true si el tajo de "weapon" va a dar a un enemigo o a otro jugador (la misma caja que el servidor,
@@ -345,6 +363,45 @@ local function swingChain(character: Model, tool: Tool, weaponId: string, weapon
 	end)
 end
 
+-- Zoom del rifle del Laboratorio: el campo de visión de antes, mientras está acercado.
+local normalFieldOfView: number? = nil
+
+local function setZoom(on: boolean)
+	local camera = Workspace.CurrentCamera
+	if not camera or on == (normalFieldOfView ~= nil) then
+		return
+	end
+	local target: number
+	if on then
+		normalFieldOfView = camera.FieldOfView
+		target = Config.Lab.RifleZoomFieldOfView
+	else
+		target = normalFieldOfView or 70
+		normalFieldOfView = nil
+	end
+	TweenService:Create(camera, TweenInfo.new(ZOOM_SECONDS), { FieldOfView = target }):Play()
+end
+
+local function bindZoom()
+	ActionButtons.bind(ZOOM_ACTION, Strings.t("Mira"), function(_, state: Enum.UserInputState, input: InputObject)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			if state == Enum.UserInputState.Begin then
+				setZoom(normalFieldOfView == nil)
+			end
+		elseif state == Enum.UserInputState.Begin then
+			setZoom(true)
+		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			setZoom(false)
+		end
+		return Enum.ContextActionResult.Pass
+	end, Enum.UserInputType.MouseButton2 :: any, Enum.KeyCode.ButtonL2)
+end
+
+local function unbindZoom()
+	ActionButtons.unbind(ZOOM_ACTION)
+	setZoom(false)
+end
+
 local function hook(instance: Instance)
 	if not instance:IsA("Tool") or hooked[instance] or instance:GetAttribute("WeaponId") == nil then
 		return
@@ -369,7 +426,9 @@ local function hook(instance: Instance)
 		elseif weapon and weapon.kind == "Ranged" and not shoot(character, weaponId :: string, weapon) then
 			return
 		end
-		Remotes.UseWeapon:FireServer(Aim.direction(character))
+		-- El cañón de suero (en arco) cae en el punto al que se apunta.
+		local lobbed = weapon and weapon.lab and weapon.lab.effect == "AcidBurst"
+		Remotes.UseWeapon:FireServer(Aim.direction(character), if lobbed then Aim.point(character) else nil)
 	end)
 	if weapon and weapon.kind == "Ranged" then
 		instance.Equipped:Connect(function()
@@ -379,9 +438,16 @@ local function hook(instance: Instance)
 			end
 		end)
 		instance.Unequipped:Connect(releaseArm)
+		if weapon.lab and weapon.lab.zoom then
+			instance.Equipped:Connect(bindZoom)
+			instance.Unequipped:Connect(unbindZoom)
+		end
 		local character = Players.LocalPlayer.Character
 		if character and instance.Parent == character then
 			holdArm(character)
+			if weapon.lab and weapon.lab.zoom then
+				bindZoom()
+			end
 		end
 	end
 end
@@ -397,6 +463,7 @@ local function onCharacter(character: Model)
 	-- Cada personaje nuevo carga sus propias animaciones.
 	slashTrack = nil
 	table.clear(weaponTracks)
+	unbindZoom()
 	watch(character)
 	watch(Players.LocalPlayer:WaitForChild("Backpack"))
 end

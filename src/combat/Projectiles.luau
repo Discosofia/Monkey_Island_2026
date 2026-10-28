@@ -10,6 +10,8 @@
 -- la hora de salida del servidor: todos lo ven en el mismo sitio, aunque cada uno con su ping.
 -- Telemetría: cada uno que puede dar a alguien cuenta "ShotsHit" o "ShotsMissed" (Combat/CombatRules).
 -- Coberturas (C11, Combat/Destructibles): con "breaks", el que se para en una la alcanza.
+-- En arco (Fase 13, el cañón de suero del Laboratorio): con "gravity" cae mientras vuela; cada paso es un
+-- tramo recto entre dos puntos de la parábola, así que se mira igual. "speed" es la de salida.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -45,6 +47,8 @@ export type Shot = {
 	-- vez por cobertura y tabla "breakOnce" (la de todas las flechas de un mismo abanico).
 	breaks: Destructibles.Kind?,
 	breakOnce: Destructibles.Once?,
+	-- Studs/s² hacia abajo (en arco); "range" es entonces lo que recorre por la curva.
+	gravity: number?,
 }
 
 type Flight = {
@@ -52,6 +56,7 @@ type Flight = {
 	id: number,
 	position: Vector3,
 	travelled: number,
+	elapsed: number,
 	skip: { [Model]: boolean },
 	hitAny: boolean,
 	hits: number,
@@ -74,22 +79,44 @@ local function finish(flight: Flight, position: Vector3, model: Model?)
 	end
 end
 
--- Avanza "flight" "distance" studs. Devuelve true si ha acabado.
-local function advance(flight: Flight, distance: number): boolean
+-- Lo que se mueve "flight" en "deltaTime" (sin pasar de su alcance).
+local function displacementOf(flight: Flight, deltaTime: number): Vector3
 	local shot = flight.shot
-	local remaining = math.min(distance, shot.range - flight.travelled)
-	local displacement = shot.direction * remaining
+	local left = shot.range - flight.travelled
+	if not shot.gravity then
+		return shot.direction * math.min(shot.speed * deltaTime, left)
+	end
+	flight.elapsed += deltaTime
+	local t = flight.elapsed
+	local target = shot.origin + shot.direction * shot.speed * t - Vector3.yAxis * (shot.gravity * t * t / 2)
+	local displacement = target - flight.position
+	return if displacement.Magnitude > left then displacement.Unit * left else displacement
+end
+
+-- Avanza "flight" lo que toca en "deltaTime". Devuelve true si ha acabado.
+local function advance(flight: Flight, deltaTime: number): boolean
+	local shot = flight.shot
+	local displacement = displacementOf(flight, deltaTime)
+	local remaining = displacement.Magnitude
+	if remaining < 1e-4 then
+		if flight.travelled >= shot.range - 1e-3 then
+			finish(flight, flight.position, nil)
+			return true
+		end
+		return false
+	end
+	local direction = displacement / remaining
 	local wall = Hitbox.ray(flight.position, displacement)
 	local open = if wall then (wall.Position - flight.position).Magnitude else remaining
 	local from = flight.position
 	local swept = 0
 	while swept < open do
-		local model, along = Hitbox.sweepCombatants(from, shot.radius, shot.direction * (open - swept), flight.skip)
+		local model, along = Hitbox.sweepCombatants(from, shot.radius, direction * (open - swept), flight.skip)
 		if not model then
 			break
 		end
 		swept += along
-		from = flight.position + shot.direction * swept
+		from = flight.position + direction * swept
 		flight.skip[model] = true
 		if shot.onHit(model, from) then
 			flight.hitAny = true
@@ -101,7 +128,7 @@ local function advance(flight: Flight, distance: number): boolean
 			end
 		end
 	end
-	flight.position += shot.direction * open
+	flight.position += direction * open
 	flight.travelled += open
 	if wall then
 		if shot.breaks then
@@ -121,7 +148,7 @@ local function step(deltaTime: number)
 	local index = 1
 	while index <= #flights do
 		local flight = flights[index]
-		local ok, done = pcall(advance, flight, flight.shot.speed * deltaTime)
+		local ok, done = pcall(advance, flight, deltaTime)
 		if not ok then
 			warn("Projectiles:", done)
 		end
@@ -143,6 +170,7 @@ function Projectiles.fire(shot: Shot): number
 		id = nextId,
 		position = shot.origin,
 		travelled = 0,
+		elapsed = 0,
 		skip = if character then { [character] = true } else {},
 		hitAny = false,
 		hits = 0,
@@ -158,7 +186,8 @@ function Projectiles.fire(shot: Shot): number
 		shot.range,
 		Workspace:GetServerTimeNow(),
 		shot.pierce == true,
-		shot.extra
+		shot.extra,
+		shot.gravity
 	)
 	-- Lo que ya toca al salir (un mono pegado al tirador): una esfera desde un poco antes del origen.
 	local behind = shot.origin - shot.direction * START_BACK

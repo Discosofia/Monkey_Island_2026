@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proyecto
 
-*Primal Banana Islands: Monkey Survival*, un juego de Roblox (móvil y PC) en Luau. Es una sola experiencia con tres places que comparten código y perfil de jugador:
+*Primal Banana Islands: Monkey Survival*, un juego de Roblox (móvil y PC) en Luau. Es una sola experiencia con cuatro places que comparten código y perfil de jugador:
 
 | Place | Proyecto de Rojo | Puerto | Studio |
 |---|---|---|---|
 | Lobby | `lobby.project.json` | 34872 | "Islas de plátano primitivas" |
 | Isla (supervivencia PvE, hasta 5 amigos) | `island.project.json` | 34873 | "🍌Isla de monos🐒(supervivencia)" |
 | Isla de Dunas (arena PvP, captura la bandera) | `dunas.project.json` | 34874 | "🎖️Isla de dunas☠️(PvP)" |
+| Laboratorio en ruinas (shooter por equipos sin roles; Fase 13, en construcción) | `laboratorio.project.json` | 34875 | "🧪Laboratorio en ruinas🏴‍☠️(PvP)" |
 
 Diseño en `docs/GDD.md`. Fases, grupos y su estado en `docs/PLAN.md`. Preparar Studio y Rojo: `docs/SETUP.md`. El código, los comentarios, los textos del juego, la documentación y los mensajes de commit van en **español**; los identificadores, en inglés.
 
@@ -24,7 +25,7 @@ selene src                                          # lint
 rojo build island.project.json --output build/island.rbxl
 ```
 
-El CI (`.github/workflows/ci.yml`) ejecuta `stylua --check src`, `selene src` y `rojo build` de los tres places. No hay tests automáticos. Se verifica en Roblox Studio por el MCP `Roblox_Studio` (`.mcp.json`) y con dos calculadoras que corren en modo edición en el Studio de la Isla (están en `ServerStorage.Tools`):
+El CI (`.github/workflows/ci.yml`) ejecuta `stylua --check src`, `selene src` y `rojo build` de los cuatro places. No hay tests automáticos. Se verifica en Roblox Studio por el MCP `Roblox_Studio` (`.mcp.json`) y con dos calculadoras que corren en modo edición en el Studio de la Isla (están en `ServerStorage.Tools`):
 
 ```lua
 local m = game.ServerStorage.Tools.Economia:Clone()   -- o Equilibrio; el Clone evita la caché de require
@@ -35,14 +36,14 @@ print(require(m).informe()); m:Destroy()
 
 ## Arquitectura
 
-**Mapa de carpetas a Studio** (igual en los tres proyectos de Rojo):
+**Mapa de carpetas a Studio** (igual en los cuatro proyectos de Rojo):
 
 | Carpeta | En Studio |
 |---|---|
 | `src/shared` | `ReplicatedStorage.Shared` (Config, Data, modelos, UI) |
 | `src/combatClient` | `ReplicatedStorage.CombatClient` |
 | `src/serverShared` | `ServerScriptService.ServerShared` (perfil, compras, pase, cosméticos, retención) |
-| `src/combat` | `ServerScriptService.Combat` (combate de la Isla, Dunas y los muñecos del Lobby) |
+| `src/combat` | `ServerScriptService.Combat` (combate de la Isla, Dunas, el Laboratorio y los muñecos del Lobby) |
 | `src/<place>/server`, `src/<place>/client` | `ServerScriptService.Server`, `StarterPlayerScripts.Client` |
 | `src/island/tools` | `ServerStorage.Tools` (solo en la Isla) |
 
@@ -52,8 +53,8 @@ print(require(m).informe()); m:Destroy()
 - **Red:** todos los `RemoteEvent` están en una tabla de `Shared/Remotes`. El servidor los crea y el cliente los espera. Un evento nuevo es una línea más allí.
 - **Datos y números:** todo lo que se equilibra está en `Shared/Config`. El contenido (armas, monos, cosméticos, temporadas, misiones…) está en `Shared/Data/*`. La lógica lee de ahí.
 - **Textos e idioma (GDD §18):** todo texto que ve el jugador pasa por `Shared/Strings`: `local T = Strings.t`, `T("Ámbar: {n}", { n = amber })`. La clave es el español (un literal entre comillas dobles, nunca una interpolación con `` ` ``), y su inglés va en `Data/Strings/*`. Una frase guardada en una tabla para traducirla después se marca con `Strings.later("…")`, y un nombre de `Data` se traduce al dibujarlo (`T(def.name)`). El servidor no traduce: manda la plantilla en español y sus argumentos (`Remotes.Notify:FireClient(player, "…{n}…", { n = 3 })`), y un argumento puede ser otra frase (`{ "texto", args }`) o una lista (`{ list = … }`). `UI/Localizer` traduce en el cliente los carteles del mundo, los `ProximityPrompt` y las herramientas de la mochila. `python tools/strings.py` (también en el CI) avisa de las frases sin inglés; `--audit` lista los textos que aún no pasan por `T()`. Se quedan en español solo las herramientas de desarrollo y el panel de administración.
-- **Reglas por place:** el combate es el mismo código en todos los places. Lo que cambia (PvP, zona segura, munición, equipos) lo registra cada place en `Combat/CombatRules.set` desde el `Init` de uno de sus servicios (`IslandCombatRules`, `DunasCombatRules`, `LobbyCombatRules`).
-- **Perfil:** `ServerShared/PlayerData` guarda en el DataStore `PlayerData_v1` con bloqueo de sesión, versionado con migraciones. Es el mismo perfil en los tres places. El cliente no lee el perfil: el servidor copia lo que necesita a atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`, `Retention`, `Season`…), y los módulos de `Shared` (`Progression`, `SeasonPass`, `EggIncubation`…) los decodifican.
+- **Reglas por place:** el combate es el mismo código en todos los places. Lo que cambia (PvP, zona segura, munición, equipos, si hay roles, habilidades y guardia) lo registra cada place en `Combat/CombatRules.set` desde el `Init` de uno de sus servicios (`IslandCombatRules`, `DunasCombatRules`, `LobbyCombatRules`, `LabCombatRules`). El cliente de un place puede dejar sin cargar controladores del combate (`Loader.load(carpetas, skip)`: el Laboratorio no carga `RoleController`, `GuardController`, `ComboController` ni `ChainPipsController`).
+- **Perfil:** `ServerShared/PlayerData` guarda en el DataStore `PlayerData_v1` con bloqueo de sesión, versionado con migraciones. Es el mismo perfil en todos los places. El cliente no lee el perfil: el servidor copia lo que necesita a atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`, `Retention`, `Season`…), y los módulos de `Shared` (`Progression`, `SeasonPass`, `EggIncubation`…) los decodifican.
 - **Cosméticos:** `Data/Cosmetics` dice el tipo, la rareza y el origen de cada uno. `Shared/CosmeticSlots` asigna los huecos y los grados I/II/III. `ServerShared/CosmeticsServer` publica lo equipado como atributos (`Outfit`, `WeaponSkin`, `Frame`, `PetSkin`, `NumberStyle`, `BurstStyle`, `NestDecor`), que lee cada módulo que lo dibuja. En el Lobby y en Dunas publica también el mejor equipo fabricado en la Isla (perfil `bestGear`) como `ArmorLook` y `WeaponLook`: solo el modelo, sin los números. `Shared/RewardModels` hace sus imágenes voxel para los `ViewportFrame`.
 - **Compras:** cada producto se registra con `ServerShared/Purchases.register`, con recibo idempotente guardado en el perfil.
 - **Mundo:** los escenarios del Lobby y de Dunas los generan `World/LobbyBuilder` y `World/ArenaBuilder`. Tienen versión: el servidor los reconstruye al arrancar si faltan o son viejos, y para dejarlos fijos en el place se ejecuta `require(game.ServerScriptService.Server.World.<Builder>).build()` en modo edición. La isla la genera `island/tools/MapBuilder` (`build({ islandRadius = 950 })`, una sola vez, y borra el terreno). Lo generado se guarda en el place, no en el repo: después hay que guardar y publicar.

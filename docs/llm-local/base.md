@@ -6,13 +6,14 @@ Eres un asistente que trabaja en *Primal Banana Islands: Monkey Survival*, un ju
 
 ## El juego
 
-Hay una sola experiencia con tres places que comparten código y perfil de jugador:
+Hay una sola experiencia con cuatro places que comparten código y perfil de jugador:
 
 | Place | Proyecto de Rojo | Puerto | Nombre en Studio |
 |---|---|---|---|
 | Lobby | `lobby.project.json` | 34872 | "Islas de plátano primitivas" (sí, el Lobby) |
 | Isla (supervivencia PvE, hasta 5 amigos) | `island.project.json` | 34873 | "🍌Isla de monos🐒(supervivencia)" |
 | Isla de Dunas (PvP, captura la bandera) | `dunas.project.json` | 34874 | "🎖️Isla de dunas☠️(PvP)" |
+| Laboratorio en ruinas (shooter sin roles, Fase 13) | `laboratorio.project.json` | 34875 | "🧪Laboratorio en ruinas🏴‍☠️(PvP)" |
 
 El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sección que necesites: son largos.
 
@@ -23,7 +24,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 | `src/shared` | `ReplicatedStorage.Shared` (Config, Data, modelos, UI) |
 | `src/combatClient` | `ReplicatedStorage.CombatClient` |
 | `src/serverShared` | `ServerScriptService.ServerShared` (perfil, compras, pase, cosméticos) |
-| `src/combat` | `ServerScriptService.Combat` (combate de los tres places) |
+| `src/combat` | `ServerScriptService.Combat` (combate de todos los places) |
 | `src/<place>/server`, `src/<place>/client` | `ServerScriptService.Server`, `StarterPlayerScripts.Client` |
 | `src/island/tools` | `ServerStorage.Tools` (solo Isla: calculadoras y generadores) |
 
@@ -33,8 +34,8 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 - **Red:** todos los `RemoteEvent` están en una tabla de `Shared/Remotes`. Un evento nuevo es una línea más. El servidor decide el daño, los premios y las compras. El cliente solo pide y dibuja.
 - **Números:** todo lo que se equilibra está en `Shared/Config`. El contenido (armas, monos, cosméticos, misiones…) está en `Shared/Data/*`. Nunca escribas números sueltos en la lógica.
 - **Textos:** todo lo que lee el jugador va por `Shared/Strings`: `T("Ámbar: {n}", { n = amber })`, con el español como clave y su inglés en `Data/Strings/*`. Nunca una interpolación con `` ` `` dentro de `T()`. El servidor manda la plantilla en español con sus argumentos y el cliente la traduce. `python tools/strings.py` avisa de lo que falta.
-- **Reglas por place:** el combate es común. Lo que cambia en cada place se registra en `Combat/CombatRules.set` (`IslandCombatRules`, `DunasCombatRules`, `LobbyCombatRules`).
-- **Perfil:** `ServerShared/PlayerData`, DataStore `PlayerData_v1`, con bloqueo de sesión y migraciones. El cliente no lee el perfil: lo ve en atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`…). Si cambia el perfil, hay que publicar los tres places a la vez.
+- **Reglas por place:** el combate es común. Lo que cambia en cada place se registra en `Combat/CombatRules.set` (`IslandCombatRules`, `DunasCombatRules`, `LobbyCombatRules`, `LabCombatRules`). El Laboratorio quita roles, habilidades y guardia, y su cliente no carga esos controladores (`Loader.load(carpetas, skip)`).
+- **Perfil:** `ServerShared/PlayerData`, DataStore `PlayerData_v1`, con bloqueo de sesión y migraciones. El cliente no lee el perfil: lo ve en atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`…). Si cambia el perfil, hay que publicar todos los places a la vez.
 - **Compras:** `ServerShared/Purchases.register`, con un recibo idempotente en el perfil.
 - **Mundo:** el Lobby y Dunas los generan `World/LobbyBuilder` y `World/ArenaBuilder`, y la isla `island/tools/MapBuilder`. Lo generado vive en el place, no en el repo.
 

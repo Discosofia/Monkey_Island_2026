@@ -60,6 +60,7 @@ local function checkConfiguredPlaceIds(places: { [number]: string })
 		Lobby = Config.PlaceIds.Lobby,
 		Island = Config.PlaceIds.Island,
 		Dunas = Config.PlaceIds.Dunas,
+		Laboratorio = Config.PlaceIds.Laboratorio,
 	}
 	for key, id in configured do
 		if id ~= 0 and not places[id] then

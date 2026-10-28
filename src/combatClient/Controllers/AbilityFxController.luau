@@ -39,6 +39,9 @@
 -- verde de savia con estela (cerbatana: cura el doble).
 -- Entorno (C10): rebote contra muros ("WallBang": grietas en la pared, polvo y piedras) y zonas de peligro
 -- de Combat/Zones ("Zone": suelo ardiendo del Meteoro rematado, hielo de la Nova y nube del Polvo).
+-- Laboratorio (Fase 13): los disparos de sus cuatro armas ("Lab…" en LOOKS: dardo azul claro, banana
+-- amarilla con estela, red y bola de suero morada que cae en arco), el charco de suero ("AcidPuddle") y
+-- la red que enreda ("Entangled").
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -2732,6 +2735,89 @@ local function finisherLook(style: string, splash: number?): Look
 	}
 end
 
+-- ===================================== Laboratorio (Fase 13) =====================================
+
+local LAB_DART = Color3.fromRGB(150, 215, 255)
+local LAB_BANANA = Color3.fromRGB(255, 225, 60)
+local LAB_NET = Color3.fromRGB(205, 190, 150)
+local LAB_ACID = Color3.fromRGB(135, 55, 205) -- morado: veneno (sin neón, que lo vuelve rosa)
+
+-- Los disparos de las armas del Laboratorio. La bola de suero estalla al pararse en "splash" (el área
+-- del servidor) con salpicadura morada.
+local function labLook(style: string, splash: number?): Look
+	local body: Part
+	if style == "LabDart" then
+		body = piece("Projectile", Vector3.new(0.12, 0.12, 0.8), LAB_DART, Enum.Material.Neon)
+		trail(body, Vector3.new(0, 0, 0.4), ColorSequence.new(Color3.new(1, 1, 1), LAB_DART), 0.12, 0.15)
+	elseif style == "LabBanana" then
+		body = piece("Projectile", Vector3.new(0.3, 0.3, 1.4), LAB_BANANA, Enum.Material.Neon)
+		trail(body, Vector3.new(0, 0, 0.7), ColorSequence.new(Color3.fromRGB(255, 250, 200), LAB_BANANA), 0.3, 0.35)
+		local light = Instance.new("PointLight")
+		light.Color = LAB_BANANA
+		light.Range = 8
+		light.Parent = body
+	elseif style == "LabNet" then
+		-- Red cuadrada que vuela de cara, con un peso en cada esquina.
+		body = piece("Projectile", Vector3.new(2.2, 2.2, 0.08), LAB_NET, Enum.Material.Fabric, 0.35)
+		for x = -1, 1, 2 do
+			for y = -1, 1, 2 do
+				local weight = piece("NetWeight", Vector3.one * 0.3, Color3.fromRGB(80, 80, 85), Enum.Material.Metal)
+				weld(body, weight, CFrame.new(x * 1.1, y * 1.1, 0))
+			end
+		end
+	else
+		body = ball("Projectile", 1, LAB_ACID, Enum.Material.SmoothPlastic)
+		local light = Instance.new("PointLight")
+		light.Color = LAB_ACID
+		light.Range = 8
+		light.Parent = body
+		trail(body, Vector3.zero, ColorSequence.new(LAB_ACID, Color3.fromRGB(110, 40, 150)), 0.25, 0.7)
+	end
+	return {
+		body = body,
+		land = function(position)
+			retire(body, 0.3)
+			if style == "LabAcid" then
+				local radius = splash or 6
+				swell(position, 1, radius * 2, LAB_ACID, 0.3, 0.3)
+				burst(position, SMOKE_TEXTURE, LAB_ACID, 16, 2, radius * 1.5, 0.7)
+			elseif style == "LabBanana" then
+				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 8, 0.6, 8, 0.4)
+			end
+		end,
+	}
+end
+
+-- Charco de suero donde estalla el cañón (centro, radio, segundos): solo se ve, el veneno ya lo ha
+-- puesto el servidor a los que estaban dentro.
+local function acidPuddle(center: Vector3, radius: number, seconds: number)
+	local ground = groundAt(center, groundParams())
+	local puddle = disc(ground + Vector3.new(0, 0.05, 0), radius, LAB_ACID, Enum.Material.SmoothPlastic, 0.35)
+	puddle.Parent = folder
+	local bubbles = emitter(SMOKE_TEXTURE, ColorSequence.new(LAB_ACID), NumberSequence.new(0.6, 1.4), 1.2, 1.5)
+	bubbles.EmissionDirection = Enum.NormalId.Top
+	bubbles.Rate = 6
+	local attachment = anchorAt(ground, seconds + 1.5)
+	bubbles.Parent = attachment
+	task.delay(seconds, function()
+		bubbles.Enabled = false
+		fadeAway({ puddle }, 0.6)
+	end)
+end
+
+-- Red enredada en "model" mientras dura (segundos): un cuadro de cuerda alrededor de las piernas.
+local function entangled(model: Model?, seconds: number)
+	local root = rootOf(model)
+	if not (model and root) then
+		return
+	end
+	local net = piece("Entangled", Vector3.new(3, 2.6, 3), LAB_NET, Enum.Material.Fabric, 0.55)
+	weld(root, net, CFrame.new(0, -1.6, 0))
+	task.delay(seconds, function()
+		fadeAway({ net }, 0.3)
+	end)
+end
+
 local LOOKS: { [string]: (extra: { any }) -> Look } = {
 	Stone = function()
 		return weaponLook("Stone")
@@ -2763,6 +2849,18 @@ local LOOKS: { [string]: (extra: { any }) -> Look } = {
 	end,
 	SpellFinisher = function(extra)
 		return finisherLook("Spell", if typeof(extra[1]) == "number" then extra[1] else nil)
+	end,
+	LabDart = function()
+		return labLook("LabDart")
+	end,
+	LabBanana = function()
+		return labLook("LabBanana")
+	end,
+	LabNet = function()
+		return labLook("LabNet")
+	end,
+	LabAcid = function(extra)
+		return labLook("LabAcid", if typeof(extra[1]) == "number" then extra[1] else nil)
 	end,
 }
 
@@ -2816,7 +2914,8 @@ local function projectile(
 	range: number,
 	startTime: number,
 	pierce: boolean,
-	extra: { any }?
+	extra: { any }?,
+	gravity: number?
 )
 	local build = LOOKS[lookId]
 	if not build then
@@ -2856,6 +2955,40 @@ local function projectile(
 	end
 	body.CFrame = CFrame.lookAt(origin, origin + direction)
 	body.Parent = folder
+	if gravity then
+		-- En arco: se dibuja en su punto de la parábola a la hora del servidor; se para donde choca aquí o
+		-- donde dice el servidor (que va por delante del dibujo como mucho el ping).
+		local velocity = direction * speed
+		local function at(t: number): Vector3
+			return origin + velocity * t - Vector3.yAxis * (gravity * t * t / 2)
+		end
+		local last = origin
+		local path = 0
+		landings[id] = function(position)
+			finish(position)
+		end
+		connection = RunService.RenderStepped:Connect(function()
+			local elapsed = Workspace:GetServerTimeNow() - startTime
+			local point = at(math.max(elapsed, 0))
+			local hit = localStop(last, point - last, params, pierce)
+			if hit then
+				finish(last + (point - last).Unit * hit)
+				return
+			end
+			path += (point - last).Magnitude
+			local ahead = at(elapsed + 0.02)
+			local cframe = CFrame.lookAt(point, if (ahead - point).Magnitude > 1e-3 then ahead else point + direction)
+			body.CFrame = cframe
+			last = point
+			if look.follow then
+				look.follow(cframe, elapsed)
+			end
+			if path >= range then
+				finish(point)
+			end
+		end)
+		return
+	end
 	connection = RunService.RenderStepped:Connect(function()
 		local elapsed = Workspace:GetServerTimeNow() - startTime
 		local target = math.min(math.max(speed * elapsed, travelled), limit)
@@ -3125,11 +3258,13 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	EvasiveFx = evasiveFx, -- (personaje): el Evasivo (Combat/Evasive; el propio cliente, DodgeController)
 	FeintFx = feintFx, -- (personaje): el amago (Combat/Feint; el propio cliente, CombatClient/Feint)
 	-- (id, aspecto de LOOKS, personaje que dispara, origen, dirección, velocidad, alcance, hora de salida
-	-- del servidor, atraviesa, datos del aspecto): un proyectil (Combat/Projectiles)
+	-- del servidor, atraviesa, datos del aspecto, gravedad si va en arco): un proyectil (Combat/Projectiles)
 	Projectile = projectile,
 	ProjectileEnd = projectileEnd, -- (id, dónde se ha parado)
 	WallBang = wallBang, -- (punto de la pared, su normal): rebote contra muros (Combat/Knockback)
 	Zone = zone, -- ("Fire" | "Ice" | "Cloud", centro en el suelo, radio, segundos): Combat/Zones
+	AcidPuddle = acidPuddle, -- (centro, radio, segundos): el charco del cañón de suero (Laboratorio)
+	Entangled = entangled, -- (modelo, segundos): la red del lanzarredes (Laboratorio)
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

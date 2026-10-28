@@ -21,6 +21,10 @@
 -- Rebote contra muros (C10, Combat/Knockback): un empujón de un jugador que estampa a un mono o a un
 -- rival contra una pared le quita Config.WallBang.Damage y le aturde (wallBang).
 -- Coberturas (C11, Combat/Destructibles): el remate de la cadena y el disparo de remate las alcanzan.
+-- Laboratorio (Fase 13, Data/LabWeapons): sus armas no tienen remate ni crítico; al acertar ralentizan
+-- poco a poco o enredan (Combat/Status), y el cañón de suero vuela en arco hasta donde se apunta y
+-- estalla en un área que envenena (labHit, acidLob). Sin guardia en el place (CombatRules.guard), los
+-- disparos a jugadores entran al momento.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -811,6 +815,88 @@ local function healWoundedAlly(healer: Player, amount: number, weaponId: string,
 	end
 end
 
+-- Lo propio de un arma del Laboratorio (Data/LabWeapons) al acertar a "model": el lanzadardos ralentiza
+-- un poco más con cada dardo y el lanzarredes enreda (Config.Lab). A un jugador, solo con pvpStatus.
+local function labHit(model: Model, weapon: Weapons.WeaponDefinition)
+	local effect = if weapon.lab then weapon.lab.effect else nil
+	local settings = Config.Lab
+	if effect == "SlowStack" then
+		Status.slowStack(model, settings.DartSlowStep, settings.DartSlowMax, settings.DartSlowSeconds)
+	elseif effect == "Entangle" then
+		if Status.entangle(model, settings.NetSpeedFactor, settings.NetSeconds, settings.NetImmuneSeconds) then
+			AbilityFx.all("Entangled", model, settings.NetSeconds)
+		end
+	end
+end
+
+-- El cañón de suero (Laboratorio): la bola sale en arco hacia "point", el punto al que apunta el jugador
+-- (Aim.point: el que ve con la cámara, aunque haya una cobertura en medio; sin él, lo primero que hay en
+-- la línea de tiro), como mucho a su alcance y a "projectileSpeed" en horizontal, con un arco más alto
+-- cuanto más lejos (Config.Lab.AcidArc). Estalla donde cae en
+-- Config.Lab.AcidRadius: el daño y el veneno del arma a cada uno dentro (con línea de visión desde un poco
+-- por encima del punto) y un charco que solo se ve. "strike": lo que hace el disparo ("damage") a un modelo.
+local function acidLob(
+	player: Player,
+	character: Model,
+	origin: Vector3,
+	direction: Vector3,
+	point: Vector3?,
+	weapon: Weapons.WeaponDefinition,
+	damage: number,
+	strike: (model: Model, amount: number, main: boolean) -> boolean
+)
+	local settings = Config.Lab
+	local target: Vector3
+	if point and (point - origin).Magnitude < weapon.range * 3 then
+		target = point
+	else
+		local wall = Hitbox.ray(origin, direction * weapon.range)
+		local reach = if wall then (wall.Position - origin).Magnitude else weapon.range
+		local model, along = Hitbox.sweepCombatants(origin, 0.5, direction * reach, { [character] = true })
+		target = origin + direction * (if model then along else reach)
+	end
+	local flat = Vector3.new(target.X - origin.X, 0, target.Z - origin.Z)
+	if flat.Magnitude > weapon.range then
+		-- Más lejos de su alcance: cae al final, a la altura del punto.
+		flat = flat.Unit * weapon.range
+		target = Vector3.new(origin.X + flat.X, target.Y, origin.Z + flat.Z)
+	end
+	local speed = weapon.projectileSpeed or 110
+	local distance = math.max(flat.Magnitude, 1)
+	local seconds = distance / speed
+	-- La que hace subir el arco AcidArc × la distancia sobre la línea de tiro en ese tiempo.
+	local gravity = 8 * settings.AcidArc * distance / (seconds * seconds)
+	local rise = (target.Y - origin.Y) / seconds + gravity * seconds / 2
+	local velocity = (if flat.Magnitude > 1e-3 then flat.Unit else direction) * speed + Vector3.yAxis * rise
+	local radius = settings.AcidRadius
+	Projectiles.fire({
+		owner = player,
+		look = "LabAcid",
+		origin = origin,
+		direction = velocity.Unit,
+		speed = velocity.Magnitude,
+		-- Lo que recorre por la curva hasta caer, con margen si apunta al aire.
+		range = weapon.range * 1.6,
+		radius = Config.Projectiles.WeaponRadius,
+		gravity = gravity,
+		extra = { radius },
+		onHit = function(hit)
+			local victim = Players:GetPlayerFromCharacter(hit)
+			if victim then
+				return CombatService.canHitPlayer(player, victim)
+			end
+			return CollectionService:HasTag(hit, Config.Combat.EnemyTag)
+		end,
+		onEnd = function(position)
+			local above = position + Vector3.new(0, 1, 0)
+			for _, inside in Hitbox.inSphere(position, radius, { exclude = character, from = above }) do
+				strike(inside, damage, true)
+			end
+			AbilityFx.all("AcidPuddle", position, radius, settings.AcidPuddleSeconds)
+		end,
+	})
+end
+
 -- Un disparo de un arma a distancia (C9): un proyectil real (Combat/Projectiles) que sale hacia donde
 -- dice la ayuda de puntería (aimShot) y da al primero que encuentra: si se aparta, falla. Atraviesa a
 -- los aliados. Contra un jugador se puede bloquear y parar (con el margen del defensor, como el golpe);
@@ -827,7 +913,8 @@ local function rangedAttack(
 	weapon: Weapons.WeaponDefinition,
 	aim: Vector3,
 	critChance: number,
-	shot: number
+	shot: number,
+	point: Vector3?
 )
 	local ammo = weapon.ammoItemId
 	local rules = CombatRules.get()
@@ -868,14 +955,28 @@ local function rangedAttack(
 				return false
 			end
 			local pvpScale = pvpWeaponScale(weaponId)
+			-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran), y las
+			-- armas del Laboratorio ponen lo suyo.
+			local function landed()
+				local victimCharacter = victim.Character
+				if main and rules.pvpStatus and victimCharacter then
+					if poison then
+						Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
+					end
+					labHit(victimCharacter, weapon)
+				end
+			end
+			if not rules.guard then
+				CombatService.damagePvP(player, victim, amount * pvpScale, crit)
+				landed()
+				return true
+			end
 			CombatService.damagePvP(player, victim, amount * pvpScale, crit, false, {
 				guardDamage = Config.Guard.ProjectileGuardDamage,
 				waitForParry = true,
 				onResult = function(outcome)
-					-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran).
-					local victimCharacter = victim.Character
-					if main and outcome == "Hit" and poison and rules.pvpStatus and victimCharacter then
-						Status.poison(victimCharacter, poisonDps * pvpScale, poison.seconds, player, weaponId)
+					if outcome == "Hit" then
+						landed()
 					end
 				end,
 			})
@@ -892,6 +993,9 @@ local function rangedAttack(
 		if poison and humanoid.Health > 0 then
 			Status.poison(model, poisonDps, poison.seconds, player, weaponId)
 		end
+		if humanoid.Health > 0 then
+			labHit(model, weapon)
+		end
 		if weapon.healOnHit then
 			healWoundedAlly(player, weapon.healOnHit, weaponId, if finisher then finisher.healMultiplier else nil)
 		end
@@ -905,6 +1009,10 @@ local function rangedAttack(
 	local origin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
 	local speed = weapon.projectileSpeed or 120
 	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
+	if weapon.lab and weapon.lab.effect == "AcidBurst" then
+		acidLob(player, character, origin, direction, point, weapon, damage, strike)
+		return
+	end
 	local others = if finisher then math.round(damage * (finisher.othersDamage or 0)) else 0
 	local direct: Model? = nil
 	-- El remate alcanza las coberturas (C11): donde se para y, el del bastón, en su explosión (una vez).
@@ -949,7 +1057,7 @@ local function rangedAttack(
 	})
 end
 
-local function onUseWeapon(player: Player, aim: any)
+local function onUseWeapon(player: Player, aim: any, point: any)
 	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") then
 		return
 	end
@@ -998,7 +1106,8 @@ local function onUseWeapon(player: Player, aim: any)
 				weapon,
 				aim.Unit,
 				Crit.weaponChance(weaponId :: string),
-				shot
+				shot,
+				if typeof(point) == "Vector3" then point else nil
 			)
 		end
 		return
@@ -1065,13 +1174,18 @@ local function giveWeapons(player: Player, weaponIds: { string }, roleWeapon: bo
 end
 
 local function roleWeapons(player: Player): { string }
-	return Roles[Progression.validRole(player:GetAttribute("Role"))].weapons
+	return CombatRules.get().roleWeapons(player) or Roles[Progression.validRole(player:GetAttribute("Role"))].weapons
 end
 
 local function giveStarterWeapons(player: Player)
-	-- El rol lo publica RoleService al cargar los datos guardados.
+	-- El rol lo publica RoleService al cargar los datos guardados (si el place da armas de rol).
 	local deadline = os.clock() + 15
-	while player.Parent and player:GetAttribute("Role") == nil and os.clock() < deadline do
+	while
+		player.Parent
+		and CombatRules.get().roleWeapons(player) == nil
+		and player:GetAttribute("Role") == nil
+		and os.clock() < deadline
+	do
 		task.wait(0.1)
 	end
 	if not player.Parent then

@@ -15,6 +15,7 @@ Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y 
 
 ## 2. Cómo se pelea
 
+- **Primera persona.** La cámara del Laboratorio va en primera persona (añadido el 27-10-2026): se apunta con el centro de la pantalla en todos los dispositivos (PC, móvil y mando), con una mira fija en el centro, y el arma se ve en la mano delante de la cámara. Es otra diferencia con Dunas y la Isla, que van en tercera persona.
 - **Sin roles, habilidades ni talentos.** Tampoco cuentan las mejoras de la tienda, la forja ni las mascotas (la mascota de adorno sí se ve, sin ayudar). De fuera solo llegan los cosméticos.
 - Al empezar (y en cada reaparición, entre partidas y entre rondas) se elige **1 de las 4 armas** del laboratorio. Las dos facciones tienen las mismas cuatro armas con los mismos números y cambia solo el aspecto (latón pirata o blanco y azul del laboratorio).
 - **Vida 100**, que vuelve sola tras 4 s sin recibir daño. Sin estado de caído.

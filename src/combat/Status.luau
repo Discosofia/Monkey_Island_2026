@@ -6,7 +6,8 @@
 --     Los jefes se resisten (Config.Abilities.BossControlMultiplier). Rendimientos decrecientes
 --     (Fase 10, C6; Config.ControlDR), por modelo: cada control seguido dura menos y después es
 --     inmune un rato; "ControlResistedAt" (hora del servidor) avisa a los clientes de que lo ha resistido.
---   - Ralentizado ("SlowedUntil" y "SlowFactor"): anda más despacio.
+--   - Ralentizado ("SlowedUntil" y "SlowFactor"): anda más despacio. En el Laboratorio (Fase 13),
+--     también la que se acumula ("SlowStack", slowStack) y el enredo ("EntangledUntil", entangle).
 --   - Provocado ("TauntedBy" y "TauntedUntil"): va a por el jugador que le provocó.
 --   - Envenenado ("PoisonedUntil"): pierde vida cada Config.Abilities.PoisonTickSeconds (poison).
 --   - Expuesto ("ExposedUntil" y "ExposedBonus"): recibe más daño (CombatService.damage).
@@ -168,6 +169,36 @@ function Status.slow(model: Model, seconds: number, factor: number)
 	end
 	model:SetAttribute("SlowedUntil", untilTime)
 	model:SetAttribute("SlowFactor", factor)
+end
+
+-- Lentitud que se acumula (el lanzadardos del Laboratorio, Fase 13): cada uso suma "step" (fracción
+-- de velocidad perdida) hasta "max", y dura "seconds" desde el último. Mientras está enredado
+-- (entangle) no la pisa: la red es más fuerte; la cuenta sigue subiendo igual.
+function Status.slowStack(model: Model, step: number, max: number, seconds: number)
+	local stack = model:GetAttribute("SlowStack")
+	local current = if active(model, "SlowStackUntil") and typeof(stack) == "number" then stack else 0
+	local amount = math.min(max, current + step)
+	model:SetAttribute("SlowStack", amount)
+	model:SetAttribute("SlowStackUntil", now() + seconds)
+	if not active(model, "EntangledUntil") then
+		model:SetAttribute("SlowedUntil", now() + seconds)
+		model:SetAttribute("SlowFactor", 1 - amount)
+	end
+end
+
+-- Enreda (el lanzarredes del Laboratorio, Fase 13): anda a "factor" de su velocidad durante "seconds"
+-- y no se le puede volver a enredar hasta "immuneSeconds" después ("EntangleImmuneUntil"). No deja
+-- quieto a nadie. La red la dibuja cada cliente con "EntangledUntil". Devuelve true si le ha enredado.
+function Status.entangle(model: Model, factor: number, seconds: number, immuneSeconds: number): boolean
+	if active(model, "EntangleImmuneUntil") then
+		return false
+	end
+	local time = now()
+	model:SetAttribute("EntangledUntil", time + seconds)
+	model:SetAttribute("EntangleImmuneUntil", time + immuneSeconds)
+	model:SetAttribute("SlowedUntil", time + seconds)
+	model:SetAttribute("SlowFactor", factor)
+	return true
 end
 
 function Status.taunt(model: Model, player: Player, seconds: number)

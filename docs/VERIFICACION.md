@@ -1243,6 +1243,39 @@ Probado en Studio (1 jugador, en English): en el Lobby, los botones de las habil
 1. [x] (Probado por el usuario el 27-10-2026, con francés, alemán y portugués.) Tras subir los `build/localization_*.csv` a Creator Hub (idioma de origen: inglés, con la traducción automática), entra con una cuenta en francés o en portugués.
    ✅ Los nombres de `Data` (armas, monos, cosméticos…) salen traducidos desde el inglés, y los textos con números siguen bien formados.
 
+## 24. Lo que queda por probar de L1: el Laboratorio en ruinas (27-10-2026)
+
+Probado en el Studio de Dunas (las armas del Laboratorio, dadas desde el servidor, contra el rival de práctica): los dardos ralentizan del 4 % al 20 % y ahí se paran; la red enreda (−35 %, 1 s) y no se renueva antes de 3 s; el suero sube en arco por encima de un muro de 3 studs a 36, cae junto al blanco, hace su daño y envenena, y deja el charco; el arco de Dunas sigue igual (12 por disparo, 18 el remate). La calculadora (sección 12) da las tablas de LABORATORIO.md §2.2 sin alertas. La primera persona (FirstPersonController) también se probó en Dunas: la mira en el centro, el arma de cada facción con las manos abajo a la derecha y centrada con la vista acercada. En el Studio del Laboratorio (place 106219409395860, 27-10-2026) se probó por MCP lo marcado abajo y, con un solo jugador, la reaparición: a los 3 s, con la vida llena, las 4 armas y la protección, que se pierde al disparar.
+
+#### 24.1 En el Studio del Laboratorio (`rojo serve laboratorio.project.json`, puerto 34875)
+
+1. [x] Crea el place `🧪Laboratorio en ruinas🏴‍☠️(PvP)` en la experiencia (SETUP.md, paso 5), pon su ID en `Config.PlaceIds.Laboratorio`, ábrelo en Studio, conecta Rojo y pulsa Play.
+   ✅ Sale la sala de pruebas (suelo de hormigón, dos coberturas oxidadas y cuatro muñecos delante), apareces en su punto de salida y tienes las 4 armas en la mochila (teclas 1–4). No hay botones de habilidad, ni barra de guardia, ni marcas de cadena. En la Salida no hay errores.
+   ✅ Juegas en primera persona: la cruz blanca en el centro (sin cursor) y el arma en la mano abajo a la derecha. Al disparar, el arma retrocede un poco y el disparo sale hacia la cruz.
+   ⚠️ Con la primera persona fija el ratón no sale del centro, así que el panel de pruebas no se puede pulsar con el ratón. Para estas pruebas, pon `game.Players.LocalPlayer.CameraMode` a `Classic` desde la barra de comandos del cliente. La L2, con su selector de arma, tendrá que soltar el ratón en los menús.
+2. [x] Con el panel de pruebas, «💔 Vida a 30».
+   ✅ A los 4 s sin recibir daño la vida empieza a subir sola y llega a 100.
+3. [x] Dispara cada arma a los muñecos de 15, 50 y 120 studs. (Probado: aciertan todas apuntando con la cruz; falta mirar los colores en movimiento.)
+   ✅ Dardos azul claro, banana amarilla con estela, red y bola morada en arco; el arpón no llega a 50 y el lanzadardos no llega a 120.
+4. [ ] Con el rifle, mantén el clic derecho.
+   ✅ La vista se acerca, el rifle se centra con el visor justo bajo la cruz, y vuelve al soltar; al cambiar de arma, también vuelve.
+5. [x] «🏴‍☠️ Cambiar de facción» varias veces, con un arma en la mano.
+   ✅ Las armas pasan de blanco y azul (guardianes) a latón y madera (piratas) sin cambiar de casilla, también la de primera persona.
+
+#### 24.2 Con 2 jugadores (Test → Clientes y servidores con 2)
+
+1. [ ] Disparaos con cada arma.
+   ✅ Los números son los de LABORATORIO.md §2.1 (dardo 10, banana 45, red 35, suero 30 + veneno morado 6/s): nadie bloquea ni hace parry, los dardos ralentizan hasta un 20 %, la red no se repite antes de 3 s y nadie se queda quieto.
+2. [ ] Mata al otro.
+   ✅ «⚔️ … derriba a …», reaparece a los 3 s y durante 1,5 s no recibe daño, salvo si dispara antes.
+
+#### 24.3 En el emulador de teléfono
+
+1. [ ] Equipa el rifle.
+   ✅ Sale el botón «Mira» encima de esquivar: un toque acerca la vista y otro la aleja. El suero cae donde mira el centro de la cámara.
+2. [ ] Dispara tocando la pantalla y mueve la cámara arrastrando.
+   ✅ En primera persona se apunta y se dispara con comodidad; el arma no tapa los botones ni la cruz.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

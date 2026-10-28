@@ -39,7 +39,7 @@ local ServerOps = require(script.Parent.ServerOps)
 
 local Admin = {}
 
--- Place de este servidor ("Lobby", "Island" o "Dunas"), de Admin.start.
+-- Place de este servidor ("Lobby", "Island", "Dunas" o "Laboratorio"), de Admin.start.
 local place = "?"
 
 local canRequest = RequestCooldown.new(1)
@@ -304,7 +304,7 @@ local function onIslandAction(admin: Player, action: any, scope: any)
 	end
 end
 
--- Lo llaman los AdminService de cada place ("Lobby", "Island" o "Dunas", para el registro).
+-- Lo llaman los AdminService de cada place ("Lobby", "Island", "Dunas" o "Laboratorio", para el registro).
 function Admin.start(placeName: string)
 	place = placeName
 	AdminLog.start(placeName)

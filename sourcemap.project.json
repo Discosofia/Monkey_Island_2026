@@ -25,6 +25,9 @@
       },
       "DunasServer": {
         "$path": "src/dunas/server"
+      },
+      "LaboratorioServer": {
+        "$path": "src/laboratorio/server"
       }
     },
     "ServerStorage": {
@@ -42,6 +45,9 @@
         },
         "DunasClient": {
           "$path": "src/dunas/client"
+        },
+        "LaboratorioClient": {
+          "$path": "src/laboratorio/client"
         }
       },
       "StarterCharacterScripts": {

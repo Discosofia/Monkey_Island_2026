@@ -8,6 +8,8 @@
 --     (LifeService), fiebre del mono, munición del inventario, recompensa PvP y misiones diarias.
 --   - Dunas: equipos (atributo "Team"), reaparecer en la base, números de la arena y la telemetría de
 --     las mecánicas (Services/ArenaTelemetryService).
+--   - Laboratorio (Fase 13, Services/LabCombatRules): sin roles, habilidades ni guardia; las armas del
+--     Laboratorio (Data/LabWeapons, sin remate ni crítico) y reaparecer.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -75,6 +77,13 @@ export type Rules = {
 	progressMission: (player: Player, kind: string) -> (),
 	-- Herramientas comunes que se dan además de las armas del rol (el hacha y el pico en la Isla).
 	starterTools: (player: Player) -> { string },
+	-- Armas que se dan EN LUGAR de las del rol (el Laboratorio), o nil: las del rol (atributo "Role").
+	roleWeapons: (player: Player) -> { string }?,
+	-- false: no hay habilidades de rol (Z/X/C/R/V) ni combos (el Laboratorio).
+	abilities: boolean,
+	-- false: no hay guardia ni parry; los golpes entran sin esperar el parry del defensor.
+	guard: boolean,
+
 	-- Ritmo al que se recupera la estamina de "player" (1 = normal; Combat/StaminaServer).
 	staminaRegenFactor: (player: Player) -> number,
 	-- Daño y duración de los aturdimientos de las habilidades contra jugadores (fracción), y daño de
@@ -125,6 +134,11 @@ local rules: Rules = {
 	starterTools = function()
 		return {}
 	end,
+	roleWeapons = function()
+		return nil
+	end,
+	abilities = true,
+	guard = true,
 	staminaRegenFactor = function()
 		return 1
 	end,

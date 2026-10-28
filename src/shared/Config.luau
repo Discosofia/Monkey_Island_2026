@@ -21,14 +21,18 @@ local Config = {
 		Lobby = 86360888108434, -- place "Primal Banana Islands" (lugar de inicio)
 		Island = 84163809226177, -- place "🍌Isla de monos🐒(survival)": la partida de supervivencia
 		Dunas = 122593636654552, -- place "🎖️Isla de dunas☠️(PvP)": la arena PvP (captura la bandera)
+		Laboratorio = 106219409395860, -- place "🧪Laboratorio en ruinas🏴‍☠️(PvP)": el shooter por equipos (Fase 13)
 	},
-	-- Nombres de los places. "Island" y "Dunas" son los que tienen en el Creator Hub (cambiarlos allí
-	-- también, docs/SETUP.md); los cortos van dentro de las frases del juego ("Ir a la Isla de monos").
+	-- Nombres de los places. "Island", "Dunas" y "Laboratorio" son los que tienen en el Creator Hub
+	-- (cambiarlos allí también, docs/SETUP.md); los cortos van dentro de las frases del juego ("Ir a la
+	-- Isla de monos").
 	PlaceNames = {
 		Island = "🍌Isla de monos🐒(survival)",
 		Dunas = "🎖️Isla de dunas☠️(PvP)",
+		Laboratorio = "🧪Laboratorio en ruinas🏴‍☠️(PvP)",
 		IslandShort = "Isla de monos",
 		DunasShort = "Isla de dunas",
+		LaboratorioShort = "Laboratorio en ruinas",
 	},
 
 	Match = {
@@ -1091,6 +1095,40 @@ local Config = {
 			Jaguar = { name = "Jaguar", icon = "🐆", color = Color3.fromRGB(240, 150, 40) },
 			Quetzal = { name = "Quetzal", icon = "🦜", color = Color3.fromRGB(40, 165, 230) },
 		},
+	},
+
+	Lab = {
+		-- Laboratorio en ruinas (Fase 13, docs/LABORATORIO.md): shooter por equipos sin roles, habilidades,
+		-- talentos ni mejoras. Todos con la misma vida, que vuelve sola tras RegenDelaySeconds sin recibir
+		-- daño, y una de las cuatro armas de Data/LabWeapons (sus números están allí; la calculadora los
+		-- mide en la sección 12, "Laboratorio").
+		Health = 100,
+		RegenDelaySeconds = 4,
+		RegenPerSecond = 20, -- de 0 a llena en 5 s: en un shooter rápido, retirarse tiene que valer
+		-- Al caer se reaparece a los RespawnSeconds con SpawnProtectionSeconds sin recibir daño (se pierde
+		-- al disparar).
+		RespawnSeconds = 3,
+		SpawnProtectionSeconds = 1.5,
+		-- Lanzadardos: cada dardo que acierta ralentiza DartSlowStep más (hasta DartSlowMax) durante
+		-- DartSlowSeconds desde el último.
+		DartSlowStep = 0.04,
+		DartSlowMax = 0.2,
+		DartSlowSeconds = 1.5,
+		-- Lanzarredes: el impacto enreda (anda a NetSpeedFactor de su velocidad) NetSeconds, y no puede
+		-- volver a enredarse hasta NetImmuneSeconds después de empezar.
+		NetSpeedFactor = 0.65,
+		NetSeconds = 1,
+		NetImmuneSeconds = 3,
+		-- Cañón de suero: vuela en arco hasta donde apunta, a su "projectileSpeed" en horizontal, subiendo
+		-- sobre la línea de tiro AcidArc × la distancia (a 15 studs, 4,5; a 36, 11: pasa por encima de una
+		-- cobertura baja), y estalla en AcidRadius. El veneno es el "poison" del arma.
+		AcidArc = 0.3,
+		AcidRadius = 6,
+		AcidPuddleSeconds = 3,
+		-- Rifle: campo de visión (grados) mientras se mantiene apuntado.
+		RifleZoomFieldOfView = 30,
+		-- Sala de pruebas del place mientras no hay mapa (L1; LabWorldService).
+		TestDummyDistances = { 15, 50, 120 },
 	},
 
 	Supply = {

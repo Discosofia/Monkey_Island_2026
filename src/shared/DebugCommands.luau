@@ -4,7 +4,7 @@
 
 export type Command = { id: string, label: string }
 
-local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command } } = {
+local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command }, Laboratorio: { Command } } = {
 	Island = {
 		{ id = "Materials", label = "🎒 +50 de todo" },
 		{ id = "NextRole", label = "🎭 Siguiente rol" },
@@ -90,6 +90,12 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Dummy", label = "🎯 Rival de práctica delante (sí/no)" },
 		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
 		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
+		{ id = "Amber", label = "✨ +500 Ámbar" },
+	},
+	Laboratorio = {
+		{ id = "Faction", label = "🏴‍☠️ Cambiar de facción (piratas/guardianes)" },
+		{ id = "Heal", label = "❤️ Curar" },
+		{ id = "Hurt", label = "💔 Vida a 30 (ver cómo vuelve)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 	},
 }

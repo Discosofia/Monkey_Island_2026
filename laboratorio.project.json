@@ -1,0 +1,50 @@
+{
+  "name": "PrimalBananaIsland-Laboratorio",
+  "servePort": 34875,
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "CombatClient": {
+        "$path": "src/combatClient"
+      }
+    },
+    "ServerScriptService": {
+      "ServerShared": {
+        "$path": "src/serverShared"
+      },
+      "Combat": {
+        "$path": "src/combat"
+      },
+      "Server": {
+        "$path": "src/laboratorio/server"
+      }
+    },
+    "ServerStorage": {
+      "Tools": {
+        "$className": "Folder",
+        "Equilibrio": {
+          "$path": "src/island/tools/Equilibrio.luau"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/laboratorio/client"
+        }
+      },
+      "StarterCharacterScripts": {
+        "Health": {
+          "$path": "src/laboratorio/character/Health.server.luau"
+        }
+      },
+      "$properties": {
+        "CameraMode": "LockFirstPerson",
+        "EnableMouseLockOption": false
+      }
+    }
+  }
+}
