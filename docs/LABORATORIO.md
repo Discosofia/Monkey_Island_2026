@@ -78,18 +78,20 @@ Se eligen **en la cola**, junto con el formato. Todos duran como mucho **6 minut
 
 ## 4. Mapas
 
-**Tres mapas pequeños.** Al llegar se vota uno de los tres (10 s; con empate, al azar). Cada uno favorece una distancia, para que todas las armas tengan su sitio:
+**Tres mapas pequeños.** Al llegar y en cada revancha se vota uno de los tres, antes de elegir arma. La votación dura 10 s o hasta que han votado todos; con empate sale al azar entre los más votados, y sin votos, al azar entre los tres. Cada uno favorece una distancia, para que todas las armas tengan su sitio:
 
 | Mapa | Tamaño | Cómo es | Favorece |
 |---|---|---|---|
 | **Laboratorio central** | 160 × 120 studs | Tres carriles entre las dos zonas de salida (el muelle pirata al oeste y la puerta de seguridad de los guardianes al este): al norte, el **pasillo de las jaulas** (corto, con esquinas); en el centro, la **sala del reactor** (abierta, con tanques de suero rotos como cobertura y una pasarela alta); al sur, el **invernadero de bananas primales** (plantas que tapan la vista pero no paran disparos). | Media distancia: el mapa de todas las armas |
-| **Azotea de la torre** | 120 × 120 studs, en dos alturas | La azotea de un rascacielos inclinado, con el helipuerto, antenas caídas, una grúa que une los dos niveles y la selva que asoma por los bordes. Quien cae de la azotea reaparece como en una baja (cuenta como baja del último que le hizo daño). | Larga distancia: el rifle |
+| **Azotea de la torre** | 120 × 120 studs, en dos alturas | La azotea de un rascacielos inclinado, con el helipuerto, antenas caídas, una grúa que une los dos niveles y la selva que asoma por los bordes. Tiene cuatro huecos al vacío (dos al norte y dos al sur) y cuatro tramos laterales de 20 studs detrás de las zonas de salida, por los que se cae (ver Caídas más abajo). | Larga distancia: el rifle |
 | **Alcantarillas** | 140 × 100 studs | Túneles estrechos bajo el laboratorio, con agua hasta los tobillos (no ralentiza), compuertas oxidadas, tuberías que gotean suero y una sala de bombas en el centro. | Corta distancia: el arpón y el suero |
 
-- En **1v1 y 2v2** se cierra una parte de cada mapa con un derrumbe (el invernadero, el nivel bajo de la azotea y un túnel lateral), como los pasillos de Dunas.
+- Los tres están construidos a la vez en el mismo place, cada uno en su sitio: el Central en (0, 0, 0), la Azotea en (2000, 160, 0), con su propia selva abajo (≈ y 0 del mundo), y las Alcantarillas en (−2000, 0, 0). El mapa que se juega es el del atributo `Map` de `LabMap`.
+- En **1v1 y 2v2** se cierra una parte de cada mapa con un derrumbe, como los pasillos de Dunas: el invernadero del central, las escaleras y la rampa que bajan de la azotea, y el túnel sur de las Alcantarillas. En los formatos mayores quedan abiertos.
+- **Caídas.** Donde hay huecos o tramos de caída, bajar por debajo del mapa (`Config.Lab.FallDepth`) mata. Si el último que hirió a quien cae lo hizo en los 10 s anteriores (`Config.Lab.FallCreditSeconds`), esa es su baja y sale el aviso «🪂 … tira a … al vacío». Si nadie le hirió en ese tiempo, es una muerte sin baja.
 - Cada bando tiene una **zona de salida** cerrada por una barrera que solo deja salir: nadie puede entrar en la del rival. Dentro de una zona nadie hace ni recibe daño: ni se dispara a quien está dentro ni desde dentro (así no se puede disparar a cubierto desde la propia zona). Antes de la partida, una compuerta la cierra para todos.
-- Coberturas que **no se rompen** (en un shooter rápido, una cobertura que desaparece deja a todos al descubierto). Barreras invisibles en los bordes y en los techos.
-- Los tres son **voxel** y comparten paleta: hormigón gris, metal oxidado, cristal azulado roto (nunca verde brillante, que es el color de la curación), cables y la selva entrando por las grietas. Se generan con un `World/LabBuilder` con versión, como `ArenaBuilder`.
+- Coberturas que **no se rompen** (en un shooter rápido, una cobertura que desaparece deja a todos al descubierto). Barreras invisibles en los bordes y en los techos. Los muros invisibles van en el grupo de colisión `LabMuro`: chocan con los personajes, pero los disparos los cruzan. Las barreras de las zonas de salida sí frenan los disparos.
+- Los tres son **voxel** y comparten paleta: hormigón gris, metal oxidado, cristal azulado roto (nunca verde brillante, que es el color de la curación), cables y la selva entrando por las grietas. Se generan con `World/LabBuilder` (versión 3, con un Model por mapa en `World/Maps`) y cada uno tiene su maqueta voxel para la ventana de votación (`src/shared/LabMapModels`).
 
 ## 5. Recompensas
 
@@ -127,9 +129,9 @@ Con las suposiciones de Dunas (45 % de victorias, 10 % de empates) y unas 8 baja
 | Se reutiliza | Es nuevo |
 |---|---|
 | Cola, equipos y resultados de Dunas (`ArenaQueueService`, `Arena`, `TeamService`, la ventana de resultados con votación) | Las 4 armas (`Data/LabWeapons`) con sus modelos voxel por bando y sus efectos |
-| Proyectiles, `Hitbox` con compensación de lag, `Status` (ralentización y enredo con inmunidad), veneno y su color | Reglas del place (`LabCombatRules`: sin roles, vida 100, reaparición, protección) |
+| Proyectiles, `Hitbox` con compensación de lag, `Status` (ralentización y enredo con inmunidad), veneno y su color | Reglas del place (`LabCombatRules`: sin roles, vida 100, reaparición, protección, caídas al vacío con el último atacante) |
 | Ayuda de puntería estrecha y el botón de disparo del móvil | Los 3 modos, la votación de mapa y la alarma de las rondas |
-| `CosmeticsServer` (los cosméticos llegan como en Dunas) | `World/LabBuilder` con los 3 mapas |
+| `CosmeticsServer` (los cosméticos llegan como en Dunas) | `World/LabBuilder`, `World/LabParts` y `World/Maps/*` con los 3 mapas |
 | `Leaderboards`, `Retention` (misión semanal), `SeasonPass` (XP) | Skins de las armas del Lab por hitos y los títulos |
 
 ## 8. Para más adelante y riesgos

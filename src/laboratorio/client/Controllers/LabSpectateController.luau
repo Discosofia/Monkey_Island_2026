@@ -4,7 +4,8 @@
 --   - La cámara pasa a tercera persona (LocalPlayer.CameraMode = Classic, a Config.Lab.SpectateDistance) y
 --     su CameraSubject es el humanoide del compañero. Abajo, en el centro: "Viendo a {name}" y ◀ ▶ para
 --     cambiar de compañero (solo si hay más de uno).
---   - Sin compañeros en pie, vista fija desde arriba del centro del mapa (cámara Scriptable).
+--   - Sin compañeros en pie, vista fija desde arriba del centro del mapa (cámara Scriptable) a la altura
+--     OverheadHeight de su modelo; si el mapa tiene techo (carpeta Techo), se oculta en local mientras dura.
 --   - El ratón va suelto mientras dura (FirstPersonController.freeCursor "Spectate") para poder pulsar ◀ ▶.
 -- Al reaparecer (o al acabar la ronda) se restaura la primera persona del place (CameraMode, zoom y cámara).
 
@@ -27,8 +28,9 @@ local BUTTON_SIZE = 48
 local BAR_WIDTH = 330
 -- Sobre la línea "Ctrl: soltar el ratón" del HUD (abajo en el centro, a 12 px del borde).
 local BAR_BOTTOM = 44
--- Vista fija sin compañeros: altura sobre el centro del mapa y cuánto se desplaza hacia atrás.
-local OVERHEAD_HEIGHT = 150
+-- Vista fija sin compañeros: altura sobre el centro del mapa (si su modelo no trae OverheadHeight) y cuánto
+-- se desplaza hacia atrás.
+local DEFAULT_OVERHEAD_HEIGHT = 150
 local OVERHEAD_BACK = 40
 
 local LabSpectateController = {}
@@ -58,20 +60,41 @@ local function teammates(player: Player): { Player }
 	return list
 end
 
--- El centro del mapa: la media de sus bases (cero si aún no están).
-local function mapCenter(): Vector3
-	local map = Workspace:FindFirstChild("LabMap")
-	local bases = if map then map:FindFirstChild("Bases") else nil
-	local sum, count = Vector3.zero, 0
-	if bases then
-		for _, base in bases:GetChildren() do
-			if base:IsA("Model") then
-				sum += base:GetPivot().Position
-				count += 1
-			end
+-- El modelo del mapa que se juega (LabMap/<Map>), o nil si aún no está.
+local function activeMap(): Model?
+	local folder = Workspace:FindFirstChild("LabMap")
+	local id = if folder then folder:GetAttribute("Map") else nil
+	local model = if folder and typeof(id) == "string" then folder:FindFirstChild(id) else nil
+	return if model and model:IsA("Model") then model else nil
+end
+
+-- El centro del mapa (el pivote de su modelo), la altura de la vista cenital y cuánto se desplaza hacia atrás
+-- (el atributo OverheadBack de su modelo, si lo trae); cero si aún no está.
+local function mapCenter(): (Vector3, number, number)
+	local map = activeMap()
+	if not map then
+		return Vector3.zero, DEFAULT_OVERHEAD_HEIGHT, OVERHEAD_BACK
+	end
+	local height = map:GetAttribute("OverheadHeight")
+	local back = map:GetAttribute("OverheadBack")
+	return map:GetPivot().Position,
+		if typeof(height) == "number" then height else DEFAULT_OVERHEAD_HEIGHT,
+		if typeof(back) == "number" then back else OVERHEAD_BACK
+end
+
+-- Oculta (o devuelve) el techo del mapa, solo para este jugador: LocalTransparencyModifier no cambia la
+-- pieza en el servidor.
+local function setCeilingHidden(hidden: boolean)
+	local map = activeMap()
+	local ceiling = if map then map:FindFirstChild("Techo") else nil
+	if not ceiling then
+		return
+	end
+	for _, part in ceiling:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = if hidden then 1 else 0
 		end
 	end
-	return if count > 0 then sum / count else Vector3.zero
 end
 
 function LabSpectateController:Start()
@@ -111,6 +134,8 @@ function LabSpectateController:Start()
 	local active = false
 	local target: Player? = nil
 	local overhead = false
+	-- true mientras el techo del mapa está oculto en local (vista cenital).
+	local ceilingHidden = false
 	-- Lo que había antes de ser espectador, para devolverlo.
 	local savedMode: Enum.CameraMode = player.CameraMode
 	local savedMinZoom = player.CameraMinZoomDistance
@@ -148,6 +173,10 @@ function LabSpectateController:Start()
 		active = false
 		target = nil
 		overhead = false
+		if ceilingHidden then
+			ceilingHidden = false
+			setCeilingHidden(false)
+		end
 		gui.Enabled = false
 		FirstPersonController.freeCursor("Spectate", false)
 		player.CameraMode = savedMode
@@ -189,6 +218,10 @@ function LabSpectateController:Start()
 			if overhead then
 				overhead = false
 				camera.CameraType = Enum.CameraType.Custom
+				if ceilingHidden then
+					ceilingHidden = false
+					setCeilingHidden(false)
+				end
 			end
 			if camera.CameraSubject ~= humanoid then
 				camera.CameraSubject = humanoid
@@ -197,9 +230,16 @@ function LabSpectateController:Start()
 		else
 			-- Nadie en pie de su bando: vista fija desde arriba.
 			overhead = true
-			local center = mapCenter()
+			local center, height, back = mapCenter()
 			camera.CameraType = Enum.CameraType.Scriptable
-			camera.CFrame = CFrame.lookAt(center + Vector3.new(0, OVERHEAD_HEIGHT, OVERHEAD_BACK), center)
+			-- Justo encima (back = 0) la mirada es paralela al "arriba" por defecto: se da otro, con el norte
+			-- (-Z) hacia arriba de la pantalla como en la vista inclinada.
+			local up = if back == 0 then Vector3.new(0, 0, -1) else Vector3.yAxis
+			camera.CFrame = CFrame.lookAt(center + Vector3.new(0, height, back), center, up)
+			if not ceilingHidden then
+				ceilingHidden = true
+				setCeilingHidden(true)
+			end
 			caption.Text = T("Ningún compañero en pie")
 		end
 		previous.Visible = #list > 1

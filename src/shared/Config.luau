@@ -12,6 +12,11 @@ export type Reward = {
 	xp: number?,
 }
 
+-- Marca una frase para traducirla después (Strings.later; Config no carga Strings): tools/strings.py la busca.
+local function later(es: string): string
+	return es
+end
+
 local Config = {
 	GameName = "Primal Banana Islands",
 	Subtitle = "Monkey Survival",
@@ -124,6 +129,10 @@ local Config = {
 		},
 		-- Tiempos y cantidades de cada tipo: ver Shared/Data/ResourceNodes.
 	},
+
+	-- Grupo de colisión de los rayos del combate (Combat/Hitbox, CombatClient/Aim): lo que su grupo no deja
+	-- chocar con este (los muros invisibles del Laboratorio, Lab.WallGroup) no frena disparos ni línea de visión.
+	ShotCollisionGroup = "Disparo",
 
 	Combat = {
 		-- Solo se puede dañar a lo que tenga esta etiqueta (CollectionService): monos y muñecos.
@@ -1103,6 +1112,9 @@ local Config = {
 		-- daño, y una de las cuatro armas de Data/LabWeapons (sus números están allí; la calculadora los
 		-- mide en la sección 12, "Laboratorio").
 		Health = 100,
+		-- Grupo de colisión de los muros invisibles (barreras, barrotes y techos): chocan con los personajes
+		-- pero no con los rayos de ShotCollisionGroup.
+		WallGroup = "LabMuro",
 		RegenDelaySeconds = 4,
 		RegenPerSecond = 20, -- de 0 a llena en 5 s: en un shooter rápido, retirarse tiene que valer
 		-- Al caer se reaparece a los RespawnSeconds con SpawnProtectionSeconds sin recibir daño (se pierde
@@ -1172,8 +1184,29 @@ local Config = {
 		WaitSeconds = 60,
 		CountdownSeconds = 10,
 		ResultsSeconds = 20,
-		-- Hasta qué formato se cierra el invernadero con el derrumbe (LabWorldService).
+		-- Hasta qué formato se cierra el paso que cierra el derrumbe de cada mapa (el invernadero del
+		-- Laboratorio central, el nivel bajo de la Azotea, el túnel sur de las Alcantarillas; LabWorldService).
 		CollapseUpToFormat = 2,
+		-- Mapas (L4b; World/LabBuilder construye uno por id, todos a la vez, en Workspace.LabMap.<id>). El
+		-- nombre y el alcance se traducen al dibujarlos (T(name)). StudioMap: el de Studio y el del primer
+		-- arranque. VoteSeconds: lo que dura la votación de mapa. FallCreditSeconds: una caída cuenta como
+		-- baja del último que hirió a la víctima si fue hace tanto o menos. FallDepth: studs bajo el suelo
+		-- del mapa a los que se cae al vacío (LabWorldService.fallY).
+		Maps = { "Central", "Azotea", "Alcantarillas" },
+		MapNames = {
+			Central = later("Laboratorio central"),
+			Azotea = later("Azotea de la torre"),
+			Alcantarillas = later("Alcantarillas"),
+		},
+		MapRanges = {
+			Central = later("Media distancia"),
+			Azotea = later("Larga distancia"),
+			Alcantarillas = later("Corta distancia"),
+		},
+		StudioMap = "Central",
+		VoteSeconds = 10,
+		FallCreditSeconds = 10,
+		FallDepth = { Central = 30, Azotea = 25, Alcantarillas = 30 },
 		-- Arma de quien aún no ha elegido (id de Data/LabWeapons).
 		DefaultWeapon = "LabDartGun",
 	},

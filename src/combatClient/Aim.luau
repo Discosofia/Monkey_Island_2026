@@ -4,12 +4,28 @@
 -- Aim.point: el punto del mundo al que apunta (bajo el cursor, o en el centro de la cámara): el cañón
 -- de suero del Laboratorio cae ahí aunque haya una cobertura en medio.
 
+local PhysicsService = game:GetService("PhysicsService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local AIM_DISTANCE = 500
 
 local Aim = {}
+
+-- Rayo de puntería: como los disparos del servidor, en el grupo Config.ShotCollisionGroup (así cruza los
+-- muros invisibles del Laboratorio). El servidor registra el grupo y replica: si aún no está, sin grupo.
+local function aimParams(character: Model): RaycastParams
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character }
+	if PhysicsService:IsCollisionGroupRegistered(Config.ShotCollisionGroup) then
+		params.CollisionGroup = Config.ShotCollisionGroup
+	end
+	return params
+end
 
 -- Dónde está el cursor en la pantalla. Con el ratón bloqueado en el centro (primera persona del
 -- Laboratorio, bloqueo de cámara), el centro: GetMouseLocation puede dar otra cosa (en Studio, la
@@ -32,10 +48,7 @@ end
 
 function Aim.point(character: Model): Vector3
 	local ray = cameraRay()
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-	local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, params)
+	local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, aimParams(character))
 	return if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
 end
 
@@ -44,10 +57,7 @@ function Aim.direction(character: Model): Vector3
 	if UserInputService.MouseEnabled then
 		local mouse = cursor(camera)
 		local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
-		local params = RaycastParams.new()
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.FilterDescendantsInstances = { character }
-		local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, params)
+		local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, aimParams(character))
 		local target = if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
 		local head = character:FindFirstChild("Head")
 		local origin = if head and head:IsA("BasePart") then head.Position else camera.CFrame.Position

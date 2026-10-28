@@ -37,6 +37,7 @@ local TeamDeathmatch = require(script.Parent.Parent.Modes.TeamDeathmatch)
 local Types = require(script.Parent.Parent.Modes.Types)
 local LabRespawnService = require(script.Parent.LabRespawnService)
 local LabTeamService = require(script.Parent.LabTeamService)
+local LabVoteService = require(script.Parent.LabVoteService)
 local LabWorldService = require(script.Parent.LabWorldService)
 
 local TICK_SECONDS = 0.25
@@ -136,11 +137,12 @@ local function startWaiting()
 		player:SetAttribute("ArenaReady", false)
 	end
 	LabWorldService.setGates(false)
+	-- La votación del mapa (la llegada y cada revancha); si la cuenta atrás se abandona no se repite.
+	LabVoteService.arm()
 	setPhase("Waiting", if #Players:GetPlayers() > 0 then Config.Lab.WaitSeconds else nil)
 end
 
 local function startCountdown()
-	-- L4b: aquí se cierra la votación y se activa el mapa elegido
 	setPhase("Countdown", Config.Lab.CountdownSeconds)
 end
 
@@ -301,6 +303,11 @@ local function tickWaiting()
 		setPhase("Waiting", Config.Lab.WaitSeconds)
 		return
 	end
+	-- Con la votación del mapa abierta no empieza nada (ni los 60 s ni "Listo"); al cerrarse, sigue.
+	LabVoteService.tick()
+	if LabVoteService.isOpen() then
+		return
+	end
 	local current = mode()
 	local allReady = true
 	for _, player in players do
@@ -356,6 +363,7 @@ end
 function LabMatchService.debugSolo()
 	solo = true
 	if Arena.phase() == "Waiting" then
+		LabVoteService.close(true)
 		startCountdown()
 	end
 end
@@ -396,6 +404,7 @@ function LabMatchService.debugSkipPhase()
 	end
 	if phase == "Waiting" then
 		solo = true
+		LabVoteService.close(true)
 		startCountdown()
 	elseif phase == "SuddenDeath" then
 		finish(nil)

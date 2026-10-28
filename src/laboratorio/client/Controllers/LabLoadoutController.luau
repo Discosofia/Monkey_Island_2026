@@ -1,6 +1,6 @@
 --!strict
 -- Selector de arma del Laboratorio (docs/LABORATORIO.md §2 y §3): se lleva 1 de las 4 de Data/LabWeapons.
--- Se abre solo antes de la partida (Waiting y Countdown), en la pausa entre rondas (Intermission) y mientras
+-- Se abre solo antes de la partida (Waiting, tras la votación del mapa, y Countdown), en la pausa entre rondas (Intermission) y mientras
 -- se espera para reaparecer, y se cierra al empezar el duelo (o la ronda) o al reaparecer. En Todos contra
 -- todos la cuenta de listos incluye a todos (no hay bandos). Se puede plegar: queda un botón "Cambiar de arma" bajo la línea de
 -- la fase para volver a abrirlo.
@@ -278,7 +278,9 @@ function LabLoadoutController:Start()
 		local before = phase == "Waiting" or phase == "Countdown" or phase == "Intermission"
 		local respawnAt = player:GetAttribute("RespawnAt")
 		local dead = Arena.inBattle() and typeof(respawnAt) == "number"
-		local wanted = before or dead
+		-- Con la votación del mapa abierta (LabMapVoteController) no se abre: al cerrarse, sale sola.
+		local voting = ReplicatedStorage:GetAttribute("LabVoteEndsAt") ~= nil
+		local wanted = (before or dead) and not voting
 		if not wanted then
 			-- La próxima vez que haga falta, abierta otra vez.
 			folded = false

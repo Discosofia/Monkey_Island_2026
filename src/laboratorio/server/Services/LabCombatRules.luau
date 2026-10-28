@@ -8,7 +8,8 @@
 --     hace ni recibe daño: ni se dispara a quien está dentro ni desde dentro (LabWorldService.inBase).
 --   - Los números de las armas ya son los de PvP: los multiplicadores contra jugadores, a 1. Funciona
 --     todo lo que contra los monos: veneno, ralentizar y enredar (pvpStatus).
---   - Un golpe mortal no deja caído: cuenta la baja y se reaparece (LabRespawnService).
+--   - Un golpe mortal no deja caído: cuenta la baja y se reaparece (LabRespawnService). Cada golpe anota
+--     quién hirió a quién (onPvPHit), para acreditar al último atacante si la víctima cae del mapa.
 --   - Munición infinita.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -48,6 +49,7 @@ function LabCombatRules:Init()
 			return team ~= nil and team == Arena.teamOf(player)
 		end,
 		knockOut = LabRespawnService.knockOut,
+		onPvPHit = LabRespawnService.recordHit,
 		roleWeapons = function(player: Player)
 			local weaponId = player:GetAttribute("LabWeapon")
 			return {

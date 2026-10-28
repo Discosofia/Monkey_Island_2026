@@ -451,6 +451,7 @@ local function applyPvP(attacker: Player, victim: Player, amount: number, crit: 
 		CombatText.absorbed(victim, attacker)
 		return
 	end
+	CombatRules.get().onPvPHit(attacker, victim, amount)
 	if poison then
 		CombatText.poison(character, amount, attacker, humanoid.Health - amount <= 0)
 	else

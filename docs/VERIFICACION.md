@@ -1502,6 +1502,124 @@ Lo que queda necesita 2 o más jugadores (daño entre todos, espectador con comp
 7. [ ] Durante las pruebas de cola, mira en la consola de desarrollo (F9) si sale algún aviso de MemoryStore.
    ✅ No sale ningún aviso de límite ni error de cuota. El cupo es de 16 lecturas por ciclo de 10 s y servidor: si se acerca, anota el número y avísame.
 
+## 28. Lo que queda por probar de L4b: mapas Azotea y Alcantarillas y votación de mapa (28-10-2026)
+
+Probado en el Studio del Laboratorio por MCP con un jugador: la reconstrucción limpia de `LabMap` con los tres mapas (Central 1823 piezas, Azotea 1853 y Alcantarillas 1427, sin avisos de `checkFreeSpawns`); la iluminación de cada mapa y su vuelta al Central; los derrumbes, que cierran en 1v1 (cascotes de 8,8 a 14 de alto, que el salto de 7,2 no pasa) y se abren en los formatos mayores; las caídas por los huecos y tramos laterales de la Azotea (muerte sin baja, y los bordes cerrados bloquean); la rampa y las escaleras sin resbalar; los disparos del grupo `Disparo` (cruzan barreras, la barandilla del escalón y los barrotes, pero no paredes, aparatos ni la Barrier de una zona) y un disparo real con una barrera en medio que daña; los personajes sin atravesar nada; el agua de las Alcantarillas sin frenar (velocidad 16, sin nadar); las rutas de las Alcantarillas de 4 studs o más; 22 apariciones en Todos contra todos sobre suelo; y la votación: se abre con 10 s, se cierra al votar, cambia de mapa y reaparece en él, y después sale el selector de arma. Los votos inválidos se ignoran, con 0 votos sortea entre los tres, «Solo», «Saltar fase» y «🗳️ Cerrar la votación ya» la cierran, y la revancha la vuelve a abrir. Las tres maquetas se distinguen (capturas de la sesión principal). El place no está guardado ni publicado con `LabMap` v3.
+
+Lo que queda necesita 2 o más jugadores (el empate de votos, el cierre con votos parciales, las caídas con crédito, el espectador en los tres mapas y el cambio de lado en la Azotea y las Alcantarillas), el ratón real (la primera persona), el teléfono, el juego publicado y cinco observaciones de diseño. Empieza por 28.1: el `LabMap` v3 tiene que quedar guardado antes de publicar.
+
+#### 28.1 En el Studio del Laboratorio, con un jugador (`rojo serve laboratorio.project.json`, puerto 34875)
+
+1. [ ] Guarda el place con Archivo → Guardar (sin publicar), con `LabMap` en la versión 3. Si Rojo se desconecta, vuelve a conectarlo antes de Play.
+   ✅ Al reabrir el place, `LabMap` tiene `Version` 3 y los tres Models (`Central`, `Azotea` y `Alcantarillas`), y la Salida no muestra errores.
+2. [x] Con «🏙️ Siguiente mapa» pasa por los tres mapas y mira cada uno desde el suelo.
+   ✅ Cada mapa tiene sus piezas (1823, 1853 y 1427) y su luz, y al volver al Central vuelve la luz del Central. No sale ningún aviso de `checkFreeSpawns`.
+3. [x] Con 1v1 y con 5v5, mira los derrumbes de la Azotea y de las Alcantarillas.
+   ✅ En 1v1 se cierran (los cascotes de 8,8 a 14 de alto frenan el salto de 7,2) y en 5v5 quedan abiertos.
+4. [x] Cae a pie por uno de los huecos de la Azotea y por uno de los tramos laterales, y después pulsa «🪂 Caerme del mapa».
+   ✅ Cada caída te devuelve a reaparecer sin dar baja a nadie (sin atacante, es una muerte sin baja). Los bordes cerrados te paran y no se cae por ellos.
+5. [x] Sube y baja a pie la escalera de la Azotea y la rampa de la grúa.
+   ✅ Subes y bajas sin resbalar ni atravesar la pieza.
+6. [x] Dispara a un muñeco del panel de pruebas con una barrera invisible en medio (la de la barandilla o la de los barrotes). Después dispara contra una pared, un aparato y la Barrier de una zona de salida.
+   ✅ El disparo cruza la barrera invisible y el muñeco recibe daño. La pared, el aparato y la Barrier de la zona paran el disparo.
+7. [x] Camina contra un muro invisible, contra un barrote y contra la Barrier de una zona de salida.
+   ✅ El personaje no los atraviesa.
+8. [x] Camina por el agua de las Alcantarillas.
+   ✅ Se anda a velocidad normal (16), sin nadar y sin frenar.
+9. [x] Recorre el túnel norte, el túnel sur y el paso a la sala de bombas de las Alcantarillas.
+   ✅ Todas las rutas miden 4 studs de ancho o más (la observación del paso norte y sur está en 28.6).
+10. [x] En Todos contra todos, deja que reaparezcas varias veces.
+   ✅ Cada aparición cae sobre el suelo.
+11. [x] Al llegar, deja que la votación se cierre sola a los 10 s, sin votar.
+   ✅ Sale un mapa al azar entre los tres, reapareces en él y después se abre el selector de arma.
+12. [x] Vota una tarjeta y después otra.
+   ✅ Al votar se cierra al momento y cambia al mapa elegido. Un voto con un mapa que no existe se ignora.
+13. [x] Con la ventana de votación abierta, pulsa «🗳️ Cerrar la votación ya», y después repite con «🎮 Solo» y con «Saltar fase».
+   ✅ Cada una cierra la votación y deja el mapa que toque, sin que la ventana se quede abierta.
+14. [x] Acaba una partida y espera a la revancha.
+   ✅ La votación vuelve a abrirse antes de elegir arma.
+15. [x] Mira las tres maquetas de la ventana de votación en PC.
+   ✅ Cada mapa se distingue a primera vista: el Central, la torre de la Azotea y el corte de las Alcantarillas.
+16. [ ] Con el ratón, apunta a través de un muro invisible al primer intento, justo después de entrar en la partida.
+   ✅ La línea de puntería cruza el muro igual que el disparo. Si el primer apuntado se para en el muro, se anota en 28.6.
+17. [ ] Con el ratón, salta desde el suelo a la tapa de un depósito.
+   ✅ Subes a la tapa sin atascarte.
+18. [ ] Con el ratón, camina hasta el pretil de la Azotea y dispara por encima.
+   ✅ El personaje no pasa el pretil, y el disparo lo cruza sin frenarse.
+
+#### 28.2 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio)
+
+1. [ ] En Rondas 1v1, cada uno vota un mapa distinto y deja que se acabe el tiempo.
+   ✅ Sale uno de los dos mapas votados, al azar, y los dos reaparecen en él. El mapa que nadie votó no sale.
+2. [ ] En Rondas 1v1, vota solo uno de los dos y deja que se acabe el tiempo.
+   ✅ La votación se cierra a los 10 s con el voto que hay, y el mapa de ese voto es el que se juega.
+3. [ ] Vota un mapa con uno de los dos y el otro vota otro. Antes de que se cierre la votación, el que votó sale del servidor.
+   ✅ Su voto no cuenta: el mapa lo decide el voto del que queda, y la Salida no muestra errores.
+4. [ ] En la Azotea, dispara al otro hasta herirle y haz que caiga al vacío en los 10 s siguientes (por un hueco o un tramo lateral).
+   ✅ Sale «🪂 {tu nombre} tira a {nombre} al vacío», tu `ArenaKills` sube en 1 y el que cae reaparece.
+5. [ ] Envenena al otro con el cañón de suero ácido y haz que caiga al vacío dentro de los 10 s, con el veneno todavía activo.
+   ✅ La baja cuenta para quien lo envenenó, como si lo hubiera golpeado.
+6. [ ] Hiere al otro y espera más de 10 s sin tocarle. Después haz que caiga al vacío.
+   ✅ Muere sin aviso de caída y sin baja para nadie.
+7. [ ] En Rondas 1v1, dispara a la barrera de la zona de salida del rival, y pídele que intente cruzarla a pie.
+   ✅ El disparo se para en la barrera, y el personaje del rival no la cruza.
+8. [ ] En Rondas 1v1, en cada uno de los tres mapas (Central, Azotea y Alcantarillas), muere en plena ronda y mira la vista desde arriba.
+   ✅ La vista fija enseña el mapa entero desde arriba. En las Alcantarillas se ven los túneles (la cuestión del relleno está en 28.6).
+9. [ ] En Todos contra todos, en la Azotea y luego en las Alcantarillas («🏙️ Siguiente mapa»), mata al otro varias veces y mira dónde reapareces.
+   ✅ Reapareces lejos del rival, mirando al centro del mapa, como en 27.2.
+10. [ ] En Rondas 1v1, en la Azotea y luego en las Alcantarillas, juega hasta la 3.ª ronda (las nulas cuentan) y espera la Intermission.
+   ✅ Las bases cambian de dueño en el mapa que se juega: cada uno sigue en su bando y las barreras cambian de color.
+
+#### 28.3 Con 4 jugadores (*Test → Clientes y servidores* con 4, Rondas 2v2)
+
+1. [ ] En Rondas 2v2 en la Azotea, muere con tu compañero vivo.
+   ✅ La cámara sigue al compañero en tercera persona con «Viendo a {name}», y ◀ ▶ cambian a otro compañero vivo.
+2. [ ] Lo mismo en las Alcantarillas, con el compañero dentro de un túnel.
+   ✅ La cámara sigue al compañero sin que el techo tape la vista (el `Techo` queda oculto para el espectador).
+3. [ ] En Rondas 2v2, mira los derrumbes de la Azotea y de las Alcantarillas.
+   ✅ Se cierran como en 1v1: las escaleras y la rampa de la Azotea, y el túnel sur de las Alcantarillas.
+
+#### 28.4 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Con el teléfono apaisado, abre la votación de mapa.
+   ✅ Las tres tarjetas caben sin desplazar. En compacto (tarjetas de 132 px) no sale la línea de la distancia, y el nombre y los votos se leen sin acercarse.
+2. [ ] Vota con el dedo y mira el selector de arma que sale después.
+   ✅ El selector se abre solo cuando se cierra la votación, y sus botones se pulsan con el dedo.
+3. [ ] En las Alcantarillas, mira la iluminación (22 focos).
+   ✅ Se ven los túneles sin ir a ciegas, y los focos no deslumbran. Si queda oscuro, se ajusta la luz de las Alcantarillas.
+4. [ ] Con los tres mapas cargados, juega una ronda en cada uno y mira el rendimiento al cambiar de mapa.
+   ✅ No hay tirones claros al cambiar de mapa. Si los hay (unas 5100 piezas en el place), el plan B es aparcar los mapas inactivos en `ServerStorage`.
+5. [ ] Abre las maquetas de la votación en el teléfono.
+   ✅ Las tres se distinguen en pantalla pequeña.
+
+#### 28.5 En el juego publicado
+
+1. [ ] Con `LabMap` v3 guardado, publica el Laboratorio con Archivo → Publicar en Roblox y abre una partida.
+   ✅ Abre sin errores en la Salida, y la votación sale con las tres maquetas.
+2. [ ] Entra por la cola del Lobby (el embarcadero) en Rondas, con cola real, y vota al llegar.
+   ✅ La votación se abre al llegar, y el mapa votado es el que se juega.
+3. [ ] Deja que llegue el arranque automático de 60 s con la votación abierta, sin pulsar nada.
+   ✅ Al cerrarse la votación arranca la partida en el mapa elegido, sin que la votación quede colgada.
+4. [ ] En la revancha, con un mapa lejano elegido (la Azotea está a 2000 studs), mira dónde apareces.
+   ✅ Apareces en el mapa nuevo. Si tarda en llegar, se anota cuánto (el cliente recibe el mapa con un retraso).
+5. [ ] Al cerrarse la votación, mira la Salida por si sale el aviso «🗳️ Mapa: …».
+   ✅ Sale el aviso con el nombre del mapa elegido. (En la prueba anterior no se vio.)
+6. [ ] Al abrir el place, mira la consola de desarrollo (F9) por el aviso de `rbxassetid://203785492`.
+   ✅ Si sale, es el aviso de antes de L4b (×3 en el Studio); se anota y no se arregla en esta fase.
+
+#### 28.6 Para decidir (observaciones de diseño, sin prueba de juego)
+
+1. [ ] Alcantarillas: las líneas rectas de 46 a 61 studs, desde las bocas de los colectores en diagonal hacia el túnel principal (lo esperado es ≲35). Decide si se cortan con una pieza o se aceptan.
+   ✅ Queda anotada la decisión en `docs/LABORATORIO.md` §4.
+2. [ ] Alcantarillas: el paso norte y el sur miden justo 4,0 de ancho. Decide si se ensanchan o se quedan así.
+   ✅ Queda anotada la decisión, con dos personajes cruzándose en el paso para comprobarlo.
+3. [ ] Alcantarillas: el rincón de las esquinas de los colectores (36 celdas). Decide si se rellena o se deja.
+   ✅ Queda anotada la decisión.
+4. [ ] Alcantarillas: desde arriba (`OverheadHeight` 120, `OverheadBack` 0 y el `Techo` oculto), el relleno tapa hasta el 59 % del suelo del túnel norte y del sur. Decide si se sube la altura de la vista o se aparta el relleno.
+   ✅ Queda anotada la decisión.
+5. [ ] Panel de pruebas: los muñecos («Dummies») salen a y = 196 y 168 en el Laboratorio. No es de L4b. Decide si se corrige en `LabDebugService` aparte.
+   ✅ Queda anotada la decisión.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

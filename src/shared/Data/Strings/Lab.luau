@@ -77,4 +77,22 @@ return {
 	["Ningún compañero en pie"] = "No teammate standing",
 	["Puesto {place} de {total}"] = "Place {place} of {total}",
 	["🥇 {name} · {kills} bajas"] = "🥇 {name} · {kills} takedowns",
+
+	-- Mapas (L4b): nombres y alcance (Config.Lab.MapNames y MapRanges) y la caída al vacío.
+	["Laboratorio central"] = "Central Lab",
+	["Azotea de la torre"] = "Tower Rooftop",
+	["Alcantarillas"] = "Sewers",
+	["Media distancia"] = "Mid range",
+	["Larga distancia"] = "Long range",
+	["Corta distancia"] = "Short range",
+	["🪂 {attacker} tira a {victim} al vacío"] = "🪂 {attacker} knocks {victim} off the edge",
+	["🏙️ El mapa solo se cambia en la espera o en los resultados"] = "🏙️ The map can only change while waiting or on the results screen",
+	["🏙️ Solo hay un mapa"] = "🏙️ There is only one map",
+	["🏙️ Mapa: {name}"] = "🏙️ Map: {name}",
+	-- Votación del mapa (LabVoteService y LabMapVoteController).
+	["🗳️ Vota el mapa"] = "🗳️ Vote for the map",
+	["Se cierra en {seconds}"] = "Closes in {seconds}",
+	["Votos: {n}"] = "Votes: {n}",
+	["✅ Tu voto"] = "✅ Your vote",
+	["🗳️ Mapa: {name}"] = "🗳️ Map: {name}",
 }

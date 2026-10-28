@@ -229,6 +229,9 @@ local Remotes = {
 	-- Cliente -> servidor (Laboratorio): elegir arma (id de Data/LabWeapons) antes de la partida o
 	-- mientras espera para reaparecer. LabLoadoutService.
 	LabPickWeapon = remoteEvent("LabPickWeapon"),
+	-- Cliente -> servidor (Laboratorio): votar el mapa (id de Config.Lab.Maps) mientras la votación está
+	-- abierta, en la espera. LabVoteService.
+	LabMapVote = remoteEvent("LabMapVote"),
 }
 
 return Remotes

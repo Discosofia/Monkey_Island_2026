@@ -17,6 +17,7 @@
 -- solo entre ellos (lista de inclusión), no en todo el mapa.
 
 local CollectionService = game:GetService("CollectionService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -43,10 +44,24 @@ local isCombatant: { [Model]: boolean } = {}
 local dirty = true
 local started = false
 
+-- Los rayos del mundo (línea de visión, barridos) van en su propio grupo de colisión: una pieza con
+-- CanQuery en false pero que choca (los muros invisibles del Laboratorio) los frenaría igual, así que
+-- esas piezas van en un grupo que no choca con este (LabParts.registerGroups). Un grupo nuevo choca con
+-- todo por defecto: sin esos muros, en la Isla, Dunas y el Lobby, se comporta como Default.
+local SHOT_GROUP = Config.ShotCollisionGroup
+local okGroup = pcall(function()
+	if not PhysicsService:IsCollisionGroupRegistered(SHOT_GROUP) then
+		PhysicsService:RegisterCollisionGroup(SHOT_GROUP)
+	end
+end)
+
 local sightParams = RaycastParams.new()
 sightParams.FilterType = Enum.RaycastFilterType.Exclude
 sightParams.IgnoreWater = true
 sightParams.RespectCanCollide = true
+if okGroup then
+	sightParams.CollisionGroup = SHOT_GROUP
+end
 
 local overlapParams = OverlapParams.new()
 overlapParams.FilterType = Enum.RaycastFilterType.Include
@@ -210,6 +225,9 @@ local function castParams(ignore: { Instance }): RaycastParams
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
+	if okGroup then
+		params.CollisionGroup = SHOT_GROUP
+	end
 	return params
 end
 

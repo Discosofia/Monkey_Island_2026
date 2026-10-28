@@ -1,7 +1,9 @@
 --!strict
 -- Panel de pruebas del Laboratorio (solo Studio; Shared/DebugCommands.Laboratorio). En Studio no llega
 -- nadie del Lobby: con "Empezar ya" la partida arranca con un solo bando y no cuenta para nada ("Siguiente
--- modo" cambia entre los tres y "Punto para mí" suma uno según el modo); los muñecos de práctica (Combat/TrainingDummies) sirven de blanco a las distancias de la calculadora.
+-- modo" cambia entre los tres, "Siguiente mapa" entre los de Config.Lab.Maps, "Caerme del mapa" prueba la caída y
+-- "Punto para mí" suma uno según el modo); los muñecos de práctica (Combat/TrainingDummies) sirven de blanco a
+-- las distancias de la calculadora.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -15,7 +17,9 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local TrainingDummies = require(ServerScriptService.Combat.TrainingDummies)
 local LabMatchService = require(script.Parent.LabMatchService)
+local LabRespawnService = require(script.Parent.LabRespawnService)
 local LabTeamService = require(script.Parent.LabTeamService)
+local LabVoteService = require(script.Parent.LabVoteService)
 local LabWorldService = require(script.Parent.LabWorldService)
 
 local DUMMY_FOLDER = "MuñecosDePractica"
@@ -38,7 +42,10 @@ local function toggleDummies(player: Player)
 	local spots = {}
 	for index, distance in Config.Lab.TestDummyDistances do
 		-- Separados un poco a lo ancho, para que no se tapen entre ellos.
-		table.insert(spots, Vector3.new(spawn.X, 4, 0) + forward * distance + Vector3.new(0, 0, (index - 2) * 5))
+		table.insert(
+			spots,
+			Vector3.new(spawn.X, spawn.Y + 3.9, spawn.Z) + forward * distance + Vector3.new(0, 0, (index - 2) * 5)
+		)
 	end
 	TrainingDummies.place(spots, spawn)
 end
@@ -49,6 +56,9 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	SkipPhase = function()
 		LabMatchService.debugSkipPhase()
+	end,
+	CloseVote = function()
+		LabVoteService.debugCloseNow()
 	end,
 	NextFormat = function(player)
 		local format = LabMatchService.debugNextFormat()
@@ -64,6 +74,30 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			Remotes.Notify:FireClient(player, "🎮 Modo: {name}", { name = { Config.Lab.ModeNames[modeId] } })
 		else
 			Remotes.Notify:FireClient(player, "🎮 El modo solo se cambia en la espera o en los resultados")
+		end
+	end,
+	NextMap = function(player)
+		local phase = Arena.phase()
+		if phase ~= "Waiting" and phase ~= "Results" then
+			Remotes.Notify:FireClient(player, "🏙️ El mapa solo se cambia en la espera o en los resultados")
+			return
+		end
+		local maps = Config.Lab.Maps
+		if #maps < 2 then
+			Remotes.Notify:FireClient(player, "🏙️ Solo hay un mapa")
+			return
+		end
+		local index = table.find(maps, LabWorldService.currentMap()) or 0
+		local mapId = maps[index % #maps + 1]
+		LabWorldService.setMap(mapId)
+		LabRespawnService.respawnAll()
+		Remotes.Notify:FireClient(player, "🏙️ Mapa: {name}", { name = { Config.Lab.MapNames[mapId] } })
+	end,
+	-- Te baja 50 studs bajo el límite de caída del mapa, para probarla.
+	Fall = function(player)
+		local root = if player.Character then player.Character:FindFirstChild("HumanoidRootPart") else nil
+		if root and root:IsA("BasePart") then
+			root.CFrame = CFrame.new(root.Position.X, LabWorldService.fallY() - 50, root.Position.Z)
 		end
 	end,
 	Score = function(player)

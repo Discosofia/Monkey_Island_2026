@@ -96,9 +96,11 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Solo", label = "▶️ Empezar ya (solo, no cuenta)" },
 		{
 			id = "SkipPhase",
-			label = "⏭️ Saltar fase (en Rondas: primero la alarma, después el final de la ronda)",
+			label = "⏭️ Saltar fase (en la espera, primero cierra la votación; en Rondas: la alarma y el final de la ronda)",
 		},
+		{ id = "CloseVote", label = "🗳️ Cerrar la votación ya" },
 		{ id = "NextMode", label = "🎮 Siguiente modo (en la espera o los resultados)" },
+		{ id = "NextMap", label = "🏙️ Siguiente mapa (en la espera o los resultados)" },
 		{ id = "Score", label = "➕ Punto para mí (baja, punto de bando o ronda según el modo)" },
 		{ id = "NextFormat", label = "👥 Siguiente formato (1v1…5v5)" },
 		{ id = "SwitchTeam", label = "🏴‍☠️ Cambiar de bando (piratas/guardianes)" },
@@ -106,6 +108,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Die", label = "💀 Morir (ver el selector al reaparecer)" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "Hurt", label = "💔 Vida a 30 (ver cómo vuelve)" },
+		{ id = "Fall", label = "🪂 Caerme del mapa (muerte por caída, con baja si me hirieron hace poco)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 	},
 }

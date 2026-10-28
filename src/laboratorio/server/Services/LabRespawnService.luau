@@ -6,6 +6,9 @@
 --     Durante la partida cuenta la baja del que dispara y la caída del que cae ("ArenaKills" y
 --     "ArenaDeaths", Shared/Arena) y avisa a quien escuche (onKnockedOut: LabMatchService suma la baja
 --     al marcador del bando).
+--   - Caerse del mapa (por debajo de LabWorldService.fallY, comprobado cada FALL_CHECK_SECONDS): es una baja
+--     para el último que hirió a la víctima hace FallCreditSeconds o menos (CombatRules.onPvPHit →
+--     recordHit); sin nadie, es una muerte sin baja.
 --   - Reaparece a los RespawnSeconds en plena partida, o casi al momento antes y después ("RespawnAt"
 --     en el jugador dice cuándo; mientras, puede cambiar de arma, LabLoadoutService), en la zona de
 --     salida de su bando (LabWorldService; el bando lo da LabTeamService antes de la primera aparición).
@@ -30,6 +33,8 @@ local LabWorldService = require(script.Parent.LabWorldService)
 
 -- Antes de la partida (o en los resultados) se reaparece casi al momento.
 local QUICK_RESPAWN_SECONDS = 1
+-- Cada cuánto se mira si alguien ha caído del mapa.
+local FALL_CHECK_SECONDS = 0.2
 
 local LabRespawnService = {}
 
@@ -38,6 +43,9 @@ local pending: { [Player]: thread } = {}
 -- Hasta cuándo dura la protección de salida de cada uno (la misma hora que su "InvulnerableUntil").
 local protectedUntil: { [Player]: number } = {}
 local knockOutListeners: { (victim: Player, attacker: Player) -> () } = {}
+-- El último que hirió a cada jugador y cuándo (os.clock), para acreditar las caídas.
+local lastHit: { [Player]: { attacker: Player, at: number } } = {}
+local fallClock = 0
 
 -- Llama a "callback" cuando un rival derriba a un jugador en plena partida.
 function LabRespawnService.onKnockedOut(callback: (victim: Player, attacker: Player) -> ())
@@ -60,18 +68,42 @@ local function roundInProgress(): boolean
 	return LabModes.isRounds() and Arena.inBattle()
 end
 
--- Golpe mortal de "attacker" (o de nada: caída, etc.). Lo registra el place en CombatRules.
-function LabRespawnService.knockOut(victim: Player, attacker: Player?, _cause: string)
+-- "attacker" ha herido a "victim" (CombatRules.onPvPHit: golpes, veneno y golpe mortal).
+function LabRespawnService.recordHit(attacker: Player, victim: Player, _amount: number)
+	if attacker ~= victim then
+		lastHit[victim] = { attacker = attacker, at = os.clock() }
+	end
+end
+
+-- Quien hirió a "victim" hace Config.Lab.FallCreditSeconds o menos y sigue en el servidor, o nil.
+local function recentAttacker(victim: Player): Player?
+	local hit = lastHit[victim]
+	if hit and os.clock() - hit.at <= Config.Lab.FallCreditSeconds and hit.attacker.Parent ~= nil then
+		return hit.attacker
+	end
+	return nil
+end
+
+-- Golpe mortal de "attacker" (o de nada: caída, etc.). Lo registra el place en CombatRules. La causa "Fall"
+-- (caída del mapa) con atacante cuenta como baja y avisa de que lo ha tirado.
+function LabRespawnService.knockOut(victim: Player, attacker: Player?, cause: string)
 	local humanoid = if victim.Character then victim.Character:FindFirstChildOfClass("Humanoid") else nil
 	if not humanoid or humanoid.Health <= 0 then
 		return
 	end
 	if attacker and attacker ~= victim and Arena.inBattle() then
 		addStat(attacker, "ArenaKills")
-		Remotes.Notify:FireAllClients("⚔️ {attacker} derriba a {victim}", {
-			attacker = label(attacker),
-			victim = label(victim),
-		})
+		if cause == "Fall" then
+			Remotes.Notify:FireAllClients("🪂 {attacker} tira a {victim} al vacío", {
+				attacker = label(attacker),
+				victim = label(victim),
+			})
+		else
+			Remotes.Notify:FireAllClients("⚔️ {attacker} derriba a {victim}", {
+				attacker = label(attacker),
+				victim = label(victim),
+			})
+		end
 		for _, listener in knockOutListeners do
 			task.spawn(listener, victim, attacker)
 		end
@@ -132,6 +164,7 @@ end
 local function onCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
+	lastHit[player] = nil
 	LabTeamService.prepareCharacter(player, character)
 	humanoid.MaxHealth = Config.Lab.Health
 	humanoid.Health = Config.Lab.Health
@@ -192,6 +225,24 @@ local function regenerate(deltaTime: number)
 	end
 end
 
+-- Quien cae por debajo del mapa (LabWorldService.fallY) queda sin vida; con un atacante reciente, es su baja.
+local function checkFalls(deltaTime: number)
+	fallClock += deltaTime
+	if fallClock < FALL_CHECK_SECONDS then
+		return
+	end
+	fallClock = 0
+	local fallY = LabWorldService.fallY()
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") and root.Position.Y < fallY then
+			LabRespawnService.knockOut(player, recentAttacker(player), "Fall")
+		end
+	end
+end
+
 local function onPlayer(player: Player)
 	player.CharacterAdded:Connect(function(character)
 		onCharacter(player, character)
@@ -221,9 +272,11 @@ function LabRespawnService:Start()
 		pending[player] = nil
 		lastHurtAt[player] = nil
 		protectedUntil[player] = nil
+		lastHit[player] = nil
 	end)
 	Remotes.UseWeapon.OnServerEvent:Connect(dropProtection)
 	RunService.Heartbeat:Connect(regenerate)
+	RunService.Heartbeat:Connect(checkFalls)
 end
 
 return LabRespawnService

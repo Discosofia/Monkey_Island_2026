@@ -62,6 +62,9 @@ export type Rules = {
 	isSafe: (player: Player) -> boolean,
 	-- Un golpe deja a "player" sin vida. "attacker": el jugador que lo ha hecho (PvP) o nil.
 	knockOut: (player: Player, attacker: Player?, cause: string) -> (),
+	-- "attacker" ha herido a "victim" con "amount" de daño (golpes, veneno y golpe mortal; ya pasado el
+	-- escudo). Por defecto no hace nada; el Laboratorio anota al último atacante para las caídas.
+	onPvPHit: (attacker: Player, victim: Player, amount: number) -> (),
 	-- Gasta una unidad de munición ("itemId", Data/Items). false si no le queda: no dispara.
 	useAmmo: (player: Player, itemId: string) -> boolean,
 	-- Gasta una munición opcional que mejora el disparo (los dardos venenosos). false si no tiene.
@@ -123,6 +126,7 @@ local rules: Rules = {
 			humanoid.Health = 0
 		end
 	end,
+	onPvPHit = nothing,
 	useAmmo = always,
 	useBoost = never,
 	strikeResource = nothing,
