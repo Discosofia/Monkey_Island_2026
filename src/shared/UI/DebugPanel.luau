@@ -11,9 +11,10 @@ local Widgets = require(script.Parent.Widgets)
 
 local DebugPanel = {}
 
-function DebugPanel.start(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
+-- Devuelve la lista de órdenes (nil fuera de Studio), por si el place quiere saber cuándo se abre.
+function DebugPanel.start(place: "Island" | "Lobby" | "Dunas" | "Laboratorio"): ScrollingFrame?
 	if not RunService:IsStudio() then
-		return
+		return nil
 	end
 	local gui = Widgets.screen("DebugPanel", Players.LocalPlayer:WaitForChild("PlayerGui"))
 	gui.DisplayOrder = 20
@@ -62,6 +63,7 @@ function DebugPanel.start(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 	toggle.MouseButton1Click:Connect(function()
 		list.Visible = not list.Visible
 	end)
+	return list
 end
 
 return DebugPanel

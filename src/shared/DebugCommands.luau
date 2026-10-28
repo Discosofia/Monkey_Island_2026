@@ -93,7 +93,12 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 	},
 	Laboratorio = {
-		{ id = "Faction", label = "🏴‍☠️ Cambiar de facción (piratas/guardianes)" },
+		{ id = "Solo", label = "▶️ Empezar ya (solo, no cuenta)" },
+		{ id = "SkipPhase", label = "⏭️ Saltar fase" },
+		{ id = "NextFormat", label = "👥 Siguiente formato (1v1…5v5)" },
+		{ id = "SwitchTeam", label = "🏴‍☠️ Cambiar de bando (piratas/guardianes)" },
+		{ id = "Dummies", label = "🎯 Muñecos delante (15, 50 y 120 studs)" },
+		{ id = "Die", label = "💀 Morir (ver el selector al reaparecer)" },
 		{ id = "Heal", label = "❤️ Curar" },
 		{ id = "Hurt", label = "💔 Vida a 30 (ver cómo vuelve)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },

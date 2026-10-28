@@ -1276,6 +1276,58 @@ Probado en el Studio de Dunas (las armas del Laboratorio, dadas desde el servido
 2. [ ] Dispara tocando la pantalla y mueve la cámara arrastrando.
    ✅ En primera persona se apunta y se dispara con comodidad; el arma no tapa los botones ni la cruz.
 
+## 25. Lo que queda por probar de L2: el Laboratorio central y el duelo por equipos (27-10-2026)
+
+Probado en el Studio del Laboratorio por MCP con un jugador:
+- `LabBuilder.build()` monta el mapa.
+- Apareces en la zona de tu bando con el selector abierto, y el arma elegida llega a la mano y a la primera persona.
+- «Empezar ya» abre las compuertas.
+- Al morir sale el selector con la cuenta atrás, y reapareces con el arma nueva y la protección.
+- El derrumbe cierra el invernadero en 1v1 y 2v2.
+- La barrera de los Guardianes para a un pirata en su boca (x = 63,7) y deja entrar al pirata en la suya.
+- Los resultados salen sin Ámbar ni 🚩 y con el ratón suelto.
+- La revancha reparte los bandos otra vez y conserva el arma.
+
+La sala de pruebas de la L1 ya no existe: los muñecos salen con «🎯 Muñecos delante» del panel. Para pulsar el panel, Ctrl (no Alt: en Studio, Alt enciende la vista del esqueleto del personaje).
+
+#### 25.1 En el Studio del Laboratorio, con el ratón de verdad
+
+1. [ ] Play. Con el selector abierto, mueve el ratón y pulsa una tarjeta.
+   ✅ El cursor se ve y se mueve libre (sin la cruz), la tarjeta se marca en dorado y el arma cambia. Al plegar con «—», el ratón vuelve al centro y aparece «Cambiar de arma».
+2. [ ] Pulsa Ctrl, abre «🛠️ Pruebas» y pulsa una orden. Pulsa Ctrl otra vez.
+   ✅ Con Ctrl se suelta el ratón y abajo pone «Ctrl: volver a apuntar». El segundo Ctrl cierra la lista y vuelves a apuntar con la cruz. Con el selector de arma o los resultados abiertos, Ctrl no bloquea el ratón y el aviso no sale.
+3. [ ] Recorre el mapa: la pasarela por sus dos escaleras, los tres carriles y las dos zonas.
+   ✅ No se sube a ningún muro ni se sale del mapa (techo invisible). Los disparos pasan entre los barrotes de las jaulas y por las plataneras del invernadero, y los paran los bancales, los tanques y las cajas.
+4. [ ] En el Studio de Dunas: «Empezar ya» y «Saltar fase» hasta los resultados.
+   ✅ La ventana de resultados es la de siempre, con 🚩, los altares y la línea del Ámbar (la ventana pasó a `Shared/UI/MatchResults`).
+
+#### 25.2 Con 2 jugadores (Test → Clientes y servidores con 2)
+
+1. [ ] Play con 2 jugadores, los dos «¡Listo!».
+   ✅ Cada uno sale en un bando y empieza la cuenta atrás de 10 s. Durante la espera nadie sale de su zona.
+2. [ ] Disparaos en plena partida, también desde dentro de una zona de salida y a alguien que está dentro de la suya.
+   ✅ Fuera de las zonas el daño entra. Dentro de una zona ni se hace ni se recibe daño. A los del mismo bando no se les hace daño (con 3 jugadores).
+3. [ ] Intenta entrar en la zona del rival.
+   ✅ Su barrera te para; la tuya te deja pasar en los dos sentidos.
+4. [ ] Mata al otro 10 veces (1v1).
+   ✅ Cada baja suma 1 al marcador de tu bando. A las 10 sale «🏆 ¡Gana el bando …!», con los resultados para los dos (victoria para uno y derrota para el otro).
+5. [ ] Deja que acaben los 6 min empatados.
+   ✅ «⚡ ¡Empate! Muerte súbita», y la siguiente baja gana.
+6. [ ] Que uno se vaya en plena partida.
+   ✅ Gana el bando que queda.
+
+#### 25.3 En el emulador de teléfono
+
+1. [ ] Abre el selector en un teléfono apaisado.
+   ✅ Las 4 tarjetas caben en una fila sin desplazarse, más bajas y sin la descripción. Se pulsa con el dedo, y «¡Listo!» y el marcador no se tapan.
+
+#### 25.4 En el juego publicado
+
+1. [ ] Entra solo en el Laboratorio (sin rival) y espera 60 s.
+   ✅ «No llegó el otro bando: vuelven al Lobby», y viajas al Lobby.
+2. [ ] En los resultados, «🏝️ Volver al Lobby».
+   ✅ Viajas al Lobby.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

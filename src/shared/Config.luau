@@ -1127,8 +1127,31 @@ local Config = {
 		AcidPuddleSeconds = 3,
 		-- Rifle: campo de visión (grados) mientras se mantiene apuntado.
 		RifleZoomFieldOfView = 30,
-		-- Sala de pruebas del place mientras no hay mapa (L1; LabWorldService).
+		-- Muñecos del panel de pruebas (LabDebugService): delante del jugador, a las distancias de la
+		-- calculadora (corta, media y larga).
 		TestDummyDistances = { 15, 50, 120 },
+		-- Los dos bandos (Shared/Arena.configure; el id es también la facción de las armas, "LabFaction"):
+		-- nombre, icono y color (marcador, barreras de salida, resultados). Sin verde, morado ni rojo.
+		Teams = {
+			Pirates = { name = "Piratas", icon = "🏴‍☠️", color = Color3.fromRGB(234, 194, 80) },
+			Guardians = { name = "Guardianes", icon = "🥼", color = Color3.fromRGB(40, 115, 215) },
+		},
+		TeamOrder = { "Pirates", "Guardians" }, -- en el marcador: los piratas (oeste) a la izquierda
+		-- Duelo por equipos (L2, docs/LABORATORIO.md §3; LabMatchService). Jugadores por equipo: llega
+		-- del Lobby con el viaje ("format" en TeleportData); en Studio, StudioFormat (el panel lo cambia).
+		-- Gana el primero en llegar a KillsToWin[formato] bajas, o el que más tenga a los MatchSeconds;
+		-- con empate, la siguiente baja gana. Antes, como en Dunas: si todos pulsan "Listo", cuenta
+		-- atrás; si no, a los WaitSeconds de llegar el primero.
+		StudioFormat = 1,
+		KillsToWin = { 10, 15, 20, 25, 30 },
+		MatchSeconds = 6 * 60,
+		WaitSeconds = 60,
+		CountdownSeconds = 10,
+		ResultsSeconds = 20,
+		-- Hasta qué formato se cierra el invernadero con el derrumbe (LabWorldService).
+		CollapseUpToFormat = 2,
+		-- Arma de quien aún no ha elegido (id de Data/LabWeapons).
+		DefaultWeapon = "LabDartGun",
 	},
 
 	Supply = {

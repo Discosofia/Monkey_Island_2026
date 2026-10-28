@@ -8,6 +8,14 @@
 --     manos, pegada a la cámara abajo a la derecha. Con el rifle acercado (WeaponController) se centra
 --     para apuntar por la mira, y cada disparo la echa un poco atrás (retroceso).
 -- Los demás ven el arma en la mano del personaje, con sus animaciones de siempre.
+-- El ratón va bloqueado en el centro. Para pulsar una ventana (el selector de arma, los resultados, el
+-- panel de pruebas) se suelta con freeCursor: mientras alguien lo pida, un botón invisible con Modal deja
+-- el ratón libre (es lo que respeta la cámara de Roblox), se ve el cursor y se esconde la mira. En PC,
+-- Ctrl lo suelta y lo vuelve a bloquear a mano: la misma tecla que bloquea el ratón en el centro en la
+-- Isla y el Lobby (CameraLockController, que aquí no se carga). No Alt: en Studio, Alt es un atajo que
+-- dibuja el esqueleto del personaje, y en Windows activa el menú. Con el ratón suelto, Ctrl vuelve a apuntar
+-- siempre: también cierra lo que se puede cerrar (el panel de pruebas, onLockRequested). Solo el selector
+-- de arma y los resultados lo tienen suelto mientras están abiertos (needsCursor).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -48,6 +56,16 @@ local heldTool: Tool? = nil
 local shownKey: string? = nil
 local recoil = 0
 local normalFieldOfView = 70
+-- Teclas para soltar y volver a bloquear el ratón a mano.
+local CURSOR_KEYS = { [Enum.KeyCode.LeftControl] = true, [Enum.KeyCode.RightControl] = true }
+-- Quién pide ahora el ratón libre (el selector, los resultados, la tecla Ctrl…).
+local cursorReasons: { [string]: true } = {}
+local cursorGui: ScreenGui? = nil
+local crosshairGui: ScreenGui? = nil
+local cursorChangedListeners: { (free: boolean) -> () } = {}
+local lockRequestedListeners: { () -> () } = {}
+-- Las ventanas que necesitan el ratón mientras están abiertas (Ctrl no se lo quita).
+local WINDOW_REASONS = { Loadout = true, Results = true }
 
 local function clearViewModel()
 	if viewModel then
@@ -157,12 +175,72 @@ local function refresh(player: Player)
 	shownKey = key
 end
 
+local function isCursorFree(): boolean
+	return next(cursorReasons) ~= nil
+end
+
+-- true mientras el ratón va suelto.
+function FirstPersonController.isCursorFree(): boolean
+	return isCursorFree()
+end
+
+-- true si una ventana que se pulsa (el selector, los resultados) tiene el ratón suelto.
+function FirstPersonController.needsCursor(): boolean
+	for reason in cursorReasons do
+		if WINDOW_REASONS[reason] then
+			return true
+		end
+	end
+	return false
+end
+
+-- Llama a "callback" cuando se pulsa Ctrl para volver a apuntar: cierra lo suyo (el panel de pruebas).
+function FirstPersonController.onLockRequested(callback: () -> ())
+	table.insert(lockRequestedListeners, callback)
+end
+
+-- Llama a "callback" cada vez que el ratón se suelta o se vuelve a bloquear.
+function FirstPersonController.onCursorChanged(callback: (free: boolean) -> ())
+	table.insert(cursorChangedListeners, callback)
+end
+
+-- Suelta el ratón ("on" true) o deja de pedirlo, por "reason" (cada ventana el suyo).
+function FirstPersonController.freeCursor(reason: string, on: boolean)
+	local wasFree = isCursorFree()
+	cursorReasons[reason] = if on then true else nil
+	local free = isCursorFree()
+	if not cursorGui then
+		local gui = Widgets.screen("RatonLibre", Players.LocalPlayer:WaitForChild("PlayerGui"))
+		local button = Instance.new("TextButton")
+		button.Name = "Modal"
+		button.Size = UDim2.fromOffset(1, 1)
+		button.BackgroundTransparency = 1
+		button.Text = ""
+		button.Modal = true
+		button.Parent = gui
+		cursorGui = gui
+	end
+	local gui = cursorGui :: ScreenGui
+	gui.Enabled = free
+	UserInputService.MouseIconEnabled = free
+	if crosshairGui then
+		crosshairGui.Enabled = not free
+	end
+	if free ~= wasFree then
+		for _, listener in cursorChangedListeners do
+			task.spawn(listener, free)
+		end
+	end
+end
+
 -- Cruz fija en el centro de la pantalla (sin el cursor de Roblox). Blanca con borde oscuro: se ve en
 -- cualquier fondo y no usa los colores con significado.
 local function crosshair(player: Player)
 	local gui = Widgets.screen("Mira", player:WaitForChild("PlayerGui"))
 	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 5
+	gui.Enabled = not isCursorFree()
+	crosshairGui = gui
 	local function bar(size: UDim2, offset: UDim2)
 		local frame = Instance.new("Frame")
 		frame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -220,8 +298,21 @@ end
 
 function FirstPersonController:Start()
 	local player = Players.LocalPlayer
-	UserInputService.MouseIconEnabled = false
+	UserInputService.MouseIconEnabled = isCursorFree()
 	crosshair(player)
+	UserInputService.InputBegan:Connect(function(input)
+		if not CURSOR_KEYS[input.KeyCode] or UserInputService:GetFocusedTextBox() then
+			return
+		end
+		if isCursorFree() then
+			FirstPersonController.freeCursor("Key", false)
+			for _, listener in lockRequestedListeners do
+				task.spawn(listener)
+			end
+		else
+			FirstPersonController.freeCursor("Key", true)
+		end
+	end)
 	local camera = Workspace.CurrentCamera
 	if camera then
 		normalFieldOfView = camera.FieldOfView

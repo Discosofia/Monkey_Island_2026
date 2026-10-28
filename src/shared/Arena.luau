@@ -1,17 +1,22 @@
 --!strict
--- Estado de la partida de la arena de Dunas (captura la bandera), que lee cualquiera y solo cambia
--- el servidor (ArenaMatchService, TeamService…). Va en atributos para que llegue solo a los clientes:
+-- Estado de una partida por equipos, que lee cualquiera y solo cambia el servidor: la arena de Dunas
+-- (captura la bandera; ArenaMatchService, TeamService…) y el duelo por equipos del Laboratorio
+-- (LabMatchService, LabTeamService…). Cada place tiene sus dos equipos: Dunas, los de
+-- Config.Arena.Teams (los de siempre, sin llamar a nada); el Laboratorio llama a Arena.configure con
+-- los suyos en el Init de un servicio y de un controlador, antes de que nadie lea los equipos.
+-- Va en atributos para que llegue solo a los clientes:
 --   ReplicatedStorage:
 --     "ArenaPhase"        fase (Phase, abajo)
 --     "ArenaPhaseEndsAt"  hora del servidor en que acaba la fase (nil si no tiene fin fijo)
 --     "ArenaFormat"       jugadores por equipo (1..5)
---     "ArenaScore_<id>"   capturas de cada equipo
+--     "ArenaScore_<id>"   puntos de cada equipo (capturas en Dunas, bajas en el Laboratorio)
 --     "ArenaWinner"       equipo ganador en los resultados ("" si es empate)
 --   Jugador:
---     "Team"              equipo ("Jaguar" | "Quetzal"), nil mientras no elige
+--     "Team"              equipo (un id de Arena.TEAM_IDS), nil mientras no tiene
 --     "ArenaReady"        ha pulsado "Listo"
 --     "RespawnAt"         hora del servidor en que reaparece (nil si está vivo)
---     "ArenaKills", "ArenaDeaths", "ArenaCaptures"  sus números de esta partida
+--     "ArenaKills", "ArenaDeaths", "ArenaCaptures"  sus números de esta partida (sin capturas en el
+--                         Laboratorio)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,7 +31,21 @@ export type Phase = "Waiting" | "Countdown" | "Battle" | "SuddenDeath" | "Result
 
 local Arena = {}
 
+export type Team = { name: string, icon: string, color: Color3 }
+
+-- Los dos equipos del place: el orden de TEAM_IDS es el del marcador (el primero, a la izquierda).
 Arena.TEAM_IDS = { "Jaguar", "Quetzal" }
+Arena.TEAMS = Config.Arena.Teams :: { [string]: Team }
+
+-- Cambia los equipos del place. Se rellenan las tablas en el sitio: quien guardó TEAM_IDS o TEAMS al
+-- cargar ve los nuevos.
+function Arena.configure(teams: { [string]: Team }, teamIds: { string })
+	table.clear(Arena.TEAM_IDS)
+	for _, teamId in teamIds do
+		table.insert(Arena.TEAM_IDS, teamId)
+	end
+	Arena.TEAMS = teams
+end
 
 function Arena.phase(): Phase
 	local phase = ReplicatedStorage:GetAttribute("ArenaPhase")
@@ -54,7 +73,7 @@ function Arena.format(): number
 end
 
 function Arena.isTeam(teamId: any): boolean
-	return typeof(teamId) == "string" and Config.Arena.Teams[teamId] ~= nil
+	return typeof(teamId) == "string" and Arena.TEAMS[teamId] ~= nil
 end
 
 function Arena.teamOf(player: Player): string?
@@ -63,7 +82,8 @@ function Arena.teamOf(player: Player): string?
 end
 
 function Arena.otherTeam(teamId: string): string
-	return if teamId == "Jaguar" then "Quetzal" else "Jaguar"
+	local first, second = Arena.TEAM_IDS[1], Arena.TEAM_IDS[2]
+	return if teamId == first then second else first
 end
 
 function Arena.membersOf(teamId: string): { Player }

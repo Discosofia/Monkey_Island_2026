@@ -7,9 +7,9 @@ Diseño de la tanda T9 de los pedidos del 26-10-2026 (punto 13), decidido en la 
 Un **shooter por equipos** en el laboratorio del Proyecto PRIMAL, en ruinas entre los rascacielos comidos por la selva de la **Ciudad Perdida** (la isla del noroeste que se ve desde el Lobby, GDD §7.1). Se enfrentan dos bandos:
 
 - **Piratas invasores** 🏴‍☠️: vienen a saquear el suero. Pañuelo, parche y armas con latón y madera. Color del bando: **dorado y negro**.
-- **Guardianes del laboratorio** 🧪: el personal de seguridad que se quedó. Bata, casco y armas blancas con franja **azul**.
+- **Guardianes del laboratorio** 🥼: el personal de seguridad que se quedó. Bata, casco y armas blancas con franja **azul**.
 
-Los colores de los bandos no usan el verde (curación), el morado (veneno) ni el rojo (daño recibido).
+Los colores de los bandos no usan el verde (curación), el morado (veneno) ni el rojo (daño recibido). El icono de los Guardianes es 🥼 y no 🧪, que ya es de una mascota (un icono, una sola cosa); 🧪 se queda en el nombre del place.
 
 Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y una pelea dura 8–10 s; aquí **todos empiezan igual**, solo cuenta el arma y la puntería, y una pelea dura 1,5–2,5 s.
 
@@ -87,7 +87,7 @@ Se eligen **en la cola**, junto con el formato. Todos duran como mucho **6 minut
 | **Alcantarillas** | 140 × 100 studs | Túneles estrechos bajo el laboratorio, con agua hasta los tobillos (no ralentiza), compuertas oxidadas, tuberías que gotean suero y una sala de bombas en el centro. | Corta distancia: el arpón y el suero |
 
 - En **1v1 y 2v2** se cierra una parte de cada mapa con un derrumbe (el invernadero, el nivel bajo de la azotea y un túnel lateral), como los pasillos de Dunas.
-- Cada bando tiene una **zona de salida** cerrada por una barrera que solo deja salir: nadie puede entrar en la del rival ni disparar dentro.
+- Cada bando tiene una **zona de salida** cerrada por una barrera que solo deja salir: nadie puede entrar en la del rival. Dentro de una zona nadie hace ni recibe daño: ni se dispara a quien está dentro ni desde dentro (así no se puede disparar a cubierto desde la propia zona). Antes de la partida, una compuerta la cierra para todos.
 - Coberturas que **no se rompen** (en un shooter rápido, una cobertura que desaparece deja a todos al descubierto). Barreras invisibles en los bordes y en los techos.
 - Los tres son **voxel** y comparten paleta: hormigón gris, metal oxidado, cristal azulado roto (nunca verde brillante, que es el color de la curación), cables y la selva entrando por las grietas. Se generan con un `World/LabBuilder` con versión, como `ArenaBuilder`.
 

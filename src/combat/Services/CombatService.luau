@@ -1177,6 +1177,22 @@ local function roleWeapons(player: Player): { string }
 	return CombatRules.get().roleWeapons(player) or Roles[Progression.validRole(player:GetAttribute("Role"))].weapons
 end
 
+-- Cambia las armas del rol por las que digan ahora las reglas del place (CombatRules.roleWeapons o
+-- el rol): en StarterGear, en la mochila y en la mano. Al cambiar de rol, y en el Laboratorio al
+-- elegir arma (LabLoadoutService).
+function CombatService.refreshRoleWeapons(player: Player)
+	local containers: { Instance? } =
+		{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), player.Character }
+	for _, container in containers do
+		for _, child in if container then container:GetChildren() else {} do
+			if child:IsA("Tool") and child:GetAttribute("RoleWeapon") == true then
+				child:Destroy()
+			end
+		end
+	end
+	giveWeapons(player, roleWeapons(player), true)
+end
+
 local function giveStarterWeapons(player: Player)
 	-- El rol lo publica RoleService al cargar los datos guardados (si el place da armas de rol).
 	local deadline = os.clock() + 15
@@ -1194,16 +1210,7 @@ local function giveStarterWeapons(player: Player)
 	giveWeapons(player, roleWeapons(player), true)
 	giveWeapons(player, CombatRules.get().starterTools(player), false)
 	player:GetAttributeChangedSignal("Role"):Connect(function()
-		local containers: { Instance? } =
-			{ player:FindFirstChild("StarterGear"), player:FindFirstChildOfClass("Backpack"), player.Character }
-		for _, container in containers do
-			for _, child in if container then container:GetChildren() else {} do
-				if child:IsA("Tool") and child:GetAttribute("RoleWeapon") == true then
-					child:Destroy()
-				end
-			end
-		end
-		giveWeapons(player, roleWeapons(player), true)
+		CombatService.refreshRoleWeapons(player)
 	end)
 end
 

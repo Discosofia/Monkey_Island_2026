@@ -2,19 +2,28 @@
 -- Vida y reaparición en el Laboratorio (Fase 13, como RespawnService de Dunas): no hay caídos.
 --   - Todos con Config.Lab.Health de vida, que vuelve sola tras RegenDelaySeconds sin recibir daño (el
 --     script "Health" de Roblox está quitado).
---   - Un golpe mortal (CombatRules.knockOut) cuenta la baja y deja al jugador sin vida; también vale
---     caerse del mapa. Reaparece a los RespawnSeconds ("RespawnAt" en el jugador dice cuándo) en el
---     punto de salida (LabWorldService).
---   - Al aparecer tiene SpawnProtectionSeconds sin recibir daño, que pierde al disparar.
+--   - Un golpe mortal (CombatRules.knockOut) deja al jugador sin vida; también vale caerse del mapa.
+--     Durante la partida cuenta la baja del que dispara y la caída del que cae ("ArenaKills" y
+--     "ArenaDeaths", Shared/Arena) y avisa a quien escuche (onKnockedOut: LabMatchService suma la baja
+--     al marcador del bando).
+--   - Reaparece a los RespawnSeconds en plena partida, o casi al momento antes y después ("RespawnAt"
+--     en el jugador dice cuándo; mientras, puede cambiar de arma, LabLoadoutService), en la zona de
+--     salida de su bando (LabWorldService; el bando lo da LabTeamService antes de la primera aparición).
+--   - Al aparecer en plena partida tiene SpawnProtectionSeconds sin recibir daño, que pierde al disparar.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local LabTeamService = require(script.Parent.LabTeamService)
 local LabWorldService = require(script.Parent.LabWorldService)
+
+-- Antes de la partida (o en los resultados) se reaparece casi al momento.
+local QUICK_RESPAWN_SECONDS = 1
 
 local LabRespawnService = {}
 
@@ -22,10 +31,21 @@ local lastHurtAt: { [Player]: number } = {}
 local pending: { [Player]: thread } = {}
 -- Hasta cuándo dura la protección de salida de cada uno (la misma hora que su "InvulnerableUntil").
 local protectedUntil: { [Player]: number } = {}
+local knockOutListeners: { (victim: Player, attacker: Player) -> () } = {}
+
+-- Llama a "callback" cuando un rival derriba a un jugador en plena partida.
+function LabRespawnService.onKnockedOut(callback: (victim: Player, attacker: Player) -> ())
+	table.insert(knockOutListeners, callback)
+end
 
 local function addStat(player: Player, attribute: string)
 	local value = player:GetAttribute(attribute)
 	player:SetAttribute(attribute, (if typeof(value) == "number" then value else 0) + 1)
+end
+
+local function teamIcon(player: Player): string
+	local teamId = Arena.teamOf(player)
+	return if teamId then Arena.TEAMS[teamId].icon else ""
 end
 
 -- Golpe mortal de "attacker" (o de nada: caída, etc.). Lo registra el place en CombatRules.
@@ -34,16 +54,20 @@ function LabRespawnService.knockOut(victim: Player, attacker: Player?, _cause: s
 	if not humanoid or humanoid.Health <= 0 then
 		return
 	end
-	if attacker and attacker ~= victim then
-		addStat(attacker, "LabKills")
-		Remotes.Notify:FireAllClients(
-			"⚔️ {attacker} derriba a {victim}",
-			{ attacker = attacker.DisplayName, victim = victim.DisplayName }
-		)
+	if attacker and attacker ~= victim and Arena.inBattle() then
+		addStat(attacker, "ArenaKills")
+		Remotes.Notify:FireAllClients("⚔️ {attacker} derriba a {victim}", {
+			attacker = `{teamIcon(attacker)} {attacker.DisplayName}`,
+			victim = `{teamIcon(victim)} {victim.DisplayName}`,
+		})
+		for _, listener in knockOutListeners do
+			task.spawn(listener, victim, attacker)
+		end
 	end
 	humanoid.Health = 0
 end
 
+-- Vuelve a cargar el personaje (aparece en su zona de salida por onCharacter).
 function LabRespawnService.respawnNow(player: Player)
 	local thread = pending[player]
 	if thread then
@@ -52,20 +76,40 @@ function LabRespawnService.respawnNow(player: Player)
 	end
 	player:SetAttribute("RespawnAt", nil)
 	if player.Parent then
+		LabTeamService.ensureTeam(player)
 		player:LoadCharacter()
 	end
+end
+
+-- Todos de vuelta a su zona de salida (al empezar la partida y al volver a la espera).
+function LabRespawnService.respawnAll()
+	for _, player in Players:GetPlayers() do
+		task.spawn(LabRespawnService.respawnNow, player)
+	end
+end
+
+local function scheduleRespawn(player: Player)
+	local seconds = if Arena.inBattle() then Config.Lab.RespawnSeconds else QUICK_RESPAWN_SECONDS
+	player:SetAttribute("RespawnAt", Workspace:GetServerTimeNow() + seconds)
+	pending[player] = task.delay(seconds, function()
+		pending[player] = nil
+		LabRespawnService.respawnNow(player)
+	end)
 end
 
 local function onCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
+	LabTeamService.prepareCharacter(player, character)
 	humanoid.MaxHealth = Config.Lab.Health
 	humanoid.Health = Config.Lab.Health
-	character:PivotTo(LabWorldService.spawnCFrame())
+	character:PivotTo(LabWorldService.spawnCFrame(Arena.teamOf(player)))
 	root.AssemblyLinearVelocity = Vector3.zero
-	local untilTime = Workspace:GetServerTimeNow() + Config.Lab.SpawnProtectionSeconds
-	protectedUntil[player] = untilTime
-	player:SetAttribute("InvulnerableUntil", untilTime)
+	if Arena.inBattle() then
+		local untilTime = Workspace:GetServerTimeNow() + Config.Lab.SpawnProtectionSeconds
+		protectedUntil[player] = untilTime
+		player:SetAttribute("InvulnerableUntil", untilTime)
+	end
 	local lastHealth = humanoid.Health
 	humanoid.HealthChanged:Connect(function(health)
 		if health < lastHealth then
@@ -74,16 +118,12 @@ local function onCharacter(player: Player, character: Model)
 		lastHealth = health
 	end)
 	humanoid.Died:Connect(function()
-		addStat(player, "LabDeaths")
-		if pending[player] then
-			return
+		if Arena.inBattle() then
+			addStat(player, "ArenaDeaths")
 		end
-		local seconds = Config.Lab.RespawnSeconds
-		player:SetAttribute("RespawnAt", Workspace:GetServerTimeNow() + seconds)
-		pending[player] = task.delay(seconds, function()
-			pending[player] = nil
-			LabRespawnService.respawnNow(player)
-		end)
+		if not pending[player] then
+			scheduleRespawn(player)
+		end
 	end)
 end
 
@@ -119,7 +159,7 @@ local function onPlayer(player: Player)
 	if player.Character then
 		task.spawn(onCharacter, player, player.Character)
 	else
-		player:LoadCharacter()
+		LabRespawnService.respawnNow(player)
 	end
 end
 
