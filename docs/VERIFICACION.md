@@ -1204,7 +1204,7 @@ Probado en Studio (1 jugador, Dunas, con el panel de pruebas), en English y en E
    ✅ «⚔️ 3 monkeys are coming for you! …» (con uno, «A monkey is coming for you!»), «🏹 2 prey marked for … s», «⛑️ Healing totem for … s» y «⛑️ Resurgence! You healed and cleansed 1 player».
 2. [ ] Dispara un arma a distancia sin munición.
    ✅ «You need … to use: …» (los nombres, en español hasta la I1e).
-3. [ ] En el Lobby, mira los muñecos de práctica.
+3. [x] En el Lobby, mira los muñecos de práctica (probado en la I1e).
    ✅ Sobre la cabeza, «Practice dummy» y «Sparring dummy».
 
 #### 22.3 Con 2 jugadores en Dunas (Prueba → Clientes y servidores → 2 jugadores)
@@ -1215,6 +1215,33 @@ Probado en Studio (1 jugador, Dunas, con el panel de pruebas), en English y en E
    ✅ «Your team already has too many of this role: …» / «Ya hay demasiados … en tu equipo» y «Team … is already full» / «El equipo … ya está completo», cada uno en su idioma.
 3. [ ] Con el médico, lanza el escudo de hojas a tu compañero.
    ✅ Al que lo recibe, «🍃 … shields you for …» o «🍃 … te protege con un escudo de …»; al médico, «🍃 … shield on …» o «🍃 Escudo de … para …».
+
+## 23. Lo que queda por probar de I1e: el contenido de Data en inglés (27-10-2026)
+
+Probado en Studio (1 jugador, en English): en el Lobby, los botones de las habilidades, el calendario de pioneros (con la tirada «🦙 Llama · 🐆 Jaguar · 🐍 Quetzalcoatl»), Talentos, Tienda (mejoras y cosméticos), Misiones, el pase entero, el Armario, el Diario (monos, jefes y botín) y Nido y mascotas (huevos, rarezas, mascotas y sus tipos); en Dunas, la ventana «Antes de la batalla» con los cuatro roles, sus ventajas y las tres ranuras del equipo de la arena del guerrero y del médico. Sin texto cortado en el PC y la consola sin `[Strings] sin inglés`. Arreglado en la prueba: la interfaz que se construye al entrar salía en el idioma de la cuenta si el perfil llegaba tarde; ahora el cliente espera hasta 3 s a los ajustes. Las claves de la tabla de la nube (`Strings.key`) salen iguales en Luau y en Python.
+
+#### 23.1 En la Isla (1 jugador, en English)
+
+1. [ ] Abre la mesa de trabajo, la hoguera, el taller del curandero y las dos forjas.
+   ✅ Los nombres y las descripciones de las recetas en inglés, con su daño («Upgrades the bow: … damage, …»), y la armadura con el nombre de tu rol («Hunter's armor», «Rune robe»…).
+2. [ ] Mira la Bolsa, el menú Construir y la ventana Parcela.
+   ✅ Objetos y sus notas, construcciones y sus descripciones, y cada nivel de la parcela en inglés; el cofre dice «… slots of …, private or shared».
+3. [ ] Acércate a un árbol, una roca, un helecho y una mata de banano, y a una estación.
+   ✅ Los ProximityPrompt dicen «Chop / Tree», «Mine / Rock», «Gather / Fern», «Harvest / Banana plant», «Use / Workbench».
+4. [ ] Juega hasta el contrato y un evento de mitad de partida (o lánzalos desde el panel de pruebas), y mira las misiones del HUD.
+   ✅ El contrato, sus pasos, la víspera, el aviso y la línea del evento («☣️ Toxic rain: …») y las misiones («Survive 3 nights on Monkey Island») en inglés.
+5. [ ] Que llegue la Gran Tropa y que aparezca un jefe.
+   ✅ La mezcla de monos de la oleada sale «(Baboon ×5, Macaque ×3)», y «👑 Mangrove Orangutan · phase 1/3» sobre la barra del jefe; los monos y el jefe, con su nombre en inglés sobre la cabeza.
+
+#### 23.2 En el emulador de teléfono (Studio, en English)
+
+1. [ ] En el Lobby, abre el pase, el Armario y Nido y mascotas; en Dunas, la ventana «Antes de la batalla».
+   ✅ Las descripciones largas (cosméticos del pase, mascotas, equipo de la arena) caben en sus tarjetas, y «Resurgence» cabe en su botón.
+
+#### 23.3 En el juego publicado
+
+1. [ ] Tras subir `build/localization.csv` a Creator Hub (idioma de origen: inglés, con la traducción automática), entra con una cuenta en francés o en portugués.
+   ✅ Los nombres de `Data` (armas, monos, cosméticos…) salen traducidos desde el inglés, y los textos con números siguen bien formados.
 
 ## Cuando termines
 

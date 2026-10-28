@@ -77,9 +77,7 @@ local function chancesText(): string
 	local parts = {}
 	for _, entry in Pioneer.chances() do
 		local mount = Mounts[entry.id]
-		local mountName = T(mount.name)
-		local short = string.match(mountName, "^[^%s,]+") or mountName
-		table.insert(parts, `{mount.icon} {short} {math.round(entry.chance * 100)} %`)
+		table.insert(parts, `{mount.icon} {T(mount.shortName)} {math.round(entry.chance * 100)} %`)
 	end
 	return table.concat(parts, " · ")
 end

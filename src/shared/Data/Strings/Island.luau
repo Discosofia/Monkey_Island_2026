@@ -222,13 +222,13 @@ return {
 
 	-- Monos.
 	["{name} alfa"] = "Alpha {name}",
-	["{n} {monkey}"] = "{n} {monkey}",
+	["{n} {monkey}"] = "{monkey} ×{n}",
 	["🐒 ¡Un aullador está llamando a la tropa!"] = "🐒 A howler is calling the troop!",
 	["🐒 ¡Un {species} te ha robado {items}! Atrápalo para recuperarlo"] = "🐒 A {species} stole {items} from you! Catch it to get it back",
 	["Recuperas lo robado: {items}"] = "You got back what was stolen: {items}",
 	["🦧 ¡El {monkey} te ha agarrado!"] = "🦧 The {monkey} grabbed you!",
 	["😰 El rugido te intimida: haces menos daño unos segundos"] = "😰 The roar intimidates you: you deal less damage for a few seconds",
-	["🐒 ¡Una tropa de {monkey} con su alfa va a por {player}!"] = "🐒 A troop of {monkey} with its alpha is after {player}!",
+	["🐒 ¡Una tropa de {monkey} con su alfa va a por {player}!"] = "🐒 A {monkey} troop with its alpha is after {player}!",
 	["¡AUUU!"] = "AWOOO!",
 	["¡IIIH!"] = "EEEK!",
 	["🔥 ¡IIH!"] = "🔥 EEK!",

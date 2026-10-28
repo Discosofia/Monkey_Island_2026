@@ -27,9 +27,11 @@
 
 local Config = require(script.Parent.Parent.Config)
 
--- Lo que da cada nivel del cofre, con sus casillas de Config.Plot.
-local function chestEffect(level: number): string
-	return `{Config.Plot.ChestSlots[level]} casillas de {Config.Plot.ChestStack}, privadas o compartidas`
+-- Lo que da cada nivel del cofre, con sus casillas de Config.Plot (una plantilla con sus argumentos, que
+-- se traduce en el cliente).
+local CHEST_EFFECT = "{slots} casillas de {stack}, privadas o compartidas"
+local function chestArgs(level: number): { [string]: any }
+	return { slots = Config.Plot.ChestSlots[level], stack = Config.Plot.ChestStack }
 end
 
 export type Cost = { itemId: string, amount: number }
@@ -39,6 +41,7 @@ export type Level = {
 	cost: { Cost },
 	health: number,
 	effect: string, -- lo que da, en una línea (la ventana Parcela)
+	effectArgs: { [string]: any }?, -- los argumentos de "effect", si los tiene
 	discount: number?,
 	stations: { string }?,
 	extraStation: string?,
@@ -243,7 +246,8 @@ local PlotStructures: { [string]: Structure } = {
 				amber = 600,
 				cost = { { itemId = "Wood", amount = 25 } },
 				health = 400,
-				effect = chestEffect(1),
+				effect = CHEST_EFFECT,
+				effectArgs = chestArgs(1),
 			},
 			{
 				amber = 2400,
@@ -253,7 +257,8 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "ShipMetal", amount = 2 },
 				},
 				health = 650,
-				effect = chestEffect(2),
+				effect = CHEST_EFFECT,
+				effectArgs = chestArgs(2),
 			},
 			{
 				amber = 6000,
@@ -263,7 +268,8 @@ local PlotStructures: { [string]: Structure } = {
 					{ itemId = "GoldenFur", amount = 4 },
 				},
 				health = 950,
-				effect = chestEffect(3),
+				effect = CHEST_EFFECT,
+				effectArgs = chestArgs(3),
 			},
 		},
 	},

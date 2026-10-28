@@ -47,7 +47,6 @@ export type Mission = {
 }
 
 local REWARDS = Config.Daily.MissionRewards
-local ISLAND = Config.PlaceNames.IslandShort
 
 local function daily(difficulty: Difficulty, mission: { [string]: any }): Mission
 	mission.difficulty = difficulty
@@ -116,7 +115,7 @@ local Missions: { [string]: Mission } = {
 	Alphas = daily("Dificil", { icon = "🦍", text = "Derrota {target} monos alfa", event = "Alpha", target = 8 }),
 	Night = daily(
 		"Dificil",
-		{ icon = "🌙", text = "Supera {target} noches en la " .. ISLAND, event = "Night", target = 3 }
+		{ icon = "🌙", text = "Supera {target} noches en la Isla de monos", event = "Night", target = 3 }
 	),
 	Egg = daily("Dificil", { icon = "🥚", text = "Ayuda a salvar {target} huevos", event = "Egg", target = 2 }),
 
@@ -124,7 +123,7 @@ local Missions: { [string]: Mission } = {
 	WeeklyBosses = weekly({ icon = "👑", text = "Ayuda a derrotar {target} jefes", event = "Boss", target = 6 }),
 	WeeklyNights = weekly({
 		icon = "🌙",
-		text = "Supera {target} noches en la " .. ISLAND,
+		text = "Supera {target} noches en la Isla de monos",
 		event = "Night",
 		target = 10,
 	}),
@@ -158,14 +157,14 @@ local Missions: { [string]: Mission } = {
 	}),
 	WeeklyArenaWins = weekly({
 		icon = "🏜️",
-		text = "Gana {target} partidas en la " .. Config.PlaceNames.DunasShort,
+		text = "Gana {target} partidas en la Isla de dunas",
 		event = "ArenaWin",
 		target = 3,
 		family = "Dunas",
 	}),
 	WeeklyArenaCaptures = weekly({
 		icon = "🚩",
-		text = "Captura {target} banderas en la " .. Config.PlaceNames.DunasShort,
+		text = "Captura {target} banderas en la Isla de dunas",
 		event = "ArenaCapture",
 		target = 5,
 		family = "Dunas",

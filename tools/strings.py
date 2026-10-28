@@ -57,8 +57,33 @@ COVERED = [
     "src/combat/",
 ]
 
-# Campos de Data que se traducen por su nombre (T(def.name)): archivo → campos. Se rellena en la I1e.
-DATA_FIELDS: dict[str, list[str]] = {}
+# Campos de Data que se traducen por su nombre (T(def.name)): archivo → campos.
+DATA_FIELDS: dict[str, list[str]] = {
+    "src/shared/Data/ArenaGear.luau": ["name", "description", "Weapon", "Armor", "Amulet"],
+    "src/shared/Data/Armor.luau": ["name", "Cazador", "Mago", "Medico"],
+    "src/shared/Data/Bosses.luau": ["name", "description"],
+    "src/shared/Data/Buildables.luau": ["name", "description"],
+    "src/shared/Data/Combos.luau": ["name", "mark", "finisher", "short"],
+    "src/shared/Data/Contracts.luau": ["name", "description", "title", "text"],
+    "src/shared/Data/Cosmetics.luau": ["name", "description", "title"],
+    "src/shared/Data/Items.luau": ["name", "note"],
+    "src/shared/Data/LiveEvents.luau": ["name", "detail"],
+    "src/shared/Data/MidEvents.luau": ["name", "eve", "start", "status"],
+    "src/shared/Data/Missions.luau": ["text"],
+    "src/shared/Data/Monkeys.luau": ["name", "description"],
+    "src/shared/Data/Mounts.luau": ["name", "shortName", "description", "label", "origin"],
+    "src/shared/Data/Pets.luau": ["name", "description", "kind"],
+    "src/shared/Data/PlotStructures.luau": ["name", "description", "effect", "CHEST_EFFECT"],
+    "src/shared/Data/Rarities.luau": ["name"],
+    "src/shared/Data/Recipes.luau": ["name", "description"],
+    "src/shared/Data/ResourceNodes.luau": ["name", "actionText"],
+    "src/shared/Data/Roles.luau": ["name", "short", "description", "passive", "edge"],
+    "src/shared/Data/Seasons.luau": ["name"],
+    "src/shared/Data/Stations.luau": ["name", "actionText"],
+    "src/shared/Data/Talents.luau": ["name", "description"],
+    "src/shared/Data/Upgrades.luau": ["name", "description"],
+    "src/shared/Data/Weapons.luau": ["name"],
+}
 
 STRING = r'"((?:[^"\\\n]|\\.)*)"'
 CALLS = [
@@ -153,10 +178,12 @@ def used_phrases(paths: list[str] | None = None):
             interpolated.append(f"{name}:{code.count(chr(10), 0, match.start()) + 1}")
         fields = DATA_FIELDS.get(name)
         if fields:
-            field = re.compile(r"\b(?:" + "|".join(fields) + r")\s*=\s*" + STRING)
+            # El texto puede seguir en las líneas de abajo ("…" .. "…").
+            field = re.compile(r"\b(?:" + "|".join(fields) + r")\s*=\s*(" + STRING + r"(?:\s*\.\.\s*" + STRING + r")*)")
             for match in field.finditer(code):
                 line = code.count("\n", 0, match.start()) + 1
-                phrases.setdefault(decode(match.group(1)), []).append(f"{name}:{line}")
+                es = "".join(decode(part) for part in re.findall(STRING, match.group(1)))
+                phrases.setdefault(es, []).append(f"{name}:{line}")
     return phrases, interpolated
 
 

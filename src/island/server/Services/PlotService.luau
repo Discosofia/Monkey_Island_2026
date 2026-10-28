@@ -290,7 +290,7 @@ local function onUpgrade(player: Player, structureId: any)
 			icon = definition.icon,
 			name = { definition.name },
 			level = Plot.ROMAN[level + 1],
-			effect = { nextLevel.effect },
+			effect = { nextLevel.effect, nextLevel.effectArgs },
 		}
 	)
 end

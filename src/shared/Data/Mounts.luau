@@ -4,6 +4,7 @@
 
 export type Mount = {
 	name: string,
+	shortName: string, -- el nombre corto, para las líneas con las tres (la tirada de pioneros)
 	icon: string,
 	rarity: string, -- Data/Rarities
 	description: string,
@@ -27,6 +28,7 @@ export type Mount = {
 local Mounts: { [string]: Mount } = {
 	Llama = {
 		name = "Llama Andina",
+		shortName = "Llama",
 		icon = "🦙",
 		rarity = "Rare",
 		description = "Una llama de lana blanca y negra con su manta tejida y sus lentes de sol.",
@@ -45,6 +47,7 @@ local Mounts: { [string]: Mount } = {
 	-- rosetas de jade, silla azul marino y oro y un aura pastel que gira alrededor del cuerpo.
 	Jaguar = {
 		name = "Jaguar Albino Esmeralda",
+		shortName = "Jaguar",
 		icon = "🐆",
 		rarity = "Legendary",
 		description = "Un jaguar albino de ojos esmeralda y rosetas de jade, envuelto en un aura de colores pastel.",
@@ -66,6 +69,7 @@ local Mounts: { [string]: Mount } = {
 	-- Mítica: no sale de los huevos normales (premio de pioneros y, más adelante, el huevo mítico).
 	Quetzalcoatl = {
 		name = "Quetzalcóatl, la Serpiente Emplumada",
+		shortName = "Quetzalcóatl",
 		icon = "🐍",
 		rarity = "Mythic",
 		description = "La serpiente emplumada: flota sobre un remolino de viento, suelta plumas de fuego y planea desde lo alto.",

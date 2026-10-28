@@ -111,7 +111,7 @@ local function refreshRow(player: Player, state: Plot.State, row: Row)
 	local levelText = if level > 0 then ` {Plot.ROMAN[level]}` else ""
 	row.title.Text = `{definition.icon} {T(definition.name)}{levelText}`
 	if not nextLevel then
-		row.effect.Text = T(definition.levels[level].effect)
+		row.effect.Text = T(definition.levels[level].effect, definition.levels[level].effectArgs)
 		row.cost.Text = `<font color="{HAVE_COLOR}">{T("⭐ Nivel máximo")}</font>`
 		row.button.Text = T("Al máximo")
 		row.button.BackgroundColor3 = BLOCKED_COLOR
@@ -120,7 +120,7 @@ local function refreshRow(player: Player, state: Plot.State, row: Row)
 		row.button.AutoButtonColor = false
 		return
 	end
-	row.effect.Text = `{Plot.ROMAN[level + 1]}: {T(nextLevel.effect)}`
+	row.effect.Text = `{Plot.ROMAN[level + 1]}: {T(nextLevel.effect, nextLevel.effectArgs)}`
 	-- Lo que pide y, entre paréntesis, lo que tienes (en verde si llega, en rojo si no).
 	local amber = amberOf(player)
 	local ready = amber >= nextLevel.amber

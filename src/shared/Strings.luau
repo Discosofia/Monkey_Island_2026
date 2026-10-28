@@ -172,6 +172,20 @@ function Strings.language(): Language
 	return current :: Language
 end
 
+-- Espera (como mucho "timeout" segundos) a que el servidor copie los ajustes del perfil al atributo
+-- "Settings", para que la interfaz nazca ya en el idioma elegido y no en el de la cuenta. Lo llama el
+-- init.client de cada place antes de cargar los controladores.
+function Strings.awaitSetting(timeout: number)
+	if not isClient then
+		return
+	end
+	local player = Players.LocalPlayer
+	local deadline = os.clock() + timeout
+	while player:GetAttribute("Settings") == nil and os.clock() < deadline do
+		task.wait(0.1)
+	end
+end
+
 -- Aplica en el cliente el ajuste nuevo sin esperar al servidor (lo llama Settings.set).
 function Strings.applySetting(setting: string)
 	if not isClient then
