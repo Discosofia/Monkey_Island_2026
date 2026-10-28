@@ -13,7 +13,8 @@ Opciones:
   --missing [rutas…]   imprime las frases sin inglés como entradas de Luau, para pegarlas en una tabla.
   --audit [rutas…]     lista los textos entre comillas que parecen españoles y no pasan por T().
   --review [rutas…]    imprime en JSON las frases (es, en) de esas rutas, agrupadas por archivo.
-  --csv ARCHIVO        escribe la LocalizationTable para Creator Hub (Key, Context, Example, Source, es).
+  --csv ARCHIVO        escribe la LocalizationTable para Creator Hub (Key, Context, Example, Source),
+                       partida en ARCHIVO_1, ARCHIVO_2… si pasa de CSV_ROWS filas.
 """
 
 import csv
@@ -273,17 +274,26 @@ def review(paths: list[str]) -> int:
     return 0
 
 
+# Creator Hub acepta 1000 filas por subida, pero se corta ("upstream request timeout") hacia las 100:
+# la tabla se parte en archivos de este tamaño. Las subidas se suman a la tabla de la nube, no la reemplazan.
+CSV_ROWS = 90
+
+
 def write_csv(out: str) -> int:
     phrases, _ = used_phrases()
     english = english_tables()
-    Path(out).parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle, lineterminator="\n")
-        writer.writerow(["Key", "Context", "Example", "Source", "es"])
-        for es, places in sorted(phrases.items()):
-            if es in english:
-                writer.writerow([key(es), places[0], "", english[es][0], es])
-    print(f"Escrito {out}.")
+    # Sin columna "es": el español lo pone el juego (Strings.t), y la nube solo sirve a los demás idiomas.
+    rows = [[key(es), places[0], "", english[es][0]] for es, places in sorted(phrases.items()) if es in english]
+    path = Path(out)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    parts = [rows[i : i + CSV_ROWS] for i in range(0, len(rows), CSV_ROWS)]
+    for number, part in enumerate(parts, 1):
+        name = path if len(parts) == 1 else path.with_name(f"{path.stem}_{number}{path.suffix}")
+        with open(name, "w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle, lineterminator="\n")
+            writer.writerow(["Key", "Context", "Example", "Source"])
+            writer.writerows(part)
+        print(f"Escrito {name.as_posix()} ({len(part)} filas).")
     return 0
 
 

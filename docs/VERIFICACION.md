@@ -1240,7 +1240,7 @@ Probado en Studio (1 jugador, en English): en el Lobby, los botones de las habil
 
 #### 23.3 En el juego publicado
 
-1. [ ] Tras subir `build/localization.csv` a Creator Hub (idioma de origen: inglés, con la traducción automática), entra con una cuenta en francés o en portugués.
+1. [x] (Probado por el usuario el 27-10-2026, con francés, alemán y portugués.) Tras subir los `build/localization_*.csv` a Creator Hub (idioma de origen: inglés, con la traducción automática), entra con una cuenta en francés o en portugués.
    ✅ Los nombres de `Data` (armas, monos, cosméticos…) salen traducidos desde el inglés, y los textos con números siguen bien formados.
 
 ## Cuando termines
