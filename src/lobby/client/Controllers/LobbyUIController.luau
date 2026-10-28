@@ -108,6 +108,8 @@ local WINDOWS: { [string]: WindowDef } = {
 	Rol = { icon = "⚔️", title = later("Elige tu rol") },
 	-- El nombre del place de Dunas (Config.PlaceNames.Dunas).
 	Arena = { icon = "", title = later("🎖️Isla de dunas☠️(PvP)"), own = true },
+	-- El nombre del place del Laboratorio (Config.PlaceNames.Laboratorio).
+	Lab = { icon = "", title = later("🧪Laboratorio en ruinas🏴‍☠️(PvP)"), own = true },
 	Mascotas = { icon = "🥚", title = later("Nido y mascotas"), wide = true, own = true },
 	Ranking = { icon = "🏆", title = later("Ranking"), wide = true, own = true },
 	Talentos = { icon = "🌟", title = later("Talentos") },
@@ -142,6 +144,8 @@ local STATION_PROMPTS: { [string]: string } = {
 	NidoPrompt = "Mascotas",
 	ArenaPrompt = "Arena",
 	ZarparDunasPrompt = "Arena",
+	LabPrompt = "Lab",
+	ZarparLabPrompt = "Lab",
 	RankingPrompt = "Ranking",
 	PassPrompt = "Pase",
 }
@@ -487,6 +491,9 @@ function LobbyUIController:Start()
 	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
 	-- dice cuánto llevas en la cola (se actualiza cada segundo).
 	local arenaFormat = 1
+	-- Ventana del Laboratorio: formato y modo elegidos (la línea de la cola es la misma, arenaQueueLine).
+	local labFormat = 1
+	local labMode: string = Config.Lab.Modes[1]
 	local arenaRole: string? = nil
 	local arenaSlot: string? = nil
 	local arenaQueueLine: TextLabel? = nil
@@ -1424,6 +1431,10 @@ function LobbyUIController:Start()
 	-- (Shared/UI/ArenaGearPicker; se compra y se cambia igual que en la base de Dunas).
 	local function renderArena()
 		local queue = readJson("ArenaQueue")
+		-- Solo la cola de Dunas (sin "game"); la del Laboratorio tiene su ventana.
+		if queue and queue.game ~= nil and queue.game ~= "Dunas" then
+			queue = nil
+		end
 		local arena = readJson("Arena") or {}
 		local leaderId = player:GetAttribute("PartyLeader")
 		local follower = typeof(leaderId) == "number" and leaderId ~= player.UserId
@@ -1562,6 +1573,140 @@ function LobbyUIController:Start()
 			true
 		)
 		picker.update()
+	end
+
+	-- Laboratorio en ruinas: modo, formato y cola (ArenaQueueService, destino "Lab"). Todos empiezan igual,
+	-- así que no hay roles ni equipo que elegir: solo cuántos juegan y cuántos esperan en cada formato.
+	local function renderLab()
+		local queue = readJson("ArenaQueue")
+		if queue and queue.game ~= "Lab" then
+			queue = nil
+		end
+		local counts = nil
+		local rawCounts = ReplicatedStorage:GetAttribute("LabQueueCounts")
+		if typeof(rawCounts) == "string" then
+			local ok, decoded = pcall(function()
+				return HttpService:JSONDecode(rawCounts)
+			end)
+			if ok and typeof(decoded) == "table" then
+				counts = decoded
+			end
+		end
+		local leaderId = player:GetAttribute("PartyLeader")
+		local follower = typeof(leaderId) == "number" and leaderId ~= player.UserId
+		local compact = compactUi
+		local shownMode = if queue and typeof(queue.mode) == "string" then queue.mode else labMode
+		local shownFormat = if queue then tonumber(queue.format) or labFormat else labFormat
+		local waitingByFormat = if counts and typeof(counts[shownMode]) == "table" then counts[shownMode] else nil
+
+		-- Modos: hoy solo el duelo por equipos; el resto llega con la L4.
+		local modeRow = Instance.new("Frame")
+		modeRow.LayoutOrder = 1
+		modeRow.Size = UDim2.new(1, -10, 0, if compact then 32 else 40)
+		modeRow.BackgroundTransparency = 1
+		modeRow.Parent = list
+		local modeLayout = Instance.new("UIListLayout")
+		modeLayout.FillDirection = Enum.FillDirection.Horizontal
+		modeLayout.Padding = UDim.new(0, 6)
+		modeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		modeLayout.Parent = modeRow
+		for index, mode in Config.Lab.Modes do
+			local button = Instance.new("TextButton")
+			button.LayoutOrder = index
+			button.Size = UDim2.new(1 / #Config.Lab.Modes, -6, 1, 0)
+			button.Text = T(Config.Lab.ModeNames[mode])
+			button.Font = Enum.Font.BuilderSansBold
+			button.TextScaled = true
+			local chosen = mode == shownMode
+			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
+			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+			button.AutoButtonColor = queue == nil
+			button.Parent = modeRow
+			corner(button, 8)
+			button.MouseButton1Click:Connect(function()
+				if not queue then
+					labMode = mode
+					render()
+				end
+			end)
+		end
+
+		-- Formatos, cada uno con los jugadores que esperan en él (todos los servidores).
+		local formatRow = Instance.new("Frame")
+		formatRow.LayoutOrder = 2
+		formatRow.Size = UDim2.new(1, -10, 0, if compact then 44 else 62)
+		formatRow.BackgroundTransparency = 1
+		formatRow.Parent = list
+		local formatLayout = Instance.new("UIListLayout")
+		formatLayout.FillDirection = Enum.FillDirection.Horizontal
+		formatLayout.Padding = UDim.new(0, 6)
+		formatLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		formatLayout.Parent = formatRow
+		for format = Config.Lab.MinFormat, Config.Lab.MaxFormat do
+			local waiting = if waitingByFormat then tonumber(waitingByFormat[tostring(format)]) else nil
+			local button = Instance.new("TextButton")
+			button.LayoutOrder = format
+			button.Size = UDim2.new(0.2, -6, 1, 0)
+			button.Text = `{format}v{format}\n{if waiting then waiting else "—"} 👤`
+			button.Font = Enum.Font.BuilderSansBold
+			button.TextScaled = true
+			local chosen = format == shownFormat
+			button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
+			button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+			button.AutoButtonColor = queue == nil
+			button.Parent = formatRow
+			corner(button, 8)
+			button.MouseButton1Click:Connect(function()
+				if not queue then
+					labFormat = format
+					render()
+				end
+			end)
+		end
+
+		-- El botón va dentro de un Frame: clearRows solo borra Frames y TextLabels, y uno suelto se acumularía.
+		local searchRow = Instance.new("Frame")
+		searchRow.LayoutOrder = 3
+		searchRow.Size = UDim2.new(1, -10, 0, if compact then 40 else 48)
+		searchRow.BackgroundTransparency = 1
+		searchRow.Parent = list
+		local search = Widgets.button("", searchRow)
+		search.Size = UDim2.fromScale(1, 1)
+		local searchLimit = search:FindFirstChildOfClass("UISizeConstraint")
+		if searchLimit then
+			searchLimit:Destroy()
+		end
+		if follower then
+			setButton(search, T("Lo elige tu líder"), false)
+		elseif queue then
+			setButton(search, T("✖ Salir de la cola"), true)
+			search.BackgroundColor3 = CLOSE_COLOR
+			search.TextColor3 = Color3.new(1, 1, 1)
+		else
+			setButton(search, T("⚔️ Buscar partida"), true)
+		end
+		search.MouseButton1Click:Connect(function()
+			if follower then
+				return
+			elseif queue then
+				Remotes.ArenaQueueLeave:FireServer()
+			else
+				Remotes.ArenaQueueJoin:FireServer(labFormat, "Lab", labMode)
+			end
+		end)
+
+		-- En la cola: cuánto llevas. Si no: lo que hace distinto a este sitio.
+		local status = Widgets.label("", list)
+		status.LayoutOrder = 4
+		status.Size = UDim2.new(1, -10, 0, if compact then 34 else 48)
+		status.TextColor3 = Color3.fromRGB(255, 220, 150)
+		status.TextWrapped = true
+		if queue then
+			status.Text = queueText(queue)
+			arenaQueueLine = status
+		else
+			status.Text = T("Todos empiezan igual: eliges 1 de 4 armas y solo cuentan el arma y la puntería")
+		end
 	end
 
 	-- Reparte lo que hay dentro de "source" (por su orden) en las columnas justas para que quepa en
@@ -1720,6 +1865,8 @@ function LobbyUIController:Start()
 			renderRoles(data)
 		elseif id == "Arena" then
 			renderArena()
+		elseif id == "Lab" then
+			renderLab()
 		elseif id == "Talentos" then
 			renderTalents(data)
 		elseif id == "Tienda" then
@@ -2047,7 +2194,10 @@ function LobbyUIController:Start()
 			local queueLine = arenaQueueLine
 			if queueLine and panel.Visible then
 				local queue = readJson("ArenaQueue")
-				if queue then
+				local ownQueue = if currentWindow == "Lab"
+					then queue and queue.game == "Lab"
+					else queue and queue.game ~= "Lab"
+				if queue and ownQueue then
 					queueLine.Text = queueText(queue)
 				end
 			end
@@ -2114,6 +2264,12 @@ function LobbyUIController:Start()
 			return
 		end
 		render()
+	end)
+	-- Los jugadores que esperan en cada formato del Laboratorio (ArenaQueueService, cada 10 s).
+	ReplicatedStorage:GetAttributeChangedSignal("LabQueueCounts"):Connect(function()
+		if currentWindow == "Lab" then
+			render()
+		end
 	end)
 	Players.PlayerAdded:Connect(render)
 	Players.PlayerRemoving:Connect(function()

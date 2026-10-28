@@ -51,7 +51,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 14
+local VERSION = 15
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -100,6 +100,18 @@ local LIFEBOAT_SIGN_AT = Vector2.new(26, -43)
 local DUNES_PIER_FROM = Vector2.new(40, 27)
 local DUNES_PIER_LENGTH = 18
 local DUNES_PIER_DECK = 2.4
+-- Cartel del Laboratorio en ruinas: el último del borde de la plaza, en el hueco del suroeste entre el
+-- muñeco de sparring y la llegada.
+local LAB_BOARD_AT = Vector2.new(-12, 32)
+-- Embarcadero hacia la Ciudad Perdida: sale de la orilla oeste, al sur del carguero y de su arrecife, hacia
+-- el oeste-noroeste (la Ciudad Perdida queda al noroeste, tras el carguero), con el velero pirata al final.
+local LAB_PIER_FROM = Vector2.new(-70, 20)
+local LAB_PIER_DIR = Vector3.new(-0.92, 0, -0.4)
+local LAB_PIER_LENGTH = 18
+-- Colores de los bandos del Laboratorio: dorado y negro de los Piratas, azul de los Guardianes.
+local PIRATE_GOLD = Color3.fromRGB(215, 170, 60)
+local PIRATE_BLACK = Color3.fromRGB(28, 26, 30)
+local GUARD_BLUE = Color3.fromRGB(50, 110, 200)
 -- Nido de huevos: en la plaza, delante del cartel de las mascotas (que enseña su huevo). Es el Nido
 -- de la Isla (BuildModels) en grande, sobre un montículo de arena.
 local NEST_AT = Vector2.new(-10.1, -23.9)
@@ -1295,6 +1307,20 @@ local function buildBoards(parent: Instance)
 	CollectionService:AddTag(arena, Config.Lobby.ArenaBoardTag)
 	station(arena, "Arena", "🎖️", "ArenaPrompt", later("Jugar en la arena"), later("Isla de dunas"))
 
+	-- Laboratorio en ruinas: la cola por formato (LabBoardController); su aviso abre la ventana del Lab.
+	local lab = standingBoard(
+		parent,
+		"TablaLab",
+		LAB_BOARD_AT,
+		12,
+		7.5,
+		later("🧪Laboratorio en ruinas🏴‍☠️(PvP)"),
+		nil,
+		0.95
+	)
+	CollectionService:AddTag(lab, Config.Lobby.LabBoardTag)
+	station(lab, "Lab", "🧪", "LabPrompt", later("Jugar en el Laboratorio"), later("Laboratorio en ruinas"))
+
 	local pass = volcanoBoard(parent, "TablaPase", PASS_BOARD_AT, 12, 7.5)
 	CollectionService:AddTag(pass, Config.Lobby.PassBoardTag)
 	station(pass, "Pase", "🌋", "PassPrompt", later("Ver el pase"), later("Pase de temporada"))
@@ -2473,6 +2499,121 @@ local function buildDunesDock(parent: Instance)
 	dock.Parent = parent
 end
 
+-- Embarcadero hacia la Ciudad Perdida con un velero pirata amarrado al final: casco oscuro, vela negra con
+-- una franja dorada y la bandera pirata, banderines de los dos bandos (dorado y negro, blanco y azul) y un
+-- farol. Con su aviso ("ZarparLabPrompt") se abre la ventana del Laboratorio.
+local function buildLabDock(parent: Instance)
+	local dock = Instance.new("Model")
+	dock.Name = "EmbarcaderoLaboratorio"
+	local from = Vector3.new(LAB_PIER_FROM.X, DUNES_PIER_DECK, LAB_PIER_FROM.Y)
+	local toward = LAB_PIER_DIR.Unit
+	local pier = CFrame.lookAt(from, from + toward)
+	local planks = math.floor(LAB_PIER_LENGTH / 1.2)
+	for index = 0, planks - 1 do
+		newPart(
+			"Tablon",
+			Vector3.new(4, 0.3, 1.1),
+			pier * CFrame.new(0, 0, -(index + 0.5) * 1.2) * CFrame.Angles(0, math.rad(rng:NextNumber(-1.5, 1.5)), 0),
+			tone(PLANK),
+			Enum.Material.WoodPlanks,
+			dock
+		)
+	end
+	for along = 0, LAB_PIER_LENGTH, 6 do
+		for _, side in { -1, 1 } do
+			local top = (pier * CFrame.new(side * 1.9, 0.6, -along)).Position
+			cylinder("Pilote", 0.5, top, top - Vector3.new(0, 10, 0), DARK_WOOD, Enum.Material.Wood, dock)
+		end
+	end
+
+	-- Velero, con la proa (-Z local) hacia la Ciudad Perdida.
+	local at = (pier * CFrame.new(3.6, -DUNES_PIER_DECK + SEA_LEVEL + 0.2, -LAB_PIER_LENGTH + 2)).Position
+	local frame = CFrame.lookAt(at, at + toward) * CFrame.Angles(math.rad(2), 0, math.rad(-3))
+	local hull = Color3.fromRGB(52, 40, 34)
+	newPart("Casco", Vector3.new(3.6, 1.4, 9), frame * CFrame.new(0, 0.7, 0.5), hull, Enum.Material.WoodPlanks, dock)
+	newPart(
+		"Proa",
+		Vector3.new(2.6, 1.4, 2.6),
+		frame * CFrame.new(0, 0.7, -4) * CFrame.Angles(0, math.rad(45), 0),
+		hull,
+		Enum.Material.WoodPlanks,
+		dock
+	)
+	for _, side in { -1, 1 } do
+		newPart(
+			"Borda",
+			Vector3.new(0.3, 0.4, 9),
+			frame * CFrame.new(side * 1.85, 1.6, 0.5),
+			PIRATE_GOLD,
+			Enum.Material.Metal,
+			dock
+		)
+	end
+	newPart("Bancada", Vector3.new(3.4, 0.3, 1), frame * CFrame.new(0, 1.4, 2.5), PLANK, Enum.Material.Wood, dock)
+	local mastFoot = (frame * CFrame.new(0, 1.4, -1)).Position
+	local mastTop = (frame * CFrame.new(0, 13.5, -1)).Position
+	cylinder("Mastil", 0.35, mastFoot, mastTop, DARK_WOOD, Enum.Material.Wood, dock)
+	-- Vela latina negra, con una franja dorada y la bandera pirata en las dos caras.
+	local yardLow = (frame * CFrame.new(0, 2.6, -4.6)).Position
+	local yardHigh = (frame * CFrame.new(0, 12.5, 2.2)).Position
+	cylinder("Verga", 0.25, yardLow, yardHigh, DARK_WOOD, Enum.Material.Wood, dock)
+	local sailCenter = frame * CFrame.new(-0.15, 6.6, -0.6) * CFrame.Angles(math.rad(-34), 0, 0)
+	local sail = newPart("Vela", Vector3.new(0.12, 6.4, 6.2), sailCenter, PIRATE_BLACK, Enum.Material.Fabric, dock)
+	sail.CastShadow = false
+	newPart(
+		"FranjaVela",
+		Vector3.new(0.14, 0.7, 6.2),
+		sailCenter * CFrame.new(0, -2.4, 0),
+		PIRATE_GOLD,
+		Enum.Material.Fabric,
+		dock
+	)
+	sign(sail, Enum.NormalId.Right, "🏴‍☠️", PIRATE_GOLD, Enum.Font.BuilderSansBold)
+	sign(sail, Enum.NormalId.Left, "🏴‍☠️", PIRATE_GOLD, Enum.Font.BuilderSansBold)
+	-- Banderines de los dos bandos en lo alto del mástil: el de los Piratas y el de los Guardianes.
+	for index, color in { PIRATE_GOLD, GUARD_BLUE } do
+		decor(
+			newPart(
+				"Banderin",
+				Vector3.new(0.1, 0.8, 1.6),
+				CFrame.new(mastTop) * frame.Rotation * CFrame.new(0, -0.6 - (index - 1) * 1, 0.9),
+				color,
+				Enum.Material.Fabric,
+				dock
+			)
+		)
+	end
+	local lamp =
+		ball("FarolVelero", 0.6, (frame * CFrame.new(0, 2.4, 4.6)).Position, LANTERN_LIGHT, Enum.Material.Neon, dock)
+	decor(lamp)
+	light(lamp, LANTERN_LIGHT, 16, 1.5)
+
+	-- Aviso para zarpar: en el extremo de la pasarela, junto al velero.
+	local promptAnchor = newPart(
+		"AmarreLaboratorio",
+		Vector3.new(2, 2, 2),
+		pier * CFrame.new(0, 1.5, -LAB_PIER_LENGTH + 1.5),
+		DARK_WOOD,
+		Enum.Material.Wood,
+		dock
+	)
+	promptAnchor.Transparency = 1
+	decor(promptAnchor)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "ZarparLabPrompt"
+	prompt.ActionText = later("Zarpar a la Ciudad Perdida")
+	prompt.ObjectText = later("Velero pirata")
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = promptAnchor
+
+	-- Cartelito a la entrada de la pasarela, de cara a la plaza.
+	local signAt = (pier * CFrame.new(4.5, 0, -0.6)).Position
+	smallSign(dock, Vector2.new(signAt.X, signAt.Z), later("🧪 LABORATORIO EN RUINAS →"))
+	dock.Parent = parent
+end
+
 -- Pasarela metálica de la arena a la cubierta (por el hueco de la barandilla).
 local function buildRamp(parent: Instance, ship: Model)
 	local shipFrame = ship:GetPivot()
@@ -3427,6 +3568,7 @@ function LobbyBuilder.build(options: Options?)
 	buildNest(folder)
 	buildLifeboat(folder)
 	buildDunesDock(folder)
+	buildLabDock(folder)
 	for _, palm in
 		{
 			{ x = 57, z = -21, lean = 0.12, yaw = 0.4 }, -- detrás del ranking

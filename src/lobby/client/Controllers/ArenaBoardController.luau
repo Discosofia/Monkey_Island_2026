@@ -151,6 +151,10 @@ function ArenaBoardController:Start()
 		-- Jugadores en la cola de cada formato (de todos los servidores); "—" si aún no se sabe.
 		local counts = readJson(ReplicatedStorage:GetAttribute("ArenaQueueCounts"))
 		local queue = readJson(player:GetAttribute("ArenaQueue"))
+		-- Solo cuenta la cola de Dunas (sin "game"); la del Laboratorio se ve en su cartel.
+		if queue and queue.game ~= nil and queue.game ~= "Dunas" then
+			queue = nil
+		end
 		local myFormat = if queue then tonumber(queue.format) else nil
 		for format, label in board.formats do
 			local waiting = if counts then tonumber(counts[tostring(format)]) else nil

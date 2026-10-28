@@ -1328,6 +1328,64 @@ La sala de pruebas de la L1 ya no existe: los muñecos salen con «🎯 Muñecos
 2. [ ] En los resultados, «🏝️ Volver al Lobby».
    ✅ Viajas al Lobby.
 
+## 26. Lo que queda por probar de L3: cola del Laboratorio, embarcadero y cartel (28-10-2026)
+
+Probado en el Studio del Lobby por MCP con un jugador: el cartel TablaLab en la plaza, el muelle y el velero pirata hechos y capturados, la cola del Laboratorio en Play con `ArenaQueue` `game="Lab"`, una sola cola por jugador, las entradas inválidas rechazadas, los textos nuevos y los 4 `rojo build`.
+
+Lo que queda necesita los places publicados y varias cuentas: la cola entre servidores, los grupos y la revancha. Empieza por 26.1, porque el resto depende de la publicación.
+
+#### 26.1 En el juego publicado (los 3 places subidos; el Lobby guardado en VERSION 15)
+
+1. [ ] Publica el Lobby, el Laboratorio y Dunas (Dunas comparte `ArenaQueueService`), y guarda el place del Lobby (VERSION 15).
+   ✅ Los tres places abren sin errores en la Salida. El Lobby publicado muestra el embarcadero, el velero pirata y el cartel TablaLab.
+2. [ ] Dos cuentas distintas, cada una en un servidor del Lobby, buscan «Duelo por equipos» en 1v1.
+   ✅ Se emparejan, viajan al Laboratorio y caen en bandos opuestos (Piratas y Guardianes). El formato 1v1 pone 10 bajas.
+3. [ ] Con un jugador en cola en un servidor, mira el 👤 por formato del cartel TablaLab y de la ventana del Laboratorio desde otro servidor.
+   ✅ El contador sube en unos 10 s con los jugadores en cola de todos los servidores.
+
+#### 26.2 Con 2 jugadores (*Test → Clientes y servidores* con 2)
+
+1. [ ] Un jugador busca en la cola del Laboratorio y pulsa salir de la cola.
+   ✅ Sale de la cola y su búsqueda se cancela.
+2. [ ] Un grupo de 2 busca 2v2 y uno de los dos se va del servidor.
+   ✅ Sale el mensaje «se fue: salen de la cola del Laboratorio» y el grupo entero sale de la cola.
+3. [ ] Un jugador busca en la cola del Laboratorio, cambia a la cola de Dunas y busca 1v1 de Dunas.
+   ✅ El ticket del Laboratorio se retira. La búsqueda de Dunas funciona igual que antes, y el cartel de Dunas cuenta su cola y no la del Laboratorio.
+4. [ ] Un seguidor de un grupo pulsa buscar.
+   ✅ Sale «Lo elige tu líder» y no entra en la cola.
+
+#### 26.3 Con 4 jugadores (*Test → Clientes y servidores* con 4, para 2v2)
+
+1. [ ] Un grupo de 2 busca 2v2 con otros 2 jugadores.
+   ✅ Los dos del grupo llegan al mismo bando (LabParty). Tras la «revancha», los dos siguen juntos en un bando.
+2. [ ] Un grupo de 3 busca 2v2.
+   ✅ Sale el aviso «Tu grupo es de 3…» y el grupo no entra en la cola.
+
+#### 26.4 En el Studio del Lobby (▶ Jugar, un jugador)
+
+El MCP no puede abrir la ventana (solo sale con el evento real del aviso), así que `renderLab` no se ha ejecutado nunca: esto es lo primero que hay que probar.
+
+1. [x] Acércate al cartel TablaLab y pulsa E.
+   ✅ Se abre la ventana «🧪Laboratorio en ruinas🏴‍☠️(PvP)» con «Duelo por equipos», los botones 1v1…5v5 con «— 👤», «⚔️ Buscar partida» y una frase debajo. Cabe entera sin desplazar y no hay errores en la Salida.
+2. [ ] Elige 3v3 y pulsa «⚔️ Buscar partida».
+   ✅ El botón pasa a «✖ Salir de la cola», el 3v3 queda resaltado y la línea dice «⏳ Buscando partida 3v3… m:ss» y avanza cada segundo. Al salir, vuelve a la frase.
+3. [ ] Pulsa el prompt «Zarpar a la Ciudad Perdida» del velero pirata.
+   ✅ Abre la misma ventana del Laboratorio (modo, 5 formatos, buscar).
+4. [ ] Mira el velero desde el punto de aparición (spawn).
+   ✅ El velero no tapa ni choca con el carguero ni con el arrecife.
+
+#### 26.5 En el emulador de teléfono
+
+1. [x] Abre la ventana del Laboratorio (modo, 5 formatos, buscar).
+   ✅ Se ve entera sin desplazar. Los botones se pulsan con el dedo. (Vista en el emulador apaisado: cabe entera; falta pulsar con el dedo en un teléfono real.)
+2. [ ] Mira el cartel TablaLab en la plaza, y después la ventana del Laboratorio en PC.
+   ✅ El cartel se lee bien en el teléfono. La ventana entera se ve sin desplazar también en PC.
+
+#### 26.6 En el Creator Hub
+
+1. [ ] Sube la tabla de textos nueva, la que sale de `python tools/strings.py --csv`, con las 8 frases nuevas del Lobby.
+   ✅ Las 8 frases tienen su inglés en la tabla y se ven en inglés con el juego en inglés.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

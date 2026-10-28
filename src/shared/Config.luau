@@ -1143,6 +1143,13 @@ local Config = {
 		-- con empate, la siguiente baja gana. Antes, como en Dunas: si todos pulsan "Listo", cuenta
 		-- atrás; si no, a los WaitSeconds de llegar el primero.
 		StudioFormat = 1,
+		-- Formatos que se pueden buscar en la cola del Lobby (1v1…5v5).
+		MinFormat = 1,
+		MaxFormat = 5,
+		-- Modos de la cola, en orden (la clave va en la lista de MemoryStore y en TeleportData "mode"). Los
+		-- nombres se traducen al dibujarlos (T(name)): Config no carga Strings.
+		Modes = { "TeamDeathmatch" },
+		ModeNames = { TeamDeathmatch = "Duelo por equipos" },
 		KillsToWin = { 10, 15, 20, 25, 30 },
 		MatchSeconds = 6 * 60,
 		WaitSeconds = 60,
@@ -1681,6 +1688,8 @@ local Config = {
 		-- el de la Isla de dunas (ArenaBoardController: tu estado en la arena y la cola).
 		PetsBoardTag = "TablaMascotas",
 		ArenaBoardTag = "TablaArena",
+		-- Cartel del Laboratorio en ruinas (LabBoardController: la cola por formato).
+		LabBoardTag = "TablaLab",
 		-- Cartel del pase de temporada (PassBoardController: la temporada, tu nivel y tus premios).
 		PassBoardTag = "TablaPase",
 		-- Nido de huevos (World/LobbyBuilder): cada cliente dibuja en él su huevo (NestController).

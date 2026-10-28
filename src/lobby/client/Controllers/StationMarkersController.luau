@@ -71,8 +71,11 @@ local function badgeFor(player: Player, id: string): string
 		end
 		local slots = Plot.incubator(Plot.of(player))
 		return if EggIncubation.freeSlot(eggs, slots) and #eggs.bag + #eggs.pending > 0 then "!" else ""
-	elseif id == "Arena" then
-		return if readJson(player:GetAttribute("ArenaQueue")) then "⏳" else ""
+	elseif id == "Arena" or id == "Lab" then
+		-- La cola es de un solo destino: sin "game" es la de Dunas.
+		local queue = readJson(player:GetAttribute("ArenaQueue"))
+		local isLab = queue ~= nil and queue.game == "Lab"
+		return if queue and isLab == (id == "Lab") then "⏳" else ""
 	elseif id == "Pase" then
 		local season = SeasonPass.info(SeasonPass.now()).season
 		local state = SeasonPass.normalize(readJson(player:GetAttribute("Season")), if season then season.id else nil)

@@ -94,6 +94,9 @@ local function readFormat(player: Player)
 	if typeof(format) == "number" then
 		setFormat(format)
 	end
+	-- El modo de la cola (Config.Lab.Modes); sin dato válido, el primero. La L4 lo lee de "LabMode".
+	local mode = if typeof(data) == "table" then data.mode else nil
+	Workspace:SetAttribute("LabMode", if table.find(Config.Lab.Modes, mode) then mode else Config.Lab.Modes[1])
 end
 
 local function startWaiting()

@@ -221,8 +221,9 @@ local Remotes = {
 	-- poner una variante en una ranura (rol, ranura, id; sin id, lo básico). ServerShared/ArenaShop.
 	ArenaBuyGear = remoteEvent("ArenaBuyGear"),
 	ArenaEquipGear = remoteEvent("ArenaEquipGear"),
-	-- Cliente -> servidor (Lobby): entrar en la cola de la arena con un formato (1..5 por equipo; el
-	-- líder lleva a su grupo) y salir de ella. ArenaQueueService.
+	-- Cliente -> servidor (Lobby): entrar en la cola con un formato (1..5 por equipo; el líder lleva a su
+	-- grupo) y salir de ella. FireServer(formato, juego?, modo?): sin juego es Dunas; "Lab" (Laboratorio
+	-- en ruinas) pide un modo de Config.Lab.Modes. ArenaQueueService.
 	ArenaQueueJoin = remoteEvent("ArenaQueueJoin"),
 	ArenaQueueLeave = remoteEvent("ArenaQueueLeave"),
 	-- Cliente -> servidor (Laboratorio): elegir arma (id de Data/LabWeapons) antes de la partida o
