@@ -520,7 +520,7 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | Tanda | Contenido | Commit | Estado |
 |---|---|---|---|
 | **I1a** | Base: `Shared/Strings`, `UI/Localizer` (carteles, `ProximityPrompt`, herramientas), ajuste de idioma, `Notify` con argumentos, `tools/strings.py` en el CI; la UI de `src/shared` y `CombatClient` | cc56baa | ✅ |
-| **I1b** | La Isla: `src/island/**` (HUD, Basecamp, crafteo, misiones, faro, sus `Notify`) | — | ⏳ |
+| **I1b** | La Isla: `src/island/**` (HUD, Basecamp, crafteo, misiones, faro, sus `Notify`) | a8d38c8 | ✅ |
 | **I1c** | El Lobby y `serverShared`: `src/lobby/**`, carteles de `LobbyBuilder`, pase, compras, retención, moderación | — | ⏳ |
 | **I1d** | Dunas y el combate: `src/dunas/**`, `src/combat/**`, carteles de `ArenaBuilder` | — | ⏳ |
 | **I1e** | El contenido de `Data/*` (nombres y descripciones) y el CSV para Creator Hub | — | ⏳ |
