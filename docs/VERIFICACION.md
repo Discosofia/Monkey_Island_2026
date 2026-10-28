@@ -1977,6 +1977,69 @@ Probado en Studio, en la Isla (28-10-2026): ciclos de Walk, Run y RunArmed gener
 2. [ ] Uno corre con un arma en la mano, y el otro lo mira.
    ✅ El otro ve RunArmed, con el brazo derecho sujetando el arma.
 
+## 37. Fase 15 V6: ajustes de arena y mira (28-10-2026)
+
+Probado en Play, con un jugador, en el Laboratorio y en Dunas (28-10-2026): el ⚙️ queda a la izquierda del 😀 sin solaparse (hueco de 6 px); la ventana tiene la sección 🎯 Mira y ya no sale «Dónde salen tus números»; con la ventana abierta y el ratón libre en el Laboratorio, la mira se esconde; los 5 estilos, 5 colores, 3 tamaños y 3 grosores se dibujan sin errores; con `setSpread(20)` la mira se abre de 31 a 71 px; el inglés se lee bien; en Dunas la mira aparece con un arma a distancia en la mano y el icono del sistema se oculta. El perfil se restauró después. Lo que queda: el teléfono, el mando, el ratón real en Dunas y en el Laboratorio, el idioma con la ventana abierta, el desplazamiento de la ventana en PC y la mira dinámica con disparos reales, que llega con V8. Empieza por 37.1.
+
+#### 37.1 En el emulador de teléfono (elige un dispositivo en *Prueba → Dispositivo* antes del ▶, a 844 × 390)
+
+1. [ ] En el Laboratorio, mira la esquina de arriba a la derecha, bajo el marcador.
+   ✅ El ⚙️ está a la izquierda del 😀, a unos 6 px, y ninguno de los dos pisa la línea de la fase ni los botones táctiles.
+2. [ ] En Dunas, mira la misma esquina, bajo las banderas.
+   ✅ Igual que en el Laboratorio: el ⚙️ queda a la izquierda del 😀 y no tapa el marcador ni la línea de la fase.
+3. [ ] Abre el ⚙️ en el Laboratorio y deja la ventana de Ajustes a pantalla casi completa.
+   ✅ La ventana ocupa casi todo el ancho y el alto. `ActionButtons` y `TouchGui` siguen visibles: el joystick y el salto pueden quedar por encima o por debajo de la ventana. Si alguno tapa una fila que hay que tocar, anótalo: se decide si se esconde como en el Lobby.
+4. [ ] Con la ventana abierta, toca «Estilo» y prueba Círculo y después T. Cierra con la X.
+   ✅ Cada toque llega a su fila. La X cierra la ventana y la mira vuelve al centro.
+5. [ ] Con la ventana cerrada, en el Laboratorio, mira la mira del centro. Si al empezar sale abierta la ventana de selección de arma (LabLoadout, con 1 jugador en la espera), plégala primero: con ella abierta la mira no se ve.
+   ✅ Está centrada y tiene la forma elegida. No sigue ningún toque, porque en el teléfono no hay ratón (`MouseEnabled` false).
+
+#### 37.2 Con mando (en el Laboratorio y en Dunas)
+
+1. [ ] Con un mando, selecciona el ⚙️ de la pantalla, ábrelo y muévete por sus filas hasta la X.
+   ✅ Se llega a las filas y a la X con el mando. Si no, anótalo: es la navegación del mando, no la mira.
+2. [ ] En el Laboratorio, con un mando, apunta con el arma.
+   ✅ La mira está en el centro y se ve igual que en el teléfono.
+3. [ ] En Dunas, equipa un arma a distancia y apunta con el mando.
+   ✅ La mira sale en el centro y no se mueve con el mando.
+
+#### 37.3 En PC con ratón real, en Dunas (un jugador, con un rol de arma a distancia, como el arquero o la honda)
+
+1. [ ] Equipa el arco o la honda, entra en la partida y mueve el ratón por la pantalla.
+   ✅ La mira sigue al cursor y el icono del sistema se oculta mientras el cursor está sobre el juego.
+2. [ ] Pon el cursor sobre el ⚙️ y después sobre la ventana «Antes de la batalla».
+   ✅ Vuelve el icono del sistema, y se pueden pulsar el ⚙️ y los botones de la ventana.
+3. [ ] Con el cursor fuera de las ventanas, pulsa Ctrl para bloquear la cámara y mueve el ratón.
+   ✅ La mira va al centro de la pantalla y se queda ahí mientras la cámara gira.
+4. [ ] Guarda el arma a distancia o cambia a una de cuerpo a cuerpo.
+   ✅ La mira desaparece y vuelve el icono del sistema.
+
+#### 37.4 En PC con ratón real, en el Laboratorio (un jugador)
+
+1. [ ] Con el ratón suelto, abre el ⚙️ y mantén Ctrl pulsado unos segundos.
+   ✅ Ctrl no quita el ratón a la ventana de Ajustes: sigue pudiendo pulsar sus filas.
+2. [ ] Cierra la ventana con la X.
+   ✅ La mira vuelve a salir en el centro, como antes de abrir Ajustes.
+
+#### 37.5 Idioma con la ventana abierta (en el Laboratorio o en Dunas, con un jugador)
+
+1. [ ] Abre Ajustes con el idioma en Español y cámbialo a English sin cerrar la ventana.
+   ✅ Los textos de la ventana y de la sección de la mira cambian al momento. La mira no se reinicia ni cambia de forma.
+2. [ ] Lee la sección de la mira en inglés.
+   ✅ Sale «🎯 Crosshair» con «Style», «Color», «Size» y «Thickness», y los nombres en inglés de las formas (Cross, Dot, Circle, Cross and dot, T), de los colores (White, Yellow, Cyan, Magenta, Light red), de los tamaños (Small, Normal, Large) y de los grosores (Thin, Normal, Thick).
+3. [ ] Vuelve a Español.
+   ✅ Todo vuelve en español, sin frases mezcladas.
+
+#### 37.6 PC: la ventana de Ajustes de la arena (en Dunas y en el Laboratorio, con un jugador)
+
+1. [ ] Abre el ⚙️ con la ventana a tamaño normal y baja con la rueda del ratón hasta el final.
+   ✅ La ventana se desplaza en una sola columna, y al bajar se ve todo lo que queda, sin filas cortadas. Es la excepción a «sin desplazamiento»: confirma con el usuario si quiere columnas como en el Lobby antes de cambiarlo.
+
+#### 37.7 Pendiente de V8 (disparos reales con la mira dinámica)
+
+1. [ ] En el Laboratorio, dispara el rifle o los dardos sin parar y mira la mira, con «Mira dinámica» en Sí y después en No.
+   ✅ Hoy no se abre ni tiene anillo de recarga: `setSpread` y `setCooldown` aún no los llama ningún arma. Este paso se prueba en V8.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

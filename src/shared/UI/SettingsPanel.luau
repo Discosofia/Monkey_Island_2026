@@ -15,6 +15,9 @@
 --   4. Controles del combate (Fase 10, C12): qué tecla, botón del mando o botón táctil hace cada cosa
 --      (la guardia, el amago, el Evasivo, el bloqueo de cámara…).
 --   5. Temblor de la cámara (encendido, suave o apagado; C12).
+-- En la arena (contexto "Arena": ⚙️ del Laboratorio y de Dunas, UI/ArenaSettings) solo salen la mira
+-- (estilo, color, tamaño, grosor, dinámica y su vista previa), las opciones, los controles y el
+-- temblor/idioma: no hay dónde ver los números en el mundo, ni personaje, ni estadísticas.
 -- En "Tus números" también salen la cadena del arma (sus golpes y su remate) y la guardia.
 
 local Players = game:GetService("Players")
@@ -38,6 +41,7 @@ local Settings = require(ReplicatedStorage.Shared.Settings)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
+local Crosshair = require(script.Parent.Crosshair)
 local CombatTextColumn = require(script.Parent.CombatTextColumn)
 local ComicBurst = require(script.Parent.ComicBurst)
 local Widgets = require(script.Parent.Widgets)
@@ -45,7 +49,7 @@ local Widgets = require(script.Parent.Widgets)
 local T = Strings.t
 local later = Strings.later
 
-export type Context = "Island" | "Lobby"
+export type Context = "Island" | "Lobby" | "Arena"
 
 local ROW_COLOR = Color3.fromRGB(45, 38, 30)
 local ACTIVE_COLOR = Color3.fromRGB(242, 178, 36)
@@ -55,6 +59,9 @@ local RED = Color3.fromRGB(255, 70, 70)
 local GREEN = Color3.fromRGB(90, 230, 110)
 local YELLOW = Color3.fromRGB(255, 220, 90)
 local PREVIEW_HEIGHT = 240
+-- Vista previa de la mira (arena): alto del recuadro y separación de ejemplo de los brazos.
+local CROSSHAIR_PREVIEW_HEIGHT = 72
+local CROSSHAIR_PREVIEW_SPREAD = 10
 -- Los estallidos de ejemplo, más pequeños que en la partida (el recuadro es bajo).
 local PREVIEW_COMIC_SCALE = 0.6
 -- Orden en que la vista previa enseña los estallidos.
@@ -1134,6 +1141,56 @@ local function toggleLine(parent: Instance, order: number, key: string, label: s
 	return switch
 end
 
+-- Sección de la mira (solo en la arena): sus cuatro elecciones, la mira dinámica y una vista previa viva
+-- sobre fondo oscuro (su propia mira, montada en el panel y no en el ScreenGui "Mira" del juego).
+local function buildCrosshair(parent: Frame): (values: Settings.Values) -> ()
+	heading(parent, T("🎯 Mira"), 1)
+	text(parent, T("Estilo"), 2, SOFT_COLOR)
+	local refreshStyle =
+		choiceRow(parent, 3, "crosshairStyle", Settings.CROSSHAIR_STYLES, Settings.CROSSHAIR_STYLE_NAMES)
+	text(parent, T("Color"), 4, SOFT_COLOR)
+	local refreshColor =
+		choiceRow(parent, 5, "crosshairColor", Settings.CROSSHAIR_COLORS, Settings.CROSSHAIR_COLOR_NAMES)
+	text(parent, T("Tamaño"), 6, SOFT_COLOR)
+	local refreshSize = choiceRow(parent, 7, "crosshairSize", Settings.CROSSHAIR_SIZES, Settings.CROSSHAIR_SIZE_NAMES)
+	text(parent, T("Grosor"), 8, SOFT_COLOR)
+	local refreshThickness =
+		choiceRow(parent, 9, "crosshairThickness", Settings.CROSSHAIR_THICKNESSES, Settings.CROSSHAIR_THICKNESS_NAMES)
+	local dynamicSwitch =
+		toggleLine(parent, 10, "crosshairDynamic", later("Mira dinámica (se abre al moverte y disparar)"))
+
+	local holder = Instance.new("Frame")
+	holder.Name = "CrosshairPreview"
+	holder.LayoutOrder = 11
+	holder.Size = UDim2.new(1, 0, 0, CROSSHAIR_PREVIEW_HEIGHT)
+	holder.BackgroundColor3 = Color3.fromRGB(22, 26, 24)
+	holder.ClipsDescendants = true
+	holder.Parent = parent
+	corner(holder, 10)
+	local crosshair = Crosshair.mount(holder)
+	-- La dispersión y la recarga de ejemplo, en bucle, para ver cómo se abre y se llena.
+	task.spawn(function()
+		local clock = 0
+		while holder.Parent do
+			clock += 0.05
+			crosshair.setSpread(if clock % 2.4 < 0.6 then CROSSHAIR_PREVIEW_SPREAD else 0)
+			local cycle = (clock % 4) / 4
+			crosshair.setCooldown(if cycle > 0.55 then (cycle - 0.55) / 0.45 else 0)
+			task.wait(0.05)
+		end
+	end)
+
+	return function(values: Settings.Values)
+		refreshStyle(values)
+		refreshColor(values)
+		refreshSize(values)
+		refreshThickness(values)
+		local on = values.crosshairDynamic
+		dynamicSwitch.Text = if on then T("Sí") else T("No")
+		paint(dynamicSwitch, on)
+	end
+end
+
 -- Va arriba del todo, encima de la vista previa: es lo que más se cambia y la vista previa enseña
 -- al momento cómo queda.
 local function buildLayoutChoice(parent: Frame): (values: Settings.Values) -> ()
@@ -1272,19 +1329,30 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	layout.Padding = UDim.new(0, 8)
 	layout.Parent = root
 
-	local refreshLayout = buildLayoutChoice(section(root, 0))
-	local preview = buildPreview(root, player, context)
-	local stats = section(root, 2)
-	local function refreshStats()
-		for _, child in stats:GetChildren() do
-			if child:IsA("GuiObject") then
-				child:Destroy()
+	-- En la arena (Laboratorio y Dunas) no hay números en el mundo, ni vista previa del personaje, ni
+	-- estadísticas: la mira va arriba y después las opciones, los controles y el temblor.
+	local arena = context == "Arena"
+	local refreshLayout: ((values: Settings.Values) -> ())? = nil
+	local refreshCrosshair: ((values: Settings.Values) -> ())? = nil
+	local preview: Preview? = nil
+	local stopWatching: (() -> ())? = nil
+	if arena then
+		refreshCrosshair = buildCrosshair(section(root, 0))
+	else
+		refreshLayout = buildLayoutChoice(section(root, 0))
+		preview = buildPreview(root, player, context)
+		local stats = section(root, 2)
+		local function refreshStats()
+			for _, child in stats:GetChildren() do
+				if child:IsA("GuiObject") then
+					child:Destroy()
+				end
 			end
+			fillStats(stats, player, context)
 		end
-		fillStats(stats, player, context)
+		refreshStats()
+		stopWatching = if context == "Island" then watchStats(player, refreshStats) else nil
 	end
-	refreshStats()
-	local stopWatching = if context == "Island" then watchStats(player, refreshStats) else nil
 	local refreshOptions = buildOptions(section(root, 3))
 	buildControls(section(root, 4))
 	local refreshShake = buildShake(section(root, 5))
@@ -1292,12 +1360,17 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	-- Al cambiar algo de los efectos de cómic se enseña uno al momento (un crítico, que siempre sale).
 	local shownComic = ""
 	local function apply(values: Settings.Values)
-		preview.setLayout(values.textLayout)
-		refreshLayout(values)
+		if preview and refreshLayout then
+			preview.setLayout(values.textLayout)
+			refreshLayout(values)
+		end
+		if refreshCrosshair then
+			refreshCrosshair(values)
+		end
 		refreshOptions(values)
 		refreshShake(values)
 		local comic = `{values.comicFx}/{values.comicLevel}/{values.comicSize}`
-		if shownComic ~= "" and comic ~= shownComic then
+		if preview and shownComic ~= "" and comic ~= shownComic then
 			preview.showComic("Crit")
 		end
 		shownComic = comic
@@ -1306,7 +1379,9 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 	local connection = Settings.onChanged(apply)
 	root.Destroying:Connect(function()
 		connection:Disconnect()
-		preview.stop()
+		if preview then
+			preview.stop()
+		end
 		if stopWatching then
 			stopWatching()
 		end

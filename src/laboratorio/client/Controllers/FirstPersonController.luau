@@ -1,8 +1,9 @@
 --!strict
 -- Primera persona del Laboratorio (docs/LABORATORIO.md §2). La cámara la fija el place
 -- (StarterPlayer.CameraMode = LockFirstPerson, laboratorio.project.json); aquí:
---   - La mira: una cruz fija en el centro de la pantalla, en lugar del cursor. Se apunta con el centro
---     en todos los dispositivos (CombatClient/Aim: con ratón, el cursor está ahí; sin él, la cámara).
+--   - La mira (UI/Crosshair, configurable en Ajustes: forma, color, tamaño, grosor y dinámica): fija en el
+--     centro de la pantalla, en lugar del cursor. FirstPersonController.crosshair() da su Handle (dispersión y
+--     recarga). Se apunta con el centro en todos los dispositivos (CombatClient/Aim: con ratón, el cursor está ahí; sin él, la cámara).
 --   - El arma en primera persona: Roblox esconde el personaje propio (y el arma en su mano; aquí se
 --     esconde también la que cambia de piezas al cambiar de facción), así que se dibuja una copia del arma equipada (Shared/LabWeaponModels, con la facción "LabFaction" y la skin de bajas "<arma>Skin", sin sus piezas
 --     "LabBack" de la espalda ni sus partículas) con las
@@ -19,7 +20,7 @@
 -- Isla y el Lobby (CameraLockController, que aquí no se carga). No Alt: en Studio, Alt es un atajo que
 -- dibuja el esqueleto del personaje, y en Windows activa el menú. Con el ratón suelto, Ctrl vuelve a apuntar
 -- siempre: también cierra lo que se puede cerrar (el panel de pruebas, onLockRequested). Solo el selector
--- de arma y los resultados lo tienen suelto mientras están abiertos (needsCursor).
+-- de arma, los resultados y los Ajustes (⚙️) lo tienen suelto mientras están abiertos (needsCursor).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +31,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
+local Crosshair = require(ReplicatedStorage.Shared.UI.Crosshair)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
 local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
@@ -69,10 +71,11 @@ local CURSOR_KEYS = { [Enum.KeyCode.LeftControl] = true, [Enum.KeyCode.RightCont
 local cursorReasons: { [string]: true } = {}
 local cursorGui: ScreenGui? = nil
 local crosshairGui: ScreenGui? = nil
+local crosshairHandle: Crosshair.Handle? = nil
 local cursorChangedListeners: { (free: boolean) -> () } = {}
 local lockRequestedListeners: { () -> () } = {}
 -- Las ventanas que necesitan el ratón mientras están abiertas (Ctrl no se lo quita).
-local WINDOW_REASONS = { Loadout = true, Results = true }
+local WINDOW_REASONS = { Loadout = true, Results = true, Settings = true }
 
 local function clearViewModel()
 	if viewModel then
@@ -260,35 +263,19 @@ function FirstPersonController.freeCursor(reason: string, on: boolean)
 	end
 end
 
--- Cruz fija en el centro de la pantalla (sin el cursor de Roblox). Blanca con borde oscuro: se ve en
--- cualquier fondo y no usa los colores con significado.
-local function crosshair(player: Player)
+-- Mira en el centro de la pantalla (sin el cursor de Roblox), la de UI/Crosshair según los Ajustes.
+local function mountCrosshair(player: Player)
 	local gui = Widgets.screen("Mira", player:WaitForChild("PlayerGui"))
 	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 5
 	gui.Enabled = not isCursorFree()
 	crosshairGui = gui
-	local function bar(size: UDim2, offset: UDim2)
-		local frame = Instance.new("Frame")
-		frame.AnchorPoint = Vector2.new(0.5, 0.5)
-		frame.Position = UDim2.fromScale(0.5, 0.5) + offset
-		frame.Size = size
-		frame.BackgroundColor3 = Color3.new(1, 1, 1)
-		frame.BorderSizePixel = 0
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(20, 20, 20)
-		stroke.Transparency = 0.3
-		stroke.Thickness = 1
-		stroke.Parent = frame
-		frame.Parent = gui
-	end
-	bar(UDim2.fromOffset(3, 3), UDim2.new())
-	for _, offset in { UDim2.fromOffset(-11, 0), UDim2.fromOffset(11, 0) } do
-		bar(UDim2.fromOffset(9, 2), offset)
-	end
-	for _, offset in { UDim2.fromOffset(0, -11), UDim2.fromOffset(0, 11) } do
-		bar(UDim2.fromOffset(2, 9), offset)
-	end
+	crosshairHandle = Crosshair.mount(gui)
+end
+
+-- La mira (dispersión y recarga la ponen las armas), o nil si aún no está montada.
+function FirstPersonController.crosshair(): Crosshair.Handle?
+	return crosshairHandle
 end
 
 local function follow(deltaTime: number)
@@ -341,7 +328,7 @@ end
 function FirstPersonController:Start()
 	local player = Players.LocalPlayer
 	UserInputService.MouseIconEnabled = isCursorFree()
-	crosshair(player)
+	mountCrosshair(player)
 	UserInputService.InputBegan:Connect(function(input)
 		if not CURSOR_KEYS[input.KeyCode] or UserInputService:GetFocusedTextBox() then
 			return

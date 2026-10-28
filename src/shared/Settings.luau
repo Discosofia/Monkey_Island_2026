@@ -19,6 +19,9 @@
 --   - comicSize: "Small", "Normal" o "Large" (Config.ComicFx.SizeScale).
 --   - cameraShake: temblor de la cámara en combate (remates, habilidades, rebotes, la guardia): "On",
 --     "Soft" o "Off" (Config.CameraShake.Scale; CombatClient/CameraShake).
+--   - crosshairStyle / crosshairColor / crosshairSize / crosshairThickness / crosshairDynamic: la mira de las
+--     arenas con disparo (UI/Crosshair; Laboratorio y Dunas): forma ("Cross", "Dot", "Circle", "CrossDot",
+--     "T"), color (nunca verde ni morado), tamaño, grosor y si se abre según la dispersión real.
 --   - language: idioma de los textos (Shared/Strings): "Auto" (el de la cuenta de Roblox), "es" o "en".
 --   - missionsOpen: la lista de misiones de la Isla desplegada (en PC; se pliega tocando su cabecera,
 --     MissionTrackerController). No sale en el panel.
@@ -36,6 +39,10 @@ export type ComicSize = "Small" | "Normal" | "Large"
 export type NumberFont = "Comic" | "Classic"
 export type CameraShake = "On" | "Soft" | "Off"
 export type Language = "Auto" | "es" | "en"
+export type CrosshairStyle = "Cross" | "Dot" | "Circle" | "CrossDot" | "T"
+export type CrosshairColor = "White" | "Yellow" | "Cyan" | "Magenta" | "LightRed"
+export type CrosshairSize = "Small" | "Normal" | "Large"
+export type CrosshairThickness = "Thin" | "Normal" | "Thick"
 export type Values = {
 	textLayout: Layout,
 	numberFont: NumberFont,
@@ -49,6 +56,11 @@ export type Values = {
 	comicLevel: ComicLevel,
 	comicSize: ComicSize,
 	cameraShake: CameraShake,
+	crosshairStyle: CrosshairStyle,
+	crosshairColor: CrosshairColor,
+	crosshairSize: CrosshairSize,
+	crosshairThickness: CrosshairThickness,
+	crosshairDynamic: boolean,
 	language: Language,
 	missionsOpen: boolean,
 }
@@ -86,6 +98,34 @@ Settings.CAMERA_SHAKE_NAMES = {
 	Soft = later("Suave"),
 	Off = later("Apagado"),
 } :: { [string]: string }
+Settings.CROSSHAIR_STYLES = { "Cross", "Dot", "Circle", "CrossDot", "T" } :: { CrosshairStyle }
+Settings.CROSSHAIR_STYLE_NAMES = {
+	Cross = later("Cruz"),
+	Dot = later("Punto"),
+	Circle = later("Círculo"),
+	CrossDot = later("Cruz y punto"),
+	T = later("T"),
+} :: { [string]: string }
+Settings.CROSSHAIR_COLORS = { "White", "Yellow", "Cyan", "Magenta", "LightRed" } :: { CrosshairColor }
+Settings.CROSSHAIR_COLOR_NAMES = {
+	White = later("Blanco"),
+	Yellow = later("Amarillo"),
+	Cyan = later("Cian"),
+	Magenta = later("Magenta"),
+	LightRed = later("Rojo claro"),
+} :: { [string]: string }
+Settings.CROSSHAIR_SIZES = { "Small", "Normal", "Large" } :: { CrosshairSize }
+Settings.CROSSHAIR_SIZE_NAMES = {
+	Small = later("Pequeña"),
+	Normal = later("Normal"),
+	Large = later("Grande"),
+} :: { [string]: string }
+Settings.CROSSHAIR_THICKNESSES = { "Thin", "Normal", "Thick" } :: { CrosshairThickness }
+Settings.CROSSHAIR_THICKNESS_NAMES = {
+	Thin = later("Fino"),
+	Normal = later("Normal"),
+	Thick = later("Grueso"),
+} :: { [string]: string }
 Settings.LANGUAGES = { "Auto", "es", "en" } :: { Language }
 -- Cada idioma en su propio idioma (su inglés es el mismo texto); "Automático" sí se traduce.
 Settings.LANGUAGE_NAMES = {
@@ -108,6 +148,11 @@ function Settings.defaults(): Values
 		comicLevel = "All",
 		comicSize = "Normal",
 		cameraShake = "On",
+		crosshairStyle = "Cross",
+		crosshairColor = "White",
+		crosshairSize = "Normal",
+		crosshairThickness = "Normal",
+		crosshairDynamic = true,
 		language = "Auto",
 		missionsOpen = true,
 	}
@@ -134,11 +179,36 @@ function Settings.sanitize(raw: any): Values
 	if typeof(raw.cameraShake) == "string" and table.find(Settings.CAMERA_SHAKES, raw.cameraShake) then
 		values.cameraShake = raw.cameraShake :: CameraShake
 	end
+	if typeof(raw.crosshairStyle) == "string" and table.find(Settings.CROSSHAIR_STYLES, raw.crosshairStyle) then
+		values.crosshairStyle = raw.crosshairStyle :: CrosshairStyle
+	end
+	if typeof(raw.crosshairColor) == "string" and table.find(Settings.CROSSHAIR_COLORS, raw.crosshairColor) then
+		values.crosshairColor = raw.crosshairColor :: CrosshairColor
+	end
+	if typeof(raw.crosshairSize) == "string" and table.find(Settings.CROSSHAIR_SIZES, raw.crosshairSize) then
+		values.crosshairSize = raw.crosshairSize :: CrosshairSize
+	end
+	if
+		typeof(raw.crosshairThickness) == "string"
+		and table.find(Settings.CROSSHAIR_THICKNESSES, raw.crosshairThickness)
+	then
+		values.crosshairThickness = raw.crosshairThickness :: CrosshairThickness
+	end
 	if typeof(raw.language) == "string" and table.find(Settings.LANGUAGES, raw.language) then
 		values.language = raw.language :: Language
 	end
 	for _, key in
-		{ "showNumbers", "allyNumbers", "showLoot", "showCombo", "damageFx", "music", "comicFx", "missionsOpen" }
+		{
+			"showNumbers",
+			"allyNumbers",
+			"showLoot",
+			"showCombo",
+			"damageFx",
+			"music",
+			"comicFx",
+			"crosshairDynamic",
+			"missionsOpen",
+		}
 	do
 		if typeof(raw[key]) == "boolean" then
 			(values :: any)[key] = raw[key]

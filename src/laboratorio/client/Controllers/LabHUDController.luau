@@ -13,7 +13,8 @@
 --   - En el centro, solo mientras se espera para reaparecer: "Reapareces en 3" (encima va el selector de
 --     arma, LabLoadoutController).
 --   - Botón 😀 de la rueda de emotes (UI/EmoteWheel): abajo a la derecha en PC y arriba a la derecha, bajo
---     el marcador, en táctil.
+--     el marcador, en táctil. A su izquierda, el ⚙️ de Ajustes (UI/ArenaSettings: mira, opciones, controles);
+--     con la ventana abierta el ratón va suelto (FirstPersonController.freeCursor "Settings").
 -- En su Init pone los bandos del Laboratorio en Shared/Arena (los demás controladores los leen en Start).
 
 local GuiService = game:GetService("GuiService")
@@ -27,6 +28,7 @@ local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
+local ArenaSettings = require(ReplicatedStorage.Shared.UI.ArenaSettings)
 local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
@@ -292,6 +294,15 @@ function LabHUDController:Start()
 	placeEmoteButton()
 	UserInputService.LastInputTypeChanged:Connect(placeEmoteButton)
 	EmoteWheel.start()
+	-- Ajustes (⚙️), pegado a la izquierda del 😀 aunque este cambie de sitio. Con la ventana abierta se suelta el ratón.
+	ArenaSettings.attach(gui, emoteButton, {
+		onOpen = function()
+			FirstPersonController.freeCursor("Settings", true)
+		end,
+		onClose = function()
+			FirstPersonController.freeCursor("Settings", false)
+		end,
+	})
 
 	-- Cuenta atrás para reaparecer.
 	local respawn = Widgets.label("", gui)

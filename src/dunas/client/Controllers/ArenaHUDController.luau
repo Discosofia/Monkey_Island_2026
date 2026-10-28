@@ -14,7 +14,9 @@
 --     las casillas de habilidades (RoleHUD, en 12, 118).
 --   - En el centro, solo mientras se espera para reaparecer: "Reapareces en 4".
 --   - Botón 😀 de la rueda de emotes (UI/EmoteWheel, la del Lobby y la Isla): abajo a la derecha en PC y
---     arriba a la derecha, bajo las banderas, en táctil.
+--     arriba a la derecha, bajo las banderas, en táctil. A su izquierda, el ⚙️ de Ajustes (UI/ArenaSettings:
+--     mira, opciones, controles y temblor/idioma). La mira de las armas a distancia la dibuja
+--     ArenaCrosshairController.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
@@ -26,6 +28,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.Strings)
+local ArenaSettings = require(ReplicatedStorage.Shared.UI.ArenaSettings)
 local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local EvasiveIcon = require(ReplicatedStorage.CombatClient.EvasiveIcon)
@@ -291,6 +294,8 @@ function ArenaHUDController:Start()
 	placeEmoteButton()
 	UserInputService.LastInputTypeChanged:Connect(placeEmoteButton)
 	EmoteWheel.start()
+	-- Ajustes (⚙️), a la izquierda del 😀. En Dunas el ratón ya va libre: sin onOpen ni onClose.
+	ArenaSettings.attach(gui, emoteButton, {})
 
 	-- Cuenta atrás para reaparecer.
 	local respawn = Widgets.label("", gui)
