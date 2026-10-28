@@ -1886,6 +1886,50 @@ Probado en Studio con un jugador, en el Lobby y en la Isla (28-10-2026): la esqu
 2. [ ] Publicado, en Dunas, con varias esquivas y Embestidas seguidas en una partida, mira las estadísticas de rendimiento de Roblox.
    ✅ Los FPS no caen de forma notable con la estela y el polvo activos. (Anota el valor antes y después si se nota.)
 
+## 35. Lo que queda por probar de V4: animaciones de andar, correr y deslizar (28-10-2026)
+
+Probado en Studio, en la Isla (28-10-2026): ciclos de Walk, Run y RunArmed generados, medidos (los pies no bajan de −0,10) y revisados en tira; en Play, Walk suena a 18 studs/s y se para al quedarse quieto. Ids publicados el 28-10-2026 y pegados. Lo que queda necesita verse a ojo en los cuatro places, el teléfono, 2 jugadores y el juego publicado, con los ids ya pegados. Empieza por 35.1.
+
+#### 35.1 En el Studio de la Isla, del Lobby, de Dunas y del Laboratorio, con un jugador (haz antes una copia del perfil en `PlayerData_v1_backups`, y restáurala después)
+
+1. [ ] En cada uno de los cuatro places, anda y después corre a 26 studs/s con la estamina llena.
+   ✅ Anda con Walk a unos 18 studs/s y corre con Run a unos 26. El cambio de uno a otro es limpio: no parpadea ni se corta dos veces seguidas (el umbral está en 22 studs/s).
+2. [ ] Coge un arma y corre.
+   ✅ Sale RunArmed: piernas y tronco con el ciclo de correr, y el brazo derecho sigue sujetando el arma sin moverse con la animación.
+3. [ ] Anda o corre y salta.
+   ✅ El ciclo se para en el aire, y vuelve a sonar al tocar el suelo si sigues moviéndote.
+4. [ ] Monta una montura (el Jaguar, en el Lobby o en la Isla) y mueve al personaje.
+   ✅ El ciclo de andar o correr se para, y manda la pose de montado.
+5. [ ] Cae de verdad (deja que el hambre llegue a cero o recibe un golpe mortal, como en 31.1) y mira las piernas mientras gateas.
+   ✅ El ciclo de andar se para: manda la pose de gateo.
+6. [ ] Corre y pulsa Alt izquierdo (C en el Laboratorio) para deslizar. Mira el balanceo del tronco.
+   ✅ Se para el ciclo de correr y se ve la pose de deslizar, con el tronco balanceándose y sin mezclarse con las piernas de correr. Al acabar, vuelve Walk o Run según la velocidad.
+7. [ ] Con hambre o sed bajas, o con un muñeco de práctica que te ralentice, anda y compara el ritmo de las piernas con andar sin ralentizar.
+   ✅ El ritmo de las piernas baja con la velocidad real, y los pies no patinan sobre el suelo.
+
+#### 35.2 En el teléfono y con mando (elige un dispositivo en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] En la Isla, corre con el botón «Correr» y mira las piernas, después para.
+   ✅ Se lee igual que en PC: Run al correr, Walk al andar y parado sin ciclo, sin parpadeos.
+2. [ ] Con un mando, corre con L3 y mira las piernas.
+   ✅ Mismo resultado que en el teléfono y en PC.
+
+#### 35.3 En el juego publicado (con los ids pegados)
+
+1. [ ] Los cuatro ids (Walk, Run, RunArmed y Slide) ya están pegados en `src/shared/Data/PlayerAnimations.luau`. Publica el juego con Rojo sincronizado y mira la Salida al andar.
+   ✅ No avisa de ninguna animación que no cargue (si alguna falla, suele ser un id de otro dueño).
+2. [ ] Si cambias un ciclo en `PlayerAnimationBuilder`, vuelve a publicarlo y pega el id nuevo.
+   ✅ El id nuevo queda como `rbxassetid://…` y el ciclo nuevo suena en el juego publicado.
+3. [ ] En la Isla, el Lobby, Dunas y el Laboratorio publicados, anda, corre, corre armado y desliza.
+   ✅ Suenan Walk, Run, RunArmed y Slide en los cuatro places, con el mismo ritmo y la misma pose que en Studio.
+
+#### 35.4 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas)
+
+1. [ ] Uno anda y corre, y el otro lo mira desde su pantalla.
+   ✅ El otro ve los ciclos propios de Walk y Run en ese personaje, al ritmo de la velocidad de su dueño, sin tirones.
+2. [ ] Uno corre con un arma en la mano, y el otro lo mira.
+   ✅ El otro ve RunArmed, con el brazo derecho sujetando el arma.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

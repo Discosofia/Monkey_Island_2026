@@ -91,17 +91,18 @@ function BodyAnimations.has(key: PlayerAnimations.Key): boolean
 end
 
 -- Reproduce "key" desde el principio. Las de bucle (Crawl, Revive) siguen hasta stop().
-function BodyAnimations.play(key: PlayerAnimations.Key, speed: number?)
+-- "fade" opcional: por defecto 0,25 s en las de bucle y 0,08 s en las demás.
+function BodyAnimations.play(key: PlayerAnimations.Key, speed: number?, fade: number?)
 	local loaded = track(key)
 	if loaded then
-		loaded:Play(if loaded.Looped then 0.25 else 0.08, 1, speed or 1)
+		loaded:Play(fade or (if loaded.Looped then 0.25 else 0.08), 1, speed or 1)
 	end
 end
 
-function BodyAnimations.stop(key: PlayerAnimations.Key)
+function BodyAnimations.stop(key: PlayerAnimations.Key, fade: number?)
 	local loaded = tracks[key]
 	if loaded and loaded.IsPlaying then
-		loaded:Stop(0.25)
+		loaded:Stop(fade or 0.25)
 	end
 end
 

@@ -351,7 +351,130 @@ local function slidePose(t: number): { [string]: any }
 	}
 end
 
+-- Deslizarse en bucle (V4): la pose de siempre con un balanceo suave del tronco (Z y Y), que cierra el
+-- ciclo en el último fotograma. Sigue sin brazos ni cabeza (prioridad Action3: taparía el arma).
+local function slideKeyframes(): { { [string]: any } }
+	local period, steps = 0.8, 8
+	local frames: { { [string]: any } } = {}
+	for index = 0, steps do
+		local phase = 2 * math.pi * index / steps
+		local pose = slidePose(period * index / steps)
+		pose.UpperTorso = { 8, 3 * math.sin(phase), 4 * math.sin(phase + math.pi / 2) }
+		table.insert(frames, pose)
+	end
+	return frames
+end
+
+-- Ciclo de andar o correr: se muestrea una fase φ = 2π·t/T en "steps" fotogramas y el último repite el
+-- primero para cerrar el bucle. Pie derecho adelante cuando sin φ > 0; la pierna izquierda va en
+-- contrafase. Brazos: cada uno al contrario de su pierna. Un brazo en nil lo deja a la animación de
+-- sujetar el arma (RunArmed no toca el derecho).
+type Gait = {
+	period: number,
+	thighBase: number, -- inclinación media de los muslos (el correr los lleva algo adelante)
+	thighSwing: number,
+	kneeBase: number, -- rodilla mínima (siempre algo doblada)
+	kneeLift: number, -- doblez extra al recoger la pierna
+	footFactor: number, -- el pie compensa esa fracción del doblez de la rodilla
+	armSwing: number, -- recorrido de los brazos
+	elbow: number, -- doblez base del antebrazo
+	elbowVary: number, -- variación del codo con el vaivén
+	torsoX: number,
+	torsoYaw: number,
+	headX: number,
+	pelvisX: number,
+	bounce: number, -- rebote del LowerTorso (studs); nunca por debajo de 0 a 2·bounce de la raíz
+	rightArm: boolean, -- false: no anima el brazo derecho
+}
+
+local function gaitFrame(gait: Gait, t: number, phase: number): { [string]: any }
+	local frame: { [string]: any } = {
+		t = t,
+		LowerTorso = { gait.pelvisX, 0, 0, 0, gait.bounce * math.cos(2 * phase) - gait.bounce, 0 },
+		UpperTorso = { gait.torsoX, gait.torsoYaw * math.sin(phase), 0 },
+	}
+	if gait.headX ~= 0 then
+		frame.Head = { gait.headX, 0, 0 }
+	end
+	for side, sign in { Right = 1, Left = -1 } do
+		local s, c = sign * math.sin(phase), sign * math.cos(phase)
+		local knee = -(gait.kneeBase + gait.kneeLift * math.max(0, c))
+		frame[`{side}UpperLeg`] = { gait.thighBase + gait.thighSwing * s, 0, 0 }
+		frame[`{side}LowerLeg`] = { knee, 0, 0 }
+		frame[`{side}Foot`] = { -knee * gait.footFactor, 0, 0 }
+		if side == "Left" or gait.rightArm then
+			frame[`{side}UpperArm`] = { -gait.armSwing * s, 0, 0 }
+			-- Más doblado el codo cuando el brazo va adelante.
+			frame[`{side}LowerArm`] = { gait.elbow - gait.elbowVary * s, 0, 0 }
+		end
+	end
+	return frame
+end
+
+local function gaitKeyframes(gait: Gait): { { [string]: any } }
+	local steps = 8
+	local frames: { { [string]: any } } = {}
+	for index = 0, steps do
+		table.insert(frames, gaitFrame(gait, gait.period * index / steps, 2 * math.pi * index / steps))
+	end
+	return frames
+end
+
+local WALK: Gait = {
+	period = 0.75,
+	thighBase = 0,
+	thighSwing = 25,
+	kneeBase = 8,
+	kneeLift = 40,
+	footFactor = 0.3,
+	armSwing = 22,
+	elbow = 15,
+	elbowVary = 0,
+	torsoX = -3,
+	torsoYaw = 4,
+	headX = 0,
+	pelvisX = 0,
+	bounce = 0.04,
+	rightArm = true,
+}
+
+local RUN: Gait = {
+	period = 0.55,
+	thighBase = 10,
+	thighSwing = 50,
+	kneeBase = 20,
+	kneeLift = 80,
+	footFactor = 0.25,
+	armSwing = 45,
+	elbow = 80,
+	elbowVary = 10,
+	torsoX = -10,
+	torsoYaw = 8,
+	headX = 6,
+	pelvisX = -4,
+	bounce = 0.09,
+	rightArm = true,
+}
+
+-- Con el arma: igual en piernas y tronco; el brazo derecho lo pone la animación de sujetarla, y el
+-- izquierdo se mueve la mitad con el antebrazo menos cerrado.
+local RUN_ARMED: Gait = table.clone(RUN)
+RUN_ARMED.armSwing = 22
+RUN_ARMED.elbow = 60
+RUN_ARMED.elbowVary = 0
+RUN_ARMED.rightArm = false
+
 local SPECS: { [string]: any } = {
+	-- Andar y correr (V4): ciclos en bucle por código, prioridad Movement.
+	Walk = { name = "Walk", loop = true, easing = "Linear", direction = "In", keyframes = gaitKeyframes(WALK) },
+	Run = { name = "Run", loop = true, easing = "Linear", direction = "In", keyframes = gaitKeyframes(RUN) },
+	RunArmed = {
+		name = "RunArmed",
+		loop = true,
+		easing = "Linear",
+		direction = "In",
+		keyframes = gaitKeyframes(RUN_ARMED),
+	},
 	-- Pisotón del guerrero. AbilityService hace el daño al recibir la petición: el pie cae a 0,2 s.
 	Quake = {
 		name = "Quake",
@@ -478,13 +601,13 @@ local SPECS: { [string]: any } = {
 			{ t = 0.5, reposo = true },
 		},
 	},
-	-- Deslizamiento (en bucle; Slide la para al terminar). Pose provisional hasta la V4.
+	-- Deslizamiento (en bucle; Slide la para al terminar), con balanceo suave del tronco.
 	Slide = {
 		name = "Slide",
 		loop = true,
-		easing = "Cubic",
-		direction = "InOut",
-		keyframes = { slidePose(0), slidePose(0.4) },
+		easing = "Linear",
+		direction = "In",
+		keyframes = slideKeyframes(),
 	},
 	Hammer = {
 		name = "Hammer",

@@ -25,6 +25,9 @@ export type Key =
 	| "Hammer"
 	| "Craft"
 	| "Ride"
+	| "Walk"
+	| "Run"
+	| "RunArmed"
 
 export type PlayerAnimation = {
 	id: string,
@@ -49,11 +52,10 @@ local PlayerAnimations = {
 		-- atrás si estás quieto o vas hacia atrás.
 		DodgeRoll = { id = "rbxassetid://137704861516961", priority = Enum.AnimationPriority.Action3 },
 		DodgeBack = { id = "rbxassetid://80943980651716", priority = Enum.AnimationPriority.Action3 },
-		-- Deslizamiento (Fase 15, V2; combatClient/Slide): agachado y echado hacia atrás, con una pierna
-		-- estirada, en bucle hasta que Slide la para. Solo piernas y tronco: los brazos siguen con el arma.
-		-- PROVISIONAL, sin publicar: id vacío (en Studio usa la secuencia de PlayerAnimationBuilder; en el
-		-- juego publicado no se reproduce). La pose definitiva es la V4.
-		Slide = { id = "", priority = Enum.AnimationPriority.Action3, looped = true },
+		-- Deslizamiento (Fase 15, V2/V4; combatClient/Slide): agachado y echado hacia atrás, con una pierna
+		-- estirada y el tronco balanceándose, en bucle hasta que Slide la para. Solo piernas y tronco: los
+		-- brazos siguen con el arma.
+		Slide = { id = "rbxassetid://86355611045990", priority = Enum.AnimationPriority.Action3, looped = true },
 		-- Torbellino: agachado y con los brazos abiertos, en bucle mientras RoleController lo hace girar.
 		Whirlwind = { id = "rbxassetid://86446930487394", priority = Enum.AnimationPriority.Action3, looped = true },
 		CastForward = { id = "rbxassetid://140190769864612", priority = Enum.AnimationPriority.Action3 }, -- lanza con la mano al frente
@@ -67,6 +69,13 @@ local PlayerAnimations = {
 		Revive = { id = "rbxassetid://109653278143351", priority = Enum.AnimationPriority.Action4, looped = true }, -- de rodillas, reanima
 		-- Montado (Fase 11, UI/MountRiders): a horcajadas sobre la montura, con las riendas, en bucle.
 		Ride = { id = "rbxassetid://88188843088858", priority = Enum.AnimationPriority.Action4, looped = true },
+		-- Andar y correr (Fase 15, V4; CombatClient/LocomotionController), en bucle. Movement queda por
+		-- encima de Core (el Animate de Roblox) y por debajo de Action, así que sujetar el arma (Hold),
+		-- toolnone, el arma y los gestos siguen mandando sobre los brazos. RunArmed no anima el brazo
+		-- derecho. Con un id vacío no se reproducen y queda el Animate de Roblox.
+		Walk = { id = "rbxassetid://87439858386759", priority = Enum.AnimationPriority.Movement, looped = true },
+		Run = { id = "rbxassetid://132136387500047", priority = Enum.AnimationPriority.Movement, looped = true },
+		RunArmed = { id = "rbxassetid://121135663217863", priority = Enum.AnimationPriority.Movement, looped = true },
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para
