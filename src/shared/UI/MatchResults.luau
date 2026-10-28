@@ -62,6 +62,9 @@ end
 local function titleOf(summary: { [string]: any }): (string, Color3)
 	if summary.test then
 		return T("🧪 Partida de prueba"), PLAIN
+	elseif typeof(summary.place) == "number" and summary.place ~= 1 then
+		-- Todos contra todos: el puesto en lugar de victoria o derrota.
+		return T("Puesto {place} de {total}", { place = summary.place, total = summary.total }), PLAIN
 	elseif summary.result == "Win" then
 		return T("🏆 ¡Victoria!"), GOLD_TEXT
 	elseif summary.result == "Loss" then
@@ -105,7 +108,9 @@ local function playerRow(parent: Instance, order: number, row: { [string]: any }
 		stroke.Thickness = 2
 		stroke.Parent = frame
 	end
-	local name = Widgets.label(`{if team then team.icon else ""} {row.name}`, frame)
+	-- Sin bandos (Todos contra todos), el puesto delante del nombre.
+	local rank = if typeof(row.place) == "number" then `{row.place}. ` else ""
+	local name = Widgets.label(`{rank}{if team then team.icon else ""} {row.name}`, frame)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Position = UDim2.fromOffset(8, 4)
 	name.Size = UDim2.new(0.5, -8, 1, -8)
@@ -166,13 +171,30 @@ local function show(summary: { [string]: any })
 	local scores = summary.scores or {}
 	local first, second = Arena.TEAM_IDS[1], Arena.TEAM_IDS[2]
 	local left, right = Arena.TEAMS[first], Arena.TEAMS[second]
-	line(
-		panel,
-		`{left.icon} {T(left.name)} {scores[first] or 0} · {scores[second] or 0} {T(right.name)} {right.icon}`,
-		60,
-		28,
-		Color3.new(1, 1, 1)
-	)
+	if summary.scores == nil and typeof(summary.winnerName) == "string" then
+		-- Sin marcador por bandos (Todos contra todos): el ganador y sus bajas.
+		local winnerKills = 0
+		for _, row in summary.players or {} do
+			if row.place == 1 then
+				winnerKills = row.kills or 0
+			end
+		end
+		line(
+			panel,
+			T("🥇 {name} · {kills} bajas", { name = summary.winnerName, kills = winnerKills }),
+			60,
+			28,
+			Color3.new(1, 1, 1)
+		)
+	else
+		line(
+			panel,
+			`{left.icon} {T(left.name)} {scores[first] or 0} · {scores[second] or 0} {T(right.name)} {right.icon}`,
+			60,
+			28,
+			Color3.new(1, 1, 1)
+		)
+	end
 	-- Debajo del marcador, una línea por cada cosa que traiga el resumen; la tabla empieza después.
 	local top = 88
 	-- Altares de la pirámide que ha tomado cada equipo (Dunas, Fase 10, C11).

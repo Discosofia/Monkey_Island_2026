@@ -1,5 +1,9 @@
 --!strict
--- HUD del duelo por equipos del Laboratorio (estado en Shared/Arena; como ArenaHUDController de Dunas):
+-- HUD del Laboratorio (estado en Shared/Arena; como ArenaHUDController de Dunas). Según el modo (Shared/LabModes):
+--   - Duelo por equipos: bajas de cada bando. Todos contra todos: casillas neutras "Tú" y "🥇" (el líder) y
+--     tu puesto. Rondas: las casillas son rondas ganadas, el reloj el de la ronda y, bajo la línea de la fase,
+--     quién sigue en pie; la línea de la fase lleva la alarma, la pausa o "Eliminado".
+-- Disposición:
 --   - Arriba a la derecha, dentro de la franja de la barra de Roblox (GuiService.TopbarInset): marcador
 --     "🏴‍☠️ 7 · 4:12 · 5 🥼" con el color de cada bando y, debajo, a cuántas bajas se gana.
 --   - Arriba en el centro, justo bajo la barra: la línea de la fase (elige arma y pulsa "Listo", cuenta
@@ -21,6 +25,7 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
@@ -43,6 +48,10 @@ local TARGET_ROW_HEIGHT = 20
 -- Línea de la fase, justo bajo la barra de Roblox. LabLoadoutController cuelga su ventana debajo.
 local PHASE_TOP = 6
 local HINT_COLOR = Color3.fromRGB(210, 200, 185)
+-- Casillas del marcador en Todos contra todos: no hay bandos, así que ningún color de bando.
+local NEUTRAL_BOX_COLOR = Color3.fromRGB(70, 64, 56)
+-- Segunda línea bajo la de la fase (quién sigue en pie en Rondas).
+local EXTRA_TOP = PHASE_TOP + 30
 
 local LabHUDController = {}
 
@@ -102,10 +111,69 @@ local function clock(seconds: number): string
 	return string.format("%d:%02d", whole // 60, whole % 60)
 end
 
+local function numberAttribute(instance: Instance, name: string): number
+	local value = instance:GetAttribute(name)
+	return if typeof(value) == "number" then value else 0
+end
+
+-- Sigue en la ronda: ni eliminado ni con la vida a 0 (uno que aún no ha aparecido cuenta como en pie).
+local function isStanding(other: Player): boolean
+	if other:GetAttribute("LabOut") == true then
+		return false
+	end
+	local humanoid = if other.Character then other.Character:FindFirstChildOfClass("Humanoid") else nil
+	return humanoid == nil or humanoid.Health > 0
+end
+
+local function standingCount(teamId: string): number
+	local count = 0
+	for _, other in Arena.membersOf(teamId) do
+		if isStanding(other) then
+			count += 1
+		end
+	end
+	return count
+end
+
+-- Su puesto por bajas en Todos contra todos (los empatados comparten puesto) y las bajas del líder.
+local function freeForAllStanding(player: Player): (number, number)
+	local mine = numberAttribute(player, "ArenaKills")
+	local place, best = 1, mine
+	for _, other in Players:GetPlayers() do
+		local kills = numberAttribute(other, "ArenaKills")
+		if other ~= player and kills > mine then
+			place += 1
+		end
+		best = math.max(best, kills)
+	end
+	return place, best
+end
+
+-- Línea de alarma de la ronda: cuenta atrás o aviso de que ya suena.
+local function alarmText(left: number): string
+	if ReplicatedStorage:GetAttribute("LabAlarm") == true then
+		return T("🔔 ¡Alarma! Todos se ven a través de las paredes")
+	end
+	local untilAlarm = left - (Config.Lab.RoundSeconds - Config.Lab.AlarmAtSeconds)
+	return T("🔔 Alarma en {seconds}", { seconds = math.ceil(math.max(0, untilAlarm)) })
+end
+
 -- Texto de la línea de la fase.
-local function phaseText(): string
+local function phaseText(player: Player): string
 	local phase = Arena.phase()
 	local left = Arena.secondsLeft()
+	local rounds = LabModes.isRounds()
+	if rounds and phase == "Intermission" then
+		return T(
+			"Ronda {round} en {seconds} · puedes cambiar de arma",
+			{ round = numberAttribute(ReplicatedStorage, "LabRound") + 1, seconds = math.ceil(left) }
+		)
+	elseif rounds and (phase == "Battle" or phase == "SuddenDeath") then
+		if player:GetAttribute("LabOut") == true then
+			return T("💀 Eliminado: vuelves en la siguiente ronda")
+		end
+		return if phase == "SuddenDeath" then T("⚡ ¡Ronda decisiva! La gana quien la gane") else alarmText(left)
+	end
 	if phase == "Waiting" then
 		return if left > 0
 			then T("Elige tu arma y pulsa «Listo» · {time}", { time = clock(left) })
@@ -115,6 +183,10 @@ local function phaseText(): string
 	elseif phase == "SuddenDeath" then
 		return T("⚡ ¡Muerte súbita! La siguiente baja gana")
 	elseif phase == "Results" then
+		local winnerName = ReplicatedStorage:GetAttribute("LabWinnerName")
+		if typeof(winnerName) == "string" and winnerName ~= "" then
+			return T("🏆 ¡Gana {name}!", { name = winnerName })
+		end
 		local winner = ReplicatedStorage:GetAttribute("ArenaWinner")
 		if Arena.isTeam(winner) then
 			local team = Arena.TEAMS[winner :: string]
@@ -177,6 +249,12 @@ function LabHUDController:Start()
 	phaseLine.Position = UDim2.new(0.5, 0, 0, PHASE_TOP)
 	phaseLine.Size = UDim2.fromOffset(420, 28)
 	phaseLine.TextStrokeTransparency = 0.3
+	local extraLine = Widgets.label("", gui)
+	extraLine.Name = "Extra"
+	extraLine.AnchorPoint = Vector2.new(0.5, 0)
+	extraLine.Position = UDim2.new(0.5, 0, 0, EXTRA_TOP)
+	extraLine.Size = UDim2.fromOffset(320, 22)
+	extraLine.TextStrokeTransparency = 0.3
 	-- Cómo soltar el ratón (solo con teclado).
 	local hint = Widgets.label("", gui)
 	hint.Name = "CursorHint"
@@ -226,18 +304,57 @@ function LabHUDController:Start()
 	respawnLimit.MaxTextSize = 36
 	respawnLimit.Parent = respawn
 
+	local boxesNeutral: boolean? = nil
 	RunService.RenderStepped:Connect(function()
 		local firstTeam, secondTeam = Arena.TEAMS[firstId], Arena.TEAMS[secondId]
-		firstBox.Text = `{firstTeam.icon} {Arena.score(firstId)}`
-		secondBox.Text = `{Arena.score(secondId)} {secondTeam.icon}`
 		local phase = Arena.phase()
-		timer.Text = if phase == "Battle" or phase == "Countdown"
+		local freeForAll = LabModes.isFreeForAll()
+		local rounds = LabModes.isRounds()
+		local inRound = rounds and (phase == "Battle" or phase == "SuddenDeath")
+		if boxesNeutral ~= freeForAll then
+			boxesNeutral = freeForAll
+			firstBox.BackgroundColor3 = if freeForAll then NEUTRAL_BOX_COLOR else firstTeam.color
+			secondBox.BackgroundColor3 = if freeForAll then NEUTRAL_BOX_COLOR else secondTeam.color
+		end
+		local killsToWin = ReplicatedStorage:GetAttribute("LabKillsToWin")
+		if freeForAll then
+			local place, best = freeForAllStanding(player)
+			firstBox.Text = T("Tú {n}", { n = numberAttribute(player, "ArenaKills") })
+			secondBox.Text = T("🥇 {n}", { n = best })
+			target.Text = if typeof(killsToWin) == "number"
+				then T("Gana el primero a {kills} bajas · vas {place}.º", { kills = killsToWin, place = place })
+				else ""
+		else
+			firstBox.Text = `{firstTeam.icon} {Arena.score(firstId)}`
+			secondBox.Text = `{Arena.score(secondId)} {secondTeam.icon}`
+			if rounds then
+				local toWin = ReplicatedStorage:GetAttribute("LabRoundsToWin")
+				target.Text = if typeof(toWin) == "number"
+					then T(
+						"Ronda {round} · gana el primero a {rounds}",
+						{ round = math.max(1, numberAttribute(ReplicatedStorage, "LabRound")), rounds = toWin }
+					)
+					else ""
+			else
+				target.Text = if typeof(killsToWin) == "number"
+					then T("Gana el primero a {kills} bajas", { kills = killsToWin })
+					else ""
+			end
+		end
+		-- En Rondas el reloj es el de la ronda (o el de la pausa); la muerte súbita de las rondas también acaba.
+		timer.Text = if phase == "Battle"
+				or phase == "Countdown"
+				or (rounds and (phase == "SuddenDeath" or phase == "Intermission"))
 			then clock(Arena.secondsLeft())
 			elseif phase == "SuddenDeath" then "⚡"
 			else "—"
-		local kills = ReplicatedStorage:GetAttribute("LabKillsToWin")
-		target.Text = if typeof(kills) == "number" then T("Gana el primero a {kills} bajas", { kills = kills }) else ""
-		phaseLine.Text = phaseText()
+		phaseLine.Text = phaseText(player)
+		extraLine.Text = if inRound
+			then T("🧍 En pie: {a} · {b}", {
+				a = `{firstTeam.icon} {standingCount(firstId)}`,
+				b = `{standingCount(secondId)} {secondTeam.icon}`,
+			})
+			else ""
 		-- Con el selector o los resultados abiertos no se puede volver a apuntar: sin aviso.
 		hint.Visible = UserInputService.KeyboardEnabled and not FirstPersonController.needsCursor()
 		hint.Text = if FirstPersonController.isCursorFree()

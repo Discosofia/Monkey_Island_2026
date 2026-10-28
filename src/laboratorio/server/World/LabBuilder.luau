@@ -31,7 +31,8 @@
 --              colisión, registerGroups), así que los de dentro salen y entran y el rival nunca entra
 --   "Gate"     las dos compuertas de la boca: cerradas para todos antes de la partida (LabWorldService)
 -- y en LabMap: "Derrumbes" (los cascotes que cierran el invernadero en 1v1 y 2v2; cada pieza se ve y
--- choca solo entonces).
+-- choca solo entonces) y "SpawnsLibres" (marcadores invisibles donde aparece cada uno en Todos contra todos,
+-- fuera de las bases y de los derrumbes; buildFreeSpawns los hace y los comprueba, y cada mapa los trae).
 --
 -- Coberturas que no se rompen (nada lleva la etiqueta de las destructibles). Lo decorativo va con
 -- CanCollide, CanQuery y CanTouch en false. Las rejas de las jaulas chocan pero los disparos las cruzan
@@ -53,7 +54,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "LabMap"
 -- Sube este número al cambiar el mapa: los places con una versión anterior guardada se reconstruyen
 -- solos al arrancar (LabWorldService).
-local VERSION = 1
+local VERSION = 2
 -- Semilla del decorado al azar (tonos, cables, lianas): el mismo mapa en cada construcción.
 local SEED = 1313
 
@@ -75,6 +76,26 @@ local BRIDGE_HALF_Z = 9 -- la pasarela va de z -9 a 9; de ahí bajan las escaler
 local STEP_DEPTH = 1.2
 local CORE_HALF = 5
 local CORE_HEIGHT = 8
+-- Puntos de aparición libres (Todos contra todos), simétricos de oeste a este: x, z. Cada uno tiene a su
+-- alrededor (±2 de reparto y el cuerpo) suelo despejado: ni muros, ni coberturas, ni la base ni los derrumbes.
+--   (±30, ±4)   sala del reactor: entre el núcleo, los tanques (x 19–25) y las cajas (x 32+ y 38+)
+--   (±47, ±14)  explanada: delante de la zona (x 64), a 8 del muro de carriles (z 22)
+--   (±32, 36)   pasillo de las jaulas: entre el muro (x 22–24) y las jaulas (z 47+), a 6 del muro (z 30)
+--   (±34, -44)  invernadero: entre bancales (x 24,5–27,5 y 40,5–43,5), lejos de los derrumbes (|x| 50+)
+local FREE_SPAWNS = {
+	{ -30, 4 },
+	{ 30, 4 },
+	{ -30, -4 },
+	{ 30, -4 },
+	{ -47, 14 },
+	{ 47, 14 },
+	{ -47, -14 },
+	{ 47, -14 },
+	{ -32, 36 },
+	{ 32, 36 },
+	{ -34, -44 },
+	{ 34, -44 },
+}
 
 local CONCRETE = Color3.fromRGB(150, 150, 146)
 local CONCRETE_LIGHT = Color3.fromRGB(176, 176, 172)
@@ -111,13 +132,13 @@ function LabBuilder.characterGroup(teamId: string): string
 	return `LabEquipo_{teamId}`
 end
 
-local function barrierGroup(teamId: string): string
+function LabBuilder.barrierGroup(teamId: string): string
 	return `LabBarrera_{teamId}`
 end
 
 function LabBuilder.registerGroups()
 	for _, teamId in Config.Lab.TeamOrder do
-		for _, group in { LabBuilder.characterGroup(teamId), barrierGroup(teamId) } do
+		for _, group in { LabBuilder.characterGroup(teamId), LabBuilder.barrierGroup(teamId) } do
 			if not PhysicsService:IsCollisionGroupRegistered(group) then
 				PhysicsService:RegisterCollisionGroup(group)
 			end
@@ -126,7 +147,7 @@ function LabBuilder.registerGroups()
 	for _, owner in Config.Lab.TeamOrder do
 		for _, teamId in Config.Lab.TeamOrder do
 			PhysicsService:CollisionGroupSetCollidable(
-				barrierGroup(owner),
+				LabBuilder.barrierGroup(owner),
 				LabBuilder.characterGroup(teamId),
 				teamId ~= owner
 			)
@@ -595,7 +616,7 @@ local function buildZone(bases: Folder, teamId: string, side: number)
 		field.CanQuery = false
 		field.CanTouch = false
 		field.CastShadow = false
-		field.CollisionGroup = barrierGroup(teamId)
+		field.CollisionGroup = LabBuilder.barrierGroup(teamId)
 		-- La compuerta de antes de la partida: una persiana de metal, del lado de dentro.
 		local gate = between(
 			"Gate",
@@ -1302,6 +1323,42 @@ local function buildCollapse(folder: Folder)
 	end
 end
 
+-- Marcadores donde aparece cada uno en Todos contra todos (LabWorldService.freeSpawnCFrame): invisibles y
+-- sin choque. "points" son pares { x, z }; sin ellos, los del Laboratorio central. Cada mapa trae los suyos.
+function LabBuilder.buildFreeSpawns(folder: Folder, points: { { number } }?)
+	local spawns = Instance.new("Folder")
+	spawns.Name = "SpawnsLibres"
+	spawns.Parent = folder
+	for _, point in points or FREE_SPAWNS do
+		local part = block("Libre", Vector3.new(4, 0.2, 4), CFrame.new(point[1], 0.1, point[2]), CONCRETE, nil, spawns)
+		marker(part)
+	end
+end
+
+-- Avisa si un marcador de SpawnsLibres tiene algo que choque donde estaría el personaje (se llama con el
+-- mapa ya en Workspace; los rayos solo encuentran lo que tiene CanQuery, que es lo que importa: muros,
+-- coberturas, bancales).
+local function checkFreeSpawns(folder: Folder)
+	local spawns = folder:FindFirstChild("SpawnsLibres")
+	if not spawns then
+		return
+	end
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { spawns }
+	for _, part in spawns:GetChildren() do
+		if part:IsA("BasePart") then
+			-- Del pecho a la cabeza (el suelo queda por debajo) y con 2 studs de reparto a cada lado.
+			local box = CFrame.new(part.Position.X, 3, part.Position.Z)
+			for _, hit in Workspace:GetPartBoundsInBox(box, Vector3.new(6, 4, 6), params) do
+				if hit.CanCollide then
+					warn(`[LabBuilder] El punto libre {part.Position} choca con {hit:GetFullName()}`)
+				end
+			end
+		end
+	end
+end
+
 -- Rascacielos en ruinas comidos por la selva alrededor (decorado, lejos): torres de hormigón con
 -- ventanas a franjas, algo inclinadas, con copas de árboles oscuras encima y lianas.
 local function buildSkyline(folder: Folder)
@@ -1453,8 +1510,10 @@ function LabBuilder.build(options: Options?)
 	buildCages(folder)
 	buildGreenhouse(folder)
 	buildCollapse(folder)
+	LabBuilder.buildFreeSpawns(folder)
 	buildSkyline(folder)
 	folder.Parent = Workspace
+	checkFreeSpawns(folder)
 	print("[LabBuilder] ¡Laboratorio central listo!")
 end
 

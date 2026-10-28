@@ -10,6 +10,11 @@
 --     en el jugador dice cuándo; mientras, puede cambiar de arma, LabLoadoutService), en la zona de
 --     salida de su bando (LabWorldService; el bando lo da LabTeamService antes de la primera aparición).
 --   - Al aparecer en plena partida tiene SpawnProtectionSeconds sin recibir daño, que pierde al disparar.
+--   - En Todos contra todos no hay bando: aparece en un punto libre lejos de los rivales
+--     (LabWorldService.freeSpawnCFrame).
+--   - En Rondas no se reaparece dentro de la ronda: quien cae queda con "LabOut" (el cliente lo ve de
+--     espectador) hasta la pausa siguiente, y tampoco hay "RespawnAt" (el selector no se abre). Quien llega
+--     a mitad de ronda espera igual.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,6 +23,7 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local LabTeamService = require(script.Parent.LabTeamService)
 local LabWorldService = require(script.Parent.LabWorldService)
@@ -43,9 +49,15 @@ local function addStat(player: Player, attribute: string)
 	player:SetAttribute(attribute, (if typeof(value) == "number" then value else 0) + 1)
 end
 
-local function teamIcon(player: Player): string
+-- El nombre con el icono de su bando (sin bando, solo el nombre).
+local function label(player: Player): string
 	local teamId = Arena.teamOf(player)
-	return if teamId then Arena.TEAMS[teamId].icon else ""
+	return if teamId then `{Arena.TEAMS[teamId].icon} {player.DisplayName}` else player.DisplayName
+end
+
+-- En Rondas, dentro de una ronda no se reaparece.
+local function roundInProgress(): boolean
+	return LabModes.isRounds() and Arena.inBattle()
 end
 
 -- Golpe mortal de "attacker" (o de nada: caída, etc.). Lo registra el place en CombatRules.
@@ -57,8 +69,8 @@ function LabRespawnService.knockOut(victim: Player, attacker: Player?, _cause: s
 	if attacker and attacker ~= victim and Arena.inBattle() then
 		addStat(attacker, "ArenaKills")
 		Remotes.Notify:FireAllClients("⚔️ {attacker} derriba a {victim}", {
-			attacker = `{teamIcon(attacker)} {attacker.DisplayName}`,
-			victim = `{teamIcon(victim)} {victim.DisplayName}`,
+			attacker = label(attacker),
+			victim = label(victim),
 		})
 		for _, listener in knockOutListeners do
 			task.spawn(listener, victim, attacker)
@@ -67,8 +79,9 @@ function LabRespawnService.knockOut(victim: Player, attacker: Player?, _cause: s
 	humanoid.Health = 0
 end
 
--- Vuelve a cargar el personaje (aparece en su zona de salida por onCharacter).
-function LabRespawnService.respawnNow(player: Player)
+-- Vuelve a cargar el personaje (aparece en su zona de salida por onCharacter). En plena ronda de Rondas no
+-- vuelve (queda de espectador, "LabOut") salvo con "force": al empezar la ronda y en la pausa.
+function LabRespawnService.respawnNow(player: Player, force: boolean?)
 	local thread = pending[player]
 	if thread then
 		pending[player] = nil
@@ -77,6 +90,11 @@ function LabRespawnService.respawnNow(player: Player)
 	player:SetAttribute("RespawnAt", nil)
 	if player.Parent then
 		LabTeamService.ensureTeam(player)
+		if not force and roundInProgress() then
+			player:SetAttribute("LabOut", true)
+			return
+		end
+		player:SetAttribute("LabOut", nil)
 		player:LoadCharacter()
 	end
 end
@@ -84,7 +102,7 @@ end
 -- Todos de vuelta a su zona de salida (al empezar la partida y al volver a la espera).
 function LabRespawnService.respawnAll()
 	for _, player in Players:GetPlayers() do
-		task.spawn(LabRespawnService.respawnNow, player)
+		task.spawn(LabRespawnService.respawnNow, player, true)
 	end
 end
 
@@ -97,13 +115,32 @@ local function scheduleRespawn(player: Player)
 	end)
 end
 
+-- Dónde están los demás que siguen vivos (para aparecer lejos de ellos en Todos contra todos).
+local function rivalPositions(player: Player): { Vector3 }
+	local positions = {}
+	for _, other in Players:GetPlayers() do
+		local character = other.Character
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if other ~= player and humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then
+			table.insert(positions, root.Position)
+		end
+	end
+	return positions
+end
+
 local function onCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 	LabTeamService.prepareCharacter(player, character)
 	humanoid.MaxHealth = Config.Lab.Health
 	humanoid.Health = Config.Lab.Health
-	character:PivotTo(LabWorldService.spawnCFrame(Arena.teamOf(player)))
+	local teamId = Arena.teamOf(player)
+	if teamId then
+		character:PivotTo(LabWorldService.spawnCFrame(teamId))
+	else
+		character:PivotTo(LabWorldService.freeSpawnCFrame(rivalPositions(player)))
+	end
 	root.AssemblyLinearVelocity = Vector3.zero
 	if Arena.inBattle() then
 		local untilTime = Workspace:GetServerTimeNow() + Config.Lab.SpawnProtectionSeconds
@@ -121,7 +158,10 @@ local function onCharacter(player: Player, character: Model)
 		if Arena.inBattle() then
 			addStat(player, "ArenaDeaths")
 		end
-		if not pending[player] then
+		if roundInProgress() then
+			-- Eliminado de la ronda: espera a la pausa, sin "RespawnAt".
+			player:SetAttribute("LabOut", true)
+		elseif not pending[player] then
 			scheduleRespawn(player)
 		end
 	end)

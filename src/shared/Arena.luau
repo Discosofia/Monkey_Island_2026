@@ -8,7 +8,7 @@
 --   ReplicatedStorage:
 --     "ArenaPhase"        fase (Phase, abajo)
 --     "ArenaPhaseEndsAt"  hora del servidor en que acaba la fase (nil si no tiene fin fijo)
---     "ArenaFormat"       jugadores por equipo (1..5)
+--     "ArenaFormat"       jugadores por equipo (1..5); en Todos contra todos del Laboratorio, el total
 --     "ArenaScore_<id>"   puntos de cada equipo (capturas en Dunas, bajas en el Laboratorio)
 --     "ArenaWinner"       equipo ganador en los resultados ("" si es empate)
 --   Jugador:
@@ -26,8 +26,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 -- Waiting: elegir equipo, rol y equipo; Countdown: cuenta atrás con las puertas cerradas;
 -- Battle: la partida; SuddenDeath: empate al acabar el tiempo, la siguiente captura gana;
--- Results: resultados y votación.
-export type Phase = "Waiting" | "Countdown" | "Battle" | "SuddenDeath" | "Results"
+-- Results: resultados y votación; Intermission: la pausa entre rondas del modo Rondas del Laboratorio
+-- (sin daño, se puede cambiar de arma; Dunas no la usa, y inBattle() da false).
+export type Phase = "Waiting" | "Countdown" | "Battle" | "SuddenDeath" | "Intermission" | "Results"
 
 local Arena = {}
 

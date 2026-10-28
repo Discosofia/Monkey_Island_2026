@@ -41,6 +41,7 @@ local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticShopPanel = require(ReplicatedStorage.Shared.UI.CosmeticShopPanel)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local Missions = require(ReplicatedStorage.Shared.Data.Missions)
@@ -491,8 +492,9 @@ function LobbyUIController:Start()
 	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
 	-- dice cuánto llevas en la cola (se actualiza cada segundo).
 	local arenaFormat = 1
-	-- Ventana del Laboratorio: formato y modo elegidos (la línea de la cola es la misma, arenaQueueLine).
-	local labFormat = 1
+	-- Ventana del Laboratorio: modo elegido y el formato que se eligió en cada modo (la línea de la cola es
+	-- la misma, arenaQueueLine).
+	local labFormats: { [string]: number } = {}
 	local labMode: string = Config.Lab.Modes[1]
 	local arenaRole: string? = nil
 	local arenaSlot: string? = nil
@@ -1421,6 +1423,13 @@ function LobbyUIController:Start()
 
 	local function queueText(queue: { [string]: any }): string
 		local waited = math.max(0, Workspace:GetServerTimeNow() - (tonumber(queue.since) or 0))
+		-- Todos contra todos es una sola sala sin bandos: no hay "{n}v{n}".
+		if queue.game == "Lab" and queue.mode == "FreeForAll" then
+			return T("⏳ Buscando partida de {n} jugadores… {time}", {
+				n = queue.format,
+				time = `{math.floor(waited // 60)}:{string.format("%02d", math.floor(waited % 60))}`,
+			})
+		end
 		return T("⏳ Buscando partida {n}v{n}… {time}", {
 			n = queue.format,
 			time = `{math.floor(waited // 60)}:{string.format("%02d", math.floor(waited % 60))}`,
@@ -1596,10 +1605,17 @@ function LobbyUIController:Start()
 		local follower = typeof(leaderId) == "number" and leaderId ~= player.UserId
 		local compact = compactUi
 		local shownMode = if queue and typeof(queue.mode) == "string" then queue.mode else labMode
-		local shownFormat = if queue then tonumber(queue.format) or labFormat else labFormat
+		local formats = LabModes.formats(shownMode)
+		-- El formato guardado de este modo; si no vale (otro modo, otra lista), el primero.
+		local savedFormat = labFormats[shownMode]
+		if not (savedFormat and table.find(formats, savedFormat)) then
+			savedFormat = formats[1]
+			labFormats[shownMode] = savedFormat
+		end
+		local shownFormat = if queue then tonumber(queue.format) or savedFormat else savedFormat
 		local waitingByFormat = if counts and typeof(counts[shownMode]) == "table" then counts[shownMode] else nil
 
-		-- Modos: hoy solo el duelo por equipos; el resto llega con la L4.
+		-- Modos: Duelo por equipos, Todos contra todos y Rondas.
 		local modeRow = Instance.new("Frame")
 		modeRow.LayoutOrder = 1
 		modeRow.Size = UDim2.new(1, -10, 0, if compact then 32 else 40)
@@ -1642,12 +1658,12 @@ function LobbyUIController:Start()
 		formatLayout.Padding = UDim.new(0, 6)
 		formatLayout.SortOrder = Enum.SortOrder.LayoutOrder
 		formatLayout.Parent = formatRow
-		for format = Config.Lab.MinFormat, Config.Lab.MaxFormat do
+		for index, format in formats do
 			local waiting = if waitingByFormat then tonumber(waitingByFormat[tostring(format)]) else nil
 			local button = Instance.new("TextButton")
-			button.LayoutOrder = format
-			button.Size = UDim2.new(0.2, -6, 1, 0)
-			button.Text = `{format}v{format}\n{if waiting then waiting else "—"} 👤`
+			button.LayoutOrder = index
+			button.Size = UDim2.new(1 / #formats, -6, 1, 0)
+			button.Text = `{LabModes.formatLabel(shownMode, format)}\n{if waiting then waiting else "—"} 👤`
 			button.Font = Enum.Font.BuilderSansBold
 			button.TextScaled = true
 			local chosen = format == shownFormat
@@ -1658,7 +1674,7 @@ function LobbyUIController:Start()
 			corner(button, 8)
 			button.MouseButton1Click:Connect(function()
 				if not queue then
-					labFormat = format
+					labFormats[shownMode] = format
 					render()
 				end
 			end)
@@ -1691,7 +1707,7 @@ function LobbyUIController:Start()
 			elseif queue then
 				Remotes.ArenaQueueLeave:FireServer()
 			else
-				Remotes.ArenaQueueJoin:FireServer(labFormat, "Lab", labMode)
+				Remotes.ArenaQueueJoin:FireServer(shownFormat, "Lab", shownMode)
 			end
 		end)
 
@@ -1705,7 +1721,19 @@ function LobbyUIController:Start()
 			status.Text = queueText(queue)
 			arenaQueueLine = status
 		else
-			status.Text = T("Todos empiezan igual: eliges 1 de 4 armas y solo cuentan el arma y la puntería")
+			if shownMode == "FreeForAll" then
+				status.Text = T(
+					"{n} jugadores, cada uno por su cuenta: gana el primero a {kills} bajas",
+					{ n = Config.Lab.FreeForAllPlayers, kills = Config.Lab.FreeForAllKills }
+				)
+			elseif shownMode == "Rounds" then
+				status.Text = T(
+					"Al mejor de {total} rondas, sin reaparecer dentro de la ronda",
+					{ total = Config.Lab.RoundsToWin * 2 - 1 }
+				)
+			else
+				status.Text = T("Todos empiezan igual: eliges 1 de 4 armas y solo cuentan el arma y la puntería")
+			end
 		end
 	end
 

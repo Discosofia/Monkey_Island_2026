@@ -1,7 +1,8 @@
 --!strict
 -- Selector de arma del Laboratorio (docs/LABORATORIO.md §2 y §3): se lleva 1 de las 4 de Data/LabWeapons.
--- Se abre solo antes de la partida (Waiting y Countdown) y mientras se espera para reaparecer, y se cierra
--- al empezar el duelo o al reaparecer. Se puede plegar: queda un botón "Cambiar de arma" bajo la línea de
+-- Se abre solo antes de la partida (Waiting y Countdown), en la pausa entre rondas (Intermission) y mientras
+-- se espera para reaparecer, y se cierra al empezar el duelo (o la ronda) o al reaparecer. En Todos contra
+-- todos la cuenta de listos incluye a todos (no hay bandos). Se puede plegar: queda un botón "Cambiar de arma" bajo la línea de
 -- la fase para volver a abrirlo.
 --   - Cuatro tarjetas en fila: la imagen voxel del arma con el aspecto de tu bando (Shared/LabWeaponModels,
 --     "LabFaction"), su nombre, para qué sirve y sus números (daño, cada cuánto dispara y alcance). La
@@ -16,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -273,7 +275,7 @@ function LabLoadoutController:Start()
 	local wasOpen: boolean? = nil
 	RunService.Heartbeat:Connect(function()
 		local phase = Arena.phase()
-		local before = phase == "Waiting" or phase == "Countdown"
+		local before = phase == "Waiting" or phase == "Countdown" or phase == "Intermission"
 		local respawnAt = player:GetAttribute("RespawnAt")
 		local dead = Arena.inBattle() and typeof(respawnAt) == "number"
 		local wanted = before or dead
@@ -307,10 +309,17 @@ function LabLoadoutController:Start()
 			)
 		elseif phase == "Countdown" then
 			status.Text = T("⚔️ El duelo empieza en {seconds}", { seconds = math.ceil(Arena.secondsLeft()) })
+		elseif phase == "Intermission" then
+			local round = ReplicatedStorage:GetAttribute("LabRound")
+			status.Text = T("Ronda {round} en {seconds}", {
+				round = (if typeof(round) == "number" then round else 0) + 1,
+				seconds = math.ceil(Arena.secondsLeft()),
+			})
 		else
+			local freeForAll = LabModes.isFreeForAll()
 			local total, readyCount = 0, 0
 			for _, other in Players:GetPlayers() do
-				if Arena.teamOf(other) then
+				if freeForAll or Arena.teamOf(other) then
 					total += 1
 					if other:GetAttribute("ArenaReady") == true then
 						readyCount += 1

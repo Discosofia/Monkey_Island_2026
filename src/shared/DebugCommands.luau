@@ -94,7 +94,12 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 	},
 	Laboratorio = {
 		{ id = "Solo", label = "▶️ Empezar ya (solo, no cuenta)" },
-		{ id = "SkipPhase", label = "⏭️ Saltar fase" },
+		{
+			id = "SkipPhase",
+			label = "⏭️ Saltar fase (en Rondas: primero la alarma, después el final de la ronda)",
+		},
+		{ id = "NextMode", label = "🎮 Siguiente modo (en la espera o los resultados)" },
+		{ id = "Score", label = "➕ Punto para mí (baja, punto de bando o ronda según el modo)" },
 		{ id = "NextFormat", label = "👥 Siguiente formato (1v1…5v5)" },
 		{ id = "SwitchTeam", label = "🏴‍☠️ Cambiar de bando (piratas/guardianes)" },
 		{ id = "Dummies", label = "🎯 Muñecos delante (15, 50 y 120 studs)" },

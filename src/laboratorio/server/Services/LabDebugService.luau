@@ -1,7 +1,7 @@
 --!strict
 -- Panel de pruebas del Laboratorio (solo Studio; Shared/DebugCommands.Laboratorio). En Studio no llega
--- nadie del Lobby: con "Empezar ya" el duelo arranca con un solo bando y no cuenta para nada; los
--- muñecos de práctica (Combat/TrainingDummies) sirven de blanco a las distancias de la calculadora.
+-- nadie del Lobby: con "Empezar ya" la partida arranca con un solo bando y no cuenta para nada ("Siguiente
+-- modo" cambia entre los tres y "Punto para mí" suma uno según el modo); los muñecos de práctica (Combat/TrainingDummies) sirven de blanco a las distancias de la calculadora.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -10,6 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local TrainingDummies = require(ServerScriptService.Combat.TrainingDummies)
@@ -51,7 +52,22 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	NextFormat = function(player)
 		local format = LabMatchService.debugNextFormat()
-		Remotes.Notify:FireClient(player, "👥 Formato {n}v{n}", { n = format })
+		if LabModes.isFreeForAll() then
+			Remotes.Notify:FireClient(player, "👥 Formato {n} jugadores", { n = format })
+		else
+			Remotes.Notify:FireClient(player, "👥 Formato {n}v{n}", { n = format })
+		end
+	end,
+	NextMode = function(player)
+		local modeId = LabMatchService.debugNextMode()
+		if modeId then
+			Remotes.Notify:FireClient(player, "🎮 Modo: {name}", { name = { Config.Lab.ModeNames[modeId] } })
+		else
+			Remotes.Notify:FireClient(player, "🎮 El modo solo se cambia en la espera o en los resultados")
+		end
+	end,
+	Score = function(player)
+		LabMatchService.debugScore(player)
 	end,
 	SwitchTeam = function(player)
 		LabTeamService.switch(player)

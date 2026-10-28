@@ -1334,9 +1334,9 @@ Probado en el Studio del Lobby por MCP con un jugador: el cartel TablaLab en la 
 
 Lo que queda necesita los places publicados y varias cuentas: la cola entre servidores, los grupos y la revancha. Empieza por 26.1, porque el resto depende de la publicación.
 
-#### 26.1 En el juego publicado (los 3 places subidos; el Lobby guardado en VERSION 15)
+#### 26.1 En el juego publicado (los 3 places subidos; el Lobby guardado en VERSION 16)
 
-1. [ ] Publica el Lobby, el Laboratorio y Dunas (Dunas comparte `ArenaQueueService`), y guarda el place del Lobby (VERSION 15).
+1. [ ] Publica el Lobby, el Laboratorio y Dunas (Dunas comparte `ArenaQueueService`), y guarda el place del Lobby (VERSION 16: el aviso de la E del cartel del Laboratorio pasó al poste derecho).
    ✅ Los tres places abren sin errores en la Salida. El Lobby publicado muestra el embarcadero, el velero pirata y el cartel TablaLab.
 2. [ ] Dos cuentas distintas, cada una en un servidor del Lobby, buscan «Duelo por equipos» en 1v1.
    ✅ Se emparejan, viajan al Laboratorio y caen en bandos opuestos (Piratas y Guardianes). El formato 1v1 pone 10 bajas.
@@ -1385,6 +1385,122 @@ El MCP no puede abrir la ventana (solo sale con el evento real del aviso), así 
 
 1. [ ] Sube la tabla de textos nueva, la que sale de `python tools/strings.py --csv`, con las 8 frases nuevas del Lobby.
    ✅ Las 8 frases tienen su inglés en la tabla y se ven en inglés con el juego en inglés.
+
+## 27. Lo que queda por probar de L4a: Todos contra todos y Rondas (28-10-2026)
+
+Probado en el Studio del Laboratorio por MCP con un jugador: el duelo igual que antes; Todos contra todos (formato 10, sin bando, aparece en `SpawnsLibres`, y al llegar a 15 bajas gana con `place = 1`; las barreras de las bases chocan con el grupo `Default`); Rondas (la alarma, el fin por tiempo, `LabOut` al morir en plena ronda, la Intermission de 8 s con cambio de arma, el cambio de lado tras la 3.ª ronda con barreras y colores, 4 rondas que dan los resultados y la limpieza al acabar); y `LabMap` reconstruido a VERSION 2 con 12 marcadores en `SpawnsLibres`. El place no está guardado ni publicado.
+
+Con capturas de Play en el Studio del Laboratorio (un jugador, textos en inglés) ya se vieron: el HUD de Todos contra todos, el de Rondas (rondas, reloj, «En pie», cuenta atrás de la alarma y alarma), la Intermission con el selector de arma, el aviso «Eliminado» con la vista fija desde arriba del espectador sin compañeros (con `LabOut` puesto a mano) y los resultados de Todos contra todos con el puesto. En el Studio del Lobby se vieron la ventana con los tres modos (formatos y frases de cada uno), y por MCP la validación de la cola (rechaza el formato 3 en Todos contra todos, el 10 en el duelo y el 7 en Rondas; acepta el 10 en Todos contra todos y se sale bien). La captura de Play no dibuja el cartel TablaLab: solo se leyeron sus textos.
+
+Lo que queda necesita 2 o más jugadores (daño entre todos, espectador con compañeros, contorno de la alarma y desempates), el cartel y la ventana vistos de verdad, el teléfono real y el juego publicado. Empieza por 27.1: el mapa v2 tiene que quedar guardado antes de publicar.
+
+#### 27.1 En el Studio del Laboratorio, con un jugador (`rojo serve laboratorio.project.json`, puerto 34875)
+
+1. [ ] Pulsa Play con un jugador, detén la prueba y guarda el place con Archivo → Guardar (sin publicar). Si Rojo se desconecta, vuelve a conectarlo antes de Play.
+   ✅ Al reabrir el place, `SpawnsLibres` sigue con 12 marcadores y la Salida no muestra errores.
+2. [x] Con «🎮 Siguiente modo» hasta Todos contra todos y «Empezar ya», mira el HUD de arriba.
+   ✅ Dos casillas neutras, «Tú 0» y «🥇 0», y debajo «Gana el primero a 15 bajas · vas 1.º». No aparece ningún color de bando.
+3. [x] Con «🎮 Siguiente modo» hasta Rondas y «Empezar ya», mira el HUD durante la ronda.
+   ✅ Las casillas muestran las rondas ganadas y el reloj; debajo, «Ronda 1 · gana el primero a 4» y «🧍 En pie: N · M».
+4. [x] Espera a los 30 s de la ronda sin acabarla.
+   ✅ Antes de la alarma, la línea dice «🔔 Alarma en 30 s» (la cuenta baja), y a los 30 s pasa a «¡Alarma! …».
+5. [x] Pulsa «Saltar fase» hasta que acabe la ronda por tiempo.
+   ✅ Sale la Intermission con «Ronda 2 en 8 s · puedes cambiar de arma» y se abre el selector de arma.
+6. [x] Con «🎮 Siguiente modo» hasta Todos contra todos, «Empezar ya» y «➕ Punto para mí» hasta 15.
+   ✅ Salen los resultados con el título «Puesto 1 de …», tu fila con el puesto delante y «🥇 tu nombre · 15 bajas». Sin columna de Ámbar ni 🚩.
+7. [ ] En el Studio de Dunas, «Empezar ya» y «Saltar fase» hasta los resultados (Dunas igual).
+   ✅ La ventana de resultados de Dunas es la de siempre, con 🚩, los altares y la línea del Ámbar.
+
+#### 27.2 Con 2 jugadores (*Test → Clientes y servidores* con 2)
+
+1. [ ] Con los dos en Todos contra todos, dispara al otro.
+   ✅ El daño entra entre los dos (no hay bandos) y cada baja suma 1 a la casilla de quien la hizo.
+2. [ ] Mata al otro varias veces y fíjate dónde reaparece cada vez.
+   ✅ Reaparece lejos del rival, mirando al centro del mapa, y nunca al lado del que lo mató.
+3. [ ] Al reaparecer, dispara en el primer segundo.
+   ✅ Al disparar, quien reaparece pierde la protección y recibe daño como cualquiera.
+4. [ ] Deja los dos a 14 bajas (cada uno pulsa «➕ Punto para mí» 14 veces) y pulsa «Saltar fase» hasta acabar el tiempo.
+   ✅ Sale el aviso de muerte súbita, sin cuenta atrás. Gana el primero que se pone por delante y se queda solo en cabeza.
+5. [ ] En plena partida de Todos contra todos, uno de los dos sale del servidor.
+   ✅ El que queda gana: salen los resultados con «Puesto 1 de 2» y su fila con 🥇.
+6. [ ] En Rondas 1v1, mata al otro en la primera ronda.
+   ✅ La ronda la gana el que queda en pie, sube su marcador de rondas en 1 y sale la Intermission de 8 s.
+7. [ ] Muere en plena ronda (Battle).
+   ✅ Sale «💀 Eliminado: vuelves en la siguiente ronda». No reapareces hasta la siguiente Intermission.
+8. [ ] Con la vida igual en los dos, deja que llegue el tiempo de la ronda (45 s) sin tocaros.
+   ✅ La ronda es nula: no suma punto a nadie y empieza la Intermission.
+9. [ ] Con el marcador de rondas igualado (1-1), adelanta `LabMatchEndsAt` (atributo en `ReplicatedStorage`) a unos segundos vista, según lo que lea `Modes/Rounds.luau`, y deja que la ronda acabe por tiempo sin tocaros.
+   ✅ La partida no acaba con el empate: la siguiente ronda decide, y al ganarla salen los resultados.
+10. [ ] En Rondas 1v1, uno de los dos sale del servidor en plena ronda (Battle).
+    ✅ El que queda gana la ronda; si llega a 4 rondas, salen los resultados. No se queda colgado.
+11. [ ] Repite el abandono, esta vez durante la Intermission de 8 s.
+    ✅ La partida no se queda parada en la Intermission: sigue para el que queda o termina con su resultado, sin errores en la Salida.
+
+#### 27.3 Con 4 jugadores (*Test → Clientes y servidores* con 4, Rondas 2v2)
+
+1. [ ] Muere en Battle mientras tu compañero sigue vivo.
+   ✅ La cámara pasa a tercera persona sobre tu compañero, con «Viendo a {name}», y los botones ◀ ▶ cambian a otro compañero vivo.
+2. [ ] Pon `CameraMode` en primera persona fija (`LockFirstPerson`) y muere cuando tu compañero siga vivo.
+   ✅ El espectador va en tercera persona aunque tengas la primera persona fija.
+3. [ ] Muere cuando tu compañero ya esté muerto.
+   ✅ No hay compañero que seguir: la vista es fija desde arriba y no sale «Viendo a …».
+4. [ ] Espera a la siguiente Intermission y mira la cámara al reaparecer.
+   ✅ Vuelve la primera persona con la cruz en el centro y el selector de arma se abre.
+5. [ ] Con 30 s de ronda, en Classic, mira tu personaje y el de tu compañero.
+   ✅ Sale «¡Alarma! …»; los compañeros y rivales vivos tienen un contorno del color de su bando, y el tuyo no.
+6. [ ] Deja a un bando sin nadie en pie sin rellenar su vida, con la vida sumada igual a la del otro bando.
+   ✅ Gana la ronda el bando que deja al otro sin jugadores en pie, aunque la vida sumada sea igual.
+7. [ ] Juega hasta la 3.ª ronda (las nulas cuentan) y espera la Intermission.
+   ✅ Las barreras cambian de color y cada bando ocupa la base del otro. Tu bando sigue siendo el mismo.
+8. [ ] Tras el cambio de lado, camina con tu personaje hacia la barrera de la base rival y después sal de tu base nueva.
+   ✅ La barrera de la base rival te para en su boca y no te deja entrar. La de tu base nueva te deja salir.
+9. [ ] En Battle, uno de tu bando sale del servidor.
+   ✅ La ronda sigue para los demás sin errores; si tu bando se queda sin nadie en pie, el otro gana la ronda.
+10. [ ] Con «➕ Punto para mí» (o jugando), llega un bando a 4 rondas.
+    ✅ Salen los resultados con el puesto de cada jugador delante de su fila.
+
+#### 27.4 En el Studio del Lobby (▶ Jugar, un jugador)
+
+1. [x] Acércate al cartel TablaLab y pulsa E.
+   ✅ La ventana muestra los tres modos: «Duelo por equipos», «Todos contra todos» y «Rondas». En Todos contra todos aparece «10 jugadores». Cabe sin desplazar y no hay errores en la Salida.
+2. [x] Elige «Todos contra todos» y después «Duelo por equipos».
+   ✅ Cada modo muestra sus formatos: en Todos contra todos solo «10 jugadores»; en el duelo, de 1v1 a 5v5. Hay una frase que explica el modo.
+3. [ ] En el duelo, elige 3v3. Cambia a «Rondas», elige 2v2 y vuelve a «Duelo por equipos».
+   ✅ El duelo sigue con 3v3 marcado: el formato se recuerda por modo.
+4. [ ] En Rondas 2v2, pulsa «⚔️ Buscar partida».
+   ✅ Sale «⏳ Buscando partida de 4 jugadores…» y el botón pasa a «✖ Salir de la cola». Al salir, vuelve «⚔️ Buscar partida» y la frase del modo.
+5. [ ] Mira las tres tarjetas del cartel TablaLab desde la plaza.
+   ✅ Hay una tarjeta por modo con el número que espera. El nombre «Todos contra todos» se lee entero, sin cortarse ni salirse de la tarjeta.
+6. [ ] Entra en la cola de Rondas y mira la insignia de la cola (y que el aviso de la E sale en el poste derecho y no tapa los formatos).
+   ✅ La insignia de la cola muestra el modo elegido.
+
+#### 27.5 En el emulador de teléfono
+
+1. [ ] En Rondas, con el teléfono apaisado, mira el HUD durante la ronda.
+   ✅ Las casillas, «Ronda N · gana el primero a 4», «🧍 En pie» y la línea de la alarma se leen sin acercarse y no tapan los botones de esquivar ni el joystick.
+2. [ ] En 2v2, muere con un compañero vivo y usa ◀ ▶ con el dedo.
+   ✅ Los botones del espectador no chocan con los controles táctiles, y se pulsan sin fallar.
+3. [ ] Abre la ventana de resultados de Todos contra todos.
+   ✅ El título «Puesto N de M», los puestos y las filas se leen sin desplazar. El texto pequeño es legible.
+4. [ ] Abre la ventana del Laboratorio desde el cartel TablaLab.
+   ✅ Se ven los tres modos enteros sin desplazar, y los botones se pulsan con el dedo.
+
+#### 27.6 En el juego publicado
+
+1. [ ] Con el Laboratorio guardado con LabMap v2, publica los tres places (Lobby, Laboratorio y Dunas, que comparte `ArenaQueueService`) con Archivo → Publicar en Roblox.
+   ✅ Los tres abren sin errores en la Salida, y el duelo por equipos del Laboratorio sigue igual.
+2. [ ] Diez cuentas en servidores del Lobby buscan Todos contra todos. (Si tienes menos cuentas, baja `FreeForAllPlayers` en `Config` solo para la prueba y vuélvelo a 10 antes del commit.)
+   ✅ Se juntan en una sola sala del Laboratorio sin bandos: las casillas del HUD son neutras y cada uno sale con una facción al azar, que solo cambia el aspecto.
+3. [ ] Un grupo de 2 busca Todos contra todos con otros jugadores.
+   ✅ Los dos del grupo entran en la misma partida, sin bando.
+4. [ ] Dos cuentas distintas buscan Rondas 1v1.
+   ✅ Se emparejan, caen en bandos opuestos y empieza la Ronda 1.
+5. [ ] Un grupo de 2 busca Rondas 2v2 con otros 2 jugadores.
+   ✅ Los dos del grupo llegan al mismo bando. En la revancha siguen juntos en un bando.
+6. [ ] Con un jugador en cola de Rondas en un servidor, mira el cartel TablaLab desde otro servidor.
+   ✅ El 👤 de Rondas sube en unos 10 s con los jugadores de todos los servidores, y el de Todos contra todos también.
+7. [ ] Durante las pruebas de cola, mira en la consola de desarrollo (F9) si sale algún aviso de MemoryStore.
+   ✅ No sale ningún aviso de límite ni error de cuota. El cupo es de 16 lecturas por ciclo de 10 s y servidor: si se acerca, anota el número y avísame.
 
 ## Cuando termines
 

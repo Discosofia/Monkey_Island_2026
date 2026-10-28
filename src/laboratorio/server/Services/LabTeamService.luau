@@ -8,6 +8,9 @@
 -- colores) y en "LabFaction" (el aspecto de las armas, Shared/WeaponTools). Las piezas del personaje van
 -- en el grupo de colisión de su bando: así las barreras de salida del rival no le dejan entrar
 -- (LabWorldService).
+-- En Todos contra todos (docs/LABORATORIO.md §3) no hay bando: "Team" queda en nil, la facción se elige al
+-- azar (solo cambia el aspecto de las armas) y el personaje va en el grupo de colisión "Default", que
+-- chocan con las barreras de las dos bases: nadie entra en ellas.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +18,7 @@ local Teams = game:GetService("Teams")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local LabWorldService = require(script.Parent.LabWorldService)
@@ -26,12 +30,17 @@ local _TEAM_NAMES = { Strings.later("Piratas"), Strings.later("Guardianes") }
 
 local robloxTeams: { [string]: Team } = {}
 
-local function applyGroup(player: Player, character: Model?)
+-- El grupo de colisión del personaje: el de su bando, o "Default" sin bando.
+local function groupOf(player: Player): string
 	local teamId = Arena.teamOf(player)
-	if not character or not teamId then
+	return if teamId then LabWorldService.characterGroup(teamId) else "Default"
+end
+
+local function applyGroup(player: Player, character: Model?)
+	if not character then
 		return
 	end
-	local group = LabWorldService.characterGroup(teamId)
+	local group = groupOf(player)
 	for _, part in character:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.CollisionGroup = group
@@ -44,18 +53,18 @@ end
 function LabTeamService.prepareCharacter(player: Player, character: Model)
 	applyGroup(player, character)
 	character.DescendantAdded:Connect(function(part)
-		local teamId = Arena.teamOf(player)
-		if part:IsA("BasePart") and teamId then
-			part.CollisionGroup = LabWorldService.characterGroup(teamId)
+		if part:IsA("BasePart") then
+			part.CollisionGroup = groupOf(player)
 		end
 	end)
 end
 
-local function setTeam(player: Player, teamId: string)
+-- Le da bando ("teamId") o, con nil, lo deja sin bando con una facción al azar.
+local function setTeam(player: Player, teamId: string?)
 	player:SetAttribute("Team", teamId)
-	player:SetAttribute("LabFaction", teamId)
+	player:SetAttribute("LabFaction", teamId or Config.Lab.TeamOrder[math.random(1, #Config.Lab.TeamOrder)])
 	player:SetAttribute("ArenaReady", false)
-	player.Team = robloxTeams[teamId]
+	player.Team = if teamId then robloxTeams[teamId] else nil
 	WeaponTools.reskin(player)
 	applyGroup(player, player.Character)
 end
@@ -78,7 +87,11 @@ end
 
 -- Le da bando si aún no tiene (al entrar; LabRespawnService lo pide antes de que aparezca).
 function LabTeamService.ensureTeam(player: Player)
-	if not Arena.teamOf(player) then
+	if LabModes.isFreeForAll() then
+		if player:GetAttribute("LabFaction") == nil or Arena.teamOf(player) then
+			setTeam(player, nil)
+		end
+	elseif not Arena.teamOf(player) then
 		setTeam(player, smallerTeam(player))
 	end
 end
@@ -96,7 +109,8 @@ local function joinFromQueue(player: Player)
 	player:SetAttribute("LabParty", if typeof(data.party) == "number" then data.party else nil)
 	local teamId = data.team
 	if
-		typeof(teamId) == "string"
+		not LabModes.isFreeForAll()
+		and typeof(teamId) == "string"
 		and table.find(Config.Lab.TeamOrder, teamId)
 		and Arena.phase() == "Waiting"
 		and Arena.teamOf(player) ~= teamId
@@ -110,6 +124,12 @@ end
 -- grupo entero es un bloque, y quien no tiene grupo, un bloque de uno (al volver a la espera tras unos
 -- resultados).
 function LabTeamService.shuffle()
+	if LabModes.isFreeForAll() then
+		for _, player in Players:GetPlayers() do
+			setTeam(player, nil)
+		end
+		return
+	end
 	local blocks: { { Player } } = {}
 	local byParty: { [number]: { Player } } = {}
 	for _, player in Players:GetPlayers() do
@@ -157,8 +177,23 @@ end
 
 -- Panel de pruebas: al otro bando.
 function LabTeamService.switch(player: Player)
+	if LabModes.isFreeForAll() then
+		return
+	end
 	local teamId = Arena.teamOf(player)
 	setTeam(player, if teamId then Arena.otherTeam(teamId) else smallerTeam(player))
+end
+
+-- Al cambiar de modo (LabMatchService.setMode): sin bando en Todos contra todos; en los demás, se reparten
+-- todos de nuevo.
+function LabTeamService.applyMode()
+	if LabModes.isFreeForAll() then
+		for _, player in Players:GetPlayers() do
+			setTeam(player, nil)
+		end
+	else
+		LabTeamService.shuffle()
+	end
 end
 
 function LabTeamService:Start()

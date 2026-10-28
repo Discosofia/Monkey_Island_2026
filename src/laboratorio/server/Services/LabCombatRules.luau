@@ -3,7 +3,8 @@
 -- ServerScriptService.Combat.CombatRules):
 --   - Sin roles, habilidades, combos, talentos ni guardia: cada uno lleva el arma del Laboratorio que ha
 --     elegido (atributo "LabWeapon", LabLoadoutService) y los disparos entran sin esperar un parry.
---   - Solo se pelea durante la partida y contra el otro bando (Shared/Arena). En la zona de salida nadie
+--   - Solo se pelea durante la partida y contra el otro bando (Shared/Arena); en Todos contra todos, contra
+--     cualquiera que no sea uno mismo. En la zona de salida nadie
 --     hace ni recibe daño: ni se dispara a quien está dentro ni desde dentro (LabWorldService.inBase).
 --   - Los números de las armas ya son los de PvP: los multiplicadores contra jugadores, a 1. Funciona
 --     todo lo que contra los monos: veneno, ralentizar y enredar (pvpStatus).
@@ -15,6 +16,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local CombatRules = require(ServerScriptService.Combat.CombatRules)
 local LabRespawnService = require(script.Parent.LabRespawnService)
@@ -31,6 +33,9 @@ end
 function LabCombatRules:Init()
 	CombatRules.set({
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
+			if LabModes.isFreeForAll() then
+				return Arena.inBattle() and attacker ~= victim
+			end
 			local attackerTeam = Arena.teamOf(attacker)
 			local victimTeam = Arena.teamOf(victim)
 			if not (Arena.inBattle() and attackerTeam and victimTeam and attackerTeam ~= victimTeam) then

@@ -51,7 +51,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 15
+local VERSION = 16
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -1320,6 +1320,15 @@ local function buildBoards(parent: Instance)
 	)
 	CollectionService:AddTag(lab, Config.Lobby.LabBoardTag)
 	station(lab, "Lab", "🧪", "LabPrompt", later("Jugar en el Laboratorio"), later("Laboratorio en ruinas"))
+	-- El aviso, en el poste derecho a media altura, como el del pase: en el centro tapaba los formatos.
+	local labPromptSpot = Instance.new("Attachment")
+	labPromptSpot.Name = "AvisoLab"
+	labPromptSpot.Position = Vector3.new(lab.Size.X / 2 + 1.2, -lab.Size.Y / 4, -1.3)
+	labPromptSpot.Parent = lab
+	local labPrompt = lab:FindFirstChild("LabPrompt")
+	if labPrompt then
+		labPrompt.Parent = labPromptSpot
+	end
 
 	local pass = volcanoBoard(parent, "TablaPase", PASS_BOARD_AT, 12, 7.5)
 	CollectionService:AddTag(pass, Config.Lobby.PassBoardTag)

@@ -1143,13 +1143,30 @@ local Config = {
 		-- con empate, la siguiente baja gana. Antes, como en Dunas: si todos pulsan "Listo", cuenta
 		-- atrás; si no, a los WaitSeconds de llegar el primero.
 		StudioFormat = 1,
-		-- Formatos que se pueden buscar en la cola del Lobby (1v1…5v5).
-		MinFormat = 1,
-		MaxFormat = 5,
 		-- Modos de la cola, en orden (la clave va en la lista de MemoryStore y en TeleportData "mode"). Los
 		-- nombres se traducen al dibujarlos (T(name)): Config no carga Strings.
-		Modes = { "TeamDeathmatch" },
-		ModeNames = { TeamDeathmatch = "Duelo por equipos" },
+		Modes = { "TeamDeathmatch", "FreeForAll", "Rounds" },
+		ModeNames = { TeamDeathmatch = "Duelo por equipos", FreeForAll = "Todos contra todos", Rounds = "Rondas" },
+		-- Formatos que se pueden buscar en la cola de cada modo: jugadores por bando (1v1…5v5) o, en Todos
+		-- contra todos, el total de la sala (Shared/LabModes.formatLabel los escribe).
+		ModeFormats = { TeamDeathmatch = { 1, 2, 3, 4, 5 }, FreeForAll = { 10 }, Rounds = { 1, 2, 3, 4, 5 } },
+		-- Modo de Studio (sin viaje desde el Lobby); el panel de pruebas lo cambia.
+		StudioMode = "TeamDeathmatch",
+		-- Todos contra todos (L4a, Modes/FreeForAll): jugadores de la sala, mínimo para que siga y bajas
+		-- para ganar.
+		FreeForAllPlayers = 10,
+		FreeForAllMinPlayers = 2,
+		FreeForAllKills = 15,
+		-- Rondas (Modes/Rounds): rondas para ganar, duración de cada una, segundo de la alarma (todos se ven
+		-- con contorno), pausa entre rondas y ronda tras la cual cambian las bases (cada uno sigue en su
+		-- bando). MatchSeconds es también el tope de todo el partido.
+		RoundsToWin = 4,
+		RoundSeconds = 45,
+		AlarmAtSeconds = 30,
+		RoundIntermissionSeconds = 8,
+		SideSwapAfterRound = 3,
+		-- Distancia de la cámara del espectador al compañero que sigue (LabSpectateController).
+		SpectateDistance = 12,
 		KillsToWin = { 10, 15, 20, 25, 30 },
 		MatchSeconds = 6 * 60,
 		WaitSeconds = 60,

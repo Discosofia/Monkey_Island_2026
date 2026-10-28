@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 
 local T = Strings.t
@@ -23,6 +24,9 @@ local DARK_TEXT = Color3.fromRGB(40, 25, 5)
 local SECONDARY = Color3.fromRGB(215, 205, 190)
 local QUEUE_COLOR = Color3.fromRGB(120, 230, 255)
 
+-- Etiquetas del cartel: tantas como formatos tiene el modo que más tiene (Config.Lab.ModeFormats).
+local MAX_SLOTS = 5
+
 local LabBoardController = {}
 
 type Board = {
@@ -30,7 +34,8 @@ type Board = {
 	mode: TextLabel,
 	hint: TextLabel,
 	queueTitle: TextLabel,
-	formats: { [number]: TextLabel },
+	-- Un juego fijo de etiquetas: tarjetas de modo fuera de la cola, formatos del modo dentro de ella.
+	slots: { TextLabel },
 	badge: TextLabel,
 }
 
@@ -91,17 +96,10 @@ function LabBoardController:Start()
 		local queueTitle =
 			text("", panel, UDim2.fromScale(0.05, 0.31), UDim2.fromScale(0.9, 0.11), Enum.Font.BuilderSansBold)
 		queueTitle.TextColor3 = GOLD
-		local formats: { [number]: TextLabel } = {}
-		local count = settings.MaxFormat - settings.MinFormat + 1
-		for format = settings.MinFormat, settings.MaxFormat do
-			local index = format - settings.MinFormat
-			local label = text(
-				"",
-				panel,
-				UDim2.fromScale(0.05 + index * (0.9 / count), 0.44),
-				UDim2.fromScale(0.9 / count - 0.015, 0.25),
-				Enum.Font.BuilderSansBold
-			)
+		local slots: { TextLabel } = {}
+		for _ = 1, MAX_SLOTS do
+			local label =
+				text("", panel, UDim2.fromScale(0.05, 0.44), UDim2.fromScale(0.15, 0.25), Enum.Font.BuilderSansBold)
 			label.BackgroundColor3 = Color3.fromRGB(25, 20, 15)
 			label.BackgroundTransparency = 0.2
 			local labelCorner = Instance.new("UICorner")
@@ -111,7 +109,7 @@ function LabBoardController:Start()
 			padding.PaddingTop = UDim.new(0.1, 0)
 			padding.PaddingBottom = UDim.new(0.1, 0)
 			padding.Parent = label
-			formats[format] = label
+			table.insert(slots, label)
 		end
 		local badge =
 			text("", panel, UDim2.fromScale(0.15, 0.75), UDim2.fromScale(0.7, 0.18), Enum.Font.BuilderSansExtraBold)
@@ -124,7 +122,7 @@ function LabBoardController:Start()
 		badgePadding.PaddingBottom = UDim.new(0.12, 0)
 		badgePadding.Parent = badge
 
-		return { gui = gui, mode = mode, hint = hint, formats = formats, badge = badge, queueTitle = queueTitle }
+		return { gui = gui, mode = mode, hint = hint, slots = slots, badge = badge, queueTitle = queueTitle }
 	end
 
 	local function draw(board: Board)
@@ -133,29 +131,67 @@ function LabBoardController:Start()
 		if queue and queue.game ~= "Lab" then
 			queue = nil
 		end
-		local modeId = if queue and typeof(queue.mode) == "string" then queue.mode else settings.Modes[1]
-		board.mode.Text = T(settings.ModeNames[modeId] or settings.ModeNames[settings.Modes[1]])
+		local modeId = if queue and typeof(queue.mode) == "string" then queue.mode else nil
 		board.hint.Text = T("Todos empiezan igual: 4 armas, solo cuenta la puntería")
 		board.queueTitle.Text = T("⚔️ En cola ahora")
 
 		-- Jugadores en la cola de cada formato (de todos los servidores); "—" si aún no se sabe.
 		local counts = readJson(ReplicatedStorage:GetAttribute("LabQueueCounts"))
-		local byFormat = if counts and typeof(counts[modeId]) == "table" then counts[modeId] else nil
 		local myFormat = if queue then tonumber(queue.format) else nil
-		for format, label in board.formats do
-			local waiting = if byFormat then tonumber(byFormat[tostring(format)]) else nil
-			label.Text = `{format}v{format}\n{if waiting then waiting else "—"} 👤`
-			local mine = format == myFormat
-			label.TextColor3 = if mine then DARK_TEXT elseif (waiting or 0) > 0 then QUEUE_COLOR else Color3.new(1, 1, 1)
-			label.BackgroundColor3 = if mine then READY_COLOR else Color3.fromRGB(25, 20, 15)
+		-- Cada etiqueta lleva su texto y su estado; las que sobran se ocultan y las demás se reparten el ancho.
+		local entries: { { text: string, waiting: number?, mine: boolean } } = {}
+		if modeId and settings.ModeFormats[modeId] then
+			board.mode.Text = T(settings.ModeNames[modeId])
+			local byFormat = if counts and typeof(counts[modeId]) == "table" then counts[modeId] else nil
+			for _, format in settings.ModeFormats[modeId] do
+				local waiting = if byFormat then tonumber(byFormat[tostring(format)]) else nil
+				table.insert(entries, {
+					text = `{LabModes.formatLabel(modeId, format)}\n{if waiting then waiting else "—"} 👤`,
+					waiting = waiting,
+					mine = format == myFormat,
+				})
+			end
+		else
+			-- Fuera de la cola: una tarjeta por modo con el total que espera (suma de sus formatos).
+			board.mode.Text = T("Modos de juego")
+			for _, mode in settings.Modes do
+				local byFormat = if counts and typeof(counts[mode]) == "table" then counts[mode] else nil
+				local total: number? = nil
+				if byFormat then
+					total = 0
+					for _, waiting in byFormat do
+						total += tonumber(waiting) or 0
+					end
+				end
+				table.insert(entries, {
+					text = `{T(settings.ModeNames[mode])}\n{if total then total else "—"} 👤`,
+					waiting = total,
+					mine = false,
+				})
+			end
+		end
+		local count = #entries
+		for index, label in board.slots do
+			local entry = entries[index]
+			label.Visible = entry ~= nil
+			if entry then
+				label.Position = UDim2.fromScale(0.05 + (index - 1) * (0.9 / count), 0.44)
+				label.Size = UDim2.fromScale(0.9 / count - 0.015, 0.25)
+				label.Text = entry.text
+				label.TextColor3 = if entry.mine
+					then DARK_TEXT
+					elseif (entry.waiting or 0) > 0 then QUEUE_COLOR
+					else Color3.new(1, 1, 1)
+				label.BackgroundColor3 = if entry.mine then READY_COLOR else Color3.fromRGB(25, 20, 15)
+			end
 		end
 
 		if queue then
 			local waited = math.max(0, Workspace:GetServerTimeNow() - (tonumber(queue.since) or 0))
-			board.badge.Text = T("⏳ Buscando {n}v{n} · {time}", {
-				n = queue.format,
-				time = `{math.floor(waited // 60)}:{string.format("%02d", math.floor(waited % 60))}`,
-			})
+			local clock = `{math.floor(waited // 60)}:{string.format("%02d", math.floor(waited % 60))}`
+			board.badge.Text = if modeId == "FreeForAll"
+				then T("⏳ Buscando {n} jugadores · {time}", { n = queue.format, time = clock })
+				else T("⏳ Buscando {n}v{n} · {time}", { n = queue.format, time = clock })
 			board.badge.BackgroundColor3 = CARD_COLOR
 			board.badge.TextColor3 = READY_COLOR
 		else

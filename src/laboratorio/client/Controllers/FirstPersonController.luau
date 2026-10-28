@@ -131,6 +131,12 @@ local function skinColor(character: Model): Color3
 	return if hand and hand:IsA("BasePart") then hand.Color else Color3.fromRGB(205, 160, 120)
 end
 
+-- true si el humanoide del personaje está muerto.
+local function isDead(character: Model?): boolean
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	return humanoid ~= nil and humanoid.Health <= 0
+end
+
 -- Monta (o deja como está) el arma en primera persona de lo que lleva en la mano.
 local function refresh(player: Player)
 	local character = player.Character
@@ -138,7 +144,10 @@ local function refresh(player: Player)
 	heldTool = tool
 	local weaponId = if tool then tool:GetAttribute("WeaponId") else nil
 	local camera = Workspace.CurrentCamera
-	if not (character and camera and typeof(weaponId) == "string" and LabWeaponModels.has(weaponId)) then
+	if
+		not (character and camera and typeof(weaponId) == "string" and LabWeaponModels.has(weaponId))
+		or isDead(character)
+	then
 		clearViewModel()
 		return
 	end
@@ -273,6 +282,10 @@ local function follow(deltaTime: number)
 		end
 	end
 	local camera = Workspace.CurrentCamera
+	-- Muerto (o eliminado de la ronda, de espectador): sin el arma delante de la cámara.
+	if viewModel and isDead(Players.LocalPlayer.Character) then
+		clearViewModel()
+	end
 	if not (viewModel and camera and viewModel.PrimaryPart) then
 		return
 	end

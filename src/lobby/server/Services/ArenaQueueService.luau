@@ -72,8 +72,10 @@ local GAMES: { [string]: Game } = {
 	Lab = {
 		place = Config.PlaceIds.Laboratorio,
 		teams = Config.Lab.TeamOrder,
-		minFormat = Config.Lab.MinFormat,
-		maxFormat = Config.Lab.MaxFormat,
+		-- Estos dos no validan nada en el Laboratorio (cada modo tiene sus formatos en Config.Lab.ModeFormats);
+		-- solo rellenan el tipo.
+		minFormat = Config.Lab.ModeFormats.TeamDeathmatch[1],
+		maxFormat = Config.Lab.ModeFormats.TeamDeathmatch[#Config.Lab.ModeFormats.TeamDeathmatch],
 		searching = Strings.later("🧪 Buscando partida {n}v{n} en el Laboratorio…"),
 		found = Strings.later("🧪 ¡Partida encontrada! Zarpando al Laboratorio en ruinas…"),
 		left = Strings.later("Has salido de la cola del Laboratorio"),
@@ -95,7 +97,15 @@ type Ticket = {
 local ArenaQueueService = {}
 
 -- Los nombres de los modos (Config.Lab.ModeNames) se traducen al dibujarlos (la ventana y el cartel).
-local _MODE_NAMES = { Strings.later("Duelo por equipos") }
+local _MODE_NAMES = {
+	Strings.later("Duelo por equipos"),
+	Strings.later("Todos contra todos"),
+	Strings.later("Rondas"),
+}
+
+-- Avisos propios de Todos contra todos: una sola sala sin bandos, así que no hay "{n}v{n}".
+local SEARCHING_FREE_FOR_ALL = Strings.later("🧪 Buscando partida de {n} jugadores en el Laboratorio…")
+local GROUP_TOO_BIG_FREE_FOR_ALL = Strings.later("Tu grupo es de {n}: la sala de Todos contra todos es de {max}")
 
 local canRequest = RequestCooldown.new(1)
 -- Tickets de este servidor, por clave.
@@ -185,28 +195,39 @@ local function onJoin(player: Player, format: any, gameId: any, mode: any)
 	end
 	local destination = GAMES[id :: string]
 	local gameName = id :: string
-	if
-		typeof(format) ~= "number"
-		or format % 1 ~= 0
-		or format < destination.minFormat
-		or format > destination.maxFormat
-	then
+	if typeof(format) ~= "number" or format % 1 ~= 0 then
 		return
 	end
 	local queueMode: string? = nil
 	if gameName == "Lab" then
+		-- Cada modo del Laboratorio tiene sus formatos (Todos contra todos solo admite la sala de 10).
 		if typeof(mode) ~= "string" or not table.find(Config.Lab.Modes, mode) then
 			return
 		end
+		local allowed = Config.Lab.ModeFormats[mode]
+		if not allowed or not table.find(allowed, format) then
+			return
+		end
 		queueMode = mode
+	elseif format < destination.minFormat or format > destination.maxFormat then
+		return
 	end
+	local freeForAll = queueMode == "FreeForAll"
 	local leader, members = MatchmakingService.partyOf(player)
 	if leader ~= player then
 		Remotes.Notify:FireClient(player, "Solo el líder del grupo puede buscar partida")
 		return
 	end
 	if #members > format then
-		Remotes.Notify:FireClient(player, "Tu grupo es de {n}: elige un formato de {n}v{n} o más", { n = #members })
+		if freeForAll then
+			Remotes.Notify:FireClient(player, GROUP_TOO_BIG_FREE_FOR_ALL, { n = #members, max = format })
+		else
+			Remotes.Notify:FireClient(
+				player,
+				"Tu grupo es de {n}: elige un formato de {n}v{n} o más",
+				{ n = #members }
+			)
+		end
 		return
 	end
 	-- Una sola cola por jugador: se retira el ticket anterior, sea de Dunas o del Laboratorio.
@@ -230,7 +251,11 @@ local function onJoin(player: Player, format: any, gameId: any, mode: any)
 	tickets[ticket.key] = ticket
 	publish(ticket, members)
 	for _, member in members do
-		Remotes.Notify:FireClient(member, destination.searching, { n = format })
+		Remotes.Notify:FireClient(
+			member,
+			if freeForAll then SEARCHING_FREE_FOR_ALL else destination.searching,
+			{ n = format }
+		)
 	end
 end
 
@@ -279,6 +304,24 @@ local function pack(format: number, entries: { any }): ({ string }?, { string }?
 	return nil, nil
 end
 
+-- Todos contra todos: una sola sala de "size" plazas con los tickets más antiguos que quepan enteros (un
+-- grupo nunca se separa). Devuelve las claves si la llena, o nil.
+local function packSingle(size: number, entries: { any }): { string }?
+	local keys: { string } = {}
+	local room = size
+	for _, entry in entries do
+		local count = if typeof(entry.value) == "table" then entry.value.size else nil
+		if typeof(count) == "number" and count >= 1 and count <= room then
+			table.insert(keys, entry.key)
+			room -= count
+			if room == 0 then
+				return keys
+			end
+		end
+	end
+	return nil
+end
+
 -- Un servidor por lista junta equipos y reserva la partida.
 local function matchFormat(gameId: string, mode: string?, format: number)
 	if not takeLock(gameId, mode, format) then
@@ -291,9 +334,20 @@ local function matchFormat(gameId: string, mode: string?, format: number)
 	if not ok or typeof(entries) ~= "table" then
 		return
 	end
-	local teamA, teamB = pack(format, entries)
-	if not (teamA and teamB) then
-		return
+	-- Todos contra todos: una sola sala y sin bandos (team = nil: el Laboratorio los reparte al llegar).
+	local groups: { { string } }
+	if mode == "FreeForAll" then
+		local room = packSingle(format, entries)
+		if not room then
+			return
+		end
+		groups = { room }
+	else
+		local teamA, teamB = pack(format, entries)
+		if not (teamA and teamB) then
+			return
+		end
+		groups = { teamA, teamB }
 	end
 	local destination = GAMES[gameId]
 	local reserved, code = pcall(function()
@@ -311,13 +365,13 @@ local function matchFormat(gameId: string, mode: string?, format: number)
 			leaders[entry.key] = members[1]
 		end
 	end
-	for index, keys in { teamA, teamB } do
+	for index, keys in groups do
 		for _, key in keys do
 			pcall(function()
 				matches:SetAsync(key, {
 					code = code,
 					format = format,
-					team = destination.teams[index],
+					team = if mode == "FreeForAll" then nil else destination.teams[index],
 					mode = mode,
 					party = leaders[key],
 				}, SETTINGS.MatchSeconds)
@@ -383,6 +437,9 @@ local function countOf(gameId: string, mode: string?, format: number): number?
 end
 
 -- Jugadores esperando en cada formato. Si no se puede leer alguno, no se publica (el cartel enseña "—").
+-- Riesgo de cuota de MemoryStore: cada ciclo (COUNT_SECONDS) lee 5 formatos de Dunas y los del Laboratorio
+-- (5 + 1 + 5 = 11), 16 lecturas por servidor del Lobby; con varios servidores suma. Si se acerca al
+-- límite, subir COUNT_SECONDS.
 local function publishCounts()
 	local dunas: { [string]: number } = {}
 	local complete = true
@@ -402,7 +459,7 @@ local function publishCounts()
 	complete = true
 	for _, mode in Config.Lab.Modes do
 		local byFormat: { [string]: number } = {}
-		for format = GAMES.Lab.minFormat, GAMES.Lab.maxFormat do
+		for _, format in Config.Lab.ModeFormats[mode] do
 			local players = countOf("Lab", mode, format)
 			if not players then
 				complete = false
