@@ -91,6 +91,9 @@ export type Profile = {
 	-- Parcela permanente (versión 12, Fase 12, 27-10-2026): desbloqueada al ganar, niveles de sus
 	-- estructuras y cofre (Shared/Plot).
 	plot: { [string]: any },
+	-- Laboratorio en ruinas (versión 13, L5a, 28-10-2026): Ámbar de hoy, estadísticas y bajas por arma
+	-- (LabRewardService).
+	lab: { [string]: any },
 }
 
 type Session = {
@@ -109,7 +112,7 @@ local store: DataStore? = nil
 
 local function defaultProfile(): Profile
 	return {
-		version = 12,
+		version = 13,
 		amber = 0,
 		bestDays = 0,
 		matches = 0,
@@ -143,9 +146,11 @@ local function defaultProfile(): Profile
 		pioneer = {},
 		ultimates = {},
 		plot = Plot.normalize(nil) :: any,
+		lab = {},
 	}
 end
 
+-- Versión 13: el campo "lab" (Laboratorio; "reconcile" lo rellena vacío).
 -- Versión 12: la parcela permanente ("plot"; "reconcile" la rellena). Quien ya había ganado alguna
 -- partida ("rescues") la tiene desbloqueada.
 -- Versión 11: la definitiva elegida por rol ("ultimates"; "reconcile" lo rellena vacío: todos llevan la
@@ -298,6 +303,8 @@ local function publish(player: Player, session: Session)
 	)
 	-- Arena de Dunas: lo comprado y lo puesto (ServerShared/ArenaShop), estadísticas y Ámbar de hoy.
 	player:SetAttribute("Arena", HttpService:JSONEncode(profile.arena))
+	-- Laboratorio: Ámbar de hoy, estadísticas y bajas por arma (LabRewardService).
+	player:SetAttribute("Lab", HttpService:JSONEncode(profile.lab))
 	player:SetAttribute("Season", HttpService:JSONEncode(profile.season))
 	player:SetAttribute("Pioneer", HttpService:JSONEncode(Pioneer.normalize(profile.pioneer)))
 	player:SetAttribute("Ultimates", HttpService:JSONEncode(profile.ultimates))

@@ -69,8 +69,10 @@ local OPCIONES_BASE = {
 	especies = { base = 4, porDia = 1.5 },
 	-- Dunas: resultado medio de una partida (fracciones) y lo que hace un jugador en ella.
 	dunas = { victoria = 0.45, empate = 0.1, capturas = 1.5, bajas = 5, minutos = 10 },
+	-- Laboratorio en ruinas: lo mismo (sin capturas; en Todos contra todos "victoria" es el 1.º puesto).
+	lab = { victoria = 0.45, empate = 0.1, bajas = 8, minutos = 7.5 },
 	-- Perfiles: días que juega por semana, minutos en la Isla por día de juego (cada día es una partida
-	-- nueva desde el día 1), partidas de Dunas por día, probabilidad de ganar (rescate) cuando juega una
+	-- nueva desde el día 1), partidas de Dunas y del Laboratorio por día, probabilidad de ganar (rescate) cuando juega una
 	-- partida entera, si juega con amigos y su rol.
 	perfiles = {
 		casual = {
@@ -78,6 +80,7 @@ local OPCIONES_BASE = {
 			diasPorSemana = 3,
 			minutosIsla = 40,
 			partidasDunas = 0,
+			partidasLab = 0,
 			ganaRescate = 0,
 			amigos = false,
 			rol = "Guerrero",
@@ -87,6 +90,7 @@ local OPCIONES_BASE = {
 			diasPorSemana = 5,
 			minutosIsla = 60,
 			partidasDunas = 1,
+			partidasLab = 1,
 			ganaRescate = 0,
 			amigos = false,
 			rol = "Cazador",
@@ -96,6 +100,7 @@ local OPCIONES_BASE = {
 			diasPorSemana = 7,
 			minutosIsla = 150,
 			partidasDunas = 3,
+			partidasLab = 3,
 			ganaRescate = 0.6,
 			amigos = false,
 			rol = "Mago",
@@ -105,6 +110,7 @@ local OPCIONES_BASE = {
 			diasPorSemana = 4,
 			minutosIsla = 90,
 			partidasDunas = 2,
+			partidasLab = 2,
 			ganaRescate = 0.3,
 			amigos = true,
 			rol = "Medico",
@@ -184,6 +190,9 @@ local LIMITES = {
 	parcelaIntensoDiaMin = 40,
 	parcelaAmigosDiaMax = 150,
 	parcelaVentajaDia = 0.25,
+	-- PvP (Laboratorio): el Ámbar por minuto del Laboratorio no pasa del de Dunas, y los topes diarios de
+	-- Dunas y del Laboratorio juntos no pasan de esto.
+	ambarPvpDia = 700,
 }
 
 -- ===================================== Utilidades =====================================
@@ -687,18 +696,37 @@ local function main(copia: Instance): string
 		}
 	end
 
-	local function dunas(partidas: number): number
-		if partidas <= 0 then
-			return 0
-		end
+	local function dunasPorPartida(): number
 		local A = Config.Arena.Amber
 		local D = OPCIONES.dunas
-		local porPartida = D.victoria * A.Win
+		return D.victoria * A.Win
 			+ D.empate * A.Tie
 			+ (1 - D.victoria - D.empate) * A.Loss
 			+ D.capturas * A.PerCapture
 			+ math.min(D.bajas * A.PerKill, A.MaxFromKills)
-		return math.min(porPartida * partidas, A.DailyCap)
+	end
+	local function dunas(partidas: number): number
+		if partidas <= 0 then
+			return 0
+		end
+		return math.min(dunasPorPartida() * partidas, Config.Arena.Amber.DailyCap)
+	end
+
+	-- Laboratorio: el 1.º puesto (o la victoria) cobra Win, los empates Tie y el resto Loss (el valor medio;
+	-- los puestos de Todos contra todos están en Config.Lab.Amber.Places), más las bajas, con su tope diario.
+	local function labPorPartida(): number
+		local A = Config.Lab.Amber
+		local L = OPCIONES.lab
+		return L.victoria * A.Win
+			+ L.empate * A.Tie
+			+ (1 - L.victoria - L.empate) * A.Loss
+			+ math.min(L.bajas * A.PerKill, A.MaxFromKills)
+	end
+	local function lab(partidas: number): number
+		if partidas <= 0 then
+			return 0
+		end
+		return math.min(labPorPartida() * partidas, Config.Lab.Amber.DailyCap)
 	end
 
 	-- Misiones del día cumplidas (valor esperado) con "minutos" de Isla.
@@ -760,8 +788,8 @@ local function main(copia: Instance): string
 		return cumplidas, posibles, ambar, huevo, xp
 	end
 
-	-- XP de pase de las partidas de un día (Isla y Dunas), antes del tope y del extra de amigos.
-	local function xpPartidas(p: any, partidasDunas: number): (number, number)
+	-- XP de pase de las partidas de un día (Isla, Dunas y Laboratorio), antes del tope y del extra de amigos.
+	local function xpPartidas(p: any, partidasDunas: number, partidasLab: number): (number, number, number)
 		local S = Config.Season
 		local isla = p.dias * S.IslandXp.PerDay
 			+ p.jefes * S.IslandXp.PerBoss
@@ -773,7 +801,9 @@ local function main(copia: Instance): string
 			+ D.empate * S.ArenaXp.Tie
 			+ (1 - D.victoria - D.empate) * S.ArenaXp.Loss
 			+ D.capturas * S.ArenaXp.PerCapture
-		return isla, porDunas * partidasDunas
+		local L = OPCIONES.lab
+		local porLab = L.victoria * S.LabXp.Win + L.empate * S.LabXp.Tie + (1 - L.victoria - L.empate) * S.LabXp.Loss
+		return isla, porDunas * partidasDunas, porLab * partidasLab
 	end
 
 	-- Semanales: combinaciones, y valor esperado de las cumplidas de las WeeklyMissions que tocan de un
@@ -827,6 +857,7 @@ local function main(copia: Instance): string
 		acc.Species = math.max(acc.Species or 0, especiesEn(minutos))
 		acc.ArenaWin = (acc.ArenaWin or 0) + perfil.partidasDunas * OPCIONES.dunas.victoria
 		acc.ArenaCapture = (acc.ArenaCapture or 0) + perfil.partidasDunas * OPCIONES.dunas.capturas
+		acc.LabWin = (acc.LabWin or 0) + perfil.partidasLab * OPCIONES.lab.victoria
 	end
 
 	-- Huecos del nido y factor del tiempo de los huevos con una incubadora de nivel 0–3 (Data/PlotStructures:
@@ -858,13 +889,22 @@ local function main(copia: Instance): string
 	local function simular(perfil: any, dias: number, desdeDia: number)
 		local r = {
 			diasActivos = 0,
-			ambar = { Partidas = 0, Dunas = 0, Calendario = 0, Misiones = 0, Descartes = 0, Repetidas = 0, Pase = 0 },
+			ambar = {
+				Partidas = 0,
+				Dunas = 0,
+				Lab = 0,
+				Calendario = 0,
+				Misiones = 0,
+				Descartes = 0,
+				Repetidas = 0,
+				Pase = 0,
+			},
 			-- Mascotas repetidas esperadas (dan Ámbar en vez de otra copia).
 			repetidas = 0,
 			-- Pase: XP ganada, por fuente, nivel ganado al final de cada día y día en que llega al último.
 			pase = {
 				xp = 0,
-				fuentes = { Isla = 0, Dunas = 0, Misiones = 0, Semanales = 0, Amigos = 0, Doble = 0 },
+				fuentes = { Isla = 0, Dunas = 0, Lab = 0, Misiones = 0, Semanales = 0, Amigos = 0, Doble = 0 },
 				recortada = 0,
 				nivelDia = {} :: { number },
 				terminaDia = nil :: number?,
@@ -1129,6 +1169,8 @@ local function main(copia: Instance): string
 				end
 				-- Dunas.
 				r.ambar.Dunas += dunas(perfil.partidasDunas)
+				-- Laboratorio.
+				r.ambar.Lab += lab(perfil.partidasLab)
 				-- Pase de temporada: XP del día y premios gratis de los niveles ganados (los no cosméticos
 				-- solo con nivel ganado; aquí todo es ganado jugando).
 				if temporada then
@@ -1140,10 +1182,11 @@ local function main(copia: Instance): string
 						P.xp = 0
 					end
 					local mult = if diaTemporada > S.Days - S.LastWeekDays then S.LastWeekMultiplier else 1
-					local isla, deDunas = xpPartidas(p, perfil.partidasDunas)
-					local partidas = math.min(isla + deDunas, S.DailyMatchXpCap)
-					P.recortada += isla + deDunas - partidas
-					local reparto = if isla + deDunas > 0 then partidas / (isla + deDunas) else 0
+					local isla, deDunas, deLab = xpPartidas(p, perfil.partidasDunas, perfil.partidasLab)
+					local bruta = isla + deDunas + deLab
+					local partidas = math.min(bruta, S.DailyMatchXpCap)
+					P.recortada += bruta - partidas
+					local reparto = if bruta > 0 then partidas / bruta else 0
 					local amigos = if perfil.amigos then partidas * S.FriendsBonus else 0
 					local semanal = xpSemanal
 					if OPCIONES.pase.xpSemanalSupuesta > 0 then
@@ -1156,6 +1199,7 @@ local function main(copia: Instance): string
 					local base = partidas + amigos + xpMisiones + semanal
 					P.fuentes.Isla += isla * reparto
 					P.fuentes.Dunas += deDunas * reparto
+					P.fuentes.Lab += deLab * reparto
 					P.fuentes.Misiones += xpMisiones
 					P.fuentes.Semanales += semanal
 					P.fuentes.Amigos += amigos
@@ -1341,7 +1385,7 @@ local function main(copia: Instance): string
 		end
 		linea("")
 		linea(
-			"| Perfil | Días activos | Ámbar: partidas · Dunas · calendario · misiones · descartes · repetidas · pase | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados, mascotas repetidas) | Misiones cumplidas | Talentos llenos |"
+			"| Perfil | Días activos | Ámbar: partidas · Dunas · Lab · calendario · misiones · descartes · repetidas · pase | Ganado | Gastado | Sin usar | Mejoras completas | Huevos eclosionados (descartados, mascotas repetidas) | Misiones cumplidas | Talentos llenos |"
 		)
 		linea("|---|---|---|---|---|---|---|---|---|---|")
 		for _, clave in OPCIONES.ordenPerfiles do
@@ -1353,14 +1397,36 @@ local function main(copia: Instance): string
 				`| {perfil.nombre} ({perfil.diasPorSemana}/sem, {perfil.minutosIsla} min) | {r.diasActivos} | {n(
 					a.Partidas,
 					0
-				)} · {n(a.Dunas, 0)} · {n(a.Calendario, 0)} · {n(a.Misiones, 0)} · {n(a.Descartes, 0)} · {n(
-					a.Repetidas,
+				)} · {n(a.Dunas, 0)} · {n(a.Lab, 0)} · {n(a.Calendario, 0)} · {n(a.Misiones, 0)} · {n(
+					a.Descartes,
 					0
-				)} · {n(a.Pase, 0)} | {n(ganado, 0)} | {n(r.gastado, 0)} | {n(r.saldo, 0)} | {if r.mejorasDia
+				)} · {n(a.Repetidas, 0)} · {n(a.Pase, 0)} | {n(ganado, 0)} | {n(r.gastado, 0)} | {n(r.saldo, 0)} | {if r.mejorasDia
 					then `día {r.mejorasDia}`
 					else "no"} | {r.huevosEclosionados} ({r.huevosDescartados}, {n(r.repetidas, 1)}) | {pct(
 					if r.misionesPosibles > 0 then r.misiones / r.misionesPosibles else 0
 				)} | {if r.talentosDia then `día {r.talentosDia} ({perfil.rol})` else "no"} |`
+			)
+		end
+		-- PvP: Ámbar por minuto del Laboratorio y de Dunas, y sus topes diarios juntos.
+		local ambarMinutoDunas = dunasPorPartida() / OPCIONES.dunas.minutos
+		local ambarMinutoLab = labPorPartida() / OPCIONES.lab.minutos
+		local topePvp = Config.Arena.Amber.DailyCap + Config.Lab.Amber.DailyCap
+		linea("")
+		linea(
+			`PvP: Dunas {n(dunasPorPartida())} ✨ por partida ({n(ambarMinutoDunas)}/min, tope {Config.Arena.Amber.DailyCap}/día en {n(
+				Config.Arena.Amber.DailyCap / dunasPorPartida()
+			)} partidas) · Laboratorio {n(labPorPartida())} ✨ por partida ({n(ambarMinutoLab)}/min, tope {Config.Lab.Amber.DailyCap}/día en {n(
+				Config.Lab.Amber.DailyCap / labPorPartida()
+			)} partidas) · topes juntos {topePvp}/día.`
+		)
+		if ambarMinutoLab > ambarMinutoDunas then
+			alerta(
+				`PvP: el Laboratorio da {n(ambarMinutoLab)} ✨ por minuto, más que Dunas ({n(ambarMinutoDunas)}): no puede superarlo`
+			)
+		end
+		if topePvp > LIMITES.ambarPvpDia then
+			alerta(
+				`PvP: los topes de Dunas y del Laboratorio suman {topePvp} ✨ al día (máximo {LIMITES.ambarPvpDia})`
 			)
 		end
 		-- Monturas: probabilidad de tener la primera al final y día en que pasa del 50 %.
@@ -1954,7 +2020,7 @@ local function main(copia: Instance): string
 			)
 			linea("")
 			linea(
-				"| Perfil | Nivel día 7 · 14 · 21 · 30 | Último nivel | XP: Isla · Dunas · misiones · semanales · amigos · ×2 | Misiones (con semanales) | XP sobre el tope |"
+				"| Perfil | Nivel día 7 · 14 · 21 · 30 | Último nivel | XP: Isla · Dunas · Lab · misiones · semanales · amigos · ×2 | Misiones (con semanales) | XP sobre el tope |"
 			)
 			linea("|---|---|---|---|---|---|")
 			for _, clave in OPCIONES.ordenPerfiles do
@@ -1965,16 +2031,16 @@ local function main(copia: Instance): string
 					return tostring(P.nivelDia[math.min(d, OPCIONES.dias)] or 0)
 				end
 				-- El ×2 dobla todas las fuentes por igual: la parte de las misiones no cambia.
-				local sinDoble = f.Isla + f.Dunas + f.Misiones + f.Semanales + f.Amigos
+				local sinDoble = f.Isla + f.Dunas + f.Lab + f.Misiones + f.Semanales + f.Amigos
 				local misiones = if sinDoble > 0 then (f.Misiones + f.Semanales) / sinDoble else 0
 				P.parteMisiones = misiones
 				linea(
 					`| {perfil.nombre} | {nivel(7)} · {nivel(14)} · {nivel(21)} · {nivel(S.Days)} | {if P.terminaDia
 						then `día {P.terminaDia}`
-						else "no"} | {n(f.Isla, 0)} · {n(f.Dunas, 0)} · {n(f.Misiones, 0)} · {n(f.Semanales, 0)} · {n(
-						f.Amigos,
+						else "no"} | {n(f.Isla, 0)} · {n(f.Dunas, 0)} · {n(f.Lab, 0)} · {n(f.Misiones, 0)} · {n(
+						f.Semanales,
 						0
-					)} · {n(f.Doble, 0)} | {pct(misiones)} | {n(P.recortada, 0)} |`
+					)} · {n(f.Amigos, 0)} · {n(f.Doble, 0)} | {pct(misiones)} | {n(P.recortada, 0)} |`
 				)
 			end
 			local habitual = resultados.habitual and resultados.habitual.pase

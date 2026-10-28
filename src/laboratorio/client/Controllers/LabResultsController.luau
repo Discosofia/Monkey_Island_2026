@@ -1,6 +1,6 @@
 --!strict
--- Resultados del duelo por equipos (Remotes.ArenaResults, de LabMatchService): la ventana es la de
--- Shared/UI/MatchResults (sin capturas ni altares, y sin Ámbar hasta que lleguen las recompensas). Con
+-- Resultados de la partida (Remotes.ArenaResults, de LabMatchService): la ventana es la de
+-- Shared/UI/MatchResults (sin capturas ni altares, con el Ámbar y la XP del pase de LabRewardService). Con
 -- ella abierta el ratón va suelto (FirstPersonController.freeCursor).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

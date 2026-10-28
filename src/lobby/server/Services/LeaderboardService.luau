@@ -3,7 +3,7 @@
 -- cada clasificación y lo publica en ReplicatedStorage ("Leaderboard_<stat>", JSON con nombre, valor y
 -- el marco que lleva puesto, "frame", Shared/UI/PlayerFrames) para la ventana del ranking
 -- (LobbyUIController), y escribe los primeros en el cartel del ranking de la plaza (supervivencia y,
--- con Leaderboards.ARENA_STATS, la arena de Dunas).
+-- con Leaderboards.ARENA_STATS y LAB_STATS, la arena de Dunas y el Laboratorio).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -89,6 +89,7 @@ end
 local function refresh()
 	local stats = table.clone(Leaderboards.STATS)
 	table.move(Leaderboards.ARENA_STATS, 1, #Leaderboards.ARENA_STATS, #stats + 1, stats)
+	table.move(Leaderboards.LAB_STATS, 1, #Leaderboards.LAB_STATS, #stats + 1, stats)
 	local frames: { [number]: string | false } = {}
 	for _, stat in stats do
 		local rows = {}

@@ -97,6 +97,10 @@ Se eligen **en la cola**, junto con el formato. Todos duran como mucho **6 minut
 
 Nada que dé poder fuera del Laboratorio, y nada de pago que dé poder dentro.
 
+**Reparto en dos grupos** (plan del 28-10-2026). La L5a (en el código) da el Ámbar, la XP del pase, el ranking, la misión semanal y los títulos, y empieza ya a contar las bajas por arma en el perfil (`lab.weaponKills`), para que la L5b tenga datos al entregar las skins. La L5b trae los 12 modelos de las skins, su dibujo combinado con el bando y la entrega de los grados ya ganados.
+
+**Alerta aceptada de `Economia` (28-10-2026).** Con el Laboratorio, el habitual completa la tienda de Ámbar el día 28 (el mínimo es 30). Sin el Laboratorio ya la completaba justo el día 30, en el límite, así que cualquier fuente nueva de Ámbar la dispara. Decisión del usuario: se acepta y no se tocan los números del Laboratorio; la razón es que a la tienda de Ámbar le faltan cosméticos (otra tarea).
+
 **Ámbar.** Medido contra la línea base de `Economia` (27-10-2026): la Isla da unos 6,4 de Ámbar por minuto (perfil intenso) y Dunas unos 7,2 (con su tope de 400 al día). El Laboratorio da algo menos por minuto, para que la Isla siga siendo el sitio principal:
 
 | Concepto | Ámbar |
@@ -112,7 +116,7 @@ Con las suposiciones de Dunas (45 % de victorias, 10 % de empates) y unas 8 baja
 
 **Cosméticos por hitos** (solo se ganan jugando):
 
-- **Skins de las 4 armas del Lab** en grados I, II y III (`Shared/CosmeticSlots`), por bajas con esa arma: 100, 500 y 2.000. Cada grado se distingue a primera vista (el III con piezas nuevas, no solo otro color).
+- **Skins de las 4 armas del Lab** en grados I, II y III (`Shared/CosmeticSlots`), por bajas con esa arma: 100, 500 y 2.000 (L5b; las bajas ya se cuentan desde la L5a). Cada grado se distingue a primera vista (el III con piezas nuevas, no solo otro color).
 - **Títulos:** "Saqueador del PRIMAL" (50 victorias con los piratas) y "Guardián del Suero" (50 con los guardianes).
 - **Ranking:** un bloque del Laboratorio en el cartel del Ranking del Lobby (victorias y bajas), como el de la arena.
 - **Misiones:** una semanal nueva, "Gana 3 partidas en el Laboratorio", que entra en la rotación de las semanales.

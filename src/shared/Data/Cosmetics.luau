@@ -9,7 +9,8 @@
 --     lo entrega ServerShared/SeasonPass).
 --   - earned: se gana jugando ("Rescue": ganar una partida de verdad; "MasterVictory": ganarla con el
 --     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService;
---     "GiantSlayer": derribar al administrador convertido en gigante, island/GiantAdminService). Ni en
+--     "GiantSlayer": derribar al administrador convertido en gigante, island/GiantAdminService; "LabPirates" y "LabGuardians": 50 victorias con ese bando en el Laboratorio,
+--     laboratorio/LabRewardService). Ni en
 --     Studio es gratis.
 --   - free: lo tiene todo el mundo desde el principio (los emotes de serie).
 -- Un id de Robux a 0 sale como "Próximamente" (en Studio se prueba gratis con
@@ -60,7 +61,7 @@ export type Source = {
 	price: number?,
 	amber: number?,
 	season: string?,
-	earned: ("Rescue" | "MasterVictory" | "GiantSlayer")?,
+	earned: ("Rescue" | "MasterVictory" | "GiantSlayer" | "LabPirates" | "LabGuardians")?,
 	free: boolean?,
 }
 
@@ -147,6 +148,29 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(255, 205, 70),
 		source = { earned = "GiantSlayer" },
 		title = "👹 Matagigantes",
+	},
+	-- Del Laboratorio en ruinas: Config.Lab.WinsForTitle victorias con ese bando (LabRewardService).
+	TitleLabPirate = {
+		name = "Título: Saqueador del PRIMAL",
+		icon = "⚓",
+		kind = "Title",
+		description = "Solo para quien ha ganado 50 partidas con los Piratas en el Laboratorio en ruinas.",
+		order = 69,
+		rarity = "Legendary",
+		color = Color3.fromRGB(234, 194, 80),
+		source = { earned = "LabPirates" },
+		title = "⚓ Saqueador del PRIMAL",
+	},
+	TitleLabGuardian = {
+		name = "Título: Guardián del Suero",
+		icon = "🧬",
+		kind = "Title",
+		description = "Solo para quien ha ganado 50 partidas con los Guardianes en el Laboratorio en ruinas.",
+		order = 70,
+		rarity = "Legendary",
+		color = Color3.fromRGB(40, 115, 215),
+		source = { earned = "LabGuardians" },
+		title = "🧬 Guardián del Suero",
 	},
 	BananaAura = {
 		name = "Aura de banana",

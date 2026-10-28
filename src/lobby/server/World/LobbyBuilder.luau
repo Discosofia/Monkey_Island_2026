@@ -51,7 +51,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 16
+local VERSION = 17
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -1272,8 +1272,9 @@ local function buildBoards(parent: Instance)
 	local pets = standingBoard(parent, "TablaMascotas", PETS_BOARD_AT, 14, PETS_BOARD_HEIGHT, later("🐾 MASCOTAS"))
 	CollectionService:AddTag(pets, Config.Lobby.PetsBoardTag)
 
-	-- Ranking: supervivencia (días y rescates) y arena (victorias y banderas, Leaderboards.ARENA_STATS).
-	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 20, 7.5, later("🏆 RANKING"))
+	-- Ranking: supervivencia (días y rescates), arena (victorias y banderas, Leaderboards.ARENA_STATS) y
+	-- Laboratorio (victorias y bajas, Leaderboards.LAB_STATS). Con tres bloques, 26 de ancho.
+	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 26, 7.5, later("🏆 RANKING"))
 	CollectionService:AddTag(ranking, Config.Lobby.RankingBoardTag)
 	rankingColumns(ranking, {
 		{
@@ -1288,6 +1289,13 @@ local function buildBoards(parent: Instance)
 			columns = {
 				{ stat = "ArenaWins", title = later("🏆 Más victorias") },
 				{ stat = "ArenaCaptures", title = later("🚩 Más banderas") },
+			},
+		},
+		{
+			title = later("🧪 LABORATORIO"),
+			columns = {
+				{ stat = "LabWins", title = later("🏆 Más victorias") },
+				{ stat = "LabKills", title = later("🔫 Más bajas") },
 			},
 		},
 	})

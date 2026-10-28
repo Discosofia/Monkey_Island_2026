@@ -21,6 +21,8 @@ Copia de `LIMITES` en `src/island/tools/Economia.luau`: si cambias uno, cambia l
 | `parcelaIntensoDiaMin` | ≥ día 40 | Con la parcela desde el día 1, el intenso no tiene las 7 estructuras al III en un mes: es la meta de los meses siguientes (63.000 Ámbar le dan el día 46, decidido el 27-10-2026) |
 | `parcelaAmigosDiaMax` | ≤ día 150 | El grupo de amigos que gana las tiene al III en unos meses, no en medio año (con 63.000, el día 105) |
 | `parcelaVentajaDia` | ≤ 25 % | Al III, huerto, taller y forja juntos no ahorran más de esta parte de un día de partida de recoger (las ventajas son pequeñas; las decididas en el plan dan el 23 %) |
+| Ámbar por minuto del PvP (sin constante: se compara en la sección 2) | Lab ≤ Dunas | El Ámbar por minuto del Laboratorio (partida corta, 7,5 min) no pasa del de Dunas: el shooter no es la vía rápida al Ámbar (se calcula en la sección 2) |
+| `ambarPvpDia` | ≤ 700 al día | Los topes diarios de Dunas (400) y del Laboratorio (300) juntos: el PvP no supera lo que se gana en una buena sesión de la Isla |
 | Pago | 0 | Nada de Robux da poder, Ámbar, tiempo de huevo, objetos ni algo aleatorio (alerta dura). Se revisa también lo que tiene id 0 ("Próximamente"): se vende en cuanto se crea el producto |
 
 Las alertas de pago no se aceptan con una razón de diseño: se rediseña lo que las dispara.

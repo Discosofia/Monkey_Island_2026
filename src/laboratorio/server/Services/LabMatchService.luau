@@ -16,7 +16,8 @@
 -- El estado va en atributos (Shared/Arena). El modo y el formato (jugadores por bando, o el total de la sala
 -- en Todos contra todos) llegan del Lobby en el viaje (TeleportData "mode" y "format"); en Studio,
 -- Config.Lab.StudioMode y StudioFormat, o el panel de pruebas. El modo en curso va en Workspace "LabMode"
--- (Shared/LabModes). Las recompensas llegan en la L5: de momento, los resultados no llevan Ámbar.
+-- (Shared/LabModes). Al terminar, LabRewardService da el Ámbar, la XP y las estadísticas (salvo en las
+-- partidas de prueba) y los resultados las llevan.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,6 +37,7 @@ local Rounds = require(script.Parent.Parent.Modes.Rounds)
 local TeamDeathmatch = require(script.Parent.Parent.Modes.TeamDeathmatch)
 local Types = require(script.Parent.Parent.Modes.Types)
 local LabRespawnService = require(script.Parent.LabRespawnService)
+local LabRewardService = require(script.Parent.LabRewardService)
 local LabTeamService = require(script.Parent.LabTeamService)
 local LabVoteService = require(script.Parent.LabVoteService)
 local LabWorldService = require(script.Parent.LabWorldService)
@@ -157,6 +159,7 @@ local ctx: Types.Context = {
 }
 
 local function startBattle()
+	LabRewardService.reset()
 	for _, player in Players:GetPlayers() do
 		for _, attribute in STAT_ATTRIBUTES do
 			player:SetAttribute(attribute, 0)
@@ -214,14 +217,24 @@ local function sendTeamResults(winner: string?)
 	for _, player in Players:GetPlayers() do
 		local teamId = Arena.teamOf(player)
 		if teamId then
-			Remotes.ArenaResults:FireClient(player, {
-				result = if winner == nil then "Tie" elseif winner == teamId then "Win" else "Loss",
+			local result: "Win" | "Tie" | "Loss" = if winner == nil
+				then "Tie"
+				elseif winner == teamId then "Win"
+				else "Loss"
+			local payload: { [string]: any } = {
+				result = result,
 				winner = winner,
 				team = teamId,
 				test = solo,
 				scores = scores,
 				players = rows,
-			})
+			}
+			if not solo then
+				for key, value in LabRewardService.give(player, result, nil, teamId) do
+					payload[key] = value
+				end
+			end
+			Remotes.ArenaResults:FireClient(player, payload)
 		end
 	end
 end
@@ -235,14 +248,22 @@ local function sendFreeResults(winner: Player?)
 		placeOf[row.userId] = place
 	end
 	for _, player in Players:GetPlayers() do
-		Remotes.ArenaResults:FireClient(player, {
-			result = if winner == nil then "Tie" elseif winner == player then "Win" else "Loss",
-			place = placeOf[player.UserId],
+		local result: "Win" | "Tie" | "Loss" = if winner == nil then "Tie" elseif winner == player then "Win" else "Loss"
+		local place = placeOf[player.UserId]
+		local payload: { [string]: any } = {
+			result = result,
+			place = place,
 			total = #rows,
 			winnerName = if winner then winner.DisplayName else nil,
 			test = solo,
 			players = rows,
-		})
+		}
+		if not solo then
+			for key, value in LabRewardService.give(player, result, place, nil) do
+				payload[key] = value
+			end
+		end
+		Remotes.ArenaResults:FireClient(player, payload)
 	end
 end
 
@@ -394,6 +415,16 @@ function LabMatchService.debugScore(player: Player)
 	if Arena.inBattle() then
 		mode().debugScore(player)
 	end
+end
+
+-- Termina la partida en curso con "player" de ganador y como partida de verdad (cobra), para probar las
+-- recompensas sin otro jugador.
+function LabMatchService.debugRealWin(player: Player)
+	if not Arena.inBattle() then
+		return
+	end
+	solo = false
+	finish(if LabModes.isFreeForAll() then player else Arena.teamOf(player))
 end
 
 function LabMatchService.debugSkipPhase()

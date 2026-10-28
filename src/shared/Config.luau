@@ -1209,6 +1209,21 @@ local Config = {
 		FallDepth = { Central = 30, Azotea = 25, Alcantarillas = 30 },
 		-- Arma de quien aún no ha elegido (id de Data/LabWeapons).
 		DefaultWeapon = "LabDartGun",
+		-- Recompensas de la partida (LabRewardService). Places = Ámbar por puesto 1.º, 2.º y 3.º en Todos
+		-- contra todos; Rest = el resto de puestos. Tope diario propio, aparte del de Dunas.
+		Amber = {
+			Win = 45,
+			Tie = 25,
+			Loss = 15,
+			Places = { 45, 30, 30 },
+			Rest = 15,
+			PerKill = 1,
+			MaxFromKills = 15,
+			DailyCap = 300,
+		},
+		-- Títulos ganados con WinsForTitle victorias con ese bando (Data/Cosmetics).
+		Titles = { Pirates = "TitleLabPirate", Guardians = "TitleLabGuardian" },
+		WinsForTitle = 50,
 	},
 
 	Supply = {
@@ -1678,7 +1693,7 @@ local Config = {
 		LastWeekDays = 7,
 		-- Días sin temporada entre una y la siguiente (no se gana XP).
 		RestDays = 7,
-		-- Tope de XP al día de las partidas (Isla y Dunas); las misiones no cuentan en él.
+		-- Tope de XP al día de las partidas (Isla, Dunas y Laboratorio); las misiones no cuentan en él.
 		DailyMatchXpCap = 1200,
 		-- Extra por jugar con amigos (fuera del tope): si en el servidor hay algún amigo de Roblox.
 		FriendsBonus = 0.1,
@@ -1686,6 +1701,8 @@ local Config = {
 		-- de prueba no dan nada). Las misiones llevan la suya en su premio (Data/Missions, "xp").
 		IslandXp = { PerDay = 60, PerBoss = 150, PerEgg = 50, Rescue = 300 },
 		ArenaXp = { Win = 80, Tie = 40, Loss = 30, PerCapture = 15 },
+		-- XP de una partida en el Laboratorio (LabRewardService; en Todos contra todos: 1.º Win, 2.º y 3.º Tie).
+		LabXp = { Win = 60, Tie = 30, Loss = 20 },
 	},
 
 	-- Compras con Robux (Fase 9). Los Developer Products los entrega ServerShared/Purchases con su

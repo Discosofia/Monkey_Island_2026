@@ -103,6 +103,9 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	Score = function(player)
 		LabMatchService.debugScore(player)
 	end,
+	RealWin = function(player)
+		LabMatchService.debugRealWin(player)
+	end,
 	SwitchTeam = function(player)
 		LabTeamService.switch(player)
 	end,

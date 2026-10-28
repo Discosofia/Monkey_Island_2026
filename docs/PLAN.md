@@ -503,7 +503,8 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **L3** | Cola con modo y formato (sobre `ArenaQueueService`), embarcadero y cartel del Lobby | `fdc3f7a` | ✅ (faltan 2 jugadores, el juego publicado y el teléfono real: VERIFICACION §26) |
 | **L4a** | Todos contra todos y Rondas (cola del Lobby y Laboratorio central) | `bc72a45` | ✅ (faltan 2 jugadores, el cartel y el teléfono reales y el juego publicado: VERIFICACION §27) |
 | **L4b** | Mapas Azotea de la torre y Alcantarillas; votación de mapa | `894f1c2` | ✅ (faltan 2 jugadores, el teléfono real, el juego publicado y las observaciones de diseño: VERIFICACION §28) |
-| **L5** | Recompensas (Ámbar con tope de 300, XP del pase, skins por bajas, títulos, ranking, misión semanal) en `Economia` y el GDD | — | ⏳ |
+| **L5a** | Recompensas: Ámbar con tope de 300, XP del pase, ranking, misión semanal y títulos; `Economia` y el GDD. Empieza a contar las bajas por arma | — | ⏳ hasta el aprobado (faltan 2 jugadores, el perfil real y el juego publicado: VERIFICACION §29) |
+| **L5b** | Skins del Laboratorio por bajas: 12 modelos (4 armas × I/II/III), su dibujo combinado con el bando y la entrega de los grados ganados | — | ⏳ |
 
 **Fase 14: Isla Calavera** (quinto place, mazmorra PvE de 1 a 5). Diseño: [AVENTURAS.md](AVENTURAS.md), resumen en el GDD §7.2.
 

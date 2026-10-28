@@ -15,6 +15,8 @@ local Leaderboards = {}
 Leaderboards.STATS = { "BestDays", "Rescues" }
 -- Los de la arena de Dunas (ArenaRewardService): victorias y banderas capturadas en total.
 Leaderboards.ARENA_STATS = { "ArenaWins", "ArenaCaptures" }
+-- Los del Laboratorio en ruinas (LabRewardService): victorias y bajas en total.
+Leaderboards.LAB_STATS = { "LabWins", "LabKills" }
 
 local stores: { [string]: OrderedDataStore } = {}
 

@@ -95,4 +95,13 @@ return {
 	["Votos: {n}"] = "Votes: {n}",
 	["✅ Tu voto"] = "✅ Your vote",
 	["🗳️ Mapa: {name}"] = "🗳️ Map: {name}",
+	-- Recompensas (L5a): misión semanal y títulos de Data/Cosmetics.
+	["Gana {target} partidas en el Laboratorio en ruinas"] = "Win {target} matches in the Ruined Laboratory",
+	["Gana 50 partidas en el Laboratorio"] = "Win 50 matches in the Laboratory",
+	["Título: Saqueador del PRIMAL"] = "Title: PRIMAL Plunderer",
+	["Solo para quien ha ganado 50 partidas con los Piratas en el Laboratorio en ruinas."] = "Only for those who have won 50 matches with the Pirates in the Ruined Laboratory.",
+	["⚓ Saqueador del PRIMAL"] = "⚓ PRIMAL Plunderer",
+	["Título: Guardián del Suero"] = "Title: Serum Guardian",
+	["Solo para quien ha ganado 50 partidas con los Guardianes en el Laboratorio en ruinas."] = "Only for those who have won 50 matches with the Guardians in the Ruined Laboratory.",
+	["🧬 Guardián del Suero"] = "🧬 Serum Guardian",
 }

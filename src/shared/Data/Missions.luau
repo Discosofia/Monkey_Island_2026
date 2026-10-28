@@ -31,6 +31,7 @@ export type MissionEvent =
 	| "Rescue"
 	| "ArenaWin"
 	| "ArenaCapture"
+	| "LabWin"
 
 export type Mission = {
 	icon: string,
@@ -168,6 +169,13 @@ local Missions: { [string]: Mission } = {
 		event = "ArenaCapture",
 		target = 5,
 		family = "Dunas",
+	}),
+	WeeklyLabWins = weekly({
+		icon = "⚗️",
+		text = "Gana {target} partidas en el Laboratorio en ruinas",
+		event = "LabWin",
+		target = 3,
+		family = "Lab",
 	}),
 }
 

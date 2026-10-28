@@ -26,6 +26,7 @@
 | Final de partida en la Isla | `Config.Match`, `MatchService.summaryFor`, `DataService` | 10/día sobrevivido, 2/mono, 5/reanimación, 50/jefe, 15/recompensa PvP, 25/huevo, 200 por rescate |
 | Contrato de expedición (G6) | `Config.Contracts.StepRewards`, `Data/Contracts`, `ContractService` | 20 · 20 · 25 · 25 · 50 por paso, a todos los de la partida (media por partida: casual 27, habitual 40, intenso 140) |
 | Dunas | `Config.Arena.Amber`, `ArenaRewardService` | 60/30/20 (gana/empata/pierde), 15/captura, 2/baja (máx. 20), tope 400/día |
+| Laboratorio | `Config.Lab.Amber`, `LabRewardService` | 45/25/15 (en Todos contra todos 45/30/30 y 15 al resto), 1/baja (máx. 15), tope 300/día (aparte del de Dunas); XP 60/30/20 en `Config.Season.LabXp`, con el tope de partidas |
 | Calendario de 7 días | `Config.Daily.Calendar`, `Retention.claimLogin` | 100 · — · — · 100 · 250 · — · 500 (+ huevo Raro+) |
 | Misiones diarias | `Data/Missions`, `Config.Daily.MissionRewards`, `Retention` | fácil 40 · media (rol) 70 · difícil 120 (+15/25/40 min de huevo) |
 | Misiones semanales | ídem | 150 cada una; 250 (+1 h de huevo) por cumplir las 5 |

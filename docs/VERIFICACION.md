@@ -1620,6 +1620,61 @@ Lo que queda necesita 2 o más jugadores (el empate de votos, el cierre con voto
 5. [ ] Panel de pruebas: los muñecos («Dummies») salen a y = 196 y 168 en el Laboratorio. No es de L4b. Decide si se corrige en `LabDebugService` aparte.
    ✅ Queda anotada la decisión.
 
+## 29. Lo que queda por probar de L5a: recompensas del Laboratorio (28-10-2026)
+
+Ya probado en Play en el Studio del Laboratorio con un jugador (28-10-2026): los resultados de los tres modos con Ámbar, tope y XP, el tope de 300 con recorte, la partida de prueba sin cobro y el título con 49 → 50 victorias forzadas. Las bajas se pusieron a mano en `ArenaKills`, porque el comando «Punto para mí» no pasa por `onKnockedOut`. Lo que queda necesita 2 o más jugadores, perfiles con partidas y días acumulados, el teléfono real y el juego publicado. Empieza por 29.1: el Lobby v17 tiene que quedar guardado antes de publicar, y el perfil v13 se publica junto con los otros tres places (29.5).
+
+#### 29.1 En el Studio del Lobby (`rojo serve lobby.project.json`, puerto 34872)
+
+1. [ ] Reconstruye el Lobby en modo edición con `require(game.ServerScriptService.Server.World.LobbyBuilder).build()` y guarda el place con Archivo → Guardar (sin publicar). Si Rojo se desconecta, vuelve a conectarlo antes de Play.
+   ✅ El Lobby queda en la versión 17 y la Salida no muestra errores. Al reabrir el place, el cartel del Ranking sigue con sus tres bloques.
+2. [ ] Mira el cartel del Ranking desde la plaza, en PC.
+   ✅ Se leen los tres bloques (supervivencia, arena y 🧪 LABORATORIO) con sus columnas, sin cortarse ni salirse del cartel de 26 studs.
+3. [ ] Abre la ventana de Ranking desde el Lobby.
+   ✅ Sale el grupo del Laboratorio con sus dos clasificaciones, y tus cifras del Laboratorio aparecen en él.
+
+#### 29.2 Con 2 jugadores en el Laboratorio (*Test → Clientes y servidores* con 2; el paso 5, con 3)
+
+1. [ ] En Todos contra todos, deja que acabe la partida con las bajas de uno por encima de las del otro (con 15 bajas o al acabar el tiempo).
+   ✅ Sale «Puesto 1 de 2» para el primero y «Puesto 2 de 2» para el otro. Cada uno ve su línea de Ámbar y de XP: el 1.º, 45 de Ámbar más una por baja (hasta 15) y 60 de XP; el 2.º, 30 más una por baja y 30 de XP.
+2. [ ] Con armas distintas, cada uno mata al otro varias veces en Duelo por equipos 1v1, y mira `profile.lab.weaponKills` del servidor al acabar.
+   ✅ Las bajas de cada uno suman en la casilla de su arma, una por baja real, y las muertes propias no suman a ninguna.
+3. [ ] Cambia de arma en la Intermission (con el selector), mata al otro con la nueva, y en la siguiente partida vuelve a la anterior y mata con ella.
+   ✅ Cada baja suma en la casilla del arma con la que se hizo, y la casilla de la otra arma no cambia.
+4. [ ] En Rondas 1v1, gana uno la partida (4 rondas) y el otro pierde.
+   ✅ El ganador cobra 45 de Ámbar más sus bajas y 60 de XP; el perdedor, 15 de Ámbar y 20 de XP.
+5. [ ] Con 3 jugadores en Todos contra todos, deja que dos de ellos acaben empatados detrás del primero (con las mismas bajas).
+   ✅ Los dos empatados cobran 30 de Ámbar y 30 de XP cada uno. Si hay un 4.º, cobra 15 de Ámbar y 20 de XP.
+
+#### 29.3 Con el perfil real, en Play (copia de `PlayerData_v1` en `PlayerData_v1_backups` antes, y restaurada después)
+
+1. [ ] Con `lab.stats.winsPirates` en 49 (o con 50 victorias reales), gana una partida de Duelo por equipos con los piratas.
+   ✅ Sale «⚓ Saqueador del PRIMAL» como título ganado, y el Armario lo tiene en la lista de títulos.
+2. [ ] Con 50 victorias con los guardianes ya guardadas en el perfil (antes de la L5a, o forzadas), entra en el Lobby.
+   ✅ «🧬 Guardián del Suero» aparece como ganado al entrar, sin jugar otra partida.
+3. [ ] Con `lab.daily` de hoy en 300, juega una partida del Laboratorio. Después pon `lab.daily.day` en el día anterior (o espera al cambio de día de `Daily`) y juega otra.
+   ✅ En la primera no cobras Ámbar y los resultados dicen que el tope diario está lleno. En la segunda, el tope empieza de nuevo desde 0 y el Ámbar se cobra otra vez.
+
+#### 29.4 En el emulador de teléfono
+
+1. [ ] Mira el cartel del Ranking del Lobby desde la plaza, con el emulador de teléfono.
+   ✅ Los tres bloques se leen sin acercarse, y el bloque 🧪 LABORATORIO se lee entero.
+2. [ ] Abre la ventana de Ranking con el teléfono apaisado.
+   ✅ Los tres bloques (supervivencia, arena y Laboratorio) caben sin desplazar, y los botones se pulsan con el dedo.
+
+#### 29.5 En el juego publicado
+
+1. [ ] Publica los cuatro places a la vez (Lobby, Isla, Dunas y Laboratorio) con Archivo → Publicar en Roblox, porque el perfil pasa a la versión 13.
+   ✅ Los cuatro abren sin errores en la Salida. Un perfil ya existente se carga sin perder Ámbar, XP ni títulos, y los campos nuevos empiezan vacíos.
+2. [ ] Con cola real desde el Lobby, dos cuentas buscan Rondas 1v1, juegan una partida y una la gana (sin «🏁 Ganar de verdad», que es solo de Studio).
+   ✅ La que gana cobra Ámbar y XP de victoria, y la que pierde, Ámbar y XP de derrota. Tras el refresco del ranking, el bloque del Laboratorio muestra la victoria (se anota cuánto tarda).
+3. [ ] Con el evento «Doble Ámbar» activo en vivo, juega una partida en el Laboratorio.
+   ✅ El Ámbar de la partida sale doble antes del tope, y el tope diario sigue en 300.
+4. [ ] Con la semana nueva (empieza el lunes a las 00:00 UTC), mira las misiones semanales en el Lobby.
+   ✅ «⚗️ Gana 3 partidas en el Laboratorio en ruinas» sale entre las semanales de la rotación, y ganar una partida la suma 1 de 3. Si esta semana no sale, se anota y se mira en la siguiente.
+5. [ ] Con el mismo perfil, juega en la Isla y en Dunas el mismo día hasta acercarte a 1.200 XP de partidas, y después juega una partida en el Laboratorio.
+   ✅ La XP del Laboratorio se recorta al resto del tope de 1.200, compartido con la Isla y Dunas, y el pase suma solo lo que queda.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -102,6 +102,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "NextMode", label = "🎮 Siguiente modo (en la espera o los resultados)" },
 		{ id = "NextMap", label = "🏙️ Siguiente mapa (en la espera o los resultados)" },
 		{ id = "Score", label = "➕ Punto para mí (baja, punto de bando o ronda según el modo)" },
+		{ id = "RealWin", label = "🏁 Ganar de verdad (acaba la partida y cobra: Ámbar, pase, ranking)" },
 		{ id = "NextFormat", label = "👥 Siguiente formato (1v1…5v5)" },
 		{ id = "SwitchTeam", label = "🏴‍☠️ Cambiar de bando (piratas/guardianes)" },
 		{ id = "Dummies", label = "🎯 Muñecos delante (15, 50 y 120 studs)" },

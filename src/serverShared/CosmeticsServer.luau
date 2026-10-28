@@ -576,8 +576,14 @@ local function checkEarned(player: Player)
 		return
 	end
 	local missing = {}
+	local labStats = if typeof(profile.lab.stats) == "table" then profile.lab.stats else {}
 	for cosmeticId, cosmetic in Cosmetics do
-		if cosmetic.source.earned == "Rescue" and profile.rescues > 0 and not profile.ownedCosmetics[cosmeticId] then
+		local earned = cosmetic.source.earned
+		local owed = (earned == "Rescue" and profile.rescues > 0)
+			-- Laboratorio: victorias con ese bando (LabRewardService las entrega al llegar a la cifra).
+			or (earned == "LabPirates" and (labStats.winsPirates or 0) >= Config.Lab.WinsForTitle)
+			or (earned == "LabGuardians" and (labStats.winsGuardians or 0) >= Config.Lab.WinsForTitle)
+		if owed and not profile.ownedCosmetics[cosmeticId] then
 			table.insert(missing, cosmeticId)
 		end
 	end

@@ -1,6 +1,6 @@
 # Economía, retención y monetización (resumen de la skill economia-retencion)
 
-<!-- Fuente: .claude/skills/economia-retencion/SKILL.md, 26-10-2026. Detalles: references/modelo-economico.md (principios, línea base), limites.md, politicas-roblox.md (léelo antes de vender algo), nueva-temporada.md. -->
+<!-- Fuente: .claude/skills/economia-retencion/SKILL.md, 28-10-2026. Detalles: references/modelo-economico.md (principios, línea base), limites.md, politicas-roblox.md (léelo antes de vender algo), nueva-temporada.md. -->
 
 **Regla: se mide antes de escribir.** Las reglas de pago no se negocian:
 

@@ -112,7 +112,7 @@ local WINDOWS: { [string]: WindowDef } = {
 	-- El nombre del place del Laboratorio (Config.PlaceNames.Laboratorio).
 	Lab = { icon = "", title = later("🧪Laboratorio en ruinas🏴‍☠️(PvP)"), own = true },
 	Mascotas = { icon = "🥚", title = later("Nido y mascotas"), wide = true, own = true },
-	Ranking = { icon = "🏆", title = later("Ranking"), wide = true, own = true },
+	Ranking = { icon = "🏆", title = later("Ranking"), wide = true, spread = true, own = true },
 	Talentos = { icon = "🌟", title = later("Talentos") },
 	Tienda = { icon = "🛒", title = later("Tienda") },
 	Misiones = { icon = "🎯", title = later("Misiones") },
@@ -180,7 +180,7 @@ local BADGE_COLOR = Color3.fromRGB(235, 70, 60)
 local AURA_PULSE = TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 -- El título grande se va a los pocos segundos de llegar (o al abrir una ventana).
 local TITLE_SECONDS = 5
--- Ranking: las cuatro clasificaciones (LeaderboardService) en dos bloques, y cuántos puestos.
+-- Ranking: las seis clasificaciones (LeaderboardService) en tres bloques, y cuántos puestos.
 local RANKING_GROUPS = {
 	{
 		title = later("🐒 Supervivencia"),
@@ -194,6 +194,13 @@ local RANKING_GROUPS = {
 		boards = {
 			{ stat = "ArenaWins", title = later("🏆 Más victorias") },
 			{ stat = "ArenaCaptures", title = later("🚩 Más banderas") },
+		},
+	},
+	{
+		title = later("🧪 Laboratorio"),
+		boards = {
+			{ stat = "LabWins", title = later("🏆 Más victorias") },
+			{ stat = "LabKills", title = later("🔫 Más bajas") },
 		},
 	},
 }
@@ -1260,23 +1267,26 @@ function LobbyUIController:Start()
 	end
 
 	-- Clasificaciones globales (las publica LeaderboardService cada pocos minutos): dos bloques,
-	-- supervivencia y arena, con dos columnas cada uno, y abajo tu número en cada una. El puesto exacto
+	-- supervivencia, arena y Laboratorio, con dos columnas cada uno, y abajo tu número en cada una. El puesto exacto
 	-- fuera del top no se sabe (OrderedDataStore no lo da): se enseña tu valor.
 	local function renderRanking()
-		local arenaRaw = player:GetAttribute("Arena")
-		local okArena, arenaData = pcall(function()
-			return if typeof(arenaRaw) == "string" then HttpService:JSONDecode(arenaRaw) else {}
-		end)
-		local arenaStats = if okArena
-				and typeof(arenaData) == "table"
-				and typeof(arenaData.stats) == "table"
-			then arenaData.stats
-			else {}
+		-- Las estadísticas de la arena y del Laboratorio (atributos "Arena" y "Lab", JSON con "stats").
+		local function statsOf(attribute: string): { [string]: any }
+			local raw = player:GetAttribute(attribute)
+			local ok, data = pcall(function()
+				return if typeof(raw) == "string" then HttpService:JSONDecode(raw) else {}
+			end)
+			return if ok and typeof(data) == "table" and typeof(data.stats) == "table" then data.stats else {}
+		end
+		local arenaStats = statsOf("Arena")
+		local labStats = statsOf("Lab")
 		local mine: { [string]: any } = {
 			BestDays = player:GetAttribute("BestDays"),
 			Rescues = player:GetAttribute("Rescues"),
 			ArenaWins = arenaStats.wins,
 			ArenaCaptures = arenaStats.captures,
+			LabWins = labStats.wins,
+			LabKills = labStats.kills,
 		}
 		local lineHeight = if compactUi then RANKING_LINE_COMPACT else RANKING_LINE
 		local columnHeight = 24 + RANKING_SIZE * lineHeight + 26
@@ -1293,7 +1303,7 @@ function LobbyUIController:Start()
 		for groupIndex, group in RANKING_GROUPS do
 			local block = Instance.new("Frame")
 			block.LayoutOrder = groupIndex
-			block.Size = UDim2.new(0.5, -5, 1, 0)
+			block.Size = UDim2.new(1 / #RANKING_GROUPS, -7, 1, 0)
 			block.BackgroundColor3 = ROW_COLOR
 			block.BackgroundTransparency = 0.15
 			block.Parent = holder
