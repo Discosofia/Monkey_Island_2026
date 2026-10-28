@@ -61,7 +61,7 @@ local function onLearnTalent(player: Player, roleId: any, talentId: any)
 		cosmetics = profile.cosmetics,
 	}
 	if rank >= talent.maxRank then
-		Remotes.Notify:FireClient(player, `{talent.name} ya está al máximo`)
+		Remotes.Notify:FireClient(player, "{name} ya está al máximo", { name = { talent.name } })
 		return
 	end
 	if Progression.freePoints(roleId, data) <= 0 then
@@ -72,7 +72,7 @@ local function onLearnTalent(player: Player, roleId: any, talentId: any)
 		current.talents[key] = rank + 1
 	end)
 	LobbyRoleService.refresh(player)
-	Remotes.Notify:FireClient(player, `Aprendido: {talent.name} (rango {rank + 1})`)
+	Remotes.Notify:FireClient(player, "Aprendido: {name} (rango {rank})", { name = { talent.name }, rank = rank + 1 })
 end
 
 -- La definitiva que lleva con el rol "roleId" (T7): la del hueco 4 o una de sus "altUltimates".
@@ -88,7 +88,11 @@ local function onSelectUltimate(player: Player, roleId: any, abilityId: any)
 		profile.ultimates[roleId] = abilityId
 	end)
 	LobbyRoleService.refresh(player, true)
-	Remotes.Notify:FireClient(player, `Definitiva de {Roles[roleId].name}: {ability.name}`)
+	Remotes.Notify:FireClient(
+		player,
+		"Definitiva de {role}: {ability}",
+		{ role = { Roles[roleId].name }, ability = { ability.name } }
+	)
 end
 
 local function onBuyUpgrade(player: Player, upgradeId: any)
@@ -103,11 +107,11 @@ local function onBuyUpgrade(player: Player, upgradeId: any)
 	local rank = profile.upgrades[upgradeId] or 0
 	local cost = upgrade.costs[rank + 1]
 	if not cost then
-		Remotes.Notify:FireClient(player, `{upgrade.name} ya está al máximo`)
+		Remotes.Notify:FireClient(player, "{name} ya está al máximo", { name = { upgrade.name } })
 		return
 	end
 	if profile.amber < cost then
-		Remotes.Notify:FireClient(player, `Te faltan {cost - profile.amber} de Ámbar`)
+		Remotes.Notify:FireClient(player, "Te faltan {n} de Ámbar", { n = cost - profile.amber })
 		return
 	end
 	PlayerData.update(player, function(current)
@@ -117,7 +121,11 @@ local function onBuyUpgrade(player: Player, upgradeId: any)
 	LobbyRoleService.refresh(player)
 	PlayerData.saveNow(player)
 	Analytics.amber(player, "Sink", cost, profile.amber, upgradeId)
-	Remotes.Notify:FireClient(player, `Comprado: {upgrade.icon} {upgrade.name} (rango {rank + 1})`)
+	Remotes.Notify:FireClient(
+		player,
+		"Comprado: {icon} {name} (rango {rank})",
+		{ icon = upgrade.icon, name = { upgrade.name }, rank = rank + 1 }
+	)
 end
 
 local function onSelectPet(player: Player, petId: any)

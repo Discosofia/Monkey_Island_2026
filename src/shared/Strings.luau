@@ -227,6 +227,20 @@ function translate(es: string, args: Args?): string
 end
 Strings.t = translate
 
+-- En el servidor, el texto en el idioma de "player", para lo que Roblox enseña sin pasar por su cliente
+-- (el mensaje de player:Kick). Su ajuste, o con "Auto" el idioma de su cuenta (Player.LocaleId): es-* →
+-- español; cualquier otro → inglés (aquí no hay traducción de la nube).
+function Strings.forPlayer(player: Player, es: string, args: Args?): string
+	local setting = readSetting(player)
+	local spanish = if setting == "Auto"
+		then string.sub(string.lower(player.LocaleId), 1, 2) == "es"
+		else setting == "es"
+	if spanish then
+		return format(es, args)
+	end
+	return format(english[es] or es, args)
+end
+
 -- Un argumento suelto en el idioma del jugador (una frase anidada o una lista, ver arriba).
 function Strings.arg(value: any): string
 	return argument(value)

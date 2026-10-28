@@ -172,13 +172,16 @@ local function tick()
 			started[id] = nil
 			changed = true
 			local info = Catalog[event.kind]
-			Remotes.Notify:FireAllClients(`{info.icon} Terminó: {info.name}`)
+			Remotes.Notify:FireAllClients("{icon} Terminó: {name}", { icon = info.icon, name = { info.name } })
 		elseif event.startsAt <= now and not started[id] then
 			started[id] = true
 			local info = Catalog[event.kind]
-			Remotes.Notify:FireAllClients(
-				`{info.icon} ¡Empieza {info.name}! {info.detail} ({LiveEvents.clock(event.endsAt - now)})`
-			)
+			Remotes.Notify:FireAllClients("{icon} ¡Empieza {name}! {detail} ({time})", {
+				icon = info.icon,
+				name = { info.name },
+				detail = { info.detail },
+				time = LiveEvents.clock(event.endsAt - now),
+			})
 			for _, callback in startedListeners do
 				task.spawn(callback, event)
 			end

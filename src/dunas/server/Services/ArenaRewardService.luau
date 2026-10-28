@@ -19,6 +19,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
@@ -164,7 +165,7 @@ function ArenaRewardService:Start()
 	Remotes.ArenaLeave.OnServerEvent:Connect(function(player: Player)
 		-- Se guarda antes de viajar, para que el Lobby cargue el Ámbar recién ganado.
 		PlayerData.saveNow(player)
-		Teleporter.send({ player }, Config.PlaceIds.Lobby, "el Lobby")
+		Teleporter.send({ player }, Config.PlaceIds.Lobby, Strings.later("el Lobby"))
 	end)
 end
 

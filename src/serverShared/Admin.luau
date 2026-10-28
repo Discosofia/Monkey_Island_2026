@@ -215,7 +215,8 @@ end
 
 AdminNet.on("Announce", function(data: any)
 	if typeof(data.text) == "string" and typeof(data.from) == "string" then
-		Remotes.Announce:FireAllClients(data.text, data.from)
+		-- Con "args", un aviso del juego (plantilla de Shared/Strings) que el cliente traduce.
+		Remotes.Announce:FireAllClients(data.text, data.from, if typeof(data.args) == "table" then data.args else nil)
 	end
 end)
 

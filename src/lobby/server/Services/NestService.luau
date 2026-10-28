@@ -44,7 +44,7 @@ local function onDiscard(player: Player, rawSource: any, rawIndex: any)
 	end
 	local amber = Eggs.discard(player, source, index)
 	if amber > 0 then
-		Remotes.Notify:FireClient(player, `Huevo descartado: +{amber} ✨ Ámbar`)
+		Remotes.Notify:FireClient(player, "Huevo descartado: +{amber} ✨ Ámbar", { amber = amber })
 	end
 end
 

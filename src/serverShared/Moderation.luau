@@ -19,6 +19,7 @@ local TextService = game:GetService("TextService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local AdminLog = require(script.Parent.AdminLog)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 
@@ -93,7 +94,7 @@ local ACTIONS: { [string]: Handler } = {
 		task.delay(minutes * 60, function()
 			applyMute(target.UserId)
 		end)
-		Remotes.Notify:FireClient(target, `🔇 Un administrador te ha silenciado en el chat {minutes} min`)
+		Remotes.Notify:FireClient(target, "🔇 Un administrador te ha silenciado en el chat {n} min", { n = minutes })
 		AdminLog.add(admin, "Silenciar", `{target.DisplayName} (@{target.Name}) · {minutes} min`)
 		return `🔇 {target.DisplayName} silenciado {minutes} min`
 	end,
@@ -110,7 +111,9 @@ local ACTIONS: { [string]: Handler } = {
 			return "⚠️ El filtro de texto no responde: prueba en un momento"
 		end
 		AdminLog.add(admin, "Expulsar", `{target.DisplayName} (@{target.Name}) · {reason}`)
-		target:Kick(`Te ha expulsado un administrador. Motivo: {reason}`)
+		target:Kick(
+			Strings.forPlayer(target, "Te ha expulsado un administrador. Motivo: {reason}", { reason = reason })
+		)
 		return `👢 {target.DisplayName} expulsado`
 	end,
 	Ban = function(admin, target, hours, rawReason)

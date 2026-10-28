@@ -17,13 +17,15 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local AdminLog = require(script.Parent.AdminLog)
 local AdminNet = require(script.Parent.AdminNet)
 local LiveEventsServer = require(script.Parent.LiveEventsServer)
 local PlayerData = require(script.Parent.PlayerData)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 
-local KICK_MESSAGE = "🛠️ El juego está en mantenimiento para actualizarse. Vuelve a entrar en unos minutos."
+local KICK_MESSAGE =
+	Strings.later("🛠️ El juego está en mantenimiento para actualizarse. Vuelve a entrar en unos minutos.")
 
 export type Info = { place: string, job: string, players: number, max: number, fps: number, uptime: number }
 
@@ -86,8 +88,11 @@ local function maintenance(admin: Player, minutes: number)
 		return
 	end
 	AdminNet.send("Announce", {
-		text = `🛠️ Mantenimiento en {minutes} min: el juego se cerrará para actualizarse. Termina lo que estés haciendo.`,
-		from = "Mantenimiento",
+		text = Strings.later(
+			"🛠️ Mantenimiento en {minutes} min: el juego se cerrará para actualizarse. Termina lo que estés haciendo."
+		),
+		args = { minutes = minutes },
+		from = Strings.later("Mantenimiento"),
 	}, where)
 	AdminLog.add(
 		admin,
@@ -103,7 +108,7 @@ local function closeServer(isAdmin: (Player) -> boolean)
 		if not isAdmin(player) then
 			task.spawn(function()
 				PlayerData.saveNow(player)
-				player:Kick(KICK_MESSAGE)
+				player:Kick(Strings.forPlayer(player, KICK_MESSAGE))
 			end)
 		else
 			Remotes.Notify:FireClient(

@@ -19,6 +19,10 @@ local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local T = Strings.t
+local later = Strings.later
 
 local CARD_COLOR = Color3.fromRGB(45, 38, 30)
 local TRACK_COLOR = Color3.fromRGB(25, 20, 15)
@@ -124,7 +128,7 @@ function PetBoardController:Start()
 		-- Derecha: la mochila, los pendientes y la mascota que te acompaña.
 		local side = card(gui, UDim2.fromScale(0.625, 0.04), UDim2.fromScale(0.35, CONTENT_HEIGHT))
 		local bagTitle = text(
-			"🎒 Mochila",
+			T("🎒 Mochila"),
 			side,
 			UDim2.fromScale(0.06, 0.04),
 			UDim2.fromScale(0.88, 0.17),
@@ -177,16 +181,17 @@ function PetBoardController:Start()
 			local rarity = Rarities[nestEgg.rarity]
 			local ready = EggIncubation.isReady(nestEgg, now)
 			board.eggTitle.Text = if other
-				then `🥚 Huevo {rarity.name} · 2.º: {Rarities[other.rarity].name}, {if EggIncubation.isReady(
-						other,
-						now
-					)
-					then "listo"
-					else EggIncubation.formatTime(EggIncubation.remaining(other, now))}`
-				else `🥚 Huevo {rarity.name}`
+				then T("🥚 Huevo {rarity} · 2.º: {other}, {time}", {
+					rarity = { rarity.name },
+					other = { Rarities[other.rarity].name },
+					time = if EggIncubation.isReady(other, now)
+						then { later("listo") }
+						else EggIncubation.formatTime(EggIncubation.remaining(other, now)),
+				})
+				else T("🥚 Huevo {rarity}", { rarity = { rarity.name } })
 			board.eggTitle.TextColor3 = rarity.color
 			board.eggTime.Text = if ready
-				then "🐣 ¡Listo para abrir!"
+				then T("🐣 ¡Listo para abrir!")
 				else `⏳ {EggIncubation.formatTime(EggIncubation.remaining(nestEgg, now))}`
 			board.eggTime.TextColor3 = if ready then READY_COLOR else Color3.new(1, 1, 1)
 			board.track.Visible = true
@@ -197,25 +202,26 @@ function PetBoardController:Start()
 			for _, petId in PetRoll.petsOfRarity(nestEgg.rarity) do
 				local pet = Pets[petId]
 				local owned = (data.pets[petId] or 0) > 0
-				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
+				table.insert(names, `{pet.icon} {T(pet.name)}{if owned then " ✅" else ""}`)
 			end
 			-- Y sus monturas (Fase 11), mientras no las tengas.
 			for _, mountId in PetRoll.mountsOfRarity(nestEgg.rarity) do
 				local mount = Mounts[mountId]
 				local owned = (data.mounts[mountId] or 0) > 0
-				table.insert(names, `{mount.icon} {mount.name} (montura){if owned then " ✅" else ""}`)
+				local mountText = T("{icon} {name} (montura)", { icon = mount.icon, name = { mount.name } })
+				table.insert(names, if owned then mountText .. " ✅" else mountText)
 			end
-			board.options.Text = `Puede salir: {table.concat(names, " · ")}`
+			board.options.Text = T("Puede salir: {names}", { names = table.concat(names, " · ") })
 		else
 			local stored = #eggs.bag + #eggs.pending
-			board.eggTitle.Text = "🥚 Nido vacío"
+			board.eggTitle.Text = T("🥚 Nido vacío")
 			board.eggTitle.TextColor3 = Color3.new(1, 1, 1)
-			board.eggTime.Text = if stored > 0 then "Pon un huevo a incubar" else "Sin huevos"
+			board.eggTime.Text = if stored > 0 then T("Pon un huevo a incubar") else T("Sin huevos")
 			board.eggTime.TextColor3 = if stored > 0 then READY_COLOR else SECONDARY
 			board.track.Visible = false
 			board.options.Text = if stored > 0
-				then "Acércate al nido y presiona E"
-				else `Defiende huevos en la {Config.PlaceNames.IslandShort} para conseguirlos`
+				then T("Acércate al nido y presiona E")
+				else T("Defiende huevos en la Isla de monos para conseguirlos")
 		end
 
 		for index, slot in board.slots do
@@ -229,13 +235,13 @@ function PetBoardController:Start()
 				slot.BackgroundColor3 = EMPTY_SLOT
 			end
 		end
-		board.pending.Text = if #eggs.pending > 0 then `⚠️ {#eggs.pending} esperando sitio` else ""
+		board.pending.Text = if #eggs.pending > 0 then T("⚠️ {n} esperando sitio", { n = #eggs.pending }) else ""
 
 		local active = player:GetAttribute("ActivePet")
 		local pet = if typeof(active) == "string" then Pets[active] else nil
 		board.companion.Text = if pet
-			then `🐾 Te acompaña:\n{pet.icon} {pet.name}`
-			else "🐾 Ninguna mascota te acompaña"
+			then T("🐾 Te acompaña:\n{icon} {name}", { icon = pet.icon, name = { pet.name } })
+			else T("🐾 Ninguna mascota te acompaña")
 	end
 
 	local function add(instance: Instance)
@@ -269,6 +275,7 @@ function PetBoardController:Start()
 			redraw()
 		end
 	end)
+	Strings.onChanged(redraw)
 	-- El tiempo del huevo corre solo: cada segundo.
 	task.spawn(function()
 		while true do

@@ -30,7 +30,11 @@ local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 -- El huevo del Lobby, más grande que el de la Isla: el nido también lo es.
 local EGG_SCALE = 1.5
@@ -86,10 +90,11 @@ local function isPair(): boolean
 	return eggs.nest ~= nil and eggs.nest2 ~= nil
 end
 
+-- "text": frase de Shared/Strings (se pone ya traducida; UI/Localizer la rehace si cambia el idioma).
 local function setPrompt(nest: Model, text: string)
 	local prompt = nest:FindFirstChild("NidoPrompt", true)
 	if prompt and prompt:IsA("ProximityPrompt") then
-		prompt.ActionText = text
+		prompt.ActionText = T(text)
 	end
 end
 
@@ -173,7 +178,7 @@ local function refresh(time: number)
 			model:PivotTo(eggRest(seat, slot, isPair()) * CFrame.Angles(wobble, 0, wobble * 0.6))
 		end
 	end
-	setPrompt(nest, if anyReady then "Abrir el huevo" else "Ver el nido")
+	setPrompt(nest, if anyReady then later("Abrir el huevo") else later("Ver el nido"))
 end
 
 -- Escala de la montura al salir del nido (de tamaño real no cabría: la llama mide 7,5 studs).
@@ -186,8 +191,9 @@ local function announce(petId: string, equipped: boolean, isMount: boolean, ambe
 	local rarity = Rarities[pet.rarity]
 	local gui = Widgets.screen("EggHatchedUI", player:WaitForChild("PlayerGui"))
 	gui.DisplayOrder = 9
+	local args = { icon = pet.icon, name = { pet.name }, rarity = { rarity.name }, amber = amber }
 	local label = Widgets.label(
-		if amber > 0 then `🐣 ¡Otra vez {pet.icon} {pet.name}!` else `🐣 ¡Ha nacido {pet.icon} {pet.name}!`,
+		if amber > 0 then T("🐣 ¡Otra vez {icon} {name}!", args) else T("🐣 ¡Ha nacido {icon} {name}!", args),
 		gui
 	)
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -195,13 +201,14 @@ local function announce(petId: string, equipped: boolean, isMount: boolean, ambe
 	label.Size = UDim2.fromScale(0.6, 0.09)
 	local detail = Widgets.label(
 		if amber > 0
-			then `{rarity.name} · Ya la tenías: +{amber} ✨ Ámbar`
-			elseif isMount then `{rarity.name} · ¡Una montura! {if equipped
-				then "Móntala con N (o el botón Montar)"
-				else "Llévala desde la ventana de Mascotas"}`
-			else `{rarity.name} · {if equipped
-				then "ya te acompaña"
-				else "en tu colección (llevas una más rara)"}`,
+			then T("{rarity} · Ya la tenías: +{amber} ✨ Ámbar", args)
+			elseif isMount and equipped then T(
+				"{rarity} · ¡Una montura! Móntala con N (o el botón Montar)",
+				args
+			)
+			elseif isMount then T("{rarity} · ¡Una montura! Llévala desde la ventana de Mascotas", args)
+			elseif equipped then T("{rarity} · ya te acompaña", args)
+			else T("{rarity} · en tu colección (llevas una más rara)", args),
 		gui
 	)
 	detail.AnchorPoint = Vector2.new(0.5, 0)

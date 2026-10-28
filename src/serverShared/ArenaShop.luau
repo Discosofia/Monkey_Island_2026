@@ -48,7 +48,7 @@ function ArenaShop.buy(player: Player, gearId: string): boolean
 		return false
 	end
 	if profile.amber < item.cost then
-		Remotes.Notify:FireClient(player, `Te faltan {item.cost - profile.amber} de Ámbar`)
+		Remotes.Notify:FireClient(player, "Te faltan {n} de Ámbar", { n = item.cost - profile.amber })
 		return false
 	end
 	PlayerData.update(player, function(current)
@@ -60,7 +60,7 @@ function ArenaShop.buy(player: Player, gearId: string): boolean
 	end)
 	task.spawn(PlayerData.saveNow, player)
 	Analytics.amber(player, "Sink", item.cost, profile.amber, gearId)
-	Remotes.Notify:FireClient(player, `Comprado y puesto: {item.icon} {item.name}`)
+	Remotes.Notify:FireClient(player, "Comprado y puesto: {icon} {name}", { icon = item.icon, name = { item.name } })
 	return true
 end
 

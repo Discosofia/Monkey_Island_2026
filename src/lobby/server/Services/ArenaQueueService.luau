@@ -27,6 +27,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
@@ -86,7 +87,7 @@ local function store(ticket: Ticket)
 	return ok
 end
 
-local function removeTicket(ticket: Ticket, message: string?)
+local function removeTicket(ticket: Ticket, message: string?, args: { [string]: any }?)
 	tickets[ticket.key] = nil
 	publish(nil, ticket.members)
 	pcall(function()
@@ -95,7 +96,7 @@ local function removeTicket(ticket: Ticket, message: string?)
 	if message then
 		for _, member in ticket.members do
 			if member.Parent then
-				Remotes.Notify:FireClient(member, message)
+				Remotes.Notify:FireClient(member, message, args)
 			end
 		end
 	end
@@ -124,7 +125,7 @@ local function onJoin(player: Player, format: any)
 		return
 	end
 	if #members > format then
-		Remotes.Notify:FireClient(player, `Tu grupo es de {#members}: elige un formato de {#members}v{#members} o más`)
+		Remotes.Notify:FireClient(player, "Tu grupo es de {n}: elige un formato de {n}v{n} o más", { n = #members })
 		return
 	end
 	local current = ticketOf(player)
@@ -145,17 +146,14 @@ local function onJoin(player: Player, format: any)
 	tickets[ticket.key] = ticket
 	publish(ticket, members)
 	for _, member in members do
-		Remotes.Notify:FireClient(
-			member,
-			`⚔️ Buscando partida {format}v{format} en la {Config.PlaceNames.DunasShort}…`
-		)
+		Remotes.Notify:FireClient(member, "⚔️ Buscando partida {n}v{n} en la Isla de dunas…", { n = format })
 	end
 end
 
 local function onLeave(player: Player)
 	local ticket = ticketOf(player)
 	if ticket then
-		removeTicket(ticket, "Has salido de la cola de la arena")
+		removeTicket(ticket, Strings.later("Has salido de la cola de la arena"))
 	end
 end
 
@@ -250,7 +248,7 @@ local function checkMatches()
 					table.insert(travellers, member)
 					Remotes.Notify:FireClient(
 						member,
-						`🎖️ ¡Partida encontrada! Zarpando a la {Config.PlaceNames.DunasShort} ☠️…`
+						"🎖️ ¡Partida encontrada! Zarpando a la Isla de dunas ☠️…"
 					)
 				end
 			end
@@ -261,7 +259,7 @@ local function checkMatches()
 				local options = Instance.new("TeleportOptions")
 				options.ReservedServerAccessCode = found.code
 				options:SetTeleportData({ format = found.format, team = found.team })
-				Teleporter.send(travellers, Config.PlaceIds.Dunas, `la {Config.PlaceNames.DunasShort}`, options)
+				Teleporter.send(travellers, Config.PlaceIds.Dunas, Strings.later("la Isla de dunas"), options)
 			end)
 		end
 	end
@@ -301,7 +299,11 @@ function ArenaQueueService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		local ticket = ticketOf(player)
 		if ticket then
-			removeTicket(ticket, `{player.DisplayName} se fue: salen de la cola de la arena`)
+			removeTicket(
+				ticket,
+				Strings.later("{name} se fue: salen de la cola de la arena"),
+				{ name = player.DisplayName }
+			)
 		end
 	end)
 	task.spawn(function()

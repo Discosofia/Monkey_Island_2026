@@ -81,13 +81,19 @@ end
 function AnnounceBanner.start()
 	local banner, title, text, scale = build()
 	local shown = 0
-	Remotes.Announce.OnClientEvent:Connect(function(message: any, from: any)
+	Remotes.Announce.OnClientEvent:Connect(function(message: any, from: any, args: any)
 		if typeof(message) ~= "string" then
 			return
 		end
-		-- El anuncio sale tal cual lo escribió el administrador; solo se traduce el título.
-		title.Text = Strings.t("📢 Anuncio · {from}", { from = tostring(from) })
-		text.Text = message
+		-- El anuncio sale tal cual lo escribió el administrador; solo se traduce el título. Los del juego
+		-- (el aviso de mantenimiento, ServerShared/ServerOps) llegan con sus argumentos y se traducen.
+		if typeof(args) == "table" then
+			title.Text = Strings.t("📢 Anuncio · {from}", { from = { tostring(from) } })
+			text.Text = Strings.t(message, args)
+		else
+			title.Text = Strings.t("📢 Anuncio · {from}", { from = tostring(from) })
+			text.Text = message
+		end
 		banner.Visible = true
 		scale.Scale = 1.15
 		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()

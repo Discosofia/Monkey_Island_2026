@@ -17,12 +17,17 @@ local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local LiveEventsServer = require(ServerScriptService.ServerShared.LiveEventsServer)
 local LobbyBuilder = require(script.Parent.Parent.World.LobbyBuilder)
 
 local FALL_HEIGHT = 45
-local EGG_PLACES = { nest = "en el nido", bag = "en la mochila", pending = "pendiente (mochila llena)" }
+local EGG_PLACES = {
+	nest = Strings.later("en el nido"),
+	bag = Strings.later("en la mochila"),
+	pending = Strings.later("pendiente (mochila llena)"),
+}
 
 local EggRainService = {}
 
@@ -70,7 +75,7 @@ local function rain(event: LiveEvents.Event)
 
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText = "Recoger"
-		prompt.ObjectText = `🥚 Huevo {Rarities[rarity].name}`
+		Strings.setText(prompt, "ObjectText", "🥚 Huevo {rarity}", { rarity = { Rarities[rarity].name } })
 		prompt.HoldDuration = 0.3
 		prompt.MaxActivationDistance = 10
 		prompt.RequiresLineOfSight = false
@@ -95,7 +100,8 @@ local function rain(event: LiveEvents.Event)
 			model:Destroy()
 			Remotes.Notify:FireClient(
 				player,
-				`🥚 ¡Huevo {Rarities[rarity].name} recogido! Está {EGG_PLACES[where]}`
+				"🥚 ¡Huevo {rarity} recogido! Está {place}",
+				{ rarity = { Rarities[rarity].name }, place = { EGG_PLACES[where] } }
 			)
 		end)
 		task.wait(0.15)

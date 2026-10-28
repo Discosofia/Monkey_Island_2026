@@ -11,6 +11,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local T = Strings.t
 
 local CARD_COLOR = Color3.fromRGB(45, 38, 30)
 local SELECTED_COLOR = Color3.fromRGB(242, 178, 36)
@@ -73,7 +76,7 @@ function RoleBoardController:Start()
 			corner(card, 0.08)
 			text(role.icon, card, UDim2.fromScale(0.15, 0.03), UDim2.fromScale(0.7, 0.26), Enum.Font.BuilderSansBold)
 			local name = text(
-				role.name,
+				T(role.name),
 				card,
 				UDim2.fromScale(0.06, 0.3),
 				UDim2.fromScale(0.88, 0.13),
@@ -82,7 +85,7 @@ function RoleBoardController:Start()
 			name.TextColor3 = ink
 			local level = Progression.level(data.roleXp[roleId] or 0)
 			local levelText = text(
-				`Nivel {level}`,
+				T("Nivel {level}", { level = level }),
 				card,
 				UDim2.fromScale(0.1, 0.43),
 				UDim2.fromScale(0.8, 0.09),
@@ -90,7 +93,7 @@ function RoleBoardController:Start()
 			)
 			levelText.TextColor3 = if isSelected then SELECTED_TEXT else LEVEL_COLOR
 			local passive = text(
-				role.passive,
+				T(role.passive),
 				card,
 				UDim2.fromScale(0.07, 0.55),
 				UDim2.fromScale(0.86, 0.26),
@@ -103,7 +106,7 @@ function RoleBoardController:Start()
 			badge.Position = UDim2.fromScale(0.5, 0.84)
 			badge.Size = UDim2.fromScale(0.84, 0.12)
 			badge.BackgroundColor3 = if isSelected then CARD_COLOR else SELECTED_COLOR
-			badge.Text = if isSelected then "✔ ELEGIDO" else "Presiona E"
+			badge.Text = if isSelected then T("✔ ELEGIDO") else T("Presiona E")
 			badge.TextColor3 = if isSelected then SELECTED_COLOR else SELECTED_TEXT
 			badge.Font = Enum.Font.BuilderSansExtraBold
 			badge.TextScaled = true
@@ -150,6 +153,11 @@ function RoleBoardController:Start()
 			for _, gui in boards do
 				draw(gui)
 			end
+		end
+	end)
+	Strings.onChanged(function()
+		for _, gui in boards do
+			draw(gui)
 		end
 	end)
 end

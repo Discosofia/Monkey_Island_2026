@@ -23,12 +23,15 @@ local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Pass = require(ReplicatedStorage.Shared.SeasonPass)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Data.Seasons)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Analytics = require(script.Parent.Analytics)
 local CosmeticsServer = require(script.Parent.CosmeticsServer)
 local PlayerData = require(script.Parent.PlayerData)
 local Purchases = require(script.Parent.Purchases)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 local Retention = require(script.Parent.Retention)
+
+local later = Strings.later
 
 export type Source = "Match" | "Mission"
 
@@ -62,14 +65,14 @@ local function withoutCosmetic(reward: Seasons.PassReward): Config.Reward
 	return { amber = reward.amber, items = reward.items, eggSeconds = reward.eggSeconds, egg = reward.egg }
 end
 
--- Entrega un premio del pase y devuelve lo recibido, línea a línea.
-local function grantReward(player: Player, reward: Seasons.PassReward): { string }
-	local lines = {}
+-- Entrega un premio del pase y devuelve lo recibido, línea a línea (frases, como Retention.grant).
+local function grantReward(player: Player, reward: Seasons.PassReward): { any }
+	local lines: { any } = {}
 	local cosmeticId = reward.cosmetic
 	if cosmeticId and Cosmetics[cosmeticId] then
 		CosmeticsServer.grant(player, cosmeticId)
 		local cosmetic = Cosmetics[cosmeticId]
-		table.insert(lines, `{cosmetic.icon} {cosmetic.name}`)
+		table.insert(lines, { later("{icon} {name}"), { icon = cosmetic.icon, name = { cosmetic.name } } })
 	end
 	-- Lo del pase se gana jugando: el tiempo de huevo cuenta para su tope.
 	for _, line in Retention.grant(player, withoutCosmetic(reward), true, "SeasonPass") do
@@ -78,8 +81,8 @@ local function grantReward(player: Player, reward: Seasons.PassReward): { string
 	return lines
 end
 
-local function grantAll(player: Player, rewards: { Seasons.PassReward }): { string }
-	local lines = {}
+local function grantAll(player: Player, rewards: { Seasons.PassReward }): { any }
+	local lines: { any } = {}
 	for _, reward in rewards do
 		for _, line in grantReward(player, reward) do
 			table.insert(lines, line)
@@ -168,7 +171,8 @@ function SeasonPass.refresh(player: Player)
 		local lines = grantAll(player, rewards)
 		Remotes.Notify:FireClient(
 			player,
-			`🌋 Terminó la temporada «{closedName}». Te llevas lo que no reclamaste: {table.concat(lines, " · ")}`
+			"🌋 Terminó la temporada «{season}». Te llevas lo que no reclamaste: {lines}",
+			{ season = { closedName or "" }, lines = { list = lines, sep = " · " } }
 		)
 	end
 end
@@ -224,7 +228,8 @@ function SeasonPass.addXp(player: Player, source: Source, amount: number): Gain?
 	if result and result.levelsUp > 0 then
 		Remotes.Notify:FireClient(
 			player,
-			`{season.icon} ¡Nivel {result.level} del pase de temporada! Reclama tus premios en el Lobby`
+			"{icon} ¡Nivel {level} del pase de temporada! Reclama tus premios en el Lobby",
+			{ icon = season.icon, level = result.level }
 		)
 		Analytics.event(player, "SeasonLevel", result.level, { season.id })
 	end
@@ -284,24 +289,24 @@ end
 local function canBuy(profile: PlayerData.Profile, premium: boolean): (boolean, string?)
 	local info = Pass.info(Pass.now())
 	if info.phase ~= "Active" or not info.season then
-		return false, "🌋 El pase vuelve con la próxima temporada"
+		return false, later("🌋 El pase vuelve con la próxima temporada")
 	end
 	local state = Pass.normalize(profile.season)
 	if state.id ~= info.season.id then
 		state = Pass.normalize(nil, info.season.id)
 	end
 	if premium and state.premium then
-		return false, "🌋 Ya tienes el pase premium de esta temporada"
+		return false, later("🌋 Ya tienes el pase premium de esta temporada")
 	end
 	if not premium and Pass.level(state) >= S.Levels then
-		return false, "⭐ Ya estás en el último nivel del pase"
+		return false, later("⭐ Ya estás en el último nivel del pase")
 	end
 	return true, nil
 end
 
 local function registerProducts()
 	local products = Config.Shop.Products
-	local function register(key: string, name: string, premium: boolean, levels: number)
+	local function register(key: string, name: any, premium: boolean, levels: number)
 		Purchases.register(key, products[key].productId, {
 			name = name,
 			grant = function(profile)
@@ -315,9 +320,10 @@ local function registerProducts()
 			end,
 		})
 	end
-	register("SeasonPremium", "🌋 Pase de temporada premium", true, 0)
-	register("SeasonPack", `🌋 Pase premium + {products.SeasonPack.levels} niveles`, true, products.SeasonPack.levels)
-	register("SeasonLevel", "⭐ Un nivel del pase", false, products.SeasonLevel.levels)
+	local levels = products.SeasonPack.levels
+	register("SeasonPremium", { later("🌋 Pase de temporada premium") }, true, 0)
+	register("SeasonPack", { later("🌋 Pase premium + {n} niveles"), { n = levels } }, true, levels)
+	register("SeasonLevel", { later("⭐ Un nivel del pase") }, false, products.SeasonLevel.levels)
 end
 
 -- Amigos de Roblox en el servidor, para el extra de XP (en la Isla y Dunas, donde se juega).
@@ -364,7 +370,13 @@ function SeasonPass.start()
 		if not gain then
 			return nil
 		end
-		return `⭐ +{gain.xp} XP de pase{if gain.multiplier > 1 then ` (×{gain.multiplier} última semana)` else ""}`
+		if gain.multiplier > 1 then
+			return {
+				later("⭐ +{xp} XP de pase (×{multiplier} última semana)"),
+				{ xp = gain.xp, multiplier = gain.multiplier },
+			}
+		end
+		return { later("⭐ +{xp} XP de pase"), { xp = gain.xp } }
 	end)
 	Remotes.ClaimPass.OnServerEvent:Connect(function(player: Player, level: any, track: any)
 		if not canClaim(player) then

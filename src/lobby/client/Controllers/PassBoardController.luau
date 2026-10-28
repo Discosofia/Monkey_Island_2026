@@ -19,6 +19,9 @@ local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local T = Strings.t
 
 local OBSIDIAN = Color3.fromRGB(24, 17, 16)
 local OBSIDIAN_LIGHT = Color3.fromRGB(52, 30, 24)
@@ -234,7 +237,7 @@ function PassBoardController:Start()
 		local info = SeasonPass.info(SeasonPass.now())
 		local season = info.season
 		if not season then
-			board.season.Text = "Pronto, la primera temporada"
+			board.season.Text = T("Pronto, la primera temporada")
 			board.time.Text = ""
 			board.medal.Text = "–"
 			board.barText.Text = ""
@@ -245,15 +248,17 @@ function PassBoardController:Start()
 			show(board, "", nil)
 			return
 		end
-		board.season.Text = `{season.icon} {season.name}`
+		board.season.Text = `{season.icon} {T(season.name)}`
 		board.time.TextColor3 = if info.lastWeek then LAVA_LIGHT else SECONDARY
 		if info.phase == "Active" then
-			board.time.Text =
-				`Termina en {left(info.secondsLeft)}{if info.lastWeek then ` · 🔥 ×{info.multiplier} XP` else ""}`
+			local args = { left = left(info.secondsLeft), multiplier = info.multiplier }
+			board.time.Text = if info.lastWeek
+				then T("Termina en {left} · 🔥 ×{multiplier} XP", args)
+				else T("Termina en {left}", args)
 		elseif info.phase == "Rest" then
-			board.time.Text = `Terminada · la siguiente en {left(info.secondsLeft)}`
+			board.time.Text = T("Terminada · la siguiente en {left}", { left = left(info.secondsLeft) })
 		else
-			board.time.Text = `Empieza en {left(info.secondsLeft)}`
+			board.time.Text = T("Empieza en {left}", { left = left(info.secondsLeft) })
 		end
 		local raw = player:GetAttribute("Season")
 		local ok, decoded = pcall(function()
@@ -265,7 +270,7 @@ function PassBoardController:Start()
 		board.medal.Text = tostring(level)
 		board.fill.Size = UDim2.fromScale(math.clamp(progress / need, 0.03, 1), 1)
 		board.barText.Text = `{progress}/{need} XP`
-		board.medalLabel.Text = if state.premium then "PREMIUM" else "NIVEL"
+		board.medalLabel.Text = if state.premium then T("PREMIUM") else T("NIVEL")
 		board.medalLabel.TextColor3 = if state.premium then READY_COLOR else SECONDARY
 
 		-- Siguiente premio: el primero por reclamar o el del nivel que viene (lo premium si la tiene).
@@ -276,31 +281,36 @@ function PassBoardController:Start()
 			local first = claims[1]
 			key = `{first.level}{first.track}`
 			reward = SeasonPass.reward(season, first.level, first.track) :: any
-			title = "¡LISTO PARA TI!"
+			title = T("¡LISTO PARA TI!")
 		elseif level < Config.Season.Levels then
 			local nextLevel = level + 1
 			local premium = if state.premium then SeasonPass.reward(season, nextLevel, "Premium") else nil
 			reward = (premium or SeasonPass.reward(season, nextLevel, "Free")) :: any
 			key = `{nextLevel}{if premium then "Premium" else "Free"}`
-			title = `NIVEL {nextLevel}`
+			title = T("NIVEL {level}", { level = nextLevel })
 		else
 			key = "Loop"
 			reward = SeasonPass.loopReward(state.loops + 1) :: any
-			title = "PREMIO EXTRA"
+			title = T("PREMIO EXTRA")
 		end
 		board.nextTitle.Text = title
 		local cosmetic = if reward and reward.cosmetic then Cosmetics[reward.cosmetic] else nil
-		board.nextName.Text = if cosmetic then cosmetic.name elseif reward then Rewards.describe(reward :: any) else ""
+		board.nextName.Text = if cosmetic
+			then T(cosmetic.name)
+			elseif reward then Rewards.describe(reward :: any)
+			else ""
 		board.nextName.TextColor3 = if cosmetic then cosmetic.color else Color3.new(1, 1, 1)
 		show(board, key, reward)
 
 		board.badge.Visible = info.phase == "Active"
 		if count > 0 then
-			board.badge.Text = `🎁 {count} {if count == 1 then "premio" else "premios"} por reclamar`
+			board.badge.Text = if count == 1
+				then T("🎁 {count} premio por reclamar", { count = count })
+				else T("🎁 {count} premios por reclamar", { count = count })
 			board.badge.BackgroundColor3 = READY_COLOR
 			board.badge.TextColor3 = DARK_TEXT
 		else
-			board.badge.Text = "Juega en las islas para subir de nivel"
+			board.badge.Text = T("Juega en las islas para subir de nivel")
 			board.badge.BackgroundColor3 = OBSIDIAN_LIGHT
 			board.badge.TextColor3 = LAVA_LIGHT
 		end
@@ -333,6 +343,7 @@ function PassBoardController:Start()
 		end
 	end
 	player:GetAttributeChangedSignal("Season"):Connect(redraw)
+	Strings.onChanged(redraw)
 	-- El panel de pruebas de Studio mueve el reloj del pase.
 	ReplicatedStorage:GetAttributeChangedSignal("DebugSeasonShift"):Connect(redraw)
 	-- El avatar del premio cosmético sale con tu personaje: se rehace cuando aparece.

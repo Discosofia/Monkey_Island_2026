@@ -42,6 +42,9 @@ local Workspace = game:GetService("Workspace")
 
 local BuildModels = require(ReplicatedStorage.Shared.BuildModels)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local later = Strings.later
 
 export type Options = { force: boolean? }
 
@@ -157,15 +160,11 @@ local LAVA_LIGHT = Color3.fromRGB(255, 195, 80)
 -- Oro, plata y bronce para los tres primeros del ranking.
 local RANK_COLORS = { Color3.fromRGB(255, 215, 90), Color3.fromRGB(215, 220, 230), Color3.fromRGB(225, 150, 90) }
 
-local LOG_TEXT = "La tormenta empujó al carguero «Esperanza» contra el arrecife. El casco está abierto y los "
-	.. "motores, muertos.\n\n"
-	.. "Al norte se ve una isla con un volcán que humea día y noche. De allí llegan aullidos.\n\n"
-	.. "No es la única: alrededor hay más islas. Una ciudad en ruinas tragada por la selva, un "
-	.. "desierto de dunas, una roca con forma de calavera y unos picos entre la niebla. Con esta "
-	.. "lancha solo llegamos a la del volcán.\n\n"
-	.. "En la bodega llevábamos contenedores con un sello que nadie supo explicar: PROYECTO PRIMAL.\n\n"
-	.. "Nuestra radio no funciona. Quien quiera salir de aquí, que tome la lancha y vaya a la isla: "
-	.. "dicen que en el viejo laboratorio aún queda una radio."
+-- Los textos de los carteles se quedan en español en el place: UI/Localizer los traduce en cada cliente
+-- porque son claves de Shared/Strings (por eso van marcados con later y en una sola línea).
+local LOG_TEXT = later(
+	"La tormenta empujó al carguero «Esperanza» contra el arrecife. El casco está abierto y los motores, muertos.\n\nAl norte se ve una isla con un volcán que humea día y noche. De allí llegan aullidos.\n\nNo es la única: alrededor hay más islas. Una ciudad en ruinas tragada por la selva, un desierto de dunas, una roca con forma de calavera y unos picos entre la niebla. Con esta lancha solo llegamos a la del volcán.\n\nEn la bodega llevábamos contenedores con un sello que nadie supo explicar: PROYECTO PRIMAL.\n\nNuestra radio no funciona. Quien quiera salir de aquí, que tome la lancha y vaya a la isla: dicen que en el viejo laboratorio aún queda una radio."
+)
 
 local LobbyBuilder = {}
 
@@ -954,7 +953,7 @@ local function volcanoBoard(parent: Instance, name: string, at: Vector2, width: 
 	label.Position = UDim2.fromScale(0.04, 0.12)
 	label.Size = UDim2.fromScale(0.92, 0.76)
 	label.BackgroundTransparency = 1
-	label.Text = "PASE DE TEMPORADA"
+	label.Text = later("PASE DE TEMPORADA")
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
@@ -1186,7 +1185,7 @@ local function rankingColumns(ranking: Part, blocks: { RankingBlock })
 			header.TextColor3 = Color3.fromRGB(255, 215, 90)
 			for position = 1, Config.Lobby.RankingBoardSize do
 				local line = text(
-					if position == 1 then "Aún no hay datos" else "",
+					if position == 1 then later("Aún no hay datos") else "",
 					list,
 					UDim2.fromScale(0.07, 0.02 + position * 0.165),
 					UDim2.fromScale(0.88, 0.14)
@@ -1225,7 +1224,7 @@ end
 -- aviso abre la ventana del pase).
 local function buildBoards(parent: Instance)
 	-- La bitácora cuenta la historia del naufragio en un panel oscuro, como el del ranking.
-	local log = standingBoard(parent, "BitacoraDelCapitan", LOG_BOARD_AT, 14, 8.5, "📜 BITÁCORA DEL CAPITÁN")
+	local log = standingBoard(parent, "BitacoraDelCapitan", LOG_BOARD_AT, 14, 8.5, later("📜 BITÁCORA DEL CAPITÁN"))
 	local logGui = Instance.new("SurfaceGui")
 	logGui.Face = Enum.NormalId.Front
 	logGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -1258,38 +1257,47 @@ local function buildBoards(parent: Instance)
 	-- Mascotas: el huevo del nido de cada jugador (no lleva aviso: se interactúa con el nido). Más alto
 	-- que los demás: el huevo del nido tapa su franja de abajo, y el contenido va encima
 	-- (PetBoardController); subirlo entero dejaría ver el nombre de la proa por debajo.
-	local pets = standingBoard(parent, "TablaMascotas", PETS_BOARD_AT, 14, PETS_BOARD_HEIGHT, "🐾 MASCOTAS")
+	local pets = standingBoard(parent, "TablaMascotas", PETS_BOARD_AT, 14, PETS_BOARD_HEIGHT, later("🐾 MASCOTAS"))
 	CollectionService:AddTag(pets, Config.Lobby.PetsBoardTag)
 
 	-- Ranking: supervivencia (días y rescates) y arena (victorias y banderas, Leaderboards.ARENA_STATS).
-	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 20, 7.5, "🏆 RANKING")
+	local ranking = standingBoard(parent, "TablaRanking", RANKING_BOARD_AT, 20, 7.5, later("🏆 RANKING"))
 	CollectionService:AddTag(ranking, Config.Lobby.RankingBoardTag)
 	rankingColumns(ranking, {
 		{
-			title = "🐒 SUPERVIVENCIA",
+			title = later("🐒 SUPERVIVENCIA"),
 			columns = {
-				{ stat = "BestDays", title = "📅 Más días" },
-				{ stat = "Rescues", title = "🚁 Más rescates" },
+				{ stat = "BestDays", title = later("📅 Más días") },
+				{ stat = "Rescues", title = later("🚁 Más rescates") },
 			},
 		},
 		{
-			title = "🎖️ ARENA",
+			title = later("🎖️ ARENA"),
 			columns = {
-				{ stat = "ArenaWins", title = "🏆 Más victorias" },
-				{ stat = "ArenaCaptures", title = "🚩 Más banderas" },
+				{ stat = "ArenaWins", title = later("🏆 Más victorias") },
+				{ stat = "ArenaCaptures", title = later("🚩 Más banderas") },
 			},
 		},
 	})
-	station(ranking, "Ranking", "🏆", "RankingPrompt", "Ver ranking", "Ranking")
+	station(ranking, "Ranking", "🏆", "RankingPrompt", later("Ver ranking"), later("Ranking"))
 
 	-- Isla de dunas: tu estado en la arena (ArenaBoardController); su aviso abre la ventana de la arena.
-	local arena = standingBoard(parent, "TablaArena", ARENA_BOARD_AT, 12, 7.5, Config.PlaceNames.Dunas, nil, 0.95)
+	local arena = standingBoard(
+		parent,
+		"TablaArena",
+		ARENA_BOARD_AT,
+		12,
+		7.5,
+		later("🎖️Isla de dunas☠️(PvP)"),
+		nil,
+		0.95
+	)
 	CollectionService:AddTag(arena, Config.Lobby.ArenaBoardTag)
-	station(arena, "Arena", "🎖️", "ArenaPrompt", "Jugar en la arena", Config.PlaceNames.DunasShort)
+	station(arena, "Arena", "🎖️", "ArenaPrompt", later("Jugar en la arena"), later("Isla de dunas"))
 
 	local pass = volcanoBoard(parent, "TablaPase", PASS_BOARD_AT, 12, 7.5)
 	CollectionService:AddTag(pass, Config.Lobby.PassBoardTag)
-	station(pass, "Pase", "🌋", "PassPrompt", "Ver el pase", "Pase de temporada")
+	station(pass, "Pase", "🌋", "PassPrompt", later("Ver el pase"), later("Pase de temporada"))
 	-- El aviso, en el poste derecho a media altura (en el centro tapaba lo que dibuja el cartel, y a los
 	-- pies quedaba detrás del botón de viaje de abajo de la pantalla), y el icono flotante por encima
 	-- del volcán.
@@ -1303,9 +1311,9 @@ local function buildBoards(parent: Instance)
 	end
 	pass:SetAttribute("StationIconLift", 11)
 
-	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, "ELIGE TU ROL")
+	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, later("ELIGE TU ROL"))
 	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)
-	station(roles, "Rol", "⚔️", "RolesPrompt", "Elegir rol", "Roles")
+	station(roles, "Rol", "⚔️", "RolesPrompt", later("Elegir rol"), later("Roles"))
 end
 
 -- Nido de huevos del Lobby: cada cliente dibuja encima su propio huevo y su temporizador
@@ -1337,8 +1345,8 @@ local function buildNest(parent: Instance)
 	if seat and seat:IsA("BasePart") then
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "NidoPrompt"
-		prompt.ActionText = "Ver el nido"
-		prompt.ObjectText = "Nido de huevos"
+		prompt.ActionText = later("Ver el nido")
+		prompt.ObjectText = later("Nido de huevos")
 		prompt.HoldDuration = 0
 		prompt.MaxActivationDistance = 12
 		prompt.RequiresLineOfSight = false
@@ -1832,7 +1840,7 @@ local function crate(parent: Instance, cframe: CFrame, size: number, stamped: bo
 		sign(
 			box,
 			Enum.NormalId.Front,
-			"⚠ PROYECTO PRIMAL\nNO ABRIR",
+			later("⚠ PROYECTO PRIMAL\nNO ABRIR"),
 			Color3.fromRGB(40, 25, 10),
 			Enum.Font.SourceSansBold
 		)
@@ -2323,15 +2331,15 @@ local function buildLifeboat(parent: Instance)
 	decor(promptAnchor)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ZarparPrompt"
-	prompt.ActionText = `Zarpar a la {Config.PlaceNames.IslandShort}`
-	prompt.ObjectText = "Lancha de rescate"
+	prompt.ActionText = later("Zarpar a la Isla de monos")
+	prompt.ObjectText = later("Lancha de rescate")
 	prompt.HoldDuration = 1
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = promptAnchor
 
 	-- Cartelito en la orilla, de cara a la plaza.
-	smallSign(boat, LIFEBOAT_SIGN_AT, `🚤 {string.upper(Config.PlaceNames.IslandShort)} →`)
+	smallSign(boat, LIFEBOAT_SIGN_AT, later("🚤 ISLA DE MONOS →"))
 	boat.Parent = parent
 end
 
@@ -2452,8 +2460,8 @@ local function buildDunesDock(parent: Instance)
 	decor(promptAnchor)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ZarparDunasPrompt"
-	prompt.ActionText = `Zarpar a la {Config.PlaceNames.DunasShort}`
-	prompt.ObjectText = "Velero de la arena"
+	prompt.ActionText = later("Zarpar a la Isla de dunas")
+	prompt.ObjectText = later("Velero de la arena")
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -2461,7 +2469,7 @@ local function buildDunesDock(parent: Instance)
 
 	-- Cartelito a la entrada de la pasarela, en la arena y de cara a la plaza.
 	local signAt = (pier * CFrame.new(-4.5, 0, -0.6)).Position
-	smallSign(dock, Vector2.new(signAt.X, signAt.Z), `🎖️ {string.upper(Config.PlaceNames.DunasShort)} →`)
+	smallSign(dock, Vector2.new(signAt.X, signAt.Z), later("🎖️ ISLA DE DUNAS →"))
 	dock.Parent = parent
 end
 

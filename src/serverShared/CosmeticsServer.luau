@@ -32,9 +32,12 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local PlayerData = require(script.Parent.PlayerData)
 local Purchases = require(script.Parent.Purchases)
+
+local later = Strings.later
 
 local CosmeticsServer = {}
 
@@ -704,7 +707,7 @@ local function onEquip(player: Player, cosmeticId: any)
 	if changed then
 		applyVisuals(player)
 	elseif cosmetic.kind == "Emote" then
-		Remotes.Notify:FireClient(player, `Ya llevas {Config.Cosmetics.EmoteSlots} emotes: quita uno antes`)
+		Remotes.Notify:FireClient(player, "Ya llevas {n} emotes: quita uno antes", { n = Config.Cosmetics.EmoteSlots })
 	end
 end
 
@@ -715,7 +718,7 @@ local function registerProducts()
 		local productId = cosmetic.source.productId
 		if productId then
 			Purchases.register(`Cosmetic.{cosmeticId}`, productId, {
-				name = `{cosmetic.icon} {cosmetic.name}`,
+				name = { later("{icon} {name}"), { icon = cosmetic.icon, name = { cosmetic.name } } },
 				grant = function(profile)
 					profile.ownedCosmetics[cosmeticId] = true
 				end,
@@ -725,7 +728,8 @@ local function registerProducts()
 				end,
 				available = function(_profile, player)
 					if owns(player, cosmeticId) then
-						return false, `✅ Ya tienes {cosmetic.icon} {cosmetic.name}`
+						return false,
+							{ later("✅ Ya tienes {icon} {name}"), { icon = cosmetic.icon, name = { cosmetic.name } } }
 					end
 					return true, nil
 				end,
@@ -750,7 +754,11 @@ function CosmeticsServer.start(options: { showBestGear: boolean? }?)
 					owned[cosmeticId] = true
 				end
 				player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
-				Remotes.Notify:FireClient(player, `¡Gracias! Ya tienes: {cosmetic.icon} {cosmetic.name}`)
+				Remotes.Notify:FireClient(
+					player,
+					"¡Gracias! Ya tienes: {name}",
+					{ name = { later("{icon} {name}"), { icon = cosmetic.icon, name = { cosmetic.name } } } }
+				)
 			end
 		end
 	end)

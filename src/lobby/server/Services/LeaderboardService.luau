@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 
@@ -73,10 +74,13 @@ local function fillBoards(stat: string, rows: { { name: string, value: number } 
 			if line and line:IsA("TextLabel") then
 				local row = rows[position]
 				local place = MEDALS[position] or `{position}.`
-				line.Text = if row
-					then `{place} {row.name} — {row.value}`
-					elseif position == 1 then "Aún no hay datos"
-					else ""
+				if row or position ~= 1 then
+					line:SetAttribute("TextKey", nil)
+					line:SetAttribute("TextArgs", nil)
+					line.Text = if row then `{place} {row.name} — {row.value}` else ""
+				else
+					Strings.setWorldText(line, "Aún no hay datos")
+				end
 			end
 		end
 	end

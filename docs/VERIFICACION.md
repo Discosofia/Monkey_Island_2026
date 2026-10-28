@@ -1163,6 +1163,32 @@ Probado en Studio (1 jugador, Isla), en English y en Español y cambiando de uno
 5. [ ] Con un mono alfa cerca (🛠️ → panel de administración → tropa con alfa), mira su nombre.
    ✅ Sale «… alfa» en español y «Alpha …» en inglés (el nombre de la especie, en español hasta la I1e).
 
+## 21. Lo que queda por probar de I1c: el Lobby y lo compartido en inglés (27-10-2026)
+
+Probado en Studio (1 jugador, Lobby), en English y en Español y cambiando de uno a otro con una ventana abierta: la pastilla del Ámbar, el botón de viaje, la barra del menú, las ventanas Misiones, Talentos, Grupo, Rol, Mascotas, Arena y Ranking, los carteles de la plaza (bitácora, mascotas, roles, ranking, arena, pase), la cola de la arena con sus avisos y el cambio de misión (también el aviso «⚠️ …» cuando ya no quedan cambios). Hasta la I1e, en inglés quedan en español los nombres de `Data` (rarezas, mascotas, monturas, roles, habilidades, talentos, mejoras, misiones, objetos); hasta la I1d, las ventajas de los roles y las ranuras de la arena. Los avisos que el panel de administración y la moderación mandan al administrador se quedan en español a propósito.
+
+#### 21.1 Con 2 jugadores en el Lobby (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Pon a un jugador en English y al otro en Español. Que uno invite al otro al grupo desde la ventana Grupo, y que el invitado acepte.
+   ✅ La ventana de invitación, «Invitación enviada a …» / «Invite sent to …» y «… se ha unido al grupo» / «… joined the party» salen en el idioma de cada uno, con el nombre tal cual.
+2. [ ] Con el grupo hecho, que el que no es líder pulse el botón de viaje.
+   ✅ «Tu grupo viaja cuando … (líder) presione "🍌 Ir a la Isla de monos 🐒"» en español y «Your party travels when … (leader) presses "🍌 Go to Monkey Island 🐒"» en inglés.
+3. [ ] Que el líder entre en la cola de la arena con el grupo y después el otro salga del Lobby.
+   ✅ Al que queda le llega «… se fue: salen de la cola de la arena» / «… left: the party leaves the arena queue».
+
+#### 21.2 En el juego publicado
+
+1. [ ] Con una cuenta en inglés, regala un cosmético a un jugador con la cuenta en español (y al revés).
+   ✅ El que paga lee «🎁 You gave … to …» y el que lo recibe «🎁 ¡… te regaló …! Está en tu 👕 Armario», cada uno en su idioma.
+2. [ ] Desde el panel de administración, expulsa a una cuenta de prueba en inglés y a otra en español.
+   ✅ La ventana de Roblox dice «An admin has kicked you. Reason: …» o «Te ha expulsado un administrador. Motivo: …» según el idioma de la cuenta (o su ajuste); el motivo sale tal cual se escribió.
+3. [ ] Programa un mantenimiento de 1 minuto con jugadores en los dos idiomas.
+   ✅ El cartel del anuncio dice «📢 Announcement · Maintenance» y el texto del mantenimiento en inglés a unos, y en español a los otros; al cerrarse, la ventana de Roblox explica el mantenimiento en el idioma de cada uno.
+4. [ ] Lanza una lluvia de huevos (evento en vivo) con jugadores en los dos idiomas y recoge un huevo.
+   ✅ El aviso del huevo («🥚 Huevo …» / «🥚 … Egg»), el de empezar y terminar el evento y «🥚 ¡Huevo … recogido! Está en el nido» salen en el idioma de cada uno.
+5. [ ] Cobra el día 7 del calendario con una cuenta pionera en inglés.
+   ✅ La ventana dice «🎉 Day 7 claimed! …» con cada premio en inglés y la tirada «🎁 Pioneer roll: …».
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

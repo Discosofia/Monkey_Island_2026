@@ -117,11 +117,11 @@ local function onBuy(player: Player, cosmeticId: any)
 		return
 	end
 	if profile.ownedCosmetics[cosmeticId] then
-		Remotes.Notify:FireClient(player, `Ya tienes {cosmetic.icon} {cosmetic.name}`)
+		Remotes.Notify:FireClient(player, "Ya tienes {icon} {name}", { icon = cosmetic.icon, name = { cosmetic.name } })
 		return
 	end
 	if profile.amber < price then
-		Remotes.Notify:FireClient(player, `Te faltan {price - profile.amber} de Ámbar`)
+		Remotes.Notify:FireClient(player, "Te faltan {n} de Ámbar", { n = price - profile.amber })
 		return
 	end
 	PlayerData.update(player, function(current)
@@ -131,7 +131,11 @@ local function onBuy(player: Player, cosmeticId: any)
 	CosmeticsServer.refresh(player)
 	task.spawn(PlayerData.saveNow, player)
 	Analytics.amber(player, "Sink", price, profile.amber, `Cosmetic.{cosmeticId}`)
-	Remotes.Notify:FireClient(player, `Comprado: {cosmetic.icon} {cosmetic.name}. Póntelo en el 👕 Armario`)
+	Remotes.Notify:FireClient(
+		player,
+		"Comprado: {icon} {name}. Póntelo en el 👕 Armario",
+		{ icon = cosmetic.icon, name = { cosmetic.name } }
+	)
 	publish(player)
 end
 

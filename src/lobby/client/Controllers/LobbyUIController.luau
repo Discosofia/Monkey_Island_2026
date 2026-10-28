@@ -67,6 +67,9 @@ local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local WardrobePanel = require(ReplicatedStorage.Shared.UI.WardrobePanel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
+local T = Strings.t
+local later = Strings.later
+
 -- Alto de una fila (título y una línea de detalle): lo justo para que la Tienda o las Misiones quepan
 -- sin desplazarse en un PC.
 local ROW_HEIGHT = 68
@@ -87,13 +90,12 @@ local HOTBAR_CLEARANCE = 112
 -- Pantallas que tapa una ventana abierta: las del combate compartido (casillas de habilidades, combos
 -- y los botones táctiles de las habilidades) y los controles táctiles de Roblox (joystick y salto).
 local COMBAT_HUDS = { RoleHUD = true, ComboHUD = true, ActionButtons = true, TouchGui = true }
--- Nombre de la Isla en las frases y texto del botón de viaje.
-local ISLAND = Config.PlaceNames.IslandShort
-local JOIN_TEXT = `🍌 Ir a la {ISLAND} 🐒`
+-- Texto del botón de viaje (se traduce al dibujarlo).
+local JOIN_TEXT = later("🍌 Ir a la Isla de monos 🐒")
 -- Segundos que se espera la segunda pulsación de "Descartar" (para no tirar un huevo sin querer).
 local DISCARD_CONFIRM_SECONDS = 3
 -- Nombre de cada dificultad de las misiones del día (Data/Missions).
-local DIFFICULTY_NAMES = { Facil = "Fácil", Media = "Media", Dificil = "Difícil" }
+local DIFFICULTY_NAMES = { Facil = later("Fácil"), Media = later("Media"), Dificil = later("Difícil") }
 -- Pantallas de menos alto que esto (un teléfono apaisado): la arena y las mascotas, compactas.
 local COMPACT_BELOW = 500
 -- Ventanas. Las de las estaciones (Rol, Arena, Mascotas, Ranking) se abren con su aviso; las del menú,
@@ -101,25 +103,39 @@ local COMPACT_BELOW = 500
 -- "spread": listas largas (compartidas con la Isla) que en PC se reparten en columnas si no caben.
 -- "own": se colocan ellas mismas en columnas (no se reparten).
 type WindowDef = { icon: string, title: string, wide: boolean?, spread: boolean?, own: boolean? }
+-- "title": frase que se traduce al dibujarla (Shared/Strings).
 local WINDOWS: { [string]: WindowDef } = {
-	Rol = { icon = "⚔️", title = "Elige tu rol" },
-	Arena = { icon = "", title = Config.PlaceNames.Dunas, own = true },
-	Mascotas = { icon = "🥚", title = "Nido y mascotas", wide = true, own = true },
-	Ranking = { icon = "🏆", title = "Ranking", wide = true, own = true },
-	Talentos = { icon = "🌟", title = "Talentos" },
-	Tienda = { icon = "🛒", title = "Tienda" },
-	Misiones = { icon = "🎯", title = "Misiones" },
+	Rol = { icon = "⚔️", title = later("Elige tu rol") },
+	-- El nombre del place de Dunas (Config.PlaceNames.Dunas).
+	Arena = { icon = "", title = later("🎖️Isla de dunas☠️(PvP)"), own = true },
+	Mascotas = { icon = "🥚", title = later("Nido y mascotas"), wide = true, own = true },
+	Ranking = { icon = "🏆", title = later("Ranking"), wide = true, own = true },
+	Talentos = { icon = "🌟", title = later("Talentos") },
+	Tienda = { icon = "🛒", title = later("Tienda") },
+	Misiones = { icon = "🎯", title = later("Misiones") },
 	-- El pase usa el ancho de las listas largas: sus pistas se deslizan y caben más columnas.
-	Pase = { icon = "🌋", title = "Pase de temporada", wide = true, spread = true, own = true },
+	Pase = { icon = "🌋", title = later("Pase de temporada"), wide = true, spread = true, own = true },
 	-- El armario se coloca solo: el avatar en 3D a la izquierda y las tarjetas a la derecha.
-	Armario = { icon = "👕", title = "Armario", wide = true, own = true },
-	Grupo = { icon = "👥", title = "Grupo" },
+	Armario = { icon = "👕", title = later("Armario"), wide = true, own = true },
+	Grupo = { icon = "👥", title = later("Grupo") },
 	-- No es una ventana: su botón abre la rueda de emotes (UI/EmoteWheel).
-	Emotes = { icon = "😀", title = "Emotes" },
-	Diario = { icon = "📖", title = "Diario", wide = true, spread = true },
-	Ajustes = { icon = "⚙️", title = "Ajustes", wide = true, spread = true },
+	Emotes = { icon = "😀", title = later("Emotes") },
+	Diario = { icon = "📖", title = later("Diario"), wide = true, spread = true },
+	Ajustes = { icon = "⚙️", title = later("Ajustes"), wide = true, spread = true },
 }
 local MENU = { "Talentos", "Tienda", "Misiones", "Pase", "Armario", "Emotes", "Grupo", "Diario", "Ajustes" }
+-- Nombre de cada botón de la barra (debajo de su icono).
+local MENU_LABELS: { [string]: string } = {
+	Talentos = later("Talentos"),
+	Tienda = later("Tienda"),
+	Misiones = later("Misiones"),
+	Pase = later("Pase"),
+	Armario = later("Armario"),
+	Emotes = later("Emotes"),
+	Grupo = later("Grupo"),
+	Diario = later("Diario"),
+	Ajustes = later("Ajustes"),
+}
 -- Avisos de las estaciones de la plaza (World/LobbyBuilder) y la ventana que abre cada uno.
 local STATION_PROMPTS: { [string]: string } = {
 	RolesPrompt = "Rol",
@@ -162,17 +178,17 @@ local TITLE_SECONDS = 5
 -- Ranking: las cuatro clasificaciones (LeaderboardService) en dos bloques, y cuántos puestos.
 local RANKING_GROUPS = {
 	{
-		title = "🐒 Supervivencia",
+		title = later("🐒 Supervivencia"),
 		boards = {
-			{ stat = "BestDays", title = "📅 Más días" },
-			{ stat = "Rescues", title = "🚁 Más rescates" },
+			{ stat = "BestDays", title = later("📅 Más días") },
+			{ stat = "Rescues", title = later("🚁 Más rescates") },
 		},
 	},
 	{
-		title = "🎖️ Arena",
+		title = later("🎖️ Arena"),
 		boards = {
-			{ stat = "ArenaWins", title = "🏆 Más victorias" },
-			{ stat = "ArenaCaptures", title = "🚩 Más banderas" },
+			{ stat = "ArenaWins", title = later("🏆 Más victorias") },
+			{ stat = "ArenaCaptures", title = later("🚩 Más banderas") },
 		},
 	},
 }
@@ -315,7 +331,7 @@ local function inviteFriends(player: Player)
 		return
 	end
 	local options = Instance.new("ExperienceInviteOptions")
-	options.PromptMessage = Config.Social.InviteMessage
+	options.PromptMessage = T(Config.Social.InviteMessage)
 	SocialService:PromptGameInvite(player, options)
 end
 
@@ -377,9 +393,10 @@ function LobbyUIController:Start()
 		local best = player:GetAttribute("BestDays")
 		local amberText = if typeof(amber) == "number" then tostring(amber) else "…"
 		local bestText = if typeof(best) == "number" then tostring(best) else "0"
+		local args = { amber = amberText, best = bestText }
 		header.Text = if rowMode
-			then `✨ {amberText}   🏆 {bestText} días`
-			else `✨ {amberText} de Ámbar   🏆 Récord: {bestText} días`
+			then T("✨ {amber}   🏆 {best} días", args)
+			else T("✨ {amber} de Ámbar   🏆 Récord: {best} días", args)
 	end
 	refreshHeader()
 
@@ -495,14 +512,23 @@ function LobbyUIController:Start()
 				row.frame.Size = UDim2.new(1, -10, 0, ROW_HEIGHT + 22)
 				row.detail.Size = UDim2.new(0.68, -10, 0, 52)
 			end
-			row.title.Text = `{role.icon} {role.name} · nivel {Progression.level(xp)}`
+			row.title.Text = T(
+				"{icon} {name} · nivel {level}",
+				{ icon = role.icon, name = { role.name }, level = Progression.level(xp) }
+			)
 			local names = {}
 			for _, ability in RoleAbilities.of(player, roleId) do
-				table.insert(names, if ability.ultimate then `definitiva: {ability.name}` else ability.name)
+				table.insert(
+					names,
+					if ability.ultimate then T("definitiva: {name}", { name = { ability.name } }) else T(ability.name)
+				)
 			end
-			row.detail.Text = `{role.passive}\nHabilidades: {table.concat(names, " · ")}`
+			row.detail.Text = T(
+				"{passive}\nHabilidades: {names}",
+				{ passive = { role.passive }, names = table.concat(names, " · ") }
+			)
 			local isSelected = roleId == selected
-			setButton(row.button, if isSelected then "Elegido" else "Elegir", not isSelected)
+			setButton(row.button, if isSelected then T("Elegido") else T("Elegir"), not isSelected)
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.SelectRole:FireServer(roleId)
 				-- Al cambiar de rol, el atajo a sus talentos se ilumina para invitar a mirarlos.
@@ -513,11 +539,15 @@ function LobbyUIController:Start()
 		local role = Roles[selected]
 		local points = Progression.freePoints(selected, data)
 		local talents = newRow(list, 10)
-		talents.title.Text = `🌟 Talentos de {role.name}`
+		talents.title.Text = T("🌟 Talentos de {role}", { role = { role.name } })
 		talents.detail.Text = if points > 0
-			then `Tienes {points} punto(s) libre(s) para aprender`
-			else "Mejora tu rol con los puntos que ganas al subir de nivel"
-		setButton(talents.button, if points > 0 then `Ver talentos ({points})` else "Ver talentos", true)
+			then T("Tienes {points} punto(s) libre(s) para aprender", { points = points })
+			else T("Mejora tu rol con los puntos que ganas al subir de nivel")
+		setButton(
+			talents.button,
+			if points > 0 then T("Ver talentos ({points})", { points = points }) else T("Ver talentos"),
+			true
+		)
 		talents.button.MouseButton1Click:Connect(function()
 			openWindow("Talentos")
 		end)
@@ -532,7 +562,15 @@ function LobbyUIController:Start()
 		local roleId = Progression.validRole(player:GetAttribute("SelectedRole"))
 		local role = Roles[roleId]
 		local points = Progression.freePoints(roleId, data)
-		note(list, `{role.icon} {role.name}: {points} punto(s) libre(s) · 1 punto por nivel`, 0)
+		note(
+			list,
+			T("{icon} {name}: {points} punto(s) libre(s) · 1 punto por nivel", {
+				icon = role.icon,
+				name = { role.name },
+				points = points,
+			}),
+			0
+		)
 		local talents = Talents[roleId]
 		for index, talentId in
 			sortedKeys(talents, function(talent)
@@ -542,10 +580,10 @@ function LobbyUIController:Start()
 			local talent = talents[talentId]
 			local rank = data.talents[Progression.talentKey(roleId, talentId)] or 0
 			local row = newRow(list, index)
-			row.title.Text = `{talent.name} ({rank}/{talent.maxRank})`
-			row.detail.Text = talent.description
+			row.title.Text = `{T(talent.name)} ({rank}/{talent.maxRank})`
+			row.detail.Text = T(talent.description)
 			local full = rank >= talent.maxRank
-			setButton(row.button, if full then "Máximo" else "Aprender", not full and points > 0)
+			setButton(row.button, if full then T("Máximo") else T("Aprender"), not full and points > 0)
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.LearnTalent:FireServer(roleId, talentId)
 			end)
@@ -555,9 +593,9 @@ function LobbyUIController:Start()
 		for index, ability in RoleAbilities.ultimates(roleId) do
 			local row = newRow(list, 20 + index)
 			local isChosen = ability.id == chosen
-			row.title.Text = `⭐ V: {ability.name}`
-			row.detail.Text = ability.description
-			setButton(row.button, if isChosen then "Elegida" else "Elegir", not isChosen)
+			row.title.Text = `⭐ V: {T(ability.name)}`
+			row.detail.Text = T(ability.description)
+			setButton(row.button, if isChosen then T("Elegida") else T("Elegir"), not isChosen)
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.SelectUltimate:FireServer(roleId, ability.id)
 			end)
@@ -576,12 +614,12 @@ function LobbyUIController:Start()
 			local rank = data.upgrades[upgradeId] or 0
 			local cost = upgrade.costs[rank + 1]
 			local row = newRow(list, index)
-			row.title.Text = `{upgrade.icon} {upgrade.name} ({rank}/{#upgrade.costs})`
-			row.detail.Text = upgrade.description
+			row.title.Text = `{upgrade.icon} {T(upgrade.name)} ({rank}/{#upgrade.costs})`
+			row.detail.Text = T(upgrade.description)
 			if cost then
 				setButton(row.button, `✨ {cost}`, balance >= cost)
 			else
-				setButton(row.button, "Máximo", false)
+				setButton(row.button, T("Máximo"), false)
 			end
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.BuyUpgrade:FireServer(upgradeId)
@@ -630,11 +668,17 @@ function LobbyUIController:Start()
 		local rarity = Rarities[nestEgg.rarity]
 		local ready = EggIncubation.isReady(nestEgg, now)
 		row.title.Text = if ready
-			then `🐣 ¡Huevo {rarity.name} listo!`
-			else `🥚 Huevo {rarity.name} · {EggIncubation.formatTime(EggIncubation.remaining(nestEgg, now))}`
+			then T("🐣 ¡Huevo {rarity} listo!", { rarity = { rarity.name } })
+			else T("🥚 Huevo {rarity} · {time}", {
+				rarity = { rarity.name },
+				time = EggIncubation.formatTime(EggIncubation.remaining(nestEgg, now)),
+			})
 		local cap = nestEgg.totalSeconds * Config.Egg.PlayCapFraction
-		row.detail.Text = `Incubado {math.floor(EggIncubation.progress(nestEgg, now) * 100)} % · jugando le has `
-			.. `quitado {EggIncubation.formatTime(nestEgg.playBonus)} de {EggIncubation.formatTime(cap)}`
+		row.detail.Text = T("Incubado {percent} % · jugando le has quitado {played} de {cap}", {
+			percent = math.floor(EggIncubation.progress(nestEgg, now) * 100),
+			played = EggIncubation.formatTime(nestEgg.playBonus),
+			cap = EggIncubation.formatTime(cap),
+		})
 		row.fill.Size = UDim2.fromScale(math.clamp(EggIncubation.progress(nestEgg, now), 0, 1), 1)
 		if ready ~= row.ready then
 			-- Acaba de quedar listo: rehace la pestaña para encender "Abrir".
@@ -653,8 +697,11 @@ function LobbyUIController:Start()
 		note(
 			parent,
 			if factor < 1
-				then `🥚 Tu nido: tu incubadora deja los huevos en el {math.round(factor * 100)} % del tiempo`
-				else "🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)",
+				then T(
+					"🥚 Tu nido: tu incubadora deja los huevos en el {percent} % del tiempo",
+					{ percent = math.round(factor * 100) }
+				)
+				else T("🥚 Tu nido: solo avanza el huevo que está en él (también sin jugar)"),
 			-100
 		)
 
@@ -664,10 +711,12 @@ function LobbyUIController:Start()
 			local nestEgg = EggIncubation.inSlot(eggs, slot)
 			local row = newRow(parent, -100 + slot * 2)
 			if not nestEgg then
-				row.title.Text = if slots > 1 then `🥚 Hueco {slot} libre` else "🥚 Nido vacío"
+				row.title.Text = if slots > 1
+					then T("🥚 Hueco {slot} libre", { slot = slot })
+					else T("🥚 Nido vacío")
 				row.detail.Text = if #eggs.bag + #eggs.pending > 0
-					then "Pon a incubar uno de tus huevos"
-					else `Defiende huevos en la {ISLAND} para conseguirlos`
+					then T("Pon a incubar uno de tus huevos")
+					else T("Defiende huevos en la Isla de monos para conseguirlos")
 				setButton(row.button, "—", false)
 				continue
 			end
@@ -688,7 +737,7 @@ function LobbyUIController:Start()
 			local ready = EggIncubation.isReady(nestEgg, EggIncubation.now())
 			nestRows[slot] = { title = row.title, detail = row.detail, fill = fill, ready = ready }
 			updateNestRow(slot, nestEgg)
-			setButton(row.button, if ready then "🐣 Abrir" else "Incubando", ready)
+			setButton(row.button, if ready then T("🐣 Abrir") else T("Incubando"), ready)
 			if ready then
 				row.button.MouseButton1Click:Connect(function()
 					-- Se cierra la ventana para ver la ceremonia en el nido.
@@ -709,23 +758,28 @@ function LobbyUIController:Start()
 				local pet = Pets[petId]
 				local owned = (data.pets[petId] or 0) > 0
 				missingPets += if owned then 0 else 1
-				table.insert(names, `{pet.icon} {pet.name}{if owned then " ✅" else ""}`)
+				table.insert(names, `{pet.icon} {T(pet.name)}{if owned then " ✅" else ""}`)
 			end
 			-- Y sus monturas (Fase 11), mientras no las tengas.
 			for _, mountId in PetRoll.mountsOfRarity(nestEgg.rarity) do
 				local mount = Mounts[mountId]
 				local owned = (data.mounts[mountId] or 0) > 0
 				missingMounts += if owned then 0 else 1
-				table.insert(names, `{mount.icon} {mount.name} (montura){if owned then " ✅" else ""}`)
+				local mountText = T("{icon} {name} (montura)", { icon = mount.icon, name = { mount.name } })
+				table.insert(names, if owned then mountText .. " ✅" else mountText)
 			end
 			local options = newRow(parent, -99 + slot * 2)
-			options.title.Text = `Puede salir ({rarity.name}):`
+			options.title.Text = T("Puede salir ({rarity}):", { rarity = { rarity.name } })
 			if missingPets == 0 then
 				-- Ya las tiene todas: lo dice antes de abrirlo (y si aún puede salir una montura).
 				local amber = Config.Egg.DuplicateAmber[nestEgg.rarity] or 0
+				local args = { rarity = { rarity.name }, amber = amber }
 				options.title.Text = if missingMounts > 0
-					then `{rarity.name}: ya tienes todas sus mascotas (repetida: +{amber} ✨) · aún puede salir montura`
-					else `{rarity.name}: ya tienes todas · te dará +{amber} ✨ Ámbar`
+					then T(
+						"{rarity}: ya tienes todas sus mascotas (repetida: +{amber} ✨) · aún puede salir montura",
+						args
+					)
+					else T("{rarity}: ya tienes todas · te dará +{amber} ✨ Ámbar", args)
 			end
 			options.title.TextColor3 = rarity.color
 			options.detail.Text = table.concat(names, " · ")
@@ -739,18 +793,20 @@ function LobbyUIController:Start()
 			for index, egg in stored do
 				local rarity = Rarities[egg.rarity]
 				local eggRow, discard = twoButtonRow(parent, firstOrder + index)
-				eggRow.title.Text = `🥚 Huevo {rarity.name}`
+				eggRow.title.Text = T("🥚 Huevo {rarity}", { rarity = { rarity.name } })
 				eggRow.title.TextColor3 = rarity.color
-				eggRow.detail.Text =
-					`Tarda {EggIncubation.formatTime(EggIncubation.hatchSeconds(egg.rarity))} en el nido`
-				setButton(eggRow.button, "Al nido", hasRoom)
+				eggRow.detail.Text = T(
+					"Tarda {time} en el nido",
+					{ time = EggIncubation.formatTime(EggIncubation.hatchSeconds(egg.rarity)) }
+				)
+				setButton(eggRow.button, T("Al nido"), hasRoom)
 				if hasRoom then
 					eggRow.button.MouseButton1Click:Connect(function()
 						Remotes.PlaceEgg:FireServer(source, index)
 					end)
 				end
 				local amber = EggIncubation.discardAmber(egg.rarity)
-				discard.Text = `Descartar +{amber} ✨`
+				discard.Text = T("Descartar +{amber} ✨", { amber = amber })
 				local armedUntil = 0
 				discard.MouseButton1Click:Connect(function()
 					if os.clock() < armedUntil then
@@ -758,27 +814,34 @@ function LobbyUIController:Start()
 						return
 					end
 					armedUntil = os.clock() + DISCARD_CONFIRM_SECONDS
-					discard.Text = "¿Seguro?"
+					discard.Text = T("¿Seguro?")
 					task.delay(DISCARD_CONFIRM_SECONDS, function()
 						if discard.Parent then
-							discard.Text = `Descartar +{amber} ✨`
+							discard.Text = T("Descartar +{amber} ✨", { amber = amber })
 						end
 					end)
 				end)
 			end
 		end
-		note(parent, `🎒 Mochila de huevos ({#eggs.bag}/{Config.Egg.BagSize}): esperan sin avanzar`, -90)
+		note(
+			parent,
+			T(
+				"🎒 Mochila de huevos ({count}/{size}): esperan sin avanzar",
+				{ count = #eggs.bag, size = Config.Egg.BagSize }
+			),
+			-90
+		)
 		eggRows("bag", eggs.bag, -90)
 		for slot = #eggs.bag + 1, Config.Egg.BagSize do
 			local empty = newRow(parent, -90 + slot)
 			empty.frame.Size = UDim2.new(1, -10, 0, if compactUi then 30 else 40)
-			empty.title.Text = "Casilla libre"
+			empty.title.Text = T("Casilla libre")
 			empty.title.TextColor3 = Color3.fromRGB(160, 150, 135)
 			empty.detail.Visible = false
 			empty.button.Visible = false
 		end
 		if #eggs.pending > 0 then
-			note(parent, "⚠️ Mochila llena: estos huevos esperan a que decidas", -80)
+			note(parent, T("⚠️ Mochila llena: estos huevos esperan a que decidas"), -80)
 			eggRows("pending", eggs.pending, -80)
 		end
 	end
@@ -836,7 +899,10 @@ function LobbyUIController:Start()
 	local function missionTabs(weeklyDone: number, weeklyTotal: number)
 		windowTabs(
 			"MissionTabs",
-			{ { id = "Hoy", text = "📅 Hoy" }, { id = "Semana", text = `📆 Semana ({weeklyDone}/{weeklyTotal})` } },
+			{
+				{ id = "Hoy", text = T("📅 Hoy") },
+				{ id = "Semana", text = T("📆 Semana ({done}/{total})", { done = weeklyDone, total = weeklyTotal }) },
+			},
 			missionsTab,
 			function(id)
 				missionsTab = id
@@ -848,7 +914,7 @@ function LobbyUIController:Start()
 	local function renderShop(data: Progression.ProgressData)
 		windowTabs(
 			"ShopTabs",
-			{ { id = "Mejoras", text = "✨ Mejoras" }, { id = "Cosmeticos", text = "🎨 Cosméticos" } },
+			{ { id = "Mejoras", text = T("✨ Mejoras") }, { id = "Cosmeticos", text = T("🎨 Cosméticos") } },
 			shopTab,
 			function(id)
 				shopTab = id
@@ -874,14 +940,14 @@ function LobbyUIController:Start()
 			local definition = Missions[mission.id]
 			local row = newRow(list, firstOrder + index)
 			local progress = if mission.done
-				then "✅ Cumplida"
+				then T("✅ Cumplida")
 				else `{math.floor(mission.progress)}/{definition.target}`
 			row.title.Text = Daily.missionText(mission.id)
 			row.title.TextColor3 = if mission.done then Color3.fromRGB(120, 230, 140) else Color3.new(1, 1, 1)
 			local parts = { if mission.done then "✅" else progress }
 			if not definition.weekly then
 				local class = DIFFICULTY_NAMES[definition.difficulty or "Facil"]
-				table.insert(parts, if definition.role then `{class} (tu rol)` else class)
+				table.insert(parts, if definition.role then T("{class} (tu rol)", { class = { class } }) else T(class))
 			end
 			table.insert(parts, Rewards.compact(definition.reward))
 			row.detail.Text = table.concat(parts, " · ")
@@ -889,20 +955,20 @@ function LobbyUIController:Start()
 				setButton(row.button, progress, false)
 				continue
 			end
-			setButton(row.button, "🔄 Cambiar", true)
+			setButton(row.button, T("🔄 Cambiar"), true)
 			local armedUntil = 0
 			row.button.MouseButton1Click:Connect(function()
 				if os.clock() < armedUntil then
 					armedUntil = 0
-					setButton(row.button, "Cambiando…", false)
+					setButton(row.button, T("Cambiando…"), false)
 					Remotes.RerollMission:FireServer(scope, index)
 					return
 				end
 				armedUntil = os.clock() + DISCARD_CONFIRM_SECONDS
-				row.button.Text = "¿Seguro?"
+				row.button.Text = T("¿Seguro?")
 				task.delay(DISCARD_CONFIRM_SECONDS, function()
 					if row.button.Parent and row.button.Active then
-						row.button.Text = "🔄 Cambiar"
+						row.button.Text = T("🔄 Cambiar")
 					end
 				end)
 			end)
@@ -923,25 +989,32 @@ function LobbyUIController:Start()
 
 		if missionsTab == "Semana" then
 			local rerolls = math.max(0, Config.Daily.WeeklyRerolls - weekly.rerolls)
+			local reset = longWait(Daily.secondsToWeekReset(now))
 			note(
 				list,
-				`📆 Misiones de la semana: en la {ISLAND} y en la {Config.PlaceNames.DunasShort} (cambian en {longWait(
-					Daily.secondsToWeekReset(now)
-				)}){if rerolls > 0 then ` · 🔄 {rerolls} cambio gratis` else ""}`,
+				if rerolls > 0
+					then T(
+						"📆 Misiones de la semana: en la Isla de monos y en la Isla de dunas (cambian en {time}) · 🔄 {rerolls} cambio gratis",
+						{ time = reset, rerolls = rerolls }
+					)
+					else T(
+						"📆 Misiones de la semana: en la Isla de monos y en la Isla de dunas (cambian en {time})",
+						{ time = reset }
+					),
 				1
 			)
 			missionRows("weekly", weekly.missions, rerolls > 0, 1)
 			local bonus = newRow(list, 20)
-			bonus.title.Text = `🏅 Extra por cumplir las {#weekly.missions}`
+			bonus.title.Text = T("🏅 Extra por cumplir las {n}", { n = #weekly.missions })
 			bonus.title.TextColor3 = Color3.fromRGB(255, 205, 70)
 			bonus.detail.Text = `{weeklyDone}/{#weekly.missions} · {Rewards.compact(Config.Daily.WeeklyBonus)}`
-			setButton(bonus.button, if weekly.bonus then "✅ Cobrado" else "Pendiente", false)
+			setButton(bonus.button, if weekly.bonus then T("✅ Cobrado") else T("Pendiente"), false)
 			return
 		end
 
 		local login = Daily.loginState(retention.login)
 		local claimable = Daily.canClaim(login, now)
-		note(list, "📅 Calendario: un premio por cada día que entres (si faltas, no se pierde)", 0)
+		note(list, T("📅 Calendario: un premio por cada día que entres (si faltas, no se pierde)"), 0)
 
 		local holder = Instance.new("Frame")
 		holder.LayoutOrder = 1
@@ -952,13 +1025,15 @@ function LobbyUIController:Start()
 
 		local today = newRow(list, 2)
 		local reward = Config.Daily.Calendar[login.step]
-		today.title.Text = if claimable then `Hoy, día {login.step}:` else `Mañana, día {login.step}:`
+		today.title.Text = if claimable
+			then T("Hoy, día {day}:", { day = login.step })
+			else T("Mañana, día {day}:", { day = login.step })
 		today.title.TextColor3 = Color3.fromRGB(255, 205, 70)
 		today.detail.Text = Rewards.describe(reward)
-		setButton(today.button, if claimable then "Cobrar" else "", claimable)
+		setButton(today.button, if claimable then T("Cobrar") else "", claimable)
 		if claimable then
 			today.button.MouseButton1Click:Connect(function()
-				setButton(today.button, "Cobrando…", false)
+				setButton(today.button, T("Cobrando…"), false)
 				Remotes.ClaimLogin:FireServer()
 			end)
 		else
@@ -968,21 +1043,28 @@ function LobbyUIController:Start()
 		-- Misiones del día: se cumplen en la Isla; aquí se ve cómo van, qué dan y se pueden cambiar.
 		local state = Daily.missionState(retention.daily)
 		local rerolls = math.max(0, Config.Daily.DailyRerolls - state.rerolls)
+		local reset = EggIncubation.formatTime(Daily.secondsToReset(now))
 		note(
 			list,
-			`🎯 Misiones de hoy: se cumplen en la {ISLAND} (cambian en {EggIncubation.formatTime(
-				Daily.secondsToReset(now)
-			)}){if rerolls > 0 then ` · 🔄 {rerolls} cambio gratis` else ""}`,
+			if rerolls > 0
+				then T(
+					"🎯 Misiones de hoy: se cumplen en la Isla de monos (cambian en {time}) · 🔄 {rerolls} cambio gratis",
+					{ time = reset, rerolls = rerolls }
+				)
+				else T(
+					"🎯 Misiones de hoy: se cumplen en la Isla de monos (cambian en {time})",
+					{ time = reset }
+				),
 			3
 		)
 		missionRows("daily", state.missions, rerolls > 0, 3)
 
 		local items = Rewards.describeItems(Rewards.sanitizeItems(retention.supplies))
 		local supplies = newRow(list, 10)
-		supplies.title.Text = "🎒 Provisiones para tu próxima partida"
+		supplies.title.Text = T("🎒 Provisiones para tu próxima partida")
 		supplies.detail.Text = if items ~= ""
 			then items
-			else "Ninguna por ahora: llegan con el calendario y las misiones"
+			else T("Ninguna por ahora: llegan con el calendario y las misiones")
 		supplies.detail.Size = UDim2.new(1, -20, 0, 34)
 		supplies.button.Visible = false
 	end
@@ -1023,7 +1105,7 @@ function LobbyUIController:Start()
 
 		renderNest(nestPane)
 		local active = player:GetAttribute("ActivePet")
-		note(petsPane, "🐾 Tu colección: las mascotas nacen de los huevos del nido", 0)
+		note(petsPane, T("🐾 Tu colección: las mascotas nacen de los huevos del nido"), 0)
 		local grid = Instance.new("Frame")
 		grid.LayoutOrder = 1
 		grid.BackgroundTransparency = 1
@@ -1067,15 +1149,15 @@ function LobbyUIController:Start()
 			stroke.Thickness = 2
 			stroke.Enabled = isActive
 			stroke.Parent = card
-			local name = Widgets.label(if owned > 0 then `{pet.icon} {pet.name}` else "❓ ???", card)
+			local name = Widgets.label(if owned > 0 then `{pet.icon} {T(pet.name)}` else "❓ ???", card)
 			name.Position = UDim2.fromOffset(6, if compact then 3 else 4)
 			name.Size = UDim2.new(1, -12, 0, if compact then 18 else 22)
 			name.TextColor3 = rarity.color
 			textCap(name, if compact then 15 else 18)
 			local detail = Widgets.label(
 				if owned > 0
-					then `{rarity.name} · {pet.kind}{if compact then "" else "\n" .. pet.description}`
-					else `{rarity.name}{if compact then "" else "\nAún no la tienes"}`,
+					then `{T(rarity.name)} · {T(pet.kind)}{if compact then "" else "\n" .. T(pet.description)}`
+					else `{T(rarity.name)}{if compact then "" else "\n" .. T("Aún no la tienes")}`,
 				card
 			)
 			detail.Position = UDim2.fromOffset(6, if compact then 21 else 28)
@@ -1097,7 +1179,7 @@ function LobbyUIController:Start()
 				limit:Destroy()
 			end
 			if owned > 0 then
-				setButton(button, if isActive then "Quitar" else "Llevar", true)
+				setButton(button, if isActive then T("Quitar") else T("Llevar"), true)
 				button.MouseButton1Click:Connect(function()
 					Remotes.SelectPet:FireServer(if isActive then "" else petId)
 				end)
@@ -1108,7 +1190,7 @@ function LobbyUIController:Start()
 
 		-- Monturas (Fase 11): una fila por montura, con su botón para llevarla (se monta con N).
 		local activeMount = player:GetAttribute("ActiveMount")
-		note(petsPane, "🦙 Monturas: llévala y móntala con N (o el botón Montar)", 2)
+		note(petsPane, T("🦙 Monturas: llévala y móntala con N (o el botón Montar)"), 2)
 		local mountIds = {}
 		for mountId in Mounts do
 			table.insert(mountIds, mountId)
@@ -1135,12 +1217,13 @@ function LobbyUIController:Start()
 			stroke.Enabled = isActive
 			stroke.Parent = row
 			-- Las que no salen de los huevos normales (origin) se ven con su nombre y un candado; las demás, ocultas.
-			local shortName = string.match(mount.name, "^[^,]+") or mount.name
+			local mountName = T(mount.name)
+			local shortName = string.match(mountName, "^[^,]+") or mountName
 			local name = Widgets.label(
 				if owned
-					then `{mount.icon} {mount.name} · {rarity.name}`
-					elseif mount.origin then `🔒 {shortName} · {rarity.name}`
-					else `❓ ??? · {rarity.name}`,
+					then `{mount.icon} {mountName} · {T(rarity.name)}`
+					elseif mount.origin then `🔒 {shortName} · {T(rarity.name)}`
+					else `❓ ??? · {T(rarity.name)}`,
 				row
 			)
 			name.Position = UDim2.fromOffset(8, 0)
@@ -1157,12 +1240,12 @@ function LobbyUIController:Start()
 				limit:Destroy()
 			end
 			if owned then
-				setButton(button, if isActive then "Quitar" else "Llevar", true)
+				setButton(button, if isActive then T("Quitar") else T("Llevar"), true)
 				button.MouseButton1Click:Connect(function()
 					Remotes.SelectMount:FireServer(if isActive then "" else mountId)
 				end)
 			else
-				setButton(button, mount.origin or "Sale de los huevos", false)
+				setButton(button, if mount.origin then T(mount.origin) else T("Sale de los huevos"), false)
 			end
 		end
 	end
@@ -1206,7 +1289,7 @@ function LobbyUIController:Start()
 			block.BackgroundTransparency = 0.15
 			block.Parent = holder
 			corner(block, 10)
-			local blockTitle = Widgets.label(group.title, block)
+			local blockTitle = Widgets.label(T(group.title), block)
 			blockTitle.Position = UDim2.fromOffset(8, 3)
 			blockTitle.Size = UDim2.new(1, -16, 0, 24)
 			blockTitle.TextColor3 = READY_COLOR
@@ -1216,7 +1299,7 @@ function LobbyUIController:Start()
 				frame.Position = UDim2.new((column - 1) * 0.5, 8, 0, 30)
 				frame.Size = UDim2.new(0.5, -12, 0, columnHeight)
 				frame.Parent = block
-				local boardTitle = Widgets.label(board.title, frame)
+				local boardTitle = Widgets.label(T(board.title), frame)
 				boardTitle.Size = UDim2.new(1, 0, 0, 20)
 				boardTitle.TextXAlignment = Enum.TextXAlignment.Left
 				boardTitle.TextColor3 = Color3.fromRGB(255, 220, 150)
@@ -1231,7 +1314,7 @@ function LobbyUIController:Start()
 					local line = Widgets.label(
 						if entry
 							then `{place} {entry.name} — {entry.value}`
-							elseif position == 1 then "Aún no hay datos"
+							elseif position == 1 then T("Aún no hay datos")
 							else "",
 						frame
 					)
@@ -1255,7 +1338,7 @@ function LobbyUIController:Start()
 					textCap(line, if compactUi then 13 else 17)
 				end
 				local value = mine[board.stat]
-				local you = Widgets.label(`Tú: {if typeof(value) == "number" then value else 0}`, frame)
+				local you = Widgets.label(T("Tú: {n}", { n = if typeof(value) == "number" then value else 0 }), frame)
 				you.Position = UDim2.new(0, 0, 1, -24)
 				you.Size = UDim2.new(1, 0, 0, 22)
 				you.TextXAlignment = Enum.TextXAlignment.Left
@@ -1265,7 +1348,7 @@ function LobbyUIController:Start()
 				youLimit.Parent = you
 			end
 		end
-		note(list, "Se actualiza cada pocos minutos", 2)
+		note(list, T("Se actualiza cada pocos minutos"), 2)
 	end
 
 	local function renderParty()
@@ -1276,23 +1359,25 @@ function LobbyUIController:Start()
 		note(
 			list,
 			if inParty
-				then `👥 Grupo: {membersText}`
-				else "Invita a otros jugadores para viajar juntos a la misma isla",
+				then T("👥 Grupo: {members}", { members = membersText })
+				else T("Invita a otros jugadores para viajar juntos a la misma isla"),
 			0
 		)
 		local inviteRow = newRow(list, 1)
-		inviteRow.title.Text = "📨 Invitar amigos"
-		inviteRow.detail.Text = "Envía una invitación a tus amigos de Roblox para que vengan a este Lobby."
-		setButton(inviteRow.button, "Invitar", true)
+		inviteRow.title.Text = T("📨 Invitar amigos")
+		inviteRow.detail.Text = T("Envía una invitación a tus amigos de Roblox para que vengan a este Lobby.")
+		setButton(inviteRow.button, T("Invitar"), true)
 		inviteRow.button.MouseButton1Click:Connect(function()
 			inviteFriends(player)
 		end)
 		local order = 2
 		if inParty then
 			local row = newRow(list, order)
-			row.title.Text = if isLeader then "Eres el líder" else `Viajan cuando el líder presione "{JOIN_TEXT}"`
-			row.detail.Text = "Salir del grupo te deja viajar por tu cuenta."
-			setButton(row.button, "Salir", true)
+			row.title.Text = if isLeader
+				then T("Eres el líder")
+				else T('Viajan cuando el líder presione "{button}"', { button = { JOIN_TEXT } })
+			row.detail.Text = T("Salir del grupo te deja viajar por tu cuenta.")
+			setButton(row.button, T("Salir"), true)
 			row.button.MouseButton1Click:Connect(function()
 				Remotes.PartyLeave:FireServer()
 			end)
@@ -1306,8 +1391,8 @@ function LobbyUIController:Start()
 				PlayerFrames.apply(row.frame, if typeof(frameId) == "string" then frameId else nil)
 				local otherMembers = other:GetAttribute("PartyMembers")
 				local busy = typeof(otherMembers) == "string"
-				row.detail.Text = if busy then "Ya está en un grupo" else "En el Lobby"
-				setButton(row.button, "Invitar", isLeader and not busy)
+				row.detail.Text = if busy then T("Ya está en un grupo") else T("En el Lobby")
+				setButton(row.button, T("Invitar"), isLeader and not busy)
 				row.button.MouseButton1Click:Connect(function()
 					Remotes.PartyInvite:FireServer(other.UserId)
 				end)
@@ -1329,10 +1414,10 @@ function LobbyUIController:Start()
 
 	local function queueText(queue: { [string]: any }): string
 		local waited = math.max(0, Workspace:GetServerTimeNow() - (tonumber(queue.since) or 0))
-		return `⏳ Buscando partida {queue.format}v{queue.format}… {math.floor(waited // 60)}:{string.format(
-			"%02d",
-			math.floor(waited % 60)
-		)}`
+		return T("⏳ Buscando partida {n}v{n}… {time}", {
+			n = queue.format,
+			time = `{math.floor(waited // 60)}:{string.format("%02d", math.floor(waited % 60))}`,
+		})
 	end
 
 	-- Arena de Dunas: formato y cola (ArenaQueueService), tus números y el equipo de la arena de cada rol
@@ -1407,13 +1492,13 @@ function LobbyUIController:Start()
 			searchLimit:Destroy()
 		end
 		if follower then
-			setButton(search, "Lo elige tu líder", false)
+			setButton(search, T("Lo elige tu líder"), false)
 		elseif queue then
-			setButton(search, "✖ Salir de la cola", true)
+			setButton(search, T("✖ Salir de la cola"), true)
 			search.BackgroundColor3 = CLOSE_COLOR
 			search.TextColor3 = Color3.new(1, 1, 1)
 		else
-			setButton(search, "⚔️ Buscar partida", true)
+			setButton(search, T("⚔️ Buscar partida"), true)
 		end
 		search.MouseButton1Click:Connect(function()
 			if follower then
@@ -1441,7 +1526,12 @@ function LobbyUIController:Start()
 				then arena.daily.amber or 0
 				else 0
 			status.Text =
-				`🏆 {stats.wins or 0} victorias · 🚩 {stats.captures or 0} banderas · ✨ hoy {daily}/{Config.Arena.Amber.DailyCap} de Ámbar en la arena`
+				T("🏆 {wins} victorias · 🚩 {captures} banderas · ✨ hoy {daily}/{cap} de Ámbar en la arena", {
+					wins = stats.wins or 0,
+					captures = stats.captures or 0,
+					daily = daily,
+					cap = Config.Arena.Amber.DailyCap,
+				})
 		end
 
 		-- Rol cuyo equipo se ve (al empezar, el de la arena o el elegido en el Lobby).
@@ -1586,7 +1676,7 @@ function LobbyUIController:Start()
 			window = { icon = window.icon, title = window.title, wide = true, own = true }
 		end
 		compactUi = Workspace.CurrentCamera.ViewportSize.Y < COMPACT_BELOW
-		windowTitle.Text = if window.icon ~= "" then `{window.icon} {window.title}` else window.title
+		windowTitle.Text = if window.icon ~= "" then `{window.icon} {T(window.title)}` else T(window.title)
 		-- En una pantalla baja, todo el ancho y el alto libres; si no, centrada con su ancho.
 		local top = if compactUi then WINDOW_TOP_COMPACT else WINDOW_TOP
 		local listTop = if compactUi then LIST_TOP_COMPACT else LIST_TOP
@@ -1674,7 +1764,7 @@ function LobbyUIController:Start()
 	-- Botón de viaje (y el bote del naufragio, que hace lo mismo): encima de la barra de objetos de
 	-- Roblox, que abajo en el centro lleva las armas del rol para probarlas en la plaza. Con una ventana
 	-- abierta se esconde, con la barra de objetos, para dejarle a la ventana todo el alto (placeJoin).
-	local joinButton = Widgets.button(JOIN_TEXT, gui)
+	local joinButton = Widgets.button(T(JOIN_TEXT), gui)
 	joinButton.Name = "JoinIslandButton"
 	joinButton.AnchorPoint = Vector2.new(0.5, 1)
 	joinButton.Size = UDim2.fromScale(0.3, 0.1)
@@ -1684,12 +1774,12 @@ function LobbyUIController:Start()
 			return
 		end
 		waiting = true
-		joinButton.Text = "Viajando..."
+		joinButton.Text = T("Viajando...")
 		Remotes.RequestJoinIsland:FireServer()
 		-- Si el viaje no ocurre (por ejemplo en Studio), el botón vuelve a estar disponible.
 		task.delay(Config.Teleport.CooldownSeconds + 4, function()
 			waiting = false
-			joinButton.Text = JOIN_TEXT
+			joinButton.Text = T(JOIN_TEXT)
 		end)
 	end
 	joinButton.Activated:Connect(join)
@@ -1709,8 +1799,9 @@ function LobbyUIController:Start()
 			return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
 		end)
 		local items = Rewards.sanitizeItems(if ok and typeof(decoded) == "table" then decoded.supplies else nil)
-		local text = Rewards.describeItems(items)
-		suppliesText = if text ~= "" then `🎒 Te llevas a la {ISLAND}: {text}` else ""
+		suppliesText = if next(items) ~= nil
+			then T("🎒 Te llevas a la Isla de monos: {items}", { items = Rewards.itemsArg(items) })
+			else ""
 		suppliesLabel.Text = suppliesText
 		suppliesLabel.Visible = suppliesText ~= "" and not panel.Visible
 	end
@@ -1741,7 +1832,7 @@ function LobbyUIController:Start()
 		corner(button, 12)
 		local icon = Widgets.label(window.icon, button)
 		icon.Name = "Icon"
-		local name = Widgets.label(id, button)
+		local name = Widgets.label(T(MENU_LABELS[id]), button)
 		name.Name = "Label"
 		name.Position = UDim2.new(0, 2, 0.6, 0)
 		name.Size = UDim2.new(1, -4, 0.34, 0)
@@ -1790,7 +1881,7 @@ function LobbyUIController:Start()
 	refreshBadges()
 
 	-- Invitar amigos de Roblox (también está en la ventana Grupo): debajo de la barra del menú.
-	local inviteButton = Widgets.button("📨 Invitar amigos", gui)
+	local inviteButton = Widgets.button(T("📨 Invitar amigos"), gui)
 	inviteButton.Name = "InviteFriends"
 	local inviteLimit = inviteButton:FindFirstChildOfClass("UISizeConstraint")
 	inviteButton.Activated:Connect(function()
@@ -1839,7 +1930,7 @@ function LobbyUIController:Start()
 			bar.AnchorPoint = Vector2.zero
 			bar.Position = UDim2.fromOffset(12, BAR_TOP)
 			bar.Size = UDim2.fromOffset(BAR_BUTTON.X, columnHeight)
-			inviteButton.Text = "📨 Invitar amigos"
+			inviteButton.Text = T("📨 Invitar amigos")
 			if inviteLimit then
 				inviteLimit.MinSize = Vector2.new(160, INVITE_HEIGHT)
 			end
@@ -1971,7 +2062,7 @@ function LobbyUIController:Start()
 			local countdown = calendarCountdown
 			if countdown and panel.Visible then
 				local left = Daily.secondsToReset(EggIncubation.now())
-				countdown.Text = `En {EggIncubation.formatTime(left)}`
+				countdown.Text = T("En {time}", { time = EggIncubation.formatTime(left) })
 				if left <= 1 then
 					-- Ha cambiado el día: ya se puede cobrar.
 					task.delay(2, render)
@@ -2028,8 +2119,21 @@ function LobbyUIController:Start()
 	Players.PlayerRemoving:Connect(function()
 		task.defer(render)
 	end)
-	-- Otro idioma (Ajustes, Shared/Strings): la ventana abierta se rehace en él.
-	Strings.onChanged(render)
+	-- Otro idioma (Ajustes, Shared/Strings): la ventana abierta se rehace en él, y también lo fijo (la
+	-- pastilla, la barra, el botón de viaje, las provisiones y el de invitar).
+	Strings.onChanged(function()
+		refreshHeader()
+		for id, item in barButtons do
+			item.name.Text = T(MENU_LABELS[id])
+		end
+		if not waiting then
+			joinButton.Text = T(JOIN_TEXT)
+		end
+		refreshSupplies()
+		placeHud()
+		placeJoin()
+		render()
+	end)
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
 		if prompt.Name == "ZarparPrompt" then
@@ -2054,20 +2158,20 @@ function LobbyUIController:Start()
 		local popupLimit = Instance.new("UISizeConstraint")
 		popupLimit.MinSize = Vector2.new(280, 150)
 		popupLimit.Parent = popup
-		local text = Widgets.label(`👥 {leaderName} te invita a su grupo`, popup)
+		local text = Widgets.label(T("👥 {name} te invita a su grupo", { name = leaderName }), popup)
 		text.Position = UDim2.fromScale(0.05, 0.08)
 		text.Size = UDim2.fromScale(0.9, 0.35)
 		local function respond(accept: boolean)
 			Remotes.PartyRespond:FireServer(leaderUserId, accept)
 			popup:Destroy()
 		end
-		local accept = Widgets.button("Aceptar", popup)
+		local accept = Widgets.button(T("Aceptar"), popup)
 		accept.Position = UDim2.fromScale(0.05, 0.55)
 		accept.Size = UDim2.fromScale(0.42, 0.35)
 		accept.MouseButton1Click:Connect(function()
 			respond(true)
 		end)
-		local decline = Widgets.button("Rechazar", popup)
+		local decline = Widgets.button(T("Rechazar"), popup)
 		decline.Position = UDim2.fromScale(0.53, 0.55)
 		decline.Size = UDim2.fromScale(0.42, 0.35)
 		decline.BackgroundColor3 = BLOCKED_COLOR

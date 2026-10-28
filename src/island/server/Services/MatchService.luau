@@ -28,6 +28,7 @@ local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
@@ -182,7 +183,7 @@ local function finish(result: Result, test: boolean)
 	task.delay(Config.Match.ResultsSeconds, function()
 		local players = Players:GetPlayers()
 		if #players > 0 then
-			Teleporter.send(players, Config.PlaceIds.Lobby, "el Lobby")
+			Teleporter.send(players, Config.PlaceIds.Lobby, Strings.later("el Lobby"))
 		end
 	end)
 end
@@ -208,7 +209,7 @@ local function rescue(test: boolean)
 			end
 		end
 		if #leaving > 0 then
-			Teleporter.send(leaving, Config.PlaceIds.Lobby, "el Lobby")
+			Teleporter.send(leaving, Config.PlaceIds.Lobby, Strings.later("el Lobby"))
 		end
 		if next(continuing) == nil then
 			ended = true
@@ -259,7 +260,7 @@ function MatchService:Start()
 		if ended or rescued then
 			Remotes.Notify:FireClient(player, "Esta partida ha terminado: volviendo al Lobby")
 			task.wait(3)
-			Teleporter.send({ player }, Config.PlaceIds.Lobby, "el Lobby")
+			Teleporter.send({ player }, Config.PlaceIds.Lobby, Strings.later("el Lobby"))
 		end
 	end)
 	Remotes.ChooseContinue.OnServerEvent:Connect(function(player: Player)

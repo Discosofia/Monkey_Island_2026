@@ -17,6 +17,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
@@ -112,7 +113,7 @@ local function leave(player: Player)
 	parties[newLeader] = list
 	for _, member in list do
 		leaderOf[member] = newLeader
-		Remotes.Notify:FireClient(member, `{player.DisplayName} ha salido del grupo`)
+		Remotes.Notify:FireClient(member, "{name} ha salido del grupo", { name = player.DisplayName })
 	end
 	publish(newLeader)
 end
@@ -128,17 +129,17 @@ local function onInvite(player: Player, targetUserId: any)
 		return
 	end
 	if leaderOf[target] then
-		Remotes.Notify:FireClient(player, `{target.DisplayName} ya está en un grupo`)
+		Remotes.Notify:FireClient(player, "{name} ya está en un grupo", { name = target.DisplayName })
 		return
 	end
 	if #members(leader) >= Config.Party.MaxSize then
-		Remotes.Notify:FireClient(player, `El grupo está lleno ({Config.Party.MaxSize})`)
+		Remotes.Notify:FireClient(player, "El grupo está lleno ({n})", { n = Config.Party.MaxSize })
 		return
 	end
 	invites[target] = invites[target] or {}
 	invites[target][leader] = os.clock()
 	Remotes.PartyInvited:FireClient(target, leader.UserId, leader.DisplayName)
-	Remotes.Notify:FireClient(player, `Invitación enviada a {target.DisplayName}`)
+	Remotes.Notify:FireClient(player, "Invitación enviada a {name}", { name = target.DisplayName })
 end
 
 local function onRespond(player: Player, leaderUserId: any, accept: any)
@@ -167,7 +168,7 @@ local function onRespond(player: Player, leaderUserId: any, accept: any)
 	parties[leader] = list
 	for _, member in list do
 		leaderOf[member] = leader
-		Remotes.Notify:FireClient(member, `{player.DisplayName} se ha unido al grupo`)
+		Remotes.Notify:FireClient(member, "{name} se ha unido al grupo", { name = player.DisplayName })
 	end
 	publish(leader)
 end
@@ -182,7 +183,8 @@ local function onJoinIsland(player: Player)
 	if leader and leader ~= player then
 		Remotes.Notify:FireClient(
 			player,
-			`Tu grupo viaja cuando {leader.DisplayName} (líder) presione "Ir a la {Config.PlaceNames.IslandShort}"`
+			'Tu grupo viaja cuando {name} (líder) presione "{button}"',
+			{ name = leader.DisplayName, button = { Strings.later("🍌 Ir a la Isla de monos 🐒") } }
 		)
 		return
 	end
@@ -199,7 +201,7 @@ local function onJoinIsland(player: Player)
 	while pending > 0 and os.clock() - started < 8 do
 		task.wait(0.1)
 	end
-	Teleporter.send(travellers, Config.PlaceIds.Island, `la {Config.PlaceNames.IslandShort}`, travelOptions())
+	Teleporter.send(travellers, Config.PlaceIds.Island, Strings.later("la Isla de monos"), travelOptions())
 end
 
 function MatchmakingService:Start()

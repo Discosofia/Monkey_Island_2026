@@ -19,8 +19,11 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local StationMarkers = require(script.Parent.StationMarkersController)
+
+local later = Strings.later
 
 local TRAIL_COLOR = Color3.fromRGB(255, 205, 70)
 -- El rastro acaba unos studs delante de la estación (donde se para el jugador), a ras de suelo.
@@ -32,17 +35,18 @@ local REMINDER_SECONDS = 25
 local TIP_SECONDS = 4
 
 -- "station": la estación de la plaza (o "Sparring", el muñeco); "prompt": el aviso que la completa.
-type Step = { station: string, prompt: string?, message: string }
+-- "message": frase de Shared/Strings, con sus argumentos en "args".
+type Step = { station: string, prompt: string?, message: string, args: { [string]: any }? }
 local STEPS: { Step } = {
 	{
 		station = "Rol",
 		prompt = "RolesPrompt",
-		message = "⚔️ Ve al cartel «Elige tu rol» y presiona E para elegir tu rol",
+		message = later("⚔️ Ve al cartel «Elige tu rol» y presiona E para elegir tu rol"),
 	},
 	{
 		station = "Mascotas",
 		prompt = "NidoPrompt",
-		message = "🥚 Ahora mira tu nido de huevos: de ahí nacen tus mascotas",
+		message = later("🥚 Ahora mira tu nido de huevos: de ahí nacen tus mascotas"),
 	},
 }
 
@@ -53,17 +57,18 @@ local SPARRING_STOP = 4
 local function guardKey(): string
 	local input = UserInputService:GetLastInputType()
 	if input == Enum.UserInputType.Touch then
-		return "toca «Guardia»"
+		return later("toca «Guardia»")
 	elseif input.Name:find("Gamepad") then
-		return "presiona L2"
+		return later("presiona L2")
 	end
-	return "presiona F"
+	return later("presiona F")
 end
 
 local function sparringStep(): Step
 	return {
 		station = "Sparring",
-		message = `🛡️ Ve al muñeco de sparring: cuando enseñe «!», {guardKey()} justo antes del golpe`,
+		message = later("🛡️ Ve al muñeco de sparring: cuando enseñe «!», {key} justo antes del golpe"),
+		args = { key = { guardKey() } },
 	}
 end
 
@@ -100,7 +105,7 @@ local function guide(player: Player, steps: { Step })
 		end
 		local part = target :: BasePart
 		StationMarkers.focus(if step.station == "Sparring" then nil else step.station)
-		Toast.show(step.message)
+		Toast.show(step.message, step.args)
 
 		-- Rastro dorado del personaje a la estación, por el suelo.
 		local stop = Instance.new("Attachment")
@@ -156,7 +161,8 @@ local function guide(player: Player, steps: { Step })
 			if os.clock() - lastReminder > REMINDER_SECONDS then
 				lastReminder = os.clock()
 				-- El del muñeco se rehace por si ha cambiado de teclado a mando o a la pantalla.
-				Toast.show(if step.station == "Sparring" then sparringStep().message else step.message)
+				local current = if step.station == "Sparring" then sparringStep() else step
+				Toast.show(current.message, current.args)
 			end
 			task.wait(0.2)
 		end

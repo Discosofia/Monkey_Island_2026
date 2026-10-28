@@ -34,6 +34,14 @@ EXCLUDED = [
     "src/shared/UI/AdminPanel.luau",
     "src/shared/UI/DebugPanel.luau",
     "src/serverShared/Admin.luau",
+    "src/serverShared/AdminLog.luau",
+    "src/serverShared/AdminNet.luau",
+    "src/serverShared/AdminProfile.luau",
+    "src/serverShared/GearShowcase.luau",
+    "src/lobby/server/Services/AdminService.luau",
+    "src/lobby/server/Services/DebugService.luau",
+    "src/lobby/client/Controllers/AdminController.luau",
+    "src/lobby/client/Controllers/DebugController.luau",
     "src/shared/Data/Strings/",
 ]
 
@@ -42,6 +50,8 @@ COVERED = [
     "src/shared/",
     "src/combatClient/",
     "src/island/",
+    "src/lobby/",
+    "src/serverShared/",
 ]
 
 # Campos de Data que se traducen por su nombre (T(def.name)): archivo → campos. Se rellena en la I1e.
@@ -57,6 +67,9 @@ CALLS = [
     re.compile(r"\bNotify:FireAllClients\(\s*" + STRING),
     re.compile(r"\bsetWorldText\(\s*[\w.\[\]]+\s*,\s*" + STRING),
     re.compile(r"\bStrings\.pack\(\s*" + STRING),
+    re.compile(r"\bStrings\.forPlayer\(\s*[\w.]+\s*,\s*" + STRING),
+    # Las funciones locales notify(jugadores, "…", args) que avisan por Remotes.Notify.
+    re.compile(r"\bnotify\(\s*[\w.\[\]{} ]+\s*,\s*" + STRING),
     # Las funciones locales de los servicios de la Isla que avisan a todos o ponen una línea del HUD.
     re.compile(r"\b(?:announce|setStatus)\(\s*" + STRING.replace(")*", ")+", 1)),
     re.compile(r"\bsetText\(\s*[\w.\[\]]+\s*,\s*\"\w+\"\s*,\s*" + STRING),

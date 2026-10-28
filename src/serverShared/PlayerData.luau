@@ -31,6 +31,7 @@ local Plot = require(ReplicatedStorage.Shared.Plot)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Settings = require(ReplicatedStorage.Shared.Settings)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 
 export type Profile = {
 	version: number,
@@ -79,7 +80,8 @@ export type Profile = {
 	mounts: { [string]: number },
 	activeMount: string,
 	-- Avisos para la próxima vez que entra (versión 9, 26-10-2026): se enseñan una vez y se borran.
-	notices: { string },
+	-- Avisos para la próxima vez que entra: un texto o { plantilla, argumentos } (Shared/Strings).
+	notices: { any },
 	-- Bienvenida de pioneros (versión 10, T6, 27-10-2026): si es pionero, tiradas cobradas y última
 	-- ventana vista (Shared/Pioneer).
 	pioneer: { [string]: any },
@@ -200,10 +202,10 @@ local function migrate(profile: Profile, fromVersion: number, data: any)
 		end
 		if refund > 0 then
 			profile.amber += refund
-			table.insert(
-				profile.notices,
-				`🐾 Ahora tienes una mascota de cada: tus repetidas te dieron +{refund} ✨ Ámbar`
-			)
+			table.insert(profile.notices, {
+				Strings.later("🐾 Ahora tienes una mascota de cada: tus repetidas te dieron +{refund} ✨ Ámbar"),
+				{ refund = refund },
+			})
 		end
 	end
 	-- Siempre completa (un perfil guardado a medias no deja huecos en los niveles ni en el cofre).
@@ -415,7 +417,11 @@ local function onPlayerAdded(player: Player)
 				return
 			end
 			for _, notice in session.profile.notices do
-				Remotes.Notify:FireClient(player, notice)
+				if typeof(notice) == "table" then
+					Remotes.Notify:FireClient(player, notice[1], notice[2])
+				else
+					Remotes.Notify:FireClient(player, notice)
+				end
 			end
 			table.clear(session.profile.notices)
 			session.dirty = true

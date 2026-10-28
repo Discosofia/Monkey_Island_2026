@@ -29,7 +29,10 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
 local CalendarStrip = require(ReplicatedStorage.Shared.UI.CalendarStrip)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local PANEL_COLOR = Color3.fromRGB(25, 20, 15)
 local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
@@ -74,7 +77,8 @@ local function chancesText(): string
 	local parts = {}
 	for _, entry in Pioneer.chances() do
 		local mount = Mounts[entry.id]
-		local short = string.match(mount.name, "^[^%s,]+") or mount.name
+		local mountName = T(mount.name)
+		local short = string.match(mountName, "^[^%s,]+") or mountName
 		table.insert(parts, `{mount.icon} {short} {math.round(entry.chance * 100)} %`)
 	end
 	return table.concat(parts, " · ")
@@ -120,8 +124,8 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 
 	local title = Widgets.label(
 		if isPioneer
-			then "🌟 ¡Gracias por ser pionero!"
-			else `📅 Premio diario · día {login.step} de {Daily.CALENDAR_DAYS}`,
+			then T("🌟 ¡Gracias por ser pionero!")
+			else T("📅 Premio diario · día {day} de {days}", { day = login.step, days = Daily.CALENDAR_DAYS }),
 		panel
 	)
 	title.Position = UDim2.fromOffset(14, 8)
@@ -148,7 +152,10 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 	local top = 56
 	if isPioneer then
 		local thanks = Widgets.label(
-			`Juegas desde el principio. Cada {Daily.CALENDAR_DAYS} días de entrada, una montura de pioneros`,
+			T(
+				"Juegas desde el principio. Cada {days} días de entrada, una montura de pioneros",
+				{ days = Daily.CALENDAR_DAYS }
+			),
 			panel
 		)
 		thanks.Position = UDim2.fromOffset(14, 44)
@@ -169,8 +176,8 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 
 	local today = Widgets.label(
 		if claimable
-			then `Hoy: {Rewards.describe(Config.Daily.Calendar[login.step])}`
-			else `Hoy ya cobraste: mañana, el día {login.step}`,
+			then T("Hoy: {reward}", { reward = Rewards.describe(Config.Daily.Calendar[login.step]) })
+			else T("Hoy ya cobraste: mañana, el día {day}", { day = login.step }),
 		panel
 	)
 	today.Name = "Today"
@@ -183,10 +190,10 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 	if isPioneer then
 		local left = Pioneer.claimsToRoll(login)
 		local whenText = if left == 1 and claimable
-			then "¡hoy!"
-			elseif left == 1 then "el próximo cobro"
-			else `en {left} cobros`
-		local roll = Widgets.label(`🎁 Tirada de pioneros: {whenText}`, panel)
+			then T("¡hoy!")
+			elseif left == 1 then T("el próximo cobro")
+			else T("en {n} cobros", { n = left })
+		local roll = Widgets.label(T("🎁 Tirada de pioneros: {when}", { when = whenText }), panel)
 		roll.Name = "PioneerRoll"
 		roll.AnchorPoint = Vector2.new(0.5, 0)
 		roll.Position = UDim2.fromScale(0.5, 0.68)
@@ -200,7 +207,7 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 		chances.Font = Enum.Font.BuilderSans
 		chances.TextColor3 = DIM_TEXT
 	else
-		local hint = Widgets.label("Entra cada día: si faltas, no pierdes nada y sigues por donde ibas", panel)
+		local hint = Widgets.label(T("Entra cada día: si faltas, no pierdes nada y sigues por donde ibas"), panel)
 		hint.Name = "Hint"
 		hint.AnchorPoint = Vector2.new(0.5, 0)
 		hint.Position = UDim2.fromScale(0.5, 0.7)
@@ -209,7 +216,7 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 		hint.TextColor3 = TEXT
 	end
 
-	local claim = Widgets.button(if claimable then "Cobrar" else "¡A jugar!", panel)
+	local claim = Widgets.button(if claimable then T("Cobrar") else T("¡A jugar!"), panel)
 	claim.Name = "Claim"
 	claim.AnchorPoint = Vector2.new(0.5, 1)
 	claim.Position = UDim2.new(0.5, 0, 1, -12)
@@ -224,7 +231,7 @@ local function open(login: Daily.LoginState, pioneer: Pioneer.State)
 			return
 		end
 		claiming = true
-		claim.Text = "Cobrando…"
+		claim.Text = T("Cobrando…")
 		Remotes.ClaimLogin:FireServer()
 	end)
 
@@ -327,13 +334,13 @@ local function playReveal(panel: Frame, roll: Pioneer.Roll)
 		RewardModels.frame(viewport, model, if tall then 1 else 1.7)
 		task.spawn(spin, model, SPIN_SPEED)
 	end
-	local name = Widgets.label(`{mount.icon} {mount.name}`, stage)
+	local name = Widgets.label(`{mount.icon} {T(mount.name)}`, stage)
 	name.AnchorPoint = Vector2.new(0.5, 0)
 	name.Position = UDim2.fromScale(0.5, 0.03)
 	name.Size = UDim2.fromScale(0.94, 0.16)
 	name.TextColor3 = rarity.color
 	name.ZIndex = 2
-	local tag = Widgets.label(rarity.name, stage)
+	local tag = Widgets.label(T(rarity.name), stage)
 	tag.AnchorPoint = Vector2.new(0.5, 1)
 	tag.Position = UDim2.fromScale(0.5, 0.97)
 	tag.Size = UDim2.fromScale(0.6, 0.11)
@@ -361,14 +368,15 @@ local function playReveal(panel: Frame, roll: Pioneer.Roll)
 		strike.BorderSizePixel = 0
 		strike.ZIndex = 2
 		strike.Parent = stage
-		tag.Text = `{rarity.name} · Ya la tenías: +{roll.amber} ✨ Ámbar`
+		tag.Text = T("{rarity} · Ya la tenías: +{amber} ✨ Ámbar", { rarity = { rarity.name }, amber = roll.amber })
 		tag.Size = UDim2.fromScale(0.94, 0.11)
 	end
 end
 
 -- Premio cobrado: la ventana (si está abierta) enseña lo recibido y se cierra sola. Con la tirada de
--- pioneros, primero la revelación, y se queda abierta hasta que la cierre.
-local function showClaimed(day: number, lines: { string }, roll: Pioneer.Roll?)
+-- pioneros, primero la revelación, y se queda abierta hasta que la cierre. "lines": frases con argumentos
+-- (ServerShared/Retention.grant).
+local function showClaimed(day: number, lines: { any }, roll: Pioneer.Roll?)
 	if roll and not window then
 		local login = readLogin()
 		if not login then
@@ -388,11 +396,15 @@ local function showClaimed(day: number, lines: { string }, roll: Pioneer.Roll?)
 			table.insert(shown, line)
 		end
 	end
-	setText(panel, "Today", `🎉 ¡Día {day} cobrado! {table.concat(shown, " · ")}`)
-	setText(panel, "Hint", "Vuelve mañana a por el siguiente")
+	setText(
+		panel,
+		"Today",
+		T("🎉 ¡Día {day} cobrado! {lines}", { day = day, lines = { list = shown, sep = " · " } })
+	)
+	setText(panel, "Hint", T("Vuelve mañana a por el siguiente"))
 	local claim = panel:FindFirstChild("Claim")
 	if claim and claim:IsA("TextButton") then
-		claim.Text = "¡Genial!"
+		claim.Text = T("¡Genial!")
 		claim.Activated:Connect(close)
 	end
 	if roll then
@@ -401,10 +413,10 @@ local function showClaimed(day: number, lines: { string }, roll: Pioneer.Roll?)
 		setText(
 			panel,
 			"PioneerRoll",
-			`🎁 Tirada de pioneros: {mount.icon} {mount.name}`,
+			T("🎁 Tirada de pioneros: {icon} {name}", { icon = mount.icon, name = { mount.name } }),
 			Rarities[mount.rarity].color
 		)
-		setText(panel, "PioneerChances", `La próxima, dentro de {Daily.CALENDAR_DAYS} cobros`)
+		setText(panel, "PioneerChances", T("La próxima, dentro de {n} cobros", { n = Daily.CALENDAR_DAYS }))
 		task.spawn(playReveal, panel, roll)
 		return
 	end
@@ -418,7 +430,11 @@ local function showClaimed(day: number, lines: { string }, roll: Pioneer.Roll?)
 		end
 		local pioneer = readPioneer()
 		if state and Pioneer.isPioneer(pioneer) then
-			setText(panel, "PioneerRoll", `🎁 Tirada de pioneros: en {Pioneer.claimsToRoll(state)} cobros`)
+			setText(
+				panel,
+				"PioneerRoll",
+				T("🎁 Tirada de pioneros: {when}", { when = T("en {n} cobros", { n = Pioneer.claimsToRoll(state) }) })
+			)
 		end
 	end)
 	task.delay(CLOSE_AFTER_CLAIM_SECONDS, function()

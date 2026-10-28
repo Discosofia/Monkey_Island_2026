@@ -19,9 +19,9 @@ local Teleporter = {}
 -- ID -> nombre de los places de esta experiencia. nil si Roblox aún no respondió o falló.
 local experiencePlaces: { [number]: string }? = nil
 
-local function notify(players: { Player }, message: string)
+local function notify(players: { Player }, message: string, args: { [string]: any }?)
 	for _, player in players do
-		Remotes.Notify:FireClient(player, message)
+		Remotes.Notify:FireClient(player, message, args)
 	end
 end
 
@@ -84,7 +84,8 @@ TeleportService.TeleportInitFailed:Connect(function(player: Player, result: Enum
 	notify({ player }, "No se pudo completar el viaje. Inténtalo de nuevo.")
 end)
 
--- Devuelve true si el viaje empezó. destinationName se usa en los mensajes al jugador.
+-- Devuelve true si el viaje empezó. destinationName se usa en los mensajes al jugador: una frase de
+-- Shared/Strings (Strings.later("el Lobby")), que el cliente traduce.
 -- "options" (opcional) permite, por ejemplo, ir a un servidor reservado (servidores privados).
 function Teleporter.send(
 	players: { Player },
@@ -94,23 +95,31 @@ function Teleporter.send(
 ): boolean
 	if placeId == 0 then
 		warn(`[Teleporter] Config.PlaceIds no tiene el ID de {destinationName}. Ver docs/SETUP.md.`)
-		notify(players, `Falta configurar el ID de {destinationName} (ver docs/SETUP.md).`)
+		notify(players, "Falta configurar el ID de {place} (ver docs/SETUP.md).", { place = { destinationName } })
 		return false
 	end
 
 	if RunService:IsStudio() then
-		notify(players, `Los viajes no funcionan en Studio. Prueba {destinationName} en el juego publicado.`)
+		notify(
+			players,
+			"Los viajes no funcionan en Studio. Prueba {place} en el juego publicado.",
+			{ place = { destinationName } }
+		)
 		return false
 	end
 
 	local places = experiencePlaces
 	if places and not places[placeId] then
 		warn(`[Teleporter] {placeId} no es un place de esta experiencia. Places: {describePlaces(places)}`)
-		notify(players, `El ID de {destinationName} en Config no es de esta experiencia (ver consola F9).`)
+		notify(
+			players,
+			"El ID de {place} en Config no es de esta experiencia (ver consola F9).",
+			{ place = { destinationName } }
+		)
 		return false
 	end
 
-	notify(players, `Viajando a {destinationName}...`)
+	notify(players, "Viajando a {place}...", { place = { destinationName } })
 	for attempt = 1, Config.Teleport.MaxAttempts do
 		local ok, err = pcall(function()
 			TeleportService:TeleportAsync(placeId, players, options)
@@ -124,7 +133,7 @@ function Teleporter.send(
 		end
 	end
 
-	notify(players, `No se pudo viajar a {destinationName}. Inténtalo de nuevo.`)
+	notify(players, "No se pudo viajar a {place}. Inténtalo de nuevo.", { place = { destinationName } })
 	return false
 end
 

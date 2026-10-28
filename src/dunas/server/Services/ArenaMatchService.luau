@@ -22,6 +22,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
@@ -155,7 +156,7 @@ local function cancel()
 		for _, player in players do
 			PlayerData.saveNow(player)
 		end
-		Teleporter.send(players, Config.PlaceIds.Lobby, "el Lobby")
+		Teleporter.send(players, Config.PlaceIds.Lobby, Strings.later("el Lobby"))
 	end)
 end
 

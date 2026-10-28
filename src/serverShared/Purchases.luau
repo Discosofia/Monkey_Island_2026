@@ -25,20 +25,23 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Analytics = require(script.Parent.Analytics)
 local PlayerData = require(script.Parent.PlayerData)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 
 export type Handler = {
-	-- Texto del aviso al jugador ("Pase de temporada").
-	name: string,
+	-- Nombre para el aviso al jugador: una frase de Shared/Strings como argumento, { "texto", args? }
+	-- ({ Strings.later("⭐ Un nivel del pase") }), que el cliente traduce.
+	name: any,
 	-- Entrega en el perfil. Corre dentro de PlayerData.update: sin esperas y sin fallar (si no hay
 	-- nada que dar, que no dé nada; el recibo se apunta igual). "purchaseId" es el del recibo.
 	grant: (profile: PlayerData.Profile, player: Player, purchaseId: string) -> (),
 	-- Después de guardar: atributos, avisos o efectos (opcional).
 	after: ((player: Player) -> ())?,
-	-- ¿Se puede comprar ahora? Si no, el motivo para el aviso ("Ya lo tienes"). Sin él, siempre.
-	available: ((profile: PlayerData.Profile, player: Player) -> (boolean, string?))?,
+	-- ¿Se puede comprar ahora? Si no, el motivo para el aviso: un texto ya marcado con Strings.later o
+	-- { "texto", args } ("Ya lo tienes"). Sin él, siempre.
+	available: ((profile: PlayerData.Profile, player: Player) -> (boolean, any?))?,
 }
 
 local Purchases = {}
@@ -121,7 +124,7 @@ local function grantReceipt(player: Player, key: string, purchaseId: string): En
 	end
 	unsaved[purchaseId] = nil
 	Analytics.event(player, "Purchase", 1, { key })
-	Remotes.Notify:FireClient(player, `¡Gracias! Ya tienes: {handler.name}`)
+	Remotes.Notify:FireClient(player, "¡Gracias! Ya tienes: {name}", { name = handler.name })
 	local after = handler.after
 	if after then
 		task.spawn(after, player)
@@ -169,12 +172,12 @@ function Purchases.debugPurchase(player: Player, key: string, purchaseId: string
 	return grantReceipt(player, key, purchaseId)
 end
 
--- ¿Puede comprar "key" ahora? Si no, el motivo.
-function Purchases.available(player: Player, key: string): (boolean, string?)
+-- ¿Puede comprar "key" ahora? Si no, el motivo (un texto o { texto, args }, como Handler.available).
+function Purchases.available(player: Player, key: string): (boolean, any?)
 	local handler = handlers[key]
 	local profile = PlayerData.get(player)
 	if not (handler and profile) then
-		return false, "La tienda aún no está lista: prueba en un momento"
+		return false, Strings.later("La tienda aún no está lista: prueba en un momento")
 	end
 	local check = handler.available
 	if check then
@@ -188,7 +191,9 @@ end
 function Purchases.prompt(player: Player, key: string): boolean
 	local ok, reason = Purchases.available(player, key)
 	if not ok then
-		if reason then
+		if typeof(reason) == "table" then
+			Remotes.Notify:FireClient(player, reason[1], reason[2])
+		elseif reason then
 			Remotes.Notify:FireClient(player, reason)
 		end
 		return false

@@ -65,8 +65,7 @@ end
 local function reward(player: Player, index: number)
 	local step = contract.steps[index]
 	local prize = C.StepRewards[index] or {}
-	-- Cada línea es un texto o una frase con argumentos (Shared/Strings); Retention.grant aún las da en
-	-- español (pasan a frases en la tanda I1c).
+	-- Cada línea es una frase con argumentos (Shared/Strings), como las que da Retention.grant.
 	local lines: { any } = {}
 	if prize.amber then
 		lines = Retention.grant(player, { amber = prize.amber }, true, "Contract")

@@ -28,10 +28,13 @@ local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Analytics = require(script.Parent.Analytics)
 local Eggs = require(script.Parent.Eggs)
 local PlayerData = require(script.Parent.PlayerData)
 local Supplies = require(script.Parent.Supplies)
+
+local later = Strings.later
 
 local Retention = {}
 
@@ -43,8 +46,9 @@ local pending: { [Player]: Events } = {}
 local progressListeners: { (player: Player, event: string, amount: number, key: string?) -> () } = {}
 local started = false
 -- Quién suma la XP del pase de los premios (ServerShared/SeasonPass; así no se requieren el uno al
--- otro). Devuelve la línea para el aviso, o nil si no ha sumado nada.
-local xpHandler: ((player: Player, xp: number) -> string?)? = nil
+-- otro). Devuelve la línea para el aviso (una frase con argumentos, Shared/Strings), o nil si no ha sumado
+-- nada.
+local xpHandler: ((player: Player, xp: number) -> any?)? = nil
 
 local function now(): number
 	return math.floor(EggIncubation.now())
@@ -57,22 +61,26 @@ local function addAmber(player: Player, amount: number, reason: string)
 	end)
 end
 
--- Entrega un premio y devuelve, línea a línea, lo que ha recibido el jugador. "capped": el tiempo de
--- huevo cuenta para el tope de lo ganado jugando (misiones); sin él, se quita entero (calendario).
-function Retention.grant(player: Player, reward: Config.Reward, capped: boolean, reason: string): { string }
-	local lines = {}
+-- Entrega un premio y devuelve, línea a línea, lo que ha recibido el jugador: frases con argumentos
+-- (Shared/Strings), que el cliente traduce ({ list = lines }). "capped": el tiempo de huevo cuenta para
+-- el tope de lo ganado jugando (misiones); sin él, se quita entero (calendario).
+function Retention.grant(player: Player, reward: Config.Reward, capped: boolean, reason: string): { any }
+	local lines: { any } = {}
 	if reward.egg then
 		local rarity = PetRoll.rollRarity(rng, reward.egg)
 		local where = Eggs.grant(player, rarity)
 		local place = if where == "nest"
-			then "ya se incuba en tu nido"
-			elseif where == "bag" then "a tu mochila de huevos"
-			else "pendiente: tu mochila está llena"
-		table.insert(lines, `🥚 Huevo {Rarities[rarity].name} ({place})`)
+			then later("ya se incuba en tu nido")
+			elseif where == "bag" then later("a tu mochila de huevos")
+			else later("pendiente: tu mochila está llena")
+		table.insert(
+			lines,
+			{ later("🥚 Huevo {rarity} ({place})"), { rarity = { Rarities[rarity].name }, place = { place } } }
+		)
 	end
 	if reward.amber then
 		addAmber(player, reward.amber, reason)
-		table.insert(lines, `{reward.amber} ✨ Ámbar`)
+		table.insert(lines, { later("{n} ✨ Ámbar"), { n = reward.amber } })
 	end
 	if reward.eggSeconds then
 		local data = Eggs.get(player)
@@ -81,18 +89,24 @@ function Retention.grant(player: Player, reward: Config.Reward, capped: boolean,
 			local applied = if capped
 				then Eggs.addPlayTime(player, reward.eggSeconds)
 				else Eggs.addFreeTime(player, reward.eggSeconds)
-			table.insert(lines, `⏩ −{EggIncubation.formatTime(applied)} a tu huevo {Rarities[nest.rarity].name}`)
+			table.insert(lines, {
+				later("⏩ −{time} a tu huevo {rarity}"),
+				{ time = EggIncubation.formatTime(applied), rarity = { Rarities[nest.rarity].name } },
+			})
 		else
 			local amber = math.ceil(reward.eggSeconds / 3600 * Config.Daily.AmberPerUnusedEggHour)
 			addAmber(player, amber, reason)
-			table.insert(lines, `{amber} ✨ Ámbar (no tenías huevo incubando)`)
+			table.insert(lines, { later("{n} ✨ Ámbar (no tenías huevo incubando)"), { n = amber } })
 		end
 	end
 	if reward.items then
 		local items = Rewards.sanitizeItems(reward.items)
 		if next(items) ~= nil then
 			Supplies.add(player, items)
-			table.insert(lines, `🎒 {Rewards.describeItems(items)} (para tu próxima partida)`)
+			table.insert(
+				lines,
+				{ later("🎒 {items} (para tu próxima partida)"), { items = Rewards.itemsArg(items) } }
+			)
 		end
 	end
 	if reward.xp and xpHandler then
@@ -105,14 +119,14 @@ function Retention.grant(player: Player, reward: Config.Reward, capped: boolean,
 end
 
 -- Lo llama ServerShared/SeasonPass al arrancar.
-function Retention.setXpHandler(handler: (player: Player, xp: number) -> string?)
+function Retention.setXpHandler(handler: (player: Player, xp: number) -> any?)
 	xpHandler = handler
 end
 
 -- Cobra el premio de hoy del calendario. Devuelve el día cobrado (1..7) y lo recibido, o nil si hoy
 -- ya lo cobró (o su perfil aún no ha cargado). Al cobrar el día 7, un pionero tiene además la tirada
 -- de montura (T6; Shared/Pioneer): la tercera respuesta es lo que ha salido.
-function Retention.claimLogin(player: Player): (number?, { string }?, Pioneer.Roll?)
+function Retention.claimLogin(player: Player): (number?, { any }?, Pioneer.Roll?)
 	local time = now()
 	local day: number? = nil
 	local roll: Pioneer.Roll? = nil
@@ -151,11 +165,12 @@ function Retention.claimLogin(player: Player): (number?, { string }?, Pioneer.Ro
 	local lines = Retention.grant(player, Config.Daily.Calendar[claimed], false, "LoginCalendar")
 	if roll then
 		local mount = Mounts[roll.mount]
+		local args = { icon = mount.icon, name = { mount.name }, amber = roll.amber }
 		table.insert(
 			lines,
 			if roll.amber > 0
-				then `🌟 Tirada de pioneros: {mount.icon} {mount.name} otra vez (+{roll.amber} ✨ Ámbar)`
-				else `🌟 Tirada de pioneros: ¡{mount.icon} {mount.name}!`
+				then { later("🌟 Tirada de pioneros: {icon} {name} otra vez (+{amber} ✨ Ámbar)"), args }
+				else { later("🌟 Tirada de pioneros: ¡{icon} {name}!"), args }
 		)
 		Analytics.event(player, "PioneerRoll", 1, { roll.mount, if roll.amber > 0 then "Duplicate" else "New" })
 	end
@@ -377,12 +392,20 @@ local function deliver(player: Player, events: Events, daily: boolean, weekly: b
 	for _, missionId in completed do
 		local definition = Missions[missionId]
 		local lines = Retention.grant(player, definition.reward, true, "DailyMission")
-		local kind = if definition.weekly then "📆 ¡Semanal cumplida!" else "🎯 ¡Misión cumplida!"
-		Remotes.Notify:FireClient(player, `{kind} {Daily.missionText(missionId)}: {table.concat(lines, " · ")}`)
+		local args = { mission = Daily.missionArg(missionId), lines = { list = lines, sep = " · " } }
+		if definition.weekly then
+			Remotes.Notify:FireClient(player, "📆 ¡Semanal cumplida! {mission}: {lines}", args)
+		else
+			Remotes.Notify:FireClient(player, "🎯 ¡Misión cumplida! {mission}: {lines}", args)
+		end
 	end
 	if bonus then
 		local lines = Retention.grant(player, Config.Daily.WeeklyBonus, true, "WeeklyBonus")
-		Remotes.Notify:FireClient(player, `🏅 ¡Todas las semanales cumplidas! Extra: {table.concat(lines, " · ")}`)
+		Remotes.Notify:FireClient(
+			player,
+			"🏅 ¡Todas las semanales cumplidas! Extra: {lines}",
+			{ lines = { list = lines, sep = " · " } }
+		)
 	end
 end
 
@@ -400,14 +423,15 @@ function Retention.flushNow(player: Player)
 end
 
 -- Cambia gratis una misión sin cumplir ("daily" o "weekly", su posición) por otra de la misma clase
--- que no tenga ya. Devuelve si la ha cambiado y el aviso para el jugador.
-function Retention.reroll(player: Player, scope: string, index: number): (boolean, string)
+-- que no tenga ya. Devuelve si la ha cambiado y el aviso para el jugador (plantilla y argumentos).
+function Retention.reroll(player: Player, scope: string, index: number): (boolean, string, any?)
 	local profile = PlayerData.get(player)
 	if not profile then
-		return false, "Tus datos aún se están cargando"
+		return false, later("Tus datos aún se están cargando"), nil
 	end
 	Retention.refresh(player)
-	local message = "No se puede cambiar esa misión"
+	local message = later("No se puede cambiar esa misión")
+	local args: any? = nil
 	local changed = false
 	PlayerData.update(player, function(current)
 		local role = Progression.validRole(current.selectedRole)
@@ -420,8 +444,8 @@ function Retention.reroll(player: Player, scope: string, index: number): (boolea
 			return
 		elseif state.rerolls >= limit then
 			message = if scope == "weekly"
-				then "Ya has cambiado una semanal esta semana"
-				else "Ya has usado el cambio de hoy"
+				then later("Ya has cambiado una semanal esta semana")
+				else later("Ya has usado el cambio de hoy")
 			return
 		end
 		local taken, families = {}, {}
@@ -434,7 +458,7 @@ function Retention.reroll(player: Player, scope: string, index: number): (boolea
 		end
 		local replacement = pickMission(slotOf(mission.id), role, taken, families)
 		if not replacement then
-			message = "No hay otra misión de esa clase"
+			message = later("No hay otra misión de esa clase")
 			return
 		end
 		state.missions[index] = newMission(replacement)
@@ -445,9 +469,10 @@ function Retention.reroll(player: Player, scope: string, index: number): (boolea
 			current.daily = state
 		end
 		changed = true
-		message = `🔄 Nueva misión: {Daily.missionText(replacement)}`
+		message = later("🔄 Nueva misión: {mission}")
+		args = { mission = Daily.missionArg(replacement) }
 	end)
-	return changed, message
+	return changed, message, args
 end
 
 function Retention.start()

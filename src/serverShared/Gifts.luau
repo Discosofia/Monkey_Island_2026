@@ -22,10 +22,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local CosmeticsServer = require(script.Parent.CosmeticsServer)
 local PlayerData = require(script.Parent.PlayerData)
 local Purchases = require(script.Parent.Purchases)
 local RequestCooldown = require(script.Parent.RequestCooldown)
+
+local later = Strings.later
 
 local TOPIC = "Gifts"
 
@@ -70,9 +73,10 @@ local function productFor(cosmeticId: string): string?
 	return nil
 end
 
-local function label(cosmeticId: string): string
+-- "🎩 Sombrero…" como argumento de una frase (Shared/Strings), para que el cliente lo traduzca.
+local function label(cosmeticId: string): any
 	local cosmetic = Cosmetics[cosmeticId]
-	return `{cosmetic.icon} {cosmetic.name}`
+	return { later("{icon} {name}"), { icon = cosmetic.icon, name = { cosmetic.name } } }
 end
 
 -- Da el regalo "id" a quien está en este servidor (una sola vez). Devuelve true si ya es suyo.
@@ -93,12 +97,12 @@ local function giveTo(recipient: Player, id: string, cosmeticId: string, from: s
 			table.remove(list, 1)
 		end
 	end)
-	Remotes.Notify:FireClient(
-		recipient,
-		if isNew
-			then `🎁 ¡{from} te regaló {label(cosmeticId)}! Está en tu 👕 Armario`
-			else `🎁 {from} te regaló {label(cosmeticId)} (ya lo tenías)`
-	)
+	local args = { from = from, cosmetic = label(cosmeticId) }
+	if isNew then
+		Remotes.Notify:FireClient(recipient, "🎁 ¡{from} te regaló {cosmetic}! Está en tu 👕 Armario", args)
+	else
+		Remotes.Notify:FireClient(recipient, "🎁 {from} te regaló {cosmetic} (ya lo tenías)", args)
+	end
 	return true
 end
 
@@ -160,12 +164,12 @@ function Gifts.flush(payer: Player)
 				end
 			end)
 			done = true
-			Remotes.Notify:FireClient(
-				payer,
-				`🎁 Le regalaste {label(entry.cosmetic)} a {entry.toName}{if recipient
-					then ""
-					else ": lo recibirá al entrar"}`
-			)
+			local args = { cosmetic = label(entry.cosmetic), name = entry.toName }
+			if recipient then
+				Remotes.Notify:FireClient(payer, "🎁 Le regalaste {cosmetic} a {name}", args)
+			else
+				Remotes.Notify:FireClient(payer, "🎁 Le regalaste {cosmetic} a {name}: lo recibirá al entrar", args)
+			end
 		end
 	end
 	if done then
@@ -217,13 +221,14 @@ function Gifts.claim(player: Player)
 	claiming[player] = nil
 end
 
--- ¿Puede "payer" regalar "cosmeticId" a "recipient" ahora? Si no, el motivo.
-local function check(payer: Player, cosmeticId: string, recipient: Player?): (boolean, string?)
+-- ¿Puede "payer" regalar "cosmeticId" a "recipient" ahora? Si no, el motivo (como Purchases.available).
+local function check(payer: Player, cosmeticId: string, recipient: Player?): (boolean, any?)
 	if not recipient or recipient == payer or not PlayerData.get(recipient) then
-		return false, "🎁 Ese jugador ya no está en el servidor"
+		return false, later("🎁 Ese jugador ya no está en el servidor")
 	end
 	if recipient:GetAttribute(`Cosmetic_{cosmeticId}`) == true then
-		return false, `🎁 {recipient.DisplayName} ya tiene {label(cosmeticId)}`
+		return false,
+			{ later("🎁 {name} ya tiene {cosmetic}"), { name = recipient.DisplayName, cosmetic = label(cosmeticId) } }
 	end
 	return true, nil
 end
@@ -240,7 +245,11 @@ local function onRequest(payer: Player, cosmeticId: any, userId: any)
 	local recipient = Players:GetPlayerByUserId(userId)
 	local ok, reason = check(payer, cosmeticId, recipient)
 	if not (ok and recipient) then
-		Remotes.Notify:FireClient(payer, reason or "🎁 No se puede regalar ahora")
+		if typeof(reason) == "table" then
+			Remotes.Notify:FireClient(payer, reason[1], reason[2])
+		else
+			Remotes.Notify:FireClient(payer, reason or "🎁 No se puede regalar ahora")
+		end
 		return
 	end
 	PlayerData.update(payer, function(current)
@@ -263,7 +272,7 @@ local function registerProducts()
 			return if typeof(intent) == "table" and Cosmetics[intent.cosmetic] then intent else nil
 		end
 		Purchases.register(key, product.productId, {
-			name = `🎁 Regalo · {product.price} R$`,
+			name = { later("🎁 Regalo · {price} R$"), { price = product.price } },
 			grant = function(profile, player, purchaseId)
 				local intent = intentOf(profile)
 				if not intent then
@@ -285,7 +294,7 @@ local function registerProducts()
 			available = function(profile, player)
 				local intent = intentOf(profile)
 				if not intent then
-					return false, "🎁 Elige a quién regalarlo"
+					return false, later("🎁 Elige a quién regalarlo")
 				end
 				return check(player, intent.cosmetic, Players:GetPlayerByUserId(intent.to))
 			end,

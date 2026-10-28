@@ -20,7 +20,10 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Mounts = require(ReplicatedStorage.Shared.Data.Mounts)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local RequestCooldown = require(script.Parent.RequestCooldown)
+
+local later = Strings.later
 
 local SETTINGS = Config.Mounts
 local ATTRIBUTE = CombatState.MOUNTED_ATTRIBUTE
@@ -49,7 +52,7 @@ end
 local function blockReason(player: Player): string?
 	local mountId = player:GetAttribute("ActiveMount")
 	if typeof(mountId) ~= "string" or not Mounts[mountId] then
-		return "No llevas ninguna montura: elígela en el cartel de Mascotas del Lobby"
+		return later("No llevas ninguna montura: elígela en el cartel de Mascotas del Lobby")
 	end
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
@@ -57,16 +60,16 @@ local function blockReason(player: Player): string?
 		return ""
 	end
 	if player:GetAttribute("CarryingEgg") == true then
-		return "Con el huevo a cuestas no puedes montar"
+		return later("Con el huevo a cuestas no puedes montar")
 	end
 	if humanoid:GetState() == Enum.HumanoidStateType.Swimming then
-		return "No puedes montar en el agua"
+		return later("No puedes montar en el agua")
 	end
 	if CombatState.isTrapped(player) or CombatState.get(player) ~= "Idle" then
 		return ""
 	end
 	if os.clock() - (lastHurt[player] or -math.huge) < SETTINGS.HurtCooldown then
-		return "Te acaban de herir: espera un momento para montar"
+		return later("Te acaban de herir: espera un momento para montar")
 	end
 	if os.clock() - (lastToggle[player] or -math.huge) < SETTINGS.RemountCooldown then
 		return ""

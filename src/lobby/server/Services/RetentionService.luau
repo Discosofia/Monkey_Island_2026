@@ -37,8 +37,12 @@ local function onReroll(player: Player, scope: unknown, index: unknown)
 	if not canRequest(player) or (scope ~= "daily" and scope ~= "weekly") or typeof(index) ~= "number" then
 		return
 	end
-	local changed, message = Retention.reroll(player, scope :: string, index // 1)
-	Remotes.Notify:FireClient(player, if changed then message else `⚠️ {message}`)
+	local changed, message, args = Retention.reroll(player, scope :: string, index // 1)
+	if changed then
+		Remotes.Notify:FireClient(player, message, args)
+	else
+		Remotes.Notify:FireClient(player, "⚠️ {message}", { message = { message, args } })
+	end
 	if changed then
 		Analytics.event(player, "MissionReroll", 1, { scope :: string })
 	end

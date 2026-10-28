@@ -14,6 +14,9 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Daily = require(ReplicatedStorage.Shared.Daily)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local T = Strings.t
 
 local CARD_COLOR = Color3.fromRGB(45, 38, 30)
 local GOLD = Color3.fromRGB(255, 215, 90)
@@ -28,6 +31,7 @@ type Board = {
 	gui: SurfaceGui,
 	stats: TextLabel,
 	amber: TextLabel,
+	queueTitle: TextLabel,
 	formats: { [number]: TextLabel },
 	badge: TextLabel,
 }
@@ -86,7 +90,7 @@ function ArenaBoardController:Start()
 		local amber = text("", panel, UDim2.fromScale(0.05, 0.18), UDim2.fromScale(0.9, 0.11), Enum.Font.BuilderSans)
 		amber.TextColor3 = SECONDARY
 		local queueTitle = text(
-			"⚔️ En cola ahora",
+			T("⚔️ En cola ahora"),
 			panel,
 			UDim2.fromScale(0.05, 0.31),
 			UDim2.fromScale(0.9, 0.11),
@@ -126,18 +130,23 @@ function ArenaBoardController:Start()
 		badgePadding.PaddingBottom = UDim.new(0.12, 0)
 		badgePadding.Parent = badge
 
-		return { gui = gui, stats = stats, amber = amber, formats = formats, badge = badge }
+		return { gui = gui, stats = stats, amber = amber, formats = formats, badge = badge, queueTitle = queueTitle }
 	end
 
 	local function draw(board: Board)
 		local arena = readJson(player:GetAttribute("Arena")) or {}
 		local stats = if typeof(arena.stats) == "table" then arena.stats else {}
-		board.stats.Text = `🏆 {stats.wins or 0} victorias · 🚩 {stats.captures or 0} banderas`
+		board.queueTitle.Text = T("⚔️ En cola ahora")
+		board.stats.Text = T(
+			"🏆 {wins} victorias · 🚩 {captures} banderas",
+			{ wins = stats.wins or 0, captures = stats.captures or 0 }
+		)
 		local now = Workspace:GetServerTimeNow()
 		local daily = if typeof(arena.daily) == "table" and arena.daily.day == Daily.today(now)
 			then arena.daily.amber or 0
 			else 0
-		board.amber.Text = `✨ Hoy {daily}/{Config.Arena.Amber.DailyCap} de Ámbar en la arena`
+		board.amber.Text =
+			T("✨ Hoy {daily}/{cap} de Ámbar en la arena", { daily = daily, cap = Config.Arena.Amber.DailyCap })
 
 		-- Jugadores en la cola de cada formato (de todos los servidores); "—" si aún no se sabe.
 		local counts = readJson(ReplicatedStorage:GetAttribute("ArenaQueueCounts"))
@@ -153,14 +162,14 @@ function ArenaBoardController:Start()
 
 		if queue then
 			local waited = math.max(0, now - (tonumber(queue.since) or now))
-			board.badge.Text = `⏳ Buscando {queue.format}v{queue.format} · {math.floor(waited // 60)}:{string.format(
-				"%02d",
-				math.floor(waited % 60)
-			)}`
+			board.badge.Text = T("⏳ Buscando {n}v{n} · {time}", {
+				n = queue.format,
+				time = `{math.floor(waited // 60)}:{string.format("%02d", math.floor(waited % 60))}`,
+			})
 			board.badge.BackgroundColor3 = CARD_COLOR
 			board.badge.TextColor3 = READY_COLOR
 		else
-			board.badge.Text = "Presiona E para jugar"
+			board.badge.Text = T("Presiona E para jugar")
 			board.badge.BackgroundColor3 = READY_COLOR
 			board.badge.TextColor3 = DARK_TEXT
 		end
@@ -198,6 +207,7 @@ function ArenaBoardController:Start()
 		end
 	end)
 	ReplicatedStorage:GetAttributeChangedSignal("ArenaQueueCounts"):Connect(redraw)
+	Strings.onChanged(redraw)
 	-- El tiempo en la cola corre solo: cada segundo.
 	task.spawn(function()
 		while true do
