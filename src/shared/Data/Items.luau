@@ -47,10 +47,10 @@ local Items: { [string]: ItemDefinition } = {
 	Fiber = { name = "Fibra", icon = "🌿", order = 3, alwaysShow = true },
 	Meat = { name = "Carne cruda", icon = "🥩", order = 4, food = { hunger = 8, thirst = 0, raw = true } },
 	RedFur = { name = "Pelaje rojo", icon = "🐾", order = 5 },
-	GoldenFur = { name = "Pelaje dorado", icon = "✨", order = 6, rarity = "Uncommon" },
-	SmallFang = { name = "Colmillo", icon = "🔺", order = 7, rarity = "Uncommon" },
+	GoldenFur = { name = "Pelaje dorado", icon = "💛", order = 6, rarity = "Uncommon" },
+	SmallFang = { name = "Colmillo", icon = "🦷", order = 7, rarity = "Uncommon" },
 	Bandage = { name = "Venda", icon = "➕", order = 8, heal = 30 },
-	CookedMeat = { name = "Carne asada", icon = "🍖", order = 9, food = { hunger = 35, thirst = 0 } },
+	CookedMeat = { name = "Carne asada", icon = "🍗", order = 9, food = { hunger = 35, thirst = 0 } },
 	Banana = { name = "Banano", icon = "🍌", order = 10, food = { hunger = 15, thirst = 5 } },
 	Skewer = { name = "Brocheta", icon = "🍢", order = 11, food = { hunger = 60, thirst = 5 } },
 	Coconut = { name = "Coco", icon = "🥥", order = 12, food = { hunger = 5, thirst = 25 } },
@@ -96,7 +96,7 @@ local Items: { [string]: ItemDefinition } = {
 	},
 	-- Fase 4: botín de las nuevas especies.
 	BlackFur = { name = "Pelaje negro", icon = "🖤", order = 20 },
-	Liana = { name = "Liana resistente", icon = "🌱", order = 21, rarity = "Uncommon" },
+	Liana = { name = "Liana resistente", icon = "🧶", order = 21, rarity = "Uncommon" },
 	TinyTooth = { name = "Diente diminuto", icon = "▫️", order = 22 },
 	Whisker = { name = "Bigotes de marteja", icon = "〰️", order = 23, rarity = "Rare" },
 	MandrillFang = { name = "Colmillo de mandril", icon = "🔻", order = 24, rarity = "Rare" },
@@ -105,14 +105,14 @@ local Items: { [string]: ItemDefinition } = {
 	Leather = { name = "Cuero", icon = "👢", order = 27 },
 	BigFang = { name = "Colmillo grande", icon = "🔶", order = 28, rarity = "Uncommon" },
 	Shell = { name = "Concha", icon = "🐚", order = 29 },
-	ThickBone = { name = "Hueso grueso", icon = "🦴", order = 30, rarity = "Rare" },
+	ThickBone = { name = "Hueso grueso", icon = "💀", order = 30, rarity = "Rare" },
 	OrangeFur = { name = "Pelaje naranja", icon = "🍊", order = 31, rarity = "Rare" },
-	SilverFur = { name = "Pelaje plateado", icon = "⚪", order = 32, rarity = "Epic" },
+	SilverFur = { name = "Pelaje plateado", icon = "🤍", order = 32, rarity = "Epic" },
 	-- Fase 5: botín especial de los jefes (Config.Bosses.LootPerPlayer para cada uno que le hizo daño).
 	-- Fase 9 (G5): la corona y el cristal piden las mejoras de nivel 3 y 4 de la forja (Data/Recipes).
 	RiverPearl = {
 		name = "Perla del río",
-		icon = "🔮",
+		icon = "🦪",
 		order = 40,
 		rarity = "Legendary",
 		group = "Treasure",
@@ -139,13 +139,13 @@ local Items: { [string]: ItemDefinition } = {
 	},
 	MagmaCore = {
 		name = "Núcleo de magma",
-		icon = "🌋",
+		icon = "☄️",
 		order = 43,
 		rarity = "Legendary",
 		group = "Treasure",
 		keep = true,
 	},
-	ShipMetal = { name = "Metal de naufragio", icon = "⚙️", order = 44, rarity = "Uncommon", group = "Treasure" },
+	ShipMetal = { name = "Metal de naufragio", icon = "🔩", order = 44, rarity = "Uncommon", group = "Treasure" },
 	-- Fase 9 (G5): roca negra de las laderas del volcán y la sala de la cueva (Data/ResourceNodes).
 	Obsidian = {
 		name = "Obsidiana",

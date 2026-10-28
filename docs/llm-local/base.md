@@ -42,6 +42,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 
 1. **Lo de pago es solo cosmético.** El Ámbar, el tiempo de huevo y las provisiones nunca se venden. Nada aleatorio con Robux.
 2. **Colores con significado:** el verde es solo para la curación, el morado para el veneno y el rojo para el daño recibido.
+   **Un icono, una sola cosa:** dos objetos no comparten emoji, ni un objeto con el Ámbar (✨), las barras (🍖, 💧) o un edificio que sale junto a costes. Los parecidos (🔺/🔻) cuentan como iguales.
 3. **Los modelos son voxel** (bloques en rejilla, pocos tonos planos) salvo que se pida otra cosa. Las variantes se distinguen a primera vista, también por detrás.
 4. **Las ventanas del PC se ven enteras sin desplazamiento** (salvo el pase y los Estilos del Armario). En el teléfono, filas compactas.
 5. **Las poses de las armas son `AnimationTrack`**, nunca articulaciones giradas por código.

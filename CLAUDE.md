@@ -62,6 +62,7 @@ print(require(m).informe()); m:Destroy()
 
 - La premium del pase y todo lo de Robux es **solo cosmético**. El Ámbar, el tiempo de huevo y las provisiones nunca se venden: el Ámbar compra mejoras de poder. La sección "Reglas de pago" de `Economia` lo comprueba.
 - Colores con significado: verde solo para la curación, morado para el veneno, rojo para el daño recibido.
+- **Un icono, una sola cosa.** Dos objetos distintos no comparten emoji, ni un objeto con el Ámbar (✨), las barras (🍖 hambre, 💧 sed) o un edificio que sale junto a costes en materiales. Los parecidos (🔺/🔻, 🌿/🌱) cuentan como iguales. Solo puede repetirlo la receta o el construible que fabrica ese objeto.
 - Los modelos son **voxel** (bloques en rejilla con pocos tonos planos) salvo que se pida otra cosa. Las referencias están en `docs/img`. Las variantes (alfas, rarezas, estilos) tienen que distinguirse de la normal a primera vista, también por detrás.
 - Las ventanas del PC enseñan todo sin desplazamiento, salvo el pase y la pestaña Estilos del Armario. Las poses de las armas son `AnimationTrack`, nunca articulaciones giradas por código.
 - No se editan en Studio los scripts sincronizados: Rojo los sobrescribe.

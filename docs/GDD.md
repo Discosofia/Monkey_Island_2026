@@ -661,7 +661,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
     | Estructura | I | II | III |
     |---|---|---|---|
     | ⚒️ Forja | −10 % de materiales | −20 % | −30 % y forja volcánica |
-    | 🌿 Taller del curandero | 1 venda al amanecer, −10 % en curas | 2 vendas, −20 % | 3 vendas, −30 % |
+    | 🏥 Taller del curandero | 1 venda al amanecer, −10 % en curas | 2 vendas, −20 % | 3 vendas, −30 % |
     | 🍌 Huerto | 2 de fruta al amanecer | 4 | 6 |
     | 🛏️ Cama | reapareces en 50 s, +1 vida/s a su lado | 40 s, +2 | 30 s, +3 |
     | 📦 Cofre | 6 casillas | 12 | 20 |

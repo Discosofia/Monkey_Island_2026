@@ -43,7 +43,7 @@ Marca cada casilla al comprobarla.
 
 1. [ ] Abre la **Isla** y dale a ▶. En **🛠️ Pruebas**, pulsa **🎒 +50 de todo**.
    ✅ A la derecha salen avisos "+50 …" y en la Bolsa (B) aparecen todos los materiales.
-2. [ ] Equipa el **martillo** (5). A la derecha aparece la lista de piezas: elige **🌿 Taller del curandero**.
+2. [ ] Equipa el **martillo** (5). A la derecha aparece la lista de piezas: elige **🏥 Taller del curandero**.
    ✅ Se ve una vista previa transparente que sigue al ratón.
 3. [ ] Acércate a la hoguera del centro y ponlo dentro del círculo central (a menos de ~40 studs del centro).
    ✅ La vista previa se ve **verde**; al hacer clic se construye una tienda de lona.

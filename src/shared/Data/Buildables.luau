@@ -38,7 +38,7 @@ export type Buildable = {
 local Buildables: { [string]: Buildable } = {
 	WoodWall = {
 		name = "Muro de madera",
-		icon = "🌲",
+		icon = "🚪",
 		description = "Barato y rápido de poner.",
 		order = 1,
 		size = Vector3.new(8, 8, 1),
@@ -116,7 +116,7 @@ local Buildables: { [string]: Buildable } = {
 	-- Trampa (Fase 2.5): hiere a los monos que pasan por encima y se desgasta con cada golpe.
 	Spikes = {
 		name = "Estacas",
-		icon = "🔺",
+		icon = "🌵",
 		description = "Trampa de 4×4 con puntas hacia todos los lados: da igual por dónde lleguen los monos. "
 			.. "Encajan en la cuadrícula: ponlas en fila para cubrir un portón.",
 		order = 4.5,
@@ -130,7 +130,7 @@ local Buildables: { [string]: Buildable } = {
 	-- Estaciones (Fase 2.3): se construyen en el núcleo y las usa todo el equipo.
 	HealerTent = {
 		name = "Taller del curandero",
-		icon = "🌿",
+		icon = "🏥",
 		description = "Estación: ungüentos, vendas y antídotos.",
 		order = 5,
 		size = Vector3.new(8, 6, 6),

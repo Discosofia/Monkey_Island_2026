@@ -115,7 +115,7 @@ local PlotStructures: { [string]: Structure } = {
 	},
 	Healer = {
 		name = "Taller del curandero",
-		icon = "🌿",
+		icon = "🏥",
 		description = "Tu taller: vendas gratis cada amanecer y curas más baratas.",
 		size = Vector3.new(7, 6, 6),
 		buildableId = "HealerTent",
