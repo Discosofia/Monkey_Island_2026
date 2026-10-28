@@ -1191,22 +1191,12 @@ Probado en Studio (1 jugador, Lobby), en English y en Español y cambiando de un
 
 ## 22. Lo que queda por probar de I1d: Dunas y el combate en inglés (27-10-2026)
 
-Sin probar en Studio: la tanda se aprobó con la comprobación de `tools/strings.py`, stylua, selene y los tres `rojo build`. Hasta la I1e, en inglés quedan en español los nombres de `Data` (roles, habilidades, armas, objetos). Jaguar y Quetzal se escriben igual en los dos idiomas.
+Probado en Studio (1 jugador, Dunas, con el panel de pruebas), en English y en Español: la ventana «Antes de la batalla» (estado, «¡Listo!» y su espera), la línea de la fase en la espera, la cuenta atrás, la partida y los resultados, el estado de las banderas bajo el marcador, la reaparición, la línea y el cartel del altar (apagado, encendido, tomándolo y la ventaja), los avisos de equipo, empezar, robar, soltar, volver sola y capturar la bandera, el altar encendido y el ganador, y la ventana de resultados (sin texto cortado en el PC). Hasta la I1e, en inglés quedan en español los nombres de `Data` (roles y sus ventajas, habilidades, armas, el equipo de la arena y sus ranuras «Armadura» y «Amuleto»). Jaguar y Quetzal se escriben igual en los dos idiomas.
 
-#### 22.1 En el Studio de Dunas (1 jugador, panel de pruebas para empezar solo)
+#### 22.1 En el emulador de teléfono (Studio, Dunas, en English)
 
-1. [ ] Pon el ajuste de idioma en English y entra en Dunas.
-   ✅ La ventana «Antes de la batalla» dice «🛡️ Team and role», «✅ Ready!», «Pick a team to start» y, al pulsar Listo, «⏳ Waiting… (cancel Ready)» y «Ready: 1/2». En el teléfono, las dos columnas siguen sin desplazamiento.
-2. [ ] Elige equipo y empieza una partida de prueba.
-   ✅ La línea de la fase dice «⚔️ The battle starts in …» y después llega el aviso «⚔️ Let the battle begin! …»; bajo el marcador, «🏠 At base»; la línea del altar, «⛩️ Altar in 0:45», y el cartel sobre el altar, lo mismo.
-3. [ ] Roba la bandera rival, muere con ella y captúrala después.
-   ✅ «🚩 You have the flag! …», «🏃 Stolen!», «⏳ Dropped 12», «Respawning in 4» y los avisos «🚩 … takes the 🦜 Quetzal flag!», «💥 … dropped …» y «🏆 … captures the … flag! 🐆 1 · 0 🦜».
-4. [ ] Súbete a lo alto de la pirámide cuando se encienda el altar.
-   ✅ «⛩️ The pyramid altar is lit! …», «⛩️ 🐆 taking the altar 40%», «⛩️ Take it!» en el cartel y, al tomarlo, «⛩️ Team 🐆 Jaguar takes the altar! …».
-5. [ ] Termina la partida.
-   ✅ Los resultados dicen «🧪 Test match», «Doesn't count for Amber or the leaderboard», «⛩️ Altars: 🐆 1 · 0 🦜», «Rematch starts in … s with whoever stays», «🔁 Rematch» y «🏝️ Back to Lobby», sin texto cortado. La consola, sin `[Strings] sin inglés`.
-6. [ ] Vuelve a ponerlo en Español y repite el paso 1.
-   ✅ Todo sale como antes de la I1d.
+1. [ ] Con un teléfono apaisado, mira la ventana «Antes de la batalla» y los resultados.
+   ✅ Las dos columnas de la ventana siguen sin desplazamiento y «⏳ Waiting… (cancel Ready)» cabe en su botón; en los resultados, «Rematch starts in … s with whoever stays» cabe en una línea.
 
 #### 22.2 En la Isla y el Lobby (1 jugador, en English)
 
