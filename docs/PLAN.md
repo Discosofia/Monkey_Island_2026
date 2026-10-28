@@ -513,6 +513,21 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 - **Balance:** los umbrales de las skins por bajas bajaron el 28-10-2026 de 100/500/2.000 a 50/250/1.000 (decisión del usuario). Con una sola arma, el grado III tarda unos 42 días de calendario en el perfil intenso y unos 175 en el habitual (línea «Skins del Laboratorio» de `Economia`); repartidas entre las cuatro armas, cuatro veces más.
 - **Qué sigue:** por decidir con el usuario. Candidatas del plan: la Fase 14 (Isla Calavera, grupo D1 con el place nuevo); la tanda I1 (inglés), con las pruebas pendientes de VERIFICACION §19 a §23; y las pruebas de la Fase 13 (VERIFICACION §24 a §30) con la publicación de los cuatro places.
 
+**Fase 15: Movimiento y disparo** (plan aprobado el 28-10-2026, se hace antes de la Fase 14). Un solo sistema de movimiento para los cuatro places (andar 18, correr 26, deslizamiento, esquiva con efecto, animaciones propias), el shooter del Laboratorio completo (cargador, recarga, automático, dispersión, mira configurable, cabeza ×1,5), detección PvP con rebobinado, pantalla roja y espectador con killcam en Dunas y el Laboratorio. Cada grupo es una pestaña. Decisiones, arquitectura, orden y handoffs: `C:\Users\jose\.claude\plans\composed-tinkering-karp.md`.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **V1** | Movimiento unificado: `Movement` + `LocomotionController`, 18/26, modificadores, se borran las copias de Isla, Dunas y Laboratorio; Lobby sin gasto de stamina | — | ⏳ |
+| **V2** | Deslizamiento (C en el Laboratorio, Alt izquierdo en el resto, botón móvil) | — | ⏳ |
+| **V3** | Esquiva con efecto: más recorrido, impulso, estela, FOV y primera persona | — | ⏳ |
+| **V4** | Animaciones propias de andar, correr y deslizar | — | ⏳ |
+| **V5** | Pantalla roja por crítico o golpe fuerte, pulso con salud baja y dirección del atacante | — | ⏳ |
+| **V6** | Ajustes en el Laboratorio y Dunas, y mira configurable | — | ⏳ |
+| **V7** | Detección PvP con rebobinado y críticos a la cabeza | — | ⏳ |
+| **V8** | Cargador, recarga, disparo automático y mira dinámica (Laboratorio) | — | ⏳ |
+| **V9** | Animaciones, fogonazos y sonidos de disparo del Laboratorio | — | ⏳ |
+| **V10** | Espectador y killcam en Dunas y el Laboratorio | — | ⏳ |
+
 **Fase 14: Isla Calavera** (quinto place, mazmorra PvE de 1 a 5). Diseño: [AVENTURAS.md](AVENTURAS.md), resumen en el GDD §7.2.
 
 | Grupo | Contenido | Commit | Estado |
