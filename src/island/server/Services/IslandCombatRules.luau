@@ -40,10 +40,11 @@ local function collectBounty(attacker: Player, victim: Player)
 	if collected > 0 then
 		MatchStats.add(attacker, MatchStats.BOUNTIES, collected)
 		Remotes.Notify:FireAllClients(
-			`💰 {attacker.DisplayName} cobra la recompensa de {victim.DisplayName} ({collected})`
+			"💰 {attacker} cobra la recompensa de {victim} ({amount})",
+			{ attacker = attacker.DisplayName, victim = victim.DisplayName, amount = collected }
 		)
 	else
-		Remotes.Notify:FireClient(attacker, `⚔️ Has derribado a {victim.DisplayName}`)
+		Remotes.Notify:FireClient(attacker, "⚔️ Has derribado a {player}", { player = victim.DisplayName })
 	end
 end
 

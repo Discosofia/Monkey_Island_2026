@@ -4,7 +4,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local SHOW_DISTANCE = 220
 
@@ -49,7 +52,9 @@ function BossHUDController:Start()
 		local valid = typeof(name) == "string" and typeof(health) == "number" and typeof(maxHealth) == "number"
 		frame.Visible = valid and near
 		if valid and near then
-			title.Text = `👑 {name} · fase {phase or 1}/3`
+			-- El nombre es el de Data (un jefe) o una frase de Strings.pack (el gigante del administrador).
+			title.Text =
+				T("👑 {name} · fase {phase}/3", { name = Strings.unpack(name :: string), phase = phase or 1 })
 			fill.Size = UDim2.fromScale(math.clamp((health :: number) / (maxHealth :: number), 0, 1), 1)
 		end
 		task.wait(0.25)

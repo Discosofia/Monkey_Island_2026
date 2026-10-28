@@ -27,7 +27,10 @@ local Contracts = require(ReplicatedStorage.Shared.Data.Contracts)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local Missions = require(ReplicatedStorage.Shared.Data.Missions)
 local Settings = require(ReplicatedStorage.Shared.Settings)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local GOLD = Color3.fromRGB(255, 205, 70)
 local DONE = Color3.fromRGB(120, 230, 140)
@@ -155,10 +158,15 @@ local function buildList(parent: Instance, onToggle: () -> ()): (Frame, (Shown, 
 			local total = #shown.daily + #shown.weekly
 			panel.Visible = total > 0
 			arrow.Text = if open then "🔼" else "🔽"
-			local week = if #shown.weekly > 0 then ` · semana {shown.weeklyDone}/{#shown.weekly}` else ""
+			local week = if #shown.weekly > 0
+				then T(" · semana {done}/{total}", { done = shown.weeklyDone, total = #shown.weekly })
+				else ""
 			title.Text = if open
-				then "🎯 Misiones del día"
-				else `🎯 Misiones · hoy {shown.dailyDone}/{#shown.daily}{week}`
+				then T("🎯 Misiones del día")
+				else T(
+					"🎯 Misiones · hoy {done}/{total}{week}",
+					{ done = shown.dailyDone, total = #shown.daily, week = week }
+				)
 
 			local used = 0
 			local function put(text: string, count: string, color: Color3)
@@ -176,7 +184,7 @@ local function buildList(parent: Instance, onToggle: () -> ()): (Frame, (Shown, 
 				if #shown.weekly > 0 then
 					local all = shown.weeklyDone >= #shown.weekly
 					put(
-						"📆 Misiones de la semana",
+						T("📆 Misiones de la semana"),
 						if all then "✅" else `{shown.weeklyDone}/{#shown.weekly}`,
 						if all then DONE else GOLD
 					)
@@ -237,14 +245,14 @@ local function buildContractCard(parent: Instance): (Frame, (Contract.State?) ->
 			local index = math.max(state.index, 1)
 			local step = contract.steps[index]
 			local entry = state.steps[index]
-			title.Text = `📜 Contrato: {contract.icon} {contract.name}`
+			title.Text = T("📜 Contrato: {icon} {name}", { icon = contract.icon, name = { contract.name } })
 			titleCount.Text = `{Contract.doneCount(state)}/{#contract.steps} ✅`
 			if entry.status == "done" then
-				current.Text = `✅ {step.title}: cumplido`
+				current.Text = T("✅ {title}: cumplido", { title = { step.title } })
 				current.TextColor3 = DONE
 				currentCount.Text = ""
 			elseif entry.status == "failed" then
-				current.Text = `❌ {step.title}: se acabó el plazo`
+				current.Text = T("❌ {title}: se acabó el plazo", { title = { step.title } })
 				current.TextColor3 = FAILED
 				currentCount.Text = ""
 			else
@@ -256,12 +264,16 @@ local function buildContractCard(parent: Instance): (Frame, (Contract.State?) ->
 			local nextStep = contract.steps[index + 1]
 			if nextStep then
 				local days = Contract.daysText(contract, index)
-				upcoming.Text =
-					`{string.upper(string.sub(days, 1, 1))}{string.sub(days, 2)} · luego, día {nextStep.day}: {nextStep.icon} {nextStep.title}`
+				upcoming.Text = T("{days} · luego, día {day}: {icon} {title}", {
+					days = string.upper(string.sub(days, 1, 1)) .. string.sub(days, 2),
+					day = nextStep.day,
+					icon = nextStep.icon,
+					title = { nextStep.title },
+				})
 			else
 				upcoming.Text = if entry.status == "done"
-					then "🚁 Último paso cumplido"
-					else "Último paso: enciéndela de día y resiste la noche"
+					then T("🚁 Último paso cumplido")
+					else T("Último paso: enciéndela de día y resiste la noche")
 			end
 		end
 end
@@ -448,6 +460,11 @@ function MissionTrackerController:Start()
 	end
 	player:GetAttributeChangedSignal("Retention"):Connect(refresh)
 	ReplicatedStorage:GetAttributeChangedSignal(Contract.ATTRIBUTE):Connect(refreshContract)
+	-- Otro idioma: se rehace en él.
+	Strings.onChanged(function()
+		refresh()
+		refreshContract()
+	end)
 	refresh()
 	refreshContract()
 end

@@ -23,7 +23,10 @@ local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SeasonPass = require(ReplicatedStorage.Shared.SeasonPass)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 -- Cian del huevo (como su línea de estado en el HUD).
 local EGG_COLOR = Color3.fromRGB(150, 240, 255)
@@ -40,7 +43,7 @@ local MAX_PANEL_HEIGHT = 0.94
 local ResultsController = {}
 
 local function rollText(hatch: boolean, seconds: number): string
-	return if hatch then "🐣 ¡Eclosión!" else `⏩ −{seconds // 3600} h`
+	return if hatch then T("🐣 ¡Eclosión!") else `⏩ −{seconds // 3600} h`
 end
 
 -- La ruleta pasa por todos los premios posibles, se frena y se para en el que tocó. Luego dice qué
@@ -53,26 +56,29 @@ local function playRoulette(wheel: TextLabel, detail: TextLabel, roll: { [string
 	local final = rollText(roll.hatch == true, tonumber(roll.rolledSeconds) or 0)
 	local delay = ROULETTE_FIRST_DELAY
 	for step = 1, ROULETTE_STEPS do
-		wheel.Text = `🥚 Tirada del rescate: {options[step % #options + 1]}`
+		wheel.Text = T("🥚 Tirada del rescate: {roll}", { roll = options[step % #options + 1] })
 		task.wait(delay)
 		delay *= ROULETTE_SLOWDOWN
 	end
-	wheel.Text = `🥚 Tirada del rescate: {final}`
+	wheel.Text = T("🥚 Tirada del rescate: {roll}", { roll = final })
 	local scale = Instance.new("UIScale")
 	scale.Scale = 1.35
 	scale.Parent = wheel
 	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 
 	local rarity = Rarities[roll.rarity]
-	local name = if rarity then rarity.name else ""
+	local name = if rarity then { lower = { rarity.name } } else ""
 	local applied = tonumber(roll.appliedSeconds) or 0
 	if roll.hatch then
-		detail.Text = `¡Tu huevo {name} está listo! Ábrelo en el nido del Lobby`
+		detail.Text = T("¡Tu huevo {rarity} está listo! Ábrelo en el nido del Lobby", { rarity = name })
 	elseif applied < (tonumber(roll.rolledSeconds) or 0) then
-		detail.Text =
-			`Tu huevo {name}: −{EggIncubation.formatTime(applied)} (llegó al tope de lo que se acelera jugando)`
+		detail.Text = T(
+			"Tu huevo {rarity}: −{time} (llegó al tope de lo que se acelera jugando)",
+			{ rarity = name, time = EggIncubation.formatTime(applied) }
+		)
 	else
-		detail.Text = `Tu huevo {name} del nido: −{EggIncubation.formatTime(applied)}`
+		detail.Text =
+			T("Tu huevo {rarity} del nido: −{time}", { rarity = name, time = EggIncubation.formatTime(applied) })
 	end
 end
 
@@ -135,27 +141,33 @@ local function show(summary: { [string]: any })
 	local lines: { Line } = {
 		{
 			text = if victory
-				then "🚁 ¡Rescatados!"
-				elseif endless then "♾️ Fin de la supervivencia"
-				else "💀 El Basecamp ha caído",
+				then T("🚁 ¡Rescatados!")
+				elseif endless then T("♾️ Fin de la supervivencia")
+				else T("💀 El Basecamp ha caído"),
 			height = 0.14,
 			color = Color3.fromRGB(255, 210, 120),
 		},
 		{
 			text = if endless
-				then `Sobrevivieron {summary.days} día(s): {summary.extraDays or 0} después del rescate`
-				else `Sobrevivieron {summary.days} día(s)`,
+				then T(
+					"Sobrevivieron {days} día(s): {extra} después del rescate",
+					{ days = summary.days, extra = summary.extraDays or 0 }
+				)
+				else T("Sobrevivieron {days} día(s)", { days = summary.days }),
 			height = 0.09,
 			color = Color3.new(1, 1, 1),
 		},
-		{ text = `🐒 Monos derrotados: {summary.kills}`, height = 0.08, color = plain },
-		{ text = `💚 Aliados reanimados: {summary.revives}`, height = 0.08, color = plain },
-		{ text = `👻 Caídas: {summary.deaths}`, height = 0.08, color = plain },
-		{ text = `👑 Jefes: {summary.bosses or 0}`, height = 0.08, color = plain },
+		{ text = T("🐒 Monos derrotados: {n}", { n = summary.kills }), height = 0.08, color = plain },
+		{ text = T("💚 Aliados reanimados: {n}", { n = summary.revives }), height = 0.08, color = plain },
+		{ text = T("👻 Caídas: {n}", { n = summary.deaths }), height = 0.08, color = plain },
+		{ text = T("👑 Jefes: {n}", { n = summary.bosses or 0 }), height = 0.08, color = plain },
 		{
-			text = `✨ Ámbar ganado: {summary.amber}{if summary.amberBoost
-				then ` (×{summary.amberBoost} por el evento)`
-				else ""}`,
+			text = if summary.amberBoost
+				then T(
+					"✨ Ámbar ganado: {amber} (×{boost} por el evento)",
+					{ amber = summary.amber, boost = summary.amberBoost }
+				)
+				else T("✨ Ámbar ganado: {amber}", { amber = summary.amber }),
 			height = 0.1,
 			color = Color3.fromRGB(255, 200, 80),
 		},
@@ -166,14 +178,17 @@ local function show(summary: { [string]: any })
 	if contract then
 		local definition = Contracts[contract.id]
 		table.insert(lines, {
-			text = `📜 Contrato «{definition.name}»: {Contract.doneCount(contract)}/{#definition.steps} pasos`,
+			text = T(
+				"📜 Contrato «{name}»: {done}/{total} pasos",
+				{ name = { definition.name }, done = Contract.doneCount(contract), total = #definition.steps }
+			),
 			height = 0.07,
 			color = Color3.fromRGB(255, 205, 70),
 		})
 	end
 	if summary.newTitle then
 		table.insert(lines, {
-			text = "🏝️ ¡Nuevo título: Superviviente de la Isla! Póntelo en el Armario (Lobby)",
+			text = T("🏝️ ¡Nuevo título: Superviviente de la Isla! Póntelo en el Armario (Lobby)"),
 			height = 0.07,
 			color = Color3.fromRGB(255, 160, 70),
 		})
@@ -222,7 +237,7 @@ local function show(summary: { [string]: any })
 	end
 	local order = #lines * 10
 	if roll then
-		local wheel = Widgets.label("🥚 Tirada del rescate", panel)
+		local wheel = Widgets.label(T("🥚 Tirada del rescate"), panel)
 		wheel.LayoutOrder = order + 1
 		wheel.Size = UDim2.fromScale(0.9, 0.1 * fit)
 		wheel.TextColor3 = EGG_COLOR
@@ -235,7 +250,7 @@ local function show(summary: { [string]: any })
 	end
 
 	if canContinue then
-		local continueButton = Widgets.button("♾️ Seguir sobreviviendo", panel)
+		local continueButton = Widgets.button(T("♾️ Seguir sobreviviendo"), panel)
 		continueButton.LayoutOrder = order + 1
 		continueButton.Size = UDim2.fromScale(0.6, 0.13 * fit)
 		continueButton.MouseButton1Click:Connect(function()
@@ -245,11 +260,11 @@ local function show(summary: { [string]: any })
 		order += 1
 	end
 
-	local button = Widgets.button("Volver al Lobby", panel)
+	local button = Widgets.button(T("Volver al Lobby"), panel)
 	button.LayoutOrder = order + 1
 	button.Size = UDim2.fromScale(0.6, 0.13 * fit)
 	button.MouseButton1Click:Connect(function()
-		button.Text = "Viajando…"
+		button.Text = T("Viajando…")
 		Remotes.RequestReturnToLobby:FireServer()
 	end)
 
@@ -263,8 +278,8 @@ local function show(summary: { [string]: any })
 				return
 			end
 			countdown.Text = if canContinue
-				then `Si no eliges, vuelves al Lobby en {remaining} s`
-				else `Vuelven todos al Lobby en {remaining} s`
+				then T("Si no eliges, vuelves al Lobby en {seconds} s", { seconds = remaining })
+				else T("Vuelven todos al Lobby en {seconds} s", { seconds = remaining })
 			task.wait(1)
 		end
 	end)

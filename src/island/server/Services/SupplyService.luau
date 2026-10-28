@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -28,9 +29,10 @@ local SupplyService = {}
 local rng = Random.new()
 local activeCrate: Model? = nil
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
@@ -80,11 +82,11 @@ local function onOpen(crate: Model, player: Player)
 		return
 	end
 	activeCrate = nil
-	PvPService.forceOn(player, Config.PvP.ForcedSeconds, "has abierto una caja de suministro")
+	PvPService.forceOn(player, Config.PvP.ForcedSeconds, Strings.later("has abierto una caja de suministro"))
 	for _, entry in rollLoot() do
 		InventoryService.collect(player, entry.itemId, entry.amount)
 	end
-	announce(`📦 {player.DisplayName} ha abierto la caja de suministro`)
+	announce("📦 {player} ha abierto la caja de suministro", { player = player.DisplayName })
 	Retention.progress(player, "Supply")
 	crate:Destroy()
 end
@@ -150,7 +152,7 @@ local function buildCrate(spot: Vector3, style: CrateStyle, onTriggered: (crate:
 end
 
 local SUPPLY_STYLE: CrateStyle = {
-	name = "Caja de suministro",
+	name = Strings.later("Caja de suministro"),
 	size = Vector3.new(4, 3, 4),
 	color = Color3.fromRGB(150, 110, 60),
 	material = Enum.Material.WoodPlanks,
@@ -160,7 +162,7 @@ local SUPPLY_STYLE: CrateStyle = {
 }
 
 local MILITARY_STYLE: CrateStyle = {
-	name = "Caja militar",
+	name = Strings.later("Caja militar"),
 	size = Vector3.new(5, 3.4, 4),
 	color = Color3.fromRGB(78, 96, 58),
 	material = Enum.Material.DiamondPlate,
@@ -175,12 +177,12 @@ local function onOpenMilitary(crate: Model, player: Player)
 	end
 	crate:SetAttribute("Opened", true)
 	local settings = Config.MilitaryCrate
-	PvPService.forceOn(player, settings.PvPSeconds, "has abierto una caja militar")
+	PvPService.forceOn(player, settings.PvPSeconds, Strings.later("has abierto una caja militar"))
 	for _, entry in settings.Loot do
 		InventoryService.collect(player, entry.itemId, rng:NextInteger(entry.min, entry.max))
 	end
 	InventoryService.collect(player, settings.Shards[rng:NextInteger(1, #settings.Shards)], 1)
-	announce(`🎖️ {player.DisplayName} ha abierto una caja militar`)
+	announce("🎖️ {player} ha abierto una caja militar", { player = player.DisplayName })
 	Retention.progress(player, "Supply", 1, "Military")
 	crate:Destroy()
 end
@@ -205,9 +207,10 @@ function SupplyService.spawnCrate()
 	end
 	local crate = buildCrate(spot, SUPPLY_STYLE, onOpen)
 	activeCrate = crate
-	-- "el oeste" → "del oeste" (no "de el oeste").
-	local direction = string.gsub(Compass.direction(BasecampService.getCenter(), spot), "^el ", "del ")
-	announce(`📦 ¡Ha llegado una caja de suministro a la playa {direction}! Abrirla activa el PvP`)
+	announce(
+		"📦 ¡Ha llegado una caja de suministro a la playa {direction}! Abrirla activa el PvP",
+		{ direction = { Compass.directionOf(BasecampService.getCenter(), spot) } }
+	)
 
 	-- Monos de cola larga rondando la caja: atacan a quien se acerque.
 	local nearest: Player? = nil

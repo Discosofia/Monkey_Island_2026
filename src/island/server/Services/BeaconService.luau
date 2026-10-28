@@ -24,6 +24,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local DayNightService = require(script.Parent.DayNightService)
 local BuildingService = require(script.Parent.BuildingService)
@@ -41,9 +42,10 @@ local finalNight = false
 -- La Gran Tropa derribó la baliza esta noche: al amanecer no hay rescate.
 local signalCut = false
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
@@ -169,7 +171,11 @@ local function updateBar(beacon: Model)
 	local broken = BuildingService.isBroken(beacon)
 	gui.Enabled = lit or broken or fraction < 1
 	local label = gui:FindFirstChild("Label") :: TextLabel
-	label.Text = if broken then "📡 Baliza derribada" else `📡 Baliza {math.floor(health)}/{maxHealth}`
+	if broken then
+		Strings.setWorldText(label, "📡 Baliza derribada")
+	else
+		Strings.setWorldText(label, "📡 Baliza {health}/{max}", { health = math.floor(health), max = maxHealth })
+	end
 	local fill = (gui :: any).Back.Fill :: Frame
 	fill.Size = UDim2.fromScale(fraction, 1)
 	fill.BackgroundColor3 = if broken or fraction < 0.25
@@ -212,7 +218,11 @@ local function onLight(player: Player)
 	local state = MatchState.read()
 	local pieces = #Beacon.pieces()
 	if pieces < Beacon.total() then
-		Remotes.Notify:FireClient(player, `📡 Faltan piezas de los jefes: {pieces}/{Beacon.total()}`)
+		Remotes.Notify:FireClient(
+			player,
+			"📡 Faltan piezas de los jefes: {pieces}/{total}",
+			{ pieces = pieces, total = Beacon.total() }
+		)
 		return
 	end
 	-- En Studio, el panel de pruebas puede saltarse la espera del día 8 (DebugService).
@@ -220,7 +230,8 @@ local function onLight(player: Player)
 	if not debugUnlocked and (not state or state.day < Config.Match.BeaconUnlockDay) then
 		Remotes.Notify:FireClient(
 			player,
-			`📡 La baliza solo se puede encender desde el día {Config.Match.BeaconUnlockDay}`
+			"📡 La baliza solo se puede encender desde el día {day}",
+			{ day = Config.Match.BeaconUnlockDay }
 		)
 		return
 	end
@@ -236,7 +247,8 @@ local function onLight(player: Player)
 		updateBar(beacon)
 	end
 	announce(
-		`🚨 ¡{player.DisplayName} ha encendido la baliza! Esta noche llega La Gran Tropa: defiende la baliza hasta el amanecer`
+		"🚨 ¡{player} ha encendido la baliza! Esta noche llega La Gran Tropa: defiende la baliza hasta el amanecer",
+		{ player = player.DisplayName }
 	)
 end
 
@@ -321,21 +333,27 @@ function BeaconService:Start()
 		local status: string? = nil
 		local beacon = findBeacon()
 		if MatchService.isRescued() then
-			status = "♾️ Seguir sobreviviendo: cada día de más cuenta para tu récord"
+			status = Strings.pack("♾️ Seguir sobreviviendo: cada día de más cuenta para tu récord")
 		elseif finalNight and signalCut then
-			status = "📡 Baliza derribada: esta noche no habrá rescate. ¡Resiste hasta el amanecer!"
+			status = Strings.pack("📡 Baliza derribada: esta noche no habrá rescate. ¡Resiste hasta el amanecer!")
 		elseif finalNight then
 			local health, maxHealth = 0, 1
 			if beacon then
 				health, maxHealth = healthOf(beacon)
 			end
-			status =
-				`🌕 La Gran Tropa: ¡defiende la baliza ({math.floor(health / maxHealth * 100)} %) hasta el amanecer!`
+			status = Strings.pack(
+				"🌕 La Gran Tropa: ¡defiende la baliza ({percent} %) hasta el amanecer!",
+				{ percent = math.floor(health / maxHealth * 100) }
+			)
 		elseif lit then
-			status = "🚨 Baliza encendida: esta noche llega La Gran Tropa. ¡Defiéndela!"
+			status = Strings.pack("🚨 Baliza encendida: esta noche llega La Gran Tropa. ¡Defiéndela!")
 		elseif pieces > 0 or beacon then
-			local built = if beacon then "construida" else "sin construir"
-			status = `📡 Baliza {built} · piezas {pieces}/{Beacon.total()}`
+			status = Strings.pack(
+				if beacon
+					then Strings.later("📡 Baliza construida · piezas {pieces}/{total}")
+					else Strings.later("📡 Baliza sin construir · piezas {pieces}/{total}"),
+				{ pieces = pieces, total = Beacon.total() }
+			)
 		end
 		ReplicatedStorage:SetAttribute("BeaconStatus", status)
 	end

@@ -63,7 +63,8 @@ local function spawnAlpha(): boolean
 			local spot = (pivot * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(0, 0, -distance)).Position
 			if MonkeyService.spawnAmbush(speciesId, spot, count, target, true) > 0 then
 				Remotes.Notify:FireAllClients(
-					`🐒 ¡Una tropa de {Monkeys[speciesId].name} con su alfa va a por {target.DisplayName}!`
+					"🐒 ¡Una tropa de {monkey} con su alfa va a por {player}!",
+					{ monkey = { Monkeys[speciesId].name }, player = target.DisplayName }
 				)
 				return true
 			end

@@ -27,6 +27,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
 local Survival = require(ReplicatedStorage.Shared.Survival)
@@ -92,7 +93,7 @@ local function addSign(stationId: string, part: BasePart)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = `{station.icon} {station.name}`
+	Strings.setWorldText(label, "{icon} {name}", { icon = station.icon, name = { station.name } })
 	label.TextColor3 = Color3.fromRGB(255, 220, 140)
 	label.TextStrokeTransparency = 0.3
 	label.Font = Enum.Font.BuilderSansBold
@@ -381,17 +382,17 @@ local function onCraft(player: Player, recipeId: any)
 		return
 	end
 	if Crafting.isUnique(recipe) and Crafting.isOwned(player, recipeId) then
-		Remotes.Notify:FireClient(player, `Ya tienes: {recipe.name}`)
+		Remotes.Notify:FireClient(player, "Ya tienes: {name}", { name = { recipe.name } })
 		return
 	end
 	-- Las mejoras no se saltan: hace falta la anterior de la cadena.
 	local missing = Crafting.missingPrerequisite(player, recipe)
 	if missing then
-		Remotes.Notify:FireClient(player, `🔒 Primero fabrica: {missing}`)
+		Remotes.Notify:FireClient(player, "🔒 Primero fabrica: {name}", { name = { missing } })
 		return
 	end
 	if not Crafting.canAfford(player, recipe) then
-		Remotes.Notify:FireClient(player, `Te faltan materiales para: {recipe.name}`)
+		Remotes.Notify:FireClient(player, "Te faltan materiales para: {name}", { name = { recipe.name } })
 		return
 	end
 	-- Ya se comprobó que alcanza para todo: se gasta y se entrega.
@@ -403,8 +404,13 @@ local function onCraft(player: Player, recipeId: any)
 	if character then
 		Sfx.play("Craft", character:GetPivot().Position)
 	end
-	local verb = if recipe.upgrades then "mejorado" else "fabricado"
-	Remotes.Notify:FireClient(player, `Has {verb}: {recipe.icon} {Crafting.recipeName(player, recipe)}`)
+	Remotes.Notify:FireClient(
+		player,
+		if recipe.upgrades
+			then Strings.later("Has mejorado: {icon} {name}")
+			else Strings.later("Has fabricado: {icon} {name}"),
+		{ icon = recipe.icon, name = { Crafting.recipeName(player, recipe) } }
+	)
 	Retention.progress(player, "Craft")
 end
 
@@ -503,7 +509,8 @@ local function usePoultice(player: Player, root: BasePart, itemId: string)
 	Sfx.play("Heal", root)
 	Remotes.Notify:FireClient(
 		player,
-		`{Items[itemId].icon} Cataplasma: te has curado y has curado a {healed} aliado(s)`
+		"{icon} Cataplasma: te has curado y has curado a {n} aliado(s)",
+		{ icon = Items[itemId].icon, n = healed }
 	)
 end
 

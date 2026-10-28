@@ -8,6 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local T = Strings.t
 
 local ACTION = "DropEgg"
 
@@ -15,7 +18,7 @@ local EggCarryController = {}
 
 local function refreshBinding()
 	if Players.LocalPlayer:GetAttribute("CarryingEgg") == true then
-		ActionButtons.bind(ACTION, "Soltar huevo", function(_, state: Enum.UserInputState)
+		ActionButtons.bind(ACTION, T("Soltar huevo"), function(_, state: Enum.UserInputState)
 			if state == Enum.UserInputState.Begin then
 				Remotes.DropEgg:FireServer()
 			end

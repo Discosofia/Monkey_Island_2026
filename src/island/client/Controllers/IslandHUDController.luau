@@ -23,6 +23,8 @@ local Strings = require(ReplicatedStorage.Shared.Strings)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
+local T = Strings.t
+
 local SAFE_COLOR = Color3.fromRGB(120, 230, 140)
 local DANGER_COLOR = Color3.fromRGB(255, 170, 60)
 local FALLEN_COLOR = Color3.fromRGB(235, 70, 60)
@@ -43,7 +45,10 @@ end
 
 local function clockText(state: MatchState.State, now: number): string
 	local icon = if state.phase == "Day" then "☀️" else "🌙"
-	return `Día {state.day} · {icon} {formatTime(state.phaseEndsAt - now)}`
+	return T(
+		"Día {day} · {icon} {time}",
+		{ day = state.day, icon = icon, time = formatTime(state.phaseEndsAt - now) }
+	)
 end
 
 local function createClock(gui: ScreenGui)
@@ -72,11 +77,13 @@ local function createStatusLine(gui: ScreenGui, attribute: string, y: number, co
 	label.Position = UDim2.fromScale(0.5, y)
 	label.Size = UDim2.fromScale(0.34, 0.035)
 	label.TextColor3 = color
+	-- El servidor lo publica con Strings.pack (frase y argumentos) y aquí se traduce.
 	local function refresh()
 		local status = ReplicatedStorage:GetAttribute(attribute)
-		label.Text = if typeof(status) == "string" then status else ""
+		label.Text = if typeof(status) == "string" then Strings.unpack(status) else ""
 	end
 	ReplicatedStorage:GetAttributeChangedSignal(attribute):Connect(refresh)
+	Strings.onChanged(refresh)
 	refresh()
 end
 
@@ -94,18 +101,19 @@ local function createBasecampIndicator(gui: ScreenGui)
 		if inBasecamp == nil then
 			indicator.Text = ""
 		elseif inBasecamp and Basecamp.isFallen() then
-			indicator.Text = "🔥 Basecamp caído: no es zona segura"
+			indicator.Text = T("🔥 Basecamp caído: no es zona segura")
 			indicator.TextColor3 = FALLEN_COLOR
 		elseif inBasecamp then
-			indicator.Text = "🏕️ Basecamp: zona segura"
+			indicator.Text = T("🏕️ Basecamp: zona segura")
 			indicator.TextColor3 = SAFE_COLOR
 		else
-			indicator.Text = "⚠️ Fuera del Basecamp"
+			indicator.Text = T("⚠️ Fuera del Basecamp")
 			indicator.TextColor3 = DANGER_COLOR
 		end
 	end
 
 	player:GetAttributeChangedSignal("InBasecamp"):Connect(refresh)
+	Strings.onChanged(refresh)
 	ReplicatedStorage:GetAttributeChangedSignal(Basecamp.FALLEN):Connect(refresh)
 	refresh()
 end
@@ -153,7 +161,9 @@ local function createBasecampHealth(gui: ScreenGui)
 				local night = state ~= nil and state.phase == "Night"
 				frame.Visible = night or fallen or fraction < 1
 				-- Corto para que se lea en un teléfono; el indicador de la derecha ya dice que no es zona segura.
-				label.Text = if fallen then "🔥 ¡Campamento caído!" else `🏕️ Campamento {health}/{maxHealth}`
+				label.Text = if fallen
+					then T("🔥 ¡Campamento caído!")
+					else T("🏕️ Campamento {health}/{max}", { health = health, max = maxHealth })
 				label.TextColor3 = if fallen then FALLEN_COLOR else Color3.new(1, 1, 1)
 				fill.Size = UDim2.fromScale(fraction, 1)
 				fill.BackgroundColor3 = if fallen or fraction < 0.25
@@ -169,7 +179,7 @@ local function createBasecampHealth(gui: ScreenGui)
 end
 
 local function createReturnButton(gui: ScreenGui): TextButton
-	local returnButton = Widgets.button("Volver al Lobby", gui)
+	local returnButton = Widgets.button(T("Volver al Lobby"), gui)
 	returnButton.Name = "ReturnToLobbyButton"
 	returnButton.Size = UDim2.fromScale(0.22, 0.08)
 	if UserInputService.TouchEnabled then
@@ -187,7 +197,7 @@ local function createReturnButton(gui: ScreenGui): TextButton
 	local confirming = 0
 	local function reset()
 		confirming = 0
-		returnButton.Text = "Volver al Lobby"
+		returnButton.Text = T("Volver al Lobby")
 		returnButton.BackgroundColor3 = READY_COLOR
 		returnButton.TextColor3 = READY_TEXT
 	end
@@ -198,7 +208,7 @@ local function createReturnButton(gui: ScreenGui): TextButton
 		if confirming == 0 then
 			confirming += 1
 			local attempt = confirming
-			returnButton.Text = "¿Salir? Pierdes todo"
+			returnButton.Text = T("¿Salir? Pierdes todo")
 			Toast.show("⚠️ Si vuelves al Lobby pierdes lo que llevas de la isla. Toca otra vez para salir")
 			returnButton.BackgroundColor3 = LEAVE_COLOR
 			returnButton.TextColor3 = Color3.new(1, 1, 1)
@@ -211,7 +221,7 @@ local function createReturnButton(gui: ScreenGui): TextButton
 		end
 		reset()
 		waiting = true
-		returnButton.Text = "Viajando..."
+		returnButton.Text = T("Viajando…")
 		Remotes.RequestReturnToLobby:FireServer()
 
 		task.delay(Config.Teleport.CooldownSeconds, function()
@@ -267,7 +277,7 @@ local function createSettingsButton(gui: ScreenGui, returnButton: TextButton): T
 	limit.MaxSize = Vector2.new(720, 900)
 	limit.Parent = window
 
-	local title = Widgets.label("⚙️ Ajustes", window)
+	local title = Widgets.label(T("⚙️ Ajustes"), window)
 	title.Position = UDim2.fromOffset(14, 8)
 	title.Size = UDim2.new(1, -80, 0, 34)
 	title.TextXAlignment = Enum.TextXAlignment.Left

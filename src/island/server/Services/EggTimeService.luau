@@ -33,17 +33,19 @@ local function rewardDawn(player: Player)
 	if not nest then
 		return
 	end
-	local name = Rarities[nest.rarity].name
+	local name = { lower = { Rarities[nest.rarity].name } }
 	local applied = Eggs.addPlayTime(player, Config.Egg.SecondsPerDaySurvived)
 	if applied > 0 then
 		Remotes.Notify:FireClient(
 			player,
-			`🌅 Noche superada: tu huevo {name} del nido, −{EggIncubation.formatTime(applied)}`
+			"🌅 Noche superada: tu huevo {rarity} del nido, −{time}",
+			{ rarity = name, time = EggIncubation.formatTime(applied) }
 		)
 	else
 		Remotes.Notify:FireClient(
 			player,
-			`🌅 Noche superada: tu huevo {name} ya va todo lo rápido que puede jugando`
+			"🌅 Noche superada: tu huevo {rarity} ya va todo lo rápido que puede jugando",
+			{ rarity = name }
 		)
 	end
 end
@@ -75,7 +77,11 @@ local function checkReady()
 			if ready and not told[slot] then
 				told[slot] = true
 				local name = Rarities[(nest :: EggIncubation.NestEgg).rarity].name
-				Remotes.Notify:FireClient(player, `🐣 ¡Tu huevo {name} está listo! Ábrelo en el nido del Lobby`)
+				Remotes.Notify:FireClient(
+					player,
+					"🐣 ¡Tu huevo {rarity} está listo! Ábrelo en el nido del Lobby",
+					{ rarity = { lower = { name } } }
+				)
 			elseif not ready then
 				told[slot] = nil
 			end

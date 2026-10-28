@@ -23,6 +23,7 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -124,7 +125,7 @@ local function dropBackpack(player: Player, position: Vector3)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Recoger"
-	prompt.ObjectText = bag.Name
+	Strings.setText(prompt, "ObjectText", "Mochila de {player}", { player = player.DisplayName })
 	prompt.HoldDuration = 1.5
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = bag
@@ -162,12 +163,15 @@ local function respawnDowned(player: Player, surrendered: boolean)
 	for _, listener in respawnListeners do
 		task.spawn(listener, player)
 	end
-	local where = if typeof(bed) == "CFrame" then "en tu cama" else "en el Basecamp"
+	local where = { if typeof(bed) == "CFrame" then Strings.later("en tu cama") else Strings.later("en el Basecamp") }
 	Remotes.Notify:FireClient(
 		player,
 		if surrendered
-			then `🏳️ Te has rendido: reapareces {where}. Tu mochila se ha quedado donde caíste`
-			else `☠️ Nadie te reanimó a tiempo: reapareces {where}. Tu mochila se ha quedado donde caíste`
+			then Strings.later("🏳️ Te has rendido: reapareces {where}. Tu mochila se ha quedado donde caíste")
+			else Strings.later(
+				"☠️ Nadie te reanimó a tiempo: reapareces {where}. Tu mochila se ha quedado donde caíste"
+			),
+		{ where = where }
 	)
 end
 
@@ -191,12 +195,13 @@ local function revive(player: Player, rescuer: Player)
 	CombatText.heal(player, humanoid.Health - before, false, rescuer)
 	Sfx.play("Revive", character.PrimaryPart or character)
 	MatchStats.add(rescuer, MatchStats.REVIVES)
-	Remotes.Notify:FireClient(player, `💚 {rescuer.DisplayName} te ha reanimado`)
+	Remotes.Notify:FireClient(player, "💚 {player} te ha reanimado", { player = rescuer.DisplayName })
 	Remotes.Notify:FireClient(
 		rescuer,
 		if kit
-			then `🧰 Has reanimado a {player.DisplayName} con un kit ({Inventory.count(rescuer, REVIVE_KIT)} más)`
-			else `💚 Has reanimado a {player.DisplayName}`
+			then Strings.later("🧰 Has reanimado a {player} con un kit ({n} más)")
+			else Strings.later("💚 Has reanimado a {player}"),
+		{ player = player.DisplayName, n = Inventory.count(rescuer, REVIVE_KIT) }
 	)
 end
 
@@ -264,7 +269,7 @@ function LifeService.down(player: Player, cause: string)
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
 		label.BackgroundTransparency = 1
-		label.Text = "🆘 Caído"
+		label.Text = Strings.later("🆘 Caído")
 		label.TextColor3 = Color3.fromRGB(255, 110, 110)
 		label.TextStrokeTransparency = 0.2
 		label.Font = Enum.Font.BuilderSansBold

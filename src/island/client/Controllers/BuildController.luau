@@ -22,9 +22,12 @@ local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
+
+local T = Strings.t
 
 local ROTATE_ACTION = "BuildRotate"
 local NEXT_ACTION = "BuildNext"
@@ -122,7 +125,7 @@ function BuildController:Start()
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Padding = UDim.new(0, 6)
 	layout.Parent = panel
-	local heading = Widgets.label("🔨 Construir", panel)
+	local heading = Widgets.label(T("🔨 Construir"), panel)
 	heading.LayoutOrder = 1
 	heading.Size = UDim2.new(1, 0, 0, 26)
 	heading.TextXAlignment = Enum.TextXAlignment.Left
@@ -228,17 +231,17 @@ function BuildController:Start()
 			local tile = tiles[index]
 			local chosen = index == selected
 			tile.button.BackgroundColor3 = if chosen then SELECTED_COLOR else IDLE_COLOR
-			tile.name.Text = `{definition.icon} {definition.name}`
+			tile.name.Text = `{definition.icon} {T(definition.name)}`
 			tile.name.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
 			tile.name.TextStrokeTransparency = if chosen then 1 else 0.5
 			tile.cost.Text = costText(player, definition)
 		end
 		local definition = Buildables[ids[selected]]
-		cardName.Text = `{definition.icon} {definition.name}`
+		cardName.Text = `{definition.icon} {T(definition.name)}`
 		cardCost.Text = costText(player, definition)
 		hint.Text = if touch
-			then "Toca para colocar · Girar · Pieza · Quitar"
-			else "Clic: colocar · R: girar · T: cambiar pieza · F: quitar una pieza tuya"
+			then T("Toca para colocar · Girar · Pieza · Quitar")
+			else T("Clic: colocar · R: girar · T: cambiar pieza · F: quitar una pieza tuya")
 	end
 
 	local function clearGhost()
@@ -363,14 +366,14 @@ function BuildController:Start()
 				return Enum.ContextActionResult.Sink
 			end, ...)
 		end
-		bind(ROTATE_ACTION, "Girar", function()
+		bind(ROTATE_ACTION, T("Girar"), function()
 			rotation = (rotation + 1) % 4
 		end, Enum.KeyCode.R, Enum.KeyCode.DPadRight)
-		bind(NEXT_ACTION, "Pieza", function()
+		bind(NEXT_ACTION, T("Pieza"), function()
 			selected = selected % #ids + 1
 			refreshPanel()
 		end, Enum.KeyCode.T, Enum.KeyCode.ButtonL1)
-		bind(DEMOLISH_ACTION, "Quitar", function()
+		bind(DEMOLISH_ACTION, T("Quitar"), function()
 			if aimedStructure then
 				BodyAnimations.play("Hammer")
 				Remotes.Demolish:FireServer(aimedStructure)

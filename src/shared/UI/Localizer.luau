@@ -9,7 +9,10 @@
 --      español guardado en los atributos "SourceAction" y "SourceObject".
 --   4. Traduce las herramientas de la mochila (las crea el servidor en español): su nombre, que enseña
 --      la barra de Roblox, y lo que dicen al pasar por encima (las armas, con WeaponTools.tooltip).
---   5. Al cambiar de idioma, vuelve a traducir los textos fijos de la interfaz y los carteles. Los que
+--   5. Traduce los nombres de los monos, los jefes y los muñecos (Humanoid.DisplayName).
+--   6. Los textos del mundo y de los avisos que el servidor forma con argumentos (Strings.setWorldText y
+--      Strings.setText) se rehacen en el idioma del jugador cada vez que cambian.
+--   7. Al cambiar de idioma, vuelve a traducir los textos fijos de la interfaz y los carteles. Los que
 --      llevan números se rehacen solos la próxima vez que su módulo los actualiza.
 
 local Players = game:GetService("Players")
@@ -31,8 +34,14 @@ local function quiet(instance: Instance)
 	end
 end
 
--- Un texto del mundo: se recuerda su español y se pone en el idioma del jugador.
+-- Un texto del mundo: se recuerda su español y se pone en el idioma del jugador. Los que forma el
+-- servidor con argumentos (Strings.setWorldText) se rehacen con su plantilla.
 local function localizeWorldText(label: TextLabel | TextButton | TextBox)
+	local template, args = Strings.worldText(label)
+	if template then
+		label.Text = Strings.t(template, args)
+		return
+	end
 	local source = label:GetAttribute(SOURCE_ATTRIBUTE)
 	if typeof(source) ~= "string" then
 		source = Strings.source(label.Text)
@@ -46,6 +55,12 @@ end
 
 -- Un texto de un ProximityPrompt ("ActionText" u "ObjectText").
 local function localizePrompt(prompt: ProximityPrompt, property: "ActionText" | "ObjectText")
+	local template, args = Strings.worldText(prompt, property)
+	if template then
+		local text = Strings.t(template, args);
+		(prompt :: any)[property] = text
+		return
+	end
 	local attribute = if property == "ActionText" then "SourceAction" else "SourceObject"
 	-- El texto de ahora manda (el servidor puede haberlo cambiado); el guardado sirve si ya está traducido
 	-- por la nube y no se puede volver al español.
@@ -55,6 +70,21 @@ local function localizePrompt(prompt: ProximityPrompt, property: "ActionText" | 
 	end
 	prompt:SetAttribute(attribute, source);
 	(prompt :: any)[property] = Strings.t(source)
+end
+
+-- El nombre de un mono, un jefe o un muñeco (Humanoid.DisplayName, que pone el servidor en español); el
+-- de los jugadores no es ninguna frase y se queda como está. Su español queda en "SourceName".
+local function localizeHumanoid(humanoid: Humanoid)
+	local template, args = Strings.worldText(humanoid, "DisplayName")
+	if template then
+		humanoid.DisplayName = Strings.t(template, args)
+		return
+	end
+	local source = Strings.source(humanoid.DisplayName) or humanoid:GetAttribute("SourceName")
+	if typeof(source) == "string" then
+		humanoid:SetAttribute("SourceName", source)
+		humanoid.DisplayName = Strings.t(source)
+	end
 end
 
 -- Una herramienta de la mochila o de la mano. Su nombre español queda en el atributo "SourceName".
@@ -104,15 +134,41 @@ end
 local function onWorldDescendant(instance: Instance)
 	if instance:IsA("BillboardGui") or instance:IsA("SurfaceGui") then
 		quiet(instance)
+	elseif instance:IsA("Humanoid") then
+		localizeHumanoid(instance)
+		-- Un mono que pasa a alfa cambia de nombre (Strings.setText).
+		instance:GetAttributeChangedSignal("DisplayNameArgs"):Connect(function()
+			localizeHumanoid(instance)
+		end)
 	elseif isText(instance) and instance:FindFirstAncestorWhichIsA("LayerCollector") then
 		quiet(instance)
 		localizeWorldText(instance :: any)
+		-- El servidor puede cambiarlo en la partida: con plantilla (atributos) o con otra frase fija.
+		local function refresh()
+			localizeWorldText(instance :: any)
+		end
+		instance:GetAttributeChangedSignal("TextArgs"):Connect(refresh)
+		instance:GetAttributeChangedSignal("TextKey"):Connect(refresh)
+		instance:GetPropertyChangedSignal("Text"):Connect(function()
+			local label = instance :: TextLabel
+			if not Strings.worldText(label) then
+				local source = Strings.source(label.Text)
+				if not source then
+					return
+				end
+				label:SetAttribute(SOURCE_ATTRIBUTE, source)
+			end
+			-- Poner el mismo texto no vuelve a avisar, así que no hay bucle.
+			refresh()
+		end)
 	end
 end
 
 local function retranslate(root: Instance, world: boolean)
 	for _, instance in root:GetDescendants() do
-		if isText(instance) then
+		if world and instance:IsA("Humanoid") then
+			localizeHumanoid(instance)
+		elseif isText(instance) then
 			local label = instance :: TextLabel
 			if world then
 				if label:FindFirstAncestorWhichIsA("LayerCollector") then

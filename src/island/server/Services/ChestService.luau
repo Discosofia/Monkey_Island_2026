@@ -22,6 +22,8 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Plot = require(ReplicatedStorage.Shared.Plot)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local BuildingService = require(script.Parent.BuildingService)
@@ -35,11 +37,6 @@ local ChestService = {}
 local canUse = RequestCooldown.new(Config.Plot.ChestCooldownSeconds)
 -- Quien espera a que se guarde lo que ha cogido de un cofre ajeno (una cosa cada vez).
 local waiting: { [Player]: boolean } = {}
-
-local function itemText(itemId: string, amount: number): string
-	local item = Items[itemId]
-	return `{item.icon} {amount} {item.name}`
-end
 
 -- El cofre en pie de "owner" si "player" está vivo y a su lado; si no, nil.
 local function chestInReach(owner: Player, player: Player): Model?
@@ -75,7 +72,11 @@ local function onStore(player: Player, itemId: any, amount: any, part: any)
 		return
 	end
 	if not item.storable then
-		Remotes.Notify:FireClient(player, `{item.icon} {item.name} no se puede guardar en el cofre`)
+		Remotes.Notify:FireClient(
+			player,
+			"{icon} {name} no se puede guardar en el cofre",
+			{ icon = item.icon, name = { item.name } }
+		)
 		return
 	end
 	local state = Plot.normalize(profile.plot)
@@ -84,7 +85,11 @@ local function onStore(player: Player, itemId: any, amount: any, part: any)
 	count = math.min(count, Inventory.count(player, itemId), room)
 	if count <= 0 then
 		if room <= 0 then
-			Remotes.Notify:FireClient(player, `📦 El cofre está lleno ({Plot.chestSlots(level)} casillas)`)
+			Remotes.Notify:FireClient(
+				player,
+				"📦 El cofre está lleno ({n} casillas)",
+				{ n = Plot.chestSlots(level) }
+			)
 		end
 		return
 	end
@@ -163,7 +168,8 @@ local function onTake(player: Player, ownerUserId: any, part: any, itemId: any, 
 		if owner.Parent then
 			Remotes.Notify:FireClient(
 				owner,
-				`📦 {player.DisplayName} ha cogido {itemText(itemId, count)} de tu cofre compartido`
+				"📦 {player} ha cogido {items} de tu cofre compartido",
+				{ player = player.DisplayName, items = Rewards.itemsArg({ [itemId] = count }) }
 			)
 		end
 	end)
@@ -180,7 +186,7 @@ local function addPrompt(owner: Player)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = Plot.CHEST_PROMPT
 	prompt.ActionText = "Abrir"
-	prompt.ObjectText = `📦 Cofre de {owner.DisplayName}`
+	Strings.setText(prompt, "ObjectText", "📦 Cofre de {player}", { player = owner.DisplayName })
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = Config.Crafting.UseDistance
 	prompt.RequiresLineOfSight = false

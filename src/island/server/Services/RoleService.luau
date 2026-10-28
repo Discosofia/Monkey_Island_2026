@@ -127,7 +127,7 @@ local function onPlayer(player: Player)
 		for itemId, amount in supplies do
 			InventoryService.add(player, itemId, amount)
 		end
-		Remotes.Notify:FireClient(player, `🎒 Tus provisiones: {Rewards.describeItems(supplies)}`)
+		Remotes.Notify:FireClient(player, "🎒 Tus provisiones: {items}", { items = Rewards.itemsArg(supplies) })
 	end
 	if profile and not profile.tutorialDone then
 		player:SetAttribute("TutorialPending", true)
@@ -140,7 +140,11 @@ local function onPlayer(player: Player)
 		applyHealth(player, player.Character)
 	end
 	local role = Roles[roleId]
-	Remotes.Notify:FireClient(player, `{role.icon} Juegas como {role.name}: {role.passive}`)
+	Remotes.Notify:FireClient(
+		player,
+		"{icon} Juegas como {role}: {passive}",
+		{ icon = role.icon, role = { role.name }, passive = { role.passive } }
+	)
 end
 
 -- Panel de pruebas: pasa al siguiente rol sin volver al Lobby (armas, ventajas y habilidades).
@@ -162,7 +166,11 @@ function RoleService.debugNextRole(player: Player)
 		player:SetAttribute(`AbilityReadyAt{slot}`, nil)
 	end
 	local role = Roles[roleId]
-	Remotes.Notify:FireClient(player, `{role.icon} Ahora juegas como {role.name}: {role.passive}`)
+	Remotes.Notify:FireClient(
+		player,
+		"{icon} Ahora juegas como {role}: {passive}",
+		{ icon = role.icon, role = { role.name }, passive = { role.passive } }
+	)
 end
 
 function RoleService:Start()

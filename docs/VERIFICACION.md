@@ -1146,6 +1146,23 @@ Probado en Studio (1 jugador, Lobby e Isla): el selector 🌐 Idioma de Ajustes 
 1. [ ] Abre Ajustes, Armario y pase con el idioma en English.
    ✅ Los textos caben en sus botones y tarjetas (el inglés no corta palabras ni se sale).
 
+## 20. Lo que queda por probar de I1b: la Isla en inglés (27-10-2026)
+
+Probado en Studio (1 jugador, Isla), en English y en Español y cambiando de uno a otro en plena partida: el reloj, el indicador y la vida del campamento, las líneas de estado (asedio, huevo, baliza), los avisos del servidor (huevo, caja de suministro, jefe, hambre, sed, fiebre, noche, La Gran Tropa con su lista de monos, caído), el cofre, la Bolsa, los resultados y los carteles del mundo (campamento, parcelas, tótem PvP, aviso del cofre con el nombre del dueño). Hasta la I1e, en inglés quedan en español los nombres de `Data` (monos, jefes, objetos, rarezas, estaciones, contratos, eventos) y los avisos del panel de pruebas, que se quedan en español a propósito. No se pudo abrir por teclado la ventana de la parcela ni la de fabricar: sus textos en inglés son más cortos que los españoles.
+
+#### 20.1 Con 2 jugadores (Prueba → Clientes y servidores → 2 jugadores)
+
+1. [ ] Pon a un jugador en English y al otro en Español. Saca un huevo (🛠️ → Huevo), que uno lo recoja y lo lleve al nido.
+   ✅ Cada uno lee en su idioma «… lleva el huevo», la línea del huevo arriba y el aviso del huevo a salvo, con el nombre del otro jugador tal cual.
+2. [ ] Que uno caiga y el otro lo reanime (con y sin kit).
+   ✅ «Has reanimado a…» / «You revived…» y «… te ha reanimado» / «… revived you», cada uno en su idioma; el cartel 🆘 sobre la cabeza del caído sale en el idioma de quien lo mira.
+3. [ ] Que el inglés guarde algo en lo compartido de su cofre y el español lo coja.
+   ✅ El aviso de proximidad dice «📦 Cofre de …» / «📦 …'s chest» según quien lo mira, y al dueño le llega «… took … from your shared chest» con los objetos.
+4. [ ] Activa el PvP en los dos (tótem) y que uno derribe al otro con recompensa.
+   ✅ El cartel «⚔️ PvP · 💰…» sobre cada uno y el aviso de la recompensa salen en el idioma de quien los ve.
+5. [ ] Con un mono alfa cerca (🛠️ → panel de administración → tropa con alfa), mira su nombre.
+   ✅ Sale «… alfa» en español y «Alpha …» en inglés (el nombre de la especie, en español hasta la I1e).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

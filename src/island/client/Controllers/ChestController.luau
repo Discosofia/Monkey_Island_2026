@@ -23,7 +23,11 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Plot = require(ReplicatedStorage.Shared.Plot)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 local CLOSE_ACTION = "CloseChest"
 local GAP = 6
@@ -44,7 +48,7 @@ local MAX_HEIGHT = 0.86
 local CLOSE_MARGIN = 3
 -- "Todo": el servidor lo recorta a lo que hay y a lo que cabe.
 local ALL = 1e6
-local AMOUNTS = { { text = "1", amount = 1 }, { text = "10", amount = 10 }, { text = "Todo", amount = ALL } }
+local AMOUNTS = { { text = "1", amount = 1 }, { text = "10", amount = 10 }, { text = later("Todo"), amount = ALL } }
 -- Ventana que se abre a ratos, por encima de los botones táctiles de combate (ActionButtons, 5).
 local DISPLAY_ORDER = 6
 
@@ -132,7 +136,7 @@ local function newTile(itemId: string, badge: string?, parent: Instance): Tile
 		mark.ZIndex = 2
 	end
 
-	local name = Widgets.label(item.name, button)
+	local name = Widgets.label(T(item.name), button)
 	name.Font = Enum.Font.BuilderSans
 	name.AnchorPoint = Vector2.new(0.5, 1)
 	name.Position = UDim2.new(0.5, 0, 1, -2)
@@ -223,7 +227,7 @@ function ChestController:Start()
 	padding.PaddingRight = UDim.new(0, PADDING)
 	padding.Parent = panel
 
-	local title = Widgets.label("📦 Cofre", panel)
+	local title = Widgets.label(T("📦 Cofre"), panel)
 	title.Name = "Title"
 	title.Size = UDim2.new(1, -56, 0, HEADER_HEIGHT - 6)
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -253,13 +257,13 @@ function ChestController:Start()
 	-- Columna de la Bolsa (solo el dueño): título y a qué parte se guarda.
 	local bagColumn, bagHeader, bagGrid, bagLayout = newColumn(body)
 	bagColumn.Name = "Bag"
-	local bagTitle = Widgets.label("🎒 Guardar en", bagHeader)
+	local bagTitle = Widgets.label(T("🎒 Guardar en"), bagHeader)
 	bagTitle.Size = UDim2.fromScale(0.34, 1)
 	bagTitle.TextXAlignment = Enum.TextXAlignment.Left
 	bagTitle.TextColor3 = SOFT_COLOR
 	local partButtons: { [string]: TextButton } = {}
 	for index, part in Plot.CHEST_PARTS do
-		local button = toggleButton(if part == "private" then "🔒 Privado" else "🤝 Compartido", bagHeader)
+		local button = toggleButton(if part == "private" then T("🔒 Privado") else T("🤝 Compartido"), bagHeader)
 		button.Name = part
 		button.Position = UDim2.new(0.34 + (index - 1) * 0.33, 4, 0, 0)
 		button.Size = UDim2.new(0.33, -4, 1, 0)
@@ -293,7 +297,7 @@ function ChestController:Start()
 	detailLimit.Parent = detail
 	local amountButtons: { TextButton } = {}
 	for index, option in AMOUNTS do
-		local button = toggleButton(option.text, footer)
+		local button = toggleButton(if option.amount == ALL then T(option.text) else option.text, footer)
 		button.Name = `Amount{option.text}`
 		button.AnchorPoint = Vector2.new(1, 0)
 		button.Position = UDim2.new(1, -(#AMOUNTS - index) * 60, 0, 0)
@@ -313,15 +317,23 @@ function ChestController:Start()
 	end
 
 	local function hint(): string
-		local verb = if UserInputService.TouchEnabled then "Toca" else "Pulsa"
-		return if isOwner()
-			then `{verb} un objeto para guardarlo o sacarlo`
-			else `{verb} un objeto para cogerlo: va a tu Bolsa`
+		local touch = UserInputService.TouchEnabled
+		if isOwner() then
+			return if touch
+				then T("Toca un objeto para guardarlo o sacarlo")
+				else T("Pulsa un objeto para guardarlo o sacarlo")
+		end
+		return if touch
+			then T("Toca un objeto para cogerlo: va a tu Bolsa")
+			else T("Pulsa un objeto para cogerlo: va a tu Bolsa")
 	end
 
 	local function describe(itemId: string, count: number, where: string)
 		local item = Items[itemId]
-		detail.Text = `{item.icon} {item.name} ×{count} · {where}`
+		detail.Text = T(
+			"{icon} {name} ×{n} · {where}",
+			{ icon = item.icon, name = { item.name }, n = count, where = { where } }
+		)
 	end
 
 	local function refreshToggles()
@@ -402,9 +414,9 @@ function ChestController:Start()
 			tiles[key] = newOne
 			tile = newOne
 			local where = if part == "private"
-				then "🔒 en tu cofre privado"
-				elseif part == "shared" then "🤝 en lo compartido"
-				else "🎒 en tu Bolsa"
+				then later("🔒 en tu cofre privado")
+				elseif part == "shared" then later("🤝 en lo compartido")
+				else later("🎒 en tu Bolsa")
 			newOne.button.MouseEnter:Connect(function()
 				describe(itemId, tonumber(newOne.count.Text) or 0, where)
 			end)
@@ -455,11 +467,12 @@ function ChestController:Start()
 		end
 
 		if mine then
-			title.Text = "📦 Tu cofre"
-			chestTitle.Text = `📦 Cofre · {Plot.slotsUsed(state.chest)}/{slots} casillas`
+			title.Text = T("📦 Tu cofre")
+			chestTitle.Text =
+				T("📦 Cofre · {used}/{slots} casillas", { used = Plot.slotsUsed(state.chest), slots = slots })
 		else
-			title.Text = `📦 Cofre de {owner.DisplayName}`
-			chestTitle.Text = "🤝 Lo compartido"
+			title.Text = T("📦 Cofre de {player}", { player = owner.DisplayName })
+			chestTitle.Text = T("🤝 Lo compartido")
 		end
 		local after = 0
 		for _ in tiles do

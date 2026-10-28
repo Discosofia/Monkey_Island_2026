@@ -14,8 +14,12 @@ local UserInputService = game:GetService("UserInputService")
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
+
+local T = Strings.t
+local later = Strings.later
 
 local ACTION = "ToggleMaterials"
 local COLUMNS = 7
@@ -43,12 +47,12 @@ local DISPLAY_ORDER = 5
 
 -- Secciones en orden; un objeto va a la suya por "group" (Data/Items) o por lo que hace.
 local GROUPS = {
-	{ id = "Materials", title = "🌲 Materiales" },
-	{ id = "Food", title = "🍖 Comida" },
-	{ id = "Healing", title = "➕ Curación" },
-	{ id = "Loot", title = "🐾 Botín" },
-	{ id = "Treasure", title = "👑 Tesoros de jefe" },
-	{ id = "Gear", title = "🧰 Equipo" },
+	{ id = "Materials", title = later("🌲 Materiales") },
+	{ id = "Food", title = later("🍖 Comida") },
+	{ id = "Healing", title = later("➕ Curación") },
+	{ id = "Loot", title = later("🐾 Botín") },
+	{ id = "Treasure", title = later("👑 Tesoros de jefe") },
+	{ id = "Gear", title = later("🧰 Equipo") },
 }
 
 local InventoryHUDController = {}
@@ -80,22 +84,22 @@ end
 -- "Pelaje dorado · Poco común · Come: +35 🍖 +5 💧"
 local function describe(item: Items.ItemDefinition, count: number): string
 	local rarity = Rarities[item.rarity or "Common"] or Rarities.Common
-	local parts = { `{item.icon} {item.name} ×{count}`, rarity.name }
+	local parts = { `{item.icon} {T(item.name)} ×{count}`, T(rarity.name) }
 	if item.food then
 		local gains = `+{item.food.hunger} 🍖`
 		if item.food.thirst > 0 then
 			gains ..= ` +{item.food.thirst} 💧`
 		end
-		table.insert(parts, `Comer (G): {gains}`)
+		table.insert(parts, T("Comer (G): {gains}", { gains = gains }))
 	end
 	if item.heal then
-		table.insert(parts, `Curar (H): +{item.heal} ❤️`)
+		table.insert(parts, T("Curar (H): +{heal} ❤️", { heal = item.heal }))
 	end
 	if item.groupHeal then
-		table.insert(parts, `Curar (H): +{item.groupHeal} ❤️ a ti y a los aliados cercanos`)
+		table.insert(parts, T("Curar (H): +{heal} ❤️ a ti y a los aliados cercanos", { heal = item.groupHeal }))
 	end
 	if item.note then
-		table.insert(parts, item.note)
+		table.insert(parts, T(item.note))
 	end
 	return table.concat(parts, " · ")
 end
@@ -140,7 +144,7 @@ local function newTile(item: Items.ItemDefinition, parent: Instance): Tile
 	count.TextStrokeTransparency = 0.2
 	count.ZIndex = 2
 
-	local name = Widgets.label(item.name, button)
+	local name = Widgets.label(T(item.name), button)
 	name.Name = "ItemName"
 	name.Font = Enum.Font.BuilderSans
 	name.AnchorPoint = Vector2.new(0.5, 1)
@@ -211,7 +215,7 @@ function InventoryHUDController:Start()
 	padding.PaddingRight = UDim.new(0, PADDING)
 	padding.Parent = panel
 
-	local title = Widgets.label("🎒 Bolsa", panel)
+	local title = Widgets.label(T("🎒 Bolsa"), panel)
 	title.Name = "Title"
 	title.Size = UDim2.new(1, -52, 0, HEADER_HEIGHT)
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -273,7 +277,7 @@ function InventoryHUDController:Start()
 	local sections: { [string]: Frame } = {}
 	local grids: { [string]: Frame } = {}
 	for index, group in GROUPS do
-		sections[group.id], grids[group.id] = newSection(index, group.title, content)
+		sections[group.id], grids[group.id] = newSection(index, T(group.title), content)
 	end
 
 	local tiles: { [string]: Tile } = {}
@@ -282,8 +286,8 @@ function InventoryHUDController:Start()
 
 	local function hint(): string
 		return if UserInputService.TouchEnabled
-			then "Toca un objeto para ver qué es"
-			else "Pasa el mouse por un objeto para ver qué es"
+			then T("Toca un objeto para ver qué es")
+			else T("Pasa el mouse por un objeto para ver qué es")
 	end
 
 	local function selectItem(itemId: string?)
@@ -374,7 +378,7 @@ function InventoryHUDController:Start()
 	resize()
 
 	local function refreshTitle()
-		title.Text = if UserInputService.TouchEnabled then "🎒 Bolsa" else "🎒 Bolsa (B)"
+		title.Text = if UserInputService.TouchEnabled then T("🎒 Bolsa") else T("🎒 Bolsa (B)")
 	end
 	refreshTitle()
 

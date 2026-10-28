@@ -12,6 +12,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
@@ -60,7 +61,8 @@ local function grantMasterOutfits(player: Player, roleId: string)
 		then
 			Remotes.Notify:FireClient(
 				player,
-				`{cosmetic.icon} ¡Cosmético MÍTICO ganado! {cosmetic.name}. Póntelo en el Armario (Lobby)`
+				"{icon} ¡Cosmético MÍTICO ganado! {name}. Póntelo en el Armario (Lobby)",
+				{ icon = cosmetic.icon, name = { cosmetic.name } }
 			)
 		end
 	end
@@ -92,7 +94,10 @@ local function onMatchEnded(player: Player, summary: MatchService.Summary)
 	PlayerData.saveNow(player)
 	Remotes.Notify:FireClient(
 		player,
-		`✨ +{summary.amber} de Ámbar guardado{if summary.test then " (prueba: no cuenta para el ranking)" else ""}`
+		if summary.test
+			then Strings.later("✨ +{amber} de Ámbar guardado (prueba: no cuenta para el ranking)")
+			else Strings.later("✨ +{amber} de Ámbar guardado"),
+		{ amber = summary.amber }
 	)
 	local profile = PlayerData.get(player)
 	if profile then
@@ -126,11 +131,11 @@ local function recordDefeat(player: Player, id: string, message: string)
 end
 
 local function onKilled(player: Player, speciesId: string)
-	recordDefeat(player, speciesId, "📖 ¡Nueva especie en tu diario de campo! (J)")
+	recordDefeat(player, speciesId, Strings.later("📖 ¡Nueva especie en tu diario de campo! (J)"))
 end
 
 local function onBossDefeated(player: Player, bossId: string)
-	recordDefeat(player, bossId, "📖 ¡Nuevo jefe en tu diario de campo! (J)")
+	recordDefeat(player, bossId, Strings.later("📖 ¡Nuevo jefe en tu diario de campo! (J)"))
 end
 
 function DataService:Init()

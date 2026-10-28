@@ -21,6 +21,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
 local DayNightService = require(script.Parent.DayNightService)
@@ -37,9 +38,10 @@ local state: Contract.State
 -- Lo que ya ha contado el paso abierto en los "distinct" (especies).
 local seen: { [string]: boolean } = {}
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
@@ -63,25 +65,28 @@ end
 local function reward(player: Player, index: number)
 	local step = contract.steps[index]
 	local prize = C.StepRewards[index] or {}
-	local lines: { string } = {}
+	-- Cada línea es un texto o una frase con argumentos (Shared/Strings); Retention.grant aún las da en
+	-- español (pasan a frases en la tanda I1c).
+	local lines: { any } = {}
 	if prize.amber then
 		lines = Retention.grant(player, { amber = prize.amber }, true, "Contract")
 	end
 	if prize.xp then
 		local gain = SeasonPass.addXp(player, "Match", prize.xp)
 		if gain and gain.xp > 0 then
-			table.insert(lines, `⭐ +{gain.xp} XP de pase`)
+			table.insert(lines, { Strings.later("⭐ +{xp} XP de pase"), { xp = gain.xp } })
 		end
 	end
 	if step.items then
 		for itemId, amount in step.items do
 			InventoryService.collect(player, itemId, amount)
 		end
-		table.insert(lines, Rewards.describeItems(step.items))
+		table.insert(lines, Rewards.itemsArg(step.items))
 	end
 	Remotes.Notify:FireClient(
 		player,
-		`📜 ¡Paso del contrato cumplido! {step.icon} {step.title}: {table.concat(lines, " · ")}`
+		"📜 ¡Paso del contrato cumplido! {icon} {title}: {lines}",
+		{ icon = step.icon, title = { step.title }, lines = { list = lines, sep = " · " } }
 	)
 end
 
@@ -119,13 +124,19 @@ local function openUpTo(day: number)
 			local previous = state.steps[index - 1]
 			if previous and previous.status == "active" then
 				previous.status = "failed"
-				announce(`📜 Se acabó el plazo del paso «{contract.steps[index - 1].title}» del contrato`)
+				announce(
+					"📜 Se acabó el plazo del paso «{title}» del contrato",
+					{ title = { contract.steps[index - 1].title } }
+				)
 			end
 			entry.status = "active"
 			entry.target = targetFor(step)
 			state.index = index
 			table.clear(seen)
-			announce(`📜 Contrato: nuevo paso. {step.icon} {Contract.stepText(step, entry.target)}`)
+			announce(
+				"📜 Contrato: nuevo paso. {icon} {step}",
+				{ icon = step.icon, step = { step.text, { target = entry.target } } }
+			)
 		end
 	end
 	Contract.write(state)

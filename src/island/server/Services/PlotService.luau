@@ -30,6 +30,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Plot = require(ReplicatedStorage.Shared.Plot)
 local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local EggIncubation = require(ReplicatedStorage.Shared.EggIncubation)
@@ -98,13 +99,30 @@ local function costText(cost: { PlotStructures.Cost }): string
 	return table.concat(parts, " ")
 end
 
+-- El nombre de una estructura de la parcela con su nivel ("Huerto II") como argumento de Shared/Strings.
+local function structureArg(model: Model): any
+	local definition = PlotStructures[model:GetAttribute("PlotStructure") :: string]
+	local level = model:GetAttribute("Level")
+	if not definition then
+		return model.Name
+	end
+	return {
+		Strings.later("{name} {level}"),
+		{ name = { definition.name }, level = if typeof(level) == "number" then Plot.ROMAN[level] or "" else "" },
+	}
+end
+
 local function onRepair(model: Model, player: Player)
 	if not (BuildingService.isBroken(model) and LifeState.isAlive(player)) then
 		return
 	end
 	for _, entry in Config.Plot.RepairCost do
 		if Inventory.count(player, entry.itemId) < entry.amount then
-			Remotes.Notify:FireClient(player, `Para repararla hace falta {costText(Config.Plot.RepairCost)}`)
+			Remotes.Notify:FireClient(
+				player,
+				"Para repararla hace falta {cost}",
+				{ cost = costText(Config.Plot.RepairCost) }
+			)
 			return
 		end
 	end
@@ -114,7 +132,7 @@ local function onRepair(model: Model, player: Player)
 	local maxHealth = model:GetAttribute("MaxHealth")
 	BuildingService.repair(model, if typeof(maxHealth) == "number" then maxHealth else 0)
 	Sfx.play("Craft", model:GetPivot().Position)
-	Remotes.Notify:FireClient(player, `🔨 Reparada: {model.Name}`)
+	Remotes.Notify:FireClient(player, "🔨 Reparada: {name}", { name = structureArg(model) })
 end
 
 -- Aviso de reparar (solo encendido mientras está rota); al romperse o repararse cambian los efectos.
@@ -126,8 +144,8 @@ local function watchStructure(model: Model)
 	end
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = REPAIR_PROMPT
-	prompt.ActionText = `Reparar ({costText(Config.Plot.RepairCost)})`
-	prompt.ObjectText = `{definition.icon} {model.Name} rota`
+	Strings.setText(prompt, "ActionText", "Reparar ({cost})", { cost = costText(Config.Plot.RepairCost) })
+	Strings.setText(prompt, "ObjectText", "{icon} {name} rota", { icon = definition.icon, name = structureArg(model) })
 	prompt.HoldDuration = Config.Plot.RepairHoldSeconds
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
@@ -145,7 +163,8 @@ local function watchStructure(model: Model)
 			if broken then
 				Remotes.Notify:FireClient(
 					owner,
-					`💥 Han roto tu {model.Name}: no funciona hasta que la repares o amanezca`
+					"💥 Han roto tu {name}: no funciona hasta que la repares o amanezca",
+					{ name = structureArg(model) }
 				)
 			end
 		end
@@ -203,7 +222,11 @@ local function onUpgrade(player: Player, structureId: any)
 	local level = state.levels[structureId]
 	local nextLevel = definition.levels[level + 1]
 	if not nextLevel then
-		Remotes.Notify:FireClient(player, `{definition.icon} {definition.name} ya está al máximo`)
+		Remotes.Notify:FireClient(
+			player,
+			"{icon} {name} ya está al máximo",
+			{ icon = definition.icon, name = { definition.name } }
+		)
 		return
 	end
 	if structureId == "Nest" and player:GetAttribute(Plot.NEST_BUSY_ATTRIBUTE) then
@@ -218,7 +241,7 @@ local function onUpgrade(player: Player, structureId: any)
 		return
 	end
 	if profile.amber < nextLevel.amber then
-		Remotes.Notify:FireClient(player, `Te faltan {nextLevel.amber - profile.amber} de Ámbar`)
+		Remotes.Notify:FireClient(player, "Te faltan {n} de Ámbar", { n = nextLevel.amber - profile.amber })
 		return
 	end
 	-- Los materiales salen primero de lo privado del cofre (solo si está en pie) y el resto, de la Bolsa.
@@ -226,7 +249,7 @@ local function onUpgrade(player: Player, structureId: any)
 	for _, entry in nextLevel.cost do
 		local stored = if useChest then state.chest.private[entry.itemId] or 0 else 0
 		if stored + Inventory.count(player, entry.itemId) < entry.amount then
-			Remotes.Notify:FireClient(player, `Te faltan materiales: {costText(nextLevel.cost)}`)
+			Remotes.Notify:FireClient(player, "Te faltan materiales: {cost}", { cost = costText(nextLevel.cost) })
 			return
 		end
 	end
@@ -258,10 +281,17 @@ local function onUpgrade(player: Player, structureId: any)
 	Analytics.amber(player, "Sink", nextLevel.amber, before - nextLevel.amber, `Plot.{structureId}.{level + 1}`)
 	BuildingService.refreshPlot(player)
 	task.spawn(PlayerData.saveNow, player)
-	local verb = if level == 0 then "Construido" else "Mejorado"
 	Remotes.Notify:FireClient(
 		player,
-		`🏡 {verb}: {definition.icon} {definition.name} {Plot.ROMAN[level + 1]} · {nextLevel.effect}`
+		if level == 0
+			then Strings.later("🏡 Construido: {icon} {name} {level} · {effect}")
+			else Strings.later("🏡 Mejorado: {icon} {name} {level} · {effect}"),
+		{
+			icon = definition.icon,
+			name = { definition.name },
+			level = Plot.ROMAN[level + 1],
+			effect = { nextLevel.effect },
+		}
 	)
 end
 
@@ -283,7 +313,11 @@ local function onDawn()
 			end
 		end
 		if #gifts > 0 then
-			Remotes.Notify:FireClient(player, `🏡 Tu parcela al amanecer: {table.concat(gifts, " ")}`)
+			Remotes.Notify:FireClient(
+				player,
+				"🏡 Tu parcela al amanecer: {gifts}",
+				{ gifts = table.concat(gifts, " ") }
+			)
 		end
 		for structureId in PlotStructures do
 			local model = BuildingService.plotStructure(player, structureId)

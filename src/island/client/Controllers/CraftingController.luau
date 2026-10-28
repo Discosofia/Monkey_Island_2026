@@ -25,9 +25,12 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Stations = require(ReplicatedStorage.Shared.Data.Stations)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
+
+local T = Strings.t
 
 local PROMPT_NAME = "StationPrompt"
 local CLOSE_ACTION = "CloseWorkbench"
@@ -45,6 +48,7 @@ type Row = {
 	recipe: Recipes.Recipe,
 	frame: Frame,
 	title: TextLabel,
+	description: TextLabel,
 	cost: TextLabel,
 	button: TextButton,
 }
@@ -85,20 +89,19 @@ local function critText(recipe: Recipes.Recipe): string
 		then math.round(Crit.weaponChance(recipe.upgrades) * 100)
 		else nil
 	local value = if previous and previous ~= chance then `{previous} → {chance} %` else `{chance} %`
-	return ` · <font color="{CRIT_COLOR}">🎯 Crítico {value}</font>`
+	return ` · <font color="{CRIT_COLOR}">{T("🎯 Crítico {value}", { value = value })}</font>`
 end
 
--- La descripción con "{damage}" cambiado por el daño del arma que da la receta y "{poison}" por el de
--- su veneno cada segundo.
+-- La descripción en el idioma del jugador, con "{damage}" cambiado por el daño del arma que da la receta y
+-- "{poison}" por el de su veneno cada segundo.
 local function descriptionOf(recipe: Recipes.Recipe): string
 	local weapon = if recipe.weaponId then Weapons[recipe.weaponId] else nil
 	if not weapon then
-		return recipe.description
+		return T(recipe.description)
 	end
 	local damage = math.round(weapon.damage * Config.Combat.PlayerDamageMultiplier)
 	local poison = if weapon.poison then math.round(weapon.poison.dps * Config.Combat.PlayerDamageMultiplier) else 0
-	local text = string.gsub(recipe.description, "{damage}", tostring(damage))
-	return (string.gsub(text, "{poison}", tostring(poison)))
+	return T(recipe.description, { damage = damage, poison = poison })
 end
 
 local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance): Row
@@ -113,7 +116,7 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = frame
 
-	local title = Widgets.label(`{recipe.icon} {recipe.name}`, frame)
+	local title = Widgets.label(`{recipe.icon} {T(recipe.name)}`, frame)
 	title.Position = UDim2.fromOffset(10, 6)
 	title.Size = UDim2.new(0.66, -10, 0, 28)
 	title.TextXAlignment = Enum.TextXAlignment.Left
@@ -132,7 +135,7 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 	cost.TextXAlignment = Enum.TextXAlignment.Left
 	cost.RichText = true
 
-	local button = Widgets.button("Fabricar", frame)
+	local button = Widgets.button(T("Fabricar"), frame)
 	button.AnchorPoint = Vector2.new(1, 0.5)
 	button.Position = UDim2.new(1, -10, 0.5, 0)
 	button.Size = UDim2.new(0.32, -10, 0, 56)
@@ -149,21 +152,35 @@ local function newRow(recipeId: string, recipe: Recipes.Recipe, parent: Instance
 		Remotes.Craft:FireServer(recipeId)
 	end)
 
-	return { recipeId = recipeId, recipe = recipe, frame = frame, title = title, cost = cost, button = button }
+	return {
+		recipeId = recipeId,
+		recipe = recipe,
+		frame = frame,
+		title = title,
+		description = description,
+		cost = cost,
+		button = button,
+	}
 end
 
 local function refreshRow(player: Player, row: Row)
 	-- Las armaduras se llaman distinto según el rol (Data/Armor "roleNames").
-	row.title.Text = `{row.recipe.icon} {Crafting.recipeName(player, row.recipe)}`
+	row.title.Text = `{row.recipe.icon} {T(Crafting.recipeName(player, row.recipe))}`
+	-- Se rehace al abrir: así sale en el idioma de ahora si ha cambiado.
+	row.description.Text = `{descriptionOf(row.recipe)}{critText(row.recipe)}`
 	local owned = Crafting.isUnique(row.recipe) and Crafting.isOwned(player, row.recipeId)
 	-- Las mejoras no se saltan: hasta tener la anterior, en vez del coste se dice cuál falta.
 	local missing = if owned then nil else Crafting.missingPrerequisite(player, row.recipe)
 	row.cost.Text = if missing
-		then `<font color="{MISSING_COLOR}">🔒 Primero fabrica: {missing}</font>`
+		then `<font color="{MISSING_COLOR}">{T("🔒 Primero fabrica: {name}", { name = { missing } })}</font>`
 		else costText(player, row.recipe)
 	local ready = not owned and not missing and Crafting.canAfford(player, row.recipe)
-	local action = if row.recipe.upgrades then "Mejorar" else "Fabricar"
-	row.button.Text = if owned then "Ya la tienes" elseif missing then "Bloqueada" elseif ready then action else "Faltan"
+	local action = if row.recipe.upgrades then T("Mejorar") else T("Fabricar")
+	row.button.Text = if owned
+		then T("Ya la tienes")
+		elseif missing then T("Bloqueada")
+		elseif ready then action
+		else T("Faltan")
 	row.button.BackgroundColor3 = if ready then READY_COLOR else BLOCKED_COLOR
 	row.button.TextColor3 = if ready then Color3.fromRGB(40, 25, 5) else Color3.fromRGB(200, 200, 200)
 	row.button.Active = ready
@@ -256,7 +273,7 @@ function CraftingController:Start()
 			return
 		end
 		station = anchor
-		title.Text = `{definition.icon} {definition.name}`
+		title.Text = `{definition.icon} {T(definition.name)}`
 		local first: Row? = nil
 		for _, row in rows do
 			-- Sin las de otro rol ni las mejoras de un equipo que este jugador nunca tendrá.

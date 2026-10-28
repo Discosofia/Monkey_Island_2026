@@ -43,6 +43,8 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Rewards = require(ReplicatedStorage.Shared.Rewards)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Building = require(ReplicatedStorage.Shared.Building)
@@ -253,7 +255,9 @@ local function newHome(definition: Monkeys.MonkeyDefinition): Vector3?
 	return best
 end
 
-local function showBubble(monkey: Monkey, text: string)
+-- Bocadillo sobre la cabeza: una frase marcada con Strings.later (la traduce UI/Localizer) o, con
+-- "args", una plantilla con argumentos.
+local function showBubble(monkey: Monkey, text: string, args: { [string]: any }?)
 	local head = monkey.model:FindFirstChild("Head")
 	if not (head and head:IsA("BasePart")) then
 		return
@@ -266,7 +270,11 @@ local function showBubble(monkey: Monkey, text: string)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = text
+	if args then
+		Strings.setWorldText(label, text, args)
+	else
+		label.Text = text
+	end
 	label.TextColor3 = Color3.fromRGB(255, 120, 80)
 	label.TextStrokeTransparency = 0.2
 	label.Font = Enum.Font.BuilderSansBold
@@ -382,8 +390,11 @@ local function onDied(monkey: Monkey)
 		local stolen = monkey.stolen
 		if stolen then
 			InventoryService.collect(killer, stolen.itemId, stolen.amount)
-			local item = Items[stolen.itemId]
-			Remotes.Notify:FireClient(killer, `Recuperas lo robado: {stolen.amount} {item.icon} {item.name}`)
+			Remotes.Notify:FireClient(
+				killer,
+				"Recuperas lo robado: {items}",
+				{ items = Rewards.itemsArg({ [stolen.itemId] = stolen.amount }) }
+			)
 		end
 	end
 
@@ -415,7 +426,7 @@ local function makeAlpha(monkey: Monkey)
 	monkey.humanoid.Health = monkey.humanoid.MaxHealth
 	monkey.damage = math.round(monkey.damage * Config.Monkeys.AlphaDamageMultiplier)
 	monkey.model:SetAttribute("Alpha", true)
-	monkey.humanoid.DisplayName = `{monkey.definition.name} alfa`
+	Strings.setText(monkey.humanoid, "DisplayName", "{name} alfa", { name = { monkey.definition.name } })
 	local head = monkey.model:FindFirstChild("Head")
 	if head and head:IsA("BasePart") then
 		local crown = Instance.new("BillboardGui")
@@ -718,7 +729,7 @@ end
 -- El aullador avisa a los monos cercanos y, si sigue vivo y persiguiendo, llegan refuerzos.
 local function howl(monkey: Monkey, target: Player)
 	monkey.howled = true
-	showBubble(monkey, "¡AUUU!")
+	showBubble(monkey, Strings.later("¡AUUU!"))
 	playVoice(monkey, "Call")
 	MonkeyAnimator.play(monkey.model, "Howl")
 	Remotes.Notify:FireClient(target, "🐒 ¡Un aullador está llamando a la tropa!")
@@ -829,16 +840,14 @@ local function steal(monkey: Monkey, player: Player)
 	monkey.state = "Flee"
 	monkey.target = nil
 	local item = Items[itemId]
-	showBubble(monkey, `{item.icon} ¡JE JE!`)
+	showBubble(monkey, Strings.later("{icon} ¡JE JE!"), { icon = item.icon })
 	Sfx.play("MonkeySteal", monkey.root)
 	MonkeyAnimator.play(monkey.model, "Steal")
 	-- El nombre de su especie, en minúscula ("capuchino ladrón", "mono de cola larga").
-	local name = monkey.definition.name
-	local species = string.lower(string.sub(name, 1, 1)) .. string.sub(name, 2)
-	Remotes.Notify:FireClient(
-		player,
-		`🐒 ¡Un {species} te ha robado {amount} {item.icon} {item.name}! Atrápalo para recuperarlo`
-	)
+	Remotes.Notify:FireClient(player, "🐒 ¡Un {species} te ha robado {items}! Atrápalo para recuperarlo", {
+		species = { lower = { monkey.definition.name } },
+		items = Rewards.itemsArg({ [itemId] = amount }),
+	})
 end
 
 -- Preparación (Combat/EnemyAttack) de un ataque de "monkey" a "player": se para, se gira hacia él,
@@ -885,7 +894,11 @@ function bite(monkey: Monkey, player: Player, siege: boolean?)
 				and not siege
 				and Status.holdPlayer(player, grab, monkey.group.speciesId)
 			then
-				Remotes.Notify:FireClient(player, `🦧 ¡El {monkey.definition.name} te ha agarrado!`)
+				Remotes.Notify:FireClient(
+					player,
+					"🦧 ¡El {monkey} te ha agarrado!",
+					{ monkey = { monkey.definition.name } }
+				)
 			end
 		end)
 	end)
@@ -912,7 +925,7 @@ function pounce(monkey: Monkey, target: Vector3, now: number)
 	monkey.pounceReadyAt = now + Config.Monkeys.PounceCooldownSeconds
 	monkey.pounced = true
 	monkey.root.AssemblyLinearVelocity = offset.Unit * 55 + Vector3.new(0, 35, 0)
-	showBubble(monkey, "¡IIIH!")
+	showBubble(monkey, Strings.later("¡IIIH!"))
 	playVoice(monkey, "Attack")
 	MonkeyAnimator.play(monkey.model, "Pounce")
 end
@@ -924,7 +937,7 @@ function roar(monkey: Monkey, infos: { PlayerInfo }, now: number)
 		return
 	end
 	monkey.roarReadyAt = now + Config.Monkeys.RoarCooldownSeconds
-	showBubble(monkey, "¡GRRRAAH!")
+	showBubble(monkey, Strings.later("¡GRRRAAH!"))
 	playVoice(monkey, "Call")
 	MonkeyAnimator.play(monkey.model, "Roar")
 	for _, info in infos do
@@ -996,7 +1009,7 @@ function stomp(monkey: Monkey, _infos: { PlayerInfo }, now: number)
 	monkey.stompReadyAt = now + settings.cooldownSeconds
 	monkey.humanoid:MoveTo(monkey.root.Position)
 	local started = EnemyAttack.windup(monkey.model, Config.Windup.MonkeyStompSeconds, "Unblockable", function()
-		showBubble(monkey, "💥 ¡PUM!")
+		showBubble(monkey, Strings.later("💥 ¡PUM!"))
 		Sfx.play("RockImpact", monkey.root.Position)
 		local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
 		for _, model in Hitbox.inSphere(monkey.root.Position, settings.radius, { exclude = monkey.model }) do
@@ -1041,7 +1054,7 @@ local function avoidFire(monkey: Monkey, fires: { Vector3 }, now: number): boole
 		local away = (position - fire) * Vector3.new(1, 0, 1)
 		if away.Magnitude <= Config.Monkeys.FireFearRadius then
 			if now >= monkey.scaredUntil then
-				showBubble(monkey, "🔥 ¡IIH!")
+				showBubble(monkey, Strings.later("🔥 ¡IIH!"))
 			end
 			monkey.scaredUntil = now + 1.5
 			local direction = if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis
@@ -1276,7 +1289,7 @@ local function scaredByTorch(monkey: Monkey, now: number): boolean
 			local away = (position - model:GetPivot().Position) * FLAT
 			if away.Magnitude <= settings.Radius then
 				monkey.scaredUntil = now + settings.ScareSeconds
-				showBubble(monkey, "🔥 ¡IIH!")
+				showBubble(monkey, Strings.later("🔥 ¡IIH!"))
 				local direction = if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis
 				monkey.humanoid:MoveTo(position + direction * 24)
 				BuildingService.damageStructure(model, settings.ScareWear)

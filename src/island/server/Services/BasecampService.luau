@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 
 -- Nombre del modelo de la hoguera del mapa (MapBuilder; CraftingService crea una si falta).
 local CAMPFIRE_NAME = "Hoguera"
@@ -142,7 +143,15 @@ local function publish()
 	local fraction = math.clamp(health / maxHealth, 0, 1)
 	gui.Enabled = fallen or fraction < 1
 	local label = gui:FindFirstChild("Label") :: TextLabel
-	label.Text = if fallen then "🔥 Campamento caído" else `🏕️ Campamento {math.floor(health)}/{maxHealth}`
+	if fallen then
+		Strings.setWorldText(label, "🔥 Campamento caído")
+	else
+		Strings.setWorldText(
+			label,
+			"🏕️ Campamento {health}/{max}",
+			{ health = math.floor(health), max = maxHealth }
+		)
+	end
 	local fill = (gui :: any).Back.Fill :: Frame
 	fill.Size = UDim2.fromScale(fraction, 1)
 	fill.BackgroundColor3 = if fallen or fraction < 0.25

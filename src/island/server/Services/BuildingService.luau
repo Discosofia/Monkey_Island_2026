@@ -27,13 +27,16 @@ local PlotModels = require(ReplicatedStorage.Shared.PlotModels)
 local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Retention = require(ServerScriptService.ServerShared.Retention)
 local BasecampService = require(script.Parent.BasecampService)
 local InventoryService = require(script.Parent.InventoryService)
 
-local SIGN_FREE = "Parcela libre"
+local later = Strings.later
+
+local SIGN_FREE = later("Parcela libre")
 local BORDER_COLOR = Color3.fromRGB(205, 175, 115)
 -- Borde de piedra y oro de una parcela permanente: se distingue de lejos de las de la partida.
 local PERMANENT_BORDER_COLOR = Color3.fromRGB(240, 190, 60)
@@ -140,10 +143,13 @@ end
 
 -- Cartel y borde de la parcela "index": libre, de la partida o permanente (más grueso, de piedra y oro).
 local function setPlotLook(index: number, owner: Player?, permanent: boolean)
-	plotSigns[index].Text = if not owner
-		then SIGN_FREE
-		elseif permanent then `🏡 Parcela de {owner.DisplayName}`
-		else `🏕️ {owner.DisplayName}`
+	if not owner then
+		Strings.setWorldText(plotSigns[index], SIGN_FREE)
+	elseif permanent then
+		Strings.setWorldText(plotSigns[index], "🏡 Parcela de {player}", { player = owner.DisplayName })
+	else
+		Strings.setWorldText(plotSigns[index], "🏕️ {player}", { player = owner.DisplayName })
+	end
 	local thickness = if permanent then 0.8 else 0.3
 	for _, part in plotMarkers[index]:GetChildren() do
 		if part:IsA("BasePart") and part.Name == "Border" then
@@ -160,7 +166,7 @@ end
 
 local function buildHammer(): Tool
 	local tool = Instance.new("Tool")
-	tool.Name = "Martillo"
+	tool.Name = later("Martillo")
 	tool.ToolTip = "Construir en el Basecamp"
 	tool.CanBeDropped = false
 	tool:SetAttribute("BuildTool", true)
@@ -255,15 +261,19 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 	if not zone or not definition.zones[zone] then
 		local places = {}
 		if definition.zones.Core then
-			table.insert(places, "el núcleo")
+			table.insert(places, { later("el núcleo") })
 		end
 		if definition.zones.Plot then
-			table.insert(places, "tu parcela")
+			table.insert(places, { later("tu parcela") })
 		end
 		if definition.zones.Perimeter then
-			table.insert(places, "el perímetro y los portones")
+			table.insert(places, { later("el perímetro y los portones") })
 		end
-		Remotes.Notify:FireClient(player, `{definition.name}: solo en {table.concat(places, ", ")}`)
+		Remotes.Notify:FireClient(
+			player,
+			"{name}: solo en {places}",
+			{ name = { definition.name }, places = { list = places } }
+		)
 		return
 	end
 	if Building.isBlocked(cframe, definition.size, {}) then
@@ -271,7 +281,11 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 		return
 	end
 	if ownedBy(player, nil) >= Config.Building.MaxStructuresPerPlayer then
-		Remotes.Notify:FireClient(player, `Has llegado al límite de {Config.Building.MaxStructuresPerPlayer} piezas`)
+		Remotes.Notify:FireClient(
+			player,
+			"Has llegado al límite de {n} piezas",
+			{ n = Config.Building.MaxStructuresPerPlayer }
+		)
 		return
 	end
 	if definition.maxPerServer then
@@ -283,16 +297,20 @@ local function onBuild(player: Player, buildableId: any, point: any, rotation: a
 			end
 		end
 		if count >= definition.maxPerServer then
-			Remotes.Notify:FireClient(player, `Ya hay {definition.name} en el Basecamp`)
+			Remotes.Notify:FireClient(player, "Ya hay {name} en el Basecamp", { name = { definition.name } })
 			return
 		end
 	end
 	if definition.maxPerPlayer and ownedBy(player, buildableId) >= definition.maxPerPlayer then
-		Remotes.Notify:FireClient(player, `Solo puedes tener {definition.maxPerPlayer}: {definition.name}`)
+		Remotes.Notify:FireClient(
+			player,
+			"Solo puedes tener {n}: {name}",
+			{ n = definition.maxPerPlayer, name = { definition.name } }
+		)
 		return
 	end
 	if not canAfford(player, definition.cost) then
-		Remotes.Notify:FireClient(player, `Te faltan materiales para: {definition.name}`)
+		Remotes.Notify:FireClient(player, "Te faltan materiales para: {name}", { name = { definition.name } })
 		return
 	end
 	for _, entry in definition.cost do
@@ -336,7 +354,12 @@ local function onDemolish(player: Player, model: any)
 		return
 	end
 	if model:GetAttribute("OwnerUserId") ~= player.UserId then
-		Remotes.Notify:FireClient(player, `Esta pieza es de {model:GetAttribute("OwnerName") or "otro jugador"}`)
+		local ownerName = model:GetAttribute("OwnerName")
+		if typeof(ownerName) == "string" then
+			Remotes.Notify:FireClient(player, "Esta pieza es de {player}", { player = ownerName })
+		else
+			Remotes.Notify:FireClient(player, "Esta pieza es de otro jugador")
+		end
 		return
 	end
 	if model:GetAttribute("Permanent") then

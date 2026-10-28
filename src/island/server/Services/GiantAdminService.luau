@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatRules = require(ServerScriptService.Combat.CombatRules)
 local Status = require(ServerScriptService.Combat.Status)
@@ -112,7 +113,10 @@ local function publish(current: Giant)
 	local humanoid = current.humanoid
 	local root = humanoid.RootPart
 	local fraction = humanoid.Health / math.max(1, humanoid.MaxHealth)
-	ReplicatedStorage:SetAttribute("BossName", `👹 {current.player.DisplayName}, el gigante`)
+	ReplicatedStorage:SetAttribute(
+		"BossName",
+		Strings.pack("👹 {player}, el gigante", { player = current.player.DisplayName })
+	)
 	ReplicatedStorage:SetAttribute("BossHealth", math.max(0, humanoid.Health))
 	ReplicatedStorage:SetAttribute("BossMaxHealth", humanoid.MaxHealth)
 	ReplicatedStorage:SetAttribute("BossPhase", if fraction > 2 / 3 then 1 elseif fraction > 1 / 3 then 2 else 3)
@@ -156,12 +160,12 @@ local function finish(defeated: boolean)
 		current.humanoid.Health = current.humanoid.MaxHealth
 	end
 	if not defeated then
-		Remotes.Notify:FireAllClients(`👹 {player.DisplayName} ha vuelto a su tamaño`)
+		Remotes.Notify:FireAllClients("👹 {player} ha vuelto a su tamaño", { player = player.DisplayName })
 		return
 	end
 	Sfx.play("TreeFall", if character then character:GetPivot().Position else Vector3.zero)
 	local names = {}
-	local egg = Rarities[Config.GiantAdmin.RewardEgg].name
+	local egg = { lower = { Rarities[Config.GiantAdmin.RewardEgg].name } }
 	for winner in current.credited do
 		if winner.Parent and winner ~= player then
 			table.insert(names, winner.DisplayName)
@@ -169,15 +173,19 @@ local function finish(defeated: boolean)
 			Eggs.grant(winner, Config.GiantAdmin.RewardEgg)
 			Remotes.Notify:FireClient(
 				winner,
-				`👹 ¡Has derribado al gigante! Título «Matagigantes» y un huevo {egg}`
+				"👹 ¡Has derribado al gigante! Título «Matagigantes» y un huevo {rarity}",
+				{ rarity = egg }
 			)
 		end
 	end
-	Remotes.Notify:FireAllClients(
-		if #names > 0
-			then `👹 ¡El gigante ha caído! Premio para {table.concat(names, ", ")}`
-			else "👹 ¡El gigante ha caído!"
-	)
+	if #names > 0 then
+		Remotes.Notify:FireAllClients(
+			"👹 ¡El gigante ha caído! Premio para {players}",
+			{ players = table.concat(names, ", ") }
+		)
+	else
+		Remotes.Notify:FireAllClients("👹 ¡El gigante ha caído!")
+	end
 end
 
 -- Alguien ha intentado pegarle: si pierde vida enseguida, cuenta para el premio.
@@ -261,7 +269,8 @@ local function become(player: Player): string?
 		end
 	end)
 	Remotes.Notify:FireAllClients(
-		`👹 ¡{player.DisplayName} se ha convertido en un gigante! Pégale entre todos: quien le dé se lleva un premio`
+		"👹 ¡{player} se ha convertido en un gigante! Pégale entre todos: quien le dé se lleva un premio",
+		{ player = player.DisplayName }
 	)
 	return nil
 end

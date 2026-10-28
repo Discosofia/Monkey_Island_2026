@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Music = require(ReplicatedStorage.Shared.UI.Music)
 local Sounds = require(ReplicatedStorage.Shared.Data.Sounds)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 
 -- El tema del jefe suena mientras pelea ("BossFighting", BossService) y estás a esta distancia.
 local BOSS_MUSIC_DISTANCE = 250
@@ -57,7 +58,7 @@ local function situationTrack(): string
 		return "FinalNight"
 	end
 	local siege = ReplicatedStorage:GetAttribute("SiegeStatus")
-	if typeof(siege) == "string" and string.find(siege, "⚔️", 1, true) then
+	if typeof(siege) == "string" and string.find((Strings.unpacked(siege)), "⚔️", 1, true) then
 		return "Siege"
 	end
 	local state = MatchState.read()

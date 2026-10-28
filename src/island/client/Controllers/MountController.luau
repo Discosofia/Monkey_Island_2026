@@ -8,6 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local MountRiders = require(ReplicatedStorage.Shared.UI.MountRiders)
+local Strings = require(ReplicatedStorage.Shared.Strings)
+
+local T = Strings.t
 
 local ACTION = "Mount"
 local GESTURE_ACTION = "MountGesture"
@@ -17,7 +20,7 @@ local MountController = {}
 -- El botón solo está si lleva una montura.
 local function refreshBinding()
 	if typeof(Players.LocalPlayer:GetAttribute("ActiveMount")) == "string" then
-		ActionButtons.bind(ACTION, "Montar", function(_, state: Enum.UserInputState)
+		ActionButtons.bind(ACTION, T("Montar"), function(_, state: Enum.UserInputState)
 			if state == Enum.UserInputState.Begin then
 				MountRiders.toggle()
 			end
@@ -32,7 +35,7 @@ end
 local function refreshGesture()
 	local label = MountRiders.gestureLabel()
 	if label then
-		ActionButtons.bind(GESTURE_ACTION, label, function(_, state: Enum.UserInputState)
+		ActionButtons.bind(GESTURE_ACTION, T(label), function(_, state: Enum.UserInputState)
 			if state == Enum.UserInputState.Begin then
 				MountRiders.gesture()
 			end

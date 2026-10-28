@@ -22,7 +22,10 @@ local Plot = require(ReplicatedStorage.Shared.Plot)
 local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local PlotWelcome = require(ReplicatedStorage.Shared.UI.PlotWelcome)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
 
 local CLOSE_ACTION = "ClosePlot"
 local HAVE_COLOR = "#a0f08c"
@@ -106,18 +109,18 @@ local function refreshRow(player: Player, state: Plot.State, row: Row)
 	local level = state.levels[row.structureId]
 	local nextLevel = definition.levels[level + 1]
 	local levelText = if level > 0 then ` {Plot.ROMAN[level]}` else ""
-	row.title.Text = `{definition.icon} {definition.name}{levelText}`
+	row.title.Text = `{definition.icon} {T(definition.name)}{levelText}`
 	if not nextLevel then
-		row.effect.Text = definition.levels[level].effect
-		row.cost.Text = `<font color="{HAVE_COLOR}">⭐ Nivel máximo</font>`
-		row.button.Text = "Al máximo"
+		row.effect.Text = T(definition.levels[level].effect)
+		row.cost.Text = `<font color="{HAVE_COLOR}">{T("⭐ Nivel máximo")}</font>`
+		row.button.Text = T("Al máximo")
 		row.button.BackgroundColor3 = BLOCKED_COLOR
 		row.button.TextColor3 = Color3.fromRGB(200, 200, 200)
 		row.button.Active = false
 		row.button.AutoButtonColor = false
 		return
 	end
-	row.effect.Text = `{Plot.ROMAN[level + 1]}: {nextLevel.effect}`
+	row.effect.Text = `{Plot.ROMAN[level + 1]}: {T(nextLevel.effect)}`
 	-- Lo que pide y, entre paréntesis, lo que tienes (en verde si llega, en rojo si no).
 	local amber = amberOf(player)
 	local ready = amber >= nextLevel.amber
@@ -136,10 +139,10 @@ local function refreshRow(player: Player, state: Plot.State, row: Row)
 	row.cost.Text = table.concat(parts, "  ")
 	-- El nido no se mejora mientras defiende un huevo (EggService): se reconstruiría y lo perderías.
 	if row.structureId == "Nest" and player:GetAttribute(Plot.NEST_BUSY_ATTRIBUTE) then
-		row.effect.Text = "🥚 Defiende un huevo: se mejora cuando acabe"
+		row.effect.Text = T("🥚 Defiende un huevo: se mejora cuando acabe")
 		ready = false
 	end
-	row.button.Text = if not ready then "Faltan" elseif level == 0 then "Construir" else "Mejorar"
+	row.button.Text = if not ready then T("Faltan") elseif level == 0 then T("Construir") else T("Mejorar")
 	row.button.BackgroundColor3 = if ready then READY_COLOR else BLOCKED_COLOR
 	row.button.TextColor3 = if ready then Color3.fromRGB(40, 25, 5) else Color3.fromRGB(200, 200, 200)
 	row.button.Active = ready
@@ -174,7 +177,7 @@ function PlotController:Start()
 	sizeLimit.MaxSize = Vector2.new(680, 600)
 	sizeLimit.Parent = panel
 
-	local title = Widgets.label("🏡 Tu parcela", panel)
+	local title = Widgets.label(T("🏡 Tu parcela"), panel)
 	title.Position = UDim2.fromOffset(14, 8)
 	title.Size = UDim2.new(1, -80, 0, 36)
 	title.TextXAlignment = Enum.TextXAlignment.Left

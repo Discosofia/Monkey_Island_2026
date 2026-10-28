@@ -3,7 +3,10 @@
 --   local T = Strings.t
 --   label.Text = T("Ámbar: {n}", { n = amber })
 -- Los argumentos van con nombre entre llaves, como en una LocalizationTable de Roblox. Un argumento puede
--- ser otra frase que también se traduce, { "texto", args? }, o una lista de ellas, { list = { … }, sep? }
+-- ser otra frase que también se traduce, { "texto", args? }, una lista de ellas, { list = { … }, sep? }
+-- (sep, un texto o una frase: { Strings.later(" y ") }), u otro argumento en minúsculas o mayúsculas,
+-- { lower = … } o { upper = … } ("un huevo raro", "¡RARO!"). Solo arrays o solo diccionarios: una tabla
+-- mixta pierde sus claves al pasar por un RemoteEvent o por JSONEncode.
 -- (así el servidor manda por un remoto, por ejemplo, "🎒 Tus provisiones: {items}" con cada objeto, y
 -- el cliente lo pone todo en su idioma).
 -- El texto tiene que ser un literal entre comillas dobles (nunca una interpolación con `), para que
@@ -64,12 +67,21 @@ local function argument(value: any): string
 		return tostring(value)
 	elseif typeof(value[1]) == "string" then
 		return translate(value[1], value[2])
+	elseif value.lower ~= nil then
+		return string.lower(argument(value.lower))
+	elseif value.upper ~= nil then
+		return string.upper(argument(value.upper))
 	elseif typeof(value.list) == "table" then
 		local parts = {}
 		for _, entry in value.list do
 			table.insert(parts, argument(entry))
 		end
-		return table.concat(parts, if typeof(value.sep) == "string" then value.sep else ", ")
+		-- El separador puede ser también una frase ({ " y " }).
+		local sep = if typeof(value.sep) == "string"
+			then value.sep
+			elseif typeof(value.sep) == "table" then argument(value.sep)
+			else ", "
+		return table.concat(parts, sep)
 	end
 	return ""
 end
@@ -224,6 +236,72 @@ end
 -- después con T.
 function Strings.later(es: string): string
 	return es
+end
+
+-- Una frase y sus argumentos juntos en un texto, para un atributo que el servidor publica y el cliente
+-- enseña (las líneas de estado del HUD de la Isla): ReplicatedStorage:SetAttribute("SiegeStatus",
+-- Strings.pack("⚔️ Asedio: {alive} monos…", { alive = n })).
+function Strings.pack(es: string, args: Args?): string
+	return HttpService:JSONEncode({ es, args })
+end
+
+-- La frase y los argumentos de Strings.pack. Un texto que no viene de ahí sale tal cual y sin argumentos.
+function Strings.unpacked(raw: string): (string, Args?)
+	if string.sub(raw, 1, 2) == '["' then
+		local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+		if ok and typeof(decoded) == "table" and typeof(decoded[1]) == "string" then
+			return decoded[1], decoded[2]
+		end
+	end
+	return raw, nil
+end
+
+-- El texto de Strings.pack en el idioma del jugador.
+function Strings.unpack(raw: string): string
+	if raw == "" then
+		return ""
+	end
+	local es, args = Strings.unpacked(raw)
+	return translate(es, args)
+end
+
+-- Un texto del mundo (BillboardGui, SurfaceGui) que el servidor forma con argumentos y cambia en la
+-- partida ("🏕️ Campamento {health}/{max}"). Guarda la plantilla y sus argumentos en los atributos
+-- "TextKey" y "TextArgs" del texto, y UI/Localizer lo traduce en cada cliente cada vez que cambian.
+function Strings.setWorldText(label: TextLabel, es: string, args: Args?)
+	label:SetAttribute("TextKey", es)
+	label:SetAttribute("TextArgs", if args then HttpService:JSONEncode(args) else nil)
+	label.Text = translate(es, args)
+end
+
+-- Lo mismo para otra propiedad con texto: el ActionText u ObjectText de un ProximityPrompt ("📦 Cofre
+-- de {player}") o el DisplayName de un Humanoid ("{name} alfa"). La plantilla queda en los atributos
+-- "<property>Key" y "<property>Args".
+function Strings.setText(
+	instance: Instance,
+	property: "ActionText" | "ObjectText" | "DisplayName",
+	es: string,
+	args: Args?
+)
+	instance:SetAttribute(property .. "Key", es)
+	instance:SetAttribute(property .. "Args", if args then HttpService:JSONEncode(args) else nil);
+	(instance :: any)[property] = translate(es, args)
+end
+
+-- La plantilla y los argumentos que dejó Strings.setWorldText en un texto, o Strings.setText con
+-- prefix = la propiedad (nil si no tiene).
+function Strings.worldText(label: Instance, prefix: string?): (string?, Args?)
+	local es = label:GetAttribute((prefix or "Text") .. "Key")
+	if typeof(es) ~= "string" then
+		return nil, nil
+	end
+	local raw = label:GetAttribute((prefix or "Text") .. "Args")
+	local args = nil
+	if typeof(raw) == "string" then
+		local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+		args = if ok then decoded else nil
+	end
+	return es, args
 end
 
 -- El texto español que corresponde a uno ya traducido al inglés (para volver a traducir los textos fijos

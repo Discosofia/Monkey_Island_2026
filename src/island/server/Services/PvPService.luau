@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local BasecampService = require(script.Parent.BasecampService)
 
 local PvPService = {}
@@ -53,7 +54,11 @@ local function refreshIndicator(player: Player)
 	end
 	local bounty = player:GetAttribute("Bounty")
 	local label = (billboard :: BillboardGui):FindFirstChildOfClass("TextLabel") :: TextLabel
-	label.Text = if typeof(bounty) == "number" and bounty > 0 then `⚔️ PvP · 💰{bounty}` else "⚔️ PvP"
+	if typeof(bounty) == "number" and bounty > 0 then
+		Strings.setWorldText(label, "⚔️ PvP · 💰{bounty}", { bounty = bounty })
+	else
+		Strings.setWorldText(label, "⚔️ PvP")
+	end
 end
 
 local function setPvP(player: Player, enabled: boolean)
@@ -62,7 +67,8 @@ local function setPvP(player: Player, enabled: boolean)
 	refreshIndicator(player)
 end
 
--- PvP obligatorio durante "seconds" (caja de suministro, huevo).
+-- PvP obligatorio durante "seconds" (caja de suministro, huevo). "reason" es una frase de Shared/Strings
+-- (marcada con Strings.later), que el cliente traduce.
 function PvPService.forceOn(player: Player, seconds: number, reason: string)
 	local wasOn = player:GetAttribute("PvP") == true
 	setPvP(player, true)
@@ -70,7 +76,7 @@ function PvPService.forceOn(player: Player, seconds: number, reason: string)
 	local current = if typeof(lockedUntil) == "number" then lockedUntil else 0
 	player:SetAttribute("PvPLockedUntil", math.max(current, now() + seconds))
 	if not wasOn then
-		Remotes.Notify:FireClient(player, `⚔️ PvP activado: {reason}`)
+		Remotes.Notify:FireClient(player, "⚔️ PvP activado: {reason}", { reason = { reason } })
 	end
 end
 
@@ -85,7 +91,11 @@ local function onTotem(player: Player)
 	end
 	local lockedUntil = player:GetAttribute("PvPLockedUntil")
 	if typeof(lockedUntil) == "number" and now() < lockedUntil then
-		Remotes.Notify:FireClient(player, `No puedes quitar el PvP aún ({math.ceil(lockedUntil - now())} s)`)
+		Remotes.Notify:FireClient(
+			player,
+			"No puedes quitar el PvP aún ({seconds} s)",
+			{ seconds = math.ceil(lockedUntil - now()) }
+		)
 		return
 	end
 	if player:GetAttribute("PvPDisableAt") ~= nil then
@@ -95,7 +105,11 @@ local function onTotem(player: Player)
 	end
 	local disableAt = now() + Config.PvP.DisableDelaySeconds
 	player:SetAttribute("PvPDisableAt", disableAt)
-	Remotes.Notify:FireClient(player, `El PvP se desactivará en {Config.PvP.DisableDelaySeconds} s`)
+	Remotes.Notify:FireClient(
+		player,
+		"El PvP se desactivará en {seconds} s",
+		{ seconds = Config.PvP.DisableDelaySeconds }
+	)
 end
 
 local function buildTotem(): Model
@@ -145,7 +159,7 @@ local function buildTotem(): Model
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = "⚔️ Tótem PvP"
+	label.Text = Strings.later("⚔️ Tótem PvP")
 	label.TextColor3 = Color3.fromRGB(255, 120, 100)
 	label.TextStrokeTransparency = 0.3
 	label.Font = Enum.Font.BuilderSansBold

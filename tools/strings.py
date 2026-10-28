@@ -4,7 +4,7 @@ Sin opciones: busca en src/ las frases de T("…"), Strings.t("…"), Strings.la
 Remotes.Notify y los ActionText, ObjectText y ToolTip fijos (y los campos de texto de Data que dice
 DATA_FIELDS), las compara con las tablas inglesas de src/shared/Data/Strings/*.luau y avisa de:
   - frases sin inglés en las rutas de COVERED (las ya traducidas),
-  - entradas inglesas que ya no usa nadie (alguien retocó el español),
+  - entradas inglesas que ya no usa nadie (alguien retocó el español) o que están en dos tablas,
   - argumentos {x} distintos entre el español y el inglés,
   - T(` … `) con interpolación, que no se puede traducir.
 Sale con error si hay alguna. Lo ejecuta el CI.
@@ -29,6 +29,7 @@ TABLES = SRC / "shared" / "Data" / "Strings"
 # Se quedan solo en español (decidido en el plan de I1): herramientas de desarrollo y administración.
 EXCLUDED = [
     "src/island/tools/",
+    "src/island/server/Services/DebugService.luau",
     "src/shared/DebugCommands.luau",
     "src/shared/UI/AdminPanel.luau",
     "src/shared/UI/DebugPanel.luau",
@@ -40,6 +41,7 @@ EXCLUDED = [
 COVERED = [
     "src/shared/",
     "src/combatClient/",
+    "src/island/",
 ]
 
 # Campos de Data que se traducen por su nombre (T(def.name)): archivo → campos. Se rellena en la I1e.
@@ -53,6 +55,11 @@ CALLS = [
     re.compile(r"\bToast\.show\(\s*" + STRING),
     re.compile(r"\bNotify:FireClient\(\s*[\w.\[\]:()]+\s*,\s*" + STRING),
     re.compile(r"\bNotify:FireAllClients\(\s*" + STRING),
+    re.compile(r"\bsetWorldText\(\s*[\w.\[\]]+\s*,\s*" + STRING),
+    re.compile(r"\bStrings\.pack\(\s*" + STRING),
+    # Las funciones locales de los servicios de la Isla que avisan a todos o ponen una línea del HUD.
+    re.compile(r"\b(?:announce|setStatus)\(\s*" + STRING.replace(")*", ")+", 1)),
+    re.compile(r"\bsetText\(\s*[\w.\[\]]+\s*,\s*\"\w+\"\s*,\s*" + STRING),
     re.compile(r"\b(?:ActionText|ObjectText|ToolTip)\s*=\s*" + STRING),
 ]
 INTERPOLATED = re.compile(r"\b(?:T|Strings\.t)\(\s*`")
@@ -137,14 +144,22 @@ def used_phrases(paths: list[str] | None = None):
     return phrases, interpolated
 
 
+# Frases que están en más de una tabla (al cargarlas, la segunda pisa a la primera).
+repeated: list[str] = []
+
+
 def english_tables():
     """{español: (inglés, tabla)}."""
     entries: dict[str, tuple[str, str]] = {}
+    repeated.clear()
     for path in sorted(TABLES.glob("*.luau")):
         for line in path.read_text(encoding="utf-8").split("\n"):
             match = ENTRY.match(line)
             if match:
-                entries[decode(match.group(1))] = (decode(match.group(2)), path.stem)
+                es = decode(match.group(1))
+                if es in entries:
+                    repeated.append(f"{es!r} en Data/Strings/{entries[es][1]} y {path.stem}")
+                entries[es] = (decode(match.group(2)), path.stem)
     return entries
 
 
@@ -165,6 +180,9 @@ def check() -> int:
         if es not in phrases:
             print(f"Entrada sin uso en Data/Strings/{table}: {es!r}")
             problems += 1
+    for entry in repeated:
+        print(f"Entrada repetida: {entry}")
+        problems += 1
     for place in interpolated:
         print(f"T() con interpolación (usa una plantilla y argumentos): {place}")
         problems += 1

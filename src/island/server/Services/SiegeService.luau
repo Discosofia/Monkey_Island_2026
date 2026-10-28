@@ -27,6 +27,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
@@ -48,13 +49,15 @@ local rng = Random.new()
 -- Último pinchazo de estaca a cada mono (os.clock): como mucho uno cada SpikeHitCooldownSeconds.
 local lastPinch: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 
-local function setStatus(text: string)
-	ReplicatedStorage:SetAttribute(STATUS_ATTRIBUTE, text)
+-- Línea del HUD: una frase y sus argumentos (Strings.pack), que traduce cada cliente; "" la quita.
+local function setStatus(text: string, args: { [string]: any }?)
+	ReplicatedStorage:SetAttribute(STATUS_ATTRIBUTE, if text == "" then "" else Strings.pack(text, args))
 end
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
@@ -187,24 +190,24 @@ local function launchWave(day: number, wave: number)
 			end
 		end
 	end
-	local from = "los 4 portones"
+	local args: { [string]: any } = { wave = wave, waves = wavesTonight(), total = total, saboteurs = saboteurs }
 	if mix then
 		local parts = {}
 		for _, entry in mix do
-			table.insert(parts, `{entry.count} {Monkeys[entry.species].name}`)
-		end
-		announce(
-			`🌕 ¡La Gran Tropa! Oleada {wave}/{wavesTonight()}: {total} monos desde {from} ({table.concat(
+			table.insert(
 				parts,
-				", "
-			)})`
-		)
+				{ Strings.later("{n} {monkey}"), { n = entry.count, monkey = { Monkeys[entry.species].name } } }
+			)
+		end
+		args.mix = { list = parts }
+		announce("🌕 ¡La Gran Tropa! Oleada {wave}/{waves}: {total} monos desde los 4 portones ({mix})", args)
 	elseif saboteurs > 0 then
 		announce(
-			`🔧 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos y {saboteurs} macacos saboteadores desde {from}`
+			"🔧 ¡Asedio! Oleada {wave}/{waves}: {total} monos y {saboteurs} macacos saboteadores desde los 4 portones",
+			args
 		)
 	else
-		announce(`🐒 ¡Asedio! Oleada {wave}/{wavesTonight()}: {total} monos desde {from}`)
+		announce("🐒 ¡Asedio! Oleada {wave}/{waves}: {total} monos desde los 4 portones", args)
 	end
 end
 
@@ -247,22 +250,27 @@ local function runNight(day: number)
 		while nightToken == token do
 			local alive = MonkeyService.siegeAlive()
 			if isFinalNight() then
-				local wave = if currentWave > 0 then ` · oleada {currentWave}/{wavesTonight()}` else ""
-				setStatus(
-					if alive > 0
-						then `🌕 La Gran Tropa{wave}: {alive} monos atacan el Basecamp`
-						else `🌕 La Gran Tropa{wave}`
-				)
+				local wave = if currentWave > 0
+					then { Strings.later(" · oleada {wave}/{waves}"), { wave = currentWave, waves = wavesTonight() } }
+					else ""
+				if alive > 0 then
+					setStatus(
+						"🌕 La Gran Tropa{wave}: {alive} monos atacan el Basecamp",
+						{ wave = wave, alive = alive }
+					)
+				else
+					setStatus("🌕 La Gran Tropa{wave}", { wave = wave })
+				end
 			elseif saboteurNight then
-				setStatus(
-					if alive > 0
-						then `🔧 Asedio con saboteadores: {alive} monos atacan el Basecamp`
-						else "🔧 Noche de macacos saboteadores"
-				)
+				if alive > 0 then
+					setStatus("🔧 Asedio con saboteadores: {alive} monos atacan el Basecamp", { alive = alive })
+				else
+					setStatus("🔧 Noche de macacos saboteadores")
+				end
+			elseif alive > 0 then
+				setStatus("⚔️ Asedio: {alive} monos atacan el Basecamp", { alive = alive })
 			else
-				setStatus(
-					if alive > 0 then `⚔️ Asedio: {alive} monos atacan el Basecamp` else "🌙 Noche de asedio"
-				)
+				setStatus("🌙 Noche de asedio")
 			end
 			task.wait(1)
 		end

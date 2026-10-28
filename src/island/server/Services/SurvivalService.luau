@@ -20,6 +20,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -103,8 +104,8 @@ local function tick(player: Player)
 	local thirst = Survival.get(player, Survival.THIRST) - Config.Survival.ThirstPerMinute * minutes * rate
 	setStat(player, Survival.HUNGER, hunger)
 	setStat(player, Survival.THIRST, thirst)
-	warnLow(player, Survival.HUNGER, hunger, "🍖 Tienes hambre: come algo (G o el botón Comer)")
-	warnLow(player, Survival.THIRST, thirst, "💧 Tienes sed: bebe en el río (F o el botón Beber)")
+	warnLow(player, Survival.HUNGER, hunger, Strings.later("🍖 Tienes hambre: come algo (G o el botón Comer)"))
+	warnLow(player, Survival.THIRST, thirst, Strings.later("💧 Tienes sed: bebe en el río (F o el botón Beber)"))
 
 	-- Fiebre: baja sola (más rápido descansando en el Basecamp); a tope quita vida.
 	local fever = Survival.fever(player)

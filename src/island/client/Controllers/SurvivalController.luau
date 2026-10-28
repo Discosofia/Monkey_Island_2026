@@ -21,10 +21,13 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MountRiders = require(ReplicatedStorage.Shared.UI.MountRiders)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
+
+local T = Strings.t
 
 local SPRINT_ACTION = "Sprint"
 local EAT_ACTION = "Eat"
@@ -133,7 +136,7 @@ end
 function SurvivalController:Start()
 	local player = Players.LocalPlayer
 
-	ActionButtons.bind(SPRINT_ACTION, "Correr", function(_, state: Enum.UserInputState, input: InputObject)
+	ActionButtons.bind(SPRINT_ACTION, T("Correr"), function(_, state: Enum.UserInputState, input: InputObject)
 		if input.KeyCode == Enum.KeyCode.LeftShift then
 			sprintHeld = state == Enum.UserInputState.Begin
 		elseif state == Enum.UserInputState.Begin then
@@ -155,7 +158,7 @@ function SurvivalController:Start()
 		local show = Survival.bestFood(player) ~= nil and LifeState.isAlive(player)
 		if show ~= eatBound then
 			eatBound = show
-			bindButton(EAT_ACTION, "Comer", show, function()
+			bindButton(EAT_ACTION, T("Comer"), show, function()
 				BodyAnimations.play("Consume")
 				Remotes.Eat:FireServer()
 			end, Enum.KeyCode.G, Enum.KeyCode.DPadLeft)

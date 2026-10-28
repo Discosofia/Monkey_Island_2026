@@ -20,6 +20,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MidEvents = require(ReplicatedStorage.Shared.Data.MidEvents)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local BasecampService = require(script.Parent.BasecampService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -46,13 +47,15 @@ local statusToken = 0
 local highGround: { Vector3 }? = nil
 local flatHighGround: { Vector3 } = {}
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
--- Pone la línea de estado; con "seconds", se borra sola después (si nadie la ha cambiado).
+-- Pone la línea de estado (Strings.pack: la traduce cada cliente); con "seconds", se borra sola después
+-- (si nadie la ha cambiado).
 local function setStatus(text: string, seconds: number?)
 	statusToken += 1
 	local token = statusToken
@@ -145,10 +148,13 @@ local function startToxicRain()
 	for _, player in Players:GetPlayers() do
 		if player:GetAttribute("Role") == "Medico" then
 			InventoryService.add(player, "Antidote", antidotes)
-			local amount = if antidotes == 1 then "1 antídoto" else `{antidotes} antídotos`
+			local amount = if antidotes == 1
+				then { Strings.later("1 antídoto") }
+				else { Strings.later("{n} antídotos"), { n = antidotes } }
 			Remotes.Notify:FireClient(
 				player,
-				`⛑️ Como médico recibes {amount}, y tu Ungüento en área baja la fiebre de los que curas`
+				"⛑️ Como médico recibes {amount}, y tu Ungüento en área baja la fiebre de los que curas",
+				{ amount = amount }
 			)
 		end
 	end
@@ -167,10 +173,15 @@ local function startEruption()
 			table.insert(places, direction)
 		end
 	end
+	local placeArgs = {}
+	for _, direction in places do
+		table.insert(placeArgs, { direction })
+	end
 	WeatherService.pyroclasts(spots, settings.DurationSeconds)
 	if #places > 0 then
 		announce(
-			`🎖️ Cajas militares en las zonas altas, hacia {table.concat(places, " y ")}: abrirlas activa el PvP`
+			"🎖️ Cajas militares en las zonas altas, hacia {places}: abrirlas activa el PvP",
+			{ places = { list = placeArgs, sep = { Strings.later(" y ") } } }
 		)
 	end
 	return settings.DurationSeconds
@@ -187,7 +198,7 @@ local function start(event: MidEvents.MidEvent)
 	elseif event.id == "Eruption" then
 		seconds = startEruption()
 	end
-	setStatus(event.status, seconds)
+	setStatus(Strings.pack(event.status), seconds)
 end
 
 local function eventsOn(day: number, phase: MatchState.Phase?): { MidEvents.MidEvent }
@@ -209,12 +220,13 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 		-- Aviso de mañana (si esta noche ya hay evento, la línea de estado es la suya).
 		local texts = {}
 		for _, event in eventsOn(day + 1) do
-			table.insert(texts, `{event.icon} {event.eve}`)
+			table.insert(texts, { Strings.later("{icon} {text}"), { icon = event.icon, text = { event.eve } } })
 		end
 		if #texts > 0 then
-			announce(`📅 {table.concat(texts, " · ")}`)
+			local args = { texts = { list = texts, sep = " · " } }
+			announce("📅 {texts}", args)
 			if #tonight == 0 then
-				setStatus(`📅 {table.concat(texts, " · ")}`)
+				setStatus(Strings.pack("📅 {texts}", args))
 			end
 		elseif #tonight == 0 then
 			setStatus("")

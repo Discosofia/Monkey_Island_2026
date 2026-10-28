@@ -6,8 +6,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Journal = require(ReplicatedStorage.Shared.UI.Journal)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
+
+local T = Strings.t
 
 local ACTION = "ToggleJournal"
 
@@ -62,10 +65,13 @@ function JournalController:Start()
 			end
 		end
 		local discovered = Journal.fill(list, Progression.read(player).bestiary)
-		title.Text = `📖 Diario de campo · {discovered}/{total} especies y jefes (J para cerrar)`
+		title.Text = T(
+			"📖 Diario de campo · {discovered}/{total} especies y jefes (J para cerrar)",
+			{ discovered = discovered, total = total }
+		)
 	end
 
-	ActionButtons.bind(ACTION, "Diario", function(_, state: Enum.UserInputState)
+	ActionButtons.bind(ACTION, T("Diario"), function(_, state: Enum.UserInputState)
 		if state == Enum.UserInputState.Begin then
 			gui.Enabled = not gui.Enabled
 			if gui.Enabled then

@@ -17,9 +17,12 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local BodyAnimations = require(ReplicatedStorage.CombatClient.BodyAnimations)
+
+local T = Strings.t
 
 local SURRENDER_ACTION = "Surrender"
 
@@ -56,7 +59,7 @@ end
 local function setSurrender(enabled: boolean)
 	holdingSince = nil
 	if enabled then
-		ActionButtons.bind(SURRENDER_ACTION, "Rendirse", function(_, state: Enum.UserInputState)
+		ActionButtons.bind(SURRENDER_ACTION, T("Rendirse"), function(_, state: Enum.UserInputState)
 			if state == Enum.UserInputState.Begin then
 				holdingSince = os.clock()
 			elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
@@ -143,7 +146,7 @@ function LifeController:Start()
 	task.spawn(function()
 		while gui.Parent do
 			if LifeState.get(player) == "Downed" then
-				local key = if UserInputService.TouchEnabled then "Rendirse" else "F"
+				local key = if UserInputService.TouchEnabled then T("Rendirse") else "F"
 				local since = holdingSince
 				if since then
 					local held = os.clock() - since
@@ -152,11 +155,15 @@ function LifeController:Start()
 						Remotes.Surrender:FireServer()
 					end
 					local left = math.max(0, Config.Life.SurrenderHoldSeconds - held)
-					banner.Text =
-						`🏳️ Rindiéndote… suelta para seguir esperando ({string.format("%.1f", left)} s)`
+					banner.Text = T(
+						"🏳️ Rindiéndote… suelta para seguir esperando ({seconds} s)",
+						{ seconds = string.format("%.1f", left) }
+					)
 				else
-					banner.Text =
-						`🆘 Has caído: un aliado puede reanimarte ({secondsUntil("DownedEndsAt")} s) · mantén {key} para rendirte`
+					banner.Text = T(
+						"🆘 Has caído: un aliado puede reanimarte ({seconds} s) · mantén {key} para rendirte",
+						{ seconds = secondsUntil("DownedEndsAt"), key = key }
+					)
 				end
 			end
 			task.wait(0.1)

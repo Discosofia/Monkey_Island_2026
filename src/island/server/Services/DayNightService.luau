@@ -46,7 +46,7 @@ local function announce(day: number, phase: MatchState.Phase)
 	elseif day == 1 then
 		Remotes.Notify:FireAllClients("☀️ Día 1: explora la isla y vuelve antes de la noche")
 	else
-		Remotes.Notify:FireAllClients(`☀️ Amanece: día {day}`)
+		Remotes.Notify:FireAllClients("☀️ Amanece: día {day}", { day = day })
 	end
 end
 
@@ -58,7 +58,8 @@ local function waitForPhaseEnd(phase: MatchState.Phase, endsAt: number)
 		if phase == "Day" and not warned and remaining <= Config.Match.DuskWarningSeconds then
 			warned = true
 			Remotes.Notify:FireAllClients(
-				`🌅 Anochece en {Config.Match.DuskWarningSeconds} segundos. ¡Vuelve al Basecamp!`
+				"🌅 Anochece en {seconds} segundos. ¡Vuelve al Basecamp!",
+				{ seconds = Config.Match.DuskWarningSeconds }
 			)
 		end
 		task.wait(0.25)

@@ -35,6 +35,7 @@ local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local AbilityFx = require(ServerScriptService.Combat.AbilityFx)
 local BasecampService = require(script.Parent.BasecampService)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
@@ -58,11 +59,13 @@ local FIGHT_GRACE_SECONDS = 8
 -- Pisotón del guerrero (AbilityFxController "Quake").
 local STOMP_RADIUS = 20
 local STOMP_IMPACT_SECONDS = 0.9
+local later = Strings.later
+
 local BIOME_NAMES: { [string]: string } = {
-	Rios = "los ríos",
-	Montanas = "las montañas",
-	Cuevas = "las cuevas",
-	Volcan = "el volcán",
+	Rios = later("los ríos"),
+	Montanas = later("las montañas"),
+	Cuevas = later("las cuevas"),
+	Volcan = later("el volcán"),
 }
 
 type ActiveBoss = {
@@ -112,9 +115,10 @@ function BossService.onPhaseChanged(callback: (bossId: string, phase: number) ->
 	table.insert(phaseListeners, callback)
 end
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
@@ -185,14 +189,14 @@ local function groundBelow(position: Vector3): Vector3
 	return if result then result.Position else position
 end
 
-local function despawnCurrent(reason: string?)
+local function despawnCurrent(reason: string?, args: { [string]: any }?)
 	local boss = current
 	if not boss then
 		return
 	end
 	current = nil
 	if reason then
-		announce(reason)
+		announce(reason, args)
 	end
 	boss.model:Destroy()
 	publish()
@@ -217,18 +221,23 @@ local function onBossDied(boss: ActiveBoss)
 			MatchStats.add(player, MatchStats.BOSSES)
 			Remotes.Notify:FireClient(
 				player,
-				`🏆 Botín del jefe: {item.icon} {item.name} ×{Config.Bosses.LootPerPlayer}`
+				"🏆 Botín del jefe: {icon} {name} ×{n}",
+				{ icon = item.icon, name = { item.name }, n = Config.Bosses.LootPerPlayer }
 			)
 			for _, listener in defeatListeners do
 				task.spawn(listener, player, boss.id)
 			end
 		end
 	end
-	announce(
-		if newPiece
-			then `🏆 ¡{boss.definition.name} ha caído! Pieza de la baliza: {#Beacon.pieces()}/{Beacon.total()}`
-			else `🏆 ¡{boss.definition.name} ha caído!`
-	)
+	local bossName = { boss.definition.name }
+	if newPiece then
+		announce(
+			"🏆 ¡{boss} ha caído! Pieza de la baliza: {pieces}/{total}",
+			{ boss = bossName, pieces = #Beacon.pieces(), total = Beacon.total() }
+		)
+	else
+		announce("🏆 ¡{boss} ha caído!", { boss = bossName })
+	end
 	MonkeyAnimator.die(boss.model)
 	Poof.vanish(boss.model)
 	publish()
@@ -373,7 +382,10 @@ function BossService.spawn(bossId: string, round: number?)
 	end)
 	Sfx.play("BossRoar", root)
 	MonkeyAnimator.play(model, "Roar")
-	announce(`👑 ¡{definition.name} ha despertado en {BIOME_NAMES[definition.biome] or definition.biome}!`)
+	announce(
+		"👑 ¡{boss} ha despertado en {place}!",
+		{ boss = { definition.name }, place = { BIOME_NAMES[definition.biome] or definition.biome } }
+	)
 	publish()
 end
 
@@ -417,7 +429,7 @@ end
 local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: Player, targetRoot: BasePart) -> () } =
 	{
 		stomp = function(boss)
-			bubble(boss, "💥 ¡PUM!")
+			bubble(boss, later("💥 ¡PUM!"))
 			local position = boss.root.Position
 			-- Quieto y con el "‼" hasta que cae la onda (que ya avisa en el suelo).
 			EnemyAttack.windup(boss.model, STOMP_IMPACT_SECONDS, "Unblockable", function() end)
@@ -437,7 +449,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 			end)
 		end,
 		summon = function(boss, special, target)
-			bubble(boss, "¡A MÍ, TROPA!")
+			bubble(boss, later("¡A MÍ, TROPA!"))
 			local offset = Vector3.new(rng:NextNumber(-12, 12), 0, rng:NextNumber(-12, 12))
 			MonkeyService.spawnAmbush(
 				special.species or "AulladorRojo",
@@ -447,7 +459,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 			)
 		end,
 		rockRain = function(boss, special)
-			bubble(boss, "¡ROCAS!")
+			bubble(boss, later("¡ROCAS!"))
 			local lava = boss.definition.eruption == true
 			local color = if lava then Color3.fromRGB(255, 110, 30) else Color3.fromRGB(110, 105, 100)
 			local victims = playersAround(boss.root.Position, 60)
@@ -481,7 +493,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 		-- Avisa (Config.Windup.BossChargeSeconds, "‼") y sale hacia donde estés entonces. No se puede
 		-- bloquear: a quien está en guardia se la rompe; hay que apartarse o esquivar.
 		charge = function(boss, _special, _target, targetRoot)
-			bubble(boss, "¡!")
+			bubble(boss, later("¡!"))
 			EnemyAttack.face(boss.model, targetRoot.Position)
 			EnemyAttack.windup(boss.model, Config.Windup.BossChargeSeconds, "Unblockable", function()
 				if current ~= boss then
@@ -525,7 +537,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 			if (targetRoot.Position - boss.root.Position).Magnitude > reach then
 				return
 			end
-			bubble(boss, "¡TE TENGO!")
+			bubble(boss, later("¡TE TENGO!"))
 			EnemyAttack.face(boss.model, targetRoot.Position)
 			EnemyAttack.windup(boss.model, Config.Windup.BossSeconds, "Unblockable", function()
 				EnemyAttack.strike(boss.model, target, reach, function()
@@ -543,7 +555,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 			end)
 		end,
 		extinguish = function(boss)
-			bubble(boss, "¡GRRROOOAAAR!")
+			bubble(boss, later("¡GRRROOOAAAR!"))
 			for _, player in playersAround(boss.root.Position, 45) do
 				-- La antorcha de la mano izquierda se apaga un rato (TorchService).
 				if TorchService.douse(player, Config.Monkeys.TorchRoarOutSeconds) then
@@ -567,7 +579,7 @@ local function updatePhase(boss: ActiveBoss)
 	bubble(boss, "😡")
 	Sfx.play("BossRoar", boss.root)
 	MonkeyAnimator.play(boss.model, "Roar")
-	announce(`😡 ¡{boss.definition.name} se enfurece! (fase {phase}/3)`)
+	announce("😡 ¡{boss} se enfurece! (fase {phase}/3)", { boss = { boss.definition.name }, phase = phase })
 	for _, listener in phaseListeners do
 		task.spawn(listener, boss.id, phase)
 	end
@@ -694,14 +706,20 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 	local index = (day // interval) - 1
 	local bossId = rotation[index % #rotation + 1]
 	if current then
-		despawnCurrent(`🌫️ {current.definition.name} se retira a su guarida…`)
+		despawnCurrent(
+			Strings.later("🌫️ {boss} se retira a su guarida…"),
+			{ boss = { current.definition.name } }
+		)
 	end
 	-- Solo vuelve más fuerte si ya lo derrotaron (su pieza está en la baliza): uno que se les resistió
 	-- vuelve igual, para que el grupo atascado pueda conseguir su pieza.
 	local round = if Beacon.has(bossId) then index // #rotation else 0
 	BossService.spawn(bossId, round)
 	if round > 0 then
-		announce(`👑 {Bosses[bossId].name} vuelve más fuerte (vuelta {round + 1})`)
+		announce(
+			"👑 {boss} vuelve más fuerte (vuelta {round})",
+			{ boss = { Bosses[bossId].name }, round = round + 1 }
+		)
 	end
 end
 

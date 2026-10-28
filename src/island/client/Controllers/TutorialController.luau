@@ -10,7 +10,11 @@ local Building = require(ReplicatedStorage.Shared.Building)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+
+local T = Strings.t
+local later = Strings.later
 
 type Step = { text: string, done: (player: Player, start: { [string]: number }) -> boolean }
 
@@ -20,31 +24,31 @@ end
 
 local STEPS: { Step } = {
 	{
-		text = "🪓 Equipa el hacha de madera (3) y golpea un árbol hasta talarlo",
+		text = later("🪓 Equipa el hacha de madera (3) y golpea un árbol hasta talarlo"),
 		done = function(player, start)
 			return gained(player, start, "Wood")
 		end,
 	},
 	{
-		text = "🌿 Recoge fibra de un arbusto o helecho: mantén E (o toca) junto a él",
+		text = later("🌿 Recoge fibra de un arbusto o helecho: mantén E (o toca) junto a él"),
 		done = function(player, start)
 			return gained(player, start, "Fiber")
 		end,
 	},
 	{
-		text = "⛏️ Equipa el pico (4) y pica una roca",
+		text = later("⛏️ Equipa el pico (4) y pica una roca"),
 		done = function(player, start)
 			return gained(player, start, "Stone")
 		end,
 	},
 	{
-		text = "🔨 Vuelve al Basecamp y fabrica una antorcha en la mesa de trabajo",
+		text = later("🔨 Vuelve al Basecamp y fabrica una antorcha en la mesa de trabajo"),
 		done = function(player)
 			return Crafting.isOwned(player, "Torch")
 		end,
 	},
 	{
-		text = "🧱 Equipa el martillo y construye algo: de noche los monos asedian el Basecamp",
+		text = later("🧱 Equipa el martillo y construye algo: de noche los monos asedian el Basecamp"),
 		done = function(player)
 			local folder = Workspace:FindFirstChild(Building.STRUCTURES_FOLDER)
 			for _, model in if folder then folder:GetChildren() else {} do
@@ -86,7 +90,7 @@ function TutorialController:Start()
 	text.Position = UDim2.fromScale(0.03, 0.08)
 	text.Size = UDim2.fromScale(0.72, 0.84)
 	text.TextXAlignment = Enum.TextXAlignment.Left
-	local skip = Widgets.button("Saltar", panel)
+	local skip = Widgets.button(T("Saltar"), panel)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
 	skip.Position = UDim2.fromScale(0.98, 0.5)
 	skip.Size = UDim2.fromScale(0.2, 0.75)
@@ -111,7 +115,7 @@ function TutorialController:Start()
 		for _, itemId in { "Wood", "Fiber", "Stone" } do
 			start[itemId] = Inventory.count(player, itemId)
 		end
-		text.Text = `Tutorial {index}/{#STEPS}: {step.text}`
+		text.Text = T("Tutorial {index}/{total}: {step}", { index = index, total = #STEPS, step = { step.text } })
 		Remotes.TutorialStep:FireServer(index)
 		while not finished and not step.done(player, start) do
 			task.wait(0.5)
@@ -120,7 +124,7 @@ function TutorialController:Start()
 			return
 		end
 	end
-	text.Text = "✅ ¡Listo! Sobrevive, defiende el Basecamp y busca a los jefes de la isla"
+	text.Text = T("✅ ¡Listo! Sobrevive, defiende el Basecamp y busca a los jefes de la isla")
 	task.wait(6)
 	finish()
 end

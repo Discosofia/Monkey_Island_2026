@@ -35,6 +35,7 @@ local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local PetRoll = require(ReplicatedStorage.Shared.PetRoll)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
 local Retention = require(ServerScriptService.ServerShared.Retention)
@@ -71,12 +72,14 @@ local nestPosition = Vector3.zero
 -- Quien recogió el huevo primero: su nido de la parcela tiene preferencia.
 local finder: Player? = nil
 
-local function announce(text: string)
+-- Aviso a todos: plantilla en español y sus argumentos, que traduce cada cliente.
+local function announce(text: string, args: { [string]: any }?)
 	for _, player in Players:GetPlayers() do
-		Remotes.Notify:FireClient(player, text)
+		Remotes.Notify:FireClient(player, text, args)
 	end
 end
 
+-- Línea del HUD (Strings.pack: la traduce cada cliente); nil la quita.
 local function setStatus(text: string?)
 	ReplicatedStorage:SetAttribute("EggStatus", text)
 end
@@ -174,8 +177,10 @@ end
 
 local pickUp: (player: Player) -> ()
 
-local function rarityName(): string
-	return string.lower(Rarities[rarity].name)
+-- La rareza del huevo como argumento de una frase (Shared/Strings), en minúsculas o mayúsculas.
+local function rarityArg(case: ("lower" | "upper")?, rarityId: string?): any
+	local name = { Rarities[rarityId or rarity].name }
+	return if case == "upper" then { upper = name } else { lower = name }
 end
 
 local function buildEgg(): BasePart
@@ -184,7 +189,7 @@ local function buildEgg(): BasePart
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "EggPrompt"
 	prompt.ActionText = "Recoger (activa PvP)"
-	prompt.ObjectText = `Huevo {rarityName()}`
+	Strings.setText(prompt, "ObjectText", "Huevo {rarity}", { rarity = rarityArg() })
 	prompt.HoldDuration = 1.5
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
@@ -278,11 +283,12 @@ function pickUp(player: Player)
 	weld.Part1 = part
 	weld.Parent = part
 	setEggParent(character)
-	PvPService.forceOn(player, 60, "llevas el huevo")
-	announce(`🥚 {player.DisplayName} lleva el huevo. ¡Escóltalo hasta el nido!`)
+	PvPService.forceOn(player, 60, Strings.later("llevas el huevo"))
+	announce("🥚 {player} lleva el huevo. ¡Escóltalo hasta el nido!", { player = player.DisplayName })
 end
 
-local function drop(reason: string)
+-- "reason": la frase de quién lo ha soltado, como argumento de Shared/Strings.
+local function drop(reason: any)
 	local holder = carrier
 	local part = egg
 	if not (holder and part) then
@@ -291,13 +297,13 @@ local function drop(reason: string)
 	holder:SetAttribute("CarryingEgg", nil)
 	carrier = nil
 	placeOnGround(part.Position)
-	announce(`🥚 {reason}: el huevo ha caído al suelo`)
+	announce("🥚 {reason}: el huevo ha caído al suelo", { reason = reason })
 end
 
 -- El portador lo suelta (Remotes.DropEgg): queda en el suelo, a sus pies.
 local function onDropRequest(player: Player)
 	if state == "Carried" and carrier == player then
-		drop(`{player.DisplayName} lo ha soltado`)
+		drop({ Strings.later("{player} lo ha soltado"), { player = player.DisplayName } })
 	end
 end
 
@@ -337,11 +343,17 @@ local function finalRarity(target: Model?): string
 	local upgraded = PetRoll.upgradeRarity(rarity, levelData.rarityUp, rng)
 	if upgraded ~= rarity then
 		local owner = target and target:GetAttribute("OwnerName")
-		announce(
-			`✨ ¡El nido de {if typeof(owner) == "string" then owner else "la parcela"} ha mejorado el huevo: ahora es {string.upper(
-				Rarities[upgraded].name
-			)}!`
-		)
+		if typeof(owner) == "string" then
+			announce(
+				"✨ ¡El nido de {player} ha mejorado el huevo: ahora es {rarity}!",
+				{ player = owner, rarity = rarityArg("upper", upgraded) }
+			)
+		else
+			announce(
+				"✨ ¡El nido de la parcela ha mejorado el huevo: ahora es {rarity}!",
+				{ rarity = rarityArg("upper", upgraded) }
+			)
+		end
 	end
 	return upgraded
 end
@@ -360,25 +372,30 @@ local function complete()
 		EggModel.burst(part.Position, rarity)
 		Sfx.play("EggHatch", part.Position)
 	end
-	local label = `{Rarities[rarity].name}`
+	local label = { Rarities[rarity].name }
 	for player in rewarded do
 		if player.Parent then
 			MatchStats.add(player, MatchStats.EGGS)
 			Retention.progress(player, "Egg")
 			local where = Eggs.grant(player, rarity)
 			local text = if where == "nest"
-				then `🥚 ¡Huevo {label} a salvo! Ya se incuba en tu nido del Lobby`
-				elseif where == "bag" then `🥚 ¡Huevo {label} a salvo! Guardado en tu mochila de huevos`
-				elseif
-					where == "pending"
-				then `🥚 ¡Huevo {label} a salvo! Tu mochila está llena: decide en el nido del Lobby`
+				then Strings.later("🥚 ¡Huevo {rarity} a salvo! Ya se incuba en tu nido del Lobby")
+				elseif where == "bag" then Strings.later(
+					"🥚 ¡Huevo {rarity} a salvo! Guardado en tu mochila de huevos"
+				)
+				elseif where == "pending" then Strings.later(
+					"🥚 ¡Huevo {rarity} a salvo! Tu mochila está llena: decide en el nido del Lobby"
+				)
 				else nil
 			if text then
-				Remotes.Notify:FireClient(player, text)
+				Remotes.Notify:FireClient(player, text, { rarity = label })
 			end
 		end
 	end
-	announce(`🥚 ¡El huevo {rarityName()} está a salvo! Cada defensor se lleva uno a su nido del Lobby`)
+	announce(
+		"🥚 ¡El huevo {rarity} está a salvo! Cada defensor se lleva uno a su nido del Lobby",
+		{ rarity = rarityArg() }
+	)
 	clearEgg()
 end
 
@@ -416,7 +433,10 @@ local function startIncubation(target: Model)
 			* CFrame.Angles(0, rng:NextNumber(0, 2 * math.pi), 0)
 	)
 	incubationEndsAt = os.clock() + Config.Egg.IncubationSeconds
-	announce(`🥚 ¡El huevo {rarityName()} está en el nido! Defiéndelo {Config.Egg.IncubationSeconds} s`)
+	announce(
+		"🥚 ¡El huevo {rarity} está en el nido! Defiéndelo {seconds} s",
+		{ rarity = rarityArg(), seconds = Config.Egg.IncubationSeconds }
+	)
 
 	-- Oleadas a por el nido.
 	local center = Building.center() or BasecampService.getCenter()
@@ -432,7 +452,10 @@ local function startIncubation(target: Model)
 			local gate = center + direction * (Config.Building.PerimeterRadius - 10)
 			local spawn = center + direction * (Config.Building.PerimeterRadius + Config.Siege.SpawnDistance)
 			MonkeyService.spawnSiegeGroup("AulladorRojo", spawn, gate, 3 + day)
-			announce(`🐒 ¡Los monos vienen a por el huevo desde {Compass.direction(center, spawn)}!`)
+			announce(
+				"🐒 ¡Los monos vienen a por el huevo desde {direction}!",
+				{ direction = { Compass.direction(center, spawn) } }
+			)
 		end)
 	end
 end
@@ -464,10 +487,8 @@ function EggService.spawnEgg(forcedRarity: string?): boolean
 		if ground then
 			placeOnGround(ground)
 			announce(
-				`🥚 ¡Ha aparecido un huevo {string.upper(Rarities[rarity].name)} hacia {Compass.direction(
-					center,
-					ground
-				)}! Llévalo al nido`
+				"🥚 ¡Ha aparecido un huevo {rarity} hacia {direction}! Llévalo al nido",
+				{ rarity = rarityArg("upper"), direction = { Compass.direction(center, ground) } }
 			)
 			return true
 		end
@@ -488,10 +509,10 @@ local function tick()
 			return
 		end
 		if not LifeState.isAlive(holder) then
-			drop(`{holder.DisplayName} ha caído`)
+			drop({ Strings.later("{player} ha caído"), { player = holder.DisplayName } })
 			return
 		end
-		PvPService.forceOn(holder, 60, "llevas el huevo")
+		PvPService.forceOn(holder, 60, Strings.later("llevas el huevo"))
 		local position = part.Position
 		MonkeyService.alert(position, Config.Egg.AttractRadius, holder)
 		for _, player in Players:GetPlayers() do
@@ -504,7 +525,9 @@ local function tick()
 		if target then
 			startIncubation(target)
 		end
-		setStatus(`🥚 {holder.DisplayName} lleva el huevo {rarityName()}`)
+		setStatus(
+			Strings.pack("🥚 {player} lleva el huevo {rarity}", { player = holder.DisplayName, rarity = rarityArg() })
+		)
 	elseif state == "Incubating" then
 		local target = nest
 		-- El nido de una parcela solo desaparece si su dueño se va (roto, se queda en su sitio): el huevo
@@ -513,9 +536,14 @@ local function tick()
 			releaseNest()
 			local owner = target:GetAttribute("OwnerName")
 			placeOnGround(nestPosition + Vector3.new(4, 0, 0))
-			announce(
-				`🥚 {if typeof(owner) == "string" then owner else "El dueño del nido"} se ha ido: el huevo ha caído junto a su nido. ¡Llévalo a otro!`
-			)
+			if typeof(owner) == "string" then
+				announce(
+					"🥚 {player} se ha ido: el huevo ha caído junto a su nido. ¡Llévalo a otro!",
+					{ player = owner }
+				)
+			else
+				announce("🥚 El dueño del nido se ha ido: el huevo ha caído junto a su nido. ¡Llévalo a otro!")
+			end
 			return
 		end
 		if not target or not target.Parent or BuildingService.isBroken(target) then
@@ -527,10 +555,15 @@ local function tick()
 		if remaining <= 0 then
 			complete()
 		else
-			setStatus(`🥚 Defiende el huevo {rarityName()}: {remaining} s`)
+			setStatus(
+				Strings.pack(
+					"🥚 Defiende el huevo {rarity}: {seconds} s",
+					{ rarity = rarityArg(), seconds = remaining }
+				)
+			)
 		end
 	else
-		setStatus(`🥚 Hay un huevo {rarityName()} en la isla`)
+		setStatus(Strings.pack("🥚 Hay un huevo {rarity} en la isla", { rarity = rarityArg() }))
 	end
 end
 
