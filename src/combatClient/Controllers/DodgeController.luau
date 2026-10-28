@@ -8,6 +8,10 @@
 -- pero recarga Config.Evasive.CooldownSeconds; atrapado y con él en recarga, no se esquiva. El botón
 -- táctil pasa a decir "Evasivo" (con la cuenta atrás si recarga); el icono del HUD es
 -- CombatClient/EvasiveIcon.
+-- Fase 15, V3: los dos empujes siguen al terminar con un segundo que se apaga (Dash.pushWithCarry,
+-- Config.Movement.Dodge.CarryKeep y CarrySeconds) y el efecto: estela, polvo y sonido (AbilityFxController,
+-- "DodgeFx") y el empujón del campo de visión (CombatClient/DodgeFeel). Con el estilo "Dash" de las reglas
+-- del place (el Laboratorio) no hay rodada ni salto atrás: solo el empujón, con la cámara inclinada.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,7 +26,9 @@ local Stamina = require(script.Parent.Parent.Stamina)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local Dash = require(script.Parent.Parent.Dash)
+local DodgeFeel = require(script.Parent.Parent.DodgeFeel)
 local Feint = require(script.Parent.Parent.Feint)
+local Movement = require(script.Parent.Parent.Movement)
 local Slide = require(script.Parent.Parent.Slide)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 
@@ -43,10 +49,21 @@ local function dashDirection(humanoid: Humanoid, root: BasePart): Vector3
 		direction = -root.CFrame.LookVector
 	end
 	direction = Vector3.new(direction.X, 0, direction.Z).Unit
-	-- Voltereta si va hacia donde mira (al andar casi siempre); si no, salto atrás.
-	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
-	BodyAnimations.play(if direction:Dot(look) > 0.3 then "DodgeRoll" else "DodgeBack")
+	-- Voltereta si va hacia donde mira (al andar casi siempre); si no, salto atrás. Con el estilo "Dash"
+	-- (el Laboratorio) es un empujón sin rodada.
+	if Movement.rules().dodgeStyle ~= "Dash" then
+		local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
+		BodyAnimations.play(if direction:Dot(look) > 0.3 then "DodgeRoll" else "DodgeBack")
+	end
 	return direction
+end
+
+-- Empuje de la esquiva o del Evasivo (con el empuje que sigue al terminar) y su efecto local.
+local function launch(player: Player, root: BasePart, direction: Vector3, speed: number, seconds: number)
+	local carry = Config.Movement.Dodge
+	Dash.pushWithCarry(root, direction, speed, seconds, carry.CarryKeep, carry.CarrySeconds)
+	DodgeFeel.begin(direction, true)
+	AbilityFxController.play("DodgeFx", player.Character, direction)
 end
 
 local function evasiveReady(player: Player): boolean
@@ -60,7 +77,7 @@ local function evasive(player: Player, humanoid: Humanoid, root: BasePart)
 	evasivePendingUntil = os.clock() + 1
 	Slide.cancel()
 	local settings = Config.Evasive
-	Dash.push(root, dashDirection(humanoid, root), settings.Speed, settings.DurationSeconds)
+	launch(player, root, dashDirection(humanoid, root), settings.Speed, settings.DurationSeconds)
 	AbilityFxController.play("EvasiveFx", player.Character)
 	Remotes.Evasive:FireServer()
 end
@@ -95,7 +112,7 @@ local function dodge()
 	lastDodgeAt = now
 	-- Esquivar corta el deslizamiento (los dos son un impulso).
 	Slide.cancel()
-	Dash.push(root, dashDirection(humanoid, root), Config.Combat.DodgeSpeed, Config.Combat.DodgeDurationSeconds)
+	launch(player, root, dashDirection(humanoid, root), Config.Combat.DodgeSpeed, Config.Combat.DodgeDurationSeconds)
 	Remotes.Dodge:FireServer()
 end
 

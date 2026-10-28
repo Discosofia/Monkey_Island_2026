@@ -1150,6 +1150,8 @@ local function onDodge(player: Player)
 	player:SetAttribute("InvulnerableUntil", Workspace:GetServerTimeNow() + Config.Combat.DodgeInvulnerableSeconds)
 	-- Esquivar suelta la guardia (Combat/Guard).
 	Guard.drop(player)
+	-- Los demás ven la estela, el polvo y oyen el aire (el propio cliente lo hace al momento).
+	AbilityFx.others(player, "DodgeFx", player.Character)
 end
 
 -- El deslizamiento (Fase 15, V2): el cliente ya ha movido al personaje; aquí se comprueba que podía

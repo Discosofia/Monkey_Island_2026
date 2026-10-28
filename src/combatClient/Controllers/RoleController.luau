@@ -46,6 +46,7 @@ local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local Dash = require(script.Parent.Parent.Dash)
+local DodgeFeel = require(script.Parent.Parent.DodgeFeel)
 local Feint = require(script.Parent.Parent.Feint)
 
 -- Una por hueco de Data/Roles (el 4 es la definitiva; el 5, la cuarta activa).
@@ -162,6 +163,9 @@ local function charge(root: BasePart, direction: Vector3)
 	root.CFrame = CFrame.lookAt(root.Position, root.Position + direction)
 	local settings = Config.Abilities
 	Dash.push(root, direction, settings.ChargeDistance / settings.ChargeSeconds, settings.ChargeSeconds)
+	-- Solo el empujón del campo de visión (sin inclinar la cámara) y el efecto del aire.
+	DodgeFeel.begin(direction)
+	AbilityFxController.play("DodgeFx", root.Parent, direction)
 end
 
 -- Parpadeo: salta hasta "distance" studs, parando antes de una pared y solo si hay suelo debajo.

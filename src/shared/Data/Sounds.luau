@@ -64,6 +64,7 @@ local Effects: { [string]: Effect } = {
 	Parry = { id = assets(9113133597, 9125362690), volume = 0.8, pitch = 1.15, jitter = 0.04 },
 	GuardBreak = { id = assets(9120826936, 9113582284), volume = 1, pitch = 0.9, jitter = 0.05 },
 	Evasive = { id = "rbxassetid://12222200", volume = 0.8, pitch = 0.9, jitter = 0.05 }, -- Evasivo (C7)
+	Dodge = { id = JUMP, volume = 0.5, pitch = 1.3, jitter = 0.08 }, -- esquiva (V3). Provisional: "whoosh"
 	Feint = { id = "rbxassetid://12222200", volume = 0.45, pitch = 0.65, jitter = 0.05 }, -- amago (C8)
 	-- Rebote contra muros (C10, CombatService).
 	WallBang = { id = assets(9118588165, 9118587494), volume = 0.9, pitch = 0.9, jitter = 0.08, range = 120 },

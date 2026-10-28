@@ -1831,6 +1831,61 @@ Probado en Studio con un jugador, en el Lobby y en el Laboratorio (28-10-2026): 
 1. [ ] Uno de los dos desliza y el otro lo mira desde su pantalla (con la pose publicada).
    ✅ El otro ve la pose de agachado y el deslizamiento a la misma velocidad que tú, sin tirones. El servidor no escribe la velocidad: el deslizamiento se ve como lo mueve el cliente de ese jugador.
 
+## 33. Lo que queda por probar de V3: esquiva con efecto (28-10-2026)
+
+Probado en Studio con un jugador, en el Lobby y en la Isla (28-10-2026): la esquiva recorre entre 13,4 y 14,2 studs en el Lobby y 13,9 en la Isla (en teoría, 55 × 0,2 s más el 40 % que se apaga en 0,2 s: unos 13,2; el Evasivo, unos 14,4); el campo de visión vuelve exacto al valor de antes; la invulnerabilidad dura 0,35 s; contra una pared no queda ninguna velocidad colgando; con el ajuste de cámara "cameraShake" en Apagado no hay empujón de FOV y en Suave es de unos 2,7°; la Embestida recorre 21 studs con el empujón de FOV y su estela de carga; esquivar deslizando funciona; consola sin errores; la calculadora `Equilibrio` no da alertas nuevas. En el Laboratorio también (un jugador, primera persona): la cámara se inclina 7,7° hacia el lado de la esquiva (D a la derecha, A a la izquierda, 0 con W o S), el arma de la vista se aparta 0,6 al lado contrario, el FOV vuelve exacto también con el rifle acercado, no se reproduce DodgeRoll ni DodgeBack y esquivar deslizando con C lo deja todo limpio. Queda por mirar a ojo lo del Laboratorio, el sonido y la estela, el teléfono, 2 jugadores y el juego publicado. Empieza por 33.1.
+
+#### 33.1 En el Studio del Laboratorio, con un jugador (haz antes una copia del perfil en `PlayerData_v1_backups`, y restáurala después)
+
+1. [ ] Mira al frente, mantén D y pulsa Q (o B con el mando) y mira la cámara.
+   ✅ A ojo se ve bien: la parte de arriba de la pantalla se va hacia la derecha y en unos 0,25 s vuelve recta. (Medido: D baja el lado derecho 7,7°; si a ojo se siente al revés, se cambia el signo en `DodgeFeel.tilt`.)
+2. [ ] Con el arma sin acercar, esquiva hacia la derecha y mira el arma en la mano.
+   ✅ Se aparta hacia la izquierda sin tapar la mira y vuelve a su sitio en unos 0,25 s.
+3. [ ] Si tienes un segundo cliente (ver 33.4), mira tu personaje desde fuera al esquivar en el Laboratorio.
+   ✅ No hace la voltereta ni el salto atrás: la esquiva es solo un empujón.
+
+#### 33.2 En el Studio de la Isla o de Dunas, con un jugador
+
+1. [ ] Esquiva con Q y escucha.
+   ✅ Se oye un sonido de aire corto. Es provisional: el definitivo se hará aparte.
+2. [ ] Esquiva con Q y mira los pies. Si tienes equipado un cosmético con estela, quítalo para verla sola.
+   ✅ Sale una estela fina blanco-azulada pegada al cuerpo que se apaga enseguida, y una bocanada de polvo claro a los pies hacia atrás. Es más discreta que la del Evasivo.
+3. [ ] Espera la recarga (1,2 s) y encadena 4 esquivas seguidas, mirando el campo de visión.
+   ✅ En cada esquiva el campo de visión sube unos 6° y vuelve en 0,25 s. Revisa a ojo la 3.ª y la 4.ª: si el empujón salta de golpe en vez de subir suave, anota el número de la esquiva y cómo se ve (no está confirmado).
+4. [ ] Pon dos piezas en el suelo separadas 13 studs y esquiva hacia ellas. Luego, aturdido (con un mono o con un muñeco que te aturda), pulsa Q en cuanto puedas para el Evasivo.
+   ✅ La esquiva pasa la segunda pieza, y se para cerca de los 13 studs (en el Lobby se midió entre 13,4 y 14,2). El Evasivo llega a unos 14 studs, con el empuje que sigue al salto.
+5. [ ] Pon un muro a unos 5 studs delante de ti y esquiva hacia él.
+   ✅ No lo atraviesa. Si parece que no se mueve nada, anótalo: no se sabe todavía si pasaba ya antes de V3.
+6. [ ] Haz una Embestida contra un muñeco de práctica.
+   ✅ Recorre unos 21 studs con el campo de visión subiendo y bajando, y con la estela de carga. Sin estela de esquiva.
+
+#### 33.3 En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] En la Isla, toca el botón «Esquivar».
+   ✅ Esquiva igual que con Q: mismo empuje, mismo sonido, misma estela y mismo empujón de campo de visión.
+2. [ ] En el Laboratorio, con el rifle acercado, toca «Esquivar».
+   ✅ La cámara se inclina y el arma se aparta igual que en PC, y el zoom vuelve exacto al acabar.
+3. [ ] Toca «Esquivar» varias veces seguidas, sin esperar.
+   ✅ Cada esquiva espera la recarga, y al acabar el campo de visión vuelve a su valor normal.
+
+#### 33.4 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas)
+
+1. [ ] Uno esquiva y el otro lo mira desde su pantalla.
+   ✅ El otro ve la estela y el polvo de la esquiva, y los dos se oyen con el sonido de aire.
+2. [ ] Uno hace una Embestida y el otro lo mira.
+   ✅ El otro ve la Embestida con su estela de carga, pero no la estela de esquiva (ese efecto solo se ve en el que lo hace).
+3. [ ] Uno queda aturdido y pulsa Q (Evasivo); el otro lo mira.
+   ✅ El otro ve el Evasivo, y se distingue a simple vista del de la Embestida y de la esquiva normal.
+4. [ ] En el Laboratorio, uno esquiva y el otro lo mira.
+   ✅ El que esquiva ve la inclinación y el arma en su pantalla; el otro solo ve a su personaje sin voltereta, con la estela y el polvo.
+
+#### 33.5 En el juego publicado
+
+1. [ ] Publicado, en la Isla, esquiva con Q varias veces seguidas con sonido activado.
+   ✅ Se oye el sonido de aire en cada esquiva, sin tirones de audio.
+2. [ ] Publicado, en Dunas, con varias esquivas y Embestidas seguidas en una partida, mira las estadísticas de rendimiento de Roblox.
+   ✅ Los FPS no caen de forma notable con la estela y el polvo activos. (Anota el valor antes y después si se nota.)
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -19,7 +19,7 @@ Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y 
 - **Sin roles, habilidades ni talentos.** Tampoco cuentan las mejoras de la tienda, la forja ni las mascotas (la mascota de adorno sí se ve, sin ayudar). De fuera solo llegan los cosméticos.
 - Al empezar (y en cada reaparición, entre partidas y entre rondas) se elige **1 de las 4 armas** del laboratorio. Las dos facciones tienen las mismas cuatro armas con los mismos números y cambia solo el aspecto (latón pirata o blanco y azul del laboratorio).
 - **Vida 100**, que vuelve sola tras 4 s sin recibir daño. Sin estado de caído.
-- Esquiva y salto como en el resto del juego. No hay guardia ni parry: en un shooter el bloqueo no tiene sentido.
+- Esquiva y salto como en el resto del juego, con una diferencia: la esquiva es un empujón **sin rodada** (estilo `Dash`), y la cámara se inclina un poco hacia el lado de la esquiva mientras el arma de la vista se aparta (V3). No hay guardia ni parry: en un shooter el bloqueo no tiene sentido.
 - Los disparos son **proyectiles** (`Combat/Projectiles`, el mismo sistema de la Isla y de Dunas, con su compensación de lag y su tope). Nada de rayos instantáneos: así se ve el disparo y se puede esquivar a distancia.
 - **Ayuda de puntería estrecha**, la misma de la Isla: solo corrige si la línea ya casi toca al blanco. El botón de disparo del móvil es grande y no dispara solo. Ningún dispositivo tiene ventaja.
 - Sin disparos a la cabeza: un crítico por zona castigaría al jugador de móvil.

@@ -29,7 +29,8 @@
 -- jugador y, en el del mago, el hielo que estalla.
 -- Guardia (Fase 10, C5; Combat/Guard, efecto "GuardFx"): chispa al bloquear, destello dorado al parar y
 -- estallido naranja con esquirlas y grietas al romperse; en la propia, la cámara tiembla (C12). Evasivo (C7, "EvasiveFx"): ráfaga de aire
--- blanco y azul. Amago (C8, "FeintFx"): bocanada corta de humo gris delante del pecho.
+-- blanco y azul. Esquiva (Fase 15, V3, "DodgeFx"): estela fina, polvo en los pies y sonido de aire.
+-- Amago (C8, "FeintFx"): bocanada corta de humo gris delante del pecho.
 -- Proyectiles (C9, Combat/Projectiles; efectos "Projectile" y "ProjectileEnd"): los disparos de las armas
 -- y las flechas, bolas y dardos de las habilidades vuelan aquí a la hora del servidor (LOOKS: cómo se ve
 -- cada uno y qué deja al pararse, como la explosión de la Bola de fuego).
@@ -54,6 +55,7 @@ local Workspace = game:GetService("Workspace")
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local CameraShake = require(script.Parent.Parent.CameraShake)
@@ -2577,6 +2579,45 @@ local function evasiveFx(character: Model?)
 	burst(root.Position, SPARKLE_TEXTURE, blue, 16, 0.9, 14, 0.35)
 end
 
+-- Esquiva (Fase 15, V3; también la Embestida y el Evasivo en el propio cliente): estela fina blanco-azulada
+-- pegada a la raíz que se apaga enseguida, bocanada de polvo claro en los pies hacia atrás y el sonido del
+-- aire. Más discreta que el Evasivo (sin brillo, ni aro, ni destello). Sin la dirección, sale de la velocidad
+-- horizontal de la raíz y, si está quieta, de -LookVector.
+local function dodgeFx(character: Model?, direction: Vector3?)
+	local root = rootOf(character)
+	if not (character and root) then
+		return
+	end
+	local flat = if direction then Vector3.new(direction.X, 0, direction.Z) else Vector3.zero
+	if flat.Magnitude < 0.01 then
+		flat = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z)
+	end
+	if flat.Magnitude < 0.01 then
+		flat = -Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+	end
+	if flat.Magnitude < 0.01 then
+		return
+	end
+	flat = flat.Unit
+	local streak = trail(root, Vector3.new(0, 0.3, 0), ColorSequence.new(Color3.fromRGB(215, 232, 250)), 0.35, 0.8)
+	streak.LightEmission = 0.35
+	streak.Transparency = NumberSequence.new(0.45, 1)
+	Debris:AddItem(streak, 0.8)
+	if streak.Attachment0 then
+		Debris:AddItem(streak.Attachment0, 0.8)
+	end
+	if streak.Attachment1 then
+		Debris:AddItem(streak.Attachment1, 0.8)
+	end
+	-- Sigue unos instantes (lo que dura el empuje) y deja de dibujar: la estela se desvanece sola.
+	task.delay(0.35, function()
+		streak.Enabled = false
+	end)
+	local feet = root.Position - Vector3.new(0, 2.5, 0) - flat * 1.2
+	burst(feet, SMOKE_TEXTURE, Color3.fromRGB(205, 190, 165), 5, 1.4, 4, 0.5)
+	Sfx.play("Dodge", root)
+end
+
 -- Amago (C8, Combat/Feint): bocanada corta de humo gris delante del pecho, donde iba a salir el golpe.
 -- Pequeña y sin brillo para no confundirse con el Evasivo (blanco y azul, todo el cuerpo): solo dice
 -- "lo ha cancelado", para que el rival aprenda a leerlo.
@@ -3256,6 +3297,9 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	WeaponShotFx = weaponShotFx, -- (personaje, proyectil, remate): bocanada o destello al disparar un arma a distancia
 	GuardFx = guardFx, -- (personaje, "Block" | "Parry" | "Break"): la guardia (Combat/Guard)
 	EvasiveFx = evasiveFx, -- (personaje): el Evasivo (Combat/Evasive; el propio cliente, DodgeController)
+	-- (personaje, dirección?): la esquiva (Combat/CombatService.onDodge; el propio cliente, DodgeController y
+	-- la Embestida de RoleController). Sin dirección, la saca del movimiento del personaje.
+	DodgeFx = dodgeFx,
 	FeintFx = feintFx, -- (personaje): el amago (Combat/Feint; el propio cliente, CombatClient/Feint)
 	-- (id, aspecto de LOOKS, personaje que dispara, origen, dirección, velocidad, alcance, hora de salida
 	-- del servidor, atraviesa, datos del aspecto, gravedad si va en arco): un proyectil (Combat/Projectiles)

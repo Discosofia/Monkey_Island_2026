@@ -10,7 +10,7 @@ coincide con el código, manda el código.
 | Pieza | Hoy | Fase 10 |
 |---|---|---|
 | Golpe con arma | `CombatService.onUseWeapon` → cadena (`Shared/MeleeChain`, C4 ✅) + `meleeAttack` / `rangedAttack` con proyectiles reales (`Combat/Projectiles`, C9 ✅) y disparo de remate (`Shared/RangedChain`, C9b ✅) | — |
-| Esquiva | `DodgeController` (cliente: empuje con `Dash.push`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor); Evasivo (`Combat/Evasive`, `CombatClient/EvasiveIcon`, C7 ✅) | — |
+| Esquiva | `DodgeController` (cliente: empuje con `Dash.pushWithCarry`, V3, y efecto en `DodgeFeel`) + `CombatService.onDodge` (invulnerabilidad, estamina del servidor); Evasivo (`Combat/Evasive`, `CombatClient/EvasiveIcon`, C7 ✅) | — |
 | Estados del jugador | `Shared/CombatState` + `Combat/StateMachine` (C2 ✅); `Casting` de las habilidades (C8 ✅) | — |
 | Estados de enemigos | `Combat/Status` (atributos del modelo), con control decreciente por modelo (C6 ✅) | — |
 | Ataques de monos y jefes | Preparación con aviso y golpe al acabarla (`Combat/EnemyAttack`, `EnemyWindupController`, C6 ✅) | — |
@@ -139,10 +139,25 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
 ## 4. Esquiva, estamina y Evasivo
 
 **Hoy.** Q / B / botón "Esquivar". El cliente predice la estamina (`combatClient/Stamina`), empuja con
-`Dash.push` (fuerza limitada, se corta contra una pared) y manda `Remotes.Dodge`. El servidor
+`Dash.pushWithCarry` (V3: 55 studs/s durante `DodgeDurationSeconds` 0,2 s, ≈ 11 studs, y al terminar
+sigue un segundo empuje al 40 % de la velocidad que baja a 0 en 0,2 s, ≈ 2,2 más: unos 13,2 en total;
+contra una pared se corta y no hay segundo empuje) y manda `Remotes.Dodge`. El servidor
 (`CombatService.onDodge`) comprueba el estado (`canAct "Dodge"`), la recarga
 (`DodgeCooldownSeconds` menos el doble del margen de `Combat/Latency`) y la estamina, y pone
 `InvulnerableUntil` (`DodgeInvulnerableSeconds`, 0,35 s): `damagePlayer` y `canHitPlayer` lo respetan.
+Los valores están en `Config.Combat` y en `Config.Movement.Dodge` (`CarryKeep` 0,4, `CarrySeconds` 0,2).
+
+**Efecto de la esquiva (Fase 15, V3).** `combatClient/DodgeFeel.luau` (solo el cliente que esquiva) y
+`AbilityFxController` (`DodgeFx`: estela fina blanco-azulada pegada a la raíz, bocanada de polvo a los
+pies y el sonido `Dodge`, provisional). Los demás jugadores lo ven por `AbilityFx.others` en
+`CombatService.onDodge`. El empujón del campo de visión es +6° en 0,25 s (`FovKick`, `FovKickSeconds`),
+se suma solo a la diferencia de la curva para convivir con el zoom del rifle, respeta el ajuste
+`cameraShake` y lo usan la esquiva, el Evasivo y la Embestida (sin estela de esquiva). Estilo `Dash`
+(`Movement.rules().dodgeStyle`, el Laboratorio): sin voltereta ni salto atrás (`DodgeRoll`/`DodgeBack`
+solo en el estilo `Roll`), la cámara se inclina `LabTiltDegrees` 8° hacia el lado de la esquiva en
+0,25 s (el signo es por razonamiento, por comprobar) y el arma de la vista se aparta `LabWeaponShift`
+0,6 studs. Probado en Studio (Lobby e Isla, 28-10-2026): distancias, FOV, invulnerabilidad, pared, sin
+errores y Equilibrio sin alertas nuevas. Lo que queda, en `docs/VERIFICACION.md` §33.
 
 **Estamina (C2).** La lleva el servidor (`Combat/StaminaServer`, atributo `Stamina` del `Player`): la
 gasta correr, salvo con `movement.staminaFree` (el Lobby, V1) (el cliente avisa con el remoto `Sprint` y
@@ -183,7 +198,7 @@ o sed bajas, ×0,85. `Slide.cancel` lo corta al aturdirte, atraparte, caer, mori
 
 **Evasivo (C7 ✅).** La misma esquiva pulsada estando atrapado (`CombatState.isTrapped`: aturdido,
 guardia rota, inmovilizado o lanzado). El cliente (`DodgeController`) salta a `Config.Evasive.Speed`
-durante `DurationSeconds` (~12 studs), dibuja `EvasiveFx` y manda `Remotes.Evasive`; el servidor
+durante `DurationSeconds` (12 studs, más el empuje que sigue al salto con V3: ~14,4 en total), dibuja `EvasiveFx` y manda `Remotes.Evasive`; el servidor
 (`Combat/Evasive`) comprueba `canAct "Evasive"`, que estaba atrapado (hasta `JitterSeconds` + 2 × su
 margen de red antes) y la recarga (`EvasiveReadyAt`, `CooldownSeconds` 25), y entonces quita
 `StunnedUntil` y `LaunchedUntil`, pone `ControlImmuneUntil` (2 s), `InvulnerableUntil` y el estado

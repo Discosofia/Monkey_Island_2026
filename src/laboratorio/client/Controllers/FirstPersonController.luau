@@ -9,6 +9,8 @@
 --     manos, pegada a la cámara abajo a la derecha. Con el rifle acercado (WeaponController) se centra
 --     para apuntar por la mira, y cada disparo la echa un poco atrás (retroceso).
 --   - Deslizarse (CombatClient/Slide): la cámara baja Config.Movement.Slide.CameraDrop con un fundido corto.
+--   - Esquivar (Fase 15, V3; CombatClient/DodgeFeel): la cámara se inclina hacia el lado de la esquiva y el
+--     arma se aparta un poco.
 -- Los demás ven el arma en la mano del personaje, con sus animaciones de siempre.
 -- El ratón va bloqueado en el centro. Para pulsar una ventana (el selector de arma, los resultados, el
 -- panel de pruebas) se suelta con freeCursor: mientras alguien lo pida, un botón invisible con Modal deja
@@ -30,6 +32,7 @@ local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
+local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
 local Slide = require(ReplicatedStorage.CombatClient.Slide)
 
 -- Dónde va la mano respecto a la cámara (derecha, arriba, delante): abajo a la derecha, con el arma
@@ -303,6 +306,11 @@ local function follow(deltaTime: number)
 	if camera and drop > 0 then
 		camera.CFrame += Vector3.new(0, -drop, 0)
 	end
+	-- Esquivando (Fase 15, V3) la cámara se inclina hacia el lado de la esquiva; tampoco se acumula.
+	local tilt = DodgeFeel.tilt()
+	if camera and tilt ~= 0 then
+		camera.CFrame *= CFrame.Angles(0, 0, tilt)
+	end
 	-- Muerto (o eliminado de la ronda, de espectador): sin el arma delante de la cámara.
 	if viewModel and isDead(Players.LocalPlayer.Character) then
 		clearViewModel()
@@ -317,7 +325,7 @@ local function follow(deltaTime: number)
 		0,
 		1
 	)
-	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + Vector3.new(0, 0, recoil)
+	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + Vector3.new(0, 0, recoil) + DodgeFeel.weaponShift()
 	-- Un poco de balanceo al andar (no al apuntar).
 	local character = Players.LocalPlayer.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil

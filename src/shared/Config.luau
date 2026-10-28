@@ -144,7 +144,7 @@ local Config = {
 		StarterTools = { "WoodenAxe", "WoodenPick" },
 		DodgeCooldownSeconds = 1.2,
 		DodgeSpeed = 55,
-		DodgeDurationSeconds = 0.15,
+		DodgeDurationSeconds = 0.2,
 		-- Tiempo de invulnerabilidad al esquivar.
 		DodgeInvulnerableSeconds = 0.35,
 		DummyHealth = 100,
@@ -456,7 +456,7 @@ local Config = {
 		CooldownSeconds = 25,
 		InvulnerableSeconds = 0.5,
 		Speed = 60, -- studs/s del salto que aparta…
-		DurationSeconds = 0.2, -- …durante esto (unos 12 studs: fuera del alcance de un arma)
+		DurationSeconds = 0.2, -- …durante esto (12 studs y unos 2,4 más de inercia: fuera del alcance de un arma)
 	},
 
 	-- Escalado de un combo en PvP (C7; Combat/ComboScaling), por víctima: cuenta los golpes seguidos que
@@ -659,6 +659,23 @@ local Config = {
 			CameraDrop = 1.5,
 			-- Lo que tarda la cámara en bajar y en subir (s).
 			CameraSeconds = 0.1,
+		},
+		-- Esquiva con efecto (Fase 15, V3): la esquiva y el Evasivo (Combat.DodgeSpeed, Evasive.Speed).
+		Dodge = {
+			-- Al terminar el empuje sigue un segundo empuje a esta fracción de la velocidad...
+			CarryKeep = 0.4,
+			-- ...que baja en línea recta hasta 0 en estos segundos.
+			CarrySeconds = 0.2,
+			-- Empujón del campo de visión al esquivar, también en la Embestida (grados).
+			FovKick = 6,
+			-- Lo que tarda el empujón en volver (s); sube en una cuarta parte de ese tiempo.
+			FovKickSeconds = 0.25,
+			-- Solo en el Laboratorio: inclinación de la cámara hacia el lado de la esquiva (grados)...
+			LabTiltDegrees = 8,
+			-- ...y lo que tarda en volver (s).
+			LabTiltSeconds = 0.25,
+			-- Solo en el Laboratorio: studs que el arma de la vista se aparta al esquivar.
+			LabWeaponShift = 0.6,
 		},
 	},
 
