@@ -517,7 +517,7 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
-| **V1** | Movimiento unificado: `Movement` + `LocomotionController`, 18/26, modificadores, se borran las copias de Isla, Dunas y Laboratorio; Lobby sin gasto de stamina | — | ⏳ |
+| **V1** | Movimiento unificado: `Movement` + `LocomotionController`, 18/26, modificadores, se borran las copias de Isla, Dunas y Laboratorio; Lobby sin gasto de stamina | 442e7a4 | ✅ Probado en los 4 places; pendiente VERIFICACION §31 |
 | **V2** | Deslizamiento (C en el Laboratorio, Alt izquierdo en el resto, botón móvil) | — | ⏳ |
 | **V3** | Esquiva con efecto: más recorrido, impulso, estela, FOV y primera persona | — | ⏳ |
 | **V4** | Animaciones propias de andar, correr y deslizar | — | ⏳ |
