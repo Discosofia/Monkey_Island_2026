@@ -11,6 +11,7 @@
 --   - allyNumbers: el daño que hacen los aliados (tenue) sí/no.
 --   - showLoot: lo que recoges ("+2 🌲 Madera") junto a tu personaje sí/no (sale donde textLayout).
 --   - showCombo: el indicador de combos y racha sí/no.
+--   - damageFx: pantalla roja al recibir daño (destello, pulso con poca vida, arco; DamageFxController) sí/no.
 --   - music: música sí/no (la tecla M también la silencia).
 --   - comicFx: estallidos de cómic en combate ("POW!", ComicFxController) sí/no.
 --   - comicLevel: "All" (también los golpes normales) o "Strong" (solo críticos, K.O. y golpes fuertes
@@ -42,6 +43,7 @@ export type Values = {
 	allyNumbers: boolean,
 	showLoot: boolean,
 	showCombo: boolean,
+	damageFx: boolean,
 	music: boolean,
 	comicFx: boolean,
 	comicLevel: ComicLevel,
@@ -100,6 +102,7 @@ function Settings.defaults(): Values
 		allyNumbers = true,
 		showLoot = true,
 		showCombo = true,
+		damageFx = true,
 		music = true,
 		comicFx = true,
 		comicLevel = "All",
@@ -134,7 +137,9 @@ function Settings.sanitize(raw: any): Values
 	if typeof(raw.language) == "string" and table.find(Settings.LANGUAGES, raw.language) then
 		values.language = raw.language :: Language
 	end
-	for _, key in { "showNumbers", "allyNumbers", "showLoot", "showCombo", "music", "comicFx", "missionsOpen" } do
+	for _, key in
+		{ "showNumbers", "allyNumbers", "showLoot", "showCombo", "damageFx", "music", "comicFx", "missionsOpen" }
+	do
 		if typeof(raw[key]) == "boolean" then
 			(values :: any)[key] = raw[key]
 		end

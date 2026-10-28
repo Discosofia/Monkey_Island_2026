@@ -111,6 +111,7 @@ return {
 	["Para mejoras y la tienda"] = "For upgrades and the shop",
 	["Para tu nido de mascotas"] = "For your pet nest",
 	["Para tu próxima partida"] = "For your next match",
+	["Pantalla roja al recibir daño"] = "Red screen when hurt",
 	["Pase de temporada"] = "Season pass",
 	["Pegar o disparar"] = "Hit or shoot",
 	["Pequeños"] = "Small",

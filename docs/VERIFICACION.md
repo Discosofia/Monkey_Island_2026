@@ -1886,6 +1886,53 @@ Probado en Studio con un jugador, en el Lobby y en la Isla (28-10-2026): la esqu
 2. [ ] Publicado, en Dunas, con varias esquivas y Embestidas seguidas en una partida, mira las estadísticas de rendimiento de Roblox.
    ✅ Los FPS no caen de forma notable con la estela y el polvo activos. (Anota el valor antes y después si se nota.)
 
+## 34. Lo que queda por probar de V5: feedback de daño (28-10-2026)
+
+Probado en el Studio de la Isla (28-10-2026): los bordes salen en rojo con un golpe crítico y con uno de al menos el 15 % de la vida máxima (con la vida máxima en 150, el umbral son 22,5); el pulso con salud baja tiene una transparencia de 0,70–0,88 (opacidad 0,12–0,30); el arco se mide a ±90° y a 0° según el lado del atacante; con el ajuste apagado no sale nada. A ojo, el destello se ve bien y el pulso es tenue a propósito. Queda por probar con 2 jugadores (en Dunas o el Laboratorio), en el teléfono, el ajuste en el Lobby y en PC, el pulso con la vida baja de verdad, y el tiro a la cabeza, que espera a V7. Empieza por 34.1.
+
+#### 34.1 En el Studio de Dunas o del Laboratorio, con 2 jugadores (*Test → Clientes y servidores*, con 2)
+
+1. [ ] A pega o dispara a B desde un lado mientras B mira su pantalla sin mover la cámara.
+   ✅ En la pantalla de B sale un arco rojo en el anillo alrededor del centro, apuntando hacia A.
+2. [ ] B gira la cámara a la derecha y luego a la izquierda, con A quieto.
+   ✅ El arco gira con la cámara y sigue apuntando a A, sin quedarse atrás más de un instante.
+3. [ ] A pega a B por el lado contrario y B mira hacia el otro lado.
+   ✅ El arco cambia de lado y apunta a A, no al lado de siempre.
+4. [ ] En el Laboratorio, A dispara a B desde lejos con el rifle y B está quieto.
+   ✅ El arco sale hacia A aunque esté lejos, y se apaga en unos 0,8 s.
+5. [ ] Un bot o un muñeco de práctica pega a B.
+   ✅ B ve los números y el destello si el golpe es fuerte, pero no sale ningún arco.
+
+#### 34.2 En el teléfono o el emulador (elige uno en *Prueba → Dispositivo* antes del ▶, a 844 × 390)
+
+1. [ ] En la Isla, deja que un mono te pegue fuerte y mira la pantalla.
+   ✅ El destello de los bordes se ve y no tapa la barra de vida ni el mapa.
+2. [ ] En Dunas, deja que un bot te pegue desde un lado.
+   ✅ El arco cabe entero en la pantalla y no tapa el HUD ni los botones de combate.
+3. [ ] Mientras el destello o el pulso están activos, toca los botones de la esquina y los del borde (el salto, la acción, el joystick).
+   ✅ Cada toque llega al botón. Los bordes no bloquean los toques.
+
+#### 34.3 En el ajuste, con un jugador (Studio de la Isla y del Lobby)
+
+1. [ ] Abre Ajustes y apaga «Pantalla roja al recibir daño». Recibe un golpe crítico y, en Dunas, un golpe de otro jugador.
+   ✅ No sale ni destello, ni arco, ni pulso, pero los números de daño siguen.
+2. [ ] Con el interruptor apagado, cambia de place (de la Isla al Lobby o al revés) y vuelve a abrir Ajustes. Después, enciéndelo, cambia de place y vuelve a mirar.
+   ✅ Sigue apagado en el primer caso y encendido en el segundo. Se guarda en los dos sentidos.
+3. [ ] En PC, abre Ajustes en el Lobby y mira la fila nueva.
+   ✅ Todas las filas se ven sin desplazarse, y «Pantalla roja al recibir daño» cabe entera.
+
+#### 34.4 Pulso con salud baja de verdad, en el Studio de la Isla, con un jugador
+
+1. [ ] Deja que un mono o un muñeco te pegue hasta caer por debajo del 25 % de la vida, y mira la pantalla sin tocar nada durante 10 s.
+   ✅ Los bordes laten despacio, cada 1,2 s, con un rojo tenue. No molesta para leer el HUD ni para jugar.
+2. [ ] Cúrate por encima del 25 %.
+   ✅ El pulso se funde a cero en unos 0,4 s.
+
+#### 34.5 El tiro a la cabeza (espera a V7, que es quien manda el campo `head`)
+
+1. [ ] Recibe un tiro a la cabeza, con otro jugador o con un muñeco, y compara con un golpe normal del mismo daño.
+   ✅ El destello sale más fuerte con la cabeza (opacidad 0,7 frente a 0,45). Hasta V7 nadie manda `head`, así que este paso no se puede probar todavía.
+
 ## 35. Lo que queda por probar de V4: animaciones de andar, correr y deslizar (28-10-2026)
 
 Probado en Studio, en la Isla (28-10-2026): ciclos de Walk, Run y RunArmed generados, medidos (los pies no bajan de −0,10) y revisados en tira; en Play, Walk suena a 18 studs/s y se para al quedarse quieto. Ids publicados el 28-10-2026 y pegados. Lo que queda necesita verse a ojo en los cuatro places, el teléfono, 2 jugadores y el juego publicado, con los ids ya pegados. Empieza por 35.1.

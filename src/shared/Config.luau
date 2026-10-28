@@ -212,6 +212,21 @@ local Config = {
 		LootMergeSeconds = 3, -- lo mismo recogido en este tiempo suma en la misma línea (< Lifetime)
 	},
 
+	-- Pantalla roja al recibir daño (DamageFxController): destello de bordes, pulso con poca vida y arco
+	-- hacia el atacante en PvP. Todo en rojo; se apaga con el ajuste "damageFx".
+	DamageFx = {
+		BigHitFraction = 0.15, -- un golpe de esta parte de la vida máxima también dispara el destello
+		LowHealthFraction = 0.25, -- por debajo de esta parte de la vida pulsa la viñeta
+		FlashSeconds = 0.35, -- lo que tarda en apagarse el destello
+		FlashAlpha = 0.45, -- opacidad del destello (crítico o golpe fuerte)
+		HeadFlashAlpha = 0.7, -- opacidad del destello de un golpe a la cabeza
+		PulseSeconds = 1.2, -- periodo del pulso con salud baja
+		PulseMin = 0.12, -- opacidad mínima y máxima del pulso
+		PulseMax = 0.30,
+		PulseFadeSeconds = 0.4, -- se funde a 0 al curarte por encima del umbral
+		ArcSeconds = 0.8, -- el arco que señala al atacante
+	},
+
 	-- Estallidos de cómic del combate ("BAM!", "POW!", "K.O.!", "OUCH!"): ComicFxController.
 	ComicFx = {
 		-- Lado en píxeles en una pantalla de 720 px de alto (se escala con el alto de la pantalla).

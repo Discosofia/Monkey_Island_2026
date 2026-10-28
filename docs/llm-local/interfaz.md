@@ -1,6 +1,6 @@
 # Interfaz (resumen de la skill interfaz-roblox)
 
-<!-- Fuente: .claude/skills/interfaz-roblox/SKILL.md, 26-10-2026. Detalles: references/estilo-ui.md (§1 dónde se crea cada pieza, paleta, capas, §6 mapa de la pantalla, §7 dependencias, §8 opciones en Ajustes). -->
+<!-- Fuente: .claude/skills/interfaz-roblox/SKILL.md, 28-10-2026. Detalles: references/estilo-ui.md (§1 dónde se crea cada pieza, paleta, capas, §6 mapa de la pantalla, §7 dependencias, §8 opciones en Ajustes). -->
 
 Toda la interfaz se hace **por código**: no hay nada a mano en `StarterGui`. Los cambios van al repo. Studio sirve para medir.
 

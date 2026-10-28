@@ -1076,6 +1076,7 @@ local TOGGLES = {
 	{ key = "allyNumbers", label = later("Daño de los aliados (tenue)") },
 	{ key = "showLoot", label = later("Lo que recoges (+2 🌲 Madera)") },
 	{ key = "showCombo", label = later("Combos y racha") },
+	{ key = "damageFx", label = later("Pantalla roja al recibir daño") },
 	{ key = "music", label = later("Música (tecla M)") },
 }
 

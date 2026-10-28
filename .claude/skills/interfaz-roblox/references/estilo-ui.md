@@ -160,6 +160,7 @@ Reglas que salen de ahí:
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) y `ChainPips` (IgnoreGuiInset: los rombos de la cadena, que siguen los pies del personaje; Fase 10, C12) |
 | 1 | `LiveEvents` (franja de los eventos en vivo, en la barra de Roblox) |
 | 5 | `ActionButtons`, `CraftingHUD`, `PlotHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
+| 5 | `DamageFx` (arco y viñeta de daño, sin botones: `Active` apagado, no bloquea toques) |
 | 6 | `JournalHUD`, `ArenaLobby` (Dunas), `ChestHUD` (el cofre: en el teléfono tapa los botones táctiles de combate) |
 | 7 | `EmoteWheel` (la rueda de emotes, con velo) |
 | 8 | `SettingsUI` |

@@ -456,7 +456,8 @@ local function applyPvP(attacker: Player, victim: Player, amount: number, crit: 
 	if poison then
 		CombatText.poison(character, amount, attacker, humanoid.Health - amount <= 0)
 	else
-		CombatText.taken(victim, amount, crit, attacker)
+		local attackerRoot = if attacker.Character then attacker.Character.PrimaryPart else nil
+		CombatText.taken(victim, amount, crit, attacker, nil, if attackerRoot then attackerRoot.Position else nil)
 	end
 	if humanoid.Health - amount > 0 then
 		humanoid:TakeDamage(amount)

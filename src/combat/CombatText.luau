@@ -10,6 +10,8 @@
 -- Se mandan en lotes cada Config.CombatText.MergeSeconds; los golpes iguales (mismo objetivo, tipo,
 -- autor y crítico) de un lote se suman en un número: el abanico de flechas, la Lluvia…
 -- "ko" marca el daño que derribó al enemigo (el "K.O.!" de ComicFxController).
+-- Solo en "Taken" (DamageFxController): "head" marca un golpe a la cabeza (no se mezcla con los demás al
+-- fusionar) y "from" es la posición del atacante en PvP (para el arco de dirección; se queda la última).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,6 +29,8 @@ type Entry = {
 	by: number?,
 	pet: boolean?,
 	ko: boolean?,
+	head: boolean?,
+	from: Vector3?,
 }
 
 local CombatText = {}
@@ -60,7 +64,9 @@ local function add(
 	crit: boolean?,
 	by: Player?,
 	pet: boolean?,
-	ko: boolean?
+	ko: boolean?,
+	head: boolean?,
+	from: Vector3?
 )
 	if not target or (amount <= 0 and kind ~= "Absorbed") then
 		return
@@ -68,6 +74,7 @@ local function add(
 	local byId = if by then by.UserId else nil
 	local isCrit = crit == true
 	local isKo = if ko then true else nil
+	local isHead = if head then true else nil
 	for _, entry in pending do
 		if
 			entry.target == target
@@ -75,16 +82,25 @@ local function add(
 			and entry.by == byId
 			and entry.crit == isCrit
 			and entry.pet == pet
+			and entry.head == isHead
 		then
 			entry.amount += amount
 			entry.ko = entry.ko or isKo
+			entry.from = from or entry.from
 			return
 		end
 	end
-	table.insert(
-		pending,
-		{ target = target, amount = amount, kind = kind, crit = isCrit, by = byId, pet = pet, ko = isKo }
-	)
+	table.insert(pending, {
+		target = target,
+		amount = amount,
+		kind = kind,
+		crit = isCrit,
+		by = byId,
+		pet = pet,
+		ko = isKo,
+		head = isHead,
+		from = from,
+	})
 	if not connected then
 		connected = true
 		RunService.Heartbeat:Connect(function()
@@ -96,9 +112,10 @@ local function add(
 	end
 end
 
--- Daño que recibe "player". "by": quién le pegó (solo en PvP).
-function CombatText.taken(player: Player, amount: number, crit: boolean?, by: Player?)
-	add(player.Character, amount, "Taken", crit, by)
+-- Daño que recibe "player". "by": quién le pegó (solo en PvP). "head": golpe a la cabeza. "from": dónde
+-- estaba el atacante.
+function CombatText.taken(player: Player, amount: number, crit: boolean?, by: Player?, head: boolean?, from: Vector3?)
+	add(player.Character, amount, "Taken", crit, by, nil, nil, head, from)
 end
 
 -- Curación de "player". "by": quién le curó (el médico, o el propio jugador con su mascota).
