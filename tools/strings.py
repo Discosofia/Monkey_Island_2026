@@ -14,7 +14,10 @@ Opciones:
   --audit [rutas…]     lista los textos entre comillas que parecen españoles y no pasan por T().
   --review [rutas…]    imprime en JSON las frases (es, en) de esas rutas, agrupadas por archivo.
   --csv ARCHIVO        escribe la LocalizationTable para Creator Hub (Key, Context, Example, Source),
-                       partida en ARCHIVO_1, ARCHIVO_2… si pasa de CSV_ROWS filas.
+                       partida en ARCHIVO_1, ARCHIVO_2… si pasa de CSV_ROWS filas. Es la tabla entera.
+  --csv-nuevas ARCHIVO como --csv, pero solo con las frases que no están en tools/strings_subidas.txt
+                       (las ya subidas a Creator Hub). Es lo que se sube al añadir frases.
+  --marcar-subidas     apunta todas las frases de hoy como subidas (se hace tras subir los CSV nuevos).
 """
 
 import csv
@@ -281,11 +284,39 @@ def review(paths: list[str]) -> int:
 CSV_ROWS = 90
 
 
-def write_csv(out: str) -> int:
+# Las claves que ya están en la tabla de Creator Hub (una por línea). Como las subidas se suman a la nube,
+# solo hace falta subir las claves que no estén aquí: `--csv-nuevas`. Tras subirlas, `--marcar-subidas`.
+UPLOADED = ROOT / "tools" / "strings_subidas.txt"
+
+
+def uploaded_keys() -> set[str]:
+    if not UPLOADED.exists():
+        return set()
+    return {line.strip() for line in UPLOADED.read_text(encoding="utf-8").split("\n") if line.strip()}
+
+
+def csv_rows() -> list[list[str]]:
     phrases, _ = used_phrases()
     english = english_tables()
     # Sin columna "es": el español lo pone el juego (Strings.t), y la nube solo sirve a los demás idiomas.
-    rows = [[key(es), places[0], "", english[es][0]] for es, places in sorted(phrases.items()) if es in english]
+    return [[key(es), places[0], "", english[es][0]] for es, places in sorted(phrases.items()) if es in english]
+
+
+def mark_uploaded() -> int:
+    keys = uploaded_keys() | {row[0] for row in csv_rows()}
+    UPLOADED.write_text("\n".join(sorted(keys)) + "\n", encoding="utf-8", newline="")
+    print(f"{len(keys)} claves marcadas como subidas en {UPLOADED.relative_to(ROOT).as_posix()}.")
+    return 0
+
+
+def write_csv(out: str, only_new: bool = False) -> int:
+    rows = csv_rows()
+    if only_new:
+        uploaded = uploaded_keys()
+        rows = [row for row in rows if row[0] not in uploaded]
+        if not rows:
+            print("No hay frases nuevas: todo está subido.")
+            return 0
     path = Path(out)
     path.parent.mkdir(parents=True, exist_ok=True)
     parts = [rows[i : i + CSV_ROWS] for i in range(0, len(rows), CSV_ROWS)]
@@ -312,6 +343,10 @@ def main(argv: list[str]) -> int:
         return review(rest)
     if option == "--csv" and rest:
         return write_csv(rest[0])
+    if option == "--csv-nuevas" and rest:
+        return write_csv(rest[0], only_new=True)
+    if option == "--marcar-subidas":
+        return mark_uploaded()
     print(__doc__)
     return 2
 
