@@ -1224,6 +1224,9 @@ local Config = {
 		-- Títulos ganados con WinsForTitle victorias con ese bando (Data/Cosmetics).
 		Titles = { Pirates = "TitleLabPirate", Guardians = "TitleLabGuardian" },
 		WinsForTitle = 50,
+		-- Skins de arma por bajas (L5b, Data/Cosmetics "LabKills"): bajas con esa arma para el grado I, II y
+		-- III (índice = grado). Solo se ganan jugando (LabRewardService).
+		SkinKills = { 50, 250, 1000 },
 	},
 
 	Supply = {

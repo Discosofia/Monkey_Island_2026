@@ -97,7 +97,7 @@ Se eligen **en la cola**, junto con el formato. Todos duran como mucho **6 minut
 
 Nada que dé poder fuera del Laboratorio, y nada de pago que dé poder dentro.
 
-**Reparto en dos grupos** (plan del 28-10-2026). La L5a (en el código) da el Ámbar, la XP del pase, el ranking, la misión semanal y los títulos, y empieza ya a contar las bajas por arma en el perfil (`lab.weaponKills`), para que la L5b tenga datos al entregar las skins. La L5b trae los 12 modelos de las skins, su dibujo combinado con el bando y la entrega de los grados ya ganados.
+**Reparto en dos grupos** (plan del 28-10-2026). La L5a (`3364413`) da el Ámbar, la XP del pase, el ranking, la misión semanal y los títulos, y empieza ya a contar las bajas por arma en el perfil (`lab.weaponKills`). La L5b (hecha, a la espera de aprobado; VERIFICACION §30) trae los 12 modelos de las skins, su dibujo combinado con el bando y la entrega de los grados ganados.
 
 **Alerta aceptada de `Economia` (28-10-2026).** Con el Laboratorio, el habitual completa la tienda de Ámbar el día 28 (el mínimo es 30). Sin el Laboratorio ya la completaba justo el día 30, en el límite, así que cualquier fuente nueva de Ámbar la dispara. Decisión del usuario: se acepta y no se tocan los números del Laboratorio; la razón es que a la tienda de Ámbar le faltan cosméticos (otra tarea).
 
@@ -116,7 +116,11 @@ Con las suposiciones de Dunas (45 % de victorias, 10 % de empates) y unas 8 baja
 
 **Cosméticos por hitos** (solo se ganan jugando):
 
-- **Skins de las 4 armas del Lab** en grados I, II y III (`Shared/CosmeticSlots`), por bajas con esa arma: 100, 500 y 2.000 (L5b; las bajas ya se cuentan desde la L5a). Cada grado se distingue a primera vista (el III con piezas nuevas, no solo otro color).
+- **Skins de las 4 armas del Lab** en grados I (Raro), II (Épico) y III (Legendario), por bajas con esa arma: 50, 250 y 1.000 (`Config.Lab.SkinKills`; las bajas se cuentan desde la L5a). Cada arma tiene su bestia: el lanzadardos, la Avispa 🐝; el rifle, el Escorpión 🦂; el lanzarredes, el Kraken 🐙; el cañón, el Dragón 🐉. Cada grado se distingue a primera vista: el III añade piezas nuevas que se ven también por detrás, no solo otro color.
+  - **Bando:** el cuerpo y el acento son del bando (luz azul en los Guardianes, remache de oro en los Piratas). Las piezas de la skin son iguales en los dos.
+  - **Solo se gana jugando:** no da Ámbar ni XP y no se vende.
+  - **Entrega:** al cerrar la partida, y de forma retroactiva (`checkEarned`) para quien ya tenga bajas. Si el hueco de la línea está vacío, la skin se pone sola. El Armario tiene el chip «🧪 Laboratorio» en la pestaña de armas, con el progreso, para ponerla o quitarla.
+  - **Umbrales:** bajaron el 28-10-2026 de 100/500/2.000 a 50/250/1.000 por decisión del usuario. Con una sola arma, el III tarda unos 42 días de calendario en el perfil intenso y unos 175 en el habitual (`Economia`).
 - **Títulos:** "Saqueador del PRIMAL" (50 victorias con los piratas) y "Guardián del Suero" (50 con los guardianes).
 - **Ranking:** un bloque del Laboratorio en el cartel del Ranking del Lobby (victorias y bajas), como el de la arena.
 - **Misiones:** una semanal nueva, "Gana 3 partidas en el Laboratorio", que entra en la rotación de las semanales.

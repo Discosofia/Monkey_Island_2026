@@ -10,7 +10,8 @@
 --   - earned: se gana jugando ("Rescue": ganar una partida de verdad; "MasterVictory": ganarla con el
 --     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService;
 --     "GiantSlayer": derribar al administrador convertido en gigante, island/GiantAdminService; "LabPirates" y "LabGuardians": 50 victorias con ese bando en el Laboratorio,
---     laboratorio/LabRewardService). Ni en
+--     laboratorio/LabRewardService; "LabKills": las bajas con el arma de la skin (Config.Lab.SkinKills por
+--     grado, perfil "lab.weaponKills"), laboratorio/LabRewardService). Ni en
 --     Studio es gratis.
 --   - free: lo tiene todo el mundo desde el principio (los emotes de serie).
 -- Un id de Robux a 0 sale como "Próximamente" (en Studio se prueba gratis con
@@ -61,7 +62,7 @@ export type Source = {
 	price: number?,
 	amber: number?,
 	season: string?,
-	earned: ("Rescue" | "MasterVictory" | "GiantSlayer" | "LabPirates" | "LabGuardians")?,
+	earned: ("Rescue" | "MasterVictory" | "GiantSlayer" | "LabPirates" | "LabGuardians" | "LabKills")?,
 	free: boolean?,
 }
 
@@ -76,7 +77,7 @@ export type Cosmetic = {
 	source: Source,
 	title: string?, -- Title: el texto que se ve
 	role: string?, -- Outfit y WeaponSkin: el rol al que va
-	weapon: string?, -- WeaponSkin de un arma que no es de rol: su familia ("Machete", Shared/WeaponTools)
+	weapon: string?, -- WeaponSkin de un arma que no es de rol: su familia ("Machete", Shared/WeaponTools) o el arma del Laboratorio ("LabDartGun", Shared/LabWeaponSkins)
 	petId: string?, -- PetSkin: la mascota (Data/Pets)
 	petFamily: string?, -- PetSkin de familia: vale para todas las mascotas con ese "family" (Data/Pets)
 	petShown: string?, -- PetSkin de familia: la mascota de su imagen (si no, la primera por orden alfabético)
@@ -1081,6 +1082,165 @@ local Cosmetics: { [string]: Cosmetic } = {
 		color = Color3.fromRGB(120, 255, 150),
 		source = { productId = 3721007360, price = 449 },
 		role = "Medico",
+	},
+
+	-- Skins de las armas del Laboratorio por bajas (L5b): Config.Lab.SkinKills por grado, LabRewardService.
+	-- Los modelos: Shared/LabWeaponSkins. Un hueco por arma ("WeaponSkin.<arma>"), y se ve el grado más alto.
+	LabWasp = {
+		name = "Lanzadardos: Avispa I",
+		icon = "🐝",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 50 bajas con el lanzadardos en el Laboratorio en ruinas: franjas de avispa en el cañón y el bidón, y las alas plegadas a los lados.",
+		order = 71,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 176, 30),
+		source = { earned = "LabKills" },
+		weapon = "LabDartGun",
+		line = "LabWasp",
+		grade = 1,
+	},
+	LabWaspII = {
+		name = "Lanzadardos: Avispa II",
+		icon = "🐝",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 250 bajas con el lanzadardos en el Laboratorio en ruinas: alas abiertas, un aguijón de neón en la boca y antenas.",
+		order = 71.1,
+		rarity = "Epic",
+		color = Color3.fromRGB(255, 176, 30),
+		source = { earned = "LabKills" },
+		weapon = "LabDartGun",
+		line = "LabWasp",
+		grade = 2,
+	},
+	LabWaspIII = {
+		name = "Lanzadardos: Avispa III",
+		icon = "🐝",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 1.000 bajas con el lanzadardos en el Laboratorio en ruinas: alas grandes de cristal sobre la culata, un panal que brilla en el bidón y chispas de zumbido.",
+		order = 71.2,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 176, 30),
+		source = { earned = "LabKills" },
+		weapon = "LabDartGun",
+		line = "LabWasp",
+		grade = 3,
+	},
+	LabScorpion = {
+		name = "Rifle: Escorpión I",
+		icon = "🦂",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 50 bajas con el rifle en el Laboratorio en ruinas: placas de quitina segmentadas en el cañón.",
+		order = 72,
+		rarity = "Rare",
+		color = Color3.fromRGB(205, 150, 70),
+		source = { earned = "LabKills" },
+		weapon = "LabBananaRifle",
+		line = "LabScorpion",
+		grade = 1,
+	},
+	LabScorpionII = {
+		name = "Rifle: Escorpión II",
+		icon = "🦂",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 250 bajas con el rifle en el Laboratorio en ruinas: una cola arqueada sobre la culata con el aguijón brillante y patas cortas bajo el cajón.",
+		order = 72.1,
+		rarity = "Epic",
+		color = Color3.fromRGB(205, 150, 70),
+		source = { earned = "LabKills" },
+		weapon = "LabBananaRifle",
+		line = "LabScorpion",
+		grade = 2,
+	},
+	LabScorpionIII = {
+		name = "Rifle: Escorpión III",
+		icon = "🦂",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 1.000 bajas con el rifle en el Laboratorio en ruinas: pinzas junto a la boca, la cola alta sobre el hombro y gotas ámbar que caen del aguijón.",
+		order = 72.2,
+		rarity = "Legendary",
+		color = Color3.fromRGB(205, 150, 70),
+		source = { earned = "LabKills" },
+		weapon = "LabBananaRifle",
+		line = "LabScorpion",
+		grade = 3,
+	},
+	LabKraken = {
+		name = "Lanzarredes: Kraken I",
+		icon = "🐙",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 50 bajas con el lanzarredes en el Laboratorio en ruinas: dos tentáculos que salen de la boca.",
+		order = 73,
+		rarity = "Rare",
+		color = Color3.fromRGB(30, 90, 170),
+		source = { earned = "LabKills" },
+		weapon = "LabNetHarpoon",
+		line = "LabKraken",
+		grade = 1,
+	},
+	LabKrakenII = {
+		name = "Lanzarredes: Kraken II",
+		icon = "🐙",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 250 bajas con el lanzarredes en el Laboratorio en ruinas: cuatro tentáculos con ventosas cian que brillan y un ojo en el lateral.",
+		order = 73.1,
+		rarity = "Epic",
+		color = Color3.fromRGB(30, 90, 170),
+		source = { earned = "LabKills" },
+		weapon = "LabNetHarpoon",
+		line = "LabKraken",
+		grade = 2,
+	},
+	LabKrakenIII = {
+		name = "Lanzarredes: Kraken III",
+		icon = "🐙",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 1.000 bajas con el lanzarredes en el Laboratorio en ruinas: seis tentáculos que se curvan hacia atrás, un ojo grande en la culata y burbujas.",
+		order = 73.2,
+		rarity = "Legendary",
+		color = Color3.fromRGB(30, 90, 170),
+		source = { earned = "LabKills" },
+		weapon = "LabNetHarpoon",
+		line = "LabKraken",
+		grade = 3,
+	},
+	LabDragon = {
+		name = "Cañón: Dragón I",
+		icon = "🐉",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 50 bajas con el cañón de suero en el Laboratorio en ruinas: un hocico con dientes en la boca.",
+		order = 74,
+		rarity = "Rare",
+		color = Color3.fromRGB(255, 120, 30),
+		source = { earned = "LabKills" },
+		weapon = "LabAcidCannon",
+		line = "LabDragon",
+		grade = 1,
+	},
+	LabDragonII = {
+		name = "Cañón: Dragón II",
+		icon = "🐉",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 250 bajas con el cañón de suero en el Laboratorio en ruinas: una cabeza de dragón con cuernos y ojos que brillan, y una cresta en el tubo.",
+		order = 74.1,
+		rarity = "Epic",
+		color = Color3.fromRGB(255, 120, 30),
+		source = { earned = "LabKills" },
+		weapon = "LabAcidCannon",
+		line = "LabDragon",
+		grade = 2,
+	},
+	LabDragonIII = {
+		name = "Cañón: Dragón III",
+		icon = "🐉",
+		kind = "WeaponSkin",
+		description = "Solo para quien ha logrado 1.000 bajas con el cañón de suero en el Laboratorio en ruinas: alas sobre la culata, púas a lo largo del lomo y brasas y humo por la boca.",
+		order = 74.2,
+		rarity = "Legendary",
+		color = Color3.fromRGB(255, 120, 30),
+		source = { earned = "LabKills" },
+		weapon = "LabAcidCannon",
+		line = "LabDragon",
+		grade = 3,
 	},
 }
 

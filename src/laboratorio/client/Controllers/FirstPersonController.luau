@@ -4,7 +4,8 @@
 --   - La mira: una cruz fija en el centro de la pantalla, en lugar del cursor. Se apunta con el centro
 --     en todos los dispositivos (CombatClient/Aim: con ratón, el cursor está ahí; sin él, la cámara).
 --   - El arma en primera persona: Roblox esconde el personaje propio (y el arma en su mano; aquí se
---     esconde también la que cambia de piezas al cambiar de facción), así que se dibuja una copia del arma equipada (Shared/LabWeaponModels, con la facción "LabFaction") con las
+--     esconde también la que cambia de piezas al cambiar de facción), así que se dibuja una copia del arma equipada (Shared/LabWeaponModels, con la facción "LabFaction" y la skin de bajas "<arma>Skin", sin sus piezas
+--     "LabBack" de la espalda ni sus partículas) con las
 --     manos, pegada a la cámara abajo a la derecha. Con el rifle acercado (WeaponController) se centra
 --     para apuntar por la mira, y cada disparo la echa un poco atrás (retroceso).
 -- Los demás ven el arma en la mano del personaje, con sus animaciones de siempre.
@@ -25,6 +26,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
+local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
 
@@ -151,21 +153,32 @@ local function refresh(player: Player)
 		clearViewModel()
 		return
 	end
-	local faction = LabWeaponModels.faction(player:GetAttribute("LabFaction"))
-	local key = `{weaponId}/{faction}`
+	local look = LabWeaponModels.lookOf(player, weaponId)
+	local faction, skinId = LabWeaponModels.look(look)
+	local key = `{weaponId}/{look}`
 	if key == shownKey and viewModel and viewModel.Parent then
 		return
 	end
 	clearViewModel()
 	-- Las piezas se hacen en una Tool suelta y se pasan a un modelo pegado a la cámara.
 	local holder = Instance.new("Tool")
-	local handle = LabWeaponModels.build(holder, weaponId, faction)
+	local handle = LabWeaponModels.build(holder, weaponId, faction, skinId)
 	local model = Instance.new("Model")
 	model.Name = "ArmaEnPrimeraPersona"
 	for _, part in holder:GetChildren() do
-		part.Parent = model
+		-- Las piezas de la espalda de la skin taparían la mira: solo las ven los demás.
+		if part:GetAttribute("LabBack") then
+			part:Destroy()
+		else
+			part.Parent = model
+		end
 	end
 	holder:Destroy()
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("ParticleEmitter") then
+			descendant:Destroy()
+		end
+	end
 	model.PrimaryPart = handle
 	arms(model, handle, faction, skinColor(character))
 	for _, part in model:GetDescendants() do
@@ -338,6 +351,11 @@ function FirstPersonController:Start()
 	player:GetAttributeChangedSignal("LabFaction"):Connect(function()
 		refresh(player)
 	end)
+	for _, weaponId in LabWeapons.ORDER do
+		player:GetAttributeChangedSignal(`{weaponId}Skin`):Connect(function()
+			refresh(player)
+		end)
+	end
 	local function watch(character: Model)
 		clearViewModel()
 		character.ChildAdded:Connect(function()

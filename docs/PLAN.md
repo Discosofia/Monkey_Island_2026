@@ -504,7 +504,14 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **L4a** | Todos contra todos y Rondas (cola del Lobby y Laboratorio central) | `bc72a45` | ✅ (faltan 2 jugadores, el cartel y el teléfono reales y el juego publicado: VERIFICACION §27) |
 | **L4b** | Mapas Azotea de la torre y Alcantarillas; votación de mapa | `894f1c2` | ✅ (faltan 2 jugadores, el teléfono real, el juego publicado y las observaciones de diseño: VERIFICACION §28) |
 | **L5a** | Recompensas: Ámbar con tope de 300, XP del pase, ranking, misión semanal y títulos; `Economia` y el GDD. Empieza a contar las bajas por arma | `3364413` | ✅ (faltan 2 jugadores, el perfil real y el teléfono: VERIFICACION §29) |
-| **L5b** | Skins del Laboratorio por bajas: 12 modelos (4 armas × I/II/III), su dibujo combinado con el bando y la entrega de los grados ganados | — | ⏳ |
+| **L5b** | Skins del Laboratorio por bajas: 12 modelos (4 armas × I/II/III), su dibujo combinado con el bando y la entrega de los grados ganados | — | hecha, a la espera de aprobado (faltan 2 jugadores, la vista, la calculadora y el juego publicado: VERIFICACION §30) |
+
+**Handoff siguiente (28-10-2026)**
+
+- **Estado:** la L5b está hecha y sin commit. Espera el «aprobado» del usuario: entonces se hace el commit de código y, aparte, el de la fila L5b con su hash. La tabla de la Fase 13 no tiene L6: la L5b es el último grupo.
+- **Sin probar:** VERIFICACION §30 (2 jugadores, la vista en el Studio y en el teléfono, la calculadora `Economia` y el juego publicado). Al publicar, los cuatro places a la vez, aunque el perfil siga en la versión 13.
+- **Balance:** los umbrales de las skins por bajas bajaron el 28-10-2026 de 100/500/2.000 a 50/250/1.000 (decisión del usuario). Con una sola arma, el grado III tarda unos 42 días de calendario en el perfil intenso y unos 175 en el habitual (línea «Skins del Laboratorio» de `Economia`); repartidas entre las cuatro armas, cuatro veces más.
+- **Qué sigue:** por decidir con el usuario. Candidatas del plan: la Fase 14 (Isla Calavera, grupo D1 con el place nuevo); la tanda I1 (inglés), con las pruebas pendientes de VERIFICACION §19 a §23; y las pruebas de la Fase 13 (VERIFICACION §24 a §30) con la publicación de los cuatro places.
 
 **Fase 14: Isla Calavera** (quinto place, mazmorra PvE de 1 a 5). Diseño: [AVENTURAS.md](AVENTURAS.md), resumen en el GDD §7.2.
 

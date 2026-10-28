@@ -21,7 +21,8 @@
 -- su nombre y sus números). Lo publica CosmeticsServer.
 --
 -- Armas del Laboratorio (Fase 13, Data/LabWeapons): sus modelos están en Shared/LabWeaponModels, uno
--- por facción; la del jugador ("LabFaction") hace de aspecto (skinOf) y reskin las cambia.
+-- por facción; la del jugador ("LabFaction") y su skin de bajas ("<arma>Skin", L5b) hacen de aspecto
+-- (skinOf, "Bando:skin") y reskin las cambia.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -3225,7 +3226,8 @@ end
 -- del arma ("MacheteSkin"). WeaponTools.build ya comprueba que le valga.
 function WeaponTools.skinOf(player: Player, weaponId: string): string?
 	if LabWeaponModels.has(weaponId) then
-		return LabWeaponModels.faction(player:GetAttribute("LabFaction"))
+		-- "<bando>" o "<bando>:<skin>" (L5b: skin de bajas puesta en "<arma>Skin").
+		return LabWeaponModels.lookOf(player, weaponId)
 	end
 	local family = FAMILY_LEVELS[weaponId]
 	local skinId = player:GetAttribute(if family then `{family.family}Skin` else "WeaponSkin")
@@ -3236,9 +3238,10 @@ end
 -- del nivel "lookLevel" si es mayor (atributo "Look": el arma que se ve, si no es ella).
 local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: number?)
 	if LabWeaponModels.has(weaponId) then
-		local faction = LabWeaponModels.faction(skinId)
-		tool:SetAttribute("Skin", faction)
-		LabWeaponModels.build(tool, weaponId, faction)
+		-- El atributo "Skin" guarda el aspecto entero (bando y skin): reskin lo compara para ver los cambios.
+		local faction, labSkin = LabWeaponModels.look(skinId)
+		tool:SetAttribute("Skin", if labSkin then `{faction}:{labSkin}` else faction)
+		LabWeaponModels.build(tool, weaponId, faction, labSkin)
 		return
 	end
 	local shownId = lookWeapon(weaponId, lookLevel)
@@ -3351,7 +3354,8 @@ function WeaponTools.preview(roleId: string, skinId: string?): Model?
 	return if weaponId then WeaponTools.previewWeapon(weaponId, skinId) else nil
 end
 
--- El arma "weaponId" con el aspecto "skinId", suelta y anclada (como WeaponTools.preview).
+-- El arma "weaponId" con el aspecto "skinId", suelta y anclada (como WeaponTools.preview). En las del
+-- Laboratorio, "skinId" puede ser el id de una skin de bajas ("LabWaspII", con el bando de los Guardianes).
 function WeaponTools.previewWeapon(weaponId: string, skinId: string?): Model
 	local tool = WeaponTools.build(weaponId, skinId)
 	local model = Instance.new("Model")

@@ -791,7 +791,7 @@ Diseño completo en [`docs/LABORATORIO.md`](LABORATORIO.md) (27-10-2026); se con
 - **Ritmo:** partidas de 6 min y **tiempo para matar de 1,5–2,5 s** dentro del alcance de cada arma (medido; cada arma gana a su distancia).
 - **Modos** (se eligen en la cola): duelo por equipos de 1v1 a 5v5, todos contra todos de 10 y rondas sin reaparición al mejor de 7.
 - **Tres mapas pequeños** que se votan al llegar: Laboratorio central, Azotea de la torre y Alcantarillas.
-- **Recompensas:** Ámbar (45 · 25 · 15 por victoria, empate y derrota; en Todos contra todos, 45 · 30 · 30 por puesto del 1.º al 3.º y 15 al resto; 1 por baja, como mucho 15) con tope diario propio de 300 (unos 5 por minuto, menos que la Isla y Dunas); XP del pase (60 · 30 · 20); skins de las armas del Lab por bajas (L5b) y títulos al llegar a 50 victorias con un bando. Ranking en el Lobby, con victorias y bajas.
+- **Recompensas:** Ámbar (45 · 25 · 15 por victoria, empate y derrota; en Todos contra todos, 45 · 30 · 30 por puesto del 1.º al 3.º y 15 al resto; 1 por baja, como mucho 15) con tope diario propio de 300 (unos 5 por minuto, menos que la Isla y Dunas); XP del pase (60 · 30 · 20); skins de las cuatro armas por bajas con esa arma (I, II y III a 50, 250 y 1.000; L5b) y títulos al llegar a 50 victorias con un bando. Ranking en el Lobby, con victorias y bajas.
 - **Emparejamiento:** la cola entre servidores de Dunas (`ArenaQueueService`, `Arena`, `TeamService`) con modo y formato.
 
 ---
@@ -821,7 +821,7 @@ Los jugadores son **náufragos**. La **baliza de rescate** es la antigua radio d
 - **Robux (solo cosmético y comodidad):** la premium del pase y sus niveles (§14.1), cosméticos sueltos en la tienda de Robux, los Game Passes cosméticos (estelas, título, aura) y servidores privados.
 - **Nunca con Robux:** poder, **Ámbar** (compra mejoras con ventaja), huevos, tiempo de incubación, provisiones y objetos aleatorios. Lo comprueba la sección "Reglas de pago" de la calculadora `Economia`.
 - **Fuentes** (27-10-2026): el Laboratorio en ruinas (§12.3, tope de 300 al día; en el código desde la L5a) y la mazmorra de la Isla Calavera (§7.2, tope de 10 partidas con botín entero a la semana). Las dos dan menos Ámbar por minuto que la Isla, o lo mismo como mucho, para que la Isla siga siendo el sitio principal.
-- **Se gana jugando:** el título "Superviviente de la Isla" (solo al ganar una partida), los trajes míticos (§14.3), los premios del calendario, de las misiones y de la pista gratis del pase.
+- **Se gana jugando:** el título "Superviviente de la Isla" (solo al ganar una partida), los trajes míticos (§14.3), las skins del Laboratorio por bajas (§14.3), los premios del calendario, de las misiones y de la pista gratis del pase.
 
 ### 14.1 Pase de temporada (Fase 9)
 
@@ -847,7 +847,7 @@ Pestaña **🎨 Cosméticos** de la Tienda del Lobby. Tema "selva y mar", para n
 
 ### 14.3 Cosméticos
 
-- **Tipos:** trajes por rol, aspectos de arma por rol (y del machete), skins de mascota, estelas, auras, títulos, marcos (ranking, Grupo y resultados), emotes (rueda con la tecla "." o 😀), estilo de los números de daño, estilo de los estallidos de cómic y decoración del nido (solo la ve quien la lleva). Algunos tienen **grados I, II y III** que comparten línea: se ve el más alto que tienes.
+- **Tipos:** trajes por rol, aspectos de arma por rol (y del machete), skins de mascota, estelas, auras, títulos, marcos (ranking, Grupo y resultados), emotes (rueda con la tecla "." o 😀), estilo de los números de daño, estilo de los estallidos de cómic y decoración del nido (solo la ve quien la lleva), y las skins de las armas del Laboratorio, que se ganan con bajas con esa arma (grados I, II y III: 50, 250 y 1.000). Algunos tienen **grados I, II y III** que comparten línea: se ve el más alto que tienes.
 - **Rarezas:** común, poco común, raro, épico, legendario y **mítico**. Cuanto más raro, más detalle; las variantes se distinguen de un vistazo, también de espaldas.
 - **Míticos** (dioses de la selva): un traje por rol que **se gana** venciendo con el equipo de nivel 4 del rol (Rey Gorila Titán, Jaguar Espectral, Serpiente Emplumada, Ceiba de la Vida) y su arma, en la tienda de Robux. Crecen con el nivel de la armadura y del arma en la Isla y se ven enteros en el Lobby y en Dunas. Los trajes del pase también ganan piezas con el grado de la armadura.
 - Todo se elige en el **Armario** del Lobby (avatar 3D que gira, pestañas Trajes, Armas, Efectos, Títulos, Mascotas, Marcos, Emotes y Estilos). En Dunas solo llegan los cosméticos (§12.2).

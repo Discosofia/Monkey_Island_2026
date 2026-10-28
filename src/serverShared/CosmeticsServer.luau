@@ -14,6 +14,8 @@
 --     construirla con Shared/PetModels) y los tipos baratos: el estilo de los números ("NumberStyle",
 --     CombatTextController), el de los estallidos ("BurstStyle", ComicFxController) y la decoración
 --     del nido ("NestDecor", NestController del Lobby). Los emotes los hace el cliente (UI/EmoteWheel).
+--   - Las skins de las armas del Laboratorio (L5b, ganadas por bajas) se publican en "<arma>Skin"
+--     ("LabDartGunSkin"…) desde su hueco "WeaponSkin.<arma>"; las dibuja Shared/LabWeaponModels.
 --   - De un cosmético por grados (I, II, III) se publica y se dibuja el grado más alto que se tiene.
 --   - Guarda el mejor equipo fabricado en la Isla con cada rol (perfil "bestGear", recordGear) y, en el
 --     Lobby y en Dunas (start con "showBestGear"), lo luce: la armadura en "ArmorLook" (Shared/ArmorModels)
@@ -31,6 +33,8 @@ local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
+local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
+local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
@@ -159,6 +163,18 @@ local function applyRoleCosmetics(player: Player, force: boolean?)
 		end
 	end
 	local macheteId = if profile then equippedOwned(player, profile, "WeaponSkin.Machete", WeaponTools.hasSkin) else nil
+	-- Skins de las armas del Laboratorio: una por arma ("<arma>Skin").
+	local labSkins: { [string]: string? } = {}
+	local labChanged = false
+	for _, weaponId in LabWeapons.ORDER do
+		local labSkinId = if profile
+			then equippedOwned(player, profile, `WeaponSkin.{weaponId}`, LabWeaponModels.hasSkin)
+			else nil
+		labSkins[weaponId] = labSkinId
+		if player:GetAttribute(`{weaponId}Skin`) ~= labSkinId then
+			labChanged = true
+		end
+	end
 	if force or player:GetAttribute("Outfit") ~= outfitId or player:GetAttribute("ArmorLook") ~= armorLook then
 		player:SetAttribute("Outfit", outfitId)
 		player:SetAttribute("ArmorLook", armorLook)
@@ -171,10 +187,16 @@ local function applyRoleCosmetics(player: Player, force: boolean?)
 		player:GetAttribute("WeaponSkin") ~= skinId
 		or player:GetAttribute("MacheteSkin") ~= macheteId
 		or player:GetAttribute("WeaponLook") ~= weaponLook
+		or labChanged
 	then
 		player:SetAttribute("WeaponSkin", skinId)
 		player:SetAttribute("MacheteSkin", macheteId)
 		player:SetAttribute("WeaponLook", weaponLook)
+		-- Con ipairs sobre el orden de las armas: una skin quitada (nil) no deja clave en "labSkins" y su
+		-- atributo tiene que limpiarse también.
+		for _, weaponId in LabWeapons.ORDER do
+			player:SetAttribute(`{weaponId}Skin`, labSkins[weaponId])
+		end
 		WeaponTools.reskin(player)
 	end
 end
@@ -577,12 +599,19 @@ local function checkEarned(player: Player)
 	end
 	local missing = {}
 	local labStats = if typeof(profile.lab.stats) == "table" then profile.lab.stats else {}
+	local weaponKills = if typeof(profile.lab.weaponKills) == "table" then profile.lab.weaponKills else {}
 	for cosmeticId, cosmetic in Cosmetics do
 		local earned = cosmetic.source.earned
 		local owed = (earned == "Rescue" and profile.rescues > 0)
 			-- Laboratorio: victorias con ese bando (LabRewardService las entrega al llegar a la cifra).
 			or (earned == "LabPirates" and (labStats.winsPirates or 0) >= Config.Lab.WinsForTitle)
 			or (earned == "LabGuardians" and (labStats.winsGuardians or 0) >= Config.Lab.WinsForTitle)
+			-- Skins de arma del Laboratorio: bajas con esa arma según el grado (Config.Lab.SkinKills).
+			or (
+				earned == "LabKills"
+				and cosmetic.weapon ~= nil
+				and (weaponKills[cosmetic.weapon] or 0) >= (Config.Lab.SkinKills[cosmetic.grade or 1] or math.huge)
+			)
 		if owed and not profile.ownedCosmetics[cosmeticId] then
 			table.insert(missing, cosmeticId)
 		end
@@ -608,6 +637,30 @@ function CosmeticsServer.grant(player: Player, cosmeticId: string): boolean
 	end)
 	player:SetAttribute(`Cosmetic_{cosmeticId}`, true)
 	notifyGranted(player, cosmeticId)
+	return true
+end
+
+-- Pone "cosmeticId" (que ya tiene) en su hueco si está vacío, sin quitar lo que llevara puesto (la skin
+-- recién ganada del Laboratorio). Si el hueco ya está ocupado no lo cambia, pero vuelve a vestir al jugador:
+-- así se ve el grado más alto de la línea que acaba de ganar. Devuelve true si lo ha puesto.
+function CosmeticsServer.equipIfEmpty(player: Player, cosmeticId: string): boolean
+	local cosmetic = Cosmetics[cosmeticId]
+	local profile = PlayerData.get(player)
+	local slot = if cosmetic then CosmeticSlots.slot(cosmetic) else nil
+	if not (slot and profile) then
+		return false
+	end
+	if profile.cosmetics[slot] ~= nil then
+		applyVisuals(player)
+		return false
+	end
+	if not owns(player, cosmeticId) then
+		return false
+	end
+	PlayerData.update(player, function(current)
+		current.cosmetics[slot] = cosmeticId
+	end)
+	applyVisuals(player)
 	return true
 end
 

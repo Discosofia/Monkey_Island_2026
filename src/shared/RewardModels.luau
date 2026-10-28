@@ -24,6 +24,7 @@ local CosmeticSlots = require(script.Parent.CosmeticSlots)
 local Cosmetics = require(script.Parent.Data.Cosmetics)
 local EggModel = require(script.Parent.EggModel)
 local EmoteAnimations = require(script.Parent.Data.EmoteAnimations)
+local LabWeaponModels = require(script.Parent.LabWeaponModels)
 local NestDecor = require(script.Parent.NestDecor)
 local NumberStyles = require(script.Parent.UI.NumberStyles)
 local PetModels = require(script.Parent.PetModels)
@@ -694,9 +695,13 @@ function RewardModels.cosmetic(character: Model?, cosmeticId: string): Model?
 		return RewardModels.petSkin(cosmeticId)
 	elseif kind == "WeaponSkin" and cosmetic and (cosmetic.role or cosmetic.weapon) then
 		-- El aspecto de un arma se ve en el arma (suelta y cruzada), no en el avatar: la de su rol en el nivel
-		-- más alto o, el del machete, el machete afilado.
+		-- más alto o, el del machete, el machete afilado y, las del Laboratorio, el arma de su skin.
 		local weapon = if cosmetic.role
 			then WeaponTools.preview(cosmetic.role, cosmeticId)
+			elseif cosmetic.weapon and LabWeaponModels.has(cosmetic.weapon) then WeaponTools.previewWeapon(
+				cosmetic.weapon,
+				cosmeticId
+			)
 			else WeaponTools.previewWeapon("SharpMachete", cosmeticId)
 		if weapon then
 			weapon:PivotTo(CFrame.Angles(0, math.rad(90), math.rad(-40)))

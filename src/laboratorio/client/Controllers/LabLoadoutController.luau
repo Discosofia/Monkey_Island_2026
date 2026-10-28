@@ -5,7 +5,7 @@
 -- todos la cuenta de listos incluye a todos (no hay bandos). Se puede plegar: queda un botón "Cambiar de arma" bajo la línea de
 -- la fase para volver a abrirlo.
 --   - Cuatro tarjetas en fila: la imagen voxel del arma con el aspecto de tu bando (Shared/LabWeaponModels,
---     "LabFaction"), su nombre, para qué sirve y sus números (daño, cada cuánto dispara y alcance). La
+--     "LabFaction", y la skin de bajas de esa arma, "<arma>Skin"), su nombre, para qué sirve y sus números (daño, cada cuánto dispara y alcance). La
 --     tuya, con el borde dorado (Remotes.LabPickWeapon; el servidor la cambia, LabLoadoutService).
 --   - Antes de la partida, "¡Listo!" y cuántos lo están (Remotes.ArenaReady); al morir, cuándo reapareces.
 -- Con la ventana abierta el ratón va suelto (FirstPersonController.freeCursor). En una pantalla baja (un
@@ -73,9 +73,9 @@ local function decimal(value: number): string
 end
 
 -- El arma, tumbada con la boca a la derecha, en el ViewportFrame.
-local function picture(view: ViewportFrame, weaponId: string, faction: LabWeaponModels.Faction)
+local function picture(view: ViewportFrame, weaponId: string, faction: LabWeaponModels.Faction, skinId: string?)
 	local holder = Instance.new("Tool")
-	LabWeaponModels.build(holder, weaponId, faction)
+	LabWeaponModels.build(holder, weaponId, faction, skinId)
 	local model = Instance.new("Model")
 	for _, part in holder:GetChildren() do
 		part.Parent = model
@@ -243,16 +243,15 @@ function LabLoadoutController:Start()
 		folded = false
 	end)
 
-	-- Las imágenes, con el aspecto del bando (se rehacen al cambiar de bando).
-	local shownFaction: string? = nil
+	-- Las imágenes, con el aspecto del bando y la skin de bajas de cada arma (se rehacen al cambiar).
+	local shownLooks: { [string]: string } = {}
 	local function refreshPictures()
-		local faction = LabWeaponModels.faction(player:GetAttribute("LabFaction"))
-		if faction == shownFaction then
-			return
-		end
-		shownFaction = faction
 		for weaponId, card in cards do
-			picture(card.view, weaponId, faction)
+			local look = LabWeaponModels.lookOf(player, weaponId)
+			if shownLooks[weaponId] ~= look then
+				shownLooks[weaponId] = look
+				picture(card.view, weaponId, LabWeaponModels.look(look))
+			end
 		end
 	end
 

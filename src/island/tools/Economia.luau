@@ -1429,6 +1429,26 @@ local function main(copia: Instance): string
 				`PvP: los topes de Dunas y del Laboratorio suman {topePvp} ✨ al día (máximo {LIMITES.ambarPvpDia})`
 			)
 		end
+		-- Skins del Laboratorio (L5b): día de calendario en que cada perfil junta las bajas de cada grado con un
+		-- arma, si hace todas las bajas con una sola (favorita) o las reparte entre las cuatro. Informativo.
+		linea("")
+		linea(
+			`Skins del Laboratorio (bajas con un arma: {table.concat(Config.Lab.SkinKills, " · ")}; {OPCIONES.lab.bajas} bajas por partida). Día de calendario en que se llega a cada grado, con una sola arma / repartidas en 4:`
+		)
+		for _, clave in OPCIONES.ordenPerfiles do
+			local perfil = OPCIONES.perfiles[clave]
+			if perfil.partidasLab > 0 then
+				local porDia = perfil.partidasLab * OPCIONES.lab.bajas * perfil.diasPorSemana / 7
+				local favorita, repartidas = {}, {}
+				for _, objetivo in Config.Lab.SkinKills do
+					table.insert(favorita, tostring(math.ceil(objetivo / porDia)))
+					table.insert(repartidas, tostring(math.ceil(objetivo / (porDia / 4))))
+				end
+				linea(
+					`- {perfil.nombre}: {table.concat(favorita, " · ")} / {table.concat(repartidas, " · ")} (días)`
+				)
+			end
+		end
 		-- Monturas: probabilidad de tener la primera al final y día en que pasa del 50 %.
 		if next(raresConMontura) then
 			local habitualMontura = resultados.habitual

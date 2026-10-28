@@ -18,6 +18,7 @@ local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local TrainingDummies = require(ServerScriptService.Combat.TrainingDummies)
 local LabMatchService = require(script.Parent.LabMatchService)
 local LabRespawnService = require(script.Parent.LabRespawnService)
+local LabRewardService = require(script.Parent.LabRewardService)
 local LabTeamService = require(script.Parent.LabTeamService)
 local LabVoteService = require(script.Parent.LabVoteService)
 local LabWorldService = require(script.Parent.LabWorldService)
@@ -128,6 +129,19 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		if humanoid then
 			humanoid.Health = 30
 		end
+	end,
+	-- +100 bajas con el arma que llevas y las skins que eso da (L5b), sin jugar una partida.
+	SkinKills = function(player)
+		local weaponId = player:GetAttribute("LabWeapon")
+		if typeof(weaponId) ~= "string" then
+			weaponId = Config.Lab.DefaultWeapon
+		end
+		PlayerData.update(player, function(profile)
+			local saved = if typeof(profile.lab.weaponKills) == "table" then profile.lab.weaponKills else {}
+			saved[weaponId] = (saved[weaponId] or 0) + 100
+			profile.lab.weaponKills = saved
+		end)
+		LabRewardService.checkSkins(player)
 	end,
 	Amber = function(player)
 		PlayerData.update(player, function(profile)

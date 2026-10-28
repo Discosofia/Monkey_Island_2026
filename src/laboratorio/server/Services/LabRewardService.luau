@@ -4,8 +4,10 @@
 --   - Ámbar por el resultado (victoria, empate, derrota; en Todos contra todos, por puesto) y por las
 --     bajas (con tope por partida), por el evento "Doble Ámbar". Con un tope diario propio (perfil
 --     "lab.daily", aparte del de Dunas): lo que pase del tope no se cobra, y los resultados lo dicen.
---   - Estadísticas guardadas (perfil "lab.stats"), bajas por arma (perfil "lab.weaponKills", para las
---     skins de la L5b) y rankings del Laboratorio (victorias y bajas).
+--   - Estadísticas guardadas (perfil "lab.stats"), bajas por arma (perfil "lab.weaponKills") y rankings
+--     del Laboratorio (victorias y bajas).
+--   - Skins de arma (L5b, Data/Cosmetics "LabKills") al llegar a Config.Lab.SkinKills bajas con esa arma;
+--     la recién ganada se pone sola si el hueco de esa arma está vacío.
 --   - XP del pase de temporada (Config.Season.LabXp, ServerShared/SeasonPass).
 --   - Misión semanal del Laboratorio (ganar; ServerShared/Retention).
 --   - Títulos al llegar a Config.Lab.WinsForTitle victorias con un bando (ServerShared/CosmeticsServer).
@@ -17,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Analytics = require(ServerScriptService.ServerShared.Analytics)
@@ -55,6 +58,22 @@ local function earned(player: Player, result: Result, place: number?): number
 	local fromKills = math.min(stat(player, "ArenaKills") * amber.PerKill, amber.MaxFromKills)
 	-- Evento en vivo "Doble Ámbar" (T4b): el tope diario sigue igual.
 	return (fromResult + fromKills) * LiveEvents.amberMultiplier()
+end
+
+-- Da las skins del arma "weaponId" cuyo grado alcanzan sus "total" bajas (grant devuelve false si ya la
+-- tiene) y pone el grado I de la línea si el hueco está vacío (el hueco guarda la línea y se ve el grado
+-- más alto).
+local function grantWeaponSkins(player: Player, weaponId: string, total: number)
+	for cosmeticId, cosmetic in Cosmetics do
+		if
+			cosmetic.source.earned == "LabKills"
+			and cosmetic.weapon == weaponId
+			and total >= (Config.Lab.SkinKills[cosmetic.grade or 1] or math.huge)
+			and CosmeticsServer.grant(player, cosmeticId)
+		then
+			CosmeticsServer.equipIfEmpty(player, cosmetic.line or cosmeticId)
+		end
+	end
 end
 
 -- Cobra hasta el tope diario y guarda las estadísticas y las bajas por arma. Devuelve lo cobrado y lo que
@@ -109,6 +128,13 @@ local function grant(player: Player, amount: number, result: Result, teamId: str
 		if (stats.winsGuardians or 0) >= Config.Lab.WinsForTitle then
 			CosmeticsServer.grant(player, Config.Lab.Titles.Guardians)
 		end
+		-- Skins de arma por bajas: de cada arma con bajas en la partida, los grados que el total ya alcanza.
+		if weaponKills then
+			local totals = if typeof(profile.lab.weaponKills) == "table" then profile.lab.weaponKills else {}
+			for weaponId in weaponKills do
+				grantWeaponSkins(player, weaponId, totals[weaponId] or 0)
+			end
+		end
 		task.spawn(PlayerData.saveNow, player)
 	end
 	return granted, todayTotal
@@ -140,6 +166,15 @@ function LabRewardService.give(player: Player, result: Result, place: number?, t
 		dailyCap = Config.Lab.Amber.DailyCap,
 		pass = pass,
 	}
+end
+
+-- Da las skins que ya alcanzan las bajas guardadas de todas las armas (panel de pruebas).
+function LabRewardService.checkSkins(player: Player)
+	local profile = PlayerData.get(player)
+	local totals = if profile and typeof(profile.lab.weaponKills) == "table" then profile.lab.weaponKills else {}
+	for weaponId, total in totals do
+		grantWeaponSkins(player, weaponId, total)
+	end
 end
 
 -- Vacía las bajas por arma de la partida (al empezar cada una; LabMatchService).

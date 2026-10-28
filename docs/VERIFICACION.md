@@ -1675,6 +1675,61 @@ Ya probado en Play en el Studio del Laboratorio con un jugador (28-10-2026): los
 5. [ ] Con el mismo perfil, juega en la Isla y en Dunas el mismo día hasta acercarte a 1.200 XP de partidas, y después juega una partida en el Laboratorio.
    ✅ La XP del Laboratorio se recorta al resto del tope de 1.200, compartido con la Isla y Dunas, y el pase suma solo lo que queda.
 
+## 30. Lo que queda por probar de L5b: skins del Laboratorio por bajas (28-10-2026)
+
+Probado en Play en el Studio del Laboratorio, con un jugador y con copia y restauración del perfil (28-10-2026): la entrega por umbral (con los umbrales de entonces, 100 → I, 500 → II y 2.000 → III; hoy son 50, 250 y 1.000 y el mecanismo es el mismo), la publicación de «<arma>Skin» y el cambio de la Tool sin reaparecer, el cambio de bando que mantiene la skin, quitar y volver a poner la skin, un hueco independiente para cada arma, las 12 skins construidas en los dos bandos y la consola limpia. Los 12 modelos están revisados con capturas de perfil y desde atrás. Lo que queda necesita 2 o más jugadores, la vista en el Studio y en el teléfono, la calculadora `Economia` en el Studio de la Isla y el juego publicado. Empieza por 30.1.
+
+#### 30.1 En el Studio, con un jugador (Lobby y Laboratorio; haz antes una copia del perfil en `PlayerData_v1_backups`, y restáurala después)
+
+1. [ ] En el Lobby, con las bajas que tenga la cuenta de prueba (o con `lab.weaponKills` puesto a mano en el perfil), abre el Armario, pestaña de armas, y pulsa el botón «🧪 Laboratorio».
+   ✅ Sale el chip «🧪 Laboratorio» en la pestaña de armas y la lista con las skins de las cuatro armas, una tarjeta por línea.
+2. [ ] Lee el texto de progreso de las tarjetas del lanzarredes y del cañón, que son los nombres más largos.
+   ✅ «Bajas con <arma>: n/objetivo» se lee entero, sin cortarse con el nombre del arma, y el número coincide con `weaponKills`.
+3. [ ] Pon una skin desde el visor del Armario y después quítala.
+   ✅ El visor enseña el arma con su skin al ponerla, y el arma base del bando al quitarla, sin cambiar de pestaña.
+4. [ ] En el selector de arma del Laboratorio, con una skin puesta, mira la tarjeta de esa arma.
+   ✅ La tarjeta enseña la skin de la arma con el bando activo, y se lee sin cortes.
+5. [ ] En el Laboratorio, en primera persona, mira el arma con la skin III del lanzadardos y la del cañón, apuntando y sin apuntar.
+   ✅ Las piezas de espalda (`LabBack`) y las partículas se esconden, y las antenas, los cuernos y los tentáculos no tapan la mira.
+6. [ ] Mira la imagen de una skin en su tarjeta del Armario y en una ventana de recompensa.
+   ✅ La imagen enseña su arma con la skin (no el machete) y con el bando correcto.
+
+#### 30.2 En el Studio de la Isla, en modo edición: la calculadora
+
+1. [ ] En la barra de comandos, ejecuta `local m = game.ServerStorage.Tools.Economia:Clone(); print(require(m).informe()); m:Destroy()`.
+   ✅ La salida tiene la línea «Skins del Laboratorio» con los días para llegar a cada grado (50, 250 y 1.000 bajas con una sola arma): habitual 9 · 44 · 175; intenso 3 · 11 · 42; grupo de amigos 6 · 28 · 110. Repartidas entre las cuatro armas, los días salen cuatro veces más.
+2. [ ] Lee la sección «Alertas» de esa misma salida.
+   ✅ No aparece ninguna alerta nueva por las skins. Si sale una, se compara con la alerta aceptada de la tienda de Ámbar (`docs/LABORATORIO.md` §5) antes de tocar nada.
+
+#### 30.3 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en el Laboratorio)
+
+1. [ ] En Todos contra todos, cada uno con su arma, mata al otro varias veces y mira `profile.lab.weaponKills` del servidor al acabar.
+   ✅ Cada baja suma una sola vez en la casilla de su arma (aunque haya varios rivales), y las muertes propias no suman a ninguna.
+2. [ ] Con el comando «SkinKills» del panel del Laboratorio (+100 bajas con tu arma, que ya dan el grado I) en uno de los dos, y después alguna baja real con esa arma, acaba una partida de Todos contra todos o de Duelo.
+   ✅ Al cerrar la partida, la skin I de esa arma queda entregada, con su aviso de cosmético ganado, y se pone sola si el hueco estaba vacío.
+3. [ ] Desde el cliente del otro jugador, mira el arma que tienes en la mano.
+   ✅ El otro jugador ve tu arma con la skin, la misma que ves tú.
+4. [ ] En Rondas 1v1, al cambiar de lado a la mitad, mira el arma en la mano de los dos.
+   ✅ El cuerpo y el acento cambian con el bando, y la skin se mantiene.
+
+#### 30.4 En el emulador de teléfono (elige uno en *Prueba → Dispositivo* antes del ▶)
+
+1. [ ] Abre el Armario del Lobby con el teléfono apaisado y pulsa el chip «🧪 Laboratorio» con el dedo.
+   ✅ El chip se pulsa, las tarjetas se leen y el texto «Bajas con …» se lee entero, sin cortes.
+2. [ ] Pon una skin desde el visor con el dedo y después quítala.
+   ✅ El visor cambia al instante en los dos casos, y el botón se pulsa sin dar a otra tarjeta.
+3. [ ] En el selector de arma del Laboratorio y en primera persona, con una skin III.
+   ✅ La tarjeta del arma muestra la skin, y las piezas de espalda y las partículas no tapan la mira.
+
+#### 30.5 En el juego publicado
+
+1. [ ] Publica los cuatro places a la vez (Archivo → Publicar en Roblox). El perfil sigue en la versión 13, así que no cambia, pero el código sí.
+   ✅ Los cuatro abren sin errores en la Salida, y un perfil existente se carga sin perder nada.
+2. [ ] Con una cuenta de prueba, juega en el Laboratorio hasta llegar a 50 bajas con un arma (o parte de 49 y gana una baja real con esa arma).
+   ✅ Llega el aviso de cosmético ganado al conseguir el grado I, y la skin se pone sola si el hueco estaba vacío.
+3. [ ] Con una cuenta que ya tenga bajas guardadas de antes de la L5b (de la L5a), entra en el Lobby sin jugar.
+   ✅ Los grados que le tocan aparecen como ganados en el Armario al entrar, sin jugar otra partida. Una cuenta sin `lab.weaponKills` guardado no tiene grados retroactivos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

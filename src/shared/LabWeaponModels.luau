@@ -6,8 +6,15 @@
 --     colgando (se ve también por detrás).
 -- Lo que se dispara se ve igual en las dos: dardos azul claro, banana amarilla, red y suero morado.
 -- Ejes (como Shared/WeaponTools): +Y va de la mano hacia la boca del arma; la mano está en "Grip".
--- Las piezas se colocan con "at(lado, largo, arriba)" en studs, en bloques de rejilla (CELL).
--- La facción la elige el atributo "LabFaction" del jugador (WeaponTools.skinOf).
+-- Las piezas se colocan con "at(lado, largo, arriba)" en studs, en bloques de rejilla (Shared/LabVoxel).
+-- La facción la elige el atributo "LabFaction" del jugador (WeaponTools.skinOf) y, encima del arma del
+-- bando, puede ir una skin ganada por bajas (L5b, Shared/LabWeaponSkins): el atributo "<arma>Skin".
+-- "look" y "lookOf" juntan las dos en un texto: "Pirates:LabWaspII" (o solo "Pirates").
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LabVoxel = require(ReplicatedStorage.Shared.LabVoxel)
+local LabWeaponSkins = require(ReplicatedStorage.Shared.LabWeaponSkins)
 
 export type Faction = "Guardians" | "Pirates"
 
@@ -75,54 +82,9 @@ local PALETTES: { [Faction]: Palette } = {
 	},
 }
 
--- Lado del arma que queda "arriba" al apuntar, en la Z del "Handle".
-local UP = -1
-local CELL = 0.05
+local at, cube, glow = LabVoxel.at, LabVoxel.cube, LabVoxel.glow
 
 local LabWeaponModels = {}
-
-local function at(side: number, along: number, up: number): CFrame
-	return CFrame.new(side, along, up * UP)
-end
-
--- Redondea a la rejilla: las piezas quedan en bloques.
-local function snap(value: number): number
-	return math.max(CELL, math.round(value / CELL) * CELL)
-end
-
--- Bloque de "size" (lado, largo, alto) en "where", soldado al "Handle".
-local function cube(
-	handle: BasePart,
-	name: string,
-	where: CFrame,
-	size: Vector3,
-	color: Color3,
-	material: Enum.Material
-): BasePart
-	local piece = Instance.new("Part")
-	piece.Name = name
-	piece.Size = Vector3.new(snap(size.X), snap(size.Y), snap(size.Z))
-	piece.Color = color
-	piece.Material = material
-	piece.CanCollide = false
-	piece.CanQuery = false
-	piece.Massless = true
-	piece.CFrame = handle.CFrame * where
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = handle
-	weld.Part1 = piece
-	weld.Parent = piece
-	piece.Parent = handle.Parent
-	return piece
-end
-
-local function glow(part: BasePart, color: Color3, range: number)
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Range = range
-	light.Brightness = 1.2
-	light.Parent = part
-end
 
 -- Culata, empuñadura y cajón comunes. "length": largo del cajón; "height": su alto. Devuelve el
 -- "Handle" (invisible: marca la mano, en y = -0.8).
@@ -359,9 +321,46 @@ function LabWeaponModels.faction(value: any): Faction
 	return if value == "Pirates" then "Pirates" else "Guardians"
 end
 
--- Pone en "tool" las piezas del arma "weaponId" con el aspecto de "faction".
-function LabWeaponModels.build(tool: Tool, weaponId: string, faction: Faction): BasePart
-	return BUILDERS[weaponId](tool, faction)
+-- true si "skinId" es una skin de arma del Laboratorio (Shared/LabWeaponSkins).
+function LabWeaponModels.hasSkin(skinId: string): boolean
+	return LabWeaponSkins.has(skinId)
+end
+
+-- Lee un aspecto: "Pirates:LabWaspII", "Pirates", "Guardians", un id de skin suelto o nada. Devuelve el
+-- bando y la skin (nil si no lleva).
+function LabWeaponModels.look(value: any): (Faction, string?)
+	if typeof(value) ~= "string" then
+		return "Guardians", nil
+	end
+	local factionText, skinId = string.match(value, "^(%a+):(%w+)$")
+	if factionText then
+		return LabWeaponModels.faction(factionText), skinId
+	end
+	if LabWeaponSkins.has(value) then
+		return "Guardians", value
+	end
+	return LabWeaponModels.faction(value), nil
+end
+
+-- El aspecto de "player" para el arma "weaponId" como texto: su bando ("LabFaction") y, si lleva una skin
+-- de esa arma ("<arma>Skin"), "<bando>:<skin>".
+function LabWeaponModels.lookOf(player: Player, weaponId: string): string
+	local faction = LabWeaponModels.faction(player:GetAttribute("LabFaction"))
+	local skinId = player:GetAttribute(`{weaponId}Skin`)
+	if typeof(skinId) == "string" and LabWeaponSkins.fits(skinId, weaponId) then
+		return `{faction}:{skinId}`
+	end
+	return faction
+end
+
+-- Pone en "tool" las piezas del arma "weaponId" con el aspecto de "faction" y, si "skinId" es una skin de
+-- esa arma, las piezas de la skin encima.
+function LabWeaponModels.build(tool: Tool, weaponId: string, faction: Faction, skinId: string?): BasePart
+	local handle = BUILDERS[weaponId](tool, faction)
+	if skinId and LabWeaponSkins.fits(skinId, weaponId) then
+		LabWeaponSkins.apply(handle, skinId, faction)
+	end
+	return handle
 end
 
 return LabWeaponModels

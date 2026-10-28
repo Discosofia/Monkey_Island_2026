@@ -17,6 +17,8 @@
 --   - Cada tarjeta lleva el borde de su rareza; la mítica, un borde que brilla y gira.
 --   - Sin desplazamiento en PC: cada pestaña enseña una página de tarjetas y, si hay más, flechas. Menos
 --     Estilos: tres columnas con título (números, estallidos y nido) que se deslizan hacia abajo.
+-- En las armas hay un chip más, "🧪 Laboratorio" (pseudo-rol "Lab"), con las skins de las armas del
+-- Laboratorio en ruinas (L5b, ganadas por bajas; la tarjeta enseña tus bajas con el arma y las que faltan).
 -- LobbyUIController la rehace al cambiar los datos del jugador; la pestaña, el rol, la tarjeta y la
 -- página elegidas se guardan aquí para que no se pierdan.
 
@@ -33,6 +35,8 @@ local CosmeticSlots = require(ReplicatedStorage.Shared.CosmeticSlots)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local EmoteTracks = require(ReplicatedStorage.Shared.EmoteTracks)
+local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
+local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local PlayerFrames = require(ReplicatedStorage.Shared.UI.PlayerFrames)
@@ -88,6 +92,10 @@ local STYLE_DEMO_SECONDS = 0.9
 local TABS_PER_ROW = 4
 -- Nombre de cada familia de mascotas (Data/Pets "family") en las tarjetas de sus skins.
 local FAMILY_NAMES: { [string]: string } = { Felino = later("felinos"), Perro = later("perros") }
+
+-- Pseudo-rol de la pestaña de armas con las skins de las armas del Laboratorio.
+local LAB_ROLE = "Lab"
+local LAB_LABEL = later("🧪 Laboratorio")
 
 -- "rebuild" vuelve a dibujar la ventana (LobbyUIController.render) tras elegir pestaña, rol o tarjeta.
 export type Options = { compact: boolean, rebuild: () -> () }
@@ -167,6 +175,42 @@ local function onOffer(cosmeticId: string, list: "amber" | "robux"): boolean
 	return typeof(offer) == "table" and table.find(offer, cosmeticId) ~= nil
 end
 
+local function owned(cosmeticId: string): boolean
+	return Players.LocalPlayer:GetAttribute(`Cosmetic_{cosmeticId}`) == true
+end
+
+-- Tus bajas con el arma del Laboratorio "weaponId" (atributo "Lab": el perfil en JSON, "weaponKills").
+local function labKills(weaponId: string): number
+	local raw = Players.LocalPlayer:GetAttribute("Lab")
+	local ok, data = pcall(function()
+		return HttpService:JSONDecode(if typeof(raw) == "string" then raw else "{}")
+	end)
+	local kills = if ok
+			and typeof(data) == "table"
+			and typeof(data.weaponKills) == "table"
+		then data.weaponKills[weaponId]
+		else nil
+	return if typeof(kills) == "number" then kills else 0
+end
+
+-- "Bajas con el arma: n/objetivo" de una skin del Laboratorio: para su grado o, si ya la tienes, el
+-- siguiente. nil si no es de bajas o es el último grado ya conseguido.
+local function labProgress(cosmeticId: string): string?
+	local cosmetic = Cosmetics[cosmeticId]
+	if cosmetic.source.earned ~= "LabKills" or not cosmetic.weapon then
+		return nil
+	end
+	local target = Config.Lab.SkinKills[(cosmetic.grade or 1) + (if owned(cosmeticId) then 1 else 0)]
+	local weapon = LabWeapons.weapons[cosmetic.weapon]
+	if not (target and weapon) then
+		return nil
+	end
+	return T(
+		"Bajas con {weapon}: {n}/{target}",
+		{ weapon = T(weapon.name), n = labKills(cosmetic.weapon), target = target }
+	)
+end
+
 -- Cómo se consigue un cosmético que no tienes, y si el botón compra (y qué). Lo de las tiendas
 -- (Ámbar y Robux sueltos) solo se compra mientras está en tu oferta; si no, sale "En rotación".
 local function howToGet(cosmeticId: string): (string, (() -> ())?)
@@ -180,6 +224,8 @@ local function howToGet(cosmeticId: string): (string, (() -> ())?)
 		return T("Derriba al gigante"), nil
 	elseif source.earned == "LabPirates" or source.earned == "LabGuardians" then
 		return T("Gana 50 partidas en el Laboratorio"), nil
+	elseif source.earned == "LabKills" then
+		return labProgress(cosmeticId) or "", nil
 	elseif source.season then
 		return T("Pase de temporada"), nil
 	elseif source.gamePassId and source.gamePassId ~= 0 then
@@ -202,10 +248,6 @@ local function howToGet(cosmeticId: string): (string, (() -> ())?)
 			nil
 	end
 	return if source.price then T("Próximamente · {price} R$", { price = source.price }) else T("Próximamente"), nil
-end
-
-local function owned(cosmeticId: string): boolean
-	return Players.LocalPlayer:GetAttribute(`Cosmetic_{cosmeticId}`) == true
 end
 
 -- El grado que se ve de "cosmeticId": el más alto que tienes de su línea (él mismo si no va por grados
@@ -309,6 +351,19 @@ local function previewModel(roleId: string, equipped: { [string]: string }, noWe
 			weapon:GetPivot() + Vector3.new(side * (avatarSize.X / 2 + 0.7) - box.Position.X, lift, -box.Position.Z)
 		)
 		weapon.Parent = model
+	end
+	if roleId == LAB_ROLE then
+		-- Las skins del Laboratorio: el arma de la tarjeta elegida (o la primera) con su skin, aunque aún no la
+		-- tengas.
+		local selected = if state.selected then Cosmetics[state.selected] else nil
+		local weaponId = if selected
+				and selected.weapon
+				and LabWeaponModels.has(selected.weapon)
+			then selected.weapon
+			else LabWeapons.ORDER[1]
+		local labSkin = shown(equipped, `WeaponSkin.{weaponId}`)
+		standBeside(WeaponTools.previewWeapon(weaponId, if labSkin then bestOf(labSkin) else nil), 1)
+		return model
 	end
 	local weapon = if noWeapon then nil else WeaponTools.preview(roleId, shown(equipped, `WeaponSkin.{roleId}`))
 	if weapon then
@@ -528,12 +583,16 @@ function WardrobePanel.build(list: Instance, options: Options)
 	rebuild = options.rebuild
 	local roleAttribute = player:GetAttribute("Role")
 	state.role = state.role or (if typeof(roleAttribute) == "string" then roleAttribute else "Guerrero")
-	local roleId = state.role :: string
 	local tab = TABS[1]
 	for _, candidate in TABS do
 		if candidate.id == state.tab then
 			tab = candidate
 		end
+	end
+	local roleId = state.role :: string
+	-- El pseudo-rol del Laboratorio solo existe en las armas: en los trajes vale tu rol.
+	if roleId == LAB_ROLE and tab.id ~= "Weapon" then
+		roleId = if typeof(roleAttribute) == "string" then roleAttribute else "Guerrero"
 	end
 
 	local holder = Instance.new("Frame")
@@ -587,8 +646,13 @@ function WardrobePanel.build(list: Instance, options: Options)
 		table.sort(roleIds, function(a, b)
 			return Roles[a].order < Roles[b].order
 		end)
+		-- En las armas, un chip más para las del Laboratorio.
+		if tab.id == "Weapon" then
+			table.insert(roleIds, LAB_ROLE)
+		end
 		for index, id in roleIds do
-			local button = chip(roles, `{Roles[id].icon} {T(Roles[id].name)}`, id == roleId, index)
+			local label = if id == LAB_ROLE then T(LAB_LABEL) else `{Roles[id].icon} {T(Roles[id].name)}`
+			local button = chip(roles, label, id == roleId, index)
 			button.Size = UDim2.new(1 / #roleIds, -5, 1, 0)
 			button.MouseButton1Click:Connect(function()
 				state.role = id
@@ -621,8 +685,12 @@ function WardrobePanel.build(list: Instance, options: Options)
 	for id, cosmetic in Cosmetics do
 		local shownGrade = if cosmetic.line then CosmeticSlots.best(id, owned) or CosmeticSlots.grades(id)[1] else id
 		-- Los aspectos de un arma que no es de rol (el machete) salen en los roles que la llevan.
-		local forRole = cosmetic.role == roleId
-			or (cosmetic.weapon ~= nil and table.find(Roles[roleId].weapons, cosmetic.weapon) ~= nil)
+		local forRole = if roleId == LAB_ROLE
+			then cosmetic.weapon ~= nil and LabWeaponModels.has(cosmetic.weapon)
+			else cosmetic.role == roleId or (cosmetic.weapon ~= nil and table.find(
+				Roles[roleId].weapons,
+				cosmetic.weapon
+			) ~= nil)
 		if tab.kinds[cosmetic.kind] and (not tab.byRole or forRole) and shownGrade == id then
 			table.insert(ids, id)
 		end
@@ -642,7 +710,7 @@ function WardrobePanel.build(list: Instance, options: Options)
 
 	if #ids == 0 then
 		local empty = Widgets.label(
-			if tab.byRole
+			if tab.byRole and Roles[roleId]
 				then T("Aún no hay nada de {role}: ¡pronto!", { role = T(Roles[roleId].name) })
 				else T("Aún no hay nada aquí"),
 			cardsPane
@@ -703,7 +771,11 @@ function WardrobePanel.build(list: Instance, options: Options)
 		tag.TextXAlignment = Enum.TextXAlignment.Left
 		textCap(tag, if compact then 11 else 13)
 		if not compact then
-			local detail = Widgets.label(T(cosmetic.description), card)
+			-- Las skins de bajas que ya tienes enseñan lo que llevas para el siguiente grado.
+			local detail = Widgets.label(
+				if has then labProgress(cosmeticId) or T(cosmetic.description) else T(cosmetic.description),
+				card
+			)
 			detail.Position = UDim2.fromOffset(6, 45)
 			detail.Size = UDim2.new(1, -12, 0, 26)
 			detail.Font = Enum.Font.BuilderSans
