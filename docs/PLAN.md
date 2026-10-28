@@ -500,7 +500,7 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 |---|---|---|---|
 | **L1** | Place nuevo (`laboratorio.project.json`, `Config.PlaceIds.Laboratorio`), `LabCombatRules`, las 4 armas (`Data/LabWeapons`) y la sección del Laboratorio en `Equilibrio`; primera persona (cámara fija, mira y arma en la cámara) | `93c848f` | ✅ (faltan el zoom con el clic derecho, 2 jugadores, el teléfono y publicar el place: VERIFICACION §24) |
 | **L2** | Mapa Laboratorio central (`World/LabBuilder`) y el modo de duelo por equipos (con el selector de arma, que suelta el ratón de la primera persona) | `4da1592` | ✅ (faltan el ratón real, 2 jugadores, el teléfono, los resultados de Dunas y publicar el place: VERIFICACION §25) |
-| **L3** | Cola con modo y formato (sobre `ArenaQueueService`), embarcadero y cartel del Lobby | — | ⏳ |
+| **L3** | Cola con modo y formato (sobre `ArenaQueueService`), embarcadero y cartel del Lobby | `fdc3f7a` | ✅ (faltan 2 jugadores, el juego publicado y el teléfono real: VERIFICACION §26) |
 | **L4** | Todos contra todos y rondas; mapas Azotea de la torre y Alcantarillas; votación de mapa | — | ⏳ |
 | **L5** | Recompensas (Ámbar con tope de 300, XP del pase, skins por bajas, títulos, ranking, misión semanal) en `Economia` y el GDD | — | ⏳ |
 
