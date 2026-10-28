@@ -91,3 +91,19 @@ print(require(m).informe()); m:Destroy()
 | `economia-retencion` | Economía y pase, con `Economia` |
 
 `docs/llm-local/` tiene resúmenes de estas skills y de este archivo para el modelo local (gpt-oss-20b en LM Studio y CodeGPT). Si cambias una skill o este archivo, actualiza su resumen y ejecuta `python docs/llm-local/generar_presets.py`.
+
+## Agentes (`.claude/agents/`)
+
+La sesión principal (Opus) planea, pregunta, decide los números, revisa las capturas y el diff, y hace los commits. Lo que se repite en cada grupo lo delega, para que el modelo sea más barato y, sobre todo, para que el contexto principal no crezca con salidas de grep, archivos leídos y consola:
+
+| Agente | Modelo | Cuándo |
+|---|---|---|
+| `search` (en `~/.claude/agents`) | Haiku | Localizar algo que pide más de 2 o 3 búsquedas: archivos, usos de un nombre, valores de Config, pasajes del GDD o de PLAN.md |
+| `programador` | Sonnet | Escribir un grupo ya especificado (archivos, comportamiento, números) de más de unas 50 líneas. Lo deja pasando stylua, selene, `strings.py` y `rojo build`. Lo pequeño lo hace la sesión principal |
+| `probador-studio` | Sonnet | Pruebas funcionales en Studio (modo edición, Play, consola, remotos de depuración) y ejecutar `Economia` o `Equilibrio`. Uno a la vez: hay un solo Studio |
+| `documentador` | Haiku | `VERIFICACION.md`, la fila de `PLAN.md`, el handoff, los resúmenes de `docs/llm-local` y el borrador del commit |
+
+- La especificación para el `programador` dice los archivos, el comportamiento, los números y la skill que aplica. Al volver, la sesión principal revisa el diff contra las reglas del proyecto antes de probar.
+- Las capturas (`screen_capture`) y el juicio visual de modelos, interfaz y animaciones se quedan en la sesión principal. Pocas capturas y pequeñas.
+- Los subagentes no hablan con el usuario. Las preguntas y el "aprobado" siguen en la sesión principal.
+- `python tools/uso_tokens.py` mide los tokens por sesión, modelo y herramienta, para comparar antes y después.

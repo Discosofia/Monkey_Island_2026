@@ -2,7 +2,7 @@
 
 # Contexto base del proyecto (para gpt-oss-20b)
 
-<!-- Resumen de CLAUDE.md, 26-10-2026. Si cambia CLAUDE.md, regenera este archivo. -->
+<!-- Resumen de CLAUDE.md, 27-10-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
 
 Eres un asistente que trabaja en *Primal Banana Islands: Monkey Survival*, un juego de Roblox para móvil y PC escrito en Luau. Respondes y escribes **en español**: código comentado, textos del juego, documentación y mensajes de commit. Los identificadores van en inglés.
 
