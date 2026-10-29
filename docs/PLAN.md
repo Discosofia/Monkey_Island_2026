@@ -642,7 +642,7 @@ Decisiones del 28-10-2026:
 | **M4** | Clips propios para las mascotas antiguas (reposo, correr, andar) | 19ce22d | ✅ Probado en Studio y en Play por el usuario (VERIFICACION §61) |
 | **R1** | Armaduras de Pelaje (rango I), 4 roles | 9eaed8a | ✅ Probado en Studio (sin probar: VERIFICACION §62) |
 | **R2** | Armaduras de Hueso (rango II), 4 roles | f32b4db | ✅ Probado en Studio (sin probar: VERIFICACION §63) |
-| **R3** | Armaduras de Plata (rango III), 4 roles | — | ⏳ |
+| **R3** | Armaduras de Plata (rango III), 4 roles | fb1ffa1 | ✅ Probado en Studio (sin probar: VERIFICACION §64) |
 | **R4** | Armaduras Volcánicas (rango IV), 4 roles | — | ⏳ |
 
 **Handoff de A1 (29-10-2026)**
@@ -781,6 +781,11 @@ Decisiones del 28-10-2026:
 - **Estado:** R1 (9eaed8a) y R2 (f32b4db) cerradas y subidas. R3 en curso en la misma pestaña. Siguiente número libre de VERIFICACION: §64.
 - **Objetivo:** rehacer los 4 builders del rango III (`SilverArmor`): `silverArmor`, `silverHunter`, `crystalMantle`, `silverHealer`; tope `ArmorRank[3]` = 150. Mismo método que R1 y R2: `programador` escribe; la sesión principal mide con `Rendimiento` y captura sobre maniquíes (`HumanoidDescription` con color de piel y `ArmorModels.wear`); espalda vistosa y distinta de la del rango II, congruencia con I y II, y trajes míticos sin errores. Reutiliza `slabPauldron`, `discPauldron`, `leafStar`, `blockLeafFan`, `blockHood` y `monkeySkull`.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R3.»
+
+**Handoff de R4 (29-10-2026)**
+- **Estado:** R1 (9eaed8a), R2 (f32b4db) y R3 (fb1ffa1) cerradas y subidas. R4 en curso en la misma pestaña. Siguiente número libre de VERIFICACION: §65.
+- **Objetivo:** rehacer los 4 builders del rango IV (`VolcanicArmor`): `volcanicArmor`, `emberCloak`, `lavaRobe`, `sulfurMantle`; tope `ArmorRank[4]` = 210. Mismo método que R1–R3. Es el rango más rico (memoria `top-tier-gear-detail`): hombreras de losa con cristales de obsidiana en lava, gotas de lava, llama de píxeles y humo, y una espalda de exhibición por rol. Reutiliza los helpers de R1–R3 y revisa que ninguna punta atraviese otras piezas.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R4, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R4.»
 ---
 
 ## 4. Cronograma estimado
