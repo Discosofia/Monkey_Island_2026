@@ -2589,7 +2589,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(head, "Gape", Vector3.new(0, 18.05, -9.4), Vector3.new(4.3, 0.25, 8.6), Color3.fromRGB(60, 25, 15))
 		box(head, "BeakTip", Vector3.new(0, 18.8, -15.3), Vector3.new(3.6, 3.2, 1.8), red)
 		box(head, "BeakHook", Vector3.new(0, 16.9, -15.6), Vector3.new(3, 1.6, 1.6), red:Lerp(BLACK, 0.15))
-		v.swing(head, Vector3.new(0, 16, -0.5), Vector3.xAxis, 0.1, 3, 0, false)
+		v.swing(head, Vector3.new(0, 16, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
 
 		-- Alas abiertas en escalones, con una fila de cobertoras encima y las remeras azuladas detrás.
 		for _, side in { -1, 1 } do
@@ -2616,7 +2616,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		)
 		v.beam(tailParts, "Tail", Vector3.new(0, 7, 4), Vector3.new(0, 1.6, 8.6), Vector2.new(4.8, 1.2), color)
 		v.beam(tailParts, "TailTip", Vector3.new(0, 2.4, 7.9), Vector3.new(0, 0.6, 9.6), Vector2.new(4.4, 1.1), sheen)
-		v.swing(tailParts, Vector3.new(0, 7, 3.6), Vector3.xAxis, 0.15, 6, 1, false)
+		v.swing(tailParts, Vector3.new(0, 7, 3.6), Vector3.xAxis, 0.15, 6, 1, false, nil, "Tail")
 		rig.family = "Bird"
 		return "Fly"
 	end,
@@ -2669,7 +2669,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		local beak = Color3.fromRGB(30, 60, 60)
 		box(head, "BeakBase", Vector3.new(0, 11.4, -3.6), Vector3.new(1, 0.9, 1.2), beak)
 		box(head, "Beak", Vector3.new(0, 11.4, -7.1), Vector3.new(0.6, 0.6, 7.6), beak)
-		v.swing(head, Vector3.new(0, 9.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false)
+		v.swing(head, Vector3.new(0, 9.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
 
 		for _, side in { -1, 1 } do
 			voxelWing(v, side, Vector3.new(side * 2.7, 8.4, 0.6), {
@@ -2700,7 +2700,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				from = to
 			end
 		end
-		v.swing(tailParts, rump, Vector3.xAxis, 0.15, 6, 1, false)
+		v.swing(tailParts, rump, Vector3.xAxis, 0.15, 6, 1, false, nil, "Tail")
 		return "Hover"
 	end,
 
@@ -2819,8 +2819,28 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			-- Patalea al compás de los saltos (PetFollowers: |sin(reloj * 6)|), como la rana redonda:
 			-- en el aire estira las traseras y adelanta las delanteras; con bias = amplitud no pasan al
 			-- otro lado. Solo al andar.
-			v.swing(back, Vector3.new(side * 3.6, 3.4, 4.2), Vector3.xAxis, 0.22, 12, -math.pi / 2, true, 0.22)
-			v.swing(front, Vector3.new(side * 3.6, 3.8, -3.6), Vector3.xAxis, 0.25, 12, -math.pi / 2, true, 0.25)
+			v.swing(
+				back,
+				Vector3.new(side * 3.6, 3.4, 4.2),
+				Vector3.xAxis,
+				0.22,
+				12,
+				-math.pi / 2,
+				true,
+				0.22,
+				if side < 0 then "BL" else "BR"
+			)
+			v.swing(
+				front,
+				Vector3.new(side * 3.6, 3.8, -3.6),
+				Vector3.xAxis,
+				0.25,
+				12,
+				-math.pi / 2,
+				true,
+				0.25,
+				if side < 0 then "FL" else "FR"
+			)
 		end
 		return "Hop"
 	end,
@@ -3148,13 +3168,33 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			for _, spot in { { 7.4, 2.85, -7.2 }, { 9.2, 2.85, -5.6 }, { 11.4, 2.15, -6 }, { 13.4, 1.5, -4.6 } } do
 				box(front, "Scale", Vector3.new(side * spot[1], spot[2], spot[3]), Vector3.new(0.8, 0.2, 0.8), scale)
 			end
-			v.swing(front, Vector3.new(side * 6, 2.4, -6), Vector3.yAxis, 0.3 * side, 5, 0, true)
+			v.swing(
+				front,
+				Vector3.new(side * 6, 2.4, -6),
+				Vector3.yAxis,
+				0.3 * side,
+				5,
+				0,
+				true,
+				nil,
+				if side < 0 then "FL" else "FR"
+			)
 
 			local back: { BasePart } = {}
 			box(back, "Flipper", Vector3.new(side * 5.5, 1.2, 10.8), Vector3.new(3, 1, 3), skin)
 			box(back, "Flipper", Vector3.new(side * 6.8, 0.7, 12.6), Vector3.new(2.6, 0.8, 2.6), skin)
 			box(back, "Scale", Vector3.new(side * 5.5, 1.8, 10.6), Vector3.new(0.8, 0.2, 0.8), scale)
-			v.swing(back, Vector3.new(side * 4.5, 1.6, 9.5), Vector3.yAxis, -0.25 * side, 5, math.pi, true)
+			v.swing(
+				back,
+				Vector3.new(side * 4.5, 1.6, 9.5),
+				Vector3.yAxis,
+				-0.25 * side,
+				5,
+				math.pi,
+				true,
+				nil,
+				if side < 0 then "BL" else "BR"
+			)
 		end
 		-- Colita cónica de dos bloques.
 		box(nil, "Tail", Vector3.new(0, 1.8, 12), Vector3.new(1.4, 1, 2), skin)
@@ -3221,7 +3261,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(head, "BeakHook", Vector3.new(0, 16.9, -6.7) + up, Vector3.new(2.6, 2.4, 1.6), horn)
 		box(head, "BeakTip", Vector3.new(0, 15.4, -6.6) + up, Vector3.new(1.6, 1, 1.2), Color3.fromRGB(60, 58, 62))
 		box(head, "LowerBeak", Vector3.new(0, 16.3, -4.8) + up, Vector3.new(3.8, 2.4, 2.8), BLACK)
-		v.swing(head, Vector3.new(0, 18.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false)
+		v.swing(head, Vector3.new(0, 18.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
 
 		-- Alas largas abiertas: brazo rojo, banda amarilla con el borde verde y remeras azules que se
 		-- oscurecen hacia la punta.
@@ -3255,7 +3295,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				blue
 			)
 		end
-		v.swing(tailParts, Vector3.new(0, 7.6, 3.6), Vector3.xAxis, 0.15, 6, 1, false)
+		v.swing(tailParts, Vector3.new(0, 7.6, 3.6), Vector3.xAxis, 0.15, 6, 1, false, nil, "Tail")
 		rig.family = "Bird"
 		return "Fly"
 	end,
@@ -3550,7 +3590,17 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			for k = -1, 1 do
 				hook(arm, Vector3.new(side * 6.1 + k * 0.85, 1.2, -14.2), 2)
 			end
-			v.swing(arm, Vector3.new(side * 5.4, 14, -3), Vector3.xAxis, 0.5, 4, if side < 0 then 0 else math.pi, true)
+			v.swing(
+				arm,
+				Vector3.new(side * 5.4, 14, -3),
+				Vector3.xAxis,
+				0.5,
+				4,
+				if side < 0 then 0 else math.pi,
+				true,
+				nil,
+				if side < 0 then "FL" else "FR"
+			)
 
 			-- Pata de atrás más corta, con tres garras.
 			local leg: { BasePart } = {}
@@ -3560,7 +3610,17 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			for k = -1, 1 do
 				hook(leg, Vector3.new(side * 5 + k * 0.8, 1.1, 3.2), 1.4)
 			end
-			v.swing(leg, Vector3.new(side * 4, 10, 5.5), Vector3.xAxis, 0.4, 4, if side < 0 then math.pi else 0, true)
+			v.swing(
+				leg,
+				Vector3.new(side * 4, 10, 5.5),
+				Vector3.xAxis,
+				0.4,
+				4,
+				if side < 0 then math.pi else 0,
+				true,
+				nil,
+				if side < 0 then "BL" else "BR"
+			)
 		end
 		return "Walk"
 	end,
@@ -4849,6 +4909,17 @@ CLIPS.X7 = function()
 		Head = { -10, 0, 0 },
 		waves = { Body = { z = 3, speed = 40 } },
 	}
+	local beat: Key = {
+		amp = still,
+		Head = { -12, 0, 0 },
+		ArmL = { 50, 0, 25 },
+		ArmR = { 50, 0, -25 },
+		waves = {
+			ArmL = { x = 30, speed = 14 },
+			ArmR = { x = 30, speed = 14, phase = math.pi },
+			Body = { py = 0.03, speed = 14 },
+		},
+	}
 	return {
 		Attack = {
 			length = 0.85,
@@ -4880,16 +4951,65 @@ CLIPS.X7 = function()
 				{ t = 0.85 },
 			},
 		},
+		-- Se golpea el pecho con los dos puños, alternándolos, con la cabeza echada atrás.
+		IdleChest = {
+			length = 5,
+			keys = {
+				{ t = 0 },
+				with(beat, { t = 0.6 }),
+				with(beat, { t = 4 }),
+				{ t = 5 },
+			},
+		},
+		-- Mira a un lado y a otro con la cabeza.
+		IdleLook = {
+			length = 5,
+			keys = {
+				{ t = 0 },
+				{ t = 0.8, Head = { 5, 40, 0 } },
+				{ t = 2, Head = { 5, 40, 0 } },
+				{ t = 2.8, Head = { 5, -40, 0 } },
+				{ t = 4, Head = { 5, -40, 0 } },
+				{ t = 5 },
+			},
+		},
 	}
 end
 
 -- Aves: planean con las alas quietas, un poco levantadas.
 CLIPS.Bird = function()
+	local look: Key = { Head = { 8, 45, 0 } }
+	local other: Key = { Head = { 8, -45, 0 } }
+	local flutter: Key = {
+		amp = { WingL = 0, WingR = 0 },
+		WingL = { 0, 0, -30 },
+		WingR = { 0, 0, 30 },
+		waves = { WingL = { z = 18, speed = 28 }, WingR = { z = 18, speed = 28, phase = math.pi } },
+	}
 	return {
 		Glide = {
 			length = 1,
 			loop = true,
 			keys = { { t = 0, amp = { WingL = 0, WingR = 0 }, WingL = { 0, 0, -6 }, WingR = { 0, 0, 6 } } },
+		},
+		-- Mira a un lado y a otro, ladea la cabeza y mueve la cola.
+		IdleLook = {
+			length = 6,
+			keys = {
+				{ t = 0 },
+				with(look, { t = 0.7 }),
+				with(look, { t = 1.8, waves = { Tail = { x = 12, speed = 10 } } }),
+				with(other, { t = 2.6 }),
+				with(other, { t = 3.8, waves = { Tail = { x = 12, speed = 10 } } }),
+				{ t = 4.6, Head = { 20, 0, 18 } },
+				{ t = 5.4, Head = { 20, 0, 18 } },
+				{ t = 6 },
+			},
+		},
+		-- Sacude las alas un momento, como secándolas.
+		IdleFlutter = {
+			length = 3,
+			keys = { { t = 0 }, with(flutter, { t = 0.3 }), with(flutter, { t = 2.2 }), { t = 3 } },
 		},
 	}
 end
@@ -4984,6 +5104,154 @@ CLIPS.Quetzal = function()
 					waves = { Tail = { x = 10, speed = 2.4 }, Head = { z = 6, speed = 1.6 } },
 				},
 			},
+		},
+	}
+end
+
+-- Colibrí: gira la cabeza a toda prisa y agita la cola (las alas ya baten a su ritmo).
+CLIPS.Colibri = function()
+	return {
+		IdleLook = {
+			length = 3.5,
+			keys = {
+				{ t = 0 },
+				{ t = 0.25, Head = { 0, 55, 0 } },
+				{ t = 0.9, Head = { 0, 55, 0 }, waves = { Tail = { x = 20, speed = 22 } } },
+				{ t = 1.15, Head = { 0, -55, 0 } },
+				{ t = 1.9, Head = { 0, -55, 0 }, waves = { Tail = { x = 20, speed = 22 } } },
+				{ t = 2.2, Head = { 12, 0, 0 } },
+				{ t = 3.5 },
+			},
+		},
+		IdleTilt = {
+			length = 3,
+			keys = {
+				{ t = 0 },
+				{ t = 0.4, Head = { 10, 0, 28 } },
+				{ t = 1.3, Head = { 10, 0, 28 } },
+				{ t = 1.7, Head = { 10, 0, -28 } },
+				{ t = 2.5, Head = { 10, 0, -28 } },
+				{ t = 3 },
+			},
+		},
+	}
+end
+
+-- Rana: infla la garganta y croa, mira a los lados girando el cuerpo y estira una pata de atrás.
+CLIPS.Rana = function()
+	local croak: Key = {
+		Body = { -8, 0, 0, 0, 0.1, 0 },
+		FL = { 10, 0, 0 },
+		FR = { 10, 0, 0 },
+		waves = { Body = { py = 0.04, speed = 16 } },
+	}
+	return {
+		IdleCroak = {
+			length = 4.5,
+			keys = { { t = 0 }, with(croak, { t = 0.6 }), with(croak, { t = 3.6 }), { t = 4.5 } },
+		},
+		IdleLook = {
+			length = 5,
+			keys = {
+				{ t = 0 },
+				{ t = 0.7, Body = { 0, 35, 0 } },
+				{ t = 1.9, Body = { 0, 35, 0 } },
+				{ t = 2.8, Body = { 0, -35, 0 } },
+				{ t = 4, Body = { 0, -35, 0 } },
+				{ t = 5 },
+			},
+		},
+		IdleStretch = {
+			length = 4,
+			keys = {
+				{ t = 0 },
+				{ t = 0.7, BL = { -60, 0, 0 }, Body = { 6, 0, 0 } },
+				{ t = 2.4, BL = { -60, 0, 0 }, Body = { 6, 0, 0 } },
+				{ t = 3.2, FL = { 20, 0, 0 }, FR = { 20, 0, 0 } },
+				{ t = 4 },
+			},
+		},
+	}
+end
+
+-- Tortuga: saca y gira la cabeza, y estira las aletas hacia fuera.
+CLIPS.Tortuga = function()
+	return {
+		IdleLook = {
+			length = 6,
+			keys = {
+				{ t = 0 },
+				{ t = 0.9, Head = { -6, 38, 0 } },
+				{ t = 2.4, Head = { -6, 38, 0 } },
+				{ t = 3.5, Head = { -6, -38, 0 } },
+				{ t = 5, Head = { -6, -38, 0 } },
+				{ t = 6 },
+			},
+		},
+		IdleStretch = {
+			length = 5,
+			keys = {
+				{ t = 0 },
+				{
+					t = 0.9,
+					Head = { -18, 0, 0 },
+					FL = { 0, -30, 0 },
+					FR = { 0, 30, 0 },
+					BL = { 0, -20, 0 },
+					BR = { 0, 20, 0 },
+				},
+				{
+					t = 3.4,
+					Head = { -18, 0, 0 },
+					FL = { 0, -30, 0 },
+					FR = { 0, 30, 0 },
+					BL = { 0, -20, 0 },
+					BR = { 0, 20, 0 },
+					waves = { FL = { y = 8, speed = 6 }, FR = { y = 8, speed = 6, phase = math.pi } },
+				},
+				{ t = 5 },
+			},
+		},
+	}
+end
+
+-- Perezoso: bosteza muy despacio, se rasca con un brazo y mira a los lados; al correr, se bambolea.
+CLIPS.Perezoso = function()
+	return {
+		IdleYawn = {
+			length = 6,
+			keys = {
+				{ t = 0 },
+				{ t = 1.6, Head = { -22, 0, 0 } },
+				{ t = 3.6, Head = { -22, 0, 0 }, waves = { Head = { x = 3, speed = 3 } } },
+				{ t = 6 },
+			},
+		},
+		IdleScratch = {
+			length = 6,
+			keys = {
+				{ t = 0 },
+				{ t = 1.2, FL = { -110, 0, 15 }, Head = { 8, 0, 14 } },
+				{ t = 1.4, FL = { -110, 0, 15 }, Head = { 8, 0, 14 }, waves = { FL = { x = 14, speed = 9 } } },
+				{ t = 4.6, FL = { -110, 0, 15 }, Head = { 8, 0, 14 }, waves = { FL = { x = 14, speed = 9 } } },
+				{ t = 6 },
+			},
+		},
+		IdleLook = {
+			length = 7,
+			keys = {
+				{ t = 0 },
+				{ t = 1.6, Head = { 0, 32, 0 } },
+				{ t = 3, Head = { 0, 32, 0 } },
+				{ t = 4.6, Head = { 0, -32, 0 } },
+				{ t = 5.6, Head = { 0, -32, 0 } },
+				{ t = 7 },
+			},
+		},
+		Run = {
+			length = 1,
+			loop = true,
+			keys = { { t = 0, waves = { Body = { z = 4, speed = 7 }, Head = { z = 8, speed = 7, phase = 1 } } } },
 		},
 	}
 end

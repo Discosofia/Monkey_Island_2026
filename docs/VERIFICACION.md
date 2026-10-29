@@ -2818,3 +2818,24 @@ Ajolote: mascota Mítica nueva (🦎), con `origin = "HuevoMitico"` (no sale de 
    ✅ En los momentos de planeo las alas quedan quietas y las dos plumas de la cola ondulan y la cabeza se ladea un poco. La vuelta sobre el dueño quieto sigue funcionando.
 6. [ ] Abre muchos huevos normales y mira el panel de admin.
    ✅ El Ajolote no sale nunca de un huevo normal y aparece como Mítico en el panel. Su nombre y su descripción salen en inglés al cambiar el idioma.
+
+## 61. Fase 18 M4: clips de las mascotas antiguas (29-10-2026)
+
+Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `Run`. Nuevos: aves (`IdleLook`, `IdleFlutter`: Tucán, Guacamaya y Quetzal), Colibrí (`IdleLook`, `IdleTilt`), Rana (`IdleCroak`, `IdleLook`, `IdleStretch`), Tortuga (`IdleLook`, `IdleStretch`), Perezoso (`IdleYawn`, `IdleScratch`, `IdleLook`, `Run`) y Mono X-7 (`IdleChest`, `IdleLook`). Los felinos, los perros, el Jaguar de cristal, la Capibara y el Ajolote ya los tenían.
+
+**En Play (Isla o Lobby), con cada mascota equipada. Se prueba quedándote quieto unos 10–20 s (las rutinas empiezan a los 2,5 s y cada 2,5–5 s):**
+
+1. [ ] Tucán, Guacamaya y Quetzal: quédate quieto.
+   ✅ Mientras giran sobre ti, a veces miran a un lado y a otro con la cabeza y la cola, y a veces sacuden las alas un momento. No se cortan ni saltan al empezar o acabar.
+2. [ ] Colibrí: quédate quieto.
+   ✅ Gira la cabeza muy rápido a los lados con la cola agitándose, o la ladea a uno y otro lado.
+3. [ ] Rana dardo: quédate quieto.
+   ✅ Croa (cuerpo inclinado con la garganta que late), mira a los lados girando el cuerpo o estira una pata de atrás.
+4. [ ] Tortuga: quédate quieto.
+   ✅ Gira la cabeza a un lado y a otro, o estira las aletas hacia fuera con la cabeza levantada.
+5. [ ] Perezoso: quédate quieto y luego corre.
+   ✅ Bosteza con la cabeza hacia arriba, se rasca con un brazo levantado o mira a los lados; al correr se bambolea.
+6. [ ] Mono X-7: quédate quieto.
+   ✅ Se golpea el pecho con los dos puños alternándolos con la cabeza echada atrás, o mira a los lados.
+7. [ ] Con cualquiera de ellas en reposo, muévete.
+   ✅ La rutina se deshace sin saltos y la mascota vuelve a seguirte con su modo de siempre.
