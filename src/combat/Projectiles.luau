@@ -7,7 +7,8 @@
 -- aparta, falla. Quien llama decide qué pasa al tocar a cada uno ("onHit": si no le vale, como un aliado,
 -- el proyectil lo atraviesa) y al acabar ("onEnd").
 -- Lo que se ve lo dibuja cada cliente (AbilityFxController, efectos "Projectile" y "ProjectileEnd") con
--- la hora de salida del servidor: todos lo ven en el mismo sitio, aunque cada uno con su ping.
+-- la hora de salida del servidor: todos lo ven en el mismo sitio, aunque cada uno con su ping. El
+-- disparo directo de un arma a distancia (Fase 19, W4, "ownerSeq") lo dibuja ya el cliente del tirador.
 -- Telemetría: cada uno que puede dar a alguien cuenta "ShotsHit" o "ShotsMissed" (Combat/CombatRules).
 -- Coberturas (C11, Combat/Destructibles): con "breaks", el que se para en una la alcanza.
 -- En arco (Fase 13, el cañón de suero del Laboratorio): con "gravity" cae mientras vuela; cada paso es un
@@ -17,8 +18,10 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local AbilityFx = require(script.Parent.AbilityFx)
 local CombatRules = require(script.Parent.CombatRules)
 local Destructibles = require(script.Parent.Destructibles)
@@ -57,6 +60,9 @@ export type Shot = {
 	rewind: number?,
 	-- Segundos que el proyectil avanza de golpe al salir, para compensar el retraso del tirador.
 	lead: number?,
+	-- Número del disparo del tirador (UseWeapon, Fase 19 W4): su cliente ya dibuja la bala, así que
+	-- "Projectile" va solo a los demás y a él le llega ProjectileAck con el id y la dirección real.
+	ownerSeq: number?,
 }
 
 type Flight = {
@@ -209,7 +215,18 @@ function Projectiles.fire(shot: Shot): number
 	}
 	local lead = shot.lead or 0
 	-- Con adelanto, lo dibujado sale ya "lead" segundos por delante, como el servidor.
-	AbilityFx.all(
+	-- Con "ownerSeq", el tirador ya la dibuja: solo se le manda el ack con el id y la dirección real.
+	local ownerSeq = shot.ownerSeq
+	local owner = shot.owner
+	if ownerSeq then
+		Remotes.ProjectileAck:FireClient(owner, ownerSeq, flight.id, shot.direction)
+	end
+	local send = if ownerSeq
+		then function(...: any)
+			AbilityFx.others(owner, ...)
+		end
+		else AbilityFx.all
+	send(
 		"Projectile",
 		flight.id,
 		shot.look,

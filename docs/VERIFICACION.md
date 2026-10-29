@@ -3134,3 +3134,43 @@ Nota: los sonidos «tac», «dink» y «pop» son provisionales (ids de serie). 
    ✅ Se ve bien aunque el arma esté girada 180° sobre el cañón.
 4. [ ] Abre el Armario o el preview de ajustes con el arma puesta.
    ✅ El arma se ve igual que antes (el giro solo es del agarre de la mano).
+
+## 78. Fase 19 W4: bala inmediata del tirador (29-10-2026)
+
+**Un jugador en Play con 150 ms de lag (*Test → Incoming/Outgoing replication lag*, en el Laboratorio, la Isla, Dunas y el Lobby):**
+
+1. [ ] En el Laboratorio, dispara el lanzadardos y el rifle a una pared con el lag puesto.
+   ✅ Cada bala sale al apretar el disparo. No se duplica ni da un salto visible al llegar la confirmación del servidor.
+2. [ ] En la Isla, dispara con un arma a distancia (honda o arco) a un muñeco de práctica o a un mono con el lag puesto.
+   ✅ La bala sale al instante, una por disparo. Si la ayuda de puntería corrige la trayectoria, lo hace en unos 0,08 s y sin salto visible.
+3. [ ] En Dunas, dispara con un arma a distancia a un muñeco de práctica con el lag puesto, apuntando cerca de un enemigo o de un blanco.
+   ✅ Igual que en la Isla: una bala, sin duplicado y con corrección suave de 0,08 s cuando actúa la ayuda de puntería.
+4. [ ] En el Lobby, dispara con un arma a distancia a un muñeco de práctica con el lag puesto.
+   ✅ Una bala por disparo, sin duplicado, y sale al instante.
+
+**Un jugador en Play (Laboratorio, sin lag):**
+
+1. [ ] Dispara varias veces con el rifle con la mira acercada, y después con el lanzadardos corriendo y en el aire, a un blanco fijo.
+   ✅ La bala que ves y el impacto real casi siempre coinciden. El ajuste del servidor (ProjectileAck) casi nunca cambia la trayectoria que ya se ve.
+2. [ ] Dispara justo al reaparecer tras morir, y después con el arma sin cargador o con la cadencia rechazada.
+   ✅ No hay duplicados graves. Puede salir una bala local sin daño que vuela hasta su alcance; se tolera.
+3. [ ] Dispara el cañón de suero (en arco), pega con el cuerpo a cuerpo y usa una habilidad.
+   ✅ Siguen como antes: el cañón hace su arco de caída, el cuerpo a cuerpo y la habilidad no añaden una bala local.
+4. [ ] Dispara con el lanzadardos en primera persona y mira la trazadora.
+   ✅ La trazadora es más gruesa que antes (TracerWidthFP 0,5) y sale de la boca del arma.
+
+**Isla y Dunas, un jugador en Play (sin lag):**
+
+1. [ ] En la Isla, dispara la honda, el arco y el bastón a un muñeco de práctica o a un mono, y mira de dónde sale la bala. Después, en Dunas, haz lo mismo con la cerbatana y sus remates.
+   ✅ La bala sale de la boca o del mango del arma, en el mismo sitio donde se ve el arma, sin saltar a otro punto.
+2. [ ] Pega el muzzle de un arma a distancia a una pared y dispara.
+   ✅ La bala sale de la boca del arma y no se para en la pared, aunque esté pegada.
+
+**Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio o en Dunas):**
+
+1. [ ] Con el otro jugador mirando, dispara un arma a distancia a una pared o al suelo.
+   ✅ El otro jugador ve volar el proyectil y el fogonazo (WeaponShotFx) de tu disparo, una sola vez por disparo.
+2. [ ] Dispara a un cuerpo del otro jugador con el lag puesto en tu cliente.
+   ✅ Tú ves una sola bala y el otro jugador ve una sola bala y un solo fogonazo; no aparecen dos proyectiles ni dos fogonazos.
+
+Nota: lo ya probado en Studio (un jugador en el Laboratorio: la bala local sale en el mismo instante del disparo y es una sola por disparo; el servidor manda ProjectileAck con el número de disparo; sin errores) no se repite aquí.

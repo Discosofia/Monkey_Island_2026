@@ -179,6 +179,9 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): efecto visual de una habilidad de rol (tipo y sus datos; ver
 	-- AbilityFxController). El daño lo pone el servidor; esto es solo lo que se ve.
 	AbilityFx = remoteEvent("AbilityFx"),
+	-- Servidor -> cliente (Fase 19, W4): al tirador, el id y la dirección real del proyectil de su disparo
+	-- número "seq" (UseWeapon, 6.º argumento), que él ya dibuja al momento (AbilityFxController.localShot).
+	ProjectileAck = remoteEvent("ProjectileAck"),
 	-- Servidor -> clientes (Isla): efecto de un jefe (kind, style = id del jefe, posición del suelo y
 	-- { warn, flight, radius, direction, origin, serverTime, seed }; ver BossFxController y CombatClient/BossFx).
 	BossFx = remoteEvent("BossFx"),

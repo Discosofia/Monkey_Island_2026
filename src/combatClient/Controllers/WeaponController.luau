@@ -24,6 +24,10 @@
 -- balas y no se recarga (vacía, pide recargar y suena un clic una vez por pulsación), cada tiro gasta una
 -- y se manda al servidor si la mira está acercada (5.º argumento de UseWeapon), que pone la dispersión.
 -- Las automáticas ("lab.automatic") repiten el disparo a su cadencia mientras se mantiene el gatillo.
+-- Bala inmediata (Fase 19, W4): el disparo directo de un arma a distancia (no el cañón de suero en arco) dibuja
+-- su bala al momento (AbilityFxController.localShot) desde la boca del arma, con la dispersión del tiro
+-- calculada con el número de disparo (6.º argumento de UseWeapon) y la semilla ShotSeed (Shared/LabSpread), y el
+-- servidor le manda solo el ack con su dirección real.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -35,6 +39,7 @@ local Workspace = game:GetService("Workspace")
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.Strings)
+local LabSpread = require(ReplicatedStorage.Shared.LabSpread)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MeleeBox = require(ReplicatedStorage.Shared.MeleeBox)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
@@ -49,6 +54,7 @@ local Aim = require(script.Parent.Parent.Aim)
 local CameraShake = require(script.Parent.Parent.CameraShake)
 local Feint = require(script.Parent.Parent.Feint)
 local LabShooting = require(script.Parent.Parent.LabShooting)
+local MuzzleSource = require(script.Parent.Parent.MuzzleSource)
 local Stamina = require(script.Parent.Parent.Stamina)
 local WeaponAnimationIds = require(script.Parent.Parent.WeaponAnimationIds)
 
@@ -246,11 +252,13 @@ local function releaseArm()
 end
 
 -- Dispara si el arma está lista (true): solo entonces se avisa al servidor, que lleva la misma cuenta.
-local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponDefinition): boolean
+-- El segundo valor dice si es el disparo de remate.
+local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponDefinition): (boolean, boolean)
 	local shot = RangedChain.advance(shots, weaponId, weapon, os.clock())
 	if not shot then
-		return false
+		return false, false
 	end
+	local finisher = RangedChain.isFinisher(weapon, shot)
 	local projectile = weapon.projectile or "Stone"
 	local pose = if weapon.lab then weapon.lab.pose else projectile
 	local fallback = WeaponAim.Fallback[pose]
@@ -258,11 +266,11 @@ local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponD
 	if track then
 		track:Play(0.05)
 	end
-	AbilityFxController.play("WeaponShotFx", character, projectile, RangedChain.isFinisher(weapon, shot))
+	AbilityFxController.play("WeaponShotFx", character, projectile, finisher)
 	for _, listener in shotListeners do
 		task.spawn(listener, weapon)
 	end
-	return true
+	return true, finisher
 end
 
 -- Llama a "callback" cada vez que sale un disparo de un arma a distancia de este jugador.
@@ -438,6 +446,75 @@ local autoFireToken = 0
 -- Ya ha sonado el clic de "sin balas" en esta pulsación.
 local emptyClicked = false
 
+-- Número del último disparo propio de esta vida, y la semilla y el personaje con los que se cuenta (vuelve a
+-- 0 al aparecer de nuevo o al cambiar el atributo ShotSeed del servidor).
+local shotSeq = 0
+local seqSeed: any = nil
+local seqCharacter: Model? = nil
+
+-- De dónde se ve salir la bala propia: la boca del arma de la vista (Laboratorio, MuzzleSource) y, si no, el
+-- Attachment "Muzzle" o el Handle de la herramienta. El segundo valor dice si es la vista en primera persona.
+local function muzzlePosition(tool: Tool): (Vector3?, boolean)
+	local viewMuzzle = MuzzleSource.get()
+	if viewMuzzle then
+		return viewMuzzle, true
+	end
+	local muzzle = tool:FindFirstChild("Muzzle", true)
+	if muzzle and muzzle:IsA("Attachment") then
+		return muzzle.WorldPosition, false
+	end
+	local handle = tool:FindFirstChild("Handle")
+	if handle and handle:IsA("BasePart") then
+		return handle.Position, false
+	end
+	return nil, false
+end
+
+-- Dibuja ya la bala del disparo directo de "weapon" y devuelve su número de disparo para mandarlo al
+-- servidor (nil si no hay semilla o boca: entonces el servidor la manda a todos, como antes). Hay que llamarla
+-- antes de LabShooting.consume(), que suma la dispersión de este tiro.
+local function launchLocalShot(
+	character: Model,
+	tool: Tool,
+	weapon: Weapons.WeaponDefinition,
+	finisher: boolean,
+	aimOrigin: Vector3,
+	aimDirection: Vector3
+): number?
+	local seed = Players.LocalPlayer:GetAttribute("ShotSeed")
+	local muzzle, firstPerson = muzzlePosition(tool)
+	if typeof(seed) ~= "number" or not muzzle then
+		return nil
+	end
+	if seqCharacter ~= character or seqSeed ~= seed then
+		seqCharacter = character
+		seqSeed = seed
+		shotSeq = 0
+	end
+	shotSeq += 1
+	local seq = shotSeq
+	local degrees = LabShooting.spreadDegrees(normalFieldOfView ~= nil)
+	local spreadDirection = LabSpread.apply(aimDirection, seed, seq, degrees)
+	local settings = if finisher then RangedChain.settings(weapon) else nil
+	local style = weapon.projectile or "Stone"
+	-- A qué distancia converge lo que se ve con la línea de tiro: la del punto al que se apunta.
+	local distance = math.clamp((Aim.point(character) - aimOrigin).Magnitude, 10, weapon.range)
+	AbilityFxController.localShot({
+		seq = seq,
+		lookId = if finisher then `{style}Finisher` else style,
+		muzzle = muzzle,
+		aimOrigin = aimOrigin,
+		aimDirection = spreadDirection,
+		distance = distance,
+		speed = weapon.projectileSpeed or 120,
+		range = weapon.range,
+		pierce = settings ~= nil and settings.pierceTargets ~= nil,
+		extra = if settings and settings.radius then { settings.radius } else nil,
+		firstPerson = firstPerson,
+	})
+	return seq
+end
+
 -- Un uso del arma (un clic, un toque, un disparo del bucle automático). true si ha salido.
 local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Weapons.WeaponDefinition?): boolean
 	local player = Players.LocalPlayer
@@ -445,12 +522,17 @@ local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Wea
 	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") or Feint.casting() then
 		return false
 	end
+	local aimOrigin: Vector3? = nil
+	local aimDirection: Vector3? = nil
+	local claimedSeq: number? = nil
+	local lobbedShot = false
 	if weapon and MeleeChain.uses(weapon) then
 		swingChain(character, tool, weaponId :: string, weapon)
 		return true
 	elseif weapon and weapon.kind == "Melee" then
 		playSwing(character, weapon)
 	elseif weapon and weapon.kind == "Ranged" then
+		local lobbed = weapon.lab ~= nil and weapon.lab.effect == "AcidBurst"
 		local magazine = weapon.lab ~= nil and weapon.lab.magazine ~= nil
 		if magazine and not LabShooting.canShoot() then
 			-- Sin balas: pide recargar y suena el clic una vez por pulsación (si ya recarga, nada).
@@ -466,23 +548,31 @@ local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Wea
 			end
 			return false
 		end
-		if not shoot(character, weaponId :: string, weapon) then
+		local ready, finisher = shoot(character, weaponId :: string, weapon)
+		if not ready then
 			return false
+		end
+		aimOrigin = Aim.origin(character)
+		aimDirection = Aim.direction(character)
+		-- El cañón de suero (en arco) lo dibuja el servidor; el resto, la bala propia al momento.
+		if not lobbed then
+			claimedSeq = launchLocalShot(character, tool, weapon, finisher, aimOrigin, aimDirection)
 		end
 		if magazine then
 			LabShooting.consume()
 		end
+		lobbedShot = lobbed
 	end
-	-- El cañón de suero (en arco) cae en el punto al que se apunta.
-	local lobbed = weapon and weapon.lab and weapon.lab.effect == "AcidBurst"
-	-- Dirección, punto (solo el cañón), de dónde sale y la hora: el servidor compensa el lag y comprueba el origen.
-	-- Y si la mira está acercada (el rifle): la dispersión del tiro la pone el servidor.
+	-- Dirección, punto (solo el cañón de suero, que cae en el punto al que se apunta), de dónde sale y la hora:
+	-- el servidor compensa el lag y comprueba el origen. Y si la mira está acercada (el rifle): la dispersión
+	-- del tiro la pone el servidor, con el número de disparo y la semilla si se ha dibujado la bala propia.
 	Remotes.UseWeapon:FireServer(
-		Aim.direction(character),
-		if lobbed then Aim.point(character) else nil,
-		Aim.origin(character),
+		aimDirection or Aim.direction(character),
+		if lobbedShot then Aim.point(character) else nil,
+		aimOrigin or Aim.origin(character),
 		Workspace:GetServerTimeNow(),
-		normalFieldOfView ~= nil
+		normalFieldOfView ~= nil,
+		claimedSeq
 	)
 	return true
 end

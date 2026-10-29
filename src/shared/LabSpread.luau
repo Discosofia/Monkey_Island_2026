@@ -10,6 +10,8 @@
 --     Solo en las armas que acumulan (perShot > 0): en las demás "still" vale siempre.
 --   - Con "zoomExact" y el zoom puesto, en el suelo la base es 0 (el rifle).
 --   - Sin "spread" el arma es exacta (0).
+--   - Fase 19, W4: el desvío de cada tiro es determinista (offset/apply con la semilla ShotSeed y el número de
+--     disparo), así el tirador dibuja su bala al momento con el mismo desvío que aplica el servidor.
 
 local LabWeapons = require(script.Parent.Data.LabWeapons)
 
@@ -61,6 +63,24 @@ function LabSpread.angle(
 		base = spread.still
 	end
 	return base + extra
+end
+
+-- Desvío determinista del disparo número "seq" de una vida con la semilla "seed" (atributo ShotSeed del
+-- Player): un punto de un disco uniforme del cono de "degrees" grados (radio ∝ raíz de un número al azar,
+-- acimut al azar), como vector local con -Z hacia delante. El servidor y el cliente sacan el mismo.
+function LabSpread.offset(seed: number, seq: number, degrees: number): Vector3
+	local random = Random.new(seed * 1000003 + seq)
+	local radius = math.rad(degrees) * math.sqrt(random:NextNumber())
+	local azimuth = random:NextNumber(0, 2 * math.pi)
+	return Vector3.new(math.sin(radius) * math.cos(azimuth), math.sin(radius) * math.sin(azimuth), -math.cos(radius))
+end
+
+-- "direction" (unitaria) desviada con ese desvío, en el mundo.
+function LabSpread.apply(direction: Vector3, seed: number, seq: number, degrees: number): Vector3
+	if degrees <= 0 then
+		return direction
+	end
+	return CFrame.lookAt(Vector3.zero, direction):VectorToWorldSpace(LabSpread.offset(seed, seq, degrees))
 end
 
 -- Anota un disparo: suma "perShot" al acumulado (ya recuperado hasta "now"), con tope.

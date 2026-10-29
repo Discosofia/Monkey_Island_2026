@@ -206,6 +206,17 @@ local Config = {
 			-- trayectoria real (AbilityFxController.projectile). No cambia dónde acierta.
 			MuzzleBlendSeconds = 0.12,
 		},
+		-- Bala inmediata del tirador (Fase 19, W4; AbilityFxController.localShot): la dibuja su cliente al
+		-- disparar y el servidor le manda solo el ack con su dirección real.
+		ShotTrace = {
+			-- Grados de diferencia entre la línea local y la del servidor (ayuda de puntería) a partir de los
+			-- cuales la bala local se curva hacia la del servidor.
+			CorrectDegrees = 1.5,
+			-- Segundos que tarda esa curva (sin salto brusco).
+			CorrectSeconds = 0.08,
+			-- Ancho (studs) mínimo de la estela de la bala propia en la vista en primera persona del Laboratorio.
+			TracerWidthFP = 0.5,
+		},
 	},
 
 	-- Golpes críticos (Shared/Crit): hacen más daño o curan más y su número sale más grande.

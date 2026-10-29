@@ -33,7 +33,9 @@
 -- Amago (C8, "FeintFx"): bocanada corta de humo gris delante del pecho.
 -- Proyectiles (C9, Combat/Projectiles; efectos "Projectile" y "ProjectileEnd"): los disparos de las armas
 -- y las flechas, bolas y dardos de las habilidades vuelan aquí a la hora del servidor (LOOKS: cómo se ve
--- cada uno y qué deja al pararse, como la explosión de la Bola de fuego).
+-- cada uno y qué deja al pararse, como la explosión de la Bola de fuego). Fase 19, W4: la bala del disparo
+-- propio de un arma a distancia no espera al servidor: WeaponController la lanza al disparar
+-- (localShot) y el servidor solo le manda el ack (ProjectileAck) para juntarla con la suya.
 -- Disparo de remate (C9b, Shared/RangedChain): destello del color del remate en el arma al disparar
 -- ("WeaponShotFx") y su proyectil ("<estilo>Finisher" en LOOKS): piedra grande con estela de polvo
 -- (honda), flecha con punta y estela celestes (arco), bola de energía azul que estalla (bastón) y dardo
@@ -3041,11 +3043,41 @@ local LOOKS: { [string]: (extra: { any }) -> Look } = {
 
 -- Proyectiles en vuelo: lo que hay que hacer cuando el servidor dice dónde se ha parado cada uno.
 local landings: { [number]: (position: Vector3) -> () } = {}
+-- Un "ProjectileEnd" que llega antes que el ack de la bala propia (ProjectileAck): se guarda un momento por
+-- id, y solo mientras haya balas propias esperando su ack.
+local earlyEnds: { [number]: Vector3 } = {}
+local EARLY_END_SECONDS = 1
+-- Lo que espera la bala propia a su ack; si no llega, sigue su curso hasta su alcance.
+local ACK_WAIT_SECONDS = 1
+
+-- Datos de la bala propia (Fase 19, W4) para juntarla con la del servidor.
+type LocalMode = {
+	aimOrigin: Vector3, -- de dónde sale la línea de tiro (la cabeza o la cámara)
+	aimDirection: Vector3, -- la línea de tiro con la dispersión
+	distance: number, -- a qué distancia de aimOrigin converge lo que se ve
+	firstPerson: boolean, -- sale de la vista en primera persona (trazadora más gruesa)
+}
+
+type Flying = {
+	-- El ack del servidor: el id de su proyectil y su dirección real.
+	attach: (id: number, serverDirection: Vector3) -> (),
+}
+
+-- Las balas propias que esperan su ack, por número de disparo.
+local localShots: { [number]: Flying } = {}
+local unacked = 0
 
 -- Cuánto avanza "displacement" desde "from" antes de chocar aquí con el mundo (lo que choca y el
 -- terreno) o, si no atraviesa ("pierce"), con un mono. Los jugadores y el decorado que no choca no lo
--- paran: si le da a otro jugador, lo dice el servidor.
-local function localStop(from: Vector3, displacement: Vector3, params: RaycastParams, pierce: boolean): number?
+-- paran: si le da a otro jugador, lo dice el servidor. Con "stopOnPlayers" (la bala propia, solo para
+-- dibujarla) la para también un jugador que no sea de su equipo.
+local function localStop(
+	from: Vector3,
+	displacement: Vector3,
+	params: RaycastParams,
+	pierce: boolean,
+	stopOnPlayers: boolean
+): number?
 	local length = displacement.Magnitude
 	if length < 1e-3 then
 		return nil
@@ -3062,8 +3094,15 @@ local function localStop(from: Vector3, displacement: Vector3, params: RaycastPa
 		local model = part:FindFirstAncestorOfClass("Model")
 		local humanoid = if model then model:FindFirstChildOfClass("Humanoid") else nil
 		if humanoid then
-			if not pierce and model and CollectionService:HasTag(model, Config.Combat.EnemyTag) then
-				return travelled
+			if not pierce and model then
+				local stops = CollectionService:HasTag(model, Config.Combat.EnemyTag)
+				if not stops and stopOnPlayers then
+					local other = Players:GetPlayerFromCharacter(model)
+					stops = other ~= nil and not (other.Team ~= nil and other.Team == Players.LocalPlayer.Team)
+				end
+				if stops then
+					return travelled
+				end
 			end
 		elseif part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide) then
 			return travelled
@@ -3076,14 +3115,30 @@ local function localStop(from: Vector3, displacement: Vector3, params: RaycastPa
 	return nil
 end
 
--- Un proyectil del servidor (Combat/Projectiles): va recto desde "origin" a "speed" y se dibuja donde
--- está a la hora del servidor, así que aunque llegue tarde por el ping se ve donde lo ven todos. Se para
+-- Estelas de "body" al menos Config.Combat.ShotTrace.TracerWidthFP de anchas (la bala propia en primera persona).
+local function widenTracers(body: Instance)
+	local minWidth = Config.Combat.ShotTrace.TracerWidthFP
+	for _, streak in body:GetDescendants() do
+		if streak:IsA("Trail") and streak.Attachment0 and streak.Attachment1 then
+			local width = (streak.Attachment1.Position - streak.Attachment0.Position).Magnitude
+			if width > 0 and width < minWidth then
+				local scale = minWidth / width
+				streak.WidthScale = NumberSequence.new(scale, scale * 0.2)
+			end
+		end
+	end
+end
+
+-- Un proyectil: va recto desde "origin" a "speed" y se dibuja donde está a la hora "startTime". Se para
 -- donde dice "ProjectileEnd" o, antes, si aquí choca con el mundo o con un mono (no espera al servidor).
--- El propio (Fase 15, V7) sale del cañón del arma (un Attachment "Muzzle" o, si no, su Handle) y en
--- Config.Combat.Headshot.MuzzleBlendSeconds se junta con la trayectoria real: solo cambia cómo se ve, no
--- dónde acierta (eso lo decide el servidor).
-local function projectile(
-	id: number,
+-- Con "id" es el del servidor (Combat/Projectiles): se dibuja a su hora de salida, así que aunque llegue
+-- tarde por el ping se ve donde lo ven todos. El propio de un disparo con ack (Fase 19, W4) no lo recibe:
+-- sin "id" y con "mode" lo lanza ya su cliente (localShot) y devuelve cómo juntarlo luego con el del servidor.
+-- El de una habilidad propia (Fase 15, V7) sale del cañón del arma (un Attachment "Muzzle" o, si no, su
+-- Handle) y en Config.Combat.Headshot.MuzzleBlendSeconds se junta con la trayectoria real: solo cambia
+-- cómo se ve, no dónde acierta (eso lo decide el servidor).
+local function launch(
+	id: number?,
 	lookId: string,
 	owner: Model?,
 	origin: Vector3,
@@ -3093,14 +3148,19 @@ local function projectile(
 	startTime: number,
 	pierce: boolean,
 	extra: { any }?,
-	gravity: number?
-)
+	gravity: number?,
+	mode: LocalMode?
+): Flying?
 	local build = LOOKS[lookId]
 	if not build then
-		return
+		return nil
 	end
 	local look = build(extra or {})
 	local body = look.body
+	if mode and mode.firstPerson then
+		widenTracers(body)
+	end
+	local stopOnPlayers = mode ~= nil
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = if owner then { folder, owner } else { folder }
@@ -3108,11 +3168,15 @@ local function projectile(
 	local limit = range
 	local stopPoint: Vector3? = nil
 	local travelled = 0
+	local position = origin
 	local finished = false
 	local connection: RBXScriptConnection? = nil
+	-- Con la dirección real del servidor, la curva en que la bala propia se junta con ella.
+	local steer: { from: Vector3, to: Vector3, start: number }? = nil
+	local boundId = id
 	-- Del cañón local a la trayectoria: el desfase al salir y su peso (1 → 0) según el tiempo.
 	local muzzleOffset = Vector3.zero
-	if owner and owner == Players.LocalPlayer.Character then
+	if not mode and owner and owner == Players.LocalPlayer.Character then
 		local tool = owner:FindFirstChildOfClass("Tool")
 		local muzzle = if tool then tool:FindFirstChild("Muzzle", true) else nil
 		local handle = if tool then tool:FindFirstChild("Handle") else nil
@@ -3126,26 +3190,31 @@ local function projectile(
 	local function muzzleShift(elapsed: number): Vector3
 		return muzzleOffset * math.max(0, 1 - elapsed / blendSeconds)
 	end
-	local function finish(position: Vector3)
+	local function finish(at: Vector3)
 		if finished then
 			return
 		end
 		finished = true
-		landings[id] = nil
+		if boundId then
+			landings[boundId] = nil
+		end
 		if connection then
 			connection:Disconnect()
 		end
-		body.CFrame = CFrame.lookAt(position, position + direction)
-		look.land(position)
+		body.CFrame = CFrame.lookAt(at, at + direction)
+		look.land(at)
 	end
-	landings[id] = function(position)
-		local along = (position - origin):Dot(direction)
+	local function onLanding(landed: Vector3)
+		local along = (landed - origin):Dot(direction)
 		if along <= travelled then
-			finish(position)
+			finish(landed)
 		elseif along < limit then
 			limit = along
-			stopPoint = position
+			stopPoint = landed
 		end
+	end
+	if boundId then
+		landings[boundId] = onLanding
 	end
 	body.CFrame = CFrame.lookAt(origin, origin + direction)
 	body.Parent = folder
@@ -3158,13 +3227,13 @@ local function projectile(
 		end
 		local last = origin
 		local path = 0
-		landings[id] = function(position)
-			finish(position)
+		if boundId then
+			landings[boundId] = finish
 		end
 		connection = RunService.RenderStepped:Connect(function()
 			local elapsed = Workspace:GetServerTimeNow() - startTime
 			local point = at(math.max(elapsed, 0))
-			local hit = localStop(last, point - last, params, pierce)
+			local hit = localStop(last, point - last, params, pierce, stopOnPlayers)
 			if hit then
 				finish(last + (point - last).Unit * hit)
 				return
@@ -3182,29 +3251,79 @@ local function projectile(
 				finish(point)
 			end
 		end)
-		return
+		return nil
 	end
 	connection = RunService.RenderStepped:Connect(function()
 		local elapsed = Workspace:GetServerTimeNow() - startTime
+		if steer then
+			local t = math.clamp((os.clock() - steer.start) / Config.Combat.ShotTrace.CorrectSeconds, 0, 1)
+			local bent = steer.from:Lerp(steer.to, t)
+			direction = if bent.Magnitude > 1e-3 then bent.Unit else steer.to
+			if t >= 1 then
+				steer = nil
+			end
+		end
 		local target = math.min(math.max(speed * elapsed, travelled), limit)
-		local from = origin + direction * travelled
-		local hit = localStop(from, direction * (target - travelled), params, pierce)
+		local hit = localStop(position, direction * (target - travelled), params, pierce, stopOnPlayers)
 		if hit then
 			target = travelled + hit
 			limit = target
-			stopPoint = from + direction * hit
+			stopPoint = position + direction * hit
 		end
+		position += direction * (target - travelled)
 		travelled = target
-		local cframe = CFrame.lookAt(origin + direction * travelled, origin + direction * (travelled + 1))
-			+ muzzleShift(elapsed)
+		local cframe = CFrame.lookAt(position, position + direction) + muzzleShift(elapsed)
 		body.CFrame = cframe
 		if look.follow then
 			look.follow(cframe, elapsed)
 		end
 		if travelled >= limit - 1e-3 then
-			finish(stopPoint or origin + direction * limit)
+			finish(stopPoint or position)
 		end
 	end)
+	if not mode then
+		return nil
+	end
+	local shotMode: LocalMode = mode
+	return {
+		attach = function(newId, serverDirection)
+			if finished then
+				return
+			end
+			boundId = newId
+			landings[newId] = onLanding
+			-- Si la ayuda de puntería la desvió, la bala se curva hacia la línea del servidor (por el mismo punto
+			-- de convergencia) en vez de dar un salto.
+			local cosine = math.clamp(shotMode.aimDirection:Dot(serverDirection), -1, 1)
+			if math.deg(math.acos(cosine)) > Config.Combat.ShotTrace.CorrectDegrees then
+				local toward = shotMode.aimOrigin + serverDirection * shotMode.distance - position
+				local to = if toward:Dot(serverDirection) > 1 then toward.Unit else serverDirection
+				steer = { from = direction, to = to, start = os.clock() }
+			end
+			local early = earlyEnds[newId]
+			if early then
+				earlyEnds[newId] = nil
+				onLanding(early)
+			end
+		end,
+	}
+end
+
+-- Un proyectil del servidor (Combat/Projectiles).
+local function projectile(
+	id: number,
+	lookId: string,
+	owner: Model?,
+	origin: Vector3,
+	direction: Vector3,
+	speed: number,
+	range: number,
+	startTime: number,
+	pierce: boolean,
+	extra: { any }?,
+	gravity: number?
+)
+	launch(id, lookId, owner, origin, direction, speed, range, startTime, pierce, extra, gravity, nil)
 end
 
 -- El servidor dice dónde se ha parado el proyectil "id".
@@ -3212,6 +3331,79 @@ local function projectileEnd(id: number, position: Vector3)
 	local landing = landings[id]
 	if landing then
 		landing(position)
+	elseif unacked > 0 then
+		earlyEnds[id] = position
+		task.delay(EARLY_END_SECONDS, function()
+			earlyEnds[id] = nil
+		end)
+	end
+end
+
+export type LocalShot = {
+	seq: number, -- número del disparo (el que va en UseWeapon)
+	lookId: string, -- como el servidor: "Stone", "ArrowFinisher", "LabDart"…
+	muzzle: Vector3, -- de dónde se ve salir la bala
+	aimOrigin: Vector3, -- de dónde sale la línea de tiro (Aim.origin)
+	aimDirection: Vector3, -- la línea de tiro con la dispersión (unitaria)
+	distance: number, -- a qué distancia de aimOrigin converge lo que se ve
+	speed: number,
+	range: number,
+	pierce: boolean,
+	extra: { any }?,
+	firstPerson: boolean,
+}
+
+-- La bala del disparo propio (Fase 19, W4), dibujada al momento desde la boca del arma hacia un punto de
+-- la línea de tiro, así que converge con ella. El servidor no manda "Projectile" al tirador: le manda
+-- ProjectileAck con el id y la dirección real, y entonces esta bala se junta con su "ProjectileEnd".
+function AbilityFxController.localShot(shot: LocalShot)
+	local toTarget = shot.aimOrigin + shot.aimDirection * shot.distance - shot.muzzle
+	local direction = if toTarget.Magnitude > 1e-3 then toTarget.Unit else shot.aimDirection
+	local flying = launch(
+		nil,
+		shot.lookId,
+		Players.LocalPlayer.Character,
+		shot.muzzle,
+		direction,
+		shot.speed,
+		shot.range,
+		Workspace:GetServerTimeNow(),
+		shot.pierce,
+		shot.extra,
+		nil,
+		{
+			aimOrigin = shot.aimOrigin,
+			aimDirection = shot.aimDirection,
+			distance = shot.distance,
+			firstPerson = shot.firstPerson,
+		}
+	)
+	if not flying then
+		return
+	end
+	local seq = shot.seq
+	if localShots[seq] == nil then
+		unacked += 1
+	end
+	localShots[seq] = flying
+	task.delay(ACK_WAIT_SECONDS, function()
+		if localShots[seq] == flying then
+			localShots[seq] = nil
+			unacked -= 1
+		end
+	end)
+end
+
+-- El ack del servidor (Combat/Projectiles): su proyectil "id" es el del disparo propio número "seq".
+local function onProjectileAck(seq: any, id: any, serverDirection: any)
+	if not (typeof(seq) == "number" and typeof(id) == "number" and typeof(serverDirection) == "Vector3") then
+		return
+	end
+	local flying = localShots[seq]
+	if flying then
+		localShots[seq] = nil
+		unacked -= 1
+		flying.attach(id, serverDirection)
 	end
 end
 
@@ -3493,6 +3685,7 @@ function AbilityFxController:Start()
 			AbilityFxController.play(kind, ...)
 		end
 	end)
+	Remotes.ProjectileAck.OnClientEvent:Connect(onProjectileAck)
 	task.spawn(watchMarks)
 	task.spawn(watchPoison)
 	task.spawn(watchShields)

@@ -40,6 +40,7 @@ local AbilityFxController = require(ReplicatedStorage.CombatClient.Controllers.A
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
 local CameraShake = require(ReplicatedStorage.CombatClient.CameraShake)
 local LabShooting = require(ReplicatedStorage.CombatClient.LabShooting)
+local MuzzleSource = require(ReplicatedStorage.CombatClient.MuzzleSource)
 local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
 local Slide = require(ReplicatedStorage.CombatClient.Slide)
 
@@ -471,6 +472,16 @@ function FirstPersonController:Start()
 	if camera then
 		normalFieldOfView = camera.FieldOfView
 	end
+	-- De aquí sale la bala propia (Fase 19, W4; CombatClient/WeaponController): la boca del arma de la vista.
+	MuzzleSource.set(function()
+		local muzzle = if viewModel then viewModel:FindFirstChild("Muzzle", true) or viewModel.PrimaryPart else nil
+		if muzzle and muzzle:IsA("BasePart") then
+			return muzzle.Position
+		elseif muzzle and muzzle:IsA("Attachment") then
+			return muzzle.WorldPosition
+		end
+		return nil
+	end)
 	WeaponController.onShot(function(weapon)
 		if not weapon.lab then
 			return

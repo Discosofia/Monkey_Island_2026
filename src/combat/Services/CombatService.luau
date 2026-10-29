@@ -41,6 +41,7 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local InteractLock = require(ReplicatedStorage.Shared.InteractLock)
+local LabSpread = require(ReplicatedStorage.Shared.LabSpread)
 local MeleeBox = require(ReplicatedStorage.Shared.MeleeBox)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
@@ -70,6 +71,9 @@ local Status = require(script.Parent.Parent.Status)
 local Zones = require(script.Parent.Parent.Zones)
 
 local CombatService = {}
+
+-- Tope del número de disparo que acepta el servidor (la semilla × 1000003 + el número se mantiene exacta).
+local MAX_SHOT_SEQ = 1_000_000
 
 local lastAttackAt: { [Player]: number } = {}
 -- Dónde va la cadena de golpes de cada jugador (Shared/MeleeChain).
@@ -957,7 +961,12 @@ local scatterRandom = Random.new()
 
 -- "direction" desviada hasta "degrees" grados: un punto al azar de un disco uniforme del cono (ángulo
 -- azimutal al azar y radio = degrees × raíz de un número al azar), para la dispersión del Laboratorio.
-local function scatter(direction: Vector3, degrees: number): Vector3
+-- Con "seed" y "seq" (el disparo numerado del tirador, Fase 19 W4) el desvío no es al azar: es el que su
+-- cliente ha calculado igual (Shared/LabSpread.apply).
+local function scatter(direction: Vector3, degrees: number, seed: number?, seq: number?): Vector3
+	if seed and seq then
+		return LabSpread.apply(direction, seed, seq, degrees)
+	end
 	local radius = math.rad(degrees) * math.sqrt(scatterRandom:NextNumber())
 	local azimuth = scatterRandom:NextNumber(0, 2 * math.pi)
 	local offset =
@@ -985,7 +994,9 @@ local function rangedAttack(
 	point: Vector3?,
 	shotOrigin: Vector3?,
 	lag: number,
-	spread: number
+	spread: number,
+	shotSeq: number?,
+	shotSeed: number?
 )
 	local ammo = weapon.ammoItemId
 	local rules = CombatRules.get()
@@ -1088,7 +1099,7 @@ local function rangedAttack(
 	local speed = weapon.projectileSpeed or 120
 	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
 	if spread > 0 then
-		direction = scatter(direction, spread)
+		direction = scatter(direction, spread, shotSeed, shotSeq)
 	end
 	if weapon.lab and weapon.lab.effect == "AcidBurst" then
 		acidLob(player, character, origin, direction, point, weapon, damage, strike)
@@ -1114,6 +1125,7 @@ local function rangedAttack(
 		-- Con cabezas: los jugadores se prueban rebobinados por el lag del tirador y el proyectil sale algo
 		-- adelantado (con tope). La dispersión (V8) la pone el servidor al azar sobre la dirección que manda el
 		-- cliente, así que no hace falta validar esa dirección contra un cono de la mira.
+		ownerSeq = shotSeq,
 		rewind = if rules.headshots then lag else nil,
 		lead = if rules.headshots then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
 		onHit = function(model, _, isHead)
@@ -1170,7 +1182,46 @@ local function acceptedOrigin(character: Model, root: BasePart, claimed: any, la
 	return claimed
 end
 
-local function onUseWeapon(player: Player, aim: any, point: any, origin: any, shotTime: any, zoomed: any)
+-- El último disparo numerado de cada jugador y la semilla (ShotSeed) con la que se contó: al cambiar de vida
+-- la cuenta vuelve a empezar.
+local lastShotSeq: { [Player]: { seed: number, seq: number } } = {}
+
+-- El número de disparo que manda el cliente (6.º argumento de UseWeapon) y la semilla de su vida, o nil si no
+-- vale: un entero ≥ 1 mayor que el último y con el Player ya con semilla.
+local function acceptedShotSeq(player: Player, claimed: any): (number?, number?)
+	local seed = player:GetAttribute("ShotSeed")
+	if
+		not (
+			typeof(seed) == "number"
+			and typeof(claimed) == "number"
+			and claimed >= 1
+			and claimed <= MAX_SHOT_SEQ
+			and claimed == math.floor(claimed)
+		)
+	then
+		return nil, nil
+	end
+	local last = lastShotSeq[player]
+	if not last or last.seed ~= seed then
+		last = { seed = seed, seq = 0 }
+		lastShotSeq[player] = last
+	end
+	if claimed <= last.seq then
+		return nil, nil
+	end
+	last.seq = claimed
+	return claimed, seed
+end
+
+local function onUseWeapon(
+	player: Player,
+	aim: any,
+	point: any,
+	origin: any,
+	shotTime: any,
+	zoomed: any,
+	claimedSeq: any
+)
 	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") then
 		return
 	end
@@ -1220,6 +1271,7 @@ local function onUseWeapon(player: Player, aim: any, point: any, origin: any, sh
 			if isFinite(shotTime) then
 				lag = math.clamp(Workspace:GetServerTimeNow() - shotTime, 0, Latency.compensation(player))
 			end
+			local shotSeq, shotSeed = acceptedShotSeq(player, claimedSeq)
 			rangedAttack(
 				player,
 				character,
@@ -1232,7 +1284,9 @@ local function onUseWeapon(player: Player, aim: any, point: any, origin: any, sh
 				if typeof(point) == "Vector3" then point else nil,
 				acceptedOrigin(character, root, origin, lag),
 				lag,
-				spread
+				spread,
+				shotSeq,
+				shotSeed
 			)
 		end
 		return
@@ -1457,6 +1511,7 @@ function CombatService:Start()
 		lastAttackAt[player] = nil
 		chains[player] = nil
 		shots[player] = nil
+		lastShotSeq[player] = nil
 		guardSpent[player] = nil
 		lastDodgeAt[player] = nil
 		lastSlideAt[player] = nil
