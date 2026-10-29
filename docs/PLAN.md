@@ -829,7 +829,7 @@ Decisiones del 28-10-2026:
 
 ### Fase 19: Experiencia de combate a distancia (29-10-2026)
 
-En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §74. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
+En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §76. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
 
 Decisiones del 29-10-2026:
 - **Alcance:** Laboratorio, Dunas e Isla; las líneas blancas también en el Lobby.
@@ -843,7 +843,7 @@ Decisiones del 29-10-2026:
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **W1** | Líneas blancas, FOV y sacudida en los 4 places | f6b7fa1 | ✅ Probado en Studio, Laboratorio (sin probar: VERIFICACION §74) |
-| **W2** | Pose de apuntar visible para todos (3P) | — | ⏳ |
+| **W2** | Pose de apuntar visible para todos (3P) | 015e9d3 | ✅ Probado en Studio (sin probar: VERIFICACION §75) |
 | **W3** | Confirmación de impacto: `HitFeedback`, hitmarker y sonidos | — | ⏳ |
 | **W4** | Bala inmediata del tirador y dispersión sincronizada | — | ⏳ |
 | **W5** | Marcas de impacto, chispas, polvo y pulpa | — | ⏳ |
