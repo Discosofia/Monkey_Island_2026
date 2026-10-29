@@ -652,6 +652,19 @@ Decisiones del 28-10-2026:
 - **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A1.»
 
+**Handoff de A2 (29-10-2026)**
+- **Estado:** A1 cerrada y subida (1887267). A2 sin empezar. Siguiente número libre de VERIFICACION: §50.
+- **Antes de escribir código:** pide al agente `search` el mapa de `serverShared/Admin.luau`, `AdminEventsService`, `LiveEventsServer`, `ServerOps`, `AdminProfile`, `Data/IslandActions` y `UI/AdminPanel` (1077–1315). Este handoff se escribió con un mapa de otra sesión: comprueba las líneas.
+- **Objetivo:**
+  1. **Premium en el perfil:** `serverShared/AdminProfile.luau` (68–98 y 153–175) añade «Pase premium: sí/no» con `SeasonPass.normalize(data.season, temporada actual)`, no leyendo `season.premium` a pelo, para que no cuente el de una temporada vieja.
+  2. **Jefe junto al admin:** `AdminEventsService` (77–81) pasa la posición del admin a `BossService` (318–320), que hoy lo saca en su guarida y borra el jefe que hubiera. El aviso llega a todos los servidores por `AdminNet` («Announce» con jefe, place y servidor).
+  3. **Tablero «Ahora en la Isla» → «Ahora en el juego»** (`UI/AdminPanel.luau` 1284–1305, `Data/IslandActions`): cada acción activa/desactiva y se pinta resaltada si está en marcha (jefe vivo, clima, erupción, gigante). El servidor publica el estado en un atributo.
+  4. **Mantenimiento** (`ServerOps.maintenance`, 84–103): rechaza uno nuevo si ya hay uno programado o en marcha; la pestaña Servidor enseña el programado (hora y mensaje) con un botón de cancelar que llama a `LiveEventsServer.stop` y manda un aviso global «Mantenimiento cancelado». `LiveEventsServer.start` (116–142) deduplica por id los eventos que no deben apilarse.
+- **Riesgos:** el panel se queda en español, pero los avisos que ven los jugadores (jefe, mantenimiento) pasan por `Strings`. El mantenimiento echa a los jugadores: probar solo cancelándolo a tiempo y con los admins exentos. Nada de esto toca el combate.
+- **Verificación:** en Play, un segundo mantenimiento se rechaza y el programado se cancela; el jefe aparece junto al admin; el perfil dice si hay premium. Lo que necesite 2 servidores o 2 jugadores (avisos entre servidores) va a VERIFICACION §50.
+- **Flujo:** probar en Studio con `probador-studio` (copia de perfil antes), commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A2.»
+
 ---
 
 ## 4. Cronograma estimado
