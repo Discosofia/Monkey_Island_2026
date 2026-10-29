@@ -645,6 +645,7 @@ Decisiones del 28-10-2026:
 | **R3** | Armaduras de Plata (rango III), 4 roles | fb1ffa1 | ✅ Probado en Studio (sin probar: VERIFICACION §64) |
 | **R4** | Armaduras Volcánicas (rango IV), 4 roles | 6c4425b | ✅ Probado en Studio (sin probar: VERIFICACION §65) |
 | **S1** | Armas de la forja de rango I (Machete, Honda, Garrote, Arco, Cerbatana, Bastón), con tope `ForgeWeaponRank` | 343054f | ✅ Probado en Studio (sin probar: VERIFICACION §66) |
+| **S2** | Armas de la forja de rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) | e8217ed | ✅ Probado en Studio (sin probar: VERIFICACION §67) |
 
 **Handoff de A1 (29-10-2026)**
 - **Estado:** plan aprobado, nada escrito todavía. Las pruebas de la fase empiezan en VERIFICACION §49.
@@ -792,6 +793,11 @@ Decisiones del 28-10-2026:
 - **Estado:** S1 cerrada y subida (343054f). Siguiente número libre de VERIFICACION: §67. `Config.Budgets.Models.ForgeWeaponRank = { 40, 55, 70, 90 }` ya existe (los de II y III son provisionales: ajústalos al medir).
 - **Objetivo:** rehacer las armas de rango II (Hueso): SharpMachete, LianaSling, BoneMace, ReinforcedBow, BoneBlowgun, GoldenStaff. Mismo método que S1: `programador` escribe con opciones nuevas por defecto neutras; la sesión principal mide con `Rendimiento`, captura de frente, lado y espalda y deja la vista previa en `workspace` con la cámara en `Fixed`. Congruencia con el rango I (mismos motivos, más hueso y riqueza) y claramente más simple que el III.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de S2. Haz el grupo S2.»
+
+**Handoff de S3 (29-10-2026)**
+- **Estado:** S1 (343054f) y S2 (e8217ed) cerradas y subidas. Siguiente número libre de VERIFICACION: §68. `ForgeWeaponRank = { 40, 55, 70, 90 }`.
+- **Objetivo:** rehacer las armas de rango III (Plata/Liana): Club/BigFangClub no (son otra rama; solo las de rol): ThickBoneMaul, LianaBow, ShamanBlowgun, SilverStaff. Tope 70. Mismo método que S1/S2 (programador con opciones opcionales; la sesión principal mide, captura de frente, lado y espalda; vista previa en `workspace` y cámara `Fixed`). Congruencia con I y II, y claramente más simple que el IV. Ojo: el Machete no tiene rango III (el Guerrero sube por Maza).
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de S3. Haz el grupo S3.»
 
 **Handoff de armas y skins (29-10-2026)**
 - **Estado:** la serie de armaduras R1–R4 está cerrada y subida (R4 6c4425b, PLAN 0a59e5a). Siguiente número libre de VERIFICACION: §66. Las armas no tienen tandas en la Fase 18: este handoff propone crearlas (nombres `S1`–`S4` y `K1`–`K2`, o los que decida el usuario) y añadirlas a la tabla de la Fase 18 o a una fase nueva. Pregunta al usuario qué quiere rehacer primero antes de escribir código.
