@@ -17,6 +17,8 @@ export type Info = {
 	place: string?,
 	-- No sale entre los eventos del panel (lo lanza otra cosa: el mantenimiento, en la pestaña Servidor).
 	hidden: boolean?,
+	-- No se apila: no se lanza otro mientras haya uno programado o en marcha (LiveEventsServer.start).
+	unique: boolean?,
 }
 
 local LiveEvents: { [string]: Info } = {
@@ -69,6 +71,7 @@ local LiveEvents: { [string]: Info } = {
 		order = 99,
 		seconds = 600,
 		hidden = true,
+		unique = true,
 	},
 }
 

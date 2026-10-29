@@ -2552,6 +2552,29 @@ Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos)
 1. [ ] Abre el Diario del naturalista y el contrato Campamento del náufrago.
    ✅ Dicen «Recolecten…» y «Levanten…» (sin «Recolectad» ni «Levantad»), y con el juego en inglés siguen traducidos. Hay que subir `build/localization_nuevas.csv` a Creator Hub.
 
+## 50. Fase 18 A2: panel de admin (29-10-2026)
+
+#### 50.1 Con el juego publicado y 2 servidores (admin en uno, otro jugador en otro)
+
+1. [ ] Como admin, pulsa 👑 Jefe con «Todos».
+   ✅ En tu servidor sale junto a ti y en todos los servidores llega el aviso «👑 ¡X ha aparecido en la Isla, servidor Y!». En los demás servidores de la Isla sale en su guarida.
+2. [ ] Programa un mantenimiento en 5 min con «Todos» y mira la pestaña Servidor desde el otro servidor. Después intenta programar otro.
+   ✅ Aparece la fila con quién lo programó y cuánto falta. El segundo intento se rechaza.
+3. [ ] Cancela el mantenimiento desde la pestaña Servidor.
+   ✅ Todos los servidores reciben «Mantenimiento cancelado» y nadie es expulsado al llegar la hora.
+
+#### 50.2 Dos jugadores (2 clientes, uno admin y otro no admin)
+
+1. [ ] Programa un mantenimiento de 1 min con «Todos» y deja que empiece. Con el mantenimiento en marcha, cancélalo desde la pestaña Servidor.
+   ✅ El no admin sale con el mensaje y el admin sigue dentro. Tras cancelar, el no admin puede volver a entrar.
+
+#### 50.3 Interfaz (clic real en el panel de PC y de teléfono)
+
+1. [ ] En la pestaña Eventos, mira en «Ahora en el juego» el botón de lo que está en marcha (👑 Jefe, lluvia, tormenta, erupción o gigante) y apágalo con otro toque. Repite con «Todos».
+   ✅ El botón en marcha se ve azul con texto blanco y vuelve al dorado al apagarlo con otro toque. Con «Todos» pide el segundo toque.
+2. [ ] En la pestaña Servidor, mira la fila del mantenimiento programado y pulsa ✖ Cancelar.
+   ✅ La fila cabe sin desplazar la ventana y el botón ✖ Cancelar se lee.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

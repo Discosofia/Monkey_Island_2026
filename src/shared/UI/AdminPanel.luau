@@ -15,7 +15,9 @@
 -- Solo sale si el servidor ha marcado al jugador con el atributo "IsAdmin", y el servidor lo vuelve
 -- a comprobar al pedirlo.
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local Workspace = game:GetService("Workspace")
@@ -39,6 +41,7 @@ local GOLD_TEXT = Color3.fromRGB(40, 25, 5)
 local TITLE = Color3.fromRGB(255, 220, 150)
 local SECONDARY = Color3.fromRGB(190, 180, 160)
 local CLOSE = Color3.fromRGB(150, 60, 50)
+local ACTIVE = Color3.fromRGB(50, 120, 190)
 
 -- Segundos que espera el segundo toque de "Dar" cuando es para todos.
 local CONFIRM_SECONDS = 3
@@ -1281,8 +1284,9 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		end
 	end
 
-	eventHeading("🏝️ Ahora en la Isla", 8)
+	eventHeading("🎮 Ahora en el juego (azul: en marcha, otro toque lo apaga)", 8)
 	local islandGrid = grid("IslandGrid", 9, 4)
+	local actionButtons: { [string]: TextButton } = {}
 	local actionIds = {}
 	for action in IslandActions do
 		table.insert(actionIds, action)
@@ -1297,11 +1301,28 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		button.Name = action
 		button.LayoutOrder = index
 		button:SetAttribute("Label", text)
+		actionButtons[action] = button
 		button.MouseButton1Click:Connect(function()
 			if confirmed(button, text) then
 				Remotes.AdminIslandAction:FireServer(action, chosenScope)
 			end
 		end)
+	end
+	-- Resalta las acciones que la Isla dice que están en marcha (AdminEventsService la publica).
+	local function renderActions()
+		local state = {}
+		local raw = ReplicatedStorage:GetAttribute(Config.AdminTools.IslandStateAttribute)
+		if typeof(raw) == "string" then
+			local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+			if ok and typeof(decoded) == "table" then
+				state = decoded
+			end
+		end
+		for action, button in actionButtons do
+			local on = state[action] == true
+			button.BackgroundColor3 = if on then ACTIVE else GOLD
+			button.TextColor3 = if on then Color3.new(1, 1, 1) else GOLD_TEXT
+		end
 	end
 
 	-- Mientras se ve la página, la lista de los que están en marcha se rehace cada segundo.
@@ -1309,6 +1330,7 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		while true do
 			if window.Visible and eventsPage.Visible then
 				renderRunning()
+				renderActions()
 			end
 			task.wait(1)
 		end
@@ -1352,21 +1374,72 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 			end
 		end)
 	end
-	local maintenanceNote = serverLabel(
-		"Avisa a todos, guarda y cierra al acabar la cuenta. Se cancela en 🎉 Eventos con ⏹.",
-		3,
-		SECONDARY
-	)
+	local maintenanceNote =
+		serverLabel("Avisa a todos, guarda y cierra al acabar la cuenta. Solo puede haber uno a la vez.", 3, SECONDARY)
 	maintenanceNote.Font = Enum.Font.BuilderSans
 
-	serverLabel("🖥️ Servidores", 4, TITLE)
+	-- El mantenimiento programado o en marcha, con su hora y un botón para cancelarlo.
+	local scheduledRow = Instance.new("Frame")
+	scheduledRow.Name = "Scheduled"
+	scheduledRow.LayoutOrder = 4
+	scheduledRow.Size = UDim2.new(1, -8, 0, 36)
+	scheduledRow.BackgroundColor3 = ROW
+	scheduledRow.BorderSizePixel = 0
+	scheduledRow.Visible = false
+	scheduledRow.Parent = serverPage
+	corner(scheduledRow, 8)
+	local scheduledLabel = Widgets.label("", scheduledRow)
+	scheduledLabel.Position = UDim2.fromOffset(6, 0)
+	scheduledLabel.Size = UDim2.new(0.68, -6, 1, 0)
+	scheduledLabel.TextXAlignment = Enum.TextXAlignment.Left
+	local scheduledLimit = Instance.new("UITextSizeConstraint")
+	scheduledLimit.MaxTextSize = 16
+	scheduledLimit.Parent = scheduledLabel
+	local cancelMaintenance = smallButton("✖ Cancelar", scheduledRow)
+	cancelMaintenance.Name = "Cancel"
+	cancelMaintenance.AnchorPoint = Vector2.new(1, 0.5)
+	cancelMaintenance.Position = UDim2.new(1, -3, 0.5, 0)
+	cancelMaintenance.Size = UDim2.new(0.32, -3, 1, -6)
+	cancelMaintenance.BackgroundColor3 = CLOSE
+	cancelMaintenance.TextColor3 = Color3.new(1, 1, 1)
+	cancelMaintenance.MouseButton1Click:Connect(function()
+		Remotes.AdminServer:FireServer("CancelMaintenance")
+	end)
+	local function renderMaintenance()
+		local now = LiveEvents.now()
+		local found: LiveEvents.Event? = nil
+		for _, event in LiveEvents.list() do
+			if event.kind == "Maintenance" and event.endsAt > now then
+				found = event
+				break
+			end
+		end
+		scheduledRow.Visible = found ~= nil
+		if found then
+			local state = if LiveEvents.isRunning(found, now)
+				then "en marcha"
+				else `empieza en {LiveEvents.clock(found.startsAt - now)}`
+			local where = if found.scope == "All" then "🌍" else "📍"
+			scheduledLabel.Text = `{where} 🛠️ {found.by or "?"}: {state}`
+		end
+	end
+	task.spawn(function()
+		while true do
+			if window.Visible and serverPage.Visible then
+				renderMaintenance()
+			end
+			task.wait(1)
+		end
+	end)
+
+	serverLabel("🖥️ Servidores", 5, TITLE)
 	local refreshServers = smallButton("🔄 Actualizar", serverPage)
 	refreshServers.Name = "Refresh"
-	refreshServers.LayoutOrder = 5
+	refreshServers.LayoutOrder = 6
 	refreshServers.Size = UDim2.new(0.4, 0, 0, 32)
 	local serverList = Instance.new("Frame")
 	serverList.Name = "List"
-	serverList.LayoutOrder = 6
+	serverList.LayoutOrder = 7
 	serverList.Size = UDim2.new(1, -8, 0, 0)
 	serverList.AutomaticSize = Enum.AutomaticSize.Y
 	serverList.BackgroundTransparency = 1

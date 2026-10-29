@@ -80,7 +80,8 @@ local function summary(data: any): { string }
 	local nest = if #inNest > 0 then `{table.concat(inNest, " y ")} en el nido` else "nido vacío"
 	local today, todayTotal = missionsDone(data.daily)
 	local week, weekTotal = missionsDone(data.weekly)
-	local season = if typeof(data.season) == "table" then data.season else {}
+	local currentSeason = Pass.info(Pass.now()).season
+	local season = Pass.normalize(data.season, if currentSeason then currentSeason.id else nil)
 	local arena = if typeof(data.arena) == "table" and typeof(data.arena.stats) == "table" then data.arena.stats else {}
 	return {
 		`✨ Ámbar: {number("amber")}`,
@@ -93,7 +94,8 @@ local function summary(data: any): { string }
 		`🥚 Huevos: {nest} · mochila {#eggs.bag} · pendientes {#eggs.pending}`,
 		`📅 Calendario: día {Daily.loginState(data.login).step} de {Daily.CALENDAR_DAYS}`,
 		`🎯 Misiones: hoy {today}/{todayTotal} · semana {week}/{weekTotal}`,
-		`🎟️ Pase: nivel {Pass.earnedLevel(tonumber(season.xp) or 0)} · ⚔️ Arena: {arena.wins or 0} victorias de {arena.matches or 0}`,
+		`🎟️ Pase: nivel {Pass.earnedLevel(season.xp)} · premium: {if season.premium then "sí" else "no"}`,
+		`⚔️ Arena: {arena.wins or 0} victorias de {arena.matches or 0}`,
 	}
 end
 

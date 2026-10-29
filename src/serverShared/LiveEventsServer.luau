@@ -18,6 +18,7 @@ local Catalog = require(ReplicatedStorage.Shared.Data.LiveEvents)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local AdminNet = require(script.Parent.AdminNet)
 local Eggs = require(script.Parent.Eggs)
 
@@ -124,6 +125,14 @@ function LiveEventsServer.start(
 	if not info then
 		return nil, false
 	end
+	if info.unique then
+		local now = LiveEvents.now()
+		for _, other in events do
+			if other.kind == kind and other.endsAt > now then
+				return nil, false
+			end
+		end
+	end
 	local startsAt = math.floor(LiveEvents.now()) + delayMinutes * 60
 	local event: Event = {
 		id = HttpService:GenerateGUID(false),
@@ -159,6 +168,12 @@ function LiveEventsServer.stop(id: string): boolean
 		end)
 	end
 	AdminNet.send("LiveEventStop", id, scope)
+	if event.kind == "Maintenance" then
+		AdminNet.send("Announce", {
+			text = Strings.later("🛠️ Mantenimiento cancelado: puedes seguir jugando."),
+			from = Strings.later("Mantenimiento"),
+		}, scope)
+	end
 	return true
 end
 

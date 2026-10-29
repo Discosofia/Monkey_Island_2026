@@ -28,6 +28,7 @@ local WeatherService = {}
 local rng = Random.new()
 local weatherToken = 0
 local erupting = false
+local eruptionToken = 0
 
 local function announce(text: string)
 	for _, player in Players:GetPlayers() do
@@ -115,10 +116,17 @@ function WeatherService.pyroclasts(spots: { Vector3 }, seconds: number)
 	end)
 end
 
+-- Calma la erupción en marcha (el administrador la desactiva desde el tablero).
+function WeatherService.calm()
+	eruptionToken += 1
+end
+
 function WeatherService.erupt()
 	if erupting then
 		return
 	end
+	eruptionToken += 1
+	local token = eruptionToken
 	local center = volcanoCenter()
 	if not center then
 		return
@@ -130,7 +138,7 @@ function WeatherService.erupt()
 	announce("🌋 ¡El volcán entra en erupción! Aléjate de sus laderas")
 	task.spawn(function()
 		local endsAt = os.clock() + Config.Weather.EruptionSeconds
-		while os.clock() < endsAt do
+		while os.clock() < endsAt and eruptionToken == token do
 			-- Bombas al azar por la zona, y alguna sobre los jugadores que estén cerca.
 			local target = center
 				+ Vector3.new(rng:NextNumber(-1, 1), 0, rng:NextNumber(-1, 1)) * Config.Weather.EruptionRadius

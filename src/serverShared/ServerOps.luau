@@ -85,6 +85,7 @@ local function maintenance(admin: Player, minutes: number)
 	local where = scope()
 	local event = LiveEventsServer.start("Maintenance", 0, minutes, where, admin.DisplayName)
 	if not event then
+		Remotes.Notify:FireClient(admin, "🛠️ Ya hay un mantenimiento programado o en marcha: cancélalo antes")
 		return
 	end
 	AdminNet.send("Announce", {
@@ -100,6 +101,19 @@ local function maintenance(admin: Player, minutes: number)
 		`en {minutes} min · {if where == "All" then "todos los servidores" else "este servidor"}`
 	)
 	Remotes.Notify:FireClient(admin, `🛠️ Mantenimiento programado: en {minutes} min`)
+end
+
+-- Para el mantenimiento programado o en marcha (LiveEventsServer.stop avisa a todos de que se cancela).
+local function cancelMaintenance(admin: Player)
+	local now = LiveEvents.now()
+	for _, event in LiveEvents.list() do
+		if event.kind == "Maintenance" and event.endsAt > now and LiveEventsServer.stop(event.id) then
+			AdminLog.add(admin, "Mantenimiento", "cancelado")
+			Remotes.Notify:FireClient(admin, "🛠️ Mantenimiento cancelado")
+			return
+		end
+	end
+	Remotes.Notify:FireClient(admin, "🛠️ No hay mantenimiento que cancelar")
 end
 
 -- Guarda a todos y expulsa a los que no son administradores.
@@ -129,6 +143,8 @@ function ServerOps.start(placeName: string, isAdmin: (Player) -> boolean)
 			list(admin)
 		elseif action == "Maintenance" and table.find(Config.AdminTools.MaintenanceMinutes, minutes) then
 			maintenance(admin, minutes)
+		elseif action == "CancelMaintenance" then
+			cancelMaintenance(admin)
 		end
 	end)
 	LiveEventsServer.onStarted(function(event)

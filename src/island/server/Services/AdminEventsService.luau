@@ -4,15 +4,19 @@
 -- "IslandAction"). Reutiliza lo mismo que el panel de pruebas (DebugService), pero vale también en el
 -- juego publicado: el permiso lo comprueba Admin antes de mandarlo.
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local IslandActions = require(ReplicatedStorage.Shared.Data.IslandActions)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Strings = require(ReplicatedStorage.Shared.Strings)
 local AdminNet = require(ServerScriptService.ServerShared.AdminNet)
 local BasecampService = require(script.Parent.BasecampService)
 local BossService = require(script.Parent.BossService)
@@ -73,10 +77,40 @@ local function spawnAlpha(): boolean
 	return false
 end
 
-local ACTIONS: { [string]: () -> boolean } = {
-	Boss = function()
+local function serverName(): string
+	return if RunService:IsStudio() then "Studio" else string.sub(game.JobId, 1, 8)
+end
+
+-- Interruptor del clima: si ya hay ese, despeja.
+local function weatherToggle(name: string)
+	if ReplicatedStorage:GetAttribute("Weather") == name then
+		WeatherService.force("Clear", 1)
+	else
+		WeatherService.force(name, WEATHER_SECONDS)
+	end
+end
+
+-- Cada acción recibe el administrador que la pidió (nil si juega en otro servidor).
+local ACTIONS: { [string]: (admin: Player?, scope: string?) -> boolean } = {
+	-- Interruptor: si hay jefe vivo lo quita; si no, lo saca junto al administrador (en su guarida si no
+	-- está aquí) y avisa a todos los servidores desde el del administrador.
+	Boss = function(admin, scope)
+		if BossService.isAlive() then
+			BossService.despawn()
+			return true
+		end
 		local rotation = Config.Match.BossRotation
-		BossService.spawn(rotation[rng:NextInteger(1, #rotation)])
+		local bossId = rotation[rng:NextInteger(1, #rotation)]
+		local character = if admin then admin.Character else nil
+		local position = if character then character:GetPivot().Position else nil
+		BossService.spawn(bossId, nil, position)
+		if admin then
+			AdminNet.send("Announce", {
+				text = Strings.later("👑 ¡{boss} ha aparecido en {place}, servidor {server}!"),
+				args = { boss = { Bosses[bossId].name }, place = { Strings.later("la Isla") }, server = serverName() },
+				from = Strings.later("Evento"),
+			}, if scope == "All" then "All" else "Server")
+		end
 		return true
 	end,
 	Alpha = spawnAlpha,
@@ -89,11 +123,11 @@ local ACTIONS: { [string]: () -> boolean } = {
 		return true
 	end,
 	Rain = function()
-		WeatherService.force("Rain", WEATHER_SECONDS)
+		weatherToggle("Rain")
 		return true
 	end,
 	Storm = function()
-		WeatherService.force("Storm", WEATHER_SECONDS)
+		weatherToggle("Storm")
 		return true
 	end,
 	Clear = function()
@@ -101,12 +135,44 @@ local ACTIONS: { [string]: () -> boolean } = {
 		return true
 	end,
 	Eruption = function()
-		WeatherService.erupt()
+		if ReplicatedStorage:GetAttribute("Eruption") == true then
+			WeatherService.calm()
+		else
+			WeatherService.erupt()
+		end
 		return true
 	end,
 }
 
+-- Lo que está en marcha, para pintar resaltado el tablero del panel (UI/AdminPanel lo lee).
+local function publishState()
+	local giant = false
+	for _, player in Players:GetPlayers() do
+		if player:GetAttribute("AdminBoss") == true then
+			giant = true
+			break
+		end
+	end
+	local weather = ReplicatedStorage:GetAttribute("Weather")
+	ReplicatedStorage:SetAttribute(
+		Config.AdminTools.IslandStateAttribute,
+		HttpService:JSONEncode({
+			Boss = BossService.isAlive(),
+			Rain = weather == "Rain",
+			Storm = weather == "Storm",
+			Eruption = ReplicatedStorage:GetAttribute("Eruption") == true,
+			Giant = giant,
+		})
+	)
+end
+
 function AdminEventsService:Start()
+	task.spawn(function()
+		while true do
+			publishState()
+			task.wait(1)
+		end
+	end)
 	AdminNet.on("IslandAction", function(data: any)
 		-- "Ser gigante": al propio administrador, si está en esta partida (GiantAdminService).
 		if typeof(data) == "table" and data.action == "Giant" then
@@ -123,8 +189,9 @@ function AdminEventsService:Start()
 		if not action or MatchService.isOver() then
 			return
 		end
-		local done = action()
 		local admin = Players:GetPlayerByUserId(data.admin)
+		local done = action(admin, data.scope)
+		publishState()
 		if admin then
 			local info = IslandActions[data.action]
 			Remotes.Notify:FireClient(

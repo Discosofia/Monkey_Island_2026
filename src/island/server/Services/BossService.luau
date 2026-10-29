@@ -293,6 +293,11 @@ local function rescaleHealth(boss: ActiveBoss)
 end
 
 -- true si hay un jefe despierto en la isla.
+-- Quita al jefe vivo sin aviso (el administrador lo desactiva desde el tablero).
+function BossService.despawn()
+	despawnCurrent(nil)
+end
+
 function BossService.isAlive(): boolean
 	return current ~= nil
 end
@@ -308,7 +313,8 @@ local function strengthFor(round: number): { health: number, damage: number }
 end
 
 -- "round": la vuelta de la rotación (0 o nil la primera, Fase 12), para salir más fuerte.
-function BossService.spawn(bossId: string, round: number?)
+-- "position": dónde sale (el administrador); sin ella, en su guarida.
+function BossService.spawn(bossId: string, round: number?, position: Vector3?)
 	local definition = Bosses[bossId]
 	local species = Monkeys[definition.baseSpecies]
 	if not (definition and species) then
@@ -317,7 +323,7 @@ function BossService.spawn(bossId: string, round: number?)
 	end
 	despawnCurrent(nil)
 
-	local lair = lairPosition(definition)
+	local lair = position or lairPosition(definition)
 	local look = table.clone(species)
 	look.name = definition.name
 	look.scale = definition.scale

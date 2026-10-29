@@ -972,6 +972,8 @@ local Config = {
 	-- MessagingService), el registro de acciones (ServerShared/AdminLog) y el anuncio a todos.
 	AdminTools = {
 		Topic = "Admin",
+		-- Atributo de ReplicatedStorage (JSON) con las acciones de la Isla que están en marcha, para el tablero.
+		IslandStateAttribute = "AdminIslandState",
 		LogStoreName = "AdminLog_v1",
 		-- Acciones que guarda el registro (las más viejas se borran) y cada cuánto se escriben las nuevas
 		-- (juntas, para no gastar escrituras del DataStore).
