@@ -2654,6 +2654,13 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
 1. [ ] Poses nuevas de apuntar y disparar (rifle, arpón y cañón tienen el id vacío en Data/WeaponAnimations). Las publica el usuario con la skill animaciones-roblox.
    ✅ Al publicar y poner los ids, se ven al apuntar y disparar.
 
+#### 53.4 Cabeza quieta al andar (pista HeadSteady, publicada con el id 102631425550136)
+
+1. [ ] En el juego publicado, en cada place (Lobby, Isla, Dunas y Laboratorio), camina y corre con y sin arma en la mano, a mano y en el móvil.
+   ✅ La cabeza no cabecea ni tiembla al andar. Al empezar a correr con arma se inclina un poco hacia delante (6°) y se queda así, sin oscilar.
+2. [ ] Haz un gesto (esquivar, deslizar, comer, caer) y vuelve a andar.
+   ✅ El gesto manda sobre la cabeza mientras dura, y al acabar vuelve a quedar quieta.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

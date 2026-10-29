@@ -52,6 +52,8 @@ local RULES_WAIT_SECONDS = 10
 local GAIT_FADE_SECONDS = 0.15
 local GAIT_MIN_SPEED = 1
 local GAIT_HYSTERESIS = 1
+-- Fundido (s) de la pista que deja la cabeza quieta.
+local HEAD_FADE_SECONDS = 0.2
 
 local LocomotionController = {}
 
@@ -218,6 +220,10 @@ local function update(player: Player, deltaTime: number)
 	end
 	Movement.apply(humanoid, Movement.speedFor(player, sprinting))
 	updateGait(player, character :: Model, humanoid)
+	-- Cabeza quieta: la pista de Idle que fija el cuello suena siempre mientras se vive.
+	if not BodyAnimations.isPlaying("HeadSteady") then
+		BodyAnimations.play("HeadSteady", 1, HEAD_FADE_SECONDS)
+	end
 end
 
 function LocomotionController:Start()

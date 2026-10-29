@@ -28,6 +28,7 @@ export type Key =
 	| "Walk"
 	| "Run"
 	| "RunArmed"
+	| "HeadSteady"
 
 export type PlayerAnimation = {
 	id: string,
@@ -73,9 +74,13 @@ local PlayerAnimations = {
 		-- encima de Core (el Animate de Roblox) y por debajo de Action, así que sujetar el arma (Hold),
 		-- toolnone, el arma y los gestos siguen mandando sobre los brazos. RunArmed no anima el brazo
 		-- derecho. Con un id vacío no se reproducen y queda el Animate de Roblox.
-		Walk = { id = "rbxassetid://87439858386759", priority = Enum.AnimationPriority.Movement, looped = true },
+		Walk = { id = "rbxassetid://85253754211966", priority = Enum.AnimationPriority.Movement, looped = true },
 		Run = { id = "rbxassetid://132136387500047", priority = Enum.AnimationPriority.Movement, looped = true },
 		RunArmed = { id = "rbxassetid://121135663217863", priority = Enum.AnimationPriority.Movement, looped = true },
+		-- Cabeza quieta al andar: solo pone pose al cuello, siempre sonando mientras se vive (LocomotionController).
+		-- Prioridad Idle: por encima del correr de Roblox (Core, que cabecea la cabeza ~13° al andar) y por debajo de
+		-- Movement y de los gestos. No depende del peso de Walk, que se reinicia al cambiar de estado.
+		HeadSteady = { id = "rbxassetid://102631425550136", priority = Enum.AnimationPriority.Idle, looped = true },
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para

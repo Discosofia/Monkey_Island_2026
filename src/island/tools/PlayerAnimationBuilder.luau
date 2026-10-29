@@ -393,9 +393,9 @@ local function gaitFrame(gait: Gait, t: number, phase: number): { [string]: any 
 		LowerTorso = { gait.pelvisX, 0, 0, 0, gait.bounce * math.cos(2 * phase) - gait.bounce, 0 },
 		UpperTorso = { gait.torsoX, gait.torsoYaw * math.sin(phase), 0 },
 	}
-	if gait.headX ~= 0 then
-		frame.Head = { gait.headX, 0, 0 }
-	end
+	-- La cabeza siempre lleva pose (aunque sea 0): sin ella, el cuello lo mueve el correr de Roblox (Core,
+	-- id 913376220), que sigue debajo y la cabecea ~13° al andar.
+	frame.Head = { gait.headX, 0, 0 }
 	for side, sign in { Right = 1, Left = -1 } do
 		local s, c = sign * math.sin(phase), sign * math.cos(phase)
 		local knee = -(gait.kneeBase + gait.kneeLift * math.max(0, c))
@@ -432,7 +432,7 @@ local WALK: Gait = {
 	elbowVary = 0,
 	torsoX = -3,
 	torsoYaw = 4,
-	headX = 0,
+	headX = 1, -- nunca 0: una pose idéntica a la del reposo se pierde al publicar y el cuello queda libre
 	pelvisX = 0,
 	bounce = 0.04,
 	rightArm = true,
@@ -474,6 +474,15 @@ local SPECS: { [string]: any } = {
 		easing = "Linear",
 		direction = "In",
 		keyframes = gaitKeyframes(RUN_ARMED),
+	},
+	-- Cabeza quieta (ver Data/PlayerAnimations): solo el cuello, 1° y no 0 (una pose idéntica al reposo se
+	-- pierde al publicar).
+	HeadSteady = {
+		name = "HeadSteady",
+		loop = true,
+		easing = "Linear",
+		direction = "In",
+		keyframes = { { t = 0, Head = { 1, 0, 0 } }, { t = 1, Head = { 1, 0, 0 } } },
 	},
 	-- Pisotón del guerrero. AbilityService hace el daño al recibir la petición: el pie cae a 0,2 s.
 	Quake = {
