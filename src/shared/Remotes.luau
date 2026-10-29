@@ -79,6 +79,10 @@ local Remotes = {
 	-- Cliente -> servidor: "List" (servidores) o "Maintenance" (minutos de aviso); servidor -> cliente:
 	-- ("List", servidores, alcance). Ver ServerShared/ServerOps.
 	AdminServer = remoteEvent("AdminServer"),
+	-- Cliente -> servidor: ("Sub", bool) abre o cierra la pestaña Rendimiento; ("Client", tabla) la muestra
+	-- del cliente del administrador. Servidor -> cliente: ("Server", tabla) y ("Client", tabla). Ver
+	-- ServerShared/Performance.
+	AdminPerf = remoteEvent("AdminPerf"),
 	-- Cliente -> servidor (Isla): el administrador convertido en gigante usa un golpe de jefe ("Stomp" |
 	-- "Wave" | "Roar", dirección Vector3). Ver island/server/Services/GiantAdminService.
 	GiantAttack = remoteEvent("GiantAttack"),

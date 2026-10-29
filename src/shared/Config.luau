@@ -1760,6 +1760,10 @@ local Config = {
 	Performance = {
 		-- Cada cuántos segundos escribe PerformanceService su resumen en la Salida.
 		LogSeconds = 120,
+		-- Cada cuántos segundos mide Performance (pestaña Rendimiento del panel de administradores).
+		SampleSeconds = 5,
+		-- Instancias que recorre por fotograma al contar piezas, para no dar tirones.
+		CountChunk = 2000,
 	},
 
 	Cosmetics = {

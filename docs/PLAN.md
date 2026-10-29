@@ -563,12 +563,37 @@ Decisiones del 28-10-2026:
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **R1** | `Config.Budgets` con sus excepciones por id (Mono X-7, Nido, Tótem de guerra, Orangután del Manglar; Laboratorio con skin hasta 200), `Shared/VoxelMerge` (aún sin conectar), calculadora `Rendimiento` con la línea base, §6 de la skill, `CLAUDE.md` y `docs/llm-local` | — | ⏳ (hecho; falta tu aprobado) |
-| **R2** | Medición en vivo: `Performance` y la pestaña "Rendimiento" del panel de administración, en los 4 places | — | ⏳ |
+| **R2** | Medición en vivo: `Performance` y la pestaña "Rendimiento" del panel de administración, en los 4 places | — | ⏳ (hecho; falta tu aprobado; sin probar: VERIFICACION §41) |
 | **R3** | Fusión de lo estático: armas de la forja y del Laboratorio, armaduras, `RewardModels`, construibles y parcela | — | ⏳ |
 | **R4** (opcional) | Fusión de lo animado: mascotas por firma de articulación y monturas por hueso. Solo si la calculadora ahorra más de ~10 %; las tiras de poses se comparan con la skill `animaciones-roblox` | — | ⏳ (opcional) |
 | **R5** | LOD de detalle (`DetailLodController`) y su sección en la calculadora (Lobby con 20 jugadores) | — | ⏳ |
 | **R6** | Efectos de los jefes: `combatClient/BossFx` con un pool en lugar de `Debris`, una firma visual para cada uno de los 4 jefes (mini-entrevista antes) y la lluvia de rocas y la bomba de lava dibujadas en el cliente | — | ⏳ |
 | **R7** | Prueba en un teléfono con los places publicados (asedio, Dunas 5v5, Lobby con 20); después se ajustan los topes de `Config.Budgets` y `docs/RENDIMIENTO.md` | — | ⏳ |
+
+**Handoff de R3 (28-10-2026)**
+
+- **Estado:** R1 commiteada (`175d1dd`). R2 hecha pero sin commit: falta tu aprobado y el push. Conviene commitear R2 antes de empezar R3, para que el diff de R3 quede aparte. Sin probar de R2: VERIFICACION §41.
+- **Objetivo:** conectar `Shared/VoxelMerge` a los constructores estáticos: `WeaponTools.fill` (`mergeWelded` al `Handle`), `LabWeaponModels` y `LabWeaponSkins` (al `Handle`), `ArmorModels.wear` (por miembro, `Part0`, antes de `model.Parent = character`), `RewardModels`, `BuildModels` y `PlotModels` (modelo entero, anclado). No tocar `MonkeyModels.mergeBoxes`, ni conectar mascotas ni monturas (eso es R4, opcional).
+- **Lo aprendido en R1 y R2:** la fusión ahorra poco, unos 5 %: armas de 0 a 10 piezas, armadura de rango IV de 167 a 157 y legendaria de grado 4 de 266 a 231. Se conecta igualmente, sin riesgo visual; la calidad extra vendrá de los topes ×1,5 de `Config.Budgets`. Criterio de R4: solo si la calculadora ahorra más del 10 %.
+- **Riesgos:**
+  - Al fusionar, `VoxelMerge` mueve las piezas: las soldadas que ya están en Workspace cambian de `Size` y `CFrame`. Antes y después hay que comprobar que las soldaduras, el `Tool` con su `Handle` y el `ArmorPiece` quedan idénticos.
+  - Las piezas con hijos (luces, emisores, attachments) y las de la lista `keep` no se fusionan.
+  - `WeaponTools.reskin` borra todas las `BaseParts`: revisar que sigue funcionando con piezas fusionadas.
+  - Caché de `require` en Studio: prueba con un clon del módulo o de `Shared`.
+  - `Config.Budgets.Merge` es el interruptor para comparar con y sin fusión.
+  - La calculadora mide "tras fusionar" con `force = true`, aunque `Merge` esté en false.
+- **Verificación:**
+  - Calculadora `Rendimiento`: las piezas bajan y no sale ninguna alerta.
+  - Capturas por MCP antes y después de cada arma y armadura: tienen que verse idénticas.
+  - Play con copia previa de `PlayerData_v1` en `PlayerData_v1_backups`: equipar, cambiar skin, primera persona del Laboratorio, Armario, construir y parcela.
+  - Lo que no se pueda probar va a `VERIFICACION.md`, en una sección nueva.
+- **Estado y reglas:**
+  - Calculadora, en el Studio de la Isla: `local m = game.ServerStorage.Tools.Rendimiento:Clone(); print(require(m).informe()); m:Destroy()`.
+  - Línea base: 0 alertas.
+  - Isla en Play: 36.295 piezas (mapa 35.328; enemigos 782, con 95 enemigos), frente al tope de 45.000 del asedio final.
+  - Laboratorio con skin: tope de 200 piezas (decisión del usuario).
+  - Flujo: `programador` escribe el grupo, `probador-studio` corre la calculadora y Play, `documentador` hace `VERIFICACION.md` y esta fila. Commit solo cuando el usuario diga "aprobado"; push aparte.
+- **Prompt para la pestaña nueva:** «Continúa la Fase 16 de Monkey_Island_2026 con el grupo R3 (fusión de lo estático). Lee CLAUDE.md, la sección "Fase 16" de docs/PLAN.md (su Handoff de R3) y C:\Users\jose\.claude\plans\polymorphic-sleeping-sifakis.md. Antes de tocar código, confirma que R2 está aprobada y commiteada, y sigue el flujo del Handoff.»
 
 **Pendiente para fases futuras:** subir la calidad de los cosméticos del pase (trajes, skins de arma y de mascota) y de las armas del Laboratorio con el nuevo presupuesto. Se planeará cuando la Fase 16 haya fijado los topes.
 

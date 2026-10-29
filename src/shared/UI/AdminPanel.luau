@@ -9,11 +9,15 @@
 --   - 🎉 Eventos: eventos en vivo (Data/LiveEvents) ahora o programados, los que están en marcha con
 --     ⏹ para pararlos, y lo que se hace al momento en la Isla (Data/IslandActions).
 --   - 🖥️ Servidor: mantenimiento con aviso y la lista de servidores (ServerShared/ServerOps).
+--   - 📈 Rendimiento: instancias, piezas por categoría, FPS y memoria del servidor y del propio cliente,
+--     contra Config.Budgets (ServerShared/Performance). Solo mide mientras está abierta.
 --   - 📜 Registro: lo último que han hecho los administradores, en cualquier servidor.
 -- Solo sale si el servidor ha marcado al jugador con el atributo "IsAdmin", y el servidor lo vuelve
 -- a comprobar al pedirlo.
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(script.Parent.Parent.Config)
@@ -1422,12 +1426,237 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		footer.TextXAlignment = Enum.TextXAlignment.Left
 	end)
 
+	-- Página 📈 Rendimiento: mientras está abierta, el servidor manda una muestra cada
+	-- Config.Performance.SampleSeconds (ServerShared/Performance) y este cliente le devuelve la suya.
+	-- Ámbar al pasar del 80 % del tope de Config.Budgets.Matches y rojo al pasarlo (no verde: es de la curación).
+	local perfPage = scroller(pages)
+	perfPage.Name = "Perf"
+	perfPage.Size = UDim2.fromScale(1, 1)
+	list(perfPage, 4)
+	local budgets = Config.Budgets.Matches
+	local partsBudget = if place == "Island"
+		then budgets.IslandSiegeParts
+		elseif place == "Dunas" then budgets.DunasParts
+		elseif place == "Laboratorio" then budgets.LaboratorioParts
+		else budgets.LobbyParts
+	local function perfTitle(text: string, order: number)
+		local label = Widgets.label(text, perfPage)
+		label.LayoutOrder = order
+		label.Size = UDim2.new(1, -8, 0, 22)
+		label.TextColor3 = TITLE
+		label.TextXAlignment = Enum.TextXAlignment.Left
+	end
+	-- Una cuadrícula de dos columnas con una celda por clave; devuelve la celda de cada una.
+	local function perfGrid(order: number, keys: { string }, names: { [string]: string }): { [string]: TextLabel }
+		local rows = (#keys + 1) // 2
+		local box = Instance.new("Frame")
+		box.LayoutOrder = order
+		box.Size = UDim2.new(1, -8, 0, rows * 24)
+		box.BackgroundTransparency = 1
+		box.Parent = perfPage
+		local layout = Instance.new("UIGridLayout")
+		layout.CellSize = UDim2.new(0.5, -3, 0, 22)
+		layout.CellPadding = UDim2.fromOffset(6, 2)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = box
+		local cells: { [string]: TextLabel } = {}
+		for index, key in keys do
+			local cell = Widgets.label(`{names[key]}: …`, box)
+			cell.LayoutOrder = index
+			cell.BackgroundColor3 = ROW
+			cell.BackgroundTransparency = 0
+			cell.TextXAlignment = Enum.TextXAlignment.Left
+			corner(cell, 6)
+			local limit = Instance.new("UITextSizeConstraint")
+			limit.MaxTextSize = 15
+			limit.Parent = cell
+			cells[key] = cell
+		end
+		return cells
+	end
+	local PERF_OVER = Color3.fromRGB(235, 80, 70) -- pasa el tope
+	local PERF_NEAR = Color3.fromRGB(255, 170, 60) -- pasa del 80 % del tope
+	local function level(value: number, cap: number?): Color3
+		if cap and value > cap then
+			return PERF_OVER
+		elseif cap and value > cap * 0.8 then
+			return PERF_NEAR
+		end
+		return Color3.new(1, 1, 1)
+	end
+	-- Miles con punto: 45.000.
+	local function fmt(value: number): string
+		local text = string.format("%d", math.floor(value + 0.5))
+		while true do
+			local replaced, count = string.gsub(text, "^(-?%d+)(%d%d%d)", "%1.%2")
+			text = replaced
+			if count == 0 then
+				break
+			end
+		end
+		return text
+	end
+	local function show(cell: TextLabel, name: string, value: number?, text: string?, color: Color3?)
+		if value == nil then
+			cell.Text = `{name}: n/d`
+			cell.TextColor3 = SECONDARY
+			return
+		end
+		cell.Text = `{name}: {text or fmt(value)}`
+		cell.TextColor3 = color or Color3.new(1, 1, 1)
+	end
+	local PERF_SERVER_NAMES = {
+		instances = "Instancias",
+		parts = "Piezas",
+		moving = "En movimiento",
+		fps = "FPS",
+		physics = "Físicas (ms)",
+		memory = "Memoria (MB)",
+	}
+	local PERF_CATEGORY_NAMES = {
+		characters = "Personajes",
+		armor = "Armadura",
+		tools = "Herramientas",
+		pets = "Mascotas",
+		mounts = "Monturas",
+		structures = "Estructuras",
+		enemies = "Enemigos",
+		fx = "Efectos",
+		map = "Mapa",
+		other = "Otros",
+	}
+	local PERF_CLIENT_NAMES = {
+		drawCalls = "Draw calls",
+		triangles = "Triángulos",
+		memory = "Memoria (MB)",
+		fps = "FPS",
+	}
+	local perfStatus = Widgets.label("Esperando la primera muestra…", perfPage)
+	perfStatus.LayoutOrder = 1
+	perfStatus.Size = UDim2.new(1, -8, 0, 20)
+	perfStatus.TextColor3 = SECONDARY
+	perfStatus.Font = Enum.Font.BuilderSans
+	perfStatus.TextXAlignment = Enum.TextXAlignment.Left
+	perfTitle("🖥️ Servidor", 2)
+	local serverCells = perfGrid(3, { "instances", "parts", "moving", "fps", "physics", "memory" }, PERF_SERVER_NAMES)
+	perfTitle("🧱 Piezas por categoría", 4)
+	local categoryKeys =
+		{ "characters", "armor", "tools", "pets", "mounts", "structures", "enemies", "fx", "map", "other" }
+	local categoryCells = perfGrid(5, categoryKeys, PERF_CATEGORY_NAMES)
+	perfTitle("📱 Tu cliente", 6)
+	local clientCells = perfGrid(7, { "drawCalls", "triangles", "memory", "fps" }, PERF_CLIENT_NAMES)
+	local perfNote = Widgets.label("Ámbar: más del 80 % del tope · Rojo: pasa el tope (Config.Budgets).", perfPage)
+	perfNote.LayoutOrder = 8
+	perfNote.Size = UDim2.new(1, -8, 0, 20)
+	perfNote.TextColor3 = SECONDARY
+	perfNote.Font = Enum.Font.BuilderSans
+	perfNote.TextXAlignment = Enum.TextXAlignment.Left
+
+	local clientFrames = 0
+	local clientLast = os.clock()
+	local frameConnection: RBXScriptConnection? = nil
+	local perfOn = false
+	local function setPerf(on: boolean)
+		if on == perfOn then
+			return
+		end
+		perfOn = on
+		Remotes.AdminPerf:FireServer("Sub", on)
+		if frameConnection then
+			frameConnection:Disconnect()
+			frameConnection = nil
+		end
+		if on then
+			clientFrames = 0
+			clientLast = os.clock()
+			frameConnection = RunService.RenderStepped:Connect(function()
+				clientFrames += 1
+			end)
+		end
+	end
+	-- Lo que mide este cliente; lo que no existe en esta versión de Roblox no se manda.
+	local function readStat(name: string): number?
+		local ok, value = pcall(function()
+			return (Stats :: any)[name]
+		end)
+		return if ok and typeof(value) == "number" then value else nil
+	end
+	local function clientSample(): { [string]: number }
+		local now = os.clock()
+		local sample: { [string]: number } = { fps = clientFrames / math.max(now - clientLast, 0.001) }
+		clientFrames = 0
+		clientLast = now
+		sample.drawCalls = readStat("SceneDrawcallCount") :: any
+		sample.triangles = readStat("SceneTriangleCount") :: any
+		local ok, memory = pcall(function()
+			return Stats:GetTotalMemoryUsageMb()
+		end)
+		if ok then
+			sample.memory = memory
+		end
+		return sample
+	end
+	Remotes.AdminPerf.OnClientEvent:Connect(function(kind: any, data: any)
+		if not perfOn or typeof(data) ~= "table" then
+			return
+		end
+		if kind == "Server" then
+			perfStatus.Text = `{data.players or 0} jugador(es) · cada {Config.Performance.SampleSeconds} s`
+			local fps = tonumber(data.fps) or 0
+			local fpsColor = if fps < budgets.ServerFps
+				then PERF_OVER
+				elseif fps < budgets.ServerFps + 3 then PERF_NEAR
+				else nil
+			local parts = tonumber(data.parts)
+			local moving = tonumber(data.moving)
+			local physics = tonumber(data.physics)
+			show(serverCells.instances, PERF_SERVER_NAMES.instances, tonumber(data.instances))
+			show(serverCells.parts, PERF_SERVER_NAMES.parts, parts, nil, level(parts or 0, partsBudget))
+			show(
+				serverCells.moving,
+				PERF_SERVER_NAMES.moving,
+				moving,
+				nil,
+				level(moving or 0, budgets.MovedPartsPerFrame)
+			)
+			show(serverCells.fps, PERF_SERVER_NAMES.fps, fps, string.format("%.0f", fps), fpsColor)
+			show(
+				serverCells.physics,
+				PERF_SERVER_NAMES.physics,
+				if physics and physics >= 0 then physics else nil,
+				if physics then string.format("%.2f", physics) else nil
+			)
+			show(serverCells.memory, PERF_SERVER_NAMES.memory, tonumber(data.memory))
+			local cats = if typeof(data.cats) == "table" then data.cats else {}
+			for _, key in categoryKeys do
+				show(categoryCells[key], PERF_CATEGORY_NAMES[key], tonumber(cats[key]))
+			end
+			-- El cliente contesta con su muestra y el servidor la reenvía ya validada.
+			Remotes.AdminPerf:FireServer("Client", clientSample())
+		elseif kind == "Client" then
+			local drawCalls = tonumber(data.drawCalls)
+			local memory = tonumber(data.memory)
+			local clientFps = tonumber(data.fps)
+			local drawCap = if place == "Island" then budgets.IslandSiegeDrawCalls else nil
+			show(clientCells.drawCalls, PERF_CLIENT_NAMES.drawCalls, drawCalls, nil, level(drawCalls or 0, drawCap))
+			show(clientCells.triangles, PERF_CLIENT_NAMES.triangles, tonumber(data.triangles))
+			show(clientCells.memory, PERF_CLIENT_NAMES.memory, memory, nil, level(memory or 0, budgets.MemoryMB))
+			show(
+				clientCells.fps,
+				PERF_CLIENT_NAMES.fps,
+				clientFps,
+				if clientFps then string.format("%.0f", clientFps) else nil
+			)
+		end
+	end)
+
 	-- Pestañas.
 	local tabs = {
 		{ id = "Players", text = "👥 Jugadores", page = playersPage :: GuiObject, open = renderPlayers },
 		{ id = "Everyone", text = "📢 Todos", page = everyonePage :: GuiObject, open = function() end },
 		{ id = "Events", text = "🎉 Eventos", page = eventsPage :: GuiObject, open = renderRunning },
 		{ id = "Server", text = "🖥️ Servidor", page = serverPage :: GuiObject, open = requestServers },
+		{ id = "Perf", text = "📈 Rendimiento", page = perfPage :: GuiObject, open = function() end },
 		{ id = "Log", text = "📜 Registro", page = logPage :: GuiObject, open = requestLog },
 	}
 	local tabButtons: { TextButton } = {}
@@ -1445,6 +1674,7 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		end
 		picker.Visible = false
 		closeModerate()
+		setPerf(id == "Perf")
 	end
 	for index, tab in tabs do
 		local button = smallButton(tab.text, tabBar)
@@ -1464,6 +1694,7 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		else
 			picker.Visible = false
 			closeModerate()
+			setPerf(false)
 		end
 	end)
 	Players.PlayerAdded:Connect(function()

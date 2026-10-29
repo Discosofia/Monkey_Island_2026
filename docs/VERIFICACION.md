@@ -2284,6 +2284,38 @@ Probado en Play, con un jugador, en Dunas y en el Laboratorio (equipos, Todos co
 1. [ ] Cambia el idioma a English y repite el derribo de 40.1.1 con un arma a distancia.
    ✅ Salen «Knocked out by {name}», «with {weapon}» y «{hp} HP», con el nombre y el arma en su sitio. No sale ninguna frase en español.
 
+## 41. Lo que queda por probar de R2: medición en vivo del rendimiento (28-10-2026)
+
+Probado solo en la Isla, en Studio. Las cifras de FPS de Studio no valen: salió 15 porque la ventana no tenía el foco, y la memoria del cliente coincidió con la del servidor. Todo lo que sigue va con 2 jugadores, en un móvil real o en los places publicados. Empieza por 41.1.
+
+#### 41.1 En el Studio de la Isla, con 2 jugadores (*Test → Clientes y servidores*)
+
+1. [ ] Con B sin permisos de admin, mira si B ve la pestaña «📈 Rendimiento» del panel y si recibe cifras del remoto AdminPerf.
+   ✅ B no ve la pestaña y no recibe cifras. Si el servidor recibe una suscripción de B, la rechaza sin errores en la Salida.
+2. [ ] Con A y B admins, los dos abren la pestaña «📈 Rendimiento» a la vez.
+   ✅ Los dos reciben cifras cada 5 s, y ambas pestañas se actualizan sin errores en la Salida.
+3. [ ] Con A y B admins y la pestaña abierta en los dos, A sale de la partida (cierra su cliente de Studio o detén su prueba).
+   ✅ B sigue recibiendo cifras cada 5 s. El servidor no da errores al perder a A: si intenta enviarle datos después de salir, falla PlayerRemoving al limpiar el suscriptor.
+
+#### 41.2 Con la ventana de Studio en primer plano o en un móvil real
+
+1. [ ] Con la ventana de Studio en primer plano (el cliente tiene el foco), abre la pestaña «📈 Rendimiento» y deja correr un minuto. Si puedes, repite en un móvil real dentro de la Isla.
+   ✅ El FPS del cliente es el de la pantalla y no sale 15 por falta de foco. La memoria del cliente y la del servidor son cifras distintas. Los draw calls y los triángulos muestran cifras reales.
+
+#### 41.3 En el emulador de teléfono (844 × 390, con *Prueba → Dispositivo*)
+
+1. [ ] Abre el panel de administración y mira sus 6 botones de pestaña.
+   ✅ Los 6 se leen (el texto se ajusta solo con TextScaled) y ninguno queda fuera de la pantalla.
+2. [ ] Toca cada una de las 6 pestañas y vuelve a «📈 Rendimiento».
+   ✅ Cada pestaña abre sin errores en la Salida. La medición solo corre mientras «Rendimiento» está abierta.
+
+#### 41.4 En los places publicados (Lobby, Dunas, Laboratorio e Isla)
+
+1. [ ] Con admin, abre la pestaña «Rendimiento» en el Lobby, en Dunas y en el Laboratorio.
+   ✅ Sale la pestaña con cifras en los tres places, y en el móvil los 6 botones se leen.
+2. [ ] Con el juego publicado, la Isla llena (unas 36.000 piezas) y la pestaña «Rendimiento» abierta, camina y combate mientras corre el conteo cada 5 s.
+   ✅ No se notan tirones en el móvil ni en PC cada vez que se cuenta, y la Salida no muestra avisos de Performance.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

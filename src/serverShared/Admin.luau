@@ -10,7 +10,8 @@
 --   - lanzar y parar eventos en vivo (ServerShared/LiveEventsServer) y hacer cosas al momento en las
 --     partidas de la Isla (Data/IslandActions), en este servidor o en todos;
 --   - moderar a un jugador (ServerShared/Moderation), ver y arreglar su perfil (ServerShared/AdminProfile)
---     y ver los servidores o programar un mantenimiento (ServerShared/ServerOps).
+--     y ver los servidores o programar un mantenimiento (ServerShared/ServerOps);
+--   - medir el rendimiento del servidor y de su cliente en la pestaña Rendimiento (ServerShared/Performance).
 -- No toca el Ámbar, las mejoras ni los talentos. El cliente enseña el panel si el Player lleva el
 -- atributo "IsAdmin", pero el servidor lo vuelve a comprobar en cada petición.
 -- Lo cambia con PlayerData.update, así que respeta el bloqueo de sesión del perfil.
@@ -34,6 +35,7 @@ local Eggs = require(script.Parent.Eggs)
 local LiveEventsServer = require(script.Parent.LiveEventsServer)
 local Moderation = require(script.Parent.Moderation)
 local PlayerData = require(script.Parent.PlayerData)
+local Performance = require(script.Parent.Performance)
 local RequestCooldown = require(script.Parent.RequestCooldown)
 local ServerOps = require(script.Parent.ServerOps)
 
@@ -313,6 +315,7 @@ function Admin.start(placeName: string)
 	Moderation.start(Admin.isAdmin)
 	AdminProfile.start(Admin.isAdmin)
 	ServerOps.start(placeName, Admin.isAdmin)
+	Performance.start(placeName, Admin.isAdmin)
 	Remotes.AdminLiveEvent.OnServerEvent:Connect(onLiveEvent)
 	Remotes.AdminIslandAction.OnServerEvent:Connect(onIslandAction)
 	Remotes.AdminGiveAll.OnServerEvent:Connect(onGiveAll)
