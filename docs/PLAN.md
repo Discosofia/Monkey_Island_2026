@@ -648,6 +648,7 @@ Decisiones del 28-10-2026:
 | **S2** | Armas de la forja de rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) | e8217ed | ✅ Probado en Studio (sin probar: VERIFICACION §67) |
 | **S3** | Armas de la forja de rango III (Maza gruesa, Arco de liana, Cerbatana de chamán, Bastón de plata) | ec6435a | ✅ Probado en Studio (sin probar: VERIFICACION §68) |
 | **S4** | Armas de la forja de rango IV (Maza volcánica, Arco de ascuas, Cerbatana de azufre, Bastón de lava) | 9f3a7c5 | ✅ Probado en Studio (sin probar: VERIFICACION §69) |
+| **K1** | Skins de temporada Sulfur (Maza, Arco, Bastón, Cerbatana, Machete) por nivel, con topes `WeaponSkinEpic` 125 y `WeaponSkinRare` 70 | e93482a | ✅ Probado en Studio (sin probar: VERIFICACION §70) |
 
 **Handoff de A1 (29-10-2026)**
 - **Estado:** plan aprobado, nada escrito todavía. Las pruebas de la fase empiezan en VERIFICACION §49.
