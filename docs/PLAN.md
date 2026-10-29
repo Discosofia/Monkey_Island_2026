@@ -641,7 +641,7 @@ Decisiones del 28-10-2026:
 | **M3** | Ajolote (Mítico), con clips de la capibara, el ajolote y el quetzal | 88779ff | ✅ Probado en Studio (sin probar: VERIFICACION §60) |
 | **M4** | Clips propios para las mascotas antiguas (reposo, correr, andar) | 19ce22d | ✅ Probado en Studio y en Play por el usuario (VERIFICACION §61) |
 | **R1** | Armaduras de Pelaje (rango I), 4 roles | 9eaed8a | ✅ Probado en Studio (sin probar: VERIFICACION §62) |
-| **R2** | Armaduras de Hueso (rango II), 4 roles | — | ⏳ |
+| **R2** | Armaduras de Hueso (rango II), 4 roles | f32b4db | ✅ Probado en Studio (sin probar: VERIFICACION §63) |
 | **R3** | Armaduras de Plata (rango III), 4 roles | — | ⏳ |
 | **R4** | Armaduras Volcánicas (rango IV), 4 roles | — | ⏳ |
 
@@ -776,6 +776,11 @@ Decisiones del 28-10-2026:
 - **Estado:** R1 cerrada y subida (9eaed8a). R2 en curso en la misma pestaña. Siguiente número libre de VERIFICACION: §63.
 - **Objetivo:** rehacer los 4 builders del rango II (`BoneArmor`): `boneArmor`, `hunterLeather`, `runeTunic`, `healerPlastron`; tope `ArmorRank[2]` = 115. Mismo método que R1: `programador` escribe; la sesión principal mide con `Rendimiento` y captura sobre maniquíes (`HumanoidDescription` con color de piel y `ArmorModels.wear`); espalda vistosa, congruencia con el rango I y trajes míticos sin errores.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R2.»
+
+**Handoff de R3 (29-10-2026)**
+- **Estado:** R1 (9eaed8a) y R2 (f32b4db) cerradas y subidas. R3 en curso en la misma pestaña. Siguiente número libre de VERIFICACION: §64.
+- **Objetivo:** rehacer los 4 builders del rango III (`SilverArmor`): `silverArmor`, `silverHunter`, `crystalMantle`, `silverHealer`; tope `ArmorRank[3]` = 150. Mismo método que R1 y R2: `programador` escribe; la sesión principal mide con `Rendimiento` y captura sobre maniquíes (`HumanoidDescription` con color de piel y `ArmorModels.wear`); espalda vistosa y distinta de la del rango II, congruencia con I y II, y trajes míticos sin errores. Reutiliza `slabPauldron`, `discPauldron`, `leafStar`, `blockLeafFan`, `blockHood` y `monkeySkull`.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R3.»
 ---
 
 ## 4. Cronograma estimado
