@@ -2915,3 +2915,14 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
 3. [ ] Mira la Maza de hueso desde atrás y de cerca.
    ✅ La calavera colgante y el collar de colmillos no atraviesan el mango.
+
+## 68. Fase 18 S3: armas de la forja de rango III rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Mejora cada arma al rango III (Maza de hueso gruesa, Arco de liana, Cerbatana de chamán, Bastón de plata) y míralas en la mano, quietas, corriendo y atacando.
+   ✅ Se ven más ricas que las de rango II, con plata, liana y plumas de colores, y sin piezas sueltas ni atravesadas (anillos de la cabeza de la maza, hojas y colgantes del bastón, remates del arco). La pose de agarre no cambia.
+2. [ ] Dispara el arco y la cerbatana, y golpea con la maza y el bastón.
+   ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
+3. [ ] Compara los rangos I, II, III y IV de cada rol uno al lado del otro.
+   ✅ Cada rango se ve más rico que el anterior y comparten motivos; el III es claramente más simple que el volcánico.

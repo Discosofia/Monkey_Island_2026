@@ -1241,6 +1241,69 @@ local function buildThickBoneMaul(tool: Tool): BasePart
 	for _, y in { -0.85, 0.85, 2.35 } do
 		rod(handle, "Lashing", 0.14, 0.8, FIBER, FABRIC, CFrame.new(0, y, 0))
 	end
+
+	-- Rango III ("Plata y selva"): collares y remaches de plata en la cabeza, cuatro púas de hueso con
+	-- bolitas de plata, mango con vueltas de liana y hojas, anillo y tachón de plata en la base,
+	-- colgante de colmillos con engarce de plata y borla de pelaje.
+	rod(handle, "SilverCollar", 0.1, 0.98, SILVER, METAL, CFrame.new(0, 2.48, 0))
+	rod(handle, "SilverCollar", 0.1, 0.72, SILVER, METAL, CFrame.new(0, 2.12, 0))
+	for side = -1, 1, 2 do
+		-- Dos remaches en la cara de golpe de cada cóndilo.
+		ball(handle, "SilverRivet", 0.16, SILVER, METAL, CFrame.new(side * 0.45, 3.7, -0.55))
+		ball(handle, "SilverRivet", 0.16, SILVER, METAL, CFrame.new(side * 0.85, 3.2, -0.52))
+		-- Púa lateral con anillo de plata en la base y bolita de plata en la punta.
+		tooth(
+			handle,
+			"BoneSpike",
+			0.5,
+			0.2,
+			0.3,
+			BONE,
+			SMOOTH,
+			CFrame.new(side * 1.3, 3.35, 0) * CFrame.Angles(0, 0, -side * math.rad(90))
+		)
+		ball(handle, "SilverCap", 0.3, SILVER, METAL, CFrame.new(side * 1.12, 3.35, 0))
+		ball(handle, "SilverTip", 0.16, SILVER, METAL, CFrame.new(side * 1.58, 3.35, 0))
+		-- Púa en diagonal hacia arriba, con su bolita de plata.
+		tooth(
+			handle,
+			"BoneSpike",
+			0.4,
+			0.2,
+			0.3,
+			BONE,
+			SMOOTH,
+			CFrame.new(side * 1.09, 3.99, 0) * CFrame.Angles(0, 0, -side * math.rad(45))
+		)
+		ball(handle, "SilverTip", 0.16, SILVER, METAL, CFrame.new(side * 1.24, 4.14, 0))
+	end
+	-- Liana alrededor del cuero y una hoja a cada lado de la atadura de arriba.
+	wraps(handle, Vector3.new(0, -0.8, 0), Vector3.new(0, 0.8, 0), 5, 0.78, LIANA_GREEN, Vector3.zAxis)
+	leaf(handle, 1.1, CFrame.new(-0.45, 0.8, 0.1) * CFrame.Angles(0.3, 0.5, 0.9))
+	leaf(handle, 1.1, CFrame.new(0.4, 0.8, -0.15) * CFrame.Angles(-0.3, -0.5, -0.9))
+	-- Anillo y tachón de plata en la base.
+	rod(handle, "SilverRing", 0.1, 0.84, SILVER, METAL, CFrame.new(0, -1.05, 0))
+	ball(handle, "SilverStud", 0.34, SILVER, METAL, CFrame.new(0, -1.55, 0))
+	-- Colgante de colmillos con engarce de plata, a un lado del cuello.
+	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(-0.42, 2.1, 0))
+	block(handle, "SilverSetting", Vector3.new(0.12, 0.1, 0.34), SILVER, METAL, CFrame.new(-0.42, 1.88, 0))
+	for index = -1, 1 do
+		tooth(
+			handle,
+			"PendantFang",
+			if index == 0 then 0.5 else 0.36,
+			0.12,
+			0.16,
+			if index == 0 then BIG_FANG else FANG,
+			SMOOTH,
+			CFrame.new(-0.42, if index == 0 then 1.58 else 1.65, index * 0.11) * CFrame.Angles(math.pi, 0, 0)
+		)
+	end
+	-- Borla de pelaje con una cuenta de plata, al otro lado.
+	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(0.42, 2.1, 0))
+	ball(handle, "SilverBead", 0.14, SILVER, METAL, CFrame.new(0.42, 1.9, 0))
+	block(handle, "Tassel", Vector3.new(0.22, 0.4, 0.22), FUR, FABRIC, CFrame.new(0.42, 1.65, 0))
+	block(handle, "Tassel", Vector3.new(0.13, 0.2, 0.13), OCHRE_PAINT, FABRIC, CFrame.new(0.42, 1.35, 0))
 	tool.Grip = CFrame.new(0, -0.2, 0)
 	return handle
 end
@@ -1368,6 +1431,9 @@ type BowStyle = {
 	-- Rango II ("Hueso"): placas de hueso también en el tramo de la punta, sombra en la placa, borlas de
 	-- pelaje negro y plumas negras y blancas en las puntas, colmillo central y cuentas en la cuerda.
 	bone: boolean?,
+	-- Rango III ("Plata y selva"): anillos y remates de plata en las palas y la empuñadura, hojas y plumas
+	-- de colores en las puntas, vid en la empuñadura, gema teal, conchas en la cuerda y un amuleto de cristal.
+	silver: boolean?,
 }
 
 -- Arco recurvo: las palas van a lo largo de Y y se curvan hacia el arquero (+Z), donde va la cuerda;
@@ -1458,6 +1524,30 @@ local function buildBow(tool: Tool, style: BowStyle): BasePart
 			leaf(handle, 0.9, CFrame.new(tip) * CFrame.Angles(side * 0.6, 0.4, 0.3))
 			leaf(handle, 0.7, CFrame.new(tip) * CFrame.Angles(-side * 0.5, -0.5, -0.4))
 		end
+		if style.silver then
+			-- Anillos de plata en la unión y en la punta, remate de plata sobre la muesca, otra hoja y dos
+			-- plumas de colores de la selva que cuelgan de la punta.
+			band(middle, tip - middle, 0.1, SILVER, METAL)
+			band(tip, curl - tip, 0.1, SILVER, METAL)
+			ball(handle, "SilverCap", 0.3, SILVER, METAL, CFrame.new(curl + Vector3.new(0, side * 0.05, 0)))
+			leaf(handle, 0.8, CFrame.new(middle) * CFrame.Angles(side * 0.5, -0.6, 0.5))
+			block(
+				handle,
+				"Feather",
+				Vector3.new(0.04, 0.45, 0.12),
+				if side > 0 then TEAL_PAINT else FEATHER_YELLOW,
+				SMOOTH,
+				CFrame.new(0.14, curl.Y + side * 0.25, curl.Z)
+			)
+			block(
+				handle,
+				"Feather",
+				Vector3.new(0.04, 0.38, 0.12),
+				if side > 0 then RED_PAINT else TEAL_PAINT,
+				SMOOTH,
+				CFrame.new(-0.14, curl.Y + side * 0.22, curl.Z)
+			)
+		end
 		if style.lava then
 			-- Grieta por la cara de fuera de cada tramo y esquirla que sigue a la punta.
 			local out = Vector3.new(0, 0, -0.13)
@@ -1512,6 +1602,46 @@ local function buildBow(tool: Tool, style: BowStyle): BasePart
 		for _, y in { -1.5, -0.8, 0.8, 1.5 } do
 			ball(handle, "StringBead", 0.14, BONE, SMOOTH, CFrame.new(0, y, tipZ))
 		end
+	end
+
+	if style.silver then
+		-- Remates de plata en los extremos de la empuñadura, placa en su espalda con una gema teal entre
+		-- dos tachones, y vueltas de vid con hojas en la empuñadura.
+		for side = -1, 1, 2 do
+			block(handle, "SilverEnd", Vector3.new(0.38, 0.14, 0.5), SILVER, METAL, CFrame.new(0, side * 0.6, 0))
+			ball(handle, "SilverStud", 0.1, SILVER, METAL, CFrame.new(0, side * 0.2, -0.33))
+			rod(
+				handle,
+				"Vine",
+				0.1,
+				0.5,
+				LIANA_GREEN,
+				FABRIC,
+				CFrame.new(0, side * 0.42, 0) * CFrame.Angles(0.35, 0, 0)
+			)
+		end
+		block(handle, "SilverPlate", Vector3.new(0.14, 0.34, 0.1), SILVER, METAL, CFrame.new(0, 0, -0.27))
+		ball(handle, "TealGem", 0.2, TEAL_PAINT, GLASS, CFrame.new(0, 0, -0.33))
+		leaf(handle, 0.9, CFrame.new(-0.2, 0.45, 0.1) * CFrame.Angles(0.4, 0.5, 0.9))
+		leaf(handle, 0.7, CFrame.new(0.22, -0.45, 0.1) * CFrame.Angles(-0.4, -0.5, -0.9))
+		-- Conchas en la cuerda.
+		for _, y in { -2.2, -1.4, 1.4, 2.2 } do
+			ball(handle, "StringShell", 0.16, SHELL, SMOOTH, CFrame.new(0, y, tipZ))
+		end
+		-- Amuleto al otro lado de las plumas: cordón, cuenta de plata y cristal teal de dos puntas.
+		block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(-0.22, -0.55, 0))
+		ball(handle, "SilverBead", 0.12, SILVER, METAL, CFrame.new(-0.22, -0.82, 0))
+		tooth(handle, "TealCrystal", 0.3, 0.12, 0.14, TEAL_PAINT, GLASS, CFrame.new(-0.22, -1.0, 0))
+		tooth(
+			handle,
+			"TealCrystal",
+			0.2,
+			0.12,
+			0.14,
+			TEAL_PAINT,
+			GLASS,
+			CFrame.new(-0.22, -1.25, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
 	end
 
 	if style.primitive then
@@ -1578,6 +1708,10 @@ type BlowgunStyle = {
 	-- Rango II ("Hueso"): bandas anchas de hueso, boquilla tallada, bolsita de cuero con cinco dardos de
 	-- hueso (plumas rojas y blancas), atadura de fibra y dos colmillos junto a la boca.
 	bone: boolean?,
+	-- Rango III ("Plata y selva"): anillos de plata en la boquilla, la caña, la empuñadura y el engarce de
+	-- la savia, cierre de plata y dardos con anillo en la bolsita con una pluma colgando, hojas, más
+	-- conchas y un amuleto de cristal teal.
+	silver: boolean?,
 }
 
 -- Cerbatana (médico): caña larga a lo largo de Y con la boquilla abajo, junto a la mano, y una bolsita
@@ -1674,6 +1808,62 @@ local function buildBlowgun(tool: Tool, style: BlowgunStyle): BasePart
 		local sapColor = style.sapColor or Color3.fromRGB(150, 225, 120)
 		local sap = rod(handle, "Sap", 0.1, 0.33, sapColor, Enum.Material.Neon, CFrame.new(0, top - 0.25, 0))
 		glow(sap, sapColor, 8)
+	end
+	if style.silver then
+		-- Anillos de plata en la boquilla, en la boca, a lo largo de la caña y en la empuñadura.
+		for _, ringY in { -1.42, -1.2, top - 0.5 } do
+			rod(handle, "SilverRing", 0.06, 0.34, SILVER, METAL, CFrame.new(0, ringY, 0))
+		end
+		for _, ringY in { 0.38, 1.15, 1.92 } do
+			rod(handle, "SilverRing", 0.1, 0.31, SILVER, METAL, CFrame.new(0, ringY, 0))
+		end
+		for _, ringY in { -0.42, -1.0 } do
+			rod(handle, "SilverRing", 0.06, 0.33, SILVER, METAL, CFrame.new(0, ringY, 0))
+		end
+		-- Bolsita: cierre y hebilla de plata, anillo de plata en cada dardo y una pluma que cuelga.
+		block(handle, "SilverClasp", Vector3.new(0.22, 0.08, 0.34), SILVER, METAL, CFrame.new(0.2, 0.08, 0))
+		block(handle, "SilverBuckle", Vector3.new(0.04, 0.14, 0.14), SILVER, METAL, CFrame.new(0.31, -0.05, 0))
+		for index = -1, 1 do
+			local dart = CFrame.new(0.2, 0.2, index * 0.08) * CFrame.Angles(index * 0.15, 0, 0)
+			rod(handle, "SilverBand", 0.05, 0.08, SILVER, METAL, dart * CFrame.new(0, 0.1, 0))
+		end
+		block(handle, "Cord", Vector3.new(0.03, 0.2, 0.03), FIBER, FABRIC, CFrame.new(0.2, -0.38, 0.1))
+		block(handle, "Feather", Vector3.new(0.04, 0.42, 0.12), FEATHER_YELLOW, SMOOTH, CFrame.new(0.2, -0.68, 0.1))
+		-- Hojas en la caña.
+		leaf(handle, 0.8, CFrame.new(0.17, 1.4, 0.06) * CFrame.Angles(0.3, 0.4, -0.9))
+		leaf(handle, 0.7, CFrame.new(-0.17, 0.5, -0.06) * CFrame.Angles(-0.3, -0.4, 0.9))
+		-- Dos conchas más junto a la boca, colgando de cordones.
+		for side = -1, 1, 2 do
+			block(
+				handle,
+				"Cord",
+				Vector3.new(0.03, 0.3, 0.03),
+				FIBER,
+				FABRIC,
+				CFrame.new(-0.16, top - 0.65, side * 0.06)
+			)
+			ball(handle, "Shell", 0.16, SHELL, SMOOTH, CFrame.new(-0.16, top - 0.88, side * 0.06))
+		end
+		-- Amuleto de cristal teal de dos puntas con cuenta de plata, colgando de un cordón a media caña.
+		block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(-0.19, 1.45, 0))
+		ball(handle, "SilverBead", 0.12, SILVER, METAL, CFrame.new(-0.19, 1.2, 0))
+		tooth(handle, "TealCrystal", 0.3, 0.12, 0.14, TEAL_PAINT, GLASS, CFrame.new(-0.19, 1.03, 0))
+		tooth(
+			handle,
+			"TealCrystal",
+			0.2,
+			0.12,
+			0.14,
+			TEAL_PAINT,
+			GLASS,
+			CFrame.new(-0.19, 0.78, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
+		-- Engarce de plata a ambos lados del anillo de savia.
+		if style.sap then
+			for _, ringY in { top - 0.34, top - 0.16 } do
+				rod(handle, "SilverRing", 0.05, 0.37, SILVER, METAL, CFrame.new(0, ringY, 0))
+			end
+		end
 	end
 	if style.sulfur then
 		-- Cristal de azufre de "size" abierto hacia fuera desde la caña: funda amarilla y núcleo que brilla.
@@ -3322,6 +3512,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			plates = false,
 			liana = true,
 			fang = false,
+			silver = true,
 		})
 	end,
 	-- El más largo: palas de obsidiana con grietas de lava, empuñadura de basalto, puntas de esquirla,
@@ -3401,6 +3592,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			shells = true,
 			feathers = { TEAL_PAINT, FEATHER_YELLOW, RED_PAINT },
 			sap = true,
+			silver = true,
 		})
 	end,
 	-- La más larga: caña de basalto con anillos de azufre, boquilla de obsidiana con dos esquirlas,
@@ -3598,6 +3790,84 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 					)
 				end
 				tooth(handle, "MandrillFang", 0.7, 0.2, 0.34, MANDRILL_FANG, SMOOTH, CFrame.new(0, top + 1.45, 0))
+				-- Rango III ("Plata y selva"): engarce de garras con nudillos de plata y una corona de cuatro
+				-- puntas de plata sobre el collar, anillos de plata con hojas, colgante de colmillos y conchas,
+				-- plumas de colores y puntera de plata.
+				for index = 0, 3 do
+					local angle = index * math.pi / 2 + math.pi / 4
+					ball(
+						handle,
+						"ClawKnuckle",
+						0.17,
+						SILVER,
+						METAL,
+						CFrame.new(math.sin(angle) * 0.5625, top + 0.5, math.cos(angle) * 0.5625)
+					)
+				end
+				for index = 0, 3 do
+					local angle = index * math.pi / 2
+					tooth(
+						handle,
+						"CrownTooth",
+						0.3,
+						0.1,
+						0.14,
+						SILVER,
+						METAL,
+						CFrame.new(math.sin(angle) * 0.22, top + 0.3, math.cos(angle) * 0.22)
+							* CFrame.Angles(0, angle, 0)
+							* CFrame.Angles(0.45, 0, 0)
+					)
+				end
+				for _, y in { -1.3, 0, 0.9, 1.8 } do
+					rod(handle, "SilverBand", 0.1, 0.4, SILVER, METAL, CFrame.new(0, y, 0))
+				end
+				leaf(handle, 1, CFrame.new(-0.25, 0.9, 0.1) * CFrame.Angles(0.3, 0.5, 0.9))
+				leaf(handle, 0.9, CFrame.new(0.05, 0.9, -0.25) * CFrame.Angles(-0.8, 0.2, 0.1))
+				leaf(handle, 0.9, CFrame.new(0.25, -0.15, 0.1) * CFrame.Angles(-0.3, -0.5, -0.9))
+				leaf(handle, 0.8, CFrame.new(-0.05, 0, 0.25) * CFrame.Angles(0.8, -0.2, 0.1))
+				-- Colgante de colmillos con engarce de plata y dos conchas.
+				block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(0.22, 0.75, 0))
+				block(handle, "SilverSetting", Vector3.new(0.1, 0.1, 0.3), SILVER, METAL, CFrame.new(0.22, 0.48, 0))
+				for index = -1, 1 do
+					tooth(
+						handle,
+						"PendantFang",
+						if index == 0 then 0.38 else 0.28,
+						0.1,
+						0.14,
+						if index == 0 then BIG_FANG else FANG,
+						SMOOTH,
+						CFrame.new(0.22, if index == 0 then 0.26 else 0.3, index * 0.09) * CFrame.Angles(math.pi, 0, 0)
+					)
+				end
+				for side = -1, 1, 2 do
+					ball(handle, "Shell", 0.16, SHELL, SMOOTH, CFrame.new(0.22, 0.4, side * 0.22))
+				end
+				-- Plumas de colores colgando de un cordón del otro lado.
+				block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(-0.22, 0.95, 0))
+				for index, color in { TEAL_PAINT, FEATHER_YELLOW, RED_PAINT } do
+					block(
+						handle,
+						"Feather",
+						Vector3.new(0.04, 0.45, 0.12),
+						color,
+						SMOOTH,
+						CFrame.new(-0.23, 0.55, (index - 2) * 0.1) * CFrame.Angles((index - 2) * 0.2, 0, 0)
+					)
+				end
+				-- Puntera de plata en la base.
+				rod(handle, "SilverFerrule", 0.3, 0.38, SILVER, METAL, CFrame.new(0, -top + 0.15, 0))
+				tooth(
+					handle,
+					"SilverSpike",
+					0.22,
+					0.16,
+					0.22,
+					SILVER,
+					METAL,
+					CFrame.new(0, -top - 0.28, 0) * CFrame.Angles(math.pi, 0, 0)
+				)
 			end,
 		})
 	end,
