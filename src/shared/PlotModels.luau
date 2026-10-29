@@ -10,6 +10,7 @@
 --     con una gema de ámbar que brilla encima del mástil.
 
 local PlotStructures = require(script.Parent.Data.PlotStructures)
+local VoxelMerge = require(script.Parent.VoxelMerge)
 
 local WOOD = Color3.fromRGB(125, 85, 50)
 local DARK_WOOD = Color3.fromRGB(85, 55, 32)
@@ -1045,6 +1046,7 @@ function PlotModels.build(structureId: string, level: number): Model
 	bounds.Parent = model
 	model.PrimaryPart = bounds
 	builder({ model = model, size = definition.size, level = level, bottom = -definition.size.Y / 2 })
+	VoxelMerge.mergeStatic(model)
 	return model
 end
 

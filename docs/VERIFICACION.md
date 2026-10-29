@@ -2316,6 +2316,34 @@ Probado solo en la Isla, en Studio. Las cifras de FPS de Studio no valen: salió
 2. [ ] Con el juego publicado, la Isla llena (unas 36.000 piezas) y la pestaña «Rendimiento» abierta, camina y combate mientras corre el conteo cada 5 s.
    ✅ No se notan tirones en el móvil ni en PC cada vez que se cuenta, y la Salida no muestra avisos de Performance.
 
+## 42. Lo que queda por probar de R3: fusión de lo estático (28-10-2026)
+
+Hecho en Studio: calculadora `Rendimiento` sin alertas, soldaduras y volumen iguales con y sin fusión en 38 armas y aspectos, 6 armaduras y trajes, 33 construibles y estructuras de parcela, las armas del Laboratorio y las imágenes de `RewardModels`. Falta lo que pide Play, ver el aspecto o más de un jugador.
+
+#### 42.1 En Play en la Isla (haz copia de tu perfil en `PlayerData_v1_backups` antes)
+
+1. [ ] Equipa una arma de la forja de nivel 4 y un aspecto de arma, golpea a un mono y cambia de aspecto en el Armario con el arma en la mano.
+   ✅ El arma se ve igual que antes de R3, el golpe funciona y al cambiar de aspecto se rehace sin piezas sueltas.
+2. [ ] Ponte una armadura de rango IV y un traje mítico, y míralos de frente y por detrás.
+   ✅ Se ven igual que antes (sin huecos ni piezas desplazadas) y siguen al personaje al correr y saltar.
+3. [ ] Construye una baliza, un nido, una hoguera y un tótem de guerra, y en la parcela una incubadora con huevos.
+   ✅ La baliza enciende su luz roja, la incubadora pinta cada huevo con su rareza y el nido se puede usar.
+
+#### 42.2 En Play en el Laboratorio
+
+1. [ ] Equipa un arma con skin de bajas y mírala en primera persona y desde fuera.
+   ✅ Se ve igual que antes; en primera persona no tapa la mira.
+
+#### 42.3 En el Lobby y el pase
+
+1. [ ] Abre el pase, las tiendas de cosméticos y la decoración del nido, y mira las imágenes de Ámbar, tiempo de huevo, provisiones, estilos de números y de estallidos.
+   ✅ Las imágenes se ven completas, sin cortes ni piezas que falten.
+
+#### 42.4 Con el juego publicado
+
+1. [ ] Con admin, compara la pestaña «Rendimiento» de la Isla antes y después de construir varios edificios.
+   ✅ Las piezas de estructuras suben menos que antes de R3 por edificio.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -29,6 +29,7 @@ local NestDecor = require(script.Parent.NestDecor)
 local NumberStyles = require(script.Parent.UI.NumberStyles)
 local PetModels = require(script.Parent.PetModels)
 local Pets = require(script.Parent.Data.Pets)
+local VoxelMerge = require(script.Parent.VoxelMerge)
 local WeaponTools = require(script.Parent.WeaponTools)
 
 local UNIT = 0.25
@@ -100,6 +101,12 @@ local function newModel(name: string): Model
 	return model
 end
 
+-- Une los bloques vecinos del mismo color de un modelo hecho con "box" (VoxelMerge, Fase 16).
+local function finish(model: Model): Model
+	VoxelMerge.mergeStatic(model)
+	return model
+end
+
 -- Un cristal de ámbar: prisma fino que se afila en escalones hasta la punta, con una arista clara.
 local function crystal(model: Model, at: CFrame, height: number)
 	box(model, Vector3.new(0, height * 0.4, 0), Vector3.new(2, height * 0.8, 2), AMBER, nil, at)
@@ -143,7 +150,7 @@ function RewardModels.amber(amount: number): Model
 			* CFrame.Angles(0, math.rad(index * 23), 0)
 		crystal(model, at, spot.h)
 	end
-	return model
+	return finish(model)
 end
 
 -- Reloj de arena (tiempo para el huevo del nido), junto a un huevo.
@@ -174,7 +181,7 @@ function RewardModels.eggTime(): Model
 	box(model, Vector3.new(0, 1.9, 0), Vector3.new(3, 1.8, 3), SAND, Enum.Material.Sand, at)
 	box(model, Vector3.new(0, 6.1, 0), Vector3.new(2, 1, 2), SAND, Enum.Material.Sand, at)
 	box(model, Vector3.new(0, 4.2, 0), Vector3.new(0.3, 2.4, 0.3), SAND, nil, at)
-	return model
+	return finish(model)
 end
 
 function RewardModels.egg(rarity: string): Model
@@ -302,7 +309,7 @@ function RewardModels.items(itemIds: { string }): Model
 		local x = if #shown == 1 then 0 else (index - 1.5) * 2.6
 		ITEMS[itemId](model, CFrame.new(x, 0, (index - 1) * 0.6) * CFrame.Angles(0, math.rad(-15 + index * 10), 0))
 	end
-	return model
+	return finish(model)
 end
 
 -- Modelo del premio (lo más valioso: cosmético > huevo > Ámbar > tiempo de huevo > provisiones).
@@ -375,7 +382,7 @@ function RewardModels.numberStyle(cosmeticId: string): Model?
 	local model = newModel("EstiloDeNumeros")
 	voxelText(model, "99", style.colors, style.edge, 0.45, CFrame.new(0, 1.4, 0) * CFrame.Angles(0, 0, math.rad(-6)))
 	model.WorldPivot = CFrame.identity
-	return model
+	return finish(model)
 end
 
 -- Estilo de los estallidos: la estrella de cómic del crítico con sus colores (estrella de fondo de
@@ -436,7 +443,7 @@ function RewardModels.burstStyle(cosmeticId: string): Model?
 		at * CFrame.new(0, 0.1, -0.45) * CFrame.Angles(0, 0, math.rad(-8))
 	)
 	model.WorldPivot = CFrame.identity
-	return model
+	return finish(model)
 end
 
 -- Decoración del nido: la decoración alrededor de un nido de ramitas pequeño con un huevo dentro.
@@ -486,7 +493,7 @@ function RewardModels.nestDecor(cosmeticId: string): Model?
 	end
 	decor:Destroy()
 	model.WorldPivot = CFrame.identity
-	return model
+	return finish(model)
 end
 
 -- Skin de mascota: la mascota de la skin (o la de "petShown", o la primera de su familia) con la skin puesta.

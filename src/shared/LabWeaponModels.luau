@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LabVoxel = require(ReplicatedStorage.Shared.LabVoxel)
 local LabWeaponSkins = require(ReplicatedStorage.Shared.LabWeaponSkins)
+local VoxelMerge = require(ReplicatedStorage.Shared.VoxelMerge)
 
 export type Faction = "Guardians" | "Pirates"
 
@@ -360,6 +361,7 @@ function LabWeaponModels.build(tool: Tool, weaponId: string, faction: Faction, s
 	if skinId and LabWeaponSkins.fits(skinId, weaponId) then
 		LabWeaponSkins.apply(handle, skinId, faction)
 	end
+	VoxelMerge.mergeWelded(tool)
 	return handle
 end
 

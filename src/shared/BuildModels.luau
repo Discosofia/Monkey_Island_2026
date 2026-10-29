@@ -6,6 +6,7 @@
 
 local Buildables = require(script.Parent.Data.Buildables)
 local Config = require(script.Parent.Config)
+local VoxelMerge = require(script.Parent.VoxelMerge)
 
 local WOOD = Color3.fromRGB(125, 85, 50)
 local DARK_WOOD = Color3.fromRGB(85, 55, 32)
@@ -801,6 +802,7 @@ function BuildModels.build(buildableId: string): Model
 	bounds.Parent = model
 	model.PrimaryPart = bounds
 	builder(model, definition.size)
+	VoxelMerge.mergeStatic(model)
 	return model
 end
 

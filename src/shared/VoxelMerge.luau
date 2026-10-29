@@ -6,6 +6,8 @@
 --   merge(parts, frame, opts)   fusiona "parts", que están fijas respecto a "frame" (el CFrame del ancla: el
 --                               Handle, un miembro, un hueso o la Root).
 --   mergeWelded(model, opts)    agrupa por la Part0 de sus soldaduras y llama a merge por cada ancla.
+--   mergeStatic(model, opts)    un modelo de piezas fijas sin soldaduras (construibles, parcela, imágenes de
+--                               premio): todas sus Parts, en el marco de su pivote.
 --   count(model)                piezas del modelo y cuántas llevan la etiqueta "Detalle".
 --
 -- Cómo funciona: pasa cada caja al espacio local del ancla, las agrupa por una clave (color, material,
@@ -60,6 +62,14 @@ local KEEP: { [string]: boolean } = {
 	Bounds = true,
 	Root = true,
 	Seat = true,
+	-- El servidor las busca por nombre para pintarlas (la baliza, el nido y la incubadora de la parcela).
+	Lamp = true,
+	Tower = true,
+	EggSeat = true,
+	Egg = true,
+	EggTop = true,
+	Egg2 = true,
+	Egg2Top = true,
 }
 
 -- Una caja alineada con los ejes del ancla: esquinas mínima y máxima (x, y, z) en su espacio local, la parte
@@ -380,6 +390,19 @@ function VoxelMerge.mergeWelded(model: Instance, opts: Options?): Result
 		total.detail += result.detail
 	end
 	return total
+end
+
+-- Fusiona todas las Parts de "model", que no se mueven entre sí (sin soldaduras: construibles, estructuras de
+-- parcela, imágenes de premio), en el marco de su pivote.
+function VoxelMerge.mergeStatic(model: Instance, opts: Options?): Result
+	local parts: { BasePart } = {}
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			table.insert(parts, descendant)
+		end
+	end
+	local frame = if model:IsA("Model") then model:GetPivot() else CFrame.identity
+	return VoxelMerge.merge(parts, frame, opts)
 end
 
 -- Piezas (BasePart) de "model" y cuántas llevan la etiqueta "Detalle".

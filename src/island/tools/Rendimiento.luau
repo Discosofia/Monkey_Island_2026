@@ -160,14 +160,7 @@ end
 
 -- Fusión de un modelo de piezas fijas, sin soldaduras (construibles y parcela): todo en el marco del modelo.
 local function fusionEstatica(clon: Instance)
-	local partes = {}
-	for _, descendiente in clon:GetDescendants() do
-		if descendiente:IsA("BasePart") then
-			table.insert(partes, descendiente)
-		end
-	end
-	local marco = if clon:IsA("Model") then clon:GetPivot() else CFrame.identity
-	VoxelMerge.merge(partes, marco, OPCIONES_FUSION)
+	VoxelMerge.mergeStatic(clon, OPCIONES_FUSION)
 end
 
 local function celda(valor: number?): string

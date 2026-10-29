@@ -33,6 +33,7 @@ local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Strings = require(ReplicatedStorage.Shared.Strings)
+local VoxelMerge = require(ReplicatedStorage.Shared.VoxelMerge)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 
 local WOOD = Color3.fromRGB(110, 72, 40)
@@ -3253,6 +3254,7 @@ local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: nu
 	else
 		BUILDERS[shownId](tool)
 	end
+	VoxelMerge.mergeWelded(tool)
 end
 
 -- Lo que dice la herramienta del arma al pasar por encima ("Machete: 12 de daño · golpea árboles"), en el

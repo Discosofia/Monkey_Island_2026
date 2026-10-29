@@ -75,6 +75,7 @@
 -- médico (Manto de azufre) una mochila con un racimo de cristales de azufre y chimeneas de humo.
 
 local Armor = require(game:GetService("ReplicatedStorage").Shared.Data.Armor)
+local VoxelMerge = require(game:GetService("ReplicatedStorage").Shared.VoxelMerge)
 
 local FUR = Color3.fromRGB(150, 70, 45)
 local FUR_DARK = Color3.fromRGB(122, 55, 36)
@@ -5878,6 +5879,8 @@ function ArmorModels.wear(
 	elseif armor then
 		armor(body)
 	end
+	-- Por miembro (Part0 de las soldaduras), antes de ponerlo en el personaje.
+	VoxelMerge.mergeWelded(model)
 	model.Parent = character
 	return model
 end
