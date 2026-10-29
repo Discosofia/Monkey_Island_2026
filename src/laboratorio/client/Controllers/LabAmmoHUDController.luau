@@ -19,7 +19,6 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
@@ -153,25 +152,6 @@ function LabAmmoHUDController:Start()
 	local lastShotAt = -math.huge
 	WeaponController.onShot(function()
 		lastShotAt = os.clock()
-	end)
-
-	-- Marca de impacto en la mira: cada golpe tuyo a otro (en el Laboratorio solo hay jugadores). En PvP el
-	-- servidor lo manda como "Taken" con "by" = tú; el de la cabeza va en rojo.
-	Remotes.CombatText.OnClientEvent:Connect(function(batch: any)
-		local handle = FirstPersonController.crosshair()
-		if typeof(batch) ~= "table" or not handle then
-			return
-		end
-		for _, entry in batch do
-			if
-				typeof(entry) == "table"
-				and entry.by == player.UserId
-				and entry.target ~= player.Character
-				and (entry.kind == "Taken" or entry.kind == "Dealt")
-			then
-				handle.hit(entry.head == true)
-			end
-		end
 	end)
 
 	RunService.RenderStepped:Connect(function()

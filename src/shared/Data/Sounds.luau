@@ -63,6 +63,10 @@ local Effects: { [string]: Effect } = {
 	LabEmpty = { id = CLICK, volume = 0.5, pitch = 1.9, jitter = 0.04 }, -- Provisional: "dry trigger click, empty gun"
 	LabDraw = { id = JUMP, volume = 0.3, pitch = 1.9, jitter = 0.06 }, -- Provisional: "short weapon draw, cloth and metal rub"
 	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta a un mono o jefe (carne)
+	-- Confirmación de impacto del tirador (Fase 19, W3; Sfx.playLocal, en 2D). Provisionales con ids de serie.
+	HitBody = { id = CLICK, volume = 0.6, pitch = 1.4, jitter = 0.04 }, -- Provisional: "tac" seco y corto
+	HitHead = { id = CLICK, volume = 0.8, pitch = 2.3, jitter = 0.03 }, -- Provisional: "dink" metálico, más agudo
+	HitKill = { id = WATER, volume = 0.9, pitch = 2.2, jitter = 0.04 }, -- Provisional: "pop" de muerte
 	PlayerHurt = { id = OUCH, volume = 0.6, pitch = 1, jitter = 0.08 },
 	PlayerDown = { id = OOF, volume = 0.7, pitch = 0.9 },
 	-- Guardia (Fase 10, C5; Combat/Guard) y el resto del combate v2 (C12): audios de Pro Sound Effects y de

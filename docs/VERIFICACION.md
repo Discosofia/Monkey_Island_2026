@@ -3087,3 +3087,37 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El aviso `ContentId: rbxassetid://203785492 failed … Asset type does not match requested type` (salió 3 veces, de origen desconocido y quizá anterior a W2) no aparece al usar las armas. Si sigue saliendo, se anota aparte: no es de W2.
 
 Nota: el disparo real (clic) no se pudo lanzar desde el MCP. Hay que probarlo a mano en los pasos de disparo de arriba.
+
+## 76. Fase 19 W3: confirmación de impacto (29-10-2026)
+
+**2 jugadores en Studio (Clients and Servers) o publicado, con el tirador y el otro jugador en Dunas, la Isla y el Laboratorio:**
+
+1. [ ] Como tirador, dispara con un arma a distancia a un cuerpo del otro jugador (en Dunas y la Isla, con la ayuda de puntería; en el Laboratorio, con el lanzadardos o el rifle).
+   ✅ Aparece un hitmarker blanco en la mira (en la Isla, sin mira, en el centro de la pantalla) y se apaga en unos 0,3 s. Suena «tac».
+2. [ ] Como tirador, dispara a la cabeza del otro jugador.
+   ✅ El hitmarker sale amarillo-naranja y más grande (unas 1,3 veces). Suena «dink», más fuerte que el «tac».
+3. [ ] Como tirador, mata al otro jugador de un disparo.
+   ✅ Sale la marca de muerte más grande (unas 1,6 veces) y dura más (unos 0,45 s), con un «pop» más largo que los otros dos.
+4. [ ] Como tirador, dispara a alguien que tiene la guardia levantada (Dunas y la Isla).
+   ✅ El hitmarker sale gris azulado, no blanco.
+5. [ ] Mira al otro jugador mientras le das con varios disparos.
+   ✅ No oye los «tac», «dink» ni «pop» de tus aciertos: son solo para el tirador.
+6. [ ] Con lag simulado de 150 ms (Network Simulation de Studio), dispara a un cuerpo y a la cabeza.
+   ✅ La marca aparece al llegar la confirmación del servidor, sin agrupar con otras y sin esperar al lote de 0,1 s de `CombatText`.
+7. [ ] Dispara una ráfaga de dardos sostenida contra un jugador durante unos 3 s.
+   ✅ Como mucho sale un aviso cada 0,05 s por tirador. Una muerte sí se ve aunque caiga dentro de ese intervalo.
+
+**Muñecos de práctica, un jugador en Play (Lobby, Isla, Laboratorio o Dunas):**
+
+1. [ ] En el Lobby, dispara con un arma a distancia a un muñeco de práctica.
+   ✅ La marca sale en el centro de la pantalla (no hay mira) y suena «tac».
+2. [ ] En la Isla, repite con un arma a distancia contra un muñeco de práctica.
+   ✅ Mismo resultado que en el Lobby: marca en el centro y «tac». Los muñecos no tienen cabeza hasta W6, así que el amarillo-naranja no se prueba aquí.
+3. [ ] En el Laboratorio o en Dunas, dispara a un blanco con un arma a distancia y mira dónde aparece la marca.
+   ✅ La marca sale en la mira, no en el centro de la pantalla.
+4. [ ] Pega con el arma de cuerpo a cuerpo a un muñeco y usa una habilidad que hace daño.
+   ✅ No aparece marca ni suena «tac», «dink» ni «pop». Solo avisan los disparos a distancia.
+
+Nota: lo ya probado en Studio (cliente del Laboratorio: marcador en el centro, colores y escala correctos para Body, Head, Kill y Blocked; sin errores en consola) no se repite aquí.
+
+Nota: los sonidos «tac», «dink» y «pop» son provisionales (ids de serie). Están pendientes de reemplazar y no se juzga su calidad hasta entonces.

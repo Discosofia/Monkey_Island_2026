@@ -59,6 +59,7 @@ local ComboScaling = require(script.Parent.Parent.ComboScaling)
 local Evasive = require(script.Parent.Parent.Evasive)
 local Feint = require(script.Parent.Parent.Feint)
 local Hitbox = require(script.Parent.Parent.Hitbox)
+local HitFeedback = require(script.Parent.Parent.HitFeedback)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
 local PositionHistory = require(script.Parent.Parent.PositionHistory)
@@ -136,6 +137,12 @@ export type HitOptions = {
 
 local NO_HIT_OPTIONS: HitOptions = {}
 
+-- true si "source" es el id de un arma a distancia: solo esos golpes avisan al tirador (HitFeedback).
+local function isRangedWeapon(source: string?): boolean
+	local weapon = if source then Weapons[source] else nil
+	return weapon ~= nil and weapon.kind == "Ranged"
+end
+
 -- Fracción de daño extra mientras dura un estado de "model" que la guarda en "bonusAttribute".
 local function bonusWhile(model: Model, untilAttribute: string, bonusAttribute: string): number
 	local untilTime = model:GetAttribute(untilAttribute)
@@ -187,6 +194,9 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	end
 	humanoid:TakeDamage(amount)
 	local ko = alive and humanoid.Health <= 0
+	if attacker and not hit.pet and not hit.poison and isRangedWeapon(hit.source) then
+		HitFeedback.send(attacker, if ko then "Kill" else "Body", model:GetPivot().Position, hit.source)
+	end
 	if hit.poison then
 		CombatText.poison(model, amount, attacker, ko)
 	else
@@ -429,13 +439,17 @@ local function markGuardSpent(victim: Player, key: string)
 	spent[key] = clock
 end
 
+-- Aviso de impacto al tirador (HitFeedback): con qué arma, y si la guardia del rival lo ha frenado.
+type PvPFeedback = { weaponId: string, blocked: boolean? }
+
 local function applyPvP(
 	attacker: Player,
 	victim: Player,
 	amount: number,
 	crit: boolean?,
 	poison: boolean?,
-	head: boolean?
+	head: boolean?,
+	feedback: PvPFeedback?
 )
 	local character = victim.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
@@ -460,9 +474,23 @@ local function applyPvP(
 		flash(character)
 	end
 	ComboService.onActivity(attacker)
+	-- Dónde se ve el impacto: la cabeza si dio ahí, si no el centro del cuerpo.
+	local hitPart = if head then character:FindFirstChild("Head") else nil
+	local hitPosition = if hitPart and hitPart:IsA("BasePart") then hitPart.Position else character:GetPivot().Position
 	if amount <= 0 then
 		CombatText.absorbed(victim, attacker)
+		if feedback and not poison then
+			HitFeedback.send(attacker, "Blocked", hitPosition, feedback.weaponId)
+		end
 		return
+	end
+	if feedback and not poison then
+		local kind: HitFeedback.Kind = if humanoid.Health - amount <= 0
+			then "Kill"
+			elseif feedback.blocked then "Blocked"
+			elseif head then "Head"
+			else "Body"
+		HitFeedback.send(attacker, kind, hitPosition, feedback.weaponId)
 	end
 	CombatRules.get().onPvPHit(attacker, victim, amount)
 	if poison then
@@ -497,13 +525,16 @@ function CombatService.damagePvP(
 	crit: boolean?,
 	poison: boolean?,
 	guard: PvPGuard?,
-	head: boolean?
+	head: boolean?,
+	weaponId: string?
 ): boolean
 	if not CombatService.canHitPlayer(attacker, victim) then
 		return false
 	end
+	-- Solo los disparos (con id de arma) avisan al tirador.
+	local feedback: PvPFeedback? = if weaponId then { weaponId = weaponId } else nil
 	if poison or not guard then
-		applyPvP(attacker, victim, amount, crit, poison, head)
+		applyPvP(attacker, victim, amount, crit, poison, head, feedback)
 		return true
 	end
 	local at = Workspace:GetServerTimeNow()
@@ -529,7 +560,15 @@ function CombatService.damagePvP(
 			scale *= ComboScaling.damageFactor(ComboScaling.register(victim, guard.hitKey))
 		end
 		if outcome ~= "Parried" then
-			applyPvP(attacker, victim, amount * scale, crit, false, head)
+			if feedback and outcome == "Blocked" then
+				feedback.blocked = true
+			end
+			applyPvP(attacker, victim, amount * scale, crit, false, head, feedback)
+		elseif feedback then
+			local victimCharacter = victim.Character
+			if victimCharacter then
+				HitFeedback.send(attacker, "Blocked", victimCharacter:GetPivot().Position, feedback.weaponId)
+			end
 		end
 		if guard.onResult then
 			guard.onResult(outcome)
@@ -1005,7 +1044,7 @@ local function rangedAttack(
 				end
 			end
 			if not rules.guard then
-				CombatService.damagePvP(player, victim, amount * pvpScale, crit, nil, nil, head)
+				CombatService.damagePvP(player, victim, amount * pvpScale, crit, nil, nil, head, weaponId)
 				landed()
 				return true
 			end
@@ -1017,7 +1056,7 @@ local function rangedAttack(
 						landed()
 					end
 				end,
-			}, head)
+			}, head, weaponId)
 			return true
 		end
 		local humanoid = model:FindFirstChildOfClass("Humanoid")

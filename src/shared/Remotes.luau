@@ -40,6 +40,9 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): lote de números de combate (Combat/CombatText). Cada uno:
 	-- { target = modelo, amount, kind = "Taken"|"Heal"|"Dealt"|"Poison"|"Absorbed", crit, by = UserId?, pet }.
 	CombatText = remoteEvent("CombatText"),
+	-- Servidor -> tirador (Fase 19, W3): confirmación de impacto de su disparo (kind "Body"|"Head"|"Limb"|"Weak"|
+	-- "Kill"|"Blocked", posición del impacto, id del arma). Sin agrupar (Combat/HitFeedback).
+	HitFeedback = remoteEvent("HitFeedback"),
 	-- Servidor -> cliente (Isla): has recogido algo (itemId, cantidad). Lo dibuja CombatTextController
 	-- en la columna de lo recogido, como los números de combate.
 	Loot = remoteEvent("Loot"),

@@ -2274,6 +2274,21 @@ local Config = {
 		MarkerTransparency = 0.55,
 		LavaPoolSeconds = 4, -- lo que dura el charco incandescente
 	},
+
+	-- Confirmación de impacto del tirador (Fase 19, W3; Combat/HitFeedback y CombatClient/HitFeedbackController):
+	-- cuatro rayitas en diagonal en la mira (o el centro), blancas; la cabeza, más grande y amarillo-naranja; la
+	-- muerte, un «pop» más grande y más largo. Medidas en píxeles.
+	HitFeedback = {
+		MarkerLength = 14, -- largo de cada rayita
+		Width = 3, -- grosor
+		Gap = 12, -- distancia de cada rayita al centro, en cada eje
+		Seconds = 0.3, -- lo que dura el aviso normal
+		HeadScale = 1.3, -- escala del golpe a la cabeza
+		KillScale = 1.6, -- escala de la muerte (crece hasta ahí y se desvanece)
+		KillSeconds = 0.45,
+		MinIntervalSeconds = 0.05, -- como mucho un aviso cada tanto por tirador (las muertes siempre pasan)
+		Volume = { Body = 0.6, Head = 0.8, Kill = 0.9 }, -- volumen del sonido de cada tipo
+	},
 }
 
 return Config

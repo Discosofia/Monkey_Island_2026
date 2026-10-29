@@ -6,13 +6,12 @@
 --     root          el Frame (se puede mover: Dunas lo coloca sobre el ratón).
 --     setSpread(px) separación extra de los brazos, en píxeles (la dispersión real del arma; solo con la mira
 --                   dinámica). 0 es el reposo. Se suaviza sola.
---     hit(strong)   marca de impacto: rayas en diagonal que se apagan (roja si strong, el golpe a la cabeza).
 --     setCooldown(f) anillo de recarga alrededor de la mira, de 0 a 1 (visible solo entre los dos).
 --     setVisible(v), destroy().
+-- La marca de impacto ya no es de la mira: la dibuja CombatClient/HitFeedbackController en la mira o el centro.
 -- Colores: nunca verde (curación) ni morado (veneno), para no confundirse con los números de combate.
 
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Settings = require(script.Parent.Parent.Settings)
 
@@ -20,7 +19,6 @@ export type Handle = {
 	root: Frame,
 	setSpread: (px: number) -> (),
 	setCooldown: (fraction: number) -> (),
-	hit: (strong: boolean) -> (),
 	setVisible: (visible: boolean) -> (),
 	destroy: () -> (),
 }
@@ -47,14 +45,6 @@ local COOLDOWN_MARGIN = 9
 local COOLDOWN_TRANSPARENCY = 0.35
 -- Velocidad con que la separación sigue a la dispersión (por segundo).
 local SPREAD_SPEED = 16
--- Marca de impacto: largo, grosor, distancia al centro en cada eje y segundos que dura. Blanca al acertar y
--- roja al acertar en la cabeza (rojo = daño; nunca verde ni morado).
-local HIT_LENGTH = 8
-local HIT_WIDTH = 2
-local HIT_DISTANCE = 9
-local HIT_SECONDS = 0.22
-local HIT_COLOR = Color3.fromRGB(255, 255, 255)
-local HIT_STRONG_COLOR = Color3.fromRGB(255, 70, 60)
 
 local Crosshair = {}
 
@@ -207,22 +197,6 @@ function Crosshair.mount(parent: GuiObject): Handle
 		spreadTarget = if Settings.get().crosshairDynamic then rawSpread else 0
 	end
 	redraw()
-	-- Marca de impacto: cuatro rayas en diagonal que salen del centro y se apagan solas. No cuelgan de
-	-- "content" para que repintar la mira no las borre.
-	local hitFolder = Instance.new("Folder")
-	hitFolder.Name = "HitMarker"
-	hitFolder.Parent = root
-	local hitTicks: { Frame } = {}
-	for index = 1, 4 do
-		local tick = piece(hitFolder, Vector2.new(HIT_LENGTH, HIT_WIDTH), HIT_COLOR, false)
-		local dx = if index % 2 == 0 then 1 else -1
-		local dy = if index > 2 then 1 else -1
-		tick.Position = UDim2.fromOffset(dx * HIT_DISTANCE, dy * HIT_DISTANCE)
-		tick.Rotation = if dx * dy > 0 then 45 else -45
-		tick.Visible = false
-		table.insert(hitTicks, tick)
-	end
-	local hitToken = 0
 	local settingsConnection = Settings.onChanged(function()
 		redraw()
 		retarget()
@@ -251,25 +225,6 @@ function Crosshair.mount(parent: GuiObject): Handle
 			cooldown = clamped
 			paintCooldown()
 		end
-	end
-	handle.hit = function(strong: boolean)
-		hitToken += 1
-		local token = hitToken
-		local color = if strong then HIT_STRONG_COLOR else HIT_COLOR
-		for _, tick in hitTicks do
-			tick.BackgroundColor3 = color
-			tick.BackgroundTransparency = 0
-			tick.Visible = true
-			TweenService:Create(tick, TweenInfo.new(HIT_SECONDS, Enum.EasingStyle.Quad), { BackgroundTransparency = 1 })
-				:Play()
-		end
-		task.delay(HIT_SECONDS, function()
-			if token == hitToken then
-				for _, tick in hitTicks do
-					tick.Visible = false
-				end
-			end
-		end)
 	end
 	handle.setVisible = function(visible: boolean)
 		root.Visible = visible
