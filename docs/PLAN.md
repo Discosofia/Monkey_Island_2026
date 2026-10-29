@@ -647,6 +647,7 @@ Decisiones del 28-10-2026:
 | **S1** | Armas de la forja de rango I (Machete, Honda, Garrote, Arco, Cerbatana, Bastón), con tope `ForgeWeaponRank` | 343054f | ✅ Probado en Studio (sin probar: VERIFICACION §66) |
 | **S2** | Armas de la forja de rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) | e8217ed | ✅ Probado en Studio (sin probar: VERIFICACION §67) |
 | **S3** | Armas de la forja de rango III (Maza gruesa, Arco de liana, Cerbatana de chamán, Bastón de plata) | ec6435a | ✅ Probado en Studio (sin probar: VERIFICACION §68) |
+| **S4** | Armas de la forja de rango IV (Maza volcánica, Arco de ascuas, Cerbatana de azufre, Bastón de lava) | 9f3a7c5 | ✅ Probado en Studio (sin probar: VERIFICACION §69) |
 
 **Handoff de A1 (29-10-2026)**
 - **Estado:** plan aprobado, nada escrito todavía. Las pruebas de la fase empiezan en VERIFICACION §49.
@@ -799,6 +800,11 @@ Decisiones del 28-10-2026:
 - **Estado:** S1 (343054f) y S2 (e8217ed) cerradas y subidas. Siguiente número libre de VERIFICACION: §68. `ForgeWeaponRank = { 40, 55, 70, 90 }`.
 - **Objetivo:** rehacer las armas de rango III (Plata/Liana): Club/BigFangClub no (son otra rama; solo las de rol): ThickBoneMaul, LianaBow, ShamanBlowgun, SilverStaff. Tope 70. Mismo método que S1/S2 (programador con opciones opcionales; la sesión principal mide, captura de frente, lado y espalda; vista previa en `workspace` y cámara `Fixed`). Congruencia con I y II, y claramente más simple que el IV. Ojo: el Machete no tiene rango III (el Guerrero sube por Maza).
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de S3. Haz el grupo S3.»
+
+**Handoff de K1 (29-10-2026)**
+- **Estado:** S1–S4 cerradas y subidas (S4 9f3a7c5). Siguiente número libre de VERIFICACION: §70. Rango IV al tope: Maza 87, Arco 82, Cerbatana 80, Bastón de lava 89 de 90 (ForgeWeaponRank[4]). Las skins (Sulfur* y míticas) usan builders propios y no cambiaron.
+- **Objetivo:** `K1` skins de temporada (SulfurMace, SulfurBow, SulfurStaff, SulfurBlowgun, SulfurMachete) y después `K2` skins míticas (≤165 piezas), cada una distinta de su arma base rehecha a primera vista y desde atrás, con el nivel del arma como grado. Ahora las armas base de rango IV son más ricas: comprueba que las skins épicas siguen destacando (Sulfur* miden 63–74) y, si no, súbelas con el mismo método. Pregunta antes al usuario si prefiere subir el tope del rango IV.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de K1. Haz el grupo K1.»
 
 **Handoff de armas y skins (29-10-2026)**
 - **Estado:** la serie de armaduras R1–R4 está cerrada y subida (R4 6c4425b, PLAN 0a59e5a). Siguiente número libre de VERIFICACION: §66. Las armas no tienen tandas en la Fase 18: este handoff propone crearlas (nombres `S1`–`S4` y `K1`–`K2`, o los que decida el usuario) y añadirlas a la tabla de la Fase 18 o a una fase nueva. Pregunta al usuario qué quiere rehacer primero antes de escribir código.
