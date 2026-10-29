@@ -629,7 +629,7 @@ Decisiones del 28-10-2026:
 |---|---|---|---|
 | **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | 1887267 | ✅ Probado en Studio (sin probar: VERIFICACION §49) |
 | **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | 72203eb | ✅ Probado en Studio (sin probar: VERIFICACION §50) |
-| **A3** | Gigante en los 4 places, con vida según jugadores activos | — | ⏳ |
+| **A3** | Gigante en los 4 places, con vida según jugadores activos | 457e24a | ✅ Probado en Studio con 1 jugador (sin probar: VERIFICACION §51) |
 | **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| — | ⏳ |
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | — | ⏳ |
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | — | ⏳ |
@@ -671,6 +671,12 @@ Decisiones del 28-10-2026:
 - **Objetivo:** ver la tanda A3 del plan (`GiantAdminService` a `src/combat/Services`, vida según jugadores activos, zona segura del Lobby suspendida, neutral en Dunas y Laboratorio, `Admin.luau` sin restringir a la Isla).
 - **Riesgo:** `AdminEventsService` (solo Isla) llama a `GiantAdminService.toggle`; al moverlo, la acción «Giant» debe llegar en los 4 places. El atributo de jugador `AdminBoss` lo lee `publishState`.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A3.»
+
+**Handoff de A4 (29-10-2026)**
+- **Estado:** A3 cerrada y subida (457e24a). A4 sin empezar. Siguiente número libre de VERIFICACION: §52. `GiantAdminService` (ahora en `src/combat/Services`) es el patrón: reglas del place envueltas en `Start`, `setHooks` para lo que solo existe en la Isla, vida por jugadores activos (`countFighters`/`rescaleHealth`), `Hazards` ya en `src/combat`, `BossHUDController` ya en `combatClient`, y `AdminNet.on` admite varios manejadores.
+- **Antes de escribir código:** pide al agente `search` el mapa de las dependencias de `BossService` con servicios de la Isla (biomas, guaridas, `BasecampService`, `MonkeyAnimator`, `Beacon`, telemetría, `MatchStats`, botín) y de `ACTIONS.Boss` en `AdminEventsService`.
+- **Objetivo:** ver la tanda A4 del plan, más lo que anotó el usuario: poder elegir qué jefe invocar. Premio fuera de la Isla (Ámbar y XP del pase) medido con `Economia` y guardado en `Config`; zona segura del Lobby suspendida durante el combate.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A4, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A4.»
 
 ---
 
