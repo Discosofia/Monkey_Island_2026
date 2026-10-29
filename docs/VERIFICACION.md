@@ -2447,6 +2447,36 @@ Hecho en Studio: las 8 versiones (base y Avispa I/II/III, de los dos bandos) se 
 1. [ ] A equipa la Avispa III y B la mira de lejos y de cerca.
    ✅ B ve el arma entera, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
 
+## 46. Lo que queda por probar de W2: Rifle de bananas y Escorpión (28-10-2026)
+
+Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos) se vieron en el Laboratorio, también por detrás, desde arriba y con la cola de `LabBack` quitada para simular la primera persona. `Rendimiento` (filtro "Lab", con el módulo clonado) dio 0 alertas. Piezas tras fusionar: Guardianes 38 · 71 · 112 · 136 y Piratas 45 · 78 · 119 · 143 (topes 45 y 200). Falta lo que pide Play, la calculadora con módulos limpios o ver el arma en movimiento.
+
+#### 46.1 Calculadora (Studio de la Isla, modo edición, tras reabrir el place para vaciar la caché de `require`)
+
+1. [ ] Ejecuta `Rendimiento` y mira la sección 6 y las Alertas.
+   ✅ El Rifle de los dos bandos queda en 45 piezas o menos como base y en 200 o menos con cada grado del Escorpión, y las Alertas dicen «Todo dentro de los límites».
+
+#### 46.2 En Play en el Laboratorio (haz copia de tu perfil en `PlayerData_v1_backups` antes)
+
+1. [ ] Elige el Rifle en cada bando y míralo en primera persona, disparando y recargando.
+   ✅ La mira, el cargador de banana y el bípode se ven bien, no tapan el punto de mira y no hay piezas sueltas.
+2. [ ] Con el comando de depuración `SkinKills`, equipa el Escorpión I, II y III y cambia de uno a otro con el arma en la mano.
+   ✅ Cada grado se distingue del anterior a primera vista, el cambio rehace el arma sin piezas sueltas y la Salida no da errores.
+3. [ ] Con el Escorpión III en la mano, mueve la cámara y gira alrededor del arma en tercera persona.
+   ✅ Ninguna superficie parpadea ni se pisa con otra, y por detrás se ve la cola arqueada con el aguijón y su goteo.
+4. [ ] En primera persona, con el Escorpión III, mira el lado derecho y la parte de arriba del arma.
+   ✅ Se ven el caparazón, las púas, los sacos de veneno y las pinzas. La cola no aparece.
+
+#### 46.3 En el Lobby y el Armario
+
+1. [ ] Abre el Armario, la pestaña del Laboratorio, y el selector de arma del Laboratorio.
+   ✅ Las imágenes del Rifle y de las skins se ven completas, sin cortes ni piezas que falten.
+
+#### 46.4 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio)
+
+1. [ ] A equipa el Escorpión III y B lo mira de lejos y de cerca.
+   ✅ B ve el arma entera con la cola, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

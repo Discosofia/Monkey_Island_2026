@@ -285,71 +285,134 @@ local function waspBody(handle: BasePart)
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- Escorpión (Rifle): cañón de 0,65 a 2,65; culata hasta -1,8; cajón de -0,45 a 0,65.
+-- Escorpión (Rifle): cajón de -0,45 a 0,65; guardamanos de 0,65 a 1,35 (ancho 0,3, hasta 0,25 de alto);
+-- cañón fino hasta 2,35 (ancho 0,18, centrado en 0,1); freno de boca de 2,22 a 2,58; mira encima de -0,45 a
+-- 1,03 (tubo hasta 0,77 de alto); cargador de banana bajo el cajón (de 0 a 0,5); culata hasta -1,8.
 -- ---------------------------------------------------------------------------------------------------
 
--- Placas segmentadas en el cañón.
+-- Caparazón: segmentos sobre el guardamanos, anillos en el cañón y una cresta negra por el centro.
 local function scorpionPlates(handle: BasePart)
-	for index, along in { 0.95, 1.25, 1.55, 1.85, 2.15 } do
-		local width = 0.34 - (index - 1) * 0.02
-		cube(handle, "SkinPlate", at(0, along, 0.1), V(width, 0.2, width), OCHRE, SAND)
+	for index, along in { 0.75, 0.95, 1.15, 1.35 } do
+		local width = 0.38 - (index - 1) * 0.02
+		cube(handle, "SkinShell", at(0, along, 0.3), V(width, 0.16, 0.16), OCHRE, SAND)
 	end
-	cube(handle, "SkinPlateRidge", at(0, 1.55, 0.3), V(0.1, 1.4, 0.1), CHITIN, SMOOTH)
+	for _, along in { 1.6, 1.85, 2.1 } do
+		cube(handle, "SkinPlate", at(0, along, 0.1), V(0.28, 0.16, 0.28), OCHRE, SAND)
+	end
+	cube(handle, "SkinPlateRidge", at(0, 1.05, 0.42), V(0.08, 1.0, 0.08), CHITIN, SMOOTH)
 end
 
--- Cola de bloques que parte de la culata y acaba en un aguijón. "path": (largo, alto) de cada segmento.
-local function scorpionTail(handle: BasePart, path: { { number } }, drips: boolean)
-	local last = nil
-	for index, point in path do
-		local size = 0.26 - (index - 1) * 0.015
-		last = mark(cube(handle, "SkinTail", at(0, point[1], point[2]), V(size, 0.25, size), CHITIN, SMOOTH))
-		if index % 2 == 0 then
-			mark(cube(handle, "SkinTailPlate", at(0, point[1], point[2] + size / 2), V(0.12, 0.2, 0.05), OCHRE, SAND))
+-- Placas del caparazón sobre el tubo de la mira.
+local function scorpionScopeShell(handle: BasePart)
+	for _, along in { 0.0, 0.3, 0.6 } do
+		cube(handle, "SkinScopeShell", at(0, along, 0.84), V(0.36, 0.22, 0.1), OCHRE, SAND)
+	end
+end
+
+-- Sacos de veneno que brillan a los lados de la mira (se ven desde la primera persona).
+local function scorpionSacs(handle: BasePart)
+	for side = -1, 1, 2 do
+		cube(handle, "SkinSac", at(side * 0.22, 0.2, 0.62), V(0.1, 0.5, 0.15), STING, NEON)
+	end
+end
+
+-- Púas negras a lo largo del lomo de la mira (grado III).
+local function scorpionSpines(handle: BasePart)
+	for _, along in { 0.0, 0.3, 0.6 } do
+		cube(handle, "SkinSpine", at(0, along, 0.98), V(0.08, 0.14, 0.14), CHITIN, SMOOTH)
+	end
+end
+
+-- Placas del caparazón a los lados del guardamanos y bandas negras en la culata.
+local function scorpionFlanks(handle: BasePart)
+	for side = -1, 1, 2 do
+		for _, along in { 0.8, 1.0, 1.2 } do
+			cube(handle, "SkinSidePlate", at(side * 0.2, along, 0.1), V(0.1, 0.15, 0.3), OCHRE, SAND)
+		end
+		for _, along in { -1.25, -1.45, -1.65 } do
+			cube(handle, "SkinStockBand", at(side * 0.2, along, 0.05), V(0.1, 0.12, 0.45), CHITIN, SMOOTH)
+		end
+	end
+end
+
+-- Cola de bloques que sube por detrás de la culata y acaba en un aguijón. "path": puntos (largo, alto) que se
+-- rellenan cada 0,2 con bloques que se tocan y adelgazan hacia la punta; cada tercero lleva una placa ocre.
+local function scorpionTail(handle: BasePart, path: { { number } }, thick: number, drips: boolean)
+	local points: { Vector2 } = {}
+	for index = 1, #path - 1 do
+		local from, to = V(path[index][1], path[index][2], 0), V(path[index + 1][1], path[index + 1][2], 0)
+		local steps = math.ceil((to - from).Magnitude / 0.2)
+		for step = 0, steps - 1 do
+			local point = from:Lerp(to, step / steps)
+			table.insert(points, Vector2.new(math.round(point.X / 0.05) * 0.05, math.round(point.Y / 0.05) * 0.05))
 		end
 	end
 	local tip = path[#path]
-	local sting = mark(cube(handle, "SkinSting", at(0, tip[1] + 0.12, tip[2] - 0.2), V(0.12, 0.2, 0.2), STING, NEON))
-	if drips and last then
+	table.insert(points, Vector2.new(tip[1], tip[2]))
+	for index, point in points do
+		local size = thick * (1 - 0.45 * (index - 1) / (#points - 1))
+		mark(cube(handle, "SkinTail", at(0, point.X, point.Y), V(size, size, size), CHITIN, SMOOTH))
+		if index % 3 == 0 then
+			mark(
+				cube(
+					handle,
+					"SkinTailPlate",
+					at(0, point.X, point.Y + size / 2),
+					V(size * 0.6, size * 0.8, 0.06),
+					OCHRE,
+					SAND
+				)
+			)
+		end
+	end
+	-- Aguijón grande que brilla, con la punta negra curvada hacia delante.
+	local sting = mark(cube(handle, "SkinSting", at(0, tip[1] + 0.05, tip[2] - 0.22), V(0.2, 0.2, 0.3), STING, NEON))
+	mark(cube(handle, "SkinStingTip", at(0, tip[1] + 0.2, tip[2] - 0.42), V(0.1, 0.2, 0.15), CHITIN, SMOOTH))
+	if drips then
 		emitter(sting, STING, 3, 0.12, 0.2, V(0, -10, 0))
 	end
 end
 
-local TAIL_ARCH =
-	{ { -1.7, 0.25 }, { -1.85, 0.5 }, { -1.9, 0.75 }, { -1.8, 1.0 }, { -1.55, 1.15 }, { -1.25, 1.15 }, { -1.0, 1.0 } }
+-- La cola sube por detrás de la culata y se arquea sobre la mira, con el aguijón colgando hacia delante.
+local TAIL_ARCH = { { -1.75, 0.3 }, { -1.95, 0.7 }, { -1.95, 1.15 }, { -1.7, 1.5 }, { -1.3, 1.6 }, { -0.9, 1.4 } }
 local TAIL_HIGH = {
-	{ -1.7, 0.25 },
-	{ -1.9, 0.55 },
-	{ -2.0, 0.9 },
-	{ -1.95, 1.25 },
-	{ -1.75, 1.55 },
-	{ -1.45, 1.75 },
-	{ -1.1, 1.75 },
-	{ -0.85, 1.55 },
-	{ -0.75, 1.3 },
+	{ -1.75, 0.3 },
+	{ -2.0, 0.7 },
+	{ -2.05, 1.2 },
+	{ -1.9, 1.7 },
+	{ -1.5, 2.0 },
+	{ -1.0, 2.1 },
+	{ -0.5, 2.0 },
+	{ 0.0, 1.8 },
+	{ 0.4, 1.5 },
+	{ 0.6, 1.2 },
 }
 
--- Patas cortas bajo el cajón (tres a cada lado).
-local function scorpionLegs(handle: BasePart, faction: string)
+-- Patas cortas bajo el cajón: "pairs" a cada lado.
+local function scorpionLegs(handle: BasePart, pairs: number)
 	for side = -1, 1, 2 do
-		for _, along in { -0.15, 0.2, 0.55 } do
+		for index = 1, pairs do
+			local along = -0.2 + (index - 1) * 0.35
 			cube(handle, "SkinLeg", at(side * 0.3, along, -0.1), V(0.15, 0.1, 0.1), CHITIN, SMOOTH)
 			cube(handle, "SkinLeg", at(side * 0.38, along, -0.3), V(0.1, 0.1, 0.3), CHITIN, SMOOTH)
 			cube(handle, "SkinFoot", at(side * 0.44, along, -0.5), V(0.1, 0.1, 0.1), OCHRE, SAND)
 		end
-		accent(handle, faction, at(side * 0.26, -0.3, 0.3))
 	end
 end
 
--- Pinzas a los lados de la boca, con la punta hacia dentro.
-local function scorpionClaws(handle: BasePart, faction: string)
+-- Pinzas a los lados de la boca, con la punta hacia dentro. "big": añade el pulgar de abajo y una púa.
+local function scorpionClaws(handle: BasePart, faction: string, big: boolean)
 	for side = -1, 1, 2 do
 		cube(handle, "SkinClaw", at(side * 0.3, 2.3, 0.1), V(0.12, 0.7, 0.12), CHITIN, SMOOTH)
-		cube(handle, "SkinClaw", at(side * 0.22, 2.7, 0.1), V(0.2, 0.12, 0.12), CHITIN, SMOOTH)
 		cube(handle, "SkinClawTip", at(side * 0.16, 2.78, 0.1), V(0.08, 0.2, 0.08), OCHRE, SAND)
 		cube(handle, "SkinClawBase", at(side * 0.3, 1.95, 0.1), V(0.2, 0.2, 0.2), OCHRE, SAND)
+		accent(handle, faction, at(side * 0.3, 1.95, 0.25))
+		if big then
+			cube(handle, "SkinClaw", at(side * 0.22, 2.7, 0.1), V(0.2, 0.12, 0.12), CHITIN, SMOOTH)
+			cube(handle, "SkinThumb", at(side * 0.3, 2.15, -0.1), V(0.1, 0.35, 0.1), OCHRE, SAND)
+			cube(handle, "SkinClawSpike", at(side * 0.3, 2.3, 0.28), V(0.08, 0.4, 0.08), CHITIN, SMOOTH)
+		end
 	end
-	accent(handle, faction, at(0.3, 1.95, 0.25))
-	accent(handle, faction, at(-0.3, 1.95, 0.25))
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -525,19 +588,31 @@ local BUILDERS: { [string]: Builder } = {
 		waspComb(handle)
 		waspBody(handle)
 	end,
-	LabScorpion = function(handle, _faction)
+	LabScorpion = function(handle, faction)
 		scorpionPlates(handle)
+		scorpionScopeShell(handle)
+		scorpionClaws(handle, faction, false)
+		scorpionSacs(handle)
+		scorpionFlanks(handle)
 	end,
 	LabScorpionII = function(handle, faction)
 		scorpionPlates(handle)
-		scorpionTail(handle, TAIL_ARCH, false)
-		scorpionLegs(handle, faction)
+		scorpionScopeShell(handle)
+		scorpionClaws(handle, faction, true)
+		scorpionSacs(handle)
+		scorpionFlanks(handle)
+		scorpionLegs(handle, 2)
+		scorpionTail(handle, TAIL_ARCH, 0.3, false)
 	end,
 	LabScorpionIII = function(handle, faction)
 		scorpionPlates(handle)
-		scorpionLegs(handle, faction)
-		scorpionClaws(handle, faction)
-		scorpionTail(handle, TAIL_HIGH, true)
+		scorpionScopeShell(handle)
+		scorpionSpines(handle)
+		scorpionClaws(handle, faction, true)
+		scorpionSacs(handle)
+		scorpionFlanks(handle)
+		scorpionLegs(handle, 3)
+		scorpionTail(handle, TAIL_HIGH, 0.36, true)
 	end,
 	LabKraken = function(handle, _faction)
 		for side = -1, 1, 2 do

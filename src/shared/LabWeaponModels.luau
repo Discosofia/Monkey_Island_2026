@@ -155,19 +155,6 @@ local function frame(tool: Tool, palette: Palette, faction: Faction, length: num
 	return handle
 end
 
--- Cañón de "length" desde "from" (a lo largo), con su boca.
-local function barrel(handle: BasePart, palette: Palette, from: number, length: number, width: number)
-	cube(handle, "Barrel", at(0, from + length / 2, 0.1), Vector3.new(width, length, width), palette.barrel, METAL)
-	cube(
-		handle,
-		"Muzzle",
-		at(0, from + length - 0.05, 0.1),
-		Vector3.new(width + 0.1, 0.15, width + 0.1),
-		palette.trim,
-		palette.trimMaterial
-	)
-end
-
 -- Lanzadardos: subfusil compacto. Tambor de cristal con tres dardos a la vista sobre el cajón, cargador de
 -- cristal debajo, funda del cañón con ventilas, empuñadura delantera, miras y freno de boca.
 local function buildDartGun(tool: Tool, faction: Faction): BasePart
@@ -232,36 +219,65 @@ local function buildDartGun(tool: Tool, faction: Faction): BasePart
 	return handle
 end
 
--- Rifle: culata y cañón largos, mira encima y la recámara de la banana que brilla en amarillo.
+-- Rifle: francotirador largo y fino. Mira grande de tubo con lente, cañón con guardamanos ventilado, freno
+-- de boca, bípode plegado bajo el cañón, ventana amarilla en la recámara y cargador curvo de banana.
 local function buildBananaRifle(tool: Tool, faction: Faction): BasePart
 	local palette = PALETTES[faction]
 	local handle = frame(tool, palette, faction, 1.1, 0.5)
-	barrel(handle, palette, 0.65, 2.0, 0.2)
+	-- Recámara: marco del color del bando y ventana de banana que brilla, a los dos lados.
 	for side = -1, 1, 2 do
-		local chamber = cube(handle, "Chamber", at(side * 0.23, 0.15, 0.05), Vector3.new(0.05, 0.5, 0.2), BANANA, NEON)
+		cube(
+			handle,
+			"ChamberFrame",
+			at(side * 0.26, 0.15, 0.05),
+			Vector3.new(0.1, 0.6, 0.35),
+			palette.trim,
+			palette.trimMaterial
+		)
+		local chamber = cube(handle, "Chamber", at(side * 0.32, 0.15, 0.05), Vector3.new(0.05, 0.45, 0.2), BANANA, NEON)
 		glow(chamber, BANANA, 3)
 	end
-	-- Mira: tubo encima del cajón con su lente.
-	cube(handle, "Scope", at(0, 0.15, 0.45), Vector3.new(0.25, 0.9, 0.25), palette.trim, palette.trimMaterial)
-	for _, along in { -0.1, 0.4 } do
-		cube(handle, "ScopeMount", at(0, along, 0.3), Vector3.new(0.1, 0.1, 0.15), palette.barrel, METAL)
+	-- Cañón fino, guardamanos con una ventila por lado y freno de boca con dos ranuras.
+	cube(handle, "Barrel", at(0, 1.5, 0.1), Vector3.new(0.18, 1.7, 0.18), palette.barrel, METAL)
+	cube(handle, "Handguard", at(0, 1.0, 0.1), Vector3.new(0.3, 0.7, 0.3), palette.trim, palette.trimMaterial)
+	for side = -1, 1, 2 do
+		cube(handle, "Vent", at(side * 0.16, 1.0, 0.1), Vector3.new(0.05, 0.4, 0.12), palette.barrel, METAL)
+		cube(handle, "BrakeSlot", at(side * 0.17, 2.4, 0.1), Vector3.new(0.05, 0.2, 0.22), IRON, SMOOTH)
 	end
+	cube(handle, "Muzzle", at(0, 2.4, 0.1), Vector3.new(0.3, 0.35, 0.3), palette.trim, palette.trimMaterial)
+	-- Bípode plegado bajo el cañón: la base y las dos patas pegadas.
+	cube(handle, "BipodMount", at(0, 0.8, -0.1), Vector3.new(0.3, 0.15, 0.1), palette.barrel, METAL)
+	for side = -1, 1, 2 do
+		cube(handle, "BipodLeg", at(side * 0.1, 1.15, -0.15), Vector3.new(0.08, 0.7, 0.1), palette.barrel, METAL)
+	end
+	-- Mira grande: tubo con su campana, ocular y lente, sobre dos pilares.
+	for _, along in { -0.2, 0.6 } do
+		cube(handle, "ScopeMount", at(0, along, 0.39), Vector3.new(0.15, 0.1, 0.15), palette.barrel, METAL)
+	end
+	cube(handle, "Scope", at(0, 0.2, 0.62), Vector3.new(0.3, 1.2, 0.3), palette.trim, palette.trimMaterial)
+	cube(handle, "ScopeBell", at(0, 0.9, 0.62), Vector3.new(0.42, 0.25, 0.42), palette.barrel, METAL)
+	cube(handle, "ScopeEye", at(0, -0.45, 0.62), Vector3.new(0.36, 0.15, 0.36), palette.barrel, METAL)
+	-- Cargador curvo de banana bajo el cajón, con su rabito.
+	cube(handle, "MagCollar", at(0, 0.1, -0.27), Vector3.new(0.36, 0.45, 0.15), palette.trim, palette.trimMaterial)
+	for index, step in { { 0.05, -0.4 }, { 0.15, -0.62 }, { 0.32, -0.82 } } do
+		cube(handle, "Banana", at(0, step[1], step[2]), Vector3.new(0.28, 0.35, 0.25 + 0.01 * index), BANANA, SMOOTH)
+	end
+	cube(handle, "BananaStem", at(0, 0.5, -0.95), Vector3.new(0.1, 0.12, 0.12), DARK_WOOD, WOOD)
+	cube(handle, "Cheek", at(0, -1.45, 0.3), Vector3.new(0.32, 0.5, 0.15), palette.trim, palette.trimMaterial)
 	if faction == "Guardians" then
-		local lens = cube(handle, "Lens", at(0, 0.62, 0.45), Vector3.new(0.2, 0.05, 0.2), LAB_GLOW, NEON)
+		local lens = cube(handle, "Lens", at(0, 1.03, 0.62), Vector3.new(0.3, 0.05, 0.3), LAB_GLOW, NEON)
 		glow(lens, LAB_GLOW, 3)
 		cube(handle, "Antenna", at(0.1, -0.3, 0.75), Vector3.new(0.05, 0.05, 0.4), LAB_DARK, SMOOTH)
 		cube(handle, "AntennaTip", at(0.1, -0.3, 0.97), Vector3.new(0.1, 0.1, 0.1), LAB_BLUE, NEON)
 	else
-		-- Catalejo de latón con anillos de oro y un pañuelo negro atado a la culata.
-		cube(handle, "Lens", at(0, 0.62, 0.45), Vector3.new(0.2, 0.05, 0.2), GOLD, GLASS)
-		for _, along in { -0.2, 0.15, 0.5 } do
-			cube(handle, "ScopeRing", at(0, along, 0.45), Vector3.new(0.3, 0.05, 0.3), GOLD, METAL)
+		-- Catalejo con anillos de oro y un pañuelo negro atado a la culata.
+		cube(handle, "Lens", at(0, 1.03, 0.62), Vector3.new(0.3, 0.05, 0.3), GOLD, GLASS)
+		for _, along in { -0.1, 0.5 } do
+			cube(handle, "ScopeRing", at(0, along, 0.62), Vector3.new(0.38, 0.05, 0.38), GOLD, METAL)
 		end
 		cube(handle, "Bandana", at(0, -1.3, 0.05), Vector3.new(0.4, 0.2, 0.6), IRON, FABRIC)
 		cube(handle, "BandanaTail", at(0.25, -1.4, -0.2), Vector3.new(0.05, 0.25, 0.35), IRON, FABRIC)
-		for _, along in { 1.2, 2.0 } do
-			cube(handle, "BarrelBand", at(0, along, 0.1), Vector3.new(0.3, 0.1, 0.3), GOLD, METAL)
-		end
+		cube(handle, "BarrelBand", at(0, 1.9, 0.1), Vector3.new(0.26, 0.08, 0.26), GOLD, METAL)
 	end
 	return handle
 end
