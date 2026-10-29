@@ -2986,3 +2986,20 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Las brasas, el humo y las llamas no bajan los FPS de forma notable.
 6. [ ] Prueba con un avatar R6.
    ✅ Las hombreras y la espalda no flotan ni se hunden.
+
+## 73. Fase 18 T2: trajes míticos rehechos (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Ponte cada traje mítico (Rey Gorila, Jaguar Espectral, Serpiente Emplumada, Ceiba de la Vida) en los grados 1, 2, 3 y 4 y míralo desde atrás con la cámara del juego, quieto y corriendo.
+   ✅ Cada grado se ve más rico que el anterior y que el traje legendario del pase del mismo grado; la espalda es vistosa. Nada flota ni atraviesa el cuerpo al andar, apuntar o golpear.
+2. [ ] Pónlos sobre la armadura de cada rango (I a IV) y mira de cerca los muslos y las púas de muñeca del Titán, la liana del peto y los frascos de la Ceiba, y las líneas de zarpazos y las rosetas del Jaguar.
+   ✅ El traje encaja con las cuatro armaduras, sin piezas asomando ni cruzadas.
+3. [ ] Mira de cerca el espíritu del Jaguar (aura, volutas y manchas) y el halo del grado 4 de la Serpiente.
+   ✅ Nada atraviesa la cabeza ni el hombro; el halo y los colgantes del Titán no cuelgan en el aire por detrás de la capa.
+4. [ ] Equipa el traje mítico junto con su arma mítica (Maza del Rey Gorila, Arco del Jaguar Espectral, Bastón de la Serpiente Emplumada, Cerbatana de la Ceiba).
+   ✅ Paleta y motivos encajan; las runas y bolas de neón no deslumbran en los grados 3 y 4.
+5. [ ] En un teléfono (o el emulador), míralos con varios jugadores cerca.
+   ✅ Los destellos, las estrellas y las luciérnagas no bajan los FPS de forma notable.
+6. [ ] Prueba con un avatar R6.
+   ✅ Las hombreras (ahora losas y discos planos) no flotan ni se hunden.

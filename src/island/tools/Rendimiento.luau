@@ -347,8 +347,8 @@ local function main(copia: Instance): string
 						presupuesto
 					)
 					personaje:Destroy()
-					-- Los legendarios, además, grado a grado (1 a 3, sin presupuesto) para ver cómo crece cada uno.
-					if cosmetico.rarity == "Legendary" then
+					-- Los legendarios y los míticos, además, grado a grado (1 a 3, sin presupuesto) para ver cómo crece cada uno.
+					if cosmetico.rarity == "Legendary" or cosmetico.rarity == "Mythic" then
 						for grado = 1, ArmorModels.MAX_GRADE - 1 do
 							local otro = r15Falso()
 							local piezaGrado = ArmorModels.wear(otro, nil, cosmetico.role, id, grado)
