@@ -24,6 +24,7 @@ export type Pet = {
 	tracks: boolean?,
 	sniffsEggs: boolean?,
 	marks: boolean?,
+	origin: string?, -- si lo tiene, no sale de un huevo normal ("HuevoMitico": panel de admin y huevo mítico)
 }
 
 local Pets: { [string]: Pet } = {
@@ -99,6 +100,17 @@ local Pets: { [string]: Pet } = {
 		color = Color3.fromRGB(112, 68, 40),
 		size = 1.25,
 		perks = { MaxHealth = 15 },
+	},
+	Quetzal = {
+		name = "Quetzal",
+		icon = "🦚",
+		rarity = "Mythic",
+		kind = "Apoyo",
+		description = "El ave sagrada: correr gasta un 25 % menos de estamina y haces un 8 % más de daño a distancia.",
+		color = Color3.fromRGB(22, 185, 85),
+		size = 1,
+		perks = { SprintCost = -0.25, RangedDamage = 0.08 },
+		origin = "HuevoMitico",
 	},
 	Jaguarundi = {
 		name = "Jaguarundí",

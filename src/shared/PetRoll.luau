@@ -52,11 +52,13 @@ function PetRoll.upgradeRarity(rarity: string, chance: number, rng: Random): str
 	return rarity
 end
 
--- Mascotas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza).
+-- Mascotas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza). Las que
+-- tienen "origin" (las míticas) nunca salen de un huevo normal: se dan desde el panel de admin y
+-- saldrán del huevo mítico.
 function PetRoll.petsOfRarity(rarity: string): { string }
 	local candidates = {}
 	for petId, pet in Pets do
-		if pet.rarity == rarity then
+		if pet.rarity == rarity and not pet.origin then
 			table.insert(candidates, petId)
 		end
 	end
@@ -121,8 +123,10 @@ end
 function PetRoll.rollPet(rarity: string, rng: Random): string
 	local candidates = PetRoll.petsOfRarity(rarity)
 	if #candidates == 0 then
-		for petId in Pets do
-			table.insert(candidates, petId)
+		for petId, pet in Pets do
+			if not pet.origin then
+				table.insert(candidates, petId)
+			end
 		end
 		table.sort(candidates)
 	end

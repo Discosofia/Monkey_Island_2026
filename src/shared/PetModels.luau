@@ -3031,6 +3031,152 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		return "Fly"
 	end,
 
+	-- Quetzal voxel (docs/img/quetzal Voxel 1.jfif y 2): el ave sagrada, mítica. Esmeralda intenso con
+	-- reflejos dorados y turquesa, la pechuga carmesí en escamas bien marcada y la barriga rosada que
+	-- se estrecha hacia la cola, con los muslos de plumas, las patas con sus dedos a la vista, el pico
+	-- amarillo corto, la cresta sobre la cabeza, las alas abiertas con las remeras en verde oscuro y una
+	-- franja pálida, la cola blanca por debajo y dos plumas larguísimas que cuelgan y se enroscan.
+	-- Vuela. Distinta de la Guacamaya (roja y azul, cola en punta) y del Tucán (negro, pico enorme).
+	Quetzal = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 12, 0))
+		local box = v.box
+		local deep = color:Lerp(Color3.fromRGB(5, 70, 50), 0.55)
+		local darkest = color:Lerp(Color3.fromRGB(4, 30, 30), 0.82)
+		local teal = color:Lerp(Color3.fromRGB(0, 215, 180), 0.5)
+		local gold = Color3.fromRGB(170, 235, 70)
+		local crimson = Color3.fromRGB(228, 18, 52)
+		local crimsonDark = Color3.fromRGB(150, 10, 38)
+		local rose = Color3.fromRGB(226, 80, 96)
+		local yellow = Color3.fromRGB(250, 205, 35)
+		local pale = Color3.fromRGB(185, 235, 205)
+		local feet = Color3.fromRGB(70, 50, 58)
+
+		-- Patas con el muslo de plumas verde-turquesa, la caña fina y los dedos: tres hacia delante y uno
+		-- hacia atrás.
+		for _, side in { -1, 1 } do
+			local x = side * 1.6
+			box(nil, "Thigh", Vector3.new(side * 2.4, 5.8, 0.6), Vector3.new(1.6, 3, 3.2), deep)
+			box(nil, "ThighEdge", Vector3.new(side * 2.4, 4.1, 0.6), Vector3.new(1.4, 0.7, 2.6), teal)
+			box(nil, "Leg", Vector3.new(x, 3.1, 0.6), Vector3.new(0.8, 2.2, 0.8), feet)
+			for k = -1, 1 do
+				box(nil, "Toe", Vector3.new(x + k * 0.5, 1.9, -0.5), Vector3.new(0.4, 0.5, 1.8), feet)
+			end
+			box(nil, "Toe", Vector3.new(x, 1.9, 1.6), Vector3.new(0.5, 0.5, 1), feet)
+		end
+
+		-- Cuerpo que se estrecha hacia abajo en tres tramos: hombros anchos, cintura y cola. La espalda
+		-- verde lleva la capa en filas y el pecho el peto carmesí en escamas; la barriga, más baja y
+		-- rosada, queda separada por una línea oscura.
+		box(nil, "Body", Vector3.new(0, 11.4, 0.5), Vector3.new(5.6, 3.6, 6), color)
+		box(nil, "Waist", Vector3.new(0, 8.2, 0.7), Vector3.new(4.8, 3, 5.4), color)
+		box(nil, "Lower", Vector3.new(0, 5.9, 1), Vector3.new(3.6, 2, 4.6), deep)
+		box(nil, "Shoulders", Vector3.new(0, 13.4, 0.2), Vector3.new(5.2, 1.4, 5.4), teal)
+		box(nil, "ShoulderGold", Vector3.new(0, 14.2, 0.1), Vector3.new(4, 0.4, 4.4), gold)
+		box(nil, "Neck", Vector3.new(0, 14.9, -0.2), Vector3.new(4.4, 1.6, 4.4), color)
+		box(nil, "Bib", Vector3.new(0, 11.8, -2.55), Vector3.new(4.6, 2.4, 0.5), crimson)
+		box(nil, "Bib", Vector3.new(0, 9.8, -2.35), Vector3.new(4.2, 1.8, 0.5), crimsonDark)
+		box(nil, "Bib", Vector3.new(0, 8.6, -2.2), Vector3.new(3.8, 0.9, 0.4), crimson)
+		box(nil, "BibEdge", Vector3.new(0, 13.2, -2.6), Vector3.new(3, 0.5, 0.4), crimsonDark)
+		box(nil, "BellyLine", Vector3.new(0, 7.9, -2.25), Vector3.new(3.2, 0.3, 0.3), darkest)
+		box(nil, "Belly", Vector3.new(0, 6.5, -1.8), Vector3.new(3, 1.6, 0.5), rose)
+		box(nil, "Belly", Vector3.new(0, 5.4, -0.2), Vector3.new(2.8, 0.6, 3.6), rose)
+		for _, side in { -1, 1 } do
+			box(nil, "Flank", Vector3.new(side * 2.55, 9.2, -0.6), Vector3.new(0.3, 3.4, 3.4), crimsonDark)
+			box(nil, "Flank", Vector3.new(side * 2.15, 7, 0.2), Vector3.new(0.3, 1.6, 2.6), crimson)
+			box(nil, "BackFlank", Vector3.new(side * 2.85, 10.2, 2.4), Vector3.new(0.3, 2.4, 2.4), crimsonDark)
+		end
+
+		-- Capa de la espalda en filas que se estrechan, alternando tonos con un reflejo dorado, y la
+		-- banda blanca antes de la cola (de espaldas no es una losa).
+		box(nil, "Cape", Vector3.new(0, 12.6, 3.5), Vector3.new(4.6, 1.2, 0.5), teal)
+		box(nil, "Cape", Vector3.new(0, 11.2, 3.65), Vector3.new(4.8, 1.6, 0.5), deep)
+		box(nil, "Cape", Vector3.new(0, 9.6, 3.5), Vector3.new(4.2, 1.6, 0.5), teal)
+		box(nil, "Cape", Vector3.new(0, 8, 3.65), Vector3.new(3.6, 1.6, 0.5), deep)
+		box(nil, "CapeGold", Vector3.new(0, 12.1, 3.8), Vector3.new(2.4, 0.4, 0.3), gold)
+		box(nil, "CapeGold", Vector3.new(0, 9, 3.85), Vector3.new(1.6, 0.4, 0.3), gold)
+		box(nil, "CapeSpine", Vector3.new(0, 10.4, 3.4), Vector3.new(0.8, 4.4, 0.4), darkest)
+		box(nil, "RumpWhite", Vector3.new(0, 6.3, 3.4), Vector3.new(3, 1.2, 0.5), WHITE)
+
+		-- Cabeza: cráneo esmeralda con el reflejo dorado en la coronilla, cresta en escalones que se
+		-- estrecha hacia atrás, ojo negro con su brillo y el pico amarillo corto y ganchudo.
+		local head: { BasePart } = {}
+		box(head, "Head", Vector3.new(0, 16.9, -0.6), Vector3.new(5.2, 4.4, 5), color)
+		box(head, "Crown", Vector3.new(0, 19.3, -0.5), Vector3.new(4.4, 0.6, 4.2), gold)
+		box(head, "Crest", Vector3.new(0, 20, -0.2), Vector3.new(3.4, 0.8, 3.6), teal)
+		box(head, "Crest", Vector3.new(0, 20.8, 0.2), Vector3.new(2.4, 0.8, 2.8), color)
+		box(head, "Crest", Vector3.new(0, 21.6, 0.7), Vector3.new(1.4, 0.8, 1.8), deep)
+		box(head, "Crest", Vector3.new(0, 20.6, 2.1), Vector3.new(1.4, 0.6, 1.2), deep)
+		box(head, "Throat", Vector3.new(0, 15.1, -1.9), Vector3.new(3.6, 1.2, 1.4), teal)
+		for _, side in { -1, 1 } do
+			box(head, "EyeRing", Vector3.new(side * 2.62, 17.5, -1.8), Vector3.new(0.1, 1.9, 1.9), darkest)
+			box(head, "Eye", Vector3.new(side * 2.68, 17.5, -1.8), Vector3.new(0.2, 1.1, 1.1), BLACK)
+			box(head, "Glint", Vector3.new(side * 2.78, 17.8, -2.05), Vector3.new(0.1, 0.4, 0.4), WHITE)
+			box(head, "Cheek", Vector3.new(side * 2.62, 16.2, -2.6), Vector3.new(0.1, 1.2, 1.4), teal)
+		end
+		box(head, "Beak", Vector3.new(0, 16.6, -3.8), Vector3.new(2, 1.8, 1.8), yellow)
+		box(head, "BeakHook", Vector3.new(0, 15.9, -4.55), Vector3.new(1.4, 1.2, 0.7), yellow:Lerp(BLACK, 0.2))
+		box(head, "LowerBeak", Vector3.new(0, 15.4, -3.6), Vector3.new(1.6, 0.6, 1.4), yellow:Lerp(BLACK, 0.3))
+		v.swing(head, Vector3.new(0, 16, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
+
+		-- Alas abiertas: el borde de ataque dorado, las cobertoras esmeralda y turquesa, las remeras que
+		-- se alargan y se oscurecen hacia la punta con el borde de atrás en flecos, y la franja pálida.
+		for _, side in { -1, 1 } do
+			voxelWing(v, side, Vector3.new(side * 2.8, 12.6, 0.4), {
+				{ center = Vector3.new(3, 0.1, -0.2), size = Vector3.new(6, 1.2, 4.4), color = color },
+				{ center = Vector3.new(7.6, 0, 0.2), size = Vector3.new(4, 1.1, 4), color = teal },
+				{ center = Vector3.new(4.8, 0.45, -2.2), size = Vector3.new(8.4, 0.4, 0.5), color = gold },
+				{ center = Vector3.new(11.6, 0.4, -1.2), size = Vector3.new(4, 0.4, 0.5), color = gold },
+				{ center = Vector3.new(3.6, -0.1, 3.8), size = Vector3.new(6.6, 0.9, 3), color = deep },
+				{ center = Vector3.new(6, -0.2, 2.2), size = Vector3.new(5, 0.9, 0.7), color = pale },
+				{ center = Vector3.new(4, -0.2, 6.2), size = Vector3.new(5.6, 0.8, 2.2), color = darkest },
+				{ center = Vector3.new(9.6, -0.2, 3.8), size = Vector3.new(6, 0.8, 5), color = deep },
+				{ center = Vector3.new(14, -0.2, 3.6), size = Vector3.new(4, 0.7, 5.2), color = darkest },
+				{ center = Vector3.new(17, -0.3, 3), size = Vector3.new(2.2, 0.6, 3.8), color = darkest },
+				{ center = Vector3.new(9.4, -0.3, 6.9), size = Vector3.new(2.4, 0.6, 1.4), color = darkest },
+				{ center = Vector3.new(13, -0.3, 7), size = Vector3.new(2, 0.6, 1.4), color = darkest },
+				{ center = Vector3.new(14, -0.1, 0.4), size = Vector3.new(4, 0.6, 1.8), color = teal },
+			}, 0.7, 12)
+		end
+
+		-- Cola: la base blanca por debajo con la punta oscura, y dos plumas larguísimas que cuelgan hacia
+		-- atrás y se enroscan hacia arriba en la punta.
+		local tailParts: { BasePart } = {}
+		v.beam(tailParts, "TailCovert", Vector3.new(0, 7.2, 3.4), Vector3.new(0, 5.2, 9), Vector2.new(3.4, 1), color)
+		box(tailParts, "TailWhite", Vector3.new(0, 4.9, 7), Vector3.new(2.8, 0.5, 5), WHITE)
+		box(tailParts, "TailDark", Vector3.new(0, 5.1, 10.6), Vector3.new(2.2, 0.5, 2.2), darkest)
+		for _, side in { -1, 1 } do
+			local x = side * 1
+			v.beam(
+				tailParts,
+				"Streamer",
+				Vector3.new(x, 6.6, 3.6),
+				Vector3.new(x * 1.1, 4, 12),
+				Vector2.new(1, 0.9),
+				color
+			)
+			v.beam(
+				tailParts,
+				"Streamer",
+				Vector3.new(x * 1.1, 4, 12),
+				Vector3.new(x * 1.5, 2.4, 22),
+				Vector2.new(1, 0.9),
+				teal
+			)
+			v.beam(
+				tailParts,
+				"Streamer",
+				Vector3.new(x * 1.5, 2.4, 22),
+				Vector3.new(x * 2.3, 3.4, 29),
+				Vector2.new(1, 0.9),
+				deep
+			)
+			box(tailParts, "StreamerTip", Vector3.new(x * 2.5, 4.4, 29.6), Vector3.new(0.8, 1.4, 0.9), darkest)
+		end
+		v.swing(tailParts, Vector3.new(0, 7.2, 3.6), Vector3.xAxis, 0.18, 5, 1, false)
+		rig.family = "Bird"
+		return "Fly"
+	end,
+
 	-- Perezoso voxel (docs/img/Perezoso.jfif): a cuatro patas, con los brazos de delante muy largos
 	-- y las garras claras en gancho; pelo gris pardo desgreñado en escalones con una mancha clara en
 	-- el lomo, cara crema con el antifaz oscuro y una sonrisa permanente.

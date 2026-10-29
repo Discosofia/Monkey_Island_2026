@@ -536,7 +536,7 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **D2** | Piso 1 entero: salas, variantes, trampas, acertijos, sala secreta y el Narigudo Carcelero | — | ⏳ |
 | **D3** | Piso 2 y el Dril del Suero | — | ⏳ |
 | **D4** | Piso 3 y el Gelada Rey Calavera | — | ⏳ |
-| **D5** | Botín: huevo mítico (y la mascota mítica nueva), set y armas de la Calavera como planos, cofre de llaves y tope semanal, en `Economia` | — | ⏳ |
+| **D5** | Botín: huevo mítico (con el Quetzal y el Ajolote de la Fase 18, que llevan `origin = "HuevoMitico"` y no salen de huevos normales), set y armas de la Calavera como planos, cofre de llaves y tope semanal, en `Economia` | — | ⏳ |
 | **D6** | Ranking de tiempo y la sección de la mazmorra en `Economia` y el GDD | — | ⏳ |
 
 **Tanda "Idioma inglés"** (GDD §18, plan aprobado el 27-10-2026): `Shared/Strings` con el español como clave, el inglés revisado a mano en `Data/Strings/*` y todos los textos del código pasados a `T()` (también los que llevan números dentro). Al terminar la I1e, el usuario cambia el idioma de origen a inglés en Creator Hub, sube `build/localization_*.csv` uno a uno (90 filas cada uno: Creator Hub se corta hacia las 100) y activa la traducción automática. Cada parte cierra con una página de revisión es | en.

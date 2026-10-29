@@ -2779,3 +2779,23 @@ Mascota Poco común nueva (🐹, +15 de vida máxima). Entra sola al sorteo Unco
 
 4. [ ] Abre huevos normales hasta que salga alguna Poco común (o mira el panel de probabilidades del nido).
    ✅ La Capibara aparece entre las Poco comunes junto a la Guacamaya y el Perezoso. Su nombre y su descripción salen traducidos al cambiar el idioma a inglés.
+
+## 59. Fase 18 M2: quetzal (29-10-2026)
+
+Mascota Mítica nueva (🦚). Lleva `origin = "HuevoMitico"`: ningún huevo normal la da. Se da desde el panel de admin y entrará con el huevo mítico (Fase 14, D5).
+
+**En Play (Isla o Lobby), con la mascota dada desde el panel de admin:**
+
+1. [ ] Dale el **Quetzal** desde el panel de admin (Dar mascota), equípalo en el nido del Lobby y entra a la Isla.
+   ✅ Vuela siguiéndote, con las alas abiertas aleteando y las dos plumas largas de la cola moviéndose detrás, sin atravesar suelo ni paredes.
+2. [ ] Mira tu estamina al correr con el quetzal y sin él, y el daño de la honda o el arco.
+   ✅ Correr gasta un 25 % menos y el daño a distancia sube un 8 %.
+3. [ ] Míralo de frente, de lado y por detrás.
+   ✅ Esmeralda con el pecho carmesí, pico amarillo, cresta y la cola larga; de espaldas se ve la capa en filas y la banda blanca. No se confunde con la Guacamaya ni con el Tucán.
+
+**Con muchos huevos:**
+
+4. [ ] Abre muchos huevos normales de todas las rarezas (o mira el panel de probabilidades del nido).
+   ✅ El Quetzal no sale nunca ni aparece en la lista de mascotas posibles de ningún huevo.
+5. [ ] En el panel de admin, mira la lista de mascotas.
+   ✅ El Quetzal aparece como Mítico y se puede dar a un jugador. Su nombre y su descripción salen traducidos al inglés.
