@@ -758,9 +758,17 @@ Decisiones del 28-10-2026:
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de M4, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo M4.»
 
 **Handoff de R1 (29-10-2026)**
-- **Estado:** M4 cerrada y subida (19ce22d). R1 sin empezar. Siguiente número libre de VERIFICACION: §62.
-- **Antes de escribir código:** pide al agente `search` el mapa de `ArmorModels.BUILDERS` (los 4 roles de FurVest rango I), `OUTFITS`, `Config.Budgets.Models.ArmorRank` y las memorias de armaduras.
-- **Objetivo:** ver la tanda R1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`): rehacer los 4 builders de FurVest (rango I), uno por rol, con congruencia de grados, espalda vistosa y formas de hombrera; medir con `Rendimiento`; dejar el modelo de vista previa y la cámara en `Fixed` antes del «aprobado».
+- **Estado:** M1–M4 cerradas y subidas (último 19ce22d, PLAN ee490fb). R1 sin empezar. Siguiente número libre de VERIFICACION: §62. El Studio de la Isla tiene el Workspace limpio (sin modelos de vista previa) y la cámara en `Fixed`.
+- **Antes de escribir código:** pide al agente `search` el mapa de `src/shared/ArmorModels.luau` (los 4 constructores de rango I y sus helpers: `Body`, `OUTFITS` en 2957, `BUILDERS` en 5808, `BY_GRADE` en 5816 y cómo se pone un traje mítico encima), `Data/Armor.luau` (`FurVest`, 17) y `Rendimiento.luau` (317: cómo mide cada rango, `fusionSoldada`) y cómo se ve la armadura en el cliente (`RewardModels`, `Armario`). Lee las memorias `armor-tier-congruence`, `back-view-matters`, `hombreras-formas`, `top-tier-gear-detail` y `vista-previa-antes-de-aprobar`. Comprueba las líneas: este handoff las toma de una búsqueda rápida.
+- **Objetivo:** ver la tanda R1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección R1–R4): rehacer los 4 builders del **rango I (`FurVest`)**, uno por rol, en `ArmorModels.BUILDERS` (línea 5809):
+  - Guerrero: `furVest` (321).
+  - Cazador: `trackerCape` (945).
+  - Mago: `amuletMantle` (1359).
+  - Médico: `healerBandolier` (1733).
+- **Reglas:** congruencia de grados (los grados de un set comparten materiales, paleta y motivos), la espalda vistosa (se ve casi siempre desde atrás), formas de hombrera (losas cuadradas, estrella, círculo, óvalos planos; nunca almohadas) y voxel con pocos tonos planos, con las referencias de `docs/img`. Los trajes míticos (`OUTFITS`) se ponen encima de cada grado: comprobar que siguen encajando.
+- **Topes:** `Config.Budgets.Models.ArmorRank` = { 80, 115, 150, 210 } (línea 2184 de `Config.luau`; el rango I tiene 80 piezas por armadura). Mide con `Rendimiento` antes del commit; si hace falta subir un tope se cambia allí (y se avisa al usuario, como con el Quetzal y el Ajolote).
+- **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` (si hay textos) y `rojo build` de los 4 places. En Studio de la Isla (modo edición): construir cada armadura sobre un maniquí con `ArmorModels`, capturas de frente, de lado y de espaldas. **Antes de pedir el «aprobado», deja los 4 modelos de vista previa en el Workspace y la cámara en `Fixed`.** Lo que necesite Play o varios jugadores va a VERIFICACION §62.
+- **Flujo:** commit solo tras «aprobado», push y fila de `PLAN.md` en un commit aparte; después, escribe el Handoff de R2 (Hueso) con su prompt.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R1.»
 
 ---
