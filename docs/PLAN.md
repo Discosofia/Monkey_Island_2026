@@ -632,7 +632,7 @@ Decisiones del 28-10-2026:
 | **A3** | Gigante en los 4 places, con vida según jugadores activos | 457e24a | ✅ Probado en Studio con 1 jugador (sin probar: VERIFICACION §51) |
 | **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| 344963e | ✅ Probado en Studio (sin probar: VERIFICACION §52) |
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | 3509ba1, fafd564 | ✅ Probado en Studio (sin probar: VERIFICACION §53) |
-| **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | — | ⏳ |
+| **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | 7fe633a | ✅ Probado en Studio (sin probar: VERIFICACION §54) |
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | — | ⏳ |
 | **B2** | Ciclo lunar: fases, efectos y su icono | — | ⏳ |
 | **B3** | Evento de luna roja | — | ⏳ |
