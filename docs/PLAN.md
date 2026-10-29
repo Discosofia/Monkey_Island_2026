@@ -630,7 +630,7 @@ Decisiones del 28-10-2026:
 | **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | 1887267 | ✅ Probado en Studio (sin probar: VERIFICACION §49) |
 | **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | 72203eb | ✅ Probado en Studio (sin probar: VERIFICACION §50) |
 | **A3** | Gigante en los 4 places, con vida según jugadores activos | 457e24a | ✅ Probado en Studio con 1 jugador (sin probar: VERIFICACION §51) |
-| **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| — | ✅ Probado en Studio (sin probar: VERIFICACION §52) |
+| **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| 344963e | ✅ Probado en Studio (sin probar: VERIFICACION §52) |
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | — | ⏳ |
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | — | ⏳ |
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | — | ⏳ |
