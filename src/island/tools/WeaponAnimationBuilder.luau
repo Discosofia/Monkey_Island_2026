@@ -84,8 +84,14 @@ type Shot = {
 	seconds: number,
 	raise: number, -- segundos hasta llegar a la pose
 	pulseSeconds: number,
+	-- Elevación (grados) a la que apunta el arma con la pose puesta: la muñeca se gira lo que haga falta.
+	-- Sin "aim", la muñeca no se toca (las armas que apuntan a la boca o al cielo a propósito).
+	aim: number?,
 	-- El golpe empieza en el "fxDelay" de Shared/Data/WeaponAnimations (marcador "Disparo").
 }
+
+-- Grados que sube la boca de un arma con "aim" al disparar.
+local AIM_KICK = 6
 
 local SHOTS: { [string]: Shot } = {
 	-- Honda: recoge el brazo con el codo doblado mientras la mano izquierda estira la goma hasta la
@@ -169,8 +175,8 @@ local SHOTS: { [string]: Shot } = {
 	LabRifle = {
 		pose = {
 			Head = joint(-4),
-			RightUpperArm = joint(14, 10),
-			RightLowerArm = joint(55),
+			RightUpperArm = joint(-30, 10),
+			RightLowerArm = joint(40),
 			LeftUpperArm = joint(80, -38),
 			LeftLowerArm = joint(28),
 		},
@@ -182,12 +188,13 @@ local SHOTS: { [string]: Shot } = {
 		seconds = 0.9,
 		raise = 0.08,
 		pulseSeconds = 0.2,
+		aim = 4,
 	},
 	-- Lanzarredes del Laboratorio: al costado, con una mano delante; al disparar, el torso se echa atrás.
 	LabHarpoon = {
 		pose = {
-			RightUpperArm = joint(6, 8),
-			RightLowerArm = joint(22),
+			RightUpperArm = joint(-60, 8),
+			RightLowerArm = joint(50),
 			LeftUpperArm = joint(70, -30),
 			LeftLowerArm = joint(25),
 		},
@@ -199,13 +206,14 @@ local SHOTS: { [string]: Shot } = {
 		seconds = 0.6,
 		raise = 0.08,
 		pulseSeconds = 0.2,
+		aim = 0,
 	},
 	-- Cañón de suero del Laboratorio: pesado, a la cadera; el cuerpo se echa atrás al disparar.
 	LabCannon = {
 		pose = {
 			UpperTorso = joint(6, -10),
-			RightUpperArm = joint(2, 10),
-			RightLowerArm = joint(26),
+			RightUpperArm = joint(-60, 10),
+			RightLowerArm = joint(40),
 			LeftUpperArm = joint(58, -26),
 			LeftLowerArm = joint(30),
 		},
@@ -217,6 +225,7 @@ local SHOTS: { [string]: Shot } = {
 		seconds = 0.75,
 		raise = 0.1,
 		pulseSeconds = 0.26,
+		aim = -3,
 	},
 }
 
@@ -514,13 +523,27 @@ local function buildShot(name: string, shot: Shot, pulseAt: number): KeyframeSeq
 		end
 	end
 	local rest: { [string]: CFrame } = table.clone(HOLD)
+	local pose = table.clone(shot.pose)
+	local pulse = table.clone(shot.pulse)
+	if shot.aim then
+		-- El arma sale a lo largo de la palma: apunta con la elevación de la suma de los ángulos del brazo (con la
+		-- base de 90°) y del codo. La muñeca pone la diferencia hasta la elevación pedida.
+		local upper = select(1, (pose.RightUpperArm or CFrame.new()):ToEulerAnglesYXZ())
+		local lower = select(1, (pose.RightLowerArm or CFrame.new()):ToEulerAnglesYXZ())
+		pose.RightHand = joint(shot.aim - (math.deg(upper) + 90 + math.deg(lower)))
+		-- El golpe mueve el brazo: la muñeca lo compensa y sube la boca unos grados (el retroceso levanta el arma).
+		local pulseUpper = select(1, (pulse.RightUpperArm or CFrame.new()):ToEulerAnglesYXZ())
+		local pulseLower = select(1, (pulse.RightLowerArm or CFrame.new()):ToEulerAnglesYXZ())
+		pulse.RightHand = joint(AIM_KICK - math.deg(pulseUpper) - math.deg(pulseLower))
+		animated.RightHand = true
+	end
 	local posed: { [string]: CFrame } = {}
 	local peak: { [string]: CFrame } = {}
 	for part in animated do
 		local base = BASE[part] or CFrame.new()
-		local pose = shot.pose[part] or CFrame.new()
-		posed[part] = pose * base
-		peak[part] = pose * (shot.pulse[part] or CFrame.new()) * base
+		local current = pose[part] or CFrame.new()
+		posed[part] = current * base
+		peak[part] = current * (pulse[part] or CFrame.new()) * base
 	end
 	addKeyframe(sequence, 0, rest, animated)
 	addKeyframe(sequence, shot.raise, posed, animated)

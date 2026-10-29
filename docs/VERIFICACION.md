@@ -2649,10 +2649,12 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
 1. [ ] Mira desde fuera cómo dispara el otro jugador.
    ✅ Ves su fogonazo en la boca del arma y la trazadora gruesa hasta el impacto.
 
-#### 53.3 Pendiente de publicar
+#### 53.3 Poses de disparo del rifle, el arpón y el cañón (publicadas)
 
-1. [ ] Poses nuevas de apuntar y disparar (rifle, arpón y cañón tienen el id vacío en Data/WeaponAnimations). Las publica el usuario con la skill animaciones-roblox.
-   ✅ Al publicar y poner los ids, se ven al apuntar y disparar.
+1. [ ] En el juego publicado, equipa cada arma del Laboratorio y dispara mirando a otro jugador desde fuera (o desde el espectador).
+   ✅ El arma apunta al frente, no al cielo: el rifle a la altura del pecho y el arpón y el cañón a la cadera. Al disparar, el cuerpo se echa atrás y la boca sube un poco.
+2. [ ] Dispara el lanzadardos.
+   ✅ Sigue con su pose de siempre (cerbatana) sin cambios.
 
 #### 53.4 Cabeza quieta al andar (pista HeadSteady, publicada con el id 102631425550136)
 
