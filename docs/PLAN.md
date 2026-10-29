@@ -826,6 +826,34 @@ Decisiones del 28-10-2026:
 - **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` (si hay textos) y `rojo build` de los 4 places. Modelos montados sobre un maniquí o una mano en el Studio de la Isla, con capturas de frente, de lado y de espaldas; deja la vista previa y la cámara en `Fixed` antes de pedir el «aprobado».
 - **Flujo:** commit solo tras «aprobado», push y fila de `PLAN.md` en un commit aparte; después, el Handoff de la tanda siguiente.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de armas y skins. Pregúntame con cuál de las tandas S1–S4 o K1–K2 empezamos y haz ese grupo.»
+
+### Fase 19: Experiencia de combate a distancia (29-10-2026)
+
+En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §74. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
+
+Decisiones del 29-10-2026:
+- **Alcance:** Laboratorio, Dunas e Isla; las líneas blancas también en el Lobby.
+- **Pose:** arma al frente siempre con un arma a distancia, salvo al correr; la ven todos (respaldo replicado como el del deslizamiento).
+- **Puntería:** todas las armas se apuntan, cada una con su mira (rifle hueca, dardos y honda punto rojo, arpón/arco/cerbatana de hierro, cañón y bastón arco de caída). Sin ayuda de puntería en el Lab; en Isla y Dunas, hacia la zona más cercana. En tercera persona, cámara al hombro.
+- **Zonas por piezas** en los 3 places y contra monos y jefes: cabeza ×1,5 (rifle ×2), torso ×1, extremidades ×0,8, puntos débiles en jefes; rebobinado de la pose.
+- **Impactos:** bala inmediata en el cliente, marcas en paredes, pulpa de plátano, hitmarker inmediato (cabeza en amarillo-naranja; el punto rojo de la mira es excepción aceptada a la regla del rojo), «tac» y «dink», killfeed.
+- **Primera persona del Lab:** rig de brazos voxel con `AnimationController`; el usuario publica las animaciones.
+- **Líneas blancas, FOV y sacudida:** más fuertes, con su propio ajuste, en todos los places.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **W1** | Líneas blancas, FOV y sacudida en los 4 places | f6b7fa1 | ✅ Probado en Studio, Laboratorio (sin probar: VERIFICACION §74) |
+| **W2** | Pose de apuntar visible para todos (3P) | — | ⏳ |
+| **W3** | Confirmación de impacto: `HitFeedback`, hitmarker y sonidos | — | ⏳ |
+| **W4** | Bala inmediata del tirador y dispersión sincronizada | — | ⏳ |
+| **W5** | Marcas de impacto, chispas, polvo y pulpa | — | ⏳ |
+| **W6** | Zonas por piezas, rebobinado de pose y ayuda de puntería | — | ⏳ |
+| **W7** | Apuntar de verdad (ADS) y cámara al hombro | — | ⏳ |
+| **W8** | Miras por tipo de arma | — | ⏳ |
+| **W9** | Killfeed | — | ⏳ |
+| **W10** | Rig de brazos en primera persona del Lab | — | ⏳ |
+| **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
+
 ---
 
 ## 4. Cronograma estimado
