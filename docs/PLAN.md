@@ -639,7 +639,7 @@ Decisiones del 28-10-2026:
 | **M1** | Capibara (Poco común) | 8e91b46 | ✅ Probado en Studio (sin probar: VERIFICACION §58) |
 | **M2** | Quetzal (Mítico) | 8f7c4f0 | ✅ Probado en Studio (sin probar: VERIFICACION §59) |
 | **M3** | Ajolote (Mítico), con clips de la capibara, el ajolote y el quetzal | 88779ff | ✅ Probado en Studio (sin probar: VERIFICACION §60) |
-| **M4** | Clips propios para las mascotas antiguas (reposo, correr, andar) | — | ⏳ |
+| **M4** | Clips propios para las mascotas antiguas (reposo, correr, andar) | 19ce22d | ✅ Probado en Studio y en Play por el usuario (VERIFICACION §61) |
 | **R1** | Armaduras de Pelaje (rango I), 4 roles | — | ⏳ |
 | **R2** | Armaduras de Hueso (rango II), 4 roles | — | ⏳ |
 | **R3** | Armaduras de Plata (rango III), 4 roles | — | ⏳ |
@@ -758,7 +758,7 @@ Decisiones del 28-10-2026:
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de M4, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo M4.»
 
 **Handoff de R1 (29-10-2026)**
-- **Estado:** M4 antes que R1 si el usuario lo pide; si no, R1 puede ir primero. Siguiente número libre de VERIFICACION: §61 (o §62 si se hace M4 antes).
+- **Estado:** M4 cerrada y subida (19ce22d). R1 sin empezar. Siguiente número libre de VERIFICACION: §62.
 - **Antes de escribir código:** pide al agente `search` el mapa de `ArmorModels.BUILDERS` (los 4 roles de FurVest rango I), `OUTFITS`, `Config.Budgets.Models.ArmorRank` y las memorias de armaduras.
 - **Objetivo:** ver la tanda R1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`): rehacer los 4 builders de FurVest (rango I), uno por rol, con congruencia de grados, espalda vistosa y formas de hombrera; medir con `Rendimiento`; dejar el modelo de vista previa y la cámara en `Fixed` antes del «aprobado».
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R1.»
