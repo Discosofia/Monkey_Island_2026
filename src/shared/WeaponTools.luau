@@ -352,6 +352,9 @@ type MacheteStyle = {
 	-- Rango I ("Pelaje"): filo desportillado, punta de piedra lascada, guarda con muescas, mango con
 	-- espiral de fibra y borla de pelaje en el pomo, sin remaches de metal.
 	primitive: boolean?,
+	-- Rango II ("Hueso"): dientes de hueso en el filo, incrustaciones en la hoja, guarda de colmillos, mango
+	-- de hueso con anillos de fibra roja y borla de pelaje con un colmillo en el pomo.
+	bone: boolean?,
 }
 
 -- La hoja es el "Handle": fina en X y ancha en Z, con el filo en -Z y el lomo en +Z.
@@ -416,6 +419,32 @@ local function buildMachete(tool: Tool, style: MacheteStyle): BasePart
 		)
 	end
 
+	if style.bone then
+		-- Dientes de hueso en el filo (hacia -Z) e incrustaciones oscuras en la hoja, junto al canal.
+		for index = 0, 4 do
+			tooth(
+				blade,
+				"BoneTooth",
+				0.22,
+				0.1,
+				0.2,
+				BONE,
+				SMOOTH,
+				CFrame.new(0, -length / 2 + 0.5 + index * 0.5, -(width / 2 + 0.06)) * CFrame.Angles(-math.rad(90), 0, 0)
+			)
+		end
+		for _, at in { -0.3, 0.05, 0.4 } do
+			block(
+				blade,
+				"Inlay",
+				Vector3.new(0.14, 0.3, 0.07),
+				BONE_DARK,
+				SMOOTH,
+				CFrame.new(0, length * at, -width * 0.12)
+			)
+		end
+	end
+
 	-- Guarda, empuñadura con dos vueltas de cuero, remaches y pomo.
 	local gripY = -length / 2 - 0.75
 	local boneGrip = style.gripMaterial == SMOOTH
@@ -456,6 +485,48 @@ local function buildMachete(tool: Tool, style: MacheteStyle): BasePart
 		block(blade, "Cord", Vector3.new(0.05, 0.25, 0.05), FIBER, FABRIC, CFrame.new(0, gripY - 0.92, 0))
 		block(blade, "Tassel", Vector3.new(0.2, 0.42, 0.2), FUR, FABRIC, CFrame.new(0, gripY - 1.2, 0))
 		block(blade, "Tassel", Vector3.new(0.12, 0.2, 0.12), OCHRE_PAINT, FABRIC, CFrame.new(0, gripY - 1.5, 0))
+	elseif style.bone then
+		-- Colmillos en los extremos de la guarda, abiertos hacia los lados.
+		for side = -1, 1, 2 do
+			tooth(
+				blade,
+				"GuardFang",
+				0.32,
+				0.16,
+				0.2,
+				FANG,
+				SMOOTH,
+				CFrame.new(0, -length / 2 - 0.08, side * (width / 2 + 0.23)) * CFrame.Angles(side * math.rad(90), 0, 0)
+			)
+		end
+		-- Tres anillos de fibra roja con sombras de hueso entre ellos.
+		for _, offset in { 0.4, 0, -0.4 } do
+			block(blade, "Wrap", Vector3.new(0.38, 0.12, 0.46), FUR, FABRIC, CFrame.new(0, gripY + offset, 0))
+		end
+		for _, offset in { 0.2, -0.2 } do
+			block(
+				blade,
+				"GripShade",
+				Vector3.new(0.36, 0.06, 0.44),
+				BONE_DARK,
+				SMOOTH,
+				CFrame.new(0, gripY + offset, 0)
+			)
+		end
+		ball(blade, "Pommel", 0.46, style.guard, SMOOTH, CFrame.new(0, gripY - 0.7, 0))
+		-- Borla de pelaje rojo con un colmillo colgando de un cordón.
+		block(blade, "Cord", Vector3.new(0.05, 0.25, 0.05), FIBER, FABRIC, CFrame.new(0, gripY - 0.95, 0))
+		block(blade, "Tassel", Vector3.new(0.2, 0.42, 0.2), FUR, FABRIC, CFrame.new(0, gripY - 1.2, 0))
+		tooth(
+			blade,
+			"TasselFang",
+			0.32,
+			0.12,
+			0.16,
+			FANG,
+			SMOOTH,
+			CFrame.new(0, gripY - 1.55, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
 	else
 		for _, offset in { 0.4, -0.4 } do
 			block(blade, "Wrap", Vector3.new(0.38, 0.12, 0.46), LEATHER, FABRIC, CFrame.new(0, gripY + offset, 0))
@@ -487,6 +558,9 @@ type SlingStyle = {
 	-- Rango I ("Pelaje"): anillos de pelaje en el mango, bandas ocres en las ramas, bolsita de cuero con
 	-- tres guijarros al costado y una pluma roja colgando.
 	primitive: boolean?,
+	-- Rango II ("Hueso"): cuentas de hueso en las ramas, anillos de hueso en la atadura, más hojas, bolsita
+	-- de piedras con un colmillo y plumas negra y blanca colgando.
+	bone: boolean?,
 }
 
 -- Tirachinas: horquilla de rama con dos gomas que llevan a una bolsa de cuero con una piedra.
@@ -517,6 +591,12 @@ local function buildSling(tool: Tool, style: SlingStyle): BasePart
 		ball(handle, "Knob", 0.32 * size, style.wood, WOOD_MATERIAL, CFrame.new(tip))
 		if style.liana then
 			wraps(handle, base, tip, 3, 0.34 * size, LIANA_GREEN, Vector3.zAxis)
+			if style.bone then
+				-- Cuentas de hueso entre las vueltas de liana.
+				for _, t in { 0.15, 0.375, 0.625, 0.85 } do
+					ball(handle, "BoneBead", 0.27 * size, BONE, SMOOTH, CFrame.new(base:Lerp(tip, t)))
+				end
+			end
 		elseif style.primitive then
 			wraps(handle, base, tip, 2, 0.32 * size, OCHRE_PAINT, Vector3.zAxis)
 		end
@@ -554,6 +634,41 @@ local function buildSling(tool: Tool, style: SlingStyle): BasePart
 			size * 0.8,
 			CFrame.new(-0.2 * size, forkY - 0.25 * size, 0.1 * size) * CFrame.Angles(-0.4, -0.5, -0.6)
 		)
+	end
+	if style.bone then
+		-- Más hojas, anillos de hueso a los extremos de la atadura y una bolsita de cuero con piedras y colmillo.
+		leaf(
+			handle,
+			size * 0.9,
+			CFrame.new(-0.24 * size, forkY - 0.5 * size, -0.1 * size) * CFrame.Angles(0.4, 0.5, 0.9)
+		)
+		leaf(
+			handle,
+			size * 0.7,
+			CFrame.new(0.25 * size, forkY - 0.4 * size, 0.12 * size) * CFrame.Angles(-0.5, -0.4, -0.8)
+		)
+		for _, y in { 0.2, -0.8 } do
+			rod(handle, "BoneRing", 0.2, 0.5, BONE, SMOOTH, CFrame.new(0, y, 0))
+		end
+		block(handle, "Satchel", Vector3.new(0.28, 0.36, 0.28), TAN_LEATHER, FABRIC, CFrame.new(0.4, -0.55, 0))
+		block(handle, "SatchelTie", Vector3.new(0.32, 0.06, 0.12), FIBER, FABRIC, CFrame.new(0.26, -0.33, 0))
+		for index = -1, 1, 2 do
+			ball(handle, "Pebble", 0.15, STONE, STONE_MATERIAL, CFrame.new(0.4, -0.34, index * 0.07))
+		end
+		tooth(
+			handle,
+			"SatchelFang",
+			0.3,
+			0.1,
+			0.14,
+			FANG,
+			SMOOTH,
+			CFrame.new(0.4, -0.88, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
+		-- Plumas negra y blanca colgando de un cordón.
+		block(handle, "Cord", Vector3.new(0.03, 0.3, 0.03), FIBER, FABRIC, CFrame.new(-0.28, -0.3, 0))
+		block(handle, "Feather", Vector3.new(0.04, 0.45, 0.12), FEATHER_BLACK, SMOOTH, CFrame.new(-0.29, -0.62, 0.07))
+		block(handle, "Feather", Vector3.new(0.04, 0.4, 0.12), FEATHER_WHITE, SMOOTH, CFrame.new(-0.29, -0.6, -0.07))
 	end
 	if style.primitive then
 		-- Anillos de pelaje rojo a los extremos de la atadura de fibra.
@@ -1020,8 +1135,37 @@ local function buildBoneMace(tool: Tool): BasePart
 	for side = -1, 1, 2 do
 		ball(handle, "Knob", 0.48, BONE, SMOOTH, CFrame.new(side * 0.15, -1.35, 0))
 	end
-	rod(handle, "Wrap", 0.9, 0.46, LEATHER, FABRIC, CFrame.new(0, -0.7, 0))
+	rod(handle, "Wrap", 0.9, 0.46, TAN_LEATHER, FABRIC, CFrame.new(0, -0.7, 0))
+	-- Ataduras de fibra en los extremos del cuero y encima de los nudos.
+	for _, y in { -0.3, 1.0 } do
+		rod(handle, "Lashing", 0.12, 0.5, FIBER, FABRIC, CFrame.new(0, y, 0))
+	end
+	-- Nudos del hueso, más oscuros.
+	ball(handle, "BoneNode", 0.46, BONE_DARK, SMOOTH, CFrame.new(0.1, -0.05, 0))
+	ball(handle, "BoneNode", 0.46, BONE_DARK, SMOOTH, CFrame.new(-0.1, 0.2, 0))
 	rod(handle, "Fur", 0.4, 0.75, FUR, FABRIC, CFrame.new(0, 1.4, 0))
+	-- Colmillos colgando del collar de pelaje.
+	for index = 0, 3 do
+		local angle = index * math.pi / 2 + math.pi / 4
+		tooth(
+			handle,
+			"CollarFang",
+			0.32,
+			0.12,
+			0.16,
+			FANG,
+			SMOOTH,
+			CFrame.new(math.sin(angle) * 0.36, 1.18, math.cos(angle) * 0.36)
+				* CFrame.Angles(0, angle, 0)
+				* CFrame.Angles(math.pi, 0, 0)
+		)
+	end
+	-- Calavera pequeña de mono colgando de un cordón atado sobre los nudos.
+	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(0, 0.8, -0.24))
+	ball(handle, "Skull", 0.3, BONE, SMOOTH, CFrame.new(0, 0.5, -0.26))
+	for side = -1, 1, 2 do
+		block(handle, "Eye", Vector3.new(0.05, 0.06, 0.04), WHISKER, SMOOTH, CFrame.new(side * 0.07, 0.52, -0.4))
+	end
 	local headY, radius = 2.25, 0.8
 	ball(handle, "Head", radius * 2, STONE, STONE_MATERIAL, CFrame.new(0, headY, 0))
 	-- Dos anillos de 5 púas, cada uno girado respecto al otro, y una arriba.
@@ -1044,6 +1188,24 @@ local function buildBoneMace(tool: Tool): BasePart
 		end
 	end
 	tooth(handle, "Spike", 0.7, 0.24, 0.4, BONE, SMOOTH, CFrame.new(0, headY + radius + 0.28, 0))
+	-- Tres púas más cortas hacia abajo.
+	for index = 0, 2 do
+		local angle = (index + 0.25) * math.pi * 2 / 3
+		tooth(
+			handle,
+			"Spike",
+			0.5,
+			0.2,
+			0.32,
+			BONE_DARK,
+			SMOOTH,
+			CFrame.new(0, headY, 0)
+				* CFrame.Angles(0, angle, 0)
+				* CFrame.Angles(-0.7, 0, 0)
+				* CFrame.new(0, 0, -(radius * 0.9 + 0.2))
+				* CFrame.Angles(-math.rad(90), 0, 0)
+		)
+	end
 	tool.Grip = CFrame.new(0, -0.7, 0)
 	return handle
 end
@@ -1203,6 +1365,9 @@ type BowStyle = {
 	-- en las uniones y las puntas, borlas de pelaje en las puntas, plumas en las puntas y atadura de
 	-- fibra en la empuñadura.
 	primitive: boolean?,
+	-- Rango II ("Hueso"): placas de hueso también en el tramo de la punta, sombra en la placa, borlas de
+	-- pelaje negro y plumas negras y blancas en las puntas, colmillo central y cuentas en la cuerda.
+	bone: boolean?,
 }
 
 -- Arco recurvo: las palas van a lo largo de Y y se curvan hacia el arquero (+Z), donde va la cuerda;
@@ -1260,6 +1425,32 @@ local function buildBow(tool: Tool, style: BowStyle): BasePart
 			for _, point in { start:Lerp(middle, 0.5), middle } do
 				band(point, middle - start, 0.1, FIBER, FABRIC)
 			end
+			if style.bone then
+				-- Segunda placa en el tramo de la punta, sombra de hueso oscuro y atadura de fibra.
+				strut(handle, "Plate", middle + back, tip + back, 0.1, 0.24, BONE, SMOOTH, Vector3.xAxis)
+				strut(
+					handle,
+					"PlateShade",
+					start + back + Vector3.new(0, 0, -0.06),
+					middle + back + Vector3.new(0, 0, -0.06),
+					0.05,
+					0.12,
+					BONE_DARK,
+					SMOOTH,
+					Vector3.xAxis
+				)
+				band(middle:Lerp(tip, 0.5), tip - middle, 0.1, FIBER, FABRIC)
+				-- Borla de pelaje negro y pluma que cuelga de la punta de hueso.
+				ball(handle, "Tuft", 0.3, FEATHER_BLACK, FABRIC, CFrame.new(curl + Vector3.new(0, side * 0.04, -0.1)))
+				block(
+					handle,
+					"Feather",
+					Vector3.new(0.04, 0.4, 0.12),
+					if side > 0 then FEATHER_BLACK else FEATHER_WHITE,
+					SMOOTH,
+					CFrame.new(0.14, curl.Y + side * 0.2, curl.Z)
+				)
+			end
 		end
 		if style.liana then
 			wraps(handle, start, middle, 3, 0.33, LIANA_GREEN, Vector3.xAxis)
@@ -1303,6 +1494,23 @@ local function buildBow(tool: Tool, style: BowStyle): BasePart
 				CFrame.new(0, side * 0.72, -0.2) * CFrame.Angles(if side > 0 then -0.5 else math.pi + 0.5, 0, 0)
 			)
 			block(handle, "Rune", Vector3.new(0.38, 0.05, 0.05), MAGMA, NEON, CFrame.new(0, side * 0.18, -0.24))
+		end
+	end
+
+	if style.bone then
+		-- Colmillo central en la espalda de la empuñadura y cuentas de hueso en la cuerda.
+		tooth(
+			handle,
+			"CentralFang",
+			0.4,
+			0.14,
+			0.2,
+			FANG,
+			SMOOTH,
+			CFrame.new(0, 0.42, -0.34) * CFrame.Angles(-math.rad(90), 0, 0)
+		)
+		for _, y in { -1.5, -0.8, 0.8, 1.5 } do
+			ball(handle, "StringBead", 0.14, BONE, SMOOTH, CFrame.new(0, y, tipZ))
 		end
 	end
 
@@ -1367,6 +1575,9 @@ type BlowgunStyle = {
 	-- Rango I ("Pelaje"): anillos de pintura roja, ataduras de fibra, empuñadura con vueltas de cuero y
 	-- dardos de madera con plumas rojas y blancas en la bolsita (atada con una correa).
 	primitive: boolean?,
+	-- Rango II ("Hueso"): bandas anchas de hueso, boquilla tallada, bolsita de cuero con cinco dardos de
+	-- hueso (plumas rojas y blancas), atadura de fibra y dos colmillos junto a la boca.
+	bone: boolean?,
 }
 
 -- Cerbatana (médico): caña larga a lo largo de Y con la boquilla abajo, junto a la mano, y una bolsita
@@ -1390,13 +1601,39 @@ local function buildBlowgun(tool: Tool, style: BlowgunStyle): BasePart
 	rod(handle, "Grip", 0.8, 0.28, style.grip, FABRIC, CFrame.new(0, -0.8, 0))
 
 	-- Bolsita de cuero con tres dardos asomando.
-	local pouchColor = if style.primitive then TAN_LEATHER else LEATHER
+	local colorful = style.primitive or style.bone
+	local pouchColor = if colorful then TAN_LEATHER else LEATHER
 	block(handle, "Pouch", Vector3.new(0.18, 0.42, 0.3), pouchColor, FABRIC, CFrame.new(0.2, -0.1, 0))
-	for index = -1, 1 do
+	local dartSpread = if style.bone then 2 else 1
+	for index = -dartSpread, dartSpread do
 		local dart = CFrame.new(0.2, 0.2, index * 0.08) * CFrame.Angles(index * 0.15, 0, 0)
 		rod(handle, "Dart", 0.4, 0.04, if style.primitive then LIGHT_WOOD else BONE, SMOOTH, dart)
-		local fluff = if not style.primitive then LEAF_GREEN elseif index == 0 then FEATHER_WHITE else RED_PAINT
+		local fluff = if not colorful then LEAF_GREEN elseif index % 2 == 0 then FEATHER_WHITE else RED_PAINT
 		ball(handle, "Fluff", 0.11, fluff, FABRIC, dart * CFrame.new(0, 0.22, 0))
+	end
+	if style.bone then
+		block(handle, "PouchTie", Vector3.new(0.22, 0.07, 0.34), FIBER, FABRIC, CFrame.new(0.2, 0.05, 0))
+		-- Bandas anchas de hueso entre los nudos, anillos de sombra en la boquilla y atadura de fibra.
+		for _, bandY in { 0.4, 1.0, 1.6 } do
+			rod(handle, "BoneBand", 0.3, 0.3, BONE, SMOOTH, CFrame.new(0, bandY, 0))
+		end
+		for _, ringY in { -1.2, -1.38 } do
+			rod(handle, "CarvedRing", 0.06, 0.33, BONE_DARK, SMOOTH, CFrame.new(0, ringY, 0))
+		end
+		rod(handle, "Binding", 0.2, 0.28, FIBER, FABRIC, CFrame.new(0, -0.3, 0))
+		-- Dos colmillos que abrazan la boca de la caña.
+		for side = -1, 1, 2 do
+			tooth(
+				handle,
+				"MuzzleFang",
+				0.3,
+				0.1,
+				0.14,
+				FANG,
+				SMOOTH,
+				CFrame.new(0, top - 0.2, side * 0.19) * CFrame.Angles(side * 0.35, 0, 0)
+			)
+		end
 	end
 	if style.primitive then
 		block(handle, "PouchTie", Vector3.new(0.22, 0.07, 0.34), FIBER, FABRIC, CFrame.new(0.2, 0.05, 0))
@@ -2969,6 +3206,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			gripMaterial = SMOOTH,
 			guard = BONE_DARK,
 			serrated = true,
+			bone = true,
 		})
 	end,
 	Honda = function(tool)
@@ -2983,7 +3221,14 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 	end,
 	-- Más grande, de madera oscura, con gomas de liana y la horquilla envuelta en liana.
 	LianaSling = function(tool)
-		return buildSling(tool, { size = 1.15, wood = DARK_BARK, band = LIANA_GREEN, bandWidth = 0.1, liana = true })
+		return buildSling(tool, {
+			size = 1.15,
+			wood = DARK_BARK,
+			band = LIANA_GREEN,
+			bandWidth = 0.1,
+			liana = true,
+			bone = true,
+		})
 	end,
 	Spear = buildSpear,
 	WoodenAxe = buildWoodenAxe,
@@ -3058,6 +3303,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			plates = true,
 			liana = false,
 			fang = true,
+			bone = true,
 		})
 	end,
 	-- El más largo: palas oscuras envueltas en liana con hojas, empuñadura de hueso grueso, cuerda de
@@ -3128,12 +3374,13 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			mouth = BONE,
 			muzzle = BONE,
 			tipMaterial = SMOOTH,
-			grip = LEATHER,
+			grip = TAN_LEATHER,
 			fur = true,
 			liana = false,
 			shells = false,
 			feathers = { FEATHER_WHITE, RED_PAINT },
 			sap = false,
+			bone = true,
 		})
 	end,
 	-- La más larga: madera oscura envuelta en liana, boquilla de hueso grueso, conchas, plumas de
@@ -3260,13 +3507,60 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			crystalSize = 0.65,
 			wrap = LEATHER,
 			decorate = function(handle, top)
-				for _, y in { -1.2, 0.3, 1.5 } do
+				for _, y in { -1.2, -0.45, 0.3, 1.15, 1.5 } do
 					rod(handle, "Band", 0.14, 0.36, GOLD, METAL, CFrame.new(0, y, 0))
 				end
-				for _, y in { 0.75, 0.95 } do
-					rod(handle, "Bead", 0.16, 0.36, BONE, SMOOTH, CFrame.new(0, y, 0))
+				for index, y in { 0.55, 0.75, 0.95 } do
+					rod(handle, "Bead", 0.16, 0.36, if index == 2 then BONE_DARK else BONE, SMOOTH, CFrame.new(0, y, 0))
 				end
 				ball(handle, "GoldenFur", 0.5, GOLDEN_FUR, FABRIC, CFrame.new(0, top - 0.3, 0))
+				-- Pelaje dorado en la base, sobre la contera.
+				rod(handle, "GoldenFurRing", 0.3, 0.5, GOLDEN_FUR, FABRIC, CFrame.new(0, -1.95, 0))
+				-- Colgante de colmillos con cordón: el central es el más grande.
+				block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(0.22, 0.9, 0))
+				for index = -1, 1 do
+					tooth(
+						handle,
+						"PendantFang",
+						if index == 0 then 0.38 else 0.28,
+						0.1,
+						0.14,
+						if index == 0 then BIG_FANG else FANG,
+						SMOOTH,
+						CFrame.new(0.22, if index == 0 then 0.48 else 0.52, index * 0.09)
+							* CFrame.Angles(math.pi + index * 0.2, 0, 0)
+					)
+				end
+				-- Dos plumas doradas colgando del otro lado.
+				block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(-0.22, 1.2, 0))
+				block(
+					handle,
+					"Feather",
+					Vector3.new(0.04, 0.5, 0.12),
+					FEATHER_YELLOW,
+					SMOOTH,
+					CFrame.new(-0.23, 0.82, 0.07)
+				)
+				block(
+					handle,
+					"Feather",
+					Vector3.new(0.04, 0.45, 0.12),
+					OCHRE_PAINT,
+					SMOOTH,
+					CFrame.new(-0.23, 0.85, -0.07)
+				)
+				-- Nudillos de oro en las garras que sujetan el cristal.
+				for index = 0, 3 do
+					local angle = index * math.pi / 2 + math.pi / 4
+					ball(
+						handle,
+						"ClawKnuckle",
+						0.17,
+						GOLD,
+						METAL,
+						CFrame.new(math.sin(angle) * 0.4875, top + 0.5, math.cos(angle) * 0.4875)
+					)
+				end
 			end,
 		})
 	end,

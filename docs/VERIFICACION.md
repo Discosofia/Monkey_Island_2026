@@ -2904,3 +2904,14 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El rango II se ve claramente más rico y con hueso; el rango I se ve primitivo (sin hueso).
 4. [ ] Pon un aspecto de arma (Sulfurado) sobre el Machete y el Arco.
    ✅ El aspecto se dibuja entero, sin piezas del arma base.
+
+## 67. Fase 18 S2: armas de la forja de rango II rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Mejora cada arma al rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) y míralas en la mano, quietas, corriendo y atacando.
+   ✅ Se ven más ricas que las de rango I, con hueso, y sin piezas sueltas ni atravesadas (colmillos de la guarda y de la cerbatana, púas de la maza, colgantes del bastón). La pose de agarre no cambia.
+2. [ ] Dispara el arco y la cerbatana, lanza con la honda y golpea con la maza y el machete.
+   ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
+3. [ ] Mira la Maza de hueso desde atrás y de cerca.
+   ✅ La calavera colgante y el collar de colmillos no atraviesan el mango.
