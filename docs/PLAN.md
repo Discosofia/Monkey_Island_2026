@@ -634,7 +634,7 @@ Decisiones del 28-10-2026:
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | 3509ba1, fafd564 | ✅ Probado en Studio (sin probar: VERIFICACION §53) |
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | 7fe633a | ✅ Probado en Studio (sin probar: VERIFICACION §54) |
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | 9a40a19 | ✅ Probado en Studio (sin probar: VERIFICACION §55) |
-| **B2** | Ciclo lunar: fases, efectos y su icono | — | ⏳ |
+| **B2** | Ciclo lunar: fases, efectos y su icono | de653ef | ✅ Probado en Studio (sin probar: VERIFICACION §56) |
 | **B3** | Evento de luna roja | — | ⏳ |
 | **M1** | Capibara (Poco común) | — | ⏳ |
 | **M2** | Quetzal (Mítico) | — | ⏳ |
@@ -726,6 +726,14 @@ Decisiones del 28-10-2026:
 - **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` y `rojo build` de los 4 places. `Equilibrio` y `Economia` en el Studio de la Isla (modo edición, con `Clone`). En Play con `probador-studio`: fase de la luna con `SkipPhase` y capturas de la luz y del icono. Lo que necesite el juego publicado o dos jugadores va a VERIFICACION §56.
 - **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de B2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo B2.»
+
+**Handoff de B3 (29-10-2026)**
+- **Estado:** B2 cerrada y subida (de653ef). B3 sin empezar. Siguiente número libre de VERIFICACION: §57.
+- **Antes de escribir código:** pide al agente `search` el mapa de `Data/LiveEvents` y `LiveEventsServer` (cómo se define y se activa un evento global), el tablero «Ahora en el juego» de A2 (`AdminPanel`, `IslandActions`, `AdminEventsService`), el asedio nocturno de `SiegeService` (hordas, vida y daño) y el reparto de Ámbar y botín de la partida. Comprueba las líneas: este handoff se escribe sin haber leído ese código.
+- **Objetivo:** ver la tanda B3 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección B3): evento en vivo `RedMoon`, global, con botón de activar y desactivar en el tablero de A2. En la Isla: cielo rojo, horda nocturna (más monos, +X % de vida y daño) y doble botín y Ámbar de partida. En el Lobby, Dunas y el Laboratorio: solo cielo rojo y aviso. Los números se miden con `Equilibrio` y `Economia`.
+- **Ya hecho en B2:** `Config.Moon.RedMoonTexture` tiene la imagen de la luna roja; `LightingController.adjust` es el sitio donde sumar el cielo rojo después de la fase; la fase de la luna sigue activa debajo de la roja.
+- **Riesgos:** el Ámbar doble es una recompensa, no un producto: la regla de pago de `Economia` tiene que seguir en verde. El cielo rojo debe verse también en los places sin ciclo de día (no tienen el `LightingController` de la Isla).
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de B3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo B3.»
 
 ---
 
