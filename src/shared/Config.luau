@@ -1890,6 +1890,61 @@ local Config = {
 		FriendNotifyMax = 25, -- amigos avisados como mucho cada vez
 		FriendNotifyCooldownSeconds = 6 * 3600, -- por jugador: no avisa otra vez al volver de la Isla
 	},
+
+	-- Presupuesto de piezas y rendimiento (Fase 16). Los mide la calculadora ServerStorage.Tools.Rendimiento.
+	-- Se ajustan tras probar en un teléfono de gama baja (R7).
+	Budgets = {
+		-- Piezas reales por tipo de modelo, contadas DESPUÉS de fusionar (Shared/VoxelMerge).
+		Models = {
+			ForgeWeaponLevel4 = 90, -- arma de la forja, nivel 4
+			WeaponSkinMythic = 165, -- skin mítica de arma, nivel 4
+			ArmorRank = { 80, 115, 150, 210 }, -- armadura por rango I a IV
+			OutfitMythicGrade4 = 570, -- traje mítico, grado 4
+			PetTotal = 240, -- mascota entera
+			PetAnimated = 110, -- piezas de la mascota que se mueven cada fotograma
+			MountRare = 260,
+			MountLegendary = 375,
+			MountMythic = 410,
+			Aura = 30, -- aura cosmética
+			LabWeaponBase = 45, -- arma del Laboratorio sin skin
+			LabWeaponSkin3 = 200, -- arma del Laboratorio con una skin de bajas (hoy el Arpón de red III llega a 99)
+			Buildable = 25, -- construible de la Isla
+			PlotStructure = { 60, 90, 120 }, -- estructura de la parcela, nivel I a III
+			Monkey = 10, -- mono en juego (ya unido con UnionAsync)
+			Boss = 30, -- jefe en juego (ya unido)
+			MapNode = 25, -- nodo de recurso del mapa
+			Viewport = 300, -- modelo de un ViewportFrame (RewardModels)
+		},
+		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
+		Exceptions = {
+			MonoX7 = { PetTotal = 270, PetAnimated = 130 }, -- mascota de élite
+			Nest = { Buildable = 50 }, -- construible único
+			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
+			OrangutanDelManglar = { Boss = 35 }, -- el jefe más grande
+		},
+		-- Totales por escena en el cliente del móvil de referencia (gama baja, 3-4 GB, 30 FPS).
+		Matches = {
+			IslandSiegeParts = 45000, -- Isla en el asedio final
+			IslandSiegeDrawCalls = 1200,
+			DunasParts = 25000, -- Dunas 5v5
+			LaboratorioParts = 20000, -- Laboratorio 5v5
+			LobbyParts = 30000, -- Lobby con 20 jugadores
+			LobbyPlayers = 20,
+			MovedPartsPerFrame = 1500, -- piezas movidas por fotograma, en todas
+			MemoryMB = 1300, -- memoria en todas
+			ServerFps = 55, -- FPS mínimos del servidor
+		},
+		-- Pico de piezas de efectos por cliente según la calidad de efectos.
+		Vfx = { Low = 40, Medium = 90, High = 160 },
+		-- LOD de detalle de los cosméticos de otros jugadores.
+		Lod = {
+			DetailDistance = 60, -- studs a partir de los que se ocultan los detalles
+			CheckSeconds = 0.5, -- cada cuánto se revisa un personaje
+			DetailMaxSize = 0.35, -- lado mayor (studs) por debajo del que una pieza cuenta como detalle
+		},
+		-- Interruptor de la fusión greedy de VoxelMerge (false = no fusiona, para comparar).
+		Merge = true,
+	},
 }
 
 return Config

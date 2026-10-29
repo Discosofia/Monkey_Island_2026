@@ -1,6 +1,6 @@
 # Contexto base del proyecto (para gpt-oss-20b)
 
-<!-- Resumen de CLAUDE.md, 27-10-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
+<!-- Resumen de CLAUDE.md, 28-10-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
 
 Eres un asistente que trabaja en *Primal Banana Islands: Monkey Survival*, un juego de Roblox para móvil y PC escrito en Luau. Respondes y escribes **en español**: código comentado, textos del juego, documentación y mensajes de commit. Los identificadores van en inglés.
 
@@ -32,7 +32,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 
 - **Arranque:** `Shared/Loader` carga los `ModuleScript` de `Services/` (servidor) o de `Controllers/` (cliente). Primero llama a `Init()` en todos (solo estado propio) y después a `Start()`. Los nombres de módulo son únicos.
 - **Red:** todos los `RemoteEvent` están en una tabla de `Shared/Remotes`. Un evento nuevo es una línea más. El servidor decide el daño, los premios y las compras. El cliente solo pide y dibuja.
-- **Números:** todo lo que se equilibra está en `Shared/Config`. El contenido (armas, monos, cosméticos, misiones…) está en `Shared/Data/*`. Nunca escribas números sueltos en la lógica.
+- **Números:** todo lo que se equilibra está en `Shared/Config`. El contenido (armas, monos, cosméticos, misiones…) está en `Shared/Data/*`. Nunca escribas números sueltos en la lógica. Los topes de piezas de los modelos están en `Config.Budgets`; cada modelo nuevo se mide con la calculadora `Rendimiento` antes del commit.
 - **Textos:** todo lo que lee el jugador va por `Shared/Strings`: `T("Ámbar: {n}", { n = amber })`, con el español como clave y su inglés en `Data/Strings/*`. Nunca una interpolación con `` ` `` dentro de `T()`. El servidor manda la plantilla en español con sus argumentos y el cliente la traduce. `python tools/strings.py` avisa de lo que falta. Para Creator Hub solo se sube lo nuevo: `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` y, tras subirlo, `--marcar-subidas` (apunta las claves en `tools/strings_subidas.txt`).
 - **Reglas por place:** el combate es común. Lo que cambia en cada place se registra en `Combat/CombatRules.set` (`IslandCombatRules`, `DunasCombatRules`, `LobbyCombatRules`, `LabCombatRules`). El Laboratorio quita roles, habilidades y guardia, y su cliente no carga esos controladores (`Loader.load(carpetas, skip)`).
 - **Perfil:** `ServerShared/PlayerData`, DataStore `PlayerData_v1`, con bloqueo de sesión y migraciones. El cliente no lee el perfil: lo ve en atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`…). Si cambia el perfil, hay que publicar todos los places a la vez.

@@ -1,6 +1,6 @@
 # Modelos 3D voxel (resumen de la skill modelos-3d-roblox)
 
-<!-- Fuente: .claude/skills/modelos-3d-roblox/SKILL.md, 26-10-2026. Detalles: references/estilo-del-proyecto.md (§1 dónde vive cada modelo, §4 paleta, §5 tamaños, §6 presupuesto de piezas, §8 voxel). -->
+<!-- Fuente: .claude/skills/modelos-3d-roblox/SKILL.md, 28-10-2026. Detalles: references/estilo-del-proyecto.md (§1 dónde vive cada modelo, §4 paleta, §5 tamaños, §6 presupuesto de piezas, §8 voxel). -->
 
 ## Antes de empezar
 
@@ -13,7 +13,7 @@
    - las 3–6 masas que lo hacen reconocible;
    - paleta de 3–6 colores;
    - el frente mira a **-Z**;
-   - presupuesto de piezas.
+   - presupuesto de piezas (los topes están en `Config.Budgets`).
 
 ## Técnicas
 
@@ -61,6 +61,7 @@
 ## Cerrar
 
 - El constructor final va al archivo del repo. `stylua src` y `selene src`.
+- Antes del commit, mide el modelo con la calculadora `Rendimiento` (`ServerStorage.Tools`, en el Studio de la Isla) y revisa que no pase del tope de `Config.Budgets`.
 - Si cambias colores en `Data/...`, comprueba con `git diff` que solo cambió la entrada que querías.
 - Deja la vista previa montada para que el usuario la apruebe. Solo cuando la apruebe, `Preview.clear()`.
 - No toques `Workspace.Mapa` ni `Workspace.Naufragio` a mano: los generadores los rehacen.

@@ -25,14 +25,14 @@ selene src                                          # lint
 rojo build island.project.json --output build/island.rbxl
 ```
 
-El CI (`.github/workflows/ci.yml`) ejecuta `stylua --check src`, `selene src` y `rojo build` de los cuatro places. No hay tests automáticos. Se verifica en Roblox Studio por el MCP `Roblox_Studio` (`.mcp.json`) y con dos calculadoras que corren en modo edición en el Studio de la Isla (están en `ServerStorage.Tools`):
+El CI (`.github/workflows/ci.yml`) ejecuta `stylua --check src`, `selene src` y `rojo build` de los cuatro places. No hay tests automáticos. Se verifica en Roblox Studio por el MCP `Roblox_Studio` (`.mcp.json`) y con tres calculadoras que corren en modo edición en el Studio de la Isla (están en `ServerStorage.Tools`):
 
 ```lua
-local m = game.ServerStorage.Tools.Economia:Clone()   -- o Equilibrio; el Clone evita la caché de require
+local m = game.ServerStorage.Tools.Economia:Clone()   -- o Equilibrio o Rendimiento; el Clone evita la caché de require
 print(require(m).informe()); m:Destroy()
 ```
 
-`Economia` mide Ámbar, misiones, huevos, pase y reglas de pago (skill `economia-retencion`). `Equilibrio` mide el daño, el control y los tiempos para matar (skill `combate-roblox`). Las dos aceptan `informe(opciones, propuesta)`, para probar números antes de tocar el repo, y terminan con una sección "Alertas".
+`Economia` mide Ámbar, misiones, huevos, pase y reglas de pago (skill `economia-retencion`). `Equilibrio` mide el daño, el control y los tiempos para matar (skill `combate-roblox`). `Rendimiento` cuenta las piezas de cada modelo antes y después de fusionarlas (`Shared/VoxelMerge`) contra los topes de `Config.Budgets`; los totales por escena y los efectos se añaden en los grupos R5 y R6 de la Fase 16 (skill `modelos-3d-roblox`, §6). Las tres aceptan `informe(opciones, propuesta)`, para probar números antes de tocar el repo, y terminan con una sección "Alertas".
 
 ## Arquitectura
 
@@ -65,6 +65,7 @@ print(require(m).informe()); m:Destroy()
 - Colores con significado: verde solo para la curación, morado para el veneno, rojo para el daño recibido.
 - **Un icono, una sola cosa.** Dos objetos distintos no comparten emoji, ni un objeto con el Ámbar (✨), las barras (🍖 hambre, 💧 sed) o un edificio que sale junto a costes en materiales. Los parecidos (🔺/🔻, 🌿/🌱) cuentan como iguales. Solo puede repetirlo la receta o el construible que fabrica ese objeto.
 - Los modelos son **voxel** (bloques en rejilla con pocos tonos planos) salvo que se pida otra cosa. Las referencias están en `docs/img`. Las variantes (alfas, rarezas, estilos) tienen que distinguirse de la normal a primera vista, también por detrás.
+- Los topes de piezas viven en `Config.Budgets` (`Shared/Config`). Cada modelo nuevo se mide con `Rendimiento` antes del commit, y si cambias un tope, cámbialo en `Config.Budgets`.
 - Las ventanas del PC enseñan todo sin desplazamiento, salvo el pase y la pestaña Estilos del Armario. Las poses de las armas son `AnimationTrack`, nunca articulaciones giradas por código.
 - No se editan en Studio los scripts sincronizados: Rojo los sobrescribe.
 - Al escribir archivos con Python en Windows, hay que forzar LF (`newline=""`).

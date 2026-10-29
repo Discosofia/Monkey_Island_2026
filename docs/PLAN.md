@@ -549,6 +549,29 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **I1d** | Dunas y el combate: `src/dunas/**`, `src/combat/**` (`ArenaBuilder` no tiene carteles con texto) | 63186da | ✅ (sin probar en Studio: `VERIFICACION.md` §22) |
 | **I1e** | El contenido de `Data/*` (nombres y descripciones) y el CSV para Creator Hub | e849fd8 | ✅ (sin probar en la Isla, el teléfono ni publicado: `VERIFICACION.md` §23) |
 
+### Fase 16: Presupuesto de piezas y rendimiento (28-10-2026)
+
+Para que el pase y los cosméticos valgan la pena hay que subir la calidad de los modelos, y antes hay que saber hasta dónde. Hoy el presupuesto de piezas solo está escrito en la skill `modelos-3d-roblox` (§6) y ningún código lo cuenta. Plan: `C:\Users\jose\.claude\plans\polymorphic-sleeping-sifakis.md`.
+
+Decisiones del 28-10-2026:
+- Presupuestos en `Config.Budgets`, calculadora `Rendimiento` y medición en vivo en el panel de administración.
+- Fusión greedy de bloques vecinos del mismo color (`Shared/VoxelMerge`), más topes ×1,5 para los cosméticos. Los monos y jefes siguen con su UnionAsync.
+- Dispositivo de referencia: móvil de gama baja (3–4 GB) a 30 FPS estables en la peor escena.
+- LOD de detalle para los cosméticos de los demás jugadores, y efectos de jefe escalados por calidad.
+- Línea base (R1): la fusión ahorra poco en armas y armaduras (0–10 piezas, ≈5 %) y 8 piezas en Mono X-7. La calidad extra llegará con los topes ×1,5, y la fusión de R3 se conecta igualmente. R4 pasa a opcional: solo se hace si la calculadora ahorra más de ~10 %.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **R1** | `Config.Budgets` con sus excepciones por id (Mono X-7, Nido, Tótem de guerra, Orangután del Manglar; Laboratorio con skin hasta 200), `Shared/VoxelMerge` (aún sin conectar), calculadora `Rendimiento` con la línea base, §6 de la skill, `CLAUDE.md` y `docs/llm-local` | — | ⏳ (hecho; falta tu aprobado) |
+| **R2** | Medición en vivo: `Performance` y la pestaña "Rendimiento" del panel de administración, en los 4 places | — | ⏳ |
+| **R3** | Fusión de lo estático: armas de la forja y del Laboratorio, armaduras, `RewardModels`, construibles y parcela | — | ⏳ |
+| **R4** (opcional) | Fusión de lo animado: mascotas por firma de articulación y monturas por hueso. Solo si la calculadora ahorra más de ~10 %; las tiras de poses se comparan con la skill `animaciones-roblox` | — | ⏳ (opcional) |
+| **R5** | LOD de detalle (`DetailLodController`) y su sección en la calculadora (Lobby con 20 jugadores) | — | ⏳ |
+| **R6** | Efectos de los jefes: `combatClient/BossFx` con un pool en lugar de `Debris`, una firma visual para cada uno de los 4 jefes (mini-entrevista antes) y la lluvia de rocas y la bomba de lava dibujadas en el cliente | — | ⏳ |
+| **R7** | Prueba en un teléfono con los places publicados (asedio, Dunas 5v5, Lobby con 20); después se ajustan los topes de `Config.Budgets` y `docs/RENDIMIENTO.md` | — | ⏳ |
+
+**Pendiente para fases futuras:** subir la calidad de los cosméticos del pase (trajes, skins de arma y de mascota) y de las armas del Laboratorio con el nuevo presupuesto. Se planeará cuando la Fase 16 haya fijado los topes.
+
 ---
 
 ## 4. Cronograma estimado

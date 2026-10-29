@@ -50,7 +50,7 @@ Antes de colocar una sola pieza, escribe una **ficha** breve (en la conversació
   detalles van después y solo si se ven.
 - **Paleta**: 3–6 colores, reutilizando las constantes del módulo.
 - **Pivote y frente** según las reglas del módulo (casi siempre el frente mira a -Z).
-- **Presupuesto de piezas** (`estilo-del-proyecto.md` §6).
+- **Presupuesto de piezas** (`estilo-del-proyecto.md` §6; los topes están en `Config.Budgets` y se miden con la calculadora `Rendimiento`).
 
 **Con una imagen de referencia**, mírala con atención y anota: proporciones (alto:ancho:fondo, y las
 de las partes entre sí: "la cabeza es un tercio del cuerpo"), la silueta, los colores dominantes, y

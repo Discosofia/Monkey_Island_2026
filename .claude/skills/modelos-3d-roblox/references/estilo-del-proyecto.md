@@ -397,23 +397,39 @@ cuerpo lo que marca el alto. Sácala igual que los adornos antes de medir.
 
 ## 6. Rendimiento
 
-La isla se juega en móviles de gama baja con *streaming* (ver `docs/RENDIMIENTO.md`). Presupuesto
-orientativo de piezas por modelo:
+La isla se juega en móviles de gama baja con *streaming* (ver `docs/RENDIMIENTO.md`). El presupuesto de
+piezas vive en **`Config.Budgets`** (`Shared/Config`, Fase 16) y lo mide la calculadora **`Rendimiento`**
+(`ServerStorage.Tools`, en el Studio de la Isla): cuenta las piezas de cada modelo antes y después de
+fusionarlas (`Shared/VoxelMerge`). Antes del commit, cada modelo nuevo se mide con ella. Esta tabla es un
+resumen: **si cambias un tope, cámbialo en `Config.Budgets`**, que manda sobre esta sección.
 
-| Tipo | Piezas |
+Topes por tipo (piezas reales después de fusionar, `Config.Budgets.Models`):
+
+| Tipo | Tope |
 |---|---|
-| Nodo que se repite mucho (árbol, roca, mata) | 10–25 |
-| Arma (las de nivel 4 de la forja volcánica, 51–59) | 15–60 |
-| Armadura (cada rango más detallado que el anterior; guerrero 52 / 75 / 101 / 137, cazador 56 / 83 / 90 / 132, mago 56 / 73 / 88 / 130, médico 55 / 72 / 86 / 113) | 40–140 |
-| Traje mítico (cosmético, `ArmorModels` OUTFITS; crece con el grado de la armadura, 0–4; Rey Gorila Titán 69 / 109 / 150 / 168 / 238, Jaguar Espectral 143 / 190 / 265 / 281 / 318, Serpiente Emplumada 128 / 198 / 317 / 323 / 373, Ceiba de la Vida 84 / 124 / 182 / 235 / 341) | hasta ~380 en el grado 4 (solo uno por jugador) |
-| Aspecto de arma mítico (`WeaponTools` SKINS; crece con el nivel del arma, 1–4; Maza del Rey Gorila 22 / 26 / 42 / 89, Arco del Jaguar Espectral 36 / 42 / 70 / 108, Báculo de la Serpiente 30 / 48 / 69 / 103, Cerbatana de la Ceiba 28 / 47 / 69 / 84) | hasta ~110 en el nivel 4 |
-| Mascota (solo una por jugador) | 80–160 |
-| Montura (`MountModels`; son pocas y especiales) | hasta 175 rara, 250 legendaria (el Jaguar, 248), 275 mítica |
-| Mono normal (hay muchos a la vez) | 15–30 |
-| Jefe (solo hay uno) | hasta 60 |
-| Mono voxel (§8), bloques de diseño | hasta ~150 (unidos en ≤ 10 piezas en juego); jefe hasta 500 (techo 1.000) |
-| Construible | 5–20 |
-| Pieza única de decorado (barco, templo) | hasta unos cientos |
+| Arma de la forja, nivel 4 | 90 |
+| Skin mítica de arma, nivel 4 | 165 |
+| Armadura, rango I / II / III / IV | 80 / 115 / 150 / 210 |
+| Traje mítico, grado 4 | 570 |
+| Mascota: total / piezas que se mueven por fotograma | 240 / 110 |
+| Montura rara / legendaria / mítica | 260 / 375 / 410 |
+| Aura cosmética | 30 |
+| Arma del Laboratorio: base / con skin | 45 / 200 |
+| Construible (Isla) | 25 |
+| Estructura de parcela, nivel I / II / III | 60 / 90 / 120 |
+| Mono / jefe en juego (ya unidos con UnionAsync) | 10 / 30 |
+| Nodo del mapa | 25 |
+| Modelo de `ViewportFrame` (`RewardModels`) | 300 |
+
+Excepciones por id (`Config.Budgets.Exceptions`), que sustituyen al tope de su tipo: Mono X-7 270 (130
+de ellas se mueven), Nido 50, Tótem de guerra 120 y Orangután del Manglar 35.
+
+Totales por escena en el móvil de referencia (`Config.Budgets.Matches`): Isla en asedio final ≤ 45.000
+piezas y ≤ 1.200 draw calls; Dunas 5v5 ≤ 25.000; Laboratorio 5v5 ≤ 20.000; Lobby con 20 ≤ 30.000. Pico de
+piezas de efectos por cliente (`Config.Budgets.Vfx`): Bajo 40, Medio 90, Alto 160.
+
+Monos y jefes de diseño: se hacen con bloques (hasta ~150 el mono, 500 el jefe) y en juego se unen con
+UnionAsync; la calculadora mide el resultado unido.
 
 Las mascotas tienen un presupuesto alto a propósito: van siempre al lado del jugador, se ven de
 cerca y el usuario quiere que el detalle se lea muy definido (remaches, costuras, anillos de un
