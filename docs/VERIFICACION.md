@@ -2891,3 +2891,16 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El traje se ve entero, sin piezas de la armadura asomando.
 5. [ ] Prueba con un avatar R6.
    ✅ Las hombreras no flotan ni se hunden.
+
+## 66. Fase 18 S1: armas de la forja de rango I rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Equipa cada arma inicial (Machete, Honda, Garrote de piedra, Arco, Cerbatana, Bastón mágico) y míralas en la mano con la cámara del juego, quietas, corriendo y atacando.
+   ✅ Se ven más ricas que antes (fibra, pelaje, plumas, pintura) sin piezas sueltas ni atravesadas, y la pose de agarre no cambia.
+2. [ ] Dispara el arco y la cerbatana, lanza con la honda y golpea con el garrote y el machete.
+   ✅ Las poses (AnimationTrack) siguen alineadas con el arma; los proyectiles salen de la punta correcta.
+3. [ ] Mejora cada arma al rango II.
+   ✅ El rango II se ve claramente más rico y con hueso; el rango I se ve primitivo (sin hueso).
+4. [ ] Pon un aspecto de arma (Sulfurado) sobre el Machete y el Arco.
+   ✅ El aspecto se dibuja entero, sin piezas del arma base.

@@ -2180,6 +2180,7 @@ local Config = {
 		-- Piezas reales por tipo de modelo, contadas DESPUÉS de fusionar (Shared/VoxelMerge).
 		Models = {
 			ForgeWeaponLevel4 = 90, -- arma de la forja, nivel 4
+			ForgeWeaponRank = { 40, 55, 70, 90 }, -- arma de la forja por rango I a IV
 			WeaponSkinMythic = 165, -- skin mítica de arma, nivel 4
 			ArmorRank = { 80, 115, 150, 210 }, -- armadura por rango I a IV
 			OutfitMythicGrade4 = 570, -- traje mítico, grado 4

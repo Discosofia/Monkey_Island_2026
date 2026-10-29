@@ -271,7 +271,13 @@ local function main(copia: Instance): string
 				intentar(id, function()
 					local rol, nivel = WeaponTools.roleLevel(id)
 					local herramienta = WeaponTools.build(id)
-					local presupuesto = if rol and nivel == WeaponTools.MAX_LEVEL then M.ForgeWeaponLevel4 else nil
+					-- Armas de rol: tope por nivel (rango). Machete y Honda son de rango I; sus mejoras, de rango II.
+					local rango = if rol
+						then nivel
+						elseif id == "Machete" or id == "Honda" then 1
+						elseif id == "SharpMachete" or id == "LianaSling" then 2
+						else nil
+					local presupuesto = if rango then M.ForgeWeaponRank[rango] else nil
 					fila(`{id}{if rol then ` ({rol} {nivel})` else ""}`, medir(herramienta, fusionSoldada), presupuesto)
 					herramienta:Destroy()
 				end)
