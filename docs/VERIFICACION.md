@@ -2954,3 +2954,18 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Aparecen los dientes y las brasas azules del filo y se ve más rico que en el nivel 1.
 5. [ ] Compara las skins míticas con las de Azufre de nivel 4.
    ✅ Las míticas deberían verse por encima; hoy miden 84-108 piezas frente a 119-123 de las épicas, y K2 las subirá.
+
+## 71. Fase 18 K2: skins míticas de arma rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Equipa cada skin mítica (Maza del Rey Gorila, Arco del Jaguar Espectral, Bastón de la Serpiente Emplumada, Cerbatana de la Ceiba) sobre el arma de cada rango (1 a 4) y míralas en la mano, quietas, corriendo y atacando.
+   ✅ Cada una se ve más rica que la skin Sulfur y que el arma base de su rango, con su tema (piedra y jade con calavera de gorila; espíritu de jaguar; plumas y escamas de quetzal; árbol de vida) y crece con el nivel. No hay piezas sueltas ni atravesadas. La pose de agarre no cambia.
+2. [ ] Mira cada skin desde atrás y de cerca.
+   ✅ La espalda también se lee bien (calavera y aro de sol del Titán, glifos del Jaguar, cola y cuello de la Serpiente, raíces y lianas de la Ceiba) y nada queda dentro de otra pieza (calavera entre aro y cristales, colmillos y manchas del Jaguar, plumas del cuello y cuernos de la Serpiente, lianas y flor de la Ceiba).
+3. [ ] Dispara el arco y la cerbatana, y golpea con la maza y el bastón con la skin puesta.
+   ✅ Las poses (AnimationTrack) siguen alineadas y los proyectiles salen de la punta correcta; las plumas de cola de la Serpiente no rozan el suelo con el brazo bajo.
+4. [ ] Pon el traje mítico del mismo tema junto con su arma.
+   ✅ Paleta y motivos encajan (jade, oro y ojos de jade; espectral; plumas de quetzal; savia).
+5. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
+   ✅ Los destellos y el humo no bajan los FPS de forma notable.

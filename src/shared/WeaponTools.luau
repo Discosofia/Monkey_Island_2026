@@ -2152,6 +2152,8 @@ end
 
 local TITAN_STONE = Color3.fromRGB(132, 138, 122)
 local TITAN_STONE_DARK = Color3.fromRGB(92, 98, 88)
+local TITAN_STONE_LIGHT = Color3.fromRGB(170, 174, 158)
+local GORILLA_FUR = Color3.fromRGB(46, 48, 46)
 local TITAN_GOLD = Color3.fromRGB(232, 182, 64)
 local SUN_GLOW = Color3.fromRGB(255, 214, 110)
 local JADE = Color3.fromRGB(44, 158, 126)
@@ -2179,6 +2181,9 @@ end
 -- más grande, con nudilleras de oro en punta, un óvalo de jade en el dorso y borlas de pelaje de gorila
 -- en la muñeca. Nivel 4 (mazo volcánico): un aro de sol alrededor de la muñeca con rayos que brillan,
 -- vetas de oro encendidas en los dedos, cristales de jade saliendo del dorso, luz y motas de sol.
+-- Riqueza (K2), en todos los niveles: calavera de gorila en el dorso, runas de oro y jade en el mango, casquillos
+-- en los dedos, tachuelas, mechones de pelaje y un colgante; en el 2 y el 3 una cresta de colmillos y gemas, y en
+-- el 3 medio aro de sol.
 local function buildTitanKingMace(tool: Tool, level: number): BasePart
 	local long = level >= 3
 	-- Mismo agarre y alto de la cabeza que el arma del nivel (garrote y maza; mazos de nivel 3 y 4).
@@ -2242,9 +2247,9 @@ local function buildTitanKingMace(tool: Tool, level: number): BasePart
 			at(x, -0.06, -0.58)
 		)
 		ball(handle, "Knuckle", 0.27 * scale, TITAN_STONE, STONE_MATERIAL, at(x, 0.27, -0.62))
-		if finger == 2 or (level >= 2 and finger == 3) then
-			rod(handle, "Ring", 0.12 * scale, 0.3 * scale, TITAN_GOLD, SMOOTH, at(x, 0.28, -0.4) * TO_Z)
-		end
+		rod(handle, "Ring", 0.12 * scale, 0.3 * scale, TITAN_GOLD, SMOOTH, at(x, 0.28, -0.4) * TO_Z)
+		-- Casquillo de oro en la punta de cada dedo (más estrecho que el dedo para que no se fundan).
+		block(handle, "Cap", Vector3.new(0.2, 0.08, 0.28) * scale, TITAN_GOLD, SMOOTH, at(x, -0.36, -0.58))
 		if level >= 3 then
 			tooth(
 				handle,
@@ -2275,9 +2280,181 @@ local function buildTitanKingMace(tool: Tool, level: number): BasePart
 	)
 	ball(handle, "ThumbTip", 0.28 * scale, TITAN_STONE_DARK, STONE_MATERIAL, at(-0.4, -0.22, -0.58))
 
+	-- Cráneo de gorila tallado en el dorso del puño (la espalda de exhibición): cráneo, ceja, cuencas con ojos
+	-- de jade, pómulos, nariz, hilera de dientes con colmillos de oro y mandíbula. Desde el nivel 3 la
+	-- gema de la frente (oro y jade) corona la calavera.
+	local function skull(x: number, y: number, z: number): CFrame
+		return at(x, y, 0.45 + z)
+	end
+	block(
+		handle,
+		"Skull",
+		Vector3.new(0.62, 0.5, 0.06) * scale,
+		TITAN_STONE_LIGHT,
+		STONE_MATERIAL,
+		skull(0, 0.05, 0.03)
+	)
+	block(handle, "SkullBrow", Vector3.new(0.64, 0.09, 0.09) * scale, TITAN_STONE, STONE_MATERIAL, skull(0, 0.12, 0.05))
+	block(
+		handle,
+		"SkullNose",
+		Vector3.new(0.09, 0.12, 0.05) * scale,
+		TITAN_STONE_DARK,
+		STONE_MATERIAL,
+		skull(0, -0.1, 0.06)
+	)
+	block(
+		handle,
+		"SkullJaw",
+		Vector3.new(0.56, 0.07, 0.07) * scale,
+		TITAN_STONE_DARK,
+		STONE_MATERIAL,
+		skull(0, -0.31, 0.05)
+	)
+	for side = -1, 1, 2 do
+		block(
+			handle,
+			"SkullSocket",
+			Vector3.new(0.18, 0.13, 0.05) * scale,
+			TITAN_STONE_DARK,
+			STONE_MATERIAL,
+			skull(side * 0.15, 0.0, 0.07)
+		)
+		ball(handle, "SkullEye", 0.09 * scale, JADE, SMOOTH, skull(side * 0.15, 0.0, 0.1))
+		block(
+			handle,
+			"SkullCheek",
+			Vector3.new(0.12, 0.14, 0.07) * scale,
+			TITAN_STONE,
+			STONE_MATERIAL,
+			skull(side * 0.28, -0.12, 0.05)
+		)
+		block(
+			handle,
+			"SkullFang",
+			Vector3.new(0.07, 0.14, 0.05) * scale,
+			TITAN_GOLD,
+			SMOOTH,
+			skull(side * 0.26, -0.22, 0.05)
+		)
+	end
+	for index = 1, 6 do
+		-- Más estrechos que su paso para que los dientes queden separados.
+		block(
+			handle,
+			"SkullTooth",
+			Vector3.new(0.065, 0.1, 0.05) * scale,
+			BONE,
+			SMOOTH,
+			skull(-0.2 + (index - 1) * 0.08, -0.24, 0.05)
+		)
+	end
+
+	-- Tachuelas de oro alrededor del puño de la muñeca, entre las cuentas de jade.
+	for index = 0, 5 do
+		ball(
+			handle,
+			"Stud",
+			0.12 * scale,
+			TITAN_GOLD,
+			SMOOTH,
+			at(0, -0.5, 0.05) * CFrame.Angles(0, (index + 0.5) * math.pi / 3, 0) * CFrame.new(0, 0, -0.5 * scale)
+		)
+	end
+	-- Mechones de pelaje de gorila colgando de la muñeca.
+	for index = 0, 4 do
+		block(
+			handle,
+			"Tuft",
+			Vector3.new(0.12, 0.28, 0.12) * scale,
+			GORILLA_FUR,
+			FABRIC,
+			at(0, -0.84, 0.05) * CFrame.Angles(0, (index + 0.5) * math.pi * 2 / 5, 0) * CFrame.new(0, 0, -0.28 * scale)
+		)
+	end
+	-- Colgante detrás de la muñeca: casquillo, tres eslabones y una gema de jade.
+	block(handle, "Chain", Vector3.new(0.14, 0.06, 0.06) * scale, TITAN_GOLD, SMOOTH, at(0, -0.66, 0.56))
+	for index = 0, 2 do
+		block(
+			handle,
+			"Chain",
+			Vector3.new(0.07, 0.12, 0.03) * scale,
+			TITAN_GOLD,
+			SMOOTH,
+			at(0, -0.76 - index * 0.13, 0.56)
+		)
+	end
+	ball(handle, "Charm", 0.16 * scale, JADE, SMOOTH, at(0, -1.16, 0.56))
+	-- Tachuelas de oro alrededor del remate del mango.
+	local capRadius = if level >= 3 then 0.28 elseif level == 2 then 0.23 else 0.22
+	for index = 0, 3 do
+		ball(
+			handle,
+			"Stud",
+			0.1,
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(0, shaftBottom + (if level >= 2 then 0.05 else 0), 0)
+				* CFrame.Angles(0, (index + 0.5) * math.pi / 2, 0)
+				* CFrame.new(0, 0, -capRadius)
+		)
+	end
+	-- Runas de oro y jade grabadas en el mango, cuatro por fila.
+	local shaftRadius = if long then 0.22 else 0.18
+	local runeRows = ({
+		{ 0, 0.4, 0.8, 1.2, 1.6 },
+		{ 0.1, 0.4, 0.7, 1, 1.28 },
+		{ -0.86, 1.1, 1.33, 1.56, 1.79, 2.02 },
+		{ -0.86, 1.1, 1.32, 1.54, 1.76, 1.98 },
+	})[level]
+	for row, y in runeRows do
+		for side = 0, 3 do
+			block(
+				handle,
+				"Rune",
+				Vector3.new(0.1, 0.1, 0.06),
+				if level >= 2 and row % 2 == 1 then JADE else TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(0, y, 0) * CFrame.Angles(0, side * math.pi / 2, 0) * CFrame.new(0, 0, -(shaftRadius + 0.02))
+			)
+		end
+	end
+
+	if level == 2 or level == 3 then
+		-- Cresta de colmillos de oro sobre la cabeza y gemas de jade en los nudillos y el pulgar (en el
+		-- nivel 4 les toman el sitio la corona y los cristales).
+		local crest = if level == 2 then { -0.25, 0, 0.25 } else { -0.4, -0.2, 0, 0.2, 0.4 }
+		for _, x in crest do
+			tooth(handle, "Crest", 0.28 * scale, 0.12 * scale, 0.12 * scale, TITAN_GOLD, SMOOTH, at(x, 0.6, 0.05))
+		end
+		for finger = 1, 4 do
+			ball(handle, "Gem", 0.12 * scale, JADE, SMOOTH, at(-0.375 + (finger - 1) * 0.25, 0.46, -0.4))
+		end
+		ball(handle, "Gem", 0.12 * scale, JADE, SMOOTH, at(-0.56, -0.07, -0.16))
+		ball(handle, "Gem", 0.12 * scale, JADE, SMOOTH, at(-0.56, -0.07, -0.4))
+	end
+
+	if level == 3 then
+		-- Medio aro de sol detrás del puño (el aro entero llega en el nivel 4): seis tramos de oro arriba.
+		local center = at(0, 0, 0.56)
+		local radius = 0.82 * scale
+		for index = -3, 2 do
+			block(
+				handle,
+				"SunRing",
+				Vector3.new(2 * radius * math.sin(math.pi / 10) + 0.04, 0.1, 0.1),
+				TITAN_GOLD,
+				SMOOTH,
+				center
+					* CFrame.Angles(0, 0, (index + 0.5) * math.pi / 5)
+					* CFrame.new(0, radius * math.cos(math.pi / 10), 0)
+			)
+		end
+	end
+
 	if level >= 3 then
-		block(handle, "InlayRim", Vector3.new(0.58, 0.5, 0.1) * scale, TITAN_GOLD, SMOOTH, at(0, 0.05, 0.47))
-		block(handle, "Inlay", Vector3.new(0.46, 0.38, 0.12) * scale, JADE, SMOOTH, at(0, 0.05, 0.49))
+		block(handle, "InlayRim", Vector3.new(0.26, 0.16, 0.08) * scale, TITAN_GOLD, SMOOTH, skull(0, 0.25, 0.04))
+		block(handle, "Inlay", Vector3.new(0.18, 0.1, 0.1) * scale, JADE, SMOOTH, skull(0, 0.25, 0.05))
 		-- Cuentas de jade engastadas alrededor del puño de oro de la muñeca.
 		for index = 0, 5 do
 			local angle = index * math.pi / 3
@@ -2287,7 +2464,7 @@ local function buildTitanKingMace(tool: Tool, level: number): BasePart
 				0.17 * scale,
 				JADE,
 				SMOOTH,
-				at(0, -0.5, 0.05) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.5)
+				at(0, -0.5, 0.05) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0, -0.5 * scale)
 			)
 		end
 	end
@@ -2433,6 +2610,8 @@ end
 -- noche remachadas de oro en las palas. Nivel 4: el espíritu del jaguar: la cuerda, las manchas y los
 -- ojos brillan en luz blanca azulada, zarpazos de luz en las palas, garras fantasma en las puntas, una
 -- luna creciente detrás de la cabeza y chispas de luz.
+-- Riqueza (K2), en todos los niveles: glifos y cabujones en el cuerpo, manchas en la cara de dentro, melena en la
+-- raíz de las palas y un collar de garras; desde el 2 colmillos hacia la cuerda y jirones translúcidos del espíritu.
 local function buildSpectralJaguarBow(tool: Tool, level: number): BasePart
 	local size = ({ 1.25, 1.38, 1.5, 1.6 })[level] or 1.25
 	local lit = level >= 4
@@ -2446,6 +2625,33 @@ local function buildSpectralJaguarBow(tool: Tool, level: number): BasePart
 		ball(handle, "Spot", 0.12, ROSETTE, SMOOTH, CFrame.new(spot))
 	end
 	block(handle, "ArrowRest", Vector3.new(0.12, 0.1, 0.22), TITAN_GOLD, SMOOTH, CFrame.new(0.2, 0.36, 0.04))
+	-- Riqueza de la skin mítica (K2): glifos de oro en los costados del cuerpo, cabujones de jade en la cara
+	-- de atrás (la que ve el cazador) y un collar de garras de jaguar colgando al otro lado del amuleto.
+	for _, y in { 0.5, -0.5 } do
+		for _, x in { 0.185, -0.185 } do
+			for _, z in { -0.08, 0.08 } do
+				block(handle, "Glyph", Vector3.new(0.04, 0.09, 0.09), TITAN_GOLD, SMOOTH, CFrame.new(x, y, z))
+			end
+		end
+		for _, x in { 0.08, -0.08 } do
+			ball(handle, "Cabochon", 0.12, JADE, SMOOTH, CFrame.new(x, y * 0.96, 0.22))
+		end
+	end
+	local clawX = -0.22
+	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(clawX, -0.55, 0))
+	block(handle, "Thread", Vector3.new(0.03, 0.03, 0.34), FIBER, FABRIC, CFrame.new(clawX, -0.72, 0))
+	for index = 1, 4 do
+		tooth(
+			handle,
+			"Talon",
+			0.26,
+			0.07,
+			0.08,
+			JAGUAR_CREAM,
+			SMOOTH,
+			CFrame.new(clawX, -0.84, (index - 2.5) * 0.09) * CFrame.Angles(math.pi, 0, 0)
+		)
+	end
 
 	-- Banda alrededor de la pala en "point".
 	local function band(point: Vector3, direction: Vector3, length: number, color: Color3, material: Enum.Material)
@@ -2495,6 +2701,57 @@ local function buildSpectralJaguarBow(tool: Tool, level: number): BasePart
 		if level >= 2 then
 			band(middle, middle - start, 0.1, TITAN_GOLD, SMOOTH)
 			ball(handle, "Jade", 0.16, JADE, SMOOTH, CFrame.new(middle + out * 1.1))
+		end
+		-- Manchas en la cara de dentro (la del cuerpo del arco) y colmillos claros que miran a la cuerda.
+		for _, point in
+			{
+				start:Lerp(middle, 0.3),
+				start:Lerp(middle, 0.7),
+				middle:Lerp(tip, 0.4),
+				middle:Lerp(tip, 0.65),
+				middle:Lerp(tip, 0.9),
+			}
+		do
+			ball(
+				handle,
+				"Spot",
+				0.12,
+				if lit then SPECTRAL else ROSETTE,
+				if lit then NEON else SMOOTH,
+				CFrame.new(point + Vector3.new(0, 0, 0.12))
+			)
+		end
+		-- Melena clara en la raíz de la pala.
+		for _, x in { 0.14, -0.14 } do
+			for _, z in { 0.14, -0.14 } do
+				block(handle, "Mane", Vector3.new(0.1, 0.22, 0.1), JAGUAR_CREAM, FABRIC, CFrame.new(x, side * 0.74, z))
+			end
+		end
+		if level >= 2 then
+			for _, point in { start:Lerp(middle, 0.5), middle:Lerp(tip, 0.15) } do
+				tooth(
+					handle,
+					"Fang",
+					0.2,
+					0.07,
+					0.08,
+					JAGUAR_CREAM,
+					SMOOTH,
+					CFrame.new(point + Vector3.new(0, 0, 0.24)) * CFrame.Angles(math.pi / 2, 0, 0)
+				)
+			end
+			-- Dos jirones del espíritu pegados a la punta, translúcidos.
+			for _, x in { 0.15, -0.15 } do
+				local wisp = oval(
+					handle,
+					"Wisp",
+					Vector3.new(0.16, 0.42, 0.16),
+					SPECTRAL_BODY,
+					GLASS,
+					CFrame.new(tip + Vector3.new(x, -side * 0.2, -0.02))
+				)
+				wisp.Transparency = 0.5
+			end
 		end
 		if level >= 3 then
 			local plateFrom, plateTo = start:Lerp(middle, 0.12) + out, start:Lerp(middle, 0.88) + out
@@ -2653,6 +2910,8 @@ end
 -- de cinco plumas, collar de oro con jade y plumas rojas de quetzal colgando. Nivel 4: cresta de siete
 -- plumas con las puntas de runa, ojos de runa, alas de plumas abiertas bajo la cabeza, un anillo de runas
 -- que flota alrededor del cristal y chispas.
+-- Riqueza (K2), en todos los niveles: cuernos, dientes, lomo y mejillas de la cabeza, cuello de plumas, plumas de
+-- cola en el pomo, tachuelas en la empuñadura y escamas en el asta.
 local function buildFeatheredSerpentStaff(tool: Tool, level: number): BasePart
 	local top = STAFF_LENGTH / 2
 	local lit = level >= 4
@@ -2772,6 +3031,46 @@ local function buildFeatheredSerpentStaff(tool: Tool, level: number): BasePart
 			on(side * 0.12, -0.04, -0.46) * CFrame.Angles(math.pi, 0, 0)
 		)
 	end
+	-- Riqueza de la skin mítica (K2): cuernos de oro sobre los ojos, dientes de la mandíbula de arriba, lomo
+	-- de escamas de oro y placas en las mejillas.
+	for side = -1, 1, 2 do
+		tooth(
+			handle,
+			"Horn",
+			0.22 * size,
+			0.06 * size,
+			0.07 * size,
+			TITAN_GOLD,
+			SMOOTH,
+			on(side * 0.17, 0.22, 0.02) * CFrame.Angles(0.6, 0, -side * 0.5)
+		)
+		for _, z in { -0.2, -0.3 } do
+			tooth(
+				handle,
+				"Tooth",
+				0.1 * size,
+				0.04 * size,
+				0.05 * size,
+				BONE,
+				SMOOTH,
+				on(side * 0.17, -0.04, z) * CFrame.Angles(math.pi, 0, 0)
+			)
+		end
+		for index, z in { 0.18, 0.06, -0.06 } do
+			oval(
+				handle,
+				"Cheek",
+				Vector3.new(0.05, 0.17, 0.15) * size,
+				if index == 2 then SCALE_DARK else TITAN_GOLD,
+				SMOOTH,
+				on(side * 0.235, 0.02, z)
+			)
+		end
+	end
+	for _, spot in { { -0.17, 0.162 }, { -0.08, 0.196 }, { 0.01, 0.209 }, { 0.1, 0.207 } } do
+		block(handle, "Ridge", Vector3.new(0.05, 0.07, 0.07) * size, TITAN_GOLD, SMOOTH, on(0, spot[2], spot[1]))
+	end
+
 	-- Cresta de plumas que se abre hacia atrás desde la nuca.
 	local crest = ({ 2, 3, 5, 7 })[level] or 2
 	for index = 1, crest do
@@ -2808,6 +3107,63 @@ local function buildFeatheredSerpentStaff(tool: Tool, level: number): BasePart
 			* CFrame.Angles(-0.15, 0, math.pi)
 		oval(handle, "Feather", Vector3.new(0.14, 0.5, 0.03), color, SMOOTH, at)
 	end
+	-- Cuello de plumas: ocho plumas pequeñas que se abren hacia fuera bajo la cabeza, verdes y turquesa.
+	for index = 0, 7 do
+		oval(
+			handle,
+			"Ruff",
+			Vector3.new(0.13, 0.34, 0.03),
+			if index % 2 == 0 then QUETZAL else SCALE,
+			SMOOTH,
+			CFrame.new(0, top - 0.12, 0)
+				* CFrame.Angles(0, (index + 0.5) * math.pi / 4, 0)
+				* CFrame.new(0, 0, -0.2)
+				* CFrame.Angles(0.7, 0, math.pi)
+				* CFrame.new(0, 0.17, 0)
+		)
+	end
+	-- Plumas largas de cola que cuelgan del pomo (cinco en el nivel 3; en el 4 las alas ocupan el sitio).
+	local plumes = if level == 3 then 5 else 3
+	for index = 1, plumes do
+		local length = if index % 2 == 1 then 0.6 else 0.48
+		quetzalFeather(
+			handle,
+			length,
+			CFrame.new(0, -top - 0.1, 0)
+				* CFrame.Angles(0, (index - 1) * math.pi * 2 / plumes, 0)
+				* CFrame.Angles(0, 0, math.pi - 0.3)
+				* CFrame.new(0, length / 2, 0),
+			lit
+		)
+	end
+	-- Tachuelas de oro en la empuñadura roja y escamas de la cola en el asta, bajo la empuñadura.
+	for index = 0, 5 do
+		ball(
+			handle,
+			"Stud",
+			0.08,
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(0, -0.6 + ((index % 3) - 1) * 0.25, 0)
+				* CFrame.Angles(0, index * math.pi / 3, 0)
+				* CFrame.new(0, 0, -0.18)
+		)
+	end
+	for row = 0, 1 do
+		for side = 0, 3 do
+			block(
+				handle,
+				"ShaftScale",
+				Vector3.new(0.12, 0.1, 0.06),
+				if row == 0 then SCALE else SCALE_DARK,
+				SMOOTH,
+				CFrame.new(0, -1.78 - row * 0.2, 0)
+					* CFrame.Angles(0, side * math.pi / 2 + row * math.pi / 4, 0)
+					* CFrame.new(0, 0, -0.16)
+			)
+		end
+	end
+
 	if level >= 3 then
 		rod(handle, "Collar", 0.12, 0.46, TITAN_GOLD, SMOOTH, CFrame.new(0, top - 0.12, 0))
 		for index = 0, 3 do
@@ -2874,6 +3230,8 @@ local HEAL_GLOW = Color3.fromRGB(120, 255, 150)
 -- Nivel 3: siete espinas, dos ramitas, la boquilla es una raíz de contrafuerte, más hojas y un fruto
 -- abierto colgando (nivel 4: tres ramitas). Nivel 4: nueve espinas, vetas de savia verde
 -- que brillan por la caña, un anillo de savia en la boca, el algodón que brilla y chispas de curación.
+-- Riqueza (K2), en todos los niveles: raíz de contrafuerte, segunda corona de hojas, lianas colgando y enroscadas,
+-- semillas de oro, segunda flor y placas de corteza; desde el 3 dos frutos más.
 local function buildCeibaBlowgun(tool: Tool, level: number): BasePart
 	local length = ({ 3.6, 3.9, 4.2, 4.5 })[level] or 3.6
 	local lit = level >= 4
@@ -2939,9 +3297,10 @@ local function buildCeibaBlowgun(tool: Tool, level: number): BasePart
 		end
 	end
 
-	-- Boquilla: de madera oscura o, desde el nivel 3, una raíz de contrafuerte abierta en cuatro.
+	-- Boquilla: de madera oscura sobre una raíz de contrafuerte abierta en cuatro (la skin mítica la lleva
+	-- en todos los niveles).
 	rod(handle, "Mouthpiece", 0.3, 0.3, CEIBA_BARK_DARK, WOOD_MATERIAL, CFrame.new(0, bottom + 0.1, 0))
-	if level >= 3 then
+	do
 		for index = 0, 3 do
 			tooth(
 				handle,
@@ -2994,6 +3353,81 @@ local function buildCeibaBlowgun(tool: Tool, level: number): BasePart
 			)
 		end
 		ball(handle, "Blossom", 0.08, TITAN_GOLD, SMOOTH, blossom * CFrame.new(0, 0, -0.02))
+	end
+
+	-- Riqueza de la skin mítica (K2): copa de hojas en dos coronas, lianas colgando de la boca, semillas de oro
+	-- en el borde, una segunda flor, placas de corteza y lianas enroscadas en la caña.
+	local canopy = ({ 8, 8, 10, 12 })[level]
+	for index = 0, canopy - 1 do
+		oval(
+			handle,
+			"Leaf",
+			Vector3.new(0.2, 0.46, 0.03),
+			if index % 2 == 0 then LIANA_GREEN else LEAF_GREEN,
+			SMOOTH,
+			mouth
+				* CFrame.Angles(0, (index + 0.5) * math.pi * 2 / canopy, 0)
+				* CFrame.new(0, 0.02, -0.2)
+				* CFrame.Angles(-0.95, 0, 0)
+		)
+	end
+	local vines = ({ 4, 4, 6, 8 })[level]
+	for index = 0, vines - 1 do
+		local around = CFrame.new(0, top - 0.45, 0) * CFrame.Angles(0, (index + 0.5) * math.pi * 2 / vines, 0)
+		rod(handle, "Vine", 0.5, 0.05, LIANA_GREEN, FABRIC, around * CFrame.new(0, 0, -0.17))
+		oval(handle, "Leaf", Vector3.new(0.14, 0.28, 0.03), LEAF_GREEN, SMOOTH, around * CFrame.new(0, -0.3, -0.19))
+	end
+	local seeds = ({ 6, 6, 8, 10 })[level]
+	for index = 0, seeds - 1 do
+		ball(
+			handle,
+			"Seed",
+			0.09,
+			TITAN_GOLD,
+			SMOOTH,
+			mouth * CFrame.Angles(0, (index + 0.5) * math.pi * 2 / seeds, 0) * CFrame.new(0, 0.11, -0.15)
+		)
+	end
+	local lowBlossom = CFrame.new(-0.16, 0.6, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+	for petal = 0, 4 do
+		oval(
+			handle,
+			"Petal",
+			Vector3.new(0.12, 0.2, 0.03),
+			CEIBA_BLOSSOM,
+			SMOOTH,
+			lowBlossom * CFrame.Angles(0, 0, petal * math.pi * 2 / 5) * CFrame.new(0, 0.1, 0)
+		)
+	end
+	ball(handle, "Blossom", 0.08, TITAN_GOLD, SMOOTH, lowBlossom * CFrame.new(0, 0, -0.02))
+	local patches = ({ 10, 10, 12, 14 })[level]
+	for index = 1, patches do
+		block(
+			handle,
+			"Bark",
+			Vector3.new(0.14, 0.22, 0.05),
+			CEIBA_BARK_DARK,
+			WOOD_MATERIAL,
+			CFrame.new(0, -0.1 + (top - 0.9) * (index - 0.5) / patches, 0)
+				* CFrame.Angles(0, index * 2 + 0.7, 0)
+				* CFrame.new(0, 0, -0.14)
+		)
+	end
+	wraps(
+		handle,
+		Vector3.new(0, -0.2, 0),
+		Vector3.new(0, top - 0.6, 0),
+		({ 8, 8, 10, 12 })[level],
+		0.33,
+		LIANA_GREEN,
+		Vector3.zAxis
+	)
+	if level >= 3 then
+		-- Dos frutos más colgando a un lado de la boca.
+		for _, z in { -0.09, 0.09 } do
+			oval(handle, "Pod", Vector3.new(0.14, 0.3, 0.14), KAPOK_POD, SMOOTH, CFrame.new(0.17, top - 0.95, z))
+			ball(handle, "Fluff", 0.16, KAPOK, if lit then NEON else FABRIC, CFrame.new(0.19, top - 1.12, z))
+		end
 	end
 
 	-- Fruto de ceiba atado a un lado con tres dardos de algodón asomando (y otro abierto colgando de la
