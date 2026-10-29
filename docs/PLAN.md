@@ -526,7 +526,7 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **V7** | Detección PvP con rebobinado y críticos a la cabeza | f1bf8f7 | ✅ (pendiente VERIFICACION §36) |
 | **V8** | Cargador, recarga, disparo automático y mira dinámica (Laboratorio) | 5dc4e36 | ✅ |
 | **V9** | Animaciones, fogonazos y sonidos de disparo del Laboratorio | a3e5995 | ✅ |
-| **V10** | Espectador y killcam en Dunas y el Laboratorio | — | ⏳ |
+| **V10** | Espectador y killcam en Dunas y el Laboratorio | e3903fa | ✅ |
 
 **Fase 14: Isla Calavera** (quinto place, mazmorra PvE de 1 a 5). Diseño: [AVENTURAS.md](AVENTURAS.md), resumen en el GDD §7.2.
 
