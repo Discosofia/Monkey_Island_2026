@@ -2417,6 +2417,36 @@ Hecho en Studio: la calculadora `Rendimiento` (sección 9: pico de cada jefe en 
 2. [ ] B se aleja a más de 250 studs del jefe mientras A pelea con él.
    ✅ B no dibuja las rocas ni las bombas de ese ataque. No hay errores en la Salida.
 
+## 45. Lo que queda por probar de W1: Lanzadardos y Avispa (28-10-2026)
+
+Hecho en Studio: las 8 versiones (base y Avispa I/II/III, de los dos bandos) se vieron en el Laboratorio, con las superficies que se pisaban corregidas. Piezas tras fusionar contadas en la vista previa: Guardianes 38 · 60 · 91 · 148 y Piratas 45 · 67 · 98 · 155 (topes 45 y 200). Falta lo que pide Play, la calculadora con módulos limpios o ver el arma en movimiento.
+
+#### 45.1 Calculadora (Studio de la Isla, modo edición, tras reabrir el place para vaciar la caché de `require`)
+
+1. [ ] Ejecuta `Rendimiento` y mira la sección 6 y las Alertas.
+   ✅ El Lanzadardos de los dos bandos queda en 45 piezas o menos como base y en 200 o menos con cada grado de la Avispa, y las Alertas dicen «Todo dentro de los límites».
+
+#### 45.2 En Play en el Laboratorio (haz copia de tu perfil en `PlayerData_v1_backups` antes)
+
+1. [ ] Elige el Lanzadardos en cada bando y míralo en primera persona, disparando y recargando.
+   ✅ El tambor, el cargador y la funda se ven bien, no tapan la mira y no hay piezas sueltas.
+2. [ ] Con el comando de depuración `SkinKills`, equipa la Avispa I, II y III y cambia de una a otra con el arma en la mano.
+   ✅ Cada grado se distingue del anterior a primera vista, el cambio rehace el arma sin piezas sueltas y la Salida no da errores.
+3. [ ] Con la Avispa III en la mano, mueve la cámara y gira alrededor del arma en tercera persona.
+   ✅ Ninguna superficie parpadea ni se pisa con otra, y por detrás se ven las alas grandes con sus partículas.
+4. [ ] En primera persona, con la Avispa III, mira el lado derecho y la parte de arriba del arma.
+   ✅ Se ven las alas abiertas, la jaula de panal y el aguijón. Las alas grandes de la espalda no aparecen.
+
+#### 45.3 En el Lobby y el Armario
+
+1. [ ] Abre el Armario, la pestaña del Laboratorio, y el selector de arma del Laboratorio.
+   ✅ Las imágenes del Lanzadardos y de las skins se ven completas, sin cortes ni piezas que falten.
+
+#### 45.4 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio)
+
+1. [ ] A equipa la Avispa III y B la mira de lejos y de cerca.
+   ✅ B ve el arma entera, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

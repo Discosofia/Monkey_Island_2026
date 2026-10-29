@@ -35,7 +35,7 @@ local GOLD = Color3.fromRGB(234, 194, 80)
 local AMBER = Color3.fromRGB(255, 176, 30)
 local HONEY = Color3.fromRGB(255, 200, 60)
 local WASP_BLACK = Color3.fromRGB(28, 26, 24)
-local WING = Color3.fromRGB(165, 170, 185)
+local WING = Color3.fromRGB(190, 165, 110)
 -- Escorpión.
 local OCHRE = Color3.fromRGB(196, 146, 72)
 local CHITIN = Color3.fromRGB(30, 26, 28)
@@ -100,47 +100,74 @@ local function emitter(part: BasePart, color: Color3, rate: number, size: number
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- Avispa (Lanzadardos): cañón en 1,0 a 1,75; cajón de -0,45 a 0,85; bidón debajo.
+-- Avispa (Lanzadardos): cajón de -0,45 a 0,85 (alto de -0,25 a 0,35); tambor encima (de -0,2 a 0,6, hasta
+-- 0,8 de alto); funda del cañón de 0,85 a 1,65 (ancho 0,35); freno de boca hasta 2,03; cargador de cristal
+-- debajo (de 0 a 0,65, hasta -1,15); empuñadura delantera en 1,1; culata hasta -1,8.
 -- ---------------------------------------------------------------------------------------------------
 
--- Franjas de avispa en el cañón y el bidón.
+-- Franjas de avispa: funda, cajón, cargador y culata. Los ojos van a los lados de la funda, ante la boca.
 local function waspStripes(handle: BasePart)
-	for _, along in { 1.0, 1.3, 1.6 } do
-		cube(handle, "SkinStripe", at(0, along, 0.1), V(0.28, 0.1, 0.28), AMBER, SMOOTH)
+	for index, along in { 0.9, 1.22, 1.58 } do
+		cube(
+			handle,
+			"SkinStripe",
+			at(0, along, 0.1),
+			V(0.4, 0.1, 0.4),
+			if index % 2 == 1 then AMBER else WASP_BLACK,
+			SMOOTH
+		)
 	end
-	for _, along in { 0.1, 0.3 } do
-		cube(handle, "SkinBand", at(0, along, -0.45), V(0.4, 0.08, 0.35), AMBER, SMOOTH)
-	end
-	cube(handle, "SkinBand", at(0, 0.2, -0.45), V(0.4, 0.08, 0.35), WASP_BLACK, SMOOTH)
 	-- Abdomen rayado: bandas ámbar y negras alrededor del cajón.
 	for index, along in { -0.2, 0.05, 0.3, 0.55 } do
 		cube(
 			handle,
 			"SkinBody",
 			at(0, along, 0.05),
-			V(0.52, 0.1, 0.65),
+			V(0.6, 0.1, 0.66),
 			if index % 2 == 1 then AMBER else WASP_BLACK,
 			SMOOTH
 		)
 	end
+	for _, along in { 0.05, 0.45 } do
+		cube(handle, "SkinBand", at(0, along, -0.55), V(0.44, 0.08, 0.42), AMBER, SMOOTH)
+	end
+	for index, along in { -1.3, -1.6 } do
+		cube(
+			handle,
+			"SkinBody",
+			at(0, along, -0.05),
+			V(0.44, 0.1, 0.65),
+			if index == 1 then AMBER else WASP_BLACK,
+			SMOOTH
+		)
+	end
+	for side = -1, 1, 2 do
+		cube(handle, "SkinEye", at(side * 0.2, 1.62, 0.1), V(0.1, 0.14, 0.2), WASP_BLACK, SMOOTH)
+	end
+	for _, along in { -0.2, 0.6 } do
+		cube(handle, "SkinCap", at(0, along, 0.83), V(0.58, 0.06, 0.1), AMBER, SMOOTH)
+	end
+	cube(handle, "SkinBase", at(0, 0.4, -1.27), V(0.42, 0.62, 0.06), AMBER, SMOOTH)
 end
 
 -- Alas plegadas a los lados del cajón.
 local function waspFoldedWings(handle: BasePart, faction: string)
 	for side = -1, 1, 2 do
-		glass(cube(handle, "SkinWing", at(side * 0.3, 0.15, 0.15), V(0.05, 0.9, 0.35), WING, GLASS), 0.45)
-		cube(handle, "SkinWingVein", at(side * 0.3, 0.15, 0.15), V(0.07, 0.9, 0.05), WASP_BLACK, SMOOTH)
+		glass(cube(handle, "SkinWing", at(side * 0.3, 0.15, 0.15), V(0.05, 0.9, 0.35), WING, GLASS), 0.25)
+		cube(handle, "SkinWingVein", at(side * 0.3, 0.15, 0.15), V(0.07, 0.94, 0.05), WASP_BLACK, SMOOTH)
 		accent(handle, faction, at(side * 0.3, -0.3, 0.05))
 	end
 end
 
--- Aguijón de neón en la boca y dos antenas.
+-- Aguijón de neón que se afina ante la boca, dos mandíbulas y dos antenas hacia delante sobre el tambor.
 local function waspStinger(handle: BasePart)
-	cube(handle, "SkinStinger", at(0, 1.9, 0.1), V(0.1, 0.25, 0.1), HONEY, NEON)
-	cube(handle, "SkinStingerTip", at(0, 2.08, 0.1), V(0.05, 0.1, 0.05), WASP_BLACK, SMOOTH)
+	cube(handle, "SkinStinger", at(0, 2.15, 0.1), V(0.22, 0.2, 0.22), HONEY, NEON)
+	cube(handle, "SkinStinger", at(0, 2.33, 0.1), V(0.14, 0.2, 0.14), HONEY, NEON)
+	cube(handle, "SkinStingerTip", at(0, 2.48, 0.1), V(0.07, 0.1, 0.07), WASP_BLACK, SMOOTH)
 	for side = -1, 1, 2 do
-		cube(handle, "SkinAntenna", at(side * 0.12, 0.85, 0.5), V(0.05, 0.05, 0.3), WASP_BLACK, SMOOTH)
-		cube(handle, "SkinAntennaTip", at(side * 0.12, 0.85, 0.72), V(0.1, 0.1, 0.1), HONEY, NEON)
+		cube(handle, "SkinMandible", at(side * 0.22, 2.0, 0.1), V(0.08, 0.35, 0.08), WASP_BLACK, SMOOTH)
+		cube(handle, "SkinAntenna", at(side * 0.15, 0.85, 0.72), V(0.05, 0.4, 0.05), WASP_BLACK, SMOOTH)
+		cube(handle, "SkinAntennaTip", at(side * 0.15, 1.08, 0.72), V(0.1, 0.1, 0.1), HONEY, NEON)
 	end
 end
 
@@ -159,13 +186,13 @@ local function waspOpenWings(handle: BasePart, faction: string)
 					WING,
 					GLASS
 				),
-				0.45
+				0.25
 			)
 			cube(
 				handle,
 				"SkinWingVein",
 				at(side * (0.38 + (step - 1) * 0.14), along + length / 2, 0.3 + (step - 1) * 0.12),
-				V(0.15, 0.05, 0.12),
+				V(0.17, 0.05, 0.12),
 				WASP_BLACK,
 				SMOOTH
 			)
@@ -189,7 +216,7 @@ local function waspBigWings(handle: BasePart, faction: string)
 						WING,
 						GLASS
 					),
-					0.45
+					0.25
 				)
 			)
 			if step == 5 then
@@ -202,20 +229,59 @@ local function waspBigWings(handle: BasePart, faction: string)
 	end
 end
 
--- Panal que brilla a los lados del bidón.
+-- Panal que brilla a los lados del cargador, y miel que gotea de su base.
+local COMB = { { 0.1, -0.45 }, { 0.3, -0.55 }, { 0.2, -0.7 }, { 0.4, -0.85 }, { 0.3, -1.0 } }
 local function waspComb(handle: BasePart)
 	for side = -1, 1, 2 do
-		for index, along in { 0.0, 0.2, 0.4 } do
-			cube(
-				handle,
-				"SkinComb",
-				at(side * 0.2, along, if index % 2 == 0 then -0.5 else -0.4),
-				V(0.08, 0.14, 0.14),
-				HONEY,
-				NEON
-			)
+		for _, cell in COMB do
+			cube(handle, "SkinComb", at(side * 0.2, cell[1], cell[2]), V(0.06, 0.14, 0.14), HONEY, NEON)
 		end
 	end
+end
+
+-- Cuerpo de avispa entero (solo el grado III): jaula de panal sobre el tambor, abdomen que termina en
+-- punta tras la culata y dos patas articuladas a cada lado de la empuñadura delantera.
+local function waspBody(handle: BasePart)
+	for side = -1, 1, 2 do
+		for _, along in { -0.2, 0.6 } do
+			cube(handle, "SkinCage", at(side * 0.27, along, 0.57), V(0.08, 0.08, 0.5), AMBER, SMOOTH)
+		end
+		for _, along in { 0.95, 1.25 } do
+			cube(handle, "SkinLeg", at(side * 0.22, along, -0.3), V(0.2, 0.06, 0.06), WASP_BLACK, SMOOTH)
+			cube(handle, "SkinLeg", at(side * 0.3, along, -0.45), V(0.06, 0.06, 0.3), WASP_BLACK, SMOOTH)
+			cube(handle, "SkinFoot", at(side * 0.3, along, -0.64), V(0.1, 0.1, 0.06), AMBER, SMOOTH)
+		end
+	end
+	for index, along in { -0.0, 0.2, 0.4 } do
+		cube(handle, "SkinHex", at(if index == 2 then 0.12 else -0.12, along, 0.82), V(0.15, 0.15, 0.1), HONEY, NEON)
+	end
+	cube(handle, "SkinTail", at(0, -1.95, -0.05), V(0.25, 0.2, 0.3), AMBER, SMOOTH)
+	cube(handle, "SkinTailTip", at(0, -2.12, -0.05), V(0.12, 0.15, 0.15), WASP_BLACK, SMOOTH)
+	-- Pelusa del tórax sobre el cajón, placas del abdomen en la culata, pinchos sobre la funda, remates de
+	-- las patas y gotas de miel colgando del cargador.
+	for side = -1, 1, 2 do
+		for index, along in { -0.4, 0.75 } do
+			cube(
+				handle,
+				"SkinFur",
+				at(side * 0.15, along, 0.4),
+				V(0.12, 0.12, 0.1),
+				if index % 2 == 1 then HONEY else AMBER,
+				SMOOTH
+			)
+		end
+		for _, along in { -1.3, -1.45, -1.6 } do
+			cube(handle, "SkinPlate", at(side * 0.23, along, -0.05), V(0.05, 0.12, 0.45), WASP_BLACK, SMOOTH)
+		end
+		for _, along in { 0.95, 1.25 } do
+			cube(handle, "SkinKnee", at(side * 0.3, along, -0.3), V(0.1, 0.1, 0.1), AMBER, SMOOTH)
+		end
+		cube(handle, "SkinDrip", at(side * 0.1, 0.4, -1.3), V(0.06, 0.06, 0.15), HONEY, NEON)
+	end
+	for _, along in { 1.0, 1.25, 1.5 } do
+		cube(handle, "SkinSpike", at(0, along, 0.33), V(0.08, 0.15, 0.1), WASP_BLACK, SMOOTH)
+	end
+	cube(handle, "SkinDrip", at(0, 0.4, -1.4), V(0.06, 0.06, 0.15), HONEY, NEON)
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -449,12 +515,15 @@ local BUILDERS: { [string]: Builder } = {
 		waspStripes(handle)
 		waspOpenWings(handle, faction)
 		waspStinger(handle)
+		waspComb(handle)
 	end,
 	LabWaspIII = function(handle, faction)
 		waspStripes(handle)
+		waspOpenWings(handle, faction)
 		waspStinger(handle)
 		waspBigWings(handle, faction)
 		waspComb(handle)
+		waspBody(handle)
 	end,
 	LabScorpion = function(handle, _faction)
 		scorpionPlates(handle)

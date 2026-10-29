@@ -168,38 +168,65 @@ local function barrel(handle: BasePart, palette: Palette, from: number, length: 
 	)
 end
 
--- Lanzadardos: cajón corto, cañón fino, bidón de dardos debajo y tres dardos de repuesto encima.
+-- Lanzadardos: subfusil compacto. Tambor de cristal con tres dardos a la vista sobre el cajón, cargador de
+-- cristal debajo, funda del cañón con ventilas, empuñadura delantera, miras y freno de boca.
 local function buildDartGun(tool: Tool, faction: Faction): BasePart
 	local palette = PALETTES[faction]
 	local handle = frame(tool, palette, faction, 1.3, 0.6)
-	barrel(handle, palette, 0.85, 0.9, 0.2)
-	cube(handle, "Canister", at(0, 0.2, -0.45), Vector3.new(0.35, 0.6, 0.3), DART, GLASS).Transparency = 0.2
-	for _, along in { -0.15, 0.55 } do
-		cube(
-			handle,
-			"CanisterCap",
-			at(0, along, -0.45),
-			Vector3.new(0.4, 0.1, 0.35),
-			palette.trim,
-			palette.trimMaterial
-		)
+	-- Tambor de dardos encima del cajón: dos tapas y el cristal con los dardos dentro.
+	for _, along in { -0.2, 0.6 } do
+		cube(handle, "DrumCap", at(0, along, 0.57), Vector3.new(0.55, 0.1, 0.45), palette.trim, palette.trimMaterial)
 	end
+	cube(handle, "Drum", at(0, 0.2, 0.57), Vector3.new(0.5, 0.7, 0.4), DART, GLASS).Transparency = 0.5
 	for side = -1, 1 do
-		cube(handle, "Dart", at(side * 0.12, 0.3, 0.42), Vector3.new(0.05, 0.5, 0.05), DART, NEON)
+		cube(handle, "Dart", at(side * 0.15, 0.2, 0.57), Vector3.new(0.1, 0.55, 0.1), DART, NEON)
 	end
+	-- Cargador de cristal curvo debajo (dos tramos, el de abajo más adelantado), con su brocal y su base.
+	cube(handle, "MagCollar", at(0, 0.25, -0.3), Vector3.new(0.4, 0.6, 0.1), palette.trim, palette.trimMaterial)
+	cube(handle, "Magazine", at(0, 0.25, -0.55), Vector3.new(0.3, 0.5, 0.4), DART, GLASS).Transparency = 0.5
+	cube(handle, "Magazine", at(0, 0.4, -0.95), Vector3.new(0.3, 0.5, 0.4), DART, GLASS).Transparency = 0.5
+	cube(handle, "MagBase", at(0, 0.4, -1.2), Vector3.new(0.4, 0.6, 0.1), palette.trim, palette.trimMaterial)
+	for side = -1, 1, 2 do
+		cube(handle, "MagDart", at(side * 0.07, 0.32, -0.75), Vector3.new(0.08, 0.35, 0.6), DART, NEON)
+	end
+	-- Funda del cañón con dos ventilas por lado, el cañón y el freno de boca.
+	cube(handle, "Shroud", at(0, 1.25, 0.1), Vector3.new(0.35, 0.8, 0.35), palette.trim, palette.trimMaterial)
+	for side = -1, 1, 2 do
+		for _, along in { 1.05, 1.4 } do
+			cube(handle, "Vent", at(side * 0.19, along, 0.1), Vector3.new(0.05, 0.18, 0.15), palette.barrel, METAL)
+		end
+	end
+	cube(handle, "Barrel", at(0, 1.8, 0.1), Vector3.new(0.18, 0.4, 0.18), palette.barrel, METAL)
+	cube(handle, "Muzzle", at(0, 1.95, 0.1), Vector3.new(0.3, 0.15, 0.3), palette.trim, palette.trimMaterial)
+	-- Empuñadura delantera bajo la funda.
+	cube(handle, "ForeMount", at(0, 1.1, -0.08), Vector3.new(0.3, 0.35, 0.1), palette.trim, palette.trimMaterial)
+	cube(handle, "ForeGrip", at(0, 1.1, -0.35), Vector3.new(0.22, 0.25, 0.45), palette.grip, palette.gripMaterial)
+	-- Detalles de armero: puerto de expulsión a los dos lados y mejilla en la culata.
+	for side = -1, 1, 2 do
+		cube(handle, "Port", at(side * 0.25, 0.3, 0.1), Vector3.new(0.05, 0.35, 0.15), palette.barrel, METAL)
+	end
+	cube(handle, "Cheek", at(0, -1.45, 0.3), Vector3.new(0.32, 0.5, 0.15), palette.trim, palette.trimMaterial)
+	-- Miras: la trasera sobre el cajón y la delantera sobre la funda.
+	cube(handle, "RearSight", at(0, -0.3, 0.45), Vector3.new(0.15, 0.1, 0.15), palette.barrel, METAL)
+	cube(handle, "FrontSight", at(0, 1.55, 0.37), Vector3.new(0.1, 0.1, 0.2), palette.barrel, METAL)
 	if faction == "Guardians" then
-		cube(handle, "Sensor", at(0, 0.7, 0.42), Vector3.new(0.15, 0.15, 0.15), LAB_BLUE, SMOOTH)
+		cube(handle, "Sensor", at(0, 1.6, 0.3), Vector3.new(0.2, 0.15, 0.1), LAB_BLUE, SMOOTH)
+		local light = cube(handle, "ShroudLight", at(0, 0.95, 0.3), Vector3.new(0.1, 0.1, 0.05), LAB_GLOW, NEON)
+		glow(light, LAB_GLOW, 3)
 	else
-		-- Plumas negras y doradas en la cola de los dardos.
+		-- Plumas negras y doradas en la cola de los dardos y una cuerda en la empuñadura delantera.
 		for side = -1, 1 do
 			cube(
 				handle,
 				"Fletch",
-				at(side * 0.12, 0.02, 0.42),
+				at(side * 0.15, -0.3, 0.57),
 				Vector3.new(0.1, 0.1, 0.1),
 				if side == 0 then GOLD else IRON,
 				FABRIC
 			)
+		end
+		for _, up in { -0.25, -0.4 } do
+			cube(handle, "ForeRope", at(0, 1.1, up), Vector3.new(0.26, 0.3, 0.05), DARK_WOOD, FABRIC)
 		end
 	end
 	return handle
