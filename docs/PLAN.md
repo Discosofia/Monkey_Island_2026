@@ -593,6 +593,32 @@ Decisiones del 28-10-2026:
 
 **Pendiente para fases futuras:** subir la calidad de los cosméticos del pase (trajes, skins de arma y de mascota) y de las armas del Laboratorio con el nuevo presupuesto. Se planeará cuando la Fase 16 haya fijado los topes.
 
+### Fase 17: Armas del Laboratorio y sus skins, con más calidad (28-10-2026)
+
+Las armas del Laboratorio parecían de juguete, no se distinguían entre sí y las skins no impresionaban. Se rehace **un arma por grupo**: la base de los dos bandos y sus 3 skins juntas, porque las skins se apoyan en la geometría de la base. Plan completo en `C:\Users\jose\.claude\plans\federated-meandering-key.md`.
+
+Reglas: voxel con pocos tonos planos; silueta propia de cada arma; base de hasta 45 piezas tras fusionar y skins de hasta 200 (`Config.Budgets.Models`); cada grado se distingue a primera vista; los rasgos del grado III tienen que verse también en primera persona, porque lo de la espalda (`LabBack`) se esconde ahí. Sin superficies en el mismo plano (parpadean al mover la cámara). Antes de pedir el «aprobado», la vista previa queda montada en el Studio del Laboratorio.
+
+| Grupo | Arma y skins | Commit | Estado |
+|---|---|---|---|
+| **W1** | Lanzadardos tranquilizante (subfusil compacto) y Avispa I/II/III | 13decf9 | ✅ Probado en Studio (sin probar: VERIFICACION §45) |
+| **W2** | Rifle de bananas primales (francotirador) y Escorpión I/II/III | — | ⏳ |
+| **W3** | Lanzarredes de arpón (escopeta corta) y Kraken I/II/III | — | ⏳ |
+| **W4** | Cañón de suero ácido (lanzagranadas) y Dragón I/II/III, y las 4 armas juntas | — | ⏳ |
+
+**Handoff de W2 (28-10-2026)**
+
+- **Estado:** W1 commiteada y subida. La base del Lanzadardos ocupa 38 (Guardianes) y 45 (Piratas) piezas tras fusionar y la Avispa III 148 y 155.
+- **Método que funcionó:** cada arma tiene su `build*` en `Shared/LabWeaponModels` y su línea de skins en `Shared/LabWeaponSkins`. `frame()` pone culata, empuñadura y cajón comunes y no se toca, para que la mano y el encuadre en primera persona no cambien. Las coordenadas son `at(lado, largo, arriba)` con arriba positivo.
+- **Antes de escribir código:** captura del arma actual y mini-entrevista de 1–2 preguntas sobre la silueta (`AskUserQuestion`).
+- **Vista previa:** clonar `ReplicatedStorage.Shared` para saltar la caché de `require`, construir con `LabWeaponModels.build` y `LabWeaponSkins.apply` (más `VoxelMerge.mergeWelded`), y colocar las piezas con `CFrame.fromMatrix` para tumbarlas (largo en X, arriba en −Z del modelo). Dejarla montada con base y los tres grados de los dos bandos antes de pedir el «aprobado», y limpiarla después con la cámara en `Fixed`.
+- **Trampas:**
+  - Los atributos de las piezas (`LabBack`) y las luces o emisores impiden la fusión.
+  - `Rendimiento` en el Studio de la Isla puede dar cifras viejas por la caché de `require`: contar las piezas fusionadas en la vista previa y repetir la calculadora tras reabrir el place.
+  - Las caras en el mismo plano parpadean al mover la cámara: separar los grosores al menos 0,02 studs.
+  - Los detalles nuevos de la base suben mucho el recuento: contar tras fusionar y recortar lo menos visible si se pasa de 45.
+- **Prompt para la pestaña nueva:** «Continúa la Fase 17 de Monkey_Island_2026 con el grupo W2 (Rifle de bananas y Escorpión). Lee CLAUDE.md, la sección "Fase 17" de docs/PLAN.md (su Handoff de W2) y C:\Users\jose\.claude\plans\federated-meandering-key.md. Empieza con la captura del arma actual y la mini-entrevista de silueta, y deja la vista previa montada en el Studio del Laboratorio antes de pedir el aprobado.»
+
 ---
 
 ## 4. Cronograma estimado
