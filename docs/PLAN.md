@@ -612,6 +612,46 @@ Reglas: voxel con pocos tonos planos; silueta propia de cada arma; base de hasta
 - **Cañón de suero:** 35 (Guardianes) y 40 (Piratas) piezas; Dragón III 132 y 136. Las skins I y II quedaron algo por debajo de la escalera (+29 y +47), con margen hasta 200 si se quiere más detalle.
 - **Pendiente:** `Rendimiento` sección 6 (Studio de la Isla) y las pruebas en Play de VERIFICACION §45–48.
 
+### Fase 18: Pedidos del 28-10 (arreglos, admin, eventos globales, Laboratorio, ambiente, mascotas, armaduras) (29-10-2026)
+
+Doce pedidos del usuario más el sentir del Laboratorio (dinamismo, puntería, deslizar y esquivar), agrupados en 16 tandas que se trabajan en pestañas distintas, cada una con su handoff. Plan completo en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`.
+
+Decisiones del 28-10-2026:
+- **Gigante:** el que falla es el gigante al golpear cuerpo a cuerpo (su caja de golpe no crece con su tamaño).
+- **Globales:** el gigante y el jefe se invocan en los 4 places. Fuera de la Isla el jefe da Ámbar y XP del pase a quienes le hagan daño (cantidades medidas con `Economia`). Clima, fiesta y lluvia de huevos siguen como están.
+- **Menús en combate:** se ocultan 4 s tras hacer o recibir daño. Reanimar sigue disponible.
+- **Luna:** 4 fases, una cada 2 días de partida, efectos suaves (10–15 %). La luna roja es un evento en vivo global con horda y premio.
+- **Mascotas:** capibara (Poco común), quetzal y ajolote (Míticos). Los míticos no salen de huevos normales: se dan desde el panel de admin y entran al sorteo con el huevo mítico de la Fase 14 (D5).
+- **Armaduras:** una tanda por rango, con los 4 roles.
+- **Laboratorio:** la estela del esquive solo la ve el rival (uno ve líneas blancas de movimiento en primera persona); deslizar con C sin tener que correr, con aviso de la tecla y animación visible para los demás; mira precisa y balas más visibles.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | — | ⏳ |
+| **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | — | ⏳ |
+| **A3** | Gigante en los 4 places, con vida según jugadores activos | — | ⏳ |
+| **A4** | Jefe en los 4 places, con premio fuera de la Isla | — | ⏳ |
+| **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | — | ⏳ |
+| **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | — | ⏳ |
+| **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | — | ⏳ |
+| **B2** | Ciclo lunar: fases, efectos y su icono | — | ⏳ |
+| **B3** | Evento de luna roja | — | ⏳ |
+| **M1** | Capibara (Poco común) | — | ⏳ |
+| **M2** | Quetzal (Mítico) | — | ⏳ |
+| **M3** | Ajolote (Mítico) | — | ⏳ |
+| **R1** | Armaduras de Pelaje (rango I), 4 roles | — | ⏳ |
+| **R2** | Armaduras de Hueso (rango II), 4 roles | — | ⏳ |
+| **R3** | Armaduras de Plata (rango III), 4 roles | — | ⏳ |
+| **R4** | Armaduras Volcánicas (rango IV), 4 roles | — | ⏳ |
+
+**Handoff de A1 (29-10-2026)**
+- **Estado:** plan aprobado, nada escrito todavía. Las pruebas de la fase empiezan en VERIFICACION §49.
+- **Objetivo:** (1) `Levantad`/`Recolectad` pasan a `Levanten`/`Recolecten` en `Data/Contracts.luau` (líneas 71, 97, 126) y en las claves de `Data/Strings/Content.luau` (148, 154, 159); luego `python tools/strings.py --csv-nuevas` y `--marcar-subidas`. (2) Atributo de jugador `CombatUntil` = ahora + `Config.Combat.InteractLockSeconds` (4), puesto al recibir daño (`SurvivalService`, junto a `lastDamagedAt`) y al hacerlo (`CombatService.damage` / `damagePvP`); un helper en `Shared` que lo lee y que usan los `ProximityPrompt` de estaciones (`CraftingController`, 303–332), cofres, parcela y beber; reanimar no se bloquea. (3) La caja de `CombatService.meleeAttack` (`MELEE_HITBOX`, líneas 70 y 588–604) y su copia en `combatClient/Controllers/WeaponController.luau` (62, 262–263) se escalan con el tamaño del personaje y el alcance empieza en el borde del cuerpo.
+- **Riesgo:** a escala 1 nada debe cambiar; se comprueba con `Equilibrio`. El helper del cliente y el servidor tienen que usar el mismo reloj (`workspace:GetServerTimeNow()`).
+- **Verificación:** pelear junto a la hoguera no abre el menú y 4 s después sí; el gigante acierta a un muñeco con la espada; stylua, selene, `strings.py` y `rojo build`. Lo que necesite 2 jugadores va a VERIFICACION §49.
+- **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A1.»
+
 ---
 
 ## 4. Cronograma estimado
