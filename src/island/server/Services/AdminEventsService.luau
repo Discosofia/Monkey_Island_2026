@@ -2,25 +2,23 @@
 -- Lo que un administrador hace al momento en esta partida de la Isla desde su panel (T4b,
 -- Data/IslandActions), mandado por ServerShared/Admin a este servidor o a todos (AdminNet
 -- "IslandAction"). Reutiliza lo mismo que el panel de pruebas (DebugService), pero vale también en el
--- juego publicado: el permiso lo comprueba Admin antes de mandarlo.
+-- juego publicado: el permiso lo comprueba Admin antes de mandarlo. "Giant" (Ser gigante) y "Boss" (Jefe) ya no
+-- son solo de la Isla: valen en los 4 places y los hacen GiantAdminService y BossService (combate compartido).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local IslandActions = require(ReplicatedStorage.Shared.Data.IslandActions)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local Strings = require(ReplicatedStorage.Shared.Strings)
 local GiantAdminService = require(ServerScriptService.Combat.Services.GiantAdminService)
 local AdminNet = require(ServerScriptService.ServerShared.AdminNet)
 local BasecampService = require(script.Parent.BasecampService)
-local BossService = require(script.Parent.BossService)
+local BossService = require(ServerScriptService.Combat.Services.BossService)
 local DayNightService = require(script.Parent.DayNightService)
 local MatchService = require(script.Parent.MatchService)
 local MonkeyService = require(script.Parent.MonkeyService)
@@ -78,10 +76,6 @@ local function spawnAlpha(): boolean
 	return false
 end
 
-local function serverName(): string
-	return if RunService:IsStudio() then "Studio" else string.sub(game.JobId, 1, 8)
-end
-
 -- Interruptor del clima: si ya hay ese, despeja.
 local function weatherToggle(name: string)
 	if ReplicatedStorage:GetAttribute("Weather") == name then
@@ -91,29 +85,8 @@ local function weatherToggle(name: string)
 	end
 end
 
--- Cada acción recibe el administrador que la pidió (nil si juega en otro servidor).
+-- Cada acción recibe el administrador que la pidió (nil si juega en otro servidor). Faltan "Boss" y "Giant".
 local ACTIONS: { [string]: (admin: Player?, scope: string?) -> boolean } = {
-	-- Interruptor: si hay jefe vivo lo quita; si no, lo saca junto al administrador (en su guarida si no
-	-- está aquí) y avisa a todos los servidores desde el del administrador.
-	Boss = function(admin, scope)
-		if BossService.isAlive() then
-			BossService.despawn()
-			return true
-		end
-		local rotation = Config.Match.BossRotation
-		local bossId = rotation[rng:NextInteger(1, #rotation)]
-		local character = if admin then admin.Character else nil
-		local position = if character then character:GetPivot().Position else nil
-		BossService.spawn(bossId, nil, position)
-		if admin then
-			AdminNet.send("Announce", {
-				text = Strings.later("👑 ¡{boss} ha aparecido en {place}, servidor {server}!"),
-				args = { boss = { Bosses[bossId].name }, place = { Strings.later("la Isla") }, server = serverName() },
-				from = Strings.later("Evento"),
-			}, if scope == "All" then "All" else "Server")
-		end
-		return true
-	end,
 	Alpha = spawnAlpha,
 	SkipPhase = function()
 		DayNightService.skipPhase()
@@ -191,7 +164,7 @@ function AdminEventsService:Start()
 		end
 	end)
 	AdminNet.on("IslandAction", function(data: any)
-		-- "Ser gigante" lo oye el combate compartido (GiantAdminService), en los 4 places.
+		-- "Ser gigante" y "Jefe" los oye el combate compartido (GiantAdminService y BossService), en los 4 places.
 		local action = if typeof(data) == "table" then ACTIONS[data.action] else nil
 		if not action or MatchService.isOver() then
 			return

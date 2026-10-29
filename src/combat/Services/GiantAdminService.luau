@@ -11,8 +11,9 @@
 --     pisotón, ola de choque en línea y rugido que aturde; combatClient/Controllers/GiantAdminController).
 --     Los que tumba quedan caídos como en el PvP, pero sin recompensa. Envuelve las reglas del place: en el
 --     Lobby deja de protegerles la plaza, y en Dunas y el Laboratorio es neutral contra los dos equipos.
---   - Lo que solo existe en la Isla (el jefe de verdad, el fin de la partida, las ventajas del rol) lo
---     enchufa AdminEventsService con GiantAdminService.setHooks.
+--   - Lo que solo existe en la Isla (el fin de la partida, las ventajas del rol) lo enchufa AdminEventsService
+--     con GiantAdminService.setHooks. El jefe de verdad (BossService, Fase 18 A4) vale en los 4 places: mientras
+--     hay uno, nadie se convierte en gigante y la barra de jefe es suya.
 --   - Cuando cae, vuelve a su tamaño y los que le han pegado se llevan el título «Matagigantes» y un
 --     huevo legendario. Volver a pulsar "Ser gigante" lo deshace sin premio.
 
@@ -32,6 +33,7 @@ local CombatRules = require(ServerScriptService.Combat.CombatRules)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 local Status = require(ServerScriptService.Combat.Status)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
+local BossService = require(script.Parent.BossService)
 local AdminNet = require(ServerScriptService.ServerShared.AdminNet)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
@@ -75,11 +77,9 @@ local giant: Giant? = nil
 
 local hooks: Hooks = {
 	blocked = function()
-		return nil
+		return if BossService.isAlive() then "👑 Hay un jefe despierto: espera a que caiga" else nil
 	end,
-	bossAlive = function()
-		return false
-	end,
+	bossAlive = BossService.isAlive,
 	restored = function() end,
 	publishesState = false,
 }
@@ -90,12 +90,13 @@ function GiantAdminService.setHooks(overrides: { [string]: any })
 	end
 end
 
--- Para el tablero de admin de los places sin partida de la Isla (la Isla publica el suyo, con más cosas).
+-- Para el tablero de admin de los places sin partida de la Isla (la Isla publica el suyo, con más cosas): el gigante
+-- y el jefe, que se vuelve a publicar cada segundo (Start) porque cae sin pasar por aquí.
 local function publishState()
 	if not hooks.publishesState then
 		ReplicatedStorage:SetAttribute(
 			Config.AdminTools.IslandStateAttribute,
-			HttpService:JSONEncode({ Giant = giant ~= nil })
+			HttpService:JSONEncode({ Giant = giant ~= nil, Boss = BossService.isAlive() })
 		)
 	end
 end
@@ -483,6 +484,12 @@ function GiantAdminService:Start()
 		end
 	end)
 	publishState()
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			publishState()
+		end
+	end)
 	-- Las reglas del place ya están puestas (sus CombatRules, en su Init): se envuelven. El gigante es
 	-- neutral: puede pegar a cualquiera y cualquiera puede pegarle, sin equipos ni zona segura del Lobby.
 	local rules = CombatRules.get()

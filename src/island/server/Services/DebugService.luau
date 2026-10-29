@@ -27,7 +27,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
-local BossService = require(script.Parent.BossService)
+local BossService = require(ServerScriptService.Combat.Services.BossService)
 local ContractService = require(script.Parent.ContractService)
 local Admin = require(ServerScriptService.ServerShared.Admin)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
@@ -45,7 +45,7 @@ local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Hazards = require(ServerScriptService.Combat.Hazards)
-local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
+local MonkeyModels = require(ServerScriptService.Combat.Monkeys.MonkeyModels)
 
 local DebugService = {}
 

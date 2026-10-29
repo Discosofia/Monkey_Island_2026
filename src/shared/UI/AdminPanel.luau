@@ -22,6 +22,7 @@ local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local Workspace = game:GetService("Workspace")
 
+local Bosses = require(script.Parent.Parent.Data.Bosses)
 local Config = require(script.Parent.Parent.Config)
 local Cosmetics = require(script.Parent.Parent.Data.Cosmetics)
 local IslandActions = require(script.Parent.Parent.Data.IslandActions)
@@ -1285,7 +1286,18 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 	end
 
 	eventHeading("🎮 Ahora en el juego (azul: en marcha, otro toque lo apaga)", 8)
-	local islandGrid = grid("IslandGrid", 9, 4)
+	-- Qué jefe saca el botón 👑 Jefe: "" es al azar (de la rotación de la Isla); los demás, el id de Data/Bosses.
+	local chosenBoss = ""
+	local bossValues: { any } = { "" }
+	local bossTexts = { "Al azar" }
+	for _, bossId in Config.Match.BossRotation do
+		table.insert(bossValues, bossId)
+		table.insert(bossTexts, Bosses[bossId].name)
+	end
+	choiceRow(9, "Jefe", bossValues, bossTexts, function(value)
+		chosenBoss = value
+	end)
+	local islandGrid = grid("IslandGrid", 10, 4)
 	local actionButtons: { [string]: TextButton } = {}
 	local actionIds = {}
 	for action in IslandActions do
@@ -1304,7 +1316,11 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 		actionButtons[action] = button
 		button.MouseButton1Click:Connect(function()
 			if confirmed(button, text) then
-				Remotes.AdminIslandAction:FireServer(action, chosenScope)
+				if action == "Boss" then
+					Remotes.AdminIslandAction:FireServer(action, chosenScope, chosenBoss)
+				else
+					Remotes.AdminIslandAction:FireServer(action, chosenScope)
+				end
 			end
 		end)
 	end

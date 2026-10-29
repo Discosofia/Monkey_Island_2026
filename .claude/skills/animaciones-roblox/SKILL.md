@@ -36,7 +36,7 @@ Para el estilo de los modelos, la paleta y la puesta en marcha del MCP, mira la 
 
 1. Busca las herramientas `mcp__Roblox_Studio__*` (si están diferidas, cárgalas con ToolSearch).
 2. `list_roblox_studios` → guarda el `studio_id`. Suele haber dos abiertos: **"Isla"** (tiene
-   `ServerScriptService.Server.Monkeys`, los monos y las armas) y el del Lobby (se llama "Isla de
+   `ServerScriptService.Combat.Monkeys`, los monos y las armas) y el del Lobby (se llama "Isla de
    plátanos primitivos"). Las animaciones de monos y armas se trabajan en la Isla. Las mascotas
    están en los dos (`PetModels` y `PetFollowers` son de `ReplicatedStorage.Shared`): su animación
    es la misma y se puede revisar en cualquiera, y un cambio se ve en ambos.

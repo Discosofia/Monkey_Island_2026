@@ -2600,6 +2600,37 @@ Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos)
 1. [ ] En Play en la Isla sale tres veces en la Salida «ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type». Averigua qué lo carga (se vio al probar A3, pero no parece de A3).
    ✅ Ninguna línea roja de ese asset al arrancar, o se sabe de quién es.
 
+## 52. Fase 18 A4: jefe en los 4 places (29-10-2026)
+
+Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue va por cómo se prueba.
+
+#### 52.1 Un jugador en Studio (Isla, Dunas, Laboratorio y Lobby)
+
+1. [ ] En la Isla, invoca un jefe desde el panel de admin, mantén la partida hasta el final con el jefe invocado y mira el Ámbar que te da la partida.
+   ✅ Al acabar la partida el Ámbar incluye el AmberPerBoss por el jefe invocado.
+2. [ ] Con el jefe en la Isla, Dunas o el Laboratorio, mira los efectos visuales del jefe y su barra de vida arriba (BossHUD).
+   ✅ Salen los efectos de BossFxController y la barra de vida del jefe, en cada uno de esos places y en el Lobby.
+3. [ ] En el Laboratorio, con munición dentro de una partida, dispara al jefe hasta matarlo.
+   ✅ Al matarlo, quien le hizo daño cobra 50 Ámbar y 50 XP una sola vez.
+4. [ ] Abre el panel de admin, fila «Jefe», elige «Al azar» e invócalo. Repite con cada uno de los 4 jefes.
+   ✅ Sale el jefe elegido. Con «Al azar» sale uno de los 4.
+5. [ ] Con el gigante activo, pulsa para invocar un jefe. Después, con un jefe vivo, pulsa «Ser gigante».
+   ✅ Las dos cosas se rechazan mientras la otra esté activa.
+6. [ ] Invoca el jefe en Dunas y en el Laboratorio y mira sus pies (ya salió apoyado en Studio en Lobby, Dunas y Laboratorio).
+   ✅ El jefe toca el suelo y no flota.
+
+#### 52.2 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en Dunas y en el Laboratorio)
+
+1. [ ] Con los dos jugadores en equipos distintos, invoca el jefe y deja que ataque a los dos equipos. Los ataques tumban con el knockOut del place. Repite en el Laboratorio.
+   ✅ El jefe es neutral contra los dos equipos. Los ataques tumban con el knockOut del place.
+2. [ ] Haz daño al jefe con los dos jugadores hasta que caiga.
+   ✅ Todos los que le hicieron daño cobran 50 Ámbar y 50 XP (Config.Bosses.OutsideReward) una sola vez.
+
+#### 52.3 Con el juego publicado y 2 servidores
+
+1. [ ] Con el jefe en la fase 2 y luego en la fase 3, fuera de la Isla (Dunas, Lobby o el Laboratorio), y con otro jugador en otro place o servidor.
+   ✅ Las fases 2 y 3 se ven en el place. El aviso global (Announce) llega a los otros servidores y places, con el nombre del place y del servidor.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

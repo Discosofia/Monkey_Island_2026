@@ -60,8 +60,8 @@ local Guard = require(ServerScriptService.Combat.Guard)
 local Hitbox = require(ServerScriptService.Combat.Hitbox)
 local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
-local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
-local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
+local MonkeyAnimator = require(ServerScriptService.Combat.Monkeys.MonkeyAnimator)
+local MonkeyModels = require(ServerScriptService.Combat.Monkeys.MonkeyModels)
 
 -- Materiales de terreno donde pueden aparecer (selva, no playa, roca ni agua).
 local SPAWN_MATERIALS: { [Enum.Material]: boolean } = {

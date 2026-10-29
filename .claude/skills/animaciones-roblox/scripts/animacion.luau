@@ -129,7 +129,7 @@ end
 -- Mono o jefe de MonkeyModels a escala 1 (como se anima, ver docs/ANIMACIONES.md). Solo en el place
 -- de la Isla con Rojo conectado. options.scale = true usa la escala real de la especie o del jefe.
 function Anim.monkeyRig(speciesOrBoss: string, options: { scale: boolean? }?): Model
-	local MonkeyModels = Anim.freshRequire("ServerScriptService.Server.Monkeys.MonkeyModels")
+	local MonkeyModels = Anim.freshRequire("ServerScriptService.Combat.Monkeys.MonkeyModels")
 	local Monkeys = Anim.freshRequire("ReplicatedStorage.Shared.Data.Monkeys")
 	local Bosses = Anim.freshRequire("ReplicatedStorage.Shared.Data.Bosses")
 	local species, bossId = speciesOrBoss, nil

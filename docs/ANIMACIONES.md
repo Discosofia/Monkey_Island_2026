@@ -1,6 +1,6 @@
 # Animaciones de los monos
 
-Los monos y los jefes son un rig articulado con **Motor6D** (`src/island/server/Monkeys/MonkeyModels.luau`). Las animaciones se crean en Studio con el **Animation Editor** y el servidor las reproduce (`Monkeys/MonkeyAnimator.luau`). Las que aún no existen simplemente no se reproducen: el juego funciona igual sin ellas.
+Los monos y los jefes son un rig articulado con **Motor6D** (`src/combat/Monkeys/MonkeyModels.luau`). Las animaciones se crean en Studio con el **Animation Editor** y el servidor las reproduce (`Monkeys/MonkeyAnimator.luau`). Las que aún no existen simplemente no se reproducen: el juego funciona igual sin ellas.
 
 ## Piezas del rig
 
@@ -34,7 +34,7 @@ Todos los modelos tienen las mismas piezas animables, así que una animación si
 2. Copia **solo la línea de código** de abajo (sin las marcas ```` ``` ````), pégala en la **barra de comandos** (Vista → Barra de comandos) y pulsa Ejecutar:
 
 ```
-local Monkeys = require(game.ReplicatedStorage.Shared.Data.Monkeys); local MonkeyModels = require(game.ServerScriptService.Server.Monkeys.MonkeyModels); local especie = "AulladorRojo"; local look = table.clone(Monkeys[especie]); look.scale = 1; local cam = workspace.CurrentCamera.CFrame; local rig = MonkeyModels.build(especie, look, cam.Position + cam.LookVector * 15 - Vector3.new(0, 2, 0)); rig.Name = "RigMono"; rig.PrimaryPart.Anchored = true; rig.Parent = workspace; game.Selection:Set({ rig })
+local Monkeys = require(game.ReplicatedStorage.Shared.Data.Monkeys); local MonkeyModels = require(game.ServerScriptService.Combat.Monkeys.MonkeyModels); local especie = "AulladorRojo"; local look = table.clone(Monkeys[especie]); look.scale = 1; local cam = workspace.CurrentCamera.CFrame; local rig = MonkeyModels.build(especie, look, cam.Position + cam.LookVector * 15 - Vector3.new(0, 2, 0)); rig.Name = "RigMono"; rig.PrimaryPart.Anchored = true; rig.Parent = workspace; game.Selection:Set({ rig })
 ```
 
 Aparece `RigMono` delante de la cámara, ya seleccionado y a **escala 1** (anima siempre con esta escala). Para animar sobre otro modelo, cambia el nombre de la especie al principio de la línea (p. ej. `"MonoArdilla"`, `"Gorila"` o `"Gibon"`). Conviene revisar cada animación nueva en un mono a cuatro patas, en un simio y en el gibón. Si no lo ves, búscalo en el Explorador y pulsa **F**; si no está, mira los errores en la ventana **Salida**.

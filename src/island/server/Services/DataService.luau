@@ -18,7 +18,7 @@ local Analytics = require(ServerScriptService.ServerShared.Analytics)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Leaderboards = require(ServerScriptService.ServerShared.Leaderboards)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
-local BossService = require(script.Parent.BossService)
+local BossService = require(ServerScriptService.Combat.Services.BossService)
 local MatchService = require(script.Parent.MatchService)
 local MonkeyService = require(script.Parent.MonkeyService)
 

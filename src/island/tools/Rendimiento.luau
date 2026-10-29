@@ -518,11 +518,11 @@ local function main(copia: Instance): string
 
 	-- ---------------------------------- 7. Monos y jefes ----------------------------------
 	seccion("## 7. Monos y jefes", S.monos, function()
-		local servidor = ServerScriptService:FindFirstChild("Server")
+		local servidor = ServerScriptService:FindFirstChild("Combat")
 		local carpeta = servidor and servidor:FindFirstChild("Monkeys")
 		local modulo = carpeta and carpeta:FindFirstChild("MonkeyModels")
 		if not (modulo and modulo:IsA("ModuleScript")) then
-			linea("MonkeyModels no está en este place (ServerScriptService.Server.Monkeys): solo se mide en la Isla.")
+			linea("MonkeyModels no está en este place (ServerScriptService.Combat.Monkeys).")
 			return
 		end
 		local MonkeyModels = require(modulo) :: any

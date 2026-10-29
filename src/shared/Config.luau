@@ -85,6 +85,13 @@ local Config = {
 		HealthBase = 1,
 		HealthPerExtraPlayer = 0.75,
 		MaxHealthMultiplier = 16,
+		-- Fuera de la Isla (el administrador lo invoca en el Lobby, Dunas o el Laboratorio) no hay botín ni
+		-- baliza: cada jugador que le hizo daño recibe esto una sola vez por jefe. Solo Ámbar (que compra
+		-- mejoras de poder, nunca se vende) y XP de pase; nada de Robux. Medido el 29-10-2026: 50 Ámbar es el
+		-- 12,5 % del tope diario de Dunas (igual que AmberPerBoss) y 50 XP el 4,2 % de DailyMatchXpCap (cuenta
+		-- contra ese tope). Solo un administrador lo invoca; si el evento se abre al público, hace falta un
+		-- tope diario.
+		OutsideReward = { Amber = 50, PassXp = 50 },
 	},
 
 	Basecamp = {

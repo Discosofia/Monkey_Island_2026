@@ -630,7 +630,7 @@ Decisiones del 28-10-2026:
 | **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | 1887267 | ✅ Probado en Studio (sin probar: VERIFICACION §49) |
 | **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | 72203eb | ✅ Probado en Studio (sin probar: VERIFICACION §50) |
 | **A3** | Gigante en los 4 places, con vida según jugadores activos | 457e24a | ✅ Probado en Studio con 1 jugador (sin probar: VERIFICACION §51) |
-| **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| — | ⏳ |
+| **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| — | ✅ Probado en Studio (sin probar: VERIFICACION §52) |
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | — | ⏳ |
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | — | ⏳ |
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | — | ⏳ |
@@ -677,6 +677,17 @@ Decisiones del 28-10-2026:
 - **Antes de escribir código:** pide al agente `search` el mapa de las dependencias de `BossService` con servicios de la Isla (biomas, guaridas, `BasecampService`, `MonkeyAnimator`, `Beacon`, telemetría, `MatchStats`, botín) y de `ACTIONS.Boss` en `AdminEventsService`.
 - **Objetivo:** ver la tanda A4 del plan, más lo que anotó el usuario: poder elegir qué jefe invocar. Premio fuera de la Isla (Ámbar y XP del pase) medido con `Economia` y guardado en `Config`; zona segura del Lobby suspendida durante el combate.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A4, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A4.»
+
+**Handoff de L1 (29-10-2026)**
+- **Estado:** A4 cerrada en Studio, con el commit y la subida pendientes de «aprobado». Siguiente número libre de VERIFICACION: §53.
+- **Antes de escribir código:** pide al agente `search` el mapa de `FirstPersonController` (406–481), la dispersión y el bloom, la ayuda de puntería, las trazadoras y las poses del Laboratorio. Comprueba las líneas: este handoff se escribe sin haber leído el código.
+- **Objetivo:** ver la tanda L1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección L1):
+  1. **Mira precisa:** revisar la dispersión y su crecimiento al disparar seguido (bloom), la ayuda de puntería (estrecha, como pide la memoria) y el retroceso. El primer tiro va exacto al centro, y la dispersión solo aparece con ráfagas o al moverse. Se mide con `Equilibrio`. Mira dinámica que se abre y se cierra, y marca de impacto.
+  2. **Balas visibles:** trazadoras más gruesas y brillantes, fogonazo en la boca del arma e impacto en la superficie, para el que dispara y para el rival.
+  3. **Poses al apuntar y disparar:** `AnimationTrack` nuevas (skill `animaciones-roblox`). Las publica el usuario.
+- **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` y `rojo build` de los 4 places. En Play con `probador-studio`: el primer tiro sale al centro, las trazadoras y el fogonazo se ven. Lo que necesite 2 jugadores o el juego publicado va a VERIFICACION §53.
+- **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de L1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo L1.»
 
 ---
 

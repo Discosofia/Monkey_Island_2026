@@ -20,7 +20,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
-local BossService = require(script.Parent.BossService)
+local BossService = require(ServerScriptService.Combat.Services.BossService)
 local DayNightService = require(script.Parent.DayNightService)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 

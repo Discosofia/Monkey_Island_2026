@@ -67,7 +67,7 @@ local Remotes = {
 	-- minutos, minutos de retraso, "Server" | "All") o lo para ("Stop", id). Ver ServerShared/LiveEventsServer.
 	AdminLiveEvent = remoteEvent("AdminLiveEvent"),
 	-- Cliente -> servidor: un administrador hace algo en las partidas de la Isla (Data/IslandActions,
-	-- "Server" | "All").
+	-- "Server" | "All"; para "Boss", un tercer argumento opcional: el id del jefe de Data/Bosses).
 	AdminIslandAction = remoteEvent("AdminIslandAction"),
 	-- Cliente -> servidor: un administrador modera a un jugador (acción, UserId, detalles). Ver
 	-- ServerShared/Moderation: "Mute" (minutos), "Unmute", "Kick" (motivo), "Ban" (horas, motivo),

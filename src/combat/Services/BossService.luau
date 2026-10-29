@@ -17,10 +17,27 @@
 --   - Fase 12: la rotación se repite (días 10, 12…) y en cada vuelta los jefes ya derrotados salen
 --     más fuertes (Config.Match.BossRoundHealth y BossRoundDamage, "strength"); uno que aún no han
 --     derrotado vuelve con su fuerza normal. Una pieza de baliza que ya se tiene no se vuelve a anunciar.
+--   - Fase 18, A4: el jefe vale en los 4 places (Lobby, Isla, Dunas y Laboratorio). Es código del combate
+--     compartido; lo que solo existe en la Isla (el botín, la baliza, las estadísticas de partida, la
+--     telemetría, las antorchas, los refuerzos que invoca, la guarida y su salida por días) lo enchufa
+--     IslandBossHooks con BossService.setHooks (valores neutros por defecto en los demás places).
+--   - Invocarlo: el administrador, con el botón "👑 Jefe" de su panel (AdminNet "IslandAction", acción
+--     "Boss"; lo oye este servicio en los 4 places). Es un interruptor: si hay jefe lo quita; si no, lo saca
+--     junto al personaje del administrador, y el jefe es el que elija en el panel (mensaje "boss") o uno al
+--     azar de Config.Match.BossRotation. En un servidor sin el administrador, la Isla lo saca en su guarida
+--     y los demás places no lo sacan. Se rechaza si hay un gigante del administrador (GiantAdminService).
+--   - Fuera de la Isla no hay botín ni baliza: cada jugador que le hizo daño (vivo o no) recibe una sola vez
+--     Config.Bosses.OutsideReward (Ámbar y XP de pase).
+--   - Zona segura: en el Lobby no hay zona segura en CombatRules (isSafe es "never") ni ForceField en el
+--     punto de aparición (Duration = 0), así que la plaza del Lobby no protege mientras haya jefe. En Dunas
+--     y el Laboratorio el jefe es neutral contra los equipos: sus golpes entran por CombatService.damagePlayer
+--     (sin canHitPlayer) y el que cae lo hace por el knockOut del place; los jugadores de cualquier equipo le
+--     pegan porque es un modelo con la etiqueta de enemigo, no un jugador.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
@@ -31,18 +48,10 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
-local MatchState = require(ReplicatedStorage.Shared.MatchState)
-local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
-local BasecampService = require(script.Parent.BasecampService)
-local CombatService = require(ServerScriptService.Combat.Services.CombatService)
-local DayNightService = require(script.Parent.DayNightService)
-local InventoryService = require(script.Parent.InventoryService)
-local MonkeyService = require(script.Parent.MonkeyService)
-local TelemetryService = require(script.Parent.TelemetryService)
-local TorchService = require(script.Parent.TorchService)
+local CombatService = require(script.Parent.CombatService)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 local EnemyAttack = require(ServerScriptService.Combat.EnemyAttack)
 local Guard = require(ServerScriptService.Combat.Guard)
@@ -50,6 +59,10 @@ local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
+local Admin = require(ServerScriptService.ServerShared.Admin)
+local AdminNet = require(ServerScriptService.ServerShared.AdminNet)
+local Retention = require(ServerScriptService.ServerShared.Retention)
+local SeasonPass = require(ServerScriptService.ServerShared.SeasonPass)
 
 local TICK_SECONDS = 0.2
 -- Segundos que sigue "peleando" (y suena su tema) después de perder a su objetivo o del último golpe.
@@ -64,6 +77,36 @@ local BIOME_NAMES: { [string]: string } = {
 	Montanas = later("las montañas"),
 	Cuevas = later("las cuevas"),
 	Volcan = later("el volcán"),
+}
+
+-- Cómo se llama cada place en el aviso del administrador (Admin.place()).
+local PLACE_NAMES: { [string]: string } = {
+	Lobby = later("el Lobby"),
+	Island = later("la Isla"),
+	Dunas = later("Dunas"),
+	Laboratorio = later("el Laboratorio"),
+}
+
+-- Lo que depende del place y enchufa su servicio (la Isla: IslandBossHooks). Los valores por defecto son los
+-- de un place sin Isla: nada de botín, baliza, telemetría ni refuerzos.
+export type Hooks = {
+	-- true en la Isla: botín de objetos, pieza de la baliza y AmberPerBoss (que da MatchService al acabar la
+	-- partida). Fuera, los que le hacen daño reciben Config.Bosses.OutsideReward.
+	isIsland: boolean,
+	-- Un motivo para no sacar al jefe ahora (la partida acabó), o nil.
+	blocked: () -> string?,
+	-- Dónde duerme su jefe cuando no hay administrador cerca, o nil: sin sitio, no sale.
+	lairPosition: (definition: Bosses.Boss) -> Vector3?,
+	-- Entrega su botín especial a un jugador.
+	collect: (player: Player, itemId: string, amount: number) -> (),
+	-- Apunta la derrota para la telemetría (una vez por jefe).
+	telemetry: (player: Player, bossId: string, seconds: number, fighters: number) -> (),
+	-- Suma el jefe a las estadísticas de partida del jugador.
+	matchStat: (player: Player) -> (),
+	-- Apaga la antorcha de un jugador unos segundos; true si la tenía encendida.
+	douse: (player: Player, seconds: number) -> boolean,
+	-- Invoca una tropa de refuerzo ("summon"); devuelve cuántos monos salieron.
+	spawnAmbush: (species: string, position: Vector3, count: number, target: Player) -> number,
 }
 
 type ActiveBoss = {
@@ -97,6 +140,31 @@ local SPECIAL_ANIMATIONS: { [string]: MonkeyAnimator.Action } = {
 }
 
 local BossService = {}
+
+local hooks: Hooks = {
+	isIsland = false,
+	blocked = function()
+		return nil
+	end,
+	lairPosition = function()
+		return nil
+	end,
+	collect = function() end,
+	telemetry = function() end,
+	matchStat = function() end,
+	douse = function()
+		return false
+	end,
+	spawnAmbush = function()
+		return 0
+	end,
+}
+
+function BossService.setHooks(overrides: { [string]: any })
+	for key, value in overrides do
+		(hooks :: any)[key] = value
+	end
+end
 
 local current: ActiveBoss? = nil
 local rng = Random.new()
@@ -169,21 +237,35 @@ local function publish()
 	ReplicatedStorage:SetAttribute("BossFighting", os.clock() < boss.fightingUntil)
 end
 
-local function lairPosition(definition: Bosses.Boss): Vector3
-	local marker = Workspace:FindFirstChild(`Guarida_{definition.biome}`, true)
-	if marker and marker:IsA("BasePart") then
-		return marker.Position
-	end
-	-- Mapa sin guaridas (pruebas): lejos del Basecamp.
-	local angle = rng:NextNumber(0, 2 * math.pi)
-	return BasecampService.getCenter() + Vector3.new(math.cos(angle), 0, math.sin(angle)) * 300
+-- Dónde duerme su jefe: lo dice el place (la Isla: la guarida de su bioma).
+local function lairPosition(definition: Bosses.Boss): Vector3?
+	return hooks.lairPosition(definition)
 end
 
+-- El suelo bajo "position". En la Isla es el terreno (rayo desde arriba, solo contra Terrain); en los demás
+-- places (plaza y arenas con suelo de piezas) es la primera pieza sólida bajo ella sin contar personajes ni
+-- enemigos; y si no hay nada, la propia posición.
 local function groundBelow(position: Vector3): Vector3
 	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { Workspace.Terrain }
-	local result = Workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -300, 0), params)
+	if hooks.isIsland then
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { Workspace.Terrain }
+		local result = Workspace:Raycast(position + Vector3.new(0, 80, 0), Vector3.new(0, -300, 0), params)
+		return if result then result.Position else position
+	end
+	local ignore: { Instance } = {}
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(ignore, player.Character)
+		end
+	end
+	for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
+		table.insert(ignore, enemy)
+	end
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	params.RespectCanCollide = true
+	local result = Workspace:Raycast(position + Vector3.new(0, 4, 0), Vector3.new(0, -300, 0), params)
 	return if result then result.Position else position
 end
 
@@ -200,28 +282,55 @@ local function despawnCurrent(reason: string?, args: { [string]: any }?)
 	publish()
 end
 
+-- Premio de un jefe fuera de la Isla (sin botín ni baliza): Ámbar y XP de pase, una sola vez por jefe y por
+-- jugador que le hizo daño (boss.contributors), esté vivo o no.
+local function rewardOutside(boss: ActiveBoss)
+	local reward = Config.Bosses.OutsideReward
+	for player in boss.contributors do
+		if player.Parent then
+			task.spawn(function()
+				local lines = Retention.grant(player, { amber = reward.Amber }, true, "Boss")
+				local gain = SeasonPass.addXp(player, "Match", reward.PassXp)
+				if gain and gain.xp > 0 then
+					table.insert(lines, { later("⭐ +{xp} XP de pase"), { xp = gain.xp } })
+				end
+				Remotes.Notify:FireClient(
+					player,
+					"🏆 Premio por derribar a {boss}: {lines}",
+					{ boss = { boss.definition.name }, lines = { list = lines, sep = " · " } }
+				)
+			end)
+		end
+	end
+end
+
 local function onBossDied(boss: ActiveBoss)
 	if current ~= boss then
 		return
 	end
 	current = nil
-	local newPiece = not Beacon.has(boss.id)
-	Beacon.add(boss.id)
+	local island = hooks.isIsland
+	local newPiece = island and not Beacon.has(boss.id)
+	if island then
+		Beacon.add(boss.id)
+	end
 	local item = Items[boss.definition.lootItemId]
 	local reported = false
 	for player in boss.contributors do
 		if player.Parent and not reported then
 			reported = true
-			TelemetryService.bossDefeated(player, boss.id, os.clock() - (boss.firstHitAt or os.clock()), boss.fighters)
+			hooks.telemetry(player, boss.id, os.clock() - (boss.firstHitAt or os.clock()), boss.fighters)
 		end
 		if player.Parent then
-			InventoryService.collect(player, boss.definition.lootItemId, Config.Bosses.LootPerPlayer)
-			MatchStats.add(player, MatchStats.BOSSES)
-			Remotes.Notify:FireClient(
-				player,
-				"🏆 Botín del jefe: {icon} {name} ×{n}",
-				{ icon = item.icon, name = { item.name }, n = Config.Bosses.LootPerPlayer }
-			)
+			if island then
+				hooks.collect(player, boss.definition.lootItemId, Config.Bosses.LootPerPlayer)
+				hooks.matchStat(player)
+				Remotes.Notify:FireClient(
+					player,
+					"🏆 Botín del jefe: {icon} {name} ×{n}",
+					{ icon = item.icon, name = { item.name }, n = Config.Bosses.LootPerPlayer }
+				)
+			end
 			for _, listener in defeatListeners do
 				task.spawn(listener, player, boss.id)
 			end
@@ -235,6 +344,9 @@ local function onBossDied(boss: ActiveBoss)
 		)
 	else
 		announce("🏆 ¡{boss} ha caído!", { boss = bossName })
+	end
+	if not island then
+		rewardOutside(boss)
 	end
 	MonkeyAnimator.die(boss.model)
 	Poof.vanish(boss.model)
@@ -292,11 +404,18 @@ local function rescaleHealth(boss: ActiveBoss)
 	end
 end
 
--- true si hay un jefe despierto en la isla.
--- Quita al jefe vivo sin aviso (el administrador lo desactiva desde el tablero).
-function BossService.despawn()
-	despawnCurrent(nil)
+-- Quita al jefe vivo, con un aviso a todos si se da "reason" (plantilla y argumentos); sin él, sin aviso (el
+-- administrador lo desactiva desde el tablero).
+function BossService.despawn(reason: string?, args: { [string]: any }?)
+	despawnCurrent(reason, args)
 end
+
+-- Datos del jefe vivo (nil si no hay), para el aviso de quien lo retira.
+function BossService.currentDefinition(): Bosses.Boss?
+	return if current then current.definition else nil
+end
+
+-- true si hay un jefe despierto en este place.
 
 function BossService.isAlive(): boolean
 	return current ~= nil
@@ -316,14 +435,17 @@ end
 -- "position": dónde sale (el administrador); sin ella, en su guarida.
 function BossService.spawn(bossId: string, round: number?, position: Vector3?)
 	local definition = Bosses[bossId]
-	local species = Monkeys[definition.baseSpecies]
+	local species = if definition then Monkeys[definition.baseSpecies] else nil
 	if not (definition and species) then
 		warn(`[BossService] Jefe desconocido: {bossId}`)
 		return
 	end
-	despawnCurrent(nil)
-
 	local lair = position or lairPosition(definition)
+	if not lair then
+		warn(`[BossService] {bossId}: este place no tiene guarida; hace falta una posición`)
+		return
+	end
+	despawnCurrent(nil)
 	local look = table.clone(species)
 	look.name = definition.name
 	look.scale = definition.scale
@@ -461,7 +583,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 		summon = function(boss, special, target)
 			bubble(boss, later("¡A MÍ, TROPA!"))
 			local offset = Vector3.new(rng:NextNumber(-12, 12), 0, rng:NextNumber(-12, 12))
-			MonkeyService.spawnAmbush(
+			hooks.spawnAmbush(
 				special.species or "AulladorRojo",
 				boss.root.Position + offset,
 				special.count or 3,
@@ -582,7 +704,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 			})
 			for _, player in playersAround(boss.root.Position, 45) do
 				-- La antorcha de la mano izquierda se apaga un rato (TorchService).
-				if TorchService.douse(player, Config.Monkeys.TorchRoarOutSeconds) then
+				if hooks.douse(player, Config.Monkeys.TorchRoarOutSeconds) then
 					Remotes.Notify:FireClient(player, "🌑 ¡El rugido ha apagado tu antorcha!")
 				end
 				Status.stunPlayer(player, 1, `Jefe {boss.id}`)
@@ -721,34 +843,7 @@ local function tick(now: number)
 	end
 end
 
-local function onPhaseStarted(day: number, phase: MatchState.Phase)
-	local interval = Config.Match.BossIntervalDays
-	if phase ~= "Day" or day % interval ~= 0 then
-		return
-	end
-	local rotation = Config.Match.BossRotation
-	local index = (day // interval) - 1
-	local bossId = rotation[index % #rotation + 1]
-	if current then
-		despawnCurrent(
-			Strings.later("🌫️ {boss} se retira a su guarida…"),
-			{ boss = { current.definition.name } }
-		)
-	end
-	-- Solo vuelve más fuerte si ya lo derrotaron (su pieza está en la baliza): uno que se les resistió
-	-- vuelve igual, para que el grupo atascado pueda conseguir su pieza.
-	local round = if Beacon.has(bossId) then index // #rotation else 0
-	BossService.spawn(bossId, round)
-	if round > 0 then
-		announce(
-			"👑 {boss} vuelve más fuerte (vuelta {round})",
-			{ boss = { Bosses[bossId].name }, round = round + 1 }
-		)
-	end
-end
-
 function BossService:Init()
-	DayNightService.onPhaseStarted(onPhaseStarted)
 	CombatService.onEnemyDamaged(function(model, attacker)
 		local boss = current
 		if boss and attacker and model == boss.model then
@@ -759,7 +854,77 @@ function BossService:Init()
 	end)
 end
 
+-- true si un administrador es ahora el gigante (atributo "AdminBoss", GiantAdminService): no puede haber los dos.
+local function giantActive(): boolean
+	for _, player in Players:GetPlayers() do
+		if player:GetAttribute("AdminBoss") == true then
+			return true
+		end
+	end
+	return false
+end
+
+local function serverName(): string
+	return if RunService:IsStudio() then "Studio" else string.sub(game.JobId, 1, 8)
+end
+
+-- El botón "👑 Jefe" del panel de administradores, en los 4 places (AdminNet "IslandAction"). Interruptor: con
+-- jefe vivo lo quita; si no, lo saca junto al administrador (en su guarida si no está en este servidor y esto es
+-- la Isla) y avisa a todos desde el servidor del administrador. "data.boss": el jefe elegido en el panel (id de
+-- Data/Bosses) o nil para uno al azar de la rotación.
+local function onAdminBoss(data: any)
+	local admin = Players:GetPlayerByUserId(data.admin)
+	local function tell(text: string)
+		if admin then
+			Remotes.Notify:FireClient(admin, text)
+		end
+	end
+	if current then
+		BossService.despawn()
+		tell("👑 Jefe: hecho")
+		return
+	end
+	local reason = hooks.blocked()
+	if reason then
+		tell(reason)
+		return
+	end
+	if giantActive() then
+		tell("👑 Hay un gigante: espera a que caiga")
+		return
+	end
+	local rotation = Config.Match.BossRotation
+	local bossId = if typeof(data.boss) == "string" and Bosses[data.boss]
+		then data.boss
+		else rotation[rng:NextInteger(1, #rotation)]
+	local character = if admin then admin.Character else nil
+	local position = if character then character:GetPivot().Position else nil
+	-- Sin el administrador aquí solo la Isla lo saca (en su guarida); los demás places no tienen guarida.
+	if not position and not hooks.isIsland then
+		return
+	end
+	BossService.spawn(bossId, nil, position)
+	if not current then
+		tell("👑 Jefe: no hay sitio ahora")
+		return
+	end
+	if admin then
+		local place = PLACE_NAMES[Admin.place()] or later("el Lobby")
+		AdminNet.send("Announce", {
+			text = later("👑 ¡{boss} ha aparecido en {place}, servidor {server}!"),
+			args = { boss = { Bosses[bossId].name }, place = { place }, server = serverName() },
+			from = later("Evento"),
+		}, if data.scope == "All" then "All" else "Server")
+	end
+	tell("👑 Jefe: hecho")
+end
+
 function BossService:Start()
+	AdminNet.on("IslandAction", function(data: any)
+		if typeof(data) == "table" and data.action == "Boss" then
+			onAdminBoss(data)
+		end
+	end)
 	local elapsed = 0
 	while true do
 		task.wait(TICK_SECONDS)

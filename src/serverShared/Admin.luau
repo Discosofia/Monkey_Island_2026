@@ -19,6 +19,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local IslandActions = require(ReplicatedStorage.Shared.Data.IslandActions)
@@ -282,23 +283,31 @@ local function onLiveEvent(admin: Player, op: any, a: any, b: any, c: any, d: an
 	end
 end
 
+-- Place de este servidor ("Lobby", "Island", "Dunas" o "Laboratorio"; "?" hasta que arranca Admin.start).
+function Admin.place(): string
+	return place
+end
+
 -- Acciones al momento en la Isla (Data/IslandActions). Las hace el AdminEventsService de la Isla al
--- recibir "IslandAction"; en el Lobby y en Dunas solo tiene sentido para todos los servidores.
-local function onIslandAction(admin: Player, action: any, scope: any)
+-- recibir "IslandAction"; en los demás places solo tienen sentido para todos los servidores, salvo "Giant" y
+-- "Boss", que valen en los 4 (A3 y A4 de la Fase 18). "bossId": el jefe elegido para "Boss" (opcional).
+local function onIslandAction(admin: Player, action: any, scope: any, bossId: any)
 	if typeof(action) ~= "string" or not IslandActions[action] or not AdminNet.isScope(scope) then
 		return
 	end
 	if not Admin.isAdmin(admin) or not canRequest(admin) then
 		return
 	end
-	-- "Ser gigante" vale en los 4 places: lo hace quien lo pide, en el servidor donde está.
-	if scope == "Server" and place ~= "Island" and action ~= "Giant" then
+	-- "Ser gigante" y "Jefe" valen en los 4 places: en el servidor donde está quien lo pide.
+	if scope == "Server" and place ~= "Island" and action ~= "Giant" and action ~= "Boss" then
 		Remotes.Notify:FireClient(admin, "🏝️ Aquí no hay partida de la Isla: elige «Todos los servidores»")
 		return
 	end
 	local info = IslandActions[action]
 	AdminLog.add(admin, "Isla", `{info.icon} {info.name} · {SCOPE_TEXT[scope]}`)
-	if not AdminNet.send("IslandAction", { action = action, admin = admin.UserId }, scope) then
+	-- Un jefe que no existe se ignora: sale uno al azar de la rotación.
+	local boss = if action == "Boss" and typeof(bossId) == "string" and Bosses[bossId] then bossId else nil
+	if not AdminNet.send("IslandAction", { action = action, admin = admin.UserId, boss = boss }, scope) then
 		Remotes.Notify:FireClient(admin, "⚠️ No se pudo llegar a los demás servidores: solo en este")
 	end
 end

@@ -25,8 +25,8 @@ tipo que ya existe va en su módulo, con un constructor más y su entrada en los
 | Armaduras puestas y trajes (cosméticos) | `src/shared/ArmorModels.luau` | `ArmorModels.wear(character, armorId, rol, outfitId?, grado?)` | `src/shared/Data/Armor.luau`, `Data/Cosmetics.luau` |
 | Mascotas | `src/shared/PetModels.luau` | `PetModels.build(petId, skinId?)` | `src/shared/Data/Pets.luau` |
 | Monturas (voxel, celdas de 0,2 studs, atributo `Bone` por pieza, attachment `Seat`) | `src/shared/MountModels.luau` | `MountModels.build(mountId)` | `src/shared/Data/Mounts.luau` |
-| Monos y jefes (articulados) | `src/island/server/Monkeys/MonkeyModels.luau` | `MonkeyModels.build(...)` | `src/shared/Data/Monkeys.luau`, `Bosses.luau` |
-| Monos en estilo voxel | `src/island/server/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
+| Monos y jefes (articulados) | `src/combat/Monkeys/MonkeyModels.luau` | `MonkeyModels.build(...)` | `src/shared/Data/Monkeys.luau`, `Bosses.luau` |
+| Monos en estilo voxel | `src/combat/Monkeys/VoxelSpecs/<Especie>.luau` (datos) | `voxelMonkey` en MonkeyModels (§8) | `VOXEL_SPECS` en MonkeyModels |
 | Árboles, palmeras, rocas, matas | `src/serverShared/NodeModels.luau` | `NodeModels.build(nodeType, ground, rng)` | `src/shared/Data/ResourceNodes.luau` |
 | Piezas construibles | `src/shared/BuildModels.luau` | `BuildModels.build(buildableId)` | `src/shared/Data/Buildables.luau` |
 | Estructuras de la parcela permanente (voxel, un modelo por nivel I/II/III: zócalo de piedra y banderín de bronce en el II; basalto con oro y gema de ámbar en el III, que se ven también por detrás) | `src/shared/PlotModels.luau` | `PlotModels.build(structureId, level)` | `src/shared/Data/PlotStructures.luau` |
@@ -160,7 +160,7 @@ el modelo depende de ellas (las animaciones, el agarre, la colocación en el sue
   Para verlo en la vista previa, construye el jefe como lo hace `BossService`:
 
   ```lua
-  local MM = Preview.freshRequire("ServerScriptService.Server.Monkeys.MonkeyModels")
+  local MM = Preview.freshRequire("ServerScriptService.Combat.Monkeys.MonkeyModels")
   local Monkeys = Preview.freshRequire("ReplicatedStorage.Shared.Data.Monkeys")
   local Bosses = Preview.freshRequire("ReplicatedStorage.Shared.Data.Bosses")
   local boss = Bosses.ChimpanceCaudillo
