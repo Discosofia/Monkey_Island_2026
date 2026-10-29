@@ -282,39 +282,80 @@ local function buildBananaRifle(tool: Tool, faction: Faction): BasePart
 	return handle
 end
 
--- Lanzarredes: boca ancha y cuadrada con la red plegada y la punta del arpón asomando; un peso en cada
--- esquina.
+-- Lanzarredes: escopeta corta y gorda. Cañón cuadrado y ancho con la boca enmarcada, un peso en cada
+-- esquina, la red plegada y la punta del arpón asomando; corredera de bombeo debajo y un fardo de red atado
+-- encima del cajón (se ve desde la primera persona).
 local function buildNetHarpoon(tool: Tool, faction: Faction): BasePart
 	local palette = PALETTES[faction]
 	local handle = frame(tool, palette, faction, 1.0, 0.6)
-	cube(handle, "Launcher", at(0, 1.0, 0.1), Vector3.new(0.8, 1.0, 0.8), palette.body, palette.bodyMaterial)
-	cube(handle, "Mouth", at(0, 1.48, 0.1), Vector3.new(0.6, 0.05, 0.6), IRON, SMOOTH)
-	cube(handle, "Net", at(0, 1.45, 0.1), Vector3.new(0.5, 0.1, 0.5), NET, FABRIC)
-	cube(handle, "Shaft", at(0, 1.7, 0.1), Vector3.new(0.1, 0.5, 0.1), palette.barrel, METAL)
-	cube(handle, "Tip", at(0, 2.0, 0.1), Vector3.new(0.25, 0.2, 0.25), palette.trim, METAL)
+	-- Cañón ancho de 0,55 a 1,45 y collar de unión con el cajón.
+	cube(handle, "Launcher", at(0, 1.0, 0.1), Vector3.new(0.75, 0.9, 0.7), palette.body, palette.bodyMaterial)
+	cube(handle, "Collar", at(0, 0.58, 0.1), Vector3.new(0.85, 0.12, 0.8), palette.trim, palette.trimMaterial)
+	-- Boca cuadrada: marco por los cuatro lados, hueco oscuro, red plegada y la punta del arpón.
+	for side = -1, 1, 2 do
+		cube(
+			handle,
+			"MouthFrame",
+			at(side * 0.37, 1.47, 0.1),
+			Vector3.new(0.1, 0.1, 0.8),
+			palette.trim,
+			palette.trimMaterial
+		)
+		cube(
+			handle,
+			"MouthFrame",
+			at(0, 1.47, 0.1 + side * 0.37),
+			Vector3.new(0.65, 0.1, 0.1),
+			palette.trim,
+			palette.trimMaterial
+		)
+	end
+	cube(handle, "Mouth", at(0, 1.46, 0.1), Vector3.new(0.6, 0.05, 0.6), IRON, SMOOTH)
+	cube(handle, "Net", at(0, 1.52, 0.1), Vector3.new(0.5, 0.1, 0.5), NET, FABRIC)
+	cube(handle, "Shaft", at(0, 1.75, 0.1), Vector3.new(0.1, 0.45, 0.1), palette.barrel, METAL)
+	cube(handle, "Tip", at(0, 2.0, 0.1), Vector3.new(0.25, 0.15, 0.25), palette.trim, METAL)
+	cube(handle, "TipPoint", at(0, 2.13, 0.1), Vector3.new(0.1, 0.12, 0.1), palette.trim, METAL)
+	-- Un peso en cada esquina.
 	for x = -1, 1, 2 do
 		for z = -1, 1, 2 do
 			cube(
 				handle,
 				"Weight",
-				at(x * 0.42, 1.45, 0.1 + z * 0.42),
+				at(x * 0.42, 1.55, 0.1 + z * 0.42),
 				Vector3.new(0.2, 0.2, 0.2),
 				palette.barrel,
 				METAL
 			)
 		end
 	end
+	-- Corredera de bombeo bajo el cañón: carril, puño con tres estrías y tope.
+	cube(handle, "PumpRail", at(0, 1.0, -0.33), Vector3.new(0.2, 0.9, 0.1), palette.barrel, METAL)
+	cube(handle, "Pump", at(0, 0.95, -0.55), Vector3.new(0.38, 0.55, 0.3), palette.grip, palette.gripMaterial)
+	for _, along in { 0.8, 0.95, 1.1 } do
+		cube(handle, "PumpRib", at(0, along, -0.72), Vector3.new(0.42, 0.05, 0.1), palette.barrel, METAL)
+	end
+	-- Fardo de red atado sobre el cajón, con dos correas y un nudo.
+	cube(handle, "NetBale", at(0, 0.3, 0.55), Vector3.new(0.55, 0.8, 0.35), NET, FABRIC)
+	for _, along in { 0.05, 0.55 } do
+		cube(handle, "BaleStrap", at(0, along, 0.55), Vector3.new(0.6, 0.08, 0.4), DARK_WOOD, FABRIC)
+	end
+	cube(handle, "BaleKnot", at(0, 0.3, 0.78), Vector3.new(0.2, 0.2, 0.1), ROPE, FABRIC)
+	cube(handle, "Cheek", at(0, -1.45, 0.3), Vector3.new(0.32, 0.5, 0.15), palette.trim, palette.trimMaterial)
 	if faction == "Guardians" then
-		cube(handle, "Rim", at(0, 1.3, 0.1), Vector3.new(0.85, 0.1, 0.85), LAB_BLUE, SMOOTH)
-		local light = cube(handle, "Ready", at(0.43, 0.7, 0.1), Vector3.new(0.05, 0.2, 0.2), LAB_GLOW, NEON)
-		glow(light, LAB_GLOW, 3)
+		cube(handle, "Rim", at(0, 0.75, 0.1), Vector3.new(0.8, 0.1, 0.75), LAB_BLUE, SMOOTH)
+		for side = -1, 1, 2 do
+			local light = cube(handle, "Ready", at(side * 0.39, 1.2, 0.1), Vector3.new(0.05, 0.2, 0.3), LAB_GLOW, NEON)
+			glow(light, LAB_GLOW, 3)
+		end
+		cube(handle, "Sensor", at(0, 1.1, 0.5), Vector3.new(0.2, 0.15, 0.1), LAB_BLUE, SMOOTH)
 	else
-		-- Rollo de cuerda en un lado y aros de oro.
+		-- Rollo de cuerda en un lado, aros de oro y una calavera de hueso en el tope de la corredera.
 		cube(handle, "Coil", at(0.5, 0.9, 0.1), Vector3.new(0.2, 0.5, 0.5), ROPE, FABRIC)
 		cube(handle, "CoilCore", at(0.6, 0.9, 0.1), Vector3.new(0.05, 0.2, 0.2), DARK_WOOD, WOOD)
-		for _, along in { 0.6, 1.3 } do
-			cube(handle, "Hoop", at(0, along, 0.1), Vector3.new(0.85, 0.1, 0.85), GOLD, METAL)
+		for _, along in { 0.8, 1.25 } do
+			cube(handle, "Hoop", at(0, along, 0.1), Vector3.new(0.8, 0.1, 0.75), GOLD, METAL)
 		end
+		cube(handle, "PumpSkull", at(0, 1.3, -0.5), Vector3.new(0.2, 0.2, 0.2), BONE, SMOOTH)
 	end
 	return handle
 end

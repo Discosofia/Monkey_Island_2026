@@ -2477,6 +2477,34 @@ Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos)
 1. [ ] A equipa el Escorpión III y B lo mira de lejos y de cerca.
    ✅ B ve el arma entera con la cola, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
 
+## 47. Lo que queda por probar de W3: Lanzarredes y Kraken (28-10-2026)
+
+#### 47.1 Medir (Studio de la Isla, tras reabrir el place por la caché de `require`)
+
+1. [ ] Ejecuta `Rendimiento` y mira la sección 6, "Armas del Laboratorio" (filtro `"Lab"`).
+   ✅ El Lanzarredes de cada bando tiene 45 piezas o menos, cada skin Kraken 200 o menos y no hay alertas.
+
+#### 47.2 En Play en el Laboratorio (haz copia de tu perfil en `PlayerData_v1_backups` antes)
+
+1. [ ] Elige el Lanzarredes en cada bando y míralo en primera persona, disparando y recargando.
+   ✅ El fardo de red y la boca cuadrada se ven bien, no tapan el punto de mira y no hay piezas sueltas.
+2. [ ] Con el comando de depuración `SkinKills`, equipa el Kraken I, II y III y cambia de uno a otro con el arma en la mano.
+   ✅ Cada grado se distingue del anterior a primera vista, el cambio rehace el arma sin piezas sueltas y la Salida no da errores.
+3. [ ] Con el Kraken III, mueve la cámara y gira alrededor del arma en tercera persona.
+   ✅ Ninguna superficie parpadea y por detrás se ven los ojos grandes, las burbujas y el tentáculo largo.
+4. [ ] En primera persona, con el Kraken III, mira el lado derecho y la parte de arriba del arma.
+   ✅ Se ven los tentáculos con ventosas que brillan, el manto y los ojos. Lo de la espalda no aparece.
+
+#### 47.3 En el Lobby y el Armario
+
+1. [ ] Abre el Armario, la pestaña del Laboratorio, y el selector de arma del Laboratorio.
+   ✅ Las imágenes del Lanzarredes y de las skins Kraken se ven completas, sin cortes ni piezas que falten.
+
+#### 47.4 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio)
+
+1. [ ] A equipa el Kraken III y B lo mira de lejos y de cerca.
+   ✅ B ve el arma entera con los tentáculos de atrás, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

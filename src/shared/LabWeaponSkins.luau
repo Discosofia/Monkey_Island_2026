@@ -416,47 +416,92 @@ local function scorpionClaws(handle: BasePart, faction: string, big: boolean)
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- Kraken (Lanzarredes): lanzador de 0,5 a 1,5; boca en 1,48; punta del arpón hasta 2,1.
+-- Kraken (Lanzarredes): cañón cuadrado de 0,55 a 1,45 (±0,375, alto de -0,25 a 0,45); boca enmarcada en
+-- 1,47 con un peso en cada esquina (1,55); fardo de red encima (de -0,1 a 0,7, hasta 0,73 de alto);
+-- corredera de bombeo debajo (0,67 a 1,23, hasta -0,7); punta del arpón hasta 2,2; culata hasta -1,8.
 -- ---------------------------------------------------------------------------------------------------
 
--- Tentáculo de "count" bloques que parte de "origin" (lado, largo, alto) hacia fuera. "backward": se curva
--- hacia atrás. Las ventosas van del lado de dentro; "glowing": brillan en cian.
-local function tentacle(handle: BasePart, origin: Vector3, count: number, backward: boolean, glowing: boolean)
-	local sideSign = if origin.X >= 0 then 1 else -1
-	local upSign = if origin.Z >= 0.1 then 1 else -1
-	local position = origin
-	local size = 0.22
-	for index = 1, count do
-		local along = if backward then 0.24 - 0.09 * index else 0.2
-		position += V(sideSign * 0.09, along, upSign * (if origin.Z == 0.1 then 0.02 else 0.06))
-		size = math.max(0.08, size - 0.015)
-		cube(
+-- Tentáculo de bloques que se tocan por "path" (lado, largo, alto; el lado se refleja con "mirror"). Cada
+-- 0,2 va un bloque que adelgaza hacia la punta de coral, y cada tercero lleva una ventosa por fuera;
+-- "glowing": ventosas cian que brillan. "back": lo de la espalda (la primera persona lo esconde).
+local function tentacle(
+	handle: BasePart,
+	path: { { number } },
+	mirror: number,
+	thick: number,
+	glowing: boolean,
+	back: boolean
+)
+	local points: { Vector3 } = {}
+	for index = 1, #path - 1 do
+		local from = V(path[index][1], path[index][2], path[index][3])
+		local to = V(path[index + 1][1], path[index + 1][2], path[index + 1][3])
+		local steps = math.ceil((to - from).Magnitude / 0.2)
+		for step = 0, steps - 1 do
+			table.insert(points, from:Lerp(to, step / steps))
+		end
+	end
+	local last = path[#path]
+	table.insert(points, V(last[1], last[2], last[3]))
+	for index, point in points do
+		local size = thick * (1 - 0.4 * (index - 1) / (#points - 1))
+		local piece = cube(
 			handle,
 			"SkinTentacle",
-			at(position.X, position.Y, position.Z),
+			at(mirror * point.X, point.Y, point.Z),
 			V(size, size, size),
-			if index == count then CORAL else ABYSS,
+			if index == #points then CORAL else ABYSS,
 			SMOOTH
 		)
-		if index % 2 == 1 and index < count then
-			cube(
+		local sucker: BasePart? = nil
+		if index % 3 == 0 and index < #points then
+			sucker = cube(
 				handle,
 				"SkinSucker",
-				at(position.X - sideSign * size * 0.55, position.Y, position.Z),
+				at(mirror * (point.X + size * 0.55), point.Y, point.Z),
 				V(0.08, 0.08, 0.08),
 				if glowing then CYAN else SUCKER,
 				if glowing then NEON else SMOOTH
 			)
 		end
+		if back then
+			mark(piece)
+			if sucker then
+				mark(sucker)
+			end
+		end
 	end
 end
 
--- Un ojo en cada lateral del lanzador.
+-- Ojos a los lados del cañón: blanco con pupila negra y el acento del bando encima.
 local function krakenEyes(handle: BasePart, faction: string)
 	for side = -1, 1, 2 do
-		cube(handle, "SkinEye", at(side * 0.5, 1.2, 0.1), V(0.1, 0.3, 0.3), SUCKER, SMOOTH)
-		cube(handle, "SkinPupil", at(side * 0.56, 1.2, 0.1), V(0.05, 0.15, 0.15), CHITIN, SMOOTH)
-		accent(handle, faction, at(side * 0.5, 0.85, 0.35))
+		cube(handle, "SkinEye", at(side * 0.43, 0.85, 0.15), V(0.1, 0.3, 0.3), SUCKER, SMOOTH)
+		cube(handle, "SkinPupil", at(side * 0.49, 0.85, 0.15), V(0.05, 0.15, 0.15), CHITIN, SMOOTH)
+		accent(handle, faction, at(side * 0.43, 0.85, 0.42))
+	end
+end
+
+-- Pico en la boca, alrededor del arpón: dos mandíbulas de quitina y la punta de coral.
+local function krakenBeak(handle: BasePart)
+	for side = -1, 1, 2 do
+		cube(handle, "SkinBeak", at(side * 0.17, 1.62, 0.1), V(0.1, 0.25, 0.3), CHITIN, SMOOTH)
+	end
+	cube(handle, "SkinBeakTip", at(0, 1.6, 0.27), V(0.2, 0.2, 0.1), CORAL, SMOOTH)
+end
+
+-- Manto: casquete azul sobre el fardo de red, con manchas de ventosa.
+local function krakenMantle(handle: BasePart, glowing: boolean)
+	cube(handle, "SkinMantle", at(0, 0.3, 0.88), V(0.5, 0.75, 0.12), ABYSS, SMOOTH)
+	for _, along in { 0.05, 0.3, 0.55 } do
+		cube(
+			handle,
+			"SkinSpot",
+			at(0, along, 0.97),
+			V(0.15, 0.1, 0.06),
+			if glowing then CYAN else SUCKER,
+			if glowing then NEON else SMOOTH
+		)
 	end
 end
 
@@ -469,6 +514,25 @@ local function krakenBigEyes(handle: BasePart)
 		emitter(eye, CYAN, 3, 0.1, 1.5, V(0, 3, 0))
 	end
 end
+
+-- Recorridos de los tentáculos (lado, largo, alto) para el lado derecho; el izquierdo es el reflejo.
+local ARM_LOW =
+	{ { 0.5, 1.55, -0.3 }, { 0.62, 1.2, -0.42 }, { 0.66, 0.8, -0.4 }, { 0.58, 0.45, -0.25 }, { 0.5, 0.2, -0.1 } }
+local ARM_HIGH = { { 0.5, 1.55, 0.5 }, { 0.62, 1.2, 0.6 }, { 0.64, 0.8, 0.62 }, { 0.5, 0.4, 0.55 }, { 0.3, 0.1, 0.5 } }
+local ARM_SIDE =
+	{ { 0.4, 1.5, 0.1 }, { 0.8, 1.45, 0.15 }, { 0.98, 1.1, 0.1 }, { 0.95, 0.7, -0.05 }, { 0.8, 0.4, -0.2 } }
+-- Más largos: el de arriba sube y se enrosca sobre el fardo (se ve desde la primera persona).
+local ARM_HIGH_LONG = {
+	{ 0.5, 1.55, 0.5 },
+	{ 0.65, 1.25, 0.65 },
+	{ 0.7, 0.85, 0.8 },
+	{ 0.55, 0.45, 0.95 },
+	{ 0.3, 0.2, 1.05 },
+	{ 0.1, 0.1, 1.2 },
+}
+-- Por detrás de la culata (lado, largo, alto): suben o cuelgan como una melena.
+local ARM_REAR_HIGH =
+	{ { 0.15, -1.75, 0.2 }, { 0.35, -2.05, 0.5 }, { 0.5, -2.35, 0.9 }, { 0.4, -2.65, 1.3 }, { 0.2, -2.8, 1.5 } }
 
 -- ---------------------------------------------------------------------------------------------------
 -- Dragón (Cañón): tubo de 0,5 a 1,6; campana en 1,7 (1,575 a 1,825); depósito encima.
@@ -616,23 +680,29 @@ local BUILDERS: { [string]: Builder } = {
 	end,
 	LabKraken = function(handle, _faction)
 		for side = -1, 1, 2 do
-			tentacle(handle, V(side * 0.3, 1.5, 0.1), 6, false, false)
+			tentacle(handle, ARM_LOW, side, 0.2, false, false)
 		end
+		krakenBeak(handle)
 	end,
 	LabKrakenII = function(handle, faction)
 		for side = -1, 1, 2 do
-			tentacle(handle, V(side * 0.3, 1.5, 0.35), 6, false, true)
-			tentacle(handle, V(side * 0.3, 1.5, -0.15), 6, false, true)
+			tentacle(handle, ARM_LOW, side, 0.22, true, false)
+			tentacle(handle, ARM_HIGH, side, 0.2, true, false)
 		end
+		krakenBeak(handle)
 		krakenEyes(handle, faction)
+		krakenMantle(handle, false)
 	end,
 	LabKrakenIII = function(handle, faction)
 		for side = -1, 1, 2 do
-			tentacle(handle, V(side * 0.3, 1.5, 0.35), 7, true, true)
-			tentacle(handle, V(side * 0.3, 1.5, -0.15), 7, true, true)
-			tentacle(handle, V(side * 0.4, 1.4, 0.1), 7, true, true)
+			tentacle(handle, ARM_LOW, side, 0.24, true, false)
+			tentacle(handle, ARM_HIGH_LONG, side, 0.22, true, false)
+			tentacle(handle, ARM_SIDE, side, 0.22, true, false)
+			tentacle(handle, ARM_REAR_HIGH, side, 0.24, true, true)
 		end
+		krakenBeak(handle)
 		krakenEyes(handle, faction)
+		krakenMantle(handle, true)
 		krakenBigEyes(handle)
 	end,
 	LabDragon = function(handle, faction)
