@@ -2850,3 +2850,16 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El traje se ve entero, sin piezas del chaleco asomando.
 3. [ ] Prueba con un avatar R6.
    ✅ Las hombreras no flotan ni se hunden.
+
+## 63. Fase 18 R2: armaduras de Hueso rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Fabrica la armadura de hueso con cada rol y mírala desde atrás con la cámara del juego, quieto y corriendo.
+   ✅ La espalda se ve llamativa: cráneo de trofeo sobre costillas, manto de hojas con carcaj, sello de runas y mochila con frascos. Nada flota ni atraviesa el cuerpo al andar, apuntar o golpear.
+2. [ ] Con el guerrero, mira las hombreras de cerca.
+   ✅ Las puntas de pelaje rojo no atraviesan los cráneos.
+3. [ ] Ponte un traje mítico encima de la armadura de hueso (grado 2).
+   ✅ El traje se ve entero, sin piezas de la armadura asomando.
+4. [ ] Prueba con un avatar R6.
+   ✅ Las hombreras no flotan ni se hunden.

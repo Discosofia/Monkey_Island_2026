@@ -21,10 +21,11 @@
 --     collar de colmillos, cinturón de cuerda con zurrón y un plátano de amuleto, faldones de pelaje
 --     en los muslos, brazaletes de pelaje dorado y muñecas vendadas con fibra. Detrás, un panel de
 --     pelaje rojo con la huella de una mano de mono grande en pelaje dorado (en bloques) y flecos.
---   - Armadura de hueso: peto de cuero con costillas en V y esternón de hueso, cráneos de mono de
---     hombreras sobre un mechón de pelaje rojo, brazales de cuero con tablillas de hueso, hebilla
---     de calavera y faldones de cuero y hueso en los muslos. Detrás, columna y costillas con un
---     cráneo de trofeo sobre dos huesos cruzados y borlas de pelaje rojo.
+--   - Armadura de hueso: peto de cuero con cinco pares de costillas en V y esternón de hueso, hombreras
+--     de losa de cuero con un cráneo de mono sobre un mechón de pelaje rojo, brazales de cuero con tres
+--     tablillas de hueso, hebilla de calavera con tachones y faldones de cuero y hueso en los muslos.
+--     Detrás, columna con vértebras y tres pares de costillas grandes, y un cráneo de trofeo sobre
+--     dos huesos cruzados con borlas de pelaje rojo y flecos.
 --   - Armadura de plata (lomo plateado): manto y gorguera de pelaje plateado de gorila, peto de
 --     hueso grueso (pectorales y abdominales) con remaches, medallón de plata con un plátano dorado
 --     que destella, hombreras de láminas de hueso con tres cráneos de mono en abanico, brazales con
@@ -37,11 +38,11 @@
 --     cruzada, brazal en el antebrazo del arco y cinturón de fibra con zurrón y cuchillo. Detrás, un
 --     abanico de hojas de bloque (tres verdes) en semicírculo tras la capucha bajada y el carcaj de
 --     corteza con cuatro flechas de plumas blancas sobre el hombro derecho.
---   - Armadura de cazador: jubón de cuero oscuro con botones de hueso, hombrera de láminas de hueso
---     en el hombro izquierdo y un manojo de hojas en el derecho, correa con colmillos de trofeo,
---     brazal con tablillas de hueso y hojas colgando de los muslos. Detrás, un manto de hojas de tres
---     verdes y el carcaj de cuero con aros de hueso, un colmillo colgando y cinco flechas de plumas
---     rojas y blancas.
+--   - Armadura de cazador: jubón de cuero oscuro con botones de hueso, hombrera de losa de láminas de
+--     hueso con garras en el hombro izquierdo y estrella de hojas en el derecho, correa con colmillos
+--     de trofeo, brazal con tablillas de hueso y hojas colgando de los muslos. Detrás, un manto de hojas
+--     de tres verdes en tres capas y el carcaj de cuero con aros de hueso, un colmillo colgando y cinco
+--     flechas de plumas rojas y blancas.
 --   - Manto de cazador plateado: capa de pelaje plateado con hojas oscuras de camuflaje y flecos,
 --     capucha de pelaje con orejas, broche de plata en forma de hoja, correas cruzadas con remaches,
 --     hombros de pelaje con garras de hueso, brazales con puño de pelaje y faldones plateados. Detrás,
@@ -53,8 +54,9 @@
 --     turquesa, faja con una calabaza y pulseras de cuentas. Detrás, un atrapasueños grande (aro de
 --     diez tramos, red de hilos cruzados) con cuatro plumas y cuentas colgando.
 --   - Túnica de runas: túnica añil con ribetes dorados, una runa que brilla en el pecho, cráneos de
---     mono de ojos brillantes en las hombreras, faja con piedras rúnicas y brazales con runas.
---     Detrás, un círculo de runas de neón con un triángulo dentro y dos talismanes colgando.
+--     mono de ojos brillantes sobre hombreras de disco, faja con piedras rúnicas y brazales con runas.
+--     Detrás, un sello grande de neón (círculo de runas con un triángulo dentro) y dos talismanes
+--     colgando.
 --   - Manto de cristal: túnica añil oscura bajo una capa de pelaje plateado con cuello alto y flecos
 --     de cristal, broche y cadena de plata con cristales, hombros de pelaje con cristales y puños
 --     plateados. Detrás, una corona de cristales que sale de un disco de plata rodeado de runas y
@@ -65,8 +67,9 @@
 --     mortero en la cadera, vendas en los antebrazos y hojas atadas a los brazos. Detrás, un manojo
 --     grande de hierbas en abanico (tres verdes) con una flor roja, atado a la bandolera, y frasquitos.
 --   - Peto de curandero: peto de hueso blanco con una cruz de hojas y una flor en el centro, hombreras
---     de hueso con hojas, cinturón con rollos de venda y bolsas en los muslos. Detrás, una mochila de
---     cuero en un bastidor de madera con frascos de poción encima y a los lados y hierbas asomando.
+--     de disco de hueso con hojas, cinturón con rollos de venda y bolsas en los muslos. Detrás, una
+--     mochila de cuero en un bastidor de madera con frascos de poción encima y a los lados, un rollo
+--     de manta y hierbas asomando.
 --   - Manto de sanador: manto y capa de pelaje plateado, bandolera con frascos que brillan, broche
 --     con una gema verde y hojas en los hombros. Detrás, un tótem sanador pequeño (como el de la
 --     definitiva) con su gema verde brillando por encima de los hombros, entre hojas y frascos.
@@ -582,7 +585,7 @@ local function boneArmor(body: Body)
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
 	local front = -(depth / 2 + 0.1)
 	local back = depth / 2 + 0.1
-	-- Peto de cuero y cuello de pelaje rojo.
+	-- Peto de cuero con las costuras oscuras a los lados; cuello de pelaje rojo con ribete dorado.
 	make.block(
 		Vector3.new(width + 0.1, height * 0.9, depth + 0.16),
 		LEATHER,
@@ -590,10 +593,25 @@ local function boneArmor(body: Body)
 		CFrame.new(0, -height * 0.03, 0)
 	)
 	make.block(Vector3.new(width * 0.75, 0.25, depth + 0.25), FUR, FABRIC, CFrame.new(0, height / 2 - 0.05, 0))
-	-- Costillas en V que bajan desde el esternón, cada vez más cortas, y el esternón atado con fibra.
+	make.block(
+		Vector3.new(width * 0.75 + 0.04, 0.07, depth + 0.29),
+		GOLDEN_FUR,
+		FABRIC,
+		CFrame.new(0, height / 2 - 0.2, 0)
+	)
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.06, height * 0.8, depth + 0.2),
+			LEATHER_DARK,
+			LEATHER_MATERIAL,
+			CFrame.new(side * (width / 2 + 0.06), -height * 0.04, 0)
+		)
+	end
+	-- Cinco pares de costillas en V que bajan desde el esternón, cada vez más cortas, y el esternón
+	-- atado con fibra y rematado en una punta (el apéndice xifoides).
 	local tilt = 0.22
-	for index, ribY in { 0.27, 0.1, -0.07, -0.24 } do
-		local length = width * (0.36 - index * 0.02)
+	for index, ribY in { 0.3, 0.16, 0.02, -0.12, -0.26 } do
+		local length = width * (0.38 - index * 0.025)
 		for side = -1, 1, 2 do
 			make.block(
 				Vector3.new(length, 0.12, 0.1),
@@ -608,40 +626,61 @@ local function boneArmor(body: Body)
 		end
 	end
 	make.block(Vector3.new(0.2, height * 0.74, 0.14), BONE, SMOOTH, CFrame.new(0, -height * 0.02, front - 0.05))
-	for _, tieY in { 0.18, -0.16 } do
+	make.fang(0.3, 0.14, BONE, SMOOTH, CFrame.new(0.07, -height * 0.39, front - 0.05) * CFrame.Angles(0, 0, math.pi))
+	for _, tieY in { 0.2, -0.16 } do
 		make.block(Vector3.new(0.3, 0.1, 0.08), FIBER, FABRIC, CFrame.new(0, height * tieY, front - 0.12))
 	end
-	-- Espalda (lo que el jugador ve siempre): columna sobre tres costillas oscuras y, encima, un
-	-- cráneo de trofeo sobre dos huesos cruzados, con dos borlas de pelaje rojo colgando.
-	for _, ribY in { 0.2, 0, -0.2 } do
-		make.block(Vector3.new(width * 0.78, 0.13, 0.08), BONE_DARK, SMOOTH, CFrame.new(0, height * ribY, back))
+	-- Espalda (lo que el jugador ve siempre): columna con vértebras y tres pares de costillas grandes
+	-- sobre un fondo de cuero oscuro y, arriba, un cráneo de trofeo sobre dos huesos cruzados con una
+	-- borla de pelaje rojo colgando de cada hueso y flecos de pelo abajo.
+	make.block(
+		Vector3.new(width * 0.84, height * 0.88, 0.06),
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, -height * 0.02, back)
+	)
+	make.block(Vector3.new(0.14, height * 0.84, 0.1), BONE_DARK, SMOOTH, CFrame.new(0, -height * 0.02, back + 0.07))
+	for _, knobY in { 0.42, -0.08, -0.22, -0.36 } do
+		make.block(Vector3.new(0.28, 0.12, 0.12), BONE, SMOOTH, CFrame.new(0, height * knobY, back + 0.1))
 	end
-	make.block(Vector3.new(0.14, height * 0.8, 0.1), BONE_DARK, SMOOTH, CFrame.new(0, 0, back + 0.04))
-	for index = 0, 1 do
-		make.block(
-			Vector3.new(0.26, 0.11, 0.1),
-			BONE,
-			SMOOTH,
-			CFrame.new(0, -height * (0.18 + index * 0.18), back + 0.1)
-		)
+	for index, ribY in { -0.08, -0.22, -0.36 } do
+		local length = width * (0.44 - index * 0.05)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(length, 0.13, 0.09),
+				BONE,
+				SMOOTH,
+				CFrame.new(
+					side * (0.1 + length / 2 * math.cos(tilt)),
+					height * ribY - length / 2 * math.sin(tilt),
+					back + 0.08
+				) * CFrame.Angles(0, 0, side * tilt)
+			)
+		end
 	end
-	local trophy = CFrame.new(0, height * 0.16, back + 0.12)
+	local trophy = CFrame.new(0, height * 0.17, back + 0.16)
 	for _, cross in { 0.65, -0.65 } do
-		cartoonBone(make, width * 0.62, 0.12, BONE, trophy * CFrame.new(0, 0, 0.04) * CFrame.Angles(0, 0, cross))
+		cartoonBone(make, width * 0.66, 0.13, BONE, trophy * CFrame.Angles(0, 0, cross))
 	end
-	monkeySkull(make, trophy * CFrame.new(0, 0, 0.28) * CFrame.Angles(math.rad(-10), math.pi, 0), 0.85)
+	monkeySkull(make, trophy * CFrame.new(0, 0.04, 0.3) * CFrame.Angles(math.rad(-10), math.pi, 0), 1.15)
 	for side = -1, 1, 2 do
-		make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, trophy * CFrame.new(side * 0.3, -0.3, 0.12))
+		local tassel = trophy * CFrame.new(side * width * 0.3, -0.3, 0.1)
+		make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, tassel)
+		make.block(Vector3.new(0.18, 0.2, 0.1), FUR, FABRIC, tassel * CFrame.new(0, -0.22, 0.02))
+		make.fang(0.3, 0.16, FUR_DARK, FABRIC, tassel * CFrame.new(0.08, -0.32, 0.02) * CFrame.Angles(0, 0, math.pi))
+	end
+	for index = 0, 3 do
 		make.fang(
-			0.3,
-			0.16,
-			FUR,
+			if index % 2 == 0 then 0.34 else 0.26,
+			0.2,
+			if index % 2 == 0 then FUR else FUR_DARK,
 			FABRIC,
-			trophy * CFrame.new(side * 0.3 + 0.08, -0.42, 0.2) * CFrame.Angles(0, 0, math.pi)
+			CFrame.new(-width * 0.33 + index * width * 0.22 + 0.1, -height / 2 + 0.02, back + 0.1)
+				* CFrame.Angles(0, 0, math.pi)
 		)
 	end
 
-	-- Cinturón con hebilla de calavera.
+	-- Cinturón con hebilla de calavera, tachones de hueso y dos tiras de cuero colgando.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.07)
@@ -654,40 +693,72 @@ local function boneArmor(body: Body)
 	waist.ball(0.32, BONE, SMOOTH, CFrame.new(0, 0.08, beltFront - 0.06))
 	for eye = -1, 1, 2 do
 		waist.ball(0.09, SKULL_HOLE, SMOOTH, CFrame.new(eye * 0.06, 0.1, beltFront - 0.2))
+		waist.ball(0.1, BONE_DARK, SMOOTH, CFrame.new(eye * hipWidth * 0.32, 0.08, beltFront - 0.06))
+		waist.block(
+			Vector3.new(0.18, 0.34, 0.05),
+			LEATHER,
+			LEATHER_MATERIAL,
+			CFrame.new(eye * hipWidth * 0.2, -0.14, beltFront - 0.05)
+		)
 	end
+	waist.block(Vector3.new(0.08, 0.08, 0.04), SKULL_HOLE, SMOOTH, CFrame.new(0, 0.02, beltFront - 0.21))
 
 	for side = -1, 1, 2 do
-		-- Hombrera: cráneo de mono sobre un mechón de pelaje rojo, sujeto con una correa al brazo.
+		-- Hombrera de losa de cuero con canto de hueso, un mechón de pelaje rojo y, encima, un cráneo de mono.
 		local arm = body.upperArm[side]
 		local top = arm.size.Y / 2
-		arm.oval(Vector3.new(arm.size.X * 0.95, 0.36, arm.size.Z * 0.95), FUR, FABRIC, CFrame.new(side * 0.06, top, 0))
-		band(arm, top - 0.42, 0.16, 0.08, LEATHER, LEATHER_MATERIAL)
+		slabPauldron(arm, side, LEATHER, LEATHER_MATERIAL, BONE_DARK)
+		arm.block(
+			Vector3.new(arm.size.X * 0.7, 0.12, arm.size.Z * 0.7),
+			FUR,
+			FABRIC,
+			CFrame.new(side * 0.1, top + 0.3, 0)
+		)
+		for z = -1, 1, 2 do
+			arm.fang(
+				0.3,
+				0.14,
+				FUR_DARK,
+				FABRIC,
+				CFrame.new(side * arm.size.X * 0.1, top + 0.3, z * (arm.size.Z * 0.35 + 0.05))
+					* CFrame.Angles(z * 1.0, 0, 0)
+			)
+		end
 		monkeySkull(
 			arm,
-			CFrame.new(side * arm.size.X * 0.2, top + 0.2, 0) * CFrame.Angles(0, -side * math.rad(30), 0),
-			1
+			CFrame.new(side * arm.size.X * 0.2, top + 0.5, 0) * CFrame.Angles(0, -side * math.rad(30), 0),
+			0.8
 		)
-		-- Brazal de cuero con dos tablillas de hueso por fuera, atado con fibra.
+		band(arm, -arm.size.Y * 0.12, 0.2, 0.1, FUR, FABRIC)
+		-- Brazal de cuero con tres tablillas de hueso por fuera, atado con fibra por arriba y por abajo.
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
-		band(forearm, -0.02, fs.Y * 0.55, 0.08, LEATHER, LEATHER_MATERIAL)
-		band(forearm, fs.Y * 0.2, 0.08, 0.12, FIBER, FABRIC)
-		for _, z in { -0.2, 0.2 } do
+		band(forearm, -0.02, fs.Y * 0.6, 0.08, LEATHER, LEATHER_MATERIAL)
+		band(forearm, fs.Y * 0.22, 0.08, 0.12, FIBER, FABRIC)
+		band(forearm, -fs.Y * 0.26, 0.08, 0.12, FIBER, FABRIC)
+		for _, z in { -0.3, 0, 0.3 } do
 			forearm.block(
-				Vector3.new(0.08, fs.Y * 0.6, 0.16),
+				Vector3.new(0.08, fs.Y * 0.5, 0.14),
 				BONE,
 				SMOOTH,
 				CFrame.new(side * (fs.X / 2 + 0.07), -0.02, z * fs.Z)
 			)
 		end
-		-- Faldón de cuero en el muslo con dos tablillas de hueso.
+		-- Faldón de cuero en el muslo con tres tablillas de hueso y un colmillo colgando.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.17, -(ls.Z / 2 + 0.05)) * CFrame.Angles(0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.85, ls.Y * 0.36, 0.08), LEATHER, LEATHER_MATERIAL, flap)
-		for _, x in { -0.2, 0.2 } do
-			leg.block(Vector3.new(0.12, ls.Y * 0.3, 0.06), BONE, SMOOTH, flap * CFrame.new(x * ls.X, -0.02, -0.06))
+		for _, x in { -0.28, 0, 0.28 } do
+			leg.block(Vector3.new(0.1, ls.Y * 0.3, 0.06), BONE, SMOOTH, flap * CFrame.new(x * ls.X, -0.02, -0.06))
 		end
+		leg.fang(
+			0.26,
+			0.12,
+			BONE,
+			SMOOTH,
+			CFrame.new(side * 0.04 + 0.06, ls.Y * 0.15, -(ls.Z / 2 + 0.1)) * CFrame.Angles(0, 0, math.pi)
+		)
 	end
 end
 
@@ -1154,27 +1225,11 @@ local function trackerCape(body: Body)
 	band(drawArm, -drawArm.size.Y * 0.36, 0.12, 0.06, FIBER, FABRIC, 0.12)
 end
 
--- Hombrera de láminas de hueso (la del arco no la lleva: tensaría la cuerda contra ella).
-local function bonePauldron(arm: Builder, side: number)
-	local as = arm.size
-	local top = as.Y / 2
-	for index = 0, 2 do
-		arm.oval(
-			Vector3.new(as.X * 1.05 - index * 0.1, 0.24, as.Z * 1.15 - index * 0.1),
-			if index == 1 then BONE_DARK else BONE,
-			SMOOTH,
-			CFrame.new(side * (0.06 + index * 0.09), top + 0.08 - index * 0.2, 0)
-				* CFrame.Angles(0, 0, -side * (0.2 + index * 0.2))
-		)
-	end
-	band(arm, top - 0.5, 0.12, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
-end
-
 local function hunterLeather(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
 	local front = -(depth / 2 + 0.08)
-	-- Jubón de cuero oscuro con tres botones de hueso (palitos atravesados) en el centro.
+	-- Jubón de cuero oscuro con la tira central, dos pespuntes y cuatro botones de hueso (palitos atravesados).
 	make.block(
 		Vector3.new(width + 0.12, height * 0.92, depth + 0.14),
 		HUNTER_LEATHER_DARK,
@@ -1187,7 +1242,15 @@ local function hunterLeather(body: Body)
 		LEATHER_MATERIAL,
 		CFrame.new(0, -height * 0.04, front)
 	)
-	for _, y in { 0.22, 0, -0.22 } do
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.05, height * 0.8, 0.04),
+			HUNTER_LEATHER,
+			LEATHER_MATERIAL,
+			CFrame.new(side * 0.26, -height * 0.04, front)
+		)
+	end
+	for _, y in { 0.28, 0.1, -0.08, -0.26 } do
 		make.rod(0.32, 0.08, BONE, SMOOTH, CFrame.new(0, height * y, front - 0.04))
 	end
 	-- Cuello de cuero claro.
@@ -1197,6 +1260,21 @@ local function hunterLeather(body: Body)
 		LEATHER_MATERIAL,
 		CFrame.new(0, height / 2 - 0.04, 0)
 	)
+	-- Hojas cosidas a los lados del cuello, como en la capa de rastreador.
+	for side = -1, 1, 2 do
+		leaf(
+			make,
+			0.42,
+			LEAF,
+			CFrame.new(side * width * 0.32, height / 2 - 0.14, front - 0.1) * CFrame.Angles(0, 0, side * 0.5)
+		)
+		leaf(
+			make,
+			0.36,
+			LEAF_DARK,
+			CFrame.new(side * width * 0.44, height / 2 - 0.2, front - 0.09) * CFrame.Angles(0, 0, side * 1.1)
+		)
+	end
 	-- Correa del carcaj con tres colmillos de trofeo colgando.
 	quiverStrap(make, front - 0.06, 0.14, LEATHER, LEATHER_MATERIAL)
 	for index = 1, 3 do
@@ -1205,30 +1283,37 @@ local function hunterLeather(body: Body)
 		local y = (height / 2 - 0.02) + (-height + 0.14) * t
 		make.fang(0.26, 0.1, BONE, SMOOTH, CFrame.new(x + 0.05, y - 0.04, front - 0.09) * CFrame.Angles(0, 0, math.pi))
 	end
-	-- Detrás, un manto de hojas de tres verdes, la capucha y el carcaj de cuero con aros de hueso.
-	leafFan(make, 11, 1.3, 1.4, { LEAF, LEAF_DARK, LEAF_LIGHT }, 0.1)
-	loweredHood(make, HUNTER_LEATHER, LEATHER_DARK, LEATHER_MATERIAL)
+	-- Detrás (lo que el jugador ve siempre): un manto de hojas de tres verdes en tres capas, más denso
+	-- que el de la capa de rastreador, la capucha bajada y el carcaj de cuero con aros de hueso.
+	blockLeafFan(make, 7, 1.55, 1.4, { LEAF_DARK }, 0.06)
+	blockLeafFan(make, 9, 1.25, 1.25, { LEAF }, 0.14)
+	blockLeafFan(make, 6, 0.9, 1.0, { LEAF_LIGHT }, 0.22)
+	blockHood(make, HUNTER_LEATHER, LEATHER_DARK)
 	local quiverAt = backQuiver(make, {
-		length = 1.7,
-		radius = 0.24,
-		-- Claro, de hueso: de lejos es lo que lo distingue de la capa de rastreador.
-		color = BONE_DARK,
-		material = SMOOTH,
-		rim = LEATHER_DARK,
-		rimMaterial = LEATHER_MATERIAL,
+		length = 1.8,
+		radius = 0.26,
+		color = HUNTER_LEATHER,
+		material = LEATHER_MATERIAL,
+		rim = BONE,
+		rimMaterial = SMOOTH,
 		arrows = 5,
 		feathers = { FEATHER_RED, FEATHER_WHITE },
-	}, 0.22)
-	-- Un colmillo grande atado al carcaj, colgando de su costado.
-	make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, quiverAt * CFrame.new(-0.28, 0.25, 0.05))
-	make.fang(0.36, 0.14, BONE, SMOOTH, quiverAt * CFrame.new(-0.21, 0.12, 0.14) * CFrame.Angles(0, 0, math.pi))
+	}, 0.3)
+	-- Un tercer aro de hueso a media altura y un colmillo grande atado al costado del carcaj.
+	make.rod(0.1, 0.57, BONE, SMOOTH, quiverAt * CFrame.new(0, -0.2, 0) * UPRIGHT)
+	make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, quiverAt * CFrame.new(-0.3, 0.3, 0.05))
+	make.fang(0.38, 0.14, BONE, SMOOTH, quiverAt * CFrame.new(-0.23, 0.17, 0.14) * CFrame.Angles(0, 0, math.pi))
 
-	-- Cinturón de cuero con hebilla de hueso, zurrón y cuchillo.
+	-- Cinturón de cuero con hebilla de hueso, tachones, zurrón, cuchillo y un colmillo de trofeo.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.08)
 	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), LEATHER, LEATHER_MATERIAL, CFrame.new(0, 0.06, 0))
 	waist.block(Vector3.new(0.3, 0.24, 0.08), BONE, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.02))
+	waist.fang(0.3, 0.12, BONE, SMOOTH, CFrame.new(0.06, -0.06, beltFront - 0.06) * CFrame.Angles(0, 0, math.pi))
+	for _, x in { 0.16, -0.16 } do
+		waist.ball(0.09, BONE_DARK, SMOOTH, CFrame.new(x * hipWidth, 0.06, beltFront - 0.04))
+	end
 	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
 	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER, LEATHER_MATERIAL, pouch)
 	waist.block(
@@ -1241,42 +1326,60 @@ local function hunterLeather(body: Body)
 	waist.block(Vector3.new(0.14, 0.44, 0.08), LEATHER, LEATHER_MATERIAL, sheath)
 	waist.block(Vector3.new(0.1, 0.22, 0.1), BONE, SMOOTH, sheath * CFrame.new(0, 0.32, 0))
 
-	-- Hombrera de hueso en el hombro izquierdo; en el derecho, un manojo de hojas.
-	bonePauldron(body.upperArm[-1], -1)
-	local right = body.upperArm[1]
-	for index, tilt in { -0.5, 0, 0.5 } do
-		leaf(
-			right,
-			0.5,
-			if index == 2 then LEAF_DARK else LEAF,
-			CFrame.new(right.size.X * 0.3, right.size.Y / 2 - 0.05, tilt * 0.6)
-				* CFrame.Angles(0, math.rad(90), 0)
-				* CFrame.Angles(0, 0, math.pi * 0.9 + tilt)
+	-- Hombrera de láminas de hueso (losa con tres tablillas y dos garras) en el hombro izquierdo; en el
+	-- derecho, la estrella de hojas del arco (la del lado del carcaj, como en la capa de rastreador).
+	local left = body.upperArm[-1]
+	local leftTop = left.size.Y / 2
+	slabPauldron(left, -1, BONE, SMOOTH, BONE_DARK)
+	for _, z in { -0.34, 0, 0.34 } do
+		left.block(
+			Vector3.new(left.size.X + 0.3, 0.06, 0.16),
+			BONE_DARK,
+			SMOOTH,
+			CFrame.new(-0.1, leftTop + 0.27, z * left.size.Z)
 		)
 	end
-	-- Brazal de cuero con dos tablillas de hueso en el antebrazo del arco; guante en el otro.
+	for _, z in { -0.26, 0.26 } do
+		left.fang(
+			0.34,
+			0.12,
+			BONE,
+			SMOOTH,
+			CFrame.new(-(left.size.X / 2 + 0.3), leftTop + 0.2, z * left.size.Z) * CFrame.Angles(0, 0, 0.7)
+		)
+	end
+	band(left, leftTop - 0.45, 0.14, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	local right = body.upperArm[1]
+	leafStar(right, 1)
+	band(right, right.size.Y / 2 - 0.45, 0.14, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	-- Brazal de cuero con tres tablillas de hueso en el antebrazo del arco; guante en el otro.
 	local bowArm = body.lowerArm[1]
 	local fs = bowArm.size
 	band(bowArm, -fs.Y * 0.06, fs.Y * 0.55, 0.08, LEATHER, LEATHER_MATERIAL)
-	for _, z in { -0.2, 0.2 } do
+	band(bowArm, fs.Y * 0.26, 0.06, 0.12, FIBER, FABRIC)
+	for _, z in { -0.3, 0, 0.3 } do
 		bowArm.block(
-			Vector3.new(0.08, fs.Y * 0.5, 0.16),
+			Vector3.new(0.08, fs.Y * 0.5, 0.14),
 			BONE,
 			SMOOTH,
 			CFrame.new(fs.X / 2 + 0.07, -fs.Y * 0.06, z * fs.Z)
 		)
 	end
 	band(body.lowerArm[-1], -fs.Y * 0.38, 0.2, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
-	-- Hojas colgando por delante de los muslos (en el muslo: en la cintura, la pierna las atraviesa).
+	band(body.lowerArm[-1], -fs.Y * 0.16, 0.06, 0.12, FIBER, FABRIC)
+	-- Hojas colgando por delante de los muslos (en el muslo: en la cintura, la pierna las atraviesa),
+	-- sujetas con una correa y un botón de hueso.
 	for side = -1, 1, 2 do
 		local leg = body.upperLeg[side]
 		local ls = leg.size
+		band(leg, ls.Y / 2 - 0.14, 0.1, 0.06, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+		leg.ball(0.1, BONE, SMOOTH, CFrame.new(side * 0.06, ls.Y / 2 - 0.14, -(ls.Z / 2 + 0.07)))
 		for index, x in { -0.18, 0.18 } do
 			leaf(
 				leg,
-				0.6,
+				0.62,
 				if index == 1 then LEAF else LEAF_DARK,
-				CFrame.new(side * 0.06 + x * ls.X, ls.Y / 2 - 0.36, -(ls.Z / 2 + 0.05 + index * 0.02))
+				CFrame.new(side * 0.06 + x * ls.X, ls.Y / 2 - 0.4, -(ls.Z / 2 + 0.05 + index * 0.02))
 					* CFrame.Angles(0, 0, math.pi + x)
 			)
 		end
@@ -1615,7 +1718,7 @@ local function runeTunic(body: Body)
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
 	local front = -(depth / 2 + 0.08)
 	local back = depth / 2 + 0.08
-	-- Túnica añil con cuello y tira dorados.
+	-- Túnica añil con cuello, tira central, cintas laterales y bajo dorados, y tres tachones de oro.
 	make.block(
 		Vector3.new(width + 0.12, height * 0.94, depth + 0.16),
 		MAGE_INDIGO,
@@ -1624,87 +1727,136 @@ local function runeTunic(body: Body)
 	)
 	make.block(Vector3.new(width * 0.7, 0.18, depth + 0.24), GOLD_TRIM, FABRIC, CFrame.new(0, height / 2 - 0.04, 0))
 	make.block(Vector3.new(0.14, height * 0.8, 0.04), GOLD_TRIM, FABRIC, CFrame.new(0, -height * 0.08, front))
-	-- Runa del pecho: triángulo de neón con un punto dentro, a los dos lados de la tira.
-	local chest = CFrame.new(width * 0.26, height * 0.16, front - 0.02)
-	for index = 0, 2 do
-		local angle = index * 2 * math.pi / 3
-		make.block(
-			Vector3.new(0.34, 0.05, 0.04),
-			RUNE,
-			NEON,
-			chest * CFrame.Angles(0, 0, angle) * CFrame.new(0, -0.1, 0)
-		)
-	end
-	make.ball(0.08, RUNE, NEON, chest)
-	-- Detrás (lo que el jugador ve siempre): círculo de runas de neón con marcas en cruz y un
-	-- triángulo con un rombo en el centro.
-	local seal = CFrame.new(0, height * 0.08, back + 0.02)
-	hoop(make, seal, 0.52, 12, 0.07, RUNE, NEON)
-	for index = 0, 3 do
-		make.block(
-			Vector3.new(0.06, 0.18, 0.05),
-			RUNE,
-			NEON,
-			seal * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.68, 0)
-		)
-	end
-	for index = 0, 2 do
-		make.block(
-			Vector3.new(0.72, 0.06, 0.05),
-			RUNE,
-			NEON,
-			seal * CFrame.Angles(0, 0, index * 2 * math.pi / 3) * CFrame.new(0, -0.2, 0)
-		)
-	end
-	make.block(Vector3.new(0.16, 0.16, 0.05), RUNE, NEON, seal * CFrame.Angles(0, 0, math.pi / 4))
-	-- Dos talismanes de piedra rúnica colgando de los hombros por detrás y el ribete dorado del bajo.
-	for side = -1, 1, 2 do
-		local cord = CFrame.new(side * width * 0.4, height / 2 - 0.3, back + 0.03)
-		make.block(Vector3.new(0.04, 0.5, 0.04), FIBER, FABRIC, cord)
-		make.block(Vector3.new(0.2, 0.26, 0.08), STONE, SLATE, cord * CFrame.new(0, -0.36, 0.02))
-		make.block(Vector3.new(0.05, 0.16, 0.03), RUNE, NEON, cord * CFrame.new(0, -0.36, 0.07))
-	end
 	make.block(
 		Vector3.new(width + 0.16, 0.1, depth + 0.2),
 		GOLD_TRIM,
 		FABRIC,
 		CFrame.new(0, -height * 0.02 - height * 0.47 + 0.05, 0)
 	)
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.07, height * 0.84, 0.04),
+			GOLD_TRIM,
+			FABRIC,
+			CFrame.new(side * width * 0.43, -height * 0.04, front)
+		)
+	end
+	for _, studY in { 0.3, 0.05, -0.2 } do
+		make.ball(0.1, GOLD_TRIM, SMOOTH, CFrame.new(0, height * studY, front - 0.04))
+	end
+	-- Runa del pecho: círculo de neón con un triángulo y un punto dentro, a un lado de la tira; al otro,
+	-- una piedra rúnica.
+	local chest = CFrame.new(width * 0.26, height * 0.14, front - 0.02)
+	hoop(make, chest, 0.3, 8, 0.05, RUNE, NEON)
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(0.3, 0.05, 0.04),
+			RUNE,
+			NEON,
+			chest * CFrame.Angles(0, 0, index * 2 * math.pi / 3) * CFrame.new(0, -0.08, 0)
+		)
+	end
+	make.ball(0.08, RUNE, NEON, chest)
+	local chestStone = CFrame.new(-width * 0.26, height * 0.14, front - 0.04)
+	make.block(Vector3.new(0.34, 0.4, 0.08), STONE, SLATE, chestStone)
+	make.block(Vector3.new(0.07, 0.24, 0.03), RUNE, NEON, chestStone * CFrame.new(0, 0, -0.05))
+	-- Detrás (lo que el jugador ve siempre): un sello grande sobre un fondo añil oscuro, con un círculo de
+	-- doce tramos de neón, cuatro marcas en cruz por fuera, un triángulo con un rombo y tres puntos en
+	-- los vértices; es más grande y detallado que el atrapasueños del manto de amuletos.
+	make.block(
+		Vector3.new(width * 0.9, height * 0.92, 0.05),
+		MAGE_INDIGO_DARK,
+		FABRIC,
+		CFrame.new(0, -height * 0.02, back - 0.01)
+	)
+	local seal = CFrame.new(0, height * 0.02, back + 0.05)
+	hoop(make, seal, 0.7, 12, 0.08, RUNE, NEON)
+	for index = 0, 3 do
+		make.block(
+			Vector3.new(0.07, 0.2, 0.05),
+			RUNE,
+			NEON,
+			seal * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.88, 0)
+		)
+	end
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(0.9, 0.06, 0.05),
+			RUNE,
+			NEON,
+			seal * CFrame.Angles(0, 0, index * 2 * math.pi / 3) * CFrame.new(0, -0.25, 0)
+		)
+		make.ball(0.12, RUNE, NEON, seal * CFrame.Angles(0, 0, index * 2 * math.pi / 3) * CFrame.new(0, 0.5, 0))
+	end
+	make.block(Vector3.new(0.18, 0.18, 0.05), RUNE, NEON, seal * CFrame.Angles(0, 0, math.pi / 4))
+	-- Dos talismanes de piedra rúnica con una cuenta de oro colgando de los hombros por detrás.
+	for side = -1, 1, 2 do
+		local cord = CFrame.new(side * width * 0.46, height / 2 - 0.3, back + 0.12)
+		make.block(Vector3.new(0.04, 0.5, 0.04), FIBER, FABRIC, cord)
+		make.block(Vector3.new(0.22, 0.28, 0.08), STONE, SLATE, cord * CFrame.new(0, -0.38, 0.02))
+		make.block(Vector3.new(0.05, 0.18, 0.03), RUNE, NEON, cord * CFrame.new(0, -0.38, 0.07))
+		make.ball(0.12, GOLD_TRIM, SMOOTH, cord * CFrame.new(0, -0.58, 0.02))
+	end
 
-	-- Faja dorada con tres piedras rúnicas colgando.
+	-- Faja dorada con tres piedras rúnicas y dos borlas añil colgando.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.08)
 	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), GOLD_TRIM, FABRIC, CFrame.new(0, 0.06, 0))
+	waist.ball(0.2, GOLD_TRIM, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.04))
 	for _, x in { -0.3, 0, 0.3 } do
-		local stone = CFrame.new(x * hipWidth, -0.16, beltFront - 0.04)
+		local stone = CFrame.new(x * hipWidth, -0.2, beltFront - 0.04)
 		waist.block(Vector3.new(0.2, 0.24, 0.08), STONE, SLATE, stone)
 		waist.block(Vector3.new(0.05, 0.14, 0.03), RUNE, NEON, stone * CFrame.new(0, 0, -0.05))
 	end
+	for side = -1, 1, 2 do
+		waist.fang(
+			0.3,
+			0.14,
+			MAGE_INDIGO,
+			FABRIC,
+			CFrame.new(side * hipWidth * 0.44 + 0.07, 0.0, beltFront - 0.04) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
 
 	for side = -1, 1, 2 do
-		-- Hombrera: cráneo de mono de ojos encendidos sobre un paño añil.
+		-- Hombrera: disco plano añil con aro dorado y, encima, un cráneo de mono de ojos encendidos.
 		local arm = body.upperArm[side]
-		local top = arm.size.Y / 2
-		arm.oval(
-			Vector3.new(arm.size.X * 1.05, 0.34, arm.size.Z * 1.05),
-			MAGE_INDIGO_DARK,
-			FABRIC,
-			CFrame.new(side * 0.06, top, 0)
+		local center = discPauldron(arm, side, MAGE_INDIGO_DARK, GOLD_TRIM, FABRIC)
+		runeSkull(
+			arm,
+			center * CFrame.new(side * arm.size.X * 0.1, 0.3, 0) * CFrame.Angles(0, -side * math.rad(30), 0),
+			0.9
 		)
-		runeSkull(arm, CFrame.new(side * arm.size.X * 0.2, top + 0.2, 0) * CFrame.Angles(0, -side * math.rad(30), 0), 1)
-		-- Brazal añil con una runa que brilla.
+		band(arm, -arm.size.Y * 0.14, 0.12, 0.08, GOLD_TRIM, FABRIC)
+		-- Brazal añil con runas que brillan y bandas doradas.
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, -fs.Y * 0.05, fs.Y * 0.5, 0.08, MAGE_INDIGO_DARK, FABRIC)
 		band(forearm, -fs.Y * 0.05, 0.06, 0.12, RUNE, NEON)
 		band(forearm, -fs.Y * 0.38, 0.1, 0.1, GOLD_TRIM, FABRIC)
-		-- Faldón añil con ribete dorado en el muslo.
+		for _, z in { -0.22, 0.22 } do
+			forearm.block(
+				Vector3.new(0.05, 0.16, 0.05),
+				RUNE,
+				NEON,
+				CFrame.new(side * (fs.X / 2 + 0.08), fs.Y * 0.12, z * fs.Z)
+			)
+		end
+		-- Faldón añil con ribete dorado, una runa y una borla dorada en el muslo.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.05)) * CFrame.Angles(0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.86, ls.Y * 0.42, 0.08), MAGE_INDIGO, FABRIC, flap)
 		leg.block(Vector3.new(ls.X * 0.86 + 0.04, 0.08, 0.1), GOLD_TRIM, FABRIC, flap * CFrame.new(0, -ls.Y * 0.21, 0))
+		leg.block(Vector3.new(0.06, 0.2, 0.03), RUNE, NEON, flap * CFrame.new(0, 0.02, -0.06))
+		leg.fang(
+			0.24,
+			0.12,
+			GOLD_TRIM,
+			FABRIC,
+			flap * CFrame.new(0.06, -ls.Y * 0.21, -0.02) * CFrame.Angles(0, 0, math.pi)
+		)
 	end
 end
 
@@ -2013,7 +2165,7 @@ local function healerPlastron(body: Body)
 	local front = -(depth / 2 + 0.06)
 	local back = depth / 2 + 0.06
 	make.block(Vector3.new(width + 0.1, height * 0.94, depth + 0.12), LINEN, FABRIC, CFrame.new(0, -height * 0.02, 0))
-	-- Peto de hueso blanco sobre un borde más oscuro, sujeto con correas por encima de los hombros.
+	-- Peto de hueso blanco sobre un borde más oscuro, con remaches, sujeto con correas por encima de los hombros.
 	local plate = CFrame.new(0, height * 0.06, front - 0.06)
 	make.block(Vector3.new(width * 0.9, height * 0.78, 0.1), BONE_DARK, SMOOTH, plate)
 	make.block(Vector3.new(width * 0.84, height * 0.72, 0.1), THICK_BONE, SMOOTH, plate * CFrame.new(0, 0.01, -0.04))
@@ -2024,20 +2176,32 @@ local function healerPlastron(body: Body)
 			LEATHER_MATERIAL,
 			CFrame.new(side * width * 0.3, height / 2 + 0.02, 0)
 		)
+		for rivetY = -1, 1, 2 do
+			make.ball(0.1, BONE_DARK, SMOOTH, plate * CFrame.new(side * width * 0.37, rivetY * height * 0.3, -0.1))
+		end
 	end
-	-- Cruz de hojas con una flor roja en el centro.
+	-- Cruz de hojas con una flor roja de cuatro pétalos y el centro dorado.
 	local cross = plate * CFrame.new(0, height * 0.04, -0.1)
 	for index = 0, 3 do
 		leaf(
 			make,
-			0.42,
+			0.52,
 			if index % 2 == 0 then LEAF else LEAF_DARK,
-			cross * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.25, 0) * CFrame.Angles(0, math.pi, 0)
+			cross * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.3, 0) * CFrame.Angles(0, math.pi, 0)
 		)
 	end
-	make.ball(0.18, FLOWER, SMOOTH, cross * CFrame.new(0, 0, -0.04))
-	-- Detrás (lo que el jugador ve siempre): mochila de cuero en un bastidor de madera, con frascos de
-	-- poción encima y a los lados y hierbas asomando por detrás de los frascos.
+	for petal = 0, 3 do
+		local angle = petal * math.pi / 2
+		make.block(
+			Vector3.new(0.14, 0.14, 0.05),
+			FLOWER,
+			SMOOTH,
+			cross * CFrame.new(math.sin(angle) * 0.13, math.cos(angle) * 0.13, -0.06)
+		)
+	end
+	make.ball(0.14, GOLD_TRIM, SMOOTH, cross * CFrame.new(0, 0, -0.09))
+	-- Detrás (lo que el jugador ve siempre): mochila de cuero con correas en un bastidor de madera, con
+	-- frascos de poción encima y a los lados, un rollo de manta abajo y hierbas asomando por detrás.
 	local pack = CFrame.new(0, -height * 0.04, back + 0.26)
 	make.block(Vector3.new(width * 0.62, height * 0.62, 0.42), HUNTER_LEATHER, LEATHER_MATERIAL, pack)
 	make.block(
@@ -2055,73 +2219,97 @@ local function healerPlastron(body: Body)
 			WOOD,
 			pack * CFrame.new(side * width * 0.34, height * 0.04, -0.12) * UPRIGHT
 		)
+		-- Bolsa lateral de cuero bajo el frasco.
+		make.block(
+			Vector3.new(0.2, 0.3, 0.3),
+			LEATHER,
+			LEATHER_MATERIAL,
+			pack * CFrame.new(side * (width * 0.31 + 0.12), -height * 0.34, 0.04)
+		)
 	end
 	for _, y in { height * 0.4, -height * 0.32 } do
 		make.rod(width * 0.76, 0.07, BARK, WOOD, pack * CFrame.new(0, y, -0.12))
 	end
+	make.rod(width * 0.7, 0.3, LINEN, FABRIC, pack * CFrame.new(0, -height * 0.4, 0.04))
+	for _, x in { -0.26, 0.26 } do
+		make.block(
+			Vector3.new(0.08, 0.38, 0.38),
+			LEATHER_DARK,
+			LEATHER_MATERIAL,
+			pack * CFrame.new(x * width, -height * 0.4, 0.04)
+		)
+	end
 	local top = pack * CFrame.new(0, height * 0.32, 0)
-	for index = -1, 1 do
+	for index = -2, 2 do
 		leaf(
 			make,
-			0.5,
-			if index == 0 then LEAF_LIGHT else LEAF,
-			top * CFrame.new(index * 0.2, 0.22, -0.12) * CFrame.Angles(0, 0, -index * 0.4)
+			0.5 - math.abs(index) * 0.04,
+			if index == 0 then LEAF_LIGHT elseif index % 2 == 0 then LEAF_DARK else LEAF,
+			top * CFrame.new(index * 0.17, 0.22, -0.12) * CFrame.Angles(0, 0, -index * 0.35)
 		)
 	end
 	for index, x in { -0.32, 0, 0.32 } do
 		flask(make, top * CFrame.new(x * width * 0.5, 0, 0.04), if index == 2 then 0.36 else 0.3, false)
 	end
 	for side = -1, 1, 2 do
-		flask(make, pack * CFrame.new(side * (width * 0.31 + 0.13), -height * 0.16, 0.06), 0.28, false)
+		flask(make, pack * CFrame.new(side * (width * 0.31 + 0.13), -height * 0.2, 0.06), 0.28, false)
 	end
 
-	-- Cinturón de cuero con dos rollos de venda.
+	-- Cinturón de cuero con dos rollos de venda, la hebilla de hueso y las puntas de venda colgando.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.08)
 	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), LEATHER, LEATHER_MATERIAL, CFrame.new(0, 0.06, 0))
+	waist.block(Vector3.new(0.22, 0.22, 0.06), BONE, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.02))
 	for _, x in { -0.32, 0.32 } do
 		waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(x * hipWidth, -0.06, beltFront - 0.1) * UPRIGHT)
+		waist.block(
+			Vector3.new(0.1, 0.3, 0.04),
+			PAINT_WHITE,
+			FABRIC,
+			CFrame.new(x * hipWidth * 0.62, -0.16, beltFront - 0.04)
+		)
 	end
 
 	for side = -1, 1, 2 do
-		-- Hombrera de hueso con dos hojas por debajo.
+		-- Hombrera de disco de hueso con tres hojas en abanico y un remache en el centro.
 		local arm = body.upperArm[side]
-		local as = arm.size
-		local top2 = as.Y / 2
-		for index, tilt in { -0.35, 0.35 } do
+		local center = discPauldron(arm, side, THICK_BONE, BONE_DARK, SMOOTH)
+		for index, yaw in { -0.7, 0, 0.7 } do
 			leaf(
 				arm,
-				0.46,
-				if index == 1 then LEAF else LEAF_DARK,
-				CFrame.new(side * (as.X / 2 + 0.03), top2 - 0.22, tilt * 0.6)
-					* CFrame.Angles(0, side * math.rad(90), 0)
-					* CFrame.Angles(0, 0, math.pi + tilt)
+				0.5,
+				if index == 2 then LEAF_LIGHT elseif index == 1 then LEAF else LEAF_DARK,
+				center
+					* CFrame.Angles(0, -side * math.pi / 2 + yaw, 0)
+					* CFrame.Angles(-math.pi / 2, 0, 0)
+					* CFrame.new(0, 0.24, 0)
 			)
 		end
-		arm.oval(
-			Vector3.new(as.X * 1.08, 0.3, as.Z * 1.12),
-			THICK_BONE,
-			SMOOTH,
-			CFrame.new(side * 0.06, top2 + 0.02, 0)
-		)
-		arm.oval(
-			Vector3.new(as.X * 0.9, 0.24, as.Z * 0.96),
-			BONE_DARK,
-			SMOOTH,
-			CFrame.new(side * 0.16, top2 - 0.14, 0) * CFrame.Angles(0, 0, -side * 0.35)
-		)
+		arm.ball(0.18, BONE, SMOOTH, center * CFrame.new(0, 0.06, 0))
+		band(arm, -arm.size.Y * 0.14, 0.1, 0.08, LEATHER, LEATHER_MATERIAL)
 		-- Vendas en el antebrazo.
 		local forearm = body.lowerArm[side]
-		band(forearm, -forearm.size.Y * 0.18, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
-		band(forearm, -forearm.size.Y * 0.36, 0.12, 0.06, PAINT_WHITE, FABRIC, -0.12)
-		-- Bolsa de cuero atada al muslo.
+		band(forearm, -forearm.size.Y * 0.1, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
+		band(forearm, -forearm.size.Y * 0.28, 0.12, 0.06, PAINT_WHITE, FABRIC, -0.12)
+		band(forearm, -forearm.size.Y * 0.44, 0.1, 0.06, PAINT_WHITE, FABRIC, 0.12)
+		-- Bolsa de cuero atada al muslo, con una hoja asomando y un botón de hueso.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		band(leg, ls.Y * 0.2, 0.1, 0.06, LEATHER_DARK, LEATHER_MATERIAL)
 		local bag = CFrame.new(side * (ls.X / 2 + 0.06), ls.Y * 0.08, 0)
 		leg.block(Vector3.new(0.14, 0.34, 0.42), HUNTER_LEATHER, LEATHER_MATERIAL, bag)
 		leg.block(Vector3.new(0.18, 0.12, 0.46), LEATHER_DARK, LEATHER_MATERIAL, bag * CFrame.new(0, 0.14, 0))
+		leg.ball(0.1, BONE, SMOOTH, bag * CFrame.new(side * 0.09, 0.1, 0))
+		leaf(
+			leg,
+			0.4,
+			LEAF,
+			bag
+				* CFrame.new(side * 0.02, 0.32, 0)
+				* CFrame.Angles(0, side * math.rad(90), 0)
+				* CFrame.Angles(0, 0, side * 0.3)
+		)
 	end
 end
 
