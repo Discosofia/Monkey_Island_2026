@@ -1247,11 +1247,18 @@ end
 
 -- Lo que se hace en combate y con qué: PC · mando · móvil (los mismos que ActionButtons y los
 -- controladores de combate: WeaponController, RoleController, GuardController, DodgeController…).
-local CONTROLS: { { name: string, keys: string, help: string? } } = {
+-- "lab": solo en el Laboratorio (la recarga, V8); el resto de filas salen en todos los places.
+local CONTROLS: { { name: string, keys: string, help: string?, lab: boolean? } } = {
 	{
 		name = later("Pegar o disparar"),
 		keys = later("clic · R2 · tocar la pantalla"),
 		help = later("4 golpes al ritmo son una cadena"),
+	},
+	{
+		name = later("Recargar"),
+		keys = later("R · X en el mando · «Recargar» en el móvil"),
+		help = later("solo en el Laboratorio, con un arma con cargador"),
+		lab = true,
 	},
 	{ name = later("Habilidades"), keys = later("Z X C R y V · R1 + A B X Y L1 · sus botones") },
 	{
@@ -1283,12 +1290,17 @@ local CONTROLS: { { name: string, keys: string, help: string? } } = {
 	},
 }
 
-local function buildControls(parent: Frame)
+local function buildControls(parent: Frame, laboratory: boolean)
 	heading(parent, T("🎮 Controles del combate"), 1)
 	text(parent, T("PC · control · celular"), 2, SOFT_COLOR)
-	for index, control in CONTROLS do
+	local order = 2
+	for _, control in CONTROLS do
+		if control.lab and not laboratory then
+			continue
+		end
+		order += 1
 		local help = if control.help then ` <font color="{SOFT_HEX}">({T(control.help)})</font>` else ""
-		text(parent, `<b>{T(control.name)}</b>: <font color="{KEY_HEX}">{T(control.keys)}</font>{help}`, 2 + index)
+		text(parent, `<b>{T(control.name)}</b>: <font color="{KEY_HEX}">{T(control.keys)}</font>{help}`, order)
 	end
 	text(
 		parent,
@@ -1316,7 +1328,8 @@ end
 -- Construye el panel dentro de "parent" (que debe poder desplazarse si no cabe). Se limpia solo al
 -- destruirse. Al cambiar de idioma (Strings.onChanged) lo rehace quien lo abrió: el Lobby reparte sus
 -- apartados en columnas después de construirlo.
-function SettingsPanel.build(parent: Instance, context: Context): Frame
+-- "laboratory" solo lo pide el ⚙️ del Laboratorio (contexto "Arena"): saca la fila de recargar.
+function SettingsPanel.build(parent: Instance, context: Context, laboratory: boolean?): Frame
 	local player = Players.LocalPlayer
 	local root = Instance.new("Frame")
 	root.Name = "SettingsPanel"
@@ -1354,7 +1367,7 @@ function SettingsPanel.build(parent: Instance, context: Context): Frame
 		stopWatching = if context == "Island" then watchStats(player, refreshStats) else nil
 	end
 	local refreshOptions = buildOptions(section(root, 3))
-	buildControls(section(root, 4))
+	buildControls(section(root, 4), laboratory == true)
 	local refreshShake = buildShake(section(root, 5))
 
 	-- Al cambiar algo de los efectos de cómic se enseña uno al momento (un crítico, que siempre sale).

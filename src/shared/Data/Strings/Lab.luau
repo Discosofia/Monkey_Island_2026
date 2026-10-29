@@ -20,6 +20,10 @@ return {
 	["Mira"] = "Scope",
 	["¡Cabeza!"] = "Headshot!",
 
+	-- Cargador y recarga (V8): botón táctil y barra bajo la mira (laboratorio/client/LabAmmoHUDController).
+	["Recargar"] = "Reload",
+	["Recargando… {seconds}"] = "Reloading… {seconds}",
+
 	-- Duelo por equipos (L2): bandos, fases, HUD, selector de arma y avisos del servidor.
 	["Piratas"] = "Pirates",
 	["Guardianes"] = "Guardians",

@@ -50,6 +50,8 @@ return {
 	["Deslizar"] = "Slide",
 	["Alt izquierdo (C en el Laboratorio) · R3 · «Deslizar» mientras corres"] = "Left Alt (C in the Laboratory) · R3 · “Slide” while sprinting",
 	["solo corriendo; no te hace invulnerable"] = "only while sprinting; it doesn't make you invulnerable",
+	["R · X en el mando · «Recargar» en el móvil"] = "R · X on the gamepad · “Reload” on mobile",
+	["solo en el Laboratorio, con un arma con cargador"] = "Laboratory only, with a weapon that has a magazine",
 	["Derriba al gigante"] = "Take down the giant",
 	["Día"] = "Day",
 	["Día y noche"] = "Day and night",

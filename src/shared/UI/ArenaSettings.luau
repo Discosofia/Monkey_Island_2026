@@ -25,6 +25,8 @@ local CLOSE_COLOR = Color3.fromRGB(150, 60, 50)
 export type Options = {
 	onOpen: (() -> ())?,
 	onClose: (() -> ())?,
+	-- true en el Laboratorio: sale la fila de recargar en los controles (SettingsPanel).
+	laboratory: boolean?,
 }
 
 local ArenaSettings = {}
@@ -120,7 +122,7 @@ function ArenaSettings.attach(gui: ScreenGui, anchorButton: GuiObject, options: 
 			panel = nil
 		end
 		if open then
-			panel = SettingsPanel.build(scroll, "Arena")
+			panel = SettingsPanel.build(scroll, "Arena", options.laboratory)
 			scroll.CanvasPosition = Vector2.zero
 		end
 		if open ~= wasOpen then

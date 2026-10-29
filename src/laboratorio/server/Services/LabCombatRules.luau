@@ -10,7 +10,8 @@
 --     todo lo que contra los monos: veneno, ralentizar y enredar (pvpStatus).
 --   - Un golpe mortal no deja caído: cuenta la baja y se reaparece (LabRespawnService). Cada golpe anota
 --     quién hirió a quién (onPvPHit), para acreditar al último atacante si la víctima cae del mapa.
---   - Munición infinita.
+--   - Cargador y dispersión (Fase 15, V8): cada arma tiene su cargador, recarga y dispersión
+--     (takeShot, LabAmmoService; Data/LabWeapons). No hay otra munición ni inventario.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -20,6 +21,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local CombatRules = require(ServerScriptService.Combat.CombatRules)
+local LabAmmoService = require(script.Parent.LabAmmoService)
 local LabRespawnService = require(script.Parent.LabRespawnService)
 local LabWorldService = require(script.Parent.LabWorldService)
 
@@ -51,6 +53,7 @@ function LabCombatRules:Init()
 		end,
 		knockOut = LabRespawnService.knockOut,
 		onPvPHit = LabRespawnService.recordHit,
+		takeShot = LabAmmoService.takeShot,
 		roleWeapons = function(player: Player)
 			local weaponId = player:GetAttribute("LabWeapon")
 			return {

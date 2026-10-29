@@ -25,7 +25,8 @@ return _G.Equilibrio.informe({ soloRol = "Cazador" })
   local r = _G.Equilibrio.informe(); local i = r:find("Alertas", 1, true); return r:sub(i)
   ```
 - Mira también con `talentos = "max"`.
-- **Laboratorio** (Fase 13, sin roles): `informe({ secciones = { laboratorio = true } })` mide el tiempo para matar de las 4 armas de `Data/LabWeapons` a 15, 50 y 120 studs y quién gana cada cruce (objetivo: 1,5–2,5 s en la distancia de cada arma).
+- **Laboratorio** (Fase 13, sin roles): `informe({ secciones = { laboratorio = true } })` mide el tiempo para matar de las 4 armas de `Data/LabWeapons` a 15, 50 y 120 studs y quién gana cada cruce (objetivo: 1,5–2,5 s en la distancia de cada arma). Desde V8 mide con el cargador y la dispersión; las dos alertas con cabezas (dardos a 15 studs y rifle a 50) se dejaron a propósito.
+- **Cargador (V8, Laboratorio):** dardos 24 balas, rifle 5, arpón 3, ácido 4; recarga R, X o «Recargar». Se recarga sola al vaciarse, y el disparo se queda sin salir si no hay balas o si recarga. La dispersión la pone el servidor (`CombatRules.takeShot`, `Shared/LabSpread`), y el zoom del rifle la quita. Los dardos son automáticos (mantener el gatillo).
 - Enseña al usuario una tabla **antes → después**: recarga, segundos de arma, DPS en grupo, control y alertas.
 
 ## Ficha de diseño

@@ -19,6 +19,10 @@
 -- Laboratorio (Fase 13, Data/LabWeapons): cada arma dispara con la animación de su "pose", y el rifle
 -- acerca la vista (Config.Lab.RifleZoomFieldOfView) mientras se mantiene apuntado: clic derecho o gatillo
 -- izquierdo del mando, o el botón "Mira" en el móvil (uno lo pone y otro lo quita).
+-- Cargador (Fase 15, V8; CombatClient/LabShooting): con un arma de "lab.magazine" solo se dispara si hay
+-- balas y no se recarga (vacía, pide recargar y suena un clic una vez por pulsación), cada tiro gasta una
+-- y se manda al servidor si la mira está acercada (5.º argumento de UseWeapon), que pone la dispersión.
+-- Las automáticas ("lab.automatic") repiten el disparo a su cadencia mientras se mantiene el gatillo.
 
 local CollectionService = game:GetService("CollectionService")
 local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
@@ -35,6 +39,7 @@ local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local AbilityFxController = require(script.Parent.AbilityFxController)
@@ -42,6 +47,7 @@ local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Aim = require(script.Parent.Parent.Aim)
 local CameraShake = require(script.Parent.Parent.CameraShake)
 local Feint = require(script.Parent.Parent.Feint)
+local LabShooting = require(script.Parent.Parent.LabShooting)
 
 -- Tajo estándar de Roblox, por si el personaje no trae el suyo en su script Animate.
 local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
@@ -382,6 +388,11 @@ local function setZoom(on: boolean)
 	TweenService:Create(camera, TweenInfo.new(ZOOM_SECONDS), { FieldOfView = target }):Play()
 end
 
+-- true mientras la mira del rifle está acercada.
+function WeaponController.isZoomed(): boolean
+	return normalFieldOfView ~= nil
+end
+
 local function bindZoom()
 	ActionButtons.bind(ZOOM_ACTION, Strings.t("Mira"), function(_, state: Enum.UserInputState, input: InputObject)
 		if input.UserInputType == Enum.UserInputType.Touch then
@@ -402,6 +413,84 @@ local function unbindZoom()
 	setZoom(false)
 end
 
+-- Disparo automático en curso: sube con cada pulsación nueva o al soltar, y el bucle anterior se acaba.
+local autoFireToken = 0
+-- Ya ha sonado el clic de "sin balas" en esta pulsación.
+local emptyClicked = false
+
+-- Un uso del arma (un clic, un toque, un disparo del bucle automático). true si ha salido.
+local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Weapons.WeaponDefinition?): boolean
+	local player = Players.LocalPlayer
+	-- Aturdido o caído no se pega (Shared/CombatState; el servidor lo comprueba otra vez).
+	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") or Feint.casting() then
+		return false
+	end
+	if weapon and MeleeChain.uses(weapon) then
+		swingChain(character, tool, weaponId :: string, weapon)
+		return true
+	elseif weapon and weapon.kind == "Melee" then
+		playSwing(character, weapon)
+	elseif weapon and weapon.kind == "Ranged" then
+		local magazine = weapon.lab ~= nil and weapon.lab.magazine ~= nil
+		if magazine and not LabShooting.canShoot() then
+			-- Sin balas: pide recargar y suena el clic una vez por pulsación (si ya recarga, nada).
+			if LabShooting.reloadingUntil() == nil then
+				LabShooting.reload()
+				if not emptyClicked then
+					emptyClicked = true
+					-- Provisional: el clic de "Pickup"; V9 pondrá el sonido propio de cargador vacío.
+					local root = character:FindFirstChild("HumanoidRootPart")
+					if root then
+						Sfx.play("Pickup", root)
+					end
+				end
+			end
+			return false
+		end
+		if not shoot(character, weaponId :: string, weapon) then
+			return false
+		end
+		if magazine then
+			LabShooting.consume()
+		end
+	end
+	-- El cañón de suero (en arco) cae en el punto al que se apunta.
+	local lobbed = weapon and weapon.lab and weapon.lab.effect == "AcidBurst"
+	-- Dirección, punto (solo el cañón), de dónde sale y la hora: el servidor compensa el lag y comprueba el origen.
+	-- Y si la mira está acercada (el rifle): la dispersión del tiro la pone el servidor.
+	Remotes.UseWeapon:FireServer(
+		Aim.direction(character),
+		if lobbed then Aim.point(character) else nil,
+		Aim.origin(character),
+		Workspace:GetServerTimeNow(),
+		normalFieldOfView ~= nil
+	)
+	return true
+end
+
+-- Repite el disparo mientras se mantenga el gatillo (se corta con Deactivated, al desequipar, al morir o
+-- si el estado ya no deja atacar). El ritmo lo marca la cadencia del arma (RangedChain), que no deja salir
+-- el tiro antes de tiempo: el bucle solo lo intenta en cada fotograma.
+local function autoFire(tool: Tool, weaponId: string, weapon: Weapons.WeaponDefinition)
+	autoFireToken += 1
+	local token = autoFireToken
+	task.spawn(function()
+		local player = Players.LocalPlayer
+		while
+			autoFireToken == token
+			and tool.Parent == player.Character
+			and LifeState.isAlive(player)
+			and CombatState.canAct(player, "Attack")
+		do
+			local character = player.Character
+			if character then
+				fire(character, tool, weaponId, weapon)
+			end
+			task.wait()
+		end
+	end)
+end
+
 local function hook(instance: Instance)
 	if not instance:IsA("Tool") or hooked[instance] or instance:GetAttribute("WeaponId") == nil then
 		return
@@ -411,30 +500,21 @@ local function hook(instance: Instance)
 	local weapon = if typeof(weaponId) == "string" then Weapons[weaponId] else nil
 	instance.Activated:Connect(function()
 		local character = Players.LocalPlayer.Character
-		-- Aturdido o caído no se pega (Shared/CombatState; el servidor lo comprueba otra vez).
-		if not character or not LifeState.isAlive(Players.LocalPlayer) then
+		if not character then
 			return
 		end
-		if not CombatState.canAct(Players.LocalPlayer, "Attack") or Feint.casting() then
-			return
+		emptyClicked = false
+		if weapon and weapon.lab and weapon.lab.automatic then
+			autoFire(instance, weaponId :: string, weapon)
+		else
+			fire(character, instance, weaponId :: string?, weapon)
 		end
-		if weapon and MeleeChain.uses(weapon) then
-			swingChain(character, instance, weaponId :: string, weapon)
-			return
-		elseif weapon and weapon.kind == "Melee" then
-			playSwing(character, weapon)
-		elseif weapon and weapon.kind == "Ranged" and not shoot(character, weaponId :: string, weapon) then
-			return
-		end
-		-- El cañón de suero (en arco) cae en el punto al que se apunta.
-		local lobbed = weapon and weapon.lab and weapon.lab.effect == "AcidBurst"
-		-- Dirección, punto (solo el cañón), de dónde sale y la hora: el servidor compensa el lag y comprueba el origen.
-		Remotes.UseWeapon:FireServer(
-			Aim.direction(character),
-			if lobbed then Aim.point(character) else nil,
-			Aim.origin(character),
-			Workspace:GetServerTimeNow()
-		)
+	end)
+	instance.Deactivated:Connect(function()
+		autoFireToken += 1
+	end)
+	instance.Unequipped:Connect(function()
+		autoFireToken += 1
 	end)
 	if weapon and weapon.kind == "Ranged" then
 		instance.Equipped:Connect(function()
@@ -468,6 +548,7 @@ end
 local function onCharacter(character: Model)
 	-- Cada personaje nuevo carga sus propias animaciones.
 	slashTrack = nil
+	autoFireToken += 1
 	table.clear(weaponTracks)
 	unbindZoom()
 	watch(character)

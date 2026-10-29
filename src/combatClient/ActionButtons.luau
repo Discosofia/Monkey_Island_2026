@@ -31,6 +31,7 @@ local SLOTS: { [string]: Vector2 } = {
 	Guard = Vector2.new(0, 1),
 	Zoom = Vector2.new(0, 1), -- la mira del rifle del Laboratorio, que no tiene guardia (Fase 13)
 	ToggleJournal = Vector2.new(1, 1),
+	Reload = Vector2.new(1, 1), -- recargar en el Laboratorio (Fase 15, V8), que no tiene diario
 	Ability3 = Vector2.new(2, 1),
 	Ability4 = Vector2.new(3, 1),
 	Surrender = Vector2.new(4, 1),

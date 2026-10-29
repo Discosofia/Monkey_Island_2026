@@ -112,8 +112,8 @@ al terminar el estado se limpia; inmovilizado 3 s, velocidad 0 y el garrote pega
     punta del arma) y la hora del disparo. El servidor acepta el origen del cliente si es un `Vector3`
     finito, está a ≤ `Headshot.OriginToleranceStuds` (5) de la cabeza del tirador rebobinada y no hay
     pared entre su cabeza actual y ese punto; si no, sale de su propia cabeza. `lag` =
-    `min(ahora − hora, Latency.compensation)`. La dirección todavía no se valida contra la dispersión
-    (queda para V8, TODO-V8 en `rangedAttack`).
+    `min(ahora − hora, Latency.compensation)`. La dispersión la pone el servidor (V8, abajo): la dirección
+    del cliente no se valida contra un cono.
   - **Cabeza (V7):** con la regla `headshots` (Dunas y el Laboratorio), el proyectil se prueba contra los
     jugadores rebobinados `lag` segundos y sale algo adelantado (`ShotLeadMaxSeconds` 0,1 s). Cada
     jugador es una esfera de cabeza (radio visible × `HeadRadiusScale` 1,15) más una cápsula de cuerpo
@@ -389,6 +389,18 @@ se para al dar a tantos: el remate del arco, C9b), `onHit`, `onEnd`, `extra` y `
   `Status.entangle` (lanzarredes: −35 % 1 s, sin repetirse antes de 3 s; nunca deja quieto). Las
   reglas del place (`CombatRules`: `roleWeapons`, `abilities = false`, `guard = false`) quitan roles,
   habilidades y guardia; sin guardia, el disparo a un jugador entra sin esperar el parry.
+- **Cargador, recarga y dispersión (V8, Fase 15; solo el Laboratorio).** `Data/LabWeapons` da `magazine` y
+  `reloadSeconds` (dardos 24 / 1,6 s, rifle 5 / 2,2 s, arpón 3 / 1,8 s, ácido 4 / 2,0 s) y `automatic`
+  (solo los dardos: mantener el gatillo repite el disparo a su cadencia). `LabAmmoService` guarda el
+  cargador por jugador; `CombatRules.takeShot` (Laboratorio) gasta una bala y devuelve la dispersión en
+  grados, o `nil` si no hay balas o recarga (el disparo no sale). Lo ven los clientes por los atributos
+  `LabAmmo` (balas) y `ReloadingUntil` (hora del servidor en que acaba la recarga). `Remotes.LabReload`
+  pide la recarga; sin pedirla, se recarga sola al vaciarse. El cargador se llena al aparecer y al
+  cambiar de arma. `Shared/LabSpread` calcula los grados (base, +moverse, +aire, +0,35 por disparo hasta
+  3, se recuperan a 6°/s; el zoom del rifle da 0); el cliente manda `zoomed` en `UseWeapon`, y
+  `CombatService` (`scatter`) desvía el tiro con esa dispersión sobre la dirección de `aimShot`. El
+  cliente predice (`combatClient/LabShooting`) y se corrige con los atributos. V7 preveía validar la
+  dirección contra la dispersión + 2°: no se ha hecho, el servidor ya decide la dispersión.
 - **Servidor**: un solo bucle de `Heartbeat` para todos. En cada paso, de la posición anterior a la
   nueva: `Hitbox.ray` contra el mundo (solo lo que choca y el terreno: el decorado que no choca no
   para un disparo) y `Hitbox.sweepCombatants` (`Spherecast` con la lista de inclusión de los
@@ -644,6 +656,8 @@ chocan sin rayos ("Barrera"): antes se subía al basamento y se salía de la are
 | Acción | PC | Mando | Móvil |
 |---|---|---|---|
 | Arma | Clic | Gatillo (R2) | Tocar la pantalla |
+| Disparo automático (V8, dardos del Laboratorio) | Mantener el clic | Mantener R2 | Mantener el toque |
+| Recargar (V8, solo Laboratorio) | R | X | "Recargar" |
 | Habilidades Z X C R V | Teclas | Mantener R1 + A, B, X, Y, L1 | 5 botones junto al salto |
 | Esquivar | Q | B | "Esquivar" |
 | Correr | Mayús | L3 | "Correr" |

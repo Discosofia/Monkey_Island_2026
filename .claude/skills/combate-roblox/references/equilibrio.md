@@ -153,6 +153,14 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 
+**28 de octubre de 2026, cargador y dispersión del Laboratorio (V8).** La sección 12 mide ya con el cargador
+(dardos 24, rifle 5, arpón 3, ácido 4, con su recarga) y la dispersión de `Shared/LabSpread` (quieto, corriendo
+y en el aire; el zoom del rifle da 0). Con eso siguen 2 alertas con cabezas (solo con un 30 % de aciertos a la
+cabeza y puntería perfecta): Dardos 1,47 s a 15 studs y Rifle 1,23 s a 50, bajo el mínimo de 1,5 s. Se dejan a
+propósito: es decisión de diseño, no se han cambiado daños. Lo que no se ve en el informe: el rifle en
+movimiento acierta un 30 % a 50 studs y un 5 % a 120, y el arpón pierde el 48 % de su DPS con la recarga. Pendiente
+de probar con 2 jugadores (VERIFICACION §38.5).
+
 **28 de octubre de 2026, cabeza ×1,5 a distancia en PvP (V7).** La sección 12 del `informe()` tiene la tabla
 «Con 30 % de aciertos a la cabeza»: a distancia sube el daño medio un 15 % (30 % de aciertos × ×1,5). Duelos
 espejo de la arena: Cazador 9,4 → 8,6 s, Mago 9,8 → 9,0 s y Médico 28,9 → 22,1 s, sin alertas nuevas. En el Laboratorio, con un 30 % de aciertos a la cabeza salen 2 alertas nuevas ("Laboratorio con cabezas"): Dardos 1,47 s a 15 studs y Rifle 1,23 s a 50 studs, bajo el mínimo de 1,5 s. Se dejan: son el mejor caso medio (el rifle sigue necesitando 2 aciertos, mínimo ~1 s) y se recalibran en V8 con el cargador y la dispersión.

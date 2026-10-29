@@ -1220,6 +1220,14 @@ local Config = {
 		AcidPuddleSeconds = 3,
 		-- Rifle: campo de visión (grados) mientras se mantiene apuntado.
 		RifleZoomFieldOfView = 30,
+		-- Cargador y dispersión (Fase 15, V8; Data/LabWeapons, Shared/LabSpread). Velocidad horizontal (studs/s)
+		-- desde la que cuenta como "moviéndose" para la dispersión del arma.
+		SpreadMovingSpeed = 3,
+		-- El contador de balas se pone en rojo claro cuando queda esta fracción del cargador o menos.
+		LowAmmoFraction = 0.25,
+		-- El anillo de espera de la mira solo sale en armas con una cadencia de al menos estos segundos
+		-- (en el lanzadardos, automático, no).
+		CooldownRingMinSeconds = 0.4,
 		-- Muñecos del panel de pruebas (LabDebugService): delante del jugador, a las distancias de la
 		-- calculadora (corta, media y larga).
 		TestDummyDistances = { 15, 50, 120 },

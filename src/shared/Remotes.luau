@@ -234,6 +234,8 @@ local Remotes = {
 	-- Cliente -> servidor (Laboratorio): votar el mapa (id de Config.Lab.Maps) mientras la votación está
 	-- abierta, en la espera. LabVoteService.
 	LabMapVote = remoteEvent("LabMapVote"),
+	-- Cliente -> servidor (Laboratorio): recargar el arma (Fase 15, V8). LabAmmoService.
+	LabReload = remoteEvent("LabReload"),
 }
 
 return Remotes

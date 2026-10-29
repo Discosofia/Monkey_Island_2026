@@ -912,6 +912,18 @@ local function acidLob(
 	})
 end
 
+local scatterRandom = Random.new()
+
+-- "direction" desviada hasta "degrees" grados: un punto al azar de un disco uniforme del cono (ángulo
+-- azimutal al azar y radio = degrees × raíz de un número al azar), para la dispersión del Laboratorio.
+local function scatter(direction: Vector3, degrees: number): Vector3
+	local radius = math.rad(degrees) * math.sqrt(scatterRandom:NextNumber())
+	local azimuth = scatterRandom:NextNumber(0, 2 * math.pi)
+	local offset =
+		Vector3.new(math.sin(radius) * math.cos(azimuth), math.sin(radius) * math.sin(azimuth), -math.cos(radius))
+	return CFrame.lookAt(Vector3.zero, direction):VectorToWorldSpace(offset)
+end
+
 -- Un disparo de un arma a distancia (C9): un proyectil real (Combat/Projectiles) que sale hacia donde
 -- dice la ayuda de puntería (aimShot) y da al primero que encuentra: si se aparta, falla. Atraviesa a
 -- los aliados. Contra un jugador se puede bloquear y parar (con el margen del defensor, como el golpe);
@@ -931,7 +943,8 @@ local function rangedAttack(
 	shot: number,
 	point: Vector3?,
 	shotOrigin: Vector3?,
-	lag: number
+	lag: number,
+	spread: number
 )
 	local ammo = weapon.ammoItemId
 	local rules = CombatRules.get()
@@ -1033,6 +1046,9 @@ local function rangedAttack(
 	local origin = shotOrigin or serverOrigin
 	local speed = weapon.projectileSpeed or 120
 	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
+	if spread > 0 then
+		direction = scatter(direction, spread)
+	end
 	if weapon.lab and weapon.lab.effect == "AcidBurst" then
 		acidLob(player, character, origin, direction, point, weapon, damage, strike)
 		return
@@ -1055,7 +1071,8 @@ local function rangedAttack(
 		breaks = if finisher then "ShotFinisher" else nil,
 		breakOnce = coverOnce,
 		-- Con cabezas: los jugadores se prueban rebobinados por el lag del tirador y el proyectil sale algo
-		-- adelantado (con tope). TODO-V8: validar la dirección contra un cono cuando haya mira de referencia.
+		-- adelantado (con tope). La dispersión (V8) la pone el servidor al azar sobre la dirección que manda el
+		-- cliente, así que no hace falta validar esa dirección contra un cono de la mira.
 		rewind = if rules.headshots then lag else nil,
 		lead = if rules.headshots then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
 		onHit = function(model, _, isHead)
@@ -1112,7 +1129,7 @@ local function acceptedOrigin(character: Model, root: BasePart, claimed: any, la
 	return claimed
 end
 
-local function onUseWeapon(player: Player, aim: any, point: any, origin: any, shotTime: any)
+local function onUseWeapon(player: Player, aim: any, point: any, origin: any, shotTime: any, zoomed: any)
 	if not LifeState.isAlive(player) or not CombatState.canAct(player, "Attack") then
 		return
 	end
@@ -1151,7 +1168,11 @@ local function onUseWeapon(player: Player, aim: any, point: any, origin: any, sh
 		local count = shots[player] or RangedChain.newState()
 		shots[player] = count
 		local shot = RangedChain.advance(count, weaponId :: string, weapon, now, slack)
-		if shot then
+		-- Cargador y dispersión (Fase 15, V8; el Laboratorio): nil si no hay balas o está recargando.
+		local spread = if shot
+			then CombatRules.get().takeShot(player, weaponId :: string, weapon, zoomed == true)
+			else nil
+		if shot and spread then
 			WeaponTools.playUse(tool)
 			-- El retraso del disparo: lo que ha tardado en llegar, con el tope de la compensación del lag.
 			local lag = 0
@@ -1169,7 +1190,8 @@ local function onUseWeapon(player: Player, aim: any, point: any, origin: any, sh
 				shot,
 				if typeof(point) == "Vector3" then point else nil,
 				acceptedOrigin(character, root, origin, lag),
-				lag
+				lag,
+				spread
 			)
 		end
 		return

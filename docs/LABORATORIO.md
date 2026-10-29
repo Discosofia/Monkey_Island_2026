@@ -35,6 +35,24 @@ Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y 
 
 Ningún efecto deja quieto a nadie: el control más fuerte es el del arpón, corto y con inmunidad.
 
+### 2.1b Cargador, recarga, automático y dispersión (Fase 15, V8)
+
+Antes la munición era infinita; ahora cada arma tiene cargador, recarga y una dispersión propios (`Data/LabWeapons`, campo `lab`; el cálculo de la dispersión, `Shared/LabSpread`, lo comparten servidor y cliente).
+
+| Arma | Cargador | Recarga | Automática | Quieto | Moviéndose | En el aire | Por disparo (tope) | Se recupera |
+|---|---|---|---|---|---|---|---|---|
+| Lanzadardos | 24 | 1,6 s | **sí** | 0,6° | 1,8° | 3,1° | +0,35° (3 disparos) | 6°/s |
+| Rifle primal | 5 | 2,2 s | no | 0° | 2,5° | 5° | — | — (con zoom: 0° salvo en el aire) |
+| Arpón de red | 3 | 1,8 s | no | 1° | 1,5° | 3° | — | — |
+| Suero ácido | 4 | 2,0 s | no | sin dispersión (cae donde se apunta) | | | | |
+
+- **Gastar y recargar.** Cada disparo gasta una bala. Al vaciarse el cargador empieza la recarga sola; con el cargador a medias se recarga con **R** (PC), **X** del mando o el botón táctil «Recargar». Pulsar disparar con el cargador vacío pide la recarga y suena un clic una vez por pulsación. Durante la recarga no se dispara, y una barra fina bajo la mira cuenta los segundos que faltan. Al aparecer, o al cambiar de arma, el cargador vuelve a estar lleno y se cancela la recarga.
+- **Contador.** «24 / 24», solo texto, abajo a la derecha encima del 😀 de los emotes (en táctil, bajo el 😀, arriba a la derecha, porque abajo están el salto y los botones). Se pone en rojo claro con el 25 % o menos. Se esconde con una ventana abierta y estando muerto.
+- **Automática.** Con el lanzadardos, mantener el gatillo repite el disparo a su cadencia (ratón, toque o mando). Se corta al soltar, desequipar, morir o ser aturdido.
+- **Dispersión.** Cada tiro se desvía al azar dentro de un cono (disco uniforme) del ángulo de la tabla: el de la situación (en el aire, moviéndose —más de `Config.Lab.SpreadMovingSpeed`, 3 studs/s— o quieto) más lo acumulado por los disparos seguidos. **El primer tiro quieto, en el suelo y sin acumulado, es exacto** en las armas que acumulan (el lanzadardos). El desvío lo pone el servidor, así que no hay que validar la dirección que manda el cliente. El cañón de suero no se desvía.
+- **Mira dinámica.** La mira (Ajustes → Mira) abre sus brazos según esa dispersión (grados convertidos a píxeles con el campo de visión, así el zoom la agranda) y, en las armas con cadencia de 0,4 s o más (todas menos el lanzadardos), un anillo se llena entre un disparo y el siguiente.
+- **Equilibrio.** `Equilibrio` (sección 12) cuenta la recarga en el tiempo para matar y añade la precisión quieto y moviéndose (acierto = (R ÷ (d × tan θ))², con R = `Config.Combat.Headshot.BodyRadius`) y el DPS sostenido con recarga. Las alertas siguen midiendo el mejor caso.
+
 ### 2.2 Tiempo para matar (medido)
 
 Calculado el 27-10-2026 con un modelo propio (en la tanda de código pasará a `Equilibrio` como sección del Laboratorio, porque la sección 6 de la calculadora mide duelos entre roles con habilidades y aquí no hay roles). El modelo cuenta los disparos que hacen falta para quitar 100 de vida, el acierto esperado a cada distancia, la cadencia, el viaje del proyectil y el veneno que entra entre disparos. Acierto supuesto: lanzadardos 85 % / 60 % (corta / media), rifle 60 % / 85 % / 80 % (corta / media / larga), arpón 90 % en corta, suero 85 % / 80 % (corta / media).

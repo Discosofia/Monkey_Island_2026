@@ -2093,6 +2093,81 @@ Probado en Play, con un jugador, en el Laboratorio y en Dunas (28-10-2026): el �
 1. [ ] En el Laboratorio, dispara el rifle o los dardos sin parar y mira la mira, con «Mira dinámica» en Sí y después en No.
    ✅ Hoy no se abre ni tiene anillo de recarga: `setSpread` y `setCooldown` aún no los llama ningún arma. Este paso se prueba en V8.
 
+## 38. Lo que queda por probar de V8: cargador, recarga, automático y mira dinámica (28-10-2026)
+
+Probado en Play, con un jugador, en el Laboratorio (28-10-2026): el cargador y los atributos `LabAmmo` y `ReloadingUntil`; la recarga automática al vaciarse y la de `LabReload`; el relleno al reaparecer y al cambiar de arma; el contador «N / M»; el disparo automático con el clic mantenido (12 balas en 1,5 s, ritmo ≈0,125 s por bala). La tecla R no llegó a `ContextActionService` con el MCP, así que se prueba a mano. Solo están probados también el CI local (stylua, selene, `strings.py` y `rojo build`) y la calculadora `Equilibrio` (sección 12). Con cargador y dispersión siguen 2 alertas con cabezas (Dardos 1,47 s a 15 studs, Rifle 1,23 s a 50, mínimo 1,5 s), solo con un 30 % de aciertos a la cabeza y puntería perfecta: es decisión de diseño, no se han cambiado daños. Con el rifle en movimiento acierta un 30 % a 50 studs y un 5 % a 120. Empieza por 38.1.
+
+#### 38.1 En PC, en el Laboratorio, con ratón y teclado (un jugador)
+
+1. [ ] Con un arma con cargador en la mano y el cargador a medias, pulsa R.
+   ✅ Empieza la recarga: sale la barra bajo la mira con «Recargando… N,N», se llena al acabar y no sale ningún error en la Salida.
+2. [ ] Con el cargador lleno, pulsa R.
+   ✅ No empieza ninguna recarga ni cambia el contador.
+3. [ ] Con el rifle, mantén el clic derecho para acercar la vista y dispara quieto y después corriendo.
+   ✅ Con zoom no hay dispersión: la mira no se abre ni al correr y cada disparo sale al centro.
+4. [ ] Con el rifle, corre sin parar y mira la mira. Después quédate quieto.
+   ✅ La mira se abre al moverte y vuelve a cerrarse en un segundo más o menos al quedarte quieto.
+5. [ ] Con los dardos, salta y dispara en el aire. Después, quieto en el suelo, dispara 5 dardos seguidos.
+   ✅ En el aire la mira se abre más que en el suelo, y con cada dardo se abre un poco más hasta el tope de 3 disparos.
+6. [ ] Pon «Mira dinámica» en No (Ajustes, ⚙️) y repite el paso 5.
+   ✅ La mira no se abre ni cambia de tamaño con los disparos.
+7. [ ] Con el arpón o el rifle, dispara y mira el anillo alrededor de la mira mientras espera el siguiente disparo. Repite con el ácido.
+   ✅ El anillo se cierra desde las 12 en sentido horario y se llena cuando se puede disparar otra vez. Sale en las tres armas.
+8. [ ] Pulsa el clic mientras el cargador está recargando, o con el cargador vacío y la recarga ya pedida.
+   ✅ No se dispara y suena el clic de vacío (provisional, el sonido de «Pickup»). No sale error.
+9. [ ] Abre una ventana (Ajustes o la de elegir arma) mientras llevas el arma con cargador.
+   ✅ El contador de balas y la barra de recarga se esconden, y vuelven al cerrarla.
+10. [ ] En la sala de espera, cambia de arma con cargador y mira el contador.
+   ✅ El cargador sale lleno al cambiar de arma, también en la sala.
+11. [ ] Desliza (Alt izquierdo o C) y dispara con el arma a distancia.
+   ✅ Dispara con la dispersión de moverse (no con la de quieto) y el disparo no se queda sin salir.
+
+#### 38.2 Con mando, en el Laboratorio (un jugador)
+
+1. [ ] Pulsa X para recargar con el cargador a medias.
+   ✅ Igual que R (38.1.1): empieza la recarga y sale la barra bajo la mira.
+2. [ ] Con los dardos, mantén R2 pulsado.
+   ✅ Dispara solo, al ritmo de los dardos, hasta vaciar el cargador, y después recarga sola.
+3. [ ] Con el rifle, mantén R2 pulsado.
+   ✅ Dispara un tiro por pulsación, sin automático.
+
+#### 38.3 En el emulador de teléfono (844 × 390, con *Prueba → Dispositivo*)
+
+1. [ ] Equipa un arma con cargador en el Laboratorio y mira el contador «N / M» con los botones de combate.
+   ✅ El contador está arriba a la derecha, bajo el 😀, y no pisa el salto, los botones de acción ni la línea de la fase.
+2. [ ] Toca «Recargar» con el cargador a medias.
+   ✅ Empieza la recarga, sale la barra bajo la mira con los segundos, y el botón no tapa el salto ni los demás botones.
+3. [ ] Con los dardos, mantén el dedo en la pantalla sobre el botón de disparo.
+   ✅ Dispara solo mientras mantienes el toque, y vacía el cargador y recarga sola.
+4. [ ] Con el arpón o el rifle, dispara con toques seguidos y mira el anillo.
+   ✅ El anillo se ve bien en la pantalla pequeña y se cierra entre disparos.
+5. [ ] Abre el ⚙️ y baja hasta «Controles del combate».
+   ✅ Sale la fila «Recargar» con «R · X en el mando · «Recargar» en el móvil» y la nota de Laboratorio, sin tapar otras filas.
+
+#### 38.4 Ajustes del Laboratorio y de Dunas (un jugador)
+
+1. [ ] En Dunas, abre el ⚙️ y lee «Controles del combate».
+   ✅ No sale la fila de recargar (Dunas no tiene cargador). El resto de filas está igual que antes.
+2. [ ] En el Laboratorio, abre el ⚙️ y lee la misma sección.
+   ✅ Sale la fila «Recargar» con su nota «solo en el Laboratorio, con un arma con cargador». Está entre «Pegar o disparar» y «Habilidades».
+3. [ ] Cambia el idioma a English con la ventana abierta y lee la fila.
+   ✅ Sale «Reload: R · X on the gamepad · “Reload” on mobile (Laboratory only, with a weapon that has a magazine)».
+
+#### 38.5 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en el Laboratorio)
+
+1. [ ] A corre hacia B a 50 studs y dispara el rifle 20 veces seguidas, con B quieto.
+   ✅ Acierta cerca del 30 % de los tiros, como predice `Equilibrio` (sección 12), y no el 100 %. Al vaciar el cargador, A recarga sola.
+2. [ ] A dispara el rifle quieto a B a 50 studs, 5 tiros seguidos.
+   ✅ Los 5 salen al punto (la dispersión quieta es 0 y el primer disparo es exacto).
+3. [ ] A dispara el rifle con zoom (clic derecho) mientras corre hacia B a 50 studs.
+   ✅ Sale sin dispersión y acierta como con el arma quieta. Si en el servidor el tiro no se acepta por la dirección, avísame con el número de paso.
+4. [ ] A mantiene el zoom (clic derecho) mientras dispara dos tiros corriendo, y después suelta el zoom y dispara otros dos.
+   ✅ Los dos tiros con zoom salen sin dispersión, y los dos sin zoom salen con la dispersión de correr. El servidor usa el `zoomed` que manda el cliente en cada tiro.
+5. [ ] Con 150 ms de latencia en A (*Network Settings*), pulsa R y dispara justo cuando acaba la barra.
+   ✅ Puede rechazarse un tiro, sin daño y sin error en la Salida. Al terminar, el contador y la barra de A coinciden con el servidor, sin balas de más.
+6. [ ] Mide el TTK del rifle y de los dardos de A a B a 15 y 50 studs (quieto y corriendo).
+   ✅ Los tiempos son del orden de lo que predice `Equilibrio` (sección 12). Si el TTK baja de 1,5 s solo con tiros al cuerpo, avísame: sería una alerta nueva.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

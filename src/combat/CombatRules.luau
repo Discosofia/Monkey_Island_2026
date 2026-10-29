@@ -9,7 +9,7 @@
 --   - Dunas: equipos (atributo "Team"), reaparecer en la base, números de la arena y la telemetría de
 --     las mecánicas (Services/ArenaTelemetryService).
 --   - Laboratorio (Fase 13, Services/LabCombatRules): sin roles, habilidades ni guardia; las armas del
---     Laboratorio (Data/LabWeapons, sin remate ni crítico) y reaparecer.
+--     Laboratorio (Data/LabWeapons, sin remate ni crítico), su cargador y dispersión (takeShot, V8) y reaparecer.
 -- El movimiento (Fase 15: correr sin estamina, deslizarse, esquiva con voltereta o impulso) también se
 -- registra aquí (campo "movement") y se publica en atributos de ReplicatedStorage para el cliente.
 
@@ -81,6 +81,10 @@ export type Rules = {
 	onPvPHit: (attacker: Player, victim: Player, amount: number) -> (),
 	-- Gasta una unidad de munición ("itemId", Data/Items). false si no le queda: no dispara.
 	useAmmo: (player: Player, itemId: string) -> boolean,
+	-- Gasta un disparo del cargador del arma (Fase 15, V8; el Laboratorio). nil si no puede disparar (sin balas
+	-- o recargando): no sale el tiro. Si puede, devuelve la dispersión en grados de este tiro (0: exacto).
+	-- "zoomed": el jugador tiene la mira acercada. Por defecto dispara siempre y sin dispersión.
+	takeShot: (player: Player, weaponId: string, weapon: Weapons.WeaponDefinition, zoomed: boolean) -> number?,
 	-- Gasta una munición opcional que mejora el disparo (los dardos venenosos). false si no tiene.
 	useBoost: (player: Player, itemId: string) -> boolean,
 	-- El hacha y el pico trabajan el árbol o la roca de delante.
@@ -150,6 +154,9 @@ local rules: Rules = {
 	end,
 	onPvPHit = nothing,
 	useAmmo = always,
+	takeShot = function()
+		return 0
+	end,
 	useBoost = never,
 	strikeResource = nothing,
 	addFever = nothing,

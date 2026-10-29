@@ -296,6 +296,7 @@ function LabHUDController:Start()
 	EmoteWheel.start()
 	-- Ajustes (⚙️), pegado a la izquierda del 😀 aunque este cambie de sitio. Con la ventana abierta se suelta el ratón.
 	ArenaSettings.attach(gui, emoteButton, {
+		laboratory = true,
 		onOpen = function()
 			FirstPersonController.freeCursor("Settings", true)
 		end,

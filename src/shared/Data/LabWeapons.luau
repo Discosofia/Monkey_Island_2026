@@ -12,10 +12,32 @@
 --   "AcidBurst": vuela en arco y estalla en un área que envenena (Config.Lab.Acid…; el veneno es "poison").
 --   nil: solo el daño. "zoom": el cliente acerca la vista al mantener apuntado (Config.Lab.RifleZoom…).
 -- "pose": la animación de disparo de Data/WeaponAnimations que usa (la del arma de la isla más parecida).
+-- Cargador (Fase 15, V8): "magazine" balas y "reloadSeconds" para recargarlo (sola al vaciarse, o con la
+-- acción Recargar). "automatic": mantener el gatillo repite el disparo a su cadencia.
+-- "spread": dispersión en grados (cono de un disco uniforme) según la situación; sin "spread", exacta.
+--   still / moving / air   quieto en el suelo / moviéndose (Config.Lab.SpreadMovingSpeed) / en el aire
+--   perShot, maxShots      lo que suma cada disparo seguido, hasta maxShots disparos acumulados
+--   recover                grados por segundo que se recupera el acumulado al dejar de disparar
+--   zoomExact              con el zoom y en el suelo, dispersión 0 (el rifle)
+-- El primer tiro quieto, sin acumulado, es exacto aunque "still" valga más. Lo calcula Shared/LabSpread.
+export type SpreadFields = {
+	still: number,
+	moving: number,
+	air: number,
+	perShot: number,
+	maxShots: number?,
+	recover: number?,
+	zoomExact: boolean?,
+}
+
 export type LabFields = {
 	effect: ("SlowStack" | "Entangle" | "AcidBurst")?,
 	zoom: boolean?,
 	pose: "Stone" | "Arrow" | "Spell" | "Dart",
+	magazine: number,
+	reloadSeconds: number,
+	automatic: boolean?,
+	spread: SpreadFields?,
 }
 
 export type LabWeaponDefinition = {
@@ -48,7 +70,14 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		range = 80,
 		projectileSpeed = 260,
 		projectile = "LabDart",
-		lab = { effect = "SlowStack", pose = "Dart" },
+		lab = {
+			effect = "SlowStack",
+			pose = "Dart",
+			magazine = 24,
+			reloadSeconds = 1.6,
+			automatic = true,
+			spread = { still = 0.6, moving = 1.8, air = 3.1, perShot = 0.35, maxShots = 3, recover = 6 },
+		},
 	},
 	LabBananaRifle = {
 		name = "Rifle de bananas primales",
@@ -61,7 +90,13 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		range = 200,
 		projectileSpeed = 450,
 		projectile = "LabBanana",
-		lab = { zoom = true, pose = "Dart" },
+		lab = {
+			zoom = true,
+			pose = "Dart",
+			magazine = 5,
+			reloadSeconds = 2.2,
+			spread = { still = 0, moving = 2.5, air = 5, perShot = 0, zoomExact = true },
+		},
 	},
 	LabNetHarpoon = {
 		name = "Lanzarredes de arpón",
@@ -74,7 +109,13 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		range = 35,
 		projectileSpeed = 180,
 		projectile = "LabNet",
-		lab = { effect = "Entangle", pose = "Spell" },
+		lab = {
+			effect = "Entangle",
+			pose = "Spell",
+			magazine = 3,
+			reloadSeconds = 1.8,
+			spread = { still = 1, moving = 1.5, air = 3, perShot = 0 },
+		},
 	},
 	LabAcidCannon = {
 		name = "Cañón de suero ácido",
@@ -88,7 +129,8 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectileSpeed = 110,
 		projectile = "LabAcid",
 		poison = { dps = 6, seconds = 3 },
-		lab = { effect = "AcidBurst", pose = "Spell" },
+		-- Sin dispersión: cae donde se apunta.
+		lab = { effect = "AcidBurst", pose = "Spell", magazine = 4, reloadSeconds = 2.0 },
 	},
 }
 

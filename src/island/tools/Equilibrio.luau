@@ -3039,6 +3039,9 @@ local function main(copia: Instance): string
 	-- Fase 13: todos con la misma vida (Config.Lab.Health) y sin ventajas. Tiempo para matar: disparos
 	-- que hacen falta (los aciertos llegan cada cadencia ÷ acierto) más el viaje del proyectil; el veneno
 	-- entra sin parar entre un acierto y el siguiente mientras dura, y puede rematar antes del siguiente.
+	-- Fase 15, V8: con cargador, cada "magazine" disparos hay que esperar "reloadSeconds" (t = disparos ×
+	-- cadencia + floor((disparos − 1) ÷ cargador) × recarga). Después van la precisión por dispersión (quieto y
+	-- moviéndose) y el DPS sostenido con recarga; son informativos, las alertas usan el mejor caso (OPCIONES.laboratorio).
 	if OPCIONES.secciones.laboratorio then
 		local LabWeapons = require(Data.LabWeapons) :: any
 		local L = OPCIONES.laboratorio
@@ -3051,10 +3054,13 @@ local function main(copia: Instance): string
 			end
 			local viaje = distancia / arma.projectileSpeed
 			local intervalo = arma.cooldownSeconds / acierto
+			local cargador = arma.lab.magazine
 			local veneno = arma.poison
 			local hecho, anterior, venenoHasta = 0, viaje, -math.huge
 			for k = 1, 500 do
-				local t = viaje + (k - 1) * intervalo
+				-- Disparos hechos antes de este acierto: (k − 1) ÷ acierto; cada cargador lleno, una recarga.
+				local previos = (k - 1) / acierto
+				local t = viaje + (k - 1) * intervalo + math.floor(previos / cargador + 1e-9) * arma.lab.reloadSeconds
 				if veneno then
 					local hasta = math.min(t, venenoHasta)
 					if hasta > anterior then
@@ -3086,7 +3092,9 @@ local function main(copia: Instance): string
 			table.insert(cabecera, `{distancia} studs`)
 		end
 		linea(`## 12. Laboratorio (vida {vida}; segundos para matar con el acierto de OPCIONES.laboratorio)`)
-		linea(`| Arma | Daño · cadencia · alcance · velocidad | {table.concat(cabecera, " | ")} |`)
+		linea(
+			`| Arma | Daño · cadencia · alcance · velocidad · cargador y recarga | {table.concat(cabecera, " | ")} |`
+		)
 		linea(`|---|---|{string.rep("---|", #distancias)}`)
 		for _, id in LabWeapons.ORDER do
 			local arma = LabWeapons.weapons[id]
@@ -3099,10 +3107,10 @@ local function main(copia: Instance): string
 				then `{arma.damage} + {arma.poison.dps}/s × {arma.poison.seconds} s`
 				else `{arma.damage}`
 			linea(
-				`| {arma.name} | {danoTexto} · {n(arma.cooldownSeconds, 2)} s · {arma.range} · {arma.projectileSpeed} | {table.concat(
-					celdas,
-					" | "
-				)} |`
+				`| {arma.name} | {danoTexto} · {n(arma.cooldownSeconds, 2)} s · {arma.range} · {arma.projectileSpeed} · cargador {arma.lab.magazine} y {n(
+					arma.lab.reloadSeconds,
+					1
+				)} s | {table.concat(celdas, " | ")} |`
 			)
 		end
 		linea("")
@@ -3153,6 +3161,60 @@ local function main(copia: Instance): string
 				celdas[indice] = if t then `{n(t, 2)} s` else "fuera de alcance"
 			end
 			linea(`| {arma.name} | {table.concat(celdas, " | ")} |`)
+		end
+		linea("")
+		-- Precisión por dispersión (Fase 15, V8; Shared/LabSpread): con el cono de la dispersión sostenida (la base
+		-- de la situación más lo que acumula una ráfaga), la probabilidad de acierto de un disparo a un blanco de
+		-- radio Config.Combat.Headshot.BodyRadius a la distancia d es (R ÷ (d × tan θ))², como mucho 1 (disco
+		-- uniforme). Tiempo esperado = tiempo para matar acertando todo ÷ esa probabilidad.
+		local radioCuerpo = Config.Combat.Headshot.BodyRadius
+		local function dispersion(arma: any, situacion: string): number
+			local spread = arma.lab.spread
+			if not spread then
+				return 0
+			end
+			-- El rifle con zoom (quieto) es exacto.
+			if situacion == "quieto" and spread.zoomExact then
+				return 0
+			end
+			local base = if situacion == "quieto" then spread.still else spread.moving
+			return base + spread.perShot * (spread.maxShots or 1)
+		end
+		local function acierto(theta: number, distancia: number): number
+			if theta <= 0 then
+				return 1
+			end
+			local radio = distancia * math.tan(math.rad(theta))
+			return math.min(1, (radioCuerpo / radio) ^ 2)
+		end
+		for _, situacion in { "quieto", "moviéndose" } do
+			linea(
+				`Precisión {situacion} (probabilidad de acierto → tiempo esperado, con recarga; informativo; el rifle cuenta sin zoom, con zoom es exacto):`
+			)
+			linea(`| Arma | Dispersión | {table.concat(cabecera, " | ")} |`)
+			linea(`|---|---|{string.rep("---|", #distancias)}`)
+			for _, id in LabWeapons.ORDER do
+				local arma = LabWeapons.weapons[id]
+				local theta = dispersion(arma, if situacion == "quieto" then "quieto" else "moviendo")
+				local celdas = {}
+				for indice, distancia in distancias do
+					local t = ttk(arma, distancia, 1)
+					local p = acierto(theta, distancia)
+					celdas[indice] = if t then `{pct(p)} → {n(t / p, 2)} s` else "fuera de alcance"
+				end
+				linea(`| {arma.name} | {n(theta, 2)}° | {table.concat(celdas, " | ")} |`)
+			end
+			linea("")
+		end
+		linea("DPS sostenido (solo el daño directo; la recarga baja el ritmo de un cargador entero):")
+		linea("| Arma | Sin recarga | Con recarga | Pérdida |")
+		linea("|---|---|---|---|")
+		for _, id in LabWeapons.ORDER do
+			local arma = LabWeapons.weapons[id]
+			local cargador = arma.lab.magazine
+			local sinRecarga = arma.damage / arma.cooldownSeconds
+			local conRecarga = cargador * arma.damage / (cargador * arma.cooldownSeconds + arma.lab.reloadSeconds)
+			linea(`| {arma.name} | {n(sinRecarga, 1)} | {n(conRecarga, 1)} | {pct(1 - conRecarga / sinRecarga)} |`)
 		end
 		linea("")
 		linea("Dos rivales juntos (el área los alcanza a los dos; las demás armas, uno detrás de otro):")
