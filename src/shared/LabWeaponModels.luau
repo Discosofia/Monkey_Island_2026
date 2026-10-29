@@ -152,7 +152,10 @@ local function frame(tool: Tool, palette: Palette, faction: Faction, length: num
 			cube(handle, "SkullEye", at(0.17 + side * 0.05, -1.71, -0.48), Vector3.new(0.05, 0.05, 0.05), IRON, SMOOTH)
 		end
 	end
-	tool.Grip = CFrame.new(0, -0.8, 0)
+	-- Las pistas del personaje dejan hacia arriba la Z positiva del mango, y el modelo tiene su arriba en la
+	-- negativa (LabVoxel.UP): la mano lo sujeta girado 180° sobre el cañón (la primera persona usa su propio
+	-- agarre, FirstPersonController.GRIP).
+	tool.Grip = CFrame.new(0, -0.8, 0) * CFrame.Angles(0, math.pi, 0)
 	return handle
 end
 

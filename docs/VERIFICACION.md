@@ -3121,3 +3121,16 @@ Nota: el disparo real (clic) no se pudo lanzar desde el MCP. Hay que probarlo a 
 Nota: lo ya probado en Studio (cliente del Laboratorio: marcador en el centro, colores y escala correctos para Body, Head, Kill y Blocked; sin errores en consola) no se repite aquí.
 
 Nota: los sonidos «tac», «dink» y «pop» son provisionales (ids de serie). Están pendientes de reemplazar y no se juzga su calidad hasta entonces.
+
+## 77. Fase 19: arma del Laboratorio al derecho en tercera persona (29-10-2026)
+
+**2 jugadores en Studio o publicado, en el Laboratorio:**
+
+1. [ ] Con el otro jugador mirando, equipa cada arma del Laboratorio (lanzadardos, rifle, lanzarredes y cañón) en cada bando y quédate quieto.
+   ✅ El arma se ve con la mira, el tambor o la funda arriba y el cargador abajo, también al correr (Hold) y al disparar.
+2. [ ] Mira tu propia arma en tercera persona (aleja la cámara) y en primera persona.
+   ✅ En tercera persona se ve al derecho; en primera persona no cambia.
+3. [ ] Mira una skin con piezas a un solo lado (alas, antenas, cordón).
+   ✅ Se ve bien aunque el arma esté girada 180° sobre el cañón.
+4. [ ] Abre el Armario o el preview de ajustes con el arma puesta.
+   ✅ El arma se ve igual que antes (el giro solo es del agarre de la mano).
