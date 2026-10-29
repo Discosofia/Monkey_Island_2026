@@ -2926,3 +2926,16 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
 3. [ ] Compara los rangos I, II, III y IV de cada rol uno al lado del otro.
    ✅ Cada rango se ve más rico que el anterior y comparten motivos; el III es claramente más simple que el volcánico.
+
+## 69. Fase 18 S4: armas de la forja de rango IV rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Mejora cada arma al rango IV (Maza volcánica, Arco de ascuas, Cerbatana de azufre, Bastón de lava) y míralas en la mano, quietas, corriendo y atacando.
+   ✅ Se ven más ricas que las de rango III, con obsidiana, grietas de lava, azufre y brasas, sin piezas sueltas ni atravesadas (grietas y cristales de la maza, plumas del arco, amuleto de la cerbatana, gotas del bastón). La pose de agarre no cambia.
+2. [ ] Dispara el arco y la cerbatana, y golpea con la maza y el bastón.
+   ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
+3. [ ] Pon un aspecto de temporada (Sulfurado) y uno mítico sobre cada arma de rango IV.
+   ✅ El aspecto se ve distinto y más rico que el arma base, sin piezas del arma base asomando.
+4. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
+   ✅ Los destellos y brasas no bajan los FPS de forma notable.

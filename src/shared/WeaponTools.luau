@@ -1401,6 +1401,51 @@ local function buildVolcanicMaul(tool: Tool): BasePart
 	end
 	rod(handle, "Seam", 0.1, 0.52, MAGMA, NEON, CFrame.new(0, 1.75, 0))
 	shard(handle, 0.45, 0.22, CFrame.new(0, -1.48, 0) * CFrame.Angles(math.pi, 0, 0))
+
+	-- Rango IV, el más rico: grietas de lava en la losa de golpe, remaches de azufre en sus esquinas,
+	-- cristales de obsidiana bañados en lava que atraviesan los lados de la cabeza, dos anillos de basalto
+	-- con remaches de azufre en el mango, llamas de píxeles sobre el cuero y un colmillo con engarce de
+	-- magma colgando del collar.
+	for _, crack in
+		{
+			{ 0.1, 0.25, 0.5, 0.4 },
+			{ 0.3, -0.2, 0.45, -0.5 },
+			{ 0.45, 0.3, 0.3, 0.6 },
+		} :: { { number } }
+	do
+		block(
+			handle,
+			"Crack",
+			Vector3.new(0.07, crack[3], 0.05),
+			MAGMA,
+			NEON,
+			CFrame.new(crack[1], headY + crack[2], -1.385) * CFrame.Angles(0, 0, crack[4])
+		)
+	end
+	for sx = -1, 1, 2 do
+		for sy = -1, 1, 2 do
+			ball(handle, "SulfurRivet", 0.12, SULFUR, SMOOTH, CFrame.new(sx * 0.6, headY + sy * 0.55, -1.38))
+		end
+		lavaShard(handle, 0.7, 0.3, CFrame.new(sx * 0.92, headY, 0) * CFrame.Angles(0, 0, -sx * math.rad(90)))
+	end
+	for _, ringY in { 1.0, 1.25 } do
+		rod(handle, "BasaltRing", 0.14, 0.58, BASALT, BASALT_MATERIAL, CFrame.new(0, ringY, 0))
+		for sx = -1, 1, 2 do
+			ball(handle, "SulfurRivet", 0.1, SULFUR, SMOOTH, CFrame.new(sx * 0.29, ringY, 0))
+		end
+	end
+	for _, flame in
+		{
+			{ Vector3.new(0.28, -0.3, 0), MAGMA },
+			{ Vector3.new(-0.28, 0.3, 0.05), EMBER },
+			{ Vector3.new(0.1, 0, -0.28), MAGMA },
+		} :: { { any } }
+	do
+		block(handle, "Flame", Vector3.new(0.1, 0.22, 0.1), flame[2], NEON, CFrame.new(flame[1]))
+	end
+	block(handle, "Cord", Vector3.new(0.03, 0.3, 0.03), FIBER, FABRIC, CFrame.new(0.36, 2.0, 0))
+	ball(handle, "MagmaSetting", 0.14, MAGMA, NEON, CFrame.new(0.36, 1.82, 0))
+	tooth(handle, "Fang", 0.3, 0.1, 0.14, FANG, SMOOTH, CFrame.new(0.36, 1.62, 0) * CFrame.Angles(math.pi, 0, 0))
 	tool.Grip = CFrame.new(0, -0.2, 0)
 	return handle
 end
@@ -1420,6 +1465,10 @@ type BowStyle = {
 	plates: boolean, -- placas de hueso en la espalda de las palas (arco reforzado)
 	liana: boolean, -- palas envueltas en liana y hojas en las puntas (arco de liana)
 	fang: boolean, -- un colmillo colgado junto a las plumas
+	-- Rango IV ("Volcánico", con "lava"): anillos de azufre en las palas, llamita de píxeles y plumas de
+	-- fuego y negras en las puntas, remates y tachones de azufre en la empuñadura, anillos de obsidiana,
+	-- cuentas de azufre en la cuerda, brasas sueltas y un amuleto de cristal de obsidiana con lava.
+	volcanic: boolean?,
 	-- Arco de brasa: grietas de lava en las palas, esquirlas bañadas en lava en su lomo, puntas de
 	-- obsidiana con brasas que echan chispas, cuerda que brilla, aletas de obsidiana y runas de lava en
 	-- la empuñadura y una gota de lava que echa chispas.
@@ -1566,6 +1615,34 @@ local function buildBow(tool: Tool, style: BowStyle): BasePart
 				)
 			end
 		end
+		if style.volcanic then
+			band(middle, tip - middle, 0.1, SULFUR, SMOOTH)
+			band(tip, curl - tip, 0.1, SULFUR, SMOOTH)
+			block(
+				handle,
+				"Flame",
+				Vector3.new(0.07, 0.2, 0.07),
+				MAGMA,
+				NEON,
+				CFrame.new(-0.1, curl.Y + side * 0.12, curl.Z + 0.1)
+			)
+			block(
+				handle,
+				"Feather",
+				Vector3.new(0.04, 0.45, 0.12),
+				if side > 0 then MAGMA else FEATHER_BLACK,
+				SMOOTH,
+				CFrame.new(0.14, curl.Y + side * 0.25, curl.Z)
+			)
+			block(
+				handle,
+				"Feather",
+				Vector3.new(0.04, 0.4, 0.12),
+				if side > 0 then FEATHER_BLACK else EMBER,
+				SMOOTH,
+				CFrame.new(-0.14, curl.Y + side * 0.22, curl.Z - 0.08)
+			)
+		end
 		tipY, tipZ = tip.Y, tip.Z
 	end
 	local bowString =
@@ -1602,6 +1679,44 @@ local function buildBow(tool: Tool, style: BowStyle): BasePart
 		for _, y in { -1.5, -0.8, 0.8, 1.5 } do
 			ball(handle, "StringBead", 0.14, BONE, SMOOTH, CFrame.new(0, y, tipZ))
 		end
+	end
+
+	if style.volcanic then
+		-- Remates y tachones de azufre en la empuñadura, anillos de obsidiana inclinados, cuentas que brillan
+		-- en la cuerda y brasas sueltas.
+		for side = -1, 1, 2 do
+			block(handle, "SulfurEnd", Vector3.new(0.38, 0.14, 0.5), SULFUR, SMOOTH, CFrame.new(0, side * 0.6, 0))
+			ball(handle, "SulfurStud", 0.1, SULFUR, SMOOTH, CFrame.new(0, side * 0.32, -0.33))
+			rod(
+				handle,
+				"ObsidianRing",
+				0.1,
+				0.5,
+				OBSIDIAN,
+				SMOOTH,
+				CFrame.new(0, side * 0.42, 0) * CFrame.Angles(0.35, 0, 0)
+			)
+		end
+		for _, y in { -2.1, -1.2, 1.2, 2.1 } do
+			ball(handle, "StringBead", 0.14, SULFUR_GLOW, NEON, CFrame.new(0, y, tipZ))
+		end
+		for _, spark in { Vector3.new(0.27, 0.55, -0.25), Vector3.new(-0.3, -0.4, -0.3), Vector3.new(0.3, -0.2, -0.3) } do
+			block(handle, "Spark", Vector3.one * 0.07, EMBER, NEON, CFrame.new(spark))
+		end
+		-- Amuleto al otro lado de las plumas: cordón, cuenta de azufre y cristal de obsidiana con lava.
+		block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(-0.22, -0.55, 0))
+		ball(handle, "SulfurBead", 0.12, SULFUR, SMOOTH, CFrame.new(-0.22, -0.82, 0))
+		tooth(handle, "ObsidianCrystal", 0.3, 0.12, 0.14, OBSIDIAN, SMOOTH, CFrame.new(-0.22, -1.0, 0))
+		tooth(
+			handle,
+			"LavaCrystal",
+			0.2,
+			0.12,
+			0.14,
+			MAGMA,
+			NEON,
+			CFrame.new(-0.22, -1.25, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
 	end
 
 	if style.silver then
@@ -1712,6 +1827,10 @@ type BlowgunStyle = {
 	-- la savia, cierre de plata y dardos con anillo en la bolsita con una pluma colgando, hojas, más
 	-- conchas y un amuleto de cristal teal.
 	silver: boolean?,
+	-- Rango IV ("Volcánico", con "sulfur"): bandas de obsidiana, grietas de lava a lo largo de la caña, anillos
+	-- de azufre en la boquilla y en los dardos, cierre de obsidiana, respiraderos de basalto con tapón de
+	-- azufre en la boca, amuleto de obsidiana con lava y brasas sueltas.
+	volcanic: boolean?,
 }
 
 -- Cerbatana (médico): caña larga a lo largo de Y con la boquilla abajo, junto a la mano, y una bolsita
@@ -1902,6 +2021,68 @@ local function buildBlowgun(tool: Tool, style: BlowgunStyle): BasePart
 		local sap = handle.Parent and handle.Parent:FindFirstChild("Sap")
 		if sap and sap:IsA("BasePart") then
 			smoke(sap, 3, Color3.fromRGB(215, 200, 110))
+		end
+	end
+	if style.volcanic then
+		-- Bandas de obsidiana en la caña y en la empuñadura, y anillos de azufre en la boquilla.
+		for _, bandY in { 1.0, 2.1 } do
+			rod(handle, "ObsidianBand", 0.12, 0.3, OBSIDIAN, SMOOTH, CFrame.new(0, bandY, 0))
+		end
+		for _, bandY in { -0.55, -1.0 } do
+			rod(handle, "ObsidianBand", 0.07, 0.31, OBSIDIAN, SMOOTH, CFrame.new(0, bandY, 0))
+		end
+		for _, ringY in { -1.42, -1.22 } do
+			rod(handle, "SulfurRing", 0.05, 0.34, SULFUR, SMOOTH, CFrame.new(0, ringY, 0))
+		end
+		-- Grietas de lava en zigzag por el lado de la caña que no tiene la bolsita.
+		local crack = {
+			Vector3.new(-0.115, 0.3, 0.02),
+			Vector3.new(-0.115, 0.8, -0.03),
+			Vector3.new(-0.115, 1.3, 0.03),
+			Vector3.new(-0.115, 1.9, -0.02),
+			Vector3.new(-0.115, 2.5, 0.02),
+			Vector3.new(-0.115, 2.9, -0.01),
+		}
+		for index = 1, #crack - 1 do
+			strut(handle, "Crack", crack[index], crack[index + 1], 0.05, 0.05, MAGMA, NEON, Vector3.zAxis)
+		end
+		-- Bolsita: anillo de azufre en cada dardo, cierre de obsidiana y hebilla de azufre.
+		for index = -1, 1 do
+			local dart = CFrame.new(0.2, 0.2, index * 0.08) * CFrame.Angles(index * 0.15, 0, 0)
+			rod(handle, "SulfurBand", 0.05, 0.08, SULFUR, SMOOTH, dart * CFrame.new(0, 0.1, 0))
+		end
+		block(handle, "ObsidianClasp", Vector3.new(0.22, 0.08, 0.34), OBSIDIAN, SMOOTH, CFrame.new(0.2, 0.08, 0))
+		block(handle, "SulfurBuckle", Vector3.new(0.04, 0.14, 0.14), SULFUR, SMOOTH, CFrame.new(0.31, -0.05, 0))
+		-- Respiraderos de basalto con tapón de azufre que brilla junto a la boca.
+		for side = -1, 1, 2 do
+			rod(
+				handle,
+				"Vent",
+				0.22,
+				0.1,
+				BASALT,
+				BASALT_MATERIAL,
+				CFrame.new(side * 0.2, top - 0.08, 0) * CFrame.Angles(0, 0, -side * math.rad(90))
+			)
+			ball(handle, "VentCap", 0.12, SULFUR_GLOW, NEON, CFrame.new(side * 0.32, top - 0.08, 0))
+		end
+		-- Amuleto junto a la empuñadura: cordón, cuenta de azufre y cristal de obsidiana con lava.
+		block(handle, "Cord", Vector3.new(0.03, 0.3, 0.03), FIBER, FABRIC, CFrame.new(-0.19, -0.35, 0))
+		ball(handle, "SulfurBead", 0.12, SULFUR, SMOOTH, CFrame.new(-0.19, -0.62, 0))
+		tooth(handle, "ObsidianCrystal", 0.3, 0.12, 0.14, OBSIDIAN, SMOOTH, CFrame.new(-0.19, -0.78, 0))
+		tooth(
+			handle,
+			"LavaCrystal",
+			0.2,
+			0.12,
+			0.14,
+			MAGMA,
+			NEON,
+			CFrame.new(-0.19, -1.0, 0) * CFrame.Angles(math.pi, 0, 0)
+		)
+		-- Brasas sueltas.
+		for _, spark in { Vector3.new(0.3, 1.2, 0.2), Vector3.new(-0.3, 2.2, -0.2), Vector3.new(0.28, 2.7, -0.15) } do
+			block(handle, "Spark", Vector3.one * 0.07, EMBER, NEON, CFrame.new(spark))
 		end
 	end
 	tool.Grip = CFrame.new(0, -0.8, 0)
@@ -3532,6 +3713,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			liana = false,
 			fang = false,
 			lava = true,
+			volcanic = true,
 		})
 	end,
 	-- Caña de bambú con sus nudos, boquilla de madera y una bolsita de dardos.
@@ -3615,6 +3797,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			sap = true,
 			sapColor = SULFUR_GLOW,
 			sulfur = true,
+			volcanic = true,
 		})
 	end,
 	-- Rama retorcida con nudos y hojas que sujeta un cristal violeta.
@@ -3940,6 +4123,70 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 				end
 				for _, bandY in { -0.25, 1.55 } do
 					rod(handle, "Band", 0.06, 0.36, MAGMA, NEON, CFrame.new(0, bandY, 0))
+				end
+				-- Rango IV, el más rico: aro de azufre bajo el collar del que cuelgan dos colmillos grandes con
+				-- engarce de magma, anillo de gemas de lava y azufre bajo las garras, una púa de obsidiana
+				-- que afila cada garra, vetas de lava también por la espalda con dos gemas de azufre, dos brasas
+				-- detrás del cristal, y la base con una virola y una punta de obsidiana de la que gotea lava.
+				rod(handle, "SulfurRing", 0.08, 0.56, SULFUR, SMOOTH, CFrame.new(0, 2.0, 0))
+				for side = -1, 1, 2 do
+					block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(side * 0.26, 1.72, 0))
+					ball(handle, "MagmaSetting", 0.18, MAGMA, NEON, CFrame.new(side * 0.26, 1.38, 0))
+					tooth(
+						handle,
+						"Fang",
+						0.45,
+						0.14,
+						0.2,
+						FANG,
+						SMOOTH,
+						CFrame.new(side * 0.26, 1.07, 0) * CFrame.Angles(math.pi, 0, 0)
+					)
+				end
+				local crystalY = top + 0.6
+				for index = 0, 3 do
+					local angle = index * math.pi / 2 + math.pi / 4
+					local outward = Vector3.new(math.sin(angle), 0, math.cos(angle))
+					-- Púa que prolonga la punta de la garra hacia dentro y arriba.
+					shard(
+						handle,
+						0.3,
+						0.12,
+						CFrame.new(Vector3.new(0, crystalY + 0.51, 0) + outward * 0.223)
+							* CFrame.Angles(0, angle + math.pi, 0)
+							* CFrame.Angles(0.5, 0, 0)
+					)
+					-- Gema entre garras, justo bajo ellas.
+					local gemAngle = index * math.pi / 2
+					ball(
+						handle,
+						"Gem",
+						0.13,
+						if index % 2 == 0 then SULFUR_GLOW else MAGMA,
+						NEON,
+						CFrame.new(math.sin(gemAngle) * 0.23, top - 0.2, math.cos(gemAngle) * 0.23)
+					)
+				end
+				-- Vetas de lava por la espalda (+Z) con dos gemas de azufre engastadas.
+				local back = {
+					Vector3.new(-0.03, -1.5, 0.14),
+					Vector3.new(0.04, -0.5, 0.15),
+					Vector3.new(-0.03, 0.5, 0.14),
+					Vector3.new(0.04, 1.5, 0.15),
+				}
+				for index = 1, #back - 1 do
+					strut(handle, "Crack", back[index], back[index + 1], 0.06, 0.06, MAGMA, NEON, Vector3.xAxis)
+				end
+				for _, gemY in { 0.0, 1.15 } do
+					ball(handle, "Gem", 0.12, SULFUR_GLOW, NEON, CFrame.new(0, gemY, 0.17))
+				end
+				for _, spark in { Vector3.new(-0.3, 3.7, 0.5), Vector3.new(0.4, 2.3, 0.6) } do
+					block(handle, "Spark", Vector3.one * 0.09, EMBER, NEON, CFrame.new(spark))
+				end
+				rod(handle, "Ferrule", 0.3, 0.36, OBSIDIAN, SMOOTH, CFrame.new(0, -top + 0.3, 0))
+				shard(handle, 0.4, 0.2, CFrame.new(0, -top - 0.3, 0) * CFrame.Angles(math.pi, 0, 0))
+				for side = -1, 1, 2 do
+					lavaDrip(handle, 0.24, CFrame.new(side * 0.2, -top + 0.15, 0))
 				end
 				local crystal = handle.Parent and handle.Parent:FindFirstChild("Crystal")
 				if crystal and crystal:IsA("BasePart") then
