@@ -628,7 +628,7 @@ Decisiones del 28-10-2026:
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | 1887267 | ✅ Probado en Studio (sin probar: VERIFICACION §49) |
-| **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | — | ⏳ |
+| **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | 72203eb | ✅ Probado en Studio (sin probar: VERIFICACION §50) |
 | **A3** | Gigante en los 4 places, con vida según jugadores activos | — | ⏳ |
 | **A4** | Jefe en los 4 places, con premio fuera de la Isla | — | ⏳ |
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | — | ⏳ |
@@ -664,6 +664,13 @@ Decisiones del 28-10-2026:
 - **Verificación:** en Play, un segundo mantenimiento se rechaza y el programado se cancela; el jefe aparece junto al admin; el perfil dice si hay premium. Lo que necesite 2 servidores o 2 jugadores (avisos entre servidores) va a VERIFICACION §50.
 - **Flujo:** probar en Studio con `probador-studio` (copia de perfil antes), commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A2.»
+
+**Handoff de A3 (29-10-2026)**
+- **Estado:** A2 cerrada y subida (72203eb). A3 sin empezar. Siguiente número libre de VERIFICACION: §51. El tablero ya publica `Config.AdminTools.IslandStateAttribute` (JSON con `Giant`) y `Ser gigante` es un interruptor.
+- **Antes de escribir código:** pide al agente `search` el mapa de `GiantAdminService` (y su controlador de cliente), `Admin.luau` (`onIslandAction`), `BossService` (vida según jugadores) y las reglas de zona segura de cada place (`CombatRules`: Lobby, Dunas, Laboratorio).
+- **Objetivo:** ver la tanda A3 del plan (`GiantAdminService` a `src/combat/Services`, vida según jugadores activos, zona segura del Lobby suspendida, neutral en Dunas y Laboratorio, `Admin.luau` sin restringir a la Isla).
+- **Riesgo:** `AdminEventsService` (solo Isla) llama a `GiantAdminService.toggle`; al moverlo, la acción «Giant» debe llegar en los 4 places. El atributo de jugador `AdminBoss` lo lee `publishState`.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de A3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo A3.»
 
 ---
 
