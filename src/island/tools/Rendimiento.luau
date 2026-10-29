@@ -24,7 +24,7 @@
 --   5. Construibles (BuildModels) y estructuras de la parcela (PlotModels) a sus tres niveles.
 --   6. Armas del Laboratorio (LabWeaponModels y LabWeaponSkins): arma × bando × aspecto.
 --   7. Monos y jefes (island/server/Monkeys/MonkeyModels): piezas del modelo final, ya unido con UnionAsync.
---   8. Totales por escena (pendiente R5/R6).
+--   8. Totales por escena y el Lobby con 20 jugadores con y sin LOD de detalle (R5; el resto, R6).
 --   9. Pico de efectos por calidad (pendiente R6).
 --   10. Alertas: lo que, tras fusionar, pasa del presupuesto.
 -- Pendiente: los modelos de ViewportFrame (RewardModels) y los nodos del mapa (MapBuilder) se miden en R3.
@@ -576,8 +576,108 @@ local function main(copia: Instance): string
 			`| Todas | | {P.MovedPartsPerFrame} piezas movidas por fotograma, {P.MemoryMB} MB, servidor a {P.ServerFps} FPS |`
 		)
 		linea("")
-		linea("Pendiente R5/R6: simular la partida de cada escena (mapa, personajes con su equipo, mascotas, monturas")
-		linea("y estructuras) con las cifras de las secciones 1 a 7, y el Lobby con 20 y el LOD de detalle.")
+
+		-- Lobby con 20 y LOD de detalle (R5): el peor jugador posible (el equipo con más piezas de cada tipo) y
+		-- cuánto cuesta en los otros 19 con y sin DetailLodController. No cuenta el escenario del Lobby (lo genera
+		-- LobbyBuilder y no está en este place): es lo que los cosméticos se comen del tope de piezas.
+		linea("### Lobby con jugadores: cosméticos con y sin LOD de detalle")
+		local WeaponTools = require(copia.WeaponTools) :: any
+		local ArmorModels = require(copia.ArmorModels) :: any
+		local PetModels = require(copia.PetModels) :: any
+		local MountModels = require(copia.MountModels) :: any
+		local sinFusion = function(_: Instance) end
+		-- Se queda con la medida de más piezas tras fusionar.
+		local function mayor(actual: Medida?, nueva: Medida): Medida
+			return if actual == nil or nueva.tras > actual.tras then nueva else actual
+		end
+		local peor: { [string]: Medida? } = {}
+		local function probar(tipo: string, cuerpo: () -> Medida)
+			local ok, medida = pcall(cuerpo)
+			if ok then
+				peor[tipo] = mayor(peor[tipo], medida)
+			end
+		end
+		for rol in { Guerrero = 1, Cazador = 1, Mago = 1, Medico = 1 } do
+			probar("Armadura", function()
+				local personaje = r15Falso()
+				local pieza = ArmorModels.wear(personaje, ArmorModels.BY_GRADE[ArmorModels.MAX_GRADE], rol)
+				local medida = medir(pieza, fusionSoldada)
+				personaje:Destroy()
+				return medida
+			end)
+			probar("Arma", function()
+				local herramienta = WeaponTools.build(WeaponTools.roleWeapon(rol, WeaponTools.MAX_LEVEL))
+				local medida = medir(herramienta, fusionSoldada)
+				herramienta:Destroy()
+				return medida
+			end)
+		end
+		probar("Traje", function()
+			local mayorTraje: Medida? = nil
+			for _, id in claves(Cosmetics) do
+				local cosmetico = Cosmetics[id]
+				if cosmetico.kind == "Outfit" and cosmetico.rarity == "Mythic" then
+					local personaje = r15Falso()
+					local pieza = ArmorModels.wear(personaje, nil, cosmetico.role, id, ArmorModels.MAX_GRADE)
+					if pieza then
+						mayorTraje = mayor(mayorTraje, medir(pieza, fusionSoldada))
+					end
+					personaje:Destroy()
+				end
+			end
+			return assert(mayorTraje, "sin trajes míticos")
+		end)
+		for petId in Pets do
+			probar("Mascota", function()
+				local modelo = PetModels.build(petId)
+				local medida = medir(modelo, sinFusion)
+				modelo:Destroy()
+				return medida
+			end)
+		end
+		for mountId in Mounts do
+			probar("Montura", function()
+				local modelo = MountModels.build(mountId)
+				local medida = medir(modelo, fusionSoldada)
+				modelo:Destroy()
+				return medida
+			end)
+		end
+
+		linea("| Pieza del peor jugador | Piezas | De ellas, Detalle |")
+		linea("|---|---|---|")
+		local conDetalle, sinDetalle = 0, 0
+		for _, tipo in { "Armadura", "Traje", "Arma", "Mascota", "Montura" } do
+			local medida = peor[tipo]
+			if medida then
+				-- La armadura y el traje son alternativas: se cuenta el traje, que pesa más, y no los dos.
+				linea(`| {tipo} | {medida.tras} | {medida.detalle} |`)
+				if tipo ~= "Armadura" then
+					conDetalle += medida.tras
+					sinDetalle += medida.tras - medida.detalle
+				end
+			end
+		end
+		linea("")
+		local otros = B.Matches.LobbyPlayers - 1
+		linea("| Jugadores | Sin LOD | Con LOD (los otros lejos) | Ahorro |")
+		linea("|---|---|---|---|")
+		local sin = conDetalle * (otros + 1)
+		local con = conDetalle + sinDetalle * otros
+		linea(`| Yo + {otros} | {sin} | {con} | {sin - con} ({math.round((sin - con) / math.max(sin, 1) * 100)} %) |`)
+		linea("")
+		linea(
+			"Mascotas y monturas no se fusionan (R4 no compensó), así que no llevan piezas Detalle: el LOD no las toca."
+		)
+		if con > B.Matches.LobbyParts then
+			alerta(
+				`Lobby con {B.Matches.LobbyPlayers}: solo los cosméticos suman {con} piezas (tope {B.Matches.LobbyParts})`
+			)
+		end
+		linea("")
+		linea(
+			"Pendiente R6: simular la partida de cada escena (mapa, enemigos, estructuras) con las cifras de las secciones 1 a 7."
+		)
 	end)
 
 	-- ---------------------------------- 9. Efectos ----------------------------------

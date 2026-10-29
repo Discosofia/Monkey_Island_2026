@@ -2344,6 +2344,40 @@ Hecho en Studio: calculadora `Rendimiento` sin alertas, soldaduras y volumen igu
 1. [ ] Con admin, compara la pestaña «Rendimiento» de la Isla antes y después de construir varios edificios.
    ✅ Las piezas de estructuras suben menos que antes de R3 por edificio.
 
+## 43. Lo que queda por probar de R5: LOD de detalle (28-10-2026)
+
+Hecho en Studio con la calculadora `Rendimiento` (sección 8: Lobby con 20 jugadores, con y sin LOD). El LOD quita las piezas pequeñas (etiqueta Detalle, lado mayor menor de 0,35) de los personajes de los demás a más de 65 studs, y las devuelve a menos de 55. Falta lo que pide Play con varios jugadores, el teléfono y el juego publicado. Empieza por 43.1.
+
+#### 43.1 En el Studio de la Isla, en modo edición (calculadora)
+
+1. [ ] Ejecuta `Rendimiento` (`local m = game.ServerStorage.Tools.Rendimiento:Clone()`, `print(require(m).informe()); m:Destroy()`) y lee la sección 8.
+   ✅ Lobby con 20 jugadores: cosméticos de 21.500 piezas sin LOD a 17.168 con LOD (ahorro del 20 %). La sección "Alertas" no tiene ninguna. Mascotas y monturas no se fusionan y no llevan piezas Detalle, así que sus cifras no cambian.
+
+#### 43.2 Un jugador (▶ Jugar, en el Lobby o la Isla; haz antes una copia del perfil en `PlayerData_v1_backups`)
+
+1. [ ] Equipa una armadura o traje y un arma. Mira tu personaje de cerca y aleja la cámara todo lo que puedas.
+   ✅ Tu personaje conserva todas sus piezas pequeñas a cualquier distancia. Nada desaparece en tu propia pantalla.
+
+#### 43.3 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Lobby o la Isla)
+
+1. [ ] A lleva armadura o traje y arma equipados. B se queda a menos de 55 studs de A y mira su aspecto. Después B se aleja a más de 65 studs.
+   ✅ Las piezas pequeñas de A (Detalle) desaparecen en la pantalla de B y el resto de su aspecto sigue igual.
+2. [ ] B se mueve despacio entre 55 y 65 studs de A, de ida y vuelta durante unos 20 s.
+   ✅ Sin parpadeo: las piezas no aparecen ni desaparecen al cruzar esa franja.
+3. [ ] B vuelve a acercarse a menos de 55 studs de A.
+   ✅ Las piezas pequeñas de A reaparecen.
+4. [ ] B se queda a más de 65 studs. A cambia de arma y después de traje, sin acercarse a B.
+   ✅ Las piezas nuevas respetan el estado: en la pantalla de B no aparecen piezas Detalle. Al acercarse B, sí aparecen.
+5. [ ] B se queda a menos de 55 studs de A. A muere y reaparece.
+   ✅ Tras la reaparición no queda ninguna pieza invisible de A: se ve el aspecto completo.
+6. [ ] Si A tiene mascota o montura, B se aleja a más de 65 studs de A.
+   ✅ La mascota y la montura de A se ven igual a cualquier distancia: no pierden piezas.
+
+#### 43.4 En el teléfono, con el juego publicado (20 jugadores en el Lobby)
+
+1. [ ] Entra en el Lobby publicado en el teléfono con 20 jugadores dentro, y camina entre ellos.
+   ✅ No hay tirones al entrar los jugadores. El objetivo es 30 FPS estables en un móvil de gama baja.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
