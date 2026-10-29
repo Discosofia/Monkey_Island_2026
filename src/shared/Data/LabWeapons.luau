@@ -11,8 +11,8 @@
 --   "Entangle": enreda, con inmunidad al soltarse (Config.Lab.Net…).
 --   "AcidBurst": vuela en arco y estalla en un área que envenena (Config.Lab.Acid…; el veneno es "poison").
 --   nil: solo el daño. "zoom": el cliente acerca la vista al mantener apuntado (Config.Lab.RifleZoom…).
--- "pose": la animación de disparo de Data/WeaponAnimations que usa (el lanzadardos, la cerbatana; las demás
--- tienen la suya, Fase 15, V9). "sound": el efecto de Data/Sounds de su disparo.
+-- "pose": la animación de disparo de Data/WeaponAnimations que usa (cada una la suya, Fase 15, V9; el
+-- lanzadardos "LabDart" desde la Fase 19, W2). "sound": el efecto de Data/Sounds de su disparo.
 -- Cargador (Fase 15, V8): "magazine" balas y "reloadSeconds" para recargarlo (sola al vaciarse, o con la
 -- acción Recargar). "automatic": mantener el gatillo repite el disparo a su cadencia.
 -- "spread": dispersión en grados (cono de un disco uniforme) según la situación; sin "spread", exacta.
@@ -34,7 +34,7 @@ export type SpreadFields = {
 export type LabFields = {
 	effect: ("SlowStack" | "Entangle" | "AcidBurst")?,
 	zoom: boolean?,
-	pose: "Stone" | "Arrow" | "Spell" | "Dart" | "LabRifle" | "LabHarpoon" | "LabCannon",
+	pose: "Stone" | "Arrow" | "Spell" | "Dart" | "LabDart" | "LabRifle" | "LabHarpoon" | "LabCannon",
 	magazine: number,
 	reloadSeconds: number,
 	automatic: boolean?,
@@ -73,7 +73,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabDart",
 		lab = {
 			effect = "SlowStack",
-			pose = "Dart",
+			pose = "LabDart",
 			magazine = 24,
 			reloadSeconds = 1.6,
 			automatic = true,

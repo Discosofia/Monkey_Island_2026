@@ -59,7 +59,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
+local WeaponAim = require(ReplicatedStorage.Shared.Data.WeaponAim)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
+local WeaponAnimationIds = require(script.Parent.Parent.WeaponAnimationIds)
 local CameraShake = require(script.Parent.Parent.CameraShake)
 local Movement = require(script.Parent.Parent.Movement)
 
@@ -806,7 +808,7 @@ local SHOT_FX: { [string]: (character: Model) -> () } = {
 
 -- La animación de disparo de cada arma del Laboratorio (para el retraso del fogonazo hasta el marcador).
 local LAB_SHOT_POSE: { [string]: string } = {
-	LabDart = "Dart",
+	LabDart = "LabDart",
 	LabBanana = "LabRifle",
 	LabNet = "LabHarpoon",
 	LabAcid = "LabCannon",
@@ -847,10 +849,24 @@ end
 local function weaponShotFx(character: Model?, projectile: string?, finisher: boolean?)
 	local key = projectile or "Stone"
 	local effect = SHOT_FX[key]
-	if not (character and (effect or finisher)) then
+	if not character then
 		return
 	end
-	local data = WeaponAnimations[LAB_SHOT_POSE[key] or key]
+	local pose = LAB_SHOT_POSE[key] or key
+	-- El disparo ajeno: su pista, una vez (el propio cliente ya la reproduce en WeaponController.shoot; si la
+	-- replicada ya suena, no se duplica).
+	if character ~= Players.LocalPlayer.Character then
+		local id = WeaponAnimationIds.get(pose)
+		local fallback = WeaponAim.Fallback[pose]
+		if not id and fallback then
+			id = WeaponAnimationIds.get(fallback)
+		end
+		BodyAnimations.playIdOn(character, id, Enum.AnimationPriority.Action2, false, 1)
+	end
+	if not (effect or finisher) then
+		return
+	end
+	local data = WeaponAnimations[pose]
 	task.wait(if data then data.fxDelay or 0 else 0)
 	if not character.Parent then
 		return

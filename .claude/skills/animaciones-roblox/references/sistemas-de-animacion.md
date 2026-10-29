@@ -112,9 +112,11 @@ aullador (15), el mandril (15), el orangután (12) y el gorila (15) andan. `Run`
 ## 3. Personaje del jugador con armas
 
 `WeaponAnimationBuilder` genera desde código las animaciones de las armas (R15): `Hold` (brazo
-derecho colgando con el arma, en bucle, prioridad Action), un disparo por tipo de proyectil (`Stone`
-honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana; prioridad Action2) y los 4 tajos de la cadena
-cuerpo a cuerpo (`Slash1`–`Slash4`, Action2) y la pose de guardia (`Guard`, en bucle, Action3).
+derecho colgando con el arma, en bucle, prioridad Action: es el arma bajada al correr), un disparo por
+tipo de proyectil (`Stone` honda, `Arrow` arco, `Spell` bastón, `Dart` cerbatana, y `LabRifle`,
+`LabHarpoon`, `LabCannon`, `LabDart` del Laboratorio; prioridad Action2), una pista de apuntar en bucle
+por arma a distancia (`Aim<X>`, abajo), los 4 tajos de la cadena cuerpo a cuerpo (`Slash1`–`Slash4`,
+Action2) y la pose de guardia (`Guard`, en bucle, Action3).
 
 - **Los tajos** (C4) son specs como los de `PlayerAnimationBuilder` (`SLASHES`, grados de
   `CFrame.Angles`), no `joint()`. `WeaponController` los estira a lo que dura cada paso de la cadena,
@@ -145,8 +147,17 @@ cuerpo a cuerpo (`Slash1`–`Slash4`, Action2) y la pose de guardia (`Guard`, en
   `CFrame.Angles(0, swing, 0) * CFrame.Angles(raise, 0, 0)` (primero sube y luego abre), y al
   brazo derecho se le suma la base de 90° (`BASE`). Por eso `Anim.dump` de un disparo da números
   como `{ 86.78, -3.83, 49.89 }` para un `joint(85, -50)`: no los copies de vuelta al generador.
-- Los disparos empiezan y acaban en la pose `Hold`, no en reposo: los avisos de `Anim.show` sobre
-  eso son esperados.
+- **Apuntar (Fase 19, W2).** Cada arma a distancia tiene una pista en bucle `Aim<X>` (`AimStone`,
+  `AimBow`, `AimSpell`, `AimBlowgun`, `AimDartGun`, `AimRifle`, `AimHarpoon`, `AimCannon`).
+  `Data/WeaponAim.AimOf` dice qué pista es de cada disparo (`Stone` → `AimStone`, `LabDart` → `AimDartGun`…).
+  Se mantiene mientras el arma está equipada; corriendo, vuelve a `Hold`. Los disparos empiezan y
+  acaban en esa pose, no en `Hold`: los avisos de `Anim.show` sobre eso son esperados.
+- **Preparación (`ready` y `readyAim` en `SHOTS`).** Stone, Spell y Dart preparan el arma antes del
+  disparo: sale a la elevación `readyAim` (grados) en la pose `ready`. Sin `ready`, se apunta con `pose`.
+- **Respaldo replicado.** `combat/Services/WeaponPoseService` pone el atributo `AimPose` del `Player`
+  (la pista que suena, o `""` si no lleva arma a distancia). `RemoteWeaponPoseController` la reproduce
+  en los demás clientes si la animación replicada de Roblox no llega; `BodyAnimations.playIdOn` evita
+  sonar dos veces la misma pista. Los ids salen de `combatClient/WeaponAnimationIds`.
 - Generar y ver:
   ```lua
   Anim.freshRequire("ServerStorage.Tools.WeaponAnimationBuilder").build()
@@ -159,9 +170,10 @@ cuerpo a cuerpo (`Slash1`–`Slash4`, Action2) y la pose de guardia (`Guard`, en
   ese id temporalmente (díselo; no lo dejes vacío al cerrar).
 - Tras publicar, el id nuevo va en `Data/WeaponAnimations` (con el mismo `fxDelay` si el golpe no
   se movió).
-- **Poses del Laboratorio (V9):** `LabRifle`, `LabHarpoon` y `LabCannon` salen del mismo `SHOTS`, pero sus ids
-  están vacíos hasta publicarlas desde el Studio de la Isla (clic derecho > *Save to Roblox*, con el dueño del juego).
-  El lanzadardos sigue con `Dart`.
+- **Poses del Laboratorio (V9):** `LabRifle`, `LabHarpoon` y `LabCannon` salen del mismo `SHOTS` y ya tienen su
+  id publicado. `LabDart` (el lanzadardos, W2) tiene el id vacío hasta publicarlo desde el Studio de la Isla
+  (clic derecho > *Save to Roblox*, con el dueño del juego); fuera de Studio, mientras esté vacío, usa `Dart`
+  (`Data/WeaponAim.Fallback`).
 - La vista propia del Laboratorio no usa `AnimationTrack`: es un modelo en la cámara que `FirstPersonController`
   mueve por código (retroceso, recarga y sacar el arma), así que no pasa por estas poses.
 

@@ -51,6 +51,11 @@ function Stamina.setSprinting(value: boolean)
 	end
 end
 
+-- true si el jugador corre ahora (WeaponController baja el arma al correr).
+function Stamina.isSprinting(): boolean
+	return sprinting
+end
+
 -- Llamado cada frame por LocomotionController. "regenFactor" multiplica el ritmo
 -- de recuperación (1 si no se pasa).
 function Stamina.update(deltaTime: number, regenFactor: number?)

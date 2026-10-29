@@ -1,6 +1,6 @@
 # Animaciones (resumen de la skill animaciones-roblox)
 
-<!-- Fuente: .claude/skills/animaciones-roblox/SKILL.md, 28-10-2026. Detalles: references/sistemas-de-animacion.md y docs/ANIMACIONES.md (recetas por acción). -->
+<!-- Fuente: .claude/skills/animaciones-roblox/SKILL.md, 29-10-2026. Detalles: references/sistemas-de-animacion.md y docs/ANIMACIONES.md (recetas por acción). -->
 
 ## Antes de empezar
 
@@ -58,7 +58,8 @@ return Anim.measure(rig, ks)      -- altura de cada extremidad por instante
 
 ## Armas del Laboratorio
 
-- Las poses `LabRifle`, `LabHarpoon` y `LabCannon` son de `WeaponAnimationBuilder`, como las demás armas. Sus ids están vacíos hasta que el usuario las publique desde el Studio de la Isla.
+- Las poses `LabRifle`, `LabHarpoon` y `LabCannon` son de `WeaponAnimationBuilder`, como las demás armas, y ya tienen id. `LabDart` (lanzadardos) tiene el id vacío hasta que el usuario lo publique desde el Studio de la Isla; fuera de Studio usa `Dart`.
+- Armas a distancia (Fase 19 W2): cada una tiene una pista en bucle `Aim<X>` (`Data/WeaponAim.AimOf`) que se mantiene equipada; los disparos empiezan y acaban en ella, no en `Hold` (que es el arma bajada al correr). Los demás la ven por el atributo `AimPose`.
 - La vista propia del Laboratorio no es un `AnimationTrack`: es un modelo en la cámara que `FirstPersonController` mueve por código.
 
 ## Monturas

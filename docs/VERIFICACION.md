@@ -3047,3 +3047,43 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
 
 1. [ ] Embiste con el Guerrero varias veces en campo abierto.
    ✅ Hay un empujón de FOV y una sacudida corta al cargar. Se siente bien: ni molesta ni marea, y la vibración para al terminar la embestida.
+
+## 75. Fase 19 W2: pose de apuntar visible para todos (29-10-2026)
+
+**Publicar (lo hace el usuario, en el Studio de la Isla):**
+
+1. [ ] Ejecuta `require(game.ServerStorage.Tools.WeaponAnimationBuilder).build()` (con la copia fresca si hace falta). En `ReplicatedStorage.WeaponAnimations`, clic derecho > *Save to Roblox*, con el mismo dueño que el juego, en estas 16: AimStone, AimBow, AimSpell, AimBlowgun, AimDartGun, AimRifle, AimHarpoon, AimCannon, LabDart, y vuelve a publicar Stone, Arrow, Spell, Dart, LabRifle, LabHarpoon y LabCannon (empiezan y acaban en la pose de apuntar). Pega los 16 ids en `src/shared/Data/WeaponAnimations.luau` y guarda el place.
+   ✅ Los 16 ids quedan pegados; los Aim* y LabDart ya no están vacíos. Mientras alguno esté vacío, fuera de Studio se usa Hold, y LabDart cae en Dart.
+
+**2 jugadores en Studio (Clients and Servers) o publicado:**
+
+1. [ ] Con el otro jugador mirando, equipa cada arma a distancia (Honda, Arco, Bastón, Cerbatana y las 4 del Laboratorio) y quédate quieto.
+   ✅ Se le ve con el arma al frente todo el tiempo, en la pose de apuntar de cada una.
+2. [ ] Corre con el arma equipada.
+   ✅ El arma baja (Hold, brazo colgando) mientras corres.
+3. [ ] Para de correr.
+   ✅ El arma vuelve al frente en unos 0,15 s.
+4. [ ] Desequipa el arma, cae o muere con ella en la mano.
+   ✅ No queda ninguna pose en el personaje: el brazo vuelve al cuerpo.
+5. [ ] Dispara varias veces con cada arma a distancia.
+   ✅ Cada disparo se ve con su animación en el otro jugador, una sola vez: no se duplica (una sola pista por id).
+6. [ ] Dispara con el lanzadardos del Laboratorio.
+   ✅ Se ve su disparo corto propio, distinto del de la cerbatana.
+
+**Un jugador, en Play:**
+
+1. [ ] En la Isla y en Dunas, equipa un arma a distancia y anda (tercera persona). Dispara.
+   ✅ La pose de apuntar se mantiene también andando; el disparo sale de ella y vuelve a ella.
+2. [ ] En el Laboratorio (primera persona), equipa cada arma y dispara.
+   ✅ No cambia lo que ves respecto a antes de W2.
+
+**Publicado:**
+
+1. [ ] Abre el juego publicado y equipa las armas a distancia.
+   ✅ Los ids cargan (mismo dueño): las poses se reproducen.
+2. [ ] Apunta con cada arma en tercera persona.
+   ✅ El brazo no sale colgando al apuntar.
+3. [ ] Mira la consola mientras usas las armas.
+   ✅ El aviso `ContentId: rbxassetid://203785492 failed … Asset type does not match requested type` (salió 3 veces, de origen desconocido y quizá anterior a W2) no aparece al usar las armas. Si sigue saliendo, se anota aparte: no es de W2.
+
+Nota: el disparo real (clic) no se pudo lanzar desde el MCP. Hay que probarlo a mano en los pasos de disparo de arriba.

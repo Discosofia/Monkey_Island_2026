@@ -5,9 +5,12 @@
 --   require(game.ServerStorage.Tools.WeaponAnimationBuilder).build()
 --
 -- Crea (o sustituye) ReplicatedStorage.WeaponAnimations con una KeyframeSequence por animación de
--- Shared/Data/WeaponAnimations: "Hold" (brazo derecho colgando con el arma, en bucle), un disparo
--- por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart" cerbatana; y las del Laboratorio,
--- "LabRifle", "LabHarpoon" y "LabCannon", Fase 15, V9) y los 4 tajos de
+-- Shared/Data/WeaponAnimations: "Hold" (brazo derecho colgando con el arma, en bucle; ahora es el arma
+-- bajada al correr), un disparo por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart"
+-- cerbatana; y las del Laboratorio, "LabDart", "LabRifle", "LabHarpoon" y "LabCannon", Fase 15, V9), la pose
+-- de apuntar en bucle de cada una ("AimStone", "AimBow", "AimSpell", "AimBlowgun", "AimDartGun", "AimRifle",
+-- "AimHarpoon", "AimCannon"; Data/WeaponAim, Fase 19 W2: es la pose del disparo sostenida, y los disparos
+-- empiezan y acaban en ella) y los 4 tajos de
 -- la cadena de golpes cuerpo a cuerpo ("Slash1"–"Slash4", Shared/MeleeChain) y la pose de guardia
 -- ("Guard", Combat/Guard).
 -- Para probarlas basta con pulsar Play: en Studio, WeaponController usa estas secuencias mientras
@@ -33,6 +36,7 @@ local function freshRequire(module: ModuleScript): any
 end
 
 local WeaponAnimations = freshRequire(ReplicatedStorage.Shared.Data.WeaponAnimations)
+local WeaponAim = freshRequire(ReplicatedStorage.Shared.Data.WeaponAim)
 local Config = freshRequire(ReplicatedStorage.Shared.Config)
 -- Se toma al cargar el módulo: build() corre en una copia que freshRequire ya ha sacado del árbol.
 local MonkeyAnimationBuilder =
@@ -87,6 +91,11 @@ type Shot = {
 	-- Elevación (grados) a la que apunta el arma con la pose puesta: la muñeca se gira lo que haga falta.
 	-- Sin "aim", la muñeca no se toca (las armas que apuntan a la boca o al cielo a propósito).
 	aim: number?,
+	-- Pose de apuntar sostenida (Fase 19, W2) cuando "pose" es una preparación que no apunta (honda, bastón,
+	-- cerbatana): el arma al frente. El disparo sale de ella, prepara con "pose" y vuelve. Sin "ready", se apunta
+	-- con "pose". "readyAim": elevación (grados) del arma en "ready", como "aim".
+	ready: { [string]: CFrame }?,
+	readyAim: number?,
 	-- El golpe empieza en el "fxDelay" de Shared/Data/WeaponAnimations (marcador "Disparo").
 }
 
@@ -109,6 +118,15 @@ local SHOTS: { [string]: Shot } = {
 			RightLowerArm = joint(-30),
 			LeftUpperArm = joint(-10, 30),
 		},
+		-- Apuntando: el brazo derecho estirado al frente con la honda y la mano izquierda con la goma a medio tensar.
+		ready = {
+			RightUpperArm = joint(-6, 6),
+			RightLowerArm = joint(8),
+			LeftUpperArm = joint(-4, -32),
+			LeftLowerArm = joint(55),
+			Head = joint(-3),
+		},
+		readyAim = 75, -- la horquilla de la honda sube, como se apunta una tirachinas
 		seconds = 0.65,
 		raise = 0.12,
 		pulseSeconds = 0.18,
@@ -120,8 +138,8 @@ local SHOTS: { [string]: Shot } = {
 			UpperTorso = joint(0, 20),
 			Head = joint(-4, -20),
 			RightUpperArm = joint(18, -20),
-			LeftUpperArm = joint(85, -50),
-			LeftLowerArm = joint(110),
+			LeftUpperArm = joint(100, -50), -- la mano de la cuerda llega al mentón con el codo hacia fuera
+			LeftLowerArm = joint(70, -60),
 		},
 		pulse = {
 			UpperTorso = joint(0, -8),
@@ -148,6 +166,15 @@ local SHOTS: { [string]: Shot } = {
 			RightLowerArm = joint(-30),
 			LeftUpperArm = joint(25),
 		},
+		-- Apuntando: el bastón al frente, un poco hacia arriba, con la otra mano a media caña.
+		ready = {
+			UpperTorso = joint(2),
+			RightUpperArm = joint(-8, 10),
+			RightLowerArm = joint(30),
+			LeftUpperArm = joint(-2, -24),
+			LeftLowerArm = joint(40),
+		},
+		readyAim = 30,
 		seconds = 0.6,
 		raise = 0.12,
 		pulseSeconds = 0.18,
@@ -166,6 +193,15 @@ local SHOTS: { [string]: Shot } = {
 			Head = joint(-8),
 			RightUpperArm = joint(-12),
 		},
+		-- Apuntando: la caña al frente a la altura de la boca, sujeta con las dos manos y la cabeza baja hacia ella.
+		ready = {
+			RightUpperArm = joint(-18, 24),
+			RightLowerArm = joint(68),
+			LeftUpperArm = joint(-10, -30),
+			LeftLowerArm = joint(70),
+			Head = joint(-10),
+		},
+		readyAim = 6,
 		seconds = 0.55,
 		raise = 0.14,
 		pulseSeconds = 0.14,
@@ -175,8 +211,8 @@ local SHOTS: { [string]: Shot } = {
 	LabRifle = {
 		pose = {
 			Head = joint(-4),
-			RightUpperArm = joint(-30, 10),
-			RightLowerArm = joint(40),
+			RightUpperArm = joint(-14, 10),
+			RightLowerArm = joint(55),
 			LeftUpperArm = joint(80, -38),
 			LeftLowerArm = joint(28),
 		},
@@ -189,6 +225,25 @@ local SHOTS: { [string]: Shot } = {
 		raise = 0.08,
 		pulseSeconds = 0.2,
 		aim = 4,
+	},
+	-- Lanzadardos del Laboratorio: subfusil compacto a dos manos, culata al hombro (como el rifle pero más
+	-- recogido); al disparar, solo un respingo corto del torso y del hombro.
+	LabDart = {
+		pose = {
+			Head = joint(-3),
+			RightUpperArm = joint(-18, 8),
+			RightLowerArm = joint(52),
+			LeftUpperArm = joint(78, -34),
+			LeftLowerArm = joint(30),
+		},
+		pulse = {
+			UpperTorso = joint(-2.5),
+			RightUpperArm = joint(-4),
+		},
+		seconds = 0.3,
+		raise = 0.04,
+		pulseSeconds = 0.08,
+		aim = 3,
 	},
 	-- Lanzarredes del Laboratorio: al costado, con una mano delante; al disparar, el torso se echa atrás.
 	LabHarpoon = {
@@ -513,16 +568,17 @@ local function buildHold(): KeyframeSequence
 	return sequence
 end
 
--- Un disparo: reposo (como Hold) → pose → golpe (ida y vuelta) → pose → reposo.
-local function buildShot(name: string, shot: Shot, pulseAt: number): KeyframeSequence
-	local sequence = newSequence(name, Enum.AnimationPriority.Action2, false)
+-- Las piezas que mueve el disparo y sus dos poses: "posed" (apuntando, con la base del brazo ya sumada) y
+-- "peak" (lo más fuerte del golpe). La pista de apuntar (Aim*) es "posed" sostenida.
+local function shotPoses(
+	shot: Shot
+): ({ [string]: boolean }, { [string]: CFrame }, { [string]: CFrame }, { [string]: CFrame })
 	local animated: { [string]: boolean } = {}
-	for _, list in { shot.pose, shot.pulse, HOLD } do
+	for _, list in { shot.pose, shot.pulse, shot.ready or shot.pose, HOLD } do
 		for part in list do
 			animated[part] = true
 		end
 	end
-	local rest: { [string]: CFrame } = table.clone(HOLD)
 	local pose = table.clone(shot.pose)
 	local pulse = table.clone(shot.pulse)
 	if shot.aim then
@@ -545,12 +601,46 @@ local function buildShot(name: string, shot: Shot, pulseAt: number): KeyframeSeq
 		posed[part] = current * base
 		peak[part] = current * (pulse[part] or CFrame.new()) * base
 	end
-	addKeyframe(sequence, 0, rest, animated)
+	-- Apuntando: "ready" (si tiene) con la muñeca puesta para que el arma salga a la elevación "readyAim".
+	local ready = posed
+	if shot.ready then
+		if shot.readyAim then
+			animated.RightHand = true
+		end
+		local aimed = table.clone(shot.ready)
+		if shot.readyAim then
+			local upper = select(1, (aimed.RightUpperArm or CFrame.new()):ToEulerAnglesYXZ())
+			local lower = select(1, (aimed.RightLowerArm or CFrame.new()):ToEulerAnglesYXZ())
+			aimed.RightHand = joint(shot.readyAim - (math.deg(upper) + 90 + math.deg(lower)))
+		end
+		ready = {}
+		for part in animated do
+			ready[part] = (aimed[part] or CFrame.new()) * (BASE[part] or CFrame.new())
+		end
+	end
+	return animated, ready, posed, peak
+end
+
+-- La pose de apuntar de un arma (Fase 19, W2): en bucle, la misma "posed" del disparo, con prioridad Action
+-- (como Hold, por debajo del disparo y de los tajos).
+local function buildAim(name: string, shot: Shot): KeyframeSequence
+	local sequence = newSequence(name, Enum.AnimationPriority.Action, true)
+	local animated, ready = shotPoses(shot)
+	addKeyframe(sequence, 0, ready, animated)
+	addKeyframe(sequence, 1, ready, animated)
+	return sequence
+end
+
+-- Un disparo: pose de apuntar → golpe (ida y vuelta) → pose de apuntar (empieza y acaba apuntando).
+local function buildShot(name: string, shot: Shot, pulseAt: number): KeyframeSequence
+	local sequence = newSequence(name, Enum.AnimationPriority.Action2, false)
+	local animated, ready, posed, peak = shotPoses(shot)
+	addKeyframe(sequence, 0, ready, animated)
 	addKeyframe(sequence, shot.raise, posed, animated)
 	addKeyframe(sequence, pulseAt, posed, animated, MARKER)
 	addKeyframe(sequence, pulseAt + shot.pulseSeconds / 2, peak, animated)
 	addKeyframe(sequence, pulseAt + shot.pulseSeconds, posed, animated)
-	addKeyframe(sequence, shot.seconds, rest, animated)
+	addKeyframe(sequence, shot.seconds, ready, animated)
 	return sequence
 end
 
@@ -571,6 +661,9 @@ function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 		local data = WeaponAnimations[name]
 		assert(data and data.fxDelay, `[WeaponAnimationBuilder] Falta "{name}" con fxDelay en Data/WeaponAnimations`)
 		buildShot(name, shot, data.fxDelay).Parent = folder
+		local aimName = WeaponAim.AimOf[name]
+		assert(aimName and WeaponAnimations[aimName], `[WeaponAnimationBuilder] Falta la pista de apuntar de "{name}"`)
+		buildAim(aimName, shot).Parent = folder
 	end
 	for name, spec in SLASHES do
 		assert(WeaponAnimations[name], `[WeaponAnimationBuilder] Falta "{name}" en Data/WeaponAnimations`)
@@ -593,7 +686,8 @@ function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 	folder.Parent = ReplicatedStorage
 	print(
 		"[WeaponAnimationBuilder] Listo: ReplicatedStorage.WeaponAnimations (Hold, Stone, Arrow, Spell, Dart, "
-			.. "LabRifle, LabHarpoon, LabCannon, Slash1–Slash4, Guard).\n"
+			.. "LabRifle, LabHarpoon, LabCannon, LabDart, AimStone, AimBow, AimSpell, AimBlowgun, AimDartGun, "
+			.. "AimRifle, AimHarpoon, AimCannon, Slash1–Slash4, Guard).\n"
 			.. "  Pruébalas con Play (en Studio se usan mientras su id esté vacío).\n"
 			.. "  Para publicarlas: clic derecho en cada una > Save to Roblox, y pega cada id en\n"
 			.. "  src/shared/Data/WeaponAnimations.luau (con el mismo dueño que el juego)."

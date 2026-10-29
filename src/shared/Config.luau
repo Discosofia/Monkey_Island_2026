@@ -396,6 +396,14 @@ local Config = {
 		FinisherShakeStuds = 0.25,
 	},
 
+	-- Pose de apuntar de las armas a distancia (Fase 19, W2; WeaponController): se mantiene mientras están
+	-- equipadas, y al correr el arma baja a Hold y vuelve al parar.
+	WeaponPose = {
+		AimFadeSeconds = 0.15, -- fundido al sacar el arma y al volver a apuntar tras correr
+		LowerFadeSeconds = 0.15, -- fundido al bajar el arma al empezar a correr
+		LowerWhileSprinting = true,
+	},
+
 	-- Disparo de remate de las armas a distancia (C9b; Shared/RangedChain): el Length.º disparo seguido al
 	-- mismo ritmo es un remate, un proyectil distinto que se ve y se puede esquivar. Cada arma dice el
 	-- suyo ("finisher" en Data/Weapons). Los normales hacen "shot" × el daño del arma y el remate

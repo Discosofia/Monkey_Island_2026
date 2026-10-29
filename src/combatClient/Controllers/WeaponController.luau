@@ -9,11 +9,12 @@
 -- Amago (C8, CombatClient/Feint): pulsar la guardia durante la preparación de un tajo lo corta y la
 -- cadena vuelve al primer golpe. Mientras se prepara una habilidad no se pega.
 -- Las de distancia (R15) usan las animaciones de Shared/Data/WeaponAnimations: con el arma en la
--- mano, el brazo derecho cuelga junto al cuerpo ("Hold", en bucle) y al disparar hace el movimiento
+-- mano se mantiene su pose de apuntar ("Aim*", en bucle; Data/WeaponAim) y al disparar hace el movimiento
 -- de su tipo de arma (tensar el arco, estirar la honda, lanzar el hechizo, soplar la cerbatana),
--- con más prioridad que la pose de empuñar de Roblox. Como son animaciones del personaje del propio
--- jugador, los demás también las ven; la bocanada y el destello (AbilityFxController,
--- "WeaponShotFx") se los manda el servidor.
+-- con más prioridad que la pose de empuñar de Roblox. Corriendo, el arma baja ("Hold": el brazo colgando)
+-- y vuelve a apuntar al parar (Config.WeaponPose; Fase 19, W2). Sin la pista de apuntar publicada, se
+-- queda en Hold. Los demás las ven por el atributo "AimPose" del servidor (RemoteWeaponPoseController);
+-- la bocanada y el destello (AbilityFxController, "WeaponShotFx") también se los manda el servidor.
 -- Disparo de remate (C9b, Shared/RangedChain): aquí se predice la cuenta de disparos seguidos para que
 -- el destello del remate salga al momento; el proyectil y lo que hace los decide el servidor.
 -- Laboratorio (Fase 13, Data/LabWeapons): cada arma dispara con la animación de su "pose", y el rifle
@@ -25,7 +26,6 @@
 -- Las automáticas ("lab.automatic") repiten el disparo a su cadencia mientras se mantiene el gatillo.
 
 local CollectionService = game:GetService("CollectionService")
-local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -41,7 +41,7 @@ local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
-local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
+local WeaponAim = require(ReplicatedStorage.Shared.Data.WeaponAim)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local AbilityFxController = require(script.Parent.AbilityFxController)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
@@ -49,15 +49,14 @@ local Aim = require(script.Parent.Parent.Aim)
 local CameraShake = require(script.Parent.Parent.CameraShake)
 local Feint = require(script.Parent.Parent.Feint)
 local LabShooting = require(script.Parent.Parent.LabShooting)
+local Stamina = require(script.Parent.Parent.Stamina)
+local WeaponAnimationIds = require(script.Parent.Parent.WeaponAnimationIds)
 
 -- Tajo estándar de Roblox, por si el personaje no trae el suyo en su script Animate.
 local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
 	[Enum.HumanoidRigType.R15] = "rbxassetid://522635514",
 	[Enum.HumanoidRigType.R6] = "rbxassetid://129967390",
 }
--- Secuencias que deja en ReplicatedStorage el generador (ServerStorage.Tools.WeaponAnimationBuilder).
-local STUDIO_FOLDER = "WeaponAnimations"
-local HOLD_FADE = 0.15
 local SHAKE_SECONDS = 0.15
 local ZOOM_ACTION = "Zoom"
 local ZOOM_SECONDS = 0.15
@@ -69,8 +68,6 @@ local slashTrack: AnimationTrack? = nil
 local lastSwingAt = -math.huge
 -- Animaciones de armas ya cargadas en el personaje actual, por clave.
 local weaponTracks: { [string]: AnimationTrack } = {}
--- Ids temporales de Studio de las secuencias generadas, por clave (se registran una vez).
-local studioIds: { [string]: string } = {}
 -- Predicción de la cadena de golpes (el servidor lleva la suya con los mismos tiempos).
 local chain = MeleeChain.newState()
 local buffered = false
@@ -108,36 +105,6 @@ local function playSwing(character: Model, weapon: Weapons.WeaponDefinition)
 	end
 end
 
--- Id de la animación "key": el publicado o, en Studio y mientras esté vacío, uno temporal de la
--- secuencia generada. nil si no hay ninguno.
-local function animationId(key: string): string?
-	local data = WeaponAnimations[key]
-	if data and data.id ~= "" then
-		return data.id
-	end
-	if not RunService:IsStudio() then
-		return nil
-	end
-	local cached = studioIds[key]
-	if cached then
-		return cached
-	end
-	local folder = ReplicatedStorage:FindFirstChild(STUDIO_FOLDER)
-	local sequence = if folder then folder:FindFirstChild(key) else nil
-	if not (sequence and sequence:IsA("KeyframeSequence")) then
-		return nil
-	end
-	local ok, result = pcall(function()
-		return KeyframeSequenceProvider:RegisterKeyframeSequence(sequence)
-	end)
-	if not ok then
-		warn(`[WeaponController] No se pudo usar la animación "{key}" generada: {result}`)
-		return nil
-	end
-	studioIds[key] = result
-	return result
-end
-
 -- Carga (una vez por personaje) la animación de arma "key". Solo R15.
 local function weaponTrack(character: Model, key: string): AnimationTrack?
 	local cached = weaponTracks[key]
@@ -149,7 +116,7 @@ local function weaponTrack(character: Model, key: string): AnimationTrack?
 	if not (humanoid and animator and humanoid.RigType == Enum.HumanoidRigType.R15) then
 		return nil
 	end
-	local id = animationId(key)
+	local id = WeaponAnimationIds.get(key)
 	if not id then
 		return nil
 	end
@@ -164,11 +131,13 @@ local function weaponTrack(character: Model, key: string): AnimationTrack?
 	end
 	-- El disparo y los tajos van por encima del brazo colgando, y todos por encima de la pose de empuñar.
 	-- La guardia (GuardController), por encima de todo.
-	track.Priority = if key == "Hold"
+	-- Las poses de apuntar (Aim*, en bucle) van al nivel de Hold: el disparo las tapa.
+	local aiming = string.sub(key, 1, 3) == "Aim"
+	track.Priority = if key == "Hold" or aiming
 		then Enum.AnimationPriority.Action
 		elseif key == "Guard" then Enum.AnimationPriority.Action3
 		else Enum.AnimationPriority.Action2
-	track.Looped = key == "Hold" or key == "Guard"
+	track.Looped = key == "Hold" or key == "Guard" or aiming
 	weaponTracks[key] = track
 	return track
 end
@@ -210,17 +179,69 @@ function WeaponController.progress(): Progress?
 	return melee or ranged
 end
 
-local function holdArm(character: Model)
-	local track = weaponTrack(character, "Hold")
-	if track and not track.IsPlaying then
-		track:Play(HOLD_FADE)
+-- El arma a distancia equipada (clave de su disparo) y el bucle que la baja al correr (Fase 19, W2).
+local aimKey: string? = nil
+local aimLoop: RBXScriptConnection? = nil
+local aimLowered = false
+
+-- Pone la pose que toca: apuntando (su Aim*, o Hold si aún no está publicada) o, corriendo, el arma
+-- bajada (Hold). Las dos van al mismo nivel y la que entra funde con la que sale.
+local function applyAim(character: Model)
+	local key = aimKey
+	if not key then
+		return
+	end
+	local hold = weaponTrack(character, "Hold")
+	local aimName = WeaponAim.AimOf[key]
+	local aim = if aimName then weaponTrack(character, aimName) else nil
+	local want = if aim and not aimLowered then aim else hold
+	local other = if want == aim then hold else aim
+	local fade = if aimLowered then Config.WeaponPose.LowerFadeSeconds else Config.WeaponPose.AimFadeSeconds
+	if want and not want.IsPlaying then
+		want:Play(fade)
+	end
+	if other and other.IsPlaying then
+		other:Stop(fade)
 	end
 end
 
+local function stopAimLoop()
+	if aimLoop then
+		aimLoop:Disconnect()
+		aimLoop = nil
+	end
+	aimKey = nil
+	aimLowered = false
+end
+
+-- Saca el arma a distancia "weapon": la pose de apuntar y, mientras dura, vigila si corre.
+local function aimArm(character: Model, weapon: Weapons.WeaponDefinition)
+	aimKey = if weapon.lab then weapon.lab.pose else weapon.projectile or "Stone"
+	aimLowered = Config.WeaponPose.LowerWhileSprinting and Stamina.isSprinting()
+	applyAim(character)
+	if aimLoop then
+		return
+	end
+	aimLoop = RunService.Heartbeat:Connect(function()
+		local current = Players.LocalPlayer.Character
+		local sprinting = Config.WeaponPose.LowerWhileSprinting and Stamina.isSprinting()
+		if current and sprinting ~= aimLowered then
+			aimLowered = sprinting
+			applyAim(current)
+		end
+	end)
+end
+
 local function releaseArm()
-	local track = weaponTracks.Hold
-	if track then
-		track:Stop(HOLD_FADE)
+	stopAimLoop()
+	local fade = Config.WeaponPose.AimFadeSeconds
+	if weaponTracks.Hold then
+		weaponTracks.Hold:Stop(fade)
+	end
+	for _, aimName in WeaponAim.AimOf do
+		if weaponTracks[aimName] then
+			weaponTracks[aimName]:Stop(fade)
+		end
 	end
 end
 
@@ -231,7 +252,9 @@ local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponD
 		return false
 	end
 	local projectile = weapon.projectile or "Stone"
-	local track = weaponTrack(character, if weapon.lab then weapon.lab.pose else projectile)
+	local pose = if weapon.lab then weapon.lab.pose else projectile
+	local fallback = WeaponAim.Fallback[pose]
+	local track = weaponTrack(character, pose) or (fallback and weaponTrack(character, fallback))
 	if track then
 		track:Play(0.05)
 	end
@@ -516,7 +539,7 @@ local function hook(instance: Instance)
 		instance.Equipped:Connect(function()
 			local character = Players.LocalPlayer.Character
 			if character then
-				holdArm(character)
+				aimArm(character, weapon)
 			end
 		end)
 		instance.Unequipped:Connect(releaseArm)
@@ -526,7 +549,7 @@ local function hook(instance: Instance)
 		end
 		local character = Players.LocalPlayer.Character
 		if character and instance.Parent == character then
-			holdArm(character)
+			aimArm(character, weapon)
 			if weapon.lab and weapon.lab.zoom then
 				bindZoom()
 			end
@@ -544,6 +567,7 @@ end
 local function onCharacter(character: Model)
 	-- Cada personaje nuevo carga sus propias animaciones.
 	slashTrack = nil
+	stopAimLoop()
 	autoFireToken += 1
 	table.clear(weaponTracks)
 	unbindZoom()

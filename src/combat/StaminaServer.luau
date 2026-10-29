@@ -103,6 +103,7 @@ function StaminaServer.start()
 			local state = stateOf(player)
 			state.value = SETTINGS.StaminaMax
 			state.sprinting = false
+			player:SetAttribute("Sprinting", false)
 			publish(player, state)
 		end)
 	end
@@ -116,6 +117,8 @@ function StaminaServer.start()
 	Remotes.Sprint.OnServerEvent:Connect(function(player, sprinting: any)
 		if typeof(sprinting) == "boolean" then
 			stateOf(player).sprinting = sprinting
+			-- Para WeaponPoseService: los demás ven el arma bajada al correr.
+			player:SetAttribute("Sprinting", sprinting)
 		end
 	end)
 	RunService.Heartbeat:Connect(update)

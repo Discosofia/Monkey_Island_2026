@@ -121,15 +121,28 @@ end
 -- Reproduce "key" en el personaje de OTRO jugador durante "seconds" (para los que no ven la pista que
 -- reproduce su dueño: RemoteSlideController). Si ya suena una con el mismo id (la replicada), no hace nada.
 function BodyAnimations.playOn(character: Model, key: PlayerAnimations.Key, seconds: number)
+	local data = PlayerAnimations.Animations[key]
+	BodyAnimations.playIdOn(character, animationId(key), data.priority, data.looped == true, seconds)
+end
+
+-- Reproduce la animación "id" en el personaje de OTRO jugador (las de arma: RemoteWeaponPoseController y el
+-- disparo ajeno). Si ya suena una con el mismo id (la replicada), no hace nada. Con "seconds" se para sola;
+-- sin él, sigue hasta llamar a la función que devuelve (stop), que también se puede llamar de más.
+function BodyAnimations.playIdOn(
+	character: Model,
+	id: string?,
+	priority: Enum.AnimationPriority,
+	looped: boolean,
+	seconds: number?
+): () -> ()
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local animator = if humanoid then humanoid:FindFirstChildOfClass("Animator") else nil
-	local id = animationId(key)
 	if not (humanoid and animator and id and humanoid.RigType == Enum.HumanoidRigType.R15) then
-		return
+		return function() end
 	end
 	for _, playing in animator:GetPlayingAnimationTracks() do
 		if playing.Animation and playing.Animation.AnimationId == id then
-			return
+			return function() end
 		end
 	end
 	local animation = Instance.new("Animation")
@@ -138,18 +151,28 @@ function BodyAnimations.playOn(character: Model, key: PlayerAnimations.Key, seco
 		return animator:LoadAnimation(animation)
 	end)
 	if not ok then
-		return
+		return function() end
 	end
-	local data = PlayerAnimations.Animations[key]
-	loaded.Priority = data.priority
-	loaded.Looped = data.looped == true
+	loaded.Priority = priority
+	loaded.Looped = looped
 	loaded:Play(0.1)
-	task.delay(seconds, function()
+	local stopped = false
+	local function stop()
+		if stopped then
+			return
+		end
+		stopped = true
 		if loaded.IsPlaying then
 			loaded:Stop(0.2)
 		end
-		loaded:Destroy()
-	end)
+		task.delay(0.3, function()
+			loaded:Destroy()
+		end)
+	end
+	if seconds then
+		task.delay(seconds, stop)
+	end
+	return stop
 end
 
 -- Gesto de una habilidad de Data/Roles, si tiene. Con "castSeconds" (su preparación, C8), el que marca
