@@ -631,7 +631,7 @@ Decisiones del 28-10-2026:
 | **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | 72203eb | ✅ Probado en Studio (sin probar: VERIFICACION §50) |
 | **A3** | Gigante en los 4 places, con vida según jugadores activos | 457e24a | ✅ Probado en Studio con 1 jugador (sin probar: VERIFICACION §51) |
 | **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| 344963e | ✅ Probado en Studio (sin probar: VERIFICACION §52) |
-| **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | 3509ba1 | ✅ Probado en Studio (sin probar: VERIFICACION §53; faltan las poses, que publica el usuario) |
+| **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | 3509ba1, fafd564 | ✅ Probado en Studio (sin probar: VERIFICACION §53) |
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | — | ⏳ |
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | — | ⏳ |
 | **B2** | Ciclo lunar: fases, efectos y su icono | — | ⏳ |
@@ -690,7 +690,7 @@ Decisiones del 28-10-2026:
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de L1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo L1.»
 
 **Handoff de L2 (29-10-2026)**
-- **Estado:** L1 cerrada y subida (3509ba1). L2 sin empezar. Siguiente número libre de VERIFICACION: §54. De L1 quedan las poses de apuntar y disparar (ids vacíos en `Data/WeaponAnimations`), que publica el usuario.
+- **Estado:** L1 cerrada y subida (3509ba1). L2 sin empezar. Siguiente número libre de VERIFICACION: §54. Las poses de L1 (rifle, arpón y cañón) ya están publicadas y enlazadas (fafd564); además se añadió la pista `HeadSteady` que deja la cabeza quieta al andar (967593d).
 - **Antes de escribir código:** pide al agente `search` el mapa de `Slide` (`Slide.tryStart`, `Config.Movement.Slide`), `CombatService.onSlide` y el atributo `SlidingUntil`, `BodyAnimations` (la animación «Slide» en clientes remotos), `AbilityFxController` «DodgeFx» y el Laboratorio (`FirstPersonController`, `LabCombatRules`). Comprueba las líneas: este handoff se escribe sin haber leído el código.
 - **Objetivo:** ver la tanda L2 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección L2):
   1. **Deslizarse con C sin correr:** `Slide.tryStart` funciona sin correr, con una versión más corta (`Config.Movement.Slide` o una regla del Laboratorio en `CombatRules`). Aviso de la tecla «C» en el HUD (texto por `T()`).
