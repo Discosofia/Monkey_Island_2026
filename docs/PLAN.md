@@ -604,19 +604,13 @@ Reglas: voxel con pocos tonos planos; silueta propia de cada arma; base de hasta
 | **W1** | Lanzadardos tranquilizante (subfusil compacto) y Avispa I/II/III | 13decf9 | ✅ Probado en Studio (sin probar: VERIFICACION §45) |
 | **W2** | Rifle de bananas primales (francotirador) y Escorpión I/II/III | dc0d298 | ✅ Probado en Studio (sin probar: VERIFICACION §46) |
 | **W3** | Lanzarredes de arpón (escopeta corta) y Kraken I/II/III | 9e28871 | ✅ Probado en Studio (sin probar: VERIFICACION §47) |
-| **W4** | Cañón de suero ácido (lanzagranadas) y Dragón I/II/III, y las 4 armas juntas | — | ⏳ |
+| **W4** | Cañón de suero ácido (lanzagranadas) y Dragón I/II/III, y las 4 armas juntas | 184027a | ✅ Probado en Studio (sin probar: VERIFICACION §48) |
 
-**Handoff de W4 (28-10-2026)**
+**Fase 17 cerrada (28-10-2026).** Las 4 armas del Laboratorio y sus 12 skins están rehechas. Lo que queda sin probar está en VERIFICACION §45–48.
 
-- **Estado:** W1–W3 commiteadas. El Lanzarredes ocupa 39 (Guardianes) y 44 (Piratas) piezas tras fusionar y el Kraken III 176 y 181.
-- **Método:** igual que en W3. Rojo está conectado al Studio del Laboratorio, así que basta editar `Shared/LabWeaponModels` y `Shared/LabWeaponSkins` y volver a clonar `Shared` para la vista previa. `at(lado, largo, arriba)`, con arriba positivo; la base se mira tumbada con `CFrame.fromMatrix(pos, (0,0,-1), (1,0,0), (0,-1,0))`, colocada a 500 studs de altura para que no choque con el mapa, con un fondo gris detrás.
-- **Cañón de suero:** hoy es un tubo, una campana y un depósito morado encima (`buildAcidCannon`). Silueta propuesta: lanzagranadas con tubo grueso, campana, depósito de vidrio con suero morado y burbujas, manómetro y asa lateral. Antes de escribir, captura del arma actual y mini-entrevista. Dragón I/II/III: escamas, cabeza en la campana (la boca escupe), alas plegadas y, en el III, alas abiertas, cuernos y humo. `dragonSnout` usa `drop()` sobre `BellInside`: hay que mantener ese nombre o cambiarlo en las dos.
-- **Trampas nuevas de W3:**
-  - Los tentáculos o colas de bloques cuestan mucho: 0,2 de paso y ventosas cada tercer bloque dieron +29/+67/+137 piezas.
-  - Los pesos con cuerda en la base se quitaron para entrar en 45.
-  - Los tonos oscuros del mismo azul se pierden entre sí: el manto casi no se distingue de los tentáculos.
-- **Al cerrar W4:** montar las 4 armas juntas para comprobar que se distinguen.
-- **Prompt para la pestaña nueva:** «Continúa la Fase 17 de Monkey_Island_2026 con el grupo W4 (Cañón de suero y Dragón). Lee CLAUDE.md, la sección "Fase 17" de docs/PLAN.md (su Handoff de W4) y C:\Users\jose\.claude\plans\federated-meandering-key.md. Empieza con la captura del arma actual y la mini-entrevista de silueta, y deja la vista previa montada en el Studio del Laboratorio antes de pedir el aprobado.»
+- **Trampa de W4:** al clonar `Shared` para la vista previa, `LabWeaponModels` sigue cargando `LabWeaponSkins` por la ruta original y enseña skins viejas. Se evita renombrando `Shared` a `SharedOrig` y el clon a `Shared` mientras se construye, y devolviendo el nombre después.
+- **Cañón de suero:** 35 (Guardianes) y 40 (Piratas) piezas; Dragón III 132 y 136. Las skins I y II quedaron algo por debajo de la escalera (+29 y +47), con margen hasta 200 si se quiere más detalle.
+- **Pendiente:** `Rendimiento` sección 6 (Studio de la Isla) y las pruebas en Play de VERIFICACION §45–48.
 
 ---
 
