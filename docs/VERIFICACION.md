@@ -2686,6 +2686,19 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
 2. [ ] Pon el ajuste de sacudida de cámara en «apagado».
    ✅ No salen líneas blancas.
 
+## 55. Fase 18 B1: luz del día y de la noche (29-10-2026)
+
+Se prueba en la Isla publicada, con una partida entera (17 min) o saltando fases.
+
+1. [ ] Mira el cielo del amanecer al atardecer y de la noche al amanecer.
+   ✅ El reloj del juego corre a la misma velocidad de día y de noche: no hay un salto al cambiar de fase.
+2. [ ] En el amanecer y el atardecer, mira el cielo y el suelo.
+   ✅ Tonos rosas y naranjas, sin apagón. La noche es azul y se distingue el terreno sin linterna.
+3. [ ] Con lluvia, tormenta o erupción, a cualquier hora.
+   ✅ El tono del clima se suma a la luz de la hora, sin pelearse con ella.
+4. [ ] Los carteles, la linterna y los avisos, de día y de noche.
+   ✅ Se leen igual en todas las horas.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
