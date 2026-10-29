@@ -26,11 +26,13 @@
 --     tablillas de hueso, hebilla de calavera con tachones y faldones de cuero y hueso en los muslos.
 --     Detrás, columna con vértebras y tres pares de costillas grandes, y un cráneo de trofeo sobre
 --     dos huesos cruzados con borlas de pelaje rojo y flecos.
---   - Armadura de plata (lomo plateado): manto y gorguera de pelaje plateado de gorila, peto de
---     hueso grueso (pectorales y abdominales) con remaches, medallón de plata con un plátano dorado
---     que destella, hombreras de láminas de hueso con tres cráneos de mono en abanico, brazales con
---     puño de pelaje y faldones de pelaje y hueso. Detrás, capa oscura de gorila con flecos y la
---     cabeza de un gorila plateado furioso de ojos rojos que brillan.
+--   - Armadura de plata (lomo plateado): manto y gorguera de siete bloques de pelaje plateado de
+--     gorila, peto de hueso grueso (pectorales y abdominales con raya de cuero) con remaches,
+--     medallón de plata con cuatro remaches y un plátano dorado que destella, hombreras de tres
+--     láminas de hueso con tres cráneos de mono en abanico, brazales con aro de plata y puño de
+--     pelaje, faldones de pelaje con tres placas de hueso y cinturón con un cráneo de mono. Detrás,
+--     capa oscura de gorila con ribete plateado y flecos y la cabeza de un gorila plateado furioso
+--     (melena con cresta, patillas, ceja de furia, ojos rojos que brillan y colmillos), todo de bloques.
 -- Cazador (ligeras, de cuero con camuflaje de hojas; detrás, la capucha bajada y el carcaj con las
 -- flechas asomando por encima del hombro derecho, el de la mano que tira):
 --   - Capa de rastreador: jubón de cuero claro, capa corta de pelaje pardo con hojas cosidas, una
@@ -43,10 +45,12 @@
 --     de trofeo, brazal con tablillas de hueso y hojas colgando de los muslos. Detrás, un manto de hojas
 --     de tres verdes en tres capas y el carcaj de cuero con aros de hueso, un colmillo colgando y cinco
 --     flechas de plumas rojas y blancas.
---   - Manto de cazador plateado: capa de pelaje plateado con hojas oscuras de camuflaje y flecos,
---     capucha de pelaje con orejas, broche de plata en forma de hoja, correas cruzadas con remaches,
---     hombros de pelaje con garras de hueso, brazales con puño de pelaje y faldones plateados. Detrás,
---     el carcaj de cuero oscuro con aros de plata y siete flechas de plumas plateadas y negras.
+--   - Manto de cazador plateado: capa de pelaje plateado con flecos y ribete de plata, hojas oscuras de
+--     camuflaje, capucha de pelaje con orejas, broche de plata en forma de hoja, correas cruzadas con
+--     remaches y colmillos de trofeo, hombros de losa de pelaje con garras de hueso y una hoja encima,
+--     brazales con aro de plata y puño de pelaje y faldones plateados. Detrás, el carcaj de cuero
+--     oscuro con tres aros de plata y siete flechas de plumas plateadas y negras sobre un manto de
+--     hojas oscuras en dos abanicos de bloques.
 -- Mago (de chamán: tela y amuletos que pasan a runas y cristales que brillan en azul; el morado es
 -- del veneno y el verde, de las curaciones):
 --   - Manto de amuletos: túnica teñida de morado bajo un poncho de fibra con franjas y flecos, collar
@@ -57,10 +61,11 @@
 --     mono de ojos brillantes sobre hombreras de disco, faja con piedras rúnicas y brazales con runas.
 --     Detrás, un sello grande de neón (círculo de runas con un triángulo dentro) y dos talismanes
 --     colgando.
---   - Manto de cristal: túnica añil oscura bajo una capa de pelaje plateado con cuello alto y flecos
---     de cristal, broche y cadena de plata con cristales, hombros de pelaje con cristales y puños
---     plateados. Detrás, una corona de cristales que sale de un disco de plata rodeado de runas y
---     asoma por encima de los hombros.
+--   - Manto de cristal: túnica añil oscura con cintas de plata bajo una capa de pelaje plateado con
+--     cuello alto en escalones y flecos de cristal, broche y cadena de plata con cristales, hombros
+--     de losa de pelaje con cristales y puños plateados. Detrás, una corona de trece cristales que
+--     sale de un disco de plata con núcleo que brilla, rodeado de un círculo de runas, y asoma por
+--     encima de los hombros.
 -- Médico (de curandero: lino, hierbas y frascos; lo que brilla, en verde, el color de las curaciones):
 --   - Bandolera de curandero: túnica de lino con una bandolera de cuero cruzada, por delante y por
 --     detrás, con bolsitas de las que asoman hojas; hombreras de disco plano de lino con una hoja,
@@ -70,9 +75,10 @@
 --     de disco de hueso con hojas, cinturón con rollos de venda y bolsas en los muslos. Detrás, una
 --     mochila de cuero en un bastidor de madera con frascos de poción encima y a los lados, un rollo
 --     de manta y hierbas asomando.
---   - Manto de sanador: manto y capa de pelaje plateado, bandolera con frascos que brillan, broche
---     con una gema verde y hojas en los hombros. Detrás, un tótem sanador pequeño (como el de la
---     definitiva) con su gema verde brillando por encima de los hombros, entre hojas y frascos.
+--   - Manto de sanador: manto y capa de pelaje plateado, bandolera con frascos que brillan y una
+--     bolsita de hierbas, broche con una gema verde entre dos hojas y hojas en los hombros. Detrás,
+--     un tótem sanador pequeño (como el de la definitiva) con su gema verde brillando por encima de
+--     los hombros, sobre un abanico de hojas, atado a los hombros y entre frascos que brillan.
 -- Nivel 4, armadura volcánica (forja volcánica): basalto y obsidiana con grietas de lava que brillan,
 -- la más detallada. Todas con hombreras de losa (la forma de las de la temporada 1) con cristales de
 -- obsidiana hundidos en lava, gotas de lava y una llama de lava en píxeles que echa humo. Detrás, el guerrero un volcán en escalones con ríos
@@ -762,36 +768,103 @@ local function boneArmor(body: Body)
 	end
 end
 
--- Cabeza de gorila plateado para la espalda, mirando a la -Z de "at", de "size" studs de ancho:
--- pelaje plateado con orejas, cara oscura, ceja gruesa, ojos rojos que brillan, nariz ancha y
--- boca con colmillos.
+-- Cabeza de gorila plateado para la espalda, mirando a la -Z de "at", de "size" studs de ancho, toda
+-- de bloques: melena plateada con cresta, orejas y patillas, cara oscura con ceja gruesa inclinada,
+-- ojos rojos que brillan, nariz ancha y boca con colmillos.
 local function gorillaFace(make: Builder, at: CFrame, size: number)
 	local function on(x: number, y: number, z: number): CFrame
 		return at * CFrame.new(x * size, y * size, z * size)
 	end
-	make.oval(Vector3.new(1, 1.05, 0.14) * size, SILVER_FUR, FABRIC, on(0, 0, 0))
-	make.oval(Vector3.new(0.72, 0.7, 0.2) * size, GORILLA_FACE, SMOOTH, on(0, -0.08, -0.06))
-	make.oval(Vector3.new(0.44, 0.17, 0.14) * size, GORILLA_NOSE, SMOOTH, on(0, -0.12, -0.13))
-	make.block(Vector3.new(0.4, 0.06, 0.04) * size, SKULL_HOLE, SMOOTH, on(0, -0.32, -0.13))
+	make.block(Vector3.new(1, 1.05, 0.14) * size, SILVER_FUR, FABRIC, on(0, 0, 0))
+	make.block(Vector3.new(0.56, 0.2, 0.18) * size, SILVER_FUR_DARK, FABRIC, on(0, 0.6, -0.02))
+	make.block(Vector3.new(0.72, 0.62, 0.1) * size, GORILLA_FACE, SMOOTH, on(0, -0.1, -0.1))
+	make.block(Vector3.new(0.44, 0.17, 0.08) * size, GORILLA_NOSE, SMOOTH, on(0, -0.14, -0.18))
+	make.block(Vector3.new(0.4, 0.06, 0.06) * size, SKULL_HOLE, SMOOTH, on(0, -0.3, -0.18))
 	for side = -1, 1, 2 do
-		make.oval(Vector3.new(0.22, 0.28, 0.12) * size, SILVER_FUR_DARK, FABRIC, on(side * 0.52, 0.04, 0.02))
-		make.ball(0.15 * size, GORILLA_EYE, Enum.Material.Neon, on(side * 0.17, 0.08, -0.14))
-		make.ball(0.07 * size, SKULL_HOLE, SMOOTH, on(side * 0.1, -0.15, -0.19))
+		make.block(Vector3.new(0.12, 0.26, 0.1) * size, SILVER_FUR_DARK, FABRIC, on(side * 0.56, 0.04, 0))
+		make.block(Vector3.new(0.14, 0.4, 0.16) * size, SILVER_FUR, FABRIC, on(side * 0.43, -0.12, -0.04))
+		make.ball(0.15 * size, GORILLA_EYE, NEON, on(side * 0.17, 0.08, -0.17))
+		make.ball(0.07 * size, SKULL_HOLE, SMOOTH, on(side * 0.1, -0.15, -0.23))
 		-- Ceja de furia: inclinada, más baja por dentro.
-		make.oval(
-			Vector3.new(0.4, 0.11, 0.2) * size,
+		make.block(
+			Vector3.new(0.4, 0.11, 0.12) * size,
 			GORILLA_FACE,
 			SMOOTH,
-			on(side * 0.18, 0.18, -0.13) * CFrame.Angles(0, 0, side * 0.35)
+			on(side * 0.18, 0.18, -0.16) * CFrame.Angles(0, 0, side * 0.35)
 		)
+		-- Colmillos por fuera de la boca (no atraviesan la cara).
 		make.fang(
 			0.13 * size,
 			0.07 * size,
 			THICK_BONE,
 			SMOOTH,
-			on(side * 0.13 + 0.035, -0.33, -0.15) * CFrame.Angles(0, 0, math.pi)
+			on(side * 0.13 + 0.035, -0.31, -0.21) * CFrame.Angles(0, 0, math.pi)
 		)
 	end
+end
+
+-- Manto de pelaje plateado de los hombros y la espalda del rango III (cazador, mago y médico): dos
+-- escalones sobre los hombros, capa con los lados de pelaje más oscuro, ribete de plata abajo y flecos
+-- en punta. Devuelve la Y del borde de abajo de la capa.
+local function silverCape(make: Builder, tufts: number): number
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local back = depth / 2
+	make.block(
+		Vector3.new(width + 0.4, 0.34, depth + 0.4),
+		SILVER_FUR_DARK,
+		FABRIC,
+		CFrame.new(0, height / 2 - 0.06, 0.04)
+	)
+	make.block(Vector3.new(width + 0.12, 0.2, depth + 0.14), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 + 0.14, 0.06))
+	local capeHeight = height * 1.08
+	local capeY = height / 2 - capeHeight / 2 - 0.02
+	local capeBottom = capeY - capeHeight / 2
+	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.12, capeHeight, 0.16),
+			SILVER_FUR_DARK,
+			FABRIC,
+			CFrame.new(side * width * 0.51, capeY, back + 0.16)
+		)
+	end
+	local hem = make.block(
+		Vector3.new(width * 1.02 + 0.2, 0.08, 0.16),
+		SILVER,
+		METAL,
+		CFrame.new(0, capeBottom + 0.04, back + 0.16)
+	)
+	hem.Reflectance = 0.25
+	for index = 0, tufts - 1 do
+		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
+		make.fang(
+			if index % 2 == 0 then 0.36 else 0.26,
+			0.3,
+			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+			FABRIC,
+			CFrame.new(x + 0.15, capeBottom + 0.04, back + 0.36) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	return capeBottom
+end
+
+-- Hombrera de losa del rango III en pelaje plateado: canto de plata, losa de pelaje y un escalón
+-- encima, con un puño de pelaje en el brazo. Devuelve el marco del centro de la cara de arriba.
+local function furSlabPauldron(arm: Builder, side: number): CFrame
+	local as = arm.size
+	local top = as.Y / 2
+	local rim =
+		arm.block(Vector3.new(as.X + 0.5, 0.08, as.Z + 0.5), SILVER, METAL, CFrame.new(side * 0.1, top + 0.05, 0))
+	rim.Reflectance = 0.25
+	arm.block(
+		Vector3.new(as.X + 0.42, 0.22, as.Z + 0.42),
+		SILVER_FUR_DARK,
+		FABRIC,
+		CFrame.new(side * 0.1, top + 0.2, 0)
+	)
+	arm.block(Vector3.new(as.X + 0.1, 0.16, as.Z + 0.1), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.38, 0))
+	band(arm, -as.Y * 0.12, 0.2, 0.1, SILVER_FUR, FABRIC)
+	return CFrame.new(side * 0.1, top + 0.46, 0)
 end
 
 -- ===================================== Armadura de plata =====================================
@@ -819,7 +892,13 @@ local function silverArmor(body: Body)
 			rivet.Reflectance = 0.25
 		end
 	end
-	-- Abdominales: tres filas de placas, más estrechas hacia abajo.
+	-- Abdominales: tres filas de placas, más estrechas hacia abajo, con la raya central de cuero.
+	make.block(
+		Vector3.new(0.1, height * 0.5, 0.08),
+		LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(0, -height * 0.22, front)
+	)
 	for row = 0, 2 do
 		for side = -1, 1, 2 do
 			local plateWidth = width * (0.21 - row * 0.015)
@@ -827,16 +906,22 @@ local function silverArmor(body: Body)
 				Vector3.new(plateWidth, height * 0.14, 0.1),
 				if row == 1 then BONE else THICK_BONE,
 				SMOOTH,
-				CFrame.new(side * (plateWidth / 2 + 0.03), -height * (0.05 + row * 0.17), front - 0.03)
+				CFrame.new(side * (plateWidth / 2 + 0.05), -height * (0.05 + row * 0.17), front - 0.03)
 			)
 		end
 	end
-	-- Medallón de plata con un plátano dorado, entre los pectorales, que destella de vez en cuando.
+	-- Medallón de plata con un plátano dorado, entre los pectorales, con cuatro remaches y un destello.
 	local medal = CFrame.new(0, height * 0.22, front - 0.24)
 	local rim = make.rod(0.08, 0.62, SILVER, METAL, medal * FACING)
 	rim.Reflectance = 0.35
 	make.rod(0.04, 0.48, GORILLA_FUR, METAL, medal * CFrame.new(0, 0, -0.04) * FACING)
 	banana(make, 0.36, medal * CFrame.new(0, -0.08, -0.08))
+	for index = 0, 3 do
+		local angle = index * math.pi / 2
+		local stud =
+			make.ball(0.1, SILVER, METAL, medal * CFrame.new(math.sin(angle) * 0.31, math.cos(angle) * 0.31, -0.02))
+		stud.Reflectance = 0.25
+	end
 	local sparkle = Instance.new("ParticleEmitter")
 	sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 	sparkle.Rate = 3
@@ -852,36 +937,65 @@ local function silverArmor(body: Body)
 	sparkle.ZOffset = 1
 	sparkle.Parent = rim
 
-	-- Manto de pelaje plateado sobre los hombros (por delante no baja, para no tapar el peto) y
-	-- gorguera alta por detrás del cuello.
+	-- Manto de pelaje plateado sobre los hombros (por delante no baja, para no tapar el peto), collar
+	-- por delante y gorguera de siete bloques por detrás del cuello, con tres púas de pelo encima.
 	make.block(
 		Vector3.new(width + 0.4, height * 0.28, depth * 0.7 + 0.2),
-		SILVER_FUR,
+		SILVER_FUR_DARK,
 		FABRIC,
 		CFrame.new(0, height / 2 - 0.08, depth * 0.15 + 0.1)
 	)
-	make.oval(
-		Vector3.new(width + 0.3, 0.3, 0.36),
+	make.block(
+		Vector3.new(width + 0.1, 0.2, depth * 0.7 + 0.1),
 		SILVER_FUR,
 		FABRIC,
-		CFrame.new(0, height / 2 - 0.06, -depth / 2 + 0.02)
+		CFrame.new(0, height / 2 + 0.12, depth * 0.15 + 0.1)
 	)
-	local ruff = 5
+	make.block(
+		Vector3.new(width + 0.2, 0.26, 0.34),
+		SILVER_FUR,
+		FABRIC,
+		CFrame.new(0, height / 2 - 0.04, -depth / 2 + 0.02)
+	)
+	local ruff = 7
 	for index = 0, ruff - 1 do
 		local angle = math.rad(-90 + index * 180 / (ruff - 1))
-		make.oval(
+		make.block(
 			Vector3.new(0.6, 0.55, 0.45),
 			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
 			FABRIC,
 			CFrame.new(math.sin(angle) * 0.8, height / 2 + 0.22, math.cos(angle) * 0.62) * CFrame.Angles(0, angle, 0)
 		)
+		if index % 2 == 1 then
+			make.fang(
+				0.3,
+				0.2,
+				SILVER_FUR,
+				FABRIC,
+				CFrame.new(math.sin(angle) * 0.8 - 0.1, height / 2 + 0.4, math.cos(angle) * 0.62)
+			)
+		end
 	end
-	-- Capa de pelaje oscuro de gorila con flecos en punta abajo y, encima, la cabeza de un gorila
-	-- plateado de ojos rojos que brillan: es lo que el jugador ve siempre, desde detrás.
+	-- Capa de pelaje oscuro de gorila con ribete plateado a los lados y abajo, flecos en punta y, encima,
+	-- la cabeza de un gorila plateado de ojos rojos que brillan: es lo que el jugador ve siempre.
 	local capeHeight = height * 1.0
 	local capeY = -height * 0.12
 	make.block(Vector3.new(width * 0.96, capeHeight, 0.12), GORILLA_FUR, FABRIC, CFrame.new(0, capeY, back + 0.17))
-	gorillaFace(make, CFrame.new(0, height * 0.06, back + 0.23) * CFrame.Angles(0, math.pi, 0), width * 0.7)
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.12, capeHeight, 0.14),
+			SILVER_FUR,
+			FABRIC,
+			CFrame.new(side * (width * 0.48 + 0.02), capeY, back + 0.17)
+		)
+	end
+	make.block(
+		Vector3.new(width * 0.96 + 0.2, 0.1, 0.14),
+		SILVER_FUR_DARK,
+		FABRIC,
+		CFrame.new(0, capeY - capeHeight / 2 + 0.05, back + 0.17)
+	)
+	gorillaFace(make, CFrame.new(0, 0, back + 0.25) * CFrame.Angles(0, math.pi, 0), width * 0.74)
 	local tufts = 5
 	for index = 0, tufts - 1 do
 		local x = -width * 0.38 + index * width * 0.76 / (tufts - 1)
@@ -894,7 +1008,7 @@ local function silverArmor(body: Body)
 		)
 	end
 
-	-- Cinturón ancho con hebilla de plata y un hueso en el centro.
+	-- Cinturón ancho con hebilla de plata, un cráneo de mono, dos remaches y dos borlas de pelaje.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -904,36 +1018,45 @@ local function silverArmor(body: Body)
 		LEATHER_MATERIAL,
 		CFrame.new(0, 0.06, 0)
 	)
-	local buckle = waist.block(Vector3.new(0.46, 0.36, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.04))
+	local buckle = waist.block(Vector3.new(0.5, 0.38, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.04))
 	buckle.Reflectance = 0.35
-	waist.ball(0.16, THICK_BONE, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.1))
+	monkeySkull(waist, CFrame.new(0, 0.06, beltFront - 0.16), 0.5, true)
+	for side = -1, 1, 2 do
+		local stud = waist.ball(0.12, SILVER, METAL, CFrame.new(side * hipWidth * 0.34, 0.06, beltFront - 0.04))
+		stud.Reflectance = 0.25
+		waist.block(
+			Vector3.new(0.16, 0.34, 0.06),
+			SILVER_FUR,
+			FABRIC,
+			CFrame.new(side * hipWidth * 0.2, -0.2, beltFront - 0.03)
+		)
+	end
 
 	for side = -1, 1, 2 do
-		-- Hombrera: tres láminas de hueso grueso que bajan hacia fuera sobre un mechón de pelaje
-		-- plateado, con un remache y tres cráneos de mono encima.
+		-- Hombrera: base de pelaje plateado y tres láminas de hueso grueso que bajan hacia fuera, con un
+		-- remache y tres cráneos de mono en abanico encima (sin colmillos ni garras que los atraviesen).
 		local arm = body.upperArm[side]
 		local as = arm.size
 		local top = as.Y / 2
-		arm.oval(Vector3.new(as.X * 1.3, 0.6, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.12, top + 0.05, 0))
+		arm.block(Vector3.new(as.X + 0.5, 0.12, as.Z + 0.5), SILVER_FUR, FABRIC, CFrame.new(side * 0.12, top + 0.04, 0))
 		local lames: { CFrame } = {}
 		for index = 0, 2 do
 			local lame = CFrame.new(side * (0.1 + index * 0.1), top + 0.2 - index * 0.21, 0)
 				* CFrame.Angles(0, 0, -side * (0.22 + index * 0.18))
 			lames[index + 1] = lame
-			arm.oval(
-				Vector3.new(as.X * 1.05 - index * 0.08, 0.28, as.Z * 1.3 - index * 0.08),
+			arm.block(
+				Vector3.new(as.X * 0.95 - index * 0.06, 0.16, as.Z + 0.3 - index * 0.08),
 				if index == 1 then BONE else THICK_BONE,
 				SMOOTH,
 				lame
 			)
 		end
-		local stud = arm.ball(0.14, SILVER, METAL, lames[2] * CFrame.new(side * (as.X * 0.5 - 0.12), 0.08, 0))
+		local stud = arm.ball(0.14, SILVER, METAL, lames[2] * CFrame.new(side * (as.X * 0.5 - 0.12), 0.12, 0))
 		stud.Reflectance = 0.25
-		-- Tres cráneos de mono en fila sobre la lámina de arriba, el del centro mayor, en abanico: hacia
-		-- fuera y delante, hacia fuera y hacia fuera y atrás, para que se les vea la cara desde detrás.
-		for index, z in { -0.32, 0, 0.32 } do
+		-- Hacia fuera y delante, hacia fuera y hacia fuera y atrás: se les ve la cara también desde detrás.
+		for index, z in { -0.42, 0, 0.42 } do
 			local turn = math.rad(55 + (index - 1) * 35)
-			local scale = if index == 2 then 0.72 else 0.6
+			local scale = if index == 2 then 0.7 else 0.58
 			monkeySkull(
 				arm,
 				lames[1] * CFrame.new(0, 0.1 + 0.3 * scale, z * as.Z) * CFrame.Angles(0, -side * turn, 0),
@@ -941,11 +1064,15 @@ local function silverArmor(body: Body)
 				true
 			)
 		end
-		-- Brazal de cuero con placa de hueso por fuera, dos remaches y un puño de pelaje en la muñeca.
+		band(arm, -as.Y * 0.12, 0.2, 0.1, SILVER_FUR, FABRIC)
+		band(arm, -as.Y * 0.3, 0.1, 0.08, LEATHER_DARK, LEATHER_MATERIAL)
+		-- Brazal de cuero con placa de hueso por fuera, dos remaches, un aro de plata y un puño de pelaje.
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, 0.05, fs.Y * 0.55, 0.08, LEATHER_DARK, LEATHER_MATERIAL)
 		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
+		local ring = band(forearm, fs.Y * 0.3, 0.06, 0.14, SILVER, METAL)
+		ring.Reflectance = 0.25
 		forearm.block(
 			Vector3.new(0.12, fs.Y * 0.6, fs.Z * 0.75),
 			THICK_BONE,
@@ -956,12 +1083,27 @@ local function silverArmor(body: Body)
 			local rivet = forearm.ball(0.12, SILVER, METAL, CFrame.new(side * (fs.X / 2 + 0.15), 0.05 + y * fs.Y, 0))
 			rivet.Reflectance = 0.25
 		end
-		-- Faldón de pelaje plateado en el muslo con una placa de hueso y un remache.
+		-- Faldón de pelaje plateado en el muslo con tres placas de hueso, un remache y dos flecos.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.19, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
-		leg.block(Vector3.new(ls.X * 0.65, ls.Y * 0.3, 0.08), THICK_BONE, SMOOTH, flap * CFrame.new(0, 0.02, -0.07))
+		leg.block(Vector3.new(ls.X * 0.4, ls.Y * 0.3, 0.08), THICK_BONE, SMOOTH, flap * CFrame.new(0, 0.02, -0.07))
+		for plate = -1, 1, 2 do
+			leg.block(
+				Vector3.new(ls.X * 0.14, ls.Y * 0.26, 0.06),
+				BONE,
+				SMOOTH,
+				flap * CFrame.new(plate * ls.X * 0.34, 0.02, -0.07)
+			)
+			leg.fang(
+				0.22,
+				0.18,
+				if plate == 1 then SILVER_FUR_DARK else SILVER_FUR,
+				FABRIC,
+				flap * CFrame.new(plate * ls.X * 0.22 + 0.09, -ls.Y * 0.2 + 0.03, -0.02) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
 		local rivet = leg.ball(0.12, SILVER, METAL, flap * CFrame.new(0, ls.Y * 0.09, -0.12))
 		rivet.Reflectance = 0.25
 	end
@@ -1124,13 +1266,16 @@ local function leafStar(arm: Builder, side: number)
 	arm.block(Vector3.new(0.2, 0.1, 0.2), LEAF_LIGHT, SMOOTH, CFrame.new(center + Vector3.new(0, 0.05, 0)))
 end
 
--- Capucha bajada a la espalda, de bloques: el pliegue, su forro oscuro arriba y la punta colgando.
-local function blockHood(make: Builder, color: Color3, lining: Color3)
+-- Capucha bajada a la espalda, de bloques: el pliegue, su forro oscuro arriba y la punta colgando (de
+-- cuero, o del "material" que se pida: el rango III la hace de pelaje). Devuelve el marco del pliegue.
+local function blockHood(make: Builder, color: Color3, lining: Color3, material: Enum.Material?): CFrame
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local hoodMaterial = material or LEATHER_MATERIAL
 	local fold = CFrame.new(0, height / 2 - 0.2, depth / 2 + 0.2)
-	make.block(Vector3.new(width * 0.46, 0.64, 0.36), color, LEATHER_MATERIAL, fold)
-	make.block(Vector3.new(width * 0.34, 0.12, 0.24), lining, LEATHER_MATERIAL, fold * CFrame.new(0, 0.33, -0.04))
-	make.fang(0.4, 0.3, color, LEATHER_MATERIAL, fold * CFrame.new(0.14, -0.32, 0.15) * CFrame.Angles(0, 0, math.pi))
+	make.block(Vector3.new(width * 0.46, 0.64, 0.36), color, hoodMaterial, fold)
+	make.block(Vector3.new(width * 0.34, 0.12, 0.24), lining, hoodMaterial, fold * CFrame.new(0, 0.33, -0.04))
+	make.fang(0.4, 0.3, color, hoodMaterial, fold * CFrame.new(0.14, -0.32, 0.15) * CFrame.Angles(0, 0, math.pi))
+	return fold
 end
 
 local function trackerCape(body: Body)
@@ -1391,13 +1536,14 @@ local function silverHunter(body: Body)
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
 	local front = -(depth / 2 + 0.08)
 	local back = depth / 2
-	-- Jubón de cuero oscuro con dos correas cruzadas y remaches de plata.
+	-- Jubón de cuero oscuro con la tira central cosida y dos correas cruzadas con remaches de plata.
 	make.block(
 		Vector3.new(width + 0.12, height * 0.92, depth + 0.14),
 		LEATHER_DARK,
 		LEATHER_MATERIAL,
 		CFrame.new(0, -height * 0.02, 0)
 	)
+	make.block(Vector3.new(0.06, height * 0.8, 0.04), LEATHER, LEATHER_MATERIAL, CFrame.new(0, -height * 0.04, front))
 	quiverStrap(make, front - 0.04, 0.14, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
 	strap(
 		make,
@@ -1409,59 +1555,80 @@ local function silverHunter(body: Body)
 	)
 	for _, at in
 		{
-			Vector3.new(0.03, -height * 0.02, 0),
-			Vector3.new(-width * 0.33, -height * 0.36, 0),
-			Vector3.new(width * 0.33, -height * 0.36, 0),
+			Vector3.new(0, height * 0.09, 0),
+			Vector3.new(width * 0.3, height / 2 - 0.06, 0),
+			Vector3.new(-width * 0.3, height / 2 - 0.06, 0),
+			Vector3.new(-width * 0.4, -height / 2 + 0.16, 0),
+			Vector3.new(width * 0.4, -height / 2 + 0.16, 0),
 		}
 	do
-		local rivet = make.ball(0.13, SILVER, METAL, CFrame.new(at.X, at.Y, front - 0.1))
+		local rivet = make.ball(0.13, SILVER, METAL, CFrame.new(at.X, at.Y, front - 0.12))
 		rivet.Reflectance = 0.25
 	end
-	-- Manto de pelaje plateado sobre los hombros y capa que baja por la espalda hasta la cintura, con
-	-- flecos en punta y hojas oscuras de camuflaje encima.
-	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
-	for side = -1, 1, 2 do
-		make.ball(0.6, SILVER_FUR, FABRIC, CFrame.new(side * (width / 2 + 0.06), height / 2 - 0.1, 0))
-	end
-	local capeHeight = height * 1.08
-	local capeY = height / 2 - capeHeight / 2 - 0.02
-	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
-	local tufts = 5
-	for index = 0, tufts - 1 do
-		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
+	-- Tres colmillos de trofeo colgando de la correa.
+	for _, t in { 0.3, 0.45, 0.6 } do
+		local x = width * 0.3 - width * 0.7 * t
+		local y = (height / 2 - 0.02) + (-height + 0.14) * t
 		make.fang(
-			if index % 2 == 0 then 0.36 else 0.26,
-			0.3,
-			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
-			FABRIC,
-			CFrame.new(x + 0.15, capeY - capeHeight / 2 + 0.04, back + 0.36) * CFrame.Angles(0, 0, math.pi)
+			0.26,
+			0.1,
+			THICK_BONE,
+			SMOOTH,
+			CFrame.new(x + 0.05, y - 0.08, front - 0.16) * CFrame.Angles(0, 0, math.pi)
 		)
 	end
-	leafFan(make, 9, 1.25, 1.3, { LEAF_SHADOW, LEAF_DARK }, 0.25)
-	-- Capucha de pelaje plateado con dos orejas, como la piel de un animal.
-	-- (Más oscura que la capa: del mismo plateado no se distingue.)
-	local hood = loweredHood(make, SILVER_FUR_DARK, GORILLA_FUR, FABRIC)
+	-- Manto de pelaje plateado con la capa y los flecos (silverCape) y hojas oscuras de camuflaje cosidas
+	-- a los lados del cuello.
+	silverCape(make, 5)
+	make.block(Vector3.new(width * 0.5, 0.24, 0.3), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, front + 0.02))
+	for side = -1, 1, 2 do
+		leaf(
+			make,
+			0.42,
+			LEAF_SHADOW,
+			CFrame.new(side * width * 0.3, height / 2 - 0.16, front - 0.1) * CFrame.Angles(0, 0, side * 0.5)
+		)
+		leaf(
+			make,
+			0.36,
+			LEAF_DARK,
+			CFrame.new(side * width * 0.43, height / 2 - 0.2, front - 0.09) * CFrame.Angles(0, 0, side * 1.1)
+		)
+	end
+	-- Broche de plata en forma de hoja cerrando el manto bajo el cuello.
+	local brooch = CFrame.new(0, height / 2 - 0.22, front - 0.14)
+	local disc = make.rod(0.06, 0.26, SILVER, METAL, brooch * FACING)
+	disc.Reflectance = 0.35
+	leaf(make, 0.52, SILVER, brooch * CFrame.new(0, -0.02, -0.05) * CFrame.Angles(0, math.pi, 0.6))
+	-- Detrás (lo que el jugador ve siempre): un manto de hojas oscuras en dos abanicos de bloques sobre
+	-- la capa, hojas sueltas en las esquinas, la capucha de pelaje con orejas y el carcaj con siete flechas.
+	blockLeafFan(make, 9, 1.5, 1.3, { LEAF_SHADOW, LEAF_DARK }, 0.3)
+	blockLeafFan(make, 7, 1.05, 1.1, { LEAF_DARK, LEAF }, 0.36)
+	for index, spot in
+		{
+			Vector3.new(-0.8, -0.45, 0.5),
+			Vector3.new(-0.62, -0.85, -0.4),
+			Vector3.new(0.8, -0.5, -0.5),
+			Vector3.new(0.62, -0.88, 0.4),
+		}
+	do
+		leaf(
+			make,
+			0.5,
+			if index % 2 == 0 then LEAF_SHADOW else LEAF_DARK,
+			CFrame.new(spot.X, spot.Y, back + 0.42) * CFrame.Angles(0, 0, spot.Z)
+		)
+	end
+	local hood = blockHood(make, SILVER_FUR_DARK, GORILLA_FUR, FABRIC)
 	for side = -1, 1, 2 do
 		make.fang(
 			0.34,
 			0.22,
 			GORILLA_FUR,
 			FABRIC,
-			hood * CFrame.new(side * 0.26 - 0.11, 0.24, 0.2) * CFrame.Angles(0, 0, -side * 0.3)
+			hood * CFrame.new(side * 0.42 - 0.11, 0.3, -0.05) * CFrame.Angles(0, 0, -side * 0.3)
 		)
 	end
-	-- Broche de plata en forma de hoja cerrando el manto bajo el cuello.
-	local brooch = CFrame.new(0, height / 2 - 0.18, front - 0.12)
-	local disc = make.rod(0.06, 0.34, SILVER, METAL, brooch * FACING)
-	disc.Reflectance = 0.35
-	local leafPin = make.oval(
-		Vector3.new(0.14, 0.32, 0.05),
-		SILVER,
-		METAL,
-		brooch * CFrame.new(0, 0, -0.05) * CFrame.Angles(0, 0, 0.6)
-	)
-	leafPin.Reflectance = 0.35
-	-- Carcaj de cuero oscuro con aros de plata y siete flechas de plumas plateadas y negras.
 	local quiverAt = backQuiver(make, {
 		length = 1.8,
 		radius = 0.26,
@@ -1471,20 +1638,16 @@ local function silverHunter(body: Body)
 		rimMaterial = METAL,
 		arrows = 7,
 		feathers = { SILVER_FUR, GORILLA_FACE },
-	}, 0.32)
-	local midBand = make.rod(0.1, 0.58, SILVER, METAL, quiverAt * UPRIGHT)
-	midBand.Reflectance = 0.25
-	for side = -1, 1, 2 do
-		make.fang(
-			0.3,
-			0.12,
-			THICK_BONE,
-			SMOOTH,
-			quiverAt * CFrame.new(side * 0.2 - 0.06, -0.1, 0.2) * CFrame.Angles(0, 0, math.pi)
-		)
+	}, 0.4)
+	for _, y in { 0, -0.5 } do
+		local ring = make.rod(0.1, 0.58, SILVER, METAL, quiverAt * CFrame.new(0, y, 0) * UPRIGHT)
+		ring.Reflectance = 0.25
 	end
+	-- Borla de pelaje plateado colgando del costado del carcaj.
+	make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, quiverAt * CFrame.new(-0.3, 0.2, 0.05))
+	make.block(Vector3.new(0.14, 0.22, 0.1), SILVER_FUR, FABRIC, quiverAt * CFrame.new(-0.3, 0.0, 0.05))
 
-	-- Cinturón ancho con hebilla de plata y zurrón.
+	-- Cinturón ancho con hebilla de plata, remaches, zurrón y cuchillo de hueso.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -1496,31 +1659,43 @@ local function silverHunter(body: Body)
 	)
 	local buckle = waist.block(Vector3.new(0.36, 0.28, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
 	buckle.Reflectance = 0.35
+	for _, x in { 0.16, -0.16 } do
+		local stud = waist.ball(0.1, SILVER, METAL, CFrame.new(x * hipWidth, 0.06, beltFront - 0.04))
+		stud.Reflectance = 0.25
+	end
 	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
 	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER_DARK, LEATHER_MATERIAL, pouch)
 	waist.block(Vector3.new(0.42, 0.14, 0.18), SILVER_FUR, FABRIC, pouch * CFrame.new(0, 0.13, -0.01))
+	local sheath = CFrame.new(-hipWidth * 0.36, -0.14, beltFront - 0.03) * CFrame.Angles(0, 0, -0.25)
+	waist.block(Vector3.new(0.14, 0.44, 0.08), LEATHER_DARK, LEATHER_MATERIAL, sheath)
+	waist.block(Vector3.new(0.1, 0.22, 0.1), THICK_BONE, SMOOTH, sheath * CFrame.new(0, 0.32, 0))
 
 	for side = -1, 1, 2 do
-		-- Hombros de pelaje plateado con dos garras de hueso hacia fuera.
+		-- Hombro: losa de pelaje plateado con tres garras de hueso hacia fuera (salen del pelaje) y una
+		-- hoja oscura de camuflaje tumbada encima.
 		local arm = body.upperArm[side]
 		local as = arm.size
 		local top = as.Y / 2
-		arm.oval(Vector3.new(as.X * 1.3, 0.55, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.02, 0))
-		-- Desde lo alto del pelaje: más adentro quedan enterradas en él.
-		for _, z in { -0.2, 0.2 } do
+		local center = furSlabPauldron(arm, side)
+		for _, z in { -0.3, 0, 0.3 } do
 			arm.fang(
 				0.42,
 				0.16,
 				THICK_BONE,
 				SMOOTH,
-				CFrame.new(side * (as.X * 0.55) - 0.08, top + 0.22, z * as.Z + 0.08) * CFrame.Angles(0, 0, -side * 0.7)
+				CFrame.new(side * (as.X * 0.55) - 0.08, top + 0.2, z * as.Z + 0.08) * CFrame.Angles(0, 0, -side * 0.7)
 			)
 		end
-		-- Brazal de cuero con puño de pelaje plateado; el del arco, con placa de hueso y dos remaches.
+		leaf(arm, 0.5, LEAF_SHADOW, center * CFrame.Angles(-math.pi / 2, 0, side * 0.6))
+		band(arm, -as.Y * 0.3, 0.1, 0.08, LEATHER_DARK, LEATHER_MATERIAL)
+		-- Brazal de cuero con puño de pelaje plateado y aro de plata; el del arco, con placa de hueso y
+		-- dos remaches.
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, 0.04, fs.Y * 0.55, 0.08, LEATHER_DARK, LEATHER_MATERIAL)
 		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
+		local ring = band(forearm, fs.Y * 0.3, 0.06, 0.14, SILVER, METAL)
+		ring.Reflectance = 0.25
 		if side == 1 then
 			forearm.block(
 				Vector3.new(0.12, fs.Y * 0.55, fs.Z * 0.7),
@@ -1533,7 +1708,7 @@ local function silverHunter(body: Body)
 				rivet.Reflectance = 0.25
 			end
 		end
-		-- Faldón de pelaje plateado en el muslo con una hoja oscura encima.
+		-- Faldón de pelaje plateado en el muslo con una hoja oscura encima y dos flecos.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
@@ -1544,6 +1719,15 @@ local function silverHunter(body: Body)
 			LEAF_SHADOW,
 			flap * CFrame.new(side * 0.1, -0.05, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
 		)
+		for plate = -1, 1, 2 do
+			leg.fang(
+				0.22,
+				0.18,
+				if plate == 1 then SILVER_FUR_DARK else SILVER_FUR,
+				FABRIC,
+				flap * CFrame.new(plate * ls.X * 0.22 + 0.09, -ls.Y * 0.2 + 0.03, -0.02) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
 	end
 end
 
@@ -1865,7 +2049,7 @@ local function crystalMantle(body: Body)
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
 	local front = -(depth / 2 + 0.08)
 	local back = depth / 2
-	-- Túnica añil oscura con una tira de plata.
+	-- Túnica añil oscura con una tira de plata, dos cintas laterales y el bajo de plata.
 	make.block(
 		Vector3.new(width + 0.12, height * 0.94, depth + 0.16),
 		MAGE_INDIGO_DARK,
@@ -1874,60 +2058,71 @@ local function crystalMantle(body: Body)
 	)
 	local trim = make.block(Vector3.new(0.14, height * 0.8, 0.04), SILVER, METAL, CFrame.new(0, -height * 0.08, front))
 	trim.Reflectance = 0.25
-	-- Manto de pelaje plateado sobre los hombros, cuello alto por detrás y capa hasta la cintura.
-	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
 	for side = -1, 1, 2 do
-		make.ball(0.6, SILVER_FUR, FABRIC, CFrame.new(side * (width / 2 + 0.06), height / 2 - 0.1, 0))
+		local ribbon = make.block(
+			Vector3.new(0.07, height * 0.84, 0.04),
+			SILVER,
+			METAL,
+			CFrame.new(side * width * 0.43, -height * 0.04, front)
+		)
+		ribbon.Reflectance = 0.25
 	end
-	make.oval(
-		Vector3.new(width * 0.72, 0.62, 0.34),
-		SILVER_FUR,
-		FABRIC,
-		CFrame.new(0, height / 2 + 0.16, depth / 2 + 0.1)
+	local hemBand = make.block(
+		Vector3.new(width + 0.16, 0.1, depth + 0.2),
+		SILVER,
+		METAL,
+		CFrame.new(0, -height * 0.02 - height * 0.47 + 0.05, 0)
 	)
-	local capeHeight = height * 1.08
-	local capeY = height / 2 - capeHeight / 2 - 0.02
-	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
-	-- Flecos de pelaje en el borde de la capa, con tres cristales pequeños colgando entre ellos.
-	local capeBottom = capeY - capeHeight / 2
-	local tufts = 5
-	for index = 0, tufts - 1 do
-		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
-		make.fang(
-			if index % 2 == 0 then 0.34 else 0.26,
-			0.28,
-			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+	hemBand.Reflectance = 0.25
+	-- Manto de pelaje plateado sobre los hombros, cuello alto en tres escalones por detrás y capa con
+	-- flecos de pelaje y de cristal.
+	local capeBottom = silverCape(make, 5)
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(width * (0.84 - index * 0.2), 0.3, 0.3),
+			if index % 2 == 0 then SILVER_FUR_DARK else SILVER_FUR,
 			FABRIC,
-			CFrame.new(x + 0.14, capeBottom + 0.04, back + 0.34) * CFrame.Angles(0, 0, math.pi)
+			CFrame.new(0, height / 2 + 0.28 + index * 0.26, depth / 2 + 0.12 - index * 0.02)
 		)
 	end
-	for _, x in { -0.38, -0.19, 0, 0.19, 0.38 } do
-		crystal(make, Vector3.new(x * width, capeBottom + 0.06, back + 0.3), Vector3.new(0, -1, 0), 0.4, 0.16)
+	for _, x in { -0.4, -0.2, 0, 0.2, 0.4 } do
+		crystal(make, Vector3.new(x * width, capeBottom + 0.06, back + 0.42), Vector3.new(0, -1, 0), 0.46, 0.16)
 	end
-	-- Detrás (lo que el jugador ve siempre): disco de plata rodeado de runas del que sale una corona de
-	-- cristales hacia arriba, que asoma por encima de los hombros por detrás de la cabeza.
+	-- Detrás (lo que el jugador ve siempre): disco de plata con un núcleo que brilla, rodeado de runas, del
+	-- que sale una corona de cristales hacia arriba, que asoma por encima de los hombros.
 	-- (Alto en la espalda y con cristales largos: si no, se queda en una estrella en mitad de la capa.)
-	local seal = CFrame.new(0, height * 0.26, back + 0.24)
-	local disc = make.rod(0.08, 0.5, SILVER, METAL, seal * FACING)
+	local seal = CFrame.new(0, height * 0.22, back + 0.28)
+	local disc = make.rod(0.08, 0.62, SILVER, METAL, seal * FACING)
 	disc.Reflectance = 0.35
-	hoop(make, seal * CFrame.new(0, 0, -0.02), 0.5, 12, 0.06, RUNE, NEON)
-	-- Marcas de runa por debajo del círculo (por arriba las tapan los cristales).
+	make.rod(0.06, 0.42, MAGE_INDIGO_DARK, FABRIC, seal * CFrame.new(0, 0, 0.04) * FACING)
+	make.ball(0.2, RUNE, NEON, seal * CFrame.new(0, 0, 0.08))
+	hoop(make, seal * CFrame.new(0, 0, 0.02), 0.56, 12, 0.06, RUNE, NEON)
+	-- Marcas de runa por debajo del círculo (por arriba las tapan los cristales) y una a cada lado.
 	for index = -2, 2 do
 		make.block(
 			Vector3.new(0.06, 0.18, 0.05),
 			RUNE,
 			NEON,
-			seal * CFrame.Angles(0, 0, math.pi + index * 0.42) * CFrame.new(0, 0.66, -0.02)
+			seal * CFrame.Angles(0, 0, math.pi + index * 0.42) * CFrame.new(0, 0.74, 0.02)
 		)
 	end
-	local crystals = 7
-	for index = 0, crystals - 1 do
-		local angle = math.rad(-70 + index * 140 / (crystals - 1))
-		local direction = Vector3.new(math.sin(angle), math.cos(angle), 0.12)
-		local length = 1.5 - math.abs(angle) * 0.55
-		crystal(make, seal.Position + direction * 0.14 + Vector3.new(0, 0, 0.06), direction, length, 0.34)
+	for side = -1, 1, 2 do
+		make.block(Vector3.new(0.18, 0.06, 0.05), RUNE, NEON, seal * CFrame.new(side * 0.74, 0, 0.02))
 	end
-	-- Cadena de plata cruzada con dos cristales colgando y, arriba, el broche de cristal.
+	-- Nueve cristales grandes en abanico y, entre ellos y más cortos, cuatro más.
+	local crystals = 9
+	for index = 0, crystals - 1 do
+		local angle = math.rad(-80 + index * 160 / (crystals - 1))
+		local direction = Vector3.new(math.sin(angle), math.cos(angle), 0.12)
+		local length = 1.55 - math.abs(angle) * 0.6
+		crystal(make, seal.Position + direction * 0.14 + Vector3.new(0, 0, 0.1), direction, length, 0.34)
+	end
+	for _, degrees in { -62, -22, 22, 62 } do
+		local angle = math.rad(degrees)
+		local direction = Vector3.new(math.sin(angle), math.cos(angle), 0.3)
+		crystal(make, seal.Position + direction * 0.14 + Vector3.new(0, 0, 0.2), direction, 0.8, 0.24)
+	end
+	-- Cadena de plata cruzada con tres cristales colgando y, arriba, el broche de cristal.
 	strap(
 		make,
 		Vector3.new(-width * 0.38, height / 2 - 0.1, front - 0.05),
@@ -1936,7 +2131,7 @@ local function crystalMantle(body: Body)
 		SILVER,
 		METAL
 	)
-	for _, t in { 0.35, 0.7 } do
+	for _, t in { 0.25, 0.5, 0.75 } do
 		local x = -width * 0.38 + width * 0.76 * t
 		local y = (height / 2 - 0.1) + (-height * 0.18 - (height / 2 - 0.1)) * t
 		crystal(make, Vector3.new(x, y - 0.03, front - 0.09), Vector3.new(0, -1, -0.1), 0.26, 0.12)
@@ -1944,9 +2139,11 @@ local function crystalMantle(body: Body)
 	local brooch = CFrame.new(0, height / 2 - 0.2, front - 0.1)
 	local rim = make.rod(0.06, 0.34, SILVER, METAL, brooch * FACING)
 	rim.Reflectance = 0.35
+	local clasp = make.rod(0.06, 0.46, SILVER_FUR_DARK, METAL, brooch * CFrame.new(0, 0, 0.02) * FACING)
+	clasp.Reflectance = 0.15
 	crystal(make, brooch.Position + Vector3.new(0, -0.08, -0.06), Vector3.new(0, 1, -0.3), 0.32, 0.16)
 
-	-- Faja oscura con hebilla de plata y un cristal colgando.
+	-- Faja oscura con hebilla de plata, dos remaches, dos borlas y un cristal colgando.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -1954,28 +2151,60 @@ local function crystalMantle(body: Body)
 	local buckle = waist.block(Vector3.new(0.34, 0.28, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
 	buckle.Reflectance = 0.35
 	crystal(waist, Vector3.new(0, -0.08, beltFront - 0.06), Vector3.new(0, -1, 0), 0.34, 0.16)
+	for side = -1, 1, 2 do
+		local stud = waist.ball(0.1, SILVER, METAL, CFrame.new(side * hipWidth * 0.34, 0.06, beltFront - 0.04))
+		stud.Reflectance = 0.25
+		waist.fang(
+			0.28,
+			0.14,
+			MAGE_INDIGO,
+			FABRIC,
+			CFrame.new(side * hipWidth * 0.44 + 0.07, -0.02, beltFront - 0.04) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
 
 	for side = -1, 1, 2 do
-		-- Hombros de pelaje plateado con dos cristales hacia fuera.
+		-- Hombros de pelaje plateado (losa con canto de plata) con tres cristales hacia fuera que salen
+		-- de la losa.
 		local arm = body.upperArm[side]
 		local as = arm.size
 		local top = as.Y / 2
-		arm.oval(Vector3.new(as.X * 1.3, 0.55, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.02, 0))
-		for _, z in { -0.2, 0.2 } do
-			crystal(arm, Vector3.new(side * as.X * 0.5, top + 0.18, z * as.Z), Vector3.new(side * 0.7, 1, z), 0.5, 0.2)
+		furSlabPauldron(arm, side)
+		for index, z in { -0.28, 0, 0.28 } do
+			crystal(
+				arm,
+				Vector3.new(side * as.X * 0.45, top + 0.34, z * as.Z),
+				Vector3.new(side * 0.6, 1, z * 1.5),
+				if index == 2 then 0.62 else 0.46,
+				0.2
+			)
 		end
-		-- Brazal añil con puño de pelaje plateado y un cristal por fuera.
+		-- Brazal añil con puño plateado de plata y de pelaje, dos tiras de runa y un cristal por fuera.
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, 0.04, fs.Y * 0.5, 0.08, MAGE_INDIGO, FABRIC)
 		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
+		local cuff = band(forearm, -fs.Y / 2 + 0.26, 0.08, 0.14, SILVER, METAL)
+		cuff.Reflectance = 0.3
+		for _, z in { -0.22, 0.22 } do
+			forearm.block(
+				Vector3.new(0.05, 0.16, 0.05),
+				RUNE,
+				NEON,
+				CFrame.new(side * (fs.X / 2 + 0.06), fs.Y * 0.12, z * fs.Z)
+			)
+		end
 		crystal(forearm, Vector3.new(side * (fs.X / 2 + 0.04), 0.06, 0), Vector3.new(side, 0.6, 0), 0.32, 0.16)
-		-- Faldón de pelaje plateado en el muslo con una runa.
+		-- Faldón de pelaje plateado en el muslo con una runa, el bajo de plata y un cristal colgando.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
 		leg.block(Vector3.new(0.06, ls.Y * 0.26, 0.04), RUNE, NEON, flap * CFrame.new(0, 0, -0.07))
+		local flapHem =
+			leg.block(Vector3.new(ls.X * 0.9 + 0.04, 0.07, 0.12), SILVER, METAL, flap * CFrame.new(0, -ls.Y * 0.2, 0))
+		flapHem.Reflectance = 0.25
+		crystal(leg, (flap * CFrame.new(0, -ls.Y * 0.2 - 0.03, -0.06)).Position, Vector3.new(0, -1, -0.1), 0.26, 0.12)
 	end
 end
 
@@ -2318,29 +2547,31 @@ local function silverHealer(body: Body)
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
 	local front = -(depth / 2 + 0.08)
 	local back = depth / 2
+	-- Túnica de lino con el bajo y una tira central de plata.
 	make.block(Vector3.new(width + 0.12, height * 0.94, depth + 0.16), LINEN, FABRIC, CFrame.new(0, -height * 0.02, 0))
-	-- Manto de pelaje plateado sobre los hombros y capa por la espalda con flecos.
-	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), SILVER_FUR, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+	local tunicHem = make.block(
+		Vector3.new(width + 0.16, 0.1, depth + 0.2),
+		SILVER,
+		METAL,
+		CFrame.new(0, -height * 0.02 - height * 0.47 + 0.05, 0)
+	)
+	tunicHem.Reflectance = 0.25
+	local tunicTrim =
+		make.block(Vector3.new(0.1, height * 0.8, 0.04), SILVER, METAL, CFrame.new(0, -height * 0.08, front))
+	tunicTrim.Reflectance = 0.25
+	-- Manto y capa de pelaje plateado con flecos (silverCape) y dos solapas de pelaje por delante.
+	silverCape(make, 5)
 	for side = -1, 1, 2 do
-		make.ball(0.6, SILVER_FUR, FABRIC, CFrame.new(side * (width / 2 + 0.06), height / 2 - 0.1, 0))
-	end
-	local capeHeight = height * 1.08
-	local capeY = height / 2 - capeHeight / 2 - 0.02
-	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), SILVER_FUR, FABRIC, CFrame.new(0, capeY, back + 0.16))
-	local capeBottom = capeY - capeHeight / 2
-	local tufts = 5
-	for index = 0, tufts - 1 do
-		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
-		make.fang(
-			if index % 2 == 0 then 0.34 else 0.26,
-			0.28,
-			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+		make.block(
+			Vector3.new(width * 0.3, 0.24, 0.3),
+			SILVER_FUR,
 			FABRIC,
-			CFrame.new(x + 0.14, capeBottom + 0.04, back + 0.34) * CFrame.Angles(0, 0, math.pi)
+			CFrame.new(side * width * 0.32, height / 2 - 0.06, front + 0.02)
 		)
 	end
 	-- Detrás (lo que el jugador ve siempre): tótem sanador pequeño atado a la capa, con su gema verde
-	-- brillando por encima de los hombros, hojas en la base y un frasco brillante a cada lado.
+	-- brillando por encima de los hombros, un abanico de hojas en la base, correas a los hombros y frascos
+	-- brillantes colgando a los lados y en el suelo del tótem.
 	local totemBase = CFrame.new(0, -height * 0.3, back + 0.42)
 	-- (A escala 1 se quedaba bajo los hombros.)
 	local totemScale = 1.25
@@ -2351,20 +2582,31 @@ local function silverHealer(body: Body)
 		LEATHER_MATERIAL,
 		totemBase * CFrame.new(0, 0.7 * totemScale, 0)
 	)
-	for index, angle in { -1.1, -0.45, 0.45, 1.1 } do
+	for index, angle in { -1.3, -0.8, -0.3, 0.3, 0.8, 1.3 } do
 		leaf(
 			make,
-			0.6,
-			if index % 2 == 0 then LEAF_DARK else LEAF,
-			totemBase * CFrame.new(0, 0.12, -0.1) * CFrame.Angles(0, 0, -angle) * CFrame.new(0, 0.32, 0)
+			0.7,
+			if index % 3 == 0 then LEAF_LIGHT elseif index % 2 == 0 then LEAF_DARK else LEAF,
+			totemBase * CFrame.new(0, 0.12, -0.1) * CFrame.Angles(0, 0, -angle) * CFrame.new(0, 0.36, 0)
 		)
 	end
 	for side = -1, 1, 2 do
+		strap(
+			make,
+			Vector3.new(side * 0.3, -height * 0.3 + 0.9, back + 0.3),
+			Vector3.new(side * width * 0.4, height / 2 - 0.1, back + 0.3),
+			0.1,
+			LEATHER_DARK,
+			LEATHER_MATERIAL
+		)
 		local cord = CFrame.new(side * width * 0.36, height * 0.22, back + 0.26)
-		make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, cord)
-		flask(make, cord * CFrame.new(0, -0.62, 0.02), 0.26, true)
+		make.block(Vector3.new(0.04, 0.2, 0.04), FIBER, FABRIC, cord)
+		local knot = make.ball(0.1, SILVER, METAL, cord * CFrame.new(0, 0.1, 0))
+		knot.Reflectance = 0.25
+		flask(make, cord * CFrame.new(0, -0.45, 0.02), 0.26, true)
+		flask(make, CFrame.new(side * 0.9, -height * 0.3 - 0.02, back + 0.4), 0.24, true)
 	end
-	-- Bandolera del hombro derecho a la cadera izquierda con tres frascos que brillan colgando.
+	-- Bandolera del hombro derecho a la cadera izquierda con tres frascos que brillan y una bolsita de hierbas.
 	local from = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.03)
 	local to = Vector3.new(-width * 0.4, -height / 2 + 0.12, front - 0.03)
 	strap(make, from, to, 0.16, LEATHER_DARK, LEATHER_MATERIAL)
@@ -2372,13 +2614,28 @@ local function silverHealer(body: Body)
 		local at = from:Lerp(to, t)
 		flask(make, CFrame.new(at.X, at.Y - 0.32, at.Z - 0.1), 0.22, true)
 	end
-	-- Broche de plata con una gema verde que cierra el manto.
+	for _, t in { 0, 1 } do
+		local at = from:Lerp(to, t)
+		local buckle = make.ball(0.14, SILVER, METAL, CFrame.new(at.X, at.Y, at.Z - 0.1))
+		buckle.Reflectance = 0.25
+	end
+	local pouchAt = from:Lerp(to, 0.9)
+	herbPouch(make, CFrame.new(pouchAt.X, pouchAt.Y - 0.12, front - 0.14), LEAF)
+	-- Broche de plata con una gema verde que cierra el manto, entre dos hojas.
 	local brooch = CFrame.new(-width * 0.22, height / 2 - 0.16, front - 0.1)
 	local rim = make.rod(0.06, 0.32, SILVER, METAL, brooch * FACING)
 	rim.Reflectance = 0.35
 	make.ball(0.18, HEAL_GLOW, NEON, brooch * CFrame.new(0, 0, -0.05))
+	for side = -1, 1, 2 do
+		leaf(
+			make,
+			0.4,
+			if side == 1 then LEAF else LEAF_DARK,
+			brooch * CFrame.new(side * 0.22, -0.04, -0.02) * CFrame.Angles(0, math.pi, side * 1.1)
+		)
+	end
 
-	-- Cinturón oscuro con hebilla de plata y un rollo de venda.
+	-- Cinturón oscuro con hebilla de plata, un rollo de venda, un frasco que brilla y una bolsita de hierbas.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -2391,33 +2648,39 @@ local function silverHealer(body: Body)
 	local buckle = waist.block(Vector3.new(0.34, 0.26, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
 	buckle.Reflectance = 0.35
 	waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(hipWidth * 0.32, -0.06, beltFront - 0.1) * UPRIGHT)
+	waist.block(Vector3.new(0.1, 0.3, 0.04), PAINT_WHITE, FABRIC, CFrame.new(hipWidth * 0.2, -0.18, beltFront - 0.04))
+	flask(waist, CFrame.new(-hipWidth * 0.34, -0.3, beltFront - 0.12), 0.22, true)
+	herbPouch(waist, CFrame.new(-hipWidth * 0.16, -0.14, beltFront - 0.1), LEAF_DARK)
 
 	for side = -1, 1, 2 do
-		-- Hombros de pelaje plateado con dos hojas por debajo.
+		-- Hombro: losa de pelaje plateado con tres hojas tumbadas encima (se abren hacia fuera).
 		local arm = body.upperArm[side]
-		local as = arm.size
-		local top = as.Y / 2
-		for index, tilt in { -0.35, 0.35 } do
+		local center = furSlabPauldron(arm, side)
+		for index, yaw in { -0.7, 0, 0.7 } do
 			leaf(
 				arm,
 				0.5,
-				if index == 1 then LEAF else LEAF_DARK,
-				CFrame.new(side * (as.X / 2 + 0.04), top - 0.3, tilt * 0.6)
-					* CFrame.Angles(0, side * math.rad(90), 0)
-					* CFrame.Angles(0, 0, math.pi + tilt)
+				if index == 2 then LEAF_LIGHT elseif index == 1 then LEAF else LEAF_DARK,
+				center
+					* CFrame.Angles(0, -side * math.pi / 2 + yaw, 0)
+					* CFrame.Angles(-math.pi / 2, 0, 0)
+					* CFrame.new(0, 0.24, 0)
 			)
 		end
-		arm.oval(Vector3.new(as.X * 1.3, 0.55, as.Z * 1.3), SILVER_FUR, FABRIC, CFrame.new(side * 0.1, top + 0.02, 0))
-		-- Venda y puño de pelaje plateado en el antebrazo.
+		-- Dos vendas y un puño de pelaje plateado en el antebrazo.
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, fs.Y * 0.05, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
+		band(forearm, -fs.Y * 0.14, 0.12, 0.06, PAINT_WHITE, FABRIC, -0.12)
 		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, SILVER_FUR, FABRIC)
-		-- Faldón de pelaje plateado en el muslo con una hoja.
+		-- Faldón de pelaje plateado en el muslo con el bajo de plata y una hoja.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
+		local flapHem =
+			leg.block(Vector3.new(ls.X * 0.9 + 0.04, 0.07, 0.12), SILVER, METAL, flap * CFrame.new(0, -ls.Y * 0.2, 0))
+		flapHem.Reflectance = 0.25
 		leaf(
 			leg,
 			0.46,
