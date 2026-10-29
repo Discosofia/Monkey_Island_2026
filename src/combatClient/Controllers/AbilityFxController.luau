@@ -725,8 +725,8 @@ end
 -- 0,25 s. El destello va soldado a la pieza (sigue al arma de la vista, que se mueve cada fotograma); el
 -- humo y las chispas se quedan en el aire. La luz vive dentro del destello y se borra con él.
 local MUZZLE_LOOKS: { [string]: { color: Color3, glow: number, light: number, seconds: number } } = {
-	LabDart = { color = Color3.fromRGB(150, 215, 255), glow = 0.9, light = 0, seconds = 0.1 },
-	LabBanana = { color = Color3.fromRGB(255, 225, 60), glow = 2.4, light = 3, seconds = 0.14 },
+	LabDart = { color = Color3.fromRGB(150, 215, 255), glow = 1.5, light = 2, seconds = 0.12 },
+	LabBanana = { color = Color3.fromRGB(255, 225, 60), glow = 3.4, light = 5, seconds = 0.16 },
 	LabNet = { color = Color3.fromRGB(205, 190, 150), glow = 1.3, light = 0, seconds = 0.2 },
 	LabAcid = { color = Color3.fromRGB(135, 55, 205), glow = 1.1, light = 2, seconds = 0.22 },
 }
@@ -2876,14 +2876,19 @@ local LAB_ACID = Color3.fromRGB(135, 55, 205) -- morado: veneno (sin neón, que 
 local function labLook(style: string, splash: number?): Look
 	local body: Part
 	if style == "LabDart" then
-		body = piece("Projectile", Vector3.new(0.12, 0.12, 0.8), LAB_DART, Enum.Material.Neon)
-		trail(body, Vector3.new(0, 0, 0.4), ColorSequence.new(Color3.new(1, 1, 1), LAB_DART), 0.12, 0.15)
+		-- Trazadora gruesa y blanca en el centro, para verla de lejos (también el rival).
+		body = piece("Projectile", Vector3.new(0.26, 0.26, 1.8), LAB_DART, Enum.Material.Neon)
+		trail(body, Vector3.new(0, 0, 0.9), ColorSequence.new(Color3.new(1, 1, 1), LAB_DART), 0.22, 0.32)
+		local light = Instance.new("PointLight")
+		light.Color = LAB_DART
+		light.Range = 6
+		light.Parent = body
 	elseif style == "LabBanana" then
-		body = piece("Projectile", Vector3.new(0.3, 0.3, 1.4), LAB_BANANA, Enum.Material.Neon)
-		trail(body, Vector3.new(0, 0, 0.7), ColorSequence.new(Color3.fromRGB(255, 250, 200), LAB_BANANA), 0.3, 0.35)
+		body = piece("Projectile", Vector3.new(0.5, 0.5, 2.6), LAB_BANANA, Enum.Material.Neon)
+		trail(body, Vector3.new(0, 0, 1.3), ColorSequence.new(Color3.fromRGB(255, 250, 200), LAB_BANANA), 0.4, 0.65)
 		local light = Instance.new("PointLight")
 		light.Color = LAB_BANANA
-		light.Range = 8
+		light.Range = 12
 		light.Parent = body
 	elseif style == "LabNet" then
 		-- Red cuadrada que vuela de cara, con un peso en cada esquina.
@@ -2917,8 +2922,8 @@ local function labLook(style: string, splash: number?): Look
 				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 6, 1.1, 11, 0.35)
 			elseif style == "LabDart" then
 				-- Chispas cian cortas y un anillito que se abre rápido.
-				burst(position, SPARKLE_TEXTURE, LAB_DART, 6, 0.35, 7, 0.2)
-				ring(position, 0.1, 1, 0.15, LAB_DART, 0.08, 0.2)
+				burst(position, SPARKLE_TEXTURE, LAB_DART, 9, 0.5, 9, 0.25)
+				ring(position, 0.15, 1.8, 0.18, LAB_DART, 0.1, 0.2)
 			elseif style == "LabNet" then
 				-- Bocanada beige de fibras y un disco-red que se abre y se desvanece.
 				burst(position, SMOKE_TEXTURE, LAB_NET, 8, 0.9, 5, 0.3)

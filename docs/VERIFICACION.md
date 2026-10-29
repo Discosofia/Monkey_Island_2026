@@ -2631,6 +2631,29 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
 1. [ ] Con el jefe en la fase 2 y luego en la fase 3, fuera de la Isla (Dunas, Lobby o el Laboratorio), y con otro jugador en otro place o servidor.
    ✅ Las fases 2 y 3 se ven en el place. El aviso global (Announce) llega a los otros servidores y places, con el nombre del place y del servidor.
 
+## 53. Fase 18 L1: Laboratorio, disparo y puntería (29-10-2026)
+
+#### 53.1 Un jugador (Play en el Laboratorio, con munición)
+
+1. [ ] Quieto, dispara el primer tiro del lanzadardos y del lanzarredes a un muñeco lejano con la mira en su centro.
+   ✅ El primer tiro da justo en el centro (dispersión 0). Al mantener el gatillo del lanzadardos, la mira se abre y los tiros se esparcen; al soltar, se cierra.
+2. [ ] Dispara moviéndote y en el aire.
+   ✅ La mira se abre más y los tiros se desvían.
+3. [ ] Acierta a otro jugador (o a un muñeco con vida).
+   ✅ Salen cuatro rayas blancas en diagonal alrededor de la mira durante unos 0,2 s. Con un golpe a la cabeza son rojas.
+4. [ ] Dispara el lanzadardos y el rifle de bananas.
+   ✅ Las trazadoras se ven gruesas y brillantes, el fogonazo del arma es más grande y el impacto lanza chispas y anillo visibles.
+
+#### 53.2 Dos jugadores
+
+1. [ ] Mira desde fuera cómo dispara el otro jugador.
+   ✅ Ves su fogonazo en la boca del arma y la trazadora gruesa hasta el impacto.
+
+#### 53.3 Pendiente de publicar
+
+1. [ ] Poses nuevas de apuntar y disparar (rifle, arpón y cañón tienen el id vacío en Data/WeaponAnimations). Las publica el usuario con la skill animaciones-roblox.
+   ✅ Al publicar y poner los ids, se ven al apuntar y disparar.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -115,7 +115,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 			pose = "LabHarpoon",
 			magazine = 3,
 			reloadSeconds = 1.8,
-			spread = { still = 1, moving = 1.5, air = 3, perShot = 0 },
+			spread = { still = 0, moving = 1.5, air = 3, perShot = 0 },
 		},
 	},
 	LabAcidCannon = {
