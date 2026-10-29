@@ -640,7 +640,7 @@ Decisiones del 28-10-2026:
 | **M2** | Quetzal (Mítico) | 8f7c4f0 | ✅ Probado en Studio (sin probar: VERIFICACION §59) |
 | **M3** | Ajolote (Mítico), con clips de la capibara, el ajolote y el quetzal | 88779ff | ✅ Probado en Studio (sin probar: VERIFICACION §60) |
 | **M4** | Clips propios para las mascotas antiguas (reposo, correr, andar) | 19ce22d | ✅ Probado en Studio y en Play por el usuario (VERIFICACION §61) |
-| **R1** | Armaduras de Pelaje (rango I), 4 roles | — | ⏳ |
+| **R1** | Armaduras de Pelaje (rango I), 4 roles | 9eaed8a | ✅ Probado en Studio (sin probar: VERIFICACION §62) |
 | **R2** | Armaduras de Hueso (rango II), 4 roles | — | ⏳ |
 | **R3** | Armaduras de Plata (rango III), 4 roles | — | ⏳ |
 | **R4** | Armaduras Volcánicas (rango IV), 4 roles | — | ⏳ |
@@ -771,6 +771,11 @@ Decisiones del 28-10-2026:
 - **Flujo:** commit solo tras «aprobado», push y fila de `PLAN.md` en un commit aparte; después, escribe el Handoff de R2 (Hueso) con su prompt.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R1.»
 
+
+**Handoff de R2 (29-10-2026)**
+- **Estado:** R1 cerrada y subida (9eaed8a). R2 en curso en la misma pestaña. Siguiente número libre de VERIFICACION: §63.
+- **Objetivo:** rehacer los 4 builders del rango II (`BoneArmor`): `boneArmor`, `hunterLeather`, `runeTunic`, `healerPlastron`; tope `ArmorRank[2]` = 115. Mismo método que R1: `programador` escribe; la sesión principal mide con `Rendimiento` y captura sobre maniquíes (`HumanoidDescription` con color de piel y `ArmorModels.wear`); espalda vistosa, congruencia con el rango I y trajes míticos sin errores.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de R2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo R2.»
 ---
 
 ## 4. Cronograma estimado
