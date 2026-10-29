@@ -36,6 +36,7 @@ local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local MeleeBox = require(ReplicatedStorage.Shared.MeleeBox)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -57,9 +58,6 @@ local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
 -- Secuencias que deja en ReplicatedStorage el generador (ServerStorage.Tools.WeaponAnimationBuilder).
 local STUDIO_FOLDER = "WeaponAnimations"
 local HOLD_FADE = 0.15
--- Zona del golpe (ancho y alto) para predecir el parón de impacto: la misma que el servidor
--- (CombatService.MELEE_HITBOX).
-local MELEE_HITBOX = Vector2.new(7, 6)
 local SHAKE_SECONDS = 0.15
 local ZOOM_ACTION = "Zoom"
 local ZOOM_SECONDS = 0.15
@@ -259,8 +257,7 @@ local function swingConnects(character: Model, weapon: Weapons.WeaponDefinition)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
-	local box = root.CFrame * CFrame.new(0, 0, -weapon.range / 2)
-	local size = Vector3.new(MELEE_HITBOX.X, MELEE_HITBOX.Y, weapon.range)
+	local box, size = MeleeBox.compute(character, root, weapon.range)
 	for _, part in Workspace:GetPartBoundsInBox(box, size, params) do
 		local model = part:FindFirstAncestorOfClass("Model")
 		local humanoid = if model then model:FindFirstChildOfClass("Humanoid") else nil

@@ -40,6 +40,8 @@ local Guard = require(script.Parent.Parent.Guard)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local InteractLock = require(ReplicatedStorage.Shared.InteractLock)
+local MeleeBox = require(ReplicatedStorage.Shared.MeleeBox)
 local MeleeChain = require(ReplicatedStorage.Shared.MeleeChain)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -65,9 +67,6 @@ local StaminaServer = require(script.Parent.Parent.StaminaServer)
 local StateMachine = require(script.Parent.Parent.StateMachine)
 local Status = require(script.Parent.Parent.Status)
 local Zones = require(script.Parent.Parent.Zones)
-
--- Tamaño (ancho y alto) de la zona de golpe del cuerpo a cuerpo, delante del jugador.
-local MELEE_HITBOX = Vector2.new(7, 6)
 
 local CombatService = {}
 
@@ -161,6 +160,7 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	if attacker then
 		model:SetAttribute("LastAttackerUserId", attacker.UserId)
 		if not hit.pet then
+			InteractLock.mark(attacker)
 			amount = math.max(1, math.round(amount * Config.Combat.PlayerDamageMultiplier))
 		end
 	end
@@ -272,6 +272,7 @@ function CombatService.damagePlayer(
 	if not (character and humanoid and humanoid.Health > 0) then
 		return false, nil
 	end
+	InteractLock.mark(player)
 	local outcome: Guard.Outcome = "Hit"
 	if guard then
 		local scale
@@ -441,6 +442,8 @@ local function applyPvP(
 	if not (character and humanoid and humanoid.Health > 0) then
 		return
 	end
+	InteractLock.mark(attacker)
+	InteractLock.mark(victim)
 	if CombatRules.get().pvpStatus then
 		local bonus = bonusWhile(character, "MarkedUntil", "MarkBonus")
 			+ bonusWhile(character, "ExposedUntil", "ExposedBonus")
@@ -585,8 +588,7 @@ local function meleeAttack(
 	critChance: number,
 	step: number?
 )
-	local box = root.CFrame * CFrame.new(0, 0, -weapon.range / 2)
-	local size = Vector3.new(MELEE_HITBOX.X, MELEE_HITBOX.Y, weapon.range)
+	local box, size = MeleeBox.compute(character, root, weapon.range)
 
 	-- "+daño cuerpo a cuerpo" del guerrero.
 	local damage = weapon.damage * Progression.perk(player, "MeleeDamage")

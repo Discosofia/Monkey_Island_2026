@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local InteractLock = require(ReplicatedStorage.Shared.InteractLock)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Plot = require(ReplicatedStorage.Shared.Plot)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
@@ -584,7 +585,7 @@ function ChestController:Start()
 	end)
 
 	ProximityPromptService.PromptTriggered:Connect(function(triggered: ProximityPrompt)
-		if triggered.Name == Plot.CHEST_PROMPT and LifeState.isAlive(player) then
+		if triggered.Name == Plot.CHEST_PROMPT and LifeState.isAlive(player) and not InteractLock.locked(player) then
 			open(triggered)
 		end
 	end)

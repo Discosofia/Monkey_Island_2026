@@ -2533,6 +2533,25 @@ Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos)
 1. [ ] A equipa el Dragón III y B lo mira de lejos y de cerca.
    ✅ B ve el arma entera con la cola, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
 
+## 49. Lo que queda por probar de A1: menús en combate y golpe del gigante (29-10-2026)
+
+#### 49.1 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en la Isla)
+
+1. [ ] A se convierte en el gigante desde el panel de admin (Eventos → Gigante) y B se queda de pie en campo abierto. A golpea a B con su arma cuerpo a cuerpo desde varios lados.
+   ✅ Los espadazos de A le dan a B (ya no pasan por encima de su cabeza) y B pierde vida.
+2. [ ] B golpea a A (el gigante) con un arma cuerpo a cuerpo.
+   ✅ Sigue dándole, igual que antes.
+
+#### 49.2 Con la parcela y los cofres (Isla, un jugador)
+
+1. [ ] Junto a un cofre de la parcela y junto al cartel de la parcela, recibe un golpe de un mono e intenta abrirlos en los 4 s siguientes.
+   ✅ No se abren. Pasados los 4 s sin combate, sí.
+
+#### 49.3 Textos
+
+1. [ ] Abre el Diario del naturalista y el contrato Campamento del náufrago.
+   ✅ Dicen «Recolecten…» y «Levanten…» (sin «Recolectad» ni «Levantad»), y con el juego en inglés siguen traducidos. Hay que subir `build/localization_nuevas.csv` a Creator Hub.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

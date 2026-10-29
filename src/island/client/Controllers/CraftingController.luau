@@ -21,6 +21,7 @@ local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Crit = require(ReplicatedStorage.Shared.Crit)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local InteractLock = require(ReplicatedStorage.Shared.InteractLock)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Recipes = require(ReplicatedStorage.Shared.Data.Recipes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -304,7 +305,13 @@ function CraftingController:Start()
 		local anchor = prompt.Parent
 		local id = prompt:GetAttribute("StationId")
 		local valid = prompt.Name == PROMPT_NAME and typeof(id) == "string"
-		if valid and anchor and anchor:IsA("BasePart") and LifeState.isAlive(player) then
+		if
+			valid
+			and anchor
+			and anchor:IsA("BasePart")
+			and LifeState.isAlive(player)
+			and not InteractLock.locked(player)
+		then
 			open(anchor, id :: string)
 		end
 	end)

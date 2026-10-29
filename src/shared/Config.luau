@@ -142,6 +142,8 @@ local Config = {
 		DestructibleTag = "Destructible",
 		-- Herramientas con las que aparece todo jugador, detrás de las armas de su rol (Data/Roles).
 		StarterTools = { "WoodenAxe", "WoodenPick" },
+		-- Tras hacer o recibir daño no se abren las estaciones, los cofres ni la parcela (Shared/InteractLock).
+		InteractLockSeconds = 4,
 		DodgeCooldownSeconds = 1.2,
 		DodgeSpeed = 55,
 		DodgeDurationSeconds = 0.2,

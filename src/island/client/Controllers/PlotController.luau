@@ -17,6 +17,7 @@ local Workspace = game:GetService("Workspace")
 local Building = require(ReplicatedStorage.Shared.Building)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
+local InteractLock = require(ReplicatedStorage.Shared.InteractLock)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Plot = require(ReplicatedStorage.Shared.Plot)
 local PlotStructures = require(ReplicatedStorage.Shared.Data.PlotStructures)
@@ -263,7 +264,7 @@ function PlotController:Start()
 	closeButton.MouseButton1Click:Connect(close)
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt)
-		if prompt.Name == Plot.PROMPT_NAME and LifeState.isAlive(player) then
+		if prompt.Name == Plot.PROMPT_NAME and LifeState.isAlive(player) and not InteractLock.locked(player) then
 			open()
 		end
 	end)
