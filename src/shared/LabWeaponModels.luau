@@ -57,6 +57,7 @@ local DART = Color3.fromRGB(150, 215, 255)
 local BANANA = Color3.fromRGB(255, 225, 60)
 local NET = Color3.fromRGB(205, 190, 150)
 local SERUM = Color3.fromRGB(120, 50, 195) -- sin neón ni luz: con ellos sale rosa
+local BUBBLE = Color3.fromRGB(190, 140, 240)
 
 local PALETTES: { [Faction]: Palette } = {
 	Guardians = {
@@ -360,31 +361,57 @@ local function buildNetHarpoon(tool: Tool, faction: Faction): BasePart
 	return handle
 end
 
--- Cañón de suero: tubo grueso con boca acampanada y un depósito de suero morado encima.
+-- Cañón de suero: lanzagranadas. Tubo grueso y corto con boca acampanada (BellInside, la boca que la skin
+-- del Dragón sustituye), un depósito alto de suero morado con burbujas sobre el tubo, un manómetro redondo
+-- en el lado derecho y un asa lateral a la izquierda.
 local function buildAcidCannon(tool: Tool, faction: Faction): BasePart
 	local palette = PALETTES[faction]
-	local handle = frame(tool, palette, faction, 1.0, 0.65)
-	cube(handle, "Tube", at(0, 1.05, 0.1), Vector3.new(0.55, 1.1, 0.55), palette.barrel, METAL)
-	cube(handle, "Bell", at(0, 1.7, 0.1), Vector3.new(0.8, 0.25, 0.8), palette.trim, palette.trimMaterial)
-	cube(handle, "BellInside", at(0, 1.83, 0.1), Vector3.new(0.5, 0.05, 0.5), IRON, SMOOTH)
-	-- Sin luz propia: con ella el morado se ve rosa.
-	cube(handle, "Serum", at(0, 0.05, 0.6), Vector3.new(0.35, 0.8, 0.35), SERUM, SMOOTH)
+	local handle = frame(tool, palette, faction, 0.9, 0.6)
+	-- Tubo de 0,4 a 1,7, collar de unión con el cajón, dos aros y la campana (1,7 a 2,0).
+	cube(handle, "Tube", at(0, 1.05, 0.1), Vector3.new(0.7, 1.3, 0.7), palette.barrel, METAL)
+	cube(handle, "Collar", at(0, 0.45, 0.1), Vector3.new(0.8, 0.12, 0.8), palette.trim, palette.trimMaterial)
+	for _, along in { 0.7, 1.45 } do
+		cube(handle, "TubeRing", at(0, along, 0.1), Vector3.new(0.78, 0.1, 0.78), palette.trim, palette.trimMaterial)
+	end
+	cube(handle, "Bell", at(0, 1.85, 0.1), Vector3.new(1.0, 0.3, 1.0), palette.trim, palette.trimMaterial)
+	cube(handle, "BellInside", at(0, 2.02, 0.1), Vector3.new(0.7, 0.05, 0.7), IRON, SMOOTH)
+	-- Depósito alto sobre el tubo (sin luz propia: con ella el morado se ve rosa), con sus tapas, dos
+	-- sillas de apoyo y burbujas claras pegadas a los lados.
+	for _, along in { 0.55, 1.15 } do
+		cube(handle, "TankSaddle", at(0, along, 0.48), Vector3.new(0.45, 0.12, 0.1), palette.barrel, METAL)
+	end
+	cube(handle, "Serum", at(0, 0.85, 0.78), Vector3.new(0.5, 0.9, 0.5), SERUM, SMOOTH)
+	for _, along in { 0.35, 1.35 } do
+		cube(handle, "TankCap", at(0, along, 0.78), Vector3.new(0.6, 0.1, 0.6), palette.trim, palette.trimMaterial)
+	end
+	for side = -1, 1, 2 do
+		cube(handle, "Bubble", at(side * 0.27, 0.7, 0.9), Vector3.new(0.06, 0.14, 0.14), BUBBLE, SMOOTH)
+		cube(handle, "Bubble", at(side * 0.27, 1.0, 0.65), Vector3.new(0.06, 0.1, 0.1), BUBBLE, SMOOTH)
+	end
+	cube(handle, "Bubble", at(0.1, 0.95, 1.04), Vector3.new(0.12, 0.12, 0.06), BUBBLE, SMOOTH)
+	-- Manómetro redondo a la derecha: caja, esfera clara y aguja.
+	cube(handle, "GaugeBox", at(0.4, 0.95, 0.0), Vector3.new(0.1, 0.4, 0.4), palette.trim, palette.trimMaterial)
+	cube(handle, "GaugeFace", at(0.47, 0.95, 0.0), Vector3.new(0.05, 0.28, 0.28), BONE, SMOOTH)
+	cube(handle, "GaugeNeedle", at(0.51, 0.97, 0.04), Vector3.new(0.03, 0.05, 0.14), IRON, SMOOTH)
+	-- Asa lateral a la izquierda: soporte y puño colgando.
+	cube(handle, "SideArm", at(-0.5, 0.95, 0.1), Vector3.new(0.3, 0.12, 0.12), palette.barrel, METAL)
+	cube(handle, "SideGrip", at(-0.65, 0.95, -0.1), Vector3.new(0.15, 0.15, 0.5), palette.grip, palette.gripMaterial)
 	if faction == "Guardians" then
-		-- Depósito con armazón blanco y aros azules.
-		for _, along in { -0.35, 0.45 } do
-			cube(handle, "TankCap", at(0, along, 0.6), Vector3.new(0.45, 0.1, 0.45), LAB_WHITE, SMOOTH)
-		end
+		-- Armazón azul del depósito, franja azul en el tubo y luz de presión junto al manómetro.
 		for side = -1, 1, 2 do
-			cube(handle, "TankFrame", at(side * 0.2, 0.05, 0.6), Vector3.new(0.05, 0.8, 0.1), LAB_BLUE, SMOOTH)
+			cube(handle, "TankFrame", at(side * 0.27, 0.85, 0.78), Vector3.new(0.05, 0.9, 0.1), LAB_BLUE, SMOOTH)
 		end
-		cube(handle, "Hose", at(0, 0.6, 0.45), Vector3.new(0.1, 0.4, 0.1), LAB_DARK, SMOOTH)
+		cube(handle, "Rim", at(0, 1.2, 0.1), Vector3.new(0.78, 0.15, 0.78), LAB_BLUE, SMOOTH)
+		local light = cube(handle, "Ready", at(0.4, 1.3, 0.0), Vector3.new(0.1, 0.12, 0.12), LAB_GLOW, NEON)
+		glow(light, LAB_GLOW, 3)
 	else
-		-- Botella de cristal con tapón de corcho atada con cuerda.
-		cube(handle, "Cork", at(0, 0.5, 0.6), Vector3.new(0.2, 0.15, 0.2), PIRATE_WOOD, WOOD)
-		for _, along in { -0.15, 0.25 } do
-			cube(handle, "Strap", at(0, along, 0.6), Vector3.new(0.4, 0.05, 0.4), ROPE, FABRIC)
+		-- Correas de cuerda atando el depósito, corcho en la tapa, aro de oro y una calavera en el tubo.
+		for _, along in { 0.6, 1.1 } do
+			cube(handle, "Strap", at(0, along, 0.78), Vector3.new(0.56, 0.06, 0.56), ROPE, FABRIC)
 		end
-		cube(handle, "BellRim", at(0, 1.62, 0.1), Vector3.new(0.9, 0.05, 0.9), GOLD, METAL)
+		cube(handle, "Cork", at(0, 1.45, 0.78), Vector3.new(0.2, 0.12, 0.2), PIRATE_WOOD, WOOD)
+		cube(handle, "BellRim", at(0, 1.99, 0.1), Vector3.new(1.05, 0.05, 1.05), GOLD, METAL)
+		cube(handle, "PumpSkull", at(-0.37, 1.1, 0.1), Vector3.new(0.05, 0.22, 0.22), BONE, SMOOTH)
 	end
 	return handle
 end

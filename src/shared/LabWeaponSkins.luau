@@ -535,92 +535,133 @@ local ARM_REAR_HIGH =
 	{ { 0.15, -1.75, 0.2 }, { 0.35, -2.05, 0.5 }, { 0.5, -2.35, 0.9 }, { 0.4, -2.65, 1.3 }, { 0.2, -2.8, 1.5 } }
 
 -- ---------------------------------------------------------------------------------------------------
--- Dragón (Cañón): tubo de 0,5 a 1,6; campana en 1,7 (1,575 a 1,825); depósito encima.
+-- Dragón (Cañón): tubo de 0,4 a 1,7 (ancho 0,7); campana de 1,7 a 2,0 (ancho 1,0, de -0,4 a 0,6 de alto);
+-- depósito de 0,4 a 1,3 sobre el tubo (de 0,53 a 1,03 de alto); manómetro a la derecha y asa a la izquierda.
 -- ---------------------------------------------------------------------------------------------------
 
 -- Hocico: la garganta de brasa sustituye el interior de la campana, con dientes de hueso alrededor.
 local function dragonSnout(handle: BasePart, faction: string)
 	drop(handle, "BellInside")
-	cube(handle, "SkinThroat", at(0, 1.83, 0.1), V(0.5, 0.05, 0.5), EMBER, NEON)
+	drop(handle, "Bell")
+	drop(handle, "BellRim")
+	-- Campana de obsidiana con labio de brasa: la cabeza del dragón.
+	cube(handle, "SkinBell", at(0, 1.85, 0.1), V(1.0, 0.3, 1.0), OBSIDIAN, SLATE)
+	cube(handle, "SkinLip", at(0, 1.99, 0.1), V(1.08, 0.06, 1.08), EMBER, SMOOTH)
+	cube(handle, "SkinThroat", at(0, 2.04, 0.1), V(0.7, 0.05, 0.7), EMBER, NEON)
 	for offset = -1, 1 do
-		cube(handle, "SkinTooth", at(offset * 0.27, 1.9, 0.5), V(0.1, 0.15, 0.1), HORN, SMOOTH)
-		cube(handle, "SkinTooth", at(offset * 0.27, 1.9, -0.3), V(0.1, 0.15, 0.1), HORN, SMOOTH)
+		cube(handle, "SkinTooth", at(offset * 0.3, 2.1, 0.55), V(0.12, 0.18, 0.1), HORN, SMOOTH)
+		cube(handle, "SkinTooth", at(offset * 0.3, 2.1, -0.35), V(0.12, 0.18, 0.1), HORN, SMOOTH)
 	end
-	for _, up in { 0.0, 0.2 } do
+	for _, up in { -0.05, 0.25 } do
 		for side = -1, 1, 2 do
-			cube(handle, "SkinTooth", at(side * 0.4, 1.9, up), V(0.1, 0.15, 0.1), HORN, SMOOTH)
+			cube(handle, "SkinTooth", at(side * 0.45, 2.1, up), V(0.1, 0.18, 0.12), HORN, SMOOTH)
 		end
 	end
 	for side = -1, 1, 2 do
-		cube(handle, "SkinNostril", at(side * 0.12, 1.45, 0.42), V(0.1, 0.15, 0.1), OBSIDIAN, SLATE)
+		cube(handle, "SkinNostril", at(side * 0.2, 1.9, 0.63), V(0.12, 0.15, 0.05), OBSIDIAN, SLATE)
 	end
-	-- Escamas: anillos de brasa en el tubo.
-	for _, along in { 0.75, 1.05, 1.35 } do
-		cube(handle, "SkinScale", at(0, along, 0.1), V(0.65, 0.08, 0.65), EMBER, SMOOTH)
+	-- Escamas: anillos de brasa en el tubo y placas a sus dos lados.
+	for _, along in { 0.9, 1.35 } do
+		cube(handle, "SkinScale", at(0, along, 0.1), V(0.82, 0.08, 0.82), EMBER, SMOOTH)
 	end
-	accent(handle, faction, at(0.3, 1.45, 0.4))
-	accent(handle, faction, at(-0.3, 1.45, 0.4))
+	for side = -1, 1, 2 do
+		for index, along in { 0.6, 0.8, 1.0, 1.2, 1.4, 1.6 } do
+			cube(
+				handle,
+				"SkinPlateSide",
+				at(side * 0.37, along, 0.0 + (index % 2) * 0.2),
+				V(0.06, 0.14, 0.14),
+				EMBER,
+				SMOOTH
+			)
+		end
+	end
+	accent(handle, faction, at(0.5, 1.7, 0.45))
+	accent(handle, faction, at(-0.5, 1.7, 0.45))
 end
 
--- Cuernos hacia atrás, ojos que brillan, mandíbula y cresta en el tubo.
-local function dragonHead(handle: BasePart)
+-- Cuernos hacia atrás, ojos que brillan, mandíbula, cresta sobre el depósito y alas plegadas a sus lados.
+local function dragonHead(handle: BasePart, folded: boolean)
 	for side = -1, 1, 2 do
 		for step = 1, 3 do
 			cube(
 				handle,
 				"SkinHorn",
-				at(side * (0.35 + (step - 1) * 0.05), 1.6 - (step - 1) * 0.2, 0.5 + (step - 1) * 0.2),
-				V(0.12, 0.2, 0.2),
+				at(side * (0.4 + (step - 1) * 0.05), 1.95 - (step - 1) * 0.25, 0.55 + (step - 1) * 0.2),
+				V(0.14, 0.25, 0.2),
 				HORN,
 				SMOOTH
 			)
 		end
-		cube(handle, "SkinEye", at(side * 0.42, 1.55, 0.3), V(0.06, 0.15, 0.12), EMBER, NEON)
+		cube(handle, "SkinEye", at(side * 0.52, 1.8, 0.3), V(0.06, 0.15, 0.12), EMBER, NEON)
+		if folded then
+			cube(handle, "SkinFold", at(side * 0.3, 0.05, 0.62), V(0.1, 0.5, 0.4), MEMBRANE, SMOOTH)
+			cube(handle, "SkinFoldBone", at(side * 0.3, 0.05, 0.86), V(0.14, 0.55, 0.08), HORN, SMOOTH)
+			cube(handle, "SkinClaw", at(side * 0.3, 0.35, 0.62), V(0.12, 0.12, 0.15), HORN, SMOOTH)
+		end
 	end
-	cube(handle, "SkinJaw", at(0, 1.7, -0.35), V(0.7, 0.3, 0.1), OBSIDIAN, SLATE)
-	for index, along in { 0.7, 0.95, 1.2, 1.45 } do
-		local height = 0.15 + (index - 1) * 0.05
-		cube(handle, "SkinCrest", at(0, along, 0.38 + height / 2), V(0.1, 0.15, height), OBSIDIAN, SLATE)
+	cube(handle, "SkinJaw", at(0, 1.85, -0.45), V(1.0, 0.3, 0.1), OBSIDIAN, SLATE)
+	for index, along in { 0.5, 0.75, 1.0, 1.25 } do
+		local height = 0.15 + (index % 2) * 0.1
+		cube(handle, "SkinCrest", at(0, along, 1.03 + height / 2), V(0.1, 0.15, height), OBSIDIAN, SLATE)
 	end
 end
 
--- Alas sobre la culata (se ven por detrás), púas a lo largo del lomo y brasas y humo por la boca.
+-- Grado III: alas abiertas hacia arriba y a los lados del depósito (se ven en primera persona), púas
+-- por el lomo, escamas de brasa en el depósito, una cola por detrás de la culata (LabBack) y brasas y
+-- humo por la boca.
 local function dragonWings(handle: BasePart, faction: string)
 	for side = -1, 1, 2 do
-		for step = 1, 4 do
-			local height = 0.5 + step * 0.1
-			-- Membrana marrón rojiza y algo translúcida entre los huesos.
-			mark(
-				glass(
-					cube(
-						handle,
-						"SkinWing",
-						at(side * (0.3 + step * 0.17), -1.1 - step * 0.1, 0.4 + step * 0.18),
-						V(0.12, 1.3 - step * 0.15, height),
-						MEMBRANE,
-						SMOOTH
-					),
-					0.2
-				)
+		for step = 1, 5 do
+			-- Membrana: escalera de paneles que sube y se abre; la rama de hueso va por su borde de arriba.
+			local up = 0.9 + step * 0.2
+			local out = 0.4 + step * 0.17
+			glass(
+				cube(handle, "SkinWing", at(side * out, 0.85 - step * 0.05, up), V(0.12, 0.95, 0.25), MEMBRANE, SMOOTH),
+				0.15
 			)
-			mark(
-				cube(
-					handle,
-					"SkinWingBone",
-					at(side * (0.3 + step * 0.17), -0.5 - step * 0.1, 0.55 + step * 0.18 + height / 2),
-					V(0.14, 0.14, 0.1),
-					HORN,
-					SMOOTH
-				)
+			cube(handle, "SkinWingBone", at(side * out, 1.35 - step * 0.1, up + 0.16), V(0.14, 0.2, 0.1), HORN, SMOOTH)
+		end
+		cube(handle, "SkinWingVein", at(side * 0.55, 0.8, 1.35), V(0.14, 0.7, 0.05), EMBER, NEON)
+		cube(handle, "SkinWingVein", at(side * 0.8, 0.75, 1.7), V(0.14, 0.5, 0.05), EMBER, NEON)
+		cube(handle, "SkinFoldBone", at(side * 0.5, 0.4, 0.95), V(0.2, 0.1, 0.5), HORN, SMOOTH)
+		cube(handle, "SkinPlate", at(side * 0.3, 0.85, 1.05), V(0.1, 0.8, 0.08), EMBER, SMOOTH)
+		accent(handle, faction, at(side * 0.5, 0.4, 1.2))
+	end
+	-- Cola: curva por detrás de la culata, afinándose hasta una punta de hueso.
+	for step, point in
+		{ { -1.9, -0.1 }, { -2.15, -0.2 }, { -2.4, -0.15 }, { -2.6, 0.05 }, { -2.75, 0.3 }, { -2.85, 0.55 } }
+	do
+		local size = 0.32 - step * 0.03
+		mark(cube(handle, "SkinTail", at(0, point[1], point[2]), V(size, 0.3, size), OBSIDIAN, SLATE))
+	end
+	for side = -1, 1, 2 do
+		-- Aletas a los lados de la campana y placas de brasa en el cajón.
+		for step = 1, 3 do
+			cube(
+				handle,
+				"SkinFin",
+				at(side * 0.58, 1.9 - step * 0.2, 0.25 + step * 0.1),
+				V(0.1, 0.25, 0.35),
+				OBSIDIAN,
+				SLATE
 			)
 		end
-		mark(cube(handle, "SkinWingVein", at(side * 0.6, -1.3, 0.8), V(0.14, 1.0, 0.05), EMBER, NEON))
-		mark(cube(handle, "SkinWingVein", at(side * 0.8, -1.5, 1.15), V(0.14, 0.7, 0.05), EMBER, NEON))
-		mark(accent(handle, faction, at(side * 0.3, -0.55, 0.4)))
+		for index, along in { -0.3, -0.1, 0.1, 0.3 } do
+			cube(
+				handle,
+				"SkinPlateSide",
+				at(side * 0.27, along, 0.0 + (index % 2) * 0.2),
+				V(0.06, 0.15, 0.15),
+				EMBER,
+				SMOOTH
+			)
+		end
 	end
-	for index, along in { -0.3, -0.05, 0.2, 0.45, 0.7 } do
-		local height = 0.2 + (index % 2) * 0.1
-		cube(handle, "SkinSpine", at(0, along, 0.8 + height / 2), V(0.1, 0.15, height), HORN, SMOOTH)
+	mark(cube(handle, "SkinTailTip", at(0, -2.95, 0.8), V(0.12, 0.25, 0.2), HORN, SMOOTH))
+	mark(cube(handle, "SkinTailEmber", at(0, -2.4, -0.3), V(0.1, 0.1, 0.1), EMBER, NEON))
+	for index, along in { 0.5, 0.75, 1.0, 1.25 } do
+		cube(handle, "SkinSpine", at(0, along, 1.4 + (index % 2) * 0.1), V(0.1, 0.15, 0.2), HORN, SMOOTH)
 	end
 	local throat = handle.Parent and handle.Parent:FindFirstChild("SkinThroat")
 	if throat and throat:IsA("BasePart") then
@@ -710,11 +751,11 @@ local BUILDERS: { [string]: Builder } = {
 	end,
 	LabDragonII = function(handle, faction)
 		dragonSnout(handle, faction)
-		dragonHead(handle)
+		dragonHead(handle, true)
 	end,
 	LabDragonIII = function(handle, faction)
 		dragonSnout(handle, faction)
-		dragonHead(handle)
+		dragonHead(handle, false)
 		dragonWings(handle, faction)
 	end,
 }

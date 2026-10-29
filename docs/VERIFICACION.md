@@ -2505,6 +2505,34 @@ Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos)
 1. [ ] A equipa el Kraken III y B lo mira de lejos y de cerca.
    ✅ B ve el arma entera con los tentáculos de atrás, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
 
+## 48. Lo que queda por probar de W4: Cañón de suero y Dragón (28-10-2026)
+
+#### 48.1 Medir (Studio de la Isla, tras reabrir el place por la caché de `require`)
+
+1. [ ] Ejecuta `Rendimiento` y mira la sección 6, "Armas del Laboratorio" (filtro `"Lab"`).
+   ✅ El Cañón de cada bando tiene 45 piezas o menos, cada skin Dragón 200 o menos y no hay alertas.
+
+#### 48.2 En Play en el Laboratorio (haz copia de tu perfil en `PlayerData_v1_backups` antes)
+
+1. [ ] Elige el Cañón de suero en cada bando y míralo en primera persona, disparando y recargando.
+   ✅ El depósito morado y la campana se ven bien, no tapan el punto de mira y no hay piezas sueltas.
+2. [ ] Con el comando de depuración `SkinKills`, equipa el Dragón I, II y III y cambia de uno a otro con el arma en la mano.
+   ✅ Cada grado se distingue del anterior a primera vista, el cambio rehace el arma sin piezas sueltas y la Salida no da errores.
+3. [ ] Con el Dragón III, gira alrededor del arma en tercera persona.
+   ✅ Ninguna superficie parpadea y por detrás se ve la cola larga.
+4. [ ] En primera persona, con el Dragón III, mira el lado derecho y la parte de arriba del arma.
+   ✅ Se ven las alas abiertas, los cuernos y las brasas y el humo por la boca. La cola no aparece.
+
+#### 48.3 En el Lobby y el Armario
+
+1. [ ] Abre el Armario, la pestaña del Laboratorio, y el selector de arma del Laboratorio.
+   ✅ Las imágenes del Cañón y de las skins Dragón se ven completas, sin cortes ni piezas que falten.
+
+#### 48.4 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio)
+
+1. [ ] A equipa el Dragón III y B lo mira de lejos y de cerca.
+   ✅ B ve el arma entera con la cola, y de lejos desaparecen solo las piezas pequeñas sin que cambie la silueta.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
