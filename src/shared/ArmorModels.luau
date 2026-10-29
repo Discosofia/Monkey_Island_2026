@@ -80,12 +80,15 @@
 --     un tótem sanador pequeño (como el de la definitiva) con su gema verde brillando por encima de
 --     los hombros, sobre un abanico de hojas, atado a los hombros y entre frascos que brillan.
 -- Nivel 4, armadura volcánica (forja volcánica): basalto y obsidiana con grietas de lava que brillan,
--- la más detallada. Todas con hombreras de losa (la forma de las de la temporada 1) con cristales de
--- obsidiana hundidos en lava, gotas de lava y una llama de lava en píxeles que echa humo. Detrás, el guerrero un volcán en escalones con ríos
--- de lava, cráter con fuente, bombas y humo bajo una corona de cristales; el cazador (Manto de brasa)
--- una capa de ceniza con zarpazos de lava y el carcaj de obsidiana con flechas que arden; el mago
--- (Túnica de lava) un sol negro en anillos de fuego con llamas y una corona de cristales de lava, y el
--- médico (Manto de azufre) una mochila con un racimo de cristales de azufre y chimeneas de humo.
+-- la más rica: las mismas siluetas y motivos que los rangos anteriores (cráneo de mono, garras, hojas,
+-- cristales, frascos) hechos de basalto, ceniza y obsidiana. Todas con hombreras de losa (franja de
+-- lava bajo el canto, escalón de obsidiana, grietas y gotas de lava) con cristales de obsidiana hundidos
+-- en lava y una llama de lava en píxeles que echa humo. Detrás, el guerrero un volcán en escalones con
+-- ríos de lava, cráter con fuente, bombas y humo bajo una corona de siete cristales; el cazador (Manto
+-- de brasa) una capa de ceniza con zarpazos de lava, abanicos de hojas quemadas y el carcaj de obsidiana
+-- con flechas que arden; el mago (Túnica de lava) un sol negro en anillos de fuego con llamas, rayos y
+-- una corona de siete cristales de lava; y el médico (Manto de azufre) una mochila con un racimo de
+-- siete cristales de azufre, chimeneas de humo y frascos que brillan en verde (la curación).
 
 local Armor = require(game:GetService("ReplicatedStorage").Shared.Data.Armor)
 local VoxelMerge = require(game:GetService("ReplicatedStorage").Shared.VoxelMerge)
@@ -1165,23 +1168,6 @@ local function quiver(make: Builder, at: CFrame, style: QuiverStyle): CFrame
 	return mouth
 end
 
--- Abanico de "count" hojas solapadas que salen de la nuca y caen por la espalda, de "length" de largo,
--- abiertas "spread" radianes a cada lado de la vertical, con los colores de "colors" alternados y a
--- "out" studs por detrás de la espalda (más si van sobre una capa).
-local function leafFan(make: Builder, count: number, length: number, spread: number, colors: { Color3 }, out: number)
-	local height, depth = make.size.Y, make.size.Z
-	-- Salen de debajo de la capucha (loweredHood), que tapa su arranque.
-	local neck = Vector3.new(0, height / 2 - 0.3, depth / 2 + out)
-	for index = 0, count - 1 do
-		local angle = -spread + index * 2 * spread / (count - 1)
-		-- Las del centro, más largas; una de cada dos un poco por fuera (sin caras en el mismo plano).
-		local size = length * (1 - 0.18 * math.abs(angle) / spread)
-		local direction = Vector3.new(math.sin(angle), -math.cos(angle), 0)
-		local center = neck + direction * (size / 2 + 0.05) + Vector3.new(0, 0, 0.02 + (index % 2) * 0.03)
-		leaf(make, size, colors[index % #colors + 1], CFrame.new(center) * CFrame.Angles(0, 0, math.pi + angle))
-	end
-end
-
 -- Capucha bajada a la espalda, bajo la nuca: el pliegue, su abertura oscura y la punta colgando.
 -- Devuelve el marco del pliegue.
 local function loweredHood(make: Builder, color: Color3, lining: Color3, material: Enum.Material): CFrame
@@ -1218,8 +1204,7 @@ end
 
 -- Abanico de "count" hojas de bloque que salen de la nuca y caen por la espalda en semicírculo, de
 -- "length" de largo y abiertas "spread" radianes a cada lado de la vertical. Los colores de "colors"
--- se alternan y "out" es lo que se separan de la espalda. Es el de la capa de rastreador; leafFan (con
--- hojas ovaladas) sigue siendo el de los otros rangos.
+-- se alternan y "out" es lo que se separan de la espalda.
 local function blockLeafFan(
 	make: Builder,
 	count: number,
@@ -2745,10 +2730,16 @@ local function lavaVein(make: Builder, points: { Vector3 }, thickness: number, c
 	end
 end
 
--- Gota de lava que cuelga de "at" (su base), de "length" de largo.
-local function lavaDrip(make: Builder, at: CFrame, length: number)
+-- Gota de lava (o de "color", el azufre) que cuelga de "at" (su base), de "length" de largo.
+local function lavaDrip(make: Builder, at: CFrame, length: number, color: Color3?)
 	local width = length * 0.45
-	make.fang(length, width, MAGMA, NEON, at * CFrame.new(width / 2, 0, width / 2) * CFrame.Angles(0, 0, math.pi))
+	make.fang(
+		length,
+		width,
+		color or MAGMA,
+		NEON,
+		at * CFrame.new(width / 2, 0, width / 2) * CFrame.Angles(0, 0, math.pi)
+	)
 end
 
 -- Luz suave del color de la lava o del azufre, para que la armadura se vea de noche.
@@ -2870,57 +2861,113 @@ local function pixelFlame(
 	return foot :: BasePart
 end
 
--- Hombrera volcánica (la misma forma que las de la temporada 1): losa de "pad" inclinada hacia fuera con
--- una piedra de obsidiana encima, canto de obsidiana y una raya de lava debajo, de la que cuelgan tres
--- gotas; "shards" cristales de obsidiana bañados en lava (el de atrás de "length") alrededor de una llama
--- de lava en píxeles que echa humo y chispas.
-local function volcanicPauldron(
-	arm: Builder,
-	side: number,
-	pad: Color3,
-	padMaterial: Enum.Material,
-	shards: number,
-	length: number
-)
-	local as = arm.size
-	local top = as.Y / 2
-	local slab = CFrame.new(side * 0.14, top + 0.08, 0) * CFrame.Angles(0, 0, -side * 0.22)
-	arm.block(Vector3.new(as.X * 1.5, 0.42, as.Z * 1.5), pad, padMaterial, slab)
-	arm.block(Vector3.new(as.X * 1.58, 0.1, as.Z * 1.58), OBSIDIAN, SMOOTH, slab * CFrame.new(0, -0.25, 0))
-	arm.block(Vector3.new(as.X * 1.58 + 0.04, 0.05, as.Z * 1.58 + 0.04), MAGMA, NEON, slab * CFrame.new(0, -0.32, 0))
-	arm.block(Vector3.new(as.X * 0.8, 0.18, as.Z * 1.1), OBSIDIAN, SMOOTH, slab * CFrame.new(side * 0.16, 0.3, 0))
-	for _, z in { -0.3, 0, 0.3 } do
-		lavaDrip(arm, slab * CFrame.new(side * as.X * 0.72, -0.34, z * as.Z), 0.2 + math.abs(z) * 0.2)
+-- Cráneo de mono de obsidiana con la cara hacia la -Z de "at", "scale" veces su tamaño: cráneo, ceja de
+-- basalto, ojos de lava, hocico y dos colmillos de brasa (la calavera del rango II, hecha de obsidiana).
+local function obsidianSkull(make: Builder, at: CFrame, scale: number)
+	local function on(x: number, y: number, z: number): CFrame
+		return at * CFrame.new(x * scale, y * scale, z * scale)
 	end
-	local spots = {
-		{ x = 0.2, z = 0.36, length = length },
-		{ x = 0.22, z = -0.34, length = length * 0.8 },
-		{ x = 0.36, z = 0.05, length = length * 0.68 },
-	}
-	for index = 1, math.min(shards, #spots) do
-		local spot = spots[index]
-		lavaShard(
-			arm,
-			Vector3.new(side * spot.x, top + 0.34, spot.z),
-			Vector3.new(side * (0.3 + spot.x), 1, spot.z * 0.9),
-			spot.length,
-			if index == 1 then 0.3 else 0.24
+	make.block(Vector3.new(0.8, 0.7, 0.86) * scale, OBSIDIAN, SMOOTH, on(0, 0.06, 0.06))
+	make.block(Vector3.new(0.84, 0.12, 0.2) * scale, BASALT, BASALT_MATERIAL, on(0, 0.17, -0.36))
+	for eye = -1, 1, 2 do
+		make.ball(0.2 * scale, MAGMA, NEON, on(eye * 0.15, -0.03, -0.36))
+	end
+	make.block(Vector3.new(0.4, 0.24, 0.3) * scale, BASALT_DARK, BASALT_MATERIAL, on(0, -0.2, -0.4))
+	for tooth = -1, 1, 2 do
+		make.fang(
+			0.18 * scale,
+			0.07 * scale,
+			EMBER,
+			NEON,
+			on(tooth * 0.12 + 0.035, -0.31, -0.47) * CFrame.Angles(0, 0, math.pi)
 		)
 	end
-	local foot = pixelFlame(arm, SMALL_FLAME, LAVA_FLAME, CFrame.new(side * 0.02, top + 0.36, 0), 0.12, side < 0)
-	smoke(foot, 4)
-	embers(foot, EMBER, 2)
-	fireLight(foot, MAGMA)
 end
 
--- Faldón del muslo de "color" con una placa de obsidiana bordeada de lava y una gota colgando.
-local function volcanicFlap(leg: Builder, side: number, color: Color3, material: Enum.Material)
+-- Hombrera de losa del rango IV (la forma de las del rango III, con la lava de la temporada 1): franja de
+-- lava bajo el canto de obsidiana, losa de "pad", un escalón de obsidiana encima con la llama de lava en
+-- píxeles que echa humo y chispas, grietas de lava en la losa, tres gotas colgando y, según "spikes",
+-- cristales de obsidiana hundidos en lava ("shard"), garras de obsidiana ("claw"), cristales de lava
+-- ("crystal") o de azufre ("sulfur"). Las puntas van lejos de la llama, que ocupa el centro.
+local function lavaPauldron(arm: Builder, side: number, pad: Color3, padMaterial: Enum.Material, spikes: string)
+	local as = arm.size
+	local top = as.Y / 2
+	local cx = side * 0.1
+	arm.block(Vector3.new(as.X + 0.64, 0.08, as.Z + 0.64), MAGMA, NEON, CFrame.new(cx, top + 0.01, 0))
+	arm.block(Vector3.new(as.X + 0.5, 0.08, as.Z + 0.5), OBSIDIAN, SMOOTH, CFrame.new(cx, top + 0.05, 0))
+	arm.block(Vector3.new(as.X + 0.42, 0.22, as.Z + 0.42), pad, padMaterial, CFrame.new(cx, top + 0.2, 0))
+	arm.block(Vector3.new(as.X + 0.1, 0.16, as.Z + 0.1), OBSIDIAN, SMOOTH, CFrame.new(cx, top + 0.38, 0))
+	local stepTop = top + 0.46
+	-- Grietas de lava en el borde de la losa que asoma alrededor del escalón.
+	for _, z in { -1, 1 } do
+		arm.block(
+			Vector3.new(0.34, 0.03, 0.06),
+			MAGMA,
+			NEON,
+			CFrame.new(cx + side * 0.04, top + 0.315, z * (as.Z / 2 + 0.13))
+		)
+	end
+	arm.block(Vector3.new(0.06, 0.03, 0.4), MAGMA, NEON, CFrame.new(cx + side * (as.X / 2 + 0.13), top + 0.315, 0.04))
+	for index, z in { -0.3, 0, 0.3 } do
+		lavaDrip(arm, CFrame.new(cx + side * (as.X / 2 + 0.2), top - 0.03, z * as.Z), if index == 2 then 0.42 else 0.28)
+	end
+	local far = as.Z * 0.42
+	local spots = {
+		{ x = 0.1, z = far, length = 0.8, width = 0.3 },
+		{ x = 0.1, z = -far, length = 0.64, width = 0.26 },
+		{ x = 0.44, z = 0, length = 0.55, width = 0.24 },
+	}
+	for index, spot in spots do
+		local base = Vector3.new(side * spot.x, stepTop - 0.02, spot.z)
+		local direction = Vector3.new(side * (0.25 + spot.x), 1, spot.z * 0.9)
+		if spikes == "crystal" then
+			fireCrystal(arm, base, direction, spot.length, spot.width, LAVA_ROBE, MAGMA)
+		elseif index < 3 or spikes == "shard" then
+			lavaShard(arm, base, direction, spot.length, spot.width)
+		elseif spikes == "sulfur" then
+			for _, z in { -0.2, 0.2 } do
+				fireCrystal(
+					arm,
+					base + Vector3.new(0, 0, z * as.Z),
+					Vector3.new(direction.X, 1, z * 1.5),
+					spot.length * 0.9,
+					0.2,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
+	end
+	if spikes == "claw" then
+		for _, z in { -0.3, 0, 0.3 } do
+			arm.fang(
+				0.46,
+				0.16,
+				OBSIDIAN,
+				SMOOTH,
+				CFrame.new(side * (as.X * 0.55) - 0.08, top + 0.2, z * as.Z + 0.08) * CFrame.Angles(0, 0, -side * 0.7)
+			)
+		end
+	end
+	local foot = pixelFlame(arm, SMALL_FLAME, LAVA_FLAME, CFrame.new(side * 0.04, stepTop, 0), 0.12, side < 0)
+	smoke(foot, 4)
+	embers(foot, EMBER, 2)
+end
+
+-- Faldón del muslo de "color" con el bajo de "hem" (lava o azufre). Devuelve su marco.
+local function lavaFlap(
+	leg: Builder,
+	side: number,
+	color: Color3,
+	material: Enum.Material,
+	hem: Color3,
+	hemMaterial: Enum.Material
+): CFrame
 	local ls = leg.size
 	local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
 	leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.44, 0.1), color, material, flap)
-	leg.block(Vector3.new(ls.X * 0.66, ls.Y * 0.3, 0.06), MAGMA, NEON, flap * CFrame.new(0, 0.02, -0.06))
-	leg.block(Vector3.new(ls.X * 0.58, ls.Y * 0.24, 0.08), OBSIDIAN, SMOOTH, flap * CFrame.new(0, 0.02, -0.09))
-	lavaDrip(leg, flap * CFrame.new(0, -ls.Y * 0.22, -0.06), 0.2)
+	leg.block(Vector3.new(ls.X * 0.9 + 0.04, 0.07, 0.12), hem, hemMaterial, flap * CFrame.new(0, -ls.Y * 0.22, -0.01))
+	return flap
 end
 
 -- Placa de obsidiana de "size" con un contorno de lava que asoma por detrás (en "at", mirando a -Z).
@@ -2930,12 +2977,13 @@ local function lavaPlate(make: Builder, size: Vector3, at: CFrame)
 end
 
 -- Guerrero. Delante: coraza de basalto con gorguera de esquirlas, pectorales de obsidiana con el
--- contorno de lava, corazón de magma sujeto por cuatro garras de obsidiana, vientre de placas con
--- costuras de lava, una grieta del cuello al vientre y una hebilla en forma de máscara de ojos de
--- lava con dos cuernos. Detrás: placa de ceniza con marco de obsidiana y un volcán en cinco escalones
--- que sobresalen cada vez más, con rocas en las laderas, ríos de lava en cada escalón, un lago de lava
--- al pie, cráter con una fuente de lava, bombas de lava, humo y chispas, bajo una corona de cinco
--- cristales de obsidiana bañados en lava que asoma por encima de los hombros.
+-- contorno de lava y una raya de lava arriba, corazón de magma sujeto por cuatro garras de obsidiana,
+-- vientre de placas con costuras de lava, una grieta del cuello al vientre y una hebilla con un cráneo
+-- de mono de obsidiana de ojos de lava y dos cuernos. Detrás: placa de ceniza con marco de obsidiana
+-- y lava corriendo por los lados y un volcán en cinco escalones que sobresalen cada vez más, con rocas
+-- en las laderas, ríos de lava en cada escalón, un lago de lava al pie, cráter con una fuente de lava,
+-- bombas de lava, humo y chispas, bajo una corona de siete cristales de obsidiana bañados en lava que
+-- asoma por encima de los hombros. Hombreras de basalto con cristales de obsidiana y llama de lava.
 local function volcanicArmor(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -2969,6 +3017,13 @@ local function volcanicArmor(body: Body)
 			pec * CFrame.new(-side * width * 0.1, 0.02, -0.06)
 		)
 		make.ball(0.1, BASALT, BASALT_MATERIAL, pec * CFrame.new(side * width * 0.14, -height * 0.09, -0.06))
+		-- Raya de lava sobre el pectoral.
+		make.block(
+			Vector3.new(width * 0.32, 0.05, 0.05),
+			MAGMA,
+			NEON,
+			CFrame.new(side * width * 0.24, height * 0.4, front - 0.05)
+		)
 		-- Vientre: tres placas de basalto oscuro por lado, con costuras de lava entre ellas.
 		for row = 0, 2 do
 			local plateWidth = width * (0.2 - row * 0.015)
@@ -3002,7 +3057,7 @@ local function volcanicArmor(body: Body)
 	end
 
 	-- Espalda: placa de ceniza clara (sobre basalto oscuro el volcán negro no se distinguía) con marco
-	-- de obsidiana.
+	-- de obsidiana y lava corriendo por él.
 	local plateZ = back + 0.17
 	make.block(
 		Vector3.new(width * 0.98, height * 0.98, 0.14),
@@ -3016,6 +3071,12 @@ local function volcanicArmor(body: Body)
 			OBSIDIAN,
 			SMOOTH,
 			CFrame.new(side * width * 0.49, -height * 0.02, plateZ + 0.03)
+		)
+		make.block(
+			Vector3.new(0.04, height * 0.5, 0.04),
+			MAGMA,
+			NEON,
+			CFrame.new(side * width * 0.5, -height * 0.1, plateZ + 0.14)
 		)
 	end
 	make.block(
@@ -3039,16 +3100,18 @@ local function volcanicArmor(body: Body)
 			SMOOTH,
 			CFrame.new(0, baseY + (tier - 0.5) * tierHeight, plateZ + 0.1 + tier * 0.02)
 		)
-		-- Una roca de basalto en el borde del escalón, a un lado y al otro según el escalón.
+		-- Dos rocas de basalto en el borde del escalón, una mayor que la otra según el lado.
 		if tier < tiers then
-			local side = if tier % 2 == 0 then 1 else -1
-			make.block(
-				Vector3.new(0.2, 0.13, 0.12),
-				ASH_DARK,
-				BASALT_MATERIAL,
-				CFrame.new(side * (tierWidth / 2 - 0.12), baseY + tier * tierHeight + 0.02, tierFront(tier) - 0.04)
-					* CFrame.Angles(0.2, 0.3, side * 0.25)
-			)
+			for side = -1, 1, 2 do
+				local big = (tier % 2 == 0) == (side == 1)
+				make.block(
+					Vector3.new(if big then 0.22 else 0.14, if big then 0.14 else 0.1, 0.12),
+					ASH_DARK,
+					BASALT_MATERIAL,
+					CFrame.new(side * (tierWidth / 2 - 0.12), baseY + tier * tierHeight + 0.02, tierFront(tier) - 0.04)
+						* CFrame.Angles(0.2, 0.3, side * 0.25)
+				)
+			end
 		end
 		-- Ríos de lava: uno central en cada escalón y dos a los lados en los tres de abajo.
 		local z = tierFront(tier) + 0.02
@@ -3093,18 +3156,19 @@ local function volcanicArmor(body: Body)
 	smoke(crater, 6, nil, 1.3)
 	embers(crater, EMBER, 8)
 	fireLight(crater, MAGMA)
-	for index, angle in { -0.75, -0.38, 0, 0.38, 0.75 } do
+	-- Corona de siete cristales, más altos en el centro y abiertos hacia los lados.
+	for index, angle in { -1, -0.66, -0.33, 0, 0.33, 0.66, 1 } do
 		lavaShard(
 			make,
 			Vector3.new(math.sin(angle) * width * 0.4, height * 0.47, plateZ + 0.04),
 			Vector3.new(math.sin(angle) * 0.9, 1, 0.45),
-			if index == 3 then 1.2 else 0.95 - math.abs(angle) * 0.35,
-			0.4,
+			1.25 - math.abs(angle) * 0.5,
+			if index == 4 then 0.4 else 0.34,
 			0.5
 		)
 	end
 
-	-- Cinturón de basalto con una hebilla de máscara de obsidiana: ojos de lava y dos cuernos.
+	-- Cinturón de basalto con una hebilla de obsidiana: cráneo de mono de ojos de lava y dos cuernos.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -3115,20 +3179,17 @@ local function volcanicArmor(body: Body)
 		CFrame.new(0, 0.06, 0)
 	)
 	local mask = CFrame.new(0, 0.06, beltFront - 0.05)
-	waist.block(Vector3.new(0.5, 0.38, 0.1), OBSIDIAN, SMOOTH, mask)
+	waist.block(Vector3.new(0.56, 0.4, 0.1), OBSIDIAN, SMOOTH, mask)
+	obsidianSkull(waist, mask * CFrame.new(0, 0, -0.08), 0.55)
 	for side = -1, 1, 2 do
-		waist.block(
-			Vector3.new(0.13, 0.05, 0.04),
-			MAGMA,
-			NEON,
-			mask * CFrame.new(side * 0.11, 0.05, -0.06) * CFrame.Angles(0, 0, side * 0.3)
-		)
-		obsidianShard(waist, (mask * CFrame.new(side * 0.2, 0.15, 0)).Position, Vector3.new(side, 1, -0.2), 0.24, 0.1)
+		obsidianShard(waist, (mask * CFrame.new(side * 0.24, 0.16, 0)).Position, Vector3.new(side, 1, -0.2), 0.26, 0.1)
+		waist.ball(0.1, MAGMA, NEON, CFrame.new(side * hipWidth * 0.34, 0.06, beltFront - 0.05))
 	end
-	waist.block(Vector3.new(0.2, 0.04, 0.04), MAGMA, NEON, mask * CFrame.new(0, -0.1, -0.06))
 
 	for side = -1, 1, 2 do
-		volcanicPauldron(body.upperArm[side], side, BASALT, BASALT_MATERIAL, 3, 0.8)
+		local arm = body.upperArm[side]
+		lavaPauldron(arm, side, BASALT, BASALT_MATERIAL, "shard")
+		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, BASALT_DARK, BASALT_MATERIAL)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, 0.05, fs.Y * 0.6, 0.1, BASALT, BASALT_MATERIAL)
@@ -3140,15 +3201,39 @@ local function volcanicArmor(body: Body)
 			Vector3.new(side * (fs.X / 2 + 0.06), -fs.Y * 0.2, -fs.Z * 0.15),
 		}, 0.06)
 		lavaShard(forearm, Vector3.new(side * (fs.X / 2), 0.05, 0.1), Vector3.new(side, 0.4, 0.5), 0.42, 0.2)
-		volcanicFlap(body.upperLeg[side], side, BASALT, BASALT_MATERIAL)
+		for _, z in { -0.3, 0.3 } do
+			obsidianShard(
+				forearm,
+				Vector3.new(side * (fs.X / 2 + 0.04), -fs.Y * 0.3, z * fs.Z),
+				Vector3.new(side, 0.3, z * 1.5),
+				0.3,
+				0.12
+			)
+		end
+		-- Faldón de basalto con una placa de obsidiana bordeada de lava, dos placas de lado y una gota.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flap = lavaFlap(leg, side, BASALT, BASALT_MATERIAL, MAGMA, NEON)
+		lavaPlate(leg, Vector3.new(ls.X * 0.5, ls.Y * 0.26, 0.08), flap * CFrame.new(0, 0.02, -0.08))
+		for plate = -1, 1, 2 do
+			leg.block(
+				Vector3.new(ls.X * 0.14, ls.Y * 0.3, 0.06),
+				BASALT_DARK,
+				BASALT_MATERIAL,
+				flap * CFrame.new(plate * ls.X * 0.34, 0.02, -0.07)
+			)
+		end
+		lavaDrip(leg, flap * CFrame.new(0, -ls.Y * 0.22 - 0.03, -0.06), 0.22)
 	end
 end
 
 -- Cazador. Delante: jubón de cuero oscuro con correas cruzadas tachonadas de obsidiana, una grieta de
--- lava, collar de tres puntas de flecha de obsidiana bañadas en lava, broche con una gota de lava,
--- cinturón con zurrón y un cuchillo de obsidiana. Detrás: capa de ceniza con tres zarpazos de lava, el
--- bajo de brasas que echa chispas, abanico de hojas quemadas, capucha forrada de brasa y el carcaj de
--- obsidiana con aros de lava, dos cristales bañados en lava y flechas de plumas de fuego que arden.
+-- lava, collar de tres puntas de flecha de obsidiana bañadas en lava, manto de ceniza en dos escalones
+-- con ribete de brasa, broche con una gota de lava, hojas quemadas junto al cuello, cinturón con zurrón
+-- y un cuchillo de obsidiana. Detrás: capa de ceniza con dos zarpazos de lava de tres rayas en los
+-- lados, el bajo de brasas que echa chispas, dos abanicos de hojas quemadas de bloque, capucha de ceniza
+-- forrada de brasa con orejas y el carcaj de obsidiana con aros de lava, dos cristales bañados en lava
+-- y siete flechas de plumas de fuego que arden. Hombreras de ceniza con garras de obsidiana y llama.
 local function emberCloak(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -3182,20 +3267,45 @@ local function emberCloak(body: Body)
 	for index, spot in { neckLeft:Lerp(bottom, 0.7), bottom, neckRight:Lerp(bottom, 0.7) } do
 		lavaShard(make, spot + Vector3.new(0, -0.02, -0.02), Vector3.new((index - 2) * 0.2, -1, -0.15), 0.26, 0.12)
 	end
-	-- Manto de ceniza sobre los hombros con un ribete de brasa delante.
+	-- Manto de ceniza sobre los hombros en dos escalones, con un ribete de brasa delante, y dos solapas.
 	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), ASH, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+	make.block(Vector3.new(width + 0.12, 0.2, depth + 0.14), ASH_DARK, FABRIC, CFrame.new(0, height / 2 + 0.14, 0.06))
 	make.block(Vector3.new(width + 0.42, 0.06, 0.08), MAGMA, NEON, CFrame.new(0, height / 2 - 0.21, -depth / 2 - 0.17))
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(width * 0.3, 0.24, 0.3),
+			ASH,
+			FABRIC,
+			CFrame.new(side * width * 0.32, height / 2 - 0.06, front + 0.02)
+		)
+		-- Hojas quemadas cosidas a los lados del cuello.
+		leaf(
+			make,
+			0.42,
+			CHARRED_LEAF,
+			CFrame.new(side * width * 0.3, height / 2 - 0.2, front - 0.1) * CFrame.Angles(0, 0, side * 0.5)
+		)
+	end
 	local brooch = CFrame.new(0, height / 2 - 0.18, front - 0.14)
 	local disc = make.rod(0.06, 0.34, OBSIDIAN, SMOOTH, brooch * FACING)
 	disc.Reflectance = 0.05
 	make.ball(0.16, MAGMA, NEON, brooch * CFrame.new(0, 0, -0.05))
 
-	-- Espalda: capa de ceniza con el bajo de brasas, tres zarpazos de lava y el abanico de hojas quemadas.
+	-- Espalda: capa de ceniza con el bajo de brasas y dos zarpazos de lava; encima, dos abanicos de hojas
+	-- quemadas, la capucha y el carcaj.
 	local capeHeight = height * 1.08
 	local capeY = height / 2 - capeHeight / 2 - 0.02
 	local capeZ = back + 0.16
 	make.block(Vector3.new(width * 1.02, capeHeight, 0.12), ASH_DARK, FABRIC, CFrame.new(0, capeY, capeZ))
 	local capeBottom = capeY - capeHeight / 2
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.12, capeHeight, 0.16),
+			BASALT_DARK,
+			FABRIC,
+			CFrame.new(side * width * 0.51, capeY, capeZ)
+		)
+	end
 	local hem =
 		make.block(Vector3.new(width * 1.02, 0.1, 0.14), MAGMA, NEON, CFrame.new(0, capeBottom + 0.05, capeZ + 0.01))
 	embers(hem, EMBER, 4)
@@ -3210,19 +3320,32 @@ local function emberCloak(body: Body)
 			CFrame.new(x + 0.15, capeBottom + 0.02, capeZ + 0.2) * CFrame.Angles(0, 0, math.pi)
 		)
 	end
-	for index = -1, 1 do
-		local x = -width * 0.22 + index * 0.14
-		strap(
-			make,
-			Vector3.new(x - 0.12, -height * 0.02, capeZ + 0.07),
-			Vector3.new(x + 0.16, -height * 0.42, capeZ + 0.07),
-			0.07,
-			MAGMA,
-			NEON
+	-- Zarpazos: tres rayas en diagonal a cada lado, bajo los abanicos y lejos del carcaj.
+	for side = -1, 1, 2 do
+		for stroke = 0, 2 do
+			local x = side * (width * 0.36 + stroke * 0.1)
+			strap(
+				make,
+				Vector3.new(x + side * 0.1, -height * 0.03, capeZ + 0.07),
+				Vector3.new(x - side * 0.1, -height * 0.53, capeZ + 0.07),
+				0.07,
+				MAGMA,
+				NEON
+			)
+		end
+	end
+	blockLeafFan(make, 9, 0.95, 1.3, { CHARRED_LEAF, BASALT_DARK }, 0.3)
+	blockLeafFan(make, 7, 0.65, 1.1, { LAVA_ROBE, CHARRED_LEAF }, 0.36)
+	local hood = blockHood(make, ASH, EMBER, FABRIC)
+	for side = -1, 1, 2 do
+		make.fang(
+			0.34,
+			0.22,
+			BASALT_DARK,
+			FABRIC,
+			hood * CFrame.new(side * 0.42 - 0.11, 0.3, -0.05) * CFrame.Angles(0, 0, -side * 0.3)
 		)
 	end
-	leafFan(make, 9, 1.25, 1.3, { CHARRED_LEAF, BASALT_DARK }, 0.25)
-	loweredHood(make, ASH, EMBER, FABRIC)
 	local quiverAt = backQuiver(make, {
 		length = 1.9,
 		radius = 0.27,
@@ -3232,7 +3355,7 @@ local function emberCloak(body: Body)
 		rimMaterial = NEON,
 		arrows = 7,
 		feathers = { MAGMA, EMBER },
-	}, 0.32)
+	}, 0.4)
 	local midBand = make.rod(0.1, 0.6, MAGMA, NEON, quiverAt * UPRIGHT)
 	fireLight(midBand, MAGMA)
 	for _, y in { 0.45, -0.45 } do
@@ -3257,7 +3380,8 @@ local function emberCloak(body: Body)
 	flames.Parent = mouthFire
 	embers(mouthFire, EMBER, 4)
 
-	-- Cinturón de basalto con hebilla de obsidiana, zurrón de ceniza y un cuchillo de obsidiana.
+	-- Cinturón de basalto con hebilla de obsidiana, zurrón de ceniza, un cuchillo de obsidiana y dos
+	-- borlas de brasa.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -3281,14 +3405,34 @@ local function emberCloak(body: Body)
 		0.4,
 		0.12
 	)
+	for side = -1, 1, 2 do
+		waist.fang(
+			0.26,
+			0.14,
+			MAGMA,
+			NEON,
+			CFrame.new(side * hipWidth * 0.1 + 0.07, -0.08, beltFront - 0.06) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
 
 	for side = -1, 1, 2 do
-		volcanicPauldron(body.upperArm[side], side, ASH, FABRIC, 2, 0.6)
+		local arm = body.upperArm[side]
+		lavaPauldron(arm, side, ASH, FABRIC, "claw")
+		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, LEATHER_DARK, LEATHER_MATERIAL)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, 0.04, fs.Y * 0.55, 0.08, LEATHER_DARK, LEATHER_MATERIAL)
 		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, ASH, FABRIC)
 		band(forearm, -fs.Y / 2 + 0.26, 0.05, 0.18, MAGMA, NEON)
+		for _, z in { -0.3, 0.3 } do
+			obsidianShard(
+				forearm,
+				Vector3.new(side * (fs.X / 2 + 0.04), fs.Y * 0.1, z * fs.Z),
+				Vector3.new(side, 0.3, z * 1.5),
+				0.3,
+				0.12
+			)
+		end
 		if side == 1 then
 			forearm.block(
 				Vector3.new(0.12, fs.Y * 0.55, fs.Z * 0.7),
@@ -3298,25 +3442,33 @@ local function emberCloak(body: Body)
 			)
 			forearm.block(Vector3.new(0.06, fs.Y * 0.4, 0.06), MAGMA, NEON, CFrame.new(fs.X / 2 + 0.15, 0.04, 0))
 		end
+		-- Faldón de ceniza con una hoja quemada y dos placas de lado.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
-		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), ASH_DARK, FABRIC, flap)
-		leg.block(Vector3.new(ls.X * 0.9, 0.06, 0.12), MAGMA, NEON, flap * CFrame.new(0, -ls.Y * 0.19, -0.01))
+		local flap = lavaFlap(leg, side, ASH_DARK, FABRIC, MAGMA, NEON)
 		leaf(
 			leg,
 			0.48,
 			CHARRED_LEAF,
 			flap * CFrame.new(side * 0.1, -0.05, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
 		)
+		for plate = -1, 1, 2 do
+			leg.block(
+				Vector3.new(ls.X * 0.12, ls.Y * 0.3, 0.06),
+				OBSIDIAN,
+				SMOOTH,
+				flap * CFrame.new(plate * ls.X * 0.36, 0.02, -0.07)
+			)
+		end
 	end
 end
 
 -- Mago. Delante: túnica rojo lava con una pechera oscura ribeteada de lava, una runa de lava (triángulo
--- dentro de un círculo) con una brasa en el centro, cuello alto de esquirlas, dos amuletos de
--- obsidiana colgando y faja de basalto con un cristal de lava. Detrás: un sol negro, un disco de
--- obsidiana dentro de dos anillos de fuego con llamas, seis rayos de obsidiana bañados en lava, dos
--- talismanes colgando y una corona de cinco cristales de lava que asoma por encima de los hombros.
+-- dentro de un círculo) con una brasa en el centro, cuello alto de esquirlas, dos amuletos de obsidiana
+-- con un cristal de lava colgando, una raya de lava en el cuello y faja de basalto con tres cristales de
+-- lava. Detrás: un sol negro, un disco de obsidiana con una runa dentro de dos anillos de fuego con
+-- llamas, cinco rayos de obsidiana bañados en lava, dos talismanes colgando y una corona de siete
+-- cristales de lava que asoma por encima de los hombros. Hombreras de tela con cristales de lava y llama.
 local function lavaRobe(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -3343,7 +3495,7 @@ local function lavaRobe(body: Body)
 		)
 	end
 	local runeAt = CFrame.new(0, height * 0.12, front - 0.08)
-	hoop(make, runeAt, width * 0.17, 10, 0.05, MAGMA, NEON)
+	hoop(make, runeAt, width * 0.17, 8, 0.05, MAGMA, NEON)
 	local rune = {
 		Vector3.new(-width * 0.13, -height * 0.07),
 		Vector3.new(0.01, height * 0.13),
@@ -3355,38 +3507,41 @@ local function lavaRobe(body: Body)
 	end
 	local runeHeart = make.ball(0.12, EMBER, NEON, runeAt * CFrame.new(0, 0, -0.02))
 	fireLight(runeHeart, MAGMA)
-	-- Cuello alto de esquirlas, de un hombro a otro por detrás de la nuca.
+	-- Cuello alto de esquirlas, en arco por delante de la nuca (detrás lo ocupa la corona).
 	for index = 0, 4 do
 		local angle = math.rad(-80 + index * 40)
 		obsidianShard(
 			make,
-			Vector3.new(math.sin(angle) * width * 0.4, height / 2 - 0.05, math.cos(angle) * depth * 0.45 + 0.05),
-			Vector3.new(math.sin(angle) * 0.4, 1, math.cos(angle) * 0.4 + 0.1),
-			0.45,
+			Vector3.new(math.sin(angle) * width * 0.4, height / 2 - 0.05, -math.cos(angle) * depth * 0.42),
+			Vector3.new(math.sin(angle) * 0.4, 1, -math.cos(angle) * 0.3),
+			0.4,
 			0.24
 		)
 	end
-	-- Dos amuletos de obsidiana con una gota de lava, colgando de cordones.
+	-- Raya de lava en el cuello y dos amuletos de obsidiana con un cristal de lava colgando de cordones.
+	make.block(Vector3.new(width * 0.5, 0.05, 0.05), MAGMA, NEON, CFrame.new(0, height / 2 - 0.2, front - 0.06))
 	for side = -1, 1, 2 do
 		local from = Vector3.new(side * width * 0.36, height / 2 - 0.06, front - 0.06)
 		local to = Vector3.new(side * width * 0.38, height * 0.02, front - 0.1)
 		strap(make, from, to, 0.03, FIBER, FABRIC)
 		make.block(Vector3.new(0.14, 0.2, 0.06), OBSIDIAN, SMOOTH, CFrame.new(to.X, to.Y - 0.1, to.Z))
-		make.ball(0.07, MAGMA, NEON, CFrame.new(to.X, to.Y - 0.1, to.Z - 0.04))
+		fireCrystal(make, Vector3.new(to.X, to.Y - 0.2, to.Z), Vector3.new(0, -1, -0.1), 0.3, 0.14, LAVA_ROBE, MAGMA)
 	end
 
-	-- Espalda: sol negro con anillos de fuego.
-	local ringAt = CFrame.new(0, height * 0.12, back + 0.2)
+	-- Espalda: sol negro con dos anillos de fuego y una runa en el disco, cinco rayos, dos talismanes y,
+	-- por encima, la corona de cristales de lava.
+	local ringAt = CFrame.new(0, -height * 0.04, back + 0.2)
 	make.block(
 		Vector3.new(width * 0.96, height * 1.02, 0.12),
 		LAVA_ROBE_DARK,
 		FABRIC,
 		CFrame.new(0, -height * 0.06, back + 0.12)
 	)
-	hoop(make, ringAt, width * 0.38, 14, 0.12, MAGMA, NEON)
-	hoop(make, ringAt * CFrame.new(0, 0, 0.02), width * 0.26, 10, 0.07, EMBER, NEON)
+	hoop(make, ringAt, width * 0.34, 14, 0.12, MAGMA, NEON)
+	hoop(make, ringAt * CFrame.new(0, 0, 0.02), width * 0.24, 10, 0.07, EMBER, NEON)
 	local disc = make.rod(0.06, width * 0.42, OBSIDIAN, SMOOTH, ringAt * CFrame.new(0, 0, -0.02) * FACING)
 	disc.Reflectance = 0.05
+	hoop(make, ringAt * CFrame.new(0, 0, 0.05), width * 0.16, 8, 0.05, EMBER, NEON)
 	local heart = make.ball(0.24, EMBER, NEON, ringAt * CFrame.new(0, 0, 0.06))
 	local flames = Instance.new("Fire")
 	flames.Color = MAGMA
@@ -3396,10 +3551,11 @@ local function lavaRobe(body: Body)
 	flames.Parent = heart
 	embers(heart, EMBER, 5)
 	fireLight(heart, MAGMA)
-	for index = 0, 5 do
-		local angle = index * math.pi / 3 + math.pi / 6
+	-- Los rayos de arriba los tapa la corona: solo los cinco de abajo y de los lados.
+	for _, degrees in { 90, 135, 180, 225, 270 } do
+		local angle = math.rad(degrees)
 		local out = Vector3.new(math.sin(angle), math.cos(angle), 0.12)
-		lavaShard(make, (ringAt * CFrame.new(out.X * width * 0.42, out.Y * width * 0.42, 0)).Position, out, 0.42, 0.2)
+		lavaShard(make, (ringAt * CFrame.new(out.X * width * 0.4, out.Y * width * 0.4, 0)).Position, out, 0.46, 0.2)
 	end
 	-- Talismanes: dos placas de obsidiana con una runa de lava que cuelgan bajo el sol.
 	for side = -1, 1, 2 do
@@ -3409,18 +3565,19 @@ local function lavaRobe(body: Body)
 		make.block(Vector3.new(0.16, 0.24, 0.05), OBSIDIAN, SMOOTH, CFrame.new(to.X, to.Y - 0.12, to.Z))
 		make.block(Vector3.new(0.04, 0.14, 0.03), MAGMA, NEON, CFrame.new(to.X, to.Y - 0.12, to.Z + 0.03))
 	end
-	for index, x in { -0.4, -0.2, 0, 0.2, 0.4 } do
+	for index, step in { -3, -2, -1, 0, 1, 2, 3 } do
 		fireCrystal(
 			make,
-			Vector3.new(x * width, height * 0.44, back + 0.22),
-			Vector3.new(x * 1.1, 1, 0.35),
-			if index == 3 then 1.15 elseif index % 2 == 0 then 0.85 else 0.6,
-			if index == 3 then 0.34 else 0.28,
+			Vector3.new(step * 0.14 * width, height * 0.44, back + 0.22),
+			Vector3.new(step * 0.15, 1, 0.35),
+			if index == 4 then 1.2 else 1.05 - math.abs(step) * 0.13,
+			if index == 4 then 0.34 else 0.28,
 			LAVA_ROBE,
 			MAGMA
 		)
 	end
 
+	-- Faja de basalto con una raya de lava, tres cristales de lava y dos borlas.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -3432,31 +3589,79 @@ local function lavaRobe(body: Body)
 	)
 	waist.block(Vector3.new(hipWidth + 0.18, 0.05, hipDepth + 0.2), MAGMA, NEON, CFrame.new(0, -0.06, 0))
 	fireCrystal(waist, Vector3.new(0, -0.02, beltFront - 0.05), Vector3.new(0, 1, -0.3), 0.32, 0.18, LAVA_ROBE, MAGMA)
+	for side = -1, 1, 2 do
+		fireCrystal(
+			waist,
+			Vector3.new(side * hipWidth * 0.3, -0.08, beltFront - 0.05),
+			Vector3.new(side * 0.1, -1, -0.1),
+			0.3,
+			0.14,
+			LAVA_ROBE,
+			MAGMA
+		)
+		waist.fang(
+			0.28,
+			0.14,
+			LAVA_ROBE,
+			FABRIC,
+			CFrame.new(side * hipWidth * 0.44 + 0.07, -0.02, beltFront - 0.04) * CFrame.Angles(0, 0, math.pi)
+		)
+	end
 
 	for side = -1, 1, 2 do
-		volcanicPauldron(body.upperArm[side], side, LAVA_ROBE_DARK, FABRIC, 3, 0.7)
+		local arm = body.upperArm[side]
+		lavaPauldron(arm, side, LAVA_ROBE_DARK, FABRIC, "crystal")
+		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, LAVA_ROBE, FABRIC)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, 0.02, fs.Y * 0.5, 0.08, LAVA_ROBE_DARK, FABRIC)
 		band(forearm, -fs.Y / 2 + 0.1, 0.08, 0.12, MAGMA, NEON)
 		band(forearm, fs.Y * 0.26, 0.05, 0.12, MAGMA, NEON)
+		for _, z in { -0.22, 0.22 } do
+			forearm.block(
+				Vector3.new(0.05, 0.16, 0.05),
+				EMBER,
+				NEON,
+				CFrame.new(side * (fs.X / 2 + 0.06), -fs.Y * 0.06, z * fs.Z)
+			)
+		end
+		fireCrystal(
+			forearm,
+			Vector3.new(side * (fs.X / 2 + 0.04), fs.Y * 0.06, 0),
+			Vector3.new(side, 0.6, 0),
+			0.32,
+			0.16,
+			LAVA_ROBE,
+			MAGMA
+		)
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.25, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.08, 0, 0)
-		leg.block(Vector3.new(ls.X * 0.95, ls.Y * 0.55, 0.1), LAVA_ROBE, FABRIC, flap)
+		local flap = lavaFlap(leg, side, LAVA_ROBE, FABRIC, MAGMA, NEON)
 		lavaVein(leg, {
 			Vector3.new(-ls.X * 0.25, ls.Y * 0.12, -(ls.Z / 2 + 0.13)),
 			Vector3.new(ls.X * 0.05, -ls.Y * 0.05, -(ls.Z / 2 + 0.13)),
 			Vector3.new(-ls.X * 0.1, -ls.Y * 0.3, -(ls.Z / 2 + 0.13)),
 		}, 0.05)
+		fireCrystal(
+			leg,
+			(flap * CFrame.new(0, -ls.Y * 0.22 - 0.03, -0.06)).Position,
+			Vector3.new(0, -1, -0.1),
+			0.26,
+			0.12,
+			LAVA_ROBE,
+			MAGMA
+		)
 	end
 end
 
--- Médico. Delante: túnica de lino bajo un manto de ceniza con ribete de azufre, peto de basalto con una
--- cruz verde que brilla (el color de las curaciones), bandolera con tres frascos que brillan, broche
--- con un cristal de azufre y dos bolsas en el cinturón de las que asoman cristales de azufre. Detrás:
--- bastidor de madera con una mochila de basalto cubierta de costras de azufre, un racimo de seis
--- cristales de azufre que brillan, dos chimeneas que echan humo amarillo y dos frascos a los lados.
+-- Médico. Delante: túnica de lino bajo un manto de ceniza en dos escalones con ribete de azufre, peto de
+-- basalto con una cruz verde que brilla (el color de las curaciones) y dos cristales de azufre, bandolera
+-- con tres frascos que brillan, broche con un cristal de azufre, bolsita de hierbas y, en el cinturón,
+-- un frasco, un rollo de venda y dos bolsas de las que asoman cristales de azufre. Detrás: bastidor de
+-- madera con una mochila de basalto cubierta de costras de azufre, dos bolsillos y gotas de azufre,
+-- un racimo de siete cristales de azufre que brillan, dos chimeneas que echan humo amarillo, dos
+-- frascos a los lados y dos cristales en las esquinas. Hombreras de ceniza con cristales de obsidiana,
+-- de azufre y llama de lava.
 local function sulfurMantle(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -3464,9 +3669,10 @@ local function sulfurMantle(body: Body)
 	local back = depth / 2
 	make.block(Vector3.new(width + 0.12, height * 0.94, depth + 0.16), LINEN, FABRIC, CFrame.new(0, -height * 0.02, 0))
 	make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), ASH, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+	make.block(Vector3.new(width + 0.12, 0.2, depth + 0.14), ASH_DARK, FABRIC, CFrame.new(0, height / 2 + 0.14, 0.06))
 	make.block(Vector3.new(width + 0.42, 0.08, depth + 0.42), SULFUR, SMOOTH, CFrame.new(0, height / 2 - 0.24, 0.04))
 	-- Peto de basalto con una cruz verde que brilla entre dos ribetes de azufre, arriba a la izquierda:
-	-- fuera del camino de la bandolera.
+	-- fuera del camino de la bandolera. Dos cristales de azufre en sus esquinas de arriba.
 	local plastron = CFrame.new(-width * 0.27, height * 0.14, front - 0.04)
 	make.block(Vector3.new(width * 0.34, height * 0.36, 0.08), BASALT, BASALT_MATERIAL, plastron)
 	for side = -1, 1, 2 do
@@ -3475,6 +3681,15 @@ local function sulfurMantle(body: Body)
 			SULFUR,
 			SMOOTH,
 			plastron * CFrame.new(side * width * 0.17, 0, -0.02)
+		)
+		fireCrystal(
+			make,
+			(plastron * CFrame.new(side * width * 0.12, height * 0.18 - 0.02, -0.08)).Position,
+			Vector3.new(side * 0.3, 1, -0.5),
+			0.34,
+			0.14,
+			SULFUR,
+			SULFUR_GLOW
 		)
 	end
 	local cross =
@@ -3488,6 +3703,12 @@ local function sulfurMantle(body: Body)
 		local at = from:Lerp(to, t)
 		flask(make, CFrame.new(at.X, at.Y - 0.32, at.Z - 0.1), 0.22, true)
 	end
+	for _, t in { 0, 1 } do
+		local at = from:Lerp(to, t)
+		make.ball(0.14, SULFUR, SMOOTH, CFrame.new(at.X, at.Y, at.Z - 0.1))
+	end
+	local pouchAt = from:Lerp(to, 0.88)
+	herbPouch(make, CFrame.new(pouchAt.X, pouchAt.Y - 0.12, front - 0.14), LEAF)
 	local brooch = CFrame.new(width * 0.3, height / 2 - 0.16, front - 0.12)
 	local rim = make.rod(0.06, 0.32, OBSIDIAN, SMOOTH, brooch * FACING)
 	rim.Reflectance = 0.05
@@ -3525,23 +3746,40 @@ local function sulfurMantle(body: Body)
 	local pack = CFrame.new(0, -height * 0.08, back + 0.44)
 	make.block(Vector3.new(width * 0.64, height * 0.56, 0.44), BASALT, BASALT_MATERIAL, pack)
 	make.block(Vector3.new(width * 0.66, 0.08, 0.46), SULFUR, SMOOTH, pack * CFrame.new(0, height * 0.12, 0))
-	-- Costras de azufre en la mochila.
-	for _, crust in { Vector3.new(-0.18, -0.12, 0.23), Vector3.new(0.2, -0.04, 0.23), Vector3.new(0.05, -0.22, 0.23) } do
+	-- Costras de azufre en la mochila, dos bolsillos debajo y tres gotas de azufre bajo ella.
+	for _, crust in { Vector3.new(-0.3, 0.22, 0.23), Vector3.new(0.34, 0.3, 0.23), Vector3.new(0.05, 0.05, 0.23) } do
 		make.block(
 			Vector3.new(0.18, 0.12, 0.05),
 			SULFUR,
 			SMOOTH,
-			pack * CFrame.new(crust.X * width, crust.Y * height, crust.Z) * CFrame.Angles(0, 0, crust.X * 2)
+			pack * CFrame.new(crust) * CFrame.Angles(0, 0, crust.X * 2)
 		)
 	end
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.34, 0.2, 0.1),
+			BASALT_DARK,
+			BASALT_MATERIAL,
+			pack * CFrame.new(side * 0.45, -0.26, 0.26)
+		)
+		make.block(Vector3.new(0.38, 0.05, 0.12), SULFUR, SMOOTH, pack * CFrame.new(side * 0.45, -0.17, 0.26))
+	end
+	for _, x in { -0.4, 0, 0.4 } do
+		lavaDrip(make, pack * CFrame.new(x, -height * 0.28, 0.1), 0.3, SULFUR_GLOW)
+	end
+	-- Racimo de siete cristales de azufre que sale de la mochila.
 	local clusterBase = pack * CFrame.new(0, height * 0.27, 0)
-	for index, tilt in { -0.6, -0.36, -0.12, 0.12, 0.36, 0.6 } do
+	for index, tilt in { -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3 } do
 		fireCrystal(
 			make,
-			(clusterBase * CFrame.new(tilt * width * 0.42, 0, (index % 2) * 0.14 - 0.07)).Position,
-			Vector3.new(tilt, 1, 0.25),
-			if index == 3 or index == 4 then 1.1 elseif index == 2 or index == 5 then 0.8 else 0.6,
-			0.32,
+			(clusterBase * CFrame.new(tilt * width * 0.3, 0, (index % 2) * 0.14 - 0.07)).Position,
+			Vector3.new(tilt * 2.2, 1, 0.25),
+			if index == 4
+				then 1.2
+				elseif index == 3 or index == 5 then 1.0
+				elseif index == 2 or index == 6 then 0.8
+				else 0.6,
+			0.3,
 			SULFUR,
 			SULFUR_GLOW
 		)
@@ -3549,18 +3787,40 @@ local function sulfurMantle(body: Body)
 	local glow = make.ball(0.22, SULFUR_GLOW, NEON, clusterBase * CFrame.new(0, 0.05, 0))
 	fireLight(glow, SULFUR_GLOW)
 	embers(glow, SULFUR_GLOW, 4)
-	-- Dos chimeneas de obsidiana a los lados del racimo que echan humo amarillo.
+	-- Dos chimeneas de obsidiana a los lados del racimo, con su aro de azufre, que echan humo amarillo.
 	for side = -1, 1, 2 do
 		local chimney = clusterBase * CFrame.new(side * width * 0.27, 0.12, -0.12)
 		make.rod(0.36, 0.14, OBSIDIAN, SMOOTH, chimney * UPRIGHT)
+		make.rod(0.06, 0.18, SULFUR, SMOOTH, chimney * CFrame.new(0, 0.1, 0) * UPRIGHT)
 		local mouth = make.rod(0.05, 0.16, SULFUR_GLOW, NEON, chimney * CFrame.new(0, 0.19, 0) * UPRIGHT)
 		smoke(mouth, 3, Color3.fromRGB(200, 190, 110), 0.8)
 	end
 	for side = -1, 1, 2 do
 		flask(make, pack * CFrame.new(side * (width * 0.38 + 0.12), -height * 0.14, 0), 0.3, true)
+		-- Cristal de azufre en la esquina de abajo de la mochila.
+		fireCrystal(
+			make,
+			(pack * CFrame.new(side * width * 0.28, -height * 0.26, 0.2)).Position,
+			Vector3.new(side * 0.5, -0.5, 0.6),
+			0.4,
+			0.2,
+			SULFUR,
+			SULFUR_GLOW
+		)
+	end
+	-- Correas de la mochila a los hombros.
+	for side = -1, 1, 2 do
+		strap(
+			make,
+			Vector3.new(side * width * 0.28, -height * 0.3, back + 0.6),
+			Vector3.new(side * width * 0.4, height / 2 - 0.1, back + 0.3),
+			0.1,
+			LEATHER_DARK,
+			LEATHER_MATERIAL
+		)
 	end
 
-	-- Cinturón con hebilla de azufre, una venda y dos bolsas con cristales de azufre.
+	-- Cinturón con hebilla de azufre, una venda, un frasco y dos bolsas con cristales de azufre.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
 	local beltFront = -(hipDepth / 2 + 0.09)
@@ -3572,6 +3832,7 @@ local function sulfurMantle(body: Body)
 	)
 	waist.block(Vector3.new(0.34, 0.26, 0.08), SULFUR, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.02))
 	waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(hipWidth * 0.32, -0.06, beltFront - 0.1) * UPRIGHT)
+	flask(waist, CFrame.new(-hipWidth * 0.2, -0.38, beltFront - 0.12), 0.22, true)
 	for _, x in { -0.34, 0.12 } do
 		local bag = CFrame.new(x * hipWidth, -0.1, beltFront - 0.08)
 		waist.block(Vector3.new(0.24, 0.22, 0.12), LEATHER_DARK, LEATHER_MATERIAL, bag)
@@ -3587,17 +3848,26 @@ local function sulfurMantle(body: Body)
 	end
 
 	for side = -1, 1, 2 do
-		volcanicPauldron(body.upperArm[side], side, ASH, FABRIC, 2, 0.6)
+		local arm = body.upperArm[side]
+		lavaPauldron(arm, side, ASH, FABRIC, "sulfur")
+		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, SULFUR, SMOOTH)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
 		band(forearm, fs.Y * 0.05, 0.12, 0.06, PAINT_WHITE, FABRIC, 0.12)
 		band(forearm, -fs.Y / 2 + 0.12, 0.22, 0.16, ASH, FABRIC)
 		band(forearm, -fs.Y / 2 + 0.26, 0.06, 0.18, SULFUR, SMOOTH)
+		band(forearm, -fs.Y * 0.14, 0.12, 0.06, PAINT_WHITE, FABRIC, -0.12)
+		fireCrystal(
+			forearm,
+			Vector3.new(side * (fs.X / 2 + 0.04), fs.Y * 0.1, 0),
+			Vector3.new(side, 0.6, 0),
+			0.3,
+			0.16,
+			SULFUR,
+			SULFUR_GLOW
+		)
 		local leg = body.upperLeg[side]
-		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
-		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), ASH_DARK, FABRIC, flap)
-		leg.block(Vector3.new(ls.X * 0.9, 0.06, 0.12), SULFUR, SMOOTH, flap * CFrame.new(0, -ls.Y * 0.19, -0.01))
+		local flap = lavaFlap(leg, side, ASH_DARK, FABRIC, SULFUR, SMOOTH)
 		herbPouch(leg, flap * CFrame.new(side * 0.05, 0, -0.12), LEAF)
 	end
 end

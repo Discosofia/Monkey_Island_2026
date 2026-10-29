@@ -2876,3 +2876,18 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El traje se ve entero, sin piezas de la armadura asomando.
 4. [ ] Prueba con un avatar R6.
    ✅ Las hombreras no flotan ni se hunden.
+
+## 65. Fase 18 R4: armaduras Volcánicas rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Fabrica la armadura volcánica con cada rol y mírala desde atrás con la cámara del juego, quieta y corriendo.
+   ✅ La espalda se ve llamativa: volcán con cráter, carcaj de obsidiana con flechas que arden, sol de fuego con corona de cristales y racimo de azufre con chimeneas. Nada flota ni atraviesa el cuerpo al andar, apuntar o golpear.
+2. [ ] Mira de cerca las hombreras, la corona del guerrero y las chimeneas del médico.
+   ✅ Ninguna punta atraviesa la llama, el cráneo ni otra pieza.
+3. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
+   ✅ El humo y las brasas no bajan los FPS de forma notable.
+4. [ ] Ponte un traje mítico encima de la armadura volcánica (grado 4).
+   ✅ El traje se ve entero, sin piezas de la armadura asomando.
+5. [ ] Prueba con un avatar R6.
+   ✅ Las hombreras no flotan ni se hunden.
