@@ -646,6 +646,7 @@ Decisiones del 28-10-2026:
 | **R4** | Armaduras Volcánicas (rango IV), 4 roles | 6c4425b | ✅ Probado en Studio (sin probar: VERIFICACION §65) |
 | **S1** | Armas de la forja de rango I (Machete, Honda, Garrote, Arco, Cerbatana, Bastón), con tope `ForgeWeaponRank` | 343054f | ✅ Probado en Studio (sin probar: VERIFICACION §66) |
 | **S2** | Armas de la forja de rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) | e8217ed | ✅ Probado en Studio (sin probar: VERIFICACION §67) |
+| **S3** | Armas de la forja de rango III (Maza gruesa, Arco de liana, Cerbatana de chamán, Bastón de plata) | ec6435a | ✅ Probado en Studio (sin probar: VERIFICACION §68) |
 
 **Handoff de A1 (29-10-2026)**
 - **Estado:** plan aprobado, nada escrito todavía. Las pruebas de la fase empiezan en VERIFICACION §49.
