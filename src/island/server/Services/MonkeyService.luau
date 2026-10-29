@@ -39,6 +39,7 @@ local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
+local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -320,8 +321,9 @@ end
 -- de los objetos que han caído, aunque no le haya tocado; si no ha caído nada, no hay nada que traer.
 local function giveLoot(sharers: { Player }, definition: Monkeys.MonkeyDefinition)
 	local dropped: { string } = {}
+	local chanceMultiplier = Config.Monkeys.LootChanceMultiplier * MoonPhase.effect("LootChance")
 	for _, entry in definition.loot do
-		if rng:NextNumber() < entry.chance * Config.Monkeys.LootChanceMultiplier then
+		if rng:NextNumber() < entry.chance * chanceMultiplier then
 			table.insert(dropped, entry.itemId)
 			local shares: { [Player]: number } = {}
 			for _ = 1, rng:NextInteger(entry.min, entry.max) do
@@ -791,6 +793,16 @@ local function findInfo(infos: { PlayerInfo }, player: Player): PlayerInfo?
 	return nil
 end
 
+-- Alcance con el que un mono detecta a los jugadores y daño que hace a uno: los del día y los de la fase
+-- de la luna (Config.Moon). Los golpes a piezas del asedio y al Basecamp no los usan.
+local function aggroRangeOf(definition: Monkeys.MonkeyDefinition): number
+	return definition.aggroRange * MoonPhase.effect("AggroRange")
+end
+
+local function hitDamage(monkey: Monkey): number
+	return monkey.damage * MoonPhase.effect("MonkeyDamage")
+end
+
 -- Jugador vulnerable (fuera del Basecamp) más cercano dentro de "range". "skipTorch": ignora a
 -- quien lleva una antorcha en la mano (marteja).
 local function nearestTarget(infos: { PlayerInfo }, position: Vector3, range: number, skipTorch: boolean?): PlayerInfo?
@@ -882,7 +894,7 @@ end
 -- dentro del Basecamp.
 function bite(monkey: Monkey, player: Player, siege: boolean?)
 	prepare(monkey, player, windupSeconds(monkey), function()
-		local damage = if monkey.pounced then monkey.damage * 2 else monkey.damage
+		local damage = math.round(if monkey.pounced then hitDamage(monkey) * 2 else hitDamage(monkey))
 		monkey.pounced = false
 		EnemyAttack.strike(monkey.model, player, monkey.definition.attackRange, function(hit)
 			local landed, outcome = CombatService.damagePlayer(player, damage, siege, monkey.model, nil, true, hit)
@@ -966,7 +978,7 @@ local function throwAt(monkey: Monkey, player: Player, target: Vector3, baseDama
 	local seconds = (target - origin).Magnitude / 70
 	TweenService:Create(stone, TweenInfo.new(seconds, Enum.EasingStyle.Linear), { Position = target }):Play()
 	Debris:AddItem(stone, seconds + 0.05)
-	local damage = math.round(baseDamage * monkey.damage / math.max(1, monkey.definition.damage))
+	local damage = math.round(baseDamage * hitDamage(monkey) / math.max(1, monkey.definition.damage))
 	task.delay(seconds, function()
 		local character = player.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
@@ -1011,7 +1023,7 @@ function stomp(monkey: Monkey, _infos: { PlayerInfo }, now: number)
 	local started = EnemyAttack.windup(monkey.model, Config.Windup.MonkeyStompSeconds, "Unblockable", function()
 		showBubble(monkey, Strings.later("💥 ¡PUM!"))
 		Sfx.play("RockImpact", monkey.root.Position)
-		local damage = math.round(settings.damage * monkey.damage / math.max(1, monkey.definition.damage))
+		local damage = math.round(settings.damage * hitDamage(monkey) / math.max(1, monkey.definition.damage))
 		for _, model in Hitbox.inSphere(monkey.root.Position, settings.radius, { exclude = monkey.model }) do
 			local player = Players:GetPlayerFromCharacter(model)
 			if player then
@@ -1112,7 +1124,7 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 	-- Con poca vida, huye si hay un jugador cerca (solo las especies que huyen).
 	local fleeFraction = definition.fleeHealthFraction
 	local wounded = fleeFraction ~= nil and humanoid.Health < humanoid.MaxHealth * fleeFraction
-	if wounded and monkey.state ~= "Return" and nearestTarget(infos, position, definition.aggroRange) then
+	if wounded and monkey.state ~= "Return" and nearestTarget(infos, position, aggroRangeOf(definition)) then
 		monkey.state = "Flee"
 	end
 
@@ -1120,7 +1132,7 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 		-- Un ladrón con botín ya no busca pelea.
 		local found = if monkey.stolen
 			then nil
-			else nearestTarget(infos, position, definition.aggroRange, definition.ignoresTorchBearers)
+			else nearestTarget(infos, position, aggroRangeOf(definition), definition.ignoresTorchBearers)
 		if found and (found.position - monkey.group.home).Magnitude <= definition.leashRange then
 			chase(monkey, found.player)
 			if definition.howl and not monkey.howled then
@@ -1144,7 +1156,7 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 			not info
 			or info.safe
 			or tooFarFromHome
-			or (info.position - position).Magnitude > definition.aggroRange * 2
+			or (info.position - position).Magnitude > aggroRangeOf(definition) * 2
 			or (definition.ignoresTorchBearers and info.hasTorch)
 		then
 			monkey.state = "Return"
@@ -1177,7 +1189,7 @@ local function think(monkey: Monkey, infos: { PlayerInfo }, fires: { Vector3 }, 
 			end
 		end
 	elseif monkey.state == "Flee" then
-		local threat = nearestTarget(infos, position, definition.aggroRange * 1.5)
+		local threat = nearestTarget(infos, position, aggroRangeOf(definition) * 1.5)
 		if not threat then
 			monkey.state = "Return"
 			return

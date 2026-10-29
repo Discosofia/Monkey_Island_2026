@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local ResourceNodes = require(ReplicatedStorage.Shared.Data.ResourceNodes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
@@ -220,7 +221,12 @@ local function collect(state: NodeState, player: Player, amount: number)
 	else
 		setVisible(hidden, false)
 	end
-	task.delay(state.definition.respawnSeconds, function()
+	-- Las plantas (las que se cosechan sin herramienta) vuelven antes con la luna creciente.
+	local respawnSeconds = state.definition.respawnSeconds
+	if state.definition.holdSeconds then
+		respawnSeconds /= MoonPhase.effect("PlantGrowth")
+	end
+	task.delay(respawnSeconds, function()
 		state.usesLeft = state.definition.uses
 		setVisible(hidden, true)
 		if state.prompt then

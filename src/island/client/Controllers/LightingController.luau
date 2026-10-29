@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 
 type Frame = typeof(Config.Lighting.Keyframes[1])
 
@@ -88,8 +89,30 @@ local function sampleAt(clock: number): Sample
 	}
 end
 
--- Sitio para los pesos de la luna (B2): recibe la luz de la curva y la hora, y devuelve la luz final.
-local function adjust(sample: Sample, _clock: number): Sample
+-- Cuánto pesa la noche a esa hora (0 de día, 1 en plena noche), con la misma suavidad que la curva.
+local function nightWeight(clock: number): number
+	local dist = math.abs((clock - Config.Lighting.DayCenterClock + 12) % 24 - 12)
+	local moon = Config.Moon
+	local t = math.clamp((dist - moon.NightFadeStart) / (moon.NightFadeEnd - moon.NightFadeStart), 0, 1)
+	return t * t * (3 - 2 * t)
+end
+
+-- Pesos de la luna (B2): recibe la luz de la curva y la hora, y devuelve la luz final. La fase escala la
+-- luz de la noche (más oscura con la luna nueva, más clara con la llena); de día no cambia nada. La luna roja
+-- (B3) se sumará aquí, después de la fase.
+local function adjust(sample: Sample, clock: number): Sample
+	local phase = MoonPhase.current()
+	if not phase then
+		return sample
+	end
+	local scale = 1 + (phase.NightLight - 1) * nightWeight(clock)
+	if scale == 1 then
+		return sample
+	end
+	local black = Color3.new()
+	sample.Ambient = black:Lerp(sample.Ambient, scale)
+	sample.OutdoorAmbient = black:Lerp(sample.OutdoorAmbient, scale)
+	sample.Brightness *= scale
 	return sample
 end
 
@@ -119,6 +142,13 @@ function LightingController:Start()
 		end
 		local clock = clockTimeFor(state, Workspace:GetServerTimeNow())
 		Lighting.ClockTime = clock
+		local moon = MoonPhase.current()
+		local sky = Lighting:FindFirstChildOfClass("Sky")
+		if moon and sky then
+			-- La luna del cielo crece hacia la llena y se encoge hacia la nueva.
+			sky.MoonAngularSize = moon.MoonSize
+			sky.MoonTextureId = moon.MoonTexture
+		end
 		local s = adjust(sampleAt(clock), clock)
 		Lighting.Ambient = s.Ambient
 		Lighting.OutdoorAmbient = s.OutdoorAmbient

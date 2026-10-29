@@ -1438,6 +1438,63 @@ local Config = {
 		},
 	},
 
+	-- Ciclo lunar de la Isla (Fase 18, B2). La luna cambia de fase cada DaysPerPhase días de partida
+	-- (Nueva, Creciente, Llena, Menguante) y cada fase da un efecto suave (10-15 %) que lee Shared/MoonPhase.
+	-- Efectos: AggroRange (alcance con el que los monos detectan), PlantGrowth (velocidad con la que
+	-- reaparecen las plantas), MonkeyDamage (daño de los monos a jugadores), LootChance (probabilidad del
+	-- botín de los monos; nunca Ámbar) y HungerRate (velocidad a la que bajan hambre y sed).
+	-- NightLight escala la luz de la noche (B1) en LightingController.adjust, con peso 0 de día;
+	-- MoonSize es el MoonAngularSize del Sky y MoonTexture su MoonTextureId. La luna roja (B3) se sumará encima de la fase.
+	Moon = {
+		DaysPerPhase = 2,
+		-- Horas del reloj a las que la luz de la noche llega a pesar por completo: el peso sube de 0 a 1
+		-- entre estas dos distancias (en horas) al mediodía del reloj.
+		NightFadeStart = 6.5,
+		NightFadeEnd = 9,
+		-- Imagen de la luna roja (B3); las de cada fase van en MoonTexture.
+		RedMoonTexture = "rbxassetid://121461991237191",
+		Phases = {
+			{
+				id = "New",
+				name = later("Luna nueva"),
+				description = later("Noche más oscura. Los monos detectan desde menos distancia."),
+				effects = { AggroRange = 0.85 },
+				NightLight = 0.85,
+				MoonSize = 6,
+				MoonTexture = "rbxassetid://75864666044418",
+			},
+			{
+				id = "Waxing",
+				name = later("Luna creciente"),
+				description = later("Las plantas vuelven a crecer un 15 % más rápido."),
+				effects = { PlantGrowth = 1.15 },
+				NightLight = 1,
+				MoonSize = 9,
+				MoonTexture = "rbxassetid://113064879036963",
+			},
+			{
+				id = "Full",
+				name = later("Luna llena"),
+				description = later(
+					"Noche más clara. Los monos pegan un 10 % más fuerte y sueltan un 15 % más de botín."
+				),
+				effects = { MonkeyDamage = 1.1, LootChance = 1.15 },
+				NightLight = 1.08,
+				MoonSize = 14,
+				MoonTexture = "rbxassetid://76028915903756",
+			},
+			{
+				id = "Waning",
+				name = later("Luna menguante"),
+				description = later("El hambre y la sed bajan un 10 % más despacio."),
+				effects = { HungerRate = 0.9 },
+				NightLight = 1,
+				MoonSize = 9,
+				MoonTexture = "rbxassetid://79240374486739",
+			},
+		},
+	},
+
 	-- Luz del día y de la noche en la Isla (Fase 18, B1). La curva da, para cada hora del reloj de Roblox
 	-- (0-24, circular), los valores base de la luz; LightingController interpola entre las filas. El clima, la
 	-- erupción y (B3) la luna roja se suman encima con sus propios efectos, sin tocar esta curva. Los pesos de

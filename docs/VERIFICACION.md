@@ -2699,6 +2699,27 @@ Se prueba en la Isla publicada, con una partida entera (17 min) o saltando fases
 4. [ ] Los carteles, la linterna y los avisos, de día y de noche.
    ✅ Se leen igual en todas las horas.
 
+## 56. Fase 18 B2: ciclo lunar (29-10-2026)
+
+Se prueba en la Isla publicada. La fase cambia cada 2 días de partida: Nueva (días 1-2), Creciente (3-4), Llena (5-6), Menguante (7-8).
+
+1. [ ] Mira el icono de la luna a la izquierda del reloj (arriba a la derecha), en PC y en el teléfono, y tócalo o pasa el ratón.
+   ✅ Se ve pegado al texto del reloj, no tapa el aviso del Basecamp y enseña el nombre y el efecto de la fase unos 5 s. Nueva: círculo oscuro con contorno; creciente y menguante: media luna a cada lado; llena: círculo entero.
+2. [ ] Con 2 jugadores, comprueba que los dos ven la misma fase.
+   ✅ El icono y su texto coinciden.
+3. [ ] De noche con luna nueva y con luna llena, compara la luz.
+   ✅ Con la nueva es más oscura (un 15 %) y con la llena algo más clara (un 8 %); de día no hay diferencia.
+4. [ ] Mira la luna del cielo en cada fase.
+   ✅ Pequeña con la nueva, mediana con creciente y menguante, grande con la llena, y cada una con su imagen (disco apagado, gajo a la derecha, llena, gajo a la izquierda). Si alguna sale vacía o con otra imagen, el id de `Config.Moon` está mal o falta que Roblox la apruebe.
+5. [ ] Luna nueva: acércate a un mono desde lejos.
+   ✅ Te detecta desde un 15 % menos de distancia.
+6. [ ] Luna creciente: cosecha una mata de banano o un helecho y espera.
+   ✅ Reaparece un 15 % antes (90 s pasan a unos 78 s; 180 s a unos 157 s). Árboles y rocas no cambian.
+7. [ ] Luna llena: deja que un mono te muerda y mata a varios.
+   ✅ Pega un 10 % más y suelta un 15 % más de botín (nunca Ámbar).
+8. [ ] Luna menguante: mide cuánto tarda en bajar el hambre y la sed.
+   ✅ Un 10 % más despacio.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

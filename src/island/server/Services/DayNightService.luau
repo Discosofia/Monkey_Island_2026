@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local DayNightService = {}
@@ -80,6 +81,7 @@ function DayNightService:Start()
 	while not stopped do
 		local startedAt = Workspace:GetServerTimeNow()
 		local endsAt = startedAt + phaseLength(phase)
+		ReplicatedStorage:SetAttribute("MoonPhase", MoonPhase.idForDay(day))
 		MatchState.write({
 			day = day,
 			phase = phase,

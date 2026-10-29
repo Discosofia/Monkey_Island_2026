@@ -19,6 +19,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
@@ -99,7 +100,8 @@ local function tick(player: Player)
 	end
 	local minutes = TICK_SECONDS / 60
 	-- "Estómago de hierro" (tienda) hace que bajen más despacio.
-	local rate = Progression.perk(player, "HungerRate")
+	-- La luna menguante (Config.Moon) también los frena.
+	local rate = Progression.perk(player, "HungerRate") * MoonPhase.effect("HungerRate")
 	local hunger = Survival.get(player, Survival.HUNGER) - Config.Survival.HungerPerMinute * minutes * rate
 	local thirst = Survival.get(player, Survival.THIRST) - Config.Survival.ThirstPerMinute * minutes * rate
 	setStat(player, Survival.HUNGER, hunger)

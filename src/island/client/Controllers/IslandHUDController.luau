@@ -17,6 +17,7 @@ local Basecamp = require(ReplicatedStorage.Shared.Basecamp)
 local Config = require(ReplicatedStorage.Shared.Config)
 local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
+local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SettingsPanel = require(ReplicatedStorage.Shared.UI.SettingsPanel)
 local Strings = require(ReplicatedStorage.Shared.Strings)
@@ -51,7 +52,7 @@ local function clockText(state: MatchState.State, now: number): string
 	)
 end
 
-local function createClock(gui: ScreenGui)
+local function createClock(gui: ScreenGui): TextLabel
 	local clock = Widgets.label("", gui)
 	clock.Name = "Clock"
 	clock.AnchorPoint = Vector2.new(1, 0)
@@ -66,6 +67,103 @@ local function createClock(gui: ScreenGui)
 			task.wait(0.25)
 		end
 	end)
+	return clock
+end
+
+-- Fase de la luna (Fase 18, B2): una luna dibujada con círculos (sin emoji, porque 🌑 y 🌕 ya son otras
+-- cosas) a la izquierda del reloj. Al tocarla (o pasar el ratón) enseña el nombre de la fase y su efecto.
+local MOON_LIT = Color3.fromRGB(232, 234, 246)
+local MOON_DARK = Color3.fromRGB(22, 26, 44)
+-- Cuánto se desplaza la sombra (en fracciones del icono) para dejar la luna en cuarto creciente o menguante.
+local MOON_SHADOW_SHIFT = { New = 0, Waxing = -0.22, Full = 0, Waning = 0.22 }
+local MOON_TIP_SECONDS = 5
+
+local function circle(parent: Instance, diameter: number, color: Color3): Frame
+	local frame = Instance.new("Frame")
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(0.5, 0.5)
+	frame.Size = UDim2.fromScale(diameter, diameter)
+	frame.BackgroundColor3 = color
+	frame.BorderSizePixel = 0
+	frame.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = frame
+	return frame
+end
+
+local function createMoon(gui: ScreenGui, clock: TextLabel)
+	local badge = Instance.new("TextButton")
+	badge.Name = "MoonPhase"
+	badge.Text = ""
+	badge.AutoButtonColor = false
+	badge.AnchorPoint = Vector2.new(1, 0)
+	badge.Position = UDim2.fromScale(0.9, 0.02)
+	badge.Size = UDim2.fromScale(0.06, 0.06)
+	badge.BackgroundColor3 = MOON_DARK
+	badge.BackgroundTransparency = 0.15
+	badge.BorderSizePixel = 0
+	badge.ClipsDescendants = true
+	badge.Visible = false
+	badge.Parent = gui
+	local ratio = Instance.new("UIAspectRatioConstraint")
+	ratio.Parent = badge
+	local badgeCorner = Instance.new("UICorner")
+	badgeCorner.CornerRadius = UDim.new(0.25, 0)
+	badgeCorner.Parent = badge
+	local moon = circle(badge, 0.7, MOON_LIT)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = MOON_LIT
+	stroke.Thickness = 1
+	stroke.Parent = moon
+	local shadow = circle(badge, 0.7, MOON_DARK)
+
+	local tip = Widgets.label("", gui)
+	tip.Name = "MoonPhaseTip"
+	tip.AnchorPoint = Vector2.new(1, 0)
+	tip.Position = UDim2.fromScale(0.98, 0.15)
+	tip.Size = UDim2.fromScale(0.3, 0.09)
+	tip.TextWrapped = true
+	tip.TextXAlignment = Enum.TextXAlignment.Right
+	tip.Visible = false
+
+	local shownAt = 0
+	local function refresh()
+		local phase = MoonPhase.current()
+		badge.Visible = phase ~= nil
+		if not phase then
+			return
+		end
+		local shift = MOON_SHADOW_SHIFT[phase.id] or 0
+		shadow.Position = UDim2.fromScale(0.5 + shift, 0.5)
+		-- Luna nueva: todo sombra, solo el contorno; llena: sin sombra.
+		shadow.Visible = phase.id ~= "Full"
+		stroke.Enabled = phase.id == "New"
+		tip.Text = T(phase.name) .. "\n" .. T(phase.description)
+	end
+	local function showTip()
+		if not badge.Visible then
+			return
+		end
+		shownAt = os.clock()
+		local mine = shownAt
+		tip.Visible = true
+		task.delay(MOON_TIP_SECONDS, function()
+			if shownAt == mine then
+				tip.Visible = false
+			end
+		end)
+	end
+	-- Pegada al texto del reloj, que va alineado a la derecha.
+	local function place()
+		badge.Position = UDim2.new(0.98, -clock.TextBounds.X - 10, 0.02, 0)
+	end
+	clock:GetPropertyChangedSignal("TextBounds"):Connect(place)
+	place()
+	badge.Activated:Connect(showTip)
+	badge.MouseEnter:Connect(showTip)
+	ReplicatedStorage:GetAttributeChangedSignal("MoonPhase"):Connect(refresh)
+	refresh()
 end
 
 -- Línea de estado arriba en el centro, leída de un atributo de ReplicatedStorage:
@@ -354,7 +452,7 @@ function IslandHUDController:Start()
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 	local gui = Widgets.screen("IslandHUD", playerGui)
 
-	createClock(gui)
+	createMoon(gui, createClock(gui))
 	createBasecampIndicator(gui)
 	createBasecampHealth(gui)
 	createStatusLine(gui, "SiegeStatus", 0.13, Color3.fromRGB(255, 120, 90))

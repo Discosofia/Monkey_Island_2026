@@ -26,6 +26,13 @@ return {
 
 	-- HUD, reloj y campamento.
 	["Día {day} · {icon} {time}"] = "Day {day} · {icon} {time}",
+	["Luna nueva"] = "New moon",
+	["Luna creciente"] = "Waxing moon",
+	["Luna llena"] = "Full moon",
+	["Luna menguante"] = "Waning moon",
+	["Noche más oscura. Los monos detectan desde menos distancia."] = "Darker nights. Monkeys notice you from a shorter distance.",
+	["Las plantas vuelven a crecer un 15 % más rápido."] = "Plants grow back 15% faster.",
+	["Noche más clara. Los monos pegan un 10 % más fuerte y sueltan un 15 % más de botín."] = "Brighter nights. Monkeys hit 10% harder and drop 15% more loot.",
 	["🏕️ Basecamp: zona segura"] = "🏕️ Basecamp: safe zone",
 	["⚠️ Fuera del Basecamp"] = "⚠️ Outside the Basecamp",
 	["🔥 Basecamp caído: no es zona segura"] = "🔥 Basecamp fallen: not a safe zone",
