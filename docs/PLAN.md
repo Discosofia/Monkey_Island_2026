@@ -636,8 +636,8 @@ Decisiones del 28-10-2026:
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | 9a40a19 | ✅ Probado en Studio (sin probar: VERIFICACION §55) |
 | **B2** | Ciclo lunar: fases, efectos y su icono | de653ef | ✅ Probado en Studio (sin probar: VERIFICACION §56) |
 | **B3** | Evento de luna roja | a65adfe | ✅ Probado en Studio (sin probar: VERIFICACION §57) |
-| **M1** | Capibara (Poco común) | — | ⏳ |
-| **M2** | Quetzal (Mítico) | — | ⏳ |
+| **M1** | Capibara (Poco común) | 8e91b46 | ✅ Probado en Studio (sin probar: VERIFICACION §58) |
+| **M2** | Quetzal (Mítico) | 8f7c4f0 | ✅ Probado en Studio (sin probar: VERIFICACION §59) |
 | **M3** | Ajolote (Mítico) | — | ⏳ |
 | **R1** | Armaduras de Pelaje (rango I), 4 roles | — | ⏳ |
 | **R2** | Armaduras de Hueso (rango II), 4 roles | — | ⏳ |
@@ -741,6 +741,13 @@ Decisiones del 28-10-2026:
 - **Objetivo:** ver la tanda M1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección M1): Capibara, mascota Poco común, con la skill `modelos-3d-roblox` y la referencia voxel «Capibara Voxel.jfif» de `docs/img`. Base: un cuadrúpedo nuevo. Entra solo al sorteo Uncommon.
 - **Riesgos:** un icono, una sola cosa. Medir con `Rendimiento` (topes 240 y 110). Dejar el modelo de vista previa y la cámara en Studio antes de pedir el «aprobado».
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de M1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo M1.»
+
+**Handoff de M3 (29-10-2026)**
+- **Estado:** M1 (8e91b46) y M2 (8f7c4f0) cerradas y subidas. M3 sin empezar. Siguiente número libre de VERIFICACION: §60. El CSV de textos nuevo está en `build/localization_nuevas.csv` (4 filas de M1 y M2): el usuario lo sube y después `strings.py --marcar-subidas`.
+- **Antes de escribir código:** no hace falta mapa nuevo. Patrón: `Data/Pets.luau` (el Quetzal, con `origin = "HuevoMitico"`, y la Capibara), un constructor en `PetModels.voxelBuilders` (`voxelKit`; plantilla de cuadrúpedo: Capibara; de anfibio: Rana), `Data/Strings/Content.luau` (nombre y descripción con su inglés) y `PetRoll` (ya excluye lo que tiene `origin`).
+- **Objetivo:** ver la tanda M3 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`): Ajolote, mascota Mítica, referencia «Axololt voxel.jfif» y las fotos de `docs/img` (ajolote). Base: la Rana. Con `origin = "HuevoMitico"`, solo desde el panel de admin.
+- **Riesgos:** un icono, una sola cosa (el 🐸 es de la Rana; comprueba en `src` el que elijas y que sea anterior a 2020). Medir con `Rendimiento` (topes 240 y 110; el Quetzal usó 97 piezas con el permiso del usuario hasta 120). Dejar el modelo de vista previa y la cámara en `Fixed` antes de pedir el «aprobado». Pendiente de decidir: `AVENTURAS.md` y `GDD.md` dicen «una mascota mítica nueva»; el plan dice dos.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de M3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo M3.»
 
 ---
 
