@@ -528,6 +528,8 @@ return {
 	["+1 material en cada recolección."] = "+1 material on every harvest.",
 	["Quetzal"] = "Quetzal",
 	["El ave sagrada: correr gasta un 25 % menos de estamina y haces un 8 % más de daño a distancia."] = "The sacred bird: sprinting uses 25% less stamina and you deal 8% more ranged damage.",
+	["Ajolote"] = "Axolotl",
+	["Regenera sin parar: te cura 2 puntos de vida cada 2 segundos."] = "Regenerates nonstop: heals you 2 health every 2 seconds.",
 	["Capibara"] = "Capybara",
 	["Tranquila y fornida: +15 de vida máxima."] = "Calm and sturdy: +15 max health.",
 	["Jaguarundí"] = "Jaguarundi",

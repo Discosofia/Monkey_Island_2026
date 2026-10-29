@@ -112,6 +112,17 @@ local Pets: { [string]: Pet } = {
 		perks = { SprintCost = -0.25, RangedDamage = 0.08 },
 		origin = "HuevoMitico",
 	},
+	Ajolote = {
+		name = "Ajolote",
+		icon = "🦎",
+		rarity = "Mythic",
+		kind = "Curación",
+		description = "Regenera sin parar: te cura 2 puntos de vida cada 2 segundos.",
+		color = Color3.fromRGB(246, 168, 190),
+		size = 1.1,
+		healPerTick = 2,
+		origin = "HuevoMitico",
+	},
 	Jaguarundi = {
 		name = "Jaguarundí",
 		icon = "🐈",

@@ -2799,3 +2799,22 @@ Mascota Mítica nueva (🦚). Lleva `origin = "HuevoMitico"`: ningún huevo norm
    ✅ El Quetzal no sale nunca ni aparece en la lista de mascotas posibles de ningún huevo.
 5. [ ] En el panel de admin, mira la lista de mascotas.
    ✅ El Quetzal aparece como Mítico y se puede dar a un jugador. Su nombre y su descripción salen traducidos al inglés.
+
+## 60. Fase 18 M3: ajolote y animaciones de las mascotas nuevas (29-10-2026)
+
+Ajolote: mascota Mítica nueva (🦎), con `origin = "HuevoMitico"` (no sale de huevos normales; se da desde el panel de admin). Cura 2 de vida cada 2 s. Esta tanda también añade clips a la Capibara (`IdleGraze`, `IdleShake`, `Run`), al Ajolote (`IdleGills`, `IdleWag`, `Run`) y al Quetzal (`Glide` con la cola ondulando).
+
+**En Play (Isla o Lobby), con las mascotas dadas desde el panel de admin:**
+
+1. [ ] Dale el **Ajolote**, equípalo y entra a la Isla. Herido, quédate quieto un rato.
+   ✅ Te sigue andando como una salamandra (patas en diagonal, cola que ondea). Te sube 2 de vida cada 2 s y aparece el «+2» verde.
+2. [ ] Con el Ajolote, quédate quieto unos 10–20 s y espera sus rutinas.
+   ✅ A veces abre las branquias como un abanico y las agita (`IdleGills`) y otras mueve la cola de lado a lado mirando a los lados (`IdleWag`). Al moverte vuelve a andar sin saltos.
+3. [ ] Corre con el Ajolote.
+   ✅ Serpentea con el cuerpo, la cola y la cabeza al galopar (`Run`).
+4. [ ] Con la Capibara, quédate quieto 10–20 s y luego corre.
+   ✅ Baja la cabeza y mordisquea (`IdleGraze`) o se sacude entera (`IdleShake`). Al correr trota con la cabeza y el lomo subiendo y bajando.
+5. [ ] Con el Quetzal, mira cómo planea (con el dueño andando y quieto).
+   ✅ En los momentos de planeo las alas quedan quietas y las dos plumas de la cola ondulan y la cabeza se ladea un poco. La vuelta sobre el dueño quieto sigue funcionando.
+6. [ ] Abre muchos huevos normales y mira el panel de admin.
+   ✅ El Ajolote no sale nunca de un huevo normal y aparece como Mítico en el panel. Su nombre y su descripción salen en inglés al cambiar el idioma.

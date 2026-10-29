@@ -2825,6 +2825,235 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		return "Hop"
 	end,
 
+	-- Ajolote voxel (docs/img/Axololt voxel.jfif): la mascota mítica de la regeneración. Cuerpo largo y
+	-- plano rosa perlado con la barriga clara y las motas iridiscentes del lomo; cabeza ancha con el
+	-- hocico romo, la sonrisa curva con su labio, los ojitos en su cuenca bajo la ceja, las fosas y los
+	-- pómulos con pecas; tres plumas de branquias carmesí a cada lado, cada una con sus filamentos y la
+	-- punta en abanico, que se abren y se cierran; la cresta ondulada del lomo que sigue por la cola con
+	-- su aleta, y las patitas finas con los dedos abiertos y sus almohadillas. Anda como una salamandra.
+	-- Huesos de sus clips: Head, Tail, GillL, GillR, FL, FR, BL y BR.
+	Ajolote = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 4, 0))
+		local box = v.box
+		local belly = color:Lerp(WHITE, 0.6)
+		local light = color:Lerp(WHITE, 0.3)
+		local fin = color:Lerp(Color3.fromRGB(235, 60, 110), 0.4)
+		local gill = Color3.fromRGB(228, 30, 85)
+		local gillTip = Color3.fromRGB(255, 120, 160)
+		local gillDark = gill:Lerp(BLACK, 0.3)
+		local gillPale = gillTip:Lerp(WHITE, 0.35)
+		local pearl = Color3.fromRGB(150, 235, 235)
+		local violet = Color3.fromRGB(190, 160, 250)
+		local dark = Color3.fromRGB(35, 22, 32)
+		local blush = color:Lerp(gill, 0.35)
+		local nostril = color:Lerp(BLACK, 0.35)
+
+		-- Cuerpo largo y plano con la barriga clara, las rayas de las costillas y la hilera de puntos del
+		-- costado.
+		box(nil, "Body", Vector3.new(0, 3.8, 1.5), Vector3.new(5, 3.2, 10), color)
+		box(nil, "Belly", Vector3.new(0, 2.2, 1.5), Vector3.new(4, 0.4, 9), belly)
+		box(nil, "Back", Vector3.new(0, 5.5, 1.5), Vector3.new(3.6, 0.3, 9), light)
+		for i, z in { -2.5, -0.5, 1.5, 3.5, 5, 6.2 } do
+			local x = if i % 2 == 0 then 1 else -1
+			box(
+				nil,
+				"Mote",
+				Vector3.new(x * 0.9, 5.7, z),
+				Vector3.new(0.8, 0.2, 0.8),
+				if i % 2 == 0 then pearl else violet
+			)
+		end
+		for _, side in { -1, 1 } do
+			for _, z in { -1.5, 0.5, 2.5, 4.5 } do
+				box(nil, "Rib", Vector3.new(side * 2.55, 3.9, z), Vector3.new(0.12, 2.4, 0.25), blush)
+			end
+		end
+		-- Cresta del lomo: escalones de distinta altura que se siguen por la cola.
+		for i, z in { -3, -1.8, -0.6, 0.6, 1.8, 3, 4.2, 5.4, 6.6 } do
+			box(
+				nil,
+				"Crest",
+				Vector3.new(0, 5.9 + (if i % 2 == 0 then 0.4 else 0), z),
+				Vector3.new(0.5, 0.8 + (i % 2) * 0.6, 1),
+				fin
+			)
+		end
+
+		-- Cola: tres tramos que se afinan, con la aleta arriba y abajo. Ondea de lado a lado.
+		local tailParts: { BasePart } = {}
+		v.beam(tailParts, "Tail", Vector3.new(0, 3.7, 6), Vector3.new(0, 3.5, 10.5), Vector2.new(3.6, 3), color)
+		v.beam(tailParts, "Tail", Vector3.new(0, 3.5, 10.5), Vector3.new(0, 3.3, 14.5), Vector2.new(2.6, 2.4), color)
+		v.beam(tailParts, "Tail", Vector3.new(0, 3.3, 14.5), Vector3.new(0, 3.1, 18), Vector2.new(1.6, 1.8), color)
+		for i, z in { 7, 8.8, 10.6, 12.4, 14.2, 16, 17.6 } do
+			box(tailParts, "TailFin", Vector3.new(0, 5.4 - i * 0.14, z), Vector3.new(0.4, 1.4 - i * 0.1, 1.2), fin)
+			box(tailParts, "TailFinLow", Vector3.new(0, 2.2 - i * 0.04, z + 0.4), Vector3.new(0.4, 0.8, 1), fin)
+		end
+		box(tailParts, "TailTip", Vector3.new(0, 3.1, 18.6), Vector3.new(0.6, 1.4, 0.8), gillDark)
+		v.swing(tailParts, Vector3.new(0, 3.7, 6), Vector3.yAxis, 0.3, 4, 0, false, nil, "Tail")
+
+		-- Cabeza ancha y plana: el hocico romo con su caballete, la ceja y la cuenca de cada ojo, las
+		-- fosas, la sonrisa curva con el labio de abajo, los pómulos con pecas y el pliegue donde nacen
+		-- las branquias; la cresta empieza ya en la nuca.
+		local head: { BasePart } = {}
+		box(head, "Head", Vector3.new(0, 3.9, -6.2), Vector3.new(7, 2.8, 5), color)
+		box(head, "Snout", Vector3.new(0, 3.6, -9), Vector3.new(5.4, 2.2, 0.8), color)
+		box(head, "HeadTop", Vector3.new(0, 5.4, -6.4), Vector3.new(5.6, 0.3, 4), light)
+		box(head, "Chin", Vector3.new(0, 2.4, -6.4), Vector3.new(5.6, 0.4, 4.6), belly)
+		box(head, "NoseBridge", Vector3.new(0, 4.9, -8.95), Vector3.new(1.6, 0.5, 0.6), light)
+		box(head, "Pearl", Vector3.new(0, 5.6, -8.2), Vector3.new(0.6, 0.2, 0.6), pearl)
+		box(head, "NapeCrest", Vector3.new(0, 5.8, -5.3), Vector3.new(0.5, 0.7, 0.9), fin)
+		box(head, "NapeCrest", Vector3.new(0, 5.9, -4.2), Vector3.new(0.5, 1, 0.9), fin)
+		-- Sonrisa: el centro más bajo y los extremos que suben, con sus hoyuelos.
+		box(head, "Smile", Vector3.new(0, 3, -9.45), Vector3.new(1.8, 0.25, 0.2), dark)
+		box(head, "LowerLip", Vector3.new(0, 2.7, -9.3), Vector3.new(2.6, 0.3, 0.4), belly)
+		box(head, "MouthInside", Vector3.new(0, 2.88, -9.5), Vector3.new(1.4, 0.15, 0.1), gillTip)
+		for _, side in { -1, 1 } do
+			box(head, "Smile", Vector3.new(side * 1.3, 3.15, -9.45), Vector3.new(0.9, 0.25, 0.2), dark)
+			box(head, "SmileEnd", Vector3.new(side * 1.95, 3.5, -9.45), Vector3.new(0.3, 0.5, 0.2), dark)
+			box(head, "Dimple", Vector3.new(side * 2.35, 3.8, -9.4), Vector3.new(0.2, 0.25, 0.2), blush)
+			box(head, "Brow", Vector3.new(side * 2.4, 5.45, -8.2), Vector3.new(1.4, 0.35, 0.9), light)
+			box(head, "EyeSocket", Vector3.new(side * 2.4, 4.7, -8.76), Vector3.new(1.5, 1.5, 0.1), blush)
+			box(head, "Eye", Vector3.new(side * 2.4, 4.7, -8.84), Vector3.new(0.9, 0.9, 0.1), dark)
+			box(head, "Glint", Vector3.new(side * 2.2, 4.95, -8.92), Vector3.new(0.3, 0.3, 0.05), WHITE)
+			box(head, "Glint", Vector3.new(side * 2.6, 4.5, -8.92), Vector3.new(0.15, 0.15, 0.05), pearl)
+			box(head, "Nostril", Vector3.new(side * 0.6, 4.5, -9.4), Vector3.new(0.3, 0.3, 0.15), nostril)
+			box(head, "Ridge", Vector3.new(side * 1.3, 5.6, -6.9), Vector3.new(0.5, 0.25, 2.4), light)
+			box(head, "Cheek", Vector3.new(side * 3.55, 3.5, -7.6), Vector3.new(0.15, 1.1, 1.5), blush)
+			box(
+				head,
+				"Fold",
+				Vector3.new(side * 3.55, 4.6, -5.6),
+				Vector3.new(0.2, 1.4, 1.6),
+				color:Lerp(gillPale, 0.3)
+			)
+			for k, z in { -8.1, -7.4, -6.7 } do
+				box(
+					head,
+					"Freckle",
+					Vector3.new(side * 3.6, 3.15 + (k % 2) * 0.7, z),
+					Vector3.new(0.1, 0.25, 0.25),
+					gillDark
+				)
+			end
+		end
+		v.swing(head, Vector3.new(0, 3.9, -3.8), Vector3.yAxis, 0.08, 1.5, 0, false, nil, "Head")
+
+		-- Branquias: tres plumas por lado (hacia arriba, hacia fuera y hacia abajo). Cada una nace de un
+		-- bulto oscuro, tiene su tallo, tres pares de filamentos que se acortan hacia la punta y la
+		-- punta en abanico, y se mezclan tres tonos. Se abren y se cierran despacio.
+		for _, side in { -1, 1 } do
+			local gills: { BasePart } = {}
+			local base = Vector3.new(side * 3.5, 4.2, -4.8)
+			local stalks = {
+				Vector3.new(side * 5.4, 7.6, -4.6),
+				Vector3.new(side * 6.8, 5.8, -5),
+				Vector3.new(side * 6.2, 3.3, -5.4),
+			}
+			for index, to in stalks do
+				local along = to - base
+				local direction = along.Unit
+				local across = Vector3.new(-direction.Y, direction.X, 0).Unit
+				box(gills, "GillBase", base + direction * 0.3, Vector3.new(1.1, 1, 1.2), gillDark)
+				v.beam(gills, "Gill", base, to, Vector2.new(0.8, 0.6), gill)
+				for level, f in { 0.4, 0.65, 0.88 } do
+					local at = base + along * f
+					local reach = 1.9 - level * 0.4
+					for _, sign in { -1, 1 } do
+						local tip = at + across * sign * reach + direction * 0.9
+						v.beam(
+							gills,
+							"Filament",
+							at,
+							tip,
+							Vector2.new(0.4, 0.35),
+							if (level + index) % 2 == 0 then gillTip else gill
+						)
+					end
+				end
+				box(gills, "GillTip", to, Vector3.new(1.1, 1.1, 0.7), gillTip)
+				box(gills, "GillFan", to + direction * 0.8 + across * 0.5, Vector3.new(0.6, 0.6, 0.5), gillPale)
+				box(gills, "GillFan", to + direction * 0.8 - across * 0.5, Vector3.new(0.6, 0.6, 0.5), gillPale)
+			end
+			v.swing(
+				gills,
+				Vector3.new(side * 3.4, 4.2, -4.8),
+				Vector3.zAxis,
+				0.12 * side,
+				3,
+				if side < 0 then 0 else math.pi,
+				false,
+				nil,
+				if side < 0 then "GillL" else "GillR"
+			)
+		end
+
+		-- Patitas finas que salen hacia fuera: el brazo, el antebrazo, la muñeca y la mano con cuatro dedos
+		-- abiertos y su almohadilla en la punta.
+		local function foot(list: { BasePart }, at: Vector3, front: boolean, side: number)
+			box(list, "Hand", at, Vector3.new(1.2, 0.4, 1.2), belly)
+			local toward = if front then -1 else 1
+			for k = -1.5, 1.5 do
+				local dir = Vector3.new(side * 0.55 + k * 0.5 * side, 0, toward * (1 - math.abs(k) * 0.2)).Unit
+				v.beam(list, "Finger", at, at + dir * 1.5, Vector2.new(0.35, 0.3), belly)
+				box(list, "Pad", at + dir * 1.6, Vector3.new(0.45, 0.35, 0.45), blush)
+			end
+		end
+		for _, side in { -1, 1 } do
+			local f: { BasePart } = {}
+			v.beam(
+				f,
+				"Arm",
+				Vector3.new(side * 2.5, 3, -2.6),
+				Vector3.new(side * 4.4, 1.5, -3.2),
+				Vector2.new(0.9, 0.9),
+				color
+			)
+			v.beam(
+				f,
+				"Forearm",
+				Vector3.new(side * 4.4, 1.5, -3.2),
+				Vector3.new(side * 4.8, 0.5, -4.4),
+				Vector2.new(0.8, 0.8),
+				belly
+			)
+			foot(f, Vector3.new(side * 4.9, 0.3, -4.7), true, side)
+			v.swing(
+				f,
+				Vector3.new(side * 2.5, 3, -2.6),
+				Vector3.xAxis,
+				0.35,
+				5,
+				if side < 0 then 0 else math.pi,
+				true,
+				nil,
+				if side < 0 then "FL" else "FR"
+			)
+			local b: { BasePart } = {}
+			v.beam(b, "Leg", Vector3.new(side * 2.5, 3, 5), Vector3.new(side * 4.6, 1.5, 5.8), Vector2.new(1, 1), color)
+			v.beam(
+				b,
+				"Shin",
+				Vector3.new(side * 4.6, 1.5, 5.8),
+				Vector3.new(side * 5, 0.5, 7),
+				Vector2.new(0.8, 0.8),
+				belly
+			)
+			foot(b, Vector3.new(side * 5.1, 0.3, 7.3), false, side)
+			v.swing(
+				b,
+				Vector3.new(side * 2.5, 3, 5),
+				Vector3.xAxis,
+				0.35,
+				5,
+				if side < 0 then math.pi else 0,
+				true,
+				nil,
+				if side < 0 then "BL" else "BR"
+			)
+		end
+		return "Walk"
+	end,
+
 	-- Tortuga verde voxel (docs/img/Tortuga verde.jfif): caparazón ancho y bajo en capas que se
 	-- estrechan hacia arriba, con placas verde oliva, amarillas y marrones y el borde marrón oscuro;
 	-- cabeza que asoma con escamas amarillas, aletas de delante largas en escalones y las de atrás
@@ -3172,7 +3401,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			)
 			box(tailParts, "StreamerTip", Vector3.new(x * 2.5, 4.4, 29.6), Vector3.new(0.8, 1.4, 0.9), darkest)
 		end
-		v.swing(tailParts, Vector3.new(0, 7.2, 3.6), Vector3.xAxis, 0.18, 5, 1, false)
+		v.swing(tailParts, Vector3.new(0, 7.2, 3.6), Vector3.xAxis, 0.18, 5, 1, false, nil, "Tail")
 		rig.family = "Bird"
 		return "Fly"
 	end,
@@ -3436,7 +3665,8 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 					box(leg, "Toe", Vector3.new(x + dx, 0.7, z - 2.3), Vector3.new(0.5, 0.9, 0.6), BLACK)
 				end
 				local phase = if (side < 0) == hind then math.pi else 0
-				v.swing(leg, Vector3.new(x, 5, z), Vector3.xAxis, 0.45, 4, phase, true)
+				local bone = (if hind then "B" else "F") .. (if side < 0 then "L" else "R")
+				v.swing(leg, Vector3.new(x, 5, z), Vector3.xAxis, 0.45, 4, phase, true, nil, bone)
 			end
 		end
 		return "Walk"
@@ -4660,6 +4890,100 @@ CLIPS.Bird = function()
 			length = 1,
 			loop = true,
 			keys = { { t = 0, amp = { WingL = 0, WingR = 0 }, WingL = { 0, 0, -6 }, WingR = { 0, 0, 6 } } },
+		},
+	}
+end
+
+-- Capibara: baja la cabeza y mordisquea la hierba, o se sacude entera. Al correr, trota con la cabeza
+-- y el lomo que suben y bajan.
+CLIPS.Capibara = function()
+	local graze: Key = {
+		Head = { 32, 0, 0 },
+		Body = { 3, 0, 0 },
+		waves = { Head = { x = 7, speed = 16 } },
+	}
+	local shake: Key = {
+		waves = { Body = { z = 5, speed = 28 }, Head = { y = 12, speed = 28 } },
+	}
+	return {
+		IdleGraze = {
+			length = 6,
+			keys = { { t = 0 }, with(graze, { t = 0.8 }), with(graze, { t = 4.6 }), { t = 6 } },
+		},
+		IdleShake = {
+			length = 3,
+			keys = { { t = 0 }, with(shake, { t = 0.3 }), with(shake, { t = 2.3 }), { t = 3 } },
+		},
+		Run = {
+			length = 1,
+			loop = true,
+			keys = {
+				{ t = 0, waves = { Body = { x = 3, py = 0.04, speed = 14 }, Head = { x = 5, speed = 14, phase = 1 } } },
+			},
+		},
+	}
+end
+
+-- Ajolote: abre las branquias como un abanico y las agita, mueve la cola de lado a lado mirando a
+-- los lados, y al correr serpentea con el cuerpo, la cola y la cabeza.
+CLIPS.Ajolote = function()
+	local flare: Key = {
+		GillL = { 0, 0, -28 },
+		GillR = { 0, 0, 28 },
+		Head = { -6, 0, 0 },
+		waves = { GillL = { z = 7, speed = 16 }, GillR = { z = 7, speed = 16, phase = math.pi } },
+	}
+	local left: Key = { Head = { 0, 18, 0 }, Tail = { 0, -30, 0 } }
+	local right: Key = { Head = { 0, -18, 0 }, Tail = { 0, 30, 0 } }
+	return {
+		IdleGills = {
+			length = 4.5,
+			keys = { { t = 0 }, with(flare, { t = 0.5 }), with(flare, { t = 3.6 }), { t = 4.5 } },
+		},
+		IdleWag = {
+			length = 5,
+			keys = {
+				{ t = 0 },
+				with(left, { t = 0.6 }),
+				with(right, { t = 1.6 }),
+				with(left, { t = 2.6 }),
+				with(right, { t = 3.6 }),
+				{ t = 5 },
+			},
+		},
+		Run = {
+			length = 1,
+			loop = true,
+			keys = {
+				{
+					t = 0,
+					waves = {
+						Body = { y = 5, speed = 12 },
+						Tail = { y = 22, speed = 12 },
+						Head = { y = 8, speed = 12, phase = 1 },
+					},
+				},
+			},
+		},
+	}
+end
+
+-- Quetzal: al planear, las plumas largas de la cola ondulan y la cabeza se ladea despacio (además del
+-- planeo de las aves).
+CLIPS.Quetzal = function()
+	return {
+		Glide = {
+			length = 1,
+			loop = true,
+			keys = {
+				{
+					t = 0,
+					amp = { WingL = 0, WingR = 0 },
+					WingL = { 0, 0, -6 },
+					WingR = { 0, 0, 6 },
+					waves = { Tail = { x = 10, speed = 2.4 }, Head = { z = 6, speed = 1.6 } },
+				},
+			},
 		},
 	}
 end

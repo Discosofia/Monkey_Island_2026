@@ -2201,6 +2201,7 @@ local Config = {
 		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
 		Exceptions = {
 			MonoX7 = { PetTotal = 270, PetAnimated = 130 }, -- mascota de élite
+			Ajolote = { PetTotal = 200, PetAnimated = 180 }, -- mascota mítica: cara, branquias y detalle
 			Nest = { Buildable = 50 }, -- construible único
 			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
 			OrangutanDelManglar = { Boss = 35 }, -- el jefe más grande
