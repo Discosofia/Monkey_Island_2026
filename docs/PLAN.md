@@ -633,7 +633,7 @@ Decisiones del 28-10-2026:
 | **A4** | Jefe en los 4 places, con premio fuera de la Isla (permitir elegir que jefe invocar)| 344963e | ✅ Probado en Studio (sin probar: VERIFICACION §52) |
 | **L1** | Laboratorio: mira precisa, balas visibles, poses al apuntar y disparar | 3509ba1, fafd564 | ✅ Probado en Studio (sin probar: VERIFICACION §53) |
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | 7fe633a | ✅ Probado en Studio (sin probar: VERIFICACION §54) |
-| **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | — | ⏳ |
+| **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | 9a40a19 | ✅ Probado en Studio (sin probar: VERIFICACION §55) |
 | **B2** | Ciclo lunar: fases, efectos y su icono | — | ⏳ |
 | **B3** | Evento de luna roja | — | ⏳ |
 | **M1** | Capibara (Poco común) | — | ⏳ |
