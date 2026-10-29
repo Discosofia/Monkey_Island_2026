@@ -635,7 +635,7 @@ Decisiones del 28-10-2026:
 | **L2** | Laboratorio: deslizar con C, estela solo para el rival y líneas blancas de movimiento | 7fe633a | ✅ Probado en Studio (sin probar: VERIFICACION §54) |
 | **B1** | Iluminación del amanecer y el atardecer, curva del día y la noche | 9a40a19 | ✅ Probado en Studio (sin probar: VERIFICACION §55) |
 | **B2** | Ciclo lunar: fases, efectos y su icono | de653ef | ✅ Probado en Studio (sin probar: VERIFICACION §56) |
-| **B3** | Evento de luna roja | — | ⏳ |
+| **B3** | Evento de luna roja | a65adfe | ✅ Probado en Studio (sin probar: VERIFICACION §57) |
 | **M1** | Capibara (Poco común) | — | ⏳ |
 | **M2** | Quetzal (Mítico) | — | ⏳ |
 | **M3** | Ajolote (Mítico) | — | ⏳ |
@@ -734,6 +734,13 @@ Decisiones del 28-10-2026:
 - **Ya hecho en B2:** `Config.Moon.RedMoonTexture` tiene la imagen de la luna roja; `LightingController.adjust` es el sitio donde sumar el cielo rojo después de la fase; la fase de la luna sigue activa debajo de la roja.
 - **Riesgos:** el Ámbar doble es una recompensa, no un producto: la regla de pago de `Economia` tiene que seguir en verde. El cielo rojo debe verse también en los places sin ciclo de día (no tienen el `LightingController` de la Isla).
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de B3, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo B3.»
+
+**Handoff de M1 (29-10-2026)**
+- **Estado:** B3 cerrada y subida (a65adfe). M1 sin empezar. Siguiente número libre de VERIFICACION: §58. B3 arregló los ids de la luna (eran de Decal, no de imagen): para cualquier imagen en un `Sky` o un `ImageLabel`, comprueba que el id es de imagen.
+- **Antes de escribir código:** pide al agente `search` el mapa de `Data/Pets.luau` (campos de una mascota, emojis ya usados), `PetModels.voxelBuilders` y `CLIPS`, `PetRoll.petsOfRarity` y los topes `PetTotal`/`PetAnimated` de `Config.Budgets`. Comprueba las líneas.
+- **Objetivo:** ver la tanda M1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección M1): Capibara, mascota Poco común, con la skill `modelos-3d-roblox` y la referencia voxel «Capibara Voxel.jfif» de `docs/img`. Base: un cuadrúpedo nuevo. Entra solo al sorteo Uncommon.
+- **Riesgos:** un icono, una sola cosa. Medir con `Rendimiento` (topes 240 y 110). Dejar el modelo de vista previa y la cámara en Studio antes de pedir el «aprobado».
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de M1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo M1.»
 
 ---
 
