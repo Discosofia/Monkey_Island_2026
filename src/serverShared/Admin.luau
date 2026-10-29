@@ -299,12 +299,27 @@ local function onIslandAction(admin: Player, action: any, scope: any, bossId: an
 		return
 	end
 	-- "Ser gigante" y "Jefe" valen en los 4 places: en el servidor donde está quien lo pide.
-	if scope == "Server" and place ~= "Island" and action ~= "Giant" and action ~= "Boss" then
+	if scope == "Server" and place ~= "Island" and action ~= "Giant" and action ~= "Boss" and action ~= "RedMoon" then
 		Remotes.Notify:FireClient(admin, "🏝️ Aquí no hay partida de la Isla: elige «Todos los servidores»")
 		return
 	end
 	local info = IslandActions[action]
 	AdminLog.add(admin, "Isla", `{info.icon} {info.name} · {SCOPE_TEXT[scope]}`)
+	-- La luna roja es un evento en vivo (B3): el interruptor lo enciende o lo apaga aquí, sin pasar por la Isla.
+	if action == "RedMoon" then
+		local running = LiveEventsServer.runningId("RedMoon")
+		if running then
+			LiveEventsServer.stop(running)
+			Remotes.Notify:FireClient(admin, `{info.icon} {info.name}: apagada`)
+		else
+			local event, reached =
+				LiveEventsServer.start("RedMoon", Config.LiveEvents.RedMoon.DefaultMinutes, 0, scope, admin.DisplayName)
+			if event and not reached then
+				Remotes.Notify:FireClient(admin, "⚠️ No se pudo llegar a los demás servidores: solo en este")
+			end
+		end
+		return
+	end
 	-- Un jefe que no existe se ignora: sale uno al azar de la rotación.
 	local boss = if action == "Boss" and typeof(bossId) == "string" and Bosses[bossId] then bossId else nil
 	if not AdminNet.send("IslandAction", { action = action, admin = admin.UserId, boss = boss }, scope) then

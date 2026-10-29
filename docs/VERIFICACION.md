@@ -2720,6 +2720,44 @@ Se prueba en la Isla publicada. La fase cambia cada 2 días de partida: Nueva (d
 8. [ ] Luna menguante: mide cuánto tarda en bajar el hambre y la sed.
    ✅ Un 10 % más despacio.
 
+## 57. Fase 18 B3: luna roja (29-10-2026)
+
+Evento en vivo global que se lanza desde el tablero «🎮 Ahora en el juego» del panel de admin (botón 🩸 Luna roja, con el alcance elegido). Dura 30 min (`Config.LiveEvents.RedMoon.DefaultMinutes`); otro toque lo apaga. Los números están en `Config.LiveEvents.RedMoon`.
+
+**Con 2 jugadores o en el juego publicado (varios servidores):**
+
+1. [ ] Como admin, elige el alcance **🌍 Todos los servidores** en el tablero y pulsa **🩸 Luna roja**. Con los dos jugadores en servidores distintos, mirad el cielo los dos.
+   ✅ El cielo se tiñe de rojo en los dos servidores en unos 3 s, y a los dos les sale el aviso **"🩸 ¡Empieza Luna roja! …"** con su hora.
+2. [ ] Con la luna roja en marcha, haz que entre un jugador nuevo (o sal del juego y vuelve a entrar).
+   ✅ Ve el cielo rojo desde el primer momento, sin esperar al aviso.
+3. [ ] Pulsa **🩸 Luna roja** otra vez.
+   ✅ En los dos servidores el cielo vuelve a la normal en unos 3 s.
+
+**En el Lobby, Dunas y el Laboratorio (Studio, un place cada vez): solo cambia el cielo.**
+
+4. [ ] Abre cada uno de los tres places y, con la luna roja en marcha, mira el cielo. Compáralo con el mismo place sin el evento.
+   ✅ El cielo tira a rojo (tinte suave, sin apagar la luz) en unos 3 s. Ventanas, vida y combate no cambian.
+5. [ ] En cada place, mira en **Lighting** si hay un objeto **Sky**. No está en el repositorio: depende de cada place.
+   ✅ Si lo hay, la luna del cielo se pone roja. Si no, solo se tiñe el cielo, y eso es lo correcto. Anota en qué places hay Sky.
+
+**En la Isla (partida con la luna roja en marcha):**
+
+6. [ ] Llega la noche con la luna roja activa (**⏩ Saltar fase**) y compara la oleada con una noche sin el evento.
+   ✅ La oleada sale 1,5 veces mayor, también cuando la normal ya llega al tope de monos.
+7. [ ] Mira la vida y el daño de un mono que nazca con la luna roja y compáralos con uno de antes del evento.
+   ✅ Vida +25 % y daño +20 %. Pasa todo el tiempo que dure el evento, de día también, no solo de noche.
+8. [ ] Mata monos con la luna roja y cuenta el botín que sueltan, y compáralo con un rato sin el evento.
+   ✅ Cada objeto del botín cae el doble de veces (lo que ya era seguro no puede pasar de seguro). Ningún objeto del botín es Ámbar.
+9. [ ] Termina una partida con la luna roja en marcha y mira el Ámbar de la partida. Repite con **Doble Ámbar** activo también.
+   ✅ Con la luna roja sola, el Ámbar de la partida sale ×2. Con la luna roja y Doble Ámbar a la vez sigue ×2, no ×4: no se apilan.
+10. [ ] Con la luna roja en marcha, mira el icono de la fase junto al reloj (B2) y su efecto, por ejemplo la luna nueva (detección −15 %).
+   ✅ La fase sigue activa debajo: el efecto es el mismo. La luna roja solo cambia el color del disco de la luna.
+
+**En el panel de admin (en cualquier place):**
+
+11. [ ] Mira el botón 🩸 **Luna roja** del tablero «🎮 Ahora en el juego» apagado y después encendido.
+   ✅ Apagado, dorado. Encendido, azul. Otro toque lo apaga y vuelve a dorado.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

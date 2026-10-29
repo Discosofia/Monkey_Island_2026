@@ -127,7 +127,8 @@ local function summaryFor(player: Player, result: Result, days: number, test: bo
 		+ eggs * settings.AmberPerEgg
 		+ (if result == "Victory" then settings.AmberForRescue else 0)
 	-- Evento en vivo "Doble Ámbar" (T4b).
-	local boost = LiveEvents.amberMultiplier()
+	-- Y la luna roja (B3): no se apilan, vale el mayor.
+	local boost = math.max(LiveEvents.amberMultiplier(), LiveEvents.redMoonFactor("AmberMultiplier"))
 	amber *= boost
 	local passXp = Config.Season.IslandXp
 	local xp = paidDays * passXp.PerDay

@@ -1072,6 +1072,26 @@ local Config = {
 		EggRainMin = 6,
 		-- Radio de la plaza del Lobby donde caen los huevos y el confeti de la fiesta.
 		PlazaRadius = 24,
+		-- Luna roja (Fase 18, B3). En la Isla: la horda de la noche es WaveSize veces más grande, los monos nacen con
+		-- más vida y pegan más, el botín de los monos sale LootChance veces más a menudo (nunca Ámbar) y el Ámbar
+		-- de la partida es AmberMultiplier veces mayor. Es gratis: nada de esto se vende. En el resto de places
+		-- solo se tiñe el cielo (Sky): Tint y Brightness/Saturation van a un ColorCorrection, y Weight es lo que
+		-- pesa el tinte de día en la Isla (de noche pesa 1).
+		RedMoon = {
+			DefaultMinutes = 30,
+			WaveSize = 1.5,
+			HealthMultiplier = 1.25,
+			DamageMultiplier = 1.2,
+			LootChance = 2,
+			AmberMultiplier = 2,
+			Sky = {
+				Tint = { 255, 170, 160 },
+				Brightness = -0.03,
+				Saturation = 0.1,
+				DayWeight = 0.5,
+				FadeSeconds = 3,
+			},
+		},
 	},
 
 	Data = {
@@ -1452,7 +1472,7 @@ local Config = {
 		NightFadeStart = 6.5,
 		NightFadeEnd = 9,
 		-- Imagen de la luna roja (B3); las de cada fase van en MoonTexture.
-		RedMoonTexture = "rbxassetid://121461991237191",
+		RedMoonTexture = "rbxassetid://112873130083361",
 		Phases = {
 			{
 				id = "New",
@@ -1461,7 +1481,7 @@ local Config = {
 				effects = { AggroRange = 0.85 },
 				NightLight = 0.85,
 				MoonSize = 6,
-				MoonTexture = "rbxassetid://75864666044418",
+				MoonTexture = "rbxassetid://92414048988995",
 			},
 			{
 				id = "Waxing",
@@ -1470,7 +1490,7 @@ local Config = {
 				effects = { PlantGrowth = 1.15 },
 				NightLight = 1,
 				MoonSize = 9,
-				MoonTexture = "rbxassetid://113064879036963",
+				MoonTexture = "rbxassetid://101569849356266",
 			},
 			{
 				id = "Full",
@@ -1481,7 +1501,7 @@ local Config = {
 				effects = { MonkeyDamage = 1.1, LootChance = 1.15 },
 				NightLight = 1.08,
 				MoonSize = 14,
-				MoonTexture = "rbxassetid://76028915903756",
+				MoonTexture = "rbxassetid://109386666356459",
 			},
 			{
 				id = "Waning",
@@ -1490,7 +1510,7 @@ local Config = {
 				effects = { HungerRate = 0.9 },
 				NightLight = 1,
 				MoonSize = 9,
-				MoonTexture = "rbxassetid://79240374486739",
+				MoonTexture = "rbxassetid://79452698367706",
 			},
 		},
 	},

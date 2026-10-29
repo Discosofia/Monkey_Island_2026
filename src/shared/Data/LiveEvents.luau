@@ -3,7 +3,7 @@
 -- admin (15, 30 o 60 min, Config.LiveEvents.Durations) no llevan "seconds"; los de un momento sí.
 -- Los números de cada uno están en Config.LiveEvents.
 
-export type Kind = "DoubleAmber" | "DoubleXp" | "FastEgg" | "EggLuck" | "Party" | "EggRain" | "Maintenance"
+export type Kind = "DoubleAmber" | "DoubleXp" | "FastEgg" | "EggLuck" | "Party" | "EggRain" | "RedMoon" | "Maintenance"
 
 export type Info = {
 	icon: string,
@@ -61,6 +61,13 @@ local LiveEvents: { [string]: Info } = {
 		order = 6,
 		seconds = 90,
 		place = "Lobby",
+	},
+	-- Luna roja (Fase 18, B3): vale en los 4 places (cielo rojo y aviso); la horda y el premio son de la Isla.
+	RedMoon = {
+		icon = "🩸",
+		name = "Luna roja",
+		detail = "Cielo rojo. En la Isla, hordas más grandes y fuertes de noche, con doble botín y doble Ámbar de partida",
+		order = 7,
 	},
 	-- Mantenimiento (T4d, ServerShared/ServerOps): al empezar se guarda todo y se expulsa a los
 	-- jugadores; mientras dura ("seconds") no se puede entrar. Lo programa la pestaña 🖥️ Servidor.

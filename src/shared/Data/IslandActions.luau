@@ -15,6 +15,8 @@ local IslandActions: { [string]: Info } = {
 	Storm = { icon = "⛈️", name = "Tormenta", order = 6 },
 	Clear = { icon = "☀️", name = "Despejado", order = 7 },
 	Eruption = { icon = "🌋", name = "Erupción", order = 8 },
+	-- Interruptor de la luna roja (evento en vivo, Data/LiveEvents): vale en los 4 places y lo hace ServerShared/Admin.
+	RedMoon = { icon = "🩸", name = "Luna roja", order = 10 },
 	-- Solo en la partida del administrador: le convierte en jefe gigante o le devuelve a su tamaño (T4e).
 	Giant = { icon = "👹", name = "Ser gigante", order = 9 },
 }

@@ -24,6 +24,7 @@ local Workspace = game:GetService("Workspace")
 local Building = require(ReplicatedStorage.Shared.Building)
 local Buildables = require(ReplicatedStorage.Shared.Data.Buildables)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -66,7 +67,8 @@ local function waveSize(day: number): number
 	local size = settings.BaseWaveSize
 		+ (day - 1) * settings.ExtraPerDay
 		+ #Players:GetPlayers() * settings.ExtraPerPlayer
-	return math.min(size, settings.MaxWaveSize)
+	-- Luna roja (B3): la horda es más grande, también por encima del tope.
+	return math.round(math.min(size, settings.MaxWaveSize) * LiveEvents.redMoonFactor("WaveSize"))
 end
 
 -- Especie al azar entre las desbloqueadas para este día (Config.Siege.SpeciesByDay).

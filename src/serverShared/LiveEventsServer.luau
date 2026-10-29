@@ -150,6 +150,17 @@ function LiveEventsServer.start(
 	return event, AdminNet.send("LiveEventStart", event, scope)
 end
 
+-- El id de un evento "kind" que está en marcha o programado en este servidor (nil si no hay).
+function LiveEventsServer.runningId(kind: string): string?
+	local now = LiveEvents.now()
+	for id, event in events do
+		if event.kind == kind and event.endsAt > now then
+			return id
+		end
+	end
+	return nil
+end
+
 -- Para el evento "id" (donde se lanzó). false si no está en este servidor.
 function LiveEventsServer.stop(id: string): boolean
 	local event = events[id]

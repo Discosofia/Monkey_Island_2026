@@ -73,6 +73,15 @@ function LiveEvents.amberMultiplier(): number
 	return if LiveEvents.active("DoubleAmber") then Config.LiveEvents.AmberMultiplier else 1
 end
 
+-- Luna roja (B3): ¿está en marcha? Y los multiplicadores que da en la Isla (1 si no).
+function LiveEvents.redMoon(): boolean
+	return LiveEvents.active("RedMoon")
+end
+
+function LiveEvents.redMoonFactor(key: string): number
+	return if LiveEvents.active("RedMoon") then (Config.LiveEvents.RedMoon :: any)[key] else 1
+end
+
 function LiveEvents.xpMultiplier(): number
 	return if LiveEvents.active("DoubleXp") then Config.LiveEvents.XpMultiplier else 1
 end

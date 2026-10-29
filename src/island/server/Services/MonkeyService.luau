@@ -37,6 +37,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
@@ -321,7 +322,9 @@ end
 -- de los objetos que han caído, aunque no le haya tocado; si no ha caído nada, no hay nada que traer.
 local function giveLoot(sharers: { Player }, definition: Monkeys.MonkeyDefinition)
 	local dropped: { string } = {}
-	local chanceMultiplier = Config.Monkeys.LootChanceMultiplier * MoonPhase.effect("LootChance")
+	local chanceMultiplier = Config.Monkeys.LootChanceMultiplier
+		* MoonPhase.effect("LootChance")
+		* LiveEvents.redMoonFactor("LootChance")
 	for _, entry in definition.loot do
 		if rng:NextNumber() < entry.chance * chanceMultiplier then
 			table.insert(dropped, entry.itemId)
@@ -490,6 +493,9 @@ local function spawnMonkey(group: Group, near: Vector3): Monkey?
 	local settings = Config.Difficulty
 	local healthMultiplier = math.min(1 + daysPassed * settings.HealthPerDay, settings.MaxMultiplier)
 	local damageMultiplier = math.min(1 + daysPassed * settings.DamagePerDay, settings.MaxMultiplier)
+	-- Luna roja (B3): nacen con más vida y pegan más.
+	healthMultiplier *= LiveEvents.redMoonFactor("HealthMultiplier")
+	damageMultiplier *= LiveEvents.redMoonFactor("DamageMultiplier")
 	humanoid.MaxHealth = math.round(definition.maxHealth * healthMultiplier)
 	humanoid.Health = humanoid.MaxHealth
 	-- El servidor controla su física: los clientes no pueden moverlos.

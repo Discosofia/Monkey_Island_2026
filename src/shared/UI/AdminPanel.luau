@@ -1334,6 +1334,8 @@ local function build(place: "Island" | "Lobby" | "Dunas" | "Laboratorio")
 				state = decoded
 			end
 		end
+		-- La luna roja es un evento en vivo: su estado sale de la lista de eventos, no de la Isla.
+		state.RedMoon = LiveEvents.active("RedMoon")
 		for action, button in actionButtons do
 			local on = state[action] == true
 			button.BackgroundColor3 = if on then ACTIVE else GOLD

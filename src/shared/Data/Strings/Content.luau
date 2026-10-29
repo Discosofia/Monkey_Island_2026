@@ -424,6 +424,8 @@ return {
 	["Los huevos que aparecen salen más raros"] = "The eggs that appear come out rarer",
 	["Fiesta"] = "Party",
 	["Confeti y fuegos artificiales en la plaza del Lobby, y todos celebran a la vez"] = "Confetti and fireworks in the Lobby plaza, and everyone celebrates at once",
+	["Luna roja"] = "Red moon",
+	["Cielo rojo. En la Isla, hordas más grandes y fuertes de noche, con doble botín y doble Ámbar de partida"] = "Red sky. On the Island, bigger and stronger hordes at night, with double loot and double match Amber",
 	["Lluvia de huevos"] = "Egg shower",
 	["Caen huevos en la plaza del Lobby: cada jugador puede recoger uno"] = "Eggs fall in the Lobby plaza: each player can pick up one",
 	["El juego se cierra para actualizarse: termina lo que estés haciendo y vuelve en unos minutos"] = "The game is closing to update: finish what you're doing and come back in a few minutes",

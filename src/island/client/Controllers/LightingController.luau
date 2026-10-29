@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MoonPhase = require(ReplicatedStorage.Shared.MoonPhase)
 
@@ -99,7 +100,7 @@ end
 
 -- Pesos de la luna (B2): recibe la luz de la curva y la hora, y devuelve la luz final. La fase escala la
 -- luz de la noche (más oscura con la luna nueva, más clara con la llena); de día no cambia nada. La luna roja
--- (B3) se sumará aquí, después de la fase.
+-- (B3) no toca esta luz: su tinte es un ColorCorrection aparte (combatClient/RedMoonSkyController).
 local function adjust(sample: Sample, clock: number): Sample
 	local phase = MoonPhase.current()
 	if not phase then
@@ -147,7 +148,8 @@ function LightingController:Start()
 		if moon and sky then
 			-- La luna del cielo crece hacia la llena y se encoge hacia la nueva.
 			sky.MoonAngularSize = moon.MoonSize
-			sky.MoonTextureId = moon.MoonTexture
+			-- La luna roja (B3) cambia la imagen; el tinte del cielo lo pone RedMoonSkyController.
+			sky.MoonTextureId = if LiveEvents.redMoon() then Config.Moon.RedMoonTexture else moon.MoonTexture
 		end
 		local s = adjust(sampleAt(clock), clock)
 		Lighting.Ambient = s.Ambient
