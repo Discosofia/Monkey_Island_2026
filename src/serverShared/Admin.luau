@@ -291,12 +291,9 @@ local function onIslandAction(admin: Player, action: any, scope: any)
 	if not Admin.isAdmin(admin) or not canRequest(admin) then
 		return
 	end
-	if scope == "Server" and place ~= "Island" then
+	-- "Ser gigante" vale en los 4 places: lo hace quien lo pide, en el servidor donde está.
+	if scope == "Server" and place ~= "Island" and action ~= "Giant" then
 		Remotes.Notify:FireClient(admin, "🏝️ Aquí no hay partida de la Isla: elige «Todos los servidores»")
-		return
-	end
-	if action == "Giant" and (scope ~= "Server" or place ~= "Island") then
-		Remotes.Notify:FireClient(admin, "👹 Ser gigante es solo en tu partida de la Isla: elige «Este servidor»")
 		return
 	end
 	local info = IslandActions[action]

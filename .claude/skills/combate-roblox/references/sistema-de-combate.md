@@ -568,7 +568,7 @@ alfa (aviso 0,5 s, ritmo 1,55 s como antes, apartarse 7 studs 3 de 3 fallos); go
 
 ## 9. Entorno
 
-**Hoy.** Peligros de los jefes (`island/server/Combat/Hazards`: onda, rocas, lava, rayos) con marca de
+**Hoy.** Peligros de los jefes (`combat/Hazards`: onda, rocas, lava, rayos) con marca de
 aviso.
 
 **Rebote contra muros (C10 ✅, `Combat/Knockback`, `Config.WallBang`).**

@@ -18,7 +18,7 @@ export type Scope = "Server" | "All"
 
 local AdminNet = {}
 
-local handlers: { [string]: (data: any) -> () } = {}
+local handlers: { [string]: { (data: any) -> () } } = {}
 local subscribed = false
 
 -- Mensajes ya ejecutados (por id): la entrega de MessagingService puede repetirse.
@@ -26,14 +26,19 @@ local seen: { [string]: boolean } = {}
 
 local function run(kind: string, data: any)
 	-- Algunos mensajes solo los entiende un place (las acciones de la Isla): los demás los ignoran.
-	local handler = handlers[kind]
-	if handler then
+	for _, handler in handlers[kind] or {} do
 		task.spawn(handler, data)
 	end
 end
 
+-- Un mismo tipo puede tener varios manejadores (la acción "Giant" la oyen la Isla y el combate compartido).
 function AdminNet.on(kind: string, handler: (data: any) -> ())
-	handlers[kind] = handler
+	local list = handlers[kind]
+	if not list then
+		list = {}
+		handlers[kind] = list
+	end
+	table.insert(list :: { (data: any) -> () }, handler)
 end
 
 function AdminNet.isScope(value: any): boolean

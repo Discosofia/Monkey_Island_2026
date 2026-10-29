@@ -1,7 +1,7 @@
 --!strict
--- Golpes del administrador convertido en gigante (T4e, island/server/Services/GiantAdminService):
+-- Golpes del administrador convertido en gigante (T4e, combat/Services/GiantAdminService):
 -- mientras su Player lleva "AdminBoss", tres botones a la derecha de la pantalla (y las teclas I, O y
--- P, libres en la Isla) con su recarga ("GiantReadyAt_<golpe>"). Apuntan hacia donde mira la cámara.
+-- P, libres en todos los places) con su recarga ("GiantReadyAt_<golpe>"). Apuntan hacia donde mira la cámara.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")

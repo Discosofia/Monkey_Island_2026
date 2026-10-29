@@ -9,7 +9,7 @@
 --     lo entrega ServerShared/SeasonPass).
 --   - earned: se gana jugando ("Rescue": ganar una partida de verdad; "MasterVictory": ganarla con el
 --     rol del cosmético llevando su arma de rol y la armadura del nivel 4, island/DataService;
---     "GiantSlayer": derribar al administrador convertido en gigante, island/GiantAdminService; "LabPirates" y "LabGuardians": 50 victorias con ese bando en el Laboratorio,
+--     "GiantSlayer": derribar al administrador convertido en gigante, combat/GiantAdminService; "LabPirates" y "LabGuardians": 50 victorias con ese bando en el Laboratorio,
 --     laboratorio/LabRewardService; "LabKills": las bajas con el arma de la skin (Config.Lab.SkinKills por
 --     grado, perfil "lab.weaponKills"), laboratorio/LabRewardService). Ni en
 --     Studio es gratis.

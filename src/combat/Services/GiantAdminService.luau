@@ -1,17 +1,22 @@
 --!strict
 -- El administrador convertido en jefe gigante (T4e), desde el panel de administradores ("👹 Ser
--- gigante", Data/IslandActions; lo manda AdminEventsService). Solo en su partida de la Isla:
+-- gigante", Data/IslandActions; lo manda Admin por AdminNet "IslandAction"). Vale en los 4 places (Fase 18,
+-- A3) en el servidor donde esté el administrador:
 --   - Su personaje crece Config.GiantAdmin.Scale, con una corona voxel, y su vida pasa a la de un jefe
---     según cuántos jugadores hay (BaseHealth × (1 + HealthPerExtraPlayer × (jugadores − 1))). Sale en la
---     barra de jefe (atributos "Boss*" de ReplicatedStorage, como BossService); no se puede si hay un
---     jefe despierto.
+--     según cuántos jugadores activos hay (vivos, fuera del Basecamp y a menos de ActiveRange; BaseHealth ×
+--     (1 + HealthPerExtraPlayer × (activos − 1))), recalculada cada RescaleSeconds. Sale en la barra de jefe
+--     (atributos "Boss*" de ReplicatedStorage, como BossService; combatClient/BossHUDController).
 --   - Todos pueden pegarle y él puede pegar a todos los que no estén en el Basecamp (CombatRules:
 --     canHitPlayer), con su rol y con tres golpes de jefe con aviso en el suelo (Remotes.GiantAttack:
---     pisotón, ola de choque en línea y rugido que aturde; island/client/Controllers/GiantAdminController).
---     Los que tumba quedan caídos como en el PvP, pero sin recompensa.
+--     pisotón, ola de choque en línea y rugido que aturde; combatClient/Controllers/GiantAdminController).
+--     Los que tumba quedan caídos como en el PvP, pero sin recompensa. Envuelve las reglas del place: en el
+--     Lobby deja de protegerles la plaza, y en Dunas y el Laboratorio es neutral contra los dos equipos.
+--   - Lo que solo existe en la Isla (el jefe de verdad, el fin de la partida, las ventajas del rol) lo
+--     enchufa AdminEventsService con GiantAdminService.setHooks.
 --   - Cuando cae, vuelve a su tamaño y los que le han pegado se llevan el título «Matagigantes» y un
 --     huevo legendario. Volver a pulsar "Ser gigante" lo deshace sin premio.
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -19,17 +24,29 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatRules = require(ServerScriptService.Combat.CombatRules)
+local Hazards = require(ServerScriptService.Combat.Hazards)
 local Status = require(ServerScriptService.Combat.Status)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
+local AdminNet = require(ServerScriptService.ServerShared.AdminNet)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
-local Hazards = require(script.Parent.Parent.Combat.Hazards)
-local BossService = require(script.Parent.BossService)
-local RoleService = require(script.Parent.RoleService)
+
+-- Lo que depende del place y enchufa su servicio (la Isla: AdminEventsService).
+export type Hooks = {
+	-- Un motivo para no dejar que nadie se convierta ahora (hay un jefe despierto, la partida acabó), o nil.
+	blocked: () -> string?,
+	-- true si hay un jefe de verdad: la barra de jefe es suya y el gigante no la pisa.
+	bossAlive: () -> boolean,
+	-- Tras volver a su tamaño: recalcula lo que el place pone en el personaje (la vida máxima del rol).
+	restored: (player: Player) -> (),
+	-- true si el place ya publica el estado del tablero de admin (Config.AdminTools.IslandStateAttribute).
+	publishesState: boolean,
+}
 
 local ATTRIBUTE = "AdminBoss"
 local CAUSE = "Gigante"
@@ -41,6 +58,10 @@ local BOSS_ATTRIBUTES = { "BossName", "BossHealth", "BossMaxHealth", "BossPhase"
 type Giant = {
 	player: Player,
 	humanoid: Humanoid,
+	-- Su vida máxima de antes, para devolvérsela si el place no la recalcula (hooks.restored).
+	previousMaxHealth: number,
+	-- Jugadores activos con los que se calculó su vida máxima.
+	fighters: number,
 	-- Último intento de golpe de cada jugador (os.clock), para saber quién le ha pegado.
 	attempts: { [Player]: number },
 	credited: { [Player]: boolean },
@@ -51,6 +72,82 @@ type Giant = {
 local GiantAdminService = {}
 
 local giant: Giant? = nil
+
+local hooks: Hooks = {
+	blocked = function()
+		return nil
+	end,
+	bossAlive = function()
+		return false
+	end,
+	restored = function() end,
+	publishesState = false,
+}
+
+function GiantAdminService.setHooks(overrides: { [string]: any })
+	for key, value in overrides do
+		(hooks :: any)[key] = value
+	end
+end
+
+-- Para el tablero de admin de los places sin partida de la Isla (la Isla publica el suyo, con más cosas).
+local function publishState()
+	if not hooks.publishesState then
+		ReplicatedStorage:SetAttribute(
+			Config.AdminTools.IslandStateAttribute,
+			HttpService:JSONEncode({ Giant = giant ~= nil })
+		)
+	end
+end
+
+-- Jugadores que pelean con el gigante: vivos, fuera del Basecamp y a menos de ActiveRange de él. Al menos 1.
+local function countFighters(current: Giant): number
+	local root = current.humanoid.RootPart
+	local count = 0
+	if root then
+		for _, player in Players:GetPlayers() do
+			local character = player.Character
+			local other = if character then character:FindFirstChild("HumanoidRootPart") else nil
+			if
+				player ~= current.player
+				and other
+				and other:IsA("BasePart")
+				and LifeState.isAlive(player)
+				and player:GetAttribute("InBasecamp") ~= true
+				and (other.Position - root.Position).Magnitude <= Config.GiantAdmin.ActiveRange
+			then
+				count += 1
+			end
+		end
+	end
+	return math.max(1, count)
+end
+
+local function maxHealthFor(fighters: number): number
+	local settings = Config.GiantAdmin
+	return math.round(settings.BaseHealth * (1 + settings.HealthPerExtraPlayer * (fighters - 1)))
+end
+
+-- Ajusta la vida máxima a los que pelean sin cambiar el % que le queda (como BossService.rescaleHealth). Se
+-- pone primero el valor que no se sale del máximo vigente para que la vida no se recorte por el camino.
+local function rescaleHealth(current: Giant)
+	local fighters = countFighters(current)
+	local humanoid = current.humanoid
+	if fighters == current.fighters or humanoid.Health <= 0 then
+		return
+	end
+	current.fighters = fighters
+	local fraction = humanoid.Health / humanoid.MaxHealth
+	local maxHealth = maxHealthFor(fighters)
+	local health = math.max(1, fraction * maxHealth)
+	if maxHealth < humanoid.MaxHealth then
+		humanoid.Health = health
+		humanoid.MaxHealth = maxHealth
+	else
+		humanoid.MaxHealth = maxHealth
+		humanoid.Health = health
+	end
+end
 
 local function settingsOf(attack: string): any
 	return (Config.GiantAdmin :: any)[attack]
@@ -107,7 +204,7 @@ end
 
 local function publish(current: Giant)
 	-- Si despierta un jefe de verdad mientras tanto, la barra es suya.
-	if BossService.isAlive() then
+	if hooks.bossAlive() then
 		return
 	end
 	local humanoid = current.humanoid
@@ -141,9 +238,10 @@ local function finish(defeated: boolean)
 	for attack in current.readyAt do
 		player:SetAttribute(`GiantReadyAt_{attack}`, nil)
 	end
-	if not BossService.isAlive() then
+	if not hooks.bossAlive() then
 		clearBossAttributes()
 	end
+	publishState()
 	local character = player.Character
 	if character and character.Parent then
 		local head = character:FindFirstChild("Head")
@@ -156,7 +254,8 @@ local function finish(defeated: boolean)
 			light:Destroy()
 		end
 		character:ScaleTo(1)
-		RoleService.refreshPerks(player)
+		current.humanoid.MaxHealth = current.previousMaxHealth
+		hooks.restored(player)
 		current.humanoid.Health = current.humanoid.MaxHealth
 	end
 	if not defeated then
@@ -200,8 +299,9 @@ local function become(player: Player): string?
 	if giant then
 		return if giant.player == player then nil else "👹 Ya hay un gigante en esta partida"
 	end
-	if BossService.isAlive() then
-		return "👑 Hay un jefe despierto: espera a que caiga"
+	local reason = hooks.blocked()
+	if reason then
+		return reason
 	end
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
@@ -210,21 +310,25 @@ local function become(player: Player): string?
 		return "👹 Necesitas estar vivo en la isla"
 	end
 	local settings = Config.GiantAdmin
+	local previousMaxHealth = humanoid.MaxHealth
 	character:ScaleTo(settings.Scale)
 	crown(head, settings.Scale)
-	local players = #Players:GetPlayers()
-	humanoid.MaxHealth = math.round(settings.BaseHealth * (1 + settings.HealthPerExtraPlayer * (players - 1)))
-	humanoid.Health = humanoid.MaxHealth
 	player:SetAttribute(ATTRIBUTE, true)
 	local current: Giant = {
 		player = player,
 		humanoid = humanoid,
+		previousMaxHealth = previousMaxHealth,
+		fighters = 1,
 		attempts = {},
 		credited = {},
 		readyAt = {},
 		connections = {},
 	}
 	giant = current
+	current.fighters = countFighters(current)
+	humanoid.MaxHealth = maxHealthFor(current.fighters)
+	humanoid.Health = humanoid.MaxHealth
+	publishState()
 	local lastHealth = humanoid.Health
 	table.insert(
 		current.connections,
@@ -263,7 +367,12 @@ local function become(player: Player): string?
 		end)
 	)
 	task.spawn(function()
+		local rescaleAt = os.clock() + settings.RescaleSeconds
 		while giant == current do
+			if os.clock() >= rescaleAt then
+				rescaleAt = os.clock() + settings.RescaleSeconds
+				rescaleHealth(current)
+			end
 			publish(current)
 			task.wait(0.25)
 		end
@@ -360,7 +469,22 @@ end
 
 function GiantAdminService:Start()
 	Remotes.GiantAttack.OnServerEvent:Connect(onAttack)
-	-- Las reglas de la Isla ya están puestas (IslandCombatRules, en su Init): se envuelven.
+	-- "Ser gigante" del tablero: al propio administrador, si está en este servidor.
+	AdminNet.on("IslandAction", function(data: any)
+		if typeof(data) ~= "table" or data.action ~= "Giant" then
+			return
+		end
+		local admin = Players:GetPlayerByUserId(data.admin)
+		if admin then
+			local done, reason = GiantAdminService.toggle(admin)
+			if not done and reason then
+				Remotes.Notify:FireClient(admin, reason)
+			end
+		end
+	end)
+	publishState()
+	-- Las reglas del place ya están puestas (sus CombatRules, en su Init): se envuelven. El gigante es
+	-- neutral: puede pegar a cualquiera y cualquiera puede pegarle, sin equipos ni zona segura del Lobby.
 	local rules = CombatRules.get()
 	local canHitPlayer, knockOut = rules.canHitPlayer, rules.knockOut
 	CombatRules.set({

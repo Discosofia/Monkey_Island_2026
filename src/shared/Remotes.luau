@@ -84,7 +84,7 @@ local Remotes = {
 	-- ServerShared/Performance.
 	AdminPerf = remoteEvent("AdminPerf"),
 	-- Cliente -> servidor (Isla): el administrador convertido en gigante usa un golpe de jefe ("Stomp" |
-	-- "Wave" | "Roar", dirección Vector3). Ver island/server/Services/GiantAdminService.
+	-- "Wave" | "Roar", dirección Vector3). Ver combat/Services/GiantAdminService.
 	GiantAttack = remoteEvent("GiantAttack"),
 	-- Cliente -> servidor (Isla): usar el arma equipada. Envía la dirección de apuntado (Vector3).
 	UseWeapon = remoteEvent("UseWeapon"),

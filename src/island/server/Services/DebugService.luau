@@ -44,7 +44,7 @@ local SiegeService = require(script.Parent.SiegeService)
 local SupplyService = require(script.Parent.SupplyService)
 local WeatherService = require(script.Parent.WeatherService)
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
-local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local Hazards = require(ServerScriptService.Combat.Hazards)
 local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 
 local DebugService = {}

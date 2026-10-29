@@ -12,6 +12,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -21,7 +22,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local BossService = require(script.Parent.BossService)
 local DayNightService = require(script.Parent.DayNightService)
-local Hazards = require(script.Parent.Parent.Combat.Hazards)
+local Hazards = require(ServerScriptService.Combat.Hazards)
 
 local WeatherService = {}
 

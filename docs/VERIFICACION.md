@@ -2575,6 +2575,31 @@ Hecho en Studio: las 8 versiones (base y Escorpión I/II/III, de los dos bandos)
 2. [ ] En la pestaña Servidor, mira la fila del mantenimiento programado y pulsa ✖ Cancelar.
    ✅ La fila cabe sin desplazar la ventana y el botón ✖ Cancelar se lee.
 
+## 51. Fase 18 A3: gigante en los 4 places (29-10-2026)
+
+#### 51.1 Un jugador (admin) en cada place publicado
+
+1. [ ] En el Lobby, en Dunas y en el Laboratorio, abre el panel, pestaña Eventos, y pulsa «👹 Ser gigante» con «Este servidor». Pulsa otra vez para deshacerlo.
+   ✅ Creces, sale la corona y la barra de jefe «el gigante» arriba, y aparecen los tres botones (I, O, P) a la derecha. Al deshacerlo vuelves a tu tamaño y tu vida de antes. El botón del tablero se ve en marcha mientras eres gigante.
+2. [ ] En el Laboratorio, mira que los tres golpes funcionan con las teclas I, O y P aunque no haya habilidades.
+   ✅ Sale el aviso naranja en el suelo y luego el daño.
+
+#### 51.2 Dos jugadores (uno admin y otro no)
+
+1. [ ] En el Lobby, el admin se hace gigante y el otro jugador está en la plaza. Los dos se pegan.
+   ✅ El gigante daña al otro con el arma y los golpes (la zona segura no lo protege) y el otro puede dañar al gigante. Al caer el gigante, el otro recibe el título «Matagigantes» y un huevo legendario.
+2. [ ] En Dunas y en el Laboratorio, con los dos jugadores en equipos distintos y en el mismo, el admin se hace gigante.
+   ✅ El gigante daña a los dos equipos y los dos equipos le dañan a él. Quien cae reaparece en su base.
+3. [ ] Con el gigante activo, entra y sale un tercer jugador cerca y lejos (más de 200 studs) del gigante.
+   ✅ En unos 3 s su vida máxima sube o baja (3600 con 1 activo, ×1,75 con 2…) sin cambiar el % que le queda.
+4. [ ] Con «Todos los servidores», el admin pulsa «Ser gigante» estando en el Lobby.
+   ✅ Solo se hace gigante el admin, en su servidor.
+
+#### 51.3 Pendiente de revisar más adelante
+
+1. [ ] En Play en la Isla sale tres veces en la Salida «ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type». Averigua qué lo carga (se vio al probar A3, pero no parece de A3).
+   ✅ Ninguna línea roja de ese asset al arrancar, o se sabe de quién es.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

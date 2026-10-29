@@ -992,16 +992,19 @@ local Config = {
 		-- Lista de servidores: cuánto se espera a que respondan.
 		ServerListSeconds = 3,
 	},
-	-- El administrador convertido en jefe gigante en la Isla (T4e, island/server/Services/GiantAdminService):
-	-- su personaje crece, pelea con su rol y con tres golpes de jefe con aviso en el suelo, y los que le
-	-- pegan se llevan el premio al derribarlo. Medido con Equilibrio (sección 3, jefes): con las armas del
-	-- día 8 un jugador le quita unos 23 por segundo (las armas pegan entero a un jugador y las habilidades
-	-- ×0,5), así que con 4 jugadores (vida ×3,25) cae en unos 2 minutos.
+	-- El administrador convertido en jefe gigante en los 4 places (T4e y Fase 18 A3, combat/Services/
+	-- GiantAdminService): su personaje crece, pelea con su rol (o su arma en el Laboratorio) y con tres golpes
+	-- de jefe con aviso en el suelo, y los que le pegan se llevan el premio al derribarlo. Medido con Equilibrio
+	-- (sección 3, jefes): con las armas del día 8 un jugador le quita unos 23 por segundo (las armas pegan entero
+	-- a un jugador y las habilidades ×0,5), así que con 4 jugadores (vida ×3,25) cae en unos 2 minutos.
 	GiantAdmin = {
 		Scale = 2.5,
 		BaseHealth = 3600,
-		-- Vida × (1 + esto × (jugadores − 1)), como los jefes.
+		-- Vida × (1 + esto × (jugadores activos − 1)), como los jefes. Activos: vivos, fuera del Basecamp y a
+		-- menos de ActiveRange studs del gigante (al menos 1); se recalcula cada RescaleSeconds sin cambiar el %.
 		HealthPerExtraPlayer = 0.75,
+		ActiveRange = 200,
+		RescaleSeconds = 3,
 		-- Los golpes (daño contra 100 de vida base; los avisos son imbloqueables y en el Basecamp no
 		-- alcanzan). Algo por debajo del pisotón del Gorila de Ceniza (49 + 1,5 s cada 12 s), porque el
 		-- gigante además usa su rol.
