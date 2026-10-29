@@ -108,6 +108,8 @@ function LabRespawnService.knockOut(victim: Player, attacker: Player?, cause: st
 			task.spawn(listener, victim, attacker)
 		end
 	end
+	-- Quién lo derribó y con qué, para la killcam del cliente (SpectateCamera).
+	Arena.markKiller(victim, attacker)
 	humanoid.Health = 0
 end
 
@@ -120,6 +122,7 @@ function LabRespawnService.respawnNow(player: Player, force: boolean?)
 		task.cancel(thread)
 	end
 	player:SetAttribute("RespawnAt", nil)
+	Arena.markKiller(player, nil)
 	if player.Parent then
 		LabTeamService.ensureTeam(player)
 		if not force and roundInProgress() then
@@ -165,6 +168,7 @@ local function onCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 	lastHit[player] = nil
+	Arena.markKiller(player, nil)
 	LabTeamService.prepareCharacter(player, character)
 	humanoid.MaxHealth = Config.Lab.Health
 	humanoid.Health = Config.Lab.Health

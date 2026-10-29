@@ -2221,6 +2221,69 @@ Probado en Play, con un jugador, en el Laboratorio (28-10-2026): `Config`, `Soun
 3. [ ] Cambia de arma con el selector de armas del Laboratorio y mira la animación de sacar.
    ✅ El arma sube desde abajo en 0,35 s y no tapa los botones.
 
+## 40. Lo que queda por probar de V10: espectador y killcam (28-10-2026)
+
+Probado en Play, con un jugador, en Dunas y en el Laboratorio (equipos, Todos contra todos y Rondas en parte): entra el espectador, aparece la vista cenital, se restaura la cámara y se borran `KilledBy` y `KilledWith` al reaparecer. La killcam necesita un asesino, así que no se ha podido probar con un solo jugador. Todo lo que sigue va con 2 o más jugadores o en el emulador de teléfono. Empieza por 40.1.
+
+#### 40.1 En Dunas, con 2 jugadores (A y B, sin aliados salvo donde se indica)
+
+1. [ ] B mata a A con un arma a distancia y A queda derribado.
+   ✅ Sale la ficha 1,5 s abajo al centro con «Te derribó B» y «con {arma}», la barra roja de vida de B con «{hp} PV». La cámara de A mira a B.
+2. [ ] Con 3 jugadores (A, un aliado C y el asesino B), B mata a A y C sigue en pie. Espera a que acabe la ficha.
+   ✅ Sale la barra ◀ ▶ con «Viendo a {nombre}» sobre C, y la cámara sigue a C.
+3. [ ] Con 4 jugadores (A, dos aliados C y D, y el asesino B), B mata a A y C y D siguen en pie.
+   ✅ ◀ y ▶ cambian de aliado (C, D, C…) y el texto «Viendo a {nombre}» cambia con ellos.
+4. [ ] Con 2 jugadores (A y B), B mata a A cuando A no tiene aliados.
+   ✅ La cámara pasa a la vista cenital (0, 190, 0) sobre el centro de la arena, y no sale ninguna barra ◀ ▶.
+5. [ ] A reaparece.
+   ✅ La cámara vuelve a la normal y desaparecen la ficha, la barra y la vista cenital.
+6. [ ] B mata a A con veneno o con daño de área, con el arma de A guardada.
+   ✅ Sale la ficha «Te derribó B» sin la línea «con {arma}».
+7. [ ] B mata a A y B muere antes de 1,5 s (hace falta un tercer jugador que lo mate, o que caiga al vacío).
+   ✅ La cámara de A sigue el cuerpo de B hasta cumplirse 1,5 s, y después pasa a la ficha.
+
+#### 40.2 En el Laboratorio, con 2 o 3 jugadores
+
+1. [ ] Duelo por equipos: B derriba a A y A tiene un compañero C en pie.
+   ✅ Sale la killcam con la cámara en B, y después la barra ◀ ▶ sobre C como en 40.1.2.
+2. [ ] Todos contra todos (3 jugadores): B derriba a A. Al acabar la killcam, pulsa ◀ ▶.
+   ✅ Puedes seguir a cualquier jugador vivo (no solo a aliados) con ◀ ▶.
+3. [ ] Caída al vacío con crédito: B empuja a A al vacío.
+   ✅ La killcam muestra a B, quien te tiró, y no la vista cenital.
+4. [ ] Caída al vacío sin crédito: A cae solo, sin que nadie le haya empujado hace poco (por ejemplo, saltando del borde).
+   ✅ No hay killcam: pasa directo a la cámara cenital o a la de aliados.
+5. [ ] Rondas con un compañero C en pie: A muere en la ronda.
+   ✅ La killcam dura los primeros 1,5 s de LabOut y después pasa a C.
+6. [ ] Rondas: acaba la ronda y empieza la pausa mientras miras a C.
+   ✅ El espectador se cierra al empezar la pausa y vuelve la cámara normal.
+7. [ ] Rondas: pon la vista cenital (sin aliados en pie) y mira el techo del mapa. Sal del espectador.
+   ✅ El techo queda oculto en la vista cenital y vuelve al salir.
+
+#### 40.3 En PC, en el Laboratorio, con el selector de armas abierto (2 jugadores)
+
+1. [ ] Con el selector LabLoadout abierto (arriba), B derriba a A y sale la killcam.
+   ✅ La ficha (abajo al centro, 300 × 88, a 44 px del borde) no se solapa con el selector. «Reapareces en» se lee bien.
+2. [ ] Durante la killcam, pulsa ◀ ▶ con el ratón.
+   ✅ Los botones son de 48 px y responden al clic. El ratón está suelto mientras dura la killcam.
+3. [ ] Durante la killcam, pulsa Ctrl.
+   ✅ Ctrl vuelve a apuntar con el ratón, como en el resto de la partida.
+
+#### 40.4 En el emulador de teléfono (844 × 390, con *Prueba → Dispositivo*) y con mando
+
+1. [ ] En el Laboratorio, con el selector LabLoadout abierto (arriba), mira la killcam de 40.3.1.
+   ✅ La ficha no se solapa con el selector en pantalla baja. «Reapareces en» sigue legible.
+2. [ ] Toca ◀ y ▶ en la killcam de Dunas (con 3 o 4 jugadores) y después en el Laboratorio (con 3 jugadores).
+   ✅ Los botones de 48 px responden al toque y cambian de jugador sin errores en la Salida.
+3. [ ] Con el joystick táctil de movimiento visible, mira si ◀ ▶ lo tapa.
+   ✅ El botón no tapa el joystick, en Dunas ni en el Laboratorio.
+4. [ ] Con mando conectado, mira la killcam en Dunas (2 jugadores).
+   ✅ La ficha y la barra ◀ ▶ se ven bien en la pantalla y no tapan nada importante.
+
+#### 40.5 Idioma (2 jugadores, en Dunas)
+
+1. [ ] Cambia el idioma a English y repite el derribo de 40.1.1 con un arma a distancia.
+   ✅ Salen «Knocked out by {name}», «with {weapon}» y «{hp} HP», con el nombre y el arma en su sitio. No sale ninguna frase en español.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

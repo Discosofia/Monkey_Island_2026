@@ -135,4 +135,8 @@ return {
 	["Solo para quien ha logrado 50 bajas con el cañón de suero en el Laboratorio en ruinas: un hocico con dientes en la boca."] = "Only for those who have scored 50 takedowns with the serum cannon in the Ruined Laboratory: a snout with teeth in the mouth.",
 	["Solo para quien ha logrado 250 bajas con el cañón de suero en el Laboratorio en ruinas: una cabeza de dragón con cuernos y ojos que brillan, y una cresta en el tubo."] = "Only for those who have scored 250 takedowns with the serum cannon in the Ruined Laboratory: a dragon head with horns and glowing eyes, and a crest on the tube.",
 	["Solo para quien ha logrado 1.000 bajas con el cañón de suero en el Laboratorio en ruinas: alas sobre la culata, púas a lo largo del lomo y brasas y humo por la boca."] = "Only for those who have scored 1,000 takedowns with the serum cannon in the Ruined Laboratory: wings over the stock, spikes along the back, and embers and smoke from the mouth.",
+	-- Killcam y espectador al caer (Fase 15, V10: CombatClient/SpectateCamera, también en Dunas).
+	["Te derribó {name}"] = "Knocked out by {name}",
+	["con {weapon}"] = "with {weapon}",
+	["{hp} PV"] = "{hp} HP",
 }

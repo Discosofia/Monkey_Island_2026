@@ -66,6 +66,8 @@ function RespawnService.knockOut(victim: Player, attacker: Player?, _cause: stri
 	for _, listener in knockOutListeners do
 		task.spawn(listener, victim, attacker)
 	end
+	-- Quién lo derribó y con qué, para la killcam del cliente (SpectateCamera).
+	Arena.markKiller(victim, attacker)
 	humanoid.Health = 0
 end
 
@@ -77,6 +79,7 @@ function RespawnService.respawnNow(player: Player)
 		task.cancel(thread)
 	end
 	player:SetAttribute("RespawnAt", nil)
+	Arena.markKiller(player, nil)
 	if player.Parent then
 		player:LoadCharacter()
 	end
@@ -106,6 +109,7 @@ local function onCharacter(player: Player, character: Model)
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 	character:PivotTo(ArenaWorldService.spawnCFrame(Arena.teamOf(player)))
 	root.AssemblyLinearVelocity = Vector3.zero
+	Arena.markKiller(player, nil)
 	if Arena.inBattle() then
 		player:SetAttribute("InvulnerableUntil", Workspace:GetServerTimeNow() + SPAWN_PROTECTION_SECONDS)
 	end

@@ -17,6 +17,9 @@
 --     "RespawnAt"         hora del servidor en que reaparece (nil si está vivo)
 --     "ArenaKills", "ArenaDeaths", "ArenaCaptures"  sus números de esta partida (sin capturas en el
 --                         Laboratorio)
+--     "KilledBy"          UserId de quien la derribó (nil sin atacante, o ya reaparecida); lo pone
+--                         Arena.markKiller antes de dejarla sin vida, para la killcam (CombatClient/SpectateCamera)
+--     "KilledWith"        id del arma que llevaba en la mano ese atacante (nil si no llevaba ninguna)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -116,6 +119,21 @@ function Arena.roleAllowed(player: Player, teamId: string, roleId: string): bool
 		end
 	end
 	return count < settings.MaxSameRole
+end
+
+-- Solo el servidor: apunta en "victim" quién la derribó y con qué arma ("KilledBy", "KilledWith"), o lo
+-- borra con attacker = nil (o si es ella misma). El arma es el "WeaponId" de la herramienta que el atacante
+-- tiene en la mano en ese momento.
+function Arena.markKiller(victim: Player, attacker: Player?)
+	if not attacker or attacker == victim then
+		victim:SetAttribute("KilledBy", nil)
+		victim:SetAttribute("KilledWith", nil)
+		return
+	end
+	local tool = if attacker.Character then attacker.Character:FindFirstChildOfClass("Tool") else nil
+	local weaponId = if tool then tool:GetAttribute("WeaponId") else nil
+	victim:SetAttribute("KilledBy", attacker.UserId)
+	victim:SetAttribute("KilledWith", if typeof(weaponId) == "string" then weaponId else nil)
 end
 
 return Arena

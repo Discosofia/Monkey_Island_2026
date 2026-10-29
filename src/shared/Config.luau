@@ -1096,6 +1096,13 @@ local Config = {
 		-- Al caer se reaparece en la base tras estos segundos (más si llevaba la bandera).
 		RespawnSeconds = 5,
 		CarrierRespawnSeconds = 8,
+		-- Espectador al caer (Fase 15, V10; CombatClient/SpectateCamera): segundos de killcam sobre quien lo
+		-- derribó, distancia de la cámara al aliado que sigue y, sin aliados en pie, la vista fija desde
+		-- arriba del centro de la arena (ArenaBuilder la centra en el origen; la zona jugable mide unos 412 × 206).
+		KillcamSeconds = 1.5,
+		SpectateDistance = 12,
+		SpectateOverheadCenter = Vector3.new(0, 0, 0),
+		SpectateOverheadHeight = 190,
 		-- Banderas (FlagService). Quien lleva la rival anda a esta fracción de su velocidad y no puede
 		-- usar Parpadeo ni Embestida. Una bandera en el suelo vuelve sola a su base tras
 		-- FlagReturnSeconds (o al momento si la toca alguien de su equipo).
@@ -1277,6 +1284,8 @@ local Config = {
 		SideSwapAfterRound = 3,
 		-- Distancia de la cámara del espectador al compañero que sigue (LabSpectateController).
 		SpectateDistance = 12,
+		-- Segundos de killcam sobre quien lo derribó antes de pasar a los compañeros (V10).
+		KillcamSeconds = 1.5,
 		KillsToWin = { 10, 15, 20, 25, 30 },
 		MatchSeconds = 6 * 60,
 		WaitSeconds = 60,
