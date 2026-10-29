@@ -602,22 +602,23 @@ Reglas: voxel con pocos tonos planos; silueta propia de cada arma; base de hasta
 | Grupo | Arma y skins | Commit | Estado |
 |---|---|---|---|
 | **W1** | Lanzadardos tranquilizante (subfusil compacto) y Avispa I/II/III | 13decf9 | ✅ Probado en Studio (sin probar: VERIFICACION §45) |
-| **W2** | Rifle de bananas primales (francotirador) y Escorpión I/II/III | — | ⏳ |
+| **W2** | Rifle de bananas primales (francotirador) y Escorpión I/II/III | dc0d298 | ✅ Probado en Studio (sin probar: VERIFICACION §46) |
 | **W3** | Lanzarredes de arpón (escopeta corta) y Kraken I/II/III | — | ⏳ |
 | **W4** | Cañón de suero ácido (lanzagranadas) y Dragón I/II/III, y las 4 armas juntas | — | ⏳ |
 
-**Handoff de W2 (28-10-2026)**
+**Handoff de W3 (28-10-2026)**
 
-- **Estado:** W1 commiteada y subida. La base del Lanzadardos ocupa 38 (Guardianes) y 45 (Piratas) piezas tras fusionar y la Avispa III 148 y 155.
+- **Estado:** W1 y W2 commiteadas y subidas. La base del Rifle ocupa 38 (Guardianes) y 45 (Piratas) piezas tras fusionar y el Escorpión III 136 y 143.
 - **Método que funcionó:** cada arma tiene su `build*` en `Shared/LabWeaponModels` y su línea de skins en `Shared/LabWeaponSkins`. `frame()` pone culata, empuñadura y cajón comunes y no se toca, para que la mano y el encuadre en primera persona no cambien. Las coordenadas son `at(lado, largo, arriba)` con arriba positivo.
 - **Antes de escribir código:** captura del arma actual y mini-entrevista de 1–2 preguntas sobre la silueta (`AskUserQuestion`).
-- **Vista previa:** clonar `ReplicatedStorage.Shared` para saltar la caché de `require`, construir con `LabWeaponModels.build` y `LabWeaponSkins.apply` (más `VoxelMerge.mergeWelded`), y colocar las piezas con `CFrame.fromMatrix` para tumbarlas (largo en X, arriba en −Z del modelo). Dejarla montada con base y los tres grados de los dos bandos antes de pedir el «aprobado», y limpiarla después con la cámara en `Fixed`.
+- **Vista previa:** clonar `ReplicatedStorage.Shared` para saltar la caché de `require`. Los módulos se requieren por la ruta absoluta `ReplicatedStorage.Shared`, así que hay que renombrar el original (`SharedReal`) y llamar `Shared` al clon mientras dura el `require`, y devolver los nombres al acabar. Construir con `LabWeaponModels.build` y `LabWeaponSkins.apply` (más `VoxelMerge.mergeWelded`), y colocar las piezas con `CFrame.fromMatrix` para tumbarlas (largo en X, arriba en −Z del modelo). Dejarla montada con base y los tres grados de los dos bandos antes de pedir el «aprobado», y limpiarla después con la cámara en `Fixed`.
 - **Trampas:**
   - Los atributos de las piezas (`LabBack`) y las luces o emisores impiden la fusión.
   - `Rendimiento` en el Studio de la Isla puede dar cifras viejas por la caché de `require`: contar las piezas fusionadas en la vista previa y repetir la calculadora tras reabrir el place.
   - Las caras en el mismo plano parpadean al mover la cámara: separar los grosores al menos 0,02 studs.
+  - Las colas o tentáculos hechos de bloques sueltos se ven como puntos: rellenar el recorrido cada 0,2 con bloques que se tocan (`scorpionTail`).
   - Los detalles nuevos de la base suben mucho el recuento: contar tras fusionar y recortar lo menos visible si se pasa de 45.
-- **Prompt para la pestaña nueva:** «Continúa la Fase 17 de Monkey_Island_2026 con el grupo W2 (Rifle de bananas y Escorpión). Lee CLAUDE.md, la sección "Fase 17" de docs/PLAN.md (su Handoff de W2) y C:\Users\jose\.claude\plans\federated-meandering-key.md. Empieza con la captura del arma actual y la mini-entrevista de silueta, y deja la vista previa montada en el Studio del Laboratorio antes de pedir el aprobado.»
+- **Prompt para la pestaña nueva:** «Continúa la Fase 17 de Monkey_Island_2026 con el grupo W3 (Lanzarredes y Kraken). Lee CLAUDE.md, la sección "Fase 17" de docs/PLAN.md (su Handoff de W3) y C:\Users\jose\.claude\plans\federated-meandering-key.md. Empieza con la captura del arma actual y la mini-entrevista de silueta, y deja la vista previa montada en el Studio del Laboratorio antes de pedir el aprobado.»
 
 ---
 
