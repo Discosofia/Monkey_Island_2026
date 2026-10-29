@@ -2939,3 +2939,18 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El aspecto se ve distinto y más rico que el arma base, sin piezas del arma base asomando.
 4. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
    ✅ Los destellos y brasas no bajan los FPS de forma notable.
+
+## 70. Fase 18 K1: skins de temporada de arma (Azufre) rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Equipa cada skin Sulfur (Maza, Arco, Bastón, Cerbatana, Machete) sobre el arma de cada rango (1 a 4) y míralas en la mano, quietas, corriendo y atacando.
+   ✅ Cada skin se ve más rica que el arma base de su rango y distinta de ella (cristales de azufre amarillo, carbón y pómez; llama azul desde el nivel 3 o 4, nada de lava naranja). No hay piezas sueltas ni atravesadas. La pose de agarre no cambia.
+2. [ ] Dispara el arco y la cerbatana con la skin puesta, y golpea con la maza, el bastón y el machete.
+   ✅ Las poses (AnimationTrack) siguen alineadas y los proyectiles salen de la punta correcta; los cristales del arco que salen por delante no tapan la mira.
+3. [ ] Con el arco, mira el colgante del lado izquierdo de la empuñadura mientras apuntas.
+   ✅ No se cruza con el brazo ni con el cordón de plumas.
+4. [ ] Afila el machete (nivel 2) con la skin Sulfurado.
+   ✅ Aparecen los dientes y las brasas azules del filo y se ve más rico que en el nivel 1.
+5. [ ] Compara las skins míticas con las de Azufre de nivel 4.
+   ✅ Las míticas deberían verse por encima; hoy miden 84-108 piezas frente a 119-123 de las épicas, y K2 las subirá.

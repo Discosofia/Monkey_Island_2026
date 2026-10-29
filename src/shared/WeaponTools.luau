@@ -3144,6 +3144,8 @@ end
 -- largo y cogido por el centro): más grande, con tapas de carbón por delante y por detrás y siete
 -- cristales. Nivel 4 (mazo volcánico): costuras de fuego azul en las barras y, en vez del cristal de
 -- arriba, una llamarada azul en píxeles (dos cruzadas, para que se vea de frente y de lado), con su luz.
+-- Riqueza (K1): en todos los niveles anillos y cuentas en el asta, remaches, mandíbulas de carbón, un aro de cuentas
+-- por detrás y un colgante de cristal; dinteles desde el nivel 2, púas de cuello desde el 3 y brasas azules en el 4.
 local function buildSulfurMace(tool: Tool, level: number): BasePart
 	local long = level >= 3
 	-- Mismo agarre y alto de la cabeza que el arma del nivel (garrote y maza; mazos de nivel 3 y 4).
@@ -3185,8 +3187,54 @@ local function buildSulfurMace(tool: Tool, level: number): BasePart
 		rod(handle, "Butt", 0.2, 0.42, PUMICE, STONE_MATERIAL, CFrame.new(0, shaftBottom, 0))
 	end
 
+	-- Asta: cuatro anillos de carbón, tres cuentas de azufre en la venda y un colgante de cristal bajo el pomo
+	-- (a un lado, fuera del pomo). Los anillos de la cabeza ("Neck") se ponen más abajo, con su tamaño.
+	local shaftDiameter = if long then 0.42 else 0.34
+	local ringHeights = if long then { 1, 1.4, 1.8, 2.2 } else { 0.1, 0.5, 0.9, 1.3 }
+	for _, ringY in ringHeights do
+		rod(handle, "ShaftRing", 0.07, shaftDiameter + 0.08, CHARCOAL, STONE_MATERIAL, CFrame.new(0, ringY, 0))
+	end
+	local beadHeights = if long then { -0.4, 0, 0.4 } else { -0.95, -0.7, -0.45 }
+	for _, beadY in beadHeights do
+		ball(handle, "Bead", 0.14, SULFUR, SMOOTH, CFrame.new(if long then 0.25 else 0.2, beadY, 0))
+	end
+	local charmX = if long then 0.31 else 0.27
+	block(
+		handle,
+		"CharmCord",
+		Vector3.new(0.03, 0.34, 0.03),
+		CHARCOAL,
+		FABRIC,
+		CFrame.new(charmX, shaftBottom - 0.07, 0)
+	)
+	sulfurCrystal(handle, 0.4, 0.14, CFrame.new(charmX, shaftBottom - 0.24, 0) * CFrame.Angles(math.pi, 0, 0))
+	for neckIndex = 1, if level >= 2 then 3 else 2 do
+		rod(
+			handle,
+			"Neck",
+			0.07,
+			shaftDiameter + 0.1,
+			if neckIndex == 3 then SULFUR else CHARCOAL,
+			if neckIndex == 3 then SMOOTH else STONE_MATERIAL,
+			CFrame.new(0, shaftTop - 0.08 - (neckIndex - 1) * 0.14, 0)
+		)
+	end
+
 	local function at(x: number, y: number, z: number): CFrame
 		return CFrame.new(x * scale, headY + y * scale, z * scale)
+	end
+	-- Púa de "length" que sale de "base" (respecto a la cabeza) hacia "direction".
+	local function spike(base: Vector3, direction: Vector3, length: number, color: Color3)
+		tooth(
+			handle,
+			"Spike",
+			length * scale,
+			0.12 * scale,
+			0.14 * scale,
+			color,
+			STONE_MATERIAL,
+			toward(at(base.X, base.Y, base.Z), direction) * CFrame.new(0, length * scale / 2, 0)
+		)
 	end
 	-- Medio largo del mazo hacia delante y hacia atrás.
 	local reach = 0.6
@@ -3228,6 +3276,69 @@ local function buildSulfurMace(tool: Tool, level: number): BasePart
 	if level >= 3 then
 		for z = -1, 1, 2 do
 			block(handle, "Cap", Vector3.new(0.96, 0.96, 0.12) * scale, CHARCOAL, STONE_MATERIAL, at(0, 0, z * reach))
+		end
+	end
+
+	-- Remaches de azufre en las caras de los lados (cuatro por lado, detrás de los cristales laterales).
+	for x = -1, 1, 2 do
+		for _, stud in
+			{ Vector2.new(0.15, 0.2), Vector2.new(0.15, -0.2), Vector2.new(0.4, 0.2), Vector2.new(0.4, -0.2) }
+		do
+			ball(handle, "Stud", 0.1 * scale, SULFUR, SMOOTH, at(x * 0.42, stud.Y, stud.X))
+		end
+	end
+	-- Mandíbulas: dos púas de carbón en el borde de abajo, por delante y por detrás.
+	for z = -1, 1, 2 do
+		for x = -1, 1, 2 do
+			spike(Vector3.new(x * 0.27, -0.3, z * (reach + 0.04)), Vector3.new(0, -0.2, z), 0.3, CHARCOAL)
+		end
+	end
+	-- Por detrás, un aro de ocho cuentas alrededor del cristal de atrás (azules en el nivel 4).
+	local ringZ = reach + if level >= 3 then 0.1 else 0.04
+	for index = 0, 7 do
+		local angle = index * math.pi / 4
+		ball(
+			handle,
+			"Rune",
+			0.1 * scale,
+			if level >= 4 then BLUE_FIRE_MID else SULFUR,
+			if level >= 4 then NEON else SMOOTH,
+			at(math.sin(angle) * 0.27, 0.05 + math.cos(angle) * 0.27, ringZ)
+		)
+	end
+	if level >= 2 then
+		-- Dinteles de carbón que unen las barras por arriba y por abajo.
+		for x = -1, 1, 2 do
+			for y = -1, 1, 2 do
+				block(
+					handle,
+					"Lintel",
+					Vector3.new(0.14, 0.1, reach * 2 + 0.14) * scale,
+					CHARCOAL,
+					STONE_MATERIAL,
+					at(x * 0.41, y * 0.45, 0)
+				)
+			end
+		end
+	end
+	if level >= 3 then
+		-- Cuatro púas de pómez que salen del cuello, entre el asta y la cabeza.
+		for index = 0, 3 do
+			local angle = index * math.pi / 2 + math.pi / 4
+			spike(
+				Vector3.new(math.sin(angle) * 0.15, -0.45, math.cos(angle) * 0.15),
+				Vector3.new(math.sin(angle), -0.45, math.cos(angle)),
+				0.32,
+				PUMICE
+			)
+		end
+	end
+	if level >= 4 then
+		-- Brasas azules en el borde de abajo de las tapas.
+		for z = -1, 1, 2 do
+			for _, x in { -0.22, -0.1, 0.1, 0.22 } do
+				ball(handle, "Ember", 0.1 * scale, BLUE_FIRE, NEON, at(x, -0.42, z * (reach + 0.1)))
+			end
 		end
 	end
 
@@ -3291,12 +3402,41 @@ end
 -- azufre y plumas celestes colgando. Nivel 3 (arco de liana): una raya de fuego azul por la cara de las palas
 -- y dos cristales de azufre en el lomo de cada una. Nivel 4 (arco de brasa): la cuerda de fuego azul y una
 -- llama azul en píxeles delante de la empuñadura. Mismo tamaño que el arco de cada nivel.
+-- Riqueza (K1): abrazaderas y cristales en la empuñadura, rombo de azufre por detrás, ataduras, remates, remaches y
+-- gemas en las palas, un colgante de cristal y cuentas de azufre en la cuerda (azules en el nivel 4).
 local function buildSulfurBow(tool: Tool, level: number): BasePart
 	local size = ({ 1.25, 1.38, 1.5, 1.6 })[level] or 1.25
 	local handle = hiddenHandle(tool, Vector3.new(0.3, 0.9, 0.35))
 	block(handle, "Riser", Vector3.new(0.34, 1.1, 0.44), PUMICE, STONE_MATERIAL, CFrame.new())
 	block(handle, "Grip", Vector3.new(0.38, 0.6, 0.48), CHARCOAL, FABRIC, CFrame.new())
 	block(handle, "ArrowRest", Vector3.new(0.12, 0.1, 0.22), SULFUR, SMOOTH, CFrame.new(0.2, 0.36, 0.04))
+	for sign = -1, 1, 2 do
+		-- Abrazaderas de carbón en las puntas de la empuñadura y un cristal de azufre que sale por delante.
+		block(handle, "RiserBand", Vector3.new(0.4, 0.1, 0.5), CHARCOAL, STONE_MATERIAL, CFrame.new(0, sign * 0.52, 0))
+		sulfurCrystal(handle, 0.3, 0.14, toward(CFrame.new(0, sign * 0.44, -0.22), Vector3.new(0, sign * 0.15, -1)))
+		-- Por detrás (de cara al arquero): un rombo de azufre que brilla entre dos cuentas.
+		block(
+			handle,
+			"Emblem",
+			Vector3.new(0.16, 0.16, 0.04),
+			SULFUR_GLOW,
+			NEON,
+			CFrame.new(0, sign * 0.15, 0.27) * CFrame.Angles(0, 0, math.pi / 4)
+		)
+		for beadSide = -1, 1, 2 do
+			ball(handle, "Rune", 0.08, SULFUR, SMOOTH, CFrame.new(beadSide * 0.16, sign * 0.15, 0.27))
+		end
+		if level >= 2 then
+			block(handle, "GripRing", Vector3.new(0.44, 0.06, 0.52), SULFUR, SMOOTH, CFrame.new(0, sign * 0.29, 0))
+			block(handle, "RiserGem", Vector3.new(0.1, 0.14, 0.04), SULFUR_GLOW, NEON, CFrame.new(0, sign * 0.42, 0.24))
+		end
+	end
+	-- Colgante del otro lado: cordón con dos cuentas y un cristal de azufre que cuelga.
+	block(handle, "CharmCord", Vector3.new(0.03, 0.4, 0.03), CHARCOAL, FABRIC, CFrame.new(-0.22, -0.5, 0))
+	for _, beadY in { -0.42, -0.58 } do
+		ball(handle, "Bead", 0.09, SULFUR, SMOOTH, CFrame.new(-0.22, beadY, 0))
+	end
+	sulfurCrystal(handle, 0.4, 0.14, CFrame.new(-0.22, -0.7, 0) * CFrame.Angles(math.pi, 0, 0))
 	local tipY, tipZ = 0, 0
 	for side = -1, 1, 2 do
 		local start = Vector3.new(0, side * 0.5, 0)
@@ -3348,6 +3488,45 @@ local function buildSulfurBow(tool: Tool, level: number): BasePart
 				)
 			end
 		end
+		-- Tres ataduras de carbón por pala, un remate en la punta, dos remaches de azufre y dos gemas en el lomo.
+		local lower, upper = (middle - start).Unit, (tip - middle).Unit
+		for _, binding in
+			{
+				{ start:Lerp(middle, 0.3), lower },
+				{ middle:Lerp(tip, 0.15), upper },
+				{ middle:Lerp(tip, 0.8), upper },
+			}
+		do
+			strut(
+				handle,
+				"Binding",
+				binding[1] - binding[2] * 0.05,
+				binding[1] + binding[2] * 0.05,
+				0.38,
+				0.32,
+				CHARCOAL,
+				FABRIC,
+				Vector3.xAxis
+			)
+		end
+		strut(handle, "TipCap", tip, tip:Lerp(curl, 0.6), 0.26, 0.24, CHARCOAL, STONE_MATERIAL, Vector3.xAxis)
+		for _, spot in { start:Lerp(middle, 0.8), middle:Lerp(tip, 0.65) } do
+			ball(handle, "Stud", 0.1, SULFUR, SMOOTH, CFrame.new(spot + Vector3.new(0, 0, -0.2)))
+		end
+		for _, gem in { { start:Lerp(middle, 0.4), lower }, { middle:Lerp(tip, 0.3), upper } } do
+			local centre = gem[1] + Vector3.new(0, 0, -0.2)
+			strut(
+				handle,
+				"Gem",
+				centre - gem[2] * 0.07,
+				centre + gem[2] * 0.07,
+				0.07,
+				0.08,
+				SULFUR_GLOW,
+				NEON,
+				Vector3.xAxis
+			)
+		end
 		tipY, tipZ = tip.Y, tip.Z
 	end
 	block(
@@ -3358,6 +3537,20 @@ local function buildSulfurBow(tool: Tool, level: number): BasePart
 		if level >= 4 then NEON else FABRIC,
 		CFrame.new(0, 0, tipZ)
 	)
+	-- Empuñadura de la cuerda y cuentas de azufre (más cuentas desde el nivel 2; azules en el nivel 4).
+	block(handle, "Serving", Vector3.new(0.07, 0.5, 0.07), CHARCOAL, FABRIC, CFrame.new(0, 0, tipZ))
+	for _, fraction in if level >= 2 then { 0.4, 0.75 } else { 0.4 } do
+		for side = -1, 1, 2 do
+			ball(
+				handle,
+				"StringBead",
+				0.11,
+				if level >= 4 then BLUE_FIRE_MID else SULFUR,
+				if level >= 4 then NEON else SMOOTH,
+				CFrame.new(0, side * tipY * fraction, tipZ)
+			)
+		end
+	end
 	if level >= 2 then
 		-- Cordón con dos plumas celestes y una de pómez colgando a un lado de la empuñadura.
 		block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), CHARCOAL, FABRIC, CFrame.new(0.22, -0.55, 0))
@@ -3385,6 +3578,8 @@ end
 -- suma uno y el cristal crece como el del bastón de ese nivel; nivel 2 (de oro): cuatro garras de carbón y una
 -- banda de pómez; nivel 3 (de plata): un aro de fuego azul alrededor de los cristales; nivel 4 (de lava): una
 -- llamarada azul en píxeles encima del cristal grande, con su luz.
+-- Riqueza (K1): anillos y runas en el asta, pie anillado, corona de púas, colgantes de cristal y de plumas, y
+-- desde el nivel 3 una brasa azul en cada garra.
 local function buildSulfurStaff(tool: Tool, level: number): BasePart
 	local crystalSize = ({ 0.55, 0.65, 0.75, 0.85 })[level] or 0.55
 	local top = STAFF_LENGTH / 2
@@ -3394,6 +3589,66 @@ local function buildSulfurStaff(tool: Tool, level: number): BasePart
 	ball(handle, "Butt", 0.36, CHARCOAL, STONE_MATERIAL, CFrame.new(0, -top, 0))
 	rod(handle, "Wrap", 0.8, 0.36, CHARCOAL, FABRIC, CFrame.new(0, -0.6, 0))
 	sulfurCrystal(handle, crystalSize * 2, crystalSize * 0.8, CFrame.new(0, top + 0.08, 0))
+
+	-- Asta: anillos de carbón con una runa de azufre entre cada dos, pie anillado, cuentas en la venda y cuatro
+	-- bolas de azufre bajo el collar.
+	for _, ringY in { 0.1, 0.5, 0.9, 1.25, 1.5 } do
+		rod(handle, "ShaftRing", 0.08, 0.38, CHARCOAL, STONE_MATERIAL, CFrame.new(0, ringY, 0))
+	end
+	for _, runeY in { 0.3, 0.7, 1.08 } do
+		block(handle, "Rune", Vector3.new(0.05, 0.18, 0.05), SULFUR_GLOW, NEON, CFrame.new(0, runeY, 0.16))
+		block(handle, "Rune", Vector3.new(0.14, 0.05, 0.05), SULFUR_GLOW, NEON, CFrame.new(0, runeY + 0.03, 0.16))
+	end
+	for index, footY in { -1.55, -1.7, -1.85, -2, -2.15 } do
+		rod(
+			handle,
+			"FootRing",
+			0.08,
+			0.38,
+			if index % 2 == 1 then CHARCOAL else PUMICE,
+			STONE_MATERIAL,
+			CFrame.new(0, footY, 0)
+		)
+	end
+	for _, beadY in { -0.95, -0.75, -0.55, -0.35 } do
+		ball(handle, "Bead", 0.12, SULFUR, SMOOTH, CFrame.new(0.18, beadY, 0))
+	end
+	for index = 0, 3 do
+		local angle = index * math.pi / 2 + math.pi / 4
+		ball(handle, "Gem", 0.14, SULFUR, SMOOTH, CFrame.new(math.sin(angle) * 0.19, top - 0.2, math.cos(angle) * 0.19))
+		-- Corona: cuatro púas de pómez sobre el collar, entre las garras.
+		local spikeAt =
+			Vector3.new(math.sin(angle - math.pi / 4) * 0.2, top + 0.02, math.cos(angle - math.pi / 4) * 0.2)
+		tooth(
+			handle,
+			"CrownSpike",
+			0.3,
+			0.1,
+			0.12,
+			PUMICE,
+			STONE_MATERIAL,
+			toward(CFrame.new(spikeAt), Vector3.new(math.sin(angle - math.pi / 4), 0.4, math.cos(angle - math.pi / 4)))
+				* CFrame.new(0, 0.15, 0)
+		)
+	end
+	-- Colgante de azufre a un lado del collar (cordón, dos cuentas y un cristal que cuelga) y plumas del otro.
+	block(handle, "CharmCord", Vector3.new(0.03, 0.5, 0.03), CHARCOAL, FABRIC, CFrame.new(0.26, top - 0.35, 0))
+	for _, beadY in { top - 0.25, top - 0.45 } do
+		ball(handle, "Bead", 0.1, SULFUR, SMOOTH, CFrame.new(0.26, beadY, 0))
+	end
+	sulfurCrystal(handle, 0.4, 0.14, CFrame.new(0.26, top - 0.6, 0) * CFrame.Angles(math.pi, 0, 0))
+	block(handle, "FeatherCord", Vector3.new(0.03, 0.45, 0.03), CHARCOAL, FABRIC, CFrame.new(-0.24, top - 0.4, 0))
+	for index, color in { SULFUR, BLUE_FIRE_MID, PUMICE } do
+		block(
+			handle,
+			"Feather",
+			Vector3.new(0.04, 0.5, 0.12),
+			color,
+			SMOOTH,
+			CFrame.new(-0.25, top - 0.82, (index - 2) * 0.1) * CFrame.Angles((index - 2) * 0.2, 0, 0)
+		)
+	end
+
 	local count = level + 1
 	for index = 0, count - 1 do
 		sulfurCrystal(
@@ -3407,6 +3662,9 @@ local function buildSulfurStaff(tool: Tool, level: number): BasePart
 	end
 	if level >= 2 then
 		rod(handle, "Band", 0.14, 0.36, PUMICE, STONE_MATERIAL, CFrame.new(0, top - 0.5, 0))
+		for _, bandY in { top - 0.34, top - 0.66 } do
+			rod(handle, "SulfurBand", 0.07, 0.4, SULFUR, SMOOTH, CFrame.new(0, bandY, 0))
+		end
 		-- Garras de carbón que salen del collar y sujetan los cristales por fuera.
 		local reach = crystalSize * 0.9
 		for index = 0, 3 do
@@ -3417,6 +3675,10 @@ local function buildSulfurStaff(tool: Tool, level: number): BasePart
 			local tip = Vector3.new(0, top + crystalSize * 1.2, 0) + outward * reach * 0.6
 			strut(handle, "Claw", base, bulge, 0.12, 0.12, CHARCOAL, STONE_MATERIAL, outward)
 			strut(handle, "Claw", bulge, tip, 0.1, 0.1, CHARCOAL, STONE_MATERIAL, outward)
+			if level >= 3 then
+				-- Brasa azul en el codo de cada garra.
+				ball(handle, "Ember", 0.13, BLUE_FIRE_MID, NEON, CFrame.new(bulge))
+			end
 		end
 	end
 	if level >= 3 then
@@ -3446,6 +3708,8 @@ end
 -- dardos. Nivel 1 (cerbatana): la boca de pómez oscura. Nivel 2 (de hueso): un racimo de tres cristales de
 -- azufre bajo la boca. Nivel 3 (de chamán): cinco cristales y dos anillos de fuego azul. Nivel 4 (de azufre):
 -- una llama azul en píxeles en la boca, con su luz. Mismo largo que la cerbatana de cada nivel.
+-- Riqueza (K1): anillos dobles, rieles, corona de púas en la boca, bolsita con cinco dardos y hebilla, colgante de
+-- cristal y cristales en la caña (por los dos lados desde el nivel 3, con rieles y chispas azules).
 local function buildSulfurBlowgun(tool: Tool, level: number): BasePart
 	local length = ({ 3.6, 3.9, 4.2, 4.5 })[level] or 3.6
 	local bottom = -1.4
@@ -3453,20 +3717,90 @@ local function buildSulfurBlowgun(tool: Tool, level: number): BasePart
 	local handle = hiddenHandle(tool, Vector3.new(0.3, 1.4, 0.3))
 	rod(handle, "Tube", length, 0.24, PUMICE, STONE_MATERIAL, CFrame.new(0, (bottom + top) / 2, 0))
 	local y = bottom + 0.9
-	while y < top - 0.3 do
+	while y < top - 0.31 do
 		if math.abs(y + 0.8) > 0.5 then
 			rod(handle, "Node", 0.08, 0.3, CHARCOAL, STONE_MATERIAL, CFrame.new(0, y, 0))
+			rod(handle, "Lip", 0.05, 0.28, PUMICE_DARK, STONE_MATERIAL, CFrame.new(0, y + 0.12, 0))
 		end
 		y += 0.6
 	end
 	rod(handle, "Mouthpiece", 0.3, 0.32, CHARCOAL, STONE_MATERIAL, CFrame.new(0, bottom + 0.1, 0))
 	rod(handle, "Muzzle", 0.22, 0.32, PUMICE_DARK, STONE_MATERIAL, CFrame.new(0, top - 0.08, 0))
 	rod(handle, "Grip", 0.8, 0.3, CHARCOAL, FABRIC, CFrame.new(0, -0.8, 0))
+	-- Boquilla con tapa y aro de azufre; la empuñadura, con tres anillos y cuatro cuentas entre ellos.
+	rod(handle, "MouthCap", 0.06, 0.36, SULFUR, SMOOTH, CFrame.new(0, bottom - 0.04, 0))
+	rod(handle, "MouthRing", 0.05, 0.36, SULFUR, SMOOTH, CFrame.new(0, bottom + 0.22, 0))
+	for _, ringY in { -1.05, -0.75, -0.45 } do
+		rod(handle, "GripRing", 0.05, 0.34, PUMICE_DARK, STONE_MATERIAL, CFrame.new(0, ringY, 0))
+	end
+	for _, beadY in { -0.9, -0.6 } do
+		for side = -1, 1, 2 do
+			ball(handle, "Bead", 0.1, SULFUR, SMOOTH, CFrame.new(side * 0.16, beadY, 0))
+		end
+	end
 	block(handle, "Pouch", Vector3.new(0.18, 0.42, 0.3), CHARCOAL, FABRIC, CFrame.new(0.2, -0.1, 0))
-	for index = -1, 1 do
-		local dart = CFrame.new(0.2, 0.2, index * 0.08) * CFrame.Angles(index * 0.15, 0, 0)
+	for index = -2, 2 do
+		local dart = CFrame.new(0.2, 0.2, index * 0.065) * CFrame.Angles(index * 0.12, 0, 0)
 		rod(handle, "Dart", 0.4, 0.04, BONE, SMOOTH, dart)
 		ball(handle, "Fluff", 0.11, BLUE_FIRE_MID, FABRIC, dart * CFrame.new(0, 0.22, 0))
+	end
+	block(handle, "PouchFlap", Vector3.new(0.2, 0.14, 0.32), CHARCOAL, FABRIC, CFrame.new(0.2, 0.06, 0))
+	ball(handle, "Buckle", 0.1, SULFUR, SMOOTH, CFrame.new(0.31, -0.1, 0))
+	-- Colgante del otro lado: cordón con dos cuentas y un cristal de azufre que cuelga.
+	block(handle, "CharmCord", Vector3.new(0.03, 0.5, 0.03), CHARCOAL, FABRIC, CFrame.new(-0.25, -0.6, 0))
+	for _, beadY in { -0.5, -0.7 } do
+		ball(handle, "Bead", 0.09, SULFUR, SMOOTH, CFrame.new(-0.25, beadY, 0))
+	end
+	sulfurCrystal(handle, 0.4, 0.14, CFrame.new(-0.25, -0.85, 0) * CFrame.Angles(math.pi, 0, 0))
+	-- Cuatro rieles en las diagonales de la caña (azules desde el nivel 3) y, en la boca, una corona de cuatro
+	-- púas de pómez en las diagonales, para no cruzar la llama del nivel 4.
+	local railFrom, railTo = 0.25, top - 0.95
+	for x = -1, 1, 2 do
+		for z = -1, 1, 2 do
+			block(
+				handle,
+				"Rail",
+				Vector3.new(0.04, railTo - railFrom, 0.04),
+				if level >= 3 then BLUE_FIRE else CHARCOAL,
+				if level >= 3 then NEON else STONE_MATERIAL,
+				CFrame.new(x * 0.1, (railFrom + railTo) / 2, z * 0.1)
+			)
+			tooth(
+				handle,
+				"MuzzleTooth",
+				0.22,
+				0.08,
+				0.1,
+				PUMICE,
+				STONE_MATERIAL,
+				toward(CFrame.new(x * 0.106, top + 0.03, z * 0.106), Vector3.new(x * 0.35, 1, z * 0.35))
+					* CFrame.new(0, 0.11, 0)
+			)
+		end
+	end
+	-- Cristales de azufre que brotan de la caña por un lado (y por el otro desde el nivel 3).
+	for side = -1, 1, 2 do
+		if side == -1 or level >= 3 then
+			for index, crystalY in { 0.55, 1 } do
+				sulfurCrystal(
+					handle,
+					if index == 1 then 0.4 else 0.3,
+					0.14,
+					toward(
+						CFrame.new(if side == -1 then -0.12 else 0, crystalY, if side == 1 then 0.12 else 0),
+						if side == -1 then Vector3.new(-1, 0.8, 0) else Vector3.new(0, 0.8, 1)
+					)
+				)
+			end
+		end
+	end
+	if level >= 2 then
+		rod(handle, "Seal", 0.06, 0.3, SULFUR, SMOOTH, CFrame.new(0, top - 0.35, 0))
+	end
+	if level >= 3 then
+		for side = -1, 1, 2 do
+			ball(handle, "Spark", 0.12, BLUE_FIRE_MID, NEON, CFrame.new(side * 0.17, top - 0.08, 0))
+		end
 	end
 	if level >= 2 then
 		local count = if level >= 3 then 5 else 3
@@ -3497,7 +3831,8 @@ end
 -- Machete de Azufre (aspecto gratis del pase para el machete, que llevan el cazador, el mago y el médico): la
 -- hoja es un cristal de azufre translúcido con el corazón que brilla, el lomo de carbón y la empuñadura de
 -- pómez. Nivel 2 (machete afilado): más largo, con el filo de fuego azul y dientes de azufre en el lomo.
--- La hoja es el "Handle", como en los machetes (filo hacia -Z).
+-- La hoja es el "Handle", como en los machetes (filo hacia -Z). Riqueza (K1): costillas de carbón, púas en el lomo,
+-- esquirlas en el filo, cristales en las caras y en la guarda; el nivel 2 suma brasas azules en el filo.
 local function buildSulfurMachete(tool: Tool, level: number): BasePart
 	local sharp = level >= 2
 	local length = if sharp then 2.9 else 2.6
@@ -3532,6 +3867,52 @@ local function buildSulfurMachete(tool: Tool, level: number): BasePart
 			)
 		end
 	end
+	-- Cinco costillas de carbón que cruzan el cristal, cuatro púas de carbón en el lomo (entre los dientes del
+	-- nivel 2), tres esquirlas de azufre en el filo y dos cristales que brotan de las caras de la hoja.
+	for index = 1, 5 do
+		block(
+			blade,
+			"Rib",
+			Vector3.new(0.08, 0.04, width * 0.8),
+			CHARCOAL,
+			STONE_MATERIAL,
+			CFrame.new(0, (index / 6 - 0.5) * length, 0)
+		)
+	end
+	for index = 0, 3 do
+		tooth(
+			blade,
+			"BackSpike",
+			0.2,
+			0.1,
+			0.12,
+			CHARCOAL,
+			STONE_MATERIAL,
+			CFrame.new(0, -length / 2 + 0.6 + index * 0.3, width / 2 + 0.03) * TO_Z
+		)
+	end
+	for _, fraction in { 0.25, 0.5, 0.75 } do
+		sulfurCrystal(
+			blade,
+			0.24,
+			0.1,
+			CFrame.new(0, (fraction - 0.5) * length, -width / 2 + 0.02) * CFrame.Angles(-math.rad(90), 0, 0)
+		)
+	end
+	for side = -1, 1, 2 do
+		sulfurCrystal(
+			blade,
+			0.3,
+			0.12,
+			toward(CFrame.new(side * 0.06, (side * 0.15) * length, 0.05), Vector3.new(side, 0.7, 0))
+		)
+	end
+	if sharp then
+		-- Brasas azules entre las esquirlas del filo.
+		for _, fraction in { 0.125, 0.375, 0.625, 0.875 } do
+			ball(blade, "Ember", 0.1, BLUE_FIRE, NEON, CFrame.new(0, (fraction - 0.5) * length, -width / 2 - 0.02))
+		end
+	end
 	local gripY = -length / 2 - 0.75
 	block(
 		blade,
@@ -3541,6 +3922,15 @@ local function buildSulfurMachete(tool: Tool, level: number): BasePart
 		STONE_MATERIAL,
 		CFrame.new(0, -length / 2 - 0.08, 0)
 	)
+	-- Un cristal en cada punta de la guarda.
+	for side = -1, 1, 2 do
+		sulfurCrystal(
+			blade,
+			0.3,
+			0.12,
+			toward(CFrame.new(0, -length / 2 - 0.08, side * (width / 2 + 0.09)), Vector3.new(0, 0.25, side))
+		)
+	end
 	block(blade, "Grip", Vector3.new(0.34, 1.2, 0.42), PUMICE_DARK, STONE_MATERIAL, CFrame.new(0, gripY, 0))
 	for _, offset in { 0.4, -0.4 } do
 		block(blade, "Wrap", Vector3.new(0.38, 0.12, 0.46), CHARCOAL, FABRIC, CFrame.new(0, gripY + offset, 0))

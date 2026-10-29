@@ -300,7 +300,10 @@ local function main(copia: Instance): string
 					fila(
 						`{id} ({cosmetico.rarity}, sobre {armaId})`,
 						medir(herramienta, fusionSoldada),
-						M.WeaponSkinMythic
+						if cosmetico.rarity == "Epic"
+							then M.WeaponSkinEpic
+							elseif cosmetico.rarity == "Rare" then M.WeaponSkinRare
+							else M.WeaponSkinMythic
 					)
 					herramienta:Destroy()
 				end)
