@@ -1227,6 +1227,15 @@ local Config = {
 		LowAmmoFraction = 0.25,
 		-- El anillo de espera de la mira solo sale en armas con una cadencia de al menos estos segundos
 		-- (en el lanzadardos, automático, no).
+		-- Retroceso del arma en la vista propia, por arma (Fase 15, V9; FirstPersonController): kickBack = studs
+		-- que va atrás (el doble con el rifle acercado), kickPitch = grados que levanta la boca, kickRoll =
+		-- grados de giro, camKick = grados que sube la cámara (y vuelve), recover = por segundo que se recupera.
+		View = {
+			LabDartGun = { kickBack = 0.08, kickPitch = 1.5, kickRoll = 0.6, camKick = 0.25, recover = 14 },
+			LabBananaRifle = { kickBack = 0.3, kickPitch = 7, kickRoll = 1.2, camKick = 1.6, recover = 7 },
+			LabNetHarpoon = { kickBack = 0.35, kickPitch = 8, kickRoll = 2, camKick = 1.8, recover = 7 },
+			LabAcidCannon = { kickBack = 0.45, kickPitch = 10, kickRoll = 3, camKick = 2.5, recover = 6 },
+		},
 		CooldownRingMinSeconds = 0.4,
 		-- Muñecos del panel de pruebas (LabDebugService): delante del jugador, a las distancias de la
 		-- calculadora (corta, media y larga).

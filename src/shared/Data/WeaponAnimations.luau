@@ -9,6 +9,8 @@
 --   - Stone, Arrow, Spell, Dart: el disparo de cada tipo de arma ("projectile" en Data/Weapons).
 --     "fxDelay": segundos hasta el marcador "Disparo", cuando salen la bocanada de la cerbatana o el
 --     destello del bastón (AbilityFxController, efecto "WeaponShotFx").
+--   - LabRifle, LabHarpoon, LabCannon: el disparo del rifle, el lanzarredes y el cañón del Laboratorio
+--     (Data/LabWeapons "pose"; Fase 15, V9). El lanzadardos usa Dart.
 --   - Slash1–Slash4: los tajos de la cadena de golpes cuerpo a cuerpo (Shared/MeleeChain). Mientras su
 --     id esté vacío, fuera de Studio se usa el tajo de Roblox.
 --   - Guard: la pose de guardia (en bucle, Fase 10, C5; GuardController): los antebrazos delante de la
@@ -23,6 +25,9 @@ local WeaponAnimations: { [string]: WeaponAnimation } = {
 	Arrow = { id = "rbxassetid://103739018270171", fxDelay = 0.16 },
 	Spell = { id = "rbxassetid://116426291827005", fxDelay = 0.12 },
 	Dart = { id = "rbxassetid://104985681187504", fxDelay = 0.16 },
+	LabRifle = { id = "", fxDelay = 0.1 },
+	LabHarpoon = { id = "", fxDelay = 0.1 },
+	LabCannon = { id = "", fxDelay = 0.12 },
 	Slash1 = { id = "rbxassetid://77898233432926" },
 	Slash2 = { id = "rbxassetid://120859937990073" },
 	Slash3 = { id = "rbxassetid://90979498051114" },

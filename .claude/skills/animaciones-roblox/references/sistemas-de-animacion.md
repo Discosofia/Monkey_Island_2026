@@ -159,6 +159,11 @@ cuerpo a cuerpo (`Slash1`–`Slash4`, Action2) y la pose de guardia (`Guard`, en
   ese id temporalmente (díselo; no lo dejes vacío al cerrar).
 - Tras publicar, el id nuevo va en `Data/WeaponAnimations` (con el mismo `fxDelay` si el golpe no
   se movió).
+- **Poses del Laboratorio (V9):** `LabRifle`, `LabHarpoon` y `LabCannon` salen del mismo `SHOTS`, pero sus ids
+  están vacíos hasta publicarlas desde el Studio de la Isla (clic derecho > *Save to Roblox*, con el dueño del juego).
+  El lanzadardos sigue con `Dart`.
+- La vista propia del Laboratorio no usa `AnimationTrack`: es un modelo en la cámara que `FirstPersonController`
+  mueve por código (retroceso, recarga y sacar el arma), así que no pasa por estas poses.
 
 ### Cuerpo del jugador sin armas
 

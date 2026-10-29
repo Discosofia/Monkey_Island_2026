@@ -8,7 +8,9 @@
 --     esconde también la que cambia de piezas al cambiar de facción), así que se dibuja una copia del arma equipada (Shared/LabWeaponModels, con la facción "LabFaction" y la skin de bajas "<arma>Skin", sin sus piezas
 --     "LabBack" de la espalda ni sus partículas) con las
 --     manos, pegada a la cámara abajo a la derecha. Con el rifle acercado (WeaponController) se centra
---     para apuntar por la mira, y cada disparo la echa un poco atrás (retroceso).
+--     para apuntar por la mira. Fase 15, V9: cada disparo la echa atrás y le levanta la boca (retroceso por
+--     arma, Config.Lab.View), sube la cámara un poco (CameraShake.scale() a 0 lo apaga) y sale el fogonazo
+--     de su boca; al recargar baja y se inclina (el cargador entra con un golpe); al sacarla sube desde abajo.
 --   - Deslizarse (CombatClient/Slide): la cámara baja Config.Movement.Slide.CameraDrop con un fundido corto.
 --   - Esquivar (Fase 15, V3; CombatClient/DodgeFeel): la cámara se inclina hacia el lado de la esquiva y el
 --     arma se aparta un poco.
@@ -29,11 +31,15 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Crosshair = require(ReplicatedStorage.Shared.UI.Crosshair)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local AbilityFxController = require(ReplicatedStorage.CombatClient.Controllers.AbilityFxController)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
+local CameraShake = require(ReplicatedStorage.CombatClient.CameraShake)
+local LabShooting = require(ReplicatedStorage.CombatClient.LabShooting)
 local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
 local Slide = require(ReplicatedStorage.CombatClient.Slide)
 
@@ -48,9 +54,23 @@ local AIM_OFFSET = Vector3.new(0, -0.78, -1.6)
 -- +Y del mango hacia la boca, -Z del mango hacia arriba).
 local WEAPON_TURN = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, -1), Vector3.new(0, -1, 0))
 local GRIP = CFrame.new(0, -0.8, 0)
-local RECOIL_STUDS = 0.18
-local RECOIL_RETURN = 12 -- por segundo
+-- Retroceso por defecto si un arma no tiene su fila en Config.Lab.View.
+local DEFAULT_KICK = { kickBack = 0.18, kickPitch = 0, kickRoll = 0, camKick = 0, recover = 12 }
 local SWAY = 0.04
+-- Recarga en la vista (fracciones del tiempo de recarga): baja hasta RELOAD_DOWN, vaivén hasta RELOAD_CLICK,
+-- el cargador entra con un golpe corto y vuelve a la posición desde RELOAD_UP.
+local RELOAD_DOWN = 0.15
+local RELOAD_CLICK = 0.55
+local RELOAD_CLICK_WIDTH = 0.05
+local RELOAD_UP = 0.85
+local RELOAD_DROP = 0.9 -- studs que baja el arma
+local RELOAD_TILT = math.rad(35) -- boca arriba
+local RELOAD_WOBBLE = 0.12 -- studs de vaivén lateral
+local RELOAD_BUMP = 0.12 -- studs que empuja hacia delante el golpe del cargador
+-- Sacar el arma: sube desde abajo en DRAW_SECONDS con easing cúbico de salida.
+local DRAW_SECONDS = 0.35
+local DRAW_DROP = 1.3
+local DRAW_TILT = math.rad(40)
 -- Mangas de cada facción (la del laboratorio, bata blanca con puño azul; la pirata, negra con oro).
 local SLEEVES: { [LabWeaponModels.Faction]: { sleeve: Color3, cuff: Color3 } } = {
 	Guardians = { sleeve = Color3.fromRGB(232, 236, 240), cuff = Color3.fromRGB(40, 115, 215) },
@@ -63,7 +83,21 @@ local viewModel: Model? = nil
 -- El arma de la mano del personaje propio, que no se ve en primera persona.
 local heldTool: Tool? = nil
 local shownKey: string? = nil
+type KickView = { kickBack: number, kickPitch: number, kickRoll: number, camKick: number, recover: number }
+local kickViews: { [string]: KickView } = Config.Lab.View
+-- Retroceso en curso (1 por disparo, hasta 2 en ráfaga) con los números del arma que disparó.
 local recoil = 0
+local kickView: KickView = DEFAULT_KICK
+local kickScale = 1 -- el doble en el arma con zoom
+local rollSign = 1
+-- Grados que la cámara va subida por el último disparo.
+local camPitch = 0
+-- Recarga en la vista: ya suena, con qué vista, cuánto había avanzado y si ya dio el golpe del cargador.
+local reloadActive = false
+local reloadKey: string? = nil
+local reloadLastProgress = 0
+-- Cuándo se sacó el arma (os.clock).
+local drawStart = -math.huge
 local normalFieldOfView = 70
 -- Teclas para soltar y volver a bloquear el ratón a mano.
 local CURSOR_KEYS = { [Enum.KeyCode.LeftControl] = true, [Enum.KeyCode.RightControl] = true }
@@ -83,6 +117,18 @@ local function clearViewModel()
 		viewModel = nil
 	end
 	shownKey = nil
+	-- Cambiar de arma o morir corta la recarga de la vista sin sonido de cargador listo.
+	reloadActive = false
+	reloadKey = nil
+end
+
+-- Suena "effect" en el personaje propio.
+local function playSfx(effect: string)
+	local character = Players.LocalPlayer.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	if root then
+		Sfx.play(effect, root)
+	end
 end
 
 local function block(model: Model, handle: BasePart, name: string, size: Vector3, at: CFrame, color: Color3)
@@ -203,6 +249,8 @@ local function refresh(player: Player)
 	model.Parent = camera
 	viewModel = model
 	shownKey = key
+	drawStart = os.clock()
+	playSfx("LabDraw")
 end
 
 local function isCursorFree(): boolean
@@ -278,6 +326,49 @@ function FirstPersonController.crosshair(): Crosshair.Handle?
 	return crosshairHandle
 end
 
+-- Posición y giro del arma al recargar según el avance "progress" (0 a 1): baja y gira con la boca arriba,
+-- un vaivén lateral, el golpe del cargador y la vuelta. Devuelve el desplazamiento y el giro (radianes).
+local function reloadPose(progress: number): (Vector3, number)
+	local dip: number
+	if progress < RELOAD_DOWN then
+		dip = progress / RELOAD_DOWN
+	elseif progress < RELOAD_UP then
+		dip = 1
+	else
+		dip = (1 - progress) / (1 - RELOAD_UP)
+	end
+	dip = dip * dip * (3 - 2 * dip)
+	local wobble = 0
+	if progress > RELOAD_DOWN and progress < RELOAD_CLICK then
+		wobble = math.sin((progress - RELOAD_DOWN) / (RELOAD_CLICK - RELOAD_DOWN) * math.pi * 3) * RELOAD_WOBBLE * dip
+	end
+	local bump = math.max(0, 1 - math.abs(progress - RELOAD_CLICK) / RELOAD_CLICK_WIDTH)
+	return Vector3.new(wobble, -RELOAD_DROP * dip, -RELOAD_BUMP * bump), RELOAD_TILT * dip
+end
+
+-- Acercado con la mira: de 0 (normal) a 1 (del todo).
+local function currentZoom(camera: Camera?): number
+	if not camera then
+		return 0
+	end
+	return math.clamp(
+		(normalFieldOfView - camera.FieldOfView) / math.max(1, normalFieldOfView - Config.Lab.RifleZoomFieldOfView),
+		0,
+		1
+	)
+end
+
+-- Avance de la recarga del arma de la mano (0 a 1), o nil si no recarga.
+local function reloadProgress(): number?
+	local weapon = LabShooting.weapon()
+	local finish = LabShooting.reloadingUntil()
+	if not (weapon and weapon.lab and finish) then
+		return nil
+	end
+	local seconds = math.max(weapon.lab.reloadSeconds, 0.05)
+	return math.clamp(1 - (finish - Workspace:GetServerTimeNow()) / seconds, 0, 1)
+end
+
 local function follow(deltaTime: number)
 	if heldTool then
 		for _, part in heldTool:GetChildren() do
@@ -287,6 +378,8 @@ local function follow(deltaTime: number)
 		end
 	end
 	local camera = Workspace.CurrentCamera
+	-- Acercado con la mira: de 0 (normal) a 1 (del todo).
+	local zoom = currentZoom(camera)
 	-- Deslizándose (Fase 15, V2) la cámara baja. Este paso va después de la cámara de Roblox, que
 	-- recalcula su CFrame cada fotograma, así que no se acumula; el arma de la vista la sigue.
 	local drop = Slide.currentDrop()
@@ -298,6 +391,11 @@ local function follow(deltaTime: number)
 	if camera and tilt ~= 0 then
 		camera.CFrame *= CFrame.Angles(0, 0, tilt)
 	end
+	-- Golpe de cámara del disparo (V9): sube y vuelve; tampoco se acumula en el CFrame del jugador.
+	camPitch = math.max(0, camPitch - camPitch * math.min(1, kickView.recover * deltaTime))
+	if camera and camPitch > 0.001 then
+		camera.CFrame *= CFrame.Angles(math.rad(camPitch), 0, 0)
+	end
 	-- Muerto (o eliminado de la ronda, de espectador): sin el arma delante de la cámara.
 	if viewModel and isDead(Players.LocalPlayer.Character) then
 		clearViewModel()
@@ -305,23 +403,50 @@ local function follow(deltaTime: number)
 	if not (viewModel and camera and viewModel.PrimaryPart) then
 		return
 	end
-	recoil = math.max(0, recoil - recoil * math.min(1, RECOIL_RETURN * deltaTime))
-	-- Acercado con la mira: de 0 (normal) a 1 (del todo).
-	local zoom = math.clamp(
-		(normalFieldOfView - camera.FieldOfView) / math.max(1, normalFieldOfView - Config.Lab.RifleZoomFieldOfView),
-		0,
-		1
-	)
-	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + Vector3.new(0, 0, recoil) + DodgeFeel.weaponShift()
-	-- Un poco de balanceo al andar (no al apuntar).
+	recoil = math.max(0, recoil - recoil * math.min(1, kickView.recover * deltaTime))
+	local back = kickView.kickBack * kickScale * recoil
+	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + Vector3.new(0, 0, back) + DodgeFeel.weaponShift()
+	-- El retroceso también gira el arma: la boca sube (pitch) y se tuerce (roll).
+	local pitch = math.rad(kickView.kickPitch) * recoil
+	local roll = math.rad(kickView.kickRoll) * rollSign * recoil
+	-- Recarga: el arma baja y se inclina; suena al empezar y al acabar (si acaba de verdad, no por cambiar de arma).
+	local progress = reloadProgress()
+	if progress then
+		if not reloadActive then
+			reloadActive = true
+			reloadKey = shownKey
+			playSfx("LabReload")
+		end
+		reloadLastProgress = progress
+		local shift, reloadTilt = reloadPose(progress)
+		offset += shift
+		pitch += reloadTilt
+	elseif reloadActive then
+		reloadActive = false
+		if reloadKey == shownKey and reloadLastProgress > RELOAD_UP then
+			playSfx("LabReloadDone")
+		end
+		reloadKey = nil
+	end
+	-- Sacar el arma: sube desde abajo, solo visual.
+	local drawAlpha = (os.clock() - drawStart) / DRAW_SECONDS
+	if drawAlpha < 1 then
+		local left = (1 - math.max(drawAlpha, 0)) ^ 3 -- cúbico de salida
+		offset += Vector3.new(0, -DRAW_DROP * left, 0)
+		pitch += DRAW_TILT * left
+	end
+	-- Un poco de balanceo al andar (no al apuntar con el rifle acercado).
 	local character = Players.LocalPlayer.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	if humanoid and humanoid.MoveDirection.Magnitude > 0.1 then
+	if humanoid and humanoid.MoveDirection.Magnitude > 0.1 and zoom <= 0.5 then
 		local t = os.clock() * 8
 		offset += Vector3.new(math.sin(t) * SWAY, math.abs(math.cos(t)) * SWAY, 0) * (1 - zoom)
 	end
 	local hip = 1 - zoom
-	local hand = camera.CFrame * CFrame.new(offset) * CFrame.Angles(HIP_PITCH * hip, HIP_YAW * hip, 0) * WEAPON_TURN
+	local hand = camera.CFrame
+		* CFrame.new(offset)
+		* CFrame.Angles(HIP_PITCH * hip + pitch, HIP_YAW * hip, roll)
+		* WEAPON_TURN
 	viewModel:PivotTo(hand * GRIP:Inverse())
 end
 
@@ -347,8 +472,22 @@ function FirstPersonController:Start()
 		normalFieldOfView = camera.FieldOfView
 	end
 	WeaponController.onShot(function(weapon)
-		if weapon.lab then
-			recoil = RECOIL_STUDS * (if weapon.lab.zoom then 2 else 1)
+		if not weapon.lab then
+			return
+		end
+		local weaponId = if heldTool then heldTool:GetAttribute("WeaponId") else nil
+		kickView = if typeof(weaponId) == "string" and kickViews[weaponId] then kickViews[weaponId] else DEFAULT_KICK
+		kickScale = if weapon.lab.zoom then 2 else 1
+		recoil = math.min(recoil + 1, 2)
+		rollSign = -rollSign
+		-- La cámara sube camKick grados (la mitad con el rifle acercado) si los temblores no están apagados.
+		local zoomed = weapon.lab.zoom == true and currentZoom(Workspace.CurrentCamera) > 0.5
+		local camKick = kickView.camKick * CameraShake.scale() * (if zoomed then 0.5 else 1)
+		camPitch = math.min(camPitch + camKick, camKick * 2)
+		-- Fogonazo en la boca del arma de la vista (su pieza "Muzzle" o, si no, el Handle).
+		local muzzle = if viewModel then viewModel:FindFirstChild("Muzzle", true) or viewModel.PrimaryPart else nil
+		if muzzle then
+			AbilityFxController.play("LabMuzzle", muzzle, weapon.projectile)
 		end
 	end)
 	player:GetAttributeChangedSignal("LabFaction"):Connect(function()

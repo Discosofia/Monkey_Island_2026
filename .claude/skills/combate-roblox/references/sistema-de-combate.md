@@ -401,6 +401,13 @@ se para al dar a tantos: el remate del arco, C9b), `onHit`, `onEnd`, `extra` y `
   `CombatService` (`scatter`) desvía el tiro con esa dispersión sobre la dirección de `aimShot`. El
   cliente predice (`combatClient/LabShooting`) y se corrige con los atributos. V7 preveía validar la
   dirección contra la dispersión + 2°: no se ha hecho, el servidor ya decide la dispersión.
+- **Vista y disparo del Laboratorio (V9, Fase 15).** `Config.Lab.View` da el retroceso de cada arma en la vista
+  propia (`FirstPersonController`, por `WeaponId`: `kickBack`, `kickPitch`, `kickRoll`, `camKick`, `recover`; sin
+  fila, `DEFAULT_KICK`). `camKick` sube la cámara y se apaga con `CameraShake.scale()` a 0, sin tocar el retroceso.
+- **Fogonazo y poses (V9).** `AbilityFxController` pone el fogonazo por proyectil (`SHOT_FX` y `MUZZLE_LOOKS`:
+  `LabDart`, `LabBanana`, `LabNet`, `LabAcid`; el propio, en la vista, con el efecto `LabMuzzle`) y `LAB_SHOT_POSE`
+  lo retrasa al marcador. Las poses `LabRifle`, `LabHarpoon` y `LabCannon` van en `Data/WeaponAnimations` (con `pose`
+  en `Data/LabWeapons`; ids vacíos hasta publicarlas) y los sonidos `Lab*` de `Data/Sounds` son provisionales.
 - **Servidor**: un solo bucle de `Heartbeat` para todos. En cada paso, de la posición anterior a la
   nueva: `Hitbox.ray` contra el mundo (solo lo que choca y el terreno: el decorado que no choca no
   para un disparo) y `Hitbox.sweepCombatants` (`Spherecast` con la lista de inclusión de los

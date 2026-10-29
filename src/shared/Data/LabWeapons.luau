@@ -11,7 +11,8 @@
 --   "Entangle": enreda, con inmunidad al soltarse (Config.Lab.Net…).
 --   "AcidBurst": vuela en arco y estalla en un área que envenena (Config.Lab.Acid…; el veneno es "poison").
 --   nil: solo el daño. "zoom": el cliente acerca la vista al mantener apuntado (Config.Lab.RifleZoom…).
--- "pose": la animación de disparo de Data/WeaponAnimations que usa (la del arma de la isla más parecida).
+-- "pose": la animación de disparo de Data/WeaponAnimations que usa (el lanzadardos, la cerbatana; las demás
+-- tienen la suya, Fase 15, V9). "sound": el efecto de Data/Sounds de su disparo.
 -- Cargador (Fase 15, V8): "magazine" balas y "reloadSeconds" para recargarlo (sola al vaciarse, o con la
 -- acción Recargar). "automatic": mantener el gatillo repite el disparo a su cadencia.
 -- "spread": dispersión en grados (cono de un disco uniforme) según la situación; sin "spread", exacta.
@@ -33,7 +34,7 @@ export type SpreadFields = {
 export type LabFields = {
 	effect: ("SlowStack" | "Entangle" | "AcidBurst")?,
 	zoom: boolean?,
-	pose: "Stone" | "Arrow" | "Spell" | "Dart",
+	pose: "Stone" | "Arrow" | "Spell" | "Dart" | "LabRifle" | "LabHarpoon" | "LabCannon",
 	magazine: number,
 	reloadSeconds: number,
 	automatic: boolean?,
@@ -63,7 +64,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		name = "Lanzadardos tranquilizante",
 		description = "Automática de media distancia. Cada dardo ralentiza un poco más.",
 		kind = "Ranged",
-		sound = "ShootDart",
+		sound = "LabDartShot",
 		damage = 10,
 		critChance = 0,
 		cooldownSeconds = 0.15,
@@ -83,7 +84,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		name = "Rifle de bananas primales",
 		description = "Precisión a larga distancia. Mantén apuntado para acercar la vista.",
 		kind = "Ranged",
-		sound = "ShootArrow",
+		sound = "LabRifleShot",
 		damage = 45,
 		critChance = 0,
 		cooldownSeconds = 0.95,
@@ -92,7 +93,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabBanana",
 		lab = {
 			zoom = true,
-			pose = "Dart",
+			pose = "LabRifle",
 			magazine = 5,
 			reloadSeconds = 2.2,
 			spread = { still = 0, moving = 2.5, air = 5, perShot = 0, zoomExact = true },
@@ -102,7 +103,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		name = "Lanzarredes de arpón",
 		description = "Corta distancia. El impacto enreda y frena al que se acerca.",
 		kind = "Ranged",
-		sound = "ShootStone",
+		sound = "LabHarpoonShot",
 		damage = 35,
 		critChance = 0,
 		cooldownSeconds = 0.65,
@@ -111,7 +112,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabNet",
 		lab = {
 			effect = "Entangle",
-			pose = "Spell",
+			pose = "LabHarpoon",
 			magazine = 3,
 			reloadSeconds = 1.8,
 			spread = { still = 1, moving = 1.5, air = 3, perShot = 0 },
@@ -121,7 +122,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		name = "Cañón de suero ácido",
 		description = "Dispara en arco por encima de las coberturas. Estalla y envenena en un área.",
 		kind = "Ranged",
-		sound = "ShootSpell",
+		sound = "LabCannonShot",
 		damage = 30,
 		critChance = 0,
 		cooldownSeconds = 0.8,
@@ -130,7 +131,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabAcid",
 		poison = { dps = 6, seconds = 3 },
 		-- Sin dispersión: cae donde se apunta.
-		lab = { effect = "AcidBurst", pose = "Spell", magazine = 4, reloadSeconds = 2.0 },
+		lab = { effect = "AcidBurst", pose = "LabCannon", magazine = 4, reloadSeconds = 2.0 },
 	},
 }
 

@@ -1,6 +1,6 @@
 # Animaciones (resumen de la skill animaciones-roblox)
 
-<!-- Fuente: .claude/skills/animaciones-roblox/SKILL.md, 26-10-2026. Detalles: references/sistemas-de-animacion.md y docs/ANIMACIONES.md (recetas por acción). -->
+<!-- Fuente: .claude/skills/animaciones-roblox/SKILL.md, 28-10-2026. Detalles: references/sistemas-de-animacion.md y docs/ANIMACIONES.md (recetas por acción). -->
 
 ## Antes de empezar
 
@@ -55,6 +55,11 @@ return Anim.measure(rig, ks)      -- altura de cada extremidad por instante
 3. Pega el id en `src/shared/Data/MonkeyAnimations.luau` o en `Data/WeaponAnimations.luau`.
 4. El spec final va a git, en `src/island/tools/MonkeyAnimationSpecs/<lote>.luau`. Las armas viven en `WeaponAnimationBuilder`.
 5. `Anim.clear()` cuando el usuario apruebe. Recuérdale que guarde el place.
+
+## Armas del Laboratorio
+
+- Las poses `LabRifle`, `LabHarpoon` y `LabCannon` son de `WeaponAnimationBuilder`, como las demás armas. Sus ids están vacíos hasta que el usuario las publique desde el Studio de la Isla.
+- La vista propia del Laboratorio no es un `AnimationTrack`: es un modelo en la cámara que `FirstPersonController` mueve por código.
 
 ## Monturas
 

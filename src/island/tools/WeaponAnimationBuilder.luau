@@ -6,7 +6,8 @@
 --
 -- Crea (o sustituye) ReplicatedStorage.WeaponAnimations con una KeyframeSequence por animación de
 -- Shared/Data/WeaponAnimations: "Hold" (brazo derecho colgando con el arma, en bucle), un disparo
--- por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart" cerbatana) y los 4 tajos de
+-- por tipo de arma ("Stone" honda, "Arrow" arco, "Spell" bastón, "Dart" cerbatana; y las del Laboratorio,
+-- "LabRifle", "LabHarpoon" y "LabCannon", Fase 15, V9) y los 4 tajos de
 -- la cadena de golpes cuerpo a cuerpo ("Slash1"–"Slash4", Shared/MeleeChain) y la pose de guardia
 -- ("Guard", Combat/Guard).
 -- Para probarlas basta con pulsar Play: en Studio, WeaponController usa estas secuencias mientras
@@ -162,6 +163,60 @@ local SHOTS: { [string]: Shot } = {
 		seconds = 0.55,
 		raise = 0.14,
 		pulseSeconds = 0.14,
+	},
+	-- Rifle del Laboratorio: culata al hombro y cabeza ladeada para apuntar; al disparar, el hombro
+	-- y la cabeza dan un respingo atrás.
+	LabRifle = {
+		pose = {
+			Head = joint(-4),
+			RightUpperArm = joint(14, 10),
+			RightLowerArm = joint(55),
+			LeftUpperArm = joint(80, -38),
+			LeftLowerArm = joint(28),
+		},
+		pulse = {
+			UpperTorso = joint(-6),
+			RightUpperArm = joint(-10),
+			Head = joint(-3),
+		},
+		seconds = 0.9,
+		raise = 0.08,
+		pulseSeconds = 0.2,
+	},
+	-- Lanzarredes del Laboratorio: al costado, con una mano delante; al disparar, el torso se echa atrás.
+	LabHarpoon = {
+		pose = {
+			RightUpperArm = joint(6, 8),
+			RightLowerArm = joint(22),
+			LeftUpperArm = joint(70, -30),
+			LeftLowerArm = joint(25),
+		},
+		pulse = {
+			UpperTorso = joint(-10),
+			RightUpperArm = joint(-20),
+			LeftUpperArm = joint(-12, 12),
+		},
+		seconds = 0.6,
+		raise = 0.08,
+		pulseSeconds = 0.2,
+	},
+	-- Cañón de suero del Laboratorio: pesado, a la cadera; el cuerpo se echa atrás al disparar.
+	LabCannon = {
+		pose = {
+			UpperTorso = joint(6, -10),
+			RightUpperArm = joint(2, 10),
+			RightLowerArm = joint(26),
+			LeftUpperArm = joint(58, -26),
+			LeftLowerArm = joint(30),
+		},
+		pulse = {
+			UpperTorso = joint(-16),
+			RightUpperArm = joint(-28),
+			LeftUpperArm = joint(-18),
+		},
+		seconds = 0.75,
+		raise = 0.1,
+		pulseSeconds = 0.26,
 	},
 }
 
@@ -515,7 +570,7 @@ function WeaponAnimationBuilder.build(options: { fresh: boolean? }?)
 	folder.Parent = ReplicatedStorage
 	print(
 		"[WeaponAnimationBuilder] Listo: ReplicatedStorage.WeaponAnimations (Hold, Stone, Arrow, Spell, Dart, "
-			.. "Slash1–Slash4, Guard).\n"
+			.. "LabRifle, LabHarpoon, LabCannon, Slash1–Slash4, Guard).\n"
 			.. "  Pruébalas con Play (en Studio se usan mientras su id esté vacío).\n"
 			.. "  Para publicarlas: clic derecho en cada una > Save to Roblox, y pega cada id en\n"
 			.. "  src/shared/Data/WeaponAnimations.luau (con el mismo dueño que el juego)."

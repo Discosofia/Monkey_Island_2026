@@ -42,7 +42,9 @@
 -- de Combat/Zones ("Zone": suelo ardiendo del Meteoro rematado, hielo de la Nova y nube del Polvo).
 -- Laboratorio (Fase 13): los disparos de sus cuatro armas ("Lab…" en LOOKS: dardo azul claro, banana
 -- amarilla con estela, red y bola de suero morada que cae en arco), el charco de suero ("AcidPuddle") y
--- la red que enreda ("Entangled").
+-- la red que enreda ("Entangled"). Fase 15, V9: fogonazo propio de cada arma (destello cian, amarillo con
+-- humo, bocanada de cuerda y goterón morado; los demás lo ven en "WeaponShotFx", el propio en "LabMuzzle")
+-- e impactos con chispas, anillo y disco-red.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -718,9 +720,95 @@ local function crystalFlash(character: Model)
 	Debris:AddItem(glint, 0.3)
 end
 
+-- Fogonazo de las armas del Laboratorio (Fase 15, V9), en la boca "part" (la pieza "Muzzle" del arma o su
+-- Handle) y con el aspecto de "style" (el proyectil: LabDart, LabBanana, LabNet o LabAcid). Dura menos de
+-- 0,25 s. El destello va soldado a la pieza (sigue al arma de la vista, que se mueve cada fotograma); el
+-- humo y las chispas se quedan en el aire. La luz vive dentro del destello y se borra con él.
+local MUZZLE_LOOKS: { [string]: { color: Color3, glow: number, light: number, seconds: number } } = {
+	LabDart = { color = Color3.fromRGB(150, 215, 255), glow = 0.9, light = 0, seconds = 0.1 },
+	LabBanana = { color = Color3.fromRGB(255, 225, 60), glow = 2.4, light = 3, seconds = 0.14 },
+	LabNet = { color = Color3.fromRGB(205, 190, 150), glow = 1.3, light = 0, seconds = 0.2 },
+	LabAcid = { color = Color3.fromRGB(135, 55, 205), glow = 1.1, light = 2, seconds = 0.22 },
+}
+
+local function labMuzzleFlash(part: BasePart, style: string)
+	local look = MUZZLE_LOOKS[style]
+	if not (look and part.Parent) then
+		return
+	end
+	local forward = part.CFrame.UpVector -- el arma apunta con su +Y (Shared/LabWeaponModels)
+	local tip = part.Position + forward * (part.Size.Y / 2 + 0.1)
+	local isNet = style == "LabNet"
+	local isAcid = style == "LabAcid"
+	-- El suero no brilla (sin neón, que lo vuelve rosa); el resto, sí. La red es una bocanada pálida.
+	local material = if isAcid then Enum.Material.SmoothPlastic else Enum.Material.Neon
+	local glow = ball("MuzzleFlash", look.glow * 0.35, look.color, material, if isNet then 0.5 else 0.1)
+	weld(part, glow, part.CFrame:ToObjectSpace(CFrame.new(tip)))
+	TweenService:Create(glow, TweenInfo.new(look.seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.one * look.glow,
+		Transparency = 1,
+	}):Play()
+	if look.light > 0 then
+		local light = Instance.new("PointLight")
+		light.Color = look.color
+		light.Range = 9
+		light.Brightness = look.light
+		light.Parent = glow
+		TweenService:Create(light, TweenInfo.new(look.seconds), { Brightness = 0 }):Play()
+	end
+	Debris:AddItem(glow, look.seconds + 0.05)
+	if style == "LabDart" then
+		burst(tip, SPARKLE_TEXTURE, look.color, 4, 0.3, 6, 0.15)
+	elseif style == "LabBanana" then
+		-- Bocanada de humo corta, hacia delante.
+		burst(tip, SMOKE_TEXTURE, Color3.fromRGB(190, 185, 170), 5, 0.8, 4, 0.25)
+		burst(tip, SPARKLE_TEXTURE, look.color, 5, 0.4, 9, 0.15)
+	elseif isNet then
+		burst(tip, SMOKE_TEXTURE, look.color, 6, 0.7, 5, 0.25)
+	else
+		-- Goterón y niebla morada.
+		local drop = ball("MuzzleDrop", 0.25, look.color, Enum.Material.SmoothPlastic, 0.1)
+		drop.CFrame = CFrame.new(tip)
+		drop.Parent = folder
+		TweenService:Create(drop, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			CFrame = CFrame.new(tip + forward * 0.8 + Vector3.new(0, -0.5, 0)),
+			Transparency = 1,
+		}):Play()
+		Debris:AddItem(drop, 0.25)
+		burst(tip, SMOKE_TEXTURE, look.color, 7, 0.9, 3, 0.25)
+	end
+end
+
+-- El fogonazo de otro jugador: sale de la pieza "Muzzle" del arma que lleva en la mano (o de su Handle).
+-- El del propio jugador no va aquí: su fogonazo sale en la vista (FirstPersonController, efecto "LabMuzzle").
+local function labShot(style: string): (character: Model) -> ()
+	return function(character)
+		if character == Players.LocalPlayer.Character then
+			return
+		end
+		local tool = character:FindFirstChildOfClass("Tool")
+		local muzzle = if tool then tool:FindFirstChild("Muzzle", true) or tool:FindFirstChild("Handle") else nil
+		if muzzle and muzzle:IsA("BasePart") then
+			labMuzzleFlash(muzzle, style)
+		end
+	end
+end
+
 local SHOT_FX: { [string]: (character: Model) -> () } = {
 	Dart = puffCloud,
 	Spell = crystalFlash,
+	LabDart = labShot("LabDart"),
+	LabBanana = labShot("LabBanana"),
+	LabNet = labShot("LabNet"),
+	LabAcid = labShot("LabAcid"),
+}
+
+-- La animación de disparo de cada arma del Laboratorio (para el retraso del fogonazo hasta el marcador).
+local LAB_SHOT_POSE: { [string]: string } = {
+	LabDart = "Dart",
+	LabBanana = "LabRifle",
+	LabNet = "LabHarpoon",
+	LabAcid = "LabCannon",
 }
 
 -- Color de cada remate (C9b), en el arma al disparar y en su proyectil.
@@ -761,7 +849,7 @@ local function weaponShotFx(character: Model?, projectile: string?, finisher: bo
 	if not (character and (effect or finisher)) then
 		return
 	end
-	local data = WeaponAnimations[key]
+	local data = WeaponAnimations[LAB_SHOT_POSE[key] or key]
 	task.wait(if data then data.fxDelay or 0 else 0)
 	if not character.Parent then
 		return
@@ -2824,6 +2912,23 @@ local function labLook(style: string, splash: number?): Look
 				burst(position, SMOKE_TEXTURE, LAB_ACID, 16, 2, radius * 1.5, 0.7)
 			elseif style == "LabBanana" then
 				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 8, 0.6, 8, 0.4)
+				-- Más peso: anillo amarillo y chispas gruesas.
+				ring(position, 0.3, 2.2, 0.25, LAB_BANANA, 0.15, 0.1)
+				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 6, 1.1, 11, 0.35)
+			elseif style == "LabDart" then
+				-- Chispas cian cortas y un anillito que se abre rápido.
+				burst(position, SPARKLE_TEXTURE, LAB_DART, 6, 0.35, 7, 0.2)
+				ring(position, 0.1, 1, 0.15, LAB_DART, 0.08, 0.2)
+			elseif style == "LabNet" then
+				-- Bocanada beige de fibras y un disco-red que se abre y se desvanece.
+				burst(position, SMOKE_TEXTURE, LAB_NET, 8, 0.9, 5, 0.3)
+				local mesh = disc(position, 0.3, LAB_NET, Enum.Material.Fabric, 0.3)
+				mesh.Parent = folder
+				TweenService:Create(mesh, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Size = Vector3.new(0.1, 3.4, 3.4),
+					Transparency = 1,
+				}):Play()
+				Debris:AddItem(mesh, 0.35)
 			end
 		end,
 	}
@@ -3330,6 +3435,13 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	Zone = zone, -- ("Fire" | "Ice" | "Cloud", centro en el suelo, radio, segundos): Combat/Zones
 	AcidPuddle = acidPuddle, -- (centro, radio, segundos): el charco del cañón de suero (Laboratorio)
 	Entangled = entangled, -- (modelo, segundos): la red del lanzarredes (Laboratorio)
+	-- (pieza de la boca, proyectil "LabDart" | "LabBanana" | "LabNet" | "LabAcid"): el fogonazo del arma en la vista
+	-- propia (Laboratorio, FirstPersonController)
+	LabMuzzle = function(part: any, style: any)
+		if typeof(part) == "Instance" and part:IsA("BasePart") and typeof(style) == "string" then
+			labMuzzleFlash(part, style)
+		end
+	end,
 }
 
 -- Dibuja un efecto en este cliente. RoleController lo usa para los movimientos propios.

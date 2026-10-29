@@ -438,10 +438,9 @@ local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Wea
 				LabShooting.reload()
 				if not emptyClicked then
 					emptyClicked = true
-					-- Provisional: el clic de "Pickup"; V9 pondrá el sonido propio de cargador vacío.
 					local root = character:FindFirstChild("HumanoidRootPart")
 					if root then
-						Sfx.play("Pickup", root)
+						Sfx.play("LabEmpty", root)
 					end
 				end
 			end

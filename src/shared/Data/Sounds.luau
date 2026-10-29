@@ -53,6 +53,15 @@ local Effects: { [string]: Effect } = {
 	ShootArrow = { id = SWIM, volume = 0.45, pitch = 2.4, jitter = 0.08 }, -- arcos. Provisional: "bow release"
 	ShootSpell = { id = GET_UP, volume = 0.5, pitch = 2, jitter = 0.1 }, -- bastones. Provisional: "magic cast"
 	ShootDart = { id = SWIM, volume = 0.4, pitch = 2.9, jitter = 0.08 }, -- cerbatanas. Provisional: "blowgun puff"
+	-- Armas del Laboratorio (Fase 15, V9; Data/LabWeapons "sound"): ids de serie con tonos distintos.
+	LabDartShot = { id = SWIM, volume = 0.35, pitch = 3.4, jitter = 0.06 }, -- Provisional: "tranquilizer dart pfft, short and high"
+	LabRifleShot = { id = BOOM, volume = 0.8, pitch = 1.6, jitter = 0.04, range = 160 }, -- Provisional: "dry rifle shot, loud with bass"
+	LabHarpoonShot = { id = LAND, volume = 0.7, pitch = 0.8, jitter = 0.06 }, -- Provisional: "harpoon gun thunk with rope whoosh"
+	LabCannonShot = { id = BOOM, volume = 0.7, pitch = 0.55, jitter = 0.05, range = 120 }, -- Provisional: "heavy low bloop cannon"
+	LabReload = { id = CLICK, volume = 0.5, pitch = 0.8, jitter = 0.05 }, -- Provisional: "magazine eject, mechanical slide"
+	LabReloadDone = { id = CLICK, volume = 0.6, pitch = 1.5, jitter = 0.04 }, -- Provisional: "gun clack, magazine inserted"
+	LabEmpty = { id = CLICK, volume = 0.5, pitch = 1.9, jitter = 0.04 }, -- Provisional: "dry trigger click, empty gun"
+	LabDraw = { id = JUMP, volume = 0.3, pitch = 1.9, jitter = 0.06 }, -- Provisional: "short weapon draw, cloth and metal rub"
 	Hit = { id = LAND, volume = 0.7, pitch = 1.3, jitter = 0.15 }, -- golpe que acierta a un mono o jefe (carne)
 	PlayerHurt = { id = OUCH, volume = 0.6, pitch = 1, jitter = 0.08 },
 	PlayerDown = { id = OOF, volume = 0.7, pitch = 0.9 },

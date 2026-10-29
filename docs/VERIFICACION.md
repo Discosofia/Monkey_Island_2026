@@ -2168,6 +2168,59 @@ Probado en Play, con un jugador, en el Laboratorio (28-10-2026): el cargador y l
 6. [ ] Mide el TTK del rifle y de los dardos de A a B a 15 y 50 studs (quieto y corriendo).
    ✅ Los tiempos son del orden de lo que predice `Equilibrio` (sección 12). Si el TTK baja de 1,5 s solo con tiros al cuerpo, avísame: sería una alerta nueva.
 
+## 39. Lo que queda por probar de V9: poses, fogonazo, retroceso y sonidos del Laboratorio (28-10-2026)
+
+Probado en Play, con un jugador, en el Laboratorio (28-10-2026): `Config`, `Sounds` y `WeaponAnimations` cargan; el `Muzzle` existe en la vista; el fogonazo dura 0,16–0,28 s y no deja luces; el retroceso del rifle va de −3,77 a −3,23 y vuelve a −3,75 en 0,43 s; la recarga baja unos 0,47 studs, vuelve y rellena el cargador; sacar el arma sube 0,79 studs en 0,33 s; y no sale ningún error de V9 en la consola. Las tres poses nuevas se vieron en tira en el Studio de la Isla y se leen bien. Lo que no se ha probado: las poses dentro del Laboratorio (sus ids están vacíos hasta publicarlas), el fogonazo y la pose de otro jugador, el teléfono y los sonidos definitivos. Los sonidos son provisionales (ids de serie de Roblox; el rifle y el cañón comparten BOOM, y la recarga y el cargador vacío comparten CLICK). Empieza por 39.1.
+
+#### 39.1 En el Studio de la Isla, con el dueño del juego (publicar las tres poses)
+
+1. [ ] Ejecuta `WeaponAnimationBuilder.build()` en modo edición (con un `require` limpio, no el de la caché). Después haz clic derecho sobre `ReplicatedStorage.WeaponAnimations.LabRifle`, `LabHarpoon` y `LabCannon` > *Save to Roblox*, con el dueño del juego. Pega los tres ids en `Data/WeaponAnimations` y guarda el place de la Isla.
+   ✅ Salen tres ids `rbxassetid://…` (no vacíos) en `LabRifle`, `LabHarpoon` y `LabCannon`, y el place se guarda sin errores en la Salida.
+2. [ ] Abre el Laboratorio con Play y un jugador. Aleja la cámara a tercera persona y dispara cada arma (dardos, rifle, arpón y cañón) contra un muro.
+   ✅ Cada arma tiene su pose: el rifle, con la culata al hombro y la cabeza ladeada, y un respingo al disparar; el arpón, al costado con una mano delante, y el torso que se echa atrás al disparar; el cañón, a la cadera, y el cuerpo que se echa atrás. Los dardos siguen con su pose `Dart`.
+
+#### 39.2 En el Laboratorio, con ratón y teclado (un jugador)
+
+1. [ ] Dispara un tiro con cada arma, en el orden dardos, rifle, arpón y cañón.
+   ✅ El retroceso cambia con el arma: casi nulo con los dardos, y más fuerte con el rifle, el arpón y el cañón, cada uno con su giro. El giro de la boca alterna de lado en cada disparo.
+2. [ ] Con el rifle, mantén el clic derecho para acercarlo y dispara quieto. Después camina y dispara otra vez.
+   ✅ Con el rifle acercado, el golpe de cámara es la mitad que sin zoom, y el arma no se balancea al andar.
+3. [ ] Con el cargador a medias, pulsa R con el rifle y después con el lanzarredes.
+   ✅ El arma baja, se inclina con la boca arriba y hace un vaivén. Hacia la mitad el cargador entra con un golpe corto. Después vuelve a su sitio, el contador llega al lleno y suena el clic de cargador listo.
+4. [ ] Con el cargador lleno, pulsa R.
+   ✅ No empieza ninguna recarga y el arma no se mueve.
+5. [ ] Cambia del rifle al cañón y de ahí a los dardos.
+   ✅ Al sacar cada arma (0,35 s) sube desde abajo con un giro, y suena el sonido de sacar.
+6. [ ] Pon el ajuste de temblor de cámara a 0 en Ajustes, cierra y dispara el rifle.
+   ✅ La cámara no sube con el disparo, pero el arma sigue retrocediendo.
+7. [ ] Dispara el arpón contra una pared cercana, de frente y de lado.
+   ✅ El disco de red del impacto queda pegado a la pared y no se ve de canto ni tapa el impacto. Si queda feo, avisa con el número de paso.
+8. [ ] Mira la Salida mientras haces los pasos anteriores.
+   ✅ No sale ningún error de V9. Si sale «ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type» (3 veces), no es de V9: anota qué objeto lo pide para buscarlo aparte.
+
+#### 39.3 Sonidos del Laboratorio (un jugador)
+
+1. [ ] Dispara cada arma con la vista quieta, uno después de otro.
+   ✅ Cada arma suena distinta: los dardos, un «pfft» agudo; el rifle, un disparo seco con graves; el arpón, un golpe con cuerda; el cañón, un bloop grave. El rifle y el cañón suenan parecidos (comparten BOOM). Anota qué sonidos cambiar por audios del Creator Store.
+2. [ ] Pulsa R con el cargador a medias, espera a que acabe la recarga y después pulsa el clic con el cargador vacío.
+   ✅ Suenan el clic de recarga, el de cargador listo y el de vacío. Los tres comparten CLICK y se oyen parecidos: anota cuáles cambiar.
+
+#### 39.4 Con 2 jugadores (*Test → Clientes y servidores*, en el Laboratorio)
+
+1. [ ] B se queda quieto a 20 studs de A y mira a A, mientras A dispara cada arma (dardos, rifle, arpón y cañón).
+   ✅ B ve el fogonazo en la boca del arma de A: cian con los dardos, amarillo con humo con el rifle, bocanada beige con el arpón y goterón morado con el cañón. B también ve la pose de disparo del arma de A (39.1.2).
+2. [ ] Con B quieto, A dispara el rifle y después el cañón a 50 studs y luego a 120 studs.
+   ✅ B oye cada disparo con el sonido de su arma. El rifle se oye hasta unos 160 studs y el cañón hasta unos 120; más allá no se oye.
+
+#### 39.5 En el emulador de teléfono (844 × 390, con *Prueba → Dispositivo*)
+
+1. [ ] Equipa un arma del Laboratorio y dispara con toques seguidos.
+   ✅ Se ve el retroceso y el arma no tapa el disparo, el salto ni los demás botones de combate.
+2. [ ] Toca «Recargar» con el cargador a medias.
+   ✅ La vista baja, hace el vaivén y el cargador entra con su golpe. Ningún botón queda tapado por el arma.
+3. [ ] Cambia de arma con el selector de armas del Laboratorio y mira la animación de sacar.
+   ✅ El arma sube desde abajo en 0,35 s y no tapa los botones.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
