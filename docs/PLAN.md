@@ -702,6 +702,18 @@ Decisiones del 28-10-2026:
 - **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de L2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo L2.»
 
+**Handoff de B1 (29-10-2026)**
+- **Estado:** L2 cerrada y subida (7fe633a, PLAN 4f334a8). B1 sin empezar. Siguiente número libre de VERIFICACION: §55.
+- **Antes de escribir código:** pide al agente `search` el mapa de `island/client/Controllers/LightingController`, `island/server/Services/DayNightService` (fases, `ClockTime`, salto de velocidad al cambiar de fase), `WeatherService` (lo que toca de la luz) y lo que haya de iluminación en `Config`. Comprueba las líneas: este handoff se escribe sin haber leído ese código.
+- **Objetivo:** ver la tanda B1 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección B1):
+  1. **`Config.Lighting`:** una curva en función de `ClockTime` de `Ambient`, `OutdoorAmbient`, `Brightness`, `ColorShift`, `Atmosphere` y un `ColorCorrection` base. La noche queda legible y en el amanecer y el atardecer no hay un apagón.
+  2. **`LightingController`:** interpola la curva en cada fotograma y quita el salto de velocidad al cambiar de fase.
+  3. Los pesos de la luna (B2) se enganchan después a esta curva: deja un sitio claro para ellos.
+- **Riesgos:** el clima, la erupción y la luna roja (B3) también tocan la luz: la curva es la base y ellos se suman encima, sin pelearse. Los carteles y la linterna no pueden depender de la fase. Lo generado en el place (Lighting, Atmosphere) se guarda en el place, no en el repo.
+- **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` y `rojo build` de los 4 places. En el Studio de la Isla, con `SkipPhase` o fijando `ClockTime`, capturas a las 5:30, 6, 6:30, 17:30, 18, 18:30 y 0 (pocas y pequeñas; cámara de edición en `Fixed` al final). Lo que necesite el juego publicado o dos jugadores va a VERIFICACION §55.
+- **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de B1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo B1.»
+
 ---
 
 ## 4. Cronograma estimado
