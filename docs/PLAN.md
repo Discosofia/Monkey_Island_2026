@@ -524,7 +524,7 @@ T9 dejó escritos tres diseños que se construirán más adelante, cada uno en s
 | **V5** | Pantalla roja por crítico o golpe fuerte, pulso con salud baja y dirección del atacante | 317029a | ✅ Probado en la Isla; pendiente VERIFICACION §34 |
 | **V6** | Ajustes en el Laboratorio y Dunas, y mira configurable | 2952f5c | ✅ (pendiente VERIFICACION §37) |
 | **V7** | Detección PvP con rebobinado y críticos a la cabeza | f1bf8f7 | ✅ (pendiente VERIFICACION §36) |
-| **V8** | Cargador, recarga, disparo automático y mira dinámica (Laboratorio) | — | ⏳ |
+| **V8** | Cargador, recarga, disparo automático y mira dinámica (Laboratorio) | 5dc4e36 | ✅ |
 | **V9** | Animaciones, fogonazos y sonidos de disparo del Laboratorio | — | ⏳ |
 | **V10** | Espectador y killcam en Dunas y el Laboratorio | — | ⏳ |
 
