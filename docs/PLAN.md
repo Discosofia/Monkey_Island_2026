@@ -829,7 +829,7 @@ Decisiones del 28-10-2026:
 
 ### Fase 19: Experiencia de combate a distancia (29-10-2026)
 
-En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §77. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
+En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §79. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
 
 Decisiones del 29-10-2026:
 - **Alcance:** Laboratorio, Dunas e Isla; las líneas blancas también en el Lobby.
@@ -845,7 +845,7 @@ Decisiones del 29-10-2026:
 | **W1** | Líneas blancas, FOV y sacudida en los 4 places | f6b7fa1 | ✅ Probado en Studio, Laboratorio (sin probar: VERIFICACION §74) |
 | **W2** | Pose de apuntar visible para todos (3P) | 015e9d3 | ✅ Probado en Studio (sin probar: VERIFICACION §75) |
 | **W3** | Confirmación de impacto: `HitFeedback`, hitmarker y sonidos | f71ba2e | ✅ Probado en Studio y en el juego publicado con 2 jugadores (sin probar: VERIFICACION §76) |
-| **W4** | Bala inmediata del tirador y dispersión sincronizada | — | ⏳ |
+| **W4** | Bala inmediata del tirador y dispersión sincronizada | da12de9 | ✅ Probado en Studio (sin probar: VERIFICACION §78) |
 | **W5** | Marcas de impacto, chispas, polvo y pulpa | — | ⏳ |
 | **W6** | Zonas por piezas, rebobinado de pose y ayuda de puntería | — | ⏳ |
 | **W7** | Apuntar de verdad (ADS) y cámara al hombro | — | ⏳ |
@@ -854,21 +854,27 @@ Decisiones del 29-10-2026:
 | **W10** | Rig de brazos en primera persona del Lab | — | ⏳ |
 | **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
 
-**Handoff de la Fase 19 W4 (29-10-2026)**
-- **Estado:** W1 (f6b7fa1), W2 (015e9d3 y 43d4eed, con los 16 ids ya publicados) y W3 cerradas. W3 está hecha en el código y probada en Studio, pero **sin commit** hasta el «aprobado» del usuario. Archivos nuevos de W3: `src/combat/HitFeedback.luau` y `src/combatClient/Controllers/HitFeedbackController.luau`. Sin probar de W3: VERIFICACION §76. Siguiente número libre de VERIFICACION: §77. Plan completo y decisiones en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W4).
-- **Objetivo W4:** bala inmediata del tirador y dispersión sincronizada. Depende de W3.
-- **Cliente:**
-  - `WeaponController.fire` (líneas 419-465) manda `shotSeq` en `UseWeapon` y dibuja `LocalShot` desde la pieza `Muzzle` visible (la de la vista en primera persona o la de la herramienta) hacia `Aim.point`.
-  - `AbilityFxController`: `projectile()` (3069-3192) acepta el origen local; `localStop` (3032-3061) se para también en jugadores (solo el dibujo); `land` recibe la normal y la pieza; trazadoras del Lab más gruesas.
-- **Servidor:** `Projectiles.fire` (197-245) recibe `ownerSeq`. `Projectile` va por `others`; al dueño solo le llega `ProjectileAck` si la dirección del servidor se aparta más de 1,5° (ayuda de puntería). `ProjectileEnd` sigue yendo a todos.
-- **Dispersión determinista:** nuevo `LabSpread.offset(seed, seq, deg)`, con el atributo `ShotSeed` por cada vida y `CombatService.scatter` (línea 921).
-- **Config:** `Combat.ShotTrace = { CorrectDegrees 1.5, CorrectSeconds 0.08, TracerWidthFP 0.25 }`.
-- **Prueba:** Network Simulation a 150 ms: la bala sale al instante, sin duplicado y con una corrección suave. Lo que ven los demás (con 2 clientes) también se comprueba en W4.
-- **Pendiente de investigar (no bloquea W4):** en el juego publicado el arma a distancia se ve BOCA ABAJO (girada 180° sobre su eje: mira abajo) en los demás jugadores en la pose Aim*; en Studio las pistas dan el arma boca arriba tanto con el servidor como en el cliente observador, así que no está reproducido. Se necesita saber si pasa en reposo, con qué armas, y si el dueño en tercera persona se ve bien.
-- **Trampas conocidas:** (1) en Play, el `require` del MCP es otra copia: para probar remotos, dispara los que están en `ReplicatedStorage.Remotes` desde el cliente. (2) Play en Studio escribe el perfil real: haz copia en `PlayerData_v1_backups` y restáurala después. (3) Hay 4 Studios abiertos (ids con `list_roblox_studios`); trabaja en el que toque y no toques los otros. (4) Deja la cámara de edición en `Fixed`, como último paso.
-- **Cómo trabajar:** el `programador` escribe con esta especificación (skill `combate-roblox`); la sesión principal revisa el diff; `probador-studio` prueba con dos clientes y Network Simulation; `documentador` hace la sección de VERIFICACION, la fila de W4 y el borrador del commit.
-- **Flujo:** commit solo tras el «aprobado» del usuario; push y fila de `PLAN.md` en un commit aparte. Después, el Handoff de W5 (marcas de impacto y pulpa, depende de W4).
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W4, y el plan en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`. Haz el grupo W4.»
+**Handoff de la Fase 19 W5 (29-10-2026)**
+- **Estado:** W1 (f6b7fa1), W2 (015e9d3 y 43d4eed, con los 16 ids ya publicados), W3 (f71ba2e) y W4 hechas. W4 está hecha en el código y probada en Studio, pero **sin commit** hasta el «aprobado» del usuario. Sin probar de W4: VERIFICACION §78. Sin probar de W3: VERIFICACION §76. Siguiente número libre de VERIFICACION: §79. Plan completo y decisiones en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W5).
+- **Objetivo W5:** marcas de impacto, chispas, polvo y pulpa. Depende de W4.
+- **Qué hacer:**
+  - Nuevo `src/combatClient/ImpactFx.luau`, con pool como `BossFx` y tope, sin `Instance.new` por disparo cuando el pool está lleno. Tope: `Budgets.Vfx.ImpactMarks` Low 15 / Medium 35 / High 60 (un tirador con dardos puede pasar de 50 marcas).
+  - Marca: losa voxel de 0,3×0,3×0,05 pegada a la normal. Chispas: un emisor reutilizable con `:Emit` orientado a la normal. Polvo del color del material o de la pieza. Pulpa: cubitos amarillos (255,225,90) en los cuerpos.
+  - `AbilityFxController`: quitar el `ring()` horizontal de las paredes. Hoy cada impacto de pared deja unas 28 piezas «Ring» (visto en W4); W5 las sustituye.
+  - `ProjectileEnd` lleva `hitBody`.
+  - Config: `ImpactFx = { MarkSeconds 8, MarkFadeSeconds 1, Sparks 4/8/12, Pulp 3/6/10 }` (Low/Medium/High) y sección nueva en `Rendimiento` (skill `modelos-3d-roblox`, §6).
+- **Mapa del código de W4:**
+  - Servidor: `Projectiles.fire` (`src/combat/Projectiles.luau`) recibe `ownerSeq`, el número de disparo que manda `CombatService`. Los demás reciben `Projectile`; al tirador solo le llega `ProjectileAck(seq, id, dirección real)`, y solo si la dirección se aparta más de 1,5°.
+  - `ShotSeedService` (`src/combat/Services/`) pone el atributo `ShotSeed` al aparecer cada vida. `CombatService.scatter` aplica `LabSpread.apply` con esa semilla.
+  - `src/shared/LabSpread.luau`: `offset(seed, seq, deg)` y `apply(direction, seed, seq, degrees)`.
+  - Cliente: `WeaponController.launchLocalShot` calcula la dispersión y llama a `AbilityFxController.localShot`. La boca sale de `MuzzleSource` (la pieza de la vista en el Lab) o, si no, de la herramienta.
+  - `AbilityFxController`: `localShot` (la bala propia, al momento), `launch` (lanza la bala para todos) y `onProjectileAck` (junta la bala local con la del servidor).
+  - Config: `Combat.ShotTrace = { CorrectDegrees 1.5, CorrectSeconds 0.08, TracerWidthFP 0.5 }`.
+- **Trampas conocidas:** (1) en Play, el `require` del MCP es otra copia: para remotos, usa los de `ReplicatedStorage.Remotes` desde el cliente. (2) Play en Studio escribe el perfil real: haz copia en `PlayerData_v1_backups` y restáurala después. (3) Hay 4 Studios abiertos (ids con `list_roblox_studios`); trabaja en el que toque y no toques los otros. (4) Deja la cámara de edición en `Fixed`, como último paso. (5) Con `LabWeapon` hay que fijar el atributo de munición en el servidor para tener munición en las pruebas del MCP. (6) Los muñecos del Lab quedan tras un muro si se dispara desde la base.
+- **Prueba:** ráfaga de dardos contra pared y suelo, con capturas; `Rendimiento` sin alertas. Los 10 tiradores en teléfono van a VERIFICACION.
+- **Cómo trabajar:** el `programador` escribe con esta especificación (skill `combate-roblox` para el combate y `modelos-3d-roblox` para los modelos y `Rendimiento`); la sesión principal revisa el diff y las capturas; `probador-studio` hace la ráfaga y `Rendimiento`; `documentador` hace la sección de VERIFICACION, la fila de W5 y el borrador del commit.
+- **Flujo:** commit solo tras el «aprobado» del usuario; push y fila de `PLAN.md` en un commit aparte. Después, el Handoff de W6 (zonas por piezas, depende de W3).
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W5, y el plan en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`. Haz el grupo W5.»
 
 ---
 
