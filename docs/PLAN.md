@@ -714,6 +714,19 @@ Decisiones del 28-10-2026:
 - **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de B1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo B1.»
 
+**Handoff de B2 (29-10-2026)**
+- **Estado:** B1 cerrada y subida (9a40a19, PLAN 75ab7ed). B2 sin empezar. Siguiente número libre de VERIFICACION: §56.
+- **Antes de escribir código:** pide al agente `search` el mapa de `island/server/Services/DayNightService` (donde se escribe `MatchDay`), de dónde salen la detección de los monos, el daño y el botín de los monos, el crecimiento de las plantas y la bajada de hambre y sed, y cómo dibuja el cielo la luna (el `Sky` del place y `MoonAngularSize`). Comprueba las líneas: este handoff se escribe sin haber leído ese código.
+- **Objetivo:** ver la tanda B2 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección B2):
+  1. **Fase de la luna:** `fase = floor((MatchDay-1)/2) % 4` (Nueva, Creciente, Llena, Menguante), en el atributo `MoonPhase` de `ReplicatedStorage`, escrito por `DayNightService`.
+  2. **Efectos** en `Config.Moon` (del 10 al 15 %), medidos con `Equilibrio` y `Economia`: Nueva = noche más oscura y monos que detectan desde menos distancia; Creciente = plantas un 15 % más rápidas; Llena = monos con +10 % de daño y un 15 % más de botín; Menguante = hambre y sed un 10 % más lentas.
+  3. **Visual:** tamaño y textura de la luna según la fase, y su peso en la curva de luz: se engancha en `adjust` de `LightingController` (B1 dejó ahí el sitio).
+  4. **Interfaz:** icono de la fase junto al reloj, con su descripción (skill `interfaz-roblox`). Un icono, una sola cosa: no repetir el emoji de otro objeto.
+- **Riesgos:** la luna roja (B3) se sumará encima de la fase: deja un sitio claro. El botín extra de la fase Llena no puede dar Ámbar (regla de pago de `Economia`). Los textos nuevos pasan por `T()` y llevan su inglés; al cerrar, `strings.py --csv-nuevas` y `--marcar-subidas`.
+- **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` y `rojo build` de los 4 places. `Equilibrio` y `Economia` en el Studio de la Isla (modo edición, con `Clone`). En Play con `probador-studio`: fase de la luna con `SkipPhase` y capturas de la luz y del icono. Lo que necesite el juego publicado o dos jugadores va a VERIFICACION §56.
+- **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de B2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo B2.»
+
 ---
 
 ## 4. Cronograma estimado
