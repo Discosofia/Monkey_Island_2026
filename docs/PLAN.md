@@ -627,7 +627,7 @@ Decisiones del 28-10-2026:
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
-| **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | — | ⏳ |
+| **A1** | Textos en latino de los contratos, menús bloqueados 4 s en combate, caja de golpe del gigante | 1887267 | ✅ Probado en Studio (sin probar: VERIFICACION §49) |
 | **A2** | Panel de admin: premium en el perfil, jefe junto al admin con aviso global, tablero con activar/desactivar, mantenimiento único y cancelable | — | ⏳ |
 | **A3** | Gigante en los 4 places, con vida según jugadores activos | — | ⏳ |
 | **A4** | Jefe en los 4 places, con premio fuera de la Isla | — | ⏳ |
