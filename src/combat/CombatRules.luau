@@ -64,6 +64,8 @@ export type Movement = {
 	dodgeStyle: string,
 	-- Tecla del deslizamiento (nombre de Enum.KeyCode): "LeftAlt", o "C" en el Laboratorio.
 	slideKey: string,
+	-- true: también se desliza andando, con la versión corta de Config.Movement.Slide.Walking (el Laboratorio).
+	slideFromWalk: boolean,
 }
 
 export type Rules = {
@@ -183,7 +185,7 @@ local rules: Rules = {
 	pvpWeaponMultipliers = {},
 	healMultiplier = 1,
 	pvpStatus = false,
-	movement = { staminaFree = false, slide = true, dodgeStyle = "Roll", slideKey = "LeftAlt" },
+	movement = { staminaFree = false, slide = true, dodgeStyle = "Roll", slideKey = "LeftAlt", slideFromWalk = false },
 	telemetry = {
 		damageDealt = nothing,
 		healed = nothing,
@@ -206,6 +208,7 @@ local function publishMovement()
 	ReplicatedStorage:SetAttribute("MovementSlide", movement.slide)
 	ReplicatedStorage:SetAttribute("MovementDodgeStyle", movement.dodgeStyle)
 	ReplicatedStorage:SetAttribute("MovementSlideKey", movement.slideKey)
+	ReplicatedStorage:SetAttribute("MovementSlideFromWalk", movement.slideFromWalk)
 end
 
 -- Cambia las reglas que se pasen; las demás se quedan como estaban.

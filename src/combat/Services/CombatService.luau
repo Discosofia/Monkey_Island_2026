@@ -1241,9 +1241,11 @@ end
 -- El deslizamiento (Fase 15, V2): el cliente ya ha movido al personaje; aquí se comprueba que podía
 -- (regla del place, estado, bandera, tiempo de espera con el margen de su ping y estamina del servidor)
 -- y se anota hasta cuándo dura en "SlidingUntil". No da invulnerabilidad ni suelta la guardia.
-local function onSlide(player: Player)
+local function onSlide(player: Player, short: any)
 	local rules = CombatRules.get()
 	local settings = Config.Movement.Slide
+	-- La versión corta (andando) solo existe donde lo permite la regla del place.
+	local walking = short == true and rules.movement.slideFromWalk
 	local now = os.clock()
 	local last = lastSlideAt[player]
 	local slack = 2 * Latency.compensation(player)
@@ -1263,7 +1265,10 @@ local function onSlide(player: Player)
 		return
 	end
 	lastSlideAt[player] = now
-	player:SetAttribute("SlidingUntil", Workspace:GetServerTimeNow() + settings.Seconds)
+	player:SetAttribute(
+		"SlidingUntil",
+		Workspace:GetServerTimeNow() + (if walking then settings.Walking.Seconds else settings.Seconds)
+	)
 	rules.telemetry.mechanic(player, "Slides")
 end
 

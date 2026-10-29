@@ -103,6 +103,14 @@ function DodgeFeel.tilt(): number
 	return -viewSide * math.rad(settings.LabTiltDegrees) * viewCurve(settings.LabTiltSeconds)
 end
 
+-- Cuánto se nota ahora la última esquiva con efecto de vista (0 a 1; siempre 0 fuera del estilo "Dash").
+function DodgeFeel.intensity(): number
+	if Movement.rules().dodgeStyle ~= "Dash" then
+		return 0
+	end
+	return viewCurve(Config.Movement.Dodge.LabTiltSeconds)
+end
+
 function DodgeFeel.weaponShift(): Vector3
 	if Movement.rules().dodgeStyle ~= "Dash" then
 		return Vector3.zero

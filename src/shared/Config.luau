@@ -702,6 +702,27 @@ local Config = {
 			CameraDrop = 1.5,
 			-- Lo que tarda la cámara en bajar y en subir (s).
 			CameraSeconds = 0.1,
+			-- Versión corta, andando (solo con la regla slideFromWalk, el Laboratorio): menos impulso y
+			-- menos tiempo, y vale con ir andando (velocidad horizontal mínima MinSpeed, studs/s).
+			Walking = {
+				StartSpeed = 30,
+				EndSpeed = 16,
+				Seconds = 0.5,
+				MinSpeed = 8,
+			},
+		},
+		-- Líneas blancas de movimiento en pantalla (solo en el Laboratorio, primera persona): al esquivar,
+		-- al deslizarse y al correr de verdad. Opacidad máxima de cada causa (0 a 1) y velocidad horizontal
+		-- (studs/s) desde la que se corre "rápido".
+		SpeedLines = {
+			Count = 18,
+			DodgeStrength = 1,
+			SlideStrength = 0.8,
+			SprintStrength = 0.35,
+			SprintMinSpeed = 24,
+			-- Cada cuántos segundos se recolocan las líneas, y lo que tarda la intensidad en subir y bajar.
+			ShuffleSeconds = 0.07,
+			FadeSeconds = 0.15,
 		},
 		-- Esquiva con efecto (Fase 15, V3): la esquiva y el Evasivo (Combat.DodgeSpeed, Evasive.Speed).
 		Dodge = {

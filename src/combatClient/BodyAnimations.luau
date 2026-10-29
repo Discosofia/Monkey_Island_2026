@@ -118,6 +118,40 @@ function BodyAnimations.setSpeed(key: PlayerAnimations.Key, speed: number)
 	end
 end
 
+-- Reproduce "key" en el personaje de OTRO jugador durante "seconds" (para los que no ven la pista que
+-- reproduce su dueño: RemoteSlideController). Si ya suena una con el mismo id (la replicada), no hace nada.
+function BodyAnimations.playOn(character: Model, key: PlayerAnimations.Key, seconds: number)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local animator = if humanoid then humanoid:FindFirstChildOfClass("Animator") else nil
+	local id = animationId(key)
+	if not (humanoid and animator and id and humanoid.RigType == Enum.HumanoidRigType.R15) then
+		return
+	end
+	for _, playing in animator:GetPlayingAnimationTracks() do
+		if playing.Animation and playing.Animation.AnimationId == id then
+			return
+		end
+	end
+	local animation = Instance.new("Animation")
+	animation.AnimationId = id
+	local ok, loaded = pcall(function()
+		return animator:LoadAnimation(animation)
+	end)
+	if not ok then
+		return
+	end
+	local data = PlayerAnimations.Animations[key]
+	loaded.Priority = data.priority
+	loaded.Looped = data.looped == true
+	loaded:Play(0.1)
+	task.delay(seconds, function()
+		if loaded.IsPlaying then
+			loaded:Stop(0.2)
+		end
+		loaded:Destroy()
+	end)
+end
+
 -- Gesto de una habilidad de Data/Roles, si tiene. Con "castSeconds" (su preparación, C8), el que marca
 -- su golpe ("impactSeconds" en Data/PlayerAnimations) se estira para que el golpe caiga cuando sale.
 function BodyAnimations.playAbility(abilityId: string, castSeconds: number?)

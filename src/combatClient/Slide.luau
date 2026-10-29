@@ -1,5 +1,6 @@
 --!strict
--- Deslizamiento del jugador local (Fase 15, V2). Corriendo, en el suelo y a buena velocidad, un impulso
+-- Deslizamiento del jugador local (Fase 15, V2). Corriendo, en el suelo y a buena velocidad (en el
+-- Laboratorio, regla slideFromWalk, también andando, con la versión corta Config.Movement.Slide.Walking), un impulso
 -- de Config.Movement.Slide.StartSpeed que baja hasta EndSpeed (Dash.push con velocidad final), con el
 -- cuerpo agachado (BodyAnimations "Slide"). Sin invulnerabilidad: se puede pegar y disparar mientras.
 --   - La dirección se fija al empezar y no gira. Se corta con una pared delante (Dash.push), si te
@@ -151,18 +152,27 @@ function Slide.tryStart(sprinting: boolean): boolean
 	local rules = Movement.rules()
 	local settings = Config.Movement.Slide
 	local now = os.clock()
-	if not (rules.slide and sprinting) or sliding or carrying or now - lastStartAt < settings.CooldownSeconds then
+	-- Andando solo se desliza donde lo permite la regla (el Laboratorio), con la versión corta.
+	local short = not sprinting and rules.slideFromWalk
+	if
+		not (rules.slide and (sprinting or short))
+		or sliding
+		or carrying
+		or now - lastStartAt < settings.CooldownSeconds
+	then
 		return false
 	end
 	local humanoid, root = localParts()
 	if not (humanoid and root) or humanoid.Health <= 0 then
 		return false
 	end
-	-- En el suelo y a velocidad de correr de verdad.
+	-- En el suelo y a velocidad de correr de verdad (o, en la versión corta, de andar).
 	local velocity = root.AssemblyLinearVelocity
 	if
 		humanoid.FloorMaterial == Enum.Material.Air
-		or Vector3.new(velocity.X, 0, velocity.Z).Magnitude < settings.MinSpeed
+		or Vector3.new(velocity.X, 0, velocity.Z).Magnitude < (if short
+			then settings.Walking.MinSpeed
+			else settings.MinSpeed)
 		or humanoid.MoveDirection.Magnitude < 0.1
 	then
 		return false
@@ -183,8 +193,8 @@ function Slide.tryStart(sprinting: boolean): boolean
 		return false
 	end
 	local weak = if Survival.isWeak(player) then settings.WeakFactor else 1
-	local push =
-		Dash.push(root, humanoid.MoveDirection, settings.StartSpeed * weak, settings.Seconds, settings.EndSpeed * weak)
+	local kind = if short then settings.Walking else settings
+	local push = Dash.push(root, humanoid.MoveDirection, kind.StartSpeed * weak, kind.Seconds, kind.EndSpeed * weak)
 	if not push then
 		return false
 	end
@@ -199,7 +209,7 @@ function Slide.tryStart(sprinting: boolean): boolean
 	savedAutoRotate = humanoid.AutoRotate
 	humanoid.AutoRotate = false
 	BodyAnimations.play("Slide")
-	Remotes.Slide:FireServer()
+	Remotes.Slide:FireServer(short)
 	return true
 end
 

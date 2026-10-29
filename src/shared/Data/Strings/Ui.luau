@@ -53,6 +53,7 @@ return {
 	["Cuáles: todos, o solo críticos, K.O. y golpes fuertes que recibes"] = "Which: all, or only crits, K.O.s and heavy hits you take",
 	["Daño de los aliados (tenue)"] = "Allies' damage (faint)",
 	["Deslizar"] = "Slide",
+	["{key} · Deslizar"] = "{key} · Slide",
 	["Alt izquierdo (C en el Laboratorio) · R3 · «Deslizar» mientras corres"] = "Left Alt (C in the Laboratory) · R3 · “Slide” while sprinting",
 	["solo corriendo; no te hace invulnerable"] = "only while sprinting; it doesn't make you invulnerable",
 	["R · X en el mando · «Recargar» en el móvil"] = "R · X on the gamepad · “Reload” on mobile",

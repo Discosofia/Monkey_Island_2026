@@ -61,6 +61,7 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local CameraShake = require(script.Parent.Parent.CameraShake)
+local Movement = require(script.Parent.Parent.Movement)
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
@@ -2687,6 +2688,13 @@ local function dodgeFx(character: Model?, direction: Vector3?)
 		return
 	end
 	flat = flat.Unit
+	-- En la primera persona del Laboratorio (esquiva "Dash") uno no ve su propia estela: la ven los rivales.
+	if character == Players.LocalPlayer.Character and Movement.rules().dodgeStyle == "Dash" then
+		local feet = root.Position - Vector3.new(0, 2.5, 0) - flat * 1.2
+		burst(feet, SMOKE_TEXTURE, Color3.fromRGB(205, 190, 165), 5, 1.4, 4, 0.5)
+		Sfx.play("Dodge", root)
+		return
+	end
 	local streak = trail(root, Vector3.new(0, 0.3, 0), ColorSequence.new(Color3.fromRGB(215, 232, 250)), 0.35, 0.8)
 	streak.LightEmission = 0.35
 	streak.Transparency = NumberSequence.new(0.45, 1)

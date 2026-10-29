@@ -15,6 +15,7 @@ export type Rules = {
 	slide: boolean,
 	dodgeStyle: string,
 	slideKey: string,
+	slideFromWalk: boolean,
 }
 
 type Entry = { name: string, fn: (player: Player) -> number? }
@@ -78,11 +79,13 @@ function Movement.rules(): Rules
 	local slide = ReplicatedStorage:GetAttribute("MovementSlide")
 	local dodgeStyle = ReplicatedStorage:GetAttribute("MovementDodgeStyle")
 	local slideKey = ReplicatedStorage:GetAttribute("MovementSlideKey")
+	local slideFromWalk = ReplicatedStorage:GetAttribute("MovementSlideFromWalk")
 	return {
 		staminaFree = if typeof(staminaFree) == "boolean" then staminaFree else false,
 		slide = if typeof(slide) == "boolean" then slide else true,
 		dodgeStyle = if typeof(dodgeStyle) == "string" then dodgeStyle else "Roll",
 		slideKey = if typeof(slideKey) == "string" then slideKey else "LeftAlt",
+		slideFromWalk = if typeof(slideFromWalk) == "boolean" then slideFromWalk else false,
 	}
 end
 

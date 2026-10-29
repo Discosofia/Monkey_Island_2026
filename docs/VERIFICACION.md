@@ -2663,6 +2663,29 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
 2. [ ] Haz un gesto (esquivar, deslizar, comer, caer) y vuelve a andar.
    ✅ El gesto manda sobre la cabeza mientras dura, y al acabar vuelve a quedar quieta.
 
+## 54. Fase 18 L2: Laboratorio, movimiento (29-10-2026)
+
+#### 54.1 Dos jugadores
+
+1. [ ] Un jugador se desliza (con C, andando y corriendo) mientras el otro lo mira.
+   ✅ El que mira ve el cuerpo agachado y echado hacia atrás mientras dura el deslizamiento, sin que se quede en esa pose después.
+2. [ ] Un jugador esquiva (Q) cerca del otro.
+   ✅ El rival ve la estela, el polvo en los pies y oye el aire. El que esquiva no ve su propia estela, solo el polvo y el sonido.
+
+#### 54.2 Teléfono y mando
+
+1. [ ] En el teléfono, corre y pulsa el botón que dice «Deslizar».
+   ✅ Se desliza y no sale el aviso «C · Deslizar» abajo a la izquierda.
+2. [ ] Con mando, pulsa R3 andando.
+   ✅ Se desliza con la versión corta.
+
+#### 54.3 Sensación (a ojo)
+
+1. [ ] En PC, esquiva, desliza (andando y corriendo) y corre en el Laboratorio.
+   ✅ Salen líneas blancas finas hacia los bordes: fuertes al esquivar, medias al deslizar y suaves al correr. No tapan la mira ni el cargador.
+2. [ ] Pon el ajuste de sacudida de cámara en «apagado».
+   ✅ No salen líneas blancas.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

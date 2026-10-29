@@ -26,7 +26,13 @@ function DunasCombatRules:Init()
 	local telemetry = table.clone(CombatRules.get().telemetry)
 	telemetry.mechanic = ArenaTelemetryService.mechanic
 	CombatRules.set({
-		movement = { staminaFree = false, slide = true, dodgeStyle = "Roll", slideKey = "LeftAlt" },
+		movement = {
+			staminaFree = false,
+			slide = true,
+			dodgeStyle = "Roll",
+			slideKey = "LeftAlt",
+			slideFromWalk = false,
+		},
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
 			local attackerTeam = Arena.teamOf(attacker)
 			local victimTeam = Arena.teamOf(victim)
