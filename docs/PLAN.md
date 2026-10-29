@@ -689,6 +689,19 @@ Decisiones del 28-10-2026:
 - **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de L1, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo L1.»
 
+**Handoff de L2 (29-10-2026)**
+- **Estado:** L1 cerrada y subida (3509ba1). L2 sin empezar. Siguiente número libre de VERIFICACION: §54. De L1 quedan las poses de apuntar y disparar (ids vacíos en `Data/WeaponAnimations`), que publica el usuario.
+- **Antes de escribir código:** pide al agente `search` el mapa de `Slide` (`Slide.tryStart`, `Config.Movement.Slide`), `CombatService.onSlide` y el atributo `SlidingUntil`, `BodyAnimations` (la animación «Slide» en clientes remotos), `AbilityFxController` «DodgeFx» y el Laboratorio (`FirstPersonController`, `LabCombatRules`). Comprueba las líneas: este handoff se escribe sin haber leído el código.
+- **Objetivo:** ver la tanda L2 del plan (`C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`, sección L2):
+  1. **Deslizarse con C sin correr:** `Slide.tryStart` funciona sin correr, con una versión más corta (`Config.Movement.Slide` o una regla del Laboratorio en `CombatRules`). Aviso de la tecla «C» en el HUD (texto por `T()`).
+  2. **Que los demás vean la animación «Slide»:** averiguar por qué no la ven (`BodyAnimations` en el cliente o el atributo `SlidingUntil` que publica `CombatService.onSlide`). Si hace falta, reproducirla en los clientes remotos al leer el atributo.
+  3. **Esquive:** la estela («DodgeFx») no se dibuja para uno mismo en primera persona; los rivales sí la ven.
+  4. **Líneas blancas de movimiento** en pantalla (primera persona) al esquivar, al deslizarse y al correr rápido: un `ScreenGui` en el cliente, con la paleta de `interfaz-roblox`.
+- **Riesgos:** el deslizamiento es combate compartido: lo nuevo solo para el Laboratorio, sin cambiar la Isla ni Dunas (comprobar con `Equilibrio` y a escala normal). En el Laboratorio el viewmodel no usa `AnimationTrack` (ver L1), así que la animación remota es la del personaje. Las líneas blancas no usan verde ni morado.
+- **Verificación:** `stylua --check src`, `selene src`, `python tools/strings.py` y `rojo build` de los 4 places. En Play con `probador-studio` en el Laboratorio: deslizar con C sin correr, estela invisible en primera persona, líneas blancas. Que el rival vea el deslizamiento y la estela necesita 2 jugadores: va a VERIFICACION §54.
+- **Flujo:** probar en Studio, commit tras «aprobado», push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 18 y el Handoff de L2, y el plan en `C:\Users\jose\.claude\plans\majestic-chasing-clarke.md`. Haz el grupo L2.»
+
 ---
 
 ## 4. Cronograma estimado
