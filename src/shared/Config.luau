@@ -2186,6 +2186,7 @@ local Config = {
 			WeaponSkinMythic = 165, -- skin mítica de arma, nivel 4
 			ArmorRank = { 80, 115, 150, 210 }, -- armadura por rango I a IV
 			OutfitMythicGrade4 = 570, -- traje mítico, grado 4
+			OutfitLegendaryGrade4 = 350, -- traje legendario, grado 4
 			PetTotal = 240, -- mascota entera
 			PetAnimated = 110, -- piezas de la mascota que se mueven cada fotograma
 			MountRare = 260,

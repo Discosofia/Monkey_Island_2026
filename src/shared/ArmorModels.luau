@@ -6054,7 +6054,8 @@ do
 	-- Hombrera del fuego azul: losa de pómez inclinada hacia fuera con una piedra encima, canto de carbón y
 	-- una raya de fuego azul debajo; tres cristales de azufre grandes alrededor de una llama en píxeles que,
 	-- con "lit", echa fuego.
-	local function blueFirePauldron(arm: Builder, side: number, lit: boolean)
+	local function blueFirePauldron(arm: Builder, side: number, grade: number)
+		local lit = grade >= 4
 		local as = arm.size
 		local top = as.Y / 2
 		local pad = CFrame.new(side * 0.14, top + 0.08, 0) * CFrame.Angles(0, 0, -side * 0.22)
@@ -6087,10 +6088,144 @@ do
 		local foot = pixelFlame(arm, SMALL_FLAME, BLUE_FLAME, CFrame.new(side * 0.02, top + 0.36, 0), 0.12, side < 0)
 		if lit then
 			blueFire(foot, 5, 0.5)
+			smoke(foot, 1.5, Color3.fromRGB(150, 160, 190), 0.5)
+		end
+		-- Grado 1: remaches de azufre en las cuatro esquinas de la losa y dos grabados de carbón en sus bordes.
+		for sz = -1, 1, 2 do
+			for sx = -1, 1, 2 do
+				arm.ball(0.12, SULFUR, SMOOTH, pad * CFrame.new(sx * as.X * 0.72, 0.24, sz * as.Z * 0.72))
+			end
+			arm.block(Vector3.new(as.X * 1.3, 0.04, 0.1), CHARCOAL, SLATE, pad * CFrame.new(0, 0.23, sz * as.Z * 0.66))
+		end
+		-- Grado 2: tres gotas de fuego azul que cuelgan del canto de fuera y un cristal que sale hacia fuera.
+		if grade >= 2 then
+			for _, z in { -0.5, 0, 0.5 } do
+				lavaDrip(
+					arm,
+					pad * CFrame.new(side * as.X * 0.76, -0.34, z * as.Z),
+					0.3 - math.abs(z) * 0.1,
+					BLUE_FIRE_MID
+				)
+			end
+			fireCrystal(
+				arm,
+				(pad * CFrame.new(side * as.X * 0.7, 0.2, 0)).Position,
+				pad:VectorToWorldSpace(Vector3.new(side, 0.7, 0)),
+				0.5,
+				0.2,
+				SULFUR,
+				SULFUR_GLOW
+			)
+		end
+		-- Grado 3: aleta de carbón en el borde de fuera con una raya de fuego azul y tres remaches.
+		if grade >= 3 then
+			local fin = pad * CFrame.new(side * as.X * 0.8, 0.3, 0) * CFrame.Angles(0, 0, -side * 0.2)
+			arm.block(Vector3.new(0.1, 0.45, as.Z * 1.2), CHARCOAL, SLATE, fin)
+			arm.block(Vector3.new(0.04, 0.3, as.Z * 0.9), BLUE_FIRE, NEON, fin * CFrame.new(side * 0.06, -0.05, 0))
+			for _, z in { -1, 0, 1 } do
+				arm.ball(0.1, SULFUR, SMOOTH, fin * CFrame.new(side * 0.08, 0.14, z * as.Z * 0.5))
+			end
+		end
+		-- Grado 4: dos cristales altos en las esquinas de dentro y una chispa que sube sobre la llama.
+		if lit then
+			for sz = -1, 1, 2 do
+				fireCrystal(
+					arm,
+					(pad * CFrame.new(side * as.X * 0.5, 0.2, sz * as.Z * 0.62)).Position,
+					pad:VectorToWorldSpace(Vector3.new(side * 0.4, 1, sz * 0.5)),
+					0.9,
+					0.26,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			arm.ball(0.1, BLUE_FIRE_PALE, NEON, CFrame.new(side * 0.02, top + 1.3, 0))
+		end
+	end
+
+	-- Brasas: bolitas de neón pálido (la mitad, más pequeñas) en los puntos de "points".
+	local function motes(make: Builder, points: { Vector3 }, size: number)
+		for index, at in points do
+			make.ball(if index % 2 == 0 then size else size * 0.7, BLUE_FIRE_PALE, NEON, CFrame.new(at))
+		end
+	end
+
+	-- Hilera de gotas de fuego azul que cuelgan de "at" (su borde de arriba) en las X de "xs", alternando largo.
+	local function drips(make: Builder, at: CFrame, xs: { number }, length: number)
+		for index, x in xs do
+			lavaDrip(make, at * CFrame.new(x, 0, 0), if index % 2 == 0 then length * 0.7 else length, BLUE_FIRE_MID)
+		end
+	end
+
+	-- Marco de la espalda (Guardián e Invocador): de ancho "width" y alto "height", centrado en "y" a la
+	-- profundidad "z" de la placa. Dos pilares de pómez con remaches y una raya azul por dentro (con
+	-- "pillars"), una viga de carbón arriba con la raya de fuego azul, cuatro escuadras en las esquinas, una
+	-- hilera de "dripCount" gotas azules abajo y "crown" cristales de azufre que salen de la viga.
+	local function backFrame(
+		make: Builder,
+		width: number,
+		height: number,
+		y: number,
+		z: number,
+		pillars: boolean,
+		dripCount: number,
+		crown: number
+	)
+		local halfW, halfH = width / 2, height / 2
+		if pillars then
+			for side = -1, 1, 2 do
+				make.block(
+					Vector3.new(0.14, height, 0.1),
+					PUMICE,
+					SLATE,
+					CFrame.new(side * (halfW - 0.07), y, z + 0.04)
+				)
+				make.block(
+					Vector3.new(0.04, height * 0.86, 0.1),
+					BLUE_FIRE,
+					NEON,
+					CFrame.new(side * (halfW - 0.18), y, z + 0.05)
+				)
+				for _, up in { 0.3, 0, -0.3 } do
+					make.ball(0.13, SULFUR, SMOOTH, CFrame.new(side * (halfW - 0.07), y + height * up, z + 0.1))
+				end
+			end
+		end
+		local beamY = y + halfH - 0.04
+		make.block(Vector3.new(width, 0.14, 0.14), CHARCOAL, SLATE, CFrame.new(0, beamY, z + 0.05))
+		make.block(Vector3.new(width, 0.04, 0.1), BLUE_FIRE, NEON, CFrame.new(0, beamY + 0.09, z + 0.05))
+		for side = -1, 1, 2 do
+			for up = -1, 1, 2 do
+				make.block(
+					Vector3.new(0.26, 0.26, 0.14),
+					PUMICE_DARK,
+					SLATE,
+					CFrame.new(side * (halfW - 0.13), y + up * (halfH - 0.13), z + 0.04)
+				)
+			end
+		end
+		local xs = {}
+		for index = 1, dripCount do
+			xs[index] = (index - (dripCount + 1) / 2) / dripCount * width * 0.9
+		end
+		drips(make, CFrame.new(0, y - halfH, z + 0.02), xs, 0.3)
+		for index = 1, crown do
+			local x = (index - (crown + 1) / 2) / crown * width * 0.8
+			fireCrystal(
+				make,
+				Vector3.new(x, beamY + 0.1, z + 0.05),
+				Vector3.new(x * 1.2, 1, 0.5),
+				if index % 2 == 0 then 0.42 else 0.58,
+				0.2,
+				SULFUR,
+				SULFUR_GLOW
+			)
 		end
 	end
 
 	-- Cinturón de carbón con la hebilla de pómez: un tachón de azufre y, desde el grado 2, dos cristales.
+	-- Desde el grado 1 lleva remaches y dos muescas de fuego azul; desde el 2, dos gotas azules; desde el 3,
+	-- otras dos con sus remaches; en el 4, una chispa en la hebilla y una gota central.
 	-- Devuelve el frente del cinturón (su Z), para colgar más cosas.
 	local function seasonBelt(body: Body, grade: number): number
 		local waist = body.waist
@@ -6101,6 +6236,19 @@ do
 		waist.block(Vector3.new(0.46, 0.36, 0.1), PUMICE, SLATE, buckle)
 		waist.block(Vector3.new(0.3, 0.22, 0.06), CHARCOAL, SLATE, buckle * CFrame.new(0, 0, -0.05))
 		waist.ball(0.18, SULFUR, SMOOTH, buckle * CFrame.new(0, 0, -0.08))
+		if grade >= 1 then
+			for side = -1, 1, 2 do
+				for _, x in { 0.2, 0.34 } do
+					waist.ball(0.12, SULFUR, SMOOTH, CFrame.new(side * hipWidth * x, 0.06, beltFront - 0.03))
+				end
+				waist.block(
+					Vector3.new(0.04, 0.2, 0.03),
+					BLUE_FIRE,
+					NEON,
+					CFrame.new(side * hipWidth * 0.27, 0.06, beltFront - 0.02)
+				)
+			end
+		end
 		if grade >= 2 then
 			for side = -1, 1, 2 do
 				fireCrystal(
@@ -6113,6 +6261,17 @@ do
 					SULFUR_GLOW
 				)
 			end
+			drips(waist, CFrame.new(0, -0.09, beltFront - 0.02), { -hipWidth * 0.27, hipWidth * 0.27 }, 0.26)
+		end
+		if grade >= 3 then
+			drips(waist, CFrame.new(0, -0.09, beltFront - 0.02), { -hipWidth * 0.4, hipWidth * 0.4 }, 0.2)
+			for side = -1, 1, 2 do
+				waist.ball(0.1, SULFUR, SMOOTH, CFrame.new(side * hipWidth * 0.4, 0.06, beltFront - 0.03))
+			end
+		end
+		if grade >= 4 then
+			waist.ball(0.1, BLUE_FIRE_PALE, NEON, buckle * CFrame.new(0, 0, -0.17))
+			drips(waist, CFrame.new(0, -0.09, beltFront - 0.02), { 0 }, 0.3)
 		end
 		return beltFront
 	end
@@ -6123,13 +6282,45 @@ do
 	local function seasonLimbs(body: Body, grade: number, flap: Color3, flapMaterial: Enum.Material, long: boolean?)
 		for side = -1, 1, 2 do
 			if grade >= 1 then
-				blueFirePauldron(body.upperArm[side], side, grade >= 4)
+				blueFirePauldron(body.upperArm[side], side, grade)
 			end
 			local forearm = body.lowerArm[side]
 			local fs = forearm.size
 			band(forearm, 0.05, fs.Y * 0.6, 0.1, PUMICE, SLATE)
 			band(forearm, fs.Y * 0.32, 0.06, 0.14, BLUE_FIRE, NEON)
 			band(forearm, -fs.Y / 2 + 0.12, 0.12, 0.14, CHARCOAL, SLATE)
+			-- Grado 1: dos anillos de pómez oscura; 2: dos remaches; 3 y 4: espolones de azufre hacia atrás.
+			if grade >= 1 then
+				band(forearm, fs.Y * 0.18, 0.05, 0.18, PUMICE_DARK, SLATE)
+				band(forearm, -fs.Y * 0.12, 0.05, 0.18, PUMICE_DARK, SLATE)
+			end
+			if grade >= 2 then
+				for _, up in { 0.22, -0.22 } do
+					forearm.ball(0.1, SULFUR, SMOOTH, CFrame.new(side * (fs.X / 2 + 0.06), fs.Y * up, -0.12))
+				end
+			end
+			if grade >= 3 then
+				fireCrystal(
+					forearm,
+					Vector3.new(side * fs.X * 0.3, fs.Y / 2 - 0.12, fs.Z / 2 + 0.04),
+					Vector3.new(side * 0.4, 0.3, 1),
+					0.45,
+					0.18,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			if grade >= 4 then
+				fireCrystal(
+					forearm,
+					Vector3.new(side * fs.X * 0.3, 0.1, fs.Z / 2 + 0.04),
+					Vector3.new(side * 0.5, 0, 1),
+					0.35,
+					0.16,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
 			if grade >= 2 then
 				fireCrystal(
 					forearm,
@@ -6155,6 +6346,38 @@ do
 				at * CFrame.new(0, -ls.Y * (tall / 2 - 0.01), -0.01)
 			)
 			leg.ball(0.12, SULFUR, SMOOTH, at * CFrame.new(0, 0.02, -0.11))
+			-- Grado 1: tres gotas de fuego azul bajo el faldón; 2: remaches en sus esquinas de arriba; 3 y 4:
+			-- cristales de azufre en el costado del muslo.
+			if grade >= 1 then
+				drips(leg, at * CFrame.new(0, -ls.Y * tall / 2 - 0.02, -0.02), { -ls.X * 0.28, 0, ls.X * 0.28 }, 0.22)
+			end
+			if grade >= 2 then
+				for _, x in { -0.34, 0.34 } do
+					leg.ball(0.1, SULFUR, SMOOTH, at * CFrame.new(x * ls.X, ls.Y * tall * 0.36, -0.1))
+				end
+			end
+			if grade >= 3 then
+				fireCrystal(
+					leg,
+					Vector3.new(side * ls.X / 2, ls.Y * 0.18, 0),
+					Vector3.new(side, 0.2, -0.3),
+					0.4,
+					0.16,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			if grade >= 4 then
+				fireCrystal(
+					leg,
+					Vector3.new(side * ls.X / 2, -ls.Y * 0.08, 0),
+					Vector3.new(side, 0.1, 0.3),
+					0.32,
+					0.14,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
 		end
 	end
 
@@ -6169,6 +6392,9 @@ do
 	-- la espalda; 1, las hombreras; 2, la llama del pecho, los cristales de la gorguera, de la hebilla y de los
 	-- brazales; 3, el cráter de la espalda con una llama pequeña; 4, la llamarada grande y el fuego que sale
 	-- de las llamas, con su luz.
+	-- Cada grado suma además detalle común (hombreras, brazales, faldones y cinturón con remaches, gotas de
+	-- fuego azul y cristales; marco de la espalda con pilares, viga y corona desde el 1; cristales en los
+	-- pilares y gotas bajo el disco desde el 2; cristales a los lados del cráter, remaches y brasas desde el 3).
 	local function blueFireGuardian(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -6251,6 +6477,30 @@ do
 			CFrame.new(0, -height * 0.02, plateZ - 0.03)
 		)
 		make.block(Vector3.new(width * 0.9, height * 0.9, 0.1), CHARCOAL, SLATE, CFrame.new(0, -height * 0.02, plateZ))
+		-- Grado 1: marco de pómez alrededor de la placa (pilares, viga con corona de cristales, escuadras y gotas
+		-- azules), tres costillas, el cuello trasero y, delante, remaches en la gorguera y tres placas de abdomen.
+		backFrame(make, width * 0.9, height * 0.9, -height * 0.02, plateZ, true, 7, 5)
+		for _, y in { 0.12, 0, -0.12 } do
+			make.block(
+				Vector3.new(width * 0.7, 0.08, 0.06),
+				PUMICE_DARK,
+				SLATE,
+				CFrame.new(0, height * y, plateZ + 0.06)
+			)
+		end
+		make.block(Vector3.new(width * 0.5, 0.3, 0.12), CHARCOAL, SLATE, CFrame.new(0, height * 0.44, back + 0.1))
+		make.block(
+			Vector3.new(width * 0.54, 0.06, 0.16),
+			PUMICE,
+			SLATE,
+			CFrame.new(0, height * 0.44 + 0.17, back + 0.1)
+		)
+		for index = 1, 7 do
+			make.ball(0.1, SULFUR, SMOOTH, CFrame.new((index - 4) * width * 0.09, height * 0.44 - 0.04, front - 0.03))
+		end
+		for _, y in { -0.34, -0.41, -0.48 } do
+			make.block(Vector3.new(width * 0.22, 0.1, 0.06), PUMICE, SLATE, CFrame.new(0, height * y, front - 0.03))
+		end
 		-- Grado 2: un cristal de azufre en cada lado alto de la placa, hacia atrás y arriba (lo del pecho no se
 		-- ve desde detrás; más hacia fuera, las hombreras los tapaban).
 		if grade >= 2 then
@@ -6264,16 +6514,68 @@ do
 					SULFUR,
 					SULFUR_GLOW
 				)
+				-- Y uno más grande en la cabeza de cada pilar.
+				fireCrystal(
+					make,
+					Vector3.new(side * width * 0.38, height * 0.43, plateZ + 0.1),
+					Vector3.new(side * 0.5, 1, 0.5),
+					0.6,
+					0.22,
+					SULFUR,
+					SULFUR_GLOW
+				)
 			end
+			-- Tres gotas de fuego azul bajo el disco del pecho.
+			drips(make, core * CFrame.new(0, -0.4, -0.04), { -0.18, 0, 0.18 }, 0.2)
 		end
 		local footY = -height * 0.3
 		if grade >= 3 then
 			-- En el grado 4, más ancha que el torso y más alta que la cabeza: es lo que se ve de lejos.
 			local flameAt = CFrame.new(0, footY, plateZ + 0.05)
 			if lit then
-				blueFire(pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.12, false), 12, 0.9)
+				local big = pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.12, false)
+				blueFire(big, 12, 0.9)
+				smoke(big, 2, Color3.fromRGB(150, 160, 190), 0.9)
 			else
 				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, width * 0.13, false)
+			end
+			-- Grado 3: cuatro cristales altos a los lados del cráter, remaches en su labio y siete brasas que
+			-- suben por delante de la llama (en el 4, tres más, más altas).
+			for index, x in { -0.44, -0.34, 0.34, 0.44 } do
+				fireCrystal(
+					make,
+					Vector3.new(x * width, footY + height * 0.06, plateZ + 0.34),
+					Vector3.new(x * 2.4, 1, 0.5),
+					if index == 1 or index == 4 then 0.9 else 0.7,
+					0.24,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			for index = 1, 7 do
+				make.ball(
+					0.12,
+					SULFUR,
+					SMOOTH,
+					CFrame.new((index - 4) * width * 0.11, footY - height * 0.04, plateZ + 0.37)
+				)
+			end
+			local sparks = {}
+			for index = 1, 7 do
+				sparks[index] = Vector3.new(
+					(index - 4) * width * 0.16,
+					footY + height * (0.7 + 0.12 * ((index * 3) % 5)),
+					plateZ + 0.6
+				)
+			end
+			motes(make, sparks, 0.1)
+			if lit then
+				local high = {}
+				for index = 1, 3 do
+					high[index] =
+						Vector3.new((index - 2) * width * 0.3, footY + height * (1.35 + 0.1 * index), plateZ + 0.6)
+				end
+				motes(make, high, 0.1)
 			end
 			-- Cráter: labio de carbón y pómez y cinco cristales de azufre delante del pie de la llama.
 			make.block(
@@ -6314,7 +6616,9 @@ do
 	-- hombreras; 2, collar de tres puntas de flecha de azufre con un broche de fuego azul, la capucha
 	-- bajada forrada de celeste y dos cristales de azufre en el carcaj; 3, tres zarpazos de fuego azul en la
 	-- capa, aros de fuego azul en el carcaj y una llama pequeña entre las flechas (arden); 4, la llama de las
-	-- flechas más grande, el bajo de la capa en llamas y el fuego de partículas, con su luz.
+	-- flechas más grande, el bajo de la capa en llamas y el fuego de partículas, con su luz. Además: flecos de
+	-- carbón y remaches en la capa desde el 1; flecos de pómez en la esclavina y puntas en el carcaj desde el 2;
+	-- el bajo de la capa arde ya en el 3.
 	local function blueFireStalker(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -6397,8 +6701,22 @@ do
 				)
 			end
 		end
-		if lit then
-			-- El bajo de la capa arde: cuatro llamas pequeñas.
+		-- Grado 1: nueve flecos de carbón que cuelgan del bajo de la capa y tres remaches en su cuello.
+		for index = 0, 8 do
+			make.fang(
+				if index % 2 == 0 then 0.34 else 0.26,
+				0.18,
+				CHARCOAL,
+				FABRIC,
+				CFrame.new(-width * 0.46 + index * width * 0.115 + 0.09, capeBottom + 0.02, capeZ + 0.02)
+					* CFrame.Angles(0, 0, math.pi)
+			)
+		end
+		for _, x in { -0.32, -0.4, -0.47 } do
+			make.ball(0.12, SULFUR, SMOOTH, CFrame.new(x * width, capeY + capeHeight / 2 - 0.1, capeZ + 0.09))
+		end
+		if grade >= 3 then
+			-- El bajo de la capa arde: cuatro llamas pequeñas (con fuego de verdad en el grado 4).
 			for index = 0, 3 do
 				local x = -width * 0.39 + index * width * 0.26
 				local hem = pixelFlame(
@@ -6409,7 +6727,7 @@ do
 					0.1,
 					index % 2 == 1
 				)
-				if index == 1 then
+				if lit and index == 1 then
 					blueFire(hem, 4, 0.4)
 				end
 			end
@@ -6430,6 +6748,28 @@ do
 		}, 0.32)
 		make.rod(0.1, 0.6, CHARCOAL, SLATE, quiverAt * UPRIGHT)
 		if grade >= 2 then
+			-- Grado 2: flecos de pómez bajo la esclavina y una punta de azufre en cada lado del fondo del carcaj.
+			for _, x in { -0.45, -0.3, -0.15, 0, 0.45 } do
+				make.fang(
+					0.22,
+					0.14,
+					PUMICE,
+					FABRIC,
+					CFrame.new(x * width + 0.07, height / 2 - 0.21, -(depth / 2 + 0.12)) * CFrame.Angles(0, 0, math.pi)
+				)
+			end
+			for side = -1, 1, 2 do
+				fireCrystal(
+					make,
+					(quiverAt * CFrame.new(side * 0.12, -quiverLength / 2 + 0.02, 0.05)).Position,
+					quiverAt:VectorToWorldSpace(Vector3.new(side * 0.5, -1, 0.2)),
+					0.32,
+					0.14,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			make.ball(0.14, SULFUR, SMOOTH, quiverAt * CFrame.new(0, -quiverLength / 2 - 0.02, 0.0))
 			for side = -1, 1, 2 do
 				fireCrystal(
 					make,
@@ -6541,6 +6881,80 @@ do
 		)
 		make.rod(0.08, width * 0.62, PUMICE, SLATE, ringAt * CFrame.new(0, 0, -0.02) * FACING)
 		hoop(make, ringAt * CFrame.new(0, 0, 0.02), width * 0.3, 12, 0.1, CHARCOAL, SLATE)
+		-- Grado 1: viga y escuadras de pómez en el panel con cinco gotas azules, borlas, ocho brasas que giran
+		-- dentro del aro y, delante, gotas en el bajo de la pechera, seis botones y diez muescas de fuego azul.
+		backFrame(make, width * 0.96, height * 1.02, -height * 0.06, back + 0.12, false, 5, 0)
+		for side = -1, 1, 2 do
+			local tassel = Vector3.new(side * width * 0.44, height * 0.45 - 0.1, back + 0.2)
+			strap(make, tassel, tassel - Vector3.new(0, 0.7, 0), 0.04, CHARCOAL, FABRIC)
+			make.ball(0.12, SULFUR, SMOOTH, CFrame.new(tassel - Vector3.new(0, 0.74, 0)))
+			for step = 0, 4 do
+				make.block(
+					Vector3.new(0.1, 0.04, 0.04),
+					BLUE_FIRE,
+					NEON,
+					CFrame.new(side * (width * 0.26 + 0.1), height * (0.3 - 0.15 * step), front - 0.01)
+				)
+			end
+		end
+		local orbit = {}
+		for index = 0, 7 do
+			local angle = index / 8 * math.pi * 2
+			orbit[index + 1] = (ringAt * CFrame.new(
+				math.sin(angle) * width * 0.27,
+				math.cos(angle) * width * 0.27,
+				0.06
+			)).Position
+		end
+		motes(make, orbit, 0.09)
+		drips(
+			make,
+			CFrame.new(0, -height * 0.47, front - 0.02),
+			{ -0.2 * width, -0.1 * width, 0, 0.1 * width, 0.2 * width },
+			0.28
+		)
+		for index = 0, 5 do
+			make.ball(0.09, SULFUR, SMOOTH, CFrame.new(0, -height * (0.1 + 0.05 * index), front - 0.08))
+		end
+		if grade >= 2 then
+			-- Tres remaches de azufre en el aro de la runa del pecho.
+			for index = 0, 2 do
+				local angle = index / 3 * math.pi * 2
+				make.ball(
+					0.1,
+					SULFUR,
+					SMOOTH,
+					CFrame.new(
+						math.sin(angle) * width * 0.17,
+						height * 0.12 + math.cos(angle) * width * 0.17,
+						front - 0.11
+					)
+				)
+			end
+		end
+		if grade >= 3 then
+			-- Cuatro cristales más en las esquinas de arriba del panel, dos a cada lado.
+			for side = -1, 1, 2 do
+				fireCrystal(
+					make,
+					Vector3.new(side * width * 0.46, height * 0.44, back + 0.17),
+					Vector3.new(side, 0.6, 0.5),
+					0.7,
+					0.22,
+					SULFUR,
+					SULFUR_GLOW
+				)
+				fireCrystal(
+					make,
+					Vector3.new(side * width * 0.46, height * 0.4, back + 0.3),
+					Vector3.new(side * 0.5, 1, 0.8),
+					0.55,
+					0.2,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
 		if grade >= 2 then
 			-- Talismanes: dos placas de pómez con una runa azul que cuelgan bajo el disco.
 			for side = -1, 1, 2 do
@@ -6652,6 +7066,40 @@ do
 			local at = from:Lerp(to, t)
 			flask(make, CFrame.new(at.X, at.Y - 0.32, at.Z - 0.1), 0.22, healing)
 		end
+		-- Grado 1: flecos de pómez bajo el manto (menos donde cruza la bandolera) y tres remaches de azufre.
+		for _, x in { -0.45, -0.3, -0.15, 0, 0.45 } do
+			make.fang(
+				0.2,
+				0.14,
+				PUMICE,
+				FABRIC,
+				CFrame.new(x * width + 0.07, height / 2 - 0.27, -(depth / 2 + 0.14)) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
+		for _, x in { -0.42, -0.21, 0 } do
+			make.ball(0.1, SULFUR, SMOOTH, CFrame.new(x * width, height / 2 - 0.06, -(depth / 2 + 0.19)))
+		end
+		if healing then
+			-- Grado 2: cuatro remaches en las esquinas del peto, cuatro motas de curación a su alrededor y tres
+			-- cristales de azufre que asoman por detrás del manto.
+			for sy = -1, 1, 2 do
+				for sx = -1, 1, 2 do
+					make.ball(0.09, SULFUR, SMOOTH, plastron * CFrame.new(sx * width * 0.15, sy * height * 0.16, -0.06))
+					make.ball(0.07, HEAL_GLOW, NEON, plastron * CFrame.new(sx * width * 0.23, sy * height * 0.1, -0.1))
+				end
+			end
+			for _, x in { -0.2, 0, 0.2 } do
+				fireCrystal(
+					make,
+					Vector3.new(x * width, height / 2 + 0.08, depth / 2 + 0.1),
+					Vector3.new(x * 1.5, 1, 0.4),
+					0.5,
+					0.2,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+		end
 
 		-- Espalda: capa de pómez oscura, bastidor de madera y la mochila de pómez.
 		local capeHeight = height * 1.06
@@ -6680,9 +7128,66 @@ do
 		for _, x in { -0.2, 0, 0.2 } do
 			make.ball(0.16, SULFUR, SMOOTH, pack * CFrame.new(x * width, height * 0.1, 0.25))
 		end
+		-- Grado 1: flecos de carbón en el bajo de la capa, dos correas con hebilla en la mochila, remates y
+		-- remaches en el bastidor, dos rayas de fuego azul en los bordes de la capa y un manojo de hierbas.
+		local capeBottom = capeY - capeHeight / 2
+		for index = 1, 7 do
+			make.fang(
+				if index % 2 == 0 then 0.24 else 0.32,
+				0.16,
+				CHARCOAL,
+				FABRIC,
+				CFrame.new((index - 4) * width * 0.15 + 0.08, capeBottom + 0.01, back + 0.16)
+					* CFrame.Angles(0, 0, math.pi)
+			)
+		end
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.12, height * 0.62, 0.04),
+				CHARCOAL,
+				LEATHER_MATERIAL,
+				pack * CFrame.new(side * width * 0.3, 0, 0.25)
+			)
+			make.ball(0.12, SULFUR, SMOOTH, pack * CFrame.new(side * width * 0.3, -height * 0.15, 0.28))
+			make.ball(0.18, SULFUR, SMOOTH, CFrame.new(side * width * 0.38, height * 0.59 + 0.07, back + 0.3))
+			for _, up in { 0.29, -0.21 } do
+				make.ball(0.12, SULFUR, SMOOTH, CFrame.new(side * width * 0.38, height * up, back + 0.37))
+			end
+			make.block(
+				Vector3.new(0.04, height * 0.9, 0.03),
+				BLUE_FIRE,
+				NEON,
+				CFrame.new(side * width * 0.46, capeY, back + 0.225)
+			)
+		end
+		for _, x in { -0.31, -0.24, -0.17, 0.27, 0.31 } do
+			make.fang(
+				0.3,
+				0.12,
+				LEAF,
+				FABRIC,
+				CFrame.new(x * width, height * 0.44 - 0.05, back + 0.3) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
 		if healing then
 			for side = -1, 1, 2 do
 				flask(make, pack * CFrame.new(side * (width * 0.36 + 0.24), -height * 0.2, 0.04), 0.42, true)
+			end
+			-- Grado 2: tres frascos más que cuelgan con un cordón del travesaño de abajo del bastidor y un
+			-- remache en cada extremo de ese travesaño.
+			for _, x in { -0.25, 0, 0.25 } do
+				strap(
+					make,
+					Vector3.new(x * width, -height * 0.4 - 0.05, back + 0.3),
+					Vector3.new(x * width, -height * 0.4 - 0.2, back + 0.3),
+					0.03,
+					CHARCOAL,
+					LEATHER_MATERIAL
+				)
+				flask(make, CFrame.new(x * width, -height * 0.4 - 0.5, back + 0.3), 0.22, true)
+			end
+			for side = -1, 1, 2 do
+				make.ball(0.1, SULFUR, SMOOTH, CFrame.new(side * width * 0.43, -height * 0.4, back + 0.3))
 			end
 		end
 		if grade >= 3 then
@@ -6710,6 +7215,56 @@ do
 			smoke(flame, 2, Color3.fromRGB(150, 160, 190), 0.7)
 			if lit then
 				blueFire(flame, 10, 0.7)
+			end
+			-- Pedestal con cuatro patas y dos asas, una cadena central con su anillo, cuatro brasas en la boca,
+			-- tres cristales de azufre en el borde y cuatro chispas que suben (cinco más en el grado 4).
+			make.block(Vector3.new(width * 0.4, 0.12, 0.36), PUMICE_DARK, SLATE, censer * CFrame.new(0, -0.2, 0))
+			for sz = -1, 1, 2 do
+				for sx = -1, 1, 2 do
+					make.ball(0.12, SULFUR, SMOOTH, censer * CFrame.new(sx * width * 0.22, -0.15, sz * 0.15))
+				end
+				make.block(
+					Vector3.new(0.1, 0.18, 0.1),
+					CHARCOAL,
+					SLATE,
+					censer * CFrame.new(sz * (width * 0.28 + 0.05), 0, 0)
+				)
+			end
+			local top = censer * CFrame.new(0, 0.95, 0)
+			strap(
+				make,
+				(censer * CFrame.new(0, 0.15, 0)).Position,
+				(censer * CFrame.new(0, 0.9, 0)).Position,
+				0.04,
+				CHARCOAL,
+				SLATE
+			)
+			hoop(make, top, 0.12, 6, 0.04, CHARCOAL, SLATE)
+			for _, x in { -0.15, -0.05, 0.05, 0.15 } do
+				make.ball(0.1, BLUE_FIRE_PALE, NEON, censer * CFrame.new(x * width, 0.2, -0.08))
+			end
+			for _, x in { -0.22, 0, 0.22 } do
+				fireCrystal(
+					make,
+					(censer * CFrame.new(x * width, 0.2, 0.15)).Position,
+					censer:VectorToWorldSpace(Vector3.new(x * 3, 1, 0.6)),
+					0.4,
+					0.16,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			local sparks = {}
+			for index, x in { -0.18, -0.07, 0.07, 0.18 } do
+				sparks[index] = (censer * CFrame.new(x * width, 1.2 + 0.1 * (index % 2), 0.1)).Position
+			end
+			motes(make, sparks, 0.08)
+			if lit then
+				local high = {}
+				for index = 1, 5 do
+					high[index] = (censer * CFrame.new((index - 3) * width * 0.1, 1.7 + 0.12 * (index % 3), 0.12)).Position
+				end
+				motes(make, high, 0.08)
 			end
 		end
 

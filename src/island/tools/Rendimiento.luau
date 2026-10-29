@@ -336,14 +336,28 @@ local function main(copia: Instance): string
 					local personaje = r15Falso()
 					local pieza = ArmorModels.wear(personaje, nil, cosmetico.role, id, ArmorModels.MAX_GRADE)
 					assert(pieza, "sin modelo")
-					-- Solo el mítico tiene presupuesto propio (grado 4); los demás trajes, sin límite fijado.
-					local presupuesto = if cosmetico.rarity == "Mythic" then M.OutfitMythicGrade4 else nil
+					-- Solo el mítico y el legendario tienen presupuesto propio (grado 4); los demás trajes, sin límite.
+					local presupuesto = if cosmetico.rarity == "Mythic"
+						then M.OutfitMythicGrade4
+						elseif cosmetico.rarity == "Legendary" then M.OutfitLegendaryGrade4
+						else nil
 					fila(
 						`{id} ({cosmetico.rarity}, grado {ArmorModels.MAX_GRADE})`,
 						medir(pieza, fusionSoldada),
 						presupuesto
 					)
 					personaje:Destroy()
+					-- Los legendarios, además, grado a grado (1 a 3, sin presupuesto) para ver cómo crece cada uno.
+					if cosmetico.rarity == "Legendary" then
+						for grado = 1, ArmorModels.MAX_GRADE - 1 do
+							local otro = r15Falso()
+							local piezaGrado = ArmorModels.wear(otro, nil, cosmetico.role, id, grado)
+							if piezaGrado then
+								fila(`{id} ({cosmetico.rarity}, grado {grado})`, medir(piezaGrado, fusionSoldada), nil)
+							end
+							otro:Destroy()
+						end
+					end
 				end)
 			end
 		end

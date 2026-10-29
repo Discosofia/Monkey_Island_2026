@@ -2969,3 +2969,20 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Paleta y motivos encajan (jade, oro y ojos de jade; espectral; plumas de quetzal; savia).
 5. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
    ✅ Los destellos y el humo no bajan los FPS de forma notable.
+
+## 72. Fase 18 T1: trajes legendarios del pase (Fuego Azul) rehechos (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Ponte cada traje del Fuego Azul (Guardián, Acechador, Invocador, Sanador) en los grados 1, 2, 3 y 4 y míralo desde atrás con la cámara del juego, quieto y corriendo.
+   ✅ Cada grado se ve más rico que el anterior y la espalda es vistosa (marco con escudo de azufre en llamas, capa y carcaj con flechas azules, aro de piedra, incensario). Nada flota ni atraviesa el cuerpo al andar, apuntar o golpear.
+2. [ ] Pónlos sobre la armadura de cada rango (I a IV).
+   ✅ El traje encaja con las cuatro armaduras sin piezas de ellas asomando ni cruzadas.
+3. [ ] Mira de cerca los flecos del manto y los frascos del Sanador, las gotas bajo el disco del Guardián, el cristal del muslo y las borlas del Invocador.
+   ✅ Ninguna punta atraviesa otra pieza ni la armadura.
+4. [ ] Compáralos con la armadura volcánica naranja y con los trajes míticos.
+   ✅ Se distinguen a primera vista (azufre y fuego azul, no lava naranja ni jade y oro).
+5. [ ] En un teléfono (o el emulador), míralos con varios jugadores cerca.
+   ✅ Las brasas, el humo y las llamas no bajan los FPS de forma notable.
+6. [ ] Prueba con un avatar R6.
+   ✅ Las hombreras y la espalda no flotan ni se hunden.
