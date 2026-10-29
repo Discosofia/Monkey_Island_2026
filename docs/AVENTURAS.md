@@ -75,7 +75,7 @@ Lo que solo sale aquí. Nada se vende con Robux (lo comprueba la sección "Regla
 
 | Botín | De dónde sale | Qué es |
 |---|---|---|
-| **Huevo mítico** | Jefe final, con probabilidad baja (§6) | Al abrirse da el **Quetzalcóatl** (la montura mítica) o una **mascota mítica nueva** (por diseñar, voxel, en la fase de código). Si ya tienes lo que sale, se cambia por Ámbar (la regla de las repetidas: 1.000) |
+| **Huevo mítico** | Jefe final, con probabilidad baja (§6) | Al abrirse da el **Quetzalcóatl** (la montura mítica) o una de las dos **mascotas míticas**, el **Quetzal** y el **Ajolote** (ya modelados en voxel; no salen de huevos normales). Si ya tienes lo que sale, se cambia por Ámbar (la regla de las repetidas: 1.000) |
 | **Set de armadura de la Calavera** | Piezas de los 3 jefes | Un set por rol, de huesos tallados, ámbar y metal oxidado del laboratorio, en **grados I, II y III** (Normal, Difícil, Pesadilla) que comparten materiales, paleta y motivos. Es tan bueno como lo mejor de la forja, nunca mejor: cambia el estilo y una ventaja horizontal |
 | **Armas de la Calavera** | Jefes (sobre todo el final) | Un arma por rol con forma propia (p. ej. un garrote de colmillo, un arco de costilla), con las mismas reglas que el set |
 | **Skins de arma y atuendo** | El cofre de la Calavera | Cosméticos de la Calavera (rareza épica y legendaria) que no salen en ninguna tienda |

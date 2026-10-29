@@ -421,7 +421,7 @@ Diseño completo en [`docs/AVENTURAS.md`](AVENTURAS.md) (27-10-2026); se constru
 - **Grupo de 1 a 5**, con su rol, sus talentos y su mejor equipo forjado; la dificultad escala con el número. Se entra desde un embarcadero del Lobby, en grupo o por cola.
 - **Tres pisos** de 5–6 salas hechas a mano (oleadas, trampas, acertijos que se pueden hacer solo), con una variante al azar de cada sala en cada partida y una sala secreta por piso. Jefes nuevos: **el Narigudo Carcelero**, **el Dril del Suero** y, al final, **el Gelada Rey Calavera**. 25–35 min.
 - **Muerte:** caído y reanimación; si nadie te levanta, vuelves en el siguiente punto de control; si caen todos, se pierde.
-- **Botín propio:** el **huevo mítico** del jefe final (Quetzalcóatl o una mascota mítica nueva; 0,5 % en Difícil y 1,5 % en Pesadilla), el set y las armas de la Calavera por rol (tan buenos como lo mejor de la forja, nunca mejores; en la Isla, como planos), skins que no salen en ninguna tienda y llaves de las salas secretas para el cofre final.
+- **Botín propio:** el **huevo mítico** del jefe final (Quetzalcóatl, o una de las dos mascotas míticas: el Quetzal y el Ajolote; 0,5 % en Difícil y 1,5 % en Pesadilla), el set y las armas de la Calavera por rol (tan buenos como lo mejor de la forja, nunca mejores; en la Isla, como planos), skins que no salen en ninguna tienda y llaves de las salas secretas para el cofre final.
 - **Rejugar:** Normal, Difícil y Pesadilla (cada una se abre con la anterior) y un ranking de tiempo en el Lobby. Tope semanal: las 10 primeras partidas ganadas dan todo el botín.
 
 ---
