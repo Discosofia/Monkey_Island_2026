@@ -17,9 +17,10 @@
 -- lleva ahí su motivo más llamativo.
 -- Guerrero:
 --   - Chaleco de pelaje: chaleco rojo de mono aullador con ribete y cuello de pelaje dorado,
---     cordones de fibra, collar de colmillos, cinturón de cuerda con zurrón y un plátano de amuleto,
---     brazaletes de pelaje dorado y muñecas vendadas con fibra. Detrás, la huella de una mano de
---     mono en pelaje dorado y flecos de pelo.
+--     hombreras de losa cuadrada de pelaje rojo con canto dorado y dos colmillos, cordones de fibra,
+--     collar de colmillos, cinturón de cuerda con zurrón y un plátano de amuleto, faldones de pelaje
+--     en los muslos, brazaletes de pelaje dorado y muñecas vendadas con fibra. Detrás, un panel de
+--     pelaje rojo con la huella de una mano de mono grande en pelaje dorado (en bloques) y flecos.
 --   - Armadura de hueso: peto de cuero con costillas en V y esternón de hueso, cráneos de mono de
 --     hombreras sobre un mechón de pelaje rojo, brazales de cuero con tablillas de hueso, hebilla
 --     de calavera y faldones de cuero y hueso en los muslos. Detrás, columna y costillas con un
@@ -31,10 +32,11 @@
 --     cabeza de un gorila plateado furioso de ojos rojos que brillan.
 -- Cazador (ligeras, de cuero con camuflaje de hojas; detrás, la capucha bajada y el carcaj con las
 -- flechas asomando por encima del hombro derecho, el de la mano que tira):
---   - Capa de rastreador: jubón de cuero claro, esclavina de pelaje pardo con hojas cosidas, correa
---     del carcaj cruzada, brazal en el antebrazo del arco y cinturón de fibra con zurrón y cuchillo.
---     Detrás, un abanico de hojas bajo la capucha y el carcaj de corteza con tres flechas de plumas
---     blancas.
+--   - Capa de rastreador: jubón de cuero claro, capa corta de pelaje pardo con hojas cosidas, una
+--     hombrera de losa de pelaje (izquierda) y otra en estrella de hojas (derecha), correa del carcaj
+--     cruzada, brazal en el antebrazo del arco y cinturón de fibra con zurrón y cuchillo. Detrás, un
+--     abanico de hojas de bloque (tres verdes) en semicírculo tras la capucha bajada y el carcaj de
+--     corteza con cuatro flechas de plumas blancas sobre el hombro derecho.
 --   - Armadura de cazador: jubón de cuero oscuro con botones de hueso, hombrera de láminas de hueso
 --     en el hombro izquierdo y un manojo de hojas en el derecho, correa con colmillos de trofeo,
 --     brazal con tablillas de hueso y hojas colgando de los muslos. Detrás, un manto de hojas de tres
@@ -47,8 +49,9 @@
 -- Mago (de chamán: tela y amuletos que pasan a runas y cristales que brillan en azul; el morado es
 -- del veneno y el verde, de las curaciones):
 --   - Manto de amuletos: túnica teñida de morado bajo un poncho de fibra con franjas y flecos, collar
---     de cuentas con un amuleto de piedra, faja con una calabaza y pulseras de cuentas. Detrás, un
---     atrapasueños con tres plumas.
+--     de cuentas con un amuleto de piedra, hombreras de disco plano de fibra tejida con una cuenta
+--     turquesa, faja con una calabaza y pulseras de cuentas. Detrás, un atrapasueños grande (aro de
+--     diez tramos, red de hilos cruzados) con cuatro plumas y cuentas colgando.
 --   - Túnica de runas: túnica añil con ribetes dorados, una runa que brilla en el pecho, cráneos de
 --     mono de ojos brillantes en las hombreras, faja con piedras rúnicas y brazales con runas.
 --     Detrás, un círculo de runas de neón con un triángulo dentro y dos talismanes colgando.
@@ -58,8 +61,9 @@
 --     asoma por encima de los hombros.
 -- Médico (de curandero: lino, hierbas y frascos; lo que brilla, en verde, el color de las curaciones):
 --   - Bandolera de curandero: túnica de lino con una bandolera de cuero cruzada, por delante y por
---     detrás, con bolsitas de las que asoman hojas; mortero en la cadera, vendas en los antebrazos y
---     hojas atadas a los brazos. Detrás, un manojo de hierbas atado a la bandolera.
+--     detrás, con bolsitas de las que asoman hojas; hombreras de disco plano de lino con una hoja,
+--     mortero en la cadera, vendas en los antebrazos y hojas atadas a los brazos. Detrás, un manojo
+--     grande de hierbas en abanico (tres verdes) con una flor roja, atado a la bandolera, y frasquitos.
 --   - Peto de curandero: peto de hueso blanco con una cruz de hojas y una flor en el centro, hombreras
 --     de hueso con hojas, cinturón con rollos de venda y bolsas en los muslos. Detrás, una mochila de
 --     cuero en un bastidor de madera con frascos de poción encima y a los lados y hierbas asomando.
@@ -318,6 +322,26 @@ end
 
 -- ===================================== Chaleco de pelaje =====================================
 
+-- Hombrera de losa cuadrada: un canto fino más grande debajo y la losa encima, corridas un poco hacia
+-- fuera. "arm" es el brazo de arriba y "side" su lado (-1 izquierda, 1 derecha).
+local function slabPauldron(arm: Builder, side: number, color: Color3, material: Enum.Material, trim: Color3)
+	local as = arm.size
+	local top = as.Y / 2
+	local slab = Vector3.new(as.X + 0.38, 0.2, as.Z + 0.38)
+	arm.block(Vector3.new(slab.X + 0.12, 0.08, slab.Z + 0.12), trim, FABRIC, CFrame.new(side * 0.1, top + 0.05, 0))
+	arm.block(slab, color, material, CFrame.new(side * 0.1, top + 0.14, 0))
+end
+
+-- Hombrera de disco plano (un cilindro tumbado) con un aro debajo de otro color. Devuelve el marco del
+-- centro de la cara de arriba, para poner encima una cuenta o una hoja.
+local function discPauldron(arm: Builder, side: number, color: Color3, rim: Color3, material: Enum.Material): CFrame
+	local as = arm.size
+	local top = as.Y / 2
+	arm.rod(0.1, as.X + 0.62, rim, material, CFrame.new(side * 0.1, top + 0.05, 0) * UPRIGHT)
+	arm.rod(0.12, as.X + 0.46, color, material, CFrame.new(side * 0.1, top + 0.12, 0) * UPRIGHT)
+	return CFrame.new(side * 0.1, top + 0.18, 0)
+end
+
 local function furVest(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -356,7 +380,7 @@ local function furVest(body: Body)
 			FABRIC,
 			CFrame.new(side * (inner + 0.05), panelY, front)
 		)
-		-- Hombrera: tapa el hombro de delante a atrás y deja libre el cuello.
+		-- Tapa del hombro de delante a atrás, dejando libre el cuello.
 		local shoulderWidth = outer + skin / 2 - neck
 		make.block(
 			Vector3.new(shoulderWidth, skin, depth + 2 * (gap + skin)),
@@ -364,8 +388,6 @@ local function furVest(body: Body)
 			FABRIC,
 			CFrame.new(side * (neck + shoulderWidth / 2), height / 2 + gap + skin / 2, 0)
 		)
-		-- Mechón de pelaje redondeando el borde del hombro.
-		make.ball(0.42, FUR, FABRIC, CFrame.new(side * (outer - 0.04), height / 2 + 0.04, 0))
 		-- Cuello de pelaje dorado a cada lado.
 		make.rod(
 			depth * 0.9,
@@ -374,31 +396,59 @@ local function furVest(body: Body)
 			FABRIC,
 			CFrame.new(side * neck, height / 2 + 0.1, 0) * CFrame.Angles(0, math.rad(90), 0)
 		)
+		-- Hombrera de losa cuadrada de pelaje rojo con canto dorado y dos colmillos hacia fuera.
+		local arm = body.upperArm[side]
+		slabPauldron(arm, side, FUR, FABRIC, GOLDEN_FUR)
+		for tusk = -1, 1, 2 do
+			arm.fang(
+				0.34,
+				0.12,
+				BONE,
+				SMOOTH,
+				CFrame.new(side * (arm.size.X / 2 + 0.3), arm.size.Y / 2 + 0.2, tusk * arm.size.Z * 0.28)
+					* CFrame.Angles(0, 0, -side * 0.7)
+			)
+		end
+		-- Faldón de pelaje en el muslo con el borde dorado y un colmillo.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flapZ = -(ls.Z / 2 + 0.05)
+		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.34, 0.08), FUR, FABRIC, CFrame.new(0, ls.Y * 0.33, flapZ))
+		leg.block(Vector3.new(ls.X * 0.9, 0.07, 0.11), GOLDEN_FUR, FABRIC, CFrame.new(0, ls.Y * 0.16, flapZ))
+		leg.fang(0.22, 0.1, BONE, SMOOTH, CFrame.new(0, ls.Y * 0.16, flapZ - 0.05) * CFrame.Angles(0, 0, math.pi))
 	end
-	-- Espalda (lo que el jugador ve siempre): huella de una mano de mono en pelaje dorado y flecos
-	-- de pelo en punta bajo el ribete.
-	local paw = CFrame.new(0, -height * 0.06, back + skin / 2 + 0.02)
-	make.oval(Vector3.new(0.5, 0.46, 0.06), GOLDEN_FUR, FABRIC, paw)
-	for finger = 0, 3 do
-		local angle = math.rad(-33 + finger * 22)
-		make.oval(
-			Vector3.new(0.13, 0.3, 0.06),
+	-- Espalda (lo que el jugador ve siempre): un panel de pelaje rojo con la huella de una mano de mono
+	-- en pelaje dorado (palma, cuatro dedos y el pulgar, todo en bloques) y flecos de pelo en punta.
+	local printZ = back + skin / 2 + 0.07
+	make.block(
+		Vector3.new(width * 0.86, height * 0.8, 0.04),
+		FUR,
+		FABRIC,
+		CFrame.new(0, -height * 0.04, back + skin / 2 + 0.02)
+	)
+	local palmWidth, palmHeight = width * 0.42, height * 0.28
+	local palmY = -height * 0.14
+	make.block(Vector3.new(palmWidth, palmHeight, 0.06), GOLDEN_FUR, FABRIC, CFrame.new(0, palmY, printZ))
+	local fingerLengths = { height * 0.17, height * 0.23, height * 0.2, height * 0.14 }
+	for index, length in fingerLengths do
+		make.block(
+			Vector3.new(width * 0.085, length, 0.06),
 			GOLDEN_FUR,
 			FABRIC,
-			paw * CFrame.new(math.sin(angle) * 0.38, math.cos(angle) * 0.38, 0) * CFrame.Angles(0, 0, -angle)
+			CFrame.new((index - 2.5) * width * 0.105, palmY + palmHeight / 2 + length / 2 - 0.02, printZ)
 		)
 	end
-	make.oval(
-		Vector3.new(0.13, 0.26, 0.06),
+	make.block(
+		Vector3.new(width * 0.1, height * 0.18, 0.06),
 		GOLDEN_FUR,
 		FABRIC,
-		paw * CFrame.new(-0.3, -0.06, 0) * CFrame.Angles(0, 0, math.rad(55))
+		CFrame.new(-palmWidth / 2 - 0.1, palmY + palmHeight * 0.2, printZ) * CFrame.Angles(0, 0, math.rad(55))
 	)
-	local fringe = 5
+	local fringe = 7
 	for index = 0, fringe - 1 do
-		local x = -width * 0.4 + index * width * 0.8 / (fringe - 1)
+		local x = -width * 0.42 + index * width * 0.84 / (fringe - 1)
 		make.fang(
-			if index % 2 == 0 then 0.3 else 0.22,
+			if index % 2 == 0 then 0.34 else 0.26,
 			0.2,
 			if index % 2 == 0 then FUR else FUR_DARK,
 			FABRIC,
@@ -413,6 +463,17 @@ local function furVest(body: Body)
 		FABRIC,
 		CFrame.new(0, -height / 2 + 0.05, 0)
 	)
+	-- Flecos de pelo en el bajo del chaleco, delante.
+	for index = 0, 3 do
+		make.fang(
+			0.24,
+			0.18,
+			if index % 2 == 0 then FUR_DARK else FUR,
+			FABRIC,
+			CFrame.new(-width * 0.33 + index * width * 0.22, -height / 2 + 0.02, front - 0.03)
+				* CFrame.Angles(0, 0, math.pi)
+		)
+	end
 	-- Cordones de fibra en cruz que cierran la abertura, por debajo del collar.
 	for _, laceY in { -height * 0.06, -height * 0.28 } do
 		for _, tilt in { 0.5, -0.5 } do
@@ -942,6 +1003,65 @@ local function quiverStrap(make: Builder, front: number, thickness: number, colo
 	)
 end
 
+-- Abanico de "count" hojas de bloque que salen de la nuca y caen por la espalda en semicírculo, de
+-- "length" de largo y abiertas "spread" radianes a cada lado de la vertical. Los colores de "colors"
+-- se alternan y "out" es lo que se separan de la espalda. Es el de la capa de rastreador; leafFan (con
+-- hojas ovaladas) sigue siendo el de los otros rangos.
+local function blockLeafFan(
+	make: Builder,
+	count: number,
+	length: number,
+	spread: number,
+	colors: { Color3 },
+	out: number
+)
+	local height, depth = make.size.Y, make.size.Z
+	local neck = Vector3.new(0, height / 2 - 0.3, depth / 2 + out)
+	for index = 0, count - 1 do
+		local angle = -spread + index * 2 * spread / (count - 1)
+		local size = length * (1 - 0.12 * math.abs(angle) / spread)
+		local direction = Vector3.new(math.sin(angle), -math.cos(angle), 0)
+		-- Una de cada dos un poco por fuera, para que no compartan plano.
+		local center = neck + direction * (size / 2 + 0.05) + Vector3.new(0, 0, (index % 2) * 0.05)
+		make.block(
+			Vector3.new(0.3, size, 0.06),
+			colors[index % #colors + 1],
+			SMOOTH,
+			CFrame.new(center) * CFrame.Angles(0, 0, math.pi + angle)
+		)
+	end
+end
+
+-- Estrella de hojas tumbada sobre el hombro (la del lado del carcaj): seis hojas de bloque en rueda
+-- sobre un disco de cuero, con una cuenta clara en el centro.
+local function leafStar(arm: Builder, side: number)
+	local as = arm.size
+	local top = as.Y / 2
+	local center = Vector3.new(side * 0.1, top + 0.1, 0)
+	arm.rod(0.08, as.X + 0.2, HUNTER_LEATHER_DARK, LEATHER_MATERIAL, CFrame.new(center.X, top + 0.04, 0) * UPRIGHT)
+	for index = 0, 5 do
+		local angle = index / 6 * math.pi * 2
+		arm.block(
+			Vector3.new(0.24, 0.06, 0.66),
+			if index % 2 == 0 then LEAF else LEAF_DARK,
+			SMOOTH,
+			CFrame.new(center + Vector3.new(0, (index % 2) * 0.03, 0))
+				* CFrame.Angles(0, angle, 0)
+				* CFrame.new(0, 0, -0.34)
+		)
+	end
+	arm.block(Vector3.new(0.2, 0.1, 0.2), LEAF_LIGHT, SMOOTH, CFrame.new(center + Vector3.new(0, 0.05, 0)))
+end
+
+-- Capucha bajada a la espalda, de bloques: el pliegue, su forro oscuro arriba y la punta colgando.
+local function blockHood(make: Builder, color: Color3, lining: Color3)
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local fold = CFrame.new(0, height / 2 - 0.2, depth / 2 + 0.2)
+	make.block(Vector3.new(width * 0.46, 0.64, 0.36), color, LEATHER_MATERIAL, fold)
+	make.block(Vector3.new(width * 0.34, 0.12, 0.24), lining, LEATHER_MATERIAL, fold * CFrame.new(0, 0.33, -0.04))
+	make.fang(0.4, 0.3, color, LEATHER_MATERIAL, fold * CFrame.new(0.14, -0.32, 0.15) * CFrame.Angles(0, 0, math.pi))
+end
+
 local function trackerCape(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -953,11 +1073,24 @@ local function trackerCape(body: Body)
 		LEATHER_MATERIAL,
 		CFrame.new(0, -height * 0.02, 0)
 	)
-	-- Esclavina corta de pelaje pardo sobre los hombros.
+	-- Capa corta de pelaje pardo sobre los hombros, con flecos por detrás.
 	make.block(Vector3.new(width + 0.24, 0.32, depth + 0.3), FUR_BROWN, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.02))
+	for index = 0, 4 do
+		make.fang(
+			if index % 2 == 0 then 0.26 else 0.2,
+			0.18,
+			FUR_BROWN,
+			FABRIC,
+			CFrame.new(-width * 0.36 + index * width * 0.18, height / 2 - 0.2, depth / 2 + 0.2)
+				* CFrame.Angles(0, 0, math.pi)
+		)
+	end
+	-- Hombreras: la izquierda, una losa de pelaje con canto de cuero; la derecha (la del carcaj), una
+	-- estrella de hojas. Ninguna estorba al arco, que va en el brazo derecho por debajo.
+	slabPauldron(body.upperArm[-1], -1, FUR_BROWN, FABRIC, HUNTER_LEATHER_DARK)
+	leafStar(body.upperArm[1], 1)
+	-- Hojas cosidas por delante, a los lados del cuello.
 	for side = -1, 1, 2 do
-		make.ball(0.5, FUR_BROWN, FABRIC, CFrame.new(side * (width / 2 + 0.02), height / 2 - 0.08, 0))
-		-- Hojas cosidas por delante, a los lados del cuello.
 		leaf(
 			make,
 			0.42,
@@ -970,10 +1103,20 @@ local function trackerCape(body: Body)
 			LEAF_DARK,
 			CFrame.new(side * width * 0.43, height / 2 - 0.2, front - 0.09) * CFrame.Angles(0, 0, side * 1.1)
 		)
+		-- Hoja cosida en el muslo.
+		local leg = body.upperLeg[side]
+		leaf(
+			leg,
+			0.5,
+			if side == 1 then LEAF_DARK else LEAF,
+			CFrame.new(side * 0.1, leg.size.Y * 0.3, -(leg.size.Z / 2 + 0.05)) * CFrame.Angles(0, math.pi, math.pi)
+		)
 	end
-	-- Detrás, un abanico de hojas que cae de la nuca por la espalda, bajo la capucha.
-	leafFan(make, 9, 1.15, 1.3, { LEAF, LEAF_DARK }, 0.1)
-	loweredHood(make, HUNTER_LEATHER, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
+	-- Detrás (lo que el jugador ve siempre): un abanico de hojas de tres verdes en semicírculo tras la
+	-- capucha bajada, y el carcaj de corteza con cuatro flechas de plumas blancas sobre el hombro derecho.
+	blockLeafFan(make, 6, 0.85, 1.2, { LEAF_LIGHT }, 0.07)
+	blockLeafFan(make, 9, 1.4, 1.35, { LEAF, LEAF_DARK }, 0.16)
+	blockHood(make, HUNTER_LEATHER, HUNTER_LEATHER_DARK)
 	backQuiver(make, {
 		length = 1.6,
 		radius = 0.22,
@@ -981,9 +1124,9 @@ local function trackerCape(body: Body)
 		material = WOOD,
 		rim = FIBER,
 		rimMaterial = FABRIC,
-		arrows = 3,
-		feathers = { FEATHER_WHITE, FEATHER_GREY },
-	}, 0.2)
+		arrows = 4,
+		feathers = { FEATHER_WHITE },
+	}, 0.3)
 	quiverStrap(make, front - 0.04, 0.12, FIBER, FABRIC)
 	-- Cordones de fibra cerrando el jubón.
 	for _, laceY in { -height * 0.12, -height * 0.32 } do
@@ -1334,24 +1477,32 @@ local function crystal(make: Builder, base: Vector3, direction: Vector3, length:
 	make.fang(length * 0.72, width * 0.5, RUNE, NEON, at * CFrame.new(width * 0.25, 0, -width * 0.25))
 end
 
--- Atrapasueños de "radius" en el plano XY de "at" (mirando a su +Z, hacia atrás): aro de madera, tela
--- de fibra en estrella con una cuenta en el centro y tres plumas colgando de unos cordones con cuentas.
-local function dreamcatcher(make: Builder, at: CFrame, radius: number)
-	hoop(make, at, radius, 10, 0.09, BARK, WOOD)
+-- Atrapasueños grande de la espalda, en el plano XY de "at" (mirando a su +Z, hacia atrás): aro de
+-- madera de diez tramos, red de tres cuerdas cruzadas y un aro interior, una cuenta turquesa en el
+-- centro y cuatro cordones con cuenta y pluma colgando.
+local function bigDreamcatcher(make: Builder, at: CFrame, radius: number)
+	hoop(make, at, radius, 10, 0.12, BARK, WOOD)
 	for index = 0, 2 do
-		make.block(Vector3.new(radius * 2, 0.03, 0.03), FIBER, FABRIC, at * CFrame.Angles(0, 0, index * math.pi / 3))
+		make.block(
+			Vector3.new(radius * 2, 0.04, 0.04),
+			FIBER,
+			FABRIC,
+			at * CFrame.new(0, 0, 0.02) * CFrame.Angles(0, 0, index * math.pi / 3)
+		)
 	end
-	make.ball(0.15, BEAD_TEAL, SMOOTH, at * CFrame.new(0, 0, 0.03))
-	for index = -1, 1 do
-		local x = index * radius * 0.6
+	hoop(make, at * CFrame.new(0, 0, 0.03), radius * 0.5, 6, 0.04, WOVEN_FIBER, FABRIC)
+	make.ball(0.2, BEAD_TEAL, SMOOTH, at * CFrame.new(0, 0, 0.06))
+	local feathers = { FEATHER_WHITE, FEATHER_RED, FEATHER_WHITE, FEATHER_GREY }
+	for index = 1, 4 do
+		local x = (index - 2.5) * radius * 0.4
 		local bottom = -math.sqrt(radius * radius - x * x)
-		make.block(Vector3.new(0.03, 0.28, 0.03), FIBER, FABRIC, at * CFrame.new(x, bottom - 0.14, 0))
-		make.ball(0.11, if index == 0 then BEAD_RED else BEAD_TEAL, SMOOTH, at * CFrame.new(x, bottom - 0.3, 0))
-		make.oval(
-			Vector3.new(0.14, 0.46, 0.04),
-			FEATHER_WHITE,
+		make.block(Vector3.new(0.03, 0.26, 0.03), FIBER, FABRIC, at * CFrame.new(x, bottom - 0.12, 0))
+		make.ball(0.13, if index % 2 == 0 then BEAD_RED else BEAD_TEAL, SMOOTH, at * CFrame.new(x, bottom - 0.3, 0))
+		make.block(
+			Vector3.new(0.16, 0.5, 0.04),
+			feathers[index],
 			SMOOTH,
-			at * CFrame.new(x, bottom - 0.58, 0) * CFrame.Angles(0, 0, index * 0.15)
+			at * CFrame.new(x, bottom - 0.62, 0) * CFrame.Angles(0, 0, (index - 2.5) * 0.12)
 		)
 	end
 end
@@ -1379,6 +1530,15 @@ local function amuletMantle(body: Body)
 			if index == 1 then DYE_PURPLE else BEAD_RED,
 			FABRIC,
 			CFrame.new(0, ponchoBottom + y, 0)
+		)
+	end
+	-- Rombos de colores en fila por el centro del poncho.
+	for index, color in { DYE_PURPLE, BEAD_TEAL, BEAD_RED } do
+		make.block(
+			Vector3.new(0.17, 0.17, 0.04),
+			color,
+			SMOOTH,
+			CFrame.new(0, 0.1 - (index - 1) * 0.18, front - 0.03) * CFrame.Angles(0, 0, math.rad(45))
 		)
 	end
 	-- Flecos de fibra en el borde, delante y detrás.
@@ -1409,8 +1569,13 @@ local function amuletMantle(body: Body)
 	local amulet = CFrame.new(0, height / 2 - 0.56, front - 0.08)
 	make.rod(0.07, 0.36, STONE, SLATE, amulet * FACING)
 	make.rod(0.05, 0.2, DYE_PURPLE, SMOOTH, amulet * CFrame.new(0, 0, -0.04) * FACING)
+	-- Hombreras de disco plano de fibra tejida con una cuenta turquesa encima.
+	for side = -1, 1, 2 do
+		local center = discPauldron(body.upperArm[side], side, WOVEN_FIBER, DYE_PURPLE, FABRIC)
+		body.upperArm[side].ball(0.2, BEAD_TEAL, SMOOTH, center * CFrame.new(0, 0.04, 0))
+	end
 	-- Detrás (lo que el jugador ve siempre): un atrapasueños grande.
-	dreamcatcher(make, CFrame.new(0, height * 0.12, back + 0.04), 0.5)
+	bigDreamcatcher(make, CFrame.new(0, height * 0.16, back + 0.08), 0.72)
 
 	-- Faja morada con el nudo a un lado y una calabaza de pociones colgando.
 	local waist = body.waist
@@ -1748,23 +1913,28 @@ local function healerBandolier(body: Body)
 		local at = from:Lerp(to, t)
 		herbPouch(make, CFrame.new(at.X, at.Y - 0.1, front - 0.1), if index == 2 then LEAF_DARK else LEAF)
 	end
-	for _, t in { 0.22, 0.78 } do
-		local at = from:Lerp(to, t)
-		herbPouch(make, CFrame.new(at.X, at.Y - 0.1, back + 0.1) * CFrame.Angles(0, math.pi, 0), LEAF_DARK)
+	local pouchAt = from:Lerp(to, 0.8)
+	herbPouch(make, CFrame.new(pouchAt.X, pouchAt.Y - 0.1, back + 0.1) * CFrame.Angles(0, math.pi, 0), LEAF_DARK)
+	-- Hombreras de disco plano de lino con una hoja encima.
+	for side = -1, 1, 2 do
+		local arm = body.upperArm[side]
+		local center = discPauldron(arm, side, LINEN, LEATHER, FABRIC)
+		leaf(arm, 0.44, if side == 1 then LEAF else LEAF_DARK, center * CFrame.Angles(-math.pi / 2, 0, side * 0.6))
 	end
-	-- Detrás (lo que el jugador ve siempre): un manojo de hierbas abierto en abanico hacia arriba,
-	-- atado a la bandolera en mitad de la espalda.
+	-- Detrás (lo que el jugador ve siempre): un manojo grande de hierbas atado a la bandolera, abierto en
+	-- abanico hacia arriba (tres verdes) con una flor roja arriba, y dos frasquitos colgados abajo.
 	local knot = from:Lerp(to, 0.5)
 	local tie = CFrame.new(knot.X, knot.Y, back + 0.12)
-	local herbs = 7
+	local herbs = 9
+	local greens = { LEAF, LEAF_LIGHT, LEAF_DARK }
 	for index = 0, herbs - 1 do
-		local angle = -0.95 + index * 1.9 / (herbs - 1)
-		local length = 1.05 - math.abs(angle) * 0.3
-		leaf(
-			make,
-			length,
-			if index % 2 == 0 then LEAF else LEAF_LIGHT,
-			tie * CFrame.Angles(0, 0, -angle) * CFrame.new(0, length / 2 + 0.05, 0.01 * (index % 2))
+		local angle = -1.05 + index * 2.1 / (herbs - 1)
+		local length = 1.2 - math.abs(angle) * 0.3
+		make.block(
+			Vector3.new(0.28, length, 0.05),
+			greens[index % 3 + 1],
+			SMOOTH,
+			tie * CFrame.Angles(0, 0, -angle) * CFrame.new(0, length / 2 + 0.05, 0.02 * (index % 2))
 		)
 	end
 	for index = -1, 1 do
@@ -1776,6 +1946,23 @@ local function healerBandolier(body: Body)
 		)
 	end
 	make.ball(0.22, FIBER, FABRIC, tie * CFrame.new(0, 0, 0.04))
+	-- Flor roja de cuatro pétalos con el centro dorado.
+	local flower = tie * CFrame.new(0, 1.0, 0.1)
+	for petal = 0, 3 do
+		local angle = petal * math.pi / 2
+		make.block(
+			Vector3.new(0.16, 0.16, 0.05),
+			FLOWER,
+			SMOOTH,
+			flower * CFrame.new(math.sin(angle) * 0.15, math.cos(angle) * 0.15, 0)
+		)
+	end
+	make.ball(0.14, GOLD_TRIM, SMOOTH, flower * CFrame.new(0, 0, 0.03))
+	for index, x in { -width * 0.28, width * 0.1 } do
+		local base = CFrame.new(x, -height / 2 + 0.16, back + 0.12)
+		make.block(Vector3.new(0.05, 0.16, 0.04), LEATHER, LEATHER_MATERIAL, base * CFrame.new(0, 0.3, -0.01))
+		flask(make, base, 0.26, index == 2)
+	end
 
 	-- Cinturón de fibra con un mortero de piedra y su mano de hueso en la cadera derecha.
 	local waist = body.waist
@@ -1801,6 +1988,21 @@ local function healerBandolier(body: Body)
 			CFrame.new(side * (arm.size.X / 2 + 0.05), -arm.size.Y * 0.1, 0)
 				* CFrame.Angles(0, side * math.rad(90), 0)
 				* CFrame.Angles(0, 0, math.pi + side * 0.4)
+		)
+		-- Faldón de lino en el muslo con el borde de cuero.
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		leg.block(
+			Vector3.new(ls.X * 0.9, ls.Y * 0.3, 0.07),
+			LINEN,
+			FABRIC,
+			CFrame.new(0, ls.Y * 0.34, -(ls.Z / 2 + 0.05))
+		)
+		leg.block(
+			Vector3.new(ls.X * 0.9, 0.06, 0.1),
+			LEATHER,
+			LEATHER_MATERIAL,
+			CFrame.new(0, ls.Y * 0.19, -(ls.Z / 2 + 0.05))
 		)
 	end
 end

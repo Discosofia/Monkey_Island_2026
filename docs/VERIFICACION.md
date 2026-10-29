@@ -2839,3 +2839,14 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Se golpea el pecho con los dos puños alternándolos con la cabeza echada atrás, o mira a los lados.
 7. [x] Con cualquiera de ellas en reposo, muévete.
    ✅ La rutina se deshace sin saltos y la mascota vuelve a seguirte con su modo de siempre.
+
+## 62. Fase 18 R1: armaduras de Pelaje rehechas (29-10-2026)
+
+**Con la Isla en Play (un jugador)**
+
+1. [ ] Fabrica el chaleco de pelaje con cada rol (Guerrero, Cazador, Mago, Médico) y míralo desde atrás con la cámara del juego, quieto y corriendo.
+   ✅ La espalda se ve llamativa: huella dorada, abanico de hojas con carcaj, atrapasueños y manojo de hierbas. Nada flota ni atraviesa el cuerpo al andar, apuntar o golpear.
+2. [ ] Ponte un traje mítico encima del chaleco (grado 1).
+   ✅ El traje se ve entero, sin piezas del chaleco asomando.
+3. [ ] Prueba con un avatar R6.
+   ✅ Las hombreras no flotan ni se hunden.
