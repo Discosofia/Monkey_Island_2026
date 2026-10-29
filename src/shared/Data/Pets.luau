@@ -90,6 +90,16 @@ local Pets: { [string]: Pet } = {
 		size = 1.2,
 		perks = { HarvestBonus = 1 },
 	},
+	Capibara = {
+		name = "Capibara",
+		icon = "🐹",
+		rarity = "Uncommon",
+		kind = "Apoyo",
+		description = "Tranquila y fornida: +15 de vida máxima.",
+		color = Color3.fromRGB(112, 68, 40),
+		size = 1.25,
+		perks = { MaxHealth = 15 },
+	},
 	Jaguarundi = {
 		name = "Jaguarundí",
 		icon = "🐈",

@@ -2761,3 +2761,21 @@ Evento en vivo global que se lanza desde el tablero «🎮 Ahora en el juego» d
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
+
+## 58. Fase 18 M1: capibara (29-10-2026)
+
+Mascota Poco común nueva (🐹, +15 de vida máxima). Entra sola al sorteo Uncommon de los huevos normales.
+
+**En Play (Isla o Lobby), con la mascota dada desde el panel de admin:**
+
+1. [ ] Dale la **Capibara** desde el panel de admin, equípala en el nido del Lobby y entra a la Isla.
+   ✅ Te sigue andando con las cuatro patas en diagonal, sin atravesar el suelo ni quedarse flotando, y su tamaño se parece al del Perezoso.
+2. [ ] Con la capibara equipada, mira tu vida máxima antes y después de equiparla.
+   ✅ Sube 15 puntos; al guardarla en el nido vuelve a lo de antes.
+3. [ ] Mírala de frente, de lado y por detrás.
+   ✅ Naranja-marrón con el lomo claro, hocico romo y oscuro con dos fosas, orejitas oscuras y patas oscuras. Se distingue de la Tortuga y del Perezoso a primera vista.
+
+**Con muchos huevos:**
+
+4. [ ] Abre huevos normales hasta que salga alguna Poco común (o mira el panel de probabilidades del nido).
+   ✅ La Capibara aparece entre las Poco comunes junto a la Guacamaya y el Perezoso. Su nombre y su descripción salen traducidos al cambiar el idioma a inglés.

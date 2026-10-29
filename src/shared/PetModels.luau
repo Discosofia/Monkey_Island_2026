@@ -3190,6 +3190,112 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		return "Walk"
 	end,
 
+	-- Capibara voxel (docs/img/Capibara Voxel.jfif): un roedor grande de cuerpo largo y bajo (casi
+	-- 2,3 veces más largo que alto a la cruz), con la grupa un poco más alta que los hombros, el lomo
+	-- claro en escalones sobre el pelaje oscuro y la barriga pálida. Cabeza grande y cuadrada con el
+	-- hocico romo y la nariz casi negra con la glándula encima, fosas, labio partido con los dos
+	-- incisivos, ojos pequeños altos y atrás bajo una ceja, orejitas redondas oscuras y bigotes. Patas
+	-- cortas: las de delante finas con cuatro dedos y las de atrás más gruesas con tres. Mira hacia -Z.
+	Capibara = function(rig, color)
+		local v = voxelKit(rig, Vector3.new(0, 10, 0))
+		local box = v.box
+		local fur = color
+		local dark = fur:Lerp(Color3.fromRGB(38, 22, 16), 0.55)
+		local light = fur:Lerp(Color3.fromRGB(235, 175, 105), 0.5)
+		local belly = Color3.fromRGB(205, 165, 110)
+		local nose = Color3.fromRGB(42, 28, 26)
+
+		-- Tronco: pecho, lomo y una grupa más alta con el muslo marcado. El lomo claro va en escalones
+		-- con manchas oscuras, y los costados llevan mechones alternando tonos.
+		box(nil, "Body", Vector3.new(0, 7.2, 1.5), Vector3.new(8, 6.4, 16), fur)
+		box(nil, "Chest", Vector3.new(0, 7, -5.8), Vector3.new(7.6, 6, 2.6), fur)
+		box(nil, "Rump", Vector3.new(0, 7.8, 8), Vector3.new(7.6, 6.8, 3), fur)
+		box(nil, "Belly", Vector3.new(0, 4.1, 1.5), Vector3.new(6, 0.8, 12), belly)
+		box(nil, "Back", Vector3.new(0, 10.6, 1.5), Vector3.new(6.4, 0.8, 14), light)
+		box(nil, "Back", Vector3.new(0, 11.1, 3.5), Vector3.new(4.2, 0.6, 8), light:Lerp(WHITE, 0.12))
+		box(nil, "Patch", Vector3.new(2, 11.2, 7.8), Vector3.new(2.2, 0.4, 2.6), dark)
+		box(nil, "Patch", Vector3.new(-1.8, 11.4, 4.4), Vector3.new(2, 0.4, 2.4), dark)
+		box(nil, "Patch", Vector3.new(1.6, 11.4, 1), Vector3.new(2.2, 0.4, 2), dark)
+		box(nil, "Patch", Vector3.new(-1.4, 10.9, -3.4), Vector3.new(2.4, 0.4, 2.6), dark)
+		for i, z in { -4.5, -0.5, 3.5, 7.5 } do
+			for _, side in { -1, 1 } do
+				box(
+					nil,
+					"Tuft",
+					Vector3.new(side * 4.1, 7.6, z),
+					Vector3.new(0.3, 3.4, 3),
+					if i % 2 == 0 then dark else fur:Lerp(light, 0.3)
+				)
+				box(nil, "Tuft", Vector3.new(side * 4.1, 5.2, z + 1.5), Vector3.new(0.3, 1.4, 2), dark)
+			end
+		end
+		box(nil, "Tail", Vector3.new(0, 9.6, 9.8), Vector3.new(1.2, 1.2, 0.6), nose)
+
+		-- Cuello corto y grueso, y la cabeza grande: cráneo cuadrado, hocico romo que cae en la nariz
+		-- oscura, la barbilla pálida, los ojos pequeños altos y atrás, ceja, orejitas y bigotes.
+		box(nil, "Neck", Vector3.new(0, 8.4, -7.8), Vector3.new(6.8, 5.4, 2.2), fur)
+		local head: { BasePart } = {}
+		box(head, "Head", Vector3.new(0, 8.6, -10.8), Vector3.new(6.6, 5.8, 5.4), fur)
+		box(head, "Forehead", Vector3.new(0, 11.6, -10.6), Vector3.new(5.4, 0.4, 4.4), light)
+		box(head, "Snout", Vector3.new(0, 8, -14.4), Vector3.new(5.8, 4.8, 2.2), fur:Lerp(dark, 0.35))
+		box(head, "NosePad", Vector3.new(0, 8.4, -15.7), Vector3.new(5.6, 4, 0.4), nose)
+		-- Arco del hocico: la frente baja en escalones hasta la nariz en vez de cortarse en seco.
+		box(head, "Bridge", Vector3.new(0, 10.9, -13.3), Vector3.new(5.4, 0.8, 1.8), fur)
+		box(head, "Bridge", Vector3.new(0, 10.35, -15.1), Vector3.new(4.8, 0.5, 1), fur:Lerp(dark, 0.35))
+		box(head, "Gland", Vector3.new(0, 10.6, -14.4), Vector3.new(2.6, 0.4, 2.8), dark)
+		box(head, "Chin", Vector3.new(0, 5.5, -14.2), Vector3.new(4, 0.9, 2.6), belly)
+		box(head, "Philtrum", Vector3.new(0, 7, -15.95), Vector3.new(0.2, 1.6, 0.2), BLACK)
+		box(head, "Mouth", Vector3.new(0, 6.3, -15.95), Vector3.new(4, 0.25, 0.2), BLACK)
+		for _, side in { -1, 1 } do
+			box(head, "Nostril", Vector3.new(side * 1.5, 9.3, -15.95), Vector3.new(0.9, 1, 0.2), BLACK)
+			box(
+				head,
+				"Incisor",
+				Vector3.new(side * 0.5, 5.8, -15.95),
+				Vector3.new(0.7, 0.5, 0.2),
+				Color3.fromRGB(240, 225, 180)
+			)
+			box(head, "Cheek", Vector3.new(side * 3.35, 7.2, -11.6), Vector3.new(0.25, 3, 3.4), belly)
+			box(head, "Brow", Vector3.new(side * 3.3, 10.7, -11.4), Vector3.new(0.3, 0.4, 1.8), dark)
+			box(head, "Eye", Vector3.new(side * 3.35, 10, -11.4), Vector3.new(0.25, 0.9, 1), BLACK)
+			box(head, "Glint", Vector3.new(side * 3.43, 10.25, -11.7), Vector3.new(0.1, 0.3, 0.3), WHITE)
+			box(head, "Ear", Vector3.new(side * 2.4, 12, -9.4), Vector3.new(1.4, 1.4, 1.2), dark)
+			box(
+				head,
+				"EarInner",
+				Vector3.new(side * 2.4, 12.1, -10.05),
+				Vector3.new(0.9, 0.9, 0.2),
+				Color3.fromRGB(150, 95, 80)
+			)
+			for _, y in { 7.3, 7.9 } do
+				box(head, "Whisker", Vector3.new(side * 4.1, y, -14.8), Vector3.new(1.6, 0.15, 0.15), BLACK)
+			end
+		end
+		v.swing(head, Vector3.new(0, 8.6, -8), Vector3.zAxis, 0.08, 0.7, 0, false, nil, "Head")
+
+		-- Patas cortas: las de delante finas con cuatro dedos y las de atrás más gruesas con tres.
+		for _, side in { -1, 1 } do
+			for _, hind in { false, true } do
+				local z = if hind then 7.2 else -5.2
+				local x = side * (if hind then 3.3 else 3)
+				local leg: { BasePart } = {}
+				if hind then
+					box(leg, "Thigh", Vector3.new(x, 3.1, z), Vector3.new(3, 4.6, 3.6), fur:Lerp(dark, 0.3))
+				else
+					box(leg, "Leg", Vector3.new(x, 2.7, z), Vector3.new(2.4, 3.8, 2.6), fur:Lerp(dark, 0.3))
+				end
+				box(leg, "Foot", Vector3.new(x, 0.9, z - 0.4), Vector3.new(2.6, 1.4, 3.4), dark)
+				local toes = if hind then { -0.8, 0, 0.8 } else { -0.9, -0.3, 0.3, 0.9 }
+				for _, dx in toes do
+					box(leg, "Toe", Vector3.new(x + dx, 0.7, z - 2.3), Vector3.new(0.5, 0.9, 0.6), BLACK)
+				end
+				local phase = if (side < 0) == hind then math.pi else 0
+				v.swing(leg, Vector3.new(x, 5, z), Vector3.xAxis, 0.45, 4, phase, true)
+			end
+		end
+		return "Walk"
+	end,
+
 	-- Mono X-7 voxel: la mascota legendaria, con más capas de detalle que las demás. Chimpancé del
 	-- laboratorio de pelo azul eléctrico, encorvado sobre los nudillos (pecho alto, grupa baja y
 	-- brazos largos), con musculatura en bloques y cicatrices cosidas. Casco de buzo oxidado con

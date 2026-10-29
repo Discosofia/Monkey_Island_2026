@@ -526,6 +526,8 @@ return {
 	["Perezoso"] = "Sloth",
 	["Carga"] = "Carrying",
 	["+1 material en cada recolección."] = "+1 material on every harvest.",
+	["Capibara"] = "Capybara",
+	["Tranquila y fornida: +15 de vida máxima."] = "Calm and sturdy: +15 max health.",
 	["Jaguarundí"] = "Jaguarundi",
 	["Combate"] = "Combat",
 	["Ataca al mono más cercano (8 de daño cada 2 s)."] = "Attacks the nearest monkey (8 damage every 2 s).",
