@@ -650,6 +650,7 @@ Decisiones del 28-10-2026:
 | **S4** | Armas de la forja de rango IV (Maza volcánica, Arco de ascuas, Cerbatana de azufre, Bastón de lava) | 9f3a7c5 | ✅ Probado en Studio (sin probar: VERIFICACION §69) |
 | **K1** | Skins de temporada Sulfur (Maza, Arco, Bastón, Cerbatana, Machete) por nivel, con topes `WeaponSkinEpic` 125 y `WeaponSkinRare` 70 | e93482a | ✅ Probado en Studio (sin probar: VERIFICACION §70) |
 | **K2** | Skins míticas de arma (Rey Gorila, Jaguar Espectral, Serpiente Emplumada, Ceiba) por nivel, hasta 160 piezas | 41207ad | ✅ Probado en Studio (sin probar: VERIFICACION §71) |
+| **T1** | Trajes legendarios del pase (Fuego Azul, 4 roles) por grado, hasta 345 piezas, con tope `OutfitLegendaryGrade4` 350 | f7be041 | ✅ Probado en Studio (sin probar: VERIFICACION §72) |
 
 **Handoff de A1 (29-10-2026)**
 - **Estado:** plan aprobado, nada escrito todavía. Las pruebas de la fase empiezan en VERIFICACION §49.
