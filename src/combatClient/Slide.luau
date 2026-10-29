@@ -26,6 +26,7 @@ local Survival = require(ReplicatedStorage.Shared.Survival)
 local MountRiders = require(ReplicatedStorage.Shared.UI.MountRiders)
 local BodyAnimations = require(script.Parent.BodyAnimations)
 local Dash = require(script.Parent.Dash)
+local DodgeFeel = require(script.Parent.DodgeFeel)
 local Feint = require(script.Parent.Feint)
 local Movement = require(script.Parent.Movement)
 local Stamina = require(script.Parent.Stamina)
@@ -209,6 +210,7 @@ function Slide.tryStart(sprinting: boolean): boolean
 	savedAutoRotate = humanoid.AutoRotate
 	humanoid.AutoRotate = false
 	BodyAnimations.play("Slide")
+	DodgeFeel.kick(Config.Movement.SpeedLines.SlideFovKick)
 	Remotes.Slide:FireServer(short)
 	return true
 end

@@ -711,18 +711,26 @@ local Config = {
 				MinSpeed = 8,
 			},
 		},
-		-- Líneas blancas de movimiento en pantalla (solo en el Laboratorio, primera persona): al esquivar,
-		-- al deslizarse y al correr de verdad. Opacidad máxima de cada causa (0 a 1) y velocidad horizontal
-		-- (studs/s) desde la que se corre "rápido".
+		-- Líneas blancas de movimiento en pantalla (Fase 19, W1; SpeedLinesController, en los 4 places): al
+		-- esquivar (todo el empuje y su arrastre), al deslizarse y al correr de verdad. Fuerza de cada causa
+		-- (0 a 1) y velocidad horizontal (studs/s) desde la que se corre "rápido". Las líneas y el empujón del
+		-- campo de visión los escala el ajuste "speedLines" (Scale), no el temblor.
 		SpeedLines = {
-			Count = 18,
+			Count = 24,
+			-- Opacidad con la fuerza al máximo (0 a 1) y grosor (px a 720 de alto de pantalla; escala con ella).
+			Opacity = 0.6,
+			ThicknessPx = 4,
 			DodgeStrength = 1,
-			SlideStrength = 0.8,
-			SprintStrength = 0.35,
+			SlideStrength = 1,
+			SprintStrength = 0.3,
 			SprintMinSpeed = 24,
 			-- Cada cuántos segundos se recolocan las líneas, y lo que tarda la intensidad en subir y bajar.
 			ShuffleSeconds = 0.07,
-			FadeSeconds = 0.15,
+			FadeSeconds = 0.1,
+			-- Cuánto vale cada valor del ajuste "speedLines" (Shared/Settings).
+			Scale = { On = 1, Soft = 0.5, Off = 0 } :: { [string]: number },
+			-- Empujón del campo de visión al empezar a deslizar (grados).
+			SlideFovKick = 5,
 		},
 		-- Esquiva con efecto (Fase 15, V3): la esquiva y el Evasivo (Combat.DodgeSpeed, Evasive.Speed).
 		Dodge = {
@@ -731,9 +739,12 @@ local Config = {
 			-- ...que baja en línea recta hasta 0 en estos segundos.
 			CarrySeconds = 0.2,
 			-- Empujón del campo de visión al esquivar, también en la Embestida (grados).
-			FovKick = 6,
+			FovKick = 9,
 			-- Lo que tarda el empujón en volver (s); sube en una cuarta parte de ese tiempo.
 			FovKickSeconds = 0.25,
+			-- Sacudida corta al empezar la esquiva (CameraShake.play: fuerza y segundos; la escala "cameraShake").
+			StartShake = 0.25,
+			StartShakeSeconds = 0.12,
 			-- Solo en el Laboratorio: inclinación de la cámara hacia el lado de la esquiva (grados)...
 			LabTiltDegrees = 8,
 			-- ...y lo que tarda en volver (s).

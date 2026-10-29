@@ -19,6 +19,8 @@
 --   - comicSize: "Small", "Normal" o "Large" (Config.ComicFx.SizeScale).
 --   - cameraShake: temblor de la cámara en combate (remates, habilidades, rebotes, la guardia): "On",
 --     "Soft" o "Off" (Config.CameraShake.Scale; CombatClient/CameraShake).
+--   - speedLines: líneas blancas de velocidad y empujón del campo de visión al esquivar y deslizarse: "On",
+--     "Soft" o "Off" (Config.Movement.SpeedLines.Scale; CombatClient/SpeedLinesController y DodgeFeel).
 --   - crosshairStyle / crosshairColor / crosshairSize / crosshairThickness / crosshairDynamic: la mira de las
 --     arenas con disparo (UI/Crosshair; Laboratorio y Dunas): forma ("Cross", "Dot", "Circle", "CrossDot",
 --     "T"), color (nunca verde ni morado), tamaño, grosor y si se abre según la dispersión real.
@@ -40,6 +42,7 @@ export type ComicLevel = "All" | "Strong"
 export type ComicSize = "Small" | "Normal" | "Large"
 export type NumberFont = "Comic" | "Classic"
 export type CameraShake = "On" | "Soft" | "Off"
+export type SpeedLines = "On" | "Soft" | "Off"
 export type Language = "Auto" | "es" | "en"
 export type FxQuality = "Auto" | "Low" | "Medium" | "High"
 export type CrosshairStyle = "Cross" | "Dot" | "Circle" | "CrossDot" | "T"
@@ -59,6 +62,7 @@ export type Values = {
 	comicLevel: ComicLevel,
 	comicSize: ComicSize,
 	cameraShake: CameraShake,
+	speedLines: SpeedLines,
 	fxQuality: FxQuality,
 	crosshairStyle: CrosshairStyle,
 	crosshairColor: CrosshairColor,
@@ -98,6 +102,12 @@ Settings.COMIC_SIZE_NAMES = {
 } :: { [string]: string }
 Settings.CAMERA_SHAKES = { "On", "Soft", "Off" } :: { CameraShake }
 Settings.CAMERA_SHAKE_NAMES = {
+	On = later("Encendido"),
+	Soft = later("Suave"),
+	Off = later("Apagado"),
+} :: { [string]: string }
+Settings.SPEED_LINES = { "On", "Soft", "Off" } :: { SpeedLines }
+Settings.SPEED_LINES_NAMES = {
 	On = later("Encendido"),
 	Soft = later("Suave"),
 	Off = later("Apagado"),
@@ -159,6 +169,7 @@ function Settings.defaults(): Values
 		comicLevel = "All",
 		comicSize = "Normal",
 		cameraShake = "On",
+		speedLines = "On",
 		fxQuality = "Auto",
 		crosshairStyle = "Cross",
 		crosshairColor = "White",
@@ -190,6 +201,9 @@ function Settings.sanitize(raw: any): Values
 	end
 	if typeof(raw.cameraShake) == "string" and table.find(Settings.CAMERA_SHAKES, raw.cameraShake) then
 		values.cameraShake = raw.cameraShake :: CameraShake
+	end
+	if typeof(raw.speedLines) == "string" and table.find(Settings.SPEED_LINES, raw.speedLines) then
+		values.speedLines = raw.speedLines :: SpeedLines
 	end
 	if typeof(raw.fxQuality) == "string" and table.find(Settings.FX_QUALITIES, raw.fxQuality) then
 		values.fxQuality = raw.fxQuality :: FxQuality

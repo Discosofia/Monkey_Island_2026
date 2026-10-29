@@ -62,7 +62,7 @@ end
 local function launch(player: Player, root: BasePart, direction: Vector3, speed: number, seconds: number)
 	local carry = Config.Movement.Dodge
 	Dash.pushWithCarry(root, direction, speed, seconds, carry.CarryKeep, carry.CarrySeconds)
-	DodgeFeel.begin(direction, true)
+	DodgeFeel.begin(direction, true, seconds + carry.CarrySeconds)
 	AbilityFxController.play("DodgeFx", player.Character, direction)
 end
 

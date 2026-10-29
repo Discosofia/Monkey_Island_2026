@@ -164,7 +164,7 @@ local function charge(root: BasePart, direction: Vector3)
 	local settings = Config.Abilities
 	Dash.push(root, direction, settings.ChargeDistance / settings.ChargeSeconds, settings.ChargeSeconds)
 	-- Solo el empujón del campo de visión (sin inclinar la cámara) y el efecto del aire.
-	DodgeFeel.begin(direction)
+	DodgeFeel.begin(direction, false, settings.ChargeSeconds)
 	AbilityFxController.play("DodgeFx", root.Parent, direction)
 end
 

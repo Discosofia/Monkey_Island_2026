@@ -30,6 +30,8 @@ return {
 	["Automático"] = "Automatic",
 	["Bajo"] = "Low",
 	["Efectos de los jefes"] = "Boss effects",
+	["Líneas de velocidad"] = "Speed lines",
+	["Líneas blancas y empujón de la cámara al esquivar y deslizarte"] = "White lines and a camera push when dodging and sliding",
 	["Medio"] = "Medium",
 	["Rocas, pisotones, lava y rugidos. El área de peligro se ve siempre"] = "Rocks, stomps, lava and roars. The danger area is always shown",
 	["Aún no hay nada aquí"] = "Nothing here yet",

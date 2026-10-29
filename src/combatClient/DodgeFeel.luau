@@ -3,12 +3,15 @@
 --   - Empujón del campo de visión (esquiva, Evasivo y Embestida, en todos los places): sube rápido a
 --     Config.Movement.Dodge.FovKick y vuelve en FovKickSeconds. Se suma a camera.FieldOfView solo la
 --     DIFERENCIA de la curva entre fotogramas, para convivir con los tweens de zoom del rifle del
---     Laboratorio, y al acabar ha devuelto exactamente lo sumado. Lo multiplica el ajuste "cameraShake"
---     (CameraShake.scale: apagado = sin empujón, suave = menos).
+--     Laboratorio, y al acabar ha devuelto exactamente lo sumado. Lo multiplica el ajuste "speedLines"
+--     (speedScale: apagado = sin empujón, suave = menos). Al empezar la esquiva también hay una sacudida
+--     corta (CameraShake.play, con el ajuste "cameraShake").
+--   - active(): verdadero durante el empuje y su arrastre; lo lee SpeedLinesController.
 --   - Solo con la esquiva "Dash" (Movement.rules().dodgeStyle, el Laboratorio) y si se pide con
 --     begin(dirección, true): inclinación de la cámara hacia el lado de la esquiva (tilt) y el arma de la
 --     vista que se aparta (weaponShift). Los lee FirstPersonController cada fotograma.
---   DodgeFeel.begin(direction, view?)   empieza el efecto (view: también inclinación y arma)
+--   DodgeFeel.begin(direction, view?, seconds?)   empieza el efecto (view: también inclinación y arma)
+--   DodgeFeel.kick(degrees) / .speedScale() / .active()   empujón de FOV, escala del ajuste y "dura ahora"
 --   DodgeFeel.tilt()                    giro de la cámara sobre su eje de vista (radianes)
 --   DodgeFeel.weaponShift()             desplazamiento del arma en el espacio de la cámara (studs)
 
@@ -17,6 +20,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Settings = require(ReplicatedStorage.Shared.Settings)
 local CameraShake = require(script.Parent.CameraShake)
 local Movement = require(script.Parent.Movement)
 
@@ -33,6 +37,8 @@ local bound = false
 -- La última esquiva con efecto de vista: cuándo empezó y de qué lado (-1 izquierda … 1 derecha).
 local viewStartedAt = -math.huge
 local viewSide = 0
+-- Hasta cuándo (os.clock) dura el movimiento de la última esquiva.
+local activeUntil = -math.huge
 
 -- Curva del empujón: sube en una cuarta parte del tiempo y baja el resto (0 a 1).
 local function kickCurve(elapsed: number, seconds: number): number
@@ -75,10 +81,14 @@ local function viewCurve(seconds: number): number
 	return (1 - alpha) * (1 - alpha)
 end
 
--- Empieza el efecto en "direction". Con "view" también la inclinación y el arma (solo en el estilo "Dash").
-function DodgeFeel.begin(direction: Vector3, view: boolean?)
-	local settings = Config.Movement.Dodge
-	local strength = settings.FovKick * CameraShake.scale()
+-- Lo que multiplica el ajuste "speedLines" a las líneas y al empujón del campo de visión (0 = apagado).
+function DodgeFeel.speedScale(): number
+	return Config.Movement.SpeedLines.Scale[Settings.get().speedLines] or 1
+end
+
+-- Empujón del campo de visión de "degrees" grados (con el ajuste "speedLines"); lo usa también Slide.
+function DodgeFeel.kick(degrees: number)
+	local strength = degrees * DodgeFeel.speedScale()
 	if strength > 0 then
 		table.insert(kicks, { startedAt = os.clock(), strength = strength })
 		if not bound then
@@ -87,6 +97,20 @@ function DodgeFeel.begin(direction: Vector3, view: boolean?)
 			RunService:BindToRenderStep(STEP_NAME, Enum.RenderPriority.Camera.Value + 1, stepFov)
 		end
 	end
+end
+
+-- true mientras dura el empuje de la esquiva y su arrastre (para las líneas de velocidad).
+function DodgeFeel.active(): boolean
+	return os.clock() < activeUntil
+end
+
+-- Empieza el efecto en "direction". "seconds": lo que dura el movimiento (empuje más arrastre), para
+-- active(). Con "view" también la inclinación y el arma (solo en el estilo "Dash").
+function DodgeFeel.begin(direction: Vector3, view: boolean?, seconds: number?)
+	local settings = Config.Movement.Dodge
+	DodgeFeel.kick(settings.FovKick)
+	CameraShake.play(settings.StartShake, settings.StartShakeSeconds)
+	activeUntil = os.clock() + (seconds or settings.FovKickSeconds)
 	if view and Movement.rules().dodgeStyle == "Dash" then
 		local camera = Workspace.CurrentCamera
 		viewStartedAt = os.clock()
@@ -101,14 +125,6 @@ function DodgeFeel.tilt(): number
 	local settings = Config.Movement.Dodge
 	-- Un giro positivo inclina la parte de arriba hacia la izquierda: al esquivar a la derecha, negativo.
 	return -viewSide * math.rad(settings.LabTiltDegrees) * viewCurve(settings.LabTiltSeconds)
-end
-
--- Cuánto se nota ahora la última esquiva con efecto de vista (0 a 1; siempre 0 fuera del estilo "Dash").
-function DodgeFeel.intensity(): number
-	if Movement.rules().dodgeStyle ~= "Dash" then
-		return 0
-	end
-	return viewCurve(Config.Movement.Dodge.LabTiltSeconds)
 end
 
 function DodgeFeel.weaponShift(): Vector3

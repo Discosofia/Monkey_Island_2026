@@ -3003,3 +3003,47 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Los destellos, las estrellas y las luciérnagas no bajan los FPS de forma notable.
 6. [ ] Prueba con un avatar R6.
    ✅ Las hombreras (ahora losas y discos planos) no flotan ni se hunden.
+
+## 74. Fase 19 W1: líneas blancas, FOV y sacudida (29-10-2026)
+
+**En Studio de la Isla, Dunas y el Lobby (un place cada vez, con un jugador):**
+
+1. [ ] En la Isla, esquiva y deslízate con el ajuste por defecto y mira la pantalla.
+   ✅ Se ven líneas blancas fuertes alrededor de la pantalla (transparencia mínima 0,40) y un empujón de FOV. La esquiva las mantiene unos 0,46 s.
+2. [ ] Repite lo mismo en Dunas.
+   ✅ Mismo resultado que en la Isla.
+3. [ ] Repite lo mismo en el Lobby.
+   ✅ Las líneas blancas aparecen también en el Lobby, con la misma fuerza.
+
+**En la Isla o Dunas, en campo abierto:**
+
+1. [ ] Desliza en línea recta durante varios segundos, lejos de cualquier recinto de aparición.
+   ✅ Las líneas duran todo el deslizamiento y se apagan al terminar. (En el Laboratorio el recinto de aparición lo cortó.)
+
+**Ajuste "Líneas de velocidad" en Ajustes (Isla, Dunas y Lobby):**
+
+1. [ ] Pon "Líneas de velocidad" en Apagado y esquiva y desliza en la Isla.
+   ✅ No aparecen líneas ni empujón de FOV.
+2. [ ] Pon "Líneas de velocidad" en Suave y repite.
+   ✅ Las líneas y el empujón se ven a la mitad de fuerza que con Encendido.
+3. [ ] Pon "Líneas de velocidad" en Encendido, apaga "Sacudida de cámara" y repite.
+   ✅ Las líneas siguen apareciendo: la sacudida apagada ya no las apaga.
+4. [ ] Repite el paso 1 en Dunas y en el Lobby.
+   ✅ El ajuste se respeta igual en los tres places.
+
+**Ventana de Ajustes en el PC (Isla, Dunas o Lobby):**
+
+1. [ ] Abre Ajustes y mira la ventana con las filas nuevas de "Líneas de velocidad" (Encendido, Suave, Apagado).
+   ✅ Todo cabe sin desplazamiento; la ventana no gana una barra de scroll respecto a antes. El panel del Laboratorio (ArenaSettings) ya tenía desplazamiento de antes y no cuenta.
+
+**En un teléfono (emulador y real), en la Isla:**
+
+1. [ ] Esquiva y desliza con varios jugadores cerca.
+   ✅ Las líneas se leen sin esfuerzo y no tapan el HUD (barras, botones ni mira).
+2. [ ] Esquiva y desliza seguido durante un rato.
+   ✅ Los FPS son estables y no caen de forma notable al aparecer las líneas.
+
+**Embestida del Guerrero, con un jugador en Play (un place con roles: Isla o Dunas):**
+
+1. [ ] Embiste con el Guerrero varias veces en campo abierto.
+   ✅ Hay un empujón de FOV y una sacudida corta al cargar. Se siente bien: ni molesta ni marea, y la vibración para al terminar la embestida.
