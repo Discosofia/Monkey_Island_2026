@@ -1,6 +1,6 @@
 --!strict
 -- Peligros de área con aviso previo en el suelo (Fase 5): rocas que caen, bombas de lava, rayos y
--- ondas de choque. Los usan los jefes (BossService), la erupción del volcán y la tormenta
+-- ondas de choque (las rocas, las bombas y la onda se dibujan en el cliente: Fase 16, R6). Los usan los jefes (BossService), la erupción del volcán y la tormenta
 -- (WeatherService). Siempre avisan antes con un círculo en el suelo, para que se puedan esquivar.
 -- Hacen daño a quien esté dentro del círculo al caer, también en el Basecamp: el círculo ya avisa.
 -- "cause" (opcional, al final): quién lo lanza, para la telemetría (p. ej. "Jefe Orangutan"); sin
@@ -11,22 +11,21 @@
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local Guard = require(ServerScriptService.Combat.Guard)
 local Status = require(ServerScriptService.Combat.Status)
 
 local SPARKS_TEXTURE = "rbxasset://textures/particles/fire_sparks_main.dds"
-local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
 local BOLT_COLOR = Color3.fromRGB(215, 230, 255)
 local BOLT_GLOW = Color3.fromRGB(140, 170, 255)
-local LAVA_COLOR = Color3.fromRGB(255, 110, 30)
 local LAVA_FLIGHT_SECONDS = 1.1
+local ROCK_FALL_SECONDS = 0.4
 -- Margen en altura sobre el radio para contar a alguien dentro del círculo de un impacto.
 local VERTICAL_REACH = 8
 
@@ -161,37 +160,27 @@ local function hurtNear(position: Vector3, radius: number, damage: number, cause
 	end
 end
 
--- Una roca cae en "position" tras "warnSeconds" de aviso.
+-- Una roca cae en "position" tras "warnSeconds" de aviso. El marcador, la roca y el polvo los dibuja cada
+-- cliente (BossFx "rock", con la hora del servidor); aquí solo el sonido y el daño, que llega a la vez que
+-- la roca toca el suelo. "style" es el jefe que la lanza (su firma visual).
 function Hazards.fallingRock(
 	position: Vector3,
 	damage: number,
 	radius: number,
-	color: Color3,
 	warnSeconds: number,
-	cause: string?
+	cause: string?,
+	style: string?
 )
 	local ground = groundAt(position)
-	marker(ground, radius, Color3.fromRGB(255, 60, 40), warnSeconds + 0.4)
-	task.delay(warnSeconds, function()
-		local rock = Instance.new("Part")
-		rock.Name = "FallingRock"
-		rock.Shape = Enum.PartType.Ball
-		rock.Size = Vector3.one * radius
-		rock.Color = color
-		rock.Material = Enum.Material.Slate
-		rock.Anchored = true
-		rock.CanCollide = false
-		rock.CanQuery = false
-		rock.CanTouch = false
-		rock.Position = ground + Vector3.new(0, 45, 0)
-		rock.Parent = Workspace
-		TweenService:Create(rock, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			CFrame = CFrame.new(ground + Vector3.new(0, radius / 2, 0)) * CFrame.Angles(2.5, 1.2, 0.8),
-		}):Play()
-		Debris:AddItem(rock, 1.2)
-		task.wait(0.4)
+	Remotes.BossFx:FireAllClients("rock", style or "ChimpanceCaudillo", ground, {
+		warn = warnSeconds,
+		flight = ROCK_FALL_SECONDS,
+		radius = radius,
+		serverTime = Workspace:GetServerTimeNow(),
+		seed = rng:NextInteger(1, 1000000),
+	})
+	task.delay(warnSeconds + ROCK_FALL_SECONDS, function()
 		Sfx.play("RockImpact", ground)
-		burst(ground + Vector3.new(0, 1, 0), SMOKE_TEXTURE, Color3.fromRGB(140, 125, 105), 14, 14, 1.2)
 		hurtNear(ground, radius, damage, cause)
 	end)
 end
@@ -291,8 +280,9 @@ function Hazards.lightning(position: Vector3, damage: number, radius: number, wa
 	end)
 end
 
--- Bomba de lava: sale de "origin" (el cráter o el jefe) en arco, dejando estela de fuego y humo, y
--- revienta en "position" al acabar el aviso, dejando un charco de lava unos segundos.
+-- Bomba de lava: sale de "origin" (el cráter o el jefe) en arco y revienta en "position" al acabar el aviso,
+-- dejando un charco de lava unos segundos. El dibujo (marcador, bola, charco y brasas) es de cada cliente
+-- (BossFx "lavaBomb"); aquí el sonido y el daño, que cae a la vez que la bomba.
 function Hazards.lavaBomb(
 	position: Vector3,
 	damage: number,
@@ -302,76 +292,21 @@ function Hazards.lavaBomb(
 	cause: string?
 )
 	local ground = groundAt(position)
-	marker(ground, radius, Color3.fromRGB(255, 60, 40), warnSeconds + 0.3)
 	local start = origin or (ground + Vector3.new(rng:NextNumber(-30, 30), 80, rng:NextNumber(-30, 30)))
 	local flight = math.min(LAVA_FLIGHT_SECONDS, warnSeconds)
+	Remotes.BossFx:FireAllClients("lavaBomb", "GorilaDeCeniza", ground, {
+		warn = warnSeconds,
+		flight = flight,
+		radius = radius,
+		origin = start,
+		serverTime = Workspace:GetServerTimeNow(),
+		seed = rng:NextInteger(1, 1000000),
+	})
 	task.delay(warnSeconds - flight, function()
-		local size = math.max(2.2, radius * 0.55)
-		local bomb =
-			effectPart("BombaDeLava", Vector3.one * size, CFrame.new(start), LAVA_COLOR, Enum.Material.CrackedLava)
-		bomb.Shape = Enum.PartType.Ball
-		local glow = Instance.new("PointLight")
-		glow.Color = LAVA_COLOR
-		glow.Range = 16
-		glow.Brightness = 3
-		glow.Parent = bomb
-		local fire = Instance.new("Fire")
-		fire.Size = size * 1.6
-		fire.Heat = 0
-		fire.Color = LAVA_COLOR
-		fire.SecondaryColor = Color3.fromRGB(255, 220, 80)
-		fire.Parent = bomb
-		local tail0 = Instance.new("Attachment")
-		tail0.Position = Vector3.new(0, size * 0.4, 0)
-		tail0.Parent = bomb
-		local tail1 = Instance.new("Attachment")
-		tail1.Position = Vector3.new(0, -size * 0.4, 0)
-		tail1.Parent = bomb
-		local trail = Instance.new("Trail")
-		trail.Attachment0 = tail0
-		trail.Attachment1 = tail1
-		trail.Lifetime = 0.6
-		trail.LightEmission = 0.8
-		trail.Color = ColorSequence.new(Color3.fromRGB(255, 200, 60), Color3.fromRGB(70, 60, 55))
-		trail.Transparency = NumberSequence.new(0, 1)
-		trail.Parent = bomb
-		local smoke = Instance.new("ParticleEmitter")
-		smoke.Texture = SMOKE_TEXTURE
-		smoke.Color = ColorSequence.new(Color3.fromRGB(60, 55, 50))
-		smoke.Size = NumberSequence.new(size * 0.8, size * 2)
-		smoke.Transparency = NumberSequence.new(0.3, 1)
-		smoke.Lifetime = NumberRange.new(0.8, 1.2)
-		smoke.Rate = 25
-		smoke.Speed = NumberRange.new(1, 2)
-		smoke.Parent = bomb
 		Sfx.play("LavaLaunch", start)
-
-		-- Vuelo en arco (curva con el punto de control por encima del medio), girando.
-		local landing = ground + Vector3.new(0, size / 2, 0)
-		local control = (start + landing) / 2 + Vector3.new(0, 35, 0)
-		local elapsed = 0
-		while elapsed < flight do
-			elapsed += RunService.Heartbeat:Wait()
-			local t = math.min(elapsed / flight, 1)
-			local point = start:Lerp(control, t):Lerp(control:Lerp(landing, t), t)
-			bomb.CFrame = CFrame.new(point) * CFrame.Angles(elapsed * 6, elapsed * 4, 0)
-		end
-		bomb:Destroy()
-
+	end)
+	task.delay(warnSeconds, function()
 		Sfx.play("LavaImpact", ground)
-		flash(ground + Vector3.new(0, 1, 0), LAVA_COLOR, radius * 2, 0.45)
-		burst(ground + Vector3.new(0, 1, 0), SPARKS_TEXTURE, Color3.fromRGB(255, 160, 50), 45, 35, 1)
-		burst(ground + Vector3.new(0, 2, 0), SMOKE_TEXTURE, Color3.fromRGB(70, 60, 55), 12, 10, 2)
-		local pool = scorch(ground, radius * 0.7, LAVA_COLOR, Enum.Material.CrackedLava, 4)
-		local poolFire = Instance.new("Fire")
-		poolFire.Size = radius
-		poolFire.Heat = 4
-		poolFire.Color = LAVA_COLOR
-		poolFire.SecondaryColor = Color3.fromRGB(255, 220, 80)
-		poolFire.Parent = pool
-		task.delay(2.5, function()
-			poolFire.Enabled = false
-		end)
 		hurtNear(ground, radius, damage, cause)
 	end)
 end
@@ -392,7 +327,8 @@ function Hazards.warnArea(
 	end)
 end
 
--- Onda de choque alrededor de "position": daña y aturde a quien siga dentro tras el aviso.
+-- Onda de choque alrededor de "position": daña y aturde a quien siga dentro tras el aviso. No dibuja nada:
+-- el marcador y la onda los pone cada cliente (BossFx "stomp", que lanza quien llama a esta función).
 function Hazards.shockwave(
 	position: Vector3,
 	radius: number,
@@ -402,7 +338,6 @@ function Hazards.shockwave(
 	cause: string?
 )
 	local ground = groundAt(position)
-	marker(ground, radius, Color3.fromRGB(255, 160, 40), warnSeconds)
 	task.delay(warnSeconds, function()
 		for _, player in playersNear(ground, radius) do
 			if CombatService.damagePlayer(player, damage, true, nil, cause, nil, unblockable()) then

@@ -176,6 +176,9 @@ local Remotes = {
 	-- Servidor -> clientes (Isla): efecto visual de una habilidad de rol (tipo y sus datos; ver
 	-- AbilityFxController). El daño lo pone el servidor; esto es solo lo que se ve.
 	AbilityFx = remoteEvent("AbilityFx"),
+	-- Servidor -> clientes (Isla): efecto de un jefe (kind, style = id del jefe, posición del suelo y
+	-- { warn, flight, radius, direction, origin, serverTime, seed }; ver BossFxController y CombatClient/BossFx).
+	BossFx = remoteEvent("BossFx"),
 	-- Cliente -> servidor (Isla): soltar en el suelo el huevo misterioso que lleva (EggService).
 	DropEgg = remoteEvent("DropEgg"),
 	-- Cliente -> servidor (Lobby): poner en el nido o descartar un huevo guardado

@@ -1949,6 +1949,28 @@ local Config = {
 		-- Interruptor de la fusión greedy de VoxelMerge (false = no fusiona, para comparar).
 		Merge = true,
 	},
+
+	-- Efectos de los jefes dibujados en el cliente (Fase 16, R6; combatClient/BossFx). "Pieces" son las piezas
+	-- de UN efecto (marcador de peligro incluido) por calidad: un pisotón, UNA roca, UNA bomba de lava... El
+	-- pico de cada efecto y el de una lluvia completa (count × piezas) tiene que quedar dentro de
+	-- Budgets.Vfx de su calidad: la lluvia de rocas más larga es de 5 (Chimpancé) y la de lava, de 7 (Ceniza).
+	-- La calculadora Rendimiento (sección 9) lo comprueba.
+	BossFx = {
+		MaxDistanceStuds = 250, -- más lejos que esto el cliente ignora el efecto
+		Pieces = {
+			stomp = { Low = 16, Medium = 50, High = 100 },
+			rock = { Low = 8, Medium = 18, High = 32 },
+			lavaBomb = { Low = 5, Medium = 12, High = 22 },
+			charge = { Low = 8, Medium = 20, High = 36 },
+			grab = { Low = 6, Medium = 14, High = 26 },
+			roar = { Low = 10, Medium = 30, High = 60 },
+		},
+		ChargeLengthStuds = 54, -- recorrido de la embestida (90 studs/s durante 0,6 s)
+		RoarRadiusStuds = 45,
+		MarkerColor = Color3.fromRGB(255, 60, 40), -- rojo: daño recibido
+		MarkerTransparency = 0.55,
+		LavaPoolSeconds = 4, -- lo que dura el charco incandescente
+	},
 }
 
 return Config

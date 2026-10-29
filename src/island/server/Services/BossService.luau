@@ -36,7 +36,6 @@ local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
-local AbilityFx = require(ServerScriptService.Combat.AbilityFx)
 local BasecampService = require(script.Parent.BasecampService)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
@@ -55,8 +54,7 @@ local MonkeyModels = require(script.Parent.Parent.Monkeys.MonkeyModels)
 local TICK_SECONDS = 0.2
 -- Segundos que sigue "peleando" (y suena su tema) después de perder a su objetivo o del último golpe.
 local FIGHT_GRACE_SECONDS = 8
--- El pisotón aterriza a la vez que la onda de choque (Hazards.shockwave): grietas y piedras como el
--- Pisotón del guerrero (AbilityFxController "Quake").
+-- El pisotón aterriza a la vez que la onda de choque (Hazards.shockwave); su dibujo es BossFx "stomp".
 local STOMP_RADIUS = 20
 local STOMP_IMPACT_SECONDS = 0.9
 local later = Strings.later
@@ -441,10 +439,16 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 				STOMP_IMPACT_SECONDS,
 				`Jefe {boss.id}`
 			)
+			-- El marcador de peligro y la onda los dibuja cada cliente (BossFx "stomp"), con la hora del servidor.
+			Remotes.BossFx:FireAllClients("stomp", boss.id, groundBelow(position), {
+				warn = STOMP_IMPACT_SECONDS,
+				radius = STOMP_RADIUS,
+				serverTime = Workspace:GetServerTimeNow(),
+				seed = rng:NextInteger(1, 1000000),
+			})
 			task.delay(STOMP_IMPACT_SECONDS, function()
 				if current == boss then
 					Sfx.play("RockImpact", position)
-					AbilityFx.all("Quake", groundBelow(position), STOMP_RADIUS)
 				end
 			end)
 		end,
@@ -461,7 +465,7 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 		rockRain = function(boss, special)
 			bubble(boss, later("¡ROCAS!"))
 			local lava = boss.definition.eruption == true
-			local color = if lava then Color3.fromRGB(255, 110, 30) else Color3.fromRGB(110, 105, 100)
+
 			local victims = playersAround(boss.root.Position, 60)
 			for index = 1, special.count or 5 do
 				local victim = victims[rng:NextInteger(1, math.max(1, #victims))]
@@ -483,9 +487,9 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 						spot,
 						math.round(boss.damage * 0.7),
 						6,
-						color,
 						1.1 + index * 0.2,
-						`Jefe {boss.id}`
+						`Jefe {boss.id}`,
+						boss.id
 					)
 				end
 			end
@@ -504,6 +508,11 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 					return
 				end
 				boss.root.AssemblyLinearVelocity = offset.Unit * 90 + Vector3.new(0, 8, 0)
+				Remotes.BossFx:FireAllClients("charge", boss.id, groundBelow(boss.root.Position), {
+					direction = offset.Unit,
+					serverTime = Workspace:GetServerTimeNow(),
+					seed = rng:NextInteger(1, 1000000),
+				})
 				local hit: { [Player]: boolean } = {}
 				for _ = 1, 6 do
 					task.wait(0.1)
@@ -550,12 +559,21 @@ local SPECIALS: { [string]: (boss: ActiveBoss, special: Bosses.Special, target: 
 							target,
 							"🦧 ¡El jefe te ha agarrado! Que te ayuden tus compañeros"
 						)
+						Remotes.BossFx:FireAllClients("grab", boss.id, groundBelow(targetRoot.Position), {
+							serverTime = Workspace:GetServerTimeNow(),
+							seed = rng:NextInteger(1, 1000000),
+						})
 					end
 				end)
 			end)
 		end,
 		extinguish = function(boss)
 			bubble(boss, later("¡GRRROOOAAAR!"))
+			Remotes.BossFx:FireAllClients("roar", boss.id, groundBelow(boss.root.Position), {
+				radius = 45,
+				serverTime = Workspace:GetServerTimeNow(),
+				seed = rng:NextInteger(1, 1000000),
+			})
 			for _, player in playersAround(boss.root.Position, 45) do
 				-- La antorcha de la mano izquierda se apaga un rato (TorchService).
 				if TorchService.douse(player, Config.Monkeys.TorchRoarOutSeconds) then

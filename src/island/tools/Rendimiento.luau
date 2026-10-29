@@ -24,8 +24,8 @@
 --   5. Construibles (BuildModels) y estructuras de la parcela (PlotModels) a sus tres niveles.
 --   6. Armas del Laboratorio (LabWeaponModels y LabWeaponSkins): arma × bando × aspecto.
 --   7. Monos y jefes (island/server/Monkeys/MonkeyModels): piezas del modelo final, ya unido con UnionAsync.
---   8. Totales por escena y el Lobby con 20 jugadores con y sin LOD de detalle (R5; el resto, R6).
---   9. Pico de efectos por calidad (pendiente R6).
+--   8. Totales por escena y el Lobby con 20 jugadores con y sin LOD de detalle (R5).
+--   9. Pico de efectos de cada jefe por calidad (R6: combatClient/BossFx contra Config.Budgets.Vfx).
 --   10. Alertas: lo que, tras fusionar, pasa del presupuesto.
 -- Pendiente: los modelos de ViewportFrame (RewardModels) y los nodos del mapa (MapBuilder) se miden en R3.
 
@@ -683,13 +683,117 @@ local function main(copia: Instance): string
 	-- ---------------------------------- 9. Efectos ----------------------------------
 	seccion("## 9. Pico de efectos por calidad", S.efectos, function()
 		local V = B.Vfx
-		linea("| Calidad | Pico de piezas por cliente |")
-		linea("|---|---|")
-		linea(`| Bajo | {V.Low} |`)
-		linea(`| Medio | {V.Medium} |`)
-		linea(`| Alto | {V.High} |`)
+		local calidades = { "Low", "Medium", "High" }
+		local nombres = { Low = "Bajo", Medium = "Medio", High = "Alto" }
+		-- BossFx se clona (como esta calculadora) para no usar la versión en caché, y lee la copia de Config.
+		local moduloFx = ReplicatedStorage:WaitForChild("CombatClient"):WaitForChild("BossFx"):Clone()
+		moduloFx.Parent = ServerStorage
+		local BossFx = require(moduloFx) :: any
+		BossFx.setConfig(Config)
+		local carpeta = Instance.new("Folder")
+		carpeta.Name = "_BossFxMedicion"
+		carpeta.Parent = ServerStorage
+
+		-- Qué efectos lanza cada habilidad de los jefes (Data/Bosses) y cuántos a la vez.
+		local function efectos(jefe: any, habilidad: any): { { clase: string, veces: number, params: any } }
+			local base = { position = Vector3.zero, uncapped = true, seed = 7 }
+			local function con(extra: any): any
+				local copiaParams = table.clone(base)
+				mezclar(copiaParams, extra)
+				return copiaParams
+			end
+			if habilidad.id == "stomp" then
+				return { { clase = "stomp", veces = 1, params = con({ warn = 0.9, radius = 20 }) } }
+			elseif habilidad.id == "rockRain" then
+				local lava = jefe.eruption == true
+				return {
+					{
+						clase = if lava then "lavaBomb" else "rock",
+						veces = habilidad.count or 5,
+						params = con({ warn = 1.6, flight = if lava then 1.1 else 0.4, radius = 6 }),
+					},
+				}
+			elseif habilidad.id == "charge" then
+				return { { clase = "charge", veces = 1, params = con({ direction = Vector3.zAxis }) } }
+			elseif habilidad.id == "grab" then
+				return { { clase = "grab", veces = 1, params = con({}) } }
+			elseif habilidad.id == "extinguish" then
+				return { { clase = "roar", veces = 1, params = con({ radius = Config.BossFx.RoarRadiusStuds }) } }
+			end
+			return {}
+		end
+
+		-- Cuenta las BasePart que deja un efecto (veces seguidas, como en una lluvia) y los marcadores de peligro.
+		local function medirEfecto(clase: string, estilo: string, calidad: string, veces: number, params: any)
+			local antes = #carpeta:GetChildren()
+			local piezas = 0
+			for _ = 1, veces do
+				piezas += BossFx.play(clase, estilo, carpeta, calidad, params).pieces
+			end
+			local marcadores = 0
+			for _, pieza in carpeta:GetChildren() do
+				if pieza.Name == "BossMarker" then
+					marcadores += 1
+				end
+			end
+			local contadas = #carpeta:GetChildren() - antes
+			carpeta:ClearAllChildren()
+			return piezas, contadas, marcadores
+		end
+
+		linea(
+			`Pico de piezas de efectos de cada jefe por cliente (el mayor de sus ataques; la lluvia de rocas o de lava cuenta todas las de su "count" a la vez, con sus marcadores). Tope: Bajo {V.Low} · Medio {V.Medium} · Alto {V.High} (Config.Budgets.Vfx).`
+		)
 		linea("")
-		linea("Pendiente R6: contar el pico de los efectos de cada jefe (combatClient/BossFx) en las tres calidades.")
+		linea("| Jefe | Bajo | Medio | Alto | Detalle (efecto × veces → piezas Bajo/Medio/Alto) |")
+		linea("|---|---|---|---|---|")
+		for _, id in claves(Bosses) do
+			if not pasa(id) then
+				continue
+			end
+			local jefe = Bosses[id]
+			local picos = { Low = 0, Medium = 0, High = 0 }
+			local detalle = {}
+			for _, habilidad in jefe.specials do
+				for _, efecto in efectos(jefe, habilidad) do
+					local porCalidad = {}
+					for _, calidad in calidades do
+						local piezas, contadas, marcadores =
+							medirEfecto(efecto.clase, id, calidad, efecto.veces, efecto.params)
+						table.insert(porCalidad, tostring(piezas))
+						picos[calidad] = math.max(picos[calidad], piezas)
+						if piezas ~= contadas then
+							alerta(
+								`{id} {efecto.clase} ({nombres[calidad]}): BossFx dice {piezas} piezas y hay {contadas}`
+							)
+						end
+						local peligroso = efecto.clase == "stomp"
+							or efecto.clase == "rock"
+							or efecto.clase == "lavaBomb"
+						if peligroso and marcadores ~= efecto.veces then
+							alerta(
+								`{id} {efecto.clase} ({nombres[calidad]}): falta el marcador de peligro ({marcadores}/{efecto.veces})`
+							)
+						end
+					end
+					table.insert(detalle, `{efecto.clase}×{efecto.veces} → {table.concat(porCalidad, "/")}`)
+				end
+			end
+			linea(`| {id} | {picos.Low} | {picos.Medium} | {picos.High} | {table.concat(detalle, " · ")} |`)
+			for _, calidad in calidades do
+				if picos[calidad] > V[calidad] then
+					alerta(
+						`{id}: efectos en calidad {nombres[calidad]} suman {picos[calidad]} piezas (tope {V[calidad]})`
+					)
+				end
+			end
+		end
+		carpeta:Destroy()
+		moduloFx:Destroy()
+		linea("")
+		linea(
+			"Las piezas se piden todas al empezar el efecto (las que aparecen más tarde esperan ocultas), así que esta cuenta es el pico real. No suma efectos distintos a la vez ni las bombas de la erupción del volcán (WeatherService)."
+		)
 	end)
 
 	linea("## 10. Alertas")

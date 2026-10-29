@@ -22,6 +22,8 @@
 --   - crosshairStyle / crosshairColor / crosshairSize / crosshairThickness / crosshairDynamic: la mira de las
 --     arenas con disparo (UI/Crosshair; Laboratorio y Dunas): forma ("Cross", "Dot", "Circle", "CrossDot",
 --     "T"), color (nunca verde ni morado), tamaño, grosor y si se abre según la dispersión real.
+--   - fxQuality: calidad de los efectos de los jefes (Shared/FxQuality, combatClient/BossFx): "Auto" (según la
+--     calidad gráfica de Roblox y el dispositivo), "Low", "Medium" o "High". Manda sobre la detección.
 --   - language: idioma de los textos (Shared/Strings): "Auto" (el de la cuenta de Roblox), "es" o "en".
 --   - missionsOpen: la lista de misiones de la Isla desplegada (en PC; se pliega tocando su cabecera,
 --     MissionTrackerController). No sale en el panel.
@@ -39,6 +41,7 @@ export type ComicSize = "Small" | "Normal" | "Large"
 export type NumberFont = "Comic" | "Classic"
 export type CameraShake = "On" | "Soft" | "Off"
 export type Language = "Auto" | "es" | "en"
+export type FxQuality = "Auto" | "Low" | "Medium" | "High"
 export type CrosshairStyle = "Cross" | "Dot" | "Circle" | "CrossDot" | "T"
 export type CrosshairColor = "White" | "Yellow" | "Cyan" | "Magenta" | "LightRed"
 export type CrosshairSize = "Small" | "Normal" | "Large"
@@ -56,6 +59,7 @@ export type Values = {
 	comicLevel: ComicLevel,
 	comicSize: ComicSize,
 	cameraShake: CameraShake,
+	fxQuality: FxQuality,
 	crosshairStyle: CrosshairStyle,
 	crosshairColor: CrosshairColor,
 	crosshairSize: CrosshairSize,
@@ -97,6 +101,13 @@ Settings.CAMERA_SHAKE_NAMES = {
 	On = later("Encendido"),
 	Soft = later("Suave"),
 	Off = later("Apagado"),
+} :: { [string]: string }
+Settings.FX_QUALITIES = { "Auto", "Low", "Medium", "High" } :: { FxQuality }
+Settings.FX_QUALITY_NAMES = {
+	Auto = later("Automático"),
+	Low = later("Bajo"),
+	Medium = later("Medio"),
+	High = later("Alto"),
 } :: { [string]: string }
 Settings.CROSSHAIR_STYLES = { "Cross", "Dot", "Circle", "CrossDot", "T" } :: { CrosshairStyle }
 Settings.CROSSHAIR_STYLE_NAMES = {
@@ -148,6 +159,7 @@ function Settings.defaults(): Values
 		comicLevel = "All",
 		comicSize = "Normal",
 		cameraShake = "On",
+		fxQuality = "Auto",
 		crosshairStyle = "Cross",
 		crosshairColor = "White",
 		crosshairSize = "Normal",
@@ -178,6 +190,9 @@ function Settings.sanitize(raw: any): Values
 	end
 	if typeof(raw.cameraShake) == "string" and table.find(Settings.CAMERA_SHAKES, raw.cameraShake) then
 		values.cameraShake = raw.cameraShake :: CameraShake
+	end
+	if typeof(raw.fxQuality) == "string" and table.find(Settings.FX_QUALITIES, raw.fxQuality) then
+		values.fxQuality = raw.fxQuality :: FxQuality
 	end
 	if typeof(raw.crosshairStyle) == "string" and table.find(Settings.CROSSHAIR_STYLES, raw.crosshairStyle) then
 		values.crosshairStyle = raw.crosshairStyle :: CrosshairStyle

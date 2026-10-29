@@ -1316,11 +1316,16 @@ local function buildShake(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, T("📳 Temblor de la cámara"), 1)
 	text(parent, T("En los remates, las habilidades fuertes, los rebotes contra muros y la guardia"), 2, SOFT_COLOR)
 	local refreshShake = choiceRow(parent, 3, "cameraShake", Settings.CAMERA_SHAKES, Settings.CAMERA_SHAKE_NAMES)
+	-- Efectos de los jefes (R6): "Automático" sigue la calidad gráfica de Roblox y el dispositivo (FxQuality).
+	heading(parent, T("Efectos de los jefes"), 4)
+	text(parent, T("Rocas, pisotones, lava y rugidos. El área de peligro se ve siempre"), 5, SOFT_COLOR)
+	local refreshFx = choiceRow(parent, 6, "fxQuality", Settings.FX_QUALITIES, Settings.FX_QUALITY_NAMES)
 	-- Idioma (GDD §18): cada opción en su idioma; "Automático" sigue el de la cuenta de Roblox.
-	heading(parent, T("🌐 Idioma · Language"), 4)
-	local refreshLanguage = choiceRow(parent, 5, "language", Settings.LANGUAGES, Settings.LANGUAGE_NAMES)
+	heading(parent, T("🌐 Idioma · Language"), 7)
+	local refreshLanguage = choiceRow(parent, 8, "language", Settings.LANGUAGES, Settings.LANGUAGE_NAMES)
 	return function(values: Settings.Values)
 		refreshShake(values)
+		refreshFx(values)
 		refreshLanguage(values)
 	end
 end

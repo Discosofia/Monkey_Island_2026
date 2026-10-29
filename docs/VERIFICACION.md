@@ -2378,6 +2378,45 @@ Hecho en Studio con la calculadora `Rendimiento` (sección 8: Lobby con 20 jugad
 1. [ ] Entra en el Lobby publicado en el teléfono con 20 jugadores dentro, y camina entre ellos.
    ✅ No hay tirones al entrar los jugadores. El objetivo es 30 FPS estables en un móvil de gama baja.
 
+## 44. Lo que queda por probar de R6: efectos de los jefes (28-10-2026)
+
+Hecho en Studio: la calculadora `Rendimiento` (sección 9: pico de cada jefe en las tres calidades, sin alertas) y una prueba en Play en la Isla con el Orangután: llegan su pisotón real y 3 bombas de LavaBomb, con pico 36 en Medio, sin errores en la consola. El aspecto de las firmas solo se vio en el pisotón del Gorila Albino, porque las capturas caen en la fase de aviso y el jugador tapa el efecto. Falta lo que sigue. Empieza por 44.1.
+
+#### 44.1 En el Studio de la Isla, con un jugador (▶ Jugar; haz antes una copia del perfil en `PlayerData_v1_backups`)
+
+1. [ ] Abre los ajustes, busca «Efectos de los jefes» y mira la fila en PC y en el móvil. Prueba Auto, Bajo, Medio y Alto.
+   ✅ La fila sale sin obligar a desplazarse, ni en PC ni en móvil. Cada opción se marca al elegirla.
+2. [ ] Abre los ajustes en el Lobby.
+   ✅ La fila nueva entra en las columnas del Lobby sin obligar a desplazarse.
+3. [ ] Pelea contra el Orangután: su pisotón de barro y su agarre con lianas, en Bajo, Medio y Alto.
+   ✅ Se dibujan los dos efectos en las tres calidades, con el mismo radio y la misma duración de daño.
+4. [ ] Pelea contra el Chimpancé: lluvia de rocas grises y polvo, y embestida con estela, en las tres calidades.
+   ✅ Las rocas caen donde cae el daño, y la estela se ve en las tres calidades.
+5. [ ] Pelea contra el Gorila Albino: pisotón cian con esquirlas, rugido que apaga las luces con una ola oscura, y embestida, en las tres calidades.
+   ✅ El rugido apaga las luces y su ola oscura se ve en las tres calidades. Las esquirlas del pisotón salen en cada una.
+6. [ ] Pelea contra el Gorila de Ceniza: lluvia de bombas de lava con charco, pisotón con grietas de lava y brasas, y embestida con brasas, en las tres calidades.
+   ✅ Las bombas caen con su charco en el sitio del daño, y las grietas y las brasas se ven en las tres calidades.
+7. [ ] En Bajo, mira el disco rojo de peligro de los cuatro jefes.
+   ✅ El disco se sigue viendo con su radio y su duración reales. La calidad Baja quita efectos, no el aviso.
+8. [ ] Haz seguidas las cuatro peleas, en Medio, y compara sus efectos.
+   ✅ Se distinguen a primera vista por su efecto de pisotón y de ataque.
+9. [ ] Con el Gorila de Ceniza, espera la erupción del volcán y mira la pestaña «Rendimiento» del panel de administración.
+   ✅ Los picos de dibujo no pasan de `Config.Budgets.Vfx` y la pestaña no marca ninguna alerta.
+
+#### 44.2 En el teléfono, con los places publicados (gama baja)
+
+1. [ ] Entra en el asedio final con jefe en el juego publicado, con la opción «Efectos de los jefes» en Auto.
+   ✅ En Auto sale Bajo y el juego se mantiene a 30 FPS estables durante el asedio.
+2. [ ] Esquiva el área de peligro del jefe, y después quédate dentro de ella.
+   ✅ Fuera del disco no recibes daño. Dentro, el daño llega en el mismo momento y en el mismo sitio que el efecto dibujado.
+
+#### 44.3 Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en la Isla)
+
+1. [ ] A y B se quedan cerca del jefe, y mira la lluvia de rocas y las bombas de lava.
+   ✅ Los dos ven las rocas y las bombas en el mismo sitio y a la vez que el daño.
+2. [ ] B se aleja a más de 250 studs del jefe mientras A pelea con él.
+   ✅ B no dibuja las rocas ni las bombas de ese ataque. No hay errores en la Salida.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
