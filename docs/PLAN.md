@@ -564,7 +564,7 @@ Decisiones del 28-10-2026:
 |---|---|---|---|
 | **R1** | `Config.Budgets` con sus excepciones por id (Mono X-7, Nido, Tótem de guerra, Orangután del Manglar; Laboratorio con skin hasta 200), `Shared/VoxelMerge` (aún sin conectar), calculadora `Rendimiento` con la línea base, §6 de la skill, `CLAUDE.md` y `docs/llm-local` | 175d1dd | ✅ Probado en Studio |
 | **R2** | Medición en vivo: `Performance` y la pestaña "Rendimiento" del panel de administración, en los 4 places | 5feb41d | ✅ Probado en Studio (sin probar: VERIFICACION §41) |
-| **R3** | Fusión de lo estático: armas de la forja y del Laboratorio, armaduras, `RewardModels`, construibles y parcela | — | ⏳ |
+| **R3** | Fusión de lo estático: armas de la forja y del Laboratorio, armaduras, `RewardModels`, construibles y parcela | 8cd2ae9 | ✅ Probado en Studio (sin probar: VERIFICACION §42) |
 | **R4** (opcional) | Fusión de lo animado: mascotas por firma de articulación y monturas por hueso. Solo si la calculadora ahorra más de ~10 %; las tiras de poses se comparan con la skill `animaciones-roblox` | — | ⏳ (opcional) |
 | **R5** | LOD de detalle (`DetailLodController`) y su sección en la calculadora (Lobby con 20 jugadores) | — | ⏳ |
 | **R6** | Efectos de los jefes: `combatClient/BossFx` con un pool en lugar de `Debris`, una firma visual para cada uno de los 4 jefes (mini-entrevista antes) y la lluvia de rocas y la bomba de lava dibujadas en el cliente | — | ⏳ |
