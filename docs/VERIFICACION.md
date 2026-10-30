@@ -1,4 +1,4 @@
-# Verificación paso a paso (entregas 2.3 a 6.5, la arena de Dunas, las Fases 9 y 10 y los pedidos del 26-10-2026)
+# Verificación paso a paso de todas las entregas
 
 Sigue los bloques en orden. Cada bloque dice **qué hacer**, **qué debe pasar ✅** y **qué hacer si falla ⚠️**.
 Marca cada casilla al comprobarla.
@@ -10,14 +10,16 @@ Marca cada casilla al comprobarla.
 ## 0. Preparación (una sola vez)
 
 - [ ] **Actualizar el código:** en VS Code, *Pull* de la rama `claude/monkey-island-roblox-design-ro2mg4` (o en GitHub Desktop, *Fetch origin* → *Pull*).
-- [ ] **Reiniciar Rojo:** cierra los dos `rojo serve` y vuelve a lanzarlos:
+- [ ] **Reiniciar Rojo:** cierra los cuatro `rojo serve` y vuelve a lanzarlos:
   - `rojo serve lobby.project.json` (puerto 34872)
   - `rojo serve island.project.json` (puerto 34873)
   - `rojo serve dunas.project.json` (puerto 34874, para la arena: §8)
-- [ ] En Studio, abre el place **Isla** y conecta el plugin de Rojo al puerto **34873**. Haz lo mismo con el **Lobby** en el **34872**.
-- [ ] **Acceso a las API** (para el guardado): *Archivo → Configuración del juego → Seguridad → Habilitar acceso de Studio a los servicios de API*, en **los dos** places. Publica después de activarlo.
+  - `rojo serve laboratorio.project.json` (puerto 34875, para el Laboratorio: §24)
+- [ ] En Studio, abre el place **Isla** y conecta el plugin de Rojo al puerto **34873**. Haz lo mismo con el **Lobby** en el **34872**, con **Dunas** en el **34874** y con el **Laboratorio** en el **34875**.
+- [ ] **Acceso a las API** (para el guardado): *Archivo → Configuración del juego → Seguridad → Habilitar acceso de Studio a los servicios de API*, en **los 4 places**. Publica después de activarlo.
 - [ ] **Panel de pruebas:** al darle a ▶ *Jugar* en Studio verás abajo a la izquierda un botón **🛠️ Pruebas**. Despliega órdenes para no tener que esperar días de partida: dar materiales, sacar un jefe, el huevo, una caja, cambiar el clima… Solo existe en Studio: en el juego publicado no aparece.
 - [ ] **Dos jugadores** (para PvP, grupos y la vida de los aliados): *Test → Clients and Servers → 2 Players → Start*. Si no lo encuentras, busca "clients" con **Ctrl+Mayús+P**.
+- [ ] **Copia del perfil:** antes de probar en Studio, 👑 Admin → 📋 Perfil → 📦 Hacer copia. Así no se pierde tu perfil real (ver §10.0).
 
 **Teclas de la Isla:**
 
@@ -36,6 +38,52 @@ Marca cada casilla al comprobarla.
 | Habilidades del rol | Z, X, C, R y V (la definitiva) · mando: mantén R1 + A, B, X, Y o L1 |
 | Silenciar música | M |
 | Construir con el martillo | Clic coloca · R gira · T cambia de pieza · F quita |
+
+---
+
+## Índice por modo de prueba (30-10-2026)
+
+Las secciones no se renumeran (PLAN.md, las skills y el código las citan). Este índice dice qué hay en cada bloque y cómo probarlo. **Por dónde empezar con el juego publicado y 2 jugadores: §88**, que ordena los pasos en sesiones.
+
+**Casillas:** `[ ]` pendiente · `[x]` hecho · `[⏭]` superado por un cambio posterior (se conserva el texto, no hay que probarlo) · `(= §N pM)` el mismo paso está repetido en otra sección: al marcar uno, marca los dos.
+
+**Modos:**
+- **1J-Studio:** Play en Studio con el panel 🛠️ Pruebas. Casi siempre se puede repetir en el publicado con el panel 👑 Admin (jefes, gigante, clima, luna roja, mascotas, Doble Ámbar, mantenimiento) o jugando de verdad.
+- **2J:** hace falta otro jugador. En Studio (*Clientes y servidores*) o, mejor, publicado con 2 cuentas.
+- **Pub-1 / Pub-2:** juego publicado, con 1 o 2 jugadores.
+- **3J+:** hace falta más de 2 jugadores (queda fuera hasta que haya más gente).
+- **Móvil:** teléfono, emulador (*Prueba → Dispositivo*) o mando.
+- **Calc:** calculadora (`Economia`, `Equilibrio`, `Rendimiento`) en modo edición, en el Studio de la Isla.
+- **Idioma:** inglés u otro idioma de Roblox.
+- **Visual:** revisar a ojo modelos, armaduras y animaciones.
+- **Solo Studio:** necesita el panel 🛠️ (`SkinKills`, bajas falsas, ⏩ Saltar fase), el lag simulado o la consola.
+
+| Bloque | Secciones | Tema | Pendientes | Modos |
+|---|---|---|---|---|
+| Base de la Isla | §2.3–§2.8 | forja, ladrones, asedio, fiebre, derrota, guardado | 30 | 1J-Studio (→ Pub-1) |
+| Lobby y roles | §3.1–§3.5 | rol, talentos, tutorial, naufragio | 26 | 1J-Studio, 2J |
+| Bestiario y mundo | §4–§5.5 | monos, jefes, huevo, mascotas, PvP, clima | 34 | 1J-Studio, 2J |
+| Extras | §6.1–§6.6 | baliza, clasificaciones, sonido, números de combate | 33 | 1J-Studio, Pub-1, Pub-2 |
+| Retención | §7, §9 | nido, calendario, misiones, menú del Lobby | 27 | 1J-Studio (tiempo real en publicado) |
+| Dunas | §8 | arena PvP | 13 | 1J-Studio, 2J, Pub-2, 3J+ |
+| Fase 9 | §10 | pase, misiones v2, cosméticos, tiendas | 39 | 1J-Studio |
+| Combate v2 | §11 | Isla y Dunas | 30 | 1J-Studio, 2J (casi todo → Pub-1 y Pub-2) |
+| Regalos y admin | §12–§13 | propiedad única, panel de admin | 27 | 2J, Pub-2 |
+| Monturas y pioneros | §14–§17 | jaguar, quetzal, bienvenida, otra definitiva | 31 | 1J-Studio, 2J, Móvil |
+| Fase 12 | §18 | victoria y parcela permanente | 30 | 1J-Studio, 2J, Móvil |
+| Inglés | §19–§23 | idioma en el Lobby, la Isla, Dunas y los datos | 30 | Idioma, 2J |
+| Laboratorio | §24–§30 | duelo, cola, Rondas, mapas, recompensas, skins | 130 | 2J, Pub-2, 3J+, Móvil |
+| Movimiento y combate del Lab | §31–§40 | andar, deslizar, esquiva, daño, miras, espectador | 160 | 1J-Studio, 2J, Móvil, 3J+ |
+| Rendimiento | §41–§44 | medición, fusión, LOD, efectos de jefes | 36 | 1J-Studio, 2J, Móvil, Calc |
+| Armas del Lab | §45–§48 | Avispa, Escorpión, Kraken, Dragón | 28 | Solo Studio (`SkinKills`), Visual, Calc |
+| Fase 18: admin y jefes | §49–§52 | menús en combate, panel, gigante, jefe | 26 | Pub-2 con 👑 Admin |
+| Fase 18: Laboratorio | §53–§54 | disparo, puntería, movimiento | 10 | Pub-2, Móvil |
+| Fase 18: tiempo | §55–§57 | luz, luna, luna roja | 23 | Pub-1, Pub-2 con 👑 Admin |
+| Fase 18: mascotas | §58–§61 | capibara, quetzal, ajolote, clips | 15 | Pub-1 con 👑 Admin, Visual |
+| Fase 18: modelos | §62–§73 | armaduras, armas y trajes rehechos | 51 | Visual, Móvil |
+| Fase 19: combate a distancia | §74–§87 | líneas, poses, impactos, ADS, miras, killfeed, rig, vista | 184 | Pub-1, Pub-2, Móvil, Calc |
+
+Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto).
 
 ---
 
@@ -94,7 +142,7 @@ Marca cada casilla al comprobarla.
    ✅ Pierdes vida poco a poco y sale un aviso de fiebre.
 3. [ ] Con un **antídoto** en la bolsa (2.3), pulsa **H**.
    ✅ "💉 La fiebre ha bajado": la barra desaparece y la vista vuelve a ser nítida.
-4. [ ] Quédate solo con **carne cruda** como comida y pulsa **C** cuando tengas hambre (🛠️ **Hambre y sed al 10**).
+4. [ ] Quédate solo con **carne cruda** como comida y pulsa **G** cuando tengas hambre (🛠️ **Hambre y sed al 10**).
    ✅ Aviso "La carne cruda sube la fiebre" y la barra morada sube.
 
 ## 2.7 Dificultad y derrota
@@ -193,7 +241,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 
 ## 3.4 Tutorial
 
-1. [ ] Aparece la primera vez que entras a la Isla. Para verlo otra vez, cambia `Config.Data.StoreName` a `"PlayerData_v2"`: es como empezar de cero.
+1. [ ] Aparece la primera vez que entras a la Isla. Para verlo otra vez, usa una cuenta nueva en el juego publicado (o cambia `Config.Data.StoreName` a `"PlayerData_v2"`: es como empezar de cero).
    ✅ Panel arriba **"Tutorial 1/5: Equipa el hacha…"**. Cada paso pasa solo al hacerlo; también se puede **Saltar**.
 2. [ ] Completa los 5 pasos.
    ✅ "¡Listo!" y no vuelve a salir.
@@ -306,7 +354,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 4. [ ] Ponte **dentro del círculo** de un rayo o de una bomba de lava (también vale dentro del Basecamp).
    ✅ Te quita vida (15 el rayo, 20 la bomba); si sales del círculo antes del impacto, nada.
 
-## 6.1 Baliza y victoria
+## 6.1 Baliza y victoria (= §10.8, §18.1)
 
 1. [ ] Con 🛠️ +50 de todo (incluye metal de naufragio), construye la **📡 Baliza de rescate** en el núcleo.
    ✅ Bajo el reloj: "📡 Baliza construida · piezas 0/4".
@@ -332,9 +380,9 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 
 ## 6.4 Estilo (cosméticos) y servidores privados
 
-1. [ ] En el Lobby (Studio), icono **🎨 Estilo**. En Studio los cosméticos sin pase son gratis para probar: **Equipar** la Estela dorada, el Título y el Aura.
+1. [ ] En el Lobby (Studio), icono **👕 Armario** (y las tiendas de cosméticos, §10.9–§10.10). En Studio los cosméticos sin pase son gratis para probar: **Equipar** la Estela dorada, el Título y el Aura.
    ✅ Se ven en tu personaje en el Lobby y en la Isla. El **Título: Superviviente de la Isla** sale con "Gana una partida" (ni en Studio es gratis; ver 7.6).
-2. [ ] En el juego publicado, sin pases creados, salen como **"Próximamente"** (normal; ver [LANZAMIENTO.md](LANZAMIENTO.md)).
+2. [ ] En el juego publicado, sin pases creados, los cosméticos de pase salen en 👕 Armario y en las tiendas de cosméticos (§10.9–§10.10) como **"Próximamente"** (normal; ver [LANZAMIENTO.md](LANZAMIENTO.md)).
 3. [ ] **Servidores privados** y **grupos viajando juntos**: solo en el juego publicado, tras activar los servidores privados en el Creator Hub.
 
 ## 6.5 Sonido
@@ -354,7 +402,7 @@ El rol elegido en el Lobby llega a la Isla gracias al guardado (paso 0). Para no
 ## 6.6 Números de combate, críticos y combos
 
 1. [ ] Pega al **muñeco de práctica** con el arma: salen números **amarillos** sobre su cabeza, en una columna de 4 que sube y se desvanece.
-2. [ ] Pulsa **🎯 Críticos al 100 %** y vuelve a pegar: los números salen un **25 % más grandes**, con "!" y un temblor. Púlsalo otra vez para volver a lo normal.
+2. [ ] Pulsa **🎯 Críticos al 100 %** y vuelve a pegar: los números salen un **35 % más grandes** (multiplicador 1,35 de `Config.Crit`), con "!" y un temblor. Púlsalo otra vez para volver a lo normal.
 3. [ ] **Torbellino** contra el muñeco: los golpes muy seguidos se suman en un número.
 4. [ ] Pulsa **🐒 Mandril aquí**: sus mordiscos salen en **rojo a la izquierda de tu cabeza**; algunos (≈15 %) son críticos y más grandes. Con el **Escudo de hojas** sale 🛡️.
 5. [ ] **Curaciones:** come o usa una venda (o sé médico): salen en **verde a la derecha**. Las vendas nunca son críticas.
@@ -433,7 +481,7 @@ Los botones de prueba del Lobby: 🥚 Huevo (rareza siguiente), 🐣 Huevo del n
 4. [ ] Repite **📅 Día siguiente** + **Cobrar** hasta el día 7.
    ✅ El 3 y el 6 quitan tiempo al huevo del nido (sin huevo, dan Ámbar); el 7 da un **huevo raro o mejor** y 500 de Ámbar; después vuelve al día 1.
 
-### 7.5 Misiones diarias
+### 7.5 Misiones diarias (en parte = §10.4)
 
 Desde la Fase 9 son las misiones v2 (una fácil, una media del rol y una difícil): las semanales y el cambio gratis se prueban en el §10.4.
 
@@ -495,7 +543,7 @@ Abre el place **Isla de Dunas** en Studio y conecta Rojo al puerto **34874**. Si
 
 ### 8.3 Publicado (Studio no viaja entre places)
 
-Antes: guarda los places del Lobby y de Dunas y **publica los tres a la vez** (perfil v4).
+Antes: guarda los places del Lobby y de Dunas y **publica los 4 places a la vez** (el perfil, en la versión actual: 13, ver `PlayerData.luau` en `src/serverShared`).
 
 1. [ ] En el Lobby, toca el velero **Zarpar a las Dunas**.
    ✅ Se abre la ventana de la arena con formato, cola y equipamiento por rol (también con el cartel de la Isla de dunas).
@@ -536,6 +584,8 @@ En el place **Lobby**, con ▶. Para el móvil, elige un teléfono en *Prueba �
 Casi todo se prueba en el **Lobby**; la partida (10.5–10.8), en la **Isla**. El panel 🛠️ del Lobby tiene: ⭐ +500 XP de pase, ⭐ Siguiente nivel del pase, 🌋 Premium del pase (sí/no), 📆 Reloj del pase +7 días, 🧾 Compra de prueba (siguiente producto), 🔁 Repetir el último recibo, 🎁 Dar/quitar el siguiente cosmético, 🛒 Tienda de cosméticos: día siguiente, 📆 Cumplir las semanales y 📆 Semana siguiente. El de la Isla: 📆 Cumplir las semanales, 📜 Cumplir el paso del contrato, 📜 Siguiente contrato, 📅 Días de los eventos de esta partida, ☣️ Lluvia tóxica ya, 🔧 Noche de macacos saboteadores, 🎖️ Erupción preliminar con cajas militares y 🌕 La Gran Tropa ya.
 
 ### 10.0 Antes: copia de tu perfil
+
+> Más fácil: 👑 Admin → 📋 Perfil → 📦 Hacer copia (ver §0).
 
 ▶ *Jugar* en Studio **escribe tu perfil de verdad** (el mismo que el del juego publicado). Antes de probar, en la barra de comandos de Studio (en edición, con el acceso a las API activado) pon tu número de usuario y ejecuta:
 
@@ -598,7 +648,7 @@ Al terminar, para dejarlo como estaba, cambia el orden (lee de `PlayerData_v1_ba
 5. [ ] En Dunas, gana o captura una bandera con una semanal de Dunas.
    ✅ Avanza.
 
-### 10.5 Equipo ligado a los jefes (Isla)
+### 10.5 Equipo ligado a los jefes (Isla) (= §4 pasos 5–6b)
 
 1. [ ] **🎒 +50 de todo** y abre la Forja de piedra.
    ✅ El nivel 3 de las armas de rol y la Armadura de plata piden la **Corona del caudillo**.
@@ -629,7 +679,7 @@ Al terminar, para dejarlo como estaba, cambia el orden (lee de `PlayerData_v1_ba
 4. [ ] **🎖️ Erupción preliminar con cajas militares** (de día: de noche el volcán tiene gorilas y el asedio pega dentro del campamento).
    ✅ Piroclastos en las zonas altas y 2 cajas militares con babuinos; abrir una (8 s) activa el PvP y da obsidiana, vendas, antídoto, comida y una esquirla de jefe. El paso "Asegurar" del contrato se cumple.
 
-### 10.8 La Gran Tropa, la baliza y el tótem (Isla)
+### 10.8 La Gran Tropa, la baliza y el tótem (Isla) (= §6.1)
 
 1. [ ] Construye el **tótem guardián** (pide una Perla del río) y unas **antorchas de pie**.
    ✅ A 25 studs las piezas reciben menos daño y se reparan de noche.
@@ -708,7 +758,7 @@ Lo nuevo de §6.5 del GDD. Casi todo se prueba con un jugador en la Isla, junto 
 
 Por el MCP solo hay un jugador: esto solo lo puedes probar tú. Dime qué pasa en cada paso.
 
-1. [ ] **Duelo espejo** (los dos del mismo rol, sin defenderse): cuenta los segundos hasta que cae uno.
+1. [ ] **Duelo espejo** (los dos del mismo rol, sin defenderse): cuenta los segundos hasta que cae uno. (= §8.2 p2)
    ✅ 8–10 s el guerrero, el cazador y el mago (el médico tarda mucho más, a propósito). Defendiéndose bien, hasta ~12 s.
 2. [ ] **Parry entre jugadores:** uno pega con el garrote y el otro pulsa F justo antes.
    ✅ "¡PARRY!" sobre el que para, el atacante se tambalea y el primer golpe del que paró saca "¡CONTRA!".
@@ -741,7 +791,7 @@ Antes, la copia de tu perfil (§10.0): la migración cambia tus mascotas repetid
 
 ### 12.1 Mascotas: una de cada (Lobby, ▶ Jugar)
 
-1. [ ] Entra con un perfil que tenga mascotas repetidas (versión 8).
+1. [⏭] Entra con un perfil que tenga mascotas repetidas (versión 8). ⏭️ Superado: necesita un perfil v8 que ya no existe.
    ✅ A los pocos segundos, "🐾 Ahora tienes una mascota de cada: tus repetidas te dieron +N ✨ Ámbar". En la ventana del nido, la colección ya no enseña "×N".
 2. [ ] **🥚 Huevo**, **Al nido** y **🐣 Huevo del nido listo** hasta que salga una mascota que ya tienes; **🐣 Abrir**.
    ✅ "🐣 ¡Otra vez …!" y "Ya la tenías: +N ✨ Ámbar" (el doble del descarte de su rareza). La colección no cambia.
@@ -883,7 +933,7 @@ Probado en Studio (Lobby, 1 jugador, con las 3 monturas):
 
 Lo que falta: ver la animación entera en pantalla (la captura de Studio en Play no dibuja los visores 3D), una montura **nueva**, quien no es pionero y el teléfono.
 
-### 16.1 En el Lobby (▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+### 16.1 En el Lobby (▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia) (= §7.4)
 
 1. [ ] Pulsa 🛠️ Pruebas → «🌟 Calendario: cobrar el día 7» y, en la ventana (o en la pestaña Misiones), Cobrar.
    ✅ En la ventana, el huevo azul marino con motas de oro tiembla cada vez más, destella del color de la rareza y sale la montura girando, con su nombre y su rareza.
@@ -909,7 +959,7 @@ Lo que falta: ver la animación entera en pantalla (la captura de Studio en Play
 
 ### 16.4 En el juego publicado
 
-1. [ ] Publica los **3 places a la vez** (el perfil pasa a la versión 10) y entra al Lobby.
+1. [ ] Publica los **4 places a la vez** (el perfil pasa a la versión actual: 13, ver `PlayerData.luau` en `src/serverShared`) y entra al Lobby.
    ✅ Sale la bienvenida de pioneros y el perfil no se pierde al ir a la Isla o a Dunas y volver.
 
 ## 17. Lo que queda por probar de T7: la otra definitiva de cada rol (27-10-2026)
@@ -954,7 +1004,7 @@ Lo que falta: dos jugadores (la arena y las curas a otros), los efectos vistos e
 
 ### 17.4 En el juego publicado
 
-1. [ ] Publica los **3 places a la vez** (el perfil pasa a la versión 11) y elige otra V en el Lobby.
+1. [ ] Publica los **4 places a la vez** (el perfil pasa a la versión actual: 13, ver `PlayerData.luau` en `src/serverShared`) y elige otra V en el Lobby.
    ✅ Al ir a la Isla y a Dunas lleva la V elegida, y al volver al Lobby sigue elegida.
 
 ## 18. Lo que queda por probar de la Fase 12: Victoria y parcela permanente (27-10-2026)
@@ -969,7 +1019,7 @@ Probado en Studio (1 jugador, con 🛠️ Pruebas → «🚁 Terminar: victoria 
 
 Lo que falta: una victoria de verdad (con la baliza), dos jugadores y el juego publicado.
 
-#### 18.1 Una victoria de verdad (Isla, ▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia)
+#### 18.1 Una victoria de verdad (Isla, ▶ Jugar; haz antes una copia del perfil: 👑 Admin → 📋 Perfil → 📦 Hacer copia) (= §6.1)
 
 1. [ ] Usa 🛠️ Pruebas → «📡 4 piezas + baliza sin espera», construye la baliza, enciéndela de día, salta a la noche y después al amanecer sin caer.
    ✅ Sale «¡Rescatados!» con los dos botones; en el Lobby, los rescates suben en 1.
@@ -1169,7 +1219,7 @@ Probado en Studio (1 jugador, Lobby), en English y en Español y cambiando de un
 
 #### 21.1 Con 2 jugadores en el Lobby (Prueba → Clientes y servidores → 2 jugadores)
 
-1. [ ] Pon a un jugador en English y al otro en Español. Que uno invite al otro al grupo desde la ventana Grupo, y que el invitado acepte.
+1. [ ] Pon a un jugador en English y al otro en Español. Que uno invite al otro al grupo desde la ventana Grupo, y que el invitado acepte. (= §3.1 p4)
    ✅ La ventana de invitación, «Invitación enviada a …» / «Invite sent to …» y «… se ha unido al grupo» / «… joined the party» salen en el idioma de cada uno, con el nombre tal cual.
 2. [ ] Con el grupo hecho, que el que no es líder pulse el botón de viaje.
    ✅ «Tu grupo viaja cuando … (líder) presione "🍌 Ir a la Isla de monos 🐒"» en español y «Your party travels when … (leader) presses "🍌 Go to Monkey Island 🐒"» en inglés.
@@ -1254,17 +1304,17 @@ Probado en el Studio de Dunas (las armas del Laboratorio, dadas desde el servido
    ✅ Juegas en primera persona: la cruz blanca en el centro (sin cursor) y el arma en la mano abajo a la derecha. Al disparar, el arma retrocede un poco y el disparo sale hacia la cruz.
    ⚠️ Con la primera persona fija el ratón no sale del centro, así que el panel de pruebas no se puede pulsar con el ratón. Para estas pruebas, pon `game.Players.LocalPlayer.CameraMode` a `Classic` desde la barra de comandos del cliente. La L2, con su selector de arma, tendrá que soltar el ratón en los menús.
 2. [x] Con el panel de pruebas, «💔 Vida a 30».
-   ✅ A los 4 s sin recibir daño la vida empieza a subir sola y llega a 100.
+   ✅ A los 4 s sin recibir daño la vida empieza a subir sola y llega a 100 (ahora 144, §85).
 3. [x] Dispara cada arma a los muñecos de 15, 50 y 120 studs. (Probado: aciertan todas apuntando con la cruz; falta mirar los colores en movimiento.)
    ✅ Dardos azul claro, banana amarilla con estela, red y bola morada en arco; el arpón no llega a 50 y el lanzadardos no llega a 120.
-4. [ ] Con el rifle, mantén el clic derecho.
+4. [⏭] Con el rifle, mantén el clic derecho. ⏭️ Superado por §81/§84: el clic derecho del rifle ahora es apuntar (ADS).
    ✅ La vista se acerca, el rifle se centra con el visor justo bajo la cruz, y vuelve al soltar; al cambiar de arma, también vuelve.
 5. [x] «🏴‍☠️ Cambiar de facción» varias veces, con un arma en la mano.
    ✅ Las armas pasan de blanco y azul (guardianes) a latón y madera (piratas) sin cambiar de casilla, también la de primera persona.
 
 #### 24.2 Con 2 jugadores (Test → Clientes y servidores con 2)
 
-1. [ ] Disparaos con cada arma.
+1. [⏭] Disparaos con cada arma. ⏭️ Superado por §80 y §85: el rifle hace 48, el arpón 36 y las zonas cambian los números.
    ✅ Los números son los de LABORATORIO.md §2.1 (dardo 10, banana 45, red 35, suero 30 + veneno morado 6/s): nadie bloquea ni hace parry, los dardos ralentizan hasta un 20 %, la red no se repite antes de 3 s y nadie se queda quieto.
 2. [ ] Mata al otro.
    ✅ «⚔️ … derriba a …», reaparece a los 3 s y durante 1,5 s no recibe daño, salvo si dispara antes.
@@ -1336,7 +1386,7 @@ Lo que queda necesita los places publicados y varias cuentas: la cola entre serv
 
 #### 26.1 En el juego publicado (los 3 places subidos; el Lobby guardado en VERSION 16)
 
-1. [ ] Publica el Lobby, el Laboratorio y Dunas (Dunas comparte `ArenaQueueService`), y guarda el place del Lobby (VERSION 16: el aviso de la E del cartel del Laboratorio pasó al poste derecho).
+1. [⏭] Publica el Lobby, el Laboratorio y Dunas (Dunas comparte `ArenaQueueService`), y guarda el place del Lobby (VERSION 16: el aviso de la E del cartel del Laboratorio pasó al poste derecho). ⏭️ Superado por §29.1 y §86: la VERSION 16 ya no es la última.
    ✅ Los tres places abren sin errores en la Salida. El Lobby publicado muestra el embarcadero, el velero pirata y el cartel TablaLab.
 2. [ ] Dos cuentas distintas, cada una en un servidor del Lobby, buscan «Duelo por equipos» en 1v1.
    ✅ Se emparejan, viajan al Laboratorio y caen en bandos opuestos (Piratas y Guardianes). El formato 1v1 pone 10 bajas.
@@ -1396,7 +1446,7 @@ Lo que queda necesita 2 o más jugadores (daño entre todos, espectador con comp
 
 #### 27.1 En el Studio del Laboratorio, con un jugador (`rojo serve laboratorio.project.json`, puerto 34875)
 
-1. [ ] Pulsa Play con un jugador, detén la prueba y guarda el place con Archivo → Guardar (sin publicar). Si Rojo se desconecta, vuelve a conectarlo antes de Play.
+1. [⏭] Pulsa Play con un jugador, detén la prueba y guarda el place con Archivo → Guardar (sin publicar). ⏭️ Superado por §28.1: se guarda con LabMap v3. Si Rojo se desconecta, vuelve a conectarlo antes de Play.
    ✅ Al reabrir el place, `SpawnsLibres` sigue con 12 marcadores y la Salida no muestra errores.
 2. [x] Con «🎮 Siguiente modo» hasta Todos contra todos y «Empezar ya», mira el HUD de arriba.
    ✅ Dos casillas neutras, «Tú 0» y «🥇 0», y debajo «Gana el primero a 15 bajas · vas 1.º». No aparece ningún color de bando.
@@ -1510,7 +1560,7 @@ Lo que queda necesita 2 o más jugadores (el empate de votos, el cierre con voto
 
 #### 28.1 En el Studio del Laboratorio, con un jugador (`rojo serve laboratorio.project.json`, puerto 34875)
 
-1. [ ] Guarda el place con Archivo → Guardar (sin publicar), con `LabMap` en la versión 3. Si Rojo se desconecta, vuelve a conectarlo antes de Play.
+1. [⏭] Guarda el place con Archivo → Guardar (sin publicar), con `LabMap` en la versión 3. ⏭️ Superado por §86: el place ya se guardó con LabMap v3 antes. Si Rojo se desconecta, vuelve a conectarlo antes de Play.
    ✅ Al reabrir el place, `LabMap` tiene `Version` 3 y los tres Models (`Central`, `Azotea` y `Alcantarillas`), y la Salida no muestra errores.
 2. [x] Con «🏙️ Siguiente mapa» pasa por los tres mapas y mira cada uno desde el suelo.
    ✅ Cada mapa tiene sus piezas (1823, 1853 y 1427) y su luz, y al volver al Central vuelve la luz del Central. No sale ningún aviso de `checkFreeSpawns`.
@@ -1626,7 +1676,7 @@ Ya probado en Play en el Studio del Laboratorio con un jugador (28-10-2026): los
 
 #### 29.1 En el Studio del Lobby (`rojo serve lobby.project.json`, puerto 34872)
 
-1. [ ] Reconstruye el Lobby en modo edición con `require(game.ServerScriptService.Server.World.LobbyBuilder).build()` y guarda el place con Archivo → Guardar (sin publicar). Si Rojo se desconecta, vuelve a conectarlo antes de Play.
+1. [⏭] Reconstruye el Lobby en modo edición con `require(game.ServerScriptService.Server.World.LobbyBuilder).build()` y guarda el place con Archivo → Guardar (sin publicar). ⏭️ Superado: el rebuild v17 ya no aplica. Si Rojo se desconecta, vuelve a conectarlo antes de Play.
    ✅ El Lobby queda en la versión 17 y la Salida no muestra errores. Al reabrir el place, el cartel del Ranking sigue con sus tres bloques.
 2. [ ] Mira el cartel del Ranking desde la plaza, en PC.
    ✅ Se leen los tres bloques (supervivencia, arena y 🧪 LABORATORIO) con sus columnas, sin cortarse ni salirse del cartel de 26 studs.
@@ -1664,7 +1714,7 @@ Ya probado en Play en el Studio del Laboratorio con un jugador (28-10-2026): los
 
 #### 29.5 En el juego publicado
 
-1. [ ] Publica los cuatro places a la vez (Lobby, Isla, Dunas y Laboratorio) con Archivo → Publicar en Roblox, porque el perfil pasa a la versión 13.
+1. [⏭] Publica los cuatro places a la vez (Lobby, Isla, Dunas y Laboratorio) con Archivo → Publicar en Roblox, porque el perfil pasa a la versión 13. ⏭️ Superado: el perfil v13 ya se publicó.
    ✅ Los cuatro abren sin errores en la Salida. Un perfil ya existente se carga sin perder Ámbar, XP ni títulos, y los campos nuevos empiezan vacíos.
 2. [ ] Con cola real desde el Lobby, dos cuentas buscan Rondas 1v1, juegan una partida y una la gana (sin «🏁 Ganar de verdad», que es solo de Studio).
    ✅ La que gana cobra Ámbar y XP de victoria, y la que pierde, Ámbar y XP de derrota. Tras el refresco del ranking, el bloque del Laboratorio muestra la victoria (se anota cuánto tarda).
@@ -1784,7 +1834,7 @@ Probado en Studio con un jugador, en el Lobby y en el Laboratorio (28-10-2026): 
 
 #### 32.2 En el Studio de Dunas, con un jugador
 
-1. [ ] Empieza una partida («Empezar ya»), coge la bandera rival de verdad, corre y pulsa Alt izquierdo. (Probado el 28-10-2026 solo con el atributo `CarryingFlag` puesto a mano: no desliza ni gasta estamina; falta con la bandera real.)
+1. [ ] Empieza una partida («Empezar ya»), coge la bandera rival de verdad, corre y pulsa Alt izquierdo. (Probado el 28-10-2026 solo con el atributo `CarryingFlag` puesto a mano: no desliza ni gasta estamina; falta con la bandera real.) (= §31.2 p1)
    ✅ No desliza mientras llevas la bandera: no hay impulso ni coste de estamina.
 2. [x] Suelta la bandera y pulsa Alt izquierdo corriendo. (Probado quitando el atributo: pico 35,4.)
    ✅ Vuelve a deslizar con el mismo impulso y coste que en la Isla.
@@ -1823,7 +1873,7 @@ Probado en Studio con un jugador, en el Lobby y en el Laboratorio (28-10-2026): 
    ✅ El personaje no da tirones de giro ni pelea con la cámara, y al acabar sigue igual que sin bloqueo.
 4. [ ] Desliza hacia una pared de la Isla o de Dunas.
    ✅ Se frena en la pared y no la atraviesa.
-5. [ ] Ejecuta `PlayerAnimationBuilder.build()` en modo edición, publica la secuencia «Slide» y enlázala como indica la skill `animaciones-roblox`. Después, juega y desliza.
+5. [⏭] Ejecuta `PlayerAnimationBuilder.build()` en modo edición, publica la secuencia «Slide» y enlázala como indica la skill `animaciones-roblox`. Después, juega y desliza. ⏭️ Superado por §35.3: el id de la pose Slide ya está pegado.
    ✅ Al deslizar se ve la pose de agachado, y al acabar el personaje se levanta. Antes de publicarla, el id está vacío y no hay pose.
 
 #### 32.6 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas)
@@ -1850,7 +1900,7 @@ Probado en Studio con un jugador, en el Lobby y en la Isla (28-10-2026): la esqu
    ✅ Se oye un sonido de aire corto. Es provisional: el definitivo se hará aparte.
 2. [ ] Esquiva con Q y mira los pies. Si tienes equipado un cosmético con estela, quítalo para verla sola.
    ✅ Sale una estela fina blanco-azulada pegada al cuerpo que se apaga enseguida, y una bocanada de polvo claro a los pies hacia atrás. Es más discreta que la del Evasivo.
-3. [ ] Espera la recarga (1,2 s) y encadena 4 esquivas seguidas, mirando el campo de visión.
+3. [⏭] Espera la recarga (1,2 s) y encadena 4 esquivas seguidas, mirando el campo de visión. ⏭️ Superado por §74: el empujón de FOV cambió.
    ✅ En cada esquiva el campo de visión sube unos 6° y vuelve en 0,25 s. Revisa a ojo la 3.ª y la 4.ª: si el empujón salta de golpe en vez de subir suave, anota el número de la esquiva y cómo se ve (no está confirmado).
 4. [ ] Pon dos piezas en el suelo separadas 13 studs y esquiva hacia ellas. Luego, aturdido (con un mono o con un muñeco que te aturda), pulsa Q en cuanto puedas para el Evasivo.
    ✅ La esquiva pasa la segunda pieza, y se para cerca de los 13 studs (en el Lobby se midió entre 13,4 y 14,2). El Evasivo llega a unos 14 studs, con el empuje que sigue al salto.
@@ -1928,10 +1978,10 @@ Probado en el Studio de la Isla (28-10-2026): los bordes salen en rojo con un go
 2. [ ] Cúrate por encima del 25 %.
    ✅ El pulso se funde a cero en unos 0,4 s.
 
-#### 34.5 El tiro a la cabeza (espera a V7, que es quien manda el campo `head`)
+#### 34.5 El tiro a la cabeza (V7 ya manda el campo `head`)
 
 1. [ ] Recibe un tiro a la cabeza, con otro jugador o con un muñeco, y compara con un golpe normal del mismo daño.
-   ✅ El destello sale más fuerte con la cabeza (opacidad 0,7 frente a 0,45). Hasta V7 nadie manda `head`, así que este paso no se puede probar todavía.
+   ✅ El destello sale más fuerte con la cabeza (opacidad 0,7 frente a 0,45). V7 y W6 ya están hechos: el paso se puede probar.
 
 ## 35. Lo que queda por probar de V4: animaciones de andar, correr y deslizar (28-10-2026)
 
@@ -1970,7 +2020,7 @@ Probado en Studio, en la Isla (28-10-2026): ciclos de Walk, Run y RunArmed gener
 3. [ ] En la Isla, el Lobby, Dunas y el Laboratorio publicados, anda, corre, corre armado y desliza.
    ✅ Suenan Walk, Run, RunArmed y Slide en los cuatro places, con el mismo ritmo y la misma pose que en Studio.
 
-#### 35.4 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas)
+#### 35.4 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en la Isla o en Dunas) (= §32.6)
 
 1. [ ] Uno anda y corre, y el otro lo mira desde su pantalla.
    ✅ El otro ve los ciclos propios de Walk y Run en ese personaje, al ritmo de la velocidad de su dueño, sin tirones.
@@ -1985,7 +2035,7 @@ Solo está probado con el CI local (stylua, selene, `strings.py` y `rojo build`)
 
 1. [ ] En Dunas, dispara con el arco, el bastón y la cerbatana varias veces a un muñeco de práctica, y mira la Salida.
    ✅ Todos los disparos salen sin errores ni avisos en la consola, y el daño y los números son los de siempre.
-2. [ ] En Dunas, dispara a un muñeco a unos 10 studs y mira de dónde sale cada proyectil.
+2. [ ] En Dunas, dispara a un muñeco a unos 10 studs y mira de dónde sale cada proyectil. (ver §78 (bala inmediata))
    ✅ Sale de la punta del cañón o del Handle del arma, no de la cabeza ni de la cadera, y en menos de 0,12 s el proyectil se junta con su trayectoria real.
 3. [ ] En el Laboratorio, en primera persona, dispara el rifle y el cañón de suero.
    ✅ El origen del disparo sale de la cámara (del centro de la mira), y el rifle y el cañón de suero siguen acertando donde apuntas.
@@ -1996,23 +2046,23 @@ Solo está probado con el CI local (stylua, selene, `strings.py` y `rojo build`)
 
 #### 36.2 En el Studio de Dunas o del Laboratorio, con 2 jugadores (*Test → Clientes y servidores*, con 2)
 
-1. [ ] A dispara de frente a la cabeza de B con un arma a distancia, sin moverse B.
+1. [⏭] A dispara de frente a la cabeza de B con un arma a distancia, sin moverse B. ⏭️ Superado por §80: cada arma tiene su multiplicador de cabeza.
    ✅ En la pantalla de A y en la de B sale «¡Cabeza!» con el número ×1,5 y estilo de crítico. El destello de los bordes de B (V5) es más fuerte que con un golpe normal del mismo daño.
-2. [ ] A dispara al cuerpo de B con el mismo arma, y después a la cabeza.
+2. [⏭] A dispara al cuerpo de B con el mismo arma, y después a la cabeza. ⏭️ Superado por §80: cada arma tiene su multiplicador de cabeza.
    ✅ El cuerpo hace el daño normal, sin «¡Cabeza!». La cabeza hace una vez y media ese daño.
 3. [ ] A dispara a la cabeza de B con un golpe crítico seguro (pon el atributo `DebugAlwaysCrit` en `workspace`).
    ✅ El daño es ×1,5 y no ×2,025: no se multiplican el crítico y la cabeza. El número sale grande y con «¡Cabeza!».
 4. [ ] En Dunas, A dispara con la cerbatana a la cabeza de B.
    ✅ Cuenta como cabeza (×1,5 y «¡Cabeza!») y además entra el veneno morado como siempre.
-5. [ ] En el Laboratorio, A dispara el rifle a la cabeza de B.
+5. [⏭] En el Laboratorio, A dispara el rifle a la cabeza de B. ⏭️ Superado por §80: el rifle hace ×2 en la cabeza.
    ✅ Cuenta como cabeza (×1,5 y «¡Cabeza!»).
-6. [ ] En el Laboratorio, A dispara el cañón de suero a la cabeza de B.
+6. [⏭] En el Laboratorio, A dispara el cañón de suero a la cabeza de B. ⏭️ Superado por §80: el cañón de suero no tiene zonas.
    ✅ No sale «¡Cabeza!» ni hay ×1,5: el cañón de suero no tiene cabeza.
-7. [ ] Con un retraso simulado de 100–150 ms (*Network Settings*), B se mueve de lado mientras A le dispara.
+7. [⏭] Con un retraso simulado de 100–150 ms (*Network Settings*), B se mueve de lado mientras A le dispara. ⏭️ Superado por §80: rebobinado de pose (pasos 7–8).
    ✅ B recibe el disparo donde lo veía A en su pantalla, y no por detrás de una pared.
-8. [ ] Con el mismo retraso, A dispara desde detrás de una cobertura (una roca o un muro) a B, que está tras otra.
+8. [⏭] Con el mismo retraso, A dispara desde detrás de una cobertura (una roca o un muro) a B, que está tras otra. ⏭️ Superado por §80: rebobinado de pose (pasos 7–8).
    ✅ El disparo no atraviesa la cobertura para dar en la cabeza de B.
-9. [ ] B bloquea o hace parry a un disparo de A dirigido a la cabeza, y después a un disparo al cuerpo.
+9. [⏭] B bloquea o hace parry a un disparo de A dirigido a la cabeza, y después a un disparo al cuerpo. ⏭️ Superado por §80: bloqueo y zonas (pasos 4–5).
    ✅ El parry lo para igual en los dos casos, y el bloqueo reduce el daño en la misma proporción. Si el número de la cabeza no cuadra con eso, avísame.
 10. [ ] En Dunas, A coge la bandera y B le dispara a la cabeza.
    ✅ El disparo a la cabeza cuenta igual con la bandera encima, y ni la captura ni la recogida cambian por V7.
@@ -2090,7 +2140,7 @@ Probado en Play, con un jugador, en el Laboratorio y en Dunas (28-10-2026): el �
 
 #### 37.7 Pendiente de V8 (disparos reales con la mira dinámica)
 
-1. [ ] En el Laboratorio, dispara el rifle o los dardos sin parar y mira la mira, con «Mira dinámica» en Sí y después en No.
+1. [⏭] En el Laboratorio, dispara el rifle o los dardos sin parar y mira la mira, con «Mira dinámica» en Sí y después en No. ⏭️ Superado por §38.1 pasos 5–7.
    ✅ Hoy no se abre ni tiene anillo de recarga: `setSpread` y `setCooldown` aún no los llama ningún arma. Este paso se prueba en V8.
 
 ## 38. Lo que queda por probar de V8: cargador, recarga, automático y mira dinámica (28-10-2026)
@@ -2103,7 +2153,7 @@ Probado en Play, con un jugador, en el Laboratorio (28-10-2026): el cargador y l
    ✅ Empieza la recarga: sale la barra bajo la mira con «Recargando… N,N», se llena al acabar y no sale ningún error en la Salida.
 2. [ ] Con el cargador lleno, pulsa R.
    ✅ No empieza ninguna recarga ni cambia el contador.
-3. [ ] Con el rifle, mantén el clic derecho para acercar la vista y dispara quieto y después corriendo.
+3. [⏭] Con el rifle, mantén el clic derecho para acercar la vista y dispara quieto y después corriendo. ⏭️ Superado por §81: el clic derecho es ahora apuntar (ADS).
    ✅ Con zoom no hay dispersión: la mira no se abre ni al correr y cada disparo sale al centro.
 4. [ ] Con el rifle, corre sin parar y mira la mira. Después quédate quieto.
    ✅ La mira se abre al moverte y vuelve a cerrarse en un segundo más o menos al quedarte quieto.
@@ -2155,17 +2205,17 @@ Probado en Play, con un jugador, en el Laboratorio (28-10-2026): el cargador y l
 
 #### 38.5 Con 2 jugadores (*Test → Clientes y servidores*, con 2, en el Laboratorio)
 
-1. [ ] A corre hacia B a 50 studs y dispara el rifle 20 veces seguidas, con B quieto.
+1. [⏭] A corre hacia B a 50 studs y dispara el rifle 20 veces seguidas, con B quieto. ⏭️ Superado por §81 y §85: apuntar (ADS) y el combate 1,5 veces más largo cambian los tiros.
    ✅ Acierta cerca del 30 % de los tiros, como predice `Equilibrio` (sección 12), y no el 100 %. Al vaciar el cargador, A recarga sola.
 2. [ ] A dispara el rifle quieto a B a 50 studs, 5 tiros seguidos.
    ✅ Los 5 salen al punto (la dispersión quieta es 0 y el primer disparo es exacto).
-3. [ ] A dispara el rifle con zoom (clic derecho) mientras corre hacia B a 50 studs.
+3. [⏭] A dispara el rifle con zoom (clic derecho) mientras corre hacia B a 50 studs. ⏭️ Superado por §81: el zoom es ahora apuntar (ADS).
    ✅ Sale sin dispersión y acierta como con el arma quieta. Si en el servidor el tiro no se acepta por la dirección, avísame con el número de paso.
-4. [ ] A mantiene el zoom (clic derecho) mientras dispara dos tiros corriendo, y después suelta el zoom y dispara otros dos.
+4. [⏭] A mantiene el zoom (clic derecho) mientras dispara dos tiros corriendo, y después suelta el zoom y dispara otros dos. ⏭️ Superado por §81: el zoom es ahora apuntar (ADS).
    ✅ Los dos tiros con zoom salen sin dispersión, y los dos sin zoom salen con la dispersión de correr. El servidor usa el `zoomed` que manda el cliente en cada tiro.
 5. [ ] Con 150 ms de latencia en A (*Network Settings*), pulsa R y dispara justo cuando acaba la barra.
    ✅ Puede rechazarse un tiro, sin daño y sin error en la Salida. Al terminar, el contador y la barra de A coinciden con el servidor, sin balas de más.
-6. [ ] Mide el TTK del rifle y de los dardos de A a B a 15 y 50 studs (quieto y corriendo).
+6. [⏭] Mide el TTK del rifle y de los dardos de A a B a 15 y 50 studs (quieto y corriendo). ⏭️ Superado por §85: el combate dura 1,5 veces más.
    ✅ Los tiempos son del orden de lo que predice `Equilibrio` (sección 12). Si el TTK baja de 1,5 s solo con tiros al cuerpo, avísame: sería una alerta nueva.
 
 ## 39. Lo que queda por probar de V9: poses, fogonazo, retroceso y sonidos del Laboratorio (28-10-2026)
@@ -2174,7 +2224,7 @@ Probado en Play, con un jugador, en el Laboratorio (28-10-2026): `Config`, `Soun
 
 #### 39.1 En el Studio de la Isla, con el dueño del juego (publicar las tres poses)
 
-1. [ ] Ejecuta `WeaponAnimationBuilder.build()` en modo edición (con un `require` limpio, no el de la caché). Después haz clic derecho sobre `ReplicatedStorage.WeaponAnimations.LabRifle`, `LabHarpoon` y `LabCannon` > *Save to Roblox*, con el dueño del juego. Pega los tres ids en `Data/WeaponAnimations` y guarda el place de la Isla.
+1. [⏭] Ejecuta `WeaponAnimationBuilder.build()` en modo edición (con un `require` limpio, no el de la caché). ⏭️ Superado por §86: las poses ya están publicadas. Después haz clic derecho sobre `ReplicatedStorage.WeaponAnimations.LabRifle`, `LabHarpoon` y `LabCannon` > *Save to Roblox*, con el dueño del juego. Pega los tres ids en `Data/WeaponAnimations` y guarda el place de la Isla.
    ✅ Salen tres ids `rbxassetid://…` (no vacíos) en `LabRifle`, `LabHarpoon` y `LabCannon`, y el place se guarda sin errores en la Salida.
 2. [ ] Abre el Laboratorio con Play y un jugador. Aleja la cámara a tercera persona y dispara cada arma (dardos, rifle, arpón y cañón) contra un muro.
    ✅ Cada arma tiene su pose: el rifle, con la culata al hombro y la cabeza ladeada, y un respingo al disparar; el arpón, al costado con una mano delante, y el torso que se echa atrás al disparar; el cañón, a la cadera, y el cuerpo que se echa atrás. Los dardos siguen con su pose `Dart`.
@@ -2207,9 +2257,9 @@ Probado en Play, con un jugador, en el Laboratorio (28-10-2026): `Config`, `Soun
 
 #### 39.4 Con 2 jugadores (*Test → Clientes y servidores*, en el Laboratorio)
 
-1. [ ] B se queda quieto a 20 studs de A y mira a A, mientras A dispara cada arma (dardos, rifle, arpón y cañón).
+1. [⏭] B se queda quieto a 20 studs de A y mira a A, mientras A dispara cada arma (dardos, rifle, arpón y cañón). ⏭️ Superado por §53.2, §75 y §78: misma prueba.
    ✅ B ve el fogonazo en la boca del arma de A: cian con los dardos, amarillo con humo con el rifle, bocanada beige con el arpón y goterón morado con el cañón. B también ve la pose de disparo del arma de A (39.1.2).
-2. [ ] Con B quieto, A dispara el rifle y después el cañón a 50 studs y luego a 120 studs.
+2. [⏭] Con B quieto, A dispara el rifle y después el cañón a 50 studs y luego a 120 studs. ⏭️ Superado por §53.2, §75 y §78: misma prueba.
    ✅ B oye cada disparo con el sonido de su arma. El rifle se oye hasta unos 160 studs y el cañón hasta unos 120; más allá no se oye.
 
 #### 39.5 En el emulador de teléfono (844 × 390, con *Prueba → Dispositivo*)
@@ -2639,21 +2689,21 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
    ✅ El primer tiro da justo en el centro (dispersión 0). Al mantener el gatillo del lanzadardos, la mira se abre y los tiros se esparcen; al soltar, se cierra.
 2. [ ] Dispara moviéndote y en el aire.
    ✅ La mira se abre más y los tiros se desvían.
-3. [ ] Acierta a otro jugador (o a un muñeco con vida).
+3. [⏭] Acierta a otro jugador (o a un muñeco con vida). ⏭️ Superado por §76: los hitmarkers cambiaron de color y de tamaño.
    ✅ Salen cuatro rayas blancas en diagonal alrededor de la mira durante unos 0,2 s. Con un golpe a la cabeza son rojas.
-4. [ ] Dispara el lanzadardos y el rifle de bananas.
+4. [⏭] Dispara el lanzadardos y el rifle de bananas. ⏭️ Superado por §79: el aro ya no existe.
    ✅ Las trazadoras se ven gruesas y brillantes, el fogonazo del arma es más grande y el impacto lanza chispas y anillo visibles.
 
 #### 53.2 Dos jugadores
 
-1. [ ] Mira desde fuera cómo dispara el otro jugador.
+1. [ ] Mira desde fuera cómo dispara el otro jugador. (= §78 p1)
    ✅ Ves su fogonazo en la boca del arma y la trazadora gruesa hasta el impacto.
 
 #### 53.3 Poses de disparo del rifle, el arpón y el cañón (publicadas)
 
-1. [ ] En el juego publicado, equipa cada arma del Laboratorio y dispara mirando a otro jugador desde fuera (o desde el espectador).
+1. [⏭] En el juego publicado, equipa cada arma del Laboratorio y dispara mirando a otro jugador desde fuera (o desde el espectador). ⏭️ Superado por §75: las poses de apuntar del rifle, el arpón y el cañón cambiaron.
    ✅ El arma apunta al frente, no al cielo: el rifle a la altura del pecho y el arpón y el cañón a la cadera. Al disparar, el cuerpo se echa atrás y la boca sube un poco.
-2. [ ] Dispara el lanzadardos.
+2. [⏭] Dispara el lanzadardos. ⏭️ Superado por §75: el lanzadardos tiene su propia pose de apuntar (LabDart).
    ✅ Sigue con su pose de siempre (cerbatana) sin cambios.
 
 #### 53.4 Cabeza quieta al andar (pista HeadSteady, publicada con el id 102631425550136)
@@ -2667,23 +2717,23 @@ Probado en Studio con 1 jugador en el Lobby, en Dunas y en la Isla. Lo que sigue
 
 #### 54.1 Dos jugadores
 
-1. [ ] Un jugador se desliza (con C, andando y corriendo) mientras el otro lo mira.
+1. [ ] Un jugador se desliza (con C, andando y corriendo) mientras el otro lo mira. (= §32.6 y §35.4)
    ✅ El que mira ve el cuerpo agachado y echado hacia atrás mientras dura el deslizamiento, sin que se quede en esa pose después.
-2. [ ] Un jugador esquiva (Q) cerca del otro.
+2. [ ] Un jugador esquiva (Q) cerca del otro. (= §33.4)
    ✅ El rival ve la estela, el polvo en los pies y oye el aire. El que esquiva no ve su propia estela, solo el polvo y el sonido.
 
 #### 54.2 Teléfono y mando
 
-1. [ ] En el teléfono, corre y pulsa el botón que dice «Deslizar».
+1. [ ] En el teléfono, corre y pulsa el botón que dice «Deslizar». (en parte = §32.4 p2)
    ✅ Se desliza y no sale el aviso «C · Deslizar» abajo a la izquierda.
-2. [ ] Con mando, pulsa R3 andando.
+2. [ ] Con mando, pulsa R3 andando. (en parte = §32.4 p4)
    ✅ Se desliza con la versión corta.
 
 #### 54.3 Sensación (a ojo)
 
 1. [ ] En PC, esquiva, desliza (andando y corriendo) y corre en el Laboratorio.
    ✅ Salen líneas blancas finas hacia los bordes: fuertes al esquivar, medias al deslizar y suaves al correr. No tapan la mira ni el cargador.
-2. [ ] Pon el ajuste de sacudida de cámara en «apagado».
+2. [⏭] Pon el ajuste de sacudida de cámara en «apagado». ⏭️ Superado por §74: apagar la sacudida ya no quita las líneas (ajuste «Líneas de velocidad»).
    ✅ No salen líneas blancas.
 
 ## 55. Fase 18 B1: luz del día y de la noche (29-10-2026)
@@ -2755,12 +2805,8 @@ Evento en vivo global que se lanza desde el tablero «🎮 Ahora en el juego» d
 
 **En el panel de admin (en cualquier place):**
 
-11. [ ] Mira el botón 🩸 **Luna roja** del tablero «🎮 Ahora en el juego» apagado y después encendido.
+11. [ ] Mira el botón 🩸 **Luna roja** del tablero «🎮 Ahora en el juego» apagado y después encendido. (= §50.3 p1)
    ✅ Apagado, dorado. Encendido, azul. Otro toque lo apaga y vuelve a dorado.
-
-## Cuando termines
-
-Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
 
 ## 58. Fase 18 M1: capibara (29-10-2026)
 
@@ -2885,7 +2931,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ La espalda se ve llamativa: volcán con cráter, carcaj de obsidiana con flechas que arden, sol de fuego con corona de cristales y racimo de azufre con chimeneas. Nada flota ni atraviesa el cuerpo al andar, apuntar o golpear.
 2. [ ] Mira de cerca las hombreras, la corona del guerrero y las chimeneas del médico.
    ✅ Ninguna punta atraviesa la llama, el cráneo ni otra pieza.
-3. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
+3. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca. (el mismo paso que §65 p3, §69 p4, §71 p5, §72 p5 y §73 p5: hacerlos juntos)
    ✅ El humo y las brasas no bajan los FPS de forma notable.
 4. [ ] Ponte un traje mítico encima de la armadura volcánica (grado 4).
    ✅ El traje se ve entero, sin piezas de la armadura asomando.
@@ -2900,7 +2946,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Se ven más ricas que antes (fibra, pelaje, plumas, pintura) sin piezas sueltas ni atravesadas, y la pose de agarre no cambia.
 2. [ ] Dispara el arco y la cerbatana, lanza con la honda y golpea con el garrote y el machete.
    ✅ Las poses (AnimationTrack) siguen alineadas con el arma; los proyectiles salen de la punta correcta.
-3. [ ] Mejora cada arma al rango II.
+3. [ ] Mejora cada arma al rango II. (= §67 p1)
    ✅ El rango II se ve claramente más rico y con hueso; el rango I se ve primitivo (sin hueso).
 4. [ ] Pon un aspecto de arma (Sulfurado) sobre el Machete y el Arco.
    ✅ El aspecto se dibuja entero, sin piezas del arma base.
@@ -2909,7 +2955,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
 
 **Con la Isla en Play (un jugador)**
 
-1. [ ] Mejora cada arma al rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) y míralas en la mano, quietas, corriendo y atacando.
+1. [ ] Mejora cada arma al rango II (Machete afilado, Honda de liana, Maza de hueso, Arco reforzado, Cerbatana de hueso, Bastón dorado) y míralas en la mano, quietas, corriendo y atacando. (= §66 p3)
    ✅ Se ven más ricas que las de rango I, con hueso, y sin piezas sueltas ni atravesadas (colmillos de la guarda y de la cerbatana, púas de la maza, colgantes del bastón). La pose de agarre no cambia.
 2. [ ] Dispara el arco y la cerbatana, lanza con la honda y golpea con la maza y el machete.
    ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
@@ -2937,7 +2983,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Las poses (AnimationTrack) siguen alineadas con el arma y los proyectiles salen de la punta correcta.
 3. [ ] Pon un aspecto de temporada (Sulfurado) y uno mítico sobre cada arma de rango IV.
    ✅ El aspecto se ve distinto y más rico que el arma base, sin piezas del arma base asomando.
-4. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
+4. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca. (el mismo paso que §65 p3, §69 p4, §71 p5, §72 p5 y §73 p5: hacerlos juntos)
    ✅ Los destellos y brasas no bajan los FPS de forma notable.
 
 ## 70. Fase 18 K1: skins de temporada de arma (Azufre) rehechas (29-10-2026)
@@ -2952,7 +2998,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ No se cruza con el brazo ni con el cordón de plumas.
 4. [ ] Afila el machete (nivel 2) con la skin Sulfurado.
    ✅ Aparecen los dientes y las brasas azules del filo y se ve más rico que en el nivel 1.
-5. [ ] Compara las skins míticas con las de Azufre de nivel 4.
+5. [⏭] Compara las skins míticas con las de Azufre de nivel 4. ⏭️ Superado por §71: K2 ya subió las skins míticas.
    ✅ Las míticas deberían verse por encima; hoy miden 84-108 piezas frente a 119-123 de las épicas, y K2 las subirá.
 
 ## 71. Fase 18 K2: skins míticas de arma rehechas (29-10-2026)
@@ -2965,9 +3011,9 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ La espalda también se lee bien (calavera y aro de sol del Titán, glifos del Jaguar, cola y cuello de la Serpiente, raíces y lianas de la Ceiba) y nada queda dentro de otra pieza (calavera entre aro y cristales, colmillos y manchas del Jaguar, plumas del cuello y cuernos de la Serpiente, lianas y flor de la Ceiba).
 3. [ ] Dispara el arco y la cerbatana, y golpea con la maza y el bastón con la skin puesta.
    ✅ Las poses (AnimationTrack) siguen alineadas y los proyectiles salen de la punta correcta; las plumas de cola de la Serpiente no rozan el suelo con el brazo bajo.
-4. [ ] Pon el traje mítico del mismo tema junto con su arma.
+4. [ ] Pon el traje mítico del mismo tema junto con su arma. (= §73 p4)
    ✅ Paleta y motivos encajan (jade, oro y ojos de jade; espectral; plumas de quetzal; savia).
-5. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca.
+5. [ ] En un teléfono (o el emulador), míralas con varios jugadores cerca. (el mismo paso que §65 p3, §69 p4, §71 p5, §72 p5 y §73 p5: hacerlos juntos)
    ✅ Los destellos y el humo no bajan los FPS de forma notable.
 
 ## 72. Fase 18 T1: trajes legendarios del pase (Fuego Azul) rehechos (29-10-2026)
@@ -2982,7 +3028,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ Ninguna punta atraviesa otra pieza ni la armadura.
 4. [ ] Compáralos con la armadura volcánica naranja y con los trajes míticos.
    ✅ Se distinguen a primera vista (azufre y fuego azul, no lava naranja ni jade y oro).
-5. [ ] En un teléfono (o el emulador), míralos con varios jugadores cerca.
+5. [ ] En un teléfono (o el emulador), míralos con varios jugadores cerca. (el mismo paso que §65 p3, §69 p4, §71 p5, §72 p5 y §73 p5: hacerlos juntos)
    ✅ Las brasas, el humo y las llamas no bajan los FPS de forma notable.
 6. [ ] Prueba con un avatar R6.
    ✅ Las hombreras y la espalda no flotan ni se hunden.
@@ -2997,9 +3043,9 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
    ✅ El traje encaja con las cuatro armaduras, sin piezas asomando ni cruzadas.
 3. [ ] Mira de cerca el espíritu del Jaguar (aura, volutas y manchas) y el halo del grado 4 de la Serpiente.
    ✅ Nada atraviesa la cabeza ni el hombro; el halo y los colgantes del Titán no cuelgan en el aire por detrás de la capa.
-4. [ ] Equipa el traje mítico junto con su arma mítica (Maza del Rey Gorila, Arco del Jaguar Espectral, Bastón de la Serpiente Emplumada, Cerbatana de la Ceiba).
+4. [ ] Equipa el traje mítico junto con su arma mítica (Maza del Rey Gorila, Arco del Jaguar Espectral, Bastón de la Serpiente Emplumada, Cerbatana de la Ceiba). (= §71 p4)
    ✅ Paleta y motivos encajan; las runas y bolas de neón no deslumbran en los grados 3 y 4.
-5. [ ] En un teléfono (o el emulador), míralos con varios jugadores cerca.
+5. [ ] En un teléfono (o el emulador), míralos con varios jugadores cerca. (el mismo paso que §65 p3, §69 p4, §71 p5, §72 p5 y §73 p5: hacerlos juntos)
    ✅ Los destellos, las estrellas y las luciérnagas no bajan los FPS de forma notable.
 6. [ ] Prueba con un avatar R6.
    ✅ Las hombreras (ahora losas y discos planos) no flotan ni se hunden.
@@ -3052,7 +3098,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
 
 **Publicar (lo hace el usuario, en el Studio de la Isla):**
 
-1. [ ] Ejecuta `require(game.ServerStorage.Tools.WeaponAnimationBuilder).build()` (con la copia fresca si hace falta). En `ReplicatedStorage.WeaponAnimations`, clic derecho > *Save to Roblox*, con el mismo dueño que el juego, en estas 16: AimStone, AimBow, AimSpell, AimBlowgun, AimDartGun, AimRifle, AimHarpoon, AimCannon, LabDart, y vuelve a publicar Stone, Arrow, Spell, Dart, LabRifle, LabHarpoon y LabCannon (empiezan y acaban en la pose de apuntar). Pega los 16 ids en `src/shared/Data/WeaponAnimations.luau` y guarda el place.
+1. [⏭] Ejecuta `require(game.ServerStorage.Tools.WeaponAnimationBuilder).build()` (con la copia fresca si hace falta). En `ReplicatedStorage.WeaponAnimations`, clic derecho > *Save to Roblox*, con el mismo dueño que el juego, en estas 16: AimStone, AimBow, AimSpell, AimBlowgun, AimDartGun, AimRifle, AimHarpoon, AimCannon, LabDart, y vuelve a publicar Stone, Arrow, Spell, Dart, LabRifle, LabHarpoon y LabCannon (empiezan y acaban en la pose de apuntar). Pega los 16 ids en `src/shared/Data/WeaponAnimations.luau` y guarda el place. ⏭️ Superado por §86: los ids ya están pegados.
    ✅ Los 16 ids quedan pegados; los Aim* y LabDart ya no están vacíos. Mientras alguno esté vacío, fuera de Studio se usa Hold, y LabDart cae en Dart.
 
 **2 jugadores en Studio (Clients and Servers) o publicado:**
@@ -3074,7 +3120,7 @@ Ahora todas las mascotas tienen rutinas de reposo (`Idle…`) y las de suelo, `R
 
 1. [ ] En la Isla y en Dunas, equipa un arma a distancia y anda (tercera persona). Dispara.
    ✅ La pose de apuntar se mantiene también andando; el disparo sale de ella y vuelve a ella.
-2. [ ] En el Laboratorio (primera persona), equipa cada arma y dispara.
+2. [⏭] En el Laboratorio (primera persona), equipa cada arma y dispara. ⏭️ Superado por §84 y §87: el rig de brazos y los modelos de apuntado cambian la vista.
    ✅ No cambia lo que ves respecto a antes de W2.
 
 **Publicado:**
@@ -3112,7 +3158,7 @@ Nota: el disparo real (clic) no se pudo lanzar desde el MCP. Hay que probarlo a 
 1. [ ] En el Lobby, dispara con un arma a distancia a un muñeco de práctica.
    ✅ La marca sale en el centro de la pantalla (no hay mira) y suena «tac».
 2. [ ] En la Isla, repite con un arma a distancia contra un muñeco de práctica.
-   ✅ Mismo resultado que en el Lobby: marca en el centro y «tac». Los muñecos no tienen cabeza hasta W6, así que el amarillo-naranja no se prueba aquí.
+   ✅ Mismo resultado que en el Lobby: marca en el centro y «tac». Ya se puede probar la cabeza (§80), así que el amarillo-naranja también se prueba aquí.
 3. [ ] En el Laboratorio o en Dunas, dispara a un blanco con un arma a distancia y mira dónde aparece la marca.
    ✅ La marca sale en la mira, no en el centro de la pantalla.
 4. [ ] Pega con el arma de cuerpo a cuerpo a un muñeco y usa una habilidad que hace daño.
@@ -3168,7 +3214,7 @@ Nota: los sonidos «tac», «dink» y «pop» son provisionales (ids de serie). 
 
 **Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio o en Dunas):**
 
-1. [ ] Con el otro jugador mirando, dispara un arma a distancia a una pared o al suelo.
+1. [ ] Con el otro jugador mirando, dispara un arma a distancia a una pared o al suelo. (= §53.2 p1)
    ✅ El otro jugador ve volar el proyectil y el fogonazo (WeaponShotFx) de tu disparo, una sola vez por disparo.
 2. [ ] Dispara a un cuerpo del otro jugador con el lag puesto en tu cliente.
    ✅ Tú ves una sola bala y el otro jugador ve una sola bala y un solo fogonazo; no aparecen dos proyectiles ni dos fogonazos.
@@ -3299,9 +3345,9 @@ Nota: lo ya probado en Studio (Laboratorio, un jugador: 12 disparos contra una p
    ✅ El golpe acierta donde estaba su cabeza al disparar, sin salto visible al llegar la confirmación.
 2. [ ] En el Laboratorio, con 12 jugadores, 40 monos y 30 proyectiles en vuelo, mide `Projectiles.step` con el Microprofiler (*Ver → Microprofiler*).
    ✅ `Projectiles.step` tarda menos de 0,5 ms.
-3. [ ] Tras publicar, en el Studio de la Isla, ejecuta `Equilibrio` y `Rendimiento` con las calculadoras de CLAUDE.md.
+3. [ ] Tras publicar, en el Studio de la Isla, ejecuta `Equilibrio` y `Rendimiento` con las calculadoras de CLAUDE.md. (= §86 p1)
    ✅ Ninguna de las dos muestra alertas nuevas.
-4. [ ] Tras jugar publicado, mira en *Creator Hub → tu experiencia → Analítica* los eventos `LimbShots` y `Headshots` (tarda unas horas, como en §6.3).
+4. [ ] Tras jugar publicado, mira en *Creator Hub → tu experiencia → Analítica* los eventos `LimbShots` y `Headshots` (tarda unas horas, como en §6.3). (= §86 p2)
    ✅ Cuentan también los golpes a monos, jefes y muñecos de práctica, no solo a jugadores.
 
 Nota: lo ya probado en Studio (Laboratorio, un jugador: `Hitbox.sweepBodies` da Head, Torso, Limb o Weak por pieza —cabeza, torso, brazos, manos, piernas y pies—, con y sin rebobinado; el rebobinado acierta la cabeza donde estaba hace 0,15-0,3 s y sin rebobinar falla; un dardo contra muñeco hace 7 al torso, 9 a la cabeza (×1,3) y 6 al brazo (×0,8), con el ×0,7 de daño a no jugadores, y el tirador recibe el aviso Head, Limb o Body; `Equilibrio` secciones 12 y 14 sin alertas nuevas; `Rendimiento` sin alertas: jefes con 35, 27, 24 y 30 piezas frente a topes de 35, 30, 30 y 30) no se repite aquí.
@@ -3351,7 +3397,7 @@ Nota: lo ya probado en Studio (Laboratorio, un jugador: `Hitbox.sweepBodies` da 
 
 1. [ ] Apunta con cada una de las 4 armas del Laboratorio y mira el FOV.
    ✅ Cada arma baja a su FOV de apuntado: 55, 30, 60 y 60 (comprueba el valor de cada una en `Data/LabWeapons`).
-2. [ ] Con el arma en primera persona, apunta y suelta.
+2. [⏭] Con el arma en primera persona, apunta y suelta. ⏭️ Superado por §87: la posición del arma al apuntar cambió.
    ✅ La posición del arma cambia hacia el centro al apuntar y vuelve al soltar, con la misma transición de siempre (`aimAlpha`).
 3. [ ] Apunta con el rifle exacto y dispara a un muñeco a distancia.
    ✅ La bala sale justo donde marca la mira, sin dispersión.
@@ -3588,16 +3634,17 @@ Esta sección no añade pasos nuevos: ordena los de §74–§85 por sesión de p
 - Miras por arma (Isla, Dunas, Laboratorio): §82.
 - Rig de brazos con las 5 pistas de las 4 armas (Aim, Fire, Reload, Sprint y Equip) y las skins: §84.
 - Vida 144 y regeneración 29 del Laboratorio: §85 («Un jugador»).
+- Modelos de apuntado y vista a 0,7 (lanzadardos, lanzarredes y cañón, cada bando, skins): §87.
 
 **Sesión C: teléfono (real o emulador) y mando:**
 
-- Líneas y FPS: §74; botón «Mira» y L2: §81; mira en el centro y L2: §82; FPS con 10 tiradores: §79; killfeed compacto: §83; FPS del rig: §84.
+- Líneas y FPS: §74; botón «Mira» y L2: §81; mira en el centro y L2: §82; FPS con 10 tiradores: §79; killfeed compacto: §83; FPS del rig: §84; modelos de apuntado en el teléfono: §87.
 
 **Al terminar (Studio de la Isla, modo edición):**
 
-1. [ ] Ejecuta `Equilibrio` y `Rendimiento` con las calculadoras de CLAUDE.md.
+1. [ ] Ejecuta `Equilibrio` y `Rendimiento` con las calculadoras de CLAUDE.md. (= §80 p3)
    ✅ Ninguna muestra alertas nuevas.
-2. [ ] Pasadas unas horas, mira `LimbShots` y `Headshots` en *Creator Hub → Analítica* (§80).
+2. [ ] Pasadas unas horas, mira `LimbShots` y `Headshots` en *Creator Hub → Analítica* (§80). (= §80 p4)
    ✅ Cuentan también monos, jefes y muñecos.
 
 **Ratón fijo en el centro (corregido tras la prueba publicada):**
@@ -3609,7 +3656,7 @@ Esta sección no añade pasos nuevos: ordena los de §74–§85 por sesión de p
 
 1. [ ] El lanzadardos no hizo daño en una partida publicada del Laboratorio (ni con mira ni sin ella) y después volvió a funcionar sin cambios de código. Si vuelve a pasar, anota el hitmarker (¿sale?), el blanco (jugador o muñeco), la consola del servidor (F9) y si el servidor era recién abierto o venía de una versión anterior.
    ✅ El lanzadardos hace daño siempre, en servidores nuevos y antiguos.
-2. [ ] En primera persona del Laboratorio, mira cuánto se ve de cada arma con la mira y el rig de brazos.
+2. [⏭] En primera persona del Laboratorio, mira cuánto se ve de cada arma con la mira y el rig de brazos. ⏭️ Superado por §87: vista a 0,7 y modelos de apuntado.
    ✅ El lanzadardos, el lanzarredes y el cañón se ven tanto como el rifle; si tapan la vista, ajusta la escala o la posición de la vista (W10).
 
 **Qué se ajusta según lo que falle (dónde se toca):**
@@ -3655,3 +3702,72 @@ Cambio tras la prueba publicada (las armas se veían como un bloque enorme al ap
    ✅ Las filas «apuntando» salen entre 28 y 50 piezas frente al tope `LabAimModel` (60), sin alertas.
 
 Nota: lo ya probado en Studio (Play en el Laboratorio, Guardianes y Piratas: lanzadardos, lanzarredes y cañón apuntando con el modelo nuevo; la escala 0,7 aplicada al rig; `Rendimiento` sin alertas; vista previa de las skins Avispa III, Kraken III y Dragón III) no se repite aquí. Las poses de los brazos al apuntar no se han ajustado: son las de la pista Aim ya publicada, congelada.
+
+## 88. Ruta de la prueba publicada con 2 jugadores (30-10-2026)
+
+Esta sección no añade pasos: ordena los de las demás por sesión, para recorrerlos con el juego publicado y **2 cuentas** (A = tú, admin; B = el otro jugador, sin admin). Cada punto remite a la sección de origen (`§25 p1–6` = pasos 1 a 6 de §25). Marca los pasos allí, no aquí. Se saltan los `[⏭]`. Lo que falle se apunta en la tabla del final.
+
+**Antes de empezar (A):**
+
+- Guarda y publica los **4 places** con Rojo sincronizado (Lobby, Isla, Dunas, Laboratorio). Los ids de animaciones ya están pegados (§86).
+- En 👑 Admin → 📋 Perfil → 📦 Hacer copia, en las dos cuentas si B es tuya.
+- B, si puede, con Roblox en inglés y sin 👑 Admin: así salen los pasos de idioma (§19–§23) y los de «quien no es admin». Si B juega desde un teléfono, haz a la vez la fila «Móvil» de cada sesión.
+- El panel 🛠️ Pruebas no existe en el publicado. Para jefes, gigante, clima, luna roja, mascotas, Doble Ámbar y mantenimiento usa 👑 Admin (§50).
+
+**Sesión 1: Lobby y viajes (A y B, ~45 min)**
+
+- Grupo, viaje juntos y servidores privados: §3.1 p4 (= §21.1 p1), §6.4 p3, §21.1.
+- Cola 1v1 de Dunas y del Laboratorio con el contador 👤: §8.3, §26.1, §27.6 p4 y p6, §28.5 p2.
+- Panel de admin sobre otro jugador y entre servidores (abre un segundo servidor): §13.2, §13.3, §50.1–§50.2, §41.1.
+- Monturas vistas por el otro: §14.2, §15.3. LOD de lo de los demás: §43.3.
+- Avisos y textos en dos idiomas: §19.2, §21.2 (el regalo con Robux de §12.3 p4 y §21.2 p1 es opcional: cuesta Robux reales).
+
+**Sesión 2: Laboratorio 1v1 (~60 min)**
+
+- Duelo por equipos y Rondas: §25.2, §27.2 p6–p11, votación de mapa y caída al vacío §28.2, recompensas y bajas por arma §29.2 p3–p4, §29.5 p2, §30.3.
+- Lo que ve el otro jugador: pose, disparo, fogonazo y pulpa §75, §77, §78 («Dos jugadores»), §79 («Dos jugadores»), §53.2; deslizar, esquivar y andar §54.1, §32.6, §33.4, §35.4.
+- Hitmarkers, zonas de daño y rebobinado con tu ping real: §76, §80 («Dos jugadores» y «Publicado» p1).
+- Killfeed, killcam y espectador: §83, §40.1, §40.3. Arco de daño §34.1, §34.5. Ralentizar §31.3.
+- **10 duelos con vida 144** y su media: §85 («Dos jugadores»).
+
+**Sesión 3: Dunas 1v1 (~30 min)**
+
+- Partida real: §8.2 p2–p7, §11.2, §11.3 p1–p11, §17.2. Bandera: §31.2, §32.2, §36.2 p10. Espectador: §40.1 p1, p4–p6. Montura: §31.5.
+- Idioma: §22.3, §40.5.
+
+**Sesión 4: Isla cooperativa, 2 de 5 (~60 min)**
+
+- Roles y médico: §3.2 p7. PvP y cajas: §5.4, §80 («Isla PvP»).
+- Parcela, cofre, huevo y «seguir sobreviviendo» con 2 jugadores: §18 (P1–P5, las partes de 2 jugadores), §18.3 (unirse a una partida terminada).
+- Gigante y jefe (con 👑 Admin, alcance «Este servidor» y «Todos»): §49.1, §51.2 p1–p2, §52.2, §83 («Jefe real»), §44.3.
+- Luna roja y fase lunar: §57 p1–p3, §56 p2. Idioma: §20.1.
+
+**Sesión 5: cada uno por su cuenta, publicado (Pub-1; en paralelo o en otro momento)**
+
+- Cámara, ADS, miras, rig de brazos, modelos de apuntado y vista a 0,7: la sesión B de §86 y §87.
+- Ratón fijo en el centro: §86 («Ratón fijo»). Luz y luna: §55, §56. Mascotas nuevas con 👑: §58–§60.
+- Combate de la Isla con monos reales: §11.1, §6.6. Lobby: §9, §3.5.
+- Sin avisos `ContentId … failed` en la consola F9: §51.3 (= §75 «Publicado» p3), §35.3.
+- Armaduras, armas y trajes rehechos (Visual): §62–§73, a ojo, con un avatar R6.
+
+**Sesión 6: teléfono o mando (B o A, ~45 min)**
+
+- La fila «Móvil» de cada bloque, sobre todo §74, §81, §82, §84, §87 (apuntar con «Mira» y L2), §32.4 (= §54.2), §28.4, §37.1–§37.2. Los pasos de «teléfono con varios jugadores cerca» (§65 p3, §69 p4, §71 p5, §72 p5, §73 p5) se hacen juntos con B cerca.
+
+**Fuera de alcance con 2 jugadores (no se pueden probar ahora):**
+
+- Más de 2: §8.2 p1, §11.3 p12, §25.2 p2 (fuego amigo), §26.3, §27.3, §27.6 p2, p3 y p5, §28.3, §29.2 p5, §40.1 p2, p3 y p7, §40.2 p1, p2, p5 y p6, §40.4 p2, §43.4, §51.2 p3, §79 («Teléfono», 10 tiradores), §80 («Publicado» p2, 12 jugadores).
+- Solo Studio (panel 🛠️, atributos a mano, lag simulado, consola): `SkinKills` y bajas falsas (§45–§48 pasos 2–4, §83), el lag de §78, §81 «Seguridad», §57 p5 (Sky en Lighting), ⏩ Saltar fase. Quedan para una tanda de Studio con el `probador-studio`.
+- Tiempo real: calendario de 7 días (§7.4 = §16.1), nido de 4–8 h (§7.1), analítica de Creator Hub (§6.3, §80 «Publicado» p4).
+
+**Al terminar:** `Equilibrio` y `Rendimiento` en el Studio de la Isla (§86 «Al terminar»), y pásame la tabla. Los ajustes de números van por `Equilibrio` o `Economia`, y el dónde se toca está al final de §86.
+
+**Registro de fallos** (copia una fila por fallo):
+
+| § y paso | Place | Cuenta | Dispositivo | Qué esperabas / qué pasó | Consola (F9) |
+|---|---|---|---|---|---|
+| | | | | | |
+
+## Cuando termines
+
+Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
