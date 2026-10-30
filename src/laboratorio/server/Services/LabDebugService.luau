@@ -5,6 +5,7 @@
 -- "Punto para mí" suma uno según el modo); los muñecos de práctica (Combat/TrainingDummies) sirven de blanco a
 -- las distancias de la calculadora.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -32,8 +33,56 @@ local function humanoidOf(player: Player): Humanoid?
 	return if player.Character then player.Character:FindFirstChildOfClass("Humanoid") else nil
 end
 
+local DUMMY_CENTER_HEIGHT = 3.9 -- del suelo al centro del muñeco
+local DUMMY_FLOOR_TOLERANCE = 4 -- desnivel máximo respecto a la salida para contar como suelo
+local DUMMY_SPACE = Vector3.new(4, 7, 4) -- hueco libre que necesita un muñeco
+local DUMMY_BACKSTEP = 4 -- cuánto se acerca a la salida cada intento
+local DUMMY_BACKSTEPS = 30
+local DUMMY_SIDE_OFFSETS = { 0, 6, -6, 12, -12 }
+local INVISIBLE = 0.95
+
+-- Un sitio para un muñeco cerca de "wanted": con suelo a la altura de la salida (floorY) y sin nada sólido
+-- en medio. En la azotea el tejado acaba antes de los 120 studs, hay una caseta y una barrera invisible, así
+-- que si "wanted" no vale se acerca a la salida y se prueba a los lados. Nil si no hay ningún sitio.
+local function dummySpot(wanted: Vector3, floorY: number, forward: Vector3, side: Vector3): Vector3?
+	local characters: { Instance } = {}
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(characters, other.Character)
+		end
+	end
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = characters
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+	overlapParams.FilterDescendantsInstances = characters
+	for back = 0, DUMMY_BACKSTEPS do
+		for _, offset in DUMMY_SIDE_OFFSETS do
+			local candidate = wanted - forward * (back * DUMMY_BACKSTEP) + side * offset
+			local from = Vector3.new(candidate.X, floorY + DUMMY_FLOOR_TOLERANCE, candidate.Z)
+			local floor = Workspace:Raycast(from, Vector3.new(0, -2 * DUMMY_FLOOR_TOLERANCE, 0), rayParams)
+			if floor and floor.Instance.Transparency < INVISIBLE then
+				local center = Vector3.new(candidate.X, floor.Position.Y + 0.5 + DUMMY_SPACE.Y / 2, candidate.Z)
+				local blocked = false
+				for _, part in Workspace:GetPartBoundsInBox(CFrame.new(center), DUMMY_SPACE, overlapParams) do
+					if part.CanCollide and part.Transparency < INVISIBLE then
+						blocked = true
+						break
+					end
+				end
+				if not blocked then
+					return Vector3.new(candidate.X, floor.Position.Y + DUMMY_CENTER_HEIGHT, candidate.Z)
+				end
+			end
+		end
+	end
+	return nil
+end
+
 -- Pone (o quita, si ya están) los muñecos delante de la zona de salida de su bando, por el carril
--- central, a las distancias de Config.Lab.TestDummyDistances contadas desde la boca de la zona.
+-- central, a las distancias de Config.Lab.TestDummyDistances contadas desde la boca de la zona, siempre
+-- sobre suelo (dummySpot).
 local function toggleDummies(player: Player)
 	local old = Workspace:FindFirstChild(DUMMY_FOLDER)
 	if old then
@@ -41,13 +90,14 @@ local function toggleDummies(player: Player)
 		return
 	end
 	local spawn, forward = LabWorldService.frontOf(Arena.teamOf(player) or Config.Lab.TeamOrder[1])
+	local side = Vector3.new(-forward.Z, 0, forward.X)
 	local spots = {}
 	for index, distance in Config.Lab.TestDummyDistances do
 		-- Separados un poco a lo ancho, para que no se tapen entre ellos.
-		table.insert(
-			spots,
-			Vector3.new(spawn.X, spawn.Y + 3.9, spawn.Z) + forward * distance + Vector3.new(0, 0, (index - 2) * 5)
-		)
+		local spot = dummySpot(spawn + forward * distance + side * ((index - 2) * 5), spawn.Y, forward, side)
+		if spot then
+			table.insert(spots, spot)
+		end
 	end
 	TrainingDummies.place(spots, spawn)
 end

@@ -82,9 +82,9 @@ Las secciones no se renumeran (PLAN.md, las skills y el código las citan). Este
 | Fase 18: mascotas | §58–§61 | capibara, quetzal, ajolote, clips | 15 | Pub-1 con 👑 Admin, Visual |
 | Fase 18: modelos | §62–§73 | armaduras, armas y trajes rehechos | 51 | Visual, Móvil |
 | Fase 19: combate a distancia | §74–§87 | líneas, poses, impactos, ADS, miras, killfeed, rig, vista | 184 | Pub-1, Pub-2, Móvil, Calc |
-| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 16 | 1J-Studio, 2J, Pub-1, Visual |
+| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 17 | 1J-Studio, 2J, Pub-1, Visual |
 
-Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 16 de la §91.
+Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 17 de la §91.
 
 ---
 
@@ -3823,7 +3823,7 @@ Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (RE
 **A. Play en el Studio de la Isla** (con el panel 🛠️ Pruebas):
 
 1. [ ] Entra en Play, abre 🛠️ Pruebas y pulsa 🎬 Modo grabación (sí).
-   ✅ Desaparecen el HUD y la barra de Roblox. El botón 🛠️ Pruebas sigue en pantalla: en el montaje se recorta, no se oculta.
+   ✅ Desaparecen el HUD (también las líneas de estado como «Hay un huevo común en la isla»), la barra de Roblox y el cursor del ratón. El botón 🛠️ Pruebas sigue en pantalla y se puede pulsar aunque no se vea el cursor (abajo a la izquierda): en el montaje se recorta, no se oculta.
 2. [ ] Con el modo activo, usa un botón del panel que haga aparecer un aviso del juego (por ejemplo 👑 Siguiente jefe).
    ✅ El aviso no se ve mientras dura el modo grabación.
 3. [ ] Pulsa 🎬 Modo grabación otra vez.
@@ -3869,6 +3869,9 @@ Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (RE
     ✅ La mascota desaparece de la partida (no del perfil: al volver al Lobby sigue activa) y a los 2 s sale un capuchino ladrón a 14–45 studs, que va a por ti, te roba algo y huye. Dentro del Basecamp sale el aviso de que no hay sitio.
 16. [ ] Pulsa 🌇 Time-lapse al atardecer de noche, y otra vez con uno ya en marcha.
     ✅ Sale el aviso "solo funciona de día y de uno en uno" y no cambia el reloj.
+
+17. [ ] En el Laboratorio, pulsa 🎯 Muñecos delante en cada uno de los tres mapas (Laboratorio central, Azotea y Alcantarillas), con tu bando en cada lado.
+    ✅ Los muñecos (15, 50 y 120 studs; si no cabe, más cerca) quedan sobre suelo y a unos pocos studs de tu altura: ninguno en el aire ni encima de la barrera invisible del borde, de la caseta ni de un saliente alto. Vuelve a pulsar y desaparecen. En las islas de la Isla, el Lobby y Dunas los muñecos de práctica siguen en el suelo como antes.
 
 ## Cuando termines
 

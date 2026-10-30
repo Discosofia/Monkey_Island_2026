@@ -4,6 +4,7 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local DebugCommands = require(script.Parent.Parent.DebugCommands)
 local Remotes = require(script.Parent.Parent.Remotes)
@@ -12,11 +13,13 @@ local Widgets = require(script.Parent.Widgets)
 local DebugPanel = {}
 
 -- Modo grabación (solo cliente, no se manda al servidor): esconde los ScreenGui del jugador (salvo el panel)
--- y la CoreGui, para grabar vídeos sin HUD. Al volver a pulsar, deja cada cosa como estaba.
+-- y la CoreGui, y quita el cursor del ratón, para grabar vídeos sin HUD. Al volver a pulsar, deja cada cosa
+-- como estaba. Con el cursor quitado el botón "🛠️ Pruebas" (abajo a la izquierda) sigue funcionando.
 local RECORD_MODE = "RecordMode"
 local recording = false
 local savedGuis: { [ScreenGui]: boolean } = {}
 local savedCore: { [Enum.CoreGuiType]: boolean } = {}
+local savedMouseIcon = true
 local guiConnections: { RBXScriptConnection } = {}
 
 local function hideGui(gui: ScreenGui)
@@ -58,6 +61,8 @@ local function toggleRecordMode(panel: ScreenGui)
 			end
 		end
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+		savedMouseIcon = UserInputService.MouseIconEnabled
+		UserInputService.MouseIconEnabled = false
 	else
 		for _, connection in guiConnections do
 			connection:Disconnect()
@@ -73,6 +78,7 @@ local function toggleRecordMode(panel: ScreenGui)
 			StarterGui:SetCoreGuiEnabled(item, enabled)
 		end
 		savedCore = {}
+		UserInputService.MouseIconEnabled = savedMouseIcon
 	end
 end
 

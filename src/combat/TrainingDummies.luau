@@ -41,10 +41,25 @@ local function newPart(name: string, size: Vector3, cframe: CFrame, color: Color
 	return part
 end
 
--- El suelo bajo "position" (o "position" si no hay nada debajo).
+-- El suelo bajo "position" (o "position" si no hay nada debajo). Se saltan las piezas invisibles (las
+-- barreras del borde de un mapa): si no, el muñeco se queda encima de ellas, en el aire.
+local INVISIBLE = 0.95
 local function groundAt(position: Vector3): Vector3
-	local result = Workspace:Raycast(position + Vector3.new(0, 60, 0), Vector3.new(0, -200, 0))
-	return if result then result.Position else position
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local skipped: { Instance } = {}
+	for _ = 1, 4 do
+		params.FilterDescendantsInstances = skipped
+		local result = Workspace:Raycast(position + Vector3.new(0, 60, 0), Vector3.new(0, -200, 0), params)
+		if not result then
+			return position
+		end
+		if result.Instance.Transparency < INVISIBLE then
+			return result.Position
+		end
+		table.insert(skipped, result.Instance)
+	end
+	return position
 end
 
 -- Destello rojo del golpe que entra (no quita vida).

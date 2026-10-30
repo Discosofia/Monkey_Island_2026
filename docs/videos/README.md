@@ -48,7 +48,7 @@ Hay tres tipos de toma, y el guion dice cuál es cada una:
    ```
 
    Si en edición la cámara no avanza, se graba en **Run (F8)**.
-2. **Juego real** en Play. Se activa **🎬 Modo grabación** en el panel de pruebas (esconde el HUD y la barra de Roblox; se pulsa otra vez para volver) y los botones del panel (👑 Siguiente jefe, 🌕 La Gran Tropa ya, 📡 4 piezas + baliza…) preparan cada situación. Para una cámara libre: Shift+P (Freecam de Roblox) en el juego publicado.
+2. **Juego real** en Play. Se activa **🎬 Modo grabación** en el panel de pruebas (esconde el HUD, la barra de Roblox y el cursor; se pulsa otra vez para volver). Actívalo **antes** de grabar: sin él salen las líneas de estado, la vida y el cursor. Los botones del panel (👑 Siguiente jefe, 🌕 La Gran Tropa ya, 📡 4 piezas + baliza…) preparan cada situación. Para una cámara libre: Shift+P (Freecam de Roblox) en el juego publicado.
 3. **Dunas y Laboratorio.** Los constructores de esos mapas no están en el Studio de la Isla, así que se graban en sus propios places, con partidas reales con amigos.
 
 > Antes de probar en Play, hay que hacer copia del perfil real (ver CLAUDE.md, "Studio y MCP: trampas conocidas").

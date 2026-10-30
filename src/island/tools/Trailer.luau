@@ -14,9 +14,11 @@
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local NodeModels = require(ServerScriptService:WaitForChild("ServerShared"):WaitForChild("NodeModels")) :: any
 local EggModel = require(Shared:WaitForChild("EggModel")) :: any
 local PetModels = require(Shared:WaitForChild("PetModels")) :: any
 local MountModels = require(Shared:WaitForChild("MountModels")) :: any
@@ -52,6 +54,61 @@ local function suelo(carpeta: Folder, ancho: number, largo: number, color: Color
 	p.Anchored = true
 	p.CanCollide = false
 	p.Parent = carpeta
+end
+
+local COLOR_HIERBA = Color3.fromRGB(104, 142, 72)
+local COLOR_COLINA = Color3.fromRGB(74, 112, 64)
+local COLINAS = 9
+local ARBOLES = 34
+
+-- Hierba, colinas lejanas y árboles detrás del sujeto (la cámara mira hacia -Z), para que los dioramas no
+-- floten sobre un plano liso. "ancho": lo que se mueve la cámara a lo largo de X.
+local function decorado(carpeta: Folder, ancho: number)
+	local rng = Random.new(7)
+	local function fija(p: BasePart)
+		p.Anchored = true
+		p.CanCollide = false
+		p.Parent = carpeta
+	end
+	local hierba = Instance.new("Part")
+	hierba.Name = "Suelo"
+	hierba.Size = Vector3.new(1600, 2, 1600)
+	hierba.CFrame = CFrame.new(v(0, -1, 0))
+	hierba.Color = COLOR_HIERBA
+	hierba.Material = Enum.Material.Grass
+	fija(hierba)
+	for i = 1, COLINAS do
+		local w = rng:NextNumber(220, 340)
+		local colina = Instance.new("Part")
+		colina.Name = "Colina"
+		colina.Shape = Enum.PartType.Ball
+		colina.Size = Vector3.new(w, rng:NextNumber(100, 220), w)
+		colina.CFrame =
+			CFrame.new(v((i - (COLINAS + 1) / 2) * 150 + rng:NextNumber(-40, 40), 0, -rng:NextNumber(260, 380)))
+		colina.Color = COLOR_COLINA
+		colina.Material = Enum.Material.Grass
+		fija(colina)
+	end
+	local lado = ancho / 2 + 40
+	for _ = 1, ARBOLES do
+		local ground = v(rng:NextNumber(-lado, lado), 0, -rng:NextNumber(22, 120))
+		local tipo = rng:NextNumber()
+		local modelo
+		if tipo < 0.55 then
+			modelo = NodeModels.buildTree(ground, rng, rng:NextNumber(0.9, 1.5))
+		elseif tipo < 0.8 then
+			modelo = NodeModels.buildPalm(ground, rng)
+		else
+			modelo = NodeModels.buildRock(ground, rng, rng:NextNumber(0.8, 1.4))
+		end
+		for _, parte in modelo:GetDescendants() do
+			if parte:IsA("BasePart") then
+				parte.Anchored = true
+				parte.CanCollide = false
+			end
+		end
+		modelo.Parent = carpeta
+	end
 end
 
 -- Guarda la luz en la carpeta (Trailer.limpiar la devuelve igual que Portada.clear).
@@ -122,7 +179,7 @@ local jefes: Escena = {
 	montar = function(carpeta)
 		local c = carpeta :: Folder
 		luzDorada(c)
-		suelo(c, 400, 200, Color3.fromRGB(120, 96, 80))
+		decorado(c, 4 * SEPARACION_JEFES)
 		local lista = {}
 		for _, datos in Portada.JEFES do
 			if datos.id ~= "GorilaDeCeniza" then
@@ -173,7 +230,7 @@ local huevo: Escena = {
 	montar = function(carpeta)
 		local c = carpeta :: Folder
 		luzClara(c)
-		suelo(c, 120, 120, Color3.fromRGB(96, 92, 108))
+		decorado(c, 0)
 		local modelo = EggModel.build("Legendary", "HuevoTrailer")
 		modelo.Parent = c
 		local base = v(0, EggModel.HALF_HEIGHT, 0)
@@ -184,8 +241,8 @@ local huevo: Escena = {
 		local carpeta = c :: Folder
 		TrailerCamara.camino(
 			{
-				punto(v(0, 3.5, 14), v(0, 2.5, 0), 55),
-				punto(v(0, 3.2, 8.5), v(0, 3, 0), 55),
+				punto(v(0, 3.4, 11), v(0, 2.6, 0), 52),
+				punto(v(0, 3.2, 7.5), v(0, 3, 0), 52),
 			},
 			7.5,
 			{
@@ -236,7 +293,7 @@ local mascotas: Escena = {
 	montar = function(carpeta)
 		local c = carpeta :: Folder
 		luzClara(c)
-		suelo(c, 400, 80, Color3.fromRGB(96, 92, 108))
+		decorado(c, #Pets * SEPARACION_MASCOTAS)
 		local ids = {}
 		for id in Pets do
 			table.insert(ids, id)
@@ -265,7 +322,7 @@ local mascotas: Escena = {
 		local puntos = {}
 		for i = 0, 4 do
 			local x = -mitad + (info.ancho * i) / 4
-			table.insert(puntos, punto(v(x - 6, 3.5, 14), v(x + 4, 1.8, 0), 55))
+			table.insert(puntos, punto(v(x - 4, 2.6, 10), v(x + 3, 1.8, 0), 50))
 		end
 		TrailerCamara.camino(puntos, 16, {
 			cuentaAtras = cuentaAtras,
@@ -280,14 +337,14 @@ local mascotas: Escena = {
 
 -- Llama, Jaguar y Quetzalcóatl; este último planeando. Mirando a la cámara en tres cuartos.
 local MONTURAS = { "Llama", "Jaguar", "Quetzalcoatl" }
-local SEPARACION_MONTURAS = 30
-local ALTURA_PLANEO = 12
+local SEPARACION_MONTURAS = 20
+local ALTURA_PLANEO = 6
 
 local monturas: Escena = {
 	montar = function(carpeta)
 		local c = carpeta :: Folder
 		luzClara(c)
-		suelo(c, 200, 80, Color3.fromRGB(96, 92, 108))
+		decorado(c, 2 * SEPARACION_MONTURAS)
 		local info = {}
 		for i, id in MONTURAS do
 			local modelo = MountModels.build(id)
@@ -304,10 +361,10 @@ local monturas: Escena = {
 	camino = function(_, info, cuentaAtras)
 		TrailerCamara.camino(
 			{
-				punto(v(-46, 5, 34), v(-30, 3, 0), 58),
-				punto(v(-14, 5, 32), v(0, 4, 0), 56),
-				punto(v(16, 7, 34), v(30, 11, 0), 58),
-				punto(v(46, 9, 34), v(30, 12, 0), 58),
+				punto(v(-32, 4.5, 24), v(-20, 3, 0), 55),
+				punto(v(-8, 4.5, 23), v(0, 3.5, 0), 54),
+				punto(v(12, 5.5, 24), v(20, 7, 0), 55),
+				punto(v(32, 6, 22), v(20, 7, 0), 55),
 			},
 			12,
 			{
