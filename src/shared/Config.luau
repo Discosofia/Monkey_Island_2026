@@ -1115,7 +1115,7 @@ local Config = {
 		EggSpeed = 2,
 		EggTickSeconds = 60,
 		-- Pesos de la rareza de los huevos que aparecen con "Suerte de huevo" (normal: Pets.RarityWeights).
-		EggLuckWeights = { Common = 30, Uncommon = 30, Rare = 22, Epic = 13, Legendary = 5 },
+		EggLuckWeights = { Common = 30, Uncommon = 30, Rare = 22, Epic = 12, Legendary = 5, Mythic = 1 },
 		-- Lluvia de huevos del Lobby: huevos por jugador (mínimo EggRainMin) y cada jugador recoge uno.
 		EggRainPerPlayer = 2,
 		EggRainMin = 6,
@@ -1518,10 +1518,10 @@ local Config = {
 		-- Al defender el huevo, cada participante se lleva uno de su rareza a la mochila (BagSize; los que
 		-- no caben quedan pendientes hasta decidir en el Lobby). Solo el del nido del Lobby avanza con
 		-- las horas reales y tarda HatchHours según su rareza.
-		HatchHours = { Common = 8, Uncommon = 11, Rare = 14, Epic = 18, Legendary = 24 },
+		HatchHours = { Common = 8, Uncommon = 11, Rare = 14, Epic = 18, Legendary = 24, Mythic = 36 },
 		BagSize = 3,
 		-- Ámbar por descartar un huevo, según su rareza.
-		DiscardAmber = { Common = 15, Uncommon = 30, Rare = 60, Epic = 120, Legendary = 250 },
+		DiscardAmber = { Common = 15, Uncommon = 30, Rare = 60, Epic = 120, Legendary = 250, Mythic = 500 },
 		-- Ámbar de una mascota que ya se tiene al abrir el huevo (se tiene una de cada; 26-10-2026): el
 		-- doble del descarte, para que esperar las horas del nido compense. También compensa, una vez,
 		-- las copias que había antes de la versión 9 del perfil (ServerShared/PlayerData). Mítico: el
@@ -1920,7 +1920,8 @@ local Config = {
 
 	Pets = {
 		-- Probabilidad (peso) de cada rareza al eclosionar un huevo (Fase 5).
-		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 6, Legendary = 1 },
+		-- El huevo mítico (30-10-2026) es el más raro: da el Quetzalcóatl o una mascota mítica.
+		RarityWeights = { Common = 55, Uncommon = 25, Rare = 13, Epic = 5.8, Legendary = 1, Mythic = 0.2 },
 		-- Cada cuánto actúan las mascotas de combate y curación, y su alcance de ataque.
 		TickSeconds = 2,
 		AttackRange = 25,

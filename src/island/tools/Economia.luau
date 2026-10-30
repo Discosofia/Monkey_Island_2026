@@ -308,8 +308,7 @@ local function main(copia: Instance): string
 	local Mounts = if MountsModulo then require(MountsModulo) :: any else {}
 	local raresConMontura: { [string]: boolean } = {}
 	for _, montura in Mounts do
-		-- Las que tienen "origin" (el Quetzalcóatl: premio de pioneros y huevo mítico, aún sin hacer) no
-		-- salen de los huevos normales.
+		-- Las que tienen "origin" (el Quetzalcóatl: premio de pioneros y huevo mítico) se miden aparte.
 		if not montura.origin then
 			raresConMontura[montura.rarity] = true
 		end
@@ -519,7 +518,7 @@ local function main(copia: Instance): string
 		end)
 	end
 	-- Huevo de la Isla defendido en un nido de la parcela de nivel 0–3: parte de los huevos de cada rareza
-	-- sube a la siguiente ("rarityUp" de Data/PlotStructures; no a la mítica: ningún huevo normal lo es).
+	-- sube a la siguiente ("rarityUp" de Data/PlotStructures; no a la mítica: el nido no la da).
 	-- Rarezas, horas medias, Ámbar de descartarlo y probabilidad de montura.
 	local PlotStructures = require(Data.PlotStructures) :: any
 	local ordenRarezas = {}
@@ -534,7 +533,7 @@ local function main(copia: Instance): string
 		local pesos = table.clone(Config.Pets.RarityWeights)
 		local datosNido = if nivel > 0 then PlotStructures.Nest.levels[nivel] else nil
 		local sube = if datosNido then datosNido.rarityUp or 0 else 0
-		for i = 1, #ordenRarezas - 1 do
+		for i = 1, #ordenRarezas - 2 do
 			local pasa = Config.Pets.RarityWeights[ordenRarezas[i]] * sube
 			pesos[ordenRarezas[i]] -= pasa
 			pesos[ordenRarezas[i + 1]] += pasa
@@ -1488,7 +1487,7 @@ local function main(copia: Instance): string
 				if montura.origin then
 					table.insert(
 						porMontura,
-						`{montura.name} ({montura.rarity}): no sale de los huevos normales ({montura.origin}; aún sin hacer)`
+						`{montura.name} ({montura.rarity}): no sale de los huevos normales ({montura.origin})`
 					)
 					continue
 				end

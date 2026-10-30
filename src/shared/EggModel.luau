@@ -58,6 +58,14 @@ local PALETTES: { [string]: Palette } = {
 		glow = Color3.fromRGB(255, 190, 70),
 		outline = Color3.fromRGB(255, 235, 150),
 	},
+	-- Mítico: cáscara rosa carmesí con vetas rojas, el color de la rareza.
+	Mythic = {
+		shell = Color3.fromRGB(250, 190, 205),
+		spots = Color3.fromRGB(230, 40, 90),
+		spotsDark = Color3.fromRGB(150, 15, 55),
+		glow = Color3.fromRGB(255, 90, 130),
+		outline = Color3.fromRGB(255, 200, 215),
+	},
 	-- Pioneros (T6): el huevo de la tirada de montura del día 7, azul marino con motas de oro. No es de
 	-- ninguna rareza para no adelantar lo que sale.
 	Pioneer = {

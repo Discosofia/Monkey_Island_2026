@@ -83,8 +83,7 @@ end
 local EGG_PLACES = { nest = "en el nido", bag = "en la mochila", pending = "pendiente (mochila llena)" }
 
 -- Lo que dice el aviso de una cosa del listado, o nil si no existe. "All" es todo (grantAll). Las
--- rarezas de huevo son las que tienen tiempo de eclosión (Config.Egg.HatchHours: el Mítico no sale
--- de los huevos).
+-- rarezas de huevo son las que tienen tiempo de eclosión (Config.Egg.HatchHours).
 local function describe(kind: string, id: string): string?
 	if kind == "All" then
 		return "🔓 Todo (cosméticos, emotes, mascotas y monturas)"

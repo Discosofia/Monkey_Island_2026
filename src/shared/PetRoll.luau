@@ -53,12 +53,11 @@ function PetRoll.upgradeRarity(rarity: string, chance: number, rng: Random): str
 end
 
 -- Mascotas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza). Las que
--- tienen "origin" (las míticas) nunca salen de un huevo normal: se dan desde el panel de admin y
--- saldrán del huevo mítico.
+-- tienen "origin" no salen de un huevo normal; las míticas ("HuevoMitico") salen solo del huevo mítico.
 function PetRoll.petsOfRarity(rarity: string): { string }
 	local candidates = {}
 	for petId, pet in Pets do
-		if pet.rarity == rarity and not pet.origin then
+		if pet.rarity == rarity and (not pet.origin or pet.origin == "HuevoMitico") then
 			table.insert(candidates, petId)
 		end
 	end
@@ -67,8 +66,7 @@ function PetRoll.petsOfRarity(rarity: string): { string }
 end
 
 -- Monturas de una rareza, ordenadas por id (las que pueden salir de un huevo de esa rareza). Las míticas
--- (el Quetzalcóatl) salen de la tirada de pioneros (rollPioneer) y saldrán del huevo mítico, que aún no
--- existe: ningún huevo normal es Mítico.
+-- (el Quetzalcóatl) salen de la tirada de pioneros (rollPioneer) y del huevo mítico.
 function PetRoll.mountsOfRarity(rarity: string): { string }
 	local candidates = {}
 	for mountId, mount in Mounts do

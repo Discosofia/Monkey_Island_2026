@@ -3768,6 +3768,37 @@ Esta sección no añade pasos: ordena los de las demás por sesión, para recorr
 |---|---|---|---|---|---|
 | | | | | | |
 
+## 89. El huevo mítico (30-10-2026)
+
+Agrupado por cómo se prueba. Hace falta el Studio de la Isla abierto con Rojo en el 34873 (la parte A se midió el 30-10-2026 y pasó; quedan B y C) y, para lo último, el juego publicado.
+
+**A. Studio de la Isla, modo edición** (clona la carpeta `Shared` antes de hacer `require`):
+
+1. [x] 200.000 tiradas de `PetRoll.rollRarity(Random.new(1))`.
+   ✅ Sale cada rareza cerca de común 55 · poco común 25 · raro 13 · épico 5,8 · legendario 1 · mítico 0,2 %. Con `Config.LiveEvents.EggLuckWeights`, el mítico sale cerca del 1 %.
+2. [x] `PetRoll.petsOfRarity("Mythic")`, `PetRoll.rollPet("Mythic", Random.new(2))` y `PetRoll.mountsOfRarity("Mythic")`.
+   ✅ Dan el Quetzal y el Ajolote, una de las dos, y el Quetzalcóatl. `petsOfRarity("Legendary")` sigue igual que antes.
+3. [x] `PetRoll.rollMount("Mythic", {}, rng)` muchas veces.
+   ✅ Sale el Quetzalcóatl la mitad de las veces (`Config.Mounts.EggChance`); la otra mitad, `nil` (sale mascota).
+4. [x] `Config.Egg.HatchHours.Mythic`, `Config.Egg.DiscardAmber.Mythic` y `EggModel.palette("Mythic")`.
+   ✅ 36, 500 y una paleta distinta de la común.
+5. [x] Ejecuta `Economia` (`informe()`).
+   ✅ No falla, la sección "Alertas" no tiene nada nuevo por el huevo mítico y el nido de la parcela no sube ningún huevo a mítico.
+
+**B. Play en Studio** (haz copia del perfil antes, como en §0):
+
+6. [ ] En 👑 Admin, regala un huevo Mítico y ponlo en el nido del Lobby.
+   ✅ El huevo se ve rosa carmesí, la ficha del nido dice 36 h y, al abrirlo, sale el Quetzalcóatl o el Quetzal o el Ajolote. Si ya tienes lo que sale, recibes 1.000 de Ámbar.
+7. [ ] Descarta un huevo mítico.
+   ✅ Da 500 de Ámbar.
+
+**C. Juego publicado, con 2 jugadores** (el mítico es de 0,2 %: usa "Suerte de huevo" o el panel para forzarlo):
+
+8. [ ] En la Isla, un huevo mítico aparece con su aviso global en rosa carmesí y otro jugador lo ve igual.
+   ✅ Se puede coger, cargar y defender como los demás.
+9. [ ] En la lluvia de huevos del Lobby, con el evento activo.
+   ✅ Puede caer un huevo mítico y cada jugador recoge el suyo.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
