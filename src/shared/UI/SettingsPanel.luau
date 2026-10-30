@@ -10,7 +10,8 @@
 --      por combo ("A → B → C · remate") y lo que hace tu mascota, con sus números.
 --      En la Isla cuenta el arma de la mano o la mejor de la mochila, y la sección se rehace al
 --      cambiar el arma, el rol, la mascota o una ventaja; en el Lobby, la inicial del rol.
---   3. Opciones: disposición de los números, ajustes sí/no y efectos de cómic (Shared/Settings, se
+--   3. La mira (estilo, color, tamaño, grosor, dinámica y su vista previa), la misma que en la arena.
+--   4. Opciones: disposición de los números, ajustes sí/no y efectos de cómic (Shared/Settings, se
 --      guardan en el perfil).
 --   4. Controles del combate (Fase 10, C12): qué tecla, botón del mando o botón táctil hace cada cosa
 --      (la guardia, el amago, el Evasivo, el bloqueo de cámara…).
@@ -1141,7 +1142,7 @@ local function toggleLine(parent: Instance, order: number, key: string, label: s
 	return switch
 end
 
--- Sección de la mira (solo en la arena): sus cuatro elecciones, la mira dinámica y una vista previa viva
+-- Sección de la mira (en todos los places): sus cuatro elecciones, la mira dinámica y una vista previa viva
 -- sobre fondo oscuro (su propia mira, montada en el panel y no en el ScreenGui "Mira" del juego).
 local function buildCrosshair(parent: Frame): (values: Settings.Values) -> ()
 	heading(parent, T("🎯 Mira"), 1)
@@ -1362,6 +1363,8 @@ function SettingsPanel.build(parent: Instance, context: Context, laboratory: boo
 	if arena then
 		refreshCrosshair = buildCrosshair(section(root, 0))
 	else
+		-- Después de los números y las estadísticas, antes de las opciones.
+		refreshCrosshair = buildCrosshair(section(root, 3))
 		refreshLayout = buildLayoutChoice(section(root, 0))
 		preview = buildPreview(root, player, context)
 		local stats = section(root, 2)
@@ -1376,9 +1379,9 @@ function SettingsPanel.build(parent: Instance, context: Context, laboratory: boo
 		refreshStats()
 		stopWatching = if context == "Island" then watchStats(player, refreshStats) else nil
 	end
-	local refreshOptions = buildOptions(section(root, 3))
-	buildControls(section(root, 4), laboratory == true)
-	local refreshShake = buildShake(section(root, 5))
+	local refreshOptions = buildOptions(section(root, 4))
+	buildControls(section(root, 5), laboratory == true)
+	local refreshShake = buildShake(section(root, 6))
 
 	-- Al cambiar algo de los efectos de cómic se enseña uno al momento (un crítico, que siempre sale).
 	local shownComic = ""

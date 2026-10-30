@@ -3887,6 +3887,15 @@ Se prueba en Play, con un arma a distancia, en la Isla y en Dunas (y en el Lobby
 3. [ ] Bloquea la cámara (Ctrl) y mantén el clic derecho.
    ✅ Apunta como antes: zoom, cámara al hombro y ratón al centro. En el Laboratorio, igual que antes.
 
+## 93. La mira en los Ajustes de la Isla y el Lobby (30-10-2026)
+
+Se prueba en Play, en el Lobby (pestaña Ajustes) y en la Isla (botón ⚙️).
+
+1. [ ] Abre Ajustes en el Lobby y baja hasta 🎯 Mira. Cambia estilo, color, tamaño, grosor y mira dinámica.
+   ✅ La sección sale entre las estadísticas y las opciones; la vista previa cambia al momento y la mira del juego (con un arma a distancia) también.
+2. [ ] Repite en el ⚙️ de la Isla.
+   ✅ Lo mismo. La ventana cabe y, en el Lobby, se reparte en columnas sin cortar la sección.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
