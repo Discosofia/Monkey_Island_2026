@@ -19,6 +19,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Mandrill", label = "🐒 Mandril aquí" },
 		{ id = "Thief", label = "🐵 Capuchino ladrón aquí" },
 		{ id = "Timelapse", label = "🌇 Time-lapse al atardecer (de día)" },
+		{ id = "SunriseTimelapse", label = "🌅 Time-lapse al amanecer (solo la luz, a cualquier hora)" },
 		{ id = "AlwaysCrit", label = "🎯 Críticos al 100 % (sí/no)" },
 		{ id = "Egg", label = "🥚 Huevo (rareza siguiente)" },
 		{ id = "HatchNow", label = "🐣 Terminar la defensa del huevo (en el nido)" },

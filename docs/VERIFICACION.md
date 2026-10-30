@@ -82,9 +82,9 @@ Las secciones no se renumeran (PLAN.md, las skills y el código las citan). Este
 | Fase 18: mascotas | §58–§61 | capibara, quetzal, ajolote, clips | 15 | Pub-1 con 👑 Admin, Visual |
 | Fase 18: modelos | §62–§73 | armaduras, armas y trajes rehechos | 51 | Visual, Móvil |
 | Fase 19: combate a distancia | §74–§87 | líneas, poses, impactos, ADS, miras, killfeed, rig, vista | 184 | Pub-1, Pub-2, Móvil, Calc |
-| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 17 | 1J-Studio, 2J, Pub-1, Visual |
+| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 18 | 1J-Studio, 2J, Pub-1, Visual |
 
-Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 17 de la §91.
+Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 18 de la §91.
 
 ---
 
@@ -3818,7 +3818,7 @@ Hechas: la portada principal, el icono, Dunas y el Laboratorio (`art/portada/`, 
 
 ## 91. Tráiler de YouTube: modo grabación y cámara de tomas (30-10-2026)
 
-Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (README y `trailer.md`, en español e inglés), `src/island/tools/Trailer.luau` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`), `src/island/tools/TrailerCamara.luau` (caminos y órbitas, sin dependencias del juego) y los botones **🎬 Modo grabación**, **🐵 Capuchino ladrón aquí** y **🌇 Time-lapse al atardecer** del panel 🛠️ Pruebas. Ya probado en el Studio de la Isla en modo edición: las escenas montan, la cámara avanza en edición y `Trailer.limpiar()` deja todo igual. También probado en Play: 🌇 Time-lapse (3 s de aviso, el reloj sube de 5,4 h a 19,1 h en 12 s y los atributos de la fase se restauran) y el modo grabación en la Isla, Dunas y el Laboratorio durante la grabación del 30-10-2026. Lo que sigue no se ha podido probar.
+Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (README y `trailer.md`, en español e inglés), `src/island/tools/Trailer.luau` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`), `src/island/tools/TrailerCamara.luau` (caminos y órbitas, sin dependencias del juego) y los botones **🎬 Modo grabación**, **🐵 Capuchino ladrón aquí**, **🌇 Time-lapse al atardecer** y **🌅 Time-lapse al amanecer** del panel 🛠️ Pruebas. Ya probado en el Studio de la Isla en modo edición: las escenas montan, la cámara avanza en edición y `Trailer.limpiar()` deja todo igual. También probado en Play: 🌇 Time-lapse (3 s de aviso, el reloj sube de 5,4 h a 19,1 h en 12 s y los atributos de la fase se restauran), 🌅 Time-lapse al amanecer (3 s de aviso, el reloj visual sube de 4,2 h a 7,6 h en 12 s con luz naranja, y vuelve a su hora; es solo visual: la fase real, los monos y el asedio no se tocan) y el modo grabación en la Isla, Dunas y el Laboratorio durante la grabación del 30-10-2026. Lo que sigue no se ha podido probar.
 
 **A. Play en el Studio de la Isla** (con el panel 🛠️ Pruebas):
 
@@ -3872,6 +3872,9 @@ Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (RE
 
 17. [ ] En el Laboratorio, pulsa 🎯 Muñecos delante en cada uno de los tres mapas (Laboratorio central, Azotea y Alcantarillas), con tu bando en cada lado.
     ✅ Los muñecos (15, 50 y 120 studs; si no cabe, más cerca) quedan sobre suelo y a unos pocos studs de tu altura: ninguno en el aire ni encima de la barrera invisible del borde, de la caseta ni de un saliente alto. Vuelve a pulsar y desaparecen. En las islas de la Isla, el Lobby y Dunas los muñecos de práctica siguen en el suelo como antes.
+
+18. [ ] En Play de noche, pulsa 🌅 Time-lapse al amanecer, y otra vez con uno ya en marcha. Pulsa también ⏩ Saltar fase (Studio) o espera a que cambie la fase mientras corre.
+    ✅ Tras 3 s el cielo pasa de noche azul a amanecer naranja y mañana en 12 s y vuelve a la hora real; el reloj del HUD y los monos no cambian. Con uno en marcha sale «El time-lapse ya está en marcha». Al volver, el atributo `DebugClock` del jugador desaparece (Explorer) y la luz sigue la partida.
 
 ## Cuando termines
 

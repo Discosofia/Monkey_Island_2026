@@ -5,6 +5,7 @@
 -- suman encima de esta luz; aquí solo se toca la luz base.
 
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -34,6 +35,10 @@ type Sample = {
 }
 
 local frames = Config.Lighting.Keyframes
+
+-- Hora forzada solo para grabar vídeos: DebugService (Studio) la pone en este atributo del jugador mientras
+-- dura su time-lapse al amanecer, y aquí sustituye a la del servidor. Sin el atributo no cambia nada.
+local FORCED_CLOCK_ATTRIBUTE = "DebugClock"
 
 -- Horas del reloj que cubre el día. El reloj corre a la misma velocidad de día y de noche.
 local DAY_HOURS = 24 * Config.Match.DayLengthSeconds / (Config.Match.DayLengthSeconds + Config.Match.NightLengthSeconds)
@@ -141,7 +146,8 @@ function LightingController:Start()
 		if not state then
 			return
 		end
-		local clock = clockTimeFor(state, Workspace:GetServerTimeNow())
+		local forced = Players.LocalPlayer:GetAttribute(FORCED_CLOCK_ATTRIBUTE)
+		local clock = if typeof(forced) == "number" then forced else clockTimeFor(state, Workspace:GetServerTimeNow())
 		Lighting.ClockTime = clock
 		local moon = MoonPhase.current()
 		local sky = Lighting:FindFirstChildOfClass("Sky")

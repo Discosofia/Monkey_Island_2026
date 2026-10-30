@@ -44,18 +44,6 @@ local function v(x: number, y: number, z: number): Vector3
 	return ORIGEN + Vector3.new(x, y, z)
 end
 
-local function suelo(carpeta: Folder, ancho: number, largo: number, color: Color3)
-	local p = Instance.new("Part")
-	p.Name = "Suelo"
-	p.Size = Vector3.new(ancho, 2, largo)
-	p.CFrame = CFrame.new(v(0, -1, 0))
-	p.Color = color
-	p.Material = Enum.Material.Slate
-	p.Anchored = true
-	p.CanCollide = false
-	p.Parent = carpeta
-end
-
 local COLOR_HIERBA = Color3.fromRGB(104, 142, 72)
 local COLOR_COLINA = Color3.fromRGB(74, 112, 64)
 local COLINAS = 9
@@ -153,7 +141,7 @@ local roles: Escena = {
 	montar = function(carpeta)
 		local c = carpeta :: Folder
 		luzDorada(c)
-		suelo(c, 300, 200, Color3.fromRGB(120, 96, 80))
+		decorado(c, 60)
 		for i, equipo in Portada.EQUIPOS do
 			local copia = table.clone(equipo)
 			copia.x, copia.z, copia.giro = (i - 2.5) * 9, 0, 0
@@ -163,10 +151,10 @@ local roles: Escena = {
 	end,
 	camino = function(_, _, cuentaAtras)
 		TrailerCamara.camino({
-			punto(v(-32, 6, 26), v(-13, 5, 0), 55),
-			punto(v(-12, 5.5, 24), v(-4, 5, 0), 52),
-			punto(v(12, 5.5, 24), v(4, 5, 0), 52),
-			punto(v(32, 6, 26), v(13, 5, 0), 55),
+			punto(v(-24, 4.2, 18), v(-11, 4, 0), 50),
+			punto(v(-9, 4.2, 17), v(-3, 4.2, 0), 48),
+			punto(v(9, 4.2, 17), v(3, 4.2, 0), 48),
+			punto(v(24, 4.2, 18), v(11, 4, 0), 50),
 		}, 10, { cuentaAtras = cuentaAtras })
 	end,
 }

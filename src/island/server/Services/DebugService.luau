@@ -401,6 +401,46 @@ local function sunsetTimelapse(player: Player)
 	end)
 end
 
+-- Time-lapse al amanecer, también solo visual: la luz del amanecer cae al principio de la fase de día, y cambiar
+-- la fase de verdad movería a los monos, el asedio y el resto de servicios. Por eso el servidor mueve una hora
+-- forzada en un atributo del jugador y el LightingController del cliente la usa en vez de la de la partida.
+local FORCED_CLOCK_ATTRIBUTE = "DebugClock"
+local SUNRISE_FROM_CLOCK = 4.2 -- noche azul antes del amanecer
+local SUNRISE_TO_CLOCK = 7.6 -- ya de mañana
+local SUNRISE_SECONDS = 12
+local sunriseRunning = false
+
+local function sunriseTimelapse(player: Player)
+	if sunriseRunning then
+		Remotes.Notify:FireClient(player, "🌅 El time-lapse ya está en marcha")
+		return
+	end
+	sunriseRunning = true
+	task.delay(TIMELAPSE_WARNING_SECONDS, function()
+		local began = os.clock()
+		local connection: RBXScriptConnection
+		connection = RunService.Heartbeat:Connect(function()
+			if player.Parent == nil then
+				connection:Disconnect()
+				sunriseRunning = false
+				return
+			end
+			local u = math.min((os.clock() - began) / SUNRISE_SECONDS, 1)
+			player:SetAttribute(
+				FORCED_CLOCK_ATTRIBUTE,
+				SUNRISE_FROM_CLOCK + (SUNRISE_TO_CLOCK - SUNRISE_FROM_CLOCK) * u
+			)
+			if u >= 1 then
+				connection:Disconnect()
+				task.delay(TIMELAPSE_RESTORE_SECONDS, function()
+					player:SetAttribute(FORCED_CLOCK_ATTRIBUTE, nil)
+					sunriseRunning = false
+				end)
+			end
+		end)
+	end)
+end
+
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	Materials = function(player)
 		for itemId, item in Items do
@@ -485,6 +525,7 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		Remotes.Notify:FireClient(player, "🐒 No hay sitio para el mandril cerca: prueba fuera del Basecamp")
 	end,
 	Timelapse = sunsetTimelapse,
+	SunriseTimelapse = sunriseTimelapse,
 	-- Un capuchino ladrón que va a por ti (te roba y huye), para grabar el gancho del tráiler. Quita la
 	-- mascota de esta partida (si no, lo mata antes de que robe) y el capuchino sale 2 s después.
 	Thief = function(player)
