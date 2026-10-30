@@ -851,7 +851,7 @@ Decisiones del 29-10-2026:
 | **W7** | Apuntar de verdad (ADS) y cámara al hombro | 864414a | ✅ Probado en Studio (solo carga y Equilibrio) (sin probar: VERIFICACION §81) |
 | **W8** | Miras por tipo de arma | 576ed76 | ✅ Probado en Studio solo la honda (sin probar: VERIFICACION §82) |
 | **W9** | Killfeed | 4206652 | ✅ Probado en Studio en la Isla con FakeKill (sin probar: VERIFICACION §83) |
-| **W10** | Rig de brazos en primera persona del Lab | — | ⏳ |
+| **W10** | Rig de brazos en primera persona del Lab | 2306989 | ✅ Probado en Studio (rig, builder, Rendimiento; faltan publicar las 20 animaciones, VERIFICACION §84) |
 | **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
 
 **Handoff de la Fase 19 W7 (29-10-2026)**
