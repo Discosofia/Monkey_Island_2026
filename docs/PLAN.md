@@ -854,39 +854,16 @@ Decisiones del 29-10-2026:
 | **W10** | Rig de brazos en primera persona del Lab | 2306989 | ✅ Probado en Studio (rig, builder, Rendimiento; faltan publicar las 20 animaciones, VERIFICACION §84) |
 | **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
 
-**Handoff de la Fase 19 W7 (29-10-2026)**
-- **Estado:** W1 (f6b7fa1), W2 (015e9d3 y 43d4eed, con los 16 ids ya publicados), W3 (f71ba2e), W4 (da12de9) y W5 (8c075e6) hechas y cerradas en este PLAN. W6 está hecha en el código y probada en Studio, pero **sin commit** hasta el «aprobado» del usuario. Sin probar de W6: VERIFICACION §80. Sin probar de W5: VERIFICACION §79. Sin probar de W4: VERIFICACION §78. Sin probar de W3: VERIFICACION §76. Siguiente número libre de VERIFICACION: §81. Plan completo y decisiones en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W7).
-- **Nota sobre W6:** W7 se escribe sobre el código de W6, que aún no tiene commit. El commit de W6 va antes que el de W7.
-- **Objetivo W7:** apuntar de verdad (ADS) y cámara al hombro.
-  - `WeaponController`: `setZoom` y `bindZoom` (líneas 372-411) pasan a un estado de apuntado para todas las armas, con FOV por arma; nuevo `isAiming()`. `shake` (líneas 277-293) pasa a `CameraShake.play` para dejar libre `CameraOffset`.
-  - Nuevo `ShoulderAimController.luau`, saltado en el Lab: al apuntar pone `CameraRelative`, `LockCenter` y `CameraOffset` al hombro derecho; al soltar, al morir, al desequipar o al abrir una ventana, vuelve al estado anterior. Se coordina con `CameraLockController`.
-  - `Aim.luau`: en táctil y mando, rayo desde la cámara hasta `Aim.point` para evitar el paralaje.
-  - `CombatRules.takeShot` en Isla y Dunas: dispersión de cadera o con mira. Lab: `adsSpreadFactor`.
-  - Campos nuevos `aimFov` y `hipSpread` en `Data/Weapons` y `LabWeapons`.
-- **Valores fijados:** Config `Aim`: `ShoulderOffset (1.75, 0.6, 0)`, `ShoulderFov 55`, `TransitionSeconds 0.15`, `HipSpreadDegrees 1.5`, `AdsSpreadDegrees 0`. Lab: `adsSpreadFactor 0.35` para dardos y arpón.
-- **Mapa del código nuevo de W6:**
-  - `src/shared/Zones.luau` (nuevo): las zonas de daño.
-  - `Config.Combat.Zones`: `Head 1.5`, `Torso 1`, `Limb 0.8`, `Weak 1.5`, `PartPadding 0.15`, `PoseHistorySeconds 0.3`, `HitMix 0.15/0.6/0.25`, `HeadByProjectile` y `FilterExtraStuds`.
-  - `zoneMultipliers` por arma en `Data/Weapons` y `Data/LabWeapons`.
-  - `Hitbox.zoneOf(model, part)` y `Hitbox.sweepBodies`: la cápsula como filtro rápido y después un test segmento-OBB por pieza con su pose rebobinada.
-  - `PositionHistory.poseAt` y `poseInto`: el anillo de poses de 0,3 s.
-  - `CombatRules`: `zones` (verdadero en los 4 places) y `aimAssist` (falso en el Lab).
-  - `CombatService`: `strike`, `zoneScale` y `aimShot`.
-  - `TrainingDummies` con cabeza y brazos.
-  - `Data/Bosses` con `weakPoints`, que `MonkeyModels` marca con el atributo `WeakPoint` (`markZones`).
-- **Valores fijados de W6:** dardos, cabeza ×1,3; arpón, cabeza ×1,5 y extremidad ×1; rifle, cabeza ×2; monos, cabeza según el arma: honda 1,5, arco 1,75, bastón 1,25, cerbatana 1,3; extremidad ×0,8 (salvo el arpón); punto débil de jefe ×1,5. El daño toma el mayor entre crítico y cabeza; la extremidad siempre multiplica.
-- **Trampas conocidas:**
-  1. El cursor del ratón de Studio desvía el disparo del cliente en las pruebas: usa el remoto `UseWeapon` con una dirección, o `tool:Activate()`.
-  2. Los proyectiles de arma usan una esfera de radio 0,6 contra monos y muñecos. Los brazos del muñeco están a 1,9 del torso, así que hay que tenerlo en cuenta al apuntar a los brazos.
-  3. En el Studio de la Isla, la caché de `require` no muestra los VoxelSpecs nuevos: clona la carpeta `Combat.Monkeys` antes de probar.
-  4. En Play, el `require` del MCP es otra copia: para remotos, usa los de `ReplicatedStorage.Remotes` desde el cliente.
-  5. Play en Studio escribe el perfil real: haz copia en `PlayerData_v1_backups` y restáurala después.
-  6. Deja la cámara de edición en `Fixed`, como último paso.
-- **Riesgos:** el ratón puede quedar bloqueado: hay que restaurar el estado al morir y al abrir ventanas. La dispersión de cadera y la cabeza ×2 del rifle cambian los TTK: nada se escribe sin `Equilibrio` sin alertas.
-- **Prueba:** Isla y Dunas en PC y en el emulador de teléfono (botón «Mira»), y `Equilibrio` con la dispersión de cadera.
-- **Cómo trabajar:** `search` localiza lo que haga falta; el `programador` escribe con esta especificación (skills `combate-roblox` e `interfaz-roblox`); la sesión principal revisa el diff y las capturas; `probador-studio` hace `Equilibrio` y las pruebas en Studio; `documentador` hace la sección de VERIFICACION, la fila de W7 y el borrador del commit.
-- **Flujo:** commit solo tras el «aprobado» del usuario; push y fila de `PLAN.md` en un commit aparte. Después, el Handoff de W8 (miras por tipo de arma).
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W7, y el plan en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`. Haz el grupo W7.»
+**Handoff de la Fase 19 W11 (29-10-2026)**
+- **Estado:** W1–W10 hechas, commiteadas y subidas (W10 2306989). Queda W11 (prueba publicada) y el ajuste de combate del Laboratorio (más abajo). Siguiente número libre de VERIFICACION: §86. Plan completo en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W11).
+- **Lo que hay que hacer en W11 (lo hace el usuario con el juego publicado, de 2 a 10 jugadores y un teléfono; el resto de la sesión ajusta):**
+  - Publicar los 4 places con Rojo sincronizado y guardados (los 20 ids del rig de brazos ya están en `Data/ViewModelAnimations`).
+  - Recorrer las secciones de VERIFICACION desde la §74 hasta la §85: pose replicada, rebobinado con ping real, pico de marcas, killfeed, miras y líneas en el teléfono, FPS, rig de brazos con las 5 pistas de las 4 armas y la vida 144 del Lab.
+  - Con lo que salga, ajustar `Config` y `Budgets` y cerrar esas secciones.
+- **Ajuste del Laboratorio (29-10-2026):** el combate dura ×1,5. Medido con `Equilibrio` (sección 12): tiempo medio de una pelea 1 contra 1 de 2,285 s a 3,381 s. Vida 100 → 144, regeneración 20 → 29 por segundo (de 0 a llena en 5 s), rifle 45 → 48 de daño (sigue en 3 disparos al torso) y arpón 35 → 36 (4 disparos). Límite de la calculadora `laboratorioTTK` 1,5–2,5 → 2,25–4,5 s y `zonaSaltoSegundos` 1 → 1,5. Sin alertas del Laboratorio. VERIFICACION §85.
+- **Trampas conocidas:** caché de `require` (clona el módulo), Play escribe el perfil real, la cámara de edición se deja en `Fixed` al final, la captura de Studio no dibuja los `BillboardGui`.
+- **Flujo:** commit solo tras el «aprobado»; push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W11. Prepara la prueba publicada W11 con la lista de VERIFICACION §74–§85 y ajusta con lo que salga.»
 
 ---
 
