@@ -3539,3 +3539,24 @@ Nota: las muertes por mono o por entorno no salen en el registro (decisión de d
 
 Nota: lo ya probado en Studio no se repite aquí. En Play en el Lab: el rig se monta (`ArmaEnPrimeraPersona` con `AnimationController`, Motor6D RightShoulder, RightElbow, RightHand, LeftShoulder, LeftElbow, LeftHand y WeaponGrip, 97 descendientes con el arma), sin errores. En el Studio de la Isla: `ViewModelAnimationBuilder.build()` generó las 20 `KeyframeSequence` en `ReplicatedStorage.ViewModelAnimations`, y la tira de LabBananaRifle_Fire se ve bien (retroceso de 0,2 s). Rendimiento: «Brazos de la vista» 9 piezas de 40, sin alertas.
 Nota (29-10-2026): con los ids pegados se comprobó en Play en el Lab que Aim (peso 0 sin apuntar) y Fire (peso 1 al disparar con el lanzadardos) cargan y suenan. Sin ver todavía: Reload, Sprint, Equip y las otras 3 armas.
+
+## 85. Laboratorio: el combate dura 1,5 veces más (29-10-2026)
+
+Cambio: vida 100 → 144 (`Config.Lab.Health`), regeneración 20 → 29 por segundo (`RegenPerSecond`, de 0 a llena en 5 s), rifle 45 → 48 de daño y arpón 35 → 36 (`Data/LabWeapons`). Con `Equilibrio` (sección 12) el tiempo medio de una pelea 1 contra 1 pasa de 2,285 s a 3,381 s (×1,48); sin alertas del Laboratorio con el nuevo objetivo de 2,25–4,5 s.
+
+**Un jugador en Play (Laboratorio):**
+
+1. [ ] Aparece con la barra de vida llena y mira cuánto vale (`humanoid.MaxHealth`).
+   ✅ MaxHealth 144 y la barra de vida llena sin desbordar ni quedarse corta.
+2. [ ] Hazte daño con los muñecos o el panel de pruebas y espera sin recibir daño.
+   ✅ Empieza a curar a los 4 s y llega a llena en unos 5 s.
+
+**Dos jugadores (un duelo de verdad, en Studio con 2 clientes o publicado):**
+
+1. [ ] Duelo 1 contra 1 con la misma arma en las dos manos, a su distancia, hasta que uno cae.
+   ✅ Una pelea dura de media unos 3,4 s (entre 2,5 y 4,5 s a la distancia buena del arma), no 2,3 s como antes. Anota la media de 10 duelos.
+2. [ ] Repite con el rifle, el lanzadardos, el arpón y el cañón.
+   ✅ El rifle sigue matando en 3 disparos al torso, el arpón en 4, y ninguna arma se siente inútil ni pesada de más frente a las demás.
+3. [ ] Mira si, con peleas de 3,4 s, retirarse y curarse sigue valiendo.
+   ✅ Con 29 de regeneración por segundo tras 4 s sin recibir daño, escapar vale la pena; si no, sube la regeneración o baja `RegenDelaySeconds`.
+

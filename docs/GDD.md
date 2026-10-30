@@ -790,7 +790,7 @@ La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una ar
 Diseño completo en [`docs/LABORATORIO.md`](LABORATORIO.md) (27-10-2026); se construirá en la Fase 13. Es el cuarto place, en la Ciudad Perdida (§7.1): un **shooter por equipos**, **Piratas invasores** contra **Guardianes del laboratorio**.
 
 - **Sin roles, habilidades ni talentos:** todos empiezan igual y eligen 1 de 4 armas del laboratorio (lanzadardos tranquilizante, rifle de bananas primales, lanzarredes de arpón y cañón de suero ácido), iguales en los dos bandos. Vida 100, sin caído.
-- **Ritmo:** partidas de 6 min y **tiempo para matar de 1,5–2,5 s** dentro del alcance de cada arma (medido; cada arma gana a su distancia).
+- **Ritmo:** partidas de 6 min y **tiempo para matar de 2,25–4,5 s (media de 3,4 s con 144 de vida; antes 1,5–2,5 s)** dentro del alcance de cada arma (medido; cada arma gana a su distancia).
 - **Modos** (se eligen en la cola): duelo por equipos de 1v1 a 5v5, todos contra todos de 10 y rondas sin reaparición al mejor de 7.
 - **Tres mapas pequeños** que se votan al llegar: Laboratorio central, Azotea de la torre y Alcantarillas.
 - **Recompensas:** Ámbar (45 · 25 · 15 por victoria, empate y derrota; en Todos contra todos, 45 · 30 · 30 por puesto del 1.º al 3.º y 15 al resto; 1 por baja, como mucho 15) con tope diario propio de 300 (unos 5 por minuto, menos que la Isla y Dunas); XP del pase (60 · 30 · 20); skins de las cuatro armas por bajas con esa arma (I, II y III a 50, 250 y 1.000; L5b) y títulos al llegar a 50 victorias con un bando. Ranking en el Lobby, con victorias y bajas.

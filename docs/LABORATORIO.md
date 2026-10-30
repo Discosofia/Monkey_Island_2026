@@ -11,7 +11,7 @@ Un **shooter por equipos** en el laboratorio del Proyecto PRIMAL, en ruinas entr
 
 Los colores de los bandos no usan el verde (curación), el morado (veneno) ni el rojo (daño recibido). El icono de los Guardianes es 🥼 y no 🧪, que ya es de una mascota (un icono, una sola cosa); 🧪 se queda en el nombre del place.
 
-Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y una pelea dura 8–10 s; aquí **todos empiezan igual**, solo cuenta el arma y la puntería, y una pelea dura 1,5–2,5 s.
+Es el contrapunto de Dunas: allí pesan el rol, las habilidades y los combos, y una pelea dura 8–10 s; aquí **todos empiezan igual**, solo cuenta el arma y la puntería, y una pelea dura 2,25–4,5 s (media de 3,4 s; desde el 29-10-2026, con 144 de vida: antes 1,5–2,5 s).
 
 ## 2. Cómo se pelea
 
@@ -155,7 +155,7 @@ Con las suposiciones de Dunas (45 % de victorias, 10 % de empates) y unas 8 baja
 | Se reutiliza | Es nuevo |
 |---|---|
 | Cola, equipos y resultados de Dunas (`ArenaQueueService`, `Arena`, `TeamService`, la ventana de resultados con votación) | Las 4 armas (`Data/LabWeapons`) con sus modelos voxel por bando y sus efectos |
-| Proyectiles, `Hitbox` con compensación de lag, `Status` (ralentización y enredo con inmunidad), veneno y su color | Reglas del place (`LabCombatRules`: sin roles, vida 100, reaparición, protección, caídas al vacío con el último atacante) |
+| Proyectiles, `Hitbox` con compensación de lag, `Status` (ralentización y enredo con inmunidad), veneno y su color | Reglas del place (`LabCombatRules`: sin roles, vida 144, reaparición, protección, caídas al vacío con el último atacante) |
 | Ayuda de puntería estrecha y el botón de disparo del móvil | Los 3 modos, la votación de mapa y la alarma de las rondas |
 | `CosmeticsServer` (los cosméticos llegan como en Dunas) | `World/LabBuilder`, `World/LabParts` y `World/Maps/*` con los 3 mapas |
 | `Leaderboards`, `Retention` (misión semanal), `SeasonPass` (XP) | Skins de las armas del Lab por hitos y los títulos |

@@ -196,11 +196,13 @@ local LIMITES = {
 	altarVentaja = 0.05,
 	-- Laboratorio (Fase 13): segundos para matar de cada arma en su mejor distancia. Fuera de ella puede
 	-- tardar más (es el sitio de otra); ninguna puede ganar todos los cruces ni quedarse sin ninguno.
-	laboratorioTTK = { 1.5, 2.5 },
+	-- 2,25–4,5 s desde el 29-10-2026 (antes 1,5–2,5 s): el combate dura 1,5 veces más. El arpón y el suero
+	-- recargan a mitad de la baja (3 y 4 balas), así que su mejor distancia cae en el techo.
+	laboratorioTTK = { 2.25, 4.5 },
 	-- Zonas (Fase 19, W6; secciones 12 y 14). Prudentes: se ajustan al ver el primer informe.
 	-- Una extremidad no puede alargar el tiempo para matar de un arma más de esto (s) frente al torso (en
 	-- segundos y no en disparos: un arma de poco daño por disparo salta de 10 a 13 sin que importe).
-	zonaSaltoSegundos = 1.0,
+	zonaSaltoSegundos = 1.5,
 	-- Isla: las zonas (cabeza) no pueden recortar el tiempo para matar a un mono más de esta fracción
 	-- (sin habilidades, con OPCIONES.actividad); evita que la cabeza trivialice a los monos. No es un mínimo
 	-- absoluto: las armas del final del juego ya matan a los monos del día 1 muy deprisa sin zonas.

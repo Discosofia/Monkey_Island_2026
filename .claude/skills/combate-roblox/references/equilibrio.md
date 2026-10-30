@@ -149,7 +149,7 @@ Los mismos que la tabla `LIMITES` de la calculadora. Si cambias uno, cambia los 
 | Preparación de una habilidad | 0–0,35 s; una imbloqueable se ve venir (preparación + lo que tarda su golpe) ≥ `Config.Reaction` (0,25 s) | más larga se nota lenta; una imbloqueable que no se ve venir no tiene respuesta |
 | Dunas: segundos que tarda un jugador solo (Guerrero, Cazador o Mago, 60 % de actividad, sin su V) en romper una cobertura | 8–20 s | de papel no protege; eterna, quien se esconde detrás no tiene respuesta. El médico (apoyo) tarda más |
 | Dunas: lo que el altar sube de media el daño de un equipo que los toma todos en una partida | ≤ +5 % | que valga la pena ir a por él sin que decida la partida (la bandera es lo que gana) |
-| Laboratorio: segundos para matar de cada arma en su mejor distancia | 1,5–2,5 s | el contrapunto de Dunas: solo cuentan el arma y la puntería (docs/LABORATORIO.md §1). Fuera de su distancia puede tardar más, porque es el sitio de otra arma; ninguna gana todos sus cruces ni se queda sin ninguno |
+| Laboratorio: segundos para matar de cada arma en su mejor distancia | 2,25–4,5 s (antes 1,5–2,5: ×1,5 el 29-10-2026) | el contrapunto de Dunas: solo cuentan el arma y la puntería (docs/LABORATORIO.md §1). Fuera de su distancia puede tardar más, porque es el sitio de otra arma; ninguna gana todos sus cruces ni se queda sin ninguno |
 
 ## 4. Línea base (octubre de 2026, sin talentos, grupo de 4)
 

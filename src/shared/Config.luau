@@ -1327,12 +1327,14 @@ local Config = {
 		-- talentos ni mejoras. Todos con la misma vida, que vuelve sola tras RegenDelaySeconds sin recibir
 		-- daño, y una de las cuatro armas de Data/LabWeapons (sus números están allí; la calculadora los
 		-- mide en la sección 12, "Laboratorio").
-		Health = 100,
+		-- 144 (antes 100): el combate dura 1,5 veces más (29-10-2026; el tiempo medio de una pelea 1 contra 1 pasa de
+		-- 2,3 s a 3,4 s en la calculadora). Con 144, el rifle (48) y el arpón (36) siguen matando en 3 y 4 disparos.
+		Health = 144,
 		-- Grupo de colisión de los muros invisibles (barreras, barrotes y techos): chocan con los personajes
 		-- pero no con los rayos de ShotCollisionGroup.
 		WallGroup = "LabMuro",
 		RegenDelaySeconds = 4,
-		RegenPerSecond = 20, -- de 0 a llena en 5 s: en un shooter rápido, retirarse tiene que valer
+		RegenPerSecond = 29, -- de 0 a llena en 5 s: en un shooter rápido, retirarse tiene que valer
 		-- Al caer se reaparece a los RespawnSeconds con SpawnProtectionSeconds sin recibir daño (se pierde
 		-- al disparar).
 		RespawnSeconds = 3,
