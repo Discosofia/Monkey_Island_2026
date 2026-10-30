@@ -82,8 +82,9 @@ Las secciones no se renumeran (PLAN.md, las skills y el código las citan). Este
 | Fase 18: mascotas | §58–§61 | capibara, quetzal, ajolote, clips | 15 | Pub-1 con 👑 Admin, Visual |
 | Fase 18: modelos | §62–§73 | armaduras, armas y trajes rehechos | 51 | Visual, Móvil |
 | Fase 19: combate a distancia | §74–§87 | líneas, poses, impactos, ADS, miras, killfeed, rig, vista | 184 | Pub-1, Pub-2, Móvil, Calc |
+| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 14 | 1J-Studio, 2J, Pub-1, Visual |
 
-Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto).
+Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 14 de la §91.
 
 ---
 
@@ -3814,6 +3815,53 @@ Hechas: la portada principal, el icono, Dunas y el Laboratorio (`art/portada/`, 
 
 3. [ ] `local P = require(game.ServerStorage.Tools.Portada:Clone()); P.ficha("Cazador")` y una captura con `P.vista("frente")`.
    ✅ El jugador se ve entero, con su arma de pie en la mano derecha; `P.clear()` lo quita y deja la iluminación como estaba.
+
+## 91. Tráiler de YouTube: modo grabación y cámara de tomas (30-10-2026)
+
+Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (README y `trailer.md`, en español e inglés), `src/island/tools/Trailer.luau` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`), `src/island/tools/TrailerCamara.luau` (caminos y órbitas, sin dependencias del juego) y el botón **🎬 Modo grabación** del panel 🛠️ Pruebas. Ya probado en el Studio de la Isla en modo edición: las escenas montan, la cámara avanza en edición y `Trailer.limpiar()` deja todo igual. Lo que sigue no se ha podido probar.
+
+**A. Play en el Studio de la Isla** (con el panel 🛠️ Pruebas):
+
+1. [ ] Entra en Play, abre 🛠️ Pruebas y pulsa 🎬 Modo grabación (sí).
+   ✅ Desaparecen el HUD y la barra de Roblox. El botón 🛠️ Pruebas sigue en pantalla: en el montaje se recorta, no se oculta.
+2. [ ] Con el modo activo, usa un botón del panel que haga aparecer un aviso del juego (por ejemplo 👑 Siguiente jefe).
+   ✅ El aviso no se ve mientras dura el modo grabación.
+3. [ ] Pulsa 🎬 Modo grabación otra vez.
+   ✅ Vuelve todo como estaba: el HUD, la barra de Roblox y el aviso, que se ve si el juego lo quiere visible. Sin errores rojos en la Salida.
+
+**B. Dunas y el Laboratorio** (cada place, con partidas reales y amigos):
+
+4. [ ] Pega `TrailerCamara` por MCP en el Studio de Dunas y en el del Laboratorio, en modo edición. Después `local C = require(game.ServerStorage.Tools.TrailerCamara:Clone())`, `C.guia(true)`, un `C.camino({...}, 8, { cuentaAtras = 3 })` corto y `C.parar()`.
+   ✅ La guía 9:16 aparece, la cámara recorre el camino en edición y `C.parar()` la deja en Fixed. El módulo carga sin errores en los dos places.
+5. [ ] Graba con OBS, en una partida real de Dunas y otra del Laboratorio, al menos una toma con la cámara por camino (con la guía apagada).
+   ✅ La toma sale a 1920×1080 sin el recuadro, sin texto de depuración y con los jugadores en el cuadro en el momento previsto. Si la cámara entra en una pared, ajusta los puntos del camino.
+
+**C. Juego publicado** (Pub-1, después de publicar):
+
+6. [ ] Pulsa Shift+P para activar la Freecam de Roblox y mueve la cámara.
+   ✅ La cámara libre se mueve y la interfaz del juego (HUD, botones y carteles) se esconde.
+7. [ ] Pulsa Shift+P otra vez.
+   ✅ Vuelve la cámara del personaje y la interfaz, tal como estaba.
+
+**D. Revisión a ojo** (Visual, en edición y en Run):
+
+8. [ ] `Trailer.toma("mascotas")` en edición: mira el desfile en el travelling.
+   ✅ Cada mascota se ve de frente en el plano. Si sale de lado, anótalo: hay que valorar girarlas (no es un fallo del código).
+9. [ ] `Trailer.toma("isla")`: mira el vuelo bajo entre árboles.
+   ✅ El tramo bajo pasa entre los árboles sin atravesar troncos ni copas. Si no cabe, sube el punto de cámara de la escena `isla` en `Trailer.luau`.
+10. [ ] `Trailer.toma("monturas")`.
+    ✅ El Quetzalcóatl y las demás monturas se ven enteras en el encuadre. Si una queda cortada o tapada, ajusta sus puntos de cámara.
+11. [ ] `Trailer.toma("huevo")` en edición.
+    ✅ Se ve el destello de `EggModel.burst`, pero no la cáscara que se abre (en edición no sale).
+12. [ ] Repite `Trailer.toma("huevo")` en Run (F8).
+    ✅ La cáscara se ve al romperse el huevo, con el destello.
+
+**E. Montaje** (fuera de Roblox):
+
+13. [ ] Graba la voz en español y en inglés de cada plano y monta las dos versiones con las mismas tomas.
+    ✅ Las dos voces duran lo mismo que el montaje, y cada frase cae en su plano.
+14. [ ] Recorta el 🛠️ Pruebas en las tomas de Studio y revisa la lista de comprobación de `docs/videos/README.md`.
+    ✅ No se ve ningún botón, texto de depuración ni HUD de pruebas en el vídeo final.
 
 ## Cuando termines
 

@@ -50,6 +50,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Defeat", label = "💀 Terminar: derrota" },
 		{ id = "Victory", label = "🚁 Terminar: victoria (rescate)" },
 		{ id = "PlotLevels", label = "🏡 Parcela: desbloquear y subir sus estructuras un nivel" },
+		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },
@@ -78,6 +79,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "PassPremium", label = "🌋 Premium del pase (sí/no)" },
 		{ id = "SeasonShift", label = "📆 Reloj del pase +7 días" },
 		{ id = "Guide", label = "🧭 Repetir la guía" },
+		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 	Dunas = {
 		{ id = "Solo", label = "🧪 Empezar ya (aunque falte el otro equipo)" },
@@ -93,6 +95,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
 		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
+		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 	Laboratorio = {
 		{ id = "Solo", label = "▶️ Empezar ya (solo, no cuenta)" },
@@ -115,6 +118,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Fall", label = "🪂 Caerme del mapa (muerte por caída, con baja si me hirieron hace poco)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },
 		{ id = "SkinKills", label = "➕ +100 bajas con mi arma (da las skins por bajas)" },
+		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 }
 

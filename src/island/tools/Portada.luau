@@ -656,4 +656,12 @@ function Portada.vista(nombre: string, alto: number?)
 	return { camara = FICHA + Vector3.new(0, y, 0) + dir, objetivo = FICHA + Vector3.new(0, y, 0) }
 end
 
+-- Lo que reutiliza Trailer (vídeos): los mismos jugadores, jefes, luz y tablas, sin copiarlos.
+Portada.jugador = jugador
+Portada.jefe = jefe
+Portada.iluminacion = iluminacion
+Portada.EQUIPOS = EQUIPOS
+Portada.JEFES = JEFES
+Portada.GUARDADAS = GUARDADAS
+
 return Portada

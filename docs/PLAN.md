@@ -865,6 +865,15 @@ Decisiones del 29-10-2026:
 - **Flujo:** commit solo tras el «aprobado»; push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W11. Prepara la prueba publicada W11 con la lista de VERIFICACION §74–§85 y ajusta con lo que salga.»
 
+### Lanzamiento y promoción: vídeos (30-10-2026)
+
+Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `docs/videos/` (README y `trailer.md`, en español e inglés). Herramientas en el Studio de la Isla: el botón 🎬 Modo grabación del panel 🛠️ Pruebas, `Trailer` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`) y `TrailerCamara` (caminos y órbitas, sin dependencias del juego). Siguiente número libre de VERIFICACION: §92. Se llaman TR1 y TR2 para no confundirlas con V1 y V2 de la Fase 15 (movimiento).
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **TR1** | Tráiler de YouTube (16:9, unos 75 s, guion ES/EN en `docs/videos/`) y su herramienta: modo grabación en el panel 🛠️ Pruebas, `Trailer` y `TrailerCamara` | — | ⏳ Hecho, pendiente de commit y «aprobado» (sin probar: VERIFICACION §91) |
+| **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | — | ⏳ Pendiente (sin empezar) |
+
 ---
 
 ## 4. Cronograma estimado
