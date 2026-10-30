@@ -42,7 +42,8 @@ local HitFeedbackController = {}
 local function crosshairCenter(playerGui: PlayerGui): Vector2?
 	local gui = playerGui:FindFirstChild("Mira")
 	local root = if gui and gui:IsA("ScreenGui") and gui.Enabled then gui:FindFirstChild("Crosshair") else nil
-	if root and root:IsA("GuiObject") and root.Visible then
+	-- Con una mira de arma (Shared/UI/Sights) la normal se esconde, pero sigue colocada donde se apunta.
+	if root and root:IsA("GuiObject") and (root.Visible or gui:GetAttribute("SightCovers") == true) then
 		return root.AbsolutePosition
 	end
 	return nil

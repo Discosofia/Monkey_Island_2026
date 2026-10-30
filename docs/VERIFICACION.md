@@ -3375,3 +3375,63 @@ Nota: lo ya probado en Studio (Laboratorio, un jugador: `Hitbox.sweepBodies` da 
    ✅ En la sección 12, la tabla «Precisión apuntando» aparece para las armas del Laboratorio, con los dardos y el arpón multiplicados por `adsSpreadFactor`, y no hay alertas nuevas.
 
 Nota: lo ya probado en Studio (solo carga y `Equilibrio`: la tabla «Dispersión a la cadera» de la sección 14 salió sin alertas) no se repite aquí.
+
+## 82. Fase 19 W8: miras por tipo de arma (29-10-2026)
+
+**Un jugador en Play (Isla y Dunas, con ratón, arco, cerbatana, bastón y honda):**
+
+1. [ ] Con el arco, mantén el clic derecho.
+   ✅ Aparece la mira de hierro: un poste y una muesca, separados unos 10 px. Al soltar vuelve la mira normal.
+2. [ ] Con la cerbatana, mantén el clic derecho.
+   ✅ Aparece la misma mira de hierro (poste y muesca, 10 px de separación).
+3. [ ] Con el bastón, mantén el clic derecho y apunta a un muñeco de práctica o a un mono a poca distancia.
+   ✅ Aparece una recta que llega hasta el punto donde cae el remate, y un anillo de radio 6 studs alrededor de ese punto.
+4. [ ] Con la honda, sin apuntar.
+   ✅ Se ve la mira normal, con el tamaño y el estilo que tengas en *Ajustes del jugador*.
+5. [ ] Con la honda, mantén el clic derecho.
+   ✅ Aparece el punto rojo en el centro (mira RedDot) y la mira normal desaparece.
+6. [ ] Con la honda, suelta el clic derecho.
+   ✅ El punto rojo desaparece y vuelve la mira normal con el mismo ajuste del paso 4.
+
+**Un jugador en Play (Isla y Dunas, cursor libre, sin bloqueo de cámara):**
+
+1. [ ] Con el ratón libre, mantén el clic derecho con un arma a distancia.
+   ✅ La transición de apuntado (`aimAlpha`) sube hasta el final y la mira del arma aparece donde apunta `Aim` (parámetro `center`), no necesariamente en el centro de la pantalla.
+
+**Un jugador en Play (Isla y Lobby, sin apuntar):**
+
+1. [ ] En la Isla y en el Lobby, lleva un arma a distancia en la mano sin apuntar.
+   ✅ Aparece la mira del arma y el icono del ratón queda oculto.
+2. [ ] En el Lobby, acércate a los muñecos de práctica con el arma a distancia y apunta hacia ellos.
+   ✅ La mira no tapa ni estorba a los muñecos, y los disparos y clics llegan igual. Si la mira molesta, anótalo.
+3. [ ] En la Isla, guarda el arma.
+   ✅ La mira desaparece y vuelve el icono del ratón.
+
+**En el teléfono y con mando (Isla o Dunas, arco o honda):**
+
+1. [ ] En el teléfono (*Prueba → Dispositivo*), con un arma a distancia en la mano, mira la pantalla.
+   ✅ La mira está en el centro de la pantalla.
+2. [ ] En el teléfono, toca «Mira».
+   ✅ Entra en el apuntado con la mira del arma en el centro. Tocarlo otra vez sale.
+3. [ ] Con un mando, mantén L2.
+   ✅ Aparece la mira del arma en el centro, y al soltar vuelve la mira normal.
+
+**Un jugador en Play (Laboratorio, con las 4 armas):**
+
+1. [ ] Con el rifle, mantén el clic derecho (o L2, o «Mira» en el teléfono).
+   ✅ Aparece la mira de visor (Scope): viñeta a opacidad 0,85 alrededor de un hueco circular. El arma de la vista se esconde mientras apuntas, y el hueco es circular, sin recortes en las esquinas. Si el `UIStroke` grande falla y el hueco se recorta, aplica el plan B (franjas con cuerdas).
+2. [ ] Con el lanzadardos, mantén el clic derecho.
+   ✅ Aparece el punto rojo (RedDot).
+3. [ ] Con el arpón, mantén el clic derecho.
+   ✅ Aparece la mira de hierro (Iron): poste y muesca, 10 px de separación.
+4. [ ] Con el cañón, mantén el clic derecho y dispara a un punto lejano.
+   ✅ La mira Arc dibuja la parábola y la bola real del servidor cae donde marca la parábola. El cliente parte de la boca de la herramienta y el servidor de `Aim.origin`: si hay un desvío visible, anótalo con la distancia aproximada.
+5. [ ] Con cualquier arma del Laboratorio, apunta con la mira de arma y acierta a un muñeco.
+   ✅ El hitmarker sale donde se apunta, también con la mira de arma. Si no sale, revisa el atributo `SightCovers` del `ScreenGui` «Mira».
+
+**Un jugador en Play (rendimiento del arco):**
+
+1. [ ] Con el arco, apunta y dispara varias veces seguidas, y mira el MicroProfiler.
+   ✅ La mira del arco usa un pool fijo de 16 `Frame`. El número no sube al apuntar ni al disparar, y no hay `Instance.new` por fotograma en la mira.
+
+Nota: lo ya probado en Studio (solo la honda en la Isla: punto rojo al apuntar con clic derecho, FOV 55, cámara al hombro y todo vuelve al soltar) no se repite aquí.

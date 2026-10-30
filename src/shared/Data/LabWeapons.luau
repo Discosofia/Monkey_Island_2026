@@ -64,6 +64,9 @@ export type LabWeaponDefinition = {
 	lab: LabFields,
 	zoneMultipliers: ZoneMultipliers?,
 	aimFov: number?,
+	-- Mira que se dibuja al apuntar (Fase 19, W8; Shared/UI/Sights): "Scope" visor a pantalla completa,
+	-- "RedDot" punto rojo, "Iron" mira de hierro, "Arc" trayectoria en arco.
+	sight: ("Scope" | "RedDot" | "Iron" | "Arc")?,
 }
 
 -- El orden es el de la mochila (teclas 1–4) y el de la calculadora.
@@ -83,6 +86,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabDart",
 		zoneMultipliers = { Head = 1.3 },
 		aimFov = 55,
+		sight = "RedDot",
 		lab = {
 			effect = "SlowStack",
 			pose = "LabDart",
@@ -113,6 +117,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabBanana",
 		zoneMultipliers = { Head = 2 },
 		aimFov = 30,
+		sight = "Scope",
 		lab = {
 			zoom = true,
 			pose = "LabRifle",
@@ -135,6 +140,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		-- La red envuelve el cuerpo: da igual un brazo que el torso.
 		zoneMultipliers = { Head = 1.5, Limb = 1 },
 		aimFov = 60,
+		sight = "Iron",
 		lab = {
 			effect = "Entangle",
 			pose = "LabHarpoon",
@@ -157,6 +163,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		poison = { dps = 6, seconds = 3 },
 		-- Sin dispersión: cae donde se apunta.
 		aimFov = 60,
+		sight = "Arc",
 		lab = { effect = "AcidBurst", pose = "LabCannon", magazine = 4, reloadSeconds = 2.0 },
 	},
 }

@@ -1312,6 +1312,16 @@ local Config = {
 		AdsSpreadDegrees = 0,
 	},
 
+	-- Miras de las armas al apuntar (Fase 19, W8; Shared/UI/Sights): opacidad de la viñeta del visor,
+	-- tamaño del punto rojo y separación de la muesca de la mira de hierro (píxeles) y puntos de la
+	-- trayectoria en arco.
+	Sights = {
+		ScopeVignette = 0.85,
+		RedDotPx = 6,
+		IronGapPx = 10,
+		ArcPoints = 16,
+	},
+
 	Lab = {
 		-- Laboratorio en ruinas (Fase 13, docs/LABORATORIO.md): shooter por equipos sin roles, habilidades,
 		-- talentos ni mejoras. Todos con la misma vida, que vuelve sola tras RegenDelaySeconds sin recibir

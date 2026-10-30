@@ -48,6 +48,9 @@ export type WeaponDefinition = {
 	-- dispersión a la cadera en grados fuera del Laboratorio (sin él, Config.Aim.HipSpreadDegrees).
 	aimFov: number?,
 	hipSpread: number?,
+	-- Mira que se dibuja al apuntar (Fase 19, W8; Shared/UI/Sights): "Scope", "RedDot", "Iron" o "Arc". Sin
+	-- ella, Sights.kindOf la saca del proyectil.
+	sight: ("Scope" | "RedDot" | "Iron" | "Arc")?,
 	description: string?,
 }
 

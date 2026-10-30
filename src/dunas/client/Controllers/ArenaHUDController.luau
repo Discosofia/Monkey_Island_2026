@@ -16,7 +16,7 @@
 --   - Botón 😀 de la rueda de emotes (UI/EmoteWheel, la del Lobby y la Isla): abajo a la derecha en PC y
 --     arriba a la derecha, bajo las banderas, en táctil. A su izquierda, el ⚙️ de Ajustes (UI/ArenaSettings:
 --     mira, opciones, controles y temblor/idioma). La mira de las armas a distancia la dibuja
---     ArenaCrosshairController.
+--     RangedCrosshairController (CombatClient).
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")

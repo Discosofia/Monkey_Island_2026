@@ -21,6 +21,7 @@ local SKIP = {
 	ChainPipsController = true,
 	CameraLockController = true,
 	ShoulderAimController = true,
+	RangedCrosshairController = true,
 }
 
 -- Sin guardia, "Mira" ocupa la casilla de la guardia, junto al pulgar.

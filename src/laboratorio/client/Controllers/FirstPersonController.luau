@@ -14,6 +14,9 @@
 --   - Deslizarse (CombatClient/Slide): la cámara baja Config.Movement.Slide.CameraDrop con un fundido corto.
 --   - Esquivar (Fase 15, V3; CombatClient/DodgeFeel): la cámara se inclina hacia el lado de la esquiva y el
 --     arma se aparta un poco.
+--   - La mira del arma al apuntar (Fase 19, W8; UI/Sights): visor, punto rojo, mira de hierro o trayectoria. Se
+--     monta en la misma pantalla "Mira", esconde la mira normal mientras se ve y, con el visor casi del todo
+--     (scopeAlpha > SCOPE_HIDES_VIEW), esconde también el arma de la vista.
 -- Los demás ven el arma en la mano del personaje, con sus animaciones de siempre.
 -- El ratón va bloqueado en el centro. Para pulsar una ventana (el selector de arma, los resultados, el
 -- panel de pruebas) se suelta con freeCursor: mientras alguien lo pida, un botón invisible con Modal deja
@@ -35,7 +38,9 @@ local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Crosshair = require(ReplicatedStorage.Shared.UI.Crosshair)
+local Sights = require(ReplicatedStorage.Shared.UI.Sights)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local Aim = require(ReplicatedStorage.CombatClient.Aim)
 local AbilityFxController = require(ReplicatedStorage.CombatClient.Controllers.AbilityFxController)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
 local CameraShake = require(ReplicatedStorage.CombatClient.CameraShake)
@@ -58,6 +63,8 @@ local GRIP = CFrame.new(0, -0.8, 0)
 -- Retroceso por defecto si un arma no tiene su fila en Config.Lab.View.
 local DEFAULT_KICK = { kickBack = 0.18, kickPitch = 0, kickRoll = 0, camKick = 0, recover = 12 }
 local SWAY = 0.04
+-- Con el visor por encima de esto, el arma de la vista no se dibuja.
+local SCOPE_HIDES_VIEW = 0.9
 -- Recarga en la vista (fracciones del tiempo de recarga): baja hasta RELOAD_DOWN, vaivén hasta RELOAD_CLICK,
 -- el cargador entra con un golpe corto y vuelve a la posición desde RELOAD_UP.
 local RELOAD_DOWN = 0.15
@@ -106,6 +113,9 @@ local cursorReasons: { [string]: true } = {}
 local cursorGui: ScreenGui? = nil
 local crosshairGui: ScreenGui? = nil
 local crosshairHandle: Crosshair.Handle? = nil
+local sightsHandle: Sights.Handle? = nil
+-- true mientras las piezas del arma de la vista están escondidas por el visor.
+local viewHidden = false
 local cursorChangedListeners: { (free: boolean) -> () } = {}
 local lockRequestedListeners: { () -> () } = {}
 -- Las ventanas que necesitan el ratón mientras están abiertas (Ctrl no se lo quita).
@@ -117,6 +127,7 @@ local function clearViewModel()
 		viewModel = nil
 	end
 	shownKey = nil
+	viewHidden = false
 	-- Cambiar de arma o morir corta la recarga de la vista sin sonido de cargador listo.
 	reloadActive = false
 	reloadKey = nil
@@ -319,6 +330,53 @@ local function mountCrosshair(player: Player)
 	gui.Enabled = not isCursorFree()
 	crosshairGui = gui
 	crosshairHandle = Crosshair.mount(gui)
+	sightsHandle = Sights.mount(gui)
+end
+
+-- Esconde (o devuelve) las piezas del arma de la vista; el visor la tapa.
+local function setViewHidden(hidden: boolean)
+	if hidden == viewHidden or not viewModel then
+		return
+	end
+	viewHidden = hidden
+	for _, part in viewModel:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = if hidden then 1 else 0
+		end
+	end
+end
+
+-- La mira del arma de la mano, cada fotograma (la cámara ya está puesta): le da el blanco y la boca, y esconde
+-- la mira normal mientras ella se ve.
+local function updateSights(camera: Camera?, character: Model?)
+	local sights = sightsHandle
+	if not sights then
+		return
+	end
+	local weapon = LabShooting.weapon()
+	if not (camera and character) or isDead(character) then
+		weapon = nil
+	end
+	sights.setWeapon(weapon)
+	if not (weapon and camera and character) then
+		if crosshairHandle then
+			crosshairHandle.setVisible(true)
+		end
+		return
+	end
+	local alpha = WeaponController.aimAlpha()
+	sights.update({
+		alpha = alpha,
+		aimPoint = if alpha > 0 then Aim.point(character) else Vector3.zero,
+		muzzle = MuzzleSource.get(),
+		camera = camera,
+	})
+	if crosshairHandle then
+		crosshairHandle.setVisible(not sights.covers())
+		if crosshairGui then
+			crosshairGui:SetAttribute("SightCovers", sights.covers())
+		end
+	end
 end
 
 -- La mira (dispersión y recarga la ponen las armas), o nil si aún no está montada.
@@ -396,6 +454,8 @@ local function follow(deltaTime: number)
 	if viewModel and isDead(Players.LocalPlayer.Character) then
 		clearViewModel()
 	end
+	updateSights(camera, Players.LocalPlayer.Character)
+	setViewHidden(Sights.scopeAlpha() > SCOPE_HIDES_VIEW)
 	if not (viewModel and camera and viewModel.PrimaryPart) then
 		return
 	end
