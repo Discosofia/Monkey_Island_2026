@@ -59,12 +59,14 @@ local Workspace = game:GetService("Workspace")
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local FxQuality = require(ReplicatedStorage.Shared.FxQuality)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local WeaponAnimations = require(ReplicatedStorage.Shared.Data.WeaponAnimations)
 local WeaponAim = require(ReplicatedStorage.Shared.Data.WeaponAim)
 local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local WeaponAnimationIds = require(script.Parent.Parent.WeaponAnimationIds)
 local CameraShake = require(script.Parent.Parent.CameraShake)
+local ImpactFx = require(script.Parent.Parent.ImpactFx)
 local Movement = require(script.Parent.Parent.Movement)
 
 local SMOKE_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
@@ -2942,14 +2944,11 @@ local function labLook(style: string, splash: number?): Look
 				swell(position, 1, radius * 2, LAB_ACID, 0.3, 0.3)
 				burst(position, SMOKE_TEXTURE, LAB_ACID, 16, 2, radius * 1.5, 0.7)
 			elseif style == "LabBanana" then
-				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 8, 0.6, 8, 0.4)
-				-- Más peso: anillo amarillo y chispas gruesas.
-				ring(position, 0.3, 2.2, 0.25, LAB_BANANA, 0.15, 0.1)
-				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 6, 1.1, 11, 0.35)
+				-- Destello amarillo; la marca, las chispas y el polvo de la pared los pone ImpactFx.
+				burst(position, SPARKLE_TEXTURE, LAB_BANANA, 5, 0.6, 8, 0.4)
 			elseif style == "LabDart" then
-				-- Chispas cian cortas y un anillito que se abre rápido.
-				burst(position, SPARKLE_TEXTURE, LAB_DART, 9, 0.5, 9, 0.25)
-				ring(position, 0.15, 1.8, 0.18, LAB_DART, 0.1, 0.2)
+				-- Unas chispas cian cortas; el resto del impacto lo pone ImpactFx.
+				burst(position, SPARKLE_TEXTURE, LAB_DART, 5, 0.5, 9, 0.25)
 			elseif style == "LabNet" then
 				-- Bocanada beige de fibras y un disco-red que se abre y se desvanece.
 				burst(position, SMOKE_TEXTURE, LAB_NET, 8, 0.9, 5, 0.3)
@@ -3041,11 +3040,26 @@ local LOOKS: { [string]: (extra: { any }) -> Look } = {
 	end,
 }
 
+-- Las balas de arma que dejan marca, chispas, polvo o pulpa al acabar (ImpactFx). Las habilidades, el suero
+-- que cae en arco y la red tienen sus propios efectos.
+local IMPACT_LOOKS: { [string]: boolean } = {
+	Stone = true,
+	Arrow = true,
+	Dart = true,
+	Spell = true,
+	StoneFinisher = true,
+	ArrowFinisher = true,
+	DartFinisher = true,
+	SpellFinisher = true,
+	LabDart = true,
+	LabBanana = true,
+}
+
 -- Proyectiles en vuelo: lo que hay que hacer cuando el servidor dice dónde se ha parado cada uno.
-local landings: { [number]: (position: Vector3) -> () } = {}
+local landings: { [number]: (position: Vector3, hitBody: boolean?) -> () } = {}
 -- Un "ProjectileEnd" que llega antes que el ack de la bala propia (ProjectileAck): se guarda un momento por
 -- id, y solo mientras haya balas propias esperando su ack.
-local earlyEnds: { [number]: Vector3 } = {}
+local earlyEnds: { [number]: { position: Vector3, hitBody: boolean } } = {}
 local EARLY_END_SECONDS = 1
 -- Lo que espera la bala propia a su ack; si no llega, sigue su curso hasta su alcance.
 local ACK_WAIT_SECONDS = 1
@@ -3070,24 +3084,24 @@ local unacked = 0
 -- Cuánto avanza "displacement" desde "from" antes de chocar aquí con el mundo (lo que choca y el
 -- terreno) o, si no atraviesa ("pierce"), con un mono. Los jugadores y el decorado que no choca no lo
 -- paran: si le da a otro jugador, lo dice el servidor. Con "stopOnPlayers" (la bala propia, solo para
--- dibujarla) la para también un jugador que no sea de su equipo.
+-- dibujarla) la para también un jugador que no sea de su equipo. El segundo valor dice si ha parado en un cuerpo.
 local function localStop(
 	from: Vector3,
 	displacement: Vector3,
 	params: RaycastParams,
 	pierce: boolean,
 	stopOnPlayers: boolean
-): number?
+): (number?, boolean)
 	local length = displacement.Magnitude
 	if length < 1e-3 then
-		return nil
+		return nil, false
 	end
 	local direction = displacement / length
 	local travelled = 0
 	for _ = 1, 4 do
 		local result = Workspace:Raycast(from + direction * travelled, direction * (length - travelled), params)
 		if not result then
-			return nil
+			return nil, false
 		end
 		travelled += result.Distance
 		local part = result.Instance
@@ -3101,18 +3115,18 @@ local function localStop(
 					stops = other ~= nil and not (other.Team ~= nil and other.Team == Players.LocalPlayer.Team)
 				end
 				if stops then
-					return travelled
+					return travelled, true
 				end
 			end
 		elseif part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide) then
-			return travelled
+			return travelled, false
 		end
 		travelled += 0.05
 		if travelled >= length then
-			return nil
+			return nil, false
 		end
 	end
-	return nil
+	return nil, false
 end
 
 -- Estelas de "body" al menos Config.Combat.ShotTrace.TracerWidthFP de anchas (la bala propia en primera persona).
@@ -3167,9 +3181,12 @@ local function launch(
 	params.IgnoreWater = true
 	local limit = range
 	local stopPoint: Vector3? = nil
+	local stopBody = false
 	local travelled = 0
 	local position = origin
 	local finished = false
+	-- Solo las balas de arma en línea recta dejan el impacto de ImpactFx (no el suero en arco ni las habilidades).
+	local impacts = IMPACT_LOOKS[lookId] == true and gravity == nil
 	local connection: RBXScriptConnection? = nil
 	-- Con la dirección real del servidor, la curva en que la bala propia se junta con ella.
 	local steer: { from: Vector3, to: Vector3, start: number }? = nil
@@ -3190,7 +3207,7 @@ local function launch(
 	local function muzzleShift(elapsed: number): Vector3
 		return muzzleOffset * math.max(0, 1 - elapsed / blendSeconds)
 	end
-	local function finish(at: Vector3)
+	local function finish(at: Vector3, hitBody: boolean?)
 		if finished then
 			return
 		end
@@ -3203,14 +3220,18 @@ local function launch(
 		end
 		body.CFrame = CFrame.lookAt(at, at + direction)
 		look.land(at)
+		if impacts then
+			ImpactFx.play(at, direction, hitBody == true, FxQuality.get())
+		end
 	end
-	local function onLanding(landed: Vector3)
+	local function onLanding(landed: Vector3, hitBody: boolean?)
 		local along = (landed - origin):Dot(direction)
 		if along <= travelled then
-			finish(landed)
+			finish(landed, hitBody)
 		elseif along < limit then
 			limit = along
 			stopPoint = landed
+			stopBody = hitBody == true
 		end
 	end
 	if boundId then
@@ -3233,9 +3254,9 @@ local function launch(
 		connection = RunService.RenderStepped:Connect(function()
 			local elapsed = Workspace:GetServerTimeNow() - startTime
 			local point = at(math.max(elapsed, 0))
-			local hit = localStop(last, point - last, params, pierce, stopOnPlayers)
+			local hit, onBody = localStop(last, point - last, params, pierce, stopOnPlayers)
 			if hit then
-				finish(last + (point - last).Unit * hit)
+				finish(last + (point - last).Unit * hit, onBody)
 				return
 			end
 			path += (point - last).Magnitude
@@ -3264,11 +3285,12 @@ local function launch(
 			end
 		end
 		local target = math.min(math.max(speed * elapsed, travelled), limit)
-		local hit = localStop(position, direction * (target - travelled), params, pierce, stopOnPlayers)
+		local hit, onBody = localStop(position, direction * (target - travelled), params, pierce, stopOnPlayers)
 		if hit then
 			target = travelled + hit
 			limit = target
 			stopPoint = position + direction * hit
+			stopBody = onBody
 		end
 		position += direction * (target - travelled)
 		travelled = target
@@ -3278,7 +3300,7 @@ local function launch(
 			look.follow(cframe, elapsed)
 		end
 		if travelled >= limit - 1e-3 then
-			finish(stopPoint or position)
+			finish(stopPoint or position, stopBody)
 		end
 	end)
 	if not mode then
@@ -3303,7 +3325,7 @@ local function launch(
 			local early = earlyEnds[newId]
 			if early then
 				earlyEnds[newId] = nil
-				onLanding(early)
+				onLanding(early.position, early.hitBody)
 			end
 		end,
 	}
@@ -3327,12 +3349,12 @@ local function projectile(
 end
 
 -- El servidor dice dónde se ha parado el proyectil "id".
-local function projectileEnd(id: number, position: Vector3)
+local function projectileEnd(id: number, position: Vector3, hitBody: boolean?)
 	local landing = landings[id]
 	if landing then
-		landing(position)
+		landing(position, hitBody)
 	elseif unacked > 0 then
-		earlyEnds[id] = position
+		earlyEnds[id] = { position = position, hitBody = hitBody == true }
 		task.delay(EARLY_END_SECONDS, function()
 			earlyEnds[id] = nil
 		end)
@@ -3651,7 +3673,7 @@ local EFFECTS: { [string]: (...any) -> () } = {
 	-- (id, aspecto de LOOKS, personaje que dispara, origen, dirección, velocidad, alcance, hora de salida
 	-- del servidor, atraviesa, datos del aspecto, gravedad si va en arco): un proyectil (Combat/Projectiles)
 	Projectile = projectile,
-	ProjectileEnd = projectileEnd, -- (id, dónde se ha parado)
+	ProjectileEnd = projectileEnd, -- (id, dónde se ha parado, si ha sido en un cuerpo)
 	WallBang = wallBang, -- (punto de la pared, su normal): rebote contra muros (Combat/Knockback)
 	Zone = zone, -- ("Fire" | "Ice" | "Cloud", centro en el suelo, radio, segundos): Combat/Zones
 	AcidPuddle = acidPuddle, -- (centro, radio, segundos): el charco del cañón de suero (Laboratorio)
@@ -3677,6 +3699,7 @@ function AbilityFxController:Init()
 	folder = Instance.new("Folder")
 	folder.Name = "AbilityFx"
 	folder.Parent = Workspace
+	ImpactFx.setFolder(folder)
 end
 
 function AbilityFxController:Start()

@@ -84,7 +84,7 @@ local started = false
 
 local function finish(flight: Flight, position: Vector3, model: Model?)
 	local shot = flight.shot
-	AbilityFx.all("ProjectileEnd", flight.id, position)
+	AbilityFx.all("ProjectileEnd", flight.id, position, model ~= nil)
 	if shot.counts ~= false and shot.owner.Parent then
 		CombatRules.get().telemetry.mechanic(shot.owner, if flight.hitAny then "ShotsHit" else "ShotsMissed")
 	end

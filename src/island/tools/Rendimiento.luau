@@ -26,7 +26,8 @@
 --   7. Monos y jefes (island/server/Monkeys/MonkeyModels): piezas del modelo final, ya unido con UnionAsync.
 --   8. Totales por escena y el Lobby con 20 jugadores con y sin LOD de detalle (R5).
 --   9. Pico de efectos de cada jefe por calidad (R6: combatClient/BossFx contra Config.Budgets.Vfx).
---   10. Alertas: lo que, tras fusionar, pasa del presupuesto.
+--   10. Impactos de las armas por calidad (W5: combatClient/ImpactFx con una ráfaga de 10 tiradores).
+--   11. Alertas: lo que, tras fusionar, pasa del presupuesto.
 -- Pendiente: los modelos de ViewportFrame (RewardModels) y los nodos del mapa (MapBuilder) se miden en R3.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -48,6 +49,7 @@ local OPCIONES_BASE = {
 		monos = true,
 		escenas = true,
 		efectos = true,
+		impactos = true,
 	},
 }
 
@@ -819,7 +821,44 @@ local function main(copia: Instance): string
 		)
 	end)
 
-	linea("## 10. Alertas")
+	-- ---------------------------------- 10. Impactos de armas ----------------------------------
+	seccion("## 10. Impactos de armas", S.impactos, function()
+		local V = B.Vfx
+		local I = Config.ImpactFx
+		local calidades = { "Low", "Medium", "High" }
+		local nombres = { Low = "Bajo", Medium = "Medio", High = "Alto" }
+		-- Ráfaga de referencia: tiradores a la vez, balas de cada uno y segundos que dura (lanzadardos del Laboratorio).
+		local tiradores, balas, segundos = 10, 24, 3
+		local porSegundo = tiradores * balas / segundos
+		local topePulpa = I.Pulp.High * 2
+		linea(
+			`Pico de piezas de ImpactFx por cliente. Marcas: pool circular de Config.Budgets.ImpactMarks (se recicla la más vieja); pulpa: pool de {topePulpa} cubitos (2 × Pulp.High) que viven 0,45 s; más 1 ancla con los emisores de chispas y polvo. Caso: {tiradores} tiradores, {balas} balas cada uno en {segundos} s ({porSegundo} impactos/s). Tope: Bajo {V.Low} · Medio {V.Medium} · Alto {V.High} (Config.Budgets.Vfx).`
+		)
+		linea("")
+		linea(
+			"| Calidad | Impactos en pared mientras dura una marca | Marcas a la vez | Pulpa si todo da en cuerpos | Ancla | Total | Tope |"
+		)
+		linea("|---|---|---|---|---|---|---|")
+		for _, calidad in calidades do
+			local enPared = math.floor(porSegundo * (I.MarkSeconds + I.MarkFadeSeconds))
+			local marcas = math.min(B.ImpactMarks[calidad], enPared)
+			-- Cubitos vivos a la vez: impactos de 0,45 s × cubitos por impacto, acotado por el pool.
+			local pulpa = math.min(topePulpa, math.ceil(porSegundo * 0.45) * I.Pulp[calidad])
+			local total = marcas + pulpa + 1
+			linea(`| {nombres[calidad]} | {enPared} | {marcas} | {pulpa} | 1 | {total} | {V[calidad]} |`)
+			if total > V[calidad] then
+				alerta(
+					`Impactos de armas en calidad {nombres[calidad]}: ráfaga de {tiradores} tiradores suma {total} piezas (tope {V[calidad]})`
+				)
+			end
+		end
+		linea("")
+		linea(
+			"Las marcas siempre llegan al tope del pool con esa ráfaga (por eso el pool las acota) y la pulpa al suyo; el peor caso mezcla las dos. Los efectos de los jefes comparten el mismo tope Vfx (sección 9), pero los impactos de armas de ráfaga no suelen coincidir con un pisotón o una lluvia de rocas."
+		)
+	end)
+
+	linea("## 11. Alertas")
 	if #alertas == 0 then
 		linea("✅ Todo dentro de los límites.")
 	else

@@ -3174,3 +3174,41 @@ Nota: los sonidos «tac», «dink» y «pop» son provisionales (ids de serie). 
    ✅ Tú ves una sola bala y el otro jugador ve una sola bala y un solo fogonazo; no aparecen dos proyectiles ni dos fogonazos.
 
 Nota: lo ya probado en Studio (un jugador en el Laboratorio: la bala local sale en el mismo instante del disparo y es una sola por disparo; el servidor manda ProjectileAck con el número de disparo; sin errores) no se repite aquí.
+
+## 79. Fase 19 W5: marcas de impacto, chispas, polvo y pulpa (29-10-2026)
+
+**Un jugador en Play (▶ Jugar, en el Laboratorio):**
+
+1. [ ] Dispara el rifle y el lanzadardos a una pared y al suelo, y mira la marca, las chispas y el polvo de cada impacto.
+   ✅ Las marcas son oscuras, están pegadas a la pared y al suelo, tienen el tono de la pieza y se apagan a los 8 s. Las chispas son amarillas y cuadradas, y salen hacia fuera de la superficie. El polvo tiene el color del material, en el suelo y en la pared.
+2. [ ] Mira de cerca las chispas y el polvo tras unos cuantos impactos.
+   ✅ Se ven como cuadrados de color y desaparecen solos al acabar. Si no se ven, o no desaparecen, hay que poner una textura blanca en `ImpactFx.newEmitter`.
+3. [ ] Dispara el lanzadardos y el rifle de bananas contra una pared.
+   ✅ Ya no aparece el aro plano en la pared ni en el suelo, y cada impacto sigue sacando sus 5 chispas.
+4. [ ] Dispara el cañón de suero (en arco) y el lanzarredes contra una pared o el suelo.
+   ✅ El cañón hace su arco de caída y la red sale como antes, con sus efectos de siempre.
+5. [ ] Dispara a una pared curva o a un terreno irregular, si el mapa tiene alguno.
+   ✅ La marca se pega a la superficie: no flota ni se ve rara.
+6. [ ] Con el juego en Play y un impacto ya hecho, borra la carpeta `AbilityFx` del cliente (la de efectos) y dispara de nuevo.
+   ✅ Si el juego vuelve a crear la carpeta, los emisores de chispas y polvo se recrean con ella y el impacto vuelve a salir con chispas y polvo, sin errores en consola.
+
+**Un jugador en Play (Isla, Dunas y Lobby):**
+
+1. [ ] En la Isla, dispara la honda o el arco a un mono.
+   ✅ Salen 3, 6 o 10 cubitos amarillos según la calidad de efectos (Ajustes), que salen hacia fuera del tirador, es decir, en la dirección de la bala. Desaparecen en menos de 0,9 s y no queda ninguna marca ni chispa sobre el mono.
+2. [ ] En la Isla, usa una habilidad y pega con un arma a distancia a un jefe o a un muñeco de práctica.
+   ✅ Las habilidades y los jefes conservan sus efectos de siempre. La habilidad no deja marca ni chispas de bala.
+3. [ ] Haz una ráfaga de dardos contra una pared y el suelo, con la calidad de efectos en Bajo, después en Medio y en Alto (Ajustes), en la Isla, en Dunas, en el Lobby y en el Laboratorio.
+   ✅ Como mucho 15 marcas en Bajo, 35 en Medio y 60 en Alto a la vez en cada cliente. Al llegar al tope, las marcas nuevas reemplazan a las más viejas y no se crean piezas nuevas. Sin errores en consola.
+
+**Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio):**
+
+1. [ ] Con el otro jugador delante, dispara un arma a distancia a su cuerpo.
+   ✅ Salen cubitos amarillos de pulpa del cuerpo alcanzado, en la dirección de la bala, alejándose del tirador. No quedan marcas ni chispas sobre el cuerpo.
+
+**En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶):**
+
+1. [ ] Con 10 tiradores disparando a ráfaga contra una pared, con la calidad de efectos en Alto, mira los FPS.
+   ✅ Los FPS se mantienen estables durante la ráfaga, sin caídas sostenidas.
+
+Nota: lo ya probado en Studio (Laboratorio, un jugador: 12 disparos contra una pared dan 12 marcas, un solo grupo de emisores y ninguna pieza «Ring» (antes unas 28 por impacto); sin errores en consola; la pulpa sale en 3/6/10 cubitos amarillos por calidad y desaparece en menos de 0,9 s sin marcas ni chispas en cuerpos; `Rendimiento` sección 10: 36/56/81 piezas frente a topes 40/90/160, sin alertas) no se repite aquí.

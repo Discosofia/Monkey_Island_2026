@@ -2254,6 +2254,9 @@ local Config = {
 		},
 		-- Pico de piezas de efectos por cliente según la calidad de efectos.
 		Vfx = { Low = 40, Medium = 90, High = 160 },
+		-- Marcas de impacto de bala en paredes y suelo vivas a la vez (combatClient/ImpactFx; cuentan para Vfx).
+		-- Al llenarse se recicla la más vieja.
+		ImpactMarks = { Low = 15, Medium = 35, High = 60 },
 		-- LOD de detalle de los cosméticos de otros jugadores.
 		Lod = {
 			DetailDistance = 60, -- studs a partir de los que se ocultan los detalles
@@ -2284,6 +2287,19 @@ local Config = {
 		MarkerColor = Color3.fromRGB(255, 60, 40), -- rojo: daño recibido
 		MarkerTransparency = 0.55,
 		LavaPoolSeconds = 4, -- lo que dura el charco incandescente
+	},
+
+	-- Impactos de las balas de las armas (Fase 19, W5; combatClient/ImpactFx): marca oscura en la pared o el suelo,
+	-- chispas, polvo y, contra un cuerpo, pulpa de plátano. Todo son cubitos voxel de un pool con tope duro
+	-- (Budgets.ImpactMarks para las marcas; el de los cubitos de pulpa es el doble de Pulp.High). La calculadora
+	-- Rendimiento (sección 10) comprueba el pico con una ráfaga de 10 tiradores.
+	ImpactFx = {
+		MarkSeconds = 8, -- lo que dura una marca antes de empezar a desvanecerse
+		MarkFadeSeconds = 1, -- lo que tarda en desvanecerse
+		MarkSize = Vector3.new(0.3, 0.3, 0.05), -- losa de la marca (el lado fino va contra la superficie)
+		Sparks = { Low = 4, Medium = 8, High = 12 }, -- chispas por impacto en pared o suelo
+		Pulp = { Low = 3, Medium = 6, High = 10 }, -- cubitos de pulpa por impacto en un cuerpo
+		Dust = { Low = 3, Medium = 4, High = 6 }, -- partículas de polvo por impacto en pared o suelo
 	},
 
 	-- Confirmación de impacto del tirador (Fase 19, W3; Combat/HitFeedback y CombatClient/HitFeedbackController):
