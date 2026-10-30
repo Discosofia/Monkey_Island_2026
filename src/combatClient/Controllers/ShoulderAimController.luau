@@ -30,14 +30,11 @@ local ShoulderAimController = {}
 
 type Saved = {
 	humanoid: Humanoid,
-	rotation: Enum.RotationType,
-	behavior: Enum.MouseBehavior,
 	autoRotate: boolean,
 	offset: Vector3,
 }
 
 local player = Players.LocalPlayer
-local userGameSettings = UserSettings():GetService("UserGameSettings")
 local saved: Saved? = nil
 -- 0 (cámara normal) a 1 (al hombro del todo).
 local blend = 0
@@ -53,9 +50,28 @@ local function wanted(humanoid: Humanoid, camera: Camera): boolean
 	return (camera.CFrame.Position - camera.Focus.Position).Magnitude > FIRST_PERSON_STUDS
 end
 
+-- El modo del ratón y el de rotación no se guardan: el jugador puede cambiar el bloqueo de cámara (Ctrl)
+-- mientras apunta, y restaurar un valor viejo dejaba el ratón fijo en el centro. La cámara de Roblox no
+-- reajusta el ratón sola al soltar, así que se pregunta a su bloqueo si está encendido (si no se puede
+-- saber, se deja libre).
+local mouseLock: any = nil
+local function naturalBehavior(): Enum.MouseBehavior
+	if mouseLock == nil then
+		local ok, controller = pcall(function()
+			local scripts = player:FindFirstChild("PlayerScripts")
+			local module = scripts and scripts:FindFirstChild("PlayerModule")
+			assert(module, "sin PlayerModule")
+			return (require(module) :: any):GetCameras():GetMouseLockController()
+		end)
+		mouseLock = if ok and controller then controller else false
+	end
+	if mouseLock and mouseLock:GetIsMouseLocked() then
+		return Enum.MouseBehavior.LockCenter
+	end
+	return Enum.MouseBehavior.Default
+end
+
 local function restore(state: Saved)
-	userGameSettings.RotationType = state.rotation
-	UserInputService.MouseBehavior = state.behavior
 	if state.humanoid.Parent then
 		state.humanoid.AutoRotate = state.autoRotate
 		state.humanoid.CameraOffset = state.offset
@@ -82,8 +98,6 @@ local function step(deltaTime: number)
 	if want and not state then
 		state = {
 			humanoid = humanoid,
-			rotation = userGameSettings.RotationType,
-			behavior = UserInputService.MouseBehavior,
 			autoRotate = humanoid.AutoRotate,
 			offset = humanoid.CameraOffset,
 		}
@@ -95,6 +109,7 @@ local function step(deltaTime: number)
 	local seconds = math.max(Config.Aim.TransitionSeconds, 1e-3)
 	blend = math.clamp(blend + (if want then deltaTime else -deltaTime) / seconds, 0, 1)
 	if not want and blend <= 0 then
+		UserInputService.MouseBehavior = naturalBehavior()
 		restore(state)
 		saved = nil
 		return
@@ -104,7 +119,6 @@ local function step(deltaTime: number)
 	if want then
 		-- La cámara de Roblox reajusta el ratón cada fotograma: este paso va justo después.
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-		userGameSettings.RotationType = Enum.RotationType.CameraRelative
 		humanoid.AutoRotate = false
 		local look = camera.CFrame.LookVector
 		local flat = Vector3.new(look.X, 0, look.Z)
@@ -112,7 +126,9 @@ local function step(deltaTime: number)
 			root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
 		end
 	else
-		-- Soltando: el personaje vuelve a girar solo mientras la cámara vuelve.
+		-- Soltando: el ratón vuelve a lo que pide el bloqueo de cámara y el personaje vuelve a girar solo
+		-- mientras la cámara vuelve.
+		UserInputService.MouseBehavior = naturalBehavior()
 		humanoid.AutoRotate = state.autoRotate
 	end
 end

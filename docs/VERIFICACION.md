@@ -3560,3 +3560,56 @@ Cambio: vida 100 → 144 (`Config.Lab.Health`), regeneración 20 → 29 por segu
 3. [ ] Mira si, con peleas de 3,4 s, retirarse y curarse sigue valiendo.
    ✅ Con 29 de regeneración por segundo tras 4 s sin recibir daño, escapar vale la pena; si no, sube la regeneración o baja `RegenDelaySeconds`.
 
+## 86. Fase 19 W11: ruta de la prueba publicada (29-10-2026)
+
+Esta sección no añade pasos nuevos: ordena los de §74–§85 por sesión de prueba, para recorrerlos de una vez con el juego publicado. Marca cada paso en su sección de origen y anota aquí lo que falle (arma, place, dispositivo, número) para ajustar después.
+
+**Antes de empezar (el usuario):**
+
+1. [ ] Guarda los 4 places con Rojo sincronizado y publícalos. Los ids de `Data/WeaponAnimations` (22) y de `Data/ViewModelAnimations` (20) ya están pegados.
+   ✅ El juego publicado carga sin avisos de `ContentId … failed` al usar las armas (§75, «Publicado», paso 3).
+2. [ ] Haz copia del perfil en `PlayerData_v1_backups` si vas a probar en Studio.
+   ✅ Copia hecha.
+
+**Sesión A: 2 a 10 jugadores, publicado (un grupo en el Laboratorio, otro en Dunas y la Isla):**
+
+- Pose replicada, disparo sin duplicar y arma al derecho: §75 («2 jugadores»), §77.
+- Hitmarkers, «tac», «dink», «pop» y ráfaga con tope de avisos: §76.
+- Bala inmediata, un solo proyectil y un solo fogonazo para el otro jugador: §78 («Dos jugadores»).
+- Pulpa en el cuerpo alcanzado: §79 («Dos jugadores»).
+- Zonas, rebobinado con tu ping real y la prueba con 12 jugadores (`Projectiles.step` < 0,5 ms): §80 («Dos jugadores» y «Publicado»).
+- Killfeed en los dos clientes, jefe real y límite de 10 avisos por segundo: §83.
+- Duelos del Laboratorio (anota la media de 10): §85 («Dos jugadores»).
+
+**Sesión B: un jugador, publicado:**
+
+- Líneas blancas, ajuste «Líneas de velocidad» y embestida: §74.
+- ADS, cámara al hombro y dispersión a la cadera (Isla y Dunas): §81.
+- Miras por arma (Isla, Dunas, Laboratorio): §82.
+- Rig de brazos con las 5 pistas de las 4 armas (Aim, Fire, Reload, Sprint y Equip) y las skins: §84.
+- Vida 144 y regeneración 29 del Laboratorio: §85 («Un jugador»).
+
+**Sesión C: teléfono (real o emulador) y mando:**
+
+- Líneas y FPS: §74; botón «Mira» y L2: §81; mira en el centro y L2: §82; FPS con 10 tiradores: §79; killfeed compacto: §83; FPS del rig: §84.
+
+**Al terminar (Studio de la Isla, modo edición):**
+
+1. [ ] Ejecuta `Equilibrio` y `Rendimiento` con las calculadoras de CLAUDE.md.
+   ✅ Ninguna muestra alertas nuevas.
+2. [ ] Pasadas unas horas, mira `LimbShots` y `Headshots` en *Creator Hub → Analítica* (§80).
+   ✅ Cuentan también monos, jefes y muñecos.
+
+**Ratón fijo en el centro (corregido tras la prueba publicada):**
+
+1. [ ] En el Lobby, la Isla y Dunas, con un arma a distancia, apunta con el clic derecho y cambia el bloqueo de cámara con Ctrl (o desde el menú de Roblox) varias veces, con el clic derecho mantenido y soltado.
+   ✅ Al soltar el clic derecho el ratón queda libre o bloqueado según el bloqueo de cámara (Ctrl), nunca fijo en el centro sin poder soltarlo.
+
+**Qué se ajusta según lo que falle (dónde se toca):**
+
+- Dispersión o FOV de apuntar: `Data/LabWeapons` (`adsSpreadFactor`, FOV) y `Config` de combate a distancia.
+- Líneas, FOV y sacudida: los valores de W1 en `Config`.
+- Marcas, polvo y pulpa en el teléfono: topes por calidad en `Config.Budgets` (15, 35 y 60 marcas).
+- Combate del Laboratorio (duración, regeneración): `Config.Lab.Health`, `RegenPerSecond`, `RegenDelaySeconds` y el daño en `Data/LabWeapons`; remide con `Equilibrio`, sección 12.
+- Una pose o una pista del rig que falle: se rehace con la skill `animaciones-roblox` y el usuario la vuelve a publicar.
+
