@@ -539,6 +539,27 @@ local function main(copia: Instance): string
 				end
 			end
 		end
+		-- Brazos del rig de la vista en primera persona (Fase 19, W10): piezas sin contar el arma (el Handle de prueba).
+		intentar("LabViewModelRig", function()
+			local LabViewModelRig = require(copia.LabViewModelRig) :: any
+			local arma = Instance.new("Model")
+			local mango = Instance.new("Part")
+			mango.Name = "Handle"
+			mango.Parent = arma
+			local rig = LabViewModelRig.build(arma, mango, "Guardians", Color3.new(1, 1, 1))
+			local piezas = 0
+			for _, parte in rig.model:GetDescendants() do
+				if parte:IsA("BasePart") and parte.Name ~= "Handle" then
+					piezas += 1
+				end
+			end
+			fila(
+				"Brazos de la vista (rig sin arma)",
+				{ ahora = piezas, tras = piezas, detalle = 0 },
+				M.LabViewModelArms
+			)
+			rig.model:Destroy()
+		end)
 	end)
 
 	-- ---------------------------------- 7. Monos y jefes ----------------------------------

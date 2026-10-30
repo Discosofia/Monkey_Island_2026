@@ -3494,3 +3494,48 @@ Nota: lo ya probado en Studio (solo la honda en la Isla: punto rojo al apuntar c
    ✅ Salen 5 filas (el tope de la columna), no 6.
 
 Nota: las muertes por mono o por entorno no salen en el registro (decisión de diseño). Lo ya probado en Studio (solo la Isla con 1 jugador: `FakeKill` sin argumento muestra 3 filas, y «spam» deja 5 filas, el tope) no se repite aquí.
+
+## 84. Fase 19 W10: rig de brazos en primera persona del Laboratorio (29-10-2026)
+
+**Publicación (el usuario, en el Studio de la Isla):**
+
+1. [x] (Hecho el 29-10-2026: los 20 ids están pegados en `Data/ViewModelAnimations`; en Play en el Lab cargan Aim y Fire con peso 1 al disparar.) Guarda el place de la Isla y publica las 20 secuencias `<Arma>_<Clave>` (LabDartGun, LabBananaRifle, LabNetHarpoon y LabAcidCannon, cada una con Aim, Fire, Reload, Sprint y Equip) con el mismo dueño que el juego (clic derecho → Guardar en Roblox). Pasa los 20 ids para pegarlos en `src/shared/Data/ViewModelAnimations.luau`.
+   ✅ Las 20 secuencias tienen id publicado. Hasta pegarlos, el retroceso, la recarga y el desenfundado siguen funcionando por código, y Aim y Sprint no hacen nada.
+
+**En el Studio de la Isla (modo edición, revisión a ojo):**
+
+1. [ ] Revisa las 20 tiras del `ViewModelAnimationBuilder` con la skill `animaciones-roblox`, y mira sobre todo la mano izquierda de Fire y Reload.
+   ✅ La mano izquierda sigue sujeta al arma en Fire y en Reload. Si se separa, anota la tira y el arma.
+
+**Un jugador en Play (Laboratorio, con los ids publicados y las 4 armas):**
+
+1. [ ] Mantén el clic derecho con cada arma.
+   ✅ La pose de apuntar entra con el peso de `aimAlpha`. En las 4 armas se ve la pose de Aim (capturas).
+2. [ ] Mantén el clic derecho y dispara sin soltar, sobre todo con el lanzadardos.
+   ✅ Los codos no saltan al pasar de Aim a Fire. Si saltan, anota el arma y la distancia del salto.
+3. [ ] Dispara con el lanzadardos en ráfaga.
+   ✅ La pista Fire dura como mucho la cadencia del arma (0,12 s en dardos) y no se corta a medias (capturas).
+4. [ ] Recarga cada arma con cargador.
+   ✅ La pista Reload dura lo que `reloadSeconds` de cada arma (se estira la pista), y al acabar vuelve la pose normal.
+5. [ ] Corre con Shift y suelta.
+   ✅ Sprint entra con un fundido de 0,15 s al empezar a correr (capturas).
+6. [ ] Mientras corres, mantén el clic derecho con el rifle, y después recarga mientras corres.
+   ✅ Sprint se corta al apuntar con el visor y al recargar, y pasa a la pose que toque.
+7. [ ] Saca el arma con la tecla de equipar, o cambia de arma.
+   ✅ Al sacar el arma se ve la pista Equip una vez, y no hay un salto de pose al terminar.
+8. [ ] Dispara con cada arma, con su pista Fire ya publicada, y mira el retroceso.
+   ✅ El retroceso se ve una sola vez. No se suma el retroceso por código al de la pista: si se ve doble, anótalo.
+9. [ ] Con cada skin de bajas equipada en cada arma, mira las piezas de la mano mientras disparas y recargas.
+   ✅ Las piezas de skin siguen en su sitio (WeldConstraint conservadas, recolocadas con delta) en las 4 armas y en cada skin, sin descolocarse al animar.
+10. [ ] Dispara y mira el fogonazo.
+    ✅ MuzzleSource y el fogonazo salen de la boca del arma (el `Muzzle` dentro del rig), no de otro punto.
+11. [ ] Con el rifle, mantén el clic derecho para entrar en el visor.
+    ✅ El visor esconde todo el rig (brazos y arma), y en el hueco del visor no se ve ningún brazo.
+
+**En el teléfono (Laboratorio, *Prueba → Dispositivo*):**
+
+1. [ ] Con un arma en la mano, dispara en ráfaga y recarga, con el rig animado en pantalla.
+   ✅ No hay caídas de fotogramas apreciables al disparar ni al recargar. Si las hay, anota los fps y el arma.
+
+Nota: lo ya probado en Studio no se repite aquí. En Play en el Lab: el rig se monta (`ArmaEnPrimeraPersona` con `AnimationController`, Motor6D RightShoulder, RightElbow, RightHand, LeftShoulder, LeftElbow, LeftHand y WeaponGrip, 97 descendientes con el arma), sin errores. En el Studio de la Isla: `ViewModelAnimationBuilder.build()` generó las 20 `KeyframeSequence` en `ReplicatedStorage.ViewModelAnimations`, y la tira de LabBananaRifle_Fire se ve bien (retroceso de 0,2 s). Rendimiento: «Brazos de la vista» 9 piezas de 40, sin alertas.
+Nota (29-10-2026): con los ids pegados se comprobó en Play en el Lab que Aim (peso 0 sin apuntar) y Fire (peso 1 al disparar con el lanzadardos) cargan y suenan. Sin ver todavía: Reload, Sprint, Equip y las otras 3 armas.

@@ -1370,6 +1370,9 @@ local Config = {
 			LabAcidCannon = { kickBack = 0.45, kickPitch = 10, kickRoll = 3, camKick = 2.5, recover = 6 },
 		},
 		CooldownRingMinSeconds = 0.4,
+		-- Balanceo del arma de la vista al andar (Fase 19, W10; FirstPersonController): SwayStuds = studs de
+		-- vaivén y BobHz = velocidad del paso (radianes por segundo del seno).
+		ViewModel = { SwayStuds = 0.04, BobHz = 8 },
 		-- Muñecos del panel de pruebas (LabDebugService): delante del jugador, a las distancias de la
 		-- calculadora (corta, media y larga).
 		TestDummyDistances = { 15, 50, 120 },
@@ -2266,6 +2269,7 @@ local Config = {
 			Aura = 30, -- aura cosmética
 			LabWeaponBase = 45, -- arma del Laboratorio sin skin
 			LabWeaponSkin3 = 200, -- arma del Laboratorio con una skin de bajas (hoy el Arpón de red III llega a 99)
+			LabViewModelArms = 40, -- brazos del rig de la vista en primera persona del Laboratorio, sin el arma (hoy 9)
 			Buildable = 25, -- construible de la Isla
 			PlotStructure = { 60, 90, 120 }, -- estructura de la parcela, nivel I a III
 			Monkey = 10, -- mono en juego (ya unido con UnionAsync)

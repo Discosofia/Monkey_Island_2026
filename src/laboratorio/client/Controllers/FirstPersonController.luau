@@ -17,6 +17,10 @@
 --   - La mira del arma al apuntar (Fase 19, W8; UI/Sights): visor, punto rojo, mira de hierro o trayectoria. Se
 --     monta en la misma pantalla "Mira", esconde la mira normal mientras se ve y, con el visor casi del todo
 --     (scopeAlpha > SCOPE_HIDES_VIEW), esconde también el arma de la vista.
+--     Fase 19, W10: las manos son un rig de brazos (Shared/LabViewModelRig, Motor6D + AnimationController) y las
+--     poses son pistas de Data/ViewModelAnimations (Aim, Fire, Reload, Sprint, Equip). Por código quedan el balanceo,
+--     el desplazamiento cadera/apuntado, la esquiva y, de respaldo mientras una pista no tiene id, el retroceso, la
+--     recarga y el desenfundado de siempre (aplicados al rig entero).
 -- Los demás ven el arma en la mano del personaje, con sus animaciones de siempre.
 -- El ratón va bloqueado en el centro. Para pulsar una ventana (el selector de arma, los resultados, el
 -- panel de pruebas) se suelta con freeCursor: mientras alguien lo pida, un botón invisible con Modal deja
@@ -36,6 +40,8 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
+local LabViewModelRig = require(ReplicatedStorage.Shared.LabViewModelRig)
+local ViewModelAnimations = require(ReplicatedStorage.Shared.Data.ViewModelAnimations)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Crosshair = require(ReplicatedStorage.Shared.UI.Crosshair)
 local Sights = require(ReplicatedStorage.Shared.UI.Sights)
@@ -48,6 +54,8 @@ local LabShooting = require(ReplicatedStorage.CombatClient.LabShooting)
 local MuzzleSource = require(ReplicatedStorage.CombatClient.MuzzleSource)
 local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
 local Slide = require(ReplicatedStorage.CombatClient.Slide)
+local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
+local ViewModelAnimationIds = require(ReplicatedStorage.CombatClient.ViewModelAnimationIds)
 
 -- Dónde va la mano respecto a la cámara (derecha, arriba, delante): abajo a la derecha, con el arma
 -- girada un poco hacia el centro (HIP_YAW, HIP_PITCH) para que se le vea el costado; al apuntar con la
@@ -56,13 +64,14 @@ local HIP_OFFSET = Vector3.new(1.25, -1.45, -3.0)
 local HIP_YAW = math.rad(16)
 local HIP_PITCH = 0.08
 local AIM_OFFSET = Vector3.new(0, -0.78, -1.6)
--- El arma mira hacia -Z de la cámara con su lado de arriba hacia +Y (ejes de Shared/LabWeaponModels:
--- +Y del mango hacia la boca, -Z del mango hacia arriba).
-local WEAPON_TURN = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, -1), Vector3.new(0, -1, 0))
-local GRIP = CFrame.new(0, -0.8, 0)
+-- El rig (Shared/LabViewModelRig) ya trae el arma girada hacia -Z con su lado de arriba hacia +Y.
 -- Retroceso por defecto si un arma no tiene su fila en Config.Lab.View.
 local DEFAULT_KICK = { kickBack = 0.18, kickPitch = 0, kickRoll = 0, camKick = 0, recover = 12 }
-local SWAY = 0.04
+-- Balanceo al andar (Config.Lab.ViewModel).
+local SWAY = Config.Lab.ViewModel.SwayStuds
+local BOB_HZ = Config.Lab.ViewModel.BobHz
+-- Fundido de la pista de correr.
+local SPRINT_FADE = 0.15
 -- Con el visor por encima de esto, el arma de la vista no se dibuja.
 local SCOPE_HIDES_VIEW = 0.9
 -- Recarga en la vista (fracciones del tiempo de recarga): baja hasta RELOAD_DOWN, vaivén hasta RELOAD_CLICK,
@@ -79,15 +88,14 @@ local RELOAD_BUMP = 0.12 -- studs que empuja hacia delante el golpe del cargador
 local DRAW_SECONDS = 0.35
 local DRAW_DROP = 1.3
 local DRAW_TILT = math.rad(40)
--- Mangas de cada facción (la del laboratorio, bata blanca con puño azul; la pirata, negra con oro).
-local SLEEVES: { [LabWeaponModels.Faction]: { sleeve: Color3, cuff: Color3 } } = {
-	Guardians = { sleeve = Color3.fromRGB(232, 236, 240), cuff = Color3.fromRGB(40, 115, 215) },
-	Pirates = { sleeve = Color3.fromRGB(34, 31, 30), cuff = Color3.fromRGB(234, 194, 80) },
-}
-
 local FirstPersonController = {}
 
 local viewModel: Model? = nil
+local viewRig: LabViewModelRig.Rig? = nil
+-- Pistas de ViewModelAnimations del arma de la vista (solo las que tienen id). Sin la pista, el respaldo por código.
+local tracks: { [string]: AnimationTrack } = {}
+-- true mientras la pista de correr suena.
+local sprintPlaying = false
 -- El arma de la mano del personaje propio, que no se ve en primera persona.
 local heldTool: Tool? = nil
 local shownKey: string? = nil
@@ -126,6 +134,9 @@ local function clearViewModel()
 		viewModel:Destroy()
 		viewModel = nil
 	end
+	viewRig = nil
+	tracks = {}
+	sprintPlaying = false
 	shownKey = nil
 	viewHidden = false
 	-- Cambiar de arma o morir corta la recarga de la vista sin sonido de cargador listo.
@@ -142,55 +153,24 @@ local function playSfx(effect: string)
 	end
 end
 
-local function block(model: Model, handle: BasePart, name: string, size: Vector3, at: CFrame, color: Color3)
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Size = size
-	part.Color = color
-	part.Material = Enum.Material.SmoothPlastic
-	part.CFrame = handle.CFrame * at
-	part.Parent = model
-end
-
--- Las dos manos y los antebrazos (bloques), sujetando el arma: la derecha en la empuñadura y la izquierda
--- delante, bajo el cajón.
-local function arms(model: Model, handle: BasePart, faction: LabWeaponModels.Faction, skin: Color3)
-	local colors = SLEEVES[faction]
-	-- En los ejes del mango: +Y hacia la boca, +Z hacia abajo.
-	block(model, handle, "RightHand", Vector3.new(0.45, 0.45, 0.45), CFrame.new(0, -0.8, 0.15), skin)
-	block(
-		model,
-		handle,
-		"RightCuff",
-		Vector3.new(0.5, 0.2, 0.5),
-		CFrame.new(0, -1.15, 0.45) * CFrame.Angles(-0.6, 0, 0),
-		colors.cuff
-	)
-	block(
-		model,
-		handle,
-		"RightSleeve",
-		Vector3.new(0.5, 1.4, 0.5),
-		CFrame.new(0, -1.75, 0.85) * CFrame.Angles(-0.6, 0, 0),
-		colors.sleeve
-	)
-	block(model, handle, "LeftHand", Vector3.new(0.45, 0.45, 0.45), CFrame.new(-0.05, 0.3, 0.45), skin)
-	block(
-		model,
-		handle,
-		"LeftCuff",
-		Vector3.new(0.5, 0.2, 0.5),
-		CFrame.new(-0.35, 0.05, 0.75) * CFrame.Angles(-0.4, 0, 0.5),
-		colors.cuff
-	)
-	block(
-		model,
-		handle,
-		"LeftSleeve",
-		Vector3.new(0.5, 1.4, 0.5),
-		CFrame.new(-0.75, -0.35, 1.15) * CFrame.Angles(-0.4, 0, 0.5),
-		colors.sleeve
-	)
+-- Carga las pistas de ViewModelAnimations del arma "weaponId" en el Animator del rig (las que tienen id).
+local function loadTracks(rig: LabViewModelRig.Rig, weaponId: string)
+	for _, key in ViewModelAnimations.KEYS do
+		local id = ViewModelAnimationIds.get(weaponId, key)
+		if id then
+			local animation = Instance.new("Animation")
+			animation.Name = `{weaponId}_{key}`
+			animation.AnimationId = id
+			local ok, track = pcall(function()
+				return rig.animator:LoadAnimation(animation)
+			end)
+			if ok then
+				tracks[key] = track
+			else
+				warn(`[FirstPersonController] No se pudo cargar la animación "{animation.Name}": {track}`)
+			end
+		end
+	end
 end
 
 local function skinColor(character: Model): Color3
@@ -228,39 +208,38 @@ local function refresh(player: Player)
 	-- Las piezas se hacen en una Tool suelta y se pasan a un modelo pegado a la cámara.
 	local holder = Instance.new("Tool")
 	local handle = LabWeaponModels.build(holder, weaponId, faction, skinId)
-	local model = Instance.new("Model")
-	model.Name = "ArmaEnPrimeraPersona"
+	local weaponModel = Instance.new("Model")
 	for _, part in holder:GetChildren() do
 		-- Las piezas de la espalda de la skin taparían la mira: solo las ven los demás.
 		if part:GetAttribute("LabBack") then
 			part:Destroy()
 		else
-			part.Parent = model
+			part.Parent = weaponModel
 		end
 	end
 	holder:Destroy()
-	for _, descendant in model:GetDescendants() do
+	for _, descendant in weaponModel:GetDescendants() do
 		if descendant:IsA("ParticleEmitter") then
 			descendant:Destroy()
 		end
 	end
-	model.PrimaryPart = handle
-	arms(model, handle, faction, skinColor(character))
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			part.Anchored = true
-			part.CanCollide = false
-			part.CanQuery = false
-			part.CanTouch = false
-			part.CastShadow = false
-		elseif part:IsA("WeldConstraint") then
-			part:Destroy()
-		end
-	end
-	model.Parent = camera
-	viewModel = model
+	-- El rig se queda con las piezas del arma (soldadas al Handle) y les pone los brazos.
+	local rig = LabViewModelRig.build(weaponModel, handle, faction, skinColor(character))
+	rig.model.Parent = camera
+	rig.root.CFrame = camera.CFrame * CFrame.new(HIP_OFFSET)
+	viewRig = rig
+	viewModel = rig.model
+	loadTracks(rig, weaponId)
 	shownKey = key
 	drawStart = os.clock()
+	local aim = tracks.Aim
+	if aim then
+		aim:Play(0, 0.001)
+	end
+	local equip = tracks.Equip
+	if equip then
+		equip:Play(0)
+	end
 	playSfx("LabDraw")
 end
 
@@ -456,37 +435,71 @@ local function follow(deltaTime: number)
 	end
 	updateSights(camera, Players.LocalPlayer.Character)
 	setViewHidden(Sights.scopeAlpha() > SCOPE_HIDES_VIEW)
-	if not (viewModel and camera and viewModel.PrimaryPart) then
+	local rig = viewRig
+	if not (rig and camera) then
 		return
 	end
 	recoil = math.max(0, recoil - recoil * math.min(1, kickView.recover * deltaTime))
-	local back = kickView.kickBack * kickScale * recoil
-	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + Vector3.new(0, 0, back) + DodgeFeel.weaponShift()
-	-- El retroceso también gira el arma: la boca sube (pitch) y se tuerce (roll).
-	local pitch = math.rad(kickView.kickPitch) * recoil
-	local roll = math.rad(kickView.kickRoll) * rollSign * recoil
-	-- Recarga: el arma baja y se inclina; suena al empezar y al acabar (si acaba de verdad, no por cambiar de arma).
+	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + DodgeFeel.weaponShift()
+	local pitch = 0
+	local roll = 0
+	-- Respaldo del disparo: sin la pista Fire, el rig entero va atrás, la boca sube (pitch) y se tuerce (roll).
+	if not tracks.Fire then
+		offset += Vector3.new(0, 0, kickView.kickBack * kickScale * recoil)
+		pitch += math.rad(kickView.kickPitch) * recoil
+		roll += math.rad(kickView.kickRoll) * rollSign * recoil
+	end
+	-- Apuntar: la pista Aim suena siempre y su peso es el acercado (el reposo es la pose de cadera).
+	local aimTrack = tracks.Aim
+	if aimTrack then
+		aimTrack:AdjustWeight(math.max(zoom, 0.001))
+	end
+	-- Recarga: suena al empezar y al acabar (si acaba de verdad, no por cambiar de arma). Con la pista Reload,
+	-- se estira a lo que dura la real; sin ella, el rig entero baja y se inclina.
 	local progress = reloadProgress()
 	if progress then
 		if not reloadActive then
 			reloadActive = true
 			reloadKey = shownKey
 			playSfx("LabReload")
+			local reload = tracks.Reload
+			local weapon = LabShooting.weapon()
+			if reload and weapon and weapon.lab then
+				local length = if reload.Length > 0 then reload.Length else ViewModelAnimations.RELOAD_LENGTH
+				reload:Play(0.1, 1, length / math.max(weapon.lab.reloadSeconds, 0.05))
+			end
 		end
 		reloadLastProgress = progress
-		local shift, reloadTilt = reloadPose(progress)
-		offset += shift
-		pitch += reloadTilt
+		if not tracks.Reload then
+			local shift, reloadTilt = reloadPose(progress)
+			offset += shift
+			pitch += reloadTilt
+		end
 	elseif reloadActive then
 		reloadActive = false
+		if tracks.Reload then
+			tracks.Reload:Stop(0.1)
+		end
 		if reloadKey == shownKey and reloadLastProgress > RELOAD_UP then
 			playSfx("LabReloadDone")
 		end
 		reloadKey = nil
 	end
-	-- Sacar el arma: sube desde abajo, solo visual.
+	-- Correr: la pista Sprint con un fundido corto; ni con el visor ni al recargar.
+	local sprint = tracks.Sprint
+	if sprint then
+		local wanted = Stamina.isSprinting() and not reloadActive and Sights.scopeAlpha() < 0.05
+		if wanted and not sprintPlaying then
+			sprintPlaying = true
+			sprint:Play(SPRINT_FADE)
+		elseif not wanted and sprintPlaying then
+			sprintPlaying = false
+			sprint:Stop(SPRINT_FADE)
+		end
+	end
+	-- Sacar el arma: con la pista Equip sube sola; sin ella, el rig entero sube desde abajo.
 	local drawAlpha = (os.clock() - drawStart) / DRAW_SECONDS
-	if drawAlpha < 1 then
+	if drawAlpha < 1 and not tracks.Equip then
 		local left = (1 - math.max(drawAlpha, 0)) ^ 3 -- cúbico de salida
 		offset += Vector3.new(0, -DRAW_DROP * left, 0)
 		pitch += DRAW_TILT * left
@@ -495,15 +508,19 @@ local function follow(deltaTime: number)
 	local character = Players.LocalPlayer.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if humanoid and humanoid.MoveDirection.Magnitude > 0.1 and zoom <= 0.5 then
-		local t = os.clock() * 8
+		local t = os.clock() * BOB_HZ
 		offset += Vector3.new(math.sin(t) * SWAY, math.abs(math.cos(t)) * SWAY, 0) * (1 - zoom)
 	end
 	local hip = 1 - zoom
-	local hand = camera.CFrame
-		* CFrame.new(offset)
-		* CFrame.Angles(HIP_PITCH * hip + pitch, HIP_YAW * hip, roll)
-		* WEAPON_TURN
-	viewModel:PivotTo(hand * GRIP:Inverse())
+	rig.root.CFrame = camera.CFrame * CFrame.new(offset) * CFrame.Angles(HIP_PITCH * hip + pitch, HIP_YAW * hip, roll)
+end
+
+-- La boca del arma de la vista (su pieza o Attachment "Muzzle" o, si no, el Handle).
+local function viewMuzzle(): Instance?
+	if not viewModel then
+		return nil
+	end
+	return viewModel:FindFirstChild("Muzzle", true) or viewModel:FindFirstChild("Handle", true)
 end
 
 function FirstPersonController:Start()
@@ -525,7 +542,7 @@ function FirstPersonController:Start()
 	end)
 	-- De aquí sale la bala propia (Fase 19, W4; CombatClient/WeaponController): la boca del arma de la vista.
 	MuzzleSource.set(function()
-		local muzzle = if viewModel then viewModel:FindFirstChild("Muzzle", true) or viewModel.PrimaryPart else nil
+		local muzzle = viewMuzzle()
 		if muzzle and muzzle:IsA("BasePart") then
 			return muzzle.Position
 		elseif muzzle and muzzle:IsA("Attachment") then
@@ -547,7 +564,16 @@ function FirstPersonController:Start()
 		local camKick = kickView.camKick * CameraShake.scale() * (if zoomed then 0.5 else 1)
 		camPitch = math.min(camPitch + camKick, camKick * 2)
 		-- Fogonazo en la boca del arma de la vista (su pieza "Muzzle" o, si no, el Handle).
-		local muzzle = if viewModel then viewModel:FindFirstChild("Muzzle", true) or viewModel.PrimaryPart else nil
+		-- La pista Fire (si hay): empieza de nuevo en cada disparo y no dura más que la cadencia.
+		local fire = tracks.Fire
+		if fire then
+			if fire.IsPlaying then
+				fire:Stop(0)
+			end
+			local speed = if fire.Length > weapon.cooldownSeconds then fire.Length / weapon.cooldownSeconds else 1
+			fire:Play(0.02, 1, speed)
+		end
+		local muzzle = viewMuzzle()
 		if muzzle then
 			AbilityFxController.play("LabMuzzle", muzzle, weapon.projectile)
 		end
