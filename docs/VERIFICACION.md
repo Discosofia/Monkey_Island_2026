@@ -3799,6 +3799,22 @@ Agrupado por cómo se prueba. Hace falta el Studio de la Isla abierto con Rojo e
 9. [ ] En la lluvia de huevos del Lobby, con el evento activo.
    ✅ Puede caer un huevo mítico y cada jugador recoge el suyo.
 
+## 90. Portadas e iconos con el equipo real (30-10-2026)
+
+Hechas: la portada principal, el icono, Dunas y el Laboratorio (`art/portada/`, ver su README). Las fuentes: `src/island/tools/Portada.luau`, las fichas de `art/portada/ref/`, `prompts.md` y `titulo.py`. La escena grupal de `Portada.build("principal")` (volcán, cielo y rayos) está sin pulir y no se usa.
+
+**A. En Creator Hub** (en tu cuenta):
+
+1. [ ] Sube `portada-principal-1920x1080.png` como primera miniatura de la experiencia y `icono-512.png` como icono.
+   ✅ En la página del juego el título se lee entero y el icono se reconoce en la lista de resultados y en el móvil.
+2. [ ] Sube `portada-dunas-1920x1080.png` y `portada-laboratorio-1920x1080.png` como miniatura de sus places, si Creator Hub deja una por place.
+   ✅ Cada una enseña su cinta ("DUNES ISLAND · PvP", "RUINED LAB · PvP").
+
+**B. En Studio de la Isla, modo edición** (opcional, si cambias algún equipo):
+
+3. [ ] `local P = require(game.ServerStorage.Tools.Portada:Clone()); P.ficha("Cazador")` y una captura con `P.vista("frente")`.
+   ✅ El jugador se ve entero, con su arma de pie en la mano derecha; `P.clear()` lo quita y deja la iluminación como estaba.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

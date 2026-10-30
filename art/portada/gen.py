@@ -938,7 +938,7 @@ def logo_text(txt, x, y, size, fill, outline='#3a1404', ow=None, shadow=True, sp
     return '\n'.join(out)
 
 
-def title(cx, top, scale=1.0, sub=True, bunch=True):
+def title(cx, top, scale=1.0, sub=True, bunch=True, sub_text='MONKEY SURVIVAL'):
     yel = lin([(0, '#fff48a'), (.35, '#ffd21a'), (.7, '#ffa000'), (1, '#ff6a00')], 0, 0, 0, 1)
     out = [f'<g transform="translate({cx},{top}) scale({scale}) rotate(-3)" filter="url(#titleShadow)">']
     if bunch:
@@ -949,7 +949,9 @@ def title(cx, top, scale=1.0, sub=True, bunch=True):
     if sub:
         out.append(f'<path d="M -300 400 L 300 400 L 286 470 L -286 470 Z" fill="#5a1a0c" stroke="#1e0604" stroke-width="7" stroke-linejoin="round"/>')
         out.append(f'<path d="M -292 408 L 292 408" stroke="#a8401a" stroke-width="4"/>')
-        out.append(logo_text('MONKEY SURVIVAL', 0, 452, 50, '#ffffff', outline='#1e0604', ow=12, shadow=False, spacing=3, tl=520))
+        # El ancho del texto crece con las letras hasta llenar la cinta (520 = "MONKEY SURVIVAL").
+        out.append(logo_text(sub_text, 0, 452, 50, '#ffffff', outline='#1e0604', ow=12, shadow=False, spacing=3,
+                             tl=min(520, 36 * len(sub_text))))
     out.append('</g>')
     return '\n'.join(out)
 
