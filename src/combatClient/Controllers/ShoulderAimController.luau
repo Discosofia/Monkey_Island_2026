@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
+local Aim = require(script.Parent.Parent.Aim)
 local WeaponController = require(script.Parent.WeaponController)
 
 local BIND_NAME = "ShoulderAim"
@@ -54,21 +55,36 @@ end
 -- mientras apunta, y restaurar un valor viejo dejaba el ratón fijo en el centro. La cámara de Roblox no
 -- reajusta el ratón sola al soltar, así que se pregunta a su bloqueo si está encendido (si no se puede
 -- saber, se deja libre).
-local mouseLock: any = nil
 local function naturalBehavior(): Enum.MouseBehavior
-	if mouseLock == nil then
-		local ok, controller = pcall(function()
-			local scripts = player:FindFirstChild("PlayerScripts")
-			local module = scripts and scripts:FindFirstChild("PlayerModule")
-			assert(module, "sin PlayerModule")
-			return (require(module) :: any):GetCameras():GetMouseLockController()
-		end)
-		mouseLock = if ok and controller then controller else false
-	end
-	if mouseLock and mouseLock:GetIsMouseLocked() then
+	if Aim.cameraLocked() then
 		return Enum.MouseBehavior.LockCenter
 	end
 	return Enum.MouseBehavior.Default
+end
+
+-- Cámara libre (clic derecho sin bloqueo de cámara): sin zoom ni cámara al hombro, el personaje solo se gira
+-- hacia donde apunta el cursor mientras se mantiene el clic derecho. El ratón lo maneja la cámara de Roblox.
+local freeSaved: Humanoid? = nil
+local function stepFree(humanoid: Humanoid, root: BasePart, character: Model)
+	local want = WeaponController.isFreeAiming()
+		and LifeState.isAlive(player)
+		and humanoid.Health > 0
+		and not humanoid.Sit
+		and not GuiService.MenuIsOpen
+	if want then
+		freeSaved = humanoid
+		humanoid.AutoRotate = false
+		local look = Aim.direction(character)
+		local flat = Vector3.new(look.X, 0, look.Z)
+		if flat.Magnitude > 0.01 then
+			root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
+		end
+	elseif freeSaved then
+		if freeSaved.Parent then
+			freeSaved.AutoRotate = true
+		end
+		freeSaved = nil
+	end
 end
 
 local function restore(state: Saved)
@@ -84,6 +100,9 @@ local function step(deltaTime: number)
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	local state = saved
+	if camera and humanoid and root and root:IsA("BasePart") and character and not state then
+		stepFree(humanoid, root, character)
+	end
 	if state and (not humanoid or state.humanoid ~= humanoid) then
 		-- Otro personaje (reapareció): lo de antes ya no existe, solo quedan los ajustes del jugador.
 		restore(state)

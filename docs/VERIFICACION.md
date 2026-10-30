@@ -3876,6 +3876,17 @@ Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (RE
 18. [ ] En Play de noche, pulsa 🌅 Time-lapse al amanecer, y otra vez con uno ya en marcha. Pulsa también ⏩ Saltar fase (Studio) o espera a que cambie la fase mientras corre.
     ✅ Tras 3 s el cielo pasa de noche azul a amanecer naranja y mañana en 12 s y vuelve a la hora real; el reloj del HUD y los monos no cambian. Con uno en marcha sale «El time-lapse ya está en marcha». Al volver, el atributo `DebugClock` del jugador desaparece (Explorer) y la luz sigue la partida.
 
+## 92. Apuntar con la cámara libre (30-10-2026)
+
+Se prueba en Play, con un arma a distancia, en la Isla y en Dunas (y en el Lobby con los muñecos).
+
+1. [ ] Con la cámara sin bloquear, mantén el clic derecho y mueve el ratón.
+   ✅ La cámara gira como siempre: sin zoom, sin cámara al hombro y el cursor no salta al centro. El personaje se vuelve hacia donde apunta el cursor y se ve la pose de apuntar. Al soltar, el personaje vuelve a girar solo.
+2. [ ] Con el clic derecho mantenido, dispara con el clic izquierdo.
+   ✅ Solo dispara el izquierdo, hacia el cursor (con la dispersión de cadera).
+3. [ ] Bloquea la cámara (Ctrl) y mantén el clic derecho.
+   ✅ Apunta como antes: zoom, cámara al hombro y ratón al centro. En el Laboratorio, igual que antes.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

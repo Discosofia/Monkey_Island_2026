@@ -5,6 +5,7 @@
 -- de suero del Laboratorio cae ahí aunque haya una cobertura en medio.
 
 local PhysicsService = game:GetService("PhysicsService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
@@ -37,6 +38,21 @@ local function cursor(camera: Camera): Vector2
 		return camera.ViewportSize / 2
 	end
 	return UserInputService:GetMouseLocation()
+end
+
+-- El bloqueo de cámara de Roblox (Ctrl / Mayús) del jugador. Si no se puede saber, cuenta como apagado.
+local mouseLock: any = nil
+function Aim.cameraLocked(): boolean
+	if mouseLock == nil then
+		local ok, controller = pcall(function()
+			local scripts = Players.LocalPlayer:FindFirstChild("PlayerScripts")
+			local module = scripts and scripts:FindFirstChild("PlayerModule")
+			assert(module, "sin PlayerModule")
+			return (require(module) :: any):GetCameras():GetMouseLockController()
+		end)
+		mouseLock = if ok and controller then controller else false
+	end
+	return (mouseLock and mouseLock:GetIsMouseLocked()) == true
 end
 
 local function cameraRay(): Ray

@@ -36,6 +36,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
@@ -438,16 +439,35 @@ function WeaponController.aimAlpha(): number
 	return aimAlphaNow()
 end
 
+-- Clic derecho con la cámara sin bloquear: no se apunta (ni zoom, ni cámara al hombro, ni ratón al centro);
+-- el clic derecho solo deja girar la cámara y se dispara con el izquierdo. Mientras se mantiene, el personaje
+-- se gira hacia donde apunta el cursor (ShoulderAimController) para que se vea la pose de apuntar.
+local freeAiming = false
+
+function WeaponController.isFreeAiming(): boolean
+	return freeAiming
+end
+
 local function bindAim(weapon: Weapons.WeaponDefinition)
 	heldWeapon = weapon
 	ActionButtons.bind(ZOOM_ACTION, Strings.t("Mira"), function(_, state: Enum.UserInputState, input: InputObject)
+		local ended = state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel
 		if input.UserInputType == Enum.UserInputType.Touch then
 			if state == Enum.UserInputState.Begin then
 				setAim(not aiming)
 			end
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 and (freeAiming or not Aim.cameraLocked()) then
+			if state == Enum.UserInputState.Begin then
+				-- Con el ratón ya bloqueado al centro (primera persona, Laboratorio) sí se apunta de verdad.
+				freeAiming = UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter
+				setAim(not freeAiming)
+			elseif ended then
+				freeAiming = false
+				setAim(false)
+			end
 		elseif state == Enum.UserInputState.Begin then
 			setAim(true)
-		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+		elseif ended then
 			setAim(false)
 		end
 		return Enum.ContextActionResult.Pass
@@ -460,6 +480,7 @@ local function unbindAim(weapon: Weapons.WeaponDefinition?)
 		return
 	end
 	ActionButtons.unbind(ZOOM_ACTION)
+	freeAiming = false
 	setAim(false)
 	heldWeapon = nil
 end
