@@ -871,7 +871,7 @@ Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
-| **TR1** | Tráiler de YouTube (16:9, unos 75 s, guion ES/EN en `docs/videos/`) y su herramienta: modo grabación en el panel 🛠️ Pruebas, `Trailer` y `TrailerCamara` | — | ⏳ Hecho, pendiente de commit y «aprobado» (sin probar: VERIFICACION §91) |
+| **TR1** | Tráiler de YouTube (16:9, unos 75 s, guion ES/EN en `docs/videos/`) y su herramienta: modo grabación en el panel 🛠️ Pruebas, `Trailer` y `TrailerCamara` | be6babc | ✅ Probado en edición en la Isla; pendiente VERIFICACION §91 |
 | **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | — | ⏳ Pendiente (sin empezar) |
 
 ---
