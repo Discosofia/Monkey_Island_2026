@@ -14,7 +14,8 @@
 -- En arco (Fase 13, el cañón de suero del Laboratorio): con "gravity" cae mientras vuela; cada paso es un
 -- tramo recto entre dos puntos de la parábola, así que se mira igual. "speed" es la de salida.
 -- Cabeza y lag (Fase 15, V7): con "rewind", los jugadores se prueban donde estaban hace esos segundos,
--- con la cabeza aparte (onHit recibe "isHead"); con "lead", el proyectil sale ya adelantado.
+-- pieza a pieza (onHit recibe la zona: "Head", "Torso", "Limb" o "Weak"); con "lead", el proyectil sale ya
+-- adelantado. Los monos, jefes y muñecos dan también su zona, sin rebobinar.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -41,8 +42,8 @@ export type Shot = {
 	pierce: boolean?, -- atraviesa a todos los que toca (cada uno una vez); solo lo para el mundo…
 	maxHits: number?, -- …o, con esto, al dar a tantos (el remate del arco, C9b)
 	-- Al tocar un combatiente: true si le vale (le da y, sin "pierce", se para); false para atravesarlo.
-	-- "isHead": dio a la cabeza de un jugador (solo con "rewind").
-	onHit: (model: Model, position: Vector3, isHead: boolean?) -> boolean,
+	-- "zone": la zona del cuerpo que ha tocado (Hitbox.zoneOf; la de un jugador, con "rewind", pieza a pieza).
+	onHit: (model: Model, position: Vector3, zone: string?) -> boolean,
 	-- Al acabar: dónde, a quién dio el último (o nil) y si ha dado a alguien.
 	onEnd: ((position: Vector3, model: Model?, hitAny: boolean) -> ())?,
 	-- Datos que el cliente usa al llegar (el radio de la explosión de la Bola de fuego).
@@ -56,7 +57,7 @@ export type Shot = {
 	-- Studs/s² hacia abajo (en arco); "range" es entonces lo que recorre por la curva.
 	gravity: number?,
 	-- Segundos de lag del tirador (Fase 15, V7): los jugadores se prueban donde estaban hace esto, con
-	-- cabeza y cuerpo (Hitbox.sweepPlayers); el resto, como siempre.
+	-- piezas (Hitbox.sweepBodies); el resto, como siempre.
 	rewind: number?,
 	-- Segundos que el proyectil avanza de golpe al salir, para compensar el retraso del tirador.
 	lead: number?,
@@ -94,27 +95,21 @@ local function finish(flight: Flight, position: Vector3, model: Model?)
 end
 
 -- Barre un tramo de "flight" entre los combatientes: el primero que toca, lo que avanza hasta él, el
--- contacto y si es la cabeza de un jugador. Con "rewind", los jugadores se prueban aparte
--- (Hitbox.sweepPlayers) y el barrido normal los ignora; se toma el más cercano de los dos.
-local function sweepFlight(flight: Flight, from: Vector3, displacement: Vector3): (Model?, number, Vector3?, boolean)
+-- contacto y la zona que toca. Con "rewind", los jugadores se prueban aparte (Hitbox.sweepBodies) y el
+-- barrido normal los ignora; se toma el más cercano de los dos.
+local function sweepFlight(flight: Flight, from: Vector3, displacement: Vector3): (Model?, number, Vector3?, string?)
 	local shot = flight.shot
 	local rewind = shot.rewind
 	if not rewind then
-		local model, along, contact = Hitbox.sweepCombatants(from, shot.radius, displacement, flight.skip)
-		return model, along, contact, false
+		return Hitbox.sweepCombatants(from, shot.radius, displacement, flight.skip)
 	end
-	local skip = table.clone(flight.skip)
-	for _, player in Players:GetPlayers() do
-		if player.Character then
-			skip[player.Character] = true
-		end
-	end
-	local model, along, contact = Hitbox.sweepCombatants(from, shot.radius, displacement, skip)
-	local playerModel, playerAlong, playerContact, isHead = Hitbox.sweepPlayers(from, displacement, rewind, flight.skip)
+	local model, along, contact, zone = Hitbox.sweepCombatants(from, shot.radius, displacement, flight.skip, true)
+	local playerModel, playerAlong, playerContact, playerZone =
+		Hitbox.sweepBodies(from, displacement, rewind, flight.skip)
 	if playerModel and (not model or playerAlong <= along) then
-		return playerModel, playerAlong, playerContact, isHead
+		return playerModel, playerAlong, playerContact, playerZone
 	end
-	return model, along, contact, false
+	return model, along, contact, zone
 end
 
 -- Lo que se mueve "flight" en "deltaTime" (sin pasar de su alcance).
@@ -149,14 +144,14 @@ local function advance(flight: Flight, deltaTime: number): boolean
 	local from = flight.position
 	local swept = 0
 	while swept < open do
-		local model, along, _, isHead = sweepFlight(flight, from, direction * (open - swept))
+		local model, along, _, zone = sweepFlight(flight, from, direction * (open - swept))
 		if not model then
 			break
 		end
 		swept += along
 		from = flight.position + direction * swept
 		flight.skip[model] = true
-		if shot.onHit(model, from, isHead) then
+		if shot.onHit(model, from, zone) then
 			flight.hitAny = true
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
@@ -242,10 +237,10 @@ function Projectiles.fire(shot: Shot): number
 	)
 	-- Lo que ya toca al salir (un mono pegado al tirador): una esfera desde un poco antes del origen.
 	local behind = shot.origin - shot.direction * START_BACK
-	local model, _, contact, isHead = sweepFlight(flight, behind, shot.direction * START_BACK)
+	local model, _, contact, zone = sweepFlight(flight, behind, shot.direction * START_BACK)
 	if model then
 		flight.skip[model] = true
-		if shot.onHit(model, contact or shot.origin, isHead) then
+		if shot.onHit(model, contact or shot.origin, zone) then
 			flight.hitAny = true
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then

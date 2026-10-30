@@ -69,7 +69,9 @@ function LabCombatRules:Init()
 		pvpUltimateMultiplier = 1,
 		pvpWeaponMultiplier = 1,
 		pvpStatus = true,
-		headshots = true,
+		zones = true,
+		-- Se apunta a mano: sin ayuda que enganche el disparo.
+		aimAssist = false,
 	})
 end
 

@@ -3212,3 +3212,96 @@ Nota: lo ya probado en Studio (un jugador en el Laboratorio: la bala local sale 
    ✅ Los FPS se mantienen estables durante la ráfaga, sin caídas sostenidas.
 
 Nota: lo ya probado en Studio (Laboratorio, un jugador: 12 disparos contra una pared dan 12 marcas, un solo grupo de emisores y ninguna pieza «Ring» (antes unas 28 por impacto); sin errores en consola; la pulpa sale en 3/6/10 cubitos amarillos por calidad y desaparece en menos de 0,9 s sin marcas ni chispas en cuerpos; `Rendimiento` sección 10: 36/56/81 piezas frente a topes 40/90/160, sin alertas) no se repite aquí.
+
+## 80. Fase 19 W6: zonas por piezas, rebobinado de pose y ayuda de puntería (29-10-2026)
+
+**Dos jugadores (*Test → Clientes y servidores*, 2 clientes, en el Laboratorio y en Dunas):**
+
+1. [ ] Con el otro jugador quieto delante, dispara el lanzadardos a su cabeza, a su torso y a un brazo.
+   ✅ La cabeza sale con el aviso Head y ×1,3, el torso con Body y ×1, y el brazo con Limb y ×0,8.
+2. [ ] Dispara el rifle a su cabeza y a su torso.
+   ✅ La cabeza hace el doble (×2) con el aviso Head, y el torso sale con Body y ×1.
+3. [ ] Dispara el cañón de suero (en arco) a su cabeza y a su brazo.
+   ✅ Sin zonas: el mismo daño en la cabeza que en el brazo, y no sale ni Head ni Limb.
+4. [ ] Derriba al otro jugador de un disparo a la cabeza.
+   ✅ Aparece el aviso Kill y el otro jugador cae.
+5. [ ] Con el otro jugador en guardia o en parry, dispara a su cuerpo.
+   ✅ Aparece el aviso Blocked y el golpe queda anulado. Si en el Laboratorio no hay guardia, pruébalo en la Isla (grupo siguiente).
+6. [ ] En Dunas, dispara el arpón a la cabeza del otro jugador y después a un brazo.
+   ✅ La cabeza hace ×1,5 con el aviso Head. El brazo hace el daño normal (×1) con el aviso Limb, no ×0,8.
+7. [ ] Con el lag simulado en tu cliente (*Test → Incoming replication lag*, 150 ms), haz que el otro jugador corra en círculo y dispara a su cabeza donde estaba hace 0,15 a 0,3 s.
+   ✅ El golpe cuenta en la cabeza donde estaba al disparar, con el aviso Head, aunque en tu pantalla ya no esté allí.
+8. [ ] Con el mismo lag, el otro jugador corre a un lado y tú disparas a su brazo tal como lo ves.
+   ✅ El impacto cuenta con la pose que él tenía al disparar, sin fallar por la pose actual.
+9. [ ] El otro jugador apunta con el arma (manos extendidas, pose de apuntar) y tú disparas a sus manos.
+   ✅ El golpe cuenta como brazo (aviso Limb). La pose de apuntar es alcanzable: las manos no quedan fuera de la hitbox.
+
+**Dos jugadores en la Isla (*Test → Clientes y servidores*, 2 clientes, PvP opt-in activado en los dos):**
+
+1. [ ] Con la honda o el arco, dispara a la cabeza del otro jugador y después a su cuerpo.
+   ✅ El rival recibe daño con normalidad: la cabeza con el aviso Head y ×1,5, y el cuerpo con Body y ×1.
+2. [ ] Con el otro jugador en guardia o en parry, dispara a su cuerpo con la honda o el arco.
+   ✅ Aparece el aviso Blocked y el golpe queda anulado.
+
+**Un jugador en Play (Laboratorio, muñecos de práctica):**
+
+1. [ ] Apunta el rifle o el lanzadardos a un punto justo al lado de la cabeza de un muñeco, sin tocarla, y dispara.
+   ✅ La bala va donde apuntas. En el Laboratorio no hay ayuda de puntería y el disparo no se corrige hacia la cabeza.
+
+**Un jugador en Play (muñeco de sparring):**
+
+1. [ ] Deja el palo en reposo junto al brazo derecho del muñeco, después golpéalo con el palo.
+   ✅ El palo no choca con el brazo derecho, ni en reposo ni al golpear.
+
+**Un jugador en Play (Isla y Dunas, con ayuda de puntería):**
+
+1. [ ] Con la honda o el arco, apunta a un lado del cuerpo de un mono, sin tocar la cabeza, y dispara.
+   ✅ La bala engancha al punto del mono más cercano a la línea de tiro, y no se va a la cabeza.
+2. [ ] Apunta justo entre dos monos (o dos muñecos) separados, y dispara.
+   ✅ La bala pasa entre ellos y no engancha a ninguno.
+3. [ ] En Dunas, repite el paso 1 con un muñeco de práctica.
+   ✅ Igual que en la Isla: engancha al punto más cercano y no se come la cabeza.
+
+**Un jugador en Play (Isla, monos y habilidades):**
+
+1. [ ] Con la honda, dispara a la cabeza de un mono, después a su cuerpo y después a una pata.
+   ✅ La cabeza suma ×1,5. El cuerpo cuenta ×1, y la pata también ×1: nunca cuenta como extremidad.
+2. [ ] Dispara a la cabeza de monos distintos con el arco, el bastón y la cerbatana.
+   ✅ Cabeza ×1,75 con el arco, ×1,25 con el bastón y ×1,3 con la cerbatana.
+3. [ ] Usa una habilidad contra un mono y pega cuerpo a cuerpo a su cabeza.
+   ✅ Ni la habilidad ni el golpe cuerpo a cuerpo usan zonas: el daño es el de siempre, sin multiplicador de cabeza.
+
+**Un jugador en Play (Lobby, muñecos del Lobby):**
+
+1. [ ] Dispara el lanzadardos a la cabeza de un muñeco del Lobby.
+   ✅ Sale el aviso Head.
+
+**Un jugador en Play (Isla, jefes):**
+
+1. [ ] Ataca al Orangután en la gema azul bajo la barbilla.
+   ✅ Sale el aviso Weak y el golpe hace ×1,5. La gema se ve de frente y de lejos en todas las fases.
+2. [ ] Ataca al Chimpancé en el medallón dorado.
+   ✅ Sale el aviso Weak y el golpe hace ×1,5. El medallón se ve de frente y de lejos en todas las fases.
+3. [ ] Ataca al Gorila Albino en el cristal cian del pecho.
+   ✅ Sale el aviso Weak y el golpe hace ×1,5. El cristal es cian (antes era rojo) y se ve de frente y de lejos en todas las fases.
+4. [ ] Ataca al Gorila de Ceniza en su núcleo de lava blanco incandescente.
+   ✅ Sale el aviso Weak y el golpe hace ×1,5. El núcleo se ve de frente y de lejos en todas las fases.
+5. [ ] En la fase 3 del jefe con la gema de garganta, mira la gema (ThroatGem) mientras el jefe mueve la barba.
+   ✅ La gema no flota y no se corta con la barba.
+6. [ ] Mira el medallón (Medallion) del Chimpancé cerca del collar y de la pintura.
+   ✅ El medallón no choca con el collar ni con la pintura.
+7. [ ] Mira el núcleo de lava (LavaCore) del Gorila de Ceniza junto a las grietas de la arena.
+   ✅ El núcleo no se confunde con las grietas.
+
+**En el juego publicado (con amigos y ping real):**
+
+1. [ ] Con un amigo en otra conexión, dispara a su cabeza mientras corre, con tu ping real de siempre.
+   ✅ El golpe acierta donde estaba su cabeza al disparar, sin salto visible al llegar la confirmación.
+2. [ ] En el Laboratorio, con 12 jugadores, 40 monos y 30 proyectiles en vuelo, mide `Projectiles.step` con el Microprofiler (*Ver → Microprofiler*).
+   ✅ `Projectiles.step` tarda menos de 0,5 ms.
+3. [ ] Tras publicar, en el Studio de la Isla, ejecuta `Equilibrio` y `Rendimiento` con las calculadoras de CLAUDE.md.
+   ✅ Ninguna de las dos muestra alertas nuevas.
+4. [ ] Tras jugar publicado, mira en *Creator Hub → tu experiencia → Analítica* los eventos `LimbShots` y `Headshots` (tarda unas horas, como en §6.3).
+   ✅ Cuentan también los golpes a monos, jefes y muñecos de práctica, no solo a jugadores.
+
+Nota: lo ya probado en Studio (Laboratorio, un jugador: `Hitbox.sweepBodies` da Head, Torso, Limb o Weak por pieza —cabeza, torso, brazos, manos, piernas y pies—, con y sin rebobinado; el rebobinado acierta la cabeza donde estaba hace 0,15-0,3 s y sin rebobinar falla; un dardo contra muñeco hace 7 al torso, 9 a la cabeza (×1,3) y 6 al brazo (×0,8), con el ×0,7 de daño a no jugadores, y el tirador recibe el aviso Head, Limb o Body; `Equilibrio` secciones 12 y 14 sin alertas nuevas; `Rendimiento` sin alertas: jefes con 35, 27, 24 y 30 piezas frente a topes de 35, 30, 30 y 30) no se repite aquí.

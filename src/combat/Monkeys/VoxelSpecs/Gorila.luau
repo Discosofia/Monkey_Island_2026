@@ -425,9 +425,10 @@ return {
 				{
 					anchor = "Torso",
 					name = "CrystalCore",
-					color = Color3.fromRGB(255, 70, 70),
+					-- Punto débil (MonkeyModels, Bosses.weakPoints): cian, el único tono frío del jefe, no rojo.
+					color = Color3.fromRGB(90, 230, 255),
 					material = "Neon",
-					boxes = { { 0, 9, -10.2, 1.8, 1.8, 0.8 } },
+					boxes = { { 0, 9, -10.2, 2.2, 2.2, 0.8 } },
 				},
 				{
 					anchor = "Torso",
@@ -464,6 +465,18 @@ return {
 			remove = BOSS_FACE,
 			add = combine(BOSS_MUSCLES, CENIZA_MUSCLES, CENIZA_ASH),
 			groups = join(phaseFaces(LAVA, CENIZA_FACE), {
+				{
+					-- Punto débil (MonkeyModels, Bosses.weakPoints): el núcleo del pecho, entre los
+					-- pectorales, blanco incandescente con el centro más claro; las grietas son naranja.
+					anchor = "Torso",
+					name = "LavaCore",
+					color = Color3.fromRGB(255, 235, 150),
+					material = "Neon",
+					boxes = {
+						{ 0, 11.2, -10.3, 2.2, 2.2, 0.8 },
+						{ 0, 11.2, -10.75, 1.1, 1.1, 0.2, Color3.fromRGB(255, 252, 225) },
+					},
+				},
 				{
 					anchor = "Torso",
 					name = "Basalt",

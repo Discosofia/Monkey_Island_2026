@@ -22,6 +22,7 @@ local GeometryService = game:GetService("GeometryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 
 -- Las posiciones de los constructores son respecto a la raíz, a escala 1, con la cara hacia -Z.
@@ -522,9 +523,9 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 	-- Gorila Albino: cristales de rubí en racimos sobre los hombros, el lomo y los brazos, y el corazón
 	-- encendido en el pecho (en bloques, en su spec); aquí solo se añaden la luz y las chispas rojas.
 	GorilaAlbino = function(rig)
-		local ruby = Color3.fromRGB(205, 25, 45)
 		local torso = partNamed(rig, "Torso")
-		glow(rig, partNamed(rig, "CrystalCore"), ruby, 6, 1)
+		-- El cristal del pecho (punto débil) es cian: su luz también, para no mezclarlo con los rubíes.
+		glow(rig, partNamed(rig, "CrystalCore"), Color3.fromRGB(90, 230, 255), 6, 1)
 
 		local s = rig.scale
 		local sparks = Instance.new("ParticleEmitter")
@@ -584,6 +585,26 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 	end,
 }
 
+-- Zonas de daño de los proyectiles (Hitbox.zoneOf): lo que va soldado a la cabeza (cara, ojos, orejas,
+-- tocado…) es "Head", y todo lo demás "Torso": los monos no tienen zona "Limb", aunque sus piezas se
+-- llamen "Right Arm" o "Left Leg" como las de un R6. Las piezas de "weakPoints" (Data/Bosses) llevan
+-- WeakPoint = true y no Zone: Hitbox.zoneOf mira Zone primero.
+local function markZones(model: Model, weakPoints: { string }?)
+	local head = model:FindFirstChild("Head")
+	for _, part in model:GetDescendants() do
+		if not part:IsA("BasePart") then
+			continue
+		end
+		if weakPoints and table.find(weakPoints, part.Name) then
+			part:SetAttribute("WeakPoint", true)
+			continue
+		end
+		local glued = part:FindFirstChildOfClass("WeldConstraint")
+		local onHead = part == head or (glued ~= nil and head ~= nil and glued.Part0 == head)
+		part:SetAttribute("Zone", if onHead then "Head" else "Torso")
+	end
+end
+
 -- Altura de la raíz sobre el suelo para que las patas lo toquen (ver HipHeight).
 function MonkeyModels.rootHeight(scale: number): number
 	return 1.9 * scale
@@ -632,6 +653,8 @@ function MonkeyModels.build(
 	if extras then
 		extras(rig)
 	end
+	local boss = if bossId then Bosses[bossId] else nil
+	markZones(model, if boss then boss.weakPoints else nil)
 
 	local humanoid = Instance.new("Humanoid")
 	-- R15 a propósito: la raíz queda a HipHeight + la mitad de su altura sobre el suelo (rootHeight).

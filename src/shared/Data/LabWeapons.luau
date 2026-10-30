@@ -41,6 +41,10 @@ export type LabFields = {
 	spread: SpreadFields?,
 }
 
+-- Multiplicador de daño por zona del cuerpo (Fase 19, W6; Shared/Zones). Lo que falta, el general de
+-- Config.Combat.Zones. "Weak" es el punto débil de un jefe.
+export type ZoneMultipliers = { Head: number?, Torso: number?, Limb: number?, Weak: number? }
+
 export type LabWeaponDefinition = {
 	name: string,
 	description: string,
@@ -54,6 +58,7 @@ export type LabWeaponDefinition = {
 	projectile: "LabDart" | "LabBanana" | "LabNet" | "LabAcid",
 	poison: { dps: number, seconds: number }?,
 	lab: LabFields,
+	zoneMultipliers: ZoneMultipliers?,
 }
 
 -- El orden es el de la mochila (teclas 1–4) y el de la calculadora.
@@ -71,6 +76,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		range = 80,
 		projectileSpeed = 260,
 		projectile = "LabDart",
+		zoneMultipliers = { Head = 1.3 },
 		lab = {
 			effect = "SlowStack",
 			pose = "LabDart",
@@ -91,6 +97,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		range = 200,
 		projectileSpeed = 450,
 		projectile = "LabBanana",
+		zoneMultipliers = { Head = 2 },
 		lab = {
 			zoom = true,
 			pose = "LabRifle",
@@ -110,6 +117,8 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		range = 35,
 		projectileSpeed = 180,
 		projectile = "LabNet",
+		-- La red envuelve el cuerpo: da igual un brazo que el torso.
+		zoneMultipliers = { Head = 1.5, Limb = 1 },
 		lab = {
 			effect = "Entangle",
 			pose = "LabHarpoon",

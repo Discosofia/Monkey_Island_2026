@@ -50,6 +50,7 @@ local RangedChain = require(ReplicatedStorage.Shared.RangedChain)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local BodyZones = require(ReplicatedStorage.Shared.Zones)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
@@ -137,6 +138,9 @@ export type HitOptions = {
 	pet: boolean?, -- lo hizo la mascota del atacante (su número sale más pequeño)
 	poison: boolean?, -- un golpe del veneno (Combat/Status.poison): número morado, sin destello ni sonido
 	source: string?, -- con qué (id de habilidad o de arma), para la telemetría
+	-- Zona del cuerpo que ha tocado un disparo directo ("Head", "Torso", "Limb" o "Weak"; Fase 19, W6): su
+	-- multiplicador (Shared/Zones) sustituye al del crítico si es mayor que 1, o se suma a él si no.
+	zone: string?,
 }
 
 local NO_HIT_OPTIONS: HitOptions = {}
@@ -145,6 +149,31 @@ local NO_HIT_OPTIONS: HitOptions = {}
 local function isRangedWeapon(source: string?): boolean
 	local weapon = if source then Weapons[source] else nil
 	return weapon ~= nil and weapon.kind == "Ranged"
+end
+
+-- Cuánto multiplica el daño un impacto directo de "source" (id de arma) en "zone", con el crítico dentro
+-- (Fase 19, W6): cabeza y punto débil (> 1) no se suman al crítico, cuenta el mayor; torso y extremidad (≤ 1)
+-- multiplican siempre, y también el crítico. nil si no hay zona o el arma no usa zonas.
+local function zoneScale(source: string?, zone: string?, crit: boolean?): number?
+	local weapon = if source then Weapons[source] else nil
+	if not (weapon and zone and BodyZones.applies(weapon)) then
+		return nil
+	end
+	local multiplier = BodyZones.multiplier(weapon, zone)
+	local critical = if crit then Crit.MULTIPLIER else 1
+	return if multiplier > 1 then math.max(critical, multiplier) else multiplier * critical
+end
+
+-- El aviso de impacto (HitFeedback) que corresponde a una zona.
+local function zoneFeedback(zone: string?): HitFeedback.Kind
+	if zone == "Head" then
+		return "Head"
+	elseif zone == "Weak" then
+		return "Weak"
+	elseif zone == "Limb" then
+		return "Limb"
+	end
+	return "Body"
 end
 
 -- Fracción de daño extra mientras dura un estado de "model" que la guarda en "bonusAttribute".
@@ -188,7 +217,10 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	if exposedBonus ~= 0 then
 		amount = math.round(amount * (1 + exposedBonus))
 	end
-	if hit.crit then
+	local zoneMultiplier = zoneScale(hit.source, hit.zone, hit.crit)
+	if zoneMultiplier then
+		amount = math.round(amount * zoneMultiplier)
+	elseif hit.crit then
 		amount = math.round(amount * Crit.MULTIPLIER)
 	end
 	local alive = humanoid.Health > 0
@@ -199,7 +231,7 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 	humanoid:TakeDamage(amount)
 	local ko = alive and humanoid.Health <= 0
 	if attacker and not hit.pet and not hit.poison and isRangedWeapon(hit.source) then
-		HitFeedback.send(attacker, if ko then "Kill" else "Body", model:GetPivot().Position, hit.source)
+		HitFeedback.send(attacker, if ko then "Kill" else zoneFeedback(hit.zone), model:GetPivot().Position, hit.source)
 	end
 	if hit.poison then
 		CombatText.poison(model, amount, attacker, ko)
@@ -452,7 +484,7 @@ local function applyPvP(
 	amount: number,
 	crit: boolean?,
 	poison: boolean?,
-	head: boolean?,
+	zone: string?,
 	feedback: PvPFeedback?
 )
 	local character = victim.Character
@@ -469,9 +501,13 @@ local function applyPvP(
 			amount *= 1 + bonus
 		end
 	end
-	-- La cabeza no se suma al crítico al azar: cuenta el mayor de los dos.
-	if crit or head then
-		amount *= math.max(if crit then Crit.MULTIPLIER else 1, if head then Config.Combat.Headshot.Multiplier else 1)
+	-- La cabeza no se suma al crítico al azar (cuenta el mayor de los dos); torso y extremidad multiplican
+	-- siempre (zoneScale).
+	local zoneMultiplier = zoneScale(if feedback then feedback.weaponId else nil, zone, crit)
+	if zoneMultiplier then
+		amount *= zoneMultiplier
+	elseif crit then
+		amount *= Crit.MULTIPLIER
 	end
 	amount = mitigate(victim, math.max(1, math.round(amount)), true)
 	if not poison then
@@ -479,6 +515,7 @@ local function applyPvP(
 	end
 	ComboService.onActivity(attacker)
 	-- Dónde se ve el impacto: la cabeza si dio ahí, si no el centro del cuerpo.
+	local head = zone == "Head"
 	local hitPart = if head then character:FindFirstChild("Head") else nil
 	local hitPosition = if hitPart and hitPart:IsA("BasePart") then hitPart.Position else character:GetPivot().Position
 	if amount <= 0 then
@@ -492,8 +529,7 @@ local function applyPvP(
 		local kind: HitFeedback.Kind = if humanoid.Health - amount <= 0
 			then "Kill"
 			elseif feedback.blocked then "Blocked"
-			elseif head then "Head"
-			else "Body"
+			else zoneFeedback(zone)
 		HitFeedback.send(attacker, kind, hitPosition, feedback.weaponId)
 	end
 	CombatRules.get().onPvPHit(attacker, victim, amount)
@@ -520,8 +556,8 @@ end
 -- después: lo que dependa de que entre va en "guard.onResult").
 -- Los golpes con "guard" que entran llevan el escalado del combo (C7, Combat/ComboScaling): desde el
 -- 4.º seguido hacen menos; bloquear o parar uno termina el combo.
--- "head": el disparo ha dado a la cabeza (Fase 15, V7): ×Config.Combat.Headshot.Multiplier, sin sumarse al
--- crítico (se queda el mayor). Si el golpe se bloquea, bloquea.
+-- "zone": la zona que ha tocado el disparo (Fase 19, W6; solo con "weaponId"): su multiplicador (Shared/Zones),
+-- sin sumarse al crítico si es cabeza o punto débil (se queda el mayor). Si el golpe se bloquea, bloquea.
 function CombatService.damagePvP(
 	attacker: Player,
 	victim: Player,
@@ -529,7 +565,7 @@ function CombatService.damagePvP(
 	crit: boolean?,
 	poison: boolean?,
 	guard: PvPGuard?,
-	head: boolean?,
+	zone: string?,
 	weaponId: string?
 ): boolean
 	if not CombatService.canHitPlayer(attacker, victim) then
@@ -538,7 +574,7 @@ function CombatService.damagePvP(
 	-- Solo los disparos (con id de arma) avisan al tirador.
 	local feedback: PvPFeedback? = if weaponId then { weaponId = weaponId } else nil
 	if poison or not guard then
-		applyPvP(attacker, victim, amount, crit, poison, head, feedback)
+		applyPvP(attacker, victim, amount, crit, poison, zone, feedback)
 		return true
 	end
 	local at = Workspace:GetServerTimeNow()
@@ -567,7 +603,7 @@ function CombatService.damagePvP(
 			if feedback and outcome == "Blocked" then
 				feedback.blocked = true
 			end
-			applyPvP(attacker, victim, amount * scale, crit, false, head, feedback)
+			applyPvP(attacker, victim, amount * scale, crit, false, zone, feedback)
 		elseif feedback then
 			local victimCharacter = victim.Character
 			if victimCharacter then
@@ -796,13 +832,40 @@ local function offAimLine(origin: Vector3, aim: Vector3, point: Vector3, flatClo
 	return (offset - aim * along).Magnitude, along
 end
 
+-- El eje del cuerpo de un combatiente (Fase 19, W6): el segmento vertical de sus pies al centro de su cabeza
+-- (o, sin cabeza, al techo de su raíz), en la vertical de la raíz.
+local function bodyAxis(model: Model, root: BasePart, humanoid: Humanoid): (Vector3, Vector3)
+	local position = root.Position
+	local feetY = position.Y - (humanoid.HipHeight + root.Size.Y / 2)
+	local head = model:FindFirstChild("Head")
+	local topY = if head and head:IsA("BasePart") then head.Position.Y else position.Y + root.Size.Y / 2
+	return Vector3.new(position.X, feetY, position.Z), Vector3.new(position.X, math.max(topY, feetY), position.Z)
+end
+
+-- El punto del segmento "a"–"b" más cercano a la línea de tiro que sale de "origin" hacia "aim" (unitario).
+local function closestOnAxis(origin: Vector3, aim: Vector3, a: Vector3, b: Vector3): Vector3
+	local axis = b - a
+	local axisSquared = axis:Dot(axis)
+	local along = aim:Dot(axis)
+	local denominator = axisSquared - along * along
+	if axisSquared < 1e-6 or denominator < 1e-6 then
+		return a:Lerp(b, 0.5)
+	end
+	local fromOrigin = a - origin
+	local t = -(fromOrigin:Dot(axis) - fromOrigin:Dot(aim) * along) / denominator
+	return a + axis * math.clamp(t, 0, 1)
+end
+
 -- Ayuda de puntería de un disparo (C9): la dirección con la que sale desde "origin". Solo engancha a
 -- quien la línea de tiro ya casi toca (Config.Projectiles): apuntando entre dos, el disparo pasa entre
 -- ellos. Entre los que se ven a menos de "range", el más cercano a la línea:
 --   - un mono vivo a menos de MonkeyAimStuds de ella (de lejos, dentro de MonkeyAimMinDegrees),
---     apuntando adonde estará al llegar el proyectil (leadPoint);
+--     apuntando adonde estará al llegar el proyectil (leadPoint, con el punto del cuerpo de abajo);
 --   - un jugador rival (o, con "allies", un aliado vivo) a menos de PlayerAimStuds (PlayerAimMinDegrees),
 --     apuntando adonde está: se puede apartar.
+-- Se engancha al punto del cuerpo (de los pies a la cabeza) más cercano a la línea de tiro, no a la raíz:
+-- así apuntar a la cabeza no la pierde (Fase 19, W6). Sin CombatRules.aimAssist (el Laboratorio), sale hacia
+-- "aim" sin más.
 -- El proyectil va recto desde ahí: no persigue a nadie. Sin nadie, sale hacia "aim".
 function CombatService.aimShot(
 	player: Player,
@@ -812,6 +875,9 @@ function CombatService.aimShot(
 	speed: number,
 	allies: boolean?
 ): Vector3
+	if not CombatRules.get().aimAssist then
+		return aim
+	end
 	local settings = Config.Projectiles
 	local best: Vector3? = nil
 	local bestOff = math.huge
@@ -820,20 +886,22 @@ function CombatService.aimShot(
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and humanoid.Health > 0 then
 			local victim = Players:GetPlayerFromCharacter(model)
-			local valid, studs, degrees, point
+			local valid, studs, degrees, isPlayer
 			if victim then
 				valid = CombatService.canHitPlayer(player, victim)
 					or (allies == true and LifeState.isAlive(victim) and CombatRules.get().isAlly(player, victim))
-				studs, degrees, point = settings.PlayerAimStuds, settings.PlayerAimMinDegrees, root.Position
+				studs, degrees, isPlayer = settings.PlayerAimStuds, settings.PlayerAimMinDegrees, true
 			else
 				valid = CollectionService:HasTag(model, Config.Combat.EnemyTag)
-				studs, degrees, point = settings.MonkeyAimStuds, settings.MonkeyAimMinDegrees, nil
+				studs, degrees, isPlayer = settings.MonkeyAimStuds, settings.MonkeyAimMinDegrees, false
 			end
 			if valid then
-				local off, along = offAimLine(origin, aim, root.Position, victim == nil)
+				local feet, top = bodyAxis(model, root, humanoid)
+				local point = closestOnAxis(origin, aim, feet, top)
+				local off, along = offAimLine(origin, aim, point, victim == nil)
 				if off and off <= math.max(studs, along * math.tan(math.rad(degrees))) and off < bestOff then
 					bestOff = off
-					best = point or leadPoint(origin, root, speed)
+					best = if isPlayer then point else leadPoint(origin, root, speed) + (point - root.Position)
 				end
 			end
 		end
@@ -903,7 +971,7 @@ local function acidLob(
 	point: Vector3?,
 	weapon: Weapons.WeaponDefinition,
 	damage: number,
-	strike: (model: Model, amount: number, main: boolean, isHead: boolean?) -> boolean
+	strike: (model: Model, amount: number, main: boolean, zone: string?) -> boolean
 )
 	local settings = Config.Lab
 	local target: Vector3
@@ -1028,20 +1096,33 @@ local function rangedAttack(
 		rules.telemetry.mechanic(player, "ShotFinishers")
 	end
 
+	-- Telemetría de las zonas: un disparo directo a la cabeza ("Headshots") o a una extremidad ("LimbShots").
+	local function countZone(zone: string?)
+		if zone == "Head" then
+			rules.telemetry.mechanic(player, "Headshots")
+		elseif zone == "Limb" then
+			rules.telemetry.mechanic(player, "LimbShots")
+		end
+	end
+
 	-- El daño de este disparo a "model" (true si le vale; si no, el proyectil lo atraviesa). "main": el
 	-- primero al que da, el único al que envenena, por el que cura y al que tambalea.
-	-- "isHead": el proyectil ha dado a la cabeza de un jugador. Cuenta solo en el impacto directo (main) de un
-	-- arma a distancia en un place con cabezas (no el área del cañón de suero ni del bastón, ni los daños del remate).
-	local function strike(model: Model, amount: number, main: boolean, isHead: boolean?): boolean
+	-- "hitZone": la zona del cuerpo que ha tocado el proyectil. Cuenta solo en el impacto directo (main) de un
+	-- arma a distancia que usa zonas, en un place con zonas (no el área del cañón de suero ni del bastón, ni los
+	-- daños del remate que atraviesa).
+	local function strike(model: Model, amount: number, main: boolean, hitZone: string?): boolean
+		local zone = if rules.zones
+				and weapon.kind == "Ranged"
+				and main
+				and BodyZones.applies(weapon)
+			then hitZone
+			else nil
 		local victim = Players:GetPlayerFromCharacter(model)
 		if victim then
 			if not CombatService.canHitPlayer(player, victim) then
 				return false
 			end
-			local head = rules.headshots and weapon.kind == "Ranged" and main and isHead == true
-			if head then
-				rules.telemetry.mechanic(player, "Headshots")
-			end
+			countZone(zone)
 			local pvpScale = pvpWeaponScale(weaponId)
 			-- Con pvpStatus, los dardos de las cerbatanas también envenenan a los rivales (si entran), y las
 			-- armas del Laboratorio ponen lo suyo.
@@ -1055,7 +1136,7 @@ local function rangedAttack(
 				end
 			end
 			if not rules.guard then
-				CombatService.damagePvP(player, victim, amount * pvpScale, crit, nil, nil, head, weaponId)
+				CombatService.damagePvP(player, victim, amount * pvpScale, crit, nil, nil, zone, weaponId)
 				landed()
 				return true
 			end
@@ -1067,14 +1148,15 @@ local function rangedAttack(
 						landed()
 					end
 				end,
-			}, head, weaponId)
+			}, zone, weaponId)
 			return true
 		end
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		if not (CollectionService:HasTag(model, Config.Combat.EnemyTag) and humanoid and humanoid.Health > 0) then
 			return false
 		end
-		CombatService.damage(model, humanoid, amount, player, { crit = crit, source = weaponId })
+		countZone(zone)
+		CombatService.damage(model, humanoid, amount, player, { crit = crit, source = weaponId, zone = zone })
 		if not main then
 			return true
 		end
@@ -1126,11 +1208,11 @@ local function rangedAttack(
 		-- adelantado (con tope). La dispersión (V8) la pone el servidor al azar sobre la dirección que manda el
 		-- cliente, así que no hace falta validar esa dirección contra un cono de la mira.
 		ownerSeq = shotSeq,
-		rewind = if rules.headshots then lag else nil,
-		lead = if rules.headshots then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
-		onHit = function(model, _, isHead)
+		rewind = if rules.zones then lag else nil,
+		lead = if rules.zones then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
+		onHit = function(model, _, zone)
 			if direct == nil then
-				if strike(model, damage, true, isHead) then
+				if strike(model, damage, true, zone) then
 					direct = model
 					return true
 				end

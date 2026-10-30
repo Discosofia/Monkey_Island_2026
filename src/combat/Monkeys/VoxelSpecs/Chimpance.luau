@@ -427,6 +427,17 @@ return {
 					{ anchor = "Head", name = "Feather", phase = 2, boxes = headdress(88) },
 					{ anchor = "Head", name = "Feather", phase = 3, boxes = headdress(88, true) },
 					{ anchor = "Torso", name = "Necklace", material = "Wood", color = WOOD, boxes = necklace() },
+					{
+						-- Punto débil (MonkeyModels, Bosses.weakPoints): medallón dorado sobre el collar.
+						anchor = "Torso",
+						name = "Medallion",
+						color = Color3.fromRGB(255, 200, 40),
+						material = "Neon",
+						boxes = {
+							{ 0, 22.8, -9.4, 2.4, 2.4, 0.8 },
+							{ 0, 22.8, -9.85, 1.2, 1.2, 0.2, Color3.fromRGB(255, 240, 170) },
+						},
+					},
 					{ anchor = "Torso", name = "Bristle", phase = 3, boxes = bristle() },
 				}
 			),

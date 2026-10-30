@@ -44,6 +44,9 @@ export type Boss = {
 	specials: { Special },
 	lootItemId: string, -- botín especial para cada jugador que participó
 	eruption: boolean?, -- en su última fase provoca una erupción del volcán (WeatherService)
+	-- Nombres de las piezas de su modelo que son su punto débil (MonkeyModels les pone WeakPoint = true;
+	-- Hitbox.zoneOf las da por zona Weak: daño × Config.Combat.Zones.Weak). Una a la vista, de frente.
+	weakPoints: { string }?,
 }
 
 local Bosses: { [string]: Boss } = {
@@ -70,6 +73,7 @@ local Bosses: { [string]: Boss } = {
 			{ id = "summon", fromPhase = 3, cooldownSeconds = 30, species = "Marimonda", count = 3 },
 		},
 		lootItemId = "RiverPearl",
+		weakPoints = { "ThroatGem" }, -- la gema azul de la bolsa de la garganta
 	},
 	ChimpanceCaudillo = {
 		name = "Chimpancé Caudillo",
@@ -92,6 +96,7 @@ local Bosses: { [string]: Boss } = {
 			{ id = "charge", fromPhase = 3, cooldownSeconds = 9 },
 		},
 		lootItemId = "ChieftainCrown",
+		weakPoints = { "Medallion" }, -- el medallón dorado del pecho
 	},
 	GorilaAlbino = {
 		name = "Gorila Albino",
@@ -115,6 +120,7 @@ local Bosses: { [string]: Boss } = {
 			{ id = "summon", fromPhase = 3, cooldownSeconds = 30, species = "Babuino", count = 3 },
 		},
 		lootItemId = "CaveCrystal",
+		weakPoints = { "CrystalCore" }, -- el cristal cian del pecho
 	},
 	GorilaDeCeniza = {
 		name = "Gorila de Ceniza",
@@ -147,6 +153,7 @@ local Bosses: { [string]: Boss } = {
 			{ id = "stomp", fromPhase = 2, cooldownSeconds = 12 },
 		},
 		lootItemId = "MagmaCore",
+		weakPoints = { "LavaCore" }, -- el núcleo blanco incandescente del pecho
 		eruption = true,
 	},
 }

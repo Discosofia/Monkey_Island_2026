@@ -187,12 +187,31 @@ local Config = {
 		-- Studs sobre el suelo desde donde mira un área que cae en el suelo (Meteoro, Lluvia, Polvo,
 		-- Cepo) para saber a quién alcanza sin pared en medio (Combat/Hitbox.visible).
 		AreaSightLift = 3,
-		-- Disparos a la cabeza (Fase 15, V7; CombatRules.headshots: Dunas y el Laboratorio). Solo armas a
-		-- distancia contra jugadores; los proyectiles se prueban contra una esfera de cabeza y una cápsula
-		-- de cuerpo (Combat/Hitbox.sweepPlayers) en la posición rebobinada de la víctima.
+		-- Zonas de daño por piezas (Fase 19, W6; CombatRules.zones). Solo el impacto directo de un arma a
+		-- distancia (Shared/Zones). Cabeza y punto débil no se suman al crítico: cuenta el mayor; torso y
+		-- extremidad multiplican siempre (y el crítico, si lo hay). Cada arma puede traer los suyos
+		-- ("zoneMultipliers" en Data/Weapons y Data/LabWeapons).
+		Zones = {
+			Head = 1.5, -- cabeza (si el arma no trae la suya ni hay una por proyectil)
+			Torso = 1, -- tronco y cadera
+			Limb = 0.8, -- brazos y piernas
+			Weak = 1.5, -- punto débil de un jefe (pieza con el atributo "Weak" o "WeakPoint")
+			-- Studs de margen de la caja de cada pieza al probar un disparo (Hitbox.sweepBodies).
+			PartPadding = 0.15,
+			-- Margen (studs) que se suma al radio de la cápsula del cuerpo SOLO en el filtro rápido: así las manos y los
+			-- brazos extendidos (la pose de apuntar) llegan al test por pieza, que es el exacto.
+			FilterExtraStuds = 2.5,
+			-- Segundos de pose (piezas R15 de los jugadores) que guarda Combat/PositionHistory para rebobinar
+			-- el disparo; se guarda el mayor de este y de Config.Net.HistorySeconds.
+			PoseHistorySeconds = 0.3,
+			-- Mezcla supuesta de aciertos por zona (suma 1): solo la usa la calculadora Equilibrio.
+			HitMix = { Head = 0.15, Torso = 0.6, Limb = 0.25 },
+			-- Multiplicador de la cabeza según el proyectil del arma (Data/Weapons, "projectile"; sin él, la piedra).
+			HeadByProjectile = { Stone = 1.5, Arrow = 1.75, Spell = 1.25, Dart = 1.3 } :: { [string]: number },
+		},
+		-- Disparos a la cabeza (Fase 15, V7): los proyectiles se prueban contra una esfera de cabeza y una
+		-- cápsula de cuerpo (Combat/Hitbox.sweepBodies) en la posición rebobinada de la víctima.
 		Headshot = {
-			-- Multiplicador del daño de un impacto directo a la cabeza. No se suma al crítico: cuenta el mayor.
-			Multiplier = 1.5,
 			-- La esfera de la cabeza es este factor × el radio visible de la pieza Head (la mitad de su lado
 			-- mayor): algo mayor que la cabeza, para que el móvil no quede castigado.
 			HeadRadiusScale = 1.15,

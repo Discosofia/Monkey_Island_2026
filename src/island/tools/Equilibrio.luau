@@ -35,9 +35,11 @@
 --       cobertura y lo que vale la ventaja del altar (la definitiva antes) en un duelo y en una partida.
 --   12. Laboratorio (solo con secciones.laboratorio = true; Fase 13, docs/LABORATORIO.md §2): sin roles ni
 --       habilidades, el tiempo para matar de cada arma a cada distancia, quién gana cada cruce y el
---       área del suero contra dos rivales juntos, y (Fase 15, V7) el tiempo para matar con una fracción de
---       aciertos a la cabeza (OPCIONES.laboratorio.cabeza, ×Config.Combat.Headshot.Multiplier).
+--       área del suero contra dos rivales juntos, y (Fase 19, W6) el daño por zonas (cabeza, torso,
+--       extremidades): tiempo para matar con la mezcla de aciertos y disparos necesarios por zona.
 --   13. Alertas: lo que se sale de los límites.
+--   14. Isla: cabeza y puntos débiles (Fase 19, W6): tiempo para matar a monos y jefes con la mezcla
+--       de zonas, por arma a distancia de rol. La sección 13 sigue siendo la última del informe.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -91,10 +93,9 @@ local OPCIONES_BASE = {
 	-- Fase 13 (sección 12): distancias de un duelo del Laboratorio (corta, media, larga, en studs) y la
 	-- fracción de disparos que acierta cada arma a cada una (docs/LABORATORIO.md §2.2). Aquí no vale el
 	-- modelo de "acierto": el rifle falla más de cerca (cuesta seguir al que se mueve con la mira) y el
-	-- lanzadardos de lejos (los dardos se abren). "cabeza" (Fase 15, V7): fracción de los aciertos que dan a
-	-- la cabeza (Config.Combat.Headshot.Multiplier); su tabla va aparte de la base de las alertas.
+	-- lanzadardos de lejos (los dardos se abren). Las zonas (cabeza, torso, extremidades) y la mezcla de
+	-- aciertos salen de Config.Combat.Zones (Fase 19, W6; ver ZONAS_POR_DEFECTO si aún no existe).
 	laboratorio = {
-		cabeza = 0.3,
 		distancias = { 15, 50, 120 },
 		acierto = {
 			LabDartGun = { 0.85, 0.6, 0.5 },
@@ -116,6 +117,7 @@ local OPCIONES_BASE = {
 		escape = true,
 		preparacion = true,
 		laboratorio = false, -- Fase 13: el Laboratorio en ruinas (sección 12)
+		zonasIsla = true, -- Fase 19, W6: cabeza y puntos débiles en la Isla (sección 14)
 	},
 }
 
@@ -195,7 +197,33 @@ local LIMITES = {
 	-- Laboratorio (Fase 13): segundos para matar de cada arma en su mejor distancia. Fuera de ella puede
 	-- tardar más (es el sitio de otra); ninguna puede ganar todos los cruces ni quedarse sin ninguno.
 	laboratorioTTK = { 1.5, 2.5 },
+	-- Zonas (Fase 19, W6; secciones 12 y 14). Prudentes: se ajustan al ver el primer informe.
+	-- Una extremidad no puede alargar el tiempo para matar de un arma más de esto (s) frente al torso (en
+	-- segundos y no en disparos: un arma de poco daño por disparo salta de 10 a 13 sin que importe).
+	zonaSaltoSegundos = 1.0,
+	-- Isla: las zonas (cabeza) no pueden recortar el tiempo para matar a un mono más de esta fracción
+	-- (sin habilidades, con OPCIONES.actividad); evita que la cabeza trivialice a los monos. No es un mínimo
+	-- absoluto: las armas del final del juego ya matan a los monos del día 1 muy deprisa sin zonas.
+	monoZonasMaxRecorte = 0.2,
+	-- Un jefe con el punto débil (PESO_DEBIL de los aciertos) cae en al menos esto (s) con un jugador solo
+	-- con un arma a distancia de rol, sin habilidades. Muy por debajo de jefeSegundos: solo vigila el absurdo.
+	jefeZonasMinSegundos = 60,
 }
+
+-- Zonas de daño por piezas (Fase 19, W6): se leen de Config.Combat.Zones si existe (la parte 2 la escribe) y,
+-- si no, se usan estas. HitMix es la mezcla supuesta de aciertos (suma 1).
+local ZONAS_POR_DEFECTO =
+	{ Head = 1.5, Torso = 1, Limb = 0.8, Weak = 1.5, HitMix = { Head = 0.15, Torso = 0.6, Limb = 0.25 } }
+-- Cabeza propia de cada arma si su Data no trae "zoneMultipliers.Head": primero por id (Laboratorio) y luego por
+-- tipo de proyectil (Isla y Dunas; sin "projectile" es la piedra). Sin valor propio, Zonas.Head.
+local CABEZA_ARMA_POR_DEFECTO: { [string]: number } = { LabDartGun = 1.3, LabNetHarpoon = 1.5, LabBananaRifle = 2 }
+local CABEZA_PROYECTIL_POR_DEFECTO: { [string]: number } = { Stone = 1.5, Arrow = 1.75, Spell = 1.25, Dart = 1.3 }
+-- La red del lanzarredes envuelve el cuerpo: da igual en un brazo que en el torso (si no, 4 disparos para matar
+-- exceden su cargador de 3 y obligan a recargar).
+local EXTREMIDAD_ARMA_POR_DEFECTO: { [string]: number } = { LabNetHarpoon = 1 }
+-- Fracción de los aciertos al punto débil de un jefe (sección 14), y mezcla cabeza/resto de los monos.
+local PESO_DEBIL = 0.3
+local MEZCLA_MONO = { Head = 0.15, Torso = 0.85 }
 
 -- ===================================== Utilidades =====================================
 
@@ -238,6 +266,41 @@ end
 
 local function fuera(valor: number, rango: { number }): boolean
 	return valor < rango[1] - 1e-6 or valor > rango[2] + 1e-6
+end
+
+-- Zonas de daño (Fase 19, W6): Config.Combat.Zones sobre ZONAS_POR_DEFECTO (también con la propuesta de config).
+local function zonasDe(config: any): any
+	local zonas = table.clone(ZONAS_POR_DEFECTO) :: any
+	zonas.HitMix = table.clone(ZONAS_POR_DEFECTO.HitMix)
+	local propias = config.Combat.Zones
+	if propias then
+		for clave, valor in propias do
+			if clave == "HitMix" then
+				for zona, peso in valor do
+					zonas.HitMix[zona] = peso
+				end
+			else
+				zonas[clave] = valor
+			end
+		end
+	end
+	return zonas
+end
+
+-- Multiplicadores de un arma del Laboratorio: { Head, Torso, Limb }. El cañón de suero (área) no usa zonas.
+local function multiplicadoresArma(arma: any, id: string, zonas: any): { Head: number, Torso: number, Limb: number }
+	if arma.lab and arma.lab.effect == "AcidBurst" then
+		return { Head = 1, Torso = 1, Limb = 1 }
+	end
+	local propios = arma.zoneMultipliers or {}
+	return {
+		Head = propios.Head
+			or CABEZA_ARMA_POR_DEFECTO[id]
+			or CABEZA_PROYECTIL_POR_DEFECTO[arma.projectile or "Stone"]
+			or zonas.Head,
+		Torso = propios.Torso or zonas.Torso,
+		Limb = propios.Limb or EXTREMIDAD_ARMA_POR_DEFECTO[id] or zonas.Limb,
+	}
 end
 
 -- Monos que alcanza un área de radio "r" en un grupo típico (están repartidos, no apiñados).
@@ -3139,28 +3202,85 @@ local function main(copia: Instance): string
 			end
 		end
 		linea("")
-		-- Con cabezas (Fase 15, V7): una fracción de los aciertos va a la cabeza (×Headshot.Multiplier). El
-		-- daño de impacto directo es la media; el cañón de suero (área) no tiene cabeza y el veneno no cambia.
-		local cabeza = L.cabeza
-		local multiplicador = Config.Combat.Headshot.Multiplier
+		-- Zonas (Fase 19, W6): cabeza, torso y extremidades (Config.Combat.Zones; la cabeza del arma puede ser
+		-- propia). El daño medio por acierto es Σ(mezcla × multiplicador); el cañón de suero (área) cuenta ×1 y el
+		-- veneno no cambia. Las alertas usan el mejor caso (todo a la cabeza) y la diferencia de disparos entre zonas.
+		local zonas = zonasDe(Config)
+		local mezcla = zonas.HitMix
+		local sumaMezcla = math.max(1e-6, mezcla.Head + mezcla.Torso + mezcla.Limb)
+		local function mejorDe(arma: any, id: string, dano: number): number
+			local mejor = math.huge
+			for indice, distancia in distancias do
+				local t = ttk(arma, distancia, L.acierto[id][indice], dano)
+				if t and t < mejor then
+					mejor = t
+				end
+			end
+			return mejor
+		end
+		type Zonas12 = {
+			mult: { Head: number, Torso: number, Limb: number },
+			disparos: { Head: number, Torso: number, Limb: number },
+			mejorCabeza: number,
+			mejorMezcla: number,
+			peorExtremidad: number,
+			unDisparo: boolean,
+		}
+		local porZona: { [string]: Zonas12 } = {}
 		linea(
-			`Con {pct(cabeza)} de aciertos a la cabeza (×{multiplicador}; el cañón de suero es de área y no cuenta):`
+			`Mezcla de zonas ({pct(mezcla.Head / sumaMezcla)} cabeza · {pct(mezcla.Torso / sumaMezcla)} torso · {pct(
+				mezcla.Limb / sumaMezcla
+			)} extremidades; cabeza ×(propia de cada arma; por defecto {zonas.Head}), torso ×{zonas.Torso}, extremidad ×{zonas.Limb}; el cañón de suero es de área y cuenta ×1):`
 		)
-		linea(`| Arma | {table.concat(cabecera, " | ")} |`)
-		linea(`|---|{string.rep("---|", #distancias)}`)
-		local tiemposCabeza: { [string]: { number? } } = {}
+		linea(`| Arma | Cabeza | Mult. medio | Daño medio | {table.concat(cabecera, " | ")} |`)
+		linea(`|---|---|---|---|{string.rep("---|", #distancias)}`)
 		for _, id in LabWeapons.ORDER do
 			local arma = LabWeapons.weapons[id]
-			local area = arma.lab and arma.lab.effect == "AcidBurst"
-			local dano = if area then arma.damage else arma.damage * (1 + cabeza * (multiplicador - 1))
-			tiemposCabeza[id] = {}
+			local mult = multiplicadoresArma(arma, id, zonas)
+			local medio = (mult.Head * mezcla.Head + mult.Torso * mezcla.Torso + mult.Limb * mezcla.Limb) / sumaMezcla
+			local dano = arma.damage * medio
 			local celdas = {}
 			for indice, distancia in distancias do
 				local t = ttk(arma, distancia, L.acierto[id][indice], dano)
-				tiemposCabeza[id][indice] = t
 				celdas[indice] = if t then `{n(t, 2)} s` else "fuera de alcance"
 			end
-			linea(`| {arma.name} | {table.concat(celdas, " | ")} |`)
+			linea(
+				`| {arma.name} | ×{n(mult.Head, 2)} | ×{n(medio, 2)} | {n(dano, 1)} | {table.concat(celdas, " | ")} |`
+			)
+			local function disparosCon(factor: number): number
+				return math.ceil(vida / (arma.damage * factor) - 1e-9)
+			end
+			porZona[id] = {
+				mult = mult,
+				disparos = {
+					Head = disparosCon(mult.Head),
+					Torso = disparosCon(mult.Torso),
+					Limb = disparosCon(mult.Limb),
+				},
+				mejorCabeza = mejorDe(arma, id, arma.damage * mult.Head),
+				mejorMezcla = mejorDe(arma, id, dano),
+				peorExtremidad = mejorDe(arma, id, arma.damage * mult.Limb),
+				unDisparo = arma.damage * mult.Head >= vida - 1e-6,
+			}
+		end
+		linea("")
+		linea(
+			"Disparos para matar por zona (solo el daño directo, sin veneno) y tiempo en la mejor distancia con todos los aciertos a la cabeza (mejor caso) o a una extremidad (peor caso):"
+		)
+		linea("| Arma | Cabeza | Torso | Extremidad | Mejor caso | Peor caso |")
+		linea("|---|---|---|---|---|---|")
+		for _, id in LabWeapons.ORDER do
+			local datos = porZona[id]
+			linea(
+				`| {LabWeapons.weapons[id].name} | {datos.disparos.Head} (×{n(datos.mult.Head, 2)}) | {datos.disparos.Torso} (×{n(
+					datos.mult.Torso,
+					2
+				)}) | {datos.disparos.Limb} (×{n(datos.mult.Limb, 2)}) | {if datos.mejorCabeza == math.huge
+					then "—"
+					else `{n(datos.mejorCabeza, 2)} s`} | {if datos.peorExtremidad == math.huge
+					then "—"
+					else `{n(datos.peorExtremidad, 2)} s`} |`
+			)
 		end
 		linea("")
 		-- Precisión por dispersión (Fase 15, V8; Shared/LabSpread): con el cono de la dispersión sostenida (la base
@@ -3245,16 +3365,21 @@ local function main(copia: Instance): string
 					`Laboratorio: {nombre} mata en {n(mejor, 2)} s en su mejor distancia (objetivo {LIMITES.laboratorioTTK[1]}–{LIMITES.laboratorioTTK[2]} s)`
 				)
 			end
-			local mejorCabeza = math.huge
-			for indice in distancias do
-				local t = tiemposCabeza[id][indice]
-				if t and t < mejorCabeza then
-					mejorCabeza = t
-				end
-			end
-			if mejorCabeza < LIMITES.laboratorioTTK[1] then
+			local datos = porZona[id]
+			-- Con la mezcla realista de zonas (el todo a la cabeza es solo informativo: ninguna arma lo da siempre).
+			if datos.mejorMezcla < LIMITES.laboratorioTTK[1] then
 				alerta(
-					`Laboratorio con cabezas: {nombre} mata en {n(mejorCabeza, 2)} s en su mejor distancia (mínimo {LIMITES.laboratorioTTK[1]} s)`
+					`Laboratorio con zonas: {nombre} mata en {n(datos.mejorMezcla, 2)} s en su mejor distancia con la mezcla de zonas (mínimo {LIMITES.laboratorioTTK[1]} s)`
+				)
+			end
+			if datos.unDisparo then
+				alerta(
+					`Laboratorio: {nombre} mata de UN disparo a la cabeza (×{n(datos.mult.Head, 2)} sobre {vida} de vida)`
+				)
+			end
+			if datos.peorExtremidad - mejor > LIMITES.zonaSaltoSegundos then
+				alerta(
+					`Laboratorio: {nombre} tarda {n(datos.peorExtremidad - mejor, 2)} s más a una extremidad que al torso ({datos.disparos.Torso} → {datos.disparos.Limb} disparos; máx. {LIMITES.zonaSaltoSegundos} s)`
 				)
 			end
 			local ganadas, jugadas = victorias[id] or 0, cruces[id] or 0
@@ -3264,6 +3389,168 @@ local function main(copia: Instance): string
 				alerta(`Laboratorio: {nombre} no gana ningún cruce`)
 			end
 		end
+	end
+
+	-- ===================================== 14. Isla: cabeza y puntos débiles =====================================
+	-- Fase 19, W6. Las armas a distancia de rol (la inicial y sus mejoras de la forja) con la mezcla de zonas de
+	-- los monos (cabeza o cuerpo: MEZCLA_MONO) y, contra los jefes, con una fracción PESO_DEBIL de los aciertos al
+	-- punto débil (Zonas.Weak). Solo el arma (sin habilidades ni combos) con OPCIONES.actividad: lo que cambia es la
+	-- relación con el tiempo sin zonas, no el valor absoluto. El veneno no usa zonas.
+	if OPCIONES.secciones.zonasIsla then
+		local zonas = zonasDe(Config)
+		local mezcla = zonas.HitMix
+		local sumaMezcla = math.max(1e-6, mezcla.Head + mezcla.Torso + mezcla.Limb)
+		-- Mono: cabeza (la del arma) o resto (el torso cuenta por todo el cuerpo).
+		local function factorMono(id: string): number
+			local cabeza = multiplicadoresArma(Weapons[id], id, zonas).Head
+			return (MEZCLA_MONO.Head * cabeza + MEZCLA_MONO.Torso * zonas.Torso)
+				/ (MEZCLA_MONO.Head + MEZCLA_MONO.Torso)
+		end
+		-- Jefe: el punto débil (PESO_DEBIL) y el resto con la mezcla general de aciertos.
+		local function factorJefe(id: string): number
+			local m = multiplicadoresArma(Weapons[id], id, zonas)
+			local cuerpo = (mezcla.Head * m.Head + mezcla.Torso * m.Torso + mezcla.Limb * m.Limb) / sumaMezcla
+			return (1 - PESO_DEBIL) * cuerpo + PESO_DEBIL * zonas.Weak
+		end
+
+		local function armaDeNivelZonas(roleId: string, nivel: number): string
+			local id = OPCIONES.armas[roleId] or Roles[roleId].weapons[1]
+			for _ = 1, nivel do
+				local siguiente = nil
+				for _, receta in Recipes do
+					if receta.upgrades == id and receta.role == roleId and receta.weaponId then
+						siguiente = receta.weaponId
+					end
+				end
+				if not siguiente then
+					break
+				end
+				id = siguiente
+			end
+			return id
+		end
+		local function nivelDeDia(dia: number): number
+			local nivel, desde = 0, -1
+			for diaNivel, valor in OPCIONES.armasPorDia do
+				if diaNivel <= dia and diaNivel > desde then
+					nivel, desde = valor, diaNivel
+				end
+			end
+			return nivel
+		end
+		-- DPS directo (con PlayerDamageMultiplier, crítico y acierto) y de veneno de un arma, ya × actividad.
+		local function dpsArma(roleId: string, id: string): (number, number)
+			local arma = armaDe(roleId, perksDe(roleId), id)
+			local veneno = venenoReal(arma.veneno) * OPCIONES.actividad
+			return (arma.dpsReal - venenoReal(arma.veneno)) * OPCIONES.actividad, veneno
+		end
+		-- Armas a distancia de rol: por rol, la inicial y cada mejora distinta (nivel 0 a 3).
+		local entradas = {}
+		for _, roleId in ordenRoles do
+			if visible(roleId) then
+				local vistas: { [string]: boolean } = {}
+				for nivel = 0, 3 do
+					local id = armaDeNivelZonas(roleId, nivel)
+					if not vistas[id] and Weapons[id].kind == "Ranged" then
+						vistas[id] = true
+						table.insert(entradas, { roleId = roleId, id = id, nivel = nivel })
+					end
+				end
+			end
+		end
+
+		linea(
+			`## 14. Isla: cabeza y puntos débiles (solo el arma, × actividad {pct(OPCIONES.actividad)}; monos: {pct(
+				MEZCLA_MONO.Head
+			)} a la cabeza (×propio del arma, por defecto {zonas.Head}) y el resto ×{zonas.Torso}; jefes: {pct(
+				PESO_DEBIL
+			)} al punto débil ×{zonas.Weak})`
+		)
+		linea("Monos: segundos para matar sin zonas → con zonas.")
+		local cabecera = { "| Arma (rol, mejora) | Cabeza" }
+		local separador = { "|---|---" }
+		for _, especie in OPCIONES.especies do
+			for _, dia in OPCIONES.dias do
+				table.insert(cabecera, ` {Monkeys[especie].name} d{dia}`)
+				table.insert(separador, "---")
+			end
+		end
+		linea(table.concat(cabecera, " |") .. " |")
+		linea(table.concat(separador, "|") .. "|")
+		for _, entrada in entradas do
+			local directo, veneno = dpsArma(entrada.roleId, entrada.id)
+			local fila = {
+				`| {Weapons[entrada.id].name} ({entrada.roleId}, +{entrada.nivel}) | ×{n(
+					multiplicadoresArma(Weapons[entrada.id], entrada.id, zonas).Head,
+					2
+				)}`,
+			}
+			local recorte, dondeRecorte = 0, ""
+			for _, especie in OPCIONES.especies do
+				for _, dia in OPCIONES.dias do
+					local vida = Monkeys[especie].maxHealth
+						* math.min(1 + (dia - 1) * Config.Difficulty.HealthPerDay, Config.Difficulty.MaxMultiplier)
+					local sin = vida / (directo + veneno)
+					local con = vida / (directo * factorMono(entrada.id) + veneno)
+					table.insert(fila, ` {n(sin)} → {n(con)}`)
+					if 1 - con / sin > recorte then
+						recorte, dondeRecorte = 1 - con / sin, `{Monkeys[especie].name} d{dia}`
+					end
+				end
+			end
+			linea(table.concat(fila, " |") .. " |")
+			if recorte > LIMITES.monoZonasMaxRecorte then
+				alerta(
+					`Isla con zonas: {Weapons[entrada.id].name} ({entrada.roleId}) recorta {pct(recorte)} el tiempo para matar a {dondeRecorte} (máx. {pct(
+						LIMITES.monoZonasMaxRecorte
+					)})`
+				)
+			end
+		end
+		linea("")
+		linea(
+			`Jefes con un jugador solo (s hasta derrotarlo con el mejor arma a distancia de ese día; sin zonas → con zonas; mínimo con zonas {LIMITES.jefeZonasMinSegundos} s, máx. sin zonas {LIMITES.jefeSoloSegundos} s):`
+		)
+		linea("| Jefe | Día | Arma | Cabeza | Vida (1 jug.) | Sin zonas | Con zonas |")
+		linea("|---|---|---|---|---|---|---|")
+		for indice, bossId in Config.Match.BossRotation do
+			local jefe = Bosses[bossId]
+			local dia = indice * Config.Match.BossIntervalDays
+			local nivel = nivelDeDia(dia)
+			local ajustes = Config.Bosses
+			local vida = jefe.maxHealth
+				* (if ajustes then math.min(ajustes.MaxHealthMultiplier, ajustes.HealthBase) else 0.8)
+			-- El arma a distancia de rol con más DPS directo en el nivel de ese día.
+			local mejor, mejorArma, mejorRol = 0, "", ""
+			for _, roleId in ordenRoles do
+				if visible(roleId) then
+					local id = armaDeNivelZonas(roleId, nivel)
+					if Weapons[id].kind == "Ranged" then
+						local directo, veneno = dpsArma(roleId, id)
+						if directo + veneno > mejor then
+							mejor, mejorArma, mejorRol = directo + veneno, id, roleId
+						end
+					end
+				end
+			end
+			if mejorArma ~= "" then
+				local directo, veneno = dpsArma(mejorRol, mejorArma)
+				local sin = vida / (directo + veneno)
+				local con = vida / (directo * factorJefe(mejorArma) + veneno)
+				linea(
+					`| {jefe.name} | {dia} | {Weapons[mejorArma].name} ({mejorRol}) | ×{n(
+						multiplicadoresArma(Weapons[mejorArma], mejorArma, zonas).Head,
+						2
+					)} | {n(vida, 0)} | {n(sin, 0)} | {n(con, 0)} |`
+				)
+				if con < LIMITES.jefeZonasMinSegundos then
+					alerta(
+						`Isla con zonas: {jefe.name} ({bossId}) cae en {n(con, 0)} s a un jugador solo con {Weapons[mejorArma].name} y el punto débil (mínimo {LIMITES.jefeZonasMinSegundos} s)`
+					)
+				end
+			end
+		end
+		linea("")
 	end
 
 	linea("## 13. Alertas")

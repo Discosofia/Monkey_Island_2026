@@ -61,6 +61,7 @@ function IslandCombatRules:Init()
 			slideKey = "LeftAlt",
 			slideFromWalk = false,
 		},
+		zones = true,
 		canHitPlayer = function(attacker: Player, victim: Player): boolean
 			return pvpReady(attacker) and pvpReady(victim)
 		end,

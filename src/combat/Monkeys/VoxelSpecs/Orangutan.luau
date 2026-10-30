@@ -406,6 +406,18 @@ return {
 				},
 				{ anchor = "Torso", name = "Vine", boxes = vine() },
 				{
+					-- Punto débil (MonkeyModels, Bosses.weakPoints): gema azul incrustada en la bolsa de la
+					-- garganta. Sobresale de la bolsa en las tres fases (la de la fase 3 llega a z = -16,1).
+					anchor = "Head",
+					name = "ThroatGem",
+					color = Color3.fromRGB(70, 150, 255),
+					material = "Neon",
+					boxes = {
+						{ 0, 21.6, -15.5, 2.6, 2.6, 2.6 },
+						{ 0, 21.6, -16.85, 1.4, 1.4, 0.3, Color3.fromRGB(190, 225, 255) },
+					},
+				},
+				{
 					anchor = "Torso",
 					name = "Root",
 					material = "Wood",

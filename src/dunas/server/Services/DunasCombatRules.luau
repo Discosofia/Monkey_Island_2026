@@ -50,7 +50,7 @@ function DunasCombatRules:Init()
 		pvpWeaponMultipliers = Config.Arena.WeaponMultipliers,
 		healMultiplier = Config.Arena.HealingMultiplier,
 		pvpStatus = true,
-		headshots = true,
+		zones = true,
 		telemetry = telemetry,
 	})
 end

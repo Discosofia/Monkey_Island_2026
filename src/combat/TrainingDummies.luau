@@ -24,7 +24,8 @@ local Poof = require(script.Parent.Poof)
 local Status = require(script.Parent.Status)
 
 -- El palo del sparring respecto a su raíz: en reposo, alzado a la derecha; al golpear, bajado delante.
-local CLUB_REST = CFrame.new(1.5, 1.2, -0.4) * CFrame.Angles(math.rad(70), 0, math.rad(-20))
+-- (más a la derecha que el brazo derecho del muñeco, que está en x = 1,9, para que no lo tape).
+local CLUB_REST = CFrame.new(3.1, 1.2, -0.4) * CFrame.Angles(math.rad(70), 0, math.rad(-20))
 local CLUB_HIT = CFrame.new(0.6, 0, -1.8) * CFrame.Angles(math.rad(-10), 0, math.rad(-10))
 
 local TrainingDummies = {}
@@ -125,6 +126,18 @@ local function spawnDummy(folder: Instance, ground: Vector3, lookAt: Vector3, sp
 	local head =
 		newPart("Head", Vector3.one * 1.6, facing * CFrame.new(0, 5.8, 0), Color3.fromRGB(205, 175, 125), model)
 	head.Shape = Enum.PartType.Ball
+	-- Brazos a los lados del torso: por su nombre cuentan como zona "Limb" (Hitbox.zoneOf), la cabeza como
+	-- "Head" y el torso y el poste como "Torso", para probar las zonas de los proyectiles. Van separados del
+	-- torso (más que el radio del proyectil, Config.Projectiles.WeaponRadius): si no, de frente se toca antes el torso.
+	for _, side in { -1, 1 } do
+		newPart(
+			if side == 1 then "RightUpperArm" else "LeftUpperArm",
+			Vector3.new(0.8, 1.6, 0.8),
+			facing * CFrame.new(side * 1.9, 4.3, 0),
+			Color3.fromRGB(210, 182, 132),
+			model
+		)
+	end
 	local root = newPart("HumanoidRootPart", Vector3.new(2, 2, 1), facing * CFrame.new(0, 4, 0), Color3.new(), model)
 	root.Transparency = 1
 	model.PrimaryPart = root

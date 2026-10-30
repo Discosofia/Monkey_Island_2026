@@ -24,6 +24,7 @@ function LobbyCombatRules:Init()
 			slideKey = "LeftAlt",
 			slideFromWalk = false,
 		},
+		zones = true,
 		isAlly = function(): boolean
 			return false
 		end,

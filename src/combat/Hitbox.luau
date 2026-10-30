@@ -10,10 +10,13 @@
 --     visión. Es el golpe con arma; la cadena de C4 lo barrerá con sweepBox.
 --   - sweepSphere / sweepBox: Spherecast y Blockcast (disparos y barridos); devuelven lo primero que tocan.
 --   - sweepCombatants: una esfera que avanza solo entre los combatientes (cada paso de un proyectil, C9;
---     el mundo lo mira ray: así el decorado que no choca no para los disparos).
---   - sweepPlayers (Fase 15, V7): un punto que avanza solo entre los jugadores vivos, probado contra su
---     cabeza (esfera) y su cuerpo (cápsula vertical, de los pies al cuello) en la posición rebobinada por
---     el lag del tirador (Config.Combat.Headshot). Dice cuál es el primero y si lo toca en la cabeza.
+--     el mundo lo mira ray: así el decorado que no choca no para los disparos). Dice también la zona de la
+--     pieza que toca (zoneOf), sin rebobinar la pose.
+--   - sweepBodies (Fase 15, V7; por piezas en la Fase 19, W6): un punto que avanza solo entre los jugadores
+--     vivos. La cápsula del cuerpo y la esfera de la cabeza (Config.Combat.Headshot) en la posición
+--     rebobinada por el lag del tirador sirven de filtro barato; si aciertan, se prueba pieza a pieza con la
+--     pose de entonces (Combat/PositionHistory.poseInto). Dice cuál es el primero y la zona que toca.
+--   - zoneOf: la zona de daño de una pieza ("Head", "Torso", "Limb" o "Weak"; Shared/Zones).
 --   - rewound: dónde estaba un combatiente hace unos segundos (Combat/PositionHistory), para el lag.
 -- Combatientes: los modelos con la etiqueta Config.Combat.EnemyTag (monos, jefes, muñecos) y los
 -- personajes de los jugadores. La lista se rehace solo cuando cambia, y las consultas de piezas buscan
@@ -30,8 +33,12 @@ local PositionHistory = require(script.Parent.PositionHistory)
 
 local ENEMY_TAG = Config.Combat.EnemyTag
 local HEADSHOT = Config.Combat.Headshot
+local ZONES = Config.Combat.Zones
 -- Si cabeza y cuerpo se tocan a distancias que difieren menos de esto (studs), cuenta la cabeza.
 local HEAD_TIE_STUDS = 0.05
+
+-- Zona de daño de una pieza (Fase 19, W6; Hitbox.zoneOf).
+export type Zone = "Head" | "Torso" | "Limb" | "Weak"
 
 export type Query = {
 	exclude: Model?, -- quien ataca: nunca se alcanza a sí mismo
@@ -369,16 +376,19 @@ end
 -- Esfera de "radius" que avanza "displacement" desde "origin" solo entre los combatientes: el primero
 -- que toca que no esté en "skip" (quien dispara, los ya atravesados), la distancia que ha avanzado su
 -- centro y el punto de contacto. No ve lo que ya toca al salir: quien llama sale desde un poco antes.
+-- Con "skipPlayers", tampoco ve a los personajes de jugadores (los prueba sweepBodies). El cuarto valor es la
+-- zona de la pieza que toca (Hitbox.zoneOf) con la pose actual, sin rebobinar.
 function Hitbox.sweepCombatants(
 	origin: Vector3,
 	radius: number,
 	displacement: Vector3,
-	skip: { [Model]: boolean }
-): (Model?, number, Vector3?)
+	skip: { [Model]: boolean },
+	skipPlayers: boolean?
+): (Model?, number, Vector3?, Zone?)
 	Hitbox.combatants()
 	local length = displacement.Magnitude
 	if length < 1e-3 then
-		return nil, 0, nil
+		return nil, 0, nil, nil
 	end
 	local direction = displacement / length
 	local travelled = 0
@@ -391,40 +401,174 @@ function Hitbox.sweepCombatants(
 			combatantCastParams
 		)
 		if not result then
-			return nil, length, nil
+			return nil, length, nil, nil
 		end
 		travelled += math.max(result.Distance, 0.05)
 		local model = Hitbox.ownerOf(result.Instance)
-		if model and not skip[model] then
-			return model, math.min(travelled, length), result.Position
+		if model and not skip[model] and not (skipPlayers and Players:GetPlayerFromCharacter(model)) then
+			return model, math.min(travelled, length), result.Position, Hitbox.zoneOf(model, result.Instance)
 		end
 		if travelled >= length then
 			break
 		end
 	end
-	return nil, length, nil
+	return nil, length, nil, nil
+end
+
+local ZONE_BY_NAME: { [string]: Zone } = {
+	Head = "Head",
+	UpperTorso = "Torso",
+	LowerTorso = "Torso",
+	HumanoidRootPart = "Torso",
+	Torso = "Torso",
+	LeftUpperArm = "Limb",
+	LeftLowerArm = "Limb",
+	LeftHand = "Limb",
+	RightUpperArm = "Limb",
+	RightLowerArm = "Limb",
+	RightHand = "Limb",
+	LeftUpperLeg = "Limb",
+	LeftLowerLeg = "Limb",
+	LeftFoot = "Limb",
+	RightUpperLeg = "Limb",
+	RightLowerLeg = "Limb",
+	RightFoot = "Limb",
+	["Left Arm"] = "Limb",
+	["Right Arm"] = "Limb",
+	["Left Leg"] = "Limb",
+	["Right Leg"] = "Limb",
+}
+local ZONE_ATTRIBUTES: { [string]: Zone } = { Head = "Head", Torso = "Torso", Limb = "Limb", Weak = "Weak" }
+
+-- La zona de "part" (una pieza de "model"), por este orden: su atributo "Zone" ("Head", "Torso", "Limb" o
+-- "Weak"); su atributo "WeakPoint" a true (punto débil de un jefe); su nombre R15 o R6; si no, el torso.
+-- También miran los atributos los grupos entre la pieza y el modelo (el más cercano gana).
+function Hitbox.zoneOf(model: Model, part: Instance): Zone
+	local current: Instance? = part
+	while current and current ~= model do
+		local tagged = current:GetAttribute("Zone")
+		local zone = if typeof(tagged) == "string" then ZONE_ATTRIBUTES[tagged] else nil
+		if zone then
+			return zone
+		end
+		if current:GetAttribute("WeakPoint") == true then
+			return "Weak"
+		end
+		current = current.Parent
+	end
+	return ZONE_BY_NAME[part.Name] or "Torso"
+end
+
+-- Un eje de la prueba segmento-caja (método de las losas): el intervalo [tMin, tMax] del segmento que sigue
+-- dentro de la losa de mitad de grosor "h" (posición "p" y dirección "d" en ese eje). Vacío: tMin > tMax.
+local function slab(p: number, d: number, h: number, tMin: number, tMax: number): (number, number)
+	if math.abs(d) < 1e-9 then
+		if math.abs(p) > h then
+			return 1, 0
+		end
+		return tMin, tMax
+	end
+	local t1, t2 = (-h - p) / d, (h - p) / d
+	if t1 > t2 then
+		t1, t2 = t2, t1
+	end
+	return math.max(tMin, t1), math.min(tMax, t2)
+end
+
+-- Distancia a lo largo del segmento (origen "o", unitario "u", largo "length") hasta que entra en la caja
+-- orientada de "cframe" y mitad de lado "half", o nil. Si ya empieza dentro, 0.
+local function segmentBox(o: Vector3, u: Vector3, length: number, cframe: CFrame, half: Vector3): number?
+	local localOrigin = cframe:PointToObjectSpace(o)
+	local localDirection = cframe:VectorToObjectSpace(u)
+	local tMin, tMax = slab(localOrigin.X, localDirection.X, half.X, 0, length)
+	tMin, tMax = slab(localOrigin.Y, localDirection.Y, half.Y, tMin, tMax)
+	tMin, tMax = slab(localOrigin.Z, localDirection.Z, half.Z, tMin, tMax)
+	return if tMin <= tMax then tMin else nil
+end
+
+local PART_PADDING = Vector3.one * ZONES.PartPadding
+local POSE_PARTS = PositionHistory.POSE_PARTS
+-- Búferes que se reutilizan en cada prueba (sin crear tablas): la pose de las 15 piezas y su tamaño.
+local poseCFrames: { CFrame } = table.create(#POSE_PARTS, CFrame.identity)
+local poseSizes: { Vector3 } = table.create(#POSE_PARTS, Vector3.zero)
+
+-- Prueba el segmento contra las piezas de "model" y su cabeza. Con "rewind" y historia de pose
+-- (PositionHistory.poseInto), las piezas son las de entonces colocadas en "past"; si no, las actuales
+-- desplazadas "shift" (la raíz de entonces menos la de ahora). La cabeza es una esfera (radio ya ensanchado
+-- por HeadRadiusScale); el resto, cajas con PartPadding de margen. Devuelve lo que avanza hasta la pieza más
+-- cercana y su zona; si la cabeza y otra pieza se tocan casi a la vez, la cabeza. nil si no toca ninguna.
+-- "headCenter" y "headRadius" son los actuales (desplazados) por si no hay pose.
+local function nearestPiece(
+	model: Model,
+	rewind: number,
+	past: Vector3?,
+	shift: Vector3,
+	origin: Vector3,
+	direction: Vector3,
+	length: number,
+	headCenter: Vector3?,
+	headRadius: number
+): (number?, Zone)
+	local bestAlong: number? = nil
+	local bestZone: Zone = "Torso"
+	local hasPose = rewind > 0 and past ~= nil and PositionHistory.poseInto(model, rewind, poseCFrames, poseSizes)
+	local headAlong: number? = nil
+	if hasPose then
+		local pastPosition = past :: Vector3
+		for index, name in POSE_PARTS do
+			local size = poseSizes[index]
+			if size ~= Vector3.zero then
+				local placed = poseCFrames[index] + pastPosition
+				if name == "Head" then
+					local radius = math.max(size.X, size.Y, size.Z) / 2 * HEADSHOT.HeadRadiusScale
+					headAlong = segmentSphere(origin, direction, length, placed.Position, radius)
+				else
+					local along = segmentBox(origin, direction, length, placed, size / 2 + PART_PADDING)
+					if along and (not bestAlong or along < bestAlong) then
+						bestAlong, bestZone = along, ZONE_BY_NAME[name] or "Torso"
+					end
+				end
+			end
+		end
+	else
+		if headCenter then
+			headAlong = segmentSphere(origin, direction, length, headCenter, headRadius)
+		end
+		for _, child in model:GetChildren() do
+			if child:IsA("BasePart") and child.Name ~= "Head" and child.Name ~= "HumanoidRootPart" then
+				local along = segmentBox(origin, direction, length, child.CFrame + shift, child.Size / 2 + PART_PADDING)
+				if along and (not bestAlong or along < bestAlong) then
+					bestAlong, bestZone = along, Hitbox.zoneOf(model, child)
+				end
+			end
+		end
+	end
+	if headAlong and (not bestAlong or headAlong <= bestAlong + HEAD_TIE_STUDS) then
+		return headAlong, "Head"
+	end
+	return bestAlong, bestZone
 end
 
 -- Un punto que avanza "displacement" desde "origin" solo entre los personajes de jugadores vivos que no
--- estén en "skip" (Fase 15, V7). Cada uno se prueba donde estaba hace "rewind" segundos (el lag del
--- tirador): su cuerpo se traslada desde la raíz actual a esa posición pasada. Contra la esfera de la
--- cabeza y la cápsula del cuerpo (Config.Combat.Headshot); el grosor está en esos radios. Devuelve el
--- primero a lo largo del segmento: el modelo, lo que ha avanzado, el punto de contacto y si es la cabeza
--- (si cabeza y cuerpo se tocan casi a la vez, cuenta la cabeza).
-function Hitbox.sweepPlayers(
+-- estén en "skip" (Fase 15, V7; por piezas desde la Fase 19, W6). Cada uno se prueba donde estaba hace
+-- "rewind" segundos (el lag del tirador). Primero, como filtro barato, la cápsula del cuerpo y la esfera de
+-- la cabeza (Config.Combat.Headshot) trasladadas a esa posición; solo si acierta alguna se prueba pieza a
+-- pieza (nearestPiece). Devuelve el primero a lo largo del segmento: el modelo, lo que ha avanzado, el
+-- punto de contacto y la zona ("Head", "Torso" o "Limb"). Sin acierto, (nil, largo, nil, nil).
+function Hitbox.sweepBodies(
 	origin: Vector3,
 	displacement: Vector3,
 	rewind: number,
 	skip: { [Model]: boolean }
-): (Model?, number, Vector3?, boolean)
+): (Model?, number, Vector3?, Zone?)
 	local length = displacement.Magnitude
 	if length < 1e-3 then
-		return nil, 0, nil, false
+		return nil, 0, nil, nil
 	end
 	local direction = displacement / length
 	local bestModel: Model? = nil
 	local bestAlong = math.huge
-	local bestHead = false
+	local bestZone: Zone = "Torso"
 	for _, player in Players:GetPlayers() do
 		local model = player.Character
 		local humanoid = if model then model:FindFirstChildOfClass("Humanoid") else nil
@@ -432,27 +576,32 @@ function Hitbox.sweepPlayers(
 		if model and shape then
 			local past = if rewind > 0 then PositionHistory.at(model, rewind) else nil
 			local shift = if past then past - shape.root.Position else Vector3.zero
-			local headAlong: number? = nil
-			if shape.headCenter then
-				headAlong = segmentSphere(origin, direction, length, shape.headCenter + shift, shape.headRadius)
-			end
-			local bodyAlong =
-				segmentCapsule(origin, direction, length, shape.feet + shift, shape.neck + shift, HEADSHOT.BodyRadius)
-			local along = headAlong
-			local isHead = headAlong ~= nil
-			if bodyAlong and (not headAlong or bodyAlong < headAlong - HEAD_TIE_STUDS) then
-				along = bodyAlong
-				isHead = false
-			end
-			if along and along < bestAlong then
-				bestModel, bestAlong, bestHead = model, along, isHead
+			local headCenter = if shape.headCenter then shape.headCenter + shift else nil
+			local near = (
+				headCenter ~= nil and segmentSphere(origin, direction, length, headCenter, shape.headRadius) ~= nil
+			)
+				or segmentCapsule(
+						origin,
+						direction,
+						length,
+						shape.feet + shift,
+						shape.neck + shift,
+						HEADSHOT.BodyRadius + ZONES.FilterExtraStuds
+					)
+					~= nil
+			if near then
+				local along, zone =
+					nearestPiece(model, rewind, past, shift, origin, direction, length, headCenter, shape.headRadius)
+				if along and along < bestAlong then
+					bestModel, bestAlong, bestZone = model, along, zone
+				end
 			end
 		end
 	end
 	if not bestModel then
-		return nil, length, nil, false
+		return nil, length, nil, nil
 	end
-	return bestModel, bestAlong, origin + direction * bestAlong, bestHead
+	return bestModel, bestAlong, origin + direction * bestAlong, bestZone
 end
 
 -- Rehace la lista de combatientes cuando cambia y empieza a guardar sus posiciones. Lo llama

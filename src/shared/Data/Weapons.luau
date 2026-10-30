@@ -41,6 +41,9 @@ export type WeaponDefinition = {
 	tool: ToolDefinition?,
 	-- Solo las del Laboratorio (Data/LabWeapons): qué hace al acertar y si acerca la vista.
 	lab: LabWeapons.LabFields?,
+	-- Zonas de daño (Fase 19, W6; Shared/Zones): multiplicador propio por zona, que sustituye al general
+	-- (Config.Combat.Zones). Sin él, la cabeza sale de su proyectil y las demás zonas del general.
+	zoneMultipliers: LabWeapons.ZoneMultipliers?,
 	description: string?,
 }
 
