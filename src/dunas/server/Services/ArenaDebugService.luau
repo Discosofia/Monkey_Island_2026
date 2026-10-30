@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local CosmeticsServer = require(ServerScriptService.ServerShared.CosmeticsServer)
 local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
@@ -151,7 +152,11 @@ function ArenaDebugService:Start()
 	if not RunService:IsStudio() then
 		return
 	end
-	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any)
+	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any, arg: any)
+		if command == "FakeKill" then
+			Killfeed.fake(player, arg)
+			return
+		end
 		local handler = if typeof(command) == "string" then COMMANDS[command] else nil
 		if handler then
 			handler(player)

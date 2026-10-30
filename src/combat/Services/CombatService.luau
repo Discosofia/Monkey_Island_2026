@@ -62,6 +62,7 @@ local Evasive = require(script.Parent.Parent.Evasive)
 local Feint = require(script.Parent.Parent.Feint)
 local Hitbox = require(script.Parent.Parent.Hitbox)
 local HitFeedback = require(script.Parent.Parent.HitFeedback)
+local Killfeed = require(script.Parent.Parent.Killfeed)
 local Knockback = require(script.Parent.Parent.Knockback)
 local Latency = require(script.Parent.Parent.Latency)
 local PositionHistory = require(script.Parent.Parent.PositionHistory)
@@ -543,6 +544,12 @@ local function applyPvP(
 		humanoid:TakeDamage(amount)
 		return
 	end
+	Killfeed.send({
+		killer = attacker,
+		victim = victim,
+		weaponId = if feedback then feedback.weaponId else nil,
+		zone = zone,
+	})
 	CombatRules.get().knockOut(victim, attacker, "PvP")
 end
 

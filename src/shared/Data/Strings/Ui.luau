@@ -4,6 +4,8 @@
 -- Strings.later), con los mismos argumentos {x}. tools/strings.py avisa de lo que falta o sobra.
 
 return {
+	["derrota a"] = "defeats",
+	["{victim} ha caído"] = "{victim} has fallen",
 	[" · corta helechos y arbustos"] = " · cuts ferns and bushes",
 	[" · golpea rocas"] = " · breaks rocks",
 	[" · golpea árboles"] = " · chops trees",

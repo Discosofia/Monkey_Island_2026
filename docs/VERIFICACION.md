@@ -3435,3 +3435,62 @@ Nota: lo ya probado en Studio (solo carga y `Equilibrio`: la tabla «Dispersión
    ✅ La mira del arco usa un pool fijo de 16 `Frame`. El número no sube al apuntar ni al disparar, y no hay `Instance.new` por fotograma en la mira.
 
 Nota: lo ya probado en Studio (solo la honda en la Isla: punto rojo al apuntar con clic derecho, FOV 55, cámara al hombro y todo vuelve al soltar) no se repite aquí.
+
+## 83. Fase 19 W9: killfeed (29-10-2026)
+
+**Un jugador en Play (Dunas, con el botón «☠️ Bajas falsas en el registro» del panel de pruebas):**
+
+1. [ ] En Dunas, pulsa el botón de bajas falsas sin argumento.
+   ✅ Salen 3 filas arriba a la derecha, debajo del marcador de Dunas y del emote, sin tapar nada ni chocar con `ArenaHUDController`. La primera es tu baja en la cabeza sobre «Rival», la segunda es «Rival» te mata con el icono genérico y la tercera dice que derrotas a Gorila Plateado.
+
+**Un jugador en Play (Laboratorio, con las 4 armas):**
+
+1. [ ] En el Laboratorio, con el rifle en la mano, pulsa el botón de bajas falsas.
+   ✅ Salen las 3 filas debajo del marcador y del emote, sin chocar con `LabHUDController`. La fila de la baja en la cabeza lleva el icono del rifle en el `ViewportFrame` de 28 px, reconocible y sin cortarse.
+2. [ ] Repite con el lanzadardos, el arpón y el cañón, una vez con cada uno.
+   ✅ Cada fila muestra su arma (no el icono genérico) en el `ViewportFrame` de 28 px, con la orientación de la mano. Si alguno sale cortado o del revés, anota el nombre del arma.
+
+**Dos jugadores (*Test → Clientes y servidores*, 2 clientes):**
+
+1. [ ] En Dunas, mata a tu rival en PvP.
+   ✅ La baja sale en el registro de los dos clientes, con el nombre del asesino y de la víctima. En cada cliente, la fila donde ese jugador es asesino o víctima sale resaltada en tono cálido, y las demás no. Los nombres salen con el color de su equipo (`Player.Team`).
+2. [ ] En el Laboratorio, mata a tu rival por equipos.
+   ✅ La baja sale en los dos clientes, con el mismo resaltado del paso anterior. Los nombres deberían salir con el color de su equipo; en el Laboratorio puede salir blanco, anótalo.
+3. [ ] En la Isla, con el PvP activado (opt-in), mata a tu rival.
+   ✅ La baja sale en los dos clientes.
+4. [ ] Desde los dos clientes a la vez, pulsa bajas falsas con `spam` (paso 3 de «Con argumento», en la Isla).
+   ✅ Llegan al registro como máximo 10 avisos por segundo y el resto se descarta. Anota cuántas filas ves en el primer segundo.
+5. [ ] Tras cualquier baja, no toques nada y espera.
+   ✅ Cada fila se desvanece a los 5 s y desaparece.
+
+**Baja de jefe real (Isla, 2 jugadores):**
+
+1. [ ] Con 2 jugadores, A y B golpean al mismo jefe y A le da el último golpe. Cuando cae, mira el registro en los dos clientes.
+   ✅ Sale una fila con A como asesino y el nombre del jefe como víctima, en los dos clientes. El asesino es quien dio el último golpe (`BossService.lastAttacker`).
+2. [ ] Con A dando el último golpe, cierra el cliente de A antes de que caiga el jefe.
+   ✅ La fila sale en el cliente de B como «<jefe> ha caído», sin asesino.
+
+**En el teléfono (Isla, *Prueba → Dispositivo*):**
+
+1. [ ] Pulsa bajas falsas sin argumento y deja que se acumulen filas.
+   ✅ Las filas son compactas: icono al 75 % y texto de 13. La columna se desplaza 170 px.
+2. [ ] Con el reloj y los avisos de la Isla en pantalla, y el panel de pruebas abierto, mira la columna.
+   ✅ La columna no choca con el reloj, con los avisos ni con el panel de pruebas.
+
+**Un jugador en Play (Isla, con las armas de la Isla):**
+
+1. [ ] Con el arco en la mano, pulsa bajas falsas sin argumento.
+   ✅ La fila de la baja en la cabeza lleva el icono del arco, reconocible.
+2. [ ] Repite con el bastón, la cerbatana y la melé, una vez con cada una.
+   ✅ Cada arma se reconoce en su icono, y las cuatro se distinguen entre sí. Si una se confunde con otra, anótalo.
+
+**Con argumento (Isla, consola de Play; el botón no manda argumento):**
+
+1. [ ] Dispara `Remotes.DebugCommand:FireServer("FakeKill", "head")`.
+   ✅ Sale una sola fila: tu baja en la cabeza sobre «Rival».
+2. [ ] Dispara `Remotes.DebugCommand:FireServer("FakeKill", "boss")`.
+   ✅ Sale una sola fila de jefe: tu nombre y «derrota a Gorila Plateado».
+3. [ ] Dispara `Remotes.DebugCommand:FireServer("FakeKill", "spam")`.
+   ✅ Salen 5 filas (el tope de la columna), no 6.
+
+Nota: las muertes por mono o por entorno no salen en el registro (decisión de diseño). Lo ya probado en Studio (solo la Isla con 1 jugador: `FakeKill` sin argumento muestra 3 filas, y «spam» deja 5 filas, el tope) no se repite aquí.

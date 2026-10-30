@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
+local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local TrainingDummies = require(ServerScriptService.Combat.TrainingDummies)
 local LabMatchService = require(script.Parent.LabMatchService)
 local LabRespawnService = require(script.Parent.LabRespawnService)
@@ -154,7 +155,11 @@ function LabDebugService:Start()
 	if not RunService:IsStudio() then
 		return
 	end
-	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any)
+	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any, arg: any)
+		if command == "FakeKill" then
+			Killfeed.fake(player, arg)
+			return
+		end
 		local handler = if typeof(command) == "string" then COMMANDS[command] else nil
 		if handler then
 			handler(player)

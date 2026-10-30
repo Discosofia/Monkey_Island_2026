@@ -27,6 +27,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
+local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local BossService = require(ServerScriptService.Combat.Services.BossService)
 local ContractService = require(script.Parent.ContractService)
 local Admin = require(ServerScriptService.ServerShared.Admin)
@@ -610,7 +611,11 @@ function DebugService:Start()
 	if not RunService:IsStudio() then
 		return
 	end
-	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any)
+	Remotes.DebugCommand.OnServerEvent:Connect(function(player: Player, command: any, arg: any)
+		if command == "FakeKill" then
+			Killfeed.fake(player, arg)
+			return
+		end
 		local handler = if typeof(command) == "string" then COMMANDS[command] else nil
 		if handler then
 			handler(player)

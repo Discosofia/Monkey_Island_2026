@@ -2357,6 +2357,14 @@ local Config = {
 		MinIntervalSeconds = 0.05, -- como mucho un aviso cada tanto por tirador (las muertes siempre pasan)
 		Volume = { Body = 0.6, Head = 0.8, Kill = 0.9 }, -- volumen del sonido de cada tipo
 	},
+
+	-- Registro de bajas (Fase 19, W9; Combat/Killfeed y Shared/UI/Killfeed), arriba a la derecha.
+	Killfeed = {
+		Rows = 5, -- filas a la vez; al llenarse sale la más antigua
+		Seconds = 5, -- lo que dura cada fila (con fundido al final)
+		IconPx = 28, -- lado del icono del arma, en píxeles (en teléfono se usa una fracción)
+		MaxPerSecond = 10, -- tope de avisos por segundo en el servidor (anti-spam)
+	},
 }
 
 return Config

@@ -55,6 +55,7 @@ local CombatService = require(script.Parent.CombatService)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 local EnemyAttack = require(ServerScriptService.Combat.EnemyAttack)
 local Guard = require(ServerScriptService.Combat.Guard)
+local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local Poof = require(ServerScriptService.Combat.Poof)
 local Status = require(ServerScriptService.Combat.Status)
 local MonkeyAnimator = require(script.Parent.Parent.Monkeys.MonkeyAnimator)
@@ -127,6 +128,7 @@ type ActiveBoss = {
 	fighters: number, -- jugadores peleando con los que está calculada su vida (rescaleHealth)
 	strength: { health: number, damage: number }, -- multiplicadores de la vuelta de la rotación
 	firstHitAt: number?, -- os.clock() del primer golpe de un jugador (telemetría de duración)
+	lastAttacker: Player?, -- quien le dio el último golpe de un jugador (el registro de bajas)
 }
 
 -- Animación de cada ataque especial (Data/MonkeyAnimations).
@@ -337,6 +339,13 @@ local function onBossDied(boss: ActiveBoss)
 		end
 	end
 	local bossName = { boss.definition.name }
+	-- Registro de bajas: se atribuye a quien le dio el último golpe, si sigue en la partida.
+	local finisher = boss.lastAttacker
+	Killfeed.send({
+		killer = if finisher and finisher.Parent then finisher else nil,
+		victim = boss.definition.name,
+		boss = true,
+	})
 	if newPiece then
 		announce(
 			"🏆 ¡{boss} ha caído! Pieza de la baliza: {pieces}/{total}",
@@ -848,6 +857,7 @@ function BossService:Init()
 		local boss = current
 		if boss and attacker and model == boss.model then
 			boss.contributors[attacker] = true
+			boss.lastAttacker = attacker
 			boss.fightingUntil = os.clock() + FIGHT_GRACE_SECONDS
 			boss.firstHitAt = boss.firstHitAt or os.clock()
 		end

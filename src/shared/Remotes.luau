@@ -43,6 +43,10 @@ local Remotes = {
 	-- Servidor -> tirador (Fase 19, W3): confirmación de impacto de su disparo (kind "Body"|"Head"|"Limb"|"Weak"|
 	-- "Kill"|"Blocked", posición del impacto, id del arma). Sin agrupar (Combat/HitFeedback).
 	HitFeedback = remoteEvent("HitFeedback"),
+	-- Servidor -> todos (Fase 19, W9): una baja para el registro de arriba a la derecha (Combat/Killfeed). Una tabla
+	-- { killer: string?, killerId: number?, victim: string, victimId: number?, weaponId: string?, zone: string?,
+	-- boss: boolean? }; los nombres son DisplayName, y el de un jefe va en español sin traducir.
+	Killfeed = remoteEvent("Killfeed"),
 	-- Servidor -> cliente (Isla): has recogido algo (itemId, cantidad). Lo dibuja CombatTextController
 	-- en la columna de lo recogido, como los números de combate.
 	Loot = remoteEvent("Loot"),
