@@ -560,6 +560,41 @@ local function main(copia: Instance): string
 			)
 			rig.model:Destroy()
 		end)
+		-- Modelos de apuntado de la primera persona (Fase 19, W11): solo las piezas "LabAim", sin fusionar (se
+		-- crean al sacar el arma y solo las ve quien apunta).
+		intentar("LabAimModels", function()
+			local LabWeaponModels = require(copia.LabWeaponModels) :: any
+			local LabAimModels = require(copia.LabAimModels) :: any
+			for _, armaId in claves(Weapons) do
+				if Weapons[armaId].lab and LabAimModels.has(armaId) and pasa(armaId) then
+					for _, bando in LIMITES.bandos do
+						local skins: { string | boolean } = { false }
+						for _, skinId in claves(Cosmetics) do
+							if Cosmetics[skinId].weapon == armaId and LabWeaponSkins.has(skinId) then
+								table.insert(skins, skinId)
+							end
+						end
+						for _, skinId in skins do
+							local herramienta = Instance.new("Tool")
+							local mango = LabWeaponModels.build(herramienta, armaId, bando, nil)
+							LabAimModels.add(mango, armaId, bando, if typeof(skinId) == "string" then skinId else nil)
+							local piezas = 0
+							for _, parte in herramienta:GetChildren() do
+								if parte:IsA("BasePart") and parte:GetAttribute("LabAim") then
+									piezas += 1
+								end
+							end
+							fila(
+								`{armaId} {bando} apuntando{if typeof(skinId) == "string" then ` + {skinId}` else ""}`,
+								{ ahora = piezas, tras = piezas, detalle = 0 },
+								M.LabAimModel
+							)
+							herramienta:Destroy()
+						end
+					end
+				end
+			end
+		end)
 	end)
 
 	-- ---------------------------------- 7. Monos y jefes ----------------------------------

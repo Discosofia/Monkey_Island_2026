@@ -41,6 +41,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 local LabViewModelRig = require(ReplicatedStorage.Shared.LabViewModelRig)
+local LabAimModels = require(ReplicatedStorage.Shared.LabAimModels)
 local ViewModelAnimations = require(ReplicatedStorage.Shared.Data.ViewModelAnimations)
 local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
 local Crosshair = require(ReplicatedStorage.Shared.UI.Crosshair)
@@ -64,6 +65,14 @@ local HIP_OFFSET = Vector3.new(1.25, -1.45, -3.0)
 local HIP_YAW = math.rad(16)
 local HIP_PITCH = 0.08
 local AIM_OFFSET = Vector3.new(0, -0.78, -1.6)
+-- Al apuntar con un arma que tiene modelo de apuntado (Shared/LabAimModels): la mira queda a la altura de la
+-- línea de tiro que ese modelo deja libre (Config.Lab.AimViewOffset).
+local VIEW_SCALE = Config.Lab.ViewScale
+local AIM_VIEW_OFFSET =
+	Vector3.new(Config.Lab.AimViewOffset.X, Config.Lab.AimViewOffset.Y * VIEW_SCALE, Config.Lab.AimViewOffset.Z)
+-- Entre estos acercados el arma de perfil se funde en el modelo de apuntado.
+local AIM_SWAP_FROM = 0.3
+local AIM_SWAP_TO = 0.7
 -- El rig (Shared/LabViewModelRig) ya trae el arma girada hacia -Z con su lado de arriba hacia +Y.
 -- Retroceso por defecto si un arma no tiene su fila en Config.Lab.View.
 local DEFAULT_KICK = { kickBack = 0.18, kickPitch = 0, kickRoll = 0, camKick = 0, recover = 12 }
@@ -124,6 +133,10 @@ local crosshairHandle: Crosshair.Handle? = nil
 local sightsHandle: Sights.Handle? = nil
 -- true mientras las piezas del arma de la vista están escondidas por el visor.
 local viewHidden = false
+-- Las piezas del arma de perfil y las del modelo de apuntado (Shared/LabAimModels): una se funde en la otra al
+-- apuntar. Sin modelo de apuntado (el rifle), aimParts queda vacío y el arma de perfil no cambia.
+local hipParts: { BasePart } = {}
+local aimParts: { BasePart } = {}
 local cursorChangedListeners: { (free: boolean) -> () } = {}
 local lockRequestedListeners: { () -> () } = {}
 -- Las ventanas que necesitan el ratón mientras están abiertas (Ctrl no se lo quita).
@@ -135,6 +148,8 @@ local function clearViewModel()
 		viewModel = nil
 	end
 	viewRig = nil
+	hipParts = {}
+	aimParts = {}
 	tracks = {}
 	sprintPlaying = false
 	shownKey = nil
@@ -208,6 +223,7 @@ local function refresh(player: Player)
 	-- Las piezas se hacen en una Tool suelta y se pasan a un modelo pegado a la cámara.
 	local holder = Instance.new("Tool")
 	local handle = LabWeaponModels.build(holder, weaponId, faction, skinId)
+	LabAimModels.add(handle, weaponId, faction, skinId)
 	local weaponModel = Instance.new("Model")
 	for _, part in holder:GetChildren() do
 		-- Las piezas de la espalda de la skin taparían la mira: solo las ven los demás.
@@ -221,11 +237,18 @@ local function refresh(player: Player)
 	for _, descendant in weaponModel:GetDescendants() do
 		if descendant:IsA("ParticleEmitter") then
 			descendant:Destroy()
+		elseif descendant:IsA("BasePart") then
+			table.insert(if descendant:GetAttribute("LabAim") then aimParts else hipParts, descendant)
 		end
+	end
+	if #aimParts == 0 then
+		hipParts = {}
 	end
 	-- El rig se queda con las piezas del arma (soldadas al Handle) y les pone los brazos.
 	local rig = LabViewModelRig.build(weaponModel, handle, faction, skinColor(character))
 	rig.model.Parent = camera
+	-- Las armas y los brazos de la vista se ven más pequeños (Config.Lab.ViewScale), alrededor de la mano.
+	rig.model:ScaleTo(VIEW_SCALE)
 	rig.root.CFrame = camera.CFrame * CFrame.new(HIP_OFFSET)
 	viewRig = rig
 	viewModel = rig.model
@@ -235,6 +258,8 @@ local function refresh(player: Player)
 	local aim = tracks.Aim
 	if aim then
 		aim:Play(0, 0.001)
+		-- La pista Aim es un bucle de respiración de 1 s: parada en su primer fotograma, la mira no se mueve.
+		aim:AdjustSpeed(0)
 	end
 	local equip = tracks.Equip
 	if equip then
@@ -402,6 +427,22 @@ local function reloadProgress(): number?
 	return math.clamp(1 - (finish - Workspace:GetServerTimeNow()) / seconds, 0, 1)
 end
 
+-- Funde el arma de perfil en el modelo de apuntado según el acercado (de 0 a 1): hasta un tercio se ve la de
+-- perfil, a partir de dos tercios solo la de apuntado. Con el visor puesto no se toca (lo esconde todo).
+local function swapAimModel(zoom: number)
+	if #aimParts == 0 or viewHidden then
+		return
+	end
+	local blend = math.clamp((zoom - AIM_SWAP_FROM) / (AIM_SWAP_TO - AIM_SWAP_FROM), 0, 1)
+	blend = blend * blend * (3 - 2 * blend)
+	for _, part in hipParts do
+		part.LocalTransparencyModifier = blend
+	end
+	for _, part in aimParts do
+		part.LocalTransparencyModifier = 1 - blend
+	end
+end
+
 local function follow(deltaTime: number)
 	if heldTool then
 		for _, part in heldTool:GetChildren() do
@@ -435,12 +476,14 @@ local function follow(deltaTime: number)
 	end
 	updateSights(camera, Players.LocalPlayer.Character)
 	setViewHidden(Sights.scopeAlpha() > SCOPE_HIDES_VIEW)
+	swapAimModel(zoom)
 	local rig = viewRig
 	if not (rig and camera) then
 		return
 	end
 	recoil = math.max(0, recoil - recoil * math.min(1, kickView.recover * deltaTime))
-	local offset = HIP_OFFSET:Lerp(AIM_OFFSET, zoom) + DodgeFeel.weaponShift()
+	local aimOffset = if #aimParts > 0 then AIM_VIEW_OFFSET else AIM_OFFSET
+	local offset = HIP_OFFSET:Lerp(aimOffset, zoom) + DodgeFeel.weaponShift() * (1 - zoom)
 	local pitch = 0
 	local roll = 0
 	-- Respaldo del disparo: sin la pista Fire, el rig entero va atrás, la boca sube (pitch) y se tuerce (roll).
@@ -504,12 +547,12 @@ local function follow(deltaTime: number)
 		offset += Vector3.new(0, -DRAW_DROP * left, 0)
 		pitch += DRAW_TILT * left
 	end
-	-- Un poco de balanceo al andar (no al apuntar con el rifle acercado).
+	-- Un poco de balanceo al andar (nada al apuntar: la mira tiene que estar quieta).
 	local character = Players.LocalPlayer.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	if humanoid and humanoid.MoveDirection.Magnitude > 0.1 and zoom <= 0.5 then
+	if humanoid and humanoid.MoveDirection.Magnitude > 0.1 and zoom <= 0.02 then
 		local t = os.clock() * BOB_HZ
-		offset += Vector3.new(math.sin(t) * SWAY, math.abs(math.cos(t)) * SWAY, 0) * (1 - zoom)
+		offset += Vector3.new(math.sin(t) * SWAY, math.abs(math.cos(t)) * SWAY, 0)
 	end
 	local hip = 1 - zoom
 	rig.root.CFrame = camera.CFrame * CFrame.new(offset) * CFrame.Angles(HIP_PITCH * hip + pitch, HIP_YAW * hip, roll)

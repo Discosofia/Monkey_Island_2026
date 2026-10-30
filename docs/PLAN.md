@@ -855,7 +855,7 @@ Decisiones del 29-10-2026:
 | **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
 
 **Handoff de la Fase 19 W11 (29-10-2026)**
-- **Estado:** W1–W10 hechas, commiteadas y subidas (W10 2306989). Queda W11 (prueba publicada) y el ajuste de combate del Laboratorio (más abajo). Siguiente número libre de VERIFICACION: §87 (la §86 es la ruta de la prueba publicada W11). Plan completo en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W11).
+- **Estado:** W1–W10 hechas, commiteadas y subidas (W10 2306989). Queda W11 (prueba publicada) y el ajuste de combate del Laboratorio (más abajo). Siguiente número libre de VERIFICACION: §88 (la §86 es la ruta de la prueba publicada W11 y la §87, los modelos de apuntado). Plan completo en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W11).
 - **Lo que hay que hacer en W11 (lo hace el usuario con el juego publicado, de 2 a 10 jugadores y un teléfono; el resto de la sesión ajusta):**
   - Publicar los 4 places con Rojo sincronizado y guardados (los 20 ids del rig de brazos ya están en `Data/ViewModelAnimations`).
   - Recorrer las secciones de VERIFICACION desde la §74 hasta la §85: pose replicada, rebobinado con ping real, pico de marcas, killfeed, miras y líneas en el teléfono, FPS, rig de brazos con las 5 pistas de las 4 armas y la vida 144 del Lab.

@@ -3605,6 +3605,13 @@ Esta sección no añade pasos nuevos: ordena los de §74–§85 por sesión de p
 1. [ ] En el Lobby, la Isla y Dunas, con un arma a distancia, apunta con el clic derecho y cambia el bloqueo de cámara con Ctrl (o desde el menú de Roblox) varias veces, con el clic derecho mantenido y soltado.
    ✅ Al soltar el clic derecho el ratón queda libre o bloqueado según el bloqueo de cámara (Ctrl), nunca fijo en el centro sin poder soltarlo.
 
+**Vigilar (visto en la prueba publicada, sin causa conocida):**
+
+1. [ ] El lanzadardos no hizo daño en una partida publicada del Laboratorio (ni con mira ni sin ella) y después volvió a funcionar sin cambios de código. Si vuelve a pasar, anota el hitmarker (¿sale?), el blanco (jugador o muñeco), la consola del servidor (F9) y si el servidor era recién abierto o venía de una versión anterior.
+   ✅ El lanzadardos hace daño siempre, en servidores nuevos y antiguos.
+2. [ ] En primera persona del Laboratorio, mira cuánto se ve de cada arma con la mira y el rig de brazos.
+   ✅ El lanzadardos, el lanzarredes y el cañón se ven tanto como el rifle; si tapan la vista, ajusta la escala o la posición de la vista (W10).
+
 **Qué se ajusta según lo que falle (dónde se toca):**
 
 - Dispersión o FOV de apuntar: `Data/LabWeapons` (`adsSpreadFactor`, FOV) y `Config` de combate a distancia.
@@ -3613,3 +3620,38 @@ Esta sección no añade pasos nuevos: ordena los de §74–§85 por sesión de p
 - Combate del Laboratorio (duración, regeneración): `Config.Lab.Health`, `RegenPerSecond`, `RegenDelaySeconds` y el daño en `Data/LabWeapons`; remide con `Equilibrio`, sección 12.
 - Una pose o una pista del rig que falle: se rehace con la skill `animaciones-roblox` y el usuario la vuelve a publicar.
 
+
+## 87. Fase 19 W11: modelos de apuntado y vista más pequeña en primera persona (29-10-2026)
+
+Cambio tras la prueba publicada (las armas se veían como un bloque enorme al apuntar): el lanzadardos, el lanzarredes y el cañón tienen un segundo modelo para apuntar (`Shared/LabAimModels`: cajón escalonado, placa trasera con la calavera de los Piratas o la franja azul de los Guardianes, visor, tambor, red, depósito), con las skins Avispa, Kraken y Dragón. El rifle sigue igual (visor). Las armas y los brazos de la vista miden `Config.Lab.ViewScale` = 0,7. Al apuntar ya no hay balanceo al andar ni la respiración de la pista Aim (parada en su primer fotograma), y la altura de la mira es `Config.Lab.AimViewOffset`.
+
+**Un jugador en Play (Laboratorio, cada bando, con las 3 armas):**
+
+1. [ ] Mantén el clic derecho con el lanzadardos, el lanzarredes y el cañón, y mira la vista.
+   ✅ Se funde del arma de perfil al modelo de apuntado (a partir de un tercio del acercado) y se reconoce un arma real: cajón escalonado, visor, cañón y adornos del bando. Ya no sale un bloque enorme tapando la pantalla.
+2. [ ] Con el lanzadardos apuntando, mira el marco del visor y el punto rojo.
+   ✅ El punto rojo cae dentro del marco, en el centro de la pantalla.
+3. [ ] Con el lanzarredes y el cañón apuntando, mira la boca del arma y la línea de la mira.
+   ✅ Nada del arma cruza el centro de la pantalla (los pesos de la boca y la campana quedan por debajo de la mira).
+4. [ ] Apunta andando, corriendo y esquivando.
+   ✅ El arma no se mueve: ni balanceo, ni respiración, ni empujón de la esquiva. Sin apuntar, el balanceo al andar sigue.
+5. [ ] Suelta el clic derecho.
+   ✅ Vuelve el arma de perfil sin saltos.
+6. [ ] En la vista de cadera, mira cada arma (también el rifle).
+   ✅ Se ven un 30 % más pequeñas que antes y siguen bien sujetas por las dos manos. Si alguna pista (Fire, Reload, Equip, Sprint) se ve rara por la escala, anota cuál.
+7. [ ] Con una skin de bajas de cada una (Avispa, Kraken, Dragón, grados I a III) y en cada bando, apunta.
+   ✅ Se ven las bandas de colores y los adornos de la skin (ojos y alas de la Avispa, ventosas y tentáculos del Kraken, brasas, cuernos y alas del Dragón), y cada grado suma algo. Anota si la skin se confunde con la base.
+8. [ ] Dispara apuntando y mira la trazadora y el fogonazo.
+   ✅ Salen de la boca del arma de perfil (que no se ve), a pocos centímetros de la boca del modelo de apuntado.
+
+**En el teléfono (Laboratorio, *Prueba → Dispositivo*):**
+
+1. [ ] Apunta con las 3 armas.
+   ✅ El modelo de apuntado se lee bien y no tapa la mira ni el botón «Mira».
+
+**Calculadora `Rendimiento` (Studio de la Isla, sección 6):**
+
+1. [ ] Ejecuta `Rendimiento` con la sección del Laboratorio.
+   ✅ Las filas «apuntando» salen entre 28 y 50 piezas frente al tope `LabAimModel` (60), sin alertas.
+
+Nota: lo ya probado en Studio (Play en el Laboratorio, Guardianes y Piratas: lanzadardos, lanzarredes y cañón apuntando con el modelo nuevo; la escala 0,7 aplicada al rig; `Rendimiento` sin alertas; vista previa de las skins Avispa III, Kraken III y Dragón III) no se repite aquí. Las poses de los brazos al apuntar no se han ajustado: son las de la pista Aim ya publicada, congelada.

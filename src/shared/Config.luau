@@ -1375,6 +1375,13 @@ local Config = {
 		-- Balanceo del arma de la vista al andar (Fase 19, W10; FirstPersonController): SwayStuds = studs de
 		-- vaivén y BobHz = velocidad del paso (radianes por segundo del seno).
 		ViewModel = { SwayStuds = 0.04, BobHz = 8 },
+		-- Dónde queda el arma respecto de la cámara al apuntar con un arma que tiene modelo de apuntado (Fase 19,
+		-- W11; Shared/LabAimModels): derecha, arriba (menos que la altura de la mira sobre la mano) y delante.
+		-- La altura (Y) es la de la mira sobre la mano sin escalar; FirstPersonController la multiplica por ViewScale.
+		AimViewOffset = Vector3.new(0, -0.485, -1.6),
+		-- Tamaño de las armas y los brazos de la vista en primera persona (1 = el original): 0,7 tras la prueba
+		-- publicada, que los veía demasiado grandes.
+		ViewScale = 0.7,
 		-- Muñecos del panel de pruebas (LabDebugService): delante del jugador, a las distancias de la
 		-- calculadora (corta, media y larga).
 		TestDummyDistances = { 15, 50, 120 },
@@ -2271,6 +2278,7 @@ local Config = {
 			Aura = 30, -- aura cosmética
 			LabWeaponBase = 45, -- arma del Laboratorio sin skin
 			LabWeaponSkin3 = 200, -- arma del Laboratorio con una skin de bajas (hoy el Arpón de red III llega a 99)
+			LabAimModel = 60, -- modelo de apuntado de un arma del Laboratorio con su skin, en primera persona (Fase 19, W11)
 			LabViewModelArms = 40, -- brazos del rig de la vista en primera persona del Laboratorio, sin el arma (hoy 9)
 			Buildable = 25, -- construible de la Isla
 			PlotStructure = { 60, 90, 120 }, -- estructura de la parcela, nivel I a III

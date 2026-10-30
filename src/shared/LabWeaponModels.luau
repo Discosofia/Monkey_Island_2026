@@ -19,7 +19,7 @@ local VoxelMerge = require(ReplicatedStorage.Shared.VoxelMerge)
 
 export type Faction = "Guardians" | "Pirates"
 
-type Palette = {
+export type Palette = {
 	body: Color3,
 	bodyMaterial: Enum.Material,
 	trim: Color3,
@@ -425,6 +425,29 @@ local BUILDERS: { [string]: (tool: Tool, faction: Faction) -> BasePart } = {
 	LabNetHarpoon = buildNetHarpoon,
 	LabAcidCannon = buildAcidCannon,
 }
+
+-- Los colores y materiales de cada bando y lo que dispara cada arma, para el modelo de apuntado de la primera
+-- persona (Shared/LabAimModels), que tiene que ser congruente con el arma que ven los demás.
+LabWeaponModels.COLORS = {
+	LAB_BLUE = LAB_BLUE,
+	LAB_GLOW = LAB_GLOW,
+	LAB_DARK = LAB_DARK,
+	GOLD = GOLD,
+	PIRATE_WOOD = PIRATE_WOOD,
+	DARK_WOOD = DARK_WOOD,
+	IRON = IRON,
+	ROPE = ROPE,
+	BONE = BONE,
+	DART = DART,
+	BANANA = BANANA,
+	NET = NET,
+	SERUM = SERUM,
+	BUBBLE = BUBBLE,
+}
+
+function LabWeaponModels.palette(faction: Faction): Palette
+	return PALETTES[faction]
+end
 
 -- true si "weaponId" es un arma del Laboratorio.
 function LabWeaponModels.has(weaponId: string): boolean
