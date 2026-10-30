@@ -849,7 +849,7 @@ Decisiones del 29-10-2026:
 | **W5** | Marcas de impacto, chispas, polvo y pulpa | 8c075e6 | ✅ Probado en Studio (sin probar: VERIFICACION §79) |
 | **W6** | Zonas por piezas, rebobinado de pose y ayuda de puntería | c7e07fd | ✅ Probado en Studio (sin probar: VERIFICACION §80) |
 | **W7** | Apuntar de verdad (ADS) y cámara al hombro | 864414a | ✅ Probado en Studio (solo carga y Equilibrio) (sin probar: VERIFICACION §81) |
-| **W8** | Miras por tipo de arma | — | ⏳ |
+| **W8** | Miras por tipo de arma | 576ed76 | ✅ Probado en Studio solo la honda (sin probar: VERIFICACION §82) |
 | **W9** | Killfeed | — | ⏳ |
 | **W10** | Rig de brazos en primera persona del Lab | — | ⏳ |
 | **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
