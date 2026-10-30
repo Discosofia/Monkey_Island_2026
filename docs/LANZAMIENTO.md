@@ -106,7 +106,7 @@ La Temporada 1 ("El Despertar del Volcán") empieza en `startsAt` de `src/shared
 | Qué | Dónde | Recomendación |
 |---|---|---|
 | Nombre | Configuración de la experiencia → Información básica | **Primal Banana Islands: Monkey Survival** (si cambias el nombre, cámbialo también en `Config.GameName`). **Pendiente:** el juego pasó a llamarse así en plural (antes *Primal Banana Island*); cambia aquí el nombre de la experiencia y el del place del Lobby |
-| Descripción | Igual | Usa el pitch del GDD (§1), **sin** "comen carne humana" ni nada de gore, y menciona: para jugar con tus amigos (hasta 5), roles, jefes, mascotas, PvP opcional |
+| Descripción | Igual | Pega el texto en inglés de [GDD §18](GDD.md) (invita a entrar como pionero y a jugar con amigos; no pasa de 1.000 caracteres), **sin** "comen carne humana" ni nada de gore. Menciona: amigos (hasta 5), roles, jefes, mascotas y monturas, PvP en Dunas y el Laboratorio, pase y eventos |
 | Icono | Igual | **Ya hecho:** [`art/portada/icono-512.png`](../art/portada/icono-512.png) (512×512) |
 | Miniaturas | Igual | **Portada ya hecha:** [`art/portada/portada-1920x1080.png`](../art/portada/portada-1920x1080.png), ponla la **primera**. Añade 2–4 capturas a 1920×1080: asedio nocturno, un jefe, el Basecamp construido, el naufragio del Lobby |
 | Género | Igual | Supervivencia |
@@ -133,7 +133,7 @@ La Temporada 1 ("El Despertar del Volcán") empieza en `startsAt` de `src/shared
 
 ## 8. Lanzamiento
 
-1. **Publica los tres places a la vez** (Lobby, Isla e Isla de Dunas): comparten el perfil (`PlayerData_v1`, ahora en la versión 6) y un place viejo no entiende un perfil nuevo. Antes, guarda el Lobby con la plaza v14 (el cartel volcánico del pase) y la Isla con lo generado.
+1. **Publica los cuatro places a la vez** (Lobby, Isla, Isla de Dunas y Laboratorio en ruinas): comparten el perfil (`PlayerData_v1`, ahora en la versión 6) y un place viejo no entiende un perfil nuevo. Antes, guarda el Lobby con la plaza v14 (el cartel volcánico del pase) y la Isla con lo generado.
 2. Comprueba la fecha de la Temporada 1 (§3) y los ids de los Developer Products.
 3. Pon la experiencia en **Pública**.
 4. Opcional: **Anuncios patrocinados** en el Creator Hub con un presupuesto pequeño los primeros días, para que el algoritmo tenga datos.

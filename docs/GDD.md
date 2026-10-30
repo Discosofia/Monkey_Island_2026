@@ -1,13 +1,13 @@
-# Primal Banana Islands: Monkey Survival — Documento de Diseño del Juego (GDD) v0.4
+# Primal Banana Islands: Monkey Survival — Documento de Diseño del Juego (GDD) v0.5
 
-> **Estado:** diseño base confirmado tras la entrevista (v0.2: todas las propuestas de la v0.1 confirmadas). v0.3 (21-10-2026): pase de temporada, misiones v2, contratos, eventos de mitad de partida, cosméticos y tiendas (Fase 9 de `docs/PLAN.md`; §4, §5.4, §11 y §14). v0.4 (22-10-2026): Combate v2, la Fase 10 completa (§6.4, §6.5, §8.1 y §12.2).
+> **Estado:** diseño base confirmado tras la entrevista (v0.2: todas las propuestas de la v0.1 confirmadas). v0.3 (21-10-2026): pase de temporada, misiones v2, contratos, eventos de mitad de partida, cosméticos y tiendas (Fase 9 de `docs/PLAN.md`; §4, §5.4, §11 y §14). v0.4 (22-10-2026): Combate v2, la Fase 10 completa (§6.4, §6.5, §8.1 y §12.2). v0.5 (30-10-2026): el Laboratorio en ruinas jugable (§12.3), ciclo lunar y Luna roja (§5.1), luz de la Isla, zonas del cuerpo, mira y primera persona (§6.4, §6.5), 16 mascotas (§11) y la tanda de idiomas (§18).
 > **Nombre:** **Primal Banana Islands: Monkey Survival** (ver [§15](#15-nombre)). El repositorio conserva el nombre `monkey_island_2026`.
 
 ---
 
 ## 1. Visión
 
-**Pitch:** *Naufragas en una isla tropical llena de monos salvajes y traviesos que te roban la comida. Con hasta 19 jugadores más, especialízate como guerrero, cazador, mago o médico, fortifica el Basecamp, sobrevive noches cada vez más feroces y derrota a los jefes de la isla para encender la baliza de rescate.*
+**Pitch:** *Naufragas en una isla tropical llena de monos salvajes y traviesos que te roban la comida. Con hasta 5 amigos, especialízate como guerrero, cazador, mago o médico, fortifica el Basecamp, sobrevive noches cada vez más feroces y derrota a los jefes de la isla para encender la baliza de rescate. Y cuando quieras, pelea por equipos en la arena de las Dunas o en el Laboratorio en ruinas.*
 
 ### Pilares de diseño
 
@@ -42,7 +42,7 @@
 | Roles | **Fijo por partida** (se elige en el lobby) + **árbol de talentos** que progresa entre partidas. |
 | Mascotas | **Persistentes.** Cada participante del rescate del huevo recibe una tirada. Se coleccionan y se lleva 1 activa. |
 | Huevo | **Evento PvP opt-in.** El portador queda marcado y los jugadores con PvP activo pueden robárselo. |
-| Servidor | **Lobby hasta 20**, **Isla de monos hasta 5** y **Isla de dunas hasta 10** (5v5); se configura en Roblox por place ([SETUP.md](SETUP.md) paso 7). Una partida de la Isla de monos es para **un grupo de amigos** (hasta 5, que viajan juntos desde el Lobby). Si sobran plazas, se puede entrar a una partida en curso. *(Cambio del 20-10-2026: al principio eran 20 jugadores que no se conocían; ahora el juego está pensado para jugar con tus amigos.)* |
+| Servidor | **Lobby hasta 20**, **Isla de monos hasta 5** y **Isla de dunas hasta 10** (5v5) y **Laboratorio hasta 10** (5v5, o 10 en todos contra todos); se configura en Roblox por place ([SETUP.md](SETUP.md) paso 7). Una partida de la Isla de monos es para **un grupo de amigos** (hasta 5, que viajan juntos desde el Lobby). Si sobran plazas, se puede entrar a una partida en curso. *(Cambio del 20-10-2026: al principio eran 20 jugadores que no se conocían; ahora el juego está pensado para jugar con tus amigos.)* |
 | Asedio nocturno | **Sí.** El Basecamp es seguro **mientras resistan las defensas**. |
 | Fiebre del mono | **Sí.** Infección por mordiscos que cura el médico. |
 | Lore | **Santuario-laboratorio** abandonado (Proyecto PRIMAL). |
@@ -74,7 +74,11 @@ flowchart TD
   V --> RW
   X --> RW
   RW --> L
+  L --> AR["Cola de la Isla de dunas: arena PvP por equipos"] --> AB["Arena: captura la bandera"] --> L
+  L --> LQ["Cola del Laboratorio: modo y formato"] --> LP["Laboratorio en ruinas: primera persona"] --> L
 ```
+
+**Ramas desde el Lobby.** La plaza también lleva a la arena de la Isla de Dunas (§12.2) y al Laboratorio en ruinas (§12.3). Cada una tiene su cola, su servidor y sus recompensas, y al terminar se vuelve al Lobby. No pasan por el Basecamp.
 
 **Probar el rol en el Lobby (20-10-2026).** En la plaza del Lobby cada jugador lleva las armas y las 5 habilidades de su rol elegido, con sus talentos, mejoras y mascota, y las prueba contra tres muñecos de práctica (los del Basecamp) antes de zarpar a la Isla de monos o a la Isla de dunas. Nunca afectan a otros jugadores: no les hacen daño, ni los curan, ni los protegen, ni les ponen estados (las curaciones y escudos solo van a uno mismo), y practicar no cuenta para las misiones del día. Lo deciden las reglas del combate del Lobby (`LobbyCombatRules`).
 
@@ -174,6 +178,17 @@ Todo se ajusta en `Config.Daily` (calendario, misiones), `Config.Season` (pase) 
 - **Día:** especies diurnas. Es el momento de explorar y recolectar.
 - **Atardecer:** aviso un minuto antes de la noche para volver a la base.
 - **Noche:** especies nocturnas, menos visibilidad (antorchas) y **asedio al Basecamp** (§10).
+- **Luz** (Fase 18, B1): en la Isla, la luz sigue una curva de 24 h del reloj (`Config.Lighting`): noche azul hasta las 5 h, **amanecer** naranja a las 5,9 h, mañana desde las 7,2 h, mediodía a las 12 h, tarde, **atardecer** naranja a las 17,5 h, anochecer violeta a las 18,5 h y noche cerrada desde las 19,5 h. Con 10 + 7 min, el día dura unas 14 h del reloj y la noche unas 10.
+- **Ciclo lunar** (Fase 18, B2; `Config.Moon`): la luna cambia de fase cada 2 días de partida, así que un ciclo completo son 8 días. Cada fase da un efecto suave y ajusta la luz de la noche (`NightLight`):
+
+| Fase | Efecto | Luz de la noche |
+|---|---|---|
+| Luna nueva | Los monos detectan desde menos distancia (alcance ×0,85) | ×0,85 |
+| Luna creciente | Las plantas vuelven a crecer un 15 % más rápido | ×1 |
+| Luna llena | Los monos pegan un 10 % más fuerte y sueltan un 15 % más de botín | ×1,08 |
+| Luna menguante | El hambre y la sed bajan un 10 % más despacio | ×1 |
+
+- **Luna roja** (Fase 18, B3; evento en vivo de administrador, `Config.LiveEvents.RedMoon`, 30 min por defecto): vale en los 4 places y tiñe el cielo de rojo. En la Isla, la horda de la noche es 1,5 veces más grande, los monos tienen 1,25 veces la vida, pegan 1,2 veces más y sueltan botín el doble de veces (nunca Ámbar). El Ámbar de la partida es el doble.
 
 ```mermaid
 stateDiagram-v2
@@ -228,6 +243,13 @@ La partida dura unas 2 h 16 min (8 días de 17 min) y antes había un hueco entr
   - **Erupción preliminar** (día 7, 150 s): lluvia de piroclastos en las zonas altas y **2 cajas militares** guardadas por babuinos, con obsidiana, vendas, antídoto, comida y una esquirla de jefe al azar. Abrirlas (8 s) activa el PvP durante 4 min.
 - **Preparar la Gran Tropa** (noche final): la mitad de los mandriles, orangutanes y gorilas de cada oleada va a por la **baliza** (16.000 de vida; solo la rompen ellos). Si cae, se corta la señal, esa noche no hay rescate y al amanecer se repara y se puede volver a encender. Ayudan el **tótem guardián** (uno por campamento, pide una Perla del río: a 25 studs, −35 % de daño a las piezas y reparación nocturna, −10 % de daño a los jugadores) y las **antorchas de pie**, que espantan a los aulladores del asedio y se gastan. Sin defenderla, la baliza cae al poco de llegar la 5.ª oleada.
 
+### 5.5 Eventos globales (Fase 18)
+
+El administrador puede convertirse en **gigante** o sacar un **jefe** de bioma. Los dos valen en los 4 places (Lobby, Isla, Dunas y Laboratorio), en el servidor donde esté el administrador. La Luna roja (§5.1) también es un evento en vivo.
+
+- **El gigante** (`Config.GiantAdmin`): crece 2,5 veces, con 3.600 de vida base que suben un 75 % por cada jugador activo extra. Tiene golpes con aviso (pisotón, ola de choque y rugido que aturde). Al caer, quien le ha pegado se lleva el título «Matagigantes» y un huevo legendario.
+- **El jefe:** el de la rotación de §8.2, con su barra de jefe. En la Isla deja su botín y una pieza de la baliza. Fuera de ella, cada jugador que le hizo daño recibe 50 de Ámbar y 50 de XP del pase, una sola vez por jefe (`Config.Bosses.OutsideReward`).
+
 ---
 
 ## 6. El jugador
@@ -241,8 +263,15 @@ La partida dura unas 2 h 16 min (8 días de 17 min) y antes había un hueco entr
 | Sed | Baja más rápido (unos 14 min). Se recupera bebiendo agua del río. *Más adelante: hervirla, cocos o lluvia.* |
 | Estamina | Se gasta al correr, deslizar y esquivar. Con hambre o sed bajas se recupera más despacio. La lleva el servidor (el cliente la predice), así que no se puede esquivar ni deslizar sin ella. Deslizar (Alt izquierdo, C en el Laboratorio, R3 en mando) cuesta 15 de golpe, no da invulnerabilidad y no se hace con la bandera ni en el Lobby (sin gasto). |
 
-A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
 | Fiebre del mono | Sube con los **mordiscos** de los monos según el daño que entra tras la armadura (+20 por cada barra de vida entera perdida a mordiscos; un mono básico, +1) y con la carne cruda (+12). Piedras, pisotones, jefes y peligros no la suben. Desde 60, tinte morado y **oleadas** cortas de vista borrosa (cada 16 s a 60, cada 7 s a 100); entre oleadas se ve bien. A 100 además quita vida poco a poco. Baja sola 4 por minuto (15 por minuto descansando en el Basecamp); el **antídoto** del taller del curandero la quita de golpe y el remate del combo del médico la baja 9. Ritmo buscado: síntomas tras unos 10 minutos de pelea continua sin curarse. |
+
+A 0 de hambre o de sed se pierde vida y se puede acabar **caído**. La vida solo se regenera con hambre y sed por encima de la mitad.
+
+**Movimiento** (`Config.Movement`, en los 4 places): andar a 18 studs/s y correr a 26, que gasta estamina. **Deslizarse** (Alt izquierdo) sale corriendo a 36 studs/s y frena hasta 18 en 0,75 s, con 1 s de espera; en el Laboratorio también se desliza andando, en versión corta. **Esquivar** cuesta 25 de estamina y tiene 1,2 s de espera y 0,35 s de invulnerabilidad. Empuja a 55 studs/s con un arrastre de 0,2 s, con líneas blancas de movimiento (ajuste "speedLines") y un temblor corto. En el Laboratorio, además, la cámara se inclina 8° hacia el lado de la esquiva.
+
+**Pantalla roja:** recibir daño enciende los bordes en rojo (más fuerte con un golpe grande o a la cabeza), y con menos de un cuarto de la vida el borde pulsa. En PvP, un arco rojo señala de dónde viene el golpe.
+
+**Menús bloqueados:** tras hacer o recibir daño, durante 4 s no se abren las estaciones, los cofres ni la parcela (`Config.Combat.InteractLockSeconds`).
 
 ### 6.2 Muerte: caído y reaparición
 
@@ -302,7 +331,16 @@ Las sinergias son intencionadas: el guerrero **aguanta** y agrupa a los monos, e
 | Monos de categoría 2 / 3 | 15 % / 20 % (categoría 1: nunca). |
 | Jefes | 25 % en las fases 1 y 2; 28 % en la fase 3 (furia). |
 
-**Cabeza** (Fase 15, V7): en PvP a distancia, en la Isla de Dunas y en el Laboratorio, un impacto directo de arma a distancia en la cabeza de otro jugador hace ×1,5 (no el cañón de suero ni las áreas). No se suma al crítico: cuenta el mayor. Sale «¡Cabeza!» con estilo de crítico.
+**Zonas del cuerpo** (Fase 15, V7; Fase 19, W6): un impacto directo de arma a distancia multiplica su daño según la parte del cuerpo que toca (`Config.Combat.Zones`, en los 4 places). El cañón de suero, que es de área, no usa zonas.
+
+| Zona | Multiplicador |
+|---|---|
+| **Cabeza** | ×1,5 (la flecha ×1,75, el hechizo ×1,25, el dardo ×1,3 y la piedra ×1,5; el rifle del Laboratorio ×2) |
+| **Tronco y cadera** | ×1 |
+| **Brazos y piernas** | ×0,8 (el arpón del Laboratorio, ×1) |
+| **Punto débil de un jefe** | ×1,5 |
+
+La cabeza y el punto débil no se suman al crítico: cuenta el mayor. El tronco y las extremidades multiplican siempre, también con crítico. Sale «¡Cabeza!» con estilo de crítico.
 
 **Combos** (`Data/Combos`, `ComboService`): cada rol tiene **dos**, de tres habilidades **en orden**, con 6 s como mucho entre una y otra (si la siguiente aún se está recargando, los 6 s cuentan desde que esté lista). Cada combo empieza con una habilidad distinta: **la que usas primero decide cuál está en marcha**. La primera **marca** lo que toca; la segunda y la tercera hacen **críticos seguros con daño extra** a los marcados (+15 % el guerrero, +10 % el cazador, nada el mago) y el remate tiene un efecto extra.
 
@@ -364,6 +402,17 @@ Con las conexiones las cuatro activas de cada rol entran en el bucle (p. ej. gue
 | **Bloqueo de cámara** ✅ C2 | El shift lock de Roblox, en **Ctrl** (Mayús sigue siendo correr). Lo enciende cada jugador en el menú de Roblox ("Bloqueo de cámara" / Shift Lock Switch). | |
 | **Calibración final** ✅ C13 | Con todo puesto, dos retoques: el **Grito de guerra** protege menos del daño de otros jugadores (−15 % en vez de −40 %; de los monos, igual), y el daño extra de los golpes enlazados del **guerrero** baja de +25 % a +15 %. La calculadora mide la arena sin talentos, como el juego. | Duelos espejo de la arena 9,8 · 9,4 · 9,8 s (con defensa 11,8 · 11,4 · 11,9 s); combo sin escape más largo 34 % (Pisotón); enlazar +27–31 % (con talentos al máximo, ≤ 35 %); jefes con 4 jugadores 105–174 s. Alertas: 7 sin talentos y 11 con ellos, todas de antes de la Fase 10 (hallazgos 2, 3 y 7 de `equilibrio.md` §5). |
 
+**Puntería y mira** (Fases 15 y 19):
+
+- **Ayuda de puntería:** en el Lobby, la Isla y Dunas, como se describe arriba. El Laboratorio no la tiene: se apunta a mano.
+- **Apuntar:** clic derecho, gatillo izquierdo del mando o el botón "Mira" del móvil. Acerca la vista con el campo de visión de cada arma (`aimFov`) y, en tercera persona, la cámara va al hombro derecho (`Config.Aim`: 1,75 studs de separación, campo de 55°, 0,15 s de transición).
+- **Mira por arma** (`Shared/UI/Sights`, en el Laboratorio): visor a pantalla completa en el rifle de bananas, punto rojo en el lanzadardos, mira de hierro en el lanzarredes y trayectoria en arco en el cañón de suero.
+- **Cargador y recarga** (Laboratorio): lanzadardos de 24 balas (1,6 s para recargar), rifle de 5 (2,2 s), lanzarredes de 3 (1,8 s) y cañón de 4 (2 s). Se recarga sola al vaciarse o con la acción Recargar, y el contador se pone rojo al 25 %.
+- **Hitmarker:** cuatro rayitas en el centro (`Config.HitFeedback`). El acierto normal dura 0,3 s; el aviso de cabeza sale un 30 % más grande y el de muerte, un 60 % más, y se desvanece en 0,45 s.
+- **Registro de bajas** (killfeed): arriba a la derecha, 5 filas de 5 s con el icono del arma (`Config.Killfeed`).
+- **Marcas de impacto:** las balas dejan una marca en paredes y suelo. Hay 15, 35 o 60 vivas a la vez según la calidad de efectos (`Config.Budgets.ImpactMarks`).
+- **Espectador y killcam** (Dunas y Laboratorio): al caer, 1,5 s de killcam sobre quien te derribó. Después la cámara sigue a los compañeros vivos a 12 studs o, si no queda ninguno, mira desde arriba el centro de la arena.
+
 Lo que **no** se añade: fijar objetivo (lock-on). Los **estilos** de cada rol (guerrero de presión, cazador de control de distancia, mago de área y movilidad, médico de apoyo y desgaste) se documentan y se miden, sin contenido nuevo.
 
 ---
@@ -401,18 +450,18 @@ flowchart TB
 
 ### 7.1 El archipiélago
 
-El juego es un **archipiélago de seis islas**. Se juega en dos: la del volcán (la de esta sección) y la de las Dunas, que es la arena PvP (§12.2). Las demás **solo se ven desde el Lobby**, alrededor del banco de arena del naufragio y a distancias distintas, como promesa de contenido futuro:
+El juego es un **archipiélago de seis islas**. Se juega en cuatro places: la del volcán (la de esta sección), la de las Dunas, que es la arena PvP (§12.2), y la Ciudad Perdida, que es el Laboratorio en ruinas (§12.3). Las otras dos, la Calavera y los Picos, **solo se ven desde el Lobby**, alrededor del banco de arena del naufragio y a distancias distintas, como promesa de contenido futuro:
 
 | Isla | Dónde (desde el Lobby) | Cómo se ve | Estado |
 |---|---|---|---|
 | **Lobby** (banco de arena del naufragio) | Centro | Una plaza ovalada libre con la hoguera, el nido y los muñecos de práctica, rodeada por los carteles (mascotas, bitácora, roles, ranking y arena); el carguero «Esperanza» encallado arriba a la izquierda y el campamento abajo a la izquierda | Lobby |
 | **Isla del Volcán** | Noreste, ~870 studs | Selva y volcán humeante con ríos de lava | **Jugable**: place **🍌Isla de monos🐒(survival)** |
 | **Isla Calavera** | Suroeste, ~520 studs (la más cercana) | Roca enorme con forma de cráneo de mono, ojos encendidos, colmillos, escalera y antorchas | **En diseño:** la mazmorra (§7.2, `docs/AVENTURAS.md`) |
-| **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | **En diseño:** el Laboratorio en ruinas (§12.3, `docs/LABORATORIO.md`) |
+| **Ciudad Perdida** | Noroeste, ~600 studs | Rascacielos rotos, inclinados y tumbados, un paso elevado partido, todo comido por la selva | **Jugable**: place **🧪Laboratorio en ruinas🏴‍☠️(PvP)**, el shooter por equipos (§12.3, `docs/LABORATORIO.md`) |
 | **Isla de las Dunas** | Sureste, ~940 studs | Dunas, mesetas de arenisca, arco de roca, obeliscos medio enterrados, cactus y polvo | **Jugable**: place **🎖️Isla de dunas☠️(PvP)**, la arena PvP (§12.2), con su embarcadero y su velero en el Lobby |
 | **Picos de la Niebla** | Norte, ~1.300 studs (la más lejana) | Agujas de roca caliza con selva en la cima, cascada y bandas de niebla | Cerrada |
 
-Las islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significa crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de ir. Así se abrió la de las Dunas: un place propio, su ID en `Config.PlaceIds.Dunas` y su embarcadero en el Lobby.
+Las dos islas cerradas son decorado del Lobby (`World/LobbyBuilder`, carpeta `Naufragio/Archipielago`): no se puede llegar a ellas y todavía no tienen place propio. Abrir una isla nueva significa crear su place, añadir su ID a `Config.PlaceIds` y dar en el Lobby la forma de ir. Así se abrió la de las Dunas: un place propio, su ID en `Config.PlaceIds.Dunas` y su embarcadero en el Lobby.
 
 ### 7.2 La Isla Calavera: la mazmorra (en diseño)
 
@@ -687,7 +736,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 
 ## 11. El huevo y las mascotas
 
-- **Aparición:** probabilidad baja cada cierto tiempo en un punto aleatorio de la isla. Hay un **aviso global** con ubicación aproximada y **su rareza**: se sortea al aparecer (común 55 · poco común 25 · raro 13 · épico 6 · legendario 1) y se ve en el color del huevo, cada rareza muy distinta (crema, verde, azul, lila y dorado).
+- **Aparición:** probabilidad baja cada cierto tiempo en un punto aleatorio de la isla. Hay un **aviso global** con ubicación aproximada y **su rareza**: se sortea al aparecer (común 55 · poco común 25 · raro 13 · épico 5,8 · legendario 1 · **mítico 0,2**) y se ve en el color del huevo, cada rareza muy distinta (crema, verde, azul, lila, dorado y rosa carmesí). El **huevo mítico** es un huevo más, igual que los demás (misma aparición, mismo transporte, misma defensa y mismo nido), pero es **el más raro de todos**. Sale en la Isla y en la **lluvia de huevos** del Lobby; con el evento "Suerte de huevo" los pesos son común 30 · poco común 30 · raro 22 · épico 12 · legendario 5 · mítico 1. Más adelante será también una de las recompensas de la Isla de aventuras (§7.2). *Pesos de diseño (30-10-2026): `Config.Pets.RarityWeights` y `Config.LiveEvents.EggLuckWeights` aún no tienen la clave `Mythic`.*
 - **Transporte:** el portador va **más lento**, atrae monos y queda **marcado para PvP**. Los jugadores con PvP activo pueden robarle el huevo; el guerrero lo carga mejor.
 - **Soltar el huevo** (Fase 12): con la **K** (R3 en el mando o el botón "Soltar huevo") el portador lo deja en el suelo, y cualquiera puede volver a cogerlo.
 - **Nido del Basecamp:** hay que tenerlo construido en el núcleo. La defensa dura unos minutos (150 s, 2 oleadas).
@@ -699,7 +748,7 @@ Todas las tablas de botín, recetas y estadísticas son **datos en módulos de c
 - En la plaza del Lobby, delante del cartel **🐾 Mascotas** (a la izquierda de la bitácora). **Cada jugador ve en el nido su propio huevo**, y en el cartel lo que le falta, qué puede salir, su mochila y la mascota que le acompaña; al tocar el nido se abre su ventana con el nido, la mochila, los pendientes y **las mascotas que pueden salir** de esa rareza, y al lado la colección.
 - **Solo avanza el huevo del nido**, con las horas reales, también sin jugar. Los de la mochila esperan.
 - **Incubadora de la parcela** (Fase 12, §10): los huevos del nido tardan el 85 % del tiempo con la I y el 70 % con la II y la III; al mejorarla, también acorta lo que le falta al huevo que ya está. La III da un **segundo hueco** en el nido, con dos huevos avanzando a la vez (en la calculadora, el habitual que la tuviera abriría unos 38 huevos al mes en vez de 20). Cuenta el nivel guardado, aunque la incubadora esté rota en una partida.
-- **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h.
+- **Tiempo de eclosión:** común 8 h · poco común 11 h · raro 14 h · épico 18 h · legendario 24 h · mítico 36 h *(propuesta; `Config.Egg.HatchHours` aún no tiene el mítico)*.
 - **Se abre solo en el nido del lobby**, con una pequeña ceremonia (tiembla, estalla y sale la mascota). La mascota es una de esa rareza al azar y, si es más rara que la que llevas, te acompaña.
 - **Una de cada** (26-10-2026): si ya tienes la mascota que sale, en su lugar recibes **Ámbar**, el doble de lo que da descartar ese huevo (común 30 · poco común 60 · raro 120 · épico 240 · legendario 500). La colección no enseña cantidades. Si ya tienes todas las mascotas de la rareza del huevo, la ficha del nido lo avisa antes de abrirlo (y si aún puede salir una montura). Quien tenía copias de antes las cambió por Ámbar al entrar, con un aviso.
 - **Jugar lo acelera:** cada noche superada en la isla le quita **1 h**; las misiones diarias, 15–40 min, y las 5 semanales, 1 h; la pista gratis del pase, de 30 min a 1 h 30 min en algunos niveles; y al **ganar una partida** hay una tirada con ruleta en los resultados (40 % −2 h · 30 % −4 h · 20 % −6 h · 8 % −10 h · **2 % eclosión inmediata**). Lo ganado jugando tiene un **tope del 50 %** del tiempo total del huevo, para que siempre quede algo que esperar al día siguiente; el tiempo del calendario y la eclosión inmediata no cuentan para el tope.
@@ -724,20 +773,20 @@ sequenceDiagram
 
 ### Mascotas
 
-- **Colección persistente.** Se equipa **1 mascota activa** desde el lobby.
+- **Colección persistente de 16 mascotas.** Se equipa **1 mascota activa** desde el lobby.
 - **Tipos de ayuda:** combate, carga (más material o más botín), rastreo (detecta monos; el beagle también huele el huevo), marca (señala al mono más cercano: todos le hacen más daño), curación y apoyo.
-- **Rarezas:** de común a legendaria. Fauna tropical (tucán, guacamaya, tortuga, jaguarundí…), tres sabuesos (beagle, labrador y pointer inglés) y criaturas "experimentales" legendarias del laboratorio (ver Lore).
+- **Rarezas:** de común a **mítica**. Son **16 mascotas**: fauna tropical (tucán, guacamaya, tortuga, capibara, jaguarundí, colibrí, rana dardo y perezoso), tres sabuesos (beagle, labrador y pointer inglés), el ocelote y criaturas "experimentales" del laboratorio (ver Lore): el Mono X-7 y el Jaguar de cristal, legendarios, y **dos mascotas míticas**, el Quetzal y el Ajolote. Las míticas solo salen del **huevo mítico** (`origin` en `Data/Pets`), que aparece en la Isla y en la lluvia de huevos como el más raro (§11); hoy, además, se dan desde el panel de administración.
 - **Skins de mascota** (Fase 9, solo cosméticas): cambian los colores, los materiales y algunas piezas sin tocar la ayuda. Las mascotas que comparten modelo llevan **skins de familia** (los tres felinos, los tres perros). Ejemplos: Tortuga de Lava y Jaguar de Magma (pase), Perro pirata (tienda en Ámbar). Se eligen en el Armario.
-- **Monturas** (Fase 11): una clase de mascota que se monta, en el Lobby y en la Isla (en Dunas no). Salen de los huevos: al abrir uno de su rareza, la **mitad** de las veces sale la montura en vez de una mascota mientras no la tengas. La primera es la **Llama Andina** (rara), de huevos Raros: el jugador habitual la tiene al 50 % hacia el día 17 y al 74 % el día 30. Se lleva una desde la ventana de Mascotas y se monta con **N** (R3 en el mando o el botón Montar). Es un **viaje rápido**: 30 studs/s (correr a pie son 24) sin gastar estamina, pero montado no se pelea; recibir daño, coger el huevo, caer, equipar un arma o usar una habilidad te bajan, y tras un golpe hay 4 s sin poder montar. Montado, con la **Y** (o el botón Escupir) la llama escupe: un gesto sin daño, cada 3 s como mucho, que ven todos.
-  - **Jaguar Albino Esmeralda** (legendario, T5a): sale de los huevos Legendarios, lleva un aura pastel que gira alrededor del cuerpo y **ruge** en vez de escupir. Va a ×1,1.
-  - **Quetzalcóatl, la Serpiente Emplumada** (mítico, T5b): verde quetzal con grecas de oro y un penacho de fuego; **flota** a ras del suelo sobre dos remolinos de viento, suelta plumas y **silba** con la Y (una ráfaga de plumas del penacho). Va a ×1,15. **Planea, no vuela:** al caer con el suelo a más de 8 studs, abre el penacho y baja a unos 8 studs/s (desde 40 studs, unos 5 s y unos 170 studs de avance); nunca sube. **No sale de los huevos normales:** es el premio de pioneros (T6) y, más adelante, del huevo mítico (que dará el Quetzalcóatl o una mascota mítica; puede ser el botín del jefe final de la Isla de aventuras). Hasta entonces, la lista de monturas lo enseña con candado.
+- **Monturas** (Fase 11): una clase de mascota que se monta, en el Lobby y en la Isla (en Dunas no). Salen de los huevos: al abrir uno de su rareza, la **mitad** de las veces sale la montura en vez de una mascota mientras no la tengas. La primera es la **Llama Andina** (rara), de huevos Raros: el jugador habitual la tiene al 50 % hacia el día 17 y al 74 % el día 30. Se lleva una desde la ventana de Mascotas y se monta con **N** (R3 en el mando o el botón Montar).Es un **viaje rápido**: la llama va a 30 studs/s, el jaguar a 33 y el Quetzalcóatl a 34,5 (`Config.Mounts.Speed` × la velocidad de cada una; correr a pie son 26) sin gastar estamina, pero montado no se pelea; recibir daño, coger el huevo, caer, equipar un arma o usar una habilidad te bajan, y tras un golpe hay 4 s sin poder montar. Montado, con la **Y** (o el botón Escupir) la llama escupe: un gesto sin daño, cada 3 s como mucho, que ven todos.
+  - **Jaguar Albino Esmeralda** (legendario, T5a): sale de los huevos Legendarios, lleva un aura pastel que gira alrededor del cuerpo y **ruge** en vez de escupir. Va a ×1,1 (33 studs/s).
+  - **Quetzalcóatl, la Serpiente Emplumada** (mítico, T5b): verde quetzal con grecas de oro y un penacho de fuego; **flota** a ras del suelo sobre dos remolinos de viento, suelta plumas y **silba** con la Y (una ráfaga de plumas del penacho). Va a ×1,15 (34,5 studs/s). **Planea, no vuela:** al caer con el suelo a más de 8 studs, abre el penacho y baja a unos 8 studs/s (desde 40 studs, unos 5 s y unos 170 studs de avance); nunca sube. **No sale de los huevos normales:** es el premio de pioneros (T6) y del **huevo mítico** (el más raro de los huevos de la Isla y de la lluvia de huevos, §11), que dará el Quetzalcóatl o una mascota mítica (el Quetzal o el Ajolote); más adelante será también una recompensa de la Isla de aventuras. Hasta entonces, la lista de monturas lo enseña con candado.
 - **Importante:** los huevos **solo se consiguen jugando**, nunca con Robux. Así se evitan las normas de Roblox sobre objetos aleatorios de pago. El huevo Raro del nivel 20 del pase está en la pista gratis y solo sale con nivel ganado jugando.
 
 ---
 
 ## 12. PvP
 
-Hay dos formas de pelear contra otros jugadores: en la Isla, solo si los dos lo activan (§12.1), y en la arena de la Isla de Dunas, un modo aparte por equipos (§12.2).
+Hay tres formas de pelear contra otros jugadores: en la Isla, solo si los dos lo activan (§12.1), y en dos arenas por equipos, la de la Isla de Dunas (§12.2) y el Laboratorio en ruinas (§12.3), que son modos aparte.
 
 ### 12.1 En la Isla: PvP opt-in
 
@@ -785,16 +834,17 @@ La Isla de las Dunas (§7.1) es el **tercer place** (ID 122593636654552): una ar
 
 **Para más adelante.** Más modos (combate abierto por equipos, todos contra todos, Dominio con 3 altares, Caza de Ámbar), runas pasivas (2–3 equipables de 10), trampas del templo (dardos y pinchos), tormenta de arena y arenas movedizas, ligas con emparejamiento por nivel (MMR), reemplazo desde la cola, penalización por abandono y salas privadas con código.
 
-### 12.3 El Laboratorio en ruinas (en diseño)
+### 12.3 El Laboratorio en ruinas (jugable)
 
-Diseño completo en [`docs/LABORATORIO.md`](LABORATORIO.md) (27-10-2026); se construirá en la Fase 13. Es el cuarto place, en la Ciudad Perdida (§7.1): un **shooter por equipos**, **Piratas invasores** contra **Guardianes del laboratorio**.
+Diseño completo en [`docs/LABORATORIO.md`](LABORATORIO.md) (27-10-2026), construido en las Fases 13 a 19. Es el cuarto place, en la Ciudad Perdida (§7.1): un **shooter por equipos**, **Piratas invasores** contra **Guardianes del laboratorio**.
 
-- **Sin roles, habilidades ni talentos:** todos empiezan igual y eligen 1 de 4 armas del laboratorio (lanzadardos tranquilizante, rifle de bananas primales, lanzarredes de arpón y cañón de suero ácido), iguales en los dos bandos. Vida 100, sin caído.
+- **Sin roles, habilidades ni talentos:** todos empiezan igual y eligen 1 de 4 armas del laboratorio (lanzadardos tranquilizante, rifle de bananas primales, lanzarredes de arpón y cañón de suero ácido), iguales en los dos bandos, rehechas en la Fase 17 (lanzadardos 10 de daño, rifle 48, arpón 36 y cañón 30, en área). **Vida 144**, que vuelve sola: regeneración de **29 por segundo** tras 4 s sin recibir daño (de 0 a llena en 5 s). Al caer se reaparece a los 3 s con 1,5 s de protección, que se pierde al disparar. Se juega en **primera persona**, con la mira y el cargador de cada arma (§6.5).
 - **Ritmo:** partidas de 6 min y **tiempo para matar de 2,25–4,5 s (media de 3,4 s con 144 de vida; antes 1,5–2,5 s)** dentro del alcance de cada arma (medido; cada arma gana a su distancia).
-- **Modos** (se eligen en la cola): duelo por equipos de 1v1 a 5v5, todos contra todos de 10 y rondas sin reaparición al mejor de 7.
-- **Tres mapas pequeños** que se votan al llegar: Laboratorio central, Azotea de la torre y Alcantarillas.
+- **Modos** (se eligen en la cola, `Config.Lab`): **duelo por equipos** de 1v1 a 5v5 (gana el primero en llegar a 10, 15, 20, 25 o 30 bajas según el formato, o el que más tenga a los 6 min); **todos contra todos** de 10 jugadores (15 bajas para ganar); y **rondas** de 1v1 a 5v5, al mejor de 7 rondas de 45 s, sin reaparecer dentro de la ronda. Entre rondas reaparecen todos, y las bases cambian tras la ronda 3.
+- **Tres mapas pequeños** que se votan al llegar (10 s): Laboratorio central (media distancia), Azotea de la torre (larga distancia) y Alcantarillas (corta distancia).
 - **Recompensas:** Ámbar (45 · 25 · 15 por victoria, empate y derrota; en Todos contra todos, 45 · 30 · 30 por puesto del 1.º al 3.º y 15 al resto; 1 por baja, como mucho 15) con tope diario propio de 300 (unos 5 por minuto, menos que la Isla y Dunas); XP del pase (60 · 30 · 20); skins de las cuatro armas por bajas con esa arma (I, II y III a 50, 250 y 1.000; L5b) y títulos al llegar a 50 victorias con un bando. Ranking en el Lobby, con victorias y bajas.
 - **Emparejamiento:** la cola entre servidores de Dunas (`ArenaQueueService`, `Arena`, `TeamService`) con modo y formato.
+- **Puntería:** sin ayuda de puntería: se apunta a mano. El rifle hace ×2 de daño en la cabeza y el arpón ×1,5 (§6.4), y cada arma tiene su cargador y su mira (§6.5).
 
 ---
 
@@ -862,7 +912,7 @@ Pestaña **🎨 Cosméticos** de la Tienda del Lobby. Tema "selva y mar", para n
 |---|---|---|
 | 7 | La premium vende aceleradores del nido y Ámbar | Premium 100 % cosmética: el Ámbar compra vida y daño, venderlo sería pagar para ganar |
 | 8 | "Superviviente de la Isla" en el nivel 30 gratis | Ese título es solo para quien gana; el N30 gratis da "Señor del Volcán" |
-| 9 | Skins de mascotas que no existen (Tití, Mandril, Gorila Albino); total premium 90 cuando suma 75; 1.000 XP al día justos | Skins solo de las 13 mascotas reales (y de familia); el pase se termina con ~20–24 días activos |
+| 9 | Skins de mascotas que no existen (Tití, Mandril, Gorila Albino); total premium 90 cuando suma 75; 1.000 XP al día justos | Skins solo de las 16 mascotas reales (y de familia); el pase se termina con ~20–24 días activos |
 | 10 | Niveles comprados con los premios gratis incluidos | Los premios no cosméticos solo se desbloquean con nivel ganado jugando |
 
 ---
@@ -883,7 +933,7 @@ Pestaña **🎨 Cosméticos** de la Tienda del Lobby. Tema "selva y mar", para n
 | Riesgo | Mitigación |
 |---|---|
 | **Alcance enorme** para una sola persona | Construir por fases, con un *vertical slice* jugable antes de producir contenido. Datos de configuración en lugar de código duplicado. |
-| **Rendimiento** (hasta 5 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y pruebas en móviles de gama baja. |
+| **Rendimiento** (hasta 5 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y `Config.Budgets`: topes de piezas por modelo (medidos con `Rendimiento` después de fusionar) y por escena, con un objetivo de 30 FPS en un móvil modesto de gama baja (3-4 GB). LOD de detalle para los cosméticos de otros jugadores a partir de 60 studs, y el ajuste de calidad de efectos "Efectos" (Bajo, Medio, Alto o Automático). |
 | **Moderación y edades** (llegar a menores de 16: Roblox Kids y Select) | Sin sangre ni gore. Los monos derrotados desaparecen con un "¡puf!" de humo y estrellas, sin animación ni grito de muerte (violencia leve, de caricatura). Cuestionario de madurez completo y requisitos de [LANZAMIENTO.md §9](LANZAMIENTO.md#9-menores-de-16-roblox-kids-y-select). |
 | **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Islands* (§15). |
 | **Objetos aleatorios de pago** | Huevos solo por juego. Si algún día se venden, mostrar probabilidades según las normas de Roblox. |
@@ -899,25 +949,40 @@ Las preguntas de la v0.1 están resueltas (ver §2). Quedan detalles para decidi
 1. ¿El orden de los jefes es **fijo** (de menor a mayor dificultad, propuesta actual) o **aleatorio** en cada partida?
 2. ¿Nombre final de la moneda? ("Ámbar" es provisional; ¿quizá **Bananas doradas**, por el nombre del juego?)
 3. ¿Qué hacen exactamente las **bananas primales**: mejora temporal, ingrediente o las dos cosas?
-4. Duraciones finales del día y de la noche (se empieza con 10+7 y se ajusta en la Fase 1).
+4. Duraciones finales del día y de la noche (se empieza con 10+7).
 
 ---
 
 ## 18. Idiomas
 
-El juego está en español latino (T1 quitó las formas de vosotros). Conviene traducirlo: el inglés da mucho más alcance en Roblox. Decidido el 27-10-2026, de menos a más esfuerzo:
+El juego está en español latino (T1 quitó las formas de vosotros). Se traduce al inglés porque da mucho más alcance en Roblox. Decidido el 27-10-2026, de menos a más esfuerzo. **Estado (30-10-2026):** hecho. La tanda de código está hecha (I1a–I1e), el idioma de origen está configurado en Creator Hub, todos los CSV están subidos y revisados, y hay traducciones al español, francés, portugués y alemán. Los 4 places están publicados.
 
-1. **Ficha de la experiencia en inglés** en Creator Hub: nombre, descripción, miniaturas e icono. Es barato y es lo que más alcance da. Lo hace el usuario. Texto propuesto:
-   - **Nombre:** *Primal Banana Islands: Monkey Survival* (ya está en inglés, §15).
-   - **Descripción:** *Shipwrecked on an island where a secret lab turned monkeys wild. Team up with up to 5 friends, gather, craft and build your camp, survive the nights, beat the giant bosses and call for rescue. Hatch pets in your nest, fight other players in the desert arena and unlock your own permanent plot.*
-   - Las miniaturas, con el texto en inglés (o sin texto).
+1. **Ficha de la experiencia en inglés** en Creator Hub: nombre, descripción, miniaturas e icono. Es barato y es lo que más alcance da. Lo hace el usuario. El nombre ya está en inglés (§15). Descripción nueva (v0.5, 30-10-2026), para pegar tal cual:
+
+   ```
+   🍌 Shipwrecked on the Primal Banana Islands, where a secret lab turned the monkeys wild… and hungry for your food!
+
+   🌟 BE A PIONEER! The islands have just opened their shores. Join now, earn your Pioneer badge forever and help shape the game from day one.
+
+   👫 PLAY WITH YOUR FRIENDS: team up with up to 5 friends. Pick a role (Warrior, Hunter, Mage or Medic), gather, craft and fortify your Basecamp, survive ever-fiercer nights and defeat 4 giant bosses to light the rescue beacon.
+
+   🥚 PETS & MOUNTS: hatch eggs in your nest, collect 16 real-world animals and ride a llama, a jaguar or a feathered serpent.
+
+   ⚔️ PVP: capture the flag in the Dune Arena or fight team battles in the Ruined Laboratory.
+
+   🌕 SEASONS & EVENTS: season pass, daily missions, Red Moon nights and surprise bosses. Fair play: Robux only buy cosmetics.
+
+   👉 Grab your friends and jump in!
+   ```
+
+   Las miniaturas, con el texto en inglés (o sin texto), también son del usuario.
 2. **Traducción automática de Roblox** activada para los demás idiomas. Sin código.
 3. **`Shared/Strings` con una `LocalizationTable`** en/es: todos los textos del código pasan a un módulo con claves y el inglés se revisa a mano (solo el inglés; los demás idiomas siguen con la automática). Es necesario porque los textos con números dentro (`{n} días`) se traducen mal solos: el módulo los forma con `LocalizationTable` y sus argumentos.
-4. El paso 3 es una **tanda de código** propia en `docs/PLAN.md` ("Idioma inglés"), en cinco partes (I1a–I1e).
+4. El paso 3 es una **tanda de código** propia en `docs/PLAN.md` ("Idioma inglés"), en cinco partes (I1a–I1e). **Cerrada:** las cinco partes están hechas (los textos pasan por `T()` con el español como clave, y su inglés está en `Data/Strings/*`). Los CSV ya están subidos; solo hay que subir los de `tools/strings.py --csv-nuevas` cuando haya frases nuevas.
 
 Decidido en la entrevista de I1 (27-10-2026):
 - **Idioma de cada jugador:** el de su cuenta de Roblox (español si es `es-*`; inglés en los demás casos) y un selector en Ajustes: Automático / Español / English, guardado en el perfil.
-- **Idioma de origen en Creator Hub: inglés.** Los demás idiomas (francés, portugués…) los traduce Roblox desde el inglés revisado, con la tabla que genera `tools/strings.py --csv`. Se cambia al terminar la I1e, no antes, para que la nube no capture frases españolas como si fueran inglesas.
+- **Idioma de origen en Creator Hub: inglés.** Los demás idiomas (francés, portugués…) los traduce Roblox desde el inglés revisado, con la tabla que genera `tools/strings.py --csv`. Se cambia al terminar la I1e, no antes, para que la nube no capture frases españolas como si fueran inglesas. La I1e ya está hecha: el cambio lo hace el usuario en Creator Hub.
 - **Los nombres propios se traducen** (Amber, Capuchin, Lava Turtle, Dune Island…).
 - **Solo en español:** las herramientas de desarrollo (`Equilibrio`, `Economia`, `MapBuilder`, comandos de prueba) y el panel de administración. Los avisos de moderación sí se traducen.
 - **El español es la clave** (`T("Ámbar: {n}", { n = amber })`): el código sigue leyéndose en español.
