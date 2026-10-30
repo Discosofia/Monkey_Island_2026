@@ -17,6 +17,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "BossHurt", label = "💔 Jefe al 30 %" },
 		{ id = "FakeKill", label = "☠️ Bajas falsas en el registro" },
 		{ id = "Mandrill", label = "🐒 Mandril aquí" },
+		{ id = "Thief", label = "🐵 Capuchino ladrón aquí" },
+		{ id = "Timelapse", label = "🌇 Time-lapse al atardecer (de día)" },
 		{ id = "AlwaysCrit", label = "🎯 Críticos al 100 % (sí/no)" },
 		{ id = "Egg", label = "🥚 Huevo (rareza siguiente)" },
 		{ id = "HatchNow", label = "🐣 Terminar la defensa del huevo (en el nido)" },

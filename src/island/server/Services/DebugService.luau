@@ -352,6 +352,55 @@ local function nextArmor(player: Player)
 	)
 end
 
+-- Time-lapse al atardecer para los vídeos (docs/videos): adelanta el reloj visual del día hasta el
+-- anochecer. El cliente (LightingController) calcula el progreso como (ahora - inicio) / (fin - inicio),
+-- así que hay que mover inicio y fin a la vez para que la duración no cambie. El temporizador real de la
+-- fase (MatchService) no se toca: al acabar se devuelven los atributos y el cielo vuelve a su hora.
+local TIMELAPSE_WARNING_SECONDS = 3 -- para dar a grabar antes de que empiece
+local TIMELAPSE_SECONDS = 12
+local TIMELAPSE_END_PROGRESS = 0.985 -- del día; el 1 sería ya la noche
+local TIMELAPSE_RESTORE_SECONDS = 3 -- quieto en el anochecer antes de devolver la hora real
+local timelapseRunning = false
+
+local function sunsetTimelapse(player: Player)
+	if timelapseRunning or ReplicatedStorage:GetAttribute("MatchPhase") ~= "Day" then
+		Remotes.Notify:FireClient(player, "🌇 El time-lapse solo funciona de día y de uno en uno")
+		return
+	end
+	timelapseRunning = true
+	task.delay(TIMELAPSE_WARNING_SECONDS, function()
+		local startedAt = ReplicatedStorage:GetAttribute("MatchPhaseStartedAt")
+		local endsAt = ReplicatedStorage:GetAttribute("MatchPhaseEndsAt")
+		if
+			ReplicatedStorage:GetAttribute("MatchPhase") ~= "Day"
+			or typeof(startedAt) ~= "number"
+			or typeof(endsAt) ~= "number"
+		then
+			timelapseRunning = false
+			return
+		end
+		local length = endsAt - startedAt
+		local from = math.clamp((Workspace:GetServerTimeNow() - startedAt) / length, 0, 1)
+		local began = os.clock()
+		local connection: RBXScriptConnection
+		connection = RunService.Heartbeat:Connect(function()
+			local u = math.min((os.clock() - began) / TIMELAPSE_SECONDS, 1)
+			local progress = from + (TIMELAPSE_END_PROGRESS - from) * u
+			local shiftedStart = Workspace:GetServerTimeNow() - progress * length
+			ReplicatedStorage:SetAttribute("MatchPhaseStartedAt", shiftedStart)
+			ReplicatedStorage:SetAttribute("MatchPhaseEndsAt", shiftedStart + length)
+			if u >= 1 then
+				connection:Disconnect()
+				task.delay(TIMELAPSE_RESTORE_SECONDS, function()
+					ReplicatedStorage:SetAttribute("MatchPhaseStartedAt", startedAt)
+					ReplicatedStorage:SetAttribute("MatchPhaseEndsAt", endsAt)
+					timelapseRunning = false
+				end)
+			end
+		end)
+	end)
+end
+
 local COMMANDS: { [string]: (player: Player) -> () } = {
 	Materials = function(player)
 		for itemId, item in Items do
@@ -434,6 +483,28 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			end
 		end
 		Remotes.Notify:FireClient(player, "🐒 No hay sitio para el mandril cerca: prueba fuera del Basecamp")
+	end,
+	Timelapse = sunsetTimelapse,
+	-- Un capuchino ladrón que va a por ti (te roba y huye), para grabar el gancho del tráiler. Quita la
+	-- mascota de esta partida (si no, lo mata antes de que robe) y el capuchino sale 2 s después.
+	Thief = function(player)
+		player:SetAttribute("ActivePet", nil)
+		task.delay(2, function()
+			local character = player.Character
+			if not character then
+				return
+			end
+			local pivot = character:GetPivot()
+			for _, distance in { 14, 20, 30, 45 } do
+				for _, angle in { 0, 45, -45, 90, -90, 180 } do
+					local spot = (pivot * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(0, 0, -distance)).Position
+					if MonkeyService.spawnAmbush("CapuchinoLadron", spot, 1, player, true) > 0 then
+						return
+					end
+				end
+			end
+			Remotes.Notify:FireClient(player, "🐵 No hay sitio para el capuchino cerca: prueba fuera del Basecamp")
+		end)
 	end,
 	-- Todo golpe y curación es crítico (Shared/Crit), para ver los números grandes al momento.
 	AlwaysCrit = function(player)

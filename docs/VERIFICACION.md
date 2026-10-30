@@ -82,9 +82,9 @@ Las secciones no se renumeran (PLAN.md, las skills y el código las citan). Este
 | Fase 18: mascotas | §58–§61 | capibara, quetzal, ajolote, clips | 15 | Pub-1 con 👑 Admin, Visual |
 | Fase 18: modelos | §62–§73 | armaduras, armas y trajes rehechos | 51 | Visual, Móvil |
 | Fase 19: combate a distancia | §74–§87 | líneas, poses, impactos, ADS, miras, killfeed, rig, vista | 184 | Pub-1, Pub-2, Móvil, Calc |
-| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 14 | 1J-Studio, 2J, Pub-1, Visual |
+| Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 16 | 1J-Studio, 2J, Pub-1, Visual |
 
-Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 14 de la §91.
+Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 16 de la §91.
 
 ---
 
@@ -3818,7 +3818,7 @@ Hechas: la portada principal, el icono, Dunas y el Laboratorio (`art/portada/`, 
 
 ## 91. Tráiler de YouTube: modo grabación y cámara de tomas (30-10-2026)
 
-Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (README y `trailer.md`, en español e inglés), `src/island/tools/Trailer.luau` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`), `src/island/tools/TrailerCamara.luau` (caminos y órbitas, sin dependencias del juego) y el botón **🎬 Modo grabación** del panel 🛠️ Pruebas. Ya probado en el Studio de la Isla en modo edición: las escenas montan, la cámara avanza en edición y `Trailer.limpiar()` deja todo igual. Lo que sigue no se ha podido probar.
+Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (README y `trailer.md`, en español e inglés), `src/island/tools/Trailer.luau` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`), `src/island/tools/TrailerCamara.luau` (caminos y órbitas, sin dependencias del juego) y los botones **🎬 Modo grabación**, **🐵 Capuchino ladrón aquí** y **🌇 Time-lapse al atardecer** del panel 🛠️ Pruebas. Ya probado en el Studio de la Isla en modo edición: las escenas montan, la cámara avanza en edición y `Trailer.limpiar()` deja todo igual. También probado en Play: 🌇 Time-lapse (3 s de aviso, el reloj sube de 5,4 h a 19,1 h en 12 s y los atributos de la fase se restauran) y el modo grabación en la Isla, Dunas y el Laboratorio durante la grabación del 30-10-2026. Lo que sigue no se ha podido probar.
 
 **A. Play en el Studio de la Isla** (con el panel 🛠️ Pruebas):
 
@@ -3862,6 +3862,13 @@ Herramientas del vídeo: el guion y la guía de grabación en `docs/videos/` (RE
     ✅ Las dos voces duran lo mismo que el montaje, y cada frase cae en su plano.
 14. [ ] Recorta el 🛠️ Pruebas en las tomas de Studio y revisa la lista de comprobación de `docs/videos/README.md`.
     ✅ No se ve ningún botón, texto de depuración ni HUD de pruebas en el vídeo final.
+
+**F. Botones de grabación de la Isla** (Play, 1J-Studio):
+
+15. [ ] Pulsa 🐵 Capuchino ladrón aquí con una mascota activa y plátanos en la mochila, fuera del Basecamp.
+    ✅ La mascota desaparece de la partida (no del perfil: al volver al Lobby sigue activa) y a los 2 s sale un capuchino ladrón a 14–45 studs, que va a por ti, te roba algo y huye. Dentro del Basecamp sale el aviso de que no hay sitio.
+16. [ ] Pulsa 🌇 Time-lapse al atardecer de noche, y otra vez con uno ya en marcha.
+    ✅ Sale el aviso "solo funciona de día y de uno en uno" y no cambia el reloj.
 
 ## Cuando termines
 
