@@ -1,0 +1,61 @@
+1
+00:00:00,300 --> 00:00:02,800
+¡Te roban la comida!
+
+2
+00:00:03,300 --> 00:00:08,500
+Naufragaste en una isla
+llena de monos salvajes.
+
+3
+00:00:09,300 --> 00:00:12,500
+Aprende sus costumbres…
+
+4
+00:00:16,300 --> 00:00:18,500
+Elige tu rol.
+
+5
+00:00:19,000 --> 00:00:23,500
+Juega con hasta cinco amigos.
+
+6
+00:00:25,500 --> 00:00:29,000
+Fortifica tu campamento.
+
+7
+00:00:32,300 --> 00:00:37,000
+Sobrevive noches
+cada vez más feroces.
+
+8
+00:00:40,300 --> 00:00:45,000
+Derrota a los jefes de la isla.
+
+9
+00:00:49,300 --> 00:00:51,300
+Salva huevos.
+
+10
+00:00:51,800 --> 00:00:55,500
+Colecciona mascotas y monturas.
+
+11
+00:00:56,300 --> 00:00:58,800
+¿Prefieres pelear?
+
+12
+00:00:59,200 --> 00:01:03,000
+Arenas PvP por equipos.
+
+13
+00:01:04,300 --> 00:01:06,500
+Enciende la baliza.
+
+14
+00:01:07,000 --> 00:01:09,500
+Escapa de la isla.
+
+15
+00:01:10,300 --> 00:01:14,500
+¡Ven con tus amigos!
