@@ -7,6 +7,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ActionButtons = require(ReplicatedStorage:WaitForChild("CombatClient"):WaitForChild("ActionButtons"))
 local Loader = require(ReplicatedStorage.Shared.Loader)
 local Localizer = require(ReplicatedStorage.Shared.UI.Localizer)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -19,8 +20,11 @@ local SKIP = {
 	GuardController = true,
 	ChainPipsController = true,
 	CameraLockController = true,
+	ShoulderAimController = true,
 }
 
+-- Sin guardia, "Mira" ocupa la casilla de la guardia, junto al pulgar.
+ActionButtons.setSlot("Zoom", Vector2.new(0, 1))
 Remotes.Notify.OnClientEvent:Connect(Toast.show)
 task.spawn(Localizer.start)
 

@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local LabSpread = require(ReplicatedStorage.Shared.LabSpread)
 
 -- Mecánicas de combate que se cuentan (Fase 10, C7), por rol de "player" y por place:
 --   Parries, Blocks, GuardBreaks  el que defiende (Combat/Guard)
@@ -162,8 +163,9 @@ local rules: Rules = {
 	end,
 	onPvPHit = nothing,
 	useAmmo = always,
-	takeShot = function()
-		return 0
+	-- Sin cargador: dispara siempre, con la dispersión de la cadera o la de apuntar (Fase 19, W7).
+	takeShot = function(_player, _weaponId, weapon, zoomed)
+		return LabSpread.hip(weapon, zoomed)
 	end,
 	useBoost = never,
 	strikeResource = nothing,

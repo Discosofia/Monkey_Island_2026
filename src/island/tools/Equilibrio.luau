@@ -208,7 +208,13 @@ local LIMITES = {
 	-- Un jefe con el punto débil (PESO_DEBIL de los aciertos) cae en al menos esto (s) con un jugador solo
 	-- con un arma a distancia de rol, sin habilidades. Muy por debajo de jefeSegundos: solo vigila el absurdo.
 	jefeZonasMinSegundos = 60,
+	-- Dispersión de cadera (Fase 19, W7; sección 14): a CADERA_ALERTA_STUDS un disparo a la cadera tiene que dar a
+	-- un cuerpo (radio Headshot.BodyRadius) con al menos esta probabilidad; si no, apuntar sería obligatorio.
+	caderaMinAcierto = 0.8,
 }
+
+-- A esta distancia (studs) se vigila la puntería a la cadera (LIMITES.caderaMinAcierto).
+local CADERA_ALERTA_STUDS = 30
 
 -- Zonas de daño por piezas (Fase 19, W6): se leen de Config.Combat.Zones si existe (la parte 2 la escribe) y,
 -- si no, se usan estas. HitMix es la mezcla supuesta de aciertos (suma 1).
@@ -3294,11 +3300,13 @@ local function main(copia: Instance): string
 				return 0
 			end
 			-- El rifle con zoom (quieto) es exacto.
-			if situacion == "quieto" and spread.zoomExact then
+			if (situacion == "quieto" or situacion == "apuntando") and spread.zoomExact then
 				return 0
 			end
-			local base = if situacion == "quieto" then spread.still else spread.moving
-			return base + spread.perShot * (spread.maxShots or 1)
+			local base = if situacion == "moviendo" then spread.moving else spread.still
+			local total = base + spread.perShot * (spread.maxShots or 1)
+			-- Apuntando (Fase 19, W7): la dispersión se multiplica por adsSpreadFactor.
+			return if situacion == "apuntando" and spread.adsSpreadFactor then total * spread.adsSpreadFactor else total
 		end
 		local function acierto(theta: number, distancia: number): number
 			if theta <= 0 then
@@ -3307,15 +3315,15 @@ local function main(copia: Instance): string
 			local radio = distancia * math.tan(math.rad(theta))
 			return math.min(1, (radioCuerpo / radio) ^ 2)
 		end
-		for _, situacion in { "quieto", "moviéndose" } do
+		for _, situacion in { "quieto", "moviéndose", "apuntando" } do
 			linea(
-				`Precisión {situacion} (probabilidad de acierto → tiempo esperado, con recarga; informativo; el rifle cuenta sin zoom, con zoom es exacto):`
+				`Precisión {situacion} (probabilidad de acierto → tiempo esperado, con recarga; informativo; el rifle cuenta sin zoom, con zoom es exacto; "apuntando" quieto: dardos y arpón × adsSpreadFactor):`
 			)
 			linea(`| Arma | Dispersión | {table.concat(cabecera, " | ")} |`)
 			linea(`|---|---|{string.rep("---|", #distancias)}`)
 			for _, id in LabWeapons.ORDER do
 				local arma = LabWeapons.weapons[id]
-				local theta = dispersion(arma, if situacion == "quieto" then "quieto" else "moviendo")
+				local theta = dispersion(arma, if situacion == "moviéndose" then "moviendo" else situacion)
 				local celdas = {}
 				for indice, distancia in distancias do
 					local t = ttk(arma, distancia, 1)
@@ -3506,6 +3514,48 @@ local function main(copia: Instance): string
 					)})`
 				)
 			end
+		end
+		linea("")
+		-- Dispersión de cadera (Fase 19, W7; Config.Aim, "hipSpread" del arma): el cono de un disco uniforme,
+		-- con la misma probabilidad (R ÷ (d × tan θ))² de la sección 12. Apuntando (AdsSpreadDegrees) es 0 si el
+		-- valor es 0: acierta siempre que la línea de tiro toque el cuerpo.
+		local radioCadera = Config.Combat.Headshot.BodyRadius
+		local distanciasCadera = { 15, CADERA_ALERTA_STUDS, 60, 100 }
+		local cabeceraCadera = {}
+		for indice, distancia in distanciasCadera do
+			cabeceraCadera[indice] = `{distancia} st`
+		end
+		linea(
+			`Dispersión a la cadera (por defecto {n(Config.Aim.HipSpreadDegrees, 2)}°; apuntando {n(
+				Config.Aim.AdsSpreadDegrees,
+				2
+			)}°): probabilidad de acierto a un cuerpo de radio {radioCadera} st (alerta si a {CADERA_ALERTA_STUDS} st baja de {pct(
+				LIMITES.caderaMinAcierto
+			)}):`
+		)
+		linea(`| Arma (rol, mejora) | Dispersión | {table.concat(cabeceraCadera, " | ")} |`)
+		linea(`|---|---|{string.rep("---|", #distanciasCadera)}`)
+		for _, entrada in entradas do
+			local arma = Weapons[entrada.id]
+			local theta = arma.hipSpread or Config.Aim.HipSpreadDegrees
+			local celdas = {}
+			for indice, distancia in distanciasCadera do
+				local p = if theta <= 0
+					then 1
+					else math.min(1, (radioCadera / (distancia * math.tan(math.rad(theta)))) ^ 2)
+				celdas[indice] = if distancia > arma.range then "—" else pct(p)
+				if distancia == CADERA_ALERTA_STUDS and p < LIMITES.caderaMinAcierto then
+					alerta(
+						`Isla a la cadera: {arma.name} ({entrada.roleId}) acierta {pct(p)} a {distancia} st con {n(
+							theta,
+							2
+						)}° (mín. {pct(LIMITES.caderaMinAcierto)})`
+					)
+				end
+			end
+			linea(
+				`| {arma.name} ({entrada.roleId}, +{entrada.nivel}) | {n(theta, 2)}° | {table.concat(celdas, " | ")} |`
+			)
 		end
 		linea("")
 		linea(

@@ -9,10 +9,12 @@
 --   - El primer tiro quieto (sin acumulado, en el suelo y sin moverse) es exacto aunque "still" valga más.
 --     Solo en las armas que acumulan (perShot > 0): en las demás "still" vale siempre.
 --   - Con "zoomExact" y el zoom puesto, en el suelo la base es 0 (el rifle).
+--   - Apuntando, "adsSpreadFactor" multiplica la dispersión (Fase 19, W7).
 --   - Sin "spread" el arma es exacta (0).
 --   - Fase 19, W4: el desvío de cada tiro es determinista (offset/apply con la semilla ShotSeed y el número de
 --     disparo), así el tirador dibuja su bala al momento con el mismo desvío que aplica el servidor.
 
+local Config = require(script.Parent.Config)
 local LabWeapons = require(script.Parent.Data.LabWeapons)
 
 local LabSpread = {}
@@ -62,7 +64,20 @@ function LabSpread.angle(
 	else
 		base = spread.still
 	end
-	return base + extra
+	local angle = base + extra
+	if zoomed and spread.adsSpreadFactor then
+		angle *= spread.adsSpreadFactor
+	end
+	return angle
+end
+
+-- Dispersión (grados) de un disparo fuera del Laboratorio, sin cargador ni estado (Fase 19, W7): la de la
+-- cadera (el "hipSpread" del arma o Config.Aim.HipSpreadDegrees) o, apuntando, Config.Aim.AdsSpreadDegrees.
+function LabSpread.hip(weapon: { hipSpread: number? }, aiming: boolean): number
+	if aiming then
+		return Config.Aim.AdsSpreadDegrees
+	end
+	return weapon.hipSpread or Config.Aim.HipSpreadDegrees
 end
 
 -- Desvío determinista del disparo número "seq" de una vida con la semilla "seed" (atributo ShotSeed del

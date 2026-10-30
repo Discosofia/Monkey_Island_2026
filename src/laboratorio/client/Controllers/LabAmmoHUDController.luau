@@ -189,7 +189,7 @@ function LabAmmoHUDController:Start()
 
 		-- Mira dinámica.
 		if handle then
-			handle.setSpread(LabShooting.spreadPixels(WeaponController.isZoomed()))
+			handle.setSpread(LabShooting.spreadPixels(WeaponController.isAiming()))
 			local ring = 0
 			if weapon.cooldownSeconds >= Config.Lab.CooldownRingMinSeconds then
 				ring = math.clamp((os.clock() - lastShotAt) / weapon.cooldownSeconds, 0, 1)

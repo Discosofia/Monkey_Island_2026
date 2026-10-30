@@ -1298,6 +1298,20 @@ local Config = {
 		},
 	},
 
+	-- Apuntar con un arma a distancia (Fase 19, W7; CombatClient/Controllers/WeaponController y
+	-- ShoulderAimController): el campo de visión baja a "aimFov" del arma (ShoulderFov si no lo trae) y, en
+	-- tercera persona, la cámara pasa al hombro derecho (ShoulderOffset, studs) con el personaje de cara al
+	-- centro. TransitionSeconds es lo que tarda en entrar y en salir. Dispersión de los disparos fuera del
+	-- Laboratorio (CombatRules.takeShot): HipSpreadDegrees a la cadera (o el "hipSpread" del arma) y
+	-- AdsSpreadDegrees al apuntar. El Laboratorio lleva la suya (Data/LabWeapons, "spread").
+	Aim = {
+		ShoulderOffset = Vector3.new(1.75, 0.6, 0),
+		ShoulderFov = 55,
+		TransitionSeconds = 0.15,
+		HipSpreadDegrees = 1.5,
+		AdsSpreadDegrees = 0,
+	},
+
 	Lab = {
 		-- Laboratorio en ruinas (Fase 13, docs/LABORATORIO.md): shooter por equipos sin roles, habilidades,
 		-- talentos ni mejoras. Todos con la misma vida, que vuelve sola tras RegenDelaySeconds sin recibir
@@ -1329,8 +1343,6 @@ local Config = {
 		AcidArc = 0.3,
 		AcidRadius = 6,
 		AcidPuddleSeconds = 3,
-		-- Rifle: campo de visión (grados) mientras se mantiene apuntado.
-		RifleZoomFieldOfView = 30,
 		-- Cargador y dispersión (Fase 15, V8; Data/LabWeapons, Shared/LabSpread). Velocidad horizontal (studs/s)
 		-- desde la que cuenta como "moviéndose" para la dispersión del arma.
 		SpreadMovingSpeed = 3,

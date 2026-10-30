@@ -10,7 +10,7 @@
 --   "SlowStack": cada acierto ralentiza un poco más (Config.Lab.DartSlow…).
 --   "Entangle": enreda, con inmunidad al soltarse (Config.Lab.Net…).
 --   "AcidBurst": vuela en arco y estalla en un área que envenena (Config.Lab.Acid…; el veneno es "poison").
---   nil: solo el daño. "zoom": el cliente acerca la vista al mantener apuntado (Config.Lab.RifleZoom…).
+--   nil: solo el daño. "zoom": el rifle (más retroceso de la vista y mira de francotirador).
 -- "pose": la animación de disparo de Data/WeaponAnimations que usa (cada una la suya, Fase 15, V9; el
 -- lanzadardos "LabDart" desde la Fase 19, W2). "sound": el efecto de Data/Sounds de su disparo.
 -- Cargador (Fase 15, V8): "magazine" balas y "reloadSeconds" para recargarlo (sola al vaciarse, o con la
@@ -20,6 +20,9 @@
 --   perShot, maxShots      lo que suma cada disparo seguido, hasta maxShots disparos acumulados
 --   recover                grados por segundo que se recupera el acumulado al dejar de disparar
 --   zoomExact              con el zoom y en el suelo, dispersión 0 (el rifle)
+--   adsSpreadFactor        apuntando (Fase 19, W7), la dispersión se multiplica por esto (dardos y arpón)
+-- "aimFov" (W7): campo de visión al apuntar; todas las armas se apuntan (clic derecho, gatillo izquierdo o el
+-- botón "Mira"). El rifle, además, es exacto apuntado (zoomExact).
 -- El primer tiro quieto, sin acumulado, es exacto aunque "still" valga más. Lo calcula Shared/LabSpread.
 export type SpreadFields = {
 	still: number,
@@ -29,6 +32,7 @@ export type SpreadFields = {
 	maxShots: number?,
 	recover: number?,
 	zoomExact: boolean?,
+	adsSpreadFactor: number?,
 }
 
 export type LabFields = {
@@ -59,6 +63,7 @@ export type LabWeaponDefinition = {
 	poison: { dps: number, seconds: number }?,
 	lab: LabFields,
 	zoneMultipliers: ZoneMultipliers?,
+	aimFov: number?,
 }
 
 -- El orden es el de la mochila (teclas 1–4) y el de la calculadora.
@@ -77,13 +82,22 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectileSpeed = 260,
 		projectile = "LabDart",
 		zoneMultipliers = { Head = 1.3 },
+		aimFov = 55,
 		lab = {
 			effect = "SlowStack",
 			pose = "LabDart",
 			magazine = 24,
 			reloadSeconds = 1.6,
 			automatic = true,
-			spread = { still = 0.6, moving = 1.8, air = 3.1, perShot = 0.35, maxShots = 3, recover = 6 },
+			spread = {
+				still = 0.6,
+				moving = 1.8,
+				air = 3.1,
+				perShot = 0.35,
+				maxShots = 3,
+				recover = 6,
+				adsSpreadFactor = 0.35,
+			},
 		},
 	},
 	LabBananaRifle = {
@@ -98,6 +112,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectileSpeed = 450,
 		projectile = "LabBanana",
 		zoneMultipliers = { Head = 2 },
+		aimFov = 30,
 		lab = {
 			zoom = true,
 			pose = "LabRifle",
@@ -119,12 +134,13 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabNet",
 		-- La red envuelve el cuerpo: da igual un brazo que el torso.
 		zoneMultipliers = { Head = 1.5, Limb = 1 },
+		aimFov = 60,
 		lab = {
 			effect = "Entangle",
 			pose = "LabHarpoon",
 			magazine = 3,
 			reloadSeconds = 1.8,
-			spread = { still = 0, moving = 1.5, air = 3, perShot = 0 },
+			spread = { still = 0, moving = 1.5, air = 3, perShot = 0, adsSpreadFactor = 0.35 },
 		},
 	},
 	LabAcidCannon = {
@@ -140,6 +156,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 		projectile = "LabAcid",
 		poison = { dps = 6, seconds = 3 },
 		-- Sin dispersión: cae donde se apunta.
+		aimFov = 60,
 		lab = { effect = "AcidBurst", pose = "LabCannon", magazine = 4, reloadSeconds = 2.0 },
 	},
 }

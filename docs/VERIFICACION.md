@@ -3305,3 +3305,73 @@ Nota: lo ya probado en Studio (Laboratorio, un jugador: 12 disparos contra una p
    ✅ Cuentan también los golpes a monos, jefes y muñecos de práctica, no solo a jugadores.
 
 Nota: lo ya probado en Studio (Laboratorio, un jugador: `Hitbox.sweepBodies` da Head, Torso, Limb o Weak por pieza —cabeza, torso, brazos, manos, piernas y pies—, con y sin rebobinado; el rebobinado acierta la cabeza donde estaba hace 0,15-0,3 s y sin rebobinar falla; un dardo contra muñeco hace 7 al torso, 9 a la cabeza (×1,3) y 6 al brazo (×0,8), con el ×0,7 de daño a no jugadores, y el tirador recibe el aviso Head, Limb o Body; `Equilibrio` secciones 12 y 14 sin alertas nuevas; `Rendimiento` sin alertas: jefes con 35, 27, 24 y 30 piezas frente a topes de 35, 30, 30 y 30) no se repite aquí.
+
+## 81. Fase 19 W7: apuntar de verdad (ADS) y cámara al hombro (29-10-2026)
+
+**Un jugador en Play (Isla y Dunas, en PC, con arco, bastón o cerbatana en la mano):**
+
+1. [ ] Mantén el clic derecho.
+   ✅ El FOV baja a 55 en unos 0,15 s y la cámara pasa al hombro derecho. El ratón queda bloqueado en el centro de la pantalla y el personaje mira al centro.
+2. [ ] Suelta el clic derecho.
+   ✅ Todo vuelve: FOV normal, cámara detrás del personaje y ratón libre.
+3. [ ] Mantén el clic derecho y muere.
+   ✅ Al morir, todo vuelve a la normalidad (FOV, cámara, ratón y giro del personaje). Al reaparecer no quedas apuntando.
+4. [ ] Mantén el clic derecho y desequipa el arma.
+   ✅ Todo vuelve a la normalidad.
+5. [ ] Mantén el clic derecho y abre el menú de Roblox (Esc).
+   ✅ Todo vuelve a la normalidad mientras el menú está abierto.
+6. [ ] Mantén el clic derecho y abre un TextBox (el chat de Roblox).
+   ✅ Todo vuelve a la normalidad mientras escribes.
+7. [ ] Pon el zoom de la rueda al máximo (primera persona) y mantén el clic derecho.
+   ✅ No hay desplazamiento de cámara al apuntar.
+8. [ ] Siéntate, o móntate en una montura en la Isla, y mantén el clic derecho.
+   ✅ La cámara al hombro no se activa mientras estás sentado o montado.
+
+**Un jugador en Play (Isla y Dunas, disparo a la cadera y apuntando):**
+
+1. [ ] Sin apuntar, dispara varias veces con el arco a un mismo punto a 15 o 30 studs.
+   ✅ Los impactos se reparten en un cono de unos 1,5°. La bala que ves es la misma que cuenta en el servidor, y no aparece ninguna corrección visible al llegar la confirmación.
+2. [ ] Mantén el clic derecho y dispara varias veces al mismo punto.
+   ✅ Sin dispersión: todos los disparos caen en el mismo punto, sin corrección visible al llegar la confirmación.
+3. [ ] Apunta con la mira en el centro a un mono o a un muñeco de práctica a poca distancia, y dispara.
+   ✅ La bala converge donde marca la mira, sin desviarse hacia otro lado.
+4. [ ] Haz un remate de cadena.
+   ✅ La cámara tiembla como antes (ahora con `CameraShake.play`).
+
+**En el teléfono (elige uno en *Prueba → Dispositivo* antes del ▶):**
+
+1. [ ] En la Isla, Dunas y el Lobby, busca el botón «Mira» en la casilla (0,3) de la rejilla de botones.
+   ✅ Está en esa casilla sin chocar con otros botones. Tocarlo entra en el apuntado y tocarlo otra vez sale.
+2. [ ] En el Laboratorio, busca el botón «Mira».
+   ✅ Sigue en la casilla (0,1) y funciona igual.
+3. [ ] Con un mando conectado, mantén L2 en la Isla y en el Laboratorio.
+   ✅ Apunta igual que con el clic derecho (FOV y, en la Isla y Dunas, cámara al hombro) y vuelve al soltar.
+
+**Un jugador en Play (Laboratorio):**
+
+1. [ ] Apunta con cada una de las 4 armas del Laboratorio y mira el FOV.
+   ✅ Cada arma baja a su FOV de apuntado: 55, 30, 60 y 60 (comprueba el valor de cada una en `Data/LabWeapons`).
+2. [ ] Con el arma en primera persona, apunta y suelta.
+   ✅ La posición del arma cambia hacia el centro al apuntar y vuelve al soltar, con la misma transición de siempre (`aimAlpha`).
+3. [ ] Apunta con el rifle exacto y dispara a un muñeco a distancia.
+   ✅ La bala sale justo donde marca la mira, sin dispersión.
+4. [ ] Apunta con los dardos y con el arpón, y dispara varias veces al mismo punto.
+   ✅ Los impactos caen mucho más juntos que a la cadera (`adsSpreadFactor` 0,35).
+5. [ ] Apunta y suelta con la mira dinámica y el cargador a la vista.
+   ✅ La mira y el cargador responden al apuntar y vuelven al soltar (`LabAmmoHUD` usa `isAiming`).
+6. [ ] Apunta con cualquier arma.
+   ✅ La cámara no se va al hombro: el Laboratorio no carga `ShoulderAimController`.
+
+**Un jugador en Play (comprobación de seguridad, aceptada):**
+
+1. [ ] Con un cliente que dice apuntar siempre (`zoomed = true`), dispara a la cadera varias veces al mismo punto.
+   ✅ La dispersión es 0, igual que con el rifle. Es el comportamiento aceptado.
+
+**Calculadora `Equilibrio` (Studio de la Isla, modo edición):**
+
+1. [ ] Ejecuta `Equilibrio` con el informe por defecto.
+   ✅ En la sección 14, la tabla «Dispersión a la cadera» tiene 12 armas: 100 % de acierto a 15 y 30 st, 58 % a 60 st y 21 % a 100 st. La sección «Alertas» no muestra nada nuevo.
+2. [ ] Ejecuta `Equilibrio` con `informe({ secciones = { laboratorio = true } })`.
+   ✅ En la sección 12, la tabla «Precisión apuntando» aparece para las armas del Laboratorio, con los dardos y el arpón multiplicados por `adsSpreadFactor`, y no hay alertas nuevas.
+
+Nota: lo ya probado en Studio (solo carga y `Equilibrio`: la tabla «Dispersión a la cadera» de la sección 14 salió sin alertas) no se repite aquí.

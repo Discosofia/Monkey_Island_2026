@@ -99,7 +99,6 @@ local reloadKey: string? = nil
 local reloadLastProgress = 0
 -- Cuándo se sacó el arma (os.clock).
 local drawStart = -math.huge
-local normalFieldOfView = 70
 -- Teclas para soltar y volver a bloquear el ratón a mano.
 local CURSOR_KEYS = { [Enum.KeyCode.LeftControl] = true, [Enum.KeyCode.RightControl] = true }
 -- Quién pide ahora el ratón libre (el selector, los resultados, la tecla Ctrl…).
@@ -347,16 +346,12 @@ local function reloadPose(progress: number): (Vector3, number)
 	return Vector3.new(wobble, -RELOAD_DROP * dip, -RELOAD_BUMP * bump), RELOAD_TILT * dip
 end
 
--- Acercado con la mira: de 0 (normal) a 1 (del todo).
+-- Acercado con la mira: de 0 (normal) a 1 (del todo), con cualquier arma (WeaponController, Fase 19 W7).
 local function currentZoom(camera: Camera?): number
 	if not camera then
 		return 0
 	end
-	return math.clamp(
-		(normalFieldOfView - camera.FieldOfView) / math.max(1, normalFieldOfView - Config.Lab.RifleZoomFieldOfView),
-		0,
-		1
-	)
+	return WeaponController.aimAlpha()
 end
 
 -- Avance de la recarga del arma de la mano (0 a 1), o nil si no recarga.
@@ -468,10 +463,6 @@ function FirstPersonController:Start()
 			FirstPersonController.freeCursor("Key", true)
 		end
 	end)
-	local camera = Workspace.CurrentCamera
-	if camera then
-		normalFieldOfView = camera.FieldOfView
-	end
 	-- De aquí sale la bala propia (Fase 19, W4; CombatClient/WeaponController): la boca del arma de la vista.
 	MuzzleSource.set(function()
 		local muzzle = if viewModel then viewModel:FindFirstChild("Muzzle", true) or viewModel.PrimaryPart else nil

@@ -29,7 +29,7 @@ local SLOTS: { [string]: Vector2 } = {
 	Eat = Vector2.new(4, 0),
 	UseHeal = Vector2.new(5, 0),
 	Guard = Vector2.new(0, 1),
-	Zoom = Vector2.new(0, 1), -- la mira del rifle del Laboratorio, que no tiene guardia (Fase 13)
+	Zoom = Vector2.new(0, 3), -- apuntar (Fase 19, W7); el Laboratorio, sin guardia, lo baja a (0, 1) con setSlot
 	ToggleJournal = Vector2.new(1, 1),
 	Reload = Vector2.new(1, 1), -- recargar en el Laboratorio (Fase 15, V8), que no tiene diario
 	Ability3 = Vector2.new(2, 1),
@@ -43,8 +43,8 @@ local SLOTS: { [string]: Vector2 } = {
 	Mount = Vector2.new(4, 2), -- montar y bajar (Fase 11, UI/MountRiders)
 	MountGesture = Vector2.new(5, 2), -- gesto montado: escupir, rugir (Fase 11, M3)
 }
--- Acciones sin casilla fija: a partir de aquí, en la cuarta fila.
-local EXTRA_ROW = 3
+-- Acciones sin casilla fija: a partir de aquí, en la quinta fila (la cuarta es la de Zoom).
+local EXTRA_ROW = 4
 local COLUMNS = 6
 
 local GAP = 6
@@ -57,6 +57,11 @@ local gui: ScreenGui? = nil
 local jumpButton: GuiObject? = nil
 local buttons: { [string]: TextButton } = {}
 local extraSlots: { [string]: Vector2 } = {}
+
+-- Cambia la casilla de una acción (un place que no usa la de otra, como el Laboratorio sin guardia).
+function ActionButtons.setSlot(action: string, slot: Vector2)
+	SLOTS[action] = slot
+end
 
 local function slotOf(action: string): Vector2
 	local slot = SLOTS[action] or extraSlots[action]

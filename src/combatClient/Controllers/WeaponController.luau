@@ -17,12 +17,14 @@
 -- la bocanada y el destello (AbilityFxController, "WeaponShotFx") también se los manda el servidor.
 -- Disparo de remate (C9b, Shared/RangedChain): aquí se predice la cuenta de disparos seguidos para que
 -- el destello del remate salga al momento; el proyectil y lo que hace los decide el servidor.
--- Laboratorio (Fase 13, Data/LabWeapons): cada arma dispara con la animación de su "pose", y el rifle
--- acerca la vista (Config.Lab.RifleZoomFieldOfView) mientras se mantiene apuntado: clic derecho o gatillo
--- izquierdo del mando, o el botón "Mira" en el móvil (uno lo pone y otro lo quita).
+-- Laboratorio (Fase 13, Data/LabWeapons): cada arma dispara con la animación de su "pose".
+-- Apuntar (Fase 19, W7; Config.Aim): todas las armas a distancia acercan la vista (su "aimFov") mientras se
+-- mantiene apuntado: clic derecho o gatillo izquierdo del mando, o el botón "Mira" en el móvil (uno lo pone y
+-- otro lo quita). En tercera persona, ShoulderAimController pone además la cámara al hombro.
 -- Cargador (Fase 15, V8; CombatClient/LabShooting): con un arma de "lab.magazine" solo se dispara si hay
 -- balas y no se recarga (vacía, pide recargar y suena un clic una vez por pulsación), cada tiro gasta una
--- y se manda al servidor si la mira está acercada (5.º argumento de UseWeapon), que pone la dispersión.
+-- y se manda al servidor si se apunta (5.º argumento de UseWeapon), que pone la dispersión (la del cargador en
+-- el Laboratorio; en los demás places, la de la cadera o la de apuntar: LabSpread.hip).
 -- Las automáticas ("lab.automatic") repiten el disparo a su cadencia mientras se mantiene el gatillo.
 -- Bala inmediata (Fase 19, W4): el disparo directo de un arma a distancia (no el cañón de suero en arco) dibuja
 -- su bala al momento (AbilityFxController.localShot) desde la boca del arma, con la dispersión del tiro
@@ -65,7 +67,6 @@ local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
 }
 local SHAKE_SECONDS = 0.15
 local ZOOM_ACTION = "Zoom"
-local ZOOM_SECONDS = 0.15
 
 local WeaponController = {}
 
@@ -305,22 +306,10 @@ local function swingConnects(character: Model, weapon: Weapons.WeaponDefinition)
 end
 
 -- Temblor corto de la cámara (el remate que da), con el ajuste "cameraShake" (CombatClient/CameraShake).
-local function shake(character: Model)
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local amount = Config.Chain.FinisherShakeStuds * CameraShake.scale()
-	if not humanoid or amount <= 0 then
-		return
-	end
-	local finish = os.clock() + SHAKE_SECONDS
-	local connection: RBXScriptConnection
-	connection = RunService.RenderStepped:Connect(function()
-		if os.clock() >= finish or humanoid.Parent == nil then
-			connection:Disconnect()
-			humanoid.CameraOffset = Vector3.zero
-			return
-		end
-		humanoid.CameraOffset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * 2 * amount
-	end)
+-- Sale por CameraShake.play y no por Humanoid.CameraOffset: ese lo usa la cámara al hombro (W7).
+local function shake()
+	-- "fuerza" 1 de CameraShake ≈ 0,4 studs de temblor.
+	CameraShake.play(Config.Chain.FinisherShakeStuds / 0.4, SHAKE_SECONDS)
 end
 
 -- El tajo del paso "step": su animación estirada a lo que dura el paso (el golpe, al WindupFraction de
@@ -362,7 +351,7 @@ local function playChainSwing(character: Model, weapon: Weapons.WeaponDefinition
 			end)
 		end
 		if finisher then
-			shake(character)
+			shake()
 		end
 	end)
 end
@@ -397,48 +386,82 @@ local function swingChain(character: Model, tool: Tool, weaponId: string, weapon
 	end)
 end
 
--- Zoom del rifle del Laboratorio: el campo de visión de antes, mientras está acercado.
-local normalFieldOfView: number? = nil
+-- Apuntar (Fase 19, W7), con cualquier arma a distancia: clic derecho, gatillo izquierdo o el botón "Mira"
+-- (en móvil uno lo pone y otro lo quita). El campo de visión baja al "aimFov" del arma. La cámara al hombro la
+-- pone ShoulderAimController; la dispersión del tiro, el servidor (CombatRules.takeShot).
+local aiming = false
+-- El campo de visión de antes de apuntar y el de apuntar con el arma de la mano. Se conservan al soltar:
+-- aimAlpha() los necesita mientras el campo de visión vuelve.
+local aimBase = 70
+local aimTarget = 70
+local heldWeapon: Weapons.WeaponDefinition? = nil
 
-local function setZoom(on: boolean)
+-- Cuánto se ha acercado la vista: de 0 (normal) a 1 (del todo).
+local function aimAlphaNow(): number
 	local camera = Workspace.CurrentCamera
-	if not camera or on == (normalFieldOfView ~= nil) then
+	if not camera then
+		return 0
+	end
+	return math.clamp((aimBase - camera.FieldOfView) / math.max(1, aimBase - aimTarget), 0, 1)
+end
+
+local function setAim(on: boolean)
+	local camera = Workspace.CurrentCamera
+	local weapon = heldWeapon
+	if not camera or on == aiming or (on and not weapon) then
 		return
 	end
-	local target: number
-	if on then
-		normalFieldOfView = camera.FieldOfView
-		target = Config.Lab.RifleZoomFieldOfView
-	else
-		target = normalFieldOfView or 70
-		normalFieldOfView = nil
+	aiming = on
+	if on and weapon then
+		-- Con la vista aún volviendo de apuntar, el normal sigue siendo el de antes.
+		if aimAlphaNow() <= 0.01 then
+			aimBase = camera.FieldOfView
+		end
+		aimTarget = math.min(weapon.aimFov or Config.Aim.ShoulderFov, aimBase * 0.85)
 	end
-	TweenService:Create(camera, TweenInfo.new(ZOOM_SECONDS), { FieldOfView = target }):Play()
+	TweenService
+		:Create(
+			camera,
+			TweenInfo.new(Config.Aim.TransitionSeconds),
+			{ FieldOfView = if on then aimTarget else aimBase }
+		)
+		:Play()
 end
 
--- true mientras la mira del rifle está acercada.
-function WeaponController.isZoomed(): boolean
-	return normalFieldOfView ~= nil
+-- true mientras se apunta (y se está vivo con el arma en la mano).
+function WeaponController.isAiming(): boolean
+	return aiming
 end
 
-local function bindZoom()
+-- De 0 a 1, cuánto se ha acercado la vista al apuntar (sigue el campo de visión real, con su transición).
+function WeaponController.aimAlpha(): number
+	return aimAlphaNow()
+end
+
+local function bindAim(weapon: Weapons.WeaponDefinition)
+	heldWeapon = weapon
 	ActionButtons.bind(ZOOM_ACTION, Strings.t("Mira"), function(_, state: Enum.UserInputState, input: InputObject)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			if state == Enum.UserInputState.Begin then
-				setZoom(normalFieldOfView == nil)
+				setAim(not aiming)
 			end
 		elseif state == Enum.UserInputState.Begin then
-			setZoom(true)
+			setAim(true)
 		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-			setZoom(false)
+			setAim(false)
 		end
 		return Enum.ContextActionResult.Pass
 	end, Enum.UserInputType.MouseButton2 :: any, Enum.KeyCode.ButtonL2)
 end
 
-local function unbindZoom()
+-- "weapon": el arma que se suelta; si ya hay otra en la mano (cambio de arma), no se toca.
+local function unbindAim(weapon: Weapons.WeaponDefinition?)
+	if weapon and heldWeapon ~= weapon then
+		return
+	end
 	ActionButtons.unbind(ZOOM_ACTION)
-	setZoom(false)
+	setAim(false)
+	heldWeapon = nil
 end
 
 -- Disparo automático en curso: sube con cada pulsación nueva o al soltar, y el bucle anterior se acaba.
@@ -493,7 +516,10 @@ local function launchLocalShot(
 	end
 	shotSeq += 1
 	local seq = shotSeq
-	local degrees = LabShooting.spreadDegrees(normalFieldOfView ~= nil)
+	-- La misma dispersión que pone el servidor: la del cargador (Laboratorio) o la de la cadera / de apuntar.
+	local degrees = if weapon.lab and weapon.lab.magazine
+		then LabShooting.spreadDegrees(aiming)
+		else LabSpread.hip(weapon, aiming)
 	local spreadDirection = LabSpread.apply(aimDirection, seed, seq, degrees)
 	local settings = if finisher then RangedChain.settings(weapon) else nil
 	local style = weapon.projectile or "Stone"
@@ -571,7 +597,7 @@ local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Wea
 		if lobbedShot then Aim.point(character) else nil,
 		aimOrigin or Aim.origin(character),
 		Workspace:GetServerTimeNow(),
-		normalFieldOfView ~= nil,
+		aiming,
 		claimedSeq
 	)
 	return true
@@ -633,16 +659,16 @@ local function hook(instance: Instance)
 			end
 		end)
 		instance.Unequipped:Connect(releaseArm)
-		if weapon.lab and weapon.lab.zoom then
-			instance.Equipped:Connect(bindZoom)
-			instance.Unequipped:Connect(unbindZoom)
-		end
+		instance.Equipped:Connect(function()
+			bindAim(weapon)
+		end)
+		instance.Unequipped:Connect(function()
+			unbindAim(weapon)
+		end)
 		local character = Players.LocalPlayer.Character
 		if character and instance.Parent == character then
 			aimArm(character, weapon)
-			if weapon.lab and weapon.lab.zoom then
-				bindZoom()
-			end
+			bindAim(weapon)
 		end
 	end
 end
@@ -660,7 +686,7 @@ local function onCharacter(character: Model)
 	stopAimLoop()
 	autoFireToken += 1
 	table.clear(weaponTracks)
-	unbindZoom()
+	unbindAim(nil)
 	watch(character)
 	watch(Players.LocalPlayer:WaitForChild("Backpack"))
 end
@@ -674,6 +700,12 @@ function WeaponController:Start()
 		if state ~= "Idle" and state ~= "Attacking" then
 			chain = MeleeChain.newState()
 			shots.shot = 0
+		end
+	end)
+	-- Caído, deja de apuntar (el arma sigue en la mano).
+	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(function()
+		if not LifeState.isAlive(player) then
+			setAim(false)
 		end
 	end)
 	player.CharacterAdded:Connect(onCharacter)

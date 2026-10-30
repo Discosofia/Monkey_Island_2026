@@ -44,6 +44,10 @@ export type WeaponDefinition = {
 	-- Zonas de daño (Fase 19, W6; Shared/Zones): multiplicador propio por zona, que sustituye al general
 	-- (Config.Combat.Zones). Sin él, la cabeza sale de su proyectil y las demás zonas del general.
 	zoneMultipliers: LabWeapons.ZoneMultipliers?,
+	-- Apuntar (Fase 19, W7; Config.Aim): campo de visión al apuntar (sin él, Config.Aim.ShoulderFov) y
+	-- dispersión a la cadera en grados fuera del Laboratorio (sin él, Config.Aim.HipSpreadDegrees).
+	aimFov: number?,
+	hipSpread: number?,
 	description: string?,
 }
 

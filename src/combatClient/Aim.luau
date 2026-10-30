@@ -69,19 +69,14 @@ function Aim.origin(character: Model): Vector3
 end
 
 function Aim.direction(character: Model): Vector3
-	local camera = Workspace.CurrentCamera
-	if UserInputService.MouseEnabled then
-		local mouse = cursor(camera)
-		local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
-		local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, aimParams(character))
-		local target = if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
-		local origin = Aim.origin(character)
-		local direction = target - origin
-		if direction.Magnitude > 0.1 then
-			return direction.Unit
-		end
+	-- Con ratón, desde el cursor; en táctil y mando, desde el centro de la cámara. En los dos casos, hacia el
+	-- punto al que se apunta y desde donde sale el disparo: con la cámara al hombro (Fase 19, W7) la línea de
+	-- la vista no pasa por la cabeza, y sin esto el tiro saldría paralelo y fallaría de cerca.
+	local direction = Aim.point(character) - Aim.origin(character)
+	if direction.Magnitude > 0.1 then
+		return direction.Unit
 	end
-	return camera.CFrame.LookVector
+	return Workspace.CurrentCamera.CFrame.LookVector
 end
 
 return Aim
