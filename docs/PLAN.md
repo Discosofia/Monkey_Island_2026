@@ -829,7 +829,7 @@ Decisiones del 28-10-2026:
 
 ### Fase 19: Experiencia de combate a distancia (29-10-2026)
 
-En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §80. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
+En el Laboratorio publicado solo se ve el deslizamiento. No se ven la pose de apuntar, los disparos, las líneas blancas, las balas ni dónde pegan. Plan completo (decisiones de la entrevista, archivos, números y riesgos) en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`; se basa en `docs/Combate a distancia.txt`. Siguiente número libre de VERIFICACION: §81. En los handoffs, escribir «Fase 19 W1…» (los nombres W1–W4 también existen en la Fase 17).
 
 Decisiones del 29-10-2026:
 - **Alcance:** Laboratorio, Dunas e Isla; las líneas blancas también en el Lobby.
@@ -847,36 +847,46 @@ Decisiones del 29-10-2026:
 | **W3** | Confirmación de impacto: `HitFeedback`, hitmarker y sonidos | f71ba2e | ✅ Probado en Studio y en el juego publicado con 2 jugadores (sin probar: VERIFICACION §76) |
 | **W4** | Bala inmediata del tirador y dispersión sincronizada | da12de9 | ✅ Probado en Studio (sin probar: VERIFICACION §78) |
 | **W5** | Marcas de impacto, chispas, polvo y pulpa | 8c075e6 | ✅ Probado en Studio (sin probar: VERIFICACION §79) |
-| **W6** | Zonas por piezas, rebobinado de pose y ayuda de puntería | — | ⏳ |
+| **W6** | Zonas por piezas, rebobinado de pose y ayuda de puntería | c7e07fd | ✅ Probado en Studio (sin probar: VERIFICACION §80) |
 | **W7** | Apuntar de verdad (ADS) y cámara al hombro | — | ⏳ |
 | **W8** | Miras por tipo de arma | — | ⏳ |
 | **W9** | Killfeed | — | ⏳ |
 | **W10** | Rig de brazos en primera persona del Lab | — | ⏳ |
 | **W11** | Prueba publicada con 2 a 10 jugadores y ajuste | — | ⏳ |
 
-**Handoff de la Fase 19 W6 (29-10-2026)**
-- **Estado:** W1 (f6b7fa1), W2 (015e9d3 y 43d4eed, con los 16 ids ya publicados), W3 (f71ba2e) y W4 (da12de9) hechas; W4 cerrada en este PLAN. W5 está hecha en el código y probada en Studio, pero **sin commit** hasta el «aprobado» del usuario. Sin probar de W5: VERIFICACION §79. Sin probar de W4: VERIFICACION §78. Sin probar de W3: VERIFICACION §76. Siguiente número libre de VERIFICACION: §80. Plan completo y decisiones en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W6).
-- **Nota sobre W3:** los kinds «Limb» y «Weak» de `HitFeedback` ya están admitidos en servidor y cliente. W6 empieza a mandarlos.
-- **Objetivo W6:** zonas por piezas, rebobinado de la pose y ayuda de puntería. Depende de W3. Multiplicadores: cabeza ×1,5 (rifle ×2), torso ×1, extremidades ×0,8 y puntos débiles de los jefes ×1,5. El daño toma el mayor entre crítico y cabeza; la extremidad siempre multiplica.
-- **Qué hacer:**
-  - **Calculadora primero:** `Equilibrio` se amplía antes de escribir código. Sección 12 con la mezcla de zonas y sección nueva de la Isla (cabeza contra monos y puntos débiles de los jefes), con alertas de TTK. Telemetría `LimbShots`.
-  - **Rebobinado:** `PositionHistory.luau` guarda el CFrame de la raíz y, para los jugadores, un anillo corto con las piezas R15 relativas a la raíz (0,3 s).
-  - **Detección:** `Hitbox.zoneOf(model, part)` nuevo. `sweepPlayers` pasa a `sweepBodies`: la cápsula como filtro rápido y después un test segmento-OBB por pieza con su pose rebobinada (+0,15 de margen). La cabeza sigue siendo una esfera. Monos, jefes y muñecos sacan la zona de `result.Instance` en `sweepCombatants`, sin rebobinar. `Projectiles` pasa `onHit(model, pos, zone)`.
-  - **Reglas:** `CombatRules`: `headshots` pasa a `zones` (verdadero en los 4 places) y nuevo `aimAssist` (falso en el Lab). `aimShot` lleva el tiro al punto de la cápsula más cercano a la línea, y sale enseguida si `aimAssist` es falso.
-  - **Daño:** `CombatService` usa `zone` en `applyPvP`, `damage` y `strike`. `acidLob` y las habilidades no usan zonas.
-  - **Contenido:** `TrainingDummies` con cabeza y brazos; `Data/Bosses` con `weakPoints`, que `MonkeyModels` marca con el atributo `WeakPoint`; `LabWeapons` con `zoneMultipliers = { Head = 2 }` en el rifle.
-  - **Config** (`Combat.Zones`): `Head 1.5`, `Torso 1`, `Limb 0.8`, `Weak 1.5`, `PartPadding 0.15`, `PoseHistorySeconds 0.3`, `HitMix 0.15/0.6/0.25`.
-- **Mapa del código nuevo de W5:**
-  - `src/combatClient/ImpactFx.luau`: `ImpactFx.play(position, direction, hitBody, quality)` deja la marca, las chispas y el polvo, o la pulpa si `hitBody`. `ImpactFx.setFolder` cuelga las piezas de la carpeta `AbilityFx` del cliente. `ImpactFx.peakPieces(quality)` da el pico de piezas que usa `Rendimiento`.
-  - `AbilityFxController`: `IMPACT_LOOKS` (línea 3045) dice qué balas dejan impacto (solo las de arma en línea recta, no el suero en arco ni las habilidades). `projectileEnd(id, position, hitBody)` lleva `hitBody` hasta `finish`. Se quitó el `ring()` horizontal de las paredes.
-  - Config: `Config.Budgets.ImpactMarks` (hermano de `Budgets.Vfx`, no está dentro de él): Low 15, Medium 35, High 60. `Config.ImpactFx` tiene `MarkSeconds`, `MarkFadeSeconds`, `MarkSize`, `Sparks`, `Dust` y `Pulp`.
-  - `Rendimiento`: sección 10 (impactos de las armas por calidad, con una ráfaga de 10 tiradores).
-- **Trampas conocidas:** (1) en Play, el `require` del MCP es otra copia: para remotos, usa los de `ReplicatedStorage.Remotes` desde el cliente. (2) Play en Studio escribe el perfil real: haz copia en `PlayerData_v1_backups` y restáurala después. (3) Hay varios Studios abiertos (ids con `list_roblox_studios`); trabaja en el que toque y no toques los otros. (4) Deja la cámara de edición en `Fixed`, como último paso. (5) Los muñecos del Lab quedan tras un muro si se dispara desde la base. (6) El cursor real del ratón de Studio desvía el disparo del cliente en las pruebas con MCP: para probar daño, usa el remoto `UseWeapon` con una dirección; para ver efectos locales, usa `tool:Activate()`. (7) Con `LabWeapon` hay que fijar el atributo de munición en el servidor para tener munición en las pruebas del MCP.
-- **Riesgos:** el rebobinado por pieza solo corre si la cápsula acierta; las piezas de los monos no se rebobinan. La extremidad ×0,8 y la cabeza ×2 del rifle cambian los TTK: nada se escribe sin `Equilibrio` sin alertas.
-- **Prueba:** `Equilibrio` (secciones 6, 12 y la nueva) sin alertas; muñecos de cabeza, torso y brazo; 2 clientes con lag simulado para el rebobinado. Medir `Projectiles.step` por debajo de 0,5 ms con 30 proyectiles, 12 jugadores y 40 monos. El ping real (W6) va a VERIFICACION como sección nueva.
-- **Cómo trabajar:** `search` localiza lo que haga falta; el `programador` escribe con esta especificación (skill `combate-roblox`) después de la calculadora; la sesión principal revisa el diff; `probador-studio` hace los muñecos y `Equilibrio`; `documentador` hace la sección de VERIFICACION, la fila de W6 y el borrador del commit.
-- **Flujo:** commit solo tras el «aprobado» del usuario; push y fila de `PLAN.md` en un commit aparte. Después, el Handoff de W7 (apuntar de verdad y cámara al hombro).
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W6, y el plan en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`. Haz el grupo W6.»
+**Handoff de la Fase 19 W7 (29-10-2026)**
+- **Estado:** W1 (f6b7fa1), W2 (015e9d3 y 43d4eed, con los 16 ids ya publicados), W3 (f71ba2e), W4 (da12de9) y W5 (8c075e6) hechas y cerradas en este PLAN. W6 está hecha en el código y probada en Studio, pero **sin commit** hasta el «aprobado» del usuario. Sin probar de W6: VERIFICACION §80. Sin probar de W5: VERIFICACION §79. Sin probar de W4: VERIFICACION §78. Sin probar de W3: VERIFICACION §76. Siguiente número libre de VERIFICACION: §81. Plan completo y decisiones en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md` (sección W7).
+- **Nota sobre W6:** W7 se escribe sobre el código de W6, que aún no tiene commit. El commit de W6 va antes que el de W7.
+- **Objetivo W7:** apuntar de verdad (ADS) y cámara al hombro.
+  - `WeaponController`: `setZoom` y `bindZoom` (líneas 372-411) pasan a un estado de apuntado para todas las armas, con FOV por arma; nuevo `isAiming()`. `shake` (líneas 277-293) pasa a `CameraShake.play` para dejar libre `CameraOffset`.
+  - Nuevo `ShoulderAimController.luau`, saltado en el Lab: al apuntar pone `CameraRelative`, `LockCenter` y `CameraOffset` al hombro derecho; al soltar, al morir, al desequipar o al abrir una ventana, vuelve al estado anterior. Se coordina con `CameraLockController`.
+  - `Aim.luau`: en táctil y mando, rayo desde la cámara hasta `Aim.point` para evitar el paralaje.
+  - `CombatRules.takeShot` en Isla y Dunas: dispersión de cadera o con mira. Lab: `adsSpreadFactor`.
+  - Campos nuevos `aimFov` y `hipSpread` en `Data/Weapons` y `LabWeapons`.
+- **Valores fijados:** Config `Aim`: `ShoulderOffset (1.75, 0.6, 0)`, `ShoulderFov 55`, `TransitionSeconds 0.15`, `HipSpreadDegrees 1.5`, `AdsSpreadDegrees 0`. Lab: `adsSpreadFactor 0.35` para dardos y arpón.
+- **Mapa del código nuevo de W6:**
+  - `src/shared/Zones.luau` (nuevo): las zonas de daño.
+  - `Config.Combat.Zones`: `Head 1.5`, `Torso 1`, `Limb 0.8`, `Weak 1.5`, `PartPadding 0.15`, `PoseHistorySeconds 0.3`, `HitMix 0.15/0.6/0.25`, `HeadByProjectile` y `FilterExtraStuds`.
+  - `zoneMultipliers` por arma en `Data/Weapons` y `Data/LabWeapons`.
+  - `Hitbox.zoneOf(model, part)` y `Hitbox.sweepBodies`: la cápsula como filtro rápido y después un test segmento-OBB por pieza con su pose rebobinada.
+  - `PositionHistory.poseAt` y `poseInto`: el anillo de poses de 0,3 s.
+  - `CombatRules`: `zones` (verdadero en los 4 places) y `aimAssist` (falso en el Lab).
+  - `CombatService`: `strike`, `zoneScale` y `aimShot`.
+  - `TrainingDummies` con cabeza y brazos.
+  - `Data/Bosses` con `weakPoints`, que `MonkeyModels` marca con el atributo `WeakPoint` (`markZones`).
+- **Valores fijados de W6:** dardos, cabeza ×1,3; arpón, cabeza ×1,5 y extremidad ×1; rifle, cabeza ×2; monos, cabeza según el arma: honda 1,5, arco 1,75, bastón 1,25, cerbatana 1,3; extremidad ×0,8 (salvo el arpón); punto débil de jefe ×1,5. El daño toma el mayor entre crítico y cabeza; la extremidad siempre multiplica.
+- **Trampas conocidas:**
+  1. El cursor del ratón de Studio desvía el disparo del cliente en las pruebas: usa el remoto `UseWeapon` con una dirección, o `tool:Activate()`.
+  2. Los proyectiles de arma usan una esfera de radio 0,6 contra monos y muñecos. Los brazos del muñeco están a 1,9 del torso, así que hay que tenerlo en cuenta al apuntar a los brazos.
+  3. En el Studio de la Isla, la caché de `require` no muestra los VoxelSpecs nuevos: clona la carpeta `Combat.Monkeys` antes de probar.
+  4. En Play, el `require` del MCP es otra copia: para remotos, usa los de `ReplicatedStorage.Remotes` desde el cliente.
+  5. Play en Studio escribe el perfil real: haz copia en `PlayerData_v1_backups` y restáurala después.
+  6. Deja la cámara de edición en `Fixed`, como último paso.
+- **Riesgos:** el ratón puede quedar bloqueado: hay que restaurar el estado al morir y al abrir ventanas. La dispersión de cadera y la cabeza ×2 del rifle cambian los TTK: nada se escribe sin `Equilibrio` sin alertas.
+- **Prueba:** Isla y Dunas en PC y en el emulador de teléfono (botón «Mira»), y `Equilibrio` con la dispersión de cadera.
+- **Cómo trabajar:** `search` localiza lo que haga falta; el `programador` escribe con esta especificación (skills `combate-roblox` e `interfaz-roblox`); la sesión principal revisa el diff y las capturas; `probador-studio` hace `Equilibrio` y las pruebas en Studio; `documentador` hace la sección de VERIFICACION, la fila de W7 y el borrador del commit.
+- **Flujo:** commit solo tras el «aprobado» del usuario; push y fila de `PLAN.md` en un commit aparte. Después, el Handoff de W8 (miras por tipo de arma).
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 19 y el Handoff de la Fase 19 W7, y el plan en `C:\Users\jose\.claude\plans\magical-stirring-puddle.md`. Haz el grupo W7.»
 
 ---
 
