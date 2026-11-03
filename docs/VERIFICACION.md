@@ -4064,6 +4064,32 @@ El Caudillo se rehízo como jefe tribal (manto de leopardo con rosetas y cola, h
 2. [ ] En un teléfono, mira al Caudillo a unos 30 studs en las tres fases.
    ✅ Los FPS no caen frente al Caudillo de antes y las rosetas y el pelo no se ven a cuadros ni borrosos.
 
+## 99. Fase 20 Q3c: Orangután del Manglar con malla (03-11-2026)
+
+El Orangután del Manglar se rehízo como señor del pantano (cortina de pelo largo por la espalda y los brazos, musgo y lianas con capullos, conchas y cangrejos en los hombros y el lomo, raíces del manglar que crecen con las fases y flores abiertas en la fase 3) y sus seis partes del cuerpo son `MeshPart` con textura (`Data/BossMeshes`, 2.256 triángulos en las mallas y ~3.200 / 4.200 / 5.800 visibles por fase con las uniones que quedan). La cara, los ojos, el saco de la garganta con la gema, el barro, las raíces, las flores, los hongos y el musgo con material siguen siendo uniones por fase. Se prueba en Play en la Isla con una copia de `PlayerData_v1` (como en §97.1); el primer jefe de la rotación del botón «Jefe» es el Orangután.
+
+### 99.1 En Play, en la Isla (1 jugador)
+
+1. [ ] Copia `PlayerData_v1` en `PlayerData_v1_backups`, invoca al Orangután y míralo de frente, de lado y por detrás.
+   ✅ Sin errores ni avisos «No se pudo cargar la malla»; por detrás, la cortina de pelo en tres tonos de naranja, las lianas con hojas y capullos rosas, el musgo del lomo, y las conchas y los cangrejos azul grisáceo sobre los hombros y el lomo.
+2. [ ] Baja su vida con «Jefe herido» y míralo en las fases 2 y 3, de frente y por detrás.
+   ✅ Fase 2: barro y el saco de la garganta medio hinchado, con más raíces. Fase 3: raíces grandes (también sobre los hombros), hongos luminosos, flores blancas con el centro dorado, saco hinchado y ojos encendidos; se distingue de la 1 a primera vista, también por detrás.
+3. [ ] Déjalo atacar (agarre, pisotón y llamada a las marimondas) y míralo andar.
+   ✅ Las seis mallas siguen a sus articulaciones sin piezas sueltas ni flotando; los brazos caen sobre los hombros en los dos lados (señal de que el giro de la malla es el correcto).
+4. [ ] Dispara a la gema azul de la garganta y a la cabeza.
+   ✅ La gema sigue siendo el punto débil, sobresale del saco en las tres fases y la cabeza cuenta como cabeza.
+5. [ ] En el Studio, quita un id de `BossMeshes.luau` (por ejemplo el de la cabeza) y vuelve a invocarlo.
+   ✅ Esa parte sale con bloques como antes y el resto con malla; sin errores. Devuelve el id.
+6. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 99.2 En el juego publicado, con 2 jugadores y en teléfono
+
+1. [ ] Con 2 jugadores, uno de ellos entra después de que el Orangután ya esté vivo.
+   ✅ El segundo ve las seis mallas con su textura (no un patrón de cuadros) y los dos ven lo mismo.
+2. [ ] En un teléfono, mira al Orangután a unos 30 studs en las tres fases.
+   ✅ Los FPS no caen frente al Orangután de antes y la cortina de pelo y el musgo no se ven a cuadros ni borrosos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

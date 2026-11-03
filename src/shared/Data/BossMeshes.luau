@@ -118,6 +118,41 @@ local BossMeshes: { [string]: BossMesh } = {
 			},
 		},
 	},
+	OrangutanDelManglar = {
+		scale = 3,
+		parts = {
+			["Torso"] = {
+				mesh = "rbxassetid://139636871876586",
+				texture = "rbxassetid://117294235145911",
+				offset = Vector3.new(0.0, 0.25, 1.365),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://114983613574935",
+				texture = "rbxassetid://105069151736041",
+				offset = Vector3.new(0.0, -0.825, -0.45),
+			},
+			["Right Arm"] = {
+				mesh = "rbxassetid://126945837773753",
+				texture = "rbxassetid://130901727763319",
+				offset = Vector3.new(0.0735, -1.02, -0.15),
+			},
+			["Right Leg"] = {
+				mesh = "rbxassetid://140191498769992",
+				texture = "rbxassetid://88982213907354",
+				offset = Vector3.new(0.0, -0.9, -0.42),
+			},
+			["Left Arm"] = {
+				mesh = "rbxassetid://131452607534584",
+				texture = "rbxassetid://101335588857289",
+				offset = Vector3.new(-0.0735, -1.02, -0.15),
+			},
+			["Left Leg"] = {
+				mesh = "rbxassetid://127279603998015",
+				texture = "rbxassetid://81838129831357",
+				offset = Vector3.new(0.0, -0.9, -0.42),
+			},
+		},
+	},
 }
 
 return BossMeshes

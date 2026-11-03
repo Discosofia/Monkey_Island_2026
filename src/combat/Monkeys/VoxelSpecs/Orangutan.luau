@@ -215,6 +215,214 @@ local function root(points: { Vector3 }, width: number): { { any } }
 	end)
 end
 
+-- Moteado: copia del de Gorila (ver su explicación). Cada cara es { eje, plano, hacia fuera, desde, hasta };
+-- con eje "x" las coordenadas son y, z; con "y", x, z; y con "z", x, y.
+local function mottle(seed: number, count: number, colors: { Color3 }, faces: { { any } }, thick: number?): { any }
+	local t = thick or 0.1
+	local rng = Random.new(seed)
+	local areas, total = {}, 0
+	for index, face in faces do
+		local from, to = face[4], face[5]
+		total += (to[1] - from[1]) * (to[2] - from[2])
+		areas[index] = total
+	end
+	local boxes = {}
+	for _ = 1, count do
+		local pick = rng:NextNumber(0, total)
+		local face = faces[#faces]
+		for index, area in areas do
+			if pick <= area then
+				face = faces[index]
+				break
+			end
+		end
+		local axis, plane, out, from, to = face[1], face[2], face[3], face[4], face[5]
+		local a, b = rng:NextNumber(from[1], to[1]), rng:NextNumber(from[2], to[2])
+		local sizeA, sizeB = rng:NextNumber(0.8, 1.8), rng:NextNumber(0.6, 1.4)
+		local depth = plane + out * t / 2
+		local color = colors[rng:NextInteger(1, #colors)]
+		if axis == "x" then
+			table.insert(boxes, { depth, a, b, t, sizeA, sizeB, color })
+		elseif axis == "y" then
+			table.insert(boxes, { a, depth, b, sizeA, t, sizeB, color })
+		else
+			table.insert(boxes, { a, b, depth, sizeA, sizeB, t, color })
+		end
+	end
+	return boxes
+end
+
+-- Señor del pantano (Fase 20 Q3c): cortina de pelo largo por la espalda y los brazos, musgo y lianas con flores,
+-- conchas y cangrejos en los hombros y el lomo, y el manglar que crece con las fases (raíces cada vez más
+-- grandes y, en la 3, flores abiertas). Con malla, lo fino (matas de pelo, musgo, hojas) va a la textura.
+local FUR_TUFTS = { Color3.fromRGB(188, 86, 34), Color3.fromRGB(132, 50, 18), Color3.fromRGB(92, 34, 12) }
+local MOSS_LIGHT = Color3.fromRGB(122, 165, 72)
+local SHELL = Color3.fromRGB(238, 214, 190)
+local SHELL_DARK = Color3.fromRGB(200, 150, 140)
+local CRAB = Color3.fromRGB(86, 108, 128)
+local CRAB_CLAW = Color3.fromRGB(226, 168, 120)
+local PINK = Color3.fromRGB(236, 120, 150)
+local PETAL = Color3.fromRGB(250, 232, 240)
+local POLLEN = Color3.fromRGB(250, 205, 60)
+
+local TORSO_FACES = {
+	{ "y", 29.5, 1, { -10, -6.5 }, { 10, 2 } },
+	{ "z", -7.5, -1, { -10, 24 }, { 10, 28.5 } },
+	{ "x", 11, 1, { 24, -6.5 }, { 29, 2 } },
+	{ "x", -11, -1, { 24, -6.5 }, { 29, 2 } },
+	{ "y", 28.7, 1, { -7.5, 2.2 }, { 7.5, 5.8 } },
+	{ "y", 25.8, 1, { -7, 5.2 }, { 7, 8.8 } },
+}
+local ARM_FACES = {
+	{ "x", 12.4, 1, { 11, -8.5 }, { 20, -5.5 } },
+	{ "z", -9, -1, { 9, 11 }, { 12, 20 } },
+	{ "z", -9, -1, { 9.2, 3 }, { 11.8, 10 } },
+}
+local LEG_FACES = {
+	{ "x", 8.4, 1, { 7, 8 }, { 12.5, 12 } },
+	{ "z", 7.5, -1, { 4.6, 7 }, { 7.8, 12.5 } },
+}
+local HEAD_FACES = {
+	{ "y", 33.5, 1, { -3.5, -11.5 }, { 3.5, -6.5 } },
+	{ "x", 4.5, 1, { 26, -12 }, { 33, -6 } },
+	{ "x", -4.5, -1, { 26, -12 }, { 33, -6 } },
+	{ "z", -5, 1, { -4, 26 }, { 4, 33 } },
+}
+local SWAMP_FUR = {
+	Torso = mottle(101, 70, FUR_TUFTS, TORSO_FACES, 0.3),
+	Arm = mottle(103, 40, FUR_TUFTS, ARM_FACES, 0.3),
+	Leg = mottle(107, 16, FUR_TUFTS, LEG_FACES, 0.3),
+	Head = mottle(109, 20, FUR_TUFTS, HEAD_FACES, 0.25),
+}
+-- Musgo pintado sobre el lomo y los hombros (lo grueso, con material, sigue en los grupos "Moss").
+local SWAMP_MOSS = mottle(113, 60, { MOSS, MOSS_DARK, MOSS_LIGHT }, {
+	{ "y", 29.5, 1, { -9, -6 }, { 9, 1.5 } },
+	{ "y", 28.7, 1, { -7, 2.5 }, { 7, 5.5 } },
+	{ "y", 25.8, 1, { -6.5, 5.5 }, { 6.5, 8.5 } },
+	{ "x", 11, 1, { 25, -6 }, { 29, 1.5 } },
+	{ "x", -11, -1, { 25, -6 }, { 29, 1.5 } },
+}, 0.3)
+
+-- Cortina de pelo largo y desigual: dos tramos de mechones por detrás de la espalda y la grupa, con lianas finas
+-- y flores en rosa pegadas al tramo de arriba.
+local function curtain(): { { any } }
+	local tones = { FUR_TUFTS[1], FUR_TUFTS[2], FUR_TUFTS[3] }
+	local rng = Random.new(7)
+	local boxes = {}
+	for index = -3, 3 do
+		local length = rng:NextNumber(4, 11)
+		table.insert(boxes, {
+			index * 2.3,
+			25.5 - length / 2,
+			10.7 + (index % 2) * 0.5,
+			2.4,
+			length,
+			1.2,
+			tones[(index + 3) % 3 + 1],
+			"Strand",
+		})
+	end
+	for index = -2, 2 do
+		local length = rng:NextNumber(4, 9.5)
+		table.insert(boxes, {
+			index * 2.4,
+			19.5 - length / 2,
+			12.7 + (index % 2) * 0.6,
+			2.5,
+			length,
+			1.2,
+			tones[(index + 3) % 3 + 1],
+			"Strand",
+		})
+	end
+	for _, x in { -5.5, -1.5, 3, 6.5 } do
+		table.insert(boxes, { x, 22.8, 11.45, 0.7, 5, 0.3, VINE, "Liana" })
+		table.insert(boxes, { x + 1, 23.6, 11.5, 1.8, 1.2, 0.3, LEAF, "Leaf" })
+		table.insert(boxes, { x - 1, 21.4, 11.5, 1.8, 1.2, 0.3, LEAF, "Leaf" })
+		table.insert(boxes, { x, 20.6, 11.7, 0.9, 0.9, 0.5, PINK, "Bud" })
+	end
+	return boxes
+end
+
+-- Concha de caracola (tres bloques que se estrechan) y cangrejo con las pinzas abiertas.
+local function shell(x: number, y: number, z: number, size: number): { { any } }
+	return {
+		{ x, y + size * 0.4, z, size * 1.6, size * 0.8, size * 1.6, SHELL, "Shell" },
+		{ x, y + size * 1.1, z, size * 1.1, size * 0.6, size * 1.1, SHELL_DARK, "Shell" },
+		{ x, y + size * 1.6, z, size * 0.6, size * 0.5, size * 0.6, SHELL, "Shell" },
+	}
+end
+
+local function crab(x: number, y: number, z: number): { { any } }
+	return {
+		{ x, y + 0.7, z, 2.8, 1.4, 2.2, CRAB, "Crab" },
+		{ x - 1.9, y + 0.9, z - 1.4, 1.1, 0.9, 1.1, CRAB_CLAW, "Crab" },
+		{ x + 1.9, y + 0.9, z - 1.4, 1.1, 0.9, 1.1, CRAB_CLAW, "Crab" },
+		{ x - 0.8, y + 1.6, z - 0.8, 0.5, 0.6, 0.5, EYE, "Crab" },
+		{ x + 0.8, y + 1.6, z - 0.8, 0.5, 0.6, 0.5, EYE, "Crab" },
+	}
+end
+
+local SWAMP_DECOR = join(
+	shell(7, 29.5, -3.5, 2),
+	shell(-8.5, 29.5, -1, 1.7),
+	shell(5, 25.8, 7.5, 1.6),
+	crab(-4.5, 28.7, 4),
+	crab(5.5, 25.8, 7),
+	crab(-6, 29.5, -4.5)
+)
+local SWAMP_ARM_DECOR = join({
+	{ 12.9, 14, -4.4, 0.8, 9, 1.6, "shag", "Hair" },
+	{ 12.9, 8.5, -5.8, 0.8, 7, 1.4, "shade", "Hair" },
+	{ 12.9, 17.5, -5.2, 0.8, 6, 1.4, "shag", "Hair" },
+}, shell(12.4, 18, -7.4, 1.3), crab(10.5, 20.5, -6.5))
+
+-- Raíces del manglar que le brotan del lomo: unas pocas y cortas en la fase 1, más y más altas en la 2 y las
+-- grandes de siempre más dos sobre los hombros en la 3.
+local function rootGroups(): { any }
+	local function group(phase: number, roots: { any }): any
+		local boxes = {}
+		for _, spec in roots do
+			boxes = join(boxes, root(spec[1], spec[2]))
+		end
+		return { anchor = "Torso", name = "Root", material = "Wood", color = ROOT, phase = phase, boxes = boxes }
+	end
+	local function V(x: number, y: number, z: number): Vector3
+		return Vector3.new(x, y, z)
+	end
+	local small = {
+		{ { V(3, 30.5, -1), V(3.5, 33, 0), V(4, 35, 2.5), V(4.5, 34, 5) }, 1.2 },
+		{ { V(-3, 30, 0), V(-3.5, 32.5, 1.5), V(-4, 34, 4), V(-4.5, 33, 6.5) }, 1.2 },
+	}
+	local medium = join(small, {
+		{ { V(7, 29.8, -2), V(8, 33.5, -1), V(8.5, 36, 2), V(8.5, 35, 5) }, 1.6 },
+		{ { V(-7, 29.8, -1), V(-8, 33, 0), V(-8.5, 35.5, 3), V(-8.5, 34, 6) }, 1.6 },
+		{ { V(0, 30.5, -3), V(0, 34.5, -2), V(0.5, 36, 1) }, 1.4 },
+	})
+	local large = join({
+		{ { V(4, 30.5, -2), V(4.5, 35.5, 0), V(5, 38, 3.5), V(5.5, 36, 7), V(6, 26, 9) }, 2.2 },
+		{ { V(-3.5, 29.5, 1.5), V(-4, 34, 3), V(-4.5, 36, 6), V(-5, 33, 8.5), V(-5.5, 25, 9.5) }, 2 },
+		{ { V(0, 30.5, -3.5), V(0, 34, -2), V(0.5, 35.5, 1), V(1, 33, 3.5), V(1, 28.5, 4.5) }, 1.6 },
+		{ { V(10, 29.5, -1), V(11, 34, 0), V(11, 38, 3), V(10.5, 36, 7) }, 2 },
+		{ { V(-10, 29.5, 0), V(-11, 34, 1), V(-11, 37.5, 4), V(-10.5, 35, 8) }, 2 },
+	}, {})
+	return { group(1, small), group(2, medium), group(3, large) }
+end
+
+-- Flores abiertas (fase 3): cuatro pétalos blancos y el centro dorado, sobre los hombros y la joroba.
+local function flowers(): { { any } }
+	local boxes = {}
+	for _, at in { { 7.5, 30.9, -4.5 }, { -7.5, 30.9, -3.5 }, { 0, 31.8, -3.5 }, { 3.5, 29.9, 4 }, { -3, 28.4, 6 } } do
+		local x, y, z = at[1], at[2], at[3]
+		table.insert(boxes, { x - 1.2, y, z, 1.4, 0.5, 1, PETAL })
+		table.insert(boxes, { x + 1.2, y, z, 1.4, 0.5, 1, PETAL })
+		table.insert(boxes, { x, y, z - 1.2, 1, 0.5, 1.4, PETAL })
+		table.insert(boxes, { x, y, z + 1.2, 1, 0.5, 1.4, PETAL })
+		table.insert(boxes, { x, y + 0.1, z, 1, 0.7, 1, POLLEN })
+	end
+	return boxes
+end
+
 return {
 	-- 0,1 studs por celda a escala 1; con su scale mide ~3 studs (GDD §8.2).
 	unit = 0.1,
@@ -359,17 +567,19 @@ return {
 		-- raíces del manglar arqueadas en el lomo y hongos luminosos en el musgo.
 		OrangutanDelManglar = {
 			add = {
-				Torso = {
+				Torso = join({
 					{ 2.8, 24, -7.5, 5, 3.5, 0.6, "fur", "Pectoral", true },
-				},
-				Arm = {
+				}, SWAMP_FUR.Torso, SWAMP_MOSS, curtain(), SWAMP_DECOR),
+				Arm = join({
 					{ 12.6, 7.5, -7.2, 0.6, 4, 3, "fur", "Forearm" },
 					{ 10.5, 7.5, -9.2, 3, 4, 0.6, "fur", "Forearm" },
 					{ 10.5, 16, -9.2, 3, 4, 0.6, "fur", "Biceps" },
-				},
-				Head = MANGLAR_HEAD,
+				}, SWAMP_FUR.Arm, SWAMP_ARM_DECOR),
+				Leg = SWAMP_FUR.Leg,
+				Head = join(MANGLAR_HEAD, SWAMP_FUR.Head),
 			},
-			groups = join(phaseFaces(Color3.fromRGB(150, 230, 90), MANGLAR_FACE), mud(2), mud(3), {
+			groups = join(phaseFaces(Color3.fromRGB(150, 230, 90), MANGLAR_FACE), mud(2), mud(3), rootGroups(), {
+				{ anchor = "Torso", name = "Flower", phase = 3, boxes = flowers() },
 				{
 					anchor = "Torso",
 					name = "Moss",
@@ -416,36 +626,6 @@ return {
 						{ 0, 21.6, -15.5, 2.6, 2.6, 2.6 },
 						{ 0, 21.6, -16.85, 1.4, 1.4, 0.3, Color3.fromRGB(190, 225, 255) },
 					},
-				},
-				{
-					anchor = "Torso",
-					name = "Root",
-					material = "Wood",
-					color = ROOT,
-					phase = 3,
-					boxes = join(
-						root({
-							Vector3.new(4, 30.5, -2),
-							Vector3.new(4.5, 35.5, 0),
-							Vector3.new(5, 38, 3.5),
-							Vector3.new(5.5, 36, 7),
-							Vector3.new(6, 26, 9),
-						}, 2.2),
-						root({
-							Vector3.new(-3.5, 29.5, 1.5),
-							Vector3.new(-4, 34, 3),
-							Vector3.new(-4.5, 36, 6),
-							Vector3.new(-5, 33, 8.5),
-							Vector3.new(-5.5, 25, 9.5),
-						}, 2),
-						root({
-							Vector3.new(0, 30.5, -3.5),
-							Vector3.new(0, 34, -2),
-							Vector3.new(0.5, 35.5, 1),
-							Vector3.new(1, 33, 3.5),
-							Vector3.new(1, 28.5, 4.5),
-						}, 1.6)
-					),
 				},
 				{
 					anchor = "Torso",
