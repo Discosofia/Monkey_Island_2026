@@ -1022,7 +1022,7 @@ Sale de querer que el agente edite los vídeos de promoción y el usuario superv
 
 | Grupo | Contenido | Terminado cuando | Commit | Estado |
 |---|---|---|---|---|
-| **V0** | Spike de 1 día: instalar ffmpeg y pyCapCut; (1) CapCut 9.7 guarda en texto plano y no cifra un borrador escrito por el script; (2) borrador 9:16 con 3 trozos de `O:/2026-10-30 10-42-16.mkv`, un texto y un MP3; (3) qué sale marcado Pro | El usuario abre el borrador en 9.7, se ve bien y exporta a 1080×1920 sin marca de agua. Si falla: se apunta qué y se replantea antes de V1 (alternativas: `capcut-cli` o un render solo con ffmpeg) | — | ⏳ |
+| **V0** | Spike de 1 día: instalar ffmpeg y pyCapCut; (1) CapCut 9.7 guarda en texto plano y no cifra un borrador escrito por el script; (2) borrador 9:16 con 3 trozos de `O:/2026-10-30 10-42-16.mkv`, un texto y un MP3; (3) qué sale marcado Pro | El usuario abre el borrador en 9.7, se ve bien y exporta a 1080×1920 sin marca de agua. Si falla: se apunta qué y se replantea antes de V1 (alternativas: `capcut-cli` o un render solo con ffmpeg) | `ed253a0` | ✅ 03-11-2026 |
 | **V1** | `borrador.py`, la lista de cortes del tráiler (sobre copia) y `fotogramas.py` | Los 39 clips de `trailer esp` con su toma y sus tiempos, comprobados contra 5 clips vistos en CapCut; un fotograma por clip con la guía 9:16 | — | ⏳ |
 | **V2** | `short.py`, `shorts.md` y el primer Short (gancho del capuchino ladrón y los jefes), ES y EN | Los dos borradores abren sin errores; tiempos y textos coinciden con el guion; el texto cae en el tercio central; el usuario exporta y apunta sus minutos de retoque | — | ⏳ |
 | **V3** | Los otros 2-4 Shorts (mascotas y monturas, roles, Dunas y Laboratorio) y los ajustes que pida V2 | Cada Short pide 10 minutos o menos de retoque, en al menos 3 de 4 | — | ⏳ |
@@ -1033,10 +1033,11 @@ Sale de querer que el agente edite los vídeos de promoción y el usuario superv
 **Riesgos y cómo se detectan:** cifrado o formato nuevo de 9.7 (V0, paso 1); `pyCapCut` y 9.7 (V0, paso 2); recurso Pro que mete marca de agua (V0, paso 3; después, solo fuentes y animaciones básicas); una actualización de CapCut (`short.py` lee `ProductInfo.xml` y avisa si no es la versión probada); recorte 9:16 que corta la acción (fotogramas de V1); términos de uso (todo es local; leer los oficiales es tarea del usuario).
 
 **Handoff de la Fase 22 (03-11-2026)**
-- **Estado:** plan aprobado el 03-11-2026; nada construido. Solo existe `docs/videos/CAPCUT-INVESTIGACION.md`. Siguiente número libre de VERIFICACION: §103.
-- **Siguiente paso:** V0. Instalar `winget install Gyan.FFmpeg`, un entorno en `build/videos/.venv` con `pycapcut==0.0.4`, y hacer el spike. CapCut tiene que estar cerrado al escribir.
-- **Datos útiles:** borradores en `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft\` (`trailer esp`, `trailer en`, versión de formato 360000); tomas en `O:/2026-10-30 *.mkv`; audio en `F:/Google Drive/primal monkey island/sonidos monos/`; las tomas se grabaron con el recuadro central 9:16 libre.
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 22 y su Handoff. Haz el spike V0 y deja la lista de comprobación de VERIFICACION §102.»
+- **Estado:** V0 cerrado (`ed253a0`). CapCut 9.7.0.4153 abre un borrador escrito por `pycapcut==0.0.4` (aunque escribe `new_version` 140.0.0), lo reescribe en texto plano (191.0.0) y exporta 1080×1920 a 30 fps sin marca de agua; el borrador de prueba solo usaba la fuente Alegreya. Siguiente número libre de VERIFICACION: §104.
+- **Instalado:** ffmpeg 9.0.2 (`winget`; reabrir la terminal para el PATH) y `build/videos/.venv` con `pycapcut==0.0.4`. Se ejecuta con `build/videos/.venv/Scripts/python -I tools/video/<script>.py`. `tools/video/spike_v0.py` es el modelo: comprueba que `CapCut.exe` esté cerrado y escribe en `build/videos/borradores/<nombre>/` (carpeta nueva).
+- **Aprendido en V0:** para que CapCut vea un borrador basta copiar su carpeta a `%LOCALAPPDATA%/CapCut/User Data/Projects/com.lveditor.draft/` con CapCut cerrado: lo añade solo a `root_meta_info.json`. Las tomas de `O:/` son la ventana entera de Studio (barra de herramientas arriba y franja abajo): `short.py` tiene que recortarlas o escalarlas, y `fotogramas.py` tiene que enseñar la guía 9:16 para elegir el recuadro. La marca Pro de `pycapcut` (`is_vip`) sale de su copia de metadatos, no de CapCut 9.7: probar cada fuente, transición o animación nueva antes de usarla. Falta música real (solo las bibliotecas de YouTube y TikTok).
+- **Siguiente paso:** V1 (`borrador.py`, la lista de cortes de `trailer esp` sobre copia, y `fotogramas.py`). Las copias de `trailer esp` y `trailer en` ya están en `build/videos/copias/2026-11-03/`.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 22 y su Handoff. Haz el grupo V1.»
 
 ---
 
