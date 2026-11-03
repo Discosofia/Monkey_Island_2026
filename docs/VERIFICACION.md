@@ -4117,6 +4117,34 @@ La Llama Andina (Rara) es ahora 15 mallas con textura, una por hueso (`Data/Moun
 2. [ ] En un teléfono, mira la llama a unos 10 studs.
    ✅ Los FPS no caen y la manta no se ve borrosa ni a cuadros.
 
+## 101. Fase 20 Q4b: Jaguar Albino Esmeralda con malla (03-11-2026)
+
+El Jaguar Albino Esmeralda (Legendaria) es ahora 17 mallas con textura, una por hueso (`Data/MountMeshes`, 4.168 triángulos frente al tope de 5.900; unas 62 piezas visibles frente a 375). Diseño con más músculo (hombros en dos escalones, pectorales, dorsal, glúteos, antebrazos, cuádriceps y pantorrillas), melena y gorguera, arnés más rico (peto, hebillas, borlas), garras, cicatriz en el hombro izquierdo y una cara con saltos más tenues. Se queda suelto lo de oro (metal), los ojos y esmeraldas (neón y brillo) y el aura. Comprobado solo en Edit con captura (construye con las 17 mallas y su textura); falta Play. Tras la primera prueba del usuario se corrigió: pupila y reflejo de los ojos como piezas sueltas (en la malla eran geometría oscura delante del ojo de neón), mandíbula más alta y adelantada con barba y labio, y tramos de unión y solape en la cola. Además, las piezas sueltas (ojos, oro, esmeraldas, aura) se quedaban en el origen en Play: ahora se sueldan con `Weld` explícito. Comprobado en Play el 03-11-2026: los ojos a 0,5 studs de la cabeza y la cola sin huecos al caminar.
+
+### 101.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, clave `_antesQ4b`)
+
+1. [ ] Concede el Jaguar a tu perfil (panel de administración: dar una montura), equípalo y móntalo.
+   ✅ Sin avisos «No se pudo cargar la malla»; se ve con su textura (no a cuadros), una sola montura y sin patas flotando.
+2. [ ] Camina, galopa, salta y usa el gesto de rugir.
+   ✅ Las 17 mallas siguen a sus huesos (cuello, cabeza, mandíbula que se abre al rugir, orejas, cola en tres tramos y las cuatro patas); el jinete queda sentado sobre la silla; el aura gira alrededor.
+3. [ ] Míralo de espaldas y de frente.
+   ✅ Por detrás se ven las rosetas de la grupa, los glúteos y la cola con anillos de jade, sin escalones blancos entre sus tramos al moverse; de frente, la cara con los ojos de neón brillantes y su pupila, las pestañas, los colmillos, la gorguera y la mandíbula como pieza aparte bajo el hocico (se abre al rugir).
+4. [ ] Míralo en el nido y las vitrinas del Lobby y en la ventana de recompensas (`RewardModels`).
+   ✅ Se ve con su textura en las tres.
+5. [ ] Quita un id de `MountMeshes.luau` (por ejemplo `Head`) y vuelve a montarlo.
+   ✅ Esa parte sale con bloques y el resto con malla, sin errores. Devuelve el id.
+6. [ ] Monta también el Quetzalcóatl y la Llama (y míralos en el nido del Lobby).
+   ✅ Se ven igual que antes: el aura, las grecas y el plumero del Quetzalcóatl, y las gafas de la Llama. Las piezas sueltas de `MountModels.build` ahora van con `Weld` de desfase explícito en lugar de `WeldConstraint` (antes se quedaban en el origen al mover la montura con las mallas cargadas).
+7. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 101.2 En el juego publicado, con 2 jugadores y en teléfono
+
+1. [ ] Un jugador monta el Jaguar y otro lo mira (también uno que entra después).
+   ✅ El otro ve las 17 mallas con su textura y se mueve igual.
+2. [ ] En un teléfono, mira el jaguar a unos 10 studs.
+   ✅ Los FPS no caen y el pelaje no se ve borroso ni a cuadros.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

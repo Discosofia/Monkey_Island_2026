@@ -469,7 +469,7 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 		local box = k.box
 		local fur = Color3.fromRGB(232, 230, 224)
 		local light = Color3.fromRGB(240, 239, 234) -- omóplatos: apenas más claros que el lomo
-		local shade = Color3.fromRGB(214, 211, 204) -- muslos y anca: escalón de tono del músculo
+		local shade = Color3.fromRGB(204, 200, 192) -- muslos y anca: escalón de tono del músculo
 		local ivory = Color3.fromRGB(232, 214, 178)
 		local slit = Color3.fromRGB(190, 186, 178) -- rendijas de los dedos
 		local pink = Color3.fromRGB(238, 150, 165)
@@ -620,10 +620,13 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 			box("Head", "Jowl", Vector3.new(side * 3, 10.7, -17.8), Vector3.new(0.8, 1.6, 2.2), fur)
 			-- Ojos esmeralda de neón, hondos (con poco fondo salían de otro color), pupila en ranura y la
 			-- ceja encima.
-			local eye = box("Head", "Eye", Vector3.new(side * 1.8, 13.75, -21.1), Vector3.new(1, 0.6, 0.7), emerald)
+			local eye = box("Head", "Eye", Vector3.new(side * 1.75, 13.75, -21.2), Vector3.new(1.3, 0.8, 0.9), emerald)
 			eye.Material = Enum.Material.Neon
-			plate("Head", "Pupil", Vector3.new(side * 1.8, 13.75, -21.55), "z", 0.3, 0.55, pupil)
-			plate("Head", "Glint", Vector3.new(side * 1.8 - 0.3, 13.9, -21.68), "z", 0.25, 0.25, whisker)
+			-- La pupila y el reflejo se quedan sueltos (Reflectance > 0): como bloques finos sin apoyo en la malla
+			-- de la cabeza se convertían en geometría oscura delante del ojo.
+			plate("Head", "Pupil", Vector3.new(side * 1.75, 13.75, -21.7), "z", 0.3, 0.6, pupil).Reflectance = 0.01
+			plate("Head", "Glint", Vector3.new(side * 1.75 - 0.35, 13.95, -21.82), "z", 0.25, 0.25, whisker).Reflectance =
+				0.01
 			-- Ceja en dos tramos, el de dentro más bajo (mirada seria), y un párpado gris rosado alrededor
 			-- del ojo que lo enmarca sobre el pelaje blanco.
 			box("Head", "Brow", Vector3.new(side * 2.15, 14.65, -21.25), Vector3.new(1.2, 0.5, 0.6), fur)
@@ -635,8 +638,8 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 			-- hocico de cerdo).
 			plate("Head", "Nostril", Vector3.new(side * 0.75, 12.75, -24.05), "z", 0.35, 0.25, nostril)
 			-- Bigotes: dos a cada lado, blancos, que salen de las almohadillas.
-			box("Head", "Whisker", Vector3.new(side * 3, 11.95, -23), Vector3.new(2.2, 0.25, 0.25), whisker)
-			box("Head", "Whisker", Vector3.new(side * 2.9, 11.5, -22.6), Vector3.new(2, 0.25, 0.25), whisker)
+			box("Head", "Whisker", Vector3.new(side * 3, 11.95, -23), Vector3.new(2.2, 0.4, 0.4), whisker)
+			box("Head", "Whisker", Vector3.new(side * 2.9, 11.5, -22.6), Vector3.new(2, 0.4, 0.4), whisker)
 			-- Gorguera: mechones en escalón bajo los carrillos, que dibujan la mandíbula.
 			box("Head", "Ruff", Vector3.new(side * 3.3, 10.6, -17), Vector3.new(0.8, 0.8, 1), fur)
 			box("Head", "Ruff", Vector3.new(side * 2.8, 9.9, -18.2), Vector3.new(0.8, 0.8, 1.2), fur)
@@ -656,9 +659,13 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 			box("Head", "Fang", Vector3.new(side * 1, 10.7, -23.4), Vector3.new(0.45, 1, 0.45), fang)
 			box("Jaw", "Fang", Vector3.new(side * 0.6, 11.25, -23.5), Vector3.new(0.4, 0.7, 0.4), fang)
 		end
-		box("Jaw", "Jaw", Vector3.new(0, 10.5, -20.4), Vector3.new(3.2, 1, 3.2), ivory)
-		box("Jaw", "Chin", Vector3.new(0, 10.6, -22.6), Vector3.new(2.4, 0.8, 2.2), ivory)
-		box("Jaw", "ChinTuft", Vector3.new(0, 10, -22.6), Vector3.new(1.2, 0.5, 0.8), ivory)
+		-- Mandíbula: alta y adelantada, con el borde de abajo y una barba de marfil, para que se lea como una pieza
+		-- aparte bajo las almohadillas.
+		box("Jaw", "Jaw", Vector3.new(0, 10.35, -20.4), Vector3.new(3.4, 1.3, 3.4), ivory)
+		box("Jaw", "Chin", Vector3.new(0, 10.4, -22.6), Vector3.new(2.6, 1.1, 2.4), ivory)
+		box("Jaw", "ChinTuft", Vector3.new(0, 9.6, -22.6), Vector3.new(1.6, 0.6, 1.2), ivory)
+		box("Jaw", "JawEdge", Vector3.new(0, 9.75, -20.4), Vector3.new(3.6, 0.4, 3.6), crease)
+		plate("Jaw", "LowerLip", Vector3.new(0, 10.85, -23.82), "z", 2.4, 0.3, lid)
 		box("Jaw", "Tongue", Vector3.new(0, 11.05, -21.8), Vector3.new(1.6, 0.3, 2), pink)
 
 		-- Orejas redondeadas a los lados de la coronilla, rosas por dentro y con una mancha de jade por
@@ -738,6 +745,14 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 		box("Tail2", "Tail", Vector3.new(0, 12.2, 19.2), Vector3.new(1.5, 1.5, 2.4), fur)
 		box("Tail2", "TailRing", Vector3.new(0, 12.9, 17.6), Vector3.new(1.8, 1.8, 0.5), jade)
 		box("Tail2", "TailRing", Vector3.new(0, 12.2, 19.6), Vector3.new(1.7, 1.7, 0.5), jade)
+		-- Tramos de unión: la cola baja y sube en pendientes de medio bloque, sin escalones blancos.
+		box("Tail", "TailJoin", Vector3.new(0, 14.4, 13.9), Vector3.new(1.75, 1.8, 1.6), fur)
+		box("Tail2", "TailJoin", Vector3.new(0, 13.45, 16.2), Vector3.new(1.65, 1.7, 1.6), fur)
+		box("Tail3", "TailJoin", Vector3.new(0, 12.15, 20.3), Vector3.new(1.45, 1.5, 1.4), fur)
+		box("Tail3", "TailJoin", Vector3.new(0, 12.6, 21.4), Vector3.new(1.35, 1.5, 1.2), fur)
+		-- Cada tramo entra en el siguiente pasado su articulación, así no se abre un hueco al ondular.
+		box("Tail", "TailOverlap", Vector3.new(0, 13.9, 16.5), Vector3.new(1.6, 1.6, 1.4), fur)
+		box("Tail2", "TailOverlap", Vector3.new(0, 12.2, 20.7), Vector3.new(1.45, 1.45, 1.4), fur)
 		box("Tail3", "Tail", Vector3.new(0, 12, 21), Vector3.new(1.4, 1.4, 1.8), fur)
 		box("Tail3", "Tail", Vector3.new(0, 13.2, 21.8), Vector3.new(1.3, 2.6, 1.3), fur)
 		box("Tail3", "TailRing", Vector3.new(0, 13.6, 21.8), Vector3.new(1.5, 0.5, 1.5), jade)
@@ -764,6 +779,195 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 			box("Body", "Girth", Vector3.new(side * 3, 10.5, 1.2), Vector3.new(0.3, 2.2, 1), navyDark)
 		end
 		box("Body", "Girth", Vector3.new(0, 9.2, 1.2), Vector3.new(5.2, 0.5, 1), navyDark)
+
+		-- Fase 21 (malla con textura): más detalle, casi todo fino (va a la textura) y lo grueso, solo donde
+		-- cambia la silueta.
+		local jadeLight = Color3.fromRGB(95, 200, 165)
+		local scar = Color3.fromRGB(205, 160, 160)
+		local streak = Color3.fromRGB(190, 186, 176)
+		-- Melena: mechones en escalón por la nuca y a cada lado del cuello, y gorguera marfil en la garganta.
+		for i, z in { -14.8, -13.6, -12.4 } do
+			box("Neck", "Mane", Vector3.new(0, 17.2 + i * 0.15, z), Vector3.new(2.6 - i * 0.3, 0.7, 1.1), light)
+		end
+		for side = -1, 1, 2 do
+			box("Neck", "Mane", Vector3.new(side * 2.9, 15.2, -13.6), Vector3.new(0.9, 2.6, 1.6), light)
+			box("Neck", "Mane", Vector3.new(side * 3, 13.4, -12.8), Vector3.new(0.9, 2, 1.4), fur)
+			box("Neck", "Ruff", Vector3.new(side * 1.7, 10.4, -14.4), Vector3.new(1.3, 1.8, 1.1), ivory)
+			box("Neck", "Ruff", Vector3.new(side * 0.8, 9.9, -14.9), Vector3.new(0.9, 1.2, 0.9), ivory)
+			plate("Neck", "ManeStreak", Vector3.new(side * 3.4, 14.4, -13.6), "x", 1.4, 0.3, streak)
+			plate("Neck", "ManeStreak", Vector3.new(side * 3.45, 13.6, -12.8), "x", 1.1, 0.3, streak)
+		end
+		box("Neck", "Ruff", Vector3.new(0, 10.6, -15), Vector3.new(1.4, 1.6, 1), ivory)
+		-- Flecos de pelo detrás de los brazos y las ancas.
+		for side = -1, 1, 2 do
+			local fx = side * 2.5
+			box(
+				"LegF" .. (if side < 0 then "L" else "R"),
+				"Fringe",
+				Vector3.new(fx, 9.6, -6.9),
+				Vector3.new(2.2, 2, 0.8),
+				shade
+			)
+			box(
+				"ShinF" .. (if side < 0 then "L" else "R"),
+				"Fringe",
+				Vector3.new(fx, 5.4, -8),
+				Vector3.new(2, 1.6, 0.8),
+				shade
+			)
+			box(
+				"LegB" .. (if side < 0 then "L" else "R"),
+				"Fringe",
+				Vector3.new(side * 2.4, 8.6, 11.6),
+				Vector3.new(2.4, 1.6, 0.8),
+				shade
+			)
+			-- Garras de marfil en las cuatro patas (tres por pie), que asoman delante de los dedos.
+			for _, paw in { { "F", -9.6, -0.7 }, { "B", 8.4, 10 } } do
+				local shin = `Shin{paw[1]}{if side < 0 then "L" else "R"}`
+				local pz = if paw[1] == "F" then -10.3 else 10
+				for c = -1, 1 do
+					box(
+						shin,
+						"Claw",
+						Vector3.new(side * 2.5 + c * 1.05, 0.55, pz - 2.1),
+						Vector3.new(0.4, 0.4, 0.9),
+						fang
+					)
+				end
+			end
+			-- Marcas de cazador: vetas de marfil por el costado y las patas, y una cicatriz en el hombro izquierdo.
+			plate("Body", "Streak", Vector3.new(side * 3.45, 10.9, 0.8), "x", 2.2, 0.3, streak)
+			plate("Body", "Streak", Vector3.new(side * 3.45, 14.6, -1.4), "x", 1.8, 0.3, streak)
+			plate("Body", "Streak", Vector3.new(side * 4.05, 14.2, 7), "x", 2.4, 0.3, streak)
+		end
+		for i = 0, 3 do
+			plate("Body", "Scar", Vector3.new(-4.7, 15.2 - i * 0.55, -10.6 + i * 0.7), "x", 0.9, 0.35, scar)
+		end
+		-- Jade en relieve: bordes de las rosetas del costado con un reflejo más claro, y vetas finas en la grupa.
+		for side = -1, 1, 2 do
+			for _, r in { { 12.9, -6.8 }, { 10.3, -3 }, { 9.9, -7 } } do
+				plate("Body", "JadeVein", Vector3.new(side * 3.5, r[1], r[2]), "x", 0.7, 0.3, jadeLight)
+			end
+			plate("Body", "JadeVein", Vector3.new(side * 1.3, 12.9, 11.8), "z", 0.7, 0.3, jadeLight)
+		end
+
+		-- Más músculo: trapecio, deltoides, dorsal, glúteos, cuello grueso y tendones de los antebrazos.
+		local deep = Color3.fromRGB(184, 180, 171)
+		box("Neck", "Trapezius", Vector3.new(0, 16.5, -12), Vector3.new(4.6, 1, 2.6), light)
+		for side = -1, 1, 2 do
+			box("Body", "Deltoid", Vector3.new(side * 3.7, 13.9, -9.6), Vector3.new(0.8, 2.8, 3.2), light)
+			box("Body", "Deltoid", Vector3.new(side * 3.7, 15.5, -9.6), Vector3.new(0.8, 0.6, 2.4), light)
+			box("Body", "Lat", Vector3.new(side * 3.45, 11.2, -3.2), Vector3.new(0.7, 1.6, 3.6), shade)
+			box("Body", "Glute", Vector3.new(side * 3.75, 13.8, 7.6), Vector3.new(0.6, 3.4, 3.6), deep)
+			box("Body", "Glute", Vector3.new(side * 3.75, 12, 8.6), Vector3.new(0.6, 1, 2), deep)
+			box("Neck", "NeckBulk", Vector3.new(side * 2.55, 14.6, -14.4), Vector3.new(0.8, 3.2, 3.2), light)
+			for _, leg in { "F", "B" } do
+				local key = `{leg}{if side < 0 then "L" else "R"}`
+				local x = side * (if leg == "F" then 2.5 else 2.4)
+				if leg == "F" then
+					box(`Shin{key}`, "Tendon", Vector3.new(x, 3.4, -11), Vector3.new(0.5, 3.4, 0.5), shade)
+					box(
+						`Leg{key}`,
+						"Biceps",
+						Vector3.new(x + side * 1.7, 11.4, -11.4),
+						Vector3.new(0.5, 2.6, 1.2),
+						light
+					)
+				else
+					box(`Shin{key}`, "Tendon", Vector3.new(x, 4.6, 12.1), Vector3.new(0.5, 4, 0.5), shade)
+				end
+			end
+		end
+
+		-- Cara: pómulos, párpados y pestañas, arrugas del puente, labios, dientes y bigotes más largos.
+		local lip = Color3.fromRGB(190, 120, 128)
+		for side = -1, 1, 2 do
+			box("Head", "Cheekbone", Vector3.new(side * 2.6, 13.2, -21.1), Vector3.new(1.5, 0.7, 1.2), light)
+			box("Head", "BrowRidge", Vector3.new(side * 1.7, 15, -21), Vector3.new(2.4, 0.4, 0.7), light)
+			box("Head", "Masseter", Vector3.new(side * 3.5, 12.4, -19.4), Vector3.new(0.5, 2, 2), shade)
+			plate("Head", "EyeRim", Vector3.new(side * 1.8, 14.3, -21.58), "z", 1.5, 0.22, mouthLine)
+			plate("Head", "EyeRim", Vector3.new(side * 1.8, 13.25, -21.58), "z", 1.2, 0.2, mouthLine)
+			plate("Head", "Lash", Vector3.new(side * 2.55, 13.95, -21.58), "z", 0.3, 0.6, pupil)
+			plate("Head", "TearMark", Vector3.new(side * 2.4, 12.9, -21.7), "z", 0.3, 1, jadeDark)
+			plate("Head", "Wrinkle", Vector3.new(side * 1.25, 13.8, -22.3), "x", 0.9, 0.22, crease)
+			plate("Head", "Wrinkle", Vector3.new(side * 1.2, 14.2, -22.1), "x", 0.8, 0.22, crease)
+			plate("Head", "Lip", Vector3.new(side * 1.4, 11.25, -23.97), "z", 1.6, 0.3, lip)
+			plate("Head", "ForeheadMark", Vector3.new(side * 1.7, 15.5, -20.35), "z", 0.5, 0.3, jadeLight)
+			plate("Head", "ForeheadMark", Vector3.new(side * 1.7, 15, -20.35), "z", 0.35, 0.3, jadeLight)
+			box("Head", "Whisker", Vector3.new(side * 3.05, 12.35, -22.8), Vector3.new(2.4, 0.4, 0.4), whisker)
+			box("Head", "Whisker", Vector3.new(side * 3.1, 11.15, -22.4), Vector3.new(2.2, 0.25, 0.25), whisker)
+			box("Head", "UpperFang", Vector3.new(side * 1.55, 10.9, -23.3), Vector3.new(0.4, 0.8, 0.4), fang)
+			box(
+				if side < 0 then "EarL" else "EarR",
+				"EarTip",
+				Vector3.new(side * 2.3, 18.2, -17),
+				Vector3.new(0.7, 0.5, 0.7),
+				innerEar
+			)
+			box("Jaw", "Incisor", Vector3.new(side * 0.25, 11, -23.55), Vector3.new(0.3, 0.45, 0.3), fang)
+			box("Jaw", "Incisor", Vector3.new(side * 0.7, 11, -23.5), Vector3.new(0.3, 0.4, 0.3), fang)
+		end
+
+		-- Más músculo, por capas: hombro en dos escalones, pectorales, antebrazos y pantorrillas más gruesos, cuádriceps
+		-- que abultan por delante y un cuello que sube hacia la nuca.
+		for side = -1, 1, 2 do
+			box("Body", "ShoulderStep", Vector3.new(side * 4.35, 14.4, -9.6), Vector3.new(0.5, 1.8, 2.4), light)
+			box("Body", "PecSide", Vector3.new(side * 3.55, 11.4, -12.4), Vector3.new(0.5, 3, 1.6), light)
+			box("Body", "PecSide", Vector3.new(side * 3.7, 11.6, -12.2), Vector3.new(0.4, 1.8, 1), light)
+			box("Body", "Lat", Vector3.new(side * 3.45, 12.4, -3.2), Vector3.new(0.7, 1.4, 3), shade)
+			box("Body", "Rib", Vector3.new(side * 3.05, 9.3, -4), Vector3.new(0.4, 0.5, 3), deep)
+			box("Body", "Rib", Vector3.new(side * 3.05, 9.3, 0), Vector3.new(0.4, 0.5, 3), deep)
+			box("Neck", "NeckBulk", Vector3.new(side * 1.9, 16, -13.4), Vector3.new(1.6, 1.2, 2.4), light)
+			for _, leg in { "F", "B" } do
+				local key = `{leg}{if side < 0 then "L" else "R"}`
+				if leg == "F" then
+					local x = side * 2.5
+					box(`Shin{key}`, "ForearmBulk", Vector3.new(x, 7.2, -9.5), Vector3.new(3.3, 2.6, 3.4), light)
+					box(`Shin{key}`, "ForearmBulk", Vector3.new(x, 5.2, -9.5), Vector3.new(2.9, 1.6, 3), light)
+					box(`Leg{key}`, "Deltoid", Vector3.new(x, 12.9, -11.1), Vector3.new(3, 2.6, 0.6), light)
+				else
+					local x = side * 2.4
+					box(`Leg{key}`, "QuadBulk", Vector3.new(x, 11.4, 5), Vector3.new(3.4, 4.4, 1.2), fur)
+					box(`Leg{key}`, "QuadBulk", Vector3.new(x, 13.8, 5.4), Vector3.new(3.2, 1.6, 1), fur)
+					box(`Shin{key}`, "Calf", Vector3.new(x, 6.6, 11.7), Vector3.new(2.7, 2.6, 1.4), deep)
+				end
+			end
+		end
+
+		-- Cara con saltos más tenues: escalones de medio bloque entre el puente, la frente y la bóveda, y el hocico y
+		-- los carrillos suavizados con cubos pequeños (la malla los pinta sin añadir relieve de más).
+		box("Head", "BridgeStep", Vector3.new(0, 13.75, -22), Vector3.new(2.2, 0.5, 2), fur)
+		box("Head", "BridgeStep", Vector3.new(0, 14.55, -21.3), Vector3.new(1.8, 0.5, 1.2), fur)
+		box("Head", "BridgeStep", Vector3.new(0, 14.95, -20.8), Vector3.new(1.6, 0.4, 0.8), fur)
+		box("Head", "DomeStep", Vector3.new(0, 16.45, -18.5), Vector3.new(3.6, 0.4, 2.4), fur)
+		box("Head", "DomeStep", Vector3.new(0, 15.7, -20.2), Vector3.new(4.4, 0.4, 0.5), fur)
+		box("Head", "NoseStep", Vector3.new(0, 13.5, -23.1), Vector3.new(1.6, 0.4, 0.9), pink)
+		box("Head", "NoseStep", Vector3.new(0, 12.85, -23.75), Vector3.new(1.5, 0.4, 0.4), pink)
+		for side = -1, 1, 2 do
+			box("Head", "FaceTaper", Vector3.new(side * 2.9, 13, -21.35), Vector3.new(0.8, 2.4, 0.4), fur)
+			box("Head", "FaceTaper", Vector3.new(side * 2.95, 13.2, -20.7), Vector3.new(0.5, 2.2, 0.5), fur)
+			box("Head", "MuzzleTaper", Vector3.new(side * 2, 12.1, -22.9), Vector3.new(0.5, 1.4, 1), fur)
+			box("Head", "MuzzleTaper", Vector3.new(side * 1.5, 12.9, -23), Vector3.new(0.5, 0.4, 0.8), fur)
+			box("Head", "CheekSoft", Vector3.new(side * 3.6, 11.5, -18.8), Vector3.new(0.4, 1.2, 1.2), fur)
+		end
+
+		-- Arnés: peto azul marino con hebillas de oro sobre el pecho, correa sobre el lomo y borlas en la silla.
+		for side = -1, 1, 2 do
+			box("Body", "Breastplate", Vector3.new(side * 2.2, 11.8, -13.6), Vector3.new(0.5, 4.6, 0.5), navy)
+			box("Body", "Strap", Vector3.new(side * 3.4, 12.8, -9), Vector3.new(0.3, 0.8, 5.2), navy)
+			metal(box("Body", "Buckle", Vector3.new(side * 3.45, 12.8, -6.6), Vector3.new(0.4, 1.1, 1.1), gold))
+			box("Body", "Tassel", Vector3.new(side * 3.1, 9.6, -2.2), Vector3.new(0.5, 1.6, 0.5), navyDark)
+			metal(box("Body", "TasselCap", Vector3.new(side * 3.1, 10.6, -2.2), Vector3.new(0.7, 0.4, 0.7), gold))
+			box("Body", "Tassel", Vector3.new(side * 3.1, 9.6, 1.2), Vector3.new(0.5, 1.6, 0.5), navyDark)
+			metal(box("Body", "TasselCap", Vector3.new(side * 3.1, 10.6, 1.2), Vector3.new(0.7, 0.4, 0.7), gold))
+		end
+		metal(box("Body", "Buckle", Vector3.new(0, 11.8, -13.9), Vector3.new(1.3, 1.1, 0.4), gold))
+		box("Body", "SaddleCloth", Vector3.new(0, 16.05, -0.5), Vector3.new(5.6, 0.3, 9), navyDark)
+		for _, sz in { -4, -2, 0, 2.6 } do
+			box("Body", "SaddleStitch", Vector3.new(0, 16.65, sz), Vector3.new(4.4, 0.2, 0.3), gold).Material =
+				Enum.Material.Metal
+		end
 
 		-- Articulaciones: lomo en su centro, cuello en la cruz, cabeza sobre el cuello, mandíbula detrás del
 		-- hocico (se abre al rugir), orejas en su base, cola en tres tramos (ondula en S) y cada pata en el
@@ -1545,9 +1749,13 @@ function MountModels.build(mountId: string, boxesOnly: boolean?): Model?
 	for _, part in boxes do
 		local bone = bones[part:GetAttribute("Bone") :: string]
 		part.Anchored = false
-		local weld = Instance.new("WeldConstraint")
+		-- Un Weld con su desfase explícito, como las mallas: un WeldConstraint calcula el suyo al activarse, y como
+		-- `build` espera a cargar las mallas, las piezas sueltas (ojos, oro, esmeraldas, aura) se quedaban en el
+		-- origen cuando MountRiders movía la montura.
+		local weld = Instance.new("Weld")
 		weld.Part0 = bone
 		weld.Part1 = part
+		weld.C0 = bone.CFrame:ToObjectSpace(part.CFrame)
 		weld.Parent = part
 	end
 	local meshes = if boxesOnly then nil else MountMeshes[mountId]

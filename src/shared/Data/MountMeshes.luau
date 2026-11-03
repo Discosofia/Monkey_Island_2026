@@ -91,6 +91,96 @@ local MountMeshes: { [string]: MountMesh } = {
 			},
 		},
 	},
+	Jaguar = {
+		scale = 1.1,
+		parts = {
+			["Body"] = {
+				mesh = "rbxassetid://125451170457758",
+				texture = "rbxassetid://106636468672649",
+				offset = Vector3.new(0.0000, -0.0990, -0.2475),
+			},
+			["EarL"] = {
+				mesh = "rbxassetid://83004076565492",
+				texture = "rbxassetid://75029978410519",
+				offset = Vector3.new(0.0000, 0.2695, 0.0000),
+			},
+			["EarR"] = {
+				mesh = "rbxassetid://137319375650693",
+				texture = "rbxassetid://116297795548724",
+				offset = Vector3.new(0.0000, 0.2695, 0.0000),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://91871561014175",
+				texture = "rbxassetid://80945704298653",
+				offset = Vector3.new(0.0000, -0.2035, -0.7425),
+			},
+			["Jaw"] = {
+				mesh = "rbxassetid://79224341398908",
+				texture = "rbxassetid://115583132950783",
+				offset = Vector3.new(0.0000, 0.0220, -0.1760),
+			},
+			["LegBL"] = {
+				mesh = "rbxassetid://132693781152986",
+				texture = "rbxassetid://110551336187334",
+				offset = Vector3.new(0.0000, -0.6600, -0.0440),
+			},
+			["LegBR"] = {
+				mesh = "rbxassetid://95797457657049",
+				texture = "rbxassetid://124373241126121",
+				offset = Vector3.new(0.0000, -0.6600, -0.0440),
+			},
+			["LegFL"] = {
+				mesh = "rbxassetid://94352836408399",
+				texture = "rbxassetid://98804631365882",
+				offset = Vector3.new(-0.0385, -0.6160, 0.0660),
+			},
+			["LegFR"] = {
+				mesh = "rbxassetid://94525411903022",
+				texture = "rbxassetid://137092608016507",
+				offset = Vector3.new(0.0385, -0.6160, 0.0660),
+			},
+			["Neck"] = {
+				mesh = "rbxassetid://101582834546782",
+				texture = "rbxassetid://116775172127158",
+				offset = Vector3.new(0.0000, -0.0220, 0.1650),
+			},
+			["ShinBL"] = {
+				mesh = "rbxassetid://114648706051156",
+				texture = "rbxassetid://86501539141868",
+				offset = Vector3.new(0.0000, -0.7590, -0.0165),
+			},
+			["ShinBR"] = {
+				mesh = "rbxassetid://76859130723950",
+				texture = "rbxassetid://137643768987026",
+				offset = Vector3.new(0.0000, -0.7590, -0.0165),
+			},
+			["ShinFL"] = {
+				mesh = "rbxassetid://73588088723551",
+				texture = "rbxassetid://112817884065366",
+				offset = Vector3.new(0.0000, -0.7370, -0.1375),
+			},
+			["ShinFR"] = {
+				mesh = "rbxassetid://77609488627352",
+				texture = "rbxassetid://78851702767896",
+				offset = Vector3.new(0.0000, -0.7370, -0.1375),
+			},
+			["Tail"] = {
+				mesh = "rbxassetid://134246455275202",
+				texture = "rbxassetid://110072818954728",
+				offset = Vector3.new(0.0000, -0.0935, 0.3410),
+			},
+			["Tail2"] = {
+				mesh = "rbxassetid://112559243727289",
+				texture = "rbxassetid://136364985072532",
+				offset = Vector3.new(0.0000, -0.1705, 0.4840),
+			},
+			["Tail3"] = {
+				mesh = "rbxassetid://87192976047910",
+				texture = "rbxassetid://101818595656001",
+				offset = Vector3.new(0.0000, 0.2970, 0.1485),
+			},
+		},
+	},
 }
 
 return MountMeshes
