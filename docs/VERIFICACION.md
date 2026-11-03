@@ -3941,6 +3941,32 @@ Se prueba en Studio, en modo edición y en un place vacío, con la cámara miran
 6. [ ] Pon 100 bloques con un `SpecialMesh` de tipo Sphere en pantalla, separados.
    ✅ Cada pieza queda a menos del 25 % de 224 (`LIMITES.triangulos.mallaEspecial`). Si no, se ajusta la constante y se anota aquí.
 
+## 95. Fase 20 Q2: Gorila de Ceniza con más calidad (03-11-2026)
+
+Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0). El jefe se invoca desde el panel de admin (fila «Jefe»). Las ascuas, el humo y la luz del pecho se quedan naranjas en las tres fases (solo cambian de color los bloques de lava y la cara): si desentonan en la fase 3, se recolorean en un grupo siguiente.
+
+### 95.1 En Play, en la Isla (1 jugador)
+
+1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Pulsa ▶ Jugar, invoca el Gorila de Ceniza y mide con un cronómetro cuánto tarda en aparecer.
+   ✅ La primera vez tarda lo que su unión (~0,5 s) sin errores en la Salida; las siguientes veces aparece al instante (sale de la plantilla).
+2. [ ] Pelea con él y bájale la vida hasta que pase a la fase 2 y luego a la 3.
+   ✅ En cada fase cambia la cara (ceño, ojos con pupila y lágrimas, colmillos, rugido en la 3) y el color pasa de naranja (fase 1) a naranja rojizo (fase 2) y a rojo (fase 3) en las venas, las hombreras, el volcán y la piel de la cara. En la fase 3 el volcán del lomo entra en erupción. El color cambia sin parpadeos.
+3. [ ] Rodéalo y míralo por detrás en las tres fases.
+   ✅ Se ve el volcán de obsidiana con su cráter y coladas, las espinas del lomo, las placas de basalto y las venas de la espalda; la fase 3 se distingue de la 1 a primera vista.
+4. [ ] Dispara o golpea el núcleo del pecho (`LavaCore`) y la cabeza.
+   ✅ El pecho sigue siendo el punto débil y la cabeza cuenta como cabeza: los cuernos, las hombreras y los bloques nuevos no cambian las zonas de daño.
+5. [ ] Mira cómo anda, embiste y pisa (`charge`, `stomp`).
+   ✅ Los cuernos, las hombreras con pinchos, los brazales, las rodilleras y las garras se mueven con su parte, sin piezas sueltas ni flotando.
+6. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`, como en §10.0.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 95.2 En teléfono o con 2 jugadores
+
+1. [ ] Con 2 jugadores, invoca el Gorila de Ceniza mientras el otro se mueve y ataca monos, y repite el paso 1 de 95.1.
+   ✅ Los demás jugadores no se congelan al construirse el jefe (~0,5 s), y los dos ven el mismo color en cada fase.
+2. [ ] En un teléfono, mira al jefe a unos 30 studs en las tres fases.
+   ✅ Los FPS no caen de forma apreciable frente a antes de Q2 (10.200–11.100 triángulos el jefe, antes 4.202). La fase 3 se sigue distinguiendo de la 1 a esa distancia.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

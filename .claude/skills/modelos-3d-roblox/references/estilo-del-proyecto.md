@@ -445,7 +445,21 @@ cuña cuestan más triángulos que un bloque (224 / 64 / 8 y 6 frente a 12): par
 Técnicas para dar más calidad sin subir las piezas en juego (GDD §19.2):
 - **Sombreado pintado:** 2 o 3 tonos de cada color (claro arriba, oscuro abajo y en las uniones). Casi gratis.
 - **Rejilla más fina** en cara, manos y ojos: sube bloques y triángulos, no piezas.
-- **Biseles con cuñas** en orejas y hombros: las cuñas no se unen, así que cuestan piezas.
+- **Biseles con cuñas** en orejas y hombros: con `VoxelMerge` las cuñas no se fusionan y cuestan piezas. El spec
+  voxel de monos y jefes solo admite bloques: ahí, escalones de bloques (`tower` en `VoxelSpecs/Gorila`).
+
+**Receta de jefe (Gorila de Ceniza, Fase 20 Q2).** Todo lo nuevo va dentro de la unión de su parte (sin piezas) salvo
+lo de otro material, que va en grupos (`groups`): 744 bloques, 30 piezas, ~11.000 triángulos y 0,49 s de unión.
+- Ayudantes de `VoxelSpecs/Gorila.luau`: `tower` (escalones: volcán, espinas, cuernos), `vein` (venas de lava sobre una
+  superficie), `frame` (marco de lava en el borde de una losa, no una placa entera) y `mottle(..., thick)` (manchas
+  finas o matas de pelo con relieve). Las venas sobre pelo con relieve son gruesas (0,4) para asomar por encima.
+- Sombreado pintado: matas en 3 tonos y tonos nuevos por jefe en `tones` (`lit`, `umber`).
+- Piel y ojos por fase: `phaseFaces(glow, more, eyeLook, skin)` pone una capa de piel por fase y ojos de neón con
+  expresión (pupila, párpado, lágrimas); las cejas del jefe usan el tono del pelo en todas las fases.
+- Color por fase sin piezas extra: `phaseColors` en un grupo (`MonkeyModels.showPhase` lo cambia con `BossPhase`).
+- Lo que sea de otro material (Neon, Slate) es una pieza por grupo y por lado: hay 40 piezas de tope.
+- La fase 3 tiene que distinguirse a primera vista, también por detrás (erupción, llamaradas, puntas al rojo).
+- Con la caché de `require` de Studio, para ver un cambio del spec clona la carpeta `Combat.Monkeys` entera.
 - **Acentos de material** (Neon, Glass, Foil): una unión tiene un solo material, así que van en piezas
   sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Nada de transparencia parcial ni texturas.
 Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.

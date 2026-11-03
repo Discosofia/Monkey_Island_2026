@@ -208,6 +208,9 @@ type VoxelExtra = {
 	transparency: number?,
 	mirror: boolean?,
 	phase: number?,
+	-- Un color por fase del combate (la lava pasa de naranja a rojo): el grupo es de un solo color y showPhase
+	-- se lo cambia sin añadir piezas.
+	phaseColors: { Color3 }?,
 	boxes: { { any } },
 }
 -- Lo que un jefe cambia del cuerpo de su especie: "remove" quita las cajas con esos nombres (la cara
@@ -264,7 +267,7 @@ local function voxelTones(definition: Monkeys.MonkeyDefinition): { [string]: Col
 	}
 end
 
--- Cajas que no se unen: glowEyes enciende los "Eye" y el Gorila de Ceniza recolorea "Chest" y "Pec".
+-- Cajas que no se unen: spec.glowEyes enciende los "Eye" y el Gorila de Ceniza recolorea "Chest" y "Pec".
 local VOXEL_LOOSE: { [string]: boolean } = { Eye = true, Chest = true, Pec = true }
 
 -- Une "boxes" a "main" en una sola pieza con el nombre de "main". Lo que cuesta en cada fotograma
@@ -324,6 +327,11 @@ local function showPhase(model: Model, phase: number)
 		local partPhase = part:GetAttribute("Phase")
 		if part:IsA("BasePart") and partPhase then
 			part.Transparency = if partPhase == shown then part:GetAttribute("BaseTransparency") :: number else 1
+		end
+		-- Los grupos con "phaseColors" cambian de color con la fase.
+		local color = part:GetAttribute(`PhaseColor{phase}`)
+		if part:IsA("BasePart") and typeof(color) == "Color3" then
+			part.Color = color
 		end
 	end
 end
@@ -449,6 +457,15 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 			local anchor = partNamed(rig, if side == 0 then extra.anchor else `{sideName(side)} {extra.anchor}`)
 			local first = table.remove(blocks, 1) :: BasePart
 			local group = mergeBoxes(rig, first, blocks)
+			if extra.phaseColors then
+				if group:IsA("PartOperation") then
+					group.UsePartColor = true
+				end
+				group.Color = extra.phaseColors[1]
+				for index, color in extra.phaseColors do
+					group:SetAttribute(`PhaseColor{index}`, color)
+				end
+			end
 			weld(anchor, group)
 			table.insert(groups, group)
 		end
@@ -516,15 +533,6 @@ local BUILDERS: { [string]: (rig: Rig, definition: Monkeys.MonkeyDefinition) -> 
 ---------------------------------------------------------------------------------------------------
 -- Detalles de los jefes, sobre el modelo de su especie base y en sus mismas coordenadas.
 
-local function glowEyes(rig: Rig, color: Color3)
-	for _, child in rig.model:GetChildren() do
-		if child:IsA("BasePart") and child.Name == "Eye" then
-			child.Color = color
-			child.Material = Enum.Material.Neon
-		end
-	end
-end
-
 local function glow(rig: Rig, part: BasePart, color: Color3, range: number, brightness: number)
 	local light = Instance.new("PointLight")
 	light.Color = color
@@ -559,7 +567,7 @@ local BOSS_EXTRAS: { [string]: (rig: Rig) -> () } = {
 	-- Gorila de Ceniza: ojos de fuego, ascuas y humo (las grietas de lava van en bloques en su spec).
 	GorilaDeCeniza = function(rig)
 		local lava = Color3.fromRGB(255, 110, 30)
-		glowEyes(rig, Color3.fromRGB(255, 170, 60))
+		-- Los ojos (un grupo por fase, con su color de lava) van en su spec.
 		local torso = partNamed(rig, "Torso")
 		-- El pecho es roca apagada, no del naranja de la cara: así la lava de las grietas destaca.
 		local charcoal = Color3.fromRGB(45, 40, 40)

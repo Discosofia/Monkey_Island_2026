@@ -867,7 +867,7 @@ Decisiones del 29-10-2026:
 
 ### Lanzamiento y promoción: vídeos (30-10-2026)
 
-Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `docs/videos/` (README y `trailer.md`, en español e inglés). Herramientas en el Studio de la Isla: el botón 🎬 Modo grabación del panel 🛠️ Pruebas, `Trailer` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`) y `TrailerCamara` (caminos y órbitas, sin dependencias del juego). Siguiente número libre de VERIFICACION: §95 (la Fase 20 Q1 usa la §94). Se llaman TR1 y TR2 para no confundirlas con V1 y V2 de la Fase 15 (movimiento).
+Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `docs/videos/` (README y `trailer.md`, en español e inglés). Herramientas en el Studio de la Isla: el botón 🎬 Modo grabación del panel 🛠️ Pruebas, `Trailer` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`) y `TrailerCamara` (caminos y órbitas, sin dependencias del juego). Siguiente número libre de VERIFICACION: §96 (la Fase 20 usa la §94 y la §95). Se llaman TR1 y TR2 para no confundirlas con V1 y V2 de la Fase 15 (movimiento).
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
@@ -894,8 +894,8 @@ Replanteo del 03-11-2026:
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **Q1** | Normas y calculadora, sin tocar modelos: GDD §19, topes en `Config.Budgets`, `Rendimiento` (bloques, triángulos en todas las secciones, unión, escena de la Isla con mapa y efectos, reparto del margen, Lobby y Dunas, foto antes y después), `MonkeyModels` (atributos y precalentado de monos), skill y `docs/llm-local`. Línea base del 03-11-2026 en `RendimientoBase`: 110 monos 147.567 triángulos, 5 jugadores con equipo medio 243.746 (con las skins de arma), escena de la Isla 425.623 de 650.000 con mapa y efectos | 683dbdc | ✅ Probado en Studio con la calculadora, 0 alertas (sin probar: VERIFICACION §94) |
-| **Q2** | Jefes, piloto: el Gorila de Ceniza con las 4 técnicas (hasta 2.000 bloques, 15.000 triángulos, 40 piezas, acentos de fase fuera de la unión); fija la receta | — | ⏳ |
-| **Q3** | Los otros 3 jefes (Chimpancé Caudillo, Gorila Albino, Orangután del Manglar) | — | ⏳ |
+| **Q2** | Jefes, piloto: el Gorila de Ceniza con las 4 técnicas (hasta 2.000 bloques, 15.000 triángulos, 40 piezas, acentos de fase fuera de la unión); fija la receta. Resultado: 744 bloques (antes 318), 30 piezas, 10.218 / 10.338 / 11.128 triángulos por fase (antes 4.202), 0,49 s de unión; volcán en el lomo, cuernos, hombreras, garras, ojos con expresión por fase, color de naranja a rojo por fase (`phaseColors`) | HASH_Q2 | ✅ Probado en Studio con vista previa aprobada (sin probar: VERIFICACION §95) |
+| **Q3** | Los otros 3 jefes (Chimpancé Caudillo, Gorila Albino, Orangután del Manglar), uno por sesión (Q3a, Q3b, Q3c) con la receta de Q2 | — | ⏳ Siguiente (Handoff de Q3) |
 | **Q4** | Monturas (+100 %) | — | ⏳ |
 | **Q5** | Mascotas: estándar (+50 %) y especiales o míticas (+100 %) | — | ⏳ |
 | **Q6** | Armaduras y trajes (+60 %: son el 84 % del equipo y el margen no da para más) | — | ⏳ |
@@ -903,6 +903,20 @@ Replanteo del 03-11-2026:
 | **Q8** | Sobrante: monos, parcela (+25 %) y construibles (+20 %), solo si la tabla de reparto deja margen | — | ⏳ Pendiente |
 
 Q4–Q8 aplican la receta que fije Q2 y miden con `Rendimiento` contra la foto de Q1; su tope de triángulos es el objetivo o lo que dé la tabla de reparto de la §8b.
+
+**Handoff de Q3 (03-11-2026)**
+- **Estado:** Q1 (`683dbdc`) y Q2 hechos, commiteados y subidos. Queda Q3: los otros 3 jefes con la receta del Gorila de Ceniza. Se recomienda **un jefe por sesión** (Q3a Gorila Albino, Q3b Chimpancé Caudillo, Q3c Orangután del Manglar); el usuario elige el orden. Siguiente número libre de VERIFICACION: §96.
+- **Antes de escribir código:** mini-entrevista de estilo del jefe con `AskUserQuestion` (colores, qué tiene que verse por detrás, qué cambia en cada fase), como en R6. Lee la skill `modelos-3d-roblox` y su `references/estilo-del-proyecto.md` §6 (receta de jefe) y GDD §19.
+- **Receta (lo aprendido en Q2):**
+  - Los bloques nuevos van dentro de la unión de su parte y no cuestan piezas; solo lo de otro material (Neon, Slate, Glass) es una pieza por grupo y por lado. Tope: 40 piezas (Orangután del Manglar 47), 15.000 triángulos, 2.000 bloques de diseño (~1 ms por bloque, ~2 s la primera vez: no se precalientan).
+  - El spec solo admite bloques: los biseles son escalones (`tower`). Ayudantes en `VoxelSpecs/Gorila.luau` (`tower`, `vein`, `frame`, `mottle(..., thick)`, `phaseFaces(glow, more, eyeLook, skin)`); el Albino comparte ese archivo con el Ceniza, así que lo nuevo va en su propia entrada y no toca la del Ceniza. El Chimpancé y el Orangután tienen su propio spec en `VoxelSpecs/` (copia los ayudantes que necesites o muévelos a un módulo común).
+  - Color por fase sin piezas extra: `phaseColors` en un grupo (`MonkeyModels.showPhase` lo cambia con `BossPhase`). Las ascuas, el humo y la luz de `BOSS_EXTRAS` no cambian de color (ver VERIFICACION §95).
+  - La fase 3 debe distinguirse de la 1 a primera vista, también por detrás. Las cejas, ojos y colmillos escalan con la fase (la 1 amenaza, la 2 más, la 3 al máximo). Contraste: lo que sea oscuro sobre piel de lava (orificios, cejas) en casi negro o en el tono del pelo, nunca en un tono derivado de la piel.
+  - No renombres las piezas que usan las animaciones y las zonas de daño: `Torso`, `Head`, `Arm`, `Leg`, y los puntos débiles de `Data/Bosses` (`LavaCore`, `CrystalCore`…). Pon los nombres de las zonas nuevas con cuidado: lo que cuelga de la cabeza cuenta como cabeza.
+- **Cómo ver el modelo:** la caché de `require` de Studio ocultaría los cambios del spec; clona la carpeta `ServerScriptService.Combat.Monkeys` entera, haz `require` del clon de `MonkeyModels` y llama a `build(especie, aspecto, Vector3.zero, jefeId)` y a `showPhase(modelo, fase)`, como hizo Q2. Deja la vista previa con las 3 fases junto al maniquí antes de pedir el «aprobado», y al aprobar: `Preview.clear()` y cámara en `Fixed` (las capturas la dejan en `Scriptable`).
+- **Medir:** triángulos con `TriangleCount` de las uniones (12 por bloque suelto), piezas y bloques de diseño (atributos `DesignBlocks` y `UnionMs` del modelo). `Rendimiento` §7 los da, pero con la caché solo después de reiniciar Studio; compara con `RendimientoBase`.
+- **Reparto:** `search` localiza, `programador` solo para lo muy largo (en Q2 lo escribió la sesión principal con capturas), `probador-studio` para el Play y `documentador` para el papeleo. Commit solo con el «aprobado»; push y fila de `PLAN.md` en un commit aparte.
+- **Prompt para la pestaña nueva:** «Continúa la Fase 20 de Monkey_Island_2026 con el grupo Q3 (los otros 3 jefes con la receta del Gorila de Ceniza). Lee CLAUDE.md, la sección "Fase 20" de docs/PLAN.md (su Handoff de Q3), GDD §19 y la skill modelos-3d-roblox (references/estilo-del-proyecto.md §6). Pregúntame con cuál de los tres empezamos (Gorila Albino, Chimpancé Caudillo u Orangután del Manglar), haz la mini-entrevista de estilo y sigue el flujo del Handoff.»
 
 ---
 

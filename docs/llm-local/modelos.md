@@ -64,16 +64,22 @@
 - Tienen también topes de **bloques de diseño** (antes de unir, `Config.Budgets.Models.MonkeyDesign`) y de **triángulos** (`MonkeyTriangles`), por tier de `Data/Monkeys`, más `Alpha` y `Boss`.
 - **Prioridad de la calidad:** jefes, monturas, mascotas, armaduras y armas, en ese orden. Los monos y los construibles usan el margen que sobre.
 - **Monos congelados:** no suben. Hoy, bloques de diseño 106 / 127 / 75 por tier y triángulos 1.796 / 2.076 / 1.090; las alfas, 140 bloques y 2.352 triángulos. Solo reciben técnicas que no cuestan triángulos.
-- **Jefes:** tope de 2.000 bloques de diseño y 15.000 triángulos (hoy ~430 bloques y 4.202 triángulos). Se construyen la primera vez que aparecen, sin precalentar: unir cuesta ~1 ms por bloque, ~2 s con 2.000, una vez por jefe y servidor.
+- **Jefes:** tope de 2.000 bloques de diseño y 15.000 triángulos (el Gorila de Ceniza, ya hecho: 744 bloques y ~11.000 triángulos; los otros 3, ~430 bloques y ~4.000 triángulos). Se construyen la primera vez que aparecen, sin precalentar: unir cuesta ~1 ms por bloque, ~2 s con 2.000, una vez por jefe y servidor.
 - **Triángulos del equipo:** cada pieza de equipo tiene su tope (`MountTriangles`, `PetTriangles`, `ArmorTriangles`, `OutfitTriangles`, `WeaponTriangles`, `WeaponSkinTriangles`, `LabWeaponTriangles`): el máximo medido × lo concedido (monturas y armas +100 %, mascotas +50 % y +100 % las especiales, armaduras y trajes +60 %). Una esfera, un cilindro o una cuña cuestan más triángulos que un bloque (224, 64 y 8 frente a 12): para ganar redondez, mejor cuñas.
 - **Escena:** el tope es 650.000 triángulos por escena. Dunas con 10 jugadores es el límite real (487.493 hoy, ~810.000 con los topes concedidos).
 - Cuatro técnicas para más calidad sin subir las piezas en juego:
   1. Sombreado pintado: 2 o 3 tonos por color (claro arriba, oscuro abajo y en las uniones).
   2. Rejilla más fina en cara, manos y ojos: sube bloques y triángulos, no piezas.
-  3. Biseles con cuñas en orejas y hombros: las cuñas no se unen, así que cuestan piezas.
+  3. Biseles con cuñas en orejas y hombros: las cuñas no se fusionan, así que cuestan piezas; en monos y jefes el spec solo admite bloques, y ahí se hacen con escalones.
   4. Acentos de material (Neon, Glass, Foil) en piezas sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Sin transparencia parcial ni texturas.
 - Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.
 - Los monos se copian de una plantilla que `MonkeyModels.prewarm` llena al arrancar el servidor; los jefes no se precalientan.
+- **Receta de jefe (Gorila de Ceniza, Fase 20 Q2):** 744 bloques de diseño, 30 piezas, ~11.000 triángulos y 0,49 s de unión. Todo lo nuevo va dentro de la unión de su parte; lo de otro material, en grupos.
+  - Ayudantes de `VoxelSpecs/Gorila.luau`: `tower` (escalones: volcán, espinas, cuernos), `vein` (venas de lava sobre una superficie), `frame` (marco de lava en el borde de una losa) y `mottle(..., thick)` (manchas finas o matas de pelo con relieve).
+  - `phaseColors` por fase en un grupo: cambia de color sin piezas extra (`MonkeyModels.showPhase` lo cambia con `BossPhase`).
+  - Piel y ojos por fase: `phaseFaces` pone una capa de piel por fase y ojos de neón con expresión.
+  - La fase 3 se distingue por detrás (erupción, llamaradas, puntas al rojo), no solo de frente.
+  - Con la caché de `require` de Studio, para ver un cambio del spec clona la carpeta `Combat.Monkeys` entera.
 
 ## Cerrar
 

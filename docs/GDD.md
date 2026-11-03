@@ -1009,7 +1009,7 @@ Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en L
 |---|---|---|
 | **Sombreado pintado** | 2 o 3 tonos de cada color: más claro arriba, más oscuro abajo y en las uniones (oclusión falsa) | Casi nulo: solo cambian colores. Cada tono extra parte las uniones por color |
 | **Rejilla más fina** | Bloques más pequeños en cara, manos y ojos, para dar expresión | Sube los bloques de diseño y los triángulos; no las piezas en juego si se unen |
-| **Biseles con cuñas** | `WedgePart` y `CornerWedgePart` en orejas, hombros y bordes, para suavizar la silueta | Las cuñas no se fusionan ni se unen con bloques: cuestan piezas |
+| **Biseles con cuñas** | `WedgePart` y `CornerWedgePart` en orejas, hombros y bordes, para suavizar la silueta | Las cuñas no se fusionan con `VoxelMerge`: cuestan piezas. El spec voxel de monos y jefes solo admite bloques, así que ahí se hacen **escalones de bloques**, que se unen sin piezas extra |
 | **Acentos de material** | Neon, Glass o Foil en ojos, gemas y marcas | Una unión tiene un solo material, así que van en piezas sueltas aparte; sin transparencia parcial |
 
 Regla de lectura: si un detalle no se ve a 20 studs, sobra. Las variantes (alfas, rarezas, fases de jefe) tienen que distinguirse a primera vista, también por detrás, con rasgos y colores nuevos y no con un simple tinte.
@@ -1020,7 +1020,7 @@ La calidad se mejora en este orden: **jefes, monturas, mascotas, armaduras y arm
 
 | Prioridad | Familia | Tope de triángulos por modelo (hoy, máx. → tope) | Concedido | Piezas en juego |
 |---|---|---|---|---|
-| 1 | Jefes de bioma | 4.202 → 15.000 (2.000 bloques de diseño, hoy 427) | +250 % de bloques | 30 → 40 (Orangután del Manglar 47) |
+| 1 | Jefes de bioma | 4.202 → 15.000 (2.000 bloques de diseño, hoy 427). Hecho el Gorila de Ceniza (Q2): 744 bloques y 10.200–11.100 triángulos según la fase, 30 piezas | +250 % de bloques | 30 → 40 (Orangután del Manglar 47) |
 | 2 | Monturas | rara 2.028 → 4.100; legendaria 2.964 → 5.900; mítica 4.308 → 8.600 | +100 % | sin cambio |
 | 3 | Mascotas | estándar 1.856 → 2.800; Mono X-7 3.072 → 6.200; Ajolote 2.340 → 4.700 | +50 % estándar, +100 % especiales | sin cambio (110 que se mueven) |
 | 4 | Armaduras y trajes | rol I–IV 4.584 / 10.020 / 11.078 / 6.758 → 7.300 / 16.000 / 17.700 / 10.800; traje legendario 24.600 → 39.400; traje mítico 68.866 → 110.200 | +60 % | sin cambio |
