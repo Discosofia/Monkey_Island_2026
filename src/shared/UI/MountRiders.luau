@@ -144,7 +144,14 @@ local function remove(player: Player)
 	end
 end
 
+-- Jugadores cuya montura se está construyendo: `MountModels.build` espera mientras carga las mallas (Fase 21), y una
+-- segunda llamada a `sync` en ese rato construiría otra montura que se quedaría huérfana.
+local building: { [Player]: boolean } = {}
+
 local function sync(player: Player)
+	if building[player] then
+		return
+	end
 	local mountId = player:GetAttribute(CombatState.MOUNTED_ATTRIBUTE)
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
@@ -156,8 +163,19 @@ local function sync(player: Player)
 	if typeof(mountId) ~= "string" or not Mounts[mountId] or not (root and root:IsA("BasePart")) then
 		return
 	end
+	building[player] = true
 	local model = MountModels.build(mountId)
+	building[player] = nil
 	if not model then
+		return
+	end
+	-- Si mientras tanto desmontó, cambió de montura o de personaje, esta ya no vale: se vuelve a sincronizar.
+	local nowRoot = if player.Character then player.Character:FindFirstChild("HumanoidRootPart") else nil
+	if player.Parent == nil or player:GetAttribute(CombatState.MOUNTED_ATTRIBUTE) ~= mountId or nowRoot ~= root then
+		model:Destroy()
+		if player.Parent then
+			task.defer(sync, player)
+		end
 		return
 	end
 	local mountRoot = model.PrimaryPart :: BasePart

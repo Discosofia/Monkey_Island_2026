@@ -12,7 +12,10 @@
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local AssetService = game:GetService("AssetService")
+
 local Mounts = require(script.Parent.Data.Mounts)
+local MountMeshes = require(script.Parent.Data.MountMeshes)
 
 local CELL = 0.2
 
@@ -319,6 +322,119 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 		-- Pecho lanudo: dos mechones más claros que se escalonan bajo las borlas.
 		box("Body", "Fluff", Vector3.new(0, 13, -9.2), Vector3.new(5, 1.6, 0.4), fluff)
 		box("Body", "Fluff", Vector3.new(0, 11.9, -9.1), Vector3.new(3.6, 1, 0.4), fluff)
+
+		-- Detalle fino (Fase 20 Q4: con la malla va a la textura y casi no cuesta): lana rizada en el cuerpo, el
+		-- cuello y la frente, grecas y borlas en la manta (también por detrás, donde cuelgan pompones), manchas en
+		-- las patas, motas sobre la grupa negra, bigotes, dientes y brillos en las gafas. Todo a menos de 0,4 celdas.
+		local curl = Random.new(21)
+		local greyWool = Color3.fromRGB(210, 208, 202)
+		local ash = Color3.fromRGB(62, 58, 66)
+		-- Rizos: placas de 0,3 celdas de grosor repartidas por una cara ("axis" "x" o "z" y su lado).
+		local function curls(bone: string, axis: string, face: number, ys: { number }, spans: { number }, count: number)
+			for _ = 1, count do
+				local y = curl:NextNumber(ys[1], ys[2])
+				local s = curl:NextNumber(spans[1], spans[2])
+				local color = if curl:NextNumber() < 0.5 then fluff else greyWool
+				local w, h = curl:NextNumber(0.9, 1.6), curl:NextNumber(0.6, 1)
+				if axis == "x" then
+					box(bone, "Curl", Vector3.new(face, y, s), Vector3.new(0.3, h, w), color)
+				else
+					box(bone, "Curl", Vector3.new(s, y, face), Vector3.new(w, h, 0.3), color)
+				end
+			end
+		end
+		for side = -1, 1, 2 do
+			-- Flancos delante y detrás de la manta, y por debajo de ella.
+			curls("Body", "x", side * 3.65, { 12.2, 18.6 }, { -7, -4.4 }, 7)
+			curls("Body", "x", side * 3.65, { 12.2, 18.6 }, { 8.8, 10.4 }, 4)
+			curls("Neck", "x", side * 1.9 + side * 0.15, { 20.8, 23 }, { -8.8, -5.4 }, 3)
+			curls("Neck", "x", side * 1.7 + side * 0.15, { 23.2, 27.6 }, { -9.4, -6.4 }, 4)
+			-- Manchas grises en los muslos y las cañas.
+			for _, key in { "F", "B" } do
+				local bone = `Leg{key}{if side < 0 then "L" else "R"}`
+				local shin = `Shin{key}{if side < 0 then "L" else "R"}`
+				local legZ = if key == "F" then -6.5 else 10
+				local outer = if key == "F" then 3.65 else 3.85
+				box(bone, "Speck", Vector3.new(side * outer, 10.4, legZ), Vector3.new(0.1, 1.2, 1.5), speck)
+				box(bone, "Speck", Vector3.new(side * outer, 8.6, legZ + 0.4), Vector3.new(0.1, 0.9, 1.1), greyWool)
+				box(shin, "Speck", Vector3.new(side * 3.4, 4.6, legZ + 0.3), Vector3.new(0.1, 1.4, 1), speck)
+				-- Mechón de lana sobre el casco.
+				box(shin, "Curl", Vector3.new(side * 2.3, 1.45, legZ + 0.3), Vector3.new(2.4, 0.3, 2.4), fluff)
+			end
+			-- Motas gris oscuro sobre la grupa negra, por los costados y por detrás.
+			for _, dot in { { 12.6, 1.4 }, { 15.4, 0.8 }, { 17.2, 1.8 } } do
+				box("Body", "Ash", Vector3.new(side * 3.7, dot[1], 10.3 + dot[2] - 1), Vector3.new(0.1, 0.9, 1), ash)
+			end
+			box("Body", "Ash", Vector3.new(side * 1.9, 16.6, 12.85), Vector3.new(1.4, 0.8, 0.1), ash)
+			box("Body", "Ash", Vector3.new(side * 2.4, 13.6, 12.85), Vector3.new(1, 0.7, 0.1), ash)
+			-- Cara: bigotes en el hocico, brillo doble en cada cristal y mechones de lana sobre las gafas.
+			for i = 0, 2 do
+				box(
+					"Head",
+					"Whisker",
+					Vector3.new(side * 1.65, 27.7 + i * 0.35, -13 + i * 0.25),
+					Vector3.new(0.1, 0.12, 0.7),
+					ash
+				)
+			end
+			box("Head", "Shine", Vector3.new(side * 1.2 + 0.55, 30.1, -11.72), Vector3.new(0.3, 0.2, 0.06), muzzle)
+			box("Head", "Shine", Vector3.new(side * 1.2 - 0.05, 30.75, -11.72), Vector3.new(0.5, 0.12, 0.06), muzzle)
+			-- Pestañas largas sobre las gafas.
+			box("Head", "Lash", Vector3.new(side * 1.2, 31.5, -11.5), Vector3.new(1.7, 0.2, 0.2), black)
+			-- Aros dorados del bozal en las uniones de la muserola.
+			box("Head", "Ring", Vector3.new(side * 1.65, 29.75, -12.35), Vector3.new(0.4, 0.4, 0.15), YELLOW)
+			box("Head", "Ring", Vector3.new(side * 1.65, 26.15, -12.35), Vector3.new(0.4, 0.4, 0.15), YELLOW)
+			-- Dientes asomando bajo el labio de arriba.
+			box("Jaw", "Tooth", Vector3.new(side * 0.55, 27.2, -14.18), Vector3.new(0.4, 0.3, 0.08), fluff)
+		end
+		-- Rizos en la frente y en la nuca, entre las orejas.
+		for _ = 1, 6 do
+			box(
+				"Head",
+				"Curl",
+				Vector3.new(curl:NextNumber(-1.8, 1.8), 31.75, curl:NextNumber(-10, -6)),
+				Vector3.new(curl:NextNumber(0.9, 1.5), 0.3, curl:NextNumber(0.9, 1.4)),
+				if curl:NextNumber() < 0.5 then fluff else greyWool
+			)
+		end
+		-- Grecas de la manta: zigzag de cuadros blancos y amarillos arriba y abajo del centro magenta, a cada lado.
+		for side = -1, 1, 2 do
+			for i = 0, 7 do
+				local color = if i % 2 == 0 then wool else YELLOW
+				box(
+					"Body",
+					"Greca",
+					Vector3.new(side * surface, 16.3, -1.2 + i * 0.9),
+					Vector3.new(0.1, 0.5, 0.5),
+					color
+				)
+				box(
+					"Body",
+					"Greca",
+					Vector3.new(side * surface, 19.2, -1.2 + i * 0.9),
+					Vector3.new(0.1, 0.5, 0.5),
+					color
+				)
+			end
+			-- Punta amarilla en un fleco de cada dos.
+			for fz = front + 0.6, back - 0.5, 2.2 do
+				box("Body", "Fringe", Vector3.new(side * 3.7, 12.35, fz), Vector3.new(0.45, 0.3, 0.6), YELLOW)
+			end
+		end
+		-- Por detrás: pompones colgando del borde trasero de la manta, sobre la grupa negra.
+		for i = -3, 3 do
+			local color = if i % 2 == 0 then MAGENTA else YELLOW
+			box("Body", "Pompom", Vector3.new(i * 1, 13, back + 0.35), Vector3.new(0.8, 0.8, 0.5), color)
+			box(
+				"Body",
+				"Pompom",
+				Vector3.new(i * 1, 12.2, back + 0.35),
+				Vector3.new(0.55, 0.55, 0.4),
+				if i % 2 == 0 then GREEN else RED
+			)
+		end
+		-- Puntas de lana más clara en la cola.
+		box("Tail", "TailTuft", Vector3.new(0, 21.35, 12.7), Vector3.new(1.2, 0.3, 1), ash)
 
 		-- Articulaciones: lomo en su centro, cuello en la base, cabeza en lo alto del cuello, mandíbula
 		-- detrás del hocico (mastica de lado), orejas en su base, cola en la grupa, y cada pata en el
@@ -1220,9 +1336,94 @@ local builders: { [string]: (kit: Kit) -> Built } = {
 	end,
 }
 
+-- Fase 21: centro y tamaño (studs, en el espacio del hueso) de una caja que puede ir a la malla de su hueso, o nil si
+-- tiene que seguir suelta: otro material, transparente o brillante (aura, cristales) o girada de modo que no es
+-- una caja alineada con el hueso. Lo usan el volcado (ServerStorage.Tools.Mallas) y `meshedBone`, para que vean
+-- las mismas cajas.
+function MountModels.meshableBox(part: BasePart, bone: BasePart): (Vector3?, Vector3?)
+	if part.Material ~= Enum.Material.SmoothPlastic or part.Transparency > 0 or part.Reflectance > 0 then
+		return nil, nil
+	end
+	local cf = bone.CFrame:ToObjectSpace(part.CFrame)
+	local _, _, _, r11, r12, r13, r21, r22, r23, r31, r32, r33 = cf:GetComponents()
+	local rows = { { r11, r12, r13 }, { r21, r22, r23 }, { r31, r32, r33 } }
+	local own = { part.Size.X, part.Size.Y, part.Size.Z }
+	local size = { 0, 0, 0 }
+	for i, row in rows do
+		for j, value in row do
+			local abs = math.abs(value)
+			if abs > 0.999 then
+				size[i] = own[j]
+			elseif abs > 0.001 then
+				return nil, nil
+			end
+		end
+		if size[i] == 0 then
+			return nil, nil
+		end
+	end
+	return cf.Position, Vector3.new(size[1], size[2], size[3])
+end
+
+-- Fase 21: sustituye las cajas de un hueso (las que puede llevar la malla) por su `MeshPart` con textura, soldada al
+-- hueso. Devuelve false, y el hueso se queda con sus cajas, si la malla no carga.
+local function meshedBone(
+	model: Model,
+	bone: BasePart,
+	boxes: { BasePart },
+	entry: MountMeshes.PartMesh,
+	factor: number
+): boolean
+	local merged: { BasePart } = {}
+	for _, box in boxes do
+		if box:GetAttribute("Bone") == bone.Name and (MountModels.meshableBox(box, bone)) then
+			table.insert(merged, box)
+		end
+	end
+	if #merged == 0 then
+		return false
+	end
+	local ok, mesh = pcall(function()
+		return AssetService:CreateMeshPartAsync(Content.fromUri(entry.mesh))
+	end)
+	if not ok then
+		warn(`[MountModels] No se pudo cargar la malla del hueso {bone.Name}: {mesh}`)
+		return false
+	end
+	if math.abs(factor - 1) > 1e-3 then
+		mesh.Size *= factor
+	end
+	mesh.TextureID = entry.texture
+	mesh.Color = Color3.new(1, 1, 1)
+	mesh.Material = Enum.Material.SmoothPlastic
+	mesh.CanCollide = false
+	mesh.CanQuery = false
+	mesh.CanTouch = false
+	mesh.Massless = true
+	mesh.Anchored = false
+	mesh.Name = `{bone.Name}Mesh`
+	mesh.CFrame = bone.CFrame
+		* CFrame.new(entry.offset * factor)
+		* CFrame.Angles(0, math.pi, 0)
+		* mesh.ExtentsCFrame:Inverse()
+	mesh.Parent = model
+	-- Un Weld con su desfase explícito: un WeldConstraint lo calcula al activarse, y si el modelo ya se ha movido en
+	-- ese momento (MountRiders lo suelda al jinete) la malla quedaba lejos de su hueso.
+	local weld = Instance.new("Weld")
+	weld.Part0 = bone
+	weld.Part1 = mesh
+	weld.C0 = bone.CFrame:ToObjectSpace(mesh.CFrame)
+	weld.Parent = mesh
+	for _, box in merged do
+		box:Destroy()
+	end
+	return true
+end
+
 -- Construye la montura "mountId": Root anclada y el resto colgando de ella por las articulaciones,
 -- sin colisión (quien la use decide cómo moverla: desanclar Root y soldarla, o moverla con PivotTo).
-function MountModels.build(mountId: string): Model?
+-- Con "boxesOnly" no usa las mallas de Data/MountMeshes (el volcado necesita las cajas).
+function MountModels.build(mountId: string, boxesOnly: boolean?): Model?
 	local mount = Mounts[mountId]
 	local builder = builders[mountId]
 	if not (mount and builder) then
@@ -1348,6 +1549,15 @@ function MountModels.build(mountId: string): Model?
 		weld.Part0 = bone
 		weld.Part1 = part
 		weld.Parent = part
+	end
+	local meshes = if boxesOnly then nil else MountMeshes[mountId]
+	if meshes then
+		for boneName, entry in meshes.parts do
+			local bone = bones[boneName]
+			if bone and entry.mesh ~= "" and entry.texture ~= "" then
+				meshedBone(model, bone, boxes, entry, mount.size / meshes.scale)
+			end
+		end
 	end
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "Seat"

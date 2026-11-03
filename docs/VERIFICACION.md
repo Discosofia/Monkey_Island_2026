@@ -4090,6 +4090,33 @@ El Orangután del Manglar se rehízo como señor del pantano (cortina de pelo la
 2. [ ] En un teléfono, mira al Orangután a unos 30 studs en las tres fases.
    ✅ Los FPS no caen frente al Orangután de antes y la cortina de pelo y el musgo no se ven a cuadros ni borrosos.
 
+## 100. Fase 20 Q4: Llama Andina con malla (03-11-2026)
+
+La Llama Andina (Rara) es ahora 15 mallas con textura, una por hueso (`Data/MountMeshes`, 1.774 triángulos frente al tope de 4.100; 31 piezas frente a 260), con más detalle: rizos de lana, grecas y rombos en la manta, pompones por detrás, bigotes, pestañas y dientes. Está comprobada solo en Edit y en captura; las monturas solo se usan en el Lobby.
+
+### 100.1 En el Studio del Lobby, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, clave `_antesQ4`)
+
+1. [ ] Concede la Llama Andina a tu perfil (con el panel de administración: dar una montura), equípala y móntala.
+   ✅ Sin avisos «No se pudo cargar la malla»; la llama se ve con su textura (no a cuadros), con la manta de marcos y rombos, y por detrás la grupa negra con motas y los pompones bajo la manta.
+   Comprobado el 03-11-2026 en Play (Studio de la Isla): una sola llama montada y las mallas de las patas a su sitio respecto a su hueso (ver el fallo de las patas sueltas, arreglado con un `Weld` de desfase explícito).
+2. [ ] Camina, galopa, salta y planea con ella; usa el gesto de escupir.
+   ✅ Las 15 mallas siguen a sus huesos (cuello, cabeza, mandíbula, orejas, cola y las cuatro patas con sus cañas) sin piezas sueltas ni flotando; la mandíbula se abre al escupir y el jinete se queda sentado sobre la manta.
+3. [ ] Mírala de cerca de frente: boca y gafas.
+   ✅ La boca está cerrada (labios y raya de la boca visibles), con los dientes asomando y el brillo doble en las gafas.
+4. [ ] Mira la llama en el nido y en las vitrinas del Lobby y en la ventana de recompensas (`RewardModels`, `ViewportFrame`).
+   ✅ Se ve con su textura en las tres.
+5. [ ] En el Studio, quita un id de `MountMeshes.luau` (por ejemplo `Head`) y vuelve a montarla.
+   ✅ Esa parte sale con bloques como antes y el resto con malla, sin errores. Devuelve el id.
+6. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 100.2 En el juego publicado, con 2 jugadores y en teléfono
+
+1. [ ] Con 2 jugadores, uno monta la llama y el otro la mira (también uno que entra después).
+   ✅ El otro ve las 15 mallas con su textura y se mueve igual que en el que monta.
+2. [ ] En un teléfono, mira la llama a unos 10 studs.
+   ✅ Los FPS no caen y la manta no se ve borrosa ni a cuadros.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

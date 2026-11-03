@@ -11,6 +11,13 @@ Uso:
         --espejo Left_Arm=Right_Arm --espejo Left_Leg=Right_Leg
     python tools/mallas.py tools/mallas/GorilaAlbino.txt --jefe GorilaAlbino --ids ids.json --luau
 
+Monturas (Fase 21): `Mallas.volcarMontura` imprime una parte por hueso, en trozos que `--del-log` junta:
+    python tools/mallas.py tools/mallas/Llama.txt --del-log
+    python tools/mallas.py tools/mallas/Llama.txt --jefe Llama --escala 1 --fino 0.07 --texel 0.01 \\
+        --espejo LegFL=LegFR --espejo ShinFL=ShinFR --espejo LegBL=LegBR --espejo ShinBL=ShinBR --espejo EarL=EarR
+(`--escala` es el `size` de Data/Mounts; los huesos de las monturas miden pocos studs y piden un texel mucho menor que
+el de un jefe.)
+
 Formato del volcado (una parte tras otra; los números son studs respecto al centro de su primer bloque):
     PART Torso 146 [suma de control]
     x y z ancho alto fondo RRGGBB
@@ -194,10 +201,60 @@ def empaquetar(caras, texel):
     return cy + alto_fila
 
 
+def cubren(f, finas, texel):
+    """Bloques finos que se pintan sobre una cara gruesa, de dentro afuera.
+
+    Cuentan los que la tocan y también los apilados sobre otros finos (los marcos de una manta, una greca sobre un
+    marco); el de más arriba va el último para que tape a los de debajo."""
+    eje, s, p = f["eje"], f["s"], f["p"]
+    j, k = (eje + 1) % 3, (eje + 2) % 3
+    r = f["rect"]
+    cerca = [
+        t
+        for t in finas
+        if t["hi"][j] > r[0] - texel and t["lo"][j] < r[2] + texel and t["hi"][k] > r[1] - texel and t["lo"][k] < r[3] + texel
+    ]
+    alcance = p
+    encima = []
+    avanzo = True
+    while avanzo:
+        avanzo = False
+        for t in cerca:
+            if t in encima:
+                continue
+            if s > 0:
+                toca = t["lo"][eje] <= alcance + E and t["hi"][eje] > p + E
+                sube = t["hi"][eje]
+            else:
+                toca = t["hi"][eje] >= alcance - E and t["lo"][eje] < p - E
+                sube = t["lo"][eje]
+            if toca:
+                encima.append(t)
+                alcance = max(alcance, sube) if s > 0 else min(alcance, sube)
+                avanzo = True
+    encima.sort(key=lambda t: t["hi"][eje] if s > 0 else -t["lo"][eje])
+    return encima
+
+
 def convertir(nombre, cajas, jefe, salida, texel, fino):
-    gruesas = [b for b in cajas if min(b["size"]) >= fino]
-    finas = [b for b in cajas if min(b["size"]) < fino]
-    caras = superficies(gruesas)
+    # Un bloque fino solo se puede pintar sobre la cara de uno grueso de su misma parte. El que no se apoya en ninguno
+    # (los labios de una mandíbula, una línea que flota) se perdería sin avisar: pasa a ser geometría.
+    promovidas = set()
+    while True:
+        gruesas = [b for b in cajas if min(b["size"]) >= fino or id(b) in promovidas]
+        finas = [b for b in cajas if min(b["size"]) < fino and id(b) not in promovidas]
+        caras = superficies(gruesas)
+        usadas = set()
+        for f in caras:
+            j, k = (f["eje"] + 1) % 3, (f["eje"] + 2) % 3
+            r = f["rect"]
+            for t in cubren(f, finas, texel):
+                if t["hi"][j] > r[0] and t["lo"][j] < r[2] and t["hi"][k] > r[1] and t["lo"][k] < r[3]:
+                    usadas.add(id(t))
+        sueltas = [t for t in finas if id(t) not in usadas]
+        if not sueltas:
+            break
+        promovidas |= {id(t) for t in sueltas}
 
     # Si el atlas no cabe en 1024 de alto, se baja la resolución de la textura.
     while True:
@@ -228,14 +285,7 @@ def convertir(nombre, cajas, jefe, salida, texel, fino):
         r = f["rect"]
         tx0, ty0, tw, th = f["tile"]
         base = por_plano[(eje, s, p)]
-        encima = []
-        for t in finas:
-            if s > 0:
-                toca = t["lo"][eje] <= p + E and t["hi"][eje] > p + E
-            else:
-                toca = t["hi"][eje] >= p - E and t["lo"][eje] < p - E
-            if toca and t["hi"][j] > r[0] - texel and t["lo"][j] < r[2] + texel and t["hi"][k] > r[1] - texel and t["lo"][k] < r[3] + texel:
-                encima.append(t)
+        encima = cubren(f, finas, texel)
         du, dv = (r[2] - r[0]) / tw, (r[3] - r[1]) / th
         for ty in range(th + 2):
             for tx in range(tw + 2):
@@ -326,12 +376,64 @@ def luau(jefe, manifiesto, ids, escala):
     return "\n".join(lineas)
 
 
+def juntar_log(ruta_log, destino):
+    """Junta los trozos `@@V <hueso> <nn>` que imprime `Mallas.volcarMontura` en el log del Studio y escribe el volcado.
+
+    Sin `ruta_log` busca, en %LOCALAPPDATA%/Roblox/logs, el último log de Studio que los contiene. Si el volcado se
+    hizo varias veces, vale el último trozo de cada número."""
+    if not ruta_log:
+        carpeta = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Roblox", "logs")
+        candidatos = sorted(
+            (os.path.join(carpeta, n) for n in os.listdir(carpeta) if "Studio" in n and n.endswith(".log")),
+            key=os.path.getmtime,
+            reverse=True,
+        )
+        for c in candidatos:
+            if "@@V " in open(c, encoding="utf-8", errors="replace").read():
+                ruta_log = c
+                break
+        if not ruta_log:
+            sys.exit(f"Ningún log de Studio de {carpeta} tiene trozos @@V")
+    trozos = {}
+    ultimo = {}  # el último volcado completo: lo que había justo antes de su "Volcado de … listo"
+    actual = None
+    for linea in open(ruta_log, encoding="utf-8", errors="replace"):
+        linea = linea.rstrip("\r\n")
+        if linea[:4].isdigit() and linea[4:5] == "-" and "T" in linea[:20]:
+            actual = None  # empieza otro mensaje del log
+            if "Volcado de " in linea and linea.endswith(" empieza"):
+                trozos = {}  # los trozos de volcados anteriores (o de jefes) ya no valen
+                continue
+            if "Volcado de " in linea and " listo" in linea:
+                ultimo, trozos = trozos, {}
+                continue
+            i = linea.find("@@V ")
+            etiqueta = linea[i:].split() if i >= 0 else []
+            if len(etiqueta) >= 3:
+                actual = trozos.setdefault((etiqueta[1], int(etiqueta[2])), [])
+                actual.clear()
+            continue
+        if actual is not None and linea:
+            actual.append(linea)
+    huesos = {}
+    for (hueso, n), lineas in sorted((trozos or ultimo).items()):
+        huesos.setdefault(hueso, []).extend(lineas)
+    if not huesos:
+        sys.exit(f"{ruta_log}: no hay trozos @@V")
+    with open(destino, "w", encoding="utf-8", newline="\n") as f:
+        for lineas in huesos.values():
+            f.write("\n".join(lineas) + "\n")
+    print(f"{len(huesos)} huesos de {ruta_log} -> {destino}")
+    leer_volcado(destino)  # comprueba cajas y sumas de control
+
+
 def main():
     # La consola de Windows usa cp1252 y no escribe todos los símbolos.
     sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(description="Mallas con textura para los jefes (Fase 21)")
+    ap = argparse.ArgumentParser(description="Mallas con textura para los jefes y las monturas (Fase 21)")
     ap.add_argument("volcado")
-    ap.add_argument("--jefe", required=True)
+    ap.add_argument("--del-log", nargs="?", const="", metavar="LOG", help="escribe `volcado` juntando los trozos @@V del log de Studio (sin LOG, el último que los tenga) y termina")
+    ap.add_argument("--jefe", help="nombre del jefe o de la montura (prefijo de los archivos)")
     ap.add_argument("--salida", default="build/mallas")
     ap.add_argument("--texel", type=float, default=0.05, help="studs por texel de la textura (0,05 por defecto; si no cabe en 1024x1024 se sube solo)")
     ap.add_argument("--fino", type=float, default=0.2, help="los bloques con una dimensión menor van a la textura")
@@ -340,6 +442,11 @@ def main():
     ap.add_argument("--ids", help="JSON { Parte: { mesh, texture } } con los ids de Import 3D")
     ap.add_argument("--luau", action="store_true", help="escribe la entrada de BossMeshes.luau")
     a = ap.parse_args()
+    if a.del_log is not None:
+        juntar_log(a.del_log, a.volcado)
+        return
+    if not a.jefe:
+        ap.error("falta --jefe")
 
     partes = leer_volcado(a.volcado)
     for par in a.espejo:
