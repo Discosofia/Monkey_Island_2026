@@ -96,7 +96,6 @@ local function frame(x: number, y: number, z: number, w: number, d: number, edge
 	}
 end
 
-local RUBY = Color3.fromRGB(205, 25, 45)
 local LAVA = Color3.fromRGB(255, 110, 30)
 
 -- Losa de roca en escalón: una placa y otra más pequeña encima.
@@ -150,7 +149,7 @@ local BOSS_MUSCLES = {
 local function phaseFaces(
 	glow: Color3,
 	more: { [number]: { any } }?,
-	eyeLook: { boxes: { [number]: { any } }, colors: { [number]: Color3 } }?,
+	eyeLook: { boxes: { [number]: { any } }, colors: { [number]: Color3 }, darkBrows: boolean? }?,
 	skin: { Color3 }?
 ): { any }
 	local faces = {
@@ -202,9 +201,9 @@ local function phaseFaces(
 			}
 		end
 		-- Con "eyeLook" (el Gorila de Ceniza) las cejas de todas las fases son del pelo, como la de la fase 1: el
-		-- tono "dark" sale de la piel y aquí es rojizo.
+		-- tono "dark" sale de la piel y aquí es rojizo. Con "darkBrows" (el Albino, de pelo blanco) se quedan oscuras.
 		local brow = face.brow
-		if eyeLook then
+		if eyeLook and not eyeLook.darkBrows then
 			brow = {}
 			for _, box in face.brow do
 				local copy = table.clone(box)
@@ -484,6 +483,209 @@ local CENIZA_FACE = {
 	},
 }
 
+-- Gorila Albino (Fase 20 Q3a): pelaje blanco hueso con sombras azuladas, roca de cueva, cristales de rubí que crecen
+-- y se encienden con las fases, y ojos lechosos con la pupila de rubí.
+local IVORY = { Color3.fromRGB(246, 243, 238), Color3.fromRGB(206, 201, 200), Color3.fromRGB(158, 160, 176) }
+local STONE = Color3.fromRGB(112, 120, 138)
+local STONE_DARK = Color3.fromRGB(72, 78, 94)
+local STONE_LIGHT = Color3.fromRGB(160, 168, 186)
+local BONE = Color3.fromRGB(232, 226, 210)
+local SHADE = Color3.fromRGB(176, 178, 192)
+
+-- Torre colgante (estalactita): como "tower" pero cuelga desde "top" hacia abajo.
+local function hang(
+	x: number,
+	top: number,
+	z: number,
+	width: number,
+	depth: number,
+	steps: number,
+	h: number,
+	shrink: number,
+	tone: any
+): { { any } }
+	local boxes = {}
+	for i = 0, steps - 1 do
+		table.insert(boxes, { x, top - h * (i + 0.5), z, width - shrink * i, h, depth - shrink * i, tone })
+	end
+	return boxes
+end
+
+-- Marca todas las cajas como simétricas (aparecen también en el lado -X).
+local function both(boxes: { { any } }): { { any } }
+	for _, box in boxes do
+		box[9] = true
+	end
+	return boxes
+end
+
+local ALBINO_MUSCLES = {
+	Torso = {
+		{ 0, 18.5, -4.5, 6, 1, 3.5, "fur", "Hump" },
+		{ 1.1, 8.6, -9.5, 1.8, 1.1, 0.5, SHADE, "Abs", true },
+		{ 1.1, 7.4, -9.5, 1.8, 1.1, 0.5, SHADE, "Abs", true },
+		{ 6.2, 10.2, -2.4, 0.4, 0.6, 1.6, "shag", "Serratus", true },
+		{ 6.2, 9.1, -2.4, 0.4, 0.6, 1.6, "shag", "Serratus", true },
+		{ 6.2, 8, -2.4, 0.4, 0.6, 1.6, "shag", "Serratus", true },
+	},
+	Arm = CENIZA_MUSCLES.Arm,
+	Leg = CENIZA_MUSCLES.Leg,
+}
+
+local ALBINO_FUR = {
+	Torso = mottle(61, 110, IVORY, TORSO_FACES, 0.3),
+	Arm = mottle(63, 70, IVORY, ARM_FACES, 0.3),
+	Leg = mottle(67, 28, IVORY, LEG_FACES, 0.3),
+	Head = mottle(69, 34, IVORY, HEAD_FACES, 0.25),
+}
+
+-- Forma nueva (dentro de la unión de cada parte, sin piezas): la cordillera de roca del lomo, la hombrera de
+-- roca con estalactitas colgando, los puños con estalagmitas, garras de hueso y el mentón.
+local ALBINO_FORM = {
+	Torso = join(
+		-- Pedestales de la cordillera, uno por cada racimo grande del lomo.
+		tower(0, 18, -4.5, 4.4, 3.8, 2, 0.7, 1, STONE),
+		tower(0, 16, 1.5, 3.4, 3, 2, 0.7, 0.8, STONE),
+		tower(0, 15, 5.5, 3, 2.8, 2, 0.7, 0.8, STONE),
+		tower(0, 14, 8.5, 2.8, 2.6, 2, 0.7, 0.8, STONE),
+		both(tower(3.2, 17, -4, 2.2, 2.2, 2, 0.6, 0.6, STONE_DARK)),
+		both(tower(2.6, 15.2, 1.5, 1.8, 1.8, 2, 0.6, 0.5, STONE_DARK)),
+		-- Melena: una banda clara sobre los hombros.
+		{ { 0, 17.2, -6.5, 12, 0.5, 2.5, IVORY[1] } }
+	),
+	Arm = join(
+		-- Hombrera de roca en tres escalones y las estalactitas que cuelgan de su borde.
+		{
+			{ 8.2, 17.4, -5.5, 6.6, 0.8, 7, STONE },
+			{ 8.2, 18.1, -5.5, 5, 0.7, 5.4, STONE_LIGHT },
+			{ 8.2, 18.8, -5.5, 3.4, 0.7, 3.8, STONE },
+		},
+		hang(11, 17, -7.8, 1.3, 1.3, 4, 0.8, 0.3, STONE_DARK),
+		hang(11, 17, -5.4, 1.5, 1.5, 5, 0.8, 0.3, STONE),
+		hang(11, 17, -3.1, 1.2, 1.2, 4, 0.7, 0.3, STONE_DARK),
+		hang(6.8, 17, -8.8, 1.2, 1.2, 3, 0.7, 0.3, STONE),
+		hang(9.6, 17, -8.8, 1.3, 1.3, 4, 0.7, 0.3, STONE_DARK),
+		-- El puño: guantelete de roca con tres estalagmitas y garras de hueso.
+		{
+			{ 7.5, 2.4, -8.4, 5.4, 1.1, 3, STONE_DARK },
+			{ 7.5, 3.1, -8.2, 4.4, 0.5, 2.4, STONE },
+		},
+		tower(6, 3.3, -9.3, 1.1, 1.1, 3, 0.7, 0.3, STONE_LIGHT),
+		tower(7.5, 3.3, -9.6, 1.3, 1.3, 4, 0.7, 0.3, STONE),
+		tower(9, 3.3, -9.3, 1.1, 1.1, 3, 0.7, 0.3, STONE_LIGHT),
+		{
+			{ 6, 0.4, -10.7, 0.9, 0.7, 0.8, BONE },
+			{ 7.5, 0.4, -10.7, 0.9, 0.7, 0.8, BONE },
+			{ 9, 0.4, -10.7, 0.9, 0.7, 0.8, BONE },
+		}
+	),
+	Leg = {
+		{ 5, 6.2, 3.75, 3.8, 2.6, 0.7, STONE_DARK },
+		{ 3.8, 0.4, 2.9, 0.9, 0.7, 0.8, BONE },
+		{ 5, 0.4, 2.9, 0.9, 0.7, 0.8, BONE },
+		{ 6.2, 0.4, 2.9, 0.9, 0.7, 0.8, BONE },
+	},
+	Head = {
+		-- Mentón con su sombra y una frente clara; la piel de la cara va en una capa por fase.
+		{ 0, 9.2, -14.9, 3.6, 1.2, 2.2, "skin" },
+		{ 0, 8.56, -14.9, 3.6, 0.12, 2.2, "umber" },
+		{ 0, 16.05, -11, 6, 0.12, 5, "lit" },
+		-- Mechones de pelo en las mejillas.
+		{ 3.8, 11.8, -12.2, 0.5, 1.6, 1.4, IVORY[2], nil, true },
+		{ 3.8, 10.4, -12.6, 0.5, 1.2, 1.2, IVORY[3], nil, true },
+	},
+}
+
+-- Cristales de rubí en racimos. Tres tamaños, uno por fase: los de siempre (los apagados), los que crecen en la
+-- fase 2 y la corona de la fase 3. Cada fase pinta un grupo con las posiciones de la anterior más grandes y más racimos
+-- (los de las fases 2 y 3 sustituyen al de la fase anterior, ver MonkeyModels.showPhase).
+local RIDGE_BASE = join(
+	crystal(0, 19.4, -4.5, 0.9),
+	crystal(2.2, 18, -3.5, 0.6),
+	crystal(-2.2, 18, -3.8, 0.6),
+	crystal(0, 17.4, 1.5, 0.7),
+	crystal(0, 16.4, 5.5, 0.6),
+	crystal(0, 15.4, 8.5, 0.5),
+	crystal(-2.6, 12, -10, 0.6, true),
+	crystal(1.2, 8.4, -10, 0.5, true)
+)
+local RIDGE_GROW = join(
+	crystal(0, 19.4, -4.5, 1.3),
+	crystal(3.2, 18.6, -4, 0.9),
+	crystal(-3.2, 18.6, -4, 0.9),
+	crystal(0, 17.4, 1.5, 1),
+	crystal(2.6, 16.2, 1.5, 0.6),
+	crystal(-2.6, 16.2, 1.5, 0.6),
+	crystal(0, 16.4, 5.5, 0.8),
+	crystal(0, 15.4, 8.5, 0.7),
+	crystal(-2.6, 12, -10, 0.7, true),
+	crystal(1.2, 8.4, -10, 0.6, true)
+)
+local RIDGE_CROWN = join(
+	crystal(0, 19.4, -4.5, 1.8),
+	crystal(3.4, 18.6, -4, 1.2),
+	crystal(-3.4, 18.6, -4, 1.2),
+	crystal(0, 17.4, 1.5, 1.4),
+	crystal(2.8, 16.2, 1.5, 0.9),
+	crystal(-2.8, 16.2, 1.5, 0.9),
+	crystal(0, 16.4, 5.5, 1.1),
+	crystal(2, 15.2, 6, 0.7),
+	crystal(-2, 15.2, 6, 0.7),
+	crystal(0, 15.4, 8.5, 0.9),
+	crystal(-2.6, 12, -10, 0.8, true),
+	crystal(1.2, 8.4, -10, 0.7, true)
+)
+local SHOULDER_BASE = join(crystal(8.2, 19.15, -5.5, 0.7), crystal(10.4, 17.8, -7, 0.45))
+local SHOULDER_GROW = join(
+	crystal(8.2, 19.15, -5.5, 1.1),
+	crystal(10.2, 17.8, -4, 0.7),
+	crystal(6.2, 17.8, -3.5, 0.6),
+	crystal(7.5, 5.7, -9.6, 0.4)
+)
+local SHOULDER_CROWN = join(
+	crystal(8.2, 19.15, -5.5, 1.6),
+	crystal(10.4, 17.8, -4, 1),
+	crystal(6, 17.8, -7.5, 0.9),
+	crystal(6.2, 17.8, -3.2, 0.8),
+	crystal(10.6, 17.8, -7.5, 0.7),
+	crystal(7.5, 5.7, -9.6, 0.55),
+	crystal(6, 4.7, -9.3, 0.35),
+	crystal(9, 4.7, -9.3, 0.35)
+)
+local RUBY_P = { Color3.fromRGB(150, 20, 36), Color3.fromRGB(205, 25, 45), Color3.fromRGB(240, 35, 55) }
+
+-- Venas de rubí encendidas: el pecho desde el corazón, y en la fase 3 también los flancos y la espalda.
+local VEINS_FRONT = join(
+	vein("z", -10.1, 1.2, 9, { { 1.6, 0 }, { 0, 1.6 }, { 1.4, 0 } }, 0.3, 0.16, true),
+	vein("z", -10.1, 1.2, 9, { { 0, -1.8 }, { 1.2, 0 } }, 0.3, 0.16, true)
+)
+local VEINS_ALL = join(
+	VEINS_FRONT,
+	vein("x", 6.2, 12.5, 6, { { 0, 1 }, { -1.2, 0 }, { 0, 0.8 } }, 0.4, 0.4, true),
+	vein("z", 10.2, 3.5, 12.5, { { 0, -1.5 }, { 1.5, 0 }, { 0, -1.2 } }, 0.4, 0.4, true),
+	vein("z", 10.2, 0, 13.4, { { 0, -2 }, { -1, 0 }, { 0, -2.5 }, { 1.2, 0 }, { 0, -1.4 } }, 0.45, 0.4)
+)
+
+-- Ojos lechosos (ciegos) con la pupila de rubí, que brilla más cada fase. Parten de los de lava del Ceniza
+-- (la misma expresión por fase): su pupila se cambia por la de rubí, más ancha.
+local ALBINO_EYE_COLORS =
+	{ Color3.fromRGB(222, 218, 230), Color3.fromRGB(240, 205, 212), Color3.fromRGB(255, 175, 180) }
+local ALBINO_PUPILS = { Color3.fromRGB(150, 15, 30), Color3.fromRGB(205, 25, 45), Color3.fromRGB(255, 35, 60) }
+local ALBINO_SKIN = { Color3.fromRGB(200, 140, 146), Color3.fromRGB(205, 105, 115), Color3.fromRGB(170, 48, 62) }
+local ALBINO_EYES = { colors = ALBINO_EYE_COLORS, darkBrows = true, boxes = {} :: { { any } } }
+for phase, boxes in CENIZA_EYES.boxes do
+	local copy = {}
+	for _, box in boxes do
+		local clone = table.clone(box)
+		if clone[7] == PUPIL then
+			clone[7] = ALBINO_PUPILS[phase]
+			clone[4] *= 1.6
+		end
+		table.insert(copy, clone)
+	end
+	ALBINO_EYES.boxes[phase] = copy
+end
+
 return {
 	-- Con 0,18 y su scale (1,45) tiene los hombros a ~4,4 studs: 1,5 m, como un gorila macho a cuatro
 	-- patas al lado de un jugador de 1,75 m (1 m ≈ 3 studs). Sus jefes quedan como en el GDD §8.2.
@@ -582,48 +784,98 @@ return {
 	-- Lo que cada jefe cambia del cuerpo del gorila (ver VoxelBoss en MonkeyModels): quita la cara
 	-- normal (va por fases), añade músculos a las partes y pone sus adornos en grupos de un material.
 	bosses = {
-		-- Gorila Albino: racimos de cristales de rubí en los hombros, el lomo, los brazos y la cresta,
-		-- el corazón de neón en el pecho, y en la fase 3 venas de rubí encendidas.
+		-- Gorila Albino (Fase 20 Q3a): pelaje blanco hueso con sombras azuladas, roca de cueva (cordillera en el lomo,
+		-- hombreras con estalactitas, puños con estalagmitas) y cristales de rubí que crecen y se encienden con las
+		-- fases; ojos lechosos con la pupila de rubí. El corazón cian del pecho es el único tono frío (punto débil).
 		GorilaAlbino = {
+			tones = {
+				lit = Color3.fromRGB(248, 245, 240),
+				umber = Color3.fromRGB(150, 152, 168),
+			},
 			remove = BOSS_FACE,
-			add = BOSS_MUSCLES,
-			groups = join(phaseFaces(Color3.fromRGB(255, 60, 70)), {
+			add = combine(BOSS_MUSCLES, ALBINO_MUSCLES, ALBINO_FUR, ALBINO_FORM),
+			groups = join(phaseFaces(Color3.fromRGB(255, 60, 70), CENIZA_FACE, ALBINO_EYES, ALBINO_SKIN), {
+				-- Cristales de siempre (apagados en la fase 1, más vivos en la 2 y la 3 con phaseColors).
 				{
 					anchor = "Torso",
 					name = "Crystal",
-					color = RUBY,
+					color = RUBY_P[1],
+					phaseColors = RUBY_P,
 					material = "Glass",
-					transparency = 0.3,
-					boxes = join(
-						crystal(3, 18, -5, 1.3),
-						crystal(4.2, 17.5, -2.5, 1),
-						crystal(1.8, 18, -3, 0.8),
-						crystal(-3, 18, -4.5, 1.1),
-						crystal(-1.6, 18, -2.5, 0.8),
-						crystal(1.5, 16.5, 2, 0.9),
-						crystal(-2, 14.5, 5.5, 0.7),
-						crystal(2.5, 14.5, 6, 0.6),
-						crystal(-0.5, 13.5, 8.5, 0.5),
-						crystal(-2.6, 12, -10, 0.6, true),
-						crystal(1.2, 8.4, -10, 0.5, true)
-					),
+					boxes = RIDGE_BASE,
 				},
 				{
 					anchor = "Arm",
 					mirror = true,
 					name = "Crystal",
-					color = RUBY,
+					color = RUBY_P[1],
+					phaseColors = RUBY_P,
 					material = "Glass",
-					transparency = 0.3,
-					boxes = join(crystal(8.5, 16.5, -5, 0.9), crystal(6, 16.5, -3.2, 0.6)),
+					boxes = SHOULDER_BASE,
 				},
 				{
 					anchor = "Head",
 					name = "Crystal",
-					color = RUBY,
+					color = RUBY_P[1],
+					phaseColors = RUBY_P,
 					material = "Glass",
-					transparency = 0.3,
-					boxes = join(crystal(1.2, 19.5, -8.5, 0.5), crystal(-1, 19.5, -9.5, 0.4)),
+					boxes = join(crystal(1.2, 20, -8.5, 0.5), crystal(-1, 20, -9.5, 0.4)),
+				},
+				-- Fase 2: los racimos crecen. Los de la fase 3 sustituyen a estos (showPhase) y son enormes.
+				{
+					anchor = "Torso",
+					name = "CrystalGrow",
+					color = RUBY_P[2],
+					material = "Glass",
+					phase = 2,
+					boxes = RIDGE_GROW,
+				},
+				{
+					anchor = "Arm",
+					mirror = true,
+					name = "CrystalGrow",
+					color = RUBY_P[2],
+					material = "Glass",
+					phase = 2,
+					boxes = SHOULDER_GROW,
+				},
+				{
+					anchor = "Head",
+					name = "CrystalGrow",
+					color = RUBY_P[2],
+					material = "Glass",
+					phase = 2,
+					boxes = join(crystal(1.2, 20, -8.5, 0.8), crystal(-1, 20, -9.5, 0.65), crystal(0, 20, -7.5, 0.5)),
+				},
+				{
+					anchor = "Torso",
+					name = "CrystalGrow",
+					color = RUBY_P[3],
+					material = "Glass",
+					phase = 3,
+					boxes = RIDGE_CROWN,
+				},
+				{
+					anchor = "Arm",
+					mirror = true,
+					name = "CrystalGrow",
+					color = RUBY_P[3],
+					material = "Glass",
+					phase = 3,
+					boxes = SHOULDER_CROWN,
+				},
+				{
+					anchor = "Head",
+					name = "CrystalGrow",
+					color = RUBY_P[3],
+					material = "Glass",
+					phase = 3,
+					boxes = join(
+						crystal(1.2, 20, -8.5, 1.1),
+						crystal(-1, 20, -9.5, 0.9),
+						crystal(0, 20, -7.5, 0.8),
+						crystal(2.6, 19, -9.5, 0.5, false)
+					),
 				},
 				{
 					anchor = "Torso",
@@ -633,17 +885,22 @@ return {
 					material = "Neon",
 					boxes = { { 0, 9, -10.2, 2.2, 2.2, 0.8 } },
 				},
+				-- Venas de rubí: en la fase 2 salen del corazón por el pecho; en la 3 también por los flancos y la espalda.
+				{
+					anchor = "Torso",
+					name = "CrystalVein",
+					color = Color3.fromRGB(205, 25, 45),
+					material = "Neon",
+					phase = 2,
+					boxes = VEINS_FRONT,
+				},
 				{
 					anchor = "Torso",
 					name = "CrystalVein",
 					color = Color3.fromRGB(255, 60, 70),
 					material = "Neon",
 					phase = 3,
-					boxes = {
-						{ 5.8, 14.5, -9.05, 0.3, 3, 0.2, nil, nil, true },
-						{ 6.6, 13.1, -9.05, 1.6, 0.3, 0.2, nil, nil, true },
-						{ 4.9, 16, -9.05, 1.8, 0.3, 0.2, nil, nil, true },
-					},
+					boxes = VEINS_ALL,
 				},
 				{
 					anchor = "Arm",

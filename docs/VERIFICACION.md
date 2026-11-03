@@ -3967,6 +3967,34 @@ Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0).
 2. [ ] En un teléfono, mira al jefe a unos 30 studs en las tres fases.
    ✅ Los FPS no caen de forma apreciable frente a antes de Q2 (10.200–11.100 triángulos el jefe, antes 4.202). La fase 3 se sigue distinguiendo de la 1 a esa distancia.
 
+## 96. Fase 20 Q3a: Gorila Albino con más calidad (03-11-2026)
+
+Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0). El jefe se invoca desde el panel de admin (fila «Jefe»). La luz y las chispas rojas de `BOSS_EXTRAS` no cambian de color con la fase.
+
+### 96.1 En Play, en la Isla (1 jugador)
+
+1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Pulsa ▶ Jugar, invoca el Gorila Albino y mide cuánto tarda en aparecer.
+   ✅ La primera vez tarda lo que su unión (~0,5 s) sin errores en la Salida; las siguientes aparece al instante.
+2. [ ] Pelea con él hasta la fase 2 y luego la 3.
+   ✅ Los cristales de rubí crecen (pocos y apagados en la 1, racimos grandes en la 2, corona enorme en la 3); en la 2 salen venas de rubí desde el corazón y en la 3 también por flancos y espalda. Los ojos lechosos tienen la pupila de rubí cada vez más viva y la cara pasa de rosada a rojiza.
+3. [ ] Rodéalo y míralo por detrás en las tres fases.
+   ✅ Se ve la cordillera de roca y cristal del lomo, y la fase 3 se distingue de la 1 a primera vista.
+4. [ ] Dispara o golpea el corazón cian (`CrystalCore`) y la cabeza.
+   ✅ El pecho sigue siendo el punto débil y la cabeza cuenta como cabeza; las estalactitas, estalagmitas y cristales nuevos no cambian las zonas.
+5. [ ] Mira cómo anda, embiste, pisa y ruge (`extinguish`).
+   ✅ Las hombreras con estalactitas, los puños con estalagmitas y las garras se mueven con su parte, sin piezas sueltas.
+6. [ ] Mira de cerca los ojos de la fase 1.
+   ✅ Se leen pálidos (lechosos) con la pupila de rubí; si se ven demasiado rojos, se aclara el color de `ALBINO_EYE_COLORS`.
+7. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 96.2 En teléfono o con 2 jugadores
+
+1. [ ] Con 2 jugadores, invoca el Gorila Albino mientras el otro se mueve y ataca monos.
+   ✅ Nadie se congela al construirse el jefe (~0,5 s), y los dos ven lo mismo en cada fase.
+2. [ ] En un teléfono, mira al jefe a unos 30 studs en las tres fases.
+   ✅ Los FPS no caen de forma apreciable (~13.200 triángulos sumando las tres fases, antes 1.664) y la fase 3 se distingue de la 1.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
