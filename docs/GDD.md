@@ -1003,7 +1003,7 @@ El coste de un modelo en pantalla no es solo su número de piezas:
 
 ### 19.2 Estilo voxel y técnicas permitidas
 
-Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en Luau, sin `EditableMesh` (exige un dueño con verificación de identidad, tiene un presupuesto de memoria estricto en el cliente y, probado el 03-11-2026, lo que crea el servidor no se ve bien en el cliente). **Excepción (Fase 21):** las partes del cuerpo de un jefe pueden ser una `MeshPart` con textura, generada por `tools/mallas.py` a partir de los mismos bloques e importada con Import 3D (ids en `Data/BossMeshes`): la silueta son los bloques gruesos y los mechones y manchas finos se pintan en la textura. Para ganar calidad sin perder rendimiento se usan cinco técnicas:
+Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en Luau, sin `EditableMesh` (exige un dueño con verificación de identidad, tiene un presupuesto de memoria estricto en el cliente y, probado el 03-11-2026, lo que crea el servidor no se ve bien en el cliente). **Excepción (Fase 21):** las partes del cuerpo de un jefe y los huesos de una montura pueden ser una `MeshPart` con textura, generada por `tools/mallas.py` a partir de los mismos bloques e importada con Import 3D (ids en `Data/BossMeshes` y `Data/MountMeshes`): la silueta son los bloques gruesos y los mechones y manchas finos se pintan en la textura. Para ganar calidad sin perder rendimiento se usan cinco técnicas:
 
 | Técnica | Qué es | Coste |
 |---|---|---|
