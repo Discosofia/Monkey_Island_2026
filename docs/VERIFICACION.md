@@ -4172,6 +4172,28 @@ Los Shorts 9:16 se preparan como borradores de CapCut con `tools/video/short.py`
 3. [ ] Comprueba que el vídeo no enseña Robux, «gana dinero», sangre ni texto de depuración.
    ✅ Cumple las reglas de contenido de `docs/videos/README.md`.
 
+## 103. Fase 22 V0: spike del borrador 9:16 con pyCapCut (03-11-2026)
+
+El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borradores/V0-spike-<fecha>/` (fuera de CapCut; no toca ningún borrador existente ni `root_meta_info.json`). Tiene 3 trozos de 4 s de `O:/2026-10-30 10-42-16.mkv` (a los 5, 15 y 28 s, ampliados para llenar 1080×1920), el texto «PRIMAL BANANA ISLANDS» (fuente Alegreya, no Pro) y un tono de prueba de 12 s (`build/videos/tono_prueba.mp3`, no es música real). Las §102.1 pasos 1-3 se hacen con este borrador. Con CapCut cerrado:
+
+### 103.1 Abrir el borrador en CapCut 9.7 (hecho el 03-11-2026: aparece en la lista, abre sin avisos, `draft_content.json` sigue en texto plano con `new_version` 191.0.0)
+
+1. [x] Copia la carpeta `V0-spike-<fecha>` a `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft\` (es una carpeta nueva; no sustituye nada) y abre CapCut.
+   ✅ El borrador aparece en la lista de proyectos. Si no aparece, CapCut necesita que `root_meta_info.json` lo liste: apúntalo, es el fallo principal del spike.
+2. [x] Ábrelo.
+   ✅ Sin aviso de «borrador dañado» ni de archivos que faltan; 3 clips seguidos, el texto durante los 12 s y el audio debajo. Apunta si el encuadre llena la pantalla o salen franjas.
+3. [x] Cierra CapCut. Avísame y compruebo `draft_content.json` (texto plano, sin cifrar) y que CapCut 9.7 no ha reescrito el borrador.
+   ✅ Empieza por `{`.
+
+### 103.2 Exportar (hecho el 03-11-2026: MP4 1080×1920, 30 fps, 12 s, sin marca de agua, en `P:\VIDEO\Primal banana islands\Trailer\`)
+
+1. [x] Exporta a 1080×1920, 30 fps, sin tocar nada más.
+   ✅ Sin marca de agua. Si sale con marca, mira en la línea de tiempo qué recurso lleva el icono Pro y apúntalo.
+2. [x] Mira el vídeo exportado.
+   ✅ Los trozos coinciden con los tiempos (5-9 s, 15-19 s, 28-32 s de la toma) y el texto se lee en el tercio central.
+3. [x] Mira la toma `O:/2026-10-30 10-42-16.mkv` entera.
+   ✅ Decidido el 03-11-2026: las tomas son la ventana entera de Studio, así que en el recuadro central 9:16 se cuela su barra de herramientas. No se descartan: V1/V2 las recortan o escalan para ajustarlas (el tramo del segundo 28 no está oscuro; era solo la miniatura de CapCut).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
