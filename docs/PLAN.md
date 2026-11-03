@@ -872,7 +872,7 @@ Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **TR1** | Tráiler de YouTube (16:9, unos 75 s, guion ES/EN en `docs/videos/`) y su herramienta: modo grabación en el panel 🛠️ Pruebas, `Trailer` y `TrailerCamara` | be6babc, 24d0ddf | ✅ Tomas grabadas el 30-10-2026 (falta el montaje); pendiente VERIFICACION §91 |
-| **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | — | ⏳ Pendiente (sin empezar) |
+| **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | — | ⏳ Pendiente: se hace en la [Fase 22](#fase-22-edición-agéntica-de-vídeo-con-capcut-03-11-2026) (V0–V4) |
 
 ### Fase 20: Modelos voxel con más calidad sin perder rendimiento (02-11-2026, replanteada el 03-11-2026)
 
@@ -1005,6 +1005,38 @@ Pendiente y riesgos: la opción de la experiencia de las APIs de malla (¿hace f
 - **Resolución (M2):** `tools/mallas.py` usa 0,05 studs por texel y atlas de 1024 de ancho; el torso de los dos gorilas llena 1024×1024. Cada textura pesa hasta ~4 MB sin comprimir (12 texturas ≈ 25 MB en dos jefes): sin medir en teléfono. Para un jefe de otra escala, `--escala` y `--fino` (Ceniza: `--fino 0.25 --escala 3.625`).
 - **Trampa de las pruebas:** el escudo (`ForceField`) del jugador tiñe de rosa y azul lo que se ve a través de él; para capturas, ni lo pongas o míralo desde fuera. La cámara del juego mira siempre hacia -Z: para ver a un jefe de espaldas, gíralo, no al jugador. `Boss` del panel de pruebas rota Orangután, Chimpancé, Albino, Ceniza.
 - **Decidido el 03-11-2026:** de ahora en adelante los modelos de la Fase 20 se hacen con malla (ver su «Decisión del 03-11-2026»). Pendiente: M4 (`Rendimiento` cuenta las mallas) y M5/Q4–Q7 (ampliar el volcado a montura, mascota, armadura y arma).
+
+### Fase 22: Edición agéntica de vídeo con CapCut (03-11-2026)
+
+Sale de querer que el agente edite los vídeos de promoción y el usuario supervise, con el plan gratis de CapCut. Investigación con fuentes y fechas en [docs/videos/CAPCUT-INVESTIGACION.md](videos/CAPCUT-INVESTIGACION.md). Cierra la tanda **TR2** (Shorts y TikTok).
+
+**Decidido el 03-11-2026 (entrevista):** el usuario graba con OBS y el agente edita; el MVP son 3-5 Shorts 9:16 de 15-30 s sacados de las tomas del tráiler, en ES y EN, sin voz (solo subtítulos grandes y música); ritmo rápido, gancho en el primer segundo, cierre con la portada; el agente prepara el borrador y el usuario lo abre, lo revisa y exporta; publicar queda fuera; todo gratis y local; el PC queda libre. Éxito: 10 minutos del usuario por Short y 7 de cada 10 sin retoques de fondo.
+
+**Lo verificado:** CapCut 9.7.0.4153 instalado; los borradores `trailer esp` y `trailer en` (hechos con 9.5) están en JSON de texto plano, con 39 clips de `O:/` y la portada; `ffmpeg`, `faster-whisper` y `auto-editor` no están instalados. **Lo supuesto y por probar en V0:** que 9.7 guarde sin cifrar, que `pyCapCut` encaje con 9.7 (sus autores lo marcan en 8.2.0 y 9.5.0.4050), qué recursos de CapCut salen marcados Pro y los términos de uso de CapCut (solo se conocen por resúmenes de terceros).
+
+**Arquitectura:** scripts de Python que escriben borradores con `pyCapCut` (fijado en `pycapcut==0.0.4`) y `ffmpeg` para fotogramas y vistas previas; CapCut solo para el acabado y la exportación, a mano. El borrador del tráiler es la lista de cortes. **Descartado:** computer use como método principal (lento, ocupa el PC, sin datos de fiabilidad en una línea de tiempo), API o MCP oficial (no existe), CapCut Web o móvil (suben los vídeos a la nube), Remotion/HyperFrames (pesado para el MVP), Whisper (sin voz no hay nada que transcribir; queda para después) y las funciones IA gratis de CapCut (límites contradictorios entre fuentes).
+
+**Seguridad:** las tomas de `O:/` solo se leen; antes de leer un borrador se copia a `build/videos/copias/<fecha>-<nombre>/` (`/build/` ya está en `.gitignore`); nunca se escribe en un borrador existente (cada ejecución crea `v1`, `v2`…); CapCut cerrado mientras se escribe (el script lo comprueba); nada se borra, exporta ni publica sin confirmación.
+
+**Archivos:** `tools/video/borrador.py` (lee un borrador y saca la lista de cortes), `tools/video/short.py` (crea el borrador 1080×1920 de un Short en un idioma), `tools/video/fotogramas.py` (fotogramas con la guía 9:16 y vista previa en `build/videos/`), `docs/videos/shorts.md` y `docs/videos/shorts/*.json` (guion de cada Short), skill `.claude/skills/video-capcut/` con su resumen en `docs/llm-local`. Los textos salen de `docs/videos/trailer.md` y, si son frases del juego, de `Data/Strings/*` (GDD §18). Música: solo las bibliotecas de YouTube y TikTok.
+
+| Grupo | Contenido | Terminado cuando | Commit | Estado |
+|---|---|---|---|---|
+| **V0** | Spike de 1 día: instalar ffmpeg y pyCapCut; (1) CapCut 9.7 guarda en texto plano y no cifra un borrador escrito por el script; (2) borrador 9:16 con 3 trozos de `O:/2026-10-30 10-42-16.mkv`, un texto y un MP3; (3) qué sale marcado Pro | El usuario abre el borrador en 9.7, se ve bien y exporta a 1080×1920 sin marca de agua. Si falla: se apunta qué y se replantea antes de V1 (alternativas: `capcut-cli` o un render solo con ffmpeg) | — | ⏳ |
+| **V1** | `borrador.py`, la lista de cortes del tráiler (sobre copia) y `fotogramas.py` | Los 39 clips de `trailer esp` con su toma y sus tiempos, comprobados contra 5 clips vistos en CapCut; un fotograma por clip con la guía 9:16 | — | ⏳ |
+| **V2** | `short.py`, `shorts.md` y el primer Short (gancho del capuchino ladrón y los jefes), ES y EN | Los dos borradores abren sin errores; tiempos y textos coinciden con el guion; el texto cae en el tercio central; el usuario exporta y apunta sus minutos de retoque | — | ⏳ |
+| **V3** | Los otros 2-4 Shorts (mascotas y monturas, roles, Dunas y Laboratorio) y los ajustes que pida V2 | Cada Short pide 10 minutos o menos de retoque, en al menos 3 de 4 | — | ⏳ |
+| **V4** | Skill `video-capcut`, su resumen en `llm-local`, título, descripción y etiquetas de cada Short en `shorts.md` (los sube el usuario), fila TR2 cerrada | Una pestaña nueva, con solo la skill, reproduce «haz el Short de jefes en inglés» | — | ⏳ |
+
+**Después (fuera del MVP):** Whisper para vídeos con voz, terminar el tráiler desde su borrador, Shorts de tomas nuevas (novedades por fase) y exportar con computer use.
+
+**Riesgos y cómo se detectan:** cifrado o formato nuevo de 9.7 (V0, paso 1); `pyCapCut` y 9.7 (V0, paso 2); recurso Pro que mete marca de agua (V0, paso 3; después, solo fuentes y animaciones básicas); una actualización de CapCut (`short.py` lee `ProductInfo.xml` y avisa si no es la versión probada); recorte 9:16 que corta la acción (fotogramas de V1); términos de uso (todo es local; leer los oficiales es tarea del usuario).
+
+**Handoff de la Fase 22 (03-11-2026)**
+- **Estado:** plan aprobado el 03-11-2026; nada construido. Solo existe `docs/videos/CAPCUT-INVESTIGACION.md`. Siguiente número libre de VERIFICACION: §103.
+- **Siguiente paso:** V0. Instalar `winget install Gyan.FFmpeg`, un entorno en `build/videos/.venv` con `pycapcut==0.0.4`, y hacer el spike. CapCut tiene que estar cerrado al escribir.
+- **Datos útiles:** borradores en `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft\` (`trailer esp`, `trailer en`, versión de formato 360000); tomas en `O:/2026-10-30 *.mkv`; audio en `F:/Google Drive/primal monkey island/sonidos monos/`; las tomas se grabaron con el recuadro central 9:16 libre.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 22 y su Handoff. Haz el spike V0 y deja la lista de comprobación de VERIFICACION §102.»
 
 ---
 

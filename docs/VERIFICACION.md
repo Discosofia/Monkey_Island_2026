@@ -83,8 +83,9 @@ Las secciones no se renumeran (PLAN.md, las skills y el código las citan). Este
 | Fase 18: modelos | §62–§73 | armaduras, armas y trajes rehechos | 51 | Visual, Móvil |
 | Fase 19: combate a distancia | §74–§87 | líneas, poses, impactos, ADS, miras, killfeed, rig, vista | 184 | Pub-1, Pub-2, Móvil, Calc |
 | Tráiler de YouTube | §91 | modo grabación, cámara de tomas, Freecam y montaje | 18 | 1J-Studio, 2J, Pub-1, Visual |
+| Fase 22: Shorts con CapCut | §102 | borradores 9:16, exportación sin marca, teléfono | 8 | CapCut, Móvil |
 
-Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 18 de la §91.
+Los totales por sección salen de contar las casillas `[ ]` entre un `## ` y el siguiente. Ahora hay unos 1.020 pendientes (eran 1.055 antes de este reparto), más los 18 de la §91 y los 8 de la §102.
 
 ---
 
@@ -4144,6 +4145,32 @@ El Jaguar Albino Esmeralda (Legendaria) es ahora 17 mallas con textura, una por 
    ✅ El otro ve las 17 mallas con su textura y se mueve igual.
 2. [ ] En un teléfono, mira el jaguar a unos 10 studs.
    ✅ Los FPS no caen y el pelaje no se ve borroso ni a cuadros.
+
+## 102. Fase 22: Shorts con CapCut (03-11-2026)
+
+Los Shorts 9:16 se preparan como borradores de CapCut con `tools/video/short.py`; el usuario los abre, los revisa y exporta. Lo que el agente no puede probar solo (abrir en CapCut, exportar, ver en teléfono, subir) va aquí. Plan en `docs/PLAN.md` Fase 22. Esta sección se completa y se ajusta al cerrar cada grupo (V0–V4).
+
+### 102.1 En CapCut 9.7 de escritorio (con CapCut cerrado al generar y una copia de los borradores)
+
+1. [ ] Abre el borrador del spike V0 (`Spike V0 … v1`).
+   ✅ Abre sin avisos de «borrador dañado» ni de recursos que faltan; se ven los 3 trozos de la toma, el texto y la música en su sitio.
+2. [ ] Cierra CapCut y mira `draft_content.json` del borrador (el agente lo comprueba con un script).
+   ✅ Sigue siendo texto plano que empieza por `{`; CapCut 9.7 no lo ha cifrado.
+3. [ ] Exporta el borrador a 1080×1920, 30 o 60 fps.
+   ✅ El vídeo sale sin marca de agua. Si algo del proyecto está marcado Pro, apunta qué es: no se vuelve a usar.
+4. [ ] Abre `Short jefes es v1` y `Short jefes en v1` (V2).
+   ✅ Los tiempos y los textos coinciden con `docs/videos/shorts.md`; el texto cae en el tercio central; el gancho está en el primer segundo y el cierre es la portada.
+5. [ ] Retoca lo que haga falta, exporta y apunta los minutos en `docs/videos/shorts.md`.
+   ✅ Menos de 10 minutos por Short; 7 de cada 10 sin retoques de fondo.
+
+### 102.2 En el teléfono y en las plataformas (los sube el usuario)
+
+1. [ ] Mira un Short exportado en el teléfono, a pantalla completa.
+   ✅ El texto se lee y no lo tapan los botones de YouTube Shorts ni de TikTok; la acción cae en el recuadro central.
+2. [ ] Sube uno como privado a YouTube Shorts y otro a TikTok.
+   ✅ La música no recibe reclamación de derechos; el vídeo se reproduce sin cortes.
+3. [ ] Comprueba que el vídeo no enseña Robux, «gana dinero», sangre ni texto de depuración.
+   ✅ Cumple las reglas de contenido de `docs/videos/README.md`.
 
 ## Cuando termines
 
