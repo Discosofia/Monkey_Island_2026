@@ -2,7 +2,7 @@
 
 Convierte las partes en bloques de un jefe (el volcado que hace `ServerStorage.Tools.Mallas.volcar` en el Studio de
 la Isla) en una malla por parte con su textura: la silueta son los bloques gruesos, fusionados y sin caras tapadas, y
-los bloques finos (mechones, manchas de pelo) se pintan en la textura. Un torso del Albino pasa de 2.212 a 468
+los bloques finos (mechones, manchas de pelo) se pintan en la textura (0,05 studs por texel). Un torso del Albino pasa de 2.212 a 468
 triángulos. Se importan en Studio con Import 3D (la escala por defecto, 1 unidad = 1 stud, es la buena) y los ids
 resultantes van en `src/shared/Data/BossMeshes.luau`, que lee `MonkeyModels`.
 
@@ -16,6 +16,8 @@ Formato del volcado (una parte tras otra; los números son studs respecto al cen
     x y z ancho alto fondo RRGGBB
     ...
     END
+El umbral de bloque fino (`--fino`, 0,2 studs) es de 0,4 celdas: para un jefe de otra escala se ajusta (Gorila de Ceniza, escala 3,625:
+`--fino 0.25 --escala 3.625`).
 Salida, en `build/mallas/<jefe>/`: `<Parte>.obj`, `.mtl` y `.png` de cada parte, y `manifiesto.json` con los
 triángulos, el atlas y el `offset` (centro de la caja envolvente respecto al centro de la parte).
 """
@@ -28,7 +30,7 @@ import sys
 import zlib
 
 E = 1e-3
-ANCHO_ATLAS = 512
+ANCHO_ATLAS = 1024
 ALTO_MAXIMO = 1024
 
 
@@ -331,7 +333,7 @@ def main():
     ap.add_argument("volcado")
     ap.add_argument("--jefe", required=True)
     ap.add_argument("--salida", default="build/mallas")
-    ap.add_argument("--texel", type=float, default=0.1, help="studs por texel de la textura (0,1 por defecto)")
+    ap.add_argument("--texel", type=float, default=0.05, help="studs por texel de la textura (0,05 por defecto; si no cabe en 1024x1024 se sube solo)")
     ap.add_argument("--fino", type=float, default=0.2, help="los bloques con una dimensión menor van a la textura")
     ap.add_argument("--espejo", action="append", default=[], help="Izquierda=Derecha: la parte sale reflejada de otra")
     ap.add_argument("--escala", type=float, default=2.9, help="escala del jefe con la que se volcaron los bloques")

@@ -4,7 +4,8 @@
 --   local m = game.ServerStorage.Tools.Mallas:Clone()
 --   require(m).volcar("GorilaAlbino")   -- imprime las partes en la Salida; cópialas a tools/mallas/<Jefe>.txt
 --   m:Destroy()
--- Con `monos` (una copia de ServerScriptService.Combat.Monkeys) se prueba un cambio del spec sin la caché.
+-- Con `monos` (una copia de ServerScriptService.Combat.Monkeys) se prueba un cambio del spec sin la caché. Con `partes`
+-- (por ejemplo { "Torso" }) solo se vuelcan esas: la Salida de Studio se trunca por el principio si es muy larga.
 -- Cada parte sale como
 --   PART Right_Arm <n> <suma de control>
 --   x y z ancho alto fondo RRGGBB   (studs, respecto al centro del primer bloque)
@@ -21,15 +22,16 @@ local PARTES = { "Torso", "Head", "Right Arm", "Right Leg" }
 
 local Mallas = {}
 
-function Mallas.volcar(bossId: string, monos: Instance?)
+function Mallas.volcar(bossId: string, monos: Instance?, partes: { string }?)
 	local boss = (Bosses :: any)[bossId]
 	assert(boss, `Jefe desconocido: {bossId}`)
 	local carpeta = monos or ServerScriptService.Combat.Monkeys
 	local MonkeyModels = require(carpeta.MonkeyModels :: ModuleScript) :: any
 
+	local quiero = partes or PARTES
 	local hechas: { [string]: boolean } = {}
 	MonkeyModels.setBoxSink(function(main: BasePart, boxes: { BasePart })
-		if hechas[main.Name] or not table.find(PARTES, main.Name) then
+		if hechas[main.Name] or not table.find(quiero, main.Name) then
 			return
 		end
 		hechas[main.Name] = true

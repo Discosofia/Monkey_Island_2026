@@ -4025,6 +4025,19 @@ Las seis partes del cuerpo del Albino (torso, cabeza, brazos y piernas) son `Mes
 3. [ ] En un teléfono, mira al Albino a unos 30 studs en las tres fases.
    ✅ Los FPS no caen frente al Albino de antes (3.800–5.900 triángulos visibles frente a ~9.000–11.000) y la textura no se ve a cuadros.
 
+### 97.3 Gorila de Ceniza con mallas, y el Albino con la textura de 0,05 (Fase 21 M2)
+
+Las seis partes del cuerpo del Ceniza son `MeshPart` (`Data/BossMeshes`); la lava, la piel de la cara y los ojos, que cambian con la fase, siguen siendo uniones. Mismo procedimiento que 97.1 (copia del perfil, Play en la Isla; el cuarto jefe de la rotación del botón «Jefe» es el Ceniza).
+
+1. [ ] Invoca al Ceniza y míralo de frente y por detrás en las tres fases.
+   ✅ El cuerpo oscuro con las manchas de ceniza pintadas, el volcán de obsidiana del lomo y los cuernos están; la lava (venas, grietas, cráter y cara) pasa de naranja a rojo con las fases y en la fase 3 el volcán entra en erupción, como antes de las mallas.
+2. [ ] Mira de cerca (5–10 studs) los puños y los pies.
+   ✅ Los guanteletes de obsidiana son casi negros y las garras negras, sin tinte azul ni rosa. (Si se ven rosa o azul comprueba que el jugador no lleva el escudo `ForceField` de pruebas: lo tiñe.)
+3. [ ] Repite 97.1 con el Albino.
+   ✅ Con la textura de 0,05 studs por texel las manchas se ven más nítidas que con 0,1 y sin cuadros ni bandas; sin errores en la Salida.
+4. [ ] En un teléfono, con el Ceniza y el Albino a unos 30 studs, y con 2 jugadores.
+   ✅ Los FPS y la memoria no se resienten por las texturas de 1024×1024 (la de cada torso pesa ~4 MB sin comprimir). Si en el teléfono se nota, se vuelve a 0,1 studs por texel (`--texel 0.1`) y se reimportan.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

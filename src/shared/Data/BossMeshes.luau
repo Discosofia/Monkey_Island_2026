@@ -17,34 +17,69 @@ local BossMeshes: { [string]: BossMesh } = {
 		scale = 2.9,
 		parts = {
 			["Torso"] = {
-				mesh = "rbxassetid://127295755080221",
-				texture = "rbxassetid://82104211036822",
+				mesh = "rbxassetid://132216618931629",
+				texture = "rbxassetid://76867166260715",
 				offset = Vector3.new(0.0, 1.1093, 1.6313),
 			},
 			["Head"] = {
-				mesh = "rbxassetid://75413982563235",
-				texture = "rbxassetid://84081373742351",
+				mesh = "rbxassetid://120996717551613",
+				texture = "rbxassetid://79999482827925",
 				offset = Vector3.new(0.0, 0.6785, -0.3915),
 			},
 			["Right Arm"] = {
-				mesh = "rbxassetid://85769272103974",
-				texture = "rbxassetid://119670673055224",
+				mesh = "rbxassetid://135753898735981",
+				texture = "rbxassetid://127244852042385",
 				offset = Vector3.new(0.3915, -0.7437, -0.287),
 			},
 			["Right Leg"] = {
-				mesh = "rbxassetid://102453728106639",
-				texture = "rbxassetid://118210888340930",
+				mesh = "rbxassetid://116246171315932",
+				texture = "rbxassetid://126238197384102",
 				offset = Vector3.new(0.1565, -0.783, -0.2348),
 			},
 			["Left Arm"] = {
-				mesh = "rbxassetid://126183656056144",
-				texture = "rbxassetid://89064369088899",
+				mesh = "rbxassetid://106309051138211",
+				texture = "rbxassetid://104511100174667",
 				offset = Vector3.new(-0.3915, -0.7437, -0.287),
 			},
 			["Left Leg"] = {
-				mesh = "rbxassetid://85492389869771",
-				texture = "rbxassetid://107517519136136",
+				mesh = "rbxassetid://74422811922463",
+				texture = "rbxassetid://97885973098086",
 				offset = Vector3.new(-0.1565, -0.783, -0.2348),
+			},
+		},
+	},
+	GorilaDeCeniza = {
+		scale = 3.625,
+		parts = {
+			["Torso"] = {
+				mesh = "rbxassetid://115797129194582",
+				texture = "rbxassetid://104062080269799",
+				offset = Vector3.new(0.0, 2.1367, 2.0395),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://88473151897415",
+				texture = "rbxassetid://85663231709494",
+				offset = Vector3.new(0.0, 1.175, -0.4892),
+			},
+			["Right Arm"] = {
+				mesh = "rbxassetid://127265271717347",
+				texture = "rbxassetid://137887862042651",
+				offset = Vector3.new(0.2123, -1.6313, -0.5223),
+			},
+			["Right Leg"] = {
+				mesh = "rbxassetid://119100144453149",
+				texture = "rbxassetid://128765754198628",
+				offset = Vector3.new(0.196, -0.9788, -0.2935),
+			},
+			["Left Arm"] = {
+				mesh = "rbxassetid://113088815510097",
+				texture = "rbxassetid://70628587353341",
+				offset = Vector3.new(-0.2123, -1.6313, -0.5223),
+			},
+			["Left Leg"] = {
+				mesh = "rbxassetid://73691879578824",
+				texture = "rbxassetid://79741343744265",
+				offset = Vector3.new(-0.196, -0.9788, -0.2935),
 			},
 		},
 	},

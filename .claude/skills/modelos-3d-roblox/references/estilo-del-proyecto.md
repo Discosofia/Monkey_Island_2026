@@ -466,7 +466,7 @@ Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `Rendimi
 
 **Mallas con textura (Fase 21, partes del cuerpo de los jefes).** Si una parte tiene entrada en `Data/BossMeshes`,
 `MonkeyModels` usa una `MeshPart` en lugar de la unión de bloques: los bloques gruesos (≥ 0,2 studs) son la silueta y los
-finos (mechones, manchas, capas de piel) se pintan en una textura de 0,1 studs por texel (el torso del Albino pasa de
+finos (mechones, manchas, capas de piel) se pintan en una textura de 0,05 studs por texel (atlas de hasta 1024×1024 por parte) (el torso del Albino pasa de
 2.212 a 468 triángulos). Lo genera `tools/mallas.py` desde el volcado de `ServerStorage.Tools.Mallas.volcar`; el usuario
 importa los `.obj` con Import 3D y los ids van en `BossMeshes`. Lo de otro material (Neon, Glass) y lo que cambia por fase
 siguen siendo uniones. Se sigue diseñando en bloques en el spec voxel: el spec es la fuente y la malla se regenera.
