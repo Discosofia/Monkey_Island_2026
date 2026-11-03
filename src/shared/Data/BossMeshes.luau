@@ -83,6 +83,41 @@ local BossMeshes: { [string]: BossMesh } = {
 			},
 		},
 	},
+	ChimpanceCaudillo = {
+		scale = 2.8,
+		parts = {
+			["Torso"] = {
+				mesh = "rbxassetid://87299500070720",
+				texture = "rbxassetid://85598719896890",
+				offset = Vector3.new(-0.168, 0.098, 1.722),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://104934226076275",
+				texture = "rbxassetid://94094949044913",
+				offset = Vector3.new(0.0, -0.098, -0.21),
+			},
+			["Right Arm"] = {
+				mesh = "rbxassetid://111455069402190",
+				texture = "rbxassetid://88330347842591",
+				offset = Vector3.new(0.273, -0.385, -0.112),
+			},
+			["Right Leg"] = {
+				mesh = "rbxassetid://112563491084950",
+				texture = "rbxassetid://129648413837671",
+				offset = Vector3.new(0.0, -0.91, -0.273),
+			},
+			["Left Arm"] = {
+				mesh = "rbxassetid://75481364710106",
+				texture = "rbxassetid://113825824441419",
+				offset = Vector3.new(-0.273, -0.385, -0.112),
+			},
+			["Left Leg"] = {
+				mesh = "rbxassetid://128537696135085",
+				texture = "rbxassetid://83351926105757",
+				offset = Vector3.new(0.0, -0.91, -0.273),
+			},
+		},
+	},
 }
 
 return BossMeshes

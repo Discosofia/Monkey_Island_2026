@@ -4038,6 +4038,32 @@ Las seis partes del cuerpo del Ceniza son `MeshPart` (`Data/BossMeshes`); la lav
 4. [ ] En un teléfono, con el Ceniza y el Albino a unos 30 studs, y con 2 jugadores.
    ✅ Los FPS y la memoria no se resienten por las texturas de 1024×1024 (la de cada torso pesa ~4 MB sin comprimir). Si en el teléfono se nota, se vuelve a 0,1 studs por texel (`--texel 0.1`) y se reimportan.
 
+## 98. Fase 20 Q3b: Chimpancé Caudillo con malla (03-11-2026)
+
+El Caudillo se rehízo como jefe tribal (manto de leopardo con rosetas y cola, hombreras y brazaletes de hueso, bandolera, cinturón con trofeos, melena canosa, abanico de plumas en la espalda) y sus seis partes del cuerpo son `MeshPart` con textura (`Data/BossMeshes`, 2.478 triángulos en las mallas y ~6.200 / 6.400 / 6.500 visibles por fase con las uniones que quedan). El tocado, la cara, los ojos, el collar, el medallón, la pintura de guerra, el erizado, las cicatrices, los jirones y el abanico de la espalda siguen siendo uniones por fase. Se prueba en Play en la Isla con una copia de `PlayerData_v1` (como en §97.1); el segundo jefe de la rotación del botón «Jefe» es el Caudillo.
+
+### 98.1 En Play, en la Isla (1 jugador)
+
+1. [ ] Copia `PlayerData_v1` en `PlayerData_v1_backups`, invoca al Caudillo y míralo de frente, de lado y por detrás.
+   ✅ Sin errores ni avisos «No se pudo cargar la malla»; el manto se lee como piel de leopardo (rosetas oscuras con el centro ocre, borde crema, cola con anillos), la melena y el lomo son canosos, el abanico de la espalda se ve entero, y los trofeos cuelgan del cinturón a los lados.
+2. [ ] Baja su vida con «Jefe herido» y míralo en las fases 2 y 3, de frente y por detrás.
+   ✅ Fase 2: pintura de guerra y el abanico más abierto. Fase 3: pelo erizado, abanico roto, cicatrices en el pecho, jirones del manto con agujeros y ojos encendidos; se distingue de la 1 a primera vista, también por detrás.
+3. [ ] Déjalo atacar (lluvia de rocas, llamada a la tropa y embestida) y míralo andar.
+   ✅ Las seis mallas siguen a sus articulaciones sin piezas sueltas ni flotando; las hombreras caen sobre los hombros y los brazaletes sobre los antebrazos en los dos lados (señal de que el giro de la malla es el correcto en el brazo derecho y en el izquierdo).
+4. [ ] Dispara al medallón dorado del pecho y a la cabeza.
+   ✅ El medallón sigue siendo el punto débil y la cabeza cuenta como cabeza.
+5. [ ] En el Studio, quita un id de `BossMeshes.luau` (por ejemplo el de la cabeza) y vuelve a invocarlo.
+   ✅ Esa parte sale con bloques como antes y el resto con malla; sin errores. Devuelve el id.
+6. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 98.2 En el juego publicado, con 2 jugadores y en teléfono
+
+1. [ ] Con 2 jugadores, uno de ellos entra después de que el Caudillo ya esté vivo.
+   ✅ El segundo ve las seis mallas con su textura (no un patrón de cuadros) y los dos ven lo mismo.
+2. [ ] En un teléfono, mira al Caudillo a unos 30 studs en las tres fases.
+   ✅ Los FPS no caen frente al Caudillo de antes y las rosetas y el pelo no se ven a cuadros ni borrosos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
