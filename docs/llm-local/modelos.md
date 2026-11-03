@@ -1,6 +1,6 @@
 # Modelos 3D voxel (resumen de la skill modelos-3d-roblox)
 
-<!-- Fuente: .claude/skills/modelos-3d-roblox/SKILL.md, 28-10-2026. Detalles: references/estilo-del-proyecto.md (§1 dónde vive cada modelo, §4 paleta, §5 tamaños, §6 presupuesto de piezas, §8 voxel). -->
+<!-- Fuente: .claude/skills/modelos-3d-roblox/SKILL.md, 03-11-2026. Detalles: references/estilo-del-proyecto.md (§1 dónde vive cada modelo, §4 paleta, §5 tamaños, §6 presupuesto de piezas, bloques de diseño, triángulos y técnicas de calidad, §8 voxel). -->
 
 ## Antes de empezar
 
@@ -13,7 +13,7 @@
    - las 3–6 masas que lo hacen reconocible;
    - paleta de 3–6 colores;
    - el frente mira a **-Z**;
-   - presupuesto de piezas (los topes están en `Config.Budgets`).
+   - presupuesto de piezas (los topes están en `Config.Budgets`); en monos y jefes, también bloques de diseño y triángulos.
 
 ## Técnicas
 
@@ -58,10 +58,27 @@
 - Plumas en hoja de tres cajas gruesas (no palos finos); el penacho, en capas con inclinaciones distintas para que tenga volumen.
 - Si el usuario pide añadir una pieza, no muevas nada más.
 
+## Monos y jefes: más calidad sin más piezas (Fase 20)
+
+- Topes en juego: mono 14 piezas, jefe 40. Son las piezas después de unir (`UnionAsync`).
+- Tienen también topes de **bloques de diseño** (antes de unir, `Config.Budgets.Models.MonkeyDesign`) y de **triángulos** (`MonkeyTriangles`), por tier de `Data/Monkeys`, más `Alpha` y `Boss`.
+- **Prioridad de la calidad:** jefes, monturas, mascotas, armaduras y armas, en ese orden. Los monos y los construibles usan el margen que sobre.
+- **Monos congelados:** no suben. Hoy, bloques de diseño 106 / 127 / 75 por tier y triángulos 1.796 / 2.076 / 1.090; las alfas, 140 bloques y 2.352 triángulos. Solo reciben técnicas que no cuestan triángulos.
+- **Jefes:** tope de 2.000 bloques de diseño y 15.000 triángulos (hoy ~430 bloques y 4.202 triángulos). Se construyen la primera vez que aparecen, sin precalentar: unir cuesta ~1 ms por bloque, ~2 s con 2.000, una vez por jefe y servidor.
+- **Triángulos del equipo:** cada pieza de equipo tiene su tope (`MountTriangles`, `PetTriangles`, `ArmorTriangles`, `OutfitTriangles`, `WeaponTriangles`, `WeaponSkinTriangles`, `LabWeaponTriangles`): el máximo medido × lo concedido (monturas y armas +100 %, mascotas +50 % y +100 % las especiales, armaduras y trajes +60 %). Una esfera, un cilindro o una cuña cuestan más triángulos que un bloque (224, 64 y 8 frente a 12): para ganar redondez, mejor cuñas.
+- **Escena:** el tope es 650.000 triángulos por escena. Dunas con 10 jugadores es el límite real (487.493 hoy, ~810.000 con los topes concedidos).
+- Cuatro técnicas para más calidad sin subir las piezas en juego:
+  1. Sombreado pintado: 2 o 3 tonos por color (claro arriba, oscuro abajo y en las uniones).
+  2. Rejilla más fina en cara, manos y ojos: sube bloques y triángulos, no piezas.
+  3. Biseles con cuñas en orejas y hombros: las cuñas no se unen, así que cuestan piezas.
+  4. Acentos de material (Neon, Glass, Foil) en piezas sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Sin transparencia parcial ni texturas.
+- Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.
+- Los monos se copian de una plantilla que `MonkeyModels.prewarm` llena al arrancar el servidor; los jefes no se precalientan.
+
 ## Cerrar
 
 - El constructor final va al archivo del repo. `stylua src` y `selene src`.
-- Antes del commit, mide el modelo con la calculadora `Rendimiento` (`ServerStorage.Tools`, en el Studio de la Isla) y revisa que no pase del tope de `Config.Budgets`.
+- Antes del commit, mide el modelo con la calculadora `Rendimiento` (`ServerStorage.Tools`, en el Studio de la Isla) y revisa que no pase del tope de `Config.Budgets`. En un mono o jefe, mira también los bloques de diseño, los triángulos y la escena de la Isla.
 - Si cambias colores en `Data/...`, comprueba con `git diff` que solo cambió la entrada que querías.
 - Deja la vista previa montada para que el usuario la apruebe. Solo cuando la apruebe, `Preview.clear()`.
 - No toques `Workspace.Mapa` ni `Workspace.Naufragio` a mano: los generadores los rehacen.

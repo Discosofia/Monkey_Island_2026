@@ -417,19 +417,38 @@ Topes por tipo (piezas reales después de fusionar, `Config.Budgets.Models`):
 | Arma del Laboratorio: base / con skin | 45 / 200 |
 | Construible (Isla) | 25 |
 | Estructura de parcela, nivel I / II / III | 60 / 90 / 120 |
-| Mono / jefe en juego (ya unidos con UnionAsync) | 10 / 30 |
+| Mono / jefe en juego (ya unidos con UnionAsync) | 14 / 40 |
 | Nodo del mapa | 25 |
 | Modelo de `ViewportFrame` (`RewardModels`) | 300 |
 
 Excepciones por id (`Config.Budgets.Exceptions`), que sustituyen al tope de su tipo: Mono X-7 270 (130
-de ellas se mueven), Nido 50, Tótem de guerra 120 y Orangután del Manglar 35.
+de ellas se mueven), Ajolote 200 (180 se mueven), Nido 50, Tótem de guerra 120 y Orangután del Manglar 47.
 
 Totales por escena en el móvil de referencia (`Config.Budgets.Matches`): Isla en asedio final ≤ 45.000
-piezas y ≤ 1.200 draw calls; Dunas 5v5 ≤ 25.000; Laboratorio 5v5 ≤ 20.000; Lobby con 20 ≤ 30.000. Pico de
-piezas de efectos por cliente (`Config.Budgets.Vfx`): Bajo 40, Medio 90, Alto 160.
+piezas, ≤ 1.200 draw calls y ≤ 650.000 triángulos; Dunas 5v5 ≤ 25.000; Laboratorio 5v5 ≤ 20.000; Lobby con
+20 ≤ 30.000. Pico de piezas de efectos por cliente (`Config.Budgets.Vfx`): Bajo 40, Medio 90, Alto 160.
 
-Monos y jefes de diseño: se hacen con bloques (hasta ~150 el mono, 500 el jefe) y en juego se unen con
-UnionAsync; la calculadora mide el resultado unido.
+Monos y jefes: se diseñan con bloques y en juego se unen con UnionAsync; la calculadora mide el resultado
+unido. Tienen tres topes (Fase 20, GDD §19): piezas en juego (14 / 40), **bloques de diseño** y **triángulos**
+(`Config.Budgets.Models.MonkeyDesign` y `MonkeyTriangles`, por tier de `Data/Monkeys`, más `Alpha` y `Boss`).
+La calidad sube por prioridad: jefes, monturas, mascotas, armaduras y armas. Los monos están **congelados** en
+su máximo de hoy (bloques 106 / 127 / 75 y triángulos 1.796 / 2.076 / 1.090 por tier; alfas 140 y 2.352): solo
+reciben técnicas que no cuestan triángulos. El jefe
+llega a 2.000 bloques (unir cuesta ~1 ms por bloque, ~2 s, una vez por jefe y servidor) y 15.000 triángulos.
+Los monos se copian de una plantilla (`MonkeyModels.prewarm`); los jefes se construyen al aparecer, sin precalentar.
+
+El equipo tiene su tope de **triángulos** (`MountTriangles`, `PetTriangles`, `ArmorTriangles`, `OutfitTriangles`,
+`WeaponTriangles`, `WeaponSkinTriangles`, `LabWeaponTriangles`): el máximo medido × lo concedido (monturas y
+armas +100 %, mascotas +50 % / +100 % las especiales, armaduras y trajes +60 %). Una esfera, un cilindro o una
+cuña cuestan más triángulos que un bloque (224 / 64 / 8 y 6 frente a 12): para ganar redondez, mejor cuñas.
+
+Técnicas para dar más calidad sin subir las piezas en juego (GDD §19.2):
+- **Sombreado pintado:** 2 o 3 tonos de cada color (claro arriba, oscuro abajo y en las uniones). Casi gratis.
+- **Rejilla más fina** en cara, manos y ojos: sube bloques y triángulos, no piezas.
+- **Biseles con cuñas** en orejas y hombros: las cuñas no se unen, así que cuestan piezas.
+- **Acentos de material** (Neon, Glass, Foil): una unión tiene un solo material, así que van en piezas
+  sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Nada de transparencia parcial ni texturas.
+Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.
 
 Las mascotas tienen un presupuesto alto a propósito: van siempre al lado del jugador, se ven de
 cerca y el usuario quiere que el detalle se lea muy definido (remaches, costuras, anillos de un

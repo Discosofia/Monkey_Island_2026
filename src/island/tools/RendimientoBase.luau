@@ -1,0 +1,37 @@
+--!strict
+-- Foto de la línea base de monos, jefes y equipo (Fase 20, Q1, 03-11-2026), antes de mejorar su calidad.
+-- La lee la calculadora Rendimiento para enseñar la columna "Δ tris". Para sacar una foto nueva:
+-- `informe({ foto = true })` y pegar aquí la tabla que imprime al final.
+return {
+	["AulladorRojo"] = { piezas = 10, tris = 1796, diseno = 106 },
+	["Babuino"] = { piezas = 10, tris = 2076, diseno = 126 },
+	["Babuino (alfa)"] = { piezas = 10, tris = 2352, diseno = 140 },
+	["CapuchinoLadron"] = { piezas = 8, tris = 1418, diseno = 76 },
+	["Chimpance"] = { piezas = 9, tris = 920, diseno = 66 },
+	["Chimpance (alfa)"] = { piezas = 9, tris = 1196, diseno = 80 },
+	["ChimpanceCaudillo (jefe)"] = { piezas = 27, tris = 2808, diseno = 427 },
+	["ColaLarga"] = { piezas = 8, tris = 1384, diseno = 73 },
+	["Equipo: Arma (media)"] = { piezas = 60, tris = 3692, diseno = 0 },
+	["Equipo: Arma (máx)"] = { piezas = 160, tris = 20920, diseno = 0 },
+	["Equipo: Armadura/Traje (media)"] = { piezas = 441, tris = 40724, diseno = 0 },
+	["Equipo: Armadura/Traje (máx)"] = { piezas = 543, tris = 68866, diseno = 0 },
+	["Equipo: Mascota (media)"] = { piezas = 103, tris = 1234, diseno = 0 },
+	["Equipo: Mascota (máx)"] = { piezas = 265, tris = 3168, diseno = 0 },
+	["Equipo: Montura (media)"] = { piezas = 276, tris = 3100, diseno = 0 },
+	["Equipo: Montura (máx)"] = { piezas = 378, tris = 4308, diseno = 0 },
+	["Gibon"] = { piezas = 7, tris = 818, diseno = 46 },
+	["Gorila"] = { piezas = 10, tris = 630, diseno = 39 },
+	["Gorila (alfa)"] = { piezas = 10, tris = 706, diseno = 45 },
+	["GorilaAlbino (jefe)"] = { piezas = 24, tris = 1664, diseno = 147 },
+	["GorilaDeCeniza (jefe)"] = { piezas = 30, tris = 4202, diseno = 318 },
+	["Macaco"] = { piezas = 8, tris = 1192, diseno = 69 },
+	["Mandril"] = { piezas = 10, tris = 2040, diseno = 127 },
+	["Mandril (alfa)"] = { piezas = 10, tris = 2202, diseno = 134 },
+	["Marimonda"] = { piezas = 8, tris = 1212, diseno = 65 },
+	["Marteja"] = { piezas = 10, tris = 1024, diseno = 58 },
+	["MonoArdilla"] = { piezas = 8, tris = 1210, diseno = 63 },
+	["Orangutan"] = { piezas = 9, tris = 1090, diseno = 75 },
+	["Orangutan (alfa)"] = { piezas = 9, tris = 1326, diseno = 85 },
+	["OrangutanDelManglar (jefe)"] = { piezas = 35, tris = 2014, diseno = 262 },
+	["Titi"] = { piezas = 8, tris = 1092, diseno = 59 },
+}

@@ -31,7 +31,16 @@ local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 -- "voxel": el cuerpo es de bloques (voxelMonkey) y los adornos del jefe vienen en bloques en su spec.
 -- "alpha": el líder de la tropa; más grande (scale ya lo incluye) y con su aspecto de macho dominante
 -- ("alpha" en el spec voxel de su especie).
-type Rig = { model: Model, root: BasePart, scale: number, boss: boolean, voxel: boolean, alpha: boolean }
+-- "unionMs": lo que han tardado las uniones de este modelo (atributo "UnionMs", para la calculadora Rendimiento).
+type Rig = {
+	model: Model,
+	root: BasePart,
+	scale: number,
+	boss: boolean,
+	voxel: boolean,
+	alpha: boolean,
+	unionMs: number,
+}
 
 -- "Spike": pirámide (CornerWedgePart) con la punta sobre la esquina -X +Z de arriba; sirve para cristales.
 type Shape = "Block" | "Ball" | "Oval" | "Cylinder" | "Spike"
@@ -262,10 +271,12 @@ local VOXEL_LOOSE: { [string]: boolean } = { Eye = true, Chest = true, Pec = tru
 -- son las piezas que se mueven, no los bloques: con 160 gorilas de 120 bloques sueltos un PC bajaba
 -- a ~8 FPS y unidos por extremidad (8 piezas por mono) iba a 60. Unir tarda ~100 ms por mono, pero
 -- los monos normales se copian de una plantilla. Si la unión falla, las cajas quedan soldadas.
-local function mergeBoxes(main: BasePart, boxes: { BasePart }): BasePart
+-- Deja en la pieza resultante el atributo "DesignBlocks": los bloques de diseño que la forman (main y cajas).
+local function mergeBoxes(rig: Rig, main: BasePart, boxes: { BasePart }): BasePart
 	if #boxes == 0 then
 		return main
 	end
+	local started = os.clock()
 	local ok, result = pcall(function()
 		return GeometryService:UnionAsync(main, boxes, {
 			CollisionFidelity = Enum.CollisionFidelity.Box,
@@ -273,14 +284,17 @@ local function mergeBoxes(main: BasePart, boxes: { BasePart }): BasePart
 			SplitApart = false,
 		})
 	end)
+	rig.unionMs += (os.clock() - started) * 1000
 	local union = if ok then result[1] else nil
 	if not union then
 		warn(`[MonkeyModels] No se pudieron unir las cajas de {main.Name}: {result}`)
 		for _, box in boxes do
 			weld(main, box)
 		end
+		main:SetAttribute("DesignBlocks", #boxes + 1)
 		return main
 	end
+	union:SetAttribute("DesignBlocks", #boxes + 1)
 	union.Name = main.Name
 	union.UsePartColor = false -- conserva el color de cada caja
 	union.Material = main.Material
@@ -397,7 +411,7 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 					end
 				end
 			end
-			local animated = mergeBoxes(main :: BasePart, merged)
+			local animated = mergeBoxes(rig, main :: BasePart, merged)
 			local parentPart = if part.parent then partNamed(rig, part.parent) else rig.root
 			local pivot = part.pivot
 			local pivotAt = if pivot then at(pivot[1] * flip, pivot[2], pivot[3]) else Vector3.zero
@@ -434,7 +448,7 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 			end
 			local anchor = partNamed(rig, if side == 0 then extra.anchor else `{sideName(side)} {extra.anchor}`)
 			local first = table.remove(blocks, 1) :: BasePart
-			local group = mergeBoxes(first, blocks)
+			local group = mergeBoxes(rig, first, blocks)
 			weld(anchor, group)
 			table.insert(groups, group)
 		end
@@ -641,8 +655,15 @@ function MonkeyModels.build(
 	model.PrimaryPart = root
 
 	local voxelSpec = if bossId and not VOXEL_BOSSES[bossId] then nil else VOXEL_SPECS[speciesId]
-	local rig: Rig =
-		{ model = model, root = root, scale = s, boss = bossId ~= nil, voxel = voxelSpec ~= nil, alpha = isAlpha }
+	local rig: Rig = {
+		model = model,
+		root = root,
+		scale = s,
+		boss = bossId ~= nil,
+		voxel = voxelSpec ~= nil,
+		alpha = isAlpha,
+		unionMs = 0,
+	}
 	if voxelSpec then
 		voxelMonkey(rig, definition, voxelSpec, bossId)
 	else
@@ -655,6 +676,16 @@ function MonkeyModels.build(
 	end
 	local boss = if bossId then Bosses[bossId] else nil
 	markZones(model, if boss then boss.weakPoints else nil)
+
+	-- Bloques de diseño (los de las uniones y los sueltos, sin la raíz invisible) y tiempo de unión.
+	local designBlocks = 0
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part ~= root then
+			designBlocks += (part:GetAttribute("DesignBlocks") :: number?) or 1
+		end
+	end
+	model:SetAttribute("DesignBlocks", designBlocks)
+	model:SetAttribute("UnionMs", math.round(rig.unionMs * 10) / 10)
 
 	local humanoid = Instance.new("Humanoid")
 	-- R15 a propósito: la raíz queda a HipHeight + la mitad de su altura sobre el suelo (rootHeight).
@@ -690,6 +721,30 @@ function MonkeyModels.spawn(
 	local height = MonkeyModels.rootHeight(MonkeyModels.scaleOf(definition, alpha))
 	model:PivotTo(CFrame.new(ground + Vector3.new(0, height, 0)))
 	return model
+end
+
+-- Llena las plantillas de las especies (y de su alfa si "alpha" en Data/Monkeys) en un hilo aparte, con una pausa
+-- entre cada una, para que la primera aparición no dé un tirón. No pone nada en el mundo. Los jefes no se precalientan.
+function MonkeyModels.prewarm(species: { [string]: Monkeys.MonkeyDefinition })
+	task.defer(function()
+		for speciesId, definition in species do
+			for _, alpha in { false, true } do
+				if alpha and not definition.alpha then
+					continue
+				end
+				local key = if alpha then `{speciesId}Alpha` else speciesId
+				if not templates[key] then
+					local ok, result = pcall(MonkeyModels.build, speciesId, definition, Vector3.zero, nil, alpha)
+					if ok then
+						templates[key] = result
+					else
+						warn(`[MonkeyModels] No se pudo precalentar {key}: {result}`)
+					end
+				end
+				task.wait()
+			end
+		end
+	end)
 end
 
 -- Un jefe en "ground", copiado de su plantilla: unir sus bloques tarda (~0,5 ms por bloque; 500

@@ -23,13 +23,21 @@
 --   4. Monturas (MountModels): fusión por hueso.
 --   5. Construibles (BuildModels) y estructuras de la parcela (PlotModels) a sus tres niveles.
 --   6. Armas del Laboratorio (LabWeaponModels y LabWeaponSkins): arma × bando × aspecto.
---   7. Monos y jefes (island/server/Monkeys/MonkeyModels): piezas del modelo final, ya unido con UnionAsync.
+--   7. Monos, alfas y jefes (combat/Monkeys/MonkeyModels): bloques de diseño, piezas del modelo final (ya unido con
+--      UnionAsync), triángulos y ms de unión, contra los topes. Con informe({ foto = true }) imprime la tabla para
+--      RendimientoBase.luau (ModuleScript junto a esta calculadora) y, si existe, la columna Δ tris frente a ella.
 --   8. Totales por escena y el Lobby con 20 jugadores con y sin LOD de detalle (R5).
+--   8b. Escena de la Isla: monos (mezcla de tropas), un jefe, 5 jugadores con equipo medio, el mapa alrededor del
+--       Basecamp (Matches.MapRadius) y el pico de efectos contra IslandTriangles, y la tabla «Reparto del margen».
+--   8c. Lobby (20 jugadores, con LOD de detalle en los 19 de lejos) y Dunas (10) contra LobbyTriangles y DunasTriangles.
+--   Las secciones 1 a 6 llevan además la columna «Triángulos / tope» (los topes que aún no existen en Config.Budgets
+--   ponen «—» y no alertan).
 --   9. Pico de efectos de cada jefe por calidad (R6: combatClient/BossFx contra Config.Budgets.Vfx).
 --   10. Impactos de las armas por calidad (W5: combatClient/ImpactFx con una ráfaga de 10 tiradores).
 --   11. Alertas: lo que, tras fusionar, pasa del presupuesto.
 -- Pendiente: los modelos de ViewportFrame (RewardModels) y los nodos del mapa (MapBuilder) se miden en R3.
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -39,6 +47,8 @@ local ServerStorage = game:GetService("ServerStorage")
 local OPCIONES_BASE = {
 	-- Solo los modelos cuyo id contiene este texto (sin distinguir mayúsculas); nil = todos.
 	filtro = nil :: string?,
+	-- true: al final del informe, la tabla de monos y jefes lista para pegar en RendimientoBase.luau.
+	foto = false,
 	secciones = {
 		armas = true,
 		armaduras = true,
@@ -48,6 +58,8 @@ local OPCIONES_BASE = {
 		laboratorio = true,
 		monos = true,
 		escenas = true,
+		isla = true,
+		lobbydunas = true,
 		efectos = true,
 		impactos = true,
 	},
@@ -73,12 +85,23 @@ local LIMITES = {
 	-- Bandos del Laboratorio y roles que visten armadura.
 	bandos = { "Guardians", "Pirates" },
 	rolesArmadura = { "Guerrero", "Cazador", "Mago", "Medico" },
+	-- Triángulos estimados por tipo de pieza (los bloques y las uniones se miden; esto es lo que no se puede leer).
+	triangulos = {
+		bloque = 12, -- Part Block: 6 caras, 2 triángulos cada una
+		bola = 224, -- Part Ball (esfera de Roblox, ~ 14 × 8 × 2)
+		cilindro = 64, -- Part Cylinder (~ 16 lados: 2 tapas y la pared)
+		cuna = 8, -- WedgePart
+		cunaEsquina = 6, -- CornerWedgePart
+		mallaEspecial = 224, -- SpecialMesh (esfera, cilindro, cuña…): se cuenta como una esfera
+	},
 }
 
 -- ===================================== Utilidades =====================================
 
 local lineas: { string } = {}
 local alertas: { string } = {}
+-- Piezas, triángulos y bloques de diseño de cada mono y jefe medido (informe({ foto = true }) la imprime).
+local FOTO: { [string]: { piezas: number, tris: number, diseno: number } } = {}
 
 local function linea(texto: string)
 	table.insert(lineas, texto)
@@ -140,19 +163,29 @@ end
 
 -- ===================================== Medición =====================================
 
-type Medida = { ahora: number, tras: number, detalle: number, movidas: number?, movidasTras: number? }
+type Medida = {
+	ahora: number,
+	tras: number,
+	detalle: number,
+	movidas: number?,
+	movidasTras: number?,
+	tris: number?, -- triángulos del modelo ya fusionado
+}
 
 local VoxelMerge: any = nil
 local OPCIONES_FUSION = { force = true }
 
 -- Piezas de un modelo ahora, y tras fusionarlo con "fusionar" sobre un clon (el original no cambia).
+local triangulos: (Instance, boolean?) -> number
+
 local function medir(modelo: Instance, fusionar: (Instance) -> ()): Medida
 	local ahora = VoxelMerge.count(modelo)
 	local clon = modelo:Clone()
 	fusionar(clon)
 	local tras, detalle = VoxelMerge.count(clon)
+	local tris = triangulos(clon)
 	clon:Destroy()
-	return { ahora = ahora, tras = tras, detalle = detalle }
+	return { ahora = ahora, tras = tras, detalle = detalle, tris = tris }
 end
 
 -- Fusión por soldaduras: las piezas colgadas de un ancla (arma, armadura, montura).
@@ -169,22 +202,30 @@ local function celda(valor: number?): string
 	return if valor then tostring(valor) else "-"
 end
 
--- Una fila de tabla. Si tras fusionar pasa del presupuesto, alerta.
-local function fila(nombre: string, medida: Medida, presupuesto: number?, extra: string?)
+-- Una fila de tabla. Si tras fusionar pasa del presupuesto (o sus triángulos del tope "topeTris"), alerta.
+local function fila(nombre: string, medida: Medida, presupuesto: number?, extra: string?, topeTris: number?)
 	local pasado = presupuesto ~= nil and medida.tras > presupuesto * (1 + LIMITES.margenAlerta)
 	local sufijo = if pasado then " ⚠️" else ""
+	local tris = medida.tris
+	local pasadoTris = tris ~= nil and topeTris ~= nil and tris > topeTris
+	local celdaTris = if tris
+		then `{tris}{if pasadoTris then " ⚠️" else ""} / {if topeTris then tostring(topeTris) else "—"}`
+		else "—"
 	linea(
-		`| {nombre} | {medida.ahora} | {medida.tras}{sufijo} | {celda(presupuesto)} | {medida.detalle} |{if extra
+		`| {nombre} | {medida.ahora} | {medida.tras}{sufijo} | {celda(presupuesto)} | {medida.detalle} | {celdaTris} |{if extra
 			then " " .. extra .. " |"
 			else ""}`
 	)
 	if pasado and presupuesto then
 		alerta(`{nombre}: {medida.tras} piezas tras fusionar (presupuesto {presupuesto}, ahora {medida.ahora})`)
 	end
+	if pasadoTris and tris and topeTris then
+		alerta(`{nombre}: {tris} triángulos tras fusionar (tope {topeTris})`)
+	end
 end
 
-local CABECERA = "| Modelo | Ahora | Tras fusionar | Presupuesto | Detalle |"
-local SEPARADOR = "|---|---|---|---|---|"
+local CABECERA = "| Modelo | Ahora | Tras fusionar | Presupuesto | Detalle | Triángulos / tope |"
+local SEPARADOR = "|---|---|---|---|---|---|"
 
 local function cabecera()
 	linea(CABECERA)
@@ -195,7 +236,7 @@ end
 local function intentar(nombre: string, cuerpo: () -> ())
 	local ok, mensaje = pcall(cuerpo)
 	if not ok then
-		linea(`| {nombre} | no se pudo construir en modo edición: {tostring(mensaje)} | | | |`)
+		linea(`| {nombre} | no se pudo construir en modo edición: {tostring(mensaje)} | | | | |`)
 	end
 end
 
@@ -221,7 +262,67 @@ local function r15Falso(): Model
 	return personaje
 end
 
+-- Triángulos que dibuja un modelo (los de las piezas visibles): las uniones y mallas, su TriangleCount; las demás
+-- piezas, la estimación de LIMITES.triangulos. Si una unión no deja leer TriangleCount, se cuenta como sus bloques de
+-- diseño (atributo DesignBlocks) a 12 cada uno, que es de más.
+local function trisPieza(parte: Instance): number
+	local T = LIMITES.triangulos
+	if not parte:IsA("BasePart") or parte.Transparency >= 1 then
+		return 0
+	end
+	if parte:FindFirstChildOfClass("SpecialMesh") then
+		return T.mallaEspecial
+	elseif parte:IsA("PartOperation") or parte:IsA("MeshPart") then
+		local ok, cuenta = pcall(function()
+			return (parte :: any).TriangleCount
+		end)
+		if ok and typeof(cuenta) == "number" and cuenta > 0 then
+			return cuenta
+		end
+		return ((parte:GetAttribute("DesignBlocks") :: number?) or 1) * T.bloque
+	elseif parte:IsA("WedgePart") then
+		return T.cuna
+	elseif parte:IsA("CornerWedgePart") then
+		return T.cunaEsquina
+	elseif parte:IsA("Part") then
+		return if parte.Shape == Enum.PartType.Ball
+			then T.bola
+			elseif parte.Shape == Enum.PartType.Cylinder then T.cilindro
+			else T.bloque
+	end
+	return 0
+end
+
+-- Con "sinDetalle", las piezas con la etiqueta "Detalle" no cuentan (las que oculta el LOD a los jugadores lejos).
+triangulos = function(modelo: Instance, sinDetalle: boolean?): number
+	local total = 0
+	local lista = modelo:GetDescendants()
+	table.insert(lista, modelo)
+	for _, parte in lista do
+		if sinDetalle and CollectionService:HasTag(parte, "Detalle") then
+			continue
+		end
+		total += trisPieza(parte)
+	end
+	return total
+end
+
 -- ===================================== Informe =====================================
+
+type Medicion = { diseno: number, piezas: number, tris: number, ms: number }
+
+-- Triángulos de un tipo de equipo (armadura, arma…): suma y máximo de lo que existe. Los campos «Sin» son los
+-- triángulos sin las piezas Detalle.
+type Estadistica = {
+	n: number,
+	sumaPiezas: number,
+	sumaTris: number,
+	sumaSin: number,
+	maxPiezas: number,
+	maxTris: number,
+	maxSin: number,
+}
+type Valores = { piezas: number, tris: number }
 
 local function main(copia: Instance): string
 	local Config = require(copia.Config) :: any
@@ -250,6 +351,89 @@ local function main(copia: Instance): string
 	local Monkeys = require(Data.Monkeys) :: any
 	local Bosses = require(Data.Bosses) :: any
 	local S = OPCIONES.secciones
+
+	-- La foto de referencia (RendimientoBase.luau, junto a esta calculadora) para la columna Δ de la sección 7.
+	-- Se pide una copia del módulo para no usar la versión en caché. Una copia suelta de la calculadora no tiene
+	-- padre: se busca en ServerStorage.Tools.
+	local BASE: { [string]: { piezas: number, tris: number, diseno: number } }? = nil
+	do
+		local carpetaTools = script.Parent or ServerStorage:FindFirstChild("Tools")
+		local moduloBase = carpetaTools and carpetaTools:FindFirstChild("RendimientoBase")
+		if moduloBase and moduloBase:IsA("ModuleScript") then
+			local ok, datos = pcall(function()
+				return require(moduloBase:Clone())
+			end)
+			if ok and typeof(datos) == "table" then
+				BASE = datos
+			end
+		end
+	end
+
+	-- Un tope que puede no existir todavía en Config.Budgets: nil = sin tope, la celda pone «—» y no alerta.
+	local function topeTabla(tabla: any, clave: string | number): number?
+		if typeof(tabla) ~= "table" then
+			return nil
+		end
+		local valor = tabla[clave]
+		return if typeof(valor) == "number" then valor else nil
+	end
+	local function celdaTope(valor: number?): string
+		return if valor then tostring(valor) else "—"
+	end
+	-- Como tope(), pero el general puede no existir todavía: nil = sin tope.
+	local function topeOpc(id: string, clave: string, general: any): number?
+		local excepcion = B.Exceptions[id]
+		if excepcion and typeof(excepcion[clave]) == "number" then
+			return excepcion[clave]
+		end
+		return if typeof(general) == "number" then general else nil
+	end
+
+	-- MonkeyModels, si este place lo tiene (la Isla), y las medidas de sus modelos (con caché: la sección 7 y la
+	-- escena de la Isla miden lo mismo).
+	local MonkeyModels: any = nil
+	local function cargarMonos(): any
+		if MonkeyModels then
+			return MonkeyModels
+		end
+		local servidor = ServerScriptService:FindFirstChild("Combat")
+		local carpeta = servidor and servidor:FindFirstChild("Monkeys")
+		local modulo = carpeta and carpeta:FindFirstChild("MonkeyModels")
+		if modulo and modulo:IsA("ModuleScript") then
+			MonkeyModels = require(modulo)
+		end
+		return MonkeyModels
+	end
+	local medidasMonos: { [string]: Medicion } = {}
+	local function medirConstruido(clave: string, modelo: Instance): Medicion
+		local medida: Medicion = {
+			diseno = (modelo:GetAttribute("DesignBlocks") :: number?) or 0,
+			piezas = VoxelMerge.count(modelo),
+			tris = triangulos(modelo),
+			ms = (modelo:GetAttribute("UnionMs") :: number?) or 0,
+		}
+		modelo:Destroy()
+		medidasMonos[clave] = medida
+		return medida
+	end
+	local function medirMono(id: string, alfa: boolean): Medicion
+		local clave = if alfa then `{id} (alfa)` else id
+		return medidasMonos[clave]
+			or medirConstruido(clave, cargarMonos().build(id, Monkeys[id], Vector3.zero, nil, alfa or nil))
+	end
+	local function medirJefe(id: string): Medicion
+		local clave = `{id} (jefe)`
+		if medidasMonos[clave] then
+			return medidasMonos[clave]
+		end
+		local definicion = Bosses[id]
+		local aspecto = table.clone(Monkeys[definicion.baseSpecies])
+		aspecto.name = definicion.name
+		aspecto.scale = definicion.scale
+		aspecto.bodyColor = definicion.bodyColor
+		aspecto.faceColor = definicion.faceColor
+		return medirConstruido(clave, cargarMonos().build(definicion.baseSpecies, aspecto, Vector3.zero, id))
+	end
 
 	linea(
 		`Fusión: {if B.Merge then "activada" else "desactivada"} (Config.Budgets.Merge). "Tras fusionar" se mide siempre.`
@@ -280,7 +464,13 @@ local function main(copia: Instance): string
 						elseif id == "SharpMachete" or id == "LianaSling" then 2
 						else nil
 					local presupuesto = if rango then M.ForgeWeaponRank[rango] else nil
-					fila(`{id}{if rol then ` ({rol} {nivel})` else ""}`, medir(herramienta, fusionSoldada), presupuesto)
+					fila(
+						`{id}{if rol then ` ({rol} {nivel})` else ""}`,
+						medir(herramienta, fusionSoldada),
+						presupuesto,
+						nil,
+						if rango then topeTabla(M.WeaponTriangles, rango) else nil
+					)
 					herramienta:Destroy()
 				end)
 			end
@@ -305,7 +495,9 @@ local function main(copia: Instance): string
 						if cosmetico.rarity == "Epic"
 							then M.WeaponSkinEpic
 							elseif cosmetico.rarity == "Rare" then M.WeaponSkinRare
-							else M.WeaponSkinMythic
+							else M.WeaponSkinMythic,
+						nil,
+						topeTabla(M.WeaponSkinTriangles, cosmetico.rarity)
 					)
 					herramienta:Destroy()
 				end)
@@ -325,7 +517,13 @@ local function main(copia: Instance): string
 						local personaje = r15Falso()
 						local pieza = ArmorModels.wear(personaje, armaduraId, rol)
 						assert(pieza, "sin modelo")
-						fila(`{id} (rango {rango})`, medir(pieza, fusionSoldada), M.ArmorRank[rango])
+						fila(
+							`{id} (rango {rango})`,
+							medir(pieza, fusionSoldada),
+							M.ArmorRank[rango],
+							nil,
+							topeTabla(M.ArmorTriangles, rango)
+						)
 						personaje:Destroy()
 					end)
 				end
@@ -346,7 +544,9 @@ local function main(copia: Instance): string
 					fila(
 						`{id} ({cosmetico.rarity}, grado {ArmorModels.MAX_GRADE})`,
 						medir(pieza, fusionSoldada),
-						presupuesto
+						presupuesto,
+						nil,
+						if presupuesto then topeTabla(M.OutfitTriangles, cosmetico.rarity) else nil
 					)
 					personaje:Destroy()
 					-- Los legendarios y los míticos, además, grado a grado (1 a 3, sin presupuesto) para ver cómo crece cada uno.
@@ -368,8 +568,10 @@ local function main(copia: Instance): string
 	-- ---------------------------------- 3. Mascotas ----------------------------------
 	seccion("## 3. Mascotas y sus skins", S.mascotas, function()
 		local PetModels = require(copia.PetModels) :: any
-		linea("| Modelo | Ahora | Tras fusionar | Presupuesto | Detalle | Se mueven (ahora · tras) |")
-		linea("|---|---|---|---|---|---|")
+		linea(
+			"| Modelo | Ahora | Tras fusionar | Presupuesto | Detalle | Triángulos / tope | Se mueven (ahora · tras) |"
+		)
+		linea("|---|---|---|---|---|---|---|")
 
 		local function firma(delta: CFrame): string
 			local componentes = { delta:GetComponents() }
@@ -432,12 +634,19 @@ local function main(copia: Instance): string
 				detalle = detalle,
 				movidas = movidas,
 				movidasTras = movidasTras,
+				tris = triangulos(modelo), -- tras la fusión por grupos (si VoxelMerge cambia las piezas del modelo)
 			}
 		end
 
 		local function filaMascota(nombre: string, medida: Medida)
 			local animadas = tope(nombre, "PetAnimated", M.PetAnimated)
-			fila(nombre, medida, tope(nombre, "PetTotal", M.PetTotal), `{medida.movidas} · {medida.movidasTras}`)
+			fila(
+				nombre,
+				medida,
+				tope(nombre, "PetTotal", M.PetTotal),
+				`{medida.movidas} · {medida.movidasTras}`,
+				topeOpc(nombre, "PetTriangles", M.PetTriangles)
+			)
 			if (medida.movidasTras or 0) > animadas then
 				alerta(`{nombre}: {medida.movidasTras} piezas se mueven cada fotograma (presupuesto {animadas})`)
 			end
@@ -475,7 +684,13 @@ local function main(copia: Instance): string
 				intentar(id, function()
 					local modelo = MountModels.build(id)
 					assert(modelo, "sin constructor")
-					fila(`{id} ({Mounts[id].rarity})`, medir(modelo, fusionSoldada), presupuestos[Mounts[id].rarity])
+					fila(
+						`{id} ({Mounts[id].rarity})`,
+						medir(modelo, fusionSoldada),
+						presupuestos[Mounts[id].rarity],
+						nil,
+						topeTabla(M.MountTriangles, Mounts[id].rarity)
+					)
 					modelo:Destroy()
 				end)
 			end
@@ -519,7 +734,13 @@ local function main(copia: Instance): string
 				for _, bando in LIMITES.bandos do
 					intentar(`{armaId} {bando}`, function()
 						local herramienta = WeaponTools.build(armaId, bando)
-						fila(`{armaId} {bando} (base)`, medir(herramienta, fusionSoldada), M.LabWeaponBase)
+						fila(
+							`{armaId} {bando} (base)`,
+							medir(herramienta, fusionSoldada),
+							M.LabWeaponBase,
+							nil,
+							topeOpc(armaId, "LabWeaponTriangles", M.LabWeaponTriangles)
+						)
 						herramienta:Destroy()
 					end)
 					for _, skinId in claves(Cosmetics) do
@@ -530,7 +751,9 @@ local function main(copia: Instance): string
 								fila(
 									`{armaId} {bando} + {skinId} (grado {cosmetico.grade})`,
 									medir(herramienta, fusionSoldada),
-									M.LabWeaponSkin3
+									M.LabWeaponSkin3,
+									nil,
+									topeOpc(armaId, "LabWeaponTriangles", M.LabWeaponTriangles)
 								)
 								herramienta:Destroy()
 							end)
@@ -599,46 +822,69 @@ local function main(copia: Instance): string
 
 	-- ---------------------------------- 7. Monos y jefes ----------------------------------
 	seccion("## 7. Monos y jefes", S.monos, function()
-		local servidor = ServerScriptService:FindFirstChild("Combat")
-		local carpeta = servidor and servidor:FindFirstChild("Monkeys")
-		local modulo = carpeta and carpeta:FindFirstChild("MonkeyModels")
-		if not (modulo and modulo:IsA("ModuleScript")) then
+		if not cargarMonos() then
 			linea("MonkeyModels no está en este place (ServerScriptService.Combat.Monkeys).")
 			return
 		end
-		local MonkeyModels = require(modulo) :: any
-		linea("Piezas del modelo final, ya unido con UnionAsync (mergeBoxes); no se les aplica VoxelMerge.")
-		linea("| Modelo | Piezas | Presupuesto |")
-		linea("|---|---|---|")
-		local function filaMono(nombre: string, modelo: Instance, presupuesto: number)
-			local piezas = VoxelMerge.count(modelo)
-			local pasado = piezas > presupuesto
-			linea(`| {nombre} | {piezas}{if pasado then " ⚠️" else ""} | {presupuesto} |`)
-			if pasado then
-				alerta(`{nombre}: {piezas} piezas (presupuesto {presupuesto})`)
+		linea("Modelo final, ya unido con UnionAsync (mergeBoxes); no se les aplica VoxelMerge.")
+		linea(
+			"Bloques de diseño: los que hay antes de unir (DesignBlocks). Unión: lo que tardó UnionAsync al construirlo. Triángulos: ver `triangulos` (estimación para Ball, Cylinder y mallas)."
+		)
+		linea("Los topes con «—» todavía no existen en Config.Budgets: no alertan.")
+		linea(
+			`| Modelo | Tier | Bloques de diseño | Piezas | Triángulos | Unión (ms) | Topes |{if BASE
+				then " Δ tris |"
+				else ""}`
+		)
+		linea(`|---|---|---|---|---|---|---|{if BASE then "---|" else ""}`)
+		local function filaMono(
+			nombre: string,
+			tier: string,
+			medida: Medicion,
+			claveTope: string | number,
+			piezasTope: number
+		)
+			local topeDiseno = topeTabla(M.MonkeyDesign, claveTope)
+			local topeTris = topeTabla(M.MonkeyTriangles, claveTope)
+			local marcas = ""
+			local function revisar(valor: number, limite: number?, que: string)
+				if limite and valor > limite then
+					marcas = " ⚠️"
+					alerta(`{nombre}: {valor} {que} (tope {limite})`)
+				end
 			end
+			revisar(medida.diseno, topeDiseno, "bloques de diseño")
+			revisar(medida.piezas, piezasTope, "piezas")
+			revisar(medida.tris, topeTris, "triángulos")
+			FOTO[nombre] = { piezas = medida.piezas, tris = medida.tris, diseno = medida.diseno }
+			local delta = ""
+			if BASE then
+				local antes = BASE[nombre]
+				delta = ` {if antes then string.format("%+d", medida.tris - antes.tris) else "—"} |`
+			end
+			linea(
+				`| {nombre} | {tier} | {medida.diseno} | {medida.piezas} | {medida.tris} | {medida.ms} | diseño {celdaTope(
+					topeDiseno
+				)} / piezas {piezasTope} / tris {celdaTope(topeTris)}{marcas} |{delta}`
+			)
 		end
 		for _, id in claves(Monkeys) do
 			if pasa(id) then
+				local definicion = Monkeys[id]
 				intentar(id, function()
-					local modelo = MonkeyModels.build(id, Monkeys[id], Vector3.zero)
-					filaMono(id, modelo, M.Monkey)
-					modelo:Destroy()
+					filaMono(id, tostring(definicion.tier), medirMono(id, false), definicion.tier, M.Monkey)
 				end)
+				if definicion.alpha == true then
+					intentar(`{id} (alfa)`, function()
+						filaMono(`{id} (alfa)`, tostring(definicion.tier), medirMono(id, true), "Alpha", M.Monkey)
+					end)
+				end
 			end
 		end
 		for _, id in claves(Bosses) do
 			if pasa(id) then
 				intentar(id, function()
-					local definicion = Bosses[id]
-					local aspecto = table.clone(Monkeys[definicion.baseSpecies])
-					aspecto.name = definicion.name
-					aspecto.scale = definicion.scale
-					aspecto.bodyColor = definicion.bodyColor
-					aspecto.faceColor = definicion.faceColor
-					local modelo = MonkeyModels.build(definicion.baseSpecies, aspecto, Vector3.zero, id)
-					filaMono(`{id} (jefe)`, modelo, tope(id, "Boss", M.Boss))
-					modelo:Destroy()
+					filaMono(`{id} (jefe)`, "jefe", medirJefe(id), "Boss", tope(id, "Boss", M.Boss))
 				end)
 			end
 		end
@@ -755,10 +1001,499 @@ local function main(copia: Instance): string
 				`Lobby con {B.Matches.LobbyPlayers}: solo los cosméticos suman {con} piezas (tope {B.Matches.LobbyParts})`
 			)
 		end
+	end)
+
+	-- ---------------------------------- Equipo de un jugador (8b y 8c) ----------------------------------
+	-- La media y el máximo de piezas y triángulos de lo que existe de cada tipo. Se mide la primera vez que se pide.
+	local equipoCache: { [string]: Estadistica }? = nil
+	local function recogerEquipo(): { [string]: Estadistica }
+		if equipoCache then
+			return equipoCache
+		end
+		local WeaponTools = require(copia.WeaponTools) :: any
+		local ArmorModels = require(copia.ArmorModels) :: any
+		local PetModels = require(copia.PetModels) :: any
+		local MountModels = require(copia.MountModels) :: any
+		local sinFusion = function(_: Instance) end
+		local equipo: { [string]: Estadistica } = {}
+		equipoCache = equipo
+		local function registrar(tipo: string, piezas: number, tris: number, trisSin: number)
+			local e = equipo[tipo]
+			if not e then
+				e = {
+					n = 0,
+					sumaPiezas = 0,
+					sumaTris = 0,
+					sumaSin = 0,
+					maxPiezas = 0,
+					maxTris = 0,
+					maxSin = 0,
+				}
+				equipo[tipo] = e
+			end
+			e.n += 1
+			e.sumaPiezas += piezas
+			e.sumaTris += tris
+			e.sumaSin += trisSin
+			e.maxPiezas = math.max(e.maxPiezas, piezas)
+			e.maxTris = math.max(e.maxTris, tris)
+			e.maxSin = math.max(e.maxSin, trisSin)
+		end
+		-- "tipoExtra": una segunda lista donde también cuenta (las mascotas estándar y las especiales).
+		local function anotar(tipo: string, modelo: Instance, fusionar: (Instance) -> (), tipoExtra: string?)
+			local clon = modelo:Clone()
+			fusionar(clon)
+			local piezas, tris, trisSin = VoxelMerge.count(clon), triangulos(clon), triangulos(clon, true)
+			clon:Destroy()
+			registrar(tipo, piezas, tris, trisSin)
+			if tipoExtra then
+				registrar(tipoExtra, piezas, tris, trisSin)
+			end
+		end
+		for _, armaduraId in ArmorModels.BY_GRADE do
+			for _, rol in LIMITES.rolesArmadura do
+				intentar(`{armaduraId} {rol}`, function()
+					local personaje = r15Falso()
+					anotar(
+						"Armadura",
+						assert(ArmorModels.wear(personaje, armaduraId, rol), "sin modelo"),
+						fusionSoldada
+					)
+					personaje:Destroy()
+				end)
+			end
+		end
+		for _, id in claves(Cosmetics) do
+			local cosmetico = Cosmetics[id]
+			if cosmetico.kind == "Outfit" then
+				intentar(id, function()
+					local personaje = r15Falso()
+					local pieza = ArmorModels.wear(personaje, nil, cosmetico.role, id, ArmorModels.MAX_GRADE)
+					if pieza then
+						anotar("Traje", pieza, fusionSoldada)
+					end
+					personaje:Destroy()
+				end)
+			end
+		end
+		for _, id in claves(Weapons) do
+			if not Weapons[id].lab then
+				intentar(id, function()
+					local herramienta = WeaponTools.build(id)
+					anotar("Arma", herramienta, fusionSoldada)
+					herramienta:Destroy()
+				end)
+			end
+		end
+		-- Los aspectos de arma también los lleva el jugador: cuentan en la familia Arma, como en la sección 1.
+		for _, id in claves(Cosmetics) do
+			local cosmetico = Cosmetics[id]
+			if
+				cosmetico.kind == "WeaponSkin"
+				and not (cosmetico.weapon and Weapons[cosmetico.weapon] and Weapons[cosmetico.weapon].lab)
+			then
+				intentar(id, function()
+					local armaId = if cosmetico.role
+						then WeaponTools.roleWeapon(cosmetico.role, WeaponTools.MAX_LEVEL)
+						else cosmetico.weapon
+					assert(armaId, "sin arma para el aspecto")
+					local herramienta = WeaponTools.build(armaId, id)
+					anotar("Arma", herramienta, fusionSoldada)
+					herramienta:Destroy()
+				end)
+			end
+		end
+		for _, id in claves(Pets) do
+			intentar(id, function()
+				local modelo = PetModels.build(id)
+				local rareza = Pets[id].rarity
+				local especial = rareza == "Mythic" or rareza == "Legendary"
+				anotar("Mascota", modelo, sinFusion, if especial then "MascotaEspecial" else "MascotaEstandar")
+				modelo:Destroy()
+			end)
+		end
+		for _, id in claves(Mounts) do
+			intentar(id, function()
+				local modelo = MountModels.build(id)
+				anotar("Montura", modelo, fusionSoldada)
+				modelo:Destroy()
+			end)
+		end
+		return equipo
+	end
+
+	-- Lo que lleva un jugador, por familia: la media (o el peor caso) de lo que existe. "sinDetalle": triángulos sin las
+	-- piezas Detalle (el jugador lejano con el LOD). La vestimenta es la armadura o el traje, el que pese más.
+	local function valoresEquipo(
+		equipo: { [string]: Estadistica },
+		peor: boolean,
+		sinDetalle: boolean
+	): { [string]: Valores }
+		local function valores(e: Estadistica?): Valores
+			if not e then
+				return { piezas = 0, tris = 0 }
+			end
+			local piezas = if peor then e.maxPiezas else e.sumaPiezas / e.n
+			local tris = if peor
+				then (if sinDetalle then e.maxSin else e.maxTris)
+				else (if sinDetalle then e.sumaSin else e.sumaTris) / e.n
+			return { piezas = piezas, tris = tris }
+		end
+		local armadura, traje = valores(equipo.Armadura), valores(equipo.Traje)
+		return {
+			Vestimenta = if traje.tris > armadura.tris then traje else armadura,
+			Arma = valores(equipo.Arma),
+			Mascota = valores(equipo.Mascota),
+			Montura = valores(equipo.Montura),
+			MascotaEstandar = valores(equipo.MascotaEstandar),
+			MascotaEspecial = valores(equipo.MascotaEspecial),
+		}
+	end
+	local function sumaEquipo(v: { [string]: Valores }): (number, number)
+		local piezas, tris = 0, 0
+		for _, clave in { "Vestimenta", "Arma", "Mascota", "Montura" } do
+			piezas += v[clave].piezas
+			tris += v[clave].tris
+		end
+		return piezas, tris
+	end
+
+	-- ---------------------------------- Mapa (8b) ----------------------------------
+	-- Las piezas de Workspace a menos de Matches.MapRadius de la pieza del Basecamp, sin personajes ni monos. Devuelve
+	-- piezas, triángulos y una nota (no vacía si no se pudo medir).
+	local function medirMapa(): (number, number, string)
+		local nombreAncla = Config.Basecamp.ZonePartName
+		local ancla = workspace:FindFirstChild(nombreAncla, true)
+		if not ancla or not ancla:IsA("BasePart") then
+			return 0, 0, `mapa no medido (no hay una pieza «{nombreAncla}» en Workspace)`
+		end
+		local radio = topeTabla(B.Matches, "MapRadius") or 350
+		local etiquetaEnemigo = if Config.Combat then Config.Combat.EnemyTag else nil
+		local function dinamica(parte: BasePart): boolean
+			local actual = parte.Parent
+			while actual and actual ~= workspace do
+				if
+					actual:FindFirstChildOfClass("Humanoid")
+					or (etiquetaEnemigo and CollectionService:HasTag(actual, etiquetaEnemigo))
+				then
+					return true
+				end
+				actual = actual.Parent
+			end
+			return false
+		end
+		local piezas, tris = 0, 0
+		for _, parte in workspace:GetPartBoundsInRadius(ancla.Position, radio) do
+			if not parte:IsA("Terrain") and not dinamica(parte) then
+				piezas += 1
+				tris += trisPieza(parte)
+			end
+		end
+		if piezas == 0 then
+			return 0, 0, "mapa no medido (no hay piezas alrededor del Basecamp: ¿otro place?)"
+		end
+		return piezas, tris, ""
+	end
+
+	-- ---------------------------------- 8b. Escena de la Isla ----------------------------------
+	seccion("## 8b. Escena de la Isla", S.isla, function()
+		if not cargarMonos() then
+			linea("MonkeyModels no está en este place (ServerScriptService.Combat.Monkeys).")
+			return
+		end
+		local P = B.Matches
+		local jugadores = 5
+
+		-- Monos: la mezcla de especies según las tropas de Data/Monkeys. Cada tropa tiene de media (groupMin +
+		-- groupMax) / 2 monos y, si la especie tiene alfa, uno de ellos lo es.
+		local pesoTotal, piezasMono, trisMono = 0, 0, 0
+		local jefeId, jefeMedida = nil :: string?, nil :: Medicion?
+		for _, id in claves(Monkeys) do
+			local definicion = Monkeys[id]
+			local tropa = (definicion.groupMin + definicion.groupMax) / 2
+			local alfas = if definicion.alpha == true then 1 else 0
+			intentar(id, function()
+				local normales = definicion.groups * (tropa - alfas)
+				local medida = medirMono(id, false)
+				pesoTotal += normales
+				piezasMono += normales * medida.piezas
+				trisMono += normales * medida.tris
+				if alfas > 0 then
+					local medidaAlfa = medirMono(id, true)
+					pesoTotal += definicion.groups
+					piezasMono += definicion.groups * medidaAlfa.piezas
+					trisMono += definicion.groups * medidaAlfa.tris
+				end
+			end)
+		end
+		local piezasMedia = piezasMono / math.max(pesoTotal, 1)
+		local trisMedia = trisMono / math.max(pesoTotal, 1)
+		for _, id in claves(Bosses) do
+			intentar(id, function()
+				local medida = medirJefe(id)
+				if jefeMedida == nil or medida.tris > jefeMedida.tris then
+					jefeId, jefeMedida = id, medida
+				end
+			end)
+		end
+
+		local equipo = recogerEquipo()
+		local mediaV = valoresEquipo(equipo, false, false)
+		local peorV = valoresEquipo(equipo, true, false)
+
+		local cercanos = P.MonkeysNearPlayer
+		local n = if typeof(cercanos) == "number" then cercanos else 0
+		if n == 0 then
+			linea("Config.Budgets.Matches.MonkeysNearPlayer todavía no existe: la escena no cuenta monos.")
+		end
+		linea(
+			`Monos con la mezcla de especies de las tropas (media por mono: {math.round(piezasMedia * 10) / 10} piezas, {math.round(
+				trisMedia
+			)} triángulos); el jefe de más triángulos; {jugadores} jugadores con el equipo medio de lo que existe (armadura o traje, arma, mascota y montura); el mapa alrededor del Basecamp y el pico de efectos en calidad Alta. Las piezas de la tabla no incluyen el mapa ni los efectos (IslandSiegeParts los mide aparte).`
+		)
+		linea("")
+		local piezasMapa, trisMapa, notaMapa = medirMapa()
+		local piezasEfectos = B.Vfx.High
+		local trisEfectos = piezasEfectos * LIMITES.triangulos.bloque
+		linea("| Concepto | Piezas | Triángulos |")
+		linea("|---|---|---|")
+		local piezasMonos, trisMonos = n * piezasMedia, n * trisMedia
+		linea(`| {n} monos | {math.round(piezasMonos)} | {math.round(trisMonos)} |`)
+		local piezasJefe, trisJefe =
+			if jefeMedida then jefeMedida.piezas else 0, if jefeMedida then jefeMedida.tris else 0
+		linea(`| 1 jefe ({jefeId or "—"}) | {piezasJefe} | {trisJefe} |`)
+		local piezasJugador, trisJugador = sumaEquipo(mediaV)
+		linea(
+			`| {jugadores} jugadores, equipo medio | {math.round(piezasJugador * jugadores)} | {math.round(
+				trisJugador * jugadores
+			)} |`
+		)
+		linea(`| Mapa (radio {topeTabla(P, "MapRadius") or 350}) | — | {math.round(trisMapa)} |`)
+		linea(`| Efectos (pico Alto: {piezasEfectos} piezas × {LIMITES.triangulos.bloque}) | — | {trisEfectos} |`)
+		local piezasTotal = piezasMonos + piezasJefe + piezasJugador * jugadores
+		local trisTotal = trisMonos + trisJefe + trisJugador * jugadores + trisMapa + trisEfectos
+		local topeTris, topePiezas = topeTabla(P, "IslandTriangles"), topeTabla(P, "IslandSiegeParts")
+		linea(`| Total | {math.round(piezasTotal)} | {math.round(trisTotal)} |`)
+		linea(
+			`| Tope (Matches) | {celdaTope(topePiezas)} (IslandSiegeParts) | {celdaTope(topeTris)} (IslandTriangles) |`
+		)
+		if topePiezas and piezasTotal > topePiezas then
+			alerta(`Escena de la Isla: {math.round(piezasTotal)} piezas (IslandSiegeParts {topePiezas})`)
+		end
+		if topeTris and trisTotal > topeTris then
+			alerta(`Escena de la Isla: {math.round(trisTotal)} triángulos (IslandTriangles {topeTris})`)
+		end
+		local cuota = topeTabla(P, "MonkeyTriangleShare")
+		if cuota and topeTris then
+			local presupuestoMonos = topeTris * cuota
+			linea(
+				`| Monos y jefe contra su parte | | {math.round(trisMonos + trisJefe)} de {math.round(presupuestoMonos)} ({cuota * 100} % de IslandTriangles) |`
+			)
+			if trisMonos + trisJefe > presupuestoMonos then
+				alerta(
+					`Escena de la Isla: los monos y el jefe suman {math.round(trisMonos + trisJefe)} triángulos (parte de los monos {math.round(
+						presupuestoMonos
+					)})`
+				)
+			end
+		else
+			linea(
+				"Config.Budgets.Matches.MonkeyTriangleShare todavía no existe: sin parte de los triángulos para los monos."
+			)
+		end
+		linea("")
+		if notaMapa ~= "" then
+			linea(`Mapa: {notaMapa}; cuenta 0 triángulos.`)
+		else
+			linea(
+				`Mapa: {piezasMapa} piezas y {math.round(trisMapa)} triángulos alrededor de «{Config.Basecamp.ZonePartName}» (radio {topeTabla(
+					P,
+					"MapRadius"
+				) or 350}). El terreno (Terrain) no se cuenta.`
+			)
+		end
+		-- Solo informativo: el margen que queda si los 5 jugadores llevan lo más pesado de cada tipo.
+		local piezasPeor, trisPeor = sumaEquipo(peorV)
+		linea(
+			`Con los {jugadores} jugadores con el PEOR equipo (solo informativo, sin alerta): {math.round(
+				piezasMonos + piezasJefe + piezasPeor * jugadores
+			)} piezas y {math.round(trisMonos + trisJefe + trisPeor * jugadores + trisMapa + trisEfectos)} triángulos en total.`
+		)
+
+		-- La foto: el equipo medio y el peor de cada familia, para ver el Δ de los grupos de modelos.
+		local familiasFoto = {
+			{ "Montura", "Montura" },
+			{ "Mascota", "Mascota" },
+			{ "Armadura/Traje", "Vestimenta" },
+			{ "Arma", "Arma" },
+		}
+		for _, par in familiasFoto do
+			local media, peor = mediaV[par[2]], peorV[par[2]]
+			FOTO[`Equipo: {par[1]} (media)`] =
+				{ piezas = math.round(media.piezas), tris = math.round(media.tris), diseno = 0 }
+			FOTO[`Equipo: {par[1]} (máx)`] =
+				{ piezas = math.round(peor.piezas), tris = math.round(peor.tris), diseno = 0 }
+		end
+
+		-- ---- Reparto del margen ----
+		linea("")
+		linea("### Reparto del margen")
+		if not topeTris then
+			linea("Config.Budgets.Matches.IslandTriangles todavía no existe: no hay margen que repartir.")
+			return
+		end
+		local jefeReserva = topeTabla(M.MonkeyTriangles, "Boss") or trisJefe
+		local margen = topeTris - trisMonos - jefeReserva - trisMapa - trisEfectos
+		local porJugador = margen / jugadores
+		linea(
+			`Margen = IslandTriangles {topeTris} − monos {math.round(trisMonos)} − jefe {jefeReserva}{if topeTabla(
+					M.MonkeyTriangles,
+					"Boss"
+				)
+				then " (tope Boss)"
+				else " (medido)"} − mapa {math.round(trisMapa)} − efectos {trisEfectos} = {math.round(margen)}; entre {jugadores} jugadores, {math.round(
+				porJugador
+			)} cada uno. El equipo medio ya ocupa {math.round(trisJugador)}, y quedan {math.round(
+				porJugador - trisJugador
+			)} por jugador para repartir en este orden.`
+		)
+		if margen < 0 then
+			alerta(`Escena de la Isla: el margen del equipo es negativo ({math.round(margen)} triángulos)`)
+		end
+		type Familia = { nombre: string, objetivo: number, hoy: number, max: number, foto: string? }
+		local hayRareza = false
+		for _, definicion in Pets do
+			if typeof(definicion.rarity) == "string" then
+				hayRareza = true
+				break
+			end
+		end
+		local familias: { Familia } = {
+			{ nombre = "Montura", objetivo = 2, hoy = mediaV.Montura.tris, max = peorV.Montura.tris, foto = "Montura" },
+		}
+		if hayRareza then
+			table.insert(familias, {
+				nombre = "Mascota estándar",
+				objetivo = 1.5,
+				hoy = mediaV.MascotaEstandar.tris,
+				max = peorV.MascotaEstandar.tris,
+				foto = nil,
+			})
+			table.insert(familias, {
+				nombre = "Mascota especial (Mythic y Legendary)",
+				objetivo = 2,
+				hoy = mediaV.MascotaEspecial.tris,
+				max = peorV.MascotaEspecial.tris,
+				foto = nil,
+			})
+		else
+			table.insert(familias, {
+				nombre = "Mascota",
+				objetivo = 1.75,
+				hoy = mediaV.Mascota.tris,
+				max = peorV.Mascota.tris,
+				foto = "Mascota",
+			})
+		end
+		table.insert(familias, {
+			nombre = "Armadura/Traje",
+			objetivo = 1.6, -- +60 %: es el 84 % del equipo medio, y el margen no da para +100 % (decidido el 03-11-2026)
+			hoy = mediaV.Vestimenta.tris,
+			max = peorV.Vestimenta.tris,
+			foto = "Armadura/Traje",
+		})
+		table.insert(
+			familias,
+			{ nombre = "Arma", objetivo = 2, hoy = mediaV.Arma.tris, max = peorV.Arma.tris, foto = "Arma" }
+		)
 		linea("")
 		linea(
-			"Pendiente R6: simular la partida de cada escena (mapa, enemigos, estructuras) con las cifras de las secciones 1 a 7."
+			"| Familia | Hoy (media por jugador) | Hoy (máx.) | Objetivo | Extra que pide | Margen restante | Llega |"
 		)
+		linea("|---|---|---|---|---|---|---|")
+		local libre = porJugador - trisJugador
+		for _, familia in familias do
+			local pide = (familia.objetivo - 1) * familia.hoy
+			local concede = math.min(pide, math.max(libre, 0))
+			libre -= concede
+			local llega = "—"
+			if pide > 0 then
+				llega = if concede >= pide - 0.5
+					then "✅"
+					else `⚠️ solo +{math.floor(concede / familia.hoy * 100)} %`
+			end
+			local delta = ""
+			local antes = if BASE and familia.foto then BASE[`Equipo: {familia.foto} (media)`] else nil
+			if antes then
+				delta = string.format(" (Δ %+d)", math.round(familia.hoy) - antes.tris)
+			end
+			linea(
+				`| {familia.nombre} | {math.round(familia.hoy)}{delta} | {math.round(familia.max)} | +{math.round(
+					(familia.objetivo - 1) * 100
+				)} % | {math.round(pide)} | {math.round(libre)} | {llega} |`
+			)
+		end
+		linea("")
+		local sobra = math.max(libre, 0) * jugadores
+		if sobra <= 0 then
+			linea("No sobra margen: los monos y la parcela se quedan como están (solo técnicas gratis).")
+		else
+			local aMonos = math.min(sobra, trisMonos)
+			linea(
+				`Sobran {math.round(sobra)} triángulos en total ({math.round(libre)} por jugador): a los monos, que van primero, {math.round(
+					aMonos
+				)} (+{math.round(aMonos / math.max(trisMonos, 1) * 100)} %); a la parcela y los construibles, {math.round(
+					sobra - aMonos
+				)}.`
+			)
+		end
+	end)
+
+	-- ---------------------------------- 8c. Lobby y Dunas ----------------------------------
+	seccion("## 8c. Lobby y Dunas", S.lobbydunas, function()
+		local P = B.Matches
+		local equipo = recogerEquipo()
+		local _, trisMedio = sumaEquipo(valoresEquipo(equipo, false, false))
+		local _, trisMedioSin = sumaEquipo(valoresEquipo(equipo, false, true))
+		local _, trisPeor = sumaEquipo(valoresEquipo(equipo, true, false))
+		local _, trisPeorSin = sumaEquipo(valoresEquipo(equipo, true, true))
+		local lobby = topeTabla(P, "LobbyPlayers") or 20
+		local dunas = topeTabla(P, "DunasPlayers") or 10
+		local otros = lobby - 1
+		local topeLobby, topeDunas = topeTabla(P, "LobbyTriangles"), topeTabla(P, "DunasTriangles")
+		linea(
+			`Solo los cosméticos de los jugadores con el equipo medio de lo que existe (armadura o traje, arma, mascota y montura); no se cuenta el mapa de estos places. En el Lobby, los otros {otros} aplican el LOD de detalle (sin las piezas con la etiqueta «Detalle»). Las mascotas no se fusionan, así que no llevan Detalle.`
+		)
+		linea("")
+		linea("| Escena | Jugadores | Triángulos | Tope | Con el PEOR equipo (informativo) |")
+		linea("|---|---|---|---|---|")
+		local lobbySin = trisMedio * lobby
+		local lobbyCon = trisMedio + trisMedioSin * otros
+		local lobbyPeorCon = trisPeor + trisPeorSin * otros
+		linea(
+			`| Lobby, sin LOD | {lobby} | {math.round(lobbySin)} | {celdaTope(topeLobby)} | {math.round(
+				trisPeor * lobby
+			)} |`
+		)
+		linea(
+			`| Lobby, con LOD | {lobby} | {math.round(lobbyCon)} | {celdaTope(topeLobby)} | {math.round(lobbyPeorCon)} |`
+		)
+		local dunasTotal = trisMedio * dunas
+		linea(
+			`| Dunas | {dunas} | {math.round(dunasTotal)} | {celdaTope(topeDunas)} | {math.round(trisPeor * dunas)} |`
+		)
+		if topeLobby and lobbyCon > topeLobby then
+			alerta(`Lobby con {lobby}: {math.round(lobbyCon)} triángulos de cosméticos (LobbyTriangles {topeLobby})`)
+		end
+		if topeDunas and dunasTotal > topeDunas then
+			alerta(
+				`Dunas con {dunas}: {math.round(dunasTotal)} triángulos de cosméticos (DunasTriangles {topeDunas})`
+			)
+		end
+		if not (topeLobby and topeDunas) then
+			linea("")
+			linea("Los topes con «—» todavía no existen en Config.Budgets.Matches: no alertan.")
+		end
 	end)
 
 	-- ---------------------------------- 9. Efectos ----------------------------------
@@ -922,6 +1657,17 @@ local function main(copia: Instance): string
 			linea(texto)
 		end
 	end
+	if OPCIONES.foto then
+		-- La tabla de monos, alfas y jefes para pegar en src/island/tools/RendimientoBase.luau.
+		linea("")
+		linea("## Foto (pegar en RendimientoBase.luau)")
+		linea("return {")
+		for _, nombre in claves(FOTO) do
+			local f = FOTO[nombre]
+			linea(`\t["{nombre}"] = \{ piezas = {f.piezas}, tris = {f.tris}, diseno = {f.diseno} },`)
+		end
+		linea("}")
+	end
 	return table.concat(lineas, "\n")
 end
 
@@ -934,6 +1680,7 @@ function Rendimiento.informe(opciones: any?, propuesta: Propuesta?): string
 	PROPUESTA = propuesta or {}
 	lineas = {}
 	alertas = {}
+	FOTO = {}
 	local copia = ReplicatedStorage:WaitForChild("Shared"):Clone()
 	copia.Name = "_RendimientoShared"
 	copia.Parent = ServerStorage

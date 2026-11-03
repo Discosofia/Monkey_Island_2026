@@ -3896,6 +3896,51 @@ Se prueba en Play, en el Lobby (pestaña Ajustes) y en la Isla (botón ⚙️).
 2. [ ] Repite en el ⚙️ de la Isla.
    ✅ Lo mismo. La ventana cabe y, en el Lobby, se reparte en columnas sin cortar la sección.
 
+## 94. Fase 20 Q1: calculadora de monos y precalentado de plantillas (03-11-2026)
+
+Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0). Los pasos de 94.2 van en un teléfono real o con 2 jugadores, y los de 94.3 en Studio, sin jugar.
+
+### 94.1 En Play, en la Isla
+
+1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Pulsa ▶ Jugar en la Isla y mira la Salida desde el arranque hasta unos segundos después de `Start()`.
+   ✅ No sale ningún aviso `[MonkeyModels]`, ni de "No se pudo precalentar".
+2. [ ] Tras unos segundos, deja que aparezca el primer grupo de monos de una especie y, después, el de otra especie.
+   ✅ La primera aparición de cada grupo no da tirón: `MonkeyModels.prewarm` ha llenado las plantillas. La Salida sigue sin avisos `[MonkeyModels]`.
+3. [ ] En los primeros segundos tras `Start()`, mientras aún se llenan las plantillas, deja que aparezcan monos de varias especies y mira cómo se portan.
+   ✅ `MonkeyService` sigue funcionando: los monos aparecen, se mueven y se pueden cazar sin errores. Si una plantilla se construye dos veces, no pasa nada: la Salida no muestra errores por ello.
+4. [ ] Con el Play en marcha, abre Explorer, ve a `Workspace` › `Monos` y elige un mono real (no uno de práctica). Mira sus atributos.
+   ✅ Tiene `DesignBlocks` (un número entero mayor que 0: los bloques de diseño antes de unir) y `UnionMs` (un número mayor que 0: los milisegundos que tardó la unión).
+5. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`, como en §10.0.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 94.2 En teléfono o con 2 jugadores
+
+1. [ ] En un teléfono real, o con 2 jugadores, entra en la Isla con unos 110 monos cerca del jugador y mide los FPS y la memoria con las estadísticas de Studio o del teléfono.
+   ✅ Anota FPS y memoria como línea base de R7. No hay cifra de referencia todavía (la fija R7, pendiente), y no hay caídas ni errores en la Salida.
+2. [ ] En el teléfono, dentro de la Isla, mira con las estadísticas de render cuántos triángulos dibuja el Terrain (el terreno) con la cámara en la vista del jugador.
+   ✅ Queda anotada la cifra. `Rendimiento` no cuenta el Terrain, así que no hay tope: el dato sirve para fijar R7.
+3. [ ] Con 2 jugadores en la Isla, invoca un jefe desde el panel de admin (fila «Jefe») mientras el otro jugador se mueve y ataca monos. Mide con un cronómetro cuánto tarda en aparecer el jefe desde que lo invocas.
+   ✅ Aparece tras lo que tarde su unión: hoy 0,3–0,6 s. Mientras tanto, el otro jugador sigue moviéndose sin tirones y la Salida no muestra errores. Tras Q2 (jefe de 2.000 bloques de diseño) hay que repetirlo: se espera ~2 s, y los demás jugadores siguen sin congelarse.
+4. [ ] En Dunas, con 2 o más jugadores (10 si se puede) y todos los trajes cerca de la cámara, mira los FPS y el recuento real de triángulos con Ctrl+Shift+F2 («Triangles»).
+   ✅ Anota los FPS y los triángulos. Con los topes concedidos la estimación es ~810.000 y el tope de la escena es 650.000 (GDD §19.4). Si el recuento real pasa de 650.000, queda anotado para decidir el LOD de Dunas antes de seguir con Q6 y Q7.
+
+### 94.3 Calibración de triángulos (en Studio, sin jugar)
+
+Se prueba en Studio, en modo edición y en un place vacío, con la cámara mirando las piezas de frente. Cada cifra sale de las estadísticas de render (Ctrl+Shift+F2, «Triangles»): se anota con la escena vacía y con las 100 piezas en pantalla, y la diferencia entre las dos, dividida entre 100, son los triángulos por pieza. Si el modo edición no muestra el recuento, se hace en Play con la cámara quieta.
+
+1. [ ] Pon 100 `Part` con forma de Ball (esfera) en pantalla, separadas para que no se toquen.
+   ✅ Cada pieza queda a menos del 25 % de 224 (`LIMITES.triangulos.bola`). Si no, se ajusta esa constante en `Rendimiento.luau` y el valor medido se anota aquí.
+2. [ ] Pon 100 `Part` con forma de Cylinder en pantalla, separados.
+   ✅ Cada pieza queda a menos del 25 % de 64 (`LIMITES.triangulos.cilindro`). Si no, se ajusta la constante y se anota aquí.
+3. [ ] Pon 100 bloques de 4x4x4 (`Part` Block) en pantalla, separados.
+   ✅ Cada pieza queda a menos del 25 % de 12 (`LIMITES.triangulos.bloque`). Si no, se ajusta la constante y se anota aquí.
+4. [ ] Pon 100 `WedgePart` (cuñas) en pantalla, separadas.
+   ✅ Cada pieza queda a menos del 25 % de 8 (`LIMITES.triangulos.cuna`). Si no, se ajusta la constante y se anota aquí.
+5. [ ] Pon 100 `CornerWedgePart` (cuñas de esquina) en pantalla, separadas.
+   ✅ Cada pieza queda a menos del 25 % de 6 (`LIMITES.triangulos.cunaEsquina`). Si no, se ajusta la constante y se anota aquí.
+6. [ ] Pon 100 bloques con un `SpecialMesh` de tipo Sphere en pantalla, separados.
+   ✅ Cada pieza queda a menos del 25 % de 224 (`LIMITES.triangulos.mallaEspecial`). Si no, se ajusta la constante y se anota aquí.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

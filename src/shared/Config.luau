@@ -2283,18 +2283,35 @@ local Config = {
 			LabViewModelArms = 40, -- brazos del rig de la vista en primera persona del Laboratorio, sin el arma (hoy 9)
 			Buildable = 25, -- construible de la Isla
 			PlotStructure = { 60, 90, 120 }, -- estructura de la parcela, nivel I a III
-			Monkey = 10, -- mono en juego (ya unido con UnionAsync)
-			Boss = 30, -- jefe en juego (ya unido)
+			Monkey = 14, -- mono en juego (ya unido con UnionAsync); 10 + 4 piezas sueltas de acento (ojos, marcas de alfa)
+			Boss = 40, -- jefe en juego (ya unido); 30 + 10 piezas sueltas de acento (cristales de fase)
+			-- Bloques de diseño de un mono o jefe (los que hay ANTES de unir, MonkeyModels) por tier de Data/Monkeys;
+			-- "Alpha" vale para cualquier alfa. Los monos están congelados en el máximo de la línea base del 03-11-2026
+			-- (Fase 20: la calidad va primero a jefes, monturas, mascotas, armaduras y armas; los monos usan el sobrante).
+			-- El jefe lo limita el tiempo de unión (~1 ms por bloque; 2.000 bloques son ~2 s, una vez por jefe y servidor).
+			MonkeyDesign = { [1] = 106, [2] = 127, [3] = 75, Alpha = 140, Boss = 2000 },
+			-- Triángulos de un mono o jefe ya unido (Rendimiento, `triangulos`); el jefe es uno por escena.
+			MonkeyTriangles = { [1] = 1796, [2] = 2076, [3] = 1090, Alpha = 2352, Boss = 15000 },
+			-- Triángulos del equipo (Fase 20, 03-11-2026): máximo medido × lo que concede el reparto del margen de la
+			-- escena de la Isla (Rendimiento, «Reparto del margen»): monturas y armas +100 %, mascotas estándar +50 %
+			-- y especiales +100 %, armaduras y trajes +60 %. Son topes por modelo; la escena se mide con el equipo medio.
+			MountTriangles = { Rare = 4100, Legendary = 5900, Mythic = 8600 },
+			PetTriangles = 2800, -- mascota estándar; las especiales van por id en Exceptions
+			ArmorTriangles = { 7300, 16000, 17700, 10800 }, -- armadura de rol por rango I a IV
+			OutfitTriangles = { Legendary = 39400, Mythic = 110200 }, -- traje de grado 4
+			WeaponTriangles = { 4800, 5000, 10600, 7000 }, -- arma de la forja por rango I a IV
+			WeaponSkinTriangles = { Rare = 1400, Epic = 15500, Mythic = 41900 },
+			LabWeaponTriangles = 4400, -- arma del Laboratorio, con o sin skin
 			MapNode = 25, -- nodo de recurso del mapa
 			Viewport = 300, -- modelo de un ViewportFrame (RewardModels)
 		},
 		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
 		Exceptions = {
-			MonoX7 = { PetTotal = 270, PetAnimated = 130 }, -- mascota de élite
-			Ajolote = { PetTotal = 200, PetAnimated = 180 }, -- mascota mítica: cara, branquias y detalle
+			MonoX7 = { PetTotal = 270, PetAnimated = 130, PetTriangles = 6200 }, -- mascota de élite
+			Ajolote = { PetTotal = 200, PetAnimated = 180, PetTriangles = 4700 }, -- mascota mítica: cara, branquias y detalle
 			Nest = { Buildable = 50 }, -- construible único
 			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
-			OrangutanDelManglar = { Boss = 35 }, -- el jefe más grande
+			OrangutanDelManglar = { Boss = 47 }, -- el jefe más grande (35 × 40 / 30)
 		},
 		-- Totales por escena en el cliente del móvil de referencia (gama baja, 3-4 GB, 30 FPS).
 		Matches = {
@@ -2307,6 +2324,17 @@ local Config = {
 			MovedPartsPerFrame = 1500, -- piezas movidas por fotograma, en todas
 			MemoryMB = 1300, -- memoria en todas
 			ServerFps = 55, -- FPS mínimos del servidor
+			-- Triángulos de la escena de la Isla en el móvil de referencia (la cifra de Roblox para una escena fluida).
+			IslandTriangles = 650000,
+			LobbyTriangles = 650000, -- Lobby con 20 jugadores (los 19 lejanos con el LOD de detalle)
+			DunasTriangles = 650000, -- Dunas con 10 jugadores
+			-- Radio (studs) alrededor de Config.Basecamp.ZonePartName que Rendimiento cuenta como "mapa" de la escena
+			-- de la Isla: lo que carga el streaming alrededor del punto más denso (WakeDistance).
+			MapRadius = 350,
+			MonkeysNearPlayer = 110, -- monos a menos de WakeDistance de un jugador en el punto más denso (RENDIMIENTO.md)
+			-- Parte de IslandTriangles para los monos (110 de la mezcla de tropas) y el jefe. Línea base: 148.000 de 227.500.
+			-- El resto: 5 jugadores con equipo medio (235.000 hoy), mapa y efectos.
+			MonkeyTriangleShare = 0.35,
 		},
 		-- Pico de piezas de efectos por cliente según la calidad de efectos.
 		Vfx = { Low = 40, Medium = 90, High = 160 },

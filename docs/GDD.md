@@ -933,7 +933,7 @@ Pestaña **🎨 Cosméticos** de la Tienda del Lobby. Tema "selva y mar", para n
 | Riesgo | Mitigación |
 |---|---|
 | **Alcance enorme** para una sola persona | Construir por fases, con un *vertical slice* jugable antes de producir contenido. Datos de configuración en lugar de código duplicado. |
-| **Rendimiento** (hasta 5 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y `Config.Budgets`: topes de piezas por modelo (medidos con `Rendimiento` después de fusionar) y por escena, con un objetivo de 30 FPS en un móvil modesto de gama baja (3-4 GB). LOD de detalle para los cosméticos de otros jugadores a partir de 60 studs, y el ajuste de calidad de efectos "Efectos" (Bajo, Medio, Alto o Automático). |
+| **Rendimiento** (hasta 5 jugadores y muchos NPC, en móvil) | IA en servidor con "sueño" lejos de jugadores, límite de monos activos, StreamingEnabled y `Config.Budgets`: topes de piezas por modelo (medidos con `Rendimiento` después de fusionar) y por escena, con un objetivo de 30 FPS en un móvil modesto de gama baja (3-4 GB). LOD de detalle para los cosméticos de otros jugadores a partir de 60 studs, y el ajuste de calidad de efectos "Efectos" (Bajo, Medio, Alto o Automático). Normas de modelado y topes por familia en [§19](#19-modelos-3d-y-rendimiento). |
 | **Moderación y edades** (llegar a menores de 16: Roblox Kids y Select) | Sin sangre ni gore. Los monos derrotados desaparecen con un "¡puf!" de humo y estrellas, sin animación ni grito de muerte (violencia leve, de caricatura). Cuestionario de madurez completo y requisitos de [LANZAMIENTO.md §9](LANZAMIENTO.md#9-menores-de-16-roblox-kids-y-select). |
 | **Propiedad intelectual** del nombre | Nombre propio: *Primal Banana Islands* (§15). |
 | **Objetos aleatorios de pago** | Huevos solo por juego. Si algún día se venden, mostrar probabilidades según las normas de Roblox. |
@@ -986,3 +986,69 @@ Decidido en la entrevista de I1 (27-10-2026):
 - **Los nombres propios se traducen** (Amber, Capuchin, Lava Turtle, Dune Island…).
 - **Solo en español:** las herramientas de desarrollo (`Equilibrio`, `Economia`, `MapBuilder`, comandos de prueba) y el panel de administración. Los avisos de moderación sí se traducen.
 - **El español es la clave** (`T("Ámbar: {n}", { n = amber })`): el código sigue leyéndose en español.
+
+---
+
+## 19. Modelos 3D y rendimiento
+
+Fase 20 (02-11-2026). Parte de `docs/Rendimiento y Presupuesto de Modelos Voxel 3D.txt`, que propone subir los presupuestos de piezas para dar más calidad a los modelos. Aquí se fijan las normas; los números viven en `Config.Budgets` y los mide la calculadora `Rendimiento`.
+
+### 19.1 Qué se mide
+
+El coste de un modelo en pantalla no es solo su número de piezas:
+
+- **Piezas en juego:** las que quedan tras unir (monos y jefes, con `UnionAsync`) o fusionar (`Shared/VoxelMerge`, el resto). Mandan sobre la física y sobre las piezas que se mueven cada fotograma.
+- **Bloques de diseño:** los bloques que se colocan antes de unir. Solo importan para el tiempo de unión (~1 ms por bloque) y para los triángulos.
+- **Triángulos:** el total de la escena. Roblox recomienda menos de ~650.000 triángulos y ~600 draw calls para una escena fluida; es el tope de `Matches.IslandTriangles`.
+
+### 19.2 Estilo voxel y técnicas permitidas
+
+Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en Luau, sin `MeshPart` importados, texturas ni `EditableMesh` (este último exige un dueño con verificación de identidad y tiene un presupuesto de memoria estricto en el cliente). Para ganar calidad sin perder rendimiento se usan cuatro técnicas:
+
+| Técnica | Qué es | Coste |
+|---|---|---|
+| **Sombreado pintado** | 2 o 3 tonos de cada color: más claro arriba, más oscuro abajo y en las uniones (oclusión falsa) | Casi nulo: solo cambian colores. Cada tono extra parte las uniones por color |
+| **Rejilla más fina** | Bloques más pequeños en cara, manos y ojos, para dar expresión | Sube los bloques de diseño y los triángulos; no las piezas en juego si se unen |
+| **Biseles con cuñas** | `WedgePart` y `CornerWedgePart` en orejas, hombros y bordes, para suavizar la silueta | Las cuñas no se fusionan ni se unen con bloques: cuestan piezas |
+| **Acentos de material** | Neon, Glass o Foil en ojos, gemas y marcas | Una unión tiene un solo material, así que van en piezas sueltas aparte; sin transparencia parcial |
+
+Regla de lectura: si un detalle no se ve a 20 studs, sobra. Las variantes (alfas, rarezas, fases de jefe) tienen que distinguirse a primera vista, también por detrás, con rasgos y colores nuevos y no con un simple tinte.
+
+### 19.3 Prioridad y topes por familia
+
+La calidad se mejora en este orden: **jefes, monturas, mascotas, armaduras y armas**. Los monos, la parcela y los construibles usan el margen que sobre. «Objetivo» es el aumento que propone el documento de origen; el tope es lo que fija `Config.Budgets` (línea base medida el 03-11-2026 con `Rendimiento`) y se queda por debajo si la escena no lo aguanta.
+
+| Prioridad | Familia | Tope de triángulos por modelo (hoy, máx. → tope) | Concedido | Piezas en juego |
+|---|---|---|---|---|
+| 1 | Jefes de bioma | 4.202 → 15.000 (2.000 bloques de diseño, hoy 427) | +250 % de bloques | 30 → 40 (Orangután del Manglar 47) |
+| 2 | Monturas | rara 2.028 → 4.100; legendaria 2.964 → 5.900; mítica 4.308 → 8.600 | +100 % | sin cambio |
+| 3 | Mascotas | estándar 1.856 → 2.800; Mono X-7 3.072 → 6.200; Ajolote 2.340 → 4.700 | +50 % estándar, +100 % especiales | sin cambio (110 que se mueven) |
+| 4 | Armaduras y trajes | rol I–IV 4.584 / 10.020 / 11.078 / 6.758 → 7.300 / 16.000 / 17.700 / 10.800; traje legendario 24.600 → 39.400; traje mítico 68.866 → 110.200 | +60 % | sin cambio |
+| 5 | Armas | forja I–IV 2.388 / 2.504 / 5.288 / 3.508 → 4.800 / 5.000 / 10.600 / 7.000; skin rara 676 → 1.400, épica 7.744 → 15.500, mítica 20.920 → 41.900; Laboratorio 2.160 → 4.400 | +100 % | sin cambio |
+| Resto | Monos y alfas | congelados: bloques de diseño 106 / 127 / 75 (alfas 140) y triángulos 1.796 / 2.076 / 1.090 (alfas 2.352) | 0 % (solo técnicas que no cuestan triángulos) | 10 → 14 |
+| Resto | Parcela y construibles | sin cambio | solo si sobra margen | sin cambio |
+
+Las armaduras reciben +60 % y no +100 % porque son el 84 % del equipo de un jugador (40.724 de 48.749 triángulos de media): con +100 % se comerían todo el margen y las armas se quedarían sin nada.
+
+### 19.4 Escenas
+
+Medido el 03-11-2026 (sin mapa en el Lobby ni en Dunas, y sin el terreno en ninguna):
+
+| Escena | Hoy | Con los topes concedidos | Tope |
+|---|---|---|---|
+| Isla: 110 monos, 1 jefe, 5 jugadores con equipo medio, mapa (909 piezas a 350 studs del Basecamp) y efectos | 425.623 | ~585.000 | 650.000 |
+| Lobby con 20 (los otros 19 con el LOD de detalle) | 332.672 | ~550.000 | 650.000 |
+| Dunas con 10 | 487.493 | ~810.000 | 650.000 |
+
+- **El equipo medio** es la media de lo que existe (armadura o traje, arma con sus skins, mascota y montura), no el peor: así no se deja margen sin usar. Con el peor equipo, 5 jugadores ya pasan de 650.000 en la Isla (668.187); esa fila es informativa y no alerta.
+- **Dunas es el límite real.** Con 10 jugadores y todos los trajes cerca (el LOD de detalle solo oculta a más de 60 studs), subir el equipo hasta los topes la pasa de 650.000. `Rendimiento` §8c alerta cuando eso ocurra y se decide entonces (LOD más fuerte en Dunas, o menos detalle en los modelos de arriba).
+- **Lobby:** la plaza no se cuenta; se vigila igual.
+- **Efectos de jefe:** pico de calidad Alta, 160 piezas de 12 triángulos.
+
+### 19.5 Flujo de control
+
+1. Cada modelo nuevo o remodelado se mide con `Rendimiento` antes del commit. Si pasa un tope (piezas, bloques de diseño o triángulos), hay una alerta. La columna «Δ tris» y la tabla «Reparto del margen» (§8b) lo comparan con la foto de la línea base (`RendimientoBase`).
+2. `informe({ foto = true })` imprime una foto nueva para pegar en `RendimientoBase.luau` cuando se cierra un grupo.
+3. Vista de frente, de lado y de espalda con `screen_capture` por el MCP, comparada con las referencias de `docs/img`.
+4. Los monos normales se copian de una plantilla que el servidor construye al arrancar. Los jefes se construyen la primera vez que aparecen: con hasta 2.000 bloques de diseño tardan unos 2 s, una vez por jefe y servidor y normalmente con los jugadores en el Basecamp, así que no se precalientan.
+5. Sin prueba en teléfono por ahora (R7 de la Fase 16 sigue pendiente): se confía en la calculadora y en Studio, y los topes se ajustarán cuando haya medición real.

@@ -1647,6 +1647,7 @@ function MonkeyService:Init()
 end
 
 function MonkeyService:Start()
+	MonkeyModels.prewarm(Monkeys)
 	task.spawn(function()
 		while true do
 			task.wait(5)

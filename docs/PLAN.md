@@ -867,12 +867,42 @@ Decisiones del 29-10-2026:
 
 ### Lanzamiento y promoción: vídeos (30-10-2026)
 
-Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `docs/videos/` (README y `trailer.md`, en español e inglés). Herramientas en el Studio de la Isla: el botón 🎬 Modo grabación del panel 🛠️ Pruebas, `Trailer` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`) y `TrailerCamara` (caminos y órbitas, sin dependencias del juego). Siguiente número libre de VERIFICACION: §92. Se llaman TR1 y TR2 para no confundirlas con V1 y V2 de la Fase 15 (movimiento).
+Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `docs/videos/` (README y `trailer.md`, en español e inglés). Herramientas en el Studio de la Isla: el botón 🎬 Modo grabación del panel 🛠️ Pruebas, `Trailer` (escenas `roles`, `jefes`, `huevo`, `mascotas`, `monturas` e `isla`) y `TrailerCamara` (caminos y órbitas, sin dependencias del juego). Siguiente número libre de VERIFICACION: §95 (la Fase 20 Q1 usa la §94). Se llaman TR1 y TR2 para no confundirlas con V1 y V2 de la Fase 15 (movimiento).
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **TR1** | Tráiler de YouTube (16:9, unos 75 s, guion ES/EN en `docs/videos/`) y su herramienta: modo grabación en el panel 🛠️ Pruebas, `Trailer` y `TrailerCamara` | be6babc, 24d0ddf | ✅ Tomas grabadas el 30-10-2026 (falta el montaje); pendiente VERIFICACION §91 |
 | **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | — | ⏳ Pendiente (sin empezar) |
+
+### Fase 20: Modelos voxel con más calidad sin perder rendimiento (02-11-2026, replanteada el 03-11-2026)
+
+Parte de `docs/Rendimiento y Presupuesto de Modelos Voxel 3D.txt`, que propone subir los presupuestos de piezas (+20 % a +250 %). Sus cifras de partida no son las del juego (los monos y jefes se unen con `UnionAsync` y quedan en ~10 y ~30 piezas; mascotas y monturas ya tienen cientos), así que los % del documento son objetivos sobre `Config.Budgets`. Plan completo en `C:\Users\jose\.claude\plans\lively-stirring-treasure.md`. Los grupos se llaman Q1–Q8 para no confundirlos con V1 y V2 de la Fase 15.
+
+Decisiones del 02-11-2026:
+- **Dos niveles de tope:** bloques de diseño (antes de la unión o la fusión) y piezas en juego, más los **triángulos** de la escena (650.000, la cifra de Roblox).
+- **Técnicas del estilo voxel:** sombreado pintado, rejilla más fina en cara y manos, biseles con cuñas y acentos de material o brillo (sin texturas ni transparencia parcial).
+- **Escena de la Isla de la calculadora:** 5 jugadores con el equipo **medio**, no el peor, para no dejar margen sin usar; una fila informativa con el peor equipo.
+- **Móvil:** sin prueba en teléfono por ahora (R7 sigue pendiente).
+
+Replanteo del 03-11-2026:
+- **Prioridad:** jefes, monturas, mascotas, armaduras y armas, en ese orden. Los monos, la parcela y los construibles usan el margen que sobre.
+- **Monos congelados** en sus triángulos de hoy (solo reciben técnicas que no cuestan triángulos). El equipo de 5 jugadores ya ocupa ~235.000 de los 650.000.
+- **Jefes sin precalentar:** se construyen una vez por servidor y, si tardan ~2 s, pasa cuando los jugadores están en el Basecamp. Tope de 2.000 bloques de diseño y 15.000 triángulos.
+- **Mapa y efectos:** se miden primero (`Rendimiento` cuenta el mapa a 350 studs del Basecamp); el margen del equipo sale de esa medida.
+- **Lobby y Dunas:** solo medir, con alerta; se decide cuando salten.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **Q1** | Normas y calculadora, sin tocar modelos: GDD §19, topes en `Config.Budgets`, `Rendimiento` (bloques, triángulos en todas las secciones, unión, escena de la Isla con mapa y efectos, reparto del margen, Lobby y Dunas, foto antes y después), `MonkeyModels` (atributos y precalentado de monos), skill y `docs/llm-local`. Línea base del 03-11-2026 en `RendimientoBase`: 110 monos 147.567 triángulos, 5 jugadores con equipo medio 243.746 (con las skins de arma), escena de la Isla 425.623 de 650.000 con mapa y efectos | — | ✅ Probado en Studio con la calculadora, 0 alertas (sin probar: VERIFICACION §94) |
+| **Q2** | Jefes, piloto: el Gorila de Ceniza con las 4 técnicas (hasta 2.000 bloques, 15.000 triángulos, 40 piezas, acentos de fase fuera de la unión); fija la receta | — | ⏳ |
+| **Q3** | Los otros 3 jefes (Chimpancé Caudillo, Gorila Albino, Orangután del Manglar) | — | ⏳ |
+| **Q4** | Monturas (+100 %) | — | ⏳ |
+| **Q5** | Mascotas: estándar (+50 %) y especiales o míticas (+100 %) | — | ⏳ |
+| **Q6** | Armaduras y trajes (+60 %: son el 84 % del equipo y el margen no da para más) | — | ⏳ |
+| **Q7** | Armas: forja, skins y Laboratorio (+100 %) | — | ⏳ |
+| **Q8** | Sobrante: monos, parcela (+25 %) y construibles (+20 %), solo si la tabla de reparto deja margen | — | ⏳ Pendiente |
+
+Q4–Q8 aplican la receta que fije Q2 y miden con `Rendimiento` contra la foto de Q1; su tope de triángulos es el objetivo o lo que dé la tabla de reparto de la §8b.
 
 ---
 
