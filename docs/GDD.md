@@ -1029,6 +1029,8 @@ La calidad se mejora en este orden: **jefes, monturas, mascotas, armaduras y arm
 | Resto | Monos y alfas | congelados: bloques de diseño 106 / 127 / 75 (alfas 140) y triángulos 1.796 / 2.076 / 1.090 (alfas 2.352) | 0 % (solo técnicas que no cuestan triángulos) | 10 → 14 |
 | Resto | Parcela y construibles | sin cambio | solo si sobra margen | sin cambio |
 
+**Desde la Fase 21 los modelos de esta tabla se hacen con malla con textura** (ver 19.2): el cuerpo de un jefe se mide en triángulos visibles por fase (Albino ~3.800 / 4.900 / 5.900 y Ceniza ~3.900 / 4.000 / 4.800, muy por debajo del tope de 15.000) y los bloques de diseño y las piezas solo cuentan para lo que sigue siendo unión (otro material o color por fase). Monturas, mascotas, armaduras y armas pasan a malla cuando el volcado cubra sus constructores.
+
 Las armaduras reciben +60 % y no +100 % porque son el 84 % del equipo de un jugador (40.724 de 48.749 triángulos de media): con +100 % se comerían todo el margen y las armas se quedarían sin nada.
 
 ### 19.4 Escenas
