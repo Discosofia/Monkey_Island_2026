@@ -893,7 +893,7 @@ Replanteo del 03-11-2026:
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
-| **Q1** | Normas y calculadora, sin tocar modelos: GDD §19, topes en `Config.Budgets`, `Rendimiento` (bloques, triángulos en todas las secciones, unión, escena de la Isla con mapa y efectos, reparto del margen, Lobby y Dunas, foto antes y después), `MonkeyModels` (atributos y precalentado de monos), skill y `docs/llm-local`. Línea base del 03-11-2026 en `RendimientoBase`: 110 monos 147.567 triángulos, 5 jugadores con equipo medio 243.746 (con las skins de arma), escena de la Isla 425.623 de 650.000 con mapa y efectos | — | ✅ Probado en Studio con la calculadora, 0 alertas (sin probar: VERIFICACION §94) |
+| **Q1** | Normas y calculadora, sin tocar modelos: GDD §19, topes en `Config.Budgets`, `Rendimiento` (bloques, triángulos en todas las secciones, unión, escena de la Isla con mapa y efectos, reparto del margen, Lobby y Dunas, foto antes y después), `MonkeyModels` (atributos y precalentado de monos), skill y `docs/llm-local`. Línea base del 03-11-2026 en `RendimientoBase`: 110 monos 147.567 triángulos, 5 jugadores con equipo medio 243.746 (con las skins de arma), escena de la Isla 425.623 de 650.000 con mapa y efectos | 683dbdc | ✅ Probado en Studio con la calculadora, 0 alertas (sin probar: VERIFICACION §94) |
 | **Q2** | Jefes, piloto: el Gorila de Ceniza con las 4 técnicas (hasta 2.000 bloques, 15.000 triángulos, 40 piezas, acentos de fase fuera de la unión); fija la receta | — | ⏳ |
 | **Q3** | Los otros 3 jefes (Chimpancé Caudillo, Gorila Albino, Orangután del Manglar) | — | ⏳ |
 | **Q4** | Monturas (+100 %) | — | ⏳ |
