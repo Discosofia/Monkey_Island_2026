@@ -39,6 +39,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 - **Reglas por place:** el combate es común. Lo que cambia en cada place se registra en `Combat/CombatRules.set` (`IslandCombatRules`, `DunasCombatRules`, `LobbyCombatRules`, `LabCombatRules`). El Laboratorio quita roles, habilidades y guardia, y su cliente no carga esos controladores (`Loader.load(carpetas, skip)`).
 - **Perfil:** `ServerShared/PlayerData`, DataStore `PlayerData_v1`, con bloqueo de sesión y migraciones. El cliente no lee el perfil: lo ve en atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`…). Si cambia el perfil, hay que publicar todos los places a la vez.
 - **Compras:** `ServerShared/Purchases.register`, con un recibo idempotente en el perfil.
+- **Mallas de jefes (Fase 21):** una parte del cuerpo de un jefe puede ser una `MeshPart` con textura (ids en `Shared/Data/BossMeshes`) en lugar de la unión de bloques. Se genera con `ServerStorage.Tools.Mallas.volcar` → `tools/mallas/<Jefe>.txt` → `python tools/mallas.py`, y el usuario importa los `.obj` con Import 3D. `EditableMesh` no sirve en el servidor.
 - **Mundo:** el Lobby y Dunas los generan `World/LobbyBuilder` y `World/ArenaBuilder`, y la isla `island/tools/MapBuilder`. Lo generado vive en el place, no en el repo.
 
 ## Reglas que no se rompen

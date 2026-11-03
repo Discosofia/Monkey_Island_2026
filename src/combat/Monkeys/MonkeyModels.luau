@@ -18,10 +18,12 @@
 -- Cada especie se construye una vez como plantilla y los monos son copias (MonkeyModels.spawn).
 -- El Humanoid lo mueve como a un personaje.
 
+local AssetService = game:GetService("AssetService")
 local GeometryService = game:GetService("GeometryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local BossMeshes = require(ReplicatedStorage.Shared.Data.BossMeshes)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
 local Monkeys = require(ReplicatedStorage.Shared.Data.Monkeys)
 
@@ -313,6 +315,51 @@ local function mergeBoxes(rig: Rig, main: BasePart, boxes: { BasePart }): BasePa
 	return union
 end
 
+-- Gancho para volcar los bloques de cada parte del cuerpo antes de unirlos (ServerStorage.Tools.Mallas, que alimenta a
+-- tools/mallas.py). Recibe el primer bloque de la parte y los demás.
+local boxSink: ((main: BasePart, boxes: { BasePart }) -> ())? = nil
+function MonkeyModels.setBoxSink(sink: ((main: BasePart, boxes: { BasePart }) -> ())?)
+	boxSink = sink
+end
+
+-- Fase 21: las partes del cuerpo de un jefe con entrada en Data/BossMeshes son una malla con textura (silueta en
+-- bloques gruesos y los mechones pintados) en lugar de la unión de bloques: el torso del Albino pasa de 2.212 a 468
+-- triángulos. Va colocada donde estaba la unión ("main" es su primer bloque, que fija el centro de la parte), con el
+-- giro de 180° sobre Y que aplica el importador. Devuelve nil (y la parte se une con bloques) si no hay malla de esa
+-- parte, falta su id o no carga.
+local function meshedPart(rig: Rig, main: BasePart, bossId: string?): BasePart?
+	local set = if bossId then BossMeshes[bossId] else nil
+	local entry = if set then set.parts[main.Name] else nil
+	if not (set and entry) or entry.mesh == "" or entry.texture == "" then
+		return nil
+	end
+	local ok, mesh = pcall(function()
+		return AssetService:CreateMeshPartAsync(Content.fromUri(entry.mesh))
+	end)
+	if not ok then
+		warn(`[MonkeyModels] No se pudo cargar la malla de {main.Name} ({bossId}): {mesh}`)
+		return nil
+	end
+	local factor = rig.scale / set.scale
+	if math.abs(factor - 1) > 1e-3 then
+		mesh.Size *= factor
+	end
+	mesh.TextureID = entry.texture
+	mesh.Color = Color3.new(1, 1, 1)
+	mesh.Material = Enum.Material.SmoothPlastic
+	mesh.CanCollide = false
+	mesh.Massless = true
+	mesh.CastShadow = main.CastShadow
+	mesh.CFrame = main.CFrame
+		* CFrame.new(entry.offset * factor)
+		* CFrame.Angles(0, math.pi, 0)
+		* mesh.ExtentsCFrame:Inverse()
+	mesh.Name = main.Name
+	mesh.Parent = rig.model
+	main:Destroy()
+	return mesh
+end
+
 -- Muestra las piezas de la fase "phase" del combate (atributo "Phase", ver VoxelExtra) y esconde las
 -- de las demás. Si el jefe no tiene nada para esa fase, se queda con lo de la anterior que sí tenga.
 local function showPhase(model: Model, phase: number)
@@ -419,7 +466,17 @@ local function voxelMonkey(rig: Rig, definition: Monkeys.MonkeyDefinition, spec:
 					end
 				end
 			end
-			local animated = mergeBoxes(rig, main :: BasePart, merged)
+			if boxSink then
+				boxSink(main :: BasePart, merged)
+			end
+			local animated = meshedPart(rig, main :: BasePart, bossId)
+			if animated then
+				for _, block in merged do
+					block:Destroy()
+				end
+			else
+				animated = mergeBoxes(rig, main :: BasePart, merged)
+			end
 			local parentPart = if part.parent then partNamed(rig, part.parent) else rig.root
 			local pivot = part.pivot
 			local pivotAt = if pivot then at(pivot[1] * flip, pivot[2], pivot[3]) else Vector3.zero

@@ -1003,7 +1003,7 @@ El coste de un modelo en pantalla no es solo su número de piezas:
 
 ### 19.2 Estilo voxel y técnicas permitidas
 
-Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en Luau, sin `MeshPart` importados, texturas ni `EditableMesh` (este último exige un dueño con verificación de identidad y tiene un presupuesto de memoria estricto en el cliente). Para ganar calidad sin perder rendimiento se usan cuatro técnicas:
+Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en Luau, sin `EditableMesh` (exige un dueño con verificación de identidad, tiene un presupuesto de memoria estricto en el cliente y, probado el 03-11-2026, lo que crea el servidor no se ve bien en el cliente). **Excepción (Fase 21):** las partes del cuerpo de un jefe pueden ser una `MeshPart` con textura, generada por `tools/mallas.py` a partir de los mismos bloques e importada con Import 3D (ids en `Data/BossMeshes`): la silueta son los bloques gruesos y los mechones y manchas finos se pintan en la textura. Para ganar calidad sin perder rendimiento se usan cinco técnicas:
 
 | Técnica | Qué es | Coste |
 |---|---|---|
@@ -1011,6 +1011,7 @@ Los modelos son voxel: bloques en rejilla con pocos tonos planos, generados en L
 | **Rejilla más fina** | Bloques más pequeños en cara, manos y ojos, para dar expresión | Sube los bloques de diseño y los triángulos; no las piezas en juego si se unen |
 | **Biseles con cuñas** | `WedgePart` y `CornerWedgePart` en orejas, hombros y bordes, para suavizar la silueta | Las cuñas no se fusionan con `VoxelMerge`: cuestan piezas. El spec voxel de monos y jefes solo admite bloques, así que ahí se hacen **escalones de bloques**, que se unen sin piezas extra |
 | **Acentos de material** | Neon, Glass o Foil en ojos, gemas y marcas | Una unión tiene un solo material, así que van en piezas sueltas aparte; sin transparencia parcial |
+| **Malla con textura** (Fase 21, solo partes del cuerpo de jefes) | Los bloques gruesos se fusionan en una malla sin caras tapadas y los bloques finos (< 0,2 studs) se pintan en una textura de 0,1 studs por texel | Torso del Albino 2.212 → 468 triángulos; el Albino entero pasa de ~8.900–11.100 a 3.800–5.900 triángulos visibles según la fase. Pierde el relieve de los mechones (0,16 studs) y cada modelo es una importación manual |
 
 Regla de lectura: si un detalle no se ve a 20 studs, sobra. Las variantes (alfas, rarezas, fases de jefe) tienen que distinguirse a primera vista, también por detrás, con rasgos y colores nuevos y no con un simple tinte.
 

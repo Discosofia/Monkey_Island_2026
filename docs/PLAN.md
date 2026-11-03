@@ -918,6 +918,31 @@ Q4–Q8 aplican la receta que fije Q2 y miden con `Rendimiento` contra la foto d
 - **Reparto:** `search` localiza, `programador` solo para lo muy largo (en Q2 lo escribió la sesión principal con capturas), `probador-studio` para el Play y `documentador` para el papeleo. Commit solo con el «aprobado»; push y fila de `PLAN.md` en un commit aparte.
 - **Prompt para la pestaña nueva:** «Continúa la Fase 20 de Monkey_Island_2026 con el grupo Q3 (los otros 3 jefes con la receta del Gorila de Ceniza). Lee CLAUDE.md, la sección "Fase 20" de docs/PLAN.md (su Handoff de Q3), GDD §19 y la skill modelos-3d-roblox (references/estilo-del-proyecto.md §6). Pregúntame con cuál de los tres empezamos (Gorila Albino, Chimpancé Caudillo u Orangután del Manglar), haz la mini-entrevista de estilo y sigue el flujo del Handoff.»
 
+### Fase 21: Mallas con textura para los jefes (03-11-2026)
+
+Sale de comparar *Hatch a Mount* y *Survive the Swarm* (03-11-2026): sus modelos tienen más detalle con presupuestos parecidos. La medida en nuestros jefes (Ceniza y Albino) mostró que fusionar los bloques en una malla no ahorra triángulos (la superficie visible ya es casi todo), pero que **entre el 50 y el 70 % de los triángulos son bloques finos** (mechones de pelo, venas, capas de piel) que son sombreado y color. Pintarlos en una textura y dejar solo la silueta en geometría los reduce a la mitad o menos.
+
+Lo comprobado el 03-11-2026 (Studio de la Isla, en edición y en Play, con copia del perfil):
+- **`EditableMesh` no sirve en el servidor:** en Play exige activar la opción de la experiencia, y lo que crea el servidor llega al cliente con la forma pero con un patrón de cuadros (sin colores ni textura). Creado en el propio cliente sí se ve bien.
+- **Malla subida con Import 3D:** funciona. Se crea con `AssetService:CreateMeshPartAsync(Content.fromUri(id))`, se anima con las mismas `Motor6D`, el cliente la ve con su textura y no deja piezas sueltas.
+- **Resultado en el Gorila Albino (6 partes del cuerpo):** de unos 8.900 / 10.000 / 11.100 triángulos visibles por fase a 3.800 / 4.900 / 5.900; 351 bloques de diseño en las uniones que quedan (adornos de otro material) y `UnionMs` 360 frente a 520. El cristal, las venas y la cara siguen siendo uniones (otro material y color por fase).
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **M1** | Herramienta y piloto: `tools/mallas.py` (volcado de bloques → `.obj` + `.mtl` + `.png` por parte, espejo de los lados izquierdos, suma de control), `ServerStorage.Tools.Mallas.volcar`, `Data/BossMeshes.luau` y `MonkeyModels` (usa la malla de una parte si hay id, o los bloques si no). Piloto: el Gorila Albino entero | — | ✅ Probado en Play; **falta el «aprobado» y el commit** (sin probar: VERIFICACION §97) |
+| **M2** | Gorila de Ceniza con malla. Hay que resolver el color por fase (`phaseColors` no cambia el color de una textura) | — | ⏳ |
+| **M3** | Chimpancé Caudillo y Orangután del Manglar (era Q3b y Q3c; propuesta: se hacen **ya con malla**, modelando en bloques y exportando) | — | ⏳ |
+| **M4** | `Rendimiento` cuenta los triángulos de las mallas (`MeshPart` no da `TriangleCount`: se leen del manifiesto de la herramienta) y `Config.Budgets` pasa los topes de jefe a triángulos visibles | — | ⏳ |
+| **M5** | Montura, mascotas y armaduras (Q4–Q7), si el coste de importar cada modelo a mano compensa | — | ⏳ Pendiente de decidir |
+
+Pendiente y riesgos: la opción de la experiencia de las APIs de malla (¿hace falta con `CreateMeshPartAsync` y un id? la prueba tuvo la opción activada); el filtrado bilineal difumina los mechones de cerca (con 0,05 studs por texel saldría más nítido y la textura del torso pasaría de 512×512 a 1024×1024); no se ha medido la memoria de texturas ni probado en teléfono; el importador gira la malla 180° sobre Y (compensado en `MonkeyModels`; sin confirmar si es giro o espejo con una pieza asimétrica).
+
+**Handoff de la Fase 21 (03-11-2026)**
+- **Estado:** M1 hecho y probado en Play, **sin commit** (falta el «aprobado»). Archivos: `tools/mallas.py`, `tools/mallas/GorilaAlbino.txt`, `src/island/tools/Mallas.luau`, `src/shared/Data/BossMeshes.luau`, `src/combat/Monkeys/MonkeyModels.luau` (`meshedPart`, `setBoxSink`), GDD §19.2, CLAUDE.md y VERIFICACION §97. Siguiente número libre de VERIFICACION: §98.
+- **Para otro jefe:** `local m = game.ServerStorage.Tools.Mallas:Clone(); require(m).volcar("<Jefe>", <copia de Combat.Monkeys>)`, copiar lo impreso a `tools/mallas/<Jefe>.txt` (la suma de control avisa de un número mal copiado), `python tools/mallas.py … --espejo Left_Arm=Right_Arm --espejo Left_Leg=Right_Leg`, pedir al usuario que importe los `.obj` de `build/mallas/<Jefe>` (Import 3D, escala por defecto), leer los ids de `workspace` por MCP (`MeshPart` `default`: `MeshId` y `TextureID`) y ponerlos en `BossMeshes` con los `offset` de `manifiesto.json`. La Salida truncada por el límite del MCP no impide copiar: las partes salen una a una.
+- **Trampas:** `require` de Studio cachea `Shared` (en edición `BossMeshes` salía con los ids vacíos: clónala también); Play escribe el perfil real (copia antes, restaura después; la sesión usó claves `_antes…` en `PlayerData_v1_backups`); el arnés revierte un cambio de `CurrentCamera.CameraType` hecho dentro de un comando (usa `task.delay` y espera a que acabe); una `MeshPart` nueva hay que reparentar sus `Motor6D` antes de destruir la vieja (cuelgan del torso).
+- **Antes de seguir con Q3b/Q3c:** decidir si se hacen ya con malla (M3) o con bloques y se pasan a malla después. El Ceniza (M2) necesita resolver el color por fase.
+
 ---
 
 ## 4. Cronograma estimado

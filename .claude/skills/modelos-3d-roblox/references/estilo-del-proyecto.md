@@ -464,6 +464,13 @@ lo de otro material, que va en grupos (`groups`): 744 bloques, 30 piezas, ~11.00
   sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Nada de transparencia parcial ni texturas.
 Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.
 
+**Mallas con textura (Fase 21, partes del cuerpo de los jefes).** Si una parte tiene entrada en `Data/BossMeshes`,
+`MonkeyModels` usa una `MeshPart` en lugar de la unión de bloques: los bloques gruesos (≥ 0,2 studs) son la silueta y los
+finos (mechones, manchas, capas de piel) se pintan en una textura de 0,1 studs por texel (el torso del Albino pasa de
+2.212 a 468 triángulos). Lo genera `tools/mallas.py` desde el volcado de `ServerStorage.Tools.Mallas.volcar`; el usuario
+importa los `.obj` con Import 3D y los ids van en `BossMeshes`. Lo de otro material (Neon, Glass) y lo que cambia por fase
+siguen siendo uniones. Se sigue diseñando en bloques en el spec voxel: el spec es la fuente y la malla se regenera.
+
 Las mascotas tienen un presupuesto alto a propósito: van siempre al lado del jugador, se ven de
 cerca y el usuario quiere que el detalle se lea muy definido (remaches, costuras, anillos de un
 tubo, nudillos). Aun así, cada cliente mueve todas las mascotas del servidor con `PivotTo` en cada

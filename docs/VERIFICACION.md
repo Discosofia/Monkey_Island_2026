@@ -3995,6 +3995,36 @@ Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0).
 2. [ ] En un teléfono, mira al jefe a unos 30 studs en las tres fases.
    ✅ Los FPS no caen de forma apreciable (~13.200 triángulos sumando las tres fases, antes 1.664) y la fase 3 se distingue de la 1.
 
+## 97. Fase 21 M1: Gorila Albino con mallas con textura (03-11-2026)
+
+Las seis partes del cuerpo del Albino (torso, cabeza, brazos y piernas) son `MeshPart` con textura (`Data/BossMeshes`); el cristal, las venas, la cara y los ojos siguen siendo uniones. Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0). Para invocar al Albino, el panel de pruebas tiene la fila «Jefe» (rota Orangután, Chimpancé, Albino, Ceniza: son 3 pulsaciones desde el principio).
+
+### 97.1 En Play, en la Isla (1 jugador)
+
+1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Invoca al Albino y mide cuánto tarda en aparecer.
+   ✅ La primera vez tarda ~0,4–0,5 s y sin errores ni avisos «No se pudo cargar la malla» en la Salida; las siguientes veces sale al instante (plantilla).
+2. [ ] Míralo de frente, por detrás y de lado en las tres fases (baja su vida con «Jefe herido»).
+   ✅ El pelaje blanco tiene las manchas de los mechones pintadas (sin relieve), los cristales y las venas de rubí siguen creciendo por fase y la fase 3 se distingue de la 1 a primera vista, también por detrás.
+3. [ ] Compara con el Gorila de Ceniza (aún con bloques) y con el Albino de antes.
+   ✅ A 20–30 studs la textura se lee como pelo con manchas, sin verse borrosa ni a cuadros; de cerca (5–10 studs) se aprecia el difuminado del filtrado, que no molesta.
+4. [ ] Mira cómo anda, embiste, pisa y ruge.
+   ✅ Las seis mallas se mueven con su articulación sin piezas sueltas ni flotando; los cristales de los hombros y los puños caen sobre las hombreras y las estalagmitas de los brazos (señal de que el giro de la malla es el correcto en el brazo derecho y en el izquierdo).
+5. [ ] Dispara o golpea el corazón cian (`CrystalCore`) y la cabeza.
+   ✅ El pecho sigue siendo el punto débil y la cabeza cuenta como cabeza.
+6. [ ] En el Studio, quita un id de `BossMeshes.luau` (por ejemplo el de la cabeza) y vuelve a invocarlo.
+   ✅ Esa parte sale con bloques como antes y el resto con malla; sin errores. Devuelve el id.
+7. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 97.2 En el juego publicado, con 2 jugadores y en teléfono
+
+1. [ ] Publica la Isla y, con la opción de la experiencia de las APIs de malla e imagen **desactivada** (Game Settings → Security), invoca al Albino.
+   ✅ Las mallas cargan igual (`CreateMeshPartAsync` con un id no depende de esa opción). Si no cargan, salen los bloques de antes y la Salida avisa: entonces la opción hay que dejarla activada.
+2. [ ] Con 2 jugadores, uno de ellos entra después de que el Albino ya esté vivo.
+   ✅ El segundo ve las seis mallas con su textura (no un patrón de cuadros) y los dos ven lo mismo.
+3. [ ] En un teléfono, mira al Albino a unos 30 studs en las tres fases.
+   ✅ Los FPS no caen frente al Albino de antes (3.800–5.900 triángulos visibles frente a ~9.000–11.000) y la textura no se ve a cuadros.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
