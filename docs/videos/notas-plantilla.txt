@@ -1,0 +1,27 @@
+NOTAS DEL VÍDEO
+===============
+Copia este archivo como notas.txt dentro de la carpeta del vídeo (O:\Videos Primal banana\<vídeo>\), rellénalo y dime que está. Yo solo lo leo, nunca escribo en O:.
+Todo es opcional: lo que dejes en blanco lo pregunto o lo decido yo.
+
+Tipo (short / reel / youtube):
+Idiomas (es, en, o los dos):
+Duración deseada (segundos):
+
+Idea en una frase:
+Gancho (lo primero que se ve y se lee):
+Público (jugadores nuevos, gente de Roblox, otros desarrolladores…):
+Mensaje final (qué debe quedar claro):
+
+Qué hay en cada toma (número del inventario o nombre del archivo → qué se ve; si no lo sabes, lo miro yo):
+  1:
+  2:
+
+Momentos que no pueden faltar (toma y minuto, si los sabes):
+
+Qué evitar (avisos del juego, paneles de Studio, el Admin, partes feas, spoilers…):
+
+Música (alta / media / baja / ninguna; o el nombre de una pista de docs/videos/musica con licencia):
+
+Tomas que sabes que faltan y quieres grabar:
+
+Otras notas:

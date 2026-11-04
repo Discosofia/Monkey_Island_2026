@@ -1,0 +1,54 @@
+{
+	"id": "quetzalcoatl-mejora",
+	"titulo": "Desarrollo y mejora del Quetzalcóatl",
+	"formato": "short",
+	"carpeta": "Upgrading Quetzaqatl",
+	"cortes": [
+		{ "toma": "2026-11-04 00-10-04.mkv", "desde": 58.0, "dura": 3.0, "cx": 0.5, "cy": 0.55, "zoom": 1.3, "clase": "juego", "nota": "1 Gancho: el Quetzalcóatl de frente en la isla" },
+		{ "toma": "2026-11-04 01-04-09.mkv", "desde": 60.5, "dura": 4.0, "cx": 0.55, "cy": 0.45, "zoom": 1.3, "clase": "visor", "nota": "2 Origen: los bloques de cerca en el visor de Studio" },
+		{ "toma": "2026-11-04 01-04-09.mkv", "desde": 147.0, "dura": 5.0, "cx": 0.4, "cy": 0.42, "zoom": 1.25, "clase": "visor", "nota": "3 Mejora: la cabeza con malla y plumas" },
+		{ "toma": "2026-11-04 01-04-09.mkv", "desde": 255.0, "dura": 5.0, "cx": 0.42, "cy": 0.5, "zoom": 1.2, "clase": "studio", "nota": "4 Prueba: el dragón brillante en Play dentro de Studio" },
+		{ "toma": "2026-11-04 00-44-55.mkv", "desde": 30.0, "dura": 5.0, "cx": 0.4, "cy": 0.55, "zoom": 1.2, "clase": "studio", "nota": "5 Resultado: el dragón montado en la parcela" },
+		{ "toma": "portada", "dura": 3.0, "nota": "6 Cierre: la portada con el título" }
+	],
+	"textos": {
+		"es": [
+			{ "en": 0.0, "dura": 2.8, "texto": "¿Un dragón\nde bloques?" },
+			{ "en": 3.2, "dura": 3.6, "texto": "Lo modelamos\npieza a pieza" },
+			{ "en": 7.2, "dura": 4.6, "texto": "Ahora, con malla\ny plumas pintadas" },
+			{ "en": 12.2, "dura": 4.6, "texto": "Y lo probamos\nen la isla" },
+			{ "en": 17.2, "dura": 4.6, "texto": "¡Vuela con él!" },
+			{ "en": 22.2, "dura": 2.7, "texto": "¡Ven con tus\namigos!", "y": 0.28 },
+			{ "en": 22.2, "dura": 2.7, "texto": "Gratis en Roblox · Hasta 5 amigos", "chico": true, "y": -0.3 }
+		],
+		"en": [
+			{ "en": 0.0, "dura": 2.8, "texto": "A dragon\nmade of blocks?" },
+			{ "en": 3.2, "dura": 3.6, "texto": "Built piece\nby piece" },
+			{ "en": 7.2, "dura": 4.6, "texto": "Now with a mesh\nand painted feathers" },
+			{ "en": 12.2, "dura": 4.6, "texto": "Then we test it\non the island" },
+			{ "en": 17.2, "dura": 4.6, "texto": "Fly with it!" },
+			{ "en": 22.2, "dura": 2.7, "texto": "Bring your\nfriends!", "y": 0.28 },
+			{ "en": 22.2, "dura": 2.7, "texto": "Free on Roblox · Up to 5 friends", "chico": true, "y": -0.3 }
+		]
+	},
+	"voz": {
+		"es": [
+			{ "en": 0.2, "dura": 2.7, "texto": "Esto es un dragón. ¡Hecho de bloques!", "y": -0.32 },
+			{ "en": 3.2, "dura": 3.6, "texto": "Lo construimos pieza a pieza.", "y": -0.32 },
+			{ "en": 7.2, "dura": 4.6, "texto": "Ahora con malla y plumas pintadas.", "y": -0.32 },
+			{ "en": 12.2, "dura": 4.6, "texto": "Y lo probamos en la isla.", "y": -0.32 },
+			{ "en": 17.2, "dura": 4.6, "texto": "Y ahora puedes montarlo.", "y": -0.32 }
+		],
+		"en": [
+			{ "en": 0.2, "dura": 2.7, "texto": "This is a dragon. Made of blocks!", "y": -0.32 },
+			{ "en": 3.2, "dura": 3.6, "texto": "We built it piece by piece.", "y": -0.32 },
+			{ "en": 7.2, "dura": 4.6, "texto": "Now with a mesh and painted feathers.", "y": -0.32 },
+			{ "en": 12.2, "dura": 4.6, "texto": "Then we test it on the island.", "y": -0.32 },
+			{ "en": 17.2, "dura": 4.6, "texto": "Now you can ride it.", "y": -0.32 }
+		]
+	},
+	"faltan": [
+		{ "plano": "El Quetzalcóatl antiguo, solo de bloques, para contrastar con el nuevo", "como": "Grabar en Studio con el modelo viejo (o sin malla), cámara lenta alrededor de la cabeza, 4 s, visor 3D libre de paneles.", "sustituto": "Los bloques de cerca (T4 0:58), como está en el corte 2" },
+		{ "plano": "Música", "como": "Ninguna pista tiene fila en el registro de licencias.", "sustituto": "Música de la biblioteca de CapCut (-10 dB) o apuntar una pista con su licencia" }
+	]
+}

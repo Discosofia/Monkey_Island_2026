@@ -1,6 +1,8 @@
-# Shorts de YouTube y TikTok (9:16, 15–30 s)
+# Vídeos del juego: Shorts, Reels y YouTube
 
-Guion de cada Short en `docs/videos/shorts/<id>.json`. Los borradores de CapCut se crean con:
+Tres tipos: **short** (9:16, 15–60 s), **reel** (9:16, hasta 90 s) y **youtube** (16:9, devlog de 1–3 min). Primero va el guion narrativo por escenas (`docs/videos/guiones/`), después se buscan los planos en la carpeta de tomas con `tools/video/tomas.py` (`inventario`, `explorar`, `detalle`, `storyboard`), y con el guion técnico se crea el borrador. Las tomas de cada vídeo están en `O:\Videos Primal banana\<vídeo>\`; la plantilla de notas es `notas-plantilla.txt`.
+
+Guion técnico de cada vídeo en `docs/videos/shorts/<id>.json`. Los borradores de CapCut se crean con:
 
 ```bash
 build/videos/.venv/Scripts/python -I tools/video/short.py docs/videos/shorts/<id>.json [--lang es|en] [--solo-vista]
@@ -12,10 +14,18 @@ Crean `build/videos/borradores/<id>-<idioma>-vN/` (cada ejecución, una carpeta 
 
 | Campo | Qué |
 |---|---|
-| `cortes[].toma` | Ruta de la toma en `O:/`, o `portada` (cierre; entra entera a lo ancho) |
+| `formato` | `short` (por defecto), `reel` o `youtube`: el lienzo (1080×1920 o 1920×1080) y la duración que se espera (aviso si no cuadra) |
+| `carpeta` | Opcional: carpeta de las tomas dentro de `O:/Videos Primal banana`. Con ella, `toma` puede ser solo el nombre del archivo |
+| `cortes[].toma` | Ruta de la toma en `O:/` (o el nombre, con `carpeta`), o `portada` (cierre; entra entera a lo ancho) |
 | `desde`, `dura`, `velocidad` | Trozo de la toma (segundos) y su velocidad; en la línea dura `dura / velocidad` |
-| `cx`, `cy`, `zoom` | Centro del recuadro 9:16 (fracción de la toma) y zoom. El script lo mete en la zona útil de la toma (sin la barra de herramientas ni la franja de Studio): el zoom mínimo es 1,28 |
-| `textos.es` / `textos.en` | `en` (segundo de inicio), `dura`, `texto`, `y` (altura, de -0,33 a 0,33: el tercio central; por defecto -0,2) y `chico` |
+| `clase` | Opcional: `juego` (el juego a pantalla completa), `studio` (el juego dentro de Studio, sin cinta ni Explorador) o `visor` (el visor 3D de Studio en edición). Define la zona útil y el volumen (juego 0,5; Studio 0). Sin `clase`: la zona de siempre y volumen 1 |
+| `cx`, `cy`, `zoom` | Centro del recuadro (fracción de la toma) y zoom. El script lo mete en la zona útil de la clase. En vertical el zoom 1 es la toma entera de alto (mínimo 1,28 sin clase); en `youtube`, la zona útil entera |
+| `textos.es` / `textos.en` | `en` (segundo de inicio), `dura`, `texto`, `y` (altura, de -0,33 a 0,33 en vertical, el tercio central, y de -0,45 a 0,45 en `youtube`; por defecto -0,2) y `chico` |
+| `voz.es` / `voz.en` | Opcional: las frases que se leerán con el texto a voz de CapCut, en una pista `voz` como subtítulos pequeños abajo (por defecto `y` -0,3). Mismos campos que los textos |
+| `musica` | Opcional: `{ "pista": "docs/videos/musica/alta/<archivo>.mp3", "volumen": 0.3 }`. Solo vale una pista con fila en el registro de licencias |
+| `faltan` | Opcional, solo para el storyboard: lista de `{ "plano", "como", "sustituto" }` con las tomas que hay que grabar |
+
+Para ver un guion con fotogramas: `build/videos/.venv/Scripts/python -I tools/video/tomas.py storyboard docs/videos/shorts/<id>.json` crea `build/videos/proyectos/<id>/storyboard.html` (autocontenido; se publica como Artifact).
 
 ## Short 1: Ladrones y jefes (`jefes.json`, 15,99 s)
 

@@ -4515,6 +4515,23 @@ El Tucán se rehízo en bloques (barriga que engrosa en cuatro escalones, plumas
 4. [ ] Pon la skin de mascota que valga para el Tucán (si existe) y quítala.
    ✅ Con skin, bloques con su paleta; sin skin, malla.
 
+## 117. Skill de vídeo v2: guion, storyboard y borrador de Short, Reel y YouTube (04-11-2026)
+
+Con CapCut cerrado, en los borradores `quetzalcoatl-mejora-es-v1` y `quetzalcoatl-mejora-en-v1` (ya instalados en CapCut; guion `docs/videos/shorts/quetzalcoatl-mejora.json`, tomas de «Upgrading Quetzaqatl»):
+
+1. [ ] Abre el borrador vertical (Short) en CapCut.
+   ✅ Abre sin avisos; hay pistas de vídeo, música (si el guion la pidió), título, pie y `voz`; las tomas de Studio no suenan.
+2. [ ] Mira los encuadres de los cortes de Studio (`studio` y `visor`).
+   ✅ No se ven la cinta de Studio, el Explorador ni la barra de abajo; el sujeto está centrado.
+3. [ ] Genera la voz con el texto a voz sobre las frases de la pista `voz`.
+   ✅ Las frases caben en su escena (sin cortes ni solapes).
+4. [ ] Haz un borrador con `"formato": "youtube"` y ábrelo.
+   ✅ El lienzo es 1920×1080, abre sin avisos y los textos quedan dentro del cuadro.
+5. [ ] Añade una pista a `docs/videos/musica/` con su fila en el registro de licencias y ponla en `"musica"`.
+   ✅ El borrador trae la música a volumen 0,3 y no pasa del final del vídeo.
+6. [ ] Mide los minutos de retoque hasta exportar.
+   ✅ 5 min o menos (objetivo).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
