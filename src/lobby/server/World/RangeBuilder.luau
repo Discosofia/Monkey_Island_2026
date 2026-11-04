@@ -17,8 +17,9 @@
 -- y un TextLabel "Readout"); diez dianas (Model con RangeTarget = true en CampoDeTiro/Dianas);
 -- tres muñecos (fijo, de lado a lado y de atrás adelante, en CampoDeTiro/Munecos); obstáculos, plataforma con rampa y cañón, foso de rebotes, paneles de materiales y un
 -- péndulo; la zona de preparación con bancos y cajas; dos consolas (BorrarMarcasPrompt y RondaPrompt); y el
--- Armero (Fase 24b, v8): una pared de la zona de preparación con las cuatro armas del Laboratorio colgadas, un aviso
--- por arma (atributo "ArmeroWeapon") y «Dejar arma» (ArmeroDejarPrompt), que atiende RangeShooterService.
+-- Armero (Fase 24b, v8; v9: armas en horizontal con su nombre y más separadas): una pared de la zona de
+-- preparación con las cuatro armas del Laboratorio colgadas, un aviso por arma (atributo "ArmeroWeapon") y
+-- «Dejar arma» (ArmeroDejarPrompt), que atiende RangeShooterService.
 -- Aquí todo está quieto: mueve las dianas RangeTargetService, y las marcas y la lectura de las pantallas
 -- las dibuja RangeScreenController.
 
@@ -36,7 +37,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 8
+local VERSION = 9
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -1075,17 +1076,20 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Armero (Fase 24b)
 
--- Pared derecha de la zona de preparación (cara interior en x = HALF_WIDTH), entre la caja de la derecha y la
--- línea de tiro. Las cuatro armas del Laboratorio cuelgan en vertical, con la boca hacia arriba y el costado
--- hacia el recinto, y a su derecha va «Dejar arma». Cada aviso es de una sola arma: ArmeroWeapon = su id.
+-- Pared derecha de la zona de preparación (cara interior en x = HALF_WIDTH), entre la línea de tiro y la pared
+-- trasera. Las cuatro armas del Laboratorio cuelgan en horizontal, con la boca hacia las dianas (-z), cada una
+-- con su nombre debajo, y al final va «Dejar arma». Cada aviso es de una sola arma: ArmeroWeapon = su id. Van a
+-- ARMORY_COLUMN studs unas de otras y con un alcance corto, para que el aviso sea el del arma que se tiene delante.
 local ARMORY_X = HALF_WIDTH - 1.4
-local ARMORY_Z = 81 -- centro de la columna de armas
-local ARMORY_COLUMN = 5 -- separación entre armas
-local ARMORY_DROP_Z = ARMORY_Z + 12.5
-local ARMORY_BOARD_Z = ARMORY_Z + 2.5 -- centro del tablero: cubre las armas y «Dejar arma»
-local ARMORY_CENTER_Y = 6.5
-local ARMORY_WEAPON_LENGTH = 5 -- lado mayor de cada arma, en studs
-local ARMORY_REACH = 9
+local ARMORY_Z = 86 -- centro de la fila de armas
+local ARMORY_COLUMN = 8 -- separación entre armas
+local ARMORY_DROP_Z = ARMORY_Z + 20
+local ARMORY_BOARD_Z = ARMORY_Z + 4 -- centro del tablero: cubre las armas y «Dejar arma»
+local ARMORY_BOARD_DEPTH = 40
+local ARMORY_CENTER_Y = 6.8
+local ARMORY_WEAPON_LENGTH = 6.4 -- lado mayor de cada arma, en studs
+local ARMORY_LABEL_Y = 3.9
+local ARMORY_REACH = 6
 local ARMORY_COLOR = 0xffcfa8
 
 -- Una copia decorativa y anclada de la herramienta del arma, con su centro en "target".
@@ -1121,7 +1125,7 @@ end
 local function buildArmory(root: Instance)
 	local armory = folder(root, "Armero")
 	local boardZ = ARMORY_BOARD_Z
-	local boardDepth = 25
+	local boardDepth = ARMORY_BOARD_DEPTH
 	local wood = Enum.Material.WoodPlanks
 	box(armory, "Tablero", HALF_WIDTH - 0.5, 2, boardZ, 1, 12.4, boardDepth, 0x3a2a1c, wood)
 	for _, y0 in { 1.6, 11.2 } do
@@ -1144,11 +1148,33 @@ local function buildArmory(root: Instance)
 	sign(armory, later("Armero"), 12, 1.6, Vector3.new(ARMORY_X + 0.3, 13.2, boardZ), Enum.NormalId.Left, ARMORY_COLOR)
 
 	for index, weaponId in LabWeapons.ORDER do
-		local z = ARMORY_Z + (index - 2.5) * ARMORY_COLUMN
-		buildDisplayWeapon(armory, weaponId, place(ARMORY_X, ARMORY_CENTER_Y, z))
-		for _, y0 in { 3.5, 9.1 } do
-			box(armory, "Soporte", HALF_WIDTH - 1.3, y0, z, 0.6, 0.4, 0.8, 0x50565d, Enum.Material.Metal)
+		local z = ARMORY_Z - 10 + (index - 1) * ARMORY_COLUMN
+		-- Tumbada (+90° sobre el eje de la pared, que es x): la boca apunta a -z, hacia las dianas, y el cargador
+		-- queda abajo.
+		buildDisplayWeapon(armory, weaponId, place(ARMORY_X, ARMORY_CENTER_Y, z) * CFrame.Angles(math.rad(90), 0, 0))
+		for _, dz in { -2.2, 2.2 } do
+			box(
+				armory,
+				"Soporte",
+				HALF_WIDTH - 1.3,
+				ARMORY_CENTER_Y - 1.9,
+				z + dz,
+				0.6,
+				0.4,
+				0.8,
+				0x50565d,
+				Enum.Material.Metal
+			)
 		end
+		sign(
+			armory,
+			LabWeapons.weapons[weaponId].name,
+			ARMORY_WEAPON_LENGTH + 0.6,
+			1.1,
+			Vector3.new(ARMORY_X + 0.3, ARMORY_LABEL_Y, z),
+			Enum.NormalId.Left,
+			ARMORY_COLOR
+		)
 		local anchor = decor(
 			box(armory, "Aviso", ARMORY_X - 0.6, ARMORY_CENTER_Y - 0.5, z, 0.5, 0.5, 0.5, 0x50565d, Enum.Material.Metal)
 		)
