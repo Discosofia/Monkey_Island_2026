@@ -4480,6 +4480,26 @@ El Quetzalcóatl (Mítica) se rehízo a máximo detalle y es ahora 11 mallas con
 2. [ ] En un teléfono, mira el Quetzalcóatl a unos 10 studs y con varias monturas cerca.
    ✅ Los FPS no caen y la textura no se ve borrosa ni a cuadros.
 
+## 114. Fase 20 Q5a: mascotas con malla; piloto la Capibara (04-11-2026)
+
+Las mascotas se pueden montar con malla (Fase 21): `PetModels.build(petId, skinId, boxesOnly)` agrupa las piezas por articulación (cabeza, cada pata y `Static` para lo fijo) y cada grupo con id en `Data/PetMeshes` pasa a ser una `MeshPart` con la misma articulación. Con skin, o si las mallas aún no han cargado, la mascota usa bloques (y `PetFollowers.start` las pide al arrancar). Volcado: `ServerStorage.Tools.Mallas.volcarMascota(id, <clon de Shared>)`, luego `python tools/mallas.py tools/mallas/<Mascota>.txt --del-log` y `--jefe <Mascota> --escala 1 --fino 0.035 --texel 0.01 --espejo FL=FR …`. Piloto: la Capibara rehecha (grupa redondeada en escalones, ojo con capas, carrillos, pelo fino pintado): 6 mallas con 1.204 triángulos (tope 2.800), 7 piezas en juego (antes 195). Comprobado el 04-11-2026 en Edit (mallas y bloques con el mismo tamaño) y en Play (las patas se mueven con su articulación). Sin probar: lo de abajo. `Rendimiento` aún no cuenta las mallas (M4): una mascota con malla sale con bloques.
+
+### 114.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa la Capibara (panel de pruebas o Lobby) y camina, párate y gira.
+   ✅ Ves la versión de malla con textura (no bloques) pegada a ti; las patas andan; la cabeza oscila; sin piezas sueltas ni huecos.
+2. [ ] Míra la desde atrás y de cerca.
+   ✅ Grupa redondeada con flequillo y rabo bajo; el pelo se lee pintado sin pixelarse demasiado.
+3. [ ] Pon una skin de mascota que valga para la Capibara (si existe) y quítala.
+   ✅ Con skin sale con bloques y su paleta; sin ella, con malla.
+4. [ ] Míra la en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Se ve con su textura (si el `ViewportFrame` la saca de bloques la primera vez, anótalo).
+
+### 114.2 En el juego publicado
+
+1. [ ] Equipa la Capibara al entrar y mide cuándo aparece la malla.
+   ✅ Primero puede salir en bloques un instante y pasa a malla en la siguiente equipación; sin errores en la Salida.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

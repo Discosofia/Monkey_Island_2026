@@ -83,6 +83,7 @@ local function smoothstep(edge0: number, edge1: number, x: number): number
 end
 
 function PetFollowers.start()
+	PetModels.preloadAll()
 	local followers: { [Player]: Follower } = {}
 	local localPlayer = Players.LocalPlayer
 	local folder = Instance.new("Folder")

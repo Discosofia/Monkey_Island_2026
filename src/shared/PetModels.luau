@@ -12,7 +12,10 @@
 
 local CosmeticSlots = require(script.Parent.CosmeticSlots)
 local Cosmetics = require(script.Parent.Data.Cosmetics)
+local PetMeshes = require(script.Parent.Data.PetMeshes)
 local Pets = require(script.Parent.Data.Pets)
+
+local AssetService = game:GetService("AssetService")
 
 export type Motion = "Walk" | "Hop" | "Fly" | "Hover"
 
@@ -3639,36 +3642,111 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		local light = fur:Lerp(Color3.fromRGB(235, 175, 105), 0.5)
 		local belly = Color3.fromRGB(205, 165, 110)
 		local nose = Color3.fromRGB(42, 28, 26)
+		local leg = fur:Lerp(dark, 0.3)
+		local warm = fur:Lerp(Color3.fromRGB(190, 120, 70), 0.35) -- mechón claro del pelaje
+		local deep = fur:Lerp(Color3.fromRGB(30, 16, 12), 0.35) -- mechón oscuro
+		-- Tono de un mechón según su número: reparte los cuatro tonos sin que se vea el patrón.
+		local function strand(i: number): Color3
+			local k = i % 4
+			return if k == 0 then warm elseif k == 1 then deep elseif k == 2 then light else fur:Lerp(dark, 0.2)
+		end
 
-		-- Tronco: pecho, lomo y una grupa más alta con el muslo marcado. El lomo claro va en escalones
-		-- con manchas oscuras, y los costados llevan mechones alternando tonos.
-		box(nil, "Body", Vector3.new(0, 7.2, 1.5), Vector3.new(8, 6.4, 16), fur)
+		-- Tronco: pecho, lomo y una grupa más alta con el muslo marcado. Hombro y anca salen del costado
+		-- (silueta); el lomo claro va en escalones con manchas oscuras, y el pelo fino va pintado encima.
+		box(nil, "Body", Vector3.new(0, 7.2, 0), Vector3.new(8, 6.4, 13), fur)
 		box(nil, "Chest", Vector3.new(0, 7, -5.8), Vector3.new(7.6, 6, 2.6), fur)
-		box(nil, "Rump", Vector3.new(0, 7.8, 8), Vector3.new(7.6, 6.8, 3), fur)
+		-- Grupa redondeada: baja en tres escalones que se estrechan hacia el rabo (la cadera del capibara cae
+		-- por detrás del lomo en vez de acabar cuadrada), cada uno con su tapa clara.
+		box(nil, "Rump", Vector3.new(0, 7.2, 7.25), Vector3.new(7.6, 5.6, 1.5), fur)
+		box(nil, "Rump", Vector3.new(0, 6.6, 8.6), Vector3.new(6.6, 4.4, 1.2), fur)
+		box(nil, "Rump", Vector3.new(0, 6, 9.6), Vector3.new(5.2, 2.8, 0.8), fur:Lerp(dark, 0.15))
 		box(nil, "Belly", Vector3.new(0, 4.1, 1.5), Vector3.new(6, 0.8, 12), belly)
-		box(nil, "Back", Vector3.new(0, 10.6, 1.5), Vector3.new(6.4, 0.8, 14), light)
-		box(nil, "Back", Vector3.new(0, 11.1, 3.5), Vector3.new(4.2, 0.6, 8), light:Lerp(WHITE, 0.12))
-		box(nil, "Patch", Vector3.new(2, 11.2, 7.8), Vector3.new(2.2, 0.4, 2.6), dark)
+		box(nil, "Back", Vector3.new(0, 10.6, 0.45), Vector3.new(6.4, 0.8, 11.9), light)
+		box(nil, "Back", Vector3.new(0, 11.1, 2.95), Vector3.new(4.2, 0.6, 6.9), light:Lerp(WHITE, 0.12))
+		box(nil, "Back", Vector3.new(0, 11.0, -3.2), Vector3.new(3.6, 0.4, 3), light:Lerp(dark, 0.15))
+		box(nil, "RumpCap", Vector3.new(0, 10.15, 7.25), Vector3.new(6.4, 0.3, 1.5), light:Lerp(fur, 0.2))
+		box(nil, "RumpCap", Vector3.new(0, 8.95, 8.6), Vector3.new(5.4, 0.3, 1.2), light:Lerp(fur, 0.35))
+		box(nil, "RumpCap", Vector3.new(0, 7.55, 9.6), Vector3.new(4.2, 0.3, 0.8), light:Lerp(fur, 0.5))
+		box(nil, "Patch", Vector3.new(1.8, 10.4, 7.2), Vector3.new(2, 0.2, 1.2), dark)
 		box(nil, "Patch", Vector3.new(-1.8, 11.4, 4.4), Vector3.new(2, 0.4, 2.4), dark)
 		box(nil, "Patch", Vector3.new(1.6, 11.4, 1), Vector3.new(2.2, 0.4, 2), dark)
 		box(nil, "Patch", Vector3.new(-1.4, 10.9, -3.4), Vector3.new(2.4, 0.4, 2.6), dark)
-		for i, z in { -4.5, -0.5, 3.5, 7.5 } do
+		-- Silueta: el hombro (pecho ancho) y el anca (grupa redonda) sobresalen del costado, y la panza cuelga.
+		for _, side in { -1, 1 } do
+			box(nil, "Shoulder", Vector3.new(side * 4.3, 7.4, -4.6), Vector3.new(0.6, 4.4, 3), fur:Lerp(light, 0.15))
+			box(nil, "Haunch", Vector3.new(side * 4.2, 6.6, 7.2), Vector3.new(0.8, 4.4, 2.4), fur:Lerp(dark, 0.1))
+			box(nil, "Sag", Vector3.new(side * 2.6, 3.6, 1.5), Vector3.new(1.4, 0.6, 9), belly:Lerp(fur, 0.35))
+		end
+		-- Mechones de los costados: cada uno en el tono que toca, pegados al hombro, al anca o al flanco.
+		for i, z in { -4.5, -0.5, 3.5, 7.2 } do
 			for _, side in { -1, 1 } do
+				local outer = if z < -3 or z > 6 then 4.6 else 4.0
+				local depth = if z > 6 then 2.4 else 3
 				box(
 					nil,
 					"Tuft",
-					Vector3.new(side * 4.1, 7.6, z),
-					Vector3.new(0.3, 3.4, 3),
-					if i % 2 == 0 then dark else fur:Lerp(light, 0.3)
+					Vector3.new(side * (outer + 0.15), 7.6, z),
+					Vector3.new(0.3, 3.4, depth),
+					strand(i + 1)
 				)
-				box(nil, "Tuft", Vector3.new(side * 4.1, 5.2, z + 1.5), Vector3.new(0.3, 1.4, 2), dark)
+				if outer == 4 then
+					box(nil, "Tuft", Vector3.new(side * 4.15, 5.2, z + 1.5), Vector3.new(0.3, 1.4, 2), dark)
+				end
+				box(
+					nil,
+					"Tuft",
+					Vector3.new(side * (outer + 0.35), 8.9, z + 0.4),
+					Vector3.new(0.1, 1.0, depth - 1.6),
+					strand(i + 3)
+				)
+				box(
+					nil,
+					"Tuft",
+					Vector3.new(side * (outer + 0.35), 6.2, z - 0.5),
+					Vector3.new(0.1, 1.0, depth - 1.8),
+					strand(i + 2)
+				)
 			end
 		end
-		box(nil, "Tail", Vector3.new(0, 9.6, 9.8), Vector3.new(1.2, 1.2, 0.6), nose)
+		-- Pelo del lomo: mechones finos sueltos sobre las dos capas claras (pintados, casi sin coste).
+		for i = 1, 19 do
+			local z = -4.4 + (i - 1) * 0.58
+			local x = (((i * 7) % 11) - 5) * 0.55
+			local onTop = math.abs(x) < 2 and z > -0.4
+			local y = if onTop then 11.5 else 11.1
+			if z > -4.7 and z < -1.7 and math.abs(x) < 1.8 then
+				y = 11.25
+			end
+			box(nil, "Hair", Vector3.new(x, y, z), Vector3.new(0.35, 0.1, 1.1), strand(i))
+		end
+		-- Y en la grupa, siguiendo sus escalones.
+		for i, spec in
+			{ { -1.5, 10.4, 7.2 }, { 0.8, 10.4, 6.9 }, { 1.4, 9.1, 8.6 }, { -1.2, 9.1, 8.5 }, { 0.2, 7.7, 9.6 } }
+		do
+			box(nil, "Hair", Vector3.new(spec[1], spec[2], spec[3]), Vector3.new(0.35, 0.1, 0.8), strand(i + 1))
+		end
+		-- Grupa vista desde atrás (lo que más ve el jugador): flequillo del trasero en tres tonos y la rabadilla.
+		for i, x in { -2.4, -1.4, -0.4, 0.4, 1.4, 2.4 } do
+			local h = 2.4 - (i % 3) * 0.5
+			box(nil, "Fringe", Vector3.new(x, 7.4 - h / 2, 10.15), Vector3.new(0.9, h, 0.3), strand(i))
+		end
+		box(nil, "Tail", Vector3.new(0, 6.9, 10.6), Vector3.new(1.2, 1.2, 0.6), nose)
+		box(nil, "TailTip", Vector3.new(0, 6.6, 11.05), Vector3.new(0.8, 0.8, 0.3), nose:Lerp(fur, 0.3))
 
 		-- Cuello corto y grueso, y la cabeza grande: cráneo cuadrado, hocico romo que cae en la nariz
 		-- oscura, la barbilla pálida, los ojos pequeños altos y atrás, ceja, orejitas y bigotes.
 		box(nil, "Neck", Vector3.new(0, 8.4, -7.8), Vector3.new(6.8, 5.4, 2.2), fur)
+		for i, y in { 6.4, 7.4, 8.4, 9.4 } do
+			for _, side in { -1, 1 } do
+				box(
+					nil,
+					"NeckHair",
+					Vector3.new(side * 3.55, y, -7.8 + (i % 2) * 0.4),
+					Vector3.new(0.3, 1, 1.6),
+					strand(i)
+				)
+			end
+		end
 		local head: { BasePart } = {}
 		box(head, "Head", Vector3.new(0, 8.6, -10.8), Vector3.new(6.6, 5.8, 5.4), fur)
 		box(head, "Forehead", Vector3.new(0, 11.6, -10.6), Vector3.new(5.4, 0.4, 4.4), light)
@@ -3679,9 +3757,19 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(head, "Bridge", Vector3.new(0, 10.35, -15.1), Vector3.new(4.8, 0.5, 1), fur:Lerp(dark, 0.35))
 		box(head, "Gland", Vector3.new(0, 10.6, -14.4), Vector3.new(2.6, 0.4, 2.8), dark)
 		box(head, "Chin", Vector3.new(0, 5.5, -14.2), Vector3.new(4, 0.9, 2.6), belly)
+		box(head, "Lip", Vector3.new(0, 6.5, -15.35), Vector3.new(4.6, 0.8, 0.8), nose:Lerp(fur, 0.25))
 		box(head, "Philtrum", Vector3.new(0, 7, -15.95), Vector3.new(0.2, 1.6, 0.2), BLACK)
 		box(head, "Mouth", Vector3.new(0, 6.3, -15.95), Vector3.new(4, 0.25, 0.2), BLACK)
+		box(head, "NoseShine", Vector3.new(0, 9.9, -15.95), Vector3.new(4, 0.3, 0.1), nose:Lerp(WHITE, 0.2))
+		-- Pelo de la cabeza: mechones sobre la frente y la nuca.
+		for i, x in { -2.2, -1.1, 0, 1.1, 2.2 } do
+			box(head, "HeadHair", Vector3.new(x, 11.85, -9.6 - (i % 2) * 1.2), Vector3.new(0.3, 0.1, 1.4), strand(i))
+		end
 		for _, side in { -1, 1 } do
+			-- Carrillo: una pieza gruesa (la mejilla redonda) con el pelo claro pintado encima.
+			box(head, "Jowl", Vector3.new(side * 3.55, 6.9, -12.6), Vector3.new(0.5, 2.6, 3.4), belly:Lerp(fur, 0.2))
+			box(head, "Cheek", Vector3.new(side * 3.85, 7.0, -12.5), Vector3.new(0.1, 2.2, 2.6), belly)
+			box(head, "CheekHair", Vector3.new(side * 3.85, 6.3, -11.5), Vector3.new(0.1, 0.7, 1.2), strand(2))
 			box(head, "Nostril", Vector3.new(side * 1.5, 9.3, -15.95), Vector3.new(0.9, 1, 0.2), BLACK)
 			box(
 				head,
@@ -3690,11 +3778,23 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				Vector3.new(0.7, 0.5, 0.2),
 				Color3.fromRGB(240, 225, 180)
 			)
-			box(head, "Cheek", Vector3.new(side * 3.35, 7.2, -11.6), Vector3.new(0.25, 3, 3.4), belly)
 			box(head, "Brow", Vector3.new(side * 3.3, 10.7, -11.4), Vector3.new(0.3, 0.4, 1.8), dark)
-			box(head, "Eye", Vector3.new(side * 3.35, 10, -11.4), Vector3.new(0.25, 0.9, 1), BLACK)
-			box(head, "Glint", Vector3.new(side * 3.43, 10.25, -11.7), Vector3.new(0.1, 0.3, 0.3), WHITE)
+			-- Ojo con capas: cuenca oscura, iris ámbar, pupila, brillo y párpado de arriba y de abajo.
+			box(head, "EyeSocket", Vector3.new(side * 3.36, 10, -11.4), Vector3.new(0.12, 1.3, 1.5), deep)
+			box(
+				head,
+				"Iris",
+				Vector3.new(side * 3.43, 10, -11.4),
+				Vector3.new(0.1, 1, 1.1),
+				Color3.fromRGB(150, 85, 30)
+			)
+			box(head, "Eye", Vector3.new(side * 3.49, 10, -11.4), Vector3.new(0.1, 0.8, 0.6), BLACK)
+			box(head, "Glint", Vector3.new(side * 3.56, 10.3, -11.65), Vector3.new(0.1, 0.3, 0.3), WHITE)
+			box(head, "Lid", Vector3.new(side * 3.49, 10.55, -11.4), Vector3.new(0.1, 0.25, 1.3), dark)
+			box(head, "LowLid", Vector3.new(side * 3.49, 9.4, -11.4), Vector3.new(0.1, 0.2, 1.1), warm)
+			-- Oreja: dos escalones (la oreja redonda) con el interior rosado y borde de pelo oscuro.
 			box(head, "Ear", Vector3.new(side * 2.4, 12, -9.4), Vector3.new(1.4, 1.4, 1.2), dark)
+			box(head, "EarTop", Vector3.new(side * 2.4, 12.85, -9.4), Vector3.new(1, 0.4, 0.9), dark)
 			box(
 				head,
 				"EarInner",
@@ -3708,25 +3808,47 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		end
 		v.swing(head, Vector3.new(0, 8.6, -8), Vector3.zAxis, 0.08, 0.7, 0, false, nil, "Head")
 
-		-- Patas cortas: las de delante finas con cuatro dedos y las de atrás más gruesas con tres.
+		-- Patas cortas: las de delante finas con cuatro dedos y las de atrás más gruesas con tres; cada una
+		-- con su pelo en bandas, rodilla marcada y uñas.
 		for _, side in { -1, 1 } do
 			for _, hind in { false, true } do
 				local z = if hind then 7.2 else -5.2
 				local x = side * (if hind then 3.3 else 3)
-				local leg: { BasePart } = {}
+				local part: { BasePart } = {}
 				if hind then
-					box(leg, "Thigh", Vector3.new(x, 3.1, z), Vector3.new(3, 4.6, 3.6), fur:Lerp(dark, 0.3))
+					box(part, "Thigh", Vector3.new(x, 3.1, z), Vector3.new(3, 4.6, 3.6), leg)
+					box(part, "Knee", Vector3.new(x, 2.3, z - 2.1), Vector3.new(2.2, 1.4, 0.6), leg:Lerp(dark, 0.3))
+					for i, y in { 4.2, 3.2, 2.2 } do
+						box(
+							part,
+							"LegHair",
+							Vector3.new(x + side * 1.65, y, z + 0.2),
+							Vector3.new(0.3, 0.8, 2.6),
+							strand(i)
+						)
+					end
 				else
-					box(leg, "Leg", Vector3.new(x, 2.7, z), Vector3.new(2.4, 3.8, 2.6), fur:Lerp(dark, 0.3))
+					box(part, "Leg", Vector3.new(x, 2.7, z), Vector3.new(2.4, 3.8, 2.6), leg)
+					box(part, "Knee", Vector3.new(x, 2.5, z - 1.6), Vector3.new(1.8, 1.2, 0.5), leg:Lerp(dark, 0.3))
+					for i, y in { 3.8, 2.8, 1.9 } do
+						box(part, "LegHair", Vector3.new(x + side * 1.35, y, z), Vector3.new(0.3, 0.7, 1.8), strand(i))
+					end
 				end
-				box(leg, "Foot", Vector3.new(x, 0.9, z - 0.4), Vector3.new(2.6, 1.4, 3.4), dark)
+				box(part, "Foot", Vector3.new(x, 0.9, z - 0.4), Vector3.new(2.6, 1.4, 3.4), dark)
 				local toes = if hind then { -0.8, 0, 0.8 } else { -0.9, -0.3, 0.3, 0.9 }
 				for _, dx in toes do
-					box(leg, "Toe", Vector3.new(x + dx, 0.7, z - 2.3), Vector3.new(0.5, 0.9, 0.6), BLACK)
+					box(part, "Toe", Vector3.new(x + dx, 0.7, z - 2.3), Vector3.new(0.5, 0.9, 0.6), BLACK)
+					box(
+						part,
+						"Nail",
+						Vector3.new(x + dx, 0.45, z - 2.7),
+						Vector3.new(0.4, 0.3, 0.2),
+						nose:Lerp(WHITE, 0.2)
+					)
 				end
 				local phase = if (side < 0) == hind then math.pi else 0
 				local bone = (if hind then "B" else "F") .. (if side < 0 then "L" else "R")
-				v.swing(leg, Vector3.new(x, 5, z), Vector3.xAxis, 0.45, 4, phase, true, nil, bone)
+				v.swing(part, Vector3.new(x, 5, z), Vector3.xAxis, 0.45, 4, phase, true, nil, bone)
 			end
 		end
 		return "Walk"
@@ -5560,6 +5682,224 @@ local SKINS: { [string]: Skin } = {
 	},
 }
 
+-- Fase 21: mallas con textura. Las piezas de una mascota se agrupan por lo que las mueve: todas las de la misma
+-- articulación (misma bisagra, eje, seno, hueso…) son un grupo, y las fijas son el grupo "Static". Cada grupo puede
+-- ser una `MeshPart` (Data/PetMeshes) que se mueve con la misma articulación.
+type MeshBox = { part: BasePart, center: Vector3, size: Vector3 }
+type MeshGroup = {
+	name: string,
+	hinge: Vector3, -- origen del grupo, sin escalar (la bisagra, o el pivote en "Static")
+	joints: { Joint }, -- las articulaciones de sus piezas (vacío en "Static")
+	boxes: { MeshBox }, -- las piezas que puede llevar la malla
+	loose: number, -- las que no (giradas, de otro material, con forma redonda)
+}
+
+-- Centro y tamaño (sin escalar, respecto a "origin" en ejes del pivote) de una pieza que puede ir a la malla, o nil si
+-- tiene que seguir suelta: no es un bloque, tiene otro material o brillo, o está girada.
+local function meshableBox(part: BasePart, origin: Vector3, scale: number): (Vector3?, Vector3?)
+	if
+		not part:IsA("Part")
+		or (part :: Part).Shape ~= Enum.PartType.Block
+		or part:FindFirstChildWhichIsA("SpecialMesh")
+	then
+		return nil, nil
+	end
+	if part.Material ~= Enum.Material.SmoothPlastic or part.Transparency > 0 or part.Reflectance > 0 then
+		return nil, nil
+	end
+	local _, _, _, r11, r12, r13, r21, r22, r23, r31, r32, r33 = part.CFrame:GetComponents()
+	local rows = { { r11, r12, r13 }, { r21, r22, r23 }, { r31, r32, r33 } }
+	local own = { part.Size.X, part.Size.Y, part.Size.Z }
+	local size = { 0, 0, 0 }
+	for i, row in rows do
+		for j, value in row do
+			local abs = math.abs(value)
+			if abs > 0.999 then
+				size[i] = own[j]
+			elseif abs > 0.001 then
+				return nil, nil
+			end
+		end
+		if size[i] == 0 then
+			return nil, nil
+		end
+	end
+	return (part.Position - origin * scale) / scale, Vector3.new(size[1], size[2], size[3]) / scale
+end
+
+local function meshGroups(model: Model): { MeshGroup }
+	local animated = rigs[model]
+	local groups: { MeshGroup } = {}
+	if not animated then
+		return groups
+	end
+	local scale = animated.scale
+	local byKey: { [string]: MeshGroup } = {}
+	local keys: { [Joint]: string } = {}
+	local used: { [string]: number } = {}
+	local function add(key: string, bone: string?, hinge: Vector3): MeshGroup
+		local group = byKey[key]
+		if not group then
+			local base = bone or "J"
+			used[base] = (used[base] or 0) + 1
+			local name = if used[base] == 1 and bone then base else base .. used[base]
+			group = { name = name, hinge = hinge, joints = {}, boxes = {}, loose = 0 }
+			byKey[key] = group
+			table.insert(groups, group)
+		end
+		return group
+	end
+	local static = add("Static", "Static", Vector3.zero)
+	local function place(group: MeshGroup, part: BasePart)
+		local center, size = meshableBox(part, group.hinge, scale)
+		if center and size then
+			table.insert(group.boxes, { part = part, center = center, size = size })
+		else
+			group.loose += 1
+		end
+	end
+	for _, item in animated.joints do
+		local hinge = item.hinge.Position / scale
+		local parentKey = if item.parent then keys[item.parent] or "?" else ""
+		local key = string.format(
+			"%.3f,%.3f,%.3f|%.3f,%.3f,%.3f|%.4f|%.4f|%.4f|%s|%.4f|%s|%.3f|%.3f|%s",
+			hinge.X,
+			hinge.Y,
+			hinge.Z,
+			item.axis.X,
+			item.axis.Y,
+			item.axis.Z,
+			item.amplitude,
+			item.speed,
+			item.phase,
+			tostring(item.gait),
+			item.bias,
+			item.bone or "",
+			item.lag,
+			item.bend,
+			parentKey
+		)
+		keys[item] = key
+		local group = add(key, item.bone, hinge)
+		table.insert(group.joints, item)
+		place(group, item.part)
+	end
+	for _, part in animated.statics do
+		place(static, part)
+	end
+	return groups
+end
+
+-- Los grupos de una mascota con sus bloques para la malla (lo usa el volcado de ServerStorage.Tools.Mallas).
+function PetModels.meshGroups(model: Model): { MeshGroup }
+	return meshGroups(model)
+end
+
+local meshCache: { [string]: MeshPart } = {}
+local meshLoading: { [string]: boolean } = {}
+
+-- Pide a Roblox las mallas de una mascota, cada una en su hilo; `build` las usa cuando ya están todas.
+function PetModels.preload(petId: string)
+	local meshes = PetMeshes[petId]
+	if not meshes then
+		return
+	end
+	for _, entry in meshes.parts do
+		if entry.mesh ~= "" and entry.texture ~= "" and not meshCache[entry.mesh] and not meshLoading[entry.mesh] then
+			meshLoading[entry.mesh] = true
+			task.spawn(function()
+				local ok, mesh = pcall(function()
+					return AssetService:CreateMeshPartAsync(Content.fromUri(entry.mesh))
+				end)
+				if ok then
+					meshCache[entry.mesh] = mesh
+				else
+					warn(`[PetModels] No se pudo cargar la malla de {petId}: {mesh}`)
+				end
+				meshLoading[entry.mesh] = nil
+			end)
+		end
+	end
+end
+
+-- Pide las mallas de todas las mascotas que las tienen (al arrancar el cliente, para que no salga la versión de bloques).
+function PetModels.preloadAll()
+	for petId in PetMeshes do
+		PetModels.preload(petId)
+	end
+end
+
+-- Sustituye los bloques de cada grupo con malla por su `MeshPart`, con la misma articulación que movía a los bloques.
+local function applyMeshes(model: Model, animated: Animated, meshes: PetMeshes.PetMesh, factor: number)
+	local replaced: { [Joint]: Joint } = {}
+	local removedParts: { [BasePart]: boolean } = {}
+	for _, group in meshGroups(model) do
+		local entry = meshes.parts[group.name]
+		local cached = if entry then meshCache[entry.mesh] else nil
+		if not (entry and cached and #group.boxes > 0) then
+			continue
+		end
+		local mesh = cached:Clone()
+		mesh.Size *= factor / meshes.scale
+		mesh.TextureID = entry.texture
+		mesh.Color = Color3.new(1, 1, 1)
+		mesh.Material = Enum.Material.SmoothPlastic
+		mesh.Anchored = true
+		mesh.CanCollide = false
+		mesh.CanQuery = false
+		mesh.CanTouch = false
+		mesh.CastShadow = false
+		mesh.Name = `{group.name}Mesh`
+		mesh.CFrame = CFrame.new(group.hinge * animated.scale)
+			* CFrame.new(entry.offset * factor / meshes.scale)
+			* CFrame.Angles(0, math.pi, 0)
+			* mesh.ExtentsCFrame:Inverse()
+		mesh.Parent = model
+		local source = group.joints[1]
+		if source then
+			-- La malla lleva la articulación de su grupo; los bloques del grupo pierden la suya.
+			local copy = table.clone(source)
+			copy.part = mesh
+			copy.offset = source.hinge:Inverse() * mesh.CFrame
+			table.insert(animated.joints, copy)
+			for _, item in group.joints do
+				replaced[item] = copy
+			end
+		else
+			table.insert(animated.statics, mesh)
+			table.insert(animated.rest, mesh.CFrame)
+		end
+		for _, box in group.boxes do
+			removedParts[box.part] = true
+		end
+	end
+	if next(removedParts) == nil then
+		return
+	end
+	local kept: { Joint } = {}
+	for _, item in animated.joints do
+		if not removedParts[item.part] then
+			if item.parent and replaced[item.parent] then
+				item.parent = replaced[item.parent]
+			end
+			table.insert(kept, item)
+		end
+	end
+	table.clear(animated.joints)
+	table.move(kept, 1, #kept, 1, animated.joints)
+	local statics, rest = {}, {}
+	for i, part in animated.statics do
+		if not removedParts[part] then
+			table.insert(statics, part)
+			table.insert(rest, animated.rest[i])
+		end
+	end
+	animated.statics, animated.rest = statics, rest
+	for part in removedParts do
+		part:Destroy()
+	end
+end
+
 -- Si "skinId" es una skin dibujada que le vale a "petId" (la suya o la de su familia).
 function PetModels.hasSkin(skinId: string, petId: string): boolean
 	local cosmetic = Cosmetics[skinId]
@@ -5567,7 +5907,7 @@ function PetModels.hasSkin(skinId: string, petId: string): boolean
 end
 
 -- Construye la mascota "petId", con la skin "skinId" si le vale.
-function PetModels.build(petId: string, skinId: string?): Model?
+function PetModels.build(petId: string, skinId: string?, boxesOnly: boolean?): Model?
 	local pet = Pets[petId]
 	local builder = voxelBuilders[petId] or builders[petId]
 	if not (pet and builder) then
@@ -5656,6 +5996,21 @@ function PetModels.build(petId: string, skinId: string?): Model?
 	model.Destroying:Connect(function()
 		rigs[model] = nil
 	end)
+	-- Mallas (Fase 21): solo la mascota sin skin, y solo cuando ya han cargado todas; si no, se queda con bloques y las pide.
+	local meshes = PetMeshes[petId]
+	if meshes and not skin and not boxesOnly then
+		local ready = true
+		for _, entry in meshes.parts do
+			if entry.mesh == "" or entry.texture == "" or not meshCache[entry.mesh] then
+				ready = false
+			end
+		end
+		if ready then
+			applyMeshes(model, rigs[model], meshes, pet.size)
+		else
+			PetModels.preload(petId)
+		end
+	end
 	return model
 end
 

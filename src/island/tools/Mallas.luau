@@ -154,4 +154,60 @@ function Mallas.volcarMontura(mountId: string, shared: Instance?, huesos: { stri
 	)
 end
 
+-- Volcado de una mascota (Fase 21): una parte por grupo de piezas que se mueven juntas (`PetModels.meshGroups`: la
+-- cabeza, cada pata…) y otra, "Static", con todo lo fijo. Los bloques salen sin escalar (la mascota se escala con
+-- `Data/Pets.size`) y respecto al origen de su grupo (la bisagra; el pivote en "Static"), así que las patas izquierda y
+-- derecha son reflejo una de otra. Solo salen las piezas que puede llevar la malla (bloques alineados de plástico liso);
+-- el resto se queda suelto. Mismos trozos `@@V` que las monturas: `python tools/mallas.py tools/mallas/<Mascota>.txt --del-log`.
+--   local m = game.ServerStorage.Tools.Mallas:Clone()
+--   require(m).volcarMascota("Capibara", game.ReplicatedStorage.Shared:Clone())   -- el clon evita la caché de require
+--   m:Destroy()
+function Mallas.volcarMascota(petId: string, shared: Instance?, grupos: { string }?)
+	local carpeta = shared or ReplicatedStorage.Shared
+	local PetModels = require(carpeta.PetModels :: ModuleScript) :: any
+	local pet = (require(carpeta.Data.Pets :: ModuleScript) :: any)[petId]
+	assert(pet, `Mascota desconocida: {petId}`)
+	print(`Volcado de {petId} empieza`)
+	local modelo = PetModels.build(petId, nil, true) :: Model
+	assert(modelo, `{petId} no tiene modelo`)
+	for _, grupo in PetModels.meshGroups(modelo) do
+		if (grupos and not table.find(grupos, grupo.name)) or #grupo.boxes == 0 then
+			continue
+		end
+		local lineas = {}
+		local suma = 0
+		for _, caja in grupo.boxes do
+			local c, t = caja.center, caja.size
+			local x, y, z =
+				tonumber(string.format("%.4f", c.X)) :: number,
+				tonumber(string.format("%.4f", c.Y)) :: number,
+				tonumber(string.format("%.4f", c.Z)) :: number
+			local sx, sy, sz =
+				tonumber(string.format("%.4f", t.X)) :: number,
+				tonumber(string.format("%.4f", t.Y)) :: number,
+				tonumber(string.format("%.4f", t.Z)) :: number
+			local hex = caja.part.Color:ToHex()
+			suma += x + y * 3 + z * 5 + sx * 7 + sy * 11 + sz * 13 + (tonumber(hex, 16) :: number) % 1000
+			table.insert(lineas, string.format("%.4f %.4f %.4f %.4f %.4f %.4f %s", x, y, z, sx, sy, sz, hex))
+		end
+		print(`Grupo {grupo.name}: {#grupo.boxes} bloques en malla, {grupo.loose} sueltos, bisagra {grupo.hinge}`)
+		table.insert(lineas, 1, `PART {grupo.name} {#grupo.boxes} {string.format("%.2f", suma)}`)
+		table.insert(lineas, "END")
+		for desde = 1, #lineas, 18 do
+			print(
+				`@@V {grupo.name} {string.format("%02d", (desde - 1) // 18 + 1)}\n{table.concat(
+					lineas,
+					"\n",
+					desde,
+					math.min(desde + 17, #lineas)
+				)}`
+			)
+		end
+	end
+	modelo:Destroy()
+	print(
+		`Volcado de {petId} listo: size {pet.size}. Ejecuta python tools/mallas.py tools/mallas/{petId}.txt --del-log y luego --jefe {petId} --escala 1`
+	)
+end
+
 return Mallas
