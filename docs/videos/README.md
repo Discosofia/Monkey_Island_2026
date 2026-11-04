@@ -7,6 +7,8 @@ Guiones y guía de grabación de los vídeos del juego para YouTube, Shorts y Ti
 | [trailer.md](trailer.md) | Tráiler de YouTube (16:9, unos 75 s), plano a plano, en español e inglés |
 | [trailer.es.srt](trailer.es.srt), [trailer.en.srt](trailer.en.srt) | Subtítulos del tráiler con los tiempos del guion (solo la voz; las etiquetas en pantalla van como gráficos). Se suben a YouTube o se importan en el editor |
 
+Los Shorts: [shorts.md](shorts.md) y `shorts/*.json`.
+
 Los Shorts y TikTok (9:16, 15–30 s) van en la tanda TR2 de [PLAN.md](../PLAN.md) y reutilizan las tomas del tráiler.
 
 ## Reglas de contenido

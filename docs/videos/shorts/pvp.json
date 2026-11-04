@@ -1,0 +1,29 @@
+{
+	"id": "pvp",
+	"titulo": "Arenas PvP",
+	"cortes": [
+		{ "toma": "O:/2026-10-30 11-38-06.mkv", "desde": 14.5, "dura": 2.0, "velocidad": 1.0, "cx": 0.45, "cy": 0.62, "zoom": 1.3, "volumen": 0.5, "nota": "Gancho: Dunas, explosión (plano 9)" },
+		{ "toma": "O:/2026-10-30 11-38-06.mkv", "desde": 26.2, "dura": 1.6, "velocidad": 1.0, "cx": 0.5, "cy": 0.55, "zoom": 1.3, "volumen": 0.5, "nota": "Dunas: te llevas la bandera" },
+		{ "toma": "O:/2026-10-30 11-38-06.mkv", "desde": 45.3, "dura": 2.6, "velocidad": 1.0, "cx": 0.5, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Dunas: la bandera en la base" },
+		{ "toma": "O:/2026-10-30 11-39-56.mkv", "desde": 105.3, "dura": 1.8, "velocidad": 1.0, "cx": 0.42, "cy": 0.5, "zoom": 1.3, "volumen": 0.5, "nota": "Laboratorio: mira del francotirador" },
+		{ "toma": "O:/2026-10-30 15-45-21.mkv", "desde": 61.6, "dura": 1.8, "velocidad": 1.0, "cx": 0.42, "cy": 0.5, "zoom": 1.3, "volumen": 0.5, "nota": "Laboratorio: otra mira" },
+		{ "toma": "O:/2026-10-30 11-44-10.mkv", "desde": 6.0, "dura": 2.4, "velocidad": 1.0, "cx": 0.4, "cy": 0.75, "zoom": 1.3, "volumen": 0.5, "nota": "Laboratorio: pasillo en primera persona" },
+		{ "toma": "portada", "dura": 3.0, "nota": "Cierre: la portada con el título" }
+	],
+	"textos": {
+		"es": [
+			{ "en": 0.0, "dura": 4.0, "texto": "¿Prefieres pelear?" },
+			{ "en": 4.3, "dura": 3.3, "texto": "Captura la bandera\nen Dunas." },
+			{ "en": 7.8, "dura": 4.0, "texto": "Dispara en el\nLaboratorio." },
+			{ "en": 12.2, "dura": 2.9, "texto": "¡Ven con tus\namigos!", "y": 0.28 },
+			{ "en": 12.2, "dura": 2.9, "texto": "Gratis en Roblox · Arenas PvP por equipos", "chico": true, "y": -0.3 }
+		],
+		"en": [
+			{ "en": 0.0, "dura": 4.0, "texto": "Rather fight?" },
+			{ "en": 4.3, "dura": 3.3, "texto": "Capture the flag\nin Dunes." },
+			{ "en": 7.8, "dura": 4.0, "texto": "Shoot it out in\nthe Laboratory." },
+			{ "en": 12.2, "dura": 2.9, "texto": "Bring your\nfriends!", "y": 0.28 },
+			{ "en": 12.2, "dura": 2.9, "texto": "Free on Roblox · Team PvP arenas", "chico": true, "y": -0.3 }
+		]
+	}
+}

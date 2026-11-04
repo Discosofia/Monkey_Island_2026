@@ -4205,6 +4205,41 @@ El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borrado
 2. [ ] Abre `build/videos/fotogramas/trailer-esp/hoja.jpg`.
    ✅ Cada casilla enseña lo mismo que ves en CapCut en ese corte. Apunta los números de corte donde el rectángulo verde (9:16) corta la acción (candidatos: 1, 7, 23, 26-28) para decidir recuadro en V2.
 
+## 105. Fase 22 V2: primer Short, «Ladrones y jefes» (03-11-2026)
+
+`build/videos/.venv/Scripts/python -I tools/video/short.py docs/videos/shorts/jefes.json` crea `jefes-es-v1` y `jefes-en-v1` en `build/videos/borradores/` (1080×1920, 30 fps, 15,99 s, 5 cortes: capuchinos ladrones, los 4 jefes a ×3, Gorila de Ceniza en el volcán, lluvia de rocas y la portada de 3 s; sin música). Ya comprobado por el script: las tomas existen, ningún corte se sale de su toma, los textos caen entre -0,33 y 0,33 de altura (tercio central) y acaban antes del vídeo; el JSON de cada borrador tiene los tiempos y textos del guion. `--solo-vista` saca `build/videos/shorts/jefes/hoja.jpg` con el recuadro de cada corte (el script recorta la barra de herramientas y la franja de Studio). Falta CapCut:
+
+### 105.1 Abrir los dos borradores
+
+1. [ ] Con CapCut cerrado, copia `jefes-es-v1` y `jefes-en-v1` a `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft\` y abre CapCut.
+   ✅ Los dos aparecen y abren sin avisos: 5 clips seguidos y, encima, los textos (el del pie del cierre va en su propia pista).
+2. [ ] Mira cada corte.
+   ✅ El sujeto queda centrado como en `hoja.jpg`: no sale la barra de Studio ni la franja de abajo, ni franjas negras (salvo arriba y abajo de la portada, a propósito). Apunta qué corte se ve movido de sitio: el sentido de `transform_y` (positivo = sube la imagen) es la suposición por probar.
+3. [ ] Mira los textos de los dos idiomas.
+   ✅ Se leen con el borde negro, la fuente Anton no lleva icono Pro y nada se sale del ancho. Si «Derrota a los jefes de la isla.» o el texto chico del cierre se parten mal, apunta cuál.
+
+### 105.2 Exportar y apuntar el tiempo de retoque
+
+1. [ ] Ajusta lo que haga falta, añade música de la biblioteca de YouTube o TikTok y exporta a 1080×1920, 30 fps, en ES y EN.
+   ✅ Sin marca de agua. Apunta **los minutos de retoque** de cada idioma (objetivo: 10 min o menos) y qué retocaste (recuadros, textos, tiempos).
+2. [ ] Mira el vídeo exportado.
+   ✅ Hay movimiento y texto en el primer segundo, ningún HUD de pruebas en cuadro y no sale Robux ni «gana dinero».
+
+## 106. Fase 22 V3: Shorts 2-4, «Mascotas y monturas», «Elige tu rol» y «Arenas PvP» (03-11-2026)
+
+`build/videos/.venv/Scripts/python -I tools/video/short.py docs/videos/shorts/<id>.json` creó `mascotas` (17,7 s, 5 cortes), `roles` (14,1 s, 6 cortes) y `pvp` (15,2 s, 7 cortes), cada uno en ES y EN (`<id>-<idioma>-v1` en `build/videos/borradores/`, ya copiados a la lista de proyectos de CapCut). Ya comprobado por el script: las tomas existen, ningún corte se sale de su toma y los textos caen en el tercio central y acaban antes del vídeo. Las vistas están en `build/videos/shorts/<id>/hoja.jpg`; el recuadro de cada corte se eligió mirándolas (el primer intento del Short «roles» enseñaba el panel de Studio y el del «pvp» una mira oscura: corregidos). Falta CapCut:
+
+### 106.1 Abrir los 6 borradores y exportar
+
+1. [ ] Abre CapCut y mira `mascotas-es-v1`, `roles-es-v1` y `pvp-es-v1` (y los `-en-`).
+   ✅ Abren sin avisos; cada corte tiene el sujeto centrado como en su `hoja.jpg`. Apunta cortes mal encuadrados: en `roles` los cortes 3-5 llevan avisos del juego arriba («Hay un huevo común en la isla»); en `pvp` los cortes 1-3 llevan el cartel de la bandera.
+2. [ ] Ajusta, añade música de la biblioteca de YouTube o TikTok y exporta a 1080×1920, 30 fps.
+   ✅ Sin marca de agua. Apunta **los minutos de retoque** de cada Short (objetivo: 10 min o menos, al menos 3 de los 4 Shorts incluido «jefes») y qué retocaste.
+3. [ ] Decide si `roles` (14,1 s) se alarga a 15 s o más.
+   ✅ Los Shorts de YouTube admiten desde 1 s; el objetivo de 15-30 s era orientativo.
+4. [ ] Mira los vídeos exportados.
+   ✅ Hay movimiento y texto en el primer segundo, ningún HUD de pruebas ni Robux ni «gana dinero» en cuadro (en `pvp`, la lista de jugadores no se ve).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

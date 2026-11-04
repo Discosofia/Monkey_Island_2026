@@ -1,0 +1,27 @@
+{
+	"id": "jefes",
+	"titulo": "Ladrones y jefes",
+	"cortes": [
+		{ "toma": "O:/2026-10-30 15-22-57.mkv", "desde": 14.767, "dura": 3.1, "velocidad": 1.0, "cx": 0.41, "cy": 0.7, "zoom": 1.3, "volumen": 0.5, "nota": "Gancho: capuchinos ladrones (tráiler, plano 1)" },
+		{ "toma": "O:/2026-10-30 15-15-37.mkv", "desde": 3.067, "dura": 10.667, "velocidad": 3.0, "cx": 0.43, "cy": 0.58, "zoom": 1.2, "volumen": 0.5, "nota": "Los 4 jefes en el diorama (plano 7)" },
+		{ "toma": "O:/2026-10-30 12-55-55.mkv", "desde": 73.433, "dura": 1.4, "velocidad": 1.0, "cx": 0.47, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Gorila de Ceniza en el volcán" },
+		{ "toma": "O:/2026-10-30 12-55-55.mkv", "desde": 97.2, "dura": 4.933, "velocidad": 1.0, "cx": 0.47, "cy": 0.5, "zoom": 1.0, "volumen": 0.5, "nota": "Lluvia de rocas de la erupción" },
+		{ "toma": "portada", "dura": 3.0, "nota": "Cierre: la portada con el título" }
+	],
+	"textos": {
+		"es": [
+			{ "en": 0.0, "dura": 2.9, "texto": "¡Te roban\nla comida!" },
+			{ "en": 3.2, "dura": 3.4, "texto": "Derrota a los jefes\nde la isla." },
+			{ "en": 7.0, "dura": 5.8, "texto": "Sobrevive\na la erupción." },
+			{ "en": 13.0, "dura": 2.9, "texto": "¡Ven con tus\namigos!", "y": 0.28 },
+			{ "en": 13.0, "dura": 2.9, "texto": "Gratis en Roblox · Hasta 5 amigos", "chico": true, "y": -0.3 }
+		],
+		"en": [
+			{ "en": 0.0, "dura": 2.9, "texto": "They steal\nyour food!" },
+			{ "en": 3.2, "dura": 3.4, "texto": "Defeat the\nisland's bosses." },
+			{ "en": 7.0, "dura": 5.8, "texto": "Survive\nthe eruption." },
+			{ "en": 13.0, "dura": 2.9, "texto": "Bring your\nfriends!", "y": 0.28 },
+			{ "en": 13.0, "dura": 2.9, "texto": "Free on Roblox · Up to 5 friends", "chico": true, "y": -0.3 }
+		]
+	}
+}

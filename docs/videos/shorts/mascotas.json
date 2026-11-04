@@ -1,0 +1,27 @@
+{
+	"id": "mascotas",
+	"titulo": "Mascotas y monturas",
+	"cortes": [
+		{ "toma": "O:/2026-10-30 15-13-46.mkv", "desde": 7.5, "dura": 3.6, "velocidad": 1.0, "cx": 0.41, "cy": 0.55, "zoom": 1.3, "volumen": 0.5, "nota": "Gancho: el huevo manchado (plano 8)" },
+		{ "toma": "O:/2026-10-30 15-14-19.mkv", "desde": 5.47, "dura": 3.6, "velocidad": 1.0, "cx": 0.42, "cy": 0.58, "zoom": 1.3, "volumen": 0.5, "nota": "Desfile de mascotas" },
+		{ "toma": "O:/2026-10-30 15-14-19.mkv", "desde": 9.1, "dura": 3.0, "velocidad": 1.0, "cx": 0.3, "cy": 0.58, "zoom": 1.3, "volumen": 0.5, "nota": "Desfile de mascotas, otro lado" },
+		{ "toma": "O:/2026-10-30 15-14-55.mkv", "desde": 6.4, "dura": 4.5, "velocidad": 1.0, "cx": 0.55, "cy": 0.42, "zoom": 1.3, "volumen": 0.5, "nota": "Quetzalcóatl planeando (montura)" },
+		{ "toma": "portada", "dura": 3.0, "nota": "Cierre: la portada con el título" }
+	],
+	"textos": {
+		"es": [
+			{ "en": 0.0, "dura": 3.4, "texto": "¡Salva el huevo\nlegendario!" },
+			{ "en": 3.8, "dura": 6.1, "texto": "Colecciona\n16 mascotas." },
+			{ "en": 10.2, "dura": 4.3, "texto": "Y vuela con\n3 monturas." },
+			{ "en": 14.7, "dura": 2.9, "texto": "¡Ven con tus\namigos!", "y": 0.28 },
+			{ "en": 14.7, "dura": 2.9, "texto": "Gratis en Roblox · Hasta 5 amigos", "chico": true, "y": -0.3 }
+		],
+		"en": [
+			{ "en": 0.0, "dura": 3.4, "texto": "Save the\nlegendary egg!" },
+			{ "en": 3.8, "dura": 6.1, "texto": "Collect\n16 pets." },
+			{ "en": 10.2, "dura": 4.3, "texto": "And fly with\n3 mounts." },
+			{ "en": 14.7, "dura": 2.9, "texto": "Bring your\nfriends!", "y": 0.28 },
+			{ "en": 14.7, "dura": 2.9, "texto": "Free on Roblox · Up to 5 friends", "chico": true, "y": -0.3 }
+		]
+	}
+}

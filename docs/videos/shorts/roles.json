@@ -1,0 +1,28 @@
+{
+	"id": "roles",
+	"titulo": "Elige tu rol",
+	"cortes": [
+		{ "toma": "O:/2026-10-30 16-26-25.mkv", "desde": 7.6, "dura": 2.1, "velocidad": 1.0, "cx": 0.42, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Gancho: los roles con su equipo (plano 4)" },
+		{ "toma": "O:/2026-10-30 16-26-25.mkv", "desde": 9.7, "dura": 2.1, "velocidad": 1.0, "cx": 0.62, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Los roles, otro lado" },
+		{ "toma": "O:/2026-10-30 11-05-57.mkv", "desde": 10.63, "dura": 2.27, "velocidad": 1.0, "cx": 0.5, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Habilidad (rol 1)" },
+		{ "toma": "O:/2026-10-30 11-07-23.mkv", "desde": 15.5, "dura": 2.07, "velocidad": 1.0, "cx": 0.5, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Habilidad (rol 2)" },
+		{ "toma": "O:/2026-10-30 11-08-42.mkv", "desde": 8.77, "dura": 2.53, "velocidad": 1.0, "cx": 0.5, "cy": 0.6, "zoom": 1.3, "volumen": 0.5, "nota": "Habilidad (rol 3)" },
+		{ "toma": "portada", "dura": 3.0, "nota": "Cierre: la portada con el título" }
+	],
+	"textos": {
+		"es": [
+			{ "en": 0.0, "dura": 4.0, "texto": "Elige tu rol." },
+			{ "en": 4.3, "dura": 2.0, "texto": "Guerrero · Cazador\nMago · Médico", "chico": true },
+			{ "en": 6.4, "dura": 4.7, "texto": "Cada uno,\nsu habilidad." },
+			{ "en": 11.3, "dura": 2.7, "texto": "¡Ven con tus\namigos!", "y": 0.28 },
+			{ "en": 11.3, "dura": 2.7, "texto": "Gratis en Roblox · Hasta 5 amigos", "chico": true, "y": -0.3 }
+		],
+		"en": [
+			{ "en": 0.0, "dura": 4.0, "texto": "Pick your role." },
+			{ "en": 4.3, "dura": 2.0, "texto": "Warrior · Hunter\nMage · Medic", "chico": true },
+			{ "en": 6.4, "dura": 4.7, "texto": "Each one,\nits own skill." },
+			{ "en": 11.3, "dura": 2.7, "texto": "Bring your\nfriends!", "y": 0.28 },
+			{ "en": 11.3, "dura": 2.7, "texto": "Free on Roblox · Up to 5 friends", "chico": true, "y": -0.3 }
+		]
+	}
+}
