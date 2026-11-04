@@ -39,6 +39,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Ballistics = require(ReplicatedStorage.Shared.Ballistics)
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.Strings)
@@ -520,6 +521,7 @@ end
 local function launchLocalShot(
 	character: Model,
 	tool: Tool,
+	weaponId: string,
 	weapon: Weapons.WeaponDefinition,
 	finisher: boolean,
 	aimOrigin: Vector3,
@@ -546,6 +548,8 @@ local function launchLocalShot(
 	local style = weapon.projectile or "Stone"
 	-- A qué distancia converge lo que se ve con la línea de tiro: la del punto al que se apunta.
 	local distance = math.clamp((Aim.point(character) - aimOrigin).Magnitude, 10, weapon.range)
+	local speed = weapon.projectileSpeed or 120
+	local motion = Ballistics.motion(Ballistics.profile(weaponId, style), speed, weapon.range)
 	AbilityFxController.localShot({
 		seq = seq,
 		lookId = if finisher then `{style}Finisher` else style,
@@ -553,8 +557,10 @@ local function launchLocalShot(
 		aimOrigin = aimOrigin,
 		aimDirection = spreadDirection,
 		distance = distance,
-		speed = weapon.projectileSpeed or 120,
+		speed = speed,
 		range = weapon.range,
+		gravity = if motion and motion.gravity > 0 then motion.gravity else nil,
+		drag = if motion and motion.drag > 0 then motion.drag else nil,
 		pierce = settings ~= nil and settings.pierceTargets ~= nil,
 		extra = if settings and settings.radius then { settings.radius } else nil,
 		firstPerson = firstPerson,
@@ -603,7 +609,7 @@ local function fire(character: Model, tool: Tool, weaponId: string?, weapon: Wea
 		aimDirection = Aim.direction(character)
 		-- El cañón de suero (en arco) lo dibuja el servidor; el resto, la bala propia al momento.
 		if not lobbed then
-			claimedSeq = launchLocalShot(character, tool, weapon, finisher, aimOrigin, aimDirection)
+			claimedSeq = launchLocalShot(character, tool, weaponId :: string, weapon, finisher, aimOrigin, aimDirection)
 		end
 		if magazine then
 			LabShooting.consume()

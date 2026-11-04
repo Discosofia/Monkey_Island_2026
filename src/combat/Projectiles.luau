@@ -22,6 +22,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Ballistics = require(ReplicatedStorage.Shared.Ballistics)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local AbilityFx = require(script.Parent.AbilityFx)
 local CombatRules = require(script.Parent.CombatRules)
@@ -61,6 +62,9 @@ export type Shot = {
 	breakOnce: Destructibles.Once?,
 	-- Studs/s² hacia abajo (en arco); "range" es entonces lo que recorre por la curva.
 	gravity: number?,
+	-- Frenado del aire (1/s; Shared/Ballistics): la rapidez baja como e^(-drag × t). Si el disparo no trae ni
+	-- "gravity" ni "drag" ni rebotes, Projectiles.fire los toma de Data/Ballistics según "source" y "look".
+	drag: number?,
 	-- Segundos de lag del tirador (Fase 15, V7): los jugadores se prueban donde estaban hace esto, con
 	-- piezas (Hitbox.sweepBodies); el resto, como siempre.
 	rewind: number?,
@@ -229,7 +233,8 @@ local function bounce(flight: Flight, wall: RaycastResult): boolean
 		Workspace:GetServerTimeNow(),
 		nextShot.pierce == true,
 		nextShot.extra,
-		nextShot.gravity
+		nextShot.gravity,
+		nextShot.drag
 	)
 	return true
 end
@@ -238,12 +243,17 @@ end
 local function displacementOf(flight: Flight, deltaTime: number): Vector3
 	local shot = flight.shot
 	local left = shot.range - flight.travelled
-	if not shot.gravity then
+	if not shot.gravity and not shot.drag then
 		return shot.direction * math.min(shot.speed * deltaTime, left)
 	end
 	flight.elapsed += deltaTime
 	local t = flight.elapsed
-	local target = shot.origin + shot.direction * shot.speed * t - Vector3.yAxis * (shot.gravity * t * t / 2)
+	local target = Ballistics.position(
+		shot.origin,
+		shot.direction,
+		{ speed = shot.speed, gravity = shot.gravity or 0, drag = shot.drag or 0 },
+		t
+	)
 	local displacement = target - flight.position
 	return if displacement.Magnitude > left then displacement.Unit * left else displacement
 end
@@ -324,8 +334,26 @@ local function step(deltaTime: number)
 	end
 end
 
+-- El aspecto base de un "look" ("StoneFinisher" es "Stone").
+local function baseLook(look: string): string
+	return (string.gsub(look, "Finisher$", ""))
+end
+
+-- La balística (gravedad y frenado) que le toca a un proyectil de "source" y "look" que sale a "speed" y llega a
+-- "range": nil si vuela recto. Es la que usa Projectiles.fire, y la que CombatService necesita antes para apuntar.
+function Projectiles.motionFor(source: string?, look: string, speed: number, range: number): Ballistics.Motion?
+	return Ballistics.motion(Ballistics.profile(source, baseLook(look)), speed, range)
+end
+
 -- Lanza un proyectil. Devuelve su id (el de los efectos).
 function Projectiles.fire(shot: Shot): number
+	if shot.gravity == nil and shot.drag == nil and (shot.bounces or 0) == 0 then
+		local motion = Projectiles.motionFor(shot.source, shot.look, shot.speed, shot.range)
+		if motion then
+			shot.gravity = if motion.gravity > 0 then motion.gravity else nil
+			shot.drag = if motion.drag > 0 then motion.drag else nil
+		end
+	end
 	nextId += 1
 	local character = shot.owner.Character
 	local flight: Flight = {
@@ -369,7 +397,8 @@ function Projectiles.fire(shot: Shot): number
 		Workspace:GetServerTimeNow() - lead,
 		shot.pierce == true,
 		shot.extra,
-		shot.gravity
+		shot.gravity,
+		shot.drag
 	)
 	-- Lo que ya toca al salir (un mono pegado al tirador): una esfera desde un poco antes del origen.
 	local behind = shot.origin - shot.direction * START_BACK

@@ -4708,9 +4708,15 @@ El campo de tiro (v13) mide el tiro de armas y habilidades, también las cuatro 
 11. [ ] En Studio, pulsa «Exportar» del panel.
     ✅ Aparece `ServerStorage.CalibracionExportada` con el JSON de la sesión; se usará en 24f.
 12. [ ] Repite la calibración APUNTANDO con la mira (clic derecho, zoom y mira de cada arma: honda, arco, bastón, cerbatana y las cuatro del Laboratorio con su visor, punto rojo o mira de hierro).
-    ✅ La dispersión a la cadera (1,5° en bastón y arco) baja a 0 al apuntar (`Config.Aim.AdsSpreadDegrees`); el rifle del Laboratorio con zoom es exacto (`zoomExact`); el desvío en pantallas y el acierto mejoran frente a disparar sin apuntar. La batería programada disparó siempre con `aiming = false`.
+    ✅ La dispersión a la cadera (1,5° en bastón y arco) baja a 0 al apuntar (`Config.Aim.AdsSpreadDegrees`); el rifle del Laboratorio con zoom es exacto (`zoomExact`); el desvío en pantallas y el acierto mejoran frente a disparar sin apuntar.
+    Medido el 04-11-2026 por remoto (`aiming=true` enviado a mano, sin el clic derecho real): bastón, arco y cerbatana dan 0,8–1,1° a la cadera y 0,00–0,03° apuntando, a 45 y a 99–129 studs (el ángulo no cambia con la distancia); el rifle con zoom parado y andando, y el arpón y los dardos apuntando, bajan como se espera. Falta probarlo con el clic derecho real y con las miras dibujadas.
 13. [ ] Calibra disparando EN EL AIRE (salta y dispara) y corriendo, con armas del rol y del Laboratorio.
-    ✅ El Laboratorio suma la dispersión en el aire (`air`, p. ej. 5° en el rifle) y en movimiento (`moving`, 2,5°); las armas del rol no cambian. El panel muestra más desvío y menos acierto que quieto. La batería programada disparó siempre con el personaje quieto en el suelo.
+    ✅ El Laboratorio suma la dispersión en el aire (`air`, p. ej. 5° en el rifle) y en movimiento (`moving`, 2,5°); las armas del rol no cambian. El panel muestra más desvío y menos acierto que quieto.
+    Medido el 04-11-2026 con el personaje andando y saltando por programa: coincide con lo teórico (RMS = 0,7 × el cono) en las cuatro armas del Laboratorio. Las armas del rol no cambian con el movimiento ni el aire. Dos cosas no cuadran y están en los pasos 14 y 15.
+14. [ ] Dispara saltando (en el ascenso y en el descenso) con el bastón, el arco y la cerbatana, con ping normal y con 150 ms de latencia simulada.
+    ✅ Los tiros salen por donde miras. Hoy, con la velocidad vertical alta, la cabeza del cliente va 2,5–6 studs por delante de la del servidor y a veces `acceptedOrigin` (tolerancia 5 studs) descarta el origen y el tiro sale de la cabeza del servidor, paralelo y desplazado 3–9 studs en vertical. Si pasa, hay que arreglarlo en el 24e (tolerancia según velocidad vertical y lag).
+15. [ ] Con el lanzadardos del Armero, dispara una ráfaga larga (10 tiros) parado.
+    ✅ Hoy cada tiro sale exacto: la dispersión que se acumula (`perShot` 0,35° hasta `maxShots` 3) se recupera (`recover` 6°/s) antes del tiro siguiente a 0,15 s, así que no pesa nunca. Decide si se sube `perShot` o se baja `recover` (< 2,3°/s).
 
 
 ## 122. Fase 20 Q5g: Ajolote con malla (04-11-2026)
@@ -4757,6 +4763,25 @@ El Jaguar de cristal se queda **en bloques** (el vidrio y el neón no entran en 
    ✅ Con skin, su cuerpo y sus colores con los cristales nuevos; sin skin, el de cristal.
 4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
    ✅ Sin tirones al cargar (219 piezas).
+
+## 125. Fase 24 grupo 24e: balística (04-11-2026)
+
+`Data/Ballistics` + `Shared/Ballistics`: caída suave (≤ 3 studs al alcance en honda, bastón y Bola de fuego), frenado del aire, daño según la distancia (solo armas, hasta ~80-85 % al alcance), empuje a monos (`Config.Ballistics`, `PushScale` 40: probado solo el valor viejo, el nuevo sin medir), ayuda táctil estrechada de 60 a 100 studs (`FarDegrees` 1,8), adelanto táctil hasta 1,3 s, `recover` del lanzadardos a 1,5 y tolerancia del origen mayor en el aire (+9 studs, tope 16). Las habilidades proyectil usan `rewind`/`lead` con el ping (sin origen ni número del cliente, sin zonas: quedan pendientes). Medido en Lobby (Play): sin errores; caídas y falloff dentro de lo previsto.
+
+### 125.1 En el Studio del Lobby, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Dispara bastón, honda y Bola de fuego a un blanco lejano con ratón.
+   ✅ La bala cae un poco al final (≤ 3 studs) y se ve igual que donde da; arco y cerbatana siguen rectos.
+2. [ ] Salta y dispara 10 veces (con latencia real si puedes).
+   ✅ Los disparos salen de donde se ve el arma, sin saltos de 3-9 studs.
+3. [ ] Con el emulador táctil, apunta con desvíos de 1 a 5 studs del muñeco a 30, 60 y 100 studs.
+   ✅ A 30 y 60 enganchan hasta ~3; a 100 hasta ~3 (antes ~5).
+4. [ ] En la Isla, dispara la Bola de fuego en táctil a un mono que corre a 100 studs.
+   ✅ Acierta bastante más que sin ayuda (el adelanto no se pudo medir con el muñeco anclado).
+5. [ ] En la Isla, dispara a un Titi, un Mandril y un Gorila con bastón y cerbatana.
+   ✅ El pequeño se echa atrás un poco; el Gorila y los jefes casi nada; nunca a un jugador. Si todos salen volando o ninguno, ajusta `Config.Ballistics.PushScale`.
+6. [ ] Lanzadardos en ráfaga de 10 tiros parado.
+   ✅ Los primeros tiros son exactos y luego se abre algo (cono hasta ~1,65°).
 
 ## Cuando termines
 

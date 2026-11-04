@@ -219,6 +219,11 @@ local Config = {
 			BodyRadius = 1.2,
 			-- Studs que puede separarse el origen que manda el cliente de la cabeza del servidor (rebobinada).
 			OriginToleranceStuds = 5,
+			-- …más lo que recorre el tirador en el lag del disparo, el margen de red y este tiempo (24e: en el aire
+			-- su cabeza va por delante de la del servidor), sin pasar de OriginMaxStuds.
+			OriginMotionSeconds = 0.1,
+			OriginAirStuds = 9, -- …y esto más si va en el aire: el servidor ve su velocidad ~0,2 s tarde
+			OriginMaxStuds = 16,
 			-- Segundos máximos que el proyectil se adelanta al salir para compensar el retraso del tirador.
 			ShotLeadMaxSeconds = 0.1,
 			-- Solo visual: el proyectil propio sale del cañón del arma y en estos segundos se junta con su
@@ -502,7 +507,18 @@ local Config = {
 		WeaponRadius = 0.6, -- radio (studs) del disparo de un arma
 		-- Contra monos, la ayuda de puntería (Config.AimAssist) apunta adonde estarán al llegar el proyectil
 		-- (como mucho LeadMaxSeconds por delante); contra jugadores, adonde están: se pueden apartar.
-		LeadMaxSeconds = 0.8,
+		-- 1,3 s: la Bola de fuego tarda ~1,2 s en llegar a 100 studs y el adelanto del táctil tiene que cubrirlo.
+		LeadMaxSeconds = 1.3,
+	},
+
+	-- Balística (Fase 24, 24e; Shared/Ballistics y Data/Ballistics): la caída suave, el frenado del aire, el
+	-- daño según la distancia y el empuje de un proyectil al impactar a un mono. Nunca empuja a jugadores ni a
+	-- jefes. El empuje es mass × PushScale / masa del blanco (studs/s), entre PushMinSpeed y PushMaxSpeed.
+	Ballistics = {
+		PushScale = 40,
+		PushMinSpeed = 3,
+		PushMaxSpeed = 16,
+		PushSeconds = 0.12,
 	},
 
 	-- Ayuda de puntería (CombatService.aimShot): solo la recibe quien usa un control táctil (el servidor lo
@@ -515,9 +531,27 @@ local Config = {
 	AimAssist = {
 		SwitchDelaySeconds = 0.5, -- pasar a táctil no cuenta hasta pasado esto (a ratón o mando, al momento)
 		ReportMinInterval = 0.2, -- mínimo entre avisos del tipo de control (cliente y servidor)
-		Touch = { MonkeyStuds = 3.5, MonkeyMinDegrees = 3, PlayerStuds = 2, PlayerMinDegrees = 1.5 },
+		-- De FarFromStuds a FarToStuds la ayuda se estrecha hasta FarDegrees (24e): a 100 studs engancha a ~3 studs
+		-- de la línea (antes ~5), más cerca del ratón.
+		Touch = {
+			MonkeyStuds = 3.5,
+			MonkeyMinDegrees = 3,
+			PlayerStuds = 2,
+			PlayerMinDegrees = 1.5,
+			FarFromStuds = 60,
+			FarToStuds = 100,
+			FarDegrees = 1.8,
+		},
 		-- Laboratorio: igual contra monos, más estrecha contra jugadores.
-		Lab = { MonkeyStuds = 3.5, MonkeyMinDegrees = 3, PlayerStuds = 1.5, PlayerMinDegrees = 1 },
+		Lab = {
+			MonkeyStuds = 3.5,
+			MonkeyMinDegrees = 3,
+			PlayerStuds = 1.5,
+			PlayerMinDegrees = 1,
+			FarFromStuds = 60,
+			FarToStuds = 100,
+			FarDegrees = 1.8,
+		},
 	},
 
 	-- Compensación del lag (C2, C3, C5): margen a favor del defensor o del atacante, igual para todos y

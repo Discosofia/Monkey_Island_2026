@@ -110,6 +110,21 @@ local function flat(vector: Vector3): Vector3
 	return if horizontal.Magnitude > 0.01 then horizontal.Unit else Vector3.zAxis
 end
 
+-- El lag del tirador para sus proyectiles (Fase 24, 24e), como el de las armas: en los places con zonas, los
+-- jugadores se prueban donde estaban hace esto (rewind) y el proyectil sale ya adelantado (lead, con tope).
+local function shotLag(player: Player): (number?, number?)
+	if not CombatRules.get().zones then
+		return nil, nil
+	end
+	local lag = Latency.compensation(player)
+	return lag, math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds)
+end
+
+-- La balística del proyectil de la habilidad "id" (Data/Ballistics) para apuntar con la ayuda táctil.
+local function motionOf(id: string, speed: number, range: number)
+	return Projectiles.motionFor(id, id, speed, range)
+end
+
 local function headOf(character: Model, root: BasePart): Vector3
 	local head = character:FindFirstChild("Head")
 	return if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
@@ -663,7 +678,9 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 	local damage = SETTINGS.MultiShotDamage * Progression.perk(player, "RangedDamage")
 	local origin = headOf(character, root)
 	local spread = math.rad(SETTINGS.MultiShotSpreadDegrees)
-	aim = CombatService.aimShot(player, origin, aim, SETTINGS.MultiShotRange, SETTINGS.MultiShotSpeed)
+	local motion = motionOf("MultiShot", SETTINGS.MultiShotSpeed, SETTINGS.MultiShotRange)
+	local rewind, lead = shotLag(player)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.MultiShotRange, SETTINGS.MultiShotSpeed, nil, motion)
 	Sfx.play("Shoot", root)
 	-- Todas las flechas del abanico alcanzan una cobertura una sola vez.
 	local coverOnce: Destructibles.Once = {}
@@ -673,6 +690,8 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 			owner = player,
 			look = "MultiShot",
 			source = "MultiShot",
+			rewind = rewind,
+			lead = lead,
 			origin = origin,
 			direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim),
 			speed = SETTINGS.MultiShotSpeed,
@@ -944,12 +963,16 @@ local function trueShot(player: Player, character: Model, root: BasePart, aim: V
 		* Progression.perk(player, "RangedDamage")
 		* Progression.perk(player, "RainDamage")
 	local origin = headOf(character, root)
-	aim = CombatService.aimShot(player, origin, aim, SETTINGS.TrueShotRange, SETTINGS.TrueShotSpeed)
+	local motion = motionOf("TrueShot", SETTINGS.TrueShotSpeed, SETTINGS.TrueShotRange)
+	local rewind, lead = shotLag(player)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.TrueShotRange, SETTINGS.TrueShotSpeed, nil, motion)
 	Sfx.play("Shoot", root)
 	Projectiles.fire({
 		owner = player,
 		look = "TrueShot",
 		source = "TrueShot",
+		rewind = rewind,
+		lead = lead,
 		origin = origin,
 		direction = aim,
 		speed = SETTINGS.TrueShotSpeed,
@@ -980,7 +1003,9 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 		count += COMBO.PierceExtraArrows
 	end
 	local origin = headOf(character, root)
-	aim = CombatService.aimShot(player, origin, aim, SETTINGS.PierceRange, SETTINGS.PierceSpeed)
+	local motion = motionOf("PiercingShot", SETTINGS.PierceSpeed, SETTINGS.PierceRange)
+	local rewind, lead = shotLag(player)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.PierceRange, SETTINGS.PierceSpeed, nil, motion)
 	local spread = math.rad(COMBO.PierceSpreadDegrees)
 	local coverOnce: Destructibles.Once = {}
 	for index = 1, count do
@@ -989,6 +1014,8 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 			owner = player,
 			look = "PiercingShot",
 			source = "PiercingShot",
+			rewind = rewind,
+			lead = lead,
 			origin = origin,
 			direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim),
 			speed = SETTINGS.PierceSpeed,
@@ -1019,7 +1046,9 @@ end
 local function fireball(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local scale = Progression.perk(player, "SpellDamage") * Progression.perk(player, "FireballDamage")
 	local origin = headOf(character, root)
-	aim = CombatService.aimShot(player, origin, aim, SETTINGS.FireballRange, SETTINGS.FireballSpeed)
+	local motion = motionOf("Fireball", SETTINGS.FireballSpeed, SETTINGS.FireballRange)
+	local rewind, lead = shotLag(player)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.FireballRange, SETTINGS.FireballSpeed, nil, motion)
 	-- Remate del combo del mago: rompe el hielo con una explosión más grande.
 	local finisher = ComboService.isPayoff(player, "Fireball")
 	local radius = SETTINGS.FireballSplashRadius * (if finisher then 1 + COMBO.FireballSplashBonus else 1)
@@ -1029,6 +1058,8 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 		owner = player,
 		look = "Fireball",
 		source = "Fireball",
+		rewind = rewind,
+		lead = lead,
 		origin = origin,
 		direction = aim,
 		speed = SETTINGS.FireballSpeed,
@@ -1321,12 +1352,16 @@ end
 -- mono o rival. La ayuda de puntería también busca a los aliados.
 local function healingDart(player: Player, character: Model, root: BasePart, aim: Vector3): boolean
 	local origin = headOf(character, root)
-	aim = CombatService.aimShot(player, origin, aim, SETTINGS.DartRange, SETTINGS.DartSpeed, true)
+	local motion = motionOf("HealingDart", SETTINGS.DartSpeed, SETTINGS.DartRange)
+	local rewind, lead = shotLag(player)
+	aim = CombatService.aimShot(player, origin, aim, SETTINGS.DartRange, SETTINGS.DartSpeed, true, motion)
 	Sfx.play("Shoot", root)
 	Projectiles.fire({
 		owner = player,
 		look = "HealingDart",
 		source = "HealingDart",
+		rewind = rewind,
+		lead = lead,
 		origin = origin,
 		direction = aim,
 		speed = SETTINGS.DartSpeed,

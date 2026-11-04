@@ -33,6 +33,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Armor = require(ReplicatedStorage.Shared.Data.Armor)
+local Ballistics = require(ReplicatedStorage.Shared.Ballistics)
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crit = require(ReplicatedStorage.Shared.Crit)
@@ -809,13 +810,14 @@ end
 
 -- Adónde apuntar a un mono para que le dé un proyectil de "speed" que sale de "origin": adonde estará
 -- al llegar, si sigue como va (en horizontal: los saltos no se adivinan), como mucho
--- Config.Projectiles.LeadMaxSeconds por delante.
-local function leadPoint(origin: Vector3, root: BasePart, speed: number): Vector3
+-- Config.Projectiles.LeadMaxSeconds por delante. "drag": el frenado del aire (Shared/Ballistics), que alarga el vuelo.
+local function leadPoint(origin: Vector3, root: BasePart, speed: number, drag: number): Vector3
 	local velocity = root.AssemblyLinearVelocity
 	local flatVelocity = Vector3.new(velocity.X, 0, velocity.Z)
 	local point = root.Position
 	for _ = 1, 2 do
-		local seconds = math.min((point - origin).Magnitude / speed, Config.Projectiles.LeadMaxSeconds)
+		local seconds =
+			math.min(Ballistics.timeTo(speed, drag, (point - origin).Magnitude), Config.Projectiles.LeadMaxSeconds)
 		point = root.Position + flatVelocity * seconds
 	end
 	return point
@@ -874,6 +876,19 @@ local function closestOnAxis(origin: Vector3, aim: Vector3, a: Vector3, b: Vecto
 	return a + axis * math.clamp(t, 0, 1)
 end
 
+-- Hasta dónde (studs de la línea de tiro) engancha la ayuda a un blanco a "along" studs: lo que valga el mayor de
+-- "studs" y el ángulo "degrees", y de lejos (de FarFromStuds a FarToStuds) se estrecha poco a poco hasta
+-- FarDegrees, para que el táctil no tenga tanta ventaja a 100 studs.
+local function aimReach(settings: any, studs: number, degrees: number, along: number): number
+	local near = math.max(studs, along * math.tan(math.rad(degrees)))
+	local farFrom, farTo = settings.FarFromStuds, settings.FarToStuds
+	if not (farFrom and farTo) or along <= farFrom then
+		return near
+	end
+	local far = along * math.tan(math.rad(math.min(settings.FarDegrees, degrees)))
+	return near + (far - near) * math.clamp((along - farFrom) / (farTo - farFrom), 0, 1)
+end
+
 -- Ayuda de puntería de un disparo (C9): la dirección con la que sale desde "origin". Solo la recibe quien
 -- usa un control táctil (AimInputService; PC y mando apuntan a mano) y si el place la permite
 -- (CombatRules.aimAssist). Solo engancha a quien la línea de tiro ya casi toca (Config.AimAssist, perfil
@@ -893,12 +908,14 @@ function CombatService.aimShot(
 	aim: Vector3,
 	range: number,
 	speed: number,
-	allies: boolean?
+	allies: boolean?,
+	motion: Ballistics.Motion?
 ): Vector3
 	local rules = CombatRules.get()
 	if not rules.aimAssist then
 		return aim
 	end
+	local drag = if motion then motion.drag else 0
 	local touch = AimInputService.isTouch(player)
 	-- Sin control táctil, solo el Dardo curativo se engancha, y solo a aliados.
 	local alliesOnly = not touch
@@ -929,15 +946,16 @@ function CombatService.aimShot(
 				local feet, top = bodyAxis(model, root, humanoid)
 				local point = closestOnAxis(origin, aim, feet, top)
 				local off, along = offAimLine(origin, aim, point, victim == nil)
-				if off and off <= math.max(studs, along * math.tan(math.rad(degrees))) and off < bestOff then
+				if off and off <= aimReach(settings, studs, degrees, along) and off < bestOff then
 					bestOff = off
-					best = if isPlayer then point else leadPoint(origin, root, speed) + (point - root.Position)
+					best = if isPlayer then point else leadPoint(origin, root, speed, drag) + (point - root.Position)
 				end
 			end
 		end
 	end
 	local offset = if best then best - origin else Vector3.zero
-	return if offset.Magnitude > 0.01 then offset.Unit else aim
+	-- Con caída (Fase 24, 24e), la ayuda apunta algo más alto: lo que caerá hasta llegar al blanco.
+	return if offset.Magnitude > 0.01 then Ballistics.launchFor(origin, best :: Vector3, motion) else aim
 end
 
 -- Cerbatanas del médico: el acierto cura al aliado vivo más herido cerca (o al propio médico). Solo a
@@ -1072,6 +1090,23 @@ local function scatter(direction: Vector3, degrees: number, seed: number?, seq: 
 	local offset =
 		Vector3.new(math.sin(radius) * math.cos(azimuth), math.sin(radius) * math.sin(azimuth), -math.cos(radius))
 	return CFrame.lookAt(Vector3.zero, direction):VectorToWorldSpace(offset)
+end
+
+-- Empuje del proyectil al impactar a un mono (Fase 24, 24e): mass × Config.Ballistics.PushScale / masa del blanco.
+-- Solo a monos (no a jugadores, ni jefes —Knockback no los mueve—, ni dianas ancladas), y sin rebote contra muros.
+local function pushMonkey(model: Model, direction: Vector3, profile: Ballistics.Profile?)
+	if Players:GetPlayerFromCharacter(model) or not CollectionService:HasTag(model, Config.Combat.EnemyTag) then
+		return
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = Hitbox.rootOf(model)
+	if not (humanoid and humanoid.Health > 0 and root and not root.Anchored) or model:GetAttribute("RangeTarget") then
+		return
+	end
+	local speed = Ballistics.pushSpeed(profile, root.AssemblyMass)
+	if speed > 0 then
+		Knockback.push(model, direction, speed, Config.Ballistics.PushSeconds, root.AssemblyLinearVelocity.Y)
+	end
 end
 
 -- Un disparo de un arma a distancia (C9): un proyectil real (Combat/Projectiles) que sale hacia donde
@@ -1217,7 +1252,9 @@ local function rangedAttack(
 	local serverOrigin = if head and head:IsA("BasePart") then head.Position else root.Position + Vector3.new(0, 1.5, 0)
 	local origin = shotOrigin or serverOrigin
 	local speed = weapon.projectileSpeed or 120
-	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed)
+	local profile = Ballistics.profile(weaponId, weapon.projectile or "Stone")
+	local motion = Ballistics.motion(profile, speed, weapon.range)
+	local direction = CombatService.aimShot(player, origin, aim, weapon.range, speed, nil, motion)
 	if spread > 0 then
 		direction = scatter(direction, spread, shotSeed, shotSeq)
 	end
@@ -1251,15 +1288,18 @@ local function rangedAttack(
 		rewind = if rules.zones then lag else nil,
 		lead = if rules.zones then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
 		onHit = function(model, center, zone, contact)
+			-- Daño según la distancia (Data/Ballistics): de lejos pega algo menos.
+			local falloff = Ballistics.damageScale(profile, ((contact or center) - origin).Magnitude, weapon.range)
 			if direct == nil then
-				if strike(model, damage, true, zone, contact or center) then
+				if strike(model, math.max(1, math.round(damage * falloff)), true, zone, contact or center) then
 					direct = model
+					pushMonkey(model, direction, profile)
 					return true
 				end
 				return false
 			end
 			-- Los siguientes, solo el remate que atraviesa.
-			return others > 0 and strike(model, others, false)
+			return others > 0 and strike(model, math.max(1, math.round(others * falloff)), false)
 		end,
 		-- El remate del bastón estalla donde se para (en el primero, en una pared o al final de su
 		-- alcance), mirando desde un poco antes: lo que hay detrás de una pared no se alcanza.
@@ -1295,7 +1335,15 @@ local function acceptedOrigin(character: Model, root: BasePart, claimed: any, la
 	end
 	local rewoundRoot = PositionHistory.at(character, lag) or root.Position
 	local rewoundHead = rewoundRoot + (head.Position - root.Position)
-	if (claimed - rewoundHead).Magnitude > Config.Combat.Headshot.OriginToleranceStuds then
+	-- En movimiento (sobre todo en el aire) la cabeza del cliente va por delante de la del servidor: más margen
+	-- cuanto más rápido va, con tope.
+	local settings = Config.Combat.Headshot
+	local travel = root.AssemblyLinearVelocity.Magnitude
+		* (lag + Config.Net.JitterSeconds + settings.OriginMotionSeconds)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local airborne = if humanoid and humanoid.FloorMaterial == Enum.Material.Air then settings.OriginAirStuds else 0
+	local tolerance = math.min(settings.OriginToleranceStuds + travel + airborne, settings.OriginMaxStuds)
+	if (claimed - rewoundHead).Magnitude > tolerance then
 		return nil
 	end
 	if Hitbox.ray(head.Position, claimed - head.Position) then

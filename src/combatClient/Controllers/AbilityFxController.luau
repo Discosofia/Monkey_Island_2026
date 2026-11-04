@@ -56,6 +56,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Ballistics = require(ReplicatedStorage.Shared.Ballistics)
 local Combos = require(ReplicatedStorage.Shared.Data.Combos)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -3163,6 +3164,7 @@ local function launch(
 	pierce: boolean,
 	extra: { any }?,
 	gravity: number?,
+	drag: number?,
 	mode: LocalMode?
 ): Flying?
 	local build = LOOKS[lookId]
@@ -3186,7 +3188,13 @@ local function launch(
 	local position = origin
 	local finished = false
 	-- Solo las balas de arma en línea recta dejan el impacto de ImpactFx (no el suero en arco ni las habilidades).
-	local impacts = IMPACT_LOOKS[lookId] == true and gravity == nil
+	local impacts = IMPACT_LOOKS[lookId] == true
+	-- Balística (Fase 24, 24e): lo que el servidor manda como caída y frenado. Un proyectil de otro o del servidor
+	-- sigue su curva entera; el disparo propio (con "mode") sigue la línea de tiro y solo dibuja el frenado y la
+	-- caída encima (lo que acierta lo decide el servidor).
+	local fall = gravity or 0
+	local slow = drag or 0
+	local arc = (gravity ~= nil or drag ~= nil) and mode == nil
 	local connection: RBXScriptConnection? = nil
 	-- Con la dirección real del servidor, la curva en que la bala propia se junta con ella.
 	local steer: { from: Vector3, to: Vector3, start: number }? = nil
@@ -3239,12 +3247,12 @@ local function launch(
 	end
 	body.CFrame = CFrame.lookAt(origin, origin + direction)
 	body.Parent = folder
-	if gravity then
+	if arc then
 		-- En arco: se dibuja en su punto de la parábola a la hora del servidor; se para donde choca aquí o
 		-- donde dice el servidor (que va por delante del dibujo como mucho el ping).
-		local velocity = direction * speed
+		local motion: Ballistics.Motion = { speed = speed, gravity = fall, drag = slow }
 		local function at(t: number): Vector3
-			return origin + velocity * t - Vector3.yAxis * (gravity * t * t / 2)
+			return Ballistics.position(origin, direction, motion, t)
 		end
 		local last = origin
 		local path = 0
@@ -3284,7 +3292,7 @@ local function launch(
 				steer = nil
 			end
 		end
-		local target = math.min(math.max(speed * elapsed, travelled), limit)
+		local target = math.min(math.max(Ballistics.distance(speed, slow, elapsed), travelled), limit)
 		local hit, onBody = localStop(position, direction * (target - travelled), params, pierce, stopOnPlayers)
 		if hit then
 			target = travelled + hit
@@ -3294,7 +3302,8 @@ local function launch(
 		end
 		position += direction * (target - travelled)
 		travelled = target
-		local cframe = CFrame.lookAt(position, position + direction) + muzzleShift(elapsed)
+		local sag = Vector3.yAxis * (fall * elapsed * elapsed / 2)
+		local cframe = CFrame.lookAt(position - sag, position - sag + direction) + muzzleShift(elapsed)
 		body.CFrame = cframe
 		if look.follow then
 			look.follow(cframe, elapsed)
@@ -3343,9 +3352,10 @@ local function projectile(
 	startTime: number,
 	pierce: boolean,
 	extra: { any }?,
-	gravity: number?
+	gravity: number?,
+	drag: number?
 )
-	launch(id, lookId, owner, origin, direction, speed, range, startTime, pierce, extra, gravity, nil)
+	launch(id, lookId, owner, origin, direction, speed, range, startTime, pierce, extra, gravity, drag, nil)
 end
 
 -- El servidor dice dónde se ha parado el proyectil "id".
@@ -3373,6 +3383,9 @@ export type LocalShot = {
 	pierce: boolean,
 	extra: { any }?,
 	firstPerson: boolean,
+	-- Balística del arma (Shared/Ballistics.motion): solo se dibuja la caída y el frenado sobre la línea de tiro.
+	gravity: number?,
+	drag: number?,
 }
 
 -- La bala del disparo propio (Fase 19, W4), dibujada al momento desde la boca del arma hacia un punto de
@@ -3392,7 +3405,8 @@ function AbilityFxController.localShot(shot: LocalShot)
 		Workspace:GetServerTimeNow(),
 		shot.pierce,
 		shot.extra,
-		nil,
+		shot.gravity,
+		shot.drag,
 		{
 			aimOrigin = shot.aimOrigin,
 			aimDirection = shot.aimDirection,

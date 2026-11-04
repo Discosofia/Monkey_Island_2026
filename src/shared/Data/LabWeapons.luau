@@ -99,7 +99,7 @@ local LabWeapons: { [string]: LabWeaponDefinition } = {
 				air = 3.1,
 				perShot = 0.35,
 				maxShots = 3,
-				recover = 6,
+				recover = 1.5,
 				adsSpreadFactor = 0.35,
 			},
 		},
