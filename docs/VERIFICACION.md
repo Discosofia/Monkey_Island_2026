@@ -4452,6 +4452,34 @@ Todo esto es solo Studio: las órdenes salen en el panel «🛠️ Pruebas» del
 6. [x] Intenta caminar entre los muñecos móviles (el usuario lo probó el 04-11-2026: no se podía pasar y así se queda).
    ✅ Los muñecos no te lanzan ni te atrapan al moverse.
 
+## 113. Fase 20 Q4c: Quetzalcóatl Mítico a máximo detalle con malla (04-11-2026)
+
+El Quetzalcóatl (Mítica) se rehízo a máximo detalle y es ahora 11 mallas con textura (`Data/MountMeshes`, 3.754 triángulos las mallas y 5.388 en total frente al tope de 17.200; 468 piezas frente a 560). Se subieron los topes de la Mítica en `Config.Budgets` (piezas 410 → 560, triángulos 8.600 → 17.200). Cambios de diseño: hocico y mandíbula en escalones que se estrechan, aletas de la nariz, párpado oscuro sobre cada ojo, bigotes de oro y jade (dos por lado en lo alto del hocico y uno por lado bajo el mentón) y perilla de plumas, aletas de plumas en las mejillas, penacho delantero curvo, cintas largas del penacho trasero y de la cola, y escamas (una fila en relieve, dos pintadas, escudos del vientre y púas de oro en el lomo). `Rendimiento` sin alertas. Comprobado el 04-11-2026 en Edit (construye con las 11 mallas) y en Play en la Isla (montado, con las 11 mallas y el jinete sobre la silla, sin avisos). Tras la primera prueba del usuario se rehízo la mandíbula inferior (era más baja y corta que el hocico y la tapaba la perilla): ahora tiene tres escalones como el hocico, escamas y cresta de oro en el costado y la perilla y los bigotes de la barbilla salen de debajo del mentón; mallas y cajas coinciden en tamaño y se reimportó solo `Quetzalcoatl_Jaw`. Después se vio la mandíbula corta y con un hueco bajo los dientes (boca abierta −14° de fábrica): se subió y ensanchó (3,2 celdas de alto) y el reposo pasó a −7°. La causa del hueco que seguía era un error del volcado: había cajas llamadas `Jaw` y `Tongue` como los huesos, y `FindFirstChild("Jaw")` devolvía una caja, así que la malla de la mandíbula (y la de la lengua) salía ~0,6 studs atrás y arriba. Se renombraron las cajas (`JawBlock`, `TongueBlock`) y se midió que la malla coincide con las cajas en todos los huesos (mandíbula z −9,09…−6,62 frente a −9,09…−6,63). Comprobado en Play el 04-11-2026 de lado en reposo (la mandíbula llega a la barbilla y las barbas cuelgan de ella). El Jaguar tenía el mismo choque de nombres (`Jaw`, `Tail`, `Neck`) y sus mallas de mandíbula, cuello y cola salían desplazadas hasta ~0,4 studs: corregido el 04-11-2026 (cajas renombradas, offsets nuevos en `MountMeshes`; las formas no cambian, no hizo falta reimportar). Falta lo de abajo, sobre todo el silbido (la mandíbula se abre sin atravesar el hocico).
+
+### 113.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`, clave `_antesQ4c`)
+
+1. [ ] Móntalo y camina, salta desde lo alto (planeo) y usa el gesto de silbar.
+   ✅ Las mallas siguen a sus huesos (cuello, cabeza, mandíbula que se abre al silbar y los cinco tramos de la cola); sin huecos entre tramos al ondular; los abanicos se abren al planear; el aura y los remolinos siguen en su sitio.
+2. [ ] Mira las grecas de oro mientras camina.
+   ✅ Las grecas pulsan recorriendo la serpiente (siguen sueltas, no pintadas).
+3. [ ] Míralo de frente, de lado y de espaldas.
+   ✅ Hocico afilado con colmillos, párpado sobre los ojos, bigotes sin cruzarse, penacho delantero curvo, cintas detrás y plumero de la cola; escamas visibles.
+4. [ ] Míralo en el nido y las vitrinas del Lobby y en la ventana de recompensas (`RewardModels`, tope 300 piezas del `ViewportFrame`).
+   ✅ Se ve con su textura en las tres (si la ventana no lo carga entero por el tope, anótalo).
+5. [ ] Monta por primera vez al entrar en la partida y mira sobre el jinete (sobre todo en el teléfono y con red lenta).
+   ✅ Mientras carga sale un anillo de puntos dorados que gira, con «Preparando montura…» debajo (en inglés, «Getting your mount ready…»); lo ven también los demás jugadores; se quita solo al aparecer la montura. Al montar otra vez (o con las mallas ya cargadas) no sale ni parpadea. Comprobado el 04-11-2026 solo por datos en Play (aparece a los 0,27 s y desaparece al terminar; la captura de Studio no dibuja los carteles del mundo), falta verlo con ojos. Frase nueva para la tabla de Creator Hub (`tools/strings.py --csv-nuevas`).
+6. [ ] Mide cuánto tarda la primera montura de la sesión en el juego publicado.
+   ✅ Las 11 mallas se piden a la vez y se guardan para las siguientes (antes, una a una: ~3,3 s en Play de Studio, ahora ~0,4 s); en el juego publicado depende de la red.
+7. [ ] Para el Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba (ya restaurado tras la prueba del 04-11-2026).
+
+### 113.2 En el juego publicado, con 2 jugadores y en teléfono
+
+1. [ ] Un jugador monta el Quetzalcóatl y otro lo mira (también uno que entra después).
+   ✅ El otro ve las 11 mallas con su textura y las plumas, y se mueve igual.
+2. [ ] En un teléfono, mira el Quetzalcóatl a unos 10 studs y con varias monturas cerca.
+   ✅ Los FPS no caen y la textura no se ve borrosa ni a cuadros.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

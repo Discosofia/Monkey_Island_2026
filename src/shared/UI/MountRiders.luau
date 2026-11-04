@@ -28,7 +28,9 @@ local Config = require(script.Parent.Parent.Config)
 local MountModels = require(script.Parent.Parent.MountModels)
 local Mounts = require(script.Parent.Parent.Data.Mounts)
 local Remotes = require(script.Parent.Parent.Remotes)
+local Strings = require(script.Parent.Parent.Strings)
 
+local T = Strings.t
 local SETTINGS = Config.Mounts
 -- Altura del centro del HumanoidRootPart del jinete sobre el asiento (studs).
 local RIDER_LIFT = 0.35
@@ -148,6 +150,72 @@ end
 -- segunda llamada a `sync` en ese rato construiría otra montura que se quedaría huérfana.
 local building: { [Player]: boolean } = {}
 
+-- Indicador de carga: mientras `MountModels.build` espera las mallas, sobre el jinete gira un anillo de puntos dorados
+-- con "Preparando montura…" (lo ven todos los que miran). Solo sale si la espera pasa de LOADING_DELAY (con las mallas ya
+-- cargadas la montura aparece al instante y no parpadea nada).
+local LOADING_DELAY = 0.15
+local LOADING_DOTS = 8
+local LOADING_COLOR = Color3.fromRGB(245, 190, 40)
+local loading: { [Player]: { gui: BillboardGui, connection: RBXScriptConnection } } = {}
+
+local function hideLoading(player: Player)
+	local item = loading[player]
+	if item then
+		loading[player] = nil
+		item.connection:Disconnect()
+		item.gui:Destroy()
+	end
+end
+
+local function showLoading(player: Player, root: BasePart)
+	hideLoading(player)
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "MountLoading"
+	gui.Adornee = root
+	gui.AlwaysOnTop = true
+	gui.Size = UDim2.fromOffset(120, 110)
+	gui.StudsOffset = Vector3.new(0, 3.2, 0)
+	gui.LightInfluence = 0
+	local dots: { Frame } = {}
+	for i = 1, LOADING_DOTS do
+		local angle = (i - 1) / LOADING_DOTS * math.pi * 2
+		local dot = Instance.new("Frame")
+		dot.AnchorPoint = Vector2.new(0.5, 0.5)
+		dot.Size = UDim2.fromOffset(10, 10)
+		dot.Position = UDim2.new(0.5, math.sin(angle) * 26, 0, 38 - math.cos(angle) * 26)
+		dot.BackgroundColor3 = LOADING_COLOR
+		dot.BorderSizePixel = 0
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(1, 0)
+		corner.Parent = dot
+		dot.Parent = gui
+		dots[i] = dot
+	end
+	local label = Instance.new("TextLabel")
+	label.AnchorPoint = Vector2.new(0.5, 0)
+	label.Position = UDim2.new(0.5, 0, 0, 78)
+	label.Size = UDim2.fromOffset(120, 22)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 14
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0.4
+	label.Text = T("Preparando montura…")
+	label.Parent = gui
+	gui.Parent = root
+	-- Una estela que recorre el anillo: el punto de delante, opaco, y los de detrás más y más claros.
+	local connection = RunService.RenderStepped:Connect(function()
+		local head = os.clock() * 1.4 % 1 * LOADING_DOTS
+		for i, dot in dots do
+			local behind = (head - (i - 1)) % LOADING_DOTS
+			dot.BackgroundTransparency = math.clamp(behind / LOADING_DOTS, 0, 0.85)
+			local size = 10 - behind / LOADING_DOTS * 4
+			dot.Size = UDim2.fromOffset(size, size)
+		end
+	end)
+	loading[player] = { gui = gui, connection = connection }
+end
+
 local function sync(player: Player)
 	if building[player] then
 		return
@@ -164,8 +232,14 @@ local function sync(player: Player)
 		return
 	end
 	building[player] = true
+	task.delay(LOADING_DELAY, function()
+		if building[player] and root.Parent then
+			showLoading(player, root)
+		end
+	end)
 	local model = MountModels.build(mountId)
 	building[player] = nil
+	hideLoading(player)
 	if not model then
 		return
 	end
@@ -333,7 +407,10 @@ function MountRiders.start()
 	for _, player in Players:GetPlayers() do
 		track(player)
 	end
-	Players.PlayerRemoving:Connect(remove)
+	Players.PlayerRemoving:Connect(function(player: Player)
+		hideLoading(player)
+		remove(player)
+	end)
 	Remotes.MountGesture.OnClientEvent:Connect(function(player: any)
 		local rider = if typeof(player) == "Instance" and player:IsA("Player") then riders[player] else nil
 		local gesture = if rider then rider.tracks.Gesture else nil

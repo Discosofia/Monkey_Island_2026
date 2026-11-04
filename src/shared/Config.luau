@@ -2328,7 +2328,7 @@ local Config = {
 			PetAnimated = 110, -- piezas de la mascota que se mueven cada fotograma
 			MountRare = 260,
 			MountLegendary = 375,
-			MountMythic = 410,
+			MountMythic = 560, -- Q4c (04-11-2026): el Quetzalcóatl a máximo detalle (antes 410)
 			Aura = 30, -- aura cosmética
 			LabWeaponBase = 45, -- arma del Laboratorio sin skin
 			LabWeaponSkin3 = 200, -- arma del Laboratorio con una skin de bajas (hoy el Arpón de red III llega a 99)
@@ -2348,7 +2348,7 @@ local Config = {
 			-- Triángulos del equipo (Fase 20, 03-11-2026): máximo medido × lo que concede el reparto del margen de la
 			-- escena de la Isla (Rendimiento, «Reparto del margen»): monturas y armas +100 %, mascotas estándar +50 %
 			-- y especiales +100 %, armaduras y trajes +60 %. Son topes por modelo; la escena se mide con el equipo medio.
-			MountTriangles = { Rare = 4100, Legendary = 5900, Mythic = 8600 },
+			MountTriangles = { Rare = 4100, Legendary = 5900, Mythic = 17200 },
 			PetTriangles = 2800, -- mascota estándar; las especiales van por id en Exceptions
 			ArmorTriangles = { 7300, 16000, 17700, 10800 }, -- armadura de rol por rango I a IV
 			OutfitTriangles = { Legendary = 39400, Mythic = 110200 }, -- traje de grado 4

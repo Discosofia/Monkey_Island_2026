@@ -117,7 +117,7 @@ local MountMeshes: { [string]: MountMesh } = {
 			["Jaw"] = {
 				mesh = "rbxassetid://79224341398908",
 				texture = "rbxassetid://115583132950783",
-				offset = Vector3.new(0.0000, 0.0220, -0.1760),
+				offset = Vector3.new(0.0000, -0.1430, -0.3960),
 			},
 			["LegBL"] = {
 				mesh = "rbxassetid://132693781152986",
@@ -142,7 +142,7 @@ local MountMeshes: { [string]: MountMesh } = {
 			["Neck"] = {
 				mesh = "rbxassetid://101582834546782",
 				texture = "rbxassetid://116775172127158",
-				offset = Vector3.new(0.0000, -0.0220, 0.1650),
+				offset = Vector3.new(0.0000, -0.2970, -0.2310),
 			},
 			["ShinBL"] = {
 				mesh = "rbxassetid://114648706051156",
@@ -167,7 +167,7 @@ local MountMeshes: { [string]: MountMesh } = {
 			["Tail"] = {
 				mesh = "rbxassetid://134246455275202",
 				texture = "rbxassetid://110072818954728",
-				offset = Vector3.new(0.0000, -0.0935, 0.3410),
+				offset = Vector3.new(0.0000, -0.1815, 0.6050),
 			},
 			["Tail2"] = {
 				mesh = "rbxassetid://112559243727289",
@@ -178,6 +178,66 @@ local MountMeshes: { [string]: MountMesh } = {
 				mesh = "rbxassetid://87192976047910",
 				texture = "rbxassetid://101818595656001",
 				offset = Vector3.new(0.0000, 0.2970, 0.1485),
+			},
+		},
+	},
+	Quetzalcoatl = {
+		scale = 0.9,
+		parts = {
+			["Body"] = {
+				mesh = "rbxassetid://94805314311406",
+				texture = "rbxassetid://88573331031598",
+				offset = Vector3.new(0.0000, 0.1844, 0.0180),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://73609206752254",
+				texture = "rbxassetid://125957501306755",
+				offset = Vector3.new(0.0000, 0.7839, -1.6906),
+			},
+			["Jaw"] = {
+				mesh = "rbxassetid://76084750047500",
+				texture = "rbxassetid://133055591329218",
+				offset = Vector3.new(0.0000, -0.2515, -0.8190),
+			},
+			["Neck"] = {
+				mesh = "rbxassetid://85531143293346",
+				texture = "rbxassetid://110999353832947",
+				offset = Vector3.new(0.0000, 0.4630, -0.8100),
+			},
+			["Seg1"] = {
+				mesh = "rbxassetid://76153923522877",
+				texture = "rbxassetid://95759193109753",
+				offset = Vector3.new(0.0000, 0.0220, 1.2420),
+			},
+			["Seg2"] = {
+				mesh = "rbxassetid://103409133188488",
+				texture = "rbxassetid://136749424835415",
+				offset = Vector3.new(0.0000, 0.0501, 1.2420),
+			},
+			["Seg3"] = {
+				mesh = "rbxassetid://87075220867598",
+				texture = "rbxassetid://101835220928046",
+				offset = Vector3.new(0.0000, 0.0810, 1.1520),
+			},
+			["Seg4"] = {
+				mesh = "rbxassetid://72269979550701",
+				texture = "rbxassetid://91253535705837",
+				offset = Vector3.new(0.0000, 0.1298, 1.0620),
+			},
+			["Seg5"] = {
+				mesh = "rbxassetid://125016025754876",
+				texture = "rbxassetid://98775186054839",
+				offset = Vector3.new(0.0000, 0.1025, 0.7200),
+			},
+			["TailFan"] = {
+				mesh = "rbxassetid://98388733335990",
+				texture = "rbxassetid://102228566997528",
+				offset = Vector3.new(0.0000, 0.0000, 0.7344),
+			},
+			["Tongue"] = {
+				mesh = "rbxassetid://84933010573896",
+				texture = "rbxassetid://82972361583276",
+				offset = Vector3.new(0.0000, 0.0000, -0.7020),
 			},
 		},
 	},

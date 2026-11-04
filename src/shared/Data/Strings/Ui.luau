@@ -341,4 +341,5 @@ return {
 	["Grosor"] = "Thickness",
 	["🎯 Mira"] = "🎯 Crosshair",
 	["Mira dinámica (se abre al moverte y disparar)"] = "Dynamic crosshair (opens as you move and shoot)",
+	["Preparando montura…"] = "Getting your mount ready…",
 }

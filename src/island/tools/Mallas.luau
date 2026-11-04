@@ -100,10 +100,23 @@ function Mallas.volcarMontura(mountId: string, shared: Instance?, huesos: { stri
 			continue
 		end
 		local hueso = modelo:FindFirstChild(nombre) :: BasePart
+		-- Los huesos con giro de reposo (la mandíbula del Quetzalcóatl) quedan en el modelo de cajas lejos de donde los
+		-- deja la cadena de Motor6D en el juego, y `MountModels.build` coloca la malla con esa cadena: se mide contra
+		-- el marco que dan los Motor6D (padre × C0), no contra la posición de la pieza (Q4c, 04-11-2026).
+		local function marcoDelHueso(parte: BasePart): CFrame
+			for _, motor in modelo:GetDescendants() do
+				if motor:IsA("Motor6D") and motor.Part1 == parte and motor.Part0 then
+					return marcoDelHueso(motor.Part0) * motor.C0 * motor.C1:Inverse()
+				end
+			end
+			return parte.CFrame
+		end
+		local marco = Instance.new("Part")
+		marco.CFrame = marcoDelHueso(hueso)
 		local lineas = {}
 		local suma = 0
 		for _, caja in cajas[nombre] do
-			local centro, tamano = MountModels.meshableBox(caja, hueso)
+			local centro, tamano = MountModels.meshableBox(caja, marco)
 			if not (centro and tamano) then
 				continue
 			end
