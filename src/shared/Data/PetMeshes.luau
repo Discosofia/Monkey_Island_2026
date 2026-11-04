@@ -642,6 +642,46 @@ local PetMeshes: { [string]: PetMesh } = {
 			},
 		},
 	},
+	MonoX7 = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://105060018183553",
+				texture = "rbxassetid://136867060774755",
+				offset = Vector3.new(0.0000, 0.3950, -0.0175),
+			},
+			["ArmL"] = {
+				mesh = "rbxassetid://114657653933015",
+				texture = "rbxassetid://115946247193753",
+				offset = Vector3.new(-0.1550, -0.5350, -0.2300),
+			},
+			["ArmR"] = {
+				mesh = "rbxassetid://92872760829675",
+				texture = "rbxassetid://118131181297740",
+				offset = Vector3.new(0.1550, -0.5350, -0.2300),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://140340112628975",
+				texture = "rbxassetid://93244240094722",
+				offset = Vector3.new(0.0000, -0.0150, -0.0200),
+			},
+			["J1"] = {
+				mesh = "rbxassetid://123729433650344",
+				texture = "rbxassetid://133989211639345",
+				offset = Vector3.new(0.0000, 0.2300, 0.0000),
+			},
+			["LegL"] = {
+				mesh = "rbxassetid://85058469919403",
+				texture = "rbxassetid://121001885190829",
+				offset = Vector3.new(-0.1350, -0.2975, -0.2725),
+			},
+			["LegR"] = {
+				mesh = "rbxassetid://90464191861332",
+				texture = "rbxassetid://135681024162722",
+				offset = Vector3.new(0.1350, -0.2975, -0.2725),
+			},
+		},
+	},
 }
 
 return PetMeshes

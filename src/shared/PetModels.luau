@@ -5860,6 +5860,9 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		local hose = Color3.fromRGB(55, 58, 68)
 		local visorColor = Color3.fromRGB(20, 30, 60)
 		local crest = shell:Lerp(metal, 0.35)
+		-- Lo pequeño que brillaba (venas, luces de los grilletes, niveles de los depósitos) se pinta en la malla con un cian
+		-- vivo; lo que ilumina de verdad (cartel, antena, vial, chispas, pilotos, ojos del visor) sigue suelto en neón.
+		local glowInk = color:Lerp(WHITE, 0.3)
 
 		local function neon(part: BasePart, transparency: number?): BasePart
 			part.Material = Enum.Material.Neon
@@ -5931,6 +5934,65 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		scarStrip(nil, Vector3.new(-6.4, 13.4, -2.4), 3)
 		scarStrip(nil, Vector3.new(6.1, 12.4, 1.6), 2.6)
 		scarStrip(nil, Vector3.new(-4.75, 9.4, 6.2), 2.2)
+
+		-- Pelo azul pintado (Fase 21, Q5): mechones de cuatro tonos por la joroba, el lomo, la grupa y los costados; los de
+		-- los brazos y las piernas van en sus propios bucles. Todo fino: casi no cuesta triángulos.
+		local strand = { fur, fur:Lerp(BLACK, 0.12), fur:Lerp(WHITE, 0.1), fur:Lerp(furLight, 0.25) }
+		voxelTopScales(
+			v,
+			nil,
+			"Strand",
+			Vector3.new(0, 18.23, -2),
+			Vector2.new(8.6, 4.4),
+			Vector2.new(1.3, 1.5),
+			strand,
+			0.06
+		)
+		voxelTopScales(
+			v,
+			nil,
+			"Strand",
+			Vector3.new(0, 15.03, 1),
+			Vector2.new(9.2, 2.8),
+			Vector2.new(1.3, 1.4),
+			strand,
+			0.06
+		)
+		for _, side in { -1, 1 } do
+			voxelScales(
+				v,
+				nil,
+				"Fur",
+				"x",
+				Vector3.new(side * 6.33, 13, -3),
+				Vector2.new(5.4, 7),
+				Vector2.new(1.3, 1.2),
+				strand,
+				0.06
+			)
+			voxelScales(
+				v,
+				nil,
+				"Fur",
+				"x",
+				Vector3.new(side * 4.73, 9.5, 5.5),
+				Vector2.new(3.4, 5.4),
+				Vector2.new(1.3, 1.2),
+				strand,
+				0.06
+			)
+		end
+		voxelScales(
+			v,
+			nil,
+			"Fur",
+			"z",
+			Vector3.new(0, 9.5, 7.53),
+			Vector2.new(8, 5.4),
+			Vector2.new(1.45, 1.3),
+			strand,
+			0.06
+		)
 
 		-- Casco: bola en escalones (seis cajas), cresta de delante atrás, aro de cobre con el visor de
 		-- espejo en cúpula de tres escalones y sus brillos, remaches, discos en las sienes, cuello de
@@ -6026,6 +6088,51 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				rust:Lerp(shell, 0.4)
 			)
 		end
+		-- Casco más rico (Fase 21, Q5): costuras entre las placas con tornillos en los cruces, rayones en el aro de cobre.
+		local seam = shell:Lerp(BLACK, 0.55)
+		local scratch = copper:Lerp(BLACK, 0.45)
+		for _, x in { -1.8, 1.8 } do
+			box(helmet, "HelmetSeam", Vector3.new(x, hc.Y + r + 0.03, hc.Z), Vector3.new(0.14, 0.1, 6.4), seam)
+			box(helmet, "HelmetSeam", Vector3.new(x, hc.Y, hc.Z + r + 0.03), Vector3.new(0.14, 6, 0.1), seam)
+			for _, z in { -1.6, 1.6 } do
+				box(helmet, "HelmetBolt", Vector3.new(x, hc.Y + r + 0.07, hc.Z + z), Vector3.new(0.5, 0.12, 0.5), metal)
+			end
+		end
+		for _, z in { -1.6, 1.6 } do
+			box(helmet, "HelmetSeam", Vector3.new(0, hc.Y + r + 0.03, hc.Z + z), Vector3.new(6.4, 0.1, 0.14), seam)
+		end
+		for _, y in { -1.2, 1.2 } do
+			box(helmet, "HelmetSeam", Vector3.new(0, hc.Y + y, hc.Z + r + 0.03), Vector3.new(6.4, 0.14, 0.1), seam)
+		end
+		for _, side in { -1, 1 } do
+			for _, z in { -2.4, 2.8 } do
+				box(
+					helmet,
+					"HelmetSeam",
+					Vector3.new(side * (r + 0.03), hc.Y, hc.Z + z),
+					Vector3.new(0.1, 6, 0.14),
+					seam
+				)
+			end
+		end
+		for _, mark in { { -2.4, 3 }, { 2.2, -2.9 }, { -2.8, -1.5 }, { 1.4, 2.6 } } do
+			box(
+				helmet,
+				"RimScratch",
+				Vector3.new(mark[1], hc.Y + mark[2], front - 0.43),
+				Vector3.new(1.4, 0.12, 0.1),
+				scratch
+			)
+		end
+		for _, mark in { { 2.9, 1.6 }, { -3, -2.2 } } do
+			box(
+				helmet,
+				"RimScratch",
+				Vector3.new(mark[1], hc.Y + mark[2], front - 0.43),
+				Vector3.new(0.12, 1.2, 0.1),
+				scratch
+			)
+		end
 		local helmetJoints: { Joint } = {}
 		for _, part in helmet do
 			local item = joint(rig, part, CFrame.new(v.at(hc)), Vector3.yAxis, 0.3, 0.7, 0, false)
@@ -6075,7 +6182,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		-- Mochila sobre el lomo: caja de metal con su panel, la placa "X-7" a la espalda, rejilla,
 		-- pilotos, tornillos, franja de peligro arriba, depósitos con su nivel encendido a los lados,
 		-- tirantes por los hombros con hebilla y encima el vial de suero entre dos tapas de cobre.
-		local pack = box(nil, "Pack", Vector3.new(0, 15.2, 4.2), Vector3.new(6.6, 5, 3.2), metal)
+		box(nil, "Pack", Vector3.new(0, 15.2, 4.2), Vector3.new(6.6, 5, 3.2), metal)
 		box(nil, "PackPanel", Vector3.new(0, 15, 5.85), Vector3.new(5.6, 4.2, 0.1), metal:Lerp(BLACK, 0.25))
 		box(nil, "Badge", Vector3.new(0, 15.6, 5.95), Vector3.new(5, 2.3, 0.2), Color3.fromRGB(30, 32, 40))
 		-- "X-7" en píxeles de neón sobre la placa (un texto en SurfaceGui dejaba de dibujarse a la
@@ -6117,10 +6224,25 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				stripe
 			)
 		end
+		-- Marco del panel y bandas de cobre en los depósitos (Fase 21, Q5).
+		box(nil, "PanelFrame", Vector3.new(0, 13.05, 5.93), Vector3.new(5, 0.12, 0.1), Color3.fromRGB(25, 27, 32))
+		for _, side in { -1, 1 } do
+			box(
+				nil,
+				"PanelFrame",
+				Vector3.new(side * 2.6, 15, 5.93),
+				Vector3.new(0.12, 4, 0.1),
+				Color3.fromRGB(25, 27, 32)
+			)
+			box(nil, "PackBolt", Vector3.new(side * 2.6, 17.73, 3.2), Vector3.new(0.5, 0.1, 0.5), copper)
+			for _, y in { 13.6, 16.8 } do
+				box(nil, "TankBand", Vector3.new(side * 3.8, y, 4.2), Vector3.new(1.2, 0.4, 1.8), copper)
+			end
+		end
 		for _, side in { -1, 1 } do
 			box(nil, "Tank", Vector3.new(side * 3.8, 15.2, 4.2), Vector3.new(1, 4, 1.6), metal:Lerp(WHITE, 0.15))
 			box(nil, "TankCap", Vector3.new(side * 3.8, 17.35, 4.2), Vector3.new(0.7, 0.3, 0.7), copper)
-			neon(box(nil, "TankLevel", Vector3.new(side * 4.32, 14.8, 4.2), Vector3.new(0.1, 2.4, 0.4), color), 0.1)
+			box(nil, "TankLevel", Vector3.new(side * 4.32, 14.8, 4.2), Vector3.new(0.1, 2.4, 0.4), glowInk)
 			box(nil, "Strap", Vector3.new(side * 4.2, 19.4, -3.8), Vector3.new(1, 0.2, 6), hose)
 			box(nil, "Strap", Vector3.new(side * 4.2, 14.8, -6.65), Vector3.new(1, 9, 0.3), hose)
 			box(nil, "StrapBuckle", Vector3.new(side * 4.2, 12.4, -6.85), Vector3.new(1.2, 0.8, 0.2), copper)
@@ -6162,14 +6284,21 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			for i = 1, segments do
 				local thick = i % 2 == 1
 				local width = if thick then 1.1 else 0.85
-				v.beam(
+				-- Escalones alineados (Fase 21, Q5): así la manguera entra en la malla del cuerpo.
+				voxelSteps(
+					v,
 					nil,
 					"Hose",
 					at((i - 1) / segments),
 					at(i / segments),
-					Vector2.new(width, width),
-					if thick then metal else hose
+					Vector3.one * width,
+					if thick then metal else hose,
+					1
 				)
+			end
+			-- Abrazaderas de cobre en tres puntos de la curva.
+			for _, f in { 0.2, 0.5, 0.8 } do
+				box(nil, "HoseClamp", at(f), Vector3.new(1.5, 1.5, 1.5), copper)
 			end
 		end
 
@@ -6194,19 +6323,41 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				muscle:Lerp(WHITE, 0.06)
 			)
 			box(arm, "Triceps", Vector3.new(side * 7.4, 11, -2.8), Vector3.new(2.8, 3.6, 0.6), muscle)
-			neon(box(arm, "Vein", Vector3.new(side * 9.25, 11.2, -5), Vector3.new(0.15, 2.4, 0.3), color), 0.2)
-			neon(box(arm, "Vein", Vector3.new(side * 9.25, 10.1, -5.5), Vector3.new(0.15, 0.3, 1.2), color), 0.2)
+			box(arm, "Vein", Vector3.new(side * 9.25, 11.2, -5), Vector3.new(0.15, 2.4, 0.3), glowInk)
+			box(arm, "Vein", Vector3.new(side * 9.25, 10.1, -5.5), Vector3.new(0.15, 0.3, 1.2), glowInk)
 			box(arm, "Forearm", Vector3.new(x, 5, -7.2), Vector3.new(4.6, 5.8, 4.6), fur)
 			box(arm, "ForearmTop", Vector3.new(x, 6.4, -9.65), Vector3.new(3, 2.2, 0.3), muscle)
 			box(arm, "ForearmOuter", Vector3.new(x + side * 2.45, 6.2, -7.2), Vector3.new(0.3, 2.6, 2.8), muscle)
 			box(arm, "ArmShag", Vector3.new(side * 8.1, 5.4, -4.7), Vector3.new(2.6, 3.4, 0.8), furDark)
 			box(arm, "Cuff", Vector3.new(x, 2.8, -7.3), Vector3.new(5, 1.1, 5), metal)
-			neon(box(arm, "CuffLight", Vector3.new(x + side * 2.55, 2.8, -7.3), Vector3.new(0.2, 0.5, 0.9), color))
+			box(arm, "CuffLight", Vector3.new(x + side * 2.55, 2.8, -7.3), Vector3.new(0.2, 0.5, 0.9), glowInk)
 			box(arm, "Hand", Vector3.new(x, 1, -8), Vector3.new(3.8, 2, 4.4), hands)
 			for k = -1, 1 do
 				box(arm, "Knuckle", Vector3.new(x + k * 1.25, 0.6, -10.6), Vector3.new(1.1, 1.2, 1), hands)
 			end
 			box(arm, "Thumb", Vector3.new(side * 5.6, 0.5, -9.3), Vector3.new(0.9, 0.9, 1.6), hands)
+			voxelScales(
+				v,
+				arm,
+				"Fur",
+				"x",
+				Vector3.new(side * 9.23, 10.6, -5),
+				Vector2.new(3.4, 5.2),
+				Vector2.new(1.3, 1.2),
+				strand,
+				0.06
+			)
+			voxelScales(
+				v,
+				arm,
+				"Fur",
+				"x",
+				Vector3.new(x + side * 2.33, 5, -7.2),
+				Vector2.new(4.4, 5.4),
+				Vector2.new(1.3, 1.2),
+				strand,
+				0.06
+			)
 			if side == 1 then
 				scarStrip(arm, Vector3.new(9.3, 8.6, -5), 2.4)
 			end
@@ -6238,6 +6389,28 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				box(leg, "Toe", Vector3.new(side * 5.6 + k * 1, 0.5, -0.2), Vector3.new(0.9, 1, 0.9), hands)
 			end
 			box(leg, "BigToe", Vector3.new(side * 3.7, 0.5, 1.4), Vector3.new(0.9, 0.9, 1.4), hands)
+			voxelScales(
+				v,
+				leg,
+				"Fur",
+				"x",
+				Vector3.new(side * 7.43, 7.6, 3.6),
+				Vector2.new(5, 4),
+				Vector2.new(1.3, 1.2),
+				strand,
+				0.06
+			)
+			voxelScales(
+				v,
+				leg,
+				"Fur",
+				"x",
+				Vector3.new(side * 7.13, 3.6, 3.2),
+				Vector2.new(2.8, 4.2),
+				Vector2.new(1.3, 1.2),
+				strand,
+				0.06
+			)
 			if side == -1 then
 				scarStrip(leg, Vector3.new(-7.5, 7.6, 3.6), 3)
 			end
@@ -6258,7 +6431,12 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 
 		-- Aura de energía: chispas azules que salen de la superficie del cuerpo y de la mochila. Desde
 		-- dentro y lentas quedaban escondidas; con LightEmission 1 de día salían casi blancas.
-		local body = rig.model:FindFirstChild("Body") :: BasePart
+		-- Los emisores cuelgan de dos piezas invisibles: los bloques del cuerpo y de la mochila se funden en la malla y se
+		-- destruyen con lo que llevan dentro.
+		local body = box(nil, "AuraBody", Vector3.new(0, 13, -3), Vector3.new(12.6, 8, 6), color)
+		body.Transparency = 1
+		local packVolume = box(nil, "AuraPack", Vector3.new(0, 15.2, 4.2), Vector3.new(6.6, 5, 3.2), color)
+		packVolume.Transparency = 1
 		local aura = Instance.new("ParticleEmitter")
 		aura.Color = ColorSequence.new(color:Lerp(WHITE, 0.35), color)
 		aura.LightEmission = 0.4
@@ -6283,7 +6461,7 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		aura.Parent = body
 		local packAura = aura:Clone()
 		packAura.Rate = 8
-		packAura.Parent = pack
+		packAura.Parent = packVolume
 		rig.family = "X7"
 		return "Walk"
 	end,

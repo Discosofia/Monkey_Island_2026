@@ -2393,7 +2393,7 @@ local Config = {
 		},
 		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
 		Exceptions = {
-			MonoX7 = { PetTotal = 270, PetAnimated = 130, PetTriangles = 6200 }, -- mascota de élite
+			MonoX7 = { PetTotal = 500, PetAnimated = 230, PetTriangles = 6200 }, -- mascota de élite (Q5): mide la versión de bloques, la de malla tiene 7 mallas y 2.884 triángulos
 			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.732 triángulos y 9 mallas)
 			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
 			Perezoso = { PetTotal = 300, PetAnimated = 110, PetTriangles = 3200 }, -- brazos en escalones y mochila de carga (Q5)

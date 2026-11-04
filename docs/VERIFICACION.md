@@ -4722,6 +4722,21 @@ El Ajolote (mítica, +100 %) se rehízo para la malla. Sus branquias (3 plumas p
 4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
    ✅ Con su textura; sin tirones al cargar (4.732 triángulos, cerca del tope de 4.900).
 
+## 123. Fase 20 Q5h: Mono X-7 con malla (04-11-2026)
+
+La última mascota de la tanda E (legendaria) se rehízo para la malla. Las 24 vigas inclinadas de las mangueras pasan a escalones alineados (`voxelSteps`) con tres abrazaderas de cobre cada una. El neón pequeño (venas de los brazos, luces de los grilletes y niveles de los depósitos) se pinta en la malla con un cian vivo; **siguen sueltos y brillando** el cartel X-7 (18 píxeles), la antena (punta y halo), el vial de suero y su cristal, las chispas, los pilotos de la mochila, los ojos del visor y el visor reflectante. Más detalle: pelo azul pintado en cuatro tonos (joroba, lomo, costados, grupa, brazos y piernas), casco con costuras y tornillos y rayones en el aro de cobre, y la mochila con marco en el panel, tornillos y bandas de cobre en los depósitos. **El aura** (dos emisores de partículas) colgaba de `Body` y `Pack`, que la malla destruye: ahora cuelga de dos piezas invisibles, `AuraBody` y `AuraPack`. 7 mallas (`Static` 1.558, `Head` 366, `J1` la antena, `ArmL`, `ArmR`, `LegL` y `LegR`) con **2.884 triángulos** (tope 6.200) y 40 piezas sueltas en juego (antes 69); la textura de `Static` es de 1024×1024. Excepción de `Config.Budgets` para la versión de bloques, que mide `Rendimiento` (`PetTotal` 500, `PetAnimated` 230). Comprobado el 04-11-2026 en Edit: las mallas se ven como el diseño, de frente y de espaldas, con el aura saliendo del cuerpo; el ancho difiere 0,06 studs (los músculos finos de los antebrazos ahora van pintados). **No probado en Play.**
+
+### 123.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa el Mono X-7, camina, corre, gira y párate.
+   ✅ Se ve con malla y textura; los brazos y las piernas andan; la antena se balancea; el aura azul sale del cuerpo y de la mochila; sin piezas sueltas.
+2. [ ] Míralo de frente, de lado, de espaldas y de cerca con buena luz.
+   ✅ Pelo azul con mechones; casco con costuras y el visor con los ojos cian; cartel X-7 brillando a la espalda; mangueras con abrazaderas; venas y luces de los grilletes en cian vivo (pintadas, sin brillo propio).
+3. [ ] Haz que ataque a un mono y que cure (clip `X7`), siéntalo y túmbalo.
+   ✅ Sin piezas atravesadas; la antena y las mangueras siguen al cuerpo.
+4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Con su textura; sin tirones al cargar (3 texturas de 1024 de ancho).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
