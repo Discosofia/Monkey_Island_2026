@@ -262,6 +262,9 @@ local Remotes = {
 	-- "Score" { points, hits, crits, shots } en vivo, "End" { points, hits, crits, shots, best, newBest, left = true si
 	-- se cortó antes de tiempo }.
 	RangeRound = remoteEvent("RangeRound"),
+	-- Cañón de pelotas del campo de tiro (RangeBallService). Servidor -> jugador: ("Open" | "Settings",
+	-- { Elasticity, Gravity, Size, Speed }). Jugador -> servidor: ("Adjust", clave, +1 | -1) y ("Fire").
+	RangeBalls = remoteEvent("RangeBalls"),
 }
 
 return Remotes

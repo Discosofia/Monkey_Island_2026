@@ -30,6 +30,10 @@ local Hitbox = require(script.Parent.Hitbox)
 
 -- Sale desde esto antes del origen: la esfera no ve lo que ya toca al salir, y así da al mono pegado.
 local START_BACK = 1.5
+-- Un rebote que dejaría el proyectil por debajo de esta rapidez (studs/s) lo da por acabado.
+local BOUNCE_MIN_SPEED = 4
+-- Separación de la pared tras un rebote, para que el rayo siguiente no empiece dentro de ella.
+local BOUNCE_OFFSET = 0.05
 
 export type Shot = {
 	owner: Player,
@@ -65,6 +69,13 @@ export type Shot = {
 	-- Número del disparo del tirador (UseWeapon, Fase 19 W4): su cliente ya dibuja la bala, así que
 	-- "Projectile" va solo a los demás y a él le llega ProjectileAck con el id y la dirección real.
 	ownerSeq: number?,
+	-- Rebotes (Fase 23d): veces que, al chocar con el mundo, se refleja en la normal de la pieza en vez de
+	-- acabar (el campo de tiro; ningún arma lo usa todavía). "bounciness" (0 a 1, por defecto 1) es la
+	-- parte de la rapidez que conserva en cada rebote; si baja de BOUNCE_MIN_SPEED, acaba allí. Cada rebote
+	-- es un tramo nuevo para el cliente (ProjectileEnd y un Projectile con otro id) y "range" cuenta todo
+	-- lo recorrido.
+	bounces: number?,
+	bounciness: number?,
 }
 
 type Flight = {
@@ -76,6 +87,7 @@ type Flight = {
 	skip: { [Model]: boolean },
 	hitAny: boolean,
 	hits: number,
+	bouncesLeft: number,
 }
 
 local Projectiles = {}
@@ -134,6 +146,53 @@ local function sweepFlight(flight: Flight, from: Vector3, displacement: Vector3)
 	return model, along, contact, zone
 end
 
+-- Rebota "flight" en la pared "wall": refleja su velocidad actual en la normal y sigue desde allí. Devuelve
+-- false si ya no le quedan rebotes o se queda sin rapidez (entonces el llamador lo acaba).
+local function bounce(flight: Flight, wall: RaycastResult): boolean
+	local shot = flight.shot
+	local left = flight.bouncesLeft
+	if left <= 0 then
+		return false
+	end
+	local velocity = shot.direction * shot.speed
+	if shot.gravity then
+		velocity -= Vector3.yAxis * (shot.gravity * flight.elapsed)
+	end
+	local normal = wall.Normal
+	local reflected = (velocity - 2 * velocity:Dot(normal) * normal) * (shot.bounciness or 1)
+	local speed = reflected.Magnitude
+	if speed < BOUNCE_MIN_SPEED then
+		return false
+	end
+	flight.bouncesLeft = left - 1
+	AbilityFx.all("ProjectileEnd", flight.id, wall.Position, false)
+	local nextShot = table.clone(shot)
+	nextShot.origin = wall.Position + normal * BOUNCE_OFFSET
+	nextShot.direction = reflected / speed
+	nextShot.speed = speed
+	nextShot.ownerSeq = nil
+	nextId += 1
+	flight.id = nextId
+	flight.shot = nextShot
+	flight.elapsed = 0
+	flight.position = nextShot.origin
+	AbilityFx.all(
+		"Projectile",
+		flight.id,
+		nextShot.look,
+		shot.owner.Character,
+		nextShot.origin,
+		nextShot.direction,
+		speed,
+		nextShot.range - flight.travelled,
+		Workspace:GetServerTimeNow(),
+		nextShot.pierce == true,
+		nextShot.extra,
+		nextShot.gravity
+	)
+	return true
+end
+
 -- Lo que se mueve "flight" en "deltaTime" (sin pasar de su alcance).
 local function displacementOf(flight: Flight, deltaTime: number): Vector3
 	local shot = flight.shot
@@ -189,6 +248,9 @@ local function advance(flight: Flight, deltaTime: number): boolean
 		if shot.breaks then
 			Destructibles.hitPart(wall.Instance, shot.breaks, shot.owner, wall.Position, shot.breakOnce)
 		end
+		if bounce(flight, wall) then
+			return false
+		end
 		finish(flight, wall.Position, nil, wall.Instance)
 		return true
 	end
@@ -229,6 +291,7 @@ function Projectiles.fire(shot: Shot): number
 		skip = if character then { [character] = true } else {},
 		hitAny = false,
 		hits = 0,
+		bouncesLeft = shot.bounces or 0,
 	}
 	local lead = shot.lead or 0
 	-- Con adelanto, lo dibujado sale ya "lead" segundos por delante, como el servidor.

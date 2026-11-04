@@ -2274,6 +2274,23 @@ local Config = {
 		ResultSeconds = 12,
 		-- Alcance del aviso de las consolas (borrar marcas y ronda).
 		ConsoleReach = 13,
+		-- Cañón de pelotas (RangeBallService): cada ajuste tiene mínimo, máximo, paso y valor inicial.
+		-- Elasticidad = rebote de la pelota (0 a 1); gravedad en studs/s² (la del mundo es Workspace.Gravity,
+		-- 196,2; se cambia solo en la pelota con una fuerza); tamaño = diámetro; velocidad = de salida.
+		Balls = {
+			Elasticity = { min = 0, max = 1, step = 0.1, default = 0.8 },
+			Gravity = { min = 0, max = 300, step = 25, default = 196.2 },
+			Size = { min = 1, max = 6, step = 0.5, default = 2 },
+			Speed = { min = 20, max = 200, step = 10, default = 90 },
+			-- Pelotas vivas a la vez en todo el campo (al pasarse, desaparece la más vieja), segundos
+			-- que vive una y segundos mínimos entre dos disparos del mismo jugador.
+			MaxAlive = 30,
+			Lifetime = 20,
+			FireInterval = 0.4,
+			Friction = 0.3,
+			-- Alcance del aviso del cañón y del panel (studs).
+			PanelReach = 12,
+		},
 	},
 
 	Social = {

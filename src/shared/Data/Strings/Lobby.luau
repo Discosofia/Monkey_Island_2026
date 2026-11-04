@@ -415,4 +415,12 @@ return {
 	["Mejor de la sesión: {best}"] = "Session best: {best}",
 	["Ronda de tiro · {time}"] = "Shooting round · {time}",
 	["Aciertos {hits} · Críticos {crits} · Disparos {shots}"] = "Hits {hits} · Crits {crits} · Shots {shots}",
+
+	-- Cañón de pelotas (Fase 23d: RangeBallService, RangeBallController).
+	["Ajustar el cañón"] = "Adjust the cannon",
+	["Elasticidad"] = "Elasticity",
+	["Gravedad"] = "Gravity",
+	["Velocidad"] = "Speed",
+	["Disparar pelota"] = "Fire ball",
+	["Cerrar"] = "Close",
 }

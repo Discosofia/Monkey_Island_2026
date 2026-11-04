@@ -4374,6 +4374,38 @@ Las dianas del campo son combatientes: cada una tiene un `Humanoid` de 1e6 de vi
 2. [ ] Con ping alto (una conexión lenta o una simulación de red en el emulador), juega una ronda completa.
    ✅ Los disparos siguen acertando donde se ve la diana, el panel de la ronda no se queda congelado y la tarjeta final sale al acabar el tiempo.
 
+## 110. Fase 23d: cañón de pelotas, rebotes y dianas de pared (03-11-2026)
+
+### 110.1 En Play, con el panel del cañón
+
+1. [ ] Sube a la plataforma (rampa a la derecha de la línea de tiro) y acércate al cañón: activa «Ajustar el cañón».
+   ✅ Se abre el panel a la derecha, con elasticidad, gravedad, tamaño y velocidad y los valores 0,8 / 196 / 2,0 / 90.
+2. [ ] Pulsa «+» y «−» en cada fila hasta los extremos.
+   ✅ Cada pulsación cambia el valor un paso y se queda quieto en el mínimo y el máximo (elasticidad 0–1, gravedad 0–300, tamaño 1–6, velocidad 20–200).
+3. [ ] Pulsa «Disparar pelota» con elasticidad 1 y luego con 0.
+   ✅ Con 1 la pelota rebota varias veces en el suelo y las paredes del foso; con 0 se queda en el suelo. Con gravedad 0 vuela recta, y más grande o más rápida se nota.
+4. [ ] Dispara muchas pelotas seguidas (más de 30) y espera 20 segundos.
+   ✅ Las más viejas desaparecen al pasar de 30 y todas se borran solas a los 20 s.
+5. [ ] Aléjate del cañón con el panel abierto.
+   ✅ El panel se cierra solo.
+
+### 110.2 En Play, el mapa
+
+1. [ ] Mira el campo desde la línea de tiro.
+   ✅ No hay faroles en la línea de tiro. Las dianas de 8, 16, 28 y ~36 de altura cuelgan del muro izquierdo, sin poste, de frente a la línea de tiro, con su cartel encima; no se mueven.
+2. [ ] Dispara a cada una con una ronda de tiro en marcha.
+   ✅ Puntúan por anillos igual que las demás. La giratoria (ahora más cerca de la línea, z = 4) sigue girando sin chocar con la diana de 8.
+
+### 110.3 Con 2 jugadores
+
+1. [ ] Cada uno ajusta el cañón con valores distintos y dispara.
+   ✅ Cada pelota sale con los ajustes de quien la lanza y los dos ven las mismas pelotas. Las pelotas empujan al jugador con el que chocan (no hay grupo de colisión); si molesta, avísalo.
+
+### 110.4 Sin arma que lo use
+
+1. [ ] `bounces` en `Projectiles.fire` aún no lo usa ningún arma. Cuando se use, comprueba que el proyectil rebota en las paredes y que el cliente lo dibuja sin saltos.
+   ✅ Cada rebote es un tramo nuevo y el último termina donde cae.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

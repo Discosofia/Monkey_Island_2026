@@ -32,7 +32,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 5
+local VERSION = 6
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -68,7 +68,6 @@ local STONE = { 0x565d66, 0x5e656f, 0x4b525b, 0x666d77 }
 local RING_COLORS = { 0xd9392b, 0xf2f2ee, 0xd9392b, 0xff8a1f }
 local RING_FRACTIONS = { 1, 0.75, 0.5, 0.25 }
 local RING_STEP = 0.1 -- cada anillo interior sobresale un poco, para que no parpadee con el de fuera
-local LAMP_COLOR = Color3.fromRGB(255, 217, 184)
 
 type TargetSpec = {
 	x: number,
@@ -78,21 +77,23 @@ type TargetSpec = {
 	kind: string,
 	tower: boolean?,
 	post: boolean?,
+	-- Colgada de la cara interior del muro izquierdo: sin poste, girada hacia el centro de la línea de tiro.
+	wall: boolean?,
 	index: number?,
 }
 
 -- Las diez dianas de la maqueta.
 local TARGETS: { TargetSpec } = {
 	{ x = 9, z = 51, center = 3, radius = 3, kind = "fixed" }, -- 15 studs, a ras de suelo
-	{ x = -34, z = 16, center = 8, radius = 3.5, kind = "fixed" }, -- 50 studs, 8 de altura
-	{ x = -38, z = -4, center = 16, radius = 4, kind = "fixed", tower = true }, -- 16 de altura
-	{ x = -30, z = -20, center = 28, radius = 4.5, kind = "fixed", tower = true }, -- 28 de altura
+	{ x = -34, z = 16, center = 8, radius = 3.5, kind = "fixed", wall = true }, -- 50 studs, 8 de altura
+	{ x = -38, z = -4, center = 16, radius = 4, kind = "fixed", wall = true }, -- 16 de altura
+	{ x = -30, z = -20, center = 28, radius = 4.5, kind = "fixed", wall = true }, -- 28 de altura
 	{ x = 29, z = 44, center = 6, radius = 3, kind = "rail" }, -- móvil en raíl
-	{ x = -40, z = 14, center = 9, radius = 3.5, kind = "spin" }, -- giratoria
+	{ x = -38, z = 4, center = 9, radius = 3.5, kind = "spin" }, -- giratoria (z = 4: deja sitio a la diana de la pared)
 	{ x = 24, z = -10, center = 3, radius = 3, kind = "popup", post = false, index = 0 },
 	{ x = 31, z = -10, center = 3, radius = 3, kind = "popup", post = false, index = 1 },
 	{ x = 38, z = -10, center = 3, radius = 3, kind = "popup", post = false, index = 2 },
-	{ x = -38, z = -54, center = 8, radius = 6, kind = "far" }, -- a 120 studs de la línea
+	{ x = -38, z = -54, center = 36, radius = 6, kind = "far", wall = true }, -- a 120 studs de la línea
 }
 
 local RangeBuilder = {}
@@ -696,6 +697,15 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Dianas
 
+-- Sitio de una diana de pared: guiñada hacia el centro de la línea de tiro y x tal que su canto más
+-- cercano queda a un palmo del muro izquierdo (el disco es plano, gira sobre el eje vertical).
+local WALL_GAP = 0.8
+local function wallFrame(spec: TargetSpec): (CFrame, number)
+	local yaw = math.atan2(0 - spec.x, FIRE_Z - spec.z)
+	local x = -HALF_WIDTH + spec.radius * math.abs(math.cos(yaw)) + WALL_GAP
+	return place(x, spec.center, spec.z) * CFrame.Angles(0, yaw, 0), x
+end
+
 local function buildTarget(parent: Instance, spec: TargetSpec, number: number)
 	local model = Instance.new("Model")
 	model.Name = `Diana{number}`
@@ -713,7 +723,25 @@ local function buildTarget(parent: Instance, spec: TargetSpec, number: number)
 		model:SetAttribute("PopupIndex", spec.index or 0)
 	end
 
-	if spec.post ~= false then
+	local frame = place(spec.x, spec.center, spec.z)
+	if spec.wall then
+		local wallX
+		frame, wallX = wallFrame(spec)
+		-- Brazo corto de metal del muro al reverso del disco; no hay poste en el suelo.
+		local reach = wallX + HALF_WIDTH
+		box(
+			model,
+			"Soporte",
+			-HALF_WIDTH + reach / 2,
+			spec.center - 0.25,
+			spec.z,
+			reach,
+			0.5,
+			0.5,
+			0x50565d,
+			Enum.Material.Metal
+		)
+	elseif spec.post ~= false then
 		local tower = spec.tower == true
 		box(
 			model,
@@ -734,7 +762,7 @@ local function buildTarget(parent: Instance, spec: TargetSpec, number: number)
 		local ring = newPart(
 			if index == #RING_FRACTIONS then "Bullseye" else `Anillo{index}`,
 			Vector3.new(0.5, diameter, diameter),
-			place(spec.x, spec.center, spec.z + RING_STEP * (index - 1)) * CFrame.Angles(0, math.pi / 2, 0),
+			frame * CFrame.new(0, 0, RING_STEP * (index - 1)) * CFrame.Angles(0, math.pi / 2, 0),
 			hex(RING_COLORS[index]),
 			Enum.Material.SmoothPlastic,
 			model
@@ -760,10 +788,28 @@ local function buildTargets(root: Instance)
 	-- Carteles de altura.
 	local labels = folder(root, "CartelesDeAltura")
 	sign(labels, "0", 2.2, 1.6, Vector3.new(9, 7, 51.4), Enum.NormalId.Back, 0xffffff)
-	sign(labels, later("8 studs"), 6, 1.6, Vector3.new(-34, 12.8, 16.4), Enum.NormalId.Back, 0xffffff)
-	sign(labels, later("16 studs"), 6, 1.6, Vector3.new(-38, 21.6, -3.2), Enum.NormalId.Back, 0xffffff)
-	sign(labels, later("28 studs"), 6, 1.6, Vector3.new(-30, 34, -19.2), Enum.NormalId.Back, 0xffffff)
-	sign(labels, later("120 studs"), 9, 2, Vector3.new(-38, 16.8, -53.2), Enum.NormalId.Back, 0xffffff)
+	-- Los de la pared izquierda cuelgan del muro, justo sobre su diana, girados hacia la línea de tiro.
+	for number, text in
+		{ [2] = later("8 studs"), [3] = later("16 studs"), [4] = later("28 studs"), [10] = later("120 studs") }
+	do
+		local spec = TARGETS[number]
+		local frame = wallFrame(spec)
+		local above = frame * CFrame.new(0, spec.radius + 1.2, 0.4)
+		local part = decor(
+			newPart(
+				"Rotulo",
+				Vector3.new(if number == 10 then 9 else 6, if number == 10 then 2 else 1.6, 0.1),
+				above,
+				hex(0x0a0e12),
+				Enum.Material.SmoothPlastic,
+				labels
+			)
+		)
+		part.Transparency = 0.18
+		local label = textLabel(surface(part, Enum.NormalId.Back, 40), text, 0xffffff, Enum.Font.GothamBold)
+		label.Size = UDim2.fromScale(1, 1)
+		label.TextScaled = true
+	end
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -816,13 +862,34 @@ local function buildObstacles(root: Instance)
 		cover
 	)
 
-	-- Cañón de pelotas, solo de adorno: base y tubo apuntando a -z, elevado 25 grados.
+	-- Cañón de pelotas (RangeBallService): base y tubo apuntando a -z, elevado 25 grados. «Boca» es una
+	-- pieza invisible en la punta del tubo: de ella salen las pelotas, en la dirección de su cara frontal.
 	local cannon = folder(root, "Canon")
-	box(cannon, "Base", 34, 8.5, 56, 3, 1.4, 3, 0x30363c, metal)
+	local base = box(cannon, "Base", 34, 8.5, 56, 3, 1.4, 3, 0x30363c, metal)
 	local muzzle = Vector3.new(0, math.sin(math.rad(25)), -math.cos(math.rad(25)))
 	local middle = Vector3.new(34, 10.6, 54.2)
 	decor(cylinder(cannon, "Tubo", 2, middle - muzzle * 2.25, middle + muzzle * 2.25, 0x8e98a2, metal))
+	local mouthAt = middle + muzzle * 2.6
+	local mouth = decor(
+		newPart(
+			"Boca",
+			Vector3.one * 0.4,
+			CFrame.lookAt(place(mouthAt.X, mouthAt.Y, mouthAt.Z).Position, ORIGIN:PointToWorldSpace(mouthAt + muzzle)),
+			hex(0x30363c),
+			metal,
+			cannon
+		)
+	)
+	mouth.Transparency = 1
 	sign(cannon, later("Cañón de pelotas"), 9, 1.8, Vector3.new(34, 14, 56.8), Enum.NormalId.Back)
+	local ballPrompt = Instance.new("ProximityPrompt")
+	ballPrompt.Name = "PelotasPrompt"
+	ballPrompt.ActionText = later("Ajustar el cañón")
+	ballPrompt.ObjectText = later("Cañón de pelotas")
+	ballPrompt.HoldDuration = 0
+	ballPrompt.MaxActivationDistance = Config.Range.Balls.PanelReach
+	ballPrompt.RequiresLineOfSight = false
+	ballPrompt.Parent = base
 
 	-- Paneles de materiales en el muro de la derecha: Madera, Piedra, Metal y Arena.
 	local panels = folder(root, "PanelesDeMateriales")
@@ -866,14 +933,9 @@ local function buildPreparation(root: Instance)
 	box(prep, "Caja", -36, 4, 84, 4, 3, 4, 0x9b7a48, Enum.Material.WoodPlanks, 0.25)
 	box(prep, "Caja", 36, 0, 88, 4, 4, 4, 0x8a6a3c, Enum.Material.WoodPlanks)
 
-	-- Luz propia del recinto (el cielo del Lobby es de atardecer y desde fuera se ve a oscuras): cuatro
-	-- faroles junto a la línea de tiro y focos altos pegados a los muros laterales, cada 40 studs.
+	-- Luz propia del recinto (el cielo del Lobby es de atardecer y desde fuera se ve a oscuras): focos
+	-- altos pegados a los muros laterales, cada 40 studs.
 	local lights = folder(root, "Luces")
-	for _, x in { -40, -14, 14, 40 } do
-		box(lights, "PosteLuz", x, 0, FIRE_Z + 2, 0.6, 9, 0.6, 0x50565d, Enum.Material.Metal)
-		local lamp = decor(box(lights, "Farol", x, 9, FIRE_Z + 2, 0.9, 0.9, 0.9, 0xffd9b8, Enum.Material.Neon))
-		light(lamp, LAMP_COLOR, 22, 0.4)
-	end
 	for _, side in { -1, 1 } do
 		for _, z in { 100, 60, 20, -20, -55 } do
 			local x = side * (HALF_WIDTH - 2)
