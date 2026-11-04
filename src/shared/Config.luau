@@ -2320,6 +2320,7 @@ local Config = {
 			DunasParts = 25000, -- Dunas 5v5
 			LaboratorioParts = 20000, -- Laboratorio 5v5
 			LobbyParts = 30000, -- Lobby con 20 jugadores
+			RangeParts = 6000, -- Campo de tiro del Lobby (World/RangeBuilder), construido aparte del Lobby
 			LobbyPlayers = 20,
 			MovedPartsPerFrame = 1500, -- piezas movidas por fotograma, en todas
 			MemoryMB = 1300, -- memoria en todas

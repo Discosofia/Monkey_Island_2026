@@ -1,15 +1,20 @@
 --!strict
 -- Escenario del Lobby (naufragio del carguero «Esperanza»). Si el place no lo tiene guardado (nadie
 -- ejecutó World/LobbyBuilder en Studio) o tiene una versión anterior, lo construye al arrancar el
--- servidor para que el Lobby nunca sea una placa vacía ni se quede desfasado.
+-- servidor para que el Lobby nunca sea una placa vacía ni se quede desfasado. Igual con el campo de tiro
+-- (Workspace.CampoDeTiro, World/RangeBuilder).
 
 local LobbyBuilder = require(script.Parent.Parent.World.LobbyBuilder)
+local RangeBuilder = require(script.Parent.Parent.World.RangeBuilder)
 
 local LobbyWorldService = {}
 
 function LobbyWorldService:Init()
 	if not LobbyBuilder.isBuilt() then
 		LobbyBuilder.build({ force = true })
+	end
+	if not RangeBuilder.isBuilt() then
+		RangeBuilder.build({ force = true })
 	end
 	-- Con streaming, cada cliente solo carga lo cercano y las islas del horizonte (a 500-1.300 studs)
 	-- desaparecen, sobre todo en móviles. El Lobby es ligero y no lo necesita.

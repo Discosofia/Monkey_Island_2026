@@ -384,4 +384,22 @@ return {
 	["🛡️ No puedes moderarte a ti mismo"] = "🛡️ You can't moderate yourself",
 	["🛡️ No se puede moderar a otro administrador"] = "🛡️ You can't moderate another admin",
 	["⚠️ Roblox no aceptó quitar el baneo"] = "⚠️ Roblox didn't accept the unban",
+
+	-- Campo de tiro del Lobby (Fase 23: World/RangeBuilder, RangeService).
+	["CAMPO DE TIRO"] = "SHOOTING RANGE",
+	["Campo de tiro"] = "Shooting range",
+	["Ir al campo de tiro"] = "Go to the shooting range",
+	["LÍNEA DE TIRO"] = "FIRING LINE",
+	["ZONA DE PREPARACIÓN"] = "STAGING AREA",
+	["Entrada del Lobby"] = "Lobby entrance",
+	["PANTALLA CORTA"] = "SHORT SCREEN",
+	["PANTALLA LARGA"] = "LONG SCREEN",
+	["Dispara a la cruz central para medir el desvío"] = "Shoot the center cross to measure the offset",
+	["8 studs"] = "8 studs",
+	["16 studs"] = "16 studs",
+	["28 studs"] = "28 studs",
+	["120 studs"] = "120 studs",
+	["Cañón de pelotas"] = "Ball cannon",
+	["Metal"] = "Metal",
+	["Arena"] = "Sand",
 }

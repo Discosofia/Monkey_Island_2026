@@ -28,6 +28,8 @@
 -- el embarcadero con el velero que lleva a la Isla de dunas (aviso "ZarparDunasPrompt");
 -- humo saliendo del boquete del casco y luces averiadas (etiqueta Config.Lobby.BrokenLightTag, las
 -- hace parpadear ShipLightsController en cada cliente);
+-- el arco de entrada al campo de tiro, al oeste de los muñecos de práctica (estación "Campo", aviso
+-- "CampoPrompt"; el recinto lo construye World/RangeBuilder);
 -- palmeras; la isla con el volcán en el horizonte; las otras cuatro islas del archipiélago, aún
 -- cerradas (Isla Calavera, Ciudad Perdida, Isla de las Dunas y Picos de la Niebla, GDD §7.1); muros
 -- invisibles, el punto de aparición y la luz de atardecer.
@@ -51,7 +53,7 @@ export type Options = { force: boolean? }
 local FOLDER_NAME = "Naufragio"
 -- Sube este número al cambiar el escenario: los Lobbies con una versión anterior guardada se
 -- reconstruyen solos al arrancar (LobbyWorldService).
-local VERSION = 17
+local VERSION = 18
 local SEED = 1717
 
 -- Banco de arena: elipse con centro y semiejes; la orilla queda hacia el 70 % del radio.
@@ -123,6 +125,11 @@ local CAMPFIRE_AT = Vector2.new(6, 10)
 local PRACTICE_SPOTS = { Vector2.new(-27, -12), Vector2.new(-29, -2), Vector2.new(-27, 8) }
 -- El de sparring, que devuelve los golpes (Fase 10, C6), al final de la fila.
 local SPARRING_SPOT = Vector2.new(-25, 20)
+
+-- Arco de entrada al campo de tiro (World/RangeBuilder): al oeste de los muñecos de práctica, mirando a la
+-- plaza, a más de 10 studs del pie de la pasarela del barco, del contenedor abierto y de las palmeras.
+local RANGE_GATE_AT = Vector2.new(-44, 5)
+local RANGE_EXIT_AT = Vector2.new(-38.5, 5)
 
 -- Barco: carguero moderno, eslora a lo largo de X local, de -38 (popa) a 38 (proa); +Z es estribor.
 local SHIP_HALF_LENGTH = 38
@@ -1357,6 +1364,100 @@ local function buildBoards(parent: Instance)
 	local roles = standingBoard(parent, "TablaRoles", ROLE_BOARD_AT, 16, 7.5, later("ELIGE TU ROL"))
 	CollectionService:AddTag(roles, Config.Lobby.RoleBoardTag)
 	station(roles, "Rol", "⚔️", "RolesPrompt", later("Elegir rol"), later("Roles"))
+end
+
+-- Arco voxel de entrada al campo de tiro: dos pilares de bloques de piedra, dintel, cartel y una diana de
+-- cilindros encima. Su zona "Entrada" lleva la estación "Campo" y el aviso "CampoPrompt" (RangeService).
+local function buildRangeGate(parent: Instance)
+	local gate = Instance.new("Model")
+	gate.Name = "ArcoCampoDeTiro"
+	-- Con su propio generador: el del escenario sigue su secuencia y no debe cambiar.
+	local random = Random.new(SEED + 1)
+	local ground = groundAt(RANGE_GATE_AT.X, RANGE_GATE_AT.Y)
+	local frame = CFrame.lookAt(ground, ground + Vector3.xAxis)
+	local stones = { Color3.fromRGB(59, 63, 69), Color3.fromRGB(69, 74, 81), Color3.fromRGB(48, 52, 58) }
+	for _, side in { -1, 1 } do
+		for row = 0, 3 do
+			newPart(
+				"PilarArco",
+				Vector3.new(2.4, 3, 2.4),
+				frame
+					* CFrame.new(
+						side * 5.8 + random:NextNumber(-0.12, 0.12),
+						-1 + 1.5 + row * 3,
+						random:NextNumber(-0.12, 0.12)
+					),
+				stones[(row + (if side > 0 then 1 else 0)) % #stones + 1],
+				Enum.Material.Slate,
+				gate
+			)
+		end
+	end
+	newPart(
+		"DintelArco",
+		Vector3.new(15.2, 2.4, 2.8),
+		frame * CFrame.new(0, 12.2, 0),
+		stones[2],
+		Enum.Material.Slate,
+		gate
+	)
+	for _, side in { -1, 1 } do
+		local lamp = newPart(
+			"Farol",
+			Vector3.new(0.8, 1, 0.8),
+			frame * CFrame.new(side * 6.8, 13.9, 0),
+			LANTERN_LIGHT,
+			Enum.Material.Neon,
+			gate
+		)
+		decor(lamp)
+		light(lamp, LANTERN_LIGHT, 8, 0.6)
+	end
+	-- Cartel sobre el dintel, mirando a la plaza (cara frontal = hacia el este).
+	local plank = newPart(
+		"CartelArco",
+		Vector3.new(12, 3.2, 0.5),
+		frame * CFrame.new(0, 15.1, 0),
+		HULL_RED,
+		Enum.Material.WoodPlanks,
+		gate
+	)
+	headline(plank, later("CAMPO DE TIRO"), Color3.fromRGB(255, 215, 90))
+	-- Diana encima: anillos rojo, blanco, rojo y naranja.
+	newPart("SoporteDiana", Vector3.new(0.8, 1, 0.8), frame * CFrame.new(0, 17.2, 0.1), IRON, Enum.Material.Metal, gate)
+	local ringColors = {
+		Color3.fromRGB(217, 57, 43),
+		Color3.fromRGB(242, 242, 238),
+		Color3.fromRGB(217, 57, 43),
+		Color3.fromRGB(255, 138, 31),
+	}
+	for index, fraction in { 1, 0.75, 0.5, 0.25 } do
+		local disc = newPart(
+			"AnilloDiana",
+			Vector3.new(0.5, 5.2 * fraction, 5.2 * fraction),
+			frame * CFrame.new(0, 19.8, -0.1 * (index - 1)) * CFrame.Angles(0, math.pi / 2, 0),
+			ringColors[index],
+			Enum.Material.SmoothPlastic,
+			gate
+		)
+		disc.Shape = Enum.PartType.Cylinder
+	end
+	-- Zona de paso con el aviso (sin colisión, invisible).
+	local entrance = decor(
+		newPart(
+			"Entrada",
+			Vector3.new(8.4, 6, 1),
+			frame * CFrame.new(0, 3.5, 0),
+			PLANK,
+			Enum.Material.SmoothPlastic,
+			gate
+		)
+	)
+	entrance.Transparency = 1
+	station(entrance, "Campo", "🔭", "CampoPrompt", later("Ir al campo de tiro"), later("Campo de tiro"))
+	-- El icono flotante, por encima de la diana.
+	entrance:SetAttribute("StationIconLift", 18)
+	gate.Parent = parent
 end
 
 -- Nido de huevos del Lobby: cada cliente dibuja encima su propio huevo y su temporizador
@@ -3546,6 +3647,13 @@ function LobbyBuilder.practiceSpots(): ({ Vector3 }, Vector3, Vector3)
 	return spots, Vector3.new(PLAZA.X, BAR_TOP, PLAZA.Y), Vector3.new(SPARRING_SPOT.X, BAR_TOP, SPARRING_SPOT.Y)
 end
 
+-- Dónde aparece quien vuelve del campo de tiro: delante del arco, mirando a la plaza (RangeService).
+function LobbyBuilder.rangeExitSpawn(): CFrame
+	local ground = groundAt(RANGE_EXIT_AT.X, RANGE_EXIT_AT.Y)
+	local at = ground + Vector3.new(0, 3.5, 0)
+	return CFrame.lookAt(at, at + Vector3.xAxis)
+end
+
 function LobbyBuilder.isBuilt(): boolean
 	local folder = Workspace:FindFirstChild(FOLDER_NAME)
 	return folder ~= nil and folder:GetAttribute("Version") == VERSION
@@ -3582,6 +3690,7 @@ function LobbyBuilder.build(options: Options?)
 	buildRamp(folder, ship)
 	buildCamp(folder)
 	buildBoards(folder)
+	buildRangeGate(folder)
 	buildNest(folder)
 	buildLifeboat(folder)
 	buildDunesDock(folder)

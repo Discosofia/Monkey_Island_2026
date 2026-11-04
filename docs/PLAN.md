@@ -1044,6 +1044,27 @@ Sale de querer que el agente edite los vídeos de promoción y el usuario superv
 - **Antes de V4:** V4 (skill `video-capcut`, resumen en `llm-local`, título/descripción/etiquetas por Short, fila TR2) con los ajustes que salgan de §105 y §106. (Antes: V3, otros 2-4 Shorts: mascotas y monturas, roles, Dunas y Laboratorio; clips 26-28, 7-10 y 29-34 del tráiler) con los ajustes de V2.
 - **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 22 y su Handoff. Haz el grupo V4.»
 
+### Fase 23: Campo de tiro del Lobby (03-11-2026)
+
+Zona aparte en el Lobby, lejos del resto, para probar tiro, puntería, hitbox, efectos y pelotas que rebotan sin salir del juego.
+Plan en `C:\Users\jose\.claude\plans\lucky-scribbling-stardust.md`.
+Maqueta 3D en el navegador (aprobada): `tools/maquetas/campo-de-tiro.html`.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **23a** | Maqueta 3D web del campo (`tools/maquetas/campo-de-tiro.html`), antes de construirlo en Studio | — | ✅ Aprobada por el usuario. Sin commit: `tools/maquetas/` no está añadida a git |
+| **23b** | Construcción del recinto y acceso: `World/RangeBuilder` en `Workspace.CampoDeTiro`, estación `Campo` (🔭, `CampoPrompt` y `CampoSalidaPrompt`) con `Services/RangeService`, `LobbyBuilder` VERSION 18 y `Config.Budgets.Matches.RangeParts = 6000` | — | 🟡 Hecha, pendiente de «aprobado» y commit (VERIFICACION §108) |
+| **23c** | Dianas, pantallas y ronda de tiro: `RangeTargets` como combatientes con zonas; movimiento de móviles, emergentes y giratoria en el servidor; `CombatService.onEnemyDamaged` pasa `hitPos` y la zona; remoto nuevo para las marcas de las pantallas (los frames `Marks` y `Readout` ya existen); ronda de 60 s sin Ámbar | — | ⏳ |
+| **23d** | Física de rebotes: `RangeBalls` con `CustomPhysicalProperties`, `Config.Range`, cañón de pelotas y `bounces` en `Projectiles`, con panel de elasticidad, gravedad, tamaño y velocidad | — | ⏳ |
+| **23e** | Modo de depuración (hitbox visibles, trazas) con `DebugCommands` y estación de efectos | — | ⏳ |
+| **23f** | Documentación: cerrar VERIFICACION de la fase y actualizar los resúmenes de `docs/llm-local` que cambien | — | ⏳ |
+
+**Handoff de 23c (03-11-2026)** — siguiente: dianas, pantallas y ronda de tiro.
+- **Estado:** 23a hecha y aprobada. 23b hecha, sin commit hasta «aprobado»: `src/lobby/server/World/RangeBuilder.luau`, `src/lobby/server/Services/RangeService.luau`, `LobbyBuilder.luau` (VERSION 18), `LobbyWorldService.luau`, `Config.Budgets.Matches.RangeParts = 6000` (unas 510 piezas). Lo que falta probar de 23b está en VERIFICACION §108. Siguiente número libre de VERIFICACION: §109.
+- **Lo que deja 23b en `Workspace.CampoDeTiro`:** ORIGIN = `CFrame.new(850, 1.5, -1150)`, sobre el mar detrás de la isla del volcán (VERSION 2 en `World/RangeBuilder`; luces propias en postes y paredes sin textura). Dianas `Diana1…10` con los atributos `RangeTarget`, `Kind`, `Radius` y `CenterHeight`. Anillo central `Bullseye` (PrimaryPart) con `RailAmplitude`, `RailSpeed`, `SpinSpeed` y `PopupIndex`. Pantallas `PantallaCorta` (cara Right, a la pared izquierda) y `PantallaLarga` (cara Back, al fondo), con `RangeScreen`, `ScreenWidth` y `ScreenHeight`, y dentro un `SurfaceGui.Pantalla` con `Grid`, `Marks` y `Readout`. Estación `Campo` (icono 🔭) con `CampoPrompt` y `CampoSalidaPrompt`, controlada por `RangeService`.
+- **Trampas aprendidas:** los `SurfaceGui` tardan en dibujarse tras reconstruir en Studio (repite la captura antes de dar algo por roto). La cara `Top` gira los ejes del `SurfaceGui`: el texto del suelo va en una pieza tumbada con la cara `Front` arriba. `TextScaled` con `TextWrapped` parte el texto en líneas.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 23 y el Handoff de 23c. Haz el grupo 23c.»
+
 ---
 
 ## 4. Cronograma estimado

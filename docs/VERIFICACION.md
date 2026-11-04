@@ -4263,6 +4263,51 @@ El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borrado
 
 **Cerrado el 03-11-2026:** el usuario hizo la prueba con «Haz el Short de jefes en inglés» (`jefes-en-v2`, 3 min 15 s). Con `mascotas-es`, `roles-es` y `jefes-en`, 3 de 4 Shorts quedan en 10 min o menos.
 
+## 108. Fase 23b: campo de tiro, acceso y recinto (03-11-2026)
+
+El campo de tiro es una zona aparte del Lobby (`Workspace.CampoDeTiro`, sobre el mar, detrás de la isla del volcán, en (850, 1,5, -1150)). Se entra por el arco junto a la plaza, al oeste de los muñecos de práctica, y se sale por el arco trasero del recinto con «Volver al Lobby». Se construye al arrancar el Lobby (VERSION 18 de `LobbyBuilder`; el recinto, VERSION 2 de `RangeBuilder`). En 23b solo hay recinto y acceso: las dianas, las marcas de las pantallas y la ronda llegan en 23c.
+
+### 108.1 En Play, en el Lobby (1 jugador)
+
+1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Entra en Play en el Lobby, camina hasta el arco junto a la plaza y cruza el arco.
+   ✅ Apareces sobre la losa detrás de la línea de tiro, sin caer ni atravesar el suelo.
+2. [ ] Desde la losa, sal por el arco trasero con el prompt «Volver al Lobby».
+   ✅ Vuelves al Lobby junto a la plaza, sin caer y sin quedar atrapado entre los arcos.
+3. [ ] Mira el arco de entrada desde la plaza y desde la entrada del campo.
+   ✅ El icono 🔭 no tapa la diana del arco.
+4. [ ] Vuelve a entrar. Pulsa el prompt de entrada y, en menos de 1,5 s, pulsa otra vez el mismo prompt; espera luego a que pase el cooldown y pulsa de nuevo.
+   ✅ La pulsación rápida no hace nada; la del final funciona. Sin errores en la Salida.
+5. [ ] Entra en el campo y quédate allí dos minutos sin pulsar nada.
+   ✅ El Lobby no te devuelve a la plaza ni te mueve: sigues en la losa.
+6. [ ] Para Play y restaura `PlayerData_v1` desde `PlayerData_v1_backups`.
+   ✅ El perfil vuelve a ser el de antes de la prueba.
+
+### 108.2 En Play, con 2 jugadores
+
+1. [ ] Los dos entran a la vez por el arco.
+   ✅ Los dos aparecen sobre la losa, cada uno en su sitio, sin encimarse ni caer.
+2. [ ] Repartíos a lo ancho de la losa y camina cada uno a su lado.
+   ✅ Se mueven a lo ancho sin atravesarse ni quedarse atascados en las paredes del recinto.
+
+### 108.3 En el teléfono o el emulador
+
+1. [ ] Entra en el campo con el emulador de teléfono y mira las pantallas y los números del suelo desde la línea de tiro, en vertical y en horizontal.
+   ✅ Se leen sin acercarse; el texto no se corta ni se ve a cuadros.
+2. [ ] Con el Studio abierto, cuenta las instancias de UI de una pantalla (`SurfaceGui.Pantalla`, en el Explorador).
+   ✅ Unas 290 instancias por pantalla. Al mirarlas en el teléfono no hay tirones.
+
+### 108.4 En el juego publicado
+
+1. [ ] En el place del Lobby, mira que `StreamingEnabled` esté apagado en `Workspace`, guarda el place y publícalo.
+   ✅ Está apagado; el juego publicado arranca sin errores.
+2. [ ] Abre el Lobby publicado, que en el primer arranque reconstruye el Lobby (VERSION 18) y crea `Workspace.CampoDeTiro`. Busca `CampoDeTiro` en el Explorador. Luego repite 108.1 pasos 1 y 2 en el juego publicado.
+   ✅ `CampoDeTiro` existe tras el primer arranque y no aparece dos veces en un segundo arranque. La entrada y la salida funcionan igual que en Play.
+
+### 108.5 Rendimiento en el Lobby con jugadores
+
+1. [ ] Con varios jugadores en el Lobby, mide los FPS en PC y en teléfono, con y sin gente dentro del campo.
+   ✅ El campo (unas 510 piezas, tope de 6.000 en `Config.Budgets.Matches.RangeParts`) no baja los FPS del Lobby de forma apreciable.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
