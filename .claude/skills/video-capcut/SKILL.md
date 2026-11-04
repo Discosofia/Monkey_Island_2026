@@ -36,6 +36,10 @@ Tiempos de retoque del usuario: `jefes-en` 3 min 15 s, `roles-es` 3 min 40 s, `m
 
 El agente al entregar un borrador lo dice en una línea y no pregunta por ello. Lo que se puede automatizar (ordenado por esfuerzo): música con un archivo local (`pycapcut.AudioSegment` ya se usó en `spike_v0.py`; la música de la biblioteca de CapCut es de la nube y no se puede poner por script); el filtro, solo si su nombre está en `pycapcut.FilterType` (los de la lista de CapCut no están: solo `VHS_*` y `cowboy_retro` se parecen); la voz, solo con un TTS local. Antes de usar cualquiera, un spike como `spike_v0.py` y comprobar que CapCut abre el borrador.
 
+## Música del repositorio
+
+`docs/videos/musica/{alta,media,baja}/` guarda pistas por energía (ver su `README.md`). Al preparar un Short se propone una según el guion (jefes y PvP: alta; roles y mascotas: media; cierres: baja) y solo se usan las que tienen fila en el registro de licencias. Música generada con IA: antes de apuntarla, confirmar el plan con el que se generó (los planes de pago incluyen uso comercial; el gratis no está claro).
+
 ## Trampas conocidas
 
 - Las tomas de `O:/` son la ventana entera de Studio: el script recorta del 14,5 % al 92,5 % de la altura. Mira las tomas: el panel de Localización, avisos del juego («Hay un huevo común…», «¡2 monos van a por ti!») y carteles de la bandera pueden tapar la acción; en `roles` el corte 3 hubo que recortarlo a mano.
