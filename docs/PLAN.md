@@ -872,7 +872,7 @@ Vídeos para YouTube, Shorts y TikTok. Guion, guía de grabación y música en `
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
 | **TR1** | Tráiler de YouTube (16:9, unos 75 s, guion ES/EN en `docs/videos/`) y su herramienta: modo grabación en el panel 🛠️ Pruebas, `Trailer` y `TrailerCamara` | be6babc, 24d0ddf | ✅ Tomas grabadas el 30-10-2026 (falta el montaje); pendiente VERIFICACION §91 |
-| **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | — | 🟡 Hecho en la [Fase 22](#fase-22-edición-agéntica-de-vídeo-con-capcut-03-11-2026) (V0–V4) |
+| **TR2** | Shorts de YouTube y TikTok (9:16, 15–30 s) con las tomas del tráiler | 8469f50 | ✅ Hecho en la [Fase 22](#fase-22-edición-agéntica-de-vídeo-con-capcut-03-11-2026) (V0–V4) |
 
 ### Fase 20: Modelos voxel con más calidad sin perder rendimiento (02-11-2026, replanteada el 03-11-2026)
 
@@ -1026,7 +1026,7 @@ Sale de querer que el agente edite los vídeos de promoción y el usuario superv
 | **V1** | `borrador.py`, la lista de cortes del tráiler (sobre copia) y `fotogramas.py` | Los 39 clips de `trailer esp` con su toma y sus tiempos, comprobados contra 5 clips vistos en CapCut; un fotograma por clip con la guía 9:16 | `09f9b3e` | ✅ 03-11-2026; falta comprobar 5 cortes en CapCut (VERIFICACION §104) |
 | **V2** | `short.py`, `shorts.md` y el primer Short (gancho del capuchino ladrón y los jefes), ES y EN | Los dos borradores abren sin errores; tiempos y textos coinciden con el guion; el texto cae en el tercio central; el usuario exporta y apunta sus minutos de retoque | — | 🟡 03-11-2026: `short.py`, `shorts.md` y los dos borradores hechos; falta abrirlos, exportar y apuntar el retoque (VERIFICACION §105) |
 | **V3** | Los otros 2-4 Shorts (mascotas y monturas, roles, Dunas y Laboratorio) y los ajustes que pida V2 | Cada Short pide 10 minutos o menos de retoque, en al menos 3 de 4 | — 🟡 03-11-2026: `mascotas`, `roles` y `pvp` hechos en ES y EN; `pvp-en` retocado en 15 min 29 s `mascotas-es` en 9 min 30 s y `roles-es` en 3 min 40 s (objetivo 10); faltan `jefes` y los demás (VERIFICACION §106) |
-| **V4** | Skill `video-capcut`, su resumen en `llm-local`, título, descripción y etiquetas de cada Short en `shorts.md` (los sube el usuario), fila TR2 cerrada | Una pestaña nueva, con solo la skill, reproduce «haz el Short de jefes en inglés» | 0c156a7 | 🟡 03-11-2026: skill, resumen y textos hechos (más carpeta de música `docs/videos/musica`, 6957b66); falta la prueba en pestaña nueva (VERIFICACION §107). Retoque medido: 3 de 4 Shorts en 10 min o menos |
+| **V4** | Skill `video-capcut`, su resumen en `llm-local`, título, descripción y etiquetas de cada Short en `shorts.md` (los sube el usuario), fila TR2 cerrada | Una pestaña nueva, con solo la skill, reproduce «haz el Short de jefes en inglés» | 0c156a7 | ✅ 03-11-2026: skill, resumen y textos hechos (más carpeta de música `docs/videos/musica`, 6957b66); prueba en pestaña nueva hecha (VERIFICACION §107). Retoque medido: 3 de 4 Shorts en 10 min o menos |
 
 **Después (fuera del MVP):** Whisper para vídeos con voz, terminar el tráiler desde su borrador, Shorts de tomas nuevas (novedades por fase) y exportar con computer use.
 

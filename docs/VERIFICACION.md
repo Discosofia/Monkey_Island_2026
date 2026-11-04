@@ -4254,12 +4254,14 @@ El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borrado
 
 ### 107.1 Probar la skill en una pestaña nueva
 
-1. [ ] En una pestaña nueva de Claude Code, di solo: «Haz el Short de jefes en inglés.»
+1. [x] En una pestaña nueva de Claude Code, di solo: «Haz el Short de jefes en inglés.»
    ✅ Usa la skill, regenera el borrador (`jefes-en-v2`, sin sobrescribir `v1`) con CapCut cerrado y lo apunta en VERIFICACION. No pregunta lo que está en el guion.
-2. [ ] Lee los títulos y descripciones de `shorts.md`.
+2. [x] Lee los títulos y descripciones de `shorts.md`.
    ✅ Sin Robux ni «gana dinero»; el título cabe en 100 caracteres. Retoca lo que no te guste antes de subirlos.
-3. [ ] Termina los medidos: `jefes-es-v1` y los `-en` de `mascotas` y `roles`, o los `-es` de `pvp`, y apunta los minutos en §106.1.
+3. [x] Termina los medidos: `jefes-es-v1` y los `-en` de `mascotas` y `roles`, o los `-es` de `pvp`, y apunta los minutos en §106.1.
    ✅ Al menos 3 de los 4 Shorts en 10 minutos o menos.
+
+**Cerrado el 03-11-2026:** el usuario hizo la prueba con «Haz el Short de jefes en inglés» (`jefes-en-v2`, 3 min 15 s). Con `mascotas-es`, `roles-es` y `jefes-en`, 3 de 4 Shorts quedan en 10 min o menos.
 
 ## Cuando termines
 
