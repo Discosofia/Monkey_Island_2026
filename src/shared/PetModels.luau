@@ -936,6 +936,30 @@ local function voxelFlat(
 	end
 end
 
+-- Escalones de bloques alineados entre dos puntos en cualquier dirección (un tallo, un filamento, un dedo): avanzan por
+-- el eje más largo de "step" en "step" celdas y cada tramo mide lo que avanza en cada eje más el grosor "thickness".
+-- Así la figura entra en la malla de la mascota (Fase 21, Q5).
+local function voxelSteps(
+	v: Kit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	thickness: Vector3,
+	color: Color3,
+	step: number?
+)
+	local delta = to - from
+	local longest = math.max(math.abs(delta.X), math.abs(delta.Y), math.abs(delta.Z))
+	local count = math.max(1, math.ceil(longest / (step or 1.2) - 0.01))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		local advance = Vector3.new(math.abs(b.X - a.X), math.abs(b.Y - a.Y), math.abs(b.Z - a.Z))
+		v.box(list, name, (a + b) / 2, advance + thickness, color)
+	end
+end
+
 -- Felino en estilo voxel (bloques grandes, como la referencia del ocelote en docs/img): cuerpo de
 -- caja con el vientre claro, paletillas y ancas en bloque, cabeza cúbica con hocico cuadrado, orejas
 -- oscuras, patas en columna con dedos marcados y cola recta por tramos. Mismos huesos y medidas
@@ -4203,6 +4227,31 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				box(nil, "Rib", Vector3.new(side * 2.55, 3.9, z), Vector3.new(0.12, 2.4, 0.25), blush)
 			end
 		end
+		-- Piel pintada (Fase 21, Q5): mechones de tres tonos de rosa perlado por el lomo, los costados y la cola.
+		local skin = { color, color:Lerp(WHITE, 0.1), color:Lerp(blush, 0.3), light:Lerp(pearl, 0.12) }
+		voxelTopScales(
+			v,
+			nil,
+			"Skin",
+			Vector3.new(0, 5.68, 1.5),
+			Vector2.new(3.2, 8.6),
+			Vector2.new(1, 1.2),
+			skin,
+			0.06
+		)
+		for _, side in { -1, 1 } do
+			voxelScales(
+				v,
+				nil,
+				"Skin",
+				"x",
+				Vector3.new(side * 2.53, 4, 1.5),
+				Vector2.new(9, 2),
+				Vector2.new(1.3, 1),
+				skin,
+				0.06
+			)
+		end
 		-- Cresta del lomo: escalones de distinta altura que se siguen por la cola.
 		for i, z in { -3, -1.8, -0.6, 0.6, 1.8, 3, 4.2, 5.4, 6.6 } do
 			box(
@@ -4216,9 +4265,50 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 
 		-- Cola: tres tramos que se afinan, con la aleta arriba y abajo. Ondea de lado a lado.
 		local tailParts: { BasePart } = {}
-		v.beam(tailParts, "Tail", Vector3.new(0, 3.7, 6), Vector3.new(0, 3.5, 10.5), Vector2.new(3.6, 3), color)
-		v.beam(tailParts, "Tail", Vector3.new(0, 3.5, 10.5), Vector3.new(0, 3.3, 14.5), Vector2.new(2.6, 2.4), color)
-		v.beam(tailParts, "Tail", Vector3.new(0, 3.3, 14.5), Vector3.new(0, 3.1, 18), Vector2.new(1.6, 1.8), color)
+		-- Tres tramos en escalones (como las colas de aves y perros): se solapan 0,6 celdas para no abrir rendijas al ondear.
+		voxelSteps(
+			v,
+			tailParts,
+			"Tail",
+			Vector3.new(0, 3.7, 6),
+			Vector3.new(0, 3.5, 10.5),
+			Vector3.new(3.6, 3, 0.6),
+			color,
+			1.5
+		)
+		voxelSteps(
+			v,
+			tailParts,
+			"Tail",
+			Vector3.new(0, 3.5, 10.5),
+			Vector3.new(0, 3.3, 14.5),
+			Vector3.new(2.6, 2.4, 0.6),
+			color,
+			1.5
+		)
+		voxelSteps(
+			v,
+			tailParts,
+			"Tail",
+			Vector3.new(0, 3.3, 14.5),
+			Vector3.new(0, 3.1, 18),
+			Vector3.new(1.6, 1.8, 0.6),
+			color,
+			1.5
+		)
+		for _, side in { -1, 1 } do
+			voxelScales(
+				v,
+				tailParts,
+				"Skin",
+				"x",
+				Vector3.new(side * 1.83, 3.6, 8.2),
+				Vector2.new(4, 2.4),
+				Vector2.new(1.3, 1),
+				skin,
+				0.06
+			)
+		end
 		for i, z in { 7, 8.8, 10.6, 12.4, 14.2, 16, 17.6 } do
 			box(tailParts, "TailFin", Vector3.new(0, 5.4 - i * 0.14, z), Vector3.new(0.4, 1.4 - i * 0.1, 1.2), fin)
 			box(tailParts, "TailFinLow", Vector3.new(0, 2.2 - i * 0.04, z + 0.4), Vector3.new(0.4, 0.8, 1), fin)
@@ -4226,46 +4316,141 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(tailParts, "TailTip", Vector3.new(0, 3.1, 18.6), Vector3.new(0.6, 1.4, 0.8), gillDark)
 		v.swing(tailParts, Vector3.new(0, 3.7, 6), Vector3.yAxis, 0.3, 4, 0, false, nil, "Tail")
 
-		-- Cabeza ancha y plana: el hocico romo con su caballete, la ceja y la cuenca de cada ojo, las
-		-- fosas, la sonrisa curva con el labio de abajo, los pómulos con pecas y el pliegue donde nacen
-		-- las branquias; la cresta empieza ya en la nuca.
+		-- Cabeza aplanada y ovalada: la más ancha y alta donde se une al cuerpo (la base del cráneo y las mejillas, junto a
+		-- las branquias, a ras del lomo) y cada vez más estrecha y baja hacia el hocico, con la frente subiendo suave, de modo
+		-- que de frente no es un ladrillo; los ojos están encima, como en un ajolote de verdad, en un bulto con el iris
+		-- pintado. La trompa es larga, en dos escalones, con las fosas encima, la sonrisa curva en la punta con su labio de
+		-- abajo, los pómulos con pecas y el pliegue donde nacen las branquias; la cresta empieza ya en la nuca.
 		local head: { BasePart } = {}
-		box(head, "Head", Vector3.new(0, 3.9, -6.2), Vector3.new(7, 2.8, 5), color)
-		box(head, "Snout", Vector3.new(0, 3.6, -9), Vector3.new(5.4, 2.2, 0.8), color)
-		box(head, "HeadTop", Vector3.new(0, 5.4, -6.4), Vector3.new(5.6, 0.3, 4), light)
-		box(head, "Chin", Vector3.new(0, 2.4, -6.4), Vector3.new(5.6, 0.4, 4.6), belly)
-		box(head, "NoseBridge", Vector3.new(0, 4.9, -8.95), Vector3.new(1.6, 0.5, 0.6), light)
-		box(head, "Pearl", Vector3.new(0, 5.6, -8.2), Vector3.new(0.6, 0.2, 0.6), pearl)
+		do
+			-- Cráneo en bloques de distinto ancho y alto (planta ovalada, perfil que sube hacia la nuca). "outer" es el ancho
+			-- final de cada tramo; todos redondean las aristas de arriba en dos escalones y tienen la parte de abajo plana
+			-- (y = 2,5), junto a la barbilla.
+			local cut = 0.4
+			local function skullBlock(
+				name: string,
+				zCenter: number,
+				length: number,
+				outer: number,
+				e: number,
+				depth: number
+			)
+				local cy = 2.5 + depth / 2
+				local w = outer * 2
+				local half = (w - 2 * e) / 2
+				box(head, name, Vector3.new(0, cy, zCenter), Vector3.new(w - 2 * e, depth, length), color)
+				for _, side in { -1, 1 } do
+					box(
+						head,
+						"SkullSide",
+						Vector3.new(side * (half + e * 0.25), cy - cut / 2, zCenter),
+						Vector3.new(e * 0.5, depth - cut, length),
+						color
+					)
+					box(
+						head,
+						"SkullSide",
+						Vector3.new(side * (half + e * 0.75), cy - (cut + e * 1.2) / 2, zCenter),
+						Vector3.new(e * 0.5, depth - cut - e * 1.2, length),
+						color
+					)
+				end
+			end
+			skullBlock("Face", -8.4, 1, 2.6, 0.4, 2.2)
+			skullBlock("Face", -7.3, 1.2, 3.1, 0.4, 2.4)
+			skullBlock("Head", -5.95, 1.5, 3.5, 0.5, 2.7)
+			skullBlock("Head", -4.575, 1.25, 3.1, 0.5, 3)
+			box(head, "Occiput", Vector3.new(0, 3.8, -3.85), Vector3.new(4.4, 2.6, 0.3), color)
+		end
+		box(head, "Snout", Vector3.new(0, 3.5, -9.6), Vector3.new(4.2, 1.9, 1.4), color)
+		box(head, "Snout", Vector3.new(0, 3.35, -10.9), Vector3.new(3, 1.6, 1.2), color)
+		-- Placas claras encima del cráneo, que suben con él, y el pelo pintado de las tres de atrás.
+		box(head, "HeadTop", Vector3.new(0, 4.75, -8.2), Vector3.new(4.8, 0.3, 0.6), light)
+		box(head, "HeadTop", Vector3.new(0, 5, -7.3), Vector3.new(5.4, 0.3, 1.2), light)
+		box(head, "HeadTop", Vector3.new(0, 5.3, -5.95), Vector3.new(5.6, 0.3, 1.5), light)
+		box(head, "HeadTop", Vector3.new(0, 5.6, -4.575), Vector3.new(5.2, 0.3, 1.25), light)
+		voxelTopScales(
+			v,
+			head,
+			"Skin",
+			Vector3.new(0, 5.18, -7.3),
+			Vector2.new(5, 1.1),
+			Vector2.new(1, 1.1),
+			skin,
+			0.06
+		)
+		voxelTopScales(
+			v,
+			head,
+			"Skin",
+			Vector3.new(0, 5.48, -5.95),
+			Vector2.new(5.2, 1.4),
+			Vector2.new(1, 1.3),
+			skin,
+			0.06
+		)
+		voxelTopScales(
+			v,
+			head,
+			"Skin",
+			Vector3.new(0, 5.78, -4.575),
+			Vector2.new(4.8, 1.2),
+			Vector2.new(1, 1.1),
+			skin,
+			0.06
+		)
+		box(head, "Chin", Vector3.new(0, 2.4, -6.2), Vector3.new(5, 0.4, 4.2), belly)
+		box(head, "NoseBridge", Vector3.new(0, 4.6, -9.6), Vector3.new(1.4, 0.3, 1.4), light)
+		box(head, "NoseBridge", Vector3.new(0, 4.3, -10.9), Vector3.new(1.2, 0.3, 1.2), light)
+		box(head, "Pearl", Vector3.new(0, 5, -8.2), Vector3.new(0.6, 0.2, 0.6), pearl)
 		box(head, "NapeCrest", Vector3.new(0, 5.8, -5.3), Vector3.new(0.5, 0.7, 0.9), fin)
-		box(head, "NapeCrest", Vector3.new(0, 5.9, -4.2), Vector3.new(0.5, 1, 0.9), fin)
-		-- Sonrisa: el centro más bajo y los extremos que suben, con sus hoyuelos.
-		box(head, "Smile", Vector3.new(0, 3, -9.45), Vector3.new(1.8, 0.25, 0.2), dark)
-		box(head, "LowerLip", Vector3.new(0, 2.7, -9.3), Vector3.new(2.6, 0.3, 0.4), belly)
-		box(head, "MouthInside", Vector3.new(0, 2.88, -9.5), Vector3.new(1.4, 0.15, 0.1), gillTip)
+		box(head, "NapeCrest", Vector3.new(0, 6.2, -4.2), Vector3.new(0.5, 0.9, 0.9), fin)
+		-- Sonrisa en la punta de la trompa: el centro más bajo y los extremos que suben, con sus hoyuelos.
+		local snoutTip = -11.5
+		box(head, "Smile", Vector3.new(0, 3, snoutTip - 0.05), Vector3.new(1.6, 0.25, 0.2), dark)
+		box(head, "LowerLip", Vector3.new(0, 2.7, snoutTip + 0.1), Vector3.new(2, 0.3, 0.4), belly)
+		box(head, "MouthInside", Vector3.new(0, 2.88, snoutTip - 0.1), Vector3.new(1.2, 0.15, 0.1), gillTip)
 		for _, side in { -1, 1 } do
-			box(head, "Smile", Vector3.new(side * 1.3, 3.15, -9.45), Vector3.new(0.9, 0.25, 0.2), dark)
-			box(head, "SmileEnd", Vector3.new(side * 1.95, 3.5, -9.45), Vector3.new(0.3, 0.5, 0.2), dark)
-			box(head, "Dimple", Vector3.new(side * 2.35, 3.8, -9.4), Vector3.new(0.2, 0.25, 0.2), blush)
-			box(head, "Brow", Vector3.new(side * 2.4, 5.45, -8.2), Vector3.new(1.4, 0.35, 0.9), light)
-			box(head, "EyeSocket", Vector3.new(side * 2.4, 4.7, -8.76), Vector3.new(1.5, 1.5, 0.1), blush)
-			box(head, "Eye", Vector3.new(side * 2.4, 4.7, -8.84), Vector3.new(0.9, 0.9, 0.1), dark)
-			box(head, "Glint", Vector3.new(side * 2.2, 4.95, -8.92), Vector3.new(0.3, 0.3, 0.05), WHITE)
-			box(head, "Glint", Vector3.new(side * 2.6, 4.5, -8.92), Vector3.new(0.15, 0.15, 0.05), pearl)
-			box(head, "Nostril", Vector3.new(side * 0.6, 4.5, -9.4), Vector3.new(0.3, 0.3, 0.15), nostril)
-			box(head, "Ridge", Vector3.new(side * 1.3, 5.6, -6.9), Vector3.new(0.5, 0.25, 2.4), light)
-			box(head, "Cheek", Vector3.new(side * 3.55, 3.5, -7.6), Vector3.new(0.15, 1.1, 1.5), blush)
+			box(head, "Smile", Vector3.new(side * 0.9, 3.15, snoutTip - 0.05), Vector3.new(0.7, 0.25, 0.2), dark)
+			box(head, "SmileEnd", Vector3.new(side * 1.3, 3.5, snoutTip - 0.05), Vector3.new(0.3, 0.5, 0.2), dark)
+			box(head, "Dimple", Vector3.new(side * 1.42, 3.8, snoutTip), Vector3.new(0.2, 0.25, 0.2), blush)
+			-- Ojo encima de la frente (Fase 21, Q5): bulto rosa con el anillo, el iris violeta, la pupila y los brillos
+			-- pintados encima.
+			box(head, "EyeBump", Vector3.new(side * 2, 5.35, -7.6), Vector3.new(1.4, 0.4, 1.4), blush)
+			box(
+				head,
+				"EyeRing",
+				Vector3.new(side * 2, 5.56, -7.6),
+				Vector3.new(1.25, 0.06, 1.25),
+				gillDark:Lerp(color, 0.5)
+			)
+			box(head, "Iris", Vector3.new(side * 2, 5.6, -7.6), Vector3.new(0.95, 0.06, 0.95), violet:Lerp(dark, 0.35))
+			box(head, "Eye", Vector3.new(side * 2, 5.64, -7.6), Vector3.new(0.7, 0.1, 0.7), dark)
+			box(head, "Glint", Vector3.new(side * 1.8, 5.7, -7.8), Vector3.new(0.26, 0.05, 0.26), WHITE)
+			box(head, "Glint", Vector3.new(side * 2.2, 5.7, -7.4), Vector3.new(0.13, 0.05, 0.13), pearl)
+			box(head, "Nostril", Vector3.new(side * 0.6, 4.2, -10.9), Vector3.new(0.3, 0.1, 0.3), nostril)
+			box(head, "Ridge", Vector3.new(side * 0.8, 5.58, -5.95), Vector3.new(0.5, 0.25, 1.5), light)
+			-- Rubor en el costado del hocico, pómulo con pecas en la parte ancha y pliegue de las branquias.
+			box(
+				head,
+				"Blush",
+				Vector3.new(side * 2.65, 3.4, -8.4),
+				Vector3.new(0.06, 0.6, 0.8),
+				gillTip:Lerp(color, 0.55)
+			)
+			box(head, "Cheek", Vector3.new(side * 3.55, 3.2, -6.3), Vector3.new(0.15, 0.9, 0.7), blush)
 			box(
 				head,
 				"Fold",
-				Vector3.new(side * 3.55, 4.6, -5.6),
-				Vector3.new(0.2, 1.4, 1.6),
+				Vector3.new(side * 3.55, 3.2, -5.6),
+				Vector3.new(0.2, 0.9, 0.7),
 				color:Lerp(gillPale, 0.3)
 			)
-			for k, z in { -8.1, -7.4, -6.7 } do
+			for k, z in { -7.6, -7.2, -6.8 } do
 				box(
 					head,
 					"Freckle",
-					Vector3.new(side * 3.6, 3.15 + (k % 2) * 0.7, z),
+					Vector3.new(side * 3.13, 3.15 + (k % 2) * 0.5, z),
 					Vector3.new(0.1, 0.25, 0.25),
 					gillDark
 				)
@@ -4274,8 +4459,9 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		v.swing(head, Vector3.new(0, 3.9, -3.8), Vector3.yAxis, 0.08, 1.5, 0, false, nil, "Head")
 
 		-- Branquias: tres plumas por lado (hacia arriba, hacia fuera y hacia abajo). Cada una nace de un
-		-- bulto oscuro, tiene su tallo, tres pares de filamentos que se acortan hacia la punta y la
-		-- punta en abanico, y se mezclan tres tonos. Se abren y se cierran despacio.
+		-- bulto oscuro, tiene su tallo con degradado, cuatro pares de filamentos que se acortan hacia la punta y la
+		-- punta en abanico, y se mezclan tres tonos. Se abren y se cierran despacio. Con malla (Fase 21, Q5) el tallo y los
+		-- filamentos van en escalones de bloques alineados.
 		for _, side in { -1, 1 } do
 			local gills: { BasePart } = {}
 			local base = Vector3.new(side * 3.5, 4.2, -4.8)
@@ -4289,19 +4475,38 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				local direction = along.Unit
 				local across = Vector3.new(-direction.Y, direction.X, 0).Unit
 				box(gills, "GillBase", base + direction * 0.3, Vector3.new(1.1, 1, 1.2), gillDark)
-				v.beam(gills, "Gill", base, to, Vector2.new(0.8, 0.6), gill)
-				for level, f in { 0.4, 0.65, 0.88 } do
+				for _, span in
+					{
+						{ 0, 0.34, gillDark:Lerp(gill, 0.5) },
+						{ 0.34, 0.68, gill },
+						{ 0.68, 1, gill:Lerp(gillTip, 0.35) },
+					}
+				do
+					voxelSteps(
+						v,
+						gills,
+						"Gill",
+						base + along * span[1],
+						base + along * span[2],
+						Vector3.new(0.8, 0.8, 0.8),
+						span[3],
+						1
+					)
+				end
+				for level, f in { 0.32, 0.5, 0.68, 0.86 } do
 					local at = base + along * f
-					local reach = 1.9 - level * 0.4
+					local reach = 2.1 - level * 0.35
 					for _, sign in { -1, 1 } do
 						local tip = at + across * sign * reach + direction * 0.9
-						v.beam(
+						voxelSteps(
+							v,
 							gills,
 							"Filament",
 							at,
 							tip,
-							Vector2.new(0.4, 0.35),
-							if (level + index) % 2 == 0 then gillTip else gill
+							Vector3.new(0.4, 0.4, 0.4),
+							if (level + index) % 2 == 0 then gillTip else gill,
+							1
 						)
 					end
 				end
@@ -4329,26 +4534,28 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			local toward = if front then -1 else 1
 			for k = -1.5, 1.5 do
 				local dir = Vector3.new(side * 0.55 + k * 0.5 * side, 0, toward * (1 - math.abs(k) * 0.2)).Unit
-				v.beam(list, "Finger", at, at + dir * 1.5, Vector2.new(0.35, 0.3), belly)
+				voxelSteps(v, list, "Finger", at, at + dir * 1.5, Vector3.new(0.4, 0.35, 0.4), belly, 0.8)
 				box(list, "Pad", at + dir * 1.6, Vector3.new(0.45, 0.35, 0.45), blush)
 			end
 		end
 		for _, side in { -1, 1 } do
 			local f: { BasePart } = {}
-			v.beam(
+			voxelSteps(
+				v,
 				f,
 				"Arm",
 				Vector3.new(side * 2.5, 3, -2.6),
 				Vector3.new(side * 4.4, 1.5, -3.2),
-				Vector2.new(0.9, 0.9),
+				Vector3.new(0.9, 0.9, 0.9),
 				color
 			)
-			v.beam(
+			voxelSteps(
+				v,
 				f,
 				"Forearm",
 				Vector3.new(side * 4.4, 1.5, -3.2),
 				Vector3.new(side * 4.8, 0.5, -4.4),
-				Vector2.new(0.8, 0.8),
+				Vector3.new(0.8, 0.8, 0.8),
 				belly
 			)
 			foot(f, Vector3.new(side * 4.9, 0.3, -4.7), true, side)
@@ -4364,13 +4571,22 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				if side < 0 then "FL" else "FR"
 			)
 			local b: { BasePart } = {}
-			v.beam(b, "Leg", Vector3.new(side * 2.5, 3, 5), Vector3.new(side * 4.6, 1.5, 5.8), Vector2.new(1, 1), color)
-			v.beam(
+			voxelSteps(
+				v,
+				b,
+				"Leg",
+				Vector3.new(side * 2.5, 3, 5),
+				Vector3.new(side * 4.6, 1.5, 5.8),
+				Vector3.new(1, 1, 1),
+				color
+			)
+			voxelSteps(
+				v,
 				b,
 				"Shin",
 				Vector3.new(side * 4.6, 1.5, 5.8),
 				Vector3.new(side * 5, 0.5, 7),
-				Vector2.new(0.8, 0.8),
+				Vector3.new(0.8, 0.8, 0.8),
 				belly
 			)
 			foot(b, Vector3.new(side * 5.1, 0.3, 7.3), false, side)

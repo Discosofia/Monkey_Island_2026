@@ -592,6 +592,56 @@ local PetMeshes: { [string]: PetMesh } = {
 			},
 		},
 	},
+	Ajolote = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://81231285682011",
+				texture = "rbxassetid://105297337704159",
+				offset = Vector3.new(0.0000, 0.0350, 0.1800),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://123204682775546",
+				texture = "rbxassetid://115831599977918",
+				offset = Vector3.new(-0.1867, -0.1200, 0.1782),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://72352903184131",
+				texture = "rbxassetid://75870149510333",
+				offset = Vector3.new(0.1867, -0.1200, 0.1782),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://135293000994976",
+				texture = "rbxassetid://81787292956846",
+				offset = Vector3.new(-0.1792, -0.1225, -0.1707),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://135167997697243",
+				texture = "rbxassetid://86210172208592",
+				offset = Vector3.new(0.1792, -0.1225, -0.1707),
+			},
+			["GillL"] = {
+				mesh = "rbxassetid://108687995023295",
+				texture = "rbxassetid://138775523614900",
+				offset = Vector3.new(-0.2028, 0.1107, -0.0200),
+			},
+			["GillR"] = {
+				mesh = "rbxassetid://130836956020873",
+				texture = "rbxassetid://98455701516626",
+				offset = Vector3.new(0.2028, 0.1107, -0.0200),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://84013621508636",
+				texture = "rbxassetid://98531542632592",
+				offset = Vector3.new(0.0000, 0.0525, -0.3825),
+			},
+			["Tail"] = {
+				mesh = "rbxassetid://97901062739359",
+				texture = "rbxassetid://139671380845724",
+				offset = Vector3.new(0.0000, 0.0015, 0.6350),
+			},
+		},
+	},
 }
 
 return PetMeshes

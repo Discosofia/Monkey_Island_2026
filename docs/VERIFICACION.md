@@ -4709,18 +4709,18 @@ El campo de tiro (v11) mide el tiro de armas y habilidades, también las cuatro 
 
 ## 122. Fase 20 Q5g: Ajolote con malla (04-11-2026)
 
-El Ajolote (mítica, +100 %) se rehízo para la malla. Sus branquias (3 plumas por lado con tallo en degradado y 4 pares de filamentos), la cola, los brazos, las patas y los dedos eran vigas inclinadas (69 piezas sueltas) y pasan a **escalones de bloques alineados** (`voxelSteps`, ayudante nuevo): ya no queda ninguna pieza suelta. Cabeza **aplanada y ovalada** (2,2 celdas de alto y planta que se estrecha hacia la nuca y el hocico) con la **trompa larga** en dos escalones, ojos con anillo, iris violeta, párpado, pestaña y rubor, fosas encima del hocico y la sonrisa en la punta; piel pintada con mechones de tres tonos de rosa perlado en lomo, costados, cola y coronilla. 9 mallas (`Static`, `Tail`, `Head`, `GillL`, `GillR`, `FL`, `FR`, `BL`, `BR`) con **4.674 triángulos** (1.506 cada branquia, que es lo que más pesa; tope 4.700). Excepción de `Config.Budgets` para la versión de bloques (`PetTotal` 420, `PetAnimated` 340, `PetTriangles` 4.900), que es la que mide `Rendimiento`. Comprobado el 04-11-2026 en Edit: la malla mide lo mismo que los bloques (diferencia de 0,036 studs en el largo, la punta de la cola), vistas de frente, de 3/4 y de espaldas. **No probado en Play** (ni las branquias abriéndose ni la cola ondeando).
+El Ajolote (mítica, +100 %) se rehízo para la malla. Sus branquias (3 plumas por lado con tallo en degradado y 4 pares de filamentos), la cola, los brazos, las patas y los dedos eran vigas inclinadas (69 piezas sueltas) y pasan a **escalones de bloques alineados** (`voxelSteps`, ayudante nuevo): ya no queda ninguna pieza suelta. Cabeza **aplanada y ovalada**: la más ancha y alta en la base del cráneo y las mejillas (a ras del lomo) y cada vez más estrecha y baja hacia el hocico, con la frente subiendo suave y la **trompa larga** en dos escalones; los ojos van encima de la frente, en un bulto con anillo, iris violeta, pupila y brillos pintados; rubor en el costado del hocico, fosas encima y la sonrisa en la punta; piel pintada con mechones de tres tonos de rosa perlado en lomo, costados, cola y coronilla. 9 mallas (`Static`, `Tail`, `Head`, `GillL`, `GillR`, `FL`, `FR`, `BL`, `BR`) con **4.732 triángulos** (1.506 cada branquia, que es lo que más pesa; la cabeza 182). Excepción de `Config.Budgets` para la versión de bloques (`PetTotal` 420, `PetAnimated` 340, `PetTriangles` 4.900), que es la que mide `Rendimiento` (402 piezas y 4.812 triángulos, sin alertas). Comprobado el 04-11-2026 en Edit: la malla mide lo mismo que los bloques (diferencia de 0,036 studs en el largo, la punta de la cola), vistas de frente, de 3/4 y de espaldas. **No probado en Play** (ni las branquias abriéndose ni la cola ondeando).
 
 ### 122.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
 
 1. [ ] Equipa el Ajolote, camina, corre, gira y párate.
    ✅ Se ve con malla y textura; las branquias se abren y cierran sin separarse de la cabeza; la cola ondea sin rendijas entre tramos; las patas andan; sin piezas sueltas.
 2. [ ] Míralo de frente, de lado, de espaldas y desde arriba con buena luz.
-   ✅ Cabeza plana y ovalada con la trompa larga; ojos legibles con iris violeta; lunares perlados en el lomo; branquias carmesí con degradado.
+   ✅ Cabeza plana y ovalada que sube suave hacia la nuca, con la trompa larga; ojos encima de la frente, legibles, con iris violeta; lunares perlados en el lomo; branquias carmesí con degradado.
 3. [ ] Haz que cure (clip `Ajolote`: abre las branquias y las agita), siéntalo y túmbalo.
    ✅ Branquias y cola siguen su hueso; sin piezas atravesadas.
 4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
-   ✅ Con su textura; sin tirones al cargar (4.674 triángulos son el tope de la mascota).
+   ✅ Con su textura; sin tirones al cargar (4.732 triángulos, cerca del tope de 4.900).
 
 ## Cuando termines
 
