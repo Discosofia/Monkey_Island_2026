@@ -406,7 +406,7 @@ return {
 	-- Marcas de las pantallas, consolas y Ronda de tiro (Fase 23c: RangeScreenController, RangeRoundController).
 	["Borrar marcas"] = "Clear marks",
 	["Ronda de tiro"] = "Shooting round",
-	["Δx {dx}  Δy {dy} studs ({degrees}°) · dispersión {spread} · tiros {shots}"] = "Δx {dx}  Δy {dy} studs ({degrees}°) · spread {spread} · shots {shots}",
+	["{name} · vuelo {flight} s · Δx {dx}  Δy {dy} studs ({degrees}°) · dispersión {spread} · tiros {shots}"] = "{name} · flight {flight} s · Δx {dx}  Δy {dy} studs ({degrees}°) · spread {spread} · shots {shots}",
 	["Ronda cortada"] = "Round cut short",
 	["¡Ronda terminada!"] = "Round over!",
 	["{points} puntos"] = "{points} points",
@@ -427,4 +427,25 @@ return {
 	-- Armero del campo de tiro y modo shooter (Fase 24b: RangeBuilder, RangeShooterService).
 	["Armero"] = "Armory",
 	["Dejar arma"] = "Put weapon away",
+
+	-- Calibración del tiro (Fase 24d: RangeBuilder, RangeCalibrationDummyService, RangeCalibrationController).
+	["Calibración"] = "Calibration",
+	["Distancia del muñeco"] = "Dummy distance",
+	["Quieto"] = "Still",
+	["De lado a lado"] = "Side to side",
+	["Borrar datos"] = "Clear data",
+	["Movimiento"] = "Movement",
+	["Calibración del tiro"] = "Shot calibration",
+	["Arma o habilidad"] = "Weapon or ability",
+	["Cerca (≤{max})"] = "Near (≤{max})",
+	["Media ({min}–{max})"] = "Mid ({min}–{max})",
+	["Lejos (≥{min})"] = "Far (≥{min})",
+	["Dispara para empezar a medir"] = "Shoot to start measuring",
+	["Celda: tiros × · acierto · vuelo medio / desvío medio y dispersión (studs) · ayuda del táctil (°)"] = "Cell: shots × · hit rate · mean flight / mean offset and spread (studs) · touch assist (°)",
+	["{n}× · {accuracy} % · {flight} s"] = "{n}× · {accuracy} % · {flight} s",
+	["Desv. {deviation} · disp. {spread}"] = "Off {deviation} · spread {spread}",
+	["Sin pantalla"] = "No screen",
+	["ayuda {assist}°"] = "assist {assist}°",
+	["Disp. config.: {still}/{moving}/{air}°"] = "Set spread: {still}/{moving}/{air}°",
+	["Exportar"] = "Export",
 }

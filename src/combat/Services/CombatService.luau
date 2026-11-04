@@ -1000,6 +1000,7 @@ local function acidLob(
 	direction: Vector3,
 	point: Vector3?,
 	weapon: Weapons.WeaponDefinition,
+	weaponId: string,
 	damage: number,
 	strike: (model: Model, amount: number, main: boolean, zone: string?) -> boolean
 )
@@ -1030,6 +1031,7 @@ local function acidLob(
 	Projectiles.fire({
 		owner = player,
 		look = "LabAcid",
+		source = weaponId,
 		origin = origin,
 		direction = velocity.Unit,
 		speed = velocity.Magnitude,
@@ -1220,7 +1222,7 @@ local function rangedAttack(
 		direction = scatter(direction, spread, shotSeed, shotSeq)
 	end
 	if weapon.lab and weapon.lab.effect == "AcidBurst" then
-		acidLob(player, character, origin, direction, point, weapon, damage, strike)
+		acidLob(player, character, origin, direction, point, weapon, weaponId, damage, strike)
 		return
 	end
 	local others = if finisher then math.round(damage * (finisher.othersDamage or 0)) else 0
@@ -1230,6 +1232,7 @@ local function rangedAttack(
 	Projectiles.fire({
 		owner = player,
 		look = if finisher then `{style}Finisher` else style,
+		source = weaponId,
 		origin = origin,
 		direction = direction,
 		speed = speed,

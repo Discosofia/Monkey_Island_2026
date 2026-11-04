@@ -19,7 +19,10 @@
 -- péndulo; la zona de preparación con bancos y cajas; dos consolas (BorrarMarcasPrompt y RondaPrompt); y el
 -- Armero (Fase 24b, v8; v9: armas en horizontal con su nombre y más separadas): una pared de la zona de
 -- preparación con las cuatro armas del Laboratorio colgadas, un aviso por arma (atributo "ArmeroWeapon") y
--- «Dejar arma» (ArmeroDejarPrompt), que atiende RangeShooterService.
+-- «Dejar arma» (ArmeroDejarPrompt), que atiende RangeShooterService. v10 (Fase 24d, calibración del tiro): una
+-- tercera consola «Calibración» (CalibracionPrompt abre el panel de RangeCalibrationController, que maneja la
+-- distancia y el movimiento del muñeco por RangeCalibrationDummyService) y el «muñeco de calibración»
+-- (MuniecoCalibracion, en el eje central a la distancia que se elija). v11: la consola tiene un solo aviso.
 -- Aquí todo está quieto: mueve las dianas RangeTargetService, y las marcas y la lectura de las pantallas
 -- las dibuja RangeScreenController.
 
@@ -37,7 +40,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 9
+local VERSION = 11
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -102,6 +105,8 @@ local TARGETS: { TargetSpec } = {
 }
 
 local RangeBuilder = {}
+
+local CALIBRATION = Config.Range.Calibration
 
 local function hex(value: number): Color3
 	return Color3.fromRGB(bit32.rshift(value, 16), bit32.band(bit32.rshift(value, 8), 255), bit32.band(value, 255))
@@ -827,6 +832,8 @@ type DummySpec = {
 	kind: string, -- "fixed", "rail" (en x) o "depth" (en z)
 	amplitude: number?,
 	speed: number?,
+	-- El muñeco de calibración (Fase 24d): sin RangeTarget, así que la ayuda de puntería sí lo elige.
+	calibration: boolean?,
 }
 
 -- Mismo cuerpo que Combat/TrainingDummies (poste, torso, cabeza redonda y brazos separados, para que las
@@ -837,12 +844,24 @@ local DUMMIES: { DummySpec } = {
 	{ name = "MuniecoFijo", x = 14, z = 30, kind = "fixed" }, -- a 36 studs de la línea de tiro
 	{ name = "MuniecoLateral", x = 0, z = 0, kind = "rail", amplitude = 14, speed = 0.8 }, -- a 66 studs
 	{ name = "MuniecoProfundo", x = -6, z = 30, kind = "depth", amplitude = 20, speed = 0.6 }, -- de 16 a 56 studs
+	-- En el eje central, a la distancia inicial de la calibración (RangeCalibrationDummyService lo mueve después).
+	{
+		name = "MuniecoCalibracion",
+		x = CALIBRATION.CenterOffsets[CALIBRATION.Distances[CALIBRATION.DefaultIndex]] or 0,
+		z = FIRE_Z - CALIBRATION.Distances[CALIBRATION.DefaultIndex],
+		kind = "fixed",
+		calibration = true,
+	},
 }
 
 local function buildDummy(parent: Instance, spec: DummySpec)
 	local model = Instance.new("Model")
 	model.Name = spec.name
-	model:SetAttribute("RangeTarget", true)
+	if spec.calibration then
+		model:SetAttribute("CalibrationDummy", true)
+	else
+		model:SetAttribute("RangeTarget", true)
+	end
 	model:SetAttribute("RangeDummy", true)
 	model:SetAttribute("Kind", spec.kind)
 	if spec.kind == "rail" then
@@ -1048,8 +1067,10 @@ end
 local CONSOLE_Z = FIRE_Z + 8
 local CONSOLE_X = 14
 local CONSOLE_COLOR = 0xff7a1a
+-- La tercera consola (calibración), a un lado de las otras dos; en x = 0 estorbaría a quien aparece al entrar.
+local CALIBRATION_CONSOLE_X = 28
 
-local function buildConsole(parent: Instance, x: number, label: string, promptName: string)
+local function buildConsole(parent: Instance, x: number, label: string, promptName: string): ProximityPrompt
 	local console = folder(parent, "Consola")
 	box(console, "Base", x, 0, CONSOLE_Z, 3.4, 1, 3.4, 0x4b525b, Enum.Material.SmoothPlastic)
 	box(console, "Columna", x, 1, CONSOLE_Z, 2.2, 2, 2.2, 0x565d66, Enum.Material.SmoothPlastic)
@@ -1065,12 +1086,18 @@ local function buildConsole(parent: Instance, x: number, label: string, promptNa
 	prompt.MaxActivationDistance = Config.Range.ConsoleReach
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = top
+	return prompt
 end
 
 local function buildConsoles(root: Instance)
 	local consoles = folder(root, "Consolas")
 	buildConsole(consoles, -CONSOLE_X, later("Borrar marcas"), "BorrarMarcasPrompt")
 	buildConsole(consoles, CONSOLE_X, later("Ronda de tiro"), "RondaPrompt")
+	-- Calibración (Fase 24d): un solo aviso que abre el panel; la distancia y el movimiento del muñeco y el
+	-- borrado de datos se manejan desde la ventana (RangeCalibrationController).
+	local open = buildConsole(consoles, CALIBRATION_CONSOLE_X, later("Calibración"), "CalibracionPrompt")
+	open.ActionText = later("Abrir")
+	open.ObjectText = later("Calibración")
 end
 
 ---------------------------------------------------------------------------------------------------

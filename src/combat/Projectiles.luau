@@ -79,7 +79,31 @@ export type Shot = {
 	-- Solo para depurar (campo de tiro, Fase 23e): la dirección que mandó el cliente antes de la ayuda de
 	-- puntería y de la dispersión.
 	aimDirection: Vector3?,
+	-- Qué lo dispara (el id del arma de Data/Weapons|LabWeapons o de la habilidad): solo para medir en el campo de
+	-- tiro (RangeCalibrationService); nada del combate lo mira.
+	source: string?,
 }
+
+-- Lo que se cuenta de un proyectil al acabar (oyentes de onImpact): del disparo tal como salió la primera vez
+-- (origen, dirección, puntería del cliente), no del último tramo tras un rebote.
+export type ImpactInfo = {
+	source: string?,
+	look: string,
+	elapsed: number, -- segundos de vuelo hasta el impacto
+	travelled: number, -- studs recorridos
+	hitAny: boolean,
+	origin: Vector3,
+	direction: Vector3,
+	aimDirection: Vector3?,
+}
+
+type ImpactListener = (
+	shooter: Player,
+	position: Vector3,
+	instance: Instance?,
+	model: Model?,
+	info: ImpactInfo
+) -> ()
 
 type Flight = {
 	shot: Shot,
@@ -87,6 +111,8 @@ type Flight = {
 	position: Vector3,
 	travelled: number,
 	elapsed: number,
+	age: number, -- segundos de vuelo desde que salió (el "elapsed" de arriba se reinicia en cada rebote)
+	first: Shot, -- el disparo tal como salió
 	skip: { [Model]: boolean },
 	hitAny: boolean,
 	hits: number,
@@ -99,12 +125,13 @@ local flights: { Flight } = {}
 local nextId = 0
 local started = false
 -- Oyentes aditivos (el campo de tiro del Lobby): sin ninguno, no hacen nada.
-local impactListeners: { (shooter: Player, position: Vector3, instance: Instance?, model: Model?) -> () } = {}
+local impactListeners: { ImpactListener } = {}
 local shotListeners: { (shooter: Player, ownerSeq: number?, shot: Shot) -> () } = {}
 
 -- Llama a "listener" cuando un proyectil acaba: contra el mundo (con la pieza que toca), contra un
--- combatiente (con su modelo) o al final de su alcance (sin ninguno de los dos).
-function Projectiles.onImpact(listener: (shooter: Player, position: Vector3, instance: Instance?, model: Model?) -> ())
+-- combatiente (con su modelo) o al final de su alcance (sin ninguno de los dos). El último parámetro, "info",
+-- dice cómo fue el vuelo (ImpactInfo); un oyente puede ignorarlo.
+function Projectiles.onImpact(listener: ImpactListener)
 	table.insert(impactListeners, listener)
 end
 
@@ -121,9 +148,20 @@ local function finish(flight: Flight, position: Vector3, model: Model?, instance
 	if shot.counts ~= false and shot.owner.Parent then
 		CombatRules.get().telemetry.mechanic(shot.owner, if flight.hitAny then "ShotsHit" else "ShotsMissed")
 	end
-	if shot.owner.Parent then
+	if shot.owner.Parent and #impactListeners > 0 then
+		local first = flight.first
+		local info: ImpactInfo = {
+			source = first.source,
+			look = first.look,
+			elapsed = flight.age,
+			travelled = flight.travelled,
+			hitAny = flight.hitAny,
+			origin = first.origin,
+			direction = first.direction,
+			aimDirection = first.aimDirection,
+		}
 		for _, listener in impactListeners do
-			task.spawn(listener, shot.owner, position, instance, model)
+			task.spawn(listener, shot.owner, position, instance, model, info)
 		end
 	end
 	if shot.onEnd then
@@ -215,6 +253,8 @@ local function advance(flight: Flight, deltaTime: number): boolean
 	local shot = flight.shot
 	local displacement = displacementOf(flight, deltaTime)
 	local remaining = displacement.Magnitude
+	local startAge = flight.age
+	flight.age += deltaTime
 	if remaining < 1e-4 then
 		if flight.travelled >= shot.range - 1e-3 then
 			finish(flight, flight.position, nil)
@@ -240,6 +280,8 @@ local function advance(flight: Flight, deltaTime: number): boolean
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
 				flight.position = from
+				flight.travelled += swept
+				flight.age = startAge + deltaTime * swept / remaining
 				finish(flight, from, model)
 				return true
 			end
@@ -248,6 +290,7 @@ local function advance(flight: Flight, deltaTime: number): boolean
 	flight.position += direction * open
 	flight.travelled += open
 	if wall then
+		flight.age = startAge + deltaTime * open / remaining
 		if shot.breaks then
 			Destructibles.hitPart(wall.Instance, shot.breaks, shot.owner, wall.Position, shot.breakOnce)
 		end
@@ -291,6 +334,8 @@ function Projectiles.fire(shot: Shot): number
 		position = shot.origin,
 		travelled = 0,
 		elapsed = 0,
+		age = 0,
+		first = shot,
 		skip = if character then { [character] = true } else {},
 		hitAny = false,
 		hits = 0,

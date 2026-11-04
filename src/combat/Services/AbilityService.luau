@@ -672,6 +672,7 @@ local function multiShot(player: Player, character: Model, root: BasePart, aim: 
 		Projectiles.fire({
 			owner = player,
 			look = "MultiShot",
+			source = "MultiShot",
 			origin = origin,
 			direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim),
 			speed = SETTINGS.MultiShotSpeed,
@@ -948,6 +949,7 @@ local function trueShot(player: Player, character: Model, root: BasePart, aim: V
 	Projectiles.fire({
 		owner = player,
 		look = "TrueShot",
+		source = "TrueShot",
 		origin = origin,
 		direction = aim,
 		speed = SETTINGS.TrueShotSpeed,
@@ -986,6 +988,7 @@ local function piercingShot(player: Player, character: Model, root: BasePart, ai
 		Projectiles.fire({
 			owner = player,
 			look = "PiercingShot",
+			source = "PiercingShot",
 			origin = origin,
 			direction = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(aim),
 			speed = SETTINGS.PierceSpeed,
@@ -1025,6 +1028,7 @@ local function fireball(player: Player, character: Model, root: BasePart, aim: V
 	Projectiles.fire({
 		owner = player,
 		look = "Fireball",
+		source = "Fireball",
 		origin = origin,
 		direction = aim,
 		speed = SETTINGS.FireballSpeed,
@@ -1322,6 +1326,7 @@ local function healingDart(player: Player, character: Model, root: BasePart, aim
 	Projectiles.fire({
 		owner = player,
 		look = "HealingDart",
+		source = "HealingDart",
 		origin = origin,
 		direction = aim,
 		speed = SETTINGS.DartSpeed,

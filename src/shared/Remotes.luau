@@ -258,8 +258,20 @@ local Remotes = {
 	LabReload = remoteEvent("LabReload"),
 	-- Servidor -> tirador (Lobby, campo de tiro, Fase 23): un disparo contra una pantalla de ajuste (RangeScreenService):
 	-- (pantalla "Near"|"Far", dx, dy en studs desde el centro de la pantalla, hacia la derecha de quien mira y hacia
-	-- arriba, y distancia del tirador al centro). El cliente dibuja la marca (RangeScreenController).
+	-- arriba, y distancia del tirador al centro), el id del arma o habilidad que disparó (source) y los segundos de
+	-- vuelo. El cliente dibuja la marca (RangeScreenController).
 	RangeShot = remoteEvent("RangeShot"),
+	-- Servidor -> tirador (Lobby, campo de tiro, Fase 24d): estadísticas de calibración de un arma o habilidad
+	-- (RangeCalibrationService). ("Snapshot", source, { Near = cubo, Mid = cubo, Far = cubo, labSpread = referencia? })
+	-- con cubo = { n, hits, meanFlight, meanTravel, meanDx, meanDy, spread, meanAssist, screenN, assistN } (lo que
+	-- no se ha medido no viene), o ("Clear") para vaciarlo todo.
+	-- RangeCalibrationExport es del cliente al servidor, solo en Studio: guarda el JSON en ServerStorage.
+	RangeCalibration = remoteEvent("RangeCalibration"),
+	RangeCalibrationExport = remoteEvent("RangeCalibrationExport"),
+	-- Cliente -> servidor (Lobby, panel de calibración): ("Distance", studs de Config.Range.Calibration.Distances),
+	-- ("Moving", boolean) o ("Clear") para borrar las estadísticas del jugador. Distancia y movimiento del muñeco
+	-- son del campo entero (RangeCalibrationDummyService); «Clear» lo atiende RangeCalibrationService.
+	RangeCalibrationControl = remoteEvent("RangeCalibrationControl"),
 	-- Servidor -> jugador (Lobby, campo de tiro): la Ronda de tiro (RangeRoundService). (clase, datos):
 	-- "Start" { endsAt = hora del servidor, seconds, best = mejor puntuación de la sesión? },
 	-- "Score" { points, hits, crits, shots } en vivo, "End" { points, hits, crits, shots, best, newBest, left = true si

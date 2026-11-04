@@ -4,7 +4,8 @@
 -- (Config.Range.TargetHealth) que se rellena tras cada golpe, y la etiqueta Config.Combat.EnemyTag: así
 -- las armas la golpean con el combate normal y salen los números de daño. El anillo central («Bullseye»)
 -- cuenta como cabeza (x1,5 de daño); los demás anillos y el poste, como torso. Las dianas con el atributo
--- RangeTarget no atraen la ayuda de puntería (CombatService.aimShot): se mide la puntería propia.
+-- RangeTarget no atraen la ayuda de puntería (CombatService.aimShot): se mide la puntería propia. El muñeco de
+-- calibración (CalibrationDummy, lo mueve RangeCalibrationDummyService) también se prepara aquí.
 -- Movimiento (todo en el servidor, un solo Heartbeat y PivotTo, con la hora del servidor para que se
 -- vea igual a todos): "rail" va y viene en x, "depth" en z, "spin" gira sobre el eje vertical y "popup" sube y baja con el
 -- ciclo de la maqueta; mientras está abajo pierde la etiqueta y no se la puede golpear.
@@ -123,7 +124,9 @@ local function popupMover(model: Model): Mover
 end
 
 local function setUp(model: Model)
-	if not (model:GetAttribute("RangeTarget") == true and model.PrimaryPart) or humanoids[model] then
+	-- El muñeco de calibración (Fase 24d) es combatiente pero sin RangeTarget: la ayuda de puntería sí lo elige.
+	local isTarget = model:GetAttribute("RangeTarget") == true or model:GetAttribute("CalibrationDummy") == true
+	if not (isTarget and model.PrimaryPart) or humanoids[model] then
 		return
 	end
 	makeCombatant(model)

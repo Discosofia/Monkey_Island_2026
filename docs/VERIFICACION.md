@@ -4675,6 +4675,53 @@ Los dos felinos comparten `voxelCat` y se rehicieron como los perros: cráneo re
 5. [ ] Míralos en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
    ✅ Con su textura.
 
+## 121. Fase 24 grupo 24d: calibración del tiro en el campo (04-11-2026)
+
+El campo de tiro (v11) mide el tiro de armas y habilidades, también las cuatro del Laboratorio. `Projectiles.Shot.source` dice qué arma o habilidad es cada proyectil; las pantallas colorean cada marca por `source` y su lectura trae el vuelo medio. Una tercera consola «Calibración» (en el lado derecho de la línea de tiro) abre un panel con una fila por arma o habilidad usada y tres columnas de distancia (Cerca ≤30, Media 31–99, Lejos ≥100); el panel tiene los controles que colocan el muñeco de calibración a 10/30/60/100/130 studs, quieto o de lado a lado, y un botón «Borrar datos» (el único aviso de la consola es «Abrir»). Ese muñeco no es `RangeTarget`, así que la ayuda del táctil puede engancharlo y se mide. Comprobado el 04-11-2026 en Play en el Lobby (v10, con tres avisos), con el personaje teletransportado y disparando por remoto (`UseWeapon` y `UseAbility`): el muñeco se coloca a cada distancia y oscila ±8; el Bastón mágico a 30 studs da vuelo medio 0,24 s con 5 de 5 aciertos; la Bola de fuego y el rifle del Laboratorio llegan a las pantallas con su `source` y su vuelo; el panel se abre y se cierra y «Borrar marcas» lo vacía; salir del campo lo cierra. El retoque a un solo aviso con controles en el panel (v11) no se ha probado en Play: sin probar lo de abajo.
+
+### 121.1 En el Studio del Lobby, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+0. [ ] Guarda el place con el campo v11 (`require(game.ServerScriptService.Server.World.RangeBuilder).build()` en edición) o deja que el servidor lo reconstruya al arrancar, y mira la consola «Calibración».
+   ✅ Solo hay un aviso («Abrir»). En el panel, los botones 10/30/60/100/130 colocan el muñeco, «Quieto» / «De lado a lado» lo mueven, el activo va en dorado y «Borrar datos» vacía las filas y las marcas de las pantallas. Con dos jugadores, el cambio de distancia o movimiento de uno lo ve el otro en su panel.
+
+1. [ ] Entra por el arco del Lobby (no por teletransporte), abre el panel de «Calibración» y míralo en PC.
+   ✅ Se lee todo sin desplazamiento (hasta 6 filas y los controles); las celdas Cerca / Media / Lejos con tiros, % de acierto, vuelo y desvío no se solapan; los colores de las filas son los de las marcas.
+2. [ ] Abre el panel con el emulador de teléfono.
+   ✅ Compacto (hasta 3 filas y dos filas de controles), con los botones y el texto legibles y sin tapar los botones de disparo.
+3. [ ] Dispara con clic real a la pantalla corta y a la larga con una arma de cada tipo (honda, arco, bastón, cerbatana) y con las habilidades (Disparo múltiple, Flecha perforante, Bola de fuego, Tiro certero, Dardo curativo).
+   ✅ Cada marca sale del color de su arma o habilidad; la lectura dice su nombre, el vuelo y la media solo de ese `source`. Un abanico del Disparo múltiple o una Flecha perforante pinta una sola marca (por `MarkMinInterval`) pero el panel cuenta todos los proyectiles.
+4. [ ] Dispara al muñeco de calibración a 10, 30, 60, 100 y 130 studs, quieto y de lado a lado, con arma de rol y con táctil (emulador).
+   ✅ El % de acierto baja con la distancia y el movimiento; con táctil, la columna de ayuda (°) tiene valores y con ratón no.
+5. [ ] Equipa cada arma del Armero y dispara a las pantallas y al muñeco; después «Dejar arma».
+   ✅ Cada una con su fila y su dispersión configurada; el arpón y el cañón de ácido (arco) dibujan su caída; «Dejar arma» devuelve las armas del rol.
+6. [ ] Con el rifle del Armero equipado (primera persona), abre el panel con E, usa el ratón y ciérralo con Ctrl y con ✕.
+   ✅ El cursor sale al abrir y vuelve a bloquearse al cerrar; la mira no estorba (hoy sigue visible con el panel abierto).
+7. [ ] Pon el muñeco a 10 studs en movimiento.
+   ✅ El vaivén no atraviesa la caja de la derecha (hoy puede, porque x de -5 a 11 la toca). Si lo hace, se baja la amplitud a esa distancia.
+8. [ ] A 100 y 130 studs, mira si el muñeco lateral del campo (x=0±14, z=0) cruza la línea de tiro del muñeco de calibración.
+   ✅ No bloquea los disparos; si lo hace, se desplaza el muñeco de calibración.
+9. [ ] Dispara la Bola de fuego a la pantalla larga (135 studs).
+   ✅ Llega a la pantalla larga o, si su alcance máximo (≈100) no llega, el panel lo cuenta como tiro sin impacto en pantalla.
+10. [ ] Con 2 jugadores en el campo, dispara los dos a la vez.
+    ✅ Cada uno ve solo sus marcas y su panel; las estadísticas no se mezclan.
+11. [ ] En Studio, pulsa «Exportar» del panel.
+    ✅ Aparece `ServerStorage.CalibracionExportada` con el JSON de la sesión; se usará en 24f.
+
+## 122. Fase 20 Q5g: Ajolote con malla (04-11-2026)
+
+El Ajolote (mítica, +100 %) se rehízo para la malla. Sus branquias (3 plumas por lado con tallo en degradado y 4 pares de filamentos), la cola, los brazos, las patas y los dedos eran vigas inclinadas (69 piezas sueltas) y pasan a **escalones de bloques alineados** (`voxelSteps`, ayudante nuevo): ya no queda ninguna pieza suelta. Cabeza **aplanada y ovalada** (2,2 celdas de alto y planta que se estrecha hacia la nuca y el hocico) con la **trompa larga** en dos escalones, ojos con anillo, iris violeta, párpado, pestaña y rubor, fosas encima del hocico y la sonrisa en la punta; piel pintada con mechones de tres tonos de rosa perlado en lomo, costados, cola y coronilla. 9 mallas (`Static`, `Tail`, `Head`, `GillL`, `GillR`, `FL`, `FR`, `BL`, `BR`) con **4.674 triángulos** (1.506 cada branquia, que es lo que más pesa; tope 4.700). Excepción de `Config.Budgets` para la versión de bloques (`PetTotal` 420, `PetAnimated` 340, `PetTriangles` 4.900), que es la que mide `Rendimiento`. Comprobado el 04-11-2026 en Edit: la malla mide lo mismo que los bloques (diferencia de 0,036 studs en el largo, la punta de la cola), vistas de frente, de 3/4 y de espaldas. **No probado en Play** (ni las branquias abriéndose ni la cola ondeando).
+
+### 122.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa el Ajolote, camina, corre, gira y párate.
+   ✅ Se ve con malla y textura; las branquias se abren y cierran sin separarse de la cabeza; la cola ondea sin rendijas entre tramos; las patas andan; sin piezas sueltas.
+2. [ ] Míralo de frente, de lado, de espaldas y desde arriba con buena luz.
+   ✅ Cabeza plana y ovalada con la trompa larga; ojos legibles con iris violeta; lunares perlados en el lomo; branquias carmesí con degradado.
+3. [ ] Haz que cure (clip `Ajolote`: abre las branquias y las agita), siéntalo y túmbalo.
+   ✅ Branquias y cola siguen su hueso; sin piezas atravesadas.
+4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Con su textura; sin tirones al cargar (4.674 triángulos son el tope de la mascota).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

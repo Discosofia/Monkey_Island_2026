@@ -2297,6 +2297,25 @@ local Config = {
 			-- Alcance del aviso del cañón y del panel (studs).
 			PanelReach = 12,
 		},
+		-- Calibración del tiro (Fase 24d: RangeCalibrationService, RangeCalibrationDummyService): cubos de
+		-- distancia del tirador al impacto (cerca hasta NearMax, lejos desde FarMin), segundos mínimos entre dos
+		-- envíos de estadísticas al mismo jugador y arma, y armas distintas que se guardan por jugador.
+		-- El muñeco de calibración se coloca a una de Distances studs de la línea de tiro (empieza en
+		-- DefaultIndex) y, en movimiento, va de lado a lado ±MoveAmplitude a MoveSpeed rad/s. A 10 studs se
+		-- corre MoveOffsets[10] en x para esquivar la caja de la línea de tiro. ControlInterval son los segundos
+		-- mínimos entre dos órdenes del panel (RangeCalibrationControl) de un mismo jugador.
+		Calibration = {
+			ControlInterval = 0.15,
+			NearMax = 30,
+			FarMin = 100,
+			SendInterval = 0.1,
+			MaxSources = 12,
+			Distances = { 10, 30, 60, 100, 130 },
+			DefaultIndex = 2,
+			MoveAmplitude = 8,
+			MoveSpeed = 0.8,
+			CenterOffsets = { [10] = 3 },
+		},
 	},
 
 	Social = {
@@ -2375,7 +2394,7 @@ local Config = {
 		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
 		Exceptions = {
 			MonoX7 = { PetTotal = 270, PetAnimated = 130, PetTriangles = 6200 }, -- mascota de élite
-			Ajolote = { PetTotal = 200, PetAnimated = 180, PetTriangles = 4700 }, -- mascota mítica: cara, branquias y detalle
+			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.674 triángulos y 9 mallas)
 			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
 			Perezoso = { PetTotal = 300, PetAnimated = 110, PetTriangles = 3200 }, -- brazos en escalones y mochila de carga (Q5)
 			-- Mascotas con malla (Q5): estos topes miden la versión de bloques, que es la que sale mientras cargan las
