@@ -32,7 +32,7 @@ local ArenaSettings = require(ReplicatedStorage.Shared.UI.ArenaSettings)
 local EmoteWheel = require(ReplicatedStorage.Shared.UI.EmoteWheel)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
-local FirstPersonController = require(script.Parent.FirstPersonController)
+local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 
 local T = Strings.t
 

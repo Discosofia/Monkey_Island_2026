@@ -21,7 +21,7 @@ local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LabModes = require(ReplicatedStorage.Shared.LabModes)
 local SpectateCamera = require(ReplicatedStorage.CombatClient.SpectateCamera)
-local FirstPersonController = require(script.Parent.FirstPersonController)
+local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 
 -- Vista fija sin compañeros: altura sobre el centro del mapa (si su modelo no trae OverheadHeight) y cuánto
 -- se desplaza hacia atrás.

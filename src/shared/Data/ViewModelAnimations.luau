@@ -1,6 +1,6 @@
 --!strict
 -- Animaciones de los brazos en primera persona del Laboratorio (Fase 19, W10; Shared/LabViewModelRig,
--- laboratorio/client/Controllers/FirstPersonController). Una por arma y clave, sobre el reposo «de cadera» del rig.
+-- combatClient/Controllers/FirstPersonController). Una por arma y clave, sobre el reposo «de cadera» del rig.
 -- Las genera island/tools/ViewModelAnimationBuilder (ReplicatedStorage.ViewModelAnimations, secuencias
 -- "<arma>_<clave>"); las publica el usuario (clic derecho > Save to Roblox) y el id se pega aquí.
 -- Mientras un id esté vacío (nil): en Studio se usa la secuencia generada (CombatClient/ViewModelAnimationIds) y,

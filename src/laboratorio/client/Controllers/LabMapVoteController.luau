@@ -19,7 +19,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardModels = require(ReplicatedStorage.Shared.RewardModels)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
-local FirstPersonController = require(script.Parent.FirstPersonController)
+local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 
 local T = Strings.t
 

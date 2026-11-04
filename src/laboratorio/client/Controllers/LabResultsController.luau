@@ -6,7 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MatchResults = require(ReplicatedStorage.Shared.UI.MatchResults)
-local FirstPersonController = require(script.Parent.FirstPersonController)
+local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 
 local LabResultsController = {}
 

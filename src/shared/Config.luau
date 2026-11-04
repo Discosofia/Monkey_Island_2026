@@ -2311,6 +2311,14 @@ local Config = {
 		FriendNotifyCooldownSeconds = 6 * 3600, -- por jugador: no avisa otra vez al volver de la Isla
 	},
 
+	-- Vista de cámara (Fase 24a; CombatClient/ViewMode). Lobby, Isla y Dunas van siempre en tercera persona: el
+	-- zoom es libre, pero el mínimo impide entrar en primera persona. La primera persona es del Laboratorio y del
+	-- modo shooter del campo de tiro.
+	View = {
+		ThirdMinZoom = 2.5, -- studs: lo más cerca que se puede acercar la cámara en tercera persona
+		ThirdMaxZoom = 128, -- studs: lo más lejos
+	},
+
 	-- Presupuesto de piezas y rendimiento (Fase 16). Los mide la calculadora ServerStorage.Tools.Rendimiento.
 	-- Se ajustan tras probar en un teléfono de gama baja (R7).
 	Budgets = {

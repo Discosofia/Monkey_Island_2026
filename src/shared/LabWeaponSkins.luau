@@ -10,7 +10,7 @@
 -- Piratas. Cada grado cambia la silueta y suma piezas que se ven por detrás. Algunos grados quitan piezas
 -- base por nombre para sustituirlas (la boca del cañón del Dragón). Lo que se dispara conserva su color.
 -- Las piezas grandes de la espalda del grado III llevan el atributo "LabBack": la primera persona
--- (laboratorio/FirstPersonController) las esconde y apaga las partículas, que solo valen para los demás.
+-- (combatClient/Controllers/FirstPersonController) las esconde y apaga las partículas, que solo valen para los demás.
 -- Sin verde (curación), morado (veneno) ni rojo (daño recibido). Mismos ejes que Shared/LabVoxel.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

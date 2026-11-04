@@ -3,7 +3,8 @@
 -- Controllers y los del combate compartido (ReplicatedStorage.CombatClient.Controllers), menos los de lo
 -- que aquí no hay: habilidades y combos (RoleController, ComboController), guardia (GuardController), la
 -- cadena de disparos (ChainPipsController) y el bloqueo de cámara (CameraLockController: se juega en
--- primera persona, Controllers/FirstPersonController).
+-- primera persona, CombatClient/Controllers/FirstPersonController). La primera persona se pide aquí con
+-- ViewMode.set("First") (CombatClient/ViewMode), antes de cargar los controladores.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -13,6 +14,7 @@ local Localizer = require(ReplicatedStorage.Shared.UI.Localizer)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Toast = require(ReplicatedStorage.Shared.UI.Toast)
+local ViewMode = require(ReplicatedStorage:WaitForChild("CombatClient"):WaitForChild("ViewMode"))
 
 local SKIP = {
 	RoleController = true,
@@ -31,4 +33,5 @@ task.spawn(Localizer.start)
 
 -- La interfaz nace en el idioma del perfil, no en el de la cuenta (Shared/Strings).
 Strings.awaitSetting(3)
+ViewMode.set("First")
 Loader.load({ script.Controllers, ReplicatedStorage:WaitForChild("CombatClient"):WaitForChild("Controllers") }, SKIP)

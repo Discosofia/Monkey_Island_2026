@@ -4566,6 +4566,29 @@ Las tres se rehicieron en bloques y son ahora mallas con textura (`Data/PetMeshe
 5. [ ] Míralas en el nido y las vitrinas del Lobby, el Armario y `RewardModels`.
    ✅ Con su textura.
 
+## 118. Fase 24 grupo 24a: vistas unificadas (04-11-2026)
+
+Lobby, Isla y Dunas quedan solo en tercera persona (zoom libre de 2,5 a 128 studs, `Config.View`); la primera persona la gestiona `CombatClient/ViewMode` y la usan el Laboratorio y, desde 24b, el modo shooter del campo de tiro. `FirstPersonController` pasó a `CombatClient/Controllers` y solo actúa en "First". Comprobado el 04-11-2026 en Play en el Lobby y en la Isla (modo, zoom mínimo y máximo, una sola `Mira`, consola limpia, cámara a 2,52 studs sin pasar a primera persona; perfil restaurado). Sin probar lo de abajo.
+
+### 118.1 En el Studio de Dunas, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Entra a una partida y acerca la cámara con la rueda hasta el máximo.
+   ✅ La cámara se queda a unos 2,5 studs y el personaje se sigue viendo; no pasa a primera persona. Ctrl sigue bloqueando la cámara.
+
+### 118.2 En el Studio del Laboratorio, en Play
+
+1. [ ] Entra a una partida con cada arma.
+   ✅ Primera persona como antes: arma con brazos, mira en el centro, retroceso, recarga y fogonazo; sin errores de `FirstPersonController` ni `ViewMode` en la Salida.
+2. [ ] Abre el selector de arma, los resultados y los Ajustes (⚙️), y pulsa Ctrl.
+   ✅ El ratón se suelta con cada ventana y Ctrl lo suelta y lo vuelve a bloquear, como antes.
+3. [ ] Muere y mira el espectador.
+   ✅ Sin el arma delante de la cámara; el espectador sigue funcionando.
+
+### 118.3 Cambio en caliente (se prueba con 24b en el campo de tiro)
+
+1. [ ] Equipa un arma de la pared del campo y suéltala.
+   ✅ Al equipar pasa a primera persona (la mira y el cursor de la vista); al soltarla vuelve la tercera persona con la mira, el apuntado al hombro y Ctrl del bloqueo de cámara.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -6,7 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DebugPanel = require(ReplicatedStorage.Shared.UI.DebugPanel)
-local FirstPersonController = require(script.Parent.FirstPersonController)
+local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 
 local DebugController = {}
 

@@ -39,6 +39,7 @@
         }
       },
       "$properties": {
+        "CameraMinZoomDistance": 2.5,
         "EnableMouseLockOption": true
       }
     }

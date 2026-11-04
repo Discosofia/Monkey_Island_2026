@@ -1,6 +1,6 @@
 --!strict
 -- De dónde sale la bala propia (Fase 19, W4): CombatClient no puede requerir los controladores de un place,
--- así que el que dibuja el arma en la vista (el Laboratorio, FirstPersonController) registra aquí una
+-- así que el que dibuja el arma en la vista (primera persona, FirstPersonController) registra aquí una
 -- función que da la posición de su boca. Sin ella (o si da nil), WeaponController usa el arma de la mano.
 
 local MuzzleSource = {}

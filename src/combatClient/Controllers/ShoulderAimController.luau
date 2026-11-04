@@ -8,7 +8,8 @@
 -- Al soltar, al caer, al soltar el arma, con el menú de Roblox o un cuadro de texto abierto, en primera
 -- persona o sentado, todo vuelve a lo que estaba (el modo de rotación, el ratón, AutoRotate y el
 -- desplazamiento de la cámara). El Laboratorio no lo carga: se juega en primera persona
--- (laboratorio/client/Controllers/FirstPersonController). Aim.direction apunta al centro de la cámara
+-- (CombatClient/Controllers/FirstPersonController). Con ViewMode.get() == "First" (Fase 24: el campo de tiro en
+-- modo shooter) queda inactivo y devuelve todo a su sitio. Aim.direction apunta al centro de la cámara
 -- desde la cabeza, así que el tiro converge con la mira aunque la cámara esté al hombro.
 
 local GuiService = game:GetService("GuiService")
@@ -22,6 +23,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Aim = require(script.Parent.Parent.Aim)
 local WeaponController = require(script.Parent.WeaponController)
+local ViewMode = require(script.Parent.Parent.ViewMode)
 
 local BIND_NAME = "ShoulderAim"
 -- A esta distancia o menos del punto que sigue, la cámara cuenta como primera persona.
@@ -95,6 +97,22 @@ local function restore(state: Saved)
 end
 
 local function step(deltaTime: number)
+	-- Primera persona: nada de cámara al hombro; si estaba puesta, se devuelve todo.
+	if ViewMode.get() == "First" then
+		if saved then
+			restore(saved)
+			saved = nil
+			blend = 0
+			UserInputService.MouseBehavior = naturalBehavior()
+		end
+		if freeSaved then
+			if freeSaved.Parent then
+				freeSaved.AutoRotate = true
+			end
+			freeSaved = nil
+		end
+		return
+	end
 	local camera = Workspace.CurrentCamera
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil

@@ -11,6 +11,8 @@
 -- Es un ScreenGui "Mira" sin botones (DisplayOrder 5, IgnoreGuiInset: sus coordenadas son las del cursor de
 -- UserInputService:GetMouseLocation, que cuenta la barra de Roblox). La dispersión y la recarga de la mira
 -- (Handle.setSpread / setCooldown) las pondrán las armas más adelante (V8).
+-- Con ViewMode.get() == "First" (Fase 24: modo shooter del campo de tiro) queda inactiva: la mira es la de
+-- FirstPersonController.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
@@ -25,6 +27,7 @@ local Sights = require(ReplicatedStorage.Shared.UI.Sights)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(script.Parent.WeaponController)
+local ViewMode = require(script.Parent.Parent.ViewMode)
 
 local RangedCrosshairController = {}
 
@@ -94,7 +97,7 @@ function RangedCrosshairController:Start()
 
 	RunService.RenderStepped:Connect(function()
 		local character = player.Character
-		local weapon = rangedWeapon(character)
+		local weapon = if ViewMode.get() == "First" then nil else rangedWeapon(character)
 		sights.setWeapon(weapon)
 		local camera = Workspace.CurrentCamera
 		if not (weapon and character and camera) then

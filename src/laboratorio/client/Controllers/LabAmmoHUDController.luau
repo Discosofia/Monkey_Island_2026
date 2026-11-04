@@ -24,7 +24,7 @@ local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.WeaponController)
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local LabShooting = require(ReplicatedStorage.CombatClient.LabShooting)
-local FirstPersonController = require(script.Parent.FirstPersonController)
+local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
 
 local T = Strings.t
 

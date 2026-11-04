@@ -1,6 +1,8 @@
 --!strict
--- Primera persona del Laboratorio (docs/LABORATORIO.md §2). La cámara la fija el place
--- (StarterPlayer.CameraMode = LockFirstPerson, laboratorio.project.json); aquí:
+-- Primera persona: Laboratorio (docs/LABORATORIO.md §2) y modo shooter del campo de tiro (Fase 24). Solo actúa
+-- con ViewMode.get() == "First" (CombatClient/ViewMode, que pone CameraMode = LockFirstPerson); en tercera
+-- persona (Lobby, Isla, Dunas) queda inerte: sin mira, sin arma en la vista y sin tocar el ratón ni la cámara.
+-- Al cambiar de vista se monta o se limpia todo. Aquí:
 --   - La mira (UI/Crosshair, configurable en Ajustes: forma, color, tamaño, grosor y dinámica): fija en el
 --     centro de la pantalla, en lugar del cursor. FirstPersonController.crosshair() da su Handle (dispersión y
 --     recarga). Se apunta con el centro en todos los dispositivos (CombatClient/Aim: con ratón, el cursor está ahí; sin él, la cámara).
@@ -57,6 +59,7 @@ local DodgeFeel = require(ReplicatedStorage.CombatClient.DodgeFeel)
 local Slide = require(ReplicatedStorage.CombatClient.Slide)
 local Stamina = require(ReplicatedStorage.CombatClient.Stamina)
 local ViewModelAnimationIds = require(ReplicatedStorage.CombatClient.ViewModelAnimationIds)
+local ViewMode = require(ReplicatedStorage.CombatClient.ViewMode)
 
 -- Dónde va la mano respecto a la cámara (derecha, arriba, delante): abajo a la derecha, con el arma
 -- girada un poco hacia el centro (HIP_YAW, HIP_PITCH) para que se le vea el costado; al apuntar con la
@@ -201,6 +204,12 @@ end
 
 -- Monta (o deja como está) el arma en primera persona de lo que lleva en la mano.
 local function refresh(player: Player)
+	-- En tercera persona no hay arma en la vista.
+	if ViewMode.get() ~= "First" then
+		heldTool = nil
+		clearViewModel()
+		return
+	end
 	local character = player.Character
 	local tool = if character then character:FindFirstChildOfClass("Tool") else nil
 	heldTool = tool
@@ -297,12 +306,12 @@ function FirstPersonController.onCursorChanged(callback: (free: boolean) -> ())
 	table.insert(cursorChangedListeners, callback)
 end
 
--- Suelta el ratón ("on" true) o deja de pedirlo, por "reason" (cada ventana el suyo).
-function FirstPersonController.freeCursor(reason: string, on: boolean)
-	local wasFree = isCursorFree()
-	cursorReasons[reason] = if on then true else nil
+-- Pone el ratón, la pantalla del ratón libre y la mira según quién pide el ratón suelto. Fuera de la primera
+-- persona no toca el icono del ratón (lo gestiona RangedCrosshairController) y esconde lo suyo.
+local function applyCursor()
+	local first = ViewMode.get() == "First"
 	local free = isCursorFree()
-	if not cursorGui then
+	if first and not cursorGui then
 		local gui = Widgets.screen("RatonLibre", Players.LocalPlayer:WaitForChild("PlayerGui"))
 		local button = Instance.new("TextButton")
 		button.Name = "Modal"
@@ -313,25 +322,39 @@ function FirstPersonController.freeCursor(reason: string, on: boolean)
 		button.Parent = gui
 		cursorGui = gui
 	end
-	local gui = cursorGui :: ScreenGui
-	gui.Enabled = free
-	UserInputService.MouseIconEnabled = free
-	if crosshairGui then
-		crosshairGui.Enabled = not free
+	if cursorGui then
+		cursorGui.Enabled = first and free
 	end
-	if free ~= wasFree then
+	if first then
+		UserInputService.MouseIconEnabled = free
+	end
+	if crosshairGui then
+		crosshairGui.Enabled = first and not free
+	end
+end
+
+-- Suelta el ratón ("on" true) o deja de pedirlo, por "reason" (cada ventana el suyo).
+function FirstPersonController.freeCursor(reason: string, on: boolean)
+	local wasFree = isCursorFree()
+	cursorReasons[reason] = if on then true else nil
+	applyCursor()
+	if isCursorFree() ~= wasFree then
 		for _, listener in cursorChangedListeners do
-			task.spawn(listener, free)
+			task.spawn(listener, isCursorFree())
 		end
 	end
 end
 
--- Mira en el centro de la pantalla (sin el cursor de Roblox), la de UI/Crosshair según los Ajustes.
+-- Mira en el centro de la pantalla (sin el cursor de Roblox), la de UI/Crosshair según los Ajustes. Se monta
+-- la primera vez que se pasa a primera persona.
 local function mountCrosshair(player: Player)
+	if crosshairGui then
+		return
+	end
 	local gui = Widgets.screen("Mira", player:WaitForChild("PlayerGui"))
 	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 5
-	gui.Enabled = not isCursorFree()
+	gui.Enabled = ViewMode.get() == "First" and not isCursorFree()
 	crosshairGui = gui
 	crosshairHandle = Crosshair.mount(gui)
 	sightsHandle = Sights.mount(gui)
@@ -444,6 +467,10 @@ local function swapAimModel(zoom: number)
 end
 
 local function follow(deltaTime: number)
+	-- En tercera persona no se toca la cámara.
+	if ViewMode.get() ~= "First" then
+		return
+	end
 	if heldTool then
 		for _, part in heldTool:GetChildren() do
 			if part:IsA("BasePart") then
@@ -568,10 +595,13 @@ end
 
 function FirstPersonController:Start()
 	local player = Players.LocalPlayer
-	UserInputService.MouseIconEnabled = isCursorFree()
-	mountCrosshair(player)
+	if ViewMode.get() == "First" then
+		UserInputService.MouseIconEnabled = isCursorFree()
+		mountCrosshair(player)
+	end
 	UserInputService.InputBegan:Connect(function(input)
-		if not CURSOR_KEYS[input.KeyCode] or UserInputService:GetFocusedTextBox() then
+		-- Ctrl solo es del cursor en primera persona; en tercera es del bloqueo de cámara (CameraLockController).
+		if ViewMode.get() ~= "First" or not CURSOR_KEYS[input.KeyCode] or UserInputService:GetFocusedTextBox() then
 			return
 		end
 		if isCursorFree() then
@@ -585,6 +615,9 @@ function FirstPersonController:Start()
 	end)
 	-- De aquí sale la bala propia (Fase 19, W4; CombatClient/WeaponController): la boca del arma de la vista.
 	MuzzleSource.set(function()
+		if ViewMode.get() ~= "First" then
+			return nil
+		end
 		local muzzle = viewMuzzle()
 		if muzzle and muzzle:IsA("BasePart") then
 			return muzzle.Position
@@ -594,7 +627,7 @@ function FirstPersonController:Start()
 		return nil
 	end)
 	WeaponController.onShot(function(weapon)
-		if not weapon.lab then
+		if not weapon.lab or ViewMode.get() ~= "First" then
 			return
 		end
 		local weaponId = if heldTool then heldTool:GetAttribute("WeaponId") else nil
@@ -644,6 +677,21 @@ function FirstPersonController:Start()
 		watch(player.Character)
 	end
 	RunService:BindToRenderStep("LabViewModel", Enum.RenderPriority.Camera.Value + 1, follow)
+	-- Al cambiar de vista: en primera persona se monta la mira y el arma; al salir se limpia todo y se suelta
+	-- el ratón que pedía la tecla Ctrl.
+	ViewMode.onChanged(function(mode)
+		if mode == "First" then
+			mountCrosshair(player)
+			UserInputService.MouseIconEnabled = isCursorFree()
+		else
+			cursorReasons.Key = nil
+			recoil = 0
+			camPitch = 0
+			UserInputService.MouseIconEnabled = true
+		end
+		applyCursor()
+		refresh(player)
+	end)
 end
 
 return FirstPersonController
