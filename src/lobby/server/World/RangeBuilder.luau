@@ -15,7 +15,7 @@
 -- bambú en las esquinas; la pared trasera con el arco de salida («Volver al Lobby»); dos pantallas de
 -- ajuste (RangeScreen = "Near" / "Far", con un Frame "Grid", un Frame "Marks" vacío para las marcas
 -- y un TextLabel "Readout"); diez dianas (Model con RangeTarget = true en CampoDeTiro/Dianas);
--- obstáculos, plataforma con rampa y cañón decorativo, foso de rebotes, paneles de materiales y un
+-- tres muñecos (fijo, de lado a lado y de atrás adelante, en CampoDeTiro/Munecos); obstáculos, plataforma con rampa y cañón, foso de rebotes, paneles de materiales y un
 -- péndulo; la zona de preparación con bancos y cajas; y dos consolas (BorrarMarcasPrompt y RondaPrompt).
 -- Aquí todo está quieto: mueve las dianas RangeTargetService, y las marcas y la lectura de las pantallas
 -- las dibuja RangeScreenController.
@@ -32,7 +32,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 6
+local VERSION = 7
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -813,6 +813,94 @@ local function buildTargets(root: Instance)
 end
 
 ---------------------------------------------------------------------------------------------------
+-- Muñecos de práctica (fijo, de lado a lado y de atrás adelante)
+
+type DummySpec = {
+	name: string,
+	x: number,
+	z: number,
+	kind: string, -- "fixed", "rail" (en x) o "depth" (en z)
+	amplitude: number?,
+	speed: number?,
+}
+
+-- Mismo cuerpo que Combat/TrainingDummies (poste, torso, cabeza redonda y brazos separados, para que las
+-- zonas Head/Torso/Limb salgan por el nombre de la pieza), sobre una base baja. Las piezas no chocan: el
+-- muñeco se mueve con PivotTo y no debe empujar a nadie. «RangeTarget» hace que la ayuda de puntería no lo
+-- elija (como las dianas); RangeTargetService le da vida infinita y el movimiento.
+local DUMMIES: { DummySpec } = {
+	{ name = "MuniecoFijo", x = 14, z = 30, kind = "fixed" }, -- a 36 studs de la línea de tiro
+	{ name = "MuniecoLateral", x = 0, z = 0, kind = "rail", amplitude = 14, speed = 0.8 }, -- a 66 studs
+	{ name = "MuniecoProfundo", x = -6, z = 30, kind = "depth", amplitude = 20, speed = 0.6 }, -- de 16 a 56 studs
+}
+
+local function buildDummy(parent: Instance, spec: DummySpec)
+	local model = Instance.new("Model")
+	model.Name = spec.name
+	model:SetAttribute("RangeTarget", true)
+	model:SetAttribute("RangeDummy", true)
+	model:SetAttribute("Kind", spec.kind)
+	if spec.kind == "rail" then
+		model:SetAttribute("RailAmplitude", spec.amplitude)
+		model:SetAttribute("RailSpeed", spec.speed)
+	elseif spec.kind == "depth" then
+		model:SetAttribute("DepthAmplitude", spec.amplitude)
+		model:SetAttribute("DepthSpeed", spec.speed)
+	end
+	local smooth = Enum.Material.SmoothPlastic
+	local function piece(
+		name: string,
+		width: number,
+		y0: number,
+		height: number,
+		depth: number,
+		x: number,
+		color: number
+	)
+		local part = box(model, name, spec.x + x, y0, spec.z, width, height, depth, color, smooth)
+		part.CanCollide = false
+		return part
+	end
+	piece("Base", 3.4, 0, 0.4, 3.4, 0, 0x4b525b)
+	piece("Post", 0.6, 0.4, 2.6, 0.6, 0, 0x6e4828)
+	piece("Torso", 2, 3, 2, 1, 0, 0xbea06e)
+	local head = piece("Head", 1.6, 5, 1.6, 1.6, 0, 0xcdaf7d)
+	head.Shape = Enum.PartType.Ball
+	piece("LeftUpperArm", 0.8, 3.5, 1.6, 0.8, -1.9, 0xd2b684)
+	piece("RightUpperArm", 0.8, 3.5, 1.6, 0.8, 1.9, 0xd2b684)
+	local rootPart = piece("HumanoidRootPart", 2, 3, 2, 1, 0, 0x000000)
+	rootPart.Transparency = 1
+	model.PrimaryPart = rootPart
+	model.Parent = parent
+end
+
+local function buildDummies(root: Instance)
+	local group = folder(root, "Munecos")
+	for _, spec in DUMMIES do
+		buildDummy(group, spec)
+		-- Raíl en el suelo para los que se mueven: lo que recorren más el ancho de la base.
+		if spec.kind ~= "fixed" then
+			local reach = (spec.amplitude or 0) * 2 + 3.4
+			local alongX = spec.kind == "rail"
+			decor(
+				box(
+					group,
+					"Carril",
+					spec.x,
+					0,
+					spec.z,
+					if alongX then reach else 0.5,
+					0.1,
+					if alongX then 0.5 else reach,
+					0x50565d,
+					Enum.Material.Metal
+				)
+			)
+		end
+	end
+end
+
+---------------------------------------------------------------------------------------------------
 -- Obstáculos, plataforma, foso, paneles y péndulo
 
 local function buildObstacles(root: Instance)
@@ -1015,6 +1103,7 @@ function RangeBuilder.build(options: Options?)
 	buildWalls(root)
 	buildScreens(root)
 	buildTargets(root)
+	buildDummies(root)
 	buildObstacles(root)
 	buildPreparation(root)
 	buildConsoles(root)

@@ -169,9 +169,22 @@ end
 
 local function combatants(): { Model }
 	local list: { Model } = {}
+	local seen: { [Model]: boolean } = {}
 	for _, instance in CollectionService:GetTagged(Config.Combat.EnemyTag) do
 		if instance:IsA("Model") then
+			seen[instance] = true
 			table.insert(list, instance)
+		end
+	end
+	-- Las dianas emergentes pierden la etiqueta al hundirse (RangeTargetService): se buscan también por su
+	-- atributo para que sus hitbox no aparezcan y desaparezcan con ellas.
+	local range = Workspace:FindFirstChild("CampoDeTiro")
+	local targets = range and range:FindFirstChild("Dianas")
+	if targets then
+		for _, target in targets:GetChildren() do
+			if target:IsA("Model") and not seen[target] and target:GetAttribute("RangeTarget") == true then
+				table.insert(list, target)
+			end
 		end
 	end
 	for _, other in Players:GetPlayers() do

@@ -6,7 +6,7 @@
 -- cuenta como cabeza (x1,5 de daño); los demás anillos y el poste, como torso. Las dianas con el atributo
 -- RangeTarget no atraen la ayuda de puntería (CombatService.aimShot): se mide la puntería propia.
 -- Movimiento (todo en el servidor, un solo Heartbeat y PivotTo, con la hora del servidor para que se
--- vea igual a todos): "rail" va y viene en x, "spin" gira sobre el eje vertical y "popup" sube y baja con el
+-- vea igual a todos): "rail" va y viene en x, "depth" en z, "spin" gira sobre el eje vertical y "popup" sube y baja con el
 -- ciclo de la maqueta; mientras está abajo pierde la etiqueta y no se la puede golpear.
 
 local CollectionService = game:GetService("CollectionService")
@@ -35,9 +35,12 @@ end
 
 -- Humanoid sin barra de vida ni nombre, y zonas de daño de cada pieza.
 local function makeCombatant(model: Model)
-	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			descendant:SetAttribute("Zone", if descendant.Name == "Bullseye" then "Head" else "Torso")
+	-- Los muñecos (RangeDummy) sacan la zona del nombre de cada pieza (Hitbox.zoneOf): cabeza, brazos, torso.
+	if model:GetAttribute("RangeDummy") ~= true then
+		for _, descendant in model:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant:SetAttribute("Zone", if descendant.Name == "Bullseye" then "Head" else "Torso")
+			end
 		end
 	end
 	local humanoid = Instance.new("Humanoid")
@@ -61,6 +64,16 @@ local function railMover(model: Model): Mover
 	local speed = numberAttribute(model, "RailSpeed", 0)
 	return function(now: number)
 		model:PivotTo(base + Vector3.new(amplitude * math.sin(now * speed), 0, 0))
+	end
+end
+
+-- Profundidad: va y viene en z (hacia y desde la línea de tiro) alrededor de donde está construido.
+local function depthMover(model: Model): Mover
+	local base = model:GetPivot()
+	local amplitude = numberAttribute(model, "DepthAmplitude", 0)
+	local speed = numberAttribute(model, "DepthSpeed", 0)
+	return function(now: number)
+		model:PivotTo(base + Vector3.new(0, 0, amplitude * math.sin(now * speed)))
 	end
 end
 
@@ -117,6 +130,8 @@ local function setUp(model: Model)
 	local kind = model:GetAttribute("Kind")
 	if kind == "rail" then
 		table.insert(movers, railMover(model))
+	elseif kind == "depth" then
+		table.insert(movers, depthMover(model))
 	elseif kind == "spin" then
 		table.insert(movers, spinMover(model))
 	elseif kind == "popup" then
@@ -142,6 +157,15 @@ function RangeTargetService:Start()
 	for _, child in targets:GetChildren() do
 		if child:IsA("Model") then
 			setUp(child)
+		end
+	end
+	-- Los muñecos están en su carpeta (CampoDeTiro/Munecos).
+	local dummies = range and range:WaitForChild("Munecos", 30)
+	if dummies then
+		for _, child in dummies:GetChildren() do
+			if child:IsA("Model") then
+				setUp(child)
+			end
 		end
 	end
 	RunService.Heartbeat:Connect(function(deltaTime: number)

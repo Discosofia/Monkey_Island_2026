@@ -4416,7 +4416,9 @@ Todo esto es solo Studio: las órdenes salen en el panel «🛠️ Pruebas» del
    ✅ Cada pieza sale teñida por zona (cabeza rosa, torso azul, miembro amarillo, punto débil blanco), con la esfera de la cabeza y una cápsula celeste del cuerpo. No hay verde, morado ni rojo.
 2. [ ] Dispara a la cabeza y al borde de la cápsula de un muñeco.
    ✅ Acierta (daño de cabeza) cuando la bala entra en la esfera rosa o la cápsula, y falla fuera de ellas.
-3. [ ] Pulsa la orden otra vez y aléjate a más de 160 studs.
+3. [ ] Mira las tres dianas emergentes mientras suben y bajan.
+   ✅ Sus hitbox se quedan dibujadas también cuando están hundidas, sin desaparecer y volver a salir.
+4. [ ] Pulsa la orden otra vez y aléjate a más de 160 studs.
    ✅ Los dibujos desaparecen; lejos no hay lag al activarlos.
 
 ### 111.2 Trazas de disparo
@@ -4425,7 +4427,7 @@ Todo esto es solo Studio: las órdenes salen en el panel «🛠️ Pruebas» del
    ✅ Al acabar el disparo aparece una línea naranja (servidor) y otra celeste (tu puntería), un punto en el impacto y un cartel con ping, grados de ayuda y segundos rebobinados. Todo se borra a los 4 s.
 2. [ ] Apunta justo a un mono o muñeco y luego entre dos.
    ✅ Con ayuda de puntería la línea naranja se desvía unos grados de la celeste; entre dos blancos, no.
-3. [ ] Lo mismo con ping alto (simulación de red).
+3. [ ] Lo mismo con ping alto, con un cliente remoto o en el juego publicado (en Studio el ping del servidor es 0 aunque se simule retraso en el cliente, así que no vale).
    ✅ El cartel enseña el ping y el rebobinado sube con él, con tope de `Config.Net.MaxCompensationSeconds`.
 
 ### 111.3 Estación de efectos
@@ -4434,6 +4436,21 @@ Todo esto es solo Studio: las órdenes salen en el panel «🛠️ Pruebas» del
    ✅ Cada pulsación enseña un paso: marcas de impacto en madera, piedra, metal y arena; impacto en un cuerpo; y un crítico por cada estilo de estallido (el primero sin estilo). El mensaje de la consola dice cuál. Al acabar la lista vuelve al principio.
 2. [ ] Repite con el efecto de calidad bajo y alto en Ajustes.
    ✅ La calidad baja usa menos marcas y partículas, sin errores.
+
+## 112. Campo de tiro: tres muñecos (fijo, lateral y de profundidad) (03-11-2026)
+
+1. [x] En Play, mira desde la línea de tiro: un muñeco quieto a la derecha (a 36 studs), otro que va de lado a lado a 66 studs y otro que se acerca y se aleja por el centro-izquierda (de 16 a 56 studs). Los dos móviles tienen un raíl en el suelo.
+   ✅ Se ven los tres, los móviles se mueven suave y a la vez para todos los jugadores, y ninguno atraviesa obstáculos, la plataforma ni el foso.
+2. [x] Dispárales con un arma a distancia a la cabeza, al torso y al brazo.
+   ✅ Salen números de daño; la cabeza pega más que el torso y el brazo menos. No caen nunca ni hacen «¡puf!».
+3. [x] Activa las hitbox de depuración (§111.1) y mira los tres muñecos.
+   ✅ Se ven la esfera de la cabeza y la cápsula, que siguen al muñeco al moverse.
+4. [ ] Apunta cerca de un muñeco sin apuntarle.
+   ✅ La ayuda de puntería no los elige (como las dianas): el disparo sale donde apuntas.
+5. [ ] Corre con la ronda de tiro en marcha y dispara a un muñeco.
+   ✅ No suma puntos (solo puntúan las dianas con anillos); la ronda no se rompe.
+6. [x] Intenta caminar entre los muñecos móviles (el usuario lo probó el 04-11-2026: no se podía pasar y así se queda).
+   ✅ Los muñecos no te lanzan ni te atrapan al moverse.
 
 ## Cuando termines
 
