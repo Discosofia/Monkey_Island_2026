@@ -2362,6 +2362,7 @@ local Config = {
 		Exceptions = {
 			MonoX7 = { PetTotal = 270, PetAnimated = 130, PetTriangles = 6200 }, -- mascota de élite
 			Ajolote = { PetTotal = 200, PetAnimated = 180, PetTriangles = 4700 }, -- mascota mítica: cara, branquias y detalle
+			Quetzal = { PetTotal = 320, PetAnimated = 150, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
 			Nest = { Buildable = 50 }, -- construible único
 			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
 			OrangutanDelManglar = { Boss = 47 }, -- el jefe más grande (35 × 40 / 30)

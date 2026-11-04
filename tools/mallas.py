@@ -376,11 +376,12 @@ def luau(jefe, manifiesto, ids, escala):
     return "\n".join(lineas)
 
 
-def juntar_log(ruta_log, destino):
+def juntar_log(ruta_log, destino, nombre=None):
     """Junta los trozos `@@V <hueso> <nn>` que imprime `Mallas.volcarMontura` en el log del Studio y escribe el volcado.
 
     Sin `ruta_log` busca, en %LOCALAPPDATA%/Roblox/logs, el último log de Studio que los contiene. Si el volcado se
-    hizo varias veces, vale el último trozo de cada número."""
+    hizo varias veces, vale el último trozo de cada número. Con `nombre` (el id de la montura o la mascota) vale el
+    último volcado completo de ese nombre, aunque después se hayan volcado otros."""
     if not ruta_log:
         carpeta = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Roblox", "logs")
         candidatos = sorted(
@@ -396,6 +397,8 @@ def juntar_log(ruta_log, destino):
             sys.exit(f"Ningún log de Studio de {carpeta} tiene trozos @@V")
     trozos = {}
     ultimo = {}  # el último volcado completo: lo que había justo antes de su "Volcado de … listo"
+    por_nombre = {}
+    volcando = None
     actual = None
     for linea in open(ruta_log, encoding="utf-8", errors="replace"):
         linea = linea.rstrip("\r\n")
@@ -403,9 +406,12 @@ def juntar_log(ruta_log, destino):
             actual = None  # empieza otro mensaje del log
             if "Volcado de " in linea and linea.endswith(" empieza"):
                 trozos = {}  # los trozos de volcados anteriores (o de jefes) ya no valen
+                volcando = linea.split("Volcado de ", 1)[1].rsplit(" empieza", 1)[0].strip()
                 continue
             if "Volcado de " in linea and " listo" in linea:
                 ultimo, trozos = trozos, {}
+                if volcando:
+                    por_nombre[volcando] = ultimo
                 continue
             i = linea.find("@@V ")
             etiqueta = linea[i:].split() if i >= 0 else []
@@ -416,7 +422,13 @@ def juntar_log(ruta_log, destino):
         if actual is not None and linea:
             actual.append(linea)
     huesos = {}
-    for (hueso, n), lineas in sorted((trozos or ultimo).items()):
+    if nombre:
+        if nombre not in por_nombre:
+            sys.exit(f"{ruta_log}: no hay un volcado completo de {nombre}")
+        elegido = por_nombre[nombre]
+    else:
+        elegido = trozos or ultimo
+    for (hueso, n), lineas in sorted(elegido.items()):
         huesos.setdefault(hueso, []).extend(lineas)
     if not huesos:
         sys.exit(f"{ruta_log}: no hay trozos @@V")
@@ -432,6 +444,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Mallas con textura para los jefes y las monturas (Fase 21)")
     ap.add_argument("volcado")
+    ap.add_argument("--nombre", help="con --del-log: el volcado de este id (montura o mascota), no el último del log")
     ap.add_argument("--del-log", nargs="?", const="", metavar="LOG", help="escribe `volcado` juntando los trozos @@V del log de Studio (sin LOG, el último que los tenga) y termina")
     ap.add_argument("--jefe", help="nombre del jefe o de la montura (prefijo de los archivos)")
     ap.add_argument("--salida", default="build/mallas")
@@ -443,7 +456,7 @@ def main():
     ap.add_argument("--luau", action="store_true", help="escribe la entrada de BossMeshes.luau")
     a = ap.parse_args()
     if a.del_log is not None:
-        juntar_log(a.del_log, a.volcado)
+        juntar_log(a.del_log, a.volcado, a.nombre)
         return
     if not a.jefe:
         ap.error("falta --jefe")

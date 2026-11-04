@@ -15,6 +15,11 @@ local PetMeshes: { [string]: PetMesh } = {
 	Capibara = {
 		scale = 1,
 		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://99116424445872",
+				texture = "rbxassetid://92351443102937",
+				offset = Vector3.new(0.0000, -0.2550, 0.1000),
+			},
 			["BL"] = {
 				mesh = "rbxassetid://103895063260982",
 				texture = "rbxassetid://137385743350688",
@@ -40,11 +45,6 @@ local PetMeshes: { [string]: PetMesh } = {
 				texture = "rbxassetid://98734548845421",
 				offset = Vector3.new(0.0000, 0.0450, -0.4075),
 			},
-			["Static"] = {
-				mesh = "rbxassetid://99116424445872",
-				texture = "rbxassetid://92351443102937",
-				offset = Vector3.new(0.0000, -0.2550, 0.1000),
-			},
 		},
 	},
 	Tucan = {
@@ -60,6 +60,11 @@ local PetMeshes: { [string]: PetMesh } = {
 				texture = "rbxassetid://115425192348396",
 				offset = Vector3.new(0.0000, 0.3475, -0.6375),
 			},
+			["Tail"] = {
+				mesh = "rbxassetid://72663062426892",
+				texture = "rbxassetid://136481049080016",
+				offset = Vector3.new(0.0000, -0.2325, 0.2200),
+			},
 			["WingL"] = {
 				mesh = "rbxassetid://100259608612120",
 				texture = "rbxassetid://124276299099613",
@@ -70,10 +75,95 @@ local PetMeshes: { [string]: PetMesh } = {
 				texture = "rbxassetid://70470263520411",
 				offset = Vector3.new(0.6650, 0.0200, 0.1550),
 			},
+		},
+	},
+	Colibri = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://140341211268224",
+				texture = "rbxassetid://84995592741074",
+				offset = Vector3.new(0.0000, -0.2650, -0.0100),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://129217797369533",
+				texture = "rbxassetid://99912227694821",
+				offset = Vector3.new(0.0000, 0.1550, -0.3925),
+			},
 			["Tail"] = {
-				mesh = "rbxassetid://72663062426892",
-				texture = "rbxassetid://136481049080016",
-				offset = Vector3.new(0.0000, -0.2325, 0.2200),
+				mesh = "rbxassetid://89369307558480",
+				texture = "rbxassetid://100939801753303",
+				offset = Vector3.new(0.0000, -0.3137, 0.2941),
+			},
+			["WingL"] = {
+				mesh = "rbxassetid://86915386166344",
+				texture = "rbxassetid://123465679567613",
+				offset = Vector3.new(-0.5750, 0.0200, 0.1000),
+			},
+			["WingR"] = {
+				mesh = "rbxassetid://123220262133492",
+				texture = "rbxassetid://101453029587526",
+				offset = Vector3.new(0.5750, 0.0200, 0.1000),
+			},
+		},
+	},
+	Guacamaya = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://121299303988009",
+				texture = "rbxassetid://80907640539852",
+				offset = Vector3.new(0.0000, -0.1650, 0.0575),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://109082098201460",
+				texture = "rbxassetid://79629197387032",
+				offset = Vector3.new(0.0000, 0.2840, -0.1825),
+			},
+			["Tail"] = {
+				mesh = "rbxassetid://123598930540920",
+				texture = "rbxassetid://123332361710102",
+				offset = Vector3.new(0.0000, -0.2575, 0.8601),
+			},
+			["WingL"] = {
+				mesh = "rbxassetid://118523715130776",
+				texture = "rbxassetid://96290480952302",
+				offset = Vector3.new(-0.9825, 0.0100, 0.1950),
+			},
+			["WingR"] = {
+				mesh = "rbxassetid://87784175255024",
+				texture = "rbxassetid://134908936606989",
+				offset = Vector3.new(0.9825, 0.0100, 0.1950),
+			},
+		},
+	},
+	Quetzal = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://113728992051230",
+				texture = "rbxassetid://128298858331372",
+				offset = Vector3.new(0.0000, -0.3350, 0.0625),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://119656885700794",
+				texture = "rbxassetid://75724585969841",
+				offset = Vector3.new(0.0000, 0.3375, -0.0475),
+			},
+			["Tail"] = {
+				mesh = "rbxassetid://126114458225286",
+				texture = "rbxassetid://130506569345592",
+				offset = Vector3.new(0.0000, -0.2350, 1.5300),
+			},
+			["WingL"] = {
+				mesh = "rbxassetid://123436697153410",
+				texture = "rbxassetid://140196152603915",
+				offset = Vector3.new(-1.0100, 0.0025, 0.2725),
+			},
+			["WingR"] = {
+				mesh = "rbxassetid://118900349989071",
+				texture = "rbxassetid://138118011895286",
+				offset = Vector3.new(1.0100, 0.0025, 0.2725),
 			},
 		},
 	},

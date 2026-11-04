@@ -2511,6 +2511,79 @@ local function voxelKit(rig: Rig, origin: Vector3): VoxelKit
 	}
 end
 
+-- Escalones de bloques alineados entre dos puntos (lo que antes era una viga inclinada: una cola, una pluma larga).
+-- Cada tramo mide lo que avanza más el grosor, y así la figura entra en la malla de la mascota (Fase 21, Q5).
+-- "width" es (ancho en X, grosor en Y); "segment" es lo que avanza cada escalón (1,8 celdas por defecto).
+local function voxelStairs(
+	v: VoxelKit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: Vector2,
+	color: Color3,
+	segment: number?
+)
+	local delta = to - from
+	local count = math.max(1, math.ceil(math.max(math.abs(delta.Y), math.abs(delta.Z)) / (segment or 1.8)))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		local size = Vector3.new(
+			width.X + math.abs(b.X - a.X),
+			math.abs(b.Y - a.Y) + width.Y,
+			math.max(math.abs(b.Z - a.Z), width.Y)
+		)
+		v.box(list, name, (a + b) / 2, size, color)
+	end
+end
+
+-- Plumas pintadas: filas de láminas finas desencajadas sobre una cara (la textura de la malla las pinta sin coste).
+-- Con face "z" la cara mira hacia -Z o +Z (plano z = at.Z, "area" = ancho en X y alto en Y centrado en at); con "x"
+-- mira hacia un lado (plano x = at.X, "area" = largo en Z y alto en Y). "cell" es el tamaño de cada pluma y "colors"
+-- los tonos que se reparten.
+local function voxelScales(
+	v: VoxelKit,
+	list: { BasePart }?,
+	name: string,
+	face: string,
+	at: Vector3,
+	area: Vector2,
+	cell: Vector2,
+	colors: { Color3 },
+	depth: number?
+)
+	local rows = math.max(1, math.floor(area.Y / cell.Y + 0.01))
+	local cols = math.max(1, math.floor(area.X / cell.X + 0.01))
+	local thick = depth or 0.2
+	for r = 0, rows - 1 do
+		local y = at.Y + area.Y / 2 - (r + 0.5) * cell.Y
+		for c = 0, cols - 1 do
+			local u = -area.X / 2 + (c + 0.5) * cell.X + (if r % 2 == 1 then cell.X * 0.5 else 0)
+			if math.abs(u) + cell.X * 0.45 <= area.X / 2 + 0.3 then
+				local color = colors[(r + c) % #colors + 1]
+				if face == "z" then
+					v.box(
+						list,
+						name,
+						Vector3.new(at.X + u, y, at.Z),
+						Vector3.new(cell.X * 0.85, cell.Y * 0.8, thick),
+						color
+					)
+				else
+					v.box(
+						list,
+						name,
+						Vector3.new(at.X, y, at.Z + u),
+						Vector3.new(thick, cell.Y * 0.8, cell.X * 0.85),
+						color
+					)
+				end
+			end
+		end
+	end
+end
+
 -- Ala voxel abierta hacia el lado "side", en escalones que se estrechan hacia la punta, con las
 -- remeras en el borde de atrás. "steps" son las cajas del ala derecha relativas a la bisagra.
 type WingBlock = { center: Vector3, size: Vector3, color: Color3 }
@@ -2751,53 +2824,154 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	-- cola en abanico de bandas verdes y azules, y patitas moradas.
 	Colibri = function(rig, color)
 		local v = voxelKit(rig, Vector3.new(0, 7.5, 0))
-		local box = v.box
+		local slim = 0.78 -- anchura relativa del cuerpo y la cabeza (el resto de ayudantes no la aplican: se ajustan a mano)
+		local function box(list: { BasePart }?, name: string, center: Vector3, size: Vector3, paint: Color3): BasePart
+			return v.box(
+				list,
+				name,
+				Vector3.new(center.X * slim, center.Y, center.Z),
+				Vector3.new(size.X * slim, size.Y, size.Z),
+				paint
+			)
+		end
 		local light = color:Lerp(Color3.fromRGB(150, 255, 120), 0.35)
 		local dark = color:Lerp(BLACK, 0.45)
 		local teal = Color3.fromRGB(35, 165, 185)
 		local blue = Color3.fromRGB(30, 120, 215)
 		local purple = Color3.fromRGB(120, 70, 210)
+		local magenta = Color3.fromRGB(205, 60, 170)
 		local lilac = Color3.fromRGB(150, 130, 230)
 		local feet = Color3.fromRGB(85, 70, 105)
+		local leaf = color:Lerp(Color3.fromRGB(20, 110, 60), 0.4) -- verde de sombra, para las filas de plumas
 
 		for _, side in { -1, 1 } do
 			local x = side * 1.1
 			box(nil, "Leg", Vector3.new(x, 1.3, 0.4), Vector3.new(0.8, 1.6, 0.8), feet)
 			box(nil, "Toe", Vector3.new(x, 0.3, -0.2), Vector3.new(0.9, 0.6, 1.8), feet)
+			box(nil, "Claw", Vector3.new(x, 0.25, -1.3), Vector3.new(0.6, 0.4, 0.4), BLACK)
 		end
-		box(nil, "Belly", Vector3.new(0, 3.8, 0.4), Vector3.new(4.8, 3.6, 5), color)
+		-- Barriga que empieza delgada sobre las patas y engrosa en tres escalones hasta el pecho, con plumas pintadas.
+		box(nil, "Belly", Vector3.new(0, 2.6, 0.5), Vector3.new(3.4, 1.2, 4), color)
+		box(nil, "Belly", Vector3.new(0, 3.8, 0.5), Vector3.new(4.2, 1.2, 4.6), color)
+		box(nil, "Belly", Vector3.new(0, 5, 0.4), Vector3.new(4.8, 1.2, 5), color)
 		box(nil, "Body", Vector3.new(0, 7.6, 0), Vector3.new(5.4, 4.2, 5.4), color)
-		-- Por delante, de arriba abajo: gorguera morada (que rodea el cuello), pecho lila y vientre cian.
+		-- Por delante, de arriba abajo: gorguera morada (que rodea el cuello), pecho lila y vientre cian, con las
+		-- plumas en filas.
 		box(nil, "Breast", Vector3.new(0, 7, -2.85), Vector3.new(4.4, 2.4, 0.5), lilac)
 		box(nil, "Breast", Vector3.new(0, 5.6, -2.85), Vector3.new(3.4, 1.2, 0.5), lilac:Lerp(teal, 0.5))
-		box(nil, "BellyFront", Vector3.new(0, 4, -2.2), Vector3.new(2.8, 2.6, 0.5), teal)
-		-- Franja azulada en la espalda, de lado a lado: más estrecha parecía una mochila.
+		box(nil, "BellyFront", Vector3.new(0, 4.4, -2.3), Vector3.new(2.6, 1.2, 0.3), teal)
+		box(nil, "BellyFront", Vector3.new(0, 3.2, -1.95), Vector3.new(2.2, 1.2, 0.3), teal:Lerp(color, 0.3))
+		box(nil, "BellyFront", Vector3.new(0, 2.2, -1.6), Vector3.new(1.8, 0.8, 0.3), teal:Lerp(color, 0.5))
+		voxelScales(
+			v,
+			nil,
+			"BreastFeather",
+			"z",
+			Vector3.new(0, 6.4, -3.2),
+			Vector2.new(3.1, 3.2),
+			Vector2.new(0.8, 0.8),
+			{ lilac:Lerp(WHITE, 0.3), lilac:Lerp(teal, 0.35), lilac },
+			0.2
+		)
+		-- Franja azulada en la espalda, de lado a lado (más estrecha parecía una mochila), y debajo las plumas
+		-- verdes en filas con el borde azul.
 		box(nil, "Mantle", Vector3.new(0, 8.2, 2.8), Vector3.new(5.5, 2.6, 0.3), teal)
+		voxelScales(
+			v,
+			nil,
+			"MantleFeather",
+			"z",
+			Vector3.new(0, 8.4, 3.05),
+			Vector2.new(3.9, 2.4),
+			Vector2.new(1, 0.8),
+			{ teal:Lerp(WHITE, 0.2), blue, teal },
+			0.2
+		)
+		voxelScales(
+			v,
+			nil,
+			"BackFeather",
+			"z",
+			Vector3.new(0, 6.3, 2.85),
+			Vector2.new(3.9, 1.6),
+			Vector2.new(1, 0.8),
+			{ light, leaf, color },
+			0.2
+		)
+		-- Costados: plumas verdes en filas.
+		for _, side in { -1, 1 } do
+			voxelScales(
+				v,
+				nil,
+				"FlankFeather",
+				"x",
+				Vector3.new(side * 2.2, 7.4, 0),
+				Vector2.new(4.2, 3.6),
+				Vector2.new(1, 0.9),
+				{ light, color, leaf },
+				0.2
+			)
+		end
 
 		local head: { BasePart } = {}
 		box(head, "Head", Vector3.new(0, 11.6, -0.8), Vector3.new(4.6, 4, 4.6), color)
 		box(head, "Crown", Vector3.new(0, 13.75, -0.6), Vector3.new(3.8, 0.5, 3.6), light)
+		box(head, "CrownFeather", Vector3.new(0, 14.1, -0.4), Vector3.new(2.6, 0.2, 2.6), light:Lerp(WHITE, 0.3))
+		box(head, "Nape", Vector3.new(0, 11.4, 1.7), Vector3.new(3.8, 3.2, 0.3), leaf)
 		box(head, "Gorget", Vector3.new(0, 9.4, -2.95), Vector3.new(4.2, 2.2, 0.6), purple)
+		voxelScales(
+			v,
+			head,
+			"GorgetFeather",
+			"z",
+			Vector3.new(0, 9.4, -3.3),
+			Vector2.new(3.1, 2),
+			Vector2.new(0.9, 0.7),
+			{ magenta, purple, magenta:Lerp(purple, 0.5) },
+			0.2
+		)
 		for _, side in { -1, 1 } do
 			box(head, "GorgetSide", Vector3.new(side * 2.75, 9, -1.6), Vector3.new(0.3, 1.8, 2.4), purple)
+			box(head, "GorgetSide", Vector3.new(side * 2.95, 9, -1.6), Vector3.new(0.1, 1.4, 2), magenta)
 			box(head, "Mask", Vector3.new(side * 2.35, 11.7, -1.3), Vector3.new(0.3, 1.4, 3.4), dark)
+			-- Ojo con capas (aro oscuro, iris, pupila y brillo) y la manchita blanca detrás del ojo.
+			box(
+				head,
+				"EyeRing",
+				Vector3.new(side * 2.55, 11.9, -1.6),
+				Vector3.new(0.1, 1.7, 1.7),
+				dark:Lerp(BLACK, 0.4)
+			)
+			box(
+				head,
+				"Iris",
+				Vector3.new(side * 2.62, 11.9, -1.6),
+				Vector3.new(0.1, 1.3, 1.3),
+				Color3.fromRGB(90, 55, 35)
+			)
 			box(
 				head,
 				"Eye",
-				Vector3.new(side * 2.5, 11.9, -1.6),
-				Vector3.new(0.3, 1.1, 1.1),
+				Vector3.new(side * 2.68, 11.9, -1.6),
+				Vector3.new(0.1, 0.9, 0.9),
 				Color3.fromRGB(25, 20, 25)
 			)
-			box(head, "Glint", Vector3.new(side * 2.66, 12.15, -1.85), Vector3.new(0.1, 0.35, 0.35), WHITE)
+			box(head, "Glint", Vector3.new(side * 2.76, 12.15, -1.85), Vector3.new(0.1, 0.35, 0.35), WHITE)
+			box(head, "EyeSpot", Vector3.new(side * 2.55, 11.6, -0.2), Vector3.new(0.1, 0.5, 0.8), WHITE)
 		end
-		-- Pico: una hilera finísima y recta, algo más gruesa en la base.
+		-- Pico: una hilera finísima y larga, algo más gruesa en la base y que baja un poco hacia la punta.
 		local beak = Color3.fromRGB(30, 60, 60)
-		box(head, "BeakBase", Vector3.new(0, 11.4, -3.6), Vector3.new(1, 0.9, 1.2), beak)
-		box(head, "Beak", Vector3.new(0, 11.4, -7.1), Vector3.new(0.6, 0.6, 7.6), beak)
+		box(head, "BeakBase", Vector3.new(0, 11.4, -3.6), Vector3.new(1.2, 1, 1.2), beak:Lerp(feet, 0.3))
+		box(head, "Beak", Vector3.new(0, 11.4, -5.2), Vector3.new(0.7, 0.7, 2.2), beak)
+		box(head, "Beak", Vector3.new(0, 11.3, -7.4), Vector3.new(0.55, 0.55, 2.4), beak)
+		box(head, "Beak", Vector3.new(0, 11.15, -9.6), Vector3.new(0.45, 0.45, 2.2), beak)
+		box(head, "BeakShine", Vector3.new(0, 11.7, -6.2), Vector3.new(0.2, 0.1, 4.4), beak:Lerp(WHITE, 0.3))
 		v.swing(head, Vector3.new(0, 9.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
 
+		-- Alas verdes con las puntas azules en escalones y las plumas pintadas: cobertoras en filas y rayas en las
+		-- remeras.
 		for _, side in { -1, 1 } do
-			voxelWing(v, side, Vector3.new(side * 2.7, 8.4, 0.6), {
+			voxelWing(v, side, Vector3.new(side * 2.1, 8.4, 0.6), {
 				{ center = Vector3.new(1.8, 0.2, 0), size = Vector3.new(3.6, 1.2, 4), color = color },
 				{ center = Vector3.new(4.9, 0.1, 0.6), size = Vector3.new(3, 0.9, 3.4), color = teal },
 				{ center = Vector3.new(7.6, 0, 1.2), size = Vector3.new(2.8, 0.8, 2.8), color = blue },
@@ -2808,20 +2982,41 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 					size = Vector3.new(1.6, 0.6, 2),
 					color = blue:Lerp(BLACK, 0.2),
 				},
+				{
+					center = Vector3.new(10.8, -0.1, 1.8),
+					size = Vector3.new(1.4, 0.5, 1.6),
+					color = blue:Lerp(BLACK, 0.35),
+				},
+				{ center = Vector3.new(1.4, 0.85, 0), size = Vector3.new(1.4, 0.25, 3.4), color = light },
+				{ center = Vector3.new(3.2, 0.85, 0.1), size = Vector3.new(1.4, 0.25, 3.2), color = leaf },
+				{
+					center = Vector3.new(4.9, 0.6, 0.6),
+					size = Vector3.new(1.4, 0.25, 2.8),
+					color = teal:Lerp(WHITE, 0.25),
+				},
+				{
+					center = Vector3.new(6.5, 0.5, 0.9),
+					size = Vector3.new(1.2, 0.25, 2.4),
+					color = blue:Lerp(WHITE, 0.2),
+				},
+				{ center = Vector3.new(3.4, -0.45, 2.9), size = Vector3.new(0.25, 0.1, 1.5), color = dark },
+				{ center = Vector3.new(6.6, -0.45, 3.1), size = Vector3.new(0.25, 0.1, 1.7), color = dark },
+				{ center = Vector3.new(9.4, -0.45, 2.5), size = Vector3.new(0.25, 0.1, 1.7), color = dark },
 			}, 0.9, 45)
 		end
 
-		-- Cola en abanico: cinco plumas que bajan hacia atrás, en bandas verde, azul, verde y azul.
+		-- Cola en abanico: cinco plumas que bajan hacia atrás en escalones de bloques (no inclinadas: así entran en
+		-- la malla), en bandas verde, azul, verde y azul.
 		local tailParts: { BasePart } = {}
 		local rump = Vector3.new(0, 3, 2.6)
 		local bands = { { 3.4, color }, { 2, blue }, { 1.6, light }, { 1.6, blue } }
 		for i = -2, 2 do
-			local direction = Vector3.new(i * 0.26, -0.8, 0.75).Unit
+			local direction = Vector3.new(i * 0.2, -0.8, 0.75).Unit
 			local reach = 1 - math.abs(i) * 0.12
-			local from = rump + Vector3.new(i * 0.8, -math.abs(i) * 0.05, 0)
+			local from = rump + Vector3.new(i * 0.6, -math.abs(i) * 0.05, 0)
 			for _, band in bands do
 				local to = from + direction * band[1] * reach
-				v.beam(tailParts, "TailFeather", from, to, Vector2.new(1.7, 0.5), band[2])
+				voxelStairs(v, tailParts, "TailFeather", from, to, Vector2.new(0.7, 0.5), band[2], 1.4)
 				from = to
 			end
 		end
@@ -3335,34 +3530,90 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		local v = voxelKit(rig, Vector3.new(0, 12, 0))
 		local box = v.box
 		local deep = color:Lerp(BLACK, 0.15)
+		local bright = color:Lerp(Color3.fromRGB(255, 120, 60), 0.25)
 		local yellow = Color3.fromRGB(245, 195, 30)
 		local green = Color3.fromRGB(70, 150, 60)
 		local blue = Color3.fromRGB(30, 85, 210)
 		local deepBlue = Color3.fromRGB(25, 50, 150)
 		local horn = Color3.fromRGB(235, 228, 215)
+		local hornShade = horn:Lerp(Color3.fromRGB(150, 140, 130), 0.5)
 		local feet = Color3.fromRGB(125, 112, 112)
 
-		-- Patas: dos dedos delante (con una rendija) y dos detrás, para trepar.
+		-- Patas: dos dedos delante (con una rendija) y dos detrás, para trepar, con escamas y uñas.
 		for _, side in { -1, 1 } do
 			local x = side * 1.5
 			box(nil, "Leg", Vector3.new(x, 2.9, 0.6), Vector3.new(1.2, 3.8, 1.2), feet)
+			for _, y in { 3.8, 2.8, 1.8 } do
+				box(nil, "Scale", Vector3.new(x, y, -0.05), Vector3.new(1, 0.4, 0.1), feet:Lerp(BLACK, 0.4))
+			end
 			box(nil, "Toe", Vector3.new(x, 0.4, -0.5), Vector3.new(1.8, 0.8, 2.8), feet)
 			box(nil, "ToeGap", Vector3.new(x, 0.45, -1.4), Vector3.new(0.2, 0.75, 1.1), feet:Lerp(BLACK, 0.5))
 			box(nil, "Toe", Vector3.new(x, 0.4, 1.8), Vector3.new(1.6, 0.8, 1.6), feet)
 			box(nil, "Claw", Vector3.new(x, 0.3, -2.05), Vector3.new(1.8, 0.6, 0.3), Color3.fromRGB(50, 45, 45))
+			-- Muslo emplumado.
+			box(nil, "Thigh", Vector3.new(side * 3.4, 6.4, 0.6), Vector3.new(0.7, 3.4, 3.6), deep)
 		end
 
-		-- Cuerpo alto y estrecho en cuatro bloques que se estrechan hacia el cuello, y lomo en dos
-		-- escalones (de espaldas no es una losa). Un panel más oscuro en el pecho parecía un delantal.
-		box(nil, "Belly", Vector3.new(0, 7.2, 0.8), Vector3.new(6.4, 5.6, 6.6), color)
+		-- Cuerpo alto y estrecho que engrosa de abajo arriba (la barriga empieza delgada sobre las patas y se
+		-- ensancha en tres escalones hasta el pecho), con el lomo en dos escalones (de espaldas no es una losa).
+		box(nil, "Belly", Vector3.new(0, 5.3, 0.8), Vector3.new(4.2, 1.6, 5), color)
+		box(nil, "Belly", Vector3.new(0, 6.9, 0.8), Vector3.new(5.2, 1.6, 5.8), color)
+		box(nil, "Belly", Vector3.new(0, 8.75, 0.8), Vector3.new(6.4, 2.1, 6.6), color)
 		box(nil, "Body", Vector3.new(0, 12.6, 0), Vector3.new(7, 5.6, 6.6), color)
 		box(nil, "Shoulders", Vector3.new(0, 16.8, 0), Vector3.new(6.2, 3, 6.4), color)
 		box(nil, "Neck", Vector3.new(0, 19.4, -0.4), Vector3.new(5.2, 2.6, 5.4), color)
 		box(nil, "Mantle", Vector3.new(0, 14, 3.45), Vector3.new(5.4, 6, 0.4), deep)
 		box(nil, "Mantle", Vector3.new(0, 9.4, 4.25), Vector3.new(4, 2.6, 0.4), deep:Lerp(BLACK, 0.12))
+		-- Plumas pintadas: pecho, espalda y costados en filas de dos o tres tonos.
+		voxelScales(
+			v,
+			nil,
+			"ChestFeather",
+			"z",
+			Vector3.new(0, 14, -3.45),
+			Vector2.new(5.6, 7.6),
+			Vector2.new(1.2, 1),
+			{ bright, color, deep },
+			0.2
+		)
+		voxelScales(
+			v,
+			nil,
+			"BackFeather",
+			"z",
+			Vector3.new(0, 14.2, 3.8),
+			Vector2.new(4.8, 5.6),
+			Vector2.new(1.2, 1),
+			{ deep, color, bright },
+			0.2
+		)
+		voxelScales(
+			v,
+			nil,
+			"BackFeather",
+			"z",
+			Vector3.new(0, 9.4, 4.6),
+			Vector2.new(3.6, 2.4),
+			Vector2.new(1.2, 1),
+			{ deep:Lerp(BLACK, 0.2), deep },
+			0.2
+		)
+		for _, side in { -1, 1 } do
+			voxelScales(
+				v,
+				nil,
+				"FlankFeather",
+				"x",
+				Vector3.new(side * 3.55, 12.4, 0),
+				Vector2.new(5.4, 4.6),
+				Vector2.new(1.2, 1),
+				{ color, bright, deep },
+				0.2
+			)
+		end
 
-		-- Cabeza: bloque rojo y cara blanca a los lados con el ojo negro y su brillo (una hilera de
-		-- plumitas rojas bajo el ojo parecía una boca).
+		-- Cabeza: bloque rojo y cara blanca a los lados con las líneas de plumitas rojas, el ojo con su iris
+		-- amarillo y el brillo.
 		local head: { BasePart } = {}
 		local up = Vector3.new(0, 2.6, 0)
 		box(head, "Head", Vector3.new(0, 19, -0.6) + up, Vector3.new(6.2, 5.6, 6.2), color)
@@ -3373,23 +3624,64 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			Vector3.new(5.2, 0.8, 5),
 			color:Lerp(Color3.fromRGB(255, 110, 40), 0.2)
 		)
+		voxelScales(
+			v,
+			head,
+			"CrownFeather",
+			"z",
+			Vector3.new(0, 22.7, -0.4) + up,
+			Vector2.new(4.6, 0.2),
+			Vector2.new(0.9, 0.2),
+			{ bright, color },
+			4.2
+		)
+		box(head, "Nape", Vector3.new(0, 18.8, 2.65) + up, Vector3.new(5, 4.4, 0.4), deep)
 		for _, side in { -1, 1 } do
 			box(head, "Face", Vector3.new(side * 3.15, 18.4, -2.3) + up, Vector3.new(0.3, 3.8, 3.6), WHITE)
 			box(head, "FaceFront", Vector3.new(side * 2, 17.6, -3.75) + up, Vector3.new(2.2, 2.4, 0.3), WHITE)
-			box(head, "Eye", Vector3.new(side * 3.35, 19.4, -2.1) + up, Vector3.new(0.2, 1.3, 1.3), BLACK)
-			box(head, "Glint", Vector3.new(side * 3.47, 19.7, -2.35) + up, Vector3.new(0.1, 0.45, 0.45), WHITE)
+			-- Líneas de plumitas rojas sobre la cara blanca.
+			for k, y in { 17.5, 18.4, 19.3 } do
+				box(
+					head,
+					"FaceLine",
+					Vector3.new(side * 3.35, y, -2.2 - (k % 2) * 0.3) + up,
+					Vector3.new(0.1, 0.25, 2.4 - (k % 2) * 0.4),
+					deep
+				)
+			end
+			box(
+				head,
+				"EyeRing",
+				Vector3.new(side * 3.33, 19.4, -2.1) + up,
+				Vector3.new(0.12, 2, 2),
+				horn:Lerp(color, 0.2)
+			)
+			box(head, "Iris", Vector3.new(side * 3.42, 19.4, -2.1) + up, Vector3.new(0.1, 1.5, 1.5), yellow)
+			box(head, "Eye", Vector3.new(side * 3.5, 19.4, -2.1) + up, Vector3.new(0.1, 1, 1), BLACK)
+			box(head, "Glint", Vector3.new(side * 3.58, 19.7, -2.35) + up, Vector3.new(0.1, 0.45, 0.45), WHITE)
 		end
 		-- Pico enorme: mandíbula de arriba clara en tres escalones que bajan en gancho con la punta
-		-- oscura, y la de abajo negra, más ancha que el gancho para que se vea de frente.
+		-- oscura, la cera sobre la base, las fosas y la mandíbula de abajo negra, más ancha que el gancho.
 		box(head, "BeakBase", Vector3.new(0, 19.2, -4.3) + up, Vector3.new(4, 3.6, 1.6), horn)
 		box(head, "Beak", Vector3.new(0, 19, -5.9) + up, Vector3.new(3.4, 3.2, 2), horn)
+		box(head, "BeakRidge", Vector3.new(0, 20.7, -5.4) + up, Vector3.new(2.2, 0.4, 3), hornShade)
 		box(head, "BeakHook", Vector3.new(0, 16.9, -6.7) + up, Vector3.new(2.6, 2.4, 1.6), horn)
 		box(head, "BeakTip", Vector3.new(0, 15.4, -6.6) + up, Vector3.new(1.6, 1, 1.2), Color3.fromRGB(60, 58, 62))
 		box(head, "LowerBeak", Vector3.new(0, 16.3, -4.8) + up, Vector3.new(3.8, 2.4, 2.8), BLACK)
+		for _, side in { -1, 1 } do
+			box(
+				head,
+				"Nostril",
+				Vector3.new(side * 1.2, 20.1, -4.3) + up,
+				Vector3.new(0.5, 0.5, 0.5),
+				hornShade:Lerp(BLACK, 0.5)
+			)
+			box(head, "BeakSide", Vector3.new(side * 1.72, 18.6, -5.9) + up, Vector3.new(0.1, 0.3, 1.6), hornShade)
+		end
 		v.swing(head, Vector3.new(0, 18.6, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
 
-		-- Alas largas abiertas: brazo rojo, banda amarilla con el borde verde y remeras azules que se
-		-- oscurecen hacia la punta.
+		-- Alas largas abiertas: brazo rojo con las cobertoras en filas, banda amarilla con el borde verde y
+		-- remeras azules que se oscurecen hacia la punta y se separan en dedos.
 		for _, side in { -1, 1 } do
 			voxelWing(v, side, Vector3.new(side * 3.4, 15.6, 0.2), {
 				{ center = Vector3.new(3, 0.1, -0.4), size = Vector3.new(6.9, 1.6, 4.2), color = color },
@@ -3401,23 +3693,66 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				{ center = Vector3.new(10.2, -0.3, 4.8), size = Vector3.new(5.4, 0.8, 3), color = blue },
 				{ center = Vector3.new(15.3, -0.3, 3.8), size = Vector3.new(4.2, 0.7, 3.4), color = deepBlue },
 				{ center = Vector3.new(17.85, -0.3, 2.4), size = Vector3.new(2.1, 0.6, 2), color = deepBlue },
+				{
+					center = Vector3.new(19.4, -0.3, 1.8),
+					size = Vector3.new(1.4, 0.5, 1.4),
+					color = deepBlue:Lerp(BLACK, 0.3),
+				},
+				{ center = Vector3.new(1.6, 1.0, -0.4), size = Vector3.new(2.4, 0.25, 3.8), color = bright },
+				{ center = Vector3.new(4, 1.0, -0.4), size = Vector3.new(2.4, 0.25, 3.8), color = deep },
+				{ center = Vector3.new(6.4, 1.0, -0.4), size = Vector3.new(2.4, 0.25, 3.8), color = bright },
+				{ center = Vector3.new(8.8, 0.8, -0.2), size = Vector3.new(2.2, 0.25, 3), color = deep },
+				{ center = Vector3.new(11, 0.8, -0.2), size = Vector3.new(1.8, 0.25, 2.6), color = bright },
+				{ center = Vector3.new(7.4, -0.75, 4.9), size = Vector3.new(0.25, 0.1, 2.4), color = deepBlue },
+				{ center = Vector3.new(10.4, -0.75, 4.9), size = Vector3.new(0.25, 0.1, 2.4), color = deepBlue },
+				{ center = Vector3.new(13.4, -0.75, 4.4), size = Vector3.new(0.25, 0.1, 2.4), color = BLACK },
+				{ center = Vector3.new(16, -0.65, 4), size = Vector3.new(0.25, 0.1, 2.4), color = BLACK },
 			}, 0.7, 12)
 		end
 
-		-- Cola larguísima y en punta: cobertoras rojas, la pluma del centro roja con la punta azul y
-		-- dos azules más cortas a los lados.
+		-- Cola larguísima y en punta, en escalones de bloques (no inclinada: así entra en la malla): cobertoras
+		-- rojas, la pluma del centro roja con la punta azul y dos azules más cortas a los lados.
 		local tailParts: { BasePart } = {}
-		v.beam(tailParts, "TailCovert", Vector3.new(0, 9.4, 3.4), Vector3.new(0, 6.2, 8), Vector2.new(4.6, 1.4), color)
-		v.beam(tailParts, "Tail", Vector3.new(0, 7.6, 4), Vector3.new(0, 1.2, 18), Vector2.new(2.4, 1), color)
-		v.beam(tailParts, "TailTip", Vector3.new(0, 1.6, 17.2), Vector3.new(0, 0.4, 21), Vector2.new(1.6, 0.9), blue)
+		voxelStairs(
+			v,
+			tailParts,
+			"TailCovert",
+			Vector3.new(0, 9.4, 3.4),
+			Vector3.new(0, 6.2, 8),
+			Vector2.new(4.6, 1.4),
+			color,
+			1.6
+		)
+		voxelStairs(
+			v,
+			tailParts,
+			"Tail",
+			Vector3.new(0, 7.6, 4),
+			Vector3.new(0, 1.6, 17.2),
+			Vector2.new(2.4, 1),
+			color,
+			2
+		)
+		voxelStairs(
+			v,
+			tailParts,
+			"TailTip",
+			Vector3.new(0, 1.6, 17.2),
+			Vector3.new(0, 0.4, 21),
+			Vector2.new(1.6, 0.9),
+			blue,
+			1.4
+		)
 		for _, side in { -1, 1 } do
-			v.beam(
+			voxelStairs(
+				v,
 				tailParts,
 				"TailSide",
 				Vector3.new(side * 1.5, 7.4, 4.2),
 				Vector3.new(side * 1.9, 2.6, 13.4),
 				Vector2.new(1.8, 0.9),
-				blue
+				blue,
+				2
 			)
 		end
 		v.swing(tailParts, Vector3.new(0, 7.6, 3.6), Vector3.xAxis, 0.15, 6, 1, false, nil, "Tail")
@@ -3433,27 +3768,50 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 	-- Vuela. Distinta de la Guacamaya (roja y azul, cola en punta) y del Tucán (negro, pico enorme).
 	Quetzal = function(rig, color)
 		local v = voxelKit(rig, Vector3.new(0, 12, 0))
-		local box = v.box
+		local slim = 0.84 -- anchura relativa del cuerpo y la cabeza (el resto de ayudantes no la aplican: se ajustan a mano)
+		local function box(list: { BasePart }?, name: string, center: Vector3, size: Vector3, paint: Color3): BasePart
+			return v.box(
+				list,
+				name,
+				Vector3.new(center.X * slim, center.Y, center.Z),
+				Vector3.new(size.X * slim, size.Y, size.Z),
+				paint
+			)
+		end
 		local deep = color:Lerp(Color3.fromRGB(5, 70, 50), 0.55)
 		local darkest = color:Lerp(Color3.fromRGB(4, 30, 30), 0.82)
 		local teal = color:Lerp(Color3.fromRGB(0, 215, 180), 0.5)
 		local gold = Color3.fromRGB(170, 235, 70)
 		local crimson = Color3.fromRGB(228, 18, 52)
 		local crimsonDark = Color3.fromRGB(150, 10, 38)
+		local crimsonLight = Color3.fromRGB(245, 70, 90)
 		local rose = Color3.fromRGB(226, 80, 96)
 		local yellow = Color3.fromRGB(250, 205, 35)
 		local pale = Color3.fromRGB(185, 235, 205)
 		local feet = Color3.fromRGB(70, 50, 58)
 
 		-- Patas con el muslo de plumas verde-turquesa, la caña fina y los dedos: tres hacia delante y uno
-		-- hacia atrás.
+		-- hacia atrás, con uñas.
 		for _, side in { -1, 1 } do
 			local x = side * 1.6
 			box(nil, "Thigh", Vector3.new(side * 2.4, 5.8, 0.6), Vector3.new(1.6, 3, 3.2), deep)
 			box(nil, "ThighEdge", Vector3.new(side * 2.4, 4.1, 0.6), Vector3.new(1.4, 0.7, 2.6), teal)
+			voxelScales(
+				v,
+				nil,
+				"ThighFeather",
+				"x",
+				Vector3.new(side * 2.75, 5.8, 0.6),
+				Vector2.new(3, 2.8),
+				Vector2.new(0.9, 0.7),
+				{ teal, deep, color },
+				0.2
+			)
 			box(nil, "Leg", Vector3.new(x, 3.1, 0.6), Vector3.new(0.8, 2.2, 0.8), feet)
 			for k = -1, 1 do
-				box(nil, "Toe", Vector3.new(x + k * 0.5, 1.9, -0.5), Vector3.new(0.4, 0.5, 1.8), feet)
+				-- Dedos de 0,5 de ancho (con el factor de anchura quedan en 0,42): más finos se pintaban sobre la pata.
+				box(nil, "Toe", Vector3.new(x + k * 0.62, 1.9, -0.5), Vector3.new(0.5, 0.5, 1.8), feet)
+				box(nil, "Claw", Vector3.new(x + k * 0.62, 1.8, -1.6), Vector3.new(0.5, 0.4, 0.5), BLACK)
 			end
 			box(nil, "Toe", Vector3.new(x, 1.9, 1.6), Vector3.new(0.5, 0.5, 1), feet)
 		end
@@ -3471,17 +3829,53 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(nil, "Bib", Vector3.new(0, 9.8, -2.35), Vector3.new(4.2, 1.8, 0.5), crimsonDark)
 		box(nil, "Bib", Vector3.new(0, 8.6, -2.2), Vector3.new(3.8, 0.9, 0.4), crimson)
 		box(nil, "BibEdge", Vector3.new(0, 13.2, -2.6), Vector3.new(3, 0.5, 0.4), crimsonDark)
+		box(nil, "NeckRing", Vector3.new(0, 14.1, -0.2), Vector3.new(4.8, 0.3, 4.6), gold:Lerp(color, 0.25))
+		box(nil, "Epaulette", Vector3.new(0, 13.95, 0.1), Vector3.new(6, 0.3, 5.6), gold:Lerp(teal, 0.4))
 		box(nil, "BellyLine", Vector3.new(0, 7.9, -2.25), Vector3.new(3.2, 0.3, 0.3), darkest)
 		box(nil, "Belly", Vector3.new(0, 6.5, -1.8), Vector3.new(3, 1.6, 0.5), rose)
 		box(nil, "Belly", Vector3.new(0, 5.4, -0.2), Vector3.new(2.8, 0.6, 3.6), rose)
+		-- Escamas del peto: filas de plumitas carmesí en tres tonos y en la barriga rosada.
+		voxelScales(
+			v,
+			nil,
+			"BibScale",
+			"z",
+			Vector3.new(0, 10.7, -2.9),
+			Vector2.new(3.7, 4.2),
+			Vector2.new(1, 0.8),
+			{ crimsonLight, crimson, crimsonDark },
+			0.2
+		)
+		voxelScales(
+			v,
+			nil,
+			"BellyScale",
+			"z",
+			Vector3.new(0, 6.7, -2.1),
+			Vector2.new(2.4, 1.6),
+			Vector2.new(0.9, 0.7),
+			{ rose, rose:Lerp(WHITE, 0.3) },
+			0.2
+		)
 		for _, side in { -1, 1 } do
 			box(nil, "Flank", Vector3.new(side * 2.55, 9.2, -0.6), Vector3.new(0.3, 3.4, 3.4), crimsonDark)
 			box(nil, "Flank", Vector3.new(side * 2.15, 7, 0.2), Vector3.new(0.3, 1.6, 2.6), crimson)
 			box(nil, "BackFlank", Vector3.new(side * 2.85, 10.2, 2.4), Vector3.new(0.3, 2.4, 2.4), crimsonDark)
+			voxelScales(
+				v,
+				nil,
+				"FlankScale",
+				"x",
+				Vector3.new(side * 2.4, 11.6, -0.2),
+				Vector2.new(4.4, 2.2),
+				Vector2.new(1, 0.8),
+				{ color, teal, deep },
+				0.2
+			)
 		end
 
 		-- Capa de la espalda en filas que se estrechan, alternando tonos con un reflejo dorado, y la
-		-- banda blanca antes de la cola (de espaldas no es una losa).
+		-- banda blanca antes de la cola (de espaldas no es una losa). Encima, filas de plumas pintadas.
 		box(nil, "Cape", Vector3.new(0, 12.6, 3.5), Vector3.new(4.6, 1.2, 0.5), teal)
 		box(nil, "Cape", Vector3.new(0, 11.2, 3.65), Vector3.new(4.8, 1.6, 0.5), deep)
 		box(nil, "Cape", Vector3.new(0, 9.6, 3.5), Vector3.new(4.2, 1.6, 0.5), teal)
@@ -3490,6 +3884,17 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(nil, "CapeGold", Vector3.new(0, 9, 3.85), Vector3.new(1.6, 0.4, 0.3), gold)
 		box(nil, "CapeSpine", Vector3.new(0, 10.4, 3.4), Vector3.new(0.8, 4.4, 0.4), darkest)
 		box(nil, "RumpWhite", Vector3.new(0, 6.3, 3.4), Vector3.new(3, 1.2, 0.5), WHITE)
+		voxelScales(
+			v,
+			nil,
+			"CapeFeather",
+			"z",
+			Vector3.new(0, 10.6, 4.15),
+			Vector2.new(3.7, 4.6),
+			Vector2.new(1.1, 0.9),
+			{ teal, color, gold:Lerp(color, 0.55), deep },
+			0.2
+		)
 
 		-- Cabeza: cráneo esmeralda con el reflejo dorado en la coronilla, cresta en escalones que se
 		-- estrecha hacia atrás, ojo negro con su brillo y el pico amarillo corto y ganchudo.
@@ -3500,22 +3905,57 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(head, "Crest", Vector3.new(0, 20.8, 0.2), Vector3.new(2.4, 0.8, 2.8), color)
 		box(head, "Crest", Vector3.new(0, 21.6, 0.7), Vector3.new(1.4, 0.8, 1.8), deep)
 		box(head, "Crest", Vector3.new(0, 20.6, 2.1), Vector3.new(1.4, 0.6, 1.2), deep)
+		box(head, "Nape", Vector3.new(0, 17, 2.05), Vector3.new(4.2, 3.6, 0.4), deep)
+		for i, x in { -1.4, 0, 1.4 } do
+			box(head, "CrestFeather", Vector3.new(x, 20.45, -0.4 + (i % 2) * 0.8), Vector3.new(0.5, 0.1, 2.4), gold)
+		end
+		for i, spec in { { -0.9, 1.6 }, { 0.9, 1.4 }, { 0, 2.2 } } do
+			box(
+				head,
+				"CrestWisp",
+				Vector3.new(spec[1], 21.8 + spec[2] / 2, 0.9 + i * 0.3),
+				Vector3.new(0.5, spec[2], 0.5),
+				if i == 3 then gold else teal
+			)
+			box(
+				head,
+				"CrestWisp",
+				Vector3.new(spec[1], 21.8 + spec[2], 1.6 + i * 0.3),
+				Vector3.new(0.5, 0.5, 0.9),
+				deep
+			)
+		end
 		box(head, "Throat", Vector3.new(0, 15.1, -1.9), Vector3.new(3.6, 1.2, 1.4), teal)
 		for _, side in { -1, 1 } do
 			box(head, "EyeRing", Vector3.new(side * 2.62, 17.5, -1.8), Vector3.new(0.1, 1.9, 1.9), darkest)
-			box(head, "Eye", Vector3.new(side * 2.68, 17.5, -1.8), Vector3.new(0.2, 1.1, 1.1), BLACK)
-			box(head, "Glint", Vector3.new(side * 2.78, 17.8, -2.05), Vector3.new(0.1, 0.4, 0.4), WHITE)
+			box(
+				head,
+				"Iris",
+				Vector3.new(side * 2.69, 17.5, -1.8),
+				Vector3.new(0.1, 1.5, 1.5),
+				Color3.fromRGB(95, 55, 30)
+			)
+			box(head, "Eye", Vector3.new(side * 2.76, 17.5, -1.8), Vector3.new(0.1, 1, 1), BLACK)
+			box(head, "Glint", Vector3.new(side * 2.84, 17.8, -2.05), Vector3.new(0.1, 0.4, 0.4), WHITE)
 			box(head, "Cheek", Vector3.new(side * 2.62, 16.2, -2.6), Vector3.new(0.1, 1.2, 1.4), teal)
+			box(
+				head,
+				"HeadFeather",
+				Vector3.new(side * 2.65, 18.7, -0.6),
+				Vector3.new(0.1, 0.3, 2.4),
+				gold:Lerp(color, 0.4)
+			)
 		end
 		box(head, "Beak", Vector3.new(0, 16.6, -3.8), Vector3.new(2, 1.8, 1.8), yellow)
 		box(head, "BeakHook", Vector3.new(0, 15.9, -4.55), Vector3.new(1.4, 1.2, 0.7), yellow:Lerp(BLACK, 0.2))
 		box(head, "LowerBeak", Vector3.new(0, 15.4, -3.6), Vector3.new(1.6, 0.6, 1.4), yellow:Lerp(BLACK, 0.3))
+		box(head, "BeakShine", Vector3.new(0, 17.55, -3.8), Vector3.new(1.2, 0.1, 1.2), yellow:Lerp(WHITE, 0.4))
 		v.swing(head, Vector3.new(0, 16, -0.5), Vector3.xAxis, 0.1, 3, 0, false, nil, "Head")
 
-		-- Alas abiertas: el borde de ataque dorado, las cobertoras esmeralda y turquesa, las remeras que
+		-- Alas abiertas: el borde de ataque dorado, las cobertoras esmeralda y turquesa en filas, las remeras que
 		-- se alargan y se oscurecen hacia la punta con el borde de atrás en flecos, y la franja pálida.
 		for _, side in { -1, 1 } do
-			voxelWing(v, side, Vector3.new(side * 2.8, 12.6, 0.4), {
+			voxelWing(v, side, Vector3.new(side * 2.4, 12.6, 0.4), {
 				{ center = Vector3.new(3, 0.1, -0.2), size = Vector3.new(6, 1.2, 4.4), color = color },
 				{ center = Vector3.new(7.6, 0, 0.2), size = Vector3.new(4, 1.1, 4), color = teal },
 				{ center = Vector3.new(4.8, 0.45, -2.2), size = Vector3.new(8.4, 0.4, 0.5), color = gold },
@@ -3528,43 +3968,94 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				{ center = Vector3.new(17, -0.3, 3), size = Vector3.new(2.2, 0.6, 3.8), color = darkest },
 				{ center = Vector3.new(9.4, -0.3, 6.9), size = Vector3.new(2.4, 0.6, 1.4), color = darkest },
 				{ center = Vector3.new(13, -0.3, 7), size = Vector3.new(2, 0.6, 1.4), color = darkest },
+				{ center = Vector3.new(6.2, -0.3, 7.2), size = Vector3.new(1.8, 0.6, 1.4), color = deep },
+				{ center = Vector3.new(16.2, -0.3, 6.4), size = Vector3.new(1.6, 0.5, 1.6), color = darkest },
+				{ center = Vector3.new(18.6, -0.3, 4.4), size = Vector3.new(1.6, 0.5, 2.6), color = darkest },
+				{ center = Vector3.new(19.6, -0.3, 2.6), size = Vector3.new(1.2, 0.5, 1.8), color = darkest },
 				{ center = Vector3.new(14, -0.1, 0.4), size = Vector3.new(4, 0.6, 1.8), color = teal },
+				{
+					center = Vector3.new(1.6, 0.8, -0.2),
+					size = Vector3.new(2.2, 0.25, 4),
+					color = teal:Lerp(gold, 0.3),
+				},
+				{ center = Vector3.new(3.6, 0.8, -0.2), size = Vector3.new(1.8, 0.25, 4), color = deep },
+				{ center = Vector3.new(5.4, 0.8, -0.2), size = Vector3.new(1.8, 0.25, 4), color = color },
+				{
+					center = Vector3.new(7, 0.65, 0.2),
+					size = Vector3.new(1.4, 0.25, 3.6),
+					color = gold:Lerp(teal, 0.5),
+				},
+				{ center = Vector3.new(8.6, 0.65, 0.2), size = Vector3.new(1.4, 0.25, 3.6), color = teal },
+				{ center = Vector3.new(11.8, -0.55, 3.8), size = Vector3.new(0.25, 0.1, 4.6), color = BLACK },
+				{ center = Vector3.new(15.2, -0.6, 3.6), size = Vector3.new(0.25, 0.1, 4.6), color = BLACK },
 			}, 0.7, 12)
 		end
 
 		-- Cola: la base blanca por debajo con la punta oscura, y dos plumas larguísimas que cuelgan hacia
-		-- atrás y se enroscan hacia arriba en la punta.
+		-- atrás y se enroscan hacia arriba en la punta (en escalones de bloques, no inclinadas: así entran en la
+		-- malla).
 		local tailParts: { BasePart } = {}
-		v.beam(tailParts, "TailCovert", Vector3.new(0, 7.2, 3.4), Vector3.new(0, 5.2, 9), Vector2.new(3.4, 1), color)
+		voxelStairs(
+			v,
+			tailParts,
+			"TailCovert",
+			Vector3.new(0, 7.2, 3.4),
+			Vector3.new(0, 5.2, 9),
+			Vector2.new(3.4, 1),
+			color,
+			1.6
+		)
 		box(tailParts, "TailWhite", Vector3.new(0, 4.9, 7), Vector3.new(2.8, 0.5, 5), WHITE)
 		box(tailParts, "TailDark", Vector3.new(0, 5.1, 10.6), Vector3.new(2.2, 0.5, 2.2), darkest)
+		-- Cada pluma larga sigue una curva: sale de la cola, cuelga hacia atrás, se enrosca hacia arriba y acaba en una horquilla.
+		-- A lo largo lleva el estandarte (las barbas, láminas finas a cada lado) en dos tonos.
 		for _, side in { -1, 1 } do
-			local x = side * 1
-			v.beam(
-				tailParts,
-				"Streamer",
-				Vector3.new(x, 6.6, 3.6),
-				Vector3.new(x * 1.1, 4, 12),
-				Vector2.new(1, 0.9),
-				color
-			)
-			v.beam(
-				tailParts,
-				"Streamer",
-				Vector3.new(x * 1.1, 4, 12),
-				Vector3.new(x * 1.5, 2.4, 22),
-				Vector2.new(1, 0.9),
-				teal
-			)
-			v.beam(
-				tailParts,
-				"Streamer",
-				Vector3.new(x * 1.5, 2.4, 22),
-				Vector3.new(x * 2.3, 3.4, 29),
-				Vector2.new(1, 0.9),
-				deep
-			)
-			box(tailParts, "StreamerTip", Vector3.new(x * 2.5, 4.4, 29.6), Vector3.new(0.8, 1.4, 0.9), darkest)
+			local path = {
+				Vector3.new(side * 0.9, 6.6, 3.6),
+				Vector3.new(side * 1.0, 4, 12),
+				Vector3.new(side * 1.4, 2.4, 22),
+				Vector3.new(side * 2.2, 3.4, 29),
+			}
+			local colors = { color, teal, deep }
+			for i = 1, 3 do
+				voxelStairs(v, tailParts, "Streamer", path[i], path[i + 1], Vector2.new(0.8, 0.8), colors[i], 2.2)
+			end
+			local function onPath(z: number): Vector3
+				for i = 1, 3 do
+					local a, b = path[i], path[i + 1]
+					if z <= b.Z or i == 3 then
+						local t = math.clamp((z - a.Z) / (b.Z - a.Z), 0, 1)
+						return a:Lerp(b, t)
+					end
+				end
+				return path[4]
+			end
+			for step = 0, 9 do
+				local z = 9 + step * 2.2
+				local p = onPath(z)
+				local shade = if step % 2 == 0 then gold:Lerp(color, 0.45) else teal
+				local reach = 1.4 - math.abs(step - 4) * 0.12
+				v.box(
+					tailParts,
+					"Vane",
+					p + Vector3.new(side * (0.4 + reach / 2), 0, 0),
+					Vector3.new(reach, 0.25, 1.4),
+					shade
+				)
+				v.box(
+					tailParts,
+					"Vane",
+					p - Vector3.new(side * (0.4 + reach / 2), 0, 0),
+					Vector3.new(reach, 0.25, 1.4),
+					shade:Lerp(deep, 0.35)
+				)
+			end
+			-- La punta se bifurca en dos hebras que se separan, con las puntas oscuras.
+			for _, fork in { -1, 1 } do
+				local tip = path[4] + Vector3.new(fork * 1.2, 1.2, 4.4)
+				voxelStairs(v, tailParts, "Fork", path[4], tip, Vector2.new(0.6, 0.6), deep, 1.6)
+				v.box(tailParts, "ForkTip", tip + Vector3.new(0, 0.3, 0.5), Vector3.new(0.6, 0.6, 1), darkest)
+			end
 		end
 		v.swing(tailParts, Vector3.new(0, 7.2, 3.6), Vector3.xAxis, 0.18, 5, 1, false, nil, "Tail")
 		rig.family = "Bird"
@@ -5919,6 +6410,28 @@ end
 
 local meshCache: { [string]: MeshPart } = {}
 local meshLoading: { [string]: boolean } = {}
+local meshReadyCallbacks: { (petId: string) -> () } = {}
+local meshAnnounced: { [string]: boolean } = {}
+
+-- Si ya están cargadas todas las mallas de la mascota.
+local function meshesReady(petId: string): boolean
+	local meshes = PetMeshes[petId]
+	if not meshes then
+		return false
+	end
+	for _, entry in meshes.parts do
+		if entry.mesh == "" or entry.texture == "" or not meshCache[entry.mesh] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Avisa (una vez por mascota) cuando sus mallas acaban de cargar: quien ya construyó la mascota con bloques (el
+-- cliente la construye al entrar, antes de que lleguen las mallas) la reconstruye entonces.
+function PetModels.onMeshesReady(callback: (petId: string) -> ())
+	table.insert(meshReadyCallbacks, callback)
+end
 
 -- Pide a Roblox las mallas de una mascota, cada una en su hilo; `build` las usa cuando ya están todas.
 function PetModels.preload(petId: string)
@@ -5939,6 +6452,12 @@ function PetModels.preload(petId: string)
 					warn(`[PetModels] No se pudo cargar la malla de {petId}: {mesh}`)
 				end
 				meshLoading[entry.mesh] = nil
+				if meshesReady(petId) and not meshAnnounced[petId] then
+					meshAnnounced[petId] = true
+					for _, callback in meshReadyCallbacks do
+						task.spawn(callback, petId)
+					end
+				end
 			end)
 		end
 	end
@@ -6121,14 +6640,9 @@ function PetModels.build(petId: string, skinId: string?, boxesOnly: boolean?): M
 	-- Mallas (Fase 21): solo la mascota sin skin, y solo cuando ya han cargado todas; si no, se queda con bloques y las pide.
 	local meshes = PetMeshes[petId]
 	if meshes and not skin and not boxesOnly then
-		local ready = true
-		for _, entry in meshes.parts do
-			if entry.mesh == "" or entry.texture == "" or not meshCache[entry.mesh] then
-				ready = false
-			end
-		end
-		if ready then
+		if meshesReady(petId) then
 			applyMeshes(model, rigs[model], meshes, pet.size)
+			model:SetAttribute("Meshed", true)
 		else
 			PetModels.preload(petId)
 		end

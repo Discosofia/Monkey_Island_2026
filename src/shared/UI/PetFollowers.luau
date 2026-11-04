@@ -83,7 +83,6 @@ local function smoothstep(edge0: number, edge1: number, x: number): number
 end
 
 function PetFollowers.start()
-	PetModels.preloadAll()
 	local followers: { [Player]: Follower } = {}
 	local localPlayer = Players.LocalPlayer
 	local folder = Instance.new("Folder")
@@ -148,6 +147,25 @@ function PetFollowers.start()
 		end)
 		sync(player)
 	end
+	-- Las mallas con textura (Data/PetMeshes) tardan en llegar: la mascota que ya se construyó con bloques se
+	-- reconstruye cuando acaban de cargar las de su especie.
+	PetModels.onMeshesReady(function(petId)
+		local stale: { Player } = {}
+		for player, current in followers do
+			if current.petId == petId and current.skinId == nil and not current.model:GetAttribute("Meshed") then
+				table.insert(stale, player)
+			end
+		end
+		for _, player in stale do
+			local current = followers[player]
+			if current then
+				current.model:Destroy()
+				followers[player] = nil
+				sync(player)
+			end
+		end
+	end)
+	PetModels.preloadAll()
 	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do
 		watch(player)

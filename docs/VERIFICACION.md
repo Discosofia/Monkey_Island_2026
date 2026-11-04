@@ -4532,6 +4532,23 @@ Con CapCut cerrado, en los borradores `quetzalcoatl-mejora-es-v1` y `quetzalcoat
 6. [ ] Mide los minutos de retoque hasta exportar.
    ✅ 5 min o menos (objetivo).
 
+## 116. Fase 20 Q5c: tanda A de mascotas con malla (Colibrí, Guacamaya y Quetzal) (04-11-2026)
+
+Las tres aves se rehicieron en bloques y son ahora 5 mallas cada una (`Static`, `Head`, `WingL`, `WingR`, `Tail`; `Data/PetMeshes`). Triángulos de las mallas: Colibrí 1.094, Guacamaya 1.978 y Quetzal 2.598 (topes 2.800 las dos estándar y 5.600 el Quetzal, que es mítica y tiene su excepción en `Config.Budgets.Exceptions`: 320 piezas, 150 animadas, 5.600 triángulos); 6 piezas en juego cada una. Cambios de diseño: las colas pasaron de vigas inclinadas a escalones de bloques (ayudante `voxelStairs`) y las plumas se pintan en filas (`voxelScales`); Colibrí y Guacamaya con la barriga que engrosa en escalones; el Colibrí un 22 % más estrecho; el Quetzal un 16 % más estrecho, con las dos plumas largas con estandarte y la punta bifurcada, collar y hombreras doradas y mechones en la cresta; el hueco entre el pecho y la barriga de la Guacamaya, corregido. Tras la primera prueba del usuario se arreglaron las patas del Quetzal (los dedos de 0,4 quedaban en 0,34 con su factor de anchura y se pintaban sobre la pata: ahora 0,5, y la malla del cuerpo pasó a 2.742 triángulos, reimportada solo `Quetzal_Static`). Comprobado el 04-11-2026 en Edit (las mallas y los bloques miden lo mismo) y en Play (alas, cola y cabeza se mueven con su articulación y el cuerpo queda fijo). Sin probar lo de abajo. Papeleo con `tools/mascota.py`. Tras la primera prueba del usuario en Play se vio que la mascota equipada salía en bloques: `PetFollowers` la construye al entrar, antes de que lleguen las mallas, y no la rehacía. Ahora `PetModels.onMeshesReady` avisa al cargar las mallas de su especie y `PetFollowers` la reconstruye (atributo `Meshed` del modelo); comprobado en Play con el Quetzal equipado.
+
+### 116.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa cada una (panel de pruebas) y camina, párate y salta.
+   ✅ Vuela a su altura con la malla (no bloques); las alas baten a la vez sin separarse del cuerpo; la cola se mueve; sin piezas sueltas.
+2. [ ] Míralas de frente con buena luz.
+   ✅ Colibrí: gorguera magenta, pecho lila y antifaz; Guacamaya: cara blanca con líneas rojas, pico claro y mandíbula negra, sin hueco entre pecho y barriga; Quetzal: peto en escamas, cresta con mechones.
+3. [ ] Míralas de espaldas y de cerca.
+   ✅ Colibrí con el abanico de plumas separadas; Guacamaya con la cola roja y azul en escalones; Quetzal con las dos plumas largas con estandarte y la horquilla en las puntas.
+4. [ ] Mide `Rendimiento` con las mallas cargadas (M4 aún no las cuenta) y mira que el Quetzal no dé alerta con su excepción.
+   ✅ Sin alertas nuevas de mascotas.
+5. [ ] Míralas en el nido y las vitrinas del Lobby, el Armario y `RewardModels`, y pon la skin de mascota que valga para cada una.
+   ✅ Con malla y textura; con skin, bloques con su paleta.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
