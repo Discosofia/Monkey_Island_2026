@@ -973,12 +973,16 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	coat = tone(rig, "coat", coat)
 	local crystal = options.crystal == true
 	local glassy = crystal and not skinned
+	if glassy then
+		-- Vidrio azul profundo (no blanco): con el núcleo de neón dentro tiene profundidad y contraste.
+		coat = coat:Lerp(Color3.fromRGB(35, 105, 220), 0.55)
+	end
 	-- Versión con malla (Fase 21, Q5 tanda D): sin skin ni cristal. Cráneo redondeado, pelo y uñas pintados en la
 	-- textura, y las orejas en grupos propios (se quedan en bloques). Con skin o de cristal, el modelo de siempre.
 	local rich = palette == nil and not crystal
 	local slim = options.slim == true
 	local spots = if palette and palette.spots then palette.spots else options.spots
-	local material = if glassy then Enum.Material.Glacier else Enum.Material.SmoothPlastic
+	local material = if glassy then Enum.Material.Glass else Enum.Material.SmoothPlastic
 	local light = coat:Lerp(WHITE, 0.45)
 	local pale = coat:Lerp(WHITE, 0.22)
 	local belly = tone(rig, "belly", if spots and not crystal then coat:Lerp(WHITE, 0.78) else coat:Lerp(WHITE, 0.18))
@@ -1025,6 +1029,9 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			color,
 			if crystal and color == spots then Enum.Material.Neon else material
 		)
+		if crystal and color == spots then
+			part.Color = color:Lerp(BLACK, 0.5) -- las manchas de neón brillan a la mitad
+		end
 		if list then
 			table.insert(list, part)
 		end
@@ -1056,7 +1063,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			return
 		end
 		-- El de cristal lleva menos: sus manchas brillan y además tiene los cristales.
-		local odds = if crystal then chance * 0.6 else chance
+		local odds = if crystal then chance * 0.4 else chance
 		local v = normal:Cross(u)
 		local nu, nv = math.max(1, math.floor(size.X / step)), math.max(1, math.floor(size.Y / step))
 		for i = 1, nu do
@@ -1178,6 +1185,43 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 		)
 	end
 
+	-- Pieza opaca (marco, pata, gema) o de neón dentro de un cuerpo de vidrio: no se vuelve transparente.
+	local function solid(
+		list: { BasePart }?,
+		name: string,
+		center: Vector3,
+		size: Vector3,
+		color: Color3,
+		neon: boolean?
+	): BasePart
+		local part = box(list, name, center, size, color)
+		part.Material = if neon then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		-- El neón del jaguar de cristal brilla a la mitad: el mismo color a medio valor emite la mitad de luz.
+		part.Color = if neon then color:Lerp(BLACK, 0.5) else color
+		part.Transparency = 0
+		return part
+	end
+	if glassy and spots then
+		-- Jaguar de cristal facetado: núcleo de energía dentro del vidrio del pecho y de la cadera, tira oscura opaca por
+		-- el lomo y, delante, una gema de neón engastada en un marco oscuro.
+		solid(nil, "Core", Vector3.new(0, centerY, -3.2), Vector3.new(bodyW - 2.6, bodyH - 2.6, 8.4), spots, true)
+		solid(hipParts, "Core", Vector3.new(0, centerY, 5.5), Vector3.new(hipW - 2.6, bodyH - 2.6, 5), spots, true)
+		solid(nil, "Frame", Vector3.new(0, top + 0.2, -4), Vector3.new(1.4, 0.4, 10), dark)
+		solid(hipParts, "Frame", Vector3.new(0, top + 0.2, 5.4), Vector3.new(1.4, 0.4, 7.6), dark)
+		local gemZ = -bodyL / 2
+		solid(nil, "GemFrame", Vector3.new(0, bottom + 2.4, gemZ - 0.15), Vector3.new(3.6, 4.6, 0.5), dark)
+		solid(nil, "Gem", Vector3.new(0, bottom + 2.4, gemZ - 0.55), Vector3.new(2.6, 3.6, 0.4), spots, true)
+		solid(
+			nil,
+			"Gem",
+			Vector3.new(0, bottom + 2.4, gemZ - 0.9),
+			Vector3.new(1.5, 2.4, 0.4),
+			spots:Lerp(WHITE, 0.5),
+			true
+		)
+		solid(nil, "GemFrame", Vector3.new(0, bottom + 0.1, gemZ - 0.15), Vector3.new(1.8, 0.5, 0.5), dark)
+	end
+
 	if rich then
 		-- Grupa en relieve y el pelo pintado por el lomo, los costados, la grupa y el pecho (como el perro). Lo de la
 		-- cadera va con la articulación de la cintura (grupo J1 de la malla).
@@ -1285,7 +1329,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	local faceLength = headSize.Z - rearLength
 	local backCut = chamfer * 0.7
 	local rearCenter = head.Z + headSize.Z / 2 - rearLength / 2
-	if rich then
+	if rich or crystal then
 		-- Cráneo redondeado en vez de un cubo (como el del perro): la bóveda de atrás tiene las aristas en dos escalones
 		-- y la nuca cortada; la cara de delante es plana y llega al ancho de la bóveda, para que las rayas de la
 		-- mejilla se apoyen en las dos.
@@ -1502,6 +1546,16 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				Vector2.new(1.3, 1.16),
 				tones(coat),
 				0.06
+			)
+		end
+		if glassy then
+			-- Ceño oscuro y opaco sobre cada ojo, que lo hace mirar fijo.
+			solid(
+				headParts,
+				"Brow",
+				Vector3.new(side * 1.75 * s, head.Y + 1.3 * s, front - 0.1),
+				Vector3.new(2.4 * s, 0.7, 0.8),
+				dark
 			)
 		end
 		-- Rayas de la mejilla, del rabillo del ojo hacia atrás.
@@ -1817,6 +1871,32 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				0.06
 			)
 		end
+		if glassy and spots then
+			solid(
+				upper,
+				"LegCore",
+				Vector3.new(x, (knee + upperTop) / 2, z),
+				Vector3.new(thick - 1.6, upperTop - knee - 0.8, thick - 1.6),
+				spots,
+				true
+			)
+			solid(
+				lower,
+				"LegCore",
+				Vector3.new(x, (1.6 + knee) / 2, z),
+				Vector3.new(math.max(0.6, shin - 1.4), knee - 1.6, math.max(0.6, shin - 1.4)),
+				spots,
+				true
+			)
+			solid(lower, "KneeRing", Vector3.new(x, knee + 0.1, z), Vector3.new(shin + 0.6, 0.6, shin + 0.6), dark)
+			for _, part in lower do
+				if part.Name == "Paw" then
+					part.Color, part.Material, part.Transparency = dark, Enum.Material.SmoothPlastic, 0
+				elseif part.Name == "Toe" then
+					part.Color, part.Material, part.Transparency = spots:Lerp(BLACK, 0.5), Enum.Material.Neon, 0
+				end
+			end
+		end
 		local thigh: Joint? = nil
 		for _, part in upper do
 			thigh = joint(
@@ -1871,6 +1951,19 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				material
 			),
 		}
+		if glassy and spots then
+			local core = piece(
+				rig,
+				"TailCore",
+				"Block",
+				Vector3.new(math.max(0.7, tailWidth - 0.9), math.max(0.7, tailWidth - 0.9), segment + 0.2) * VOXEL,
+				frame,
+				spots,
+				Enum.Material.Neon
+			)
+			core.Color = core.Color:Lerp(BLACK, 0.5) -- el neón brilla a la mitad
+			table.insert(parts, core)
+		end
 		local band = if crystal then nil else spots
 		if band and i > 1 then
 			table.insert(
@@ -1898,6 +1991,37 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				if crystal then Enum.Material.Neon else material
 			)
 			table.insert(parts, tipPart)
+			if glassy then
+				-- Cola que acaba en un cristal grande: tres escalones de vidrio azul que se estrechan hacia la punta, con el
+				-- núcleo de neón dentro.
+				local glass = Color3.fromRGB(70, 150, 245):Lerp(spots or coat, 0.25)
+				for index, size in { { 2.4, 1.6, 0 }, { 1.7, 1.4, 1.5 }, { 1, 1.2, 2.8 } } do
+					local shell = piece(
+						rig,
+						"TailCrystal",
+						"Block",
+						Vector3.new(tailWidth + size[1], tailWidth + size[1], size[2]) * VOXEL,
+						tip * CFrame.new(0, 0, -(size[3] + 0.2) * VOXEL),
+						glass,
+						material
+					)
+					table.insert(parts, shell)
+					if index == 3 then
+						table.insert(
+							parts,
+							piece(
+								rig,
+								"TailCrystalCore",
+								"Block",
+								Vector3.new(tailWidth * 0.5, tailWidth * 0.5, 3.4) * VOXEL,
+								tip * CFrame.new(0, 0, -1.2 * VOXEL),
+								spots or coat,
+								Enum.Material.Neon
+							)
+						)
+					end
+				end
+			end
 		end
 		local last: Joint? = nil
 		for _, part in parts do
@@ -1924,7 +2048,23 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	if glassy then
 		for _, part in rig.model:GetChildren() do
 			if part:IsA("BasePart") and part.Material == material then
-				part.Transparency = 0.15
+				part.Transparency = 0.3
+			elseif part:IsA("BasePart") and part.Name == "TailCrystalCore" then
+				part.Color = part.Color:Lerp(BLACK, 0.5) -- el neón del cristal brilla a la mitad
+			end
+		end
+	end
+	if glassy and spots then
+		-- Cabeza de cristal: núcleo de neón dentro del cráneo, hocico y barbilla de un azul oscuro y opaco que contrasta con el
+		-- vidrio, y la nariz de neón.
+		solid(headParts, "HeadCore", head, Vector3.new(headSize.X - 3, headSize.Y - 2.4, headSize.Z - 2.2), spots, true)
+		for _, part in headParts do
+			if part.Name == "Muzzle" or part.Name == "Jaw" then
+				part.Color, part.Material, part.Transparency = dark:Lerp(coat, 0.35), Enum.Material.SmoothPlastic, 0
+			elseif part.Name == "Chin" then
+				part.Color, part.Material, part.Transparency = dark, Enum.Material.SmoothPlastic, 0
+			elseif part.Name == "Nose" then
+				part.Color, part.Material, part.Transparency = spots:Lerp(BLACK, 0.5), Enum.Material.Neon, 0
 			end
 		end
 	end
@@ -1974,15 +2114,21 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	}
 end
 
--- Cristales del Jaguar de cristal voxel: bloques de vidrio escalonados que se estrechan hacia la
--- punta, con un núcleo que brilla dentro, en el lomo, los hombros y la frente (este gira con la
--- cabeza). Medidas en studs a escala 1, sobre el cuerpo de voxelCat.
+-- Cristales del Jaguar de cristal voxel: bloques de vidrio escalonados que se estrechan hacia la punta, con un núcleo
+-- que brilla dentro. Una cresta de siete por el lomo (el del medio, el más alto), tres racimos en cada hombro, dos en
+-- cada cadera y, en la cabeza (que gira con ella), un cuerno en la frente con dos más pequeños a los lados y un
+-- colmillo de cristal en cada mejilla. Medidas en studs a escala 1, sobre el cuerpo de voxelCat.
 local function voxelCrystals(rig: Rig, color: Color3, glow: Color3)
-	local function crystal(base: Vector3, tilt: Vector3, height: number, width: number): { BasePart }
+	local function crystal(base: Vector3, tilt: Vector3, height: number, width: number, compact: boolean?): { BasePart }
 		local frame = CFrame.new(base) * CFrame.Angles(tilt.X, tilt.Y, tilt.Z)
 		local parts = {}
-		for step, size in { Vector3.new(1, 0.5, 1), Vector3.new(0.62, 0.42, 0.62), Vector3.new(0.3, 0.3, 0.3) } do
-			local y = ({ 0.25, 0.68, 0.93 })[step]
+		-- Los pequeños de la cabeza llevan solo dos escalones (cada pieza animada cuenta contra el presupuesto).
+		local steps = if compact
+			then { Vector3.new(0.9, 0.6, 0.9), Vector3.new(0.4, 0.4, 0.4) }
+			else { Vector3.new(1, 0.5, 1), Vector3.new(0.62, 0.42, 0.62), Vector3.new(0.3, 0.3, 0.3) }
+		local heights = if compact then { 0.3, 0.8 } else { 0.25, 0.68, 0.93 }
+		for step, size in steps do
+			local y = heights[step]
 			local shell = piece(
 				rig,
 				"Crystal",
@@ -1995,18 +2141,17 @@ local function voxelCrystals(rig: Rig, color: Color3, glow: Color3)
 			shell.Transparency = 0.2
 			table.insert(parts, shell)
 		end
-		table.insert(
-			parts,
-			piece(
-				rig,
-				"CrystalCore",
-				"Block",
-				Vector3.new(width * 0.3, height * 0.75, width * 0.3),
-				frame * CFrame.new(0, height * 0.38, 0),
-				glow,
-				Enum.Material.Neon
-			)
+		local core = piece(
+			rig,
+			"CrystalCore",
+			"Block",
+			Vector3.new(width * 0.3, height * 0.75, width * 0.3),
+			frame * CFrame.new(0, height * 0.38, 0),
+			glow,
+			Enum.Material.Neon
 		)
+		core.Color = glow:Lerp(BLACK, 0.5) -- el neón brilla a la mitad
+		table.insert(parts, core)
 		-- Los de detrás de la cintura se doblan con la cadera.
 		local bend = rig.bend
 		if bend and base.Z > 0.05 then
@@ -2016,19 +2161,47 @@ local function voxelCrystals(rig: Rig, color: Color3, glow: Color3)
 		end
 		return parts
 	end
-	-- Lomo, de delante atrás y cada vez más bajos, alternando un poco de lado.
-	crystal(Vector3.new(0.06, 0.3, -0.5), Vector3.new(-0.15, 0, -0.12), 0.62, 0.24)
-	crystal(Vector3.new(-0.08, 0.3, -0.08), Vector3.new(0.1, 0, 0.2), 0.5, 0.22)
-	crystal(Vector3.new(0.05, 0.3, 0.35), Vector3.new(0.2, 0, -0.15), 0.42, 0.2)
-	crystal(Vector3.new(-0.03, 0.3, 0.72), Vector3.new(0.3, 0, 0.1), 0.3, 0.16)
-	for _, side in { -1, 1 } do
-		crystal(Vector3.new(side * 0.34, 0.15, -0.72), Vector3.new(0, 0, -side * 0.7), 0.34, 0.16)
+	-- Cresta del lomo: de delante atrás, subiendo hasta el del medio y bajando hacia la cola, alternando de lado.
+	for index, spec in
+		{
+			{ -0.62, 0.55, 0.26, -0.2 },
+			{ -0.38, 0.8, 0.3, -0.12 },
+			{ -0.12, 1, 0.34, 0.04 },
+			{ 0.14, 0.9, 0.32, 0.14 },
+			{ 0.38, 0.74, 0.28, 0.24 },
+			{ 0.62, 0.58, 0.24, 0.32 },
+			{ 0.85, 0.42, 0.2, 0.42 },
+		}
+	do
+		local lean = if index % 2 == 0 then 0.12 else -0.12
+		crystal(
+			Vector3.new(if index % 2 == 0 then 0.04 else -0.04, 0.3, spec[1]),
+			Vector3.new(spec[4], 0, lean),
+			spec[2],
+			spec[3]
+		)
 	end
-	-- En la frente, inclinado hacia delante: gira con la cabeza (bisagra de la nuca de voxelCat).
-	for _, part in crystal(Vector3.new(0, 0.66, -1.42), Vector3.new(-0.5, 0, 0), 0.28, 0.16) do
-		local item = joint(rig, part, CFrame.new(0, 0.22, -0.825), Vector3.yAxis, 0.25, 0.9, 0, false)
-		item.bone = "Head"
-		item.bend = 0.5
+	for _, side in { -1, 1 } do
+		-- Racimo del hombro: uno grande hacia fuera y dos más pequeños.
+		crystal(Vector3.new(side * 0.34, 0.2, -0.72), Vector3.new(0, 0, -side * 0.95), 0.55, 0.2)
+		crystal(Vector3.new(side * 0.3, 0.3, -0.55), Vector3.new(0.15, 0, -side * 0.5), 0.45, 0.18)
+		crystal(Vector3.new(side * 0.28, 0.3, -0.85), Vector3.new(-0.2, 0, -side * 0.55), 0.35, 0.16)
+		-- Cadera: dos hacia fuera y atrás.
+		crystal(Vector3.new(side * 0.3, 0.25, 0.62), Vector3.new(0.4, 0, -side * 0.8), 0.45, 0.2)
+		crystal(Vector3.new(side * 0.28, 0.3, 0.4), Vector3.new(0.2, 0, -side * 0.5), 0.35, 0.16)
+	end
+	-- Cabeza: bisagra de la nuca de voxelCat. Cuerno y colmillos giran con ella.
+	local function headCrystal(base: Vector3, tilt: Vector3, height: number, width: number, compact: boolean?)
+		for _, part in crystal(base, tilt, height, width, compact) do
+			local item = joint(rig, part, CFrame.new(0, 0.22, -0.825), Vector3.yAxis, 0.25, 0.9, 0, false)
+			item.bone = "Head"
+			item.bend = 0.5
+		end
+	end
+	headCrystal(Vector3.new(0, 0.66, -1.42), Vector3.new(-0.5, 0, 0), 0.5, 0.2)
+	for _, side in { -1, 1 } do
+		headCrystal(Vector3.new(side * 0.14, 0.64, -1.36), Vector3.new(-0.4, 0, side * 0.35), 0.33, 0.14, true)
+		headCrystal(Vector3.new(side * 0.38, 0.3, -1.22), Vector3.new(0.4, 0, -side * 1.3), 0.38, 0.16, true)
 	end
 end
 
@@ -3465,16 +3638,17 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		-- Corazón de luz en el pecho, que se ve a través del cristal.
 		local heart =
 			piece(rig, "Heart", "Ball", Vector3.one * 0.3, CFrame.new(0, 0.05, -0.65), glow, Enum.Material.Neon)
+		heart.Color = glow:Lerp(BLACK, 0.5)
 		local light = Instance.new("PointLight")
 		light.Color = if rig.palette then glow else color
 		light.Range = 8
-		light.Brightness = 1.2
+		light.Brightness = 0.6 -- la mitad que antes
 		light.Parent = heart
 		-- Con una skin no: sus chispas las pone la skin.
 		local body = rig.model:FindFirstChild("Body")
 		if body and not rig.palette then
 			local sparkles = Instance.new("Sparkles")
-			sparkles.SparkleColor = color
+			sparkles.SparkleColor = color:Lerp(BLACK, 0.5) -- destellos a media intensidad
 			sparkles.Parent = body
 		end
 		return "Walk"

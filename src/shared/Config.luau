@@ -2403,6 +2403,7 @@ local Config = {
 			Beagle = { PetAnimated = 130 },
 			Labrador = { PetTotal = 340, PetAnimated = 150, PetTriangles = 3700 },
 			Pointer = { PetTotal = 290, PetAnimated = 170, PetTriangles = 3300 },
+			JaguarCristal = { PetAnimated = 140, PetTriangles = 3200 }, -- mascota legendaria: núcleo, marcos, gema y cristales grandes (versión de bloques)
 			Jaguarundi = { PetAnimated = 150 },
 			Ocelote = { PetTotal = 380, PetAnimated = 220, PetTriangles = 4600 },
 			Nest = { Buildable = 50 }, -- construible único

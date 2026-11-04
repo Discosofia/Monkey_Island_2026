@@ -4737,6 +4737,21 @@ La última mascota de la tanda E (legendaria) se rehízo para la malla. Las 24 v
 4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
    ✅ Con su textura; sin tirones al cargar (3 texturas de 1024 de ancho).
 
+## 124. Fase 20 Q5i: rediseño del Jaguar de cristal, en bloques (04-11-2026)
+
+El Jaguar de cristal se queda **en bloques** (el vidrio y el neón no entran en la malla), pero se rehízo: cuerpo de vidrio azul profundo (antes blanco translúcido) con un **núcleo de neón** dentro del pecho, la cadera, el cráneo, las patas y la cola, tira oscura opaca por el lomo, gema de neón en dos capas engastada en un marco oscuro en el pecho, cabeza con el cráneo redondeado, ceño oscuro opaco sobre los ojos, hocico y barbilla de azul oscuro opaco y nariz de neón, zarpas oscuras con las rendijas de los dedos en neón y anillos oscuros en la rodilla. **Cristales** más grandes y el doble (22): cresta de siete por el lomo, racimos de tres por hombro y dos por cadera, cuerno en la frente con dos más pequeños y un colmillo de cristal en cada mejilla (giran con la cabeza); la cola acaba en un cristal de tres escalones con núcleo. **El brillo que emite va a la mitad**: el neón (núcleos, gema, garras, nariz, manchas y cristales) usa el color a medio valor, la luz del corazón baja de 1,2 a 0,6 y los destellos (`Sparkles`) a media intensidad; los ojos siguen igual. Con skin (la de Magma y las de la familia Felino) se conserva el cuerpo de la skin, pero lleva los cristales nuevos. 219 piezas y 2.828 triángulos (antes 138): excepción de `Config.Budgets` (`PetAnimated` 140, `PetTriangles` 3.200); `Rendimiento` sin alertas (la skin de Magma, 108 piezas animadas de 110). Comprobado el 04-11-2026 en Edit: vistas de frente, 3/4 y de espaldas. **No probado en Play** (andar, cola, cristales de la cabeza girando, destellos).
+
+### 124.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa el Jaguar de cristal, camina, corre, gira y párate.
+   ✅ Núcleo cian visible a través del vidrio sin cegar; la cola y las patas andan; los cristales de la cabeza giran con ella; sin piezas sueltas ni cristales atravesando el cuerpo.
+2. [ ] Míralo de frente, de lado y de espaldas con buena luz y por la noche.
+   ✅ Se lee como cristal facetado, no blanco; la gema del pecho y las garras brillan a media intensidad (más suave que antes); los destellos no tapan el modelo.
+3. [ ] Ponle la skin de jaguar de lava y quítala.
+   ✅ Con skin, su cuerpo y sus colores con los cristales nuevos; sin skin, el de cristal.
+4. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Sin tirones al cargar (219 piezas).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
