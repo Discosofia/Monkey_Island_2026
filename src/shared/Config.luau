@@ -500,18 +500,24 @@ local Config = {
 	-- servidor paso a paso, y dan a quien encuentran por el camino. Se pueden esquivar, bloquear y parar.
 	Projectiles = {
 		WeaponRadius = 0.6, -- radio (studs) del disparo de un arma
-		-- Ayuda de puntería (CombatService.aimShot): solo elige la dirección de salida, y solo si la línea de
-		-- tiro ya pasa casi por el blanco: su centro a menos de MonkeyAimStuds de ella (de lejos, dentro de
-		-- MonkeyAimMinDegrees). Así, apuntando entre dos monos el disparo pasa entre ellos (con un cono de
-		-- 10–12°, y 30° de cerca, se iba al de al lado). Contra monos apunta adonde estará al llegar (como
-		-- mucho LeadMaxSeconds por delante); contra jugadores, más estrecho (PlayerAim…) y adonde está: se
-		-- pueden apartar. De cerca (Config.Combat.CloseAimRange) un mono pequeño queda por debajo de la
-		-- línea de la cámara: ahí solo cuenta la distancia en horizontal. Igual para todos los dispositivos.
-		MonkeyAimStuds = 2.5,
-		MonkeyAimMinDegrees = 2,
-		PlayerAimStuds = 1.5,
-		PlayerAimMinDegrees = 1,
+		-- Contra monos, la ayuda de puntería (Config.AimAssist) apunta adonde estarán al llegar el proyectil
+		-- (como mucho LeadMaxSeconds por delante); contra jugadores, adonde están: se pueden apartar.
 		LeadMaxSeconds = 0.8,
+	},
+
+	-- Ayuda de puntería (CombatService.aimShot): solo la recibe quien usa un control táctil (el servidor lo
+	-- sabe por Remotes.ReportInput, AimInputService); PC y mando apuntan a mano. Solo elige la dirección de
+	-- salida, y solo si la línea de tiro ya pasa casi por el blanco: su centro a menos de "Studs" de ella
+	-- (de lejos, dentro de "MinDegrees"). Así, apuntando entre dos blancos el disparo pasa entre ellos.
+	-- De cerca (Config.Combat.CloseAimRange) un mono pequeño queda por debajo de la línea de la cámara: ahí
+	-- solo cuenta la distancia en horizontal. El perfil lo elige cada place (CombatRules.aimAssistProfile).
+	-- Los hechizos de cono (Rayo en cadena, Rayo de lava) no usan esto: su cono es igual para todos.
+	AimAssist = {
+		SwitchDelaySeconds = 0.5, -- pasar a táctil no cuenta hasta pasado esto (a ratón o mando, al momento)
+		ReportMinInterval = 0.2, -- mínimo entre avisos del tipo de control (cliente y servidor)
+		Touch = { MonkeyStuds = 3.5, MonkeyMinDegrees = 3, PlayerStuds = 2, PlayerMinDegrees = 1.5 },
+		-- Laboratorio: igual contra monos, más estrecha contra jugadores.
+		Lab = { MonkeyStuds = 3.5, MonkeyMinDegrees = 3, PlayerStuds = 1.5, PlayerMinDegrees = 1 },
 	},
 
 	-- Compensación del lag (C2, C3, C5): margen a favor del defensor o del atacante, igual para todos y

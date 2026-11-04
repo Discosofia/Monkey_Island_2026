@@ -52,6 +52,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local BodyZones = require(ReplicatedStorage.Shared.Zones)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
+local AimInputService = require(script.Parent.AimInputService)
 local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
 local CombatRules = require(script.Parent.Parent.CombatRules)
@@ -873,16 +874,18 @@ local function closestOnAxis(origin: Vector3, aim: Vector3, a: Vector3, b: Vecto
 	return a + axis * math.clamp(t, 0, 1)
 end
 
--- Ayuda de puntería de un disparo (C9): la dirección con la que sale desde "origin". Solo engancha a
--- quien la línea de tiro ya casi toca (Config.Projectiles): apuntando entre dos, el disparo pasa entre
--- ellos. Entre los que se ven a menos de "range", el más cercano a la línea:
---   - un mono vivo a menos de MonkeyAimStuds de ella (de lejos, dentro de MonkeyAimMinDegrees),
+-- Ayuda de puntería de un disparo (C9): la dirección con la que sale desde "origin". Solo la recibe quien
+-- usa un control táctil (AimInputService; PC y mando apuntan a mano) y si el place la permite
+-- (CombatRules.aimAssist). Solo engancha a quien la línea de tiro ya casi toca (Config.AimAssist, perfil
+-- CombatRules.aimAssistProfile): apuntando entre dos, el disparo pasa entre ellos. Entre los que se ven a
+-- menos de "range", el más cercano a la línea:
+--   - un mono vivo a menos de MonkeyStuds de ella (de lejos, dentro de MonkeyMinDegrees),
 --     apuntando adonde estará al llegar el proyectil (leadPoint, con el punto del cuerpo de abajo);
---   - un jugador rival (o, con "allies", un aliado vivo) a menos de PlayerAimStuds (PlayerAimMinDegrees),
+--   - un jugador rival (o, con "allies", un aliado vivo) a menos de PlayerStuds (PlayerMinDegrees),
 --     apuntando adonde está: se puede apartar.
 -- Se engancha al punto del cuerpo (de los pies a la cabeza) más cercano a la línea de tiro, no a la raíz:
--- así apuntar a la cabeza no la pierde (Fase 19, W6). Sin CombatRules.aimAssist (el Laboratorio), sale hacia
--- "aim" sin más.
+-- así apuntar a la cabeza no la pierde (Fase 19, W6). Sin control táctil sale hacia "aim" sin más, salvo
+-- con "allies" (el Dardo curativo): ahí se engancha, con el perfil Touch, solo a los aliados vivos.
 -- El proyectil va recto desde ahí: no persigue a nadie. Sin nadie, sale hacia "aim".
 function CombatService.aimShot(
 	player: Player,
@@ -892,10 +895,17 @@ function CombatService.aimShot(
 	speed: number,
 	allies: boolean?
 ): Vector3
-	if not CombatRules.get().aimAssist then
+	local rules = CombatRules.get()
+	if not rules.aimAssist then
 		return aim
 	end
-	local settings = Config.Projectiles
+	local touch = AimInputService.isTouch(player)
+	-- Sin control táctil, solo el Dardo curativo se engancha, y solo a aliados.
+	local alliesOnly = not touch
+	if alliesOnly and allies ~= true then
+		return aim
+	end
+	local settings = Config.AimAssist[if touch then rules.aimAssistProfile else "Touch"]
 	local best: Vector3? = nil
 	local bestOff = math.huge
 	for _, model in Hitbox.inSphere(origin, range, { exclude = player.Character }) do
@@ -905,14 +915,15 @@ function CombatService.aimShot(
 			local victim = Players:GetPlayerFromCharacter(model)
 			local valid, studs, degrees, isPlayer
 			if victim then
-				valid = CombatService.canHitPlayer(player, victim)
-					or (allies == true and LifeState.isAlive(victim) and CombatRules.get().isAlly(player, victim))
-				studs, degrees, isPlayer = settings.PlayerAimStuds, settings.PlayerAimMinDegrees, true
+				local ally = allies == true and LifeState.isAlive(victim) and rules.isAlly(player, victim)
+				valid = ally or (touch and CombatService.canHitPlayer(player, victim))
+				studs, degrees, isPlayer = settings.PlayerStuds, settings.PlayerMinDegrees, true
 			else
 				-- Las dianas del campo de tiro (RangeTarget) no atraen la mira: ahí se mide la puntería propia.
-				valid = CollectionService:HasTag(model, Config.Combat.EnemyTag)
+				valid = touch
+					and CollectionService:HasTag(model, Config.Combat.EnemyTag)
 					and model:GetAttribute("RangeTarget") ~= true
-				studs, degrees, isPlayer = settings.MonkeyAimStuds, settings.MonkeyAimMinDegrees, false
+				studs, degrees, isPlayer = settings.MonkeyStuds, settings.MonkeyMinDegrees, false
 			end
 			if valid then
 				local feet, top = bodyAxis(model, root, humanoid)

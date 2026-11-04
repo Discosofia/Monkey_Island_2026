@@ -281,7 +281,7 @@ local function onTrace(data: any)
 	table.insert(made, marker)
 
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(260, 22)
+	gui.Size = UDim2.fromOffset(330, 22)
 	gui.StudsOffset = Vector3.new(0, 1.2, 0)
 	gui.AlwaysOnTop = true
 	gui.Adornee = marker
@@ -294,7 +294,8 @@ local function onTrace(data: any)
 	label.TextSize = 14
 	label.Size = UDim2.fromScale(1, 1)
 	label.Text = string.format(
-		"%d ms · ayuda %.1f° · rebobina %.2f s · %.0f st",
+		"%s · %d ms · ayuda %.1f° · rebobina %.2f s · %.0f st",
+		tostring(data.input or "?"),
 		data.pingMs or 0,
 		degrees,
 		data.rewind or 0,

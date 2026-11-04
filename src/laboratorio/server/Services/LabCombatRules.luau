@@ -8,6 +8,8 @@
 --     hace ni recibe daño: ni se dispara a quien está dentro ni desde dentro (LabWorldService.inBase).
 --   - Los números de las armas ya son los de PvP: los multiplicadores contra jugadores, a 1. Funciona
 --     todo lo que contra los monos: veneno, ralentizar y enredar (pvpStatus).
+--   - Puntería: PC y mando apuntan a mano; solo el control táctil tiene ayuda (perfil "Lab", más estrecho
+--     contra jugadores; Config.AimAssist, AimInputService).
 --   - Un golpe mortal no deja caído: cuenta la baja y se reaparece (LabRespawnService). Cada golpe anota
 --     quién hirió a quién (onPvPHit), para acreditar al último atacante si la víctima cae del mapa.
 --   - Cargador y dispersión (Fase 15, V8): cada arma tiene su cargador, recarga y dispersión
@@ -70,8 +72,9 @@ function LabCombatRules:Init()
 		pvpWeaponMultiplier = 1,
 		pvpStatus = true,
 		zones = true,
-		-- Se apunta a mano: sin ayuda que enganche el disparo.
-		aimAssist = false,
+		-- Solo el control táctil tiene ayuda de puntería, más estrecha contra jugadores (Config.AimAssist.Lab).
+		aimAssist = true,
+		aimAssistProfile = "Lab",
 	})
 end
 

@@ -4633,6 +4633,31 @@ El campo de tiro (v9) tiene un Armero en el muro derecho de la zona de preparaci
 1. [ ] Sin tocar el Armero, prueba en el campo el arco, el bastón y la cerbatana, y las habilidades del rol.
    ✅ Como antes del 24b: tercera persona, habilidades y guardia disponibles.
 
+## 120. Fase 24 grupo 24c: ayuda de puntería solo para el táctil (04-11-2026)
+
+`CombatService.aimShot` solo ayuda al jugador cuyo último control es táctil (`AimInputService`, avisado por `InputReporter` con `Remotes.ReportInput`); PC y mando apuntan a mano. Excepción: el Dardo curativo sigue enganchando a aliados con cualquier control. Números en `Config.AimAssist` (Touch: monos 3,5 studs / 3°, jugadores 2 / 1,5°; Lab: jugadores 1,5 / 1°). Los hechizos de cono (Rayo en cadena y Rayo de lava) no cambian. Comprobado el 04-11-2026 en Play en el Lobby, avisando por remoto: el atributo `AimInput` cambia y rechaza valores no válidos; con ratón, un disparo a 4 studs del eje del muñeco a 30 studs falla, y con táctil le da hasta unos 4,2 studs y falla a 5 y 6. Sin probar lo de abajo.
+
+### 120.1 En el emulador de teléfono de Studio (Isla o Lobby, en Play)
+
+1. [ ] Entra con el emulador de teléfono y mira el atributo `AimInput` del jugador en el Explorador.
+   ✅ Vale "Touch" al tocar la pantalla; al mover el ratón o pulsar una tecla (en el emulador) pasa a "Mouse", sin saltar a "Mouse" solo por el ratón simulado justo después de un toque.
+2. [ ] Cambia de ratón a táctil y dispara de inmediato contra un mono con la línea de tiro a unos 3 studs de él.
+   ✅ Durante el primer medio segundo no hay ayuda (el disparo pasa de largo); después, sí.
+3. [ ] Con táctil, dispara a un mono desde lejos (60 studs) y desde muy cerca (5 studs, por encima del hombro).
+   ✅ Le da con la ayuda; apuntando entre dos monos el disparo pasa entre ellos.
+
+### 120.2 Con dos jugadores (Dunas o Laboratorio)
+
+1. [ ] Uno con teléfono y otro con PC se disparan con la misma arma, desde 30 y 60 studs.
+   ✅ Solo el del teléfono recibe ayuda (más estrecha en el Laboratorio: 1,5 studs / 1°); ni el uno ni el otro se hacen daño en el Lobby.
+2. [ ] Con el rol Médico en PC, lanza el Dardo curativo apuntando a un aliado que se mueve.
+   ✅ Sigue enganchando al aliado; no engancha a monos ni rivales.
+
+### 120.3 Habilidades (regresión)
+
+1. [ ] Con ratón, usa el Disparo múltiple, la Flecha perforante y la Bola de fuego contra un mono.
+   ✅ Salen hacia donde miras, sin centrarse solos; el Rayo en cadena y el Rayo de lava siguen con su cono de 25°.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

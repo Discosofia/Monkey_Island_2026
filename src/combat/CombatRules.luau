@@ -113,9 +113,11 @@ export type Rules = {
 	-- extremidad, punto débil; Fase 19, W6, Shared/Zones) y los disparos a jugadores se prueban contra las
 	-- piezas rebobinadas (Combat/Hitbox.sweepBodies).
 	zones: boolean,
-	-- true: la ayuda de puntería engancha los disparos al objetivo más cercano a la línea de tiro
-	-- (CombatService.aimShot). El Laboratorio la quita: se apunta a mano.
+	-- true: el place permite la ayuda de puntería, que engancha los disparos al objetivo más cercano a la
+	-- línea de tiro (CombatService.aimShot) pero solo a quien usa un control táctil (AimInputService).
 	aimAssist: boolean,
+	-- Perfil de números de la ayuda en Config.AimAssist ("Touch" | "Lab").
+	aimAssistProfile: string,
 
 	-- Ritmo al que se recupera la estamina de "player" (1 = normal; Combat/StaminaServer).
 	staminaRegenFactor: (player: Player) -> number,
@@ -184,6 +186,7 @@ local rules: Rules = {
 	guard = true,
 	zones = true,
 	aimAssist = true,
+	aimAssistProfile = "Touch",
 	staminaRegenFactor = function()
 		return 1
 	end,

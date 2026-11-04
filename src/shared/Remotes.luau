@@ -50,6 +50,9 @@ local Remotes = {
 	-- Servidor -> cliente (Isla): has recogido algo (itemId, cantidad). Lo dibuja CombatTextController
 	-- en la columna de lo recogido, como los números de combate.
 	Loot = remoteEvent("Loot"),
+	-- Cliente -> servidor (los cuatro places): el último control que usa el jugador ("Touch" | "Mouse" |
+	-- "Gamepad"). Solo el táctil recibe la ayuda de puntería (Combat/AimInputService, Config.AimAssist).
+	ReportInput = remoteEvent("ReportInput"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.

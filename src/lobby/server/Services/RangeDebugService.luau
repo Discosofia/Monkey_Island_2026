@@ -48,6 +48,8 @@ local function onImpact(shooter: Player, position: Vector3, _instance: Instance?
 		aim = shot.aimDirection,
 		direction = shot.direction,
 		hit = position,
+		-- Control declarado del tirador (AimInputService): solo el táctil tiene ayuda; sin ella, 0° de ayuda.
+		input = shooter:GetAttribute("AimInput"),
 		pingMs = math.round(shooter:GetNetworkPing() * 1000),
 		rewind = shot.rewind or 0,
 	})
