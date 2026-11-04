@@ -13,6 +13,7 @@
 -- La suma de control la comprueba tools/mallas.py: avisa si algún número se estropea al copiar. Solo salen las
 -- partes de un lado: el izquierdo es su reflejo (`--espejo Left_Arm=Right_Arm`).
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -208,6 +209,129 @@ function Mallas.volcarMascota(petId: string, shared: Instance?, grupos: { string
 	print(
 		`Volcado de {petId} listo: size {pet.size}. Ejecuta python tools/mallas.py tools/mallas/{petId}.txt --del-log y luego --jefe {petId} --escala 1`
 	)
+end
+
+-- Volcado de una armadura o un traje (Fase 20 Q6): se viste un rig R15 de referencia (`CreateHumanoidModelFromDescription`
+-- con una HumanoidDescription vacía, lejos del mapa y sin BodyColors) con la armadura `armorId` de su rol `rol`, o con el
+-- traje `outfitId` en el grado `grado` (0..4; sin él, el de `armorId`), sin fusionar bloques y sin usar las mallas de
+-- Data/ArmorMeshes. De cada pieza que puede llevar la malla (`ArmorModels.meshableBox`) sale una línea en el espacio de su
+-- ancla, agrupada por `<Anclaje>_<Soft|Hard>` (Fabric y Leather, o el resto de materiales lisos); la izquierda y la derecha
+-- no se espejan. Mismos trozos `@@V` que las monturas y las mascotas, con el id `Armor_<armorId>_<rol>` o
+-- `Outfit_<outfitId>_<grado>`, y una línea `@@REF <id> <Anclaje> x y z` por ancla con su tamaño en el rig de referencia
+-- (`ref` de Data/ArmorMeshes). Al final cuenta las piezas que quedan sueltas por grupo y en total.
+--   local m = game.ServerStorage.Tools.Mallas:Clone()
+--   require(m).volcarArmadura("FurVest", "Guerrero", game.ReplicatedStorage.Shared:Clone())
+--   require(m).volcarArmadura(nil, "Cazador", game.ReplicatedStorage.Shared:Clone(), "BlueFireStalkerOutfit", 4)
+--   m:Destroy()
+-- Luego `python tools/armadura.py exportar Armor_FurVest_Guerrero` (ver su docstring).
+function Mallas.volcarArmadura(armorId: string?, rol: string, shared: Instance?, outfitId: string?, grado: number?)
+	local carpeta = (shared or ReplicatedStorage.Shared) :: Instance
+	-- La copia de Config del clon (la que usa su VoxelMerge): sin fusionar, para volcar las piezas tal como las construyen.
+	local config = require(carpeta.Config :: ModuleScript) :: any
+	config.Budgets.Merge = false
+	local ArmorModels = require(carpeta.ArmorModels :: ModuleScript) :: any
+	local id = if outfitId then `Outfit_{outfitId}_{grado or 0}` else `Armor_{armorId}_{rol}`
+	print(`Volcado de {id} empieza`)
+
+	local rig =
+		Players:CreateHumanoidModelFromDescription(Instance.new("HumanoidDescription"), Enum.HumanoidRigType.R15)
+	for _, hijo in rig:GetChildren() do
+		if hijo:IsA("BodyColors") then
+			hijo:Destroy()
+		end
+	end
+	rig.Parent = workspace
+	rig:PivotTo(CFrame.new(0, 4000, 4000))
+	local ok, err = pcall(function()
+		local modelo = ArmorModels.wear(rig, armorId, rol, outfitId, grado, true) :: Model?
+		assert(modelo, `{id}: no hay nada que vestir (¿armadura, rol o traje desconocidos?)`)
+
+		local lineasDe: { [string]: { string } } = {}
+		local sumas: { [string]: number } = {}
+		local sueltas: { [string]: number } = {}
+		local anclas: { [string]: Vector3 } = {}
+		for _, pieza in modelo:GetChildren() do
+			local ancla = if pieza:IsA("BasePart") then ArmorModels.anchorOf(pieza) else nil
+			if not ancla then
+				continue
+			end
+			local centro, tamano, grupo = ArmorModels.meshableBox(pieza, ancla)
+			if not (centro and tamano and grupo) then
+				-- Suelta: se cuenta en el grupo que tendría por su material (en las anclas que no son R15, en su nombre).
+				local clase = `{ancla.Name}_{ArmorModels.meshClass((pieza :: BasePart).Material)}`
+				sueltas[clase] = (sueltas[clase] or 0) + 1
+				continue
+			end
+			anclas[ancla.Name] = ancla.Size
+			local x, y, z =
+				tonumber(string.format("%.4f", centro.X)) :: number,
+				tonumber(string.format("%.4f", centro.Y)) :: number,
+				tonumber(string.format("%.4f", centro.Z)) :: number
+			local sx, sy, sz =
+				tonumber(string.format("%.4f", tamano.X)) :: number,
+				tonumber(string.format("%.4f", tamano.Y)) :: number,
+				tonumber(string.format("%.4f", tamano.Z)) :: number
+			local hex = (pieza :: BasePart).Color:ToHex()
+			sumas[grupo] = (sumas[grupo] or 0)
+				+ x
+				+ y * 3
+				+ z * 5
+				+ sx * 7
+				+ sy * 11
+				+ sz * 13
+				+ (tonumber(hex, 16) :: number) % 1000
+			lineasDe[grupo] = lineasDe[grupo] or {}
+			table.insert(lineasDe[grupo], string.format("%.4f %.4f %.4f %.4f %.4f %.4f %s", x, y, z, sx, sy, sz, hex))
+		end
+
+		local grupos: { string } = {}
+		for grupo in lineasDe do
+			table.insert(grupos, grupo)
+		end
+		table.sort(grupos)
+		local enMalla = 0
+		for _, grupo in grupos do
+			local lineas = lineasDe[grupo]
+			enMalla += #lineas
+			print(`Grupo {grupo}: {#lineas} bloques en malla, {sueltas[grupo] or 0} sueltos`)
+			table.insert(lineas, 1, `PART {grupo} {#lineas} {string.format("%.2f", sumas[grupo])}`)
+			table.insert(lineas, "END")
+			for desde = 1, #lineas, 18 do
+				print(
+					`@@V {grupo} {string.format("%02d", (desde - 1) // 18 + 1)}\n{table.concat(
+						lineas,
+						"\n",
+						desde,
+						math.min(desde + 17, #lineas)
+					)}`
+				)
+			end
+		end
+		local nombres: { string } = {}
+		for nombre in anclas do
+			table.insert(nombres, nombre)
+		end
+		table.sort(nombres)
+		for _, nombre in nombres do
+			local t = anclas[nombre]
+			print(`@@REF {id} {nombre} {string.format("%.4f %.4f %.4f", t.X, t.Y, t.Z)}`)
+		end
+		local sueltasTotal = 0
+		local etiquetas: { string } = {}
+		for clase, n in sueltas do
+			sueltasTotal += n
+			table.insert(etiquetas, clase)
+		end
+		table.sort(etiquetas)
+		for _, clase in etiquetas do
+			print(`Sueltas en {clase}: {sueltas[clase]}`)
+		end
+		print(
+			`Volcado de {id} listo: {enMalla} bloques en {#grupos} grupos de malla, {sueltasTotal} piezas sueltas en total.`
+		)
+	end)
+	rig:Destroy()
+	assert(ok, err)
 end
 
 return Mallas

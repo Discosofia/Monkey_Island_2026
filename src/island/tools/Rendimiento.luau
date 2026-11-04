@@ -520,7 +520,7 @@ local function main(copia: Instance): string
 						fila(
 							`{id} (rango {rango})`,
 							medir(pieza, fusionSoldada),
-							M.ArmorRank[rango],
+							tope(`{armaduraId}_{rol}`, "ArmorPieces", M.ArmorRank[rango]),
 							nil,
 							topeTabla(M.ArmorTriangles, rango)
 						)

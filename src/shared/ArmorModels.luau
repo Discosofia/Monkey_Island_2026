@@ -90,8 +90,10 @@
 -- una corona de siete cristales de lava; y el médico (Manto de azufre) una mochila con un racimo de
 -- siete cristales de azufre, chimeneas de humo y frascos que brillan en verde (la curación).
 
-local Armor = require(game:GetService("ReplicatedStorage").Shared.Data.Armor)
-local VoxelMerge = require(game:GetService("ReplicatedStorage").Shared.VoxelMerge)
+-- Relativos a este módulo (no al Shared real) para que el volcado de mallas pueda usar un clon con su propia Config.
+local Armor = require(script.Parent.Data.Armor)
+local VoxelMerge = require(script.Parent.VoxelMerge)
+local ArmorMeshes = require(script.Parent.Data.ArmorMeshes)
 
 local FUR = Color3.fromRGB(150, 70, 45)
 local FUR_DARK = Color3.fromRGB(122, 55, 36)
@@ -354,6 +356,52 @@ local function discPauldron(arm: Builder, side: number, color: Color3, rim: Colo
 	return CFrame.new(side * 0.1, top + 0.18, 0)
 end
 
+-- Línea en escalones de "from" a "to" (mismo Z), sin ninguna pieza girada: así entra en la malla (Fase 20 Q6). "thickness" es
+-- el grosor de la línea, "depth" el fondo (Z) y "steps" los escalones.
+local function stairs(
+	make: Builder,
+	from: Vector3,
+	to: Vector3,
+	thickness: number,
+	depth: number,
+	color: Color3,
+	material: Enum.Material,
+	steps: number
+)
+	local dx, dy = math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps
+	for index = 0, steps - 1 do
+		local centre = from:Lerp(to, (index + 0.5) / steps)
+		make.block(
+			Vector3.new(dx + thickness * 0.5, dy + thickness * 0.5, depth),
+			color,
+			material,
+			CFrame.new(centre.X, centre.Y, from.Z)
+		)
+	end
+end
+
+-- Mechón en tres escalones que se estrechan hacia abajo desde "topY" (sustituye al colmillo girado de los flecos).
+local function tuft(
+	make: Builder,
+	x: number,
+	topY: number,
+	z: number,
+	width: number,
+	height: number,
+	depth: number,
+	color: Color3,
+	material: Enum.Material
+)
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(width * (1 - 0.3 * index), height / 3, depth),
+			color,
+			material,
+			CFrame.new(x, topY - height / 3 * (index + 0.5), z)
+		)
+	end
+end
+
 local function furVest(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -401,16 +449,37 @@ local function furVest(body: Body)
 			CFrame.new(side * (neck + shoulderWidth / 2), height / 2 + gap + skin / 2, 0)
 		)
 		-- Cuello de pelaje dorado a cada lado.
-		make.rod(
-			depth * 0.9,
-			0.24,
+		make.block(
+			Vector3.new(0.26, 0.2, depth * 0.9),
 			GOLDEN_FUR,
 			FABRIC,
-			CFrame.new(side * neck, height / 2 + 0.1, 0) * CFrame.Angles(0, math.rad(90), 0)
+			CFrame.new(side * neck, height / 2 + 0.1, 0)
+		)
+		make.block(
+			Vector3.new(0.16, 0.1, depth * 0.78),
+			GOLDEN_FUR,
+			FABRIC,
+			CFrame.new(side * neck, height / 2 + 0.25, 0)
 		)
 		-- Hombrera de losa cuadrada de pelaje rojo con canto dorado y dos colmillos hacia fuera.
 		local arm = body.upperArm[side]
 		slabPauldron(arm, side, FUR, FABRIC, GOLDEN_FUR)
+		-- Segundo escalón y mechones pintados en su cara (más volumen y relieve, sin piezas giradas).
+		local padTop = arm.size.Y / 2
+		arm.block(
+			Vector3.new(arm.size.X + 0.16, 0.12, arm.size.Z + 0.16),
+			FUR_DARK,
+			FABRIC,
+			CFrame.new(side * 0.1, padTop + 0.3, 0)
+		)
+		for strip = -2, 2 do
+			arm.block(
+				Vector3.new(arm.size.X + 0.1, 0.04, 0.07),
+				if strip % 2 == 0 then GOLDEN_FUR else FUR,
+				FABRIC,
+				CFrame.new(side * 0.1, padTop + 0.35, strip * (arm.size.Z + 0.16) * 0.19)
+			)
+		end
 		for tusk = -1, 1, 2 do
 			arm.fang(
 				0.34,
@@ -428,6 +497,9 @@ local function furVest(body: Body)
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.34, 0.08), FUR, FABRIC, CFrame.new(0, ls.Y * 0.33, flapZ))
 		leg.block(Vector3.new(ls.X * 0.9, 0.07, 0.11), GOLDEN_FUR, FABRIC, CFrame.new(0, ls.Y * 0.16, flapZ))
 		leg.fang(0.22, 0.1, BONE, SMOOTH, CFrame.new(0, ls.Y * 0.16, flapZ - 0.05) * CFrame.Angles(0, 0, math.pi))
+		for hem = -1, 1, 2 do
+			tuft(leg, hem * ls.X * 0.3, ls.Y * 0.16, flapZ, ls.X * 0.24, 0.24, 0.09, FUR, FABRIC)
+		end
 	end
 	-- Espalda (lo que el jugador ve siempre): un panel de pelaje rojo con la huella de una mano de mono
 	-- en pelaje dorado (palma, cuatro dedos y el pulgar, todo en bloques) y flecos de pelo en punta.
@@ -450,25 +522,74 @@ local function furVest(body: Body)
 			CFrame.new((index - 2.5) * width * 0.105, palmY + palmHeight / 2 + length / 2 - 0.02, printZ)
 		)
 	end
-	make.block(
-		Vector3.new(width * 0.1, height * 0.18, 0.06),
-		GOLDEN_FUR,
-		FABRIC,
-		CFrame.new(-palmWidth / 2 - 0.1, palmY + palmHeight * 0.2, printZ) * CFrame.Angles(0, 0, math.rad(55))
-	)
+	-- El pulgar, en tres escalones hacia arriba y fuera de la palma.
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(width * 0.1, height * 0.07, 0.06),
+			GOLDEN_FUR,
+			FABRIC,
+			CFrame.new(-palmWidth / 2 - 0.04 - index * 0.07, palmY + palmHeight * 0.05 + index * height * 0.06, printZ)
+		)
+	end
+	-- Costura de fibra a los lados del panel (rayas cortas pintadas).
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				FIBER,
+				FABRIC,
+				CFrame.new(side * width * 0.4, -height * 0.34 + dash * height * 0.12, back + skin / 2 + 0.045)
+			)
+		end
+	end
+	-- Manto de pelaje sobre los hombros, por detrás: una losa gruesa con mechones pintados y el bajo en mechones de
+	-- tres escalones.
+	local mantleY = height * 0.41
+	local mantleZ = back + skin / 2 + 0.1
+	make.block(Vector3.new(width * 0.96, height * 0.17, 0.12), FUR, FABRIC, CFrame.new(0, mantleY, mantleZ))
+	for strand = 0, 7 do
+		make.block(
+			Vector3.new(0.07, height * 0.12, 0.03),
+			if strand % 2 == 0 then FUR_DARK else GOLDEN_FUR,
+			FABRIC,
+			CFrame.new((strand - 3.5) * width * 0.115, mantleY, mantleZ + 0.075)
+		)
+	end
+	for tip = 0, 4 do
+		tuft(
+			make,
+			(tip - 2) * width * 0.2,
+			mantleY - height * 0.085,
+			mantleZ,
+			0.28,
+			0.14,
+			0.12,
+			if tip % 2 == 0 then FUR_DARK else FUR,
+			FABRIC
+		)
+	end
 	local fringe = 7
 	for index = 0, fringe - 1 do
 		local x = -width * 0.42 + index * width * 0.84 / (fringe - 1)
-		make.fang(
-			if index % 2 == 0 then 0.34 else 0.26,
+		tuft(
+			make,
+			x + 0.1,
+			-height / 2 + 0.02,
+			back + 0.12,
 			0.2,
+			if index % 2 == 0 then 0.34 else 0.26,
+			0.12,
 			if index % 2 == 0 then FUR else FUR_DARK,
-			FABRIC,
-			CFrame.new(x + 0.1, -height / 2 + 0.02, back + 0.12) * CFrame.Angles(0, 0, math.pi)
+			FABRIC
 		)
 	end
 	-- Cuello por detrás y ribete dorado fino abajo.
-	make.rod(width * 0.4 + 0.24, 0.24, GOLDEN_FUR, FABRIC, CFrame.new(0, height / 2 + 0.1, depth / 2 - 0.02))
+	make.block(
+		Vector3.new(width * 0.4 + 0.24, 0.24, 0.24),
+		GOLDEN_FUR,
+		FABRIC,
+		CFrame.new(0, height / 2 + 0.1, depth / 2 - 0.02)
+	)
 	make.block(
 		Vector3.new(width + 2 * (gap + skin) + 0.04, 0.14, depth + 2 * (gap + skin) + 0.04),
 		GOLDEN_FUR,
@@ -477,32 +598,47 @@ local function furVest(body: Body)
 	)
 	-- Flecos de pelo en el bajo del chaleco, delante.
 	for index = 0, 3 do
-		make.fang(
-			0.24,
+		tuft(
+			make,
+			-width * 0.33 + index * width * 0.22,
+			-height / 2 + 0.02,
+			front - 0.03,
 			0.18,
+			0.24,
+			0.1,
 			if index % 2 == 0 then FUR_DARK else FUR,
-			FABRIC,
-			CFrame.new(-width * 0.33 + index * width * 0.22, -height / 2 + 0.02, front - 0.03)
-				* CFrame.Angles(0, 0, math.pi)
+			FABRIC
 		)
 	end
-	-- Cordones de fibra en cruz que cierran la abertura, por debajo del collar.
+	-- Cordones de fibra en cruz que cierran la abertura, por debajo del collar (en escalones).
 	for _, laceY in { -height * 0.06, -height * 0.28 } do
-		for _, tilt in { 0.5, -0.5 } do
-			make.block(
-				Vector3.new(0.36, 0.05, 0.04),
-				FIBER,
-				FABRIC,
-				CFrame.new(0, laceY, front - 0.07) * CFrame.Angles(0, 0, tilt)
-			)
-		end
+		stairs(
+			make,
+			Vector3.new(-0.18, laceY + 0.1, front - 0.07),
+			Vector3.new(0.18, laceY - 0.1, front - 0.07),
+			0.05,
+			0.04,
+			FIBER,
+			FABRIC,
+			4
+		)
+		stairs(
+			make,
+			Vector3.new(-0.18, laceY - 0.1, front - 0.07),
+			Vector3.new(0.18, laceY + 0.1, front - 0.07),
+			0.05,
+			0.04,
+			FIBER,
+			FABRIC,
+			4
+		)
 	end
 	-- Collar de colmillos: cordón en V desde el cuello y tres colmillos colgando, el del centro mayor.
 	local necklaceZ = front - 0.09
 	local knot = Vector3.new(0, height * 0.17, necklaceZ)
 	for side = -1, 1, 2 do
 		local from = Vector3.new(side * neck * 1.1, height / 2 - 0.02, necklaceZ)
-		strap(make, from, knot, 0.05, FIBER, FABRIC)
+		stairs(make, from, knot, 0.05, 0.05, FIBER, FABRIC, 4)
 		local hook = knot:Lerp(from, 0.35)
 		make.fang(
 			0.26,
@@ -526,13 +662,13 @@ local function furVest(body: Body)
 	local beltY = waist.size.Y * 0.1
 	local beltFront = -(hipDepth / 2 + 0.07)
 	waist.block(Vector3.new(hipWidth + 0.12, 0.14, hipDepth + 0.12), FIBER, FABRIC, CFrame.new(0, beltY, 0))
-	waist.ball(0.2, FIBER, FABRIC, CFrame.new(-0.28, beltY, beltFront - 0.02))
-	for _, tilt in { 0.18, -0.12 } do
+	waist.block(Vector3.new(0.2, 0.2, 0.14), FIBER, FABRIC, CFrame.new(-0.28, beltY, beltFront - 0.02))
+	for _, offset in { 0.07, -0.05 } do
 		waist.block(
 			Vector3.new(0.06, 0.3, 0.06),
 			FIBER,
 			FABRIC,
-			CFrame.new(-0.28 + tilt * 0.4, beltY - 0.18, beltFront - 0.03) * CFrame.Angles(0, 0, tilt)
+			CFrame.new(-0.28 + offset, beltY - 0.18, beltFront - 0.03)
 		)
 	end
 	local pouch = CFrame.new(hipWidth * 0.3, beltY - 0.18, beltFront - 0.06)
@@ -545,8 +681,8 @@ local function furVest(body: Body)
 	for side = -1, 1, 2 do
 		band(body.upperArm[side], -body.upperArm[side].size.Y * 0.12, 0.2, 0.1, GOLDEN_FUR, FABRIC)
 		local forearm = body.lowerArm[side]
-		band(forearm, -forearm.size.Y * 0.3, 0.1, 0.06, FIBER, FABRIC, 0.12)
-		band(forearm, -forearm.size.Y * 0.44, 0.1, 0.06, FIBER, FABRIC, -0.12)
+		band(forearm, -forearm.size.Y * 0.3, 0.1, 0.06, FIBER, FABRIC)
+		band(forearm, -forearm.size.Y * 0.44, 0.1, 0.06, FIBER, FABRIC)
 	end
 end
 
@@ -8606,6 +8742,232 @@ end
 -- Lobby y en Dunas, donde no hay armaduras que fabricar, se ven enteros (MAX_GRADE).
 ArmorModels.growWithArmor = false
 
+-- ============================== Mallas con textura (Fase 20 Q6) ==============================
+-- Las piezas de un grupo `<Anclaje>_<Soft|Hard>` (Data/ArmorMeshes) pueden pasar a una `MeshPart` por grupo. Todo va en
+-- la tabla "Meshing" para no gastar locales de este módulo. Sin entradas en Data/ArmorMeshes, "wear" no hace nada de esto.
+local Meshing = {
+	-- Las partes R15 a las que se sueldan las piezas (en R6 no hay: el trozo del torso o del brazo no entra).
+	ANCHORS = {
+		UpperTorso = true,
+		LowerTorso = true,
+		LeftUpperArm = true,
+		RightUpperArm = true,
+		LeftLowerArm = true,
+		RightLowerArm = true,
+		LeftUpperLeg = true,
+		RightUpperLeg = true,
+	} :: { [string]: boolean },
+	cache = {} :: { [string]: MeshPart }, -- mallas ya cargadas, por id
+	loading = {} :: { [string]: boolean },
+	failed = {} :: { [string]: boolean }, -- las que no cargaron: no se reintentan en cada "wear"
+	-- Personajes vestidos con bloques a la espera de que carguen las mallas de su entrada.
+	pending = setmetatable({}, { __mode = "k" }) :: {
+		[Model]: {
+			entry: ArmorMeshes.Entry,
+			armorId: string?,
+			roleId: string?,
+			outfitId: string?,
+			grade: number?,
+		},
+	},
+}
+
+-- "Soft" (Fabric y Leather) o "Hard" (cualquier otro material liso): la clase de material de una malla.
+function ArmorModels.meshClass(material: Enum.Material): string
+	return if material == FABRIC or material == LEATHER_MATERIAL then "Soft" else "Hard"
+end
+
+-- La parte del cuerpo (Part0 de su WeldConstraint) a la que va soldada una pieza de armadura.
+function ArmorModels.anchorOf(piece: BasePart): BasePart?
+	for _, child in piece:GetChildren() do
+		if child:IsA("WeldConstraint") then
+			local anchor = (child :: WeldConstraint).Part0
+			if anchor and anchor ~= piece then
+				return anchor
+			end
+		end
+	end
+	return nil
+end
+
+-- Centro y tamaño (studs, en el espacio de "anchor") de una pieza que puede ir a la malla, y el nombre de su grupo
+-- (`<Anclaje>_<Soft|Hard>`); o nil si tiene que seguir suelta: no es un bloque, lleva hijos (una forma, un adorno), es de
+-- neón o cristal, es transparente, se llama como una pieza que no se funde, está girada fuera de los ejes del ancla
+-- (múltiplos de 90°, tolerancia 0,01 rad) o el ancla no es una de las R15. Lo usan "wear" y el volcado
+-- (ServerStorage.Tools.Mallas), para que vean las mismas piezas.
+function ArmorModels.meshableBox(piece: BasePart, anchor: BasePart): (Vector3?, Vector3?, string?)
+	if
+		not Meshing.ANCHORS[anchor.Name]
+		or piece.ClassName ~= "Part"
+		or (piece :: Part).Shape ~= Enum.PartType.Block
+	then
+		return nil, nil, nil
+	end
+	local material = piece.Material
+	if material == NEON or material == GLASS or piece.Transparency > 0 or VoxelMerge.isKept(piece.Name) then
+		return nil, nil, nil
+	end
+	for _, child in piece:GetChildren() do
+		if not child:IsA("WeldConstraint") then
+			return nil, nil, nil
+		end
+	end
+	local cf = anchor.CFrame:ToObjectSpace(piece.CFrame)
+	local _, _, _, r11, r12, r13, r21, r22, r23, r31, r32, r33 = cf:GetComponents()
+	local rows = { { r11, r12, r13 }, { r21, r22, r23 }, { r31, r32, r33 } }
+	local own = { piece.Size.X, piece.Size.Y, piece.Size.Z }
+	local size = { 0, 0, 0 }
+	for i, row in rows do
+		for j, value in row do
+			local abs = math.abs(value)
+			if abs > 0.9999 then
+				-- Girada 90°: el lado de la pieza que cae en este eje del ancla intercambia el tamaño.
+				size[i] = own[j]
+			elseif abs > 0.01 then
+				return nil, nil, nil
+			end
+		end
+		if size[i] == 0 then
+			return nil, nil, nil
+		end
+	end
+	return cf.Position, Vector3.new(size[1], size[2], size[3]), `{anchor.Name}_{ArmorModels.meshClass(material)}`
+end
+
+-- La entrada de Data/ArmorMeshes de lo que se viste (el traje con su grado, o la armadura con la versión de su rol).
+function Meshing.find(armorId: string?, roleId: string?, outfitId: string?, grade: number?): ArmorMeshes.Entry?
+	if outfitId and OUTFITS[outfitId] then
+		local grades = ArmorMeshes.Outfit[outfitId]
+		return if grades then grades[math.clamp(grade or ArmorModels.grade(armorId), 0, ArmorModels.MAX_GRADE)] else nil
+	end
+	local byRole = if armorId then BUILDERS[armorId] else nil
+	local roles = if armorId then ArmorMeshes.Armor[armorId] else nil
+	if byRole and roles then
+		return roles[if roleId and byRole[roleId] then roleId else DEFAULT_ROLE]
+	end
+	return nil
+end
+
+-- Si ya están cargadas todas las mallas de la entrada (una sin id no cuenta: se queda en bloques para siempre).
+function Meshing.isReady(entry: ArmorMeshes.Entry): boolean
+	for _, group in entry.groups do
+		if group.mesh == "" or group.texture == "" or not Meshing.cache[group.mesh] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Los personajes vestidos con bloques cuyas mallas ya han llegado se vuelven a vestir, esta vez con ellas.
+function Meshing.flush()
+	local due: { Model } = {}
+	for character, request in Meshing.pending do
+		if Meshing.isReady(request.entry) then
+			table.insert(due, character)
+		end
+	end
+	for _, character in due do
+		local request = Meshing.pending[character]
+		Meshing.pending[character] = nil
+		if request and character.Parent then
+			ArmorModels.wear(character, request.armorId, request.roleId, request.outfitId, request.grade)
+		end
+	end
+end
+
+-- Pide a Roblox las mallas de la entrada, cada una en su hilo. Cada vez que llega una, reconstruye los personajes que
+-- esperaban (el cliente y el servidor visten antes de que lleguen: la primera carga de la sesión tarda).
+function Meshing.load(entry: ArmorMeshes.Entry)
+	for _, group in entry.groups do
+		local id = group.mesh
+		if
+			id ~= ""
+			and group.texture ~= ""
+			and not Meshing.cache[id]
+			and not Meshing.loading[id]
+			and not Meshing.failed[id]
+		then
+			Meshing.loading[id] = true
+			task.spawn(function()
+				local ok, mesh = pcall(function()
+					return game:GetService("AssetService"):CreateMeshPartAsync(Content.fromUri(id))
+				end)
+				if ok then
+					Meshing.cache[id] = mesh
+				else
+					Meshing.failed[id] = true
+					warn(`[ArmorModels] No se pudo cargar la malla {id}: {mesh}`)
+				end
+				Meshing.loading[id] = nil
+				Meshing.flush()
+			end)
+		end
+	end
+end
+
+-- Sustituye las piezas de cada grupo con malla por su `MeshPart`, soldada al ancla con un Weld de desfase explícito (un
+-- WeldConstraint lo calcula al activarse, y con el modelo ya movido quedaría lejos). Solo anclas R15 de "character".
+function Meshing.apply(model: Model, character: Model, entry: ArmorMeshes.Entry)
+	local byGroup: { [string]: { BasePart } } = {}
+	local anchors: { [string]: BasePart } = {}
+	for _, piece in model:GetChildren() do
+		local anchor = if piece:IsA("BasePart") then ArmorModels.anchorOf(piece) else nil
+		if anchor and anchor.Parent == character then
+			local _, _, group = ArmorModels.meshableBox(piece :: BasePart, anchor)
+			if group and entry.groups[group] then
+				anchors[group] = anchor
+				byGroup[group] = byGroup[group] or {}
+				table.insert(byGroup[group], piece :: BasePart)
+			end
+		end
+	end
+	for group, pieces in byGroup do
+		local data = entry.groups[group]
+		local anchor = anchors[group]
+		local cached = Meshing.cache[data.mesh]
+		if not cached then
+			continue
+		end
+		-- Escala eje a eje: el ancla de este avatar frente a la del rig de referencia del volcado.
+		local ref = entry.ref[anchor.Name]
+		local factor = Vector3.one
+		if ref and ref.X > 0 and ref.Y > 0 and ref.Z > 0 then
+			factor = Vector3.new(anchor.Size.X / ref.X, anchor.Size.Y / ref.Y, anchor.Size.Z / ref.Z)
+		end
+		local mesh = cached:Clone()
+		mesh.Size = data.size * factor
+		mesh.TextureID = data.texture
+		mesh.Color = Color3.new(1, 1, 1)
+		mesh.Material = if string.sub(group, -4) == "Soft" then FABRIC else SMOOTH
+		mesh.Anchored = false
+		mesh.CanCollide = false
+		mesh.CanQuery = false
+		mesh.CanTouch = false
+		mesh.Massless = true
+		mesh.CastShadow = false
+		mesh.Name = "Armor"
+		local relative = CFrame.new(data.offset * factor) * CFrame.Angles(0, math.pi, 0) * mesh.ExtentsCFrame:Inverse()
+		mesh.CFrame = anchor.CFrame * relative
+		mesh.Parent = model
+		local weld = Instance.new("Weld")
+		weld.Part0 = anchor
+		weld.Part1 = mesh
+		weld.C0 = relative
+		weld.Parent = mesh
+		for _, piece in pieces do
+			piece:Destroy()
+		end
+	end
+end
+
+-- Pide las mallas de lo que se vistirá (si tiene entrada en Data/ArmorMeshes); "wear" también las pide solo.
+function ArmorModels.preload(armorId: string?, roleId: string?, outfitId: string?, grade: number?)
+	local entry = Meshing.find(armorId, roleId, outfitId, grade)
+	if entry then
+		Meshing.load(entry)
+	end
+end
+
 function ArmorModels.hasOutfit(outfitId: string): boolean
 	return OUTFITS[outfitId] ~= nil
 end
@@ -8622,7 +8984,8 @@ function ArmorModels.wear(
 	armorId: string?,
 	roleId: string?,
 	outfitId: string?,
-	grade: number?
+	grade: number?,
+	boxesOnly: boolean?
 ): Model?
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
 	if not (torso and torso:IsA("BasePart")) then
@@ -8631,6 +8994,9 @@ function ArmorModels.wear(
 	local previous = character:FindFirstChild("ArmorPiece")
 	if previous then
 		previous:Destroy()
+	end
+	if Meshing.pending[character] then
+		Meshing.pending[character] = nil
 	end
 	local outfit = if outfitId then OUTFITS[outfitId] else nil
 	local byRole = if armorId and Armor[armorId] then BUILDERS[armorId] else nil
@@ -8660,6 +9026,23 @@ function ArmorModels.wear(
 		outfit(body, math.clamp(grade or ArmorModels.grade(armorId), 0, ArmorModels.MAX_GRADE))
 	elseif armor then
 		armor(body)
+	end
+	-- Fase 20 Q6: los grupos con malla (Data/ArmorMeshes) sustituyen a sus bloques antes de fusionar. Si las mallas aún no
+	-- han cargado se viste con bloques y "Meshing.flush" vuelve a vestir al llegar. Con "boxesOnly" (el volcado) no se usan.
+	local entry = if boxesOnly then nil else Meshing.find(armorId, roleId, outfitId, grade)
+	if entry then
+		if Meshing.isReady(entry) then
+			Meshing.apply(model, character, entry)
+		else
+			Meshing.pending[character] = {
+				entry = entry,
+				armorId = armorId,
+				roleId = roleId,
+				outfitId = outfitId,
+				grade = grade,
+			}
+			Meshing.load(entry)
+		end
 	end
 	-- Por miembro (Part0 de las soldaduras), antes de ponerlo en el personaje.
 	VoxelMerge.mergeWelded(model)

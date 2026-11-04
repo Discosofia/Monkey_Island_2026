@@ -72,6 +72,11 @@ local KEEP: { [string]: boolean } = {
 	Egg2Top = true,
 }
 
+-- ¿Es un nombre que nunca se fusiona? (lo usa ArmorModels.meshableBox para dejar sueltas las mismas piezas)
+function VoxelMerge.isKept(name: string): boolean
+	return KEEP[name] == true
+end
+
 -- Una caja alineada con los ejes del ancla: esquinas mínima y máxima (x, y, z) en su espacio local, la parte
 -- que la rota respecto al ancla y la Part que la lleva.
 type Box = {
