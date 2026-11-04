@@ -47,6 +47,36 @@ local PetMeshes: { [string]: PetMesh } = {
 			},
 		},
 	},
+	Tucan = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://84218343613262",
+				texture = "rbxassetid://76033448460316",
+				offset = Vector3.new(0.0000, -0.2500, 0.0437),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://76131305655361",
+				texture = "rbxassetid://115425192348396",
+				offset = Vector3.new(0.0000, 0.3475, -0.6375),
+			},
+			["WingL"] = {
+				mesh = "rbxassetid://100259608612120",
+				texture = "rbxassetid://124276299099613",
+				offset = Vector3.new(-0.6650, 0.0200, 0.1550),
+			},
+			["WingR"] = {
+				mesh = "rbxassetid://135833314955919",
+				texture = "rbxassetid://70470263520411",
+				offset = Vector3.new(0.6650, 0.0200, 0.1550),
+			},
+			["Tail"] = {
+				mesh = "rbxassetid://72663062426892",
+				texture = "rbxassetid://136481049080016",
+				offset = Vector3.new(0.0000, -0.2325, 0.2200),
+			},
+		},
+	},
 }
 
 return PetMeshes

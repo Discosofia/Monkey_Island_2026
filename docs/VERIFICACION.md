@@ -4500,6 +4500,21 @@ Las mascotas se pueden montar con malla (Fase 21): `PetModels.build(petId, skinI
 1. [ ] Equipa la Capibara al entrar y mide cuándo aparece la malla.
    ✅ Primero puede salir en bloques un instante y pasa a malla en la siguiente equipación; sin errores en la Salida.
 
+## 115. Fase 20 Q5b: Tucán con malla (04-11-2026)
+
+El Tucán se rehízo en bloques (barriga que engrosa en cuatro escalones, plumas pintadas en el babero, el manto, las alas y la cola, ojo con capas, pico con dientes de sierra, cola en escalones con rabadilla blanca y punta roja) y es ahora 5 mallas con textura (`Data/PetMeshes`: `Static`, `Head`, `WingL`, `WingR`, `Tail`; 1.502 triángulos frente al tope de 2.800; 6 piezas en juego, antes 212). Comprobado el 04-11-2026 en Edit (mallas y bloques con el mismo tamaño) y en Play (las alas baten a la vez y en espejo, la cola y la cabeza se mueven, el cuerpo queda quieto). Sin probar lo de abajo.
+
+### 115.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa el Tucán y camina, párate y salta.
+   ✅ Vuela a su altura con la malla (no bloques); las alas baten a la vez sin separarse del cuerpo; la cola se mueve; sin piezas sueltas.
+2. [ ] Míralo de espaldas y de cerca.
+   ✅ Rabadilla blanca, franja roja bajo la cola y punta de cola roja; las plumas se leen pintadas.
+3. [ ] Míralo en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Se ve con su textura.
+4. [ ] Pon la skin de mascota que valga para el Tucán (si existe) y quítala.
+   ✅ Con skin, bloques con su paleta; sin skin, malla.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
