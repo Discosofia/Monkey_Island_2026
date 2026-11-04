@@ -57,3 +57,21 @@ Solo hay tomas de habilidad de tres roles (guerrero, cazador y mago); el médico
 | 0:12,2–0:15,2 | Portada | ¡Ven con tus amigos! · Gratis en Roblox · Arenas PvP por equipos | Bring your friends! · Free on Roblox · Team PvP arenas |
 
 Los cortes de Dunas y el Laboratorio son más largos que en el tráiler (hasta 1 s de margen de la toma). Los textos de este Short usan los tiempos del guion (`pvp.json`).
+
+## Título, descripción y etiquetas (los sube el usuario)
+
+Reglas: sin Robux ni «gana dinero» (README.md). El enlace del juego lo pone el usuario al publicar. Para TikTok se usan las mismas etiquetas con `#fyp` si quiere. Los títulos llevan `#Shorts` solo en YouTube.
+
+| Short | Idioma | Título | Descripción |
+|---|---|---|---|
+| `jefes` | ES | ¡Te roban la comida! Derrota a los 4 jefes de la isla 🌋 #Shorts | Naufragas en una isla llena de monos salvajes: derrota a los jefes y sobrevive a la erupción. Juega gratis en Roblox con hasta 5 amigos. |
+| `jefes` | EN | They steal your food! Beat the island's 4 bosses 🌋 #Shorts | Shipwrecked on an island full of wild monkeys: defeat the bosses and survive the eruption. Play free on Roblox with up to 5 friends. |
+| `mascotas` | ES | Salva el huevo legendario y vuela con tu montura 🥚 #Shorts | Colecciona 16 mascotas y 3 monturas en Primal Banana Islands. Gratis en Roblox, hasta 5 amigos. |
+| `mascotas` | EN | Save the legendary egg and fly your mount 🥚 #Shorts | Collect 16 pets and 3 mounts in Primal Banana Islands. Free on Roblox, up to 5 friends. |
+| `roles` | ES | Elige tu rol: guerrero, cazador, mago o médico ⚔️ #Shorts | Cada rol tiene sus habilidades. Sobrevive a la isla con hasta 5 amigos. Gratis en Roblox. |
+| `roles` | EN | Pick your role: warrior, hunter, mage or medic ⚔️ #Shorts | Every role has its own skills. Survive the island with up to 5 friends. Free on Roblox. |
+| `pvp` | ES | ¿Prefieres pelear? Bandera en Dunas y tiros en el Laboratorio 🎯 #Shorts | Arenas PvP por equipos en Primal Banana Islands. Gratis en Roblox. |
+| `pvp` | EN | Rather fight? Capture the flag and shoot it out 🎯 #Shorts | Team PvP arenas in Primal Banana Islands. Free on Roblox. |
+
+**Etiquetas ES:** #Roblox #PrimalBananaIslands #Monos #Supervivencia #Shorts #Gaming #RobloxEspañol #Mascotas #PvP
+**Etiquetas EN:** #Roblox #PrimalBananaIslands #Monkeys #Survival #Shorts #Gaming #RobloxGames #Pets #PvP

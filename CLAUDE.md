@@ -92,6 +92,7 @@ print(require(m).informe()); m:Destroy()
 | `interfaz-roblox` | HUD y ventanas, con maquetas de teléfono y PC |
 | `combate-roblox` | Combate: habilidades, mecánicas, estados, combos, estilos y su equilibrio, con `Equilibrio` |
 | `economia-retencion` | Economía y pase, con `Economia` |
+| `video-capcut` | Shorts 9:16 en borradores de CapCut con `tools/video/short.py` |
 
 `docs/llm-local/` tiene resúmenes de estas skills y de este archivo para el modelo local (gpt-oss-20b en LM Studio y CodeGPT). Si cambias una skill o este archivo, actualiza su resumen y ejecuta `python docs/llm-local/generar_presets.py`.
 

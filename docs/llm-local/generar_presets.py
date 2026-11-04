@@ -22,6 +22,7 @@ PRESETS = [
 	("monos-interfaz", "Monos – Interfaz", "interfaz.md", 0.6),
 	("monos-combate", "Monos – Combate", "combate.md", 0.5),
 	("monos-economia", "Monos – Economía", "economia.md", 0.5),
+	("monos-video", "Monos – Vídeo", "video.md", 0.6),
 	("monos-diseno", "Monos – Diseño", "diseno.md", 1.0),
 	("monos-auditoria", "Monos – Auditoría", "auditoria.md", 0.3),
 ]

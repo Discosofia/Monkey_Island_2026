@@ -4231,6 +4231,14 @@ El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borrado
 
 ### 106.1 Abrir los 6 borradores y exportar
 
+**Resultado de `pvp-en-v1` (03-11-2026): 15 min 29 s de retoque, por encima de los 10 min del objetivo.** Qué retocó el usuario: cambió tiempos de los cortes 2 y 3 para que mostraran más movimiento; centró esos dos cortes (el personaje salía muy a un lado); añadió el filtro «escritorio retro» (intensidad 30, ajustado a la duración del vídeo), un texto a voz en inglés con la voz «hype guy» (16 dB), y música de la biblioteca (-10 dB). Para V4: los cortes 2-3 del guion de `pvp` y el centrado (`cx`) fallan; el filtro, la voz y la música son pasos fijos que se pueden poner en el guion o en la skill. Faltan los otros 5 borradores.
+
+**Resultado de `mascotas-es-v1` (03-11-2026): 9 min 30 s de retoque, dentro del objetivo.** Hizo lo mismo que en `pvp` (filtro retro, voz generada a cada frase —texto a voz «Narrador» en la captura—, música «REVENGE» de la biblioteca, ajuste de volúmenes); el vídeo queda de 18,02 s con un corte de mascotas de unos 3 s y la Quetzalcóatl de 4,25 s. Exportado en `P:\VIDEO\Primal banana islands\Trailer\`. Cuentan hasta ahora: `mascotas-es` ✅ (9:30), `pvp-en` ❌ (15:29); faltan `jefes` (§105), `roles` y los otros idiomas.
+
+**Resultado de `roles-es-v1` (03-11-2026): 3 min 40 s de retoque, dentro del objetivo.** Solo recortó y reemplazó el tercer corte (la habilidad de lava de `11-05-57.mkv`, que llevaba el aviso «¡2 monos van a por ti!» y el texto «Hay un huevo común en la isla» tapando la acción), más el filtro «Now Gen2 niebla» a lo largo del vídeo (el filtro de escritorio retro de `pvp` no es obligatorio), voz «Narrador Cálido» y música «MONTAGEM ALQUIMIA». Exportado a la misma ruta. Cuenta: **2 de 4 en 10 min o menos** (`mascotas-es`, `roles-es`); con uno más (`jefes` o un `pvp` mejor) se cumple el criterio de V3. Para V4: el corte 3 de `roles.json` tiene que empezar en otro segundo de la toma o ampliarse (el aviso del juego tapa la acción en los cortes 3-5).
+
+**Resultado de `jefes-en-v2` en inglés (03-11-2026): 3 min 15 s de retoque, dentro del objetivo.** Mismo proceso fijo de siempre (filtro, voz generada, música, volúmenes, exportar), sin cambios de fondo en los cortes. Cuenta: **3 de 4 en 10 min o menos** (`mascotas-es`, `roles-es`, `jefes-en`); el objetivo de §106.2 se cumple. El tiempo ya es casi todo el proceso fijo, así que el siguiente ahorro está en automatizarlo (ver «Receta fija» en la skill `video-capcut`).
+
 1. [ ] Abre CapCut y mira `mascotas-es-v1`, `roles-es-v1` y `pvp-es-v1` (y los `-en-`).
    ✅ Abren sin avisos; cada corte tiene el sujeto centrado como en su `hoja.jpg`. Apunta cortes mal encuadrados: en `roles` los cortes 3-5 llevan avisos del juego arriba («Hay un huevo común en la isla»); en `pvp` los cortes 1-3 llevan el cartel de la bandera.
 2. [ ] Ajusta, añade música de la biblioteca de YouTube o TikTok y exporta a 1080×1920, 30 fps.
@@ -4239,6 +4247,19 @@ El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borrado
    ✅ Los Shorts de YouTube admiten desde 1 s; el objetivo de 15-30 s era orientativo.
 4. [ ] Mira los vídeos exportados.
    ✅ Hay movimiento y texto en el primer segundo, ningún HUD de pruebas ni Robux ni «gana dinero» en cuadro (en `pvp`, la lista de jugadores no se ve).
+
+## 107. Fase 22 V4: skill `video-capcut` y textos de publicación (03-11-2026)
+
+`.claude/skills/video-capcut/SKILL.md` explica cómo hacer un Short (guion, recuadro, borrador, verificación) y los pasos fijos del usuario en CapCut; su resumen es `docs/llm-local/video.md` (preset «Monos – Vídeo»). Títulos, descripciones y etiquetas de los 4 Shorts, en ES y EN, están al final de `docs/videos/shorts.md`.
+
+### 107.1 Probar la skill en una pestaña nueva
+
+1. [ ] En una pestaña nueva de Claude Code, di solo: «Haz el Short de jefes en inglés.»
+   ✅ Usa la skill, regenera el borrador (`jefes-en-v2`, sin sobrescribir `v1`) con CapCut cerrado y lo apunta en VERIFICACION. No pregunta lo que está en el guion.
+2. [ ] Lee los títulos y descripciones de `shorts.md`.
+   ✅ Sin Robux ni «gana dinero»; el título cabe en 100 caracteres. Retoca lo que no te guste antes de subirlos.
+3. [ ] Termina los medidos: `jefes-es-v1` y los `-en` de `mascotas` y `roles`, o los `-es` de `pvp`, y apunta los minutos en §106.1.
+   ✅ Al menos 3 de los 4 Shorts en 10 minutos o menos.
 
 ## Cuando termines
 
