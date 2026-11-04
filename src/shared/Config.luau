@@ -2240,6 +2240,42 @@ local Config = {
 		NestTag = "NidoLobby",
 	},
 
+	-- Campo de tiro del Lobby (Fase 23): dianas, marcas de las pantallas y «Ronda de tiro». Solo práctica:
+	-- sin Ámbar ni recompensas.
+	Range = {
+		-- Vida de cada diana: enorme y se rellena tras cada golpe, así que nunca cae.
+		TargetHealth = 1e6,
+		-- Dianas emergentes (la maqueta): ciclos por segundo (periodo ~2,86 s), parte del ciclo que está arriba,
+		-- desfase entre una y otra (ciclo / PopupIndex), rapidez del suavizado exponencial y fracción de la
+		-- bajada a partir de la cual deja de poderse golpear.
+		PopupCycleRate = 0.35,
+		PopupUpFraction = 0.5,
+		PopupPhaseStep = 1 / 3,
+		PopupSmoothing = 7,
+		PopupHiddenFraction = 0.25,
+		-- Hundimiento de una emergente abajo: radio + este margen bajo su centro.
+		PopupHideMargin = 1,
+		-- Marcas de cada pantalla (por jugador) y a cuántas de las últimas se les calcula la media.
+		MarksKept = 40,
+		MarkAverageOver = 10,
+		-- Segundos mínimos entre dos avisos de una marca al mismo jugador (anti-inundación; el arma más
+		-- rápida no se acerca a esto).
+		MarkMinInterval = 0.04,
+		-- Ronda de tiro: duración, anillos de la diana (fracción del radio, puntos, y si cuenta como
+		-- crítico), margen del borde exterior (un roce con el canto cuenta) y segundos que se ve el resultado.
+		RoundSeconds = 60,
+		RingPoints = {
+			{ fraction = 0.25, points = 10, crit = true },
+			{ fraction = 0.5, points = 7, crit = false },
+			{ fraction = 0.75, points = 5, crit = false },
+			{ fraction = 1, points = 3, crit = false },
+		},
+		RimTolerance = 1.02,
+		ResultSeconds = 12,
+		-- Alcance del aviso de las consolas (borrar marcas y ronda).
+		ConsoleReach = 13,
+	},
+
 	Social = {
 		-- Invitar amigos, favoritos y notificaciones (para que llegue más gente; docs/LANZAMIENTO.md §9).
 		InviteMessage = "¡Ven a sobrevivir conmigo en la isla de los monos!",

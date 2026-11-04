@@ -43,7 +43,8 @@ export type Shot = {
 	maxHits: number?, -- …o, con esto, al dar a tantos (el remate del arco, C9b)
 	-- Al tocar un combatiente: true si le vale (le da y, sin "pierce", se para); false para atravesarlo.
 	-- "zone": la zona del cuerpo que ha tocado (Hitbox.zoneOf; la de un jugador, con "rewind", pieza a pieza).
-	onHit: (model: Model, position: Vector3, zone: string?) -> boolean,
+	-- "contact": el punto de la superficie que toca (el centro de la esfera del proyectil queda a su radio de él).
+	onHit: (model: Model, position: Vector3, zone: string?, contact: Vector3?) -> boolean,
 	-- Al acabar: dónde, a quién dio el último (o nil) y si ha dado a alguien.
 	onEnd: ((position: Vector3, model: Model?, hitAny: boolean) -> ())?,
 	-- Datos que el cliente usa al llegar (el radio de la explosión de la Bola de fuego).
@@ -82,12 +83,33 @@ local Projectiles = {}
 local flights: { Flight } = {}
 local nextId = 0
 local started = false
+-- Oyentes aditivos (el campo de tiro del Lobby): sin ninguno, no hacen nada.
+local impactListeners: { (shooter: Player, position: Vector3, instance: Instance?, model: Model?) -> () } = {}
+local shotListeners: { (shooter: Player, ownerSeq: number?) -> () } = {}
 
-local function finish(flight: Flight, position: Vector3, model: Model?)
+-- Llama a "listener" cuando un proyectil acaba: contra el mundo (con la pieza que toca), contra un
+-- combatiente (con su modelo) o al final de su alcance (sin ninguno de los dos).
+function Projectiles.onImpact(listener: (shooter: Player, position: Vector3, instance: Instance?, model: Model?) -> ())
+	table.insert(impactListeners, listener)
+end
+
+-- Llama a "listener" cada vez que sale un proyectil. "ownerSeq" solo lo traen los disparos directos de un
+-- arma a distancia (las habilidades no).
+function Projectiles.onShot(listener: (shooter: Player, ownerSeq: number?) -> ())
+	table.insert(shotListeners, listener)
+end
+
+-- "instance": la pieza del mundo contra la que acaba, si es el caso.
+local function finish(flight: Flight, position: Vector3, model: Model?, instance: Instance?)
 	local shot = flight.shot
 	AbilityFx.all("ProjectileEnd", flight.id, position, model ~= nil)
 	if shot.counts ~= false and shot.owner.Parent then
 		CombatRules.get().telemetry.mechanic(shot.owner, if flight.hitAny then "ShotsHit" else "ShotsMissed")
+	end
+	if shot.owner.Parent then
+		for _, listener in impactListeners do
+			task.spawn(listener, shot.owner, position, instance, model)
+		end
 	end
 	if shot.onEnd then
 		task.spawn(shot.onEnd, position, model, flight.hitAny)
@@ -144,14 +166,14 @@ local function advance(flight: Flight, deltaTime: number): boolean
 	local from = flight.position
 	local swept = 0
 	while swept < open do
-		local model, along, _, zone = sweepFlight(flight, from, direction * (open - swept))
+		local model, along, contact, zone = sweepFlight(flight, from, direction * (open - swept))
 		if not model then
 			break
 		end
 		swept += along
 		from = flight.position + direction * swept
 		flight.skip[model] = true
-		if shot.onHit(model, from, zone) then
+		if shot.onHit(model, from, zone, contact) then
 			flight.hitAny = true
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then
@@ -167,7 +189,7 @@ local function advance(flight: Flight, deltaTime: number): boolean
 		if shot.breaks then
 			Destructibles.hitPart(wall.Instance, shot.breaks, shot.owner, wall.Position, shot.breakOnce)
 		end
-		finish(flight, wall.Position, nil)
+		finish(flight, wall.Position, nil, wall.Instance)
 		return true
 	end
 	if flight.travelled >= shot.range - 1e-3 then
@@ -213,6 +235,9 @@ function Projectiles.fire(shot: Shot): number
 	-- Con "ownerSeq", el tirador ya la dibuja: solo se le manda el ack con el id y la dirección real.
 	local ownerSeq = shot.ownerSeq
 	local owner = shot.owner
+	for _, listener in shotListeners do
+		task.spawn(listener, owner, ownerSeq)
+	end
 	if ownerSeq then
 		Remotes.ProjectileAck:FireClient(owner, ownerSeq, flight.id, shot.direction)
 	end
@@ -240,7 +265,7 @@ function Projectiles.fire(shot: Shot): number
 	local model, _, contact, zone = sweepFlight(flight, behind, shot.direction * START_BACK)
 	if model then
 		flight.skip[model] = true
-		if shot.onHit(model, contact or shot.origin, zone) then
+		if shot.onHit(model, contact or shot.origin, zone, contact) then
 			flight.hitAny = true
 			flight.hits += 1
 			if not shot.pierce or (shot.maxHits and flight.hits >= shot.maxHits) then

@@ -82,11 +82,19 @@ local lastAttackAt: { [Player]: number } = {}
 local chains: { [Player]: MeleeChain.State } = {}
 -- Y la cuenta de disparos seguidos de las armas a distancia (Shared/RangedChain).
 local shots: { [Player]: RangedChain.State } = {}
-local damageListeners: { (model: Model, attacker: Player?, amount: number) -> () } = {}
+local damageListeners: { (model: Model, attacker: Player?, amount: number, position: Vector3?, zone: string?) -> () } =
+	{}
 local healListeners: { (player: Player, healer: Player, amount: number) -> () } = {}
 
--- Llama a "callback" cada vez que un enemigo recibe daño (BossService cuenta quién participa).
-function CombatService.onEnemyDamaged(callback: (model: Model, attacker: Player?, amount: number) -> ())
+-- Llama a "callback" cada vez que un enemigo recibe daño (BossService cuenta quién participa). Los dos
+-- últimos datos solo llegan en un disparo directo a distancia: dónde tocó y en qué zona.
+function CombatService.onEnemyDamaged(callback: (
+	model: Model,
+	attacker: Player?,
+	amount: number,
+	position: Vector3?,
+	zone: string?
+) -> ())
 	table.insert(damageListeners, callback)
 end
 
@@ -142,6 +150,8 @@ export type HitOptions = {
 	-- Zona del cuerpo que ha tocado un disparo directo ("Head", "Torso", "Limb" o "Weak"; Fase 19, W6): su
 	-- multiplicador (Shared/Zones) sustituye al del crítico si es mayor que 1, o se suma a él si no.
 	zone: string?,
+	-- Dónde tocó un disparo directo a distancia (solo lo lee quien escucha onEnemyDamaged).
+	position: Vector3?,
 }
 
 local NO_HIT_OPTIONS: HitOptions = {}
@@ -245,7 +255,7 @@ function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, 
 		ComboService.onActivity(attacker)
 	end
 	for _, listener in damageListeners do
-		task.spawn(listener, model, attacker, amount)
+		task.spawn(listener, model, attacker, amount, hit.position, hit.zone)
 	end
 end
 
@@ -899,7 +909,9 @@ function CombatService.aimShot(
 					or (allies == true and LifeState.isAlive(victim) and CombatRules.get().isAlly(player, victim))
 				studs, degrees, isPlayer = settings.PlayerAimStuds, settings.PlayerAimMinDegrees, true
 			else
+				-- Las dianas del campo de tiro (RangeTarget) no atraen la mira: ahí se mide la puntería propia.
 				valid = CollectionService:HasTag(model, Config.Combat.EnemyTag)
+					and model:GetAttribute("RangeTarget") ~= true
 				studs, degrees, isPlayer = settings.MonkeyAimStuds, settings.MonkeyAimMinDegrees, false
 			end
 			if valid then
@@ -1117,7 +1129,7 @@ local function rangedAttack(
 	-- "hitZone": la zona del cuerpo que ha tocado el proyectil. Cuenta solo en el impacto directo (main) de un
 	-- arma a distancia que usa zonas, en un place con zonas (no el área del cañón de suero ni del bastón, ni los
 	-- daños del remate que atraviesa).
-	local function strike(model: Model, amount: number, main: boolean, hitZone: string?): boolean
+	local function strike(model: Model, amount: number, main: boolean, hitZone: string?, hitPosition: Vector3?): boolean
 		local zone = if rules.zones
 				and weapon.kind == "Ranged"
 				and main
@@ -1163,7 +1175,13 @@ local function rangedAttack(
 			return false
 		end
 		countZone(zone)
-		CombatService.damage(model, humanoid, amount, player, { crit = crit, source = weaponId, zone = zone })
+		CombatService.damage(
+			model,
+			humanoid,
+			amount,
+			player,
+			{ crit = crit, source = weaponId, zone = zone, position = hitPosition }
+		)
 		if not main then
 			return true
 		end
@@ -1217,9 +1235,9 @@ local function rangedAttack(
 		ownerSeq = shotSeq,
 		rewind = if rules.zones then lag else nil,
 		lead = if rules.zones then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
-		onHit = function(model, _, zone)
+		onHit = function(model, center, zone, contact)
 			if direct == nil then
-				if strike(model, damage, true, zone) then
+				if strike(model, damage, true, zone, contact or center) then
 					direct = model
 					return true
 				end

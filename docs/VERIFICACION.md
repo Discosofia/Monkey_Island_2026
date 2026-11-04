@@ -4308,6 +4308,72 @@ El campo de tiro es una zona aparte del Lobby (`Workspace.CampoDeTiro`, sobre el
 1. [ ] Con varios jugadores en el Lobby, mide los FPS en PC y en teléfono, con y sin gente dentro del campo.
    ✅ El campo (unas 510 piezas, tope de 6.000 en `Config.Budgets.Matches.RangeParts`) no baja los FPS del Lobby de forma apreciable.
 
+## 109. Fase 23c: dianas, pantallas y ronda (03-11-2026)
+
+Las dianas del campo son combatientes: cada una tiene un `Humanoid` de 1e6 de vida que se restaura tras cada golpe, el tag `Enemy` y la zona `Head` en el anillo `Bullseye`. Las emergentes pierden el tag mientras están bajadas. Las pantallas enseñan las marcas de cada disparo (solo a quien dispara) y el Readout. La ronda de tiro dura 60 s, puntúa por anillo y no da Ámbar. En Studio, en 23c, se comprobaron 10 dianas con `Humanoid`, tag y zonas; las móviles, las emergentes y la giratoria se mueven; y un disparo real con el Arco a una diana fija hizo 26 de daño y la vida volvió al máximo.
+
+### 109.1 En Play, con 1 jugador: pantallas
+
+1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Entra en el campo, equípate el Arco y dispara a las pantallas desde tres distancias (cerca, media y lejos), unos 10 tiros a cada una.
+   ✅ Cada impacto deja una marca blanca con borde negro, y la última es naranja y más grande. Las marcas caen donde impacta la flecha.
+2. [ ] Mira la línea naranja de cada pantalla tras los últimos 10 tiros.
+   ✅ Sale desde el centro hacia el desvío medio de esos tiros, recta y sin torcerse.
+3. [ ] Lee el Readout de las dos pantallas.
+   ✅ Dice «Δx … Δy … studs (…°) · dispersión … · tiros N». Tanto en la pantalla corta como en la larga, dx positivo es a la derecha de quien mira y dy positivo es hacia arriba. Los signos cuadran con dónde caen las marcas.
+4. [ ] Pulsa `BorrarMarcasPrompt`.
+   ✅ Se vacían las marcas y la línea de las dos pantallas a la vez.
+5. [ ] Con la ayuda de puntería activada, apunta a las dianas del campo, sobre todo a sus bordes.
+   ✅ La ayuda no engancha las dianas: el disparo va donde apuntas.
+
+### 109.2 En Play, con 1 jugador: dianas
+
+6. [ ] Dispara al centro del `Bullseye` mientras se mueve (raíl y giratoria) y luego a uno de sus anillos exteriores.
+   ✅ Los impactos en el centro son críticos (×1,5) y sale el número de daño sobre el impacto.
+7. [ ] Dispara a una diana emergente mientras está bajada y luego cuando sube.
+   ✅ Bajada no recibe daño. Al subir, sí.
+
+### 109.3 En Play, con 1 jugador: ronda de tiro
+
+8. [ ] Pulsa `RondaPrompt` en el campo. Anota tu Ámbar antes de la ronda.
+   ✅ Empieza la ronda: aparece el panel arriba en el centro con el tiempo (60 s) y los puntos.
+9. [ ] Dispara durante la ronda y mira cómo suben los puntos según el anillo (10, 7, 5 o 3).
+   ✅ El panel suma los puntos del anillo que tocas y el tiempo baja.
+10. [ ] Pulsa `RondaPrompt` otra vez mientras la ronda sigue.
+    ✅ No pasa nada: la ronda no se reinicia ni suma puntos extra.
+11. [ ] Deja que acabe el tiempo.
+    ✅ Sale la tarjeta final con la precisión y los puntos. Si superas el mejor de la sesión, pone «¡Nuevo récord!». El Ámbar no ha cambiado respecto al paso 8.
+12. [ ] Haz otra ronda y consigue menos puntos que la mejor.
+    ✅ La tarjeta no muestra «¡Nuevo récord!» y el mejor de la sesión se mantiene.
+13. [ ] Para Play y vuelve a entrar al campo.
+    ✅ El récord de la sesión anterior no aparece: el mejor se guarda solo en memoria.
+14. [ ] Empieza una ronda y sal del recinto por el arco con «Volver al Lobby».
+    ✅ La ronda se corta: el panel desaparece y no llega la tarjeta final.
+15. [ ] Empieza otra ronda y aléjate del recinto a pie, sin usar el arco ni los prompts.
+    ✅ La ronda se corta al salir del recinto.
+16. [ ] Empieza otra ronda y muere (pon la vida del personaje a 0 desde el Explorador de Play).
+    ✅ La ronda se corta y no sale la tarjeta final. Sin errores en la Salida.
+
+### 109.4 En Play, con 2 jugadores
+
+1. [ ] Cada uno dispara a las pantallas: el jugador A a la pantalla corta y el B a la larga.
+   ✅ Cada uno ve solo sus marcas y su línea. Las marcas del otro no aparecen en su pantalla.
+2. [ ] Los dos empiezan su ronda de tiro a la vez.
+   ✅ Las dos rondas corren por separado: cada panel tiene su tiempo y sus puntos, y los disparos no se mezclan.
+
+### 109.5 En el teléfono o el emulador
+
+1. [ ] Con el emulador de teléfono, empieza una ronda y dispara mientras miras el panel del tiempo y los puntos.
+   ✅ El panel no tapa los botones de combate ni el joystick, y se lee el tiempo y los puntos.
+2. [ ] Mira el Readout de las pantallas desde la línea de tiro, en vertical y en horizontal.
+   ✅ Se lee sin acercarse: el texto no se corta ni se ve a cuadros.
+
+### 109.6 En el juego publicado
+
+1. [ ] Publica el place del Lobby y, en el juego publicado, dispara a las dianas móviles y a la giratoria.
+   ✅ Los impactos aciertan donde se ve la diana, aunque haya retraso del servidor, y las dianas no saltan de sitio a tirones.
+2. [ ] Con ping alto (una conexión lenta o una simulación de red en el emulador), juega una ronda completa.
+   ✅ Los disparos siguen acertando donde se ve la diana, el panel de la ronda no se queda congelado y la tarjeta final sale al acabar el tiempo.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

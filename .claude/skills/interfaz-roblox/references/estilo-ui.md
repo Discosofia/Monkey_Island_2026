@@ -160,6 +160,7 @@ Reglas que salen de ahí:
 | -1 | `CombatText` (debajo de todo; IgnoreGuiInset) |
 | — | `BillboardGui` del mundo (números sobre enemigos, `ComicFx`): siempre por debajo de todos los ScreenGui. Entre ellos no hay orden fijo, así que el estallido de cómic va sobre el pecho del enemigo y la columna de números encima de la cabeza, sin pisarse |
 | 0 | HUD normales (`IslandHUD`, `SurvivalHUD`, `RoleHUD`, `ComboHUD`, `BossHUD`, `AmmoHUD`, `LifeHUD`, `BuildHUD`, `Tutorial`, `LobbyUI`) y `ChainPips` (IgnoreGuiInset: los rombos de la cadena, que siguen los pies del personaje; Fase 10, C12) |
+| 0 | `RangeRound` (panel de la ronda de tiro del campo, arriba en el centro; solo en el Lobby; Fase 23c) |
 | 1 | `LiveEvents` (franja de los eventos en vivo, en la barra de Roblox) |
 | 5 | `ActionButtons`, `CraftingHUD`, `PlotHUD`, `InventoryHUD` (la Bolsa, por encima de Z X C R V y las barras) |
 | 5 | `DamageFx` (arco y viñeta de daño, sin botones: `Active` apagado, no bloquea toques) |

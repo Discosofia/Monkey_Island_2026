@@ -16,8 +16,9 @@
 -- ajuste (RangeScreen = "Near" / "Far", con un Frame "Grid", un Frame "Marks" vacío para las marcas
 -- y un TextLabel "Readout"); diez dianas (Model con RangeTarget = true en CampoDeTiro/Dianas);
 -- obstáculos, plataforma con rampa y cañón decorativo, foso de rebotes, paneles de materiales y un
--- péndulo; y la zona de preparación con bancos y cajas. Aquí todo está quieto: el movimiento, las
--- marcas y la lectura de las pantallas llegan en 23c.
+-- péndulo; la zona de preparación con bancos y cajas; y dos consolas (BorrarMarcasPrompt y RondaPrompt).
+-- Aquí todo está quieto: mueve las dianas RangeTargetService, y las marcas y la lectura de las pantallas
+-- las dibuja RangeScreenController.
 
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,7 +32,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 4
+local VERSION = 5
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -884,6 +885,40 @@ local function buildPreparation(root: Instance)
 end
 
 ---------------------------------------------------------------------------------------------------
+-- Consolas de la línea de tiro
+
+-- Dos pedestales voxel detrás de la línea de tiro, a los lados del centro, cada uno con un aviso:
+-- «Borrar marcas» (BorrarMarcasPrompt: cada cliente vacía las marcas de sus pantallas) y «Ronda de tiro»
+-- (RondaPrompt: la atiende RangeRoundService).
+local CONSOLE_Z = FIRE_Z + 8
+local CONSOLE_X = 14
+local CONSOLE_COLOR = 0xff7a1a
+
+local function buildConsole(parent: Instance, x: number, label: string, promptName: string)
+	local console = folder(parent, "Consola")
+	box(console, "Base", x, 0, CONSOLE_Z, 3.4, 1, 3.4, 0x4b525b, Enum.Material.SmoothPlastic)
+	box(console, "Columna", x, 1, CONSOLE_Z, 2.2, 2, 2.2, 0x565d66, Enum.Material.SmoothPlastic)
+	local top = decor(box(console, "Panel", x, 3, CONSOLE_Z, 2.8, 0.5, 2.8, CONSOLE_COLOR, Enum.Material.Neon))
+	-- Poste fino y rótulo que se lee desde la línea de tiro (mira hacia +z).
+	box(console, "Poste", x, 3.5, CONSOLE_Z, 0.4, 1.4, 0.4, 0x50565d, Enum.Material.Metal)
+	sign(console, label, 6.4, 1.5, Vector3.new(x, 5.6, CONSOLE_Z), Enum.NormalId.Front, 0xffcfa8)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = promptName
+	prompt.ActionText = label
+	prompt.ObjectText = later("Campo de tiro")
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = Config.Range.ConsoleReach
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = top
+end
+
+local function buildConsoles(root: Instance)
+	local consoles = folder(root, "Consolas")
+	buildConsole(consoles, -CONSOLE_X, later("Borrar marcas"), "BorrarMarcasPrompt")
+	buildConsole(consoles, CONSOLE_X, later("Ronda de tiro"), "RondaPrompt")
+end
+
+---------------------------------------------------------------------------------------------------
 -- API
 
 -- Dónde aparece un jugador al entrar: en la zona de preparación, mirando a -z. "slot" reparte a los
@@ -920,6 +955,7 @@ function RangeBuilder.build(options: Options?)
 	buildTargets(root)
 	buildObstacles(root)
 	buildPreparation(root)
+	buildConsoles(root)
 
 	local parts = 0
 	for _, descendant in root:GetDescendants() do

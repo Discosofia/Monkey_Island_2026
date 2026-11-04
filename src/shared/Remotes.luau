@@ -253,6 +253,15 @@ local Remotes = {
 	LabMapVote = remoteEvent("LabMapVote"),
 	-- Cliente -> servidor (Laboratorio): recargar el arma (Fase 15, V8). LabAmmoService.
 	LabReload = remoteEvent("LabReload"),
+	-- Servidor -> tirador (Lobby, campo de tiro, Fase 23): un disparo contra una pantalla de ajuste (RangeScreenService):
+	-- (pantalla "Near"|"Far", dx, dy en studs desde el centro de la pantalla, hacia la derecha de quien mira y hacia
+	-- arriba, y distancia del tirador al centro). El cliente dibuja la marca (RangeScreenController).
+	RangeShot = remoteEvent("RangeShot"),
+	-- Servidor -> jugador (Lobby, campo de tiro): la Ronda de tiro (RangeRoundService). (clase, datos):
+	-- "Start" { endsAt = hora del servidor, seconds, best = mejor puntuación de la sesión? },
+	-- "Score" { points, hits, crits, shots } en vivo, "End" { points, hits, crits, shots, best, newBest, left = true si
+	-- se cortó antes de tiempo }.
+	RangeRound = remoteEvent("RangeRound"),
 }
 
 return Remotes

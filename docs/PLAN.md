@@ -1054,7 +1054,7 @@ Maqueta 3D en el navegador (aprobada): `tools/maquetas/campo-de-tiro.html`.
 |---|---|---|---|
 | **23a** | Maqueta 3D web del campo (`tools/maquetas/campo-de-tiro.html`), antes de construirlo en Studio | — | ✅ Aprobada por el usuario; entra en el commit de 23b (ccf6747) |
 | **23b** | Construcción del recinto y acceso: `World/RangeBuilder` en `Workspace.CampoDeTiro`, estación `Campo` (🔭, `CampoPrompt` y `CampoSalidaPrompt`) con `Services/RangeService`, `LobbyBuilder` VERSION 18 y `Config.Budgets.Matches.RangeParts = 6000` | ccf6747 | ✅ Aprobada (VERIFICACION §108 sin probar) |
-| **23c** | Dianas, pantallas y ronda de tiro: `RangeTargets` como combatientes con zonas; movimiento de móviles, emergentes y giratoria en el servidor; `CombatService.onEnemyDamaged` pasa `hitPos` y la zona; remoto nuevo para las marcas de las pantallas (los frames `Marks` y `Readout` ya existen); ronda de 60 s sin Ámbar | — | ⏳ |
+| **23c** | Dianas, pantallas y ronda de tiro: `RangeTargets` como combatientes con zonas; movimiento de móviles, emergentes y giratoria en el servidor; `CombatService.onEnemyDamaged` pasa `hitPos` y la zona; remoto nuevo para las marcas de las pantallas (los frames `Marks` y `Readout` ya existen); ronda de 60 s sin Ámbar | — | 🟡 Hecha, pendiente de «aprobado» y commit (VERIFICACION §109) |
 | **23d** | Física de rebotes: `RangeBalls` con `CustomPhysicalProperties`, `Config.Range`, cañón de pelotas y `bounces` en `Projectiles`, con panel de elasticidad, gravedad, tamaño y velocidad | — | ⏳ |
 | **23e** | Modo de depuración (hitbox visibles, trazas) con `DebugCommands` y estación de efectos | — | ⏳ |
 | **23f** | Documentación: cerrar VERIFICACION de la fase y actualizar los resúmenes de `docs/llm-local` que cambien | — | ⏳ |

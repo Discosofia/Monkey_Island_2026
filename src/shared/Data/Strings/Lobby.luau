@@ -402,4 +402,17 @@ return {
 	["Cañón de pelotas"] = "Ball cannon",
 	["Metal"] = "Metal",
 	["Arena"] = "Sand",
+
+	-- Marcas de las pantallas, consolas y Ronda de tiro (Fase 23c: RangeScreenController, RangeRoundController).
+	["Borrar marcas"] = "Clear marks",
+	["Ronda de tiro"] = "Shooting round",
+	["Δx {dx}  Δy {dy} studs ({degrees}°) · dispersión {spread} · tiros {shots}"] = "Δx {dx}  Δy {dy} studs ({degrees}°) · spread {spread} · shots {shots}",
+	["Ronda cortada"] = "Round cut short",
+	["¡Ronda terminada!"] = "Round over!",
+	["{points} puntos"] = "{points} points",
+	["Aciertos {hits}/{shots} ({accuracy}%) · Críticos {crits}"] = "Hits {hits}/{shots} ({accuracy}%) · Crits {crits}",
+	["¡Nuevo récord! Mejor de la sesión: {best}"] = "New record! Session best: {best}",
+	["Mejor de la sesión: {best}"] = "Session best: {best}",
+	["Ronda de tiro · {time}"] = "Shooting round · {time}",
+	["Aciertos {hits} · Críticos {crits} · Disparos {shots}"] = "Hits {hits} · Crits {crits} · Shots {shots}",
 }
