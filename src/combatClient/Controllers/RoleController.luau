@@ -48,6 +48,7 @@ local BodyAnimations = require(script.Parent.Parent.BodyAnimations)
 local Dash = require(script.Parent.Parent.Dash)
 local DodgeFeel = require(script.Parent.Parent.DodgeFeel)
 local Feint = require(script.Parent.Parent.Feint)
+local ViewMode = require(script.Parent.Parent.ViewMode)
 
 -- Una por hueco de Data/Roles (el 4 es la definitiva; el 5, la cuarta activa).
 local KEYS = { Enum.KeyCode.Z, Enum.KeyCode.X, Enum.KeyCode.C, Enum.KeyCode.V, Enum.KeyCode.R }
@@ -295,6 +296,10 @@ local function readyIn(player: Player, slot: number): number
 end
 
 local function useAbility(player: Player, slot: number)
+	-- En primera persona (modo shooter del campo de tiro, Fase 24b) no hay habilidades.
+	if ViewMode.get() == "First" then
+		return
+	end
 	local ability = RoleAbilities.of(player)[slot]
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
@@ -478,6 +483,7 @@ function RoleController:Start()
 	end)
 
 	local hud = buildHud(player)
+	local roleGui = player:WaitForChild("PlayerGui"):FindFirstChild("RoleHUD") :: ScreenGui?
 	-- Rol y definitiva de los botones puestos ("<rol>:<definitiva>"): cambian al elegir otra en el Lobby.
 	local shownRole: string? = nil
 	local function bindRole(abilities: { Roles.Ability })
@@ -492,6 +498,21 @@ function RoleController:Start()
 		end
 	end
 	bindPad(player)
+	-- Modo shooter (primera persona): fuera la fila de habilidades y sus botones; al volver se enlazan de nuevo.
+	local function applyView()
+		local first = ViewMode.get() == "First"
+		if roleGui then
+			roleGui.Enabled = not first
+		end
+		if first and shownRole ~= nil then
+			shownRole = nil
+			for slot = 1, #KEYS do
+				ActionButtons.unbind(`Ability{slot}`)
+			end
+		end
+	end
+	ViewMode.onChanged(applyView)
+	applyView()
 
 	task.spawn(healthBars, player)
 	while true do
@@ -499,11 +520,11 @@ function RoleController:Start()
 		local role = if typeof(roleId) == "string" then Roles[roleId] else nil
 		local abilities = RoleAbilities.of(player)
 		local shown = if role then `{roleId}:{RoleAbilities.chosenUltimate(player, roleId :: string)}` else nil
-		if role and shown ~= shownRole then
+		if role and shown ~= shownRole and ViewMode.get() ~= "First" then
 			shownRole = shown
 			bindRole(abilities)
 		end
-		if role then
+		if role and ViewMode.get() ~= "First" then
 			-- El siguiente paso del combo en marcha (ComboController) se resalta en azul.
 			local comboNext = ComboController.nextStep(player)
 			for slot, ability in abilities do

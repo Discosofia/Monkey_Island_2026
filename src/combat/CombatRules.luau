@@ -232,6 +232,24 @@ function CombatRules.set(overrides: { [string]: any })
 	end
 end
 
+-- true si "player" tiene habilidades de rol y combos ahora (la regla "abilities", booleana o por jugador).
+function CombatRules.abilitiesOn(player: Player): boolean
+	local value = rules.abilities
+	if typeof(value) == "function" then
+		return value(player)
+	end
+	return value
+end
+
+-- true si "player" (el defensor) tiene guardia y parry ahora (la regla "guard", booleana o por jugador).
+function CombatRules.guardOn(player: Player): boolean
+	local value = rules.guard
+	if typeof(value) == "function" then
+		return value(player)
+	end
+	return value
+end
+
 -- Las reglas en vigor. Se leen en cada uso (no al cargar), porque el place las registra en su Init.
 function CombatRules.get(): Rules
 	return rules

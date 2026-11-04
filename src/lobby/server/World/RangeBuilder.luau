@@ -16,7 +16,9 @@
 -- ajuste (RangeScreen = "Near" / "Far", con un Frame "Grid", un Frame "Marks" vacío para las marcas
 -- y un TextLabel "Readout"); diez dianas (Model con RangeTarget = true en CampoDeTiro/Dianas);
 -- tres muñecos (fijo, de lado a lado y de atrás adelante, en CampoDeTiro/Munecos); obstáculos, plataforma con rampa y cañón, foso de rebotes, paneles de materiales y un
--- péndulo; la zona de preparación con bancos y cajas; y dos consolas (BorrarMarcasPrompt y RondaPrompt).
+-- péndulo; la zona de preparación con bancos y cajas; dos consolas (BorrarMarcasPrompt y RondaPrompt); y el
+-- Armero (Fase 24b, v8): una pared de la zona de preparación con las cuatro armas del Laboratorio colgadas, un aviso
+-- por arma (atributo "ArmeroWeapon") y «Dejar arma» (ArmeroDejarPrompt), que atiende RangeShooterService.
 -- Aquí todo está quieto: mueve las dianas RangeTargetService, y las marcas y la lectura de las pantallas
 -- las dibuja RangeScreenController.
 
@@ -25,6 +27,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.Strings)
+local LabWeapons = require(ReplicatedStorage.Shared.Data.LabWeapons)
+local LabWeaponModels = require(ReplicatedStorage.Shared.LabWeaponModels)
 
 local later = Strings.later
 
@@ -32,7 +36,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 7
+local VERSION = 8
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -1069,6 +1073,133 @@ local function buildConsoles(root: Instance)
 end
 
 ---------------------------------------------------------------------------------------------------
+-- Armero (Fase 24b)
+
+-- Pared derecha de la zona de preparación (cara interior en x = HALF_WIDTH), entre la caja de la derecha y la
+-- línea de tiro. Las cuatro armas del Laboratorio cuelgan en vertical, con la boca hacia arriba y el costado
+-- hacia el recinto, y a su derecha va «Dejar arma». Cada aviso es de una sola arma: ArmeroWeapon = su id.
+local ARMORY_X = HALF_WIDTH - 1.4
+local ARMORY_Z = 81 -- centro de la columna de armas
+local ARMORY_COLUMN = 5 -- separación entre armas
+local ARMORY_DROP_Z = ARMORY_Z + 12.5
+local ARMORY_BOARD_Z = ARMORY_Z + 2.5 -- centro del tablero: cubre las armas y «Dejar arma»
+local ARMORY_CENTER_Y = 6.5
+local ARMORY_WEAPON_LENGTH = 5 -- lado mayor de cada arma, en studs
+local ARMORY_REACH = 9
+local ARMORY_COLOR = 0xffcfa8
+
+-- Una copia decorativa y anclada de la herramienta del arma, con su centro en "target".
+local function buildDisplayWeapon(parent: Instance, weaponId: string, target: CFrame)
+	local tool = Instance.new("Tool")
+	local handle = LabWeaponModels.build(tool, weaponId, "Guardians", nil)
+	local model = Instance.new("Model")
+	model.Name = weaponId
+	for _, descendant in tool:GetDescendants() do
+		if descendant:IsA("JointInstance") or descendant:IsA("WeldConstraint") then
+			descendant:Destroy()
+		end
+	end
+	for _, child in tool:GetChildren() do
+		child.Parent = model
+	end
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.Anchored = true
+			decor(descendant)
+		end
+	end
+	model.PrimaryPart = handle
+	model.Parent = parent
+	-- Todas del mismo largo y con el centro de sus piezas en el punto de la pared.
+	local _, size = model:GetBoundingBox()
+	model:ScaleTo(ARMORY_WEAPON_LENGTH / math.max(size.X, size.Y, size.Z))
+	local boxCFrame = model:GetBoundingBox()
+	model:PivotTo(target * handle.CFrame:ToObjectSpace(boxCFrame):Inverse())
+	tool:Destroy()
+end
+
+local function buildArmory(root: Instance)
+	local armory = folder(root, "Armero")
+	local boardZ = ARMORY_BOARD_Z
+	local boardDepth = 25
+	local wood = Enum.Material.WoodPlanks
+	box(armory, "Tablero", HALF_WIDTH - 0.5, 2, boardZ, 1, 12.4, boardDepth, 0x3a2a1c, wood)
+	for _, y0 in { 1.6, 11.2 } do
+		box(armory, "Riel", HALF_WIDTH - 1.1, y0, boardZ, 0.5, 0.5, boardDepth + 0.6, 0x50565d, Enum.Material.Metal)
+	end
+	decor(
+		box(
+			armory,
+			"Franja",
+			HALF_WIDTH - 1.05,
+			10.6,
+			boardZ,
+			0.2,
+			0.3,
+			boardDepth - 1,
+			CONSOLE_COLOR,
+			Enum.Material.Neon
+		)
+	)
+	sign(armory, later("Armero"), 12, 1.6, Vector3.new(ARMORY_X + 0.3, 13.2, boardZ), Enum.NormalId.Left, ARMORY_COLOR)
+
+	for index, weaponId in LabWeapons.ORDER do
+		local z = ARMORY_Z + (index - 2.5) * ARMORY_COLUMN
+		buildDisplayWeapon(armory, weaponId, place(ARMORY_X, ARMORY_CENTER_Y, z))
+		for _, y0 in { 3.5, 9.1 } do
+			box(armory, "Soporte", HALF_WIDTH - 1.3, y0, z, 0.6, 0.4, 0.8, 0x50565d, Enum.Material.Metal)
+		end
+		local anchor = decor(
+			box(armory, "Aviso", ARMORY_X - 0.6, ARMORY_CENTER_Y - 0.5, z, 0.5, 0.5, 0.5, 0x50565d, Enum.Material.Metal)
+		)
+		anchor.Transparency = 1
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "ArmeroPrompt"
+		prompt.ActionText = later("Equipar")
+		prompt.ObjectText = LabWeapons.weapons[weaponId].name
+		prompt:SetAttribute("ArmeroWeapon", weaponId)
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = ARMORY_REACH
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = anchor
+	end
+
+	-- «Dejar arma»: una chapa al final del tablero.
+	sign(
+		armory,
+		later("Dejar arma"),
+		4.4,
+		1.4,
+		Vector3.new(ARMORY_X + 0.3, ARMORY_CENTER_Y, ARMORY_DROP_Z),
+		Enum.NormalId.Left,
+		ARMORY_COLOR
+	)
+	local dropAnchor = decor(
+		box(
+			armory,
+			"Aviso",
+			ARMORY_X - 0.6,
+			ARMORY_CENTER_Y - 0.7,
+			ARMORY_DROP_Z,
+			0.5,
+			0.5,
+			0.5,
+			0x50565d,
+			Enum.Material.Metal
+		)
+	)
+	dropAnchor.Transparency = 1
+	local drop = Instance.new("ProximityPrompt")
+	drop.Name = "ArmeroDejarPrompt"
+	drop.ActionText = later("Dejar arma")
+	drop.ObjectText = later("Armero")
+	drop.HoldDuration = 0
+	drop.MaxActivationDistance = ARMORY_REACH
+	drop.RequiresLineOfSight = false
+	drop.Parent = dropAnchor
+end
+
+---------------------------------------------------------------------------------------------------
 -- API
 
 -- Dónde aparece un jugador al entrar: en la zona de preparación, mirando a -z. "slot" reparte a los
@@ -1107,6 +1238,7 @@ function RangeBuilder.build(options: Options?)
 	buildObstacles(root)
 	buildPreparation(root)
 	buildConsoles(root)
+	buildArmory(root)
 
 	local parts = 0
 	for _, descendant in root:GetDescendants() do

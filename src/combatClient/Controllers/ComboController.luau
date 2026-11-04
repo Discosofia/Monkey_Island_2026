@@ -19,6 +19,7 @@ local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Settings = require(ReplicatedStorage.Shared.Settings)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
+local ViewMode = require(ReplicatedStorage.CombatClient.ViewMode)
 
 local T = Strings.t
 
@@ -88,6 +89,12 @@ end
 function ComboController:Start()
 	local player = Players.LocalPlayer
 	local gui = Widgets.screen("ComboHUD", player:WaitForChild("PlayerGui"))
+	-- Sin combos en primera persona (modo shooter del campo de tiro, Fase 24b).
+	local function applyView()
+		gui.Enabled = ViewMode.get() ~= "First"
+	end
+	ViewMode.onChanged(applyView)
+	applyView()
 
 	-- Debajo de las casillas de las habilidades (RoleController).
 	local panel = Instance.new("Frame")

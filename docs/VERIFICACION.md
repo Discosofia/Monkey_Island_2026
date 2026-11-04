@@ -4606,6 +4606,33 @@ Los tres perros comparten `voxelDog` y se rehicieron una vez: pelo pintado en fi
 5. [ ] Míralos en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
    ✅ Con su textura.
 
+## 119. Fase 24 grupo 24b: Armero y modo shooter del campo de tiro (04-11-2026)
+
+El campo de tiro (v8, 812 piezas) tiene un Armero en el muro derecho de la zona de preparación con las cuatro armas del Laboratorio y un aviso «Dejar arma». Equipar una pasa a primera persona con cargador, recarga y dispersión del Laboratorio (`Combat/LabMagazine`), sin habilidades ni guardia (`CombatRules.abilities` y `guard` aceptan ahora una función por jugador); soltarla, salir del campo o morir devuelve la tercera persona y las armas del rol. Comprobado el 04-11-2026 en Play en el Lobby, con el personaje teletransportado junto al Armero: atributos, mano y mochila, primera persona, cargador (5 → 4 al disparar, recarga a 5), cambio a los dardos (24), soltar, salir y morir. Sin probar lo de abajo. Las armas cuelgan en vertical y sin nombre debajo: a revisar a ojo.
+
+### 119.1 En el Studio del Lobby, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Entra al campo por el arco del Lobby (`CampoPrompt`), no por teletransporte, y camina hasta el Armero.
+   ✅ Los avisos de cada arma salen al mirarla; se equipa la que miras, no la de al lado.
+2. [ ] Equipa el rifle, apunta a una diana a 60 studs y dispara.
+   ✅ Primera persona con el arma y los brazos; la bala daña la diana y sale el número de daño y el marcador de impacto; el contador de balas baja y recarga con R.
+3. [ ] Prueba cada arma del Armero (dardos, rifle, arpón, ácido).
+   ✅ Cada una con su cargador, su recarga y su dispersión; sin habilidades (Z/X/C/R/V), ni guardia (F), ni barra de combos.
+4. [ ] Pulsa Ctrl con un arma equipada, y otra vez.
+   ✅ El ratón se suelta y se vuelve a bloquear; en tercera persona, Ctrl vuelve a bloquear la cámara como antes.
+5. [ ] Equipa un arma y mira el teléfono (emulador): botones de disparo, recarga y mira.
+   ✅ El contador de balas no tapa ningún botón; «Mira» y recargar funcionan.
+
+### 119.2 Con dos jugadores
+
+1. [ ] Uno equipa el rifle y el otro lo mira desde fuera.
+   ✅ El segundo ve el arma en la mano del primero con sus animaciones, y no se hacen daño.
+
+### 119.3 Armas del rol (regresión)
+
+1. [ ] Sin tocar el Armero, prueba en el campo el arco, el bastón y la cerbatana, y las habilidades del rol.
+   ✅ Como antes del 24b: tercera persona, habilidades y guardia disponibles.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

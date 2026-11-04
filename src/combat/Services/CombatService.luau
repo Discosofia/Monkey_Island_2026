@@ -23,7 +23,7 @@
 -- Coberturas (C11, Combat/Destructibles): el remate de la cadena y el disparo de remate las alcanzan.
 -- Laboratorio (Fase 13, Data/LabWeapons): sus armas no tienen remate ni crítico; al acertar ralentizan
 -- poco a poco o enredan (Combat/Status), y el cañón de suero vuela en arco hasta donde se apunta y
--- estalla en un área que envenena (labHit, acidLob). Sin guardia en el place (CombatRules.guard), los
+-- estalla en un área que envenena (labHit, acidLob). Sin guardia en el place o en el defensor (CombatRules.guardOn), los
 -- disparos a jugadores entran al momento.
 
 local CollectionService = game:GetService("CollectionService")
@@ -1154,7 +1154,7 @@ local function rangedAttack(
 					labHit(victimCharacter, weapon)
 				end
 			end
-			if not rules.guard then
+			if not CombatRules.guardOn(victim) then
 				CombatService.damagePvP(player, victim, amount * pvpScale, crit, nil, nil, zone, weaponId)
 				landed()
 				return true

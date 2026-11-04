@@ -25,6 +25,7 @@ local Strings = require(ReplicatedStorage.Shared.Strings)
 local ActionButtons = require(script.Parent.Parent.ActionButtons)
 local Feint = require(script.Parent.Parent.Feint)
 local WeaponController = require(script.Parent.WeaponController)
+local ViewMode = require(script.Parent.Parent.ViewMode)
 
 local ACTION = "Guard"
 -- Lo que se espera a que el servidor confirme la guardia antes de quitar la pose (s).
@@ -60,9 +61,10 @@ local function onAction(_, state: Enum.UserInputState): Enum.ContextActionResult
 	return Enum.ContextActionResult.Sink
 end
 
--- La guardia solo está enlazada con el jugador vivo (caído, F es "Rendirse").
+-- La guardia solo está enlazada con el jugador vivo (caído, F es "Rendirse") y fuera de la primera persona
+-- (el modo shooter del campo de tiro, Fase 24b, no tiene guardia).
 local function refreshBinding()
-	local alive = LifeState.isAlive(Players.LocalPlayer)
+	local alive = LifeState.isAlive(Players.LocalPlayer) and ViewMode.get() ~= "First"
 	if alive == bound then
 		return
 	end
@@ -90,6 +92,7 @@ end
 function GuardController:Start()
 	local player = Players.LocalPlayer
 	refreshBinding()
+	ViewMode.onChanged(refreshBinding)
 	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(refreshBinding)
 	player.CharacterAdded:Connect(function()
 		setPressed(false)

@@ -423,4 +423,8 @@ return {
 	["Velocidad"] = "Speed",
 	["Disparar pelota"] = "Fire ball",
 	["Cerrar"] = "Close",
+
+	-- Armero del campo de tiro y modo shooter (Fase 24b: RangeBuilder, RangeShooterService).
+	["Armero"] = "Armory",
+	["Dejar arma"] = "Put weapon away",
 }

@@ -1678,7 +1678,7 @@ local function onUseAbility(player: Player, slot: any, aim: any, from: any, to: 
 		return
 	end
 	-- Places sin habilidades (el Laboratorio): ni las habilidades ni, con ellas, los combos.
-	if not CombatRules.get().abilities then
+	if not CombatRules.abilitiesOn(player) then
 		return
 	end
 	local ability = RoleAbilities.of(player)[slot]

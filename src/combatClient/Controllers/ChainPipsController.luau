@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local WeaponController = require(script.Parent.WeaponController)
+local ViewMode = require(script.Parent.Parent.ViewMode)
 
 local PIP = 14
 local FINISHER_PIP = 20
@@ -64,6 +65,12 @@ function ChainPipsController:Start()
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	-- Sin la cadena a los pies en primera persona (modo shooter del campo de tiro, Fase 24b).
+	local function applyView()
+		gui.Enabled = ViewMode.get() ~= "First"
+	end
+	ViewMode.onChanged(applyView)
+	applyView()
 
 	local width = 3 * PIP + FINISHER_PIP + 3 * GAP + 2 * PADDING
 	local height = FINISHER_PIP + PADDING

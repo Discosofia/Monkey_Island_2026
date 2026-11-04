@@ -1,15 +1,18 @@
 --!strict
--- Cargador del Laboratorio en pantalla (Fase 15, V8; estado en CombatClient/LabShooting, servidor en
--- LabAmmoService). Solo mientras se lleva en la mano un arma con cargador y se está vivo:
+-- Cargador de las armas del Laboratorio en pantalla (Fase 15, V8; estado en CombatClient/LabShooting, servidor en
+-- Combat/LabMagazine). Lo cargan el Laboratorio y el Lobby (modo shooter del campo de tiro, Fase 24b). Solo
+-- mientras se está en primera persona (ViewMode), se lleva en la mano un arma con cargador y se está vivo:
 --   - Contador de balas "24 / 24", solo texto, con el estilo del HUD del Laboratorio (panel de madera oscura,
 --     BuilderSansBold). Se pone en rojo claro con el 25 % del cargador o menos (Config.Lab.LowAmmoFraction).
---     En PC va abajo a la derecha, encima del 😀 de los emotes; en táctil, bajo el 😀 (arriba a la derecha),
---     porque abajo a la derecha están el salto y los botones de acción.
+--     En el Laboratorio (pantalla LabHUD) va abajo a la derecha en PC, encima del 😀 de los emotes; en táctil,
+--     bajo el 😀 (arriba a la derecha), porque abajo a la derecha están el salto y los botones de acción.
+--     Sin LabHUD (el Lobby): en PC abajo a la derecha, a la altura de un botón de emotes; en táctil, a la
+--     derecha de la mira, lejos de los botones táctiles.
 --   - Barra fina de recarga bajo la mira, con los segundos que faltan, solo mientras se recarga.
 --   - La mira dinámica: cada fotograma le pone la dispersión del arma (LabShooting.spreadPixels) y el anillo
 --     de espera entre disparos (solo en armas con cadencia de Config.Lab.CooldownRingMinSeconds o más).
 --   - La acción "Reload": tecla R, botón X del mando y botón táctil "Recargar". Solo existe con un arma con
---     cargador en la mano (este place no carga RoleController, así que R está libre).
+--     cargador en la mano y en primera persona (ahí RoleController suelta sus habilidades, así que R está libre).
 -- Se esconde con una ventana abierta (el ratón suelto por una ventana, como la mira) y estando muerto.
 
 local Players = game:GetService("Players")
@@ -25,6 +28,7 @@ local WeaponController = require(ReplicatedStorage.CombatClient.Controllers.Weap
 local ActionButtons = require(ReplicatedStorage.CombatClient.ActionButtons)
 local LabShooting = require(ReplicatedStorage.CombatClient.LabShooting)
 local FirstPersonController = require(ReplicatedStorage.CombatClient.Controllers.FirstPersonController)
+local ViewMode = require(ReplicatedStorage.CombatClient.ViewMode)
 
 local T = Strings.t
 
@@ -41,6 +45,10 @@ local GAP = 8
 local MARGIN = 12
 -- Alto del botón 😀 (EmoteWheel.button) si aún no se ha colocado.
 local EMOTE_SIZE = 52
+-- Cuánto espera a la pantalla LabHUD del Laboratorio (s); en otros places no existe.
+local LAB_HUD_WAIT = 5
+-- Sin LabHUD y en táctil: separación a la derecha del centro de la pantalla (junto a la mira).
+local CROSSHAIR_SIDE = 90
 local BAR_SIZE = Vector2.new(150, 8)
 -- Cuánto baja la barra de recarga desde el centro de la pantalla (bajo la mira).
 local BAR_DROP = 44
@@ -110,24 +118,43 @@ function LabAmmoHUDController:Start()
 	reloadText.Size = UDim2.fromOffset(BAR_SIZE.X, 18)
 	reloadText.TextStrokeTransparency = 0.3
 
-	-- Dónde va el contador: sigue al botón 😀 de los emotes (LabHUDController), que cambia de sitio según el dispositivo.
-	local hud = playerGui:WaitForChild("LabHUD")
-	local emote = hud:WaitForChild("EmoteButton") :: GuiObject
+	-- Dónde va el contador. En el Laboratorio sigue al botón 😀 de los emotes (LabHUDController), que cambia de
+	-- sitio según el dispositivo; sin esa pantalla (el Lobby) usa un sitio fijo.
+	local emote: GuiObject? = nil
 	local function placeCounter()
-		local emoteHeight = if emote.Size.Y.Offset > 0 then emote.Size.Y.Offset else EMOTE_SIZE
-		if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
-			-- Táctil: bajo el 😀 (arriba a la derecha), fuera del salto y los botones de acción.
-			counter.AnchorPoint = Vector2.new(1, 0)
-			counter.Position = UDim2.new(1, -MARGIN, 0, emote.Position.Y.Offset + emoteHeight + GAP)
+		local touch = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+		if emote then
+			local emoteHeight = if emote.Size.Y.Offset > 0 then emote.Size.Y.Offset else EMOTE_SIZE
+			if touch then
+				-- Táctil: bajo el 😀 (arriba a la derecha), fuera del salto y los botones de acción.
+				counter.AnchorPoint = Vector2.new(1, 0)
+				counter.Position = UDim2.new(1, -MARGIN, 0, emote.Position.Y.Offset + emoteHeight + GAP)
+			else
+				-- PC: encima del 😀 (abajo a la derecha).
+				counter.AnchorPoint = Vector2.new(1, 1)
+				counter.Position = UDim2.new(1, -MARGIN, 1, -(MARGIN + emoteHeight + GAP))
+			end
+		elseif touch then
+			-- Sin LabHUD, táctil: a la derecha de la mira.
+			counter.AnchorPoint = Vector2.new(0, 0.5)
+			counter.Position = UDim2.new(0.5, CROSSHAIR_SIDE, 0.5, 0)
 		else
-			-- PC: encima del 😀 (abajo a la derecha).
+			-- Sin LabHUD, PC: abajo a la derecha.
 			counter.AnchorPoint = Vector2.new(1, 1)
-			counter.Position = UDim2.new(1, -MARGIN, 1, -(MARGIN + emoteHeight + GAP))
+			counter.Position = UDim2.new(1, -MARGIN, 1, -(MARGIN + EMOTE_SIZE + GAP))
 		end
 	end
 	placeCounter()
-	emote:GetPropertyChangedSignal("Position"):Connect(placeCounter)
 	UserInputService.LastInputTypeChanged:Connect(placeCounter)
+	task.spawn(function()
+		local hud = playerGui:WaitForChild("LabHUD", LAB_HUD_WAIT)
+		local button = if hud then hud:WaitForChild("EmoteButton", LAB_HUD_WAIT) else nil
+		if button and button:IsA("GuiObject") then
+			emote = button
+			button:GetPropertyChangedSignal("Position"):Connect(placeCounter)
+			placeCounter()
+		end
+	end)
 
 	-- La acción de recargar existe solo con un arma con cargador en la mano.
 	local reloadBound = false
@@ -156,7 +183,10 @@ function LabAmmoHUDController:Start()
 
 	RunService.RenderStepped:Connect(function()
 		local weapon = LabShooting.weapon()
-		local active = weapon ~= nil and weapon.lab ~= nil and not isDead(player.Character)
+		local active = ViewMode.get() == "First"
+			and weapon ~= nil
+			and weapon.lab ~= nil
+			and not isDead(player.Character)
 		bindReload(active)
 		local covered = FirstPersonController.needsCursor()
 		local handle = FirstPersonController.crosshair()

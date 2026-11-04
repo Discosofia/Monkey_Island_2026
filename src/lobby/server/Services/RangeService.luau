@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local LobbyBuilder = require(script.Parent.Parent.World.LobbyBuilder)
 local RangeBuilder = require(script.Parent.Parent.World.RangeBuilder)
+local RangeShooterService = require(script.Parent.RangeShooterService)
 
 local ENTER_PROMPT = "CampoPrompt"
 local EXIT_PROMPT = "CampoSalidaPrompt"
@@ -53,6 +54,8 @@ local function onTriggered(prompt: ProximityPrompt, player: Player)
 		arrivals += 1
 		character:PivotTo(RangeBuilder.entrySpawn(arrivals))
 	else
+		-- Al salir se deja el arma del Armero (modo shooter, Fase 24b).
+		RangeShooterService.release(player, true)
 		character:PivotTo(LobbyBuilder.rangeExitSpawn())
 	end
 end
