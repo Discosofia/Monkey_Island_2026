@@ -4194,6 +4194,17 @@ El borrador de prueba lo crea `tools/video/spike_v0.py` en `build/videos/borrado
 3. [x] Mira la toma `O:/2026-10-30 10-42-16.mkv` entera.
    ✅ Decidido el 03-11-2026: las tomas son la ventana entera de Studio, así que en el recuadro central 9:16 se cuela su barra de herramientas. No se descartan: V1/V2 las recortan o escalan para ajustarlas (el tramo del segundo 28 no está oscuro; era solo la miniatura de CapCut).
 
+## 104. Fase 22 V1: lista de cortes del tráiler y fotogramas con guía 9:16 (03-11-2026)
+
+`python -I tools/video/borrador.py "build/videos/copias/2026-11-03/trailer esp" --json build/videos/cortes/trailer-esp.json --md build/videos/cortes/trailer-esp.md` saca los 39 cortes (toma, desde, duración, lugar en la línea, escala y desplazamiento) y los textos. `python -I tools/video/fotogramas.py build/videos/cortes/trailer-esp.json --hoja` deja un fotograma por corte con la guía 9:16 en `build/videos/fotogramas/trailer-esp/` (`hoja.jpg` los junta). Ya comprobado por el script: las 39 tomas existen en `O:/` y ningún corte se sale de su toma, en ES y EN. Falta tu ojo en CapCut:
+
+### 104.1 Cinco cortes contra CapCut (con el borrador `trailer esp` abierto en CapCut, sin tocarlo)
+
+1. [ ] Mira en la línea de tiempo los cortes 1, 7, 19, 27 y 39 de `build/videos/cortes/trailer-esp.md`.
+   ✅ Cada uno cae en el segundo de la columna «Línea», es de la toma indicada, empieza en el segundo de «Desde» y dura lo de «Dura» (margen de un fotograma). El 39 es la portada de 5 s.
+2. [ ] Abre `build/videos/fotogramas/trailer-esp/hoja.jpg`.
+   ✅ Cada casilla enseña lo mismo que ves en CapCut en ese corte. Apunta los números de corte donde el rectángulo verde (9:16) corta la acción (candidatos: 1, 7, 23, 26-28) para decidir recuadro en V2.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
