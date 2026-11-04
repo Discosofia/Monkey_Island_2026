@@ -167,6 +167,106 @@ local PetMeshes: { [string]: PetMesh } = {
 			},
 		},
 	},
+	Rana = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://91935588803549",
+				texture = "rbxassetid://134029865095137",
+				offset = Vector3.new(0.0000, 0.1250, -0.0850),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://102475806270923",
+				texture = "rbxassetid://120269440618035",
+				offset = Vector3.new(-0.3255, -0.1450, 0.0100),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://125092827457611",
+				texture = "rbxassetid://113614711158731",
+				offset = Vector3.new(0.3255, -0.1450, 0.0100),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://108958852313846",
+				texture = "rbxassetid://82148326884073",
+				offset = Vector3.new(-0.1648, -0.1750, -0.1560),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://80266988954196",
+				texture = "rbxassetid://89511352608853",
+				offset = Vector3.new(0.1648, -0.1750, -0.1560),
+			},
+		},
+	},
+	Tortuga = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://105440745384337",
+				texture = "rbxassetid://136148240079364",
+				offset = Vector3.new(0.0000, 0.0525, 0.1400),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://72892688518602",
+				texture = "rbxassetid://139556717269724",
+				offset = Vector3.new(-0.1550, -0.0600, 0.2100),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://92043140235140",
+				texture = "rbxassetid://78848930382546",
+				offset = Vector3.new(0.1550, -0.0600, 0.2100),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://118770408483834",
+				texture = "rbxassetid://72468479185313",
+				offset = Vector3.new(-0.5650, -0.0950, 0.0850),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://117886977048710",
+				texture = "rbxassetid://101971849745166",
+				offset = Vector3.new(0.5650, -0.0950, 0.0850),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://131696539074577",
+				texture = "rbxassetid://111855786006004",
+				offset = Vector3.new(0.0000, 0.0450, -0.3450),
+			},
+		},
+	},
+	Perezoso = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://129051009976149",
+				texture = "rbxassetid://129054740651181",
+				offset = Vector3.new(0.0000, 0.5725, 0.1400),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://114861222806336",
+				texture = "rbxassetid://137285197435097",
+				offset = Vector3.new(-0.0800, -0.4650, -0.0950),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://134095420263744",
+				texture = "rbxassetid://97471076072442",
+				offset = Vector3.new(0.0800, -0.4650, -0.0950),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://70456368594577",
+				texture = "rbxassetid://81874019612939",
+				offset = Vector3.new(-0.0500, -0.6600, -0.5800),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://102820490881901",
+				texture = "rbxassetid://112170061298068",
+				offset = Vector3.new(0.0500, -0.6600, -0.5800),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://83223279620081",
+				texture = "rbxassetid://96024515587816",
+				offset = Vector3.new(0.0000, 0.0250, -0.2250),
+			},
+		},
+	},
 }
 
 return PetMeshes

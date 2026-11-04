@@ -2584,6 +2584,90 @@ local function voxelScales(
 	end
 end
 
+-- Escamas o plumas pintadas sobre una cara de arriba (plano y = at.Y, "area" = ancho en X y largo en Z centrado en at,
+-- "cell" = tamaño de cada una en X y Z). El grosor "depth" va en Y.
+local function voxelTopScales(
+	v: VoxelKit,
+	list: { BasePart }?,
+	name: string,
+	at: Vector3,
+	area: Vector2,
+	cell: Vector2,
+	colors: { Color3 },
+	depth: number?
+)
+	local rows = math.max(1, math.floor(area.Y / cell.Y + 0.01))
+	local cols = math.max(1, math.floor(area.X / cell.X + 0.01))
+	for r = 0, rows - 1 do
+		local z = at.Z - area.Y / 2 + (r + 0.5) * cell.Y
+		for c = 0, cols - 1 do
+			local u = -area.X / 2 + (c + 0.5) * cell.X + (if r % 2 == 1 then cell.X * 0.5 else 0)
+			if math.abs(u) + cell.X * 0.45 <= area.X / 2 + 0.3 then
+				v.box(
+					list,
+					name,
+					Vector3.new(at.X + u, at.Y, z),
+					Vector3.new(cell.X * 0.85, depth or 0.2, cell.Y * 0.85),
+					colors[(r + c) % #colors + 1]
+				)
+			end
+		end
+	end
+end
+
+-- Extremidad gruesa que baja en diagonal entre dos puntos (un brazo, una pata) en escalones de bloques alineados:
+-- cada tramo mide el grosor "thickness" y lo que avanza en Y y en Z, para que la figura entre en la malla (Q5).
+local function voxelLimb(
+	v: VoxelKit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	thickness: number,
+	color: Color3,
+	segment: number?
+)
+	local delta = to - from
+	local count = math.max(1, math.ceil(math.max(math.abs(delta.Y), math.abs(delta.Z)) / (segment or 2)))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		v.box(
+			list,
+			name,
+			(a + b) / 2,
+			Vector3.new(thickness + math.abs(b.X - a.X), math.abs(b.Y - a.Y) + 0.6, thickness + math.abs(b.Z - a.Z)),
+			color
+		)
+	end
+end
+
+-- Tira plana en el suelo entre dos puntos (un dedo): escalones alineados que avanzan en X y en Z.
+local function voxelFlat(
+	v: VoxelKit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: number,
+	height: number,
+	color: Color3
+)
+	local delta = to - from
+	local count = math.max(1, math.ceil(math.max(math.abs(delta.X), math.abs(delta.Z)) / 1))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		v.box(
+			list,
+			name,
+			(a + b) / 2,
+			Vector3.new(math.max(math.abs(b.X - a.X), width), height, math.max(math.abs(b.Z - a.Z), width)),
+			color
+		)
+	end
+end
+
 -- Ala voxel abierta hacia el lado "side", en escalones que se estrechan hacia la punta, con las
 -- remeras en el borde de atrás. "steps" son las cajas del ala derecha relativas a la bisagra.
 type WingBlock = { center: Vector3, size: Vector3, color: Color3 }
@@ -3031,37 +3115,91 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		local v = voxelKit(rig, Vector3.new(0, 4, 0))
 		local box = v.box
 		local belly = color:Lerp(WHITE, 0.25)
+		local bellyLight = color:Lerp(WHITE, 0.5)
 		local navy = color:Lerp(BLACK, 0.55)
 		local legColor = color:Lerp(BLACK, 0.12)
 		local spot = Color3.fromRGB(18, 18, 24)
+		local sheen = color:Lerp(WHITE, 0.3) -- reflejo de la piel mojada
+		local deep = color:Lerp(BLACK, 0.3)
 
 		-- Cuerpo: la parte de delante algo más alta (está sentada sobre las patas de delante), el lomo
-		-- y la joroba de la cadera encima, y la trasera redondeada que acaba de golpe.
+		-- y la joroba de la cadera encima, y la trasera redondeada que acaba en escalones. Los hombros y las ancas
+		-- sobresalen de los costados.
 		box(nil, "Body", Vector3.new(0, 3.2, 3.5), Vector3.new(8, 3.2, 5), color)
 		box(nil, "Chest", Vector3.new(0, 3.9, -1.5), Vector3.new(8, 3.4, 5), color)
 		box(nil, "Back", Vector3.new(0, 6.1, 1.2), Vector3.new(7, 1.8, 8.4), color)
 		box(nil, "Hump", Vector3.new(0, 7.4, 2.4), Vector3.new(5.4, 1.2, 5), color)
 		box(nil, "Rump", Vector3.new(0, 3.8, 6.4), Vector3.new(6, 3.4, 1), color)
+		box(nil, "Rump", Vector3.new(0, 4.2, 7.1), Vector3.new(4.6, 2.4, 0.5), color)
 		box(nil, "Belly", Vector3.new(0, 1.5, 1.6), Vector3.new(6.6, 0.3, 8.6), belly)
+		for _, side in { -1, 1 } do
+			box(nil, "Shoulder", Vector3.new(side * 4.3, 4.4, -1.6), Vector3.new(0.6, 2.4, 3.4), color:Lerp(deep, 0.15))
+			box(nil, "Haunch", Vector3.new(side * 4.3, 4.2, 3.6), Vector3.new(0.6, 2.2, 3.6), color:Lerp(deep, 0.15))
+		end
+		-- Piel mojada: motitas claras y reflejos pintados entre las motas negras.
+		for i = 1, 16 do
+			local x = (((i * 5) % 9) - 4) * 0.7
+			local z = -2.6 + i * 0.62
+			local y = if z > -0.5 then 8.05 else 7.05
+			if z > 5.3 then
+				continue
+			end
+			box(
+				nil,
+				"Speck",
+				Vector3.new(x, y, z),
+				Vector3.new(0.5, 0.2, 0.5),
+				if i % 3 == 0 then sheen else bellyLight
+			)
+		end
+		for _, side in { -1, 1 } do
+			for i = 1, 5 do
+				box(
+					nil,
+					"Speck",
+					Vector3.new(side * 4.65, 3.4 + (i % 3) * 0.7, -2.6 + i * 1.4),
+					Vector3.new(0.2, 0.4, 0.5),
+					if i % 2 == 0 then sheen else bellyLight
+				)
+			end
+		end
 
 		-- Cabeza ancha y plana con el hocico en escalón, la boca en raya oscura alrededor y la garganta
-		-- clara.
+		-- clara con su saco vocal.
 		box(nil, "Head", Vector3.new(0, 5.2, -5.4), Vector3.new(7.6, 3.6, 4.4), color)
 		box(nil, "Snout", Vector3.new(0, 4.9, -8), Vector3.new(6, 2.6, 1.2), color)
+		box(nil, "SnoutTip", Vector3.new(0, 4.6, -8.8), Vector3.new(4.4, 1.8, 0.5), color)
 		box(nil, "Mouth", Vector3.new(0, 4.3, -6.075), Vector3.new(7.75, 0.3, 5.15), navy)
 		box(nil, "Throat", Vector3.new(0, 3.4, -5.6), Vector3.new(6.6, 1, 4.6), belly)
+		box(nil, "ThroatSac", Vector3.new(0, 2.7, -6.2), Vector3.new(5, 0.8, 3.4), bellyLight)
 		for _, side in { -1, 1 } do
-			-- Ojo negro saltón sobre su bulto azul, con un brillo gris en la cara de delante.
+			-- Ojo negro saltón sobre su bulto azul, con el párpado y dos reflejos.
 			box(nil, "EyeBump", Vector3.new(side * 2.7, 7.2, -5.6), Vector3.new(2.6, 1, 2.6), color)
 			box(nil, "Eye", Vector3.new(side * 2.75, 8, -5.8), Vector3.new(2, 1.8, 2), spot)
+			box(nil, "Lid", Vector3.new(side * 2.75, 9, -5.8), Vector3.new(2.2, 0.3, 2.2), deep)
+			box(
+				nil,
+				"EyeShine",
+				Vector3.new(side * 2.75, 8.4, -6.85),
+				Vector3.new(1.2, 0.8, 0.1),
+				Color3.fromRGB(70, 75, 95)
+			)
 			box(
 				nil,
 				"Glint",
-				Vector3.new(side * 3.05, 8.4, -6.85),
+				Vector3.new(side * 3.05, 8.5, -6.9),
 				Vector3.new(0.6, 0.6, 0.1),
-				Color3.fromRGB(95, 100, 115)
+				Color3.fromRGB(150, 160, 180)
+			)
+			box(
+				nil,
+				"Glint",
+				Vector3.new(side * 2.3, 7.9, -6.9),
+				Vector3.new(0.3, 0.3, 0.1),
+				Color3.fromRGB(110, 118, 135)
 			)
 			box(nil, "Nostril", Vector3.new(side * 0.9, 5.6, -8.62), Vector3.new(0.5, 0.4, 0.1), navy)
+			box(nil, "Cheek", Vector3.new(side * 3.85, 5, -5), Vector3.new(0.2, 1.8, 2.8), sheen)
 		end
 
 		-- Motas negras: cuadros, barras y alguna L sobre la cabeza, el lomo, los costados y la trasera.
@@ -3091,24 +3229,34 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 				{ Vector3.new(-3.85, 5.6, -4.6), Vector3.new(0.2, 1, 1) },
 				{ Vector3.new(3.85, 4.9, -3.8), Vector3.new(0.2, 0.8, 0.8) },
 				-- Trasera.
-				{ Vector3.new(1, 4.2, 6.95), Vector3.new(1, 1, 0.2) },
+				{ Vector3.new(1, 4.2, 7.4), Vector3.new(1, 1, 0.2) },
 				{ Vector3.new(-1.4, 3, 6.95), Vector3.new(0.8, 1, 0.2) },
 				{ Vector3.new(-1.75, 3.6, 6.95), Vector3.new(0.6, 0.4, 0.2) },
+				{ Vector3.new(0.6, 3.1, 6.95), Vector3.new(1.2, 0.8, 0.2) },
 			}
 		do
 			box(nil, "Spot", mark[1], mark[2], spot)
 		end
 
-		-- Dedo plano con su ventosa en la punta, de "from" en la dirección "direction" (en el suelo).
+		-- Dedo plano con su ventosa en la punta, de "from" en la dirección "direction" (en el suelo), en escalones
+		-- de bloques (no inclinado: así entra en la malla).
 		local function finger(list: { BasePart }, from: Vector3, direction: Vector3, length: number, pad: Color3)
 			local to = from + direction.Unit * length
-			v.beam(list, "Toe", from, to, Vector2.new(0.5, 0.45), legColor)
-			box(list, "ToePad", to + Vector3.new(0, 0.1, 0), Vector3.new(0.8, 0.65, 0.8), pad)
+			voxelFlat(v, list, "Toe", from, to, 0.5, 0.45, legColor)
+			box(list, "ToePad", to + Vector3.new(0, 0.1, 0), Vector3.new(0.9, 0.7, 0.9), pad)
+			box(list, "PadShine", to + Vector3.new(0, 0.5, 0), Vector3.new(0.4, 0.2, 0.4), pad:Lerp(WHITE, 0.4))
 		end
 		for _, side in { -1, 1 } do
 			-- Pata de delante delgada y recta, con la mano de tres dedos abiertos.
 			local front: { BasePart } = {}
 			box(front, "FrontLeg", Vector3.new(side * 4.4, 2.3, -4.4), Vector3.new(1.2, 3.6, 1.2), legColor)
+			box(
+				front,
+				"ElbowBump",
+				Vector3.new(side * 4.4, 2.8, -3.6),
+				Vector3.new(1.4, 1, 0.5),
+				legColor:Lerp(BLACK, 0.2)
+			)
 			box(front, "Hand", Vector3.new(side * 4.6, 0.3, -4.7), Vector3.new(1.4, 0.6, 1.4), legColor)
 			local palm = Vector3.new(side * 4.6, 0.25, -4.7)
 			finger(front, palm, Vector3.new(side * -0.3, 0, -1), 1.9, spot)
@@ -3122,8 +3270,10 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			box(back, "Shin", Vector3.new(side * 6.6, 1.5, 2.6), Vector3.new(1.6, 1.6, 5.2), legColor)
 			box(back, "Knee", Vector3.new(side * 5.9, 2.4, -0.3), Vector3.new(2.4, 2, 1.4), legColor)
 			box(back, "Foot", Vector3.new(side * 7.2, 0.3, 5.9), Vector3.new(1.8, 0.6, 2.2), legColor)
-			-- Raya negra en el muslo, como en la referencia.
+			-- Raya negra en el muslo, como en la referencia, y pelo de reflejos.
 			box(back, "Spot", Vector3.new(side * 6.05, 3.3, 1.6), Vector3.new(0.2, 0.8, 1.6), spot)
+			box(back, "ThighSheen", Vector3.new(side * 5, 3.95, 2.2), Vector3.new(1.2, 0.2, 3.4), sheen)
+			box(back, "ShinSheen", Vector3.new(side * 6.6, 2.35, 2.6), Vector3.new(1, 0.2, 3.4), sheen)
 			local heel = Vector3.new(side * 7.2, 0.25, 6.6)
 			for k, direction in
 				{
@@ -3457,6 +3607,59 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			end
 		end
 
+		-- Escudos del borde: placas verticales pintadas alrededor de las tres capas de abajo (alternando tonos) y las
+		-- costuras de la corona. Todo fino: casi no cuesta triángulos.
+		for i = 0, 8 do
+			local z = -7.6 + i * 2.15
+			for _, side in { -1, 1 } do
+				box(
+					nil,
+					"Marginal",
+					Vector3.new(side * 8.15, 2.9, z),
+					Vector3.new(0.2, 1.1, 1.9),
+					if i % 2 == 0 then brown else rim:Lerp(yellow, 0.35)
+				)
+				box(
+					nil,
+					"Marginal",
+					Vector3.new(side * 7.65, 4.2, z + 0.5),
+					Vector3.new(0.2, 0.9, 1.7),
+					if i % 2 == 0 then yellow:Lerp(olive, 0.4) else olive:Lerp(brown, 0.5)
+				)
+				if i >= 1 and i <= 7 then
+					box(
+						nil,
+						"Marginal",
+						Vector3.new(side * 6.65, 5.4, z + 0.3),
+						Vector3.new(0.2, 0.9, 1.6),
+						if i % 2 == 0 then brown:Lerp(yellow, 0.3) else rim
+					)
+				end
+			end
+		end
+		for i, x in { -3, -1.5, 0, 1.5, 3 } do
+			box(
+				nil,
+				"Marginal",
+				Vector3.new(x, 2.9, -11.1),
+				Vector3.new(1.3, 1.1, 0.2),
+				if i % 2 == 0 then brown else rim:Lerp(yellow, 0.35)
+			)
+			box(
+				nil,
+				"Marginal",
+				Vector3.new(x, 2.9, 12.1),
+				Vector3.new(1.3, 1.1, 0.2),
+				if i % 2 == 0 then rim:Lerp(yellow, 0.35) else brown
+			)
+		end
+		for _, x in { -1.8, 0, 1.8 } do
+			box(nil, "Seam", Vector3.new(x, 8, 0.5), Vector3.new(0.25, 0.1, 8.4), rim)
+		end
+		for _, z in { -1.4, 2.2, 5.2 } do
+			box(nil, "Seam", Vector3.new(0, 8, z), Vector3.new(5.6, 0.1, 0.25), rim)
+		end
+
 		-- Cabeza que asoma con el cuello, el hocico romo en escalón, la boca en raya y escamas amarillas.
 		local head: { BasePart } = {}
 		box(head, "Neck", Vector3.new(0, 3.4, -11), Vector3.new(4, 2.8, 3), skin)
@@ -3464,8 +3667,17 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		box(head, "Snout", Vector3.new(0, 3.6, -16.8), Vector3.new(4, 2.8, 1.2), skin)
 		box(head, "Mouth", Vector3.new(0, 3, -16.3), Vector3.new(4.1, 0.25, 2.3), skinDark:Lerp(BLACK, 0.4))
 		for _, side in { -1, 1 } do
-			box(head, "Eye", Vector3.new(side * 2.55, 4.6, -15), Vector3.new(0.2, 1, 1), eye)
-			box(head, "Glint", Vector3.new(side * 2.62, 4.85, -15.25), Vector3.new(0.1, 0.35, 0.35), WHITE)
+			box(head, "EyeRing", Vector3.new(side * 2.52, 4.6, -15), Vector3.new(0.12, 1.6, 1.6), skinDark)
+			box(
+				head,
+				"Iris",
+				Vector3.new(side * 2.6, 4.6, -15),
+				Vector3.new(0.1, 1.2, 1.2),
+				Color3.fromRGB(150, 110, 40)
+			)
+			box(head, "Eye", Vector3.new(side * 2.66, 4.6, -15), Vector3.new(0.1, 0.8, 0.8), eye)
+			box(head, "Glint", Vector3.new(side * 2.73, 4.85, -15.25), Vector3.new(0.1, 0.35, 0.35), WHITE)
+			box(head, "Lid", Vector3.new(side * 2.6, 5.45, -15), Vector3.new(0.12, 0.25, 1.5), skin)
 			box(head, "Nostril", Vector3.new(side * 0.8, 4.4, -17.45), Vector3.new(0.4, 0.4, 0.1), skinDark)
 			for _, spot in { { 3.6, -13 }, { 5, -12.6 }, { 3.4, -14.3 }, { 5.3, -13.9 } } do
 				box(head, "Scale", Vector3.new(side * 2.55, spot[1], spot[2]), Vector3.new(0.2, 0.8, 0.8), scale)
@@ -3473,6 +3685,9 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		end
 		for _, spot in { { -1, -13 }, { 1, -13.4 }, { 0, -14.6 }, { -1.3, -15.4 }, { 1.2, -15.7 }, { 0, -12.1 } } do
 			box(head, "Scale", Vector3.new(spot[1], 5.95, spot[2]), Vector3.new(0.8, 0.2, 0.8), scale)
+		end
+		for _, z in { -11.6, -10.6, -9.6 } do
+			box(head, "NeckFold", Vector3.new(0, 4.85, z), Vector3.new(3.4, 0.2, 0.3), skinDark)
 		end
 		v.swing(head, Vector3.new(0, 3.5, -10), Vector3.yAxis, 0.3, 1.5, 0, false, nil, "Head")
 
@@ -3488,6 +3703,35 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			for _, spot in { { 7.4, 2.85, -7.2 }, { 9.2, 2.85, -5.6 }, { 11.4, 2.15, -6 }, { 13.4, 1.5, -4.6 } } do
 				box(front, "Scale", Vector3.new(side * spot[1], spot[2], spot[3]), Vector3.new(0.8, 0.2, 0.8), scale)
 			end
+			for _, z in { -3.4, -2.2 } do
+				box(
+					front,
+					"Claw",
+					Vector3.new(side * 16.9, 0.4, z),
+					Vector3.new(0.8, 0.5, 0.6),
+					scale:Lerp(WHITE, 0.45)
+				)
+			end
+			voxelTopScales(
+				v,
+				front,
+				"FlipperScale",
+				Vector3.new(side * 11, 2.15, -5.5),
+				Vector2.new(3.2, 3),
+				Vector2.new(0.9, 0.9),
+				{ scale, skinDark, skin:Lerp(scale, 0.3) },
+				0.15
+			)
+			voxelTopScales(
+				v,
+				front,
+				"FlipperScale",
+				Vector3.new(side * 13.6, 1.5, -4.2),
+				Vector2.new(2.2, 2.4),
+				Vector2.new(0.9, 0.9),
+				{ scale, skinDark },
+				0.15
+			)
 			v.swing(
 				front,
 				Vector3.new(side * 6, 2.4, -6),
@@ -4108,6 +4352,37 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			end
 		end
 		box(nil, "Fringe", Vector3.new(0, 10, 7.95), Vector3.new(6, 2.4, 0.4), shag)
+		voxelScales(
+			v,
+			nil,
+			"Strand",
+			"z",
+			Vector3.new(0, 12.6, 7.85),
+			Vector2.new(9, 5.4),
+			Vector2.new(1, 1.3),
+			{ shag, fur, light:Lerp(fur, 0.4) },
+			0.15
+		)
+		voxelTopScales(
+			v,
+			nil,
+			"Strand",
+			Vector3.new(0, 16.15, 4.4),
+			Vector2.new(7, 5.6),
+			Vector2.new(0.9, 1.4),
+			{ shag, fur, light:Lerp(fur, 0.4) },
+			0.15
+		)
+		voxelTopScales(
+			v,
+			nil,
+			"Strand",
+			Vector3.new(0, 17.85, -1.2),
+			Vector2.new(7, 6.4),
+			Vector2.new(0.9, 1.4),
+			{ shag, fur, light:Lerp(fur, 0.4) },
+			0.12
+		)
 		box(nil, "Stub", Vector3.new(0, 12.4, 8), Vector3.new(1.6, 1.4, 0.6), shag)
 
 		-- Mochila de carga (es la mascota de Carga): saco de lona con la solapa de cuero y sus
@@ -4175,6 +4450,27 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		end
 		box(head, "Nose", Vector3.new(0, 11.6, -10.2), Vector3.new(1.6, 1, 0.3), dark)
 		box(head, "Smile", Vector3.new(0, 10.5, -10.1), Vector3.new(2.2, 0.3, 0.2), dark)
+		voxelTopScales(
+			v,
+			head,
+			"Strand",
+			Vector3.new(0, 16.35, -7.3),
+			Vector2.new(5.6, 3.6),
+			Vector2.new(0.9, 1.2),
+			{ shag, fur, light:Lerp(fur, 0.4) },
+			0.15
+		)
+		for _, side in { -1, 1 } do
+			box(head, "CheekFur", Vector3.new(side * 3.6, 12, -7.8), Vector3.new(0.3, 2.6, 2.4), light:Lerp(fur, 0.5))
+			box(
+				head,
+				"EyeShade",
+				Vector3.new(side * 1.6, 12.9, -10.15),
+				Vector3.new(1.4, 1.3, 0.12),
+				dark:Lerp(BLACK, 0.3)
+			)
+		end
+		box(head, "NoseShine", Vector3.new(0, 11.95, -10.38), Vector3.new(0.8, 0.2, 0.1), dark:Lerp(WHITE, 0.4))
 		v.swing(head, Vector3.new(0, 12.6, -5.5), Vector3.zAxis, 0.15, 0.6, 0, false, nil, "Head")
 
 		-- Garra en gancho: un bloque hacia delante y la punta que baja.
@@ -4185,22 +4481,35 @@ local voxelBuilders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 		for _, side in { -1, 1 } do
 			-- Brazo largo que baja hacia delante hasta la mano, con un mechón en el codo.
 			local arm: { BasePart } = {}
-			v.beam(
+			voxelLimb(
+				v,
 				arm,
 				"UpperArm",
 				Vector3.new(side * 5.6, 14.5, -3),
 				Vector3.new(side * 6, 7.5, -8),
-				Vector2.new(3.2, 3.2),
-				limb
+				3.2,
+				limb,
+				1.1
 			)
-			v.beam(
+			voxelLimb(
+				v,
 				arm,
 				"Forearm",
 				Vector3.new(side * 6, 7.8, -8),
 				Vector3.new(side * 6.1, 1.6, -12.6),
-				Vector2.new(3, 3),
-				limb
+				3,
+				limb,
+				1.1
 			)
+			for k, y in { 12.5, 10.5, 8.5, 5.5, 3.5 } do
+				box(
+					arm,
+					"ArmFur",
+					Vector3.new(side * 7.65, y, -3.4 - (14.5 - y) * 0.7),
+					Vector3.new(0.3, 1.2, 2.2),
+					if k % 2 == 0 then shag else light:Lerp(fur, 0.5)
+				)
+			end
 			box(arm, "ElbowShag", Vector3.new(side * 6.2, 7.8, -7.2), Vector3.new(3.2, 2.6, 3), shag)
 			box(arm, "Hand", Vector3.new(side * 6.1, 1.1, -13), Vector3.new(2.8, 1.6, 2.8), shag)
 			for k = -1, 1 do

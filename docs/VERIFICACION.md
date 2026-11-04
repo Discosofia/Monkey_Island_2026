@@ -4549,6 +4549,23 @@ Las tres aves se rehicieron en bloques y son ahora 5 mallas cada una (`Static`, 
 5. [ ] Míralas en el nido y las vitrinas del Lobby, el Armario y `RewardModels`, y pon la skin de mascota que valga para cada una.
    ✅ Con malla y textura; con skin, bloques con su paleta.
 
+## 117. Fase 20 Q5d: tanda B de mascotas con malla (Rana, Tortuga y Perezoso) (04-11-2026)
+
+Las tres se rehicieron en bloques y son ahora mallas con textura (`Data/PetMeshes`): Rana 5 mallas (`Static`, `BL`, `BR`, `FL`, `FR`; 1.254 triángulos), Tortuga 6 (`Static`, `Head`, `FL`, `FR`, `BL`, `BR`; 1.206) y Perezoso 6 (`Static`, `Head`, `FL`, `FR`, `BL`, `BR`; 1.972), todas bajo el tope de 2.800. En juego son 6 o 7 piezas cada una. Cambios de diseño: los dedos de la Rana y los brazos del Perezoso dejaron de ser vigas inclinadas y son escalones de bloques (ayudantes `voxelFlat` y `voxelLimb`); escudos del borde, costuras, ojo con capas y escamas pintadas en la Tortuga; hebras de pelo pintadas en el Perezoso; saco vocal, motitas de piel mojada y párpado en la Rana. El Perezoso pasa de las 240 piezas de bloques (268): excepción en `Config.Budgets.Exceptions` (300). Comprobado el 04-11-2026 en Edit (mallas y bloques con el mismo tamaño y el mismo aspecto) y en Play (las patas, las aletas y los brazos se mueven con su articulación). Sin probar lo de abajo. Los brazos del Perezoso se leen como escaleras de cerca.
+
+### 117.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa cada una y camina, párate y gira (la Rana a saltos).
+   ✅ Se ven con malla y textura; la Rana patalea al saltar; la Tortuga rema con las aletas; el Perezoso mueve brazos y patas; sin piezas sueltas ni huecos.
+2. [ ] Míralas de frente y de espaldas con buena luz.
+   ✅ Rana con sus motas y el saco vocal; Tortuga con los escudos del borde y la cabeza con el ojo; Perezoso con la cara, la mochila y el pelo pintado por detrás.
+3. [ ] Pon la skin de la Tortuga (Tortuga de Lava) y las que valgan para las otras, y quítalas.
+   ✅ Con skin, bloques con su paleta; sin skin, malla.
+4. [ ] Mide `Rendimiento` con las mallas cargadas y mira que el Perezoso no alerte con su excepción.
+   ✅ Sin alertas nuevas de mascotas.
+5. [ ] Míralas en el nido y las vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Con su textura.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
