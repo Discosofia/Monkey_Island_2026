@@ -3903,7 +3903,7 @@ Se prueba en Play en la Isla, con una copia de `PlayerData_v1` (como en §10.0).
 
 ### 94.1 En Play, en la Isla
 
-1. [ ] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Pulsa ▶ Jugar en la Isla y mira la Salida desde el arranque hasta unos segundos después de `Start()`.
+1. [x] Antes de Play, copia `PlayerData_v1` en `PlayerData_v1_backups`. Pulsa ▶ Jugar en la Isla y mira la Salida desde el arranque hasta unos segundos después de `Start()`.
    ✅ No sale ningún aviso `[MonkeyModels]`, ni de "No se pudo precalentar".
 2. [ ] Tras unos segundos, deja que aparezca el primer grupo de monos de una especie y, después, el de otra especie.
    ✅ La primera aparición de cada grupo no da tirón: `MonkeyModels.prewarm` ha llenado las plantillas. La Salida sigue sin avisos `[MonkeyModels]`.
@@ -4320,7 +4320,7 @@ Las dianas del campo son combatientes: cada una tiene un `Humanoid` de 1e6 de vi
    ✅ Sale desde el centro hacia el desvío medio de esos tiros, recta y sin torcerse.
 3. [ ] Lee el Readout de las dos pantallas.
    ✅ Dice «Δx … Δy … studs (…°) · dispersión … · tiros N». Tanto en la pantalla corta como en la larga, dx positivo es a la derecha de quien mira y dy positivo es hacia arriba. Los signos cuadran con dónde caen las marcas.
-4. [ ] Pulsa `BorrarMarcasPrompt`.
+4. [x] Pulsa `BorrarMarcasPrompt`.
    ✅ Se vacían las marcas y la línea de las dos pantallas a la vez.
 5. [ ] Con la ayuda de puntería activada, apunta a las dianas del campo, sobre todo a sus bordes.
    ✅ La ayuda no engancha las dianas: el disparo va donde apuntas.
@@ -4334,9 +4334,9 @@ Las dianas del campo son combatientes: cada una tiene un `Humanoid` de 1e6 de vi
 
 ### 109.3 En Play, con 1 jugador: ronda de tiro
 
-8. [ ] Pulsa `RondaPrompt` en el campo. Anota tu Ámbar antes de la ronda.
+8. [x] Pulsa `RondaPrompt` en el campo. Anota tu Ámbar antes de la ronda.
    ✅ Empieza la ronda: aparece el panel arriba en el centro con el tiempo (60 s) y los puntos.
-9. [ ] Dispara durante la ronda y mira cómo suben los puntos según el anillo (10, 7, 5 o 3).
+9. [x] Dispara durante la ronda y mira cómo suben los puntos según el anillo (10, 7, 5 o 3).
    ✅ El panel suma los puntos del anillo que tocas y el tiempo baja.
 10. [ ] Pulsa `RondaPrompt` otra vez mientras la ronda sigue.
     ✅ No pasa nada: la ronda no se reinicia ni suma puntos extra.
