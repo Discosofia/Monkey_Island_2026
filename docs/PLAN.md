@@ -1057,11 +1057,15 @@ Maqueta 3D en el navegador (aprobada): `tools/maquetas/campo-de-tiro.html`.
 | **23c** | Dianas, pantallas y ronda de tiro: `RangeTargets` como combatientes con zonas; movimiento de móviles, emergentes y giratoria en el servidor; `CombatService.onEnemyDamaged` pasa `hitPos` y la zona; remoto nuevo para las marcas de las pantallas (los frames `Marks` y `Readout` ya existen); ronda de 60 s sin Ámbar | e3a9763 | ✅ Aprobada (VERIFICACION §109 sin probar) |
 | **23d** | Física de rebotes: `RangeBalls` con `CustomPhysicalProperties`, `Config.Range`, cañón de pelotas y `bounces` en `Projectiles`, con panel de elasticidad, gravedad, tamaño y velocidad | d804f25 | ✅ Aprobada (VERIFICACION §110 sin probar) |
 | **23e** | Modo de depuración (hitbox visibles, trazas) con `DebugCommands` y estación de efectos | a13f6ba | ✅ Aprobada (VERIFICACION §111 sin probar del todo) |
-| **23f** | Documentación: cerrar VERIFICACION de la fase y actualizar los resúmenes de `docs/llm-local` que cambien | — | ⏳ |
+| **23f** | Documentación: sección «Campo de tiro» del GDD, párrafo Mundo de CLAUDE.md, resumen de `docs/llm-local/base.md` y cierre de la fase | — | ✅ |
 
-**Handoff de 23f (03-11-2026)** — siguiente: documentación de cierre de la Fase 23 (VERIFICACION de la fase, resúmenes de `docs/llm-local` que cambien, `CLAUDE.md` si hace falta). Siguiente número libre de VERIFICACION: §112.
-- **23e hecha (a13f6ba):** órdenes `RangeHitboxes`, `RangeTraces` y `RangeFx` en `DebugCommands`/`DebugService` del Lobby (atributos `DebugRange*` del jugador), `RangeDebugService` (trazas, remoto `RangeDebug`), `RangeDebugController` (hitbox por zona, líneas servidor/cliente, estación de efectos), y en el combate compartido `Projectiles.onShot` con el disparo como 3.er argumento y `Shot.aimDirection`. El usuario vio trazas y hitbox en Play. Sin probar: esfera de cabeza en un jugador o mono, ping real, que solo se dibujen 8 de 12 Enemy. La posición rebobinada no se dibuja (solo los segundos).
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 23 y el Handoff de 23f. Haz el grupo 23f.»
+**Fase 23 cerrada (04-11-2026).** Lo que queda sin probar está en VERIFICACION §108 a §112.
+
+**Handoff de cierre de la Fase 23 (04-11-2026)**
+- **Estado:** 23a a 23e hechas y aprobadas; 23f (esta documentación) hecha, sin commit hasta el «aprobado». Lo que queda sin probar de la fase está en VERIFICACION §108 a §112. Siguiente número libre de VERIFICACION: §113.
+- **Limitaciones conocidas:** la posición rebobinada de la víctima no se dibuja en las trazas (solo los segundos); las hitbox solo salen a menos de 160 studs. (Lo de «8 de 12 Enemy» era que las dianas emergentes perdían la etiqueta al hundirse; arreglado en aed9f28.)
+- **Siguiente fase pendiente:** la Fase 20, grupo Q4c (la montura Mítica, el Quetzalcóatl, con malla; su Handoff está en la Fase 20). La Fase 14 (Isla Calavera, grupo D1) tampoco ha empezado y es la otra opción; la decide el usuario.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 20 y el Handoff de Q4c. Haz el grupo Q4c.»
 
 **Handoff de 23e (cerrado)**
 - **23d hecha (d804f25):** `RangeBallService` + `RangeBallController` (remoto `RangeBalls`, `Config.Range.Balls`, aviso `PelotasPrompt` en `Canon/Base`, pieza `Boca`), `bounces`/`bounciness` en `Projectiles.fire` (cada rebote es un tramo nuevo para el cliente) y `RangeBuilder` VERSION 6: sin faroles de la línea, dianas 2, 3, 4 y 10 colgadas del muro izquierdo (alturas 8, 16, 28, 36; `wallFrame`), giratoria movida a (−38, 4). Probado en Studio por el MCP; falta el dibujo de los rebotes en el cliente y 2 jugadores (§110). Hay que guardar el place del Lobby (recinto v6).

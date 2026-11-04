@@ -82,6 +82,16 @@ flowchart TD
 
 **Probar el rol en el Lobby (20-10-2026).** En la plaza del Lobby cada jugador lleva las armas y las 5 habilidades de su rol elegido, con sus talentos, mejoras y mascota, y las prueba contra tres muñecos de práctica (los del Basecamp) antes de zarpar a la Isla de monos o a la Isla de dunas. Nunca afectan a otros jugadores: no les hacen daño, ni los curan, ni los protegen, ni les ponen estados (las curaciones y escudos solo van a uno mismo), y practicar no cuenta para las misiones del día. Lo deciden las reglas del combate del Lobby (`LobbyCombatRules`).
 
+**Campo de tiro del Lobby (Fase 23).** Un recinto de práctica en el Lobby, lejos de la plaza y sin Ámbar. Se entra por la estación **Campo** (🔭) y se sale por el arco de la pared trasera. Sirve para probar la puntería de las armas a distancia, el daño por zona y los efectos de impacto. Los números (tamaños, vida de las dianas, tiempos y ajustes del cañón) están en `Config.Range`; aquí solo se describe qué hay:
+
+- **Pantallas de ajuste:** dos, que enseñan las marcas de tus disparos y una lectura en texto.
+- **Dianas:** fijas, móviles (de raíl y giratoria), emergentes (suben y bajan) y de pared, colgadas del muro. Son como combatientes: puntúan por anillos.
+- **Tres muñecos:** uno fijo, otro que va de lado a lado y otro que se acerca y se aleja. Reciben daño por zona (cabeza, torso y miembros) y no puntúan.
+- **Ronda de tiro:** 60 s de puntería contra las dianas, sin Ámbar.
+- **Cañón de pelotas:** en la plataforma, con un panel para ajustar elasticidad, gravedad, tamaño y velocidad. Las pelotas rebotan en el suelo, las paredes y el foso; no hacen daño y desaparecen solas.
+- **Obstáculos y materiales:** plataforma con rampa, foso de rebotes, un péndulo y un muro de materiales (madera, piedra, metal y arena) donde se ven las marcas de impacto.
+- **Depuración (solo en Studio):** en el panel 🛠️ Pruebas del Lobby hay órdenes para ver las hitbox por zona, las trazas de disparo (con ping y rebobinado) y una estación de efectos. No están en el juego publicado.
+
 **Menú del Lobby por estaciones (20-10-2026).** El menú tenía 11 pestañas y estaba saturado. Ahora lo que tiene un sitio en la plaza se usa allí: el jugador se acerca, pulsa el aviso (E o tocar) y se abre una **ventana propia** con solo eso, que se cierra sola al alejarse.
 
 | Estación (en la plaza) | Qué abre |

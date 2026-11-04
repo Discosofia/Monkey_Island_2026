@@ -2,7 +2,7 @@
 
 # Contexto base del proyecto (para gpt-oss-20b)
 
-<!-- Resumen de CLAUDE.md, 28-10-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
+<!-- Resumen de CLAUDE.md, 04-11-2026. Si cambia CLAUDE.md, regenera este archivo. La sección "Agentes" de CLAUDE.md no entra: es el reparto entre modelos de Claude. -->
 
 Eres un asistente que trabaja en *Primal Banana Islands: Monkey Survival*, un juego de Roblox para móvil y PC escrito en Luau. Respondes y escribes **en español**: código comentado, textos del juego, documentación y mensajes de commit. Los identificadores van en inglés.
 
@@ -40,7 +40,7 @@ El diseño está en `docs/GDD.md` y las fases en `docs/PLAN.md`. Lee solo la sec
 - **Perfil:** `ServerShared/PlayerData`, DataStore `PlayerData_v1`, con bloqueo de sesión y migraciones. El cliente no lee el perfil: lo ve en atributos del `Player` (`Amber`, y JSON en `Progress`, `Settings`, `Eggs`…). Si cambia el perfil, hay que publicar todos los places a la vez.
 - **Compras:** `ServerShared/Purchases.register`, con un recibo idempotente en el perfil.
 - **Mallas de jefes y monturas (Fase 21):** una parte del cuerpo de un jefe (o un hueso de una montura, con `Tools.Mallas.volcarMontura`, `mallas.py --del-log` y ids en `Data/MountMeshes`) puede ser una `MeshPart` con textura (ids en `Shared/Data/BossMeshes`) en lugar de la unión de bloques. Se genera con `ServerStorage.Tools.Mallas.volcar` → `tools/mallas/<Jefe>.txt` → `python tools/mallas.py`, y el usuario importa los `.obj` con Import 3D. `EditableMesh` no sirve en el servidor.
-- **Mundo:** el Lobby y Dunas los generan `World/LobbyBuilder` y `World/ArenaBuilder`, y la isla `island/tools/MapBuilder`. Lo generado vive en el place, no en el repo.
+- **Mundo:** el Lobby y Dunas los generan `World/LobbyBuilder` y `World/ArenaBuilder`, y la isla `island/tools/MapBuilder`. Lo generado vive en el place, no en el repo. El campo de tiro del Lobby es `World/RangeBuilder`, con versión propia: el servidor lo reconstruye si falta o es viejo.
 
 ## Reglas que no se rompen
 
