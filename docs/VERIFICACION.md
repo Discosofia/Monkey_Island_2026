@@ -4766,7 +4766,7 @@ El Jaguar de cristal se queda **en bloques** (el vidrio y el neón no entran en 
 
 ## 125. Fase 24 grupo 24e: balística (04-11-2026)
 
-`Data/Ballistics` + `Shared/Ballistics`: caída suave (≤ 3 studs al alcance en honda, bastón y Bola de fuego), frenado del aire, daño según la distancia (solo armas, hasta ~80-85 % al alcance), empuje a monos (`Config.Ballistics`, `PushScale` 40: probado solo el valor viejo, el nuevo sin medir), ayuda táctil estrechada de 60 a 100 studs (`FarDegrees` 1,8), adelanto táctil hasta 1,3 s, `recover` del lanzadardos a 1,5 y tolerancia del origen mayor en el aire (+9 studs, tope 16). Las habilidades proyectil usan `rewind`/`lead` con el ping (sin origen ni número del cliente, sin zonas: quedan pendientes). Medido en Lobby (Play): sin errores; caídas y falloff dentro de lo previsto.
+`Data/Ballistics` + `Shared/Ballistics`: caída suave (≤ 3 studs al alcance en honda, bastón y Bola de fuego), frenado del aire, daño según la distancia (solo armas, hasta ~80-85 % al alcance), empuje a monos (`Config.Ballistics`, `PushScale` 25 desde 24f), ayuda táctil estrechada de 60 a 100 studs (`FarDegrees` 1,8), adelanto táctil hasta 1,3 s, `recover` del lanzadardos a 1,5 y tolerancia del origen mayor en el aire (+9 studs, tope 16). Las habilidades proyectil usan `rewind`/`lead` con el ping (sin origen ni número del cliente, sin zonas: quedan pendientes). Medido en Lobby (Play): sin errores; caídas y falloff dentro de lo previsto.
 
 ### 125.1 En el Studio del Lobby, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
 
@@ -4782,6 +4782,38 @@ El Jaguar de cristal se queda **en bloques** (el vidrio y el neón no entran en 
    ✅ El pequeño se echa atrás un poco; el Gorila y los jefes casi nada; nunca a un jugador. Si todos salen volando o ninguno, ajusta `Config.Ballistics.PushScale`.
 6. [ ] Lanzadardos en ráfaga de 10 tiros parado.
    ✅ Los primeros tiros son exactos y luego se abre algo (cono hasta ~1,65°).
+
+## 126. Fase 20 Q6a: Chaleco de pelaje del Guerrero con malla (04-11-2026)
+
+Primera armadura con malla: `Data/ArmorMeshes` (Armor.FurVest.Guerrero), `ArmorModels.wear` (grupos `<Anclaje>_<Soft|Hard>`, escala por `ancla.Size / ref`), `Mallas.volcarArmadura` y `tools/armadura.py`. 8 mallas (solo Soft: tela y cuero) y 14 piezas sueltas (colmillos, plátano, collar) en lugar de 166 de bloques; 1.238 triángulos. Probado en Edit con tres avatares (bloques, malla y uno 0,8×1,1×1,3): la malla coincide con los bloques de espaldas. Sin probar en Play, en cliente, en el Armario ni con las mallas aún sin cargar.
+
+### 126.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Fabrica el Chaleco de pelaje con un Guerrero y mírate desde atrás y de cerca.
+   ✅ Se ve la huella de mano dorada con el manto de pelaje encima y el bajo en mechones; sin parpadeos ni piezas fuera de sitio. Sin errores de `CreateMeshPartAsync` en la Salida.
+2. [ ] Recién entrado en la partida, mira la armadura en los primeros segundos.
+   ✅ Primero aparece en bloques y se cambia sola a malla al cargar, sin quedarse a medias.
+3. [ ] Camina, corre, salta y golpea con un arma.
+   ✅ La armadura sigue el cuerpo y los brazos sin separarse ni atravesarlos.
+4. [ ] Con un segundo jugador (otro tamaño de avatar), míralo de cerca.
+   ✅ El chaleco le queda ajustado al torso y los brazos; no flota ni lo atraviesa.
+5. [ ] Cambia de rol (Cazador, Mago, Médico) y vuelve al Guerrero con el Chaleco puesto.
+   ✅ Los otros roles siguen en bloques sin cambios; el Guerrero vuelve a malla sin duplicar piezas.
+6. [ ] Abre el Armario y la vista previa del traje y de la armadura; cambia varias veces.
+   ✅ No se queda ninguna armadura antigua encima ni se rompe la vista previa.
+7. [ ] Mide con `Rendimiento` tras M4 (cuando cuente las mallas).
+   ✅ El Guerrero con malla: 22 piezas y ~1.250 triángulos. Hoy mide la versión de bloques (excepción `FurVest_Guerrero` en `Config.Budgets`).
+
+## 127. Fase 24 grupo 24f: sección «Distancia» de Equilibrio (04-11-2026)
+
+`Equilibrio` tiene la sección **15. Distancia** (`secciones.distancia`): caída, vuelo a 30/60/100 st, daño al alcance y empuje (Titi, Mandril, Gorila) de cada proyectil; alcance de la ayuda táctil; y, si existe `ServerStorage.CalibracionExportada`, lo medido frente a lo previsto. Alertas nuevas en `LIMITES` (caída, daño mínimo, ayuda a 100 st, desvío del vuelo). Ejecutada en el Studio de la Isla: sin errores y sin alertas de «Distancia». `Config.Ballistics.PushScale` queda en 25 (Titi 16, Mandril 8-9, Gorila 0-6 según el proyectil).
+
+### 127.1 En el Studio del Lobby, en Play, y después en el de la Isla
+
+1. [ ] En el Lobby, abre el panel «Calibración», dispara las armas a 30, 60 y 100 st y pulsa «Exportar».
+   ✅ Aparece `ServerStorage.CalibracionExportada`.
+2. [ ] En el Studio de la Isla (edición), copia ese valor en un `StringValue` `CalibracionExportada` de `ServerStorage` y ejecuta `Equilibrio`.
+   ✅ La sección 15 trae la tabla de calibración con el desvío del vuelo por arma y distancia; sin alertas de «Distancia» (si salen, el vuelo real no coincide con `Data/Ballistics`).
 
 ## Cuando termines
 

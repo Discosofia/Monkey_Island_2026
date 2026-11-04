@@ -38,10 +38,13 @@
 --       área del suero contra dos rivales juntos, y (Fase 19, W6) el daño por zonas (cabeza, torso,
 --       extremidades): tiempo para matar con la mezcla de aciertos y disparos necesarios por zona.
 --   13. Alertas: lo que se sale de los límites.
+--   15. Distancia (Fase 24, 24f): balística de cada proyectil (caída, vuelo, daño al alcance, empuje), alcance de
+--       la ayuda táctil y, con ServerStorage.CalibracionExportada, lo medido en el campo frente a lo previsto.
 --   14. Isla: cabeza y puntos débiles (Fase 19, W6): tiempo para matar a monos y jefes con la mezcla
 --       de zonas, por arma a distancia de rol. La sección 13 sigue siendo la última del informe.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- ===================================== Opciones =====================================
@@ -118,6 +121,7 @@ local OPCIONES_BASE = {
 		preparacion = true,
 		laboratorio = false, -- Fase 13: el Laboratorio en ruinas (sección 12)
 		zonasIsla = true, -- Fase 19, W6: cabeza y puntos débiles en la Isla (sección 14)
+		distancia = true, -- Fase 24, 24f: balística, ayuda táctil y calibración exportada (sección 15)
 	},
 }
 
@@ -145,6 +149,10 @@ local ultimaArena: any = nil
 -- Copia de .claude/skills/combate-roblox/references/equilibrio.md §3: si cambias uno, cambia los dos.
 
 local LIMITES = {
+	caidaMaxStuds = 3, -- caída suave de un proyectil al alcance (Fase 24, 24e)
+	falloffMin = 0.75, -- el daño que conserva un arma al alcance
+	ayudaMaxStuds100 = 3.2, -- desvío máximo que engancha la ayuda táctil a un mono a 100 st
+	vueloDesvio = 0.15, -- diferencia máxima entre el vuelo medido y el previsto
 	recargaActiva = { 4, 25 },
 	recargaDefinitiva = { 60, 120 },
 	segArmaActiva = { 0.5, 4.0 }, -- daño de un uso contra el grupo, en segundos de arma del rol
@@ -3599,6 +3607,241 @@ local function main(copia: Instance): string
 					alerta(
 						`Isla con zonas: {jefe.name} ({bossId}) cae en {n(con, 0)} s a un jugador solo con {Weapons[mejorArma].name} y el punto débil (mínimo {LIMITES.jefeZonasMinSegundos} s)`
 					)
+				end
+			end
+		end
+		linea("")
+	end
+
+	-- ===================================== 15. Distancia (Fase 24, 24f) =====================================
+	-- La balística de cada proyectil (Data/Ballistics: caída, frenado, daño según la distancia, empuje), lo que
+	-- alcanza la ayuda táctil de lejos y, si hay una exportación del campo de tiro (ServerStorage.
+	-- CalibracionExportada, que deja el panel «Calibración» del Lobby), lo medido frente a lo previsto. Las
+	-- cuentas repiten las de Shared/Ballistics pero con los datos de la copia, así una propuesta las cambia.
+	if OPCIONES.secciones.distancia then
+		local Perfiles = require(Data.Ballistics) :: any
+		local LabWeapons = require(Data.LabWeapons) :: any
+		local ajustes = Config.Ballistics
+		local function perfilDe(id: string, estilo: string?): any
+			return Perfiles[id] or (if estilo then Perfiles[estilo] else nil)
+		end
+		local function tiempoHasta(velocidad: number, freno: number, distancia: number): number
+			if freno < 1e-6 then
+				return distancia / velocidad
+			end
+			local fraccion = freno * distancia / velocidad
+			return if fraccion >= 1 then math.huge else -math.log(1 - fraccion) / freno
+		end
+		-- El frenado que de verdad se aplica (nunca para la bala antes del alcance) y el tiempo hasta el alcance.
+		local function vuelo(perfil: any, velocidad: number, alcance: number): (number, number)
+			local freno = if perfil then math.min(perfil.drag, 0.9 * velocidad / alcance) else 0
+			return freno, tiempoHasta(velocidad, freno, alcance)
+		end
+		local function escalaDano(perfil: any, distancia: number, alcance: number): number
+			local caida = if perfil then perfil.falloff else nil
+			if not caida or distancia <= caida.start * alcance then
+				return 1
+			end
+			local f =
+				math.clamp((distancia - caida.start * alcance) / math.max(alcance * (1 - caida.start), 1e-3), 0, 1)
+			return 1 - (1 - caida.min) * f
+		end
+		local function empuje(perfil: any, masa: number): number
+			if not perfil then
+				return 0
+			end
+			local v = perfil.mass * ajustes.PushScale / math.max(masa, 1)
+			return if v < ajustes.PushMinSpeed then 0 else math.min(v, ajustes.PushMaxSpeed)
+		end
+		local MASAS = { { "Titi", 0.47 }, { "Mandril", 2.33 }, { "Gorila", 13.04 } }
+
+		local proyectiles = {}
+		for id, arma in Weapons do
+			if typeof(arma) == "table" and arma.kind == "Ranged" and arma.projectileSpeed then
+				table.insert(proyectiles, {
+					id = id,
+					nombre = arma.name,
+					estilo = arma.projectile or "Stone",
+					velocidad = arma.projectileSpeed,
+					alcance = arma.range,
+				})
+			end
+		end
+		for _, h in
+			{
+				{ "Fireball", "Bola de fuego", A.FireballSpeed, A.FireballRange },
+				{ "MultiShot", "Disparo múltiple", A.MultiShotSpeed, A.MultiShotRange },
+				{ "TrueShot", "Disparo certero", A.TrueShotSpeed, A.TrueShotRange },
+				{ "PiercingShot", "Flecha perforante", A.PierceSpeed, A.PierceRange },
+				{ "HealingDart", "Dardo curativo", A.DartSpeed, A.DartRange },
+			}
+		do
+			table.insert(
+				proyectiles,
+				{ id = h[1], nombre = h[2], estilo = h[1], velocidad = h[3], alcance = h[4], habilidad = true }
+			)
+		end
+		table.sort(proyectiles, function(a, b)
+			if (a.habilidad == true) ~= (b.habilidad == true) then
+				return a.habilidad ~= true
+			end
+			return a.nombre < b.nombre
+		end)
+
+		linea("## 15. Distancia (balística)")
+		linea(
+			`Caída al alcance (máx. {LIMITES.caidaMaxStuds} st), vuelo en segundos a 30/60/100 st (adelanto del táctil: {Config.Projectiles.LeadMaxSeconds} s), daño que conserva al alcance (armas) y empuje en st/s a un Titi, un Mandril y un Gorila (PushScale {ajustes.PushScale}; {ajustes.PushMinSpeed}–{ajustes.PushMaxSpeed}):`
+		)
+		linea(
+			"| Proyectil | Alcance | Velocidad | Caída | 30 st | 60 st | 100 st | Daño al alcance | Empuje T / M / G |"
+		)
+		linea("|---|---|---|---|---|---|---|---|---|")
+		for _, p in proyectiles do
+			local perfil = perfilDe(p.id, p.estilo)
+			local freno, segundos = vuelo(perfil, p.velocidad, p.alcance)
+			local gravedad = if perfil
+					and perfil.drop > 0
+					and segundos < math.huge
+				then 2 * perfil.drop / (segundos * segundos)
+				else 0
+			local caida = gravedad * segundos * segundos / 2
+			local celdas = {}
+			for indice, distancia in { 30, 60, 100 } do
+				celdas[indice] = if distancia > p.alcance
+					then "—"
+					else n(tiempoHasta(p.velocidad, freno, distancia), 2)
+			end
+			local dano = if p.habilidad then "—" else pct(escalaDano(perfil, p.alcance, p.alcance))
+			local pushes = {}
+			for indice, masa in MASAS do
+				pushes[indice] = n(empuje(perfil, masa[2]), 0)
+			end
+			linea(
+				`| {p.nombre} | {p.alcance} | {p.velocidad} | {n(caida, 1)} | {celdas[1]} | {celdas[2]} | {celdas[3]} | {dano} | {table.concat(
+					pushes,
+					" / "
+				)} |`
+			)
+			if caida > LIMITES.caidaMaxStuds + 0.1 then
+				alerta(`Distancia: {p.nombre} cae {n(caida, 1)} st al alcance (máx. {LIMITES.caidaMaxStuds})`)
+			end
+			if segundos > Config.Projectiles.LeadMaxSeconds then
+				alerta(
+					`Distancia: {p.nombre} tarda {n(segundos, 2)} s en llegar a su alcance y el adelanto del táctil solo cubre {Config.Projectiles.LeadMaxSeconds} s`
+				)
+			end
+			if perfil and perfil.falloff and perfil.falloff.min < LIMITES.falloffMin then
+				alerta(
+					`Distancia: {p.nombre} conserva solo {pct(perfil.falloff.min)} de su daño al alcance (mín. {pct(
+						LIMITES.falloffMin
+					)})`
+				)
+			end
+			if perfil and empuje(perfil, MASAS[1][2]) == 0 then
+				alerta(`Distancia: {p.nombre} no empuja ni a un Titi (PushScale o masa del proyectil muy bajos)`)
+			end
+		end
+		linea("")
+
+		-- Hasta dónde engancha la ayuda táctil (studs de la línea de tiro) a un mono y a un jugador (el ratón, 0).
+		local function alcanceAyuda(perfil: any, studs: number, grados: number, along: number): number
+			local cerca = math.max(studs, along * math.tan(math.rad(grados)))
+			local desde, hasta = perfil.FarFromStuds, perfil.FarToStuds
+			if not (desde and hasta) or along <= desde then
+				return cerca
+			end
+			local lejos = along * math.tan(math.rad(math.min(perfil.FarDegrees, grados)))
+			return cerca + (lejos - cerca) * math.clamp((along - desde) / (hasta - desde), 0, 1)
+		end
+		linea(
+			`Ayuda táctil (desvío máximo en st que aún engancha; el ratón y el mando no tienen; a 100 st, un mono: ≤ {LIMITES.ayudaMaxStuds100} st):`
+		)
+		linea("| Perfil | Blanco | 30 st | 60 st | 100 st |")
+		linea("|---|---|---|---|---|")
+		for _, nombre in { "Touch", "Lab" } do
+			local perfil = Config.AimAssist[nombre]
+			for _, blanco in
+				{
+					{ "Mono", perfil.MonkeyStuds, perfil.MonkeyMinDegrees },
+					{ "Jugador", perfil.PlayerStuds, perfil.PlayerMinDegrees },
+				}
+			do
+				local celdas = {}
+				for indice, distancia in { 30, 60, 100 } do
+					celdas[indice] = n(alcanceAyuda(perfil, blanco[2], blanco[3], distancia), 1)
+				end
+				linea(`| {nombre} | {blanco[1]} | {table.concat(celdas, " | ")} |`)
+				local a100 = alcanceAyuda(perfil, blanco[2], blanco[3], 100)
+				if blanco[1] == "Mono" and a100 > LIMITES.ayudaMaxStuds100 then
+					alerta(
+						`Distancia: la ayuda {nombre} engancha a un mono a {n(a100, 1)} st de la línea a 100 st (máx. {LIMITES.ayudaMaxStuds100})`
+					)
+				end
+			end
+		end
+		linea("")
+
+		-- Lo medido en el campo de tiro frente a lo previsto.
+		local exportada = ServerStorage:FindFirstChild("CalibracionExportada")
+		local datos: any = nil
+		if exportada and exportada:IsA("StringValue") and exportada.Value ~= "" then
+			local bien, resultado = pcall(function()
+				return HttpService:JSONDecode(exportada.Value)
+			end)
+			if bien then
+				datos = resultado
+			end
+		end
+		if not datos then
+			linea(
+				"Calibración: sin exportación (ServerStorage.CalibracionExportada; la deja el panel «Calibración» del Lobby en Play)."
+			)
+		else
+			local referencias = {}
+			for _, p in proyectiles do
+				referencias[p.id] = { p.velocidad, perfilDe(p.id, p.estilo), p.alcance }
+			end
+			for id, arma in LabWeapons.weapons do
+				referencias[id] = { arma.projectileSpeed, nil, arma.range }
+			end
+			linea(
+				`Calibración exportada (control {datos.input or "?"}; muñeco a {datos.dummyDistance or "?"} st, {if datos.dummyMoving
+					then "en movimiento"
+					else "quieto"}). Vuelo medido frente al previsto con el recorrido medio (desvío máx. {pct(
+					LIMITES.vueloDesvio
+				)}):`
+			)
+			linea("| Fuente | Distancia | Tiros | Aciertos | Vuelo medido | Vuelo previsto | Desvío |")
+			linea("|---|---|---|---|---|---|---|")
+			local fuentes = {}
+			for fuente in datos.sources do
+				table.insert(fuentes, fuente)
+			end
+			table.sort(fuentes)
+			for _, fuente in fuentes do
+				local cubos = datos.sources[fuente]
+				local ref = referencias[fuente]
+				for _, cubo in { "Near", "Mid", "Far" } do
+					local dato = cubos[cubo] and cubos[cubo].stats
+					if dato and dato.n and dato.n > 0 and dato.meanFlight and dato.meanTravel and ref then
+						local freno = if ref[2] then math.min(ref[2].drag, 0.9 * ref[1] / ref[3]) else 0
+						local previsto = tiempoHasta(ref[1], freno, dato.meanTravel)
+						local desvio = (dato.meanFlight - previsto) / math.max(previsto, 1e-3)
+						linea(
+							`| {fuente} | {cubo} ({n(dato.meanTravel, 0)} st) | {dato.n} | {dato.hits} | {n(
+								dato.meanFlight,
+								3
+							)} s | {n(previsto, 3)} s | {n(desvio * 100, 1)} % |`
+						)
+						if dato.n >= 3 and math.abs(desvio) > LIMITES.vueloDesvio then
+							alerta(
+								`Distancia: {fuente} ({cubo}) vuela {n(dato.meanFlight, 3)} s y se preveía {n(
+									previsto,
+									3
+								)} s ({n(desvio * 100, 0)} %)`
+							)
+						end
+					end
 				end
 			end
 		end

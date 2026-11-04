@@ -515,7 +515,7 @@ local Config = {
 	-- daño según la distancia y el empuje de un proyectil al impactar a un mono. Nunca empuja a jugadores ni a
 	-- jefes. El empuje es mass × PushScale / masa del blanco (studs/s), entre PushMinSpeed y PushMaxSpeed.
 	Ballistics = {
-		PushScale = 40,
+		PushScale = 25,
 		PushMinSpeed = 3,
 		PushMaxSpeed = 16,
 		PushSeconds = 0.12,
