@@ -82,6 +82,9 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "PassPremium", label = "🌋 Premium del pase (sí/no)" },
 		{ id = "SeasonShift", label = "📆 Reloj del pase +7 días" },
 		{ id = "Guide", label = "🧭 Repetir la guía" },
+		{ id = "RangeHitboxes", label = "📦 Campo de tiro: hitbox visibles (sí/no)" },
+		{ id = "RangeTraces", label = "📐 Campo de tiro: trazas de disparo (sí/no)" },
+		{ id = "RangeFx", label = "💥 Campo de tiro: siguiente efecto en el muro de materiales" },
 		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 	},
 	Dunas = {

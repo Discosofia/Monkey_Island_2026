@@ -63,6 +63,21 @@ local function sendReceipt(player: Player, key: string, purchaseId: string)
 end
 
 local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
+	-- Campo de tiro (Fase 23e): el cliente (RangeDebugController) lee estos atributos del jugador; las trazas
+	-- las manda RangeDebugService.
+	RangeHitboxes = function(player)
+		local on = player:GetAttribute("DebugRangeHitboxes") ~= true
+		player:SetAttribute("DebugRangeHitboxes", on)
+		Remotes.Notify:FireClient(player, if on then "📦 Hitbox visibles: sí" else "📦 Hitbox visibles: no")
+	end,
+	RangeTraces = function(player)
+		local on = player:GetAttribute("DebugRangeTraces") ~= true
+		player:SetAttribute("DebugRangeTraces", on)
+		Remotes.Notify:FireClient(player, if on then "📐 Trazas de disparo: sí" else "📐 Trazas de disparo: no")
+	end,
+	RangeFx = function(player)
+		player:SetAttribute("DebugRangeFx", ((player:GetAttribute("DebugRangeFx") :: number?) or 0) + 1)
+	end,
 	Guide = function(player)
 		PlayerData.update(player, function(profile)
 			profile.lobbyGuideDone = false

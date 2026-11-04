@@ -4406,6 +4406,35 @@ Las dianas del campo son combatientes: cada una tiene un `Humanoid` de 1e6 de vi
 1. [ ] `bounces` en `Projectiles.fire` aún no lo usa ningún arma. Cuando se use, comprueba que el proyectil rebota en las paredes y que el cliente lo dibuja sin saltos.
    ✅ Cada rebote es un tramo nuevo y el último termina donde cae.
 
+## 111. Fase 23e: depuración del campo de tiro (03-11-2026)
+
+Todo esto es solo Studio: las órdenes salen en el panel «🛠️ Pruebas» del Lobby.
+
+### 111.1 Hitbox visibles
+
+1. [ ] En el campo de tiro, pulsa «📦 Campo de tiro: hitbox visibles» y mira las dianas, un muñeco y a otro jugador.
+   ✅ Cada pieza sale teñida por zona (cabeza rosa, torso azul, miembro amarillo, punto débil blanco), con la esfera de la cabeza y una cápsula celeste del cuerpo. No hay verde, morado ni rojo.
+2. [ ] Dispara a la cabeza y al borde de la cápsula de un muñeco.
+   ✅ Acierta (daño de cabeza) cuando la bala entra en la esfera rosa o la cápsula, y falla fuera de ellas.
+3. [ ] Pulsa la orden otra vez y aléjate a más de 160 studs.
+   ✅ Los dibujos desaparecen; lejos no hay lag al activarlos.
+
+### 111.2 Trazas de disparo
+
+1. [ ] Pulsa «📐 Campo de tiro: trazas de disparo» y dispara con un arma a distancia a una diana lejana.
+   ✅ Al acabar el disparo aparece una línea naranja (servidor) y otra celeste (tu puntería), un punto en el impacto y un cartel con ping, grados de ayuda y segundos rebobinados. Todo se borra a los 4 s.
+2. [ ] Apunta justo a un mono o muñeco y luego entre dos.
+   ✅ Con ayuda de puntería la línea naranja se desvía unos grados de la celeste; entre dos blancos, no.
+3. [ ] Lo mismo con ping alto (simulación de red).
+   ✅ El cartel enseña el ping y el rebobinado sube con él, con tope de `Config.Net.MaxCompensationSeconds`.
+
+### 111.3 Estación de efectos
+
+1. [ ] Ve al muro de materiales (pared derecha) y pulsa «💥 Campo de tiro: siguiente efecto» varias veces.
+   ✅ Cada pulsación enseña un paso: marcas de impacto en madera, piedra, metal y arena; impacto en un cuerpo; y un crítico por cada estilo de estallido (el primero sin estilo). El mensaje de la consola dice cuál. Al acabar la lista vuelve al principio.
+2. [ ] Repite con el efecto de calidad bajo y alto en Ajustes.
+   ✅ La calidad baja usa menos marcas y partículas, sin errores.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

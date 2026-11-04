@@ -265,6 +265,10 @@ local Remotes = {
 	-- Cañón de pelotas del campo de tiro (RangeBallService). Servidor -> jugador: ("Open" | "Settings",
 	-- { Elasticity, Gravity, Size, Speed }). Jugador -> servidor: ("Adjust", clave, +1 | -1) y ("Fire").
 	RangeBalls = remoteEvent("RangeBalls"),
+	-- Servidor -> tirador (Lobby, campo de tiro, solo Studio, Fase 23e): la traza de un disparo para depurar
+	-- (RangeDebugService), con el atributo del jugador DebugRangeTraces activo. ("Trace", { origin, aim,
+	-- direction, hit, pingMs, rewind }).
+	RangeDebug = remoteEvent("RangeDebug"),
 }
 
 return Remotes

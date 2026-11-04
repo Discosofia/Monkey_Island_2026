@@ -1233,6 +1233,7 @@ local function rangedAttack(
 		-- adelantado (con tope). La dispersión (V8) la pone el servidor al azar sobre la dirección que manda el
 		-- cliente, así que no hace falta validar esa dirección contra un cono de la mira.
 		ownerSeq = shotSeq,
+		aimDirection = aim,
 		rewind = if rules.zones then lag else nil,
 		lead = if rules.zones then math.min(lag, Config.Combat.Headshot.ShotLeadMaxSeconds) else nil,
 		onHit = function(model, center, zone, contact)

@@ -76,6 +76,9 @@ export type Shot = {
 	-- lo recorrido.
 	bounces: number?,
 	bounciness: number?,
+	-- Solo para depurar (campo de tiro, Fase 23e): la dirección que mandó el cliente antes de la ayuda de
+	-- puntería y de la dispersión.
+	aimDirection: Vector3?,
 }
 
 type Flight = {
@@ -97,7 +100,7 @@ local nextId = 0
 local started = false
 -- Oyentes aditivos (el campo de tiro del Lobby): sin ninguno, no hacen nada.
 local impactListeners: { (shooter: Player, position: Vector3, instance: Instance?, model: Model?) -> () } = {}
-local shotListeners: { (shooter: Player, ownerSeq: number?) -> () } = {}
+local shotListeners: { (shooter: Player, ownerSeq: number?, shot: Shot) -> () } = {}
 
 -- Llama a "listener" cuando un proyectil acaba: contra el mundo (con la pieza que toca), contra un
 -- combatiente (con su modelo) o al final de su alcance (sin ninguno de los dos).
@@ -106,8 +109,8 @@ function Projectiles.onImpact(listener: (shooter: Player, position: Vector3, ins
 end
 
 -- Llama a "listener" cada vez que sale un proyectil. "ownerSeq" solo lo traen los disparos directos de un
--- arma a distancia (las habilidades no).
-function Projectiles.onShot(listener: (shooter: Player, ownerSeq: number?) -> ())
+-- arma a distancia (las habilidades no). "shot" es el disparo tal como sale.
+function Projectiles.onShot(listener: (shooter: Player, ownerSeq: number?, shot: Shot) -> ())
 	table.insert(shotListeners, listener)
 end
 
@@ -299,7 +302,7 @@ function Projectiles.fire(shot: Shot): number
 	local ownerSeq = shot.ownerSeq
 	local owner = shot.owner
 	for _, listener in shotListeners do
-		task.spawn(listener, owner, ownerSeq)
+		task.spawn(listener, owner, ownerSeq, shot)
 	end
 	if ownerSeq then
 		Remotes.ProjectileAck:FireClient(owner, ownerSeq, flight.id, shot.direction)
