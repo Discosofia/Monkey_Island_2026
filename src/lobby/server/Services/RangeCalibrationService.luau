@@ -2,7 +2,8 @@
 -- Calibración del tiro en el campo de tiro del Lobby (Fase 24d). Mide cómo se comporta cada proyectil (arma o
 -- habilidad, por su "source" en Combat/Projectiles) antes de tocar la balística: por jugador, por "source" y
 -- por la distancia del tirador al impacto en tres cubos (Near, Mid, Far; Config.Range.Calibration), guarda
--- cuántos tiros hubo y cuántos dieron a un combatiente, la suma del tiempo de vuelo y del recorrido, el desvío
+-- cuántos tiros hubo y cuántos acabaron en el muñeco de calibración (CalibrationDummy; los que acaban en una
+-- pantalla de ajuste no cuentan para el porcentaje, screenShots), la suma del tiempo de vuelo y del recorrido, el desvío
 -- sobre las pantallas de ajuste (dx, dy y su dispersión, cuando el tiro acabó en una) y los grados entre la
 -- puntería que mandó el cliente y la dirección final (ayuda del táctil y dispersión del arma; solo con un
 -- control táctil, AimInputService). Solo cuentan los tiros de jugadores dentro del recinto. Tras cada tiro le
@@ -119,6 +120,7 @@ local function bucketData(bucket: Bucket): { [string]: number }
 		local meanDx = bucket.sumDx / bucket.screenN
 		local meanDy = bucket.sumDy / bucket.screenN
 		data.screenN = bucket.screenN
+		data.screenShots = bucket.screenN
 		data.meanDx = meanDx
 		data.meanDy = meanDy
 		data.spread = math.sqrt(math.max(0, bucket.sumSq / bucket.screenN - (meanDx * meanDx + meanDy * meanDy)))
@@ -192,7 +194,7 @@ local function onImpact(
 	shooter: Player,
 	position: Vector3,
 	instance: Instance?,
-	_model: Model?,
+	model: Model?,
 	info: Projectiles.ImpactInfo?
 )
 	if not info then
@@ -220,7 +222,8 @@ local function onImpact(
 	entry.lastUsed = os.clock()
 	local bucket = entry.buckets[bucketName((position - info.origin).Magnitude)]
 	bucket.n += 1
-	if info.hitAny then
+	-- Acierto = el impacto final fue contra el muñeco de calibración (otro combatiente cuenta como falla).
+	if model and model:GetAttribute("CalibrationDummy") == true then
 		bucket.hits += 1
 	end
 	bucket.flight += info.elapsed

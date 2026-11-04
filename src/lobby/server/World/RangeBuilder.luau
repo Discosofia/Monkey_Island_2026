@@ -22,7 +22,9 @@
 -- «Dejar arma» (ArmeroDejarPrompt), que atiende RangeShooterService. v10 (Fase 24d, calibración del tiro): una
 -- tercera consola «Calibración» (CalibracionPrompt abre el panel de RangeCalibrationController, que maneja la
 -- distancia y el movimiento del muñeco por RangeCalibrationDummyService) y el «muñeco de calibración»
--- (MuniecoCalibracion, en el eje central a la distancia que se elija). v11: la consola tiene un solo aviso.
+-- (MuniecoCalibracion, a la distancia que se elija). v11: la consola tiene un solo aviso. v12: el muñeco de
+-- calibración va por el carril libre x = Config.Range.Calibration.LaneX (el eje central lo cruzan los muñecos
+-- laterales) y el suelo lo marca con una franja y el rótulo «CARRIL DE CALIBRACIÓN» junto a la línea de tiro.
 -- Aquí todo está quieto: mueve las dianas RangeTargetService, y las marcas y la lectura de las pantallas
 -- las dibuja RangeScreenController.
 
@@ -40,7 +42,7 @@ export type Options = { force: boolean? }
 
 local FOLDER_NAME = "CampoDeTiro"
 -- Sube este número al cambiar el recinto: el Lobby con una versión anterior lo reconstruye al arrancar.
-local VERSION = 11
+local VERSION = 13
 local SEED = 1717
 
 -- Dónde está el recinto en el mundo (lejos del Lobby, que llega a unos 170 studs, y en el aire).
@@ -384,6 +386,30 @@ local function buildFloor(root: Instance)
 	prepLabel.TextScaled = false
 	prepLabel.TextSize = 100
 	prepLabel.TextWrapped = false
+
+	-- Carril de calibración: franja tenue detrás de la línea y su rótulo, en x = LaneX (v12), para saber dónde
+	-- ponerse a disparar al muñeco de calibración.
+	local lane = decor(
+		box(
+			floor,
+			"FranjaCarril",
+			CALIBRATION.LaneX,
+			0.04,
+			FIRE_Z + 8,
+			10,
+			0.02,
+			16,
+			0x3aa7c4,
+			Enum.Material.SmoothPlastic
+		)
+	)
+	lane.Transparency = 0.7
+	local laneGui = floorGui(floor, "RotuloCarril", CALIBRATION.LaneX, FIRE_Z + 8, 16, 6)
+	local laneLabel = textLabel(laneGui, later("CARRIL DE CALIBRACIÓN"), 0x9fdcec, Enum.Font.GothamBold)
+	laneLabel.Size = UDim2.fromScale(1, 1)
+	laneLabel.TextScaled = false
+	laneLabel.TextSize = 36
+	laneLabel.TextWrapped = true
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -844,10 +870,10 @@ local DUMMIES: { DummySpec } = {
 	{ name = "MuniecoFijo", x = 14, z = 30, kind = "fixed" }, -- a 36 studs de la línea de tiro
 	{ name = "MuniecoLateral", x = 0, z = 0, kind = "rail", amplitude = 14, speed = 0.8 }, -- a 66 studs
 	{ name = "MuniecoProfundo", x = -6, z = 30, kind = "depth", amplitude = 20, speed = 0.6 }, -- de 16 a 56 studs
-	-- En el eje central, a la distancia inicial de la calibración (RangeCalibrationDummyService lo mueve después).
+	-- En el carril libre de la izquierda (LaneX), a la distancia inicial de la calibración (RangeCalibrationDummyService lo mueve después).
 	{
 		name = "MuniecoCalibracion",
-		x = CALIBRATION.CenterOffsets[CALIBRATION.Distances[CALIBRATION.DefaultIndex]] or 0,
+		x = CALIBRATION.LaneX,
 		z = FIRE_Z - CALIBRATION.Distances[CALIBRATION.DefaultIndex],
 		kind = "fixed",
 		calibration = true,

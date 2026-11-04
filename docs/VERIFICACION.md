@@ -4677,17 +4677,17 @@ Los dos felinos comparten `voxelCat` y se rehicieron como los perros: cráneo re
 
 ## 121. Fase 24 grupo 24d: calibración del tiro en el campo (04-11-2026)
 
-El campo de tiro (v11) mide el tiro de armas y habilidades, también las cuatro del Laboratorio. `Projectiles.Shot.source` dice qué arma o habilidad es cada proyectil; las pantallas colorean cada marca por `source` y su lectura trae el vuelo medio. Una tercera consola «Calibración» (en el lado derecho de la línea de tiro) abre un panel con una fila por arma o habilidad usada y tres columnas de distancia (Cerca ≤30, Media 31–99, Lejos ≥100); el panel tiene los controles que colocan el muñeco de calibración a 10/30/60/100/130 studs, quieto o de lado a lado, y un botón «Borrar datos» (el único aviso de la consola es «Abrir»). Ese muñeco no es `RangeTarget`, así que la ayuda del táctil puede engancharlo y se mide. Comprobado el 04-11-2026 en Play en el Lobby (v10, con tres avisos), con el personaje teletransportado y disparando por remoto (`UseWeapon` y `UseAbility`): el muñeco se coloca a cada distancia y oscila ±8; el Bastón mágico a 30 studs da vuelo medio 0,24 s con 5 de 5 aciertos; la Bola de fuego y el rifle del Laboratorio llegan a las pantallas con su `source` y su vuelo; el panel se abre y se cierra y «Borrar marcas» lo vacía; salir del campo lo cierra. El retoque a un solo aviso con controles en el panel (v11) no se ha probado en Play: sin probar lo de abajo.
+El campo de tiro (v13) mide el tiro de armas y habilidades, también las cuatro del Laboratorio. `Projectiles.Shot.source` dice qué arma o habilidad es cada proyectil; las pantallas colorean cada marca por `source` y su lectura trae el vuelo medio. Una tercera consola «Calibración» (en el lado derecho de la línea de tiro) abre un panel con una fila por arma o habilidad usada y tres columnas de distancia (Cerca ≤30, Media 31–99, Lejos ≥100); el panel tiene los controles que colocan el muñeco de calibración a 10/30/60/100/130 studs, quieto o de lado a lado, y un botón «Borrar datos» (el único aviso de la consola es «Abrir»). Ese muñeco no es `RangeTarget`, así que la ayuda del táctil puede engancharlo y se mide. Comprobado el 04-11-2026 en Play en el Lobby (v10, con tres avisos), con el personaje teletransportado y disparando por remoto (`UseWeapon` y `UseAbility`): el muñeco se coloca a cada distancia y oscila ±8; el Bastón mágico a 30 studs da vuelo medio 0,24 s con 5 de 5 aciertos; la Bola de fuego y el rifle del Laboratorio llegan a las pantallas con su `source` y su vuelo; el panel se abre y se cierra y «Borrar marcas» lo vacía; salir del campo lo cierra. El usuario probó el 04-11-2026 el panel con un solo aviso y controles (v11) con el Bastón mágico quieto: a 30 studs 10 tiros, 100 %, vuelo 0,29 s; a 60, 20 tiros, 100 %, 0,41 s; a 100, 0 % (alcance del bastón) y un muñeco lateral del campo se cruzaba. Retoque posterior (v12): panel a la derecha y de 500 px de ancho (antes 749; celdas de tres columnas por línea con el texto repartido, controles que llenan la fila; medido en Play: 498×344 px, 0 etiquetas con texto cortado), acierto solo sobre el muñeco de calibración, distancia real en cada celda, `NearMax` 40 y el muñeco en un carril libre (x = -32, único pasillo de 135 studs sin obstáculos según un barrido con esfera; vaivén ±3 a 1,3 rad/s; rótulo «CARRIL DE CALIBRACIÓN»), sin probar en Play: sin probar lo de abajo.
 
 ### 121.1 En el Studio del Lobby, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
 
-0. [ ] Guarda el place con el campo v11 (`require(game.ServerScriptService.Server.World.RangeBuilder).build()` en edición) o deja que el servidor lo reconstruya al arrancar, y mira la consola «Calibración».
-   ✅ Solo hay un aviso («Abrir»). En el panel, los botones 10/30/60/100/130 colocan el muñeco, «Quieto» / «De lado a lado» lo mueven, el activo va en dorado y «Borrar datos» vacía las filas y las marcas de las pantallas. Con dos jugadores, el cambio de distancia o movimiento de uno lo ve el otro en su panel.
+0. [ ] Guarda el place con el campo v13 (`require(game.ServerScriptService.Server.World.RangeBuilder).build()` en edición) o deja que el servidor lo reconstruya al arrancar, y mira la consola «Calibración».
+   ✅ Solo hay un aviso («Abrir»); el panel sale a la derecha y no tapa los avisos de arriba a la derecha (PC de 1167 px de ancho) ni los botones de disparo en teléfono. En el panel, los botones 10/30/60/100/130 colocan el muñeco, «Quieto» / «De lado a lado» lo mueven, el activo va en dorado y «Borrar datos» vacía las filas y las marcas de las pantallas. Con dos jugadores, el cambio de distancia o movimiento de uno lo ve el otro en su panel.
 
 1. [ ] Entra por el arco del Lobby (no por teletransporte), abre el panel de «Calibración» y míralo en PC.
    ✅ Se lee todo sin desplazamiento (hasta 6 filas y los controles); las celdas Cerca / Media / Lejos con tiros, % de acierto, vuelo y desvío no se solapan; los colores de las filas son los de las marcas.
-2. [ ] Abre el panel con el emulador de teléfono.
-   ✅ Compacto (hasta 3 filas y dos filas de controles), con los botones y el texto legibles y sin tapar los botones de disparo.
+2. [ ] Abre el panel con el emulador de teléfono (ancho 464 px en `compact`, no medido).
+   ✅ Compacto (hasta 3 filas y dos filas de controles); sin texto cortado en las celdas de 112 px ni en la leyenda (5 líneas), con los botones y el texto legibles y sin tapar los botones de disparo.
 3. [ ] Dispara con clic real a la pantalla corta y a la larga con una arma de cada tipo (honda, arco, bastón, cerbatana) y con las habilidades (Disparo múltiple, Flecha perforante, Bola de fuego, Tiro certero, Dardo curativo).
    ✅ Cada marca sale del color de su arma o habilidad; la lectura dice su nombre, el vuelo y la media solo de ese `source`. Un abanico del Disparo múltiple o una Flecha perforante pinta una sola marca (por `MarkMinInterval`) pero el panel cuenta todos los proyectiles.
 4. [ ] Dispara al muñeco de calibración a 10, 30, 60, 100 y 130 studs, quieto y de lado a lado, con arma de rol y con táctil (emulador).
@@ -4696,16 +4696,22 @@ El campo de tiro (v11) mide el tiro de armas y habilidades, también las cuatro 
    ✅ Cada una con su fila y su dispersión configurada; el arpón y el cañón de ácido (arco) dibujan su caída; «Dejar arma» devuelve las armas del rol.
 6. [ ] Con el rifle del Armero equipado (primera persona), abre el panel con E, usa el ratón y ciérralo con Ctrl y con ✕.
    ✅ El cursor sale al abrir y vuelve a bloquearse al cerrar; la mira no estorba (hoy sigue visible con el panel abierto).
-7. [ ] Pon el muñeco a 10 studs en movimiento.
-   ✅ El vaivén no atraviesa la caja de la derecha (hoy puede, porque x de -5 a 11 la toca). Si lo hace, se baja la amplitud a esa distancia.
-8. [ ] A 100 y 130 studs, mira si el muñeco lateral del campo (x=0±14, z=0) cruza la línea de tiro del muñeco de calibración.
-   ✅ No bloquea los disparos; si lo hace, se desplaza el muñeco de calibración.
+7. [ ] Colócate en el carril de calibración (franja cian junto a la línea de tiro, x = -32) y pon el muñeco a 10 studs en movimiento.
+   ✅ El vaivén (±3) no toca ninguna caja, diana ni el muro.
+8. [ ] Dispara al muñeco a 100 y 130 studs desde el carril, quieto y de lado a lado.
+   ✅ Ningún otro muñeco ni obstáculo se cruza; el acierto solo cuenta lo que da al muñeco de calibración y los tiros a las pantallas no bajan el %.
+   Nota: el bastón tiene alcance 100, así que a 100 y 130 studs falla por alcance, no por puntería (hace falta el Bastón de lava, 140).
 9. [ ] Dispara la Bola de fuego a la pantalla larga (135 studs).
    ✅ Llega a la pantalla larga o, si su alcance máximo (≈100) no llega, el panel lo cuenta como tiro sin impacto en pantalla.
 10. [ ] Con 2 jugadores en el campo, dispara los dos a la vez.
     ✅ Cada uno ve solo sus marcas y su panel; las estadísticas no se mezclan.
 11. [ ] En Studio, pulsa «Exportar» del panel.
     ✅ Aparece `ServerStorage.CalibracionExportada` con el JSON de la sesión; se usará en 24f.
+12. [ ] Repite la calibración APUNTANDO con la mira (clic derecho, zoom y mira de cada arma: honda, arco, bastón, cerbatana y las cuatro del Laboratorio con su visor, punto rojo o mira de hierro).
+    ✅ La dispersión a la cadera (1,5° en bastón y arco) baja a 0 al apuntar (`Config.Aim.AdsSpreadDegrees`); el rifle del Laboratorio con zoom es exacto (`zoomExact`); el desvío en pantallas y el acierto mejoran frente a disparar sin apuntar. La batería programada disparó siempre con `aiming = false`.
+13. [ ] Calibra disparando EN EL AIRE (salta y dispara) y corriendo, con armas del rol y del Laboratorio.
+    ✅ El Laboratorio suma la dispersión en el aire (`air`, p. ej. 5° en el rifle) y en movimiento (`moving`, 2,5°); las armas del rol no cambian. El panel muestra más desvío y menos acierto que quieto. La batería programada disparó siempre con el personaje quieto en el suelo.
+
 
 ## 122. Fase 20 Q5g: Ajolote con malla (04-11-2026)
 

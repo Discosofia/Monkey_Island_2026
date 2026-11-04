@@ -2301,20 +2301,24 @@ local Config = {
 		-- distancia del tirador al impacto (cerca hasta NearMax, lejos desde FarMin), segundos mínimos entre dos
 		-- envíos de estadísticas al mismo jugador y arma, y armas distintas que se guardan por jugador.
 		-- El muñeco de calibración se coloca a una de Distances studs de la línea de tiro (empieza en
-		-- DefaultIndex) y, en movimiento, va de lado a lado ±MoveAmplitude a MoveSpeed rad/s. A 10 studs se
-		-- corre MoveOffsets[10] en x para esquivar la caja de la línea de tiro. ControlInterval son los segundos
-		-- mínimos entre dos órdenes del panel (RangeCalibrationControl) de un mismo jugador.
+		-- DefaultIndex) y, en movimiento, va de lado a lado ±MoveAmplitude a MoveSpeed rad/s. Va por el carril
+		-- LaneX (x local del recinto). Un barrido con esfera de 1,5 studs a 2,5-8,5 de altura (04-11-2026) dejó
+		-- como único pasillo de 135 studs sin nada x = -33…-31: las dianas de la pared izquierda (x -41…-34) y la
+		-- giratoria (x -38, a 62 studs) quedan a un lado, y el MuroAlto empieza en x = -30. Con el tirador en
+		-- LaneX, ±3 de vaivén no toca nada (±5 sí cruzaba la giratoria); MoveSpeed 1,3 deja ~4 studs/s de punta.
+		-- ControlInterval son los segundos mínimos entre dos órdenes del panel (RangeCalibrationControl) de un
+		-- mismo jugador.
 		Calibration = {
 			ControlInterval = 0.15,
-			NearMax = 30,
+			NearMax = 40,
 			FarMin = 100,
 			SendInterval = 0.1,
 			MaxSources = 12,
 			Distances = { 10, 30, 60, 100, 130 },
 			DefaultIndex = 2,
-			MoveAmplitude = 8,
-			MoveSpeed = 0.8,
-			CenterOffsets = { [10] = 3 },
+			LaneX = -32,
+			MoveAmplitude = 3,
+			MoveSpeed = 1.3,
 		},
 	},
 

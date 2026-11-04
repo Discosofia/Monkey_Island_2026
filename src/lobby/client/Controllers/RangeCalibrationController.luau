@@ -5,8 +5,10 @@
 -- entero; los lee de los atributos CalibrationDistance y CalibrationMoving) y «Borrar datos» (vacía las estadísticas
 -- y las marcas del jugador); todos mandan Remotes.RangeCalibrationControl. Una fila por arma o habilidad que ha
 -- disparado el jugador (las más antiguas salen si hay más de 6 en PC o 3 en teléfono) y tres columnas por la distancia del tirador al impacto: Cerca, Media y Lejos
--- (Config.Range.Calibration). Cada celda dice los tiros, el acierto a combatientes y el vuelo medio, y debajo el
--- desvío medio y la dispersión sobre las pantallas de ajuste (studs) y la ayuda media del táctil (grados). En
+-- (Config.Range.Calibration). Cada celda dice los tiros, el acierto sobre el muñeco de calibración (sin contar los
+-- tiros que acaban en una pantalla; «—» si no queda ninguno) y el vuelo medio, y debajo la distancia media
+-- recorrida (studs), el desvío medio y la dispersión sobre las pantallas de ajuste y la ayuda media del táctil
+-- (grados). El panel va anclado arriba a la derecha para no tapar las dianas. En
 -- las armas del Laboratorio, la fila trae también su dispersión configurada, como referencia. En Studio hay un
 -- botón «Exportar» (el servidor deja el JSON en ServerStorage.CalibracionExportada). En primera persona (modo
 -- shooter) el panel suelta el ratón mientras está abierto (FirstPersonController.freeCursor).
@@ -40,24 +42,37 @@ local BUCKETS = { "Near", "Mid", "Far" }
 -- Cada cuánto se mira si el jugador sigue dentro del recinto.
 local WATCH_SECONDS = 0.5
 local INSIDE_SLACK = 2
-local TOP_MARGIN = 46
+local SIDE_MARGIN = 12
 local MAX_SOURCE_LENGTH = 64
 
 -- Medidas según el dispositivo: teléfono (táctil sin teclado) más compacto.
 local compact = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local NAME_WIDTH = if compact then 112 else 200
-local CELL_WIDTH = if compact then 112 else 175
-local ROW_HEIGHT = if compact then 44 else 40
+-- En PC el panel mide 500 px (dos tercios de los 749 de antes): 120 de nombre y 3 columnas de 118.
+local NAME_WIDTH = if compact then 112 else 120
+local CELL_WIDTH = if compact then 112 else 118
+-- Margen de arriba: en PC libra la barra superior y los avisos de arriba a la derecha; en teléfono, el de antes.
+local TOP_MARGIN = if compact then 46 else 100
+-- Cada celda son tres líneas de tres columnas (tiros · acierto · vuelo / distancia · desvío · dispersión / ayuda),
+-- con el texto pegado a la izquierda, al centro y a la derecha de su columna: así llena el ancho de la celda.
+local CELL_LINE_HEIGHT = if compact then 13 else 14
+local ROW_HEIGHT = CELL_LINE_HEIGHT * 3 + 6
 local TEXT_SIZE = if compact then 10 else 13
+local CELL_TEXT_SIZE = if compact then 10 else 11
 local MAX_ROWS = if compact then 3 else 6
 local PADDING = if compact then 8 else 12
 local CONTROL_HEIGHT = if compact then 32 else 30
-local CONTROL_LABEL_WIDTH = if compact then 104 else 150
-local DISTANCE_BUTTON_WIDTH = if compact then 36 else 48
-local MOVING_BUTTON_WIDTH = if compact then 92 else 130
+local CONTROL_LABEL_WIDTH = if compact then 104 else 104
+local CONTROL_GAP = 4
 local PANEL_WIDTH = NAME_WIDTH + CELL_WIDTH * 3 + PADDING * 2
+-- Los botones de los controles se reparten el ancho que deja la etiqueta, para que la fila llene el panel.
+local CONTROLS_INNER = PANEL_WIDTH - PADDING * 2 - CONTROL_LABEL_WIDTH
+local DISTANCE_BUTTON_WIDTH = math.floor((CONTROLS_INNER - CONTROL_GAP * #SETTINGS.Distances) / #SETTINGS.Distances)
+local MOVING_BUTTON_WIDTH = math.floor((CONTROLS_INNER - CONTROL_GAP * 3) / 3)
+local SLOTS_PER_LINE = 3
+local SLOT_WIDTH = math.floor((CELL_WIDTH - 4) / SLOTS_PER_LINE)
 
-type Row = { frame: Frame, name: TextLabel, reference: TextLabel, cells: { TextLabel } }
+-- "cells[cubo]" tiene 7 etiquetas: 3 de la línea 1, 3 de la línea 2 y 1 ancha de la línea 3 (la ayuda del táctil).
+type Row = { frame: Frame, name: TextLabel, reference: TextLabel, cells: { { TextLabel } } }
 type Entry = { data: { [string]: any }, order: number, seen: number, row: Row }
 
 local RangeCalibrationController = {}
@@ -91,32 +106,28 @@ local function num(container: any, key: string): number?
 	return nil
 end
 
-local function cellText(bucket: any): string
+-- Los 7 textos de una celda (ver Row.cells): tiros, acierto, vuelo · distancia, desvío, dispersión · ayuda.
+-- Son símbolos y números (× % s st Δ σ): no se traducen; la leyenda del panel los explica.
+local function cellItems(bucket: any): { string }
 	local count = num(bucket, "n") or 0
 	if count <= 0 then
-		return "—"
+		return { "—", "", "", "", "", "", "" }
 	end
 	local hits = num(bucket, "hits") or 0
-	local first = T("{n}× · {accuracy} % · {flight} s", {
-		n = count,
-		accuracy = math.round(hits / count * 100),
-		flight = string.format("%.2f", num(bucket, "meanFlight") or 0),
-	})
+	-- Acierto sobre el muñeco: los tiros que acaban en una pantalla de ajuste no cuentan.
+	local aimed = count - (num(bucket, "screenShots") or 0)
+	local travel = num(bucket, "meanTravel")
 	local meanDx, meanDy, spread = num(bucket, "meanDx"), num(bucket, "meanDy"), num(bucket, "spread")
-	local second
-	if meanDx and meanDy and spread then
-		second = T("Desv. {deviation} · disp. {spread}", {
-			deviation = string.format("%.2f", math.sqrt(meanDx * meanDx + meanDy * meanDy)),
-			spread = string.format("%.2f", spread),
-		})
-	else
-		second = T("Sin pantalla")
-	end
 	local assist = num(bucket, "meanAssist")
-	if assist then
-		second ..= " · " .. T("ayuda {assist}°", { assist = string.format("%.1f", assist) })
-	end
-	return first .. "\n" .. second
+	return {
+		`{count}×`,
+		if aimed > 0 then `{math.round(hits / aimed * 100)} %` else "—",
+		string.format("%.2f s", num(bucket, "meanFlight") or 0),
+		if travel then `{math.round(travel)} st` else "",
+		if meanDx and meanDy then string.format("Δ %.2f", math.sqrt(meanDx * meanDx + meanDy * meanDy)) else "",
+		if spread then string.format("σ %.2f", spread) else "",
+		if assist then T("ayuda {assist}°", { assist = string.format("%.1f", assist) }) else "",
+	}
 end
 
 local function renderRow(source: string, entry: Entry)
@@ -135,14 +146,18 @@ local function renderRow(source: string, entry: Entry)
 		row.reference.Text = ""
 	end
 	for index, name in BUCKETS do
-		row.cells[index].Text = cellText(entry.data[name])
+		local items = cellItems(entry.data[name])
+		for slot, label in row.cells[index] do
+			label.Text = items[slot]
+		end
 	end
 end
 
 local function renderStatic()
 	titleLabel.Text = T("Calibración del tiro")
-	legendLabel.Text =
-		T("Celda: tiros × · acierto · vuelo medio / desvío medio y dispersión (studs) · ayuda del táctil (°)")
+	legendLabel.Text = T(
+		"Celda: tiros × · acierto % · vuelo (s) / distancia recorrida (st = studs) · Δ desvío medio y σ dispersión en pantallas (studs) · ayuda del táctil (°). Acierto = sobre el muñeco de calibración"
+	)
 	headerLabels[1].Text = T("Arma o habilidad")
 	headerLabels[2].Text = T("Cerca (≤{max})", { max = SETTINGS.NearMax })
 	headerLabels[3].Text = T("Media ({min}–{max})", { min = SETTINGS.NearMax + 1, max = SETTINGS.FarMin - 1 })
@@ -181,19 +196,36 @@ local function newRow(order: number): Row
 	frame.Size = UDim2.new(1, 0, 0, ROW_HEIGHT)
 	frame.LayoutOrder = order
 	frame.Parent = rowsHolder
-	local nameLabel = textLabel("", TEXT_SIZE + 1, WHITE, frame)
+	-- El nombre cabe en dos líneas y debajo va la dispersión configurada del arma del Laboratorio.
+	local nameLines = 2
+	local nameLabel = textLabel("", CELL_TEXT_SIZE + 1, WHITE, frame)
 	nameLabel.Font = Enum.Font.BuilderSansBold
-	nameLabel.Size = UDim2.fromOffset(NAME_WIDTH - 4, TEXT_SIZE + 4)
+	nameLabel.Size = UDim2.fromOffset(NAME_WIDTH - 4, (CELL_TEXT_SIZE + 3) * nameLines)
 	nameLabel.Position = UDim2.fromOffset(2, 2)
-	local reference = textLabel("", TEXT_SIZE - 1, SECONDARY, frame)
-	reference.Size = UDim2.fromOffset(NAME_WIDTH - 4, ROW_HEIGHT - TEXT_SIZE - 8)
-	reference.Position = UDim2.fromOffset(2, TEXT_SIZE + 6)
+	local reference = textLabel("", CELL_TEXT_SIZE - 1, SECONDARY, frame)
+	reference.Size = UDim2.fromOffset(NAME_WIDTH - 4, CELL_LINE_HEIGHT)
+	reference.Position = UDim2.fromOffset(2, 2 + (CELL_TEXT_SIZE + 3) * nameLines)
 	local cells = {}
+	local alignments = { Enum.TextXAlignment.Left, Enum.TextXAlignment.Center, Enum.TextXAlignment.Right }
 	for index = 1, #BUCKETS do
-		local cell = textLabel("", TEXT_SIZE, WHITE, frame)
-		cell.Size = UDim2.new(0, CELL_WIDTH - 4, 1, -4)
-		cell.Position = UDim2.fromOffset(NAME_WIDTH + CELL_WIDTH * (index - 1), 2)
-		cells[index] = cell
+		local left = NAME_WIDTH + CELL_WIDTH * (index - 1)
+		local slots = {}
+		-- Líneas 1 y 2: tres columnas iguales (izquierda, centro, derecha).
+		for line = 1, 2 do
+			for column = 1, SLOTS_PER_LINE do
+				local slot = textLabel("", CELL_TEXT_SIZE, WHITE, frame)
+				slot.TextXAlignment = alignments[column]
+				slot.Size = UDim2.fromOffset(SLOT_WIDTH, CELL_LINE_HEIGHT)
+				slot.Position = UDim2.fromOffset(left + (column - 1) * SLOT_WIDTH, 2 + (line - 1) * CELL_LINE_HEIGHT)
+				slots[(line - 1) * SLOTS_PER_LINE + column] = slot
+			end
+		end
+		-- Línea 3: la ayuda del táctil, a todo lo ancho de la celda.
+		local assist = textLabel("", CELL_TEXT_SIZE, SECONDARY, frame)
+		assist.Size = UDim2.fromOffset(SLOT_WIDTH * SLOTS_PER_LINE, CELL_LINE_HEIGHT)
+		assist.Position = UDim2.fromOffset(left, 2 + 2 * CELL_LINE_HEIGHT)
+		slots[SLOTS_PER_LINE * 2 + 1] = assist
+		cells[index] = slots
 	end
 	return { frame = frame, name = nameLabel, reference = reference, cells = cells }
 end
@@ -320,7 +352,7 @@ local function controlRow(order: number, parent: Instance): Frame
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 4)
+	layout.Padding = UDim.new(0, CONTROL_GAP)
 	layout.Parent = row
 	return row
 end
@@ -340,8 +372,9 @@ local function build(playerGui: PlayerGui)
 
 	panel = Instance.new("Frame")
 	panel.Name = "Panel"
-	panel.AnchorPoint = Vector2.new(0.5, 0)
-	panel.Position = UDim2.new(0.5, 0, 0, TOP_MARGIN)
+	-- A la derecha: el centro y la izquierda del campo quedan libres para ver las dianas.
+	panel.AnchorPoint = Vector2.new(1, 0)
+	panel.Position = UDim2.new(1, -SIDE_MARGIN, 0, TOP_MARGIN)
 	panel.Size = UDim2.fromOffset(PANEL_WIDTH, 0)
 	panel.AutomaticSize = Enum.AutomaticSize.Y
 	panel.BackgroundColor3 = CARD_COLOR
@@ -461,7 +494,7 @@ local function build(playerGui: PlayerGui)
 	emptyLabel.LayoutOrder = 5
 
 	legendLabel = textLabel("", TEXT_SIZE - 1, SECONDARY, panel)
-	legendLabel.Size = UDim2.new(1, 0, 0, (TEXT_SIZE + 2) * (if compact then 2 else 1))
+	legendLabel.Size = UDim2.new(1, 0, 0, (TEXT_SIZE + 2) * (if compact then 5 else 3))
 	legendLabel.LayoutOrder = 6
 end
 

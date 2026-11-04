@@ -1,6 +1,6 @@
 --!strict
 -- Muñeco de calibración del campo de tiro del Lobby (Fase 24d, World/RangeBuilder). Un solo muñeco
--- (Workspace.CampoDeTiro.Munecos.MuniecoCalibracion, en el eje central) que sirve para medir los proyectiles a
+-- (Workspace.CampoDeTiro.Munecos.MuniecoCalibracion, en el carril libre de la izquierda, x = LaneX) que sirve para medir los proyectiles a
 -- una distancia elegida de la línea de tiro. Es combatiente (lo prepara RangeTargetService: vida enorme que se
 -- rellena) pero sin el atributo RangeTarget, así que la ayuda de puntería del táctil sí puede engancharlo y se
 -- mide también el autoaim. El estado (distancia de Config.Range.Calibration.Distances; quieto, o de lado a lado
@@ -24,10 +24,6 @@ local builtDistance = SETTINGS.Distances[SETTINGS.DefaultIndex]
 local distance = builtDistance
 local moving = false
 local dirty = true
-
-local function centerOffset(studs: number): number
-	return SETTINGS.CenterOffsets[studs] or 0
-end
 
 -- Publica el estado como atributos del muñeco (lo lee el panel de RangeCalibrationController).
 local function publish()
@@ -59,7 +55,7 @@ local function place(now: number)
 		return
 	end
 	local sway = if moving then SETTINGS.MoveAmplitude * math.sin(now * SETTINGS.MoveSpeed) else 0
-	local offset = Vector3.new(centerOffset(distance) - centerOffset(builtDistance) + sway, 0, builtDistance - distance)
+	local offset = Vector3.new(sway, 0, builtDistance - distance)
 	model:PivotTo(basePivot + offset)
 end
 
