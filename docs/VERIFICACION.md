@@ -4658,6 +4658,23 @@ El campo de tiro (v9) tiene un Armero en el muro derecho de la zona de preparaci
 1. [ ] Con ratón, usa el Disparo múltiple, la Flecha perforante y la Bola de fuego contra un mono.
    ✅ Salen hacia donde miras, sin centrarse solos; el Rayo en cadena y el Rayo de lava siguen con su cono de 25°.
 
+## 121. Fase 20 Q5f: tanda D de mascotas con malla (Jaguarundí y Ocelote) (04-11-2026)
+
+Los dos felinos comparten `voxelCat` y se rehicieron como los perros: cráneo redondeado (bóveda con aristas en dos escalones, nuca cortada y cara plana al ancho de la bóveda; antes un cubo), pelo pintado en filas de mechones (lomo, costados, grupa, pecho, cabeza, hocico, cuello y patas), grupa en relieve, ojo con anillo, párpado y brillo, ceja en relieve, fosas, puntos de bigote, brillo de la nariz y uñas. Las manchas del Ocelote se pintan sobre el pelo. Las orejas son ahora grupos propios (`EarL` y `EarR`, con un temblor leve al andar) y se quedan en bloques, igual que la cola. Solo en el felino sin skin y sin cristal: con skin y el **Jaguar de cristal se quedan en bloques** como antes. 12 mallas por felino (`Static`, `J1`, `Hip`, `Head` y las 8 patas): 836 triángulos cada uno y 11 (Jaguarundí) y 15 (Ocelote) piezas sueltas. Excepciones de `Config.Budgets` para la versión de bloques: Jaguarundí (`PetAnimated` 150) y Ocelote (`PetTotal` 380, `PetAnimated` 220, `PetTriangles` 4.600). Lección: una placa fina tiene que tocar la cara del bloque grueso o `tools/mallas.py` no la pinta (los ojos desaparecieron); el pelo pintado va más fino (0,06) que las placas. Comprobado el 04-11-2026 en Edit: mallas y bloques con el mismo tamaño (≤ 0,017 studs por grupo), vistas de frente y de espaldas. **No probado en Play** (ni el andar ni los clips); `Rendimiento` solo mide la versión de bloques y avisa por eso.
+
+### 121.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa el Jaguarundí y el Ocelote, camina, corre, gira en círculos cerrados y párate.
+   ✅ Se ven con malla y textura; la cadera se dobla al girar sin huecos; las patas andan; la cola y las orejas se mueven; sin piezas sueltas.
+2. [ ] Míralos de frente, de lado y de espaldas con buena luz.
+   ✅ Cráneo redondeado; ojos legibles (Jaguarundí amarillo, Ocelote verde) con pupila en rendija; manchas, anillos de la cola y rayas de la mejilla del Ocelote encima del pelo.
+3. [ ] Haz que ataquen a un mono (clips `Jaguarundi` y `Ocelote`), siéntalos y túmbalos.
+   ✅ Sin piezas atravesadas ni huecos; las orejas siguen a la cabeza.
+4. [ ] Pon la skin de jaguar de lava (familia Felino) y quítala; mira también el Jaguar de cristal.
+   ✅ Con skin y el de cristal, bloques con su paleta (sin pelo pintado); sin skin, malla.
+5. [ ] Míralos en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Con su textura.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

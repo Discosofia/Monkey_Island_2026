@@ -2384,6 +2384,8 @@ local Config = {
 			Beagle = { PetAnimated = 130 },
 			Labrador = { PetTotal = 340, PetAnimated = 150, PetTriangles = 3700 },
 			Pointer = { PetTotal = 290, PetAnimated = 170, PetTriangles = 3300 },
+			Jaguarundi = { PetAnimated = 150 },
+			Ocelote = { PetTotal = 380, PetAnimated = 220, PetTriangles = 4600 },
 			Nest = { Buildable = 50 }, -- construible único
 			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
 			OrangutanDelManglar = { Boss = 47 }, -- el jefe más grande (35 × 40 / 30)

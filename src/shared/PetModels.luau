@@ -949,6 +949,9 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	coat = tone(rig, "coat", coat)
 	local crystal = options.crystal == true
 	local glassy = crystal and not skinned
+	-- Versión con malla (Fase 21, Q5 tanda D): sin skin ni cristal. Cráneo redondeado, pelo y uñas pintados en la
+	-- textura, y las orejas en grupos propios (se quedan en bloques). Con skin o de cristal, el modelo de siempre.
+	local rich = palette == nil and not crystal
 	local slim = options.slim == true
 	local spots = if palette and palette.spots then palette.spots else options.spots
 	local material = if glassy then Enum.Material.Glacier else Enum.Material.SmoothPlastic
@@ -1002,6 +1005,15 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			table.insert(list, part)
 		end
 		return part
+	end
+	local kit: Kit = { box = box }
+	local function tones(base: Color3): { Color3 }
+		-- En un tono casi negro, ±10 % no se ve: los mechones se aclaran hacia un gris cálido.
+		if base.R + base.G + base.B < 0.55 then
+			local warm = Color3.fromRGB(110, 98, 92)
+			return { base, base:Lerp(warm, 0.22), base:Lerp(warm, 0.4), base:Lerp(warm, 0.12) }
+		end
+		return { base, base:Lerp(BLACK, 0.1), base:Lerp(WHITE, 0.1), base:Lerp(BLACK, 0.04) }
 	end
 	-- Motas en una cara, como las de la referencia: una rejilla de huecos de "step" celdas con una
 	-- mancha al azar (cuadro, barra, L o parche tostado claro) en cada hueco que toque. Semilla fija:
@@ -1078,6 +1090,10 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	-- Lo que va pegado a la cadera y no se mueve por su cuenta: gira con ella solo mientras se dobla.
 	local hipParts: { BasePart } = {}
 	rig.bend = { hinge = waistHinge, factor = -0.8, parts = hipParts }
+	-- Con malla, lo que va sobre el bloque de la cadera (manchas, pelo) es de su misma articulación (grupo J1) para
+	-- pintarse sobre él; sin malla, va con la lista de la cadera como siempre.
+	local spineParts: { BasePart } = {}
+	local hipTop = if rich then spineParts else hipParts
 
 	-- Franja baja de los costados y pecho claros, en los dos bloques.
 	box(
@@ -1109,7 +1125,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 		0.85
 	)
 	speckle(
-		hipParts,
+		hipTop,
 		Vector3.new(0, top, (waist + 0.8 + backTo) / 2),
 		Vector3.yAxis,
 		Vector3.zAxis,
@@ -1128,7 +1144,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			0.95
 		)
 		speckle(
-			hipParts,
+			hipTop,
 			Vector3.new(side * hipW / 2, (bottom + 1.8 + top - 0.2) / 2, (waist + 0.8 + 4) / 2),
 			Vector3.xAxis * side,
 			Vector3.zAxis,
@@ -1136,6 +1152,98 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			1.6,
 			0.95
 		)
+	end
+
+	if rich then
+		-- Grupa en relieve y el pelo pintado por el lomo, los costados, la grupa y el pecho (como el perro). Lo de la
+		-- cadera va con la articulación de la cintura (grupo J1 de la malla).
+		local chestFront = -bodyL / 2
+		local midZ = (chestFront + frontEnd) / 2
+		local hipMid = (hipStart + bodyL / 2) / 2
+		box(spineParts, "Croup", Vector3.new(0, top + 0.35, bodyL / 2 - 1.8), Vector3.new(hipW - 1.4, 0.7, 2.8), coat)
+		local strand = tones(coat)
+		voxelTopScales(
+			kit,
+			nil,
+			"Strand",
+			Vector3.new(0, top + 0.03, midZ),
+			Vector2.new(bodyW - 0.8, frontEnd - chestFront - 1),
+			Vector2.new(1.16, 1.59),
+			strand,
+			0.06
+		)
+		voxelTopScales(
+			kit,
+			spineParts,
+			"Strand",
+			Vector3.new(0, top + 0.03, hipMid),
+			Vector2.new(hipW - 0.8, bodyL / 2 - hipStart - 1),
+			Vector2.new(1.16, 1.59),
+			strand,
+			0.06
+		)
+		voxelTopScales(
+			kit,
+			spineParts,
+			"Strand",
+			Vector3.new(0, top + 0.73, bodyL / 2 - 1.8),
+			Vector2.new(hipW - 1.8, 2.4),
+			Vector2.new(1.16, 1.45),
+			strand,
+			0.06
+		)
+		local sideH = bodyH - 1.4
+		local hipH = top - (bottom + 1.2) - 0.6
+		for _, side in { -1, 1 } do
+			voxelScales(
+				kit,
+				nil,
+				"Fur",
+				"x",
+				Vector3.new(side * (bodyW / 2 + 0.03), bottom + 0.8 + sideH / 2, midZ),
+				Vector2.new(frontEnd - chestFront - 1.2, sideH),
+				Vector2.new(1.59, 1.3),
+				strand,
+				0.06
+			)
+			voxelScales(
+				kit,
+				spineParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (hipW / 2 + 0.03), bottom + 1.2 + hipH / 2, hipMid),
+				Vector2.new(bodyL / 2 - hipStart - 1.2, hipH),
+				Vector2.new(1.59, 1.3),
+				strand,
+				0.06
+			)
+		end
+		voxelScales(
+			kit,
+			spineParts,
+			"Fur",
+			"z",
+			Vector3.new(0, (bottom + 0.4 + top) / 2, bodyL / 2 + 0.03),
+			Vector2.new(hipW - 0.8, top - bottom - 1.6),
+			Vector2.new(1.45, 1.3),
+			strand,
+			0.06
+		)
+		voxelScales(
+			kit,
+			nil,
+			"Fur",
+			"z",
+			Vector3.new(0, bottom + 1.5, chestFront - 0.13),
+			Vector2.new(bodyW - 2.6, 2.2),
+			Vector2.new(1.3, 1.1),
+			tones(belly),
+			0.06
+		)
+		for _, part in spineParts do
+			local extra = joint(rig, part, waistHinge, Vector3.yAxis, 0, 1, 0, false)
+			extra.bend = -0.8
+		end
 	end
 
 	-- Cabeza: caja con el hocico cuadrado delante y la mandíbula clara.
@@ -1146,7 +1254,67 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	local front = head.Z - headSize.Z / 2
 	local crown = head.Y + headSize.Y / 2
 	local chin = head.Y - headSize.Y / 2
-	box(headParts, "Head", head, headSize, coat)
+	local skullPart: BasePart
+	local chamfer = 1 * s
+	local faceEdge = 0.5 * s
+	local rearLength = headSize.Z * 0.6
+	local faceLength = headSize.Z - rearLength
+	local backCut = chamfer * 0.7
+	local rearCenter = head.Z + headSize.Z / 2 - rearLength / 2
+	if rich then
+		-- Cráneo redondeado en vez de un cubo (como el del perro): la bóveda de atrás tiene las aristas en dos escalones
+		-- y la nuca cortada; la cara de delante es plana y llega al ancho de la bóveda, para que las rayas de la
+		-- mejilla se apoyen en las dos.
+		local function skullBlock(
+			name: string,
+			zCenter: number,
+			length: number,
+			width: number,
+			cut: number,
+			round: boolean,
+			edge: number
+		): BasePart
+			local half = (width - 2 * edge) / 2
+			local core = box(
+				headParts,
+				name,
+				Vector3.new(0, head.Y, zCenter),
+				Vector3.new(width - 2 * edge, headSize.Y, length),
+				coat
+			)
+			for _, side in { -1, 1 } do
+				box(
+					headParts,
+					"SkullSide",
+					Vector3.new(side * (half + edge * 0.25), head.Y, zCenter),
+					Vector3.new(edge * 0.5, headSize.Y - cut, length),
+					coat
+				)
+				if round then
+					box(
+						headParts,
+						"SkullSide",
+						Vector3.new(side * (half + edge * 0.75), head.Y, zCenter),
+						Vector3.new(edge * 0.5, headSize.Y - cut - edge * 1.2, length),
+						coat
+					)
+				end
+			end
+			return core
+		end
+		skullPart =
+			skullBlock("Head", rearCenter - backCut / 2, rearLength - backCut, headSize.X, chamfer * 0.9, true, chamfer)
+		box(
+			headParts,
+			"Occiput",
+			Vector3.new(0, head.Y - chamfer * 0.2, head.Z + headSize.Z / 2 - backCut / 2),
+			Vector3.new(headSize.X - 2.6 * chamfer, headSize.Y - chamfer * 0.9, backCut),
+			coat
+		)
+		skullBlock("Face", front + faceLength / 2, faceLength, headSize.X + faceEdge, faceEdge * 0.4, false, faceEdge)
+	else
+		skullPart = box(headParts, "Head", head, headSize, coat)
+	end
 	-- Cuello grueso: un bloque detrás de la cabeza que asoma sobre el lomo entre las paletillas.
 	local nape = Vector3.new(0, top + 0.35, head.Z + headSize.Z / 2 + 1.3)
 	box(headParts, "Nape", nape, Vector3.new(bodyW - 2.6, 1.1, 3.2), coat)
@@ -1193,6 +1361,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	)
 	-- Ojos en la cara de delante: parche claro debajo, ojo, pupila en rendija y raya oscura encima.
 	local stripe = spots or dark
+	local earGroups: { { side: number, parts: { BasePart }, pivot: Vector3 } } = {}
 	for _, side in { -1, 1 } do
 		local eye = Vector3.new(side * 1.75 * s, head.Y + 0.55 * s, front)
 		flat(
@@ -1235,6 +1404,82 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 			Vector2.new(1.8 * s, 0.32 * s),
 			if crystal then dark else BLACK
 		)
+		if rich then
+			-- Anillo oscuro y párpado del ojo, brillo, ceja en relieve, fosa de la nariz, puntos de los bigotes y el pelo
+			-- del hocico y de la sien.
+			flat(headParts, "EyeRing", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(1.75 * s, 1.05 * s), dark, 0.03)
+			flat(
+				headParts,
+				"Lid",
+				eye + Vector3.new(0, 0.42 * s, 0),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(1.5 * s, 0.24),
+				dark:Lerp(BLACK, 0.5),
+				0.2
+			)
+			flat(
+				headParts,
+				"Glint",
+				eye + Vector3.new(-side * 0.35 * s, 0.12 * s, 0),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(0.26, 0.26),
+				WHITE,
+				0.22
+			)
+			box(
+				headParts,
+				"Brow",
+				Vector3.new(eye.X + side * 0.1, head.Y + 1.55 * s, front + 0.25),
+				Vector3.new(1.9 * s, 0.5, 0.6),
+				coat:Lerp(BLACK, 0.1)
+			)
+			flat(
+				headParts,
+				"Nostril",
+				Vector3.new(side * 0.45 * s, muzzle.Y + muzzleSize.Y / 2 - 0.3 * s, snout - 0.15),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(0.4, 0.35),
+				BLACK,
+				0.04
+			)
+			for k = 0, 2 do
+				flat(
+					headParts,
+					"Whisker",
+					Vector3.new(side * muzzleSize.X / 2, muzzle.Y + 0.4 - k * 0.5, snout + 1 + k * 0.3),
+					Vector3.xAxis * side,
+					Vector3.zAxis,
+					Vector2.new(0.22, 0.22),
+					dark,
+					0.05
+				)
+			end
+			voxelScales(
+				kit,
+				headParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (muzzleSize.X / 2 + 0.03), muzzle.Y, muzzle.Z),
+				Vector2.new(muzzleSize.Z - 0.8, muzzleSize.Y - 0.8),
+				Vector2.new(1.01, 1.01),
+				tones(muzzleColor),
+				0.06
+			)
+			voxelScales(
+				kit,
+				headParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (headSize.X / 2 + 0.03), head.Y, rearCenter - backCut / 2),
+				Vector2.new(rearLength - backCut - 0.8, headSize.Y - chamfer * 2.1 - 0.4),
+				Vector2.new(1.3, 1.16),
+				tones(coat),
+				0.06
+			)
+		end
 		-- Rayas de la mejilla, del rabillo del ojo hacia atrás.
 		if spots then
 			local cheek = Vector3.new(side * headSize.X / 2, head.Y, front)
@@ -1259,10 +1504,23 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 		end
 		-- Orejas: bloques oscuros (claras por dentro) con la mancha blanca detrás del ocelote.
 		local earSize = if options.roundEars then Vector3.new(1.6, 1.3, 1) * s else Vector3.new(2, 1.8, 1.2) * s
-		local ear = Vector3.new(side * (headSize.X / 2 - 1.1 * s), crown + earSize.Y / 2, head.Z + 0.6 * s)
-		box(headParts, "Ear", ear, earSize, if spots and not crystal then dark:Lerp(BLACK, 0.4) else coat)
+		-- Con malla, cada oreja es un grupo propio (sin malla: se queda en bloques) que sale algo hundido en el cráneo.
+		local earParts: { BasePart } = if rich then {} else headParts
+		local earDrop = if rich then 0.4 * s else 0
+		local ear = Vector3.new(
+			side * (headSize.X / 2 - (if rich then 1.3 else 1.1) * s),
+			crown - earDrop + earSize.Y / 2,
+			head.Z + 0.6 * s
+		)
+		box(earParts, "Ear", ear, earSize, if spots and not crystal then dark:Lerp(BLACK, 0.4) else coat)
+		if rich then
+			table.insert(
+				earGroups,
+				{ side = side, parts = earParts, pivot = Vector3.new(ear.X, crown - earDrop, ear.Z) }
+			)
+		end
 		flat(
-			headParts,
+			earParts,
 			"InnerEar",
 			ear - Vector3.new(0, 0.15 * s, earSize.Z / 2),
 			-Vector3.zAxis,
@@ -1272,7 +1530,7 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 		)
 		if spots and not crystal then
 			flat(
-				headParts,
+				earParts,
 				"EarSpot",
 				ear + Vector3.new(0, -0.1, earSize.Z / 2),
 				Vector3.zAxis,
@@ -1281,6 +1539,39 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				WHITE
 			)
 		end
+	end
+	if rich then
+		-- Pelo pintado en la coronilla (y en el cuello) y brillo de la nariz.
+		voxelTopScales(
+			kit,
+			headParts,
+			"Strand",
+			Vector3.new(0, crown + 0.03, head.Z),
+			Vector2.new(headSize.X - 2 * chamfer - 0.4, headSize.Z - 0.6),
+			Vector2.new(1.0, 1.2),
+			tones(coat),
+			0.06
+		)
+		voxelTopScales(
+			kit,
+			headParts,
+			"Strand",
+			Vector3.new(0, nape.Y + 0.58, nape.Z),
+			Vector2.new(bodyW - 3.2, 2.6),
+			Vector2.new(1.16, 1.3),
+			tones(coat),
+			0.06
+		)
+		flat(
+			headParts,
+			"NoseShine",
+			Vector3.new(-0.3 * s, muzzle.Y + muzzleSize.Y / 2 - 0.1 * s, snout - 0.15),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(0.6, 0.18),
+			noseColor:Lerp(WHITE, 0.4),
+			0.1
+		)
 	end
 	if spots then
 		-- Dos rayas paralelas desde la frente por encima de la cabeza hasta la nuca.
@@ -1457,6 +1748,51 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 				toeColor
 			)
 		end
+		if rich then
+			-- Uñas delante de los dedos y el pelo pintado de los dos tramos de la pata.
+			for k = -1, 1 do
+				box(
+					lower,
+					"Claw",
+					Vector3.new(x + k * pawSize.X / 3, 0.4, pawCenter.Z - pawSize.Z / 2 - 0.06),
+					Vector3.new(0.5, 0.55, 0.12),
+					paw:Lerp(BLACK, 0.55)
+				)
+			end
+			voxelScales(
+				kit,
+				upper,
+				"Fur",
+				"x",
+				Vector3.new(x + side * (thick / 2 + 0.03), (knee + upperTop) / 2, z),
+				Vector2.new(thick, upperTop - knee - 0.6),
+				Vector2.new(1.16, 1.3),
+				tones(coat),
+				0.06
+			)
+			voxelScales(
+				kit,
+				lower,
+				"Fur",
+				"x",
+				Vector3.new(x + side * (shin / 2 + 0.03), (knee + 1.4) / 2 + 0.2, z),
+				Vector2.new(shin - 0.2, knee - 1.4),
+				Vector2.new(1.16, 1.3),
+				tones(coat),
+				0.06
+			)
+			voxelScales(
+				kit,
+				lower,
+				"Fur",
+				"z",
+				Vector3.new(x, (knee + 1.4) / 2 + 0.2, z - shin / 2 - 0.03),
+				Vector2.new(shin - 0.2, knee - 1.4),
+				Vector2.new(1.01, 1.3),
+				tones(coat),
+				0.06
+			)
+		end
 		local thigh: Joint? = nil
 		for _, part in upper do
 			thigh = joint(
@@ -1570,11 +1906,33 @@ local function voxelCat(rig: Rig, coat: Color3, options: CatOptions)
 	end
 	-- La cabeza mira despacio a un lado y a otro, girando sobre la nuca.
 	local neck = CFrame.new(at(Vector3.new(0, top - 1, -bodyL / 2 + 1.5)))
+	local skullJoint: Joint? = nil
 	for _, part in headParts do
 		local item = joint(rig, part, neck, Vector3.yAxis, 0.25, 0.9, 0, false)
 		item.bone = "Head"
 		-- Mira hacia donde gira.
 		item.bend = 0.5
+		if part == skullPart then
+			skullJoint = item
+		end
+	end
+	-- Orejas con malla: cada una, colgada del cráneo, con su hueso y un temblor leve al andar.
+	for _, group in earGroups do
+		for _, part in group.parts do
+			local item = joint(
+				rig,
+				part,
+				CFrame.new(at(group.pivot)),
+				Vector3.zAxis,
+				0.06 * group.side,
+				9,
+				0,
+				true,
+				nil,
+				skullJoint
+			)
+			item.bone = if group.side < 0 then "EarL" else "EarR"
+		end
 	end
 	rig.family = "Cat"
 	rig.dims = {
