@@ -4568,7 +4568,7 @@ Las tres se rehicieron en bloques y son ahora mallas con textura (`Data/PetMeshe
 
 ## 118. Fase 24 grupo 24a: vistas unificadas (04-11-2026)
 
-Lobby, Isla y Dunas quedan solo en tercera persona (zoom libre de 2,5 a 128 studs, `Config.View`); la primera persona la gestiona `CombatClient/ViewMode` y la usan el Laboratorio y, desde 24b, el modo shooter del campo de tiro. `FirstPersonController` pasó a `CombatClient/Controllers` y solo actúa en "First". Comprobado el 04-11-2026 en Play en el Lobby y en la Isla (modo, zoom mínimo y máximo, una sola `Mira`, consola limpia, cámara a 2,52 studs sin pasar a primera persona; perfil restaurado). Sin probar lo de abajo.
+Lobby, Isla y Dunas quedan solo en tercera persona (zoom libre de 2,5 a 128 studs, `Config.View`); la primera persona la gestiona `CombatClient/ViewMode` y la usan el Laboratorio y, desde 24b, el modo shooter del campo de tiro. `FirstPersonController` pasó a `CombatClient/Controllers` y solo actúa en "First". Comprobado el 04-11-2026 en Play en el Lobby y en la Isla (modo, zoom mínimo y máximo, una sola `Mira`, consola limpia, cámara a 2,52 studs sin pasar a primera persona; perfil restaurado). Tras la primera prueba del usuario se arregló la cara del Labrador (con el cráneo redondeado la cara quedaba más estrecha que sus ojos y el brillo caía fuera): opciones `faceEdge` y `skullChamfer` de `DogOptions` solo para él, y se reimportó solo `Labrador_Head` (1.138 triángulos en total). Sin probar lo de abajo.
 
 ### 118.1 En el Studio de Dunas, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
 
@@ -4588,6 +4588,23 @@ Lobby, Isla y Dunas quedan solo en tercera persona (zoom libre de 2,5 a 128 stud
 
 1. [ ] Equipa un arma de la pared del campo y suéltala.
    ✅ Al equipar pasa a primera persona (la mira y el cursor de la vista); al soltarla vuelve la tercera persona con la mira, el apuntado al hombro y Ctrl del bloqueo de cámara.
+
+## 118. Fase 20 Q5e: tanda C de mascotas con malla (Beagle, Labrador y Pointer) (04-11-2026)
+
+Los tres perros comparten `voxelDog` y se rehicieron una vez: pelo pintado en filas de mechones (lomo, costados, grupa, pecho, patas, cabeza, hocico y cuello), cruz, grupa y pecho en relieve, ojo con anillo, párpado, ceja y segundo brillo, carrillos, fosas, puntos de bigote, gorguera, uñas y un **cráneo redondeado** (bóveda ancha con aristas en dos escalones, nuca achaflanada, cúpula de dos escalones y cara más estrecha; antes era un cubo). El Pointer ganó contraste en la cara (hocico gris pardo, iris ámbar, puntos canela sobre los ojos, en la mejilla y en el hocico, barbilla clara y lista blanca más ancha). Todo eso solo en el perro sin skin; con skin se queda el modelo de siempre. Son 12 mallas por perro (`Static`, `J1` la cadera fija, `Hip` la cadera que se dobla al girar, `Head` y las 8 patas `FL`, `FL2`, `FR`, `FR2`, `BL`, `BL2`, `BR`, `BR2`): Beagle 900, Labrador 1.126 y Pointer 812 triángulos (tope 2.800), y unas 19 piezas en juego (12 mallas y, sueltas, las orejas y los tramos de cola). El montaje con malla admite desde ahora la cadera que se dobla (`rig.bend`, grupo `Hip`). `tools/mascota.py` detecta los pares `FL2`/`FR2` y saltarse grupos con `--sin Ear* Tail*`. Excepciones de `Config.Budgets` para la versión de bloques (la que sale mientras cargan las mallas y la de las skins): Beagle, Labrador, Pointer, Perezoso y Quetzal. Comprobado el 04-11-2026 en Edit (mallas y bloques con el mismo tamaño) y en Play (con giro simulado la cadera `Hip` y `J1` se mueven a la vez, las patas y la cabeza se mueven con su articulación, la cola y las orejas siguen sueltas); `Rendimiento` sin alertas. Sin probar lo de abajo.
+
+### 118.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Equipa cada perro y camina, corre, gira en círculos cerrados y párate.
+   ✅ Se ve con malla y textura; la cadera se dobla al girar sin separarse del cuerpo ni dejar huecos; las patas andan; la cola y las orejas se mueven; sin piezas sueltas.
+2. [ ] Míralos de frente, de lado y de espaldas con buena luz (sobre todo la cabeza).
+   ✅ Cráneo redondeado y no cuadrado; Pointer con la cara legible (ojos con iris, trufa oscura sobre el hocico claro, marcas canela); Beagle con la cola en bandera negra y blanca; Labrador con las bolsas y la cola de nutria.
+3. [ ] Siéntalos y túmbalos (clips de reposo) y mira la cadera y las patas.
+   ✅ Sin piezas atravesadas ni huecos al sentarse.
+4. [ ] Pon la skin de perro pirata (vale para los tres) y quítala.
+   ✅ Con skin, bloques con su paleta (sin el pelo pintado); sin skin, malla.
+5. [ ] Míralos en el nido y vitrinas del Lobby, el Armario y `RewardModels`.
+   ✅ Con su textura.
 
 ## Cuando termines
 

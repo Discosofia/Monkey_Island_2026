@@ -2370,8 +2370,14 @@ local Config = {
 		Exceptions = {
 			MonoX7 = { PetTotal = 270, PetAnimated = 130, PetTriangles = 6200 }, -- mascota de élite
 			Ajolote = { PetTotal = 200, PetAnimated = 180, PetTriangles = 4700 }, -- mascota mítica: cara, branquias y detalle
-			Quetzal = { PetTotal = 320, PetAnimated = 150, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
-			Perezoso = { PetTotal = 300, PetAnimated = 110, PetTriangles = 2800 }, -- brazos en escalones y mochila de carga (Q5)
+			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
+			Perezoso = { PetTotal = 300, PetAnimated = 110, PetTriangles = 3200 }, -- brazos en escalones y mochila de carga (Q5)
+			-- Mascotas con malla (Q5): estos topes miden la versión de bloques, que es la que sale mientras cargan las
+			-- mallas y la de las skins; la de malla (unos 20 trozos en juego) está muy por debajo (Rendimiento aún no la
+			-- cuenta: Fase 21, M4).
+			Beagle = { PetAnimated = 130 },
+			Labrador = { PetTotal = 340, PetAnimated = 150, PetTriangles = 3700 },
+			Pointer = { PetTotal = 290, PetAnimated = 170, PetTriangles = 3300 },
 			Nest = { Buildable = 50 }, -- construible único
 			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
 			OrangutanDelManglar = { Boss = 47 }, -- el jefe más grande (35 × 40 / 30)

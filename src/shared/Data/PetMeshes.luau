@@ -267,6 +267,201 @@ local PetMeshes: { [string]: PetMesh } = {
 			},
 		},
 	},
+	Beagle = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://95922908610820",
+				texture = "rbxassetid://113487744918203",
+				offset = Vector3.new(0.0000, -0.0220, -0.3960),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://134317041836718",
+				texture = "rbxassetid://96804631888448",
+				offset = Vector3.new(-0.0028, -0.1733, 0.0220),
+			},
+			["BL2"] = {
+				mesh = "rbxassetid://82426733002597",
+				texture = "rbxassetid://79138878435448",
+				offset = Vector3.new(0.0000, -0.1347, 0.0413),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://120157083375296",
+				texture = "rbxassetid://118380129017177",
+				offset = Vector3.new(0.0028, -0.1733, 0.0220),
+			},
+			["BR2"] = {
+				mesh = "rbxassetid://105943879948109",
+				texture = "rbxassetid://76906067800729",
+				offset = Vector3.new(0.0000, -0.1347, 0.0413),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://124152676872264",
+				texture = "rbxassetid://118298026929235",
+				offset = Vector3.new(-0.0110, -0.2338, -0.0220),
+			},
+			["FL2"] = {
+				mesh = "rbxassetid://115421853683589",
+				texture = "rbxassetid://120665282180816",
+				offset = Vector3.new(0.0000, -0.1347, -0.0633),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://105595932693934",
+				texture = "rbxassetid://123851691439945",
+				offset = Vector3.new(0.0110, -0.2338, -0.0220),
+			},
+			["FR2"] = {
+				mesh = "rbxassetid://115549473813816",
+				texture = "rbxassetid://91799830223469",
+				offset = Vector3.new(0.0000, -0.1347, -0.0633),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://88721121000170",
+				texture = "rbxassetid://83460939051016",
+				offset = Vector3.new(0.0000, 0.3795, -0.3190),
+			},
+			["Hip"] = {
+				mesh = "rbxassetid://138795116524176",
+				texture = "rbxassetid://86684470703063",
+				offset = Vector3.new(0.0000, 0.0473, 0.3025),
+			},
+			["J1"] = {
+				mesh = "rbxassetid://128775103954251",
+				texture = "rbxassetid://70626539191929",
+				offset = Vector3.new(0.0000, 0.0825, 0.3245),
+			},
+		},
+	},
+	Labrador = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://105753227125177",
+				texture = "rbxassetid://72202445609499",
+				offset = Vector3.new(0.0000, -0.0220, -0.4510),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://99486870390493",
+				texture = "rbxassetid://106131736763818",
+				offset = Vector3.new(0.0000, -0.2008, 0.0110),
+			},
+			["BL2"] = {
+				mesh = "rbxassetid://124528152935464",
+				texture = "rbxassetid://111175915890666",
+				offset = Vector3.new(0.0000, -0.1622, 0.0550),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://122687908772911",
+				texture = "rbxassetid://83614660261536",
+				offset = Vector3.new(0.0000, -0.2008, 0.0110),
+			},
+			["BR2"] = {
+				mesh = "rbxassetid://116203318765183",
+				texture = "rbxassetid://120770670772316",
+				offset = Vector3.new(0.0000, -0.1622, 0.0550),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://101826178570096",
+				texture = "rbxassetid://96410029302392",
+				offset = Vector3.new(0.0000, -0.2750, -0.0220),
+			},
+			["FL2"] = {
+				mesh = "rbxassetid://95052060301770",
+				texture = "rbxassetid://117712025336090",
+				offset = Vector3.new(0.0000, -0.1622, -0.0495),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://139203892377635",
+				texture = "rbxassetid://72320300311310",
+				offset = Vector3.new(0.0000, -0.2750, -0.0220),
+			},
+			["FR2"] = {
+				mesh = "rbxassetid://84651527256185",
+				texture = "rbxassetid://121401323320560",
+				offset = Vector3.new(0.0000, -0.1622, -0.0495),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://133269533416799",
+				texture = "rbxassetid://139050274449186",
+				offset = Vector3.new(0.0000, 0.4290, -0.3520),
+			},
+			["Hip"] = {
+				mesh = "rbxassetid://138578040225651",
+				texture = "rbxassetid://135939021611894",
+				offset = Vector3.new(0.0000, -0.2695, 0.2035),
+			},
+			["J1"] = {
+				mesh = "rbxassetid://122197695887199",
+				texture = "rbxassetid://81808308804158",
+				offset = Vector3.new(0.0000, 0.0715, 0.3795),
+			},
+		},
+	},
+	Pointer = {
+		scale = 1,
+		parts = {
+			["Static"] = {
+				mesh = "rbxassetid://84026755151541",
+				texture = "rbxassetid://76530782507511",
+				offset = Vector3.new(0.0000, -0.0220, -0.4510),
+			},
+			["BL"] = {
+				mesh = "rbxassetid://94999228727814",
+				texture = "rbxassetid://113593663948758",
+				offset = Vector3.new(-0.0110, -0.2420, 0.0220),
+			},
+			["BL2"] = {
+				mesh = "rbxassetid://96290267067711",
+				texture = "rbxassetid://136444730880585",
+				offset = Vector3.new(0.0000, -0.2035, 0.0330),
+			},
+			["BR"] = {
+				mesh = "rbxassetid://74399458632909",
+				texture = "rbxassetid://131993351549906",
+				offset = Vector3.new(0.0110, -0.2420, 0.0220),
+			},
+			["BR2"] = {
+				mesh = "rbxassetid://131578170751606",
+				texture = "rbxassetid://100698169946056",
+				offset = Vector3.new(0.0000, -0.2035, 0.0330),
+			},
+			["FL"] = {
+				mesh = "rbxassetid://87678720809889",
+				texture = "rbxassetid://125503324338195",
+				offset = Vector3.new(-0.0192, -0.2970, -0.0220),
+			},
+			["FL2"] = {
+				mesh = "rbxassetid://132638530333624",
+				texture = "rbxassetid://93015558134365",
+				offset = Vector3.new(0.0000, -0.2035, -0.0660),
+			},
+			["FR"] = {
+				mesh = "rbxassetid://100569683015186",
+				texture = "rbxassetid://80534832121542",
+				offset = Vector3.new(0.0192, -0.2970, -0.0220),
+			},
+			["FR2"] = {
+				mesh = "rbxassetid://94764139295698",
+				texture = "rbxassetid://81768842051938",
+				offset = Vector3.new(0.0000, -0.2035, -0.0660),
+			},
+			["Head"] = {
+				mesh = "rbxassetid://117286277748534",
+				texture = "rbxassetid://93115117067900",
+				offset = Vector3.new(0.0000, 0.4221, -0.3520),
+			},
+			["Hip"] = {
+				mesh = "rbxassetid://117232131605954",
+				texture = "rbxassetid://113117530296084",
+				offset = Vector3.new(0.0000, 0.0798, 0.3850),
+			},
+			["J1"] = {
+				mesh = "rbxassetid://79502460889824",
+				texture = "rbxassetid://120340710853549",
+				offset = Vector3.new(0.0000, 0.1155, 0.3795),
+			},
+		},
+	},
 }
 
 return PetMeshes

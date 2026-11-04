@@ -776,6 +776,166 @@ end
 -- redondo (2 studs), así los desplazamientos de sus clips siguen valiendo.
 local VOXEL = 0.11
 
+-- Lo único que necesitan los ayudantes de abajo de un kit de bloques: colocar una caja.
+type Kit = { box: (list: { BasePart }?, name: string, center: Vector3, size: Vector3, color: Color3) -> BasePart }
+
+-- Escalones de bloques alineados entre dos puntos (lo que antes era una viga inclinada: una cola, una pluma larga).
+-- Cada tramo mide lo que avanza más el grosor, y así la figura entra en la malla de la mascota (Fase 21, Q5).
+-- "width" es (ancho en X, grosor en Y); "segment" es lo que avanza cada escalón (1,8 celdas por defecto).
+local function voxelStairs(
+	v: Kit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: Vector2,
+	color: Color3,
+	segment: number?
+)
+	local delta = to - from
+	local count = math.max(1, math.ceil(math.max(math.abs(delta.Y), math.abs(delta.Z)) / (segment or 1.8)))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		local size = Vector3.new(
+			width.X + math.abs(b.X - a.X),
+			math.abs(b.Y - a.Y) + width.Y,
+			math.max(math.abs(b.Z - a.Z), width.Y)
+		)
+		v.box(list, name, (a + b) / 2, size, color)
+	end
+end
+
+-- Plumas pintadas: filas de láminas finas desencajadas sobre una cara (la textura de la malla las pinta sin coste).
+-- Con face "z" la cara mira hacia -Z o +Z (plano z = at.Z, "area" = ancho en X y alto en Y centrado en at); con "x"
+-- mira hacia un lado (plano x = at.X, "area" = largo en Z y alto en Y). "cell" es el tamaño de cada pluma y "colors"
+-- los tonos que se reparten.
+local function voxelScales(
+	v: Kit,
+	list: { BasePart }?,
+	name: string,
+	face: string,
+	at: Vector3,
+	area: Vector2,
+	cell: Vector2,
+	colors: { Color3 },
+	depth: number?
+)
+	local rows = math.max(1, math.floor(area.Y / cell.Y + 0.01))
+	local cols = math.max(1, math.floor(area.X / cell.X + 0.01))
+	local thick = depth or 0.2
+	for r = 0, rows - 1 do
+		local y = at.Y + area.Y / 2 - (r + 0.5) * cell.Y
+		for c = 0, cols - 1 do
+			local u = -area.X / 2 + (c + 0.5) * cell.X + (if r % 2 == 1 then cell.X * 0.5 else 0)
+			if math.abs(u) + cell.X * 0.45 <= area.X / 2 + 0.3 then
+				local color = colors[(r + c) % #colors + 1]
+				if face == "z" then
+					v.box(
+						list,
+						name,
+						Vector3.new(at.X + u, y, at.Z),
+						Vector3.new(cell.X * 0.85, cell.Y * 0.8, thick),
+						color
+					)
+				else
+					v.box(
+						list,
+						name,
+						Vector3.new(at.X, y, at.Z + u),
+						Vector3.new(thick, cell.Y * 0.8, cell.X * 0.85),
+						color
+					)
+				end
+			end
+		end
+	end
+end
+
+-- Escamas o plumas pintadas sobre una cara de arriba (plano y = at.Y, "area" = ancho en X y largo en Z centrado en at,
+-- "cell" = tamaño de cada una en X y Z). El grosor "depth" va en Y.
+local function voxelTopScales(
+	v: Kit,
+	list: { BasePart }?,
+	name: string,
+	at: Vector3,
+	area: Vector2,
+	cell: Vector2,
+	colors: { Color3 },
+	depth: number?
+)
+	local rows = math.max(1, math.floor(area.Y / cell.Y + 0.01))
+	local cols = math.max(1, math.floor(area.X / cell.X + 0.01))
+	for r = 0, rows - 1 do
+		local z = at.Z - area.Y / 2 + (r + 0.5) * cell.Y
+		for c = 0, cols - 1 do
+			local u = -area.X / 2 + (c + 0.5) * cell.X + (if r % 2 == 1 then cell.X * 0.5 else 0)
+			if math.abs(u) + cell.X * 0.45 <= area.X / 2 + 0.3 then
+				v.box(
+					list,
+					name,
+					Vector3.new(at.X + u, at.Y, z),
+					Vector3.new(cell.X * 0.85, depth or 0.2, cell.Y * 0.85),
+					colors[(r + c) % #colors + 1]
+				)
+			end
+		end
+	end
+end
+
+-- Extremidad gruesa que baja en diagonal entre dos puntos (un brazo, una pata) en escalones de bloques alineados:
+-- cada tramo mide el grosor "thickness" y lo que avanza en Y y en Z, para que la figura entre en la malla (Q5).
+local function voxelLimb(
+	v: Kit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	thickness: number,
+	color: Color3,
+	segment: number?
+)
+	local delta = to - from
+	local count = math.max(1, math.ceil(math.max(math.abs(delta.Y), math.abs(delta.Z)) / (segment or 2)))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		v.box(
+			list,
+			name,
+			(a + b) / 2,
+			Vector3.new(thickness + math.abs(b.X - a.X), math.abs(b.Y - a.Y) + 0.6, thickness + math.abs(b.Z - a.Z)),
+			color
+		)
+	end
+end
+
+-- Tira plana en el suelo entre dos puntos (un dedo): escalones alineados que avanzan en X y en Z.
+local function voxelFlat(
+	v: Kit,
+	list: { BasePart }?,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	width: number,
+	height: number,
+	color: Color3
+)
+	local delta = to - from
+	local count = math.max(1, math.ceil(math.max(math.abs(delta.X), math.abs(delta.Z)) / 1))
+	for i = 0, count - 1 do
+		local a = from + delta * (i / count)
+		local b = from + delta * ((i + 1) / count)
+		v.box(
+			list,
+			name,
+			(a + b) / 2,
+			Vector3.new(math.max(math.abs(b.X - a.X), width), height, math.max(math.abs(b.Z - a.Z), width)),
+			color
+		)
+	end
+end
+
 -- Felino en estilo voxel (bloques grandes, como la referencia del ocelote en docs/img): cuerpo de
 -- caja con el vientre claro, paletillas y ancas en bloque, cabeza cúbica con hocico cuadrado, orejas
 -- oscuras, patas en columna con dedos marcados y cola recta por tramos. Mismos huesos y medidas
@@ -1537,6 +1697,10 @@ type DogOptions = {
 	ticking: Color3?, -- moteado fino (pointer)
 	collar: Color3?,
 	tongue: boolean?,
+	faceEdge: number?, -- chaflán de la cara del cráneo (por defecto el del cráneo): un cráneo grande necesita la cara más ancha para que quepan los ojos
+	skullChamfer: number?, -- chaflán del cráneo (por defecto, según su ancho)
+	accent: Color3?, -- manchas de contraste de la cara (ceja, mejilla, labio) en la versión con malla
+	iris: Color3?, -- iris del ojo, si se quiere que contraste con la cabeza
 	pack: Color3?, -- alforjas de perro a los lados del lomo (labrador: la mascota que trae botín)
 }
 
@@ -1628,6 +1792,20 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 		end
 	end
 
+	-- Textura de pelo y detalles finos (Fase 21, Q5): solo en el perro sin skin, que es el que lleva malla; con skin se
+	-- queda el modelo de siempre. Todo lo fino va pintado en la textura de la malla.
+	local rich = rig.palette == nil
+	local kit: Kit = { box = box }
+	local function tones(base: Color3): { Color3 }
+		-- En un tono casi negro, ±10 % no se ve: los mechones se aclaran hacia un gris cálido.
+		if base.R + base.G + base.B < 0.55 then
+			local warm = Color3.fromRGB(110, 98, 92)
+			return { base, base:Lerp(warm, 0.22), base:Lerp(warm, 0.4), base:Lerp(warm, 0.12) }
+		end
+		return { base, base:Lerp(BLACK, 0.1), base:Lerp(WHITE, 0.1), base:Lerp(BLACK, 0.04) }
+	end
+	local topColor = o.saddle or coat
+
 	-- Tronco: el pecho, que manda el rumbo, y la cadera, más estrecha y recogida por abajo, que gira
 	-- sobre la cintura al girar (como el felino). Bajo el pecho, la quilla: el pecho hondo del perro.
 	local waist = 0.4
@@ -1710,6 +1888,125 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 	if o.patches then
 		for _, mark in o.patches(top, bottom) do
 			box(if mark.hips then hipParts else nil, "Patch", mark.center, mark.size, o.patchColor or BLACK)
+		end
+	end
+	if rich then
+		-- Cruz, grupa y pecho en relieve, y el pelo pintado por el lomo, los costados, la grupa y el pecho. Lo de la
+		-- cadera va con la articulación de la cintura ("spine": grupo J1 de la malla).
+		local spineParts: { BasePart } = {}
+		local midZ = (chestFront + frontEnd) / 2
+		local hipMid = (hipStart + bodyL / 2) / 2
+		box(nil, "Withers", Vector3.new(0, top + 0.35, chestFront + 3.9), Vector3.new(bodyW - 1.4, 0.7, 3.4), topColor)
+		box(
+			spineParts,
+			"Croup",
+			Vector3.new(0, top + 0.35, bodyL / 2 - 1.8),
+			Vector3.new(hipW - 1.4, 0.7, 2.8),
+			topColor
+		)
+		box(
+			nil,
+			"Brisket",
+			Vector3.new(0, bottom + bodyH * 0.3, chestFront - 0.45),
+			Vector3.new(bodyW - 3.2, bodyH * 0.45, 0.5),
+			chest
+		)
+		local strandTop = tones(topColor)
+		voxelTopScales(
+			kit,
+			nil,
+			"Strand",
+			Vector3.new(0, top + 0.06, midZ),
+			Vector2.new(bodyW - 0.8, frontEnd - chestFront - 1),
+			Vector2.new(1.16, 1.59),
+			strandTop,
+			0.12
+		)
+		voxelTopScales(
+			kit,
+			nil,
+			"Strand",
+			Vector3.new(0, top + 0.76, chestFront + 3.9),
+			Vector2.new(bodyW - 1.8, 3),
+			Vector2.new(1.16, 1.45),
+			strandTop,
+			0.12
+		)
+		voxelTopScales(
+			kit,
+			spineParts,
+			"Strand",
+			Vector3.new(0, top + 0.06, hipMid),
+			Vector2.new(hipW - 0.8, bodyL / 2 - hipStart - 1),
+			Vector2.new(1.16, 1.59),
+			strandTop,
+			0.12
+		)
+		voxelTopScales(
+			kit,
+			spineParts,
+			"Strand",
+			Vector3.new(0, top + 0.76, bodyL / 2 - 1.8),
+			Vector2.new(hipW - 1.8, 2.4),
+			Vector2.new(1.16, 1.45),
+			strandTop,
+			0.12
+		)
+		-- Costados: por debajo del manto si lo lleva.
+		local sideH = if o.saddle then bodyH * 0.4 - 0.8 else bodyH - 1.4
+		local hipH = math.max(
+			1,
+			(if o.saddle then top - bodyH * 0.6 else top) - (hipBottom + 0.8) - (if o.saddle then 0 else 0.6)
+		)
+		for _, side in { -1, 1 } do
+			voxelScales(
+				kit,
+				nil,
+				"Fur",
+				"x",
+				Vector3.new(side * (bodyW / 2 + 0.05), bottom + 0.8 + sideH / 2, midZ),
+				Vector2.new(frontEnd - chestFront - 1.2, sideH),
+				Vector2.new(1.59, 1.3),
+				tones(coat),
+				0.12
+			)
+			voxelScales(
+				kit,
+				spineParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (hipW / 2 + 0.05), hipBottom + 0.8 + hipH / 2, hipMid),
+				Vector2.new(bodyL / 2 - hipStart - 1.2, hipH),
+				Vector2.new(1.59, 1.3),
+				tones(coat),
+				0.12
+			)
+		end
+		voxelScales(
+			kit,
+			spineParts,
+			"Fur",
+			"z",
+			Vector3.new(0, (hipBottom + top) / 2, bodyL / 2 + 0.05),
+			Vector2.new(hipW - 0.8, top - hipBottom - 1.2),
+			Vector2.new(1.45, 1.3),
+			tones(coat),
+			0.12
+		)
+		voxelScales(
+			kit,
+			nil,
+			"Fur",
+			"z",
+			Vector3.new(0, bottom + bodyH * 0.3, chestFront - 0.74),
+			Vector2.new(bodyW - 3.6, bodyH * 0.42),
+			Vector2.new(1.3, 1.3),
+			tones(chest),
+			0.12
+		)
+		for _, part in spineParts do
+			local extra = joint(rig, part, waistHinge, Vector3.yAxis, 0, 1, 0, false)
+			extra.bend = -0.8
 		end
 	end
 	-- Alforjas: panel encima del lomo, detrás de la cruz, y una bolsa a cada lado con su tapa más
@@ -1849,7 +2146,85 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 		Vector3.new(neckW - 0.8, head.Y - 1 - top + 0.4, 0.8),
 		chest
 	)
-	local skullPart = box(headParts, "Head", head, skull, headColor)
+	-- Cráneo redondeado, en vez de un cubo: la parte de atrás (la bóveda) es ancha, con las aristas en dos escalones, la
+	-- nuca achaflanada y una cúpula de dos escalones encima; la de delante (la cara) es algo más estrecha, así la frente
+	-- baja hacia el hocico.
+	local chamfer = o.skullChamfer or math.clamp(skull.X * 0.26, 1, 1.7)
+	local rearLength = skull.Z * 0.62
+	local faceLength = skull.Z - rearLength
+	local function skullBlock(
+		name: string,
+		zCenter: number,
+		length: number,
+		width: number,
+		cut: number,
+		round: boolean,
+		edge: number
+	): BasePart
+		local half = (width - 2 * edge) / 2
+		local core = box(
+			headParts,
+			name,
+			Vector3.new(0, head.Y, zCenter),
+			Vector3.new(width - 2 * edge, skull.Y, length),
+			headColor
+		)
+		for _, side in { -1, 1 } do
+			box(
+				headParts,
+				"SkullSide",
+				Vector3.new(side * (half + edge * 0.25), head.Y, zCenter),
+				Vector3.new(edge * 0.5, skull.Y - cut, length),
+				headColor
+			)
+			if round then
+				box(
+					headParts,
+					"SkullSide",
+					Vector3.new(side * (half + edge * 0.75), head.Y, zCenter),
+					Vector3.new(edge * 0.5, skull.Y - cut - edge * 1.2, length),
+					headColor
+				)
+			end
+		end
+		return core
+	end
+	local backCut = chamfer * 0.8
+	local rearCenter = head.Z + skull.Z / 2 - rearLength / 2
+	local skullPart =
+		skullBlock("Head", rearCenter - backCut / 2, rearLength - backCut, skull.X, chamfer * 0.9, true, chamfer)
+	-- Nuca: más estrecha y baja que la bóveda, con las esquinas de atrás cortadas.
+	box(
+		headParts,
+		"Nape",
+		Vector3.new(0, head.Y - chamfer * 0.2, head.Z + skull.Z / 2 - backCut / 2),
+		Vector3.new(skull.X - 2.6 * chamfer, skull.Y - chamfer * 0.9, backCut),
+		headColor
+	)
+	local faceEdge = o.faceEdge or chamfer
+	skullBlock(
+		"Face",
+		skullFront + faceLength / 2,
+		faceLength,
+		if o.faceEdge then skull.X - 0.4 else skull.X - chamfer,
+		faceEdge * 0.4,
+		false,
+		faceEdge
+	)
+	box(
+		headParts,
+		"Dome",
+		Vector3.new(0, crown + 0.25, rearCenter - 0.2),
+		Vector3.new(skull.X - 3 * chamfer, 0.5, rearLength - chamfer),
+		headColor
+	)
+	box(
+		headParts,
+		"Dome",
+		Vector3.new(0, crown + 0.7, rearCenter - 0.3),
+		Vector3.new(skull.X - 4.4 * chamfer, 0.4, rearLength - 2 * chamfer),
+		headColor
+	)
 	local snout = o.snout
 	local muzzleColor = o.muzzle or headColor:Lerp(WHITE, 0.12)
 	local snoutCenter = Vector3.new(0, head.Y - skull.Y / 2 + snout.Y / 2 + 0.3, skullFront - snout.Z / 2 + 0.3)
@@ -1921,6 +2296,225 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 			Vector2.new(0.28, 0.28),
 			WHITE,
 			0.18
+		)
+	end
+	if rich then
+		-- Pelo de la cabeza, el hocico, las mejillas y el cuello; ojo con párpado y anillo, ceja en relieve, carrillo,
+		-- fosas, brillo de la trufa, puntos de los bigotes y la gorguera de la nuca.
+		voxelTopScales(
+			kit,
+			headParts,
+			"Strand",
+			Vector3.new(0, crown + 1.16, rearCenter - 0.3),
+			Vector2.new(skull.X - 4.4 * chamfer - 0.3, rearLength - 2 * chamfer - 0.4),
+			Vector2.new(1.0, 1.2),
+			tones(headColor),
+			0.12
+		)
+		voxelTopScales(
+			kit,
+			headParts,
+			"Strand",
+			Vector3.new(0, crown + 0.56, rearCenter - 0.2),
+			Vector2.new(skull.X - 3 * chamfer - 0.4, rearLength - chamfer - 0.4),
+			Vector2.new(1.16, 1.45),
+			tones(headColor),
+			0.12
+		)
+		voxelTopScales(
+			kit,
+			headParts,
+			"Strand",
+			Vector3.new(0, crown + 0.06, skullFront + faceLength / 2),
+			Vector2.new(skull.X - 3 * chamfer - 0.4, faceLength - 0.6),
+			Vector2.new(1.16, 1.45),
+			tones(headColor),
+			0.12
+		)
+		voxelTopScales(
+			kit,
+			headParts,
+			"Strand",
+			Vector3.new(0, snoutTop + 0.06, snoutCenter.Z),
+			Vector2.new(snout.X - 0.6, snout.Z - 0.8),
+			Vector2.new(1.01, 1.16),
+			tones(muzzleColor),
+			0.12
+		)
+		for _, side in { -1, 1 } do
+			voxelScales(
+				kit,
+				headParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (skull.X / 2 + 0.05), head.Y, rearCenter),
+				Vector2.new(rearLength - 0.8, skull.Y - chamfer * 2.1 - 0.8),
+				Vector2.new(1.3, 1.16),
+				tones(headColor),
+				0.12
+			)
+			voxelScales(
+				kit,
+				headParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (snout.X / 2 + 0.05), snoutCenter.Y, snoutCenter.Z),
+				Vector2.new(snout.Z - 1, snout.Y - 1),
+				Vector2.new(1.01, 1.01),
+				tones(muzzleColor),
+				0.12
+			)
+			voxelScales(
+				kit,
+				headParts,
+				"Fur",
+				"x",
+				Vector3.new(side * (neckW / 2 + 0.05), (top + head.Y) / 2, neckZ),
+				Vector2.new(neckDepth - 0.6, head.Y - top - 1),
+				Vector2.new(1.3, 1.3),
+				tones(headColor),
+				0.12
+			)
+			local eye = Vector3.new(side * (skull.X / 2 - 1.25), snoutTop + 0.75, skullFront)
+			flat(
+				headParts,
+				"EyeRing",
+				eye,
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				if o.faceEdge then Vector2.new(1.35, 1.3) else Vector2.new(1.6, 1.5),
+				dark,
+				0.03
+			)
+			flat(
+				headParts,
+				"Lid",
+				eye + Vector3.new(0, 0.62, 0),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(1.4, 0.3),
+				headColor:Lerp(BLACK, 0.4),
+				0.2
+			)
+			if o.iris then
+				flat(headParts, "Iris", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(0.95, 0.9), o.iris, 0.1)
+				flat(headParts, "Pupil", eye, -Vector3.zAxis, Vector3.xAxis, Vector2.new(0.5, 0.55), BLACK, 0.14)
+			end
+			if o.accent then
+				flat(
+					headParts,
+					"BrowSpot",
+					eye + Vector3.new(0, 1.05, 0),
+					-Vector3.zAxis,
+					Vector3.xAxis,
+					Vector2.new(1.1, 0.5),
+					o.accent,
+					0.06
+				)
+				flat(
+					headParts,
+					"CheekSpot",
+					Vector3.new(side * (skull.X / 2 + 0.3), head.Y - 0.9, head.Z + 0.2),
+					Vector3.xAxis * side,
+					Vector3.zAxis,
+					Vector2.new(1.8, 1.4),
+					o.accent,
+					0.05
+				)
+				flat(
+					headParts,
+					"MuzzleSpot",
+					Vector3.new(side * (snout.X / 2 + 0.06), snoutBottom + 0.95, snoutCenter.Z),
+					Vector3.xAxis * side,
+					Vector3.zAxis,
+					Vector2.new(snout.Z - 1.4, 0.7),
+					o.accent,
+					0.06
+				)
+			end
+			flat(
+				headParts,
+				"Glint",
+				eye + Vector3.new(-side * 0.22, -0.18, 0),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(0.3, 0.3),
+				WHITE,
+				0.22
+			)
+			box(
+				headParts,
+				"Brow",
+				Vector3.new(eye.X, snoutTop + 1.65, skullFront + 0.25),
+				Vector3.new(1.5, 0.55, 0.7),
+				headColor:Lerp(BLACK, 0.08)
+			)
+			box(
+				headParts,
+				"Jowl",
+				Vector3.new(side * (skull.X / 2 + 0.1), head.Y - skull.Y * 0.2, head.Z + 0.8),
+				Vector3.new(0.5, skull.Y * 0.45, skull.Z * 0.5),
+				headColor:Lerp(WHITE, 0.06)
+			)
+			flat(
+				headParts,
+				"Nostril",
+				Vector3.new(side * 0.55, snoutTop - 0.5, snoutFront - 0.6),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(0.5, 0.45),
+				BLACK,
+				0.04
+			)
+			for k = 0, 2 do
+				flat(
+					headParts,
+					"Whisker",
+					Vector3.new(side * snout.X / 2, snoutCenter.Y + 0.4 - k * 0.5, snoutFront + 1.2 + k * 0.3),
+					Vector3.xAxis * side,
+					Vector3.zAxis,
+					Vector2.new(0.22, 0.22),
+					dark,
+					0.05
+				)
+			end
+		end
+		flat(
+			headParts,
+			"NoseShine",
+			Vector3.new(-0.35, snoutTop - 0.12, snoutFront - 0.6),
+			-Vector3.zAxis,
+			Vector3.xAxis,
+			Vector2.new(0.7, 0.2),
+			o.nose:Lerp(WHITE, 0.4),
+			0.1
+		)
+		if o.accent then
+			-- Barbilla y lista más claras: separan la boca y la frente del resto de la cabeza oscura.
+			box(
+				headParts,
+				"Chin",
+				Vector3.new(0, snoutBottom - 0.1, snoutCenter.Z + 0.3),
+				Vector3.new(snout.X - 1.2, 0.5, snout.Z - 1.4),
+				o.accent:Lerp(WHITE, 0.45)
+			)
+			flat(
+				headParts,
+				"BlazeWide",
+				Vector3.new(0, (snoutTop + crown - 0.6) / 2 + 0.3, skullFront),
+				-Vector3.zAxis,
+				Vector3.xAxis,
+				Vector2.new(1.6, crown - 1.2 - snoutTop),
+				WHITE,
+				0.07
+			)
+		end
+		box(
+			headParts,
+			"Ruff",
+			Vector3.new(0, (top + head.Y) / 2 - 0.6, neckZ + neckDepth / 2 + 0.2),
+			Vector3.new(neckW + 0.6, head.Y - top - 1.4, 0.6),
+			headColor:Lerp(coat, 0.5)
 		)
 	end
 	if o.collar then
@@ -2143,6 +2737,52 @@ local function voxelDog(rig: Rig, coat: Color3, o: DogOptions)
 				paw:Lerp(BLACK, 0.5)
 			)
 		end
+		if rich then
+			-- Uñas, y el pelo pintado de los dos tramos de la pata.
+			for k = -1, 1 do
+				box(
+					lower,
+					"Claw",
+					Vector3.new(x + k * (width + 0.3) / 3, 0.4, lowZ - 0.6 - pawSize.Z / 2 - 0.06),
+					Vector3.new(0.5, 0.55, 0.12),
+					paw:Lerp(BLACK, 0.55)
+				)
+			end
+			local upperW = if isFront then width + 0.2 else width + 0.4
+			voxelScales(
+				kit,
+				upper,
+				"Fur",
+				"x",
+				Vector3.new(x + side * (upperW / 2 + 0.05), (knee + upperTop) / 2, z),
+				Vector2.new(upperW, upperTop - knee - 0.6),
+				Vector2.new(1.16, 1.3),
+				tones(coat),
+				0.12
+			)
+			voxelScales(
+				kit,
+				lower,
+				"Fur",
+				"x",
+				Vector3.new(x + side * (shin / 2 + 0.05), (knee + 1.4) / 2 + 0.2, lowZ),
+				Vector2.new(shin - 0.2, knee - 1.4),
+				Vector2.new(1.16, 1.3),
+				tones(legColor),
+				0.12
+			)
+			voxelScales(
+				kit,
+				lower,
+				"Fur",
+				"z",
+				Vector3.new(x, (knee + 1.4) / 2 + 0.2, lowZ - shin / 2 - 0.05),
+				Vector2.new(shin - 0.2, knee - 1.4),
+				Vector2.new(1.01, 1.3),
+				tones(legColor),
+				0.12
+			)
+		end
 		local thigh: Joint? = nil
 		for _, part in upper do
 			thigh = joint(
@@ -2313,6 +2953,8 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			bodyL = 17,
 			tuck = 0.6,
 			skull = Vector3.new(6.2, 5.4, 5.4),
+			faceEdge = 0.7,
+			skullChamfer = 1.3,
 			snout = Vector3.new(3.8, 2.8, 3.2),
 			neck = 3.6,
 			ear = Vector3.new(0.8, 3.2, 2.6),
@@ -2360,10 +3002,12 @@ local builders: { [string]: (rig: Rig, color: Color3) -> Motion } = {
 			tailTaper = 0.3,
 			-- Casi negro: un iris castaño sobre la cabeza negra, con la lista entre los ojos, parecía unas gafas.
 			eye = Color3.fromRGB(48, 32, 22),
-			nose = Color3.fromRGB(40, 32, 30),
+			nose = Color3.fromRGB(22, 18, 18),
 			head = black,
 			ears = black,
-			muzzle = black,
+			muzzle = Color3.fromRGB(78, 64, 58),
+			accent = Color3.fromRGB(165, 115, 70),
+			iris = Color3.fromRGB(205, 135, 45),
 			blaze = color,
 			chest = color,
 			legs = color,
@@ -2509,163 +3153,6 @@ local function voxelKit(rig: Rig, origin: Vector3): VoxelKit
 			end
 		end,
 	}
-end
-
--- Escalones de bloques alineados entre dos puntos (lo que antes era una viga inclinada: una cola, una pluma larga).
--- Cada tramo mide lo que avanza más el grosor, y así la figura entra en la malla de la mascota (Fase 21, Q5).
--- "width" es (ancho en X, grosor en Y); "segment" es lo que avanza cada escalón (1,8 celdas por defecto).
-local function voxelStairs(
-	v: VoxelKit,
-	list: { BasePart }?,
-	name: string,
-	from: Vector3,
-	to: Vector3,
-	width: Vector2,
-	color: Color3,
-	segment: number?
-)
-	local delta = to - from
-	local count = math.max(1, math.ceil(math.max(math.abs(delta.Y), math.abs(delta.Z)) / (segment or 1.8)))
-	for i = 0, count - 1 do
-		local a = from + delta * (i / count)
-		local b = from + delta * ((i + 1) / count)
-		local size = Vector3.new(
-			width.X + math.abs(b.X - a.X),
-			math.abs(b.Y - a.Y) + width.Y,
-			math.max(math.abs(b.Z - a.Z), width.Y)
-		)
-		v.box(list, name, (a + b) / 2, size, color)
-	end
-end
-
--- Plumas pintadas: filas de láminas finas desencajadas sobre una cara (la textura de la malla las pinta sin coste).
--- Con face "z" la cara mira hacia -Z o +Z (plano z = at.Z, "area" = ancho en X y alto en Y centrado en at); con "x"
--- mira hacia un lado (plano x = at.X, "area" = largo en Z y alto en Y). "cell" es el tamaño de cada pluma y "colors"
--- los tonos que se reparten.
-local function voxelScales(
-	v: VoxelKit,
-	list: { BasePart }?,
-	name: string,
-	face: string,
-	at: Vector3,
-	area: Vector2,
-	cell: Vector2,
-	colors: { Color3 },
-	depth: number?
-)
-	local rows = math.max(1, math.floor(area.Y / cell.Y + 0.01))
-	local cols = math.max(1, math.floor(area.X / cell.X + 0.01))
-	local thick = depth or 0.2
-	for r = 0, rows - 1 do
-		local y = at.Y + area.Y / 2 - (r + 0.5) * cell.Y
-		for c = 0, cols - 1 do
-			local u = -area.X / 2 + (c + 0.5) * cell.X + (if r % 2 == 1 then cell.X * 0.5 else 0)
-			if math.abs(u) + cell.X * 0.45 <= area.X / 2 + 0.3 then
-				local color = colors[(r + c) % #colors + 1]
-				if face == "z" then
-					v.box(
-						list,
-						name,
-						Vector3.new(at.X + u, y, at.Z),
-						Vector3.new(cell.X * 0.85, cell.Y * 0.8, thick),
-						color
-					)
-				else
-					v.box(
-						list,
-						name,
-						Vector3.new(at.X, y, at.Z + u),
-						Vector3.new(thick, cell.Y * 0.8, cell.X * 0.85),
-						color
-					)
-				end
-			end
-		end
-	end
-end
-
--- Escamas o plumas pintadas sobre una cara de arriba (plano y = at.Y, "area" = ancho en X y largo en Z centrado en at,
--- "cell" = tamaño de cada una en X y Z). El grosor "depth" va en Y.
-local function voxelTopScales(
-	v: VoxelKit,
-	list: { BasePart }?,
-	name: string,
-	at: Vector3,
-	area: Vector2,
-	cell: Vector2,
-	colors: { Color3 },
-	depth: number?
-)
-	local rows = math.max(1, math.floor(area.Y / cell.Y + 0.01))
-	local cols = math.max(1, math.floor(area.X / cell.X + 0.01))
-	for r = 0, rows - 1 do
-		local z = at.Z - area.Y / 2 + (r + 0.5) * cell.Y
-		for c = 0, cols - 1 do
-			local u = -area.X / 2 + (c + 0.5) * cell.X + (if r % 2 == 1 then cell.X * 0.5 else 0)
-			if math.abs(u) + cell.X * 0.45 <= area.X / 2 + 0.3 then
-				v.box(
-					list,
-					name,
-					Vector3.new(at.X + u, at.Y, z),
-					Vector3.new(cell.X * 0.85, depth or 0.2, cell.Y * 0.85),
-					colors[(r + c) % #colors + 1]
-				)
-			end
-		end
-	end
-end
-
--- Extremidad gruesa que baja en diagonal entre dos puntos (un brazo, una pata) en escalones de bloques alineados:
--- cada tramo mide el grosor "thickness" y lo que avanza en Y y en Z, para que la figura entre en la malla (Q5).
-local function voxelLimb(
-	v: VoxelKit,
-	list: { BasePart }?,
-	name: string,
-	from: Vector3,
-	to: Vector3,
-	thickness: number,
-	color: Color3,
-	segment: number?
-)
-	local delta = to - from
-	local count = math.max(1, math.ceil(math.max(math.abs(delta.Y), math.abs(delta.Z)) / (segment or 2)))
-	for i = 0, count - 1 do
-		local a = from + delta * (i / count)
-		local b = from + delta * ((i + 1) / count)
-		v.box(
-			list,
-			name,
-			(a + b) / 2,
-			Vector3.new(thickness + math.abs(b.X - a.X), math.abs(b.Y - a.Y) + 0.6, thickness + math.abs(b.Z - a.Z)),
-			color
-		)
-	end
-end
-
--- Tira plana en el suelo entre dos puntos (un dedo): escalones alineados que avanzan en X y en Z.
-local function voxelFlat(
-	v: VoxelKit,
-	list: { BasePart }?,
-	name: string,
-	from: Vector3,
-	to: Vector3,
-	width: number,
-	height: number,
-	color: Color3
-)
-	local delta = to - from
-	local count = math.max(1, math.ceil(math.max(math.abs(delta.X), math.abs(delta.Z)) / 1))
-	for i = 0, count - 1 do
-		local a = from + delta * (i / count)
-		local b = from + delta * ((i + 1) / count)
-		v.box(
-			list,
-			name,
-			(a + b) / 2,
-			Vector3.new(math.max(math.abs(b.X - a.X), width), height, math.max(math.abs(b.Z - a.Z), width)),
-			color
-		)
-	end
 end
 
 -- Ala voxel abierta hacia el lado "side", en escalones que se estrechan hacia la punta, con las
@@ -6614,6 +7101,7 @@ type MeshGroup = {
 	joints: { Joint }, -- las articulaciones de sus piezas (vacío en "Static")
 	boxes: { MeshBox }, -- las piezas que puede llevar la malla
 	loose: number, -- las que no (giradas, de otro material, con forma redonda)
+	bend: boolean?, -- la cadera que se dobla al girar (rig.bend): su malla va en la lista de piezas de la cadera
 }
 
 -- Centro y tamaño (sin escalar, respecto a "origin" en ejes del pivote) de una pieza que puede ir a la malla, o nil si
@@ -6708,6 +7196,14 @@ local function meshGroups(model: Model): { MeshGroup }
 	end
 	for _, part in animated.statics do
 		place(static, part)
+	end
+	local bendRig = animated.bend
+	if bendRig then
+		local hip = add("Hip", "Hip", bendRig.hinge.Position / scale)
+		hip.bend = true
+		for _, part in bendRig.parts do
+			place(hip, part)
+		end
 	end
 	return groups
 end
@@ -6815,6 +7311,9 @@ local function applyMeshes(model: Model, animated: Animated, meshes: PetMeshes.P
 			for _, item in group.joints do
 				replaced[item] = copy
 			end
+		elseif group.bend and animated.bend then
+			table.insert(animated.bend.parts, mesh)
+			table.insert(animated.bend.rest, mesh.CFrame)
 		else
 			table.insert(animated.statics, mesh)
 			table.insert(animated.rest, mesh.CFrame)
@@ -6845,6 +7344,17 @@ local function applyMeshes(model: Model, animated: Animated, meshes: PetMeshes.P
 		end
 	end
 	animated.statics, animated.rest = statics, rest
+	local bendRig = animated.bend
+	if bendRig then
+		local bendParts, bendRest = {}, {}
+		for i, part in bendRig.parts do
+			if not removedParts[part] then
+				table.insert(bendParts, part)
+				table.insert(bendRest, bendRig.rest[i])
+			end
+		end
+		bendRig.parts, bendRig.rest = bendParts, bendRest
+	end
 	for part in removedParts do
 		part:Destroy()
 	end

@@ -5,7 +5,8 @@ Flujo por tanda (las mascotas se pueden volcar todas seguidas en Studio y export
          local m = game.ServerStorage.Tools.Mallas:Clone()
          for _, id in { "Colibri", "Guacamaya" } do require(m).volcarMascota(id, game.ReplicatedStorage.Shared:Clone()) end
          m:Destroy()
-  2. python tools/mascota.py exportar Colibri Guacamaya
+  2. python tools/mascota.py exportar Colibri Guacamaya   (con --sin Ear* Tail* los grupos que se quedan en bloques no se exportan)
+     
          junta cada volcado del log del Studio en tools/mallas/<Mascota>.txt, detecta los pares izquierda/derecha
          (FL/FR, WingL/WingR…) que son reflejo exacto y los pasa como --espejo, convierte con tools/mallas.py y
          lista los .obj de build/mallas/<Mascota> que hay que importar (Import 3D, escala por defecto).
@@ -25,6 +26,7 @@ Parámetros por defecto: `--escala 1` (los bloques se vuelcan sin escalar), `--f
 """
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -42,9 +44,10 @@ def pares_espejo(partes):
     """Devuelve ['FL=FR', …] para cada par Xl/Xr cuyas cajas son reflejo exacto en X."""
     pares = []
     for nombre in sorted(partes):
-        if not nombre.endswith("L") or nombre[:-1] + "R" not in partes:
+        m = re.match(r"^(.*)L(\d*)$", nombre)  # FL, WingL, FL2…
+        if not m or f"{m.group(1)}R{m.group(2)}" not in partes:
             continue
-        derecha = nombre[:-1] + "R"
+        derecha = f"{m.group(1)}R{m.group(2)}"
 
         def clave(cajas):
             return sorted(
@@ -60,10 +63,23 @@ def pares_espejo(partes):
     return pares
 
 
-def exportar(mascotas, texel, fino, log):
+def exportar(mascotas, texel, fino, log, sin):
     for pet in mascotas:
         destino = os.path.join(RAIZ, "tools", "mallas", f"{pet}.txt")
         mallas.juntar_log(log or "", destino, pet)
+        if sin:
+            # Los grupos que se quedan en bloques (orejas, tramos de cola…) no se exportan: se quitan del volcado.
+            lineas = open(destino, encoding="utf-8").read().splitlines()
+            salida_txt, saltando = [], False
+            for linea in lineas:
+                if linea.startswith("PART "):
+                    saltando = any(fnmatch.fnmatch(linea.split()[1], patron) for patron in sin)
+                if not saltando:
+                    salida_txt.append(linea)
+                if linea.startswith("END"):
+                    saltando = False
+            with open(destino, "w", encoding="utf-8", newline="") as f:
+                f.write(chr(10).join(salida_txt) + chr(10))
         partes = mallas.leer_volcado(destino)
         espejos = pares_espejo(partes)
         salida = os.path.join(RAIZ, "build", "mallas", pet)
@@ -145,12 +161,13 @@ def main():
     e.add_argument("--texel", type=float, default=0.01)
     e.add_argument("--fino", type=float, default=0.035)
     e.add_argument("--log", help="log de Studio (por defecto, el último con volcados)")
+    e.add_argument("--sin", nargs="*", default=[], metavar="GRUPO", help="grupos que no se exportan (admite comodines: Ear* Tail*)")
     i = sub.add_parser("ids", help="escribe los ids importados en PetMeshes.luau")
     i.add_argument("mascotas", nargs="+")
     i.add_argument("--texto", required=True, help="archivo con una línea `Mascota_Grupo | malla | textura` por malla")
     a = ap.parse_args()
     if a.orden == "exportar":
-        exportar(a.mascotas, a.texel, a.fino, a.log)
+        exportar(a.mascotas, a.texel, a.fino, a.log, a.sin)
     else:
         poner_ids(a.mascotas, a.texto)
 
