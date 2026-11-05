@@ -5236,6 +5236,57 @@ Los jefes de la Isla aparecen donde dice `Data/BossStages` (cima de la montaña,
 14. [ ] Con el inglés puesto, mira las 3 versiones cómic nuevas.
     ✅ Las citas («This mountain is mine!», «Nobody leaves my cave…», «Everything will burn!») y las narraciones caben en los bocadillos sin salirse.
 
+## 142. Fase 25 G3a: eclosión del huevo como escena local EggHatch (05-11-2026)
+
+La ceremonia del huevo del Lobby (`NestController.playCeremony`) es ahora la escena local `EggHatch` (`Data/Cinematics`, se reproduce con `CinematicClient.playLocal`) con los eventos `eggShake`, `eggBurst`, `petReveal` y `eggAnnounce`, registrados en `NestController`. Dura 7 s, solo la ve quien abre el huevo y no bloquea nada. Saltar siempre visible. El letrero («Ha nacido…») sale a los 2,6 s dentro del ScreenGui de la cinemática y dura 4 s. Si el ajuste «Cinemáticas» está apagado o hay otra cinemática de servidor en marcha, hay una versión rápida sin cámara (estallido, letrero y subida de 2,2 s). Si se salta, el huevo estalla igual, se limpia todo y el letrero sale unos 4 s con el HUD ya devuelto.
+
+Ya probado: en Play en el Studio del Lobby, disparando `Remotes.EggHatched` desde el servidor: la cámara pasa a Scriptable, el HUD se oculta, el huevo desaparece a los ~2,2 s, sale el letrero, se borra a los 4 s, la escena acaba a los 7 s, HUD y cámara se restauran y `ceremony` queda en false. Encuadres revisados en modo edición con capturas. Esta sección es lo que falta.
+
+### 142.1 Con el juego publicado: huevos de verdad
+
+1. [ ] Con el Lobby publicado, abre en el nido un huevo listo para abrir y mira la escena entera.
+   ✅ La cámara pasa a la escena, el huevo tiembla y estalla, sale la mascota, el letrero «Ha nacido…» aparece a los 2,6 s y se borra a los 4 s después, y a los 7 s la escena acaba y el HUD y la cámara vuelven.
+2. [ ] Abre en el nido un huevo de montura.
+   ✅ La montura sale a escala 0,45 entera dentro del encuadre y el letrero no la tapa.
+3. [ ] Abre un huevo cuya mascota ya tienes.
+   ✅ El letrero dice «Otra vez…» y se suma el Ámbar que da la repetida; la escena tiene el mismo ritmo que la de una mascota nueva.
+
+### 142.2 Saltar
+
+4. [ ] Pulsa Saltar a mitad de la escena.
+   ✅ El huevo estalla igual, la mascota de la escena desaparece, no queda ningún huevo ni mascota suelta en pantalla, el letrero sale unos 4 s y el HUD vuelve.
+
+### 142.3 Ajuste «Cinemáticas» apagado
+
+5. [ ] Desactiva «Cinemáticas» en los ajustes y abre un huevo.
+   ✅ No hay cámara de escena: el huevo estalla, sale el letrero y la subida dura unos 2,2 s; el HUD vuelve y la cámara no queda en Scriptable.
+
+### 142.4 Dos huevos (incubadora III)
+
+6. [ ] Con la incubadora III, ten dos huevos listos y ábrelos.
+   ✅ Nace el del hueco 1 o el del 2, y se anota cuánto se desvía el encuadre (se espera ±1,3 u) y si la mascota se corta.
+
+### 142.5 Pantallas e idioma
+
+7. [ ] Con el emulador de teléfono, abre un huevo y mira el letrero.
+   ✅ El letrero, entre 0,30 y 0,35 de la altura de la pantalla, no tapa la mascota ni se corta.
+8. [ ] En PC, con la ventana de Studio o del juego pequeña, abre un huevo y mira el letrero.
+   ✅ El letrero no tapa la mascota ni se corta, igual que en el teléfono.
+9. [ ] Con el juego en inglés (como en §20), abre un huevo.
+   ✅ El letrero en inglés cabe entero en pantalla, no se corta y no tapa la mascota, en el teléfono y en el PC.
+
+### 142.6 Casos límite
+
+10. [ ] Abre un segundo huevo justo después del primero.
+    ✅ No quedan dos escenas ni dos mascotas a la vez. Si el segundo se encola o se salta, se anota lo que hace.
+11. [ ] Abre un huevo mientras llega otra cinemática del servidor (por ejemplo, la de un jefe).
+    ✅ Sale la versión rápida sin cámara, la cinemática en marcha no se corta ni se pisa, y el HUD vuelve al acabar. Se anota lo que pasa.
+
+### 142.7 Perfil real
+
+12. [ ] Antes de probar en Play, haz la copia del perfil de §10.0 y, con el Play parado, restáurala al terminar.
+    ✅ Tras restaurar, el perfil real (`PlayerData_v1`) coincide con la copia, y el Ámbar, los huevos y las mascotas son los de antes del Play.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

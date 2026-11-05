@@ -5,9 +5,14 @@
 --     ven. Con la incubadora III de la parcela (Fase 12) son dos, uno al lado del otro. Lo que les falta
 --     lo enseña el cartel de las mascotas de detrás (PetBoardController).
 --   - Listo para abrir, el huevo se tambalea y brilla más, y el aviso del nido dice "Abrir el huevo".
---   - Al nacer la mascota (Remotes.EggHatched) hace la ceremonia: el huevo tiembla cada vez más
---     fuerte, estalla y sale la mascota girando con su nombre y su rareza. Si ha salido una montura
---     (Fase 11), sale ella, a escala de nido, y el letrero dice cómo montarla.
+--   - Al nacer la mascota (Remotes.EggHatched) hace la ceremonia, que es la escena local «EggHatch» del
+--     motor de cinemáticas (Fase 25, G3a; solo la ve quien abre el huevo): cámara y franjas, el huevo
+--     tiembla cada vez más fuerte, estalla y sale la mascota girando, con su nombre y su rareza en un
+--     letrero dentro del ScreenGui de la escena (así HudHider no lo oculta). Si ha salido una montura
+--     (Fase 11), sale ella, a escala de nido, y el letrero dice cómo montarla. Los eventos eggShake,
+--     eggBurst, petReveal y eggAnnounce de la escena se registran aquí. Con «Cinemáticas» apagado, o con
+--     otra cinemática en marcha, hay una versión rápida sin cámara. Al saltar la escena se limpia todo y
+--     el letrero sale igualmente unos segundos.
 --   - Alrededor del nido, la decoración que lleva el jugador (cosmético NestDecor, atributo
 --     "NestDecor"; Shared/NestDecor), apoyada en el suelo. También la ve solo él.
 -- Lo que se decide (poner, descartar, abrir) está en la ventana del nido (LobbyUIController).
@@ -29,6 +34,9 @@ local NestDecor = require(ReplicatedStorage.Shared.NestDecor)
 local PetModels = require(ReplicatedStorage.Shared.PetModels)
 local Pets = require(ReplicatedStorage.Shared.Data.Pets)
 local Rarities = require(ReplicatedStorage.Shared.Data.Rarities)
+local CinematicClient = require(ReplicatedStorage.Shared.Cinematics.CinematicClient)
+local Presentation = require(ReplicatedStorage.Shared.Cinematics.Presentation)
+local Sequencer = require(ReplicatedStorage.Shared.Cinematics.Sequencer)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
@@ -41,8 +49,12 @@ local EGG_SCALE = 1.5
 local EGG_SINK = 0.5
 -- Con dos huevos, cada uno se aparta esto del centro del nido.
 local PAIR_OFFSET = 1.3
-local CEREMONY_SHAKE_SECONDS = 1.6
+-- Temblor del huevo dentro de la escena EggHatch (el estallido es a los 2,2 s: Data/Cinematics).
+local CEREMONY_SHAKE_SECONDS = 2.2
+-- Cuánto se queda el letrero, y cuánto sube la mascota en la versión rápida sin cámara.
 local REVEAL_SECONDS = 4
+local QUICK_REVEAL_SECONDS = 2.2
+local SCENE_ID = "EggHatch"
 
 local NestController = {}
 
@@ -185,20 +197,34 @@ end
 local MOUNT_REVEAL_SCALE = 0.45
 
 -- Letrero grande en pantalla con la mascota (o la montura) que ha nacido. "amber" > 0: ya la tenía y
--- se cambia por Ámbar.
-local function announce(petId: string, equipped: boolean, isMount: boolean, amber: number)
+-- se cambia por Ámbar. "parent": el ScreenGui de la escena (Presentation.gui), que HudHider no oculta; sin él
+-- se crea el suyo, "EggHatchedUI". Devuelve lo que contiene el letrero, que se borra solo a los REVEAL_SECONDS.
+local function announce(petId: string, equipped: boolean, isMount: boolean, amber: number, parent: Instance?): Instance
 	local pet: { name: string, icon: string, rarity: string } = if isMount then Mounts[petId] else Pets[petId]
 	local rarity = Rarities[pet.rarity]
-	local gui = Widgets.screen("EggHatchedUI", player:WaitForChild("PlayerGui"))
-	gui.DisplayOrder = 9
+	local root: Instance
+	if parent then
+		local holder = Instance.new("Frame")
+		holder.Name = "EggHatchedUI"
+		holder.Size = UDim2.fromScale(1, 1)
+		holder.BackgroundTransparency = 1
+		holder.ZIndex = 5
+		holder.Parent = parent
+		root = holder
+	else
+		local gui = Widgets.screen("EggHatchedUI", player:WaitForChild("PlayerGui"))
+		gui.DisplayOrder = 9
+		root = gui
+	end
 	local args = { icon = pet.icon, name = { pet.name }, rarity = { rarity.name }, amber = amber }
 	local label = Widgets.label(
 		if amber > 0 then T("🐣 ¡Otra vez {icon} {name}!", args) else T("🐣 ¡Ha nacido {icon} {name}!", args),
-		gui
+		root
 	)
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
 	label.Position = UDim2.fromScale(0.5, 0.3)
 	label.Size = UDim2.fromScale(0.6, 0.09)
+	label.ZIndex = 5
 	local detail = Widgets.label(
 		if amber > 0
 			then T("{rarity} · Ya la tenías: +{amber} ✨ Ámbar", args)
@@ -209,18 +235,122 @@ local function announce(petId: string, equipped: boolean, isMount: boolean, ambe
 			elseif isMount then T("{rarity} · ¡Una montura! Llévala desde la ventana de Mascotas", args)
 			elseif equipped then T("{rarity} · ya te acompaña", args)
 			else T("{rarity} · en tu colección (llevas una más rara)", args),
-		gui
+		root
 	)
 	detail.AnchorPoint = Vector2.new(0.5, 0)
 	detail.Position = UDim2.fromScale(0.5, 0.35)
 	detail.Size = UDim2.fromScale(0.5, 0.05)
 	detail.TextColor3 = rarity.color
+	detail.ZIndex = 5
 	local scale = Instance.new("UIScale")
 	scale.Scale = 1.6
 	scale.Parent = label
 	TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	task.delay(REVEAL_SECONDS, function()
-		gui:Destroy()
+		root:Destroy()
+	end)
+	return root
+end
+
+-- Lo que necesita la ceremonia del huevo que se abre (también es ctx.data de la escena EggHatch).
+type Hatch = {
+	petId: string,
+	rarity: string,
+	equipped: boolean,
+	isMount: boolean,
+	amber: number,
+	slot: number,
+	rest: CFrame, -- reposo del huevo (su centro) = anchor de la escena
+	seatY: number,
+	eggHatch: boolean, -- marca para los handlers y el hook de fin
+	burst: boolean, -- ya ha estallado
+	completed: boolean, -- la escena llegó al final (false = saltada o cortada)
+	pet: Model?,
+}
+
+-- El huevo tiembla cada vez más fuerte durante "seconds", mientras "alive()".
+local function shakeEgg(data: Hatch, seconds: number, alive: () -> boolean)
+	local model = eggModels[data.slot]
+	local started = os.clock()
+	while model and model.Parent and alive() and os.clock() - started < seconds do
+		local t = (os.clock() - started) / seconds
+		local shake = 0.05 + t * 0.3
+		model:PivotTo(
+			data.rest
+				* CFrame.new(math.sin(os.clock() * 50) * shake * 0.3, 0, 0)
+				* CFrame.Angles(math.sin(os.clock() * 37) * shake, 0, math.cos(os.clock() * 41) * shake)
+		)
+		RunService.RenderStepped:Wait()
+	end
+end
+
+-- El huevo estalla: se quita y salen las chispas de su rareza (una sola vez).
+local function burstEgg(data: Hatch)
+	if data.burst then
+		return
+	end
+	data.burst = true
+	clearEgg(data.slot)
+	EggModel.burst(data.rest.Position, data.rarity)
+end
+
+-- La mascota (o la montura, más pequeña) sube del nido girando durante "seconds" (o hasta que alive() falle) y
+-- se va. data.pet guarda el modelo para que se borre aunque se salte la escena.
+local function revealPet(data: Hatch, seconds: number, alive: () -> boolean)
+	local pet = if data.isMount then MountModels.build(data.petId) else PetModels.build(data.petId)
+	if not pet then
+		return
+	end
+	if data.isMount then
+		pet:ScaleTo(MOUNT_REVEAL_SCALE)
+	end
+	local height = pet:GetAttribute("Height")
+	-- El pivote de la montura está en el suelo, no en el centro.
+	local lift = if data.isMount then 0 elseif typeof(height) == "number" then height else 1.5
+	pet.Parent = Workspace
+	data.pet = pet
+	local revealStart = os.clock()
+	while pet.Parent and alive() and os.clock() - revealStart < seconds do
+		local t = os.clock() - revealStart
+		local rise = math.min(t / 0.6, 1)
+		pet:PivotTo(
+			CFrame.new(
+				Vector3.new(data.rest.X, data.seatY, data.rest.Z) + Vector3.new(0, 0.6 + lift * 0.5 + rise * 2.2, 0)
+			) * CFrame.Angles(0, t * 1.8, 0)
+		)
+		RunService.RenderStepped:Wait()
+	end
+	pet:Destroy()
+	data.pet = nil
+end
+
+local function playCeremonyBody(data: Hatch, seat: BasePart)
+	placeEgg(seat, data.slot, data.rarity)
+	local finished = false
+	local played = CinematicClient.playLocal(SCENE_ID, {
+		anchor = data.rest,
+		context = data,
+		onFinished = function(completed: boolean)
+			data.completed = completed
+			finished = true
+		end,
+	})
+	if played then
+		local started = os.clock()
+		while not finished and os.clock() - started < 20 do
+			task.wait(0.1)
+		end
+		if not data.completed then
+			-- Saltada o cortada: el hook de fin ya ha limpiado; el letrero sale igualmente, para saber qué ha nacido.
+			announce(data.petId, data.equipped, data.isMount, data.amber)
+		end
+		return
+	end
+	-- Sin escena (ajuste apagado u otra cinemática en marcha): versión rápida sin cámara.
+	burstEgg(data)
+	announce(data.petId, data.equipped, data.isMount, data.amber)
+	revealPet(data, QUICK_REVEAL_SECONDS, function()
+		return true
 	end)
 end
 
@@ -240,55 +370,82 @@ local function playCeremony(
 	ceremony = true
 	-- El otro huevo (si lo hay) sigue donde estaba; el que nace, en su sitio de antes de abrirse.
 	local pair = eggModels[1] ~= nil and eggModels[2] ~= nil
-	placeEgg(seat, slot, rarity)
-	local rest = eggRest(seat, slot, pair)
-	local model = eggModels[slot]
-	-- El huevo tiembla cada vez más fuerte y estalla.
-	local started = os.clock()
-	while model and os.clock() - started < CEREMONY_SHAKE_SECONDS do
-		local t = (os.clock() - started) / CEREMONY_SHAKE_SECONDS
-		local shake = 0.05 + t * 0.3
-		model:PivotTo(
-			rest
-				* CFrame.new(math.sin(os.clock() * 50) * shake * 0.3, 0, 0)
-				* CFrame.Angles(math.sin(os.clock() * 37) * shake, 0, math.cos(os.clock() * 41) * shake)
-		)
-		RunService.RenderStepped:Wait()
+	local data: Hatch = {
+		petId = petId,
+		rarity = rarity,
+		equipped = equipped,
+		isMount = isMount,
+		amber = amber,
+		slot = slot,
+		rest = eggRest(seat, slot, pair),
+		seatY = seat.Position.Y,
+		eggHatch = true,
+		burst = false,
+		completed = false,
+		pet = nil,
+	}
+	local ok, err = pcall(playCeremonyBody, data, seat)
+	-- Pase lo que pase, no queda nada de la ceremonia.
+	if data.pet then
+		data.pet:Destroy()
+		data.pet = nil
 	end
-	local burstAt = rest.Position
 	clearEgg(slot)
-	EggModel.burst(burstAt, rarity)
-	announce(petId, equipped, isMount, amber)
-	-- La mascota (o la montura, más pequeña) sube del nido girando y se va.
-	local pet = if isMount then MountModels.build(petId) else PetModels.build(petId)
-	if pet then
-		if isMount then
-			pet:ScaleTo(MOUNT_REVEAL_SCALE)
-		end
-		local height = pet:GetAttribute("Height")
-		local lift = if typeof(height) == "number" then height else 1.5
-		if isMount then
-			-- El pivote de la montura está en el suelo, no en el centro.
-			lift = 0
-		end
-		pet.Parent = Workspace
-		local revealStart = os.clock()
-		while os.clock() - revealStart < REVEAL_SECONDS do
-			local t = os.clock() - revealStart
-			local rise = math.min(t / 0.6, 1)
-			pet:PivotTo(
-				CFrame.new(
-					Vector3.new(rest.X, seat.Position.Y, rest.Z) + Vector3.new(0, 0.6 + lift * 0.5 + rise * 2.2, 0)
-				) * CFrame.Angles(0, t * 1.8, 0)
-			)
-			RunService.RenderStepped:Wait()
-		end
-		pet:Destroy()
-	end
 	ceremony = false
+	if not ok then
+		warn(`NestController: falla la ceremonia del huevo: {err}`)
+		announce(petId, equipped, isMount, amber)
+	end
+end
+
+-- Eventos de la escena EggHatch y limpieza al acabar o saltarla (ctx.data es el Hatch de playCeremony).
+local function registerSceneEvents()
+	local function hatchOf(ctx: any): Hatch?
+		local data = ctx.data
+		return if typeof(data) == "table" and data.eggHatch == true then data else nil
+	end
+	Sequencer.registerHandler("eggShake", function(event, ctx, handle)
+		local data = hatchOf(ctx)
+		if data and not ctx.seeking then
+			task.spawn(shakeEgg, data, event.seconds or CEREMONY_SHAKE_SECONDS, handle.isPlaying)
+		end
+	end)
+	Sequencer.registerHandler("eggBurst", function(_, ctx)
+		local data = hatchOf(ctx)
+		if data and not ctx.seeking then
+			burstEgg(data)
+		end
+	end)
+	Sequencer.registerHandler("petReveal", function(_, ctx, handle)
+		local data = hatchOf(ctx)
+		if data and not ctx.seeking and not data.pet then
+			task.spawn(revealPet, data, math.huge, handle.isPlaying)
+		end
+	end)
+	Sequencer.registerHandler("eggAnnounce", function(_, ctx)
+		local data = hatchOf(ctx)
+		if data and not ctx.seeking then
+			announce(data.petId, data.equipped, data.isMount, data.amber, Presentation.gui())
+		end
+	end)
+	Sequencer.addHooks({
+		finish = function(_, ctx)
+			local data = hatchOf(ctx)
+			if not data then
+				return
+			end
+			-- Al saltar antes del estallido, el huevo estalla igual; y la mascota se va al instante.
+			burstEgg(data)
+			if data.pet then
+				data.pet:Destroy()
+				data.pet = nil
+			end
+		end,
+	})
 end
 
 function NestController:Start()
+	registerSceneEvents()
 	Remotes.EggHatched.OnClientEvent:Connect(
 		function(petId: any, rarity: any, equipped: any, isMount: any, amber: any, slot: any)
 			local known = if isMount == true then Mounts[petId] ~= nil else Pets[petId] ~= nil

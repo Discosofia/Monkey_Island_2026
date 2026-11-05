@@ -6,7 +6,12 @@
 -- apagado responde enseguida CinematicDone(id, false) y no enseña nada. Si no: apaga los controles, oculta el
 -- HUD (menos el ScreenGui de la cinemática), reproduce la escena con el Sequencer (con seek si llega tarde) y
 -- al acabar (+0,4 s) lo devuelve todo y avisa al servidor con CinematicDone(id, vista_entera).
--- El botón «Saltar» sale si la escena ya está en cinematicsSeen del atributo Progress, o si es skippable.
+-- El botón «Saltar» sale si la escena ya está en cinematicsSeen del atributo Progress, o si es skippable
+-- (en las locales, siempre).
+--
+-- Escenas locales (CinematicClient.playLocal, Fase 25 G3a): las lanza el propio cliente, sin servidor y sin
+-- CinematicDone (la eclosión del huevo del Lobby). args = { anchor?, context? (tabla libre que los handlers
+-- leen en ctx.data), onFinished?(completed) (tras devolver HUD y controles) }.
 --
 -- Maniquí: Actors ya crea el rig R15 con Players:CreateHumanoidModelFromDescription (no es de uso restringido
 -- y también corre en el cliente). La fábrica que se registra aquí es solo la salida de emergencia: si existe
@@ -40,6 +45,7 @@ type Active = {
 	id: string,
 	handle: Sequencer.Handle,
 	stoppedByServer: boolean,
+	isLocal: boolean,
 }
 
 local active: Active? = nil
@@ -105,19 +111,27 @@ local function resolveAnchor(scene: Cinematics.Scene, args: { [string]: any }): 
 	return CFrame.identity
 end
 
-local function play(id: string, startServerTime: number, args: { [string]: any }?)
+-- Cuerpo común de play (escena de servidor) y playLocal. Devuelve false si no se reproduce.
+local function run(id: string, startServerTime: number, args: { [string]: any }?, isLocal: boolean): boolean
 	local params = args or {}
 	local scene = Cinematics[id]
 	if not scene then
 		warn(`CinematicClient: escena desconocida ({id})`)
-		Remotes.CinematicDone:FireServer(id, false)
-		return
+		if not isLocal then
+			Remotes.CinematicDone:FireServer(id, false)
+		end
+		return false
 	end
 	if not Settings.get().cinematics then
-		Remotes.CinematicDone:FireServer(id, false)
-		return
+		if not isLocal then
+			Remotes.CinematicDone:FireServer(id, false)
+		end
+		return false
 	end
 	if active then
+		if isLocal and not active.isLocal then
+			return false -- una escena local no corta una de servidor
+		end
 		active.handle.stop()
 	end
 
@@ -139,18 +153,27 @@ local function play(id: string, startServerTime: number, args: { [string]: any }
 			if mine and active == mine then
 				active = nil
 			end
-			if not (mine and mine.stoppedByServer) then
+			if not isLocal and not (mine and mine.stoppedByServer) then
 				Remotes.CinematicDone:FireServer(id, completed)
+			end
+			if typeof(params.onFinished) == "function" then
+				local ok, err = pcall(params.onFinished, completed)
+				if not ok then
+					warn(`CinematicClient: falla onFinished de {id}: {err}`)
+				end
 			end
 		end)
 	end
 
-	local handle = Sequencer.play(scene :: any, { anchor = resolveAnchor(scene, params), onFinished = onFinished })
-	entry = { id = id, handle = handle, stoppedByServer = false }
+	local handle = Sequencer.play(
+		scene :: any,
+		{ anchor = resolveAnchor(scene, params), onFinished = onFinished, data = params.context }
+	)
+	entry = { id = id, handle = handle, stoppedByServer = false, isLocal = isLocal }
 	active = entry
 
 	-- Botón Saltar (abajo a la derecha, dentro del ScreenGui de la cinemática: se borra solo al terminar).
-	if gui and handle.isPlaying() and (hasSeen(id) or (scene :: any).skippable == true) then
+	if gui and handle.isPlaying() and (isLocal or hasSeen(id) or (scene :: any).skippable == true) then
 		local skip = Widgets.button(T("Saltar"), gui)
 		skip.Name = "Skip"
 		skip.AnchorPoint = Vector2.new(1, 1)
@@ -165,9 +188,20 @@ local function play(id: string, startServerTime: number, args: { [string]: any }
 
 	-- Llega tarde (entró a mitad de escena o hubo retraso): salta al tiempo que le toca.
 	local late = workspace:GetServerTimeNow() - startServerTime
-	if late > 0.1 and handle.isPlaying() then
+	if not isLocal and late > 0.1 and handle.isPlaying() then
 		handle.seek(late)
 	end
+	return true
+end
+
+local function play(id: string, startServerTime: number, args: { [string]: any }?)
+	run(id, startServerTime, args, false)
+end
+
+-- Escena local (sin servidor ni CinematicDone). false = no se ha reproducido (ajuste «Cinemáticas» apagado,
+-- escena desconocida o una cinemática de servidor en marcha): quien llama hace entonces su versión sin cámara.
+function CinematicClient.playLocal(id: string, args: { [string]: any }?): boolean
+	return run(id, workspace:GetServerTimeNow(), args, true)
 end
 
 -- "place" solo sirve para los avisos; los dos places cargan CombatClient, así que el animador es el mismo.

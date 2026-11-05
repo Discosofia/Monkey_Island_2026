@@ -287,6 +287,35 @@ local Cinematics: { [string]: Scene } = {
 		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption" }
 	),
 
+	-- Eclosión del huevo del Lobby (G3a): escena local, solo la ve quien abre el huevo. El anchor es el reposo del
+	-- huevo (su centro) y la cámara está hacia +Z, por donde llega el jugador al nido. Los eventos eggShake, eggBurst,
+	-- petReveal y eggAnnounce los registra NestController. No lleva fundido de salida: el HUD vuelve solo.
+	EggHatch = {
+		duration = 7,
+		audience = "Self",
+		freeze = false,
+		skippable = true,
+		actors = {},
+		camera = {
+			{ t = 0, pos = Vector3.new(0, 1.4, 10), look = Vector3.new(0, 0.3, 0), fov = 55 },
+			{ t = 2.1, pos = Vector3.new(0, 0.9, 6.6), look = Vector3.new(0, 0.2, 0), fov = 50 },
+			-- Golpe de cámara al estallar.
+			{ t = 2.25, pos = Vector3.new(0.3, 0.5, 5.4), look = Vector3.new(0, 0.4, 0), fov = 64 },
+			-- La mascota sube solo hasta ~1,5 sobre el centro del huevo: la cámara se queda cerca y mira bajo.
+			{ t = 2.9, pos = Vector3.new(1.0, 0.4, 8.0), look = Vector3.new(0, 1.5, 0), fov = 56 },
+			{ t = 4.8, pos = Vector3.new(-1.2, 0.6, 8.5), look = Vector3.new(0, 1.8, 0), fov = 54 },
+			{ t = 6.6, pos = Vector3.new(0.4, 0.9, 9), look = Vector3.new(0, 1.9, 0), fov = 52 },
+			{ t = 7, pos = Vector3.new(0.4, 0.9, 9), look = Vector3.new(0, 1.9, 0), fov = 52 },
+		},
+		events = {
+			{ t = 0, kind = "letterbox" },
+			{ t = 0, kind = "eggShake", seconds = 2.2 },
+			{ t = 2.2, kind = "eggBurst" },
+			{ t = 2.2, kind = "petReveal" },
+			{ t = 2.6, kind = "eggAnnounce" },
+		},
+	},
+
 	-- Escena de prueba del motor: un maniquí guerrero camina hacia la cámara delante del jugador.
 	Prueba = {
 		duration = 6,
