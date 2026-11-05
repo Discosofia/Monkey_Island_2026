@@ -337,17 +337,18 @@ local function strap(
 	color: Color3,
 	material: Enum.Material
 )
-	if STEPS.on and material ~= NEON and material ~= GLASS and math.abs(to.Z - from.Z) < 0.0001 then
-		-- Sin giro: en escalones del plano XY (así entra en la malla).
+	if STEPS.on and material ~= NEON and material ~= GLASS then
+		-- Sin giro: en escalones (en XY y, si cambia la Z, también en profundidad), así entra en la malla.
 		local steps = math.max(3, math.round((to - from).Magnitude / 0.12))
-		local dx, dy = math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps
+		local dx, dy, dz =
+			math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps, math.abs(to.Z - from.Z) / steps
 		for index = 0, steps - 1 do
 			local centre = from:Lerp(to, (index + 0.5) / steps)
 			make.block(
-				Vector3.new(dx + thickness * 0.5, dy + thickness * 0.5, thickness),
+				Vector3.new(dx + thickness * 0.5, dy + thickness * 0.5, math.max(thickness, dz + thickness * 0.5)),
 				color,
 				material,
-				CFrame.new(centre.X, centre.Y, from.Z)
+				CFrame.new(centre)
 			)
 		end
 		return
@@ -388,7 +389,7 @@ local function band(
 		Vector3.new(size.X + grow, height, size.Z + grow),
 		color,
 		material,
-		CFrame.new(0, y, 0) * CFrame.Angles(tilt or 0, 0, 0)
+		CFrame.new(0, y, 0) * CFrame.Angles(if STEPS.on then 0 else tilt or 0, 0, 0)
 	)
 end
 
@@ -2961,7 +2962,7 @@ local function backTotem(make: Builder, at: CFrame, scale: number)
 			size * scale,
 			color,
 			material,
-			at * CFrame.new(x * scale, y * scale, z * scale) * CFrame.Angles(0, 0, tilt or 0)
+			at * CFrame.new(x * scale, y * scale, z * scale) * CFrame.Angles(0, 0, if STEPS.on then 0 else tilt or 0)
 		)
 	end
 	block(Vector3.new(0.46, 0.56, 0.38), TOTEM_WOOD, WOOD, 0, 0.28, 0)
@@ -3021,6 +3022,20 @@ local function healerBandolier(body: Body)
 	for index = 0, herbs - 1 do
 		local angle = -1.05 + index * 2.1 / (herbs - 1)
 		local length = 1.2 - math.abs(angle) * 0.3
+		if STEPS.on then
+			local zz = 0.02 * (index % 2)
+			stairs(
+				make,
+				(tie * CFrame.new(0, 0.05, zz)).Position,
+				(tie * CFrame.new(math.sin(angle) * (length + 0.05), math.cos(angle) * (length + 0.05), zz)).Position,
+				0.56,
+				0.05,
+				greens[index % 3 + 1],
+				SMOOTH,
+				math.max(4, math.round(length / 0.18))
+			)
+			continue
+		end
 		make.block(
 			Vector3.new(0.28, length, 0.05),
 			greens[index % 3 + 1],
@@ -3033,7 +3048,7 @@ local function healerBandolier(body: Body)
 			Vector3.new(0.04, 0.42, 0.04),
 			LEAF_DARK,
 			SMOOTH,
-			tie * CFrame.Angles(0, 0, index * 0.25) * CFrame.new(0, -0.2, 0.03)
+			tie * CFrame.Angles(0, 0, if STEPS.on then 0 else index * 0.25) * CFrame.new(0, -0.2, 0.03)
 		)
 	end
 	make.ball(0.22, FIBER, FABRIC, tie * CFrame.new(0, 0, 0.04))
@@ -3063,7 +3078,13 @@ local function healerBandolier(body: Body)
 	local mortar = CFrame.new(-hipWidth * 0.32, -0.16, beltFront - 0.14)
 	waist.rod(0.24, 0.36, STONE, SLATE, mortar * UPRIGHT)
 	waist.rod(0.04, 0.27, SKULL_HOLE, SMOOTH, mortar * CFrame.new(0, 0.11, 0) * UPRIGHT)
-	waist.rod(0.38, 0.08, BONE, SMOOTH, mortar * CFrame.new(0.06, 0.22, 0) * CFrame.Angles(0, 0, math.rad(70)))
+	waist.rod(
+		0.38,
+		0.08,
+		BONE,
+		SMOOTH,
+		mortar * CFrame.new(0.06, 0.22, 0) * CFrame.Angles(0, 0, math.rad(if STEPS.on then 90 else 70))
+	)
 
 	for side = -1, 1, 2 do
 		-- Vendas de lino en los antebrazos y una hoja atada en cada brazo.
@@ -3094,6 +3115,24 @@ local function healerBandolier(body: Body)
 			LEATHER,
 			LEATHER_MATERIAL,
 			CFrame.new(0, ls.Y * 0.19, -(ls.Z / 2 + 0.05))
+		)
+	end
+	if STEPS.on then
+		mageDetail(
+			body,
+			{
+				main = LINEN,
+				dark = LEATHER,
+				accent = PAINT_WHITE,
+				material = FABRIC,
+				frontZ = 0.1,
+				backZ = 0.1,
+				padY = 0.18,
+				padWide = 0.4,
+				padStud = 0.28,
+				fringeZ = 0.36,
+				fringeY = 0.02,
+			}
 		)
 	end
 end
@@ -3250,6 +3289,24 @@ local function healerPlastron(body: Body)
 				* CFrame.Angles(0, 0, side * 0.3)
 		)
 	end
+	if STEPS.on then
+		mageDetail(
+			body,
+			{
+				main = BONE,
+				dark = BONE_DARK,
+				accent = LEATHER,
+				material = SMOOTH,
+				frontZ = 0.12,
+				backZ = 0.14,
+				padY = 0.18,
+				padWide = 0.4,
+				padStud = 0.28,
+				fringeZ = 0.36,
+				fringeY = 0.02,
+			}
+		)
+	end
 end
 
 local function silverHealer(body: Body)
@@ -3386,7 +3443,8 @@ local function silverHealer(body: Body)
 		-- Faldón de pelaje plateado en el muslo con el bajo de plata y una hoja.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06))
+			* CFrame.Angles(if STEPS.on then 0 else 0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
 		local flapHem =
 			leg.block(Vector3.new(ls.X * 0.9 + 0.04, 0.07, 0.12), SILVER, METAL, flap * CFrame.new(0, -ls.Y * 0.2, 0))
@@ -3396,6 +3454,24 @@ local function silverHealer(body: Body)
 			0.46,
 			LEAF,
 			flap * CFrame.new(side * 0.1, -0.05, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
+		)
+	end
+	if STEPS.on then
+		mageDetail(
+			body,
+			{
+				main = SILVER_FUR,
+				dark = SILVER_FUR_DARK,
+				accent = PAINT_WHITE,
+				material = FABRIC,
+				frontZ = 0.13,
+				backZ = 0.23,
+				padY = 0.46,
+				padWide = 0.1,
+				padStud = 0.17,
+				fringeZ = 0.25,
+				fringeY = 0.09,
+			}
 		)
 	end
 end
@@ -4845,7 +4921,7 @@ local function sulfurMantle(body: Body)
 
 	for side = -1, 1, 2 do
 		local arm = body.upperArm[side]
-		lavaPauldron(arm, side, ASH, FABRIC, "sulfur")
+		lavaPauldron(arm, side, ASH, FABRIC, "sulfur", STEPS.on)
 		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, SULFUR, SMOOTH)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
@@ -4865,6 +4941,24 @@ local function sulfurMantle(body: Body)
 		local leg = body.upperLeg[side]
 		local flap = lavaFlap(leg, side, ASH_DARK, FABRIC, SULFUR, SMOOTH)
 		herbPouch(leg, flap * CFrame.new(side * 0.05, 0, -0.12), LEAF)
+	end
+	if STEPS.on then
+		mageDetail(
+			body,
+			{
+				main = ASH,
+				dark = BASALT_DARK,
+				accent = SULFUR,
+				material = SMOOTH,
+				frontZ = 0.13,
+				backZ = 0.35,
+				padY = nil,
+				padWide = 0.4,
+				padStud = 0.28,
+				fringeZ = 0.36,
+				fringeY = 0.02,
+			}
+		)
 	end
 end
 

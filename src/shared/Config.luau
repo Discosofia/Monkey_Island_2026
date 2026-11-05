@@ -2452,11 +2452,16 @@ local Config = {
 			BoneArmor_Cazador = { ArmorPieces = 350 },
 			SilverArmor_Cazador = { ArmorPieces = 420 },
 			VolcanicArmor_Cazador = { ArmorPieces = 520 },
+			-- Médicos con malla (Q6e): topes de la versión de bloques (la de respaldo); en juego quedan 17, 26, 53 y 132 piezas.
+			FurVest_Medico = { ArmorPieces = 290 },
+			BoneArmor_Medico = { ArmorPieces = 290 },
+			SilverArmor_Medico = { ArmorPieces = 440 },
+			VolcanicArmor_Medico = { ArmorPieces = 480 },
 			-- Magos con malla (Q6d): topes de la versión de bloques (la de respaldo); en juego quedan 20, 65, 118 y 183 piezas.
 			FurVest_Mago = { ArmorPieces = 240 },
 			BoneArmor_Mago = { ArmorPieces = 250 },
 			SilverArmor_Mago = { ArmorPieces = 290 },
-			VolcanicArmor_Mago = { ArmorPieces = 440 },
+			VolcanicArmor_Mago = { ArmorPieces = 450 },
 			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
 			SilverArmor_Guerrero = { ArmorPieces = 260 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
 			VolcanicArmor_Guerrero = { ArmorPieces = 510 }, -- Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)

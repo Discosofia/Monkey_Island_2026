@@ -4930,6 +4930,21 @@ Manto de amuletos (14 mallas, 2.650 triángulos), túnica de runas (12, 1.922 + 
 5. [ ] Comprueba Guerrero, Cazador y Médico con estas armaduras.
    ✅ Guerrero y Cazador igual que antes (con malla); Médico en bloques sin cambios.
 
+## 132. Fase 20 Q6e: Médico de los cuatro rangos con malla (05-11-2026)
+
+Bandolera de curandero (12 mallas, 3.370 triángulos), peto de curandero (16, 2.054), manto de sanador (14, 3.776) y manto de azufre (16, 3.334); sueltos: frascos de vidrio, gemas de neón y los cristales de azufre. Con malla, las vendas de los antebrazos, las correas de la mochila, el tótem sanador y el abanico de hierbas van sin giros, y llevan el detalle pintado del Mago (`mageDetail`); la volcánica usa las hombreras ricas. Con esto **las 16 armaduras de rol tienen malla**. Probado en Edit con un avatar normal y otro ancho. Sin probar en Play.
+
+### 132.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Consigue cada armadura de Médico y mírate de espaldas y de frente.
+   ✅ Se ven con malla (hierbas, mochila con frascos, tótem sanador, racimo de azufre) y sin parpadeos ni piezas fuera de sitio.
+2. [ ] Cura a un compañero con las cuatro puestas, de noche.
+   ✅ Los frascos y las gemas brillan en verde (la curación); el azufre brilla en amarillo y la llama de las hombreras echa humo.
+3. [ ] Entra y mira la armadura en los primeros segundos.
+   ✅ Sale en bloques y pasa sola a malla al cargar.
+4. [ ] Comprueba que las 16 armaduras de rol (4 roles × 4 rangos) se ven bien con otro jugador de distinto tamaño.
+   ✅ Le quedan ajustadas al torso, brazos y muslos; nada flota ni atraviesa.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
