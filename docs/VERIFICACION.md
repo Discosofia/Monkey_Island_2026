@@ -4991,20 +4991,22 @@ Hombreras propias rediseñadas y cuerpos rediseñados de los cuatro Míticos, to
 10. [ ] Entra con un avatar de brazos finos o de proporciones distintas a las de referencia (en Play, con el tuyo: brazo de 0,57 × 1,09 × 0,78) y mira cada traje y cada armadura con malla de espaldas y de cerca.
    ✅ Las piezas sueltas (ojos del ídolo del Rey Gorila, ojos y garras del Jaguar, plumas de la Serpiente, puntos de luz) siguen pegadas a la malla, sin separarse, enterrarse ni dejar huecos en las hombreras. (`wear` diseña contra el tamaño de referencia y escala las piezas sueltas con el mismo factor que la malla; se probó en Edit con esas medidas.)
 
-## 135. Fase 20 Q7a: Bastón de lava con malla (05-11-2026)
+## 135. Fase 20 Q7a: las 4 armas de forja de rango IV con malla (05-11-2026)
 
 Piloto de armas con malla. El Bastón de lava (rango IV de la forja del Mago) se rehízo con escalones: asta de basalto con nudos, empuñadura de cuero con vueltas de cuerda, púas de obsidiana en escalones, garras en cruz y púas diagonales, sin cuñas ni cilindros. Con malla van 69 bloques (`Handle_Hard` 61 y `Handle_Soft` 8, 1.260 triángulos); las 57 piezas que arden (grietas, bandas, gotas, gemas, anillo de fuego, cristal) siguen sueltas. Herramientas nuevas: `Mallas.volcarArma`, `tools/arma.py`, `Data/WeaponMeshes` y `Meshing` en `WeaponTools` (carga asíncrona; la herramienta sale en bloques y se reconstruye al llegar la malla, soltándola y volviéndola a coger si va en la mano). Probado en Edit: malla y bloques coinciden de frente y de espaldas, y con dos avatares con el arma en la mano (fino 0,8 × 1,1 × 1,0 y ancho 1,3 × 1,0 × 1,3) la reconstrucción mantiene el arma equipada. Sin probar en Play.
 
+También con malla y rediseñadas con escalones (cuñas y cilindros pasan a bloques; el neón sigue suelto): la **Maza volcánica** (117 bloques en malla, 1.532 triángulos; 149 piezas pasan a 34), el **Arco de brasas** (114 bloques, 1.440 triángulos; 158 a 46) y la **Cerbatana de azufre** (106 bloques, 1.596 triángulos; 141 a 37; los cristales de azufre ya son opacos con la punta que brilla). Probado en Edit: malla y bloques coinciden de frente, de espaldas y de perfil, y con dos avatares (0,8 × 1,1 × 1,0 y 1,3 × 1,0 × 1,3) la reconstrucción al llegar la malla mantiene cada arma equipada. `Rendimiento` sigue midiendo la versión de bloques hasta M4.
+
 ### Se prueba en Play, en la Isla
-1. [ ] Como Mago, fabrica el Bastón de lava (rango IV) o dátelo con los comandos de depuración y equípalo.
-   ✅ Sale con la forma escalonada y, en unos segundos, pasa a malla sin soltarse de la mano; no queda un instante sin arma.
-2. [ ] Míralo de frente, de espaldas y de cerca, con el cristal brillando.
-   ✅ Las garras, las púas y las grietas de lava se leen; el neón (grietas, bandas, anillo de fuego) queda pegado al asta, sin separarse.
+1. [ ] Fabrica (o dátelas con los comandos de depuración) y equipa las cuatro armas de rango IV: Bastón de lava (Mago), Maza volcánica (Guerrero), Arco de brasas (Cazador) y Cerbatana de azufre (Médico).
+   ✅ Cada una sale con la forma escalonada y, en unos segundos, pasa a malla sin soltarse de la mano; no queda un instante sin arma.
+2. [ ] Míralas de frente, de espaldas y de cerca.
+   ✅ Se leen las garras y púas escalonadas, las grietas de lava, el marco y los tachones de la Maza, las palas escalonadas del Arco y los racimos de azufre de la Cerbatana; el neón queda pegado al arma, sin separarse.
 3. [ ] Juega con un avatar de brazos finos (0,57 × 1,09 × 0,78) y otro ancho y hondo.
-   ✅ El bastón sale de la mano en el mismo sitio que antes y no atraviesa el brazo.
-4. [ ] Dispara con él y cambia de arma varias veces en el momento de entrar.
+   ✅ Cada arma sale de la mano en el mismo sitio que antes y no atraviesa el brazo.
+4. [ ] Pega y dispara con cada una (el arco y la cerbatana salen de su punta) y cambia de arma varias veces nada más entrar.
    ✅ Sin parpadeos, sin armas duplicadas en la mochila ni errores en la Salida.
-5. [ ] Mira el bastón en el Armario y en la tienda (vista previa) y en el Lobby con `WeaponLook`.
+5. [ ] Mira las armas en el Armario y en la tienda (vista previa) y en el Lobby con `WeaponLook`.
    ✅ Se ve con la forma nueva, en bloques o malla, sin errores.
 
 ## Cuando termines
