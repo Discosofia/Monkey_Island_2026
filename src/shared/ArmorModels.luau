@@ -3118,22 +3118,19 @@ local function healerBandolier(body: Body)
 		)
 	end
 	if STEPS.on then
-		mageDetail(
-			body,
-			{
-				main = LINEN,
-				dark = LEATHER,
-				accent = PAINT_WHITE,
-				material = FABRIC,
-				frontZ = 0.1,
-				backZ = 0.1,
-				padY = 0.18,
-				padWide = 0.4,
-				padStud = 0.28,
-				fringeZ = 0.36,
-				fringeY = 0.02,
-			}
-		)
+		mageDetail(body, {
+			main = LINEN,
+			dark = LEATHER,
+			accent = PAINT_WHITE,
+			material = FABRIC,
+			frontZ = 0.1,
+			backZ = 0.1,
+			padY = 0.18,
+			padWide = 0.4,
+			padStud = 0.28,
+			fringeZ = 0.36,
+			fringeY = 0.02,
+		})
 	end
 end
 
@@ -3290,22 +3287,19 @@ local function healerPlastron(body: Body)
 		)
 	end
 	if STEPS.on then
-		mageDetail(
-			body,
-			{
-				main = BONE,
-				dark = BONE_DARK,
-				accent = LEATHER,
-				material = SMOOTH,
-				frontZ = 0.12,
-				backZ = 0.14,
-				padY = 0.18,
-				padWide = 0.4,
-				padStud = 0.28,
-				fringeZ = 0.36,
-				fringeY = 0.02,
-			}
-		)
+		mageDetail(body, {
+			main = BONE,
+			dark = BONE_DARK,
+			accent = LEATHER,
+			material = SMOOTH,
+			frontZ = 0.12,
+			backZ = 0.14,
+			padY = 0.18,
+			padWide = 0.4,
+			padStud = 0.28,
+			fringeZ = 0.36,
+			fringeY = 0.02,
+		})
 	end
 end
 
@@ -3457,22 +3451,19 @@ local function silverHealer(body: Body)
 		)
 	end
 	if STEPS.on then
-		mageDetail(
-			body,
-			{
-				main = SILVER_FUR,
-				dark = SILVER_FUR_DARK,
-				accent = PAINT_WHITE,
-				material = FABRIC,
-				frontZ = 0.13,
-				backZ = 0.23,
-				padY = 0.46,
-				padWide = 0.1,
-				padStud = 0.17,
-				fringeZ = 0.25,
-				fringeY = 0.09,
-			}
-		)
+		mageDetail(body, {
+			main = SILVER_FUR,
+			dark = SILVER_FUR_DARK,
+			accent = PAINT_WHITE,
+			material = FABRIC,
+			frontZ = 0.13,
+			backZ = 0.23,
+			padY = 0.46,
+			padWide = 0.1,
+			padStud = 0.17,
+			fringeZ = 0.25,
+			fringeY = 0.09,
+		})
 	end
 end
 
@@ -4943,22 +4934,19 @@ local function sulfurMantle(body: Body)
 		herbPouch(leg, flap * CFrame.new(side * 0.05, 0, -0.12), LEAF)
 	end
 	if STEPS.on then
-		mageDetail(
-			body,
-			{
-				main = ASH,
-				dark = BASALT_DARK,
-				accent = SULFUR,
-				material = SMOOTH,
-				frontZ = 0.13,
-				backZ = 0.35,
-				padY = nil,
-				padWide = 0.4,
-				padStud = 0.28,
-				fringeZ = 0.36,
-				fringeY = 0.02,
-			}
-		)
+		mageDetail(body, {
+			main = ASH,
+			dark = BASALT_DARK,
+			accent = SULFUR,
+			material = SMOOTH,
+			frontZ = 0.13,
+			backZ = 0.35,
+			padY = nil,
+			padWide = 0.4,
+			padStud = 0.28,
+			fringeZ = 0.36,
+			fringeY = 0.02,
+		})
 	end
 end
 
@@ -8445,95 +8433,100 @@ do
 	-- Paleta de la llama en píxeles (pixelFlame): fuego azul por fuera, celeste y el corazón casi blanco.
 	local BLUE_FLAME: { [string]: Color3 } = { X = BLUE_FIRE, C = BLUE_FIRE_MID, W = BLUE_FIRE_PALE }
 
-	-- Hombrera del fuego azul: losa de pómez inclinada hacia fuera con una piedra encima, canto de carbón y
-	-- una raya de fuego azul debajo; tres cristales de azufre grandes alrededor de una llama en píxeles que,
-	-- con "lit", echa fuego.
+	-- Hombrera del fuego azul: tres láminas de pómez que bajan hacia fuera (la de abajo, con el canto de
+	-- carbón y la raya de fuego azul), una cresta de carbón en dos mitades con la llama en píxeles en el hueco,
+	-- y cristales de azufre. Con STEPS.on (malla) no hay giros: el bajar de las láminas lo hace el escalón.
+	-- Por grados: 1, las láminas, la cresta, remaches; 2, gotas azules bajo la lámina de abajo y la
+	-- corona de cristales; 3, el cuerno de azufre hacia fuera y la aleta de carbón de detrás (lo que se ve de
+	-- espaldas); 4, la llama echa fuego y salen dos cristales altos y una chispa.
 	local function blueFirePauldron(arm: Builder, side: number, grade: number)
 		local lit = grade >= 4
 		local as = arm.size
 		local top = as.Y / 2
-		local pad = CFrame.new(side * 0.14, top + 0.08, 0) * CFrame.Angles(0, 0, -side * 0.22)
-		arm.block(Vector3.new(as.X * 1.5, 0.42, as.Z * 1.5), PUMICE, SLATE, pad)
-		arm.block(Vector3.new(as.X * 1.58, 0.1, as.Z * 1.58), CHARCOAL, SLATE, pad * CFrame.new(0, -0.25, 0))
-		arm.block(
-			Vector3.new(as.X * 1.58 + 0.04, 0.05, as.Z * 1.58 + 0.04),
-			BLUE_FIRE,
-			NEON,
-			pad * CFrame.new(0, -0.32, 0)
-		)
-		arm.block(Vector3.new(as.X * 0.8, 0.18, as.Z * 1.1), PUMICE_DARK, SLATE, pad * CFrame.new(side * 0.16, 0.3, 0))
-		for index, spec in
-			{
-				{ x = 0.22, z = -0.34, length = 0.62 },
-				{ x = 0.36, z = 0.05, length = 0.5 },
-				{ x = 0.2, z = 0.36, length = 0.74 },
-			}
-		do
-			fireCrystal(
-				arm,
-				Vector3.new(side * spec.x, top + 0.34, spec.z),
-				Vector3.new(side * (0.3 + spec.x), 1, spec.z * 0.9),
-				spec.length,
-				if index == 3 then 0.32 else 0.28,
-				SULFUR,
-				SULFUR_GLOW
-			)
+		local W, D = as.X, as.Z
+		local droop = if STEPS.on then 0 else -side * 0.14
+		local lames = {
+			{ w = 1.35, depth = 1.45, y = 0.32, out = 0.04, color = PUMICE },
+			{ w = 1.6, depth = 1.55, y = 0.12, out = 0.14, color = PUMICE_DARK },
+			{ w = 1.85, depth = 1.65, y = -0.08, out = 0.25, color = PUMICE },
+		}
+		for index, lame in lames do
+			local at = CFrame.new(side * lame.out, top + lame.y, 0) * CFrame.Angles(0, 0, droop)
+			local size = Vector3.new(W * lame.w, 0.2, D * lame.depth)
+			arm.block(size, lame.color, SLATE, at)
+			arm.block(Vector3.new(size.X + 0.06, 0.06, size.Z + 0.06), CHARCOAL, SLATE, at * CFrame.new(0, -0.12, 0))
+			if index == 3 then
+				arm.block(Vector3.new(size.X + 0.1, 0.04, size.Z + 0.1), BLUE_FIRE, NEON, at * CFrame.new(0, -0.17, 0))
+			end
 		end
-		local foot = pixelFlame(arm, SMALL_FLAME, BLUE_FLAME, CFrame.new(side * 0.02, top + 0.36, 0), 0.12, side < 0)
+		local crest = CFrame.new(side * 0.1, top + 0.58, 0)
+		for sz = -1, 1, 2 do
+			arm.block(Vector3.new(0.24, 0.3, D * 0.5), CHARCOAL, SLATE, crest * CFrame.new(0, 0, sz * D * 0.62))
+			arm.block(Vector3.new(0.14, 0.08, D * 0.4), PUMICE_DARK, SLATE, crest * CFrame.new(0, 0.18, sz * D * 0.62))
+		end
+		local foot = pixelFlame(arm, SMALL_FLAME, BLUE_FLAME, CFrame.new(side * 0.06, top + 0.44, 0), 0.12, side < 0)
 		if lit then
 			blueFire(foot, 5, 0.5)
 			smoke(foot, 1.5, Color3.fromRGB(150, 160, 190), 0.5)
 		end
-		-- Grado 1: remaches de azufre en las cuatro esquinas de la losa y dos grabados de carbón en sus bordes.
-		for sz = -1, 1, 2 do
-			for sx = -1, 1, 2 do
-				arm.ball(0.12, SULFUR, SMOOTH, pad * CFrame.new(sx * as.X * 0.72, 0.24, sz * as.Z * 0.72))
-			end
-			arm.block(Vector3.new(as.X * 1.3, 0.04, 0.1), CHARCOAL, SLATE, pad * CFrame.new(0, 0.23, sz * as.Z * 0.66))
+		-- Grado 1: remaches de azufre en las dos esquinas de delante de la lámina de arriba.
+		for sx = -1, 1, 2 do
+			arm.ball(0.12, SULFUR, SMOOTH, CFrame.new(side * 0.04 + sx * W * 0.62, top + 0.46, -D * 0.64))
 		end
-		-- Grado 2: tres gotas de fuego azul que cuelgan del canto de fuera y un cristal que sale hacia fuera.
+		-- Grado 2: gotas de fuego azul bajo la lámina de abajo y dos cristales de azufre sobre la cresta.
 		if grade >= 2 then
 			for _, z in { -0.5, 0, 0.5 } do
 				lavaDrip(
 					arm,
-					pad * CFrame.new(side * as.X * 0.76, -0.34, z * as.Z),
-					0.3 - math.abs(z) * 0.1,
+					CFrame.new(side * (0.25 + W * 0.55), top - 0.2, z * D),
+					0.32 - math.abs(z) * 0.2,
 					BLUE_FIRE_MID
 				)
 			end
-			fireCrystal(
-				arm,
-				(pad * CFrame.new(side * as.X * 0.7, 0.2, 0)).Position,
-				pad:VectorToWorldSpace(Vector3.new(side, 0.7, 0)),
-				0.5,
-				0.2,
-				SULFUR,
-				SULFUR_GLOW
-			)
-		end
-		-- Grado 3: aleta de carbón en el borde de fuera con una raya de fuego azul y tres remaches.
-		if grade >= 3 then
-			local fin = pad * CFrame.new(side * as.X * 0.8, 0.3, 0) * CFrame.Angles(0, 0, -side * 0.2)
-			arm.block(Vector3.new(0.1, 0.45, as.Z * 1.2), CHARCOAL, SLATE, fin)
-			arm.block(Vector3.new(0.04, 0.3, as.Z * 0.9), BLUE_FIRE, NEON, fin * CFrame.new(side * 0.06, -0.05, 0))
-			for _, z in { -1, 0, 1 } do
-				arm.ball(0.1, SULFUR, SMOOTH, fin * CFrame.new(side * 0.08, 0.14, z * as.Z * 0.5))
-			end
-		end
-		-- Grado 4: dos cristales altos en las esquinas de dentro y una chispa que sube sobre la llama.
-		if lit then
-			for sz = -1, 1, 2 do
+			for _, z in { -0.55, 0.55 } do
 				fireCrystal(
 					arm,
-					(pad * CFrame.new(side * as.X * 0.5, 0.2, sz * as.Z * 0.62)).Position,
-					pad:VectorToWorldSpace(Vector3.new(side * 0.4, 1, sz * 0.5)),
-					0.9,
-					0.26,
+					Vector3.new(side * 0.1, top + 0.72, z * D),
+					Vector3.new(side * 0.4, 1, z * 0.8),
+					0.7,
+					0.24,
 					SULFUR,
 					SULFUR_GLOW
 				)
 			end
-			arm.ball(0.1, BLUE_FIRE_PALE, NEON, CFrame.new(side * 0.02, top + 1.3, 0))
+		end
+		-- Grado 3: cuerno de azufre hacia fuera y aleta de carbón detrás con raya azul y tres remaches.
+		if grade >= 3 then
+			fireCrystal(
+				arm,
+				Vector3.new(side * (W * 0.95 + 0.25), top - 0.04, 0),
+				Vector3.new(side, 0.55, 0),
+				1,
+				0.34,
+				SULFUR,
+				SULFUR_GLOW
+			)
+			local fin = CFrame.new(side * 0.2, top + 0.18, D * 0.9)
+			arm.block(Vector3.new(W * 1.3, 0.6, 0.1), CHARCOAL, SLATE, fin)
+			arm.block(Vector3.new(W * 1.0, 0.05, 0.04), BLUE_FIRE, NEON, fin * CFrame.new(0, 0.1, 0.07))
+			for _, x in { -0.4, 0, 0.4 } do
+				arm.ball(0.1, SULFUR, SMOOTH, fin * CFrame.new(x * W, -0.18, 0.08))
+			end
+		end
+		-- Grado 4: dos cristales altos detrás de la cresta y una chispa sobre la llama.
+		if lit then
+			for sz = -1, 1, 2 do
+				fireCrystal(
+					arm,
+					Vector3.new(side * 0.2, top + 0.6, sz * D * 0.86),
+					Vector3.new(side * 0.5, 1, sz * 0.5),
+					1.1,
+					0.28,
+					SULFUR,
+					SULFUR_GLOW
+				)
+			end
+			arm.ball(0.1, BLUE_FIRE_PALE, NEON, CFrame.new(side * 0.06, top + 1.4, 0))
 		end
 	end
 
