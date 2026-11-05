@@ -10450,6 +10450,21 @@ function ArmorModels.preload(armorId: string?, roleId: string?, outfitId: string
 	end
 end
 
+-- Estado de las mallas de lo que se vestirá: "none" si no tiene entrada, "ready", "failed" o "loading" (como
+-- WeaponTools.meshStatus). Lo usa la calculadora Rendimiento.
+function ArmorModels.meshStatus(armorId: string?, roleId: string?, outfitId: string?, grade: number?): string
+	local entry = Meshing.find(armorId, roleId, outfitId, grade)
+	if not entry then
+		return "none"
+	end
+	for _, group in entry.groups do
+		if Meshing.failed[group.mesh] then
+			return "failed"
+		end
+	end
+	return if Meshing.isReady(entry) then "ready" else "loading"
+end
+
 function ArmorModels.hasOutfit(outfitId: string): boolean
 	return OUTFITS[outfitId] ~= nil
 end

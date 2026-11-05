@@ -15,6 +15,10 @@
 -- Límite: los módulos que se piden por ReplicatedStorage.Shared (WeaponTools, ArmorModels, LabWeaponModels…) leen
 -- esa carpeta y no la copia; si un cambio suyo no se ve, vuelve a abrir el place (es la caché de require).
 --
+-- Mallas con textura (Fase 20/21, M4): la sección 0 pide todas las mallas de Data/*Meshes (armas, armaduras, trajes,
+-- mascotas y monturas), espera a que carguen y avisa de las que no; así las secciones 1 a 4, 6 y 8 miden las
+-- MeshPart que se ven en el juego y no los bloques de respaldo. informe({ mallas = false }) mide los bloques.
+--
 -- Lo que mide (cada fila: piezas ahora · piezas tras fusionar · presupuesto · piezas "Detalle" que quedan):
 --   1. Armas de la forja (WeaponTools) y los aspectos de arma de rol y de familia.
 --   2. Armaduras por rango y rol, y los trajes (ArmorModels, sobre un R15 falso hecho de Parts).
@@ -49,6 +53,9 @@ local OPCIONES_BASE = {
 	filtro = nil :: string?,
 	-- true: al final del informe, la tabla de monos y jefes lista para pegar en RendimientoBase.luau.
 	foto = false,
+	-- true: pide las mallas con textura y espera a que carguen antes de medir (sección 0). false: mide los bloques de
+	-- respaldo, como antes de M4 (para comparar).
+	mallas = true,
 	secciones = {
 		armas = true,
 		armaduras = true,
@@ -262,6 +269,10 @@ local function r15Falso(): Model
 	return personaje
 end
 
+-- Triángulos de cada malla con textura, por MeshId (lo rellena «cargarTriangulosMallas» con el campo `triangles` de
+-- Data/WeaponMeshes, ArmorMeshes, PetMeshes, MountMeshes y BossMeshes, que sale del manifiesto de tools/mallas.py).
+local TRIS_MALLA: { [string]: number } = {}
+
 -- Triángulos que dibuja un modelo (los de las piezas visibles): las uniones y mallas, su TriangleCount; las demás
 -- piezas, la estimación de LIMITES.triangulos. Si una unión no deja leer TriangleCount, se cuenta como sus bloques de
 -- diseño (atributo DesignBlocks) a 12 cada uno, que es de más.
@@ -269,6 +280,10 @@ local function trisPieza(parte: Instance): number
 	local T = LIMITES.triangulos
 	if not parte:IsA("BasePart") or parte.Transparency >= 1 then
 		return 0
+	end
+	if parte:IsA("MeshPart") and TRIS_MALLA[parte.MeshId] then
+		-- Una malla con textura de Data/*Meshes: MeshPart no deja leer TriangleCount, así que se toma del manifiesto.
+		return TRIS_MALLA[parte.MeshId]
 	end
 	if parte:FindFirstChildOfClass("SpecialMesh") then
 		return T.mallaEspecial
@@ -439,6 +454,144 @@ local function main(copia: Instance): string
 		`Fusión: {if B.Merge then "activada" else "desactivada"} (Config.Budgets.Merge). "Tras fusionar" se mide siempre.`
 	)
 	linea("")
+
+	-- Triángulos de cada malla (MeshPart no deja leer TriangleCount): el campo `triangles` de los Data/*Meshes.
+	table.clear(TRIS_MALLA)
+	local function anotarMallas(grupos: { [string]: any })
+		for _, grupo in grupos do
+			if grupo.mesh ~= "" and typeof(grupo.triangles) == "number" then
+				TRIS_MALLA[grupo.mesh] = grupo.triangles
+			end
+		end
+	end
+	for _, entrada in (require(Data.WeaponMeshes) :: any).Weapon do
+		anotarMallas(entrada.groups)
+	end
+	for _, roles in (require(Data.ArmorMeshes) :: any).Armor do
+		for _, entrada in roles do
+			anotarMallas(entrada.groups)
+		end
+	end
+	for _, grados in (require(Data.ArmorMeshes) :: any).Outfit do
+		for _, entrada in grados do
+			anotarMallas(entrada.groups)
+		end
+	end
+	for _, nombre in { "PetMeshes", "MountMeshes", "BossMeshes" } do
+		for _, entrada in require(Data[nombre]) :: any do
+			anotarMallas(entrada.parts)
+		end
+	end
+
+	-- ---------------------------------- 0. Mallas con textura ----------------------------------
+	-- Las armas, armaduras, trajes, mascotas y monturas con malla (Data/*Meshes) salen en bloques mientras las mallas no
+	-- han cargado. Se piden todas antes de medir y se espera a que lleguen; las que no, se avisan y se miden en bloques.
+	seccion("## 0. Mallas con textura", OPCIONES.mallas, function()
+		local WeaponTools = require(copia.WeaponTools) :: any
+		local ArmorModels = require(copia.ArmorModels) :: any
+		local PetModels = require(copia.PetModels) :: any
+		local MountModels = require(copia.MountModels) :: any
+		local WeaponMeshes = require(Data.WeaponMeshes) :: any
+		local ArmorMeshes = require(Data.ArmorMeshes) :: any
+		local PetMeshes = require(Data.PetMeshes) :: any
+		local MountMeshes = require(Data.MountMeshes) :: any
+
+		-- Cada elemento: grupo, nombre y cómo preguntar su estado ("ready" | "loading" | "failed" | "none").
+		local pedidos: { { grupo: string, nombre: string, estado: () -> string } } = {}
+		local function pedir(grupo: string, nombre: string, preload: () -> (), estado: () -> string)
+			preload()
+			table.insert(pedidos, { grupo = grupo, nombre = nombre, estado = estado })
+		end
+		for armaId in WeaponMeshes.Weapon do
+			pedir("armas", armaId, function()
+				WeaponTools.preload(armaId)
+			end, function()
+				return WeaponTools.meshStatus(armaId)
+			end)
+		end
+		for armaduraId, roles in ArmorMeshes.Armor do
+			for rol in roles do
+				pedir("armaduras", `{armaduraId} {rol}`, function()
+					ArmorModels.preload(armaduraId, rol)
+				end, function()
+					return ArmorModels.meshStatus(armaduraId, rol)
+				end)
+			end
+		end
+		for trajeId, grados in ArmorMeshes.Outfit do
+			for grado in grados do
+				pedir("trajes", `{trajeId} grado {grado}`, function()
+					ArmorModels.preload(nil, nil, trajeId, grado)
+				end, function()
+					return ArmorModels.meshStatus(nil, nil, trajeId, grado)
+				end)
+			end
+		end
+		for mascotaId in PetMeshes do
+			pedir("mascotas", mascotaId, function()
+				PetModels.preload(mascotaId)
+			end, function()
+				return PetModels.meshStatus(mascotaId)
+			end)
+		end
+		-- Una malla de montura se pide al construirla (build espera a que lleguen, hasta 20 s): se construye una vez y
+		-- se mira si salió con MeshPart. Las siguientes ya las toman de la caché del módulo.
+		for monturaId in MountMeshes do
+			pedir("monturas", monturaId, function() end, function()
+				local modelo = MountModels.build(monturaId)
+				local mallas = 0
+				if modelo then
+					for _, parte in modelo:GetDescendants() do
+						if parte:IsA("MeshPart") then
+							mallas += 1
+						end
+					end
+					modelo:Destroy()
+				end
+				return if mallas > 0 then "ready" else "failed"
+			end)
+		end
+
+		-- Espera: sondea cada 0,5 s hasta 90 s. Las monturas se comprueban una sola vez (su build ya espera).
+		local limite = os.clock() + 90
+		local resultado: { [any]: string } = {}
+		repeat
+			local faltan = false
+			for _, pedido in pedidos do
+				local actual = resultado[pedido]
+				if actual ~= "ready" and actual ~= "failed" then
+					actual = pedido.estado()
+					resultado[pedido] = actual
+					if actual == "loading" then
+						faltan = true
+					end
+				end
+			end
+			if faltan then
+				task.wait(0.5)
+			end
+		until not faltan or os.clock() > limite
+
+		local cuentas: { [string]: { ready: number, mal: number } } = {}
+		for _, pedido in pedidos do
+			local cuenta = cuentas[pedido.grupo] or { ready = 0, mal = 0 }
+			cuentas[pedido.grupo] = cuenta
+			if resultado[pedido] == "ready" then
+				cuenta.ready += 1
+			else
+				cuenta.mal += 1
+				alerta(
+					`Malla sin cargar ({pedido.grupo}): {pedido.nombre} ({resultado[pedido]}). Se mide en bloques; vuelve a ejecutar (las recién importadas tardan en generar la textura).`
+				)
+			end
+		end
+		linea("| Grupo | Con malla cargada | Sin cargar |")
+		linea("|---|---|---|")
+		for _, grupo in { "armas", "armaduras", "trajes", "mascotas", "monturas" } do
+			local cuenta = cuentas[grupo] or { ready = 0, mal = 0 }
+			linea(`| {grupo} | {cuenta.ready} | {cuenta.mal}{if cuenta.mal > 0 then " ⚠️" else ""} |`)
+		end
+	end)
 
 	-- ---------------------------------- 1. Armas de la forja ----------------------------------
 	seccion("## 1. Armas de la forja y sus aspectos", S.armas, function()

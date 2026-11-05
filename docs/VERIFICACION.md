@@ -5009,6 +5009,22 @@ También con malla y rediseñadas con escalones (cuñas y cilindros pasan a bloq
 5. [ ] Mira las armas en el Armario y en la tienda (vista previa) y en el Lobby con `WeaponLook`.
    ✅ Se ve con la forma nueva, en bloques o malla, sin errores.
 
+## 136. Fase 21 M4: Rendimiento cuenta las mallas (05-11-2026)
+
+La calculadora `Rendimiento` pide las mallas de todas las `Data/*Meshes` (armas, armaduras, trajes, mascotas y monturas), espera hasta 90 s y avisa con «Malla sin cargar» de las que no cargan. Los triángulos de cada malla salen del campo `triangles` de su entrada, así que ya no cuenta 12 por pieza. Los topes de `Config.Budgets` bajan a lo medido (armas de forja de rango IV, armaduras, trajes, jefes, monturas y excepciones de piezas de armaduras y trajes; las mascotas pierden casi todas sus excepciones salvo el Jaguar de cristal). Con `informe({ mallas = false })` mide los bloques de respaldo y da alertas, lo esperado. Probado en el Studio de la Isla: sin alertas con las mallas cargadas. Sin probar en Play (§136.2).
+
+### 136.1 En el Studio de la Isla, en edición (con el Clone de Rendimiento)
+
+1. [ ] Ejecuta en la barra de comandos `local m = game.ServerStorage.Tools.Rendimiento:Clone(); print(require(m).informe()); m:Destroy()` y espera hasta que termine (puede tardar más de un minuto mientras carga las mallas).
+   ✅ La sección 0 «Mallas con textura» lista las mallas de armas, armaduras, trajes, mascotas y monturas, sin ninguna «Malla sin cargar», y el informe acaba en la sección Alertas con «Todo dentro de los límites».
+2. [ ] Vuelve a ejecutar con otro Clone: `local m = game.ServerStorage.Tools.Rendimiento:Clone(); print(require(m).informe({ mallas = false })); m:Destroy()`.
+   ✅ Salen alertas de piezas solo en los modelos que se miden con bloques de respaldo (armas, armaduras, trajes, mascotas y monturas), y ninguna de triángulos de malla. Ningún error rojo en la Salida.
+
+### 136.2 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+3. [ ] Dale a ▶ en la Isla, consigue un arma de forja de rango IV y una armadura de rol de rango IV (con los comandos de depuración), equípalas y mira a tu mascota y a una montura si las tienes.
+   ✅ Las mallas siguen cargando como antes: en unos segundos el arma, la armadura, la mascota y la montura pasan de bloques a malla; no sale ningún «Malla sin cargar» ni error de `Meshing` en la Salida, y el juego no cambia (daño, precio y aspecto igual que antes de la Fase 21 M4).
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

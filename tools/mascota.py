@@ -123,6 +123,7 @@ def entrada(pet, manifiesto, ids):
             f'\t\t\t["{grupo}"] = {{',
             f'\t\t\t\tmesh = "{malla}",',
             f'\t\t\t\ttexture = "{textura}",',
+            f"\t\t\t\ttriangles = {manifiesto[grupo]['triangulos']},",
             f"\t\t\t\toffset = Vector3.new({o[0]:.4f}, {o[1]:.4f}, {o[2]:.4f}),",
             "\t\t\t},",
         ]

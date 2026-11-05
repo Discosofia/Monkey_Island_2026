@@ -5626,6 +5626,21 @@ function WeaponTools.preload(weaponId: string)
 	end
 end
 
+-- Estado de las mallas del arma "weaponId" (sin aspecto): "none" si no tiene entrada, "ready" si ya cargaron todas,
+-- "failed" si alguna no cargó y "loading" si aún esperan. Lo usa la calculadora Rendimiento.
+function WeaponTools.meshStatus(weaponId: string): string
+	local entry = Meshing.find(weaponId, nil)
+	if not entry then
+		return "none"
+	end
+	for _, group in entry.groups do
+		if Meshing.failed[group.mesh] then
+			return "failed"
+		end
+	end
+	return if Meshing.isReady(entry) then "ready" else "loading"
+end
+
 -- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol y con el modelo
 -- del nivel "lookLevel" si es mayor (atributo "Look": el arma que se ve, si no es ella).
 local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: number?)

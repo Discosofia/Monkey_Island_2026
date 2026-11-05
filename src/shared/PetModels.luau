@@ -8194,6 +8194,15 @@ function PetModels.preload(petId: string)
 	end
 end
 
+-- Estado de las mallas de la mascota: "none" si no tiene entrada, "ready" si ya cargaron todas o "loading" (una que
+-- falla se queda en "loading": solo avisa con un warn). Lo usa la calculadora Rendimiento.
+function PetModels.meshStatus(petId: string): string
+	if not PetMeshes[petId] then
+		return "none"
+	end
+	return if meshesReady(petId) then "ready" else "loading"
+end
+
 -- Pide las mallas de todas las mascotas que las tienen (al arrancar el cliente, para que no salga la versión de bloques).
 function PetModels.preloadAll()
 	for petId in PetMeshes do

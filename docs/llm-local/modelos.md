@@ -73,6 +73,7 @@
   3. Biseles con cuñas en orejas y hombros: las cuñas no se fusionan, así que cuestan piezas; en monos y jefes el spec solo admite bloques, y ahí se hacen con escalones.
   4. Acentos de material (Neon, Glass, Foil) en piezas sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Sin transparencia parcial ni texturas.
 - Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.
+- `Rendimiento` pide y espera las mallas de `Data/*Meshes` (sección 0) y cuenta sus triángulos con el campo `triangles` de cada entrada; `informe({ mallas = false })` mide los bloques de respaldo.
 - **Mallas con textura (Fase 21, jefes y monturas):** en las monturas, cada hueso es una malla (`Data/MountMeshes`, `Mallas.volcarMontura`); lo fino va pegado a un bloque grueso de su hueso. Si una parte de un jefe está en `Data/BossMeshes`, `MonkeyModels` usa una `MeshPart` (silueta con los bloques ≥ 0,2 studs; los finos, pintados en la textura) en lugar de la unión; se genera con `tools/mallas.py` y se importa con Import 3D. Lo de otro material o por fase sigue siendo unión. El spec en bloques sigue siendo la fuente.
 - Los monos se copian de una plantilla que `MonkeyModels.prewarm` llena al arrancar el servidor; los jefes no se precalientan.
 - **Receta de jefe (Gorila de Ceniza, Fase 20 Q2):** 744 bloques de diseño, 30 piezas, ~11.000 triángulos y 0,49 s de unión. Todo lo nuevo va dentro de la unión de su parte; lo de otro material, en grupos.

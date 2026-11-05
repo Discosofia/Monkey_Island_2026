@@ -1063,7 +1063,8 @@ Medido el 03-11-2026 (sin mapa en el Lobby ni en Dunas, y sin el terreno en ning
 ### 19.5 Flujo de control
 
 1. Cada modelo nuevo o remodelado se mide con `Rendimiento` antes del commit. Si pasa un tope (piezas, bloques de diseño o triángulos), hay una alerta. La columna «Δ tris» y la tabla «Reparto del margen» (§8b) lo comparan con la foto de la línea base (`RendimientoBase`).
-2. `informe({ foto = true })` imprime una foto nueva para pegar en `RendimientoBase.luau` cuando se cierra un grupo.
+2. `Rendimiento` mide las mallas con textura de verdad (M4): su sección 0 pide todas las de `Data/*Meshes` y espera a que carguen, avisa de las que no (alerta «Malla sin cargar», se vuelve a ejecutar) y cuenta sus triángulos con el campo `triangles` de esos datos (`MeshPart` no deja leer `TriangleCount`). Una malla nueva lleva `triangles` en su entrada (lo escriben `armadura.py`, `arma.py`, `mascota.py` y `mallas.py`). `informe({ mallas = false })` mide los bloques de respaldo.
+   `informe({ foto = true })` imprime una foto nueva para pegar en `RendimientoBase.luau` cuando se cierra un grupo.
 3. Vista de frente, de lado y de espalda con `screen_capture` por el MCP, comparada con las referencias de `docs/img`.
 4. Los monos normales se copian de una plantilla que el servidor construye al arrancar. Los jefes se construyen la primera vez que aparecen: con hasta 2.000 bloques de diseño tardan unos 2 s, una vez por jefe y servidor y normalmente con los jugadores en el Basecamp, así que no se precalientan.
 5. Sin prueba en teléfono por ahora (R7 de la Fase 16 sigue pendiente): se confía en la calculadora y en Studio, y los topes se ajustarán cuando haya medición real.

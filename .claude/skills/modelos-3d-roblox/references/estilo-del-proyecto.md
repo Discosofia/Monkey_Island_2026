@@ -464,6 +464,8 @@ lo de otro material, que va en grupos (`groups`): 744 bloques, 30 piezas, ~11.00
   sueltas (`VOXEL_LOOSE` en `MonkeyModels`). Nada de transparencia parcial ni texturas.
 Mide con `informe({ foto = true })`: la columna «Δ tris» compara con `RendimientoBase`.
 
+**Las mallas se miden de verdad (M4).** La sección 0 de `Rendimiento` pide todas las mallas de `Data/*Meshes`, espera a que carguen (hasta 90 s) y avisa de las que no (vuelve a ejecutar: las recién importadas tardan en generar la textura). Los triángulos de una `MeshPart` salen del campo `triangles` de su entrada (`MeshPart` no tiene `TriangleCount`), así que una malla nueva tiene que llevarlo (los scripts de `tools/` lo escriben). `informe({ mallas = false })` mide la versión de bloques de respaldo.
+
 **Mallas con textura (Fase 21, partes del cuerpo de los jefes y huesos de las monturas).** Si una parte tiene entrada en `Data/BossMeshes`,
 `MonkeyModels` usa una `MeshPart` en lugar de la unión de bloques: los bloques gruesos (≥ 0,2 studs) son la silueta y los
 finos (mechones, manchas, capas de piel) se pintan en una textura de 0,05 studs por texel (atlas de hasta 1024×1024 por parte) (el torso del Albino pasa de

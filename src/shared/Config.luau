@@ -2398,18 +2398,18 @@ local Config = {
 	Budgets = {
 		-- Piezas reales por tipo de modelo, contadas DESPUÉS de fusionar (Shared/VoxelMerge).
 		Models = {
-			ForgeWeaponLevel4 = 90, -- arma de la forja, nivel 4
-			ForgeWeaponRank = { 40, 55, 70, 90 }, -- arma de la forja por rango I a IV
+			ForgeWeaponLevel4 = 70, -- arma de la forja, nivel 4
+			ForgeWeaponRank = { 40, 55, 70, 70 }, -- arma de la forja por rango I a IV
 			WeaponSkinEpic = 125, -- skin Epic de arma, nivel 4
 			WeaponSkinRare = 70, -- skin Rare de arma (machete)
 			WeaponSkinMythic = 165, -- skin mítica de arma, nivel 4
 			ArmorRank = { 80, 115, 150, 210 }, -- armadura por rango I a IV
-			OutfitMythicGrade4 = 570, -- traje mítico, grado 4
-			OutfitLegendaryGrade4 = 350, -- traje legendario, grado 4
+			OutfitMythicGrade4 = 200, -- traje mítico, grado 4
+			OutfitLegendaryGrade4 = 280, -- traje legendario, grado 4
 			PetTotal = 240, -- mascota entera
 			PetAnimated = 110, -- piezas de la mascota que se mueven cada fotograma
-			MountRare = 260,
-			MountLegendary = 375,
+			MountRare = 60,
+			MountLegendary = 120,
 			MountMythic = 560, -- Q4c (04-11-2026): el Quetzalcóatl a máximo detalle (antes 410)
 			Aura = 30, -- aura cosmética
 			LabWeaponBase = 45, -- arma del Laboratorio sin skin
@@ -2426,7 +2426,7 @@ local Config = {
 			-- El jefe lo limita el tiempo de unión (~1 ms por bloque; 2.000 bloques son ~2 s, una vez por jefe y servidor).
 			MonkeyDesign = { [1] = 106, [2] = 127, [3] = 75, Alpha = 140, Boss = 2000 },
 			-- Triángulos de un mono o jefe ya unido (Rendimiento, `triangulos`); el jefe es uno por escena.
-			MonkeyTriangles = { [1] = 1796, [2] = 2076, [3] = 1090, Alpha = 2352, Boss = 15000 },
+			MonkeyTriangles = { [1] = 1796, [2] = 2076, [3] = 1090, Alpha = 2352, Boss = 9000 },
 			-- Triángulos del equipo (Fase 20, 03-11-2026): máximo medido × lo que concede el reparto del margen de la
 			-- escena de la Isla (Rendimiento, «Reparto del margen»): monturas y armas +100 %, mascotas estándar +50 %
 			-- y especiales +100 %, armaduras y trajes +60 %. Son topes por modelo; la escena se mide con el equipo medio.
@@ -2434,9 +2434,9 @@ local Config = {
 			PetTriangles = 2800, -- mascota estándar; las especiales van por id en Exceptions
 			-- Armadura de rol por rango I a IV (siempre crecientes: un rango más alto tiene más tope; el del IV era 10.800 porque
 			-- salió de medir los diseños viejos, que en neón gastan pocos triángulos, y se subió a 21.000 en Q6).
-			ArmorTriangles = { 7300, 16000, 17700, 21000 },
-			OutfitTriangles = { Legendary = 39400, Mythic = 110200 }, -- traje de grado 4
-			WeaponTriangles = { 4800, 5000, 10600, 7000 }, -- arma de la forja por rango I a IV
+			ArmorTriangles = { 5500, 6000, 11000, 13000 },
+			OutfitTriangles = { Legendary = 12000, Mythic = 16000 }, -- traje de grado 4
+			WeaponTriangles = { 3500, 5000, 7000, 5000 }, -- arma de la forja por rango I a IV
 			WeaponSkinTriangles = { Rare = 1400, Epic = 15500, Mythic = 41900 },
 			LabWeaponTriangles = 4400, -- arma del Laboratorio, con o sin skin
 			MapNode = 25, -- nodo de recurso del mapa
@@ -2444,48 +2444,39 @@ local Config = {
 		},
 		-- Excepciones aprobadas: el tope de un modelo concreto (por id) que sustituye al de su tipo.
 		Exceptions = {
-			-- Armaduras con malla (Q6, clave `<armadura>_<rol>`): el tope mide la versión de bloques, que es la de respaldo
-			-- mientras cargan las mallas; la de malla son 22 piezas (8 mallas y 14 sueltas) y 1.238 triángulos (M4 la medirá).
-			FurVest_Guerrero = { ArmorPieces = 180 },
-			-- Cazadores con malla (Q6c): topes de la versión de bloques (la de respaldo); en juego quedan 11, 15, 33 y 107 piezas.
-			FurVest_Cazador = { ArmorPieces = 230 },
-			BoneArmor_Cazador = { ArmorPieces = 350 },
-			SilverArmor_Cazador = { ArmorPieces = 420 },
-			VolcanicArmor_Cazador = { ArmorPieces = 530 }, -- +10: puntos de luz del rango IV (11 piezas sueltas de neón)
-			-- Médicos con malla (Q6e): topes de la versión de bloques (la de respaldo); en juego quedan 17, 26, 53 y 132 piezas.
-			FurVest_Medico = { ArmorPieces = 290 },
-			BoneArmor_Medico = { ArmorPieces = 290 },
-			SilverArmor_Medico = { ArmorPieces = 440 },
-			VolcanicArmor_Medico = { ArmorPieces = 490 }, -- +10: puntos de luz del rango IV
-			-- Magos con malla (Q6d): topes de la versión de bloques (la de respaldo); en juego quedan 20, 65, 118 y 183 piezas.
-			FurVest_Mago = { ArmorPieces = 240 },
-			BoneArmor_Mago = { ArmorPieces = 250 },
-			SilverArmor_Mago = { ArmorPieces = 290 },
-			VolcanicArmor_Mago = { ArmorPieces = 460 }, -- +10: puntos de luz del rango IV
-			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
-			SilverArmor_Guerrero = { ArmorPieces = 260 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
-			VolcanicArmor_Guerrero = { ArmorPieces = 520 }, -- +10 por los puntos de luz del rango IV. Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
-			-- Trajes de Fuego azul con malla (Q6f, grado 4): el tope mide la versión de bloques (la de respaldo, con los
-			-- escalones sin giro de la malla); en juego son 6 a 8 mallas y las piezas sueltas de fuego, cristal y neón.
-			BlueFireGuardianOutfit = { ArmorPieces = 370 },
-			BlueFireStalkerOutfit = { ArmorPieces = 370 },
-			BlueFireHealerOutfit = { ArmorPieces = 370 },
-			-- Serpiente emplumada (Q6g, grado 4): 16 plumas largas con raquis de oro y punta de jade que brilla, 6 cortas y el aro de
-			-- runas; el tope mide la versión de bloques (la de respaldo): en juego son unos 440 bloques en 12 mallas y unas 135 sueltas.
-			FeatheredSerpentOutfit = { ArmorPieces = 590 },
-			MonoX7 = { PetTotal = 500, PetAnimated = 230, PetTriangles = 6200 }, -- mascota de élite (Q5): mide la versión de bloques, la de malla tiene 7 mallas y 2.884 triángulos
-			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.732 triángulos y 9 mallas)
-			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
-			Perezoso = { PetTotal = 300, PetAnimated = 110, PetTriangles = 3200 }, -- brazos en escalones y mochila de carga (Q5)
-			-- Mascotas con malla (Q5): estos topes miden la versión de bloques, que es la que sale mientras cargan las
-			-- mallas y la de las skins; la de malla (unos 20 trozos en juego) está muy por debajo (Rendimiento aún no la
-			-- cuenta: Fase 21, M4).
-			Beagle = { PetAnimated = 130 },
-			Labrador = { PetTotal = 340, PetAnimated = 150, PetTriangles = 3700 },
-			Pointer = { PetTotal = 290, PetAnimated = 170, PetTriangles = 3300 },
-			JaguarCristal = { PetAnimated = 140, PetTriangles = 3200 }, -- mascota legendaria: núcleo, marcos, gema y cristales grandes (versión de bloques)
-			Jaguarundi = { PetAnimated = 150 },
-			Ocelote = { PetTotal = 380, PetAnimated = 220, PetTriangles = 4600 },
+			-- Armaduras con malla (Q6, clave `<armadura>_<rol>`): topes medidos con las mallas cargadas (M4, 05-11-2026) más un 30 %.
+			-- La versión de bloques de respaldo (mientras cargan las mallas) los pasa: `Rendimiento` con `mallas = false` alerta, y es lo esperado.
+			FurVest_Guerrero = { ArmorPieces = 42 },
+			FurVest_Cazador = { ArmorPieces = 15 },
+			BoneArmor_Cazador = { ArmorPieces = 20 },
+			SilverArmor_Cazador = { ArmorPieces = 43 },
+			VolcanicArmor_Cazador = { ArmorPieces = 220 }, -- +10: puntos de luz del rango IV (11 piezas sueltas de neón)
+			FurVest_Medico = { ArmorPieces = 23 },
+			BoneArmor_Medico = { ArmorPieces = 34 },
+			SilverArmor_Medico = { ArmorPieces = 69 },
+			VolcanicArmor_Medico = { ArmorPieces = 220 }, -- +10: puntos de luz del rango IV
+			FurVest_Mago = { ArmorPieces = 26 },
+			BoneArmor_Mago = { ArmorPieces = 85 },
+			SilverArmor_Mago = { ArmorPieces = 154 },
+			VolcanicArmor_Mago = { ArmorPieces = 220 }, -- +10: puntos de luz del rango IV
+			BoneArmor_Guerrero = { ArmorPieces = 21 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
+			SilverArmor_Guerrero = { ArmorPieces = 56 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
+			VolcanicArmor_Guerrero = { ArmorPieces = 220 }, -- +10 por los puntos de luz del rango IV. Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
+			-- Trajes de Fuego azul con malla (Q6f, grado 4): tope medido con malla (M4); en juego son 6 a 8 mallas y las piezas sueltas de fuego, cristal y neón.
+			BlueFireGuardianOutfit = { ArmorPieces = 280 },
+			BlueFireStalkerOutfit = { ArmorPieces = 280 },
+			BlueFireHealerOutfit = { ArmorPieces = 280 },
+			-- Serpiente emplumada (Q6g, grado 4): 16 plumas largas con raquis de oro y punta de jade, 6 cortas y el aro de runas; tope medido con malla (M4).
+			FeatheredSerpentOutfit = { ArmorPieces = 200 },
+			MonoX7 = { PetTriangles = 6200 }, -- mascota de élite (Q5)
+			Ajolote = { PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones (4.732 triángulos y 9 mallas)
+			Quetzal = { PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
+			Perezoso = { PetTriangles = 3200 }, -- brazos en escalones y mochila de carga (Q5)
+			-- Mascotas con malla (Q5): sin excepción de piezas (la de malla tiene 6 a 47); quedan los triángulos, que sí pasan del estándar (M4).
+			Labrador = { PetTriangles = 3700 },
+			Pointer = { PetTriangles = 3300 },
+			JaguarCristal = { PetAnimated = 140, PetTriangles = 3200 }, -- mascota legendaria: núcleo, marcos, gema y cristales grandes
+			Ocelote = { PetTriangles = 4600 },
 			Nest = { Buildable = 50 }, -- construible único
 			WarTotem = { Buildable = 120 }, -- construible único (incluye el anillo de 40 trazos)
 			OrangutanDelManglar = { Boss = 47 }, -- el jefe más grande (35 × 40 / 30)

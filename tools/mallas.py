@@ -370,7 +370,7 @@ def luau(jefe, manifiesto, ids, escala):
         textura = id_.get("texture", "")
         o = datos["offset"]
         lineas.append(
-            f'\t\t\t["{real}"] = {{ mesh = "{mesh}", texture = "{textura}", offset = Vector3.new({o[0]}, {o[1]}, {o[2]}) }},'
+            f'\t\t\t["{real}"] = {{ mesh = "{mesh}", texture = "{textura}", triangles = {datos["triangulos"]}, offset = Vector3.new({o[0]}, {o[1]}, {o[2]}) }},'
         )
     lineas += ["\t\t},", "\t},"]
     return "\n".join(lineas)
