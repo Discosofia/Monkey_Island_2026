@@ -334,4 +334,84 @@ function Mallas.volcarArmadura(armorId: string?, rol: string, shared: Instance?,
 	assert(ok, err)
 end
 
+-- Volcado de un arma (Fase 20 Q7): se construye la herramienta `weaponId` (o su aspecto `skinId` en el nivel `nivel`) sin
+-- fusionar bloques y sin usar las mallas de Data/WeaponMeshes. De cada pieza que puede llevar la malla
+-- (`WeaponTools.meshableBox`) sale una línea en el espacio del `Handle`, agrupada por `Handle_<Soft|Hard>`. Mismos trozos
+-- `@@V` que las armaduras, con el id `Weapon_<weaponId>` (o `Weapon_<weaponId>_<skinId>_<nivel>`). Al final cuenta las
+-- piezas que quedan sueltas.
+--   local m = game.ServerStorage.Tools.Mallas:Clone()
+--   require(m).volcarArma("LavaStaff", game.ReplicatedStorage.Shared:Clone())
+--   m:Destroy()
+-- Luego `python tools/arma.py exportar Weapon_LavaStaff` (ver su docstring).
+function Mallas.volcarArma(weaponId: string, shared: Instance?, skinId: string?, nivel: number?)
+	local carpeta = (shared or ReplicatedStorage.Shared) :: Instance
+	local config = require(carpeta.Config :: ModuleScript) :: any
+	config.Budgets.Merge = false
+	local WeaponTools = require(carpeta.WeaponTools :: ModuleScript) :: any
+	WeaponTools.useMeshes = false
+	local id = if skinId then `Weapon_{weaponId}_{skinId}_{nivel or 0}` else `Weapon_{weaponId}`
+	print(`Volcado de {id} empieza`)
+
+	local herramienta = WeaponTools.build(weaponId, skinId, nivel) :: Tool
+	local handle = herramienta:FindFirstChild("Handle") :: BasePart
+	local lineasDe: { [string]: { string } } = {}
+	local sumas: { [string]: number } = {}
+	local sueltas = 0
+	for _, pieza in herramienta:GetChildren() do
+		if not pieza:IsA("BasePart") or pieza == handle then
+			continue
+		end
+		local centro, tamano, grupo = WeaponTools.meshableBox(pieza, handle)
+		if not (centro and tamano and grupo) then
+			sueltas += 1
+			continue
+		end
+		local x, y, z =
+			tonumber(string.format("%.4f", centro.X)) :: number,
+			tonumber(string.format("%.4f", centro.Y)) :: number,
+			tonumber(string.format("%.4f", centro.Z)) :: number
+		local sx, sy, sz =
+			tonumber(string.format("%.4f", tamano.X)) :: number,
+			tonumber(string.format("%.4f", tamano.Y)) :: number,
+			tonumber(string.format("%.4f", tamano.Z)) :: number
+		local hex = pieza.Color:ToHex()
+		sumas[grupo] = (sumas[grupo] or 0)
+			+ x
+			+ y * 3
+			+ z * 5
+			+ sx * 7
+			+ sy * 11
+			+ sz * 13
+			+ (tonumber(hex, 16) :: number) % 1000
+		lineasDe[grupo] = lineasDe[grupo] or {}
+		table.insert(lineasDe[grupo], string.format("%.4f %.4f %.4f %.4f %.4f %.4f %s", x, y, z, sx, sy, sz, hex))
+	end
+	herramienta:Destroy()
+
+	local grupos: { string } = {}
+	for grupo in lineasDe do
+		table.insert(grupos, grupo)
+	end
+	table.sort(grupos)
+	local enMalla = 0
+	for _, grupo in grupos do
+		local lineas = lineasDe[grupo]
+		enMalla += #lineas
+		print(`Grupo {grupo}: {#lineas} bloques en malla`)
+		table.insert(lineas, 1, `PART {grupo} {#lineas} {string.format("%.2f", sumas[grupo])}`)
+		table.insert(lineas, "END")
+		for desde = 1, #lineas, 18 do
+			print(
+				`@@V {grupo} {string.format("%02d", (desde - 1) // 18 + 1)}\n{table.concat(
+					lineas,
+					"\n",
+					desde,
+					math.min(desde + 17, #lineas)
+				)}`
+			)
+		end
+	end
+	print(`Volcado de {id} listo: {enMalla} bloques en {#grupos} grupos de malla, {sueltas} piezas sueltas.`)
+end
+
 return Mallas

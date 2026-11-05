@@ -34,6 +34,7 @@ local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local VoxelMerge = require(ReplicatedStorage.Shared.VoxelMerge)
+local WeaponMeshes = require(ReplicatedStorage.Shared.Data.WeaponMeshes)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 
 local WOOD = Color3.fromRGB(110, 72, 40)
@@ -2140,6 +2141,169 @@ local function buildStaff(tool: Tool, style: StaffStyle): BasePart
 		strut(handle, "Claw", bulge, tip, 0.1, 0.1, style.claws, style.clawMaterial, outward)
 	end
 	style.decorate(handle, top)
+	tool.Grip = CFrame.new(0, -0.6, 0)
+	return handle
+end
+
+-- Bastón de lava, rango IV de la forja del Mago (Fase 20 Q7, piloto de armas con malla). Todo lo que no brilla son
+-- bloques alineados con los ejes, con las puntas y las garras en escalones (sin cuñas, cilindros ni piezas giradas):
+-- `meshableBox` los reúne en `Handle_Hard` (basalto, obsidiana, azufre, hueso) y `Handle_Soft` (cuero y fibra). Lo que
+-- arde (grietas, bandas, anillo de fuego, gotas, gemas y cristal) es neón y se queda suelto.
+-- Asta de basalto con nudos, grieta de lava en zigzag por delante y por detrás, empuñadura de cuero con vueltas de
+-- cuerda, púas de obsidiana a media asta, aro de azufre bajo el collar del que cuelgan dos colmillos, cuatro garras de
+-- obsidiana en cruz que sujetan el cristal de magma, cuatro púas en las diagonales y una punta escalonada con lava.
+local function buildLavaStaff(tool: Tool): BasePart
+	local top = STAFF_LENGTH / 2
+	local handle = hiddenHandle(tool, Vector3.new(0.3, STAFF_LENGTH, 0.3))
+	local BASALT_DARK = Color3.fromRGB(44, 41, 46)
+	local CORD = Color3.fromRGB(40, 26, 16)
+	local function put(
+		name: string,
+		size: Vector3,
+		color: Color3,
+		material: Enum.Material,
+		x: number,
+		y: number,
+		z: number
+	)
+		return block(handle, name, size, color, material, CFrame.new(x, y, z))
+	end
+	-- Pieza que sale hacia fuera por una de las cuatro direcciones: `dir` (1 a 4: +X, -X, +Z, -Z), `radial` es
+	-- su largo hacia fuera y `tangent` su ancho de lado.
+	local DIRS = { Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis }
+	local function out(
+		name: string,
+		dir: number,
+		radius: number,
+		y: number,
+		radial: number,
+		height: number,
+		tangent: number,
+		color: Color3,
+		material: Enum.Material
+	)
+		local d = DIRS[dir]
+		local size = if d.X ~= 0 then Vector3.new(radial, height, tangent) else Vector3.new(tangent, height, radial)
+		local c = d * radius
+		return put(name, size, color, material, c.X, y, c.Z)
+	end
+
+	-- Asta y nudos.
+	put("Shaft", Vector3.new(0.26, STAFF_LENGTH, 0.26), BASALT, BASALT_MATERIAL, 0, 0, 0)
+	put("Knot", Vector3.new(0.36, 0.5, 0.34), BASALT_DARK, BASALT_MATERIAL, 0, -1.45, 0)
+	put("Knot", Vector3.new(0.34, 0.7, 0.36), BASALT_DARK, BASALT_MATERIAL, 0, 0.65, 0)
+	put("Knot", Vector3.new(0.36, 0.4, 0.34), BASALT_DARK, BASALT_MATERIAL, 0, 1.45, 0)
+
+	-- Empuñadura de cuero con vueltas de cuerda y una tira colgando.
+	put("Grip", Vector3.new(0.34, 0.8, 0.34), LEATHER, FABRIC, 0, -0.6, 0)
+	for _, bandY in { -0.9, -0.7, -0.5, -0.3 } do
+		put("Cord", Vector3.new(0.38, 0.07, 0.38), CORD, FABRIC, 0, bandY, 0)
+	end
+	put("Tassel", Vector3.new(0.14, 0.36, 0.1), TAN_LEATHER, FABRIC, 0.22, -1.0, 0.04)
+
+	-- Grietas de lava (neón) en zigzag por delante (-Z) y por detrás (+Z), con una gema de azufre por detrás.
+	for side = -1, 1, 2 do
+		for index = 0, 5 do
+			local x = if index % 2 == 0 then 0.05 else -0.05
+			put("Crack", Vector3.new(0.07, 0.7, 0.05), MAGMA, NEON, x, -1.85 + index * 0.7, side * 0.155)
+			if index < 5 then
+				put("Crack", Vector3.new(0.17, 0.07, 0.05), MAGMA, NEON, 0, -1.5 + index * 0.7, side * 0.155)
+			end
+		end
+	end
+	for _, gemY in { 0.0, 1.15 } do
+		ball(handle, "Gem", 0.12, SULFUR_GLOW, NEON, CFrame.new(0, gemY, 0.19))
+	end
+
+	-- Bandas de lava y púas de obsidiana a media asta (a los lados y por detrás; por delante va la grieta).
+	for _, bandY in { -0.25, 1.55 } do
+		put("Band", Vector3.new(0.4, 0.06, 0.4), MAGMA, NEON, 0, bandY, 0)
+	end
+	for dir = 1, 3 do
+		out("Spike", dir, 0.24, 0.55, 0.14, 0.2, 0.16, OBSIDIAN, SMOOTH)
+		out("Spike", dir, 0.35, 0.55, 0.1, 0.14, 0.11, OBSIDIAN, SMOOTH)
+		out("Spike", dir, 0.44, 0.55, 0.08, 0.08, 0.07, OBSIDIAN, SMOOTH)
+	end
+
+	-- Virola de obsidiana, punta escalonada y gotas de lava.
+	put("Ferrule", Vector3.new(0.36, 0.3, 0.36), OBSIDIAN, SMOOTH, 0, -top + 0.3, 0)
+	put("Tip", Vector3.new(0.3, 0.2, 0.3), OBSIDIAN, SMOOTH, 0, -top - 0.1, 0)
+	put("Tip", Vector3.new(0.2, 0.2, 0.2), OBSIDIAN, SMOOTH, 0, -top - 0.3, 0)
+	put("Tip", Vector3.new(0.1, 0.2, 0.1), OBSIDIAN, SMOOTH, 0, -top - 0.5, 0)
+	for side = -1, 1, 2 do
+		put("Drip", Vector3.new(0.09, 0.2, 0.09), MAGMA, NEON, side * 0.2, -top + 0.03, 0)
+		put("Drip", Vector3.new(0.06, 0.12, 0.06), MAGMA, NEON, side * 0.2, -top - 0.13, 0)
+	end
+
+	-- Collar, aro de azufre y dos colmillos colgados con engarce de magma.
+	put("Collar", Vector3.new(0.48, 0.22, 0.48), OBSIDIAN, SMOOTH, 0, top, 0)
+	put("SulfurRing", Vector3.new(0.56, 0.1, 0.56), SULFUR, SMOOTH, 0, top - 0.25, 0)
+	for side = -1, 1, 2 do
+		put("Cord", Vector3.new(0.08, 0.3, 0.08), FIBER, FABRIC, side * 0.3, 1.85, 0)
+		ball(handle, "MagmaSetting", 0.16, MAGMA, NEON, CFrame.new(side * 0.3, 1.64, 0))
+		put("Fang", Vector3.new(0.16, 0.2, 0.16), FANG, SMOOTH, side * 0.3, 1.46, 0)
+		put("Fang", Vector3.new(0.12, 0.2, 0.12), FANG, SMOOTH, side * 0.3, 1.26, 0)
+		put("Fang", Vector3.new(0.08, 0.2, 0.08), FANG, SMOOTH, side * 0.3, 1.06, 0)
+	end
+
+	-- Cristal de magma con sus garras: cuatro en cruz, escalonadas hacia dentro por encima de él.
+	local crystalY = top + 0.6
+	local crystal = put("Crystal", Vector3.one * 0.85, MAGMA, NEON, 0, crystalY, 0)
+	crystal.CFrame = handle.CFrame * CFrame.new(0, crystalY, 0) * CFrame.Angles(math.rad(45), 0, math.rad(45))
+	crystal.Transparency = 0.1
+	glow(crystal, MAGMA, 10)
+	local claw =
+		{ { 0.22, 2.5, 0.28 }, { 0.42, 2.78, 0.3 }, { 0.58, 3.08, 0.3 }, { 0.48, 3.34, 0.26 }, { 0.34, 3.52, 0.2 } }
+	for dir = 1, 4 do
+		for _, step in claw do
+			out("Claw", dir, step[1], step[2], 0.14, step[3], 0.14, OBSIDIAN, SMOOTH)
+		end
+		out("Claw", dir, 0.22, 3.66, 0.1, 0.08, 0.1, MAGMA, NEON)
+	end
+	-- Púas de obsidiana en las diagonales, curvadas hacia fuera, y una gema de lava entre garras.
+	for sx = -1, 1, 2 do
+		for sz = -1, 1, 2 do
+			local spike = {
+				{ 0.34, 2.55, 0.14, 0.3 },
+				{ 0.42, 2.85, 0.12, 0.3 },
+				{ 0.5, 3.15, 0.1, 0.3 },
+				{ 0.56, 3.4, 0.08, 0.2 },
+			}
+			for _, step in spike do
+				put(
+					"Spike",
+					Vector3.new(step[3], step[4], step[3]),
+					OBSIDIAN,
+					SMOOTH,
+					sx * step[1] * 0.7,
+					step[2],
+					sz * step[1] * 0.7
+				)
+			end
+			put("Spark", Vector3.one * 0.07, MAGMA, NEON, sx * 0.4, 3.56, sz * 0.4)
+			ball(
+				handle,
+				"Gem",
+				0.13,
+				if (sx + sz) % 4 == 0 then SULFUR_GLOW else MAGMA,
+				NEON,
+				CFrame.new(sx * 0.2, top + 0.2, sz * 0.2)
+			)
+		end
+	end
+	-- Anillo de fuego que flota inclinado alrededor del corazón de magma.
+	for index = 0, 9 do
+		put("FireRing", Vector3.new(0.5, 0.06, 0.06), MAGMA, NEON, 0, 0, 0).CFrame = handle.CFrame
+			* CFrame.new(0, crystalY, 0)
+			* CFrame.Angles(0.35, 0, 0.2)
+			* CFrame.Angles(0, index * math.pi * 2 / 10, 0)
+			* CFrame.new(0, 0, -0.8)
+	end
+	for _, spark in { Vector3.new(-0.3, 3.7, 0.5), Vector3.new(0.4, 2.3, 0.6) } do
+		block(handle, "Spark", Vector3.one * 0.09, EMBER, NEON, CFrame.new(spark))
+	end
+	embers(crystal, 6)
+	smoke(crystal, 2)
 	tool.Grip = CFrame.new(0, -0.6, 0)
 	return handle
 end
@@ -4878,148 +5042,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			end,
 		})
 	end,
-	-- Asta de basalto con una grieta de lava que sube en zigzag, bandas de lava y púas de obsidiana,
-	-- garras de obsidiana de las que gotea lava, una corona de esquirlas y un corazón de magma que echa
-	-- chispas y humo dentro de un anillo de fuego que flota inclinado.
-	LavaStaff = function(tool)
-		return buildStaff(tool, {
-			shaft = BASALT,
-			shaftMaterial = BASALT_MATERIAL,
-			claws = OBSIDIAN,
-			clawMaterial = SMOOTH,
-			crystal = MAGMA,
-			crystalSize = 0.85,
-			wrap = LEATHER,
-			decorate = function(handle, top)
-				local points = {
-					Vector3.new(0.13, -1.7, 0.04),
-					Vector3.new(0.15, -0.9, -0.06),
-					Vector3.new(0.13, 0.1, 0.06),
-					Vector3.new(0.15, 1.1, -0.05),
-					Vector3.new(0.13, top - 0.15, 0.03),
-				}
-				for index = 1, #points - 1 do
-					strut(handle, "Crack", points[index], points[index + 1], 0.05, 0.06, MAGMA, NEON, Vector3.xAxis)
-				end
-				for index = 0, 4 do
-					local angle = index * math.pi * 2 / 5
-					shard(
-						handle,
-						0.55,
-						0.16,
-						CFrame.new(0, top + 0.1, 0)
-							* CFrame.Angles(0, angle, 0)
-							* CFrame.new(0, 0, -0.22)
-							* CFrame.Angles(-0.55, 0, 0)
-					)
-				end
-				-- Anillo de fuego que flota inclinado alrededor del corazón de magma.
-				local ringCount = 10
-				for index = 0, ringCount - 1 do
-					block(
-						handle,
-						"FireRing",
-						Vector3.new(0.5, 0.06, 0.06),
-						MAGMA,
-						NEON,
-						CFrame.new(0, top + 0.6, 0)
-							* CFrame.Angles(0.35, 0, 0.2)
-							* CFrame.Angles(0, index * math.pi * 2 / ringCount, 0)
-							* CFrame.new(0, 0, -0.8)
-					)
-				end
-				-- Gotas de lava que cuelgan de las garras, púas de obsidiana a media asta y bandas de lava.
-				for index = 0, 3 do
-					local angle = index * math.pi / 2 + math.pi / 4
-					local outward = Vector3.new(math.sin(angle), 0, math.cos(angle))
-					lavaDrip(handle, 0.24, CFrame.new(Vector3.new(0, top + 0.42, 0) + outward * 0.62))
-				end
-				for index = 0, 2 do
-					shard(
-						handle,
-						0.36,
-						0.12,
-						CFrame.new(0, 0.55, 0)
-							* CFrame.Angles(0, index * math.pi * 2 / 3, 0)
-							* CFrame.new(0, 0, -0.3)
-							* CFrame.Angles(-math.rad(105), 0, 0)
-					)
-				end
-				for _, bandY in { -0.25, 1.55 } do
-					rod(handle, "Band", 0.06, 0.36, MAGMA, NEON, CFrame.new(0, bandY, 0))
-				end
-				-- Rango IV, el más rico: aro de azufre bajo el collar del que cuelgan dos colmillos grandes con
-				-- engarce de magma, anillo de gemas de lava y azufre bajo las garras, una púa de obsidiana
-				-- que afila cada garra, vetas de lava también por la espalda con dos gemas de azufre, dos brasas
-				-- detrás del cristal, y la base con una virola y una punta de obsidiana de la que gotea lava.
-				rod(handle, "SulfurRing", 0.08, 0.56, SULFUR, SMOOTH, CFrame.new(0, 2.0, 0))
-				for side = -1, 1, 2 do
-					block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(side * 0.26, 1.72, 0))
-					ball(handle, "MagmaSetting", 0.18, MAGMA, NEON, CFrame.new(side * 0.26, 1.38, 0))
-					tooth(
-						handle,
-						"Fang",
-						0.45,
-						0.14,
-						0.2,
-						FANG,
-						SMOOTH,
-						CFrame.new(side * 0.26, 1.07, 0) * CFrame.Angles(math.pi, 0, 0)
-					)
-				end
-				local crystalY = top + 0.6
-				for index = 0, 3 do
-					local angle = index * math.pi / 2 + math.pi / 4
-					local outward = Vector3.new(math.sin(angle), 0, math.cos(angle))
-					-- Púa que prolonga la punta de la garra hacia dentro y arriba.
-					shard(
-						handle,
-						0.3,
-						0.12,
-						CFrame.new(Vector3.new(0, crystalY + 0.51, 0) + outward * 0.223)
-							* CFrame.Angles(0, angle + math.pi, 0)
-							* CFrame.Angles(0.5, 0, 0)
-					)
-					-- Gema entre garras, justo bajo ellas.
-					local gemAngle = index * math.pi / 2
-					ball(
-						handle,
-						"Gem",
-						0.13,
-						if index % 2 == 0 then SULFUR_GLOW else MAGMA,
-						NEON,
-						CFrame.new(math.sin(gemAngle) * 0.23, top - 0.2, math.cos(gemAngle) * 0.23)
-					)
-				end
-				-- Vetas de lava por la espalda (+Z) con dos gemas de azufre engastadas.
-				local back = {
-					Vector3.new(-0.03, -1.5, 0.14),
-					Vector3.new(0.04, -0.5, 0.15),
-					Vector3.new(-0.03, 0.5, 0.14),
-					Vector3.new(0.04, 1.5, 0.15),
-				}
-				for index = 1, #back - 1 do
-					strut(handle, "Crack", back[index], back[index + 1], 0.06, 0.06, MAGMA, NEON, Vector3.xAxis)
-				end
-				for _, gemY in { 0.0, 1.15 } do
-					ball(handle, "Gem", 0.12, SULFUR_GLOW, NEON, CFrame.new(0, gemY, 0.17))
-				end
-				for _, spark in { Vector3.new(-0.3, 3.7, 0.5), Vector3.new(0.4, 2.3, 0.6) } do
-					block(handle, "Spark", Vector3.one * 0.09, EMBER, NEON, CFrame.new(spark))
-				end
-				rod(handle, "Ferrule", 0.3, 0.36, OBSIDIAN, SMOOTH, CFrame.new(0, -top + 0.3, 0))
-				shard(handle, 0.4, 0.2, CFrame.new(0, -top - 0.3, 0) * CFrame.Angles(math.pi, 0, 0))
-				for side = -1, 1, 2 do
-					lavaDrip(handle, 0.24, CFrame.new(side * 0.2, -top + 0.15, 0))
-				end
-				local crystal = handle.Parent and handle.Parent:FindFirstChild("Crystal")
-				if crystal and crystal:IsA("BasePart") then
-					embers(crystal, 6)
-					smoke(crystal, 2)
-				end
-			end,
-		})
-	end,
+	LavaStaff = buildLavaStaff,
 }
 
 -- Aspectos de arma (Data/Cosmetics "WeaponSkin"), por id del cosmético: reciben el nivel del arma que
@@ -5124,6 +5147,193 @@ function WeaponTools.skinOf(player: Player, weaponId: string): string?
 	return if typeof(skinId) == "string" then skinId else nil
 end
 
+-- ============================== Mallas con textura (Fase 20 Q7) ==============================
+-- Las piezas de un grupo `Handle_<Soft|Hard>` (Data/WeaponMeshes) pueden pasar a una `MeshPart` por grupo. Todo va en la
+-- tabla "Meshing" para no gastar locales de este módulo. Sin entradas en Data/WeaponMeshes, "fill" no hace nada de esto.
+local Meshing = {
+	cache = {} :: { [string]: MeshPart }, -- mallas ya cargadas, por id
+	loading = {} :: { [string]: boolean },
+	failed = {} :: { [string]: boolean }, -- las que no cargaron: no se reintentan en cada "fill"
+	-- Herramientas vestidas con bloques a la espera de que carguen las mallas de su entrada.
+	pending = setmetatable({}, { __mode = "k" }) :: { [Tool]: boolean },
+	rebuild = nil :: ((tool: Tool) -> ())?,
+}
+-- El volcado (ServerStorage.Tools.Mallas.volcarArma) lo pone en false para ver los bloques tal como se construyen.
+WeaponTools.useMeshes = true
+
+-- "Soft" (Fabric y Leather) o "Hard" (cualquier otro material liso): la clase de material de una malla.
+function WeaponTools.meshClass(material: Enum.Material): string
+	return if material == FABRIC or material == Enum.Material.Leather then "Soft" else "Hard"
+end
+
+-- Centro y tamaño (studs, en el espacio de "handle") de una pieza que puede ir a la malla, y el nombre de su grupo
+-- (`Handle_<Soft|Hard>`); o nil si tiene que seguir suelta: no es un bloque, lleva hijos (luces, partículas), es de neón o
+-- cristal, es transparente, se llama como una pieza que no se funde o está girada fuera de los ejes del mango (múltiplos
+-- de 90°, tolerancia 0,01 rad). Lo usan "fill" y el volcado, para que vean las mismas piezas.
+function WeaponTools.meshableBox(piece: BasePart, handle: BasePart): (Vector3?, Vector3?, string?)
+	if piece == handle or piece.ClassName ~= "Part" or (piece :: Part).Shape ~= Enum.PartType.Block then
+		return nil, nil, nil
+	end
+	local material = piece.Material
+	if
+		material == NEON
+		or material == GLASS
+		or piece.Transparency > 0
+		or piece.Reflectance > 0
+		or VoxelMerge.isKept(piece.Name)
+	then
+		return nil, nil, nil
+	end
+	for _, child in piece:GetChildren() do
+		if not child:IsA("WeldConstraint") then
+			return nil, nil, nil
+		end
+	end
+	local cf = handle.CFrame:ToObjectSpace(piece.CFrame)
+	local _, _, _, r11, r12, r13, r21, r22, r23, r31, r32, r33 = cf:GetComponents()
+	local rows = { { r11, r12, r13 }, { r21, r22, r23 }, { r31, r32, r33 } }
+	local own = { piece.Size.X, piece.Size.Y, piece.Size.Z }
+	local size = { 0, 0, 0 }
+	for i, row in rows do
+		for j, value in row do
+			local abs = math.abs(value)
+			if abs > 0.9999 then
+				-- Girada 90°: el lado de la pieza que cae en este eje del mango intercambia el tamaño.
+				size[i] = own[j]
+			elseif abs > 0.01 then
+				return nil, nil, nil
+			end
+		end
+		if size[i] == 0 then
+			return nil, nil, nil
+		end
+	end
+	return cf.Position, Vector3.new(size[1], size[2], size[3]), `Handle_{WeaponTools.meshClass(material)}`
+end
+
+-- La entrada de Data/WeaponMeshes del arma "weaponId" tal como la construye BUILDERS (sin aspecto), o nil.
+function Meshing.find(weaponId: string, skinId: string?): WeaponMeshes.Entry?
+	if skinId or not WeaponTools.useMeshes then
+		return nil
+	end
+	return WeaponMeshes.Weapon[weaponId]
+end
+
+-- Si ya están cargadas todas las mallas de la entrada (una sin id no cuenta: se queda en bloques para siempre).
+function Meshing.isReady(entry: WeaponMeshes.Entry): boolean
+	for _, group in entry.groups do
+		if group.mesh == "" or group.texture == "" or not Meshing.cache[group.mesh] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Las herramientas vestidas con bloques cuyas mallas ya han llegado se vuelven a construir, esta vez con ellas.
+function Meshing.flush()
+	local due: { Tool } = {}
+	for tool in Meshing.pending do
+		local weaponId = tool:GetAttribute("Look") or tool:GetAttribute("WeaponId")
+		local entry = if typeof(weaponId) == "string" then Meshing.find(weaponId, nil) else nil
+		if entry and Meshing.isReady(entry) then
+			table.insert(due, tool)
+		end
+	end
+	for _, tool in due do
+		Meshing.pending[tool] = nil
+		if tool.Parent and Meshing.rebuild then
+			Meshing.rebuild(tool)
+		end
+	end
+end
+
+-- Pide a Roblox las mallas de la entrada, cada una en su hilo. Cada vez que llega una, reconstruye las herramientas que
+-- esperaban (el servidor y el cliente construyen antes de que lleguen: la primera carga de la sesión tarda).
+function Meshing.load(entry: WeaponMeshes.Entry)
+	for _, group in entry.groups do
+		local id = group.mesh
+		if
+			id ~= ""
+			and group.texture ~= ""
+			and not Meshing.cache[id]
+			and not Meshing.loading[id]
+			and not Meshing.failed[id]
+		then
+			Meshing.loading[id] = true
+			task.spawn(function()
+				local ok, mesh = pcall(function()
+					return game:GetService("AssetService"):CreateMeshPartAsync(Content.fromUri(id))
+				end)
+				if ok then
+					Meshing.cache[id] = mesh
+				else
+					Meshing.failed[id] = true
+					warn(`[WeaponTools] No se pudo cargar la malla {id}: {mesh}`)
+				end
+				Meshing.loading[id] = nil
+				Meshing.flush()
+			end)
+		end
+	end
+end
+
+-- Sustituye las piezas de cada grupo con malla por su `MeshPart`, soldada al mango con un Weld de desfase explícito (un
+-- WeldConstraint lo calcula al activarse, y con la herramienta ya movida quedaría lejos).
+function Meshing.apply(tool: Tool, entry: WeaponMeshes.Entry)
+	local handle = tool:FindFirstChild("Handle")
+	if not (handle and handle:IsA("BasePart")) then
+		return
+	end
+	local byGroup: { [string]: { BasePart } } = {}
+	for _, piece in tool:GetChildren() do
+		if piece:IsA("BasePart") then
+			local _, _, group = WeaponTools.meshableBox(piece, handle)
+			if group and entry.groups[group] then
+				byGroup[group] = byGroup[group] or {}
+				table.insert(byGroup[group], piece)
+			end
+		end
+	end
+	for group, pieces in byGroup do
+		local data = entry.groups[group]
+		local cached = Meshing.cache[data.mesh]
+		if not cached then
+			continue
+		end
+		local mesh = cached:Clone()
+		mesh.Size = data.size
+		mesh.TextureID = data.texture
+		mesh.Color = Color3.new(1, 1, 1)
+		mesh.Material = if string.sub(group, -4) == "Soft" then FABRIC else SMOOTH
+		mesh.Anchored = false
+		mesh.CanCollide = false
+		mesh.CanQuery = false
+		mesh.CanTouch = false
+		mesh.Massless = true
+		mesh.CastShadow = false
+		mesh.Name = "WeaponMesh"
+		local relative = CFrame.new(data.offset) * CFrame.Angles(0, math.pi, 0) * mesh.ExtentsCFrame:Inverse()
+		mesh.CFrame = handle.CFrame * relative
+		mesh.Parent = tool
+		local weld = Instance.new("Weld")
+		weld.Part0 = handle
+		weld.Part1 = mesh
+		weld.C0 = relative
+		weld.Parent = mesh
+		for _, piece in pieces do
+			piece:Destroy()
+		end
+	end
+end
+
+-- Pide las mallas del arma "weaponId" (si tiene entrada en Data/WeaponMeshes); "fill" también las pide solo.
+function WeaponTools.preload(weaponId: string)
+	local entry = Meshing.find(weaponId, nil)
+	if entry then
+		Meshing.load(entry)
+	end
+end
+
 -- Pone en "tool" las piezas del arma "weaponId", con el aspecto "skinId" si es de su rol y con el modelo
 -- del nivel "lookLevel" si es mayor (atributo "Look": el arma que se ve, si no es ella).
 local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: number?)
@@ -5143,7 +5353,42 @@ local function fill(tool: Tool, weaponId: string, skinId: string?, lookLevel: nu
 	else
 		BUILDERS[shownId](tool)
 	end
+	-- Con las mallas del arma cargadas, sustituyen a sus bloques; si no, se queda en bloques y se reconstruye al llegar.
+	local entry = Meshing.find(shownId, if skin then skinId else nil)
+	if entry then
+		if Meshing.isReady(entry) then
+			Meshing.apply(tool, entry)
+		else
+			Meshing.pending[tool] = true
+			Meshing.load(entry)
+		end
+	end
 	VoxelMerge.mergeWelded(tool)
+end
+
+-- Vuelve a construir una herramienta ya hecha (cuando llegan sus mallas): se cambian las piezas dentro de la misma Tool y,
+-- si la lleva un personaje en la mano, se suelta y se vuelve a coger (el agarre se enlaza con el mango nuevo).
+Meshing.rebuild = function(tool: Tool)
+	local weaponId = tool:GetAttribute("WeaponId")
+	if typeof(weaponId) ~= "string" then
+		return
+	end
+	local look = tool:GetAttribute("Look")
+	local skin = tool:GetAttribute("Skin")
+	local humanoid = if tool.Parent then tool.Parent:FindFirstChildOfClass("Humanoid") else nil
+	if humanoid then
+		humanoid:UnequipTools()
+	end
+	for _, child in tool:GetChildren() do
+		if child:IsA("BasePart") then
+			child:Destroy()
+		end
+	end
+	fill(tool, if typeof(look) == "string" then look else weaponId, if typeof(skin) == "string" then skin else nil, nil)
+	tool:SetAttribute("Look", look)
+	if humanoid then
+		humanoid:EquipTool(tool)
+	end
 end
 
 -- Lo que dice la herramienta del arma al pasar por encima ("Machete: 12 de daño · golpea árboles"), en el
