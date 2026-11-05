@@ -2417,6 +2417,7 @@ local Config = {
 			LabAimModel = 60, -- modelo de apuntado de un arma del Laboratorio con su skin, en primera persona (Fase 19, W11)
 			LabViewModelArms = 40, -- brazos del rig de la vista en primera persona del Laboratorio, sin el arma (hoy 9)
 			Buildable = 25, -- construible de la Isla
+			Helicopter = 65, -- helicóptero de rescate (Fase 25, G3b): 60 bloques de diseño (cabina hueca con cojines), sale unos segundos en la escena «Rescue»
 			PlotStructure = { 60, 90, 120 }, -- estructura de la parcela, nivel I a III
 			Monkey = 14, -- mono en juego (ya unido con UnionAsync); 10 + 4 piezas sueltas de acento (ojos, marcas de alfa)
 			Boss = 40, -- jefe en juego (ya unido); 30 + 10 piezas sueltas de acento (cristales de fase)

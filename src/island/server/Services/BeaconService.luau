@@ -26,8 +26,10 @@ local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local Retention = require(ServerScriptService.ServerShared.Retention)
+local BasecampService = require(script.Parent.BasecampService)
 local DayNightService = require(script.Parent.DayNightService)
 local BuildingService = require(script.Parent.BuildingService)
+local CinematicService = require(script.Parent.CinematicService)
 local MatchService = require(script.Parent.MatchService)
 
 local LIT_COLOR = Color3.fromRGB(255, 60, 50)
@@ -35,9 +37,16 @@ local HEALTHY_COLOR = Color3.fromRGB(90, 230, 110)
 local WARNING_COLOR = Color3.fromRGB(255, 170, 60)
 local DANGER_COLOR = Color3.fromRGB(235, 70, 60)
 
+-- Si otra escena con bloqueo (un jefe) ocupa la cinemática, el rescate reintenta cada tanto y, pasado el límite,
+-- cierra la partida sin escena.
+local RESCUE_RETRY_SECONDS = 0.5
+local RESCUE_MAX_WAIT_SECONDS = 15
+
 local BeaconService = {}
 
 local lit = false
+-- La escena del rescate está en marcha (o esperando turno): no se reentra y no se puede volver a encender.
+local rescuing = false
 local finalNight = false
 -- La Gran Tropa derribó la baliza esta noche: al amanecer no hay rescate.
 local signalCut = false
@@ -203,7 +212,7 @@ local function onBroken(model: Model)
 end
 
 local function onLight(player: Player)
-	if lit or not LifeState.isAlive(player) then
+	if lit or rescuing or not LifeState.isAlive(player) then
 		return
 	end
 	if MatchService.isRescued() then
@@ -268,6 +277,64 @@ local function addPrompt(model: Model)
 	prompt.Triggered:Connect(onLight)
 end
 
+-- Cierra el rescate: la lámpara se apaga al acabar la escena y la partida termina en victoria (si sigue, en modo
+-- sin fin, un segundo rescate puede volver a lanzarse).
+local function finishRescue(beacon: Model?)
+	rescuing = false
+	setLamp(beacon, false)
+	MatchService.endMatch("Victory")
+end
+
+-- Base de la baliza como anchor de la escena «Rescue»: centro en XZ, suelo en Y y +Z hacia el Basecamp.
+local function rescueAnchor(beacon: Model): CFrame
+	local box, size = beacon:GetBoundingBox()
+	local base = Vector3.new(box.X, box.Y - size.Y / 2, box.Z)
+	local target = BasecampService.getCenter()
+	local flat = Vector3.new(target.X - base.X, 0, target.Z - base.Z)
+	if flat.Magnitude < 1 then
+		return CFrame.new(base)
+	end
+	return CFrame.lookAt(base, base - flat) -- el frente (-Z) mira lejos del Basecamp: +Z queda hacia él
+end
+
+-- Anchor de la escena «Rescue» sobre la baliza construida (el panel de pruebas: «🚁 Rescate»), o nil si no hay.
+function BeaconService.debugRescueAnchor(): CFrame?
+	local beacon = findBeacon()
+	return if beacon then rescueAnchor(beacon) else nil
+end
+
+-- Lanza la cinemática del rescate y, al acabar, cierra la partida. Sin baliza, cierra directamente.
+local function startRescue(beacon: Model?)
+	if rescuing then
+		return
+	end
+	rescuing = true
+	if not beacon then
+		finishRescue(nil)
+		return
+	end
+	local anchor = rescueAnchor(beacon)
+	task.spawn(function()
+		local deadline = os.clock() + RESCUE_MAX_WAIT_SECONDS
+		while true do
+			local started = CinematicService.play("Rescue", {
+				anchor = anchor,
+				onFinished = function()
+					finishRescue(beacon)
+				end,
+			})
+			if started then
+				return
+			end
+			if os.clock() >= deadline then
+				break
+			end
+			task.wait(RESCUE_RETRY_SECONDS)
+		end
+		finishRescue(beacon)
+	end)
+end
+
 local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 	if phase == "Night" and lit and not finalNight then
 		finalNight = true
@@ -303,8 +370,8 @@ local function onPhaseStarted(_day: number, phase: MatchState.Phase)
 				lit = false
 				ReplicatedStorage:SetAttribute("FinalNight", nil)
 				ReplicatedStorage:SetAttribute("BeaconLit", nil)
-				setLamp(beacon, false)
-				MatchService.endMatch("Victory")
+				-- La lámpara sigue encendida durante la escena del rescate (finishRescue la apaga).
+				startRescue(beacon)
 			end
 		end
 	end

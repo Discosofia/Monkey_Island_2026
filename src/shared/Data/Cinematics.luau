@@ -9,6 +9,7 @@
 --     bubble, sfx (Comic, escenas «cómic») y los que registre cada place. Los textos se marcan con Strings.later y se traducen al dibujarlos.
 
 local Bosses = require(script.Parent.Bosses)
+local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local Strings = require(script.Parent.Parent.Strings)
 
 export type Scene = {
@@ -232,6 +233,42 @@ local function bossComicScene(
 	return scene
 end
 
+-- Rescate (G3b), en el marco del anchor: la base de la baliza, con +Z hacia el Basecamp (lo calcula BeaconService).
+-- El helicóptero llega desde el horizonte (por detrás del Basecamp), sobrevuela la cámara y se queda flotando sobre
+-- la baliza. Los giros (yaw) hacen que mire por donde vuela y, al llegar, hacia la baliza.
+local HELI_START = Vector3.new(-90, 55, 130)
+local HELI_START_YAW = -38
+local HELI_HOVER = Vector3.new(10, 18, 4)
+local HELI_HOVER_YAW = 68
+local HELI_LOW = Vector3.new(10, 14, 4)
+
+-- Salida con la tripulación a bordo (segunda parte, de 9,6 a 19 s). Con la pantalla en negro el helicóptero salta a
+-- HELI_LOW con el yaw de salida; de 10 a 18 s sube y se aleja hasta HELI_OUT (Sine InOut, igual que el evento move).
+-- Con yaw -23 la nariz (-Z local) apunta a (0,39, 0, -0,92) en (x, z): lejos del Basecamp (+Z) y hacia el recorrido
+-- (16, 16, -38). Los ejes locales en el marco del anchor son: derecha (puerta) = (0,92, 0, 0,39), atrás = (-0,39, 0, 0,92).
+local HELI_EXIT_YAW = -23
+local HELI_OUT = Vector3.new(26, 30, -34)
+local EXIT_FROM, EXIT_TO = 10, 18
+
+-- Posición del helicóptero en el segundo t de la salida (anchor): HELI_LOW + (HELI_OUT - HELI_LOW) * s(t), con
+-- s = (1 - cos(pi * alfa)) / 2 y alfa = (t - 10) / 8. Ejemplos: t 11 -> s 0,038; 12 -> 0,146; 13 -> 0,309; 14 -> 0,5;
+-- 15 -> 0,691; 16 -> 0,854; 17 -> 0,962; 18 -> 1.
+local function exitPosition(t: number): Vector3
+	local alpha = math.clamp((t - EXIT_FROM) / (EXIT_TO - EXIT_FROM), 0, 1)
+	return HELI_LOW:Lerp(HELI_OUT, (1 - math.cos(math.pi * alpha)) / 2)
+end
+
+-- Punto fijo en el marco del helicóptero (x derecha/puerta, y arriba, z atrás; el piloto está en (1, -0,7, -2,1) y la
+-- fila de pasajeros de la puerta en z de -0,9 a 1,9) llevado al marco del anchor en el segundo t. Así la cámara de la
+-- tripulación va pegada al helicóptero aunque este se mueva.
+local function heliPoint(t: number, localPos: Vector3): Vector3
+	return exitPosition(t) + CFrame.Angles(0, math.rad(HELI_EXIT_YAW), 0) * localPos
+end
+
+local function crewShot(t: number, camLocal: Vector3, lookLocal: Vector3, fov: number)
+	return { t = t, pos = heliPoint(t, camLocal), look = heliPoint(t, lookLocal), fov = fov }
+end
+
 local Cinematics: { [string]: Scene } = {
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",
@@ -313,6 +350,93 @@ local Cinematics: { [string]: Scene } = {
 			{ t = 2.2, kind = "eggBurst" },
 			{ t = 2.2, kind = "petReveal" },
 			{ t = 2.6, kind = "eggAnnounce" },
+		},
+	},
+
+	-- Rescate al amanecer (G3b): lo lanza BeaconService con el anchor en la baliza; la ven todos los de la partida.
+	-- Primera parte (0 a 9,2 s): plano abierto desde el Basecamp hacia donde aparece, contrapicado que lo sigue por
+	-- encima de la cabeza y el cartel «¡Rescate!»; los puntos de seguimiento (3 a 6,5 s) siguen la trayectoria del
+	-- evento move (Sine InOut de 0,5 a 6,5 s). Corte a negro a 9,2 s: a 9,6 s sube la tripulación (RescueCrew: el
+	-- piloto y una copia de cada jugador, que se oculta de su sitio) y la segunda parte (9,7 a 19 s) es la cabina por
+	-- la puerta, el piloto de tres cuartos y el helicóptero alejándose, con «¡Todos a salvo!».
+	Rescue = {
+		duration = 19,
+		audience = "All",
+		freeze = true,
+		actors = {
+			heli = {
+				kind = "prop",
+				build = function(anchor: CFrame)
+					local model = HelicopterModel.build()
+					model:PivotTo(anchor * CFrame.new(HELI_START) * CFrame.Angles(0, math.rad(HELI_START_YAW), 0))
+					HelicopterModel.animate(model)
+					return model
+				end,
+			},
+		},
+		camera = {
+			{ t = 0, pos = Vector3.new(6, 3, 38), look = Vector3.new(-70, 48, 125), fov = 60 },
+			{ t = 1.5, pos = Vector3.new(6, 3, 38), look = Vector3.new(-83, 52, 122), fov = 58 },
+			{ t = 3, pos = Vector3.new(5, 2.8, 36), look = Vector3.new(-53, 41, 83), fov = 55 },
+			{ t = 4, pos = Vector3.new(4, 2.6, 34), look = Vector3.new(-27, 32, 51), fov = 52 },
+			{ t = 4.7, pos = Vector3.new(4, 2.5, 33), look = Vector3.new(-10, 27, 29), fov = 50 },
+			{ t = 5.5, pos = Vector3.new(3, 2.5, 30), look = Vector3.new(3, 21, 12), fov = 50 },
+			{ t = 6.5, pos = Vector3.new(2, 3, 26), look = Vector3.new(10, 18, 4), fov = 50 },
+			{ t = 8, pos = Vector3.new(22, 7, 22), look = Vector3.new(8, 16, 3), fov = 50 },
+			{ t = 9.5, pos = Vector3.new(31, 10, 4), look = Vector3.new(8, 15, 3), fov = 52 },
+			-- Se repite el punto (pantalla ya en negro) para que el salto al plano siguiente no curve la cámara.
+			{ t = 9.55, pos = Vector3.new(31, 10, 4), look = Vector3.new(8, 15, 3), fov = 52 },
+
+			-- Segunda parte (los puntos van en el marco del helicóptero: x derecha/puerta, y arriba, z atrás).
+			-- Plano 1 (9,6 a 13 s): fuera de la puerta, a unos 7 a 8 studs de ella (x = 2,2 + 7,5), a la altura de
+			-- los ojos de los pasajeros (y ~ 0,4), un poco por detrás para ver al piloto (z = -2,1) y a los que
+			-- saludan; mira al hueco entre el piloto y la primera fila. Se acerca hasta 3,6 studs de la puerta.
+			crewShot(9.6, Vector3.new(9.7, 0.4, 2.0), Vector3.new(0.2, 0.1, -0.8), 50),
+			crewShot(9.65, Vector3.new(9.7, 0.4, 2.0), Vector3.new(0.2, 0.1, -0.8), 50),
+			crewShot(10, Vector3.new(9.24, 0.41, 1.88), Vector3.new(0.22, 0.106, -0.82), 50),
+			crewShot(11, Vector3.new(8.1, 0.44, 1.59), Vector3.new(0.28, 0.12, -0.88), 49),
+			crewShot(12, Vector3.new(6.95, 0.47, 1.29), Vector3.new(0.34, 0.135, -0.94), 48),
+			crewShot(13, Vector3.new(5.8, 0.5, 1.0), Vector3.new(0.4, 0.15, -1.0), 47),
+			-- Plano 2 (13 a 16 s): rodea hacia el morro hasta ver al piloto de tres cuartos a través del cristal.
+			crewShot(14, Vector3.new(6.2, 0.7, -2.0), Vector3.new(0.7, 0.1, -2.0), 50),
+			crewShot(15, Vector3.new(5.6, 0.9, -4.6), Vector3.new(0.8, 0.1, -2.4), 52),
+			crewShot(16, Vector3.new(4.2, 1.0, -6.8), Vector3.new(0.7, 0.15, -2.6), 54),
+			-- Plano 3 (16 a 19 s): grúa hacia atrás y arriba; el helicóptero sigue rumbo al horizonte (la cámara
+			-- pasa por fuera del disco del rotor, de 6,5 de radio a 3,75 sobre la cabina).
+			crewShot(17, Vector3.new(10, 5, 4), Vector3.new(0, 0.3, -1), 56),
+			crewShot(18, Vector3.new(7, 7, 11), Vector3.new(0, 0.3, -1), 56),
+			crewShot(19, Vector3.new(2, 10, 19), Vector3.new(0, 0.3, -1), 52),
+		},
+		events = {
+			{ t = 0, kind = "letterbox" },
+			-- Coloca al helicóptero en su sitio de partida (también al volver atrás con seek).
+			{ t = 0, kind = "move", actor = "heli", pos = HELI_START, yaw = HELI_START_YAW },
+			{ t = 0.5, kind = "move", actor = "heli", pos = HELI_HOVER, yaw = HELI_HOVER_YAW, seconds = 6 },
+			-- Baja hasta HELI_LOW en 2,7 s (acaba a los 9,2 s: antes de la pantalla en negro, para que el
+			-- movimiento no pise el salto instantáneo de 9,6).
+			{ t = 6.5, kind = "move", actor = "heli", pos = HELI_LOW, yaw = HELI_HOVER_YAW, seconds = 2.7 },
+			{
+				t = 6.5,
+				kind = "title",
+				text = Strings.later("¡Rescate!"),
+				sub = Strings.later("Lo lograron"),
+				seconds = 4,
+			},
+			-- Negro, salto del helicóptero a su posición de salida, la tripulación sube y vuelve la imagen.
+			{ t = 9.2, kind = "fade", seconds = 0.35, toBlack = true },
+			{ t = 9.6, kind = "move", actor = "heli", pos = HELI_LOW, yaw = HELI_EXIT_YAW },
+			{ t = 9.6, kind = "crewBoard" },
+			{ t = 9.7, kind = "fade", seconds = 0.5, toBlack = false },
+			{
+				t = EXIT_FROM,
+				kind = "move",
+				actor = "heli",
+				pos = HELI_OUT,
+				yaw = HELI_EXIT_YAW,
+				seconds = EXIT_TO - EXIT_FROM,
+			},
+			{ t = 11, kind = "caption", text = Strings.later("¡Todos a salvo!"), seconds = 4 },
+			{ t = 18.4, kind = "fade", seconds = 0.6, toBlack = true },
 		},
 	},
 

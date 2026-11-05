@@ -868,6 +868,18 @@ local function main(copia: Instance): string
 				end)
 			end
 		end
+		-- Helicóptero de rescate (Fase 25, G3b): soldado a su raíz, así que se fusiona por soldaduras.
+		if pasa("Helicopter") then
+			intentar("Helicopter", function()
+				local modelo = (require(copia.HelicopterModel) :: any).build()
+				fila(
+					"Helicopter (rescate)",
+					medir(modelo, fusionSoldada),
+					tope("Helicopter", "Helicopter", M.Helicopter)
+				)
+				modelo:Destroy()
+			end)
+		end
 		for _, id in claves(PlotStructures) do
 			if pasa(id) then
 				for nivel = 1, 3 do

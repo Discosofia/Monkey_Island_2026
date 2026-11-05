@@ -828,6 +828,10 @@ return {
 	["Escena de prueba"] = "Test scene",
 	["El motor de cinemáticas funciona"] = "The cinematics engine works",
 	["Un guerrero avanza por la playa"] = "A warrior walks along the beach",
+	-- Rescate al amanecer (G3b).
+	["¡Rescate!"] = "Rescue!",
+	["Lo lograron"] = "You made it",
+	["¡Todos a salvo!"] = "Everyone is safe!",
 	-- Aparición de los jefes (subtítulos del cartel).
 	["Señor del manglar"] = "Lord of the mangrove",
 	["Amo de las montañas"] = "Master of the mountains",

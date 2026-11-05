@@ -27,6 +27,7 @@ local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
+local BeaconService = require(script.Parent.BeaconService)
 local BuildingService = require(script.Parent.BuildingService)
 local CinematicService = require(script.Parent.CinematicService)
 local Cinematics = require(ReplicatedStorage.Shared.Data.Cinematics)
@@ -803,6 +804,30 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		})
 		if not ok then
 			Remotes.Notify:FireClient(player, "🎬 La escena de prueba ya está en marcha")
+		end
+	end,
+	-- Rescate (Fase 25, G3b): la escena «Rescue» sobre la baliza (o 20 studs delante del jugador si no hay), solo para
+	-- quien pulsa, sin congelar el juego ni cerrar la partida.
+	CineRescue = function(player)
+		local anchor = BeaconService.debugRescueAnchor()
+		if not anchor then
+			local character = player.Character
+			if not character then
+				return
+			end
+			local pivot = character:GetPivot()
+			-- +Z de la escena hacia el jugador: el anchor mira lejos de él, 20 studs por delante y a ras de suelo.
+			local forward = pivot.LookVector * Vector3.new(1, 0, 1)
+			local base = pivot.Position + forward.Unit * 20 - Vector3.new(0, 3, 0)
+			anchor = CFrame.lookAt(base, base + forward)
+		end
+		local ok = CinematicService.play("Rescue", {
+			audience = { player },
+			anchor = anchor,
+			noFreeze = true,
+		})
+		if not ok then
+			Remotes.Notify:FireClient(player, "🎬 La escena del rescate ya está en marcha")
 		end
 	end,
 	-- Plató de grabación (ver runStage).

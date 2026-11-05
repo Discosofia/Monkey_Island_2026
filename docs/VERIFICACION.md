@@ -5287,6 +5287,110 @@ Ya probado: en Play en el Studio del Lobby, disparando `Remotes.EggHatched` desd
 12. [ ] Antes de probar en Play, haz la copia del perfil de §10.0 y, con el Play parado, restáurala al terminar.
     ✅ Tras restaurar, el perfil real (`PlayerData_v1`) coincide con la copia, y el Ámbar, los huevos y las mascotas son los de antes del Play.
 
+## 143. Fase 25 G3b: rescate con el helicóptero voxel (05-11-2026)
+
+El rescate es la escena de servidor `Rescue` (`Data/Cinematics`, 19 s, para todos, congela a los jugadores) con un helicóptero voxel de 60 piezas, cabina hueca con la puerta derecha abierta, asientos y banco (`Shared/HelicopterModel`, tope `Config.Budgets.Models.Helicopter` = 65; las hélices son `Motor6D` que giran en `animate`). Hacia 9,6 s sube la tripulación (`Shared/Cinematics/RescueCrew`): un piloto con mono naranja y casco blanco con visera al volante, y como pasajeros una copia pequeña (escala 0,42) del personaje de cada jugador, hasta 6, sentados y saludando; los personajes reales se ocultan solo en cada cliente y vuelven al acabar o al saltar. Al amanecer del rescate, con la baliza encendida, `BeaconService.startRescue` la lanza sobre la base de la baliza y, al acabar, apaga la lámpara y llama a `MatchService.endMatch("Victory")`. Si otra escena con bloqueo ocupa la cinemática, reintenta cada 0,5 s hasta 15 s y luego cierra sin escena. Mientras dura, nadie puede volver a encender la baliza. La orden de administrador «🚁 Rescate» (`CineRescue`) lanza solo la escena para quien la pulsa, sin congelar ni cerrar la partida.
+
+Ya probado: Rendimiento mide el helicóptero en 60 piezas antes y después de fusionar, con tope 65, 708 triángulos y sin alertas. En Play en el Studio de la Isla, «🚁 Rescate» sin baliza (20 studs delante del jugador): la cámara pasa a Scriptable, el helicóptero entra y flota, sale el cartel, la tripulación aparece a 9,6 s (piloto y copia del jugador como pasajero), el personaje real se oculta y se restaura al final, la escena acaba a los ~19 s y se restauran HUD y cámara; capturas de la cabina en Play. Se arreglaron dos fallos al probar: los personajes actuales usan `AnimationConstraint` en vez de `Motor6D`, y la unión de R15 se llama «Root». Los encuadres de la versión anterior se revisaron en modo edición con capturas. Esta sección es lo que falta.
+
+### 143.1 Guardar, publicar y traducción
+
+1. [ ] Guarda el place de la Isla en Studio y publícalo. Después, con el juego publicado, lanza «🚁 Rescate» desde el panel de administración.
+   ✅ La escena se ve sin errores en la Salida y el juego sigue después de acabar.
+2. [ ] Sube a Creator Hub las frases nuevas de G1–G3b: `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, el archivo (o los `_1`, `_2`… si pasa de 90) y luego `python tools/strings.py --marcar-subidas`.
+   ✅ Creator Hub acepta el CSV sin errores, `tools/strings_subidas.txt` queda con las claves nuevas y `python tools/strings.py` no avisa de frases sin inglés.
+
+### 143.2 Rescate de verdad
+
+3. [ ] Enciende la baliza, aguanta la noche final y espera al amanecer.
+   ✅ Al amanecer arranca la escena sobre la baliza real (no sobre el sitio de la orden), el helicóptero entra desde el cielo y flota sobre ella, y la partida no termina antes de que acabe la escena.
+4. [ ] Al acabar la escena (19 s), mira el resumen de la partida.
+   ✅ La partida termina en victoria justo al acabar la escena, con el resumen y el pago de Ámbar; la lámpara de la baliza se apaga y el HUD y la cámara vuelven.
+5. [ ] Mientras corre la escena, intenta volver a encender la baliza.
+   ✅ No se enciende: nadie puede volver a encenderla durante la escena.
+
+### 143.3 Cámara y helicóptero en el Basecamp
+
+6. [ ] Enciende la baliza en 3 sitios distintos del Basecamp (al menos uno pegado a edificios y a un árbol) y mira la cámara de 0 a 6 s (a unos 30–38 studs de la baliza hacia el Basecamp).
+   ✅ La cámara no atraviesa edificios, árboles ni terreno en ninguno de los 3 sitios. Si lo hace, se anota el segundo y el sitio.
+7. [ ] Mira el helicóptero desde dentro del campamento durante la escena.
+   ✅ Se ve entero, con proporciones correctas, y no lo tapa nada importante del campamento.
+8. [ ] Mira el helicóptero por detrás, con la cola a la vista.
+   ✅ La cola se lee bien, el emblema es un plátano amarillo en la aleta y no hay nada verde (el verde es solo para la curación).
+9. [ ] En el emulador de teléfono de gama baja, mira las hélices.
+   ✅ Giran de forma fluida, sin saltos ni parones.
+10. [ ] Acerca al jugador al helicóptero mientras flota sobre la baliza.
+    ✅ No hay colisión: el jugador atraviesa el helicóptero sin empujes ni tropiezos (CanCollide en false).
+
+### 143.4 Saltar
+
+11. [ ] Pulsa Saltar a mitad de la escena. Si el juego deja saltarla la primera vez, anótalo; si no, prueba otra vez después de verla entera.
+    ✅ Llega la victoria igualmente (resumen y Ámbar), no queda el helicóptero ni el HUD oculto y la cámara vuelve.
+
+### 143.5 Ajuste «Cinemáticas» apagado
+
+12. [ ] Desactiva «Cinemáticas» en los ajustes y espera al amanecer con la baliza encendida.
+    ✅ No hay escena; la victoria llega al acabar el margen igualmente y la cámara no queda en Scriptable.
+
+### 143.6 Jefe en marcha
+
+13. [ ] Lanza un jefe con «👑 Siguiente jefe» y haz que el amanecer del rescate caiga mientras su escena de aparición corre.
+    ✅ El rescate espera su turno (reintenta cada 0,5 s) y empieza al acabar la escena del jefe, no a la vez.
+14. [ ] Si la escena del jefe sigue con el bloqueo más de 15 s, mira qué pasa al cumplirse ese tiempo.
+    ✅ El rescate cierra sin escena y no deja la cámara ni el HUD ocultos. Se anota si la victoria llega.
+
+### 143.7 Modo sin fin (Fase 12)
+
+15. [ ] En modo sin fin, tras la primera Victoria sigue jugando y enciende la baliza otra vez para el siguiente amanecer.
+    ✅ La partida sigue tras la Victoria, y el segundo rescate vuelve a lanzar la escena (`rescuing` vuelve a false).
+
+### 143.8 Dos jugadores
+
+16. [ ] Con dos jugadores, uno en el Basecamp y otro lejos o muerto, espera al amanecer con la baliza encendida.
+    ✅ Los dos ven la escena entera sobre la baliza real, también quien está muerto o lejos, y la partida termina en victoria para los dos al acabar.
+
+### 143.9 Orden de administrador
+
+17. [ ] Con la baliza construida, pulsa «🚁 Rescate» en el panel de administración.
+    ✅ La escena sale con el helicóptero sobre la base de la baliza (+Z hacia el Basecamp), solo la ve quien la pulsa, y no congela ni cierra la partida.
+18. [ ] Sin baliza construida, pulsa «🚁 Rescate».
+    ✅ La escena sale con el helicóptero 20 studs delante del jugador, sin congelar ni cerrar la partida.
+
+### 143.10 Pantallas e idioma
+
+19. [ ] Con el juego en inglés (como en §20), enciende la baliza y espera al amanecer en el emulador de teléfono (9:16).
+    ✅ «Rescue!» y «You made it» caben en la zona segura y no se cortan.
+20. [ ] Con el juego en español, mira el cartel en el teléfono y en el PC con la ventana pequeña.
+    ✅ «¡Rescate!» y «Lo lograron» caben enteros y no se cortan, en los dos.
+
+### 143.11 Tripulación y cabina
+
+21. [ ] Con dos jugadores en la partida, espera al amanecer con la baliza encendida y mira la escena en cada cliente.
+    ✅ Los dos se ven como pasajeros sentados en el helicóptero, cada uno con su propia armadura y aspecto; cada cliente se ve a sí mismo primero, junto a la puerta; los personajes reales de los dos desaparecen en el corte y reaparecen al acabar.
+22. [ ] Con seis jugadores o más en la partida, espera al amanecer con la baliza encendida.
+    ✅ Suben hasta seis pasajeros; los que no caben no suben, pero tampoco quedan en pantalla en el suelo.
+23. [ ] Con un jugador muerto y el resto vivos, espera al amanecer con la baliza encendida.
+    ✅ El muerto no sube, pero tampoco queda en pantalla en el suelo; los vivos suben como siempre.
+24. [ ] Mira la postura de los pasajeros de cerca, desde dentro de la cabina, entre 9,6 y 11 s.
+    ✅ Las piernas dobladas a 90° no atraviesan el suelo de la cabina (tolerancia de unos 0,1); el piloto lleva las manos en el volante; el casco blanco se distingue sobre el fuselaje; los pasajeros saludan con el brazo derecho sin cortarse con la pared.
+25. [ ] Mira la cámara de la segunda parte (9,7 a 19 s): la puerta derecha abierta, el plano de tres cuartos del piloto y la grúa hacia atrás con el helicóptero alejándose.
+    ✅ La cámara no atraviesa el rotor principal (radio 6,5) ni la cola durante la grúa final.
+26. [ ] Mira el rótulo «¡Rescate!» entre 9,7 y 11 s, con la tripulación en pantalla.
+    ✅ El rótulo no tapa a la tripulación. Si molesta, se anota y se baja su duración.
+27. [ ] En el emulador de teléfono de gama baja, mira la escena entera (9,6 a 19 s), con piloto, pasajeros y rotores a la vez.
+    ✅ Sin tirones ni parones.
+28. [ ] Con el juego en inglés y luego en español, mira el rótulo «Everyone is safe!» y «¡Todos a salvo!» en el teléfono (9:16), de 11 a 15 s.
+    ✅ Cabe en la zona segura y no se corta, en los dos idiomas.
+29. [ ] Pulsa Saltar después de 9,6 s, con la tripulación ya subida.
+    ✅ Los personajes reales vuelven a verse, no queda ni helicóptero ni piloto ni copias de pasajeros, la cámara y el HUD vuelven y la victoria llega igual.
+30. [ ] Con un avatar de otro tipo (R6, o personalizado sin los `Motor6D` estándar), espera al amanecer con la baliza encendida.
+    ✅ La escena no se rompe: el personaje sube igualmente, de pie sobre el cojín.
+
+### 143.12 Perfil real
+
+31. [ ] Antes de probar en Play, haz la copia del perfil de §10.0 y, con el Play parado, restáurala al terminar.
+    ✅ Tras restaurar, el perfil real (`PlayerData_v1`) coincide con la copia, y el Ámbar, los huevos y las mascotas son los de antes del Play.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
