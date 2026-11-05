@@ -33,6 +33,127 @@ export type ArmorMeshes = {
 local ArmorMeshes: ArmorMeshes = {
 	Armor = {
 		BoneArmor = {
+			-- @entrada Armor BoneArmor Cazador
+			Cazador = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LeftUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					RightUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Soft"] = {
+						mesh = "rbxassetid://127180201337147",
+						texture = "rbxassetid://94249305150848",
+						offset = Vector3.new(0.0000, -0.3367, 0.0000),
+						size = Vector3.new(1.1211, 0.3759, 1.1219),
+						triangles = 24,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://129051533125299",
+						texture = "rbxassetid://110467089207676",
+						offset = Vector3.new(-0.1975, 0.8582, 0.0000),
+						size = Vector3.new(1.5760, 0.3951, 1.3819),
+						triangles = 130,
+					},
+					["LeftUpperArm_Soft"] = {
+						mesh = "rbxassetid://86235439710508",
+						texture = "rbxassetid://89082629903640",
+						offset = Vector3.new(-0.1000, 0.4059, 0.0000),
+						size = Vector3.new(1.5011, 0.6100, 1.5019),
+						triangles = 24,
+					},
+					["LeftUpperLeg_Hard"] = {
+						mesh = "rbxassetid://115148848606358",
+						texture = "rbxassetid://119221824387420",
+						offset = Vector3.new(-0.0600, 0.2814, -0.5564),
+						size = Vector3.new(0.5615, 0.7030, 0.1000),
+						triangles = 380,
+					},
+					["LeftUpperLeg_Soft"] = {
+						mesh = "rbxassetid://84518342285016",
+						texture = "rbxassetid://89241973154391",
+						offset = Vector3.new(0.0000, 0.5415, 0.0000),
+						size = Vector3.new(1.0528, 0.1000, 1.0327),
+						triangles = 12,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://70415758183782",
+						texture = "rbxassetid://126403399412075",
+						offset = Vector3.new(-0.2017, 0.0149, -0.6271),
+						size = Vector3.new(1.1305, 0.5499, 0.1300),
+						triangles = 76,
+					},
+					["LowerTorso_Soft"] = {
+						mesh = "rbxassetid://134145793394926",
+						texture = "rbxassetid://135927144940563",
+						offset = Vector3.new(0.0000, -0.0999, -0.0851),
+						size = Vector3.new(2.1314, 0.5200, 1.3141),
+						triangles = 68,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://109924449313523",
+						texture = "rbxassetid://125920144497596",
+						offset = Vector3.new(0.5705, -0.0671, 0.0000),
+						size = Vector3.new(0.0800, 0.5588, 0.7410),
+						triangles = 36,
+					},
+					["RightLowerArm_Soft"] = {
+						mesh = "rbxassetid://104412752684098",
+						texture = "rbxassetid://92984502703178",
+						offset = Vector3.new(0.0000, -0.0270, 0.0000),
+						size = Vector3.new(1.1211, 0.6949, 1.1219),
+						triangles = 24,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://75699612507834",
+						texture = "rbxassetid://112603705162789",
+						offset = Vector3.new(0.1000, 0.7708, 0.0000),
+						size = Vector3.new(0.8800, 0.1001, 0.8802),
+						triangles = 92,
+					},
+					["RightUpperArm_Soft"] = {
+						mesh = "rbxassetid://136042271467607",
+						texture = "rbxassetid://135891115888972",
+						offset = Vector3.new(0.0800, 0.4009, 0.0000),
+						size = Vector3.new(1.2411, 0.6000, 1.2019),
+						triangles = 24,
+					},
+					["RightUpperLeg_Hard"] = {
+						mesh = "rbxassetid://125772386789163",
+						texture = "rbxassetid://121473495536714",
+						offset = Vector3.new(0.0600, 0.2814, -0.5564),
+						size = Vector3.new(0.5615, 0.7030, 0.1000),
+						triangles = 380,
+					},
+					["RightUpperLeg_Soft"] = {
+						mesh = "rbxassetid://73403004243266",
+						texture = "rbxassetid://75682410579384",
+						offset = Vector3.new(0.0000, 0.5415, 0.0000),
+						size = Vector3.new(1.0528, 0.1000, 1.0327),
+						triangles = 12,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://73807866546430",
+						texture = "rbxassetid://86166721262088",
+						offset = Vector3.new(0.0000, -0.0047, 0.3250),
+						size = Vector3.new(3.0868, 2.3924, 2.0741),
+						triangles = 2066,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://95215621458057",
+						texture = "rbxassetid://118936660027858",
+						offset = Vector3.new(0.0000, 0.0786, 0.3050),
+						size = Vector3.new(2.0632, 1.9208, 2.0341),
+						triangles = 468,
+					},
+				},
+			},
+			-- @fin
 			-- @entrada Armor BoneArmor Guerrero
 			Guerrero = {
 				ref = {
@@ -163,6 +284,99 @@ local ArmorMeshes: ArmorMeshes = {
 			-- @fin
 		},
 		FurVest = {
+			-- @entrada Armor FurVest Cazador
+			Cazador = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LeftUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					RightUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Soft"] = {
+						mesh = "rbxassetid://110252287558642",
+						texture = "rbxassetid://97765370065895",
+						offset = Vector3.new(0.0000, -0.4023, 0.0000),
+						size = Vector3.new(1.0611, 0.1200, 1.0619),
+						triangles = 12,
+					},
+					["LeftUpperArm_Soft"] = {
+						mesh = "rbxassetid://112075895403839",
+						texture = "rbxassetid://73704047890796",
+						offset = Vector3.new(-0.1000, 0.7458, 0.0000),
+						size = Vector3.new(1.5011, 0.2298, 1.5019),
+						triangles = 28,
+					},
+					["LeftUpperLeg_Hard"] = {
+						mesh = "rbxassetid://81772374874809",
+						texture = "rbxassetid://80366802250818",
+						offset = Vector3.new(-0.1000, 0.4090, -0.5464),
+						size = Vector3.new(0.0750, 0.5749, 0.0700),
+						triangles = 28,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://87139250445142",
+						texture = "rbxassetid://130504314971294",
+						offset = Vector3.new(-0.7169, 0.1401, -0.6021),
+						size = Vector3.new(0.1000, 0.2000, 0.1000),
+						triangles = 12,
+					},
+					["LowerTorso_Soft"] = {
+						mesh = "rbxassetid://110833213935587",
+						texture = "rbxassetid://106429540323018",
+						offset = Vector3.new(0.0000, -0.1300, -0.0850),
+						size = Vector3.new(2.1114, 0.4799, 1.2941),
+						triangles = 68,
+					},
+					["RightLowerArm_Soft"] = {
+						mesh = "rbxassetid://71525987692137",
+						texture = "rbxassetid://114832394235504",
+						offset = Vector3.new(0.0000, -0.0894, 0.0000),
+						size = Vector3.new(1.0811, 0.5588, 1.0819),
+						triangles = 12,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://129491379031523",
+						texture = "rbxassetid://99987811449882",
+						offset = Vector3.new(0.1000, 0.7708, 0.0000),
+						size = Vector3.new(0.8800, 0.1001, 0.8802),
+						triangles = 92,
+					},
+					["RightUpperArm_Soft"] = {
+						mesh = "rbxassetid://106551935007246",
+						texture = "rbxassetid://84751941225953",
+						offset = Vector3.new(0.1000, 0.6609, 0.0000),
+						size = Vector3.new(1.2011, 0.0800, 1.2019),
+						triangles = 12,
+					},
+					["RightUpperLeg_Hard"] = {
+						mesh = "rbxassetid://82710408643300",
+						texture = "rbxassetid://99128665978079",
+						offset = Vector3.new(0.1000, 0.4090, -0.5464),
+						size = Vector3.new(0.0750, 0.5749, 0.0700),
+						triangles = 28,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://82530785120705",
+						texture = "rbxassetid://91418171411745",
+						offset = Vector3.new(0.0000, 0.0323, 0.2724),
+						size = Vector3.new(2.8017, 2.1666, 1.9391),
+						triangles = 1902,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://103405159222991",
+						texture = "rbxassetid://138055362375306",
+						offset = Vector3.new(0.0000, 0.1120, 0.3050),
+						size = Vector3.new(2.1832, 1.8540, 1.9541),
+						triangles = 440,
+					},
+				},
+			},
+			-- @fin
 			-- @entrada Armor FurVest Guerrero
 			Guerrero = {
 				ref = {
@@ -237,6 +451,127 @@ local ArmorMeshes: ArmorMeshes = {
 			-- @fin
 		},
 		SilverArmor = {
+			-- @entrada Armor SilverArmor Cazador
+			Cazador = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LeftUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					RightUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Soft"] = {
+						mesh = "rbxassetid://93509428971544",
+						texture = "rbxassetid://130246670197259",
+						offset = Vector3.new(0.0000, -0.1007, 0.0000),
+						size = Vector3.new(1.1611, 0.8960, 1.1619),
+						triangles = 24,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://108891351477916",
+						texture = "rbxassetid://127860791176246",
+						offset = Vector3.new(-0.3885, 0.9283, 0.0000),
+						size = Vector3.new(0.9343, 0.3950, 0.7810),
+						triangles = 300,
+					},
+					["LeftUpperArm_Soft"] = {
+						mesh = "rbxassetid://112846021521069",
+						texture = "rbxassetid://91800728730711",
+						offset = Vector3.new(-0.1000, 0.3291, 0.0000),
+						size = Vector3.new(1.4211, 1.5033, 1.4219),
+						triangles = 52,
+					},
+					["LeftUpperLeg_Hard"] = {
+						mesh = "rbxassetid://106283151888024",
+						texture = "rbxassetid://140311117427901",
+						offset = Vector3.new(-0.1400, 0.3589, -0.6263),
+						size = Vector3.new(0.2138, 0.5304, 0.0697),
+						triangles = 156,
+					},
+					["LeftUpperLeg_Soft"] = {
+						mesh = "rbxassetid://95992615153095",
+						texture = "rbxassetid://101255846199794",
+						offset = Vector3.new(-0.0400, 0.3139, -0.5564),
+						size = Vector3.new(0.8936, 0.7352, 0.1200),
+						triangles = 106,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://139244371599987",
+						texture = "rbxassetid://117753007757022",
+						offset = Vector3.new(-0.7169, 0.1799, -0.6221),
+						size = Vector3.new(0.1000, 0.2200, 0.1000),
+						triangles = 12,
+					},
+					["LowerTorso_Soft"] = {
+						mesh = "rbxassetid://139865683535077",
+						texture = "rbxassetid://119901548108062",
+						offset = Vector3.new(0.0000, -0.0899, -0.0801),
+						size = Vector3.new(2.1514, 0.5400, 1.3441),
+						triangles = 66,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://83545028014116",
+						texture = "rbxassetid://107521539953344",
+						offset = Vector3.new(0.5805, 0.0400, 0.0000),
+						size = Vector3.new(0.1200, 0.6146, 0.7013),
+						triangles = 12,
+					},
+					["RightLowerArm_Soft"] = {
+						mesh = "rbxassetid://105876169979266",
+						texture = "rbxassetid://130246670197259",
+						offset = Vector3.new(0.0000, -0.1007, 0.0000),
+						size = Vector3.new(1.1611, 0.8960, 1.1619),
+						triangles = 24,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://118097134603232",
+						texture = "rbxassetid://87022356734943",
+						offset = Vector3.new(0.3885, 0.9283, 0.0000),
+						size = Vector3.new(0.9343, 0.3950, 0.7810),
+						triangles = 300,
+					},
+					["RightUpperArm_Soft"] = {
+						mesh = "rbxassetid://116361926727132",
+						texture = "rbxassetid://71273733445599",
+						offset = Vector3.new(0.1000, 0.3291, 0.0000),
+						size = Vector3.new(1.4211, 1.5033, 1.4219),
+						triangles = 52,
+					},
+					["RightUpperLeg_Hard"] = {
+						mesh = "rbxassetid://134841133027283",
+						texture = "rbxassetid://103654762311016",
+						offset = Vector3.new(0.1400, 0.3589, -0.6263),
+						size = Vector3.new(0.2138, 0.5304, 0.0697),
+						triangles = 156,
+					},
+					["RightUpperLeg_Soft"] = {
+						mesh = "rbxassetid://130222759723380",
+						texture = "rbxassetid://101255846199794",
+						offset = Vector3.new(0.0400, 0.3139, -0.5564),
+						size = Vector3.new(0.8936, 0.7352, 0.1200),
+						triangles = 106,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://108169738148221",
+						texture = "rbxassetid://105167619848966",
+						offset = Vector3.new(0.0000, 0.0369, 0.3225),
+						size = Vector3.new(2.9401, 2.3093, 2.2791),
+						triangles = 1520,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://105234727419223",
+						texture = "rbxassetid://123162726291254",
+						offset = Vector3.new(0.0000, -0.0179, 0.3550),
+						size = Vector3.new(2.3432, 2.6139, 2.1341),
+						triangles = 1054,
+					},
+				},
+			},
+			-- @fin
 			-- @entrada Armor SilverArmor Guerrero
 			Guerrero = {
 				ref = {
@@ -367,6 +702,127 @@ local ArmorMeshes: ArmorMeshes = {
 			-- @fin
 		},
 		VolcanicArmor = {
+			-- @entrada Armor VolcanicArmor Cazador
+			Cazador = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LeftUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					RightUpperLeg = Vector3.new(0.9928, 1.3629, 0.9727),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Soft"] = {
+						mesh = "rbxassetid://72774728591297",
+						texture = "rbxassetid://74385148738815",
+						offset = Vector3.new(0.0000, -0.1007, 0.0000),
+						size = Vector3.new(1.1611, 0.8960, 1.1619),
+						triangles = 24,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://101935644317821",
+						texture = "rbxassetid://124823484964304",
+						offset = Vector3.new(-0.1000, 0.7858, 0.0000),
+						size = Vector3.new(1.5011, 0.8302, 1.5019),
+						triangles = 726,
+					},
+					["LeftUpperArm_Soft"] = {
+						mesh = "rbxassetid://135342874663383",
+						texture = "rbxassetid://70948354770870",
+						offset = Vector3.new(-0.1000, 0.3509, 0.0000),
+						size = Vector3.new(1.4211, 1.1597, 1.4219),
+						triangles = 24,
+					},
+					["LeftUpperLeg_Hard"] = {
+						mesh = "rbxassetid://106874617590240",
+						texture = "rbxassetid://123828966418831",
+						offset = Vector3.new(-0.0400, 0.3635, -0.6239),
+						size = Vector3.new(0.8339, 0.5398, 0.0747),
+						triangles = 180,
+					},
+					["LeftUpperLeg_Soft"] = {
+						mesh = "rbxassetid://137766335983688",
+						texture = "rbxassetid://75270571609694",
+						offset = Vector3.new(-0.0400, 0.4089, -0.5464),
+						size = Vector3.new(0.8936, 0.5997, 0.1000),
+						triangles = 12,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://91420686358545",
+						texture = "rbxassetid://77597625564781",
+						offset = Vector3.new(0.0000, 0.0601, -0.6121),
+						size = Vector3.new(0.3600, 0.2800, 0.0800),
+						triangles = 12,
+					},
+					["LowerTorso_Soft"] = {
+						mesh = "rbxassetid://105139556266783",
+						texture = "rbxassetid://119810529250934",
+						offset = Vector3.new(0.0000, -0.0550, -0.0801),
+						size = Vector3.new(2.1514, 0.4702, 1.3441),
+						triangles = 66,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://103974086741791",
+						texture = "rbxassetid://93703300254173",
+						offset = Vector3.new(0.5805, 0.0400, 0.0000),
+						size = Vector3.new(0.1200, 0.6146, 0.7013),
+						triangles = 12,
+					},
+					["RightLowerArm_Soft"] = {
+						mesh = "rbxassetid://131205864917499",
+						texture = "rbxassetid://131649031205403",
+						offset = Vector3.new(0.0000, -0.1007, 0.0000),
+						size = Vector3.new(1.1611, 0.8960, 1.1619),
+						triangles = 24,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://128460758212698",
+						texture = "rbxassetid://93025531195316",
+						offset = Vector3.new(0.1000, 0.7858, 0.0000),
+						size = Vector3.new(1.5011, 0.8302, 1.5019),
+						triangles = 726,
+					},
+					["RightUpperArm_Soft"] = {
+						mesh = "rbxassetid://78633513008860",
+						texture = "rbxassetid://100367936432370",
+						offset = Vector3.new(0.1000, 0.3509, 0.0000),
+						size = Vector3.new(1.4211, 1.1597, 1.4219),
+						triangles = 24,
+					},
+					["RightUpperLeg_Hard"] = {
+						mesh = "rbxassetid://87799459859136",
+						texture = "rbxassetid://77922382603707",
+						offset = Vector3.new(0.0400, 0.3635, -0.6239),
+						size = Vector3.new(0.8339, 0.5398, 0.0747),
+						triangles = 180,
+					},
+					["RightUpperLeg_Soft"] = {
+						mesh = "rbxassetid://111129916605740",
+						texture = "rbxassetid://98740688055247",
+						offset = Vector3.new(0.0400, 0.4089, -0.5464),
+						size = Vector3.new(0.8936, 0.5997, 0.1000),
+						triangles = 12,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://110599044268395",
+						texture = "rbxassetid://122143155660844",
+						offset = Vector3.new(-0.0007, 0.1724, 0.3501),
+						size = Vector3.new(2.0060, 2.1997, 2.1840),
+						triangles = 742,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://122280705444549",
+						texture = "rbxassetid://74249908686354",
+						offset = Vector3.new(0.0000, 0.1421, 0.1300),
+						size = Vector3.new(2.3432, 2.2939, 1.6841),
+						triangles = 652,
+					},
+				},
+			},
+			-- @fin
 			-- @entrada Armor VolcanicArmor Guerrero
 			Guerrero = {
 				ref = {

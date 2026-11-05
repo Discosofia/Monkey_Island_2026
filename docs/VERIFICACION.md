@@ -4896,6 +4896,23 @@ Los tres rangos que faltan del Guerrero con malla (`Data/ArmorMeshes`, `Mallas.v
 8. [ ] Mide con `Rendimiento` tras M4 (cuando cuente las mallas).
    ✅ Guerrero con malla: hueso ~3.000, plata ~4.000 y volcánica ~5.700 triángulos en juego; sin alertas de piezas.
 
+## 130. Fase 20 Q6c: Cazador de los cuatro rangos con malla (05-11-2026)
+
+Capa de rastreador (11 mallas, 2.634 triángulos), armadura de cazador (15, 3.816), manto plateado (15, 3.940 + 372 sueltos) y manto de brasa (15, 3.416 + 1.640 sueltos). Los ayudantes compartidos (hoja, carcaj, correa, abanico, estrella, capucha, manto plateado) usan escalones solo si lo que se viste tiene malla (`STEPS` en `ArmorModels`); sin malla conservan su versión de pocas piezas, así que Mago y Médico no cambian. Probado en Edit con un avatar normal y otro ancho. Sin probar en Play.
+
+### 130.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Consigue cada armadura de Cazador y mírate de espaldas y de frente.
+   ✅ Se ven con malla (carcaj en diagonal con flechas, abanico de hojas, capucha) y sin parpadeos ni piezas fuera de sitio.
+2. [ ] Dispara el arco y corre con las cuatro.
+   ✅ El carcaj y las hojas siguen el cuerpo sin separarse ni estorbar al brazo del arco.
+3. [ ] Mira la volcánica del Cazador de noche.
+   ✅ Las plumas de las flechas y el aro del carcaj brillan; la llama de la boca del carcaj sigue ardiendo.
+4. [ ] Entra y mira la armadura en los primeros segundos.
+   ✅ Sale en bloques (versión de pocas piezas) y pasa sola a malla al cargar.
+5. [ ] Comprueba Mago y Médico con las mismas armaduras.
+   ✅ Siguen igual que antes.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -183,6 +183,10 @@ local FACING = CFrame.Angles(0, math.rad(90), 0)
 local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
 -- Rol que pone su armadura a quien aún no tiene la suya.
 local DEFAULT_ROLE = "Guerrero"
+-- Los ayudantes compartidos (leaf, quiver, quiverStrap, blockLeafFan, leafStar, blockHood, silverCape) tienen dos versiones: la
+-- de siempre (óvalos, cilindros y bloques girados, pocas piezas) y la de escalones sin giro, que entra en la malla pero cuesta
+-- más piezas. "wear" pone `on` a true solo si lo que viste tiene malla en Data/ArmorMeshes o si se está diseñando (boxesOnly).
+local STEPS = { on = false }
 
 local ArmorModels = {}
 
@@ -356,8 +360,9 @@ local function discPauldron(arm: Builder, side: number, color: Color3, rim: Colo
 	return CFrame.new(side * 0.1, top + 0.18, 0)
 end
 
--- Línea en escalones de "from" a "to" (mismo Z), sin ninguna pieza girada: así entra en la malla (Fase 20 Q6). "thickness" es
--- el grosor de la línea, "depth" el fondo (Z) y "steps" los escalones.
+-- Línea en escalones de "from" a "to", sin ninguna pieza girada: así entra en la malla (Fase 20 Q6). Va en el plano XY
+-- (mismo Z, con "depth" de fondo) o, si los dos puntos tienen la misma Y, en el plano horizontal XZ (con "depth" de
+-- alto). "thickness" es el grosor de la línea y "steps" los escalones.
 local function stairs(
 	make: Builder,
 	from: Vector3,
@@ -368,15 +373,25 @@ local function stairs(
 	material: Enum.Material,
 	steps: number
 )
-	local dx, dy = math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps
+	local flat = math.abs(to.Y - from.Y) < 0.0001 and math.abs(to.Z - from.Z) > 0.0001
+	local dx, dy, dz = math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps, math.abs(to.Z - from.Z) / steps
 	for index = 0, steps - 1 do
 		local centre = from:Lerp(to, (index + 0.5) / steps)
-		make.block(
-			Vector3.new(dx + thickness * 0.5, dy + thickness * 0.5, depth),
-			color,
-			material,
-			CFrame.new(centre.X, centre.Y, from.Z)
-		)
+		if flat then
+			make.block(
+				Vector3.new(dx + thickness * 0.5, depth, dz + thickness * 0.5),
+				color,
+				material,
+				CFrame.new(centre.X, from.Y, centre.Z)
+			)
+		else
+			make.block(
+				Vector3.new(dx + thickness * 0.5, dy + thickness * 0.5, depth),
+				color,
+				material,
+				CFrame.new(centre.X, centre.Y, from.Z)
+			)
+		end
 	end
 end
 
@@ -1031,13 +1046,27 @@ local function silverCape(make: Builder, tufts: number): number
 	hem.Reflectance = 0.25
 	for index = 0, tufts - 1 do
 		local x = -width * 0.4 + index * width * 0.8 / (tufts - 1)
-		make.fang(
-			if index % 2 == 0 then 0.36 else 0.26,
-			0.3,
-			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
-			FABRIC,
-			CFrame.new(x + 0.15, capeBottom + 0.04, back + 0.36) * CFrame.Angles(0, 0, math.pi)
-		)
+		if STEPS.on then
+			tuft(
+				make,
+				x + 0.15,
+				capeBottom + 0.04,
+				back + 0.24,
+				0.3,
+				if index % 2 == 0 then 0.36 else 0.26,
+				0.14,
+				if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+				FABRIC
+			)
+		else
+			make.fang(
+				if index % 2 == 0 then 0.36 else 0.26,
+				0.3,
+				if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
+				FABRIC,
+				CFrame.new(x + 0.15, capeBottom + 0.04, back + 0.36) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
 	end
 	return capeBottom
 end
@@ -1349,16 +1378,27 @@ end
 
 -- ===================================== Cazador =====================================
 
--- Hoja de camuflaje: óvalo estrecho de "length" de largo en el plano XY de "at", con la punta hacia su
--- +Y y el nervio central más oscuro por fuera (+Z de "at"); sin nervio parece un lunar.
+-- Hoja de camuflaje de "length" de largo a lo largo del eje +Y de "at" (la punta hacia allí), en escalones sin giro: una
+-- franja diagonal con el nervio más oscuro por fuera (+Z de "at"); sin nervio parece un lunar. Vale para una hoja en un
+-- plano vertical o, tumbada (como sobre un hombro), en el horizontal.
 local function leaf(make: Builder, length: number, color: Color3, at: CFrame)
-	make.oval(Vector3.new(length * 0.42, length, 0.05), color, SMOOTH, at)
-	make.block(
-		Vector3.new(0.03, length * 0.8, 0.03),
-		color:Lerp(Color3.new(0, 0, 0), 0.35),
-		SMOOTH,
-		at * CFrame.new(0, 0, 0.03)
-	)
+	if not STEPS.on then
+		make.oval(Vector3.new(length * 0.42, length, 0.05), color, SMOOTH, at)
+		make.block(
+			Vector3.new(0.03, length * 0.8, 0.03),
+			color:Lerp(Color3.new(0, 0, 0), 0.35),
+			SMOOTH,
+			at * CFrame.new(0, 0, 0.03)
+		)
+		return
+	end
+	local axis = at:VectorToWorldSpace(Vector3.yAxis)
+	local lift = at:VectorToWorldSpace(Vector3.zAxis) * 0.03
+	local from = at.Position - axis * (length / 2)
+	local to = at.Position + axis * (length / 2)
+	local steps = math.max(3, math.round(length / 0.1))
+	stairs(make, from, to, length * 0.3, 0.05, color, SMOOTH, steps)
+	stairs(make, from + lift, to + lift, 0.04, 0.03, color:Lerp(Color3.new(0, 0, 0), 0.35), SMOOTH, steps)
 end
 
 type QuiverStyle = {
@@ -1372,15 +1412,72 @@ type QuiverStyle = {
 	feathers: { Color3 },
 }
 
--- Carcaj con el eje a lo largo de la +Y de "at" (el centro del tubo): tubo, aro en la boca y en el
--- fondo, y las flechas asomando por la boca con sus plumas, un poco abiertas en abanico. Devuelve el
--- marco de la boca.
+-- Carcaj con el eje a lo largo de la +Y de "at" (el centro del tubo), en escalones sin giro: el tubo grueso, un aro en la
+-- boca y otro en el fondo, y las flechas asomando por la boca (un palo fino en escalones con dos plumas cruzadas), un
+-- poco abiertas en abanico. "at" solo gira alrededor de Z (en la espalda va en diagonal). Devuelve el marco de la boca.
 local function quiver(make: Builder, at: CFrame, style: QuiverStyle): CFrame
+	if not STEPS.on then
+		local length, radius = style.length, style.radius
+		make.rod(length, radius * 2, style.color, style.material, at * UPRIGHT)
+		local mouth = at * CFrame.new(0, length / 2, 0)
+		make.rod(0.12, radius * 2 + 0.06, style.rim, style.rimMaterial, mouth * CFrame.new(0, -0.05, 0) * UPRIGHT)
+		make.rod(
+			0.1,
+			radius * 2 + 0.04,
+			style.rim,
+			style.rimMaterial,
+			at * CFrame.new(0, -length / 2 + 0.06, 0) * UPRIGHT
+		)
+		local count = style.arrows
+		for index = 1, count do
+			local angle = (index - 1) / count * math.pi * 2
+			local spot = if count == 1
+				then Vector3.zero
+				else Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * 0.55
+			local stick = 0.4 + (index % 2) * 0.12
+			local arrowAt = mouth * CFrame.new(spot) * CFrame.Angles(spot.Z * 0.8, 0, -spot.X * 0.8)
+			make.rod(stick + 0.2, 0.06, ARROW_SHAFT, WOOD, arrowAt * CFrame.new(0, (stick - 0.2) / 2, 0) * UPRIGHT)
+			local feather = style.feathers[(index - 1) % #style.feathers + 1]
+			for vane = 0, 1 do
+				make.block(
+					Vector3.new(0.03, 0.3, 0.17),
+					feather,
+					SMOOTH,
+					arrowAt * CFrame.new(0, stick - 0.13, 0) * CFrame.Angles(0, vane * math.pi / 2, 0)
+				)
+			end
+		end
+		return mouth
+	end
 	local length, radius = style.length, style.radius
-	make.rod(length, radius * 2, style.color, style.material, at * UPRIGHT)
-	local mouth = at * CFrame.new(0, length / 2, 0)
-	make.rod(0.12, radius * 2 + 0.06, style.rim, style.rimMaterial, mouth * CFrame.new(0, -0.05, 0) * UPRIGHT)
-	make.rod(0.1, radius * 2 + 0.04, style.rim, style.rimMaterial, at * CFrame.new(0, -length / 2 + 0.06, 0) * UPRIGHT)
+	local axis = at:VectorToWorldSpace(Vector3.yAxis)
+	local across = at:VectorToWorldSpace(Vector3.xAxis)
+	local bottom = at.Position - axis * (length / 2)
+	local mouth = at.Position + axis * (length / 2)
+	-- Tubo: un bloque por escalón, tan ancho como el carcaj más lo que avanza en X, con el alto del escalón.
+	local steps = math.max(5, math.round(length / 0.2))
+	local stepX, stepY = math.abs(mouth.X - bottom.X) / steps, math.abs(mouth.Y - bottom.Y) / steps
+	for index = 0, steps - 1 do
+		make.block(
+			Vector3.new(radius * 2 + stepX, stepY + 0.04, radius * 2),
+			style.color,
+			style.material,
+			CFrame.new(bottom:Lerp(mouth, (index + 0.5) / steps))
+		)
+	end
+	-- Aros de la boca y del fondo: dos losas planas que sobresalen un poco del tubo.
+	make.block(
+		Vector3.new(radius * 2 + 0.1 + stepX, 0.12, radius * 2 + 0.08),
+		style.rim,
+		style.rimMaterial,
+		CFrame.new(mouth - axis * 0.05)
+	)
+	make.block(
+		Vector3.new(radius * 2 + 0.08 + stepX, 0.1, radius * 2 + 0.06),
+		style.rim,
+		style.rimMaterial,
+		CFrame.new(bottom + axis * 0.05)
+	)
 	local count = style.arrows
 	for index = 1, count do
 		local angle = (index - 1) / count * math.pi * 2
@@ -1388,19 +1485,15 @@ local function quiver(make: Builder, at: CFrame, style: QuiverStyle): CFrame
 			then Vector3.zero
 			else Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * 0.55
 		local stick = 0.4 + (index % 2) * 0.12
-		local arrowAt = mouth * CFrame.new(spot) * CFrame.Angles(spot.Z * 0.8, 0, -spot.X * 0.8)
-		make.rod(stick + 0.2, 0.06, ARROW_SHAFT, WOOD, arrowAt * CFrame.new(0, (stick - 0.2) / 2, 0) * UPRIGHT)
+		local start = mouth + across * spot.X + Vector3.new(0, 0, spot.Z)
+		local direction = (axis + across * spot.X * 1.4).Unit
+		stairs(make, start - direction * 0.2, start + direction * stick, 0.06, 0.06, ARROW_SHAFT, WOOD, 4)
 		local feather = style.feathers[(index - 1) % #style.feathers + 1]
-		for vane = 0, 1 do
-			make.block(
-				Vector3.new(0.03, 0.3, 0.17),
-				feather,
-				SMOOTH,
-				arrowAt * CFrame.new(0, stick - 0.13, 0) * CFrame.Angles(0, vane * math.pi / 2, 0)
-			)
-		end
+		local plume = start + direction * (stick - 0.13)
+		make.block(Vector3.new(0.03, 0.3, 0.17), feather, SMOOTH, CFrame.new(plume))
+		make.block(Vector3.new(0.17, 0.3, 0.03), feather, SMOOTH, CFrame.new(plume))
 	end
-	return mouth
+	return CFrame.new(mouth) * (at - at.Position)
 end
 
 -- Capucha bajada a la espalda, bajo la nuca: el pliegue, su abertura oscura y la punta colgando.
@@ -1427,13 +1520,26 @@ end
 -- Correa del carcaj por delante: del hombro derecho a la cadera izquierda.
 local function quiverStrap(make: Builder, front: number, thickness: number, color: Color3, material: Enum.Material)
 	local width, height = make.size.X, make.size.Y
-	strap(
+	if not STEPS.on then
+		strap(
+			make,
+			Vector3.new(width * 0.3, height / 2 - 0.02, front),
+			Vector3.new(-width * 0.4, -height / 2 + 0.12, front),
+			thickness,
+			color,
+			material
+		)
+		return
+	end
+	stairs(
 		make,
 		Vector3.new(width * 0.3, height / 2 - 0.02, front),
 		Vector3.new(-width * 0.4, -height / 2 + 0.12, front),
 		thickness,
+		thickness,
 		color,
-		material
+		material,
+		10
 	)
 end
 
@@ -1454,34 +1560,85 @@ local function blockLeafFan(
 		local angle = -spread + index * 2 * spread / (count - 1)
 		local size = length * (1 - 0.12 * math.abs(angle) / spread)
 		local direction = Vector3.new(math.sin(angle), -math.cos(angle), 0)
-		-- Una de cada dos un poco por fuera, para que no compartan plano.
-		local center = neck + direction * (size / 2 + 0.05) + Vector3.new(0, 0, (index % 2) * 0.05)
-		make.block(
-			Vector3.new(0.3, size, 0.06),
+		-- Una de cada dos un poco por fuera, para que no compartan plano. Cada hoja es una franja en escalones.
+		local root = neck + Vector3.new(0, 0, (index % 2) * 0.05)
+		if not STEPS.on then
+			make.block(
+				Vector3.new(0.3, size, 0.06),
+				colors[index % #colors + 1],
+				SMOOTH,
+				CFrame.new(root + direction * (size / 2 + 0.05)) * CFrame.Angles(0, 0, math.pi + angle)
+			)
+			continue
+		end
+		stairs(
+			make,
+			root + direction * 0.05,
+			root + direction * (size + 0.05),
+			0.6,
+			0.06,
 			colors[index % #colors + 1],
 			SMOOTH,
-			CFrame.new(center) * CFrame.Angles(0, 0, math.pi + angle)
+			math.max(4, math.round(size / 0.18))
 		)
 	end
 end
 
--- Estrella de hojas tumbada sobre el hombro (la del lado del carcaj): seis hojas de bloque en rueda
--- sobre un disco de cuero, con una cuenta clara en el centro.
+-- Estrella de hojas tumbada sobre el hombro (la del lado del carcaj): ocho hojas de bloque en rueda sobre un disco de
+-- cuero (cuatro largas en los ejes y cuatro cortas en escalones en las diagonales), con una cuenta clara en el centro.
 local function leafStar(arm: Builder, side: number)
 	local as = arm.size
 	local top = as.Y / 2
 	local center = Vector3.new(side * 0.1, top + 0.1, 0)
-	arm.rod(0.08, as.X + 0.2, HUNTER_LEATHER_DARK, LEATHER_MATERIAL, CFrame.new(center.X, top + 0.04, 0) * UPRIGHT)
-	for index = 0, 5 do
-		local angle = index / 6 * math.pi * 2
-		arm.block(
-			Vector3.new(0.24, 0.06, 0.66),
-			if index % 2 == 0 then LEAF else LEAF_DARK,
-			SMOOTH,
-			CFrame.new(center + Vector3.new(0, (index % 2) * 0.03, 0))
-				* CFrame.Angles(0, angle, 0)
-				* CFrame.new(0, 0, -0.34)
-		)
+	if not STEPS.on then
+		arm.rod(0.08, as.X + 0.2, HUNTER_LEATHER_DARK, LEATHER_MATERIAL, CFrame.new(center.X, top + 0.04, 0) * UPRIGHT)
+		for index = 0, 5 do
+			local angle = index / 6 * math.pi * 2
+			arm.block(
+				Vector3.new(0.24, 0.06, 0.66),
+				if index % 2 == 0 then LEAF else LEAF_DARK,
+				SMOOTH,
+				CFrame.new(center + Vector3.new(0, (index % 2) * 0.03, 0))
+					* CFrame.Angles(0, angle, 0)
+					* CFrame.new(0, 0, -0.34)
+			)
+		end
+		arm.block(Vector3.new(0.2, 0.1, 0.2), LEAF_LIGHT, SMOOTH, CFrame.new(center + Vector3.new(0, 0.05, 0)))
+		return
+	end
+	arm.block(
+		Vector3.new(as.X + 0.2, 0.08, as.Z + 0.2),
+		HUNTER_LEATHER_DARK,
+		LEATHER_MATERIAL,
+		CFrame.new(center.X, top + 0.04, 0)
+	)
+	for index = 0, 7 do
+		local angle = index / 8 * math.pi * 2
+		local dx, dz = math.round(math.cos(angle) * 100) / 100, math.round(math.sin(angle) * 100) / 100
+		local color = if index % 2 == 0 then LEAF else LEAF_DARK
+		if index % 2 == 0 then
+			local alongX = math.abs(dx) > 0.5
+			arm.block(
+				if alongX then Vector3.new(0.66, 0.06, 0.24) else Vector3.new(0.24, 0.06, 0.66),
+				color,
+				SMOOTH,
+				CFrame.new(center + Vector3.new(dx * 0.34, 0, dz * 0.34))
+			)
+		else
+			local sx, sz = if dx > 0 then 1 else -1, if dz > 0 then 1 else -1
+			arm.block(
+				Vector3.new(0.2, 0.06, 0.2),
+				color,
+				SMOOTH,
+				CFrame.new(center + Vector3.new(sx * 0.2, 0.03, sz * 0.2))
+			)
+			arm.block(
+				Vector3.new(0.16, 0.06, 0.16),
+				color,
+				SMOOTH,
+				CFrame.new(center + Vector3.new(sx * 0.36, 0.03, sz * 0.36))
+			)
+		end
 	end
 	arm.block(Vector3.new(0.2, 0.1, 0.2), LEAF_LIGHT, SMOOTH, CFrame.new(center + Vector3.new(0, 0.05, 0)))
 end
@@ -1494,7 +1651,12 @@ local function blockHood(make: Builder, color: Color3, lining: Color3, material:
 	local fold = CFrame.new(0, height / 2 - 0.2, depth / 2 + 0.2)
 	make.block(Vector3.new(width * 0.46, 0.64, 0.36), color, hoodMaterial, fold)
 	make.block(Vector3.new(width * 0.34, 0.12, 0.24), lining, hoodMaterial, fold * CFrame.new(0, 0.33, -0.04))
-	make.fang(0.4, 0.3, color, hoodMaterial, fold * CFrame.new(0.14, -0.32, 0.15) * CFrame.Angles(0, 0, math.pi))
+	if STEPS.on then
+		local tip = (fold * CFrame.new(0, -0.32, 0.15)).Position
+		tuft(make, tip.X, tip.Y, tip.Z, 0.3, 0.4, 0.24, color, hoodMaterial)
+	else
+		make.fang(0.4, 0.3, color, hoodMaterial, fold * CFrame.new(0.14, -0.32, 0.15) * CFrame.Angles(0, 0, math.pi))
+	end
 	return fold
 end
 
@@ -1512,13 +1674,16 @@ local function trackerCape(body: Body)
 	-- Capa corta de pelaje pardo sobre los hombros, con flecos por detrás.
 	make.block(Vector3.new(width + 0.24, 0.32, depth + 0.3), FUR_BROWN, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.02))
 	for index = 0, 4 do
-		make.fang(
-			if index % 2 == 0 then 0.26 else 0.2,
+		tuft(
+			make,
+			-width * 0.36 + index * width * 0.18 + 0.09,
+			height / 2 - 0.2,
+			depth / 2 + 0.2,
 			0.18,
+			if index % 2 == 0 then 0.26 else 0.2,
+			0.1,
 			FUR_BROWN,
-			FABRIC,
-			CFrame.new(-width * 0.36 + index * width * 0.18, height / 2 - 0.2, depth / 2 + 0.2)
-				* CFrame.Angles(0, 0, math.pi)
+			FABRIC
 		)
 	end
 	-- Hombreras: la izquierda, una losa de pelaje con canto de cuero; la derecha (la del carcaj), una
@@ -1569,6 +1734,26 @@ local function trackerCape(body: Body)
 		make.block(Vector3.new(0.3, 0.05, 0.04), FIBER, FABRIC, CFrame.new(0, laceY, front - 0.02))
 	end
 
+	-- Pespuntes de fibra a los lados del jubón y mechones pintados sobre la capa de pelaje (relieve casi gratis en la malla).
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				FIBER,
+				FABRIC,
+				CFrame.new(side * width * 0.4, -height * 0.34 + dash * height * 0.12, front + 0.01)
+			)
+		end
+	end
+	for strip = -2, 2 do
+		make.block(
+			Vector3.new(width + 0.14, 0.04, 0.07),
+			if strip % 2 == 0 then BARK else HUNTER_LEATHER_DARK,
+			FABRIC,
+			CFrame.new(0, height / 2 + 0.095, 0.02 + strip * (depth + 0.3) * 0.19)
+		)
+	end
+
 	-- Cinturón de fibra con zurrón a la derecha y cuchillo de hueso en su funda a la izquierda.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
@@ -1578,7 +1763,7 @@ local function trackerCape(body: Body)
 	local pouch = CFrame.new(hipWidth * 0.3, beltY - 0.16, beltFront - 0.06)
 	waist.block(Vector3.new(0.36, 0.32, 0.14), HUNTER_LEATHER_DARK, LEATHER_MATERIAL, pouch)
 	waist.block(Vector3.new(0.4, 0.12, 0.18), HUNTER_LEATHER, LEATHER_MATERIAL, pouch * CFrame.new(0, 0.12, -0.01))
-	local sheath = CFrame.new(-hipWidth * 0.36, beltY - 0.2, beltFront - 0.03) * CFrame.Angles(0, 0, -0.25)
+	local sheath = CFrame.new(-hipWidth * 0.36, beltY - 0.2, beltFront - 0.03)
 	waist.block(Vector3.new(0.14, 0.42, 0.08), HUNTER_LEATHER_DARK, LEATHER_MATERIAL, sheath)
 	waist.block(Vector3.new(0.1, 0.2, 0.1), BONE, SMOOTH, sheath * CFrame.new(0, 0.3, 0))
 
@@ -1587,7 +1772,7 @@ local function trackerCape(body: Body)
 	band(bowArm, -bowArm.size.Y * 0.08, bowArm.size.Y * 0.5, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
 	band(bowArm, bowArm.size.Y * 0.1, 0.06, 0.12, FIBER, FABRIC)
 	local drawArm = body.lowerArm[-1]
-	band(drawArm, -drawArm.size.Y * 0.36, 0.12, 0.06, FIBER, FABRIC, 0.12)
+	band(drawArm, -drawArm.size.Y * 0.36, 0.12, 0.06, FIBER, FABRIC)
 end
 
 local function hunterLeather(body: Body)
@@ -1616,7 +1801,7 @@ local function hunterLeather(body: Body)
 		)
 	end
 	for _, y in { 0.28, 0.1, -0.08, -0.26 } do
-		make.rod(0.32, 0.08, BONE, SMOOTH, CFrame.new(0, height * y, front - 0.04))
+		make.block(Vector3.new(0.32, 0.08, 0.08), BONE, SMOOTH, CFrame.new(0, height * y, front - 0.04))
 	end
 	-- Cuello de cuero claro.
 	make.block(
@@ -1646,7 +1831,7 @@ local function hunterLeather(body: Body)
 		local t = 0.25 + index * 0.13
 		local x = width * 0.3 + (-width * 0.7) * t
 		local y = (height / 2 - 0.02) + (-height + 0.14) * t
-		make.fang(0.26, 0.1, BONE, SMOOTH, CFrame.new(x + 0.05, y - 0.04, front - 0.09) * CFrame.Angles(0, 0, math.pi))
+		tuft(make, x, y - 0.04, front - 0.09, 0.1, 0.26, 0.08, BONE, SMOOTH)
 	end
 	-- Detrás (lo que el jugador ve siempre): un manto de hojas de tres verdes en tres capas, más denso
 	-- que el de la capa de rastreador, la capucha bajada y el carcaj de cuero con aros de hueso.
@@ -1665,9 +1850,36 @@ local function hunterLeather(body: Body)
 		feathers = { FEATHER_RED, FEATHER_WHITE },
 	}, 0.3)
 	-- Un tercer aro de hueso a media altura y un colmillo grande atado al costado del carcaj.
-	make.rod(0.1, 0.57, BONE, SMOOTH, quiverAt * CFrame.new(0, -0.2, 0) * UPRIGHT)
-	make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, quiverAt * CFrame.new(-0.3, 0.3, 0.05))
-	make.fang(0.38, 0.14, BONE, SMOOTH, quiverAt * CFrame.new(-0.23, 0.17, 0.14) * CFrame.Angles(0, 0, math.pi))
+	local ringAt = (quiverAt * CFrame.new(0, -0.2, 0)).Position
+	make.block(Vector3.new(0.6, 0.1, 0.57), BONE, SMOOTH, CFrame.new(ringAt))
+	make.block(
+		Vector3.new(0.04, 0.3, 0.04),
+		FIBER,
+		FABRIC,
+		CFrame.new((quiverAt * CFrame.new(-0.3, 0.3, 0.05)).Position)
+	)
+	local fangAt = (quiverAt * CFrame.new(-0.23, 0.17, 0.14)).Position
+	tuft(make, fangAt.X, fangAt.Y, fangAt.Z, 0.14, 0.38, 0.12, BONE, SMOOTH)
+
+	-- Pespuntes claros a los lados del jubón y rayas de cuero pintadas en el cuello (relieve casi gratis en la malla).
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				HUNTER_LEATHER,
+				LEATHER_MATERIAL,
+				CFrame.new(side * width * 0.4, -height * 0.34 + dash * height * 0.12, front + 0.01)
+			)
+		end
+	end
+	for strip = -2, 2 do
+		make.block(
+			Vector3.new(width * 0.7 + 0.1, 0.04, 0.07),
+			if strip % 2 == 0 then HUNTER_LEATHER_DARK else BONE_DARK,
+			LEATHER_MATERIAL,
+			CFrame.new(0, height / 2 + 0.055, strip * (depth + 0.24) * 0.19)
+		)
+	end
 
 	-- Cinturón de cuero con hebilla de hueso, tachones, zurrón, cuchillo y un colmillo de trofeo.
 	local waist = body.waist
@@ -1675,9 +1887,9 @@ local function hunterLeather(body: Body)
 	local beltFront = -(hipDepth / 2 + 0.08)
 	waist.block(Vector3.new(hipWidth + 0.14, 0.2, hipDepth + 0.14), LEATHER, LEATHER_MATERIAL, CFrame.new(0, 0.06, 0))
 	waist.block(Vector3.new(0.3, 0.24, 0.08), BONE, SMOOTH, CFrame.new(0, 0.06, beltFront - 0.02))
-	waist.fang(0.3, 0.12, BONE, SMOOTH, CFrame.new(0.06, -0.06, beltFront - 0.06) * CFrame.Angles(0, 0, math.pi))
+	tuft(waist, 0, -0.06, beltFront - 0.06, 0.12, 0.3, 0.1, BONE, SMOOTH)
 	for _, x in { 0.16, -0.16 } do
-		waist.ball(0.09, BONE_DARK, SMOOTH, CFrame.new(x * hipWidth, 0.06, beltFront - 0.04))
+		waist.block(Vector3.one * 0.09, BONE_DARK, SMOOTH, CFrame.new(x * hipWidth, 0.06, beltFront - 0.04))
 	end
 	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
 	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER, LEATHER_MATERIAL, pouch)
@@ -1687,7 +1899,7 @@ local function hunterLeather(body: Body)
 		LEATHER_MATERIAL,
 		pouch * CFrame.new(0, 0.13, -0.01)
 	)
-	local sheath = CFrame.new(-hipWidth * 0.36, -0.14, beltFront - 0.03) * CFrame.Angles(0, 0, -0.25)
+	local sheath = CFrame.new(-hipWidth * 0.36, -0.14, beltFront - 0.03)
 	waist.block(Vector3.new(0.14, 0.44, 0.08), LEATHER, LEATHER_MATERIAL, sheath)
 	waist.block(Vector3.new(0.1, 0.22, 0.1), BONE, SMOOTH, sheath * CFrame.new(0, 0.32, 0))
 
@@ -1705,13 +1917,15 @@ local function hunterLeather(body: Body)
 		)
 	end
 	for _, z in { -0.26, 0.26 } do
-		left.fang(
-			0.34,
-			0.12,
-			BONE,
-			SMOOTH,
-			CFrame.new(-(left.size.X / 2 + 0.3), leftTop + 0.2, z * left.size.Z) * CFrame.Angles(0, 0, 0.7)
-		)
+		-- Garra en tres escalones hacia fuera y arriba (sin giro).
+		for step = 0, 2 do
+			left.block(
+				Vector3.one * (0.14 - step * 0.035),
+				BONE,
+				SMOOTH,
+				CFrame.new(-(left.size.X / 2 + 0.25 + step * 0.1), leftTop + 0.2 + step * 0.1, z * left.size.Z)
+			)
+		end
 	end
 	band(left, leftTop - 0.45, 0.14, 0.08, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
 	local right = body.upperArm[1]
@@ -1738,7 +1952,7 @@ local function hunterLeather(body: Body)
 		local leg = body.upperLeg[side]
 		local ls = leg.size
 		band(leg, ls.Y / 2 - 0.14, 0.1, 0.06, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
-		leg.ball(0.1, BONE, SMOOTH, CFrame.new(side * 0.06, ls.Y / 2 - 0.14, -(ls.Z / 2 + 0.07)))
+		leg.block(Vector3.one * 0.1, BONE, SMOOTH, CFrame.new(side * 0.06, ls.Y / 2 - 0.14, -(ls.Z / 2 + 0.07)))
 		for index, x in { -0.18, 0.18 } do
 			leaf(
 				leg,
@@ -1765,13 +1979,15 @@ local function silverHunter(body: Body)
 	)
 	make.block(Vector3.new(0.06, height * 0.8, 0.04), LEATHER, LEATHER_MATERIAL, CFrame.new(0, -height * 0.04, front))
 	quiverStrap(make, front - 0.04, 0.14, HUNTER_LEATHER_DARK, LEATHER_MATERIAL)
-	strap(
+	stairs(
 		make,
 		Vector3.new(-width * 0.3, height / 2 - 0.02, front - 0.02),
 		Vector3.new(width * 0.4, -height / 2 + 0.12, front - 0.02),
 		0.14,
+		0.14,
 		HUNTER_LEATHER_DARK,
-		LEATHER_MATERIAL
+		LEATHER_MATERIAL,
+		10
 	)
 	for _, at in
 		{
@@ -1782,20 +1998,25 @@ local function silverHunter(body: Body)
 			Vector3.new(width * 0.4, -height / 2 + 0.16, 0),
 		}
 	do
-		local rivet = make.ball(0.13, SILVER, METAL, CFrame.new(at.X, at.Y, front - 0.12))
+		local rivet = make.block(Vector3.one * 0.13, SILVER, METAL, CFrame.new(at.X, at.Y, front - 0.12))
 		rivet.Reflectance = 0.25
 	end
 	-- Tres colmillos de trofeo colgando de la correa.
 	for _, t in { 0.3, 0.45, 0.6 } do
 		local x = width * 0.3 - width * 0.7 * t
 		local y = (height / 2 - 0.02) + (-height + 0.14) * t
-		make.fang(
-			0.26,
-			0.1,
-			THICK_BONE,
-			SMOOTH,
-			CFrame.new(x + 0.05, y - 0.08, front - 0.16) * CFrame.Angles(0, 0, math.pi)
-		)
+		tuft(make, x, y - 0.08, front - 0.16, 0.1, 0.26, 0.08, THICK_BONE, SMOOTH)
+	end
+	-- Pespuntes de plata a los lados del jubón (rayas cortas pintadas).
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				SILVER,
+				LEATHER_MATERIAL,
+				CFrame.new(side * width * 0.4, -height * 0.34 + dash * height * 0.12, front + 0.01)
+			)
+		end
 	end
 	-- Manto de pelaje plateado con la capa y los flecos (silverCape) y hojas oscuras de camuflaje cosidas
 	-- a los lados del cuello.
@@ -1841,13 +2062,9 @@ local function silverHunter(body: Body)
 	end
 	local hood = blockHood(make, SILVER_FUR_DARK, GORILLA_FUR, FABRIC)
 	for side = -1, 1, 2 do
-		make.fang(
-			0.34,
-			0.22,
-			GORILLA_FUR,
-			FABRIC,
-			hood * CFrame.new(side * 0.42 - 0.11, 0.3, -0.05) * CFrame.Angles(0, 0, -side * 0.3)
-		)
+		-- Orejas de la capucha en tres escalones, algo abiertas hacia fuera.
+		local ear = (hood * CFrame.new(side * 0.42, 0.3, -0.05)).Position
+		spire(make, ear.X, ear.Y, ear.Z, 0.22, 0.34, 0.18, GORILLA_FUR, FABRIC, side * 0.06)
 	end
 	local quiverAt = backQuiver(make, {
 		length = 1.8,
@@ -1864,8 +2081,18 @@ local function silverHunter(body: Body)
 		ring.Reflectance = 0.25
 	end
 	-- Borla de pelaje plateado colgando del costado del carcaj.
-	make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, quiverAt * CFrame.new(-0.3, 0.2, 0.05))
-	make.block(Vector3.new(0.14, 0.22, 0.1), SILVER_FUR, FABRIC, quiverAt * CFrame.new(-0.3, 0.0, 0.05))
+	make.block(
+		Vector3.new(0.04, 0.3, 0.04),
+		FIBER,
+		FABRIC,
+		CFrame.new((quiverAt * CFrame.new(-0.3, 0.2, 0.05)).Position)
+	)
+	make.block(
+		Vector3.new(0.14, 0.22, 0.1),
+		SILVER_FUR,
+		FABRIC,
+		CFrame.new((quiverAt * CFrame.new(-0.3, 0.0, 0.05)).Position)
+	)
 
 	-- Cinturón ancho con hebilla de plata, remaches, zurrón y cuchillo de hueso.
 	local waist = body.waist
@@ -1880,13 +2107,13 @@ local function silverHunter(body: Body)
 	local buckle = waist.block(Vector3.new(0.36, 0.28, 0.08), SILVER, METAL, CFrame.new(0, 0.06, beltFront - 0.02))
 	buckle.Reflectance = 0.35
 	for _, x in { 0.16, -0.16 } do
-		local stud = waist.ball(0.1, SILVER, METAL, CFrame.new(x * hipWidth, 0.06, beltFront - 0.04))
+		local stud = waist.block(Vector3.one * 0.1, SILVER, METAL, CFrame.new(x * hipWidth, 0.06, beltFront - 0.04))
 		stud.Reflectance = 0.25
 	end
 	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
 	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER_DARK, LEATHER_MATERIAL, pouch)
 	waist.block(Vector3.new(0.42, 0.14, 0.18), SILVER_FUR, FABRIC, pouch * CFrame.new(0, 0.13, -0.01))
-	local sheath = CFrame.new(-hipWidth * 0.36, -0.14, beltFront - 0.03) * CFrame.Angles(0, 0, -0.25)
+	local sheath = CFrame.new(-hipWidth * 0.36, -0.14, beltFront - 0.03)
 	waist.block(Vector3.new(0.14, 0.44, 0.08), LEATHER_DARK, LEATHER_MATERIAL, sheath)
 	waist.block(Vector3.new(0.1, 0.22, 0.1), THICK_BONE, SMOOTH, sheath * CFrame.new(0, 0.32, 0))
 
@@ -1898,12 +2125,22 @@ local function silverHunter(body: Body)
 		local top = as.Y / 2
 		local center = furSlabPauldron(arm, side)
 		for _, z in { -0.3, 0, 0.3 } do
-			arm.fang(
-				0.42,
-				0.16,
-				THICK_BONE,
-				SMOOTH,
-				CFrame.new(side * (as.X * 0.55) - 0.08, top + 0.2, z * as.Z + 0.08) * CFrame.Angles(0, 0, -side * 0.7)
+			-- Garra en tres escalones hacia fuera y arriba (sin giro).
+			for step = 0, 2 do
+				arm.block(
+					Vector3.one * (0.18 - step * 0.045),
+					THICK_BONE,
+					SMOOTH,
+					CFrame.new(side * (as.X * 0.55 + step * 0.13), top + 0.2 + step * 0.13, z * as.Z)
+				)
+			end
+		end
+		for strip = -2, 2 do
+			arm.block(
+				Vector3.new(as.X + 0.06, 0.04, 0.07),
+				if strip % 2 == 0 then SILVER else SILVER_FUR_DARK,
+				FABRIC,
+				CFrame.new(side * 0.1, top + 0.455, strip * (as.Z + 0.1) * 0.19)
 			)
 		end
 		leaf(arm, 0.5, LEAF_SHADOW, center * CFrame.Angles(-math.pi / 2, 0, side * 0.6))
@@ -1924,14 +2161,15 @@ local function silverHunter(body: Body)
 				CFrame.new(fs.X / 2 + 0.08, 0.04, 0)
 			)
 			for _, y in { 0.16, -0.16 } do
-				local rivet = forearm.ball(0.12, SILVER, METAL, CFrame.new(fs.X / 2 + 0.15, 0.04 + y * fs.Y, 0))
+				local rivet =
+					forearm.block(Vector3.one * 0.12, SILVER, METAL, CFrame.new(fs.X / 2 + 0.15, 0.04 + y * fs.Y, 0))
 				rivet.Reflectance = 0.25
 			end
 		end
 		-- Faldón de pelaje plateado en el muslo con una hoja oscura encima y dos flecos.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06))
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
 		leaf(
 			leg,
@@ -1940,12 +2178,17 @@ local function silverHunter(body: Body)
 			flap * CFrame.new(side * 0.1, -0.05, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
 		)
 		for plate = -1, 1, 2 do
-			leg.fang(
-				0.22,
+			local hemAt = (flap * CFrame.new(plate * ls.X * 0.22, -ls.Y * 0.2 + 0.03, -0.02)).Position
+			tuft(
+				leg,
+				hemAt.X,
+				hemAt.Y,
+				hemAt.Z,
 				0.18,
+				0.22,
+				0.1,
 				if plate == 1 then SILVER_FUR_DARK else SILVER_FUR,
-				FABRIC,
-				flap * CFrame.new(plate * ls.X * 0.22 + 0.09, -ls.Y * 0.2 + 0.03, -0.02) * CFrame.Angles(0, 0, math.pi)
+				FABRIC
 			)
 		end
 	end
@@ -3182,13 +3425,15 @@ local function lavaPauldron(
 	end
 	if spikes == "claw" then
 		for _, z in { -0.3, 0, 0.3 } do
-			arm.fang(
-				0.46,
-				0.16,
-				OBSIDIAN,
-				SMOOTH,
-				CFrame.new(side * (as.X * 0.55) - 0.08, top + 0.2, z * as.Z + 0.08) * CFrame.Angles(0, 0, -side * 0.7)
-			)
+			-- Garra en tres escalones hacia fuera y arriba (sin giro).
+			for step = 0, 2 do
+				arm.block(
+					Vector3.one * (0.16 - step * 0.04),
+					OBSIDIAN,
+					SMOOTH,
+					CFrame.new(side * (as.X * 0.55 + step * 0.13), top + 0.2 + step * 0.13, z * as.Z)
+				)
+			end
 		end
 	end
 	if rich then
@@ -3722,10 +3967,10 @@ local function emberCloak(body: Body)
 	quiverStrap(make, front - 0.04, 0.14, BASALT_DARK, LEATHER_MATERIAL)
 	local crossFrom = Vector3.new(-width * 0.3, height / 2 - 0.02, front - 0.02)
 	local crossTo = Vector3.new(width * 0.4, -height / 2 + 0.12, front - 0.02)
-	strap(make, crossFrom, crossTo, 0.14, BASALT_DARK, LEATHER_MATERIAL)
+	stairs(make, crossFrom, crossTo, 0.14, 0.14, BASALT_DARK, LEATHER_MATERIAL, 10)
 	for _, t in { 0.25, 0.5, 0.75 } do
 		local stud = crossFrom:Lerp(crossTo, t)
-		make.ball(0.12, OBSIDIAN, SMOOTH, CFrame.new(stud.X, stud.Y, stud.Z - 0.08))
+		make.block(Vector3.one * 0.12, OBSIDIAN, SMOOTH, CFrame.new(stud.X, stud.Y, stud.Z - 0.08))
 	end
 	lavaVein(make, {
 		Vector3.new(-width * 0.34, height * 0.1, front - 0.02),
@@ -3736,8 +3981,8 @@ local function emberCloak(body: Body)
 	local neckLeft = Vector3.new(-width * 0.2, height / 2 - 0.08, front - 0.06)
 	local neckRight = Vector3.new(width * 0.2, height / 2 - 0.08, front - 0.06)
 	local bottom = Vector3.new(0, height * 0.18, front - 0.1)
-	strap(make, neckLeft, bottom, 0.04, FIBER, FABRIC)
-	strap(make, bottom, neckRight, 0.04, FIBER, FABRIC)
+	stairs(make, neckLeft, bottom, 0.04, 0.04, FIBER, FABRIC, 4)
+	stairs(make, bottom, neckRight, 0.04, 0.04, FIBER, FABRIC, 4)
 	for index, spot in { neckLeft:Lerp(bottom, 0.7), bottom, neckRight:Lerp(bottom, 0.7) } do
 		lavaShard(make, spot + Vector3.new(0, -0.02, -0.02), Vector3.new((index - 2) * 0.2, -1, -0.15), 0.26, 0.12)
 	end
@@ -3764,6 +4009,26 @@ local function emberCloak(body: Body)
 	local disc = make.rod(0.06, 0.34, OBSIDIAN, SMOOTH, brooch * FACING)
 	disc.Reflectance = 0.05
 	make.ball(0.16, MAGMA, NEON, brooch * CFrame.new(0, 0, -0.05))
+
+	-- Brillo de obsidiana y vetas de ceniza pintados en el manto de los hombros, y pespuntes a los lados del jubón.
+	for strip = -2, 2 do
+		make.block(
+			Vector3.new(width + 0.06, 0.035, 0.07),
+			if strip % 2 == 0 then OBSIDIAN_SHEEN else ASH_DARK,
+			SMOOTH,
+			CFrame.new(0, height / 2 + 0.235, 0.06 + strip * (depth + 0.14) * 0.19)
+		)
+	end
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				ASH_DARK,
+				LEATHER_MATERIAL,
+				CFrame.new(side * width * 0.4, -height * 0.34 + dash * height * 0.12, front + 0.01)
+			)
+		end
+	end
 
 	-- Espalda: capa de ceniza con el bajo de brasas y dos zarpazos de lava; encima, dos abanicos de hojas
 	-- quemadas, la capucha y el carcaj.
@@ -3812,13 +4077,8 @@ local function emberCloak(body: Body)
 	blockLeafFan(make, 7, 0.65, 1.1, { LAVA_ROBE, CHARRED_LEAF }, 0.36)
 	local hood = blockHood(make, ASH, EMBER, FABRIC)
 	for side = -1, 1, 2 do
-		make.fang(
-			0.34,
-			0.22,
-			BASALT_DARK,
-			FABRIC,
-			hood * CFrame.new(side * 0.42 - 0.11, 0.3, -0.05) * CFrame.Angles(0, 0, -side * 0.3)
-		)
+		local ear = (hood * CFrame.new(side * 0.42, 0.3, -0.05)).Position
+		spire(make, ear.X, ear.Y, ear.Z, 0.22, 0.34, 0.18, BASALT_DARK, FABRIC, side * 0.06)
 	end
 	local quiverAt = backQuiver(make, {
 		length = 1.9,
@@ -3870,7 +4130,7 @@ local function emberCloak(body: Body)
 	local pouch = CFrame.new(hipWidth * 0.3, -0.12, beltFront - 0.06)
 	waist.block(Vector3.new(0.38, 0.34, 0.14), LEATHER_DARK, LEATHER_MATERIAL, pouch)
 	waist.block(Vector3.new(0.42, 0.14, 0.18), ASH, FABRIC, pouch * CFrame.new(0, 0.13, -0.01))
-	local knife = CFrame.new(-hipWidth * 0.34, -0.05, beltFront - 0.04) * CFrame.Angles(0, 0, 0.25)
+	local knife = CFrame.new(-hipWidth * 0.34, -0.05, beltFront - 0.04)
 	waist.block(Vector3.new(0.1, 0.24, 0.1), LEATHER, LEATHER_MATERIAL, knife)
 	obsidianShard(
 		waist,
@@ -3891,7 +4151,7 @@ local function emberCloak(body: Body)
 
 	for side = -1, 1, 2 do
 		local arm = body.upperArm[side]
-		lavaPauldron(arm, side, ASH, FABRIC, "claw")
+		lavaPauldron(arm, side, ASH, FABRIC, "claw", true)
 		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, LEATHER_DARK, LEATHER_MATERIAL)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
@@ -9366,11 +9626,13 @@ function ArmorModels.wear(
 			[1] = limb(model, character, "RightUpperLeg", "Right Leg", CFrame.new(0, 0.35, 0), Vector3.new(1, 1.3, 1)),
 		},
 	}
+	STEPS.on = boxesOnly == true or Meshing.find(armorId, roleId, outfitId, grade) ~= nil
 	if outfit then
 		outfit(body, math.clamp(grade or ArmorModels.grade(armorId), 0, ArmorModels.MAX_GRADE))
 	elseif armor then
 		armor(body)
 	end
+	STEPS.on = false
 	-- Fase 20 Q6: los grupos con malla (Data/ArmorMeshes) sustituyen a sus bloques antes de fusionar. Si las mallas aún no
 	-- han cargado se viste con bloques y "Meshing.flush" vuelve a vestir al llegar. Con "boxesOnly" (el volcado) no se usan.
 	local entry = if boxesOnly then nil else Meshing.find(armorId, roleId, outfitId, grade)

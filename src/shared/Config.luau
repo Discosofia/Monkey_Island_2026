@@ -2447,6 +2447,11 @@ local Config = {
 			-- Armaduras con malla (Q6, clave `<armadura>_<rol>`): el tope mide la versión de bloques, que es la de respaldo
 			-- mientras cargan las mallas; la de malla son 22 piezas (8 mallas y 14 sueltas) y 1.238 triángulos (M4 la medirá).
 			FurVest_Guerrero = { ArmorPieces = 170 },
+			-- Cazadores con malla (Q6c): topes de la versión de bloques (la de respaldo); en juego quedan 11, 15, 33 y 107 piezas.
+			FurVest_Cazador = { ArmorPieces = 230 },
+			BoneArmor_Cazador = { ArmorPieces = 350 },
+			SilverArmor_Cazador = { ArmorPieces = 420 },
+			VolcanicArmor_Cazador = { ArmorPieces = 520 },
 			BoneArmor_Mago = { ArmorPieces = 120 }, -- Q6b: la calavera de runas comparte monkeySkull, que ahora lleva ceja, fosas nasales y dientes en todas (+4 piezas)
 			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
 			SilverArmor_Guerrero = { ArmorPieces = 250 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
