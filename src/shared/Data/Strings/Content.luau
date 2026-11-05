@@ -824,4 +824,8 @@ return {
 	["Arco"] = "Bow",
 	["Bastón mágico"] = "Magic staff",
 	["Cerbatana"] = "Blowgun",
+	-- Cinemáticas (Data/Cinematics).
+	["Escena de prueba"] = "Test scene",
+	["El motor de cinemáticas funciona"] = "The cinematics engine works",
+	["Un guerrero avanza por la playa"] = "A warrior walks along the beach",
 }

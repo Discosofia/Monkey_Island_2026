@@ -14,7 +14,11 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+-- Las cuentas del camino (spline, suavizado, órbita) están en Shared para que las use también el Sequencer.
+local CameraPath = require(ReplicatedStorage.Shared.Cinematics.CameraPath)
 
 local TrailerCamara = {}
 
@@ -25,9 +29,6 @@ export type Opciones = {
 	alCuadro: ((dt: number, t: number) -> ())?, -- cada cuadro, con los segundos desde que arranca el camino
 	alTerminar: (() -> ())?, -- al llegar al final (no se llama si se corta con parar)
 }
-
-local FOV_POR_DEFECTO = 70
-local PASO_ORBITA = 15 -- grados entre punto y punto de la órbita
 
 local conexion: RBXScriptConnection? = nil
 local guiaGui: ScreenGui? = nil
@@ -67,34 +68,6 @@ local function nuevaGui(nombre: string): ScreenGui?
 	return gui
 end
 
--- Catmull-Rom uniforme entre p1 y p2 (p0 y p3 son los vecinos).
-local function catmull(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: number): Vector3
-	local t2 = t * t
-	local t3 = t2 * t
-	return (p1 * 2 + (p2 - p0) * t + (p0 * 2 - p1 * 5 + p2 * 4 - p3) * t2 + (p1 * 3 - p0 - p2 * 3 + p3) * t3) * 0.5
-end
-
--- Posición, mirada y fov del camino en u (0 a 1).
-local function muestra(puntos: { Punto }, fovs: { number }, u: number): (Vector3, Vector3, number)
-	local n = #puntos
-	if n == 1 then
-		return puntos[1].pos, puntos[1].mira, fovs[1]
-	end
-	local tramos = n - 1
-	local s = math.clamp(u, 0, 1) * tramos
-	local i = math.min(math.floor(s) + 1, tramos)
-	local f = s - (i - 1)
-	local a, b = puntos[math.max(i - 1, 1)], puntos[math.min(i + 2, n)]
-	local p1, p2 = puntos[i], puntos[i + 1]
-	local pos = catmull(a.pos, p1.pos, p2.pos, b.pos, f)
-	local mira = catmull(a.mira, p1.mira, p2.mira, b.mira, f)
-	return pos, mira, fovs[i] + (fovs[i + 1] - fovs[i]) * f
-end
-
-local function suavizar(u: number): number
-	return u * u * (3 - 2 * u)
-end
-
 local function cortarBucle()
 	if conexion then
 		conexion:Disconnect()
@@ -126,18 +99,16 @@ function TrailerCamara.camino(puntos: { Punto }, segundos: number, opciones: Opc
 	local espera = opts.cuentaAtras or 0
 	local alCuadro, alTerminar = opts.alCuadro, opts.alTerminar
 
-	local fovs: { number } = {}
-	local previo = camara.FieldOfView
+	local path: { CameraPath.Point } = {}
 	for i, p in puntos do
-		previo = p.fov or (if i == 1 then FOV_POR_DEFECTO else previo)
-		fovs[i] = previo
+		path[i] = { pos = p.pos, look = p.mira, fov = p.fov }
 	end
 
 	camara.CameraType = Enum.CameraType.Scriptable
 	local function pon(u: number)
-		local pos, mira, fov = muestra(puntos, fovs, if suave then suavizar(u) else u)
+		local cframe, fov = CameraPath.sample(path, u, suave)
 		camara.FieldOfView = fov
-		camara.CFrame = CFrame.lookAt(pos, mira)
+		camara.CFrame = cframe
 	end
 	pon(0)
 
@@ -202,14 +173,9 @@ function TrailerCamara.orbita(
 	segundos: number,
 	opciones: Opciones?
 )
-	local pasos = math.max(3, math.ceil(math.abs(grados) / PASO_ORBITA))
 	local puntos: { Punto } = {}
-	for i = 0, pasos do
-		local a = math.rad(grados * i / pasos)
-		table.insert(puntos, {
-			pos = centro + Vector3.new(math.sin(a) * radio, alto, math.cos(a) * radio),
-			mira = centro,
-		})
+	for _, p in CameraPath.orbit(centro, radio, alto, grados, segundos) do
+		table.insert(puntos, { pos = p.pos, mira = p.look })
 	end
 	TrailerCamara.camino(puntos, segundos, opciones)
 end

@@ -4,81 +4,27 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local DebugCommands = require(script.Parent.Parent.DebugCommands)
 local Remotes = require(script.Parent.Parent.Remotes)
+local HudHider = require(script.Parent.HudHider)
 local Widgets = require(script.Parent.Widgets)
 
 local DebugPanel = {}
 
 -- Modo grabación (solo cliente, no se manda al servidor): esconde los ScreenGui del jugador (salvo el panel)
--- y la CoreGui, y quita el cursor del ratón, para grabar vídeos sin HUD. Al volver a pulsar, deja cada cosa
--- como estaba. Con el cursor quitado el botón "🛠️ Pruebas" (abajo a la izquierda) sigue funcionando.
+-- y la CoreGui, y quita el cursor del ratón, para grabar vídeos sin HUD (lo hace UI/HudHider, que usan
+-- también las cinemáticas). Al volver a pulsar, deja cada cosa como estaba. Con el cursor quitado el botón
+-- "🛠️ Pruebas" (abajo a la izquierda) sigue funcionando.
 local RECORD_MODE = "RecordMode"
 local recording = false
-local savedGuis: { [ScreenGui]: boolean } = {}
-local savedCore: { [Enum.CoreGuiType]: boolean } = {}
-local savedMouseIcon = true
-local guiConnections: { RBXScriptConnection } = {}
-
-local function hideGui(gui: ScreenGui)
-	savedGuis[gui] = gui.Enabled
-	gui.Enabled = false
-	-- Si el juego vuelve a encender esa pantalla mientras se graba, se apunta su estado y se vuelve a ocultar.
-	table.insert(
-		guiConnections,
-		gui:GetPropertyChangedSignal("Enabled"):Connect(function()
-			if recording and gui.Enabled then
-				savedGuis[gui] = true
-				gui.Enabled = false
-			end
-		end)
-	)
-end
 
 local function toggleRecordMode(panel: ScreenGui)
-	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-	local StarterGui = game:GetService("StarterGui")
 	recording = not recording
 	if recording then
-		for _, child in playerGui:GetChildren() do
-			if child:IsA("ScreenGui") and child ~= panel then
-				hideGui(child)
-			end
-		end
-		table.insert(
-			guiConnections,
-			playerGui.ChildAdded:Connect(function(child)
-				if recording and child:IsA("ScreenGui") and child ~= panel then
-					hideGui(child)
-				end
-			end)
-		)
-		for _, item in Enum.CoreGuiType:GetEnumItems() do
-			if item ~= Enum.CoreGuiType.All then
-				savedCore[item] = StarterGui:GetCoreGuiEnabled(item)
-			end
-		end
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-		savedMouseIcon = UserInputService.MouseIconEnabled
-		UserInputService.MouseIconEnabled = false
+		HudHider.hide({ panel })
 	else
-		for _, connection in guiConnections do
-			connection:Disconnect()
-		end
-		guiConnections = {}
-		for gui, enabled in savedGuis do
-			if gui.Parent then
-				gui.Enabled = enabled
-			end
-		end
-		savedGuis = {}
-		for item, enabled in savedCore do
-			StarterGui:SetCoreGuiEnabled(item, enabled)
-		end
-		savedCore = {}
-		UserInputService.MouseIconEnabled = savedMouseIcon
+		HudHider.restore()
 	end
 end
 
