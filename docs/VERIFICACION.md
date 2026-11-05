@@ -5122,6 +5122,22 @@ Cada jefe tiene su escena de aparición (`Boss_<id>` en `Data/Cinematics`, 6 s):
 20. [ ] En el juego publicado, pulsa «👑 Siguiente jefe» con cada uno de los cuatro jefes, y repite uno después de reconectar.
     ✅ Las cuatro escenas se ven, saltan y acaban igual que en Studio; tras reconectar, el jefe ya muestra Saltar porque `cinematicsSeen` quedó guardado.
 
+## 138. Fase 20 Q7b-1 a Q7b-3: armas del Guerrero, el Cazador y el Mago de rangos I a III con malla (05-11-2026)
+
+Guerrero: el **Garrote de piedra** (I), la **Maza de hueso** (II) y el **Mazo de hueso grueso** (III). Cazador: el **Arco** (I), el **Arco reforzado** (II) y el **Arco de liana** (III). Mago: el **Bastón mágico** (I), el **Bastón dorado** (II) y el **Bastón de plata** (III). Todos se rehicieron con escalones (sin bolas, cilindros ni cuñas; las bolas son capas apiladas con `blob`, nuevo en `stepKit`; las palas de los arcos se curvan en tramos desplazados, como el Arco de brasas) y pasan a malla: 522, 1.384 y 1.398 triángulos el Guerrero, 916, 1.114 y 1.352 el Cazador, 768, 1.002 y 1.480 el Mago, de 35 a 96 piezas a 3 (6 el Arco de liana, cuyos cristales y gema son de cristal y quedan sueltos; 8, 4 y 4 los bastones, que dejan suelto el cristal de neón). El detalle sube por rango: el I es lo más limpio (pintura, ataduras, borlas), el II lleva hueso, placas y púas, y el III plata, liana, hojas y gemas. Probado en Edit: malla y bloques coinciden por pares y con un avatar de brazos finos (0,8 × 1,1 × 1,0) y otro ancho (1,3 × 1,0 × 1,3); construidas antes de que lleguen las mallas salen en bloques y se reconstruyen a las mallas; `Rendimiento` sin alertas. Sin probar en Play. Se quitó el código muerto de las ramas `lava` y `volcanic` del arco.
+
+Los metales (oro y plata) se ven algo más claros en la malla que en los bloques, porque la malla es de plástico liso. Aviso para las armas siguientes: las piezas con alguna dimensión menor de 0,07 studs que sobresalen de un bloque grueso se pierden en la malla sin avisar (la cuerda, las plumas, los cordones y las hojas desaparecían); las que deben ir pintadas (grietas, costuras, grabados) sí van finas, y las que tienen que verse, a 0,08 o más.
+
+### Se prueba en Play, en la Isla
+1. [ ] Fabrica (o dátelas con los comandos de depuración) y equipa las armas de rangos I a III del Guerrero (Garrote de piedra, Maza de hueso, Mazo de hueso grueso) del Cazador (Arco, Arco reforzado, Arco de liana) y del Mago (Bastón mágico, Bastón dorado, Bastón de plata).
+   ✅ Cada una sale con su forma escalonada y en unos segundos pasa a malla sin soltarse de la mano; no queda un instante sin arma.
+2. [ ] Míralas de frente, de espaldas y de cerca, con un avatar de brazos finos y otro ancho.
+   ✅ Se leen las lascas y cinturones rojos del Garrote, las púas y el collar de la Maza, los cóndilos, la plata y la liana del Mazo, y en los arcos las bandas pintadas, las placas de hueso, las vueltas de liana y la cuerda, y en los bastones las garras en cruz, las bandas de oro, las vueltas de liana y el colmillo; salen de la mano en el mismo sitio que antes y no atraviesan el brazo.
+3. [ ] Pega con cada una y cambia de arma varias veces nada más entrar.
+   ✅ Sin parpadeos, sin armas duplicadas en la mochila ni errores en la Salida.
+4. [ ] Mira las tres en el Armario, en la tienda y en el Lobby con `WeaponLook`.
+   ✅ Se ven con la forma nueva, sin errores.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

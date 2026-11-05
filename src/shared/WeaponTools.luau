@@ -296,13 +296,6 @@ local function embers(part: BasePart, rate: number)
 	sparks.Parent = part
 end
 
--- Esquirla de obsidiana bañada en lava: sale de un cono de lava en su base ("at" es su centro, como en
--- "tooth").
-local function lavaShard(handle: BasePart, length: number, width: number, at: CFrame)
-	shard(handle, length, width, at)
-	tooth(handle, "Lava", length * 0.4, width * 1.35, width * 1.9, MAGMA, NEON, at * CFrame.new(0, -length * 0.3, 0))
-end
-
 -- Humo (o vapor, con "color") que sube del arma.
 local function smoke(part: BasePart, rate: number, color: Color3?)
 	local puff = Instance.new("ParticleEmitter")
@@ -356,7 +349,36 @@ local function stepKit(handle: BasePart)
 		local c = d * radius
 		return put(name, size, color, material, c.X, y, c.Z)
 	end
-	return put, out
+	-- Bola u óvalo en capas apiladas (Q7b): "size" es el cuadro que la contiene y cada capa se estrecha como una esfera.
+	-- "color" puede ser una lista (un color por capa, de abajo arriba) para dar relieve.
+	local function blob(
+		name: string,
+		size: Vector3,
+		color: Color3 | { Color3 },
+		material: Enum.Material,
+		x: number,
+		y: number,
+		z: number,
+		layers: number?
+	)
+		local count = layers or 5
+		local height = size.Y / count
+		for index = 1, count do
+			local t = (index - 0.5) / count * 2 - 1
+			local f = math.sqrt(1 - t * t)
+			local tint = if typeof(color) == "table" then color[math.min(index, #color)] else color
+			put(
+				name,
+				Vector3.new(size.X * f, height, size.Z * f),
+				tint,
+				material,
+				x,
+				y - size.Y / 2 + height * (index - 0.5),
+				z
+			)
+		end
+	end
+	return put, out, blob
 end
 
 -- ===================================== Machetes =====================================
@@ -1053,278 +1075,263 @@ local function buildFangClub(tool: Tool, style: FangClubStyle): BasePart
 	return handle
 end
 
--- Garrote de piedra (guerrero): mango de madera con una roca de varias caras atada en la punta.
+-- Garrote de piedra, rango I del Guerrero (Fase 20 Q7b): mango de madera con una roca de capas ladeadas atada en la punta.
+-- Todo son bloques alineados con los ejes (escalones, sin bolas ni cuñas) para que pase a malla; el detalle es poco y va
+-- pintado: costuras del cuero, ataduras de fibra, dos cinturones de pintura roja y una borla con tres plumas.
 local function buildStoneClub(tool: Tool): BasePart
 	local handle = hiddenHandle(tool, Vector3.new(0.35, 2.6, 0.35))
-	rod(handle, "Shaft", 3.1, 0.36, WOOD, WOOD_MATERIAL, CFrame.new(0, 0.25, 0))
-	rod(handle, "Wrap", 0.9, 0.42, LEATHER, FABRIC, CFrame.new(0, -0.7, 0))
-	rod(handle, "Butt", 0.18, 0.44, DARK_BARK, WOOD_MATERIAL, CFrame.new(0, -1.25, 0))
-	-- Roca grande de varias caras: tres bloques girados que se solapan.
-	local rockY = 2.3
-	for _, rock in
+	local put = stepKit(handle)
+	put("Shaft", Vector3.new(0.36, 3.1, 0.36), WOOD, WOOD_MATERIAL, 0, 0.25, 0)
+	put("Wrap", Vector3.new(0.44, 0.9, 0.44), LEATHER, FABRIC, 0, -0.7, 0)
+	for _, y in { -0.95, -0.7, -0.45 } do
+		put("Stitch", Vector3.new(0.47, 0.05, 0.47), FIBER, FABRIC, 0, y, 0)
+	end
+	put("Butt", Vector3.new(0.46, 0.18, 0.46), DARK_BARK, WOOD_MATERIAL, 0, -1.25, 0)
+	put("Butt", Vector3.new(0.3, 0.1, 0.3), DARK_BARK, WOOD_MATERIAL, 0, -1.38, 0)
+	-- Roca de cinco capas, algo descentradas para que parezca un canto sin tallar.
+	for _, layer in
 		{
-			{ Vector3.new(1.5, 1.7, 1.4), STONE, CFrame.new(0, rockY, 0) * CFrame.Angles(0.35, 0.6, 0.2) },
-			{
-				Vector3.new(1.2, 1.15, 1.25),
-				STONE_DARK,
-				CFrame.new(0.18, rockY + 0.45, -0.1) * CFrame.Angles(-0.4, 0.2, 0.5),
-			},
-			{
-				Vector3.new(0.9, 0.8, 0.9),
-				STONE_LIGHT,
-				CFrame.new(-0.3, rockY - 0.4, 0.22) * CFrame.Angles(0.7, 0.9, 0.1),
-			},
+			{ Vector3.new(1.0, 0.3, 0.95), STONE_DARK, 0, 1.62, 0 },
+			{ Vector3.new(1.4, 0.36, 1.3), STONE, 0.04, 1.95, 0 },
+			{ Vector3.new(1.55, 0.55, 1.45), STONE, 0, 2.4, 0 },
+			{ Vector3.new(1.3, 0.35, 1.2), STONE_LIGHT, -0.05, 2.85, 0.03 },
+			{ Vector3.new(0.85, 0.25, 0.8), STONE_LIGHT, 0.08, 3.15, 0 },
 		} :: { { any } }
 	do
-		block(handle, "Rock", rock[1], rock[2], STONE_MATERIAL, rock[3])
+		put("Rock", layer[1], layer[2], STONE_MATERIAL, layer[3], layer[4], layer[5])
 	end
-	-- Correas de fibra por encima de la roca y atadura en el mango.
-	block(
-		handle,
-		"Strap",
-		Vector3.new(0.16, 2.1, 1.65),
-		FIBER,
-		FABRIC,
-		CFrame.new(0, rockY, 0) * CFrame.Angles(0, 0.3, 0)
-	)
-	rod(handle, "Lashing", 0.35, 0.48, FIBER, FABRIC, CFrame.new(0, 1.35, 0))
-	rod(handle, "Lashing", 0.2, 0.46, FIBER, FABRIC, CFrame.new(0, 1.1, 0))
-	-- Atadura cruzada de fibra por delante del amarre.
-	for side = -1, 1, 2 do
-		block(
-			handle,
-			"Cross",
-			Vector3.new(0.07, 0.7, 0.07),
-			FIBER,
-			FABRIC,
-			CFrame.new(0, 1.35, -0.23) * CFrame.Angles(0, 0, side * 0.6)
-		)
+	-- Lascas pegadas a la roca y una esquirla escalonada en lo alto.
+	put("Chip", Vector3.new(0.3, 0.45, 0.4), STONE_DARK, STONE_MATERIAL, 0.85, 2.45, 0.1)
+	put("Chip", Vector3.new(0.4, 0.35, 0.3), STONE_LIGHT, STONE_MATERIAL, -0.8, 2.2, 0.45)
+	put("Chip", Vector3.new(0.35, 0.3, 0.35), STONE_DARK, STONE_MATERIAL, 0.2, 2.95, -0.62)
+	put("Flake", Vector3.new(0.4, 0.25, 0.3), STONE_LIGHT, STONE_MATERIAL, 0.2, 3.4, -0.1)
+	put("Flake", Vector3.new(0.25, 0.2, 0.2), STONE_LIGHT, STONE_MATERIAL, 0.2, 3.58, -0.1)
+	-- Dos cinturones de pintura roja y una correa de fibra por encima de la roca.
+	put("Paint", Vector3.new(1.59, 0.16, 1.49), RED_PAINT, SMOOTH, 0, 2.5, 0)
+	put("Paint", Vector3.new(1.59, 0.14, 1.49), RED_PAINT, SMOOTH, 0, 2.2, 0)
+	-- Correa de fibra que cruza la roca de lado a lado por delante y por detrás.
+	for _, z in { -0.74, 0.74 } do
+		put("Strap", Vector3.new(0.5, 1.2, 0.08), FIBER, FABRIC, 0, 2.35, z)
+	end
+	put("Lashing", Vector3.new(0.48, 0.35, 0.48), FIBER, FABRIC, 0, 1.35, 0)
+	put("Lashing", Vector3.new(0.46, 0.2, 0.46), FIBER, FABRIC, 0, 1.1, 0)
+	for _, y in { 1.28, 1.42 } do
+		put("Cross", Vector3.new(0.4, 0.05, 0.03), FIBER, FABRIC, 0, y, -0.245)
 	end
 	-- Muescas en el mango.
 	for index, y in { -0.05, 0.35, 0.75, 1.0 } do
 		local side = if index % 2 == 0 then -1 else 1
-		block(handle, "Notch", Vector3.new(0.12, 0.12, 0.12), DARK_BARK, WOOD_MATERIAL, CFrame.new(side * 0.17, y, 0))
-	end
-	-- Lascas pegadas a la roca grande (en su propio marco, sin sobresalir más de ~0.2).
-	local rockFrame = CFrame.new(0, rockY, 0) * CFrame.Angles(0.35, 0.6, 0.2)
-	for _, chip in
-		{
-			{ Vector3.new(0.3, 0.45, 0.4), STONE_DARK, CFrame.new(0.68, 0.25, 0.1) },
-			{ Vector3.new(0.4, 0.35, 0.3), STONE_LIGHT, CFrame.new(-0.62, -0.1, 0.5) },
-			{ Vector3.new(0.35, 0.3, 0.35), STONE_DARK, CFrame.new(0.2, 0.7, -0.55) },
-		} :: { { any } }
-	do
-		block(handle, "Chip", chip[1], chip[2], STONE_MATERIAL, rockFrame * chip[3])
-	end
-	tooth(
-		handle,
-		"Flake",
-		0.5,
-		0.3,
-		0.4,
-		STONE_LIGHT,
-		STONE_MATERIAL,
-		CFrame.new(0.2, rockY + 1.1, -0.1) * CFrame.Angles(0.2, 0, -0.15)
-	)
-	-- Dos cinturones de pintura roja que rodean la roca grande y asoman por todas sus caras.
-	for _, dy in { 0.3, -0.25 } do
-		block(handle, "Paint", Vector3.new(1.8, 0.18, 1.7), RED_PAINT, SMOOTH, rockFrame * CFrame.new(0, dy, 0))
+		put("Notch", Vector3.new(0.1, 0.1, 0.1), DARK_BARK, WOOD_MATERIAL, side * 0.17, y, 0)
 	end
 	-- Borla de pelaje y tres plumas colgando de un cordón junto al amarre.
-	block(handle, "Cord", Vector3.new(0.04, 0.25, 0.04), FIBER, FABRIC, CFrame.new(0.27, 1.25, 0))
-	block(handle, "Tassel", Vector3.new(0.24, 0.45, 0.24), FUR, FABRIC, CFrame.new(0.3, 0.95, 0))
+	put("Cord", Vector3.new(0.08, 0.25, 0.08), FIBER, FABRIC, 0.27, 1.25, 0)
+	put("Tassel", Vector3.new(0.24, 0.45, 0.24), FUR, FABRIC, 0.3, 0.95, 0)
 	for index, color in { RED_PAINT, FEATHER_WHITE, OCHRE_PAINT } do
-		local z = (index - 2) * 0.14
-		block(
-			handle,
-			"Feather",
-			Vector3.new(0.04, 0.5, 0.12),
-			color,
-			SMOOTH,
-			CFrame.new(0.34, 0.55, z) * CFrame.Angles((index - 2) * 0.25, 0, 0.15)
-		)
+		put("Plume", Vector3.new(0.08, 0.5, 0.12), color, SMOOTH, 0.36, 0.55 - (index % 2) * 0.05, (index - 2) * 0.14)
 	end
 	tool.Grip = CFrame.new(0, -0.7, 0)
 	return handle
 end
 
--- Maza de hueso: mango de hueso con nudos, collar de pelaje rojo y una gran bola de piedra con púas
--- de hueso.
+-- Maza de hueso, rango II del Guerrero (Q7b): mango de hueso con nudos y cuero atado, collar de pelaje con colmillos, una
+-- calavera de mono colgada y una bola de piedra en capas con tres anillos de púas de hueso en escalones (cuatro largas,
+-- cuatro medianas en diagonal, cuatro cortas oscuras y una arriba) y una cinta de pintura roja de guerra.
 local function buildBoneMace(tool: Tool): BasePart
 	local handle = hiddenHandle(tool, Vector3.new(0.4, 2.6, 0.4))
-	rod(handle, "Shaft", 3, 0.38, BONE, SMOOTH, CFrame.new(0, 0.2, 0))
+	local put, out, blob = stepKit(handle)
+	put("Shaft", Vector3.new(0.38, 3.0, 0.38), BONE, SMOOTH, 0, 0.2, 0)
+	put("Knob", Vector3.new(0.5, 0.4, 0.5), BONE, SMOOTH, 0, -1.4, 0)
+	put("Knob", Vector3.new(0.3, 0.14, 0.3), BONE_DARK, SMOOTH, 0, -1.67, 0)
+	put("Wrap", Vector3.new(0.47, 0.9, 0.47), TAN_LEATHER, FABRIC, 0, -0.7, 0)
+	for _, y in { -1.0, -0.8, -0.6, -0.4 } do
+		put("Stitch", Vector3.new(0.5, 0.05, 0.5), FIBER, FABRIC, 0, y, 0)
+	end
+	for _, y in { -0.25, 1.0 } do
+		put("Lashing", Vector3.new(0.5, 0.12, 0.5), FIBER, FABRIC, 0, y, 0)
+	end
+	put("BoneNode", Vector3.new(0.5, 0.42, 0.5), BONE_DARK, SMOOTH, 0, -0.02, 0)
+	put("BoneNode", Vector3.new(0.5, 0.4, 0.5), BONE_DARK, SMOOTH, 0, 0.35, 0)
+	-- Collar de pelaje con colmillos hacia fuera y abajo.
+	put("Fur", Vector3.new(0.75, 0.4, 0.75), FUR, FABRIC, 0, 1.4, 0)
+	put("Fur", Vector3.new(0.82, 0.1, 0.82), FUR, FABRIC, 0, 1.17, 0)
+	for dir = 1, 4 do
+		out("CollarFang", dir, 0.42, 1.05, 0.14, 0.26, 0.16, FANG, SMOOTH)
+		out("CollarFang", dir, 0.44, 0.86, 0.1, 0.14, 0.1, FANG, SMOOTH)
+	end
+	-- Calavera pequeña colgada de un cordón.
+	put("Cord", Vector3.new(0.08, 0.4, 0.08), FIBER, FABRIC, 0, 0.8, -0.24)
+	put("Skull", Vector3.new(0.3, 0.28, 0.3), BONE, SMOOTH, 0, 0.5, -0.26)
+	put("Jaw", Vector3.new(0.2, 0.1, 0.2), BONE_DARK, SMOOTH, 0, 0.33, -0.27)
 	for side = -1, 1, 2 do
-		ball(handle, "Knob", 0.48, BONE, SMOOTH, CFrame.new(side * 0.15, -1.35, 0))
+		put("SkullEye", Vector3.new(0.07, 0.07, 0.04), WHISKER, SMOOTH, side * 0.07, 0.53, -0.42)
 	end
-	rod(handle, "Wrap", 0.9, 0.46, TAN_LEATHER, FABRIC, CFrame.new(0, -0.7, 0))
-	-- Ataduras de fibra en los extremos del cuero y encima de los nudos.
-	for _, y in { -0.3, 1.0 } do
-		rod(handle, "Lashing", 0.12, 0.5, FIBER, FABRIC, CFrame.new(0, y, 0))
+	-- Cabeza de piedra en capas, más oscura abajo y más clara arriba, con una cinta roja en el ecuador.
+	local headY = 2.25
+	blob(
+		"Head",
+		Vector3.new(1.6, 1.6, 1.6),
+		{ STONE_DARK, STONE_DARK, STONE, STONE, STONE, STONE_LIGHT, STONE_LIGHT },
+		STONE_MATERIAL,
+		0,
+		headY,
+		0,
+		7
+	)
+	put("WarPaint", Vector3.new(1.64, 0.1, 1.64), RED_PAINT, SMOOTH, 0, headY, 0)
+	-- Anillo de cuatro púas largas, de hueso, a la altura del ecuador.
+	for dir = 1, 4 do
+		out("Spike", dir, 0.9, headY, 0.22, 0.3, 0.3, BONE, SMOOTH)
+		out("Spike", dir, 1.08, headY, 0.2, 0.22, 0.22, BONE, SMOOTH)
+		out("Spike", dir, 1.24, headY, 0.16, 0.14, 0.14, BONE, SMOOTH)
+		out("Spike", dir, 1.35, headY, 0.1, 0.08, 0.08, BONE, SMOOTH)
 	end
-	-- Nudos del hueso, más oscuros.
-	ball(handle, "BoneNode", 0.46, BONE_DARK, SMOOTH, CFrame.new(0.1, -0.05, 0))
-	ball(handle, "BoneNode", 0.46, BONE_DARK, SMOOTH, CFrame.new(-0.1, 0.2, 0))
-	rod(handle, "Fur", 0.4, 0.75, FUR, FABRIC, CFrame.new(0, 1.4, 0))
-	-- Colmillos colgando del collar de pelaje.
-	for index = 0, 3 do
-		local angle = index * math.pi / 2 + math.pi / 4
-		tooth(
-			handle,
-			"CollarFang",
-			0.32,
-			0.12,
-			0.16,
-			FANG,
-			SMOOTH,
-			CFrame.new(math.sin(angle) * 0.36, 1.18, math.cos(angle) * 0.36)
-				* CFrame.Angles(0, angle, 0)
-				* CFrame.Angles(math.pi, 0, 0)
-		)
-	end
-	-- Calavera pequeña de mono colgando de un cordón atado sobre los nudos.
-	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(0, 0.8, -0.24))
-	ball(handle, "Skull", 0.3, BONE, SMOOTH, CFrame.new(0, 0.5, -0.26))
-	for side = -1, 1, 2 do
-		block(handle, "Eye", Vector3.new(0.05, 0.06, 0.04), WHISKER, SMOOTH, CFrame.new(side * 0.07, 0.52, -0.4))
-	end
-	local headY, radius = 2.25, 0.8
-	ball(handle, "Head", radius * 2, STONE, STONE_MATERIAL, CFrame.new(0, headY, 0))
-	-- Dos anillos de 5 púas, cada uno girado respecto al otro, y una arriba.
-	for ring, height in { -0.25, 0.3 } do
-		for index = 0, 4 do
-			local angle = (index + ring * 0.5) * math.pi * 2 / 5
-			tooth(
-				handle,
-				"Spike",
-				0.6,
-				0.22,
-				0.38,
-				BONE,
-				SMOOTH,
-				CFrame.new(0, headY + height, 0)
-					* CFrame.Angles(0, angle, 0)
-					* CFrame.new(0, 0, -(radius * 0.9 + 0.25))
-					* CFrame.Angles(-math.rad(90), 0, 0)
-			)
+	-- Cuatro púas medianas en diagonal por arriba y cuatro cortas y oscuras por debajo.
+	for sx = -1, 1, 2 do
+		for sz = -1, 1, 2 do
+			for step, size in { 0.3, 0.22, 0.16, 0.1 } do
+				local at = 0.5 + (step - 1) * 0.14
+				put(
+					"Spike",
+					Vector3.new(size, size, size),
+					BONE,
+					SMOOTH,
+					sx * (at + 0.05),
+					headY + 0.4 + step * 0.04,
+					sz * (at + 0.05)
+				)
+			end
+			for step, size in { 0.24, 0.16, 0.09 } do
+				local at = 0.46 + (step - 1) * 0.12
+				put(
+					"Spike",
+					Vector3.new(size, size, size),
+					BONE_DARK,
+					SMOOTH,
+					sx * (at + 0.04),
+					headY - 0.42 - step * 0.03,
+					sz * (at + 0.04)
+				)
+			end
 		end
 	end
-	tooth(handle, "Spike", 0.7, 0.24, 0.4, BONE, SMOOTH, CFrame.new(0, headY + radius + 0.28, 0))
-	-- Tres púas más cortas hacia abajo.
-	for index = 0, 2 do
-		local angle = (index + 0.25) * math.pi * 2 / 3
-		tooth(
-			handle,
+	for step, size in { 0.3, 0.2, 0.12, 0.06 } do
+		put(
 			"Spike",
-			0.5,
-			0.2,
-			0.32,
-			BONE_DARK,
+			Vector3.new(size, step == 1 and 0.25 or 0.2, size),
+			BONE,
 			SMOOTH,
-			CFrame.new(0, headY, 0)
-				* CFrame.Angles(0, angle, 0)
-				* CFrame.Angles(-0.7, 0, 0)
-				* CFrame.new(0, 0, -(radius * 0.9 + 0.2))
-				* CFrame.Angles(-math.rad(90), 0, 0)
+			0,
+			headY + 0.85 + (step - 1) * 0.2,
+			0
 		)
 	end
 	tool.Grip = CFrame.new(0, -0.7, 0)
 	return handle
 end
 
--- Mazo de hueso grueso: un fémur enorme. Caña gruesa que se ensancha hacia los extremos; el de golpe
--- (+Y) con dos cóndilos grandes y una cabeza redonda, y el del mango con dos nudos más pequeños.
+-- Mazo de hueso grueso, rango III del Guerrero (Q7b, "Plata y selva"): un fémur enorme con dos cóndilos y una cabeza de
+-- capas, collares y remaches de plata, cuatro púas de hueso (dos laterales y dos en diagonal) con bolitas de plata, mango de
+-- cuero con vueltas de liana y hojas, anillo y tachón de plata en la base, colgante de colmillos con engarce de plata y borla
+-- de pelaje. Todo en bloques alineados; las grietas, las ranuras y los remaches van pintados.
 local function buildThickBoneMaul(tool: Tool): BasePart
 	local handle = hiddenHandle(tool, Vector3.new(0.6, 1.7, 0.6))
-	rod(handle, "Shaft", 4, 0.62, BONE, SMOOTH, CFrame.new(0, 1, 0))
-	rod(handle, "Neck", 0.8, 0.86, BONE, SMOOTH, CFrame.new(0, 2.75, 0))
-	rod(handle, "BaseNeck", 0.45, 0.76, BONE, SMOOTH, CFrame.new(0, -0.95, 0))
+	local put, _, blob = stepKit(handle)
+	put("Shaft", Vector3.new(0.62, 4.0, 0.62), BONE, SMOOTH, 0, 1, 0)
+	put("Neck", Vector3.new(0.86, 0.8, 0.86), BONE, SMOOTH, 0, 2.75, 0)
+	put("BaseNeck", Vector3.new(0.76, 0.45, 0.76), BONE, SMOOTH, 0, -0.95, 0)
 	for side = -1, 1, 2 do
-		ball(handle, "Condyle", 1.4, BONE, SMOOTH, CFrame.new(side * 0.45, 3.35, 0))
+		blob(
+			"Condyle",
+			Vector3.new(1.3, 1.4, 1.3),
+			{ BONE_DARK, BONE_DARK, BONE, BONE, BONE },
+			SMOOTH,
+			side * 0.5,
+			3.35,
+			0
+		)
+		blob("Pommel", Vector3.new(0.8, 0.8, 0.8), BONE, SMOOTH, side * 0.28, -1.25, 0, 4)
 	end
-	ball(handle, "Knob", 1.1, BONE, SMOOTH, CFrame.new(0, 3.65, 0.2))
-	ball(handle, "Trochanter", 0.7, BONE_DARK, SMOOTH, CFrame.new(0.55, 2.9, -0.15))
-	for side = -1, 1, 2 do
-		ball(handle, "Pommel", 0.8, BONE, SMOOTH, CFrame.new(side * 0.28, -1.25, 0))
+	blob("Knob", Vector3.new(1.1, 1.1, 1.1), BONE, SMOOTH, 0, 3.65, 0.2)
+	blob("Trochanter", Vector3.new(0.7, 0.7, 0.7), BONE_DARK, SMOOTH, 0.55, 2.9, -0.15, 3)
+	put("Stain", Vector3.new(0.66, 0.35, 0.66), BONE_DARK, SMOOTH, 0, 2.25, 0)
+	-- Surco entre los dos cóndilos, grietas y ranuras pintadas en el hueso.
+	put("Notch", Vector3.new(0.12, 1.0, 0.06), BONE_DARK, SMOOTH, 0, 3.25, -0.62)
+	put("Notch", Vector3.new(0.12, 0.6, 0.06), BONE_DARK, SMOOTH, 0, 3.6, -0.62)
+	put("Crack", Vector3.new(0.06, 0.5, 0.05), BONE_DARK, SMOOTH, -0.45, 3.35, -0.68)
+	put("Crack", Vector3.new(0.06, 0.4, 0.05), BONE_DARK, SMOOTH, 0.5, 3.45, -0.66)
+	for _, x in { -0.18, 0, 0.18 } do
+		put("Groove", Vector3.new(0.05, 1.2, 0.03), BONE_DARK, SMOOTH, x, 1.6, -0.32)
 	end
-	-- Grietas y manchas de hueso viejo.
-	for _, crack in
-		{
-			{ CFrame.new(-0.45, 3.35, -0.69) * CFrame.Angles(0, 0, math.rad(25)), 0.55 },
-			{ CFrame.new(0.5, 3.45, -0.67) * CFrame.Angles(0, 0, math.rad(-35)), 0.4 },
-			{ CFrame.new(0, 1.9, -0.3) * CFrame.Angles(0, 0, math.rad(10)), 0.7 },
-		} :: { { any } }
-	do
-		block(handle, "Crack", Vector3.new(0.05, crack[2], 0.05), BONE_DARK, SMOOTH, crack[1])
-	end
-	rod(handle, "Stain", 0.35, 0.64, BONE_DARK, SMOOTH, CFrame.new(0, 2.25, 0))
-	-- Empuñadura de cuero con ataduras de fibra.
-	rod(handle, "Wrap", 1.7, 0.74, LEATHER, FABRIC, CFrame.new())
+	-- Empuñadura de cuero con ataduras de fibra y vueltas de liana.
+	put("Wrap", Vector3.new(0.74, 1.7, 0.74), LEATHER, FABRIC, 0, 0, 0)
 	for _, y in { -0.85, 0.85, 2.35 } do
-		rod(handle, "Lashing", 0.14, 0.8, FIBER, FABRIC, CFrame.new(0, y, 0))
+		put("Lashing", Vector3.new(0.8, 0.14, 0.8), FIBER, FABRIC, 0, y, 0)
 	end
-
-	-- Rango III ("Plata y selva"): collares y remaches de plata en la cabeza, cuatro púas de hueso con
-	-- bolitas de plata, mango con vueltas de liana y hojas, anillo y tachón de plata en la base,
-	-- colgante de colmillos con engarce de plata y borla de pelaje.
-	rod(handle, "SilverCollar", 0.1, 0.98, SILVER, METAL, CFrame.new(0, 2.48, 0))
-	rod(handle, "SilverCollar", 0.1, 0.72, SILVER, METAL, CFrame.new(0, 2.12, 0))
+	for _, y in { -0.6, -0.25, 0.1, 0.45 } do
+		put("Vine", Vector3.new(0.78, 0.1, 0.78), LIANA_GREEN, FABRIC, 0, y, 0)
+	end
+	put("Leaf", Vector3.new(0.32, 0.08, 0.55), LEAF_GREEN, SMOOTH, -0.5, 0.8, 0.1)
+	put("Leaf", Vector3.new(0.32, 0.08, 0.55), LEAF_GREEN, SMOOTH, 0.45, 0.8, -0.15)
+	-- Collares y remaches de plata en la cabeza.
+	put("SilverCollar", Vector3.new(0.98, 0.1, 0.98), SILVER, METAL, 0, 2.48, 0)
+	put("SilverCollar", Vector3.new(0.74, 0.1, 0.74), SILVER, METAL, 0, 2.12, 0)
 	for side = -1, 1, 2 do
-		-- Dos remaches en la cara de golpe de cada cóndilo.
-		ball(handle, "SilverRivet", 0.16, SILVER, METAL, CFrame.new(side * 0.45, 3.7, -0.55))
-		ball(handle, "SilverRivet", 0.16, SILVER, METAL, CFrame.new(side * 0.85, 3.2, -0.52))
-		-- Púa lateral con anillo de plata en la base y bolita de plata en la punta.
-		tooth(
-			handle,
-			"BoneSpike",
-			0.5,
-			0.2,
-			0.3,
-			BONE,
-			SMOOTH,
-			CFrame.new(side * 1.3, 3.35, 0) * CFrame.Angles(0, 0, -side * math.rad(90))
-		)
-		ball(handle, "SilverCap", 0.3, SILVER, METAL, CFrame.new(side * 1.12, 3.35, 0))
-		ball(handle, "SilverTip", 0.16, SILVER, METAL, CFrame.new(side * 1.58, 3.35, 0))
-		-- Púa en diagonal hacia arriba, con su bolita de plata.
-		tooth(
-			handle,
-			"BoneSpike",
-			0.4,
-			0.2,
-			0.3,
-			BONE,
-			SMOOTH,
-			CFrame.new(side * 1.09, 3.99, 0) * CFrame.Angles(0, 0, -side * math.rad(45))
-		)
-		ball(handle, "SilverTip", 0.16, SILVER, METAL, CFrame.new(side * 1.24, 4.14, 0))
+		put("SilverRivet", Vector3.new(0.16, 0.16, 0.16), SILVER, METAL, side * 0.45, 3.7, -0.55)
+		put("SilverRivet", Vector3.new(0.16, 0.16, 0.16), SILVER, METAL, side * 0.85, 3.2, -0.52)
+		-- Púa lateral con collar de plata en la base y bolita de plata en la punta.
+		put("SilverCap", Vector3.new(0.14, 0.3, 0.3), SILVER, METAL, side * 1.12, 3.35, 0)
+		for step, spike in { { 1.28, 0.22, 0.3 }, { 1.48, 0.2, 0.22 }, { 1.66, 0.16, 0.14 }, { 1.78, 0.08, 0.07 } } do
+			put("BoneSpike", Vector3.new(spike[2], spike[3], spike[3]), BONE, SMOOTH, side * spike[1], 3.35, 0)
+			if step == 4 then
+				put("SilverTip", Vector3.new(0.12, 0.12, 0.12), SILVER, METAL, side * 1.9, 3.35, 0)
+			end
+		end
+		-- Púa en diagonal hacia arriba.
+		for step, size in { 0.28, 0.2, 0.14, 0.08 } do
+			put(
+				"BoneSpike",
+				Vector3.new(size, size, size),
+				BONE,
+				SMOOTH,
+				side * (1.0 + (step - 1) * 0.13),
+				3.95 + (step - 1) * 0.13,
+				0
+			)
+		end
+		put("SilverTip", Vector3.new(0.12, 0.12, 0.12), SILVER, METAL, side * 1.42, 4.38, 0)
 	end
-	-- Liana alrededor del cuero y una hoja a cada lado de la atadura de arriba.
-	wraps(handle, Vector3.new(0, -0.8, 0), Vector3.new(0, 0.8, 0), 5, 0.78, LIANA_GREEN, Vector3.zAxis)
-	leaf(handle, 1.1, CFrame.new(-0.45, 0.8, 0.1) * CFrame.Angles(0.3, 0.5, 0.9))
-	leaf(handle, 1.1, CFrame.new(0.4, 0.8, -0.15) * CFrame.Angles(-0.3, -0.5, -0.9))
 	-- Anillo y tachón de plata en la base.
-	rod(handle, "SilverRing", 0.1, 0.84, SILVER, METAL, CFrame.new(0, -1.05, 0))
-	ball(handle, "SilverStud", 0.34, SILVER, METAL, CFrame.new(0, -1.55, 0))
+	put("SilverRing", Vector3.new(0.84, 0.1, 0.84), SILVER, METAL, 0, -1.05, 0)
+	put("SilverStud", Vector3.new(0.34, 0.34, 0.34), SILVER, METAL, 0, -1.55, 0)
 	-- Colgante de colmillos con engarce de plata, a un lado del cuello.
-	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(-0.42, 2.1, 0))
-	block(handle, "SilverSetting", Vector3.new(0.12, 0.1, 0.34), SILVER, METAL, CFrame.new(-0.42, 1.88, 0))
+	put("Cord", Vector3.new(0.08, 0.4, 0.08), FIBER, FABRIC, -0.45, 2.1, 0)
+	put("SilverSetting", Vector3.new(0.12, 0.1, 0.34), SILVER, METAL, -0.46, 1.88, 0)
 	for index = -1, 1 do
-		tooth(
-			handle,
+		local center = index == 0
+		put(
 			"PendantFang",
-			if index == 0 then 0.5 else 0.36,
-			0.12,
-			0.16,
-			if index == 0 then BIG_FANG else FANG,
+			Vector3.new(0.14, if center then 0.3 else 0.2, 0.16),
+			if center then BIG_FANG else FANG,
 			SMOOTH,
-			CFrame.new(-0.42, if index == 0 then 1.58 else 1.65, index * 0.11) * CFrame.Angles(math.pi, 0, 0)
+			-0.46,
+			if center then 1.7 else 1.74,
+			index * 0.11
+		)
+		put(
+			"PendantFang",
+			Vector3.new(0.08, if center then 0.22 else 0.14, 0.1),
+			if center then BIG_FANG else FANG,
+			SMOOTH,
+			-0.46,
+			if center then 1.44 else 1.57,
+			index * 0.11
 		)
 	end
 	-- Borla de pelaje con una cuenta de plata, al otro lado.
-	block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(0.42, 2.1, 0))
-	ball(handle, "SilverBead", 0.14, SILVER, METAL, CFrame.new(0.42, 1.9, 0))
-	block(handle, "Tassel", Vector3.new(0.22, 0.4, 0.22), FUR, FABRIC, CFrame.new(0.42, 1.65, 0))
-	block(handle, "Tassel", Vector3.new(0.13, 0.2, 0.13), OCHRE_PAINT, FABRIC, CFrame.new(0.42, 1.35, 0))
+	put("Cord", Vector3.new(0.08, 0.4, 0.08), FIBER, FABRIC, 0.45, 2.1, 0)
+	put("SilverBead", Vector3.new(0.14, 0.14, 0.14), SILVER, METAL, 0.45, 1.9, 0)
+	put("Tassel", Vector3.new(0.22, 0.4, 0.22), FUR, FABRIC, 0.45, 1.65, 0)
+	put("Tassel", Vector3.new(0.13, 0.2, 0.13), OCHRE_PAINT, FABRIC, 0.45, 1.35, 0)
 	tool.Grip = CFrame.new(0, -0.2, 0)
 	return handle
 end
@@ -1514,332 +1521,209 @@ type BowStyle = {
 	plates: boolean, -- placas de hueso en la espalda de las palas (arco reforzado)
 	liana: boolean, -- palas envueltas en liana y hojas en las puntas (arco de liana)
 	fang: boolean, -- un colmillo colgado junto a las plumas
-	-- Rango IV ("Volcánico", con "lava"): anillos de azufre en las palas, llamita de píxeles y plumas de
-	-- fuego y negras en las puntas, remates y tachones de azufre en la empuñadura, anillos de obsidiana,
-	-- cuentas de azufre en la cuerda, brasas sueltas y un amuleto de cristal de obsidiana con lava.
-	volcanic: boolean?,
-	-- Arco de brasa: grietas de lava en las palas, esquirlas bañadas en lava en su lomo, puntas de
-	-- obsidiana con brasas que echan chispas, cuerda que brilla, aletas de obsidiana y runas de lava en
-	-- la empuñadura y una gota de lava que echa chispas.
-	lava: boolean?,
 	-- Rango I ("Pelaje"): bandas pintadas más anchas (también en el tramo de la punta), ataduras de fibra
 	-- en las uniones y las puntas, borlas de pelaje en las puntas, plumas en las puntas y atadura de
 	-- fibra en la empuñadura.
 	primitive: boolean?,
-	-- Rango II ("Hueso"): placas de hueso también en el tramo de la punta, sombra en la placa, borlas de
-	-- pelaje negro y plumas negras y blancas en las puntas, colmillo central y cuentas en la cuerda.
+	-- Rango II ("Hueso"): placas de hueso a lo largo de las dos palas, con sombra, borlas de pelaje negro y plumas
+	-- negras y blancas en las puntas, colmillo central y cuentas en la cuerda.
 	bone: boolean?,
 	-- Rango III ("Plata y selva"): anillos y remates de plata en las palas y la empuñadura, hojas y plumas
 	-- de colores en las puntas, vid en la empuñadura, gema teal, conchas en la cuerda y un amuleto de cristal.
 	silver: boolean?,
 }
 
--- Arco recurvo: las palas van a lo largo de Y y se curvan hacia el arquero (+Z), donde va la cuerda;
--- las puntas se doblan hacia fuera (-Z).
+-- Arco recurvo de los rangos I a III del Cazador (Fase 20 Q7b). Como el Arco de brasas, todo son bloques alineados con los
+-- ejes: las palas se curvan en escalones (cada tramo desplazado a su Z, sin tramos inclinados), las puntas se rizan hacia
+-- fuera y las bolas son cubos; `meshableBox` los reúne en `Handle_Hard` y `Handle_Soft`. El detalle sube con el rango: el
+-- I lleva pintura, ataduras y borlas; el II, placas de hueso con sombra y grabados; el III, plata, liana, hojas y una gema
+-- teal. Las palas van a lo largo de Y y se curvan hacia el arquero (+Z), donde va la cuerda.
 local function buildBow(tool: Tool, style: BowStyle): BasePart
 	local size = style.size
 	local handle = hiddenHandle(tool, Vector3.new(0.3, 0.9, 0.35))
-	block(handle, "Riser", Vector3.new(0.32, 1.1, 0.42), style.riser, style.riserMaterial, CFrame.new())
-	block(handle, "Grip", Vector3.new(0.36, 0.6, 0.46), style.grip, FABRIC, CFrame.new())
-	block(handle, "ArrowRest", Vector3.new(0.12, 0.1, 0.22), style.tips, SMOOTH, CFrame.new(0.2, 0.36, 0.04))
+	local put = stepKit(handle)
+	put("Riser", Vector3.new(0.32, 1.1, 0.42), style.riser, style.riserMaterial, 0, 0, 0)
+	put("Grip", Vector3.new(0.36, 0.6, 0.46), style.grip, FABRIC, 0, 0, 0)
+	put("ArrowRest", Vector3.new(0.12, 0.1, 0.22), style.tips, SMOOTH, 0.2, 0.36, 0.04)
 
-	-- Banda alrededor de la pala en "point" (pintura, atadura).
-	local function band(point: Vector3, direction: Vector3, length: number, color: Color3, material: Enum.Material)
-		local half = direction.Unit * length / 2
-		strut(handle, "Band", point - half, point + half, 0.35, 0.28, color, material, Vector3.xAxis)
-	end
-
-	local tipY, tipZ = 0, 0
-	for side = -1, 1, 2 do
-		local start = Vector3.new(0, side * 0.5, 0)
-		local middle = Vector3.new(0, side * 1.35 * size, 0.12 * size)
-		local tip = Vector3.new(0, side * 2.05 * size, 0.5 * size)
-		local curl = tip + Vector3.new(0, side * 0.3 * size, -0.12 * size)
-		strut(handle, "Limb", start, middle, 0.3, 0.24, style.limb, WOOD_MATERIAL, Vector3.xAxis)
-		strut(handle, "Limb", middle, tip, 0.25, 0.21, style.limb, WOOD_MATERIAL, Vector3.xAxis)
-		strut(handle, "Limb", tip, curl, 0.2, 0.18, style.limb, WOOD_MATERIAL, Vector3.xAxis)
-		ball(handle, "Nock", 0.22, style.tips, SMOOTH, CFrame.new(curl))
-		-- Ataduras de cuero donde la pala sale de la empuñadura.
-		band(start, middle - start, 0.16, LEATHER, FABRIC)
-		local paintLength = if style.primitive then 0.22 else 0.14
-		for index, color in style.paint do
-			band(start:Lerp(middle, index / (#style.paint + 1)), middle - start, paintLength, color, SMOOTH)
+	-- Z de la pala a la altura |y| (de la empuñadura a la punta, con el codo a media pala).
+	local middleY, tipY, tipZ = 1.35 * size, 2.05 * size, 0.5 * size
+	local function limbZ(y: number): number
+		if y <= middleY then
+			return 0.12 * size * (y - 0.5) / (middleY - 0.5)
 		end
+		return 0.12 * size + (tipZ - 0.12 * size) * (y - middleY) / (tipY - middleY)
+	end
+	local steps = math.ceil((tipY - 0.5) / 0.4)
+	local stepH = (tipY - 0.5) / steps
+
+	for side = -1, 1, 2 do
+		-- Pala: tramos de unos 0,4 de alto, cada uno desplazado a su Z (el escalón de la curva); más finos hacia la punta.
+		for step = 1, steps do
+			local y = 0.5 + (step - 0.5) * stepH
+			local z = limbZ(y)
+			local taper = if y > middleY then 0.24 else 0.3
+			put("Limb", Vector3.new(taper, stepH * 1.05, taper * 0.8), style.limb, WOOD_MATERIAL, 0, side * y, z)
+		end
+		-- Rizo de la punta hacia fuera, remate y nuez.
+		put("Limb", Vector3.new(0.24, 0.3, 0.2), style.limb, WOOD_MATERIAL, 0, side * (tipY + 0.12), tipZ - 0.04)
+		put("Limb", Vector3.new(0.2, 0.26, 0.2), style.limb, WOOD_MATERIAL, 0, side * (tipY + 0.34), tipZ - 0.14)
+		put("Nock", Vector3.new(0.22, 0.2, 0.22), style.tips, SMOOTH, 0, side * (tipY + 0.52), tipZ - 0.2)
+		put("Tip", Vector3.new(0.14, 0.14, 0.14), style.tips, SMOOTH, 0, side * (tipY + 0.66), tipZ - 0.24)
+		local curlY, curlZ = tipY + 0.4, tipZ - 0.2
+		-- Atadura de cuero donde la pala sale de la empuñadura.
+		put("Tie", Vector3.new(0.35, 0.16, 0.28), LEATHER, FABRIC, 0, side * 0.58, 0.02)
+
+		-- Banda alrededor de la pala a la altura y.
+		local function band(y: number, height: number, color: Color3, material: Enum.Material)
+			put("Band", Vector3.new(0.35, height, 0.28), color, material, 0, side * y, limbZ(y))
+		end
+
 		if style.primitive then
-			-- Pintura también en el tramo de la punta, ataduras de fibra en la unión y en el extremo, borla de
-			-- pelaje y una pluma que cuelga de la punta.
+			-- Pintura en las dos mitades de la pala, fibra en el codo y en la punta, borla de pelaje y una pluma.
 			for index, color in style.paint do
-				band(middle:Lerp(tip, index / (#style.paint + 1)), tip - middle, paintLength, color, SMOOTH)
+				band(0.5 + (middleY - 0.5) * index / (#style.paint + 1), 0.22, color, SMOOTH)
+				band(middleY + (tipY - middleY) * index / (#style.paint + 1), 0.22, color, SMOOTH)
 			end
-			band(middle, tip - middle, 0.12, FIBER, FABRIC)
-			band(tip, curl - tip, 0.12, FIBER, FABRIC)
-			ball(handle, "Tuft", 0.3, FUR, FABRIC, CFrame.new(curl + Vector3.new(0, side * 0.04, -0.1)))
-			block(
-				handle,
-				"Feather",
-				Vector3.new(0.04, 0.4, 0.12),
+			band(middleY, 0.12, FIBER, FABRIC)
+			band(tipY, 0.12, FIBER, FABRIC)
+			put("Tuft", Vector3.new(0.3, 0.3, 0.3), FUR, FABRIC, 0, side * (curlY + 0.04), curlZ - 0.1)
+			put(
+				"Plume",
+				Vector3.new(0.08, 0.4, 0.12),
 				if side > 0 then RED_PAINT else FEATHER_WHITE,
 				SMOOTH,
-				CFrame.new(0.14, curl.Y + side * 0.2, curl.Z)
+				0.14,
+				side * (curlY + 0.2),
+				curlZ
 			)
+		else
+			for index, color in style.paint do
+				band(0.5 + (middleY - 0.5) * index / (#style.paint + 1), 0.14, color, SMOOTH)
+			end
 		end
+
 		if style.plates then
-			local back = Vector3.new(0, 0, -0.14)
-			strut(handle, "Plate", start + back, middle + back, 0.1, 0.27, BONE, SMOOTH, Vector3.xAxis)
-			for _, point in { start:Lerp(middle, 0.5), middle } do
-				band(point, middle - start, 0.1, FIBER, FABRIC)
+			-- Placas de hueso a lo largo de las dos palas con sombra y ataduras de fibra; grabados en la cara interior.
+			for step = 1, steps do
+				local y = 0.5 + (step - 0.5) * stepH
+				local z = limbZ(y)
+				put("Plate", Vector3.new(0.19, stepH * 0.64, 0.1), BONE, SMOOTH, 0, side * y, z - 0.17)
+				if step <= steps // 2 + 1 then
+					put("PlateShade", Vector3.new(0.1, stepH * 0.39, 0.05), BONE_DARK, SMOOTH, 0, side * y, z - 0.225)
+				end
+				put("Etch", Vector3.new(0.04, stepH * 0.8, 0.03), DARK_BARK, SMOOTH, -0.09, side * y, z + 0.125)
+				put("Etch", Vector3.new(0.04, stepH * 0.8, 0.03), DARK_BARK, SMOOTH, 0.09, side * y, z + 0.125)
 			end
-			if style.bone then
-				-- Segunda placa en el tramo de la punta, sombra de hueso oscuro y atadura de fibra.
-				strut(handle, "Plate", middle + back, tip + back, 0.1, 0.24, BONE, SMOOTH, Vector3.xAxis)
-				strut(
-					handle,
-					"PlateShade",
-					start + back + Vector3.new(0, 0, -0.06),
-					middle + back + Vector3.new(0, 0, -0.06),
-					0.05,
-					0.12,
-					BONE_DARK,
-					SMOOTH,
-					Vector3.xAxis
-				)
-				band(middle:Lerp(tip, 0.5), tip - middle, 0.1, FIBER, FABRIC)
-				-- Borla de pelaje negro y pluma que cuelga de la punta de hueso.
-				ball(handle, "Tuft", 0.3, FEATHER_BLACK, FABRIC, CFrame.new(curl + Vector3.new(0, side * 0.04, -0.1)))
-				block(
-					handle,
-					"Feather",
-					Vector3.new(0.04, 0.4, 0.12),
-					if side > 0 then FEATHER_BLACK else FEATHER_WHITE,
-					SMOOTH,
-					CFrame.new(0.14, curl.Y + side * 0.2, curl.Z)
-				)
+			band(0.5 + (middleY - 0.5) * 0.5, 0.1, FIBER, FABRIC)
+			band(middleY, 0.1, FIBER, FABRIC)
+			band(middleY + (tipY - middleY) * 0.5, 0.1, FIBER, FABRIC)
+			put("Tuft", Vector3.new(0.3, 0.3, 0.3), FEATHER_BLACK, FABRIC, 0, side * (curlY + 0.04), curlZ - 0.1)
+			put(
+				"Plume",
+				Vector3.new(0.08, 0.4, 0.12),
+				if side > 0 then FEATHER_BLACK else FEATHER_WHITE,
+				SMOOTH,
+				0.14,
+				side * (curlY + 0.2),
+				curlZ
+			)
+			-- Cuentas de hueso en la cuerda.
+			for _, y in { 0.8, 1.5 } do
+				put("StringBead", Vector3.new(0.14, 0.14, 0.14), BONE, SMOOTH, 0, side * y, tipZ - 0.1)
 			end
 		end
+
 		if style.liana then
-			wraps(handle, start, middle, 3, 0.33, LIANA_GREEN, Vector3.xAxis)
-			wraps(handle, middle, tip, 2, 0.29, LIANA_GREEN, Vector3.xAxis)
-			leaf(handle, 0.9, CFrame.new(tip) * CFrame.Angles(side * 0.6, 0.4, 0.3))
-			leaf(handle, 0.7, CFrame.new(tip) * CFrame.Angles(-side * 0.5, -0.5, -0.4))
+			-- Vueltas de liana por las dos mitades de la pala y hojas en el codo y en la punta.
+			for index = 1, 3 do
+				local y = 0.5 + (middleY - 0.5) * index / 4
+				put("Vine", Vector3.new(0.35, 0.1, 0.3), LIANA_GREEN, FABRIC, 0, side * y, limbZ(y))
+			end
+			for index = 1, 2 do
+				local y = middleY + (tipY - middleY) * index / 3
+				put("Vine", Vector3.new(0.31, 0.1, 0.26), LIANA_GREEN, FABRIC, 0, side * y, limbZ(y))
+			end
+			put("Leaf", Vector3.new(0.4, 0.08, 0.3), LEAF_GREEN, SMOOTH, 0.22, side * tipY, tipZ - 0.05)
+			put("Leaf", Vector3.new(0.34, 0.08, 0.28), LEAF_GREEN, SMOOTH, -0.2, side * (tipY + 0.1), tipZ - 0.1)
+			put("Leaf", Vector3.new(0.3, 0.08, 0.3), LEAF_GREEN, SMOOTH, 0.2, side * middleY, limbZ(middleY) + 0.05)
+			-- Grabados de plata en la cara interior, un tramo de cada dos.
+			for step = 1, steps, 2 do
+				local y = 0.5 + (step - 0.5) * stepH
+				put("Inlay", Vector3.new(0.18, 0.05, 0.03), SILVER, SMOOTH, 0, side * y, limbZ(y) + 0.125)
+			end
 		end
+
 		if style.silver then
-			-- Anillos de plata en la unión y en la punta, remate de plata sobre la muesca, otra hoja y dos
-			-- plumas de colores de la selva que cuelgan de la punta.
-			band(middle, tip - middle, 0.1, SILVER, METAL)
-			band(tip, curl - tip, 0.1, SILVER, METAL)
-			ball(handle, "SilverCap", 0.3, SILVER, METAL, CFrame.new(curl + Vector3.new(0, side * 0.05, 0)))
-			leaf(handle, 0.8, CFrame.new(middle) * CFrame.Angles(side * 0.5, -0.6, 0.5))
-			block(
-				handle,
-				"Feather",
-				Vector3.new(0.04, 0.45, 0.12),
+			-- Anillos de plata en el codo y en la punta, remate de plata sobre la muesca y plumas de la selva.
+			band(middleY, 0.1, SILVER, METAL)
+			band(tipY, 0.1, SILVER, METAL)
+			put("SilverCap", Vector3.new(0.26, 0.26, 0.26), SILVER, METAL, 0, side * (curlY + 0.1), curlZ)
+			put(
+				"Plume",
+				Vector3.new(0.08, 0.45, 0.12),
 				if side > 0 then TEAL_PAINT else FEATHER_YELLOW,
 				SMOOTH,
-				CFrame.new(0.14, curl.Y + side * 0.25, curl.Z)
+				0.14,
+				side * (curlY + 0.25),
+				curlZ
 			)
-			block(
-				handle,
-				"Feather",
-				Vector3.new(0.04, 0.38, 0.12),
+			put(
+				"Plume",
+				Vector3.new(0.08, 0.38, 0.12),
 				if side > 0 then RED_PAINT else TEAL_PAINT,
 				SMOOTH,
-				CFrame.new(-0.14, curl.Y + side * 0.22, curl.Z)
+				-0.14,
+				side * (curlY + 0.22),
+				curlZ
 			)
-		end
-		if style.lava then
-			-- Grieta por la cara de fuera de cada tramo y esquirla que sigue a la punta.
-			local out = Vector3.new(0, 0, -0.13)
-			strut(handle, "Crack", start:Lerp(middle, 0.15) + out, middle + out, 0.08, 0.05, MAGMA, NEON, Vector3.xAxis)
-			strut(handle, "Crack", middle + out, tip:Lerp(middle, 0.2) + out, 0.07, 0.05, MAGMA, NEON, Vector3.xAxis)
-			local reach = (curl - tip).Unit
-			shard(handle, 0.5, 0.16, CFrame.lookAt(curl, curl + reach) * CFrame.Angles(-math.rad(90), 0, 0))
-			embers(ball(handle, "Ember", 0.26, EMBER, NEON, CFrame.new(curl)), 2)
-			-- Esquirlas bañadas en lava en el lomo de cada pala, hacia delante.
-			for _, spot in { start:Lerp(middle, 0.55), middle:Lerp(tip, 0.45) } do
-				lavaShard(
-					handle,
-					0.42,
-					0.16,
-					CFrame.new(spot + Vector3.new(0, 0, -0.32)) * CFrame.Angles(-math.rad(90) + side * 0.3, 0, 0)
-				)
+			-- Remates, tachones y vid en la empuñadura, y conchas en la cuerda.
+			put("SilverEnd", Vector3.new(0.38, 0.14, 0.5), SILVER, METAL, 0, side * 0.6, 0)
+			put("SilverStud", Vector3.new(0.1, 0.1, 0.08), SILVER, METAL, 0, side * 0.2, -0.33)
+			put("Vine", Vector3.new(0.46, 0.1, 0.52), LIANA_GREEN, FABRIC, 0, side * 0.42, 0)
+			for _, y in { 1.4, 2.2 } do
+				put("StringShell", Vector3.new(0.16, 0.16, 0.16), SHELL, SMOOTH, 0, side * y, tipZ - 0.1)
 			end
 		end
-		if style.volcanic then
-			band(middle, tip - middle, 0.1, SULFUR, SMOOTH)
-			band(tip, curl - tip, 0.1, SULFUR, SMOOTH)
-			block(
-				handle,
-				"Flame",
-				Vector3.new(0.07, 0.2, 0.07),
-				MAGMA,
-				NEON,
-				CFrame.new(-0.1, curl.Y + side * 0.12, curl.Z + 0.1)
-			)
-			block(
-				handle,
-				"Feather",
-				Vector3.new(0.04, 0.45, 0.12),
-				if side > 0 then MAGMA else FEATHER_BLACK,
-				SMOOTH,
-				CFrame.new(0.14, curl.Y + side * 0.25, curl.Z)
-			)
-			block(
-				handle,
-				"Feather",
-				Vector3.new(0.04, 0.4, 0.12),
-				if side > 0 then FEATHER_BLACK else EMBER,
-				SMOOTH,
-				CFrame.new(-0.14, curl.Y + side * 0.22, curl.Z - 0.08)
-			)
-		end
-		tipY, tipZ = tip.Y, tip.Z
 	end
-	local bowString =
-		block(handle, "String", Vector3.new(0.05, tipY * 2, 0.05), style.string, FABRIC, CFrame.new(0, 0, tipZ))
-	if style.lava then
-		bowString.Material = NEON
-		local drop = ball(handle, "Ember", 0.22, MAGMA, NEON, CFrame.new(0, 0, -0.24))
-		glow(drop, MAGMA, 7)
-		embers(drop, 4)
-		-- Aletas de obsidiana arriba y abajo de la empuñadura y dos runas de lava en ella.
-		for side = -1, 1, 2 do
-			shard(
-				handle,
-				0.5,
-				0.16,
-				CFrame.new(0, side * 0.72, -0.2) * CFrame.Angles(if side > 0 then -0.5 else math.pi + 0.5, 0, 0)
-			)
-			block(handle, "Rune", Vector3.new(0.38, 0.05, 0.05), MAGMA, NEON, CFrame.new(0, side * 0.18, -0.24))
-		end
-	end
+	put("String", Vector3.new(0.08, (tipY + 0.4) * 2, 0.08), style.string, FABRIC, 0, 0, tipZ - 0.1)
 
 	if style.bone then
-		-- Colmillo central en la espalda de la empuñadura y cuentas de hueso en la cuerda.
-		tooth(
-			handle,
-			"CentralFang",
-			0.4,
-			0.14,
-			0.2,
-			FANG,
-			SMOOTH,
-			CFrame.new(0, 0.42, -0.34) * CFrame.Angles(-math.rad(90), 0, 0)
-		)
-		for _, y in { -1.5, -0.8, 0.8, 1.5 } do
-			ball(handle, "StringBead", 0.14, BONE, SMOOTH, CFrame.new(0, y, tipZ))
-		end
+		-- Colmillo central en la espalda de la empuñadura, en escalones.
+		put("CentralFang", Vector3.new(0.14, 0.2, 0.2), FANG, SMOOTH, 0, 0.32, -0.34)
+		put("CentralFang", Vector3.new(0.1, 0.16, 0.14), FANG, SMOOTH, 0, 0.5, -0.34)
+		put("CentralFang", Vector3.new(0.06, 0.12, 0.1), FANG, SMOOTH, 0, 0.64, -0.34)
 	end
-
-	if style.volcanic then
-		-- Remates y tachones de azufre en la empuñadura, anillos de obsidiana inclinados, cuentas que brillan
-		-- en la cuerda y brasas sueltas.
-		for side = -1, 1, 2 do
-			block(handle, "SulfurEnd", Vector3.new(0.38, 0.14, 0.5), SULFUR, SMOOTH, CFrame.new(0, side * 0.6, 0))
-			ball(handle, "SulfurStud", 0.1, SULFUR, SMOOTH, CFrame.new(0, side * 0.32, -0.33))
-			rod(
-				handle,
-				"ObsidianRing",
-				0.1,
-				0.5,
-				OBSIDIAN,
-				SMOOTH,
-				CFrame.new(0, side * 0.42, 0) * CFrame.Angles(0.35, 0, 0)
-			)
-		end
-		for _, y in { -2.1, -1.2, 1.2, 2.1 } do
-			ball(handle, "StringBead", 0.14, SULFUR_GLOW, NEON, CFrame.new(0, y, tipZ))
-		end
-		for _, spark in { Vector3.new(0.27, 0.55, -0.25), Vector3.new(-0.3, -0.4, -0.3), Vector3.new(0.3, -0.2, -0.3) } do
-			block(handle, "Spark", Vector3.one * 0.07, EMBER, NEON, CFrame.new(spark))
-		end
-		-- Amuleto al otro lado de las plumas: cordón, cuenta de azufre y cristal de obsidiana con lava.
-		block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(-0.22, -0.55, 0))
-		ball(handle, "SulfurBead", 0.12, SULFUR, SMOOTH, CFrame.new(-0.22, -0.82, 0))
-		tooth(handle, "ObsidianCrystal", 0.3, 0.12, 0.14, OBSIDIAN, SMOOTH, CFrame.new(-0.22, -1.0, 0))
-		tooth(
-			handle,
-			"LavaCrystal",
-			0.2,
-			0.12,
-			0.14,
-			MAGMA,
-			NEON,
-			CFrame.new(-0.22, -1.25, 0) * CFrame.Angles(math.pi, 0, 0)
-		)
-	end
-
 	if style.silver then
-		-- Remates de plata en los extremos de la empuñadura, placa en su espalda con una gema teal entre
-		-- dos tachones, y vueltas de vid con hojas en la empuñadura.
-		for side = -1, 1, 2 do
-			block(handle, "SilverEnd", Vector3.new(0.38, 0.14, 0.5), SILVER, METAL, CFrame.new(0, side * 0.6, 0))
-			ball(handle, "SilverStud", 0.1, SILVER, METAL, CFrame.new(0, side * 0.2, -0.33))
-			rod(
-				handle,
-				"Vine",
-				0.1,
-				0.5,
-				LIANA_GREEN,
-				FABRIC,
-				CFrame.new(0, side * 0.42, 0) * CFrame.Angles(0.35, 0, 0)
-			)
-		end
-		block(handle, "SilverPlate", Vector3.new(0.14, 0.34, 0.1), SILVER, METAL, CFrame.new(0, 0, -0.27))
-		ball(handle, "TealGem", 0.2, TEAL_PAINT, GLASS, CFrame.new(0, 0, -0.33))
-		leaf(handle, 0.9, CFrame.new(-0.2, 0.45, 0.1) * CFrame.Angles(0.4, 0.5, 0.9))
-		leaf(handle, 0.7, CFrame.new(0.22, -0.45, 0.1) * CFrame.Angles(-0.4, -0.5, -0.9))
-		-- Conchas en la cuerda.
-		for _, y in { -2.2, -1.4, 1.4, 2.2 } do
-			ball(handle, "StringShell", 0.16, SHELL, SMOOTH, CFrame.new(0, y, tipZ))
-		end
-		-- Amuleto al otro lado de las plumas: cordón, cuenta de plata y cristal teal de dos puntas.
-		block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(-0.22, -0.55, 0))
-		ball(handle, "SilverBead", 0.12, SILVER, METAL, CFrame.new(-0.22, -0.82, 0))
-		tooth(handle, "TealCrystal", 0.3, 0.12, 0.14, TEAL_PAINT, GLASS, CFrame.new(-0.22, -1.0, 0))
-		tooth(
-			handle,
-			"TealCrystal",
-			0.2,
-			0.12,
-			0.14,
-			TEAL_PAINT,
-			GLASS,
-			CFrame.new(-0.22, -1.25, 0) * CFrame.Angles(math.pi, 0, 0)
-		)
+		-- Placa de plata en la espalda de la empuñadura con una gema teal, y hojas de vid.
+		put("SilverPlate", Vector3.new(0.14, 0.34, 0.1), SILVER, METAL, 0, 0, -0.27)
+		put("TealGem", Vector3.new(0.2, 0.2, 0.08), TEAL_PAINT, GLASS, 0, 0, -0.33)
+		put("Leaf", Vector3.new(0.3, 0.08, 0.4), LEAF_GREEN, SMOOTH, -0.22, 0.45, 0.12)
+		put("Leaf", Vector3.new(0.26, 0.08, 0.36), LEAF_GREEN, SMOOTH, 0.22, -0.45, 0.12)
 	end
-
 	if style.primitive then
 		-- Dos ataduras de fibra en la empuñadura de pelaje.
 		for side = -1, 1, 2 do
-			block(handle, "Tie", Vector3.new(0.4, 0.07, 0.5), FIBER, FABRIC, CFrame.new(0, side * 0.3, 0))
+			put("Tie", Vector3.new(0.4, 0.07, 0.5), FIBER, FABRIC, 0, side * 0.3, 0)
 		end
 	end
 
 	-- Cordón con plumas (y a veces un colmillo) colgando a un lado de la empuñadura.
-	local charmX = 0.22
-	block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(charmX, -0.55, 0))
+	put("Cord", Vector3.new(0.08, 0.5, 0.08), FIBER, FABRIC, 0.22, -0.55, 0)
 	for index, color in style.feathers do
 		local offset = index - (#style.feathers + 1) / 2
-		block(
-			handle,
-			"Feather",
-			Vector3.new(0.04, 0.5, 0.14),
-			color,
-			SMOOTH,
-			CFrame.new(charmX, -0.98, offset * 0.09) * CFrame.Angles(offset * 0.3, 0, 0)
-		)
+		put("Plume", Vector3.new(0.08, 0.5, 0.14), color, SMOOTH, 0.22, -0.98, offset * 0.09)
 	end
 	if style.fang then
-		tooth(
-			handle,
-			"Charm",
-			0.3,
-			0.08,
-			0.14,
-			FANG,
-			SMOOTH,
-			CFrame.new(charmX + 0.04, -0.9, 0) * CFrame.Angles(math.pi, 0, 0)
-		)
+		put("Charm", Vector3.new(0.08, 0.18, 0.14), FANG, SMOOTH, 0.28, -0.86, 0)
+		put("Charm", Vector3.new(0.08, 0.12, 0.08), FANG, SMOOTH, 0.28, -1.0, 0)
+	end
+	if style.silver then
+		-- Amuleto al otro lado de las plumas: cordón, cuenta de plata y cristal teal de dos puntas.
+		put("Cord", Vector3.new(0.08, 0.5, 0.08), FIBER, FABRIC, -0.22, -0.55, 0)
+		put("SilverBead", Vector3.new(0.12, 0.12, 0.12), SILVER, METAL, -0.22, -0.86, 0)
+		put("TealCrystal", Vector3.new(0.12, 0.2, 0.12), TEAL_PAINT, GLASS, -0.22, -1.0, 0)
+		put("TealCrystal", Vector3.new(0.08, 0.16, 0.08), TEAL_PAINT, GLASS, -0.22, -1.16, 0)
 	end
 	tool.Grip = CFrame.new()
 	return handle
@@ -2148,47 +2032,202 @@ type StaffStyle = {
 	crystal: Color3,
 	crystalSize: number,
 	wrap: Color3,
-	-- Adornos propios de cada bastón; "top" es la altura de la punta del asta.
-	decorate: (handle: BasePart, top: number) -> (),
+	-- 1: rama retorcida con hojas y talismán (rango I); 2: bandas de oro y pelaje dorado (II); 3: plata, liana y colmillo
+	-- de mandril (III).
+	rank: number,
 }
 
 local STAFF_LENGTH = 4.6
 
--- Bastón: asta larga con cuatro garras que sujetan un cristal tallado que brilla.
+-- Bastón de los rangos I a III del Mago (Fase 20 Q7b): asta larga con cuatro garras que sujetan un cristal tallado que
+-- brilla. Todo lo que no brilla son bloques alineados con los ejes (garras y puntas en escalones, vueltas y bandas
+-- como losas finas, sin cilindros, bolas ni cuñas) para que pase a malla; solo el cristal, que es de neón, y las piezas de
+-- cristal quedan sueltos. El detalle sube con el rango: el I lleva hojas, talismán y runas pintadas; el II, bandas de oro,
+-- cuentas de hueso, pelaje dorado y grabados; el III, plata, liana, bigotes, corona, colgante, conchas y un colmillo.
 local function buildStaff(tool: Tool, style: StaffStyle): BasePart
 	local top = STAFF_LENGTH / 2
+	local rank = style.rank
 	local handle = hiddenHandle(tool, Vector3.new(0.3, STAFF_LENGTH, 0.3))
-	local shaft = rod(handle, "Shaft", STAFF_LENGTH, 0.3, style.shaft, style.shaftMaterial, CFrame.new())
-	if style.shaftMaterial == METAL then
-		shaft.Reflectance = 0.15
+	local put, out, blob = stepKit(handle)
+	put("Shaft", Vector3.new(0.3, STAFF_LENGTH, 0.3), style.shaft, style.shaftMaterial, 0, 0, 0)
+	put("Collar", Vector3.new(0.44, 0.25, 0.44), style.claws, style.clawMaterial, 0, top, 0)
+	put("Butt", Vector3.new(0.36, 0.2, 0.36), style.claws, style.clawMaterial, 0, -top, 0)
+	put("Wrap", Vector3.new(0.36, 0.8, 0.36), style.wrap, FABRIC, 0, -0.6, 0)
+	for _, y in { -0.9, -0.7, -0.5, -0.3 } do
+		put("Stitch", Vector3.new(0.4, 0.05, 0.4), if rank == 1 then LEATHER else FIBER, FABRIC, 0, y, 0)
 	end
-	rod(handle, "Collar", 0.25, 0.42, style.claws, style.clawMaterial, CFrame.new(0, top, 0))
-	ball(handle, "Butt", 0.34, style.claws, style.clawMaterial, CFrame.new(0, -top, 0))
-	rod(handle, "Wrap", 0.8, 0.36, style.wrap, FABRIC, CFrame.new(0, -0.6, 0))
 
+	-- Cristal (neón, suelto) y cuatro garras en cruz que lo sujetan, en escalones.
 	local crystalY = top + 0.6
-	local crystal = block(
-		handle,
-		"Crystal",
-		Vector3.one * style.crystalSize,
-		style.crystal,
-		Enum.Material.Neon,
-		CFrame.new(0, crystalY, 0) * CFrame.Angles(math.rad(45), 0, math.rad(45))
-	)
+	local crystal = put("Crystal", Vector3.one * style.crystalSize, style.crystal, NEON, 0, crystalY, 0)
+	crystal.CFrame = handle.CFrame * CFrame.new(0, crystalY, 0) * CFrame.Angles(math.rad(45), 0, math.rad(45))
 	crystal.Transparency = 0.1
 	glow(crystal, style.crystal, 10)
-	-- Garras: salen del collar, se abren alrededor del cristal y se cierran por encima.
-	local reach = style.crystalSize * 0.75
-	for index = 0, 3 do
-		local angle = index * math.pi / 2 + math.pi / 4
-		local outward = Vector3.new(math.sin(angle), 0, math.cos(angle))
-		local base = Vector3.new(0, top, 0) + outward * 0.12
-		local bulge = Vector3.new(0, crystalY - 0.1, 0) + outward * reach
-		local tip = Vector3.new(0, crystalY + style.crystalSize * 0.6, 0) + outward * reach * 0.35
-		strut(handle, "Claw", base, bulge, 0.12, 0.12, style.claws, style.clawMaterial, outward)
-		strut(handle, "Claw", bulge, tip, 0.1, 0.1, style.claws, style.clawMaterial, outward)
+	local s = style.crystalSize / 0.85
+	local claw =
+		{ { 0.22, 0.2, 0.28 }, { 0.42, 0.48, 0.3 }, { 0.58, 0.78, 0.3 }, { 0.48, 1.04, 0.26 }, { 0.34, 1.22, 0.2 } }
+	for dir = 1, 4 do
+		for index, step in claw do
+			out("Claw", dir, step[1] * s, top + step[2] * s, 0.14, step[3] * s, 0.14, style.claws, style.clawMaterial)
+			if index == 3 and rank >= 2 then
+				out(
+					"ClawKnuckle",
+					dir,
+					step[1] * s,
+					top + step[2] * s,
+					0.2,
+					0.2,
+					0.2,
+					if rank == 2 then GOLD else SILVER,
+					METAL
+				)
+			end
+		end
 	end
-	style.decorate(handle, top)
+
+	if rank == 1 then
+		-- Rama retorcida: nudos descentrados, hojas, mechón de pelaje bajo las garras y raíces en la base.
+		for _, knot in
+			{ { -1.4, 0.08, 0.04, 0.34 }, { 0.4, -0.07, 0.05, 0.3 }, { 1.3, 0.06, -0.06, 0.32 } } :: { { number } }
+		do
+			blob("Knot", Vector3.new(0.34, knot[4], 0.34), WOOD, WOOD_MATERIAL, knot[2], knot[1], knot[3], 3)
+		end
+		put("Leaf", Vector3.new(0.4, 0.08, 0.28), LEAF_GREEN, SMOOTH, 0.28, top - 0.2, 0)
+		put("Leaf", Vector3.new(0.34, 0.08, 0.26), LEAF_GREEN, SMOOTH, -0.26, top - 0.35, 0.1)
+		put("Tuft", Vector3.new(0.3, 0.3, 0.3), FUR, FABRIC, 0, top - 0.3, 0)
+		put("Binding", Vector3.new(0.36, 0.14, 0.36), FIBER, FABRIC, 0, 0.9, 0)
+		-- Talismán: cordón, tres cuentas de piedra y dos plumas.
+		put("Cord", Vector3.new(0.08, 0.62, 0.08), FIBER, FABRIC, 0.19, 0.58, 0)
+		for index, y in { 0.7, 0.55, 0.4 } do
+			put("Bead", Vector3.one * 0.12, if index == 2 then STONE_LIGHT else STONE, STONE_MATERIAL, 0.26, y, 0)
+		end
+		put("Plume", Vector3.new(0.08, 0.4, 0.12), RED_PAINT, SMOOTH, 0.27, 0.12, 0.08)
+		put("Plume", Vector3.new(0.08, 0.36, 0.12), FEATHER_WHITE, SMOOTH, 0.27, 0.14, -0.08)
+		-- Tres runas ocres pintadas en el asta: una barra y un trazo cruzado cada una.
+		for _, y in { 0.1, 0.62, 1.55 } do
+			put("Rune", Vector3.new(0.05, 0.22, 0.05), OCHRE_PAINT, SMOOTH, 0, y, 0.15)
+			put("Rune", Vector3.new(0.14, 0.05, 0.05), OCHRE_PAINT, SMOOTH, 0, y + 0.03, 0.15)
+		end
+		put("FurRing", Vector3.new(0.42, 0.2, 0.42), FUR, FABRIC, 0, -1.2, 0)
+		put("Root", Vector3.new(0.22, 0.18, 0.22), DARK_BARK, WOOD_MATERIAL, 0, -top - 0.18, 0)
+		for _, root in { { 0.1, 0.06 }, { -0.1, 0.04 }, { 0.02, -0.1 } } do
+			put("Root", Vector3.new(0.09, 0.2, 0.09), DARK_BARK, WOOD_MATERIAL, root[1], -top - 0.36, root[2])
+		end
+	elseif rank == 2 then
+		-- Bandas de oro, cuentas de hueso, pelaje dorado, colgante de colmillos, plumas doradas y grabados.
+		for _, y in { -1.2, -0.45, 0.3, 1.15, 1.5 } do
+			put("Band", Vector3.new(0.36, 0.14, 0.36), GOLD, METAL, 0, y, 0)
+		end
+		for index, y in { 0.55, 0.75, 0.95 } do
+			put("Bead", Vector3.new(0.36, 0.16, 0.36), if index == 2 then BONE_DARK else BONE, SMOOTH, 0, y, 0)
+		end
+		blob("GoldenFur", Vector3.new(0.5, 0.5, 0.5), GOLDEN_FUR, FABRIC, 0, top - 0.3, 0, 4)
+		put("GoldenFurRing", Vector3.new(0.5, 0.3, 0.5), GOLDEN_FUR, FABRIC, 0, -1.95, 0)
+		put("Cord", Vector3.new(0.08, 0.5, 0.08), FIBER, FABRIC, 0.22, 0.9, 0)
+		for index = -1, 1 do
+			local center = index == 0
+			put(
+				"PendantFang",
+				Vector3.new(0.12, if center then 0.22 else 0.16, 0.14),
+				if center then BIG_FANG else FANG,
+				SMOOTH,
+				0.22,
+				if center then 0.52 else 0.58,
+				index * 0.09
+			)
+			put(
+				"PendantFang",
+				Vector3.new(0.08, if center then 0.18 else 0.14, 0.1),
+				if center then BIG_FANG else FANG,
+				SMOOTH,
+				0.22,
+				if center then 0.32 else 0.44,
+				index * 0.09
+			)
+		end
+		put("Cord", Vector3.new(0.08, 0.5, 0.08), FIBER, FABRIC, -0.22, 1.2, 0)
+		put("Plume", Vector3.new(0.08, 0.5, 0.12), FEATHER_YELLOW, SMOOTH, -0.24, 0.82, 0.07)
+		put("Plume", Vector3.new(0.08, 0.45, 0.12), OCHRE_PAINT, SMOOTH, -0.24, 0.85, -0.07)
+		-- Grabados de oro en el asta y puntera de oro en escalones.
+		for _, y in { -0.1, 0.8, 1.85 } do
+			put("Etch", Vector3.new(0.05, 0.4, 0.03), GOLD, SMOOTH, 0, y, -0.155)
+			put("Etch", Vector3.new(0.14, 0.04, 0.03), GOLD, SMOOTH, 0, y + 0.1, -0.155)
+		end
+		put("Tip", Vector3.new(0.24, 0.14, 0.24), GOLD, METAL, 0, -top - 0.17, 0)
+		put("Tip", Vector3.new(0.14, 0.14, 0.14), GOLD, METAL, 0, -top - 0.31, 0)
+		put("Tip", Vector3.new(0.08, 0.12, 0.08), GOLD, METAL, 0, -top - 0.44, 0)
+	else
+		-- Vueltas de liana a lo largo del asta, bigotes colgando, colmillo de mandril escalonado sobre las garras.
+		for index = 0, 6 do
+			put("Vine", Vector3.new(0.36, 0.1, 0.36), LIANA_GREEN, FABRIC, 0, -1.6 + index * (top - 0.3 + 1.6) / 6, 0)
+		end
+		for _, offset in { { 0.2, 0 }, { 0, 0.2 }, { -0.2, 0 }, { 0, -0.2 } } do
+			put("Whisker", Vector3.new(0.08, 0.9, 0.08), WHISKER, FABRIC, offset[1], top - 0.5, offset[2])
+		end
+		for _, step in
+			{
+				{ 0.2, 0.2, 0.32, 3.52 },
+				{ 0.16, 0.2, 0.26, 3.72 },
+				{ 0.12, 0.18, 0.2, 3.9 },
+				{ 0.08, 0.16, 0.14, 4.06 },
+				{ 0.08, 0.14, 0.08, 4.2 },
+			}
+		do
+			put("MandrillFang", Vector3.new(step[1], step[2], step[3]), MANDRILL_FANG, SMOOTH, 0, step[4], 0)
+		end
+		-- Corona de cuatro puntas de plata sobre el collar y bandas de plata con hojas.
+		for dir = 1, 4 do
+			out("CrownTooth", dir, 0.22, top + 0.24, 0.1, 0.22, 0.14, SILVER, METAL)
+			out("CrownTooth", dir, 0.3, top + 0.4, 0.08, 0.14, 0.1, SILVER, METAL)
+		end
+		for _, y in { -1.3, 0, 0.9, 1.8 } do
+			put("SilverBand", Vector3.new(0.4, 0.1, 0.4), SILVER, METAL, 0, y, 0)
+		end
+		put("Leaf", Vector3.new(0.4, 0.08, 0.28), LEAF_GREEN, SMOOTH, -0.28, 0.9, 0.1)
+		put("Leaf", Vector3.new(0.3, 0.08, 0.4), LEAF_GREEN, SMOOTH, 0.05, 0.9, -0.28)
+		put("Leaf", Vector3.new(0.4, 0.08, 0.28), LEAF_GREEN, SMOOTH, 0.28, -0.15, 0.1)
+		put("Leaf", Vector3.new(0.28, 0.08, 0.4), LEAF_GREEN, SMOOTH, -0.05, 0, 0.28)
+		-- Grabados teal en el asta.
+		for _, y in { 0.45, 1.4 } do
+			put("Inlay", Vector3.new(0.05, 0.5, 0.03), TEAL_PAINT, SMOOTH, 0, y, -0.155)
+		end
+		-- Colgante de colmillos con engarce de plata y dos conchas.
+		put("Cord", Vector3.new(0.08, 0.5, 0.08), FIBER, FABRIC, 0.22, 0.75, 0)
+		put("SilverSetting", Vector3.new(0.1, 0.1, 0.3), SILVER, METAL, 0.22, 0.48, 0)
+		for index = -1, 1 do
+			local center = index == 0
+			put(
+				"PendantFang",
+				Vector3.new(0.12, if center then 0.2 else 0.16, 0.14),
+				if center then BIG_FANG else FANG,
+				SMOOTH,
+				0.22,
+				if center then 0.32 else 0.36,
+				index * 0.09
+			)
+			put(
+				"PendantFang",
+				Vector3.new(0.08, if center then 0.18 else 0.12, 0.1),
+				if center then BIG_FANG else FANG,
+				SMOOTH,
+				0.22,
+				if center then 0.14 else 0.22,
+				index * 0.09
+			)
+		end
+		for side = -1, 1, 2 do
+			put("Shell", Vector3.one * 0.16, SHELL, SMOOTH, 0.22, 0.4, side * 0.22)
+		end
+		-- Plumas de colores colgando de un cordón del otro lado y puntera de plata en escalones.
+		put("Cord", Vector3.new(0.08, 0.4, 0.08), FIBER, FABRIC, -0.22, 0.95, 0)
+		for index, color in { TEAL_PAINT, FEATHER_YELLOW, RED_PAINT } do
+			put("Plume", Vector3.new(0.08, 0.45, 0.12), color, SMOOTH, -0.24, 0.55, (index - 2) * 0.1)
+		end
+		put("SilverFerrule", Vector3.new(0.38, 0.3, 0.38), SILVER, METAL, 0, -top + 0.15, 0)
+		put("SilverSpike", Vector3.new(0.22, 0.14, 0.22), SILVER, METAL, 0, -top - 0.1, 0)
+		put("SilverSpike", Vector3.new(0.14, 0.14, 0.14), SILVER, METAL, 0, -top - 0.24, 0)
+		put("SilverSpike", Vector3.new(0.08, 0.12, 0.08), SILVER, METAL, 0, -top - 0.37, 0)
+	end
 	tool.Grip = CFrame.new(0, -0.6, 0)
 	return handle
 end
@@ -5090,65 +5129,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			crystal = Color3.fromRGB(170, 110, 255),
 			crystalSize = 0.55,
 			wrap = FIBER,
-			decorate = function(handle, top)
-				for _, knot in
-					{ Vector3.new(0.08, -1.4, 0.04), Vector3.new(-0.07, 0.4, 0.05), Vector3.new(0.06, 1.3, -0.06) }
-				do
-					ball(handle, "Knot", 0.32, DARK_BARK, WOOD_MATERIAL, CFrame.new(knot))
-				end
-				leaf(handle, 1, CFrame.new(0.22, top - 0.2, 0) * CFrame.Angles(0.3, 0.2, -0.8))
-				leaf(handle, 0.8, CFrame.new(-0.2, top - 0.35, 0.1) * CFrame.Angles(-0.2, -0.6, 0.9))
-				-- Mechón de pelaje bajo el collar de las garras.
-				ball(handle, "Tuft", 0.3, FUR, FABRIC, CFrame.new(0, top - 0.3, 0))
-				-- Atadura de fibra con talismán: cordón, tres cuentas de piedra y dos plumas.
-				rod(handle, "Binding", 0.14, 0.36, FIBER, FABRIC, CFrame.new(0, 0.9, 0))
-				block(handle, "Cord", Vector3.new(0.03, 0.62, 0.03), FIBER, FABRIC, CFrame.new(0.19, 0.58, 0))
-				for index, y in { 0.7, 0.55, 0.4 } do
-					ball(
-						handle,
-						"Bead",
-						0.12,
-						if index == 2 then STONE_LIGHT else STONE,
-						STONE_MATERIAL,
-						CFrame.new(0.19, y, 0)
-					)
-				end
-				block(handle, "Feather", Vector3.new(0.04, 0.4, 0.12), RED_PAINT, SMOOTH, CFrame.new(0.19, 0.12, 0.07))
-				block(
-					handle,
-					"Feather",
-					Vector3.new(0.04, 0.36, 0.12),
-					FEATHER_WHITE,
-					SMOOTH,
-					CFrame.new(0.19, 0.14, -0.07)
-				)
-				-- Tres runas ocres pintadas en el asta: una barra y un trazo cruzado cada una.
-				for _, y in { 0.1, 0.62, 1.55 } do
-					block(handle, "Rune", Vector3.new(0.05, 0.22, 0.05), OCHRE_PAINT, SMOOTH, CFrame.new(0, y, 0.15))
-					block(
-						handle,
-						"Rune",
-						Vector3.new(0.14, 0.05, 0.05),
-						OCHRE_PAINT,
-						SMOOTH,
-						CFrame.new(0, y + 0.03, 0.15)
-					)
-				end
-				-- Base con tres raíces y un anillo de pelaje sobre la atadura del mango.
-				rod(handle, "FurRing", 0.2, 0.4, FUR, FABRIC, CFrame.new(0, -1.2, 0))
-				for index = 0, 2 do
-					local angle = index * math.pi * 2 / 3
-					block(
-						handle,
-						"Root",
-						Vector3.new(0.09, 0.32, 0.09),
-						DARK_BARK,
-						WOOD_MATERIAL,
-						CFrame.new(math.sin(angle) * 0.12, -top - 0.12, math.cos(angle) * 0.12)
-							* CFrame.Angles(math.cos(angle) * -0.5, 0, math.sin(angle) * 0.5)
-					)
-				end
-			end,
+			rank = 1,
 		})
 	end,
 	-- Bandas de oro, cuentas de hueso y un mechón de pelaje dorado bajo un cristal de sol.
@@ -5161,62 +5142,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			crystal = Color3.fromRGB(255, 210, 90),
 			crystalSize = 0.65,
 			wrap = LEATHER,
-			decorate = function(handle, top)
-				for _, y in { -1.2, -0.45, 0.3, 1.15, 1.5 } do
-					rod(handle, "Band", 0.14, 0.36, GOLD, METAL, CFrame.new(0, y, 0))
-				end
-				for index, y in { 0.55, 0.75, 0.95 } do
-					rod(handle, "Bead", 0.16, 0.36, if index == 2 then BONE_DARK else BONE, SMOOTH, CFrame.new(0, y, 0))
-				end
-				ball(handle, "GoldenFur", 0.5, GOLDEN_FUR, FABRIC, CFrame.new(0, top - 0.3, 0))
-				-- Pelaje dorado en la base, sobre la contera.
-				rod(handle, "GoldenFurRing", 0.3, 0.5, GOLDEN_FUR, FABRIC, CFrame.new(0, -1.95, 0))
-				-- Colgante de colmillos con cordón: el central es el más grande.
-				block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(0.22, 0.9, 0))
-				for index = -1, 1 do
-					tooth(
-						handle,
-						"PendantFang",
-						if index == 0 then 0.38 else 0.28,
-						0.1,
-						0.14,
-						if index == 0 then BIG_FANG else FANG,
-						SMOOTH,
-						CFrame.new(0.22, if index == 0 then 0.48 else 0.52, index * 0.09)
-							* CFrame.Angles(math.pi + index * 0.2, 0, 0)
-					)
-				end
-				-- Dos plumas doradas colgando del otro lado.
-				block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(-0.22, 1.2, 0))
-				block(
-					handle,
-					"Feather",
-					Vector3.new(0.04, 0.5, 0.12),
-					FEATHER_YELLOW,
-					SMOOTH,
-					CFrame.new(-0.23, 0.82, 0.07)
-				)
-				block(
-					handle,
-					"Feather",
-					Vector3.new(0.04, 0.45, 0.12),
-					OCHRE_PAINT,
-					SMOOTH,
-					CFrame.new(-0.23, 0.85, -0.07)
-				)
-				-- Nudillos de oro en las garras que sujetan el cristal.
-				for index = 0, 3 do
-					local angle = index * math.pi / 2 + math.pi / 4
-					ball(
-						handle,
-						"ClawKnuckle",
-						0.17,
-						GOLD,
-						METAL,
-						CFrame.new(math.sin(angle) * 0.4875, top + 0.5, math.cos(angle) * 0.4875)
-					)
-				end
-			end,
+			rank = 2,
 		})
 	end,
 	-- Asta de plata envuelta en liana, bigotes de marteja colgando y un colmillo de mandril en la punta.
@@ -5229,109 +5155,7 @@ local BUILDERS: { [string]: (tool: Tool) -> BasePart } = {
 			crystal = Color3.fromRGB(120, 220, 255),
 			crystalSize = 0.75,
 			wrap = LEATHER,
-			decorate = function(handle, top)
-				wraps(
-					handle,
-					Vector3.new(0, -1.6, 0),
-					Vector3.new(0, top - 0.3, 0),
-					7,
-					0.36,
-					LIANA_GREEN,
-					Vector3.zAxis
-				)
-				for index = 0, 3 do
-					local angle = index * math.pi / 2
-					local offset = Vector3.new(math.sin(angle), 0, math.cos(angle)) * 0.2
-					block(
-						handle,
-						"Whisker",
-						Vector3.new(0.04, 0.9, 0.04),
-						WHISKER,
-						FABRIC,
-						CFrame.new(Vector3.new(0, top - 0.5, 0) + offset)
-							* CFrame.Angles(offset.Z * 0.6, 0, -offset.X * 0.6)
-					)
-				end
-				tooth(handle, "MandrillFang", 0.7, 0.2, 0.34, MANDRILL_FANG, SMOOTH, CFrame.new(0, top + 1.45, 0))
-				-- Rango III ("Plata y selva"): engarce de garras con nudillos de plata y una corona de cuatro
-				-- puntas de plata sobre el collar, anillos de plata con hojas, colgante de colmillos y conchas,
-				-- plumas de colores y puntera de plata.
-				for index = 0, 3 do
-					local angle = index * math.pi / 2 + math.pi / 4
-					ball(
-						handle,
-						"ClawKnuckle",
-						0.17,
-						SILVER,
-						METAL,
-						CFrame.new(math.sin(angle) * 0.5625, top + 0.5, math.cos(angle) * 0.5625)
-					)
-				end
-				for index = 0, 3 do
-					local angle = index * math.pi / 2
-					tooth(
-						handle,
-						"CrownTooth",
-						0.3,
-						0.1,
-						0.14,
-						SILVER,
-						METAL,
-						CFrame.new(math.sin(angle) * 0.22, top + 0.3, math.cos(angle) * 0.22)
-							* CFrame.Angles(0, angle, 0)
-							* CFrame.Angles(0.45, 0, 0)
-					)
-				end
-				for _, y in { -1.3, 0, 0.9, 1.8 } do
-					rod(handle, "SilverBand", 0.1, 0.4, SILVER, METAL, CFrame.new(0, y, 0))
-				end
-				leaf(handle, 1, CFrame.new(-0.25, 0.9, 0.1) * CFrame.Angles(0.3, 0.5, 0.9))
-				leaf(handle, 0.9, CFrame.new(0.05, 0.9, -0.25) * CFrame.Angles(-0.8, 0.2, 0.1))
-				leaf(handle, 0.9, CFrame.new(0.25, -0.15, 0.1) * CFrame.Angles(-0.3, -0.5, -0.9))
-				leaf(handle, 0.8, CFrame.new(-0.05, 0, 0.25) * CFrame.Angles(0.8, -0.2, 0.1))
-				-- Colgante de colmillos con engarce de plata y dos conchas.
-				block(handle, "Cord", Vector3.new(0.03, 0.5, 0.03), FIBER, FABRIC, CFrame.new(0.22, 0.75, 0))
-				block(handle, "SilverSetting", Vector3.new(0.1, 0.1, 0.3), SILVER, METAL, CFrame.new(0.22, 0.48, 0))
-				for index = -1, 1 do
-					tooth(
-						handle,
-						"PendantFang",
-						if index == 0 then 0.38 else 0.28,
-						0.1,
-						0.14,
-						if index == 0 then BIG_FANG else FANG,
-						SMOOTH,
-						CFrame.new(0.22, if index == 0 then 0.26 else 0.3, index * 0.09) * CFrame.Angles(math.pi, 0, 0)
-					)
-				end
-				for side = -1, 1, 2 do
-					ball(handle, "Shell", 0.16, SHELL, SMOOTH, CFrame.new(0.22, 0.4, side * 0.22))
-				end
-				-- Plumas de colores colgando de un cordón del otro lado.
-				block(handle, "Cord", Vector3.new(0.03, 0.4, 0.03), FIBER, FABRIC, CFrame.new(-0.22, 0.95, 0))
-				for index, color in { TEAL_PAINT, FEATHER_YELLOW, RED_PAINT } do
-					block(
-						handle,
-						"Feather",
-						Vector3.new(0.04, 0.45, 0.12),
-						color,
-						SMOOTH,
-						CFrame.new(-0.23, 0.55, (index - 2) * 0.1) * CFrame.Angles((index - 2) * 0.2, 0, 0)
-					)
-				end
-				-- Puntera de plata en la base.
-				rod(handle, "SilverFerrule", 0.3, 0.38, SILVER, METAL, CFrame.new(0, -top + 0.15, 0))
-				tooth(
-					handle,
-					"SilverSpike",
-					0.22,
-					0.16,
-					0.22,
-					SILVER,
-					METAL,
-					CFrame.new(0, -top - 0.28, 0) * CFrame.Angles(math.pi, 0, 0)
-				)
-			end,
+			rank = 3,
 		})
 	end,
 	LavaStaff = buildLavaStaff,
