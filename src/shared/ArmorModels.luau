@@ -8901,7 +8901,7 @@ do
 				make,
 				SMALL_FLAME,
 				BLUE_FLAME,
-				core * CFrame.new(0, -0.33, -0.06) * FACING_FRONT,
+				core * CFrame.new(0, -0.33, -0.14) * FACING_FRONT,
 				0.11,
 				false
 			)
@@ -9400,7 +9400,7 @@ do
 		make.rod(0.1, width * 0.34, CHARCOAL, SLATE, medal * CFrame.new(0, 0, -0.03) * FACING)
 		if grade >= 2 then
 			-- Grado 2: la llama de fuego azul dentro del disco y tres remaches de azufre en su borde.
-			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, medal * CFrame.new(0, -0.2, -0.1) * FACING_FRONT, 0.07, false)
+			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, medal * CFrame.new(0, -0.2, -0.2) * FACING_FRONT, 0.07, false)
 			for index = 0, 2 do
 				local angle = index / 3 * math.pi * 2
 				make.ball(
@@ -9628,13 +9628,13 @@ do
 				Vector3.new(width * 0.07, height * 0.26, 0.05),
 				BLUE_FIRE,
 				NEON,
-				plastron * CFrame.new(0, 0, -0.06)
+				plastron * CFrame.new(0, 0, -0.14)
 			)
 			make.block(
 				Vector3.new(width * 0.22, height * 0.08, 0.05),
 				BLUE_FIRE,
 				NEON,
-				plastron * CFrame.new(0, 0.04, -0.06)
+				plastron * CFrame.new(0, 0.04, -0.14)
 			)
 			fireLight(cross, BLUE_FIRE)
 		end
@@ -9672,7 +9672,7 @@ do
 			-- del manto.
 			for sy = -1, 1, 2 do
 				for sx = -1, 1, 2 do
-					make.ball(0.09, SULFUR, SMOOTH, plastron * CFrame.new(sx * width * 0.15, sy * height * 0.16, -0.06))
+					make.ball(0.09, SULFUR, SMOOTH, plastron * CFrame.new(sx * width * 0.15, sy * height * 0.16, -0.12))
 				end
 			end
 			for _, x in { -0.2, 0, 0.2 } do

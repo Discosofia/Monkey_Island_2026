@@ -537,10 +537,14 @@ local function main(copia: Instance): string
 					local pieza = ArmorModels.wear(personaje, nil, cosmetico.role, id, ArmorModels.MAX_GRADE)
 					assert(pieza, "sin modelo")
 					-- Solo el mítico y el legendario tienen presupuesto propio (grado 4); los demás trajes, sin límite.
-					local presupuesto = if cosmetico.rarity == "Mythic"
-						then M.OutfitMythicGrade4
-						elseif cosmetico.rarity == "Legendary" then M.OutfitLegendaryGrade4
-						else nil
+					local presupuesto = topeOpc(
+						id,
+						"ArmorPieces",
+						if cosmetico.rarity == "Mythic"
+							then M.OutfitMythicGrade4
+							elseif cosmetico.rarity == "Legendary" then M.OutfitLegendaryGrade4
+							else nil
+					)
 					fila(
 						`{id} ({cosmetico.rarity}, grado {ArmorModels.MAX_GRADE})`,
 						medir(pieza, fusionSoldada),

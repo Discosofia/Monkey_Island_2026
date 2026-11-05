@@ -2465,6 +2465,11 @@ local Config = {
 			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
 			SilverArmor_Guerrero = { ArmorPieces = 260 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
 			VolcanicArmor_Guerrero = { ArmorPieces = 510 }, -- Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
+			-- Trajes de Fuego azul con malla (Q6f, grado 4): el tope mide la versión de bloques (la de respaldo, con los
+			-- escalones sin giro de la malla); en juego son 6 a 8 mallas y las piezas sueltas de fuego, cristal y neón.
+			BlueFireGuardianOutfit = { ArmorPieces = 370 },
+			BlueFireStalkerOutfit = { ArmorPieces = 370 },
+			BlueFireHealerOutfit = { ArmorPieces = 370 },
 			MonoX7 = { PetTotal = 500, PetAnimated = 230, PetTriangles = 6200 }, -- mascota de élite (Q5): mide la versión de bloques, la de malla tiene 7 mallas y 2.884 triángulos
 			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.732 triángulos y 9 mallas)
 			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %

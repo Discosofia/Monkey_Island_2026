@@ -4945,6 +4945,25 @@ Bandolera de curandero (12 mallas, 3.370 triángulos), peto de curandero (16, 2.
 4. [ ] Comprueba que las 16 armaduras de rol (4 roles × 4 rangos) se ven bien con otro jugador de distinto tamaño.
    ✅ Le quedan ajustadas al torso, brazos y muslos; nada flota ni atraviesa.
 
+## 133. Fase 20 Q6f: los 4 trajes de Fuego azul con malla (05-11-2026)
+
+Hombreras de la temporada rediseñadas (tres láminas escalonadas, cresta de carbón con la llama, corona de cristales, cuerno de azufre y aleta trasera) y cuerpos rediseñados de los cuatro trajes: Guardián (coraza en placas, lomo con costillas a los lados y llamarada), Acechador (jubón cosido, esclavina en escalones y capa con flecos), Invocador (halo con disco de sol y la llama coronándolo) y Sanador (tótem grande con cara y alas, abanico de hierbas, sin verde). Con malla solo el **grado 4** (6, 8, 7 y 8 mallas; 2.306, 1.872, 1.454 y 2.754 triángulos); los grados 0 a 3 siguen en bloques. Sueltos: llamas, neón, cristales de azufre y gotas. Tres trajes tienen excepción de piezas (`ArmorPieces` = 370) porque la versión de bloques mide 367. Probado en Edit con un avatar normal y otro ancho y hondo (`WidthScale` 0,8, `HeightScale` 1,1, `DepthScale` 1,3); con ese avatar, las llamas y la cruz del pecho se adelantaron 0,08 a 0,1 studs para que no queden enterradas. Sin probar en Play.
+
+### 133.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Consigue los cuatro trajes (`GrantCosmetic`) y mírate de frente y de espaldas con cada uno, en grado 4.
+   ✅ Se ven con malla, sin parpadeos ni piezas fuera de sitio; las llamas de la espalda y del pecho se ven y la del Guardián sobrepasa la cabeza.
+2. [ ] Mira el Sanador de espaldas de cerca.
+   ✅ Se ve el abanico de hierbas detrás del tótem (en edición no se pudo ver); no hay verde en el traje.
+3. [ ] Entra y mira el traje en los primeros segundos.
+   ✅ Sale en bloques y pasa solo a malla al cargar.
+4. [ ] Pon los cuatro trajes a un jugador de otro tamaño.
+   ✅ Le quedan ajustados al torso, brazos y muslos; las llamas del pecho no quedan hundidas ni flotando demasiado lejos.
+5. [ ] En la Isla, sube la armadura de debajo del grado 0 al 4 con cada traje.
+   ✅ Los grados 0 a 3 (bloques) y el 4 (malla) se parecen en forma y color; cada grado añade algo visible también desde atrás.
+6. [ ] Con otro jugador, míralo de lejos y de cerca, de noche.
+   ✅ El fuego azul brilla y echa humo en el grado 4; con Lod a más de 60 studs se ocultan los detalles sin saltos feos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

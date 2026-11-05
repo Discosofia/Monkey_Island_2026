@@ -1788,7 +1788,275 @@ local ArmorMeshes: ArmorMeshes = {
 			-- @fin
 		},
 	},
-	Outfit = {},
+	Outfit = {
+		BlueFireGuardianOutfit = {
+			-- @entrada Outfit BlueFireGuardianOutfit 4
+			[4] = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Hard"] = {
+						mesh = "rbxassetid://78713003959107",
+						texture = "rbxassetid://91627258646803",
+						offset = Vector3.new(-0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://76553522606192",
+						texture = "rbxassetid://79880398593586",
+						offset = Vector3.new(-0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://102052165691134",
+						texture = "rbxassetid://104536729253632",
+						offset = Vector3.new(0.0000, 0.0601, -0.1099),
+						size = Vector3.new(2.1514, 0.3600, 1.4039),
+						triangles = 140,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://107564270307888",
+						texture = "rbxassetid://133717547493098",
+						offset = Vector3.new(0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://73579450638659",
+						texture = "rbxassetid://87257329990821",
+						offset = Vector3.new(0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://126932139298277",
+						texture = "rbxassetid://77513905201397",
+						offset = Vector3.new(0.0000, 0.0326, 0.1250),
+						size = Vector3.new(2.0986, 1.7290, 1.8538),
+						triangles = 1606,
+					},
+				},
+			},
+			-- @fin
+		},
+		BlueFireHealerOutfit = {
+			-- @entrada Outfit BlueFireHealerOutfit 4
+			[4] = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Hard"] = {
+						mesh = "rbxassetid://91535326480648",
+						texture = "rbxassetid://124852095461941",
+						offset = Vector3.new(-0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://116116352421405",
+						texture = "rbxassetid://117963435752082",
+						offset = Vector3.new(-0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://84895942363784",
+						texture = "rbxassetid://79368944388136",
+						offset = Vector3.new(0.0000, 0.0601, -0.1099),
+						size = Vector3.new(2.1514, 0.3600, 1.4039),
+						triangles = 140,
+					},
+					["LowerTorso_Soft"] = {
+						mesh = "rbxassetid://78699392553629",
+						texture = "rbxassetid://118003147518760",
+						offset = Vector3.new(-0.0449, -0.0951, -0.6919),
+						size = Vector3.new(1.5844, 0.3100, 0.2200),
+						triangles = 40,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://129691290624938",
+						texture = "rbxassetid://106380008477040",
+						offset = Vector3.new(0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://112911073435680",
+						texture = "rbxassetid://138491754694805",
+						offset = Vector3.new(0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://114386711194898",
+						texture = "rbxassetid://101756750346381",
+						offset = Vector3.new(0.0000, 0.5099, 0.2200),
+						size = Vector3.new(2.2992, 3.3781, 2.1239),
+						triangles = 1104,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://71617089259934",
+						texture = "rbxassetid://74795834204986",
+						offset = Vector3.new(0.0000, 0.1874, 0.2150),
+						size = Vector3.new(2.3432, 2.7232, 1.9938),
+						triangles = 910,
+					},
+				},
+			},
+			-- @fin
+		},
+		BlueFireInvokerOutfit = {
+			-- @entrada Outfit BlueFireInvokerOutfit 4
+			[4] = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Hard"] = {
+						mesh = "rbxassetid://118814868085989",
+						texture = "rbxassetid://125601629681998",
+						offset = Vector3.new(-0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://115002066447689",
+						texture = "rbxassetid://96567677945371",
+						offset = Vector3.new(-0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://88301309368303",
+						texture = "rbxassetid://79346395668970",
+						offset = Vector3.new(0.0000, 0.0601, -0.1099),
+						size = Vector3.new(2.1514, 0.3600, 1.4039),
+						triangles = 140,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://117572357792226",
+						texture = "rbxassetid://107271637764506",
+						offset = Vector3.new(0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://104987414866106",
+						texture = "rbxassetid://81904641116991",
+						offset = Vector3.new(0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://94543488511473",
+						texture = "rbxassetid://121855372131310",
+						offset = Vector3.new(0.0000, 0.1031, 0.0000),
+						size = Vector3.new(1.8655, 2.1419, 1.6440),
+						triangles = 502,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://86498343453357",
+						texture = "rbxassetid://99353987962942",
+						offset = Vector3.new(0.0000, -0.0933, 0.0358),
+						size = Vector3.new(2.2232, 1.7490, 1.4755),
+						triangles = 252,
+					},
+				},
+			},
+			-- @fin
+		},
+		BlueFireStalkerOutfit = {
+			-- @entrada Outfit BlueFireStalkerOutfit 4
+			[4] = {
+				ref = {
+					LeftLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					LeftUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					LowerTorso = Vector3.new(1.9914, 0.4007, 1.0040),
+					RightLowerArm = Vector3.new(1.0011, 1.1175, 1.0019),
+					RightUpperArm = Vector3.new(1.0011, 1.2416, 1.0019),
+					UpperTorso = Vector3.new(1.9432, 1.6980, 1.0040),
+				},
+				groups = {
+					["LeftLowerArm_Hard"] = {
+						mesh = "rbxassetid://94518402822789",
+						texture = "rbxassetid://133639407957760",
+						offset = Vector3.new(-0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["LeftUpperArm_Hard"] = {
+						mesh = "rbxassetid://122421668444260",
+						texture = "rbxassetid://114279504751804",
+						offset = Vector3.new(-0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["LowerTorso_Hard"] = {
+						mesh = "rbxassetid://103531063106934",
+						texture = "rbxassetid://78226672044506",
+						offset = Vector3.new(0.0000, -0.1132, -0.1099),
+						size = Vector3.new(2.1514, 0.7067, 1.4039),
+						triangles = 180,
+					},
+					["LowerTorso_Soft"] = {
+						mesh = "rbxassetid://81778038940758",
+						texture = "rbxassetid://128672688373337",
+						offset = Vector3.new(0.0352, -0.1051, -0.6621),
+						size = Vector3.new(1.6042, 0.3501, 0.1800),
+						triangles = 40,
+					},
+					["RightLowerArm_Hard"] = {
+						mesh = "rbxassetid://100870915529198",
+						texture = "rbxassetid://88757401510319",
+						offset = Vector3.new(0.0200, -0.0567, 0.0000),
+						size = Vector3.new(1.1810, 0.8840, 1.1419),
+						triangles = 64,
+					},
+					["RightUpperArm_Hard"] = {
+						mesh = "rbxassetid://120309068479184",
+						texture = "rbxassetid://95288262167679",
+						offset = Vector3.new(0.2500, 0.9308, 0.0801),
+						size = Vector3.new(1.8520, 0.9801, 1.9033),
+						triangles = 216,
+					},
+					["UpperTorso_Hard"] = {
+						mesh = "rbxassetid://77051003563864",
+						texture = "rbxassetid://89806308424736",
+						offset = Vector3.new(0.0145, 0.1382, 0.3201),
+						size = Vector3.new(1.9756, 2.2681, 2.1639),
+						triangles = 544,
+					},
+					["UpperTorso_Soft"] = {
+						mesh = "rbxassetid://115559470943396",
+						texture = "rbxassetid://82963324464217",
+						offset = Vector3.new(0.0000, -0.1579, 0.1099),
+						size = Vector3.new(2.3032, 2.3738, 1.6240),
+						triangles = 548,
+					},
+				},
+			},
+			-- @fin
+		},
+	},
 }
 
 return ArmorMeshes
