@@ -1189,15 +1189,23 @@ Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en 
 
 | Grupo | Contenido | Commit | Estado |
 |---|---|---|---|
-| **G1** | Motor: `Shared/Cinematics/*` (`CameraPath`, `Sequencer`, `Presentation`, `Actors`, `CinematicClient`), `UI/HudHider`, remotos `Cinematic` y `CinematicDone`, `CinematicLock` (congela el combate), `CinematicService` de la Isla, `CinematicController` del Lobby y de la Isla, ajuste `cinematics`, campo `cinematicsSeen` del perfil (sin subir la versión), órdenes «🎬 Cinemática de prueba» y «🎬 Plató» (este solo avisa; el decorado va en G2), escena «Prueba» (un maniquí y el avatar) | pendiente | ✅ Probada en el Studio de la Isla (G1a en f78c656, G1b sin commit). Lo que falta, en VERIFICACION §137 |
-| **G2** | Jefes: 4 escenas de aparición con su variante trailer, acción `Intro` en `Data/MonkeyAnimations` (si falta, `Roar`), carteles con `T()`, enganche tras `BossService.spawn` (`IslandBossHooks.luau:63`) y el decorado real del «🎬 Plató» | — | ⏳ |
+| **G1** | Motor: `Shared/Cinematics/*` (`CameraPath`, `Sequencer`, `Presentation`, `Actors`, `CinematicClient`), `UI/HudHider`, remotos `Cinematic` y `CinematicDone`, `CinematicLock` (congela el combate), `CinematicService` de la Isla, `CinematicController` del Lobby y de la Isla, ajuste `cinematics`, campo `cinematicsSeen` del perfil (sin subir la versión), órdenes «🎬 Cinemática de prueba» y «🎬 Plató» (este solo avisa; el decorado va en G2), escena «Prueba» (un maniquí y el avatar) | f78c656, 9602332 | ✅ Probada en el Studio de la Isla (G1a en f78c656, G1b en 9602332). Lo que falta, en VERIFICACION §137 |
+| **G2** | Jefes: 4 escenas `Boss_<id>` en `Data/Cinematics` (`bossScene`: 6 s, freeze, anchor el jefe, cartel con nombre y subtítulo y fundido; evento de servidor `bossRoar` a 1,0 s), enganche en `IslandBossHooks.spawnBoss` (reloj de partida y «👑 Siguiente jefe»), `BossService.roar()` y el decorado del «🎬 Plató» (`Trailer.decorar`, jefe estático) | d000355 | ✅ Probada en el Studio de la Isla (4 jefes con «Siguiente jefe», Saltar, ajuste «Cinemáticas», Plató con 3 jefes). Lo que falta, en VERIFICACION §139. Quedan fuera la variante trailer y la acción `Intro` del plan original (se usa `Roar`) |
 | **G3** | Huevo y rescate: `NestController.playCeremony` pasa a la escena local «EggHatch»; helicóptero voxel nuevo (`Shared/HelicopterModel.luau`, tope `Config.Budgets.Models.Helicopter` medido con `Rendimiento`); la escena del rescate va antes de la Victoria (`BeaconService`) | — | ⏳ |
 | **G4** | Llegada e historia: escena de la playa y gestos `Point`, `LookAround` y `Cheer` con la skill `animaciones-roblox` | — | ⏳ |
 | **G5** | Batallas montadas: maniquíes contra monos y jefes, con las habilidades reales y los topes de efectos en High | — | ⏳ |
 
 **Handoff de la Fase 25 (05-11-2026)**
-- **Estado:** G1 hecho. G1a está en f78c656; G1b (los archivos de la lista de G1 que no están en ese commit) sin commit hasta tu «aprobado». Pendiente de tu parte: VERIFICACION §137 (2 jugadores en la Isla, juego publicado, una persona en Play con móvil y PC, y los avisos de la Salida). Siguiente número libre de VERIFICACION: §138.
-- **Hecho y dónde:**
+- **Estado:** G1 hecho (G1a en f78c656, G1b en 9602332). G2 hecho, sin commit hasta tu «aprobado». Pendiente de tu parte: VERIFICACION §137 (G1: 2 jugadores en la Isla, juego publicado, una persona en Play con móvil y PC, y los avisos de la Salida) y §139 (G2: 2 jugadores, visual en Play, Plató y grabación, casos límite y juego publicado). Siguiente número libre de VERIFICACION: §140. Nota: §138 es de la sección de armas del Guerrero (Q7b-1), que está sin commit; por eso G2 va en §139.
+- **Hecho en G2 y dónde:**
+  - `src/shared/Data/Cinematics.luau`: `bossScene` y las cuatro escenas `Boss_OrangutanDelManglar`, `Boss_ChimpanceCaudillo`, `Boss_GorilaAlbino` y `Boss_GorilaDeCeniza` (6 s, audiencia todos, freeze, anchor el jefe, `bossRoar` de servidor a 1,0 s, cartel a `frontT - 0.1` y fundido a negro al final).
+  - `src/shared/Data/Strings/Content.luau`: los subtítulos («Señor del manglar», «Amo de las montañas», «Espectro de las cuevas», «Furia del volcán») con su inglés.
+  - `src/shared/Cinematics/Presentation.luau` y `Sequencer.luau`: cambios para el cartel (y=0,70) y el subtítulo (y=0,80), dentro de la zona segura 9:16, y para los eventos de servidor.
+  - `src/island/server/Services/CinematicService.luau`: `registerServerEvent` (eventos `server = true`) y `PlayOptions` con `bossId`, `noFreeze` y `context`. Pide el streaming del anchor (`RequestStreamAroundAsync`) antes de empezar.
+  - `src/combat/Services/BossService.luau`: `spawn(bossId, round, position, quiet)`, `roar(model?)` y `currentModel()`. Con `quiet` no ruge al salir; lo lanza `roar()` desde la escena.
+  - `src/island/server/Services/IslandBossHooks.luau`: `spawnBoss` (lo usan el reloj de partida y «👑 Siguiente jefe»). Si la escena no se puede lanzar (otra con bloqueo en marcha), ruge al momento.
+  - `src/island/server/Services/DebugService.luau` (orden «🎬 Plató», `CineStage`: monta `Workspace.Plato` con `Trailer.decorar` y lo limpia con `Trailer.devolverLuz`) e `src/island/tools/Trailer.luau` (`decorar` y `devolverLuz` expuestos).
+- **Hecho en G1 y dónde:**
   - `src/shared/Cinematics/` (motor, sin requerir `Remotes` ni `Settings`).
   - `src/shared/UI/HudHider.luau`, `src/shared/Data/Cinematics.luau` (escena «Prueba») y `src/shared/Data/Strings/` (su inglés).
   - `src/combat/CinematicLock.luau`, con el congelado en `CombatService.damage` e `isInvulnerable`, `BossService.tick`, `MonkeyService` y `SurvivalService`. La invulnerabilidad de la audiencia es el atributo `InvulnerableUntil` del `Player`.
@@ -1209,18 +1217,24 @@ Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en 
   - `Actors.spawn(def, anchor, ctx)` crea los actores, `Actors.cleanup(ctx)` los borra, `Actors.setDummyFactory(fn)` y `Actors.setAnimator(fn(actor, action, event))` los conectan con el cliente. `CinematicClient` ya registra las dos.
   - `Presentation.install(sequencer)` registra las franjas, `title`, `caption`, `fade` y `letterbox`.
   - `CinematicService.play(id, opts)` devuelve `boolean`; `CinematicService.hasSeen(player, id)`.
+  - De G2: `CinematicService.registerServerEvent(kind, fn(event, run))` registra un evento de servidor de la escena (`server = true`); los `essential` salen también al saltar la escena. `PlayOptions` gana `bossId` (el anchor "boss"), `noFreeze` (el Plató no congela el juego real) y `context` (llega a `run.context`).
+  - De G2: `BossService.spawn(bossId, round, position, quiet)` (con `quiet` no ruge), `BossService.roar(model?)` (sonido y animación `Roar` del jefe vivo o del modelo dado) y `BossService.currentModel()`.
 - **Trampas aprendidas:**
   1. `RunService:IsEdit()` no es llamable desde scripts normales: usa `IsRunning`.
   2. Las esperas en el cliente rompen el margen del servidor. Una espera de 2 s a `PlayerModule` retrasaba la escena y el `CinematicDone` llegaba tarde: ahora se usa `FindFirstChild` y `END_MARGIN_SECONDS = 4`.
   3. El perfil no sube de versión (sigue en 13) para no romper el juego publicado: `reconcile` rellena `cinematicsSeen`.
   4. El MCP no accede a DataStore. La copia y la restauración del perfil las hace el usuario a mano con los scripts de `VERIFICACION.md` (§10.0, ya corregidos con los paréntesis).
   5. Play escribe `cinematicsSeen` en el perfil real del usuario. Haz copia antes de probar.
-- **Lo que queda fuera de G1:** el decorado real del «🎬 Plató» (solo avisa que llega en G2); la lista original de G1 lo incluía.
-- **Siguiente grupo: G2 (jefes).** Puntos de enganche:
-  - `IslandBossHooks.luau:63`: `BossService.spawn(bossId, round)`, tras la aparición del jefe.
-  - `BossService.spawn`, rugido en las líneas 518-524 (`Sfx.play("BossRoar")` y `MonkeyAnimator.play(model, "Roar")`): pasa a formar parte de la escena.
-  - Acción `Intro` en `Data/MonkeyAnimations`: todavía no existe (hoy solo está `Roar`, línea 12); si falta, se usa `Roar`.
-- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 y su Handoff. Haz el grupo G2.»
+  6. Los textos van dentro de la zona segura 9:16 (cartel en y=0,70, subtítulo en y=0,80): los nombres largos se parten en dos líneas. Se comprueba en el móvil emulado (VERIFICACION §139.2).
+  7. El servidor manda el anchor del jefe (`bossId`) y pide el streaming (`RequestStreamAroundAsync`) antes de empezar; si no, el cliente no tiene la guarida cargada.
+  8. El MCP reinicia la cámara a `Scriptable` tras cada `execute_luau`. Para ver planos fijos de una escena, usa una copia clonada de `Shared.Cinematics` con las escenas ×20 y `handle.seek`. `seek` no repite `title` ni `caption`.
+- **Lo que queda fuera de G2:** la variante trailer de la fila original (no está hecha en este grupo; decidir si entra); la acción `Intro` (no existe, se usa `Roar`); la acción «👑 Jefe» del panel de administrador (llama a `spawn` sin escena, con rugido al aparecer); Ceniza sin medir en el Plató; las otras tres escenas solo medidas en el encuadre, no miradas en captura.
+- **Archivos de G2 para el commit:** los de la lista de arriba (`Data/Cinematics`, `Data/Strings/Content`, `Cinematics/Presentation`, `Cinematics/Sequencer`, `CinematicService`, `BossService`, `IslandBossHooks`, `DebugService`, `island/tools/Trailer`). En el árbol hay además cambios sin commit de otra línea (`VoxelMerge`, `WeaponTools`, `WeaponMeshes`, `.vscode/settings.json`, VERIFICACION §138 de las armas del Guerrero): no van en este commit; usa rutas explícitas.
+- **Siguiente grupo: G3 (huevo y rescate).** Puntos de enganche:
+  - `NestController.playCeremony` del Lobby, líneas ~227-289: pasa a la escena local «EggHatch».
+  - `BeaconService.luau` ~299-307, antes de `MatchService.endMatch("Victory")`: la escena del rescate va ahí.
+  - Helicóptero voxel nuevo en `Shared/HelicopterModel.luau`, con tope `Config.Budgets.Models.Helicopter` medido con `Rendimiento`.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 y su Handoff. Haz el grupo G3.»
 
 ---
 
