@@ -4815,6 +4815,29 @@ Primera armadura con malla: `Data/ArmorMeshes` (Armor.FurVest.Guerrero), `ArmorM
 2. [ ] En el Studio de la Isla (edición), copia ese valor en un `StringValue` `CalibracionExportada` de `ServerStorage` y ejecuta `Equilibrio`.
    ✅ La sección 15 trae la tabla de calibración con el desvío del vuelo por arma y distancia; sin alertas de «Distancia» (si salen, el vuelo real no coincide con `Data/Ballistics`).
 
+## 129. Fase 20 Q6b: Guerrero de hueso, plata y volcánica con malla (04-11-2026)
+
+Los tres rangos que faltan del Guerrero con malla (`Data/ArmorMeshes`, `Mallas.volcarArmadura`): hueso (16 mallas, 2.998 triángulos, 0 sueltas), plata (16 mallas, 2.874 + 1.096 sueltos) y volcánica (8 mallas, 2.582 + 3.134 sueltos, 139 piezas sueltas de neón y obsidiana con brillo). Cambios de diseño: escalones en lugar de piezas giradas, calaveras de mono con ceja, fosas nasales y dientes, gorila de plata con ceño, y la volcánica con hombreras (brasero, faldones, púas, remaches), pectorales, vientre, clavícula y espalda (laderas, rocas, brasas) con más detalle. Topes de triángulos crecientes (`ArmorTriangles` IV pasa de 10.800 a 21.000) y excepciones de piezas para los tres (`BoneArmor_Guerrero` 220, `SilverArmor_Guerrero` 250, `VolcanicArmor_Guerrero` 510, que miden la versión de bloques). Probado en Edit con cuatro rangos, un avatar 0,8×1,1×1,3 y los bloques al lado: la forma coincide. Sin probar en Play, en cliente ni en el Armario.
+
+### 129.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Consigue cada armadura de Guerrero (hueso, plata y volcánica) y mírate de espaldas y de frente.
+   ✅ Se ven con malla (hueso 16 piezas, plata ~47, volcánica ~137) y sin parpadeos ni piezas fuera de sitio.
+2. [ ] Mira la volcánica con luz de día y de noche.
+   ✅ El neón y las llamas se ven bien; el basalto de la malla sale algo más cálido y claro que el de bloques (la malla no puede usar el material Basalt). Si molesta, hay que oscurecer los colores de la malla de la volcánica.
+3. [ ] Mira de cerca la espalda de la volcánica (laderas, rocas del pie, brasas sobre el cráter) y las hombreras (brasero con la llama, faldones, púas).
+   ✅ Nada se corta ni parpadea (z-fighting) y la llama sigue echando humo y chispas.
+4. [ ] Mira de cerca el gorila de plata y las calaveras de las hombreras del hueso y de la plata.
+   ✅ El gorila tiene el ceño fruncido; las calaveras tienen fosas nasales y dientes.
+5. [ ] Camina, corre, salta y golpea con las tres armaduras puestas, y con otro jugador de distinto tamaño.
+   ✅ La armadura sigue el cuerpo y los brazos sin separarse ni atravesarlos, y le queda ajustada al otro avatar.
+6. [ ] Recién entrado, mira la armadura en los primeros segundos (con las mallas sin cargar).
+   ✅ Sale en bloques y pasa sola a malla al cargar, sin quedarse a medias.
+7. [ ] Comprueba que los otros roles (Cazador, Mago, Médico) con estas armaduras siguen igual.
+   ✅ Siguen en bloques, salvo las calaveras de runas del Mago y el faldón de la volcánica, que cambian un poco (calavera de bloques; sin inclinación de 0,1).
+8. [ ] Mide con `Rendimiento` tras M4 (cuando cuente las mallas).
+   ✅ Guerrero con malla: hueso ~3.000, plata ~4.000 y volcánica ~5.700 triángulos en juego; sin alertas de piezas.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -402,6 +402,29 @@ local function tuft(
 	end
 end
 
+-- Púa en tres escalones que se estrecha hacia arriba desde "baseY"; "lean" la inclina en X sin girar nada.
+local function spire(
+	make: Builder,
+	x: number,
+	baseY: number,
+	z: number,
+	width: number,
+	height: number,
+	depth: number,
+	color: Color3,
+	material: Enum.Material,
+	lean: number?
+)
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(width * (1 - 0.3 * index), height / 3, depth * (1 - 0.3 * index)),
+			color,
+			material,
+			CFrame.new(x + (lean or 0) * index / 2, baseY + height / 3 * (index + 0.5), z)
+		)
+	end
+end
+
 local function furVest(body: Body)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -689,39 +712,33 @@ end
 -- ===================================== Armadura de hueso =====================================
 
 -- Cráneo de mono con la cara hacia la -Z de "at", "scale" veces el tamaño de las hombreras de la
--- armadura de hueso. Los pequeños ("simple") van sin ceja, nariz ni colmillos: no se verían.
-local function monkeySkull(make: Builder, at: CFrame, scale: number, simple: boolean?)
+-- armadura de hueso. Todos llevan ceja, fosas nasales y dientes, también los pequeños (el cuarto parámetro ya no quita nada).
+local function monkeySkull(make: Builder, at: CFrame, scale: number, _simple: boolean?)
 	local function on(x: number, y: number, z: number): CFrame
 		return at * CFrame.new(x * scale, y * scale, z * scale)
 	end
-	make.oval(Vector3.new(0.8, 0.7, 0.86) * scale, BONE, SMOOTH, on(0, 0.06, 0.06))
+	-- Cráneo en tres capas de bloques (como un óvalo en píxeles): entra en la malla si "at" va alineado con el ancla.
+	make.block(Vector3.new(0.8, 0.42, 0.86) * scale, BONE, SMOOTH, on(0, 0.06, 0.06))
+	make.block(Vector3.new(0.64, 0.14, 0.74) * scale, BONE, SMOOTH, on(0, 0.35, 0.06))
+	make.block(Vector3.new(0.64, 0.14, 0.74) * scale, BONE, SMOOTH, on(0, -0.23, 0.06))
 	-- Cuencas oscuras bajo la ceja saliente.
 	for eye = -1, 1, 2 do
-		make.ball(0.2 * scale, SKULL_HOLE, SMOOTH, on(eye * 0.15, -0.03, -0.32))
+		make.block(Vector3.one * 0.2 * scale, SKULL_HOLE, SMOOTH, on(eye * 0.15, -0.03, -0.32))
 	end
 	-- Hocico con el hueco de la nariz y dos colmillos.
 	make.block(Vector3.new(0.4, 0.24, 0.3) * scale, BONE, SMOOTH, on(0, -0.2, -0.38))
-	if simple then
-		return
+	make.block(Vector3.new(0.64, 0.15, 0.16) * scale, BONE, SMOOTH, on(0, 0.1, -0.32))
+	-- Dos fosas nasales hondas, una a cada lado del tabique, y cuatro dientes en la boca (los de los lados, más largos).
+	for nostril = -1, 1, 2 do
+		make.block(Vector3.new(0.1, 0.13, 0.05) * scale, SKULL_HOLE, SMOOTH, on(nostril * 0.08, -0.16, -0.545))
 	end
-	make.oval(Vector3.new(0.64, 0.15, 0.16) * scale, BONE, SMOOTH, on(0, 0.1, -0.32))
-	make.block(Vector3.new(0.12, 0.08, 0.04) * scale, SKULL_HOLE, SMOOTH, on(0, -0.13, -0.54))
-	for tooth = -1, 1, 2 do
-		make.fang(
-			0.18 * scale,
-			0.07 * scale,
+	for index, x in { -0.15, -0.05, 0.05, 0.15 } do
+		make.block(
+			Vector3.new(0.08, if index == 1 or index == 4 then 0.19 else 0.13, 0.07) * scale,
 			BONE,
 			SMOOTH,
-			on(tooth * 0.12 + 0.035, -0.31, -0.47) * CFrame.Angles(0, 0, math.pi)
+			on(x, if index == 1 or index == 4 then -0.405 else -0.375, -0.5)
 		)
-	end
-end
-
--- Hueso de dibujo (caña con un bulto en cada punta) de "length" a lo largo de la X de "at".
-local function cartoonBone(make: Builder, length: number, thickness: number, color: Color3, at: CFrame)
-	make.rod(length, thickness, color, SMOOTH, at)
-	for tip = -1, 1, 2 do
-		make.ball(thickness * 1.8, color, SMOOTH, at * CFrame.new(tip * length / 2, 0, 0))
 	end
 end
 
@@ -758,20 +775,25 @@ local function boneArmor(body: Body)
 	for index, ribY in { 0.3, 0.16, 0.02, -0.12, -0.26 } do
 		local length = width * (0.38 - index * 0.025)
 		for side = -1, 1, 2 do
-			make.block(
-				Vector3.new(length, 0.12, 0.1),
+			-- Costilla en escalones (sin giro): del esternón hacia fuera y abajo.
+			stairs(
+				make,
+				Vector3.new(side * 0.1, height * ribY, front - 0.02),
+				Vector3.new(
+					side * (0.1 + length * math.cos(tilt)),
+					height * ribY - length * math.sin(tilt),
+					front - 0.02
+				),
+				0.12,
+				0.1,
 				BONE,
 				SMOOTH,
-				CFrame.new(
-					side * (0.1 + length / 2 * math.cos(tilt)),
-					height * ribY - length / 2 * math.sin(tilt),
-					front - 0.02
-				) * CFrame.Angles(0, 0, -side * tilt)
+				3
 			)
 		end
 	end
 	make.block(Vector3.new(0.2, height * 0.74, 0.14), BONE, SMOOTH, CFrame.new(0, -height * 0.02, front - 0.05))
-	make.fang(0.3, 0.14, BONE, SMOOTH, CFrame.new(0.07, -height * 0.39, front - 0.05) * CFrame.Angles(0, 0, math.pi))
+	tuft(make, 0, -height * 0.39, front - 0.05, 0.16, 0.3, 0.14, BONE, SMOOTH)
 	for _, tieY in { 0.2, -0.16 } do
 		make.block(Vector3.new(0.3, 0.1, 0.08), FIBER, FABRIC, CFrame.new(0, height * tieY, front - 0.12))
 	end
@@ -791,37 +813,71 @@ local function boneArmor(body: Body)
 	for index, ribY in { -0.08, -0.22, -0.36 } do
 		local length = width * (0.44 - index * 0.05)
 		for side = -1, 1, 2 do
-			make.block(
-				Vector3.new(length, 0.13, 0.09),
+			-- Costilla de la espalda en escalones: del espinazo hacia fuera y arriba.
+			stairs(
+				make,
+				Vector3.new(side * 0.1, height * ribY - length * math.sin(tilt), back + 0.08),
+				Vector3.new(side * (0.1 + length * math.cos(tilt)), height * ribY, back + 0.08),
+				0.13,
+				0.09,
 				BONE,
 				SMOOTH,
-				CFrame.new(
-					side * (0.1 + length / 2 * math.cos(tilt)),
-					height * ribY - length / 2 * math.sin(tilt),
-					back + 0.08
-				) * CFrame.Angles(0, 0, side * tilt)
+				3
+			)
+		end
+	end
+	-- Escamas de hueso sobre los hombros, por detrás (tres filas escalonadas) y costura de fibra en el borde del cuero.
+	for row = 0, 2 do
+		for column = -2, 2 do
+			if column ~= 0 then
+				make.block(
+					Vector3.new(width * 0.19, 0.11, 0.07),
+					if (row + column) % 2 == 0 then BONE else BONE_DARK,
+					SMOOTH,
+					CFrame.new((column + (row % 2) * 0.25) * width * 0.2, height * (0.43 - row * 0.075), back + 0.065)
+				)
+			end
+		end
+	end
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				FIBER,
+				FABRIC,
+				CFrame.new(side * width * 0.4, -height * 0.34 + dash * height * 0.12, back + 0.035)
 			)
 		end
 	end
 	local trophy = CFrame.new(0, height * 0.17, back + 0.16)
+	-- Huesos cruzados en escalones, con un bulto cuadrado en cada punta (sin ninguna pieza girada).
 	for _, cross in { 0.65, -0.65 } do
-		cartoonBone(make, width * 0.66, 0.13, BONE, trophy * CFrame.Angles(0, 0, cross))
+		local from = (trophy * CFrame.Angles(0, 0, cross) * CFrame.new(-width * 0.33, 0, 0)).Position
+		local to = (trophy * CFrame.Angles(0, 0, cross) * CFrame.new(width * 0.33, 0, 0)).Position
+		stairs(make, from, to, 0.13, 0.13, BONE, SMOOTH, 6)
+		for _, tip in { from, to } do
+			make.block(Vector3.new(0.24, 0.24, 0.16), BONE, SMOOTH, CFrame.new(tip))
+		end
 	end
-	monkeySkull(make, trophy * CFrame.new(0, 0.04, 0.3) * CFrame.Angles(math.rad(-10), math.pi, 0), 1.15)
+	monkeySkull(make, trophy * CFrame.new(0, 0.04, 0.3) * CFrame.Angles(0, math.pi, 0), 1.15)
 	for side = -1, 1, 2 do
 		local tassel = trophy * CFrame.new(side * width * 0.3, -0.3, 0.1)
 		make.block(Vector3.new(0.04, 0.3, 0.04), FIBER, FABRIC, tassel)
 		make.block(Vector3.new(0.18, 0.2, 0.1), FUR, FABRIC, tassel * CFrame.new(0, -0.22, 0.02))
-		make.fang(0.3, 0.16, FUR_DARK, FABRIC, tassel * CFrame.new(0.08, -0.32, 0.02) * CFrame.Angles(0, 0, math.pi))
+		local tasselAt = (tassel * CFrame.new(0, -0.32, 0.02)).Position
+		tuft(make, tasselAt.X, tasselAt.Y, tasselAt.Z, 0.18, 0.3, 0.1, FUR_DARK, FABRIC)
 	end
 	for index = 0, 3 do
-		make.fang(
-			if index % 2 == 0 then 0.34 else 0.26,
+		tuft(
+			make,
+			-width * 0.33 + index * width * 0.22 + 0.1,
+			-height / 2 + 0.02,
+			back + 0.1,
 			0.2,
+			if index % 2 == 0 then 0.34 else 0.26,
+			0.1,
 			if index % 2 == 0 then FUR else FUR_DARK,
-			FABRIC,
-			CFrame.new(-width * 0.33 + index * width * 0.22 + 0.1, -height / 2 + 0.02, back + 0.1)
-				* CFrame.Angles(0, 0, math.pi)
+			FABRIC
 		)
 	end
 
@@ -835,10 +891,15 @@ local function boneArmor(body: Body)
 		LEATHER_MATERIAL,
 		CFrame.new(0, 0.08, 0)
 	)
-	waist.ball(0.32, BONE, SMOOTH, CFrame.new(0, 0.08, beltFront - 0.06))
+	waist.block(Vector3.new(0.32, 0.3, 0.18), BONE, SMOOTH, CFrame.new(0, 0.08, beltFront - 0.06))
 	for eye = -1, 1, 2 do
-		waist.ball(0.09, SKULL_HOLE, SMOOTH, CFrame.new(eye * 0.06, 0.1, beltFront - 0.2))
-		waist.ball(0.1, BONE_DARK, SMOOTH, CFrame.new(eye * hipWidth * 0.32, 0.08, beltFront - 0.06))
+		waist.block(Vector3.new(0.09, 0.09, 0.05), SKULL_HOLE, SMOOTH, CFrame.new(eye * 0.06, 0.1, beltFront - 0.16))
+		waist.block(
+			Vector3.new(0.1, 0.1, 0.08),
+			BONE_DARK,
+			SMOOTH,
+			CFrame.new(eye * hipWidth * 0.32, 0.08, beltFront - 0.06)
+		)
 		waist.block(
 			Vector3.new(0.18, 0.34, 0.05),
 			LEATHER,
@@ -859,21 +920,15 @@ local function boneArmor(body: Body)
 			FABRIC,
 			CFrame.new(side * 0.1, top + 0.3, 0)
 		)
-		for z = -1, 1, 2 do
-			arm.fang(
-				0.3,
-				0.14,
-				FUR_DARK,
-				FABRIC,
-				CFrame.new(side * arm.size.X * 0.1, top + 0.3, z * (arm.size.Z * 0.35 + 0.05))
-					* CFrame.Angles(z * 1.0, 0, 0)
+		for strip = -2, 2 do
+			arm.block(
+				Vector3.new(arm.size.X + 0.2, 0.04, 0.07),
+				if strip % 2 == 0 then BONE_DARK else BONE,
+				LEATHER_MATERIAL,
+				CFrame.new(side * 0.1, top + 0.255, strip * (arm.size.Z + 0.1) * 0.19)
 			)
 		end
-		monkeySkull(
-			arm,
-			CFrame.new(side * arm.size.X * 0.2, top + 0.5, 0) * CFrame.Angles(0, -side * math.rad(30), 0),
-			0.8
-		)
+		monkeySkull(arm, CFrame.new(side * arm.size.X * 0.2, top + 0.5, 0), 0.8)
 		band(arm, -arm.size.Y * 0.12, 0.2, 0.1, FUR, FABRIC)
 		-- Brazal de cuero con tres tablillas de hueso por fuera, atado con fibra por arriba y por abajo.
 		local forearm = body.lowerArm[side]
@@ -892,18 +947,12 @@ local function boneArmor(body: Body)
 		-- Faldón de cuero en el muslo con tres tablillas de hueso y un colmillo colgando.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.17, -(ls.Z / 2 + 0.05)) * CFrame.Angles(0.1, 0, 0)
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.17, -(ls.Z / 2 + 0.05))
 		leg.block(Vector3.new(ls.X * 0.85, ls.Y * 0.36, 0.08), LEATHER, LEATHER_MATERIAL, flap)
 		for _, x in { -0.28, 0, 0.28 } do
 			leg.block(Vector3.new(0.1, ls.Y * 0.3, 0.06), BONE, SMOOTH, flap * CFrame.new(x * ls.X, -0.02, -0.06))
 		end
-		leg.fang(
-			0.26,
-			0.12,
-			BONE,
-			SMOOTH,
-			CFrame.new(side * 0.04 + 0.06, ls.Y * 0.15, -(ls.Z / 2 + 0.1)) * CFrame.Angles(0, 0, math.pi)
-		)
+		tuft(leg, side * 0.04, ls.Y * 0.15, -(ls.Z / 2 + 0.1), 0.12, 0.26, 0.1, BONE, SMOOTH)
 	end
 end
 
@@ -923,14 +972,20 @@ local function gorillaFace(make: Builder, at: CFrame, size: number)
 		make.block(Vector3.new(0.12, 0.26, 0.1) * size, SILVER_FUR_DARK, FABRIC, on(side * 0.56, 0.04, 0))
 		make.block(Vector3.new(0.14, 0.4, 0.16) * size, SILVER_FUR, FABRIC, on(side * 0.43, -0.12, -0.04))
 		make.ball(0.15 * size, GORILLA_EYE, NEON, on(side * 0.17, 0.08, -0.17))
-		make.ball(0.07 * size, SKULL_HOLE, SMOOTH, on(side * 0.1, -0.15, -0.23))
+		make.block(Vector3.one * 0.07 * size, SKULL_HOLE, SMOOTH, on(side * 0.1, -0.15, -0.23))
 		-- Ceja de furia: inclinada, más baja por dentro.
-		make.block(
-			Vector3.new(0.4, 0.11, 0.12) * size,
+		stairs(
+			make,
+			on(side * 0.4, 0.27, -0.16).Position,
+			on(side * 0.03, 0.12, -0.16).Position,
+			0.13 * size,
+			0.12 * size,
 			GORILLA_FACE,
 			SMOOTH,
-			on(side * 0.18, 0.18, -0.16) * CFrame.Angles(0, 0, side * 0.35)
+			4
 		)
+		-- Comisuras de la boca hacia abajo: gruñido.
+		make.block(Vector3.new(0.07, 0.12, 0.06) * size, SKULL_HOLE, SMOOTH, on(side * 0.22, -0.34, -0.18))
 		-- Colmillos por fuera de la boca (no atraviesan la cara).
 		make.fang(
 			0.13 * size,
@@ -1023,11 +1078,10 @@ local function silverArmor(body: Body)
 	-- Pectorales: placa clara sobre otra más oscura que hace de borde, con dos remaches de plata.
 	for side = -1, 1, 2 do
 		local pec = CFrame.new(side * (width * 0.22 + 0.03), height * 0.2, front - 0.06)
-			* CFrame.Angles(0.12, -side * 0.12, 0)
 		make.block(Vector3.new(width * 0.44, height * 0.3, 0.12), BONE_DARK, SMOOTH, pec)
 		make.block(Vector3.new(width * 0.4, height * 0.26, 0.1), THICK_BONE, SMOOTH, pec * CFrame.new(0, 0.01, -0.04))
 		for _, y in { 0.12, -0.12 } do
-			local rivet = make.ball(0.1, SILVER, METAL, pec * CFrame.new(side * width * 0.15, y, -0.1))
+			local rivet = make.block(Vector3.one * 0.1, SILVER, METAL, pec * CFrame.new(side * width * 0.15, y, -0.1))
 			rivet.Reflectance = 0.25
 		end
 	end
@@ -1057,8 +1111,12 @@ local function silverArmor(body: Body)
 	banana(make, 0.36, medal * CFrame.new(0, -0.08, -0.08))
 	for index = 0, 3 do
 		local angle = index * math.pi / 2
-		local stud =
-			make.ball(0.1, SILVER, METAL, medal * CFrame.new(math.sin(angle) * 0.31, math.cos(angle) * 0.31, -0.02))
+		local stud = make.block(
+			Vector3.one * 0.1,
+			SILVER,
+			METAL,
+			medal * CFrame.new(math.sin(angle) * 0.31, math.cos(angle) * 0.31, -0.02)
+		)
 		stud.Reflectance = 0.25
 	end
 	local sparkle = Instance.new("ParticleEmitter")
@@ -1099,19 +1157,24 @@ local function silverArmor(body: Body)
 	local ruff = 7
 	for index = 0, ruff - 1 do
 		local angle = math.rad(-90 + index * 180 / (ruff - 1))
+		-- Sin giro: cada bloque de la gorguera va en su sitio del semicírculo, y las púas son escalones.
 		make.block(
-			Vector3.new(0.6, 0.55, 0.45),
+			Vector3.new(0.5, 0.55, 0.4),
 			if index % 2 == 0 then SILVER_FUR else SILVER_FUR_DARK,
 			FABRIC,
-			CFrame.new(math.sin(angle) * 0.8, height / 2 + 0.22, math.cos(angle) * 0.62) * CFrame.Angles(0, angle, 0)
+			CFrame.new(math.sin(angle) * 0.8, height / 2 + 0.22, math.cos(angle) * 0.62)
 		)
 		if index % 2 == 1 then
-			make.fang(
-				0.3,
+			spire(
+				make,
+				math.sin(angle) * 0.8,
+				height / 2 + 0.5,
+				math.cos(angle) * 0.62,
+				0.22,
+				0.34,
 				0.2,
 				SILVER_FUR,
-				FABRIC,
-				CFrame.new(math.sin(angle) * 0.8 - 0.1, height / 2 + 0.4, math.cos(angle) * 0.62)
+				FABRIC
 			)
 		end
 	end
@@ -1138,13 +1201,28 @@ local function silverArmor(body: Body)
 	local tufts = 5
 	for index = 0, tufts - 1 do
 		local x = -width * 0.38 + index * width * 0.76 / (tufts - 1)
-		make.fang(
-			if index % 2 == 0 then 0.42 else 0.3,
+		tuft(
+			make,
+			x + 0.17,
+			capeY - capeHeight / 2 + 0.05,
+			back + 0.2,
 			0.34,
+			if index % 2 == 0 then 0.42 else 0.3,
+			0.14,
 			if index % 2 == 0 then GORILLA_FUR else SILVER_FUR,
-			FABRIC,
-			CFrame.new(x + 0.17, capeY - capeHeight / 2 + 0.05, back + 0.36) * CFrame.Angles(0, 0, math.pi)
+			FABRIC
 		)
+	end
+	-- Mechones pintados en la capa, a los lados de la cara (relieve de pelo, casi gratis en la malla).
+	for side = -1, 1, 2 do
+		for strand = 0, 2 do
+			make.block(
+				Vector3.new(0.06, capeHeight * (0.62 - strand * 0.08), 0.03),
+				if strand % 2 == 0 then SILVER_FUR_DARK else SILVER_FUR,
+				FABRIC,
+				CFrame.new(side * (width * 0.36 + strand * 0.11), capeY + capeHeight * 0.08, back + 0.245)
+			)
+		end
 	end
 
 	-- Cinturón ancho con hebilla de plata, un cráneo de mono, dos remaches y dos borlas de pelaje.
@@ -1161,7 +1239,8 @@ local function silverArmor(body: Body)
 	buckle.Reflectance = 0.35
 	monkeySkull(waist, CFrame.new(0, 0.06, beltFront - 0.16), 0.5, true)
 	for side = -1, 1, 2 do
-		local stud = waist.ball(0.12, SILVER, METAL, CFrame.new(side * hipWidth * 0.34, 0.06, beltFront - 0.04))
+		local stud =
+			waist.block(Vector3.one * 0.12, SILVER, METAL, CFrame.new(side * hipWidth * 0.34, 0.06, beltFront - 0.04))
 		stud.Reflectance = 0.25
 		waist.block(
 			Vector3.new(0.16, 0.34, 0.06),
@@ -1180,8 +1259,8 @@ local function silverArmor(body: Body)
 		arm.block(Vector3.new(as.X + 0.5, 0.12, as.Z + 0.5), SILVER_FUR, FABRIC, CFrame.new(side * 0.12, top + 0.04, 0))
 		local lames: { CFrame } = {}
 		for index = 0, 2 do
-			local lame = CFrame.new(side * (0.1 + index * 0.1), top + 0.2 - index * 0.21, 0)
-				* CFrame.Angles(0, 0, -side * (0.22 + index * 0.18))
+			-- Tres láminas en cascada (cada una más afuera y más abajo), sin giro: así entran en la malla.
+			local lame = CFrame.new(side * (0.1 + index * 0.16), top + 0.2 - index * 0.21, 0)
 			lames[index + 1] = lame
 			arm.block(
 				Vector3.new(as.X * 0.95 - index * 0.06, 0.16, as.Z + 0.3 - index * 0.08),
@@ -1190,17 +1269,27 @@ local function silverArmor(body: Body)
 				lame
 			)
 		end
-		local stud = arm.ball(0.14, SILVER, METAL, lames[2] * CFrame.new(side * (as.X * 0.5 - 0.12), 0.12, 0))
+		local stud =
+			arm.block(Vector3.one * 0.14, SILVER, METAL, lames[2] * CFrame.new(side * (as.X * 0.5 - 0.12), 0.12, 0))
 		stud.Reflectance = 0.25
 		-- Hacia fuera y delante, hacia fuera y hacia fuera y atrás: se les ve la cara también desde detrás.
 		for index, z in { -0.42, 0, 0.42 } do
-			local turn = math.rad(55 + (index - 1) * 35)
+			-- Cara al frente, hacia fuera y atrás (giros de 90°: se les ve la cara también desde detrás).
+			local yaw = if index == 1 then 0 elseif index == 2 then -side * math.rad(90) else math.pi
 			local scale = if index == 2 then 0.7 else 0.58
 			monkeySkull(
 				arm,
-				lames[1] * CFrame.new(0, 0.1 + 0.3 * scale, z * as.Z) * CFrame.Angles(0, -side * turn, 0),
+				lames[1] * CFrame.new(0, 0.1 + 0.3 * scale, z * as.Z) * CFrame.Angles(0, yaw, 0),
 				scale,
 				true
+			)
+		end
+		for strip = -2, 2 do
+			arm.block(
+				Vector3.new(as.X + 0.4, 0.04, 0.07),
+				if strip % 2 == 0 then SILVER else SILVER_FUR_DARK,
+				FABRIC,
+				CFrame.new(side * 0.12, top + 0.095, strip * (as.Z + 0.5) * 0.19)
 			)
 		end
 		band(arm, -as.Y * 0.12, 0.2, 0.1, SILVER_FUR, FABRIC)
@@ -1219,13 +1308,18 @@ local function silverArmor(body: Body)
 			CFrame.new(side * (fs.X / 2 + 0.08), 0.05, 0)
 		)
 		for _, y in { 0.18, -0.18 } do
-			local rivet = forearm.ball(0.12, SILVER, METAL, CFrame.new(side * (fs.X / 2 + 0.15), 0.05 + y * fs.Y, 0))
+			local rivet = forearm.block(
+				Vector3.one * 0.12,
+				SILVER,
+				METAL,
+				CFrame.new(side * (fs.X / 2 + 0.15), 0.05 + y * fs.Y, 0)
+			)
 			rivet.Reflectance = 0.25
 		end
 		-- Faldón de pelaje plateado en el muslo con tres placas de hueso, un remache y dos flecos.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.19, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.19, -(ls.Z / 2 + 0.06))
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
 		leg.block(Vector3.new(ls.X * 0.4, ls.Y * 0.3, 0.08), THICK_BONE, SMOOTH, flap * CFrame.new(0, 0.02, -0.07))
 		for plate = -1, 1, 2 do
@@ -1235,15 +1329,20 @@ local function silverArmor(body: Body)
 				SMOOTH,
 				flap * CFrame.new(plate * ls.X * 0.34, 0.02, -0.07)
 			)
-			leg.fang(
-				0.22,
+			local hemAt = (flap * CFrame.new(plate * ls.X * 0.22, -ls.Y * 0.2 + 0.03, -0.02)).Position
+			tuft(
+				leg,
+				hemAt.X,
+				hemAt.Y,
+				hemAt.Z,
 				0.18,
+				0.22,
+				0.1,
 				if plate == 1 then SILVER_FUR_DARK else SILVER_FUR,
-				FABRIC,
-				flap * CFrame.new(plate * ls.X * 0.22 + 0.09, -ls.Y * 0.2 + 0.03, -0.02) * CFrame.Angles(0, 0, math.pi)
+				FABRIC
 			)
 		end
-		local rivet = leg.ball(0.12, SILVER, METAL, flap * CFrame.new(0, ls.Y * 0.09, -0.12))
+		local rivet = leg.block(Vector3.one * 0.12, SILVER, METAL, flap * CFrame.new(0, ls.Y * 0.09, -0.12))
 		rivet.Reflectance = 0.25
 	end
 end
@@ -3025,7 +3124,14 @@ end
 -- píxeles que echa humo y chispas, grietas de lava en la losa, tres gotas colgando y, según "spikes",
 -- cristales de obsidiana hundidos en lava ("shard"), garras de obsidiana ("claw"), cristales de lava
 -- ("crystal") o de azufre ("sulfur"). Las puntas van lejos de la llama, que ocupa el centro.
-local function lavaPauldron(arm: Builder, side: number, pad: Color3, padMaterial: Enum.Material, spikes: string)
+local function lavaPauldron(
+	arm: Builder,
+	side: number,
+	pad: Color3,
+	padMaterial: Enum.Material,
+	spikes: string,
+	rich: boolean?
+)
 	local as = arm.size
 	local top = as.Y / 2
 	local cx = side * 0.1
@@ -3085,6 +3191,87 @@ local function lavaPauldron(arm: Builder, side: number, pad: Color3, padMaterial
 			)
 		end
 	end
+	if rich then
+		-- Más detalle (el guerrero): remaches de basalto en las cuatro esquinas de la losa, brillo de obsidiana y vetas de
+		-- ceniza pintados en el escalón, vetas de lava pintadas en los costados de la losa y una fila de púas de obsidiana
+		-- (en escalones, sin giro) por el borde de fuera.
+		for _, corner in { Vector3.new(1, 0, 1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(-1, 0, -1) } do
+			arm.block(
+				Vector3.one * 0.1,
+				BASALT_DARK,
+				BASALT_MATERIAL,
+				CFrame.new(cx + corner.X * (as.X / 2 + 0.13), top + 0.36, corner.Z * (as.Z / 2 + 0.13))
+			)
+		end
+		for strip = -2, 2 do
+			arm.block(
+				Vector3.new(as.X + 0.06, 0.03, 0.06),
+				if strip % 2 == 0 then OBSIDIAN_SHEEN else ASH_DARK,
+				SMOOTH,
+				CFrame.new(cx, top + 0.455, strip * (as.Z + 0.1) * 0.2)
+			)
+		end
+		for _, face in { -1, 1 } do
+			for vein = -1, 1 do
+				arm.block(
+					Vector3.new(0.05, 0.14, 0.03),
+					MAGMA,
+					SMOOTH,
+					CFrame.new(cx + vein * (as.X + 0.42) * 0.3, top + 0.2, face * (as.Z / 2 + 0.21))
+				)
+			end
+		end
+		for _, z in { -0.42, -0.22, 0.22, 0.42 } do
+			spire(
+				arm,
+				cx + side * (as.X / 2 + 0.1),
+				top + 0.3,
+				z * as.Z,
+				0.12,
+				0.3,
+				0.12,
+				OBSIDIAN,
+				SMOOTH,
+				side * 0.12
+			)
+		end
+		-- Brasero: cuatro muros bajos de basalto oscuro alrededor del pie de la llama, con el borde de arriba de lava
+		-- pintada en los dos de los lados.
+		local hearth = 0.36
+		for _, wall in { -1, 1 } do
+			arm.block(
+				Vector3.new(hearth * 2 + 0.1, 0.12, 0.1),
+				BASALT_DARK,
+				BASALT_MATERIAL,
+				CFrame.new(side * 0.04, stepTop + 0.06, wall * hearth)
+			)
+			arm.block(
+				Vector3.new(0.1, 0.12, hearth * 2 - 0.1),
+				BASALT_DARK,
+				BASALT_MATERIAL,
+				CFrame.new(side * 0.04 + wall * hearth, stepTop + 0.06, 0)
+			)
+			arm.block(
+				Vector3.new(0.04, 0.03, hearth * 2 - 0.1),
+				MAGMA,
+				SMOOTH,
+				CFrame.new(side * 0.04 + wall * hearth, stepTop + 0.115, 0)
+			)
+		end
+		-- Faldones de basalto que cuelgan por delante y por detrás de la losa, con el borde de lava pintado, una veta de
+		-- ceniza y el bajo en mechones de obsidiana; y tres púas sobre cada uno de esos bordes de la losa.
+		for _, face in { -1, 1 } do
+			local fz = face * (as.Z / 2 + 0.2)
+			for k = -1, 1 do
+				local fx = cx + k * 0.36
+				arm.block(Vector3.new(0.3, 0.22, 0.08), BASALT, BASALT_MATERIAL, CFrame.new(fx, top - 0.14, fz))
+				arm.block(Vector3.new(0.3, 0.03, 0.09), MAGMA, SMOOTH, CFrame.new(fx, top - 0.26, fz))
+				arm.block(Vector3.new(0.04, 0.12, 0.03), ASH_DARK, SMOOTH, CFrame.new(fx, top - 0.14, fz + face * 0.04))
+				tuft(arm, fx, top - 0.27, fz, 0.26, 0.16, 0.08, OBSIDIAN, SMOOTH)
+				spire(arm, fx, top + 0.31, face * (as.Z / 2 + 0.13), 0.14, 0.22, 0.1, OBSIDIAN, SMOOTH)
+			end
+		end
+	end
 	local foot = pixelFlame(arm, SMALL_FLAME, LAVA_FLAME, CFrame.new(side * 0.04, stepTop, 0), 0.12, side < 0)
 	smoke(foot, 4)
 	embers(foot, EMBER, 2)
@@ -3100,7 +3287,7 @@ local function lavaFlap(
 	hemMaterial: Enum.Material
 ): CFrame
 	local ls = leg.size
-	local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+	local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06))
 	leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.44, 0.1), color, material, flap)
 	leg.block(Vector3.new(ls.X * 0.9 + 0.04, 0.07, 0.12), hem, hemMaterial, flap * CFrame.new(0, -ls.Y * 0.22, -0.01))
 	return flap
@@ -3134,17 +3321,22 @@ local function volcanicArmor(body: Body)
 	-- Gorguera: esquirlas de obsidiana alrededor del cuello, más altas por detrás.
 	for index = 0, 6 do
 		local angle = math.rad(-150 + index * 50)
-		obsidianShard(
+		-- Púa de obsidiana en escalones (sin giro), inclinada hacia fuera con el desplazamiento de cada escalón.
+		spire(
 			make,
-			Vector3.new(math.sin(angle) * width * 0.3, height / 2 - 0.04, -math.cos(angle) * depth * 0.42),
-			Vector3.new(math.sin(angle) * 0.35, 1, -math.cos(angle) * 0.35),
+			math.sin(angle) * width * 0.3,
+			height / 2 - 0.04,
+			-math.cos(angle) * depth * 0.42,
+			0.22,
 			if index == 3 then 0.3 else 0.38,
-			0.2
+			0.22,
+			OBSIDIAN,
+			SMOOTH,
+			math.sin(angle) * 0.1
 		)
 	end
 	for side = -1, 1, 2 do
 		local pec = CFrame.new(side * (width * 0.23 + 0.02), height * 0.2, front - 0.07)
-			* CFrame.Angles(0.1, -side * 0.1, 0)
 		lavaPlate(make, Vector3.new(width * 0.4, height * 0.28, 0.1), pec)
 		make.block(
 			Vector3.new(width * 0.1, height * 0.18, 0.04),
@@ -3152,7 +3344,36 @@ local function volcanicArmor(body: Body)
 			SMOOTH,
 			pec * CFrame.new(-side * width * 0.1, 0.02, -0.06)
 		)
-		make.ball(0.1, BASALT, BASALT_MATERIAL, pec * CFrame.new(side * width * 0.14, -height * 0.09, -0.06))
+		make.block(
+			Vector3.one * 0.1,
+			BASALT,
+			BASALT_MATERIAL,
+			pec * CFrame.new(side * width * 0.14, -height * 0.09, -0.06)
+		)
+		-- Más detalle: una placa interior de basalto oscuro con tres surcos de lava pintados, y cuatro remaches en las
+		-- esquinas del pectoral.
+		make.block(
+			Vector3.new(width * 0.32, height * 0.2, 0.05),
+			BASALT_DARK,
+			BASALT_MATERIAL,
+			pec * CFrame.new(0, 0.01, -0.08)
+		)
+		for _, groove in { -0.06, 0, 0.06 } do
+			make.block(
+				Vector3.new(width * 0.26, 0.03, 0.03),
+				MAGMA,
+				SMOOTH,
+				pec * CFrame.new(0, groove * height, -0.105)
+			)
+		end
+		for _, corner in { Vector3.new(1, 1, 0), Vector3.new(1, -1, 0), Vector3.new(-1, 1, 0), Vector3.new(-1, -1, 0) } do
+			make.block(
+				Vector3.one * 0.08,
+				OBSIDIAN_SHEEN,
+				SMOOTH,
+				pec * CFrame.new(corner.X * width * 0.185, corner.Y * height * 0.115, -0.08)
+			)
+		end
 		-- Raya de lava sobre el pectoral.
 		make.block(
 			Vector3.new(width * 0.32, 0.05, 0.05),
@@ -3171,7 +3392,20 @@ local function volcanicArmor(body: Body)
 				plate * CFrame.new(0, 0, 0.03)
 			)
 			make.block(Vector3.new(plateWidth, height * 0.13, 0.1), BASALT_DARK, BASALT_MATERIAL, plate)
+			-- Veta de ceniza y remache pintados en cada placa del vientre.
+			make.block(
+				Vector3.new(0.03, height * 0.09, 0.03),
+				ASH_DARK,
+				SMOOTH,
+				plate * CFrame.new(side * plateWidth * 0.18, 0, -0.05)
+			)
+			make.block(Vector3.one * 0.06, MAGMA, SMOOTH, plate * CFrame.new(-side * plateWidth * 0.3, 0, -0.05))
 		end
+	end
+	-- Clavícula de obsidiana sobre el pecho, con cinco púas pequeñas en escalones.
+	make.block(Vector3.new(width * 0.86, 0.1, 0.1), OBSIDIAN, SMOOTH, CFrame.new(0, height * 0.455, front - 0.04))
+	for index = -2, 2 do
+		spire(make, index * width * 0.18, height * 0.455 + 0.05, front - 0.04, 0.12, 0.2, 0.08, OBSIDIAN, SMOOTH)
 	end
 	lavaVein(make, {
 		Vector3.new(-0.03, height * 0.42, front - 0.06),
@@ -3185,11 +3419,20 @@ local function volcanicArmor(body: Body)
 	local heart = make.ball(0.4, MAGMA, NEON, core * CFrame.new(0, 0, -0.07))
 	fireLight(heart, MAGMA)
 	embers(heart, EMBER, 2)
-	for index = 0, 3 do
-		local angle = index * math.pi / 2 + math.pi / 4
-		local out = Vector3.new(math.cos(angle), math.sin(angle), 0)
-		local base = (core * CFrame.new(out * 0.36)).Position
-		obsidianShard(make, base, Vector3.new(-out.X * 0.6, -out.Y * 0.6, -1), 0.28, 0.14)
+	-- Cuatro garras iguales en las diagonales: un taco pegado al pecho y una punta que muerde el aro por delante.
+	for _, diagonal in { Vector3.new(1, 1, 0), Vector3.new(-1, 1, 0), Vector3.new(1, -1, 0), Vector3.new(-1, -1, 0) } do
+		make.block(
+			Vector3.new(0.16, 0.16, 0.16),
+			OBSIDIAN,
+			SMOOTH,
+			core * CFrame.new(diagonal * 0.27 + Vector3.new(0, 0, 0.08))
+		)
+		make.block(
+			Vector3.new(0.12, 0.12, 0.1),
+			OBSIDIAN,
+			SMOOTH,
+			core * CFrame.new(diagonal * 0.2 + Vector3.new(0, 0, -0.06))
+		)
 	end
 
 	-- Espalda: placa de ceniza clara (sobre basalto oscuro el volcán negro no se distinguía) con marco
@@ -3236,6 +3479,33 @@ local function volcanicArmor(body: Body)
 			SMOOTH,
 			CFrame.new(0, baseY + (tier - 0.5) * tierHeight, plateZ + 0.1 + tier * 0.02)
 		)
+		-- Laderas: la roca que rellena a cada lado del volcán hasta el marco (más ancha cuanto más alto el escalón), con
+		-- una veta de lava y una veta de ceniza pintadas.
+		if tier >= 2 then
+			local gap = width * 0.49 - tierWidth / 2
+			for side = -1, 1, 2 do
+				local cliffX = side * (tierWidth / 2 + gap / 2)
+				local cliffY = baseY + (tier - 0.5) * tierHeight
+				make.block(
+					Vector3.new(gap - 0.03, tierHeight, 0.06),
+					if tier % 2 == 0 then ASH_DARK else BASALT,
+					BASALT_MATERIAL,
+					CFrame.new(cliffX, cliffY, plateZ + 0.1)
+				)
+				make.block(
+					Vector3.new(0.04, tierHeight * 0.8, 0.03),
+					MAGMA,
+					SMOOTH,
+					CFrame.new(cliffX - side * gap * 0.12, cliffY, plateZ + 0.13)
+				)
+				make.block(
+					Vector3.new(0.03, tierHeight * 0.5, 0.03),
+					ASH_DARK,
+					SMOOTH,
+					CFrame.new(cliffX + side * gap * 0.2, cliffY + tierHeight * 0.1, plateZ + 0.13)
+				)
+			end
+		end
 		-- Dos rocas de basalto en el borde del escalón, una mayor que la otra según el lado.
 		if tier < tiers then
 			for side = -1, 1, 2 do
@@ -3245,9 +3515,21 @@ local function volcanicArmor(body: Body)
 					ASH_DARK,
 					BASALT_MATERIAL,
 					CFrame.new(side * (tierWidth / 2 - 0.12), baseY + tier * tierHeight + 0.02, tierFront(tier) - 0.04)
-						* CFrame.Angles(0.2, 0.3, side * 0.25)
 				)
 			end
+		end
+		-- Brillo de obsidiana y vetas de ceniza pintados en la cara del escalón (relieve casi gratis en la malla).
+		for _, at in { 0.2, 0.72 } do
+			make.block(
+				Vector3.new(tierWidth * (0.7 - at * 0.2), 0.035, 0.03),
+				if tier % 2 == 0 then ASH_DARK else OBSIDIAN_SHEEN,
+				SMOOTH,
+				CFrame.new(
+					(if tier % 2 == 0 then 0.06 else -0.06) * at,
+					baseY + (tier - 1 + at) * tierHeight,
+					tierFront(tier)
+				)
+			)
 		end
 		-- Ríos de lava: uno central en cada escalón y dos a los lados en los tres de abajo.
 		local z = tierFront(tier) + 0.02
@@ -3292,6 +3574,30 @@ local function volcanicArmor(body: Body)
 	smoke(crater, 6, nil, 1.3)
 	embers(crater, EMBER, 8)
 	fireLight(crater, MAGMA)
+	-- Rocas al pie del volcán, en el borde del lago de lava, y brasas sueltas que suben del cráter.
+	for rock = -3, 3 do
+		make.block(
+			Vector3.new(0.2 + 0.06 * (rock % 2), 0.1 + 0.04 * (rock % 3), 0.1),
+			if rock % 2 == 0 then ASH_DARK else BASALT,
+			BASALT_MATERIAL,
+			CFrame.new(rock * width * 0.13, baseY + 0.06, tierFront(1) + 0.07)
+		)
+	end
+	for index, ember in
+		{
+			Vector3.new(-0.3, 0.62, 0.05),
+			Vector3.new(-0.08, 0.78, 0.1),
+			Vector3.new(0.2, 0.7, 0.02),
+			Vector3.new(0.34, 0.5, 0.08),
+		}
+	do
+		make.block(
+			Vector3.one * (0.05 + 0.01 * (index % 2)),
+			EMBER,
+			NEON,
+			CFrame.new(ember.X, craterY + ember.Y, craterZ + ember.Z)
+		)
+	end
 	-- Corona de siete cristales, más altos en el centro y abiertos hacia los lados.
 	for index, angle in { -1, -0.66, -0.33, 0, 0.33, 0.66, 1 } do
 		lavaShard(
@@ -3301,6 +3607,38 @@ local function volcanicArmor(body: Body)
 			1.25 - math.abs(angle) * 0.5,
 			if index == 4 then 0.4 else 0.34,
 			0.5
+		)
+	end
+
+	-- Manto de ceniza sobre los hombros, por detrás: una losa de basalto con vetas de obsidiana y lava pintadas, y el bajo
+	-- en mechones de tres escalones (las puntas de los cristales de la corona salen de él).
+	local mantleY = height * 0.43
+	local mantleZ = plateZ + 0.06
+	make.block(
+		Vector3.new(width * 0.96, height * 0.17, 0.12),
+		ASH_DARK,
+		BASALT_MATERIAL,
+		CFrame.new(0, mantleY, mantleZ)
+	)
+	for strand = 0, 7 do
+		make.block(
+			Vector3.new(0.07, height * 0.12, 0.03),
+			if strand % 2 == 0 then OBSIDIAN else OBSIDIAN_SHEEN,
+			SMOOTH,
+			CFrame.new((strand - 3.5) * width * 0.115, mantleY, mantleZ + 0.075)
+		)
+	end
+	for tip = 0, 4 do
+		tuft(
+			make,
+			(tip - 2) * width * 0.2,
+			mantleY - height * 0.085,
+			mantleZ,
+			0.28,
+			0.14,
+			0.12,
+			if tip % 2 == 0 then OBSIDIAN else BASALT_DARK,
+			BASALT_MATERIAL
 		)
 	end
 
@@ -3324,7 +3662,7 @@ local function volcanicArmor(body: Body)
 
 	for side = -1, 1, 2 do
 		local arm = body.upperArm[side]
-		lavaPauldron(arm, side, BASALT, BASALT_MATERIAL, "shard")
+		lavaPauldron(arm, side, BASALT, BASALT_MATERIAL, "shard", true)
 		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, BASALT_DARK, BASALT_MATERIAL)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
@@ -8804,7 +9142,13 @@ function ArmorModels.meshableBox(piece: BasePart, anchor: BasePart): (Vector3?, 
 		return nil, nil, nil
 	end
 	local material = piece.Material
-	if material == NEON or material == GLASS or piece.Transparency > 0 or VoxelMerge.isKept(piece.Name) then
+	if
+		material == NEON
+		or material == GLASS
+		or piece.Transparency > 0
+		or piece.Reflectance > 0
+		or VoxelMerge.isKept(piece.Name)
+	then
 		return nil, nil, nil
 	end
 	for _, child in piece:GetChildren() do

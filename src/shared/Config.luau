@@ -2421,7 +2421,9 @@ local Config = {
 			-- y especiales +100 %, armaduras y trajes +60 %. Son topes por modelo; la escena se mide con el equipo medio.
 			MountTriangles = { Rare = 4100, Legendary = 5900, Mythic = 17200 },
 			PetTriangles = 2800, -- mascota estándar; las especiales van por id en Exceptions
-			ArmorTriangles = { 7300, 16000, 17700, 10800 }, -- armadura de rol por rango I a IV
+			-- Armadura de rol por rango I a IV (siempre crecientes: un rango más alto tiene más tope; el del IV era 10.800 porque
+			-- salió de medir los diseños viejos, que en neón gastan pocos triángulos, y se subió a 21.000 en Q6).
+			ArmorTriangles = { 7300, 16000, 17700, 21000 },
 			OutfitTriangles = { Legendary = 39400, Mythic = 110200 }, -- traje de grado 4
 			WeaponTriangles = { 4800, 5000, 10600, 7000 }, -- arma de la forja por rango I a IV
 			WeaponSkinTriangles = { Rare = 1400, Epic = 15500, Mythic = 41900 },
@@ -2434,6 +2436,10 @@ local Config = {
 			-- Armaduras con malla (Q6, clave `<armadura>_<rol>`): el tope mide la versión de bloques, que es la de respaldo
 			-- mientras cargan las mallas; la de malla son 22 piezas (8 mallas y 14 sueltas) y 1.238 triángulos (M4 la medirá).
 			FurVest_Guerrero = { ArmorPieces = 170 },
+			BoneArmor_Mago = { ArmorPieces = 120 }, -- Q6b: la calavera de runas comparte monkeySkull, que ahora lleva ceja, fosas nasales y dientes en todas (+4 piezas)
+			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
+			SilverArmor_Guerrero = { ArmorPieces = 250 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
+			VolcanicArmor_Guerrero = { ArmorPieces = 510 }, -- Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
 			MonoX7 = { PetTotal = 500, PetAnimated = 230, PetTriangles = 6200 }, -- mascota de élite (Q5): mide la versión de bloques, la de malla tiene 7 mallas y 2.884 triángulos
 			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.732 triángulos y 9 mallas)
 			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %
