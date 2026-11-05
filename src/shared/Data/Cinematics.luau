@@ -30,7 +30,7 @@ type BossShot = {
 	frontT: number?, -- segundo en que llega al contrapicado de frente (2,0)
 	startY: number?, -- altura del plano abierto (1,2)
 	lowY: number?, -- altura del contrapicado (0,35)
-	lit: boolean?, -- true añade luces de relleno (jefes que aparecen de noche o al amanecer)
+	lit: (boolean | number)?, -- luz de relleno (jefes de noche o al amanecer): true = 1, o un número que multiplica su fuerza (0,35 para el Albino, que es casi blanco)
 	skill: string?, -- habilidad que enseña (evento bossSkill): "stomp" | "rockRain" | "extinguish" | "eruption"
 	skillAt: number?, -- segundo en que la lanza (por defecto, 0,6 s después de frontT)
 }
@@ -93,17 +93,18 @@ local function bossLights(bossId: string, shot: BossShot?): { { t: number, kind:
 		return {}
 	end
 	local h = Bosses[bossId].scale * 3
+	local strength: number = if shot.lit == true then 1 else shot.lit :: number
 	-- Una luz que acompaña a la cámara, un poco por encima: a distancia casi constante del jefe, así la exposición
 	-- es pareja de principio a fin (las luces fijas quemaban el plano final y dejaban a oscuras el de apertura).
 	return {
-		{ t = 0, kind = "exposure", value = 0.5 },
+		{ t = 0, kind = "exposure", value = 0.5 * strength },
 		{
 			t = 0,
 			kind = "light",
 			follow = true,
 			offset = Vector3.new(0, 0.4 * h, 0),
 			color = Color3.fromRGB(255, 236, 210),
-			brightness = 2,
+			brightness = 2 * strength,
 			range = 5 * h,
 		},
 	}
@@ -262,7 +263,7 @@ local Cinematics: { [string]: Scene } = {
 	Boss_GorilaAlbino = bossScene(
 		"GorilaAlbino",
 		Strings.later("Espectro de las cuevas"),
-		{ startY = 1.6, lowY = 0.3, skill = "extinguish", lit = true }
+		{ startY = 1.6, lowY = 0.3, skill = "extinguish", lit = 0.35 }
 	),
 	Boss_GorilaAlbino_Comic = bossComicScene(
 		"GorilaAlbino",
@@ -270,7 +271,7 @@ local Cinematics: { [string]: Scene } = {
 		Strings.later("Nadie sale de mi cueva…"),
 		Strings.later("En la oscuridad de la cueva…"),
 		{ Color3.fromRGB(62, 106, 160), Color3.fromRGB(232, 240, 248) },
-		{ startY = 1.6, lowY = 0.3, skill = "extinguish", lit = true }
+		{ startY = 1.6, lowY = 0.3, skill = "extinguish", lit = 0.35 }
 	),
 	Boss_GorilaDeCeniza = bossScene(
 		"GorilaDeCeniza",
