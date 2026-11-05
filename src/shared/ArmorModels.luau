@@ -239,18 +239,45 @@ local function builder(model: Model, anchor: BasePart?, offset: CFrame, size: Ve
 		end
 		return piece
 	end
+	-- Con STEPS.on (la armadura tiene malla), lo que no es de neón ni de cristal y va alineado con los ejes del ancla se
+	-- hace de bloques: la bola, el cilindro y el óvalo, en un bloque; el colmillo, en tres escalones. Así entra en la malla.
+	local function aligned(at: CFrame): boolean
+		if not STEPS.on then
+			return false
+		end
+		local _, _, _, r11, r12, r13, r21, r22, r23, r31, r32, r33 = at:GetComponents()
+		for _, value in { r11, r12, r13, r21, r22, r23, r31, r32, r33 } do
+			local abs = math.abs(value)
+			if abs > 0.01 and abs < 0.9999 then
+				return false
+			end
+		end
+		return true
+	end
+	local function plain(material: Enum.Material): boolean
+		return material ~= Enum.Material.Neon and material ~= Enum.Material.Glass
+	end
 	return {
 		size = size,
 		block = function(blockSize, color, material, at)
 			return place(part(blockSize, color, material), at)
 		end,
 		rod = function(length, diameter, color, material, at)
+			if plain(material) and aligned(at) then
+				return place(part(Vector3.new(length, diameter, diameter), color, material), at)
+			end
 			return place(part(Vector3.new(length, diameter, diameter), color, material, Enum.PartType.Cylinder), at)
 		end,
 		ball = function(diameter, color, material, at)
+			if plain(material) and aligned(at) then
+				return place(part(Vector3.one * diameter, color, material), at)
+			end
 			return place(part(Vector3.one * diameter, color, material, Enum.PartType.Ball), at)
 		end,
 		oval = function(ovalSize, color, material, at)
+			if plain(material) and aligned(at) then
+				return place(part(ovalSize, color, material), at)
+			end
 			local piece = part(ovalSize, color, material)
 			local mesh = Instance.new("SpecialMesh")
 			mesh.MeshType = Enum.MeshType.Sphere
@@ -260,6 +287,18 @@ local function builder(model: Model, anchor: BasePart?, offset: CFrame, size: Ve
 		-- Colmillo, garra o mechón en punta: pirámide (CornerWedgePart) con la base en "at" y la punta
 		-- "length" studs hacia su +Y. La punta queda sobre una esquina de la base, así se curva un poco.
 		fang = function(length, width, color, material, at)
+			if plain(material) and aligned(at) then
+				local first
+				for step = 0, 2 do
+					local w = width * (1 - 0.3 * step)
+					local block = place(
+						part(Vector3.new(w, length / 3, w), color, material),
+						at * CFrame.new(width / 2, length / 3 * (step + 0.5), -width / 2)
+					)
+					first = first or block
+				end
+				return first
+			end
 			local piece = Instance.new("CornerWedgePart")
 			piece.Size = Vector3.new(width, length, width)
 			piece.Color = color
@@ -298,6 +337,21 @@ local function strap(
 	color: Color3,
 	material: Enum.Material
 )
+	if STEPS.on and material ~= NEON and material ~= GLASS and math.abs(to.Z - from.Z) < 0.0001 then
+		-- Sin giro: en escalones del plano XY (así entra en la malla).
+		local steps = math.max(3, math.round((to - from).Magnitude / 0.12))
+		local dx, dy = math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps
+		for index = 0, steps - 1 do
+			local centre = from:Lerp(to, (index + 0.5) / steps)
+			make.block(
+				Vector3.new(dx + thickness * 0.5, dy + thickness * 0.5, thickness),
+				color,
+				material,
+				CFrame.new(centre.X, centre.Y, from.Z)
+			)
+		end
+		return
+	end
 	make.block(
 		Vector3.new(thickness, thickness, (to - from).Magnitude),
 		color,
@@ -2196,6 +2250,133 @@ end
 
 -- ===================================== Mago =====================================
 
+-- Detalle extra del Mago con malla (Fase 20 Q6d): todo en bloques alineados y de material liso, así entra en la malla y
+-- casi no cuesta triángulos. Costuras en el pecho, bandas en la espalda, hombreras con rayas, remaches y flecos,
+-- anillos en los antebrazos y rayas y flecos en los faldones. "p" trae los colores del rango y las medidas de su hombrera.
+type MageDetail = {
+	main: Color3,
+	dark: Color3,
+	accent: Color3,
+	material: Enum.Material,
+	frontZ: number, -- lo que el frente de la túnica sobresale de depth / 2
+	backZ: number, -- y la espalda
+	padY: number?, -- altura de la cara de arriba de la hombrera sobre su base (nil: la lleva la propia armadura)
+	padWide: number,
+	padStud: number,
+	fringeZ: number,
+	fringeY: number,
+}
+local function mageDetail(body: Body, p: MageDetail)
+	local make = body.torso
+	local width, height, depth = make.size.X, make.size.Y, make.size.Z
+	local mat = p.material
+	-- Costuras a los lados del pecho.
+	for dash = 0, 4 do
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.035, height * 0.09, 0.03),
+				p.accent,
+				mat,
+				CFrame.new(side * width * 0.37, -height * 0.34 + dash * height * 0.12, -(depth / 2 + p.frontZ))
+			)
+		end
+	end
+	-- Bandas pintadas en la espalda baja y flecos en el bajo.
+	for index = 0, 2 do
+		make.block(
+			Vector3.new(width * 0.8, 0.04, 0.04),
+			if index == 1 then p.dark else p.accent,
+			mat,
+			CFrame.new(0, -height * (0.3 + 0.07 * index), depth / 2 + p.backZ)
+		)
+	end
+	for index = 0, 6 do
+		tuft(
+			make,
+			(index - 3) * width * 0.13,
+			-height / 2 + 0.06,
+			depth / 2 + p.backZ - 0.02,
+			0.2,
+			if index % 2 == 0 then 0.3 else 0.22,
+			0.08,
+			if index % 2 == 0 then p.main else p.dark,
+			mat
+		)
+	end
+	for side = -1, 1, 2 do
+		local arm = body.upperArm[side]
+		local as = arm.size
+		local top = as.Y / 2
+		local cx = side * 0.1
+		if p.padY then
+			for strip = -2, 2 do
+				arm.block(
+					Vector3.new(as.X + p.padWide, 0.03, 0.06),
+					if strip % 2 == 0 then p.accent else p.dark,
+					mat,
+					CFrame.new(cx, top + p.padY + 0.015, strip * (as.Z + p.padWide) * 0.2)
+				)
+			end
+			for _, corner in
+				{ Vector3.new(1, 0, 1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(-1, 0, -1) }
+			do
+				arm.block(
+					Vector3.one * 0.1,
+					p.accent,
+					mat,
+					CFrame.new(
+						cx + corner.X * (as.X / 2 + p.padStud),
+						top + p.padY - 0.02,
+						corner.Z * (as.Z / 2 + p.padStud)
+					)
+				)
+			end
+			for _, face in { -1, 1 } do
+				for k = -1, 1 do
+					tuft(
+						arm,
+						cx + k * as.X * 0.3,
+						top + p.fringeY,
+						face * (as.Z / 2 + p.fringeZ),
+						0.26,
+						0.22,
+						0.06,
+						if k == 0 then p.accent else p.main,
+						mat
+					)
+				end
+			end
+		end
+		local forearm = body.lowerArm[side]
+		for _, y in { 0.34, 0.18 } do
+			band(forearm, forearm.size.Y * (y - 0.5) + 0.05, 0.035, 0.14, p.accent, mat)
+		end
+		local leg = body.upperLeg[side]
+		local ls = leg.size
+		local flapY = ls.Y / 2 - ls.Y * 0.2
+		local flapZ = -(ls.Z / 2 + 0.11)
+		for k = -1, 1 do
+			leg.block(
+				Vector3.new(0.04, ls.Y * 0.18, 0.03),
+				p.accent,
+				mat,
+				CFrame.new(side * 0.04 + k * ls.X * 0.25, flapY + 0.02, flapZ)
+			)
+			tuft(
+				leg,
+				side * 0.04 + k * ls.X * 0.25,
+				flapY - ls.Y * 0.2,
+				flapZ + 0.02,
+				0.2,
+				0.22,
+				0.06,
+				if k == 0 then p.accent else p.main,
+				mat
+			)
+		end
+	end
+end
+
 -- Aro de "count" tramos de radio "radius" en el plano XY de "at" (mirando a su Z): el del atrapasueños
 -- y los círculos de runas.
 local function hoop(
@@ -2207,6 +2388,22 @@ local function hoop(
 	color: Color3,
 	material: Enum.Material
 )
+	if STEPS.on and material ~= NEON and material ~= GLASS then
+		-- Aro en píxeles (celdas de "thickness"): sin ningún bloque girado, así entra en la malla.
+		local seen: { [string]: boolean } = {}
+		local samples = math.max(count * 4, 24)
+		for index = 0, samples - 1 do
+			local angle = index / samples * 2 * math.pi
+			local cx = math.round(math.cos(angle) * radius / thickness)
+			local cy = math.round(math.sin(angle) * radius / thickness)
+			local key = `{cx},{cy}`
+			if not seen[key] then
+				seen[key] = true
+				make.block(Vector3.one * thickness, color, material, at * CFrame.new(cx * thickness, cy * thickness, 0))
+			end
+		end
+		return
+	end
 	local length = 2 * math.pi * radius / count * 1.08
 	for index = 0, count - 1 do
 		make.block(
@@ -2288,7 +2485,8 @@ local function amuletMantle(body: Body)
 			Vector3.new(0.17, 0.17, 0.04),
 			color,
 			SMOOTH,
-			CFrame.new(0, 0.1 - (index - 1) * 0.18, front - 0.03) * CFrame.Angles(0, 0, math.rad(45))
+			CFrame.new(0, 0.1 - (index - 1) * 0.18, front - 0.03)
+				* CFrame.Angles(0, 0, if STEPS.on then 0 else math.rad(45))
 		)
 	end
 	-- Flecos de fibra en el borde, delante y detrás.
@@ -2337,7 +2535,7 @@ local function amuletMantle(body: Body)
 		Vector3.new(0.12, 0.34, 0.06),
 		DYE_PURPLE,
 		FABRIC,
-		CFrame.new(-hipWidth * 0.32, -0.16, beltFront - 0.04) * CFrame.Angles(0, 0, 0.15)
+		CFrame.new(-hipWidth * 0.32, -0.16, beltFront - 0.04) * CFrame.Angles(0, 0, if STEPS.on then 0 else 0.15)
 	)
 	local gourd = CFrame.new(hipWidth * 0.32, -0.2, beltFront - 0.12)
 	waist.ball(0.34, GOURD, SMOOTH, gourd)
@@ -2349,6 +2547,21 @@ local function amuletMantle(body: Body)
 		local forearm = body.lowerArm[side]
 		band(forearm, -forearm.size.Y * 0.3, 0.12, 0.08, if side == 1 then BEAD_TEAL else BEAD_RED, SMOOTH)
 		band(forearm, -forearm.size.Y * 0.42, 0.08, 0.06, FIBER, FABRIC)
+	end
+	if STEPS.on then
+		mageDetail(body, {
+			main = WOVEN_FIBER,
+			dark = DYE_PURPLE,
+			accent = BEAD_TEAL,
+			material = FABRIC,
+			frontZ = 0.17,
+			backZ = 0.15,
+			padY = 0.18,
+			padWide = 0.4,
+			padStud = 0.28,
+			fringeZ = 0.36,
+			fringeY = 0.02,
+		})
 	end
 end
 
@@ -2472,7 +2685,9 @@ local function runeTunic(body: Body)
 		local center = discPauldron(arm, side, MAGE_INDIGO_DARK, GOLD_TRIM, FABRIC)
 		runeSkull(
 			arm,
-			center * CFrame.new(side * arm.size.X * 0.1, 0.3, 0) * CFrame.Angles(0, -side * math.rad(30), 0),
+			center
+				* CFrame.new(side * arm.size.X * 0.1, 0.3, 0)
+				* CFrame.Angles(0, if STEPS.on then math.pi else -side * math.rad(30), 0),
 			0.9
 		)
 		band(arm, -arm.size.Y * 0.14, 0.12, 0.08, GOLD_TRIM, FABRIC)
@@ -2493,7 +2708,8 @@ local function runeTunic(body: Body)
 		-- Faldón añil con ribete dorado, una runa y una borla dorada en el muslo.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.05)) * CFrame.Angles(0.1, 0, 0)
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.05))
+			* CFrame.Angles(if STEPS.on then 0 else 0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.86, ls.Y * 0.42, 0.08), MAGE_INDIGO, FABRIC, flap)
 		leg.block(Vector3.new(ls.X * 0.86 + 0.04, 0.08, 0.1), GOLD_TRIM, FABRIC, flap * CFrame.new(0, -ls.Y * 0.21, 0))
 		leg.block(Vector3.new(0.06, 0.2, 0.03), RUNE, NEON, flap * CFrame.new(0, 0.02, -0.06))
@@ -2504,6 +2720,21 @@ local function runeTunic(body: Body)
 			FABRIC,
 			flap * CFrame.new(0.06, -ls.Y * 0.21, -0.02) * CFrame.Angles(0, 0, math.pi)
 		)
+	end
+	if STEPS.on then
+		mageDetail(body, {
+			main = MAGE_INDIGO,
+			dark = MAGE_INDIGO_DARK,
+			accent = GOLD_TRIM,
+			material = FABRIC,
+			frontZ = 0.12,
+			backZ = 0.12,
+			padY = 0.18,
+			padWide = 0.4,
+			padStud = 0.28,
+			fringeZ = 0.36,
+			fringeY = 0.02,
+		})
 	end
 end
 
@@ -2661,13 +2892,29 @@ local function crystalMantle(body: Body)
 		-- Faldón de pelaje plateado en el muslo con una runa, el bajo de plata y un cristal colgando.
 		local leg = body.upperLeg[side]
 		local ls = leg.size
-		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+		local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.2, -(ls.Z / 2 + 0.06))
+			* CFrame.Angles(if STEPS.on then 0 else 0.1, 0, 0)
 		leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.4, 0.1), SILVER_FUR, FABRIC, flap)
 		leg.block(Vector3.new(0.06, ls.Y * 0.26, 0.04), RUNE, NEON, flap * CFrame.new(0, 0, -0.07))
 		local flapHem =
 			leg.block(Vector3.new(ls.X * 0.9 + 0.04, 0.07, 0.12), SILVER, METAL, flap * CFrame.new(0, -ls.Y * 0.2, 0))
 		flapHem.Reflectance = 0.25
 		crystal(leg, (flap * CFrame.new(0, -ls.Y * 0.2 - 0.03, -0.06)).Position, Vector3.new(0, -1, -0.1), 0.26, 0.12)
+	end
+	if STEPS.on then
+		mageDetail(body, {
+			main = SILVER_FUR,
+			dark = SILVER_FUR_DARK,
+			accent = CRYSTAL,
+			material = FABRIC,
+			frontZ = 0.12,
+			backZ = 0.235,
+			padY = 0.46,
+			padWide = 0.1,
+			padStud = 0.17,
+			fringeZ = 0.25,
+			fringeY = 0.09,
+		})
 	end
 end
 
@@ -4344,7 +4591,7 @@ local function lavaRobe(body: Body)
 
 	for side = -1, 1, 2 do
 		local arm = body.upperArm[side]
-		lavaPauldron(arm, side, LAVA_ROBE_DARK, FABRIC, "crystal")
+		lavaPauldron(arm, side, LAVA_ROBE_DARK, FABRIC, "crystal", STEPS.on)
 		band(arm, -arm.size.Y * 0.12, 0.16, 0.1, LAVA_ROBE, FABRIC)
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
@@ -4385,6 +4632,21 @@ local function lavaRobe(body: Body)
 			LAVA_ROBE,
 			MAGMA
 		)
+	end
+	if STEPS.on then
+		mageDetail(body, {
+			main = LAVA_ROBE,
+			dark = LAVA_ROBE_DARK,
+			accent = MAGMA,
+			material = SMOOTH,
+			frontZ = 0.125,
+			backZ = 0.19,
+			padY = nil,
+			padWide = 0.4,
+			padStud = 0.28,
+			fringeZ = 0.36,
+			fringeY = 0.02,
+		})
 	end
 end
 

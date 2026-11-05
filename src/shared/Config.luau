@@ -2446,15 +2446,19 @@ local Config = {
 		Exceptions = {
 			-- Armaduras con malla (Q6, clave `<armadura>_<rol>`): el tope mide la versión de bloques, que es la de respaldo
 			-- mientras cargan las mallas; la de malla son 22 piezas (8 mallas y 14 sueltas) y 1.238 triángulos (M4 la medirá).
-			FurVest_Guerrero = { ArmorPieces = 170 },
+			FurVest_Guerrero = { ArmorPieces = 180 },
 			-- Cazadores con malla (Q6c): topes de la versión de bloques (la de respaldo); en juego quedan 11, 15, 33 y 107 piezas.
 			FurVest_Cazador = { ArmorPieces = 230 },
 			BoneArmor_Cazador = { ArmorPieces = 350 },
 			SilverArmor_Cazador = { ArmorPieces = 420 },
 			VolcanicArmor_Cazador = { ArmorPieces = 520 },
-			BoneArmor_Mago = { ArmorPieces = 120 }, -- Q6b: la calavera de runas comparte monkeySkull, que ahora lleva ceja, fosas nasales y dientes en todas (+4 piezas)
+			-- Magos con malla (Q6d): topes de la versión de bloques (la de respaldo); en juego quedan 20, 65, 118 y 183 piezas.
+			FurVest_Mago = { ArmorPieces = 240 },
+			BoneArmor_Mago = { ArmorPieces = 250 },
+			SilverArmor_Mago = { ArmorPieces = 290 },
+			VolcanicArmor_Mago = { ArmorPieces = 440 },
 			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
-			SilverArmor_Guerrero = { ArmorPieces = 250 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
+			SilverArmor_Guerrero = { ArmorPieces = 260 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
 			VolcanicArmor_Guerrero = { ArmorPieces = 510 }, -- Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
 			MonoX7 = { PetTotal = 500, PetAnimated = 230, PetTriangles = 6200 }, -- mascota de élite (Q5): mide la versión de bloques, la de malla tiene 7 mallas y 2.884 triángulos
 			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.732 triángulos y 9 mallas)

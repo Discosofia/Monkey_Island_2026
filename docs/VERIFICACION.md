@@ -4913,6 +4913,23 @@ Capa de rastreador (11 mallas, 2.634 triángulos), armadura de cazador (15, 3.81
 5. [ ] Comprueba Mago y Médico con las mismas armaduras.
    ✅ Siguen igual que antes.
 
+## 131. Fase 20 Q6d: Mago de los cuatro rangos con malla (05-11-2026)
+
+Manto de amuletos (14 mallas, 2.650 triángulos), túnica de runas (12, 1.922 + ~2.330 sueltos de neón), manto de cristal (9, 1.866 + ~1.120 sueltos) y túnica de lava (16, 2.068 + ~2.160 sueltos). Con malla, el constructor convierte bolas, cilindros, óvalos y colmillos alineados en bloques (`STEPS`), los aros que no son de neón van en píxeles y todos llevan detalle pintado (`mageDetail`: costuras, bandas, flecos, hombreras con rayas y remaches, anillos en los antebrazos). La volcánica usa las hombreras ricas del Guerrero. Las calaveras de las hombreras del hueso miran hacia atrás. El neón y el cristal (runas, sellos, cristales) siguen sueltos. Probado en Edit con un avatar normal y otro ancho. Sin probar en Play.
+
+### 131.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Consigue cada armadura de Mago y mírate de espaldas y de frente.
+   ✅ Se ven con malla (atrapasueños, sello de runas, corona de cristales, sol de lava) y sin parpadeos ni piezas fuera de sitio.
+2. [ ] Lanza habilidades con las cuatro puestas, de día y de noche.
+   ✅ El neón de las runas y los cristales brilla y sigue el cuerpo; la llama de las hombreras de la volcánica echa humo.
+3. [ ] Mira de cerca las hombreras del hueso (calaveras) y de la volcánica (brasero, faldones, púas).
+   ✅ Las calaveras muestran la cara hacia atrás con ojos que brillan; nada parpadea.
+4. [ ] Entra y mira la armadura en los primeros segundos.
+   ✅ Sale en bloques y pasa sola a malla al cargar.
+5. [ ] Comprueba Guerrero, Cazador y Médico con estas armaduras.
+   ✅ Guerrero y Cazador igual que antes (con malla); Médico en bloques sin cambios.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
