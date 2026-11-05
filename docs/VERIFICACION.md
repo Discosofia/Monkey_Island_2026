@@ -5066,6 +5066,62 @@ Motor de cinemáticas en tiempo real: `src/shared/Cinematics/*` (`CameraPath`, `
 10. [ ] Mira la Salida durante la escena de prueba por el aviso `ContentId rbxassetid://203785492 failed due to: Asset type does not match requested type`.
    ✅ Si sale también sin lanzar ninguna escena, ya existía antes de G1 y no es de la cinemática. Si solo sale al lanzarla, se anota aparte. Este aviso ya salió en pruebas de otras fases (V9, A3, W2) sin identificar: su origen sigue sin saberse.
 
+## 139. Fase 25 G2: apariciones de los jefes (05-11-2026)
+
+Cada jefe tiene su escena de aparición (`Boss_<id>` en `Data/Cinematics`, 6 s): la cámara llega de frente a la cara del jefe, sale el cartel con su nombre y un subtítulo en el tercio de abajo, el rugido suena a 1,0 s (evento de servidor `bossRoar`) y la escena acaba con un fundido a negro. El jefe queda congelado mientras dura para todos; la primera vez se ve entera y después se puede saltar. La lanza `IslandBossHooks.spawnBoss`, que usan el reloj de partida y «👑 Siguiente jefe». El «🎬 Plató» monta el decorado del tráiler con un jefe quieto y lanza la escena solo para quien pulsa. Ya probado en el Studio de la Isla con copia del perfil: los cuatro jefes con «Siguiente jefe» (congelado y sin perder vida, rugido a 1,0 s y no al aparecer, cartel con nombre y subtítulo, `cinematicsSeen` guarda los cuatro), la cámara de frente hacia t≈3,6 s en los cuatro, Saltar en la segunda vez, el ajuste «Cinemáticas» apagado y el Plató con Caudillo, Albino y Orangután. Esta sección es lo que falta.
+
+### 139.1 Con 2 jugadores en la Isla
+
+1. [ ] Con dos cuentas en la Isla, pulsa «👑 Siguiente jefe» y deja que la escena de aparición se vea entera en las dos.
+   ✅ Las dos ven la escena con su cartel y, al acabar, recuperan el HUD, la cámara y los controles.
+2. [ ] Mientras se ve la escena, uno de los dos pulsa Saltar a mitad y el otro sigue mirando.
+   ✅ Cada uno ve o salta solo su propia escena: al que salta no le cambia nada la del otro, y al otro no le tocan la cámara, el HUD ni los controles.
+3. [ ] Sigue al jefe mientras uno de los dos todavía ve la escena y el otro ya ha saltado.
+   ✅ El jefe sigue inmóvil y sin perder vida hasta que la escena acaba para todos.
+4. [ ] Con un jugador que ya vio la escena de ese jefe y otro que no, pulsa «👑 Siguiente jefe» con los dos conectados.
+   ✅ Al que ya la vio le aparece Saltar desde el principio; al que no la vio se la muestra entera. Cada uno tiene su propio `cinematicsSeen`.
+5. [ ] Con el jefe ya en su escena, entra el segundo jugador a mitad.
+   ✅ Recibe la escena desde el punto en que va (`seek`), sin repetir los carteles ni el rugido ya pasados, y el jefe sigue congelado también para él hasta que acaba.
+
+### 139.2 Una persona en Play (visual)
+
+6. [ ] En el móvil emulado, con la zona 9:16 de la guía, pulsa «👑 Siguiente jefe» con el Orangután del Manglar, el Chimpancé Caudillo, el Gorila Albino y el Gorila de Ceniza, y mira cada escena entera.
+   ✅ Franjas negras arriba y abajo, HUD oculto, la cámara llega de frente a la cara hacia t≈3,6 s, el cartel sale en el tercio de abajo y el fundido cierra la escena; después vuelven el HUD y la cámara.
+7. [ ] En el Chimpancé Caudillo, el Gorila Albino y el Gorila de Ceniza, mira si la cabeza del jefe se corta con la franja de arriba cuando la cámara está de frente.
+   ✅ La cabeza entera queda por debajo de la franja. Si se corta en algún instante, se anota el jefe y el segundo (`bossScene` en `Data/Cinematics`).
+8. [ ] Con los mismos tres jefes, mira si el cartel tapa la cara.
+   ✅ El cartel (nombre y subtítulo) queda en el tercio de abajo y no cubre la cara en ningún instante. Si la cubre, se anota el jefe.
+9. [ ] Con los nombres largos, sobre todo el Orangután del Manglar y el subtítulo «Espectro de las cuevas», mira el cartel en el móvil emulado.
+   ✅ El nombre se parte en dos líneas sin salirse de la zona segura ni cortar palabras, se lee sin acercar la vista y el subtítulo queda debajo sin solaparse.
+10. [ ] Mira las escenas en la guarida real de cada jefe, donde hay árboles, rocas o paredes: la cámara va de frente y puede quedar delante de ellos.
+    ✅ Se anota qué jefe y qué tapa al jefe en cada escena. Algo que cruza el plano un instante no es fallo; la cámara dentro de un árbol o de una roca, sí.
+11. [ ] Con el Gorila de Ceniza, mira la escena con la erupción del volcán al fondo.
+    ✅ La erupción no tapa el cartel ni la cara del jefe, y el subtítulo «Furia del volcán» se lee sobre el brillo. Si no se lee, se anota.
+
+### 139.3 Plató y grabación
+
+12. [ ] En Play, pulsa «🎬 Plató» para cada uno de los cuatro jefes, incluido el Gorila de Ceniza (que no se ha medido en el Plató), y espera a que se limpie.
+    ✅ Aparece `Workspace.Plato` con el decorado del tráiler y un jefe quieto; la escena se lanza solo para quien pulsa, sin congelar a nadie, y el Plató se borra unos 1 s después. Pulsar dos veces seguidas no apila dos.
+13. [ ] Mira el fondo del Plató en los planos en contrapicado, con el Orangután del Manglar y el Gorila de Ceniza.
+    ✅ El fondo se ve como decorado. Si la cámara enseña el vacío o el borde de detrás, se anota y se decide si hace falta girar el decorado (`Trailer.decorar`).
+14. [ ] Mira la luz del Plató en pantalla y después de limpiarlo.
+    ✅ El jefe se lee bien iluminado, sin zonas quemadas ni negras, y al limpiarse la luz vuelve como estaba (`Trailer.devolverLuz`).
+15. [ ] Graba en OBS a 1080p60 una escena de Plató con la guía 9:16 y el Modo grabación activados.
+    ✅ Sin HUD de pruebas ni barra de Roblox en cuadro, el cartel cae dentro del recuadro 9:16 central y el vídeo va a 60 fps sin tirones.
+
+### 139.4 Casos límite
+
+16. [ ] Quita al jefe justo al aparecer, en el primer segundo de su escena, con «👑 Jefe» del panel de administrador (lo quita si está vivo).
+    ✅ `roar()` no hace nada: no suena el rugido, no sale ningún error en la Salida y la escena acaba con normalidad.
+17. [ ] Con una escena de jefe en marcha, haz que salga otro jefe (el reloj de partida o «👑 Siguiente jefe»).
+    ✅ El jefe nuevo solo ruge: no se lanza una segunda cámara ni se rompe el congelado de la primera escena, y esta acaba normal.
+18. [ ] Como administrador, saca un jefe con «👑 Jefe» del panel. Eso llama a `BossService.spawn` directamente (`onAdminBoss`, `BossService.luau` ~línea 944).
+    ✅ El jefe aparece sin cinemática (sin franjas ni cartel) y con su rugido al aparecer, como antes de G2. Es lo previsto; si se quiere escena también aquí, se decide aparte.
+19. [ ] Con el sonido del cliente activado, lanza un jefe con «👑 Siguiente jefe» y escucha el rugido.
+    ✅ Se oye el rugido real a 1,0 s de la escena y no al aparecer el jefe. Hoy solo se ha comprobado el track de animación, no el sonido en el cliente: si no suena, se anota.
+20. [ ] En el juego publicado, pulsa «👑 Siguiente jefe» con cada uno de los cuatro jefes, y repite uno después de reconectar.
+    ✅ Las cuatro escenas se ven, saltan y acaban igual que en Studio; tras reconectar, el jefe ya muestra Saltar porque `cinematicsSeen` quedó guardado.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

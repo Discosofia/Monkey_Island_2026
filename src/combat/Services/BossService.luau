@@ -425,6 +425,11 @@ function BossService.currentDefinition(): Bosses.Boss?
 	return if current then current.definition else nil
 end
 
+-- El modelo del jefe vivo (nil si no hay), para anclar su cinemática de aparición.
+function BossService.currentModel(): Model?
+	return if current then current.model else nil
+end
+
 -- true si hay un jefe despierto en este place.
 
 function BossService.isAlive(): boolean
@@ -443,7 +448,8 @@ end
 
 -- "round": la vuelta de la rotación (0 o nil la primera, Fase 12), para salir más fuerte.
 -- "position": dónde sale (el administrador); sin ella, en su guarida.
-function BossService.spawn(bossId: string, round: number?, position: Vector3?)
+-- "quiet": sin rugido ni animación al salir (lo lanza después BossService.roar, p. ej. la cinemática de aparición).
+function BossService.spawn(bossId: string, round: number?, position: Vector3?, quiet: boolean?)
 	local definition = Bosses[bossId]
 	local species = if definition then Monkeys[definition.baseSpecies] else nil
 	if not (definition and species) then
@@ -516,13 +522,29 @@ function BossService.spawn(bossId: string, round: number?, position: Vector3?)
 		end
 		lastFraction = fraction
 	end)
-	Sfx.play("BossRoar", root)
-	MonkeyAnimator.play(model, "Roar")
+	if not quiet then
+		Sfx.play("BossRoar", root)
+		MonkeyAnimator.play(model, "Roar")
+	end
 	announce(
 		"👑 ¡{boss} ha despertado en {place}!",
 		{ boss = { definition.name }, place = { BIOME_NAMES[definition.biome] or definition.biome } }
 	)
 	publish()
+end
+
+-- El rugido de aparición (sonido y animación Roar) del jefe vivo, o de "model" si se da (el plató de grabación).
+function BossService.roar(model: Model?)
+	local target = model
+	if not target and current and current.humanoid.Health > 0 then
+		target = current.model
+	end
+	local root = if target then target.PrimaryPart else nil
+	if not (target and root) then
+		return
+	end
+	Sfx.play("BossRoar", root)
+	MonkeyAnimator.play(target, "Roar")
 end
 
 local function nearestTarget(boss: ActiveBoss): (Player?, BasePart?)

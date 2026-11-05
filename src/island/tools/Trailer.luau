@@ -427,17 +427,30 @@ local ESCENAS: { [string]: Escena } = {
 
 -- ===================================== API =====================================
 
+-- Para el «🎬 Plató» del juego (DebugService, Fase 25): el origen de grabación, el decorado con la luz dorada de
+-- los jefes y la vuelta de la luz. Quien lo use destruye su propia carpeta.
+Trailer.ORIGEN = ORIGEN
+
+function Trailer.decorar(carpeta: Folder, ancho: number)
+	luzDorada(carpeta)
+	decorado(carpeta, ancho)
+end
+
+function Trailer.devolverLuz(carpeta: Folder)
+	for _, nombre in Portada.GUARDADAS do
+		local valor = carpeta:GetAttribute(`Luz_{nombre}`)
+		if valor ~= nil then
+			(Lighting :: any)[nombre] = valor
+		end
+	end
+end
+
 -- Quita la escena montada, devuelve la luz y deja la cámara en Fixed.
 function Trailer.limpiar()
 	TrailerCamara.parar()
 	local carpeta = Workspace:FindFirstChild(NOMBRE)
 	if carpeta then
-		for _, nombre in Portada.GUARDADAS do
-			local valor = carpeta:GetAttribute(`Luz_{nombre}`)
-			if valor ~= nil then
-				(Lighting :: any)[nombre] = valor
-			end
-		end
+		Trailer.devolverLuz(carpeta :: Folder)
 		carpeta:Destroy()
 	end
 	if relojIsla ~= nil then

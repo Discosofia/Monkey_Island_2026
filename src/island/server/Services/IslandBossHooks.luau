@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
+local Cinematics = require(ReplicatedStorage.Shared.Data.Cinematics)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
 local MatchStats = require(ReplicatedStorage.Shared.MatchStats)
@@ -19,6 +20,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local BossService = require(ServerScriptService.Combat.Services.BossService)
 local BasecampService = require(script.Parent.BasecampService)
+local CinematicService = require(script.Parent.CinematicService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
 local MatchService = require(script.Parent.MatchService)
@@ -45,6 +47,31 @@ local function lairPosition(definition: Bosses.Boss): Vector3
 	return BasecampService.getCenter() + Vector3.new(math.cos(angle), 0, math.sin(angle)) * 300
 end
 
+-- El pie del modelo con su rotación: el mismo anchor que calcula el cliente para las escenas del jefe.
+local function feetCFrame(model: Model): CFrame
+	local cf, size = model:GetBoundingBox()
+	return CFrame.new(cf.X, cf.Y - size.Y / 2, cf.Z) * cf.Rotation
+end
+
+-- Saca al jefe con su cinemática de aparición (Boss_<id> de Data/Cinematics), que trae el rugido como evento de
+-- servidor. Sin escena o si no se puede lanzar (otra con bloqueo en marcha), ruge al momento.
+-- La usan el reloj de la partida y la orden de depuración «Siguiente jefe».
+function IslandBossHooks.spawnBoss(bossId: string, round: number?, position: Vector3?)
+	BossService.spawn(bossId, round, position, true)
+	local model = BossService.currentModel()
+	if not model then
+		return
+	end
+	local sceneId = `Boss_{bossId}`
+	local played = false
+	if Cinematics[sceneId] then
+		played = CinematicService.play(sceneId, { anchor = feetCFrame(model), bossId = bossId })
+	end
+	if not played then
+		BossService.roar()
+	end
+end
+
 local function onPhaseStarted(day: number, phase: MatchState.Phase)
 	local interval = Config.Match.BossIntervalDays
 	if phase ~= "Day" or day % interval ~= 0 then
@@ -60,7 +87,7 @@ local function onPhaseStarted(day: number, phase: MatchState.Phase)
 	-- Solo vuelve más fuerte si ya lo derrotaron (su pieza está en la baliza): uno que se les resistió
 	-- vuelve igual, para que el grupo atascado pueda conseguir su pieza.
 	local round = if Beacon.has(bossId) then index // #rotation else 0
-	BossService.spawn(bossId, round)
+	IslandBossHooks.spawnBoss(bossId, round)
 	if round > 0 then
 		announce(
 			"👑 {boss} vuelve más fuerte (vuelta {round})",
@@ -87,6 +114,11 @@ function IslandBossHooks:Init()
 		end,
 	})
 	DayNightService.onPhaseStarted(onPhaseStarted)
+	-- El rugido de la escena (evento de servidor bossRoar): el del jefe vivo o, en el plató, el de su modelo.
+	CinematicService.registerServerEvent("bossRoar", function(_, run)
+		local model = run.context.bossModel
+		BossService.roar(if typeof(model) == "Instance" and model:IsA("Model") then model else nil)
+	end)
 end
 
 return IslandBossHooks

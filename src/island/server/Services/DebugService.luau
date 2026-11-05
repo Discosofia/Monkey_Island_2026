@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
@@ -29,7 +30,6 @@ local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
 local CinematicService = require(script.Parent.CinematicService)
 local Killfeed = require(ServerScriptService.Combat.Killfeed)
-local BossService = require(ServerScriptService.Combat.Services.BossService)
 local ContractService = require(script.Parent.ContractService)
 local Admin = require(ServerScriptService.ServerShared.Admin)
 local Eggs = require(ServerScriptService.ServerShared.Eggs)
@@ -48,13 +48,28 @@ local WeatherService = require(script.Parent.WeatherService)
 local ArmorModels = require(ReplicatedStorage.Shared.ArmorModels)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 local MonkeyModels = require(ServerScriptService.Combat.Monkeys.MonkeyModels)
+local MonkeyAnimator = require(ServerScriptService.Combat.Monkeys.MonkeyAnimator)
+local IslandBossHooks = require(script.Parent.IslandBossHooks)
 
 local DebugService = {}
 
 local nextBoss = 1
+-- «🎬 Plató»: el siguiente jefe de la rotación y lo que hay montado (carpeta y trailer, para limpiarlo).
+local nextStageBoss = 1
+local stage: { folder: Folder, trailer: any }? = nil
 -- Rareza del próximo huevo de prueba ("Egg").
 local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 local debugEggIndex = 0
+
+-- Borra el decorado y el jefe del Plató y devuelve la luz.
+local function clearStage()
+	local current = stage
+	stage = nil
+	if current then
+		current.trailer.devolverLuz(current.folder)
+		current.folder:Destroy()
+	end
+end
 
 -- Orden del expositor: cada arma seguida de sus mejoras; las que falten van al final.
 local SHOWCASE_ORDER = {
@@ -489,7 +504,7 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Boss = function()
 		local rotation = Config.Match.BossRotation
-		BossService.spawn(rotation[(nextBoss - 1) % #rotation + 1])
+		IslandBossHooks.spawnBoss(rotation[(nextBoss - 1) % #rotation + 1])
 		nextBoss += 1
 	end,
 	BossHurt = function()
@@ -714,9 +729,68 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			Remotes.Notify:FireClient(player, "🎬 La escena de prueba ya está en marcha")
 		end
 	end,
-	-- Plató de grabación (Fase 25, G2): todavía no está.
+	-- Plató de grabación (Fase 25, G2): monta en el origen de grabación del Trailer un decorado y el siguiente
+	-- jefe de la rotación (quieto, sin IA) y lanza su escena de aparición solo para quien pulsa, sin congelar el
+	-- juego. Al acabar la escena, o al pulsar otra vez, se borra todo.
 	CineStage = function(player)
-		Remotes.Notify:FireClient(player, "🎬 El plató de grabación llega en el grupo G2")
+		clearStage()
+		local ok, trailer = pcall(function()
+			return require(ServerStorage.Tools.Trailer) :: any
+		end)
+		if not ok then
+			Remotes.Notify:FireClient(player, "🎬 No se puede cargar Tools.Trailer (solo en el Studio de la Isla)")
+			return
+		end
+		local rotation = Config.Match.BossRotation
+		local bossId = rotation[(nextStageBoss - 1) % #rotation + 1]
+		nextStageBoss += 1
+		local definition = Bosses[bossId]
+		local species = Monkeys[definition.baseSpecies]
+
+		local folder = Instance.new("Folder")
+		folder.Name = "Plato"
+		folder.Parent = Workspace
+		trailer.decorar(folder, 60)
+		local look = table.clone(species)
+		look.name = definition.name
+		look.scale = definition.scale
+		look.bodyColor = definition.bodyColor
+		look.faceColor = definition.faceColor
+		look.maxHealth = definition.maxHealth
+		look.walkSpeed = 0
+		local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, trailer.ORIGEN, bossId)
+		model.Name = definition.name
+		model:SetAttribute("Boss", bossId)
+		model:SetAttribute("BossPhase", 1)
+		model.Parent = folder
+		local root = model.PrimaryPart
+		if root then
+			root.Anchored = true
+		end
+		MonkeyAnimator.attach(model)
+		local mine = { folder = folder, trailer = trailer }
+		stage = mine
+
+		local started = CinematicService.play(`Boss_{bossId}`, {
+			audience = { player },
+			anchor = CFrame.new(trailer.ORIGEN),
+			bossId = bossId,
+			noFreeze = true,
+			context = { bossModel = model },
+			onFinished = function()
+				task.delay(1, function()
+					if stage == mine then
+						clearStage()
+					end
+				end)
+			end,
+		})
+		if not started then
+			clearStage()
+			Remotes.Notify:FireClient(player, "🎬 La escena de ese jefe ya está en marcha")
+			return
+		end
+		Remotes.Notify:FireClient(player, `🎬 Plató: grabando a {definition.name}`)
 	end,
 	-- Parcela permanente (Fase 12): la desbloquea y sube un nivel cada estructura (de 3 vuelve a 0).
 	PlotLevels = function(player)

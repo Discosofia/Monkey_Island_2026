@@ -176,11 +176,11 @@ function Presentation.title(text: string, sub: string?, options: TextOptions?)
 	local token = titleToken
 	local main = safe:FindFirstChild("Title") :: TextLabel?
 	if not main then
-		main = textLabel("Title", safe, UDim2.fromScale(0.5, 0.42), UDim2.fromScale(0.92, 0.1), Color3.new(1, 1, 1))
+		main = textLabel("Title", safe, UDim2.fromScale(0.5, 0.7), UDim2.fromScale(0.92, 0.12), Color3.new(1, 1, 1))
 	end
 	local subLabel = safe:FindFirstChild("Subtitle") :: TextLabel?
 	if not subLabel then
-		subLabel = textLabel("Subtitle", safe, UDim2.fromScale(0.5, 0.52), UDim2.fromScale(0.8, 0.045), GOLD)
+		subLabel = textLabel("Subtitle", safe, UDim2.fromScale(0.5, 0.8), UDim2.fromScale(0.8, 0.055), GOLD)
 	end
 	local seconds = opts.seconds or TITLE_SECONDS
 	local function current(): number

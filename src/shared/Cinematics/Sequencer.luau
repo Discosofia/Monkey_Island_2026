@@ -81,6 +81,9 @@ local function startLoop()
 end
 
 local function dispatch(event: Event, ctx: Context, handle: Handle)
+	if event.server then
+		return -- los eventos de servidor (server = true) los lanza CinematicService; el cliente no hace nada
+	end
 	local fn = handlers[event.kind]
 	if not fn then
 		if not warned[event.kind] then

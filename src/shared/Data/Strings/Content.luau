@@ -828,4 +828,9 @@ return {
 	["Escena de prueba"] = "Test scene",
 	["El motor de cinemáticas funciona"] = "The cinematics engine works",
 	["Un guerrero avanza por la playa"] = "A warrior walks along the beach",
+	-- Aparición de los jefes (subtítulos del cartel).
+	["Señor del manglar"] = "Lord of the mangrove",
+	["Amo de las montañas"] = "Master of the mountains",
+	["Espectro de las cuevas"] = "Specter of the caves",
+	["Furia del volcán"] = "Fury of the volcano",
 }

@@ -10,6 +10,10 @@
 --     (cinematicsSeen) y el cliente la puede saltar la próxima vez.
 --   - Una escena con audiencia "All" (sin opts.audience) también la ve quien entra a mitad.
 --   - Una escena a la vez por id, y ninguna con freeze si ya hay un bloqueo en marcha.
+--   - Eventos de servidor: un evento de la escena con server = true no lo toca el cliente; el servidor llama a
+--     la función que registró registerServerEvent(kind, fn(event, run)) a los event.t segundos. Si la escena
+--     acaba antes (todos la saltan o el ajuste está apagado), los que no han salido y son essential = true se
+--     ejecutan en ese momento, y el resto se descartan.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,14 +29,19 @@ local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local END_MARGIN_SECONDS = 4
 -- Espera antes de avisar a quien entra a mitad de una escena (que su cliente tenga el controlador listo).
 local JOIN_DELAY_SECONDS = 1.5
+-- Cuánto espera la carga del terreno de la escena (RequestStreamAroundAsync) antes de empezar.
+local STREAM_TIMEOUT_SECONDS = 1.5
 
 export type PlayOptions = {
 	audience: { Player }?, -- por defecto, todos los jugadores (y quien entre a mitad)
 	anchor: CFrame?, -- dónde se ancla la escena; sin él, el cliente usa el de la escena
+	bossId: string?, -- qué jefe es el anchor "boss" (si no, el primero que haya)
+	noFreeze: boolean?, -- ignora scene.freeze (el plató de grabación no debe congelar el juego real)
+	context: { [string]: any }?, -- datos para los eventos de servidor (run.context)
 	onFinished: (() -> ())?,
 }
 
-type Run = {
+export type Run = {
 	id: string,
 	startTime: number, -- hora del servidor en que arrancó
 	endTime: number, -- hora del servidor en que acaba la escena
@@ -42,6 +51,8 @@ type Run = {
 	audience: { [Player]: boolean },
 	pending: { [Player]: boolean }, -- aún no han mandado CinematicDone
 	protectedUntil: { [Player]: number },
+	context: { [string]: any },
+	serverEvents: { { event: { [string]: any }, fired: boolean } },
 	onFinished: (() -> ())?,
 	finished: boolean,
 }
@@ -49,6 +60,28 @@ type Run = {
 local CinematicService = {}
 
 local running: { [string]: Run } = {}
+local serverHandlers: { [string]: (event: { [string]: any }, run: Run) -> () } = {}
+
+-- Registra la función de un tipo de evento de servidor (server = true en la escena). Una por tipo.
+function CinematicService.registerServerEvent(kind: string, fn: (event: { [string]: any }, run: Run) -> ())
+	serverHandlers[kind] = fn
+end
+
+local function fireServerEvent(run: Run, entry: { event: { [string]: any }, fired: boolean })
+	if entry.fired then
+		return
+	end
+	entry.fired = true
+	local fn = serverHandlers[entry.event.kind]
+	if not fn then
+		warn(`[CinematicService] Evento de servidor sin handler: {entry.event.kind}`)
+		return
+	end
+	local ok, err = pcall(fn, entry.event, run)
+	if not ok then
+		warn(`[CinematicService] Falla el evento de servidor {entry.event.kind}: {err}`)
+	end
+end
 
 -- true si ya vio la escena entera (perfil cinematicsSeen).
 function CinematicService.hasSeen(player: Player, id: string): boolean
@@ -74,6 +107,13 @@ local function finish(run: Run, timedOut: boolean)
 	run.finished = true
 	if running[run.id] == run then
 		running[run.id] = nil
+	end
+	-- Los eventos esenciales que no han salido (la escena acabó antes) salen ahora; el resto se descarta.
+	for _, entry in run.serverEvents do
+		if not entry.fired and entry.event.essential == true then
+			fireServerEvent(run, entry)
+		end
+		entry.fired = true
 	end
 	if run.freeze then
 		CinematicLock.unlock()
@@ -108,6 +148,18 @@ local function addViewer(run: Run, player: Player, startTime: number)
 	run.audience[player] = true
 	run.pending[player] = true
 	protect(run, player)
+	local anchor = run.args.anchor
+	if typeof(anchor) == "CFrame" then
+		-- Con StreamingEnabled la escena puede estar lejos del jugador: se pide que se cargue antes de empezar
+		-- (el cliente salta al tiempo que le toca si tarda). Sin streaming no hace nada.
+		task.spawn(function()
+			pcall(player.RequestStreamAroundAsync, player, anchor.Position, STREAM_TIMEOUT_SECONDS)
+			if not run.finished and player.Parent then
+				Remotes.Cinematic:FireClient(player, "Play", run.id, startTime, run.args)
+			end
+		end)
+		return
+	end
 	Remotes.Cinematic:FireClient(player, "Play", run.id, startTime, run.args)
 end
 
@@ -120,28 +172,43 @@ function CinematicService.play(id: string, opts: PlayOptions?): boolean
 		warn(`[CinematicService] No existe la escena {id}`)
 		return false
 	end
-	if running[id] or (scene.freeze and CinematicLock.active()) then
+	local freeze = scene.freeze and options.noFreeze ~= true
+	if running[id] or (freeze and CinematicLock.active()) then
 		return false
 	end
 	local now = Workspace:GetServerTimeNow()
 	local args: { [string]: any } = {}
 	args.anchor = options.anchor
+	args.bossId = options.bossId
 	local run: Run = {
 		id = id,
 		startTime = now,
 		endTime = now + scene.duration,
-		freeze = scene.freeze,
+		freeze = freeze,
 		args = args,
 		everyone = options.audience == nil,
 		audience = {},
 		pending = {},
 		protectedUntil = {},
+		context = options.context or {},
+		serverEvents = {},
 		onFinished = options.onFinished,
 		finished = false,
 	}
 	running[id] = run
-	if scene.freeze then
+	if freeze then
 		CinematicLock.lock(run.endTime + END_MARGIN_SECONDS)
+	end
+	for _, event in scene.events do
+		if event.server == true then
+			local entry = { event = event :: { [string]: any }, fired = false }
+			table.insert(run.serverEvents, entry)
+			task.delay(event.t, function()
+				if not run.finished then
+					fireServerEvent(run, entry)
+				end
+			end)
+		end
 	end
 	for _, player in options.audience or Players:GetPlayers() do
 		if player.Parent then
