@@ -2451,25 +2451,28 @@ local Config = {
 			FurVest_Cazador = { ArmorPieces = 230 },
 			BoneArmor_Cazador = { ArmorPieces = 350 },
 			SilverArmor_Cazador = { ArmorPieces = 420 },
-			VolcanicArmor_Cazador = { ArmorPieces = 520 },
+			VolcanicArmor_Cazador = { ArmorPieces = 530 }, -- +10: puntos de luz del rango IV (11 piezas sueltas de neón)
 			-- Médicos con malla (Q6e): topes de la versión de bloques (la de respaldo); en juego quedan 17, 26, 53 y 132 piezas.
 			FurVest_Medico = { ArmorPieces = 290 },
 			BoneArmor_Medico = { ArmorPieces = 290 },
 			SilverArmor_Medico = { ArmorPieces = 440 },
-			VolcanicArmor_Medico = { ArmorPieces = 480 },
+			VolcanicArmor_Medico = { ArmorPieces = 490 }, -- +10: puntos de luz del rango IV
 			-- Magos con malla (Q6d): topes de la versión de bloques (la de respaldo); en juego quedan 20, 65, 118 y 183 piezas.
 			FurVest_Mago = { ArmorPieces = 240 },
 			BoneArmor_Mago = { ArmorPieces = 250 },
 			SilverArmor_Mago = { ArmorPieces = 290 },
-			VolcanicArmor_Mago = { ArmorPieces = 450 },
+			VolcanicArmor_Mago = { ArmorPieces = 460 }, -- +10: puntos de luz del rango IV
 			BoneArmor_Guerrero = { ArmorPieces = 220 }, -- Q6b: versión de bloques; con malla, 16 mallas y 0 sueltas (2.998 triángulos)
 			SilverArmor_Guerrero = { ArmorPieces = 260 }, -- Q6b: versión de bloques; con malla, 16 mallas y 31 sueltas (2.874 + 1.096 triángulos)
-			VolcanicArmor_Guerrero = { ArmorPieces = 510 }, -- Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
+			VolcanicArmor_Guerrero = { ArmorPieces = 520 }, -- +10 por los puntos de luz del rango IV. Q6b: versión de bloques (hombreras, pectorales y espalda con más detalle); con malla, 8 mallas y 139 sueltas (117 de neón)
 			-- Trajes de Fuego azul con malla (Q6f, grado 4): el tope mide la versión de bloques (la de respaldo, con los
 			-- escalones sin giro de la malla); en juego son 6 a 8 mallas y las piezas sueltas de fuego, cristal y neón.
 			BlueFireGuardianOutfit = { ArmorPieces = 370 },
 			BlueFireStalkerOutfit = { ArmorPieces = 370 },
 			BlueFireHealerOutfit = { ArmorPieces = 370 },
+			-- Serpiente emplumada (Q6g, grado 4): 16 plumas largas con raquis de oro y punta de jade que brilla, 6 cortas y el aro de
+			-- runas; el tope mide la versión de bloques (la de respaldo): en juego son unos 440 bloques en 12 mallas y unas 135 sueltas.
+			FeatheredSerpentOutfit = { ArmorPieces = 590 },
 			MonoX7 = { PetTotal = 500, PetAnimated = 230, PetTriangles = 6200 }, -- mascota de élite (Q5): mide la versión de bloques, la de malla tiene 7 mallas y 2.884 triángulos
 			Ajolote = { PetTotal = 420, PetAnimated = 340, PetTriangles = 4900 }, -- mascota mítica (Q5): branquias, cola y patas en escalones; mide la versión de bloques (la de malla: 4.732 triángulos y 9 mallas)
 			Quetzal = { PetTotal = 320, PetAnimated = 170, PetTriangles = 5600 }, -- mascota mítica (Q5): cola de dos plumas con horquilla y estandarte, +100 %

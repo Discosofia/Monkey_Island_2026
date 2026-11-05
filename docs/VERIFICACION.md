@@ -4964,6 +4964,33 @@ Hombreras de la temporada rediseñadas (tres láminas escalonadas, cresta de car
 6. [ ] Con otro jugador, míralo de lejos y de cerca, de noche.
    ✅ El fuego azul brilla y echa humo en el grado 4; con Lod a más de 60 studs se ocultan los detalles sin saltos feos.
 
+## 134. Fase 20 Q6g: los 4 trajes Míticos con malla y esferas de luz (05-11-2026)
+
+Hombreras propias rediseñadas y cuerpos rediseñados de los cuatro Míticos, todo en bloques sin giros: Rey Gorila (losas de piedra con cabeza de gorila, ídolo con corona y aro solar), Jaguar espectral (cabeza de jaguar con rosetas, espíritu azul espectral con silueta oscura y luna plateada sin disco), Serpiente emplumada (cabeza de serpiente en la hombrera, serpiente esmeralda con escamas turquesa y rombos de oro sobre la capa añil, cabeza con más detalle y, en el grado 4, el abanico de siempre alrededor de la cabeza: dieciséis plumas largas como alas con raquis de oro y punta de jade que brilla, rayos de oro entre ellas, una fila corta amarilla arriba y un aro de runas turquesa) y Ceiba de la Vida (tronco oscuro con horquilla, copas pequeñas en las puntas y peto de corteza oscura con el glifo en oro). Con malla solo el **grado 4** (12, 15, 12 y 16 mallas; 6.802, 4.976, 4.754 y 5.238 triángulos); los grados 0 a 3 siguen en bloques. Piezas en bloques al grado 4 (la versión de respaldo, con los escalones sin giro de la malla): 558, 555, 578 y 557 (tope 570; la Serpiente tiene excepción de 590 por las plumas). Las plumas del abanico de la Serpiente van giradas y quedan sueltas: el traje tiene 444 bloques en malla y 135 piezas sueltas, sin excepciones nuevas. **Puntos de luz** (bolitas pequeñas de neón sin halo, 11 piezas sueltas): en el grado 4 de los cuatro Míticos, en dorado pálido, y en la armadura volcánica (rango IV) de cada rol, naranja el Guerrero, turquesa el Cazador, violeta el Mago y verde el Médico; por ellos subieron 10 piezas los topes de `VolcanicArmor_<rol>` en `Config.Budgets.Exceptions`. Probado en Edit con un avatar normal y otro ancho y hondo (`WidthScale` 0,8, `HeightScale` 1,1, `DepthScale` 1,3): malla y bloques coinciden. Sin probar en Play.
+
+### 134.1 En el Studio de la Isla, en Play (copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Consigue los cuatro trajes (`GrantCosmetic`) y mírate de frente y de espaldas con cada uno, en grado 4.
+   ✅ Se ven con malla, sin parpadeos ni piezas fuera de sitio; los puntos de luz dorados flotan junto al cuello, los hombros, la espalda y los brazos.
+2. [ ] Mira el Jaguar espectral de espaldas, de día y de noche.
+   ✅ El espíritu azul y la luna plateada se leen sobre cualquier fondo; la niebla no tapa la silueta.
+3. [ ] Mira la Serpiente emplumada de espaldas, de cerca.
+   ✅ Se ve la serpiente esmeralda con escamas y la cabeza con dientes y púas, y alrededor de la cabeza el abanico de plumas verde azulado con rayos de oro y el aro turquesa que brilla; ninguna pluma queda sin dibujar.
+4. [ ] Mira la Ceiba de espaldas y de frente.
+   ✅ Se lee el tronco con la horquilla y las copas en las puntas; el peto oscuro con el glifo dorado se ve de frente.
+5. [ ] Entra y mira cada traje en los primeros segundos.
+   ✅ Sale en bloques y pasa solo a malla al cargar.
+6. [ ] Pon los cuatro trajes a un jugador de otro tamaño.
+   ✅ Le quedan ajustados; las piezas del pecho no quedan enterradas ni flotando.
+7. [ ] Equipa la armadura volcánica de cada rol.
+   ✅ Cada rol lleva sus puntos de luz de su color (naranja, turquesa, violeta y verde); no hay esferas rojas.
+8. [ ] En el móvil o con la calidad gráfica baja, mira los trajes con puntos de luz.
+   ✅ No bajan los fotogramas; con Lod a más de 60 studs los detalles se ocultan sin saltos feos.
+9. [ ] Sube la armadura de debajo del grado 0 al 4 con cada traje, en la Isla.
+   ✅ Los grados 0 a 3 (bloques) y el 4 (malla) se parecen en forma y color; cada grado añade algo visible también desde atrás.
+10. [ ] Entra con un avatar de brazos finos o de proporciones distintas a las de referencia (en Play, con el tuyo: brazo de 0,57 × 1,09 × 0,78) y mira cada traje y cada armadura con malla de espaldas y de cerca.
+   ✅ Las piezas sueltas (ojos del ídolo del Rey Gorila, ojos y garras del Jaguar, plumas de la Serpiente, puntos de luz) siguen pegadas a la malla, sin separarse, enterrarse ni dejar huecos en las hombreras. (`wear` diseña contra el tamaño de referencia y escala las piezas sueltas con el mismo factor que la malla; se probó en Edit con esas medidas.)
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

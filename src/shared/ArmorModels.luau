@@ -211,7 +211,10 @@ type Body = {
 
 -- Piezas soldadas a "anchor" dentro de "model"; "at" es respecto a la parte del cuerpo, que en R6
 -- es el trozo "offset" de "anchor". Sin "anchor" (un avatar sin esa parte) las piezas no se ponen.
-local function builder(model: Model, anchor: BasePart?, offset: CFrame, size: Vector3): Builder
+-- Con "scale" (lo que se viste lleva malla), "size" es el de referencia del volcado y cada pieza se escala por eje como la
+-- malla (posición y tamaño por los ejes del ancla): así las piezas sueltas (neón, cristal) acompañan a la malla en un
+-- avatar de otras proporciones, en vez de quedarse con las medidas del diseño.
+local function builder(model: Model, anchor: BasePart?, offset: CFrame, size: Vector3, scale: Vector3?): Builder
 	local function place(piece: BasePart, at: CFrame): BasePart
 		piece.Name = "Armor"
 		piece.CanCollide = false
@@ -219,6 +222,18 @@ local function builder(model: Model, anchor: BasePart?, offset: CFrame, size: Ve
 		piece.CanTouch = false
 		piece.Massless = true
 		piece.CastShadow = false
+		if anchor and scale then
+			local rotation = at - at.Position
+			local right, up, back = rotation.RightVector, rotation.UpVector, -rotation.LookVector
+			local fx, fy, fz = (scale * right).Magnitude, (scale * up).Magnitude, (scale * back).Magnitude
+			local current = piece.Size
+			if piece:IsA("Part") and (piece :: Part).Shape == Enum.PartType.Ball then
+				piece.Size = current * (fx * fy * fz) ^ (1 / 3)
+			else
+				piece.Size = Vector3.new(current.X * fx, current.Y * fy, current.Z * fz)
+			end
+			at = CFrame.new(at.Position * scale) * rotation
+		end
 		if anchor then
 			piece.CFrame = anchor.CFrame * offset * at
 			local weld = Instance.new("WeldConstraint")
@@ -315,10 +330,16 @@ local function limb(
 	r15: string,
 	r6: string,
 	r6Offset: CFrame,
-	r6Size: Vector3?
+	r6Size: Vector3?,
+	refs: { [string]: Vector3 }?
 ): Builder
 	local part = character:FindFirstChild(r15)
 	if part and part:IsA("BasePart") then
+		-- Con malla, se diseña contra el tamaño de referencia del volcado y se escala al de este avatar.
+		local ref = if refs then refs[r15] else nil
+		if ref and ref.X > 0 and ref.Y > 0 and ref.Z > 0 then
+			return builder(model, part, CFrame.identity, ref, part.Size / ref)
+		end
 		return builder(model, part, CFrame.identity, part.Size)
 	end
 	local fallback = character:FindFirstChild(r6)
@@ -4991,666 +5012,204 @@ local function sunMotes(part: BasePart, rate: number)
 	motes.Parent = part
 end
 
--- Cabeza de gorila tallada en piedra mirando a la -Z de "at", "size" studs de ancho y "depth" veces su
--- fondo (en relieve sobre el peto, plana; el ídolo, entera): cráneo con cresta, orejas, cara hundida,
--- cejas de furia, nariz ancha, boca y colmillos de oro. Devuelve los ojos (de "eye" y "eyeMaterial").
-local function stoneGorilla(
-	make: Builder,
-	at: CFrame,
-	size: number,
-	depth: number,
-	eye: Color3,
-	eyeMaterial: Enum.Material
-): { BasePart }
-	local function on(x: number, y: number, z: number): CFrame
-		return at * CFrame.new(x * size, y * size, z * size * depth)
-	end
-	local function scaled(x: number, y: number, z: number): Vector3
-		return Vector3.new(x * size, y * size, z * size * depth)
-	end
-	make.oval(scaled(1, 1, 0.6), TITAN_STONE, SLATE, on(0, 0, 0.1))
-	make.oval(scaled(0.46, 0.34, 0.4), TITAN_STONE, SLATE, on(0, 0.46, 0.16))
-	make.oval(scaled(0.74, 0.6, 0.26), TITAN_STONE_DARK, SLATE, on(0, -0.12, -0.14))
-	make.oval(scaled(0.46, 0.16, 0.12), TITAN_STONE, SLATE, on(0, -0.1, -0.28))
-	make.block(scaled(0.42, 0.06, 0.04), TITAN_CARVING, SMOOTH, on(0, -0.32, -0.27))
-	local eyes = {}
-	for side = -1, 1, 2 do
-		make.oval(scaled(0.18, 0.26, 0.14), TITAN_STONE_DARK, SLATE, on(side * 0.5, 0.02, 0.06))
-		make.oval(
-			scaled(0.42, 0.12, 0.2),
-			TITAN_STONE,
-			SLATE,
-			on(side * 0.18, 0.17, -0.2) * CFrame.Angles(0, 0, side * 0.3)
-		)
-		table.insert(eyes, make.ball(0.13 * size, eye, eyeMaterial, on(side * 0.17, 0.05, -0.24)))
-		make.ball(0.04 * size, TITAN_CARVING, SMOOTH, on(side * 0.09, -0.15, -0.32))
-		make.fang(
-			0.13 * size,
-			0.07 * size,
-			TITAN_GOLD,
-			SMOOTH,
-			on(side * 0.13 + 0.035, -0.3, -0.28) * CFrame.Angles(0, 0, math.pi)
-		)
-	end
-	return eyes
-end
-
--- Calavera de gorila dorada de "size" de ancho, plana, mirando a la +Z de "at" (la espalda): óvalos de
--- oro que se cruzan (cráneo con cresta, pómulos y hocico) sobre un contorno oscuro, con la ceja de oro
--- viejo, las cuencas, la nariz y la boca hundidas y dos colmillos. Sin más detalle: es el motivo del
--- grado 2 y no debe competir con el ídolo del 3.
-local function goldenGorillaSkull(make: Builder, at: CFrame, size: number)
-	local function on(x: number, y: number, layer: number): CFrame
-		return at * CFrame.new(x * size, y * size, layer * 0.02)
-	end
-	local function disc(x: number, y: number, w: number, h: number, layer: number, color: Color3, tilt: number?)
-		make.oval(
-			Vector3.new(w * size, h * size, 0.04),
-			color,
-			SMOOTH,
-			on(x, y, layer) * CFrame.Angles(0, 0, tilt or 0)
-		)
-	end
-	-- Contorno oscuro del cráneo y del hocico, un poco más grande que el oro.
-	disc(0, 0.2, 0.98, 0.8, 0, TITAN_CARVING)
-	disc(0, -0.3, 0.88, 0.62, 0, TITAN_CARVING)
-	disc(0, 0.56, 0.34, 0.3, 0.5, TITAN_GOLD)
-	disc(0, 0.2, 0.9, 0.72, 1, TITAN_GOLD)
-	for side = -1, 1, 2 do
-		disc(side * 0.4, -0.06, 0.3, 0.3, 1.5, TITAN_GOLD)
-	end
-	disc(0, -0.3, 0.78, 0.52, 2, TITAN_GOLD)
-	for side = -1, 1, 2 do
-		-- Ojos de jade engastados en oro viejo (como el jade de la hebilla y de la gorguera) bajo una ceja
-		-- de furia en V (más baja por dentro), con pupilas de plata. Sin neón: el verde que brilla es de las
-		-- curaciones.
-		disc(side * 0.21, -0.03, 0.27, 0.25, 3, TITAN_GOLD_DARK)
-		disc(side * 0.21, -0.04, 0.18, 0.16, 3.5, JADE)
-		disc(side * 0.21, -0.04, 0.07, 0.07, 3.8, SILVER)
-		disc(side * 0.22, 0.13, 0.46, 0.13, 4, TITAN_GOLD_DARK, side * 0.35)
-		disc(side * 0.07, -0.22, 0.09, 0.07, 3, TITAN_CARVING)
-		make.fang(
-			0.2 * size,
-			0.08 * size,
-			TITAN_GOLD,
-			SMOOTH,
-			on(side * 0.15 + 0.04, -0.4, 3) * CFrame.new(0, 0, 0.1 * size) * CFrame.Angles(0, 0, math.pi)
-		)
-	end
-	make.block(Vector3.new(0.5 * size, 0.05 * size, 0.04), TITAN_CARVING, SMOOTH, on(0, -0.42, 3))
-end
-
--- Cristal de jade (sin neón: el verde que brilla es de las curaciones): funda translúcida de jade
--- claro con un núcleo de jade, de "length" desde "base" hacia "direction".
-local function jadeCrystal(make: Builder, base: Vector3, direction: Vector3, length: number, width: number)
-	local at = CFrame.lookAt(base, base + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
-	local case = make.fang(length, width, JADE_LIGHT, GLASS, at)
-	case.Transparency = 0.2
-	make.fang(length * 0.75, width * 0.5, JADE, SMOOTH, at * CFrame.new(width * 0.25, 0, -width * 0.25))
-end
-
--- Abanico de "count" colmillos o plumas en punta, repartidos entre los ángulos "range" (X a Y, en radianes;
--- 0 es hacia arriba y crece hacia la -X) sobre una elipse de radios "radius" en el plano XY de "at", cada uno
--- con la punta hacia fuera. Devuelve las piezas.
-local function fangRing(
-	make: Builder,
-	at: CFrame,
-	count: number,
-	range: Vector2,
-	radius: Vector2,
-	length: number,
-	width: number,
-	color: Color3,
-	material: Enum.Material
-): { BasePart }
-	local parts = {}
-	for index = 0, count - 1 do
-		local angle = range.X + (range.Y - range.X) * (if count > 1 then index / (count - 1) else 0)
-		table.insert(
-			parts,
-			make.fang(
-				length,
-				width,
-				color,
-				material,
-				at
-					* CFrame.new(-math.sin(angle) * radius.X, math.cos(angle) * radius.Y, 0)
-					* CFrame.Angles(0, 0, angle)
-					* CFrame.new(-width / 2, 0, width / 2)
-			)
-		)
-	end
-	return parts
-end
-
 -- Runa o gema plana (un óvalo fino de "size" de ancho) en el plano XY de "at", mirando a su -Z.
 local function rune(make: Builder, at: CFrame, color: Color3, material: Enum.Material, size: number?): BasePart
 	local wide = size or 0.12
 	return make.oval(Vector3.new(wide, wide * 1.3, 0.04), color, material, at)
 end
 
--- Hombrera del Rey Gorila (grado 1+): losa cuadrada de piedra con el canto de oro, tachones en las esquinas
--- y gemas de jade, dos láminas escalonadas con el canto de oro y, hundida en ellas, una cabeza de gorila de
--- piedra que mira hacia fuera (con los ojos de sol encendidos desde el grado 3, más un penacho de oro y
--- tachones de sol). Grado 4: cinco cristales de jade que salen por detrás de la cabeza.
+-- Cabeza de gorila de piedra hecha solo de bloques alineados con los ejes (sin óvalos ni giros, así entra en la malla),
+-- mirando a la -Z de "at": "size" studs de ancho y "depth" veces su fondo (en relieve sobre el peto, plana; el ídolo,
+-- entera). Cráneo con cresta, orejas, cejas de furia en dos escalones, cara hundida, hocico, boca y colmillos de oro.
+-- Con "simple" (las hombreras) sin cresta, orejas ni fosas. Devuelve los ojos (de "eye" y "eyeMaterial").
+local function titanFace(
+	make: Builder,
+	at: CFrame,
+	size: number,
+	depth: number,
+	eye: Color3,
+	eyeMaterial: Enum.Material,
+	simple: boolean
+): { BasePart }
+	local function put(
+		w: number,
+		h: number,
+		d: number,
+		x: number,
+		y: number,
+		z: number,
+		color: Color3,
+		material: Enum.Material
+	)
+		make.block(
+			Vector3.new(w * size, h * size, d * size * depth),
+			color,
+			material,
+			at * CFrame.new(x * size, y * size, z * size * depth)
+		)
+	end
+	put(0.96, 0.9, 0.5, 0, 0, 0.1, TITAN_STONE, SLATE)
+	put(0.8, 0.52, 0.24, 0, -0.12, -0.14, TITAN_STONE_DARK, SLATE)
+	put(0.46, 0.2, 0.14, 0, -0.1, -0.28, TITAN_STONE, SLATE)
+	put(0.44, 0.05, 0.04, 0, -0.32, -0.27, TITAN_CARVING, SMOOTH)
+	if not simple then
+		put(0.5, 0.3, 0.4, 0, 0.55, 0.14, TITAN_STONE, SLATE)
+	end
+	local eyes = {}
+	for side = -1, 1, 2 do
+		-- Cejas en dos escalones: la de fuera más alta y la de dentro más baja (la furia).
+		put(0.34, 0.12, 0.2, side * 0.27, 0.2, -0.2, TITAN_STONE, SLATE)
+		put(0.2, 0.12, 0.2, side * 0.1, 0.13, -0.2, TITAN_STONE, SLATE)
+		table.insert(
+			eyes,
+			make.ball(
+				0.15 * size,
+				eye,
+				eyeMaterial,
+				at * CFrame.new(side * 0.17 * size, 0.05 * size, -0.34 * size * depth - 0.05)
+			)
+		)
+		put(0.07, 0.14, 0.06, side * 0.13, -0.37, -0.28, TITAN_GOLD, SMOOTH)
+		if not simple then
+			put(0.14, 0.3, 0.18, side * 0.55, 0.02, 0.06, TITAN_STONE_DARK, SLATE)
+			put(0.06, 0.05, 0.04, side * 0.09, -0.15, -0.34, TITAN_CARVING, SMOOTH)
+		end
+	end
+	return eyes
+end
+
+-- Hombrera del Rey Gorila (grado 1+): tres láminas de piedra escalonadas (más anchas y más bajas hacia fuera) con el
+-- canto de oro, una cresta de piedra en dos mitades con la cabeza de gorila entre ellas mirando hacia fuera y tachones
+-- de oro y gemas de jade. Todo en bloques alineados, sin giros. Por grados: 1, lo anterior; 2, flecos de oro bajo la
+-- lámina de abajo y dos cristales de jade sobre la cresta; 3, ojos de sol encendidos, colmillo de oro hacia fuera y una
+-- aleta de piedra detrás con raya de oro y tres gemas (lo que se ve de espaldas); 4, tres cristales de jade que salen
+-- por detrás de la cabeza y una chispa de sol.
 local function titanPauldron(arm: Builder, side: number, grade: number)
 	local as = arm.size
 	local top = as.Y / 2
-	local slab = CFrame.new(side * 0.12, top + 0.1, 0)
-	arm.block(Vector3.new(as.X * 1.3, 0.22, as.Z * 1.3), TITAN_STONE_DARK, SLATE, slab)
-	arm.block(Vector3.new(as.X * 1.3 + 0.1, 0.07, as.Z * 1.3 + 0.1), TITAN_GOLD, SMOOTH, slab * CFrame.new(0, -0.13, 0))
+	local W, D = as.X, as.Z
+	local lit = grade >= 3
+	local lames = {
+		{ w = 1.3, depth = 1.4, y = 0.3, out = 0.04, color = TITAN_STONE },
+		{ w = 1.55, depth = 1.5, y = 0.1, out = 0.14, color = TITAN_STONE_DARK },
+		{ w = 1.8, depth = 1.6, y = -0.1, out = 0.26, color = TITAN_STONE },
+	}
+	for _, lame in lames do
+		local at = CFrame.new(side * lame.out, top + lame.y, 0)
+		local size = Vector3.new(W * lame.w, 0.2, D * lame.depth)
+		arm.block(size, lame.color, SLATE, at)
+		arm.block(Vector3.new(size.X + 0.06, 0.06, size.Z + 0.06), TITAN_GOLD, SMOOTH, at * CFrame.new(0, -0.12, 0))
+	end
+	-- Cresta: dos mitades de piedra con el borde de oro, una a cada lado de la cabeza.
+	local crest = CFrame.new(side * 0.1, top + 0.58, 0)
+	for sz = -1, 1, 2 do
+		arm.block(Vector3.new(0.24, 0.3, D * 0.5), TITAN_STONE_DARK, SLATE, crest * CFrame.new(0, 0, sz * D * 0.7))
+		arm.block(Vector3.new(0.14, 0.08, D * 0.4), TITAN_GOLD, SMOOTH, crest * CFrame.new(0, 0.18, sz * D * 0.7))
+	end
+	-- La cabeza mira hacia fuera, hundida entre las dos mitades de la cresta.
+	titanFace(
+		arm,
+		CFrame.new(side * W * 0.3, top + 0.62, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
+		0.8,
+		0.7,
+		if lit then SUN_GLOW else JADE,
+		if lit then NEON else SMOOTH,
+		true
+	)
+	-- Tachones de oro en las esquinas de la lámina de arriba y dos gemas de jade en el canto de fuera.
 	for sx = -1, 1, 2 do
 		for sz = -1, 1, 2 do
-			arm.ball(0.1, TITAN_GOLD, SMOOTH, slab * CFrame.new(sx * as.X * 0.55, 0.12, sz * as.Z * 0.55))
+			arm.ball(0.1, TITAN_GOLD, SMOOTH, CFrame.new(side * 0.04 + sx * W * 0.62, top + 0.44, sz * D * 0.66))
 		end
 	end
 	for sz = -1, 1, 2 do
-		arm.ball(0.12, JADE, SMOOTH, CFrame.new(side * (0.12 + as.X * 0.68), top + 0.1, sz * as.Z * 0.3))
+		arm.ball(0.12, JADE, SMOOTH, CFrame.new(side * (0.26 + W * 0.9 + 0.02), top - 0.1, sz * D * 0.3))
 	end
-	if grade >= 3 then
-		for sz = -1, 1, 2 do
-			arm.fang(0.4, 0.14, TITAN_GOLD, SMOOTH, slab * CFrame.new(-side * as.X * 0.3, 0.1, sz * as.Z * 0.3))
-		end
-		for _, z in { -0.15, 0, 0.15 } do
-			arm.ball(0.1, SUN_GLOW, NEON, CFrame.new(side * (0.12 + as.X * 0.66), top + 0.2, z * as.Z))
-		end
-	end
-	for index = 0, 1 do
-		local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
-			* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
-		arm.oval(
-			Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
-			TITAN_GOLD,
-			SMOOTH,
-			lame * CFrame.new(0, -0.07, 0)
-		)
-		arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), TITAN_STONE, SLATE, lame)
-	end
-	local lit = grade >= 3
-	stoneGorilla(
-		arm,
-		CFrame.new(side * as.X * 0.36, top + 0.3, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
-		0.86,
-		0.7,
-		if lit then SUN_GLOW else JADE,
-		if lit then NEON else SMOOTH
-	)
-	if grade >= 4 then
-		for _, z in { -0.42, -0.26, 0, 0.26, 0.42 } do
-			jadeCrystal(
-				arm,
-				Vector3.new(-side * 0.04, top + 0.24, z * as.Z),
-				Vector3.new(-side * 0.35, 1, z * 1.4),
-				if z == 0 then 0.66 elseif math.abs(z) > 0.3 then 0.4 else 0.48,
-				if math.abs(z) > 0.3 then 0.18 else 0.22
+	-- Grado 2: flecos de oro bajo la lámina de abajo y dos cristales de jade sobre la cresta.
+	if grade >= 2 then
+		for index = -2, 2 do
+			arm.block(
+				Vector3.new(0.14, 0.34 - math.abs(index) * 0.06, 0.1),
+				TITAN_GOLD_DARK,
+				SMOOTH,
+				CFrame.new(side * (0.26 + W * 0.78), top - 0.2 - (0.34 - math.abs(index) * 0.06) / 2, index * D * 0.34)
 			)
 		end
+		for sz = -1, 1, 2 do
+			spire(arm, side * 0.1, top + 0.76, sz * D * 0.7, 0.22, 0.6, 0.22, JADE, SMOOTH, 0)
+		end
+	end
+	-- Grado 3: colmillo de oro en tres escalones hacia fuera y aleta de piedra detrás, con raya de oro y tres gemas.
+	if grade >= 3 then
+		for index = 0, 2 do
+			arm.block(
+				Vector3.new(0.22, 0.32 - index * 0.09, 0.32 - index * 0.09),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * (0.26 + W * 0.9 + 0.1 + index * 0.17), top + 0.02 + index * 0.06, 0)
+			)
+		end
+		local fin = CFrame.new(side * 0.2, top + 0.18, D * 0.95)
+		arm.block(Vector3.new(W * 1.3, 0.6, 0.1), TITAN_STONE_DARK, SLATE, fin)
+		arm.block(Vector3.new(W * 1.1, 0.06, 0.12), TITAN_GOLD, SMOOTH, fin * CFrame.new(0, 0.12, 0.01))
+		for _, x in { -0.4, 0, 0.4 } do
+			arm.ball(0.1, JADE, SMOOTH, fin * CFrame.new(x * W, -0.12, 0.08))
+		end
+	end
+	-- Grado 4: tres cristales de jade detrás de la cabeza (de dentro, para que se vean desde atrás) y una chispa de sol.
+	if grade >= 4 then
+		for _, z in { -0.4, 0, 0.4 } do
+			local tall = if z == 0 then 1 else 0.72
+			spire(arm, -side * W * 0.12, top + 0.4, z * D, 0.2, tall, 0.2, JADE, SMOOTH, 0)
+		end
+		arm.ball(0.1, SUN_GLOW, NEON, CFrame.new(-side * W * 0.12, top + 1.5, 0))
 	end
 end
 
--- Riqueza extra del Rey Gorila (T2 de la Fase 18): cada grado suma detalle sobre el anterior para que se
--- vea claramente más rico que un legendario. Grado 1: runas y tachones en el peto, el vientre, el cinturón,
--- los brazos y los muslos, y en la espalda el sol con doce rayos y gemas. Grado 2: runas y flecos en la
--- capa, un halo de rayos de oro y jade alrededor de la calavera, cadenas con colgantes y flecos en los
--- faldones. Grado 3: melena plateada y collar del ídolo, tachones en su corona, filas de mechones, púas en
--- las muñecas, rodilleras de oro y colgantes. Grado 4: tachones en el aro solar y en los muslos. Las runas
--- brillan con el sol desde el grado 3.
-local function titanRichness(body: Body, grade: number)
-	if grade < 1 then
-		return
-	end
+-- Traje mítico del guerrero, Rey Gorila Titán. Todo en bloques alineados con los ejes (sin giros) para que el grado 4
+-- pueda llevar malla; los grados 0 a 3 usan el mismo diseño y ganan piezas. Grado 0: túnica roja, peto de piedra con
+-- ribete de oro y la cara de un gorila en relieve entre costillas de oro, gorguera de oro con cuentas de jade, vientre
+-- de placas con tachones, estela de piedra en la espalda con un sol de oro y centro de jade, cinturón con hebilla de
+-- jade y taparrabos rojo con ribete de oro y lengüeta de jade delante y detrás, brazaletes y muñequeras de oro y piedra.
+-- Grado 1: hombreras con la cabeza de gorila entre dos láminas de cresta, runas y gemas en el peto, el cinturón y los
+-- antebrazos, manguitos de pelaje, grebas de piedra en los muslos y, en la espalda, el sol con doce rayos (cada grado
+-- tiene su motivo en la espalda). Grado 2: manto y capa de pelaje negro con flecos, runas en los cantos, una calavera de
+-- gorila dorada con un halo de rayos de oro y jade, broches con cadenas y faldones de piedra en los muslos. Grado 3: el
+-- lomo plateado sale alrededor del ídolo, un busto de gorila de piedra enorme entre los omoplatos con ojos de sol que
+-- brillan, corona de oro con jade, melena y collar; púas en las muñecas y rodilleras de oro.
+-- Grado 4: aro solar de oro con rayos y cuatro cristales de jade detrás del ídolo (queda como un halo detrás de la
+-- cabeza), lianas con orquídeas colgando de él, más cristales en las hombreras y motas de sol que suben.
+-- Lo único que no entra en la malla es el neón (los ojos de las cabezas, las gemas del sol, la chispa) y lo que lleva luz
+-- o partículas. Lo de delante va 0,1 más adelantado para que no quede enterrado con un avatar ancho y hondo.
+local function titanKing(body: Body, grade: number)
 	local make = body.torso
 	local width, height, depth = make.size.X, make.size.Y, make.size.Z
-	local front = -(depth / 2 + 0.08)
-	local back = depth / 2
+	local front = -(depth / 2 + 0.18)
+	local base = depth / 2
+	local back = base + 0.08
 	local lit = grade >= 3
-	local glow = if lit then SUN_GLOW else TITAN_GOLD_DARK
-	local glowMaterial = if lit then NEON else SMOOTH
+	local runeColor = if lit then TITAN_GOLD else TITAN_GOLD_DARK
+	local eye = if lit then SUN_GLOW else JADE
+	local eyeMaterial = if lit then NEON else SMOOTH
 	local fur = if lit then SILVER_FUR_DARK else GORILLA_FUR
 	local capeHeight = height * 1.2
 	local capeTop = height / 2 - 0.05
 	local capeBottom = capeTop - capeHeight
-	local capeZ = back + 0.22
+	local capeZ = base + 0.22
 	local idolSize = 1.4
 	local idolY = height * 0.05
 
-	-- Peto, esternón y vientre. Los pectorales giran un poco, así que la z de lo que va encima los sigue.
-	for side = -1, 1, 2 do
-		for index, x in { 0.13, 0.26, 0.39, 0.19, 0.33 } do
-			rune(
-				make,
-				CFrame.new(
-					side * width * x,
-					height * (if index <= 3 then 0.26 else 0.14),
-					front - 0.11 + 0.14 * (x - 0.25) * width
-				),
-				glow,
-				glowMaterial
-			)
-		end
-		for _, x in { 0.1, 0.2, 0.3, 0.4 } do
-			make.ball(
-				0.09,
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(side * width * x, height * 0.04, front - 0.12 + 0.14 * (x - 0.25) * width)
-			)
-		end
-		for sy = -1, 1, 2 do
-			make.ball(0.12, JADE, SMOOTH, CFrame.new(side * width * 0.19, height * (0.1 + sy * 0.22), front - 0.17))
-		end
-		for row = 0, 1 do
-			local y = -height * 0.21 - row * height * 0.15
-			rune(make, CFrame.new(side * width * 0.08, y, front - 0.07), glow, glowMaterial, 0.1)
-			rune(make, CFrame.new(side * width * 0.32, y, front - 0.07), glow, glowMaterial, 0.1)
-		end
-	end
-	make.rod(0.05, 0.24, TITAN_GOLD, SMOOTH, CFrame.new(0, -height * 0.28, front - 0.07) * FACING)
-	make.ball(0.12, JADE, SMOOTH, CFrame.new(0, -height * 0.28, front - 0.1))
-
-	-- Cinturón: runas delante y un fleco de colmillos de oro en el bajo del taparrabos, delante y detrás.
-	local waist = body.waist
-	local hipWidth, hipDepth = waist.size.X, waist.size.Z
-	local beltFront = -(hipDepth / 2 + 0.09)
-	for side = -1, 1, 2 do
-		for _, x in { 0.2, 0.32, 0.44 } do
-			rune(waist, CFrame.new(side * hipWidth * x, 0.04, beltFront - 0.02), glow, glowMaterial, 0.1)
-		end
-	end
-	for index = 0, 4 do
-		for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
-			waist.fang(
-				0.22,
-				0.12,
-				TITAN_GOLD_DARK,
-				SMOOTH,
-				CFrame.new((index - 2) * hipWidth * 0.1, -0.69, z) * CFrame.Angles(math.pi, 0, 0)
-			)
-		end
-	end
-
-	-- Brazos y muslos: manguito de pelaje en el brazo, brazal de piedra con runas y púas, y en el muslo
-	-- bandas, una placa de piedra con runas y gemas de jade.
-	for side = -1, 1, 2 do
-		local upper = body.upperArm[side]
-		local us = upper.size
-		for index = 0, 5 do
-			local angle = index * math.pi / 3
-			upper.fang(
-				0.3,
-				0.14,
-				fur,
-				FABRIC,
-				CFrame.new(math.cos(angle) * (us.X / 2 + 0.04), -us.Y * 0.2 - 0.04, math.sin(angle) * (us.Z / 2 + 0.04))
-					* CFrame.Angles(math.pi, 0, 0)
-			)
-		end
-		local forearm = body.lowerArm[side]
-		local fs = forearm.size
-		band(forearm, fs.Y * 0.12, fs.Y * 0.34, 0.12, TITAN_STONE_DARK, SLATE)
-		for _, y in { fs.Y * 0.3, -fs.Y * 0.05 } do
-			band(forearm, y, 0.05, 0.16, TITAN_GOLD, SMOOTH)
-		end
-		for _, y in { 0.2, 0.1, 0 } do
-			rune(
-				forearm,
-				CFrame.new(side * (fs.X / 2 + 0.075), fs.Y * y, 0) * CFrame.Angles(0, math.pi / 2, 0),
-				glow,
-				glowMaterial
-			)
-		end
-		for _, z in { -0.28, 0.28 } do
-			forearm.fang(
-				0.26,
-				0.12,
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(side * (fs.X / 2 + 0.06), -fs.Y / 2 + 0.2, z) * CFrame.Angles(0, 0, -side * math.pi / 2)
-			)
-		end
-		forearm.ball(0.14, JADE, SMOOTH, CFrame.new(side * (fs.X / 2 + 0.07), fs.Y * 0.44, 0))
-
-		local leg = body.upperLeg[side]
-		local ls = leg.size
-		band(leg, -ls.Y * 0.34, 0.1, 0.12, TITAN_GOLD, SMOOTH)
-		band(leg, -ls.Y * 0.12, 0.14, 0.08, TITAN_STONE_DARK, SLATE)
-		leg.block(
-			Vector3.new(0.1, ls.Y * 0.36, ls.Z * 0.6),
-			TITAN_STONE,
-			SLATE,
-			CFrame.new(side * (ls.X / 2 + 0.07), ls.Y * 0.14, 0)
-		)
-		for _, y in { 0.23, 0.14, 0.05 } do
-			rune(
-				leg,
-				CFrame.new(side * (ls.X / 2 + 0.135), ls.Y * y, 0) * CFrame.Angles(0, math.pi / 2, 0),
-				glow,
-				glowMaterial,
-				0.08
-			)
-		end
-		for _, z in { -0.22, 0.22 } do
-			leg.ball(0.12, JADE, SMOOTH, CFrame.new(side * (ls.X / 2 + 0.13), ls.Y * 0.14, z * ls.Z))
-		end
-	end
-
-	-- Grado 1: el sol de la espalda con doce rayos de oro, gemas y runas en el borde de la placa (con la capa
-	-- del grado 2 queda tapado).
-	if grade == 1 then
-		local sun = CFrame.new(0, -height * 0.1, back + 0.15)
-		for index = 0, 11 do
-			make.fang(
-				if index % 2 == 0 then 0.36 else 0.26,
-				0.1,
-				TITAN_GOLD,
-				SMOOTH,
-				sun * CFrame.Angles(0, 0, index * math.pi / 6) * CFrame.new(-0.05, 0.6, 0.05)
-			)
-		end
-		for side = -1, 1, 2 do
-			for _, y in { 0.3, 0.1, -0.1, -0.3 } do
-				rune(make, CFrame.new(side * width * 0.37, height * y, back + 0.16), glow, glowMaterial)
-			end
-			for sy = -1, 1, 2 do
-				make.ball(0.14, JADE, SMOOTH, CFrame.new(side * width * 0.37, sy * height * 0.38, back + 0.17))
-			end
-		end
-		for index = 0, 3 do
-			make.ball(
-				0.12,
-				JADE,
-				SMOOTH,
-				sun * CFrame.Angles(0, 0, math.pi / 4 + index * math.pi / 2) * CFrame.new(0, 0.32, 0.03)
-			)
-		end
-	end
-
-	if grade >= 2 then
-		-- Runas en los cantos de la capa, una banda de oro con gotas de jade en el bajo y mechones por los lados.
-		for side = -1, 1, 2 do
-			for index = 0, 6 do
-				rune(
-					make,
-					CFrame.new(side * width * 0.44, capeTop - capeHeight * (0.1 + index * 0.11), capeZ + 0.08),
-					glow,
-					glowMaterial,
-					0.1
-				)
-			end
-			for index = 0, 7 do
-				make.fang(
-					if index % 2 == 0 then 0.3 else 0.22,
-					0.12,
-					fur,
-					FABRIC,
-					CFrame.new(side * (width * 0.5 + 0.06), capeTop - capeHeight * (0.08 + index * 0.115), capeZ + 0.01)
-						* CFrame.Angles(0, 0, -side * (math.pi / 2 + 0.5))
-						* CFrame.new(-0.06, 0, 0.06)
-				)
-			end
-		end
-		make.block(Vector3.new(width * 1.04, 0.08, 0.14), TITAN_GOLD, SMOOTH, CFrame.new(0, capeBottom + 0.12, capeZ))
-		for index = 0, 5 do
-			make.ball(
-				0.1,
-				JADE,
-				SMOOTH,
-				CFrame.new(((index + 0.5) / 6 - 0.5) * width * 0.92, capeBottom + 0.12, capeZ + 0.09)
-			)
-		end
-
-		-- Grado 2: rayos de oro y gemas de jade alrededor de la calavera (menos por arriba, junto a los hombros).
-		if grade == 2 then
-			local skull = CFrame.new(0, capeTop - capeHeight * 0.36, capeZ + 0.1)
-			local size = width * 0.7
-			local from, to = 0.7, 2 * math.pi - 0.7
-			fangRing(
-				make,
-				skull,
-				12,
-				Vector2.new(from, to),
-				Vector2.new(size * 0.68, size * 0.66),
-				0.34,
-				0.12,
-				TITAN_GOLD,
-				SMOOTH
-			)
-			local step = (to - from) / 11
-			for index = 2, 9 do
-				local angle = from + (index + 0.5) * step
-				make.ball(
-					0.1,
-					JADE,
-					SMOOTH,
-					skull * CFrame.new(-math.sin(angle) * size * 0.56, math.cos(angle) * size * 0.54, 0.02)
-				)
-			end
-		end
-
-		-- Cadenas con colgantes de jade que cuelgan de los broches, y flecos y runas en los faldones.
-		for side = -1, 1, 2 do
-			local drop = Vector3.new(side * width * 0.36, height / 2 - 1, front - 0.12)
-			strap(
-				make,
-				Vector3.new(side * width * 0.36, height / 2 - 0.2, front - 0.12),
-				drop,
-				0.04,
-				TITAN_GOLD,
-				SMOOTH
-			)
-			make.ball(0.16, JADE, SMOOTH, CFrame.new(drop))
-			make.fang(
-				0.2,
-				0.1,
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(drop + Vector3.new(0.05, -0.08, 0.05)) * CFrame.Angles(math.pi, 0, 0)
-			)
-			local outer = Vector3.new(side * width * 0.46, height / 2 - 0.8, front - 0.1)
-			strap(
-				make,
-				Vector3.new(side * width * 0.46, height / 2 - 0.3, front - 0.1),
-				outer,
-				0.04,
-				TITAN_GOLD,
-				SMOOTH
-			)
-			make.ball(0.12, TITAN_GOLD, SMOOTH, CFrame.new(outer))
-
-			local leg = body.upperLeg[side]
-			local ls = leg.size
-			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
-			for index = 0, 3 do
-				leg.fang(
-					0.2,
-					0.1,
-					TITAN_GOLD,
-					SMOOTH,
-					flap * CFrame.new((index - 1.5) * ls.X * 0.2, -ls.Y * 0.23, -0.04) * CFrame.Angles(math.pi, 0, 0)
-				)
-			end
-			for _, x in { -0.25, 0.25 } do
-				rune(leg, flap * CFrame.new(x * ls.X, 0.02, -0.06), glow, glowMaterial, 0.1)
-			end
-		end
-	end
-
-	if grade >= 3 then
-		-- Melena plateada a los lados del ídolo, collar de jade con colmillos y hombreras de oro en su busto,
-		-- tachones y alas de oro en la corona, y colgantes de cadena bajo el busto.
-		local bustY = idolY - idolSize * 0.5 - 0.06
-		for side = -1, 1, 2 do
-			fangRing(
-				make,
-				CFrame.new(0, idolY, back + 0.5),
-				5,
-				Vector2.new(side * math.rad(40), side * math.rad(125)),
-				Vector2.new(1, 0.95),
-				0.36,
-				0.14,
-				SILVER_FUR,
-				FABRIC
-			)
-			make.oval(
-				Vector3.new(0.26, 0.14, 0.4),
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(side * 0.8, bustY + 0.02, back + 0.44)
-			)
-		end
-		for index = 0, 6 do
-			make.ball(0.13, JADE, SMOOTH, CFrame.new((index - 3) * 0.2, bustY + 0.02, back + 0.72))
-			if index < 6 then
-				make.fang(
-					0.2,
-					0.09,
-					TITAN_GOLD,
-					SMOOTH,
-					CFrame.new((index - 2.5) * 0.2 + 0.04, bustY - 0.03, back + 0.72) * CFrame.Angles(math.pi, 0, 0)
-				)
-			end
-		end
-		local crown = CFrame.new(0, idolY, back + 0.6)
-			* CFrame.Angles(0, math.pi, 0)
-			* CFrame.new(0, idolSize * 0.5, idolSize * 0.08)
-		for index = 0, 5 do
-			make.ball(
-				0.09,
-				TITAN_GOLD,
-				SMOOTH,
-				crown * CFrame.new((index - 2.5) * idolSize * 0.115, 0, -idolSize * 0.26)
-			)
-		end
-		for side = -1, 1, 2 do
-			make.fang(
-				0.4,
-				0.14,
-				TITAN_GOLD,
-				SMOOTH,
-				crown * CFrame.new(side * idolSize * 0.33, 0, 0) * CFrame.Angles(0, 0, -side * 1.1)
-			)
-		end
-		for index = -2, 2 do
-			local from = Vector3.new(index * 0.28, bustY - 0.2, back + 0.5)
-			local to = from + Vector3.new(0, -(0.5 + (2 - math.abs(index)) * 0.12), 0)
-			strap(make, from, to, 0.04, TITAN_GOLD, SMOOTH)
-			make.ball(0.1, JADE, SMOOTH, CFrame.new(to))
-			make.fang(
-				0.16,
-				0.08,
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(to + Vector3.new(0.04, -0.04, 0.04)) * CFrame.Angles(math.pi, 0, 0)
-			)
-		end
-
-		-- Dos filas más de mechones plateados en la capa, bajo la silla del lomo plateado.
-		for row = 1, 2 do
-			for index = 0, 6 do
-				make.fang(
-					if index % 2 == 0 then 0.24 else 0.18,
-					0.16,
-					SILVER_FUR_DARK,
-					FABRIC,
-					CFrame.new(
-						(index / 6 - 0.5) * width * 0.9 + (row - 1.5) * 0.1,
-						capeTop - capeHeight * (0.54 + row * 0.1),
-						capeZ + 0.07
-					) * CFrame.Angles(math.pi, 0, 0)
-				)
-			end
-		end
-
-		-- Púas de oro en las muñecas (solo por fuera, nunca hacia el cuerpo) y rodilleras de oro.
-		for side = -1, 1, 2 do
-			local forearm = body.lowerArm[side]
-			local fs = forearm.size
-			for _, degrees in { -75, -45, -15, 15, 45, 75 } do
-				local angle = math.rad(degrees)
-				local dir = Vector3.new(math.cos(angle) * side, 0, math.sin(angle))
-				local pos = Vector3.new(dir.X * (fs.X / 2 + 0.07), fs.Y * 0.12, dir.Z * (fs.Z / 2 + 0.07))
-				forearm.fang(
-					0.22,
-					0.1,
-					TITAN_GOLD,
-					SMOOTH,
-					CFrame.lookAt(pos, pos + dir) * CFrame.Angles(-math.pi / 2, 0, 0)
-				)
-			end
-			local leg = body.upperLeg[side]
-			local ls = leg.size
-			local knee = CFrame.new(side * 0.04, -ls.Y * 0.3, -(ls.Z / 2 + 0.1))
-			leg.oval(Vector3.new(ls.X * 0.5, 0.3, 0.1), TITAN_GOLD, SMOOTH, knee)
-			leg.ball(0.12, JADE, SMOOTH, knee * CFrame.new(0, 0, -0.07))
-			for _, x in { -0.16, 0.16 } do
-				local pos = (knee * CFrame.new(x, 0, -0.04)).Position
-				leg.fang(
-					0.2,
-					0.1,
-					TITAN_GOLD,
-					SMOOTH,
-					CFrame.lookAt(pos, pos + Vector3.new(0, 0, -1)) * CFrame.Angles(-math.pi / 2, 0, 0)
-				)
-				leg.ball(0.08, SUN_GLOW, NEON, knee * CFrame.new(x * 0.5, x * 0.7, -0.06))
-			end
-		end
-	end
-
-	if grade >= 4 then
-		-- Un tachón de oro en la base de cada rayo del aro solar y tres tachones de sol en cada muslo.
-		local disc = CFrame.new(0, idolY + 0.3, back + 0.36)
-		for index = 0, 11 do
-			make.ball(
-				0.1,
-				TITAN_GOLD,
-				SMOOTH,
-				disc * CFrame.Angles(0, 0, index * math.pi / 6) * CFrame.new(0, idolSize * 0.86 - 0.02, 0.08)
-			)
-		end
-		for side = -1, 1, 2 do
-			local ls = body.upperLeg[side].size
-			for _, z in { -0.3, 0, 0.3 } do
-				body.upperLeg[side].ball(
-					0.1,
-					SUN_GLOW,
-					NEON,
-					CFrame.new(side * (ls.X / 2 + 0.1), -ls.Y * 0.34, z * ls.Z)
-				)
-			end
-		end
-	end
-end
-
--- Traje mítico del guerrero, Rey Gorila Titán. Grado 0: túnica roja, peto de piedra con ribete de oro y
--- la cara de un gorila en relieve, gorguera de oro con cuentas de jade, vientre de placas con tachones,
--- placa de la espalda con un sol de oro y centro de jade, cinturón de piedra con hebilla de jade y
--- taparrabos rojo con ribete de oro, brazaletes y muñequeras de oro con jade. Grado 1: hombreras con
--- cabezas de gorila de piedra que miran hacia fuera. Grado 2: manto y capa de pelaje negro de gorila
--- con flecos y una calavera de gorila dorada en la espalda, broches de oro con cadena y faldones de
--- piedra en los muslos (cada grado tiene su motivo en la espalda). Grado 3: el lomo plateado sale
--- alrededor del ídolo, un busto de gorila de piedra enorme entre los omoplatos con ojos de sol que
--- brillan y corona de oro con jade; se encienden los ojos de todas las cabezas y unas vetas de oro en
--- el peto.
--- Grado 4: disco solar de oro con doce rayos y cuatro cristales de jade detrás del ídolo (queda como
--- un halo detrás de la cabeza), lianas con orquídeas colgando de él, cristales de jade en las
--- hombreras y motas de sol que suben.
-local function titanKing(body: Body, grade: number)
-	local make = body.torso
-	local width, height, depth = make.size.X, make.size.Y, make.size.Z
-	local front = -(depth / 2 + 0.08)
-	local back = depth / 2
-	local lit = grade >= 3
 	make.block(
-		Vector3.new(width + 0.1, height * 0.92, depth + 0.14),
+		Vector3.new(width + 0.1, height * 0.92, depth + 0.3),
 		ROYAL_RED,
 		FABRIC,
 		CFrame.new(0, -height * 0.03, 0)
 	)
 
-	-- Peto: dos pectorales de piedra en ángulo con el borde de abajo de oro y, entre ellos, el esternón
-	-- de piedra oscura con la cara del gorila en relieve entre dos franjas de oro.
+	-- Peto: dos pectorales de piedra con el borde de abajo de oro y una placa oscura encima y, entre ellos, el esternón
+	-- de piedra oscura con costillas de oro y la cara del gorila en relieve.
 	for side = -1, 1, 2 do
-		local pec = CFrame.new(side * width * 0.25, height * 0.2, front - 0.03) * CFrame.Angles(0.1, -side * 0.14, 0)
+		local pec = CFrame.new(side * width * 0.25, height * 0.2, front)
 		make.block(Vector3.new(width * 0.44, height * 0.32, 0.1), TITAN_STONE, SLATE, pec)
 		make.block(
 			Vector3.new(width * 0.44, 0.07, 0.12),
@@ -5658,111 +5217,96 @@ local function titanKing(body: Body, grade: number)
 			SMOOTH,
 			pec * CFrame.new(0, -height * 0.16, -0.01)
 		)
+		make.block(
+			Vector3.new(width * 0.34, height * 0.2, 0.05),
+			TITAN_STONE_DARK,
+			SLATE,
+			pec * CFrame.new(0, 0.02, -0.07)
+		)
 	end
-	local plate = CFrame.new(0, height * 0.1, front - 0.08)
+	local plate = CFrame.new(0, height * 0.1, front - 0.06)
 	make.block(Vector3.new(width * 0.42, height * 0.52, 0.14), TITAN_STONE_DARK, SLATE, plate)
 	for _, y in { height * 0.26, -height * 0.26 } do
 		make.block(Vector3.new(width * 0.46, 0.08, 0.16), TITAN_GOLD, SMOOTH, plate * CFrame.new(0, y, -0.01))
 	end
-	stoneGorilla(
-		make,
-		plate * CFrame.new(0, -0.02, -0.07),
-		0.74,
-		0.35,
-		if lit then SUN_GLOW else JADE,
-		if lit then NEON else SMOOTH
-	)
-	if lit then
-		-- Vetas de oro encendidas por los pectorales y el vientre.
-		for side = -1, 1, 2 do
-			lavaVein(make, {
-				Vector3.new(side * width * 0.23, height * 0.34, front - 0.1),
-				Vector3.new(side * width * 0.3, height * 0.2, front - 0.1),
-				Vector3.new(side * width * 0.4, height * 0.28, front - 0.1),
-			}, 0.06, SUN_GLOW)
-			lavaVein(make, {
-				Vector3.new(side * width * 0.24, height * 0.12, front - 0.1),
-				Vector3.new(side * width * 0.36, height * 0.1, front - 0.1),
-			}, 0.06, SUN_GLOW)
-		end
+	for side = -1, 1, 2 do
+		make.block(
+			Vector3.new(0.06, height * 0.44, 0.16),
+			TITAN_GOLD,
+			SMOOTH,
+			plate * CFrame.new(side * width * 0.2, 0, -0.01)
+		)
 	end
+	titanFace(make, plate * CFrame.new(0, -0.02, -0.07), 0.74, 0.35, eye, eyeMaterial, false)
 
-	-- Gorguera de oro con cuentas de jade.
-	for index = 0, 6 do
-		local angle = math.rad(-150 + index * 50)
+	-- Gorguera de oro con cuentas de jade: siete placas en arco alrededor del cuello, sin giros (las de los lados más
+	-- atrás).
+	for k = -3, 3 do
+		local z = -(depth / 2 + 0.12) + math.abs(k) * 0.08
 		make.block(
 			Vector3.new(0.28, 0.14, 0.16),
 			TITAN_GOLD,
 			SMOOTH,
-			CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
-				* CFrame.Angles(0, -angle, 0)
+			CFrame.new(k * width * 0.13, height / 2 - 0.02, z)
 		)
-		if index < 6 then
-			local mid = angle + math.rad(25)
-			make.ball(
-				0.15,
-				JADE,
-				SMOOTH,
-				CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
-			)
+		if k < 3 then
+			make.ball(0.15, JADE, SMOOTH, CFrame.new((k + 0.5) * width * 0.13, height / 2 - 0.05, z + 0.04 - 0.07))
 		end
 	end
 
-	-- Vientre de placas de piedra con tachones de oro.
+	-- Vientre de placas de piedra con tachones de oro y, entre ellas, el espinazo de oro con una gema de jade.
 	for row = 0, 1 do
 		for side = -1, 1, 2 do
-			local at = CFrame.new(side * width * 0.2, -height * 0.21 - row * height * 0.15, front - 0.01)
+			local at = CFrame.new(side * width * 0.2, -height * 0.21 - row * height * 0.15, front)
 			make.block(Vector3.new(width * 0.36, height * 0.12, 0.1), TITAN_STONE_DARK, SLATE, at)
-			make.ball(0.08, TITAN_GOLD, SMOOTH, at * CFrame.new(0, 0, -0.05))
+			make.ball(0.08, TITAN_GOLD, SMOOTH, at * CFrame.new(0, 0, -0.06))
 		end
 	end
+	make.block(Vector3.new(0.1, 0.24, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -height * 0.28, front - 0.02))
+	make.ball(0.12, JADE, SMOOTH, CFrame.new(0, -height * 0.28, front - 0.08))
 
-	-- Espalda: placa de piedra con cantos de oro y un sol de oro con el centro de jade.
-	make.block(
-		Vector3.new(width * 0.88, height * 0.86, 0.12),
-		TITAN_STONE,
-		SLATE,
-		CFrame.new(0, -height * 0.02, back + 0.08)
-	)
+	-- Espalda: estela de piedra con cantos de oro y un sol de oro con el centro de jade y cuatro rayos.
+	make.block(Vector3.new(width * 0.88, height * 0.86, 0.12), TITAN_STONE, SLATE, CFrame.new(0, -height * 0.02, back))
 	for side = -1, 1, 2 do
 		make.block(
 			Vector3.new(0.08, height * 0.86, 0.14),
 			TITAN_GOLD,
 			SMOOTH,
-			CFrame.new(side * width * 0.44, -height * 0.02, back + 0.09)
+			CFrame.new(side * width * 0.44, -height * 0.02, back + 0.01)
 		)
 	end
-	local sun = CFrame.new(0, -height * 0.1, back + 0.15)
-	make.rod(0.06, 0.5, TITAN_GOLD, SMOOTH, sun * FACING)
-	make.ball(0.2, JADE, SMOOTH, sun * CFrame.new(0, 0, 0.05))
-	for index = 0, 3 do
+	local sun = CFrame.new(0, -height * 0.1, back + 0.07)
+	make.block(Vector3.new(0.4, 0.4, 0.06), TITAN_GOLD, SMOOTH, sun)
+	make.ball(0.22, JADE, SMOOTH, sun * CFrame.new(0, 0, 0.05))
+	for _, dir in { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } } do
 		make.block(
-			Vector3.new(0.08, 0.26, 0.05),
+			Vector3.new(0.1 + math.abs(dir[1]) * 0.18, 0.1 + math.abs(dir[2]) * 0.18, 0.05),
 			TITAN_GOLD,
 			SMOOTH,
-			sun * CFrame.Angles(0, 0, index * math.pi / 2) * CFrame.new(0, 0.38, 0)
+			sun * CFrame.new(dir[1] * 0.38, dir[2] * 0.38, 0.02)
 		)
 	end
 
-	-- Cinturón de piedra con banda de oro, hebilla de jade y taparrabos rojo delante y detrás.
+	-- Cinturón de piedra con banda de oro, hebilla de jade y taparrabos rojo con ribete de oro y lengüeta de jade.
 	local waist = body.waist
 	local hipWidth, hipDepth = waist.size.X, waist.size.Z
-	local beltFront = -(hipDepth / 2 + 0.09)
-	waist.block(Vector3.new(hipWidth + 0.16, 0.26, hipDepth + 0.18), TITAN_STONE_DARK, SLATE, CFrame.new(0, 0.04, 0))
-	waist.block(Vector3.new(hipWidth + 0.18, 0.06, hipDepth + 0.2), TITAN_GOLD, SMOOTH, CFrame.new(0, 0.15, 0))
-	local buckle = CFrame.new(0, 0.04, beltFront - 0.03)
-	waist.rod(0.06, 0.44, TITAN_GOLD, SMOOTH, buckle * FACING)
-	waist.oval(Vector3.new(0.32, 0.3, 0.12), JADE, SMOOTH, buckle * CFrame.new(0, 0, -0.04))
-	for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
-		waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), ROYAL_RED, FABRIC, CFrame.new(0, -0.38, z))
-		waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.66, z))
+	local beltFront = -(hipDepth / 2 + 0.17)
+	waist.block(Vector3.new(hipWidth + 0.16, 0.26, hipDepth + 0.34), TITAN_STONE_DARK, SLATE, CFrame.new(0, 0.04, 0))
+	waist.block(Vector3.new(hipWidth + 0.18, 0.06, hipDepth + 0.36), TITAN_GOLD, SMOOTH, CFrame.new(0, 0.15, 0))
+	waist.block(Vector3.new(0.44, 0.3, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, 0.04, beltFront - 0.02))
+	waist.block(Vector3.new(0.22, 0.18, 0.06), JADE, SMOOTH, CFrame.new(0, 0.04, beltFront - 0.08))
+	for _, face in { { beltFront + 0.02, -1 }, { -beltFront - 0.02, 1 } } do
+		waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), ROYAL_RED, FABRIC, CFrame.new(0, -0.38, face[1]))
+		waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.66, face[1]))
+		waist.block(Vector3.new(0.16, 0.2, 0.05), JADE, SMOOTH, CFrame.new(0, -0.42, face[1] + face[2] * 0.05))
 	end
 
-	-- Brazaletes y muñequeras de oro con jade.
+	-- Brazaletes y muñequeras de oro con jade, y el brazal de piedra del antebrazo.
 	for side = -1, 1, 2 do
 		local upper = body.upperArm[side]
 		local us = upper.size
 		band(upper, -us.Y * 0.2, 0.12, 0.08, TITAN_GOLD, SMOOTH)
+		band(upper, -us.Y * 0.38, 0.1, 0.12, TITAN_STONE_DARK, SLATE)
 		upper.ball(0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
 		local forearm = body.lowerArm[side]
 		local fs = forearm.size
@@ -5773,8 +5317,136 @@ local function titanKing(body: Body, grade: number)
 			SMOOTH,
 			CFrame.new(side * (fs.X / 2 + 0.07), -fs.Y / 2 + 0.2, 0)
 		)
+		band(forearm, fs.Y * 0.12, fs.Y * 0.34, 0.12, TITAN_STONE_DARK, SLATE)
+		for _, y in { fs.Y * 0.3, -fs.Y * 0.05 } do
+			band(forearm, y, 0.05, 0.16, TITAN_GOLD, SMOOTH)
+		end
 		if grade >= 1 then
 			titanPauldron(upper, side, grade)
+		end
+	end
+
+	-- Grado 1: runas y gemas por el peto, el vientre, el cinturón, los brazos y los muslos.
+	if grade >= 1 then
+		for side = -1, 1, 2 do
+			for _, x in { 0.15, 0.25, 0.35 } do
+				rune(make, CFrame.new(side * width * x, height * 0.24, front - 0.11), runeColor, SMOOTH)
+			end
+			for _, y in { 0.32, -0.12 } do
+				make.ball(0.12, JADE, SMOOTH, CFrame.new(side * width * 0.34, height * (0.1 + y), front - 0.1))
+			end
+			for row = 0, 1 do
+				rune(
+					make,
+					CFrame.new(side * width * 0.32, -height * 0.21 - row * height * 0.15, front - 0.07),
+					runeColor,
+					SMOOTH,
+					0.1
+				)
+			end
+			for _, x in { 0.2, 0.32, 0.44 } do
+				rune(waist, CFrame.new(side * hipWidth * x, 0.04, beltFront - 0.03), runeColor, SMOOTH, 0.1)
+			end
+
+			-- Placa de piedra con banda de oro y dos tachones en cada cadera.
+			waist.block(
+				Vector3.new(0.12, 0.24, hipDepth * 0.6),
+				TITAN_STONE_DARK,
+				SLATE,
+				CFrame.new(side * (hipWidth / 2 + 0.1), 0.04, 0)
+			)
+			waist.block(
+				Vector3.new(0.14, 0.06, hipDepth * 0.62),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * (hipWidth / 2 + 0.1), -0.06, 0)
+			)
+			for _, z in { -0.18, 0.18 } do
+				waist.ball(0.1, TITAN_GOLD, SMOOTH, CFrame.new(side * (hipWidth / 2 + 0.17), 0.06, z))
+			end
+
+			-- Manguito de pelaje en el brazo (cuatro bloques en anillo), runas en el brazal y grebas en el muslo.
+			local upper = body.upperArm[side]
+			local us = upper.size
+			local cuffY = us.Y * 0.08
+			for _, sz in { -1, 1 } do
+				upper.block(
+					Vector3.new(us.X + 0.1, 0.22, 0.12),
+					fur,
+					FABRIC,
+					CFrame.new(0, cuffY, sz * (us.Z / 2 + 0.02))
+				)
+				upper.block(
+					Vector3.new(0.12, 0.22, us.Z + 0.1),
+					fur,
+					FABRIC,
+					CFrame.new(sz * (us.X / 2 + 0.02), cuffY, 0)
+				)
+			end
+			local forearm = body.lowerArm[side]
+			local fs = forearm.size
+			for _, y in { 0.2, 0.1, 0 } do
+				rune(
+					forearm,
+					CFrame.new(side * (fs.X / 2 + 0.075), fs.Y * y, 0) * CFrame.Angles(0, math.pi / 2, 0),
+					runeColor,
+					SMOOTH
+				)
+			end
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			band(leg, -ls.Y * 0.34, 0.1, 0.12, TITAN_GOLD, SMOOTH)
+			band(leg, -ls.Y * 0.12, 0.14, 0.08, TITAN_STONE_DARK, SLATE)
+			leg.block(
+				Vector3.new(0.1, ls.Y * 0.36, ls.Z * 0.6),
+				TITAN_STONE,
+				SLATE,
+				CFrame.new(side * (ls.X / 2 + 0.07), ls.Y * 0.14, 0)
+			)
+			for _, y in { 0.23, 0.14, 0.05 } do
+				rune(
+					leg,
+					CFrame.new(side * (ls.X / 2 + 0.135), ls.Y * y, 0) * CFrame.Angles(0, math.pi / 2, 0),
+					runeColor,
+					SMOOTH,
+					0.08
+				)
+			end
+			for _, z in { -0.22, 0.22 } do
+				leg.ball(0.12, JADE, SMOOTH, CFrame.new(side * (ls.X / 2 + 0.13), ls.Y * 0.14, z * ls.Z))
+			end
+		end
+	end
+
+	-- Grado 1 (con la capa del 2 queda tapado): el sol de la espalda con doce rayos de oro y jade, y runas y gemas en
+	-- los cantos de la estela.
+	if grade == 1 then
+		for index = 0, 11 do
+			local angle = index * math.pi / 6
+			local x, y = math.sin(angle) * 0.66, math.cos(angle) * 0.66
+			local long = math.abs(x) > math.abs(y)
+			make.block(
+				Vector3.new(if long then 0.22 else 0.1, if long then 0.1 else 0.22, 0.05),
+				TITAN_GOLD,
+				SMOOTH,
+				sun * CFrame.new(x, y, 0.02)
+			)
+		end
+		for index = 0, 3 do
+			make.ball(
+				0.12,
+				JADE,
+				SMOOTH,
+				sun * CFrame.new((index % 2 * 2 - 1) * 0.36, (index // 2 * 2 - 1) * 0.36, 0.05)
+			)
+		end
+		for side = -1, 1, 2 do
+			for _, y in { 0.3, 0.1, -0.1, -0.3 } do
+				rune(make, CFrame.new(side * width * 0.37, height * y, back + 0.07), runeColor, SMOOTH)
+			end
+			for sy = -1, 1, 2 do
+				make.ball(0.14, JADE, SMOOTH, CFrame.new(side * width * 0.37, sy * height * 0.38, back + 0.08))
+			end
 		end
 	end
 
@@ -5786,171 +5458,439 @@ local function titanKing(body: Body, grade: number)
 			FABRIC,
 			CFrame.new(0, height / 2 - 0.06, depth * 0.24)
 		)
-		local capeHeight = height * 1.2
-		local capeTop = height / 2 - 0.05
-		local capeZ = back + 0.22
 		make.block(
 			Vector3.new(width * 1.02, capeHeight, 0.12),
 			GORILLA_FUR,
 			FABRIC,
 			CFrame.new(0, capeTop - capeHeight / 2, capeZ)
 		)
-		if grade == 2 then
-			-- Calavera de gorila dorada, el motivo de la espalda de este grado: más que el sol del grado 1
-			-- y menos que el ídolo del 3, que la tapa.
-			goldenGorillaSkull(make, CFrame.new(0, capeTop - capeHeight * 0.36, capeZ + 0.06), width * 0.7)
-		else
-			-- Lomo plateado alrededor del ídolo: una silla de pelaje plateado con mechones en punta abajo.
-			make.oval(
-				Vector3.new(width * 0.84, capeHeight * 0.56, 0.05),
-				SILVER_FUR,
-				FABRIC,
-				CFrame.new(0, capeTop - capeHeight * 0.3, capeZ + 0.06)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.08, capeHeight, 0.14),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * width * 0.51, capeTop - capeHeight / 2, capeZ + 0.01)
 			)
-			for index = -1, 1 do
-				make.fang(
-					if index == 0 then 0.3 else 0.22,
-					0.18,
-					SILVER_FUR_DARK,
+			-- Runas en el canto y cuatro mechones por el lado de la capa.
+			for index = 0, 6 do
+				rune(
+					make,
+					CFrame.new(side * width * 0.44, capeTop - capeHeight * (0.1 + index * 0.11), capeZ + 0.08),
+					runeColor,
+					SMOOTH,
+					0.1
+				)
+			end
+			for index = 0, 3 do
+				make.block(
+					Vector3.new(0.22 - index % 2 * 0.06, 0.12, 0.1),
+					fur,
 					FABRIC,
-					CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.52, capeZ + 0.07)
-						* CFrame.Angles(math.pi, 0, 0)
+					CFrame.new(side * (width * 0.5 + 0.12), capeTop - capeHeight * (0.12 + index * 0.2), capeZ)
 				)
 			end
 		end
+		-- Flecos del bajo (dos escalones), banda de oro y gotas de jade.
 		for index = 0, 6 do
 			local x = (index / 6 - 0.5) * width * 0.92
-			make.fang(
-				if index % 2 == 0 then 0.34 else 0.26,
-				0.16,
+			local long = if index % 2 == 0 then 0.34 else 0.26
+			make.block(
+				Vector3.new(0.18, long * 0.6, 0.12),
 				GORILLA_FUR,
 				FABRIC,
-				CFrame.new(x, capeTop - capeHeight + 0.02, capeZ) * CFrame.Angles(math.pi, 0, 0)
+				CFrame.new(x, capeBottom - long * 0.3 + 0.02, capeZ)
+			)
+			make.block(
+				Vector3.new(0.1, long * 0.4, 0.12),
+				GORILLA_FUR,
+				FABRIC,
+				CFrame.new(x, capeBottom - long * 0.8 + 0.02, capeZ)
 			)
 		end
-		-- Broches de oro con jade, unidos por una cadena que cuelga.
+		make.block(Vector3.new(width * 1.04, 0.08, 0.14), TITAN_GOLD, SMOOTH, CFrame.new(0, capeBottom + 0.12, capeZ))
+		for index = 0, 5 do
+			make.ball(
+				0.1,
+				JADE,
+				SMOOTH,
+				CFrame.new(((index + 0.5) / 6 - 0.5) * width * 0.92, capeBottom + 0.12, capeZ + 0.09)
+			)
+		end
+
+		-- Calavera de gorila dorada con un halo de rayos de oro y gemas de jade: el motivo de la espalda de este grado
+		-- (el ídolo del 3 la tapa).
+		if grade == 2 then
+			local skull = CFrame.new(0, capeTop - capeHeight * 0.36, capeZ + 0.06)
+			local size = width * 0.7
+			local function disc(x: number, y: number, w: number, h: number, layer: number, color: Color3)
+				make.block(
+					Vector3.new(w * size, h * size, 0.04),
+					color,
+					SMOOTH,
+					skull * CFrame.new(x * size, y * size, layer * 0.02)
+				)
+			end
+			disc(0, 0.2, 0.98, 0.8, 0, TITAN_CARVING)
+			disc(0, -0.3, 0.88, 0.62, 0, TITAN_CARVING)
+			disc(0, 0.2, 0.9, 0.72, 1, TITAN_GOLD)
+			disc(0, 0.56, 0.34, 0.3, 0.5, TITAN_GOLD)
+			disc(0, -0.3, 0.78, 0.52, 2, TITAN_GOLD)
+			disc(0, -0.42, 0.5, 0.05, 3, TITAN_CARVING)
+			for side = -1, 1, 2 do
+				disc(side * 0.4, -0.06, 0.3, 0.3, 1.5, TITAN_GOLD)
+				disc(side * 0.21, -0.03, 0.27, 0.25, 3, TITAN_GOLD_DARK)
+				disc(side * 0.21, -0.04, 0.18, 0.16, 3.5, JADE)
+				disc(side * 0.22, 0.13, 0.46, 0.13, 4, TITAN_GOLD_DARK)
+				disc(side * 0.07, -0.22, 0.09, 0.07, 3, TITAN_CARVING)
+				make.block(
+					Vector3.new(0.08 * size, 0.2 * size, 0.04),
+					TITAN_GOLD,
+					SMOOTH,
+					skull * CFrame.new(side * 0.15 * size, -0.5 * size, 0.07)
+				)
+			end
+			-- Halo: diez rayos de oro alrededor (sin los de arriba, junto a los hombros) y ocho gemas de jade entre ellos.
+			for index = 0, 9 do
+				local angle = 0.7 + index * (2 * math.pi - 1.4) / 9
+				local x, y = -math.sin(angle) * size * 0.7, math.cos(angle) * size * 0.68
+				local long = math.abs(x) > math.abs(y)
+				make.block(
+					Vector3.new(if long then 0.34 else 0.12, if long then 0.12 else 0.34, 0.08),
+					TITAN_GOLD,
+					SMOOTH,
+					skull * CFrame.new(x, y, 0.1)
+				)
+				if index >= 1 and index <= 8 then
+					local mid = angle - (2 * math.pi - 1.4) / 18
+					make.ball(
+						0.1,
+						JADE,
+						SMOOTH,
+						skull * CFrame.new(-math.sin(mid) * size * 0.58, math.cos(mid) * size * 0.56, 0.1)
+					)
+				end
+			end
+		end
+
+		-- Broches de oro con jade, unidos por una cadena que cuelga, y de cada uno un colgante de jade.
 		local clasps = {}
 		for side = -1, 1, 2 do
 			local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.04)
-			make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
+			make.block(Vector3.new(0.3, 0.3, 0.08), TITAN_GOLD, SMOOTH, clasp)
 			make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
 			clasps[side] = clasp.Position
+			for link = 0, 3 do
+				make.block(
+					Vector3.new(0.06, 0.12, 0.06),
+					TITAN_GOLD,
+					SMOOTH,
+					CFrame.new(side * width * 0.36, height / 2 - 0.34 - link * 0.14, front - 0.1)
+				)
+			end
+			make.ball(0.16, JADE, SMOOTH, CFrame.new(side * width * 0.36, height / 2 - 0.96, front - 0.1))
+			make.block(
+				Vector3.new(0.1, 0.16, 0.08),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * width * 0.36, height / 2 - 1.12, front - 0.1)
+			)
 		end
 		local sag = Vector3.new(0, height / 2 - 0.3, front - 0.06)
 		strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
 		strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
+
+		-- Faldones de piedra en los muslos con ribete de oro, gema de jade, flecos y dos runas.
 		for side = -1, 1, 2 do
 			local leg = body.upperLeg[side]
 			local ls = leg.size
-			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.16))
 			leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), TITAN_STONE, SLATE, flap)
 			leg.block(Vector3.new(ls.X * 0.92, 0.06, 0.12), TITAN_GOLD, SMOOTH, flap * CFrame.new(0, -ls.Y * 0.2, 0))
 			leg.ball(0.12, JADE, SMOOTH, flap * CFrame.new(0, 0.02, -0.06))
+			for index = 0, 3 do
+				leg.block(
+					Vector3.new(0.12, 0.2, 0.1),
+					TITAN_GOLD_DARK,
+					SMOOTH,
+					flap * CFrame.new((index - 1.5) * ls.X * 0.2, -ls.Y * 0.23 - 0.1, -0.02)
+				)
+			end
+			for _, x in { -0.25, 0.25 } do
+				rune(leg, flap * CFrame.new(x * ls.X, 0.02, -0.07), runeColor, SMOOTH, 0.1)
+			end
 		end
 	end
 
-	-- Grado 3: el ídolo de la espalda, un busto de piedra con corona de oro, entre los omoplatos: la
-	-- corona llega a la nuca y la cabeza del jugador se sigue viendo por encima.
+	-- Grado 3: el ídolo de la espalda, un busto de piedra con corona de oro, entre los omoplatos: la corona llega a la
+	-- nuca y la cabeza del jugador se sigue viendo por encima. Alrededor, la silla de lomo plateado, la melena, el collar
+	-- de jade, las cadenas y las filas de mechones; en las muñecas púas de oro y en las rodillas placas de oro.
 	if grade >= 3 then
-		local idolSize = 1.4
-		local idolY = height * 0.05
-		local idol = CFrame.new(0, idolY, back + 0.6) * CFrame.Angles(0, math.pi, 0)
-		local bust = CFrame.new(0, idolY - idolSize * 0.5 - 0.06, back + 0.44)
+		local idol = CFrame.new(0, idolY, base + 0.6) * CFrame.Angles(0, math.pi, 0)
+		local bustY = idolY - idolSize * 0.5 - 0.06
+		local bust = CFrame.new(0, bustY, base + 0.44)
+		-- Lomo plateado: una silla de pelaje plateado con mechones en punta abajo, y dos filas más de mechones.
+		make.block(
+			Vector3.new(width * 0.84, capeHeight * 0.56, 0.05),
+			SILVER_FUR,
+			FABRIC,
+			CFrame.new(0, capeTop - capeHeight * 0.3, capeZ + 0.06)
+		)
+		for index = -1, 1 do
+			local long = if index == 0 then 0.3 else 0.22
+			make.block(
+				Vector3.new(0.18, long * 0.6, 0.1),
+				SILVER_FUR_DARK,
+				FABRIC,
+				CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.58 - long * 0.3, capeZ + 0.07)
+			)
+			make.block(
+				Vector3.new(0.1, long * 0.4, 0.1),
+				SILVER_FUR_DARK,
+				FABRIC,
+				CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.58 - long * 0.8, capeZ + 0.07)
+			)
+		end
+		for row = 1, 2 do
+			for index = 0, 6 do
+				make.block(
+					Vector3.new(0.16, if index % 2 == 0 then 0.24 else 0.18, 0.1),
+					SILVER_FUR_DARK,
+					FABRIC,
+					CFrame.new(
+						(index / 6 - 0.5) * width * 0.9 + (row - 1.5) * 0.1,
+						capeTop - capeHeight * (0.66 + row * 0.1),
+						capeZ + 0.07
+					)
+				)
+			end
+		end
 		make.block(Vector3.new(width * 0.78, 0.34, 0.5), TITAN_STONE_DARK, SLATE, bust)
 		make.block(Vector3.new(width * 0.8, 0.07, 0.52), TITAN_GOLD, SMOOTH, bust * CFrame.new(0, 0.1, 0))
-		local eyes = stoneGorilla(make, idol, idolSize, 1, SUN_GLOW, NEON)
+		local eyes = titanFace(make, idol, idolSize, 1, SUN_GLOW, NEON, false)
 		fireLight(eyes[1], SUN_GLOW)
-		-- Corona: banda de oro y cinco puntas con una cuenta de jade.
+		-- Corona: banda de oro, cinco puntas de dos escalones con una cuenta de jade y seis tachones.
 		local crown = idol * CFrame.new(0, idolSize * 0.5, idolSize * 0.08)
 		make.block(Vector3.new(idolSize * 0.66, 0.16, idolSize * 0.5), TITAN_GOLD, SMOOTH, crown)
 		for index = -2, 2 do
-			local spike = crown
-				* CFrame.new(index * idolSize * 0.13, 0.08, -idolSize * 0.22)
-				* CFrame.Angles(-0.15, 0, -index * 0.12)
 			local length = if index == 0 then 0.5 else 0.38 - math.abs(index) * 0.04
-			make.fang(length, 0.16, TITAN_GOLD, SMOOTH, spike)
-			make.ball(0.12, JADE, SMOOTH, spike * CFrame.new(0.08, 0.04, -0.1))
+			local x = index * idolSize * 0.13
+			make.block(
+				Vector3.new(0.16, length * 0.6, 0.12),
+				TITAN_GOLD,
+				SMOOTH,
+				crown * CFrame.new(x, 0.08 + length * 0.3, -idolSize * 0.22)
+			)
+			make.block(
+				Vector3.new(0.1, length * 0.4, 0.1),
+				TITAN_GOLD,
+				SMOOTH,
+				crown * CFrame.new(x, 0.08 + length * 0.8, -idolSize * 0.22)
+			)
+			make.ball(0.12, JADE, SMOOTH, crown * CFrame.new(x, 0.12, -idolSize * 0.22 - 0.09))
 		end
-		-- Grado 4: disco solar con rayos y cristales de jade, lianas con orquídeas y motas de sol.
-		if grade >= 4 then
-			local disc = CFrame.new(0, idolY + 0.3, back + 0.36)
-			-- Aro abierto (no un disco: por detrás taparía la cabeza) de doce tramos de oro, con rayos de
-			-- oro largos y rayos de sol que brillan, alternos.
-			local radius = idolSize * 0.86
-			local segment = 2 * radius * math.sin(math.pi / 12) + 0.04
-			for index = 0, 11 do
-				local angle = index * math.pi / 6
+		for index = 0, 5 do
+			make.ball(
+				0.09,
+				TITAN_GOLD,
+				SMOOTH,
+				crown * CFrame.new((index - 2.5) * idolSize * 0.115, 0, -idolSize * 0.26)
+			)
+		end
+		-- Melena plateada a los lados del ídolo (cinco bloques por lado) y hombreras de oro en el busto.
+		for side = -1, 1, 2 do
+			for index = 0, 4 do
 				make.block(
-					Vector3.new(segment, 0.14, 0.1),
+					Vector3.new(0.2, 0.28, 0.2),
+					SILVER_FUR,
+					FABRIC,
+					CFrame.new(side * (0.78 + math.sin(index * 0.8) * 0.16), idolY + 0.5 - index * 0.28, base + 0.5)
+				)
+			end
+			make.block(
+				Vector3.new(0.26, 0.14, 0.4),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * 0.8, bustY + 0.02, base + 0.44)
+			)
+		end
+		-- Collar de siete gemas de jade con seis colmillos de oro, y tres cadenas de dos eslabones con jade.
+		for index = 0, 6 do
+			make.ball(0.13, JADE, SMOOTH, CFrame.new((index - 3) * 0.2, bustY + 0.02, base + 0.72))
+			if index < 6 then
+				make.block(
+					Vector3.new(0.09, 0.2, 0.09),
+					TITAN_GOLD,
+					SMOOTH,
+					CFrame.new((index - 2.5) * 0.2, bustY - 0.1, base + 0.72)
+				)
+			end
+		end
+		for index = -1, 1 do
+			for link = 0, 1 do
+				make.block(
+					Vector3.new(0.05, 0.12, 0.05),
+					TITAN_GOLD,
+					SMOOTH,
+					CFrame.new(index * 0.28, bustY - 0.24 - link * 0.14, base + 0.5)
+				)
+			end
+			make.ball(
+				0.1,
+				JADE,
+				SMOOTH,
+				CFrame.new(index * 0.28, bustY - 0.56 - (2 - math.abs(index)) * 0.06, base + 0.5)
+			)
+		end
+		-- Púas de oro en las muñecas (tres por lado, solo hacia fuera) y rodilleras de oro con jade y dos puntas.
+		for side = -1, 1, 2 do
+			local forearm = body.lowerArm[side]
+			local fs = forearm.size
+			for _, z in { -0.28, 0, 0.28 } do
+				forearm.block(
+					Vector3.new(0.22, 0.1, 0.1),
+					TITAN_GOLD,
+					SMOOTH,
+					CFrame.new(side * (fs.X / 2 + 0.11), fs.Y * 0.12, z)
+				)
+			end
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			local knee = CFrame.new(side * 0.04, -ls.Y * 0.3, -(ls.Z / 2 + 0.1))
+			leg.block(Vector3.new(ls.X * 0.5, 0.3, 0.1), TITAN_GOLD, SMOOTH, knee)
+			leg.ball(0.12, JADE, SMOOTH, knee * CFrame.new(0, 0, -0.07))
+			for _, x in { -0.16, 0.16 } do
+				leg.block(Vector3.new(0.1, 0.1, 0.2), TITAN_GOLD, SMOOTH, knee * CFrame.new(x, 0, -0.1))
+			end
+		end
+
+		-- Grado 4: aro solar con rayos y cristales de jade, lianas con orquídeas y motas de sol.
+		if grade >= 4 then
+			local disc = CFrame.new(0, idolY + 0.3, base + 0.36)
+			local radius = idolSize * 0.86
+			-- Aro abierto (no un disco: por detrás taparía la cabeza), octogonal y sin giros: cuatro barras y, en cada
+			-- esquina, tres escalones.
+			for _, bar in
+				{
+					{ 0, radius, 1.0, 0.14 },
+					{ 0, -radius, 1.0, 0.14 },
+					{ radius, 0, 0.14, 1.1 },
+					{ -radius, 0, 0.14, 1.1 },
+				}
+			do
+				make.block(
+					Vector3.new(bar[3], bar[4], 0.1),
 					TITAN_GOLD_DARK,
 					SMOOTH,
-					disc
-						* CFrame.Angles(0, 0, angle + math.pi / 12)
-						* CFrame.new(0, radius * math.cos(math.pi / 12) - 0.04, 0)
+					disc * CFrame.new(bar[1], bar[2], 0)
 				)
-				local ray = disc * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius, 0.02)
-				if index % 2 == 0 then
-					make.fang(0.6, 0.2, TITAN_GOLD, SMOOTH, ray)
-				else
-					local beam = make.fang(0.42, 0.14, SUN_GLOW, NEON, ray)
-					if index == 3 then
-						fireLight(beam, SUN_GLOW)
-						sunMotes(beam, 6)
+			end
+			for sx = -1, 1, 2 do
+				for sy = -1, 1, 2 do
+					for _, step in { { 0.62, 0.98 }, { 0.9, 0.78 }, { 1.12, 0.56 } } do
+						make.block(
+							Vector3.new(0.26, 0.2, 0.1),
+							TITAN_GOLD_DARK,
+							SMOOTH,
+							disc * CFrame.new(sx * step[1], sy * step[2] * 1.2, 0)
+						)
 					end
 				end
 			end
-			-- Cuatro cristales de jade en las diagonales.
-			for _, angle in { math.pi / 4, 3 * math.pi / 4, 5 * math.pi / 4, 7 * math.pi / 4 } do
-				local base = disc * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius - 0.05, 0.05)
-				jadeCrystal(make, base.Position, base.UpVector + Vector3.new(0, 0, 0.15), 0.55, 0.24)
+			-- Un rayo largo de oro en cada punto cardinal (tres escalones) y un cristal de jade en cada esquina.
+			for _, dir in { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } } do
+				for index = 0, 2 do
+					local span = 0.22 - index * 0.04
+					make.block(
+						Vector3.new(if dir[1] ~= 0 then 0.2 else span, if dir[2] ~= 0 then 0.2 else span, 0.1),
+						TITAN_GOLD,
+						SMOOTH,
+						disc
+							* CFrame.new(
+								dir[1] * (radius + 0.1 + index * 0.18),
+								dir[2] * (radius + 0.1 + index * 0.18),
+								0.02
+							)
+					)
+				end
 			end
-			-- Lianas con hojas y una orquídea que caen de los lados del ídolo por la capa.
+			for sx = -1, 1, 2 do
+				for sy = -1, 1, 2 do
+					spire(make, sx * 0.9, disc.Position.Y + sy * 0.94, base + 0.4, 0.24, 0.5, 0.24, JADE, SMOOTH, 0)
+				end
+			end
+			-- Cuatro rayos de sol que brillan en el centro de las barras (el único neón del aro, con luz y motas en uno).
+			for index, dir in { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } } do
+				local beam = make.ball(0.16, SUN_GLOW, NEON, disc * CFrame.new(dir[1] * radius, dir[2] * radius, 0.08))
+				if index == 1 then
+					fireLight(beam, SUN_GLOW)
+					sunMotes(beam, 6)
+				end
+			end
+			-- Ocho tachones de oro en el aro y tres en cada muslo (de oro, sin neón).
+			for index = 0, 7 do
+				make.ball(
+					0.1,
+					TITAN_GOLD,
+					SMOOTH,
+					disc
+						* CFrame.new(
+							math.sin(index * math.pi / 4) * radius * 0.78,
+							math.cos(index * math.pi / 4) * radius * 0.78,
+							0.08
+						)
+				)
+			end
+			for side = -1, 1, 2 do
+				local ls = body.upperLeg[side].size
+				for _, z in { -0.3, 0, 0.3 } do
+					body.upperLeg[side].ball(
+						0.1,
+						TITAN_GOLD,
+						SMOOTH,
+						CFrame.new(side * (ls.X / 2 + 0.1), -ls.Y * 0.34, z * ls.Z)
+					)
+				end
+			end
+			-- Lianas con hojas y orquídeas que caen de los lados del ídolo por la capa: cuatro puntos y tiras entre ellos.
 			for side = -1, 1, 2 do
 				local points = {
-					Vector3.new(side * width * 0.34, idolY + 0.3, back + 0.5),
-					Vector3.new(side * width * 0.42, height * 0.04, back + 0.4),
-					Vector3.new(side * width * 0.36, -height * 0.2, back + 0.36),
-					Vector3.new(side * width * 0.42, -height * 0.48, back + 0.34),
+					Vector3.new(side * width * 0.34, idolY + 0.3, base + 0.5),
+					Vector3.new(side * width * 0.42, height * 0.04, base + 0.4),
+					Vector3.new(side * width * 0.36, -height * 0.2, base + 0.36),
+					Vector3.new(side * width * 0.42, -height * 0.48, base + 0.34),
 				}
 				for index = 1, #points - 1 do
 					strap(make, points[index], points[index + 1], 0.06, LIANA, FABRIC)
-					leaf(
-						make,
-						0.3,
-						if index % 2 == 0 then LEAF else LEAF_DARK,
-						CFrame.new(points[index + 1]) * CFrame.Angles(0, 0, side * 0.9)
-					)
 				end
-				-- Dos orquídeas por liana y dos hojas más en el tramo de abajo.
-				for _, flower in
-					{
-						CFrame.new(points[2] + Vector3.new(side * 0.04, 0, 0.06)),
-						CFrame.new(points[4] + Vector3.new(-side * 0.04, 0.1, 0.06)),
-					}
-				do
+				for index = 2, 3 do
+					local at = points[index] + Vector3.new(-side * 0.1, -0.08, 0.04)
+					make.block(
+						Vector3.new(0.16, 0.26, 0.05),
+						if index % 2 == 0 then LEAF else LEAF_DARK,
+						FABRIC,
+						CFrame.new(at)
+					)
+					make.block(Vector3.new(0.04, 0.2, 0.04), LIANA, FABRIC, CFrame.new(at + Vector3.new(0, 0, 0.03)))
+				end
+				for _, flower in { points[2] + Vector3.new(side * 0.04, 0, 0.06) } do
 					for petal = 0, 2 do
-						make.oval(
-							Vector3.new(0.12, 0.2, 0.05),
+						make.block(
+							Vector3.new(0.12, 0.12, 0.05),
 							ORCHID,
 							SMOOTH,
-							flower * CFrame.Angles(0, 0, petal * 2.1) * CFrame.new(0, 0.08, 0)
+							CFrame.new(flower + Vector3.new((petal - 1) * 0.1, math.abs(petal - 1) * -0.06 + 0.04, 0))
 						)
 					end
-					make.ball(0.07, SUN_GLOW, NEON, flower * CFrame.new(0, 0, 0.03))
-				end
-				for _, index in { 2, 3 } do
-					leaf(
-						make,
-						0.26,
-						LEAF,
-						CFrame.new(points[index] + Vector3.new(-side * 0.1, -0.12, 0.04))
-							* CFrame.Angles(0, 0, -side * 0.7)
+					make.block(
+						Vector3.new(0.08, 0.08, 0.05),
+						TITAN_GOLD,
+						SMOOTH,
+						CFrame.new(flower + Vector3.new(0, 0, 0.03))
 					)
 				end
 			end
 		end
 	end
-	titanRichness(body, grade)
 end
 
 OUTFITS.TitanKingOutfit = titanKing
@@ -5965,39 +5905,81 @@ do
 	local JAGUAR_MOUTH = Color3.fromRGB(96, 30, 32)
 	local NIGHT_STONE = Color3.fromRGB(46, 48, 62)
 	local SPECTRAL = Color3.fromRGB(190, 240, 255)
-	local SPECTRAL_BODY = Color3.fromRGB(140, 200, 250)
-	local SPECTRAL_SPOT = Color3.fromRGB(70, 120, 185)
+	-- El cuerpo del espíritu es azul espectral profundo (no casi blanco) para que se lea sobre fondos claros y sobre la capa;
+	-- detrás lleva una sombra de piedra de noche. La luna es plata azulada sobre un disco de azul noche.
+	local SPECTRAL_BODY = Color3.fromRGB(62, 96, 215)
+	local SPECTRAL_PALE = Color3.fromRGB(120, 160, 245)
+	local SPECTRAL_SPOT = Color3.fromRGB(28, 36, 105)
+	local MOON_SILVER = Color3.fromRGB(168, 190, 232)
+	local STAR_GOLD = Color3.fromRGB(255, 226, 150)
 
-	-- Roseta de jaguar de "size" en el plano XY de "at" (mirando a su -Z): mancha negra con el centro más
-	-- oscuro que el pelaje.
-	local function rosette(make: Builder, size: number, at: CFrame)
-		make.oval(Vector3.new(size, size * 0.85, 0.04), ROSETTE, SMOOTH, at)
-		make.oval(Vector3.new(size * 0.56, size * 0.46, 0.04), ROSETTE_CORE, SMOOTH, at * CFrame.new(0, 0, -0.012))
+	-- Ayudantes del Jaguar (Fase 20 Q6g). Todo de bloques alineados con los ejes y sin giros (ni óvalos, ni bolas, ni
+	-- colmillos girados): así entran en la malla del grado 4 y, en los grados bajos, cuestan lo mismo. Van en una tabla
+	-- para no gastar locales del nivel superior.
+	local jag = {}
+
+	-- Roseta de jaguar de "size" en el plano XY de "at" (mirando a su -Z): mancha negra con el centro más claro. Dos bloques.
+	function jag.rosette(make: Builder, size: number, at: CFrame)
+		make.block(Vector3.new(size, size * 0.85, 0.04), ROSETTE, SMOOTH, at)
+		make.block(Vector3.new(size * 0.5, size * 0.42, 0.04), ROSETTE_CORE, SMOOTH, at * CFrame.new(0, 0, -0.012))
 	end
 
-	-- Huella de jaguar de "size" en el plano XY de "at" (mirando a su -Z): almohadilla y cuatro dedos.
-	local function pawPrint(make: Builder, size: number, color: Color3, material: Enum.Material, at: CFrame)
-		make.oval(Vector3.new(size * 0.56, size * 0.46, 0.05), color, material, at * CFrame.new(0, -size * 0.16, 0))
+	-- Huella de jaguar de "size" en el plano XY de "at" (mirando a su -Z): almohadilla y cuatro dedos. Cinco bloques.
+	function jag.paw(make: Builder, size: number, color: Color3, material: Enum.Material, at: CFrame)
+		make.block(Vector3.new(size * 0.56, size * 0.4, 0.05), color, material, at * CFrame.new(0, -size * 0.18, 0))
 		for index = 0, 3 do
-			local angle = math.rad(-48 + index * 32)
-			make.oval(
-				Vector3.new(size * 0.2, size * 0.26, 0.05),
+			local outer = index == 0 or index == 3
+			make.block(
+				Vector3.new(size * 0.18, size * 0.24, 0.05),
 				color,
 				material,
-				at
-					* CFrame.new(math.sin(angle) * size * 0.4, -size * 0.12 + math.cos(angle) * size * 0.4, 0)
-					* CFrame.Angles(0, 0, -angle)
+				at * CFrame.new((index - 1.5) * size * 0.24, size * (if outer then 0.07 else 0.17), 0)
 			)
 		end
 	end
 
-	-- Cabeza de jaguar rugiendo, mirando a la -Z de "at", "size" studs de ancho y "depth" veces su fondo:
-	-- cráneo ancho y bajo con manchas, mejillas anchas, orejas pequeñas en punta con el dentro negro, ojos
-	-- almendrados de "eye" bajo unas cejas de furia, la lágrima negra bajo cada ojo, hocico corto y claro
-	-- con la nariz oscura y la boca abierta con colmillos de oro (ancha y con orejas grandes y redondas
-	-- parecía un oso). "pelt", "cream" y "material" son su pelaje (el del espíritu es translúcido).
-	-- Devuelve sus piezas y los ojos.
-	local function jaguarHead(
+	-- Garra, colmillo o mechón que cuelga (dos escalones, el segundo más fino): nace en "topY", en la X "x" y la Z "z".
+	-- "tipColor" y "tipMaterial" pintan el escalón de la punta de otra cosa (la luz del espíritu).
+	function jag.claw(
+		make: Builder,
+		x: number,
+		topY: number,
+		z: number,
+		length: number,
+		width: number,
+		color: Color3,
+		material: Enum.Material,
+		tipColor: Color3?,
+		tipMaterial: Enum.Material?
+	)
+		make.block(Vector3.new(width, length * 0.55, width), color, material, CFrame.new(x, topY - length * 0.275, z))
+		make.block(
+			Vector3.new(width * 0.6, length * 0.45, width * 0.6),
+			tipColor or color,
+			tipMaterial or material,
+			CFrame.new(x, topY - length * 0.775, z)
+		)
+	end
+
+	-- Cristal de jade de bloques: tres escalones que se estrechan hacia arriba y se corren "lean" studs (X, Z) por
+	-- escalón. Sin neón (el verde que brilla es de las curaciones).
+	function jag.crystal(make: Builder, base: Vector3, height: number, width: number, lean: Vector3)
+		for index = 0, 2 do
+			make.block(
+				Vector3.new(width * (1 - 0.28 * index), height / 3, width * (1 - 0.28 * index)),
+				if index == 2 then JADE_LIGHT else JADE,
+				SMOOTH,
+				CFrame.new(base + lean * (index + 0.5) + Vector3.new(0, height / 3 * (index + 0.5), 0))
+			)
+		end
+	end
+
+	-- Cabeza de jaguar rugiendo, de bloques, mirando a la -Z de "at": "size" studs de ancho y "depth" veces su fondo.
+	-- Cráneo ancho y bajo, mejillas, orejas de dos escalones, ojos de "eye" bajo las cejas de furia (con "detail"), hocico
+	-- crema con la nariz oscura y la boca abierta con colmillos de oro. "pelt", "cream" y "material" son su pelaje; con
+	-- cualquier otro material que no sea FABRIC es el espíritu (todo translúcido, colmillos de luz). "detail" añade cejas,
+	-- lágrimas, manchas, bigotes y el dentro de las orejas (38 bloques; sin él, 19). Devuelve sus piezas y los ojos.
+	function jag.head(
 		make: Builder,
 		at: CFrame,
 		size: number,
@@ -6006,102 +5988,68 @@ do
 		eyeMaterial: Enum.Material,
 		pelt: Color3,
 		cream: Color3,
-		material: Enum.Material
+		material: Enum.Material,
+		detail: boolean
 	): ({ BasePart }, { BasePart })
 		local parts, eyes = {}, {}
-		local spot = if material == FABRIC then ROSETTE else SPECTRAL_SPOT
-		local function on(x: number, y: number, z: number): CFrame
-			return at * CFrame.new(x * size, y * size, z * size * depth)
-		end
-		local function scaled(x: number, y: number, z: number): Vector3
-			return Vector3.new(x * size, y * size, z * size * depth)
-		end
-		local function add(piece: BasePart): BasePart
+		local real = material == FABRIC
+		local spot = if real then ROSETTE else SPECTRAL_SPOT
+		local spotMaterial = if real then SMOOTH else material
+		local mouth = if real then JAGUAR_MOUTH else SPECTRAL_SPOT
+		local fang = if real then TITAN_GOLD else SPECTRAL
+		local fangMaterial = if real then SMOOTH else material
+		local function put(
+			x: number,
+			y: number,
+			z: number,
+			sx: number,
+			sy: number,
+			sz: number,
+			color: Color3,
+			blockMaterial: Enum.Material
+		): BasePart
+			local piece = make.block(
+				Vector3.new(sx * size, sy * size, sz * size * depth),
+				color,
+				blockMaterial,
+				at * CFrame.new(x * size, y * size, z * size * depth)
+			)
 			table.insert(parts, piece)
 			return piece
 		end
-		local mouth = if material == FABRIC then JAGUAR_MOUTH else SPECTRAL_SPOT
-		add(make.oval(scaled(1, 0.7, 0.8), pelt, material, on(0, 0.08, 0.1)))
-		add(make.oval(scaled(0.26, 0.12, 0.24), cream, material, on(0, -0.43, -0.28)))
-		add(make.oval(scaled(0.38, 0.17, 0.22), mouth, SMOOTH, on(0, -0.33, -0.33)))
-		add(make.block(scaled(0.16, 0.28, 0.14), pelt, material, on(0, 0, -0.4) * CFrame.Angles(-0.3, 0, 0)))
-		add(make.oval(scaled(0.2, 0.11, 0.1), spot, SMOOTH, on(0, -0.11, -0.52)))
-		add(make.ball(0.08 * size, spot, SMOOTH, on(0, 0.36, -0.16)))
+		put(0, 0.06, 0.12, 1, 0.62, 0.7, pelt, material)
+		put(0, -0.14, -0.38, 0.42, 0.22, 0.3, cream, material)
+		put(0, -0.05, -0.54, 0.16, 0.08, 0.06, spot, spotMaterial)
+		put(0, -0.27, -0.45, 0.34, 0.08, 0.08, mouth, spotMaterial)
+		put(0, -0.37, -0.38, 0.36, 0.1, 0.26, cream, material)
 		for side = -1, 1, 2 do
-			add(make.oval(scaled(0.5, 0.42, 0.56), pelt, material, on(side * 0.28, -0.14, -0.08)))
-			add(make.oval(scaled(0.26, 0.22, 0.3), cream, material, on(side * 0.11, -0.2, -0.36)))
-			-- Oreja en punta, un poco abierta hacia fuera, con el dentro negro.
-			local earWidth = 0.22 * size
-			local ear = on(side * 0.36, 0.34, 0.12) * CFrame.Angles(0, 0, -side * 0.35)
-			add(make.fang(0.26 * size, earWidth, pelt, material, ear * CFrame.new(-earWidth / 2, 0, earWidth / 2)))
-			add(
-				make.fang(
-					0.17 * size,
-					earWidth * 0.6,
-					spot,
-					SMOOTH,
-					ear * CFrame.new(-earWidth * 0.3, 0.02, earWidth * 0.3 - 0.06 * size)
-				)
-			)
-			table.insert(
-				eyes,
-				add(
-					make.oval(
-						scaled(0.22, 0.1, 0.08),
-						eye,
-						eyeMaterial,
-						on(side * 0.2, 0.05, -0.36) * CFrame.Angles(0, 0, side * 0.35)
-					)
-				)
-			)
-			add(
-				make.oval(
-					scaled(0.32, 0.1, 0.14),
-					pelt,
-					material,
-					on(side * 0.2, 0.15, -0.34) * CFrame.Angles(0, 0, side * 0.45)
-				)
-			)
-			add(
-				make.block(
-					scaled(0.26, 0.04, 0.04),
-					spot,
-					SMOOTH,
-					on(side * 0.2, 0.13, -0.41) * CFrame.Angles(0, 0, side * 0.45)
-				)
-			)
-			add(
-				make.block(
-					scaled(0.04, 0.16, 0.04),
-					spot,
-					SMOOTH,
-					on(side * 0.15, -0.07, -0.44) * CFrame.Angles(0, 0, -side * 0.2)
-				)
-			)
-			add(make.ball(0.07 * size, spot, SMOOTH, on(side * 0.38, -0.06, -0.26)))
-			add(make.ball(0.06 * size, spot, SMOOTH, on(side * 0.42, -0.24, -0.2)))
-			add(make.ball(0.07 * size, spot, SMOOTH, on(side * 0.17, 0.32, -0.2)))
-			local fangWidth = 0.07 * size
-			add(
-				make.fang(
-					0.19 * size,
-					fangWidth,
-					TITAN_GOLD,
-					SMOOTH,
-					on(side * 0.13, -0.27, -0.42)
-						* CFrame.new(fangWidth / 2, 0, -fangWidth / 2)
-						* CFrame.Angles(0, 0, math.pi)
-				)
-			)
-			add(
-				make.fang(
-					0.1 * size,
-					fangWidth * 0.8,
-					TITAN_GOLD,
-					SMOOTH,
-					on(side * 0.11, -0.41, -0.4) * CFrame.new(-fangWidth * 0.4, 0, fangWidth * 0.4)
-				)
-			)
+			-- Mejilla ancha con el mechón crema delante.
+			put(side * 0.43, -0.12, -0.02, 0.3, 0.3, 0.42, pelt, material)
+			put(side * 0.36, -0.2, -0.25, 0.22, 0.2, 0.1, cream, material)
+			-- Oreja de dos escalones.
+			put(side * 0.36, 0.4, 0.12, 0.2, 0.18, 0.16, pelt, material)
+			put(side * 0.36, 0.53, 0.12, 0.12, 0.12, 0.12, pelt, material)
+			-- Ojos y colmillos de arriba.
+			table.insert(eyes, put(side * 0.2, 0.08, -0.25, 0.22, 0.09, 0.06, eye, eyeMaterial))
+			put(side * 0.12, -0.3, -0.5, 0.07, 0.1, 0.07, fang, fangMaterial)
+			put(side * 0.12, -0.37, -0.5, 0.045, 0.07, 0.045, fang, fangMaterial)
+			if detail then
+				put(side * 0.36, 0.42, 0.03, 0.08, 0.12, 0.04, spot, spotMaterial)
+				-- Cejas de furia: el escalón de fuera, alto, y el de dentro, más bajo y oscuro.
+				put(side * 0.27, 0.18, -0.27, 0.18, 0.08, 0.1, pelt, material)
+				put(side * 0.11, 0.145, -0.31, 0.14, 0.05, 0.04, spot, spotMaterial)
+				-- Lágrima negra bajo el ojo, manchas de la mejilla y bigotes.
+				put(side * 0.2, -0.07, -0.27, 0.05, 0.2, 0.04, spot, spotMaterial)
+				put(side * 0.43, -0.06, -0.235, 0.06, 0.06, 0.03, spot, spotMaterial)
+				put(side * 0.43, -0.18, -0.235, 0.06, 0.06, 0.03, spot, spotMaterial)
+				put(side * 0.1, -0.12, -0.535, 0.05, 0.05, 0.03, spot, spotMaterial)
+				put(side * 0.17, -0.17, -0.535, 0.05, 0.05, 0.03, spot, spotMaterial)
+			end
+		end
+		if detail then
+			put(0, 0.25, -0.235, 0.08, 0.07, 0.03, spot, spotMaterial)
+			put(-0.15, 0.28, -0.235, 0.07, 0.07, 0.03, spot, spotMaterial)
+			put(0.15, 0.28, -0.235, 0.07, 0.07, 0.03, spot, spotMaterial)
 		end
 		return parts, eyes
 	end
@@ -6110,12 +6058,12 @@ do
 	local function spectralMist(part: BasePart, rate: number)
 		local mist = Instance.new("ParticleEmitter")
 		mist.Texture = SMOKE_TEXTURE
-		mist.Color = ColorSequence.new(SPECTRAL)
-		mist.LightEmission = 0.6
-		mist.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1.1) })
+		mist.Color = ColorSequence.new(SPECTRAL_BODY)
+		mist.LightEmission = 0.3
+		mist.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 0.8) })
 		mist.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.2, 0.6),
+			NumberSequenceKeypoint.new(0.2, 0.78),
 			NumberSequenceKeypoint.new(1, 1),
 		})
 		mist.Lifetime = NumberRange.new(1.2, 2)
@@ -6128,293 +6076,187 @@ do
 		mist.Parent = part
 	end
 
-	-- Hombrera del Jaguar (grado 1+). La del brazo izquierdo: almohadilla de piedra de noche, dos láminas de
-	-- pelaje con el canto de oro y una cabeza de jaguar que mira hacia fuera (con los ojos encendidos desde
-	-- el grado 3; grado 4: tres cristales de jade detrás). La del arco (derecho), pequeña para no tensar la
-	-- cuerda contra ella: un casquete de pelaje con tres garras de oro.
+	-- Hombrera del Jaguar (grado 1+), sin giros para la malla. La del brazo izquierdo: almohadilla de piedra de noche con
+	-- el canto de oro, láminas de pelaje que bajan escalonadas hacia fuera (con rosetas y el canto de oro) y, encima, la
+	-- cabeza de un jaguar que mira hacia fuera. La del arco (derecho), pequeña para no tensar la cuerda contra ella: un
+	-- casquete de pelaje con tachones de oro, dos rosetas y tres garras de oro colgando por fuera.
+	-- Por grados (izquierda): 1, almohadilla, dos láminas y la cabeza sin manchas; 2, la tercera lámina, la cabeza con
+	-- todos sus detalles y cinco garras de oro colgando del borde; 3, ojos de luz, golpe de pelaje crema detrás de la cabeza,
+	-- aleta de detrás con roseta (lo que se ve de espaldas) y dos gemas de jade; 4, cinco cristales de jade detrás de la
+	-- cabeza. (Derecha): 1, el casquete; 2, la lámina de abajo; 3, puntas de las garras de luz y aleta con roseta detrás;
+	-- 4, tres cristales de jade.
 	local function jaguarPauldron(arm: Builder, side: number, grade: number)
 		local as = arm.size
+		local W, D = as.X, as.Z
 		local top = as.Y / 2
 		local lit = grade >= 3
+		local behind = CFrame.Angles(0, math.pi, 0)
+		local flat = CFrame.Angles(math.pi / 2, 0, 0) -- la roseta tumbada, mirando hacia arriba
+		local eye = if lit then SPECTRAL else JADE
+		local eyeMaterial = if lit then NEON else SMOOTH
 		if side > 0 then
-			-- Casquete plano (un óvalo fino, nunca una almohada) con el aro de oro debajo.
-			local cap = CFrame.new(side * 0.1, top + 0.06, 0)
-			arm.oval(Vector3.new(as.X * 1.24, 0.16, as.Z * 1.26), JAGUAR, FABRIC, cap)
-			arm.oval(Vector3.new(as.X * 1.3, 0.08, as.Z * 1.3), TITAN_GOLD, SMOOTH, cap * CFrame.new(0, -0.1, 0))
-			for _, z in { -0.24, 0, 0.24 } do
-				arm.ball(0.12, ROSETTE, SMOOTH, cap * CFrame.new(side * 0.16, 0.06, z * as.Z * 1.2))
-				arm.fang(
-					if z == 0 then 0.42 else 0.32,
-					0.12,
-					if lit then SPECTRAL else TITAN_GOLD,
-					if lit then NEON else SMOOTH,
-					CFrame.new(side * (as.X * 0.62), top - 0.12, z * as.Z) * CFrame.Angles(0, 0, -side * 2.4)
+			local cap = CFrame.new(side * 0.1, top + 0.08, 0)
+			arm.block(Vector3.new(W * 1.2, 0.18, D * 1.22), JAGUAR, FABRIC, cap)
+			arm.block(Vector3.new(W * 1.28, 0.06, D * 1.3), TITAN_GOLD, SMOOTH, cap * CFrame.new(0, -0.11, 0))
+			for sx = -1, 1, 2 do
+				for sz = -1, 1, 2 do
+					arm.block(
+						Vector3.one * 0.1,
+						TITAN_GOLD,
+						SMOOTH,
+						cap * CFrame.new(sx * W * 0.52, 0.12, sz * D * 0.52)
+					)
+				end
+			end
+			for _, z in { -0.28, 0.28 } do
+				jag.rosette(arm, 0.2, cap * CFrame.new(side * 0.06, 0.095, z * D) * flat)
+			end
+			if grade >= 2 then
+				-- Lámina de abajo, corrida hacia fuera, con el canto de oro.
+				local lame = cap * CFrame.new(side * 0.12, -0.2, 0)
+				arm.block(Vector3.new(W * 1.1, 0.14, D * 1.12), JAGUAR, FABRIC, lame)
+				arm.block(Vector3.new(W * 1.14, 0.05, D * 1.16), TITAN_GOLD, SMOOTH, lame * CFrame.new(0, -0.09, 0))
+			end
+			for _, z in { -0.3, 0, 0.3 } do
+				jag.claw(
+					arm,
+					side * 0.74,
+					top - 0.02,
+					z * D,
+					if z == 0 then 0.46 else 0.34,
+					0.13,
+					TITAN_GOLD,
+					SMOOTH,
+					if lit then SPECTRAL else nil,
+					if lit then NEON else nil
 				)
 			end
-			if lit then
-				-- Tres tachones de luz del espíritu en el canto del casquete.
-				for _, z in { -0.15, 0, 0.15 } do
-					arm.ball(0.1, SPECTRAL, NEON, cap * CFrame.new(side * as.X * 0.58, 0.04, z * as.Z * 1.2))
+			if grade >= 3 then
+				-- Aleta de pelaje detrás del casquete, con el canto de oro y una roseta.
+				local fin = CFrame.new(side * 0.1, top + 0.22, D * 0.66)
+				arm.block(Vector3.new(W * 1.1, 0.5, 0.1), JAGUAR, FABRIC, fin)
+				arm.block(Vector3.new(W * 1.14, 0.05, 0.12), TITAN_GOLD, SMOOTH, fin * CFrame.new(0, -0.27, 0))
+				jag.rosette(arm, 0.22, fin * CFrame.new(0, 0, 0.075) * behind)
+			end
+			if grade >= 4 then
+				for _, z in { -0.3, 0, 0.3 } do
+					jag.crystal(
+						arm,
+						Vector3.new(side * 0.12, top + 0.15, z * D),
+						if z == 0 then 0.85 else 0.55,
+						0.2,
+						Vector3.new(side * 0.03, 0, z * 0.1)
+					)
 				end
 			end
 			return
 		end
-		-- Casquete plano de pelaje con un aro de oro debajo y cuatro tachones de oro (no una almohada).
-		local cap = CFrame.new(side * 0.1, top + 0.06, 0)
-		arm.oval(Vector3.new(as.X * 1.3, 0.18, as.Z * 1.3), JAGUAR, FABRIC, cap)
-		arm.oval(Vector3.new(as.X * 1.36, 0.07, as.Z * 1.36), TITAN_GOLD, SMOOTH, cap * CFrame.new(0, -0.1, 0))
+
+		-- Almohadilla de piedra con el canto de oro debajo y cuatro tachones en las esquinas.
+		local pad = CFrame.new(side * 0.1, top + 0.1, 0)
+		arm.block(Vector3.new(W * 1.32, 0.2, D * 1.34), NIGHT_STONE, SLATE, pad)
+		arm.block(Vector3.new(W * 1.42, 0.07, D * 1.44), TITAN_GOLD, SMOOTH, pad * CFrame.new(0, -0.11, 0))
 		for sx = -1, 1, 2 do
 			for sz = -1, 1, 2 do
-				arm.ball(0.1, TITAN_GOLD, SMOOTH, cap * CFrame.new(sx * as.X * 0.5, 0.1, sz * as.Z * 0.5))
+				arm.block(Vector3.one * 0.1, TITAN_GOLD, SMOOTH, pad * CFrame.new(sx * W * 0.6, 0.14, sz * D * 0.62))
 			end
 		end
-		for _, z in { -0.32, 0.32 } do
-			arm.ball(0.13, ROSETTE, SMOOTH, cap * CFrame.new(side * 0.24, 0.08, z * as.Z))
-		end
-		if lit then
-			for _, z in { -0.15, 0, 0.15 } do
-				arm.ball(0.1, SPECTRAL, NEON, cap * CFrame.new(side * as.X * 0.62, 0.02, z * as.Z))
+		-- Láminas de pelaje que bajan escalonadas hacia fuera; las de fuera llevan una roseta en la franja que asoma.
+		local lames = {
+			{ w = 1.15, d = 1.36, y = 0.1, out = 0.18 },
+			{ w = 1.3, d = 1.3, y = 0.3, out = 0.33 },
+			{ w = 1.45, d = 1.24, y = 0.5, out = 0.48 },
+		}
+		for index, lame in lames do
+			if index == 3 and grade < 2 then
+				break
 			end
-		end
-		for index = 0, 1 do
-			local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
-				* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
-			arm.oval(
-				Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
+			local at = CFrame.new(side * lame.out, top - lame.y, 0)
+			arm.block(Vector3.new(W * lame.w, 0.2, D * lame.d), JAGUAR, FABRIC, at)
+			arm.block(
+				Vector3.new(W * lame.w + 0.06, 0.05, D * lame.d + 0.06),
 				TITAN_GOLD,
 				SMOOTH,
-				lame * CFrame.new(0, -0.07, 0)
+				at * CFrame.new(0, -0.12, 0)
 			)
-			arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), NIGHT_STONE, SLATE, lame)
+			if index > 1 then
+				jag.rosette(arm, 0.18, at * CFrame.new(side * (W * lame.w / 2 - 0.11), 0.12, 0) * flat)
+			end
 		end
-		jaguarHead(
+		-- La cabeza de jaguar, hundida en la almohadilla y mirando hacia fuera.
+		jag.head(
 			arm,
-			CFrame.new(side * as.X * 0.36, top + 0.3, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
-			0.82,
-			0.75,
-			if lit then SPECTRAL else JADE,
-			if lit then NEON else SMOOTH,
+			CFrame.new(side * 0.45, top + 0.52, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
+			0.92,
+			0.8,
+			eye,
+			eyeMaterial,
 			JAGUAR,
 			JAGUAR_CREAM,
-			FABRIC
+			FABRIC,
+			grade >= 2
 		)
+		if grade >= 2 then
+			-- Garras de oro colgando del borde de la lámina de abajo.
+			for index = -2, 2 do
+				jag.claw(
+					arm,
+					side * 1.12,
+					top - 0.63,
+					index * 0.25 * D,
+					if index % 2 == 0 then 0.42 else 0.3,
+					0.12,
+					TITAN_GOLD,
+					SMOOTH
+				)
+			end
+		end
+		if grade >= 3 then
+			-- Golpe de pelaje crema detrás de la cabeza, con cuatro manchas por su cara de atrás.
+			arm.block(Vector3.new(0.5, 0.5, D * 0.9), JAGUAR_CREAM, FABRIC, CFrame.new(0, top + 0.45, 0))
+			for _, x in { -0.15, 0.15 } do
+				for _, y in { 0.35, 0.58 } do
+					arm.block(Vector3.one * 0.08, ROSETTE, SMOOTH, CFrame.new(x, top + y, D * 0.45 + 0.02))
+				end
+			end
+			-- Aleta de detrás, con el canto de oro y una roseta.
+			local fin = CFrame.new(side * 0.15, top + 0.35, D * 0.7)
+			arm.block(Vector3.new(W * 1.2, 0.6, 0.1), JAGUAR, FABRIC, fin)
+			arm.block(Vector3.new(W * 1.24, 0.05, 0.12), TITAN_GOLD, SMOOTH, fin * CFrame.new(0, -0.32, 0))
+			jag.rosette(arm, 0.24, fin * CFrame.new(0, 0, 0.075) * behind)
+			for sz = -1, 1, 2 do
+				arm.block(Vector3.one * 0.14, JADE, SMOOTH, pad * CFrame.new(0, 0.14, sz * D * 0.58))
+			end
+		end
 		if grade >= 4 then
 			for _, z in { -0.42, -0.26, 0, 0.26, 0.42 } do
-				jadeCrystal(
+				jag.crystal(
 					arm,
-					Vector3.new(-side * 0.04, top + 0.24, z * as.Z),
-					Vector3.new(-side * 0.35, 1, z * 1.4),
-					if z == 0 then 0.62 elseif math.abs(z) > 0.3 then 0.38 else 0.44,
-					if math.abs(z) > 0.3 then 0.16 else 0.2
+					Vector3.new(-side * 0.05, top + 0.68, z * D),
+					if z == 0 then 0.75 elseif math.abs(z) > 0.3 then 0.5 else 0.62,
+					if math.abs(z) > 0.3 then 0.16 else 0.2,
+					Vector3.new(-side * 0.07, 0, z * 0.12)
 				)
 			end
 		end
 	end
 
-	-- Las ocho rosetas de la capa (x en anchos del torso, y en alturas de la capa): las usa la capa y las
-	-- luces del espíritu que se encienden en su centro.
-	local CAPE_SPOTS = {
-		{ -0.34, 0.22 },
-		{ 0.32, 0.12 },
-		{ -0.12, -0.12 },
-		{ 0.36, -0.32 },
-		{ -0.36, -0.4 },
-		{ 0.06, -0.62 },
-		{ -0.2, -0.82 },
-		{ 0.3, -0.78 },
-	}
-
-	-- Riqueza extra del Jaguar (T2 de la Fase 18). Grado 1: más rosetas en el jubón, manguitos de pelaje
-	-- crema, bandas y rosetas en los muslos, tachones y flecos en el cinturón. Grado 2: mechones por los
-	-- lados de la capa, gotas de jade en el bajo, flecos y cadenas con colgantes. Grado 3: luces del
-	-- espíritu en el centro de las rosetas de la capa y zarpazos de luz en los faldones. Grado 4: el mapa de
-	-- estrellas del espíritu sobre la capa.
-	local function jaguarRichness(body: Body, grade: number)
-		if grade < 1 then
-			return
-		end
-		local make = body.torso
-		local width, height, depth = make.size.X, make.size.Y, make.size.Z
-		local front = -(depth / 2 + 0.08)
-		local back = depth / 2
-		local capeHeight = height * 1.16
-		local capeTop = height / 2 - 0.05
-		local capeBottom = capeTop - capeHeight
-		local capeZ = back + 0.2
-
-		for _, spot in { { -0.4, -0.12 }, { 0.16, -0.16 }, { 0.4, -0.14 }, { -0.14, -0.24 }, { 0.12, -0.34 } } do
-			rosette(make, 0.24, CFrame.new(spot[1] * width, spot[2] * height, front + 0.005))
-		end
-
-		local waist = body.waist
-		local hipWidth, hipDepth = waist.size.X, waist.size.Z
-		local beltFront = -(hipDepth / 2 + 0.09)
-		for side = -1, 1, 2 do
-			for _, x in { 0.22, 0.4 } do
-				waist.ball(0.09, TITAN_GOLD, SMOOTH, CFrame.new(side * hipWidth * x, 0.05, beltFront - 0.02))
-			end
-		end
-		for index = 0, 2 do
-			for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
-				waist.fang(
-					0.2,
-					0.1,
-					JAGUAR_CREAM,
-					FABRIC,
-					CFrame.new((index - 1) * hipWidth * 0.12, -0.69, z) * CFrame.Angles(math.pi, 0, 0)
-				)
-			end
-		end
-
-		for side = -1, 1, 2 do
-			local upper = body.upperArm[side]
-			local us = upper.size
-			for index = 0, 4 do
-				local angle = index * math.pi * 2 / 5
-				upper.fang(
-					0.28,
-					0.13,
-					JAGUAR_CREAM,
-					FABRIC,
-					CFrame.new(
-						math.cos(angle) * (us.X / 2 + 0.04),
-						-us.Y * 0.2 - 0.04,
-						math.sin(angle) * (us.Z / 2 + 0.04)
-					) * CFrame.Angles(math.pi, 0, 0)
-				)
-			end
-			local leg = body.upperLeg[side]
-			local ls = leg.size
-			band(leg, -ls.Y * 0.34, 0.1, 0.12, TITAN_GOLD, SMOOTH)
-			band(leg, -ls.Y * 0.12, 0.16, 0.08, JAGUAR, FABRIC)
-			leg.ball(0.12, JADE, SMOOTH, CFrame.new(side * (ls.X / 2 + 0.1), -ls.Y * 0.34, 0))
-			rosette(
-				leg,
-				0.2,
-				CFrame.new(side * (ls.X / 2 + 0.06), -ls.Y * 0.12, 0) * CFrame.Angles(0, -side * math.pi / 2, 0)
-			)
-		end
-
-		if grade >= 2 then
-			-- Mechones de crema por los lados de la capa y gotas de jade entre los garras del bajo.
-			for side = -1, 1, 2 do
-				for index = 0, 5 do
-					make.fang(
-						if index % 2 == 0 then 0.28 else 0.2,
-						0.12,
-						JAGUAR_CREAM,
-						FABRIC,
-						CFrame.new(
-							side * (width * 0.5 + 0.06),
-							capeTop - capeHeight * (0.1 + index * 0.15),
-							capeZ + 0.01
-						)
-							* CFrame.Angles(0, 0, -side * (math.pi / 2 + 0.5))
-							* CFrame.new(-0.06, 0, 0.06)
-					)
-				end
-				-- Cadena con colgante de jade que cuelga de cada broche.
-				local top = Vector3.new(side * width * 0.36, height / 2 - 0.2, front - 0.12)
-				local drop = top + Vector3.new(0, -0.8, 0)
-				strap(make, top, drop, 0.04, TITAN_GOLD, SMOOTH)
-				make.ball(0.15, JADE, SMOOTH, CFrame.new(drop))
-				make.fang(
-					0.18,
-					0.09,
-					JAGUAR_CREAM,
-					SMOOTH,
-					CFrame.new(drop + Vector3.new(0.04, -0.07, 0.04)) * CFrame.Angles(math.pi, 0, 0)
-				)
-				local leg = body.upperLeg[side]
-				local ls = leg.size
-				local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
-					* CFrame.Angles(0.1, 0, 0)
-				for index = 0, 2 do
-					leg.fang(
-						0.2,
-						0.1,
-						JAGUAR_CREAM,
-						FABRIC,
-						flap * CFrame.new((index - 1) * ls.X * 0.25, -ls.Y * 0.23, -0.04) * CFrame.Angles(math.pi, 0, 0)
-					)
-				end
-			end
-			for index = 0, 5 do
-				make.ball(
-					0.1,
-					JADE,
-					SMOOTH,
-					CFrame.new(((index + 0.5) / 6 - 0.5) * width * 0.92, capeBottom + 0.14, capeZ + 0.08)
-				)
-			end
-		end
-
-		if grade >= 3 then
-			-- Una luz del espíritu en el centro de cada roseta de la capa y tres zarpazos de luz en cada faldón.
-			for _, spot in CAPE_SPOTS do
-				make.ball(
-					0.07,
-					SPECTRAL,
-					NEON,
-					CFrame.new(spot[1] * width, capeTop + spot[2] * capeHeight * 0.8 - 0.1, capeZ + 0.1)
-				)
-			end
-			for side = -1, 1, 2 do
-				local leg = body.upperLeg[side]
-				local ls = leg.size
-				local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
-					* CFrame.Angles(0.1, 0, 0)
-				for index = -1, 1 do
-					strap(
-						make,
-						(flap * CFrame.new(index * ls.X * 0.28 + ls.X * 0.1, ls.Y * 0.15, -0.08)).Position,
-						(flap * CFrame.new(index * ls.X * 0.28 - ls.X * 0.1, -ls.Y * 0.15, -0.08)).Position,
-						0.04,
-						SPECTRAL,
-						NEON
-					)
-				end
-				leg.ball(0.07, SPECTRAL, NEON, flap * CFrame.new(0, -ls.Y * 0.17, -0.08))
-			end
-		end
-
-		if grade >= 4 then
-			-- El mapa de estrellas del espíritu: ocho estrellas unidas por líneas finas de luz sobre la capa.
-			local stars = {
-				{ -0.3, 0.3 },
-				{ -0.12, 0.45 },
-				{ 0.12, 0.38 },
-				{ 0.3, 0.52 },
-				{ 0.1, 0.66 },
-				{ -0.2, 0.72 },
-				{ -0.34, 0.88 },
-				{ 0.2, 0.9 },
-			}
-			local previous: Vector3? = nil
-			for _, star in stars do
-				local at = Vector3.new(star[1] * width, capeTop - star[2] * capeHeight, capeZ + 0.1)
-				make.ball(0.08, SPECTRAL, NEON, CFrame.new(at))
-				if previous then
-					strap(make, previous, at, 0.025, SPECTRAL, NEON)
-				end
-				previous = at
-			end
-		end
-	end
-
-	-- Traje mítico del cazador, Jaguar Espectral. Grado 0: jubón de pelaje de jaguar con rosetas, placa de
-	-- piedra de noche en el pecho con una cabeza de jaguar en relieve, tres zarpazos en el otro pectoral,
-	-- gorguera de oro con cuentas de jade y colmillos colgando, correa del carcaj con tachones de oro y un
-	-- medallón de jade con la huella de oro, cinturón de piedra con hebilla de jade, taparrabos de pelaje,
-	-- la cola del jaguar colgando detrás, brazal de piedra en el brazo del arco y garras de oro en el otro.
-	-- Detrás, una gran huella de jaguar de oro y el carcaj de piedra de noche con aros de oro y flechas de
-	-- plumas negras y doradas. Grado 1: hombrera con cabeza de jaguar (y casquete con garras en el brazo del
-	-- arco). Grado 2: manto y capa de pelaje con rosetas y un fleco de garras de oro, broches con cadena,
-	-- faldones en los muslos y, de motivo en la espalda, la capucha con la cabeza del jaguar. Grado 3: el
-	-- espíritu del jaguar sale de la capucha (queda vacía) y asoma translúcido por encima del hombro
-	-- izquierdo, con una pata sobre él; se encienden los ojos de todas las cabezas, los zarpazos y las
-	-- garras. Grado 4: una luna creciente con estrellas detrás del espíritu, niebla espectral, las flechas
-	-- que arden en luz y cristales de jade en la hombrera.
+	-- Traje mítico del cazador, Jaguar Espectral (Fase 20 Q6g: todo de bloques alineados con los ejes, sin giros, para la
+	-- malla del grado 4; solo quedan sueltos el neón, el cristal del espíritu y las piezas con luces o partículas).
+	-- Grado 0: jubón de pelaje de jaguar con rosetas, placa de piedra de noche en el pecho con una cabeza de jaguar en
+	-- relieve, tres zarpazos en el otro pectoral, gorguera de oro con cuentas de jade y colmillos, correa del carcaj
+	-- con tachones de oro y un medallón de jade con la huella de oro, cinturón de piedra con hebilla de jade, taparrabos
+	-- de pelaje, la cola del jaguar colgando detrás (anillos negros y punta negra), brazal de piedra en el brazo del
+	-- arco y garras de oro en el otro. Detrás, una gran huella de jaguar de oro con rosetas y el carcaj de piedra de
+	-- noche con aros de oro y flechas de plumas negras y doradas. Grado 1: hombreras (cabeza de jaguar a la izquierda,
+	-- casquete con garras en el brazo del arco), más rosetas en el jubón, manguitos de pelaje crema, bandas y rosetas en
+	-- los muslos, tachones en el cinturón. Grado 2: manto y capa de pelaje con rosetas y un fleco de garras, broches con
+	-- cadena, faldones con dientes en los muslos, mechones por los lados de la capa, gotas de jade en el bajo, dientes en
+	-- el taparrabos y en los manguitos y, de motivo en la espalda, la capucha con la cabeza del jaguar. Grado 3: el
+	-- espíritu del jaguar sale de la capucha (queda vacía) y asoma translúcido por encima del hombro izquierdo, con una
+	-- pata sobre él; se encienden los ojos de todas las cabezas, los zarpazos, las garras y las rosetas de la capa.
+	-- Grado 4: una luna creciente con estrellas detrás del espíritu, niebla espectral, el mapa de estrellas sobre la
+	-- capa, las flechas que arden en luz y cristales de jade en las hombreras.
 	local function spectralJaguar(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -6423,64 +6265,106 @@ do
 		local lit = grade >= 3
 		local eye = if lit then SPECTRAL else JADE
 		local eyeMaterial = if lit then NEON else SMOOTH
+		local BEHIND = CFrame.Angles(0, math.pi, 0)
+		local capeHeight = height * 1.16
+		local capeTop = height / 2 - 0.05
+		local capeBottom = capeTop - capeHeight
+		local capeZ = back + 0.2
 		make.block(
 			Vector3.new(width + 0.1, height * 0.92, depth + 0.14),
 			JAGUAR,
 			FABRIC,
 			CFrame.new(0, -height * 0.03, 0)
 		)
-		local BEHIND = CFrame.Angles(0, math.pi, 0)
-		for _, spot in { { -0.38, -0.3 }, { 0.36, -0.38 }, { -0.12, -0.42 }, { 0.42, 0.04 } } do
-			rosette(make, 0.26, CFrame.new(spot[1] * width, spot[2] * height, front + 0.005))
+		-- Rosetas de delante: cuatro en el grado 0 y cinco más desde el grado 1.
+		local frontSpots = { { -0.38, -0.3 }, { 0.36, -0.38 }, { -0.12, -0.42 }, { 0.42, 0.04 } }
+		if grade >= 1 then
+			for _, spot in { { -0.4, -0.12 }, { 0.16, -0.16 }, { -0.14, -0.24 }, { 0.12, -0.34 }, { 0.4, -0.14 } } do
+				table.insert(frontSpots, spot)
+			end
 		end
-		for _, spot in
-			{ { -0.36, 0.3 }, { 0.3, 0.32 }, { -0.1, -0.06 }, { 0.38, -0.2 }, { -0.36, -0.36 }, { 0.08, -0.4 } }
-		do
-			rosette(make, 0.28, CFrame.new(spot[1] * width, spot[2] * height, back + 0.075) * BEHIND)
+		for _, spot in frontSpots do
+			jag.rosette(make, 0.24, CFrame.new(spot[1] * width, spot[2] * height, front + 0.005))
 		end
 
-		-- Pecho: placa de piedra de noche con el canto de oro y una cabeza de jaguar en relieve (izquierda) y
-		-- tres zarpazos (derecha), que brillan desde el grado 3.
-		local plate = CFrame.new(-width * 0.24, height * 0.18, front - 0.03) * CFrame.Angles(0.08, 0.12, 0)
+		-- Espalda (hasta el grado 1; la capa la tapa después): rosetas y la gran huella de oro.
+		if grade < 2 then
+			for _, spot in
+				{ { -0.36, 0.3 }, { 0.3, 0.32 }, { -0.06, -0.26 }, { 0.38, -0.2 }, { -0.36, -0.36 }, { 0.08, -0.46 } }
+			do
+				jag.rosette(make, 0.28, CFrame.new(spot[1] * width, spot[2] * height, back + 0.075) * BEHIND)
+			end
+			jag.paw(make, 0.8, TITAN_GOLD, SMOOTH, CFrame.new(-width * 0.2, height * 0.12, back + 0.1) * BEHIND)
+		end
+
+		-- Pecho: placa de piedra de noche con el canto de oro, cuatro tachones y una cabeza de jaguar en relieve
+		-- (izquierda); tres zarpazos (derecha), que brillan desde el grado 3 y entonces van adelantados.
+		local plate = CFrame.new(-width * 0.24, height * 0.18, front - 0.03)
 		make.block(Vector3.new(width * 0.46, height * 0.4, 0.12), TITAN_GOLD, SMOOTH, plate * CFrame.new(0, 0, 0.02))
 		make.block(Vector3.new(width * 0.4, height * 0.34, 0.12), NIGHT_STONE, SLATE, plate * CFrame.new(0, 0, -0.01))
-		jaguarHead(make, plate * CFrame.new(0, -0.02, -0.07), 0.6, 0.35, eye, eyeMaterial, JAGUAR, JAGUAR_CREAM, FABRIC)
+		for sx = -1, 1, 2 do
+			for sy = -1, 1, 2 do
+				make.block(
+					Vector3.one * 0.1,
+					TITAN_GOLD,
+					SMOOTH,
+					plate * CFrame.new(sx * width * 0.2, sy * height * 0.16, -0.1)
+				)
+			end
+		end
+		jag.head(
+			make,
+			plate * CFrame.new(0, -0.02, -0.07),
+			0.6,
+			0.35,
+			eye,
+			eyeMaterial,
+			JAGUAR,
+			JAGUAR_CREAM,
+			FABRIC,
+			false
+		)
+		local slashZ = if lit then front - 0.1 else front - 0.02
 		for index = -1, 1 do
 			local x = width * 0.26 + index * 0.13
 			strap(
 				make,
-				Vector3.new(x + 0.1, height * 0.36, front - 0.02),
-				Vector3.new(x - 0.1, height * 0.04, front - 0.02),
+				Vector3.new(x + 0.1, height * 0.36, slashZ),
+				Vector3.new(x - 0.1, height * 0.04, slashZ),
 				0.07,
 				if lit then SPECTRAL else ROSETTE,
 				if lit then NEON else SMOOTH
 			)
 		end
 
-		-- Gorguera de oro con cuentas de jade y colmillos colgando.
-		for index = 0, 6 do
-			local angle = math.rad(-150 + index * 50)
+		-- Gorguera: aro de oro alrededor del cuello con cuatro cuentas de jade y tres colmillos crema delante.
+		local neckY = height / 2 - 0.02
+		local collarZ = depth / 2 + 0.1
+		for _, z in { -collarZ, collarZ } do
+			make.block(Vector3.new(width * 0.54, 0.14, 0.16), TITAN_GOLD, SMOOTH, CFrame.new(0, neckY, z))
+		end
+		for side = -1, 1, 2 do
 			make.block(
-				Vector3.new(0.28, 0.14, 0.16),
+				Vector3.new(0.16, 0.14, collarZ * 2 - 0.16),
 				TITAN_GOLD,
 				SMOOTH,
-				CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
-					* CFrame.Angles(0, -angle, 0)
+				CFrame.new(side * width * 0.27, neckY, 0)
 			)
-			if index < 6 then
-				local mid = angle + math.rad(25)
-				local bead = CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
-				make.ball(0.15, JADE, SMOOTH, bead)
-				if math.cos(mid) > 0.3 then
-					make.fang(
-						0.24,
-						0.1,
-						JAGUAR_CREAM,
-						SMOOTH,
-						bead * CFrame.new(0.05, -0.08, -0.02) * CFrame.Angles(0, 0, math.pi)
-					)
-				end
+			for _, z in { -collarZ, collarZ } do
+				make.block(Vector3.one * 0.15, JADE, SMOOTH, CFrame.new(side * width * 0.27, neckY + 0.05, z))
 			end
+		end
+		for index = -1, 1 do
+			jag.claw(
+				make,
+				index * width * 0.16,
+				neckY - 0.07,
+				-collarZ - 0.02,
+				if index == 0 then 0.34 else 0.26,
+				0.1,
+				JAGUAR_CREAM,
+				SMOOTH
+			)
 		end
 
 		-- Correa del carcaj con tachones de oro y un medallón de jade con la huella de oro.
@@ -6488,62 +6372,103 @@ do
 		local strapFrom = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.09)
 		local strapTo = Vector3.new(-width * 0.4, -height / 2 + 0.12, front - 0.09)
 		for _, t in { 0.18, 0.72, 0.88 } do
-			make.ball(0.1, TITAN_GOLD, SMOOTH, CFrame.new(strapFrom:Lerp(strapTo, t)))
+			make.block(Vector3.one * 0.1, TITAN_GOLD, SMOOTH, CFrame.new(strapFrom:Lerp(strapTo, t)))
 		end
 		local medallion = CFrame.new(strapFrom:Lerp(strapTo, 0.45) + Vector3.new(0, 0, -0.02))
-		make.rod(0.06, 0.48, TITAN_GOLD, SMOOTH, medallion * FACING)
-		make.rod(0.06, 0.38, JADE, SMOOTH, medallion * CFrame.new(0, 0, -0.03) * FACING)
-		pawPrint(make, 0.3, TITAN_GOLD, SMOOTH, medallion * CFrame.new(0, 0.02, -0.06))
+		make.block(Vector3.new(0.5, 0.5, 0.06), TITAN_GOLD, SMOOTH, medallion)
+		make.block(Vector3.new(0.38, 0.38, 0.06), JADE, SMOOTH, medallion * CFrame.new(0, 0, -0.03))
+		jag.paw(make, 0.3, TITAN_GOLD, SMOOTH, medallion * CFrame.new(0, 0.02, -0.06))
 
-		-- Espalda: la gran huella de oro (bajo la capa desde el grado 2).
-		if grade < 2 then
-			pawPrint(make, 0.8, TITAN_GOLD, SMOOTH, CFrame.new(-width * 0.2, height * 0.12, back + 0.1) * BEHIND)
-		end
-
-		-- Cinturón de piedra con banda de oro y hebilla de jade, taparrabos de pelaje y la cola.
+		-- Cinturón de piedra con banda de oro y hebilla de jade, taparrabos de pelaje con roseta (delante y detrás).
 		local waist = body.waist
 		local hipWidth, hipDepth = waist.size.X, waist.size.Z
 		local beltFront = -(hipDepth / 2 + 0.09)
 		waist.block(Vector3.new(hipWidth + 0.16, 0.24, hipDepth + 0.18), NIGHT_STONE, SLATE, CFrame.new(0, 0.05, 0))
 		waist.block(Vector3.new(hipWidth + 0.18, 0.05, hipDepth + 0.2), TITAN_GOLD, SMOOTH, CFrame.new(0, 0.15, 0))
 		local buckle = CFrame.new(0, 0.05, beltFront - 0.03)
-		waist.rod(0.06, 0.42, TITAN_GOLD, SMOOTH, buckle * FACING)
-		waist.oval(Vector3.new(0.3, 0.28, 0.1), JADE, SMOOTH, buckle * CFrame.new(0, 0, -0.04))
+		waist.block(Vector3.new(0.44, 0.34, 0.06), TITAN_GOLD, SMOOTH, buckle)
+		waist.block(Vector3.new(0.3, 0.24, 0.06), JADE, SMOOTH, buckle * CFrame.new(0, 0, -0.04))
 		for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
-			local out = if z < 0 then -0.035 else 0.035
+			local isFront = z < 0
 			waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), JAGUAR, FABRIC, CFrame.new(0, -0.38, z))
 			waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.66, z))
-			waist.ball(0.16, ROSETTE, SMOOTH, CFrame.new(0.04, -0.34, z + out))
+			jag.rosette(
+				waist,
+				0.2,
+				CFrame.new(0.04, -0.34, z + (if isFront then -0.035 else 0.035))
+					* (if isFront then CFrame.identity else BEHIND)
+			)
+			if grade >= 2 then
+				for index = -1, 1 do
+					jag.claw(waist, index * hipWidth * 0.12, -0.69, z, 0.2, 0.1, JAGUAR_CREAM, FABRIC)
+				end
+			end
 		end
-		local tail = {
-			Vector3.new(hipWidth * 0.12, -0.05, hipDepth / 2 + 0.12),
-			Vector3.new(hipWidth * 0.26, -0.55, hipDepth / 2 + 0.4),
-			Vector3.new(hipWidth * 0.3, -1.1, hipDepth / 2 + 0.5),
-			Vector3.new(hipWidth * 0.14, -1.55, hipDepth / 2 + 0.62),
-			Vector3.new(hipWidth * 0.22, -1.8, hipDepth / 2 + 0.88),
-		}
-		-- Tramos de pelaje que se solapan (lisos, sin juntas), un anillo negro en cada uno y la punta negra.
-		for index = 1, #tail - 1 do
-			local from, to = tail[index], tail[index + 1]
-			local thick = 0.24 - index * 0.025
-			local segment = CFrame.lookAt((from + to) / 2, to)
-			waist.oval(Vector3.new(thick, thick, (to - from).Magnitude + thick), JAGUAR, FABRIC, segment)
-			waist.oval(Vector3.new(thick + 0.03, thick + 0.03, 0.1), ROSETTE, SMOOTH, segment * CFrame.new(0, 0, 0.08))
+		if grade >= 1 then
+			for side = -1, 1, 2 do
+				for _, x in { 0.22, 0.4 } do
+					waist.block(
+						Vector3.one * 0.09,
+						TITAN_GOLD,
+						SMOOTH,
+						CFrame.new(side * hipWidth * x, 0.05, beltFront - 0.02)
+					)
+				end
+			end
 		end
-		waist.oval(
-			Vector3.new(0.18, 0.18, 0.3),
-			ROSETTE,
-			FABRIC,
-			CFrame.lookAt(tail[#tail], tail[#tail] + (tail[#tail] - tail[#tail - 1]))
-		)
 
-		-- Brazos: brazaletes de oro con jade; brazal de piedra de noche en el del arco (derecho) y, en el
-		-- otro, un puño de pelaje con tres garras de oro.
+		-- La cola del jaguar: nueve bloques de pelaje que bajan y se curvan hacia atrás, con tres anillos negros y la
+		-- punta negra. Cada uno: x en anchos del cinturón, y, z detrás de la cintura y grosor.
+		local tail = {
+			{ 0.1, -0.06, 0.16, 0.28 },
+			{ 0.14, -0.32, 0.3, 0.27 },
+			{ 0.18, -0.58, 0.42, 0.26 },
+			{ 0.22, -0.84, 0.5, 0.25 },
+			{ 0.25, -1.1, 0.54, 0.24 },
+			{ 0.23, -1.36, 0.6, 0.22 },
+			{ 0.19, -1.6, 0.7, 0.2 },
+			{ 0.14, -1.78, 0.84, 0.18 },
+			{ 0.1, -1.86, 1.0, 0.16 },
+		}
+		for index, piece in tail do
+			local at = CFrame.new(hipWidth * piece[1], piece[2], hipDepth / 2 + piece[3])
+			local thick = piece[4]
+			waist.block(Vector3.new(thick, 0.3, thick), if index == #tail then ROSETTE else JAGUAR, FABRIC, at)
+			if index == 3 or index == 5 or index == 7 then
+				waist.block(
+					Vector3.new(thick + 0.04, 0.07, thick + 0.04),
+					ROSETTE,
+					SMOOTH,
+					at * CFrame.new(0, -0.03, 0)
+				)
+			end
+		end
+
+		-- Brazos: brazaletes de oro con jade; brazal de piedra de noche en el del arco (derecho) y, en el otro, un puño
+		-- de pelaje con tres garras de oro (de luz en las puntas desde el grado 3). Grado 1: manguito crema.
 		for side = -1, 1, 2 do
 			local upper = body.upperArm[side]
 			local us = upper.size
 			band(upper, -us.Y * 0.2, 0.12, 0.08, TITAN_GOLD, SMOOTH)
-			upper.ball(0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
+			upper.block(Vector3.one * 0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
+			if grade >= 1 then
+				band(upper, -us.Y * 0.34, 0.18, 0.12, JAGUAR_CREAM, FABRIC)
+			end
+			if grade >= 2 then
+				-- Tres dientes crema que cuelgan del manguito: delante, detrás y por fuera.
+				for _, tooth in { { 0, -1 }, { 0, 1 }, { side, 0 } } do
+					jag.claw(
+						upper,
+						tooth[1] * (us.X / 2 + 0.08),
+						-us.Y * 0.34 - 0.09,
+						tooth[2] * (us.Z / 2 + 0.08),
+						0.26,
+						0.12,
+						JAGUAR_CREAM,
+						FABRIC
+					)
+				end
+			end
 			local forearm = body.lowerArm[side]
 			local fs = forearm.size
 			if side > 0 then
@@ -6551,27 +6476,95 @@ do
 				for _, y in { fs.Y * 0.3, -fs.Y * 0.26 } do
 					band(forearm, y, 0.06, 0.14, TITAN_GOLD, SMOOTH)
 				end
-				forearm.oval(Vector3.new(0.06, 0.24, 0.2), JADE, SMOOTH, CFrame.new(fs.X / 2 + 0.08, 0.02, 0))
+				forearm.block(Vector3.new(0.06, 0.24, 0.2), JADE, SMOOTH, CFrame.new(fs.X / 2 + 0.08, 0.02, 0))
 			else
 				band(forearm, -fs.Y / 2 + 0.16, 0.26, 0.14, JAGUAR, FABRIC)
 				band(forearm, -fs.Y / 2 + 0.3, 0.06, 0.16, TITAN_GOLD, SMOOTH)
 				for _, z in { -0.18, 0, 0.18 } do
-					forearm.fang(
-						0.3,
-						0.09,
-						if lit then SPECTRAL else TITAN_GOLD,
-						if lit then NEON else SMOOTH,
-						CFrame.new(-(fs.X / 2 + 0.06), -fs.Y / 2 + 0.06, z) * CFrame.Angles(0, 0, math.pi - 0.3)
+					jag.claw(
+						forearm,
+						-(fs.X / 2 + 0.06),
+						-fs.Y / 2 + 0.16,
+						z,
+						0.34,
+						0.1,
+						TITAN_GOLD,
+						SMOOTH,
+						if lit then SPECTRAL else nil,
+						if lit then NEON else nil
 					)
 				end
 			end
 			if grade >= 1 then
 				jaguarPauldron(upper, side, grade)
 			end
+			-- Muslos. Grado 1: banda de oro, banda de pelaje, cuenta de jade y roseta. Grado 2: faldón de pelaje con el
+			-- canto de oro, roseta, jade y dos dientes crema. Grado 3: tres zarpazos de luz delante del faldón.
+			local leg = body.upperLeg[side]
+			local ls = leg.size
+			if grade >= 1 then
+				band(leg, -ls.Y * 0.34, 0.1, 0.12, TITAN_GOLD, SMOOTH)
+				band(leg, -ls.Y * 0.12, 0.16, 0.08, JAGUAR, FABRIC)
+				leg.block(Vector3.one * 0.12, JADE, SMOOTH, CFrame.new(side * (ls.X / 2 + 0.1), -ls.Y * 0.34, 0))
+				jag.rosette(
+					leg,
+					0.2,
+					CFrame.new(side * (ls.X / 2 + 0.06), -ls.Y * 0.12, 0) * CFrame.Angles(0, -side * math.pi / 2, 0)
+				)
+			end
+			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
+			if grade >= 2 then
+				leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), JAGUAR, FABRIC, flap)
+				leg.block(
+					Vector3.new(ls.X * 0.92, 0.06, 0.12),
+					TITAN_GOLD,
+					SMOOTH,
+					flap * CFrame.new(0, -ls.Y * 0.2, 0)
+				)
+				leg.block(Vector3.one * 0.14, ROSETTE, SMOOTH, flap * CFrame.new(-side * 0.12, 0.04, -0.05))
+				leg.block(Vector3.one * 0.12, JADE, SMOOTH, flap * CFrame.new(side * 0.1, -0.06, -0.06))
+				for _, x in { -0.22, 0.22 } do
+					jag.claw(
+						leg,
+						flap.X + x * ls.X,
+						flap.Y - ls.Y * 0.23,
+						flap.Z - 0.04,
+						0.2,
+						0.1,
+						JAGUAR_CREAM,
+						FABRIC
+					)
+				end
+			end
+			if grade >= 3 then
+				local glow = Vector3.new(flap.X, flap.Y, flap.Z - 0.14)
+				for index = -1, 1 do
+					strap(
+						leg,
+						glow + Vector3.new(index * ls.X * 0.28 + ls.X * 0.1, ls.Y * 0.15, 0),
+						glow + Vector3.new(index * ls.X * 0.28 - ls.X * 0.1, -ls.Y * 0.15, 0),
+						0.04,
+						SPECTRAL,
+						NEON
+					)
+				end
+				leg.block(Vector3.one * 0.07, SPECTRAL, NEON, CFrame.new(glow + Vector3.new(0, -ls.Y * 0.17, 0)))
+			end
 		end
 
-		-- Grado 2: manto y capa de pelaje con rosetas, fleco de garras de oro, broches y faldones.
+		-- Grado 2: manto y capa de pelaje con rosetas, fleco de garras, broches con cadena, mechones por los lados y
+		-- gotas de jade en el bajo.
 		local quiverOut = 0.06
+		local capeSpots = {
+			{ -0.34, 0.22 },
+			{ 0.32, 0.12 },
+			{ -0.12, -0.12 },
+			{ 0.36, -0.32 },
+			{ -0.36, -0.4 },
+			{ 0.06, -0.62 },
+			{ -0.2, -0.82 },
+			{ 0.3, -0.78 },
+		}
 		if grade >= 2 then
 			quiverOut = 0.32
 			make.block(
@@ -6580,23 +6573,19 @@ do
 				FABRIC,
 				CFrame.new(0, height / 2 - 0.06, depth * 0.24)
 			)
-			local capeHeight = height * 1.16
-			local capeTop = height / 2 - 0.05
-			local capeZ = back + 0.2
 			make.block(
 				Vector3.new(width * 1.02, capeHeight, 0.12),
 				JAGUAR,
 				FABRIC,
 				CFrame.new(0, capeTop - capeHeight / 2, capeZ)
 			)
-			for _, spot in CAPE_SPOTS do
-				rosette(
+			for _, spot in capeSpots do
+				jag.rosette(
 					make,
 					0.3,
 					CFrame.new(spot[1] * width, capeTop + spot[2] * capeHeight * 0.8 - 0.1, capeZ + 0.075) * BEHIND
 				)
 			end
-			local capeBottom = capeTop - capeHeight
 			make.block(
 				Vector3.new(width * 1.04, 0.08, 0.14),
 				TITAN_GOLD,
@@ -6610,64 +6599,74 @@ do
 					SMOOTH,
 					CFrame.new(side * width * 0.5, capeTop - capeHeight / 2, capeZ + 0.01)
 				)
+				-- Tres mechones crema que cuelgan por cada lado de la capa.
+				for index = 0, 2 do
+					jag.claw(
+						make,
+						side * (width * 0.5 + 0.08),
+						capeTop - capeHeight * (0.2 + index * 0.27),
+						capeZ + 0.01,
+						if index % 2 == 0 then 0.28 else 0.2,
+						0.12,
+						JAGUAR_CREAM,
+						FABRIC
+					)
+				end
 			end
+			-- Fleco de garras de oro y crema en el bajo, con gotas de jade entre ellas.
 			for index = 0, 6 do
-				local x = (index / 6 - 0.5) * width * 0.92
-				make.fang(
+				jag.claw(
+					make,
+					(index / 6 - 0.5) * width * 0.92,
+					capeBottom + 0.02,
+					capeZ,
 					if index % 2 == 0 then 0.32 else 0.22,
 					0.13,
 					if index % 2 == 0 then TITAN_GOLD else JAGUAR_CREAM,
-					SMOOTH,
-					CFrame.new(x, capeBottom + 0.02, capeZ) * CFrame.Angles(math.pi, 0, 0)
+					SMOOTH
 				)
 			end
-			-- Broches de oro con jade y cadena.
+			for index = 0, 5 do
+				make.block(
+					Vector3.one * 0.1,
+					JADE,
+					SMOOTH,
+					CFrame.new(((index + 0.5) / 6 - 0.5) * width * 0.92, capeBottom + 0.14, capeZ + 0.08)
+				)
+			end
+			-- Broches de oro con jade y la cadena entre ellos, por delante del pecho.
 			local clasps = {}
 			for side = -1, 1, 2 do
 				local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.06)
-				make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
-				make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
-				clasps[side] = clasp.Position
+				make.block(Vector3.new(0.26, 0.26, 0.08), TITAN_GOLD, SMOOTH, clasp)
+				make.block(Vector3.one * 0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
+				clasps[side] = Vector3.new(clasp.X, clasp.Y, front - 0.12)
 			end
-			local sag = Vector3.new(0, height / 2 - 0.3, front - 0.1)
-			strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
-			strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
-			for side = -1, 1, 2 do
-				local leg = body.upperLeg[side]
-				local ls = leg.size
-				local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
-					* CFrame.Angles(0.1, 0, 0)
-				leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), JAGUAR, FABRIC, flap)
-				leg.block(
-					Vector3.new(ls.X * 0.92, 0.06, 0.12),
-					TITAN_GOLD,
-					SMOOTH,
-					flap * CFrame.new(0, -ls.Y * 0.2, 0)
-				)
-				leg.ball(0.14, ROSETTE, SMOOTH, flap * CFrame.new(-side * 0.12, 0.04, -0.05))
-				leg.ball(0.12, JADE, SMOOTH, flap * CFrame.new(side * 0.1, -0.06, -0.06))
-			end
-			-- La capucha: la cabeza del jaguar a la espalda (grado 2) o, desde el grado 3, vacía, porque el
-			-- espíritu ha salido de ella.
+			local sag = Vector3.new(0, height / 2 - 0.3, front - 0.12)
+			stairs(make, clasps[-1], sag, 0.05, 0.05, TITAN_GOLD, SMOOTH, 4)
+			stairs(make, sag, clasps[1], 0.05, 0.05, TITAN_GOLD, SMOOTH, 4)
+			-- La capucha: la cabeza del jaguar a la espalda (grado 2) o, desde el grado 3, vacía, porque el espíritu ha
+			-- salido de ella.
 			if grade == 2 then
-				jaguarHead(
+				jag.head(
 					make,
-					CFrame.new(0, height / 2 - 0.36, capeZ + 0.3) * BEHIND * CFrame.Angles(-0.25, 0, 0),
+					CFrame.new(0, height / 2 - 0.36, capeZ + 0.42) * BEHIND,
 					1.1,
-					0.6,
+					0.8,
 					JADE,
 					SMOOTH,
 					JAGUAR,
 					JAGUAR_CREAM,
-					FABRIC
+					FABRIC,
+					false
 				)
 			else
-				loweredHood(make, JAGUAR, ROSETTE, FABRIC)
+				blockHood(make, JAGUAR, ROSETTE, FABRIC)
 			end
 		end
 
-		-- El carcaj de piedra de noche con aros de oro, un aro de pelaje con jade y flechas de plumas negras
-		-- y doradas (grado 4: arden en luz).
+		-- El carcaj de piedra de noche con aros de oro, un aro de pelaje con jade y flechas de plumas negras y doradas
+		-- (grado 4: arden en luz).
 		local quiverAt = backQuiver(make, {
 			length = 1.85,
 			radius = 0.26,
@@ -6675,18 +6674,23 @@ do
 			material = SLATE,
 			rim = TITAN_GOLD,
 			rimMaterial = SMOOTH,
-			arrows = if grade >= 3 then 9 elseif grade >= 2 then 7 else 5,
+			arrows = if grade >= 4 then 8 elseif grade >= 3 then 7 elseif grade >= 2 then 6 else 5,
 			feathers = { ROSETTE, TITAN_GOLD },
 		}, quiverOut)
-		make.rod(0.22, 0.58, JAGUAR, FABRIC, quiverAt * UPRIGHT)
-		make.ball(0.16, JADE, SMOOTH, quiverAt * CFrame.new(0, 0, 0.27))
-		for _, y in { 0.42, -0.42 } do
-			make.rod(0.05, 0.56, TITAN_GOLD, SMOOTH, quiverAt * CFrame.new(0, y, 0) * UPRIGHT)
+		local quiverAxis = quiverAt:VectorToWorldSpace(Vector3.yAxis)
+		make.block(Vector3.new(0.78, 0.22, 0.6), JAGUAR, FABRIC, CFrame.new(quiverAt.Position))
+		for _, along in { 0.42, -0.42 } do
+			make.block(
+				Vector3.new(0.76, 0.07, 0.58),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(quiverAt.Position + quiverAxis * along)
+			)
 		end
+		make.block(Vector3.one * 0.16, JADE, SMOOTH, CFrame.new(quiverAt.Position + Vector3.new(0, 0, 0.3)))
 
-		-- Grado 3: el espíritu del jaguar, translúcido, asoma por encima del hombro izquierdo mirando atrás:
-		-- la cabeza rugiendo, que se deshace por debajo en jirones de niebla que bajan hasta la capucha, y una
-		-- pata sobre el hombro.
+		-- Grado 3: el espíritu del jaguar, translúcido, asoma por encima del hombro izquierdo mirando atrás: la cabeza
+		-- rugiendo con su halo de espinas, el cuello que se deshace en jirones de niebla y una pata sobre el hombro.
 		if grade >= 3 then
 			local ghost: { BasePart } = {}
 			local function keep(piece: BasePart)
@@ -6696,33 +6700,33 @@ do
 				* BEHIND
 				* CFrame.Angles(0.1, -0.35, 0.12)
 			local headParts, spiritEyes =
-				jaguarHead(make, headAt, 1.25, 1, SPECTRAL, NEON, SPECTRAL_BODY, SPECTRAL, GLASS)
+				jag.head(make, headAt, 1.5, 1, SPECTRAL, NEON, SPECTRAL_BODY, SPECTRAL_PALE, GLASS, false)
 			for _, piece in headParts do
 				if not table.find(spiritEyes, piece) then
 					keep(piece)
 				end
 			end
 			fireLight(spiritEyes[1], SPECTRAL)
-			-- Aura: un abanico de colmillos de cristal detrás de la cabeza (menos por abajo, en el cuello) y doce
-			-- estrellitas de luz que flotan alrededor.
-			for _, piece in
-				fangRing(
-					make,
-					headAt * CFrame.new(0, 0.02, 0.38),
-					14,
-					Vector2.new(-2.5, 2.5),
-					Vector2.new(0.85, 0.8),
-					0.36,
-					0.14,
-					SPECTRAL_BODY,
-					GLASS
+			-- Sombra de piedra de noche (mate, entra en la malla) detrás de la cabeza, el cuello y la pata: el contorno
+			-- oscuro con el que el espíritu se lee sobre un fondo claro.
+			make.block(Vector3.new(1.75, 1.6, 0.1), NIGHT_STONE, SLATE, headAt * CFrame.new(0, 0.04, 0.8))
+			-- Halo: nueve espinas de cristal detrás de la cabeza (menos por abajo, en el cuello) y cuatro estrellitas.
+			for index = 0, 8 do
+				local angle = math.rad(-120 + index * 30)
+				keep(
+					make.block(
+						Vector3.new(0.24, 0.6, 0.12),
+						SPECTRAL_PALE,
+						GLASS,
+						headAt
+							* CFrame.new(-math.sin(angle) * 1.15, math.cos(angle) * 1.15 + 0.02, 0.5)
+							* CFrame.Angles(0, 0, angle)
+					)
 				)
-			do
-				keep(piece)
 			end
-			for index = 0, 11 do
-				make.ball(
-					0.06,
+			for index = 0, 3 do
+				make.block(
+					Vector3.one * 0.07,
 					SPECTRAL,
 					NEON,
 					headAt
@@ -6733,194 +6737,212 @@ do
 						)
 				)
 			end
-			local neck = headAt.Position + Vector3.new(0.1, -0.5, -0.12)
-			keep(make.oval(Vector3.new(0.9, 0.6, 0.7), SPECTRAL_BODY, GLASS, CFrame.new(neck)))
-			-- Manchas oscuras del espíritu sobre el cuello (la z sigue la curva del óvalo).
-			for _, spot in { { -0.2, 0.08 }, { 0.18, 0.1 }, { 0, -0.1 }, { -0.3, -0.1 }, { 0.28, -0.08 } } do
-				local depthAt = 0.35 * math.sqrt(math.max(0, 1 - (spot[1] / 0.45) ^ 2 - (spot[2] / 0.3) ^ 2))
+			-- Cuello con manchas oscuras y cuatro jirones de niebla que cuelgan de él.
+			local neck = headAt.Position + Vector3.new(0.1, -0.6, -0.12)
+			make.block(Vector3.new(1.25, 0.9, 0.1), NIGHT_STONE, SLATE, CFrame.new(neck + Vector3.new(0, -0.05, -0.45)))
+			keep(make.block(Vector3.new(1.05, 0.7, 0.8), SPECTRAL_BODY, GLASS, CFrame.new(neck)))
+			for _, spot in { { -0.2, 0.08 }, { 0.18, 0.1 }, { 0, -0.1 } } do
 				keep(
-					make.oval(
-						Vector3.new(0.14, 0.11, 0.04),
+					make.block(
+						Vector3.new(0.16, 0.12, 0.04),
 						SPECTRAL_SPOT,
-						SMOOTH,
-						CFrame.new(neck + Vector3.new(spot[1], spot[2], depthAt + 0.02))
+						GLASS,
+						CFrame.new(neck + Vector3.new(spot[1], spot[2], 0.42))
 					)
 				)
 			end
-			for index, wisp in
-				{
-					{ -0.3, 1.3, 0.38 },
-					{ 0.05, 1.6, 0.34 },
-					{ 0.4, 1.15, 0.28 },
-					{ -0.55, 1.0, 0.26 },
-					{ 0.65, 0.9, 0.24 },
-					{ -0.15, 1.9, 0.3 },
-					{ 0.25, 1.4, 0.26 },
-					{ -0.45, 1.6, 0.22 },
-				}
-			do
-				local tilt, length, wide = wisp[1], wisp[2], wisp[3]
-				local at = CFrame.new(neck + Vector3.new(tilt * 0.6, 0, 0.05 * index))
-					* CFrame.Angles(0, 0, math.pi + tilt)
-				keep(make.fang(length, wide, SPECTRAL_BODY, GLASS, at * CFrame.new(-wide / 2, 0, wide / 2)))
+			for index, wisp in { { -0.3, 1.3, 0.3 }, { -0.05, 1.7, 0.3 }, { 0.2, 1.2, 0.26 }, { 0.4, 0.9, 0.22 } } do
+				for _, piece in
+					{
+						make.block(
+							Vector3.new(wisp[3], wisp[2] * 0.55, wisp[3]),
+							SPECTRAL_BODY,
+							GLASS,
+							CFrame.new(neck.X + wisp[1], neck.Y - 0.35 - wisp[2] * 0.275, neck.Z + 0.05 * index)
+						),
+						make.block(
+							Vector3.new(wisp[3] * 0.6, wisp[2] * 0.45, wisp[3] * 0.6),
+							SPECTRAL_BODY,
+							GLASS,
+							CFrame.new(neck.X + wisp[1], neck.Y - 0.35 - wisp[2] * 0.775, neck.Z + 0.05 * index)
+						),
+					}
+				do
+					keep(piece)
+				end
+			end
+			-- La pata sobre el hombro: un brazo largo que va de la espalda al pecho, el antebrazo que baja, la mano con
+			-- tres dedos y tres garras de luz (adelantada del pecho).
+			local handZ = front - 0.2
+			local armLength = back + 0.65 - handZ
+			make.block(
+				Vector3.new(0.5, 0.5, armLength),
+				NIGHT_STONE,
+				SLATE,
+				CFrame.new(-width * 0.5, height / 2 + 0.14, (back + 0.65 + handZ) / 2)
+			)
+			keep(
 				make.block(
-					Vector3.new(0.04, length * 0.6, 0.04),
-					SPECTRAL,
-					NEON,
-					at * CFrame.new(0, length * 0.3, wide * 0.6)
+					Vector3.new(0.32, 0.32, armLength),
+					SPECTRAL_BODY,
+					GLASS,
+					CFrame.new(-width * 0.5, height / 2 + 0.16, (back + 0.65 + handZ) / 2)
 				)
-			end
-			local paw = {
-				Vector3.new(-width * 0.36, height * 0.3, back + 0.6),
-				Vector3.new(-width * 0.34, height / 2 + 0.16, back * 0.2),
-				Vector3.new(-width * 0.44, height * 0.38, front - 0.12),
-			}
-			for index = 1, #paw - 1 do
-				keep(
-					make.oval(
-						Vector3.new(0.32, 0.32, (paw[index + 1] - paw[index]).Magnitude + 0.2),
-						SPECTRAL_BODY,
-						GLASS,
-						CFrame.lookAt((paw[index] + paw[index + 1]) / 2, paw[index + 1])
-					)
+			)
+			keep(
+				make.block(
+					Vector3.new(0.32, 0.5, 0.32),
+					SPECTRAL_BODY,
+					GLASS,
+					CFrame.new(-width * 0.5, height / 2 - 0.1, handZ)
 				)
-			end
-			keep(make.oval(Vector3.new(0.4, 0.3, 0.36), SPECTRAL_BODY, GLASS, CFrame.new(paw[3])))
+			)
+			keep(
+				make.block(
+					Vector3.new(0.42, 0.3, 0.38),
+					SPECTRAL_BODY,
+					GLASS,
+					CFrame.new(-width * 0.5, height / 2 - 0.5, handZ)
+				)
+			)
 			for index = -1, 1 do
-				make.fang(
-					0.2,
-					0.07,
-					SPECTRAL,
-					NEON,
-					CFrame.new(paw[3] + Vector3.new(index * 0.11, -0.1, -0.12)) * CFrame.Angles(math.pi - 0.4, 0, 0)
-				)
 				keep(
-					make.oval(
-						Vector3.new(0.14, 0.1, 0.14),
+					make.block(
+						Vector3.new(0.12, 0.1, 0.14),
 						SPECTRAL_BODY,
 						GLASS,
-						CFrame.new(paw[3] + Vector3.new(index * 0.11, -0.05, -0.02))
+						CFrame.new(-width * 0.5 + index * 0.13, height / 2 - 0.6, handZ - 0.2)
 					)
 				)
-			end
-			for _, x in { -0.19, 0.19 } do
-				make.fang(
-					0.16,
-					0.06,
+				make.block(
+					Vector3.new(0.06, 0.18, 0.06),
 					SPECTRAL,
 					NEON,
-					CFrame.new(paw[3] + Vector3.new(x, -0.08, -0.1)) * CFrame.Angles(math.pi - 0.4, 0, 0)
+					CFrame.new(-width * 0.5 + index * 0.13, height / 2 - 0.74, handZ - 0.22)
 				)
 			end
-			-- Rastro del espíritu: seis esferas de cristal que se afinan hacia atrás desde la punta de la cola.
-			for index = 1, 6 do
+			-- Rastro del espíritu: cuatro cubos de cristal que se afinan hacia atrás desde la punta de la cola.
+			local tip = tail[#tail]
+			for index = 1, 4 do
 				keep(
-					waist.ball(
-						0.36 - index * 0.04,
+					waist.block(
+						Vector3.one * (0.36 - index * 0.05),
 						SPECTRAL_BODY,
 						GLASS,
-						CFrame.new(tail[#tail] + Vector3.new(0, index * 0.05, index * 0.25))
+						CFrame.new(hipWidth * tip[1], tip[2] + index * 0.05, hipDepth / 2 + tip[3] + index * 0.25)
 					)
 				)
 			end
 			for _, piece in ghost do
-				piece.Transparency = 0.35
+				piece.Transparency = 0.3
+			end
+			-- Las rosetas de la capa que brillan: una luz del espíritu en el centro de cuatro de ellas.
+			for _, index in { 1, 3, 5, 7 } do
+				local spot = capeSpots[index]
+				make.block(
+					Vector3.one * 0.07,
+					SPECTRAL,
+					NEON,
+					CFrame.new(spot[1] * width, capeTop + spot[2] * capeHeight * 0.8 - 0.1, capeZ + 0.12)
+				)
 			end
 
-			-- Grado 4: luna creciente con estrellas detrás de la cabeza del espíritu, niebla y las flechas
-			-- que arden en luz.
+			-- Grado 4: luna creciente con estrellas detrás de la cabeza del espíritu, niebla, el mapa de estrellas de la
+			-- capa y las flechas que arden en luz.
 			if grade >= 4 then
-				-- La luna: un arco de plata que engorda hacia el centro, con el filo de dentro de luz.
-				local moon = CFrame.new(headAt.Position + Vector3.new(0, 0.05, -0.25))
-				local radius = 1.05
-				local count = 12
-				local step = math.rad(240) / count
-				for index = 0, count - 1 do
-					local angle = math.rad(-120) + (index + 0.5) * step
-					local thick = 0.3 - math.abs(index - (count - 1) / 2) * 0.04
-					local piece = moon * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius, 0)
-					local length = 2 * radius * math.sin(step / 2) + 0.05
-					make.block(Vector3.new(length, thick, 0.1), SILVER, SMOOTH, piece * CFrame.new(0, thick / 2, 0))
-					make.block(Vector3.new(length, 0.06, 0.12), SPECTRAL, NEON, piece)
+				-- La luna: pixel art de plata (dos círculos de celdas, uno vaciado dentro del otro), una celda de luz por
+				-- el filo de dentro y tres estrellas en cruz.
+				local cell = 0.17
+				local moon = Vector3.new(headAt.X - 0.5, headAt.Y + 0.95, headAt.Z - 0.35)
+				for row = -6, 6 do
+					local runFrom: number? = nil
+					for col = -6, 7 do
+						local inside = col <= 6
+							and col * col + row * row <= 6.3 * 6.3
+							and (col - 2.4) * (col - 2.4) + row * row > 5 * 5
+						if inside and not runFrom then
+							runFrom = col
+						elseif not inside and runFrom then
+							local count = col - runFrom
+							make.block(
+								Vector3.new(count * cell, cell, 0.1),
+								MOON_SILVER,
+								SMOOTH,
+								CFrame.new(moon + Vector3.new((runFrom + col - 1) / 2 * cell, row * cell, 0))
+							)
+							-- Filo de luz: la celda de dentro de las filas centrales.
+							if math.abs(row) <= 3 then
+								make.block(
+									Vector3.new(0.05, cell, 0.12),
+									SPECTRAL,
+									NEON,
+									CFrame.new(moon + Vector3.new((col - 0.5) * cell + 0.025, row * cell, 0))
+								)
+							end
+							runFrom = nil
+						end
+					end
 				end
-				for _, star in { Vector3.new(0.75, 0.95, 0), Vector3.new(1.15, 0.35, 0), Vector3.new(0.35, 1.35, 0) } do
-					local twinkle = moon * CFrame.new(star) * CFrame.Angles(0, 0, math.pi / 4)
-					make.block(Vector3.new(0.14, 0.14, 0.06), SPECTRAL, NEON, twinkle)
-					make.block(Vector3.new(0.05, 0.3, 0.05), SPECTRAL, NEON, twinkle * CFrame.Angles(0, 0, math.pi / 4))
+				for _, star in { Vector3.new(0.4, 0.55, 0), Vector3.new(0.85, 0.15, 0), Vector3.new(0.15, -0.1, 0) } do
+					make.block(Vector3.new(0.2, 0.06, 0.05), STAR_GOLD, NEON, CFrame.new(moon + star))
+					make.block(Vector3.new(0.06, 0.2, 0.05), STAR_GOLD, NEON, CFrame.new(moon + star))
 				end
-				-- Un halo fino de luz fuera de la luna, seis estrellas más, una llama de luz en la frente del
-				-- espíritu y una estela de diez bolas de niebla que cae desde el cuello.
-				for index = 0, count - 1 do
-					local angle = math.rad(-120) + (index + 0.5) * step
+				-- Llama de luz en la frente del espíritu y niebla que cae del cuello.
+				for index = 0, 3 do
 					make.block(
-						Vector3.new(2 * (radius + 0.42) * math.sin(step / 2) + 0.05, 0.04, 0.06),
+						Vector3.new(0.1, 0.22 - math.abs(index - 1.5) * 0.05, 0.08),
 						SPECTRAL,
 						NEON,
-						moon * CFrame.Angles(0, 0, angle) * CFrame.new(0, radius + 0.42, 0)
+						headAt * CFrame.new((index - 1.5) * 0.18, 0.78, 0.05)
 					)
 				end
-				for _, star in
-					{
-						Vector3.new(-0.9, 0.9, 0),
-						Vector3.new(-1.2, 0.3, 0),
-						Vector3.new(0, 1.55, 0),
-						Vector3.new(1.45, 0.85, 0),
-						Vector3.new(-0.5, 1.35, 0),
-						Vector3.new(0.95, 1.5, 0),
-					}
-				do
-					local twinkle = moon * CFrame.new(star) * CFrame.Angles(0, 0, math.pi / 4)
-					make.block(Vector3.new(0.12, 0.12, 0.06), SPECTRAL, NEON, twinkle)
-					make.block(
-						Vector3.new(0.04, 0.26, 0.05),
-						SPECTRAL,
-						NEON,
-						twinkle * CFrame.Angles(0, 0, math.pi / 4)
-					)
-				end
-				for index = 0, 5 do
-					make.fang(
-						0.3,
-						0.1,
-						SPECTRAL,
-						NEON,
-						headAt
-							* CFrame.new((index - 2.5) * 0.11, 0.54, 0.05)
-							* CFrame.Angles(0, 0, (index - 2.5) * 0.15)
-					)
-				end
-				for index = 0, 9 do
-					local mist = make.ball(
-						0.5 - index * 0.03,
+				for index = 0, 2 do
+					local mist = make.block(
+						Vector3.one * (0.5 - index * 0.06),
 						SPECTRAL_BODY,
 						GLASS,
 						CFrame.new(
 							neck
 								+ Vector3.new(
 									math.sin(index * 1.7) * 0.35,
-									-0.4 - index * 0.17,
+									-0.4 - index * 0.3,
 									0.1 + math.cos(index * 1.3) * 0.15
 								)
 						)
 					)
-					mist.Transparency = 0.5
+					mist.Transparency = 0.6
 				end
-				for index = 0, 3 do
-					make.ball(
-						0.06,
+				spectralMist(spiritEyes[2], 2)
+				-- El mapa de estrellas del espíritu sobre la capa: seis estrellas unidas por líneas finas de luz.
+				local stars =
+					{ { -0.3, 0.3 }, { -0.1, 0.46 }, { 0.14, 0.4 }, { 0.3, 0.56 }, { 0.1, 0.7 }, { -0.22, 0.8 } }
+				local previous: Vector3? = nil
+				for _, star in stars do
+					local at = Vector3.new(star[1] * width, capeTop - star[2] * capeHeight, capeZ + 0.12)
+					make.block(Vector3.one * 0.08, SPECTRAL, NEON, CFrame.new(at))
+					if previous then
+						strap(make, previous, at, 0.025, SPECTRAL, NEON)
+					end
+					previous = at
+				end
+				-- Las flechas arden en luz: tres chispas y una luz en la boca del carcaj que echa chispas blancas azuladas.
+				for index = 0, 2 do
+					make.block(
+						Vector3.one * 0.06,
 						SPECTRAL,
 						NEON,
-						quiverAt
-							* CFrame.new(
-								math.cos(index * math.pi / 2) * 0.14,
-								1.12 + index * 0.04,
-								math.sin(index * math.pi / 2) * 0.14
-							)
+						CFrame.new(
+							quiverAt.Position
+								+ quiverAxis * (1.12 + index * 0.04)
+								+ Vector3.new(
+									math.cos(index * math.pi * 2 / 3) * 0.14,
+									0,
+									math.sin(index * math.pi * 2 / 3) * 0.14
+								)
+						)
 					)
 				end
-				spectralMist(spiritEyes[2], 3)
-				-- Las flechas arden en luz: chispas blancas azuladas que suben de la boca del carcaj.
-				local mouthLight = make.ball(0.2, SPECTRAL, NEON, quiverAt * CFrame.new(0, 1.05, 0))
+				local mouthLight = make.block(Vector3.one * 0.2, SPECTRAL, NEON, quiverAt * CFrame.new(0, 1.05, 0))
 				fireLight(mouthLight, SPECTRAL)
 				local sparks = Instance.new("ParticleEmitter")
 				sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
@@ -6937,7 +6959,6 @@ do
 				sparks.Parent = mouthLight
 			end
 		end
-		jaguarRichness(body, grade)
 	end
 
 	OUTFITS.SpectralJaguarOutfit = spectralJaguar
@@ -6954,174 +6975,319 @@ do
 	local SERPENT_MOUTH = Color3.fromRGB(110, 26, 40)
 	local SERPENT_EYE = Color3.fromRGB(16, 26, 34)
 
-	-- Pluma de quetzal de "length" en el plano XY de "at", con la punta hacia su +Y: verde, con la punta
-	-- turquesa (azul de runa que brilla con "lit") y el cañón de oro. La punta va al final y del ancho de la
-	-- pluma: un óvalo en medio parecía el ojo de una pluma de pavo real. "wide" es su ancho respecto al
-	-- largo (0,36 si no se dice).
-	local function quetzalFeather(make: Builder, length: number, at: CFrame, lit: boolean, wide: number?)
-		local ratio = wide or 0.36
-		make.oval(Vector3.new(length * ratio, length, 0.05), QUETZAL, SMOOTH, at)
-		make.oval(
-			Vector3.new(length * ratio * 0.72, length * 0.3, 0.07),
-			if lit then RUNE else SCALE,
-			if lit then NEON else SMOOTH,
-			at * CFrame.new(0, length * 0.36, 0)
-		)
-		make.block(Vector3.new(0.02, length * 0.7, 0.07), TITAN_GOLD, SMOOTH, at * CFrame.new(0, -length * 0.1, 0))
+	-- Verde más oscuro del quetzal: las plumas de atrás y de las filas pares, para que se lean capas.
+	local QUETZAL_DARK = Color3.fromRGB(26, 116, 58)
+
+	-- Cuerpo de la serpiente de la espalda: verde quetzal claro, casi lima, para que destaque sobre la capa añil y
+	-- sobre el penacho verde oscuro; el vientre es crema.
+	local SERPENT_GREEN = Color3.fromRGB(44, 170, 104)
+	local RAY_YELLOW = Color3.fromRGB(252, 212, 70)
+	local RAY_ORANGE = Color3.fromRGB(246, 150, 50)
+	local RAY_PALE = Color3.fromRGB(255, 240, 160)
+	local RAY_GREEN = Color3.fromRGB(50, 168, 84)
+	local RAY_TEAL = Color3.fromRGB(48, 190, 170)
+	local JADE_GLOW = Color3.fromRGB(90, 235, 190)
+	local SERPENT_GREEN_DARK = Color3.fromRGB(24, 120, 86)
+	local SERPENT_CREAM = Color3.fromRGB(244, 232, 190)
+
+	-- Cubo de "size" studs centrado en "at".
+	local function cube(parent: Builder, at: Vector3, size: number, color: Color3, material: Enum.Material?): BasePart
+		return parent.block(Vector3.one * size, color, material or SMOOTH, CFrame.new(at))
 	end
 
-	-- Cuerpo de la serpiente por los puntos de "points": tramos de escamas turquesa que se solapan, con un
-	-- anillo de oro (el vientre) en cada junta.
-	local function serpentBody(make: Builder, points: { Vector3 }, thickness: number)
+	-- Pluma de quetzal en el plano XY, en bloques sin giro (entra en la malla): "base" es el centro de donde nace,
+	-- "dir" 1 la saca hacia arriba y -1 hacia abajo, y "lean" desplaza la punta en X (la inclinación, a escalones).
+	-- Tres piezas: la hoja verde (o "tone"), la punta turquesa (azul de runa que brilla con "lit") y el cañón de
+	-- oro. El verde de las plumas no brilla nunca: lo único que se enciende es la punta.
+	local function quetzalFeather(
+		make: Builder,
+		base: Vector3,
+		length: number,
+		dir: number,
+		lean: number,
+		lit: boolean,
+		tone: Color3?
+	)
+		local width = length * 0.36
+		make.block(
+			Vector3.new(width, length * 0.58, 0.05),
+			tone or QUETZAL,
+			SMOOTH,
+			CFrame.new(base + Vector3.new(lean * 0.2, dir * length * 0.29, 0))
+		)
+		make.block(
+			Vector3.new(width * 0.74, length * 0.36, 0.065),
+			if lit then RUNE else SCALE,
+			if lit then NEON else SMOOTH,
+			CFrame.new(base + Vector3.new(lean * 0.72, dir * length * 0.74, 0))
+		)
+		make.block(
+			Vector3.new(0.025, length * 0.6, 0.08),
+			TITAN_GOLD,
+			SMOOTH,
+			CFrame.new(base + Vector3.new(lean * 0.4, dir * length * 0.32, 0))
+		)
+	end
+
+	-- Cuerpo de la serpiente por los puntos de "points" (tramos rectos o en diagonal de escalones, sin giros):
+	-- trozos de escamas turquesa y oscuras con un anillo de oro cada cinco, y un codo en cada esquina.
+	local function serpentRun(make: Builder, points: { Vector3 }, thickness: number)
+		local count = 0
 		for index = 1, #points - 1 do
 			local from, to = points[index], points[index + 1]
-			local length = (to - from).Magnitude
-			local segment = CFrame.lookAt((from + to) / 2, to)
-			make.oval(Vector3.new(thickness, thickness, length + thickness * 0.6), SCALE, SMOOTH, segment)
-			make.oval(
-				Vector3.new(thickness * 1.08, thickness * 1.08, thickness * 0.24),
-				TITAN_GOLD,
-				SMOOTH,
-				segment * CFrame.new(0, 0, length / 2)
-			)
+			local delta = to - from
+			local chunks = math.max(1, math.round(delta.Magnitude / 0.42))
+			local function span(value: number): number
+				if math.abs(value) < 0.001 then
+					return thickness
+				end
+				return math.max(math.abs(value) / chunks + 0.03, thickness)
+			end
+			local size = Vector3.new(span(delta.X), span(delta.Y), span(delta.Z))
+			for step = 0, chunks - 1 do
+				local color = if count % 5 == 4 then TITAN_GOLD elseif count % 2 == 1 then SCALE_DARK else SCALE
+				make.block(size, color, SMOOTH, CFrame.new(from:Lerp(to, (step + 0.5) / chunks)))
+				count += 1
+			end
+			if index < #points - 1 then
+				cube(make, to, thickness * 1.02, SCALE)
+			end
 		end
 	end
 
-	-- Cabeza de la serpiente emplumada de "size" mirando a la -Z de "at": cráneo de escamas con una banda
-	-- de oro, cejas de oro, fauces abiertas (hocico alzado, mandíbula caída y la boca roja), colmillos de
-	-- oro, lengua bífida y, detrás, una cresta de "crest" plumas de quetzal abiertas hacia atrás. Devuelve
-	-- los ojos.
+	-- Cabeza de la serpiente emplumada, de perfil y en bloques sin giro, centrada en "at". Mira hacia +X o -X de
+	-- "at" ("faceX", signo "s") o hacia -Z/+Z (con "faceX" en false, "s" -1 es hacia delante). "u" es su
+	-- escala (el largo del cráneo al hocico mide unas 2 u). Cráneo con banda de oro, hocico, boca roja abierta,
+	-- mandíbula caída, dos colmillos de oro, cuello, ojos oscuros con la pupila rasgada de "eye" (los únicos que
+	-- brillan) y cejas de oro; con "tongue", la lengua bífida; detrás, una cresta de "crest" plumas de quetzal
+	-- abiertas hacia atrás. Devuelve las dos pupilas.
 	local function serpentHead(
 		make: Builder,
-		at: CFrame,
-		size: number,
+		at: Vector3,
+		faceX: boolean,
+		s: number,
+		u: number,
 		eye: Color3,
 		eyeMaterial: Enum.Material,
 		crest: number,
-		lit: boolean
+		lit: boolean,
+		tongue: boolean,
+		skin: Color3?,
+		skinDark: Color3?
 	): { BasePart }
-		local function on(x: number, y: number, z: number): CFrame
-			return at * CFrame.new(x * size, y * size, z * size)
+		local skull = skin or SCALE
+		local skullDark = skinDark or SCALE_DARK
+		-- f: hacia delante, y: arriba, w: a un lado; sf, sy, sw: el tamaño en esos tres ejes (en unidades de u).
+		local function box(
+			f: number,
+			y: number,
+			w: number,
+			sf: number,
+			sy: number,
+			sw: number,
+			color: Color3,
+			material: Enum.Material
+		): BasePart
+			local offset = if faceX then Vector3.new(s * f, y, w) else Vector3.new(w, y, s * f)
+			local size = if faceX then Vector3.new(sf, sy, sw) else Vector3.new(sw, sy, sf)
+			return make.block(size * u, color, material, CFrame.new(at + offset * u))
 		end
-		local function scaled(x: number, y: number, z: number): Vector3
-			return Vector3.new(x * size, y * size, z * size)
+		box(-0.15, 0.1, 0, 0.95, 0.55, 0.6, skull, SMOOTH)
+		box(-0.35, 0.39, 0, 0.12, 0.06, 0.64, TITAN_GOLD, SMOOTH)
+		box(-0.85, 0, 0, 0.5, 0.45, 0.45, skull, SMOOTH)
+		box(0.62, 0.15, 0, 0.7, 0.26, 0.46, skull, SMOOTH)
+		box(1.05, 0.12, 0, 0.2, 0.18, 0.36, skullDark, SMOOTH)
+		box(0.55, -0.1, 0, 0.75, 0.2, 0.38, SERPENT_MOUTH, SMOOTH)
+		box(0.45, -0.3, 0, 0.85, 0.14, 0.44, skullDark, SMOOTH)
+		if u >= 0.8 then
+			-- Escamas en el cráneo, púas de oro en la nuca, escudos bajo la mandíbula y, a cada lado, la ventana de la
+			-- nariz, tres dientes de crema y una placa de oro en la mejilla.
+			for row = 0, 2 do
+				box(-0.5 + row * 0.38, 0.4, 0, 0.28, 0.07, 0.44 - row * 0.06, SCALE, SMOOTH)
+			end
+			for spike = 0, 2 do
+				box(-0.66 - spike * 0.17, 0.3 - spike * 0.08, 0, 0.1, 0.3 - spike * 0.06, 0.12, TITAN_GOLD, SMOOTH)
+			end
+			for scute = 0, 1 do
+				box(0.25 + scute * 0.45, -0.39, 0, 0.3, 0.05, 0.34, SERPENT_CREAM, SMOOTH)
+			end
+			for side = -1, 1, 2 do
+				box(1.0, 0.22, side * 0.21, 0.06, 0.07, 0.05, SERPENT_EYE, SMOOTH)
+				for tooth = 0, 2 do
+					box(0.4 + tooth * 0.22, 0.0, side * 0.19, 0.08, 0.1, 0.05, SERPENT_CREAM, SMOOTH)
+				end
+				box(-0.1, -0.1, side * 0.32, 0.3, 0.22, 0.04, TITAN_GOLD, SMOOTH)
+			end
 		end
-		make.oval(scaled(0.72, 0.46, 0.9), SCALE, SMOOTH, on(0, 0.06, 0.05))
-		make.oval(scaled(0.58, 0.2, 0.62), SCALE, SMOOTH, on(0, 0.04, -0.42) * CFrame.Angles(0.42, 0, 0))
-		make.oval(scaled(0.5, 0.16, 0.6), SCALE_DARK, SMOOTH, on(0, -0.28, -0.34) * CFrame.Angles(-0.5, 0, 0))
-		make.oval(scaled(0.44, 0.2, 0.5), SERPENT_MOUTH, SMOOTH, on(0, -0.12, -0.38))
-		make.block(scaled(0.5, 0.05, 0.08), TITAN_GOLD, SMOOTH, on(0, 0.29, 0.18))
-		make.block(scaled(0.04, 0.04, 0.3), QUETZAL_RED, SMOOTH, on(0, -0.14, -0.66))
 		local eyes = {}
 		for side = -1, 1, 2 do
-			make.block(
-				scaled(0.03, 0.03, 0.2),
-				QUETZAL_RED,
-				SMOOTH,
-				on(side * 0.04, -0.14, -0.88) * CFrame.Angles(0, side * 0.35, 0)
-			)
-			local fangWidth = 0.06 * size
-			make.fang(
-				0.2 * size,
-				fangWidth,
-				TITAN_GOLD,
-				SMOOTH,
-				on(side * 0.17, -0.06, -0.6)
-					* CFrame.new(fangWidth / 2, 0, -fangWidth / 2)
-					* CFrame.Angles(0, 0, math.pi)
-			)
-			-- Ojo oscuro (claro se perdía contra las escamas) con la pupila rasgada de "eye".
-			make.ball(0.16 * size, SERPENT_EYE, SMOOTH, on(side * 0.3, 0.14, -0.14))
-			table.insert(eyes, make.block(scaled(0.03, 0.12, 0.05), eye, eyeMaterial, on(side * 0.375, 0.14, -0.15)))
-			make.oval(
-				scaled(0.24, 0.08, 0.32),
-				TITAN_GOLD,
-				SMOOTH,
-				on(side * 0.26, 0.27, -0.12) * CFrame.Angles(0, 0, side * 0.3)
-			)
-			make.ball(0.05 * size, SERPENT_MOUTH, SMOOTH, on(side * 0.1, 0.12, -0.72))
+			box(0.9, -0.12, side * 0.15, 0.07, 0.22, 0.07, TITAN_GOLD, SMOOTH)
+			box(0.05, 0.22, side * 0.32, 0.2, 0.2, 0.08, SERPENT_EYE, SMOOTH)
+			table.insert(eyes, box(0.05, 0.22, side * 0.375, 0.05, 0.14, 0.03, eye, eyeMaterial))
+			box(0.05, 0.34, side * 0.34, 0.3, 0.05, 0.1, TITAN_GOLD, SMOOTH)
+		end
+		if tongue then
+			box(1.35, -0.1, 0, 0.5, 0.04, 0.05, QUETZAL_RED, SMOOTH)
+			for side = -1, 1, 2 do
+				box(1.7, -0.1, side * 0.06, 0.22, 0.04, 0.04, QUETZAL_RED, SMOOTH)
+			end
 		end
 		for index = 1, crest do
-			local spread = if crest == 1 then 0 else (index - 1) / (crest - 1) * 1.4 - 0.7
+			local t = if crest == 1 then 0 else (index - 1) / (crest - 1)
+			local length = (1 - t * 0.25) * u
+			local base: Vector3
+			local lean: number
+			if faceX then
+				base = at + Vector3.new(-s * 0.5 * u, 0.34 * u, (index - (crest + 1) / 2) * 0.08 * u)
+				lean = -s * (0.25 + t * 0.45) * length
+			else
+				local spread = t * 2 - 1
+				base = at + Vector3.new(spread * 0.2 * u, 0.34 * u, s * -0.5 * u + (index % 2) * 0.04)
+				lean = spread * 0.55 * length
+			end
 			quetzalFeather(
 				make,
-				(if math.abs(spread) < 0.2 then 0.9 else 0.72) * size,
-				on(0, 0.22, 0.32) * CFrame.Angles(0.9, 0, spread) * CFrame.new(0, 0.32 * size, 0),
-				lit
+				base,
+				length,
+				1,
+				lean,
+				lit and index == 1,
+				if index % 2 == 0 then QUETZAL_DARK else nil
 			)
 		end
 		return eyes
 	end
 
-	-- Hombrera de la Serpiente (grado 1+): almohadilla de escamas turquesa, dos láminas añil con el canto de
-	-- oro y una cabeza de serpiente con cresta que mira hacia fuera (ojos de runa desde el grado 3; grado
-	-- 4: tres cristales de runa detrás).
+	-- Disco de mosaico turquesa de 7 x 7 celdas de "cell" studs (sin las esquinas), en el plano XY de "centre", con
+	-- el relieve hacia "out" (1: hacia +Z, la espalda; -1: hacia -Z, el pecho): fondo oscuro, aro de oro, ocho
+	-- teselas (cuatro turquesa y cuatro jade). Dieciocho piezas; la cabeza va aparte, encima.
+	local function serpentMosaic(make: Builder, centre: Vector3, cell: number, out: number)
+		local function slab(column: number, row: number, columns: number, rows: number, lift: number, color: Color3)
+			make.block(
+				Vector3.new(cell * columns, cell * rows, 0.06),
+				color,
+				SMOOTH,
+				CFrame.new(centre + Vector3.new(column * cell, row * cell, out * lift))
+			)
+		end
+		slab(0, 0, 7, 3, 0, SCALE_DARK)
+		slab(0, 0, 5, 5, 0, SCALE_DARK)
+		for sign = -1, 1, 2 do
+			slab(0, sign * 3, 3, 1, 0.04, TITAN_GOLD)
+			slab(sign * 3, 0, 1, 3, 0.04, TITAN_GOLD)
+			for sx = -1, 1, 2 do
+				slab(sx * 2, sign * 2, 1, 1, 0.04, TITAN_GOLD)
+				slab(sx * 2, sign * 1, 0.9, 0.9, 0.07, SCALE)
+				slab(sx * 1, sign * 2, 0.9, 0.9, 0.07, JADE)
+			end
+		end
+	end
+
+	-- Hombrera de la Serpiente (grado 1+), en bloques sin giro. Tres láminas de escamas que bajan hacia fuera
+	-- (la de abajo con el canto de oro) con tres lomos de escamas cruzados, tachones de jade y, detrás, un
+	-- abanico de plumas de quetzal sobre un broche de oro: lo que se ve desde la espalda. Por grados: 1, las láminas,
+	-- los tachones y un abanico de tres plumas; 2, el abanico de cinco y dos plumas rojas que cuelgan del canto de
+	-- fuera; 3, la cabeza de la serpiente sobre las láminas, mirando al frente, con los ojos de runa; 4, otra
+	-- fila de tres plumas largas detrás, la del centro con la punta encendida.
 	local function serpentPauldron(arm: Builder, side: number, grade: number)
 		local as = arm.size
 		local top = as.Y / 2
+		local W, D = as.X, as.Z
 		local lit = grade >= 3
-		-- Disco plano de escamas (un óvalo fino, nunca una almohada) con un aro de oro debajo y cuatro tachones.
-		local disc = CFrame.new(side * 0.1, top + 0.06, 0)
-		arm.oval(Vector3.new(as.X * 1.3, 0.18, as.Z * 1.3), SCALE, SMOOTH, disc)
-		arm.oval(Vector3.new(as.X * 1.36, 0.07, as.Z * 1.36), TITAN_GOLD, SMOOTH, disc * CFrame.new(0, -0.1, 0))
-		for sx = -1, 1, 2 do
-			for sz = -1, 1, 2 do
-				arm.ball(0.1, TITAN_GOLD, SMOOTH, disc * CFrame.new(sx * as.X * 0.5, 0.1, sz * as.Z * 0.5))
+		local lames = {
+			{ w = 1.3, depth = 1.35, y = 0.24, out = 0.06, color = SCALE },
+			{ w = 1.55, depth = 1.45, y = 0.06, out = 0.16, color = SCALE_DARK },
+			{ w = 1.8, depth = 1.55, y = -0.12, out = 0.27, color = SCALE },
+		}
+		for index, lame in lames do
+			local at = Vector3.new(side * lame.out, top + lame.y, 0)
+			local size = Vector3.new(W * lame.w, 0.2, D * lame.depth)
+			arm.block(size, lame.color, SMOOTH, CFrame.new(at))
+			local ridge = if lame.color == SCALE then SCALE_DARK else SCALE
+			for _, x in { -0.3, 0, 0.3 } do
+				arm.block(
+					Vector3.new(0.12, 0.24, size.Z + 0.08),
+					ridge,
+					SMOOTH,
+					CFrame.new(at + Vector3.new(x * size.X, 0, 0))
+				)
 			end
-		end
-		for _, z in { -0.3, 0, 0.3 } do
-			arm.ball(0.12, SCALE_DARK, SMOOTH, CFrame.new(side * 0.36, top + 0.12, z * as.Z))
-		end
-		if lit then
-			-- Dos plumas de quetzal largas barridas hacia atrás sobre la hombrera.
-			for _, x in { -0.2, 0.2 } do
-				quetzalFeather(
-					arm,
-					0.7,
-					CFrame.new(side * 0.1 + x, top + 0.12, as.Z * 0.2)
-						* CFrame.Angles(1.05, 0, x * 1.2)
-						* CFrame.new(0, 0.3, 0),
-					true
+			if index == 3 then
+				arm.block(
+					Vector3.new(size.X + 0.06, 0.06, size.Z + 0.06),
+					TITAN_GOLD,
+					SMOOTH,
+					CFrame.new(at + Vector3.new(0, -0.12, 0))
 				)
 			end
 		end
-		for index = 0, 1 do
-			local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
-				* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
-			arm.oval(
-				Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
-				TITAN_GOLD,
-				SMOOTH,
-				lame * CFrame.new(0, -0.07, 0)
-			)
-			arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), MAGE_INDIGO, FABRIC, lame)
+		-- Dos tachones de jade en las esquinas de delante de la lámina de arriba.
+		for sx = -1, 1, 2 do
+			cube(arm, Vector3.new(side * 0.06 + sx * W * 0.55, top + 0.42, -D * 0.68), 0.13, JADE)
 		end
-		serpentHead(
-			arm,
-			CFrame.new(side * as.X * 0.4, top + 0.32, 0) * CFrame.Angles(0, -side * math.pi / 2, 0),
-			0.7,
-			if lit then RUNE else JADE,
-			if lit then NEON else SMOOTH,
-			3,
-			lit
-		)
-		if grade >= 4 then
-			for _, z in { -0.42, -0.26, 0, 0.26, 0.42 } do
-				crystal(
+		-- Broche de oro y abanico de plumas de quetzal detrás, abierto hacia fuera.
+		arm.block(Vector3.new(W * 1.1, 0.12, 0.22), TITAN_GOLD, SMOOTH, CFrame.new(side * 0.08, top + 0.36, D * 0.42))
+		local count = if grade >= 2 then 5 else 3
+		for index = 1, count do
+			local spread = (index - (count + 1) / 2) / ((count - 1) / 2)
+			local length = 1.2 - math.abs(spread) * 0.3
+			quetzalFeather(
+				arm,
+				Vector3.new(side * 0.1 + spread * 0.34, top + 0.4, D * 0.42 + (index % 2) * 0.05),
+				length,
+				1,
+				(spread * 0.55 + side * 0.2) * length,
+				false,
+				if index % 2 == 0 then QUETZAL_DARK else nil
+			)
+		end
+		if grade >= 2 then
+			for _, z in { -0.35, 0.35 } do
+				quetzalFeather(
 					arm,
-					Vector3.new(-side * 0.04, top + 0.24, z * as.Z),
-					Vector3.new(-side * 0.35, 1, z * 1.4),
-					if z == 0 then 0.62 elseif math.abs(z) > 0.3 then 0.38 else 0.44,
-					if math.abs(z) > 0.3 then 0.16 else 0.2
+					Vector3.new(side * (0.27 + W * 0.7), top - 0.22, z * D),
+					0.55,
+					-1,
+					side * 0.08,
+					false,
+					QUETZAL_RED
+				)
+			end
+		end
+		if grade >= 3 then
+			serpentHead(
+				arm,
+				Vector3.new(side * 0.12, top + 0.64, -0.02),
+				false,
+				-1,
+				0.62,
+				if lit then RUNE else JADE,
+				if lit then NEON else SMOOTH,
+				0,
+				lit,
+				false
+			)
+		end
+		if grade >= 4 then
+			for index = 1, 3 do
+				local spread = index - 2
+				quetzalFeather(
+					arm,
+					Vector3.new(side * 0.1 + spread * 0.3, top + 0.44, D * 0.42 + 0.14),
+					1.7 - math.abs(spread) * 0.3,
+					1,
+					(spread * 0.5 + side * 0.15) * 1.5,
+					spread == 0,
+					QUETZAL_DARK
 				)
 			end
 		end
 	end
 
-	-- Riqueza extra de la Serpiente (T2 de la Fase 18). Grado 1: rombos de escamas en la espalda del cinturón,
-	-- tachones de jade y bandas de oro y escamas en los muslos (más los tachones de las hombreras). Grado 3: una
-	-- fila de plumas de quetzal por cada lado de la capa, runas de luz en sus cantos, cadenas con colgantes
-	-- y plumas en el bajo de los faldones (la serpiente que se alza y su cresta están en el traje).
+	-- Riqueza extra de la Serpiente. Grado 1: rombos de escamas en la espalda del cinturón, tachones de jade y
+	-- bandas de oro y escamas en los muslos. Grado 3: una fila de plumas de quetzal por cada lado de la capa, seis
+	-- runas de luz en sus cantos, cadenas con colgantes que bajan de los broches y dos plumas en el bajo de cada
+	-- faldón (la serpiente que se alza está en el traje). Todo en bloques sin giro.
 	local function serpentRichness(body: Body, grade: number)
 		if grade < 1 then
 			return
@@ -7138,13 +7304,13 @@ do
 					Vector3.new(0.1, 0.1, 0.04),
 					SCALE_DARK,
 					SMOOTH,
-					CFrame.new(index * hipWidth * 0.13, 0.05, hipDepth / 2 + 0.11) * CFrame.Angles(0, 0, math.pi / 4)
+					CFrame.new(index * hipWidth * 0.13, 0.05, hipDepth / 2 + 0.11)
 				)
 			end
 		end
 		for side = -1, 1, 2 do
 			for _, z in { -0.3, 0.3 } do
-				waist.ball(0.1, JADE, SMOOTH, CFrame.new(side * (hipWidth / 2 + 0.1), 0.05, z * hipDepth))
+				cube(waist, Vector3.new(side * (hipWidth / 2 + 0.1), 0.05, z * hipDepth), 0.1, JADE)
 			end
 			local leg = body.upperLeg[side]
 			local ls = leg.size
@@ -7158,64 +7324,143 @@ do
 		local capeTop = height / 2 - 0.05
 		local capeZ = back + 0.2
 		for side = -1, 1, 2 do
-			for index = 0, 3 do
+			for index = 0, 2 do
 				quetzalFeather(
 					make,
-					0.45,
-					CFrame.new(side * (width * 0.5 + 0.12), capeTop - capeHeight * (0.15 + index * 0.2), capeZ + 0.02)
-						* CFrame.Angles(0, 0, -side * (math.pi / 2 + 0.5))
-						* CFrame.new(0, 0.2, 0),
-					true
+					Vector3.new(side * (width * 0.5 + 0.12), capeTop - capeHeight * (0.15 + index * 0.25), capeZ + 0.02),
+					0.5,
+					-1,
+					side * 0.1,
+					false,
+					if index % 2 == 0 then nil else QUETZAL_DARK
 				)
-			end
-			for index = 0, 5 do
-				rune(
+				cube(
 					make,
-					CFrame.new(side * width * 0.43, capeTop - capeHeight * (0.1 + index * 0.14), capeZ + 0.13),
+					Vector3.new(side * width * 0.43, capeTop - capeHeight * (0.12 + index * 0.27), capeZ + 0.2),
+					0.1,
 					RUNE,
-					NEON,
-					0.1
+					NEON
 				)
 			end
+			-- Cadena de oro que baja del broche con un colgante de jade y una punta de oro.
 			local top = Vector3.new(side * width * 0.36, height / 2 - 0.2, front - 0.12)
-			local drop = top + Vector3.new(0, -0.9, 0)
-			strap(make, top, drop, 0.04, TITAN_GOLD, SMOOTH)
-			make.ball(0.15, JADE, SMOOTH, CFrame.new(drop))
-			make.fang(
-				0.18,
-				0.09,
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(drop + Vector3.new(0.04, -0.07, 0.04)) * CFrame.Angles(math.pi, 0, 0)
-			)
+			make.block(Vector3.new(0.04, 0.9, 0.04), TITAN_GOLD, SMOOTH, CFrame.new(top + Vector3.new(0, -0.45, 0)))
+			cube(make, top + Vector3.new(0, -0.95, 0), 0.15, JADE)
+			cube(make, top + Vector3.new(0, -1.08, 0), 0.1, TITAN_GOLD)
 			local leg = body.upperLeg[side]
 			local ls = leg.size
-			local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06)) * CFrame.Angles(0.1, 0, 0)
+			local hem = ls.Y / 2 - ls.Y * 0.22 - ls.Y * 0.2
 			for index = 0, 1 do
 				quetzalFeather(
 					leg,
+					Vector3.new(side * 0.04 + (index - 0.5) * ls.X * 0.4, hem - 0.03, -(ls.Z / 2 + 0.1)),
 					0.4,
-					flap
-						* CFrame.new((index - 0.5) * ls.X * 0.4, -ls.Y * 0.2 - 0.2, -0.06)
-						* CFrame.Angles(0, 0, math.pi),
-					true
+					-1,
+					0,
+					false,
+					nil
 				)
 			end
 		end
 	end
 
-	-- Traje mítico del mago, Serpiente Emplumada. Grado 0: túnica añil con ribetes de oro, pectoral de
-	-- mosaico turquesa en un aro de oro con la cabeza de la serpiente en el centro, gorguera de oro con
-	-- cuentas de jade, el cinturón es la propia serpiente (escamas turquesa con anillos de oro y la cabeza
-	-- de hebilla), taparrabos rojo de quetzal con plumas, brazaletes de oro y puños de plumas. Detrás, un
-	-- disco de mosaico turquesa con un abanico de plumas de quetzal. Grado 1: hombreras de escamas con
-	-- cabezas de serpiente con cresta. Grado 2: capa de plumas de quetzal en tres filas, cuello de plumas,
-	-- broches con cadena, faldones rojos y, de motivo en la espalda, la serpiente enroscada en espiral con
-	-- la cabeza en el centro. Grado 3: la serpiente se alza: el cuerpo sube en S por la capa y la cabeza
-	-- grande, con las fauces abiertas y una cresta de siete plumas, queda entre los omoplatos (la cabeza
-	-- del jugador se ve por encima); se encienden los ojos de todas las cabezas, las puntas de las plumas y
-	-- un aro de runas en el pectoral. Grado 4: un penacho de diez plumas largas abierto como alas alrededor
-	-- de la cabeza, con rayos de oro, chispas de runa y cristales de runa en las hombreras.
+	-- Pluma del abanico de "length" que nace en "base" (su +Y es hacia donde apunta; el CFrame lleva el giro del abanico):
+	-- tres tramos que se ensanchan y se afilan (hoja), de los colores de "colors" de la base a la punta. Como está
+	-- girada no entra en la malla: queda suelta (3 piezas por pluma).
+	local function featherRay(
+		make: Builder,
+		base: CFrame,
+		length: number,
+		width: number,
+		colors: { Color3 },
+		tipMaterial: Enum.Material?,
+		rib: boolean?
+	)
+		local cuts = { { 0, 0.34, 0.6 }, { 0.34, 0.76, 1 }, { 0.76, 1, 0.42 } }
+		for index, cut in cuts do
+			make.block(
+				Vector3.new(width * cut[3], (cut[2] - cut[1]) * length + 0.02, 0.07),
+				colors[index],
+				if index == #cuts and tipMaterial then tipMaterial else SMOOTH,
+				base * CFrame.new(0, (cut[1] + cut[2]) / 2 * length, 0)
+			)
+		end
+		if rib then
+			-- Raquis de oro por el centro de la pluma, algo más grueso que la hoja para que se vea por los dos lados.
+			make.block(
+				Vector3.new(0.06, length * 0.78, 0.1),
+				TITAN_GOLD,
+				SMOOTH,
+				base * CFrame.new(0, length * 0.39, 0)
+			)
+		end
+	end
+
+	-- Cuerpo grueso de la serpiente de la espalda por los puntos de "points" (tramos rectos en X o en Y): trozos de
+	-- "thickness" de grosor en verde claro y oscuro alternos, una banda crema cada cuatro, una escama de oro
+	-- cada dos, un codo en cada esquina y, bajo cada tramo horizontal, una tira crema (el vientre).
+	local function serpentCoil(make: Builder, points: { Vector3 }, thickness: number)
+		local count = 0
+		for index = 1, #points - 1 do
+			local from, to = points[index], points[index + 1]
+			local delta = to - from
+			local chunks = math.max(1, math.round(delta.Magnitude / thickness))
+			local function span(value: number): number
+				if math.abs(value) < 0.001 then
+					return thickness
+				end
+				return math.abs(value) / chunks + 0.03
+			end
+			local size = Vector3.new(span(delta.X), span(delta.Y), thickness)
+			for step = 0, chunks - 1 do
+				local at = from:Lerp(to, (step + 0.5) / chunks)
+				local color = if count % 4 == 3
+					then SERPENT_CREAM
+					elseif count % 2 == 1 then SERPENT_GREEN_DARK
+					else SERPENT_GREEN
+				make.block(size, color, SMOOTH, CFrame.new(at))
+				-- Escamas: una placa turquesa en cada trozo y, cada tres, un rombo de oro más grande encima.
+				if count % 4 ~= 3 then
+					make.block(
+						Vector3.new(size.X * 0.7 + 0.02, size.Y * 0.7 + 0.02, 0.06),
+						SCALE,
+						SMOOTH,
+						CFrame.new(at + Vector3.new(0, 0, thickness / 2 + 0.03))
+					)
+				end
+				if count % 3 == 0 then
+					cube(make, at + Vector3.new(0, 0, thickness / 2 + 0.08), 0.18, TITAN_GOLD)
+				end
+				count += 1
+			end
+			if index < #points - 1 then
+				cube(make, to, thickness * 1.02, SERPENT_GREEN)
+			end
+			if math.abs(delta.Y) < 0.001 then
+				make.block(
+					Vector3.new(math.abs(delta.X), 0.1, thickness + 0.02),
+					SERPENT_CREAM,
+					SMOOTH,
+					CFrame.new((from + to) / 2 + Vector3.new(0, -thickness / 2 + 0.05, 0))
+				)
+			end
+		end
+	end
+
+	-- Traje mítico del mago, Serpiente Emplumada, todo en bloques alineados con los ejes y sin giros (es lo que
+	-- entra en la malla; el neón queda suelto y es lo mínimo). Grado 0: túnica añil con ribetes de oro, pectoral de
+	-- mosaico turquesa en un aro de oro con la cabeza de la serpiente en el centro, gorguera de oro con cuentas
+	-- de jade, el cinturón es la propia serpiente (escamas con anillos de oro, la cabeza de hebilla y la cola
+	-- colgando), taparrabos rojo de quetzal con tres plumas, brazaletes de oro y puños de plumas. Detrás, un
+	-- disco de mosaico con un abanico de cinco plumas de quetzal. Grado 1: hombreras de escamas con abanico de
+	-- plumas, el abanico de la espalda crece a siete y rombos y bandas en el cinturón y los muslos. Grado 2: capa de
+	-- plumas de quetzal en dos filas, cuello de plumas, plumas en el pecho y en los puños de detrás, broches,
+	-- faldones rojos y, de motivo en la espalda, la serpiente enroscada en espiral con la cabeza en el centro.
+	-- Grado 3: la serpiente se alza en S por la capa y su cabeza grande, con las fauces abiertas, la lengua y una
+	-- cresta de cinco plumas, asoma por encima de un hombro; tercera fila de plumas en la capa, plumas en los
+	-- recodos, cabezas en las hombreras, ojos y aro de runas que brillan, y la riqueza extra. Grado 4: un penacho
+	-- de nueve plumas largas y seis cortas, en dos filas, abierto como alas detrás de todo, una cola de plumas, otra pluma en el
+	-- pecho, tres plumas más en cada hombrera, runas en el penacho y chispas.
 	local function featheredSerpent(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -7224,7 +7469,10 @@ do
 		local lit = grade >= 3
 		local eye = if lit then RUNE else JADE
 		local eyeMaterial = if lit then NEON else SMOOTH
-		local BEHIND = CFrame.Angles(0, math.pi, 0)
+		local capeHeight = height * 1.16
+		local capeTop = height / 2 - 0.05
+		local capeZ = back + 0.2
+		local coilZ = capeZ + 0.26
 		make.block(
 			Vector3.new(width + 0.1, height * 0.92, depth + 0.14),
 			MAGE_INDIGO,
@@ -7240,65 +7488,53 @@ do
 			)
 		end
 
-		-- Pectoral: aro de oro con el mosaico turquesa (teselas de dos tonos y jade) y la cabeza de la
-		-- serpiente en el centro; desde el grado 3, un aro de runas que brilla alrededor.
-		local pectoral = CFrame.new(0, height * 0.12, front - 0.04)
-		make.rod(0.06, width * 0.52, TITAN_GOLD, SMOOTH, pectoral * FACING)
-		make.rod(0.06, width * 0.44, SCALE_DARK, SMOOTH, pectoral * CFrame.new(0, 0, -0.02) * FACING)
-		for index = 0, 9 do
-			local angle = index * math.pi / 5
-			make.block(
-				Vector3.new(0.14, 0.14, 0.05),
-				if index % 3 == 0 then JADE elseif index % 3 == 1 then SCALE else TITAN_GOLD,
-				SMOOTH,
-				pectoral
-					* CFrame.Angles(0, 0, angle)
-					* CFrame.new(0, width * 0.17, -0.05)
-					* CFrame.Angles(0, 0, math.pi / 4)
-			)
-		end
+		-- Pectoral: disco de mosaico con aro de oro (adelantado para que no lo tape un avatar hondo) y, encima,
+		-- la cabeza de la serpiente de perfil; desde el grado 3, tres runas de luz fuera del aro.
+		local cell = 0.17
+		local disc = Vector3.new(0, -height * 0.06, front - 0.1)
+		serpentMosaic(make, disc, cell, -1)
+		serpentHead(make, disc + Vector3.new(0, 0, -0.1), true, 1, 0.45, eye, eyeMaterial, 0, lit, false)
 		if lit then
-			hoop(make, pectoral * CFrame.new(0, 0, -0.06), width * 0.25, 12, 0.05, RUNE, NEON)
+			for _, spot in { Vector3.new(4, 0, 0), Vector3.new(-4, 0, 0), Vector3.new(0, -4, 0) } do
+				cube(make, disc + spot * cell + Vector3.new(0, 0, -0.1), 0.12, RUNE, NEON)
+			end
 		end
-		-- Las cabezas van de perfil a tres cuartos (de frente, una serpiente parece una rana).
-		local PROFILE = CFrame.Angles(0, -math.pi / 2 + 0.45, 0)
-		serpentHead(make, pectoral * CFrame.new(-0.08, 0.02, -0.16) * PROFILE, 0.68, eye, eyeMaterial, 0, lit)
 
-		-- Gorguera de oro con cuentas de jade.
-		for index = 0, 6 do
-			local angle = math.rad(-150 + index * 50)
+		-- Gorguera de oro (cuatro tramos alrededor del cuello) con cinco cuentas de jade por delante.
+		local collarY = height / 2 - 0.02
+		make.block(Vector3.new(width * 0.64, 0.14, 0.16), TITAN_GOLD, SMOOTH, CFrame.new(0, collarY, front))
+		make.block(Vector3.new(width * 0.64, 0.14, 0.16), TITAN_GOLD, SMOOTH, CFrame.new(0, collarY, back + 0.04))
+		for side = -1, 1, 2 do
 			make.block(
-				Vector3.new(0.28, 0.14, 0.16),
+				Vector3.new(0.16, 0.14, depth * 0.7),
 				TITAN_GOLD,
 				SMOOTH,
-				CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
-					* CFrame.Angles(0, -angle, 0)
+				CFrame.new(side * width * 0.33, collarY, 0)
 			)
-			if index < 6 then
-				local mid = angle + math.rad(25)
-				make.ball(
-					0.15,
-					JADE,
-					SMOOTH,
-					CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
-				)
-			end
+		end
+		for index = -2, 2 do
+			cube(make, Vector3.new(index * 0.28, collarY - 0.12, front - 0.1), 0.12, JADE)
 		end
 
-		-- Espalda (grados 0 y 1): disco de mosaico turquesa con un abanico de plumas de quetzal.
+		-- Espalda (grados 0 y 1): disco de mosaico con un abanico de plumas de quetzal (cinco; siete desde el
+		-- grado 1).
 		if grade < 2 then
-			local disc = CFrame.new(0, height * 0.08, back + 0.1) * BEHIND
-			for index = -2, 2 do
+			local sun = Vector3.new(0, height * 0.05, back + 0.2)
+			local fan = if grade >= 1 then 7 else 5
+			for index = 1, fan do
+				local spread = (index - (fan + 1) / 2) / ((fan - 1) / 2)
 				quetzalFeather(
 					make,
+					sun + Vector3.new(spread * 0.5, 0.35 - math.abs(spread) * 0.1, -0.1),
+					1.15,
 					1,
-					disc * CFrame.new(0, 0, 0.04) * CFrame.Angles(0, 0, index * 0.38) * CFrame.new(0, 0.5, 0),
-					false
+					spread * 0.6 * 1.15,
+					false,
+					if index % 2 == 0 then QUETZAL_DARK else nil
 				)
 			end
-			make.rod(0.06, 0.62, TITAN_GOLD, SMOOTH, disc * CFrame.new(0, 0, -0.02) * FACING)
-			make.rod(0.06, 0.48, SCALE, SMOOTH, disc * CFrame.new(0, 0, -0.05) * FACING)
-			make.ball(0.18, JADE, SMOOTH, disc * CFrame.new(0, 0, -0.08))
+			serpentMosaic(make, sun, 0.2, 1)
+			cube(make, sun + Vector3.new(0, 0, 0.1), 0.2, JADE)
 		end
 
 		-- Cinturón: la serpiente rodea la cintura (escamas con anillos de oro) con la cabeza de hebilla y la
@@ -7316,53 +7552,55 @@ do
 					Vector3.new(0.1, 0.1, 0.04),
 					SCALE_DARK,
 					SMOOTH,
-					CFrame.new(index * hipWidth * 0.13, 0.05, beltFront + 0.01) * CFrame.Angles(0, 0, math.pi / 4)
+					CFrame.new(index * hipWidth * 0.13, 0.05, beltFront - 0.02)
 				)
 			end
 		end
-		serpentHead(waist, CFrame.new(-0.05, 0.06, beltFront - 0.12) * PROFILE, 0.42, eye, eyeMaterial, 0, lit)
-		serpentBody(waist, {
-			Vector3.new(hipWidth * 0.5, 0.0, -hipDepth * 0.2),
-			Vector3.new(hipWidth * 0.58, -0.3, -hipDepth * 0.1),
-			Vector3.new(hipWidth * 0.56, -0.62, -hipDepth * 0.28),
+		serpentHead(waist, Vector3.new(0, 0.06, beltFront - 0.12), true, -1, 0.42, eye, eyeMaterial, 0, lit, false)
+		serpentRun(waist, {
+			Vector3.new(hipWidth * 0.52, 0.0, -hipDepth * 0.2),
+			Vector3.new(hipWidth * 0.52, -0.64, -hipDepth * 0.2),
+			Vector3.new(hipWidth * 0.52 + 0.22, -0.64, -hipDepth * 0.2),
 		}, 0.14)
-		for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
+		for _, z in { beltFront - 0.03, -beltFront + 0.03 } do
 			waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), QUETZAL_RED, FABRIC, CFrame.new(0, -0.4, z))
 			waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.68, z))
 		end
 		for index = -1, 1 do
-			quetzalFeather(
-				waist,
-				0.42,
-				CFrame.new(index * 0.13, -0.86, beltFront - 0.01) * CFrame.Angles(0, 0, math.pi + index * 0.25),
-				lit
-			)
+			quetzalFeather(waist, Vector3.new(index * 0.15, -0.7, beltFront - 0.08), 0.42, -1, index * 0.06, false, nil)
 		end
 
-		-- Brazos: brazaletes de oro con jade y puños de plumas de quetzal en las muñecas.
+		-- Brazos: brazaletes de oro con jade y puños de plumas de quetzal en las muñecas (dos por delante; desde
+		-- el grado 2, otras dos por detrás). Las hombreras van desde el grado 1.
+		local cuffSides = if grade >= 2 then { -1, 1 } else { -1 }
 		for side = -1, 1, 2 do
 			local upper = body.upperArm[side]
 			local us = upper.size
 			band(upper, -us.Y * 0.2, 0.12, 0.08, TITAN_GOLD, SMOOTH)
-			upper.ball(0.15, JADE, SMOOTH, CFrame.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0))
+			cube(upper, Vector3.new(side * (us.X / 2 + 0.06), -us.Y * 0.2, 0), 0.15, JADE)
 			local forearm = body.lowerArm[side]
 			local fs = forearm.size
 			band(forearm, -fs.Y / 2 + 0.3, 0.08, 0.12, TITAN_GOLD, SMOOTH)
 			band(forearm, -fs.Y / 2 + 0.16, 0.2, 0.1, SCALE, SMOOTH)
-			for _, z in { -0.22, 0.22 } do
-				quetzalFeather(
-					forearm,
-					0.36,
-					CFrame.new(side * (fs.X / 2 + 0.06), -fs.Y / 2 + 0.14, z) * CFrame.Angles(0, math.pi / 2, math.pi),
-					lit
-				)
+			for _, sz in cuffSides do
+				for _, x in { -0.2, 0.2 } do
+					quetzalFeather(
+						forearm,
+						Vector3.new(x, -fs.Y / 2 + 0.3, sz * (fs.Z / 2 + 0.07)),
+						0.4,
+						-1,
+						x * 0.2,
+						false,
+						if sz == 1 then QUETZAL_DARK else nil
+					)
+				end
 			end
 			if grade >= 1 then
 				serpentPauldron(upper, side, grade)
 			end
 		end
 
-		-- Grado 2: capa y cuello de plumas de quetzal, broches con cadena y faldones.
+		-- Grado 2: cuello y plumas de pecho de quetzal, broches con barra y faldones.
 		if grade >= 2 then
 			make.block(
 				Vector3.new(width + 0.36, 0.3, depth * 0.62),
@@ -7370,18 +7608,53 @@ do
 				FABRIC,
 				CFrame.new(0, height / 2 - 0.06, depth * 0.24)
 			)
-			for index = 0, 6 do
-				local x = (index / 6 - 0.5) * (width + 0.2)
+			for index = -2, 2 do
 				quetzalFeather(
 					make,
-					0.5,
-					CFrame.new(x, height / 2 - 0.3, front - 0.02) * CFrame.Angles(0, 0, math.pi),
-					lit
+					Vector3.new(index * 0.3, height / 2 - 0.06, front - 0.2),
+					0.42 - math.abs(index) * 0.04,
+					-1,
+					index * 0.05,
+					false,
+					nil
 				)
 			end
-			local capeHeight = height * 1.16
-			local capeTop = height / 2 - 0.05
-			local capeZ = back + 0.2
+			-- Plumas a los lados del pecho: dos por lado (tres en el grado 4).
+			for side = -1, 1, 2 do
+				for index = 0, (if grade >= 4 then 2 else 1) do
+					quetzalFeather(
+						make,
+						Vector3.new(side * (0.8 + index * 0.13), height * 0.3, front - 0.12 - index * 0.02),
+						0.7 - index * 0.06,
+						-1,
+						side * 0.1,
+						false,
+						if index == 1 then QUETZAL_DARK else nil
+					)
+				end
+				local clasp = Vector3.new(side * width * 0.36, height / 2 - 0.12, front - 0.06)
+				make.block(Vector3.new(0.08, 0.3, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(clasp))
+				cube(make, clasp + Vector3.new(0, 0, -0.07), 0.15, JADE)
+				local leg = body.upperLeg[side]
+				local ls = leg.size
+				local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
+				leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), QUETZAL_RED, FABRIC, flap)
+				leg.block(
+					Vector3.new(ls.X * 0.92, 0.06, 0.12),
+					TITAN_GOLD,
+					SMOOTH,
+					flap * CFrame.new(0, -ls.Y * 0.2, 0)
+				)
+				cube(leg, (flap * CFrame.new(0, 0.02, -0.07)).Position, 0.12, JADE)
+			end
+			make.block(
+				Vector3.new(width * 0.72, 0.05, 0.05),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(0, height / 2 - 0.25, front - 0.1)
+			)
+
+			-- Capa: el paño añil liso con el canto de oro.
 			make.block(
 				Vector3.new(width * 1.02, capeHeight, 0.12),
 				MAGE_INDIGO_DARK,
@@ -7396,206 +7669,148 @@ do
 					CFrame.new(side * width * 0.5, capeTop - capeHeight / 2, capeZ + 0.01)
 				)
 			end
-			-- Tres filas de plumas que caen solapadas, la de abajo por fuera.
-			for row = 0, 2 do
-				local count = 5
-				for index = 0, count - 1 do
-					local x = (index / (count - 1) - 0.5) * width * 0.82 + (row % 2) * 0.16 - 0.08
-					quetzalFeather(
-						make,
-						0.85,
-						CFrame.new(x, capeTop - capeHeight * (0.4 + row * 0.25), capeZ + 0.07 + row * 0.03)
-							* BEHIND
-							* CFrame.Angles(0, 0, math.pi + (index - 2) * 0.08),
-						lit,
-						0.5
-					)
-				end
-			end
-			local clasps = {}
-			for side = -1, 1, 2 do
-				local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.06)
-				make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
-				make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
-				clasps[side] = clasp.Position
-			end
-			local sag = Vector3.new(0, height / 2 - 0.3, front - 0.1)
-			strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
-			strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
-			for side = -1, 1, 2 do
-				local leg = body.upperLeg[side]
-				local ls = leg.size
-				local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
-					* CFrame.Angles(0.1, 0, 0)
-				leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), QUETZAL_RED, FABRIC, flap)
-				leg.block(
-					Vector3.new(ls.X * 0.92, 0.06, 0.12),
-					TITAN_GOLD,
-					SMOOTH,
-					flap * CFrame.new(0, -ls.Y * 0.2, 0)
+			-- Pliegues más claros (cinco tiras finas) y el bajo de oro: la capa se lee lisa.
+			local capeBottom = capeTop - capeHeight
+			for index = -2, 2 do
+				make.block(
+					Vector3.new(0.05, capeHeight * 0.84, 0.04),
+					MAGE_INDIGO,
+					FABRIC,
+					CFrame.new(index * width * 0.2, capeTop - capeHeight * 0.5, capeZ + 0.07)
 				)
-				leg.ball(0.12, JADE, SMOOTH, flap * CFrame.new(0, 0.02, -0.06))
 			end
-
-			-- El motivo de la espalda: la serpiente enroscada en espiral (grado 2) o alzándose (3 y 4).
-			local coilZ = capeZ + 0.24
-			if grade == 2 then
-				local points = {}
-				for index = 0, 14 do
-					local angle = index * 0.62
-					local radius = 0.78 - index * 0.042
-					table.insert(
-						points,
-						Vector3.new(
-							math.cos(angle) * radius,
-							capeTop - capeHeight * 0.45 + math.sin(angle) * radius,
-							coilZ
-						)
-					)
-				end
-				serpentBody(make, points, 0.26)
-				serpentHead(
+			make.block(
+				Vector3.new(width * 1.02, 0.07, 0.14),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(0, capeBottom + 0.03, capeZ + 0.01)
+			)
+			-- Fleco inferior: una sola fila de plumas colgando, separadas, verde claro y oscuro alternos.
+			local fringe = if grade >= 3 then 9 else 7
+			for index = 0, fringe - 1 do
+				quetzalFeather(
 					make,
-					CFrame.new(0, capeTop - capeHeight * 0.45, coilZ + 0.2) * CFrame.Angles(0, -math.pi / 2 - 0.45, 0),
-					0.62,
-					eye,
-					eyeMaterial,
-					3,
-					lit
+					Vector3.new((index / (fringe - 1) - 0.5) * width * 0.94, capeBottom + 0.05, capeZ + 0.08),
+					0.5,
+					-1,
+					0,
+					false,
+					if index % 2 == 1 then QUETZAL_DARK else nil
 				)
-			else
-				local rise = {
-					Vector3.new(width * 0.34, capeTop - capeHeight * 0.92, coilZ),
-					Vector3.new(-width * 0.2, capeTop - capeHeight * 0.78, coilZ + 0.04),
-					Vector3.new(-width * 0.3, capeTop - capeHeight * 0.6, coilZ + 0.08),
-					Vector3.new(width * 0.18, capeTop - capeHeight * 0.48, coilZ + 0.14),
-					Vector3.new(width * 0.16, capeTop - capeHeight * 0.34, coilZ + 0.22),
-					Vector3.new(0, height * 0.02, back + 0.62),
-				}
-				serpentBody(make, rise, 0.28)
-				-- De perfil a tres cuartos, en pose de ataque hacia la derecha: de frente una serpiente parece
-				-- una rana.
-				local headAt = CFrame.new(-width * 0.06, height * 0.12, back + 0.78)
-					* CFrame.Angles(0, -math.pi / 2 - 0.45, 0)
-					* CFrame.Angles(0.25, 0, 0)
-				local eyes = serpentHead(make, headAt, 1.15, RUNE, NEON, 7, true)
-				fireLight(eyes[1], RUNE)
+			end
 
-				-- Rombos de escamas oscuras a lo largo del cuerpo, tres plumas de quetzal abiertas en su recodo
-				-- y la lengua bífida con dos colmillos de oro en la mandíbula.
-				for index = 1, #rise - 1 do
-					for _, t in { 0.3, 0.7 } do
-						make.block(
-							Vector3.new(0.12, 0.12, 0.04),
-							SCALE_DARK,
-							SMOOTH,
-							CFrame.new(rise[index]:Lerp(rise[index + 1], t) + Vector3.new(0, 0, 0.15))
-								* CFrame.Angles(0, 0, math.pi / 4)
+			-- El motivo de la espalda: la serpiente verde claro enroscada en tres vueltas sobre la capa, con la cola a
+			-- la izquierda y el cuello subiendo a la derecha hasta la cabeza de perfil, y detrás un penacho de
+			-- plumas largas y separadas que sale de encima de ella. Por grados: 2, cabeza pequeña y cinco plumas;
+			-- 3, cuello sobre el hombro, cabeza con lengua y cresta y siete plumas; 4, cabeza mayor, nueve plumas
+			-- con otra fila de ocho cortas turquesa en los huecos, runas de luz en las puntas y chispas.
+			-- La serpiente a un 80 % de su tamaño y centrada en la espalda: se calcula lo que ocupa de lado a lado (la cola, las
+			-- vueltas, el cuello y la cabeza con el hocico y la lengua) y se desplaza "shiftX" para que quede a mitad de la capa.
+			local scale = 0.8
+			local thickness = 0.4 * scale
+			local coilW = width * 0.4 * scale
+			local rawY0, rawY1, rawY2 = -height * 0.5, -height * 0.14, height * 0.22
+			local headScale = (if grade >= 4 then 1.15 elseif grade == 3 then 1.0 else 0.85) * scale
+			local rawNeckY = if grade >= 3 then height / 2 + 0.2 + (grade - 3) * 0.15 else rawY2 + 0.45
+			local middleY = (rawY0 + rawNeckY) / 2
+			local function scaleY(y: number): number
+				return middleY + (y - middleY) * scale
+			end
+			local y0, y1, y2, neckY = scaleY(rawY0), scaleY(rawY1), scaleY(rawY2), scaleY(rawNeckY)
+			local neckX = -0.85 * headScale
+			local minX = math.min(-0.72 * scale - 0.05, -coilW - thickness / 2, neckX - thickness / 2, -1.1 * headScale)
+			local maxX = (if grade >= 3 then 1.81 else 1.15) * headScale
+			local shiftX = -(minX + maxX) / 2
+			local function at2(x: number, y: number): Vector3
+				return Vector3.new(x + shiftX, y, coilZ)
+			end
+			serpentCoil(make, {
+				at2(-0.2 * scale, y0),
+				at2(coilW, y0),
+				at2(coilW, y1),
+				at2(-coilW, y1),
+				at2(-coilW, y2),
+				at2(neckX, y2),
+				at2(neckX, neckY),
+			}, thickness)
+			-- La cola se afina y acaba en una punta de oro.
+			cube(make, at2(-0.4 * scale, y0), 0.3 * scale, SERPENT_GREEN_DARK)
+			cube(make, at2(-0.6 * scale, y0), 0.18 * scale, SERPENT_GREEN)
+			cube(make, at2(-0.72 * scale, y0), 0.1 * scale, TITAN_GOLD)
+			-- De perfil, mirando hacia fuera sobre el hombro: de frente una serpiente parece una rana. Ojos de oro.
+			local eyes = serpentHead(
+				make,
+				at2(neckX + 0.85 * headScale, neckY),
+				true,
+				1,
+				headScale,
+				TITAN_GOLD,
+				SMOOTH,
+				if grade >= 3 then 3 else 0,
+				false,
+				grade >= 3,
+				SERPENT_GREEN,
+				SERPENT_GREEN_DARK
+			)
+
+			-- Abanico alrededor de la cabeza, como el de siempre de esta armadura: una fila corta de plumas naranjas y
+			-- amarillas arriba (desde el grado 3) y, en el grado 4, diez plumas largas abiertas como alas a los lados, amarillas
+			-- en la base y verdes en la punta, con rayos de oro entre ellas y un aro de runas turquesa que brilla. Todo
+			-- girado (ninguna a 0 ni a 90 grados): queda suelto y no entra en la malla.
+			local crown = CFrame.new(0, rawNeckY - 1.15, capeZ + 0.1)
+			if grade >= 3 then
+				for _, degrees in { 8, 18, 27 } do
+					for side = -1, 1, 2 do
+						featherRay(
+							make,
+							crown
+								* CFrame.new(0, 0, -0.03)
+								* CFrame.Angles(0, 0, math.rad(degrees) * side)
+								* CFrame.new(0, 0.6, 0),
+							1.4,
+							0.28,
+							{ RAY_ORANGE, RAY_YELLOW, RAY_PALE }
 						)
 					end
 				end
-				for _, index in { 2, 3, 4 } do
-					local sign = if index == 3 then -1 else 1
-					quetzalFeather(
-						make,
-						0.6,
-						CFrame.new(rise[index] + Vector3.new(-sign * 0.22, 0, 0.1))
-							* CFrame.Angles(0, 0, sign * 1.2)
-							* CFrame.new(0, 0.3, 0),
-						lit
-					)
-				end
-				local tongue = {
-					(headAt * CFrame.new(0, -0.2, -0.85)).Position,
-					(headAt * CFrame.new(0, -0.2, -1.3)).Position,
-					(headAt * CFrame.new(0.12, -0.2, -1.55)).Position,
-					(headAt * CFrame.new(-0.12, -0.2, -1.55)).Position,
-				}
-				strap(make, tongue[1], tongue[2], 0.04, QUETZAL_RED, SMOOTH)
-				strap(make, tongue[2], tongue[3], 0.04, QUETZAL_RED, SMOOTH)
-				strap(make, tongue[2], tongue[4], 0.04, QUETZAL_RED, SMOOTH)
-				for side = -1, 1, 2 do
-					make.fang(0.25, 0.09, TITAN_GOLD, SMOOTH, headAt * CFrame.new(side * 0.2, -0.3, -0.7))
-				end
-
-				-- Grado 4: penacho de plumas largas abierto como alas alrededor de la cabeza, con rayos de oro y
-				-- chispas de runa.
-				if grade >= 4 then
-					local crown = CFrame.new(0, height * 0.22, back + 0.5) * BEHIND
-					for _, degrees in { 36, 54, 72, 90, 108 } do
-						for side = -1, 1, 2 do
-							local angle = math.rad(degrees) * side
-							local length = 1.7 - math.abs(degrees - 54) * 0.01
-							quetzalFeather(
-								make,
-								length,
-								crown
-									* CFrame.Angles(0, 0, angle)
-									* CFrame.new(0, 0.55 + length / 2, (degrees % 40) * 0.002),
-								true,
-								0.22
-							)
-							if degrees < 108 then
-								make.fang(
-									0.5,
-									0.12,
-									TITAN_GOLD,
-									SMOOTH,
-									crown
-										* CFrame.Angles(0, 0, angle + side * math.rad(10))
-										* CFrame.new(-0.06, 0.6, -0.03)
-								)
-							end
-						end
-					end
-					-- Una fila interior de plumas cortas, un halo de runas detrás del penacho, puntos de luz en el
-					-- cuerpo y tres plumas abiertas en la cola.
-					for _, degrees in { 8, 18, 27 } do
-						for side = -1, 1, 2 do
-							quetzalFeather(
-								make,
-								1.25,
-								crown * CFrame.Angles(0, 0, math.rad(degrees) * side) * CFrame.new(0, 1.175, 0.06),
-								true,
-								0.2
-							)
-						end
-					end
-					hoop(make, crown * CFrame.new(0, 0.5, -0.04), 1.25, 12, 0.05, RUNE, NEON)
-					for index = 1, 4 do
-						for _, t in { 0.25, 0.75 } do
-							make.ball(
-								0.09,
-								RUNE,
-								NEON,
-								CFrame.new(rise[index]:Lerp(rise[index + 1], t) + Vector3.new(0, 0, 0.2))
-							)
-						end
-					end
-					for index = 0, 2 do
-						quetzalFeather(
+			end
+			if grade >= 4 then
+				for _, degrees in { 36, 45, 54, 63, 72, 80, 88, 108 } do
+					for side = -1, 1, 2 do
+						local angle = math.rad(degrees) * side
+						featherRay(
 							make,
-							0.7,
-							CFrame.new(rise[1] + Vector3.new(0, 0, 0.05))
-								* CFrame.Angles(0, 0, math.pi + (index - 1) * 0.5)
-								* CFrame.new(0, 0.35, 0),
+							crown * CFrame.Angles(0, 0, angle) * CFrame.new(0, 0.6, 0),
+							2.16 - math.abs(degrees - 54) * 0.0084,
+							0.3,
+							{ RAY_GREEN, RAY_TEAL, JADE_GLOW },
+							NEON,
 							true
 						)
+						if degrees == 36 or degrees == 54 or degrees == 72 or degrees == 88 then
+							make.block(
+								Vector3.new(0.05, 0.66, 0.05),
+								TITAN_GOLD,
+								SMOOTH,
+								crown * CFrame.Angles(0, 0, angle + side * math.rad(10)) * CFrame.new(0, 0.96, 0.04)
+							)
+						end
 					end
-					local sparks = Instance.new("ParticleEmitter")
-					sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-					sparks.Color = ColorSequence.new(RUNE, CRYSTAL)
-					sparks.LightEmission = 1
-					sparks.Size =
-						NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0) })
-					sparks.Transparency = NumberSequence.new(0.15, 1)
-					sparks.Lifetime = NumberRange.new(1.2, 2)
-					sparks.Rate = 6
-					sparks.Speed = NumberRange.new(0.4, 1)
-					sparks.SpreadAngle = Vector2.new(60, 60)
-					sparks.Acceleration = Vector3.new(0, 0.8, 0)
-					sparks.Parent = eyes[2]
 				end
+				hoop(make, crown * CFrame.new(0, 0.6, 0.02), 1.68, 14, 0.05, RUNE, NEON)
+				local sparks = Instance.new("ParticleEmitter")
+				sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+				sparks.Color = ColorSequence.new(RUNE, CRYSTAL)
+				sparks.LightEmission = 1
+				sparks.Size =
+					NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0) })
+				sparks.Transparency = NumberSequence.new(0.15, 1)
+				sparks.Lifetime = NumberRange.new(1.2, 2)
+				sparks.Rate = 6
+				sparks.Speed = NumberRange.new(0.4, 1)
+				sparks.SpreadAngle = Vector2.new(60, 60)
+				sparks.Acceleration = Vector3.new(0, 0.8, 0)
+				sparks.Parent = eyes[2]
 			end
 		end
 		serpentRichness(body, grade)
@@ -7611,120 +7826,281 @@ do
 	local CEIBA_BARK = Color3.fromRGB(140, 150, 122)
 	local CEIBA_BARK_DARK = Color3.fromRGB(100, 108, 88)
 	local CEIBA_THORN = Color3.fromRGB(204, 190, 150)
+	-- Corteza del tronco, las ramas y el peto: marrón grisáceo oscuro y cálido, con vetas más claras, para que
+	-- destaque sobre el lino claro y sobre la capa; la capa del grado 2+ es de tela clara.
+	local TRUNK_BARK = Color3.fromRGB(88, 66, 52)
+	local TRUNK_BARK_DARK = Color3.fromRGB(56, 42, 34)
+	local TRUNK_VEIN = Color3.fromRGB(138, 110, 86)
+	local CAPE_CLOTH = Color3.fromRGB(208, 200, 172)
 	local KAPOK = Color3.fromRGB(246, 244, 236)
 	local KAPOK_POD = Color3.fromRGB(112, 120, 70)
 	local CEIBA_BLOSSOM = Color3.fromRGB(238, 140, 176)
 	local HUMMINGBIRD = Color3.fromRGB(30, 150, 120)
 	local HUMMINGBIRD_THROAT = Color3.fromRGB(200, 30, 60)
 
-	-- Espina cónica de ceiba de "length" que sale de "base" hacia "direction".
+	-- Espina de ceiba (sin giros): tres bloques que se estrechan, de "length" de largo, que sale de "base" hacia
+	-- el eje de "direction" que más pesa (X, Y o Z, con su signo).
 	local function ceibaThorn(make: Builder, base: Vector3, direction: Vector3, length: number, width: number)
-		make.fang(
-			length,
-			width,
-			CEIBA_THORN,
-			SMOOTH,
-			CFrame.lookAt(base, base + direction) * CFrame.Angles(-math.pi / 2, 0, 0)
-		)
+		local ax, ay, az = math.abs(direction.X), math.abs(direction.Y), math.abs(direction.Z)
+		local axis = if ax >= ay and ax >= az then Vector3.xAxis elseif ay >= az then Vector3.yAxis else Vector3.zAxis
+		local sign = if direction:Dot(axis) < 0 then -1 else 1
+		for step = 0, 2 do
+			local w = width * (1 - 0.3 * step)
+			make.block(
+				Vector3.one * w + axis * (length / 3 - w),
+				CEIBA_THORN,
+				SMOOTH,
+				CFrame.new(base + axis * (sign * length / 3 * (step + 0.5)))
+			)
+		end
 	end
 
-	-- Rama de ceiba por los puntos de "points": tramos de corteza que se solapan y, con "thorns", una espina
-	-- en cada uno, alternando el lado, hacia atrás (+Z).
-	local function ceibaBranch(make: Builder, points: { Vector3 }, thickness: number, thorns: boolean)
-		for index = 1, #points - 1 do
-			local from, to = points[index], points[index + 1]
-			local length = (to - from).Magnitude
-			local segment = CFrame.lookAt((from + to) / 2, to)
-			make.oval(Vector3.new(thickness, thickness, length + thickness * 0.6), CEIBA_BARK, WOOD, segment)
-			if thorns then
-				local side = if index % 2 == 0 then 1 else -1
-				ceibaThorn(
-					make,
-					(segment * CFrame.new(side * thickness * 0.4, 0, 0)).Position,
-					segment.RightVector * side + Vector3.new(0, 0, 0.8),
-					thickness * 0.7,
-					thickness * 0.35
+	-- Flor de ceiba en "at" (mirando a su -Z): cuatro pétalos rosas en cruz y el centro de oro, que sobresale.
+	local function ceibaBlossom(make: Builder, at: CFrame, size: number)
+		for axis = 0, 1 do
+			for side = -1, 1, 2 do
+				make.block(
+					Vector3.new(size * 0.34, size * 0.34, 0.05),
+					CEIBA_BLOSSOM,
+					SMOOTH,
+					at * CFrame.new(side * size * 0.32 * (1 - axis), side * size * 0.32 * axis, 0)
 				)
 			end
 		end
+		make.block(Vector3.new(size * 0.3, size * 0.3, 0.08), TITAN_GOLD, SMOOTH, at * CFrame.new(0, 0, -0.03))
 	end
 
-	-- Roseta de "count" hojas en el plano XY de "at" (mirando a su -Z), de "length" cada una.
-	local function leafCluster(make: Builder, at: CFrame, count: number, length: number)
-		for index = 0, count - 1 do
-			leaf(
-				make,
-				length,
-				if index % 2 == 0 then LEAF else LEAF_DARK,
-				at * CFrame.Angles(0, 0, index / count * math.pi * 2) * CFrame.new(0, length * 0.45, index * 0.008)
-			)
-		end
-	end
-
-	-- Flor de ceiba en "at" (mirando a su -Z): cinco pétalos rosas y el centro de oro.
-	local function ceibaBlossom(make: Builder, at: CFrame, size: number)
-		for petal = 0, 4 do
-			make.oval(
-				Vector3.new(size * 0.4, size * 0.6, 0.04),
-				CEIBA_BLOSSOM,
-				SMOOTH,
-				at * CFrame.Angles(0, 0, petal * math.pi * 2 / 5) * CFrame.new(0, size * 0.3, 0)
-			)
-		end
-		make.ball(size * 0.3, TITAN_GOLD, SMOOTH, at * CFrame.new(0, 0, -0.03))
-	end
-
-	-- Fruto de ceiba de "size" colgando de "at" (su rabito): vaina verde parda; abierto ("open"), el
-	-- algodón blanco que revienta por la raja (que brilla con "lit"). Devuelve el algodón (o la vaina).
-	local function kapokPod(make: Builder, at: CFrame, size: number, open: boolean, lit: boolean): BasePart
+	-- Fruto de ceiba de "size" colgando de "at" (su rabito): vaina verde parda; abierto ("open"), el algodón blanco
+	-- que revienta por la raja (tres bloques de tela). Devuelve el algodón (o la vaina).
+	local function kapokPod(make: Builder, at: CFrame, size: number, open: boolean): BasePart
 		local pod =
-			make.oval(Vector3.new(size * 0.45, size, size * 0.45), KAPOK_POD, SMOOTH, at * CFrame.new(0, -size / 2, 0))
+			make.block(Vector3.new(size * 0.45, size, size * 0.45), KAPOK_POD, SMOOTH, at * CFrame.new(0, -size / 2, 0))
 		if not open then
 			return pod
 		end
 		local fluff = pod
 		for index = -1, 1 do
-			fluff = make.ball(
-				size * (if index == 0 then 0.42 else 0.32),
+			fluff = make.block(
+				Vector3.one * size * (if index == 0 then 0.42 else 0.32),
 				KAPOK,
-				if lit then NEON else FABRIC,
+				FABRIC,
 				at * CFrame.new(index * size * 0.14, -size * (0.5 + index * 0.1), size * 0.2)
 			)
 		end
 		return fluff
 	end
 
-	-- Colibrí de "size" en "at" mirando a su -Z: cuerpo verde, garganta roja, pico largo y dos alas abiertas.
-	local function hummingbird(make: Builder, at: CFrame, size: number)
-		make.oval(Vector3.new(0.12, 0.12, 0.28) * size, HUMMINGBIRD, SMOOTH, at)
-		make.ball(0.12 * size, HUMMINGBIRD, SMOOTH, at * CFrame.new(0, 0.04 * size, -0.14 * size))
-		make.oval(
-			Vector3.new(0.09, 0.06, 0.1) * size,
-			HUMMINGBIRD_THROAT,
-			SMOOTH,
-			at * CFrame.new(0, -0.01 * size, -0.16 * size)
+	-- Cristal de jade en pie: dos tramos de cristal que se estrechan hacia arriba y, con "core", el núcleo que brilla
+	-- en verde (lo único suelto del hombro).
+	local function jadeSpire(make: Builder, base: Vector3, length: number, width: number, core: boolean)
+		local lower = make.block(
+			Vector3.new(width, length * 0.55, width),
+			JADE_LIGHT,
+			GLASS,
+			CFrame.new(base + Vector3.new(0, length * 0.275, 0))
 		)
-		make.block(
-			Vector3.new(0.02, 0.02, 0.18) * size,
-			PAINT_BLACK,
-			SMOOTH,
-			at * CFrame.new(0, 0.04 * size, -0.28 * size)
+		lower.Transparency = 0.3
+		local upper = make.block(
+			Vector3.new(width * 0.6, length * 0.45, width * 0.6),
+			JADE_LIGHT,
+			GLASS,
+			CFrame.new(base + Vector3.new(0, length * 0.775, 0))
 		)
-		make.fang(
-			0.16 * size,
-			0.08 * size,
-			HUMMINGBIRD,
-			SMOOTH,
-			at * CFrame.new(0, 0, 0.14 * size) * CFrame.Angles(math.pi / 2, 0, 0)
-		)
-		for side = -1, 1, 2 do
-			make.oval(
-				Vector3.new(0.26, 0.03, 0.1) * size,
-				HUMMINGBIRD,
-				SMOOTH,
-				at * CFrame.new(side * 0.13 * size, 0.06 * size, 0) * CFrame.Angles(0, 0, side * 0.6)
+		upper.Transparency = 0.3
+		if core then
+			make.block(
+				Vector3.new(width * 0.35, length * 0.9, width * 0.35),
+				HEAL_GLOW,
+				NEON,
+				CFrame.new(base + Vector3.new(0, length * 0.45, 0))
 			)
 		end
+	end
+
+	-- Hombrera de la Ceiba (grado 1+), todo de bloques alineados con los ejes (sin giros, apta para malla): láminas de
+	-- lino con el canto de oro que bajan hacia fuera, una cresta de corteza con contrafuertes escalonados (tres
+	-- niveles), remaches de oro, una espina de corteza hacia fuera y un fruto colgando.
+	-- Grado 2: la tercera lámina, tres espinas sobre la cresta y una liana que baja por delante con una flor y una hoja.
+	-- Grado 3: el fruto se abre (algodón) y detrás sale una aleta de corteza con canto de oro. Grado 4: la espina de en
+	-- medio da paso a tres cristales de jade (el núcleo del grande y de los pequeños brilla en verde).
+	local function ceibaPauldron(arm: Builder, side: number, grade: number)
+		local as = arm.size
+		local top = as.Y / 2
+		local W, D = as.X, as.Z
+		local lames = {
+			{ w = 1.3, d = 1.4, y = 0.2, out = 0.05 },
+			{ w = 1.55, d = 1.5, y = 0, out = 0.16 },
+			{ w = 1.8, d = 1.6, y = -0.2, out = 0.28 },
+		}
+		local count = if grade >= 2 then 3 else 2
+		for index = 1, count do
+			local lame = lames[index]
+			local at = CFrame.new(side * lame.out, top + lame.y, 0)
+			local size = Vector3.new(W * lame.w, 0.18, D * lame.d)
+			arm.block(size, LINEN, FABRIC, at)
+			arm.block(Vector3.new(size.X + 0.08, 0.06, size.Z + 0.08), TITAN_GOLD, SMOOTH, at * CFrame.new(0, -0.11, 0))
+		end
+		local last = lames[count]
+		local reach = W * last.w / 2 + last.out
+		local rimY = top + last.y
+
+		-- Cresta: base con un escalón más bajo en cada punta (contrafuertes), tramo medio oscuro y lomo.
+		local crest = CFrame.new(side * 0.08, top + 0.29, 0)
+		arm.block(Vector3.new(0.5, 0.2, D * 1.1), CEIBA_BARK, WOOD, crest * CFrame.new(0, 0.1, 0))
+		for sz = -1, 1, 2 do
+			arm.block(
+				Vector3.new(0.34, 0.14, D * 0.3),
+				CEIBA_BARK_DARK,
+				WOOD,
+				crest * CFrame.new(0, 0.07, sz * D * 0.7)
+			)
+		end
+		arm.block(Vector3.new(0.36, 0.22, D * 0.8), CEIBA_BARK_DARK, WOOD, crest * CFrame.new(0, 0.31, 0))
+		arm.block(Vector3.new(0.2, 0.2, D * 0.5), CEIBA_BARK, WOOD, crest * CFrame.new(0, 0.52, 0))
+		-- Remaches de oro en las cuatro esquinas de la lámina de arriba.
+		for sx = -1, 1, 2 do
+			for sz = -1, 1, 2 do
+				arm.ball(0.1, TITAN_GOLD, SMOOTH, CFrame.new(side * 0.05 + sx * W * 0.62, top + 0.31, sz * D * 0.64))
+			end
+		end
+		-- Espina hacia fuera, en el canto de la lámina de abajo.
+		ceibaThorn(arm, Vector3.new(side * (reach - 0.02), rimY, 0), Vector3.new(side, 0, 0), 0.45, 0.2)
+		-- Fruto: cerrado hasta el grado 2; desde el 3, abierto, con el algodón.
+		kapokPod(
+			arm,
+			CFrame.new(side * (reach - 0.1), rimY - 0.1, D * 0.3),
+			if grade >= 3 then 0.32 else 0.3,
+			grade >= 3
+		)
+
+		if grade >= 2 then
+			-- Espinas: dos sobre el tramo medio y, en el lomo, la de en medio (en el grado 4 se cambia por los cristales).
+			for _, z in { -0.34, 0.34 } do
+				ceibaThorn(arm, Vector3.new(side * 0.08, top + 0.71, z * D), Vector3.yAxis, 0.34, 0.12)
+			end
+			if grade < 4 then
+				ceibaThorn(arm, Vector3.new(side * 0.08, top + 0.91, 0), Vector3.yAxis, 0.46, 0.14)
+			end
+			-- Liana por delante: dos tramos en escalera, una flor (adelantada, para que no la tape el torso) y una hoja.
+			local zf = -(D * last.d / 2) - 0.07
+			local p1 = Vector3.new(side * 0.1, top + 0.4, zf)
+			local p2 = Vector3.new(side * 0.45, top + 0.05, zf)
+			local p3 = Vector3.new(side * 0.75, top - 0.3, zf)
+			stairs(arm, p1, p2, 0.08, 0.08, LIANA, FABRIC, 2)
+			stairs(arm, p2, p3, 0.08, 0.08, LIANA, FABRIC, 2)
+			ceibaBlossom(arm, CFrame.new(p2.X, p2.Y + 0.02, zf - 0.08), 0.26)
+			tuft(arm, p3.X, p3.Y, zf, 0.2, 0.34, 0.05, LEAF, SMOOTH)
+		end
+
+		if grade >= 3 then
+			-- Aleta de corteza detrás (lo que se ve de espaldas): losa con canto de oro, veta oscura y una cuenta de jade.
+			local fin = CFrame.new(side * 0.15, top + 0.35, D * last.d / 2 + 0.08)
+			arm.block(Vector3.new(W * 1.1, 0.7, 0.14), CEIBA_BARK, WOOD, fin)
+			arm.block(Vector3.new(W * 1.1 + 0.06, 0.06, 0.18), TITAN_GOLD, SMOOTH, fin * CFrame.new(0, 0.35, 0))
+			arm.block(Vector3.new(0.1, 0.5, 0.18), CEIBA_BARK_DARK, WOOD, fin * CFrame.new(0, -0.02, 0.01))
+			arm.ball(0.14, JADE, SMOOTH, fin * CFrame.new(0, 0.12, 0.1))
+			arm.block(Vector3.new(W * 0.7, 0.08, 0.2), TITAN_GOLD, SMOOTH, fin * CFrame.new(0, -0.3, 0))
+		end
+
+		if grade >= 4 then
+			local ridge = Vector3.new(side * 0.08, top + 0.91, 0)
+			jadeSpire(arm, ridge, 0.8, 0.26, true)
+			for _, z in { -0.22, 0.22 } do
+				jadeSpire(arm, ridge + Vector3.new(0, 0, z * D), 0.5, 0.18, false)
+			end
+		end
+	end
+
+	-- Rama de ceiba por los puntos de "points", sin giros: cada tramo es una escalera de bloques de corteza (clara y
+	-- oscura alternadas) y, con "thorns", lleva una espina hacia atrás (+Z) en el medio, alternando el lado.
+	local function ceibaBranch(make: Builder, points: { Vector3 }, thickness: number, thorns: boolean)
+		for index = 1, #points - 1 do
+			local from, to = points[index], points[index + 1]
+			local steps = math.max(2, math.round((to - from).Magnitude / (thickness * 2)))
+			local dx, dy, dz =
+				math.abs(to.X - from.X) / steps, math.abs(to.Y - from.Y) / steps, math.abs(to.Z - from.Z) / steps
+			for step = 0, steps - 1 do
+				local dark = (index + step) % 2 == 1
+				-- Los oscuros son un poco más finos: así las caras no coinciden con las de los claros.
+				local grow = if dark then thickness * 0.86 else thickness
+				make.block(
+					Vector3.new(dx + grow, dy + grow, math.max(grow, dz + grow)),
+					if dark then TRUNK_BARK_DARK else TRUNK_BARK,
+					WOOD,
+					CFrame.new(from:Lerp(to, (step + 0.5) / steps))
+				)
+			end
+			if thorns then
+				local sideX = if index % 2 == 0 then 1 else -1
+				ceibaThorn(
+					make,
+					from:Lerp(to, 0.5) + Vector3.new(sideX * thickness * 0.25, 0, thickness * 0.5),
+					Vector3.zAxis,
+					thickness * 0.9,
+					thickness * 0.4
+				)
+			end
+		end
+	end
+
+	-- Copa de hojas en bloques (5 piezas; con "rich", dos brotes rosas arriba): masa verde, tapa oscura, faldón oscuro
+	-- y un lóbulo a cada lado. Se ve sobre todo desde atrás, por eso los brotes salen hacia +Z.
+	local function canopy(make: Builder, centre: Vector3, size: number, rich: boolean)
+		make.block(Vector3.new(size, size * 0.55, size * 0.5), LEAF, SMOOTH, CFrame.new(centre))
+		make.block(
+			Vector3.new(size * 0.62, size * 0.4, size * 0.44),
+			LEAF_DARK,
+			SMOOTH,
+			CFrame.new(centre + Vector3.new(0, size * 0.42, size * 0.03))
+		)
+		make.block(
+			Vector3.new(size * 0.5, size * 0.3, size * 0.4),
+			LEAF_DARK,
+			SMOOTH,
+			CFrame.new(centre + Vector3.new(0, -size * 0.38, 0))
+		)
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(size * 0.34, size * 0.34, size * 0.4),
+				LEAF,
+				SMOOTH,
+				CFrame.new(centre + Vector3.new(side * size * 0.62, -size * 0.06, 0))
+			)
+			if rich then
+				make.block(
+					Vector3.one * (size * 0.14),
+					CEIBA_BLOSSOM,
+					SMOOTH,
+					CFrame.new(centre + Vector3.new(side * size * 0.3, size * 0.66, size * 0.3))
+				)
+			end
+		end
+	end
+
+	-- Hojita de dos bloques (para las ramitas).
+	local function leafBlob(make: Builder, at: Vector3, size: number, color: Color3)
+		make.block(Vector3.new(size, size * 0.7, size * 0.5), color, SMOOTH, CFrame.new(at))
+		make.block(
+			Vector3.new(size * 0.6, size * 0.5, size * 0.6),
+			LEAF_DARK,
+			SMOOTH,
+			CFrame.new(at + Vector3.yAxis * (size * 0.45))
+		)
+	end
+
+	-- Colibrí de "size" en "at", de lado hacia "dir" (-1 o 1 en X): cuerpo verde, cabeza, garganta roja (hacia atrás,
+	-- que es por donde se ve), pico, cola y dos alas en V. Siete bloques sin giros.
+	local function hummingbird(make: Builder, at: Vector3, size: number, dir: number)
+		local function piece(extent: Vector3, color: Color3, x: number, y: number, z: number)
+			make.block(extent * size, color, SMOOTH, CFrame.new(at + Vector3.new(dir * x, y, z) * size))
+		end
+		piece(Vector3.new(0.3, 0.12, 0.12), HUMMINGBIRD, 0, 0, 0)
+		piece(Vector3.new(0.13, 0.13, 0.13), HUMMINGBIRD, 0.2, 0.03, 0)
+		piece(Vector3.new(0.1, 0.06, 0.04), HUMMINGBIRD_THROAT, 0.2, -0.02, 0.08)
+		piece(Vector3.new(0.18, 0.025, 0.025), PAINT_BLACK, 0.37, 0.03, 0)
+		piece(Vector3.new(0.16, 0.06, 0.05), HUMMINGBIRD, -0.23, -0.02, 0)
+		piece(Vector3.new(0.14, 0.2, 0.03), HUMMINGBIRD, -0.02, 0.15, 0.08)
+		piece(Vector3.new(0.14, 0.2, 0.03), HUMMINGBIRD, -0.02, 0.15, -0.08)
 	end
 
 	-- Motas verdes de curación que suben despacio (las de la copa) o el algodón que cae ("fluff").
@@ -7743,65 +8119,22 @@ do
 		motes.Parent = part
 	end
 
-	-- Hombrera de la Ceiba (grado 1+): almohadilla de corteza, dos láminas de lino con el canto de oro,
-	-- tres espinas cónicas hacia fuera, una roseta de hojas y un fruto colgando (abierto desde el grado 3;
-	-- grado 4: tres cristales de jade que brillan en verde).
-	local function ceibaPauldron(arm: Builder, side: number, grade: number)
-		local as = arm.size
-		local top = as.Y / 2
-		local lit = grade >= 3
-		-- Disco plano de corteza (un óvalo fino, nunca una almohada) con un aro de oro debajo y cuatro tachones.
-		local disc = CFrame.new(side * 0.1, top + 0.06, 0)
-		arm.oval(Vector3.new(as.X * 1.34, 0.18, as.Z * 1.34), CEIBA_BARK, WOOD, disc)
-		arm.oval(Vector3.new(as.X * 1.4, 0.07, as.Z * 1.4), TITAN_GOLD, SMOOTH, disc * CFrame.new(0, -0.1, 0))
-		for sx = -1, 1, 2 do
-			for sz = -1, 1, 2 do
-				arm.ball(0.1, TITAN_GOLD, SMOOTH, disc * CFrame.new(sx * as.X * 0.5, 0.1, sz * as.Z * 0.5))
-			end
-		end
-		for index = 0, 1 do
-			local lame = CFrame.new(side * (0.2 + index * 0.12), top - 0.08 - index * 0.2, 0)
-				* CFrame.Angles(0, 0, -side * (0.35 + index * 0.22))
-			arm.oval(
-				Vector3.new(as.X * 1.12 + 0.12, 0.1, as.Z * 1.36 - index * 0.1 + 0.06),
-				TITAN_GOLD,
+	-- Hoja que cuelga por un costado de un brazo o una pierna (bloques que se estrechan hacia abajo, finos en X).
+	local function sideLeaf(make: Builder, x: number, topY: number, z: number, color: Color3)
+		for index = 0, 2 do
+			make.block(
+				Vector3.new(0.05, 0.12, 0.22 * (1 - 0.3 * index)),
+				color,
 				SMOOTH,
-				lame * CFrame.new(0, -0.07, 0)
+				CFrame.new(x, topY - 0.12 * (index + 0.5), z)
 			)
-			arm.oval(Vector3.new(as.X * 1.12, 0.22, as.Z * 1.36 - index * 0.1), LINEN, FABRIC, lame)
-		end
-		for _, z in { -0.3, 0, 0.3 } do
-			ceibaThorn(
-				arm,
-				Vector3.new(side * as.X * 0.5, top + 0.12, z * as.Z),
-				Vector3.new(side, 0.5, z * 0.6),
-				if z == 0 then 0.36 else 0.26,
-				0.14
-			)
-		end
-		leafCluster(arm, CFrame.new(side * 0.1, top + 0.3, as.Z * 0.2) * CFrame.Angles(-1.2, 0, 0), 5, 0.36)
-		arm.ball(0.14, JADE, SMOOTH, CFrame.new(side * 0.1, top + 0.32, as.Z * 0.2))
-		kapokPod(arm, CFrame.new(side * (as.X * 0.66), top - 0.1, as.Z * 0.3), 0.3, lit, lit)
-		if grade >= 4 then
-			for _, z in { -0.26, 0, 0.26 } do
-				fireCrystal(
-					arm,
-					Vector3.new(-side * 0.04, top + 0.24, z * as.Z - 0.1),
-					Vector3.new(-side * 0.35, 1, z * 1.4),
-					if z == 0 then 0.6 else 0.42,
-					0.2,
-					JADE_LIGHT,
-					HEAL_GLOW
-				)
-			end
 		end
 	end
 
-	-- Riqueza extra de la Ceiba (T2 de la Fase 18). Grado 1: espinas, musgo y una liana con flor en el peto,
-	-- hojas colgando de la gorguera, del taparrabos, de los brazos y de los muslos, enredaderas y espinas en
-	-- los brazos y bandas de corteza en los muslos; en la espalda, espinas, raíces y hojas alrededor de la
-	-- placa. Grado 2: enredaderas, musgo y cuatro flores en la capa. (El grado 3 añade ramitas, frutos y
-	-- luciérnagas en el árbol de la espalda.)
+	-- Riqueza extra de la Ceiba (T2 de la Fase 18), toda de bloques. Grado 1: espinas, musgo y una liana con flor en
+	-- el peto, hojas colgando de la gorguera y del taparrabos, lianas y espinas en los brazos y bandas de corteza en
+	-- los muslos; en la espalda, espinas y raíces alrededor de la placa. Grado 2: lianas con hojas, musgo y dos flores
+	-- en la capa. (El grado 3 añade las ramitas, los frutos y las luciérnagas del árbol de la espalda.)
 	local function ceibaRichness(body: Body, grade: number)
 		if grade < 1 then
 			return
@@ -7812,31 +8145,25 @@ do
 		local back = depth / 2
 		local BEHIND = CFrame.Angles(0, math.pi, 0)
 
-		-- Peto: espinas en los bordes, musgo y una liana por el costado derecho con hojas y una flor.
+		-- Peto: dos espinas y dos manchas de musgo en cada borde y una liana por el costado derecho con hojas y una flor
+		-- (la flor va 0,1 adelantada de la liana para que no la entierre un torso hondo).
 		local plate = CFrame.new(0, height * 0.14, front - 0.03)
 		for side = -1, 1, 2 do
-			ceibaThorn(
-				make,
-				(plate * CFrame.new(side * width * 0.28, -height * 0.2, -0.06)).Position,
-				Vector3.new(side, -0.6, -0.5),
-				0.24,
-				0.11
-			)
-			for _, y in { 0, height * 0.1 } do
+			for _, y in { 0, -height * 0.2 } do
 				ceibaThorn(
 					make,
 					(plate * CFrame.new(side * width * 0.31, y, -0.04)).Position,
-					Vector3.new(side, 0.1, -0.4),
-					0.22,
-					0.1
+					Vector3.new(side, 0, 0),
+					0.24,
+					0.11
 				)
 			end
-			for index = 0, 3 do
-				make.oval(
+			for index = 0, 1 do
+				make.block(
 					Vector3.new(0.16, 0.1, 0.03),
 					LEAF_DARK,
 					SMOOTH,
-					plate * CFrame.new(side * width * 0.22, (-0.15 + index * 0.1) * height, -0.075)
+					plate * CFrame.new(side * width * 0.22, (-0.12 + index * 0.16) * height, -0.075)
 				)
 			end
 		end
@@ -7848,26 +8175,35 @@ do
 			Vector3.new(width * 0.4, -height * 0.32, front - 0.2),
 		}
 		for index = 1, #vine - 1 do
-			strap(make, vine[index], vine[index + 1], 0.06, LIANA, FABRIC)
-			leaf(
+			stairs(make, vine[index], vine[index + 1], 0.06, 0.06, LIANA, FABRIC, 1)
+		end
+		for _, index in { 2, 4 } do
+			tuft(
 				make,
-				0.3,
-				if index % 2 == 0 then LEAF else LEAF_DARK,
-				CFrame.new(vine[index + 1] + Vector3.new(-0.06, 0, 0)) * CFrame.Angles(0, 0, (index % 2 - 0.5) * 1.6)
+				vine[index].X - 0.06,
+				vine[index].Y,
+				front - 0.2,
+				0.2,
+				0.32,
+				0.05,
+				if index == 2 then LEAF else LEAF_DARK,
+				SMOOTH
 			)
 		end
-		ceibaBlossom(make, CFrame.new(vine[3] + Vector3.new(0, 0.1, -0.04)), 0.26)
+		ceibaBlossom(make, CFrame.new(vine[3] + Vector3.new(0, 0.1, -0.1)), 0.26)
 
 		-- Hojas que cuelgan de la gorguera (delante).
-		for _, degrees in { -75, -25, 25, 75 } do
-			local mid = math.rad(degrees)
-			leaf(
+		for index, x in { -0.38, -0.2, 0.2, 0.38 } do
+			tuft(
 				make,
+				x * width,
+				height / 2 - 0.12,
+				front - 0.07,
+				0.18,
 				0.3,
-				if degrees < 0 then LEAF else LEAF_DARK,
-				CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.2, -math.cos(mid) * depth * 0.5 - 0.04)
-					* CFrame.Angles(0, -mid, 0)
-					* CFrame.Angles(0, 0, math.pi)
+				0.05,
+				if index % 2 == 1 then LEAF else LEAF_DARK,
+				SMOOTH
 			)
 		end
 
@@ -7875,13 +8211,18 @@ do
 		local waist = body.waist
 		local hipWidth, hipDepth = waist.size.X, waist.size.Z
 		local beltFront = -(hipDepth / 2 + 0.09)
-		for index = 0, 2 do
-			for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
-				leaf(
+		for index, x in { -0.14, 0.14 } do
+			for _, z in { beltFront - 0.03, -beltFront + 0.03 } do
+				tuft(
 					waist,
+					x * hipWidth * 1.4,
+					-0.56,
+					z,
+					0.2,
 					0.3,
-					if index == 1 then LEAF_DARK else LEAF,
-					CFrame.new((index - 1) * hipWidth * 0.13, -0.84, z) * CFrame.Angles(0, 0, math.pi)
+					0.05,
+					if index == 1 then LEAF else LEAF_DARK,
+					SMOOTH
 				)
 			end
 		end
@@ -7890,113 +8231,76 @@ do
 		for side = -1, 1, 2 do
 			local upper = body.upperArm[side]
 			local us = upper.size
-			band(upper, -us.Y * 0.02, 0.07, 0.12, LIANA, FABRIC, 0.35)
-			band(upper, us.Y * 0.2, 0.07, 0.12, LIANA, FABRIC, -0.35)
-			for _, y in { us.Y * 0.1, -us.Y * 0.08 } do
-				ceibaThorn(upper, Vector3.new(side * (us.X / 2 + 0.04), y, 0), Vector3.new(side, 0.3, 0), 0.22, 0.1)
-			end
+			band(upper, -us.Y * 0.02, 0.07, 0.12, LIANA, FABRIC)
+			band(upper, us.Y * 0.2, 0.07, 0.12, LIANA, FABRIC)
+			ceibaThorn(upper, Vector3.new(side * (us.X / 2 + 0.04), us.Y * 0.1, 0), Vector3.new(side, 0, 0), 0.22, 0.1)
 			local forearm = body.lowerArm[side]
 			local fs = forearm.size
-			for index, z in { -0.22, 0, 0.22 } do
-				leaf(
-					forearm,
-					0.34,
-					if index == 2 then LEAF_DARK else LEAF,
-					CFrame.new(side * (fs.X / 2 + 0.1), fs.Y * 0.3, z)
-						* CFrame.Angles(0, 0, -side * 1.0)
-						* CFrame.Angles(0, math.pi / 2, 0)
-						* CFrame.new(0, 0.15, 0)
-				)
-			end
+			sideLeaf(forearm, side * (fs.X / 2 + 0.04), fs.Y * 0.4, 0, LEAF)
 			local leg = body.upperLeg[side]
 			local ls = leg.size
 			band(leg, -ls.Y * 0.12, 0.16, 0.08, CEIBA_BARK, WOOD)
-			band(leg, -ls.Y * 0.3, 0.06, 0.12, LIANA, FABRIC, 0.3)
-			for _, z in { -0.2, 0.2 } do
-				ceibaThorn(
-					leg,
-					Vector3.new(side * (ls.X / 2 + 0.06), -ls.Y * 0.12, z * ls.Z),
-					Vector3.new(side, 0.2, z),
-					0.22,
-					0.1
-				)
-			end
-			leaf(
-				leg,
-				0.34,
-				LEAF,
-				CFrame.new(side * (ls.X / 2 + 0.1), -ls.Y * 0.3, 0)
-					* CFrame.Angles(0, 0, -side * 0.9)
-					* CFrame.Angles(0, math.pi / 2, 0)
-					* CFrame.new(0, 0.15, 0)
-			)
+			band(leg, -ls.Y * 0.3, 0.06, 0.12, LIANA, FABRIC)
+			ceibaThorn(leg, Vector3.new(side * (ls.X / 2 + 0.06), -ls.Y * 0.12, 0), Vector3.new(side, 0, 0), 0.22, 0.1)
+			sideLeaf(leg, side * (ls.X / 2 + 0.04), -ls.Y * 0.3, 0, LEAF)
 			leg.ball(0.12, JADE, SMOOTH, CFrame.new(side * (ls.X / 2 + 0.1), -ls.Y * 0.12, 0))
 		end
 
-		-- Grado 1: la placa de corteza de la espalda (queda bajo la capa desde el grado 2) con espinas, tres
-		-- raíces colgando y hojas.
+		-- Grado 1: la placa de corteza de la espalda (queda bajo la capa desde el grado 2) con cuatro espinas y tres
+		-- raíces colgando.
 		if grade == 1 then
 			local plaqueY = height * 0.06
 			for side = -1, 1, 2 do
-				for _, y in { 0.22, 0, -0.22 } do
+				for _, y in { 0.2, -0.2 } do
 					ceibaThorn(
 						make,
 						Vector3.new(side * width * 0.26, plaqueY + height * y, back + 0.14),
-						Vector3.new(side, y * 1.5, 0.5),
+						Vector3.zAxis,
 						0.24,
 						0.11
 					)
 				end
 			end
 			for index = 0, 2 do
-				make.fang(
-					0.35,
-					0.2,
-					CEIBA_BARK,
-					WOOD,
-					CFrame.new((index - 1) * width * 0.14, plaqueY - height * 0.28, back + 0.14)
-						* CFrame.Angles(math.pi, 0, 0)
-				)
-			end
-			for _, spot in { { -0.3, 0.28, 0.5 }, { 0.3, 0.3, -0.5 }, { 0, -0.36, 0 } } do
-				leaf(
+				ceibaThorn(
 					make,
-					0.34,
-					LEAF,
-					CFrame.new(spot[1] * width, plaqueY + spot[2] * height, back + 0.14)
-						* BEHIND
-						* CFrame.Angles(0, 0, spot[3])
+					Vector3.new((index - 1) * width * 0.14, plaqueY - height * 0.28, back + 0.14),
+					-Vector3.yAxis,
+					0.4,
+					0.2
 				)
 			end
 		end
 
-		-- Grado 2: la capa, con enredaderas, musgo y cuatro flores.
+		-- Grado 2: la capa, con dos lianas con hoja por lado, musgo y dos flores.
 		if grade >= 2 then
 			local capeHeight = height * 1.16
 			local capeTop = height / 2 - 0.05
 			local capeZ = back + 0.2
 			for side = -1, 1, 2 do
-				for index = 0, 2 do
-					local x = side * width * (0.34 + index * 0.06)
-					local bottom =
-						Vector3.new(x + side * 0.05, capeTop - capeHeight * (0.4 + index * 0.13), capeZ + 0.09)
-					strap(make, Vector3.new(x, capeTop - capeHeight * 0.04, capeZ + 0.09), bottom, 0.05, LIANA, FABRIC)
-					leaf(make, 0.3, LEAF, CFrame.new(bottom) * BEHIND * CFrame.Angles(0, 0, math.pi + side * 0.4))
+				for index = 0, 1 do
+					local x = side * width * (0.3 + index * 0.14)
+					local bottom = Vector3.new(x, capeTop - capeHeight * (0.45 + index * 0.15), capeZ + 0.09)
+					stairs(
+						make,
+						Vector3.new(x, capeTop - capeHeight * 0.04, capeZ + 0.09),
+						bottom,
+						0.05,
+						0.05,
+						LIANA,
+						FABRIC,
+						2
+					)
+					tuft(make, bottom.X, bottom.Y, capeZ + 0.1, 0.22, 0.3, 0.04, LEAF, SMOOTH)
 				end
-			end
-			for index = 0, 9 do
-				make.oval(
-					Vector3.new(0.22 + (index % 3) * 0.06, 0.12, 0.03),
+				make.block(
+					Vector3.new(0.26, 0.12, 0.03),
 					LEAF_DARK,
 					SMOOTH,
-					CFrame.new(
-						((index * 0.37) % 1 - 0.5) * width * 0.8,
-						capeTop - capeHeight * (0.12 + (index * 0.173) % 0.7),
-						capeZ + 0.07
-					)
+					CFrame.new(side * width * 0.18, capeTop - capeHeight * 0.3, capeZ + 0.07)
 				)
 			end
-			for _, spot in { { -0.4, 0.2 }, { 0.4, 0.35 }, { -0.4, 0.55 }, { 0.4, 0.7 } } do
+			for _, spot in { { -0.4, 0.2 }, { 0.4, 0.62 } } do
 				ceibaBlossom(
 					make,
 					CFrame.new(spot[1] * width, capeTop - capeHeight * spot[2], capeZ + 0.1) * BEHIND,
@@ -8006,19 +8310,19 @@ do
 		end
 	end
 
-	-- Traje mítico del médico, Ceiba de la Vida. Grado 0: túnica de lino, peto de corteza con el canto de
-	-- oro y espinas en las esquinas y, en un disco de jade, el glifo de oro del árbol del mundo (una cruz de
-	-- ramas con brotes), gorguera de oro con jade, bandolera con tres frascos de savia, cinturón de raíces
-	-- trenzadas con hebilla de jade, taparrabos de lino con una bolsa de hierbas, brazaletes de oro y
-	-- brazales de corteza con espinas. Detrás, una placa de corteza con el glifo y un brote de tres hojas.
-	-- Grado 1: hombreras de corteza con espinas, hojas y un fruto. Grado 2: capa de tela de corteza con
-	-- cantos de oro y un fleco de hojas, cuello de hojas, broches, faldones y, de motivo, la base del tronco
-	-- de la ceiba con sus raíces de contrafuerte y un brote con flor. Grado 3: el tronco sube por la espalda
-	-- y se abre en dos ramas por encima de los hombros (la cabeza queda libre entre ellas), con espinas,
-	-- flores rosas, lianas y vetas de savia verde que brillan; brillan el glifo, los frascos y el algodón de
-	-- los frutos. Grado 4: la copa, rosetas de hojas grandes en arco por encima de los hombros con cuatro
-	-- ramas más, frutos abiertos con algodón que cae, motas de curación, dos colibríes y cristales verdes en
-	-- las hombreras.
+	-- Traje mítico del médico, Ceiba de la Vida, de bloques alineados con los ejes (apto para malla). Grado 0: túnica
+	-- de lino, peto de corteza con el canto de oro y espinas en las esquinas y, sobre un disco de jade, el glifo de
+	-- oro del árbol del mundo (un tronco en Y con un brote en cada punta), gorguera de oro con jade, bandolera con tres
+	-- frascos de savia, cinturón de raíces trenzadas con hebilla de jade, taparrabos de lino con una bolsa de hierbas,
+	-- brazaletes de oro y brazales de corteza con espinas. Detrás, una placa de corteza con el glifo y tres hojas.
+	-- Grado 1: hombreras de corteza (láminas de lino, cresta con contrafuertes y espinas), espinas, lianas y raíces.
+	-- Grado 2: capa de tela de corteza con cantos de oro y un fleco de hojas, broches con cadena, faldones y, de motivo,
+	-- la base del tronco de la ceiba (tres tramos de corteza) con raíces de contrafuerte, espinas, un aro de oro con
+	-- jade y un brote con flor. Grado 3: el tronco sube por la espalda y se abre en dos ramas por encima de los hombros
+	-- (la cabeza queda libre entre ellas) con espinas, flores rosas, lianas, ramitas con hojas y vetas de savia verde
+	-- que brillan; brillan el glifo, los frascos y las luciérnagas, y los frutos se abren. Grado 4: la copa, dos ramas
+	-- más hacia arriba y dos hacia fuera con copas de hojas, frutos con algodón que cae, motas de curación, dos colibríes,
+	-- raíces de contrafuerte hasta la cintura y cristales de jade en las hombreras.
 	local function ceibaOfLife(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -8033,81 +8337,101 @@ do
 			CFrame.new(0, -height * 0.03, 0)
 		)
 
-		-- El glifo del árbol del mundo en "at" (mirando a su -Z): disco de jade en un aro de oro y un árbol de
-		-- oro en Y (tronco con dos raíces y dos ramas abiertas) con un brote en cada punta (verde que brilla
-		-- desde el grado 3). En cruz se leía como una cruz cristiana.
+		-- El glifo del árbol del mundo en "at" (mirando a su -Z): disco de jade en un aro de oro y un árbol de oro en Y
+		-- (tronco con dos raíces y dos ramas en escalón) con un brote en cada punta (verde que brilla desde el grado 3).
 		local function worldTree(at: CFrame, size: number)
 			make.rod(0.06, size, TITAN_GOLD, SMOOTH, at * FACING)
 			make.rod(0.06, size * 0.84, JADE, SMOOTH, at * CFrame.new(0, 0, -0.02) * FACING)
 			local glyph = at * CFrame.new(0, 0, -0.05)
-			make.block(Vector3.new(0.08, size * 0.42, 0.04), TITAN_GOLD, SMOOTH, glyph * CFrame.new(0, -size * 0.08, 0))
-			local tips = { glyph * CFrame.new(0, size * 0.2, 0) }
+			make.block(Vector3.new(0.13, size * 0.42, 0.05), TITAN_GOLD, SMOOTH, glyph * CFrame.new(0, -size * 0.08, 0))
 			for side = -1, 1, 2 do
-				local branch = glyph * CFrame.new(side * size * 0.1, size * 0.1, 0) * CFrame.Angles(0, 0, -side * 0.7)
-				make.block(Vector3.new(0.07, size * 0.26, 0.04), TITAN_GOLD, SMOOTH, branch)
-				table.insert(tips, branch * CFrame.new(0, size * 0.14, 0))
 				make.block(
-					Vector3.new(0.06, size * 0.14, 0.04),
+					Vector3.new(0.11, size * 0.16, 0.05),
 					TITAN_GOLD,
 					SMOOTH,
-					glyph * CFrame.new(side * size * 0.06, -size * 0.3, 0) * CFrame.Angles(0, 0, side * 0.8)
+					glyph * CFrame.new(side * size * 0.06, size * 0.1, 0)
+				)
+				make.block(
+					Vector3.new(0.11, size * 0.16, 0.05),
+					TITAN_GOLD,
+					SMOOTH,
+					glyph * CFrame.new(side * size * 0.13, size * 0.22, 0)
+				)
+				make.block(
+					Vector3.new(0.1, size * 0.14, 0.05),
+					TITAN_GOLD,
+					SMOOTH,
+					glyph * CFrame.new(side * size * 0.06, -size * 0.3, 0)
 				)
 			end
-			for _, tip in tips do
-				make.ball(
-					size * 0.15,
-					if lit then HEAL_GLOW else LEAF,
-					if lit then NEON else SMOOTH,
-					tip * CFrame.new(0, 0, -0.02)
-				)
+			for _, tip in
+				{
+					Vector3.new(0, size * 0.2, 0),
+					Vector3.new(-size * 0.15, size * 0.34, 0),
+					Vector3.new(size * 0.15, size * 0.34, 0),
+				}
+			do
+				make.ball(size * 0.15, LEAF, SMOOTH, glyph * CFrame.new(tip + Vector3.new(0, 0, -0.04)))
 			end
 		end
 
-		-- Peto de corteza con el canto de oro, espinas en las esquinas de arriba y el glifo.
+		-- Peto de corteza con el canto de oro, dos vetas oscuras, espinas en las esquinas de arriba y el glifo.
 		local plate = CFrame.new(0, height * 0.14, front - 0.03)
-		make.block(Vector3.new(width * 0.62, height * 0.5, 0.12), TITAN_GOLD, SMOOTH, plate * CFrame.new(0, 0, 0.02))
-		make.block(Vector3.new(width * 0.56, height * 0.44, 0.12), CEIBA_BARK, WOOD, plate * CFrame.new(0, 0, -0.01))
+		make.block(Vector3.new(width * 0.68, height * 0.56, 0.12), TITAN_GOLD, SMOOTH, plate * CFrame.new(0, 0, 0.02))
+		make.block(Vector3.new(width * 0.62, height * 0.5, 0.12), TRUNK_BARK, WOOD, plate * CFrame.new(0, 0, -0.01))
 		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.08, height * 0.44, 0.04),
+				TRUNK_VEIN,
+				WOOD,
+				plate * CFrame.new(side * width * 0.27, 0, -0.07)
+			)
 			ceibaThorn(
 				make,
-				(plate * CFrame.new(side * width * 0.28, height * 0.2, -0.06)).Position,
-				Vector3.new(side, 0.6, -0.5),
+				(plate * CFrame.new(side * width * 0.31, height * 0.24, -0.06)).Position,
+				Vector3.new(side * 0.6, 1, 0),
 				0.26,
 				0.12
 			)
 		end
-		worldTree(plate * CFrame.new(0, 0, -0.08), width * 0.34)
-
-		-- Gorguera de oro con cuentas de jade.
-		for index = 0, 6 do
-			local angle = math.rad(-150 + index * 50)
-			make.block(
-				Vector3.new(0.28, 0.14, 0.16),
-				TITAN_GOLD,
-				SMOOTH,
-				CFrame.new(math.sin(angle) * width * 0.3, height / 2 - 0.02, -math.cos(angle) * depth * 0.46)
-					* CFrame.Angles(0, -angle, 0)
+		-- El glifo va 0,1 adelantado del peto; tres raíces cuelgan del borde de abajo.
+		worldTree(plate * CFrame.new(0, 0, -0.18), width * 0.42)
+		for index = -1, 1 do
+			ceibaThorn(
+				make,
+				Vector3.new(index * width * 0.2, plate.Y - height * 0.29, front - 0.12),
+				-Vector3.yAxis,
+				if index == 0 then 0.5 else 0.36,
+				0.18
 			)
-			if index < 6 then
-				local mid = angle + math.rad(25)
-				make.ball(
-					0.15,
-					JADE,
-					SMOOTH,
-					CFrame.new(math.sin(mid) * width * 0.31, height / 2 - 0.05, -math.cos(mid) * depth * 0.5)
-				)
-			end
 		end
 
-		-- Bandolera del hombro izquierdo a la cadera derecha con tres frascos de savia.
+		-- Gorguera de oro en anillo (delante, a los lados y detrás) con cuentas de jade.
+		local collarY = height / 2 - 0.02
+		make.block(Vector3.new(width * 0.6, 0.14, 0.16), TITAN_GOLD, SMOOTH, CFrame.new(0, collarY, front + 0.04))
+		make.block(Vector3.new(width * 0.6, 0.14, 0.16), TITAN_GOLD, SMOOTH, CFrame.new(0, collarY, back - 0.04))
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(0.16, 0.14, depth * 0.8),
+				TITAN_GOLD,
+				SMOOTH,
+				CFrame.new(side * width * 0.3, collarY, 0)
+			)
+			make.ball(0.15, JADE, SMOOTH, CFrame.new(side * width * 0.3, collarY + 0.04, -depth * 0.3))
+		end
+		for _, x in { -0.15, 0, 0.15 } do
+			make.ball(0.15, JADE, SMOOTH, CFrame.new(x * width * 1.6, collarY + 0.03, front - 0.04))
+		end
+
+		-- Bandolera del hombro izquierdo a la cadera derecha (seis escalones) con tres frascos de savia.
 		local strapFrom = Vector3.new(-width * 0.34, height / 2 - 0.02, front - 0.1)
 		local strapTo = Vector3.new(width * 0.4, -height / 2 + 0.12, front - 0.1)
-		strap(make, strapFrom, strapTo, 0.14, LEATHER, LEATHER_MATERIAL)
+		stairs(make, strapFrom, strapTo, 0.14, 0.1, LEATHER, LEATHER_MATERIAL, 6)
 		for _, t in { 0.62, 0.76, 0.9 } do
 			flask(make, CFrame.new(strapFrom:Lerp(strapTo, t) + Vector3.new(0, -0.06, -0.1)), 0.2, lit)
 		end
 
-		-- Espalda (grados 0 y 1): placa de corteza con el glifo y un brote de tres hojas.
+		-- Espalda (grados 0 y 1): placa de corteza con el glifo y tres hojas colgando del borde de arriba.
 		if grade < 2 then
 			local plaque = CFrame.new(0, height * 0.06, back + 0.08) * BEHIND
 			make.block(
@@ -8116,22 +8440,24 @@ do
 				SMOOTH,
 				plaque * CFrame.new(0, 0, 0.02)
 			)
-			make.block(Vector3.new(width * 0.44, height * 0.5, 0.1), CEIBA_BARK, WOOD, plaque)
+			make.block(Vector3.new(width * 0.44, height * 0.5, 0.1), TRUNK_BARK, WOOD, plaque)
 			worldTree(plaque * CFrame.new(0, -0.04, -0.06), width * 0.3)
 			for index = -1, 1 do
-				leaf(
+				tuft(
 					make,
+					index * 0.14 * width,
+					height * 0.06 + height * 0.36,
+					back + 0.2,
+					0.22,
 					0.4,
-					LEAF,
-					plaque
-						* CFrame.new(index * 0.12, height * 0.3, -0.04)
-						* CFrame.Angles(0, 0, -index * 0.5)
-						* CFrame.new(0, 0.18, 0)
+					0.05,
+					if index == 0 then LEAF_DARK else LEAF,
+					SMOOTH
 				)
 			end
 		end
 
-		-- Cinturón de raíces trenzadas con hebilla de jade, taparrabos de lino y una bolsa de hierbas.
+		-- Cinturón de raíces trenzadas con hebilla de jade, tachones, taparrabos de lino y una bolsa de hierbas.
 		local waist = body.waist
 		local hipWidth, hipDepth = waist.size.X, waist.size.Z
 		local beltFront = -(hipDepth / 2 + 0.09)
@@ -8141,12 +8467,17 @@ do
 				Vector3.new(hipWidth + 0.18, 0.05, hipDepth + 0.2),
 				CEIBA_BARK,
 				WOOD,
-				CFrame.new(0, 0.05 + index * 0.07, 0) * CFrame.Angles(0, 0, index * 0.04)
+				CFrame.new(0, 0.05 + index * 0.07, 0)
 			)
 		end
 		local buckle = CFrame.new(0, 0.05, beltFront - 0.03)
 		waist.rod(0.06, 0.42, TITAN_GOLD, SMOOTH, buckle * FACING)
 		waist.oval(Vector3.new(0.3, 0.28, 0.1), JADE, SMOOTH, buckle * CFrame.new(0, 0, -0.04))
+		for side = -1, 1, 2 do
+			for _, x in { 0.2, 0.34 } do
+				waist.ball(0.1, TITAN_GOLD, SMOOTH, CFrame.new(side * hipWidth * x, 0.05, beltFront - 0.04))
+			end
+		end
 		for _, z in { beltFront + 0.02, -beltFront - 0.02 } do
 			waist.block(Vector3.new(hipWidth * 0.4, 0.6, 0.06), LINEN, FABRIC, CFrame.new(0, -0.38, z))
 			waist.block(Vector3.new(hipWidth * 0.42, 0.06, 0.08), TITAN_GOLD, SMOOTH, CFrame.new(0, -0.66, z))
@@ -8162,16 +8493,17 @@ do
 			local forearm = body.lowerArm[side]
 			local fs = forearm.size
 			band(forearm, -fs.Y * 0.05, fs.Y * 0.55, 0.1, CEIBA_BARK, WOOD)
-			band(forearm, -fs.Y * 0.05, 0.06, 0.14, LIANA, FABRIC, 0.3)
+			band(forearm, -fs.Y * 0.05, 0.06, 0.14, LIANA, FABRIC)
 			for _, y in { fs.Y * 0.1, -fs.Y * 0.22 } do
-				ceibaThorn(forearm, Vector3.new(side * (fs.X / 2 + 0.05), y, 0), Vector3.new(side, 0.3, 0), 0.22, 0.1)
+				ceibaThorn(forearm, Vector3.new(side * (fs.X / 2 + 0.05), y, 0), Vector3.new(side, 0, 0), 0.22, 0.1)
 			end
 			if grade >= 1 then
 				ceibaPauldron(upper, side, grade)
 			end
 		end
 
-		-- Grado 2: capa de hojas, cuello de hojas, broches y faldones; el tronco y sus raíces.
+		-- Grado 2: manto de corteza sobre los hombros, capa con cantos de oro y fleco de hojas, broches con cadena,
+		-- faldones; y el tronco con sus raíces.
 		if grade >= 2 then
 			make.block(
 				Vector3.new(width + 0.36, 0.3, depth * 0.62),
@@ -8179,21 +8511,12 @@ do
 				FABRIC,
 				CFrame.new(0, height / 2 - 0.06, depth * 0.24)
 			)
-			for index = 0, 6 do
-				local x = (index / 6 - 0.5) * (width + 0.2)
-				leaf(
-					make,
-					0.42,
-					if index % 2 == 0 then LEAF else LEAF_DARK,
-					CFrame.new(x, height / 2 - 0.3, front - 0.02) * CFrame.Angles(0, math.pi, math.pi)
-				)
-			end
 			local capeHeight = height * 1.16
 			local capeTop = height / 2 - 0.05
 			local capeZ = back + 0.2
 			make.block(
 				Vector3.new(width * 1.02, capeHeight, 0.12),
-				CEIBA_BARK_DARK,
+				CAPE_CLOTH,
 				FABRIC,
 				CFrame.new(0, capeTop - capeHeight / 2, capeZ)
 			)
@@ -8206,30 +8529,34 @@ do
 				)
 			end
 			-- Solo un fleco de hojas en el bajo: filas de hojas por toda la capa tapaban el tronco.
-			for index = 0, 6 do
-				local x = (index / 6 - 0.5) * width * 0.92
-				leaf(
+			for index = 0, 4 do
+				tuft(
 					make,
+					(index / 4 - 0.5) * width * 0.92,
+					capeTop - capeHeight + 0.04,
+					capeZ + 0.07,
+					0.3,
 					0.5,
+					0.05,
 					if index % 2 == 0 then LEAF else LEAF_DARK,
-					CFrame.new(x, capeTop - capeHeight - 0.12, capeZ + 0.07) * BEHIND * CFrame.Angles(0, 0, math.pi)
+					SMOOTH
 				)
 			end
-			local clasps = {}
+			-- Broches de oro con jade (la bola va adelantada) unidos por una cadena que cuelga.
+			local clasps: { [number]: Vector3 } = {}
 			for side = -1, 1, 2 do
 				local clasp = CFrame.new(side * width * 0.36, height / 2 - 0.12, front - 0.06)
 				make.rod(0.08, 0.3, TITAN_GOLD, SMOOTH, clasp * FACING)
-				make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.06))
+				make.ball(0.14, JADE, SMOOTH, clasp * CFrame.new(0, 0, -0.1))
 				clasps[side] = clasp.Position
 			end
 			local sag = Vector3.new(0, height / 2 - 0.3, front - 0.12)
-			strap(make, clasps[-1], sag, 0.05, TITAN_GOLD, SMOOTH)
-			strap(make, sag, clasps[1], 0.05, TITAN_GOLD, SMOOTH)
+			stairs(make, clasps[-1], sag, 0.05, 0.05, TITAN_GOLD, SMOOTH, 3)
+			stairs(make, sag, clasps[1], 0.05, 0.05, TITAN_GOLD, SMOOTH, 3)
 			for side = -1, 1, 2 do
 				local leg = body.upperLeg[side]
 				local ls = leg.size
 				local flap = CFrame.new(side * 0.04, ls.Y / 2 - ls.Y * 0.22, -(ls.Z / 2 + 0.06))
-					* CFrame.Angles(0.1, 0, 0)
 				leg.block(Vector3.new(ls.X * 0.9, ls.Y * 0.42, 0.1), LINEN, FABRIC, flap)
 				leg.block(
 					Vector3.new(ls.X * 0.92, 0.06, 0.12),
@@ -8237,93 +8564,106 @@ do
 					SMOOTH,
 					flap * CFrame.new(0, -ls.Y * 0.2, 0)
 				)
-				leaf(
-					leg,
-					0.36,
-					LEAF,
-					flap * CFrame.new(side * 0.1, -0.04, -0.07) * CFrame.Angles(0, math.pi, math.pi + side * 0.3)
-				)
 			end
 
-			-- La base del tronco, de corteza clara sobre la capa oscura, con cinco raíces de contrafuerte
-			-- abiertas, espinas, un aro de oro con jade y, en el grado 2, un brote con una flor en lo alto.
+			-- La base del tronco, de corteza clara sobre la capa oscura: tres tramos que se estrechan, raíces de
+			-- contrafuerte abiertas a los lados, dos espinas, un aro de oro con jade y, en el grado 2, un brote con flor.
 			local trunkZ = capeZ + 0.3
 			local baseY = capeTop - capeHeight * 0.8
-			make.oval(Vector3.new(0.9, 1.2, 0.5), CEIBA_BARK, WOOD, CFrame.new(0, baseY + 0.45, trunkZ))
-			for index = -2, 2 do
-				local root = CFrame.new(0, baseY + 0.1, trunkZ - 0.04) * CFrame.Angles(0, 0, math.pi + index * 0.5)
-				make.fang(0.95 - math.abs(index) * 0.08, 0.36, CEIBA_BARK, WOOD, root * CFrame.new(-0.18, 0, 0.18))
+			local trunkTop = baseY + 1.35
+			make.block(Vector3.new(1.2, 0.5, 0.5), TRUNK_BARK, WOOD, CFrame.new(0, baseY + 0.2, trunkZ))
+			make.block(Vector3.new(1, 0.5, 0.46), TRUNK_BARK_DARK, WOOD, CFrame.new(0, baseY + 0.65, trunkZ))
+			make.block(Vector3.new(0.8, 0.5, 0.42), TRUNK_BARK, WOOD, CFrame.new(0, baseY + 1.1, trunkZ))
+			-- Tres vetas claras que suben por el tronco.
+			for _, x in { -0.3, 0, 0.3 } do
+				make.block(Vector3.new(0.07, 1.3, 0.05), TRUNK_VEIN, WOOD, CFrame.new(x, baseY + 0.7, trunkZ + 0.24))
 			end
-			make.rod(0.1, 0.86, TITAN_GOLD, SMOOTH, CFrame.new(0, baseY + 0.8, trunkZ) * UPRIGHT)
-			make.ball(0.22, JADE, SMOOTH, CFrame.new(0, baseY + 0.8, trunkZ + 0.4))
-			for _, y in { 0.2, 0.5 } do
-				for side = -1, 1, 2 do
-					ceibaThorn(
-						make,
-						Vector3.new(side * 0.3, baseY + y + (side + 1) * 0.06, trunkZ + 0.12),
-						Vector3.new(side * 0.6, 0.2, 1),
-						0.3,
-						0.13
-					)
-				end
+			for side = -1, 1, 2 do
+				ceibaThorn(make, Vector3.new(side * 0.46, baseY + 0.1, trunkZ), Vector3.new(side, 0, 0), 0.62, 0.34)
+				ceibaThorn(make, Vector3.new(side * 0.36, baseY + 0.42, trunkZ), Vector3.new(side, 0, 0), 0.4, 0.22)
+			end
+			make.block(Vector3.new(0.86, 0.1, 0.62), TITAN_GOLD, SMOOTH, CFrame.new(0, baseY + 0.86, trunkZ))
+			make.ball(0.22, JADE, SMOOTH, CFrame.new(0, baseY + 0.86, trunkZ + 0.4))
+			for side = -1, 1, 2 do
+				ceibaThorn(make, Vector3.new(side * 0.3, baseY + 0.5, trunkZ + 0.22), Vector3.zAxis, 0.3, 0.13)
 			end
 			if grade == 2 then
-				leafCluster(make, CFrame.new(0, baseY + 1.2, trunkZ + 0.08) * BEHIND, 6, 0.5)
-				ceibaBlossom(make, CFrame.new(0, baseY + 1.2, trunkZ + 0.16) * BEHIND, 0.34)
+				canopy(make, Vector3.new(0, trunkTop + 0.45, trunkZ + 0.04), 0.9, false)
+				ceibaBlossom(make, CFrame.new(0, trunkTop + 0.55, trunkZ + 0.4) * BEHIND, 0.34)
 			else
 				-- Grado 3: el tronco sube y se abre en dos ramas por encima de los hombros (la cabeza queda libre
-				-- entre ellas), con espinas, vetas de savia que brillan, flores y una liana colgando de cada una.
-				local fork = Vector3.new(0, height * 0.3, trunkZ - 0.04)
-				ceibaBranch(
-					make,
-					{ Vector3.new(0, baseY + 0.9, trunkZ), Vector3.new(0.05, height * 0.02, trunkZ - 0.02), fork },
-					0.5,
-					true
-				)
-				for _, offset in { -0.12, 0.12 } do
-					lavaVein(make, {
-						Vector3.new(offset, baseY + 0.3, trunkZ + 0.25),
-						Vector3.new(offset * 1.6, baseY + 0.9, trunkZ + 0.25),
-						Vector3.new(offset, height * 0.1, trunkZ + 0.22),
-						Vector3.new(offset * 1.4, height * 0.28, trunkZ + 0.2),
-					}, 0.05, HEAL_GLOW)
+				-- entre ellas), con espinas, vetas de savia que brillan, flores, una liana colgando y ramitas con hojas.
+				local fork = Vector3.new(0, math.max(height * 0.3, trunkTop + 0.3), trunkZ - 0.04)
+				local shaftFrom = Vector3.new(0, trunkTop - 0.2, trunkZ)
+				ceibaBranch(make, { shaftFrom, fork }, 0.7, true)
+				local veinFrom = baseY + 0.2
+				for _, offset in { -0.14, 0.14 } do
+					make.block(
+						Vector3.new(0.05, fork.Y - veinFrom, 0.05),
+						HEAL_GLOW,
+						NEON,
+						CFrame.new(offset, (fork.Y + veinFrom) / 2, trunkZ + 0.27)
+					)
 				end
 				local tips, elbows = {}, {}
 				for side = -1, 1, 2 do
-					local elbow = Vector3.new(side * width * 0.42, height * 0.62, trunkZ - 0.1)
-					local tip = Vector3.new(side * width * 0.82, height * 0.86, trunkZ - 0.2)
-					ceibaBranch(make, { fork, elbow, tip }, 0.34, true)
+					-- Ramas gruesas (0,42) que se abren en horquilla; las copas quedan a menos de 0,4 del ancho del
+					-- torso del centro, dentro de las hombreras (cuyo borde interior ronda el 0,3).
+					local elbow = Vector3.new(side * width * 0.24, fork.Y + height * 0.25, trunkZ - 0.1)
+					local tip = Vector3.new(side * width * 0.36, fork.Y + height * 0.47, trunkZ - 0.2)
+					ceibaBranch(make, { fork, elbow, tip }, 0.42, true)
 					tips[side], elbows[side] = tip, elbow
-					ceibaBlossom(make, CFrame.new(elbow + Vector3.new(0, 0.18, 0.2)) * BEHIND, 0.42)
-					leafCluster(
+					-- Vetas claras a lo largo de cada tramo, para leer la horquilla.
+					stairs(
 						make,
-						CFrame.new(tip) * BEHIND,
-						if grade >= 4 then 8 else 7,
-						if grade >= 4 then 0.7 else 0.58
+						fork + Vector3.new(side * 0.12, 0, 0.26),
+						elbow + Vector3.new(side * 0.12, 0, 0.26),
+						0.05,
+						0.05,
+						TRUNK_VEIN,
+						WOOD,
+						2
 					)
+					stairs(
+						make,
+						elbow + Vector3.new(side * 0.1, 0, 0.26),
+						tip + Vector3.new(side * 0.1, 0, 0.26),
+						0.05,
+						0.05,
+						TRUNK_VEIN,
+						WOOD,
+						2
+					)
+					stairs(
+						make,
+						fork + Vector3.new(0, 0, 0.2),
+						elbow + Vector3.new(0, 0, 0.2),
+						0.05,
+						0.05,
+						HEAL_GLOW,
+						NEON,
+						2
+					)
+					ceibaBlossom(make, CFrame.new(elbow + Vector3.new(0, 0.18, 0.2)) * BEHIND, 0.42)
+					canopy(make, tip + Vector3.new(0, 0.1, 0), if grade >= 4 then 0.65 else 0.6, false)
 					local hang = elbow + Vector3.new(side * 0.12, -0.9, 0.16)
-					strap(make, elbow + Vector3.new(0, -0.1, 0.12), hang, 0.05, LIANA, FABRIC)
-					leaf(make, 0.3, LEAF, CFrame.new(hang) * BEHIND * CFrame.Angles(0, 0, math.pi + side * 0.4))
+					stairs(make, elbow + Vector3.new(0, -0.1, 0.12), hang, 0.05, 0.05, LIANA, FABRIC, 2)
+					tuft(make, hang.X, hang.Y, hang.Z, 0.24, 0.32, 0.05, LEAF, SMOOTH)
 				end
 				local sap = make.ball(0.24, HEAL_GLOW, NEON, CFrame.new(fork + Vector3.new(0, 0, 0.26)))
 				fireLight(sap, HEAL_GLOW)
 
-				-- Ramitas con hojas, un fruto abierto y una veta de savia más por rama, cinco brotes rosas en el
-				-- tronco y diez luciérnagas de curación alrededor del árbol.
+				-- Dos ramitas con hojas y un fruto abierto por rama, cinco brotes rosas en el tronco y seis luciérnagas
+				-- de curación alrededor del árbol.
 				for side = -1, 1, 2 do
 					local elbow, tip = elbows[side], tips[side]
-					for _, twig in { { fork, elbow, 0.25 }, { fork, elbow, 0.7 }, { elbow, tip, 0.5 } } do
+					for _, twig in { { fork, elbow, 0.45 }, { elbow, tip, 0.5 } } do
 						local start = twig[1]:Lerp(twig[2], twig[3])
 						local finish = start + Vector3.new(side * 0.25, 0.35, 0.05)
 						ceibaBranch(make, { start, finish }, 0.12, false)
-						leaf(make, 0.3, LEAF, CFrame.new(finish) * BEHIND * CFrame.Angles(0, 0, side * 0.6))
+						leafBlob(make, finish + Vector3.new(0, 0.1, 0), 0.22, LEAF)
 					end
-					kapokPod(make, CFrame.new(elbow + Vector3.new(side * 0.1, -0.25, 0.2)), 0.36, true, true)
-					lavaVein(make, {
-						fork + Vector3.new(0, 0, 0.18),
-						elbow + Vector3.new(0, 0, 0.18),
-						tip + Vector3.new(0, 0, 0.12),
-					}, 0.05, HEAL_GLOW)
+					kapokPod(make, CFrame.new(elbow + Vector3.new(side * 0.1, -0.25, 0.2)), 0.36, true)
 				end
 				for index = 0, 4 do
 					make.ball(
@@ -8333,43 +8673,44 @@ do
 						CFrame.new((index % 2 * 2 - 1) * 0.22, baseY + 0.9 + index * 0.25, trunkZ + 0.28)
 					)
 				end
-				for index = 0, 9 do
+				for index = 0, 5 do
 					make.ball(
 						0.08,
 						HEAL_GLOW,
 						NEON,
 						CFrame.new(
-							math.sin(index * 2.1) * width * 0.8,
+							math.sin(index * 2.1) * width * 0.5,
 							height * (0.3 + (index * 0.137) % 0.5),
 							trunkZ + 0.1 + math.cos(index * 1.7) * 0.2
 						)
 					)
 				end
 
-				-- Grado 4: la copa: dos ramas más hacia arriba y rosetas grandes en arco por encima de los
-				-- hombros (sin tapar la cabeza), frutos abiertos con algodón que cae, motas de curación y dos
-				-- colibríes junto a las flores.
+				-- Grado 4: la copa: dos ramas más hacia arriba y dos hacia fuera con copas de hojas (con brotes rosas
+				-- las de arriba), frutos abiertos con algodón que cae, motas de curación, dos colibríes junto a las
+				-- flores y raíces de contrafuerte en rampa hasta la cintura.
 				if grade >= 4 then
 					for side = -1, 1, 2 do
-						local tip = Vector3.new(side * width * 0.5, height * 1.08, trunkZ - 0.16)
-						ceibaBranch(make, { elbows[side]:Lerp(fork, 0.4), tip }, 0.22, false)
-						leafCluster(make, CFrame.new(tip) * BEHIND, 7, 0.6)
-						ceibaBlossom(make, CFrame.new(tip + Vector3.new(0, 0, 0.14)) * BEHIND, 0.34)
-						local outer = Vector3.new(side * width * 1.02, height * 0.58, trunkZ - 0.24)
-						ceibaBranch(make, { elbows[side], outer }, 0.2, false)
-						leafCluster(make, CFrame.new(outer) * BEHIND, 6, 0.5)
-						local fluff = kapokPod(
-							make,
-							CFrame.new(tips[side] + Vector3.new(-side * 0.16, -0.3, 0.16)),
-							0.42,
-							true,
-							true
-						)
+						-- Una segunda rama sube desde el codo hacia el centro, con otra copa pequeña (rosa); entre las dos
+						-- copas de cada lado queda cielo.
+						local tip = Vector3.new(side * width * 0.12, fork.Y + height * 0.78, trunkZ - 0.16)
+						ceibaBranch(make, { elbows[side], tip }, 0.28, false)
+						canopy(make, tip + Vector3.new(0, 0.1, 0), 0.55, true)
+						ceibaBlossom(make, CFrame.new(tip + Vector3.new(0, -0.35, 0.3)) * BEHIND, 0.34)
+						local fluff =
+							kapokPod(make, CFrame.new(tips[side] + Vector3.new(-side * 0.16, -0.3, 0.16)), 0.42, true)
 						lifeMotes(fluff, 2, true)
-						hummingbird(
+						hummingbird(make, tip + Vector3.new(side * 0.4, -0.2, 0.4), 1.5, side)
+						-- Raíz en rampa del pie del tronco hacia fuera y abajo, con una espina en la punta.
+						local rootFrom = Vector3.new(side * 0.5, baseY + 0.5, trunkZ)
+						local rootTo = Vector3.new(side * 1.05, baseY - 0.05, trunkZ)
+						stairs(make, rootFrom, rootTo, 0.22, 0.3, CEIBA_BARK_DARK, WOOD, 3)
+						ceibaThorn(
 							make,
-							CFrame.new(tip + Vector3.new(side * 0.42, -0.3, 0.34)) * CFrame.Angles(0, side * 2.2, 0),
-							1.5
+							rootTo + Vector3.new(side * 0.08, -0.12, 0),
+							Vector3.new(side, -1, 0),
+							0.3,
+							0.16
 						)
 					end
 					lifeMotes(sap, 5, false)
@@ -8379,8 +8720,8 @@ do
 							HEAL_GLOW,
 							NEON,
 							CFrame.new(
-								math.sin(index * 1.3 + 0.5) * width * 0.9,
-								height * (0.9 + index * 0.08),
+								math.sin(index * 1.3 + 0.5) * width * 0.5,
+								fork.Y + height * (0.6 + index * 0.08),
 								trunkZ - 0.1
 							)
 						)
@@ -10117,6 +10458,48 @@ function ArmorModels.grade(armorId: string?): number
 	return if armorId then ARMOR_GRADE[armorId] or 0 else 0
 end
 
+-- Esferas de luz de la armadura de rango IV (la volcánica): bolitas de neón que flotan junto al cuello, los hombros,
+-- la espalda y los brazos, cada rol con su color (el verde es el de la curación, del médico; ninguna es roja, que es el
+-- daño recibido). Son puntos pequeños y sin halo; piezas sueltas (el neón no entra en la malla).
+local ORB_COLORS: { [string]: Color3 } = {
+	Guerrero = Color3.fromRGB(255, 140, 40),
+	Cazador = Color3.fromRGB(40, 225, 210),
+	Mago = Color3.fromRGB(150, 100, 255),
+	Medico = Color3.fromRGB(80, 235, 110),
+}
+-- Posición (X, Y, Z en studs de la parte) y diámetro de cada esfera; en las partes de los dos lados, X se espeja.
+local ORB_TORSO = {
+	{ 1.7, 1.8, 0.3, 0.11 },
+	{ 0.8, 1.7, 0.7, 0.08 },
+	{ 2.2, 0.7, -0.5, 0.09 },
+	{ 0, 2.2, 0.6, 0.11 },
+}
+local ORB_UPPER_ARM = { { 1.2, 0.2, 0.3, 0.08 } }
+local ORB_LOWER_ARM = { { 0.95, 0, 0.1, 0.1 } }
+
+-- Los trajes míticos llevan las suyas de un dorado pálido, en el grado 4.
+local ORB_MYTHIC_OUTFITS: { [string]: boolean } =
+	{ TitanKingOutfit = true, SpectralJaguarOutfit = true, FeatheredSerpentOutfit = true, CeibaOfLifeOutfit = true }
+local ORB_MYTHIC_COLOR = Color3.fromRGB(255, 208, 110)
+
+local function addOrbs(body: Body, roleId: string?, tint: Color3?)
+	local color = tint or ORB_COLORS[roleId or DEFAULT_ROLE] or ORB_COLORS[DEFAULT_ROLE]
+	local function orbs(make: Builder, spots: { { number } }, side: number)
+		for _, spot in spots do
+			if spot[1] == 0 and side == 1 then
+				continue -- la del centro, una sola vez
+			end
+			local at = CFrame.new(spot[1] * side, spot[2], spot[3])
+			make.ball(spot[4], color, Enum.Material.Neon, at)
+		end
+	end
+	for _, side in { -1, 1 } do
+		orbs(body.torso, ORB_TORSO, side)
+		orbs(body.upperArm[side], ORB_UPPER_ARM, side)
+		orbs(body.lowerArm[side], ORB_LOWER_ARM, side)
+	end
+end
+
 -- Viste a "character" con el traje "outfitId" (si lo hay; con el grado "grade" o el de la armadura)
 -- o, si no, con la armadura "armorId" en la versión de su rol "roleId". Sustituye a lo que llevara; sin
 -- traje ni armadura lo quita. Devuelve el modelo, o nil si no hay nada que poner o no hay torso.
@@ -10147,32 +10530,57 @@ function ArmorModels.wear(
 	end
 	local model = Instance.new("Model")
 	model.Name = "ArmorPiece"
+	local meshEntry = if boxesOnly then nil else Meshing.find(armorId, roleId, outfitId, grade)
+	local refs = if meshEntry then meshEntry.ref else nil
 	local function arms(r15: string, r6Offset: CFrame, r6Size: Vector3): { [number]: Builder }
 		return {
-			[-1] = limb(model, character, "Left" .. r15, "Left Arm", r6Offset, r6Size),
-			[1] = limb(model, character, "Right" .. r15, "Right Arm", r6Offset, r6Size),
+			[-1] = limb(model, character, "Left" .. r15, "Left Arm", r6Offset, r6Size, refs),
+			[1] = limb(model, character, "Right" .. r15, "Right Arm", r6Offset, r6Size, refs),
 		}
 	end
 	local body: Body = {
-		torso = limb(model, character, "UpperTorso", "Torso", CFrame.identity),
-		waist = limb(model, character, "LowerTorso", "Torso", CFrame.new(0, -0.8, 0), Vector3.new(2, 0.4, 1)),
+		torso = limb(model, character, "UpperTorso", "Torso", CFrame.identity, nil, refs),
+		waist = limb(model, character, "LowerTorso", "Torso", CFrame.new(0, -0.8, 0), Vector3.new(2, 0.4, 1), refs),
 		upperArm = arms("UpperArm", CFrame.new(0, 0.4, 0), Vector3.new(1, 1.2, 1)),
 		lowerArm = arms("LowerArm", CFrame.new(0, -0.6, 0), Vector3.new(1, 0.8, 1)),
 		upperLeg = {
-			[-1] = limb(model, character, "LeftUpperLeg", "Left Leg", CFrame.new(0, 0.35, 0), Vector3.new(1, 1.3, 1)),
-			[1] = limb(model, character, "RightUpperLeg", "Right Leg", CFrame.new(0, 0.35, 0), Vector3.new(1, 1.3, 1)),
+			[-1] = limb(
+				model,
+				character,
+				"LeftUpperLeg",
+				"Left Leg",
+				CFrame.new(0, 0.35, 0),
+				Vector3.new(1, 1.3, 1),
+				refs
+			),
+			[1] = limb(
+				model,
+				character,
+				"RightUpperLeg",
+				"Right Leg",
+				CFrame.new(0, 0.35, 0),
+				Vector3.new(1, 1.3, 1),
+				refs
+			),
 		},
 	}
-	STEPS.on = boxesOnly == true or Meshing.find(armorId, roleId, outfitId, grade) ~= nil
+	STEPS.on = boxesOnly == true or meshEntry ~= nil
 	if outfit then
-		outfit(body, math.clamp(grade or ArmorModels.grade(armorId), 0, ArmorModels.MAX_GRADE))
+		local outfitGrade = math.clamp(grade or ArmorModels.grade(armorId), 0, ArmorModels.MAX_GRADE)
+		outfit(body, outfitGrade)
+		if outfitId and ORB_MYTHIC_OUTFITS[outfitId] and outfitGrade >= 4 then
+			addOrbs(body, roleId, ORB_MYTHIC_COLOR)
+		end
 	elseif armor then
 		armor(body)
+		if armorId == "VolcanicArmor" then
+			addOrbs(body, roleId)
+		end
 	end
 	STEPS.on = false
 	-- Fase 20 Q6: los grupos con malla (Data/ArmorMeshes) sustituyen a sus bloques antes de fusionar. Si las mallas aún no
 	-- han cargado se viste con bloques y "Meshing.flush" vuelve a vestir al llegar. Con "boxesOnly" (el volcado) no se usan.
-	local entry = if boxesOnly then nil else Meshing.find(armorId, roleId, outfitId, grade)
+	local entry = meshEntry
 	if entry then
 		if Meshing.isReady(entry) then
 			Meshing.apply(model, character, entry)
