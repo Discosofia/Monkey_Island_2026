@@ -168,7 +168,7 @@ return {
 	["Z X C R y V · R1 + A B X Y L1 · sus botones"] = "Z X C R and V · R1 + A B X Y L1 · their buttons",
 	["a cada aliado"] = "to each ally",
 	["a uno"] = "single target",
-	["actívalo en el menú de Roblox; apuntas hacia donde miras"] = "turn it on in the Roblox menu; you aim where you look",
+	["Ctrl lo activa y lo apaga; apuntas hacia donde miras"] = "Ctrl turns it on and off; you aim where you look",
 	["al aliado"] = "to the ally",
 	["amigos +{n}"] = "friends +{n}",
 	["atraviesa y da a {n} enemigos"] = "pierces and hits {n} enemies",

@@ -1345,7 +1345,11 @@ local Config = {
 	-- Laboratorio (CombatRules.takeShot): HipSpreadDegrees a la cadera (o el "hipSpread" del arma) y
 	-- AdsSpreadDegrees al apuntar. El Laboratorio lleva la suya (Data/LabWeapons, "spread").
 	Aim = {
-		ShoulderOffset = Vector3.new(1.75, 0.6, 0),
+		-- Más lateral que el shift lock de Roblox (1,75): con el personaje cerca de la mira, su silueta y sus efectos
+		-- se cruzaban con el punto y el anillo de la mira.
+		ShoulderOffset = Vector3.new(3.25, 0.6, 0),
+		-- Desplazamiento de la cámara con el bloqueo de cámara puesto (Ctrl), sin apuntar.
+		LockOffset = Vector3.new(2.75, 0, 0),
 		ShoulderFov = 55,
 		TransitionSeconds = 0.15,
 		HipSpreadDegrees = 1.5,
@@ -1360,6 +1364,13 @@ local Config = {
 		RedDotPx = 6,
 		IronGapPx = 10,
 		ArcPoints = 16,
+		-- Mira del bastón (Arc): un punto pequeño donde cae el tiro de verdad y un anillo fino con el área del
+		-- remate (casi transparente; se marca cuando el siguiente tiro es el remate). ArcSimSteps: tramos con
+		-- que Aim.landing sigue la trayectoria (caída y frenado de Shared/Ballistics) buscando el primer choque.
+		ArcDotPx = 6,
+		ArcRingIdleFill = 0.4,
+		ArcRingReadyFill = 0.8,
+		ArcSimSteps = 12,
 	},
 
 	Lab = {

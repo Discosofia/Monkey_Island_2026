@@ -205,6 +205,11 @@ local function onImpact(
 	if typeof(source) ~= "string" or not root or not insideRange(root) then
 		return
 	end
+	-- Una fila por arma y vista: "<source>|<vista>" (Data/AimViews; el cliente avisa por ReportAimView).
+	local view = shooter:GetAttribute("AimView")
+	if typeof(view) == "string" then
+		source = `{source}|{view}`
+	end
 	local own = stats[shooter]
 	if not own then
 		own = {}

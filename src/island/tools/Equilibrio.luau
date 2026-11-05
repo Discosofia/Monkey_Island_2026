@@ -3820,7 +3820,8 @@ local function main(copia: Instance): string
 			table.sort(fuentes)
 			for _, fuente in fuentes do
 				local cubos = datos.sources[fuente]
-				local ref = referencias[fuente]
+				-- La clave es "<arma o habilidad>|<vista>" (Data/AimViews): la referencia es la del arma.
+				local ref = referencias[string.match(fuente, "^[^|]+") or fuente]
 				for _, cubo in { "Near", "Mid", "Far" } do
 					local dato = cubos[cubo] and cubos[cubo].stats
 					if dato and dato.n and dato.n > 0 and dato.meanFlight and dato.meanTravel and ref then

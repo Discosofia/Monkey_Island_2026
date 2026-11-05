@@ -5,12 +5,14 @@
 -- de suero del Laboratorio cae ahí aunque haya una cobertura en medio.
 
 local PhysicsService = game:GetService("PhysicsService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Ballistics = require(ReplicatedStorage.Shared.Ballistics)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
+local CameraLock = require(script.Parent.CameraLock)
 
 local AIM_DISTANCE = 500
 -- A esta distancia o menos de la cabeza, la cámara cuenta como primera persona.
@@ -30,29 +32,26 @@ local function aimParams(character: Model): RaycastParams
 	return params
 end
 
+-- true si la puntería sale del centro de la pantalla: el ratón está bloqueado en el centro (MouseBehavior) o
+-- ShoulderAimController lo mantiene ahí (bloqueo de cámara o apuntando; CameraLock.isCentered). Lo segundo no
+-- depende de lo que la cámara de Roblox haya puesto en MouseBehavior justo en ese instante.
+function Aim.centered(): boolean
+	return UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter or CameraLock.isCentered()
+end
+
 -- Dónde está el cursor en la pantalla. Con el ratón bloqueado en el centro (primera persona del
 -- Laboratorio, bloqueo de cámara), el centro: GetMouseLocation puede dar otra cosa (en Studio, la
 -- posición real del ratón aunque la cámara lo tenga bloqueado).
 local function cursor(camera: Camera): Vector2
-	if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+	if Aim.centered() then
 		return camera.ViewportSize / 2
 	end
 	return UserInputService:GetMouseLocation()
 end
 
--- El bloqueo de cámara de Roblox (Ctrl / Mayús) del jugador. Si no se puede saber, cuenta como apagado.
-local mouseLock: any = nil
+-- El bloqueo de cámara del juego (Ctrl; CombatClient/CameraLock).
 function Aim.cameraLocked(): boolean
-	if mouseLock == nil then
-		local ok, controller = pcall(function()
-			local scripts = Players.LocalPlayer:FindFirstChild("PlayerScripts")
-			local module = scripts and scripts:FindFirstChild("PlayerModule")
-			assert(module, "sin PlayerModule")
-			return (require(module) :: any):GetCameras():GetMouseLockController()
-		end)
-		mouseLock = if ok and controller then controller else false
-	end
-	return (mouseLock and mouseLock:GetIsMouseLocked()) == true
+	return CameraLock.isLocked()
 end
 
 local function cameraRay(): Ray
@@ -93,6 +92,33 @@ function Aim.direction(character: Model): Vector3
 		return direction.Unit
 	end
 	return Workspace.CurrentCamera.CFrame.LookVector
+end
+
+-- Dónde cae de verdad el tiro de "weapon" (sin dispersión): sigue la trayectoria desde Aim.origin hacia
+-- Aim.direction con la misma caída y frenado que el servidor (Shared/Ballistics) y se para en el primer choque o
+-- al llegar al alcance. Es lo que marca la mira del bastón (UI/Sights).
+function Aim.landing(character: Model, weaponId: string, weapon: Weapons.WeaponDefinition): Vector3
+	local origin = Aim.origin(character)
+	local direction = Aim.direction(character)
+	local params = aimParams(character)
+	local speed = weapon.projectileSpeed or 120
+	local motion = Ballistics.motion(Ballistics.profile(weaponId, weapon.projectile or "Stone"), speed, weapon.range)
+	local total = if motion then Ballistics.timeTo(speed, motion.drag, weapon.range) else math.huge
+	if not motion or total == math.huge then
+		local result = Workspace:Raycast(origin, direction * weapon.range, params)
+		return if result then result.Position else origin + direction * weapon.range
+	end
+	local steps = Config.Sights.ArcSimSteps
+	local previous = origin
+	for step = 1, steps do
+		local point = Ballistics.position(origin, direction, motion, total * step / steps)
+		local result = Workspace:Raycast(previous, point - previous, params)
+		if result then
+			return result.Position
+		end
+		previous = point
+	end
+	return previous
 end
 
 return Aim

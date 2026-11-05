@@ -21,6 +21,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local AimViews = require(ReplicatedStorage.Shared.Data.AimViews)
 local RangeSources = require(ReplicatedStorage.Shared.Data.RangeSources)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
@@ -132,8 +133,11 @@ end
 
 local function renderRow(source: string, entry: Entry)
 	local row = entry.row
-	local info = RangeSources.get(source)
-	row.name.Text = T(info.name)
+	-- La clave es "<arma o habilidad>|<vista>" (Data/AimViews): el nombre lleva la vista detrás.
+	local base, view = string.match(source, "^(.-)|(.+)$")
+	local info = RangeSources.get(base or source)
+	local viewName = if view then AimViews.names[view] else nil
+	row.name.Text = if viewName then `{T(info.name)} · {T(viewName)}` else T(info.name)
 	row.name.TextColor3 = info.color
 	local reference = entry.data.labSpread
 	if typeof(reference) == "table" then

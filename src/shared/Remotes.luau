@@ -53,6 +53,9 @@ local Remotes = {
 	-- Cliente -> servidor (los cuatro places): el último control que usa el jugador ("Touch" | "Mouse" |
 	-- "Gamepad"). Solo el táctil recibe la ayuda de puntería (Combat/AimInputService, Config.AimAssist).
 	ReportInput = remoteEvent("ReportInput"),
+	-- Cliente -> servidor (los cuatro places): la vista con que apunta el jugador (Data/AimViews: "Free" | "Lock" |
+	-- "LockAim" | "First" | "Touch" | "Pad"). La calibración del campo de tiro separa las medidas por vista.
+	ReportAimView = remoteEvent("ReportAimView"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.

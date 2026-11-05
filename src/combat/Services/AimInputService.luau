@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local AimViews = require(ReplicatedStorage.Shared.Data.AimViews)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 type State = { kind: string, effectiveAt: number, lastReport: number }
@@ -45,6 +46,12 @@ function AimInputService:Start()
 		end
 		states[player] = { kind = kind, effectiveAt = effectiveAt, lastReport = now }
 		player:SetAttribute("AimInput", kind)
+	end)
+	-- La vista con que apunta (Data/AimViews), como atributo "AimView": la calibración del campo de tiro la lee.
+	Remotes.ReportAimView.OnServerEvent:Connect(function(player: Player, view: unknown)
+		if typeof(view) == "string" and AimViews.names[view] ~= nil then
+			player:SetAttribute("AimView", view)
+		end
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		states[player] = nil

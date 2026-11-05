@@ -7,7 +7,8 @@
 --     transición de Config.Aim.TransitionSeconds.
 -- Al soltar, al caer, al soltar el arma, con el menú de Roblox o un cuadro de texto abierto, en primera
 -- persona o sentado, todo vuelve a lo que estaba (el modo de rotación, el ratón, AutoRotate y el
--- desplazamiento de la cámara). El Laboratorio no lo carga: se juega en primera persona
+-- desplazamiento de la cámara). Con el bloqueo de cámara puesto (Ctrl, CameraLock) hace lo mismo sin apuntar, con
+-- el desplazamiento de Config.Aim.LockOffset, y al apuntar pasa de ese al del hombro. El Laboratorio no lo carga: se juega en primera persona
 -- (CombatClient/Controllers/FirstPersonController). Con ViewMode.get() == "First" (Fase 24: el campo de tiro en
 -- modo shooter) queda inactivo y devuelve todo a su sitio. Aim.direction apunta al centro de la cámara
 -- desde la cabeza, así que el tiro converge con la mira aunque la cámara esté al hombro.
@@ -23,6 +24,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Aim = require(script.Parent.Parent.Aim)
 local WeaponController = require(script.Parent.WeaponController)
+local CameraLock = require(script.Parent.Parent.CameraLock)
 local ViewMode = require(script.Parent.Parent.ViewMode)
 
 local BIND_NAME = "ShoulderAim"
@@ -39,8 +41,9 @@ type Saved = {
 
 local player = Players.LocalPlayer
 local saved: Saved? = nil
--- 0 (cámara normal) a 1 (al hombro del todo).
+-- 0 (cámara normal) a 1 (al hombro del todo al apuntar) y 0 a 1 (con el bloqueo de cámara puesto).
 local blend = 0
+local lockBlend = 0
 
 -- true si ahora toca estar al hombro con este personaje.
 local function wanted(humanoid: Humanoid, camera: Camera): boolean
@@ -53,15 +56,16 @@ local function wanted(humanoid: Humanoid, camera: Camera): boolean
 	return (camera.CFrame.Position - camera.Focus.Position).Magnitude > FIRST_PERSON_STUDS
 end
 
--- El modo del ratón y el de rotación no se guardan: el jugador puede cambiar el bloqueo de cámara (Ctrl)
--- mientras apunta, y restaurar un valor viejo dejaba el ratón fijo en el centro. La cámara de Roblox no
--- reajusta el ratón sola al soltar, así que se pregunta a su bloqueo si está encendido (si no se puede
--- saber, se deja libre).
-local function naturalBehavior(): Enum.MouseBehavior
-	if Aim.cameraLocked() then
-		return Enum.MouseBehavior.LockCenter
+-- true si ahora toca el bloqueo de cámara (Ctrl, CombatClient/CameraLock) con este personaje: el ratón al centro,
+-- de cara a la mira y la cámara al hombro, apunte o no. Se suelta con el menú de Roblox o un cuadro de texto.
+local function lockWanted(humanoid: Humanoid, camera: Camera): boolean
+	if not CameraLock.isLocked() or not LifeState.isAlive(player) or humanoid.Health <= 0 or humanoid.Sit then
+		return false
 	end
-	return Enum.MouseBehavior.Default
+	if GuiService.MenuIsOpen or UserInputService:GetFocusedTextBox() ~= nil then
+		return false
+	end
+	return (camera.CFrame.Position - camera.Focus.Position).Magnitude > FIRST_PERSON_STUDS
 end
 
 -- Cámara libre (clic derecho sin bloqueo de cámara): sin zoom ni cámara al hombro, el personaje solo se gira
@@ -97,13 +101,16 @@ local function restore(state: Saved)
 end
 
 local function step(deltaTime: number)
+	-- Se vuelve a poner abajo si toca (ver CameraLock.setCentered).
+	CameraLock.setCentered(false)
 	-- Primera persona: nada de cámara al hombro; si estaba puesta, se devuelve todo.
 	if ViewMode.get() == "First" then
 		if saved then
 			restore(saved)
 			saved = nil
 			blend = 0
-			UserInputService.MouseBehavior = naturalBehavior()
+			lockBlend = 0
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		end
 		if freeSaved then
 			if freeSaved.Parent then
@@ -127,11 +134,15 @@ local function step(deltaTime: number)
 		saved = nil
 		state = nil
 		blend = 0
+		lockBlend = 0
 	end
 	if not (camera and humanoid and root and root:IsA("BasePart")) then
 		return
 	end
-	local want = wanted(humanoid, camera)
+	local aimWant = wanted(humanoid, camera)
+	local lockWant = lockWanted(humanoid, camera)
+	local want = aimWant or lockWant
+	CameraLock.setCentered(want)
 	if want and not state then
 		state = {
 			humanoid = humanoid,
@@ -144,15 +155,18 @@ local function step(deltaTime: number)
 		return
 	end
 	local seconds = math.max(Config.Aim.TransitionSeconds, 1e-3)
-	blend = math.clamp(blend + (if want then deltaTime else -deltaTime) / seconds, 0, 1)
-	if not want and blend <= 0 then
-		UserInputService.MouseBehavior = naturalBehavior()
+	blend = math.clamp(blend + (if aimWant then deltaTime else -deltaTime) / seconds, 0, 1)
+	lockBlend = math.clamp(lockBlend + (if lockWant then deltaTime else -deltaTime) / seconds, 0, 1)
+	if not want and blend <= 0 and lockBlend <= 0 then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		restore(state)
 		saved = nil
 		return
 	end
 	local eased = blend * blend * (3 - 2 * blend)
-	humanoid.CameraOffset = state.offset:Lerp(Config.Aim.ShoulderOffset, eased)
+	local lockEased = lockBlend * lockBlend * (3 - 2 * lockBlend)
+	-- Del desplazamiento de la cámara normal al del bloqueo y de ahí al del hombro al apuntar.
+	humanoid.CameraOffset = state.offset:Lerp(Config.Aim.LockOffset, lockEased):Lerp(Config.Aim.ShoulderOffset, eased)
 	if want then
 		-- La cámara de Roblox reajusta el ratón cada fotograma: este paso va justo después.
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
@@ -163,9 +177,8 @@ local function step(deltaTime: number)
 			root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
 		end
 	else
-		-- Soltando: el ratón vuelve a lo que pide el bloqueo de cámara y el personaje vuelve a girar solo
-		-- mientras la cámara vuelve.
-		UserInputService.MouseBehavior = naturalBehavior()
+		-- Soltando: el ratón queda libre y el personaje vuelve a girar solo mientras la cámara vuelve.
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		humanoid.AutoRotate = state.autoRotate
 	end
 end

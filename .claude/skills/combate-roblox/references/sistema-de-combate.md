@@ -672,16 +672,15 @@ chocan sin rayos ("Barrera"): antes se subía al basamento y se salía de la are
 | Guardia (C5 ✅) | F (caído: Rendirse) | L2 | "Guardia", encima de "Esquivar" |
 | Beber (Isla) | E (antes F) | X | Tocar el aviso |
 | Evasivo (C7 ✅) | Q estando atrapado | B estando atrapado | "¡Evasivo!" (el de "Esquivar") |
-| Bloqueo de cámara (C2) | Ctrl (el shift lock de Roblox; el jugador lo enciende en el menú de Roblox) | — | — |
+| Bloqueo de cámara (C2) | Ctrl (bloqueo propio del juego: `CombatClient/CameraLock`; no hace falta tocar el menú de Roblox) | — | — |
 
 La misma tabla, para el jugador, en Ajustes → "Controles del combate" (`SettingsPanel.CONTROLS`, C12): si
 cambia una tecla, cámbiala también allí. La guía del Lobby enseña la guardia con el muñeco de sparring
 (`LobbyGuideController`, paso "Sparring"; se completa con `ParryAt` y se guarda en `combatGuideDone`).
 
-El shift lock: `EnableMouseLockOption = true` en los tres `*.project.json` y `CameraLockController`
-cambia las teclas de Mayús a Ctrl. El `PlayerModule` de Roblox se carga hoy desde
-`StarterPlayer.PlayerModule` (no se copia a `PlayerScripts`) y lee las teclas del sistema de acciones
-de entrada: `InputContexts.CameraContext.MouseLockSwitchAction` con un `InputBinding` por tecla
-(`KeyboardPrimaryBinding`, `KeyboardSecondaryBinding`). El controlador cambia su `KeyCode`; para un
-`PlayerModule` antiguo cambia su valor `BoundKeys`. La acción solo se activa si el jugador tiene el
-bloqueo de cámara encendido en sus ajustes de Roblox (`GameSettings.ControlMode`).
+El bloqueo de cámara es propio del juego: `CameraLockController` lee Ctrl y enciende o apaga el estado de
+`CombatClient/CameraLock`, y `ShoulderAimController` lo aplica (ratón al centro, personaje de cara a la mira y
+cámara al hombro con `Config.Aim.LockOffset`; al apuntar pasa al hombro de `Config.Aim.ShoulderOffset`).
+`Aim.cameraLocked()` lee ese estado. El shift lock de Roblox no se usa: `EnableMouseLockOption = false` en los
+cuatro `*.project.json`, porque solo existe si el jugador pone «Shift Lock Switch» en el menú de Roblox (en Studio
+viene en Classic y el código no puede cambiarlo) y el `PlayerModule` actual no deja leer su estado.

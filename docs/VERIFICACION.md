@@ -743,7 +743,7 @@ Lo nuevo de §6.5 del GDD. Casi todo se prueba con un jugador en la Isla, junto 
 12. [ ] **Zonas:** como mago, Nova en el suelo; como médico, Polvo somnífero.
    ✅ Baldosas de hielo azul (3 s, ralentiza) y nube lila (3 s). Bola de fuego → Nova → Meteoro deja el suelo ardiendo.
 13. [ ] **⚙️ Ajustes:** "Tus números" enseña la cadena del arma (o el disparo de remate) y la guardia; hay "🎮 Controles del combate" (PC, mando y móvil) y "📳 Temblor de la cámara" (Encendido, Suave o Apagado; apagado, el remate ya no mueve la cámara).
-14. [ ] **Bloqueo de cámara:** en el menú de Roblox enciende "Shift Lock" y pulsa **Ctrl**.
+14. [ ] **Bloqueo de cámara:** pulsa **Ctrl** (no hace falta tocar el menú de Roblox).
    ✅ La cámara queda detrás del hombro; Mayús sigue siendo correr.
 15. [ ] En la **Salida**, ninguna línea roja nueva.
 
@@ -4814,6 +4814,64 @@ Primera armadura con malla: `Data/ArmorMeshes` (Armor.FurVest.Guerrero), `ArmorM
    ✅ Aparece `ServerStorage.CalibracionExportada`.
 2. [ ] En el Studio de la Isla (edición), copia ese valor en un `StringValue` `CalibracionExportada` de `ServerStorage` y ejecuta `Equilibrio`.
    ✅ La sección 15 trae la tabla de calibración con el desvío del vuelo por arma y distancia; sin alertas de «Distancia» (si salen, el vuelo real no coincide con `Data/Ballistics`).
+
+## 128. Fase 24: revisión de la calibración con la cámara bloqueada (04-11-2026)
+
+Ctrl enciende y apaga el bloqueo de cámara propio del juego (`CombatClient/CameraLock`). El de Roblox queda desactivado con `EnableMouseLockOption` en false en `lobby`, `island` y `dunas.project.json`, así que hace falta reconectar Rojo y publicar. Con el bloqueo, el ratón va al centro, el personaje mira hacia la mira y la cámara va al hombro (`Config.Aim.LockOffset`); al apuntar pasa al hombro de siempre. La mira del bastón marca con un punto dónde cae el tiro de verdad y con un anillo fino el área del remate. La calibración separa las filas por arma y vista (`Data/AimViews`: Libre, Bloqueo, Bloqueo + mira, 1.ª persona, Táctil y Mando). Probado en Studio (Lobby e Isla, Play, un jugador): Ctrl enciende y apaga el bloqueo (ratón al centro, `CameraOffset` 1,75, `AutoRotate` false y vuelta a lo normal); apuntando con bloqueo, el rayo del centro de la cámara y el del disparo dan en el mismo punto; la calibración separa «MagicStaff|Lock» de «MagicStaff|LockAim»; la mira nueva se dibuja (punto de 6 px y anillo fino). Sin probar lo de abajo.
+
+### 128.1 En los places publicados (tras reconectar Rojo, guardar y publicar Lobby, Isla y Dunas)
+
+1. [ ] Entra en el Lobby, la Isla y Dunas, y pulsa Ctrl sin abrir el menú de Roblox.
+   ✅ Ctrl bloquea y desbloquea la cámara; el icono del ratón es la mirilla de bloqueo.
+2. [ ] Con un arma a distancia en cada place, pulsa Ctrl y clic derecho, y dispara a un blanco de cerca (10 studs) y de lejos.
+   ✅ Apunta y el tiro va al punto de la mira, también a 10 studs.
+
+### 128.2 En Studio, en Play, con un jugador (Lobby e Isla; copia antes `PlayerData_v1` en `PlayerData_v1_backups`)
+
+1. [ ] Abre el menú de Roblox, escribe en un cuadro de texto y abre una ventana del juego; ciérralo todo.
+   ✅ Mientras está abierto, el bloqueo se suelta; al cerrar, vuelve.
+2. [ ] Pon el bloqueo con Ctrl, muere y reaparece; después vuelve a pulsar Ctrl.
+   ✅ La cámara no se queda pegada tras reaparecer y Ctrl sigue funcionando.
+3. [ ] Con el bloqueo puesto, siéntate en un asiento (si hay) y levántate.
+   ✅ La cámara no se queda atascada ni al sentarse ni al levantarse.
+4. [ ] Con el bloqueo puesto, cambia de arma.
+   ✅ La cámara y la mira no dan saltos; el arma nueva apunta con Ctrl y clic derecho.
+5. [ ] Con el mismo arma (p. ej. el Bastón mágico), mide con la consola «Calibración» las vistas Libre (sin Ctrl), Bloqueo (Ctrl) y Bloqueo + mira (Ctrl y clic derecho), con los botones de distancia del panel en 30 y en 100 studs.
+   ✅ El panel tiene una fila «arma · vista» por cada vista y el desvío Δ coincide entre Libre, Bloqueo y Bloqueo + mira a cada distancia.
+6. [ ] Dispara hasta que el siguiente tiro sea el remate (el anillo de la mira lo indica) y luego un tiro normal.
+   ✅ El anillo se marca (más grueso y claro) cuando el siguiente tiro es el remate y vuelve a su tono tenue después.
+7. [ ] Con el Bastón mágico (y con los de otras rarezas y los aspectos míticos de bastón), apunta con Ctrl y clic derecho a un muñeco a unos 30 studs y dispara, de frente y de lado, con la cámara cerca y lejos.
+   ✅ El hechizo nace en el cristal de la punta del bastón (no en la mano ni en el centro de la empuñadura) y llega al punto de la mira. Las habilidades del mago siguen saliendo de sus manos.
+8. [ ] Con el ratón físico, Ctrl puesto y el clic derecho mantenido, pulsa «Borrar marcas» en el campo de tiro, apunta a la pantalla corta (a unos 50 studs), sin mover el ratón dispara una vez y mira la consola «Calibración» (fila «Bastón mágico · Bloqueo + mira», columna Media).
+   ✅ La marca cae sobre el punto de la mira y el Δ es de décimas de studs (antes salía unos 4,7 studs, 5°, por encima: el punto de la mira se dibujaba 58 px más abajo por la barra superior de Roblox, `Sights`; hay que probarlo con la barra superior visible, que es como lo ve un jugador). Repítelo manteniendo el clic izquierdo (disparo automático) y moviendo el ratón entre tiros: ningún tiro se desvía del punto de la mira.
+
+### 128.3 Campo de tiro con 2 jugadores (Lobby, en Play)
+
+1. [ ] Cada jugador abre su panel «Calibración» y dispara con las vistas Libre y Bloqueo.
+   ✅ Cada uno ve solo sus filas por vista y el panel enseña «arma · vista».
+2. [ ] Mira el panel en PC y en el emulador de teléfono con las filas llenas.
+   ✅ Se lee todo sin desplazamiento: hasta 6 filas en PC y 3 en teléfono (`MAX_ROWS`), aunque ahora hay más filas por arma.
+
+### 128.4 Teléfono, emulador y mando
+
+1. [ ] Con un teléfono real o el emulador, dispara con el control táctil y mira el panel de calibración.
+   ✅ La vista Táctil aparece en el panel; la mira del bastón (punto y anillo) se lee bien.
+2. [ ] Con un mando, dispara en el campo de tiro y mira el panel.
+   ✅ La vista Mando aparece en el panel.
+
+### 128.5 Laboratorio y modo shooter del campo (primera persona, Play)
+
+1. [ ] En el Laboratorio, pulsa Ctrl con el cursor libre.
+   ✅ Ctrl sigue siendo del cursor y no activa el bloqueo de cámara.
+2. [ ] En el modo shooter del campo de tiro (primera persona), pulsa Ctrl.
+   ✅ Ctrl no activa el bloqueo de cámara.
+
+### 128.6 Equilibrio con una exportación nueva (Studio de la Isla, edición)
+
+Una exportación anterior a esta fase no tiene sufijo de vista, así que `Equilibrio` solo ve las filas por vista con una nueva.
+
+1. [ ] Exporta el panel «Calibración» del Lobby (con las vistas), copia el JSON en un `StringValue` `CalibracionExportada` de `ServerStorage` y ejecuta `Equilibrio`.
+   ✅ La sección «Distancia» trae las filas por arma y vista; sin alertas nuevas de «Distancia».
 
 ## 129. Fase 20 Q6b: Guerrero de hueso, plata y volcánica con malla (04-11-2026)
 

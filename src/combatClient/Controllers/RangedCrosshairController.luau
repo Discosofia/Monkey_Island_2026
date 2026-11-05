@@ -111,19 +111,25 @@ function RangedCrosshairController:Start()
 		local covered = false
 		if usesMouse then
 			local mouse = UserInputService:GetMouseLocation()
-			if UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+			if not Aim.centered() then
 				position = mouse
 			end
 			covered = overInterface(playerGui, position, gui)
 		end
 		-- La mira del arma (solo cuando se apunta; con alpha 0 no se dibuja nada ni se calcula el blanco).
 		local alpha = WeaponController.aimAlpha()
+		-- El bastón marca donde cae el tiro (con su caída) y si el siguiente es el remate.
+		local tool = character:FindFirstChildOfClass("Tool")
+		local weaponId = if tool then tool:GetAttribute("WeaponId") else nil
+		local isArc = alpha > 0 and typeof(weaponId) == "string" and Sights.kindOf(weapon) == "Arc"
 		sights.update({
 			alpha = alpha,
 			aimPoint = if alpha > 0 then Aim.point(character) else Vector3.zero,
 			muzzle = muzzlePosition(character),
 			camera = camera,
 			center = position,
+			landing = if isArc then Aim.landing(character, weaponId :: string, weapon) else nil,
+			finisherReady = isArc and WeaponController.nextIsFinisher(weaponId :: string, weapon),
 		})
 		crosshair.setVisible(not covered and not sights.covers())
 		gui:SetAttribute("SightCovers", sights.covers())

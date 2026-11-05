@@ -19,6 +19,7 @@
 -- Scope: viñeta oscura con un hueco circular, cruz fina con hueco y marcas. Arc con AcidBurst (el cañón): la
 -- parábola del disparo. Colores: nunca verde ni morado; el punto rojo es la excepción aceptada.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 
 local Config = require(script.Parent.Parent.Config)
@@ -32,6 +33,10 @@ export type State = {
 	muzzle: Vector3?,
 	camera: Camera,
 	center: Vector2?,
+	-- Dónde cae de verdad el tiro del bastón (Aim.landing); sin él, el punto apuntado.
+	landing: Vector3?,
+	-- true si el siguiente disparo es el remate: el anillo del área se marca.
+	finisherReady: boolean?,
 }
 
 export type Handle = {
@@ -271,12 +276,25 @@ function Sights.mount(parent: GuiObject): Handle
 			})
 		)
 	end
+	-- Anillo fino del área del remate: casi transparente, y marcado cuando el siguiente tiro es el remate.
 	local arcRing = addFrame(entries.Arc, holders.Arc, "Impact", Vector2.zero, {
 		round = true,
 		strokeColor = WARM,
-		strokeThickness = 2,
-		strokeFill = 0.95,
+		strokeThickness = 1,
+		strokeFill = settings.ArcRingIdleFill,
 	})
+	local arcRingEntry = entries.Arc[#entries.Arc]
+	local arcRingStroke = arcRingEntry.stroke :: UIStroke
+	-- Punto pequeño del bastón: donde cae el tiro.
+	local arcTarget = addFrame(entries.Arc, holders.Arc, "Target", Vector2.new(settings.ArcDotPx, settings.ArcDotPx), {
+		color = WARM,
+		fill = 1,
+		round = true,
+		strokeColor = BLACK,
+		strokeThickness = 1,
+		strokeFill = 0.8,
+	})
+	local ringReady = false
 
 	local weaponNow: Weapons.WeaponDefinition? = nil
 	local kind: SightKind? = nil
@@ -371,6 +389,18 @@ function Sights.mount(parent: GuiObject): Handle
 			dot.Visible = false
 		end
 		arcRing.Visible = false
+		arcTarget.Visible = false
+	end
+
+	-- Grosor y opacidad del anillo: fino y tenue, o marcado si el siguiente tiro es el remate.
+	local function setRingReady(ready: boolean)
+		if ready == ringReady then
+			return
+		end
+		ringReady = ready
+		arcRingStroke.Thickness = if ready then 2 else 1
+		arcRingEntry.strokeFill = if ready then settings.ArcRingReadyFill else settings.ArcRingIdleFill
+		paint()
 	end
 
 	-- Pone los puntos de la trayectoria. "at" da el punto del mundo de cada paso (de 1 a ArcPoints).
@@ -400,7 +430,10 @@ function Sights.mount(parent: GuiObject): Handle
 	local function updateArc(state: State, weapon: Weapons.WeaponDefinition)
 		local camera = state.camera
 		local origin = state.muzzle or headPosition(camera)
-		local offset = root.AbsolutePosition
+		-- AbsolutePosition va en las coordenadas de debajo de la barra de Roblox: en una pantalla con IgnoreGuiInset
+		-- da (0, -58). Se le suma ese margen para que "offset" sea el origen de "root" en coordenadas de pantalla
+		-- (las de WorldToViewportPoint); sin sumarlo, el punto y el anillo salían 58 px más abajo de lo que tocaba.
+		local offset = root.AbsolutePosition + GuiService:GetGuiInset()
 		local steps = #arcDots
 		if weapon.lab and weapon.lab.effect == "AcidBurst" then
 			-- Repite la fórmula de CombatService.acidLob (el servidor): el blanco recortado al alcance en
@@ -423,15 +456,27 @@ function Sights.mount(parent: GuiObject): Handle
 				local t = seconds * (step - 1) / math.max(steps - 1, 1)
 				return origin + direction * speed * t + Vector3.yAxis * (rise * t - gravity * t * t / 2)
 			end
+			arcTarget.Visible = false
+			setRingReady(false)
 			placeArc(camera, offset, pointAt, pointAt(steps), Config.Lab.AcidRadius)
 		else
-			-- Bastón: recta hasta el punto apuntado, como mucho a su alcance, y el anillo del remate.
-			local delta = state.aimPoint - origin
-			local finish = if delta.Magnitude > weapon.range then origin + delta.Unit * weapon.range else state.aimPoint
-			local function pointAt(step: number): Vector3
-				return origin:Lerp(finish, (step - 1) / math.max(steps - 1, 1))
+			-- Bastón: un punto donde cae el tiro de verdad y el anillo fino del área del remate. Sin la recta
+			-- de puntos: tapaba la vista y no seguía la caída.
+			for _, dot in arcDots do
+				dot.Visible = false
 			end
-			placeArc(camera, offset, pointAt, finish, Config.RangedChain.Finishers.Burst.radius)
+			setRingReady(state.finisherReady == true)
+			local landing = state.landing or state.aimPoint
+			local screen, depth = project(camera, landing)
+			arcTarget.Visible = screen ~= nil
+			arcRing.Visible = screen ~= nil
+			if screen then
+				local at = UDim2.fromOffset(screen.X - offset.X, screen.Y - offset.Y)
+				arcTarget.Position = at
+				local diameter = studsToPixels(camera, Config.RangedChain.Finishers.Burst.radius, depth) * 2
+				arcRing.Size = UDim2.fromOffset(diameter, diameter)
+				arcRing.Position = at
+			end
 		end
 	end
 

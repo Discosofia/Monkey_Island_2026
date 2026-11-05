@@ -68,6 +68,8 @@ local DEFAULT_SLASH: { [Enum.HumanoidRigType]: string } = {
 	[Enum.HumanoidRigType.R6] = "rbxassetid://129967390",
 }
 local SHAKE_SECONDS = 0.15
+-- Studs que hay del extremo de la empuñadura de un bastón al centro de su cristal (WeaponTools.buildStaff).
+local STAFF_TIP_STUDS = 0.6
 local ZOOM_ACTION = "Zoom"
 
 local WeaponController = {}
@@ -274,6 +276,14 @@ local function shoot(character: Model, weaponId: string, weapon: Weapons.WeaponD
 		task.spawn(listener, weapon)
 	end
 	return true, finisher
+end
+
+-- true si el siguiente disparo de "weapon" será su remate (la cuenta va por el penúltimo y sigue en ventana).
+function WeaponController.nextIsFinisher(weaponId: string, weapon: Weapons.WeaponDefinition): boolean
+	return weapon.finisher ~= nil
+		and shots.weaponId == weaponId
+		and shots.shot == RangedChain.LENGTH - 1
+		and os.clock() <= shots.readyAt + Config.RangedChain.LinkWindowSeconds
 end
 
 -- Llama a "callback" cada vez que sale un disparo de un arma a distancia de este jugador.
@@ -499,7 +509,7 @@ local seqCharacter: Model? = nil
 
 -- De dónde se ve salir la bala propia: la boca del arma de la vista (Laboratorio, MuzzleSource) y, si no, el
 -- Attachment "Muzzle" o el Handle de la herramienta. El segundo valor dice si es la vista en primera persona.
-local function muzzlePosition(tool: Tool): (Vector3?, boolean)
+local function muzzlePosition(tool: Tool, weapon: Weapons.WeaponDefinition): (Vector3?, boolean)
 	local viewMuzzle = MuzzleSource.get()
 	if viewMuzzle then
 		return viewMuzzle, true
@@ -510,6 +520,11 @@ local function muzzlePosition(tool: Tool): (Vector3?, boolean)
 	end
 	local handle = tool:FindFirstChild("Handle")
 	if handle and handle:IsA("BasePart") then
+		-- Los bastones (spell): el hechizo sale del cristal, en la punta de la empuñadura (su largo va en Size.Y,
+		-- con el cristal un poco más allá), no del centro de la empuñadura.
+		if weapon.spell then
+			return handle.CFrame:PointToWorldSpace(Vector3.new(0, handle.Size.Y / 2 + STAFF_TIP_STUDS, 0)), false
+		end
 		return handle.Position, false
 	end
 	return nil, false
@@ -528,7 +543,7 @@ local function launchLocalShot(
 	aimDirection: Vector3
 ): number?
 	local seed = Players.LocalPlayer:GetAttribute("ShotSeed")
-	local muzzle, firstPerson = muzzlePosition(tool)
+	local muzzle, firstPerson = muzzlePosition(tool, weapon)
 	if typeof(seed) ~= "number" or not muzzle then
 		return nil
 	end

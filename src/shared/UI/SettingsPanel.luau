@@ -1287,7 +1287,7 @@ local CONTROLS: { { name: string, keys: string, help: string?, lab: boolean? } }
 	{
 		name = later("Bloqueo de cámara"),
 		keys = later("Ctrl (en PC)"),
-		help = later("actívalo en el menú de Roblox; apuntas hacia donde miras"),
+		help = later("Ctrl lo activa y lo apaga; apuntas hacia donde miras"),
 	},
 }
 
