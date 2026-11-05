@@ -8768,20 +8768,22 @@ do
 		end
 	end
 
-	-- Traje de temporada del guerrero, Guardián del Fuego Azul. Delante: coraza de pómez cruzada por dos
-	-- correas de carbón con el canto de fuego azul y tachones de azufre; donde se cruzan, una llama en píxeles
-	-- sobre un disco de carbón sujeto por cuatro cristales de azufre; gorguera de carbón con cristales de
-	-- azufre alrededor del cuello; cinturón de carbón con la hebilla de pómez. Detrás: una
-	-- llamarada azul en píxeles más alta que la cabeza que sale de un cráter de azufre (como el fuego azul de
-	-- los volcanes de azufre), sobre una placa de carbón con el borde de fuego azul. Hombreras de losa con
-	-- cristales de azufre y su llama, brazales de pómez con un cristal y faldones de pómez con una placa de
-	-- carbón. Por grados: 0, la coraza con las correas, el cinturón, los brazales, los faldones y la placa de
-	-- la espalda; 1, las hombreras; 2, la llama del pecho, los cristales de la gorguera, de la hebilla y de los
-	-- brazales; 3, el cráter de la espalda con una llama pequeña; 4, la llamarada grande y el fuego que sale
-	-- de las llamas, con su luz.
-	-- Cada grado suma además detalle común (hombreras, brazales, faldones y cinturón con remaches, gotas de
-	-- fuego azul y cristales; marco de la espalda con pilares, viga y corona desde el 1; cristales en los
-	-- pilares y gotas bajo el disco desde el 2; cristales a los lados del cráter, remaches y brasas desde el 3).
+	-- Traje de temporada del guerrero, Guardián del Fuego Azul. Delante: coraza de pómez en placas escalonadas
+	-- (tres láminas de pecho y tres de abdomen, cada una con su costura de carbón) cruzada por dos correas de
+	-- carbón con el canto de fuego azul y tachones de azufre; donde se cruzan, una llama en píxeles sobre un
+	-- disco de carbón con marco de pómez sujeto por cuatro cristales de azufre; gorguera de carbón con
+	-- cristales de azufre alrededor del cuello; grietas de carbón pintadas en las placas; cinturón de carbón con
+	-- la hebilla de pómez. Detrás: una placa de carbón con el borde de fuego azul y su marco, un lomo de
+	-- pómez (espina con vértebras y tres pares de costillas que abrazan la llama) y, sobre un cráter de
+	-- escalones, una llamarada azul en píxeles más alta que la cabeza (como el fuego azul de los volcanes de
+	-- azufre). Hombreras de láminas con cristales de azufre y su llama, brazales de pómez con un cristal y
+	-- faldones de pómez con una placa de carbón. Por grados: 0, la coraza con las correas, el cinturón, los
+	-- brazales, los faldones, la placa de la espalda y su marco; 1, las hombreras, las costuras y grietas de la
+	-- coraza, la espina y el primer par de costillas; 2, la llama del pecho, los cristales de la gorguera, de la
+	-- hebilla y de los brazales, y los otros dos pares de costillas; 3, el cráter de escalones de la espalda con
+	-- una llama pequeña; 4, la llamarada grande y el fuego que sale de las llamas, con su luz.
+	-- Con malla (STEPS.on) todo lo de pómez y carbón es de bloques alineados con los ejes; solo el neón y los
+	-- cristales quedan sueltos.
 	local function blueFireGuardian(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -8798,7 +8800,7 @@ do
 		-- Gorguera de carbón y cristales de azufre alrededor del cuello, más largos a los lados.
 		make.block(Vector3.new(width * 0.66, 0.16, depth + 0.28), CHARCOAL, SLATE, CFrame.new(0, height * 0.44, 0))
 		if grade >= 2 then
-			for index = 0, 4 do
+			for index = 0, 4, 2 do
 				local angle = math.rad(-100 + index * 50)
 				fireCrystal(
 					make,
@@ -8811,23 +8813,89 @@ do
 				)
 			end
 		end
+		-- Coraza en placas: tres láminas de pecho (cada una más ancha que la de arriba, de pómez clara y oscura
+		-- alternas) con su costura de carbón debajo, y tres de abdomen que se estrechan.
+		local lames = {
+			{ y = 0.3, w = 0.84, color = PUMICE },
+			{ y = 0.12, w = 0.92, color = PUMICE_DARK },
+			{ y = -0.06, w = 1, color = PUMICE },
+		}
+		for _, lame in lames do
+			local y = height * lame.y
+			make.block(
+				Vector3.new(width * lame.w, height * 0.15, 0.08),
+				lame.color,
+				SLATE,
+				CFrame.new(0, y, front - 0.04)
+			)
+			make.block(
+				Vector3.new(width * lame.w + 0.04, 0.05, 0.1),
+				CHARCOAL,
+				SLATE,
+				CFrame.new(0, y - height * 0.075 - 0.025, front - 0.045)
+			)
+		end
+		local belly = {
+			{ y = -0.24, w = 0.7, color = PUMICE_DARK },
+			{ y = -0.33, w = 0.56, color = PUMICE },
+			{ y = -0.42, w = 0.42, color = PUMICE_DARK },
+		}
+		for index, plate in belly do
+			local y = height * plate.y
+			make.block(
+				Vector3.new(width * plate.w, height * 0.07, 0.08),
+				plate.color,
+				SLATE,
+				CFrame.new(0, y, front - 0.04)
+			)
+			-- Grado 1: costura de carbón bajo las dos placas de arriba.
+			if grade >= 1 and index < 3 then
+				make.block(
+					Vector3.new(width * plate.w + 0.04, 0.04, 0.1),
+					CHARCOAL,
+					SLATE,
+					CFrame.new(0, y - height * 0.035 - 0.02, front - 0.045)
+				)
+			end
+		end
+		-- Grado 1: grietas de carbón en zigzag (dos en el pecho, de lado a lado) y tres tachones en la gorguera.
+		if grade >= 1 then
+			local cracks = {
+				{ -0.4, 0.3, 0.05, 0.3 },
+				{ -0.37, 0.19, 0.14, 0.05 },
+				{ 0.4, 0.14, 0.05, 0.3 },
+				{ 0.37, 0.03, 0.14, 0.05 },
+			}
+			for _, crack in cracks do
+				make.block(
+					Vector3.new(crack[3], crack[4], 0.03),
+					CHARCOAL,
+					SLATE,
+					CFrame.new(crack[1] * width, crack[2] * height, front - 0.09)
+				)
+			end
+			for _, x in { -0.2, 0, 0.2 } do
+				make.ball(0.1, SULFUR, SMOOTH, CFrame.new(x * width, height * 0.44, front - 0.1))
+			end
+		end
 		-- Correas cruzadas del hombro a la cadera contraria, con tachones de azufre.
 		for side = -1, 1, 2 do
 			local from = Vector3.new(side * width * 0.42, height * 0.45, front)
 			local to = Vector3.new(-side * width * 0.4, -height * 0.44, front)
 			strap(make, from + Vector3.new(0, 0, 0.04), to + Vector3.new(0, 0, 0.04), 0.3, BLUE_FIRE, NEON)
 			strap(make, from, to, 0.22, CHARCOAL, SLATE)
-			for _, t in { 0.12, 0.3, 0.7, 0.88 } do
+			for _, t in { 0.15, 0.85 } do
 				make.ball(0.12, SULFUR, SMOOTH, CFrame.new(from:Lerp(to, t) + Vector3.new(0, 0, -0.1)))
 			end
 		end
 		-- Donde se cruzan las correas, un tachón de azufre o, desde el grado 2, una llama en píxeles sobre un
-		-- disco de carbón con cuatro cristales.
+		-- disco de carbón con marco de pómez y cuatro cristales.
 		local core = CFrame.new(0, 0, front - 0.14)
 		if grade < 2 then
 			make.ball(0.26, SULFUR, SMOOTH, core * CFrame.new(0, 0, 0.04))
 		end
 		if grade >= 2 then
+			make.block(Vector3.new(0.96, 0.96, 0.05), PUMICE_DARK, SLATE, core * CFrame.new(0, 0, 0.05))
 			make.rod(0.12, 0.8, CHARCOAL, SLATE, core * FACING)
 			local heart = pixelFlame(
 				make,
@@ -8855,7 +8923,8 @@ do
 			end
 		end
 
-		-- Espalda: placa de carbón con el borde de fuego azul y la llamarada sobre su cráter de azufre.
+		-- Espalda: placa de carbón con el borde de fuego azul, su marco y, sobre ella, el lomo de pómez y la
+		-- llamarada sobre su cráter.
 		local plateZ = back + 0.12
 		make.block(
 			Vector3.new(width * 0.9 + 0.08, height * 0.9 + 0.08, 0.06),
@@ -8864,17 +8933,7 @@ do
 			CFrame.new(0, -height * 0.02, plateZ - 0.03)
 		)
 		make.block(Vector3.new(width * 0.9, height * 0.9, 0.1), CHARCOAL, SLATE, CFrame.new(0, -height * 0.02, plateZ))
-		-- Grado 1: marco de pómez alrededor de la placa (pilares, viga con corona de cristales, escuadras y gotas
-		-- azules), tres costillas, el cuello trasero y, delante, remaches en la gorguera y tres placas de abdomen.
-		backFrame(make, width * 0.9, height * 0.9, -height * 0.02, plateZ, true, 7, 5)
-		for _, y in { 0.12, 0, -0.12 } do
-			make.block(
-				Vector3.new(width * 0.7, 0.08, 0.06),
-				PUMICE_DARK,
-				SLATE,
-				CFrame.new(0, height * y, plateZ + 0.06)
-			)
-		end
+		backFrame(make, width * 0.9, height * 0.9, -height * 0.02, plateZ, true, 5, 3)
 		make.block(Vector3.new(width * 0.5, 0.3, 0.12), CHARCOAL, SLATE, CFrame.new(0, height * 0.44, back + 0.1))
 		make.block(
 			Vector3.new(width * 0.54, 0.06, 0.16),
@@ -8882,32 +8941,47 @@ do
 			SLATE,
 			CFrame.new(0, height * 0.44 + 0.17, back + 0.1)
 		)
-		for index = 1, 7 do
-			make.ball(0.1, SULFUR, SMOOTH, CFrame.new((index - 4) * width * 0.09, height * 0.44 - 0.04, front - 0.03))
+		-- Grado 1: la espina de pómez con tres vértebras y el primer par de costillas (las de arriba): cada una,
+		-- una barra que sale al lado, más delante que la llama, y un poste que la sujeta a la placa.
+		-- Grado 2: los otros dos pares, más abajo.
+		if grade >= 1 then
+			make.block(Vector3.new(0.2, height * 0.84, 0.1), PUMICE, SLATE, CFrame.new(0, -height * 0.02, plateZ + 0.1))
+			for _, y in { 0.26, 0.06, -0.14 } do
+				make.block(
+					Vector3.new(width * 0.24, 0.1, 0.16),
+					PUMICE_DARK,
+					SLATE,
+					CFrame.new(0, height * y, plateZ + 0.12)
+				)
+			end
 		end
-		for _, y in { -0.34, -0.41, -0.48 } do
-			make.block(Vector3.new(width * 0.22, 0.1, 0.06), PUMICE, SLATE, CFrame.new(0, height * y, front - 0.03))
+		for level, y in { 0.28, 0.1, -0.08 } do
+			if grade >= (if level == 1 then 1 else 2) then
+				for side = -1, 1, 2 do
+					make.block(
+						Vector3.new(width * 0.26, 0.12, 0.14),
+						if level == 2 then PUMICE_DARK else PUMICE,
+						SLATE,
+						CFrame.new(side * width * 0.41, height * y, plateZ + 0.22)
+					)
+					make.block(
+						Vector3.new(0.12, 0.22, 0.26),
+						PUMICE_DARK,
+						SLATE,
+						CFrame.new(side * width * 0.5, height * y - 0.08, plateZ + 0.22)
+					)
+				end
+			end
 		end
-		-- Grado 2: un cristal de azufre en cada lado alto de la placa, hacia atrás y arriba (lo del pecho no se
-		-- ve desde detrás; más hacia fuera, las hombreras los tapaban).
+		-- Grado 2: un cristal de azufre alto a cada lado de la viga, hacia atrás y arriba.
 		if grade >= 2 then
 			for side = -1, 1, 2 do
 				fireCrystal(
 					make,
-					Vector3.new(side * width * 0.28, height * 0.28, plateZ + 0.06),
-					Vector3.new(side * 0.5, 0.8, 0.8),
-					0.85,
-					0.34,
-					SULFUR,
-					SULFUR_GLOW
-				)
-				-- Y uno más grande en la cabeza de cada pilar.
-				fireCrystal(
-					make,
-					Vector3.new(side * width * 0.38, height * 0.43, plateZ + 0.1),
-					Vector3.new(side * 0.5, 1, 0.5),
-					0.6,
-					0.22,
+					Vector3.new(side * width * 0.3, height * 0.43, plateZ + 0.12),
+					Vector3.new(side * 0.4, 1, 0.6),
+					0.8,
+					0.3,
 					SULFUR,
 					SULFUR_GLOW
 				)
@@ -8920,37 +8994,32 @@ do
 			-- En el grado 4, más ancha que el torso y más alta que la cabeza: es lo que se ve de lejos.
 			local flameAt = CFrame.new(0, footY, plateZ + 0.05)
 			if lit then
-				local big = pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.12, false)
+				local big = pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.1, false)
 				blueFire(big, 12, 0.9)
 				smoke(big, 2, Color3.fromRGB(150, 160, 190), 0.9)
 			else
-				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, width * 0.13, false)
+				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, width * 0.1, false)
 			end
-			-- Grado 3: cuatro cristales altos a los lados del cráter, remaches en su labio y siete brasas que
-			-- suben por delante de la llama (en el 4, tres más, más altas).
-			for index, x in { -0.44, -0.34, 0.34, 0.44 } do
+			-- Grado 3: dos cristales altos en las esquinas del cráter, tres remaches en su labio y cinco brasas
+			-- que suben por delante de la llama (en el 4, dos más, más altas).
+			for _, x in { -0.44, 0.44 } do
 				fireCrystal(
 					make,
 					Vector3.new(x * width, footY + height * 0.06, plateZ + 0.34),
 					Vector3.new(x * 2.4, 1, 0.5),
-					if index == 1 or index == 4 then 0.9 else 0.7,
+					0.9,
 					0.24,
 					SULFUR,
 					SULFUR_GLOW
 				)
 			end
-			for index = 1, 7 do
-				make.ball(
-					0.12,
-					SULFUR,
-					SMOOTH,
-					CFrame.new((index - 4) * width * 0.11, footY - height * 0.04, plateZ + 0.37)
-				)
+			for _, x in { -0.27, 0, 0.27 } do
+				make.ball(0.12, SULFUR, SMOOTH, CFrame.new(x * width, footY - height * 0.07, plateZ + 0.37))
 			end
 			local sparks = {}
-			for index = 1, 7 do
+			for index = 1, 5 do
 				sparks[index] = Vector3.new(
-					(index - 4) * width * 0.16,
+					(index - 3) * width * 0.2,
 					footY + height * (0.7 + 0.12 * ((index * 3) % 5)),
 					plateZ + 0.6
 				)
@@ -8958,13 +9027,14 @@ do
 			motes(make, sparks, 0.1)
 			if lit then
 				local high = {}
-				for index = 1, 3 do
+				for index = 1, 2 do
 					high[index] =
-						Vector3.new((index - 2) * width * 0.3, footY + height * (1.35 + 0.1 * index), plateZ + 0.6)
+						Vector3.new((index - 1.5) * width * 0.5, footY + height * (1.35 + 0.1 * index), plateZ + 0.6)
 				end
 				motes(make, high, 0.1)
 			end
-			-- Cráter: labio de carbón y pómez y cinco cristales de azufre delante del pie de la llama.
+			-- Cráter: labio de pómez oscura con borde de carbón, dos escalones de pómez a cada lado (el de dentro
+			-- más bajo) y tres cristales de azufre delante del pie de la llama.
 			make.block(
 				Vector3.new(width * 0.86, height * 0.16, 0.3),
 				PUMICE_DARK,
@@ -8977,12 +9047,26 @@ do
 				SLATE,
 				CFrame.new(0, footY + height * 0.04, plateZ + 0.2)
 			)
-			for index, x in { -0.36, -0.18, 0, 0.18, 0.36 } do
+			for side = -1, 1, 2 do
+				make.block(
+					Vector3.new(width * 0.1, height * 0.1, 0.3),
+					PUMICE,
+					SLATE,
+					CFrame.new(side * width * 0.4, footY + height * 0.1, plateZ + 0.2)
+				)
+				make.block(
+					Vector3.new(width * 0.07, height * 0.2, 0.28),
+					PUMICE,
+					SLATE,
+					CFrame.new(side * width * 0.455, footY + height * 0.15, plateZ + 0.2)
+				)
+			end
+			for index, x in { -0.3, 0, 0.3 } do
 				fireCrystal(
 					make,
 					Vector3.new(x * width, footY + height * 0.06, plateZ + 0.34),
 					Vector3.new(x * 1.6, 1, 0.5),
-					if index == 3 then 0.66 else 0.56 - math.abs(x) * 0.3,
+					if index == 2 then 0.66 else 0.56 - math.abs(x) * 0.3,
 					0.28,
 					SULFUR,
 					SULFUR_GLOW
@@ -8996,16 +9080,17 @@ do
 
 	OUTFITS.BlueFireGuardianOutfit = blueFireGuardian
 
-	-- Traje de temporada del cazador, Acechador del Fuego Azul. Delante: jubón de cuero de carbón, la
-	-- correa del carcaj de pómez con tachones de azufre, esclavina de pómez con la raya de fuego azul,
-	-- cinturón con zurrón y un cuchillo de azufre. Detrás: capa de pómez oscura con el bajo de carbón y el
-	-- carcaj de pómez con aros de carbón y flechas de plumas celestes. Por grados: 0, todo eso; 1, las
-	-- hombreras; 2, collar de tres puntas de flecha de azufre con un broche de fuego azul, la capucha
-	-- bajada forrada de celeste y dos cristales de azufre en el carcaj; 3, tres zarpazos de fuego azul en la
-	-- capa, aros de fuego azul en el carcaj y una llama pequeña entre las flechas (arden); 4, la llama de las
-	-- flechas más grande, el bajo de la capa en llamas y el fuego de partículas, con su luz. Además: flecos de
-	-- carbón y remaches en la capa desde el 1; flecos de pómez en la esclavina y puntas en el carcaj desde el 2;
-	-- el bajo de la capa arde ya en el 3.
+	-- Traje de temporada del cazador, Acechador del Fuego Azul. Delante: jubón de cuero de carbón con costuras
+	-- pintadas de pómez (cuatro tiras finas y dos travesaños), la correa del carcaj de pómez con tachones de
+	-- azufre, esclavina de pómez en dos escalones con la raya de fuego azul, cinturón con zurrón y un cuchillo
+	-- de azufre. Detrás: capa de pómez oscura con ribetes de carbón y el bajo en flecos de carbón, y el carcaj
+	-- de pómez con aros de carbón y flechas de plumas celestes. Todo va alineado con los ejes (sin giros) para
+	-- que entre en la malla; solo el neón, el cristal y las llamas quedan sueltos. Por grados: 0, todo eso;
+	-- 1, las hombreras; 2, collar de tres puntas de flecha de azufre con un broche de fuego azul, flecos de
+	-- pómez bajo la esclavina, la capucha bajada forrada de celeste y dos cristales de azufre en el carcaj;
+	-- 3, tres zarpazos de fuego azul en la capa, aros de fuego azul en el carcaj y una llama pequeña entre las
+	-- flechas (arden); 4, la llama de las flechas más grande, el bajo de la capa en llamas y el fuego de
+	-- partículas, con su luz. Además: flecos de carbón, ribetes y remaches en la capa desde el 1.
 	local function blueFireStalker(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -9013,11 +9098,54 @@ do
 		local back = depth / 2
 		local lit = grade >= 4
 		local FACING_FRONT = CFrame.Angles(0, math.pi, 0)
+		-- Llama pequeña del bajo de la capa: tres filas (siete piezas), menos que la llama pequeña de siempre.
+		local HEM_FLAME = { ".X.", "XCX", "XWX" }
+		-- Punta que cuelga hacia abajo: "x" es el centro, "topY" donde nace y "z" su plano. Con STEPS son tres escalones.
+		local function dropFang(
+			length: number,
+			wide: number,
+			color: Color3,
+			material: Enum.Material,
+			x: number,
+			topY: number,
+			z: number
+		)
+			make.fang(
+				length,
+				wide,
+				color,
+				material,
+				CFrame.new(x + wide / 2, topY, z + wide / 2) * CFrame.Angles(0, 0, math.pi)
+			)
+		end
+
+		-- Jubón de cuero de carbón con las costuras pintadas: tres tiras verticales finas (centro y costados) y
+		-- dos travesaños, fuera del paso de la correa.
 		make.block(
 			Vector3.new(width + 0.12, height * 0.92, depth + 0.14),
 			CHARCOAL,
 			LEATHER_MATERIAL,
 			CFrame.new(0, -height * 0.02, 0)
+		)
+		for _, x in { -0.4, 0, 0.4 } do
+			make.block(
+				Vector3.new(0.04, height * (if x == 0 then 0.74 else 0.66), 0.03),
+				PUMICE_DARK,
+				LEATHER_MATERIAL,
+				CFrame.new(x * width, -height * 0.04, front - 0.005)
+			)
+		end
+		make.block(
+			Vector3.new(width * 0.14, 0.04, 0.03),
+			PUMICE_DARK,
+			LEATHER_MATERIAL,
+			CFrame.new(-width * 0.22, height * 0.2, front - 0.005)
+		)
+		make.block(
+			Vector3.new(width * 0.14, 0.04, 0.03),
+			PUMICE_DARK,
+			LEATHER_MATERIAL,
+			CFrame.new(width * 0.22, -height * 0.2, front - 0.005)
 		)
 		quiverStrap(make, front - 0.04, 0.16, PUMICE_DARK, LEATHER_MATERIAL)
 		local strapFrom = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.04)
@@ -9025,42 +9153,67 @@ do
 		for _, t in { 0.25, 0.5, 0.75 } do
 			make.ball(0.12, SULFUR, SMOOTH, CFrame.new(strapFrom:Lerp(strapTo, t) + Vector3.new(0, 0, -0.08)))
 		end
-		-- Esclavina de pómez sobre los hombros con la raya de fuego azul delante.
+		-- Esclavina de pómez sobre los hombros en dos escalones (el de abajo, más oscuro) con la raya de fuego azul.
 		make.block(Vector3.new(width + 0.36, 0.3, depth + 0.36), PUMICE, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
 		make.block(
-			Vector3.new(width + 0.38, 0.05, 0.08),
+			Vector3.new(width + 0.14, 0.18, depth + 0.24),
+			PUMICE_DARK,
+			FABRIC,
+			CFrame.new(0, height / 2 - 0.27, 0.04)
+		)
+		make.block(
+			Vector3.new(width + 0.16, 0.05, 0.08),
 			BLUE_FIRE,
 			NEON,
-			CFrame.new(0, height / 2 - 0.2, -depth / 2 - 0.15)
+			CFrame.new(0, height / 2 - 0.39, -depth / 2 - 0.13)
 		)
 		if grade >= 2 then
-			-- Collar: cordón en V con tres puntas de flecha de azufre y un broche con una llama azul.
-			local neckLeft = Vector3.new(-width * 0.2, height / 2 - 0.12, front - 0.06)
-			local neckRight = Vector3.new(width * 0.2, height / 2 - 0.12, front - 0.06)
-			local bottom = Vector3.new(0, height * 0.14, front - 0.1)
-			strap(make, neckLeft, bottom, 0.04, CHARCOAL, FABRIC)
-			strap(make, bottom, neckRight, 0.04, CHARCOAL, FABRIC)
-			for index, spot in { neckLeft:Lerp(bottom, 0.7), bottom, neckRight:Lerp(bottom, 0.7) } do
-				fireCrystal(
-					make,
-					spot + Vector3.new(0, -0.02, -0.02),
-					Vector3.new((index - 2) * 0.2, -1, -0.15),
-					0.28,
-					0.13,
+			-- Collar: un cordón de carbón con tres puntas de flecha de azufre colgando y un broche con una llama azul.
+			make.block(
+				Vector3.new(width * 0.5, 0.06, 0.05),
+				CHARCOAL,
+				FABRIC,
+				CFrame.new(0, height / 2 - 0.46, front - 0.07)
+			)
+			for index = 1, 3 do
+				dropFang(
+					if index == 2 then 0.36 else 0.28,
+					0.14,
 					SULFUR,
-					SULFUR_GLOW
+					SLATE,
+					(index - 2) * width * 0.18,
+					height / 2 - 0.46,
+					front - 0.1
 				)
 			end
 			local brooch = CFrame.new(-width * 0.3, height / 2 - 0.2, front - 0.14)
 			make.rod(0.06, 0.4, CHARCOAL, SLATE, brooch * FACING)
 			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, brooch * CFrame.new(0, -0.17, -0.04) * FACING_FRONT, 0.06, false)
+			-- Flecos de pómez que cuelgan del escalón de abajo de la esclavina, largos y cortos.
+			for index = -2, 2 do
+				local length = if index % 2 == 0 then 0.24 else 0.16
+				make.block(
+					Vector3.new(0.11, length, 0.06),
+					PUMICE,
+					FABRIC,
+					CFrame.new(index * width * 0.2, height / 2 - 0.42 - length / 2, -(depth / 2 + 0.11))
+				)
+			end
 		end
 
-		-- Espalda: capa de pómez oscura con el bajo de carbón y la raya azul.
+		-- Espalda: capa de pómez oscura con ribetes de carbón en los lados, el bajo de carbón y la raya azul.
 		local capeHeight = height * 1.08
 		local capeY = height / 2 - capeHeight / 2 - 0.02
 		local capeZ = back + 0.16
 		make.block(Vector3.new(width * 1.02, capeHeight, 0.12), PUMICE_DARK, FABRIC, CFrame.new(0, capeY, capeZ))
+		for side = -1, 1, 2 do
+			make.block(
+				Vector3.new(width * 0.08, capeHeight * 0.9, 0.16),
+				CHARCOAL,
+				FABRIC,
+				CFrame.new(side * width * 0.47, capeY - capeHeight * 0.04, capeZ + 0.01)
+			)
+		end
 		local capeBottom = capeY - capeHeight / 2
 		make.block(
 			Vector3.new(width * 1.04, 0.16, 0.14),
@@ -9088,15 +9241,15 @@ do
 				)
 			end
 		end
-		-- Grado 1: nueve flecos de carbón que cuelgan del bajo de la capa y tres remaches en su cuello.
+		-- Grado 1: nueve flecos de carbón en escalones (largo y corto) que cuelgan del bajo de la capa y tres
+		-- remaches de azufre en su cuello.
 		for index = 0, 8 do
-			make.fang(
-				if index % 2 == 0 then 0.34 else 0.26,
-				0.18,
+			local length = if index % 2 == 0 then 0.36 else 0.24
+			make.block(
+				Vector3.new(width * 0.085, length, 0.12),
 				CHARCOAL,
 				FABRIC,
-				CFrame.new(-width * 0.46 + index * width * 0.115 + 0.09, capeBottom + 0.02, capeZ + 0.02)
-					* CFrame.Angles(0, 0, math.pi)
+				CFrame.new(-width * 0.46 + index * width * 0.115 + 0.09, capeBottom + 0.02 - length / 2, capeZ + 0.02)
 			)
 		end
 		for _, x in { -0.32, -0.4, -0.47 } do
@@ -9108,10 +9261,10 @@ do
 				local x = -width * 0.39 + index * width * 0.26
 				local hem = pixelFlame(
 					make,
-					SMALL_FLAME,
+					HEM_FLAME,
 					BLUE_FLAME,
 					CFrame.new(x, capeBottom + 0.12, capeZ + 0.08),
-					0.1,
+					0.12,
 					index % 2 == 1
 				)
 				if lit and index == 1 then
@@ -9131,32 +9284,22 @@ do
 			rim = CHARCOAL,
 			rimMaterial = SLATE,
 			arrows = 7,
-			feathers = { BLUE_FIRE_MID, PUMICE },
+			feathers = { BLUE_FIRE_PALE, BLUE_FIRE_MID },
 		}, 0.32)
-		make.rod(0.1, 0.6, CHARCOAL, SLATE, quiverAt * UPRIGHT)
+		-- Banda de carbón a media altura del carcaj (con malla, un bloque recto: el cilindro girado no entraría).
+		if STEPS.on then
+			make.block(Vector3.new(0.8, 0.14, 0.62), CHARCOAL, SLATE, CFrame.new(quiverAt.Position))
+		else
+			make.rod(0.1, 0.6, CHARCOAL, SLATE, quiverAt * UPRIGHT)
+		end
 		if grade >= 2 then
-			-- Grado 2: flecos de pómez bajo la esclavina y una punta de azufre en cada lado del fondo del carcaj.
-			for _, x in { -0.45, -0.3, -0.15, 0, 0.45 } do
-				make.fang(
-					0.22,
-					0.14,
-					PUMICE,
-					FABRIC,
-					CFrame.new(x * width + 0.07, height / 2 - 0.21, -(depth / 2 + 0.12)) * CFrame.Angles(0, 0, math.pi)
-				)
-			end
-			for side = -1, 1, 2 do
-				fireCrystal(
-					make,
-					(quiverAt * CFrame.new(side * 0.12, -quiverLength / 2 + 0.02, 0.05)).Position,
-					quiverAt:VectorToWorldSpace(Vector3.new(side * 0.5, -1, 0.2)),
-					0.32,
-					0.14,
-					SULFUR,
-					SULFUR_GLOW
-				)
-			end
-			make.ball(0.14, SULFUR, SMOOTH, quiverAt * CFrame.new(0, -quiverLength / 2 - 0.02, 0.0))
+			-- Grado 2: una punta de azufre en el fondo del carcaj (recta, sin giro) y dos cristales de azufre.
+			make.ball(
+				0.14,
+				SULFUR,
+				SMOOTH,
+				CFrame.new((quiverAt * CFrame.new(0, -quiverLength / 2 - 0.02, 0)).Position)
+			)
 			for side = -1, 1, 2 do
 				fireCrystal(
 					make,
@@ -9183,34 +9326,35 @@ do
 			end
 		end
 
-		-- Cinturón con zurrón de pómez y un cuchillo de azufre.
+		-- Cinturón con zurrón de pómez (con su botón de azufre) y un cuchillo de azufre: mango y guarda rectos
+		-- con malla, la hoja en tres escalones.
 		local beltFront = seasonBelt(body, grade)
 		local waist = body.waist
 		local hipWidth = waist.size.X
 		local pouch = CFrame.new(hipWidth * 0.32, -0.12, beltFront - 0.06)
 		waist.block(Vector3.new(0.36, 0.32, 0.14), CHARCOAL, LEATHER_MATERIAL, pouch)
 		waist.block(Vector3.new(0.4, 0.13, 0.18), PUMICE, FABRIC, pouch * CFrame.new(0, 0.12, -0.01))
-		local knife = CFrame.new(-hipWidth * 0.36, -0.05, beltFront - 0.04) * CFrame.Angles(0, 0, 0.25)
+		waist.ball(0.08, SULFUR, SMOOTH, pouch * CFrame.new(0, 0.1, -0.1))
+		local knife = CFrame.new(-hipWidth * 0.36, -0.05, beltFront - 0.04)
+			* CFrame.Angles(0, 0, if STEPS.on then 0 else 0.25)
 		waist.block(Vector3.new(0.1, 0.24, 0.1), CHARCOAL, LEATHER_MATERIAL, knife)
-		fireCrystal(
-			waist,
-			(knife * CFrame.new(0, -0.12, 0)).Position,
-			knife:VectorToWorldSpace(Vector3.new(0, -1, -0.05)),
-			0.4,
-			0.12,
-			SULFUR,
-			SULFUR_GLOW
-		)
+		waist.block(Vector3.new(0.2, 0.04, 0.13), SULFUR, SLATE, knife * CFrame.new(0, -0.13, 0))
+		waist.fang(0.4, 0.1, SULFUR, SLATE, knife * CFrame.new(0.05, -0.15, 0.05) * CFrame.Angles(0, 0, math.pi))
 		seasonLimbs(body, grade, PUMICE_DARK, FABRIC)
 	end
 
 	-- Traje de temporada del mago, Invocador del Fuego Azul. Delante: túnica de carbón con una pechera de
-	-- pómez ribeteada de fuego azul y faja de carbón. Detrás: un panel de pómez oscura con un disco de piedra
-	-- dentro de un aro de carbón. Por grados: 0, todo eso; 1, las hombreras; 2, una runa de fuego azul en el
-	-- pecho (aro con una llama dentro), un cuello alto de cristales de azufre que se ve también por detrás y
-	-- dos talismanes de pómez colgando bajo el disco; 3, un aro de fuego azul alrededor del disco con seis
-	-- rayos de azufre y una llama en el centro; 4, en vez de esa llama, la llamarada grande que asoma por
-	-- encima de los hombros, una corona de cinco cristales de azufre y el fuego de partículas con su luz.
+	-- pómez ribeteada de fuego azul, un amuleto de disco de carbón en el pecho y el bajo en tres faldones
+	-- escalonados que se ensanchan (pómez oscura, carbón, pómez). Detrás: el panel de pómez oscura con el
+	-- marco del cráter (backFrame), un disco de pómez con aro de carbón y un sol de azufre, y los mismos
+	-- faldones. Casi todo es pómez, carbón y detalle pintado (bloques lisos alineados, que entran en la malla);
+	-- lo suelto es el neón, los cristales y las llamas. Por grados: 0, todo eso; 1, las hombreras, borlas,
+	-- bandas de azufre en el bajo y en la espalda, gotas azules en el bajo, brasas que giran sobre el disco,
+	-- botones y puntadas en la pechera; 2, la llama del amuleto con tres remaches, la gorguera en escalones
+	-- sobre la nuca con tres cristales de azufre y dos talismanes de pómez bajo el disco; 3, un aro de fuego
+	-- azul alrededor del disco con seis rayos de azufre, una llama en el centro y los pilares del marco;
+	-- 4, en vez de esa llama, la llamarada grande que asoma por encima de los hombros, una corona de cuatro
+	-- cristales de azufre y el fuego de partículas con su luz.
 	local function blueFireInvoker(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -9238,27 +9382,37 @@ do
 				CFrame.new(side * width * 0.26, -height * 0.04, front - 0.05)
 			)
 		end
+
+		-- Bajo de la túnica: tres faldones escalonados que se ensanchan hacia abajo, alrededor de todo el torso.
+		local hemColors = { PUMICE_DARK, CHARCOAL, PUMICE }
+		for tier = 0, 2 do
+			make.block(
+				Vector3.new(width + 0.16 + 0.06 * tier, 0.14, depth + 0.2 + 0.1 * tier),
+				hemColors[tier + 1],
+				FABRIC,
+				CFrame.new(0, -height / 2 + 0.33 - 0.14 * tier, 0)
+			)
+		end
+
+		-- Amuleto del pecho: disco de carbón sobre un cuello de pómez oscura.
+		local medal = CFrame.new(0, height * 0.12, front - 0.08)
+		make.rod(0.1, width * 0.46, PUMICE_DARK, SLATE, medal * FACING)
+		make.rod(0.1, width * 0.34, CHARCOAL, SLATE, medal * CFrame.new(0, 0, -0.03) * FACING)
 		if grade >= 2 then
-			-- Runa: aro de fuego azul con una llama dentro.
-			local runeAt = CFrame.new(0, height * 0.12, front - 0.08)
-			hoop(make, runeAt, width * 0.17, 10, 0.05, BLUE_FIRE, NEON)
-			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, runeAt * CFrame.new(0, -0.2, -0.02) * FACING_FRONT, 0.07, false)
-			-- Cuello alto de cristales de azufre, de un hombro a otro por detrás de la nuca.
-			for index = 0, 4 do
-				local angle = math.rad(-80 + index * 40)
-				fireCrystal(
-					make,
-					Vector3.new(math.sin(angle) * width * 0.4, height / 2 - 0.05, math.cos(angle) * depth * 0.45 + 0.05),
-					Vector3.new(math.sin(angle) * 0.4, 1, math.cos(angle) * 0.4 + 0.1),
-					if index == 2 then 0.75 else 0.6,
-					0.28,
+			-- Grado 2: la llama de fuego azul dentro del disco y tres remaches de azufre en su borde.
+			pixelFlame(make, SMALL_FLAME, BLUE_FLAME, medal * CFrame.new(0, -0.2, -0.1) * FACING_FRONT, 0.07, false)
+			for index = 0, 2 do
+				local angle = index / 3 * math.pi * 2
+				make.ball(
+					0.1,
 					SULFUR,
-					SULFUR_GLOW
+					SMOOTH,
+					medal * CFrame.new(math.sin(angle) * width * 0.2, math.cos(angle) * width * 0.2, -0.1)
 				)
 			end
 		end
 
-		-- Espalda: panel de pómez oscura con un disco de piedra en un aro de carbón.
+		-- Espalda: panel de pómez oscura con un disco de pómez dentro de un aro de carbón y un sol de azufre.
 		local ringAt = CFrame.new(0, height * 0.12, back + 0.2)
 		make.block(
 			Vector3.new(width * 0.96, height * 1.02, 0.12),
@@ -9266,83 +9420,91 @@ do
 			FABRIC,
 			CFrame.new(0, -height * 0.06, back + 0.12)
 		)
-		make.rod(0.08, width * 0.62, PUMICE, SLATE, ringAt * CFrame.new(0, 0, -0.02) * FACING)
-		hoop(make, ringAt * CFrame.new(0, 0, 0.02), width * 0.3, 12, 0.1, CHARCOAL, SLATE)
-		-- Grado 1: viga y escuadras de pómez en el panel con cinco gotas azules, borlas, ocho brasas que giran
-		-- dentro del aro y, delante, gotas en el bajo de la pechera, seis botones y diez muescas de fuego azul.
-		backFrame(make, width * 0.96, height * 1.02, -height * 0.06, back + 0.12, false, 5, 0)
-		for side = -1, 1, 2 do
-			local tassel = Vector3.new(side * width * 0.44, height * 0.45 - 0.1, back + 0.2)
-			strap(make, tassel, tassel - Vector3.new(0, 0.7, 0), 0.04, CHARCOAL, FABRIC)
-			make.ball(0.12, SULFUR, SMOOTH, CFrame.new(tassel - Vector3.new(0, 0.74, 0)))
-			for step = 0, 4 do
-				make.block(
-					Vector3.new(0.1, 0.04, 0.04),
-					BLUE_FIRE,
-					NEON,
-					CFrame.new(side * (width * 0.26 + 0.1), height * (0.3 - 0.15 * step), front - 0.01)
-				)
-			end
-		end
-		local orbit = {}
-		for index = 0, 7 do
-			local angle = index / 8 * math.pi * 2
-			orbit[index + 1] = (ringAt * CFrame.new(
-				math.sin(angle) * width * 0.27,
-				math.cos(angle) * width * 0.27,
-				0.06
-			)).Position
-		end
-		motes(make, orbit, 0.09)
-		drips(
-			make,
-			CFrame.new(0, -height * 0.47, front - 0.02),
-			{ -0.2 * width, -0.1 * width, 0, 0.1 * width, 0.2 * width },
-			0.28
-		)
-		for index = 0, 5 do
-			make.ball(0.09, SULFUR, SMOOTH, CFrame.new(0, -height * (0.1 + 0.05 * index), front - 0.08))
-		end
-		if grade >= 2 then
-			-- Tres remaches de azufre en el aro de la runa del pecho.
-			for index = 0, 2 do
-				local angle = index / 3 * math.pi * 2
-				make.ball(
-					0.1,
-					SULFUR,
-					SMOOTH,
-					CFrame.new(
-						math.sin(angle) * width * 0.17,
-						height * 0.12 + math.cos(angle) * width * 0.17,
-						front - 0.11
-					)
-				)
-			end
-		end
-		if grade >= 3 then
-			-- Cuatro cristales más en las esquinas de arriba del panel, dos a cada lado.
+		make.rod(0.12, width * 0.66, CHARCOAL, SLATE, ringAt * FACING)
+		make.rod(0.12, width * 0.54, PUMICE, SLATE, ringAt * CFrame.new(0, 0, 0.03) * FACING)
+		make.rod(0.12, width * 0.12, SULFUR, SMOOTH, ringAt * CFrame.new(0, 0, 0.06) * FACING)
+		-- Marco del cráter (viga, escuadras y gotas azules; con pilares desde el grado 3).
+		backFrame(make, width * 0.96, height * 1.02, -height * 0.06, back + 0.12, grade >= 3, 5, 0)
+
+		if grade >= 1 then
+			-- Grado 1: borlas de azufre en las esquinas de arriba del panel.
 			for side = -1, 1, 2 do
-				fireCrystal(
-					make,
-					Vector3.new(side * width * 0.46, height * 0.44, back + 0.17),
-					Vector3.new(side, 0.6, 0.5),
-					0.7,
-					0.22,
+				local tassel = Vector3.new(side * width * 0.44, height * 0.45 - 0.1, back + 0.2)
+				strap(make, tassel, tassel - Vector3.new(0, 0.7, 0), 0.04, CHARCOAL, FABRIC)
+				make.ball(0.12, SULFUR, SMOOTH, CFrame.new(tassel - Vector3.new(0, 0.74, 0)))
+				-- Dos puntadas de carbón en el borde de la pechera.
+				for step = 0, 1 do
+					make.block(
+						Vector3.new(0.1, 0.05, 0.04),
+						CHARCOAL,
+						SLATE,
+						CFrame.new(side * (width * 0.2), height * (0.28 - 0.18 * step), front - 0.07)
+					)
+				end
+			end
+			-- Cuatro botones de azufre bajo el amuleto.
+			for index = 0, 3 do
+				make.ball(0.09, SULFUR, SMOOTH, CFrame.new(0, -height * (0.14 + 0.07 * index), front - 0.08))
+			end
+			-- Banda de azufre en el faldón de carbón, por delante y por detrás, y tres bandas pintadas en la
+			-- espalda baja (pómez, azufre, pómez).
+			for _, sign in { -1, 1 } do
+				make.block(
+					Vector3.new(width * 0.7 + 0.2, 0.04, 0.03),
 					SULFUR,
-					SULFUR_GLOW
+					SLATE,
+					CFrame.new(0, -height / 2 + 0.19, sign * ((depth + 0.3) / 2 + 0.01))
 				)
+			end
+			for index = 0, 2 do
+				make.block(
+					Vector3.new(width * 0.9, 0.05, 0.03),
+					if index == 1 then SULFUR else PUMICE,
+					SLATE,
+					CFrame.new(0, -height * (0.3 + 0.06 * index), back + 0.2)
+				)
+			end
+			-- Seis brasas que giran dentro del aro, y gotas azules en el bajo de delante.
+			local orbit = {}
+			for index = 0, 5 do
+				local angle = index / 6 * math.pi * 2
+				orbit[index + 1] = (ringAt * CFrame.new(
+					math.sin(angle) * width * 0.3,
+					math.cos(angle) * width * 0.3,
+					0.14
+				)).Position
+			end
+			motes(make, orbit, 0.09)
+			drips(
+				make,
+				CFrame.new(0, -height / 2 + 0.1, -(depth / 2 + 0.25)),
+				{ -0.2 * width, -0.1 * width, 0, 0.1 * width, 0.2 * width },
+				0.28
+			)
+		end
+		if grade >= 2 then
+			-- Gorguera en escalones sobre la nuca (pómez oscura, carbón, pómez) con tres cristales de azufre.
+			local yokeColors = { PUMICE_DARK, CHARCOAL, PUMICE }
+			local yokeWidths = { 0.9, 0.64, 0.4 }
+			for tier = 0, 2 do
+				make.block(
+					Vector3.new(width * yokeWidths[tier + 1], 0.14, 0.14),
+					yokeColors[tier + 1],
+					SLATE,
+					CFrame.new(0, height * 0.45 + 0.06 + 0.14 * tier, back + 0.1)
+				)
+			end
+			for _, x in { -0.14, 0, 0.14 } do
 				fireCrystal(
 					make,
-					Vector3.new(side * width * 0.46, height * 0.4, back + 0.3),
-					Vector3.new(side * 0.5, 1, 0.8),
-					0.55,
-					0.2,
+					Vector3.new(x * width, height * 0.45 + 0.4, back + 0.1),
+					Vector3.new(x * 2, 1, 0.3),
+					if x == 0 then 0.75 else 0.55,
+					0.24,
 					SULFUR,
 					SULFUR_GLOW
 				)
 			end
-		end
-		if grade >= 2 then
 			-- Talismanes: dos placas de pómez con una runa azul que cuelgan bajo el disco.
 			for side = -1, 1, 2 do
 				local from = (ringAt * CFrame.new(side * width * 0.2, -width * 0.34, 0.04)).Position
@@ -9353,7 +9515,8 @@ do
 			end
 		end
 		if grade >= 3 then
-			hoop(make, ringAt * CFrame.new(0, 0, 0.04), width * 0.38, 14, 0.1, BLUE_FIRE, NEON)
+			-- Grado 3: aro de fuego azul alrededor del disco, seis rayos de azufre y una llama en el centro.
+			hoop(make, ringAt * CFrame.new(0, 0, 0.06), width * 0.38, 14, 0.1, BLUE_FIRE, NEON)
 			for index = 0, 5 do
 				local angle = index * math.pi / 3 + math.pi / 6
 				local out = Vector3.new(math.sin(angle), math.cos(angle), 0.12)
@@ -9367,22 +9530,22 @@ do
 					SULFUR_GLOW
 				)
 			end
-			local flameAt = ringAt * CFrame.new(0, -width * 0.24, 0.06)
+			local flameAt = ringAt * CFrame.new(0, width * 0.3, 0.12)
 			if lit then
-				blueFire(pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.1, false), 10, 0.8)
+				blueFire(pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.07, false), 10, 0.8)
 			else
-				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, width * 0.09, false)
+				pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, width * 0.07, false)
 			end
 		end
 		if lit then
-			-- Corona de cristales de azufre que asoma por encima de los hombros.
-			for index, x in { -0.4, -0.2, 0, 0.2, 0.4 } do
+			-- Corona de cuatro cristales de azufre que asoma por encima de los hombros, a los lados de la gorguera.
+			for index, x in { -0.44, -0.3, 0.3, 0.44 } do
 				fireCrystal(
 					make,
 					Vector3.new(x * width, height * 0.44, back + 0.24),
 					Vector3.new(x * 1.1, 1, 0.35),
-					if index == 3 then 1.05 elseif index % 2 == 0 then 0.8 else 0.6,
-					if index == 3 then 0.32 else 0.26,
+					if index == 1 or index == 4 then 0.8 else 1.05,
+					if index == 1 or index == 4 then 0.26 else 0.32,
 					SULFUR,
 					SULFUR_GLOW
 				)
@@ -9393,13 +9556,15 @@ do
 		seasonLimbs(body, grade, CHARCOAL, FABRIC, true)
 	end
 
-	-- Traje de temporada del médico, Sanador del Fuego Azul. Delante: túnica de lino bajo un manto de pómez
-	-- con la raya de fuego azul, un peto de pómez y la bandolera de carbón con tres frascos. Detrás: capa de
-	-- pómez oscura, bastidor de madera y una mochila de pómez con una correa de carbón. Por grados: 0, todo
-	-- eso; 1, las hombreras; 2, la cruz verde que brilla en el peto (el verde de las curaciones), los frascos
-	-- que brillan y dos frascos más a los lados de la mochila; 3, encima de la mochila un incensario de
-	-- carbón con borde de pómez y cadenas, con una llama azul y humo; 4, la llamarada grande que sale del
-	-- incensario y el fuego de partículas con su luz.
+	-- Traje de temporada del médico, Sanador del Fuego Azul. Delante: túnica de pómez clara con vendas
+	-- enrolladas, el manto de pómez oscura con la raya de fuego azul, un peto y la bandolera de carbón en
+	-- escalones con tres frasquitos. Detrás: capa de pómez oscura, bastidor de madera y una mochila de pómez con
+	-- correas. Sin giros con malla: la bandolera y el abanico van en escalones y los frascos, bolas y colmillos
+	-- pasan a bloques. Por grados: 0, todo eso; 1, las hombreras, los flecos, los remaches y detrás el abanico
+	-- de hierbas (franjas de pómez que se abren sobre la nuca, sin verde); 2, la cruz de fuego azul del peto (la
+	-- llama es el símbolo de curar), el líquido azul de los frascos y tres frascos más colgados del bastidor;
+	-- 3, el tótem sanador sobre la mochila (dos caras talladas, alas y una llama azul en la cima) y las
+	-- nervaduras del abanico; 4, la llamarada grande del tótem y el fuego de partículas con su luz.
 	local function blueFireHealer(body: Body, grade: number)
 		local make = body.torso
 		local width, height, depth = make.size.X, make.size.Y, make.size.Z
@@ -9407,19 +9572,46 @@ do
 		local back = depth / 2
 		local lit = grade >= 4
 		local healing = grade >= 2
+		-- Frasquito de pómez oscura con tapón de carbón y, con "glow", el líquido de fuego azul (todo bloques).
+		local function vial(at: CFrame, size: number, glow: boolean)
+			make.block(Vector3.new(size, size * 1.2, size * 0.8), PUMICE_DARK, SLATE, at * CFrame.new(0, size * 0.6, 0))
+			make.block(
+				Vector3.new(size * 0.5, size * 0.4, size * 0.5),
+				CHARCOAL,
+				SLATE,
+				at * CFrame.new(0, size * 1.4, 0)
+			)
+			if glow then
+				make.block(
+					Vector3.new(size * 0.6, size * 0.7, size * 0.2),
+					BLUE_FIRE,
+					NEON,
+					at * CFrame.new(0, size * 0.6, -size * 0.45)
+				)
+			end
+		end
+		-- Túnica de pómez clara, el manto de pómez oscura con su raya de fuego azul y tres vendas enrolladas.
 		make.block(
 			Vector3.new(width + 0.12, height * 0.94, depth + 0.16),
-			LINEN,
+			PUMICE,
 			FABRIC,
 			CFrame.new(0, -height * 0.02, 0)
 		)
-		make.block(Vector3.new(width + 0.4, 0.34, depth + 0.4), PUMICE, FABRIC, CFrame.new(0, height / 2 - 0.06, 0.04))
+		make.block(
+			Vector3.new(width + 0.4, 0.34, depth + 0.4),
+			PUMICE_DARK,
+			FABRIC,
+			CFrame.new(0, height / 2 - 0.06, 0.04)
+		)
 		make.block(
 			Vector3.new(width + 0.42, 0.06, depth + 0.42),
 			BLUE_FIRE,
 			NEON,
 			CFrame.new(0, height / 2 - 0.24, 0.04)
 		)
+		for _, y in { -0.12, -0.24, -0.36 } do
+			make.block(Vector3.new(width + 0.22, 0.1, depth + 0.24), PUMICE_DARK, FABRIC, CFrame.new(0, height * y, 0))
+		end
 		-- Peto de pómez arriba a la izquierda, fuera del camino de la bandolera.
 		local plastron = CFrame.new(-width * 0.27, height * 0.12, front - 0.04)
 		make.block(Vector3.new(width * 0.34, height * 0.36, 0.08), PUMICE, SLATE, plastron)
@@ -9434,24 +9626,33 @@ do
 		if healing then
 			local cross = make.block(
 				Vector3.new(width * 0.07, height * 0.26, 0.05),
-				HEAL_GLOW,
+				BLUE_FIRE,
 				NEON,
 				plastron * CFrame.new(0, 0, -0.06)
 			)
 			make.block(
 				Vector3.new(width * 0.22, height * 0.08, 0.05),
-				HEAL_GLOW,
+				BLUE_FIRE,
 				NEON,
 				plastron * CFrame.new(0, 0.04, -0.06)
 			)
-			fireLight(cross, HEAL_GLOW)
+			fireLight(cross, BLUE_FIRE)
 		end
+		-- Bandolera de carbón en seis escalones del hombro derecho a la cadera izquierda, con tres frascos.
 		local from = Vector3.new(width * 0.3, height / 2 - 0.02, front - 0.08)
 		local to = Vector3.new(-width * 0.4, -height / 2 + 0.12, front - 0.08)
-		strap(make, from, to, 0.16, CHARCOAL, LEATHER_MATERIAL)
+		for index = 0, 5 do
+			local centre = from:Lerp(to, (index + 0.5) / 6)
+			make.block(
+				Vector3.new(math.abs(to.X - from.X) / 6 + 0.16, math.abs(to.Y - from.Y) / 6 + 0.16, 0.14),
+				CHARCOAL,
+				LEATHER_MATERIAL,
+				CFrame.new(centre)
+			)
+		end
 		for _, t in { 0.22, 0.42, 0.62 } do
 			local at = from:Lerp(to, t)
-			flask(make, CFrame.new(at.X, at.Y - 0.32, at.Z - 0.1), 0.22, healing)
+			vial(CFrame.new(at.X, at.Y - 0.36, at.Z - 0.1), 0.2, healing)
 		end
 		-- Grado 1: flecos de pómez bajo el manto (menos donde cruza la bandolera) y tres remaches de azufre.
 		for _, x in { -0.45, -0.3, -0.15, 0, 0.45 } do
@@ -9467,12 +9668,11 @@ do
 			make.ball(0.1, SULFUR, SMOOTH, CFrame.new(x * width, height / 2 - 0.06, -(depth / 2 + 0.19)))
 		end
 		if healing then
-			-- Grado 2: cuatro remaches en las esquinas del peto, cuatro motas de curación a su alrededor y tres
-			-- cristales de azufre que asoman por detrás del manto.
+			-- Grado 2: cuatro remaches en las esquinas del peto y tres cristales de azufre que asoman por detrás
+			-- del manto.
 			for sy = -1, 1, 2 do
 				for sx = -1, 1, 2 do
 					make.ball(0.09, SULFUR, SMOOTH, plastron * CFrame.new(sx * width * 0.15, sy * height * 0.16, -0.06))
-					make.ball(0.07, HEAL_GLOW, NEON, plastron * CFrame.new(sx * width * 0.23, sy * height * 0.1, -0.1))
 				end
 			end
 			for _, x in { -0.2, 0, 0.2 } do
@@ -9516,7 +9716,7 @@ do
 			make.ball(0.16, SULFUR, SMOOTH, pack * CFrame.new(x * width, height * 0.1, 0.25))
 		end
 		-- Grado 1: flecos de carbón en el bajo de la capa, dos correas con hebilla en la mochila, remates y
-		-- remaches en el bastidor, dos rayas de fuego azul en los bordes de la capa y un manojo de hierbas.
+		-- remaches en el bastidor, dos rayas de fuego azul en los bordes de la capa y el abanico de hierbas.
 		local capeBottom = capeY - capeHeight / 2
 		for index = 1, 7 do
 			make.fang(
@@ -9547,94 +9747,82 @@ do
 				CFrame.new(side * width * 0.46, capeY, back + 0.225)
 			)
 		end
-		for _, x in { -0.31, -0.24, -0.17, 0.27, 0.31 } do
-			make.fang(
-				0.3,
-				0.12,
-				LEAF,
+		-- Abanico de hierbas: un tallo de carbón y cinco franjas de pómez que se abren hacia arriba tras la nuca.
+		-- Va detrás del tótem, así que se ve de espaldas como un fondo.
+		local fan = CFrame.new(0, height / 2 - 0.05, back + 0.34)
+		make.block(Vector3.new(0.14, 0.5, 0.08), CHARCOAL, LEATHER_MATERIAL, fan * CFrame.new(0, 0.2, 0))
+		local fanWidths = { 0.4, 0.6, 0.8, 0.95, 1.05 }
+		for index, fanWidth in fanWidths do
+			make.block(
+				Vector3.new(width * fanWidth, 0.14, 0.06),
+				if index == 5 then CHARCOAL elseif index % 2 == 0 then PUMICE_DARK else PUMICE,
 				FABRIC,
-				CFrame.new(x * width, height * 0.44 - 0.05, back + 0.3) * CFrame.Angles(0, 0, math.pi)
+				fan * CFrame.new(0, 0.1 + (index - 1) * 0.145, 0)
 			)
 		end
 		if healing then
+			-- Grado 2: dos frascos con líquido azul a los lados de la mochila y tres colgados con un cordón del
+			-- travesaño de abajo del bastidor, con un remache en cada extremo de ese travesaño.
 			for side = -1, 1, 2 do
-				flask(make, pack * CFrame.new(side * (width * 0.36 + 0.24), -height * 0.2, 0.04), 0.42, true)
+				vial(pack * CFrame.new(side * (width * 0.36 + 0.24), -height * 0.2, 0.04), 0.42, true)
 			end
-			-- Grado 2: tres frascos más que cuelgan con un cordón del travesaño de abajo del bastidor y un
-			-- remache en cada extremo de ese travesaño.
 			for _, x in { -0.25, 0, 0.25 } do
-				strap(
-					make,
-					Vector3.new(x * width, -height * 0.4 - 0.05, back + 0.3),
-					Vector3.new(x * width, -height * 0.4 - 0.2, back + 0.3),
-					0.03,
+				make.block(
+					Vector3.new(0.03, 0.2, 0.03),
 					CHARCOAL,
-					LEATHER_MATERIAL
+					LEATHER_MATERIAL,
+					CFrame.new(x * width, -height * 0.4 - 0.15, back + 0.3)
 				)
-				flask(make, CFrame.new(x * width, -height * 0.4 - 0.5, back + 0.3), 0.22, true)
+				vial(CFrame.new(x * width, -height * 0.4 - 0.5, back + 0.3), 0.22, true)
 			end
 			for side = -1, 1, 2 do
 				make.ball(0.1, SULFUR, SMOOTH, CFrame.new(side * width * 0.43, -height * 0.4, back + 0.3))
 			end
 		end
 		if grade >= 3 then
-			-- Incensario: cuenco de carbón con borde de pómez sobre la mochila, colgado de tres cadenas.
-			local censer = pack * CFrame.new(0, height * 0.31 + 0.18, 0.02)
-			make.block(Vector3.new(width * 0.56, 0.32, 0.42), CHARCOAL, SLATE, censer)
-			make.block(Vector3.new(width * 0.62, 0.08, 0.48), PUMICE, SLATE, censer * CFrame.new(0, 0.18, 0))
-			for _, x in { -0.2, 0, 0.2 } do
-				make.ball(0.1, SULFUR, SMOOTH, censer * CFrame.new(x * width, 0, 0.19))
+			-- Tótem sanador sobre la mochila: peana de carbón, columna de pómez con la cara tallada, cabeza de
+			-- pómez oscura con ojos de fuego azul, tres escalones de ala a cada lado, una corona de carbón con
+			-- una bola de azufre y la llama azul encima. Todo en bloques sin giro.
+			local totem = pack * CFrame.new(0, height * 0.31 + 0.04, 0)
+			local K = 1.35 -- escala del tótem: pequeño se perdía en la espalda
+			local function carve(size: Vector3, color: Color3, material: Enum.Material, x: number, y: number, z: number)
+				make.block(size * K, color, material, totem * CFrame.new(x * K, y * K, z * K))
+			end
+			carve(Vector3.new(0.5, 0.12, 0.42), CHARCOAL, SLATE, 0, 0.06, 0)
+			carve(Vector3.new(0.4, 0.5, 0.36), PUMICE, SLATE, 0, 0.37, 0)
+			for _, y in { 0.18, 0.62 } do
+				carve(Vector3.new(0.44, 0.07, 0.4), CHARCOAL, SLATE, 0, y, 0)
 			end
 			for side = -1, 1, 2 do
-				strap(
-					make,
-					(censer * CFrame.new(side * width * 0.2, 0.15, 0)).Position,
-					(censer * CFrame.new(side * width * 0.06, 0.9, 0)).Position,
-					0.04,
-					CHARCOAL,
-					SLATE
-				)
+				carve(Vector3.new(0.1, 0.08, 0.03), CHARCOAL, SLATE, side * 0.1, 0.42, 0.19)
+				carve(Vector3.new(0.09, 0.09, 0.03), BLUE_FIRE_PALE, NEON, side * 0.08, 0.95, 0.17)
+				carve(Vector3.new(0.3, 0.12, 0.08), PUMICE, SLATE, side * 0.33, 0.82, 0)
+				carve(Vector3.new(0.24, 0.12, 0.08), PUMICE_DARK, SLATE, side * 0.5, 0.94, 0)
+				carve(Vector3.new(0.14, 0.12, 0.08), CHARCOAL, SLATE, side * 0.66, 1.06, 0)
 			end
-			local flameAt = censer * CFrame.new(0, 0.2, 0.04)
+			carve(Vector3.new(0.2, 0.06, 0.03), CHARCOAL, SLATE, 0, 0.27, 0.19)
+			carve(Vector3.new(0.36, 0.38, 0.32), PUMICE_DARK, SLATE, 0, 0.9, 0)
+			carve(Vector3.new(0.14, 0.08, 0.04), CHARCOAL, SLATE, 0, 0.82, 0.17)
+			carve(Vector3.new(0.3, 0.08, 0.28), CHARCOAL, SLATE, 0, 1.13, 0)
+			make.ball(0.14 * K, SULFUR, SMOOTH, totem * CFrame.new(0, 1.24 * K, 0))
+			-- Nervaduras de carbón sobre el abanico.
+			for _, x in { -0.3, 0, 0.3 } do
+				make.block(Vector3.new(0.04, 0.7, 0.04), CHARCOAL, SLATE, fan * CFrame.new(x * width, 0.4, 0.05))
+			end
+			local flameAt = totem * CFrame.new(0, 1.3 * K, 0.02)
 			local flame = if lit
-				then pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.1, false)
-				else pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, 0.16, false)
+				then pixelFlame(make, BIG_FLAME, BLUE_FLAME, flameAt, width * 0.065, false)
+				else pixelFlame(make, SMALL_FLAME, BLUE_FLAME, flameAt, 0.14, false)
 			smoke(flame, 2, Color3.fromRGB(150, 160, 190), 0.7)
 			if lit then
 				blueFire(flame, 10, 0.7)
 			end
-			-- Pedestal con cuatro patas y dos asas, una cadena central con su anillo, cuatro brasas en la boca,
-			-- tres cristales de azufre en el borde y cuatro chispas que suben (cinco más en el grado 4).
-			make.block(Vector3.new(width * 0.4, 0.12, 0.36), PUMICE_DARK, SLATE, censer * CFrame.new(0, -0.2, 0))
-			for sz = -1, 1, 2 do
-				for sx = -1, 1, 2 do
-					make.ball(0.12, SULFUR, SMOOTH, censer * CFrame.new(sx * width * 0.22, -0.15, sz * 0.15))
-				end
-				make.block(
-					Vector3.new(0.1, 0.18, 0.1),
-					CHARCOAL,
-					SLATE,
-					censer * CFrame.new(sz * (width * 0.28 + 0.05), 0, 0)
-				)
-			end
-			local top = censer * CFrame.new(0, 0.95, 0)
-			strap(
-				make,
-				(censer * CFrame.new(0, 0.15, 0)).Position,
-				(censer * CFrame.new(0, 0.9, 0)).Position,
-				0.04,
-				CHARCOAL,
-				SLATE
-			)
-			hoop(make, top, 0.12, 6, 0.04, CHARCOAL, SLATE)
-			for _, x in { -0.15, -0.05, 0.05, 0.15 } do
-				make.ball(0.1, BLUE_FIRE_PALE, NEON, censer * CFrame.new(x * width, 0.2, -0.08))
-			end
-			for _, x in { -0.22, 0, 0.22 } do
+			-- Dos cristales de azufre a los pies de la peana y cuatro chispas que suben (cinco más en el grado 4).
+			for side = -1, 1, 2 do
 				fireCrystal(
 					make,
-					(censer * CFrame.new(x * width, 0.2, 0.15)).Position,
-					censer:VectorToWorldSpace(Vector3.new(x * 3, 1, 0.6)),
+					(totem * CFrame.new(side * 0.36, 0.14, 0.14)).Position,
+					totem:VectorToWorldSpace(Vector3.new(side * 2, 1, 0.6)),
 					0.4,
 					0.16,
 					SULFUR,
@@ -9643,24 +9831,24 @@ do
 			end
 			local sparks = {}
 			for index, x in { -0.18, -0.07, 0.07, 0.18 } do
-				sparks[index] = (censer * CFrame.new(x * width, 1.2 + 0.1 * (index % 2), 0.1)).Position
+				sparks[index] = (totem * CFrame.new(x * width, 2.3 + 0.1 * (index % 2), 0.1)).Position
 			end
 			motes(make, sparks, 0.08)
 			if lit then
 				local high = {}
 				for index = 1, 5 do
-					high[index] = (censer * CFrame.new((index - 3) * width * 0.1, 1.7 + 0.12 * (index % 3), 0.12)).Position
+					high[index] = (totem * CFrame.new((index - 3) * width * 0.1, 2.8 + 0.12 * (index % 3), 0.12)).Position
 				end
 				motes(make, high, 0.08)
 			end
 		end
 
-		-- Cinturón, una venda enrollada y dos bolsitas de hierbas.
+		-- Cinturón, una venda enrollada y dos bolsitas de hierbas (de pómez: sin verde).
 		local beltFront = seasonBelt(body, grade)
 		local waist = body.waist
 		local hipWidth = waist.size.X
-		waist.rod(0.24, 0.22, PAINT_WHITE, FABRIC, CFrame.new(hipWidth * 0.32, -0.06, beltFront - 0.1) * UPRIGHT)
-		herbPouch(waist, CFrame.new(-hipWidth * 0.34, -0.12, beltFront - 0.08), LEAF)
+		waist.rod(0.24, 0.22, PUMICE, FABRIC, CFrame.new(hipWidth * 0.32, -0.06, beltFront - 0.1) * UPRIGHT)
+		herbPouch(waist, CFrame.new(-hipWidth * 0.34, -0.12, beltFront - 0.08), PUMICE_DARK)
 		seasonLimbs(body, grade, PUMICE_DARK, FABRIC)
 	end
 
