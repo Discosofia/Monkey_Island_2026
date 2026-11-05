@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
+local BossStages = require(ReplicatedStorage.Shared.Data.BossStages)
 local Cinematics = require(ReplicatedStorage.Shared.Data.Cinematics)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchState = require(ReplicatedStorage.Shared.MatchState)
@@ -56,8 +57,14 @@ end
 -- Saca al jefe con su cinemática de aparición (Boss_<id> de Data/Cinematics), que trae el rugido como evento de
 -- servidor. Sin escena o si no se puede lanzar (otra con bloqueo en marcha), ruge al momento.
 -- La usan el reloj de la partida y la orden de depuración «Siguiente jefe».
+-- Sin "position" sale donde dice Data/BossStages (su sitio y hacia dónde mira); con ella, ahí y sin giro.
 function IslandBossHooks.spawnBoss(bossId: string, round: number?, position: Vector3?)
-	BossService.spawn(bossId, round, position, true)
+	local stage = if position == nil then BossStages[bossId] else nil
+	if stage then
+		BossService.spawn(bossId, round, stage.position, true, stage.facing)
+	else
+		BossService.spawn(bossId, round, position, true)
+	end
 	local model = BossService.currentModel()
 	if not model then
 		return
@@ -118,6 +125,19 @@ function IslandBossHooks:Init()
 	CinematicService.registerServerEvent("bossRoar", function(_, run)
 		local model = run.context.bossModel
 		BossService.roar(if typeof(model) == "Instance" and model:IsA("Model") then model else nil)
+	end)
+	-- Una habilidad del jefe solo para enseñarla en la escena (sin daño): animación y efectos para la audiencia.
+	CinematicService.registerServerEvent("bossSkill", function(event, run)
+		local model = run.context.bossModel
+		local audience = {}
+		for player in run.audience do
+			table.insert(audience, player)
+		end
+		BossService.demo(
+			event.skill,
+			if typeof(model) == "Instance" and model:IsA("Model") then model else nil,
+			audience
+		)
 	end)
 end
 

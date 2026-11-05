@@ -31,6 +31,8 @@ local END_MARGIN_SECONDS = 4
 local JOIN_DELAY_SECONDS = 1.5
 -- Cuánto espera la carga del terreno de la escena (RequestStreamAroundAsync) antes de empezar.
 local STREAM_TIMEOUT_SECONDS = 1.5
+-- Cada cuánto se renueva esa petición mientras dura la escena.
+local STREAM_RENEW_SECONDS = 1
 
 export type PlayOptions = {
 	audience: { Player }?, -- por defecto, todos los jugadores (y quien entre a mitad)
@@ -156,6 +158,15 @@ local function addViewer(run: Run, player: Player, startTime: number)
 			pcall(player.RequestStreamAroundAsync, player, anchor.Position, STREAM_TIMEOUT_SECONDS)
 			if not run.finished and player.Parent then
 				Remotes.Cinematic:FireClient(player, "Play", run.id, startTime, run.args)
+			end
+			-- La carga caduca a los pocos segundos y el jefe y el decorado, lejos del jugador, se descargan en
+			-- mitad de la escena: se renueva la petición mientras dure.
+			while not run.finished and player.Parent do
+				task.wait(STREAM_RENEW_SECONDS)
+				if run.finished or not player.Parent then
+					break
+				end
+				pcall(player.RequestStreamAroundAsync, player, anchor.Position, STREAM_RENEW_SECONDS)
 			end
 		end)
 		return

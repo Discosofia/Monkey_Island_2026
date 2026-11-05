@@ -5,11 +5,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local Beacon = require(ReplicatedStorage.Shared.Beacon)
 local Bosses = require(ReplicatedStorage.Shared.Data.Bosses)
+local BossStages = require(ReplicatedStorage.Shared.Data.BossStages)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Data.Items)
@@ -58,25 +58,24 @@ local nextBoss = 1
 -- «🎬 Plató»: el siguiente jefe de la rotación y lo que hay montado (carpeta y trailer, para limpiarlo).
 local nextStageBoss = 1
 local nextComicStageBoss = 1
-local stage: { folder: Folder, trailer: any }? = nil
+local stage: { folder: Folder }? = nil
 -- Rareza del próximo huevo de prueba ("Egg").
 local DEBUG_EGG_RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 local debugEggIndex = 0
 
--- Borra el decorado y el jefe del Plató y devuelve la luz.
+-- Borra el jefe del Plató.
 local function clearStage()
 	local current = stage
 	stage = nil
 	if current then
-		current.trailer.devolverLuz(current.folder)
 		current.folder:Destroy()
 	end
 end
 
--- «🎬 Plató» y «🎬 Plató cómic» (Fase 25, G2 y G2b): monta en el origen de grabación del Trailer un decorado y el
--- siguiente jefe de la rotación de ese botón (quieto, sin IA) y lanza su escena de aparición (Boss_<id>, o
--- Boss_<id>_Comic si "comic") solo para quien pulsa, sin congelar el juego. Al acabar la escena, o al pulsar
--- otra vez, se borra todo. Sin versión cómic de ese jefe, avisa y no monta nada.
+-- «🎬 Plató» y «🎬 Plató cómic» (Fase 25, G2 y G2b): pone al siguiente jefe de la rotación de ese botón (quieto,
+-- sin IA) en su sitio real del mapa (Data/BossStages: cima, cueva, borde del volcán, orilla del manglar) y lanza su
+-- escena de aparición (Boss_<id>, o Boss_<id>_Comic si "comic") solo para quien pulsa, sin congelar el juego. Al
+-- acabar la escena, o al pulsar otra vez, se borra el jefe. Sin versión cómic de ese jefe, avisa y no monta nada.
 local function runStage(player: Player, comic: boolean)
 	local rotation = Config.Match.BossRotation
 	local bossId: string
@@ -94,19 +93,17 @@ local function runStage(player: Player, comic: boolean)
 		return
 	end
 	clearStage()
-	local ok, trailer = pcall(function()
-		return require(ServerStorage.Tools.Trailer) :: any
-	end)
-	if not ok then
-		Remotes.Notify:FireClient(player, "🎬 No se puede cargar Tools.Trailer (solo en el Studio de la Isla)")
-		return
-	end
+	local spot = BossStages[bossId]
 	local species = Monkeys[definition.baseSpecies]
 
 	local folder = Instance.new("Folder")
 	folder.Name = "Plato"
 	folder.Parent = Workspace
-	trailer.decorar(folder, 60)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { Workspace.Terrain }
+	local hit = Workspace:Raycast(spot.position + Vector3.new(0, 6, 0), Vector3.new(0, -80, 0), params)
+	local ground = if hit then hit.Position else spot.position
 	local look = table.clone(species)
 	look.name = definition.name
 	look.scale = definition.scale
@@ -114,22 +111,23 @@ local function runStage(player: Player, comic: boolean)
 	look.faceColor = definition.faceColor
 	look.maxHealth = definition.maxHealth
 	look.walkSpeed = 0
-	local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, trailer.ORIGEN, bossId)
+	local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, ground, bossId)
 	model.Name = definition.name
 	model:SetAttribute("Boss", bossId)
 	model:SetAttribute("BossPhase", 1)
 	model.Parent = folder
+	model:PivotTo(CFrame.lookAt(model:GetPivot().Position, model:GetPivot().Position + spot.facing))
 	local root = model.PrimaryPart
 	if root then
 		root.Anchored = true
 	end
 	MonkeyAnimator.attach(model)
-	local mine = { folder = folder, trailer = trailer }
+	local mine = { folder = folder }
 	stage = mine
 
 	local started = CinematicService.play(sceneId, {
 		audience = { player },
-		anchor = CFrame.new(trailer.ORIGEN),
+		anchor = CFrame.lookAt(ground, ground + spot.facing),
 		bossId = bossId,
 		noFreeze = true,
 		context = { bossModel = model },

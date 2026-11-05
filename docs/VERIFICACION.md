@@ -5192,6 +5192,50 @@ Versión cómic de la aparición del Orangután del Manglar (`Boss_OrangutanDelM
 19. [ ] Con el juego en inglés (como en §20), lanza «🎬 Plató cómic» y mira el cartel y el bocadillo.
     ✅ El nombre y el subtítulo en inglés caben en la caja amarilla (se parten en dos líneas sin salirse), y el bocadillo largo no sale de la pantalla ni tapa la cara del jefe.
 
+## 141. Fase 25 G2c: jefes en su sitio, habilidades en la toma y luz (05-11-2026)
+
+Los jefes de la Isla aparecen donde dice `Data/BossStages` (cima de la montaña, sala de la cueva mirando a la boca, borde del cráter por el lado del Basecamp y orilla del manglar) y vuelven ahí; «🎬 Plató» y «🎬 Plató cómic» ya no montan un decorado falso: ponen al jefe en su sitio real del mapa. Las 8 escenas de aparición enseñan una habilidad real del jefe, solo visual (evento de servidor `bossSkill` → `BossService.demo`): pisotón del Orangután, lluvia de rocas del Caudillo, rugido que apaga las antorchas del Albino, erupción y bombas de lava de Ceniza. Cámara más rápida (de frente a los 2,0 s; Ceniza 2,4 s), escena de 7,5 s. Tres versiones cómic nuevas (Caudillo, Albino y Ceniza). `CinematicService` renueva cada segundo `RequestStreamAroundAsync` mientras dura la escena (el jefe y el decorado se descargaban hacia los 5 s). Luz de relleno en Orangután, Caudillo y Albino (eventos `light` con `follow` y `exposure`, `Cinematics/SceneLight`). **La sala de la cueva del Albino se agrandó en el terreno del place** (esfera de radio 48, suelo plano a y≈13; `MapBuilder.carveCave` hace lo mismo al regenerar). Ya probado: el Plató cómic sale en los 4 sitios sin errores, el jefe sigue cargado a los 8 s, la cámara del Albino no toca roca y ve siempre su cara (muestreo cada 0,25 s), la lámpara sigue a la cámara a ~3,5 studs, y el empujón de imagen se quita al acabar. Con la hoja de contacto del vídeo se vio que los jefes ya no desaparecen. Esta sección es lo que falta.
+
+### 141.1 Guardar y publicar
+
+1. [ ] Guarda el place de la Isla en Studio y publícalo (la sala nueva de la cueva está en el terreno, no en el repo).
+   ✅ Al reabrir el place, la sala del Albino sigue grande (≈75 studs de diámetro, suelo plano) y el túnel entra a su altura sin escalón.
+
+### 141.2 Una persona en Play (visual, con vídeo)
+
+2. [ ] Graba «🎬 Plató cómic» con los 4 jefes y revisa con una hoja de contacto (un fotograma por segundo).
+   ✅ El jefe se ve de principio a fin en las 4 escenas; en cada una se lee la habilidad (pisotón con su onda, rocas cayendo alrededor del jefe, rugido con las antorchas apagándose, bombas de lava con la erupción detrás).
+3. [ ] Mira el principio y el final de las escenas del Orangután y del Caudillo (con la luz que sigue a la cámara).
+   ✅ La exposición es pareja: no arranca a oscuras ni se quema al acercarse la cámara. Si sale oscuro o quemado, se anota el segundo y se ajusta `brightness` (2) o `range` (5 alturas) en `bossLights` de `Data/Cinematics`.
+4. [ ] Mira la escena del Albino de principio a fin.
+   ✅ La cueva se ve (no arranca en negro), la cámara no atraviesa paredes ni techo y el jefe mira a la cámara con la boca del túnel detrás de ella.
+5. [ ] Mira la escena de Ceniza con la erupción.
+   ✅ Las bombas salen del cráter, que queda detrás del jefe; el jefe está en el borde, no en el foso de lava.
+6. [ ] Mira la primera toma de cada escena (cámara detrás del jefe).
+   ✅ La cámara llega de frente al jefe antes de la habilidad; se ve de frente más tiempo que de costado.
+
+### 141.3 En la Isla de verdad
+
+7. [ ] Con «👑 Siguiente jefe» saca los 4 jefes de uno en uno y mira dónde nacen.
+   ✅ Orangután en su orilla mirando al Basecamp, Caudillo en la cima, Albino en el centro de la sala mirando a la boca y Ceniza en el borde del cráter; ninguno nace dentro de la roca ni cae al foso.
+8. [ ] Deja a un jefe sin objetivo (aléjate) y mira adónde vuelve.
+   ✅ Vuelve a su sitio de `BossStages` (cima, sala, borde), no al centro de la montaña ni al foso.
+9. [ ] Con dos jugadores, uno en el Basecamp y otro cerca del jefe, deja que corra una escena de aparición completa.
+   ✅ Los dos ven al jefe de principio a fin (el streaming se renueva para cada espectador), y las antorchas del Albino vuelven a encenderse solas tras la escena.
+10. [ ] Pasa una partida hasta el jefe de las antorchas (Albino) con las antorchas de la cueva encendidas.
+    ✅ El rugido de la escena apaga las antorchas solo mientras dura el efecto y no deja a los monos ni a los jugadores sin ellas más tiempo del normal.
+
+### 141.4 Casos límite
+
+11. [ ] Regenera el mapa con `MapBuilder.build({ islandRadius = 950 })` en un place de prueba (nunca en el de producción) y mira la cueva.
+    ✅ La sala sale con el tamaño nuevo y no rompe el techo de la montaña; los puntos de `BossStages` siguen cayendo en la cima, la sala y el borde (si no, hay que volver a medirlos).
+12. [ ] Salta (Saltar) cada escena a mitad.
+    ✅ No queda la lámpara de la cámara ni el empujón de imagen (`CinematicLift` en `Lighting`) después de saltar.
+13. [ ] Lanza una escena de jefe con el ajuste «Cinemáticas» desactivado.
+    ✅ El jefe sale en su sitio y ruge al momento, sin escena, y no queda luz añadida.
+14. [ ] Con el inglés puesto, mira las 3 versiones cómic nuevas.
+    ✅ Las citas («This mountain is mine!», «Nobody leaves my cave…», «Everything will burn!») y las narraciones caben en los bocadillos sin salirse.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

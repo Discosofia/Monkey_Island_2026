@@ -26,9 +26,13 @@ export type Scene = {
 type BossShot = {
 	side: number?, -- 1 rodea por su derecha, -1 por la izquierda
 	radius: number?, -- multiplica el radio del giro (1 por defecto)
-	frontT: number?, -- segundo en que llega al contrapicado de frente (3,2)
+	frontZ: number?, -- distancia de la cámara de frente, en alturas del jefe (2,1); menos en espacios cerrados
+	frontT: number?, -- segundo en que llega al contrapicado de frente (2,0)
 	startY: number?, -- altura del plano abierto (1,2)
 	lowY: number?, -- altura del contrapicado (0,35)
+	lit: boolean?, -- true añade luces de relleno (jefes que aparecen de noche o al amanecer)
+	skill: string?, -- habilidad que enseña (evento bossSkill): "stomp" | "rockRain" | "extinguish" | "eruption"
+	skillAt: number?, -- segundo en que la lanza (por defecto, 0,6 s después de frontT)
 }
 
 -- Cámara de la aparición de un jefe (G2): plano abierto desde atrás y giro hasta un contrapicado de frente. El
@@ -41,7 +45,7 @@ local function bossCamera(
 	local h = Bosses[bossId].scale * 3
 	local side = s.side or 1
 	local radius = s.radius or 1
-	local frontT = s.frontT or 3.2
+	local frontT = s.frontT or 2.0
 	local startY = s.startY or 1.2
 	local lowY = s.lowY or 0.35
 	local function orbit(degrees: number, r: number, y: number): Vector3
@@ -51,7 +55,7 @@ local function bossCamera(
 	-- El modelo mide unos 1,33 h de alto (h = escala × 3): la cara queda hacia 1,0 h, y la cámara se separa lo
 	-- justo para que la cabeza no choque con la franja de arriba.
 	local face = Vector3.new(0, 1.0 * h, 0)
-	local frontZ = -2.1
+	local frontZ = -(s.frontZ or 2.1)
 	local camera = {
 		{
 			t = 0,
@@ -83,11 +87,47 @@ local function bossCamera(
 	return camera, frontT
 end
 
+-- Luz de relleno de la aparición de un jefe (eventos exposure y light de Cinematics/SceneLight).
+local function bossLights(bossId: string, shot: BossShot?): { { t: number, kind: string, [string]: any } }
+	if not (shot and shot.lit) then
+		return {}
+	end
+	local h = Bosses[bossId].scale * 3
+	-- Una luz que acompaña a la cámara, un poco por encima: a distancia casi constante del jefe, así la exposición
+	-- es pareja de principio a fin (las luces fijas quemaban el plano final y dejaban a oscuras el de apertura).
+	return {
+		{ t = 0, kind = "exposure", value = 0.5 },
+		{
+			t = 0,
+			kind = "light",
+			follow = true,
+			offset = Vector3.new(0, 0.4 * h, 0),
+			color = Color3.fromRGB(255, 236, 210),
+			brightness = 2,
+			range = 5 * h,
+		},
+	}
+end
+
+-- Evento de servidor bossSkill: enseña una habilidad real del jefe en la toma, solo visual (IslandBossHooks).
+local function addBossSkill(scene: Scene, shot: BossShot?, frontT: number)
+	if not (shot and shot.skill) then
+		return
+	end
+	table.insert(scene.events :: { any }, {
+		t = shot.skillAt or frontT + 0.6,
+		kind = "bossSkill",
+		server = true,
+		essential = true,
+		skill = shot.skill,
+	})
+end
+
 -- Aparición de un jefe (G2): la cámara de bossCamera con el rugido, el cartel con su nombre y el fundido.
 local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Scene
 	local camera, frontT = bossCamera(bossId, shot)
-	return {
-		duration = 6,
+	local scene: Scene = {
+		duration = 7.5,
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
@@ -102,11 +142,16 @@ local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Sce
 				kind = "title",
 				text = Strings.later(Bosses[bossId].name),
 				sub = subtitle,
-				seconds = 5.5 - (frontT - 0.1),
+				seconds = 7.0 - (frontT - 0.1),
 			},
-			{ t = 5.6, kind = "fade", seconds = 0.4, toBlack = true },
+			{ t = 7.1, kind = "fade", seconds = 0.4, toBlack = true },
 		},
 	}
+	for _, light in bossLights(bossId, shot) do
+		table.insert(scene.events :: { any }, light)
+	end
+	addBossSkill(scene, shot, frontT)
+	return scene
 end
 
 -- Variante cómic de la aparición de un jefe (G2b; se graba con el Plató cómic, sin franjas negras): la misma
@@ -123,8 +168,8 @@ local function bossComicScene(
 	local camera, frontT = bossCamera(bossId, shot)
 	local base, cream = colors[1], colors[2]
 	local speakAt = frontT + 0.3
-	return {
-		duration = 6,
+	local scene: Scene = {
+		duration = 7.5,
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
@@ -166,7 +211,7 @@ local function bossComicScene(
 				corner = "BL",
 				text = Strings.later(Bosses[bossId].name),
 				sub = subtitle,
-				seconds = 5.5 - (frontT - 0.1),
+				seconds = 7.0 - (frontT - 0.1),
 			},
 			{
 				t = speakAt,
@@ -174,18 +219,23 @@ local function bossComicScene(
 				balloon = "speech",
 				actor = "boss",
 				text = quote,
-				seconds = 5.4 - speakAt,
+				seconds = 6.9 - speakAt,
 			},
-			{ t = 5.6, kind = "fade", seconds = 0.4, toBlack = true },
+			{ t = 7.1, kind = "fade", seconds = 0.4, toBlack = true },
 		},
 	}
+	for _, light in bossLights(bossId, shot) do
+		table.insert(scene.events :: { any }, light)
+	end
+	addBossSkill(scene, shot, frontT)
+	return scene
 end
 
 local Cinematics: { [string]: Scene } = {
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",
 		Strings.later("Señor del manglar"),
-		{ lowY = 0.2, side = 1 }
+		{ lowY = 0.2, side = 1, lit = true, skill = "stomp" }
 	),
 	-- Variante cómic (G2b): solo se lanza desde el Plató cómic, para grabar.
 	Boss_OrangutanDelManglar_Comic = bossComicScene(
@@ -194,22 +244,46 @@ local Cinematics: { [string]: Scene } = {
 		Strings.later("¡Fuera de mi manglar!"),
 		Strings.later("En el corazón del manglar…"),
 		{ Color3.fromRGB(26, 112, 108), Color3.fromRGB(246, 232, 196) },
-		{ lowY = 0.2, side = 1 }
+		{ lowY = 0.2, side = 1, lit = true, skill = "stomp" }
 	),
 	Boss_ChimpanceCaudillo = bossScene(
 		"ChimpanceCaudillo",
 		Strings.later("Amo de las montañas"),
-		{ side = -1, radius = 1.1 }
+		{ side = -1, radius = 1.1, skill = "rockRain", lit = true }
+	),
+	Boss_ChimpanceCaudillo_Comic = bossComicScene(
+		"ChimpanceCaudillo",
+		Strings.later("Amo de las montañas"),
+		Strings.later("¡Esta montaña es mía!"),
+		Strings.later("En lo alto de la montaña…"),
+		{ Color3.fromRGB(140, 44, 36), Color3.fromRGB(244, 226, 190) },
+		{ side = -1, radius = 1.1, skill = "rockRain", lit = true }
 	),
 	Boss_GorilaAlbino = bossScene(
 		"GorilaAlbino",
 		Strings.later("Espectro de las cuevas"),
-		{ startY = 1.6, lowY = 0.3 }
+		{ startY = 1.6, lowY = 0.3, skill = "extinguish", lit = true }
+	),
+	Boss_GorilaAlbino_Comic = bossComicScene(
+		"GorilaAlbino",
+		Strings.later("Espectro de las cuevas"),
+		Strings.later("Nadie sale de mi cueva…"),
+		Strings.later("En la oscuridad de la cueva…"),
+		{ Color3.fromRGB(62, 106, 160), Color3.fromRGB(232, 240, 248) },
+		{ startY = 1.6, lowY = 0.3, skill = "extinguish", lit = true }
 	),
 	Boss_GorilaDeCeniza = bossScene(
 		"GorilaDeCeniza",
 		Strings.later("Furia del volcán"),
-		{ side = -1, radius = 1.35, frontT = 3.8 }
+		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption" }
+	),
+	Boss_GorilaDeCeniza_Comic = bossComicScene(
+		"GorilaDeCeniza",
+		Strings.later("Furia del volcán"),
+		Strings.later("¡Todo arderá!"),
+		Strings.later("Del fondo del volcán…"),
+		{ Color3.fromRGB(196, 66, 18), Color3.fromRGB(255, 228, 176) },
+		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption" }
 	),
 
 	-- Escena de prueba del motor: un maniquí guerrero camina hacia la cámara delante del jugador.

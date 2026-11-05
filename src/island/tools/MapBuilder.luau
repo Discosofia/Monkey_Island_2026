@@ -345,8 +345,11 @@ local function carveCave(layout: Layout): Vector3
 		local point = cave.entrance + cave.inward * distance
 		terrain:FillBall(Vector3.new(point.X, floorY + 7, point.Y), 9, Enum.Material.Air)
 	end
+	-- Sala grande (Fase 25: la cinemática del Albino necesita sitio para la cámara): una cúpula de ~75 studs de
+	-- diámetro a la altura del suelo, con el suelo plano (la esfera sola lo deja en cuenco).
 	local chamber = cave.entrance + cave.inward * (cave.tunnelLength + 20)
-	terrain:FillBall(Vector3.new(chamber.X, floorY + 22, chamber.Y), 28, Enum.Material.Air)
+	terrain:FillBall(Vector3.new(chamber.X, floorY + 28, chamber.Y), 48, Enum.Material.Air)
+	terrain:FillCylinder(CFrame.new(chamber.X, floorY - 15, chamber.Y), 30, 44, Enum.Material.Rock)
 	return Vector3.new(chamber.X, floorY, chamber.Y)
 end
 

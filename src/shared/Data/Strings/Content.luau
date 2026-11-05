@@ -836,5 +836,11 @@ return {
 	-- Variante cómic de la aparición (G2b).
 	["¡Fuera de mi manglar!"] = "Get out of my mangrove!",
 	["En el corazón del manglar…"] = "In the heart of the mangrove…",
+	["¡Esta montaña es mía!"] = "This mountain is mine!",
+	["En lo alto de la montaña…"] = "High on the mountain…",
+	["Nadie sale de mi cueva…"] = "Nobody leaves my cave…",
+	["En la oscuridad de la cueva…"] = "In the darkness of the cave…",
+	["¡Todo arderá!"] = "Everything will burn!",
+	["Del fondo del volcán…"] = "From the depths of the volcano…",
 	["¡ROAAAR!"] = "ROAAAR!",
 }

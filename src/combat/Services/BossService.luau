@@ -272,6 +272,21 @@ local function groundBelow(position: Vector3): Vector3
 	return if result then result.Position else position
 end
 
+-- Como groundBelow, pero con la Y de "position" como pista: el rayo sale 6 studs sobre ella y baja 80. Sirve
+-- para un sitio bajo techo de terreno (la cueva), donde groundBelow daría con la cima. Solo en la Isla.
+local function groundNear(position: Vector3): Vector3
+	if hooks.isIsland then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { Workspace.Terrain }
+		local result = Workspace:Raycast(position + Vector3.new(0, 6, 0), Vector3.new(0, -80, 0), params)
+		if result then
+			return result.Position
+		end
+	end
+	return groundBelow(position)
+end
+
 local function despawnCurrent(reason: string?, args: { [string]: any }?)
 	local boss = current
 	if not boss then
@@ -449,7 +464,9 @@ end
 -- "round": la vuelta de la rotación (0 o nil la primera, Fase 12), para salir más fuerte.
 -- "position": dónde sale (el administrador); sin ella, en su guarida.
 -- "quiet": sin rugido ni animación al salir (lo lanza después BossService.roar, p. ej. la cinemática de aparición).
-function BossService.spawn(bossId: string, round: number?, position: Vector3?, quiet: boolean?)
+-- "facing": dirección horizontal en que nace mirando (Data/BossStages). Con ella, la Y de "position" es solo una
+-- pista (el suelo se busca cerca de ella, para no salir sobre la cueva) y ese punto es también su guarida.
+function BossService.spawn(bossId: string, round: number?, position: Vector3?, quiet: boolean?, facing: Vector3?)
 	local definition = Bosses[bossId]
 	local species = if definition then Monkeys[definition.baseSpecies] else nil
 	if not (definition and species) then
@@ -461,6 +478,9 @@ function BossService.spawn(bossId: string, round: number?, position: Vector3?, q
 		warn(`[BossService] {bossId}: este place no tiene guarida; hace falta una posición`)
 		return
 	end
+	if facing then
+		lair = groundNear(lair)
+	end
 	despawnCurrent(nil)
 	local look = table.clone(species)
 	look.name = definition.name
@@ -470,7 +490,13 @@ function BossService.spawn(bossId: string, round: number?, position: Vector3?, q
 	local strength = strengthFor(round or 0)
 	look.maxHealth = math.round(definition.maxHealth * strength.health * healthMultiplier(1))
 	look.walkSpeed = definition.walkSpeed
-	local model = MonkeyModels.spawnBoss(definition.baseSpecies, look, groundBelow(lair), bossId)
+	local model =
+		MonkeyModels.spawnBoss(definition.baseSpecies, look, if facing then lair else groundBelow(lair), bossId)
+	if facing then
+		-- El modelo mira hacia su LookVector (como EnemyAttack.face).
+		local origin = model:GetPivot().Position
+		model:PivotTo(CFrame.lookAt(origin, origin + Vector3.new(facing.X, 0, facing.Z)))
+	end
 	model.Name = definition.name
 	model:SetAttribute("Boss", bossId)
 	model:SetAttribute("BossPhase", 1)
@@ -545,6 +571,111 @@ function BossService.roar(model: Model?)
 	end
 	Sfx.play("BossRoar", root)
 	MonkeyAnimator.play(target, "Roar")
+end
+
+-- Reproduce la animación de un ataque (Stomp, Throw, Roar, Invoke…) en "model" sin lanzar el ataque.
+function BossService.playSkillAnim(model: Model, animation: MonkeyAnimator.Action)
+	MonkeyAnimator.play(model, animation)
+	-- Invoke es de bucle: se corta solo, para que la cinemática no deje al jefe con los brazos en alto.
+	if animation == "Invoke" then
+		task.delay(2.5, function()
+			if model.Parent then
+				MonkeyAnimator.stop(model, "Invoke")
+			end
+		end)
+	end
+end
+
+-- Demostración VISUAL de una habilidad del jefe para las cinemáticas (evento bossSkill de Data/Cinematics):
+-- la animación del jefe y los mismos Remotes.BossFx que dibujan el ataque real, solo para "audience". No hace
+-- daño ni toca la IA, los cooldowns ni la vida. "skill": "stomp" | "rockRain" | "extinguish" | "eruption".
+-- "model": el jefe de la escena (el plató) o, sin él, el vivo. "Guarida_Volcan" hace de cráter si el jefe está
+-- a menos de CRATER_NEAR_STUDS; si no (el plató), el origen de la erupción es el propio jefe.
+-- Devuelve false si no hay jefe o la habilidad no existe.
+local DEMO_ANIMATIONS: { [string]: MonkeyAnimator.Action } = {
+	stomp = "Stomp",
+	rockRain = "Throw",
+	extinguish = "Roar",
+	eruption = "Invoke",
+}
+local CRATER_NEAR_STUDS = 150
+local DEMO_ROCKS = 5
+
+function BossService.demo(skill: string, model: Model?, audience: { Player }): boolean
+	local target = model
+	if not target and current and current.humanoid.Health > 0 then
+		target = current.model
+	end
+	local animation = DEMO_ANIMATIONS[skill]
+	local bossId = if target then target:GetAttribute("Boss") else nil
+	if not (target and animation and typeof(bossId) == "string") then
+		return false
+	end
+	local cf, size = target:GetBoundingBox()
+	local feet = Vector3.new(cf.X, cf.Y - size.Y / 2, cf.Z)
+	local pivot = target:GetPivot()
+	local forward = Vector3.new(pivot.LookVector.X, 0, pivot.LookVector.Z)
+	forward = if forward.Magnitude > 0.01 then forward.Unit else Vector3.new(0, 0, -1)
+	local right = Vector3.new(-forward.Z, 0, forward.X)
+
+	local function fire(kind: string, style: string, ground: Vector3, params: { [string]: any })
+		params.serverTime = Workspace:GetServerTimeNow()
+		params.seed = rng:NextInteger(1, 1000000)
+		for _, player in audience do
+			if player.Parent then
+				Remotes.BossFx:FireClient(player, kind, style, ground, params)
+			end
+		end
+	end
+	-- Las 5 rocas (o bombas de lava) que caen delante del jefe, escalonadas como las del ataque real.
+	local function rain(kind: string, style: string, origin: Vector3?)
+		for index = 1, DEMO_ROCKS do
+			local offset = forward * rng:NextNumber(-3, 9) + right * rng:NextNumber(-14, 14)
+			local warn = 1.1 + index * 0.2
+			local params: { [string]: any } = { warn = warn, radius = 6 }
+			if kind == "lavaBomb" then
+				params.flight = math.min(1.1, warn)
+				params.origin = origin
+			else
+				params.flight = 0.4
+			end
+			fire(kind, style, groundNear(feet + offset), params)
+		end
+	end
+
+	BossService.playSkillAnim(target, animation)
+	if skill == "stomp" then
+		bubble({ model = target } :: any, later("💥 ¡PUM!"))
+		fire("stomp", bossId, feet, { warn = STOMP_IMPACT_SECONDS, radius = STOMP_RADIUS })
+	elseif skill == "rockRain" then
+		bubble({ model = target } :: any, later("¡ROCAS!"))
+		rain("rock", bossId, nil)
+	elseif skill == "extinguish" then
+		bubble({ model = target } :: any, later("¡GRRROOOAAAR!"))
+		fire("roar", bossId, feet, { radius = 45 })
+		for _, player in audience do
+			if player.Parent then
+				hooks.douse(player, Config.Monkeys.TorchRoarOutSeconds)
+			end
+		end
+	else
+		-- Erupción: bombas desde el cráter hacia delante y detrás del jefe, y luego las suyas hacia delante.
+		local marker = Workspace:FindFirstChild("Guarida_Volcan", true)
+		local crater = if marker
+				and marker:IsA("BasePart")
+				and (marker.Position - feet).Magnitude <= CRATER_NEAR_STUDS
+			then marker.Position + Vector3.new(0, 40, 0)
+			else feet + Vector3.new(0, 40, 0)
+		for _, side in { 1, -1 } do
+			for _, lateral in { 8, -8 } do
+				local spot = groundNear(feet + forward * 20 * side + right * lateral)
+				fire("lavaBomb", "GorilaDeCeniza", spot, { warn = 1.6, flight = 1.1, radius = 6, origin = crater })
+			end
+		end
+		bubble({ model = target } :: any, later("¡ROCAS!"))
+		rain("lavaBomb", "GorilaDeCeniza", feet + Vector3.new(0, 6, 0))
+	end
+	return true
 end
 
 local function nearestTarget(boss: ActiveBoss): (Player?, BasePart?)
