@@ -5,8 +5,8 @@
 --   - anchor (opcional): dónde se ancla la escena ("boss" = el jefe); sin él, el que le dé quien la lanza.
 --   - actors: { nombre = { kind = "dummy" | "localPlayer" | "boss" | "prop", … } } (ver Cinematics/Actors).
 --   - camera: puntos { t, pos, look, fov? } con la posición y la mirada relativas al anchor (Cinematics/CameraPath).
---   - events: { t, kind, … } con letterbox, title, caption, fade (Presentation), anim, move (Actors) y los que
---     registre cada place. Los textos se marcan con Strings.later y se traducen al dibujarlos.
+--   - events: { t, kind, … } con letterbox, title, caption, fade (Presentation), anim, move (Actors), panel,
+--     bubble, sfx (Comic, escenas «cómic») y los que registre cada place. Los textos se marcan con Strings.later y se traducen al dibujarlos.
 
 local Bosses = require(script.Parent.Bosses)
 local Strings = require(script.Parent.Parent.Strings)
@@ -31,9 +31,12 @@ type BossShot = {
 	lowY: number?, -- altura del contrapicado (0,35)
 }
 
--- Aparición de un jefe (G2): plano abierto desde atrás, giro hasta un contrapicado de frente con el rugido, cartel
--- con su nombre y fundido. El anchor es el pie del jefe y mira hacia -Z; la cámara de frente está en z negativo.
-local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Scene
+-- Cámara de la aparición de un jefe (G2): plano abierto desde atrás y giro hasta un contrapicado de frente. El
+-- anchor es el pie del jefe y mira hacia -Z; la cámara de frente está en z negativo. Devuelve los puntos y frontT.
+local function bossCamera(
+	bossId: string,
+	shot: BossShot?
+): ({ { t: number, pos: Vector3, look: Vector3, fov: number? } }, number)
 	local s: BossShot = shot or {}
 	local h = Bosses[bossId].scale * 3
 	local side = s.side or 1
@@ -49,40 +52,47 @@ local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Sce
 	-- justo para que la cabeza no choque con la franja de arriba.
 	local face = Vector3.new(0, 1.0 * h, 0)
 	local frontZ = -2.1
+	local camera = {
+		{
+			t = 0,
+			pos = Vector3.new(0, startY * h, 2.2 * h * radius),
+			look = Vector3.new(0, 0.7 * h, -0.5 * h),
+			fov = 65,
+		},
+		{
+			t = frontT * 0.45,
+			pos = orbit(60, 2.1, (startY + lowY) / 2 + 0.1),
+			look = Vector3.new(0, 0.7 * h, 0),
+			fov = 60,
+		},
+		{ t = frontT * 0.8, pos = orbit(125, 1.8, lowY + 0.15), look = Vector3.new(0, 0.75 * h, 0), fov = 52 },
+		{ t = frontT, pos = Vector3.new(0, lowY * h, frontZ * h), look = face, fov = 45 },
+		{
+			t = 4.6,
+			pos = Vector3.new(side * 0.4 * h, (lowY + 0.05) * h, (frontZ + 0.1) * h),
+			look = face,
+			fov = 45,
+		},
+		{
+			t = 6,
+			pos = Vector3.new(side * 0.7 * h, (lowY + 0.1) * h, (frontZ + 0.25) * h),
+			look = Vector3.new(0, 0.95 * h, 0),
+			fov = 45,
+		},
+	}
+	return camera, frontT
+end
+
+-- Aparición de un jefe (G2): la cámara de bossCamera con el rugido, el cartel con su nombre y el fundido.
+local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Scene
+	local camera, frontT = bossCamera(bossId, shot)
 	return {
 		duration = 6,
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
 		actors = {},
-		camera = {
-			{
-				t = 0,
-				pos = Vector3.new(0, startY * h, 2.2 * h * radius),
-				look = Vector3.new(0, 0.7 * h, -0.5 * h),
-				fov = 65,
-			},
-			{
-				t = frontT * 0.45,
-				pos = orbit(60, 2.1, (startY + lowY) / 2 + 0.1),
-				look = Vector3.new(0, 0.7 * h, 0),
-				fov = 60,
-			},
-			{ t = frontT * 0.8, pos = orbit(125, 1.8, lowY + 0.15), look = Vector3.new(0, 0.75 * h, 0), fov = 52 },
-			{ t = frontT, pos = Vector3.new(0, lowY * h, frontZ * h), look = face, fov = 45 },
-			{
-				t = 4.6,
-				pos = Vector3.new(side * 0.4 * h, (lowY + 0.05) * h, (frontZ + 0.1) * h),
-				look = face,
-				fov = 45,
-			},
-			{
-				t = 6,
-				pos = Vector3.new(side * 0.7 * h, (lowY + 0.1) * h, (frontZ + 0.25) * h),
-				look = Vector3.new(0, 0.95 * h, 0),
-				fov = 45,
-			},
-		},
+		camera = camera,
 		events = {
 			{ t = 0, kind = "letterbox" },
 			{ t = 1.0, kind = "bossRoar", server = true, essential = true },
@@ -99,10 +109,91 @@ local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Sce
 	}
 end
 
+-- Variante cómic de la aparición de un jefe (G2b; se graba con el Plató cómic, sin franjas negras): la misma
+-- cámara, con viñetas (Cinematics/Comic), una narración, la onomatopeya del rugido y la frase del jefe.
+-- "subtitle" va bajo el nombre en la caja de título; "colors" = { color del jefe, color crema }.
+local function bossComicScene(
+	bossId: string,
+	subtitle: string,
+	quote: string,
+	narration: string,
+	colors: { Color3 },
+	shot: BossShot?
+): Scene
+	local camera, frontT = bossCamera(bossId, shot)
+	local base, cream = colors[1], colors[2]
+	local speakAt = frontT + 0.3
+	return {
+		duration = 6,
+		audience = "All",
+		freeze = true,
+		anchor = "boss",
+		actors = {},
+		camera = camera,
+		events = {
+			{ t = 0, kind = "panel", shape = "diagLeft", bg = { style = "halftone", colors = { base, cream } } },
+			{ t = 0.2, kind = "bubble", balloon = "narration", corner = "TL", text = narration, seconds = 2.4 },
+			{ t = 1.0, kind = "bossRoar", server = true, essential = true },
+			{
+				t = 1.0,
+				kind = "panel",
+				shape = "diagRight",
+				bg = { style = "speed", colors = { cream, base } },
+				seconds = 0.2,
+			},
+			{
+				t = 1.0,
+				kind = "sfx",
+				text = Strings.later("¡ROAAAR!"),
+				pos = { 0.22, 0.2 },
+				rot = -8,
+				size = 0.2,
+				color = Color3.new(1, 1, 1),
+				seconds = 1.5,
+			},
+			{
+				t = frontT - 0.3,
+				kind = "panel",
+				shape = "tallSlant",
+				bg = { style = "flat", colors = { base, cream } },
+				seconds = 0.3,
+			},
+			-- La caja de título es de Comic (el cartel de Presentation tapaba el pecho del jefe).
+			{
+				t = frontT - 0.1,
+				kind = "bubble",
+				balloon = "title",
+				corner = "BL",
+				text = Strings.later(Bosses[bossId].name),
+				sub = subtitle,
+				seconds = 5.5 - (frontT - 0.1),
+			},
+			{
+				t = speakAt,
+				kind = "bubble",
+				balloon = "speech",
+				actor = "boss",
+				text = quote,
+				seconds = 5.4 - speakAt,
+			},
+			{ t = 5.6, kind = "fade", seconds = 0.4, toBlack = true },
+		},
+	}
+end
+
 local Cinematics: { [string]: Scene } = {
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",
 		Strings.later("Señor del manglar"),
+		{ lowY = 0.2, side = 1 }
+	),
+	-- Variante cómic (G2b): solo se lanza desde el Plató cómic, para grabar.
+	Boss_OrangutanDelManglar_Comic = bossComicScene(
+		"OrangutanDelManglar",
+		Strings.later("Señor del manglar"),
+		Strings.later("¡Fuera de mi manglar!"),
+		Strings.later("En el corazón del manglar…"),
+		{ Color3.fromRGB(26, 112, 108), Color3.fromRGB(246, 232, 196) },
 		{ lowY = 0.2, side = 1 }
 	),
 	Boss_ChimpanceCaudillo = bossScene(

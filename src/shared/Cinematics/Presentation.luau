@@ -130,6 +130,9 @@ function Presentation.letterbox(on: boolean, seconds: number?, instant: boolean?
 	if not Presentation.gui() or not (topBar and bottomBar) then
 		return
 	end
+	if gui and gui:FindFirstChild("ComicLayer") then
+		return -- las escenas cómic llevan viñetas (Comic), no franjas negras
+	end
 	local top = UDim2.fromScale(0, if on then BAR_HEIGHT else 0)
 	local bottom = UDim2.fromScale(0, if on then 1 - BAR_HEIGHT else 1)
 	if instant then

@@ -18,6 +18,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actors = require(script.Parent.Actors)
+local Comic = require(script.Parent.Comic)
 local Cinematics = require(script.Parent.Parent.Data.Cinematics)
 local HudHider = require(script.Parent.Parent.UI.HudHider)
 local Presentation = require(script.Parent.Presentation)
@@ -172,6 +173,7 @@ end
 function CinematicClient.start(place: string)
 	Presentation.install(Sequencer)
 	Actors.install(Sequencer)
+	Comic.install(Sequencer)
 
 	local shared = ReplicatedStorage:FindFirstChild("Shared")
 	Actors.setDummyFactory(function()

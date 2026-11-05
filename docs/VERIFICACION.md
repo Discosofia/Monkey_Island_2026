@@ -5138,6 +5138,60 @@ Los metales (oro y plata) se ven algo más claros en la malla que en los bloques
 4. [ ] Mira las tres en el Armario, en la tienda y en el Lobby con `WeaponLook`.
    ✅ Se ven con la forma nueva, sin errores.
 
+## 140. Fase 25 G2b: estilo cómic de las cinemáticas (05-11-2026)
+
+Versión cómic de la aparición del Orangután del Manglar (`Boss_OrangutanDelManglar_Comic` en `Data/Cinematics`, sin franjas negras): viñetas poligonales con borde y fondos (`flat`, `halftone` y `speed`), cartel de título en caja amarilla, bocadillos con cola que sigue al jefe y onomatopeyas con explosión. Motor en `src/shared/Cinematics/Comic.luau` (nuevo, `Comic.install(Sequencer)` desde `CinematicClient`; `Presentation.letterbox` no dibuja si hay capa cómic). Se lanza solo con «🎬 Plató cómic», para grabar: no sale en el juego. Ya probado en el Studio de la Isla, en Play, con capturas a cámara lenta: viñeta con borde y halftone, narración, onomatopeya con explosión, líneas de velocidad fuera de la ventana tras la transición, degradado, caja de título con su padding y bocadillo con la cola a la cara sin pisar el título. Sin versión cómic de Caudillo, Albino ni Ceniza: solo el Orangután. Esta sección es lo que falta.
+
+### 140.1 Una persona en Play (visual)
+
+1. [ ] En el Studio de la Isla, en Play, pulsa «🎬 Plató cómic» y mira `Boss_OrangutanDelManglar_Comic` a velocidad real, en el móvil emulado.
+   ✅ Las viñetas cambian al ritmo del guion (panel `diagLeft` con la narración, rugido con «¡ROAAAR!», panel `diagRight` con líneas de velocidad, panel `tallSlant`, título y bocadillo final, fundido) sin cortes antes de tiempo ni pausas bruscas.
+2. [ ] Lee el cartel de título y el bocadillo «¡Fuera de mi manglar!» a velocidad real, sin acercar la vista.
+   ✅ El nombre y el subtítulo se leen en la caja amarilla sin tapar la cara del jefe, y el bocadillo se lee entero.
+3. [ ] Mira la cola del bocadillo mientras el jefe se mueve.
+   ✅ La cola apunta a la cara del jefe (cae en el mentón o la gema) y la sigue al moverse; no se queda en el suelo ni en el borde de la pantalla.
+4. [ ] Mira la onomatopeya «¡ROAAAR!» en el momento del rugido (1,0 s).
+   ✅ Sale arriba a la izquierda con su explosión amarilla detrás, se lee y no tapa la cara del jefe.
+5. [ ] Mira los puntos del `halftone` (panel `diagLeft`, verde azulado y crema) y las líneas de velocidad fuera de la ventana.
+   ✅ Los puntos se ven nítidos y las líneas no entran en la ventana 3D; tras la transición se ven gruesas, no finas.
+6. [ ] Mira el degradado del panel `tallSlant` y las uniones entre los rectángulos del fondo (`flat`, `halftone` y `speed`).
+   ✅ No se ven costuras, líneas finas de color entre rectángulos ni huecos en las esquinas del fondo.
+7. [ ] Con el emulador de teléfono y el contador de FPS de Studio (Estadísticas), mira el ritmo mientras corren el `halftone` (hasta 600 piezas) y las líneas de velocidad (48 cuñas), y compáralo con una escena normal como `Boss_OrangutanDelManglar`.
+   ✅ El cómic no baja los FPS por debajo de la escena normal. Si cae, se anota el fotograma, el dispositivo y el número de piezas en pantalla.
+
+### 140.2 Tamaños de pantalla
+
+8. [ ] Con la escena en marcha, rota el emulador de teléfono de vertical a horizontal y vuelve a vertical.
+   ✅ El panel, el fondo y los bocadillos se reajustan a la nueva forma sin saltos bruscos ni cajas fuera de pantalla.
+9. [ ] Cambia el tamaño de la ventana de Studio (más estrecha y más ancha) durante la escena, o empieza el Play con una ventana pequeña.
+   ✅ Las viñetas, el `halftone` y la onomatopeya se escalan con el lado corto; ningún texto se corta ni se sale del marco.
+10. [ ] Con la guía 9:16 (tercio central, x de 0,34 a 0,66) activada, mira los paneles `wide`, `diagLeft`, `diagRight` y `tallSlant` en su momento de máxima ocupación.
+    ✅ En los cuatro, la franja central cae dentro de la ventana 3D en toda su altura: ni el borde del panel ni el fondo la cortan, y el jefe no se sale de ella.
+11. [ ] En un teléfono real (o el emulador con la barra de Roblox visible), mira dónde cae la cola del bocadillo respecto a la cabeza del jefe.
+    ✅ La cola cae en el mentón o la gema, como en Studio. En Studio `ComicBubbles.AbsolutePosition` vale (0, -58) y lo compensa `project()`; si en el dispositivo vale (0, 0), la cola quedará unos 58 px más arriba, en la cabeza. Se anota el valor que sale y dónde cae.
+
+### 140.3 Grabación
+
+12. [ ] Graba en OBS a 1080p60 la escena de «🎬 Plató cómic» con la guía 9:16 y el Modo grabación activados.
+    ✅ Sin HUD de pruebas, sin barra de Roblox ni de Studio en el cuadro, y el vídeo va a 60 fps sin tirones en los paneles con `halftone` y líneas de velocidad.
+13. [ ] Mira el recorte 9:16 central del vídeo grabado.
+    ✅ El cartel de título y el bocadillo caen dentro del recuadro 9:16 central.
+14. [ ] Mira el texto del cómic (fuente Bangers) en el vídeo a 1080p, sin reescalar, y en el recorte de Shorts.
+    ✅ Los trazos se ven nítidos, sin borrones ni contornos rotos; las onomatopeyas grandes no pierden la forma.
+
+### 140.4 Casos límite
+
+15. [ ] Con «🎬 Plató cómic» pulsa hasta que la rotación traiga un jefe sin versión cómic (Caudillo, Albino o Ceniza).
+    ✅ Sale el aviso «aún no hay versión cómic» con el nombre del jefe, no se monta el decorado ni se lanza ninguna escena, y no sale ningún error en la Salida.
+16. [ ] Con el bocadillo del jefe en pantalla, quita el jefe del Plató (borra su modelo) o sácalo de plano.
+    ✅ El bocadillo no da error ni queda flotando sobre el vacío: se oculta o se queda donde estaba, y la escena acaba normal con su fundido. Se anota lo que hace.
+17. [ ] Pulsa «🎬 Plató cómic» con un jefe cuya escena cómic está en marcha, y otra vez mientras corre la primera.
+    ✅ Se borra el decorado anterior y el nuevo empieza limpio; no quedan dos Plató ni dos escenas superpuestas.
+18. [ ] Con un panel `tri` (solo ese preset) en el Plató, mira qué parte del recorte 9:16 queda dentro de la viñeta.
+    ✅ Solo queda limpio el 66 % de abajo (desde y ≈ 0,34): el ápice de arriba queda fuera del recorte, así que los carteles y bocadillos deben ir abajo.
+19. [ ] Con el juego en inglés (como en §20), lanza «🎬 Plató cómic» y mira el cartel y el bocadillo.
+    ✅ El nombre y el subtítulo en inglés caben en la caja amarilla (se parten en dos líneas sin salirse), y el bocadillo largo no sale de la pantalla ni tapa la cara del jefe.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

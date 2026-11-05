@@ -833,4 +833,8 @@ return {
 	["Amo de las montañas"] = "Master of the mountains",
 	["Espectro de las cuevas"] = "Specter of the caves",
 	["Furia del volcán"] = "Fury of the volcano",
+	-- Variante cómic de la aparición (G2b).
+	["¡Fuera de mi manglar!"] = "Get out of my mangrove!",
+	["En el corazón del manglar…"] = "In the heart of the mangrove…",
+	["¡ROAAAR!"] = "ROAAAR!",
 }

@@ -56,6 +56,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
 		{ id = "CineTest", label = "🎬 Cinemática de prueba" },
 		{ id = "CineStage", label = "🎬 Plató" },
+		{ id = "CineStageComic", label = "🎬 Plató cómic" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },
