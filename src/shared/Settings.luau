@@ -71,6 +71,7 @@ export type Values = {
 	crosshairDynamic: boolean,
 	language: Language,
 	missionsOpen: boolean,
+	cinematics: boolean,
 }
 
 local later = Strings.later
@@ -178,6 +179,7 @@ function Settings.defaults(): Values
 		crosshairDynamic = true,
 		language = "Auto",
 		missionsOpen = true,
+		cinematics = true,
 	}
 end
 
@@ -237,6 +239,7 @@ function Settings.sanitize(raw: any): Values
 			"comicFx",
 			"crosshairDynamic",
 			"missionsOpen",
+			"cinematics",
 		}
 	do
 		if typeof(raw[key]) == "boolean" then

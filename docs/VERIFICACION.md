@@ -594,10 +594,18 @@ Casi todo se prueba en el **Lobby**; la partida (10.5–10.8), en la **Isla**. E
 ```lua
 local DS = game:GetService("DataStoreService")
 local clave = "u_" .. 0 -- ← tu UserId
-DS:GetDataStore("PlayerData_v1_backups"):SetAsync(clave .. "_antesFase9", DS:GetDataStore("PlayerData_v1"):GetAsync(clave))
+DS:GetDataStore("PlayerData_v1_backups"):SetAsync(clave .. "_antesFase9", (DS:GetDataStore("PlayerData_v1"):GetAsync(clave)))
 ```
 
-Al terminar, para dejarlo como estaba, cambia el orden (lee de `PlayerData_v1_backups` con la clave `.. "_antesFase9"` y guarda en `PlayerData_v1` con `clave`), con el Play parado.
+Al terminar, para dejarlo como estaba, con el Play parado, restaura la copia (lee de `PlayerData_v1_backups` con la clave `.. "_antesFase9"` y guarda en `PlayerData_v1` con `clave`):
+
+```lua
+local DS = game:GetService("DataStoreService")
+local clave = "u_" .. 0 -- ← tu UserId
+DS:GetDataStore("PlayerData_v1"):SetAsync(clave, (DS:GetDataStore("PlayerData_v1_backups"):GetAsync(clave .. "_antesFase9")))
+```
+
+Los paréntesis alrededor de `GetAsync` son necesarios: `GetAsync` devuelve dos valores y, sin ellos, el segundo entra en `SetAsync` y falla con «Unable to cast Instance to Array».
 
 ### 10.1 Calculadora
 
@@ -5024,6 +5032,39 @@ La calculadora `Rendimiento` pide las mallas de todas las `Data/*Meshes` (armas,
 
 3. [ ] Dale a ▶ en la Isla, consigue un arma de forja de rango IV y una armadura de rol de rango IV (con los comandos de depuración), equípalas y mira a tu mascota y a una montura si las tienes.
    ✅ Las mallas siguen cargando como antes: en unos segundos el arma, la armadura, la mascota y la montura pasan de bloques a malla; no sale ningún «Malla sin cargar» ni error de `Meshing` en la Salida, y el juego no cambia (daño, precio y aspecto igual que antes de la Fase 21 M4).
+
+## 137. Fase 25 G1: cinemáticas, motor (05-11-2026)
+
+Motor de cinemáticas en tiempo real: `src/shared/Cinematics/*` (`CameraPath`, `Sequencer`, `Presentation`, `Actors`, `CinematicClient`), `UI/HudHider`, `Data/Cinematics` con la escena «Prueba» (un maniquí y el avatar), `CinematicLock` (congela el combate mientras dura la escena), `CinematicService` de la Isla, `CinematicController` del Lobby y de la Isla, el ajuste «Cinemáticas» y el campo `cinematicsSeen` del perfil (sin subir la versión). Ya probado en el Studio de la Isla con copia del perfil: «🎬 Cinemática de prueba» lanza la escena, la cámara y el HUD vuelven al terminar, el botón Saltar sale en la segunda vez, con el ajuste apagado no se ve nada y el doble disparo no se apila. Esta sección es lo que falta.
+
+### 137.1 Con 2 jugadores en la Isla
+
+1. [ ] Con dos cuentas en la Isla, cada una lanza «🎬 Cinemática de prueba» desde su panel de pruebas y una salta la escena a mitad.
+   ✅ Cada uno ve y salta solo su propia escena; al otro no le cambian la cámara, el HUD ni los controles.
+2. [ ] Con la escena de prueba en marcha, entra el segundo jugador en la Isla.
+   ✅ Recibe la escena desde el punto en que va (`seek`), sin repetir los carteles ya pasados, y está protegido (`InvulnerableUntil` de la audiencia) mientras dura.
+3. [ ] Deja que una escena acabe en un jugador y se salte en el otro.
+   ✅ El servidor cierra la escena cuando los dos han mandado `CinematicDone`, o como mucho al cumplirse su duración; la del que no ha terminado no se corta antes.
+
+### 137.2 En el juego publicado
+
+4. [ ] Publica el place de la Isla y lanza la escena de prueba en el servidor público.
+   ✅ Durante la escena no responden los controles del jugador (caminar, saltar, mover la cámara) y vuelven al terminar. En Studio no se desactivan porque `PlayerScripts` no tiene `PlayerModule`; en el publicado sí debe pasar.
+5. [ ] Mira el maniquí R15 de la escena de prueba.
+   ✅ Sale vestido igual que en Studio, con el equipo y los cosméticos del juego.
+6. [ ] Mira la Salida al crear el maniquí.
+   ✅ `CreateHumanoidModelFromDescription` funciona en el cliente publicado: no sale el aviso «no se puede crear el maniquí R15» y el maniquí se borra al terminar la escena.
+
+### 137.3 Una sola persona en Play
+
+7. [ ] En el móvil emulado, con la zona segura 9:16 de la guía, lanza la escena de prueba y mírala entera.
+   ✅ Las franjas negras arriba y abajo; el cartel «Escena de prueba», el subtítulo y el fundido final se leen dentro de la zona segura y no se cortan.
+8. [ ] Lo mismo en PC, con la guía 9:16 de la grabación.
+   ✅ El cartel, el subtítulo y el fundido se ven igual que en el móvil y no tapan la zona segura.
+9. [ ] Cuando haya una escena con freeze real (G2), pon a tu personaje cerca de un peligro del mapa (módulo `Hazards`) y prueba un `TakeDamage` directo durante la escena.
+   ✅ Nadie pierde vida durante la escena, ni por el peligro ni por el daño directo; al terminar, los peligros vuelven a actuar. Esto no se puede probar con la escena de G1.
+10. [ ] Mira la Salida durante la escena de prueba por el aviso `ContentId rbxassetid://203785492 failed due to: Asset type does not match requested type`.
+   ✅ Si sale también sin lanzar ninguna escena, ya existía antes de G1 y no es de la cinemática. Si solo sale al lanzarla, se anota aparte. Este aviso ya salió en pruebas de otras fases (V9, A3, W2) sin identificar: su origen sigue sin saberse.
 
 ## Cuando termines
 

@@ -54,6 +54,7 @@ local Buildables = require(ReplicatedStorage.Shared.Data.Buildables)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
+local CinematicLock = require(ServerScriptService.Combat.CinematicLock)
 local CombatService = require(ServerScriptService.Combat.Services.CombatService)
 local DayNightService = require(script.Parent.DayNightService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -1668,6 +1669,10 @@ function MonkeyService:Start()
 			return
 		end
 		elapsed = 0
+		-- Cinemática con "freeze" (Fase 25): los monos no actúan mientras dura.
+		if CinematicLock.active() then
+			return
+		end
 		local infos = collectPlayers()
 		local fires = collectFires()
 		local now = os.clock()

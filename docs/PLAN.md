@@ -1171,6 +1171,57 @@ Plan en `C:\Users\jose\.claude\plans\jazzy-sauteeing-hearth.md` (el orden de 24d
 - **Trampas de la revisión 24h:** (1) `GuiObject.AbsolutePosition` va en coordenadas de debajo de la barra de Roblox: en una pantalla con `IgnoreGuiInset` da (0, -58); para colocar algo en coordenadas de pantalla (`WorldToViewportPoint`) hay que sumar `GuiService:GetGuiInset()`. (2) `require(PlayerModule)` ya no trae `GetCameras` y en Studio el shift lock de Roblox viene apagado (`ControlMode` Classic, no se puede cambiar por código): el bloqueo de cámara es propio. (3) En Play, el MCP usa otra copia de los módulos (`Aim.cameraLocked` da false ahí) y `moveTo` con el ratón bloqueado no gira la cámara: para orientarla, `BindToRenderStep` a `Camera + 2` con `CFrame.lookAt`. (4) Rojo tarda en sincronizar: tras editar, comprueba el `Source` en modo edición antes de arrancar Play. (5) Los nombres con «ñ» y tildes en el código del MCP van con escapes `\u{F1}`. (6) Play abre el calendario diario cada vez: ciérralo con su X, nunca con «Cobrar».
 - **Trampas aprendidas:** `AssemblyLinearVelocity` del personaje de un cliente llega ~0,2 s tarde al servidor (por eso el margen fijo del origen en el aire); en el campo, el único carril libre es x = -32; `stylua --check` falla en `PetModels.luau` (trabajo de mascotas ajeno); al commitear usa rutas explícitas (los archivos de mascotas, mallas y armaduras son de otra línea).
 
+### Fase 25: Cinemáticas (05-11-2026)
+
+Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en tiempo real que vea el jugador dentro del juego. Hoy solo existen las tomas del tráiler (`Trailer.luau` y `TrailerCamara.luau`): dioramas quietos con poses `Portada` giradas por código, algo que el proyecto prohíbe. Plan en `C:\Users\jose\.claude\plans\serene-humming-nova.md`.
+
+**Decisiones del usuario (05-11-2026)**
+- Solo cinemáticas en tiempo real dentro del juego. No se suben vídeos para `VideoFrame` (cuestan unos 2.000 Robux y hay un límite de subidas).
+- Secuenciador propio en Luau. Las escenas son datos versionados en git, y el mismo motor sirve para el juego y para grabar.
+- Actores: maniquíes R15 con el equipo y los cosméticos del juego, y el avatar del usuario en Play.
+- Escenas del juego: llegada a la isla (completa la primera vez; después, una versión corta de unos 3 s que se puede saltar); aparición de cada uno de los 4 jefes (cada jugador ve o salta su cámara, y el jefe queda congelado e invulnerable unos 5 s); eclosión del huevo en el nido del Lobby; rescate con un helicóptero voxel nuevo con hélice (la llegada empieza en la playa, no hay barco).
+- Regla común: la primera vez se ve entera y después se puede saltar. Ajuste «Cinemáticas» para desactivarlas.
+- Estilo: franjas negras, HUD oculto y cartel grande con el nombre y un subtítulo, todo con `T()`.
+- Animaciones: se reusan las que hay. Las imprescindibles (rugido o intro de jefe, gestos de la historia) se hacen con la skill `animaciones-roblox` y las publica el usuario.
+- Batallas montadas con las habilidades y los efectos reales del combate.
+- Grabación: OBS a 1080p60 en 16:9, con la zona 9:16 segura (`guia`). Las escenas animadas se graban en Play solo en Studio.
+- Orden: motor → jefes → huevo y rescate → llegada e historia → batallas.
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **G1** | Motor: `Shared/Cinematics/*` (`CameraPath`, `Sequencer`, `Presentation`, `Actors`, `CinematicClient`), `UI/HudHider`, remotos `Cinematic` y `CinematicDone`, `CinematicLock` (congela el combate), `CinematicService` de la Isla, `CinematicController` del Lobby y de la Isla, ajuste `cinematics`, campo `cinematicsSeen` del perfil (sin subir la versión), órdenes «🎬 Cinemática de prueba» y «🎬 Plató» (este solo avisa; el decorado va en G2), escena «Prueba» (un maniquí y el avatar) | pendiente | ✅ Probada en el Studio de la Isla (G1a en f78c656, G1b sin commit). Lo que falta, en VERIFICACION §137 |
+| **G2** | Jefes: 4 escenas de aparición con su variante trailer, acción `Intro` en `Data/MonkeyAnimations` (si falta, `Roar`), carteles con `T()`, enganche tras `BossService.spawn` (`IslandBossHooks.luau:63`) y el decorado real del «🎬 Plató» | — | ⏳ |
+| **G3** | Huevo y rescate: `NestController.playCeremony` pasa a la escena local «EggHatch»; helicóptero voxel nuevo (`Shared/HelicopterModel.luau`, tope `Config.Budgets.Models.Helicopter` medido con `Rendimiento`); la escena del rescate va antes de la Victoria (`BeaconService`) | — | ⏳ |
+| **G4** | Llegada e historia: escena de la playa y gestos `Point`, `LookAround` y `Cheer` con la skill `animaciones-roblox` | — | ⏳ |
+| **G5** | Batallas montadas: maniquíes contra monos y jefes, con las habilidades reales y los topes de efectos en High | — | ⏳ |
+
+**Handoff de la Fase 25 (05-11-2026)**
+- **Estado:** G1 hecho. G1a está en f78c656; G1b (los archivos de la lista de G1 que no están en ese commit) sin commit hasta tu «aprobado». Pendiente de tu parte: VERIFICACION §137 (2 jugadores en la Isla, juego publicado, una persona en Play con móvil y PC, y los avisos de la Salida). Siguiente número libre de VERIFICACION: §138.
+- **Hecho y dónde:**
+  - `src/shared/Cinematics/` (motor, sin requerir `Remotes` ni `Settings`).
+  - `src/shared/UI/HudHider.luau`, `src/shared/Data/Cinematics.luau` (escena «Prueba») y `src/shared/Data/Strings/` (su inglés).
+  - `src/combat/CinematicLock.luau`, con el congelado en `CombatService.damage` e `isInvulnerable`, `BossService.tick`, `MonkeyService` y `SurvivalService`. La invulnerabilidad de la audiencia es el atributo `InvulnerableUntil` del `Player`.
+  - `src/island/server/Services/CinematicService.luau` y `src/{island,lobby}/client/Controllers/CinematicController.luau`.
+  - `Shared/Remotes` (`Cinematic`, `CinematicDone`), `Shared/Settings` y `UI/SettingsPanel` (ajuste `cinematics`), `serverShared/PlayerData` (`cinematicsSeen`).
+  - `src/shared/DebugCommands.luau` (órdenes `CineTest` y `CineStage`).
+- **API:**
+  - `Sequencer.play(scene, ctx)` devuelve un manejador con `stop`, `seek(t)` y `skip`. `Sequencer.registerHandler(kind, fn)` registra un tipo de evento y `Sequencer.addHooks(hooks)` engancha los ciclos de la escena.
+  - `Actors.spawn(def, anchor, ctx)` crea los actores, `Actors.cleanup(ctx)` los borra, `Actors.setDummyFactory(fn)` y `Actors.setAnimator(fn(actor, action, event))` los conectan con el cliente. `CinematicClient` ya registra las dos.
+  - `Presentation.install(sequencer)` registra las franjas, `title`, `caption`, `fade` y `letterbox`.
+  - `CinematicService.play(id, opts)` devuelve `boolean`; `CinematicService.hasSeen(player, id)`.
+- **Trampas aprendidas:**
+  1. `RunService:IsEdit()` no es llamable desde scripts normales: usa `IsRunning`.
+  2. Las esperas en el cliente rompen el margen del servidor. Una espera de 2 s a `PlayerModule` retrasaba la escena y el `CinematicDone` llegaba tarde: ahora se usa `FindFirstChild` y `END_MARGIN_SECONDS = 4`.
+  3. El perfil no sube de versión (sigue en 13) para no romper el juego publicado: `reconcile` rellena `cinematicsSeen`.
+  4. El MCP no accede a DataStore. La copia y la restauración del perfil las hace el usuario a mano con los scripts de `VERIFICACION.md` (§10.0, ya corregidos con los paréntesis).
+  5. Play escribe `cinematicsSeen` en el perfil real del usuario. Haz copia antes de probar.
+- **Lo que queda fuera de G1:** el decorado real del «🎬 Plató» (solo avisa que llega en G2); la lista original de G1 lo incluía.
+- **Siguiente grupo: G2 (jefes).** Puntos de enganche:
+  - `IslandBossHooks.luau:63`: `BossService.spawn(bossId, round)`, tras la aparición del jefe.
+  - `BossService.spawn`, rugido en las líneas 518-524 (`Sfx.play("BossRoar")` y `MonkeyAnimator.play(model, "Roar")`): pasa a formar parte de la escena.
+  - Acción `Intro` en `Data/MonkeyAnimations`: todavía no existe (hoy solo está `Roar`, línea 12); si falta, se usa `Roar`.
+- **Prompt para la pestaña nueva:** «Lee `docs/PLAN.md` Fase 25 y su Handoff. Haz el grupo G2.»
+
 ---
 
 ## 4. Cronograma estimado

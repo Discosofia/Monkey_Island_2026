@@ -56,6 +56,12 @@ local Remotes = {
 	-- Cliente -> servidor (los cuatro places): la vista con que apunta el jugador (Data/AimViews: "Free" | "Lock" |
 	-- "LockAim" | "First" | "Touch" | "Pad"). La calibración del campo de tiro separa las medidas por vista.
 	ReportAimView = remoteEvent("ReportAimView"),
+	-- Servidor -> cliente (Isla): cinemáticas (Fase 25). ("Play", id, startServerTime, args?) arranca la escena de
+	-- Data/Cinematics (el cliente hace seek al tiempo transcurrido si llega tarde); ("Stop", id) la corta.
+	Cinematic = remoteEvent("Cinematic"),
+	-- Cliente -> servidor (Isla): la cinemática id terminó o se saltó (id, watchedFully). El servidor apunta la
+	-- escena como vista (perfil cinematicsSeen) si se vio entera, y termina la escena cuando todos han acabado.
+	CinematicDone = remoteEvent("CinematicDone"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.

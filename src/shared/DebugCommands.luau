@@ -54,6 +54,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "Victory", label = "🚁 Terminar: victoria (rescate)" },
 		{ id = "PlotLevels", label = "🏡 Parcela: desbloquear y subir sus estructuras un nivel" },
 		{ id = "RecordMode", label = "🎬 Modo grabación (sí/no)" },
+		{ id = "CineTest", label = "🎬 Cinemática de prueba" },
+		{ id = "CineStage", label = "🎬 Plató" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

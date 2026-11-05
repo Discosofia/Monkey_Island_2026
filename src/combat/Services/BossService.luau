@@ -54,6 +54,7 @@ local Strings = require(ReplicatedStorage.Shared.Strings)
 local CombatService = require(script.Parent.CombatService)
 local Hazards = require(ServerScriptService.Combat.Hazards)
 local EnemyAttack = require(ServerScriptService.Combat.EnemyAttack)
+local CinematicLock = require(ServerScriptService.Combat.CinematicLock)
 local Guard = require(ServerScriptService.Combat.Guard)
 local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local Poof = require(ServerScriptService.Combat.Poof)
@@ -743,6 +744,11 @@ end
 local function tick(now: number)
 	local boss = current
 	if not boss or boss.humanoid.Health <= 0 then
+		return
+	end
+	-- Cinemática con "freeze" (Fase 25): el jefe no actúa mientras dura.
+	if CinematicLock.active() then
+		boss.humanoid:MoveTo(boss.root.Position)
 		return
 	end
 	rescaleHealth(boss)

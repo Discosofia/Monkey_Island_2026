@@ -30,6 +30,7 @@ local RequestCooldown = require(ServerScriptService.ServerShared.RequestCooldown
 local BuildingService = require(script.Parent.BuildingService)
 local InventoryService = require(script.Parent.InventoryService)
 local LifeService = require(script.Parent.LifeService)
+local CinematicLock = require(ServerScriptService.Combat.CinematicLock)
 local CombatText = require(ServerScriptService.Combat.CombatText)
 
 local TICK_SECONDS = 1
@@ -91,7 +92,8 @@ local function starve(player: Player, humanoid: Humanoid, amount: number)
 end
 
 local function tick(player: Player)
-	if not LifeState.isAlive(player) then
+	-- Cinemática con "freeze" (Fase 25): hambre, sed y fiebre se paran.
+	if CinematicLock.active() or not LifeState.isAlive(player) then
 		return
 	end
 	local humanoid = livingHumanoid(player)

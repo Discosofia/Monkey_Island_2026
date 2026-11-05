@@ -27,6 +27,7 @@ local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local BasecampService = require(script.Parent.BasecampService)
 local BuildingService = require(script.Parent.BuildingService)
+local CinematicService = require(script.Parent.CinematicService)
 local Killfeed = require(ServerScriptService.Combat.Killfeed)
 local BossService = require(ServerScriptService.Combat.Services.BossService)
 local ContractService = require(script.Parent.ContractService)
@@ -701,6 +702,21 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 	end,
 	Victory = function()
 		MatchService.endMatch("Victory", true)
+	end,
+	-- Cinemáticas (Fase 25): la escena de prueba delante del jugador. Se puede repetir.
+	CineTest = function(player)
+		local character = player.Character
+		local ok = CinematicService.play("Prueba", {
+			audience = { player },
+			anchor = if character then character:GetPivot() else nil,
+		})
+		if not ok then
+			Remotes.Notify:FireClient(player, "🎬 La escena de prueba ya está en marcha")
+		end
+	end,
+	-- Plató de grabación (Fase 25, G2): todavía no está.
+	CineStage = function(player)
+		Remotes.Notify:FireClient(player, "🎬 El plató de grabación llega en el grupo G2")
 	end,
 	-- Parcela permanente (Fase 12): la desbloquea y sube un nivel cada estructura (de 3 vuelve a 0).
 	PlotLevels = function(player)

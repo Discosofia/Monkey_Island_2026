@@ -166,7 +166,8 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 		stopLoopIfIdle()
 		if useCamera and camera then
 			camera.FieldOfView = savedFov
-			if RunService:IsEdit() then
+			-- IsEdit() no se puede llamar desde un script normal; en edición el juego no corre.
+			if not RunService:IsRunning() then
 				camera.CameraType = Enum.CameraType.Fixed
 			else
 				camera.CameraType = if savedType == Enum.CameraType.Scriptable
@@ -176,12 +177,19 @@ function Sequencer.play(scene: Scene, ctx: Context?): Handle
 		end
 		for _, h in hooks do
 			if h.finish then
-				h.finish(scene, context, completed)
+				local ok, err = pcall(h.finish, scene, context, completed)
+				if not ok then
+					warn(`Sequencer: falla un hook de fin: {err}`)
+				end
 			end
 		end
+		-- onFinished siempre se llama, aunque falle algo antes: restaura el HUD y los controles del jugador.
 		local onFinished = context.onFinished
 		if onFinished then
-			onFinished(completed)
+			local ok, err = pcall(onFinished, completed)
+			if not ok then
+				warn(`Sequencer: falla onFinished: {err}`)
+			end
 		end
 	end
 

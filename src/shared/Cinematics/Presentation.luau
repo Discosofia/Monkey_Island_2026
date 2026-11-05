@@ -267,7 +267,18 @@ function Presentation.install(sequencer: SequencerModule)
 	end)
 	sequencer.addHooks({
 		finish = function()
-			Presentation.clear()
+			-- Si la escena acaba en negro, se devuelve la imagen con un fundido en vez de cortarla de golpe.
+			local current = gui
+			if current and fadeFrame and fadeFrame.BackgroundTransparency < 0.5 then
+				Presentation.fade(0.5, false)
+				task.delay(0.55, function()
+					if gui == current then -- si empezó otra escena entretanto, no se toca su pantalla
+						Presentation.clear()
+					end
+				end)
+			else
+				Presentation.clear()
+			end
 		end,
 	})
 end

@@ -1086,6 +1086,7 @@ local TOGGLES = {
 	{ key = "showCombo", label = later("Combos y racha") },
 	{ key = "damageFx", label = later("Pantalla roja al recibir daño") },
 	{ key = "music", label = later("Música (tecla M)") },
+	{ key = "cinematics", label = later("Cinemáticas") },
 }
 
 -- Fila de botones para elegir uno de "choices" en el ajuste "key". Devuelve cómo repintarla.

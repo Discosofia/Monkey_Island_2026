@@ -56,6 +56,7 @@ local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
 local AimInputService = require(script.Parent.AimInputService)
 local ComboService = require(script.Parent.ComboService)
 local AbilityFx = require(script.Parent.Parent.AbilityFx)
+local CinematicLock = require(script.Parent.Parent.CinematicLock)
 local CombatRules = require(script.Parent.Parent.CombatRules)
 local CombatText = require(script.Parent.Parent.CombatText)
 local Destructibles = require(script.Parent.Parent.Destructibles)
@@ -209,6 +210,10 @@ end
 -- Los monos marcados por un cazador (Fase 3) reciben daño extra mientras dura la marca, y los
 -- expuestos (Combat/Status.expose: dormidos por la "Nana de la selva" del médico), también.
 function CombatService.damage(model: Model, humanoid: Humanoid, amount: number, attacker: Player?, options: HitOptions?)
+	-- Cinemática con "freeze" (Fase 25): los monos y jefes son invulnerables mientras dura.
+	if CinematicLock.active() then
+		return
+	end
 	local hit = options or NO_HIT_OPTIONS
 	if attacker then
 		model:SetAttribute("LastAttackerUserId", attacker.UserId)
@@ -263,6 +268,9 @@ end
 
 -- true mientras dura la invulnerabilidad de la esquiva.
 function CombatService.isInvulnerable(player: Player): boolean
+	if CinematicLock.active() then
+		return true
+	end
 	local untilTime = player:GetAttribute("InvulnerableUntil")
 	return typeof(untilTime) == "number" and Workspace:GetServerTimeNow() < untilTime
 end

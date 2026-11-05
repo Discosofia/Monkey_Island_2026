@@ -94,6 +94,10 @@ export type Profile = {
 	-- Laboratorio en ruinas (versión 13, L5a, 28-10-2026): Ámbar de hoy, estadísticas y bajas por arma
 	-- (LabRewardService).
 	lab: { [string]: any },
+	-- Cinemáticas vistas enteras (Fase 25, 05-11-2026): { [id de Data/Cinematics] = true }. Las vistas se
+	-- pueden saltar (CinematicService). Sin subir la versión: "reconcile" lo rellena vacío.
+	-- El campo no sube la versión del perfil, así el juego publicado (versión 13) sigue leyendo el perfil.
+	cinematicsSeen: { [string]: boolean },
 }
 
 type Session = {
@@ -147,9 +151,11 @@ local function defaultProfile(): Profile
 		ultimates = {},
 		plot = Plot.normalize(nil) :: any,
 		lab = {},
+		cinematicsSeen = {},
 	}
 end
 
+-- Sin versión propia: "cinematicsSeen" (Fase 25) lo rellena "reconcile" vacío.
 -- Versión 13: el campo "lab" (Laboratorio; "reconcile" lo rellena vacío).
 -- Versión 12: la parcela permanente ("plot"; "reconcile" la rellena). Quien ya había ganado alguna
 -- partida ("rescues") la tiene desbloqueada.
@@ -288,6 +294,7 @@ local function publish(player: Player, session: Session)
 			pets = profile.pets,
 			mounts = profile.mounts,
 			cosmetics = profile.cosmetics,
+			cinematicsSeen = profile.cinematicsSeen,
 		})
 	)
 	player:SetAttribute("Settings", HttpService:JSONEncode(Settings.sanitize(profile.settings)))
