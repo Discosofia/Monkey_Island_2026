@@ -15,9 +15,11 @@
 --
 -- Dos partes:
 --   build()          Workspace.Cancha con lo ESTÁTICO: losa de base, plaza exterior, desierto, barandilla
---                    invisible del borde y "EsperaSpawn" (los que aún no tienen equipo).
+--                    invisible del borde, "EsperaSpawn" (los que aún no tienen equipo) y la carpeta "Decor" (los
+--                    dos templos en pirámide, estandartes e ídolos de la plaza: CourtDecor, Fase 27d).
 --   layout(format)   Workspace.Cancha.Court con lo que depende del formato (jugadores por equipo, 1 a 5). Se
---                    construye aparte y sustituye a la anterior en el mismo fotograma, sin parpadeo.
+--                    construye aparte y sustituye a la anterior en el mismo fotograma, sin parpadeo. Su carpeta
+--                    "Decor" lleva además "Extras" (relieves, greca de la cornisa y gradas con público, CourtDecor).
 --
 -- Piezas con nombre que lee el código (en Cancha.Court; _L es z negativa y _R z positiva):
 --   Floor            suelo del pasillo (CanCollide)
@@ -28,7 +30,10 @@
 --   TeamBarrier      muro de equipo en x = 0, invisible, solo choca con los jugadores
 --   Spawn_Jaguar/Spawn_Quetzal   volumen donde aparece cada equipo (invisible, sin colisión)
 -- y en Cancha: "EsperaSpawn" (una Part, no un SpawnLocation: así Roblox no lo elige para aparecer solo).
--- Todo lo que no es superficie jugable lleva CanCollide, CanQuery y CanTouch en false.
+-- Todo lo que no es superficie jugable lleva CanCollide, CanQuery y CanTouch en false (salvo las terrazas de
+-- las pirámides de Cancha.Decor: CanCollide sí, CanQuery y CanTouch no).
+-- El decorado (CourtDecor) se fusiona con VoxelMerge.mergeStatic al construirlo; el tope de piezas es
+-- Config.Budgets.Matches.CourtParts y build() avisa si se pasa (el recuento sale en «¡Cancha lista!»).
 
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,11 +41,12 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
+local CourtDecor = require(script.Parent.CourtDecor)
 
 local FOLDER_NAME = "Cancha"
 local COURT_NAME = "Court"
 -- Sube este número al cambiar la cancha: los places con una versión anterior guardada la reconstruyen solos.
-local VERSION = 6
+local VERSION = 7
 
 -- Dónde queda el origen local de la cancha en el mundo (el valor y su porqué, en Shared/CourtGeometry).
 local CENTER = CourtGeometry.CENTER
@@ -173,6 +179,23 @@ local function marker(parent: Instance, name: string, bounds: { number }): Part
 	part.Transparency = 1
 	return part
 end
+
+-- Lo que CourtDecor necesita de este módulo (sus creadores de cajas, materiales y colores).
+local decorKit: CourtDecor.Kit = {
+	deco = deco,
+	solid = solid,
+	Paint = Paint,
+	Limestone = Limestone,
+	STUCCO = STUCCO,
+	STONE = STONE,
+	STONE_DARK = STONE_DARK,
+	LIMESTONE_DARK = LIMESTONE_DARK,
+	RED = RED,
+	BLUE = BLUE,
+	YELLOW = YELLOW,
+	BLACK = BLACK,
+	JADE = JADE,
+}
 
 -- Color del cuadrante de las banquetas según (signo de X, signo de Z): los cuatro rumbos de los códices.
 local function quadrantColor(xSign: number, zSign: number): Color3
@@ -544,6 +567,7 @@ function CourtBuilder.layout(format: number, force: boolean?)
 	buildHeader(court, art, geo, "Jaguar", -1)
 	buildHeader(court, art, geo, "Quetzal", 1)
 	buildTlecotl(art)
+	CourtDecor.buildLayout(art, geo, decorKit)
 	art.Parent = court
 
 	-- Muro de equipo: solo para jugadores (la pelota es analítica y no lo ve).
@@ -636,6 +660,9 @@ local function buildStatic(): Folder
 		)
 	end
 
+	-- Templos, estandartes e ídolos (Fase 27d).
+	CourtDecor.buildStatic(folder, decorKit)
+
 	-- Donde esperan los que aún no tienen equipo. Part, no SpawnLocation: Roblox no la elige para aparecer solo.
 	local w = G.WAITING
 	solid(folder, "EsperaSpawn", { w.X - 5, w.X + 5, w.Y - 1, w.Y, w.Z - 5, w.Z + 5 }, STONE, Limestone)
@@ -679,6 +706,13 @@ function CourtBuilder.build(force: boolean?): Folder?
 		warn(`[CourtBuilder] La cancha tiene {parts} piezas y el tope es {Config.Budgets.Matches.CourtParts}`)
 	end
 	print(`[CourtBuilder] ¡Cancha lista! ({parts} piezas con el formato 5v5)`)
+	local before, after = CourtDecor.lastStatic, CourtDecor.lastLayout
+	if before and after then
+		print(
+			`[CourtBuilder] Decorado: {before.before + after.before} piezas sin fusionar, `
+				.. `{before.after + after.after} fusionadas`
+		)
+	end
 	return folder
 end
 

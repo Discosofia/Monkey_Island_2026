@@ -2522,9 +2522,10 @@ local Config = {
 			LaboratorioParts = 20000, -- Laboratorio 5v5
 			LobbyParts = 30000, -- Lobby con 20 jugadores
 			RangeParts = 6000, -- Campo de tiro del Lobby (World/RangeBuilder), construido aparte del Lobby
-			-- Cancha del Juego de pelota de Dunas (Fase 26b, World/CourtBuilder) con el formato 5v5, sin fusionar (son
-			-- pocas piezas grandes y de colores distintos): CourtBuilder la cuenta al construir y avisa si la pasa.
-			CourtParts = 800,
+			-- Cancha del Juego de pelota de Dunas (Fase 26b, World/CourtBuilder) con el formato 5v5 y su decorado
+			-- (27d, World/CourtDecor: templos, estandartes, relieves y gradas con público), ya fusionado con
+			-- VoxelMerge.mergeStatic: CourtBuilder la cuenta al construir y avisa si la pasa.
+			CourtParts = 1500,
 			LobbyPlayers = 20,
 			MovedPartsPerFrame = 1500, -- piezas movidas por fotograma, en todas
 			MemoryMB = 1300, -- memoria en todas

@@ -6211,6 +6211,46 @@ El Juego de pelota de Dunas paga Ámbar por raya a todo el equipo que la suma: 3
 15. [ ] Comprueba el perfil real de la cuenta tras las pruebas de 27c, junto con las copias `PlayerData_v1_backups` pendientes de §157.5 y §158.5.
     ✅ El perfil de la cuenta queda como esperas y las copias se restauran o se borran según decidas.
 
+## 160. Fase 27d: decorado voxel de la cancha del Juego de pelota (06-11-2026)
+
+La cancha del Juego de pelota de Dunas pasa a `CourtBuilder` VERSION 7, con un decorado nuevo generado por el módulo `World/CourtDecor`. Detrás de cada cabecera hay un templo en pirámide escalonada de 5 terrazas (57 de alto sobre la plaza), con escalinata decorada, santuario, braseros de `Neon` y emblema del equipo: Jaguar rojo y amarillo, Quetzal jade y negro. Cada equipo tiene además 8 estandartes y 2 ídolos (en lugar del tzompantli, decisión del usuario). Los paramentos llevan relieves de 16×8 (jaguar, serpiente emplumada en ouroboros, quetzal y águila, en 8 paneles), y las cabeceras, relieves de 24×12. Las gradas son de 3 escalones con público estático (cabezas de 1 cubo, sin tocados) y hay greca de cornisa. Solo las 30 terrazas colisionan. Todo se fusiona con `VoxelMerge.mergeStatic`, y `Config.Budgets.Matches.CourtParts` sube de 800 a 1.500 (la cancha 5v5 mide 1.257 piezas con `CourtBuilder.build(true)` en Studio).
+
+La cancha v7 solo está en memoria en el Studio, así que hasta que no se fije en el place y se publique, no se ha probado en el juego publicado.
+
+### 160.1 En Studio, en modo edición (*Edición*, en Dunas)
+
+1. [ ] Fija la cancha v7 en el place con `require(game.ServerScriptService.Server.World.CourtBuilder).build(true)` en la barra de comandos, y guarda el place (sin publicar todavía). Si la barra reutiliza una copia vieja del módulo, clónalo antes de hacer `require`.
+   ✅ La cancha se regenera sin errores en la Salida, aparecen los dos templos con sus escalinatas y el place queda guardado.
+2. [ ] Mira la cancha desde el pasillo, a y≈12 en x=±20, en la cámara de edición.
+   ✅ Se ven los templos por encima de las almenas desde los dos lados del pasillo.
+3. [ ] Compara los relieves de las dos cabeceras desde cada lado.
+   ✅ Los relieves se distinguen desde cada lado: los del equipo opuesto llevan los colores cambiados, así que se sabe de un vistazo a qué equipo pertenece cada cabecera.
+4. [ ] Rodea un templo por detrás.
+   ✅ Por detrás tiene su escalera de servicio y se lee como un templo acabado, no como un bloque liso.
+
+### 160.2 En Studio, con 2 jugadores (*Prueba → Clientes y servidores*, 2 clientes, en Dunas, Juego de pelota)
+
+5. [ ] Desde el punto de espera (0,31,-71) y con la cámara de tercera persona, mira la cancha y los bordes de las gradas mientras esperáis la partida.
+   ✅ El punto de espera está libre, ningún elemento del decorado lo ocupa ni lo atraviesa, y las gradas no tapan la vista desde los bordes.
+6. [ ] Juega una partida de pelota completa con los dos jugadores, moviéndote por la cancha, deslizando y pasando cerca de los templos y de los estandartes.
+   ✅ La cámara no se queda atrapada detrás del decorado ni de las gradas, y los relieves no tapan el aro.
+7. [ ] Juega una partida en formato 1v1 con los dos jugadores.
+   ✅ Las gradas no sobresalen de la cabecera y ningún relieve pisa el aro.
+
+### 160.3 En el teléfono (emulador o dispositivo real, en Dunas, 5v5)
+
+8. [ ] Abre una partida de pelota 5v5 en el teléfono y mira los templos y los relieves desde la distancia de juego.
+   ✅ Los templos y los relieves se leen como figuras (jaguar, serpiente emplumada, quetzal y águila) y no se confunden con el suelo de la plaza.
+9. [ ] Mide los FPS y la memoria con Dunas 5v5 y después con 10 jugadores, y anota el recuento de piezas del Developer Console.
+   ✅ Los FPS no tienen caídas sostenidas al mirar los templos, la memoria no crece sin parar, y el recuento queda por debajo de `Config.Budgets.Matches.DunasParts` (25.000 piezas) y `DunasTriangles` (650.000 triángulos).
+
+### 160.4 En el juego publicado (*Prueba → Jugar*, en Dunas)
+
+10. [ ] Publica el place Dunas tras guardarlo con el paso 1, y entra en el juego publicado.
+    ✅ La cancha se ve igual que en Studio (templos, relieves y gradas), y el servidor no la reconstruye al arrancar.
+11. [ ] Con 4 a 8 jugadores reales, juega partidas de pelota en formato 2v2, 3v3 y 4v4.
+    ✅ En los tres formatos las gradas no sobresalen de la cabecera y ningún relieve pisa el aro.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
