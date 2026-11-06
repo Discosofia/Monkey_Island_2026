@@ -855,6 +855,11 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			Remotes.Notify:FireClient(player, "🥊 La batalla cómic ya está en marcha")
 		end
 	end,
+	CineBattleReel = function(player)
+		if not ArrivalService.play(player, "Battle_Pack_Reel") then
+			Remotes.Notify:FireClient(player, "🥊 La batalla reel ya está en marcha")
+		end
+	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)
 		runStage(player, false)

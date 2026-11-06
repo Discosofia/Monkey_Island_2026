@@ -13,7 +13,17 @@
 --            text, args?, actor = "boss" | <nombre en ctx.actors>?,
 --            point = {x,y}?, side = "auto" | "left" | "right" | "up" | "down"?, corner = "TL" | "TR" | "BL" | "BR"
 --            (solo narration), seconds? }
---   sfx    { text, args?, pos = {x,y}, rot = grados?, size = 0..1 (alto relativo al lado corto), color?, seconds? }
+--   sfx    { text, args?, pos = {x,y}, rot = grados?, size = 0..1 (alto relativo al lado corto), color?, seconds?,
+--            bandMax = fracción del ancho de la banda que no pasa en modo reel (0,45) }
+--
+--   reel   { on = true }  modo REEL: pensado para grabar en Studio y recortar a 9:16 (ver Comic.reelBand). Dibuja
+--          fuera de la banda central 9:16 un relleno liso del color del fondo, con una línea fina justo fuera de
+--          su borde, y todo lo demás se calcula DENTRO de la banda: las viñetas (coordenadas 0–1 relativas a la
+--          banda: x de su borde izquierdo a su borde derecho, y de la pantalla), la posición de `point`, `at` (solo
+--          narration y title) y `pos` de sfx, y los textos (que se parten en líneas para no salir de ella). Los
+--          bocadillos y carteles quedan además dentro de la zona segura de TikTok e Instagram: ni el 12 % de
+--          arriba ni el 22 % de abajo. Va como primer evento de la escena. `bubble` admite `verbatim = true`
+--          (el texto no se traduce: un nombre propio).
 --
 -- Todo se mide con el lado corto de la pantalla (igual en 1920×1080 que en un teléfono). Al saltar en el tiempo
 -- (ctx.seeking) el panel se aplica al momento; bubble y sfx no se repiten. Al empezar y al acabar la escena se
@@ -39,7 +49,22 @@ Comic.PRESETS = {
 	diagRight = { { 0.02, 0.03 }, { 0.9, 0.05 }, { 0.98, 0.97 }, { 0.1, 0.95 } },
 	tallSlant = { { 0.3, 0.04 }, { 0.78, 0.04 }, { 0.7, 0.96 }, { 0.22, 0.96 } },
 	tri = { { 0.5, 0.03 }, { 0.98, 0.96 }, { 0.02, 0.96 } },
+	-- Ventanas altas del modo reel (evento `reel`): sus coordenadas son relativas a la banda 9:16, no a la
+	-- pantalla (0 = borde izquierdo de la banda, 1 = el derecho; y sí es el alto de la pantalla). Con el modo reel
+	-- activo, `full` se sustituye por reelFull (la banda entera con margen). Todas son convexas.
+	reelFull = { { 0.03, 0.02 }, { 0.97, 0.02 }, { 0.97, 0.98 }, { 0.03, 0.98 } },
+	reelTall = { { 0.05, 0.03 }, { 0.95, 0.03 }, { 0.95, 0.97 }, { 0.05, 0.97 } },
+	reelTop = { { 0.04, 0.02 }, { 0.96, 0.02 }, { 0.96, 0.6 }, { 0.04, 0.6 } }, -- 60 % de arriba (centro y = 0,31)
+	reelBottom = { { 0.04, 0.4 }, { 0.96, 0.4 }, { 0.96, 0.98 }, { 0.04, 0.98 } }, -- 60 % de abajo (centro y = 0,69)
+	reelSlant = { { 0.25, 0.02 }, { 0.97, 0.02 }, { 0.75, 0.98 }, { 0.03, 0.98 } }, -- paralelogramo alto inclinado
+	reelDiagL = { { 0.03, 0.12 }, { 0.97, 0.02 }, { 0.97, 0.88 }, { 0.03, 0.98 } }, -- sube hacia la derecha
+	reelDiagR = { { 0.03, 0.02 }, { 0.97, 0.12 }, { 0.97, 0.98 }, { 0.03, 0.88 } }, -- baja hacia la derecha
 } :: { [string]: { { number } } }
+
+-- Banda 9:16 del reel y su zona segura (los porcentajes de las interfaces de TikTok e Instagram).
+local REEL_ASPECT = 9 / 16
+local REEL_SAFE_TOP = 0.12
+local REEL_SAFE_BOTTOM = 0.22
 
 export type Background = {
 	style: string, -- "flat" | "halftone" | "speed"
@@ -89,6 +114,8 @@ local edgeFrames: { Frame } = {}
 local inkFrames: { Frame } = {}
 local paperFrames: { Frame } = {}
 local decor: CanvasGroup? = nil
+local reelMode = false -- modo reel: viñetas y textos dentro de la banda 9:16
+local sideFrames: { Frame } = {} -- relleno de fuera de la banda y sus dos líneas (solo en modo reel)
 local poly: { Vector2 } = {} -- ventana actual, normalizada (interpolada si hay transición)
 local background: Background = DEFAULT_BACKGROUND
 local borderSpec: BorderSpec? = nil
@@ -188,6 +215,11 @@ end
 -- La forma de un evento panel: id de preset o lista de vértices. Devuelve también si es la pantalla completa.
 local function resolveShape(shape: any): ({ Vector2 }, boolean)
 	if typeof(shape) == "string" then
+		-- En modo reel la pantalla completa es la banda entera con margen.
+		if reelMode and shape == "full" then
+			local points = toVectors(Comic.PRESETS.reelFull)
+			return points :: { Vector2 }, true
+		end
 		local preset = Comic.PRESETS[shape]
 		local points = if preset then toVectors(preset) else nil
 		if points then
@@ -227,10 +259,51 @@ local function borderPixels(): number
 	return if spec then spec.width * unitScale() else 0
 end
 
+export type ReelBand = {
+	width: number, -- ancho de la banda, 0–1 del ancho de la pantalla
+	x0: number, -- borde izquierdo, 0–1 de la pantalla
+	x1: number, -- borde derecho
+	left: number, -- lo mismo en píxeles
+	right: number,
+	widthPx: number,
+	safeTop: number, -- zona segura vertical en píxeles (sin el 12 % de arriba ni el 22 % de abajo)
+	safeBottom: number,
+}
+
+-- LA función de la banda del reel: todo el modo reel (relleno, viñetas, textos, recorte) sale de aquí. En una
+-- pantalla de proporción `viewport` la banda 9:16 centrada mide ancho = (9/16) · alto, o sea el 31,64 % del ancho
+-- en 16:9 (x de 0,3418 a 0,6582). Con una pantalla más estrecha que 9:16 la banda es toda la pantalla.
+-- Para recortar el vídeo grabado a 1920×1080: x = 656,25 → recorte de 608 × 1080 desde x = 656 (hasta 1264) y
+-- escalado a 1080 × 1920; a 1280×720: 405 × 720 desde x = 437,5 (se usa 406 desde x = 437).
+local function reelBand(viewport: Vector2): ReelBand
+	local width = math.min(1, REEL_ASPECT * viewport.Y / math.max(viewport.X, 1))
+	local x0 = (1 - width) / 2
+	return {
+		width = width,
+		x0 = x0,
+		x1 = x0 + width,
+		left = x0 * viewport.X,
+		right = (x0 + width) * viewport.X,
+		widthPx = width * viewport.X,
+		safeTop = REEL_SAFE_TOP * viewport.Y,
+		safeBottom = (1 - REEL_SAFE_BOTTOM) * viewport.Y,
+	}
+end
+Comic.reelBand = reelBand
+
+-- Un punto normalizado a píxeles de la pantalla: en modo reel su x es relativa a la banda.
+local function normToPixel(p: Vector2, size: Vector2): Vector2
+	if reelMode then
+		local band = reelBand(size)
+		return Vector2.new(band.left + p.X * band.widthPx, p.Y * size.Y)
+	end
+	return Vector2.new(p.X * size.X, p.Y * size.Y)
+end
+
 local function pixelPoints(points: { Vector2 }, size: Vector2): { Vector2 }
 	local out: { Vector2 } = {}
 	for i, v in points do
-		out[i] = Vector2.new(v.X * size.X, v.Y * size.Y)
+		out[i] = normToPixel(v, size)
 	end
 	return out
 end
@@ -275,8 +348,15 @@ end
 -- Deja un rectángulo dentro de la ventana: primero dentro de su caja y, si una esquina sigue fuera del polígono
 -- (diagonales), lo acerca al centro poco a poco.
 local function fitRect(center: Vector2, w: number, h: number, margin: number): Vector2
-	local x = clampRange(center.X, win.min.X + margin + w / 2, win.max.X - margin - w / 2)
-	local y = clampRange(center.Y, win.min.Y + margin + h / 2, win.max.Y - margin - h / 2)
+	-- En modo reel la caja de la ventana se recorta además a la zona segura vertical.
+	local lo, hi = win.min, win.max
+	if reelMode then
+		local band = reelBand(win.size)
+		lo = Vector2.new(math.max(lo.X, band.left), math.max(lo.Y, band.safeTop))
+		hi = Vector2.new(math.min(hi.X, band.right), math.min(hi.Y, band.safeBottom))
+	end
+	local x = clampRange(center.X, lo.X + margin + w / 2, hi.X - margin - w / 2)
+	local y = clampRange(center.Y, lo.Y + margin + h / 2, hi.Y - margin - h / 2)
 	local pos = Vector2.new(x, y)
 	for _ = 1, 24 do
 		if rectInside(pos, w, h, margin) then
@@ -329,6 +409,36 @@ local function ensureFrames(list: { Frame }, count: number, make: () -> Frame)
 	end
 end
 
+-- Modo reel: relleno liso del color del fondo fuera de la banda (lo que se recorta) y una línea fina justo fuera de
+-- cada borde de la banda, para ver en Studio el encuadre exacto. Son 4 marcos: lado izquierdo, lado derecho y las
+-- dos líneas. Fuera del modo reel no existe ninguno.
+local function layoutBand(current: Frame, size: Vector2)
+	ensureFrames(sideFrames, if reelMode then 4 else 0, function()
+		return makeFrame("ReelSide", current, 3)
+	end)
+	if not reelMode then
+		return
+	end
+	local band = reelBand(size)
+	local fill = background.colors[1]
+	local lineWidth = math.max(2, 3 * unitScale())
+	-- Posición y tamaño de cada marco: [1] y [2] los lados, [3] y [4] las líneas (justo fuera de la banda).
+	local specs = {
+		{ x = band.left / 2, w = band.left, color = fill, transparency = 0 },
+		{ x = (band.right + size.X) / 2, w = size.X - band.right, color = fill, transparency = 0 },
+		{ x = band.left - lineWidth / 2, w = lineWidth, color = PAPER, transparency = 0.45 },
+		{ x = band.right + lineWidth / 2, w = lineWidth, color = PAPER, transparency = 0.45 },
+	}
+	for i, spec in specs do
+		local frame = sideFrames[i]
+		frame.Size = UDim2.fromOffset(math.max(spec.w, 0), size.Y)
+		frame.Position = UDim2.fromOffset(spec.x, size.Y / 2)
+		frame.BackgroundColor3 = spec.color
+		frame.BackgroundTransparency = spec.transparency
+		frame.ZIndex = if i <= 2 then 3 else 4
+	end
+end
+
 -- Coloca los rectángulos del fondo (uno por arista, cubriendo el semiplano de fuera) y el borde.
 local function layoutShapes()
 	local current = layer
@@ -336,6 +446,7 @@ local function layoutShapes()
 		return
 	end
 	local size = screenSize()
+	layoutBand(current, size)
 	local edges = edgesOf(pixelPoints(poly, size))
 	local diag = size.Magnitude
 
@@ -392,7 +503,13 @@ end
 
 local function buildDots(parent: Instance, edges: { Edge }, size: Vector2)
 	local short = math.min(size.X, size.Y)
-	local step = math.max(short / 22, math.sqrt(size.X * size.Y / (0.8 * 560)))
+	-- En modo reel los puntos solo se reparten por la banda (fuera la tapa el relleno liso).
+	local xMin, xMax = 0, size.X
+	if reelMode then
+		local band = reelBand(size)
+		xMin, xMax = band.left, band.right
+	end
+	local step = math.max(short / 22, math.sqrt((xMax - xMin) * size.Y / (0.8 * 560)))
 	local reach = short * 0.55
 	local margin = borderPixels() * 0.5 + 4 * unitScale()
 	local color = background.colors[2]
@@ -400,8 +517,8 @@ local function buildDots(parent: Instance, edges: { Edge }, size: Vector2)
 	local row = 0
 	local y = 0
 	while y <= size.Y + step and count < MAX_DOTS do
-		local x = if row % 2 == 0 then 0 else step / 2
-		while x <= size.X + step and count < MAX_DOTS do
+		local x = xMin + (if row % 2 == 0 then 0 else step / 2)
+		while x <= xMax + step and count < MAX_DOTS do
 			local distance = outsideDistance(edges, Vector2.new(x, y))
 			if distance > 0 then
 				local radius = step * (0.13 + 0.33 * math.clamp(distance / reach, 0, 1))
@@ -425,9 +542,7 @@ end
 
 local function buildSpeed(parent: Instance, edges: { Edge }, size: Vector2)
 	local k = unitScale()
-	local focus = if background.focus
-		then Vector2.new(background.focus.X * size.X, background.focus.Y * size.Y)
-		else win.center
+	local focus = if background.focus then normToPixel(background.focus, size) else win.center
 	local margin = borderPixels() * 0.5 + 4 * k
 	local rng = Random.new(20261105)
 	local transparency = NumberSequence.new({
@@ -518,7 +633,7 @@ local function rebuildDecor(fade: boolean)
 	decor = group
 	if fade then
 		group.GroupTransparency = 1
-		tween(group, 0.3, { GroupTransparency = 0 })
+		tween(group, if reelMode then 0.1 else 0.3, { GroupTransparency = 0 })
 	end
 end
 
@@ -609,7 +724,8 @@ local function reset()
 		bubbleLayer:Destroy()
 	end
 	layer, bubbleLayer, decor = nil, nil, nil
-	edgeFrames, inkFrames, paperFrames, live = {}, {}, {}, {}
+	edgeFrames, inkFrames, paperFrames, sideFrames, live = {}, {}, {}, {}, {}
+	reelMode = false
 	poly = {}
 	background = DEFAULT_BACKGROUND
 	borderSpec = nil
@@ -917,7 +1033,7 @@ local function pointAt(event: { [string]: any }, ctx: { [string]: any }): () -> 
 			local world = getter()
 			return if world then project(world) else nil
 		end
-		return if fixed then Vector2.new(fixed.X * win.size.X, fixed.Y * win.size.Y) else nil
+		return if fixed then normToPixel(fixed, win.size) else nil
 	end
 end
 
@@ -932,7 +1048,11 @@ local function buildBalloon(event: { [string]: any }, ctx: { [string]: any }, th
 	local text = T(event.text, event.args)
 	local textSize = math.clamp(math.floor(short * 0.05), 14, 100)
 	local windowWidth = win.max.X - win.min.X
-	local bounds = measure(text, textSize, math.min(short * 0.62, windowWidth * 0.8))
+	local maxWidth = math.min(short * 0.62, windowWidth * 0.8)
+	if reelMode then
+		maxWidth = reelBand(win.size).widthPx * 0.62 -- el texto largo se parte en líneas, no se sale de la banda
+	end
+	local bounds = measure(text, textSize, maxWidth)
 	local pad = textSize * 0.5
 	local bw = if thought then bounds.X * 1.28 + 2 * pad else bounds.X * 1.05 + 2 * pad
 	local bh = if thought then bounds.Y * 1.4 + 2 * pad else bounds.Y + 2 * pad
@@ -1069,9 +1189,14 @@ local function buildNarration(event: { [string]: any })
 	local short = math.min(win.size.X, win.size.Y)
 	local k = short / REFERENCE_SHORT
 	local isTitle = event.balloon == "title"
-	local text = T(event.text, event.args)
+	local text = if event.verbatim then tostring(event.text) else T(event.text, event.args)
 	local textSize = math.clamp(math.floor(short * (if isTitle then 0.06 else 0.036)), 12, 100)
 	local maxWidth = math.min(short * (if isTitle then 0.8 else 0.5), (win.max.X - win.min.X) * 0.45)
+	if reelMode then
+		-- Más grande y más ancho (la banda es estrecha): el texto se parte en líneas dentro de ella.
+		textSize = math.clamp(math.floor(short * (if isTitle then 0.075 else 0.04)), 12, 100)
+		maxWidth = reelBand(win.size).widthPx * (if isTitle then 0.8 else 0.7)
+	end
 	local bounds = measure(text, textSize, maxWidth)
 	local pad = textSize * 0.45
 	local padV = if isTitle then math.max(pad, bounds.Y * 0.45) else pad -- el título pide más aire arriba y abajo
@@ -1105,10 +1230,12 @@ local function buildNarration(event: { [string]: any })
 	local left = string.sub(corner, 2, 2) ~= "R"
 	local margin = borderPixels() + 12 * k
 	local item: Live? = nil
+	local at = pointOf(event.at) -- centro fijo (en modo reel, relativo a la banda); sin él, pegado a la esquina
 	local function update()
 		local x = if left then win.min.X + margin + bw / 2 else win.max.X - margin - bw / 2
 		local y = if top then win.min.Y + margin + bh / 2 else win.max.Y - margin - bh / 2
-		local center = fitRect(Vector2.new(x, y), bw, bh, margin)
+		local wanted = if at then normToPixel(at, win.size) else Vector2.new(x, y)
+		local center = fitRect(wanted, bw, bh, margin)
 		root.Position = UDim2.fromOffset(center.X, center.Y)
 		if item then
 			item.box = { center = center, w = bw, h = bh }
@@ -1142,6 +1269,14 @@ local function buildSfx(event: { [string]: any })
 	local measureSize = math.min(height, 100)
 	local bounds = measure(text, measureSize, size.X * 2)
 	local width = bounds.X * height / measureSize + 8
+	if reelMode then
+		-- Onomatopeya pequeña: su ancho no pasa de `bandMax` de la banda (0,45 por defecto); si es más ancha se encoge.
+		local limit = reelBand(size).widthPx * (tonumber(event.bandMax) or 0.45)
+		if width > limit then
+			height *= limit / width
+			width = limit
+		end
+	end
 	local root = newRoot(width, height)
 	local outline = math.max(3, height * 0.05)
 
@@ -1215,10 +1350,19 @@ local function buildSfx(event: { [string]: any })
 		local decay = math.exp(-age * 5)
 		local shake = short * 0.005 * decay
 		root.Rotation = baseRotation + math.sin(age * 70) * 3 * decay
-		root.Position = UDim2.fromOffset(
-			pos.X * win.size.X + math.sin(age * 53) * shake,
-			pos.Y * win.size.Y + math.cos(age * 61) * shake
-		)
+		local at = normToPixel(pos, win.size)
+		if reelMode then
+			-- Dentro de la banda y de la zona segura vertical, contando la explosión (hasta ~2 veces el alto) y el
+			-- golpe de escala de la entrada (×1,15).
+			local band = reelBand(win.size)
+			local halfX = math.max(width, height * 2) * 1.15 / 2
+			local halfY = height * 2 * 1.15 / 2
+			at = Vector2.new(
+				clampRange(at.X, band.left + halfX, band.right - halfX),
+				clampRange(at.Y, band.safeTop + halfY, band.safeBottom - halfY)
+			)
+		end
+		root.Position = UDim2.fromOffset(at.X + math.sin(age * 53) * shake, at.Y + math.cos(age * 61) * shake)
 	end
 	update()
 	addLive(root, update, event.seconds or 1.5)
@@ -1227,6 +1371,14 @@ end
 -- Registro -------------------------------------------------------------------------------------------------
 
 function Comic.install(sequencer: Presentation.SequencerModule)
+	sequencer.registerHandler("reel", function(event)
+		reelMode = event.on ~= false
+		-- Si ya hay capa (el panel llegó antes), se recoloca todo con la banda.
+		if layer then
+			layoutShapes()
+			rebuildDecor(false)
+		end
+	end)
 	sequencer.registerHandler("panel", function(event, ctx)
 		setPanel(event, ctx.seeking == true)
 	end)

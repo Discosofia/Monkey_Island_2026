@@ -9,6 +9,7 @@
 --     bubble, sfx (Comic, escenas «cómic») y los que registre cada place. Los textos se marcan con Strings.later y se traducen al dibujarlos.
 
 local Bosses = require(script.Parent.Bosses)
+local Config = require(script.Parent.Parent.Config)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
 local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
 local Strings = require(script.Parent.Parent.Strings)
@@ -432,6 +433,8 @@ end
 -- AbilityShow.SPECS, nunca hay más de 2 vivos a la vez. En calidad baja el Meteoro y la Lluvia se sustituyen por un
 -- Rayo y un Disparo múltiple.
 local BATTLE_SECONDS = 14
+-- Segundos extra del reel tras la acción: el cartel de cierre con el nombre del juego se lee un segundo más.
+local REEL_TAIL_SECONDS = 1
 
 -- Dónde está cada uno de la tripulación: z positivo es hacia el mar, el giro (yaw) lo pone mirando algo al centro.
 local BATTLE_SPOTS: { [string]: { x: number, z: number, yaw: number } } = {
@@ -552,6 +555,343 @@ local function battleShots(): { CameraShot }
 			b = cameraKey(ground(22, 7.5, -2), ground(-3, 5, -4), 60),
 		},
 	}
+end
+
+-- Montaje REEL de la batalla (solo para grabar en Studio con OBS y recortar a 9:16; no sale en el juego).
+-- Se graba a 1920×1080 a 60 fps y se recorta la banda central: la banda mide (9/16)·alto de ancho, o sea 607,5 px,
+-- desde x = 656,25. En OBS (filtro «Recortar/Rellenar»): izquierda 656, derecha 656 (queda 608 × 1080, de x = 656 a
+-- 1264) y en CapCut se escala a 1080 × 1920. A 1280×720 la banda mide 405 px desde x = 437,5 (recorte de 406 × 720
+-- desde x = 437). El motor la calcula con el tamaño real de la pantalla (Comic.reelBand), así que vale en otras
+-- proporciones; el relleno liso fuera de la banda y una línea fina justo fuera de su borde enseñan el encuadre en
+-- Studio. Los bocadillos y las onomatopeyas quedan dentro de la banda y de la zona segura de TikTok e Instagram
+-- (12 % de arriba y 22 % de abajo libres).
+local REEL_ASPECT = 9 / 16
+-- Alto de pantalla (0 arriba) donde cae el centro de cada ventana; el plano pone ahí lo que enseña.
+local REEL_CENTER_Y: { [string]: number } = { reelTop = 0.31, reelBottom = 0.69 }
+
+type ReelCut = {
+	t0: number,
+	t1: number,
+	shape: string, -- preset de ventana de Comic.PRESETS
+	bg: string, -- "flat" | "halftone" | "speed"
+	pos: Vector3, -- cámara
+	posB: Vector3?, -- cámara al final (por defecto, un empuje del 6 % hacia el sujeto)
+	subject: Vector3, -- centro de masas de la ACCIÓN (lanzador y objetivo), a la altura del pecho
+	subjectB: Vector3?, -- adónde mira al final del plano (por defecto, el mismo)
+	h: number?, -- alto en studs que ocupa la acción
+	fill: number?, -- fracción del alto de la ventana que debe ocupar (0,45 grupo, 0,6 un personaje)
+	width: number?, -- ancho en studs que caben en la banda; sin él sale de h y fill
+	f: number?, -- alto de pantalla donde cae el sujeto (por defecto el centro de la ventana)
+}
+
+-- Fracción del alto de la pantalla que abarca cada ventana (para repartir el alto visible entre la acción y el aire).
+local REEL_WINDOW_HEIGHT: { [string]: number } = {
+	reelTall = 0.94,
+	reelTop = 0.58,
+	reelBottom = 0.58,
+	reelSlant = 0.96,
+	reelDiagL = 0.9,
+	reelDiagR = 0.9,
+}
+
+-- Ancho en studs que debe caber en la banda para que una acción de `h` studs de alto ocupe `fill` del alto de la
+-- ventana. El alto visible es ancho / (9/16); la ventana enseña `REEL_WINDOW_HEIGHT` de él.
+local function reelWidth(cut: ReelCut): number
+	if cut.width then
+		return cut.width
+	end
+	return REEL_ASPECT * (cut.h or 7) / ((cut.fill or 0.45) * (REEL_WINDOW_HEIGHT[cut.shape] or 0.9))
+end
+
+-- Punto de cámara de un plano vertical. En vertical el FOV de Roblox es el del ALTO, así que se saca del ancho que
+-- se quiere enseñar en la banda (aspecto 9:16): tan(fov/2) = (ancho / 2 / distancia) / (9/16). La cámara apunta un
+-- poco por debajo (o por encima) del sujeto para que caiga a la altura `f` de la pantalla, en el centro de la ventana
+-- alta en vez de en el de la pantalla.
+local function reelKey(pos: Vector3, subject: Vector3, width: number, f: number): CameraKey
+	local offset = subject - pos
+	local distance = math.max(offset.Magnitude, 1)
+	local fov = math.clamp(math.deg(2 * math.atan(width / 2 / distance / REEL_ASPECT)), 12, 100)
+	local dir = offset.Unit
+	local right = dir:Cross(Vector3.yAxis)
+	if right.Magnitude < 1e-3 then
+		return cameraKey(pos, subject, fov)
+	end
+	local lift = math.atan((0.5 - f) * 2 * math.tan(math.rad(fov / 2))) -- ángulo del sujeto sobre el eje de la cámara
+	local aimed = CFrame.fromAxisAngle(right.Unit, -lift):VectorToWorldSpace(dir)
+	return cameraKey(pos, pos + aimed * distance, fov)
+end
+
+-- Los cortes del reel: la cámara de cada plano y su ventana salen del mismo dato, así que no se desfasan. Las
+-- posiciones de cámara son las de los planos de battleShots (laterales a x = ±21 a ±23 y desde detrás de los monos),
+-- todas a más de 9 studs de cualquier maniquí o mono; lo que cierra el encuadre es el FOV, no la distancia: cada
+-- plano apunta al centro de la acción y su ancho sale de h y fill (grupo 0,45, un personaje 0,6 del alto de la
+-- ventana). Las ventanas de 60 % (reelTop y reelBottom) llevan fondo de puntos para no dejar el resto vacío.
+local function battleReelCuts(): { ReelCut }
+	local g = ground
+	return {
+		-- Gancho: contrapicado ligero; la cámara corre delante del mandril y lo deja de 12 a 9,5 studs. La manada baja
+		-- de z = -48 a -31 (15 studs por segundo) y la cámara de z = -36 a -22,5.
+		{
+			t0 = 0,
+			t1 = 1.4,
+			shape = "reelTall",
+			bg = "speed",
+			pos = g(-5, 2, -36),
+			posB = g(-5, 2, -22.5),
+			subject = g(-9, 3.5, -48),
+			subjectB = g(-8, 3.5, -31.5),
+			width = 10,
+		},
+		-- La manada llega: mandril y macaco, los dos de la izquierda.
+		{
+			t0 = 1.4,
+			t1 = 2.4,
+			shape = "reelDiagR",
+			bg = "flat",
+			pos = g(-22, 5.5, 2),
+			subject = g(-11, 3.5, -28),
+			subjectB = g(-11, 3.5, -17),
+			h = 7,
+			fill = 0.45,
+		},
+		-- Rugido del mandril (2,6): primer plano en la ventana alta de arriba.
+		{
+			t0 = 2.4,
+			t1 = 3.5,
+			shape = "reelTop",
+			bg = "halftone",
+			pos = g(16, 4.5, -3),
+			subject = g(-7, 4, -12),
+			h = 6.5,
+			fill = 0.6,
+		},
+		-- Grito de guerra (3,7).
+		{
+			t0 = 3.5,
+			t1 = 4.5,
+			shape = "reelSlant",
+			bg = "flat",
+			pos = g(-21, 4.5, 2),
+			subject = g(-5, 3.5, 1),
+			h = 6.5,
+			fill = 0.6,
+		},
+		-- Apunta y dispara el cazador (flecha a 5,3; Disparo múltiple a 5,46).
+		{
+			t0 = 4.5,
+			t1 = 5.45,
+			shape = "reelDiagL",
+			bg = "halftone",
+			pos = g(-23, 5, -2),
+			subject = g(-12, 3.5, 5),
+			h = 6,
+			fill = 0.6,
+		},
+		-- Bola de fuego del mago (6,12): empieza en él y sigue la bola hacia los monos.
+		{
+			t0 = 5.45,
+			t1 = 6.5,
+			shape = "reelTall",
+			bg = "flat",
+			pos = g(23, 5, -3),
+			subject = g(2, 3.5, 3),
+			subjectB = g(0, 3.5, -8),
+			h = 6.5,
+			fill = 0.45,
+		},
+		-- Embestida (6,75): el guerrero cruza de z = 1 a -6,5.
+		{
+			t0 = 6.5,
+			t1 = 7.25,
+			shape = "reelSlant",
+			bg = "speed",
+			pos = g(-22, 5, 0),
+			subject = g(-5, 3.5, 0),
+			subjectB = g(-4, 3.5, -6),
+			h = 7,
+			fill = 0.6,
+		},
+		-- Torbellino (7,3).
+		{
+			t0 = 7.25,
+			t1 = 7.75,
+			shape = "reelDiagR",
+			bg = "halftone",
+			pos = g(-21, 5, 0),
+			subject = g(-5, 3.5, -8),
+			h = 7,
+			fill = 0.5,
+		},
+		-- Nova de hielo sobre el aullador (7,8).
+		{
+			t0 = 7.75,
+			t1 = 8.6,
+			shape = "reelBottom",
+			bg = "halftone",
+			pos = g(21, 5.5, -3),
+			subject = g(8, 2.5, -10),
+			h = 4.5,
+			fill = 0.6,
+		},
+		-- Curación en área del médico (9,2).
+		{
+			t0 = 8.6,
+			t1 = 9.5,
+			shape = "reelTop",
+			bg = "halftone",
+			pos = g(21, 6.5, -4),
+			subject = g(9, 3.5, 3),
+			h = 6.5,
+			fill = 0.6,
+		},
+		-- Lluvia de flechas (9,85) sobre mandril y babuino.
+		{
+			t0 = 9.5,
+			t1 = 10.4,
+			shape = "reelDiagL",
+			bg = "halftone",
+			pos = g(-23, 6, -2),
+			subject = g(-3.5, 3.5, -12.5),
+			h = 7,
+			fill = 0.45,
+		},
+		-- Rompehuesos (10,65) y el mandril se va (10,95), desde detrás: guerrero y mandril.
+		{
+			t0 = 10.4,
+			t1 = 11.3,
+			shape = "reelDiagR",
+			bg = "flat",
+			pos = g(-12, 3.4, -22),
+			subject = g(-5.5, 3.5, -9.5),
+			h = 7,
+			fill = 0.45,
+		},
+		-- El mago prepara el Meteoro (11,9).
+		{
+			t0 = 11.3,
+			t1 = 12.2,
+			shape = "reelBottom",
+			bg = "halftone",
+			pos = g(23, 5, 2),
+			subject = g(3, 3.5, 6),
+			h = 6.5,
+			fill = 0.6,
+		},
+		-- El Meteoro (12,1) cae sobre el babuino: la ventana alta enseña también el cielo por donde baja.
+		{
+			t0 = 12.2,
+			t1 = 13.2,
+			shape = "reelTall",
+			bg = "speed",
+			pos = g(22, 7, -8),
+			subject = g(0, 6, -13),
+			h = 12,
+			fill = 0.5,
+			f = 0.55,
+		},
+		-- La tripulación celebra (cazador, mago y médico, apilados en profundidad) y el cartel de cierre.
+		{
+			t0 = 13.2,
+			t1 = BATTLE_SECONDS + REEL_TAIL_SECONDS,
+			shape = "reelSlant",
+			bg = "flat",
+			pos = g(22, 7.5, -2),
+			subject = g(-1, 3.5, 4),
+			h = 7,
+			fill = 0.5,
+		},
+	}
+end
+
+local function battleReelShots(cuts: { ReelCut }): { CameraShot }
+	local shots: { CameraShot } = {}
+	for _, cut in cuts do
+		local f = cut.f or REEL_CENTER_Y[cut.shape] or 0.5
+		-- Empuje lento hacia el sujeto (6 %) y un poco más cerrado al final, para que ningún plano quede muerto.
+		local subjectB = cut.subjectB or cut.subject
+		local posB = cut.posB or cut.pos:Lerp(subjectB, 0.06)
+		local width = reelWidth(cut)
+		table.insert(shots, {
+			t0 = cut.t0,
+			t1 = cut.t1,
+			a = reelKey(cut.pos, cut.subject, width, f),
+			b = reelKey(posB, subjectB, width * 0.9, f),
+		})
+	end
+	return shots
+end
+
+-- La capa cómic del reel: el modo reel, una ventana por corte y las frases. Las coordenadas de `pos` y `at` son
+-- relativas a la banda (x) y al alto de la pantalla (y); los textos que no caben en la banda se parten en líneas.
+local function addReelComic(events: { { t: number, kind: string, [string]: any } }, cuts: { ReelCut })
+	local base, cream = Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196)
+	table.insert(events, { t = 0, kind = "reel", on = true })
+	for index, cut in cuts do
+		table.insert(events, {
+			t = cut.t0,
+			kind = "panel",
+			shape = cut.shape,
+			bg = { style = cut.bg, colors = { base, cream } },
+			seconds = if index == 1 then nil else 0.12,
+		})
+	end
+	-- `side` (left, right, up o down) elige de qué lado de la cabeza sale el bocadillo: sin él, arriba, y en una ventana
+	-- alta y de borde inclinado el bocadillo se corre hacia abajo y tapa la cara.
+	local function bubble(t: number, actor: string, text: string, seconds: number, side: string?)
+		table.insert(events, {
+			t = t,
+			kind = "bubble",
+			balloon = "speech",
+			actor = actor,
+			text = text,
+			seconds = seconds,
+			side = side,
+		})
+	end
+	-- `band` es el ancho máximo de la onomatopeya como fracción del ancho de la banda (sfx.bandMax de Comic).
+	local function sfx(t: number, text: string, x: number, y: number, rot: number, band: number, seconds: number)
+		table.insert(events, {
+			t = t,
+			kind = "sfx",
+			text = text,
+			pos = { x, y },
+			rot = rot,
+			size = 0.4,
+			bandMax = band,
+			color = Color3.new(1, 1, 1),
+			seconds = seconds,
+		})
+	end
+	-- Reglas: ninguna onomatopeya coincide con otra (≥ 0,7 s entre inicios y ≤ 0,5 s de vida salvo el gancho), van en
+	-- las esquinas libres de la ventana (arriba o abajo) con un giro de 12 a 15° y nunca en la zona de un bocadillo.
+	-- Gancho (primer 1,5 s): ¡ROAAAR! arriba sobre la manada que carga; la narración, abajo a la izquierda.
+	sfx(0.15, Strings.later("¡ROAAAR!"), 0.5, 0.22, -12, 0.6, 1.0)
+	table.insert(events, {
+		t = 0.15,
+		kind = "bubble",
+		balloon = "narration",
+		corner = "BL",
+		text = Strings.later("Una manada baja de la selva…"),
+		seconds = 1.9,
+	})
+	bubble(3.75, "guerrero", Strings.later("¡Que vengan!"), 0.8, "left") -- al lado de la cabeza, no sobre la cara
+	bubble(5.8, "mago", Strings.later("¡Fuego!"), 0.7) -- sobre la cabeza del mago
+	sfx(6.15, Strings.later("¡FUM!"), 0.7, 0.7, 15, 0.3, 0.4) -- abajo a la derecha
+	sfx(6.95, Strings.later("¡WHOOSH!"), 0.3, 0.22, -15, 0.3, 0.4) -- arriba a la izquierda
+	bubble(9.3, "medico", Strings.later("¡Aguanten!"), 0.9)
+	sfx(10.7, Strings.later("¡CRASH!"), 0.3, 0.7, -15, 0.4, 0.5) -- abajo a la izquierda
+	sfx(12.85, Strings.later("¡BUM!"), 0.7, 0.7, 12, 0.4, 0.5) -- abajo a la derecha
+	bubble(13.0, "cazador", Strings.later("¡Lo logramos!"), 0.8)
+	-- Cartel de cierre: el nombre del juego (nombre propio, no se traduce), en grande y bajo en la zona segura.
+	table.insert(events, {
+		t = 13.1,
+		kind = "bubble",
+		balloon = "title",
+		verbatim = true,
+		text = Config.GameName,
+		at = { 0.5, 0.66 },
+		seconds = 0.7 + REEL_TAIL_SECONDS,
+	})
 end
 
 local function battleActors(): { [string]: { [string]: any } }
@@ -680,13 +1020,21 @@ local function battleLight(): EventList
 end
 
 -- La batalla. "comic" es la variante para vídeo: sin franjas negras, con viñetas, fondos de puntos y de líneas,
--- onomatopeyas y bocadillos cortos de la tripulación (Cinematics/Comic).
-local function battleScene(comic: boolean): Scene
+-- onomatopeyas y bocadillos cortos de la tripulación (Cinematics/Comic). "reel" es la misma acción (mismos monos,
+-- habilidades y tiempos) con otro montaje: cámaras y capa cómic pensadas para la banda vertical 9:16.
+local function battleScene(variant: string): Scene
+	local comic = variant == "comic"
+	local reel = variant == "reel"
 	local events: EventList = battleLight()
 	for _, event in battleAction() do
 		table.insert(events, event)
 	end
-	if comic then
+	local camera = cutShots(battleShots())
+	if reel then
+		local cuts = battleReelCuts()
+		camera = cutShots(battleReelShots(cuts))
+		addReelComic(events, cuts)
+	elseif comic then
 		local base, cream = Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196)
 		local function panel(t: number, shape: string, style: string, seconds: number?)
 			table.insert(events, {
@@ -744,23 +1092,32 @@ local function battleScene(comic: boolean): Scene
 	else
 		table.insert(events, { t = 0, kind = "letterbox" })
 	end
-	table.insert(events, { t = BATTLE_SECONDS - 0.6, kind = "fade", seconds = 0.5, toBlack = true })
+	-- El reel dura un segundo más que la batalla y acaba en negro (0,3 s) para que el cartel de cierre se lea hasta casi el final.
+	local total = if reel then BATTLE_SECONDS + REEL_TAIL_SECONDS else BATTLE_SECONDS
+	table.insert(events, {
+		t = if reel then total - 0.3 else total - 0.6,
+		kind = "fade",
+		seconds = if reel then 0.3 else 0.5,
+		toBlack = true,
+	})
 	return {
-		duration = BATTLE_SECONDS,
+		duration = total,
 		audience = "Self",
 		freeze = false,
 		skippable = true,
 		waitTerrain = { beach(-5, 1), beach(9, 4), ground(0, 0, -18) },
 		actors = battleActors(),
-		camera = cutShots(battleShots()),
+		camera = camera,
 		events = events,
 	}
 end
 
 local Cinematics: { [string]: Scene } = {
 	-- Batallas montadas (G5a): solo para grabar, las lanza el panel de pruebas con ArrivalService.play.
-	Battle_Pack = battleScene(false),
-	Battle_Pack_Comic = battleScene(true),
+	Battle_Pack = battleScene("normal"),
+	Battle_Pack_Comic = battleScene("comic"),
+	-- Montaje reel vertical (9:16) para grabar y recortar; ver el comentario de battleReelCuts.
+	Battle_Pack_Reel = battleScene("reel"),
 
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",

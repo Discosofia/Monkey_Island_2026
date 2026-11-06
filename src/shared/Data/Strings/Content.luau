@@ -868,4 +868,6 @@ return {
 	["¡FUM!"] = "FWOOM!",
 	["¡WHOOSH!"] = "WHOOSH!",
 	["¡CRASH!"] = "CRASH!",
+	-- Montaje reel de la batalla (Battle_Pack_Reel).
+	["¡BUM!"] = "BOOM!",
 }

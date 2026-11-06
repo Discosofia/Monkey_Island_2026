@@ -5658,6 +5658,77 @@ Hasta 26e el modo Ballgame no sale en la cola, así que se activa a mano con `Ar
 10. [ ] Mira de cerca las rayas `FloorStripe_<equipo>` y el tlécotl (`Court/Decor`), desde el suelo y desde la plaza, moviendo la cámara.
     ✅ No parpadean (z-fighting) con el suelo, que están a 0,06 studs. Si parpadean, se anota el sitio y se sube su altura.
 
+## 149. Fase 25 G5a (reel): versión vertical con estilo cómic de la batalla (05-11-2026)
+
+La versión reel es la escena `Battle_Pack_Reel` (15 s: 14 s más `REEL_TAIL_SECONDS` = 1 s extra, para que el cartel de cierre con el nombre del juego dure 1,7 s). Usa el modo reel de `Comic`: una banda central 9:16 calculada con `Comic.reelBand` sobre el viewport real, relleno liso fuera de la banda y dos líneas finas en su borde. La orden es «🥊 Batalla reel». Se probó en Play en el Studio de la Isla con un jugador (capturas de varios cortes; dura 14,8 s medidos). Lo que sigue sin probar es esto.
+
+### 149.1 Play en el Studio de la Isla con «🥊 Batalla reel»
+
+1. [ ] En Play, lanza «🥊 Batalla reel» desde el panel de pruebas y mira la escena entera.
+   ✅ Dura unos 15 s. Se ve solo la banda central 9:16 y el relleno liso a los lados, con sus dos líneas finas en el borde.
+2. [ ] Mira las viñetas, los bocadillos y las onomatopeyas de los 15 cortes.
+   ✅ Cada corte tiene su encuadre y ninguna habilidad queda cortada. El bocadillo del Guerrero no tapa su cara. Nunca hay dos onomatopeyas vivas a la vez (¡ROAAAR!, ¡FUM!, ¡WHOOSH!, ¡CRASH!, ¡BUM!) y se leen en las esquinas.
+3. [ ] Mira el gancho del mandril al empezar.
+   ✅ Se entiende que es el mandril. Ya se sabe que sale pequeño: si no se lee, se anota el corte.
+4. [ ] Mira el Meteoro y la lluvia de flechas dentro de la banda.
+   ✅ Se ven completos dentro de la banda y no se salen por los lados. Esto no se ha visto todavía en la banda: si algo se corta, se anota el plano.
+5. [ ] Mira la nova de hielo del Mago.
+   ✅ Se distingue la forma del hielo. Ya se sabe que sale casi blanca: si se confunde con el fondo, se anota.
+6. [ ] Llega al último plano, con el cartel de cierre y el fundido.
+   ✅ El cartel con el nombre del juego dura 1,7 s y cae dentro de la zona segura. El fundido termina la escena sin cortes bruscos. Esto no se ha visto todavía: si la captura del MCP no llega a tiempo, se anota (ver la trampa 6 de G5a en `docs/PLAN.md`).
+7. [ ] Lanza «🥊 Batalla reel» dos veces seguidas, la segunda al acabar la primera.
+   ✅ La segunda arranca limpia y dura lo mismo. La Salida no muestra errores de Luau.
+
+### 149.2 Grabación con OBS y recorte en CapCut
+
+8. [ ] Graba «🥊 Batalla reel» con OBS a 1080p60 en 16:9 y pon la guía 9:16 sobre la escena.
+   ✅ La franja central de 608×1080 (desde x = 656) contiene a los maniquíes, los monos y las onomatopeyas.
+9. [ ] En CapCut, recorta 608×1080 desde x = 656 y escala a 1080×1920.
+   ✅ El resultado es 1080×1920, sin relleno liso a los lados ni bordes negros, y las dos líneas finas no se ven en el encuadre final.
+10. [ ] Revisa en el vídeo final que el texto está dentro de la zona segura: 12 % arriba y 22 % abajo.
+    ✅ Ningún texto (cartel, bocadillos, onomatopeyas) pasa de esas líneas.
+11. [ ] Mira el cartel de cierre y el fundido en la grabación.
+    ✅ El cartel dura 1,7 s y el fundido se ve completo, sin cortarse en el último segundo.
+
+### 149.3 Otras relaciones de aspecto y tamaños de ventana
+
+12. [ ] Con la ventana de Studio en 1280×720, lanza «🥊 Batalla reel».
+    ✅ La banda se recorta 406×720 desde x = 437 y se escala a la pantalla. Las dos líneas finas quedan en su borde.
+13. [ ] Cambia el tamaño de la ventana de Studio a una relación distinta de 16:9 (por ejemplo, cuadrada) con la escena en marcha, o vuelve a lanzarla.
+    ✅ La banda se recalcula con el nuevo viewport y sigue centrada. Se anota si el resultado es raro al cambiar el tamaño en mitad de la escena.
+14. [ ] En un emulador de teléfono (vertical y horizontal) o en el móvil, lanza «🥊 Batalla reel».
+    ✅ La banda se calcula con el viewport real y sigue centrada. El texto se queda dentro de la zona segura y no se corta el cartel.
+
+### 149.4 Hora del día
+
+15. [ ] Con el ciclo de día parado en noche, graba «🥊 Batalla reel».
+    ✅ La escena se ve con la luz calibrada: ni oscura ni quemada por el bloom.
+16. [ ] Con el ciclo de día parado en atardecer, repite.
+    ✅ Igual que en noche, y sin tintes naranja que tapen la imagen.
+17. [ ] Con el ciclo de día parado en día (sol alto), repite.
+    ✅ Ya se sabe que el sol quema el fondo. Se anota el plano afectado y la grabación se hace de noche o con la hora fijada en la escena.
+
+### 149.5 Calidad de efectos: Low, Medium y High
+
+Se cambia el ajuste «Efectos de los jefes» (`fxQuality`) antes de cada prueba.
+
+18. [ ] Con «Efectos de los jefes» en Low, lanza «🥊 Batalla reel» y mira el Meteoro y la lluvia de flechas.
+    ✅ Salen en su versión `fallback`, la escena no se queda vacía y dura 15 s.
+19. [ ] Con «Efectos de los jefes» en Medium, y después en High, lanza «🥊 Batalla reel» y mira la nova de hielo y el Meteoro dentro de la banda.
+    ✅ Se ven completos y no se salen de la banda. El pico de piezas no supera 90 (Medium) ni 160 (High) (`Config.Budgets.Vfx`).
+
+### 149.6 Inglés
+
+20. [ ] Con el idioma del juego en inglés, lanza «🥊 Batalla reel».
+    ✅ Los textos salen en inglés, con ¡BUM! como «BOOM!» y el resto de onomatopeyas. Los bocadillos caben en su sitio y el cartel de cierre se lee bien. En Studio se ve así; en el juego publicado, la frase «¡BUM!» depende de que esté subida a la tabla de Creator Hub (pendiente, junto con las de G5a).
+
+### 149.7 Dos o más jugadores y juego publicado
+
+21. [ ] Con 2 jugadores en la Isla, la cuenta de administrador lanza «🥊 Batalla reel» y mira la pantalla del otro jugador.
+    ✅ El otro cliente ve la escena igual, o se anota si queda congelado (como en 147.4).
+22. [ ] Publica la Isla y, con una cuenta de administrador, lanza «🥊 Batalla reel» desde el panel de pruebas (si la cuenta lo tiene disponible en el juego publicado).
+    ✅ Se ve como en Studio, con su cartel de cierre, sin errores en la Salida del servidor ni del cliente.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
