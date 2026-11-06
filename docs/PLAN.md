@@ -1385,7 +1385,7 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 | **26c** | La pelota: `Shared/BallSim` (matemática pura, mismo código en servidor y cliente), `Data/Ballgame` (números de la pelota y de los golpes), `BallService` (simula a 60 Hz y manda el estado a 20 Hz), `BallController` (predicción con suavizado) y remotos `BallState`, `BallEvent` y `BallHit` | commit pendiente | ✅ Hecha y subida (e2ba5e2) (probada en Studio de Dunas con un jugador: 11 pruebas de `BallSim` en edición y, en Play, pelota y sombra en el cliente, desvío y reposo, comandos de depuración y cambio de formato). Lo que falta, en VERIFICACION §151 |
 | **26d** | El golpe: botón «Golpear» en el móvil y clic o tecla en el PC, zona por altura (rodilla, cadera, codo), falta por pie, ventana perfecta de 0,15 s y ventana buena, anillo de tiempo, dirección hacia donde miras, validación en el servidor y animaciones de `AnimationTrack` (las publica el usuario) | commit pendiente | ✅ Hecha y subida (403e322) (probada en Studio de Dunas con un jugador: matemática en edición, servidor con nueve entradas inválidas y roce pasivo, y en Play la acción, el anillo y la predicción). Lo que falta, en VERIFICACION §152 |
 | **26e** | Reglas y partido: `Modes/Ballgame` (saque por la raya perdida, rayas por bote, fuera, pie y aro fallado, tiro al muro del fondo rival, aro de victoria, 8 rayas o `MatchSeconds`, muerte súbita y pelota parada 3 s); el modo entra en `Config.Arena.Modes` | 0f6695d | ✅ Hecha y subida (0f6695d) (probada en Studio de Dunas con un jugador: 10 pruebas, todas pasan: arranque, tres botes, fuera con y sin último toque, pie, muro del fondo y propio, pelota parada de 3 s, intento fallido de aro y aro, 8 rayas, tiempo con ventaja y con empate, y revancha). Lo que falta, en VERIFICACION §153 |
-| **26f** | Habilidades de rol sin daño: Guerrero «Golpe de yugo», Cazador «Salto de jaguar», Mago «Viento» y Médico «Paso ligero», desde `CombatRules`, medidas con `Equilibrio` por recargas | — | ⏳ |
+| **26f** | Habilidades de rol sin daño: Guerrero «Golpe de yugo», Cazador «Salto de jaguar», Mago «Viento» y Médico «Paso ligero», desde `CombatRules`, medidas con `Equilibrio` por recargas | commit pendiente | ✅ Hecha y subida (b6302d7) (probada en Studio de Dunas con un jugador: hueco único, recargas, yugo, curva del viento, salto y paso). Lo que falta, en VERIFICACION §155 |
 | **26g** | HUD y textos: marcador de rayas como tallas de Jaguar contra Quetzal, contador de botes, avisos («¡Tres botes!», «¡Fuera!», «¡Falló el aro!»), gran aviso de victoria por aro e indicador de tiempo; todo con `T()` y skill `interfaz-roblox` | — | ⏳ |
 
 **Para más adelante (se apunta, no entra en 26a–26g)**
@@ -1395,8 +1395,8 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 - Repetición a cámara lenta del aro, sonidos de impacto y celebración.
 
 **Handoff de la Fase 26 (05-11-2026)**
-- **Estado (06-11-2026):** 26a (57cfd67), 26b (44c4c79), 26c (e2ba5e2) y 26d (403e322) hechas y subidas. 26e hecha, commit pendiente. Queda 26f (habilidades de rol) y 26g (HUD y textos).
-- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado), §148 (26b: Rendimiento, la cancha publicada, 2 jugadores, móvil y PC, iluminación) y §151 (26c: latencia con 2 jugadores, profiler, juego publicado, teléfono y roce del aro) y §152 (26d: 2 jugadores y latencia, falta por pie, roce pasivo con la pelota parada, F y golpe forzado en el juego publicado, y las animaciones cuando haya ids), y §153 (26e: partido con 2 jugadores, formatos 2v2 a 5v5, abandono, cola real Lobby → Dunas, perfil de la copia, profiler con el oyente de partido y umbral del roce del aro).
+- **Estado (06-11-2026):** 26a (57cfd67), 26b (44c4c79), 26c (e2ba5e2) y 26d (403e322) hechas y subidas. 26e (0f6695d) y 26f (b6302d7) hechas y subidas. Queda 26g (HUD y textos).
+- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado), §148 (26b: Rendimiento, la cancha publicada, 2 jugadores, móvil y PC, iluminación) y §151 (26c: latencia con 2 jugadores, profiler, juego publicado, teléfono y roce del aro) y §152 (26d: 2 jugadores y latencia, falta por pie, roce pasivo con la pelota parada, F y golpe forzado en el juego publicado, y las animaciones cuando haya ids), y §153 (26e: partido con 2 jugadores, formatos 2v2 a 5v5, abandono, cola real Lobby → Dunas, perfil de la copia, profiler con el oyente de partido y umbral del roce del aro), y §155 (26f: daño nulo y curva con 2 jugadores, tope de 140 y muros del salto en Play, recargas con `Equilibrio` y el teléfono).
 - **Qué necesita 26c de la cancha:** la fuente única de medidas es `src/shared/CourtGeometry.luau`. `BallSim` usa sus funciones y constantes, no números propios.
   - `CourtGeometry.forFormat(format)` devuelve el `Layout` del formato (`length`, `halfLength`, `halfWidth`, `endX`, `headerHalfWidth`, `profile`, `ring`, `spawns`, `waiting`). `LENGTHS` = 56, 72, 88, 104 y 120 para 1 a 5 jugadores por equipo.
   - `surfaceY(absZ)` da la altura de la superficie a esa distancia lateral del eje (suelo 0, banqueta 2, talud hasta 10) o `nil` si ahí hay un muro vertical. `isOut(layout, x)` es fuera por la línea de fondo. `teamOfSide(x)` da el equipo que defiende ese lado (Jaguar en X negativa, Quetzal en positiva; `nil` en la línea central).
@@ -1478,7 +1478,20 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
   3. La cancha decorativa de `ArenaBuilder.buildCourtWall` se queda: es decorado del mapa de bandera y vive en otra carpeta que `Cancha` (`Workspace.Cancha`, de `CourtBuilder`). Decidido en 26e, no se quita.
   4. `src/dunas/server/Services/ArenaMatchService.luau`, línea 43, tiene un comentario viejo («Ballgame… aún no está en Config.Arena.Modes»). Ya está: corregirlo cuando se toque ese archivo.
   5. La trampa 6 de 26d sigue viva: si 26f reactiva las armas, el clic izquierdo chocará con el ataque mientras `BallActive`.
-- **Siguiente paso, 26f:** habilidades de rol sin daño entre jugadores: Guerrero «Golpe de yugo», Cazador «Salto de jaguar», Mago «Viento» y Médico «Paso ligero», desde `CombatRules`, medidas con `Equilibrio` por recargas. Después, 26g (HUD y textos, que consume los atributos `BallgameCall*`).
+- **Hecho en 26f (b6302d7):**
+  - Habilidades de rol sin daño en el Juego de pelota, desde `CombatRules`: Guerrero «Golpe de yugo» (×1,4), Cazador «Salto de jaguar» (salto de 14 studs), Mago «Viento» (curva) y Médico «Paso ligero» (×1,35). Recargas base: Yugo 8 s, Salto 6 s, Viento 10 s y Paso 8 s; el `CooldownRate` del equipo de arena las acorta.
+  - Hueco único: en el Juego de pelota el botón 1 de habilidades muestra la habilidad del rol y los botones 2 a 5 no aparecen.
+  - Sin armas ni guardia en el Juego de pelota. `DunasCombatRules.Start` reparte las armas al cambiar `ArenaMode`.
+  - Curva del Viento: `BallSim` lleva `curveLeft` (segundos de curva que quedan) y `Data/Ballgame.Wind.CurveAccel` da la aceleración lateral. `BallState` lleva `curve` para que el cliente prediga igual.
+  - Tope de velocidad: `Ballgame.MaxSpeed` = 140 studs/s, también con el Yugo.
+  - El Salto de jaguar lo hace el cliente (`RoleController.jaguarLeap`).
+- **Trampas de 26f:**
+  1. `RoleAbilities.of` sin rol explícito devuelve solo la habilidad de Ballgame. Las ventanas con `roleId` explícito no cambian.
+  2. `BallSim` lleva `curveLeft` y `BallState` lleva `curve`: si cambias uno hay que cambiar el otro, o la predicción y el servidor no coinciden.
+  3. El Salto de jaguar lo hace el cliente (`RoleController.jaguarLeap`): por remoto no salta.
+  4. `DunasCombatRules.Start` reparte las armas al cambiar `ArenaMode`: un cambio de modo a mitad de partida pasa por ahí (§155.2 paso 6).
+  5. Studio de Edit no puede copiar el perfil (la API da «Access forbidden»). El Play de 26f escribió el perfil real sin copia.
+- **Siguiente paso, 26g:** HUD y textos: marcador de rayas como tallas de Jaguar contra Quetzal, contador de botes, avisos, gran aviso de victoria por aro e indicador de tiempo, todo con `T()` y la skill `interfaz-roblox`. Consume los atributos `BallgameCall`, `BallgameCallTeam` y `BallgameCallSeq` (26e).
 
 ---
 
