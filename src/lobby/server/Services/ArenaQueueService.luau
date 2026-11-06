@@ -2,9 +2,10 @@
 -- Colas de las arenas PvP (la de Dunas, captura la bandera, y la del Laboratorio en ruinas), compartidas
 -- por todos los servidores del Lobby con MemoryStore. Un solo servicio para los dos destinos (GAMES):
 --   - Un jugador (o el líder de un grupo, con todo el grupo) elige formato (1v1…5v5) y entra en la cola
---     (Remotes.ArenaQueueJoin(formato, juego?, modo?): sin juego es Dunas; "Lab" pide un modo de
---     Config.Lab.Modes). Su "ticket" va a la lista ordenada del destino (por hora de llegada) con
---     quiénes son: "ArenaQueue_<formato>" en Dunas y "LabQueue_<modo>_<formato>" en el Laboratorio.
+--     (Remotes.ArenaQueueJoin(formato, juego?, modo?): sin juego es Dunas, con un modo de
+--     Config.Arena.Modes (sin modo, el primero); "Lab" pide un modo de Config.Lab.Modes). Su "ticket" va a
+--     la lista ordenada del destino (por hora de llegada) con quiénes son: "ArenaQueue_<modo>_<formato>"
+--     en Dunas y "LabQueue_<modo>_<formato>" en el Laboratorio.
 --   - Cada pocos segundos, un solo servidor por lista (el que coge su candado en "ArenaQueueLock")
 --     reparte los tickets más antiguos en dos equipos de <formato> plazas (un grupo nunca se separa).
 --     Si se completan los dos, reserva un servidor del destino y deja a cada ticket su código en
@@ -16,7 +17,7 @@
 -- El estado se ve en el atributo "ArenaQueue" del jugador (JSON: formato, desde cuándo, juego y modo; sin
 -- juego es Dunas). Salir de la cola: Remotes.ArenaQueueLeave, o irse del Lobby (cualquiera del grupo).
 -- Cada COUNT_SECONDS cuenta cuántos jugadores esperan en cada formato (todos los servidores) y lo
--- publica en ReplicatedStorage: "ArenaQueueCounts" (Dunas, JSON por formato) para el cartel de la Isla
+-- publica en ReplicatedStorage: "ArenaQueueCounts" (Dunas, JSON { [modo] = { [formato] = n } }) para el cartel de la Isla
 -- de dunas (ArenaBoardController) y "LabQueueCounts" (JSON { [modo] = { [formato] = n } }) para el del
 -- Laboratorio.
 
@@ -101,6 +102,9 @@ local _MODE_NAMES = {
 	Strings.later("Duelo por equipos"),
 	Strings.later("Todos contra todos"),
 	Strings.later("Rondas"),
+	-- Y los de Dunas (Config.Arena.ModeNames).
+	Strings.later("Captura la bandera"),
+	Strings.later("Juego de pelota"),
 }
 
 -- Avisos propios de Todos contra todos: una sola sala sin bandos, así que no hay "{n}v{n}".
@@ -111,10 +115,9 @@ local canRequest = RequestCooldown.new(1)
 -- Tickets de este servidor, por clave.
 local tickets: { [string]: Ticket } = {}
 
--- Nombre de la lista de un destino, modo y formato. Dunas conserva el de siempre, para no perder
--- tickets al actualizar.
+-- Nombre de la lista de un destino, modo y formato.
 local function listName(gameId: string, mode: string?, format: number): string
-	return if gameId == "Lab" then `LabQueue_{mode or ""}_{format}` else `ArenaQueue_{format}`
+	return if gameId == "Lab" then `LabQueue_{mode or ""}_{format}` else `ArenaQueue_{mode or ""}_{format}`
 end
 
 local function queueOf(gameId: string, mode: string?, format: number): MemoryStoreSortedMap
@@ -199,7 +202,18 @@ local function onJoin(player: Player, format: any, gameId: any, mode: any)
 		return
 	end
 	local queueMode: string? = nil
-	if gameName == "Lab" then
+	if gameName == "Dunas" then
+		-- Cada modo de Dunas tiene sus formatos; sin modo, el primero (la ventana sin selector no lo manda).
+		local chosen = if mode == nil then Config.Arena.Modes[1] else mode
+		if typeof(chosen) ~= "string" or not table.find(Config.Arena.Modes, chosen) then
+			return
+		end
+		local allowed = Config.Arena.ModeFormats[chosen]
+		if not allowed or not table.find(allowed, format) then
+			return
+		end
+		queueMode = chosen
+	elseif gameName == "Lab" then
 		-- Cada modo del Laboratorio tiene sus formatos (Todos contra todos solo admite la sala de 10).
 		if typeof(mode) ~= "string" or not table.find(Config.Lab.Modes, mode) then
 			return
@@ -209,8 +223,6 @@ local function onJoin(player: Player, format: any, gameId: any, mode: any)
 			return
 		end
 		queueMode = mode
-	elseif format < destination.minFormat or format > destination.maxFormat then
-		return
 	end
 	local freeForAll = queueMode == "FreeForAll"
 	local leader, members = MatchmakingService.partyOf(player)
@@ -269,7 +281,7 @@ end
 -- ¿Este servidor tiene el candado de la lista? Lo coge si está libre o caducado.
 local function takeLock(gameId: string, mode: string?, format: number): boolean
 	local now = Workspace:GetServerTimeNow()
-	local name = if gameId == "Lab" then `lock_{listName(gameId, mode, format)}` else `format_{format}`
+	local name = `lock_{listName(gameId, mode, format)}`
 	local ok, result = pcall(function()
 		return locks:UpdateAsync(name, function(old: any): any
 			if typeof(old) == "table" and old.job ~= game.JobId and (old.untilTime or 0) > now then
@@ -437,19 +449,26 @@ local function countOf(gameId: string, mode: string?, format: number): number?
 end
 
 -- Jugadores esperando en cada formato. Si no se puede leer alguno, no se publica (el cartel enseña "—").
--- Riesgo de cuota de MemoryStore: cada ciclo (COUNT_SECONDS) lee 5 formatos de Dunas y los del Laboratorio
+-- Riesgo de cuota de MemoryStore: cada ciclo (COUNT_SECONDS) lee 5 formatos por modo de Dunas y los del Laboratorio
 -- (5 + 1 + 5 = 11), 16 lecturas por servidor del Lobby; con varios servidores suma. Si se acerca al
 -- límite, subir COUNT_SECONDS.
 local function publishCounts()
-	local dunas: { [string]: number } = {}
+	local dunas: { [string]: { [string]: number } } = {}
 	local complete = true
-	for format = GAMES.Dunas.minFormat, GAMES.Dunas.maxFormat do
-		local players = countOf("Dunas", nil, format)
-		if not players then
-			complete = false
+	for _, mode in Config.Arena.Modes do
+		local byFormat: { [string]: number } = {}
+		for _, format in Config.Arena.ModeFormats[mode] do
+			local players = countOf("Dunas", mode, format)
+			if not players then
+				complete = false
+				break
+			end
+			byFormat[tostring(format)] = players
+		end
+		if not complete then
 			break
 		end
-		dunas[tostring(format)] = players
+		dunas[mode] = byFormat
 	end
 	if complete then
 		ReplicatedStorage:SetAttribute("ArenaQueueCounts", HttpService:JSONEncode(dunas))

@@ -37,6 +37,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local ArenaGearPicker = require(ReplicatedStorage.Shared.UI.ArenaGearPicker)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local ArenaRoleCards = require(ReplicatedStorage.Shared.UI.ArenaRoleCards)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CosmeticShopPanel = require(ReplicatedStorage.Shared.UI.CosmeticShopPanel)
@@ -499,6 +500,7 @@ function LobbyUIController:Start()
 	-- Ventana Arena: formato elegido, rol cuyo equipo se ve, ranura abierta del equipo y la línea que
 	-- dice cuánto llevas en la cola (se actualiza cada segundo).
 	local arenaFormat = 1
+	local arenaMode: string = Config.Arena.Modes[1]
 	-- Ventana del Laboratorio: modo elegido y el formato que se eligió en cada modo (la línea de la cola es
 	-- la misma, arenaQueueLine).
 	local labFormats: { [string]: number } = {}
@@ -1479,6 +1481,41 @@ function LobbyUIController:Start()
 			right = pane(holder, 2, UDim.new(0.56, -5))
 		end
 
+		local shownMode = if queue and typeof(queue.mode) == "string" then queue.mode else arenaMode
+		-- Modos de Dunas: solo se enseña el selector si hay más de uno.
+		if #Config.Arena.Modes > 1 then
+			local modeRow = Instance.new("Frame")
+			modeRow.LayoutOrder = 0
+			modeRow.Size = UDim2.new(1, if compact then 0 else -10, 0, if compact then 32 else 40)
+			modeRow.BackgroundTransparency = 1
+			modeRow.Parent = left
+			local modeLayout = Instance.new("UIListLayout")
+			modeLayout.FillDirection = Enum.FillDirection.Horizontal
+			modeLayout.Padding = UDim.new(0, 6)
+			modeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			modeLayout.Parent = modeRow
+			for index, mode in Config.Arena.Modes do
+				local button = Instance.new("TextButton")
+				button.LayoutOrder = index
+				button.Size = UDim2.new(1 / #Config.Arena.Modes, -6, 1, 0)
+				button.Text = T(Config.Arena.ModeNames[mode])
+				button.Font = Enum.Font.BuilderSansBold
+				button.TextScaled = true
+				local chosen = mode == shownMode
+				button.BackgroundColor3 = if chosen then READY_COLOR else ROW_COLOR
+				button.TextColor3 = if chosen then Color3.fromRGB(40, 25, 5) else Color3.new(1, 1, 1)
+				button.AutoButtonColor = queue == nil
+				button.Parent = modeRow
+				corner(button, 8)
+				button.MouseButton1Click:Connect(function()
+					if not queue then
+						arenaMode = mode
+						render()
+					end
+				end)
+			end
+		end
+
 		-- Formatos y "Buscar partida" (en compacto, el botón en su propia fila).
 		local formatRow = Instance.new("Frame")
 		formatRow.LayoutOrder = 1
@@ -1495,7 +1532,7 @@ function LobbyUIController:Start()
 			local button = Instance.new("TextButton")
 			button.LayoutOrder = format
 			button.Size = UDim2.new(if compact then 0.2 else 0.1, -6, 1, 0)
-			button.Text = `{format}v{format}`
+			button.Text = ArenaModes.formatLabel(shownMode, format)
 			button.Font = Enum.Font.BuilderSansBold
 			button.TextScaled = true
 			local chosen = format == shownFormat
@@ -1536,7 +1573,7 @@ function LobbyUIController:Start()
 			elseif queue then
 				Remotes.ArenaQueueLeave:FireServer()
 			else
-				Remotes.ArenaQueueJoin:FireServer(arenaFormat)
+				Remotes.ArenaQueueJoin:FireServer(arenaFormat, "Dunas", arenaMode)
 			end
 		end)
 

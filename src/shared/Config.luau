@@ -1231,6 +1231,15 @@ local Config = {
 		-- Antes de la partida: si todos pulsan "Listo", cuenta atrás; si no, a los WaitSeconds de
 		-- llegar el primero arranca igual (si algún equipo está vacío, se cancela y vuelven al Lobby).
 		WaitSeconds = 60,
+		-- Modos de la cola, en orden (la clave va en la lista de MemoryStore y en TeleportData "mode"). Los
+		-- nombres se traducen al dibujarlos (T(name)): Config no carga Strings. Ballgame (Fase 26e) aún no
+		-- está en la lista: su módulo existe, pero no se puede elegir.
+		Modes = { "CaptureFlag" },
+		ModeNames = { CaptureFlag = "Captura la bandera", Ballgame = "Juego de pelota" },
+		-- Formatos que se pueden buscar en la cola de cada modo: jugadores por equipo (1v1…5v5).
+		ModeFormats = { CaptureFlag = { 1, 2, 3, 4, 5 }, Ballgame = { 1, 2, 3, 4, 5 } },
+		-- Modo de Studio (sin viaje desde el Lobby).
+		StudioMode = "CaptureFlag",
 		CountdownSeconds = 10,
 		-- Partida: gana quien llegue a CapturesToWin; si se acaba el tiempo, quien tenga más (con
 		-- empate, muerte súbita: la siguiente captura gana).

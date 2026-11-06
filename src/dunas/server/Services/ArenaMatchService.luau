@@ -10,8 +10,11 @@
 --               el otro.
 --   SuddenDeath la siguiente captura gana.
 --   Results     resultados unos segundos y otra vez Waiting con los mismos equipos (la revancha).
--- El estado va en atributos (Shared/Arena). El formato (jugadores por equipo) llega del Lobby en el
--- viaje (TeleportData "format"); en Studio, Config.Arena.StudioFormat o el panel de pruebas.
+-- Aquí va lo común a todos los modos (Config.Arena.Modes: hoy Captura la bandera); lo que cambia de uno a
+-- otro (cómo se puntúa, cuándo acaba, quién gana) está en Modes/ (Modes/Types).
+-- El estado va en atributos (Shared/Arena). El modo y el formato (jugadores por equipo) llegan del Lobby en
+-- el viaje (TeleportData "mode" y "format"); en Studio, Config.Arena.StudioMode y StudioFormat o el panel de
+-- pruebas. El modo en curso va en Workspace "ArenaMode" (Shared/ArenaModes).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,17 +23,28 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local Teleporter = require(ServerScriptService.ServerShared.Teleporter)
+local Ballgame = require(script.Parent.Parent.Modes.Ballgame)
+local CaptureFlag = require(script.Parent.Parent.Modes.CaptureFlag)
+local Types = require(script.Parent.Parent.Modes.Types)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
 local RespawnService = require(script.Parent.RespawnService)
 local TeamService = require(script.Parent.TeamService)
 
 local TICK_SECONDS = 0.25
-local STAT_ATTRIBUTES = { "ArenaKills", "ArenaDeaths", "ArenaCaptures" }
+-- Las estadísticas comunes; el modo reinicia las suyas (Captura la bandera: "ArenaCaptures").
+local STAT_ATTRIBUTES = { "ArenaKills", "ArenaDeaths" }
+
+-- Un modo por clave de Config.Arena.ModeNames (Ballgame, de la Fase 26e, aún no está en Config.Arena.Modes).
+local MODES: { [string]: Types.Mode } = {
+	CaptureFlag = CaptureFlag,
+	Ballgame = Ballgame,
+}
 
 local ArenaMatchService = {}
 
@@ -52,6 +66,10 @@ local function now(): number
 	return Workspace:GetServerTimeNow()
 end
 
+local function mode(): Types.Mode
+	return MODES[ArenaModes.current()]
+end
+
 local function setPhase(phase: Arena.Phase, seconds: number?)
 	ReplicatedStorage:SetAttribute("ArenaPhase", phase)
 	ReplicatedStorage:SetAttribute("ArenaPhaseEndsAt", if seconds then now() + seconds else nil)
@@ -62,21 +80,29 @@ local function endsAt(): number?
 	return if typeof(value) == "number" then value else nil
 end
 
+-- El formato más cercano que admite el modo en curso.
 local function setFormat(format: number)
-	format = math.clamp(math.floor(format), Config.Arena.MinFormat, Config.Arena.MaxFormat)
+	local current = mode()
+	format = current.format(format)
 	ReplicatedStorage:SetAttribute("ArenaFormat", format)
+	current.publish(format)
 	ArenaWorldService.setFormat(format)
 end
 
-local function setScore(teamId: string, value: number)
-	ReplicatedStorage:SetAttribute(`ArenaScore_{teamId}`, value)
+-- Cambia el modo (solo uno de Config.Arena.Modes): el anterior deshace lo suyo y el escenario se prepara
+-- para el nuevo.
+local function setMode(modeId: string)
+	if not (MODES[modeId] and table.find(Config.Arena.Modes, modeId)) then
+		return
+	end
+	mode().stop()
+	Workspace:SetAttribute("ArenaMode", modeId)
+	ArenaWorldService.setMode(modeId)
+	setFormat(Arena.format())
 end
 
-local function teamSizes(): (number, number)
-	return #Arena.membersOf("Jaguar"), #Arena.membersOf("Quetzal")
-end
-
--- El formato lo trae el primero en llegar desde el Lobby.
+-- El modo y el formato los trae el primero en llegar desde el Lobby (primero el modo: el formato se valida
+-- con él).
 local function readFormat(player: Player)
 	if formatLocked then
 		return
@@ -86,17 +112,20 @@ local function readFormat(player: Player)
 		return player:GetJoinData()
 	end)
 	local data = if ok and typeof(joinData) == "table" then joinData.TeleportData else nil
-	local format = if typeof(data) == "table" then data.format else nil
-	if typeof(format) == "number" then
-		setFormat(format)
+	if typeof(data) ~= "table" then
+		return
+	end
+	if typeof(data.mode) == "string" then
+		setMode(data.mode)
+	end
+	if typeof(data.format) == "number" then
+		setFormat(data.format)
 	end
 end
 
 local function startWaiting()
 	solo = false
-	for _, teamId in Arena.TEAM_IDS do
-		setScore(teamId, 0)
-	end
+	mode().reset()
 	ReplicatedStorage:SetAttribute("ArenaWinner", nil)
 	for _, player in Players:GetPlayers() do
 		player:SetAttribute("ArenaReady", false)
@@ -108,21 +137,6 @@ end
 local function startCountdown()
 	TeamService.assignMissing()
 	setPhase("Countdown", Config.Arena.CountdownSeconds)
-end
-
-local function startBattle()
-	for _, teamId in Arena.TEAM_IDS do
-		setScore(teamId, 0)
-	end
-	for _, player in Players:GetPlayers() do
-		for _, attribute in STAT_ATTRIBUTES do
-			player:SetAttribute(attribute, 0)
-		end
-	end
-	setPhase("Battle", Config.Arena.MatchSeconds)
-	ArenaWorldService.setGates(true)
-	RespawnService.respawnAll()
-	Remotes.Notify:FireAllClients("⚔️ ¡Que empiece la batalla! Roba la bandera rival y tráela a tu base")
 end
 
 local function finish(winner: string?)
@@ -139,12 +153,24 @@ local function finish(winner: string?)
 	end
 end
 
--- Un equipo ha capturado la bandera rival (FlagService). En muerte súbita, gana.
-function ArenaMatchService.addCapture(teamId: string)
-	if not Arena.inBattle() then
-		return
+local ctx: Types.Context = {
+	setPhase = setPhase,
+	finish = finish,
+	isSolo = ArenaMatchService.isSolo,
+}
+
+local function startBattle()
+	for _, player in Players:GetPlayers() do
+		for _, attribute in STAT_ATTRIBUTES do
+			player:SetAttribute(attribute, 0)
+		end
 	end
-	setScore(teamId, Arena.score(teamId) + 1)
+	mode().start(ctx)
+end
+
+-- Un equipo ha capturado la bandera rival (FlagService): el modo en curso decide qué suma.
+function ArenaMatchService.addCapture(teamId: string)
+	mode().capture(teamId)
 end
 
 -- Fuera de Studio no hay nadie con quien jugar: de vuelta al Lobby.
@@ -171,20 +197,18 @@ local function tickWaiting()
 		setPhase("Waiting", Config.Arena.WaitSeconds)
 		return
 	end
-	local jaguar, quetzal = teamSizes()
-	local format = Arena.format()
+	local current = mode()
 	local allReady = true
 	for _, player in players do
 		if not (Arena.teamOf(player) and player:GetAttribute("ArenaReady") == true) then
 			allReady = false
 		end
 	end
-	if solo or (jaguar == format and quetzal == format and allReady) then
+	if solo or (current.full() and allReady) then
 		startCountdown()
 	elseif now() >= deadline then
 		TeamService.assignMissing()
-		jaguar, quetzal = teamSizes()
-		if jaguar > 0 and quetzal > 0 then
+		if current.enough() then
 			startCountdown()
 		elseif RunService:IsStudio() then
 			Remotes.Notify:FireAllClients("🧪 Falta el otro equipo: usa el panel de pruebas para empezar solo")
@@ -197,34 +221,17 @@ end
 
 local function tick()
 	local phase = Arena.phase()
-	local jaguar, quetzal = teamSizes()
-	local teamMissing = not solo and (jaguar == 0 or quetzal == 0)
 	if phase == "Waiting" then
 		tickWaiting()
 	elseif phase == "Countdown" then
-		if teamMissing then
+		if mode().abandoned(ctx) then
 			Remotes.Notify:FireAllClients("Un equipo se ha quedado vacío: se espera a más jugadores")
 			setPhase("Waiting", Config.Arena.WaitSeconds)
 		elseif now() >= (endsAt() or 0) then
 			startBattle()
 		end
 	elseif phase == "Battle" or phase == "SuddenDeath" then
-		local jaguarScore, quetzalScore = Arena.score("Jaguar"), Arena.score("Quetzal")
-		local target = Config.Arena.CapturesToWin
-		if jaguarScore >= target or (phase == "SuddenDeath" and jaguarScore > quetzalScore) then
-			finish("Jaguar")
-		elseif quetzalScore >= target or (phase == "SuddenDeath" and quetzalScore > jaguarScore) then
-			finish("Quetzal")
-		elseif teamMissing then
-			finish(if jaguar > 0 then "Jaguar" elseif quetzal > 0 then "Quetzal" else nil)
-		elseif phase == "Battle" and now() >= (endsAt() or 0) then
-			if jaguarScore == quetzalScore then
-				setPhase("SuddenDeath", nil)
-				Remotes.Notify:FireAllClients("⚡ ¡Empate! Muerte súbita: la siguiente captura gana")
-			else
-				finish(if jaguarScore > quetzalScore then "Jaguar" else "Quetzal")
-			end
-		end
+		mode().tick(ctx, phase)
 	elseif phase == "Results" then
 		if now() >= (endsAt() or 0) then
 			startWaiting()
@@ -261,6 +268,7 @@ end
 
 function ArenaMatchService:Start()
 	-- En Start y no en Init: usa el escenario (ArenaWorldService), que se prepara en su Init.
+	setMode(Config.Arena.StudioMode)
 	setFormat(Config.Arena.StudioFormat)
 	startWaiting()
 	Players.PlayerAdded:Connect(readFormat)

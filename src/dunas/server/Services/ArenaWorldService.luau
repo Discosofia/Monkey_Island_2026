@@ -55,6 +55,19 @@ function ArenaWorldService.setFormat(format: number)
 	end
 end
 
+-- El modo en curso (ArenaMatchService.setMode). El mapa de cada modo llega con él: la cancha del Juego de
+-- pelota (Workspace.Cancha, Fase 26b). Mientras no exista, el escenario de la bandera no cambia: en 26b
+-- aquí se mostrará la cancha o la arena de la bandera según el modo.
+local currentMode: string? = nil
+
+function ArenaWorldService.setMode(mode: string)
+	currentMode = mode
+end
+
+function ArenaWorldService.mode(): string?
+	return currentMode
+end
+
 -- Dónde aparece un jugador: en la baldosa de su base o, sin equipo, en lo alto de la pirámide.
 function ArenaWorldService.spawnCFrame(teamId: string?): CFrame
 	if teamId then

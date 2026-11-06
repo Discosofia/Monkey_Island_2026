@@ -157,7 +157,16 @@ function ArenaBoardController:Start()
 		end
 		local myFormat = if queue then tonumber(queue.format) else nil
 		for format, label in board.formats do
-			local waiting = if counts then tonumber(counts[tostring(format)]) else nil
+			-- Los jugadores esperando en este formato, sumando todos los modos (counts[modo][formato]).
+			local waiting = nil
+			if counts then
+				for _, byFormat in counts do
+					local n = if typeof(byFormat) == "table" then tonumber(byFormat[tostring(format)]) else nil
+					if n then
+						waiting = (waiting or 0) + n
+					end
+				end
+			end
 			label.Text = `{format}v{format}\n{if waiting then waiting else "—"} 👤`
 			local mine = format == myFormat
 			label.TextColor3 = if mine then DARK_TEXT elseif (waiting or 0) > 0 then QUEUE_COLOR else Color3.new(1, 1, 1)

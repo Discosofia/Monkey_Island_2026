@@ -5523,6 +5523,39 @@ La travesía es la escena `Voyage` (`Data/Cinematics`, 12 s, sin botón Saltar l
 16. [ ] Mira al Guerrero, al Cazador y al Médico sentados en la lancha desde varios ángulos (de frente, de lado y por detrás).
     ✅ Ninguno sobresale del borde (tubo) de la lancha desde esos ángulos.
 
+## 146. Fase 26 26a: modos en Dunas y cola por modo (05-11-2026)
+
+La bandera pasa a `Modes/CaptureFlag` (la misma interfaz que el Laboratorio), la cola de Dunas es `ArenaQueue_<modo>_<formato>` con `mode` y `format` en `TeleportData`, y el Lobby reparte los contadores de `ArenaQueueCounts` como `{ [modo] = { [formato] = n } }`. Se probó en Studio con un jugador y solo el modo de bandera: fases, marcador, muerte súbita, revancha y formatos. Lo que sigue sin probar es esto.
+
+### 146.1 Cola real Lobby → Dunas (juego publicado, 2 jugadores)
+
+1. [ ] Con dos cuentas en el Lobby del juego publicado, ponte en la cola de Dunas con el modo «Captura la bandera» y el formato 1 (1 contra 1), y que las dos entren en la misma cola.
+   ✅ Las dos cuentas aparecen en `ArenaQueue_CaptureFlag_1` y pasan juntas a Dunas.
+2. [ ] Al llegar a Dunas, mira el `TeleportData` que recibe el servidor y el atributo `Workspace.ArenaMode`.
+   ✅ `TeleportData` trae `mode` y `format` con los valores elegidos, y `Workspace.ArenaMode` vale `"CaptureFlag"`.
+
+### 146.2 Cartel de la Isla de dunas y ventana del Lobby (2 cuentas)
+
+3. [ ] Con una cuenta en el Lobby, mira el cartel de la Isla de dunas con la cola vacía y después mientras otra cuenta se pone en cola.
+   ✅ El cartel sigue mostrando los contadores de la cola, leídos de `ArenaQueueCounts` en el formato nuevo, y los números cuadran con quién está en cada formato.
+4. [ ] Abre la ventana de Dunas desde el Lobby en el PC y en el teléfono.
+   ✅ Se ve igual que antes de la 26a, sin selector de modo, y todo cabe sin desplazamiento.
+
+### 146.3 Partido de bandera con 2 jugadores
+
+5. [ ] Con las dos cuentas en Dunas, pasad por equipos y «Listo», y capturad la bandera del rival hasta sumar un punto.
+   ✅ La captura suma en el marcador de los dos, la bandera vuelve a su base y el flujo de equipos y «Listo» funciona igual que en Studio.
+
+### 146.4 Final y vuelta al Lobby
+
+6. [ ] Termina una partida entera con 2 jugadores y espera a que acaben los resultados (`ResultsSeconds`) sin cerrar el juego.
+   ✅ Los resultados se ven completos durante todo su tiempo y después el juego vuelve al Lobby solo, fuera de Studio.
+
+### 146.5 Tickets de la cola anterior
+
+7. [ ] Antes de desplegar, pon a una cuenta en la cola vieja `ArenaQueue_<formato>` (sin modo). Tras desplegar, mira si esa cuenta entra en alguna partida.
+   ✅ Los tickets de la cola vieja caducan y se pierden: nadie es emparejado con ellos. Quien estuviera esperando tiene que volver a ponerse en la cola nueva.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

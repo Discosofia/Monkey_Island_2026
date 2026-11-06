@@ -1330,6 +1330,47 @@ Escenas animadas para promocionar el juego (YouTube y Shorts) y cinemáticas en 
   1. **G5, batallas montadas:** maniquíes contra monos y jefes con las habilidades reales, con viñetas, onomatopeyas y líneas de velocidad de `Comic` en la variante para vídeo. Mira el tope de efectos en High. Reutiliza de G4 la tripulación (`CREW`), `WeaponCarry` y `Actors.alignWeapon`; los maniquíes de una batalla deberán atacar, así que sus armas necesitarán las poses de combate (`Slash*`, `Aim*`) en lugar de `WeaponCarry`.
 - **Prompt para la pestaña nueva:** «Lee CLAUDE.md y `docs/PLAN.md` → Fase 25 y su Handoff (HEAD: el commit de PLAN que sigue a G4b). G1 a G4 hechos y subidos (jefes, huevo, rescate y llegada), y G4b (travesía en lancha) aprobado. Haz el grupo G5: batallas montadas (maniquíes contra monos y jefes con las habilidades reales, con viñetas, onomatopeyas y líneas de velocidad de `Comic` en la variante para vídeo; mira el tope de efectos en High). Sigue el flujo del proyecto: especifica al programador, prueba con probador-studio (la copia y restauración del perfil las hago yo a mano con VERIFICACION §10.0), revisa tú las capturas (una a una) y pídeme el «aprobado» antes de cada commit; el push solo cuando yo lo diga. Lee antes las trampas de G4b, G4, G3 y G2c.»
 
+### Fase 26: Juego de pelota (tlachtli) en Dunas (05-11-2026)
+
+Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `docs/juego de pelota.txt`, para 1v1 a 5v5, con la planta en «I», una pelota física golpeada con cadera, rodilla y codo, y aros de victoria inmediata. Captura la bandera sigue siendo el modo de siempre (`CaptureFlag`). Plan en `C:\Users\jose\.claude\plans\misty-soaring-pearl.md`.
+
+**Decisiones del usuario (05-11-2026)**
+- Segundo modo y mapa dentro de Dunas, como hace el Laboratorio.
+- Golpe con botón con tiempo: en el momento justo la pelota sale más fuerte y hacia donde miras; un roce pasivo da un rebote flojo.
+- Habilidades de rol limitadas y sin daño entre jugadores: dos por rol, propias del modo.
+- Reglas simplificadas: gana el primero a 8 rayas, el aro da la victoria al momento, hay tiempo límite y muerte súbita.
+- La pelota usa una simulación propia: el servidor manda y los clientes predicen.
+- Una sola cancha que se acorta según el formato (1v1 a 5v5).
+- Aros difíciles pero posibles.
+- Todo lo extra se apunta en «Para más adelante».
+
+| Grupo | Contenido | Commit | Estado |
+|---|---|---|---|
+| **26a** | Modos en Dunas: la bandera sale a `Modes/CaptureFlag` (misma interfaz que el Laboratorio); `Config.Arena.Modes`, `ModeNames`, `ModeFormats` y `StudioMode`; `Shared/ArenaModes`; cola por modo (`ArenaQueue_<modo>_<formato>`, con `mode` y `format` en `TeleportData`); `ArenaWorldService.setMode` como esqueleto para el mapa de cada modo; `Modes/Ballgame` como placeholder | commit pendiente | ✅ Hecha sin commit (probada en Studio con un jugador: la bandera igual que antes). Lo que falta, en VERIFICACION §146 |
+| **26b** | La cancha: `World/CourtBuilder` con versión propia y `Workspace.Cancha` (pasillo de 26 studs, largo según el formato, cabeceras 54×22, muros con banqueta, talud, paramento y aro, colores de los cuatro rumbos), `setFormat`, muro invisible de equipo y tope `Config.Budgets.Cancha` medido con `Rendimiento` | — | ⏳ |
+| **26c** | La pelota: `Shared/BallSim` (matemática pura, mismo código en servidor y cliente), `Data/Ballgame` (números de la pelota y de los golpes), `BallService` (simula a 60 Hz y manda el estado a 20 Hz), `BallController` (predicción con suavizado) y remotos `BallState`, `BallEvent` y `BallHit` | — | ⏳ |
+| **26d** | El golpe: botón «Golpear» en el móvil y clic o tecla en el PC, zona por altura (rodilla, cadera, codo), falta por pie, ventana perfecta de 0,15 s y ventana buena, anillo de tiempo, dirección hacia donde miras, validación en el servidor y animaciones de `AnimationTrack` (las publica el usuario) | — | ⏳ |
+| **26e** | Reglas y partido: `Modes/Ballgame` (saque por la raya perdida, rayas por bote, fuera, pie y aro fallado, tiro al muro del fondo rival, aro de victoria, 8 rayas o `MatchSeconds`, muerte súbita y pelota parada 3 s); el modo entra en `Config.Arena.Modes` | — | ⏳ |
+| **26f** | Habilidades de rol sin daño: Guerrero «Golpe de yugo», Cazador «Salto de jaguar», Mago «Viento» y Médico «Paso ligero», desde `CombatRules`, medidas con `Equilibrio` por recargas | — | ⏳ |
+| **26g** | HUD y textos: marcador de rayas como tallas de Jaguar contra Quetzal, contador de botes, avisos («¡Tres botes!», «¡Fuera!», «¡Falló el aro!»), gran aviso de victoria por aro e indicador de tiempo; todo con `T()` y skill `interfaz-roblox` | — | ⏳ |
+
+**Para más adelante (se apunta, no entra en 26a–26g)**
+- Recompensas en Ámbar con tope diario, medidas con `Economia`.
+- Templos Norte y Sur en las cabeceras, *tzompantli*, relieves de decapitación y serpientes, y gradas con público.
+- Equipamiento visual durante el partido: yugo, palma, rodilleras y tocado de plumas.
+- Repetición a cámara lenta del aro, sonidos de impacto y celebración.
+
+**Handoff de la Fase 26 (05-11-2026)**
+- **Estado (05-11-2026):** 26a hecha, sin commit. Su hash va en la fila cuando se commitee (commit aparte de PLAN). Queda 26b, la cancha.
+- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado: cola real Lobby → Dunas, cartel de la Isla de dunas, captura de bandera, resultados y vuelta al Lobby, y tickets de la cola vieja).
+- **Siguiente paso, 26b:**
+  - Lee `docs/juego de pelota.txt` antes de tocar la cancha: es la referencia de la planta, los muros y los aros.
+  - El patrón de modos está en `src/dunas/server/Modes/` (`Types`, `CaptureFlag`, `Ballgame`) y en `LabMatchService`.
+  - `Config.Arena.Modes` tiene solo `CaptureFlag`. `Ballgame` está en `Config.Arena.ModeNames` y `ModeFormats`, pero NO en `Config.Arena.Modes` hasta 26e. `Modes/Ballgame.luau` es un placeholder que no se puede elegir.
+  - `ArenaWorldService.setMode` es solo un esqueleto: guarda el modo y todavía no cambia el escenario. El mapa de cada modo se enchufa en 26b.
+  - `ArenaBuilder.buildCourtWall` (`src/dunas/server/World/ArenaBuilder.luau`, línea ~1407) ya pone una cancha decorativa en el centro del mapa de bandera. Hay que decidir qué pasa con ella al crear `Workspace.Cancha`.
+  - Escala de 26b: 1 stud ≈ 0,28 m; pasillo de 26 studs; largo 56, 72, 88, 104 y 120 según el formato (`setFormat`); tope nuevo `Config.Budgets.Cancha`, medido con `Rendimiento`.
+
 ---
 
 ## 4. Cronograma estimado

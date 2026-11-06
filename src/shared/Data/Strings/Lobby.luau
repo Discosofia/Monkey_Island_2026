@@ -262,6 +262,8 @@ return {
 	["Duelo por equipos"] = "Team duel",
 	["Todos contra todos"] = "Free for all",
 	["Rondas"] = "Rounds",
+	["Captura la bandera"] = "Capture the flag",
+	["Juego de pelota"] = "Ball game",
 	["Modos de juego"] = "Game modes",
 	["🧪 Buscando partida de {n} jugadores en el Laboratorio…"] = "🧪 Finding a {n}-player match in the Laboratory…",
 	["Tu grupo es de {n}: la sala de Todos contra todos es de {max}"] = "Your party is {n}: the Free for all room holds {max}",
