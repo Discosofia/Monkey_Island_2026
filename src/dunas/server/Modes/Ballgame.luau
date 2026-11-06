@@ -5,6 +5,7 @@
 -- eventos y se decide quién anota. Todo va en coordenadas LOCALES de la cancha (Shared/CourtGeometry).
 -- Los avisos para el HUD (26g): atributos BallgameCall / BallgameCallTeam / BallgameCallSeq de ReplicatedStorage.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -58,6 +59,13 @@ end
 local function resetScores()
 	for _, teamId in Arena.TEAM_IDS do
 		setScore(teamId, 0)
+	end
+end
+
+-- Rayas de su equipo en esta partida, por jugador ("ArenaRays", para el Ámbar y la misión semanal).
+local function resetRays()
+	for _, player in Players:GetPlayers() do
+		player:SetAttribute("ArenaRays", 0)
 	end
 end
 
@@ -131,6 +139,11 @@ local function addPoint(team: string, call: string)
 		return
 	end
 	setScore(team, Arena.score(team) + 1)
+	-- La raya cuenta para todo el equipo que la suma, no solo para el último que tocó la pelota.
+	for _, member in Arena.membersOf(team) do
+		local rays = member:GetAttribute("ArenaRays")
+		member:SetAttribute("ArenaRays", (if typeof(rays) == "number" then rays else 0) + 1)
+	end
 	ringAttempt = nil
 	waitingServe = false
 	if Arena.score(team) >= Config.Arena.Ballgame.RaysToWin or Arena.phase() == "SuddenDeath" then
@@ -337,6 +350,7 @@ function Ballgame.start(ctx: Types.Context)
 	halt()
 	savedCtx = ctx
 	resetScores()
+	resetRays()
 	resetRound()
 	ctx.setPhase("Battle", Config.Arena.Ballgame.MatchSeconds)
 	RespawnService.respawnAll()

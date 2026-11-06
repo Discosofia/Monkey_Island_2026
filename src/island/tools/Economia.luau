@@ -69,6 +69,10 @@ local OPCIONES_BASE = {
 	especies = { base = 4, porDia = 1.5 },
 	-- Dunas: resultado medio de una partida (fracciones) y lo que hace un jugador en ella.
 	dunas = { victoria = 0.45, empate = 0.1, capturas = 1.5, bajas = 5, minutos = 10 },
+	-- Juego de pelota de Dunas (Fase 27c): sin capturas ni bajas (no hay daño) y con las rayas que suma su equipo
+	-- (la media de las dos: el que gana llega a RaysToWin y el que pierde se queda a la mitad). "cuota" es la
+	-- parte de las partidas de arena que se juegan en este modo (supuesto); el tope diario es el mismo.
+	pelota = { victoria = 0.45, empate = 0.1, rayas = 5.5, minutos = 8, cuota = 0.5 },
 	-- Laboratorio en ruinas: lo mismo (sin capturas; en Todos contra todos "victoria" es el 1.º puesto).
 	lab = { victoria = 0.45, empate = 0.1, bajas = 8, minutos = 7.5 },
 	-- Perfiles: días que juega por semana, minutos en la Isla por día de juego (cada día es una partida
@@ -704,11 +708,25 @@ local function main(copia: Instance): string
 			+ D.capturas * A.PerCapture
 			+ math.min(D.bajas * A.PerKill, A.MaxFromKills)
 	end
+	-- Juego de pelota: el pago por resultado de la bandera, más PerRay por cada raya del equipo (hasta MaxFromRays).
+	local function pelotaPorPartida(): number
+		local A = Config.Arena.Amber
+		local P = OPCIONES.pelota
+		return P.victoria * A.Win
+			+ P.empate * A.Tie
+			+ (1 - P.victoria - P.empate) * A.Loss
+			+ math.min(P.rayas * (A.PerRay or 0), A.MaxFromRays or 0)
+	end
+	-- Una partida de arena media: bandera y pelota según la cuota.
+	local function arenaPorPartida(): number
+		local cuota = OPCIONES.pelota.cuota
+		return dunasPorPartida() * (1 - cuota) + pelotaPorPartida() * cuota
+	end
 	local function dunas(partidas: number): number
 		if partidas <= 0 then
 			return 0
 		end
-		return math.min(dunasPorPartida() * partidas, Config.Arena.Amber.DailyCap)
+		return math.min(arenaPorPartida() * partidas, Config.Arena.Amber.DailyCap)
 	end
 
 	-- Laboratorio: el 1.º puesto (o la victoria) cobra Win, los empates Tie y el resto Loss (el valor medio;
@@ -855,7 +873,9 @@ local function main(copia: Instance): string
 		acc.Rescue = (acc.Rescue or 0) + p.rescate
 		acc.Species = math.max(acc.Species or 0, especiesEn(minutos))
 		acc.ArenaWin = (acc.ArenaWin or 0) + perfil.partidasDunas * OPCIONES.dunas.victoria
-		acc.ArenaCapture = (acc.ArenaCapture or 0) + perfil.partidasDunas * OPCIONES.dunas.capturas
+		local cuotaPelota = OPCIONES.pelota.cuota
+		acc.ArenaCapture = (acc.ArenaCapture or 0) + perfil.partidasDunas * (1 - cuotaPelota) * OPCIONES.dunas.capturas
+		acc.ArenaRay = (acc.ArenaRay or 0) + perfil.partidasDunas * cuotaPelota * OPCIONES.pelota.rayas
 		acc.LabWin = (acc.LabWin or 0) + perfil.partidasLab * OPCIONES.lab.victoria
 	end
 
@@ -1418,6 +1438,19 @@ local function main(copia: Instance): string
 				Config.Lab.Amber.DailyCap / labPorPartida()
 			)} partidas) · topes juntos {topePvp}/día.`
 		)
+		local ambarMinutoPelota = pelotaPorPartida() / OPCIONES.pelota.minutos
+		linea(
+			`Pelota: {n(pelotaPorPartida())} ✨ por partida ({n(ambarMinutoPelota)}/min; {n(OPCIONES.pelota.rayas)} rayas del equipo a {Config.Arena.Amber.PerRay or 0} ✨, tope {Config.Arena.Amber.MaxFromRays or 0}); arena media con cuota de pelota {pct(
+				OPCIONES.pelota.cuota
+			)}: {n(arenaPorPartida())} ✨ por partida.`
+		)
+		if ambarMinutoPelota > ambarMinutoDunas then
+			alerta(
+				`PvP: la pelota da {n(ambarMinutoPelota)} ✨ por minuto, más que la bandera de Dunas ({n(
+					ambarMinutoDunas
+				)}): no puede superarla`
+			)
+		end
 		if ambarMinutoLab > ambarMinutoDunas then
 			alerta(
 				`PvP: el Laboratorio da {n(ambarMinutoLab)} ✨ por minuto, más que Dunas ({n(ambarMinutoDunas)}): no puede superarlo`

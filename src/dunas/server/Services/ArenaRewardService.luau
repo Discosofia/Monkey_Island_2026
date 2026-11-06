@@ -1,8 +1,8 @@
 --!strict
 -- Lo que se gana al terminar una partida de la arena (Config.Arena.Amber), para quien sigue en ella:
---   - Ámbar por el resultado (victoria, empate, derrota), por cada captura y por cada baja (estas,
---     con tope por partida). Con un tope diario (perfil "arena.daily"): lo que pase del tope no se
---     cobra, y los resultados lo dicen.
+--   - Ámbar por el resultado (victoria, empate, derrota), por cada captura, por cada baja y por cada
+--     raya del equipo en el Juego de pelota (estas dos, con tope por partida). Con un tope diario
+--     (perfil "arena.daily"): lo que pase del tope no se cobra, y los resultados lo dicen.
 --   - Estadísticas guardadas (perfil "arena.stats") y rankings de la arena (victorias y capturas).
 --   - XP del pase de temporada (Config.Season.ArenaXp, ServerShared/SeasonPass), con el tope de hoy de
 --     las partidas, que comparte con la Isla.
@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Daily = require(ReplicatedStorage.Shared.Daily)
 local LiveEvents = require(ReplicatedStorage.Shared.LiveEvents)
@@ -39,8 +40,10 @@ end
 local function earned(player: Player, result: "Win" | "Tie" | "Loss"): number
 	local amber = Config.Arena.Amber
 	local fromKills = math.min(stat(player, "ArenaKills") * amber.PerKill, amber.MaxFromKills)
+	local fromRays = math.min(stat(player, "ArenaRays") * amber.PerRay, amber.MaxFromRays)
 	-- Evento en vivo "Doble Ámbar" (T4b): el tope diario sigue igual.
-	return (amber[result] + stat(player, "ArenaCaptures") * amber.PerCapture + fromKills) * LiveEvents.amberMultiplier()
+	return (amber[result] + stat(player, "ArenaCaptures") * amber.PerCapture + fromKills + fromRays)
+		* LiveEvents.amberMultiplier()
 end
 
 -- Cobra hasta el tope diario y guarda las estadísticas. Devuelve lo cobrado y lo que lleva hoy.
@@ -84,6 +87,8 @@ end
 -- Los números de todos, para la tabla de los resultados.
 local function scoreboard(): { { [string]: any } }
 	local rows = {}
+	-- En el Juego de pelota la columna de capturas cuenta rayas (ArenaRays).
+	local ballgame = ArenaModes.current() == "Ballgame"
 	for _, player in Players:GetPlayers() do
 		local teamId = Arena.teamOf(player)
 		if teamId then
@@ -92,15 +97,17 @@ local function scoreboard(): { { [string]: any } }
 				team = teamId,
 				kills = stat(player, "ArenaKills"),
 				deaths = stat(player, "ArenaDeaths"),
-				captures = stat(player, "ArenaCaptures"),
+				captures = if ballgame then nil else stat(player, "ArenaCaptures"),
+				rays = if ballgame then stat(player, "ArenaRays") else nil,
 				-- Marco puesto (ServerShared/CosmeticsServer), para su fila de los resultados.
 				frame = player:GetAttribute("Frame"),
 			})
 		end
 	end
 	table.sort(rows, function(a, b)
-		if a.captures ~= b.captures then
-			return a.captures > b.captures
+		local aScore, bScore = a.rays or a.captures, b.rays or b.captures
+		if aScore ~= bScore then
+			return aScore > bScore
 		end
 		return a.kills > b.kills
 	end)
@@ -131,6 +138,9 @@ local function onFinished(winner: string?)
 				if stat(player, "ArenaCaptures") > 0 then
 					Retention.progress(player, "ArenaCapture", stat(player, "ArenaCaptures"))
 				end
+				if stat(player, "ArenaRays") > 0 then
+					Retention.progress(player, "ArenaRay", stat(player, "ArenaRays"))
+				end
 				Retention.flushNow(player)
 			end
 			Remotes.ArenaResults:FireClient(player, {
@@ -140,6 +150,7 @@ local function onFinished(winner: string?)
 				test = test,
 				earned = amount,
 				amber = granted,
+				rays = if stat(player, "ArenaRays") > 0 then stat(player, "ArenaRays") else nil,
 				today = todayTotal,
 				dailyCap = Config.Arena.Amber.DailyCap,
 				pass = pass,

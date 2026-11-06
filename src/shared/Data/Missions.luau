@@ -31,6 +31,7 @@ export type MissionEvent =
 	| "Rescue"
 	| "ArenaWin"
 	| "ArenaCapture"
+	| "ArenaRay"
 	| "LabWin"
 
 export type Mission = {
@@ -168,6 +169,13 @@ local Missions: { [string]: Mission } = {
 		text = "Captura {target} banderas en la Isla de dunas",
 		event = "ArenaCapture",
 		target = 5,
+		family = "Dunas",
+	}),
+	WeeklyArenaRays = weekly({
+		icon = "🏐",
+		text = "Marca {target} rayas en el juego de pelota de Dunas",
+		event = "ArenaRay",
+		target = 20,
 		family = "Dunas",
 	}),
 	WeeklyLabWins = weekly({

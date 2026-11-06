@@ -6162,6 +6162,55 @@ El panel «🛠️ Pruebas» de Dunas gana argumentos, cabeceras y comandos de p
 13. [ ] Comprueba el perfil real de la cuenta tras el Play de 27b (se hizo sin copia nueva, con permiso), junto con las copias `PlayerData_v1_backups` pendientes de §157.5.
     ✅ El perfil de la cuenta queda como esperas y las copias se restauran o se borran según decidas.
 
+## 159. Fase 27c: Ámbar por rayas en el juego de pelota (06-11-2026)
+
+El Juego de pelota de Dunas paga Ámbar por raya a todo el equipo que la suma: 3 ✨ por raya (`Config.Arena.Amber.PerRay`), con tope de 24 ✨ por partida por rayas (`MaxFromRays`). Se suma al pago por resultado (victoria 60, empate 30, derrota 20, igual que la bandera) y comparte el tope diario de 400 ✨. Cada jugador lleva sus rayas en `ArenaRays` (se reinicia al empezar una partida de pelota), la misión semanal nueva «Marca 20 rayas en el juego de pelota de Dunas» (🏐) sigue el progreso, y la ventana de resultados muestra 🏐 rayas en la columna (en vez de 🚩) y « · 🏐 N rayas» en la línea del Ámbar. El pago real no se ha podido probar: `ArenaMatchService.isSolo` (el modo Solo de la Fase 27b) no paga, y hacen falta 2 jugadores reales. Lo que sigue sin probar es esto.
+
+### 159.1 Con 2 jugadores reales (*Prueba → Clientes y servidores*, 2 clientes, en Dunas, Juego de pelota sin `Solo`)
+
+1. [ ] Juega una partida de pelota con dos jugadores, uno por equipo, sin `Solo`, y deja que acabe. Anota las rayas de cada equipo.
+   ✅ Al acabar, cada jugador cobra 3 ✨ por cada raya de su equipo además del pago por resultado, y la ventana de resultados muestra 🏐 con sus rayas en la columna y « · 🏐 N rayas» en la línea del Ámbar. El Ámbar del perfil sube lo mismo que dice la ventana.
+2. [ ] Mira el cobro del jugador que pierde, que tiene rayas de su equipo.
+   ✅ El perdedor cobra 20 ✨ más 3 ✨ por cada raya de su equipo.
+3. [ ] Juega una partida en la que un equipo sume 10 o más rayas.
+   ✅ El cobro por rayas no pasa de 24 ✨ por partida aunque haya 10 o más rayas (con 8 ya se llega al tope).
+4. [ ] Juega una partida de Captura la bandera con dos jugadores.
+   ✅ La columna sigue mostrando 🚩 con las capturas, la línea del Ámbar no lleva el sufijo 🏐, y la misión «Captura {target} banderas en la Isla de dunas» avanza con capturas y no se mueve con rayas.
+5. [ ] Juega una partida de pelota, cámbiala a Captura la bandera con la revancha y vuelve a una partida de pelota con rayas.
+   ✅ Al empezar la partida de pelota nueva, `ArenaRays` vuelve a 0 en los dos jugadores, y el cobro solo cuenta las rayas de esa partida.
+6. [ ] Con una partida de pelota en marcha, entra un tercer cliente tarde.
+   ✅ No aparece ningún error en la Salida del servidor, el marcador de los demás sigue igual y el que entra tarde cobra solo las rayas de su equipo desde que entra.
+
+### 159.2 Tope diario y misión semanal (*Prueba → Clientes y servidores*, o *Prueba → Jugar*, en Dunas)
+
+7. [ ] Juega partidas hasta llegar cerca de los 400 ✨ del tope diario (o fuerza el contador desde el panel de administración si tiene esa opción) y termina una partida de pelota con rayas.
+   ✅ El cobro se corta al llegar a 400 ✨ de tope diario compartido con la bandera, y la línea del Ámbar muestra «✨ +N de Ámbar (tope diario 400/400: M sin cobrar) · 🏐 N rayas».
+8. [ ] Con el tope diario ya lleno, juega una partida de Captura la bandera y otra de pelota con rayas.
+   ✅ Las dos muestran «tope diario» y no cobran Ámbar. La bandera mantiene su 🚩 sin sufijo y la pelota lleva el sufijo 🏐 con sus rayas.
+9. [ ] Mira la misión semanal «Marca 20 rayas en el juego de pelota de Dunas». Si no ha salido esta semana, fuérzala desde el panel de administración o de depuración.
+   ✅ Su progreso sube con cada raya de tu equipo (no con las del rival) y se completa al llegar a 20.
+10. [ ] Gana una partida de pelota y mira la misión «Gana {target} partidas en la Isla de dunas».
+    ✅ Sube igual que con una victoria de Captura la bandera.
+
+### 159.3 En el teléfono y en el PC (*Prueba → Dispositivo*, en Dunas, tras una partida de pelota con rayas)
+
+11. [ ] En el teléfono, abre la ventana de resultados de la partida de pelota con rayas, también la de un tope diario lleno.
+    ✅ La columna «🏐 N» y la línea « · 🏐 N rayas» caben sin cortarse ni pisar el nombre o el Ámbar, y el texto de tope diario también cabe.
+12. [ ] Repite el paso 11 en el PC con la ventana a tamaño normal.
+    ✅ Ambas cosas se ven completas y sin desplazamiento, como el resto de ventanas de resultados.
+
+### 159.4 En el juego publicado (*Prueba → Jugar*, en Dunas)
+
+13. [ ] Guarda y publica el place Dunas y juega una partida de pelota con 2 jugadores reales en el juego publicado.
+    ✅ El cobro por rayas, el tope y la ventana de resultados se ven igual que en Studio.
+
+### 159.5 Papeleo (Studio)
+
+14. [ ] Sube a Creator Hub el CSV de `python tools/strings.py --csv-nuevas build/localization_nuevas.csv` (son 2 frases: la misión «Marca {target} rayas…» y « · 🏐 {rays} rayas»). Después ejecuta `python tools/strings.py --marcar-subidas`.
+    ✅ La tabla de Creator Hub tiene las 2 claves nuevas, `python tools/strings.py` pasa sin frases pendientes, y `tools/strings_subidas.txt` queda con esas claves dentro del commit.
+15. [ ] Comprueba el perfil real de la cuenta tras las pruebas de 27c, junto con las copias `PlayerData_v1_backups` pendientes de §157.5 y §158.5.
+    ✅ El perfil de la cuenta queda como esperas y las copias se restauran o se borran según decidas.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

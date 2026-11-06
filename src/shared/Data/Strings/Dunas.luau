@@ -45,6 +45,7 @@ return {
 	["💀 Derrota"] = "💀 Defeat",
 	["No cuenta para el Ámbar ni el ranking"] = "Doesn't count for Amber or the leaderboard",
 	["✨ +{amber} de Ámbar"] = "✨ +{amber} Amber",
+	[" · 🏐 {rays} rayas"] = " · 🏐 {rays} rays",
 	["✨ +{amber} de Ámbar (tope diario {today}/{cap}: {lost} sin cobrar)"] = "✨ +{amber} Amber (daily cap {today}/{cap}: {lost} not collected)",
 	["⛩️ Altares: {jaguar} · {quetzal}"] = "⛩️ Altars: {jaguar} · {quetzal}",
 	["La revancha empieza en {seconds} s con quienes se queden"] = "Rematch starts in {seconds}s with whoever stays",

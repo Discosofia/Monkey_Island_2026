@@ -463,6 +463,7 @@ return {
 	["Gana {target} partida con el rescate"] = "Win {target} match with the rescue",
 	["Gana {target} partidas en la Isla de dunas"] = "Win {target} matches on Dune Island",
 	["Captura {target} banderas en la Isla de dunas"] = "Capture {target} flags on Dune Island",
+	["Marca {target} rayas en el juego de pelota de Dunas"] = "Score {target} rays in the Dunes ball game",
 
 	-- Monos (Data/Monkeys).
 	["Mono ardilla"] = "Squirrel monkey",

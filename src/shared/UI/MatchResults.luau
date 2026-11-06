@@ -81,13 +81,15 @@ local function amberText(summary: { [string]: any }): string?
 		return nil
 	end
 	local lost = (summary.earned or 0) - (summary.amber or 0)
+	-- Desglose: las rayas del equipo en el Juego de pelota, si las hubo.
+	local rays = if typeof(summary.rays) == "number" then T(" · 🏐 {rays} rayas", { rays = summary.rays }) else ""
 	if lost > 0 then
 		return T(
 			"✨ +{amber} de Ámbar (tope diario {today}/{cap}: {lost} sin cobrar)",
 			{ amber = summary.amber, today = summary.today, cap = summary.dailyCap, lost = lost }
-		)
+		) .. rays
 	end
-	return T("✨ +{amber} de Ámbar", { amber = summary.amber })
+	return T("✨ +{amber} de Ámbar", { amber = summary.amber }) .. rays
 end
 
 -- Fila de la tabla: icono del equipo, nombre y sus números.
@@ -114,7 +116,11 @@ local function playerRow(parent: Instance, order: number, row: { [string]: any }
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Position = UDim2.fromOffset(8, 4)
 	name.Size = UDim2.new(0.5, -8, 1, -8)
-	local captures = if row.captures ~= nil then `🚩 {row.captures}   ` else ""
+	-- Capturas (🚩, Captura la bandera) o rayas (🏐, Juego de pelota), según lo que traiga la fila.
+	local captures = if row.rays ~= nil
+		then `🏐 {row.rays}   `
+		elseif row.captures ~= nil then `🚩 {row.captures}   `
+		else ""
 	local numbers = Widgets.label(`{captures}⚔️ {row.kills}   💀 {row.deaths}`, frame)
 	numbers.TextXAlignment = Enum.TextXAlignment.Right
 	numbers.AnchorPoint = Vector2.new(1, 0)

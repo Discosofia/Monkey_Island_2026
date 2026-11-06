@@ -15,8 +15,8 @@
 --     "Team"              equipo (un id de Arena.TEAM_IDS), nil mientras no tiene
 --     "ArenaReady"        ha pulsado "Listo"
 --     "RespawnAt"         hora del servidor en que reaparece (nil si está vivo)
---     "ArenaKills", "ArenaDeaths", "ArenaCaptures"  sus números de esta partida (sin capturas en el
---                         Laboratorio)
+--     "ArenaKills", "ArenaDeaths", "ArenaCaptures", "ArenaRays"  sus números de esta partida (sin
+--                         capturas en el Laboratorio; las rayas, de su equipo, solo en el Juego de pelota)
 --     "KilledBy"          UserId de quien la derribó (nil sin atacante, o ya reaparecida); lo pone
 --                         Arena.markKiller antes de dejarla sin vida, para la killcam (CombatClient/SpectateCamera)
 --     "KilledWith"        id del arma que llevaba en la mano ese atacante (nil si no llevaba ninguna)

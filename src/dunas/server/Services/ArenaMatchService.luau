@@ -38,7 +38,8 @@ local RespawnService = require(script.Parent.RespawnService)
 local TeamService = require(script.Parent.TeamService)
 
 local TICK_SECONDS = 0.25
--- Las estadísticas comunes; el modo reinicia las suyas (Captura la bandera: "ArenaCaptures").
+-- Las estadísticas comunes; el modo reinicia las suyas (Captura la bandera: "ArenaCaptures";
+-- Juego de pelota: "ArenaRays").
 local STAT_ATTRIBUTES = { "ArenaKills", "ArenaDeaths" }
 
 -- Un modo por clave de Config.Arena.ModeNames.

@@ -1293,6 +1293,10 @@ local Config = {
 			PerCapture = 15,
 			PerKill = 2,
 			MaxFromKills = 20,
+			-- Rayas del equipo en el Juego de pelota (a todo el equipo que la suma), con tope por partida como las
+			-- bajas. Medido con Economia 06-11-2026: pelota 55,5 ✨ por partida, 6,9/min < bandera 7,2/min.
+			PerRay = 3,
+			MaxFromRays = 24,
 			DailyCap = 400,
 		},
 		-- La vida se recupera sola tras RegenDelaySeconds sin recibir daño.
