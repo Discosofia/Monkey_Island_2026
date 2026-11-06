@@ -59,6 +59,34 @@ Ballgame.Net = {
 	MaxCatchUp = 0.3,
 }
 
+-- El golpe (Fase 26d). Alturas relativas, zonas y calidades en Shared/BallHit. Valores de partida: se afinan jugando.
+-- Pitch: ángulo de salida (grados sobre la horizontal). Speed: rapidez final (studs/s) por zona y calidad; el golpe
+-- FIJA la velocidad de la pelota, no la suma.
+Ballgame.Hit = {
+	Reach = 5.5, -- distancia máxima jugador-pelota para poder golpear (studs)
+	ContactDist = 2.6, -- distancia a la que se considera contacto (para medir el tiempo hasta él)
+	PerfectSeconds = 0.15,
+	GoodSeconds = 0.35,
+	CooldownSeconds = 0.45, -- por jugador
+	BallCooldownSeconds = 0.15, -- entre cualquier par de golpes sobre la pelota
+	PassiveContactDist = 2.2, -- roce sin pulsar
+	PassiveSpeed = 12,
+	Pitch = { Knee = 22, Hip = 35, Elbow = 55 } :: { [string]: number },
+	Speed = {
+		Knee = { Perfect = 58, Good = 44, Weak = 16 },
+		Hip = { Perfect = 78, Good = 56, Weak = 16 },
+		Elbow = { Perfect = 52, Good = 40, Weak = 16 },
+	} :: { [string]: { [string]: number } },
+	FootSpeed = 10, -- la falta por pie solo patea flojo
+	RingLeadSeconds = 0.5, -- el anillo de aviso aparece cuando falta esto o menos para el contacto
+	-- Límites de la altura de la pelota respecto al HumanoidRootPart (studs) que separan las zonas.
+	ZoneFoot = -2.2,
+	ZoneKnee = -0.6,
+	ZoneHip = 1.4,
+	ZoneElbow = 3.5,
+	WalkSpeed = 16, -- velocidad con la que se amplía el alcance por el lag del servidor
+}
+
 -- Apariencia: hule casi negro con un tono marrón; la sombra se aclara con la altura hasta ShadowMaxHeight.
 Ballgame.BallColor = Color3.fromRGB(34, 28, 30)
 Ballgame.BallMaterial = Enum.Material.SmoothPlastic

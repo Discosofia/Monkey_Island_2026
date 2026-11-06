@@ -33,6 +33,9 @@ export type Key =
 	| "LookAround"
 	| "Cheer"
 	| "WeaponCarry"
+	| "BallHip"
+	| "BallKnee"
+	| "BallElbow"
 
 export type PlayerAnimation = {
 	id: string,
@@ -93,6 +96,11 @@ local PlayerAnimations = {
 		-- y adelantado, arma en diagonal hacia delante y fuera, con la punta separada de la cabeza. Medida con
 		-- medición en Play sobre Guerrero, Cazador, Mago y Médico.
 		WeaponCarry = { id = "rbxassetid://78684880424604", priority = Enum.AnimationPriority.Action4, looped = true },
+		-- Golpe a la pelota del Juego de pelota (Fase 26d; dunas/client/BallHitController), una por zona del
+		-- cuerpo. El golpe llega a ~0,1 s. Publicadas.
+		BallHip = { id = "rbxassetid://134903657830868", priority = Enum.AnimationPriority.Action3 },
+		BallKnee = { id = "rbxassetid://124328269314931", priority = Enum.AnimationPriority.Action3 },
+		BallElbow = { id = "rbxassetid://115254686750253", priority = Enum.AnimationPriority.Action3 },
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para

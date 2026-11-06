@@ -98,4 +98,7 @@ return {
 	["Necesitas {ammo} para usar: {weapon}"] = "You need {ammo} to use: {weapon}",
 	["Muñeco de práctica"] = "Practice dummy",
 	["Muñeco de sparring"] = "Sparring dummy",
+
+	-- Juego de pelota: el golpe (Fase 26d).
+	["Golpear"] = "Hit",
 }

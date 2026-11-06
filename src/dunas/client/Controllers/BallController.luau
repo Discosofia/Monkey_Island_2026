@@ -7,7 +7,11 @@
 --   - Cada fotograma avanza la predicción con pasos fijos.
 --   - Lo dibujado = lo predicho + un desvío que se disuelve en Net.SmoothSeconds (así no hay saltos al llegar
 --     un paquete); si el desvío pasa de Net.SnapDistance, salta de golpe.
+--   - Golpes (Fase 26d): predictHit fija la velocidad del golpe propio al pulsar (sin esperar al servidor) y el
+--     BallEvent "hit" de otro jugador (o un roce propio) fija posición y velocidad. predictedState y part las usa
+--     BallHitController para el alcance y el anillo de tiempo.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -137,24 +141,16 @@ local function render(position: Vector3)
 	theShadow.Parent = Workspace
 end
 
-local function onState(packet: any)
-	if typeof(packet) ~= "table" or typeof(packet.t) ~= "number" then
-		return
-	end
-	if typeof(packet.pos) ~= "Vector3" or typeof(packet.vel) ~= "Vector3" then
-		return
-	end
-	if packet.t <= lastT or ReplicatedStorage:GetAttribute("BallActive") ~= true then
-		return -- antiguo, repetido o con la pelota apagada
-	end
-	lastT = packet.t
+-- Fija el estado a lo que dice el servidor en el instante "t" y lo pone al día de la latencia.
+local function setAuthoritative(t: number, pos: Vector3, vel: Vector3, resting: boolean, dead: boolean)
+	lastT = t
 	local before = if hasState then drawn else nil
-	BallSim.restore(sim, { pos = packet.pos, vel = packet.vel, resting = packet.resting == true })
-	sim.dead = packet.dead == true
+	BallSim.restore(sim, { pos = pos, vel = vel, resting = resting })
+	sim.dead = dead
 	hasState = true
 
 	-- Compensa lo que ha tardado el paquete.
-	accumulator = math.clamp(Workspace:GetServerTimeNow() - packet.t, 0, Data.Net.MaxCatchUp)
+	accumulator = math.clamp(Workspace:GetServerTimeNow() - t, 0, Data.Net.MaxCatchUp)
 	advance(math.ceil(Data.Net.MaxCatchUp / BallSim.STEP) + 1)
 
 	-- El desvío entre lo que se veía y lo nuevo predicho se disuelve; si es grande, salta.
@@ -165,6 +161,35 @@ local function onState(packet: any)
 			offset = gap
 		end
 	end
+end
+
+local function onState(packet: any)
+	if typeof(packet) ~= "table" or typeof(packet.t) ~= "number" then
+		return
+	end
+	if typeof(packet.pos) ~= "Vector3" or typeof(packet.vel) ~= "Vector3" then
+		return
+	end
+	if packet.t <= lastT or ReplicatedStorage:GetAttribute("BallActive") ~= true then
+		return -- antiguo, repetido o con la pelota apagada
+	end
+	setAuthoritative(packet.t, packet.pos, packet.vel, packet.resting == true, packet.dead == true)
+end
+
+-- Un golpe (Remotes.BallEvent, kind "hit"). El propio ya se predijo al pulsar: solo se descartan los paquetes
+-- de estado anteriores (que traerían la velocidad vieja); un roce propio (Passive) sí se aplica.
+local function onHitEvent(event: any)
+	if typeof(event.t) ~= "number" or typeof(event.pos) ~= "Vector3" or typeof(event.vel) ~= "Vector3" then
+		return
+	end
+	if event.t <= lastT or ReplicatedStorage:GetAttribute("BallActive") ~= true then
+		return
+	end
+	if event.userId == Players.LocalPlayer.UserId and event.quality ~= "Passive" then
+		lastT = event.t
+		return
+	end
+	setAuthoritative(event.t, event.pos, event.vel, false, false)
 end
 
 local function onRender(dt: number)
@@ -194,9 +219,42 @@ local function onActiveChanged()
 	hide()
 end
 
+-- Fija la velocidad de un golpe propio en la pelota predicha (sin esperar al servidor). La posición se queda donde
+-- se veía, así que el suavizado no lo toma por un desvío.
+function BallController.predictHit(velocity: Vector3)
+	if not hasState or sim.dead then
+		return
+	end
+	sim.pos = predictedPosition()
+	accumulator = 0
+	sim.vel = velocity
+	sim.resting = false
+end
+
+-- Una copia del estado predicho ahora (con la posición adelantada lo que sobra del paso fijo); nil si no hay.
+function BallController.predictedState(): BallSim.State?
+	if not hasState or sim.dead then
+		return nil
+	end
+	local copy = BallSim.clone(sim)
+	copy.pos = predictedPosition()
+	return copy
+end
+
+-- La pelota que se dibuja (para colgarle el anillo de tiempo); nil si no se ve.
+function BallController.part(): Part?
+	if ball and ball.Parent then
+		return ball
+	end
+	return nil
+end
+
 function BallController:Start()
 	Remotes.BallState.OnClientEvent:Connect(onState)
-	Remotes.BallEvent.OnClientEvent:Connect(function(_event: any)
+	Remotes.BallEvent.OnClientEvent:Connect(function(event: any)
+		if typeof(event) == "table" and event.kind == "hit" then
+			onHitEvent(event)
+		end
 		-- TODO 26g: sonidos y avisos del HUD (bote, aro, muro del fondo, fuera).
 	end)
 	ReplicatedStorage:GetAttributeChangedSignal("BallActive"):Connect(onActiveChanged)

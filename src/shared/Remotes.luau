@@ -314,6 +314,10 @@ local Remotes = {
 	-- Servidor -> todos (Dunas, Fase 26c): un evento de la simulación de la pelota (bote, aro, fuera…), fiable.
 	-- La tabla de Shared/BallSim ({ kind, … }) más t = hora del servidor.
 	BallEvent = remoteEvent("BallEvent"),
+	-- Cliente -> servidor (Dunas, Fase 26d): el jugador golpea la pelota. Un Vector3 de mundo, unitario: hacia donde
+	-- mira. El servidor valida alcance, mitad y enfriamiento (BallHitService) y avisa del golpe por BallEvent con
+	-- { kind = "hit", userId, zone, quality, pos, vel } (pos y vel locales de la cancha; vel, la velocidad final).
+	BallHit = remoteEvent("BallHit"),
 }
 
 return Remotes

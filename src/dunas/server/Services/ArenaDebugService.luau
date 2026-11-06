@@ -18,6 +18,7 @@ local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
+local BallHitService = require(script.Parent.BallHitService)
 local BallService = require(script.Parent.BallService)
 
 local DUMMY_HEALTH = 300
@@ -154,6 +155,28 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 		local zSign = if arg == -1 or arg == 1 then arg else nextRingSide
 		nextRingSide = -zSign
 		shootAtRing(zSign)
+	end,
+	-- Golpe forzado (Fase 26d): "zona calidad" (Foot, Knee, Hip, Elbow / Perfect, Good, Weak, Passive); por defecto
+	-- Hip Perfect, hacia donde mira el jugador. Se salta distancia, mitad y enfriamientos.
+	BallHit = function(player, arg)
+		local zone, quality = "Hip", "Perfect"
+		if typeof(arg) == "string" then
+			local words = string.split(arg, " ")
+			if words[1] and words[1] ~= "" then
+				zone = words[1]
+			end
+			if words[2] and words[2] ~= "" then
+				quality = words[2]
+			end
+		end
+		local root = if player.Character then player.Character:FindFirstChild("HumanoidRootPart") else nil
+		if not (root and root:IsA("BasePart")) or not (zone == "Foot" or Ballgame.Hit.Pitch[zone]) then
+			return
+		end
+		if quality ~= "Passive" and not Ballgame.Hit.Speed[zone == "Foot" and "Hip" or zone][quality] then
+			return
+		end
+		BallHitService.force(player, zone, quality, root.CFrame.LookVector)
 	end,
 	GoEnemyFlag = function(player)
 		local teamId = Arena.teamOf(player)

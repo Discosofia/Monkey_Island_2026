@@ -5843,6 +5843,54 @@ El roce con el borde del aro usa un umbral de 0,6 studs. Está sin ajustar: se p
 11. [ ] Cuando 26d permita golpear, juega varias jugadas de aro a 3 o 4 distancias del aro y di si el roce se siente justo.
     ✅ Un roce que toca el borde se lee como roce y un pase limpio como pase. Si no se siente justo, se anota el valor que se probó: el ajuste se hace en 26d o 26e.
 
+## 152. Fase 26 26d: el golpe de la pelota en Dunas (05-11-2026)
+
+El golpe (`Shared/BallHit`, `BallHitService` y `BallHitController`) se probó en Studio de Dunas con un jugador: la matemática en edición (zonas, ventanas y velocidades), el servidor (golpes por zona, calidad débil, alcance, mitad rival, falta por pie, enfriamiento, nueve entradas inválidas sin error, roce pasivo y el comando `BallHit`) y, en Play, la acción enlazada con `BallActive`, el anillo y la predicción. Los pasos marcados con `[x]` están hechos. Lo que sigue sin probar es lo que no lo está.
+
+### 152.1 Dos jugadores y latencia real
+
+1. [ ] Con 2 clientes en Dunas (*Prueba → Clientes y servidores*), activa la pelota con «🏀 Pelota: activar», saca con «🏀 Pelota: saque» y golpea desde cada cliente cuando la pelota llegue a la cadera o a la rodilla.
+   ✅ El golpe se ve en los dos clientes en el mismo sitio (diferencia de pocos studs) y sale hacia donde mira el jugador que golpea.
+2. [ ] Simula 100 ms y después 200 ms de ping en uno de los clientes (la red simulada del Studio si la hay, o dos cuentas en redes distintas sobre el juego publicado) y golpea la pelota.
+   ✅ El tramo inicial del golpe propio, en el que el cliente ya muestra la salida y el servidor tarda unos 80 ms en confirmarla, se suaviza sin saltos feos. Un desvío de menos de 8 studs no salta de golpe. Si se ve un salto, se anota el ping y el momento.
+3. [ ] Con 200 ms de ping, golpea con la pelota en el borde de la ventana perfecta que marca el anillo, y después otra vez con la pelota un poco antes o un poco después.
+   ✅ Un golpe claro, en el centro de la ventana, sale con la misma calidad en los dos clientes. Solo puede diferir en el borde de la ventana, porque el servidor da margen de lag y el anillo no. Si la calidad del anillo y la del servidor no coinciden de forma clara, se anota el ping y el momento.
+4. [ ] Con 200 ms de ping, aléjate de la pelota hasta quedar fuera de alcance y pulsa golpear.
+   ✅ El golpe no sale. El alcance solo crece con el margen de lag (16 studs por cada segundo de margen), no más allá.
+
+### 152.2 Un jugador en Play: clic, anillo, roce pasivo y falta por pie
+
+5. [x] Con la pelota en juego, pulsa el clic izquierdo en el momento de contacto.
+   ✅ La pelota sale hacia donde miras.
+6. [x] Con la pelota al alcance, mira el anillo de tiempo sobre ella y después aléjate.
+   ✅ El anillo se enciende cuando falta 0,5 s o menos para el contacto, y se apaga al alejarse.
+7. [x] Con el jugador en el suelo y la pelota en el suelo junto a su pie, pulsa golpear.
+   ✅ Sale la zona de rodilla (la pelota queda unos 2 studs por debajo de la raíz del personaje) y la pelota sale con la velocidad de rodilla.
+8. [ ] Deja la pelota parada en el suelo a menos de 2 studs de tu personaje y quédate quieto unos 5 s sin pulsar nada.
+   ✅ Hay un solo roce pasivo: la pelota sale flojo una vez (12 studs/s) y no se repite cada fotograma. Otro roce solo se da si te alejas y vuelves.
+9. [ ] Con el jugador en el suelo, deja la pelota a la altura del pie y golpea. Después salta con la pelota a la altura del pie y golpea otra vez. Repite con un avatar más alto si lo hay.
+   ✅ En el suelo sale la zona de rodilla. Saltando (o con un avatar alto) sale la falta por pie: la pelota sale flojo (10 studs/s) y la falta queda registrada para 26e. Si la falta por pie no se puede dar ni así, o se da en el suelo y no debería, se anota la altura y se ajusta `ZoneFoot` en `Data/Ballgame`.
+
+### 152.3 Móvil, emulador y mando
+
+10. [ ] En el emulador de teléfono (*Prueba → Dispositivo*), con la pelota activa, mira el botón «Golpear» de la casilla (1,1) de los botones de acción.
+    ✅ Aparece solo mientras la pelota está activa, en una casilla cómoda que no tapa Esquivar ni Correr.
+11. [ ] Con la pelota al alcance y el anillo encendido, mira los FPS del emulador (el anillo simula hasta 30 pasos de `BallSim` en cada fotograma mientras la pelota está al alcance).
+    ✅ Los FPS no bajan por el anillo ni por la predicción del golpe.
+12. [ ] Con mando, pulsa R2 y después X en el momento de contacto.
+    ✅ Golpean los dos botones.
+
+### 152.4 PC, juego publicado y animaciones
+
+13. [ ] En el PC, con la pelota al alcance, pulsa F en el momento de contacto. En Studio no golpeó (la tecla llegó con `gameProcessed` = true), y el clic sí.
+    ✅ F golpea en el juego publicado, igual que el clic. Si no golpea, se anota: la entrada de F no debe ignorarse cuando el juego la marca como procesada.
+14. [ ] Publica el place de Dunas, entra con la cuenta de administrador, pulsa «🏀 Pelota: activar», después «🏀 Pelota: golpe forzado (zona calidad: Hip Perfect)» y mira la Salida.
+    ✅ La pelota sale a la velocidad de cadera perfecta (78 studs/s) hacia donde miras. No hay errores de `BallHitController` ni de `BallHitService`.
+15. [ ] Con los ids ya enlazados (publicados el 06-11-2026) de `BallHip`, `BallKnee` y `BallElbow` en `Shared/Data/PlayerAnimations` (claves `BallHip`, `BallKnee` y `BallElbow`; se generan en el Studio de la Isla con `PlayerAnimationBuilder.build()` y están en `ReplicatedStorage.PlayerAnimations`) y golpea con cada zona en Play (cadera, rodilla y codo).
+    ✅ Cada zona reproduce su animación al golpear. Mientras el id esté vacío no hay pose ni error.
+16. [ ] Si ya no hace falta, borra la copia de depuración `u_8620190944_pre26d` de `PlayerData_v1_backups`.
+    ✅ La copia ya no está en `PlayerData_v1_backups`. El perfil real no cambia.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
