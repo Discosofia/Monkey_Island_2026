@@ -32,8 +32,24 @@ local function stopFollowing()
 	table.clear(followers)
 end
 
+-- Bloom de Lighting tocado por la escena, con sus valores originales para devolverlo al acabar.
+local bloomSaved: { effect: BloomEffect, intensity: number, threshold: number }? = nil
+
+local function restoreBloom()
+	local saved = bloomSaved
+	if saved then
+		if saved.effect.Parent then
+			saved.effect.Intensity = saved.intensity
+			saved.effect.Threshold = saved.threshold
+		end
+		bloomSaved = nil
+	end
+end
+
 local function clear()
 	stopFollowing()
+	restoreBloom()
+	Lighting:SetAttribute("CinematicBrightnessScale", nil)
 	if lift then
 		lift:Destroy()
 		lift = nil
@@ -91,7 +107,7 @@ local function build(event: any, anchor: CFrame)
 	end
 end
 
--- Evento exposure { value }: levanta la imagen de quien ve la escena (solo brillo), sin quemar
+-- Evento exposure { value, tint? }: levanta la imagen de quien ve la escena (solo brillo), sin quemar
 -- a nadie con una luz cercana. value 0,5 ≈ brillo +0,09. Se quita sola al acabar.
 local function setExposure(event: any)
 	local value: number = event.value or 0.5
@@ -104,10 +120,34 @@ local function setExposure(event: any)
 	end
 	local grade = effect :: ColorCorrectionEffect
 	grade.Brightness = value * 0.18
+	-- tint (opcional): tinte de pantalla, por ejemplo cálido para un amanecer. Sin él, la imagen no se tiñe.
+	grade.TintColor = event.tint or Color3.new(1, 1, 1)
+end
+
+-- Evento bloom { intensity?, threshold? }: rebaja el BloomEffect de Lighting mientras dura la escena (el halo sobre
+-- lo claro o Neon quema los planos cercanos). Se guardan los valores de antes y se devuelven al acabar.
+local function setBloom(event: any)
+	local effect = Lighting:FindFirstChildOfClass("BloomEffect")
+	if not effect then
+		return
+	end
+	if not bloomSaved then
+		bloomSaved = { effect = effect, intensity = effect.Intensity, threshold = effect.Threshold }
+	end
+	effect.Intensity = event.intensity or effect.Intensity
+	effect.Threshold = event.threshold or effect.Threshold
 end
 
 function SceneLight.install(sequencer: any)
 	local built: { [any]: boolean } = {}
+	-- Evento brightness { scale }: multiplica por scale (0..1) el brillo del mundo que escribe LightingController
+	-- (solo en la Isla; en los demás places no hace nada). Se quita al acabar.
+	sequencer.registerHandler("brightness", function(event: any)
+		Lighting:SetAttribute("CinematicBrightnessScale", event.scale or 1)
+	end)
+	sequencer.registerHandler("bloom", function(event: any)
+		setBloom(event)
+	end)
 	sequencer.registerHandler("light", function(event: any, ctx: any)
 		if built[event] then
 			return -- un seek no repite la luz

@@ -880,6 +880,14 @@ local function main(copia: Instance): string
 				modelo:Destroy()
 			end)
 		end
+		-- Lancha de rescate de la travesía (Fase 25, G4b): soldada a su fondo.
+		if pasa("Lifeboat") then
+			intentar("Lifeboat", function()
+				local modelo = (require(copia.LifeboatModel) :: any).build()
+				fila("Lifeboat (travesía)", medir(modelo, fusionSoldada), tope("Lifeboat", "Lifeboat", M.Lifeboat))
+				modelo:Destroy()
+			end)
+		end
 		for _, id in claves(PlotStructures) do
 			if pasa(id) then
 				for nivel = 1, 3 do

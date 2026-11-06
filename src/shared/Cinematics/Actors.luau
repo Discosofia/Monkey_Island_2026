@@ -269,7 +269,14 @@ local function moveActor(actor: Model, event: Sequencer.Event, ctx: Sequencer.Co
 	local from = actor:GetPivot()
 	local lift = actor:GetAttribute("CinematicLift") or 0
 	local target = anchor:PointToWorldSpace((event.pos :: Vector3) + Vector3.new(0, lift, 0))
-	local rotation = if event.yaw then (anchor * CFrame.Angles(0, math.rad(event.yaw), 0)).Rotation else from.Rotation
+	-- pitch y roll (grados, opcionales) inclinan al actor después del giro: el balanceo de un bote.
+	local rotation = if event.yaw
+		then (anchor * CFrame.Angles(0, math.rad(event.yaw), 0) * CFrame.Angles(
+			math.rad(event.pitch or 0),
+			0,
+			math.rad(event.roll or 0)
+		)).Rotation
+		else from.Rotation
 	local to = CFrame.new(target) * rotation
 
 	-- Lo que no hemos creado (jugador, jefe) se devuelve a su sitio al acabar.
@@ -332,7 +339,7 @@ end
 -- Registra en el Sequencer: scene.actors (se crean al empezar y se limpian al terminar) y los eventos
 --   anim { actor, action, speed?, seconds?, server? }  llama al animador inyectado; con server = true lo
 --                                                       lanza el servidor y el cliente lo ignora.
---   move { actor, pos, yaw?, seconds?, easing? }       mueve el actor hasta pos (relativa al anchor).
+--   move { actor, pos, yaw?, pitch?, roll?, seconds?, easing? }  mueve el actor hasta pos (relativa al anchor).
 function Actors.install(sequencer: typeof(Sequencer))
 	sequencer.addHooks({
 		start = function(scene, ctx)

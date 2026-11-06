@@ -5463,6 +5463,66 @@ La llegada es la escena `Arrival` (`Data/Cinematics`, 13 s, sin botón Saltar la
 16. [ ] Antes de probar en Play, haz la copia del perfil de §10.0 y, con el Play parado, restáurala al terminar.
     ✅ Tras restaurar, el perfil real (`PlayerData_v1`) coincide con la copia, y el Ámbar, los huevos y las mascotas son los de antes del Play.
 
+## 145. Fase 25 G4b: travesía en lancha antes de la llegada (05-11-2026)
+
+La travesía es la escena `Voyage` (`Data/Cinematics`, 12 s, sin botón Saltar la primera vez): la tripulación va sentada en la lancha voxel nueva (`Shared/LifeboatModel`, 20 piezas, tope `Config.Budgets.Models.Lifeboat` = 25) con oleaje y espuma en la proa, y el cartel «Rumbo a la Isla de monos». Después suena la tarjeta «Preparando la isla…» y `Arrival`; las siguientes veces, `ArrivalShort`. `ArrivalService` ya no tiene candado `busy`: cada jugador tiene su ejecución y su hueco de espera en la playa (`waitSlot`). La orden de administrador «🚤 Travesía» (`CineVoyage`) lanza la travesía. Se probó en Play en el Studio de la Isla con un jugador (capturas y la orden); lo que sigue sin probar es esto.
+
+### 145.1 Juego publicado y primera visita
+
+1. [ ] Con una cuenta que no haya visto `Arrival` (perfil sin `cinematicsSeen.Arrival`; si hace falta, restáurala con §10.0), entra a la Isla desde el Lobby en el juego publicado.
+   ✅ Se ve `Voyage` entera (12 s) sin botón Saltar; al acabar, aparece la tarjeta «Preparando la isla…» y encadena con `Arrival` entera (13 s).
+2. [ ] Cuando acabe `Arrival`, sal de la Isla y vuelve a entrar con la misma cuenta.
+   ✅ Va directa a `ArrivalShort` (3 s, con Saltar) y no sale la travesía.
+
+### 145.2 Dos a cinco amigos
+
+3. [ ] Con 2 amigos que nunca hayan visto `Arrival`, entrad a la Isla a la vez.
+   ✅ Cada uno ve su propia `Voyage` y su `Arrival` sin esperar a que acabe la del otro. Esperan en huecos distintos de la playa y nadie ve los maniquíes del otro.
+4. [ ] Con 5 amigos que nunca hayan visto `Arrival`, entrad a la Isla a la vez.
+   ✅ Cada uno ve su travesía y su llegada sin esperas por los demás. Si el límite de espera (`MAX_WAIT_SECONDS` en `ArrivalService`) corta a alguno, se anota quién y en qué segundo.
+5. [ ] Con 2 jugadores: uno ve una escena con congelación (la aparición de un jefe o «🚁 Rescate») y el otro entra a la Isla a la vez.
+   ✅ La escena con congelación sigue siendo una a la vez: la segunda no arranca encima de la primera. La llegada del segundo se ve sin congelar a nadie.
+6. [ ] Con 2 o más jugadores entrando a la vez, mira la Salida de Studio o del servidor del juego publicado.
+   ✅ La llamada repetida a `RequestStreamAroundAsync` no da errores en la Salida.
+
+### 145.3 Móvil y emulador de teléfono
+
+7. [ ] En el emulador de teléfono (9:16), mira la travesía: el cartel «Rumbo a la Isla de monos» en dos líneas y los subtítulos «Al amanecer, con el mar en calma» y «Ya se ve la isla a lo lejos…».
+   ✅ Cartel y subtítulos caben dentro de la zona segura 9:16: no se cortan ni quedan debajo de los controles del teléfono.
+8. [ ] En el emulador, mira el plano cercano de la lancha.
+   ✅ La cara de los maniquíes se ve bien iluminada, sin quemarse por el bloom y sin amarillear.
+9. [ ] En un móvil real o en el emulador, mira la travesía con la calidad gráfica en High, Medium y Low, con la espuma de la proa.
+   ✅ Sin tirones perceptibles. La espuma usa unas 91 partículas como máximo en High, y menos en Low y Medium.
+
+### 145.4 Avatares
+
+10. [ ] Con un avatar R6, entra a la Isla con una cuenta de primera vez.
+    ✅ No aparece copia del avatar en el bote, la travesía corre sin errores en la Salida y la lancha no se ve rara.
+11. [ ] Con un avatar R15 con skin y armadura, entra a la Isla con una cuenta de primera vez.
+    ✅ El personaje se ve sentado delante en la lancha, y al acabar la escena la lancha queda limpia, sin copias del avatar.
+
+### 145.5 Oleaje y espuma en vídeo
+
+12. [ ] Graba «🚤 Travesía» con OBS a 1080p60 y mira la lancha durante la escena.
+    ✅ La lancha sube y baja con el oleaje, y las salpicaduras salen a los lados en cada bajada de proa.
+
+### 145.6 Ajuste «Cinemáticas» apagado
+
+13. [ ] Desactiva «Cinemáticas» en los ajustes y entra a la Isla con una cuenta que no haya visto `Arrival`.
+    ✅ No suena `Voyage` ni `Arrival` ni sale cartel. El cliente responde `CinematicDone(false)` a cada escena sin mostrarla, así que el personaje va a la playa, espera unos 2,5 s y vuelve al Basecamp, y el tutorial arranca. Se anota si hay tirón o parpadeo al volver.
+
+### 145.7 Tabla de Creator Hub
+
+14. [ ] En la carpeta del proyecto, ejecuta `python tools/strings.py --csv-nuevas build/localization_nuevas.csv`, sube ese archivo a Creator Hub y luego ejecuta `python tools/strings.py --marcar-subidas`.
+    ✅ El CSV trae las 3 frases nuevas («Rumbo a la Isla de monos», «Al amanecer, con el mar en calma» y «Ya se ve la isla a lo lejos…»). Tras `--marcar-subidas`, `tools/strings_subidas.txt` las incluye y `strings.py` no avisa de frases sin inglés.
+
+### 145.8 Mar y lancha desde lejos
+
+15. [ ] Durante el travelling del plano lejano (el mar frente a la playa, a unos 150 studs de la cámara), mira el mar.
+    ✅ No se ven facetas ni el borde del mar generado, y la lancha no se hunde ni atraviesa el agua.
+16. [ ] Mira al Guerrero, al Cazador y al Médico sentados en la lancha desde varios ángulos (de frente, de lado y por detrás).
+    ✅ Ninguno sobresale del borde (tubo) de la lancha desde esos ángulos.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

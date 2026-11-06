@@ -59,6 +59,7 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "CineStageComic", label = "🎬 Plató cómic" },
 		{ id = "CineRescue", label = "🚁 Rescate" },
 		{ id = "CineArrival", label = "🏝️ Llegada" },
+		{ id = "CineVoyage", label = "🚤 Travesía" },
 	},
 	Lobby = {
 		{ id = "Amber", label = "✨ +500 Ámbar" },

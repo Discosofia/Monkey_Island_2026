@@ -10,6 +10,7 @@
 
 local Bosses = require(script.Parent.Bosses)
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
+local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
 local Strings = require(script.Parent.Parent.Strings)
 
 export type Scene = {
@@ -335,6 +336,82 @@ local function crewActors(atEnd: boolean): { [string]: { [string]: any } }
 	return actors
 end
 
+-- Travesía en la lancha (G4b), en el marco del anchor de la playa (+Z es el mar). El nivel del mar de la Isla es 2
+-- (MapBuilder.SEA_LEVEL) y el anchor está a 3, así que la superficie queda en y = -1; la lancha flota 0,2 por encima,
+-- como la del Lobby. Sale a 150 studs de la orilla (el mar generado llega unos 200 más allá de la costa) y avanza
+-- hacia tierra a velocidad constante con la proa en -Z. La cámara va en el marco de la lancha (boatShot).
+local VOYAGE_SECONDS = 12
+local BOAT_START = Vector3.new(0, -0.8, 150)
+local BOAT_SPEED = 3.5 -- studs por segundo
+-- Oleaje: tres ondas senoidales muestreadas cada WAVE_STEP s. La subida y el cabeceo comparten periodo, con el
+-- cabeceo desfasado 90° (la proa baja cuando la lancha pasa por la mitad de la subida); el balanceo va a otro ritmo.
+local WAVE_STEP = 0.25 -- segundos entre dos muestras (cada tramo es lineal, así el avance sigue a velocidad constante)
+local WAVE_BOB, WAVE_PITCH, WAVE_ROLL = 0.35, 3, 4 -- studs, grados y grados de amplitud
+local WAVE_PERIOD, WAVE_ROLL_PERIOD = 2.6, 3.0 -- segundos por ciclo
+local WAVE_ROLL_PHASE = 1.0 -- radianes
+local WAVE_RAMP = 1 -- segundos hasta la amplitud completa (la lancha parte en reposo)
+
+local function boatAt(t: number): Vector3
+	return BOAT_START + Vector3.new(0, 0, -BOAT_SPEED * t)
+end
+
+-- Altura, cabeceo (grados; positivo = proa arriba) y balanceo (grados) de la lancha en el segundo t.
+local function waveAt(t: number): (number, number, number)
+	local ramp = math.min(1, t / WAVE_RAMP)
+	local w = 2 * math.pi * t / WAVE_PERIOD
+	local wRoll = 2 * math.pi * t / WAVE_ROLL_PERIOD + WAVE_ROLL_PHASE
+	return ramp * WAVE_BOB * math.sin(w),
+		ramp * WAVE_PITCH * math.sin(w + math.pi / 2),
+		ramp * WAVE_ROLL * math.sin(wRoll)
+end
+
+-- Segundos en que la proa baja de una ola (el cabeceo cruza el cero hacia abajo): salen las ráfagas de espuma.
+local function bowDipTimes(): { number }
+	local times = {}
+	local t = WAVE_PERIOD / 4
+	while t < VOYAGE_SECONDS - 0.5 do
+		table.insert(times, t)
+		t += WAVE_PERIOD
+	end
+	return times
+end
+
+-- Punto de cámara en el segundo t, con la posición y la mirada dadas en el marco de la lancha (sin su balanceo).
+local function boatShot(t: number, camLocal: Vector3, lookLocal: Vector3, fov: number)
+	return { t = t, pos = boatAt(t) + camLocal, look = boatAt(t) + lookLocal, fov = fov }
+end
+
+-- La tripulación sentada en la lancha: los cuatro maniquíes con el mismo equipo que en la llegada. RescueCrew los
+-- reduce y los sienta en LifeboatModel.SEATS al empezar (evento voyageBoard).
+local function voyageActors(): { [string]: { [string]: any } }
+	local actors: { [string]: { [string]: any } } = {}
+	for _, member in CREW do
+		actors[member.name] = {
+			kind = "dummy",
+			role = member.role,
+			armor = member.armor,
+			outfit = member.outfit,
+			skin = member.skin,
+			pos = boatAt(0),
+			yaw = 0,
+		}
+	end
+	actors.boat = {
+		kind = "prop",
+		build = function(anchor: CFrame)
+			-- Con espuma: salpicaduras a los lados de la proa y estela tras el motor; ráfaga cuando la proa baja.
+			local model = LifeboatModel.build({ spray = true, burstTimes = bowDipTimes() })
+			model:PivotTo(anchor * CFrame.new(BOAT_START))
+			-- El fondo (raíz) anclado: el resto va soldado a él y se mueve con el PivotTo del evento move.
+			if model.PrimaryPart then
+				model.PrimaryPart.Anchored = true
+			end
+			return model
+		end,
+	}
+	return actors
+end
+
 local Cinematics: { [string]: Scene } = {
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",
@@ -616,6 +693,119 @@ local Cinematics: { [string]: Scene } = {
 			{ t = 2.4, kind = "fade", seconds = 0.6, toBlack = true },
 		},
 	},
+
+	-- Travesía (G4b): la tripulación y el avatar del jugador cruzan el mar en la lancha del Lobby, justo antes de
+	-- «Arrival» la primera vez (la lanza ArrivalService con el anchor en la playa). Cámara: plano alto desde atrás sobre
+	-- el mar, travelling por el costado izquierdo de proa a popa y plano bajo de popa con la isla al fondo. Hasta verla
+	-- entera no se puede saltar.
+	Voyage = (function(): Scene
+		local events: { { t: number, kind: string, [string]: any } } = {
+			{ t = 0, kind = "letterbox" },
+			-- Amanecer: imagen más clara con un tinte cálido suave y dos luces que siguen a la cámara (sol bajo
+			-- anaranjado desde un lado y relleno cálido encima) para que la lancha lea naranja y el mar tenga color.
+			-- Dos tramos: planos lejanos (0 a 3,4 s, cámara a 17-30 studs) con más luz, y planos cercanos (desde 3 s,
+			-- cámara a 9-13 studs de la lancha), donde la misma luz la quemaba. Las lejanas se apagan con fundido.
+			{ t = 0, kind = "exposure", value = 1.2, tint = Color3.fromRGB(255, 236, 214) },
+			{
+				t = 0,
+				kind = "light",
+				follow = true,
+				offset = Vector3.new(-8, 10, -6),
+				color = Color3.fromRGB(255, 176, 96),
+				brightness = 2.6,
+				range = 90,
+				seconds = 3.4,
+			},
+			{
+				t = 0,
+				kind = "light",
+				follow = true,
+				offset = Vector3.new(6, 4, 4),
+				color = Color3.fromRGB(255, 214, 170),
+				brightness = 1,
+				range = 60,
+				seconds = 3.4,
+			},
+			-- Cerca no hay luz puntual (a 9-13 studs satura los materiales de la lancha): solo exposición y tinte, y
+			-- un sol y un relleno casi nulos.
+			{ t = 3, kind = "bloom", intensity = 0.35, threshold = 3 },
+			{ t = 3, kind = "brightness", scale = 0.75 },
+			{ t = 3, kind = "exposure", value = 0.4, tint = Color3.fromRGB(240, 247, 255) },
+			{
+				t = 3,
+				kind = "light",
+				follow = true,
+				offset = Vector3.new(-8, 10, -6),
+				color = Color3.fromRGB(255, 170, 90),
+				brightness = 0.2,
+				range = 90,
+			},
+			{
+				t = 3,
+				kind = "light",
+				follow = true,
+				offset = Vector3.new(6, 4, 4),
+				color = Color3.fromRGB(255, 214, 170),
+				brightness = 0.1,
+				range = 60,
+			},
+			{ t = 0, kind = "voyageBoard" },
+			-- Los rigs pasan de AnimationConstraint a Motor6D al sentarse: se vuelve a pedir la pose del arma.
+			{ t = 0.3, kind = "anim", actor = "guerrero", action = "WeaponPose" },
+			{ t = 0.3, kind = "anim", actor = "cazador", action = "WeaponPose" },
+			{ t = 0.3, kind = "anim", actor = "mago", action = "WeaponPose" },
+			{ t = 0.3, kind = "anim", actor = "medico", action = "WeaponPose" },
+			-- Cada texto está en pantalla fundido de entrada (0,5 s) + seconds + fundido de salida (0,6 s): el cartel
+			-- (0,8 a 4,9 s) y el subtítulo (6,0 a 9,7 s) no se solapan.
+			{
+				t = 0.8,
+				kind = "title",
+				text = Strings.later("Rumbo a la Isla de monos"),
+				sub = Strings.later("Al amanecer, con el mar en calma"),
+				seconds = 3,
+				oneLine = true,
+			},
+			{ t = 6, kind = "caption", text = Strings.later("Ya se ve la isla a lo lejos…"), seconds = 2.6 },
+			{ t = 11.3, kind = "fade", seconds = 0.7, toBlack = true },
+		}
+		-- Avance a velocidad constante y oleaje (waveAt) en tramos lineales de WAVE_STEP s; cada tramo acaba un instante
+		-- antes de que empiece el siguiente para que no se pisen.
+		local segments = math.floor(VOYAGE_SECONDS / WAVE_STEP)
+		for index = 1, segments do
+			local bob, pitch, roll = waveAt(index * WAVE_STEP)
+			table.insert(events, {
+				t = (index - 1) * WAVE_STEP,
+				kind = "move",
+				actor = "boat",
+				pos = boatAt(index * WAVE_STEP) + Vector3.new(0, bob, 0),
+				yaw = 0,
+				pitch = pitch,
+				roll = roll,
+				seconds = WAVE_STEP - 0.02,
+				easing = Enum.EasingStyle.Linear,
+			})
+		end
+		return {
+			duration = VOYAGE_SECONDS,
+			audience = "Self",
+			freeze = false,
+			skippable = false,
+			actors = voyageActors(),
+			camera = {
+				-- Plano inicial más cerca (la lancha ocupa ~1/3 del ancho) con el horizonte y la isla al fondo.
+				boatShot(0, Vector3.new(-9, 7.5, 19), Vector3.new(0, 1.5, -18), 55),
+				boatShot(2.5, Vector3.new(-9, 5, 15), Vector3.new(0, 1.5, -8), 52),
+				-- Travelling por el costado: a 12 studs de la lancha, de popa a proa y de vuelta a popa.
+				boatShot(4.5, Vector3.new(-12, 3.4, 12), Vector3.new(0, 2, 2), 48),
+				boatShot(6.5, Vector3.new(-12, 3.2, 1), Vector3.new(0, 2, 0), 48),
+				boatShot(8, Vector3.new(-12, 3, -6), Vector3.new(0, 2, -1), 48),
+				boatShot(9.5, Vector3.new(-7, 2.6, 13), Vector3.new(0, 3, -12), 52),
+				-- Plano bajo de popa, a la izquierda del motor, con la isla al fondo.
+				boatShot(12, Vector3.new(-2.4, 2.1, 9), Vector3.new(0, 3.5, -45), 55),
+			},
+			events = events,
+		}
+	end)(),
 
 	-- Escena de prueba del motor: un maniquí guerrero camina hacia la cámara delante del jugador.
 	Prueba = {

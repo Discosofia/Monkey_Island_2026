@@ -832,6 +832,10 @@ return {
 	["¡Rescate!"] = "Rescue!",
 	["Lo lograron"] = "You made it",
 	["¡Todos a salvo!"] = "Everyone is safe!",
+	-- Travesía en la lancha (G4b).
+	["Rumbo a la Isla de monos"] = "Heading for Monkey Island",
+	["Al amanecer, con el mar en calma"] = "At dawn, on a calm sea",
+	["Ya se ve la isla a lo lejos…"] = "The island is coming into view…",
 	-- Llegada a la isla (G4).
 	["¿Dónde estamos…?"] = "Where are we…?",
 	["¡Allí! Hay humo entre los árboles."] = "Over there! Smoke through the trees.",

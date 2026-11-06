@@ -6,6 +6,8 @@
 --              local, el primero y el más cerca de la puerta). Quedan sentados, quietos y soldados al "Body", y cada
 --              pasajero saluda con el brazo derecho. Los personajes reales de TODOS los jugadores se ocultan solo en
 --              este cliente (LocalTransparencyModifier) para que no se vean además en su sitio.
+--   voyageBoard (G4b) sienta en la lancha de la escena «Voyage» a los maniquíes de la tripulación y a una copia del
+--              avatar del jugador local (ver boardVoyage).
 --   fin        borra la tripulación, desconecta el saludo y devuelve la visibilidad a los personajes, aunque la
 --              escena se salte o se pare.
 -- Ejes de las poses (el rig R15 mira a -Z y la derecha del personaje es +X): una rotación X de +90° sobre una pieza que
@@ -18,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local HelicopterModel = require(script.Parent.Parent.HelicopterModel)
+local LifeboatModel = require(script.Parent.Parent.LifeboatModel)
 local Sequencer = require(script.Parent.Sequencer)
 
 local RescueCrew = {}
@@ -160,8 +163,9 @@ local function freeze(rig: Model)
 end
 
 -- Sienta "rig" (con su HumanoidRootPart) en la plaza "seatPos" del helicóptero: cadera sobre el cojín, mirando a -Z,
--- con las piernas dobladas. Devuelve las medidas del rig (para el volante del piloto).
-local function sit(rig: Model, body: BasePart, seatPos: Vector3): Measure?
+-- con las piernas dobladas (o con la rodilla en "kneeAngle" radianes). Devuelve las medidas del rig (para el volante
+-- del piloto).
+local function sit(rig: Model, body: BasePart, seatPos: Vector3, kneeAngle: number?): Measure?
 	local root = rig:FindFirstChild("HumanoidRootPart")
 	if not (root and root:IsA("BasePart")) then
 		return nil
@@ -172,7 +176,8 @@ local function sit(rig: Model, body: BasePart, seatPos: Vector3): Measure?
 	if info then
 		-- El muslo horizontal descansa sobre el cojín: su cara de abajo está a media grosor bajo la cadera.
 		rootPos = Vector3.new(seatPos.X - info.hip.X, seatPos.Y - (info.hip.Y - info.thigh / 2), seatPos.Z - info.hip.Z)
-		for name, angle in { RightHip = HIP_ANGLE, LeftHip = HIP_ANGLE, RightKnee = KNEE_ANGLE, LeftKnee = KNEE_ANGLE } do
+		local knee = kneeAngle or KNEE_ANGLE
+		for name, angle in { RightHip = HIP_ANGLE, LeftHip = HIP_ANGLE, RightKnee = knee, LeftKnee = knee } do
 			local motor = motorOf(rig, name)
 			if motor then
 				motor.Transform = CFrame.Angles(angle, 0, 0)
@@ -320,13 +325,17 @@ local function addPilot(crew: Crew, heli: Model, body: BasePart)
 end
 
 -- Copia pequeña y sin scripts del personaje de "player", sentada en "seatPos". Devuelve false si no se pudo.
+-- "look" ajusta la copia: scale (por defecto CREW_SCALE), knee (rodilla en radianes) y unhide (el personaje original
+-- está oculto con Transparency 1 por el servidor: la copia hereda la transparencia y se vuelve a mostrar).
+type PassengerLook = { scale: number?, knee: number?, unhide: boolean? }
 local function addPassenger(
 	crew: Crew,
 	heli: Model,
 	body: BasePart,
 	character: Model,
 	seatPos: Vector3,
-	index: number
+	index: number,
+	look: PassengerLook?
 ): boolean
 	local clone: Model? = nil
 	pcall(function()
@@ -346,14 +355,21 @@ local function addPassenger(
 		end
 	end
 	toMotors(rig)
-	if not pcall(rig.ScaleTo, rig, CREW_SCALE) then
+	if not pcall(rig.ScaleTo, rig, if look and look.scale then look.scale else CREW_SCALE) then
 		rig:Destroy()
 		return false
 	end
 	freeze(rig)
+	if look and look.unhide then
+		for _, descendant in rig:GetDescendants() do
+			if (descendant:IsA("BasePart") and descendant.Name ~= "HumanoidRootPart") or descendant:IsA("Decal") then
+				(descendant :: any).Transparency = 0
+			end
+		end
+	end
 	-- sit devuelve nil tanto sin HumanoidRootPart como con un rig que no se puede medir (un personaje con otro
 	-- esqueleto sube igualmente, de pie sobre el cojín): solo falla si no hay raíz que soldar.
-	sit(rig, body, seatPos)
+	sit(rig, body, seatPos, if look then look.knee else nil)
 	if not rig:FindFirstChild("HumanoidRootPart") then
 		rig:Destroy()
 		return false
@@ -460,9 +476,121 @@ local function board(ctx: Sequencer.Context)
 	end
 end
 
+-- Travesía (G4b): sienta en la lancha (ctx.actors.boat) a los maniquíes de la escena que tengan plaza en
+-- LifeboatModel.SEATS (por el nombre del actor) y a una copia del avatar del jugador local ("player"). Los maniquíes
+-- se reducen, se sueldan al fondo y pasan a ser hijos de la lancha, así que se mueven y se balancean con ella.
+local VOYAGE_SCALE = 0.55
+local VOYAGE_LIGHT_SCALE = 0 -- fracción del brillo de las luces de los pasajeros (0 = apagadas)
+local VOYAGE_PARTICLE_SCALE = 0.3 -- fracción del caudal de las partículas de sus trajes
+
+local function boardVoyage(ctx: Sequencer.Context)
+	RescueCrew.clear(ctx)
+	local actors = ctx.actors
+	local boat = if actors then actors.boat else nil
+	local body = if boat and boat:IsA("Model") then boat.PrimaryPart else nil
+	if not (actors and boat and body) then
+		warn("RescueCrew: no hay lancha (ctx.actors.boat)")
+		return
+	end
+	local crew: Crew = { models = {}, hidden = {}, wavers = {}, connection = nil }
+	ctx._crew = crew
+	local pivot = boat:GetPivot()
+	-- Plaza en el marco del fondo (las de LifeboatModel.SEATS están en el del pivote) y rodilla en radianes.
+	local function seatOf(key: string): (Vector3?, number?)
+		local seat = LifeboatModel.SEATS[key]
+		if not seat then
+			return nil, nil
+		end
+		return body.CFrame:PointToObjectSpace(pivot:PointToWorldSpace(seat.pos)), math.rad(seat.knee)
+	end
+
+	for name, rig in actors do
+		local seatPos, knee = seatOf(name)
+		if seatPos and rig:IsA("Model") and rig:FindFirstChild("HumanoidRootPart") then
+			toMotors(rig)
+			if pcall(rig.ScaleTo, rig, VOYAGE_SCALE) then
+				freeze(rig)
+				sit(rig, body, seatPos, knee)
+				rig.Parent = boat
+			end
+		end
+	end
+
+	-- La copia del avatar (solo R15; el R6 no se sienta y se salta, como el resto de rigs sin medir).
+	local character = if Players.LocalPlayer then Players.LocalPlayer.Character else nil
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	local playerSeat, playerKnee = seatOf("player")
+	if
+		character
+		and playerSeat
+		and humanoid
+		and humanoid.Health > 0
+		and humanoid.RigType == Enum.HumanoidRigType.R15
+	then
+		addPassenger(
+			crew,
+			boat :: Model,
+			body,
+			character,
+			playerSeat,
+			0,
+			{ scale = VOYAGE_SCALE, knee = playerKnee, unhide = true }
+		)
+	end
+
+	-- Las armaduras y armas llevan luces propias (brillo 1,2 a 1,5, rango 4 a 8) que a un metro de los flotadores lo
+	-- queman todo a blanco: en la lancha se bajan a un 20 %. Son clones de la escena; las luces que lleguen luego
+	-- (armas que se montan tras sentarse) se bajan también. El atributo evita bajar dos veces la misma.
+	local function dimLights(root: Instance)
+		local function dim(instance: Instance)
+			if instance:GetAttribute("VoyageDimmed") then
+				return
+			end
+			if instance:IsA("Light") then
+				instance:SetAttribute("VoyageDimmed", true)
+				instance.Brightness *= VOYAGE_LIGHT_SCALE
+				instance.Enabled = VOYAGE_LIGHT_SCALE > 0
+			elseif instance:IsA("BasePart") and instance.Material == Enum.Material.Neon then
+				-- Neon de armaduras y armas: con el bloom lava el color de la tripulación.
+				instance:SetAttribute("VoyageDimmed", true)
+				instance.Material = Enum.Material.SmoothPlastic
+			elseif instance:IsA("ParticleEmitter") then
+				instance:SetAttribute("VoyageDimmed", true)
+				instance.Rate *= VOYAGE_PARTICLE_SCALE
+				instance.LightEmission = 0
+			elseif instance:IsA("Beam") then
+				instance:SetAttribute("VoyageDimmed", true)
+				instance.Enabled = false
+			end
+		end
+		for _, descendant in root:GetDescendants() do
+			dim(descendant)
+		end
+		root.DescendantAdded:Connect(dim)
+	end
+	for _, child in boat:GetChildren() do
+		if child:IsA("Model") then
+			dimLights(child)
+		end
+	end
+	if #crew.wavers > 0 then
+		crew.connection = RunService.PreRender:Connect(function()
+			local t = os.clock() * math.pi * 2 * WAVE_HZ
+			for _, waver in crew.wavers do
+				if waver.motor.Parent then
+					waver.motor.Transform = CFrame.Angles(0, 0, WAVE_BASE + math.sin(t + waver.phase) * WAVE_RANGE)
+				end
+			end
+		end)
+	end
+end
+
 function RescueCrew.install(sequencer: typeof(Sequencer))
 	sequencer.registerHandler("crewBoard", function(_, ctx)
 		board(ctx)
+	end)
+	sequencer.registerHandler("voyageBoard", function(_, ctx)
+		boardVoyage(ctx)
 	end)
 	sequencer.addHooks({
 		finish = function(_, ctx)

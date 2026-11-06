@@ -160,7 +160,9 @@ function LightingController:Start()
 		local s = adjust(sampleAt(clock), clock)
 		Lighting.Ambient = s.Ambient
 		Lighting.OutdoorAmbient = s.OutdoorAmbient
-		Lighting.Brightness = s.Brightness
+		-- Una cinemática puede bajar la luz del mundo con el atributo (SceneLight, evento brightness): número 0..1.
+		local brightnessScale = Lighting:GetAttribute("CinematicBrightnessScale")
+		Lighting.Brightness = s.Brightness * (if typeof(brightnessScale) == "number" then brightnessScale else 1)
 		Lighting.ColorShift_Top = s.ColorShift
 		Lighting.ExposureCompensation = s.Exposure
 		atmosphere.Color = s.AtmColor

@@ -1,13 +1,14 @@
 --!strict
 -- Llegada a la isla (Fase 25, G4). Cada jugador ve una vez por visita al servidor la escena de la tripulación
--- llegando a la playa: «Arrival» entera la primera vez (hasta verla entera no se puede saltar) y «ArrivalShort» las
--- siguientes. Es una escena local (solo la ve quien llega). CinematicService marca como vista la escena que se vio
+-- llegando a la playa: «Arrival» entera la primera vez (hasta verla entera no se puede saltar; antes suena la travesía
+-- en lancha, «Voyage», con su propio id) y «ArrivalShort» las siguientes. Es una escena local (solo la ve quien llega). CinematicService marca como vista la escena que se vio
 -- entera por su id, así que «Arrival» solo cuenta cuando se vio la larga y la corta nunca la marca.
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local CinematicService = require(script.Parent.CinematicService)
+local Cinematics = require(game:GetService("ReplicatedStorage").Shared.Data.Cinematics)
 local Remotes = require(game:GetService("ReplicatedStorage").Shared.Remotes)
 local MatchService = require(script.Parent.MatchService)
 local PlayerData = require(game:GetService("ServerScriptService").ServerShared.PlayerData)
@@ -16,7 +17,8 @@ local PlayerData = require(game:GetService("ServerScriptService").ServerShared.P
 local ANCHOR = CFrame.new(0, 3.0, 946)
 -- Espera tras tener personaje y perfil para que el cliente tenga listo el controlador de cinemáticas.
 local START_DELAY_SECONDS = 2
--- Si otra escena igual está en marcha (otro amigo viendo la suya), se reintenta cada tanto hasta el límite.
+-- Si la escena no se puede lanzar (por ejemplo, ya tiene una en marcha este mismo jugador), se reintenta cada tanto
+-- hasta el límite. Los amigos que entran a la vez no se esperan unos a otros: cada uno tiene su ejecución.
 local RETRY_SECONDS = 0.5
 local MAX_WAIT_SECONDS = 40
 
@@ -25,6 +27,9 @@ local MAX_WAIT_SECONDS = 40
 -- arena salía en facetas y más alta que la real, y los maniquíes quedaban hundidos.
 local WAIT_OFFSET = Vector3.new(-45, 0, 0)
 local WAIT_LIFT = 3.4 -- altura de la raíz sobre el suelo
+-- Cada jugador espera en su hueco, WAIT_SPACING studs más allá que el anterior (anclados e invisibles, para que no se
+-- pisen). El hueco es el menor libre y se devuelve al volver.
+local WAIT_SPACING = 6
 -- Segundos que se espera, con el personaje ya en la playa, antes de empezar: el terreno de alrededor tarda en dibujarse
 -- fino y, sin la espera, los primeros planos salían con la arena gruesa y los maniquíes hundidos.
 local SETTLE_SECONDS = 2.5
@@ -39,6 +44,11 @@ local RETURN_MAX_SECONDS = 15
 -- la escena, "Return" al volver). Se pone al entrar,
 -- antes de la escena, y se quita cuando el personaje ya está de vuelta con el terreno cargado.
 local HOLD_ATTRIBUTE = "ArrivalHold"
+-- Segundos antes del final de la travesía en que el atributo pasa a "Next" (sigue la llegada). El cliente lo lee al acabar
+-- su escena (0,4 s después de su final) y, mientras suena, lo ignora.
+local NEXT_HOLD_LEAD_SECONDS = 1
+-- Escena que suena antes de la llegada larga, la primera vez.
+local VOYAGE_ID = "Voyage"
 
 local ArrivalService = {}
 
@@ -47,16 +57,31 @@ ArrivalService.ANCHOR = ANCHOR
 local started: { [Player]: boolean } = {}
 -- Jugadores cuyo cliente ya avisó (ArrivalGround) de que tiene suelo cargado en el Basecamp.
 local groundReady: { [Player]: boolean } = {}
+-- Hueco de espera en la playa de cada jugador que está en ella (0, 1, 2…).
+local waitSlot: { [Player]: number } = {}
+
+local function takeSlot(player: Player): number
+	local used: { [number]: boolean } = {}
+	for _, slot in waitSlot do
+		used[slot] = true
+	end
+	local slot = 0
+	while used[slot] do
+		slot += 1
+	end
+	waitSlot[player] = slot
+	return slot
+end
 
 -- Lleva el personaje a la playa (invisible y quieto) y devuelve la función que lo deja como estaba.
-local function moveToBeach(player: Player): () -> ()
+local function moveToBeach(player: Player, slot: number): () -> ()
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	if not (character and root and root:IsA("BasePart")) then
 		return function() end
 	end
 	local home = character:GetPivot()
-	local spot = ANCHOR:PointToWorldSpace(WAIT_OFFSET)
+	local spot = ANCHOR:PointToWorldSpace(WAIT_OFFSET + Vector3.new(-WAIT_SPACING * slot, 0, 0))
 	local terrainOnly = RaycastParams.new()
 	terrainOnly.FilterType = Enum.RaycastFilterType.Include
 	terrainOnly.FilterDescendantsInstances = { Workspace.Terrain }
@@ -129,32 +154,60 @@ local function moveToBeach(player: Player): () -> ()
 	end
 end
 
--- Solo una llegada a la vez (la escena es única por id y mientras alguien espera en la playa no entra otro).
-local busy = false
-
 -- Lanza la escena "sceneId" a "player": primero lo lleva a la playa, espera a que se dibuje el terreno y entonces empieza.
--- false si ya hay una en marcha.
-function ArrivalService.play(player: Player, sceneId: string): boolean
-	if busy or CinematicService.isRunning(sceneId) then
+-- Con "beforeId" (la travesía) esa escena suena antes y, al acabar, sigue "sceneId" sin soltar al personaje ni dejar
+-- entrar a otro. Varios jugadores pueden llegar a la vez (cada uno con su ejecución local y su hueco de espera).
+-- false si este jugador ya tiene una en marcha.
+function ArrivalService.play(player: Player, sceneId: string, beforeId: string?): boolean
+	if
+		CinematicService.isRunningFor(sceneId, player)
+		or (beforeId ~= nil and CinematicService.isRunningFor(beforeId, player))
+		or waitSlot[player] ~= nil
+	then
 		return false
 	end
-	busy = true
 	-- Pantalla en negro en su cliente (CinematicClient) hasta que empiece la escena.
 	player:SetAttribute(HOLD_ATTRIBUTE, "Arrive")
-	local back = moveToBeach(player)
+	local back = moveToBeach(player, takeSlot(player))
 	task.wait(SETTLE_SECONDS)
-	local ok = player.Parent ~= nil
-		and CinematicService.play(sceneId, {
-			audience = { player },
-			anchor = ANCHOR,
-			onFinished = function()
-				busy = false
-				back()
-			end,
-		})
-	if not ok then
-		busy = false
+	local function finish()
+		waitSlot[player] = nil
 		back()
+	end
+	local function launch(id: string, onEnd: () -> ()): boolean
+		return player.Parent ~= nil
+			and CinematicService.play(id, {
+				audience = { player },
+				anchor = ANCHOR,
+				onFinished = onEnd,
+			})
+	end
+	local ok: boolean
+	if beforeId then
+		ok = launch(beforeId, function()
+			if player.Parent then
+				player:SetAttribute(HOLD_ATTRIBUTE, "Arrive")
+			end
+			if launch(sceneId, finish) then
+				return
+			end
+			finish()
+		end)
+		if ok then
+			-- Un segundo antes de acabar la travesía el cliente sabe que sigue otra escena: al acabar enseña la tarjeta
+			-- de espera de la llegada y no la de volver al Basecamp.
+			local scene = Cinematics[beforeId]
+			task.delay(if scene then scene.duration - NEXT_HOLD_LEAD_SECONDS else 0, function()
+				if player.Parent and player:GetAttribute(HOLD_ATTRIBUTE) == "Arrive" then
+					player:SetAttribute(HOLD_ATTRIBUTE, "Next")
+				end
+			end)
+		end
+	else
+		ok = launch(sceneId, finish)
+	end
+	if not ok then
+		finish()
 	end
 	return ok
 end
@@ -176,8 +229,12 @@ local function run(player: Player)
 	task.wait(START_DELAY_SECONDS)
 	local deadline = os.clock() + MAX_WAIT_SECONDS
 	while player.Parent and not MatchService.isOver() do
-		local sceneId = if CinematicService.hasSeen(player, "Arrival") then "ArrivalShort" else "Arrival"
-		if ArrivalService.play(player, sceneId) then
+		-- La primera vez (Arrival aún sin ver entera) la llegada va precedida de la travesía; después, la corta sola.
+		local first = not CinematicService.hasSeen(player, "Arrival")
+		local launched = if first
+			then ArrivalService.play(player, "Arrival", VOYAGE_ID)
+			else ArrivalService.play(player, "ArrivalShort")
+		if launched then
 			return
 		end
 		if os.clock() >= deadline then
@@ -201,6 +258,7 @@ function ArrivalService:Start()
 	Players.PlayerRemoving:Connect(function(player)
 		started[player] = nil
 		groundReady[player] = nil
+		waitSlot[player] = nil
 	end)
 	for _, player in Players:GetPlayers() do
 		task.spawn(run, player)

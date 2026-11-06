@@ -837,6 +837,12 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			Remotes.Notify:FireClient(player, "🎬 La escena de la llegada ya está en marcha")
 		end
 	end,
+	-- Travesía (Fase 25, G4b): solo la escena «Voyage» (la lancha frente a la playa), para quien pulsa.
+	CineVoyage = function(player)
+		if not ArrivalService.play(player, "Voyage") then
+			Remotes.Notify:FireClient(player, "🎬 La escena de la travesía ya está en marcha")
+		end
+	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)
 		runStage(player, false)

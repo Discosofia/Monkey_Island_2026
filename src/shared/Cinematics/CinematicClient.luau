@@ -334,8 +334,10 @@ local function run(id: string, startServerTime: number, args: { [string]: any }?
 		local mine = entry
 		task.delay(END_DELAY, function()
 			-- Si el servidor aún tiene al personaje de camino a casa, se queda en negro hasta que lo suelte.
-			if Players.LocalPlayer and Players.LocalPlayer:GetAttribute("ArrivalHold") ~= nil then
-				startHold(true)
+			-- "Next": sigue otra escena (la travesía antes de la llegada), no se vuelve al Basecamp.
+			local holdValue = if Players.LocalPlayer then Players.LocalPlayer:GetAttribute("ArrivalHold") else nil
+			if holdValue ~= nil then
+				startHold(holdValue ~= "Next")
 			end
 			HudHider.restore()
 			PetFollowers.setHidden(false)
@@ -510,6 +512,9 @@ function CinematicClient.start(place: string)
 		end
 		local function syncHold()
 			local value = localPlayer:GetAttribute("ArrivalHold")
+			if value == "Next" and active then
+				return -- el servidor avisa de que sigue otra escena: la tarjeta sale al acabar esta (onFinished)
+			end
 			if value ~= nil then
 				startHold()
 				if value == "Return" then

@@ -9,7 +9,9 @@
 --     Quien se va no bloquea el final. Si se vio entera (watchedFully), la escena entra en el perfil
 --     (cinematicsSeen) y el cliente la puede saltar la próxima vez.
 --   - Una escena con audiencia "All" (sin opts.audience) también la ve quien entra a mitad.
---   - Una escena a la vez por id, y ninguna con freeze si ya hay un bloqueo en marcha.
+--   - Una escena a la vez por id, y ninguna con freeze si ya hay un bloqueo en marcha. Excepción: una escena sin
+--     freeze con un solo jugador de audiencia (la llegada, la travesía) es una ejecución propia de ese jugador, así
+--     que varios amigos pueden verla a la vez cada uno con la suya (la clave de `running` lleva su UserId).
 --   - Eventos de servidor: un evento de la escena con server = true no lo toca el cliente; el servidor llama a
 --     la función que registró registerServerEvent(kind, fn(event, run)) a los event.t segundos. Si la escena
 --     acaba antes (todos la saltan o el ajuste está apagado), los que no han salido y son essential = true se
@@ -57,11 +59,30 @@ export type Run = {
 	serverEvents: { { event: { [string]: any }, fired: boolean } },
 	onFinished: (() -> ())?,
 	finished: boolean,
+	key: string, -- clave en `running`
 }
 
 local CinematicService = {}
 
 local running: { [string]: Run } = {}
+
+-- Clave de `running`: el id, o id + UserId si es una escena sin freeze de un solo jugador (ejecución independiente).
+local function runKey(id: string, audience: { Player }?, freeze: boolean): string
+	if not freeze and audience and #audience == 1 then
+		return `{id}#{audience[1].UserId}`
+	end
+	return id
+end
+
+-- La ejecución en marcha de "id" que ve "player" (la suya o la compartida).
+local function runOf(id: string, player: Player): Run?
+	for _, run in running do
+		if run.id == id and run.audience[player] then
+			return run
+		end
+	end
+	return nil
+end
 local serverHandlers: { [string]: (event: { [string]: any }, run: Run) -> () } = {}
 
 -- Registra la función de un tipo de evento de servidor (server = true en la escena). Una por tipo.
@@ -85,9 +106,19 @@ local function fireServerEvent(run: Run, entry: { event: { [string]: any }, fire
 	end
 end
 
--- true si la escena "id" está en marcha.
+-- true si hay alguna ejecución de la escena "id" en marcha (de cualquier jugador).
 function CinematicService.isRunning(id: string): boolean
-	return running[id] ~= nil
+	for _, run in running do
+		if run.id == id then
+			return true
+		end
+	end
+	return false
+end
+
+-- true si "player" tiene en marcha la escena "id" (su ejecución propia o una compartida que ve).
+function CinematicService.isRunningFor(id: string, player: Player): boolean
+	return runOf(id, player) ~= nil
 end
 
 -- true si ya vio la escena entera (perfil cinematicsSeen).
@@ -112,8 +143,8 @@ local function finish(run: Run, timedOut: boolean)
 		return
 	end
 	run.finished = true
-	if running[run.id] == run then
-		running[run.id] = nil
+	if running[run.key] == run then
+		running[run.key] = nil
 	end
 	-- Los eventos esenciales que no han salido (la escena acabó antes) salen ahora; el resto se descarta.
 	for _, entry in run.serverEvents do
@@ -189,7 +220,8 @@ function CinematicService.play(id: string, opts: PlayOptions?): boolean
 		return false
 	end
 	local freeze = scene.freeze and options.noFreeze ~= true
-	if running[id] or (freeze and CinematicLock.active()) then
+	local key = runKey(id, options.audience, freeze)
+	if running[key] or (freeze and CinematicLock.active()) then
 		return false
 	end
 	local now = Workspace:GetServerTimeNow()
@@ -210,8 +242,9 @@ function CinematicService.play(id: string, opts: PlayOptions?): boolean
 		serverEvents = {},
 		onFinished = options.onFinished,
 		finished = false,
+		key = key,
 	}
-	running[id] = run
+	running[key] = run
 	if freeze then
 		CinematicLock.lock(run.endTime + END_MARGIN_SECONDS)
 	end
@@ -269,8 +302,8 @@ function CinematicService:Start()
 		if typeof(id) ~= "string" then
 			return
 		end
-		local run = running[id]
-		if not run or not run.audience[player] then
+		local run = runOf(id, player)
+		if not run then
 			return
 		end
 		if watchedFully == true and not CinematicService.hasSeen(player, id) then

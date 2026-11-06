@@ -6,6 +6,7 @@
 -- CoreGui). Presentation.install(Sequencer) registra los eventos letterbox, title, caption y fade.
 
 local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 
 local Sequencer = require(script.Parent.Sequencer)
@@ -26,6 +27,7 @@ export type TextOptions = {
 	args: Strings.Args?, -- argumentos del texto principal
 	subArgs: Strings.Args?, -- argumentos del subtítulo
 	seconds: number?, -- cuánto se queda en pantalla (sin contar los fundidos)
+	oneLine: boolean?, -- el título no se parte en dos líneas: la letra se reduce para que quepa
 }
 
 local GUI_NAME = "Cinematic"
@@ -169,6 +171,24 @@ local function showText(label: TextLabel, text: string, seconds: number, token: 
 	end)
 end
 
+-- ¿Cabe "text" en una sola línea con letra de al menos el 60 % de la del cartel normal? TextScaled no pasa de 100 y
+-- aquí la caja mide 0,12 de la zona segura (de alto) y 0,96 (de ancho). Las medidas salen de la pantalla, porque el
+-- tamaño de la etiqueta recién creada aún no está calculado. Si no cabe, el cartel se parte en dos líneas.
+local ONE_LINE_MIN = 0.6
+local function fitsOneLine(label: TextLabel, text: string): boolean
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return false
+	end
+	local viewport = camera.ViewportSize
+	local safeHeight = viewport.Y
+	local safeWidth = math.min(viewport.X, viewport.Y * 9 / 16)
+	local normal = math.min(100, safeHeight * 0.12)
+	local size = math.max(1, math.floor(normal * ONE_LINE_MIN))
+	local measured = TextService:GetTextSize(text, size, label.Font, Vector2.new(1e6, 1e6))
+	return measured.X <= safeWidth * 0.96
+end
+
 -- Cartel de título: el nombre grande y, debajo, el subtítulo pequeño. Aparece y se va con fundido.
 function Presentation.title(text: string, sub: string?, options: TextOptions?)
 	local opts: TextOptions = options or {}
@@ -190,6 +210,11 @@ function Presentation.title(text: string, sub: string?, options: TextOptions?)
 		return titleToken
 	end
 	if main then
+		-- TextScaled reparte el texto en varias líneas si así cabe con letra mayor; sin ajuste de línea, la reduce.
+		local translated = T(text, opts.args)
+		local oneLine = opts.oneLine == true and fitsOneLine(main, translated)
+		main.TextWrapped = not oneLine
+		main.Size = UDim2.fromScale(if oneLine then 0.96 else 0.92, 0.12)
 		showText(main, T(text, opts.args), seconds, token, current)
 	end
 	if subLabel then
@@ -256,7 +281,7 @@ function Presentation.install(sequencer: SequencerModule)
 		Presentation.title(
 			event.text,
 			event.sub,
-			{ args = event.args, subArgs = event.subArgs, seconds = event.seconds }
+			{ args = event.args, subArgs = event.subArgs, seconds = event.seconds, oneLine = event.oneLine }
 		)
 	end)
 	sequencer.registerHandler("caption", function(event, ctx)
