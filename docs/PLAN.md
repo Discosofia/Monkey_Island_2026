@@ -1520,7 +1520,7 @@ Mejoras sobre lo que dejó la Fase 26. No se reforma la cancha: se mantienen la 
 | **27b** | Modo de prueba del juego de pelota en el menú Pruebas (solo Studio): el panel «🛠️ Pruebas» manda argumentos y tiene cabeceras (Partida, Pelota, Marcador, Rivales de prueba, Bandera, Otros; 37 botones en Dunas); `Mode` fuerza Ballgame o CaptureFlag (`ArenaMatchService.debugSetMode`); `SlowServe` deja la pelota quieta tras el saque hasta el primer golpe; `BotRivals` pone muñecos rivales que devuelven la pelota (`BallBotService`); `BallPlace` con atajos (mine, rival, center), `BallServe` por equipo, `BallRing` y `BallScore` con «Out»; `BallHitService` añade `HitInfo.player?` y `botHit` | df8da77 | ✅ Hecha y subida (df8da77) (probada en Studio de Dunas con un jugador: modo, saque lento, botones y bots; capturas). Lo que falta, en VERIFICACION §158 |
 | **27c** | Recompensas de Ámbar por partida jugada y ganada del Juego de pelota, con tope diario; el número lo decide `Economia` (sección «Reglas de pago»); reutiliza `PlayerData`, `Retention` y las misiones como ya paga Dunas por la bandera. Solo Ámbar de juego: lo de Robux sigue siendo cosmético | 23b8560 | ✅ |
 | **27d** | Decorado voxel: Templos Norte y Sur en las cabeceras, tzompantli, relieves de animales y serpientes y gradas con público simple de pocos tonos, todo fusionado con `Shared/VoxelMerge` y medido con `Rendimiento`; tope de `CourtParts` solo si hace falta | 8705b1b | ✅ Hecha y subida (8705b1b): cancha v7 con 1.257 piezas (tope 1500); templos de 5 terrazas, estandartes en vez de tzompantli, relieves y público. Lo que falta, en VERIFICACION §160 |
-| **27e** | Equipamiento visual solo durante el partido: yugo, palma, rodilleras y tocado de plumas, solo cosmético, sin chocar con `CosmeticsServer` ni los trajes, y que se vea por detrás | commit pendiente | ⏳ |
+| **27e** | Equipamiento visual solo durante el partido: yugo, palma, rodilleras y tocado de plumas, solo cosmético, sin chocar con `CosmeticsServer` ni los trajes, y que se vea por detrás | `348cf64` | ✅ |
 | **27f** | Repetición a cámara lenta del aro (con `Shared/Cinematics` si encaja), sonidos de impacto y celebración | commit pendiente | ⏳ |
 
 **Handoff de 27a (para 27b–27f y para quien pruebe)**
@@ -1563,11 +1563,10 @@ Mejoras sobre lo que dejó la Fase 26. No se reforma la cancha: se mantienen la 
 - **Presupuesto:** `Config.Budgets.Matches.CourtParts` 1500; la cancha 5v5 mide **1.257** piezas (print de `CourtBuilder.build`). Quedan unas 240 para 27e y 27f.
 - **Para dejarlo fijo en el place:** `require(game.ServerScriptService.Server.World.CourtBuilder).build(true)` en edición (con el clon de `World` si la caché devuelve código viejo), guardar y publicar. Está solo en memoria en el Studio de Dunas.
 
-**Handoff siguiente: 27e, equipo visual durante el partido (06-11-2026)**
-- **Estado:** 27a (dbec9b1), 27b (df8da77), 27c (23b8560) y 27d (8705b1b) subidas. Siguen 27e y 27f.
-- **27e:** yugo, palma, rodilleras y tocado de plumas solo cosmético durante el partido, sin chocar con `CosmeticsServer` ni los trajes, y que se vea por detrás. Preguntar antes de modelar (qué rol lleva qué, si se ve en la mano o en el cuerpo).
-- **27f:** repetición a cámara lenta del aro (con `Shared/Cinematics` si encaja), sonidos de impacto y celebración.
-- **Pendiente de tu parte:** guardar y publicar el place Dunas (cancha v7), VERIFICACION §157, §158, §159 y §160, y publicar los places.
+**Handoff de 27e (equipo visual) y siguiente: 27f (06-11-2026)**
+- **Hecho (348cf64):** `Shared/BallgameGear` (`build(team, character)`, `remove`) con yugo cerrado (6 piezas), rodilleras, palma en la espalda y tocado: Jaguar rojo/amarillo con orejas y manchas, Quetzal jade/negro con abanico y dos colas. `Dunas/Services/BallgameGearService` lo pone con `ArenaMode` = Ballgame y fase Battle o SuddenDeath (lee los atributos `ArenaPhase`/`ArenaMode`), lo reaplica en cada `CharacterAdded` y al cambiar `Team`, y lo quita en cualquier otra fase. Modelo aparte «BallgameGear»: no toca `ArmorPiece` ni `CosmeticsServer`. Tope `Config.Budgets.Models.BallgameGear` = 30 (Quetzal 30, Jaguar 24) y filas en `Rendimiento`. Altura de la diadema: `bandY` = 0,36 × Head.Size.Y (más baja tapaba los ojos). Sin Play: VERIFICACION §161.
+- **27f:** repetición a cámara lenta del aro (con `Shared/Cinematics` si encaja), sonidos de impacto y celebración. La cancha 5v5 mide 1.257 de 1.500 piezas (`CourtParts`).
+- **Pendiente de tu parte:** guardar y publicar el place Dunas (cancha v7), VERIFICACION §157 a §161, y publicar los places.
 
 ---
 
