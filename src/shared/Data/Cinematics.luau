@@ -412,7 +412,356 @@ local function voyageActors(): { [string]: { [string]: any } }
 	return actors
 end
 
+-- Batalla montada «Tripulación contra la manada» (G5a), en el marco del anchor de la playa (ArrivalService.ANCHOR):
+-- la tripulación en arco mira tierra adentro (-Z) y cuatro monos bajan de la selva y frenan a unos 14 studs. Es solo
+-- para grabar (se lanza con «Batalla» y «Batalla cómic» del panel de pruebas). Las habilidades son solo visuales: sus
+-- efectos son los del juego (Cinematics/AbilityShow, que llama a AbilityFxController), sin daño, sin recargas y sin
+-- pasar por CombatService. Los monos son del servidor (CinematicMonkeyService, evento «monkey»).
+--
+-- Reparto del tiempo (14 s; los tiempos del servidor y del cliente son los mismos):
+--    0,0 a  2,4  plano general; los monos bajan corriendo desde z ≈ -48 hasta su sitio
+--    2,4 a  3,6  rugido del mandril (plano cerrado)
+--    3,6 a  4,8  el guerrero responde con el Grito de guerra
+--    4,8 a  6,6  el cazador (Disparo múltiple) y el mago (Bola de fuego)
+--    6,6 a  8,6  el guerrero carga y gira (Embestida, Torbellino) y el mago congela al aullador (Nova de hielo)
+--    8,6 a 10,4  el médico cura en área y el cazador llama a la Lluvia de flechas
+--   10,4 a 12,2  remate del guerrero (Rompehuesos): el mandril se va con su «¡puf!»
+--   12,2 a 14,0  el Meteoro del mago se lleva al babuino, los otros dos huyen y la tripulación celebra
+-- Efectos grandes (los que cuentan para AbilityShow.MAX_HEAVY, no más de 2 a la vez y 0,4 s entre inicios): Torbellino
+-- 7,3, Nova 7,8, Curación en área 9,2, Lluvia 9,85, Rompehuesos 10,65 y Meteoro 12,1. Con las duraciones de
+-- AbilityShow.SPECS, nunca hay más de 2 vivos a la vez. En calidad baja el Meteoro y la Lluvia se sustituyen por un
+-- Rayo y un Disparo múltiple.
+local BATTLE_SECONDS = 14
+
+-- Dónde está cada uno de la tripulación: z positivo es hacia el mar, el giro (yaw) lo pone mirando algo al centro.
+local BATTLE_SPOTS: { [string]: { x: number, z: number, yaw: number } } = {
+	guerrero = { x = -5, z = 1, yaw = -8 },
+	cazador = { x = -12, z = 5, yaw = -22 },
+	mago = { x = 3, z = 6, yaw = 6 },
+	medico = { x = 9, z = 4, yaw = 20 },
+}
+-- La manada: (x, z) donde frenan y (startX, startZ) de donde salen. Tamaños muy distintos (escala 0,63 a 1,15).
+local BATTLE_MONKEYS = {
+	{ name = "mandril", species = "Mandril", x = -7, z = -12, startX = -9, startZ = -48 },
+	{ name = "babuino", species = "Babuino", x = 0, z = -13, startX = 1, startZ = -52 },
+	{ name = "macaco", species = "Macaco", x = -14, z = -9, startX = -17, startZ = -44 },
+	{ name = "aullador", species = "AulladorRojo", x = 8, z = -10, startX = 10, startZ = -46 },
+}
+local BATTLE_FLEE = { macaco = Vector3.new(-17, 0, -52), aullador = Vector3.new(10, 0, -52) }
+
+type CameraKey = { pos: Vector3, look: Vector3, fov: number }
+type CameraShot = { t0: number, t1: number, a: CameraKey, b: CameraKey }
+
+local function cameraKey(pos: Vector3, look: Vector3, fov: number): CameraKey
+	return { pos = pos, look = look, fov = fov }
+end
+
+-- Puntos de cámara de una lista de planos seguidos: cada plano va de "a" a "b" y entre uno y otro hay un corte. Se
+-- repite el primer y el último punto de cada plano (con 0,01 s de diferencia) para que la spline Catmull-Rom del
+-- plano no se curve hacia el siguiente (ver el corte del Rescate).
+local function cutShots(shots: { CameraShot }): { { t: number, pos: Vector3, look: Vector3, fov: number? } }
+	local points: { { t: number, pos: Vector3, look: Vector3, fov: number? } } = {}
+	local function add(t: number, point: CameraKey)
+		table.insert(points, { t = t, pos = point.pos, look = point.look, fov = point.fov })
+	end
+	for index, shot in shots do
+		local last = index == #shots
+		add(shot.t0, shot.a)
+		add(shot.t0 + 0.01, shot.a)
+		add(if last then shot.t1 else shot.t1 - 0.03, shot.b)
+		if not last then
+			add(shot.t1 - 0.01, shot.b)
+		end
+	end
+	return points
+end
+
+local function battleShots(): { CameraShot }
+	-- Reglas: ninguna cámara a menos de 9 studs de un maniquí o mono; el eje de la acción (tripulación en z = 1 a 6,
+	-- monos en z = -9 a -13) se ve de lado (x = ±21 a ±23) o desde detrás de los monos (z = -21 a -22); cada habilidad
+	-- tiene su plano. ground() resta la pendiente de la playa (0,08 por stud).
+	return {
+		-- 0 a 2,4: plano general desde el costado izquierdo; la manada baja de la selva.
+		{
+			t0 = 0,
+			t1 = 2.4,
+			a = cameraKey(ground(-22, 5.5, 2), ground(-2, 3, -18), 62),
+			b = cameraKey(ground(-22, 5, 0), ground(-3, 3, -12), 56),
+		},
+		-- 2,4 a 3,6: rugido del mandril, de tres cuartos desde el costado derecho.
+		{
+			t0 = 2.4,
+			t1 = 3.6,
+			a = cameraKey(ground(16, 4.5, -3), ground(-7, 3.7, -12), 46),
+			b = cameraKey(ground(15, 4.5, -2), ground(-7, 3.7, -12), 44),
+		},
+		-- 3,6 a 4,8: Grito de guerra (3,7), el guerrero y el mandril en cuadro, de lado y a 16 studs.
+		{
+			t0 = 3.6,
+			t1 = 4.8,
+			a = cameraKey(ground(-21, 4.5, 2), ground(-6, 3.5, -3), 52),
+			b = cameraKey(ground(-19, 4.5, 1), ground(-6, 3.5, -3), 52),
+		},
+		-- 4,8 a 6,6: contraplano desde detrás de los monos: Disparo múltiple (5,46) y Bola de fuego (6,12) llegan.
+		{
+			t0 = 4.8,
+			t1 = 6.6,
+			a = cameraKey(ground(-4, 5, -22), ground(-4, 3.5, 2), 58),
+			b = cameraKey(ground(2, 5.5, -21), ground(-4, 3.5, 2), 58),
+		},
+		-- 6,6 a 7,7: Embestida (6,75) y Torbellino (7,3), desde el costado izquierdo.
+		{
+			t0 = 6.6,
+			t1 = 7.7,
+			a = cameraKey(ground(-22, 5, 0), ground(-4, 3, -9), 58),
+			b = cameraKey(ground(-21, 5, 0), ground(-4, 3, -9), 58),
+		},
+		-- 7,7 a 8,6: Nova de hielo sobre el aullador (7,8), desde el costado derecho.
+		{
+			t0 = 7.7,
+			t1 = 8.6,
+			a = cameraKey(ground(21, 5.5, -3), ground(-1, 3, -9), 58),
+			b = cameraKey(ground(22, 5.5, -4), ground(-1, 3, -9), 58),
+		},
+		-- 8,6 a 9,6: Curación en área del médico (9,2), en alto desde la derecha.
+		{
+			t0 = 8.6,
+			t1 = 9.6,
+			a = cameraKey(ground(21, 6.5, -4), ground(2, 2.5, -2), 60),
+			b = cameraKey(ground(22, 7, -3), ground(2, 2.5, -2), 60),
+		},
+		-- 9,6 a 10,4: Lluvia de flechas (9,85) sobre los monos, desde la izquierda.
+		{
+			t0 = 9.6,
+			t1 = 10.4,
+			a = cameraKey(ground(-23, 6, -2), ground(-4, 4, -8), 58),
+			b = cameraKey(ground(-22, 6.5, -3), ground(-4, 4, -8), 58),
+		},
+		-- 10,4 a 12,2: Rompehuesos (10,65), plano bajo de tres cuartos desde detrás del mandril.
+		{
+			t0 = 10.4,
+			t1 = 12.2,
+			a = cameraKey(ground(-12, 3.4, -22), ground(-5, 3.2, -8), 52),
+			b = cameraKey(ground(-9, 3.6, -21), ground(-5, 3.2, -8), 52),
+		},
+		-- 12,2 a 14: Meteoro (12,1) sobre el babuino y plano de grupo con la tripulación celebrando.
+		{
+			t0 = 12.2,
+			t1 = BATTLE_SECONDS,
+			a = cameraKey(ground(21, 6, -8), ground(-3, 5, -5), 60),
+			b = cameraKey(ground(22, 7.5, -2), ground(-3, 5, -4), 60),
+		},
+	}
+end
+
+local function battleActors(): { [string]: { [string]: any } }
+	local actors: { [string]: { [string]: any } } = {}
+	for _, member in CREW do
+		local spot = BATTLE_SPOTS[member.name]
+		actors[member.name] = {
+			kind = "dummy",
+			role = member.role,
+			armor = member.armor,
+			outfit = member.outfit,
+			skin = member.skin,
+			pos = beach(spot.x, spot.z),
+			yaw = spot.yaw,
+		}
+	end
+	return actors
+end
+
+type EventList = { { t: number, kind: string, [string]: any } }
+
+-- Los eventos de la batalla que son iguales en la versión normal y en la cómic: monos, gestos y efectos.
+local function battleAction(): EventList
+	local events: EventList = {}
+	local function add(event: { t: number, kind: string, [string]: any })
+		table.insert(events, event)
+	end
+	local function anim(t: number, actor: string, action: string, seconds: number?)
+		add({ t = t, kind = "anim", actor = actor, action = action, seconds = seconds })
+	end
+	local function skill(t: number, name: string, from: string, to: any, args: { [string]: any }?)
+		add({ t = t, kind = "abilityFx", fx = name, from = from, to = to, args = args })
+	end
+	local function monkey(t: number, name: string, fields: { [string]: any })
+		local event: { [string]: any } = { t = t, kind = "monkey", server = true, name = name }
+		for field, value in fields do
+			event[field] = value
+		end
+		add(event :: any)
+	end
+
+	-- La manada baja de la selva corriendo y frena en su sitio (la velocidad decide si anda o corre).
+	for _, member in BATTLE_MONKEYS do
+		monkey(0, member.name, {
+			species = member.species,
+			at = Vector3.new(member.startX, 0, member.startZ),
+			yaw = 180,
+			action = "Idle",
+		})
+		monkey(0.3, member.name, { move = { pos = Vector3.new(member.x, 0, member.z), seconds = 2.4, yaw = 180 } })
+	end
+	-- Rugido del mandril y respuesta del guerrero.
+	monkey(2.6, "mandril", { action = "Roar" })
+	anim(3.65, "guerrero", "WarCry", 1.4)
+	skill(3.7, "WarCry", "guerrero", nil, { seconds = 1.4 })
+	-- Cazador: apunta con el arco, dispara (la flecha sale a los 0,16 s del gesto) y el mago lanza la bola de fuego.
+	anim(4.75, "cazador", "AimBow", 1.8)
+	anim(5.3, "cazador", "Arrow", 0.7)
+	skill(5.46, "MultiShot", "cazador", "mandril", nil)
+	monkey(5.62, "mandril", { action = "Hurt" })
+	anim(5.7, "mago", "AimSpell", 1.4)
+	anim(6.0, "mago", "Spell", 0.6)
+	skill(6.12, "Fireball", "mago", "babuino", nil)
+	monkey(6.35, "babuino", { action = "Hurt" })
+	-- Guerrero: embestida entre el mandril y el babuino, y torbellino al llegar.
+	anim(6.7, "guerrero", "Charge", 0.7)
+	add({
+		t = 6.75,
+		kind = "move",
+		actor = "guerrero",
+		pos = beach(-4, -6.5),
+		yaw = 0,
+		seconds = 0.55,
+		easing = Enum.EasingStyle.Quad,
+	})
+	skill(6.75, "Charge", "guerrero", nil, { seconds = 0.7 })
+	anim(7.3, "guerrero", "Whirlwind", 1.2)
+	skill(7.3, "Whirlwind", "guerrero", nil, { seconds = 1.2 })
+	monkey(7.55, "mandril", { action = "Hurt" })
+	monkey(7.6, "macaco", { action = "Hurt" })
+	monkey(7.7, "babuino", { action = "Hurt" })
+	-- Mago: nova de hielo sobre el aullador, que queda congelado.
+	anim(7.6, "mago", "CastArea", 1.0)
+	skill(7.8, "FrostNova", "mago", "aullador", { radius = 10 })
+	skill(7.95, "Frozen", "mago", "aullador", { seconds = 1.5 })
+	-- Médico: curación en área; cazador: Lluvia de flechas sobre la hilera de monos.
+	anim(9.1, "medico", "CastArea", 1.1)
+	skill(9.2, "AreaHeal", "medico", nil, nil)
+	anim(9.25, "cazador", "AimBow", 1.3)
+	anim(9.7, "cazador", "Arrow", 0.7)
+	skill(9.85, "ArrowRain", "cazador", Vector3.new(-3, 0, -12.5), { radius = 11, seconds = 1.6 })
+	monkey(10.05, "mandril", { action = "Hurt" })
+	monkey(10.25, "babuino", { action = "Hurt" })
+	-- Remate: Rompehuesos del guerrero (el golpe cae a los 0,25 s del gesto) y el mandril se va con su «¡puf!».
+	anim(10.4, "guerrero", "Smash", 0.8)
+	skill(10.65, "Smash", "guerrero", "mandril", nil)
+	monkey(10.95, "mandril", { action = "Die" })
+	-- Meteoro del mago sobre el babuino (cae en 0,8 s); el macaco y el aullador huyen hacia la selva.
+	anim(11.9, "mago", "CastArea", 1.0)
+	skill(12.1, "Meteor", "mago", "babuino", nil)
+	monkey(12.0, "macaco", { move = { pos = BATTLE_FLEE.macaco, seconds = 1.6, yaw = 0 } })
+	monkey(12.0, "aullador", { move = { pos = BATTLE_FLEE.aullador, seconds = 1.6, yaw = 0 } })
+	monkey(13.0, "babuino", { action = "Die" })
+	for _, member in CREW do
+		anim(12.5, member.name, "Cheer", 1.6)
+	end
+	return events
+end
+
+-- La luz de las dos versiones: la de la llegada (exposición y una luz que sigue a la cámara) y las luces de los trajes
+-- de los maniquíes bajas, que a 5 o 10 studs de la cámara queman el plano con el Bloom (lección de la travesía).
+local function battleLight(): EventList
+	return {
+		{ t = 0, kind = "exposure", value = 0.28 },
+		{
+			t = 0,
+			kind = "light",
+			follow = true,
+			offset = Vector3.new(0, 3, 0),
+			color = Color3.fromRGB(255, 236, 210),
+			brightness = 1,
+			range = 60,
+		},
+		{ t = 0, kind = "dimLights", lights = 0.3, neon = false },
+	}
+end
+
+-- La batalla. "comic" es la variante para vídeo: sin franjas negras, con viñetas, fondos de puntos y de líneas,
+-- onomatopeyas y bocadillos cortos de la tripulación (Cinematics/Comic).
+local function battleScene(comic: boolean): Scene
+	local events: EventList = battleLight()
+	for _, event in battleAction() do
+		table.insert(events, event)
+	end
+	if comic then
+		local base, cream = Color3.fromRGB(190, 122, 44), Color3.fromRGB(246, 232, 196)
+		local function panel(t: number, shape: string, style: string, seconds: number?)
+			table.insert(events, {
+				t = t,
+				kind = "panel",
+				shape = shape,
+				bg = { style = style, colors = { base, cream } },
+				seconds = seconds,
+			})
+		end
+		local function bubble(t: number, actor: string, text: string, seconds: number)
+			table.insert(
+				events,
+				{ t = t, kind = "bubble", balloon = "speech", actor = actor, text = text, seconds = seconds }
+			)
+		end
+		local function sfx(t: number, text: string, x: number, y: number, rot: number, size: number)
+			table.insert(events, {
+				t = t,
+				kind = "sfx",
+				text = text,
+				pos = { x, y },
+				rot = rot,
+				size = size,
+				color = Color3.new(1, 1, 1),
+				seconds = 1.1,
+			})
+		end
+		panel(0, "diagLeft", "halftone")
+		table.insert(events, {
+			t = 0.2,
+			kind = "bubble",
+			balloon = "narration",
+			corner = "TL",
+			text = Strings.later("Una manada baja de la selva…"),
+			seconds = 2.0,
+		})
+		panel(2.4, "diagRight", "speed", 0.2)
+		sfx(2.6, Strings.later("¡ROAAAR!"), 0.22, 0.22, -8, 0.2)
+		panel(3.6, "tallSlant", "flat", 0.25)
+		bubble(3.9, "guerrero", Strings.later("¡Que vengan!"), 0.9)
+		panel(4.8, "wide", "halftone", 0.25)
+		bubble(6.1, "mago", Strings.later("¡Fuego!"), 0.9)
+		sfx(6.3, Strings.later("¡FUM!"), 0.72, 0.3, 10, 0.17)
+		panel(6.6, "diagLeft", "speed", 0.2)
+		panel(7.7, "diagRight", "halftone", 0.2)
+		sfx(6.85, Strings.later("¡WHOOSH!"), 0.28, 0.3, -12, 0.18)
+		panel(8.6, "wide", "flat", 0.25)
+		panel(9.6, "diagLeft", "halftone", 0.2)
+		bubble(9.3, "medico", Strings.later("¡Aguanten!"), 1.0)
+		panel(10.4, "tallSlant", "speed", 0.2)
+		sfx(10.7, Strings.later("¡CRASH!"), 0.3, 0.25, -6, 0.22)
+		panel(12.2, "wide", "flat", 0.25)
+		bubble(12.7, "cazador", Strings.later("¡Lo logramos!"), 1.0)
+	else
+		table.insert(events, { t = 0, kind = "letterbox" })
+	end
+	table.insert(events, { t = BATTLE_SECONDS - 0.6, kind = "fade", seconds = 0.5, toBlack = true })
+	return {
+		duration = BATTLE_SECONDS,
+		audience = "Self",
+		freeze = false,
+		skippable = true,
+		waitTerrain = { beach(-5, 1), beach(9, 4), ground(0, 0, -18) },
+		actors = battleActors(),
+		camera = cutShots(battleShots()),
+		events = events,
+	}
+end
+
 local Cinematics: { [string]: Scene } = {
+	-- Batallas montadas (G5a): solo para grabar, las lanza el panel de pruebas con ArrivalService.play.
+	Battle_Pack = battleScene(false),
+	Battle_Pack_Comic = battleScene(true),
+
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",
 		Strings.later("Señor del manglar"),

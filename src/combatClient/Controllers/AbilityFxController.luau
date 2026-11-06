@@ -418,6 +418,11 @@ local function groundParams(): RaycastParams
 	for _, enemy in CollectionService:GetTagged(Config.Combat.EnemyTag) do
 		table.insert(ignore, enemy)
 	end
+	-- Los maniquíes y monos de una cinemática (Shared/Cinematics/AbilityShow) no son enemigos, pero el suelo
+	-- tampoco es su cuerpo.
+	for _, actor in CollectionService:GetTagged(Config.Combat.CinematicActorTag) do
+		table.insert(ignore, actor)
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore

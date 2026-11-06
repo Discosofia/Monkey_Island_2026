@@ -843,6 +843,18 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 			Remotes.Notify:FireClient(player, "🎬 La escena de la travesía ya está en marcha")
 		end
 	end,
+	-- Batalla montada (Fase 25, G5a): la tripulación contra una manada de monos en la playa, solo para grabar. Usa el
+	-- mismo flujo que la llegada (el personaje real se aparta y vuelve al Basecamp al acabar).
+	CineBattle = function(player)
+		if not ArrivalService.play(player, "Battle_Pack") then
+			Remotes.Notify:FireClient(player, "🥊 La batalla ya está en marcha")
+		end
+	end,
+	CineBattleComic = function(player)
+		if not ArrivalService.play(player, "Battle_Pack_Comic") then
+			Remotes.Notify:FireClient(player, "🥊 La batalla cómic ya está en marcha")
+		end
+	end,
 	-- Plató de grabación (ver runStage).
 	CineStage = function(player)
 		runStage(player, false)

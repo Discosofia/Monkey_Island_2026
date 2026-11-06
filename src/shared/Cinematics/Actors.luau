@@ -17,11 +17,13 @@
 --                               del place la enlaza a BodyAnimations.playOn (CombatClient) o a MonkeyAnimator.
 -- Actors.install(Sequencer) registra los eventos anim y move y el spawn/cleanup de scene.actors.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local ArmorModels = require(script.Parent.Parent.ArmorModels)
+local Config = require(script.Parent.Parent.Config)
 local Sequencer = require(script.Parent.Sequencer)
 local WeaponTools = require(script.Parent.Parent.WeaponTools)
 
@@ -46,6 +48,7 @@ export type ActorDef = {
 export type DummyFactory = (def: ActorDef) -> Model?
 export type Animator = (actor: Model, action: string, event: Sequencer.Event) -> ()
 
+local CINEMATIC_ACTOR_TAG = Config.Combat.CinematicActorTag
 local DEFAULT_SKIN = Color3.fromRGB(255, 204, 153)
 local DEFAULT_PANTS = Color3.fromRGB(70, 60, 50)
 local DEFAULT_ROLE = "Guerrero"
@@ -349,6 +352,12 @@ function Actors.install(sequencer: typeof(Sequencer))
 				local model = Actors.spawn(def, ctx.anchor or CFrame.identity, ctx)
 				if model then
 					spawned[name] = model
+					-- Los maniquíes que crea la escena se marcan como «de cinemática» (como los monos de
+					-- CinematicMonkeyService): los efectos de habilidades no apoyan su rayo al suelo en ellos.
+					if def.kind == "dummy" then
+						model:SetAttribute("CinematicActor", name)
+						CollectionService:AddTag(model, CINEMATIC_ACTOR_TAG)
+					end
 				end
 			end
 		end,

@@ -846,6 +846,14 @@ local function findActor(name: any, ctx: { [string]: any }): (Model?, boolean)
 	if typeof(model) == "Instance" and model:IsA("Model") then
 		return model, false
 	end
+	-- Los monos de las batallas los pone el servidor, no scene.actors: AbilityShow deja en ctx una función que los busca.
+	local resolver = ctx.resolveActor
+	if typeof(resolver) == "function" then
+		local found = resolver(name)
+		if typeof(found) == "Instance" and found:IsA("Model") then
+			return found, false
+		end
+	end
 	return nil, false
 end
 

@@ -5556,6 +5556,65 @@ La bandera pasa a `Modes/CaptureFlag` (la misma interfaz que el Laboratorio), la
 7. [ ] Antes de desplegar, pon a una cuenta en la cola vieja `ArenaQueue_<formato>` (sin modo). Tras desplegar, mira si esa cuenta entra en alguna partida.
    ✅ Los tickets de la cola vieja caducan y se pierden: nadie es emparejado con ellos. Quien estuviera esperando tiene que volver a ponerse en la cola nueva.
 
+## 147. Fase 25 G5a: batalla montada de la tripulación contra una manada (05-11-2026)
+
+La batalla es la escena `Battle_Pack` (14 s): la tripulación (Guerrero, Cazador, Mago y Médico) lanza sus habilidades reales contra Mandril, Babuino, Macaco y AulladorRojo. Los monos son instancias del servidor sin IA (`CinematicMonkeyService`) que se borran al acabar la escena, y los efectos salen de `Shared/Cinematics/AbilityShow` con el gobernador de picos. La versión para vídeo es `Battle_Pack_Comic`. Se probó en Play en el Studio de la Isla con un jugador (capturas de ambas versiones, sin errores de Luau). Lo que sigue sin probar es esto.
+
+### 147.1 Play en el Studio de la Isla con las órdenes
+
+1. [ ] En Play, lanza «🥊 Batalla» desde el panel de pruebas y mira la escena entera.
+   ✅ Dura unos 14 s, cada habilidad sale con su efecto y, al acabar, no queda ningún mono de la escena (los que llevan el atributo `CinematicActor`).
+2. [ ] Con la escena en marcha, mira al Cazador y al Guerrero en las posturas de arma `Aim*` y `Hold`.
+   ✅ El arma sigue en la mano y no se queda en la cara ni vertical a la altura de la cabeza. Si una postura sale mal, se anota su nombre (trampa 6 de G4).
+3. [ ] Mira las flechas del Cazador (MultiShot y ArrowRain) y la bola de fuego del Mago.
+   ✅ Las flechas y la bola atraviesan a los monos. Es lo esperado hoy (no hay `ProjectileEnd`), así que se anota y no se toma por fallo. Nada se queda parado en el aire.
+4. [ ] Mira la nova de hielo del Mago y el Smash del Guerrero.
+   ✅ Los efectos se ven completos y ninguno tapa la cámara.
+5. [ ] Mira el movimiento de los monos durante la escena.
+   ✅ Se mueven de forma continua. Si hay saltos (se mueven desde el servidor a ~20 Hz), se graba y se anota el segundo.
+6. [ ] Mira si entra en cuadro algún mono ambiental de la isla.
+   ✅ Ninguno. Si se cuela uno, se anota el plano (ver la trampa 5).
+7. [ ] Con «🥊 Batalla cómic», mira los paneles, los 4 bocadillos, las 4 onomatopeyas y la narración.
+   ✅ Cada bocadillo que apunta a un mono señala a ese mono y no al aire, y ninguno tapa la cara de un maniquí.
+8. [ ] Lanza «🥊 Batalla» dos veces seguidas, la segunda al acabar la primera.
+   ✅ La segunda arranca limpia: no quedan monos ni efectos de la primera, y la Salida no muestra errores de Luau.
+
+### 147.2 Calidad de efectos: Low, Medium y High
+
+Se cambia el ajuste «Efectos de los jefes» (`fxQuality`) antes de cada prueba.
+
+9. [ ] Con «Efectos de los jefes» en High, lanza «🥊 Batalla» y anota el pico de piezas de efectos en el momento de más habilidades a la vez (Meteoro, lluvia de flechas y bola de fuego).
+   ✅ El pico no supera 160 piezas (`Config.Budgets.Vfx.High`). La estimación era de unas 100 piezas, no confirmada, así que se anota el pico real. No hay más de dos efectos grandes vivos a la vez, ni dos grandes con menos de 0,4 s entre ellos.
+10. [ ] Con «Efectos de los jefes» en Medium, lanza «🥊 Batalla».
+    ✅ Las habilidades se ven con sus efectos, algo menos que en High, y el pico no supera 90 piezas (`Config.Budgets.Vfx.Medium`).
+11. [ ] Con «Efectos de los jefes» en Low, lanza «🥊 Batalla» y mira el Meteoro y la lluvia de flechas.
+    ✅ Salen en su versión `fallback`, sin el efecto grande. La escena no se queda vacía y el pico no supera 40 piezas (`Config.Budgets.Vfx.Low`).
+
+### 147.3 Vídeo grabado
+
+12. [ ] Graba «🥊 Batalla» con OBS a 1080p60 en 16:9 y mira el encuadre con la guía 9:16.
+    ✅ Los maniquíes y los monos caen dentro de la zona segura 9:16 en los planos principales, y no se corta ninguna habilidad.
+13. [ ] Graba «🥊 Batalla cómic» y recorta el 9:16 central en CapCut.
+    ✅ El recorte conserva los bocadillos, las onomatopeyas y la narración. Ninguna viñeta queda a medias y ningún texto se corta.
+14. [ ] En la grabación de «🥊 Batalla», mira el plano del Médico (AreaHeal) y el Meteoro del final.
+    ✅ Ningún plano queda a oscuras ni quemado por el bloom, y la cara del Médico se ve bien iluminada.
+
+### 147.4 Dos o más jugadores
+
+15. [ ] Con 2 jugadores en la Isla, la cuenta de administrador lanza «🥊 Batalla» y mira la pantalla del otro jugador.
+    ✅ Los monos y los maniquíes se ven igual en los dos clientes, porque son instancias del servidor visibles a todos. Se anota si el otro jugador ve la escena o queda congelado.
+16. [ ] Con 2 jugadores, uno lanza «🥊 Batalla» mientras el otro entra a la Isla (llegada).
+    ✅ Las dos escenas no se pisan: la escena con congelación sigue siendo una a la vez, y los monos de la batalla no aparecen en la llegada del otro.
+17. [ ] Con 2 jugadores, que cada cuenta lance «🥊 Batalla» a la vez.
+    ✅ Cada batalla borra solo sus monos (`CinematicOwner`), ninguna se queda sin monos a mitad y la Salida no da errores.
+
+### 147.5 Juego publicado
+
+18. [ ] Publica la Isla y, con una cuenta de administrador, lanza «🥊 Batalla» desde el panel de pruebas (si la cuenta lo tiene disponible en el juego publicado).
+    ✅ Se ve igual que en Studio, sin errores en la Salida del servidor ni del cliente.
+19. [ ] Con una cuenta sin permisos de administrador, juega una partida normal de la Isla.
+    ✅ No aparece ninguna batalla ni orden de batalla durante la partida.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

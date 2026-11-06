@@ -57,6 +57,7 @@ export type Run = {
 	protectedUntil: { [Player]: number },
 	context: { [string]: any },
 	serverEvents: { { event: { [string]: any }, fired: boolean } },
+	cleanups: { () -> () }, -- lo que los eventos de servidor piden borrar al acabar (CinematicService.onEnd)
 	onFinished: (() -> ())?,
 	finished: boolean,
 	key: string, -- clave en `running`
@@ -88,6 +89,16 @@ local serverHandlers: { [string]: (event: { [string]: any }, run: Run) -> () } =
 -- Registra la función de un tipo de evento de servidor (server = true en la escena). Una por tipo.
 function CinematicService.registerServerEvent(kind: string, fn: (event: { [string]: any }, run: Run) -> ())
 	serverHandlers[kind] = fn
+end
+
+-- Apunta una función que se llama cuando la ejecución "run" acaba (por duración, por saltarla o por margen), para
+-- que un evento de servidor borre lo que creó (los monos de las batallas). Si ya acabó, se llama al momento.
+function CinematicService.onEnd(run: Run, fn: () -> ())
+	if run.finished then
+		task.spawn(fn)
+		return
+	end
+	table.insert(run.cleanups, fn)
 end
 
 local function fireServerEvent(run: Run, entry: { event: { [string]: any }, fired: boolean })
@@ -153,6 +164,13 @@ local function finish(run: Run, timedOut: boolean)
 		end
 		entry.fired = true
 	end
+	for _, cleanup in run.cleanups do
+		local ok, err = pcall(cleanup)
+		if not ok then
+			warn(`[CinematicService] Falla una limpieza de {run.id}: {err}`)
+		end
+	end
+	table.clear(run.cleanups)
 	if run.freeze then
 		CinematicLock.unlock()
 	end
@@ -240,6 +258,7 @@ function CinematicService.play(id: string, opts: PlayOptions?): boolean
 		protectedUntil = {},
 		context = options.context or {},
 		serverEvents = {},
+		cleanups = {},
 		onFinished = options.onFinished,
 		finished = false,
 		key = key,

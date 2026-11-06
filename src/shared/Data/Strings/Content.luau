@@ -859,4 +859,13 @@ return {
 	["¡Todo arderá!"] = "Everything will burn!",
 	["Del fondo del volcán…"] = "From the depths of the volcano…",
 	["¡ROAAAR!"] = "ROAAAR!",
+	-- Variante cómic de la batalla «Tripulación contra la manada» (G5a).
+	["Una manada baja de la selva…"] = "A pack comes down from the jungle…",
+	["¡Que vengan!"] = "Bring them on!",
+	["¡Fuego!"] = "Fire!",
+	["¡Aguanten!"] = "Hold on!",
+	["¡Lo logramos!"] = "We did it!",
+	["¡FUM!"] = "FWOOM!",
+	["¡WHOOSH!"] = "WHOOSH!",
+	["¡CRASH!"] = "CRASH!",
 }

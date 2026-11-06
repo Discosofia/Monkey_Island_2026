@@ -144,6 +144,9 @@ local Config = {
 	Combat = {
 		-- Solo se puede dañar a lo que tenga esta etiqueta (CollectionService): monos y muñecos.
 		EnemyTag = "Enemy",
+		-- Etiqueta de los maniquíes y monos de una cinemática (Fase 25): no son enemigos ni objetivo de nada; los
+		-- efectos de habilidades la usan para que su rayo al suelo no se pose en ellos.
+		CinematicActorTag = "CinematicActor",
 		-- Coberturas que se rompen (Fase 10, C11; Combat/Destructibles): los modelos del mundo con esta
 		-- etiqueta. Hoy solo las estelas y columnas de la arena de Dunas (Config.Arena.Covers).
 		DestructibleTag = "Destructible",
@@ -1228,9 +1231,6 @@ local Config = {
 		MinFormat = 1,
 		MaxFormat = 5,
 		StudioFormat = 1,
-		-- Antes de la partida: si todos pulsan "Listo", cuenta atrás; si no, a los WaitSeconds de
-		-- llegar el primero arranca igual (si algún equipo está vacío, se cancela y vuelven al Lobby).
-		WaitSeconds = 60,
 		-- Modos de la cola, en orden (la clave va en la lista de MemoryStore y en TeleportData "mode"). Los
 		-- nombres se traducen al dibujarlos (T(name)): Config no carga Strings. Ballgame (Fase 26e) aún no
 		-- está en la lista: su módulo existe, pero no se puede elegir.
@@ -1240,6 +1240,9 @@ local Config = {
 		ModeFormats = { CaptureFlag = { 1, 2, 3, 4, 5 }, Ballgame = { 1, 2, 3, 4, 5 } },
 		-- Modo de Studio (sin viaje desde el Lobby).
 		StudioMode = "CaptureFlag",
+		-- Antes de la partida: si todos pulsan "Listo", cuenta atrás; si no, a los WaitSeconds de
+		-- llegar el primero arranca igual (si algún equipo está vacío, se cancela y vuelven al Lobby).
+		WaitSeconds = 60,
 		CountdownSeconds = 10,
 		-- Partida: gana quien llegue a CapturesToWin; si se acaba el tiempo, quien tenga más (con
 		-- empate, muerte súbita: la siguiente captura gana).

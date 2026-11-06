@@ -8,6 +8,7 @@
 --              este cliente (LocalTransparencyModifier) para que no se vean además en su sitio.
 --   voyageBoard (G4b) sienta en la lancha de la escena «Voyage» a los maniquíes de la tripulación y a una copia del
 --              avatar del jugador local (ver boardVoyage).
+--   dimLights  (G5) baja las luces de los trajes de los maniquíes de la escena (ver RescueCrew.dimLights).
 --   fin        borra la tripulación, desconecta el saludo y devuelve la visibilidad a los personajes, aunque la
 --              escena se salte o se pare.
 -- Ejes de las poses (el rig R15 mira a -Z y la derecha del personaje es +X): una rotación X de +90° sobre una pieza que
@@ -483,6 +484,48 @@ local VOYAGE_SCALE = 0.55
 local VOYAGE_LIGHT_SCALE = 0 -- fracción del brillo de las luces de los pasajeros (0 = apagadas)
 local VOYAGE_PARTICLE_SCALE = 0.3 -- fracción del caudal de las partículas de sus trajes
 
+-- Baja el brillo de lo que arrastran los trajes y las armas de "root" (un clon de la escena): las armaduras llevan
+-- PointLight propias (brillo 1,2 a 1,5, rango 4 a 8), brasas y neón que a pocos studs de la cámara queman el plano,
+-- sobre todo con el Bloom global. Las piezas que lleguen luego (armas que se montan tras sentarse) se bajan también.
+-- El atributo VoyageDimmed evita bajar dos veces la misma.
+--   lights     fracción del brillo de las luces (0 = apagadas; por defecto 0)
+--   particles  fracción del caudal de las partículas, que además dejan de emitir luz (por defecto 1)
+--   neon       true cambia las piezas de Neon a SmoothPlastic (por defecto true: con el bloom lava el color)
+--   beams      true deja los Beam encendidos (por defecto false: se apagan)
+export type DimOptions = { lights: number?, particles: number?, neon: boolean?, beams: boolean? }
+
+function RescueCrew.dimLights(root: Instance, options: DimOptions?)
+	local settings: DimOptions = options or {}
+	local lightScale = settings.lights or 0
+	local particleScale = settings.particles or 1
+	local dimNeon = settings.neon ~= false
+	local keepBeams = settings.beams == true
+	local function dim(instance: Instance)
+		if instance:GetAttribute("VoyageDimmed") then
+			return
+		end
+		if instance:IsA("Light") then
+			instance:SetAttribute("VoyageDimmed", true)
+			instance.Brightness *= lightScale
+			instance.Enabled = lightScale > 0
+		elseif dimNeon and instance:IsA("BasePart") and instance.Material == Enum.Material.Neon then
+			instance:SetAttribute("VoyageDimmed", true)
+			instance.Material = Enum.Material.SmoothPlastic
+		elseif instance:IsA("ParticleEmitter") then
+			instance:SetAttribute("VoyageDimmed", true)
+			instance.Rate *= particleScale
+			instance.LightEmission = 0
+		elseif instance:IsA("Beam") and not keepBeams then
+			instance:SetAttribute("VoyageDimmed", true)
+			instance.Enabled = false
+		end
+	end
+	for _, descendant in root:GetDescendants() do
+		dim(descendant)
+	end
+	root.DescendantAdded:Connect(dim)
+end
+
 local function boardVoyage(ctx: Sequencer.Context)
 	RescueCrew.clear(ctx)
 	local actors = ctx.actors
@@ -538,39 +581,11 @@ local function boardVoyage(ctx: Sequencer.Context)
 		)
 	end
 
-	-- Las armaduras y armas llevan luces propias (brillo 1,2 a 1,5, rango 4 a 8) que a un metro de los flotadores lo
-	-- queman todo a blanco: en la lancha se bajan a un 20 %. Son clones de la escena; las luces que lleguen luego
-	-- (armas que se montan tras sentarse) se bajan también. El atributo evita bajar dos veces la misma.
-	local function dimLights(root: Instance)
-		local function dim(instance: Instance)
-			if instance:GetAttribute("VoyageDimmed") then
-				return
-			end
-			if instance:IsA("Light") then
-				instance:SetAttribute("VoyageDimmed", true)
-				instance.Brightness *= VOYAGE_LIGHT_SCALE
-				instance.Enabled = VOYAGE_LIGHT_SCALE > 0
-			elseif instance:IsA("BasePart") and instance.Material == Enum.Material.Neon then
-				-- Neon de armaduras y armas: con el bloom lava el color de la tripulación.
-				instance:SetAttribute("VoyageDimmed", true)
-				instance.Material = Enum.Material.SmoothPlastic
-			elseif instance:IsA("ParticleEmitter") then
-				instance:SetAttribute("VoyageDimmed", true)
-				instance.Rate *= VOYAGE_PARTICLE_SCALE
-				instance.LightEmission = 0
-			elseif instance:IsA("Beam") then
-				instance:SetAttribute("VoyageDimmed", true)
-				instance.Enabled = false
-			end
-		end
-		for _, descendant in root:GetDescendants() do
-			dim(descendant)
-		end
-		root.DescendantAdded:Connect(dim)
-	end
+	-- Las armaduras y armas llevan luces propias que a un metro de los flotadores lo queman todo a blanco: en la
+	-- lancha se apagan.
 	for _, child in boat:GetChildren() do
 		if child:IsA("Model") then
-			dimLights(child)
+			RescueCrew.dimLights(child, { lights = VOYAGE_LIGHT_SCALE, particles = VOYAGE_PARTICLE_SCALE })
 		end
 	end
 	if #crew.wavers > 0 then
@@ -591,6 +606,20 @@ function RescueCrew.install(sequencer: typeof(Sequencer))
 	end)
 	sequencer.registerHandler("voyageBoard", function(_, ctx)
 		boardVoyage(ctx)
+	end)
+	-- dimLights { lights?, particles?, neon?, beams? } (G5, batallas): baja las luces y el neón de todos los maniquíes
+	-- de la escena (ver RescueCrew.dimLights). No sirve de nada al volver atrás con seek: el atributo evita repetirlo.
+	sequencer.registerHandler("dimLights", function(event, ctx)
+		for _, actor in ctx.actors or {} do
+			if typeof(actor) == "Instance" and actor:IsA("Model") and actor:GetAttribute("CinematicActor") ~= nil then
+				RescueCrew.dimLights(actor, {
+					lights = event.lights,
+					particles = event.particles,
+					neon = event.neon,
+					beams = event.beams,
+				})
+			end
+		end
 	end)
 	sequencer.addHooks({
 		finish = function(_, ctx)

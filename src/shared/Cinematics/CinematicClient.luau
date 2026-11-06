@@ -24,10 +24,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local AbilityShow = require(script.Parent.AbilityShow)
 local Actors = require(script.Parent.Actors)
 local Comic = require(script.Parent.Comic)
 local Branding = require(script.Parent.Parent.Data.Branding)
 local Cinematics = require(script.Parent.Parent.Data.Cinematics)
+local PlayerAnimations = require(script.Parent.Parent.Data.PlayerAnimations)
+local WeaponAnimations = require(script.Parent.Parent.Data.WeaponAnimations)
 local HudHider = require(script.Parent.Parent.UI.HudHider)
 local PetFollowers = require(script.Parent.Parent.UI.PetFollowers)
 local Presentation = require(script.Parent.Presentation)
@@ -47,7 +50,19 @@ local TERRAIN_WAIT_SECONDS = 4
 local GROUND_CHECK_DISTANCE = 30 -- studs bajo el personaje donde se busca el suelo al volver al Basecamp
 local GROUND_CHECK_STREAK = 4 -- lecturas seguidas con suelo antes de avisar al servidor
 local TERRAIN_TOLERANCE = 0.9 -- studs de diferencia admitidos entre el suelo de diseño y el cargado
-local GESTURES_WITH_WEAPON_ARM = { Point = true, LookAround = true }
+-- Gestos que usan el brazo del arma: la pose de llevarla se para mientras duran. Los gestos de las habilidades de
+-- los roles (batallas, G5) lo mueven entero.
+local GESTURES_WITH_WEAPON_ARM = {
+	Point = true,
+	LookAround = true,
+	Quake = true,
+	WarCry = true,
+	Charge = true,
+	Smash = true,
+	Whirlwind = true,
+	CastForward = true,
+	CastArea = true,
+}
 local END_DELAY = 0.4 -- espera antes de devolver el HUD, para que un fundido final no se corte de golpe
 local TEMPLATE_NAME = "CinematicDummy"
 
@@ -401,40 +416,76 @@ end
 -- Hold) ponen el arma en la cara o la dejan vertical a la altura de la cabeza. Va en bucle y por encima de los
 -- gestos (Action4 sobre Action3): en cada articulación manda la pista de más prioridad, así que al celebrar el
 -- brazo del arma sigue sujetándola y solo sube el otro. Los gestos que usan el brazo del arma (los de
--- GESTURES_WITH_WEAPON_ARM) la paran mientras duran.
+-- GESTURES_WITH_WEAPON_ARM) y los ataques de arma (WeaponAnimations) la paran mientras duran.
 local weaponPoses: { [Model]: () -> () } = setmetatable({}, { __mode = "k" }) :: any
+-- Hasta cuándo (os.clock) tiene la pose parada cada maniquí con pose; su presencia dice que el maniquí la lleva.
+local poseResumeAt: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
+
+local function ensureAnimator(actor: Model): Humanoid?
+	local humanoid = actor:FindFirstChildOfClass("Humanoid")
+	if humanoid and not humanoid:FindFirstChildOfClass("Animator") then
+		Instance.new("Animator").Parent = humanoid
+	end
+	return humanoid
+end
 
 local function startWeaponPose(BodyAnimations: any, actor: Model)
 	local id = BodyAnimations.idOf("WeaponCarry")
-	local humanoid = actor:FindFirstChildOfClass("Humanoid")
-	if not (id and humanoid) then
+	if not (id and ensureAnimator(actor)) then
 		return
 	end
-	if not humanoid:FindFirstChildOfClass("Animator") then
-		Instance.new("Animator").Parent = humanoid
-	end
+	poseResumeAt[actor] = poseResumeAt[actor] or 0
 	weaponPoses[actor] = BodyAnimations.playIdOn(actor, id, Enum.AnimationPriority.Action4, true, nil)
 end
 
--- Para la pose del arma mientras dura un gesto que usa su brazo y la devuelve al acabar.
+-- Para la pose del arma mientras dura un gesto o un ataque que usa su brazo y la devuelve al acabar. Si llega otro
+-- mientras está parada, la pose vuelve cuando acabe el último.
 local function pauseWeaponPose(BodyAnimations: any, actor: Model, seconds: number)
-	local stop = weaponPoses[actor]
-	if not stop then
+	if poseResumeAt[actor] == nil then
 		return
 	end
-	stop()
-	weaponPoses[actor] = nil
+	poseResumeAt[actor] = math.max(poseResumeAt[actor], os.clock() + seconds)
+	local stop = weaponPoses[actor]
+	if stop then
+		stop()
+		weaponPoses[actor] = nil
+	end
 	task.delay(seconds, function()
-		if actor.Parent then
+		if actor.Parent and weaponPoses[actor] == nil and os.clock() >= poseResumeAt[actor] - 0.01 then
 			startWeaponPose(BodyAnimations, actor)
 		end
 	end)
+end
+
+-- Animación de arma (Data/WeaponAnimations: Slash1–4, Aim*, Arrow, Spell, Stone, Dart…) en un maniquí. Como en el juego
+-- (WeaponController), las poses Aim* y Hold van en bucle a nivel Action y el resto (tajos y disparos), una vez a Action2;
+-- sin "seconds", los disparos duran 1 s y las poses de apuntar, 2 s.
+local function playWeaponAnimation(
+	BodyAnimations: any,
+	WeaponAnimationIds: any,
+	actor: Model,
+	key: string,
+	seconds: number?
+)
+	local id = WeaponAnimationIds.get(key)
+	if not (id and ensureAnimator(actor)) then
+		return
+	end
+	local holding = key == "Hold" or string.sub(key, 1, 3) == "Aim"
+	BodyAnimations.playIdOn(
+		actor,
+		id,
+		if holding then Enum.AnimationPriority.Action else Enum.AnimationPriority.Action2,
+		holding,
+		seconds or (if holding then 2 else 1)
+	)
 end
 
 -- "place" solo sirve para los avisos; los dos places cargan CombatClient, así que el animador es el mismo.
 function CinematicClient.start(place: string)
 	Presentation.install(Sequencer)
 	Actors.install(Sequencer)
+	AbilityShow.install(Sequencer)
 	Comic.install(Sequencer)
 	RescueCrew.install(Sequencer)
 	SceneLight.install(Sequencer)
@@ -452,15 +503,32 @@ function CinematicClient.start(place: string)
 	local bodyModule = if combatClient then combatClient:FindFirstChild("BodyAnimations") else nil
 	if bodyModule and bodyModule:IsA("ModuleScript") then
 		local BodyAnimations = require(bodyModule) :: any
+		local idsModule = combatClient and combatClient:FindFirstChild("WeaponAnimationIds")
+		local WeaponAnimationIds = if idsModule and idsModule:IsA("ModuleScript")
+			then require(idsModule) :: any
+			else nil
 		Actors.setAnimator(function(actor, action, event)
 			if action == "WeaponPose" then
 				startWeaponPose(BodyAnimations, actor)
 				return
 			end
-			if GESTURES_WITH_WEAPON_ARM[action] then
-				pauseWeaponPose(BodyAnimations, actor, event.seconds or 2)
+			if (PlayerAnimations.Animations :: any)[action] then
+				-- Gestos del cuerpo (PlayerAnimations): Cheer, Point… y los de las habilidades de los roles.
+				if GESTURES_WITH_WEAPON_ARM[action] then
+					pauseWeaponPose(BodyAnimations, actor, event.seconds or 2)
+				end
+				BodyAnimations.playOn(actor, action, event.seconds or 2)
+			elseif WeaponAnimations[action] and WeaponAnimationIds then
+				-- Ataques y poses de arma (WeaponAnimations): usan el brazo del arma, que deja la pose de llevarla.
+				pauseWeaponPose(
+					BodyAnimations,
+					actor,
+					event.seconds or (if string.sub(action, 1, 3) == "Aim" then 2 else 1)
+				)
+				playWeaponAnimation(BodyAnimations, WeaponAnimationIds, actor, action, event.seconds)
+			else
+				warn(`CinematicClient: animación desconocida ({action})`)
 			end
-			BodyAnimations.playOn(actor, action, event.seconds or 2)
 		end)
 	else
 		warn(`CinematicClient({place}): sin CombatClient; los eventos anim no harán nada`)

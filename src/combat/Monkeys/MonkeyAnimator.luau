@@ -185,6 +185,15 @@ function MonkeyAnimator.play(model: Model, action: Action)
 	end
 end
 
+-- Elige a mano Idle, Walk o Run según "speed" (studs/s) para un mono que se mueve sin física (el Humanoid no
+-- avisa de su velocidad): las cinemáticas lo mueven con un Tween de su raíz anclada.
+function MonkeyAnimator.setSpeed(model: Model, speed: number)
+	local rig = rigs[model]
+	if rig then
+		setLocomotion(rig, speed)
+	end
+end
+
 -- Para una acción en bucle (Invoke) o una que hay que cortar.
 function MonkeyAnimator.stop(model: Model, action: Action)
 	local rig = rigs[model]
