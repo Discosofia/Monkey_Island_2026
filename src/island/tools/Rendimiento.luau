@@ -720,6 +720,32 @@ local function main(copia: Instance): string
 				end)
 			end
 		end
+		-- Equipo visual del Juego de pelota (Fase 27e): yugo, rodilleras, palma y tocado de cada equipo.
+		local BallgameGear = require(copia.BallgameGear) :: any
+		for _, equipo in { "Jaguar", "Quetzal" } do
+			local id = `BallgameGear {equipo}`
+			if pasa(id) then
+				intentar(id, function()
+					local personaje = r15Falso()
+					local extras = {
+						Head = { Vector3.new(2, 1, 1), Vector3.new(0, 4.6, 0) },
+						LeftLowerLeg = { Vector3.new(1, 1.2, 1), Vector3.new(-0.5, 0.6, 0) },
+						RightLowerLeg = { Vector3.new(1, 1.2, 1), Vector3.new(0.5, 0.6, 0) },
+					}
+					for nombre, datos in extras do
+						local pieza = Instance.new("Part")
+						pieza.Name = nombre
+						pieza.Size = datos[1]
+						pieza.CFrame = CFrame.new(datos[2])
+						pieza.Anchored = true
+						pieza.Parent = personaje
+					end
+					local equipoVisual = BallgameGear.build(equipo, personaje)
+					fila(`{id} (pelota)`, medir(equipoVisual, fusionSoldada), M.BallgameGear)
+					personaje:Destroy()
+				end)
+			end
+		end
 	end)
 
 	-- ---------------------------------- 3. Mascotas ----------------------------------

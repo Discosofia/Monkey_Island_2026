@@ -2443,6 +2443,7 @@ local Config = {
 			MountLegendary = 120,
 			MountMythic = 560, -- Q4c (04-11-2026): el Quetzalcóatl a máximo detalle (antes 410)
 			Aura = 30, -- aura cosmética
+			BallgameGear = 30, -- equipo visual del Juego de pelota por jugador (Fase 27e): yugo, rodilleras, palma y tocado
 			LabWeaponBase = 45, -- arma del Laboratorio sin skin
 			LabWeaponSkin3 = 200, -- arma del Laboratorio con una skin de bajas (hoy el Arpón de red III llega a 99)
 			LabAimModel = 60, -- modelo de apuntado de un arma del Laboratorio con su skin, en primera persona (Fase 19, W11)

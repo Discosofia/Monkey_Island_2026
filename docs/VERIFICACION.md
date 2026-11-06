@@ -6251,6 +6251,38 @@ La cancha v7 solo está en memoria en el Studio, así que hasta que no se fije e
 11. [ ] Con 4 a 8 jugadores reales, juega partidas de pelota en formato 2v2, 3v3 y 4v4.
     ✅ En los tres formatos las gradas no sobresalen de la cabecera y ningún relieve pisa el aro.
 
+## 161. Fase 27e: equipo visual del Juego de pelota (06-11-2026)
+
+Durante el partido de Juego de pelota cada jugador lleva un equipo solo cosmético (`Shared/BallgameGear`, puesto y quitado por `BallgameGearService` en Dunas): yugo cerrado de piedra (frente con emblema, lados y espalda con panel), dos rodilleras con su banda, palma de piedra en la espalda y tocado con diadema. Jaguar: rojo y amarillo, orejas y manchas negras. Quetzal: jade y negro, abanico de plumas turquesa y dos colas largas por la espalda. Va en un modelo aparte («BallgameGear»), sin tocar `ArmorPiece` ni los atributos de `CosmeticsServer`. Se pone con `ArenaMode` = Ballgame y fase Battle o SuddenDeath, se reaplica en cada reaparición y al cambiar de equipo, y se quita en cualquier otra fase. Tope `Config.Budgets.Models.BallgameGear` = 30; Quetzal mide 30 y Jaguar 24 (con un R15 por defecto, en Edit). Visto en Studio solo sobre dos maniquíes en modo edición; no se ha dado Play.
+
+### 161.1 En Studio, modo edición (en Dunas)
+
+1. [ ] Ejecuta `Rendimiento` en el Studio de la Isla y mira las filas «BallgameGear Jaguar» y «BallgameGear Quetzal».
+   ✅ Ninguna da alerta (≤ 30 piezas fusionadas).
+
+### 161.2 En Play, en Dunas (Juego de pelota, panel «Pruebas»: «Solo» y «Rivales: 3»)
+
+2. [ ] Entra al partido y mira a tu personaje y a los rivales desde delante, desde atrás y de lado, con la cámara de tercera persona.
+   ✅ Se ven yugo, rodilleras, palma y tocado; la diadema no tapa los ojos; el Jaguar y el Quetzal se distinguen a primera vista, también por detrás; las rodillas quedan en la rodilla en un personaje de proporciones normales.
+3. [ ] Corre, desliza por el talud y golpea la pelota.
+   ✅ La cola del Quetzal no atraviesa los brazos de forma visible, la palma no estorba el golpe ni la cámara y no hay errores en la Salida.
+4. [ ] Equipa un traje con tocado o casco y entra al partido.
+   ✅ El equipo se ve sobre el traje sin deformarlo; al terminar el partido desaparece y el traje queda como estaba.
+5. [ ] Muere y reaparece en mitad del partido.
+   ✅ El equipo vuelve a aparecer con el personaje nuevo, sin duplicarse.
+6. [ ] Termina el partido y vuelve a la espera.
+   ✅ El equipo desaparece de todos los jugadores; entre partidas y en la cuenta atrás no se lleva.
+
+### 161.3 En Studio, con 2 jugadores (*Prueba → Clientes y servidores*, en Dunas)
+
+7. [ ] Dos jugadores en equipos distintos: cambia de equipo a uno de ellos antes de empezar y durante la espera.
+   ✅ Cada uno lleva el equipo de su color en cuanto empieza el partido, visto desde el otro cliente, y un jugador que se va no deja piezas sueltas.
+
+### 161.4 En el teléfono (emulador o dispositivo real, en Dunas)
+
+8. [ ] Juega una partida con 5v5 en el teléfono.
+   ✅ El equipo se lee a la distancia de juego y los FPS no caen de forma sostenida con 10 jugadores equipados.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
