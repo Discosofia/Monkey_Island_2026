@@ -5729,6 +5729,73 @@ Se cambia el ajuste «Efectos de los jefes» (`fxQuality`) antes de cada prueba.
 22. [ ] Publica la Isla y, con una cuenta de administrador, lanza «🥊 Batalla reel» desde el panel de pruebas (si la cuenta lo tiene disponible en el juego publicado).
     ✅ Se ve como en Studio, con su cartel de cierre, sin errores en la Salida del servidor ni del cliente.
 
+## 150. Fase 25: las escenas fijan su propia hora (05-11-2026)
+
+Cada escena lleva un campo `hour` en `Data/Cinematics` y `SceneLight` lo escribe en `Lighting` (`CinematicClockTime`). `LightingController` dibuja esa hora con un desfase de reloj: 0,4 s al entrar y 0,8 s al salir, sin tocar el ciclo real. `WeatherController` trata el clima como despejado mientras dura una escena con hora propia. Horas: 18,8 (llegadas, batallas, jefes y sus versiones cómic), 17,5 (Gorila de Ceniza y su cómic), 5,95 (`Voyage`, amanecer, con luces más bajas), 6,1 (`Rescue`) y 14 (`Prueba`). `EggHatch` no tiene hora.
+
+Probado en Play en el Studio de la Isla con `Voyage` y el ciclo forzado a mediodía (`DebugClock` = 12): sale con su hora, y al acabar el atributo se borra y el reloj vuelve a 12. Lo que sigue sin probar es esto.
+
+### 150.1 Play en la Isla: cada escena en su hora
+
+1. [ ] Con el ciclo forzado a mediodía (`DebugClock` = 12), lanza «🚤 Travesía» y mira la escena entera.
+   ✅ Sale con la luz de amanecer (5,95) y no con la del mediodía. Al acabar, el reloj vuelve a 12.
+2. [ ] Con el ciclo forzado a medianoche (`DebugClock` = 0), repite «🚤 Travesía».
+   ✅ Sale igual que en el paso 1: la hora de la escena manda sobre la del ciclo.
+3. [ ] Con `DebugClock` = 12, lanza «🏝️ Llegada» y mira la playa.
+   ✅ Sale al atardecer (18,8). Si la primera vez ya se vio, la versión corta sale a la misma hora.
+4. [ ] Con `DebugClock` = 0, lanza «🥊 Batalla», «🥊 Batalla cómic» y «🥊 Batalla reel», una tras otra.
+   ✅ Las tres salen a 18,8, ni de noche cerrada ni a pleno día, y vuelven al ciclo al acabar.
+5. [ ] Con `DebugClock` = 12, lanza «👑 Siguiente jefe» (o «🎬 Plató») hasta ver el Orangután del Manglar, el Caudillo y el Albino, y sus versiones cómic.
+   ✅ Los cuatro salen a 18,8.
+6. [ ] Con `DebugClock` = 0, lanza el Gorila de Ceniza y su versión cómic.
+   ✅ Salen a 17,5, un poco antes que los otros jefes, y el cambio de hora no se nota a mitad de la escena.
+7. [ ] Con `DebugClock` = 12, lanza «🚁 Rescate».
+   ✅ Sale a 6,1 (amanecer temprano). Al llegar a la victoria, el reloj vuelve a 12.
+8. [ ] Con `DebugClock` = 12, lanza «🎬 Cinemática de prueba».
+   ✅ Sale a 14 (tarde) y vuelve a 12 al acabar.
+9. [ ] En el Lobby, mira la eclosión del huevo en el nido (`EggHatch`).
+   ✅ Sale con la hora del Lobby (17,6), que fija `LobbyBuilder`. No hay barrido ni parpadeo, porque el Lobby no tiene controlador de ciclo.
+
+### 150.2 Sin parpadeo al entrar y salir
+
+10. [ ] Con `DebugClock` = 12, entra y sal de «🚤 Travesía» tres veces seguidas mirando el cielo y el mar en la transición.
+    ✅ El barrido de 0,4 s al entrar y el de 0,8 s al salir se ven suaves, sin parpadeos ni saltos de luz.
+11. [ ] Con `DebugClock` = 0, repite el paso 10 con «🥊 Batalla reel».
+    ✅ Igual que el paso 10.
+
+### 150.3 Saltar la escena restaura la hora
+
+12. [ ] Con `DebugClock` = 12, lanza «👑 Siguiente jefe» y pulsa Saltar a los 2 segundos.
+    ✅ La hora vuelve a 12 con el barrido de salida, sin quedarse en 18,8. En Studio, Lighting ya no tiene `CinematicClockTime` ni `CinematicClockSeconds`.
+13. [ ] Con `DebugClock` = 0, lanza «🥊 Batalla» y pulsa Saltar en mitad de la escena (si la deja saltar).
+    ✅ Igual que el paso 12, hacia la medianoche.
+
+### 150.4 Clima y luna roja durante una escena
+
+14. [ ] Con el clima de tormenta activo, lanza «🥊 Batalla» y «🏝️ Llegada».
+    ✅ La escena se ve con cielo despejado, sin lluvia ni erupción en el fondo. Al acabar, vuelve el clima de tormenta.
+15. [ ] Con la luna roja activa (§57), lanza «🥊 Batalla» y «👑 Siguiente jefe».
+    ✅ La escena mantiene su hora y su luz. Si la luna roja se nota dentro de la escena, se anota el plano: no está decidido si debe quedar tapada.
+
+### 150.5 Voyage más clara
+
+16. [ ] Con `DebugClock` = 12, lanza «🚤 Travesía» con las luces nuevas (exposure lejano 0,8, sol 2,0, relleno 0,7, brightness cercano 0,6, exposure cercano 0,2) y mira la lancha y el mar en tres momentos.
+    ✅ Se distinguen la lancha, la tripulación y la línea del mar, y se ve más claro que antes del cambio de luces. Si sigue casi negro, se anota y se valora subir la hora a unas 6,3 y reajustar las luces.
+17. [ ] En el emulador de teléfono, mira «🚤 Travesía» en vertical.
+    ✅ Se lee la lancha y el cartel «Rumbo a la Isla de monos», sin mar negro.
+
+### 150.6 Dos jugadores con escenas a la vez
+
+18. [ ] Con 2 jugadores en la Isla, uno lanza «🚤 Travesía» y el otro «🥊 Batalla» o «👑 Siguiente jefe» a la vez.
+    ✅ Cada uno ve su escena a su hora. Cuando acaba una, la otra no pierde su hora. Si las horas se pisan (ambas escenas escriben en `Lighting`), se anota.
+19. [ ] Con 2 jugadores, la cuenta de administrador lanza «🚤 Travesía» mientras el otro entra al Basecamp por la llegada.
+    ✅ Sin errores de Luau en la Salida, y ninguna escena deja a la otra con la hora de la anterior.
+
+### 150.7 Juego publicado
+
+20. [ ] Publica la Isla y, con una cuenta, lanza «🚤 Travesía» a mediodía y después una escena de jefe.
+    ✅ Salen a 5,95 y 18,8 (o 17,5 con Ceniza), y el reloj vuelve al real al acabar. Sin errores en la Salida del servidor ni del cliente.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

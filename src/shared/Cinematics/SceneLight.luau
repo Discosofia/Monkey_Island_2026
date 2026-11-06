@@ -1,5 +1,6 @@
 --!strict
--- Luces de relleno de las cinemáticas (Fase 25). Evento exposure { value } y evento light { pos, follow?, offset?, color?,
+-- Luces de relleno de las cinemáticas (Fase 25). Evento clock { hour, seconds? } y campo de escena hour: hora fija del
+-- día (ver LightingController). Evento exposure { value } y evento light { pos, follow?, offset?, color?,
 -- brightness?, range?, seconds? } (con follow = true la luz sigue a la cámara, desplazada offset en su espacio):
 -- una PointLight local (solo la ve quien reproduce la escena) en pos, relativa al anchor. Sirve para las tomas
 -- que caen de noche o al amanecer, donde el jefe sale oscuro. Se borran al acabar la escena; con seconds se
@@ -50,6 +51,8 @@ local function clear()
 	stopFollowing()
 	restoreBloom()
 	Lighting:SetAttribute("CinematicBrightnessScale", nil)
+	Lighting:SetAttribute("CinematicClockTime", nil)
+	Lighting:SetAttribute("CinematicClockSeconds", nil)
 	if lift then
 		lift:Destroy()
 		lift = nil
@@ -138,12 +141,26 @@ local function setBloom(event: any)
 	effect.Threshold = event.threshold or effect.Threshold
 end
 
+-- Pone la hora fijada (LightingController la lee solo en la Isla; en los demás places no hace nada).
+local function setClock(hour: any, seconds: any)
+	if typeof(hour) ~= "number" then
+		return
+	end
+	Lighting:SetAttribute("CinematicClockTime", hour % 24)
+	Lighting:SetAttribute("CinematicClockSeconds", if typeof(seconds) == "number" then seconds else nil)
+end
+
 function SceneLight.install(sequencer: any)
 	local built: { [any]: boolean } = {}
 	-- Evento brightness { scale }: multiplica por scale (0..1) el brillo del mundo que escribe LightingController
 	-- (solo en la Isla; en los demás places no hace nada). Se quita al acabar.
 	sequencer.registerHandler("brightness", function(event: any)
 		Lighting:SetAttribute("CinematicBrightnessScale", event.scale or 1)
+	end)
+	-- Evento clock { hour, seconds? }: fija la hora del día (0-24) que dibuja LightingController mientras dura
+	-- la escena; seconds = duración del fundido hacia esa hora (0,4 s por defecto). Se quita al acabar.
+	sequencer.registerHandler("clock", function(event: any)
+		setClock(event.hour, event.seconds)
 	end)
 	sequencer.registerHandler("bloom", function(event: any)
 		setBloom(event)
@@ -159,9 +176,13 @@ function SceneLight.install(sequencer: any)
 		setExposure(event)
 	end)
 	sequencer.addHooks({
-		start = function()
+		start = function(scene: any)
 			table.clear(built)
 			clear()
+			-- Campo hour de la escena: equivale a un evento clock a t = 0.
+			if typeof(scene.hour) == "number" then
+				setClock(scene.hour, nil)
+			end
 		end,
 		finish = function()
 			table.clear(built)

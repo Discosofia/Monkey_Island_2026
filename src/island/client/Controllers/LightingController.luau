@@ -44,6 +44,14 @@ local FORCED_CLOCK_ATTRIBUTE = "DebugClock"
 local DAY_HOURS = 24 * Config.Match.DayLengthSeconds / (Config.Match.DayLengthSeconds + Config.Match.NightLengthSeconds)
 local DAY_START_CLOCK = Config.Lighting.DayCenterClock - DAY_HOURS / 2
 
+-- Hora fijada por una cinemática (Lighting, número 0-24) y segundos opcionales de su fundido de entrada.
+local CINEMATIC_CLOCK_ATTRIBUTE = "CinematicClockTime"
+local CINEMATIC_CLOCK_SECONDS_ATTRIBUTE = "CinematicClockSeconds"
+local CLOCK_IN_SECONDS = 0.4
+local CLOCK_OUT_SECONDS = 0.8
+-- Horas de más (o de menos) que se dibujan respecto al ciclo real; vale 0 fuera de las escenas.
+local clockOffset = 0
+
 local LightingController = {}
 
 local function color(rgb: { number }): Color3
@@ -141,13 +149,32 @@ function LightingController:Start()
 	grade.Name = "DayCycleGrade"
 	grade.Parent = Lighting
 
-	RunService.Heartbeat:Connect(function()
+	RunService.Heartbeat:Connect(function(dt)
 		local state = MatchState.read()
 		if not state then
 			return
 		end
 		local forced = Players.LocalPlayer:GetAttribute(FORCED_CLOCK_ATTRIBUTE)
 		local clock = if typeof(forced) == "number" then forced else clockTimeFor(state, Workspace:GetServerTimeNow())
+		-- Una cinemática fija su propia hora con el atributo CinematicClockTime (SceneLight, evento clock): el ciclo
+		-- real sigue corriendo por debajo y solo cambia lo que se dibuja. El desfase (horas, por el camino corto) se
+		-- acerca a la hora fijada en CLOCK_IN_SECONDS (o en los segundos del atributo CinematicClockSeconds) y de
+		-- vuelta a 0 en CLOCK_OUT_SECONDS, sin salto brusco al empezar ni al acabar.
+		local pinned = Lighting:GetAttribute(CINEMATIC_CLOCK_ATTRIBUTE)
+		local goal = 0
+		local speed = 12 / CLOCK_OUT_SECONDS
+		if typeof(pinned) == "number" then
+			goal = (pinned - clock + 12) % 24 - 12
+			local custom = Lighting:GetAttribute(CINEMATIC_CLOCK_SECONDS_ATTRIBUTE)
+			speed = 12 / math.max(if typeof(custom) == "number" then custom else CLOCK_IN_SECONDS, 0.05)
+		end
+		local step = speed * dt
+		clockOffset = if clockOffset < goal
+			then math.min(clockOffset + step, goal)
+			else math.max(clockOffset - step, goal)
+		if clockOffset ~= 0 then
+			clock = (clock + clockOffset) % 24
+		end
 		Lighting.ClockTime = clock
 		local moon = MoonPhase.current()
 		local sky = Lighting:FindFirstChildOfClass("Sky")

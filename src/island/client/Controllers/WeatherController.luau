@@ -40,8 +40,10 @@ function WeatherController:Start()
 	rain.Parent = emitterPart
 
 	local function apply()
-		local weather = ReplicatedStorage:GetAttribute("Weather")
-		local eruption = ReplicatedStorage:GetAttribute("Eruption") == true
+		-- Una cinemática con hora propia (Lighting.CinematicClockTime) se ve con cielo despejado y sin erupción.
+		local scene = typeof(Lighting:GetAttribute("CinematicClockTime")) == "number"
+		local weather = if scene then "Clear" else ReplicatedStorage:GetAttribute("Weather")
+		local eruption = not scene and ReplicatedStorage:GetAttribute("Eruption") == true
 		local toxic = weather == "ToxicRain"
 		rain.Rate = if weather == "Storm" then 900 elseif weather == "Rain" or toxic then 450 else 0
 		rain.Color = ColorSequence.new(if toxic then Color3.fromRGB(190, 120, 255) else Color3.fromRGB(180, 200, 230))
@@ -54,10 +56,11 @@ function WeatherController:Start()
 				elseif toxic then Color3.fromRGB(235, 220, 255)
 				else Color3.new(1, 1, 1),
 		}
-		TweenService:Create(tint, TweenInfo.new(3), goal):Play()
+		TweenService:Create(tint, TweenInfo.new(if scene then 0.4 else 3), goal):Play()
 	end
 	ReplicatedStorage:GetAttributeChangedSignal("Weather"):Connect(apply)
 	ReplicatedStorage:GetAttributeChangedSignal("Eruption"):Connect(apply)
+	Lighting:GetAttributeChangedSignal("CinematicClockTime"):Connect(apply)
 	apply()
 
 	-- Destello del rayo justo cuando cae.

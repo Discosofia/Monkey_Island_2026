@@ -7,6 +7,21 @@
 --   - camera: puntos { t, pos, look, fov? } con la posición y la mirada relativas al anchor (Cinematics/CameraPath).
 --   - events: { t, kind, … } con letterbox, title, caption, fade (Presentation), anim, move (Actors), panel,
 --     bubble, sfx (Comic, escenas «cómic») y los que registre cada place. Los textos se marcan con Strings.later y se traducen al dibujarlos.
+--   - hour (número 0-24): hora del día propia de la escena. SceneLight la pone en Lighting.CinematicClockTime al empezar
+--     (como un evento clock a t = 0) y LightingController de la Isla dibuja esa hora con un fundido de 0,4 s; la quita
+--     al acabar o saltar (0,8 s de vuelta). El ciclo real sigue por debajo y el clima se ve despejado mientras dura.
+--     REGLA: toda escena nueva lleva hour (las luces se calibran a una hora fija, nunca al ciclo de la Isla). Solo se
+--     omite en un place sin ciclo de día (el Lobby: EggHatch), donde no habría quien la leyera.
+--
+-- Horas por escena (18,8 = anochecer ya oscuro, la hora con la que se calibraron: cielo morado con estrellas y sin sol):
+--   Arrival, ArrivalShort ................ 18,8  (luz de relleno propia, calibrada de noche)
+--   Voyage ............................... 5,6   (amanecer real; ver sus valores de luz)
+--   Rescue ............................... 6,1   (amanecer: la escena es «Rescate al amanecer»)
+--   EggHatch ............................. sin hora (Lobby: tiene su hora fija y ningún controlador de ciclo)
+--   Prueba ............................... 14,0  (tarde clara; no lleva luces propias)
+--   Boss_OrangutanDelManglar, Boss_ChimpanceCaudillo, Boss_GorilaAlbino y sus _Comic ... 18,8 (luz de relleno de SceneLight)
+--   Boss_GorilaDeCeniza y su _Comic ...... 17,5  (atardecer: sin luz de relleno, la lava y el sol bajo lo iluminan)
+--   Battle_Pack, Battle_Pack_Comic, Battle_Pack_Reel ... 18,8
 
 local Bosses = require(script.Parent.Bosses)
 local Config = require(script.Parent.Parent.Config)
@@ -21,6 +36,7 @@ export type Scene = {
 	waitTerrain: { Vector3 }?, -- puntos (relativos al anchor) cuyo terreno debe estar cargado antes de empezar (streaming)
 	skippable: boolean?, -- se puede saltar aunque no se haya visto entera (sin él, solo si ya está vista)
 	anchor: string?,
+	hour: number?, -- hora del día de la escena (0-24); ver la cabecera
 	actors: { [string]: { [string]: any } },
 	camera: { { t: number, pos: Vector3, look: Vector3, fov: number? } },
 	events: { { t: number, kind: string, [string]: any } },
@@ -37,7 +53,11 @@ type BossShot = {
 	lit: (boolean | number)?, -- luz de relleno (jefes de noche o al amanecer): true = 1, o un número que multiplica su fuerza (0,35 para el Albino, que es casi blanco)
 	skill: string?, -- habilidad que enseña (evento bossSkill): "stomp" | "rockRain" | "extinguish" | "eruption"
 	skillAt: number?, -- segundo en que la lanza (por defecto, 0,6 s después de frontT)
+	hour: number?, -- hora del día de la toma (por defecto, DUSK_HOUR)
 }
+
+-- Anochecer ya oscuro (cielo morado con estrellas, sin sol): la hora con la que se calibraron las luces de las escenas.
+local DUSK_HOUR = 18.8
 
 -- Cámara de la aparición de un jefe (G2): plano abierto desde atrás y giro hasta un contrapicado de frente. El
 -- anchor es el pie del jefe y mira hacia -Z; la cámara de frente está en z negativo. Devuelve los puntos y frontT.
@@ -136,6 +156,7 @@ local function bossScene(bossId: string, subtitle: string, shot: BossShot?): Sce
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
+		hour = (shot and shot.hour) or DUSK_HOUR,
 		actors = {},
 		camera = camera,
 		events = {
@@ -178,6 +199,7 @@ local function bossComicScene(
 		audience = "All",
 		freeze = true,
 		anchor = "boss",
+		hour = (shot and shot.hour) or DUSK_HOUR,
 		actors = {},
 		camera = camera,
 		events = {
@@ -342,6 +364,9 @@ end
 -- como la del Lobby. Sale a 150 studs de la orilla (el mar generado llega unos 200 más allá de la costa) y avanza
 -- hacia tierra a velocidad constante con la proa en -Z. La cámara va en el marco de la lancha (boatShot).
 local VOYAGE_SECONDS = 12
+-- Amanecer real (entre «Antes del amanecer» 5,0 y «Amanecer» 5,9 de Config.Lighting.Keyframes): sol aún bajo el horizonte
+-- y cielo rosado. Las luces de la travesía se calibraron de noche; con esta hora el mundo es algo más claro (ver Voyage).
+local VOYAGE_HOUR = 5.95
 local BOAT_START = Vector3.new(0, -0.8, 150)
 local BOAT_SPEED = 3.5 -- studs por segundo
 -- Oleaje: tres ondas senoidales muestreadas cada WAVE_STEP s. La subida y el cabeceo comparten periodo, con el
@@ -1105,6 +1130,7 @@ local function battleScene(variant: string): Scene
 		audience = "Self",
 		freeze = false,
 		skippable = true,
+		hour = DUSK_HOUR,
 		waitTerrain = { beach(-5, 1), beach(9, 4), ground(0, 0, -18) },
 		actors = battleActors(),
 		camera = camera,
@@ -1162,7 +1188,7 @@ local Cinematics: { [string]: Scene } = {
 	Boss_GorilaDeCeniza = bossScene(
 		"GorilaDeCeniza",
 		Strings.later("Furia del volcán"),
-		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption" }
+		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption", hour = 17.5 }
 	),
 	Boss_GorilaDeCeniza_Comic = bossComicScene(
 		"GorilaDeCeniza",
@@ -1170,7 +1196,7 @@ local Cinematics: { [string]: Scene } = {
 		Strings.later("¡Todo arderá!"),
 		Strings.later("Del fondo del volcán…"),
 		{ Color3.fromRGB(196, 66, 18), Color3.fromRGB(255, 228, 176) },
-		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption" }
+		{ side = -1, radius = 1.35, frontT = 2.4, skill = "eruption", hour = 17.5 }
 	),
 
 	-- Eclosión del huevo del Lobby (G3a): escena local, solo la ve quien abre el huevo. El anchor es el reposo del
@@ -1212,6 +1238,7 @@ local Cinematics: { [string]: Scene } = {
 		duration = 19,
 		audience = "All",
 		freeze = true,
+		hour = 6.1,
 		actors = {
 			heli = {
 				kind = "prop",
@@ -1349,6 +1376,7 @@ local Cinematics: { [string]: Scene } = {
 			audience = "Self",
 			freeze = false,
 			skippable = false,
+			hour = DUSK_HOUR,
 			waitTerrain = { beach(-8, 3), beach(0, -6), beach(9, -3.5), ground(0, 0, -18) },
 			actors = crewActors(false),
 			camera = {
@@ -1374,6 +1402,7 @@ local Cinematics: { [string]: Scene } = {
 		audience = "Self",
 		freeze = false,
 		skippable = true,
+		hour = DUSK_HOUR,
 		waitTerrain = { beach(-8, -4), beach(0, -8), beach(9, -3.5) },
 		actors = crewActors(true),
 		camera = {
@@ -1411,14 +1440,16 @@ local Cinematics: { [string]: Scene } = {
 			-- anaranjado desde un lado y relleno cálido encima) para que la lancha lea naranja y el mar tenga color.
 			-- Dos tramos: planos lejanos (0 a 3,4 s, cámara a 17-30 studs) con más luz, y planos cercanos (desde 3 s,
 			-- cámara a 9-13 studs de la lancha), donde la misma luz la quemaba. Las lejanas se apagan con fundido.
-			{ t = 0, kind = "exposure", value = 1.2, tint = Color3.fromRGB(255, 236, 214) },
+			-- Con la hora fija de amanecer (VOYAGE_HOUR) el mundo ya trae más luz y brillo que de noche: exposición,
+			-- luces y brillo van rebajados un 25-35 % respecto a los valores calibrados de noche.
+			{ t = 0, kind = "exposure", value = 0.8, tint = Color3.fromRGB(255, 236, 214) },
 			{
 				t = 0,
 				kind = "light",
 				follow = true,
 				offset = Vector3.new(-8, 10, -6),
 				color = Color3.fromRGB(255, 176, 96),
-				brightness = 2.6,
+				brightness = 2,
 				range = 90,
 				seconds = 3.4,
 			},
@@ -1428,15 +1459,15 @@ local Cinematics: { [string]: Scene } = {
 				follow = true,
 				offset = Vector3.new(6, 4, 4),
 				color = Color3.fromRGB(255, 214, 170),
-				brightness = 1,
+				brightness = 0.7,
 				range = 60,
 				seconds = 3.4,
 			},
 			-- Cerca no hay luz puntual (a 9-13 studs satura los materiales de la lancha): solo exposición y tinte, y
 			-- un sol y un relleno casi nulos.
 			{ t = 3, kind = "bloom", intensity = 0.35, threshold = 3 },
-			{ t = 3, kind = "brightness", scale = 0.75 },
-			{ t = 3, kind = "exposure", value = 0.4, tint = Color3.fromRGB(240, 247, 255) },
+			{ t = 3, kind = "brightness", scale = 0.6 },
+			{ t = 3, kind = "exposure", value = 0.2, tint = Color3.fromRGB(240, 247, 255) },
 			{
 				t = 3,
 				kind = "light",
@@ -1496,6 +1527,7 @@ local Cinematics: { [string]: Scene } = {
 			audience = "Self",
 			freeze = false,
 			skippable = false,
+			hour = VOYAGE_HOUR,
 			actors = voyageActors(),
 			camera = {
 				-- Plano inicial más cerca (la lancha ocupa ~1/3 del ancho) con el horizonte y la isla al fondo.
@@ -1518,6 +1550,7 @@ local Cinematics: { [string]: Scene } = {
 		duration = 6,
 		audience = "Self",
 		freeze = false,
+		hour = 14,
 		actors = {
 			hero = { kind = "dummy", role = "Guerrero", armor = "VolcanicArmor", pos = Vector3.new(0, 0, 0), yaw = 0 },
 			player = { kind = "localPlayer" },
