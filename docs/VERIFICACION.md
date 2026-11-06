@@ -6058,6 +6058,65 @@ El HUD del Juego de pelota (`BallgameHUD`, en Dunas) pone el marcador de rayas c
 13. [ ] Cambia a Captura la bandera (otro modo en el mismo servidor) y mira el HUD.
     ✅ Las banderas y el número de las casillas vuelven, y los palitos desaparecen.
 
+## 157. Fase 27a: cancha nueva y deslizamiento del talud (06-11-2026)
+
+La cancha de Dunas pasa a su perfil nuevo (muros a 30, pasillo de 30, talud de 30 de tramo a unos 25°, aros a y=22 con hueco de radio 3,2 en z 43,4) y el talud desliza al personaje hacia el pasillo (`TaludSlideController`, 20 studs/s a lo largo de la pendiente). Probado en Edit con `tools/luau/BallSimTests.luau` (38 de 38) y en Play con un jugador y el perfil real: deslizamiento a 18,1 horizontales en los dos sentidos, andar cuesta arriba no sube, salto y caída conservados, un solo `LinearVelocity` y sin tirones. Lo que sigue sin probar es esto.
+
+### 157.1 Con 2 jugadores (*Prueba → Clientes y servidores*, 2 clientes, en Dunas, Juego de pelota)
+
+1. [ ] Con dos clientes, uno se desliza por el talud mientras el otro lo mira desde la plaza o el pasillo.
+   ✅ El otro cliente ve el movimiento sin tirones, sin teletransportes y sin que el personaje se quede suspendido en el talud.
+2. [ ] Con un jugador sobre el talud, bota la pelota (o lánzala) hacia el talud para que ruede y rebote.
+   ✅ La pelota rebota igual en los dos clientes, no se queda enganchada en el talud ni atraviesa al jugador.
+3. [ ] Juega un partido real (1v1 o 2v2) y mira el muro de equipo (`TeamBarrier`, ahora de 96 de ancho y 34 de alto).
+   ✅ El muro corta el paso con el tamaño nuevo, sin huecos por los que se cuele un jugador, y se comporta igual en los dos clientes.
+
+### 157.2 En el teléfono y en el PC (en Dunas, Juego de pelota, con el juego publicado o en Play)
+
+4. [ ] En el teléfono, baja el talud con el joystick dejándote ir hacia el pasillo.
+   ✅ Te deslizas hacia el pasillo sin trabarte, y el personaje no camina en el sitio.
+5. [ ] Anda cuesta arriba por el talud y luego corre (sprint).
+   ✅ Andando no subes; corriendo subes despacio, sin llegar a la cima de golpe.
+6. [ ] Salta desde el talud y espera a caer.
+   ✅ El salto sube como siempre, el deslizamiento sigue en el aire y, al caer, sigues bajando hacia el pasillo.
+7. [ ] Esquiva (Roll) y deslizamiento de carrera (LeftAlt en el PC, su botón en el teléfono) sobre el talud.
+   ✅ La esquiva y el deslizamiento de carrera mandan mientras duran; al acabar, el talud vuelve a empujar y el personaje no se queda parado en la pendiente.
+8. [ ] Con un jugador que tenga la habilidad, usa el Salto de jaguar (la habilidad real, no una velocidad forzada) sobre el talud.
+   ✅ El salto sale como en el resto de la cancha y el talud no lo corta.
+9. [ ] Entra en Dunas con una montura equipada y sube al talud.
+   ✅ Ninguna montura aparece en Dunas y el talud funciona a pie igual que antes.
+
+### 157.3 Jugando de verdad (*Prueba → Jugar*, en Dunas, Juego de pelota)
+
+10. [ ] Apunta al aro con cadera o codo perfectos y con Yugo, y tira varias veces.
+    ✅ El aro (centro a 22 de altura, en z 43,4, hueco de radio 3,2) se emboca con los tiros apuntados. Si nunca se emboca, anótalo: se sube el radio o se acerca el aro, y `tools/luau/BallRingOdds.luau` mide el porcentaje.
+11. [ ] Roza el borde del aro sin entrar.
+    ✅ Cuenta como intento, como antes (`RingAttemptDistance` 6 en `Config.Arena.Ballgame`).
+12. [ ] Mira la nube de rayas y el HUD del Juego de pelota durante un partido.
+    ✅ Ninguno cambia respecto a la Fase 26g (VERIFICACION §156).
+
+### 157.4 En el juego publicado (*Prueba → Jugar*, en Dunas)
+
+13. [ ] Guarda y publica el place Dunas desde Studio (la cancha v6 solo está en memoria en el Studio) y entra en el juego publicado.
+    ✅ El juego publicado se carga sin errores y la cancha que se ve es la nueva.
+14. [ ] En el juego publicado, comprueba que la versión de la cancha (6) coincide con la del place y que el servidor no la reconstruye al arrancar.
+    ✅ La cancha se ve igual que en Studio desde el primer momento, sin una segunda reconstrucción ni parpadeo al entrar.
+15. [ ] Mira la «I» de la cancha desde la plaza y desde arriba.
+    ✅ Las cabeceras de 132 × 30 se ven completas, sin huecos ni piezas sueltas, y la «I» se lee bien.
+16. [ ] En el teléfono, mira las líneas del Tlécotl (negra y de jade) sobre el escalón, la banqueta y el talud.
+    ✅ Las líneas cruzan los tres hasta el pie del paramento, sin parpadeos (z-fighting).
+17. [ ] Mira el friso sobre el aro y el aro desde el pasillo.
+    ✅ El friso (de y 27,5 a 29,5) queda sobre el aro sin solaparlo.
+18. [ ] Desde el pasillo, en tercera persona, mira el muro (a 30), la plaza y el desierto lejanos.
+    ✅ No hay huecos en la plaza ni en el desierto, y la iluminación se ve bien.
+
+### 157.5 Medición y papeleo (Studio, con 2 jugadores para el oyente)
+
+19. [ ] Con 5v5 en 2 jugadores, mira el profiler del cliente que no juega el partido mientras dura el partido.
+    ✅ Se anota el tiempo de cliente y no hay caídas de fotogramas por la cancha (278 piezas, tope 800). `Rendimiento` no mide `Workspace.Cancha`, así que esta es la medición.
+20. [ ] Revisa `PlayerData_v1_backups` y decide sobre las copias `u_8620190944_pre26e` y `u_8620190944_prealtar`, que siguen sin restaurar. Comprueba también que el perfil real de la cuenta está como esperas tras el Play de 27a (se hizo sin copia nueva, con permiso).
+    ✅ Las copias se restauran o se borran según decidas, y el perfil de la cuenta queda como esperas.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

@@ -4,8 +4,9 @@
 -- pelota (BallSim), así que las medidas están SOLO aquí.
 --
 -- Fuente: docs/juego de pelota.txt. Modelo: el gran juego de pelota de Chichén Itzá (~166 m de largo total,
--- pasillo de ~30 m de ancho, muros de ~8 m con el talud en la base, aros a ~6 m del suelo). Escala de juego:
--- 1 stud ≈ 0,28 m, redondeada a lo jugable (el pasillo es de 26 studs; el aro, a 15).
+-- pasillo de ~30 m de ancho, muros de ~8 m con el talud en la base, aros a ~6 m del suelo; el talud, más
+-- tendido que el real: 25°). Escala de juego:
+-- 1 stud ≈ 0,28 m, redondeada a lo jugable (el pasillo es de 30 studs; el aro, a y = 22, unos 6 m a 0,28 m/stud).
 --
 -- Sistema de coordenadas LOCAL (el constructor lo traslada con CourtBuilder.CENTER):
 --   origen: el centro del pasillo, a nivel del suelo de juego (y = 0)
@@ -14,13 +15,15 @@
 --   Y: arriba
 --
 -- Perfil de cada muro lateral, de dentro (z = 0) a fuera, en (z, y):
---   suelo        (0, 0) → (13, 0)
---   contrahuella (13, 0) → (13, 2)         salto de la banqueta
---   banqueta     (13, 2) → (16, 2)
---   talud        (16, 2) → (22.5, 10)      ~51° (se sube andando; la pelota rebota)
---   paramento    (22.5, 10) → (22.5, 20)   vertical
---   cornisa      (22.5, 20) → (62.5, 20)   la plaza superior que rodea la cancha
--- Las cabeceras (planta en «I» o doble T) son salas de 22 × 80 en cada extremo del pasillo.
+--   suelo        (0, 0) → (15, 0)
+--   contrahuella (15, 0) → (15, 2)         salto de la banqueta
+--   banqueta     (15, 2) → (18, 2)
+--   talud        (18, 2) → (48, 16)        a 25° (30 de tramo, igual que el ancho del pasillo, y 14 de subida; la
+--                                          pelota rebota y al jugador lo desliza hacia el pasillo, ver
+--                                          Data/Ballgame.Talud)
+--   paramento    (48, 16) → (48, 30)       vertical; el aro está en él, a y = 22
+--   cornisa      (48, 30) → (88, 30)       la plaza superior que rodea la cancha
+-- Las cabeceras (planta en «I» o doble T) son salas de 30 de fondo × 132 de ancho en cada extremo del pasillo.
 
 local CourtGeometry = {}
 
@@ -33,10 +36,17 @@ export type Ring = {
 	innerRadius: number,
 	outerRadius: number,
 	thickness: number, -- grosor a lo largo de X
-	embed: number, -- lo que la piedra exterior entra en el paramento
 }
 
 export type Spawn = { x: number, y: number, zMin: number, zMax: number }
+
+-- Lo que dice taludAt de un jugador que está sobre el talud (coordenadas locales de la cancha).
+export type TaludInfo = {
+	zSign: number, -- lado del talud (-1 | 1)
+	surfaceY: number, -- altura de la superficie bajo los pies
+	downhill: Vector3, -- unitario: la dirección de máxima bajada, hacia el pasillo
+	normal: Vector3, -- unitario: perpendicular a la pendiente, hacia el pasillo y arriba
+}
 
 export type Layout = {
 	format: number,
@@ -61,35 +71,41 @@ CourtGeometry.MAX_FORMAT = 5
 -- Largo del pasillo por formato (jugadores por equipo).
 CourtGeometry.LENGTHS = { 56, 72, 88, 104, 120 }
 
-CourtGeometry.ALLEY_HALF_WIDTH = 13 -- pasillo de 26
-CourtGeometry.BENCH_INNER_Z = 13
-CourtGeometry.BENCH_OUTER_Z = 16
+CourtGeometry.ALLEY_HALF_WIDTH = 15 -- pasillo de 30
+CourtGeometry.BENCH_INNER_Z = 15
+CourtGeometry.BENCH_OUTER_Z = 18
 CourtGeometry.BENCH_HEIGHT = 2
-CourtGeometry.TALUD_OUTER_Z = 22.5
-CourtGeometry.TALUD_TOP_Y = 10
-CourtGeometry.WALL_TOP_Y = 20 -- alto del paramento y de las cabeceras: el nivel de la plaza
+CourtGeometry.TALUD_TOP_Y = 16
+-- Tramo horizontal del talud: igual que el ancho del pasillo (30). Con la subida de 14 queda a ~25°.
+CourtGeometry.TALUD_RUN = 30
+CourtGeometry.TALUD_OUTER_Z = CourtGeometry.BENCH_OUTER_Z + CourtGeometry.TALUD_RUN
+CourtGeometry.WALL_TOP_Y = 30 -- alto del paramento y de las cabeceras: el nivel de la plaza
 CourtGeometry.CORNICE_DEPTH = 40 -- cuánto se extiende la plaza hacia fuera desde el paramento
-CourtGeometry.PLAZA_HALF_Z = 62.5 -- TALUD_OUTER_Z + CORNICE_DEPTH
+CourtGeometry.PLAZA_HALF_Z = CourtGeometry.TALUD_OUTER_Z + CourtGeometry.CORNICE_DEPTH
+-- Altura sobre la superficie del talud hasta la que un jugador en el aire sigue contando «sobre el talud».
+CourtGeometry.TALUD_AIR_REACH = 40
 
-CourtGeometry.HEADER_DEPTH = 22 -- largo de cada cabecera en X
-CourtGeometry.HEADER_HALF_WIDTH = 40 -- cabecera de 80 de ancho: sobresale de los taludes (±22,5) y marca la doble T
+CourtGeometry.HEADER_DEPTH = 30 -- largo de cada cabecera en X
+CourtGeometry.HEADER_HALF_WIDTH = 66 -- cabecera de 132 de ancho: sobresale 18 de cada muro (±48) y marca la «I»
 
 -- Línea central (tlécotl): ancho de la banda negra y del filete de jade del centro.
 CourtGeometry.TLECOTL_WIDTH = 2.4
 CourtGeometry.TLECOTL_FILLET = 0.8
 
 -- Muro de equipo (solo para jugadores): el plano x = 0 de z ±TALUD_OUTER_Z y de y = 0 a esto.
-CourtGeometry.TEAM_WALL_HEIGHT = 24
+CourtGeometry.TEAM_WALL_HEIGHT = 34
 
 -- Aros (tlachtemalácatl): uno en cada paramento, en x = 0, con el agujero a lo largo de X.
 CourtGeometry.ring = {
 	centerX = 0,
-	centerY = 15,
-	centerZ = 19.5,
-	innerRadius = 1.6, -- agujero de 3,2 de diámetro
-	outerRadius = 3.6,
+	centerY = 22,
+	centerZ = CourtGeometry.TALUD_OUTER_Z - 4.6, -- la piedra exterior (5,2) entra 0,6 en el paramento
+	-- Hueco de 6,4 de diámetro (la pelota mide 2). Con el aro a 30 studs del pasillo y el hueco a lo largo de X,
+	-- 1,6 de radio no lo emboca ningún golpe: con 3,2 se iguala o supera lo que se embocaba con el aro original
+	-- (tools/luau/BallRingOdds.luau, 27a).
+	innerRadius = 3.2,
+	outerRadius = 5.2,
 	thickness = 3,
-	embed = 0.6, -- 19,5 + 3,6 = 23,1 contra el paramento en 22,5
 } :: Ring
 
 -- La pelota de hule (la usa BallSim en 26c).
@@ -100,7 +116,7 @@ CourtGeometry.SPAWN_OFFSET = 11
 CourtGeometry.SPAWN_HALF_Z = 20
 CourtGeometry.SPAWN_Y = 0.5
 -- Los jugadores sin equipo esperan en la plaza superior.
-CourtGeometry.WAITING = Vector3.new(0, 21, -45)
+CourtGeometry.WAITING = Vector3.new(0, 31, -71) -- el centro de la plaza entre el paramento (54) y el borde (88)
 
 local function clampFormat(format: number): number
 	return math.clamp(math.floor(format + 0.5), CourtGeometry.MIN_FORMAT, CourtGeometry.MAX_FORMAT)
@@ -161,9 +177,28 @@ function CourtGeometry.surfaceY(absZ: number): number?
 	return nil
 end
 
--- true si "x" (local) queda más allá de la línea de fondo del pasillo del formato (la pelota está «fuera»).
-function CourtGeometry.isOut(layout: Layout, x: number): boolean
-	return math.abs(x) > layout.halfLength
+-- Si los pies (coordenadas LOCALES de la cancha) están sobre el talud, o cerca de él en el aire, devuelve la
+-- pendiente que los desliza; si no, nil. La banqueta es plana y no desliza.
+function CourtGeometry.taludAt(layout: Layout, feet: Vector3): TaludInfo?
+	local G = CourtGeometry
+	local absZ = math.abs(feet.Z)
+	if math.abs(feet.X) > layout.halfLength or absZ < G.BENCH_OUTER_Z or absZ >= G.TALUD_OUTER_Z then
+		return nil
+	end
+	local surface = G.surfaceY(absZ) :: number
+	if feet.Y > surface + G.TALUD_AIR_REACH or feet.Y < surface - 3 then
+		return nil
+	end
+	local zSign = if feet.Z < 0 then -1 else 1
+	-- La pendiente real: el tramo y la subida no son iguales (a 25°).
+	local run = G.TALUD_RUN
+	local rise = G.TALUD_TOP_Y - G.BENCH_HEIGHT
+	return {
+		zSign = zSign,
+		surfaceY = surface,
+		downhill = Vector3.new(0, -rise, -zSign * run).Unit,
+		normal = Vector3.new(0, run, -zSign * rise).Unit,
+	}
 end
 
 -- Equipo que defiende el lado de "x" (el Jaguar, en X negativa); nil justo en la línea central.

@@ -40,19 +40,19 @@ local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
 local FOLDER_NAME = "Cancha"
 local COURT_NAME = "Court"
 -- Sube este número al cambiar la cancha: los places con una versión anterior guardada la reconstruyen solos.
-local VERSION = 4
+local VERSION = 6
 
 -- Dónde queda el origen local de la cancha en el mundo (el valor y su porqué, en Shared/CourtGeometry).
 local CENTER = CourtGeometry.CENTER
 
--- La plaza superior: sobre el nivel 20, con el borde exterior en x = ±124 y z = ±62,5 (40 studs desde el
+-- La plaza superior: sobre el nivel 30, con el borde exterior en x = ±132 y z = ±88 (40 studs desde el
 -- paramento, y 40 desde el fondo de las cabeceras del formato 5v5).
 local PLAZA_Y1 = -2 -- la plaza es maciza hasta la losa de base (sin huecos por debajo, vista desde las cabeceras)
 local DESERT_Y1 = -8 -- y el desierto decorado, igual de macizo hasta el fondo
-local PLAZA_HALF_X = 124
+local PLAZA_HALF_X = 132 -- = 60 + 30 + 2 + 40 (fixedPlazaStart() más la cornisa)
 local END_WALL_THICKNESS = 2
 local SIDE_WALL_THICKNESS = 2
-local WALL_BACK_Z = 29 -- hasta dónde llega el paramento (cierra la cabecera por detrás)
+local WALL_BACK_Z = 54 -- hasta dónde llega el paramento (6 de grueso; las cabeceras están a 66)
 local RAIL_HEIGHT = 32 -- barandilla invisible del borde exterior de la plaza
 local DESERT_REACH = 400 -- el desierto decorado, más allá del borde de la plaza
 
@@ -186,7 +186,8 @@ local function sideName(zSign: number): string
 	return if zSign < 0 then "L" else "R"
 end
 
--- Banda pegada a la pendiente del talud entre los puntos t1 y t2 (0 = pie, 1 = lo alto).
+-- Banda pegada a la pendiente del talud entre los puntos t1 y t2 (0 = pie, 1 = lo alto). "lift" la separa de la
+-- superficie (para apilar una banda sobre otra sin que parpadeen).
 local function slopeStrip(
 	parent: Instance,
 	name: string,
@@ -195,17 +196,18 @@ local function slopeStrip(
 	x2: number,
 	t1: number,
 	t2: number,
-	color: Color3
+	color: Color3,
+	lift: number?
 )
 	local G = CourtGeometry
-	local run = G.TALUD_OUTER_Z - G.BENCH_OUTER_Z
+	local run = G.TALUD_RUN
 	local rise = G.TALUD_TOP_Y - G.BENCH_HEIGHT
 	local length = math.sqrt(run * run + rise * rise)
 	local normal = Vector3.new(0, run, -zSign * rise).Unit
 	local tMid = (t1 + t2) / 2
 	local surface = Vector3.new((x1 + x2) / 2, G.BENCH_HEIGHT + rise * tMid, zSign * (G.BENCH_OUTER_Z + run * tMid))
 	local thick = 0.14
-	local frame = CFrame.fromMatrix(surface + normal * (thick / 2), Vector3.xAxis, normal)
+	local frame = CFrame.fromMatrix(surface + normal * ((lift or 0) + thick / 2), Vector3.xAxis, normal)
 	make(parent, name, frame, Vector3.new(x2 - x1, thick, (t2 - t1) * length), color, Paint, false)
 end
 
@@ -234,7 +236,7 @@ local function buildSide(court: Folder, art: Folder, geo: CourtGeometry.Layout, 
 	local wedge = Instance.new("WedgePart")
 	wedge.Name = `Talud_{tag}`
 	wedge.Anchored = true
-	local run = G.TALUD_OUTER_Z - G.BENCH_OUTER_Z
+	local run = G.TALUD_RUN
 	local rise = G.TALUD_TOP_Y - G.BENCH_HEIGHT
 	wedge.Size = Vector3.new(2 * hl, rise, run)
 	-- La cuña sube hacia su +Z: en el lado negativo se gira media vuelta.
@@ -287,11 +289,11 @@ local function buildSide(court: Folder, art: Folder, geo: CourtGeometry.Layout, 
 		)
 		slopeStrip(art, `TaludBand_{name}`, zSign, x1, x2, 0, 0.22, color)
 		local face = G.TALUD_OUTER_Z
-		deco(art, `Friso_{name}`, box(xs, { 17, 19 }, z(face - 0.3, face)), color, Paint)
+		deco(art, `Friso_{name}`, box(xs, { 27.5, 29.5 }, z(face - 0.3, face)), color, Paint)
 		-- Grecas: escalones de cal sobre la banda, cada 5 studs.
 		local x = x1 + 2.5
 		while x < x2 - 1 do
-			deco(art, "Greca", box({ x - 1, x + 1 }, { 17.6, 18.4 }, z(face - 0.5, face - 0.3)), STUCCO, Paint)
+			deco(art, "Greca", box({ x - 1, x + 1 }, { 28.1, 28.9 }, z(face - 0.5, face - 0.3)), STUCCO, Paint)
 			x += 5
 		end
 	end
@@ -299,7 +301,7 @@ end
 
 -- Emblema sobre el muro del fondo: un sol (con rayos en diagonal) o una cruz (sin ellos).
 local function emblem(art: Folder, tag: string, face: number, sign: number, a: Color3, b: Color3, diagonals: boolean)
-	local cy = 9
+	local cy = 13
 	local function onWall(depth: number, y1: number, y2: number, z1: number, z2: number): { number }
 		return { face - sign * depth, face, y1, y2, z1, z2 }
 	end
@@ -369,14 +371,15 @@ local function buildHeader(court: Folder, art: Folder, geo: CourtGeometry.Layout
 			Limestone
 		)
 		-- Friso de la cara de dentro del muro lateral.
-		deco(art, `Friso_{teamId}`, { x0, x1, 16, 17.2, zSign * (half - 0.3), zSign * half }, colorB, Paint)
-		deco(art, `Friso_{teamId}`, { x0, x1, 17.2, 18.4, zSign * (half - 0.3), zSign * half }, colorA, Paint)
+		deco(art, `Friso_{teamId}`, { x0, x1, 26, 27.2, zSign * (half - 0.3), zSign * half }, colorB, Paint)
+		deco(art, `Friso_{teamId}`, { x0, x1, 27.2, 28.4, zSign * (half - 0.3), zSign * half }, colorA, Paint)
 	end
 	-- Friso del muro del fondo, emblema y almenas.
-	deco(art, `Friso_{teamId}`, { x1 - sign * 0.3, x1, 16, 17.2, -half, half }, colorB, Paint)
-	deco(art, `Friso_{teamId}`, { x1 - sign * 0.3, x1, 17.2, 18.4, -half, half }, colorA, Paint)
+	deco(art, `Friso_{teamId}`, { x1 - sign * 0.3, x1, 26, 27.2, -half, half }, colorB, Paint)
+	deco(art, `Friso_{teamId}`, { x1 - sign * 0.3, x1, 27.2, 28.4, -half, half }, colorA, Paint)
 	emblem(art, teamId, x1, sign, colorA, colorB, sign < 0)
-	for step = -6, 6 do
+	-- Cada 6 studs a lo ancho de la cabecera, sin pasarse del muro.
+	for step = -math.floor(half / 6) + 1, math.floor(half / 6) - 1 do
 		local z = step * 6
 		deco(art, `Almena_{teamId}`, { x1, xo, G.WALL_TOP_Y, G.WALL_TOP_Y + 1.4, z - 1.2, z + 1.2 }, colorA, Paint)
 	end
@@ -458,14 +461,56 @@ local function buildRing(art: Folder, geo: CourtGeometry.Layout, zSign: number)
 	model.Parent = art
 end
 
--- Línea central (tlécotl): banda negra con un filete de jade, a lo ancho del pasillo.
+-- Línea central (tlécotl): banda negra con un filete de jade. Cruza el pasillo y sigue por los dos lados: sube
+-- el escalón, cruza la banqueta y recorre el talud hasta el pie del paramento.
 local function buildTlecotl(art: Folder)
 	local G = CourtGeometry
 	local model = Instance.new("Model")
 	model.Name = "Tlecotl"
 	local w = G.ALLEY_HALF_WIDTH
-	deco(model, "Banda", { -G.TLECOTL_WIDTH / 2, G.TLECOTL_WIDTH / 2, 0, 0.1, -w, w }, BLACK, Paint)
-	deco(model, "Filete", { -G.TLECOTL_FILLET / 2, G.TLECOTL_FILLET / 2, 0.1, 0.14, -w, w }, JADE, Paint)
+	local halfBand, halfFillet = G.TLECOTL_WIDTH / 2, G.TLECOTL_FILLET / 2
+	deco(model, "Banda", { -halfBand, halfBand, 0, 0.1, -w, w }, BLACK, Paint)
+	deco(model, "Filete", { -halfFillet, halfFillet, 0.1, 0.14, -w, w }, JADE, Paint)
+	local h, inner, outer = G.BENCH_HEIGHT, G.BENCH_INNER_Z, G.BENCH_OUTER_Z
+	for _, zSign in { -1, 1 } do
+		local function z(a: number, b: number): { number }
+			return { zSign * a, zSign * b }
+		end
+		local tag = sideName(zSign)
+		-- Contrahuella del escalón (por delante del color del cuadrante, que va a 0,06 de la pared).
+		deco(
+			model,
+			`BandaEscalon_{tag}`,
+			{ -halfBand, halfBand, 0, h + 0.1, table.unpack(z(inner - 0.12, inner - 0.06)) },
+			BLACK,
+			Paint
+		)
+		deco(
+			model,
+			`FileteEscalon_{tag}`,
+			{ -halfFillet, halfFillet, 0, h + 0.14, table.unpack(z(inner - 0.16, inner - 0.12)) },
+			JADE,
+			Paint
+		)
+		-- Banqueta (por encima del color del cuadrante, que sube 0,06).
+		deco(
+			model,
+			`BandaBanqueta_{tag}`,
+			{ -halfBand, halfBand, h + 0.06, h + 0.12, table.unpack(z(inner - 0.06, outer)) },
+			BLACK,
+			Paint
+		)
+		deco(
+			model,
+			`FileteBanqueta_{tag}`,
+			{ -halfFillet, halfFillet, h + 0.12, h + 0.16, table.unpack(z(inner - 0.1, outer)) },
+			JADE,
+			Paint
+		)
+		-- Talud (por encima de la banda de color del pie, que lleva 0,14).
+		slopeStrip(model, `BandaTalud_{tag}`, zSign, -halfBand, halfBand, 0, 1, BLACK, 0.16)
+		slopeStrip(model, `FileteTalud_{tag}`, zSign, -halfFillet, halfFillet, 0, 1, JADE, 0.3)
+	end
 	model.Parent = art
 end
 

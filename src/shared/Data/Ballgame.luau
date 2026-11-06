@@ -183,4 +183,13 @@ Ballgame.BallColor = Color3.fromRGB(34, 28, 30)
 Ballgame.BallMaterial = Enum.Material.SmoothPlastic
 Ballgame.ShadowMaxHeight = 30
 
+-- Deslizamiento del talud (Fase 27a; Dunas/Client/Controllers/TaludSlideController). El talud es de ~25° y el jugador
+-- que pisa (o salta sobre) él resbala hacia el pasillo. SlideSpeed: studs/s A LO LARGO de la pendiente (unos 18
+-- en horizontal): andando a 18 no se avanza, corriendo a 26 se sube despacio. MaxForceFactor: fuerza máxima del
+-- empuje = masa del personaje x este número (la misma que usan la esquiva y el hielo).
+Ballgame.Talud = {
+	SlideSpeed = 20,
+	MaxForceFactor = 3000,
+}
+
 return Ballgame
