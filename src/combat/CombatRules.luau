@@ -105,10 +105,11 @@ export type Rules = {
 	starterTools: (player: Player) -> { string },
 	-- Armas que se dan EN LUGAR de las del rol (el Laboratorio), o nil: las del rol (atributo "Role").
 	roleWeapons: (player: Player) -> { string }?,
-	-- false: no hay habilidades de rol (Z/X/C/R/V) ni combos (el Laboratorio).
-	abilities: boolean,
-	-- false: no hay guardia ni parry; los golpes entran sin esperar el parry del defensor.
-	guard: boolean,
+	-- false: no hay habilidades de rol (Z/X/C/R/V) ni combos (el Laboratorio). Puede ser una función por jugador.
+	abilities: boolean | (player: Player) -> boolean,
+	-- false: no hay guardia ni parry; los golpes entran sin esperar el parry del defensor. Puede ser una función
+	-- por jugador (Dunas la apaga en el Juego de pelota).
+	guard: boolean | (player: Player) -> boolean,
 	-- true: el daño de las armas a distancia depende de la zona que toca el disparo (cabeza, torso,
 	-- extremidad, punto débil; Fase 19, W6, Shared/Zones) y los disparos a jugadores se prueban contra las
 	-- piezas rebobinadas (Combat/Hitbox.sweepBodies).

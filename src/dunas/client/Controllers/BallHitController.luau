@@ -53,6 +53,8 @@ local ring: BillboardGui? = nil
 local ringFrame: Frame? = nil
 local ringStroke: UIStroke? = nil
 local lastAnimationAt = -math.huge
+-- Valor de BallYoke ya gastado en un golpe propio y que el servidor aún no ha limpiado (así no se predice dos veces).
+local spentYoke: number? = nil
 
 local function active(): boolean
 	return ReplicatedStorage:GetAttribute("BallActive") == true
@@ -142,7 +144,16 @@ local function hit()
 	local ttc = BallHit.timeToContact(ball, layout(), playerPos, Hit.ContactDist, Hit.RingLeadSeconds)
 	local quality = BallHit.quality(ttc, 0)
 	local rivalSign = BallHit.rivalSign(Arena.teamOf(Players.LocalPlayer))
-	BallController.predictHit(BallHit.velocity(zone, quality, lookDir, rivalSign))
+	local player = Players.LocalPlayer
+	local boost = BallHit.boostOf(player, zone, quality, spentYoke)
+	if boost > 1 then
+		local value = player:GetAttribute(Data.Attributes.Yoke)
+		spentYoke = if typeof(value) == "number" then value else nil
+	end
+	BallController.predictHit(
+		BallHit.velocity(zone, quality, lookDir, rivalSign, boost),
+		BallHit.curveOf(player, zone, quality)
+	)
 	playAnimation(zone)
 end
 

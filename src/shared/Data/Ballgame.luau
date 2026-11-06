@@ -3,6 +3,8 @@
 -- en el servidor y en el cliente), el servicio de la pelota (Dunas/Services/BallService) y su controlador.
 -- Unidades: studs y segundos. La escala de la cancha es 1 stud ≈ 0,28 m (ver Shared/CourtGeometry).
 
+local Roles = require(script.Parent.Roles)
+
 local Ballgame = {}
 
 -- Gravedad (studs/s²). Más que la de Roblox (196) no: la pelota tiene que flotar lo bastante para que una
@@ -85,6 +87,80 @@ Ballgame.Hit = {
 	ZoneHip = 1.4,
 	ZoneElbow = 3.5,
 	WalkSpeed = 16, -- velocidad con la que se amplía el alcance por el lag del servidor
+}
+
+-- Habilidades de rol del Juego de pelota (Fase 26f). En este modo cada rol solo tiene UNA, en el hueco 1 (Z, el
+-- botón 1 del móvil, R1 + A): Shared/RoleAbilities.of las da en lugar de las cinco de Data/Roles. No hacen daño.
+-- Los números de cada una (recarga arriba; efecto en Yoke, JaguarLeap, Wind y LightStep) son de partida.
+Ballgame.Abilities = {
+	Guerrero = {
+		id = "Yoke",
+		name = "Golpe de yugo",
+		short = "Yugo",
+		description = "Tu siguiente golpe a la pelota sale mucho más fuerte.",
+		cooldownSeconds = 8,
+		castSeconds = 0,
+	},
+	Cazador = {
+		id = "JaguarLeap",
+		name = "Salto de jaguar",
+		short = "Salto",
+		description = "Das un gran salto para llegar a las pelotas altas.",
+		cooldownSeconds = 6,
+		castSeconds = 0,
+	},
+	Mago = {
+		id = "Wind",
+		name = "Viento",
+		short = "Viento",
+		description = "Durante un momento, tus golpes dan una curva leve a la pelota.",
+		cooldownSeconds = 10,
+		castSeconds = 0,
+	},
+	Medico = {
+		id = "LightStep",
+		name = "Paso ligero",
+		short = "Paso",
+		description = "Corres más rápido durante un momento.",
+		cooldownSeconds = 8,
+		castSeconds = 0,
+	},
+} :: { [string]: Roles.Ability }
+
+-- Atributos del Player (hora del servidor en que caduca cada efecto) que publica AbilityService y leen el
+-- servidor (BallHitService) y el cliente (Shared/BallHit, BallHitController, LocomotionController).
+Ballgame.Attributes = {
+	Yoke = "BallYoke",
+	Wind = "BallWind",
+	LightStep = "BallLightStep",
+}
+
+-- Golpe de yugo: el siguiente golpe de pelota sale con la velocidad multiplicada (sin pasar de MaxSpeed). Se
+-- gasta al golpear (no el roce) o caduca a los ExpireSeconds.
+Ballgame.Yoke = {
+	SpeedMultiplier = 1.4,
+	ExpireSeconds = 5,
+}
+
+-- Salto de jaguar: velocidad vertical (studs/s) que se da al personaje; con la gravedad de Roblox (196) sube
+-- unos 14 studs, el triple de un salto normal.
+Ballgame.JaguarLeap = {
+	VerticalSpeed = 75,
+}
+
+-- Viento: Seconds, lo que dura el efecto tras lanzarlo; en ese tiempo, cada golpe propio deja la pelota curvando
+-- CurveSeconds, con una aceleración lateral de CurveAccel (studs/s²) hacia la DERECHA del sentido en que viaja
+-- (BallSim.step; regla fija para que servidor y cliente simulen igual).
+Ballgame.Wind = {
+	Seconds = 1,
+	CurveSeconds = 1.2,
+	CurveAccel = 14,
+}
+
+-- Paso ligero: la velocidad al andar y correr sube SpeedBonus (fracción) durante Seconds.
+Ballgame.LightStep = {
+	SpeedBonus = 0.35,
+	Seconds = 2,
 }
 
 -- Apariencia: hule casi negro con un tono marrón; la sombra se aclara con la altura hasta ShadowMaxHeight.

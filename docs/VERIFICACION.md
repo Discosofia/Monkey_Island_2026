@@ -5973,6 +5973,44 @@ El altar de la pirámide (`AltarService`) ya no se enciende ni avisa en el Juego
 3. [ ] Compara el perfil real con la copia `u_8620190944_prealtar` de `PlayerData_v1_backups` (el probador no pudo restaurarla: el DataStore daba «Access forbidden» desde Edit). Después borra la copia.
    ✅ El perfil real coincide con la copia y `u_8620190944_prealtar` ya no está.
 
+## 155. Fase 26 26f: habilidades de rol sin daño en el Juego de pelota (06-11-2026)
+
+Las habilidades de rol (Guerrero «Golpe de yugo», Cazador «Salto de jaguar», Mago «Viento» y Médico «Paso ligero») se probaron en Studio de Dunas con un jugador: hueco único, recargas medidas, yugo ×1,4, curva del viento, salto de 14 studs, paso ×1,35, y sin armas ni guardia en el Juego de pelota. Lo que sigue sin probar es esto.
+
+### 155.1 Dos jugadores (*Prueba → Clientes y servidores*, 2 clientes, en Dunas, Juego de pelota 1v1)
+
+1. [ ] Con el Guerrero en un cliente y el Médico en el otro, usa «Golpe de yugo» y «Paso ligero» junto al rival, hasta chocar con él si puedes.
+   ✅ Ninguno de los dos pierde vida: el daño entre jugadores es nulo en el Juego de pelota.
+2. [ ] Con el Mago en un cliente, usa «Viento» y golpea la pelota. Después, el rival golpea la pelota sin habilidad.
+   ✅ Viento y Yugo solo afectan al golpe de quien los usa: el golpe del rival sale como uno normal, sin curva ni fuerza extra.
+3. [ ] Con el Mago, usa «Viento» en un golpe y mira la trayectoria en los dos clientes a la vez: en el suyo (predicción) y en el del rival (servidor).
+   ✅ La curva se ve igual en los dos clientes y la corrección del servidor no da saltos visibles.
+
+### 155.2 En Play, con 1 jugador (Dunas, Juego de pelota)
+
+4. [ ] Con el Guerrero, usa «Golpe de yugo» y golpea con Perfect en la zona de codo (Elbow). Repite con tiros fuertes hasta notar el tope.
+   ✅ La velocidad de la pelota no pasa de 140 studs/s (`Ballgame.MaxSpeed`), tampoco con el ×1,4 del yugo.
+5. [ ] Con el Cazador, usa «Salto de jaguar» junto a un muro lateral de la cancha y, si hay techo, bajo él. Repite contra la línea de fondo.
+   ✅ El salto no atraviesa muros ni techo: el personaje se para contra ellos y cae después. En campo abierto sigue saltando 14 studs.
+6. [ ] Con un jugador en Dunas, cambia de modo (Captura la bandera ↔ Juego de pelota) estando en partida, varias veces, y mira la mochila en cada cambio.
+   ✅ Las armas salen y vuelven una sola vez, sin duplicados: en el Juego de pelota no hay armas ni guardia, y al volver a Captura la bandera vuelven las que tenías.
+
+### 155.3 Recargas con `Equilibrio` (Studio de la Isla, en modo edición)
+
+7. [ ] Ejecuta `Equilibrio` con el comando de CLAUDE.md (clon, `informe()`) y mira las recargas de las cuatro habilidades de rol.
+   ✅ Yugo 8 s, Salto 6 s, Viento 10 s y Paso 8 s.
+8. [ ] Mira en el mismo informe el efecto del `CooldownRate` del equipo de arena, que se aplica en Dunas.
+   ✅ Las cuatro recargas salen más cortas que las del paso 7, en la proporción de `CooldownRate`.
+
+### 155.4 En el teléfono o el emulador (*Prueba → Dispositivo*, en Dunas, Juego de pelota)
+
+9. [ ] Entra en el Juego de pelota con un rol de habilidad (Guerrero, Cazador, Mago o Médico) y mira la barra de habilidades.
+   ✅ El botón 1 muestra la habilidad de tu rol.
+10. [ ] Mira los botones 2 a 5 de habilidades.
+   ✅ No aparecen.
+11. [ ] Usa la habilidad del botón 1 y mira la recarga.
+   ✅ Se ve la recarga en el botón 1 y baja hasta que la habilidad vuelve a estar lista, con los tiempos de los pasos 7 y 8.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

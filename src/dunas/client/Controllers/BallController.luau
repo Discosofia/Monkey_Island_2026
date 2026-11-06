@@ -142,10 +142,10 @@ local function render(position: Vector3)
 end
 
 -- Fija el estado a lo que dice el servidor en el instante "t" y lo pone al día de la latencia.
-local function setAuthoritative(t: number, pos: Vector3, vel: Vector3, resting: boolean, dead: boolean)
+local function setAuthoritative(t: number, pos: Vector3, vel: Vector3, resting: boolean, dead: boolean, curve: number)
 	lastT = t
 	local before = if hasState then drawn else nil
-	BallSim.restore(sim, { pos = pos, vel = vel, resting = resting })
+	BallSim.restore(sim, { pos = pos, vel = vel, resting = resting, curveLeft = curve })
 	sim.dead = dead
 	hasState = true
 
@@ -173,7 +173,8 @@ local function onState(packet: any)
 	if packet.t <= lastT or ReplicatedStorage:GetAttribute("BallActive") ~= true then
 		return -- antiguo, repetido o con la pelota apagada
 	end
-	setAuthoritative(packet.t, packet.pos, packet.vel, packet.resting == true, packet.dead == true)
+	local curve = if typeof(packet.curve) == "number" then packet.curve else 0
+	setAuthoritative(packet.t, packet.pos, packet.vel, packet.resting == true, packet.dead == true, curve)
 end
 
 -- Un golpe (Remotes.BallEvent, kind "hit"). El propio ya se predijo al pulsar: solo se descartan los paquetes
@@ -189,7 +190,8 @@ local function onHitEvent(event: any)
 		lastT = event.t
 		return
 	end
-	setAuthoritative(event.t, event.pos, event.vel, false, false)
+	local curve = if typeof(event.curve) == "number" then event.curve else 0
+	setAuthoritative(event.t, event.pos, event.vel, false, false, curve)
 end
 
 local function onRender(dt: number)
@@ -219,15 +221,16 @@ local function onActiveChanged()
 	hide()
 end
 
--- Fija la velocidad de un golpe propio en la pelota predicha (sin esperar al servidor). La posición se queda donde
+-- Fija la velocidad (y la curva del Viento, en segundos) de un golpe propio en la pelota predicha (sin esperar al servidor). La posición se queda donde
 -- se veía, así que el suavizado no lo toma por un desvío.
-function BallController.predictHit(velocity: Vector3)
+function BallController.predictHit(velocity: Vector3, curve: number)
 	if not hasState or sim.dead then
 		return
 	end
 	sim.pos = predictedPosition()
 	accumulator = 0
 	sim.vel = velocity
+	sim.curveLeft = curve
 	sim.resting = false
 end
 

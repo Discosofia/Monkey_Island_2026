@@ -56,6 +56,7 @@ local function send()
 		vel = snapshot.vel,
 		resting = snapshot.resting,
 		dead = state.dead,
+		curve = state.curveLeft,
 	})
 end
 
@@ -119,6 +120,13 @@ function BallService.applyImpulse(velocity: Vector3)
 		state.vel = state.vel.Unit * Data.MaxSpeed
 	end
 	state.resting = false
+	needsSend = true
+end
+
+-- Pone los segundos de curva de la pelota (Viento, Fase 26f; 0 = recta). Cada golpe lo fija: uno sin viento la
+-- endereza. Viaja en el estado y en el evento del golpe para que el cliente lo respete al predecir.
+function BallService.setCurve(seconds: number)
+	state.curveLeft = seconds
 	needsSend = true
 end
 

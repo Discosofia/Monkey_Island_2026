@@ -61,9 +61,10 @@ local function rootOf(player: Player): BasePart?
 	return nil
 end
 
--- Aplica el golpe: fija la velocidad, avisa a los clientes y a los oyentes.
-local function apply(player: Player, team: string?, zone: string, quality: string, velocity: Vector3)
+-- Aplica el golpe: fija la velocidad (y la curva del Viento, en segundos), avisa a los clientes y a los oyentes.
+local function apply(player: Player, team: string?, zone: string, quality: string, velocity: Vector3, curve: number)
 	BallService.applyImpulse(velocity - BallService.state().vel)
+	BallService.setCurve(curve)
 	local after = BallService.state()
 	lastHitAt[player] = now()
 	lastBallHitAt = now()
@@ -76,6 +77,7 @@ local function apply(player: Player, team: string?, zone: string, quality: strin
 		quality = quality,
 		pos = after.pos,
 		vel = after.vel,
+		curve = curve,
 	})
 	local info: HitInfo = {
 		player = player,
@@ -90,6 +92,17 @@ local function apply(player: Player, team: string?, zone: string, quality: strin
 		if not ok then
 			warn(`[BallHitService] Un oyente falló: {err}`)
 		end
+	end
+end
+
+-- Un golpe con pulsación de "player": suma lo que den sus habilidades (Golpe de yugo, Viento; Fase 26f), con la
+-- misma cuenta que predice el cliente (Shared/BallHit). El yugo se gasta al golpear.
+local function hitWithAbilities(player: Player, team: string?, zone: string, quality: string, lookDir: Vector3)
+	local boost = BallHit.boostOf(player, zone, quality, nil)
+	local velocity = BallHit.velocity(zone, quality, lookDir, BallHit.rivalSign(team), boost)
+	apply(player, team, zone, quality, velocity, BallHit.curveOf(player, zone, quality))
+	if boost > 1 then
+		player:SetAttribute(Data.Attributes.Yoke, nil)
 	end
 end
 
@@ -131,7 +144,7 @@ local function onHitRequest(player: Player, lookDir: any)
 	end
 	local ttc = BallHit.timeToContact(ball, BallService.layout(), playerPos, Hit.ContactDist, LOOKAHEAD_SECONDS)
 	local quality = BallHit.quality(ttc, slack)
-	apply(player, team, zone, quality, BallHit.velocity(zone, quality, lookDir, BallHit.rivalSign(team)))
+	hitWithAbilities(player, team, zone, quality, lookDir)
 end
 
 -- Roce pasivo: rebote flojo, alejándose del jugador.
@@ -173,7 +186,7 @@ local function onHeartbeat()
 			continue
 		end
 		local away = ball.pos - playerPos
-		apply(player, team, zone, "Passive", BallHit.velocity(zone, "Passive", away, BallHit.rivalSign(team)))
+		apply(player, team, zone, "Passive", BallHit.velocity(zone, "Passive", away, BallHit.rivalSign(team)), 0)
 		break -- un solo roce por latido: el siguiente jugador espera al próximo
 	end
 end
@@ -194,8 +207,7 @@ function BallHitService.force(player: Player, zone: string, quality: string, loo
 	if not BallService.isActive() or BallService.state().dead then
 		return
 	end
-	local team = Arena.teamOf(player)
-	apply(player, team, zone, quality, BallHit.velocity(zone, quality, lookDir, BallHit.rivalSign(team)))
+	hitWithAbilities(player, Arena.teamOf(player), zone, quality, lookDir)
 end
 
 function BallHitService:Init() end

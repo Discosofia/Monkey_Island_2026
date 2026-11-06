@@ -66,6 +66,7 @@ COVERED = [
 DATA_FIELDS: dict[str, list[str]] = {
     "src/shared/Data/ArenaGear.luau": ["name", "description", "Weapon", "Armor", "Amulet"],
     "src/shared/Data/Armor.luau": ["name", "Cazador", "Mago", "Medico"],
+    "src/shared/Data/Ballgame.luau": ["name", "short", "description"],
     "src/shared/Data/Bosses.luau": ["name", "description"],
     "src/shared/Data/Buildables.luau": ["name", "description"],
     "src/shared/Data/Combos.luau": ["name", "mark", "finisher", "short"],

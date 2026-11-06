@@ -15,6 +15,8 @@
 --   - La casilla del siguiente paso del combo (Data/Combos) se resalta en azul.
 --   - Con el atributo "MovementLocked" (en la arena, quien lleva la bandera rival) no se pueden usar
 --     la Embestida, el Parpadeo ni el Salto del gorila.
+--   - Juego de pelota (Fase 26f): cada rol tiene una sola habilidad, en el hueco 1 (Shared/RoleAbilities); las
+--     otras casillas y botones se quitan. El Salto de jaguar lo hace este cliente (impulso vertical).
 --   - Preparación (Fase 10, C8): el gesto sale al pulsar y la habilidad al acabar su "castSeconds"
 --     (Data/Roles); el movimiento propio (la Embestida, el giro del Torbellino) también espera a ese
 --     momento, como el servidor. Pulsar la guardia mientras tanto es un amago (CombatClient/Feint): se
@@ -29,8 +31,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -290,6 +294,13 @@ local function spin(humanoid: Humanoid, root: BasePart, seconds: number)
 	end)
 end
 
+-- Salto de jaguar (Juego de pelota): un gran salto, conservando la velocidad horizontal.
+local function jaguarLeap(humanoid: Humanoid, root: BasePart)
+	humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	local velocity = root.AssemblyLinearVelocity
+	root.AssemblyLinearVelocity = Vector3.new(velocity.X, Ballgame.JaguarLeap.VerticalSpeed, velocity.Z)
+end
+
 local function readyIn(player: Player, slot: number): number
 	local readyAt = player:GetAttribute(`AbilityReadyAt{slot}`)
 	return if typeof(readyAt) == "number" then readyAt - Workspace:GetServerTimeNow() else 0
@@ -363,6 +374,14 @@ local function useAbility(player: Player, slot: number)
 		root.CFrame = CFrame.lookAt(root.Position, root.Position + flat(landing - root.Position))
 		release = function()
 			leap(humanoid, root, landing, Config.Abilities.LeapFlightSeconds)
+		end
+	elseif ability.id == "JaguarLeap" then
+		-- En el aire no hay segundo salto (y no se gasta la recarga).
+		if humanoid.FloorMaterial == Enum.Material.Air then
+			return
+		end
+		release = function()
+			jaguarLeap(humanoid, root)
 		end
 	elseif ability.id == "TrueShot" then
 		-- La línea de aviso, también para uno mismo (a los demás se la manda el servidor).
@@ -487,6 +506,12 @@ function RoleController:Start()
 	-- Rol y definitiva de los botones puestos ("<rol>:<definitiva>"): cambian al elegir otra en el Lobby.
 	local shownRole: string? = nil
 	local function bindRole(abilities: { Roles.Ability })
+		-- Los huecos que este rol no tiene (el Juego de pelota solo da el 1) no llevan botón.
+		for slot = 1, #KEYS do
+			if not abilities[slot] then
+				ActionButtons.unbind(`Ability{slot}`)
+			end
+		end
 		for slot, ability in abilities do
 			ActionButtons.bind(`Ability{slot}`, Strings.t(ability.short), function(_, state: Enum.UserInputState)
 				if state == Enum.UserInputState.Begin then
@@ -519,7 +544,9 @@ function RoleController:Start()
 		local roleId = player:GetAttribute("Role")
 		local role = if typeof(roleId) == "string" then Roles[roleId] else nil
 		local abilities = RoleAbilities.of(player)
-		local shown = if role then `{roleId}:{RoleAbilities.chosenUltimate(player, roleId :: string)}` else nil
+		local shown = if role
+			then `{roleId}:{RoleAbilities.chosenUltimate(player, roleId :: string)}:{ArenaModes.current()}`
+			else nil
 		if role and shown ~= shownRole and ViewMode.get() ~= "First" then
 			shownRole = shown
 			bindRole(abilities)
@@ -527,6 +554,10 @@ function RoleController:Start()
 		if role and ViewMode.get() ~= "First" then
 			-- El siguiente paso del combo en marcha (ComboController) se resalta en azul.
 			local comboNext = ComboController.nextStep(player)
+			-- Las casillas sin habilidad en este modo se esconden.
+			for slot = 1, #KEYS do
+				hud[slot].frame.Visible = abilities[slot] ~= nil
+			end
 			for slot, ability in abilities do
 				local remaining = readyIn(player, slot)
 				local cell = hud[slot]

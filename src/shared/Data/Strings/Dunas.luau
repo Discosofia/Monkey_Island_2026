@@ -112,4 +112,16 @@ return {
 
 	-- Juego de pelota: el golpe (Fase 26d).
 	["Golpear"] = "Hit",
+
+	-- Juego de pelota: las habilidades de rol (Fase 26f, Data/Ballgame).
+	["Golpe de yugo"] = "Yoke strike",
+	["Yugo"] = "Yoke",
+	["Tu siguiente golpe a la pelota sale mucho más fuerte."] = "Your next hit on the ball comes out much stronger.",
+	["Salto de jaguar"] = "Jaguar leap",
+	["Das un gran salto para llegar a las pelotas altas."] = "Take a big leap to reach the high balls.",
+	["Viento"] = "Wind",
+	["Durante un momento, tus golpes dan una curva leve a la pelota."] = "For a moment, your hits put a slight curve on the ball.",
+	["Paso ligero"] = "Light step",
+	["Paso"] = "Step",
+	["Corres más rápido durante un momento."] = "Run faster for a moment.",
 }

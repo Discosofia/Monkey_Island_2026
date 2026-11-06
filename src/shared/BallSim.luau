@@ -18,6 +18,10 @@
 --     el aro centrado en x = 0 (ring.centerX = 0, como en CourtGeometry).
 -- La colisión esfera-sólido toma el punto del sólido más cercano al centro y expulsa a lo largo de la normal.
 --
+-- Curva (Fase 26f, habilidad Viento): mientras State.curveLeft > 0 la velocidad horizontal gira hacia la derecha
+-- de su sentido (Data/Ballgame.Wind.CurveAccel) y curveLeft baja con el tiempo simulado. Viaja por la red con el
+-- estado (Snapshot.curveLeft) para que el cliente lo respete al predecir.
+--
 -- Eventos que devuelve step (cada uno { kind, ... }), en el orden en que ocurren dentro de cada subpaso:
 -- "bounce" (y tras él "ringRim" si es un aro o "endWall" si es la primera vez en vuelo contra el muro del
 -- fondo), "ringPass", "crossEndLine" / "returnEndLine", "out" y "rest".
@@ -37,9 +41,10 @@ export type State = {
 	dead: boolean, -- true tras "out": ya no se simula
 	endArmed: boolean, -- el muro del fondo aún no se ha tocado desde que la pelota dejó el suelo
 	ringState: { RingTrack }, -- [1] = aro en z < 0, [2] = aro en z > 0
+	curveLeft: number, -- segundos que le quedan de curva (Viento, Fase 26f); 0 = vuela recta
 }
 export type Event = { kind: string, [string]: any }
-export type Snapshot = { pos: Vector3, vel: Vector3, resting: boolean }
+export type Snapshot = { pos: Vector3, vel: Vector3, resting: boolean, curveLeft: number? }
 
 type Prism = {
 	kind: string,
@@ -60,6 +65,8 @@ BallSim.STEP = 1 / 60
 -- Lo máximo que se mueve el centro en un subpaso (studs): menos que el radio, para no atravesar nada.
 local MAX_SUB_DISTANCE = 0.8
 local RADIUS = CourtGeometry.BALL_RADIUS
+-- Con menos velocidad horizontal que esto (studs/s) no hay hacia dónde curvar.
+local CURVE_MIN_SPEED = 0.5
 -- Por debajo de esta velocidad horizontal al rodar, la pelota se para.
 local STOP_SPEED = 0.05
 local EPSILON = 1e-6
@@ -430,9 +437,20 @@ local function subStep(state: State, layout: CourtGeometry.Layout, comp: Compile
 	local c = ctx
 	local old = state.pos
 
+	-- Curva del Viento: aceleración lateral hacia la derecha del sentido horizontal en que viaja.
+	local startX, startZ = state.vel.X, state.vel.Z
+	if state.curveLeft > 0 then
+		local horizontal = math.sqrt(startX * startX + startZ * startZ)
+		if horizontal > CURVE_MIN_SPEED then
+			local turn = Data.Wind.CurveAccel * sub / horizontal
+			startX, startZ = startX - state.vel.Z * turn, startZ + state.vel.X * turn
+		end
+		state.curveLeft = math.max(0, state.curveLeft - sub)
+	end
+
 	-- Gravedad, arrastre y tope de velocidad.
 	local drag = math.max(0, 1 - Data.AirDrag * sub)
-	local vx, vy, vz = state.vel.X * drag, (state.vel.Y - Data.Gravity * sub) * drag, state.vel.Z * drag
+	local vx, vy, vz = startX * drag, (state.vel.Y - Data.Gravity * sub) * drag, startZ * drag
 	local speed = math.sqrt(vx * vx + vy * vy + vz * vz)
 	if speed > Data.MaxSpeed then
 		local scale = Data.MaxSpeed / speed
@@ -515,6 +533,7 @@ function BallSim.new(position: Vector3, velocity: Vector3?): State
 		dead = false,
 		endArmed = true,
 		ringState = { { entry = nil }, { entry = nil } },
+		curveLeft = 0,
 	}
 end
 
@@ -554,12 +573,13 @@ function BallSim.clone(state: State): State
 		dead = state.dead,
 		endArmed = state.endArmed,
 		ringState = rings,
+		curveLeft = state.curveLeft,
 	}
 end
 
 -- Lo que viaja por la red.
 function BallSim.snapshot(state: State): Snapshot
-	return { pos = state.pos, vel = state.vel, resting = state.resting }
+	return { pos = state.pos, vel = state.vel, resting = state.resting, curveLeft = state.curveLeft }
 end
 
 -- Fija el estado a lo recibido por la red. Los pases de aro a medias se olvidan (no viajan).
@@ -568,6 +588,7 @@ function BallSim.restore(state: State, snapshot: Snapshot)
 	state.vel = snapshot.vel
 	state.resting = snapshot.resting
 	state.dead = false
+	state.curveLeft = snapshot.curveLeft or 0
 	for _, track in state.ringState do
 		track.entry = nil
 	end

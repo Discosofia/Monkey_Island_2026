@@ -10,6 +10,8 @@
 --   - Caído no hay guardia: F vuelve a ser "Rendirse" (LifeController) y el botón desaparece.
 --   - Pulsar durante la preparación de un golpe o de una habilidad es un amago (C8, CombatClient/Feint):
 --     aquí se cancela lo que se ve al momento y el servidor (Combat/Feint) decide.
+--   - Sin guardia en el Juego de pelota de Dunas (ArenaModes.current() == "Ballgame", Fase 26f): F y L2 son del
+--     golpe a la pelota.
 -- En guardia se anda más despacio y no se corre (los controladores de movimiento de cada place miran
 -- CombatState.isGuarding).
 
@@ -18,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -64,7 +67,9 @@ end
 -- La guardia solo está enlazada con el jugador vivo (caído, F es "Rendirse") y fuera de la primera persona
 -- (el modo shooter del campo de tiro, Fase 24b, no tiene guardia).
 local function refreshBinding()
-	local alive = LifeState.isAlive(Players.LocalPlayer) and ViewMode.get() ~= "First"
+	local alive = LifeState.isAlive(Players.LocalPlayer)
+		and ViewMode.get() ~= "First"
+		and ArenaModes.current() ~= "Ballgame"
 	if alive == bound then
 		return
 	end
@@ -93,6 +98,8 @@ function GuardController:Start()
 	local player = Players.LocalPlayer
 	refreshBinding()
 	ViewMode.onChanged(refreshBinding)
+	-- El modo de Dunas llega por atributo después de cargar.
+	Workspace:GetAttributeChangedSignal("ArenaMode"):Connect(refreshBinding)
 	player:GetAttributeChangedSignal(LifeState.ATTRIBUTE):Connect(refreshBinding)
 	player.CharacterAdded:Connect(function()
 		setPressed(false)

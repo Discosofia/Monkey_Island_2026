@@ -36,6 +36,9 @@
 -- zonas de Combat/Zones que solo alcanzan a los monos y a los rivales.
 -- Coberturas (C11, Combat/Destructibles): las habilidades de daño alcanzan las que tocan (su área, o el
 -- proyectil que se para en una); el Rayo encadenado salta entre enemigos y no las toca.
+-- Juego de pelota (Fase 26f, Data/Ballgame.Abilities): una habilidad por rol, sin daño. Aquí solo ponen la hora en
+-- que caduca su efecto en un atributo del jugador: Golpe de yugo, Viento y Paso ligero los leen BallHitService,
+-- Shared/BallHit y LocomotionController; el Salto de jaguar lo hace el cliente.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
@@ -50,6 +53,7 @@ local Perks = require(ReplicatedStorage.Shared.Data.Perks)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RoleAbilities = require(ReplicatedStorage.Shared.RoleAbilities)
+local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
 local Sfx = require(ReplicatedStorage.Shared.Sfx)
 local Strings = require(ReplicatedStorage.Shared.Strings)
@@ -1621,6 +1625,33 @@ local function sapShield(healer: Player)
 	AbilityFx.all("ShieldGlare", character)
 end
 
+-- Golpe de yugo (Guerrero): el siguiente golpe de pelota sale más fuerte hasta que caduque.
+local function yoke(player: Player, _character: Model, root: BasePart): boolean
+	player:SetAttribute(Ballgame.Attributes.Yoke, now() + Ballgame.Yoke.ExpireSeconds)
+	Sfx.play("Pickup", root)
+	return true
+end
+
+-- Salto de jaguar (Cazador): el impulso vertical lo da el cliente (RoleController); aquí solo suena.
+local function jaguarLeap(_player: Player, _character: Model, root: BasePart): boolean
+	Sfx.play("Swing", root)
+	return true
+end
+
+-- Viento (Mago): durante un momento, los golpes de pelota del jugador dan curva (Shared/BallHit.curveOf).
+local function wind(player: Player, _character: Model, root: BasePart): boolean
+	player:SetAttribute(Ballgame.Attributes.Wind, now() + Ballgame.Wind.Seconds)
+	Sfx.play("Pickup", root)
+	return true
+end
+
+-- Paso ligero (Médico): más velocidad un momento (LocomotionController lee el atributo).
+local function lightStep(player: Player, _character: Model, root: BasePart): boolean
+	player:SetAttribute(Ballgame.Attributes.LightStep, now() + Ballgame.LightStep.Seconds)
+	Sfx.play("Swing", root)
+	return true
+end
+
 local HANDLERS: { [string]: Handler } = {
 	Whirlwind = whirlwind,
 	Charge = charge,
@@ -1646,6 +1677,10 @@ local HANDLERS: { [string]: Handler } = {
 	HealingTotem = healingTotem,
 	Resurgence = resurgence,
 	SleepPowder = sleepPowder,
+	Yoke = yoke,
+	JaguarLeap = jaguarLeap,
+	Wind = wind,
+	LightStep = lightStep,
 }
 
 -- Sale la habilidad del hueco "slot": cuenta el paso del combo, la aplica y, si se ha podido usar,

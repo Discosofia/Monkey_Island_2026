@@ -3,11 +3,16 @@
 -- hueco 4 de Data/Roles y otras en "altUltimates"; el jugador elige una por rol en el Lobby (ventana de
 -- Talentos) y el servidor la publica en el atributo "Ultimates" del Player, un JSON { [rol] = id }
 -- (ServerShared/PlayerData). Sin elegir, o con un id que ya no existe, va la del hueco 4.
+-- En el Juego de pelota de Dunas (ArenaModes.current() == "Ballgame", Fase 26f) cada rol solo tiene UNA habilidad,
+-- en el hueco 1 (Data/Ballgame.Abilities): "of" sin rol explícito (las del jugador en juego) da solo esa, y así los
+-- huecos 2 a 5 no existen para el servidor ni para el cliente.
 -- Lo usan los dos lados: AbilityService, ComboService y RoleController para saber qué hay en cada hueco,
 -- y las ventanas del Lobby para enseñar las dos.
 
 local HttpService = game:GetService("HttpService")
 
+local ArenaModes = require(script.Parent.ArenaModes)
+local Ballgame = require(script.Parent.Data.Ballgame)
 local Roles = require(script.Parent.Data.Roles)
 
 local RoleAbilities = {}
@@ -91,11 +96,16 @@ function RoleAbilities.list(roleId: string, ultimateId: string?): { Roles.Abilit
 	return list
 end
 
--- Las 5 habilidades de "player" con el rol "roleId" (por defecto, el de su atributo "Role").
+-- Las 5 habilidades de "player" con el rol "roleId" (por defecto, el de su atributo "Role"; en el Juego de
+-- pelota, la única de ese rol).
 function RoleAbilities.of(player: Player, roleId: string?): { Roles.Ability }
 	local id = roleId or player:GetAttribute("Role")
 	if typeof(id) ~= "string" or not Roles[id] then
 		return {}
+	end
+	if roleId == nil and ArenaModes.current() == "Ballgame" then
+		local own = Ballgame.Abilities[id]
+		return if own then { own } else {}
 	end
 	return RoleAbilities.list(id, RoleAbilities.chosenUltimate(player, id))
 end

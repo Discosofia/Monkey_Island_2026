@@ -14,7 +14,7 @@
 --     registran los proveedores y modificadores del juego; el atributo que lee cada uno simplemente no
 --     existe donde no aplica (el huevo fuera de la Isla, la bandera fuera de Dunas…):
 --       montura y gateo (bases) · guardia · ralentizado · aturdido · huevo a cuestas · bandera rival a
---       cuestas · ventaja MoveSpeed del equipo.
+--       cuestas · ventaja MoveSpeed del equipo · Paso ligero (Juego de pelota de Dunas, Fase 26f).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -23,6 +23,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local CombatState = require(ReplicatedStorage.Shared.CombatState)
+local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LifeState = require(ReplicatedStorage.Shared.LifeState)
 local Progression = require(ReplicatedStorage.Shared.Progression)
@@ -110,6 +111,14 @@ local function registerMovement()
 			return nil
 		end
 		return math.min(1, Config.Arena.CarrierSpeedMultiplier + Progression.perk(player, "CarrySpeed"))
+	end)
+	-- Paso ligero (médico del Juego de pelota): sube la velocidad hasta la hora que dice el atributo.
+	Movement.addModifier("LightStep", function(player: Player): number?
+		local expiry = player:GetAttribute(Ballgame.Attributes.LightStep)
+		if typeof(expiry) == "number" and Workspace:GetServerTimeNow() < expiry then
+			return 1 + Ballgame.LightStep.SpeedBonus
+		end
+		return nil
 	end)
 	-- Ventaja MoveSpeed del equipo (vale 1 si no hay).
 	Movement.addModifier("MoveSpeed", function(player: Player): number?
