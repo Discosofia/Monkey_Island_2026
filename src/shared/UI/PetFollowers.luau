@@ -82,12 +82,24 @@ local function smoothstep(edge0: number, edge1: number, x: number): number
 	return t * t * (3 - 2 * t)
 end
 
+-- Carpeta de las mascotas del mundo (nil hasta start). Las cinemáticas la sacan del mundo mientras duran.
+local petFolder: Folder? = nil
+
+-- Esconde (o devuelve) todas las mascotas: quita la carpeta del mundo sin destruir nada.
+function PetFollowers.setHidden(hidden: boolean)
+	local folder = petFolder
+	if folder then
+		folder.Parent = if hidden then nil else Workspace
+	end
+end
+
 function PetFollowers.start()
 	local followers: { [Player]: Follower } = {}
 	local localPlayer = Players.LocalPlayer
 	local folder = Instance.new("Folder")
 	folder.Name = "Mascotas"
 	folder.Parent = Workspace
+	petFolder = folder
 
 	local function sync(player: Player)
 		local petId = player:GetAttribute("ActivePet")

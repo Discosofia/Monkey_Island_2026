@@ -832,6 +832,14 @@ return {
 	["¡Rescate!"] = "Rescue!",
 	["Lo lograron"] = "You made it",
 	["¡Todos a salvo!"] = "Everyone is safe!",
+	-- Llegada a la isla (G4).
+	["¿Dónde estamos…?"] = "Where are we…?",
+	["¡Allí! Hay humo entre los árboles."] = "Over there! Smoke through the trees.",
+	["¡Tierra firme!"] = "Solid ground!",
+	["La isla de los monos los espera"] = "The island of monkeys awaits you",
+	["Preparando la isla…"] = "Preparing the island…",
+	["Volviendo al Basecamp…"] = "Heading back to the Basecamp…",
+	["Sobrevive, defiende el Basecamp y busca a los jefes de la isla"] = "Survive, defend the Basecamp and hunt down the island's bosses",
 	-- Aparición de los jefes (subtítulos del cartel).
 	["Señor del manglar"] = "Lord of the mangrove",
 	["Amo de las montañas"] = "Master of the mountains",

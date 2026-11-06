@@ -16,6 +16,7 @@ export type Scene = {
 	duration: number,
 	audience: string,
 	freeze: boolean,
+	waitTerrain: { Vector3 }?, -- puntos (relativos al anchor) cuyo terreno debe estar cargado antes de empezar (streaming)
 	skippable: boolean?, -- se puede saltar aunque no se haya visto entera (sin él, solo si ya está vista)
 	anchor: string?,
 	actors: { [string]: { [string]: any } },
@@ -269,6 +270,71 @@ local function crewShot(t: number, camLocal: Vector3, lookLocal: Vector3, fov: n
 	return { t = t, pos = heliPoint(t, camLocal), look = heliPoint(t, lookLocal), fov = fov }
 end
 
+-- Llegada a la isla (G4), en el marco del anchor: la playa de arena de la Isla, con -Z hacia tierra adentro y +Z
+-- hacia el mar. El suelo baja 0,08 studs por stud hacia +Z: beach da el punto a ras de suelo y ground() suma esa
+-- altura a una cámara o una mirada dada en altura sobre el suelo.
+local BEACH_SLOPE = 0.08
+
+local function beach(x: number, z: number): Vector3
+	return Vector3.new(x, -BEACH_SLOPE * z, z)
+end
+
+local function ground(x: number, height: number, z: number): Vector3
+	return Vector3.new(x, height - BEACH_SLOPE * z, z)
+end
+
+-- La tripulación de la llegada: el mejor equipo de cada rol (como Portada), de izquierda a derecha.
+local CREW = {
+	{
+		name = "guerrero",
+		x = -8,
+		startZ = 3,
+		endZ = -4,
+		yaw = 30,
+		role = "Guerrero",
+		outfit = "TitanKingOutfit",
+		skin = "TitanKingMace",
+	},
+	{ name = "cazador", x = -3, startZ = 5, endZ = -9, yaw = 8, role = "Cazador", armor = "VolcanicArmor" },
+	{
+		name = "mago",
+		x = 3.5,
+		startZ = 4,
+		endZ = -7,
+		yaw = -8,
+		role = "Mago",
+		outfit = "BlueFireInvokerOutfit",
+		skin = "SulfurStaff",
+	},
+	{
+		name = "medico",
+		x = 9,
+		startZ = 5.5,
+		endZ = -3.5,
+		yaw = -32,
+		role = "Medico",
+		outfit = "CeibaOfLifeOutfit",
+		skin = "CeibaBlowgun",
+	},
+}
+
+-- Los cuatro maniquíes de la tripulación: en su sitio de salida (en el mar, a la orilla) o ya en tierra (atEnd).
+local function crewActors(atEnd: boolean): { [string]: { [string]: any } }
+	local actors: { [string]: { [string]: any } } = {}
+	for _, member in CREW do
+		actors[member.name] = {
+			kind = "dummy",
+			role = member.role,
+			armor = member.armor,
+			outfit = member.outfit,
+			skin = member.skin,
+			pos = beach(member.x, if atEnd then member.endZ else member.startZ),
+			yaw = if atEnd then member.yaw else 0,
+		}
+	end
+	return actors
+end
+
 local Cinematics: { [string]: Scene } = {
 	Boss_OrangutanDelManglar = bossScene(
 		"OrangutanDelManglar",
@@ -437,6 +503,117 @@ local Cinematics: { [string]: Scene } = {
 			},
 			{ t = 11, kind = "caption", text = Strings.later("¡Todos a salvo!"), seconds = 4 },
 			{ t = 18.4, kind = "fade", seconds = 0.6, toBlack = true },
+		},
+	},
+
+	-- Llegada a la isla (G4): escena local, la lanza ArrivalService con el anchor en la playa. La tripulación sale
+	-- del mar caminando, mira a su alrededor, señala el humo y celebra. Hasta verla entera no se puede saltar.
+	Arrival = (function(): Scene
+		local events: { { t: number, kind: string, [string]: any } } = {
+			{ t = 0, kind = "letterbox" },
+			{ t = 0, kind = "exposure", value = 0.28 },
+			{
+				t = 0,
+				kind = "light",
+				follow = true,
+				offset = Vector3.new(0, 3, 0),
+				color = Color3.fromRGB(255, 236, 210),
+				brightness = 1,
+				range = 60,
+			},
+		}
+		for index, member in CREW do
+			local startT = 0.6 + (index - 1) * 0.15
+			table.insert(events, {
+				t = startT,
+				kind = "move",
+				actor = member.name,
+				pos = beach(member.x, member.endZ),
+				yaw = member.yaw,
+				seconds = 3.8,
+			})
+			table.insert(events, { t = startT, kind = "anim", actor = member.name, action = "Walk", seconds = 3.9 })
+		end
+		for _, event in
+			{
+				{ t = 4.7, kind = "anim", actor = "cazador", action = "LookAround", seconds = 3.1 },
+				{ t = 6.4, kind = "anim", actor = "guerrero", action = "Point", seconds = 2.1 },
+				{ t = 8.4, kind = "anim", actor = "mago", action = "Cheer", seconds = 2.4 },
+				{ t = 8.4, kind = "anim", actor = "medico", action = "Cheer", seconds = 2.4 },
+				-- Cada texto está en pantalla fundido de entrada (0,5 s) + seconds + fundido de salida (0,6 s): los tres van
+				-- uno tras otro sin solaparse (termina el anterior antes de que empiece el siguiente).
+				{ t = 4.8, kind = "caption", text = Strings.later("¿Dónde estamos…?"), seconds = 1.5 },
+				{
+					t = 7.5,
+					kind = "caption",
+					text = Strings.later("¡Allí! Hay humo entre los árboles."),
+					seconds = 1.3,
+				},
+				{
+					t = 10.2,
+					kind = "title",
+					text = Strings.later("¡Tierra firme!"),
+					sub = Strings.later("La isla de los monos los espera"),
+					seconds = 1.6,
+				},
+				{ t = 12.3, kind = "fade", seconds = 0.7, toBlack = true },
+			}
+		do
+			table.insert(events, event)
+		end
+		return {
+			duration = 13,
+			audience = "Self",
+			freeze = false,
+			skippable = false,
+			waitTerrain = { beach(-8, 3), beach(0, -6), beach(9, -3.5), ground(0, 0, -18) },
+			actors = crewActors(false),
+			camera = {
+				{ t = 0, pos = ground(-22, 3.2, 8), look = ground(0, 3.2, 2), fov = 55 },
+				{ t = 2.5, pos = ground(-22, 3.6, -6), look = ground(0, 3.2, -5), fov = 52 },
+				{ t = 4.5, pos = ground(-6, 4, -23), look = ground(0, 3.4, -6), fov = 52 },
+				-- Barrido lento (2 s) por delante de la tripulación hasta su costado derecho, fuera de ella.
+				{ t = 6.5, pos = ground(15, 4, -21), look = ground(0, 3.4, -6), fov = 52 },
+				{ t = 7.8, pos = ground(27, 4, -6), look = ground(0, 3.4, -6), fov = 52 },
+				-- Por encima del hombro de la tripulación, mirando tierra adentro.
+				{ t = 9.2, pos = ground(8, 4.5, 9), look = ground(0, 3.6, -6), fov = 54 },
+				-- Grúa lenta hacia arriba durante los últimos segundos.
+				{ t = 10.8, pos = ground(5, 6, 10), look = ground(0, 5, -20), fov = 55 },
+				{ t = 13, pos = ground(1, 10, 18), look = ground(0, 7, -40), fov = 58 },
+			},
+			events = events,
+		}
+	end)(),
+
+	-- Versión corta para quien ya vio la llegada entera: la tripulación ya en tierra, celebrando.
+	ArrivalShort = {
+		duration = 3,
+		audience = "Self",
+		freeze = false,
+		skippable = true,
+		waitTerrain = { beach(-8, -4), beach(0, -8), beach(9, -3.5) },
+		actors = crewActors(true),
+		camera = {
+			{ t = 0, pos = ground(5, 3.2, 14), look = ground(0, 3.5, -14), fov = 55 },
+			{ t = 3, pos = ground(3, 3.8, 11), look = ground(0, 3.5, -14), fov = 52 },
+		},
+		events = {
+			{ t = 0, kind = "letterbox" },
+			{ t = 0, kind = "exposure", value = 0.28 },
+			{
+				t = 0,
+				kind = "light",
+				follow = true,
+				offset = Vector3.new(0, 3, 0),
+				color = Color3.fromRGB(255, 236, 210),
+				brightness = 1,
+				range = 60,
+			},
+			{ t = 0.1, kind = "anim", actor = "mago", action = "Cheer", seconds = 2.4 },
+			{ t = 0.1, kind = "anim", actor = "medico", action = "Cheer", seconds = 2.4 },
+			{ t = 0.2, kind = "anim", actor = "guerrero", action = "Point", seconds = 2.1 },
+			{ t = 0.3, kind = "caption", text = Strings.later("¡Tierra firme!"), seconds = 1.8 },
+			{ t = 2.4, kind = "fade", seconds = 0.6, toBlack = true },
 		},
 	},
 

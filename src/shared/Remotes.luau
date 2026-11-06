@@ -62,6 +62,9 @@ local Remotes = {
 	-- Cliente -> servidor (Isla): la cinemática id terminó o se saltó (id, watchedFully). El servidor apunta la
 	-- escena como vista (perfil cinematicsSeen) si se vio entera, y termina la escena cuando todos han acabado.
 	CinematicDone = remoteEvent("CinematicDone"),
+	-- Cliente -> servidor (Isla): al volver al Basecamp tras la llegada, avisa de que ya tiene suelo cargado bajo el
+	-- personaje (Cinematics/CinematicClient). El servidor lo suelta entonces (ArrivalService).
+	ArrivalGround = remoteEvent("ArrivalGround"),
 	-- Cliente -> servidor (Isla): saltar a la siguiente fase del día. Solo funciona en Studio.
 	DebugSkipPhase = remoteEvent("DebugSkipPhase"),
 	-- Cliente -> servidor (Lobby e Isla): orden del panel de pruebas (nombre). Solo funciona en Studio.

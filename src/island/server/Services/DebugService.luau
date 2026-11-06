@@ -26,6 +26,7 @@ local Sounds = require(ReplicatedStorage.Shared.Data.Sounds)
 local Survival = require(ReplicatedStorage.Shared.Survival)
 local Weapons = require(ReplicatedStorage.Shared.Data.Weapons)
 local WeaponTools = require(ReplicatedStorage.Shared.WeaponTools)
+local ArrivalService = require(script.Parent.ArrivalService)
 local BasecampService = require(script.Parent.BasecampService)
 local BeaconService = require(script.Parent.BeaconService)
 local BuildingService = require(script.Parent.BuildingService)
@@ -828,6 +829,12 @@ local COMMANDS: { [string]: (player: Player) -> () } = {
 		})
 		if not ok then
 			Remotes.Notify:FireClient(player, "🎬 La escena del rescate ya está en marcha")
+		end
+	end,
+	-- Llegada (Fase 25, G4): la escena «Arrival» en la playa, solo para quien pulsa, aunque ya la haya visto.
+	CineArrival = function(player)
+		if not ArrivalService.play(player, "Arrival") then
+			Remotes.Notify:FireClient(player, "🎬 La escena de la llegada ya está en marcha")
 		end
 	end,
 	-- Plató de grabación (ver runStage).

@@ -11,6 +11,7 @@ local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Inventory = require(ReplicatedStorage.Shared.Inventory)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
+local HudHider = require(ReplicatedStorage.Shared.UI.HudHider)
 local Widgets = require(ReplicatedStorage.Shared.UI.Widgets)
 
 local T = Strings.t
@@ -73,6 +74,13 @@ function TutorialController:Start()
 	end
 	if player:GetAttribute("TutorialPending") ~= true then
 		return
+	end
+
+	-- El panel no sale mientras suena una cinemática (HudHider esconde la interfaz durante la escena).
+	waited = 0
+	while HudHider.isHidden() and waited < 120 do
+		task.wait(0.5)
+		waited += 1
 	end
 
 	local gui = Widgets.screen("Tutorial", player:WaitForChild("PlayerGui"))

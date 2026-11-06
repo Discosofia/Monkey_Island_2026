@@ -129,6 +129,26 @@ local function place(model: Model, anchor: CFrame, ground: Vector3, yaw: number)
 	end
 end
 
+-- Lleva todas las piezas del arma a donde la deja el agarre (RightGrip), antes de que el maniquí entre al mundo. Sin esto,
+-- el Weld del agarre mueve solo el mango al entrar y las piezas unidas con WeldConstraint (llamas, grietas, cuerda)
+-- toman su posición de la caja a medio camino: el cuerpo de malla (unido con Weld) queda bien y el resto, desplazado.
+local function alignWeapon(rig: Model)
+	local hand = rig:FindFirstChild("RightHand")
+	local tool = rig:FindFirstChildOfClass("Tool")
+	local handle = if tool then tool:FindFirstChild("Handle") else nil
+	local grip = if hand then hand:FindFirstChild("RightGrip") else nil
+	if not (hand and tool and handle and grip and handle:IsA("BasePart") and grip:IsA("Weld")) then
+		return
+	end
+	local target = (hand :: BasePart).CFrame * grip.C0 * grip.C1:Inverse()
+	local delta = target * (handle :: BasePart).CFrame:Inverse()
+	for _, piece in tool:GetDescendants() do
+		if piece:IsA("BasePart") then
+			piece.CFrame = delta * piece.CFrame
+		end
+	end
+end
+
 local function created(ctx: Sequencer.Context): { Instance }
 	local list = ctx._created
 	if not list then
@@ -158,12 +178,17 @@ local function spawnDummy(def: ActorDef, anchor: CFrame, ctx: Sequencer.Context)
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	end
 	place(rig, anchor, def.pos or Vector3.zero, def.yaw or 0)
+	alignWeapon(rig)
 	-- La raíz anclada deja el rig quieto donde se pone; los miembros siguen moviéndose con las animaciones.
 	local root = rig:FindFirstChild("HumanoidRootPart")
 	if root and root:IsA("BasePart") then
 		root.Anchored = true
 	end
 	rig.Parent = Workspace
+	-- Con el arma en la mano, la pose de equipada (la pone el animador del cliente; en edición no hay).
+	if weaponId and animator then
+		animator(rig, "WeaponPose", { t = 0, kind = "anim", weapon = weaponId })
+	end
 	return rig
 end
 

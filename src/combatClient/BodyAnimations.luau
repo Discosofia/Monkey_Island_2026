@@ -84,6 +84,11 @@ local function track(key: PlayerAnimations.Key): AnimationTrack?
 	return loaded
 end
 
+-- Id de la animación "key" (el publicado o, en Studio, el de la secuencia generada); nil si no hay.
+function BodyAnimations.idOf(key: PlayerAnimations.Key): string?
+	return animationId(key)
+end
+
 -- true si "key" se puede reproducir (tiene id publicado o, en Studio, secuencia generada). Da lo
 -- mismo en todos los clientes: AbilityFxController lo usa para no duplicar la pose del grito.
 function BodyAnimations.has(key: PlayerAnimations.Key): boolean

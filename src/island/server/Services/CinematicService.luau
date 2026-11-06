@@ -85,6 +85,11 @@ local function fireServerEvent(run: Run, entry: { event: { [string]: any }, fire
 	end
 end
 
+-- true si la escena "id" está en marcha.
+function CinematicService.isRunning(id: string): boolean
+	return running[id] ~= nil
+end
+
 -- true si ya vio la escena entera (perfil cinematicsSeen).
 function CinematicService.hasSeen(player: Player, id: string): boolean
 	local profile = PlayerData.get(player)

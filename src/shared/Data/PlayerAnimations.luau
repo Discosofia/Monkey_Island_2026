@@ -29,6 +29,10 @@ export type Key =
 	| "Run"
 	| "RunArmed"
 	| "HeadSteady"
+	| "Point"
+	| "LookAround"
+	| "Cheer"
+	| "WeaponCarry"
 
 export type PlayerAnimation = {
 	id: string,
@@ -81,6 +85,14 @@ local PlayerAnimations = {
 		-- Prioridad Idle: por encima del correr de Roblox (Core, que cabecea la cabeza ~13° al andar) y por debajo de
 		-- Movement y de los gestos. No depende del peso de Walk, que se reinicia al cambiar de estado.
 		HeadSteady = { id = "rbxassetid://102631425550136", priority = Enum.AnimationPriority.Idle, looped = true },
+		-- Gestos de la escena de llegada (Fase 25, G4; Data/Cinematics «Arrival»). Publicadas.
+		Point = { id = "rbxassetid://127851964641078", priority = Enum.AnimationPriority.Action3 }, -- señala al frente con el brazo derecho
+		LookAround = { id = "rbxassetid://132317126007326", priority = Enum.AnimationPriority.Action3 }, -- mano de visera, mira a los lados
+		Cheer = { id = "rbxassetid://108143501926462", priority = Enum.AnimationPriority.Action3 }, -- dos saltitos con los brazos en alto
+		-- Arma en la mano de los maniquíes de las cinemáticas (Cinematics/CinematicClient): brazo derecho abierto
+		-- y adelantado, arma en diagonal hacia delante y fuera, con la punta separada de la cabeza. Medida con
+		-- medición en Play sobre Guerrero, Cazador, Mago y Médico.
+		WeaponCarry = { id = "rbxassetid://78684880424604", priority = Enum.AnimationPriority.Action4, looped = true },
 	} :: { [Key]: PlayerAnimation },
 
 	-- Gesto de cada habilidad de Data/Roles. El Torbellino no va aquí: dura lo que el giro y lo para

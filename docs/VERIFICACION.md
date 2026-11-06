@@ -5391,6 +5391,78 @@ Ya probado: Rendimiento mide el helicóptero en 60 piezas antes y después de fu
 31. [ ] Antes de probar en Play, haz la copia del perfil de §10.0 y, con el Play parado, restáurala al terminar.
     ✅ Tras restaurar, el perfil real (`PlayerData_v1`) coincide con la copia, y el Ámbar, los huevos y las mascotas son los de antes del Play.
 
+## 144. Fase 25 G4: llegada a la isla (05-11-2026)
+
+La llegada es la escena `Arrival` (`Data/Cinematics`, 13 s, sin botón Saltar la primera vez) y `ArrivalShort` (3 s, saltable). `island/server/Services/ArrivalService` la lanza al entrar cada jugador: si la escena larga ya corre para otro, reintenta cada 0,5 s hasta 40 s. Mientras suena, el personaje real espera oculto y quieto en la playa (anchor 0, 3, 946, 45 studs al costado de la tripulación) y vuelve al Basecamp al acabar. La orden de administrador «🏝️ Llegada» (`CineArrival`) lanza la escena solo para quien la pulsa, aunque ya la haya visto. El tutorial espera a que acabe la cinemática (`HudHider.isHidden`), y `CinematicClient` espera hasta 4 s a que el suelo de la playa esté cargado (`waitTerrain`). Los gestos `Point`, `LookAround` y `Cheer` de `PlayerAnimations` tienen id vacío: en Studio suenan las secuencias generadas de `ReplicatedStorage.PlayerAnimations`, y en el juego publicado no se reproducen hasta pegar sus ids.
+
+### 144.1 Gestos publicados
+
+1. [ ] `Point`, `LookAround`, `Cheer` y `WeaponCarry` (el arma en la mano de los maniquíes) ya tienen su id pegado en `src/shared/Data/PlayerAnimations.luau`. Publica el place de la Isla.
+   ✅ El juego publicado no da avisos de animación en la Salida.
+2. [ ] Con el juego publicado, entra a la Isla y mira a los maniquíes de la llegada: señalan, miran a los lados y saludan.
+   ✅ Los maniquíes hacen `Point`, `LookAround` y `Cheer` en su momento, y no se quedan de pie.
+
+### 144.2 Juego publicado: primera vez y segunda
+
+3. [ ] Con una cuenta nueva en el juego publicado, entra a la Isla desde el Lobby.
+   ✅ Ve `Arrival` entera (13 s) sin botón Saltar; al acabar, el personaje vuelve al Basecamp y el tutorial empieza después.
+4. [ ] Mira `Arrival` hasta el final, sal de la Isla y vuelve a entrar con la misma cuenta.
+   ✅ Ahora sale `ArrivalShort` (3 s) con el botón Saltar. El perfil guarda `cinematicsSeen.Arrival` solo tras verla entera.
+5. [ ] Con otra cuenta nueva, sal de la Isla a mitad de `Arrival` (sin que acabe) y vuelve a entrar.
+   ✅ Sale `Arrival` entera otra vez: la escena cortada no quedó marcada como vista.
+
+### 144.3 Dos a cinco amigos
+
+6. [ ] Con 2 amigos que nunca hayan visto `Arrival`, entrad a la Isla a la vez.
+   ✅ Cada uno ve su `Arrival` entera, en cola: el segundo espera a que acabe el primero (unos 13 s) y no se pisan. Mientras esperan, ambos están en la playa y vuelven al Basecamp al acabar.
+7. [ ] Con 5 amigos que nunca hayan visto `Arrival`, entrad a la Isla a la vez.
+   ✅ Cada uno ve su escena en cola, de una en una (peor caso unos 15 s por persona). Si el 4.º o el 5.º no llega a verla, el límite de 40 s la corta: se anota quién y en qué segundo se rinde, para decidir si se sube el límite (`MAX_WAIT_SECONDS` en `ArrivalService`).
+8. [ ] Con 5 amigos que ya hayan visto `Arrival`, entrad a la Isla a la vez.
+   ✅ Cada uno ve `ArrivalShort` en cola (3 s cada una) y todos entran sin esperas largas.
+
+### 144.4 Emulador de teléfono
+
+9. [ ] En el emulador de teléfono (9:16), mira el cartel y los subtítulos de `Arrival` y de `ArrivalShort`.
+   ✅ Cartel y subtítulos caben dentro de la zona segura 9:16: no se cortan ni quedan debajo de los controles del teléfono.
+
+### 144.5 Ajuste «Cinemáticas» apagado
+
+10. [ ] Desactiva «Cinemáticas» en los ajustes, entra a la Isla con una cuenta que no haya visto `Arrival` y, con el ajuste apagado, pulsa «🏝️ Llegada» en el panel de administración.
+    ✅ No sale escena ni cartel, el tutorial arranca al entrar y el personaje no se queda en la playa. El servidor manda el personaje a la playa aunque el cliente no reproduzca la escena (`ArrivalService.play` → `moveToBeach`) y lo devuelve cuando llega la respuesta `CinematicDone(false)`: se anota si se ve un tirón o un parpadeo, y si lo hay, se avisa.
+
+    Desde el cambio de la espera: con el ajuste apagado, el cliente suelta la tarjeta de espera al recibir la escena, y el personaje espera 2,5 s en la playa antes de que el servidor la lance. ✅ La tarjeta de espera no queda puesta más de unos segundos.
+10b. [ ] Entra a la Isla en el juego publicado y mira los primeros segundos de la llegada.
+    ✅ Se ve la tarjeta de espera (fondo azul noche, «Primal Banana Islands», «Preparando la isla…», tres puntos que laten y el consejo de abajo) desde que entras y unos 2,5 s más mientras el personaje espera oculto en la playa; la escena empieza con un fundido: sin arena tapando, sin HUD ni el personaje en pantalla. Con la conexión lenta, la tarjeta no pasa de 25 s (tope de seguridad). En inglés salen «Preparing the island…» y el consejo traducido.
+
+10c. [ ] Entra a la Isla en el juego publicado y, al acabar la escena, mira el regreso al Basecamp.
+    ✅ Vuelve la tarjeta de espera con «Volviendo al Basecamp…» (como mínimo 1,6 s) hasta que el cliente confirma suelo cargado bajo el personaje (remoto `ArrivalGround`, tope de 15 s en el servidor) y el personaje reaparece de pie en el Basecamp, sin caer por el vacío ni recibir el viñeteo rojo de daño. Si el personaje se ve flotando en el aire o cae, se anota.
+10d. [ ] Con una mascota activa, mira `Arrival`, `ArrivalShort` y una aparición de jefe, y la eclosión del huevo en el Lobby.
+    ✅ Ninguna mascota (la tuya ni las de los demás) sale en las cinemáticas, y todas vuelven al terminar (carpeta `Workspace.Mascotas`). En la eclosión del Lobby se sigue viendo la mascota nueva que sale del huevo.
+
+### 144.6 Casos límite
+
+11. [ ] Con una cuenta que ya haya visto `Arrival`, pulsa Saltar a mitad de `ArrivalShort`.
+    ✅ El personaje vuelve al Basecamp visible y puede moverse, el cartel se quita y el HUD vuelve.
+12. [ ] Con una cuenta que no haya visto `Arrival`, muere durante la escena (en Studio, pon la vida a 0 desde la consola de la prueba) y mira qué pasa al reaparecer.
+    ✅ Reaparece en el Basecamp visible y con control, la cámara y el HUD vuelven, y la escena no queda a medias en pantalla. La próxima entrada vuelve a sacar `Arrival` entera.
+13. [ ] Con una cuenta de primera vez, entra a la Isla, mira `Arrival` hasta el final y, al acabar, mira cuándo empieza el tutorial.
+    ✅ El tutorial empieza solo al acabar la escena, no antes, y sus pasos salen normales.
+
+### 144.7 Avatares R6
+
+14. [ ] Con un avatar R6, entra a la Isla con una cuenta de primera vez.
+    ✅ La escena corre sin errores en la Salida: el personaje espera oculto y quieto en la playa y vuelve al Basecamp al acabar. Si los gestos no se ven bien con R6, se anota; no deben romper la escena.
+
+### 144.8 Mapa regenerado
+
+15. [ ] Regenera el mapa de la Isla con `island/tools/MapBuilder` (`build({ islandRadius = 950 })`, que borra el terreno) y vuelve a medir el suelo de la playa en el anchor (0, 3, 946).
+    ✅ El suelo queda donde espera `ArrivalService` y la escena: el personaje y los maniquíes quedan sobre la arena, sin hundirse ni flotar. Si la altura o la pendiente han cambiado, se anotan y se corrigen el anchor y `BEACH_SLOPE` antes de publicar.
+
+### 144.9 Perfil real
+
+16. [ ] Antes de probar en Play, haz la copia del perfil de §10.0 y, con el Play parado, restáurala al terminar.
+    ✅ Tras restaurar, el perfil real (`PlayerData_v1`) coincide con la copia, y el Ámbar, los huevos y las mascotas son los de antes del Play.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
