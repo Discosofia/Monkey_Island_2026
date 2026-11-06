@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Roles = require(ReplicatedStorage.Shared.Data.Roles)
@@ -66,8 +67,13 @@ local function sleep(seconds: number)
 	set("AltarContested", nil)
 end
 
+-- El altar es de Captura la bandera: en el Juego de pelota queda apagado, sin avisos ni ventaja.
+local function altarEnabled(): boolean
+	return ArenaModes.current() == "CaptureFlag"
+end
+
 local function reset(phase: Arena.Phase)
-	if phase == "Battle" then
+	if phase == "Battle" and altarEnabled() then
 		for _, teamId in Arena.TEAM_IDS do
 			set(`ArenaAltars_{teamId}`, 0)
 		end
@@ -141,7 +147,7 @@ local function charge(teamId: string, elapsed: number)
 end
 
 local function tick(elapsed: number)
-	if not Arena.inBattle() then
+	if not Arena.inBattle() or not altarEnabled() then
 		return
 	end
 	local altar = settings()

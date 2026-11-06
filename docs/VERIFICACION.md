@@ -5962,6 +5962,17 @@ Las reglas y el partido (`Modes/Ballgame`) se probaron en Studio de Dunas con un
 23. [ ] Compara el perfil real de tu cuenta con la copia `u_8620190944_pre26e` de `PlayerData_v1_backups`. Si el perfil cambió al salir del Play de prueba, restáuralo con la copia (VERIFICACION §10.0). Después borra la copia.
     ✅ El perfil real coincide con la copia (o queda restaurado con ella), y `u_8620190944_pre26e` ya no está en `PlayerData_v1_backups`.
 
+## 154. El altar solo en Captura la bandera (06-11-2026)
+
+El altar de la pirámide (`AltarService`) ya no se enciende ni avisa en el Juego de pelota (`ArenaModes.current() == "CaptureFlag"`). Probado en Studio con un jugador: en Ballgame `AltarState` se queda en «Off» y no sale ningún aviso del altar; con el modo cambiado a mano a CaptureFlag pasa a «Dormant», luego «Active» a los 30 s y avisa.
+
+1. [ ] Entra en Dunas desde el Lobby con la cola de Captura la bandera (dos equipos, o el panel de pruebas) y juega hasta que el altar se encienda; toma el altar con un equipo.
+   ✅ A los 30 s sale «El altar de la pirámide se encendió», se puede tomar y da la ventaja de la definitiva, como antes.
+2. [ ] Entra desde el Lobby con la cola del Juego de pelota y juega un partido entero.
+   ✅ No sale ningún aviso del altar ni se ve la barra del altar en el HUD.
+3. [ ] Compara el perfil real con la copia `u_8620190944_prealtar` de `PlayerData_v1_backups` (el probador no pudo restaurarla: el DataStore daba «Access forbidden» desde Edit). Después borra la copia.
+   ✅ El perfil real coincide con la copia y `u_8620190944_prealtar` ya no está.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.
