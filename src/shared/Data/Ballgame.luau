@@ -3,6 +3,7 @@
 -- en el servidor y en el cliente), el servicio de la pelota (Dunas/Services/BallService) y su controlador.
 -- Unidades: studs y segundos. La escala de la cancha es 1 stud ≈ 0,28 m (ver Shared/CourtGeometry).
 
+local Strings = require(script.Parent.Parent.Strings)
 local Roles = require(script.Parent.Roles)
 
 local Ballgame = {}
@@ -162,6 +163,20 @@ Ballgame.LightStep = {
 	SpeedBonus = 0.35,
 	Seconds = 2,
 }
+
+-- Avisos de raya (Fase 26g): la plantilla de cada clave de ReplicatedStorage "BallgameCall" (el equipo que
+-- anota va en {icon} {name}). El servidor la manda por Notify y el cliente (BallgameHUD) la dibuja con T().
+-- "Time" (fin por tiempo o por abandono) no lleva aviso propio.
+Ballgame.Calls = {
+	ThreeBounces = Strings.later("¡Tres botes! Raya para {icon} {name}"),
+	Out = Strings.later("¡Fuera! Raya para {icon} {name}"),
+	Foot = Strings.later("¡Falta de pie! Raya para {icon} {name}"),
+	RingMiss = Strings.later("¡Falló el aro! Raya para {icon} {name}"),
+	EndWall = Strings.later("¡Muro del fondo! Raya para {icon} {name}"),
+	OwnEndWall = Strings.later("¡Contra su propio muro! Raya para {icon} {name}"),
+	Stalled = Strings.later("¡Pelota parada! Raya para {icon} {name}"),
+	Ring = Strings.later("¡Aro! Gana {icon} {name}"),
+} :: { [string]: string }
 
 -- Apariencia: hule casi negro con un tono marrón; la sombra se aclara con la altura hasta ShadowMaxHeight.
 Ballgame.BallColor = Color3.fromRGB(34, 28, 30)

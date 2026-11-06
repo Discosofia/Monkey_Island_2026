@@ -6013,6 +6013,51 @@ Las habilidades de rol (Guerrero «Golpe de yugo», Cazador «Salto de jaguar»,
 12. [ ] Usa la habilidad del botón 1 y mira la recarga.
    ✅ Se ve la recarga en el botón 1 y baja hasta que la habilidad vuelve a estar lista, con los tiempos de los pasos 7 y 8.
 
+## 156. Fase 26 26g: HUD del Juego de pelota (06-11-2026)
+
+El HUD del Juego de pelota (`BallgameHUD`, en Dunas) pone el marcador de rayas como palitos (tallas de cinco con diagonal), los puntos de botes bajo cada casilla y el banner de avisos con el color del equipo que puntúa. Probado en Studio de Dunas con un jugador: palitos de 0 a 8, banderas ocultas, puntos de botes, banners de raya y de aro, sin Toast duplicado por raya y vuelta a Captura la bandera. Lo que sigue sin probar es esto.
+
+### 156.1 En el teléfono o el emulador (*Prueba → Dispositivo*, 640 px, en Dunas, Juego de pelota)
+
+1. [ ] Entra en el Juego de pelota y deja que se marquen varias rayas para ver los palitos de las casillas.
+   ✅ Los palitos se leen bien y no tapan la barra de vida ni la columna del RoleHUD (12,118).
+2. [ ] Bota la pelota en tu campo y mira los puntos de botes bajo tu casilla.
+   ✅ Los puntos salen bajo la casilla sin tapar el botón Golpear ni la rueda de emotes.
+3. [ ] Provoca un banner de raya y, si puedes, el de aro.
+   ✅ El banner aparece en y=70 con 44 px de alto, y el de aro llega hasta y≈134 sin tapar la barra de vida, la columna del RoleHUD (12,118), el botón Golpear ni la rueda de emotes.
+
+### 156.2 Dos jugadores (*Prueba → Clientes y servidores*, 2 clientes, en Dunas, Juego de pelota 1v1)
+
+4. [ ] Con un cliente en cada equipo, bota la pelota en tu campo y mira los puntos de botes en los dos clientes.
+   ✅ Cada cliente ve los puntos solo bajo la casilla de su equipo, y cuentan los botes de su propio campo.
+5. [ ] Marca una raya (por ejemplo, con un fuera o un pie) y mira el banner en los dos clientes.
+   ✅ El banner sale en los dos clientes con el color del equipo que puntúa, y la raya se ve en los dos.
+6. [ ] Anota un aro limpio y mira los dos clientes.
+   ✅ El aro se ve en ambos y sale un solo Toast de victoria («🏆 ¡Gana el equipo…») tras el aro. Ninguna raya repite el Toast.
+
+### 156.3 Inglés (*Prueba → Jugar*, cliente en inglés, en Dunas, Juego de pelota)
+
+7. [ ] Pon el cliente en inglés y haz tres botes seguidos en tu campo.
+   ✅ El banner sale en inglés («Three bounces!…») y los palitos no cambian.
+8. [ ] Provoca los demás avisos (fuera, falta de pie, aro fallado y aro) y mira los banners.
+   ✅ Cada banner sale con su texto en inglés de `Data/Strings/Dunas`, y no queda ninguno en español.
+
+### 156.4 Partido completo (*Prueba → Jugar*, en Dunas, Juego de pelota)
+
+9. [ ] Juega una partida hasta 8 rayas con rayas reales: golpes, botes, fuera y aros.
+   ✅ Los palitos suben en el orden correcto y 8 rayas se ven como dos grupos (5 con diagonal y 3).
+10. [ ] Mira el temporizador durante la partida y, si llega el caso, la muerte súbita.
+    ✅ El temporizador baja sin saltos y, en muerte súbita, sale ⚡ junto a él.
+11. [ ] Al acabar la partida, mira la pantalla de Results.
+    ✅ La línea de fase dice «🏆 ¡Gana el equipo…».
+
+### 156.5 Altar, marcador y vuelta a Captura la bandera (*Prueba → Jugar*, en Dunas)
+
+12. [ ] Mira la zona junto al marcador durante un partido del Juego de pelota.
+    ✅ No se ve nada del altar: ni texto ni barra junto al marcador.
+13. [ ] Cambia a Captura la bandera (otro modo en el mismo servidor) y mira el HUD.
+    ✅ Las banderas y el número de las casillas vuelven, y los palitos desaparecen.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

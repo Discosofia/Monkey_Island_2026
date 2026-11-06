@@ -26,6 +26,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local ArenaModes = require(ReplicatedStorage.Shared.ArenaModes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local ArenaSettings = require(ReplicatedStorage.Shared.UI.ArenaSettings)
@@ -309,17 +310,24 @@ function ArenaHUDController:Start()
 	respawnLimit.Parent = respawn
 
 	RunService.RenderStepped:Connect(function()
-		jaguar.Text = `{Config.Arena.Teams.Jaguar.icon} {Arena.score("Jaguar")}`
-		quetzal.Text = `{Arena.score("Quetzal")} {Config.Arena.Teams.Quetzal.icon}`
+		-- Juego de pelota: las rayas las dibuja BallgameHUD (palitos) en las casillas, y no hay banderas ni altar.
+		local ball = ArenaModes.current() == "Ballgame"
+		if ball then
+			jaguar.Text = ""
+			quetzal.Text = ""
+		else
+			jaguar.Text = `{Config.Arena.Teams.Jaguar.icon} {Arena.score("Jaguar")}`
+			quetzal.Text = `{Arena.score("Quetzal")} {Config.Arena.Teams.Quetzal.icon}`
+		end
 		local phase = Arena.phase()
 		timer.Text = if phase == "Battle" or phase == "Countdown"
 			then clock(Arena.secondsLeft())
 			elseif phase == "SuddenDeath" then "⚡"
 			else "—"
 		phaseLine.Text = phaseText(player)
-		altarLabel.Text = if Arena.inBattle() then altarText() else ""
+		altarLabel.Text = if Arena.inBattle() and not ball then altarText() else ""
 		for teamId, label in flagLabels do
-			label.Visible = Arena.inBattle()
+			label.Visible = Arena.inBattle() and not ball
 			label.Text = flagText(teamId)
 			local state = flagState(teamId)
 			label.TextColor3 = if state == "Carried"

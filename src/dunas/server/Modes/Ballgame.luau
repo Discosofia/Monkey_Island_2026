@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = require(ReplicatedStorage.Shared.Arena)
 local Config = require(ReplicatedStorage.Shared.Config)
 local CourtGeometry = require(ReplicatedStorage.Shared.CourtGeometry)
+local BallgameData = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Strings = require(ReplicatedStorage.Shared.Strings)
 local BallHitService = require(script.Parent.Parent.Services.BallHitService)
@@ -22,18 +23,6 @@ local Types = require(script.Parent.Types)
 local T = Strings.later
 
 type RingAttempt = { team: string, minDist: number, rim: boolean }
-
--- Plantilla del aviso de cada tipo de raya (el equipo que anota va en {icon} {name}).
-local CALL_TEMPLATES: { [string]: string } = {
-	ThreeBounces = T("¡Tres botes! Raya para {icon} {name}"),
-	Out = T("¡Fuera! Raya para {icon} {name}"),
-	Foot = T("¡Falta de pie! Raya para {icon} {name}"),
-	RingMiss = T("¡Falló el aro! Raya para {icon} {name}"),
-	EndWall = T("¡Muro del fondo! Raya para {icon} {name}"),
-	OwnEndWall = T("¡Contra su propio muro! Raya para {icon} {name}"),
-	Stalled = T("¡Pelota parada! Raya para {icon} {name}"),
-	Ring = T("¡Aro! Gana {icon} {name}"),
-}
 
 local Ballgame = {}
 
@@ -68,8 +57,16 @@ local function resetScores()
 	end
 end
 
+-- Botes seguidos en el campo de cada equipo, para los puntos del HUD (BallgameBounces_<equipo>).
+local function publishBounces()
+	for _, teamId in Arena.TEAM_IDS do
+		ReplicatedStorage:SetAttribute(`BallgameBounces_{teamId}`, bounces[teamId])
+	end
+end
+
 local function resetRound()
 	bounces = { Jaguar = 0, Quetzal = 0 }
+	publishBounces()
 	lastToucher = nil
 	flightClean = false
 	restSince = nil
@@ -86,7 +83,7 @@ local function announce(call: string, team: string, notify: boolean)
 	ReplicatedStorage:SetAttribute("BallgameCall", call)
 	ReplicatedStorage:SetAttribute("BallgameCallTeam", team)
 	ReplicatedStorage:SetAttribute("BallgameCallSeq", callSeq)
-	local template = CALL_TEMPLATES[call]
+	local template = BallgameData.Calls[call]
 	local teamDef = Config.Arena.Teams[team]
 	if notify and template and teamDef then
 		Remotes.Notify:FireAllClients(template, { icon = teamDef.icon, name = teamDef.name })
@@ -99,7 +96,9 @@ local function endMatch(winner: string, call: string)
 	end
 	state = "Over"
 	BallService.setActive(false)
-	announce(call, winner, call ~= "Time")
+	-- Sin Notify: el banner del HUD (BallgameCall) ya dice «¡Aro! Gana …» y el de ArenaMatchService.finish
+	-- anuncia al ganador; con los dos carteles el segundo borraba al primero.
+	announce(call, winner, false)
 	local ctx = savedCtx
 	if ctx then
 		ctx.finish(winner)
@@ -128,7 +127,7 @@ local function addPoint(team: string, call: string)
 	pauseUntil = now() + Config.Arena.Ballgame.PointPauseSeconds
 	servingTeam = rival(team)
 	BallService.setActive(false)
-	announce(call, team, true)
+	announce(call, team, false)
 end
 
 -- Cierra el intento al aro: si fue un tiro bueno (Perfect) que se acercó o tocó el borde y no pasó, falta del que tiró.
@@ -157,6 +156,7 @@ local function onHit(info: BallHitService.HitInfo)
 	-- El roce pasivo también cuenta como toque.
 	lastToucher = info.team
 	bounces[info.team] = 0
+	publishBounces()
 	flightClean = true
 	restSince = nil
 	if info.quality == "Perfect" then
@@ -173,6 +173,7 @@ local function onBounce(event: any)
 	if (surface == "Floor" or surface == "Bench") and typeof(side) == "string" then
 		bounces[side] += 1
 		bounces[rival(side)] = 0
+		publishBounces()
 		if bounces[side] > Config.Arena.Ballgame.MaxBounces then
 			addPoint(rival(side), "ThreeBounces")
 		end
