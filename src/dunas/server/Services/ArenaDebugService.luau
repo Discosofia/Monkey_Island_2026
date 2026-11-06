@@ -20,6 +20,7 @@ local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
 local BallHitService = require(script.Parent.BallHitService)
 local BallService = require(script.Parent.BallService)
+local BallgameMode = require(script.Parent.Parent.Modes.Ballgame)
 
 local DUMMY_HEALTH = 300
 -- BallRing: la pelota sale de aquí (x local, y) hacia el centro del aro, con esta velocidad en X.
@@ -177,6 +178,19 @@ local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
 			return
 		end
 		BallHitService.force(player, zone, quality, root.CFrame.LookVector)
+	end,
+	-- Juego de pelota (26e): "equipo [aviso]" da la raya a ese equipo (aviso por defecto "Debug").
+	BallScore = function(_player, arg)
+		local words = if typeof(arg) == "string" then string.split(arg, " ") else {}
+		local team = words[1]
+		if team ~= "Jaguar" and team ~= "Quetzal" then
+			return
+		end
+		local call = if words[2] and words[2] ~= "" then words[2] else "Debug"
+		BallgameMode.debugPoint(team, call)
+	end,
+	BallState = function()
+		print(`[ArenaDebugService] {BallgameMode.debugState()}`)
 	end,
 	GoEnemyFlag = function(player)
 		local teamId = Arena.teamOf(player)

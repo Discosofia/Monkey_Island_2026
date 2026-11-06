@@ -5891,6 +5891,77 @@ El golpe (`Shared/BallHit`, `BallHitService` y `BallHitController`) se probó en
 16. [ ] Si ya no hace falta, borra la copia de depuración `u_8620190944_pre26d` de `PlayerData_v1_backups`.
     ✅ La copia ya no está en `PlayerData_v1_backups`. El perfil real no cambia.
 
+## 153. Fase 26 26e: reglas y partido del juego de pelota (06-11-2026)
+
+Las reglas y el partido (`Modes/Ballgame`) se probaron en Studio de Dunas con un jugador: arranque, tres botes, fuera con y sin último toque, pie, muro del fondo y muro propio, pelota parada de 3 s, intento fallido de aro y aro, 8 rayas, tiempo con ventaja y con empate (muerte súbita) y revancha. Lo que sigue sin probar es esto.
+
+### 153.1 Dos jugadores y latencia real
+
+1. [ ] Con 2 clientes en Dunas (*Prueba → Clientes y servidores*) en modo Juego de pelota 1v1, juega hasta una raya por tres botes seguidos en tu campo y mira el marcador en los dos clientes.
+    ✅ La raya cae para el mismo equipo en los dos, el marcador coincide y la pausa de 2,5 s se ve igual en los dos.
+2. [ ] Con 200 ms de ping en uno de los clientes, deja que la pelota salga por la línea de fondo y después que caiga en el muro del fondo rival.
+    ✅ La raya llega a los dos clientes sin retraso visible, y la pelota desaparece a la vez en los dos.
+3. [ ] Con 200 ms de ping, deja la pelota parada en el suelo y no la toques.
+    ✅ Sale «¡Pelota parada!» a los dos a la vez, unos 3 s después de parar, y la pausa empieza igual en los dos.
+4. [ ] Con 200 ms de ping en uno de los clientes, repite un saque después de una raya.
+    ✅ El saque sale del centro del pasillo hacia el campo del equipo que perdió la raya, en los dos clientes, y no desde su cabecera.
+
+### 153.2 Golpes reales y reglas (un jugador en Play, sin forzar)
+
+5. [ ] Salta con la pelota a la altura del pie y golpea, como en §152.2 paso 9.
+    ✅ Sale «¡Falta de pie!», la raya va al rival y el partido sigue tras la pausa.
+6. [ ] Con la pelota parada junto a ti, roza la pelota con el personaje (sin golpear) hasta que salga por fuera.
+    ✅ El roce cuenta como último toque: si sale por fuera, la raya es «¡Fuera!» para el rival, no para ti.
+7. [ ] Haz que la pelota caiga justo en la línea de fondo, y después un poco dentro y un poco fuera.
+    ✅ La raya sigue lo que dice `CourtGeometry.isOut` (fuera solo cuando la pelota ya ha pasado la línea). Si el marcador no coincide con lo que se ve, anota la posición.
+8. [ ] Con golpe Perfect, lanza tiros al aro que pasen sin entrar a unos 4, 5, 6, 7 y 8 studs del centro del aro.
+    ✅ A 6 studs o menos sale «¡Falló el aro!» y la raya va al rival; a más de 6 no cuenta como intento. Si un tiro a 6,5 o 7 studs cuenta, o uno a 5 no cuenta, anota la distancia: es el ajuste de `RingAttemptDistance`.
+9. [ ] Cronometra desde que la pelota para hasta que sale «¡Pelota parada!», con la pelota en el suelo y sin tocarla, varias veces.
+    ✅ Sale a los 3 s de parar (`RestSeconds`), ni antes ni después de medio segundo. Si se siente largo o corto, anota el valor que se probó.
+
+### 153.3 Partido completo, formatos y abandono
+
+10. [ ] Juega un partido completo 1v1 con 2 clientes hasta 8 rayas, o hasta que se acabe `MatchSeconds` si hay tiempo.
+    ✅ El partido acaba a la vez en los dos clientes, con el marcador final y los resultados.
+11. [ ] Prueba los formatos 2v2, 3v3, 4v4 y 5v5 (uno por partido) y mira el largo de la cancha y dónde aparece cada equipo.
+    ✅ La cancha mide 72, 88, 104 o 120 studs según el formato (1v1 son 56), cada equipo aparece en su cabecera y el saque sale del centro.
+12. [ ] Con 2 clientes, uno abandona o queda sin equipo mientras la pelota está en juego, y otra vez con la pelota parada.
+    ✅ La Salida del servidor no muestra errores, la pelota se para o desaparece, y el partido sigue o termina sin dejar un equipo vacío atascado. Anota qué pasó.
+
+### 153.4 Cola real Lobby → Dunas
+
+13. [ ] En el Lobby, elige «Juego de pelota» y el formato 1 en el selector, entra en la cola con 2 cuentas y mira la entrada a Dunas.
+    ✅ Las dos entran en modo Juego de pelota con la cancha de su formato y su equipo. La pelota no aparece hasta el primer saque, tras la pausa de 2,5 s.
+14. [ ] Al terminar el partido, pulsa revancha.
+    ✅ La revancha vuelve a la cola de Juego de pelota (no a Captura la bandera) y el marcador empieza en cero.
+15. [ ] Elige «Captura la bandera» en el selector y entra en Dunas.
+    ✅ La partida es la de siempre: sin pelota ni marcador de rayas (§146 sigue en pie).
+
+### 153.5 Profiler y roce del aro (cierra §151.2 paso 5 y ajusta §151.5)
+
+16. [ ] Con 2 clientes, un partido con la pelota activa y el oyente de partido de 26e (el que cuenta `bounce` y `rest`), mide el coste de `BallService` en el profiler de Play durante 30 s.
+    ✅ El coste queda por debajo de 0,3 ms por fotograma, y el oyente recibe cada `bounce` y `rest` una sola vez y en orden. Este paso cierra el paso 5 de §151.2.
+17. [ ] Con golpe Perfect, juega tiros al aro que rocen el borde y tiros que pasen limpios por el agujero, a 3 o 4 distancias del aro, con el partido en marcha.
+    ✅ Un roce con el borde sin entrar da raya al rival, y un pase limpio por el agujero da la victoria. Si un roce cuenta como pase o al revés, anota la distancia y el valor probado de `ringPass` (0,6 studs). Este paso cierra los pasos 10 y 11 de §151.5.
+
+### 153.6 Avisos y textos (hasta 26g)
+
+18. [ ] Con el idioma en inglés, provoca una falta por tres botes, una por fuera y un intento al aro fallado.
+    ✅ Los avisos salen en inglés con el equipo, por Notify (el marcador y el contador de botes aún no están: son de 26g). Por ejemplo «Three bounces! Point for…».
+19. [ ] Empieza un partido con 2 jugadores y mira el aviso de inicio.
+    ✅ Sale una vez «Let the match begin! First to 8 points or the ring» (o «…8 rayas o el aro» en español).
+
+### 153.7 Juego publicado, Creator Hub y perfil
+
+20. [ ] Publica el place de Dunas, entra con una cuenta y juega un partido de Juego de pelota. Mira la Salida del cliente y la del servidor.
+    ✅ No hay errores de `Ballgame`, `BallService` ni `ArenaDebugService`.
+21. [ ] Con la cuenta de administrador, pulsa «🏀 Partido: dar raya (equipo [aviso]: Jaguar Out)» y después «🏀 Partido: estado (se imprime)».
+    ✅ La raya suma al equipo que toca, el aviso sale por Notify y el estado se imprime en la Salida.
+22. [ ] Cuando la sesión principal haya subido las 10 frases nuevas de 26e a Creator Hub, comprueba con el idioma en inglés que los avisos del partido salen traducidos.
+    ✅ Las 10 claves están en la tabla de la nube con su traducción y el juego publicado las muestra en inglés.
+23. [ ] Compara el perfil real de tu cuenta con la copia `u_8620190944_pre26e` de `PlayerData_v1_backups`. Si el perfil cambió al salir del Play de prueba, restáuralo con la copia (VERIFICACION §10.0). Después borra la copia.
+    ✅ El perfil real coincide con la copia (o queda restaurado con ella), y `u_8620190944_pre26e` ya no está en `PlayerData_v1_backups`.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

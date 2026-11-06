@@ -1232,9 +1232,8 @@ local Config = {
 		MaxFormat = 5,
 		StudioFormat = 1,
 		-- Modos de la cola, en orden (la clave va en la lista de MemoryStore y en TeleportData "mode"). Los
-		-- nombres se traducen al dibujarlos (T(name)): Config no carga Strings. Ballgame (Fase 26e) aún no
-		-- está en la lista: su módulo existe, pero no se puede elegir.
-		Modes = { "CaptureFlag" },
+		-- nombres se traducen al dibujarlos (T(name)): Config no carga Strings.
+		Modes = { "CaptureFlag", "Ballgame" },
 		ModeNames = { CaptureFlag = "Captura la bandera", Ballgame = "Juego de pelota" },
 		-- Formatos que se pueden buscar en la cola de cada modo: jugadores por equipo (1v1…5v5).
 		ModeFormats = { CaptureFlag = { 1, 2, 3, 4, 5 }, Ballgame = { 1, 2, 3, 4, 5 } },
@@ -1251,6 +1250,19 @@ local Config = {
 		-- empate, muerte súbita: la siguiente captura gana).
 		MatchSeconds = 8 * 60,
 		CapturesToWin = 3,
+		-- Juego de pelota (Fase 26e): gana el primero a RaysToWin rayas, o el que pase la pelota por el aro.
+		Ballgame = {
+			RaysToWin = 8,
+			MatchSeconds = 8 * 60,
+			-- Botes seguidos que se permiten en el campo propio; el siguiente es raya para el rival.
+			MaxBounces = 2,
+			-- Segundos que la pelota puede estar parada antes de ser falta de quien defiende ese lado.
+			RestSeconds = 3,
+			-- Pausa tras una raya (y antes del primer saque), con la pelota desactivada.
+			PointPauseSeconds = 2.5,
+			-- Un tiro perfecto que pasa a menos de esto (studs) del centro del aro sin entrar, o roza el borde, es fallo.
+			RingAttemptDistance = 6,
+		},
 		ResultsSeconds = 20,
 		-- Al caer se reaparece en la base tras estos segundos (más si llevaba la bandera).
 		RespawnSeconds = 5,

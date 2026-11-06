@@ -112,6 +112,8 @@ local DebugCommands: { Island: { Command }, Lobby: { Command }, Dunas: { Command
 		{ id = "BallServe", label = "🏀 Pelota: saque" },
 		{ id = "BallRing", label = "🏀 Pelota: tiro al aro (alterna lado)" },
 		{ id = "BallHit", label = "🏀 Pelota: golpe forzado (zona calidad: Hip Perfect)" },
+		{ id = "BallScore", label = "🏀 Partido: dar raya (equipo [aviso]: Jaguar Out)" },
+		{ id = "BallState", label = "🏀 Partido: estado (se imprime)" },
 		{ id = "BestGear", label = "🛡️ Equipo lucido: nivel siguiente (0–4)" },
 		{ id = "GearShowcase", label = "🛡️ Expositor de armaduras y armas de cada rol (sí/no)" },
 		{ id = "Amber", label = "✨ +500 Ámbar" },

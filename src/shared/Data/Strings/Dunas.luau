@@ -55,6 +55,17 @@ return {
 	-- Avisos de la partida.
 	["⚔️ ¡Que empiece la batalla! Roba la bandera rival y tráela a tu base"] = "⚔️ Let the battle begin! Steal the enemy flag and bring it to your base",
 	["⚡ ¡Empate! Muerte súbita: la siguiente captura gana"] = "⚡ Tied! Sudden death: next capture wins",
+	-- Juego de pelota (Fase 26e).
+	["¡Que empiece el partido! Primero a {n} rayas o el aro"] = "Let the match begin! First to {n} points or the ring",
+	["¡Empate! Muerte súbita: la siguiente raya gana"] = "Tied! Sudden death: the next point wins",
+	["¡Tres botes! Raya para {icon} {name}"] = "Three bounces! Point for {icon} {name}",
+	["¡Fuera! Raya para {icon} {name}"] = "Out! Point for {icon} {name}",
+	["¡Falta de pie! Raya para {icon} {name}"] = "Foot fault! Point for {icon} {name}",
+	["¡Falló el aro! Raya para {icon} {name}"] = "Missed the ring! Point for {icon} {name}",
+	["¡Muro del fondo! Raya para {icon} {name}"] = "End wall! Point for {icon} {name}",
+	["¡Contra su propio muro! Raya para {icon} {name}"] = "Against their own wall! Point for {icon} {name}",
+	["¡Pelota parada! Raya para {icon} {name}"] = "Ball stopped! Point for {icon} {name}",
+	["¡Aro! Gana {icon} {name}"] = "Ring! {icon} {name} wins",
 	["No llegó el otro equipo: vuelven al Lobby"] = "The other team didn't show up: back to the Lobby",
 	["Un equipo se ha quedado vacío: se espera a más jugadores"] = "A team is empty: waiting for more players",
 	["🧪 Falta el otro equipo: usa el panel de pruebas para empezar solo"] = "🧪 The other team is missing: use the test panel to start alone",
