@@ -9,6 +9,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = require(ReplicatedStorage.Shared.Arena)
+local Ballgame = require(ReplicatedStorage.Shared.Data.Ballgame)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Killfeed = require(ServerScriptService.Combat.Killfeed)
@@ -17,8 +18,13 @@ local GearShowcase = require(ServerScriptService.ServerShared.GearShowcase)
 local PlayerData = require(ServerScriptService.ServerShared.PlayerData)
 local ArenaMatchService = require(script.Parent.ArenaMatchService)
 local ArenaWorldService = require(script.Parent.ArenaWorldService)
+local BallService = require(script.Parent.BallService)
 
 local DUMMY_HEALTH = 300
+-- BallRing: la pelota sale de aquí (x local, y) hacia el centro del aro, con esta velocidad en X.
+local RING_SHOT_X = -12
+local RING_SHOT_Y = 12
+local RING_SHOT_SPEED = 40
 
 local ArenaDebugService = {}
 
@@ -88,7 +94,67 @@ local function goToStand(player: Player, teamId: string?)
 	character:PivotTo(CFrame.new(stand.Position + Vector3.new(side * 6, 4, 0)))
 end
 
-local COMMANDS: { [string]: (player: Player) -> () } = {
+-- Los números sueltos de un texto "x y z vx vy vz" (o una tabla de ellos).
+local function numbersOf(arg: any): { number }
+	local values: { number } = {}
+	if typeof(arg) == "string" then
+		for token in string.gmatch(arg, "%-?%d+%.?%d*") do
+			table.insert(values, tonumber(token) or 0)
+		end
+	elseif typeof(arg) == "table" then
+		for _, value in arg do
+			if typeof(value) == "number" then
+				table.insert(values, value)
+			end
+		end
+	end
+	return values
+end
+
+-- Lado del aro que toca el siguiente BallRing sin argumento (alterna).
+local nextRingSide = -1
+
+-- Lanza la pelota desde x = RING_SHOT_X hacia el centro del aro del lado "zSign", para probar el pase.
+local function shootAtRing(zSign: number)
+	local ring = BallService.layout().ring
+	local time = -RING_SHOT_X / RING_SHOT_SPEED
+	local gravity = Ballgame.Gravity
+	-- Vertical para que el centro llegue a la altura del aro al cabo de "time" (la gravedad lo baja).
+	local vy = (ring.centerY - RING_SHOT_Y + 0.5 * gravity * time * time) / time
+	BallService.setActive(true)
+	BallService.place(Vector3.new(RING_SHOT_X, RING_SHOT_Y, zSign * ring.centerZ), Vector3.new(RING_SHOT_SPEED, vy, 0))
+end
+
+local COMMANDS: { [string]: (player: Player, arg: any) -> () } = {
+	-- La pelota del Juego de pelota (Fase 26c). El modo aún no está en Config.Arena.Modes: se activa a mano.
+	BallOn = function()
+		BallService.setActive(true)
+		if BallService.state().dead then
+			BallService.place(Vector3.new(0, Ballgame.Serve.Height, 0))
+		end
+	end,
+	BallOff = function()
+		BallService.setActive(false)
+	end,
+	BallServe = function()
+		BallService.setActive(true)
+		BallService.serve()
+	end,
+	-- "x y z vx vy vz" en coordenadas locales de la cancha (la velocidad es opcional).
+	BallPlace = function(_player, arg)
+		local n = numbersOf(arg)
+		if #n < 3 then
+			return
+		end
+		BallService.setActive(true)
+		BallService.place(Vector3.new(n[1], n[2], n[3]), Vector3.new(n[4] or 0, n[5] or 0, n[6] or 0))
+	end,
+	-- Lado del aro (-1 o 1); sin argumento, alterna.
+	BallRing = function(_player, arg)
+		local zSign = if arg == -1 or arg == 1 then arg else nextRingSide
+		nextRingSide = -zSign
+		shootAtRing(zSign)
+	end,
 	GoEnemyFlag = function(player)
 		local teamId = Arena.teamOf(player)
 		goToStand(player, if teamId then Arena.otherTeam(teamId) else nil)
@@ -159,7 +225,7 @@ function ArenaDebugService:Start()
 		end
 		local handler = if typeof(command) == "string" then COMMANDS[command] else nil
 		if handler then
-			handler(player)
+			handler(player, arg)
 		end
 	end)
 	print("[ArenaDebugService] Panel de pruebas activo (solo Studio).")

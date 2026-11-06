@@ -5796,6 +5796,53 @@ Probado en Play en el Studio de la Isla con `Voyage` y el ciclo forzado a mediod
 20. [ ] Publica la Isla y, con una cuenta, lanza «🚤 Travesía» a mediodía y después una escena de jefe.
     ✅ Salen a 5,95 y 18,8 (o 17,5 con Ceniza), y el reloj vuelve al real al acabar. Sin errores en la Salida del servidor ni del cliente.
 
+## 151. Fase 26 26c: la pelota de Dunas (05-11-2026)
+
+La pelota (`Shared/BallSim`, `BallService` y `BallController`) se probó en Studio de Dunas con un jugador: `BallSim` en modo edición (11 pruebas: botes, talud, paramento, `out`, muro del fondo, `ringPass`, rodar, alta velocidad, determinismo y fuzz), y en Play la pelota y la sombra en el cliente, el desvío cliente-servidor, el reposo con reenvío, la desaparición tras `out`, los comandos de depuración, el `ringPass` en los dos lados y el cambio de formato. Lo que sigue sin probar es esto.
+
+### 151.1 Dos jugadores y latencia real
+
+Con 2 clientes en Dunas (*Prueba → Clientes y servidores*), activa la pelota con «🏀 Pelota: activar» y saca con «🏀 Pelota: saque».
+
+1. [ ] Mira la pelota en los dos clientes durante un saque y varios botes.
+   ✅ Está en el mismo sitio en los dos (diferencia de unos pocos studs como mucho) y los botes coinciden.
+2. [ ] Simula 100 ms y después 200 ms de ping en uno de los clientes (la red simulada del Studio si la hay, o dos cuentas en redes distintas sobre el juego publicado) y repite un saque y un tiro con «🏀 Pelota: tiro al aro (alterna lado)».
+   ✅ La pelota se mueve sin saltos bruscos en los dos lados. Un desvío se disuelve en unos 0,15 s y solo salta de golpe si pasa de 8 studs. Si se ve un salto mayor, se anota el ping y el momento.
+3. [ ] Con 200 ms de ping, deja la pelota parada en el suelo durante 10 s y después saca otra vez.
+   ✅ Parada, se queda quieta en los dos clientes, sin desaparecer ni moverse sola. El saque siguiente se ve en los dos.
+
+### 151.2 Profiler del servidor
+
+4. [ ] Con la pelota activa y un saque en marcha durante 30 s y 2 clientes, mira el coste de `BallService` en el profiler del servidor (el de Studio en modo Play, con cliente y servidor).
+   ✅ Su coste queda por debajo de 0,3 ms por fotograma.
+5. [ ] Cuando 26e tenga un oyente de servidor (`BallService.onEvent`), conecta uno que cuente los eventos `bounce` y `rest` de un partido con la pelota activa, y mide el coste otra vez con el profiler.
+   ✅ El coste total sigue por debajo de 0,3 ms por fotograma, y el oyente recibe cada evento una vez y en orden. Se hace al cerrar 26e, no antes.
+
+### 151.3 Juego publicado
+
+6. [ ] Publica el place de Dunas, entra con una cuenta y mira la Salida del cliente y la del servidor al cargar la partida.
+   ✅ No hay errores de `BallController` ni de `BallService`.
+7. [ ] Con la cuenta de administrador, pulsa «🏀 Pelota: activar» y después «🏀 Pelota: saque».
+   ✅ Aparecen la pelota y su sombra en el cliente. La sombra cae sobre la cancha y se aclara al subir la pelota.
+
+### 151.4 En el teléfono
+
+Elige un teléfono en *Prueba → Dispositivo* antes del ▶.
+
+8. [ ] Activa la pelota con «🏀 Pelota: activar», saca con «🏀 Pelota: saque» y mira la pelota desde la cámara de la Dunas.
+   ✅ La pelota se ve nítida sobre la arena, y su sombra se lee en el suelo sin confundirse con la pelota.
+9. [ ] Lanza «🏀 Pelota: tiro al aro (alterna lado)» y sigue la pelota hasta el aro.
+   ✅ Se distingue el aro y su agujero, y la pelota se sigue viendo al pasar por él.
+
+### 151.5 Roce del aro
+
+El roce con el borde del aro usa un umbral de 0,6 studs. Está sin ajustar: se prueba al jugar y se corrige en 26d o 26e, no antes.
+
+10. [ ] Con 1 o 2 jugadores, lanza «🏀 Pelota: tiro al aro (alterna lado)» varias veces y mira los roces con el borde y los pases por el agujero.
+    ✅ Un roce con el borde rebota a la vista, y un pase limpio por el agujero se lee como pase, sin quedarse pegado en el aro. Si un roce cuenta como pase o al revés, se anota el tiro.
+11. [ ] Cuando 26d permita golpear, juega varias jugadas de aro a 3 o 4 distancias del aro y di si el roce se siente justo.
+    ✅ Un roce que toca el borde se lee como roce y un pase limpio como pase. Si no se siente justo, se anota el valor que se probó: el ajuste se hace en 26d o 26e.
+
 ## Cuando termines
 
 Si todo va bien, sigue con [LANZAMIENTO.md](LANZAMIENTO.md). Si algo falla, avísame con el número de paso y las líneas rojas de la Salida.

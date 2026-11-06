@@ -1382,7 +1382,7 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 |---|---|---|---|
 | **26a** | Modos en Dunas: la bandera sale a `Modes/CaptureFlag` (misma interfaz que el Laboratorio); `Config.Arena.Modes`, `ModeNames`, `ModeFormats` y `StudioMode`; `Shared/ArenaModes`; cola por modo (`ArenaQueue_<modo>_<formato>`, con `mode` y `format` en `TeleportData`); `ArenaWorldService.setMode` como esqueleto para el mapa de cada modo; `Modes/Ballgame` como placeholder | commit pendiente | ✅ Hecha sin commit (probada en Studio con un jugador: la bandera igual que antes). Lo que falta, en VERIFICACION §146 |
 | **26b** | La cancha: `World/CourtBuilder` con versión propia y `Workspace.Cancha` (pasillo de 26 studs, largo según el formato, cabeceras 22×80, muros con banqueta, talud, paramento y aro, colores de los cuatro rumbos), `setFormat`, muro invisible de equipo (`TeamBarrier`) y tope `Config.Budgets.Matches.CourtParts` (800; 248 piezas con 5v5) | commit pendiente | ✅ Hecha, commit pendiente (probada en Studio de Dunas por MCP con un jugador: layout 1/3/5, apariciones por equipo, muro de equipo y bandera igual). Lo que falta, en VERIFICACION §148 |
-| **26c** | La pelota: `Shared/BallSim` (matemática pura, mismo código en servidor y cliente), `Data/Ballgame` (números de la pelota y de los golpes), `BallService` (simula a 60 Hz y manda el estado a 20 Hz), `BallController` (predicción con suavizado) y remotos `BallState`, `BallEvent` y `BallHit` | — | ⏳ |
+| **26c** | La pelota: `Shared/BallSim` (matemática pura, mismo código en servidor y cliente), `Data/Ballgame` (números de la pelota y de los golpes), `BallService` (simula a 60 Hz y manda el estado a 20 Hz), `BallController` (predicción con suavizado) y remotos `BallState`, `BallEvent` y `BallHit` | commit pendiente | ✅ Hecha, commit pendiente (probada en Studio de Dunas con un jugador: 11 pruebas de `BallSim` en edición y, en Play, pelota y sombra en el cliente, desvío y reposo, comandos de depuración y cambio de formato). Lo que falta, en VERIFICACION §151 |
 | **26d** | El golpe: botón «Golpear» en el móvil y clic o tecla en el PC, zona por altura (rodilla, cadera, codo), falta por pie, ventana perfecta de 0,15 s y ventana buena, anillo de tiempo, dirección hacia donde miras, validación en el servidor y animaciones de `AnimationTrack` (las publica el usuario) | — | ⏳ |
 | **26e** | Reglas y partido: `Modes/Ballgame` (saque por la raya perdida, rayas por bote, fuera, pie y aro fallado, tiro al muro del fondo rival, aro de victoria, 8 rayas o `MatchSeconds`, muerte súbita y pelota parada 3 s); el modo entra en `Config.Arena.Modes` | — | ⏳ |
 | **26f** | Habilidades de rol sin daño: Guerrero «Golpe de yugo», Cazador «Salto de jaguar», Mago «Viento» y Médico «Paso ligero», desde `CombatRules`, medidas con `Equilibrio` por recargas | — | ⏳ |
@@ -1395,8 +1395,8 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 - Repetición a cámara lenta del aro, sonidos de impacto y celebración.
 
 **Handoff de la Fase 26 (05-11-2026)**
-- **Estado (05-11-2026):** 26a y 26b hechas, sin commit. Sus hashes van en las filas cuando se commiteen (commit aparte de PLAN). Queda 26c, la pelota.
-- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado) y §148 (26b: Rendimiento, la cancha publicada, 2 jugadores, móvil y PC, iluminación).
+- **Estado (05-11-2026):** 26a, 26b y 26c hechas, sin commit. Sus hashes van en las filas cuando se commiteen (commit aparte de PLAN). Queda 26d, el golpe.
+- **Pendiente de tu parte:** VERIFICACION §146 (26a con 2 jugadores y el juego publicado), §148 (26b: Rendimiento, la cancha publicada, 2 jugadores, móvil y PC, iluminación) y §151 (26c: latencia con 2 jugadores, profiler, juego publicado, teléfono y roce del aro).
 - **Qué necesita 26c de la cancha:** la fuente única de medidas es `src/shared/CourtGeometry.luau`. `BallSim` usa sus funciones y constantes, no números propios.
   - `CourtGeometry.forFormat(format)` devuelve el `Layout` del formato (`length`, `halfLength`, `halfWidth`, `endX`, `headerHalfWidth`, `profile`, `ring`, `spawns`, `waiting`). `LENGTHS` = 56, 72, 88, 104 y 120 para 1 a 5 jugadores por equipo.
   - `surfaceY(absZ)` da la altura de la superficie a esa distancia lateral del eje (suelo 0, banqueta 2, talud hasta 10) o `nil` si ahí hay un muro vertical. `isOut(layout, x)` es fuera por la línea de fondo. `teamOfSide(x)` da el equipo que defiende ese lado (Jaguar en X negativa, Quetzal en positiva; `nil` en la línea central).
@@ -1411,7 +1411,39 @@ Segundo modo de Dunas: una cancha de juego de pelota mesoamericano basada en `do
 - **Tope de piezas:** `Rendimiento` solo existe en el Studio de la Isla y no mide `Workspace.Cancha`. El tope es `Config.Budgets.Matches.CourtParts` = 800; medido a mano, 248 piezas con 5v5 sin fusionar.
 - **Trampa de la caché de `require`:** para ver un cambio en `CourtGeometry` o en `CourtBuilder`, clona la carpeta `Shared` entera, renómbrala y haz `require` del clon. Un `require` suelto reutiliza la copia vieja. Así se probó 26b.
 - **Pendiente de decidir:** la cancha decorativa de `ArenaBuilder.buildCourtWall` (`src/dunas/server/World/ArenaBuilder.luau`, línea ~1407) sigue en el centro del mapa de bandera. 26b no la quita; decidir antes de 26e.
-- **Siguiente paso, 26c:** `Shared/BallSim` (matemática pura con las medidas de `CourtGeometry`), `Data/Ballgame`, `BallService` (60 Hz de simulación y 20 Hz de estado), `BallController` y los remotos `BallState`, `BallEvent` y `BallHit`. Escala: 1 stud ≈ 0,28 m.
+- **Hecho en 26c (commit pendiente):**
+  - `Shared/BallSim` es matemática pura, la misma en servidor y cliente. Va en coordenadas locales de la cancha con paso fijo `BallSim.STEP` (1/60 s). Funciones: `new`, `step`, `clone`, `snapshot`, `restore` e `inDomain`. Las medidas vienen de `CourtGeometry`.
+  - `BallService` (`src/dunas/server/Services/BallService.luau`) simula a 60 Hz y difunde el estado a 20 Hz por `Remotes.BallState` (no fiable). Cada evento va por `Remotes.BallEvent` (fiable). `BallController` (`src/dunas/client/Controllers/BallController.luau`) dibuja la pelota y su sombra, predice con `BallSim` y suaviza el desvío.
+  - Remotos nuevos: solo `BallState` y `BallEvent`. La fila de 26c nombra también `BallHit`, que no existe todavía: lo crea 26d.
+  - Escala: 1 stud ≈ 0,28 m. `CourtGeometry.BALL_RADIUS` = 1.
+- **API de `BallService` (para 26d y 26e):**
+  - `setActive(bool)` y `isActive()`: sin activar no simula ni manda nada. El atributo `BallActive` de `ReplicatedStorage` avisa a los clientes.
+  - `place(localPos, localVel?)`: coloca la pelota. `serve(teamId?)`: saque desde el centro del pasillo, con `Data.Serve`.
+  - `state()`: devuelve una copia (`BallSim.clone`), nunca el estado vivo.
+  - `applyImpulse(velocity)`: suma la velocidad en coordenadas locales, con el tope `Data.MaxSpeed`. Despierta la pelota si estaba parada. No hace nada si está muerta (tras `out`). No comprueba si el servicio está activo.
+  - `onEvent(listener)`: se suscribe a los eventos de cada paso de `BallSim.step`, en su orden. Devuelve la función que desconecta.
+  - `layout()`: `CourtGeometry.forFormat(Arena.format())`, con caché por formato.
+- **Eventos de `BallSim.step`** (cada uno es `{ kind = …, … }`):
+  - `bounce`: `surface` (la superficie: `Floor`, `Bench`, `Talud`, `Ring`, `Wall`… las claves de `Data.Restitution`), `side` (equipo que defiende ese lado; `nil` en la línea central), `pos` (local) y `speed` (velocidad normal). Solo sale si la velocidad normal supera `MinBounceSpeed` (3).
+  - `endWall`: `sign` (lado X del muro del fondo que golpea).
+  - `crossEndLine` y `returnEndLine`: `sign` y `pos`. Cruzar la línea de fondo y volver.
+  - `ringPass`: `zSign` (qué aro, -1 o 1) y `dir` (sentido en X con el que atraviesa el agujero).
+  - `ringRim`: `zSign`. Roce del borde del aro.
+  - `out`: `pos`. La pelota sale de la cancha y queda muerta.
+  - `rest`: `pos` y `surface`. Se para, o rueda hasta parar.
+- **Constantes (`Data/Ballgame`):**
+  - `Gravity` 70, `AirDrag` 0,05 (por segundo), `TangentialKeep` 0,92, `RestSpeed` 2,5, `RollingDecel` 14, `MaxSpeed` 140, `MinBounceSpeed` 3.
+  - `Restitution`: Floor, Bench, Riser y Talud 0,72; Wall, EndWall, HeaderWall y AlleyEnd 0,8; Ring 0,85.
+  - `Serve`: Height 10, Horizontal 12, Vertical 16, SideSpeed 3.
+  - `Net`: StateHz 20, SnapDistance 8, SmoothSeconds 0,15, RestResendSeconds 1, MaxCatchUp 0,3.
+  - El umbral de roce del aro (`ringPass`) es ≈0,6 studs (`innerRadius` − radio). Se ajusta en 26d o 26e al jugar: VERIFICACION §151.5.
+- **Golpe de 26d:** el servidor valida (zona por altura, ventana, dirección) y solo entonces llama a `BallService.applyImpulse`. El cliente predice con `BallSim` sobre una copia de su estado (`BallSim.clone`), usando el mismo impulso que el servidor. El estado que llega por `BallState` lo corrige. Antes de tocar nada hay que medir el desvío, que en 26c fue de 1,08 studs como máximo.
+- **Comandos de depuración** (`ArenaDebugService`, en Dunas): `BallOn`, `BallOff`, `BallServe`, `BallPlace` y `BallRing` (tiro al aro, alterna lado). `DebugCommands` tiene botón para `BallOn`, `BallOff`, `BallServe` y `BallRing`. `BallPlace` no tiene botón.
+- **Trampas de 26c:**
+  1. `BallService.layout()` usa `Arena.format()`, que lee el atributo `ReplicatedStorage.ArenaFormat` (lo fija `ArenaMatchService`), no el formato de `ArenaWorldService.setFormat`. Para probar a mano hay que poner ese atributo.
+  2. El `require` del MCP en el Server, en Play, es otra copia y no comparte estado con el juego. Para tocar la pelota en Play se disparan los remotos de depuración desde el cliente.
+  3. `BallState` llega a unos 17–19 paquetes/s en lugar de 20, por la cuantización de Roblox a 60 Hz. No es un fallo, pero hay que tenerlo en cuenta al medir.
+- **Siguiente paso, 26d:** el golpe (botón «Golpear» en el móvil, clic o tecla en el PC, zona por altura, ventana perfecta de 0,15 s, anillo de tiempo, dirección hacia donde miras y validación en el servidor). Crea el remoto `BallHit` y usa `applyImpulse`. Las animaciones son `AnimationTrack` y las publica el usuario.
 
 ---
 

@@ -27,6 +27,17 @@ local function remoteEvent(name: string): RemoteEvent
 	return folder:WaitForChild(name) :: RemoteEvent
 end
 
+-- Igual que remoteEvent, pero no fiable: puede perderse o llegar desordenado (estado que se repite sin parar).
+local function unreliableRemote(name: string): UnreliableRemoteEvent
+	if RunService:IsServer() then
+		local remote = Instance.new("UnreliableRemoteEvent")
+		remote.Name = name
+		remote.Parent = folder
+		return remote
+	end
+	return folder:WaitForChild(name) :: UnreliableRemoteEvent
+end
+
 local Remotes = {
 	-- Cliente -> servidor (Lobby): el jugador quiere ir a la Isla.
 	RequestJoinIsland = remoteEvent("RequestJoinIsland"),
@@ -296,6 +307,13 @@ local Remotes = {
 	-- (RangeDebugService), con el atributo del jugador DebugRangeTraces activo. ("Trace", { origin, aim,
 	-- direction, hit, pingMs, rewind }).
 	RangeDebug = remoteEvent("RangeDebug"),
+	-- Servidor -> todos (Dunas, Juego de pelota, Fase 26c): el estado de la pelota a Data/Ballgame.Net.StateHz, no
+	-- fiable. Una tabla { t = hora del servidor, pos, vel (coordenadas LOCALES de la cancha), resting, dead }.
+	-- BallService lo manda; BallController lo predice con Shared/BallSim.
+	BallState = unreliableRemote("BallState"),
+	-- Servidor -> todos (Dunas, Fase 26c): un evento de la simulación de la pelota (bote, aro, fuera…), fiable.
+	-- La tabla de Shared/BallSim ({ kind, … }) más t = hora del servidor.
+	BallEvent = remoteEvent("BallEvent"),
 }
 
 return Remotes

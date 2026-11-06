@@ -42,9 +42,8 @@ local COURT_NAME = "Court"
 -- Sube este número al cambiar la cancha: los places con una versión anterior guardada la reconstruyen solos.
 local VERSION = 4
 
--- Dónde queda el origen local de la cancha en el mundo. Z = 1400: Workspace.Arena tiene un suelo de 1800 × 1800
--- (hasta z = 900) y su horizonte llega a ~800, y el desierto de la cancha empieza en z ≈ 940.
-local CENTER = Vector3.new(0, 0, 1400)
+-- Dónde queda el origen local de la cancha en el mundo (el valor y su porqué, en Shared/CourtGeometry).
+local CENTER = CourtGeometry.CENTER
 
 -- La plaza superior: sobre el nivel 20, con el borde exterior en x = ±124 y z = ±62,5 (40 studs desde el
 -- paramento, y 40 desde el fondo de las cabeceras del formato 5v5).

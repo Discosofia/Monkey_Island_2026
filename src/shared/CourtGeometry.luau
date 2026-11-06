@@ -51,6 +51,11 @@ export type Layout = {
 	waiting: Vector3,
 }
 
+-- Dónde queda el origen local de la cancha en el mundo. Z = 1400: Workspace.Arena tiene un suelo de 1800 × 1800
+-- (hasta z = 900) y su horizonte llega a ~800, y el desierto de la cancha empieza en z ≈ 940. Lo usan el
+-- constructor (servidor) y el dibujo de la pelota (cliente).
+CourtGeometry.CENTER = Vector3.new(0, 0, 1400)
+
 CourtGeometry.MIN_FORMAT = 1
 CourtGeometry.MAX_FORMAT = 5
 -- Largo del pasillo por formato (jugadores por equipo).
